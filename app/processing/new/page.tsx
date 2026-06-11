@@ -1,7 +1,7 @@
 // app/processing/new/page.tsx
 // 服务端组件:抓取可选投料批次 + 物料列表,渲染客户端表单
 import { createClient } from '@/lib/supabase/server'
-import NewProcessingForm from './NewProcessingForm'
+import NewProcessingForm, { type InboundBatchOption } from './NewProcessingForm'
 
 export default async function NewProcessingPage() {
     const supabase = await createClient()
@@ -35,7 +35,7 @@ export default async function NewProcessingPage() {
 
     return (
         <NewProcessingForm
-            inboundBatches={batchesRes.data ?? []}
+            inboundBatches={(batchesRes.data as unknown as InboundBatchOption[] | null) ?? []}
             materials={materialsRes.data ?? []}
         />
     )

@@ -8,7 +8,7 @@ import {
 } from './actions'
 import { UNIT_OPTIONS } from '../../materials/options'
 
-type InboundBatchOption = {
+export type InboundBatchOption = {
     id: string
     code: string
     remaining_qty: number

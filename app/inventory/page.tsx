@@ -4,6 +4,14 @@ import { createClient } from '@/lib/supabase/server'
 
 type MaterialEmbed = { name: string; category: string } | null
 
+// FK 嵌入运行时是对象;显式类型 + cast 锁住。
+type StockRow = {
+    material_id: string
+    remaining_qty: number
+    unit: string
+    materials: MaterialEmbed
+}
+
 type InventoryRow = {
     material_id: string
     name: string | null
@@ -46,12 +54,9 @@ export default async function InventoryPage() {
         )
     }
 
-    const inbound = inboundRes.data ?? []
-    const output = outputRes.data ?? []
+    const inbound = (inboundRes.data as unknown as StockRow[] | null) ?? []
+    const output = (outputRes.data as unknown as StockRow[] | null) ?? []
     const runs = runsRes.data ?? []
-
-    // 注意:Supabase 把 M:1 嵌入资源有时推断为对象,有时为数组。
-    // 如果 TS 报错说 b.materials 是数组,把 b.materials 改成 b.materials?.[0]。
 
     // 按 material_id 聚合
     const rowsByMaterial = new Map<string, InventoryRow>()

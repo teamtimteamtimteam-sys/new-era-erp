@@ -4,12 +4,27 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import DeleteButton from './DeleteButton'
 
+// FK 嵌入运行时是对象;显式类型 + cast 锁住,避免 TS 默认数组推断。
+type OutputRow = {
+    id: string
+    code: string
+    quantity: number
+    unit: string
+    remaining_qty: number
+    output_date: string | null
+    state: string
+    status: string
+    created_at: string
+    materials: { name: string } | null
+    customers: { legal_name: string } | null
+}
+
 export default async function OutputPage() {
     const supabase = await createClient()
 
     // 嵌入外键:materials 和 customers 通过 material_id / customer_id 关联。
     // 注意:customer_id 可空,库存中的批次还没指派客户,customers 会是 null。
-    const { data: batches, error } = await supabase
+    const { data, error } = await supabase
         .from('output_batches')
         .select(`
             id, code, quantity, unit, remaining_qty, output_date, state, status, created_at,
@@ -19,10 +34,7 @@ export default async function OutputPage() {
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
 
-    // 注意:Supabase 把 M:1 嵌入资源有时推断为对象,有时为数组。
-    // 如果 TS 报错说 b.materials / b.customers 是数组,把下面的
-    //   b.materials?.name       改成   b.materials?.[0]?.name
-    //   b.customers?.legal_name 改成  b.customers?.[0]?.legal_name
+    const batches = data as unknown as OutputRow[] | null
 
     if (error) {
         return (

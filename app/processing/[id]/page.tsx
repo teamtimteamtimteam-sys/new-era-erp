@@ -2,6 +2,30 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
+// FK 嵌入运行时是对象(包括两层嵌套);显式类型 + cast 锁住。
+type ProcessingInputRow = {
+    id: string
+    quantity_consumed: number
+    inbound_batches: {
+        id: string
+        code: string
+        unit: string
+        materials: { name: string } | null
+    } | null
+}
+
+type ProcessingOutputRow = {
+    id: string
+    quantity_produced: number
+    output_batches: {
+        id: string
+        code: string
+        unit: string
+        purity: string | null
+        materials: { name: string } | null
+    } | null
+}
+
 export default async function ProcessingDetailPage({
     params,
 }: {
@@ -29,10 +53,6 @@ export default async function ProcessingDetailPage({
             .order('created_at'),
     ])
 
-    // 注意:Supabase 把 M:1 嵌入资源有时推断为对象,有时为数组(这里是两层嵌套)。
-    // 如果 TS 报错说 leg.inbound_batches / leg.output_batches 或它们的
-    // .materials 是数组,把对应的 ?. 改成 ?.[0]?.
-
     if (runRes.error || !runRes.data) {
         notFound()
     }
@@ -51,8 +71,8 @@ export default async function ProcessingDetailPage({
     }
 
     const run = runRes.data
-    const inputs = inputsRes.data
-    const outputs = outputsRes.data
+    const inputs = inputsRes.data as unknown as ProcessingInputRow[] | null
+    const outputs = outputsRes.data as unknown as ProcessingOutputRow[] | null
 
     return (
         <div className="p-8 max-w-3xl">

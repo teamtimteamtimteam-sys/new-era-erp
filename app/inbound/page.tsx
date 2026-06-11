@@ -4,11 +4,26 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import DeleteButton from './DeleteButton'
 
+// FK 嵌入运行时是对象;TS 默认猜数组(无生成 DB 类型),用显式类型 + cast 锁住。
+type InboundRow = {
+    id: string
+    code: string
+    quantity: number
+    unit: string
+    remaining_qty: number
+    arrival_date: string | null
+    stage: string
+    status: string
+    created_at: string
+    materials: { name: string } | null
+    suppliers: { legal_name: string } | null
+}
+
 export default async function InboundPage() {
     const supabase = await createClient()
 
     // 嵌入外键:materials 和 suppliers 通过 material_id / supplier_id 关联
-    const { data: batches, error } = await supabase
+    const { data, error } = await supabase
         .from('inbound_batches')
         .select(`
             id, code, quantity, unit, remaining_qty, arrival_date, stage, status, created_at,
@@ -18,10 +33,7 @@ export default async function InboundPage() {
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
 
-    // 注意:Supabase 把 M:1 嵌入资源有时推断为对象,有时为数组。
-    // 如果 TS 报错说 b.materials / b.suppliers 是数组,把下面的
-    //   b.materials?.name      改成   b.materials?.[0]?.name
-    //   b.suppliers?.legal_name 改成  b.suppliers?.[0]?.legal_name
+    const batches = data as unknown as InboundRow[] | null
 
     if (error) {
         return (
