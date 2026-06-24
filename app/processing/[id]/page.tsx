@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import DeleteButton from './DeleteButton'
 
 // FK 嵌入运行时是对象(包括两层嵌套);显式类型 + cast 锁住。
 type ProcessingInputRow = {
@@ -85,14 +86,19 @@ export default async function ProcessingDetailPage({
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-2">加工单详情</h1>
-            <p className="text-sm text-gray-600 mb-6">
-                <span className="font-mono">{run.code}</span>
-                <span className="mx-2">·</span>
-                <span className="px-2 py-0.5 bg-gray-200 rounded text-xs">
-                    {run.status}
-                </span>
-            </p>
+            <div className="flex items-start justify-between mb-6">
+                <div>
+                    <h1 className="text-2xl font-bold mb-2">加工单详情</h1>
+                    <p className="text-sm text-gray-600">
+                        <span className="font-mono">{run.code}</span>
+                        <span className="mx-2">·</span>
+                        <span className="px-2 py-0.5 bg-gray-200 rounded text-xs">
+                            {run.status}
+                        </span>
+                    </p>
+                </div>
+                <DeleteButton runId={run.id} />
+            </div>
 
             <div className="space-y-6">
                 {/* 概况 */}
