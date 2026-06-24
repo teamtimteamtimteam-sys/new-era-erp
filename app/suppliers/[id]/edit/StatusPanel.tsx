@@ -8,19 +8,22 @@ import {
     TRANSITION_LABELS,
     DESTRUCTIVE_TRANSITIONS,
 } from './statusMachine'
+import type { Database } from '@/lib/database.types'
+
+type SupplierStatus = Database['public']['Enums']['supplier_status']
 
 export default function StatusPanel({
     id,
     currentStatus,
 }: {
     id: string
-    currentStatus: string
+    currentStatus: SupplierStatus
 }) {
     const [isPending, startTransition] = useTransition()
 
     const allowedTargets = ALLOWED_TRANSITIONS[currentStatus] ?? []
 
-    function handleClick(targetStatus: string) {
+    function handleClick(targetStatus: SupplierStatus) {
         const targetLabel = TRANSITION_LABELS[targetStatus] ?? targetStatus
         const currentLabel = STATUS_LABELS[currentStatus] ?? currentStatus
 

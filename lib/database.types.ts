@@ -1,0 +1,701 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
+  public: {
+    Tables: {
+      customers: {
+        Row: {
+          address: string | null
+          code: string
+          country: string
+          created_at: string
+          created_by: string | null
+          credit_rating: string | null
+          customer_types: string[] | null
+          deleted_at: string | null
+          id: string
+          incoterm: string | null
+          legal_name: string
+          notes: string | null
+          payment_terms: string | null
+          short_name: string | null
+          status: string
+          tax_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          address?: string | null
+          code: string
+          country: string
+          created_at?: string
+          created_by?: string | null
+          credit_rating?: string | null
+          customer_types?: string[] | null
+          deleted_at?: string | null
+          id?: string
+          incoterm?: string | null
+          legal_name: string
+          notes?: string | null
+          payment_terms?: string | null
+          short_name?: string | null
+          status?: string
+          tax_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          address?: string | null
+          code?: string
+          country?: string
+          created_at?: string
+          created_by?: string | null
+          credit_rating?: string | null
+          customer_types?: string[] | null
+          deleted_at?: string | null
+          id?: string
+          incoterm?: string | null
+          legal_name?: string
+          notes?: string | null
+          payment_terms?: string | null
+          short_name?: string | null
+          status?: string
+          tax_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      inbound_batches: {
+        Row: {
+          arrival_date: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          material_id: string
+          notes: string | null
+          quantity: number
+          remaining_qty: number
+          stage: string
+          status: string
+          supplier_id: string
+          unit: string
+          unit_price: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          arrival_date?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          material_id: string
+          notes?: string | null
+          quantity: number
+          remaining_qty: number
+          stage?: string
+          status?: string
+          supplier_id: string
+          unit?: string
+          unit_price?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          arrival_date?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          material_id?: string
+          notes?: string | null
+          quantity?: number
+          remaining_qty?: number
+          stage?: string
+          status?: string
+          supplier_id?: string
+          unit?: string
+          unit_price?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      materials: {
+        Row: {
+          category: string
+          chemistry: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          name: string
+          notes: string | null
+          spec: string | null
+          status: string
+          unit: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          category: string
+          chemistry?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          spec?: string | null
+          status?: string
+          unit?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          category?: string
+          chemistry?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          spec?: string | null
+          status?: string
+          unit?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      output_batches: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          deleted_at: string | null
+          id: string
+          material_id: string
+          notes: string | null
+          output_date: string | null
+          purity: string | null
+          quantity: number
+          remaining_qty: number
+          state: string
+          status: string
+          unit: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          deleted_at?: string | null
+          id?: string
+          material_id: string
+          notes?: string | null
+          output_date?: string | null
+          purity?: string | null
+          quantity: number
+          remaining_qty: number
+          state?: string
+          status?: string
+          unit?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          deleted_at?: string | null
+          id?: string
+          material_id?: string
+          notes?: string | null
+          output_date?: string | null
+          purity?: string | null
+          quantity?: number
+          remaining_qty?: number
+          state?: string
+          status?: string
+          unit?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "output_batches_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "output_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processing_inputs: {
+        Row: {
+          created_at: string
+          id: string
+          inbound_batch_id: string
+          quantity_consumed: number
+          run_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          inbound_batch_id: string
+          quantity_consumed: number
+          run_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          inbound_batch_id?: string
+          quantity_consumed?: number
+          run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_inputs_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_inputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processing_outputs: {
+        Row: {
+          created_at: string
+          id: string
+          output_batch_id: string
+          quantity_produced: number
+          run_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          output_batch_id: string
+          quantity_produced: number
+          run_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          output_batch_id?: string
+          quantity_produced?: number
+          run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_outputs_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processing_runs: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          loss_qty: number | null
+          notes: string | null
+          process_date: string | null
+          status: string
+          total_input: number | null
+          total_output: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          loss_qty?: number | null
+          notes?: string | null
+          process_date?: string | null
+          status?: string
+          total_input?: number | null
+          total_output?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          loss_qty?: number | null
+          notes?: string | null
+          process_date?: string | null
+          status?: string
+          total_input?: number | null
+          total_output?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      supplier_compliance: {
+        Row: {
+          cert_no: string | null
+          cert_type: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          document_id: string | null
+          id: string
+          issuing_body: string | null
+          notes: string | null
+          supplier_id: string
+          updated_at: string
+          updated_by: string | null
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          cert_no?: string | null
+          cert_type: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          document_id?: string | null
+          id?: string
+          issuing_body?: string | null
+          notes?: string | null
+          supplier_id: string
+          updated_at?: string
+          updated_by?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          cert_no?: string | null
+          cert_type?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          document_id?: string | null
+          id?: string
+          issuing_body?: string | null
+          notes?: string | null
+          supplier_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_compliance_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppliers: {
+        Row: {
+          address: string | null
+          code: string
+          country: string
+          created_at: string
+          created_by: string | null
+          credit_rating: string | null
+          deleted_at: string | null
+          id: string
+          incoterm: string | null
+          legal_name: string
+          notes: string | null
+          owner_id: string | null
+          payment_terms: string | null
+          short_name: string | null
+          status: Database["public"]["Enums"]["supplier_status"]
+          supplier_types: string[]
+          tax_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          address?: string | null
+          code: string
+          country: string
+          created_at?: string
+          created_by?: string | null
+          credit_rating?: string | null
+          deleted_at?: string | null
+          id?: string
+          incoterm?: string | null
+          legal_name: string
+          notes?: string | null
+          owner_id?: string | null
+          payment_terms?: string | null
+          short_name?: string | null
+          status?: Database["public"]["Enums"]["supplier_status"]
+          supplier_types?: string[]
+          tax_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          address?: string | null
+          code?: string
+          country?: string
+          created_at?: string
+          created_by?: string | null
+          credit_rating?: string | null
+          deleted_at?: string | null
+          id?: string
+          incoterm?: string | null
+          legal_name?: string
+          notes?: string | null
+          owner_id?: string | null
+          payment_terms?: string | null
+          short_name?: string | null
+          status?: Database["public"]["Enums"]["supplier_status"]
+          supplier_types?: string[]
+          tax_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      commit_processing_run: {
+        Args: {
+          p_inputs: Json
+          p_loss_qty: number
+          p_notes: string
+          p_outputs: Json
+          p_process_date: string
+        }
+        Returns: string
+      }
+      rollback_processing_run: {
+        Args: { p_run_id: string }
+        Returns: undefined
+      }
+    }
+    Enums: {
+      supplier_status:
+        | "draft"
+        | "pending_review"
+        | "approved"
+        | "rejected"
+        | "active"
+        | "suspended"
+        | "blacklisted"
+        | "archived"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      supplier_status: [
+        "draft",
+        "pending_review",
+        "approved",
+        "rejected",
+        "active",
+        "suspended",
+        "blacklisted",
+        "archived",
+      ],
+    },
+  },
+} as const

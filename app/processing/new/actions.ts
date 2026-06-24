@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import type { Database } from '@/lib/database.types'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
@@ -17,7 +18,7 @@ export type OutputRow = {
 }
 
 export type CommitProcessingPayload = {
-    process_date: string | null
+    process_date: string
     notes: string | null
     loss_qty: number | null
     inputs: InputRow[]
@@ -37,7 +38,7 @@ export async function commitProcessingRun(
         p_loss_qty: payload.loss_qty,
         p_inputs: payload.inputs,
         p_outputs: payload.outputs,
-    })
+    } as Database['public']['Functions']['commit_processing_run']['Args'])
 
     if (error) {
         return { error: error.message }

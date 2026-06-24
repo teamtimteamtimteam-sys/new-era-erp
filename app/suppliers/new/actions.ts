@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import type { InsertRow } from '@/lib/db-helpers'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
@@ -55,7 +56,7 @@ export async function createSupplier(
         notes,
         // status 不传,用数据库默认值 'draft'
         // code 不传,用触发器自动生成
-    })
+    } as InsertRow<'suppliers'>)
 
     if (error) {
         return { error: `保存失败: ${error.message}` }

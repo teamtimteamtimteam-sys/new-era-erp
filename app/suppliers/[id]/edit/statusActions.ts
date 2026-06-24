@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import type { Database } from '@/lib/database.types'
 import { revalidatePath } from 'next/cache'
 
 export type ChangeStatusState = {
@@ -10,7 +11,7 @@ export type ChangeStatusState = {
 
 export async function changeSupplierStatus(
     id: string,
-    newStatus: string
+    newStatus: Database['public']['Enums']['supplier_status']
 ): Promise<ChangeStatusState> {
     const supabase = await createClient()
 

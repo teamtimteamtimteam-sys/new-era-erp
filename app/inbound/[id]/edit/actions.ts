@@ -66,7 +66,7 @@ export async function updateInbound(
         .update({
             material_id,
             supplier_id,
-            quantity,
+            quantity: quantity ?? undefined,
             unit,
             arrival_date,
             stage,

@@ -55,7 +55,7 @@ export async function updateOutput(
         .update({
             material_id,
             customer_id: customer_id || null, // 可选
-            quantity,
+            quantity: quantity ?? undefined,
             unit,
             output_date,
             state,

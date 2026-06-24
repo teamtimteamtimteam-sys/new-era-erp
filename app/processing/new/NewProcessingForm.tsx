@@ -188,7 +188,7 @@ export default function NewProcessingForm({
         }
 
         const payload: CommitProcessingPayload = {
-            process_date: processDate || null,
+            process_date: processDate,
             notes: notes.trim() || null,
             loss_qty,
             inputs: validInputs,
