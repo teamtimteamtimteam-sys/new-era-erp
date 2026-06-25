@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import EditMaterialForm from './EditMaterialForm'
+import { getTranslations } from '@/lib/i18n/server'
 
 export default async function EditMaterialPage({
     params,
@@ -10,6 +11,7 @@ export default async function EditMaterialPage({
 }) {
     const { id } = await params
     const supabase = await createClient()
+    const t = await getTranslations()
 
     const { data: material, error } = await supabase
         .from('materials')
@@ -29,11 +31,11 @@ export default async function EditMaterialPage({
                     href="/materials"
                     className="text-blue-600 hover:underline text-sm"
                 >
-                    ← 返回列表
+                    {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-2">编辑物料</h1>
+            <h1 className="text-2xl font-bold mb-2">{t('materials.editTitle')}</h1>
             <p className="text-sm text-gray-600 mb-6">
                 <span className="font-mono">{material.code}</span>
                 <span className="mx-2">·</span>

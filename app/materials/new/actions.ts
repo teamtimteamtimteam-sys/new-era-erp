@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import type { InsertRow } from '@/lib/db-helpers'
+import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
@@ -14,6 +15,8 @@ export async function createMaterial(
     _prevState: CreateMaterialState,
     formData: FormData
 ): Promise<CreateMaterialState> {
+    const t = await getTranslations()
+
     // 1. 取字段
     const name = (formData.get('name') as string)?.trim()
     const category = (formData.get('category') as string)?.trim()
@@ -24,8 +27,8 @@ export async function createMaterial(
 
     // 2. 校验
     const fieldErrors: Record<string, string> = {}
-    if (!name) fieldErrors.name = '名称是必填的'
-    if (!category) fieldErrors.category = '类别是必填的'
+    if (!name) fieldErrors.name = t('materials.form.errName')
+    if (!category) fieldErrors.category = t('materials.form.errCategory')
 
     if (Object.keys(fieldErrors).length > 0) {
         return { fieldErrors }
@@ -51,7 +54,7 @@ export async function createMaterial(
     } as InsertRow<'materials'>)
 
     if (error) {
-        return { error: `保存失败: ${error.message}` }
+        return { error: t('materials.form.saveError', { message: error.message }) }
     }
 
     revalidatePath('/materials')

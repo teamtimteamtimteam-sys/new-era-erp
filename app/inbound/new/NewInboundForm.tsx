@@ -139,8 +139,8 @@ export default function NewInboundForm({
                         className="w-full border border-gray-300 px-3 py-2 rounded"
                     >
                         {UNIT_OPTIONS.map((u) => (
-                            <option key={u} value={u}>
-                                {u}
+                            <option key={u.value} value={u.value}>
+                                {u.value}
                             </option>
                         ))}
                     </select>

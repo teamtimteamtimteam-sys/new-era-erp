@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { getTranslations } from '@/lib/i18n/server'
 
 export type UpdateMaterialState = {
     error?: string
@@ -14,6 +15,8 @@ export async function updateMaterial(
     _prevState: UpdateMaterialState,
     formData: FormData
 ): Promise<UpdateMaterialState> {
+    const t = await getTranslations()
+
     // 1. 取字段
     const name = (formData.get('name') as string)?.trim()
     const category = (formData.get('category') as string)?.trim()
@@ -24,8 +27,8 @@ export async function updateMaterial(
 
     // 2. 校验
     const fieldErrors: Record<string, string> = {}
-    if (!name) fieldErrors.name = '名称是必填的'
-    if (!category) fieldErrors.category = '类别是必填的'
+    if (!name) fieldErrors.name = t('materials.form.errName')
+    if (!category) fieldErrors.category = t('materials.form.errCategory')
 
     if (Object.keys(fieldErrors).length > 0) {
         return { fieldErrors }
@@ -52,7 +55,7 @@ export async function updateMaterial(
         .is('deleted_at', null) // 已软删除的不能改
 
     if (error) {
-        return { error: `保存失败: ${error.message}` }
+        return { error: t('materials.form.saveError', { message: error.message }) }
     }
 
     revalidatePath('/materials')
