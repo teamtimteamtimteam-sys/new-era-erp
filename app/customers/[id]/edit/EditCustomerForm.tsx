@@ -3,12 +3,13 @@
 import { useActionState } from 'react'
 import Link from 'next/link'
 import { updateCustomer, type UpdateCustomerState } from './actions'
+import { useTranslations } from '@/lib/i18n/client'
 
 const CUSTOMER_TYPE_OPTIONS = [
-    { value: 'cathode_maker', label: '正极材料厂' },
-    { value: 'battery_factory', label: '电池厂' },
-    { value: 'trader', label: '贸易商' },
-    { value: 'other', label: '其他' },
+    { value: 'cathode_maker', labelKey: 'customers.types.cathodeMaker' },
+    { value: 'battery_factory', labelKey: 'customers.types.batteryFactory' },
+    { value: 'trader', labelKey: 'customers.types.trader' },
+    { value: 'other', labelKey: 'customers.types.other' },
 ]
 
 const initialState: UpdateCustomerState = {}
@@ -28,6 +29,7 @@ type Customer = {
 }
 
 export default function EditCustomerForm({ customer }: { customer: Customer }) {
+    const t = useTranslations()
     const updateWithId = updateCustomer.bind(null, customer.id)
     const [state, formAction, isPending] = useActionState(
         updateWithId,
@@ -47,7 +49,7 @@ export default function EditCustomerForm({ customer }: { customer: Customer }) {
             <form action={formAction} className="space-y-4">
                 <div>
                     <label className="block text-sm font-medium mb-1">
-                        法人名 <span className="text-red-600">*</span>
+                        {t('customers.form.legalName')} <span className="text-red-600">*</span>
                     </label>
                     <input
                         type="text"
@@ -64,7 +66,7 @@ export default function EditCustomerForm({ customer }: { customer: Customer }) {
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">简称</label>
+                    <label className="block text-sm font-medium mb-1">{t('customers.form.shortName')}</label>
                     <input
                         type="text"
                         name="short_name"
@@ -75,7 +77,7 @@ export default function EditCustomerForm({ customer }: { customer: Customer }) {
 
                 <div>
                     <label className="block text-sm font-medium mb-1">
-                        国家(2 字母代码) <span className="text-red-600">*</span>
+                        {t('customers.form.country')} <span className="text-red-600">*</span>
                     </label>
                     <input
                         type="text"
@@ -93,7 +95,7 @@ export default function EditCustomerForm({ customer }: { customer: Customer }) {
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">税号</label>
+                    <label className="block text-sm font-medium mb-1">{t('customers.form.taxId')}</label>
                     <input
                         type="text"
                         name="tax_id"
@@ -103,7 +105,7 @@ export default function EditCustomerForm({ customer }: { customer: Customer }) {
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">地址</label>
+                    <label className="block text-sm font-medium mb-1">{t('customers.form.address')}</label>
                     <textarea
                         name="address"
                         rows={2}
@@ -114,7 +116,7 @@ export default function EditCustomerForm({ customer }: { customer: Customer }) {
 
                 <div>
                     <label className="block text-sm font-medium mb-2">
-                        客户类型(可多选)
+                        {t('customers.form.types')}
                     </label>
                     <div className="space-y-2">
                         {CUSTOMER_TYPE_OPTIONS.map((opt) => (
@@ -126,14 +128,14 @@ export default function EditCustomerForm({ customer }: { customer: Customer }) {
                                     defaultChecked={currentTypes.includes(opt.value)}
                                     className="w-4 h-4"
                                 />
-                                <span className="text-sm">{opt.label}</span>
+                                <span className="text-sm">{t(opt.labelKey)}</span>
                             </label>
                         ))}
                     </div>
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">付款条款</label>
+                    <label className="block text-sm font-medium mb-1">{t('customers.form.paymentTerms')}</label>
                     <input
                         type="text"
                         name="payment_terms"
@@ -143,7 +145,7 @@ export default function EditCustomerForm({ customer }: { customer: Customer }) {
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">Incoterm</label>
+                    <label className="block text-sm font-medium mb-1">{t('customers.form.incoterm')}</label>
                     <input
                         type="text"
                         name="incoterm"
@@ -153,7 +155,7 @@ export default function EditCustomerForm({ customer }: { customer: Customer }) {
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">信用评级</label>
+                    <label className="block text-sm font-medium mb-1">{t('customers.form.creditRating')}</label>
                     <input
                         type="text"
                         name="credit_rating"
@@ -163,7 +165,7 @@ export default function EditCustomerForm({ customer }: { customer: Customer }) {
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">备注</label>
+                    <label className="block text-sm font-medium mb-1">{t('customers.form.notes')}</label>
                     <textarea
                         name="notes"
                         rows={3}
@@ -178,13 +180,13 @@ export default function EditCustomerForm({ customer }: { customer: Customer }) {
                         disabled={isPending}
                         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                     >
-                        {isPending ? '保存中...' : '保存'}
+                        {isPending ? t('common.saving') : t('common.save')}
                     </button>
                     <Link
                         href="/customers"
                         className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"
                     >
-                        取消
+                        {t('common.cancel')}
                     </Link>
                 </div>
             </form>

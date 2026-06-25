@@ -3,17 +3,19 @@
 import { useActionState } from 'react'
 import Link from 'next/link'
 import { createCustomer, type CreateCustomerState } from './actions'
+import { useTranslations } from '@/lib/i18n/client'
 
 const CUSTOMER_TYPE_OPTIONS = [
-    { value: 'cathode_maker', label: '正极材料厂' },
-    { value: 'battery_factory', label: '电池厂' },
-    { value: 'trader', label: '贸易商' },
-    { value: 'other', label: '其他' },
+    { value: 'cathode_maker', labelKey: 'customers.types.cathodeMaker' },
+    { value: 'battery_factory', labelKey: 'customers.types.batteryFactory' },
+    { value: 'trader', labelKey: 'customers.types.trader' },
+    { value: 'other', labelKey: 'customers.types.other' },
 ]
 
 const initialState: CreateCustomerState = {}
 
 export default function NewCustomerPage() {
+    const t = useTranslations()
     const [state, formAction, isPending] = useActionState(
         createCustomer,
         initialState
@@ -26,11 +28,11 @@ export default function NewCustomerPage() {
                     href="/customers"
                     className="text-blue-600 hover:underline text-sm"
                 >
-                    ← 返回列表
+                    {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-6">新增客户</h1>
+            <h1 className="text-2xl font-bold mb-6">{t('customers.newTitle')}</h1>
 
             {/* 通用错误显示 */}
             {state.error && (
@@ -43,14 +45,14 @@ export default function NewCustomerPage() {
                 {/* 法人名(必填) */}
                 <div>
                     <label className="block text-sm font-medium mb-1">
-                        法人名 <span className="text-red-600">*</span>
+                        {t('customers.form.legalName')} <span className="text-red-600">*</span>
                     </label>
                     <input
                         type="text"
                         name="legal_name"
                         required
                         className="w-full border border-gray-300 px-3 py-2 rounded"
-                        placeholder="例如:Acme Cathode Materials Pte Ltd"
+                        placeholder={t('customers.form.legalNamePlaceholder')}
                     />
                     {state.fieldErrors?.legal_name && (
                         <p className="text-red-600 text-xs mt-1">
@@ -61,19 +63,19 @@ export default function NewCustomerPage() {
 
                 {/* 简称 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">简称</label>
+                    <label className="block text-sm font-medium mb-1">{t('customers.form.shortName')}</label>
                     <input
                         type="text"
                         name="short_name"
                         className="w-full border border-gray-300 px-3 py-2 rounded"
-                        placeholder="例如:Acme"
+                        placeholder={t('customers.form.shortNamePlaceholder')}
                     />
                 </div>
 
                 {/* 国家(必填) */}
                 <div>
                     <label className="block text-sm font-medium mb-1">
-                        国家(2 字母代码) <span className="text-red-600">*</span>
+                        {t('customers.form.country')} <span className="text-red-600">*</span>
                     </label>
                     <input
                         type="text"
@@ -81,7 +83,7 @@ export default function NewCustomerPage() {
                         required
                         maxLength={2}
                         className="w-full border border-gray-300 px-3 py-2 rounded uppercase"
-                        placeholder="例如:SG, CN, DE, US"
+                        placeholder={t('customers.form.countryPlaceholder')}
                     />
                     {state.fieldErrors?.country && (
                         <p className="text-red-600 text-xs mt-1">
@@ -92,7 +94,7 @@ export default function NewCustomerPage() {
 
                 {/* 税号 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">税号</label>
+                    <label className="block text-sm font-medium mb-1">{t('customers.form.taxId')}</label>
                     <input
                         type="text"
                         name="tax_id"
@@ -102,7 +104,7 @@ export default function NewCustomerPage() {
 
                 {/* 地址 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">地址</label>
+                    <label className="block text-sm font-medium mb-1">{t('customers.form.address')}</label>
                     <textarea
                         name="address"
                         rows={2}
@@ -113,7 +115,7 @@ export default function NewCustomerPage() {
                 {/* 客户类型(多选) */}
                 <div>
                     <label className="block text-sm font-medium mb-2">
-                        客户类型(可多选)
+                        {t('customers.form.types')}
                     </label>
                     <div className="space-y-2">
                         {CUSTOMER_TYPE_OPTIONS.map((opt) => (
@@ -124,7 +126,7 @@ export default function NewCustomerPage() {
                                     value={opt.value}
                                     className="w-4 h-4"
                                 />
-                                <span className="text-sm">{opt.label}</span>
+                                <span className="text-sm">{t(opt.labelKey)}</span>
                             </label>
                         ))}
                     </div>
@@ -132,40 +134,40 @@ export default function NewCustomerPage() {
 
                 {/* 付款条款 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">付款条款</label>
+                    <label className="block text-sm font-medium mb-1">{t('customers.form.paymentTerms')}</label>
                     <input
                         type="text"
                         name="payment_terms"
                         className="w-full border border-gray-300 px-3 py-2 rounded"
-                        placeholder="例如:NET30, NET60, CIA, LC at sight"
+                        placeholder={t('customers.form.paymentTermsPlaceholder')}
                     />
                 </div>
 
                 {/* Incoterm */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">Incoterm</label>
+                    <label className="block text-sm font-medium mb-1">{t('customers.form.incoterm')}</label>
                     <input
                         type="text"
                         name="incoterm"
                         className="w-full border border-gray-300 px-3 py-2 rounded"
-                        placeholder="例如:FOB, CIF, EXW, DDP"
+                        placeholder={t('customers.form.incotermPlaceholder')}
                     />
                 </div>
 
                 {/* 信用评级 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">信用评级</label>
+                    <label className="block text-sm font-medium mb-1">{t('customers.form.creditRating')}</label>
                     <input
                         type="text"
                         name="credit_rating"
                         className="w-full border border-gray-300 px-3 py-2 rounded"
-                        placeholder="例如:A, B, C 或内部评级"
+                        placeholder={t('customers.form.creditRatingPlaceholder')}
                     />
                 </div>
 
                 {/* 备注 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">备注</label>
+                    <label className="block text-sm font-medium mb-1">{t('customers.form.notes')}</label>
                     <textarea
                         name="notes"
                         rows={3}
@@ -180,13 +182,13 @@ export default function NewCustomerPage() {
                         disabled={isPending}
                         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                     >
-                        {isPending ? '保存中...' : '保存'}
+                        {isPending ? t('common.saving') : t('common.save')}
                     </button>
                     <Link
                         href="/customers"
                         className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"
                     >
-                        取消
+                        {t('common.cancel')}
                     </Link>
                 </div>
             </form>

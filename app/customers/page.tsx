@@ -3,9 +3,13 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import DeleteButton from './DeleteButton'
+import { getTranslations, getLocale } from '@/lib/i18n/server'
 
 export default async function CustomersPage() {
     const supabase = await createClient()
+    const t = await getTranslations()
+    const locale = await getLocale()
+    const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
     const { data: customers, error } = await supabase
         .from('customers')
@@ -16,9 +20,9 @@ export default async function CustomersPage() {
     if (error) {
         return (
             <div className="p-8">
-                <h1 className="text-2xl font-bold mb-4">Customers</h1>
+                <h1 className="text-2xl font-bold mb-4">{t('customers.listTitle')}</h1>
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                    <p className="font-bold">读取失败</p>
+                    <p className="font-bold">{t('customers.loadError')}</p>
                     <pre className="text-xs mt-2">{JSON.stringify(error, null, 2)}</pre>
                 </div>
             </div>
@@ -28,16 +32,16 @@ export default async function CustomersPage() {
     return (
         <div className="p-8">
             <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold">Customers</h1>
+                <h1 className="text-2xl font-bold">{t('customers.listTitle')}</h1>
                 <Link
                     href="/customers/new"
                     className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                 >
-                    + 新增客户
+                    {t('customers.addButton')}
                 </Link>
             </div>
             <p className="text-sm text-gray-600 mb-4">
-                共 {customers?.length ?? 0} 条记录
+                {t('customers.recordCount', { count: customers?.length ?? 0 })}
             </p>
 
             <table className="w-full border-collapse border border-gray-300">
@@ -49,7 +53,7 @@ export default async function CustomersPage() {
                         <th className="border border-gray-300 px-4 py-2 text-left">Types</th>
                         <th className="border border-gray-300 px-4 py-2 text-left">Status</th>
                         <th className="border border-gray-300 px-4 py-2 text-left">Created</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">操作</th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">{t('customers.colActions')}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -74,7 +78,7 @@ export default async function CustomersPage() {
                                 </span>
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
-                                {new Date(c.created_at).toLocaleString('zh-CN')}
+                                {new Date(c.created_at).toLocaleString(dateLocale)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">
                                 <DeleteButton id={c.id} legalName={c.legal_name} />
@@ -87,7 +91,7 @@ export default async function CustomersPage() {
                                 colSpan={7}
                                 className="border border-gray-300 px-4 py-8 text-center text-gray-500"
                             >
-                                还没有客户数据
+                                {t('customers.emptyState')}
                             </td>
                         </tr>
                     )}

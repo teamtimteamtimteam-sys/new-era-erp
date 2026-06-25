@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import EditCustomerForm from './EditCustomerForm'
+import { getTranslations } from '@/lib/i18n/server'
 
 export default async function EditCustomerPage({
     params,
@@ -10,6 +11,7 @@ export default async function EditCustomerPage({
 }) {
     const { id } = await params
     const supabase = await createClient()
+    const t = await getTranslations()
 
     const { data: customer, error } = await supabase
         .from('customers')
@@ -29,11 +31,11 @@ export default async function EditCustomerPage({
                     href="/customers"
                     className="text-blue-600 hover:underline text-sm"
                 >
-                    ← 返回列表
+                    {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-2">编辑客户</h1>
+            <h1 className="text-2xl font-bold mb-2">{t('customers.editTitle')}</h1>
             <p className="text-sm text-gray-600 mb-6">
                 <span className="font-mono">{customer.code}</span>
                 <span className="mx-2">·</span>

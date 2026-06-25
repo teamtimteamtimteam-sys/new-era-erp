@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import type { InsertRow } from '@/lib/db-helpers'
+import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
@@ -15,6 +16,8 @@ export async function createCustomer(
     _prevState: CreateCustomerState,
     formData: FormData
 ): Promise<CreateCustomerState> {
+    const t = await getTranslations()
+
     // 1. 从表单里取出字段
     const legal_name = (formData.get('legal_name') as string)?.trim()
     const short_name = (formData.get('short_name') as string)?.trim() || null
@@ -31,10 +34,10 @@ export async function createCustomer(
 
     // 2. 基本校验
     const fieldErrors: Record<string, string> = {}
-    if (!legal_name) fieldErrors.legal_name = '法人名是必填的'
-    if (!country) fieldErrors.country = '国家是必填的'
+    if (!legal_name) fieldErrors.legal_name = t('customers.form.errLegalName')
+    if (!country) fieldErrors.country = t('customers.form.errCountry')
     if (country && country.length !== 2) {
-        fieldErrors.country = '国家应该是 2 个字母的代码,例如 SG / CN / DE'
+        fieldErrors.country = t('customers.form.errCountryFormat')
     }
 
     if (Object.keys(fieldErrors).length > 0) {
@@ -65,7 +68,7 @@ export async function createCustomer(
     } as InsertRow<'customers'>)
 
     if (error) {
-        return { error: `保存失败: ${error.message}` }
+        return { error: t('customers.form.saveError', { message: error.message }) }
     }
 
     // 4. 让 /customers 列表页重新读取数据(否则会显示缓存的旧数据)
