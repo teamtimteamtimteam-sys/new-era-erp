@@ -1,6 +1,8 @@
 // app/inventory/page.tsx
 // 库存与物料平衡(只读,JS 聚合)
 import { createClient } from '@/lib/supabase/server'
+import { getTranslations } from '@/lib/i18n/server'
+import { CATEGORY_OPTIONS, UNIT_OPTIONS, labelKeyForValue } from '@/app/materials/options'
 
 type MaterialEmbed = { name: string; category: string } | null
 
@@ -21,8 +23,12 @@ type InventoryRow = {
     outputStock: number
 }
 
+// 混合单位的内部 sentinel(聚合逻辑用,显示时映射到 i18n)
+const MIXED_UNIT = '⚠️混合'
+
 export default async function InventoryPage() {
     const supabase = await createClient()
+    const t = await getTranslations()
 
     const [inboundRes, outputRes, runsRes] = await Promise.all([
         supabase
@@ -45,9 +51,9 @@ export default async function InventoryPage() {
         const err = inboundRes.error ?? outputRes.error ?? runsRes.error
         return (
             <div className="p-8">
-                <h1 className="text-2xl font-bold mb-4">库存与物料平衡 (Inventory)</h1>
+                <h1 className="text-2xl font-bold mb-4">{t('inventory.listTitle')}</h1>
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                    <p className="font-bold">读取失败</p>
+                    <p className="font-bold">{t('inventory.loadError')}</p>
                     <pre className="text-xs mt-2">{JSON.stringify(err, null, 2)}</pre>
                 </div>
             </div>
@@ -68,8 +74,8 @@ export default async function InventoryPage() {
     ): InventoryRow {
         const existing = rowsByMaterial.get(materialId)
         if (existing) {
-            if (existing.unit !== '⚠️混合' && existing.unit !== unit) {
-                existing.unit = '⚠️混合'
+            if (existing.unit !== MIXED_UNIT && existing.unit !== unit) {
+                existing.unit = MIXED_UNIT
             }
             return existing
         }
@@ -103,31 +109,45 @@ export default async function InventoryPage() {
     const balLoss = runs.reduce((s, r) => s + (r.loss_qty ?? 0), 0)
     const lossRate = balInput > 0 ? ((balLoss / balInput) * 100).toFixed(1) : null
 
+    // 类别存储值反查成本地化文案;自定义/未知值原样显示
+    const categoryLabel = (value: string | null) => {
+        if (!value) return '—'
+        const key = labelKeyForValue(CATEGORY_OPTIONS, value)
+        return key ? t(key) : value
+    }
+
+    // 单位:混合 sentinel → i18n;真实单位 → units.* 反查;未知值原样
+    const unitLabel = (value: string) => {
+        if (value === MIXED_UNIT) return t('inventory.mixedUnit')
+        const key = labelKeyForValue(UNIT_OPTIONS, value)
+        return key ? t(key) : value
+    }
+
     return (
         <div className="p-8 space-y-6">
-            <h1 className="text-2xl font-bold">库存与物料平衡 (Inventory)</h1>
+            <h1 className="text-2xl font-bold">{t('inventory.listTitle')}</h1>
 
             {/* 物料平衡 */}
             <section>
-                <h2 className="text-lg font-semibold mb-2">物料平衡(全部加工单)</h2>
+                <h2 className="text-lg font-semibold mb-2">{t('inventory.balanceSectionHeader')}</h2>
                 <div className="bg-gray-50 rounded p-4 flex flex-wrap gap-8 text-sm">
                     <div>
-                        <span className="text-gray-600">总投入:</span>{' '}
+                        <span className="text-gray-600">{t('inventory.balTotalInput')}</span>{' '}
                         <span className="font-medium">{balInput}</span>
                     </div>
                     <div>
-                        <span className="text-gray-600">总产出:</span>{' '}
+                        <span className="text-gray-600">{t('inventory.balTotalOutput')}</span>{' '}
                         <span className="font-medium">{balOutput}</span>
                     </div>
                     <div>
-                        <span className="text-gray-600">总损耗:</span>{' '}
+                        <span className="text-gray-600">{t('inventory.balTotalLoss')}</span>{' '}
                         <span className="font-medium">{balLoss}</span>
                         {lossRate && (
                             <span className="text-gray-500"> ({lossRate}%)</span>
                         )}
                     </div>
                     <div>
-                        <span className="text-gray-600">加工单数:</span>{' '}
+                        <span className="text-gray-600">{t('inventory.balRunCount')}</span>{' '}
                         <span className="font-medium">{runs.length}</span>
                     </div>
                 </div>
@@ -135,25 +155,25 @@ export default async function InventoryPage() {
 
             {/* 当前库存 */}
             <section>
-                <h2 className="text-lg font-semibold mb-2">当前库存(按物料)</h2>
+                <h2 className="text-lg font-semibold mb-2">{t('inventory.stockSectionHeader')}</h2>
                 <table className="w-full border-collapse border border-gray-300">
                     <thead className="bg-gray-100">
                         <tr>
-                            <th className="border border-gray-300 px-4 py-2 text-left">物料</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">类别</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">原料库存</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">成品库存</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">单位</th>
+                            <th className="border border-gray-300 px-4 py-2 text-left">{t('inventory.colMaterial')}</th>
+                            <th className="border border-gray-300 px-4 py-2 text-left">{t('inventory.colCategory')}</th>
+                            <th className="border border-gray-300 px-4 py-2 text-left">{t('inventory.colInboundStock')}</th>
+                            <th className="border border-gray-300 px-4 py-2 text-left">{t('inventory.colOutputStock')}</th>
+                            <th className="border border-gray-300 px-4 py-2 text-left">{t('inventory.colUnit')}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {rows.map((r) => (
                             <tr key={r.material_id}>
                                 <td className="border border-gray-300 px-4 py-2">{r.name ?? '—'}</td>
-                                <td className="border border-gray-300 px-4 py-2">{r.category ?? '—'}</td>
+                                <td className="border border-gray-300 px-4 py-2">{categoryLabel(r.category)}</td>
                                 <td className="border border-gray-300 px-4 py-2">{r.inboundStock}</td>
                                 <td className="border border-gray-300 px-4 py-2">{r.outputStock}</td>
-                                <td className="border border-gray-300 px-4 py-2">{r.unit}</td>
+                                <td className="border border-gray-300 px-4 py-2">{unitLabel(r.unit)}</td>
                             </tr>
                         ))}
                         {rows.length === 0 && (
@@ -162,14 +182,14 @@ export default async function InventoryPage() {
                                     colSpan={5}
                                     className="border border-gray-300 px-4 py-8 text-center text-gray-500"
                                 >
-                                    暂无库存
+                                    {t('inventory.emptyState')}
                                 </td>
                             </tr>
                         )}
                     </tbody>
                 </table>
                 <p className="text-xs text-gray-500 mt-2">
-                    原料库存 = 进料批次剩余量合计;成品库存 = 产出批次剩余量合计(剩余量 &gt; 0 的批次)
+                    {t('inventory.footerNote')}
                 </p>
             </section>
         </div>

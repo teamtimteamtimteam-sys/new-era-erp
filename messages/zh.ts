@@ -418,6 +418,24 @@ const zh = {
             OUTPUT_CONSUMED: '无法删除:产出批次 {0} 已经动过(状态={1},剩余 {2}/{3}),货物已流出,不能撤销加工单',
         },
     },
+    inventory: {
+        listTitle: '库存与物料平衡',
+        loadError: '读取失败',
+        balanceSectionHeader: '物料平衡（全部加工单）',
+        balTotalInput: '总投入：',
+        balTotalOutput: '总产出：',
+        balTotalLoss: '总损耗：',
+        balRunCount: '加工单数：',
+        stockSectionHeader: '当前库存（按物料）',
+        colMaterial: '物料',
+        colCategory: '类别',
+        colInboundStock: '原料库存',
+        colOutputStock: '成品库存',
+        colUnit: '单位',
+        emptyState: '暂无库存',
+        mixedUnit: '⚠️ 混合',
+        footerNote: '原料库存 = 进料批次剩余量合计；成品库存 = 产出批次剩余量合计（剩余量 > 0 的批次）',
+    },
 } as const satisfies Messages
 
 export default zh

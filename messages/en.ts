@@ -416,6 +416,24 @@ const en = {
             OUTPUT_CONSUMED: 'Cannot delete: output batch {0} has already been touched (state={1}, remaining {2}/{3}); goods have shipped, the processing run cannot be rolled back',
         },
     },
+    inventory: {
+        listTitle: 'Inventory',
+        loadError: 'Load failed',
+        balanceSectionHeader: 'Material Balance (all processing runs)',
+        balTotalInput: 'Total input:',
+        balTotalOutput: 'Total output:',
+        balTotalLoss: 'Total loss:',
+        balRunCount: 'Processing runs:',
+        stockSectionHeader: 'Current Stock (by material)',
+        colMaterial: 'Material',
+        colCategory: 'Category',
+        colInboundStock: 'Raw stock',
+        colOutputStock: 'Finished stock',
+        colUnit: 'Unit',
+        emptyState: 'No stock',
+        mixedUnit: '⚠️ Mixed',
+        footerNote: 'Raw stock = sum of remaining inbound batch quantities; finished stock = sum of remaining output batch quantities (batches with remaining > 0)',
+    },
 } as const
 
 export default en
