@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { createOutput, type CreateOutputState } from './actions'
 import { UNIT_OPTIONS } from '../../materials/options'
 import { STATE_OPTIONS } from '../../inbound/options'
+import { useTranslations } from '@/lib/i18n/client'
 
 const initialState: CreateOutputState = {}
 
@@ -18,6 +19,7 @@ export default function NewOutputForm({
     materials: MaterialOption[]
     customers: CustomerOption[]
 }) {
+    const t = useTranslations()
     const [state, formAction, isPending] = useActionState(
         createOutput,
         initialState
@@ -30,11 +32,11 @@ export default function NewOutputForm({
                     href="/output"
                     className="text-blue-600 hover:underline text-sm"
                 >
-                    ← 返回列表
+                    {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-6">新增产出</h1>
+            <h1 className="text-2xl font-bold mb-6">{t('output.newTitle')}</h1>
 
             {state.error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -46,7 +48,7 @@ export default function NewOutputForm({
                 {/* 物料(必填)*/}
                 <div>
                     <label className="block text-sm font-medium mb-1">
-                        物料 <span className="text-red-600">*</span>
+                        {t('output.form.material')} <span className="text-red-600">*</span>
                     </label>
                     <select
                         name="material_id"
@@ -54,7 +56,7 @@ export default function NewOutputForm({
                         defaultValue=""
                         className="w-full border border-gray-300 px-3 py-2 rounded"
                     >
-                        <option value="" disabled>请选择物料</option>
+                        <option value="" disabled>{t('output.form.selectMaterial')}</option>
                         {materials.map((m) => (
                             <option key={m.id} value={m.id}>
                                 {m.code} - {m.name}
@@ -68,24 +70,24 @@ export default function NewOutputForm({
                     )}
                     {materials.length === 0 && (
                         <p className="text-xs text-amber-600 mt-1">
-                            还没有物料,请先到{' '}
+                            {t('output.form.noMaterialsHelper')}
                             <Link href="/materials/new" className="underline">
-                                物料字典
-                            </Link>{' '}
-                            创建
+                                {t('output.form.noMaterialsLink')}
+                            </Link>
+                            {t('output.form.noMaterialsHelperPost')}
                         </p>
                     )}
                 </div>
 
                 {/* 客户(可选)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">客户</label>
+                    <label className="block text-sm font-medium mb-1">{t('output.form.customer')}</label>
                     <select
                         name="customer_id"
                         defaultValue=""
                         className="w-full border border-gray-300 px-3 py-2 rounded"
                     >
-                        <option value="">请选择客户(可选)</option>
+                        <option value="">{t('output.form.selectCustomerOptional')}</option>
                         {customers.map((c) => (
                             <option key={c.id} value={c.id}>
                                 {c.code} - {c.legal_name}
@@ -94,11 +96,11 @@ export default function NewOutputForm({
                     </select>
                     {customers.length === 0 && (
                         <p className="text-xs text-amber-600 mt-1">
-                            还没有客户,可先{' '}
+                            {t('output.form.noCustomersHelper')}
                             <Link href="/customers/new" className="underline">
-                                创建客户
-                            </Link>{' '}
-                            或留空稍后再指派
+                                {t('output.form.noCustomersLink')}
+                            </Link>
+                            {t('output.form.noCustomersHelperPost')}
                         </p>
                     )}
                 </div>
@@ -106,7 +108,7 @@ export default function NewOutputForm({
                 {/* 数量(必填)*/}
                 <div>
                     <label className="block text-sm font-medium mb-1">
-                        数量 <span className="text-red-600">*</span>
+                        {t('output.form.quantity')} <span className="text-red-600">*</span>
                     </label>
                     <input
                         type="number"
@@ -125,7 +127,7 @@ export default function NewOutputForm({
 
                 {/* 单位 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">单位</label>
+                    <label className="block text-sm font-medium mb-1">{t('output.form.unit')}</label>
                     <select
                         name="unit"
                         defaultValue="kg"
@@ -133,7 +135,7 @@ export default function NewOutputForm({
                     >
                         {UNIT_OPTIONS.map((u) => (
                             <option key={u.value} value={u.value}>
-                                {u.value}
+                                {t(u.labelKey)}
                             </option>
                         ))}
                     </select>
@@ -141,7 +143,7 @@ export default function NewOutputForm({
 
                 {/* 产出日期 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">产出日期</label>
+                    <label className="block text-sm font-medium mb-1">{t('output.form.outputDate')}</label>
                     <input
                         type="date"
                         name="output_date"
@@ -151,7 +153,7 @@ export default function NewOutputForm({
 
                 {/* 状态 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">状态</label>
+                    <label className="block text-sm font-medium mb-1">{t('output.form.state')}</label>
                     <select
                         name="state"
                         defaultValue="库存中"
@@ -159,7 +161,7 @@ export default function NewOutputForm({
                     >
                         {STATE_OPTIONS.map((s) => (
                             <option key={s.value} value={s.value}>
-                                {s.value}
+                                {t(s.labelKey)}
                             </option>
                         ))}
                     </select>
@@ -167,18 +169,18 @@ export default function NewOutputForm({
 
                 {/* 品位/纯度 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">品位/纯度</label>
+                    <label className="block text-sm font-medium mb-1">{t('output.form.purity')}</label>
                     <input
                         type="text"
                         name="purity"
                         className="w-full border border-gray-300 px-3 py-2 rounded"
-                        placeholder="如 Ni 22%, 三元"
+                        placeholder={t('output.form.purityPlaceholder')}
                     />
                 </div>
 
                 {/* 备注 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">备注</label>
+                    <label className="block text-sm font-medium mb-1">{t('output.form.notes')}</label>
                     <textarea
                         name="notes"
                         rows={3}
@@ -193,13 +195,13 @@ export default function NewOutputForm({
                         disabled={isPending}
                         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                     >
-                        {isPending ? '保存中...' : '保存'}
+                        {isPending ? t('common.saving') : t('common.save')}
                     </button>
                     <Link
                         href="/output"
                         className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"
                     >
-                        取消
+                        {t('common.cancel')}
                     </Link>
                 </div>
             </form>

@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { getTranslations } from '@/lib/i18n/server'
 
 export type UpdateOutputState = {
     error?: string
@@ -14,6 +15,8 @@ export async function updateOutput(
     _prevState: UpdateOutputState,
     formData: FormData
 ): Promise<UpdateOutputState> {
+    const t = await getTranslations()
+
     // 1. 取字段(和 createOutput 一致)
     const material_id = (formData.get('material_id') as string) || ''
     const customer_id = (formData.get('customer_id') as string) || ''
@@ -26,15 +29,15 @@ export async function updateOutput(
 
     // 2. 校验(客户可选,不校验)
     const fieldErrors: Record<string, string> = {}
-    if (!material_id) fieldErrors.material_id = '请选择物料'
+    if (!material_id) fieldErrors.material_id = t('output.form.errMaterial')
 
     let quantity: number | null = null
     if (!quantity_raw) {
-        fieldErrors.quantity = '数量是必填的'
+        fieldErrors.quantity = t('output.form.errQuantity')
     } else {
         const n = Number(quantity_raw)
         if (Number.isNaN(n) || n <= 0) {
-            fieldErrors.quantity = '数量必须是大于0的数字'
+            fieldErrors.quantity = t('output.form.errQuantityPositive')
         } else {
             quantity = n
         }
@@ -67,7 +70,7 @@ export async function updateOutput(
         .is('deleted_at', null) // 已软删除的不能改
 
     if (error) {
-        return { error: `保存失败: ${error.message}` }
+        return { error: t('output.form.saveError', { message: error.message }) }
     }
 
     revalidatePath('/output')
