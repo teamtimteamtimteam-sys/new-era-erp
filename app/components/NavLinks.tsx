@@ -3,19 +3,21 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTranslations } from '@/lib/i18n/client'
 
 const NAV_ITEMS = [
-    { href: '/suppliers', label: '供应商' },
-    { href: '/customers', label: '客户' },
-    { href: '/materials', label: '物料' },
-    { href: '/inbound', label: '进料' },
-    { href: '/output', label: '产出' },
-    { href: '/processing', label: '加工' },
-    { href: '/inventory', label: '库存' },
+    { href: '/suppliers', key: 'nav.suppliers' },
+    { href: '/customers', key: 'nav.customers' },
+    { href: '/materials', key: 'nav.materials' },
+    { href: '/inbound', key: 'nav.inbound' },
+    { href: '/output', key: 'nav.output' },
+    { href: '/processing', key: 'nav.processing' },
+    { href: '/inventory', key: 'nav.inventory' },
 ]
 
 export default function NavLinks() {
     const pathname = usePathname()
+    const t = useTranslations()
 
     return (
         <nav className="flex gap-1 overflow-x-auto px-6 pb-2">
@@ -33,7 +35,7 @@ export default function NavLinks() {
                                 : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900')
                         }
                     >
-                        {item.label}
+                        {t(item.key)}
                     </Link>
                 )
             })}

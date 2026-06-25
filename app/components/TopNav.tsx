@@ -2,6 +2,8 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { logout } from '@/app/logout/actions'
+import { getTranslations } from '@/lib/i18n/server'
+import LanguageSwitcher from './LanguageSwitcher'
 import NavLinks from './NavLinks'
 
 export default async function TopNav() {
@@ -14,6 +16,8 @@ export default async function TopNav() {
         return null
     }
 
+    const t = await getTranslations()
+
     return (
         <header className="border-b border-gray-200 bg-white">
             <div className="px-6 py-3 flex items-center justify-between">
@@ -24,12 +28,13 @@ export default async function TopNav() {
                     <span className="text-sm text-gray-500 hidden sm:inline">
                         {user.email}
                     </span>
+                    <LanguageSwitcher />
                     <form action={logout}>
                         <button
                             type="submit"
                             className="text-sm border border-gray-300 px-3 py-1 rounded hover:bg-gray-50"
                         >
-                            登出
+                            {t('nav.logout')}
                         </button>
                     </form>
                 </div>
