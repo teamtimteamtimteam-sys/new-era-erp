@@ -32,7 +32,7 @@ export default async function EditSupplierPage({
         .order('created_at', { ascending: false })
 
     return (
-        <div className="p-8 max-w-2xl">
+        <div className="p-8 max-w-4xl">
             <div className="mb-6">
                 <Link
                     href="/suppliers"

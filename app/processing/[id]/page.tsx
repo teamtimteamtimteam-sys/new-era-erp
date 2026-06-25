@@ -11,6 +11,7 @@ type ProcessingInputRow = {
         id: string
         code: string
         unit: string
+        deleted_at: string | null
         materials: { name: string } | null
     } | null
 }
@@ -23,6 +24,7 @@ type ProcessingOutputRow = {
         code: string
         unit: string
         purity: string | null
+        deleted_at: string | null
         materials: { name: string } | null
     } | null
 }
@@ -44,12 +46,12 @@ export default async function ProcessingDetailPage({
             .single(),
         supabase
             .from('processing_inputs')
-            .select('id, quantity_consumed, inbound_batches ( id, code, unit, materials ( name ) )')
+            .select('id, quantity_consumed, inbound_batches ( id, code, unit, deleted_at, materials ( name ) )')
             .eq('run_id', id)
             .order('created_at'),
         supabase
             .from('processing_outputs')
-            .select('id, quantity_produced, output_batches ( id, code, unit, purity, materials ( name ) )')
+            .select('id, quantity_produced, output_batches ( id, code, unit, purity, deleted_at, materials ( name ) )')
             .eq('run_id', id)
             .order('created_at'),
     ])
@@ -146,15 +148,19 @@ export default async function ProcessingDetailPage({
                             {inputs?.map((leg) => (
                                 <tr key={leg.id}>
                                     <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                        {leg.inbound_batches ? (
+                                        {!leg.inbound_batches ? (
+                                            '—'
+                                        ) : leg.inbound_batches.deleted_at ? (
+                                            <span className="text-gray-500">
+                                                {leg.inbound_batches.code}（已删除）
+                                            </span>
+                                        ) : (
                                             <Link
                                                 href={`/inbound/${leg.inbound_batches.id}/edit`}
                                                 className="text-blue-600 hover:underline"
                                             >
                                                 {leg.inbound_batches.code}
                                             </Link>
-                                        ) : (
-                                            '—'
                                         )}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2">
@@ -195,15 +201,19 @@ export default async function ProcessingDetailPage({
                             {outputs?.map((leg) => (
                                 <tr key={leg.id}>
                                     <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                        {leg.output_batches ? (
+                                        {!leg.output_batches ? (
+                                            '—'
+                                        ) : leg.output_batches.deleted_at ? (
+                                            <span className="text-gray-500">
+                                                {leg.output_batches.code}（已删除）
+                                            </span>
+                                        ) : (
                                             <Link
                                                 href={`/output/${leg.output_batches.id}/edit`}
                                                 className="text-blue-600 hover:underline"
                                             >
                                                 {leg.output_batches.code}
                                             </Link>
-                                        ) : (
-                                            '—'
                                         )}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2">
