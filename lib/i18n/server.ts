@@ -11,7 +11,7 @@ export async function getLocale(): Promise<Locale> {
 export async function getTranslations() {
     const locale = await getLocale()
     const messages = MESSAGES[locale]
-    return (key: string): string => {
+    return (key: string, params?: Record<string, string | number>): string => {
         const parts = key.split('.')
         let current: unknown = messages
         for (const part of parts) {
@@ -21,6 +21,10 @@ export async function getTranslations() {
                 return key
             }
         }
-        return typeof current === 'string' ? current : key
+        if (typeof current !== 'string') return key
+        if (!params) return current
+        return current.replace(/\{(\w+)\}/g, (_, name) =>
+            name in params ? String(params[name]) : `{${name}}`
+        )
     }
 }

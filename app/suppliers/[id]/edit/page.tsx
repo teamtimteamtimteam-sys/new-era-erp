@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import EditSupplierForm from './EditSupplierForm'
 import StatusPanel from './StatusPanel'
 import CompliancePanel from './CompliancePanel'
+import { getTranslations } from '@/lib/i18n/server'
 
 export default async function EditSupplierPage({
     params,
@@ -12,6 +13,7 @@ export default async function EditSupplierPage({
 }) {
     const { id } = await params
     const supabase = await createClient()
+    const t = await getTranslations()
 
     const { data: supplier, error } = await supabase
         .from('suppliers')
@@ -38,16 +40,16 @@ export default async function EditSupplierPage({
                     href="/suppliers"
                     className="text-blue-600 hover:underline text-sm"
                 >
-                    ← 返回列表
+                    {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-2">编辑供应商</h1>
+            <h1 className="text-2xl font-bold mb-2">{t('suppliers.editTitle')}</h1>
             <p className="text-sm text-gray-600 mb-6">
                 <span className="font-mono">{supplier.code}</span>
                 <span className="mx-2">·</span>
                 <span className="px-2 py-0.5 bg-gray-200 rounded text-xs">
-                    {supplier.status}
+                    {t('suppliers.status.' + supplier.status)}
                 </span>
             </p>
 

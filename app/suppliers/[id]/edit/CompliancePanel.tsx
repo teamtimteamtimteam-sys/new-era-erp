@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { addCompliance, deleteCompliance } from './complianceActions'
+import { useTranslations } from '@/lib/i18n/client'
 
 type ComplianceRow = {
     id: string
@@ -13,6 +14,7 @@ type ComplianceRow = {
     notes: string | null
 }
 
+// 证书类型选项:专有名词保持原样,"其他" 走 i18n。value 即写入数据库的值,保持不变。
 const CERT_TYPE_OPTIONS = [
     'Basel Convention',
     'Article 18',
@@ -29,6 +31,7 @@ export default function CompliancePanel({
     supplierId: string
     rows: ComplianceRow[]
 }) {
+    const t = useTranslations()
     const [error, setError] = useState<string | null>(null)
     const [isPending, startTransition] = useTransition()
     const [formKey, setFormKey] = useState(0)
@@ -46,7 +49,7 @@ export default function CompliancePanel({
     }
 
     function handleDelete(id: string) {
-        if (!window.confirm('确定删除这张证书吗?')) return
+        if (!window.confirm(t('suppliers.compliance.deleteConfirm'))) return
         startTransition(async () => {
             const result = await deleteCompliance(id, supplierId)
             if (result?.error) {
@@ -61,19 +64,19 @@ export default function CompliancePanel({
 
     return (
         <section className="mt-8 pt-8 border-t">
-            <h2 className="text-xl font-bold mb-4">合规证书</h2>
+            <h2 className="text-xl font-bold mb-4">{t('suppliers.compliance.sectionTitle')}</h2>
 
             {rows.length === 0 ? (
-                <p className="text-sm text-gray-500 mb-6">暂无合规证书</p>
+                <p className="text-sm text-gray-500 mb-6">{t('suppliers.compliance.empty')}</p>
             ) : (
                 <table className="w-full border-collapse border border-gray-300 mb-6">
                     <thead className="bg-gray-100">
                         <tr>
-                            <th className="border border-gray-300 px-4 py-2 text-left">证书类型</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">证书编号</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">签发机构</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">有效期</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">操作</th>
+                            <th className="border border-gray-300 px-4 py-2 text-left">{t('suppliers.compliance.colType')}</th>
+                            <th className="border border-gray-300 px-4 py-2 text-left">{t('suppliers.compliance.colNo')}</th>
+                            <th className="border border-gray-300 px-4 py-2 text-left">{t('suppliers.compliance.colIssuer')}</th>
+                            <th className="border border-gray-300 px-4 py-2 text-left">{t('suppliers.compliance.colValidity')}</th>
+                            <th className="border border-gray-300 px-4 py-2 text-left">{t('suppliers.compliance.colActions')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -96,7 +99,7 @@ export default function CompliancePanel({
                                         }`}
                                     >
                                         {row.valid_from || '—'} ~ {row.valid_until || '—'}
-                                        {expired && ' (已过期)'}
+                                        {expired && t('suppliers.compliance.expired')}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2">
                                         <button
@@ -105,7 +108,7 @@ export default function CompliancePanel({
                                             disabled={isPending}
                                             className="text-red-600 text-sm hover:underline disabled:text-gray-400"
                                         >
-                                            删除
+                                            {t('suppliers.compliance.deleteCert')}
                                         </button>
                                     </td>
                                 </tr>
@@ -115,7 +118,7 @@ export default function CompliancePanel({
                 </table>
             )}
 
-            <h3 className="text-lg font-semibold mb-3">添加证书</h3>
+            <h3 className="text-lg font-semibold mb-3">{t('suppliers.compliance.addTitle')}</h3>
 
             {error && (
                 <p className="text-red-600 text-sm mb-3">{error}</p>
@@ -124,7 +127,7 @@ export default function CompliancePanel({
             <form key={formKey} action={handleAdd} className="space-y-3">
                 <div>
                     <label className="block text-sm font-medium mb-1">
-                        证书类型 <span className="text-red-600">*</span>
+                        {t('suppliers.compliance.certType')} <span className="text-red-600">*</span>
                     </label>
                     <select
                         name="cert_type"
@@ -133,39 +136,39 @@ export default function CompliancePanel({
                         className="w-full border border-gray-300 px-3 py-2 rounded"
                     >
                         <option value="" disabled>
-                            请选择证书类型
+                            {t('suppliers.compliance.certTypePlaceholder')}
                         </option>
                         {CERT_TYPE_OPTIONS.map((opt) => (
                             <option key={opt} value={opt}>
-                                {opt}
+                                {opt === '其他' ? t('suppliers.compliance.otherType') : opt}
                             </option>
                         ))}
                     </select>
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">证书编号</label>
+                    <label className="block text-sm font-medium mb-1">{t('suppliers.compliance.certNo')}</label>
                     <input
                         type="text"
                         name="cert_no"
-                        placeholder="证书编号"
+                        placeholder={t('suppliers.compliance.certNo')}
                         className="w-full border border-gray-300 px-3 py-2 rounded"
                     />
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">签发机构</label>
+                    <label className="block text-sm font-medium mb-1">{t('suppliers.compliance.issuer')}</label>
                     <input
                         type="text"
                         name="issuing_body"
-                        placeholder="签发机构"
+                        placeholder={t('suppliers.compliance.issuer')}
                         className="w-full border border-gray-300 px-3 py-2 rounded"
                     />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                     <div>
-                        <label className="block text-sm font-medium mb-1">生效日期</label>
+                        <label className="block text-sm font-medium mb-1">{t('suppliers.compliance.validFrom')}</label>
                         <input
                             type="date"
                             name="valid_from"
@@ -173,7 +176,7 @@ export default function CompliancePanel({
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">到期日期</label>
+                        <label className="block text-sm font-medium mb-1">{t('suppliers.compliance.validUntil')}</label>
                         <input
                             type="date"
                             name="valid_until"
@@ -183,11 +186,11 @@ export default function CompliancePanel({
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">备注</label>
+                    <label className="block text-sm font-medium mb-1">{t('suppliers.compliance.notes')}</label>
                     <input
                         type="text"
                         name="notes"
-                        placeholder="备注(可选)"
+                        placeholder={t('suppliers.compliance.notesPlaceholder')}
                         className="w-full border border-gray-300 px-3 py-2 rounded"
                     />
                 </div>
@@ -198,7 +201,7 @@ export default function CompliancePanel({
                         disabled={isPending}
                         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                     >
-                        {isPending ? '添加中...' : '添加证书'}
+                        {isPending ? t('suppliers.compliance.adding') : t('suppliers.compliance.addButton')}
                     </button>
                 </div>
             </form>

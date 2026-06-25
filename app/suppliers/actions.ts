@@ -2,9 +2,11 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { getTranslations } from '@/lib/i18n/server'
 
 export async function softDeleteSupplier(id: string) {
     const supabase = await createClient()
+    const t = await getTranslations()
 
     const { error } = await supabase
         .from('suppliers')
@@ -13,7 +15,7 @@ export async function softDeleteSupplier(id: string) {
         .is('deleted_at', null) // 已经删过的不重复删
 
     if (error) {
-        return { error: `删除失败: ${error.message}` }
+        return { error: t('suppliers.deleteError', { message: error.message }) }
     }
 
     revalidatePath('/suppliers')

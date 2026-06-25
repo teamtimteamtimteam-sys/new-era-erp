@@ -24,8 +24,12 @@ export function I18nProvider({
     )
 }
 
-// 点路径取文案，例如 t('nav.suppliers')
-function resolve(messages: Messages, key: string): string {
+// 点路径取文案，例如 t('nav.suppliers')；支持 {var} 插值：t('key', { count: 5 })
+function resolve(
+    messages: Messages,
+    key: string,
+    params?: Record<string, string | number>
+): string {
     const parts = key.split('.')
     let current: unknown = messages
     for (const part of parts) {
@@ -35,7 +39,11 @@ function resolve(messages: Messages, key: string): string {
             return key // 找不到就原样返回 key，方便发现漏翻
         }
     }
-    return typeof current === 'string' ? current : key
+    if (typeof current !== 'string') return key
+    if (!params) return current
+    return current.replace(/\{(\w+)\}/g, (_, name) =>
+        name in params ? String(params[name]) : `{${name}}`
+    )
 }
 
 export function useTranslations() {
@@ -43,7 +51,8 @@ export function useTranslations() {
     if (!ctx) {
         throw new Error('useTranslations must be used within I18nProvider')
     }
-    return (key: string) => resolve(ctx.messages, key)
+    return (key: string, params?: Record<string, string | number>) =>
+        resolve(ctx.messages, key, params)
 }
 
 export function useLocale(): Locale {

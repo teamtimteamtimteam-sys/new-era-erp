@@ -3,18 +3,7 @@ import type { Database } from '@/lib/database.types'
 type SupplierStatus = Database['public']['Enums']['supplier_status']
 
 // 状态机定义(纯数据,无副作用,可以在 Server 和 Client 都用)
-
-// 7 个状态对应的中文标签
-export const STATUS_LABELS: Record<SupplierStatus, string> = {
-    draft: '草稿',
-    pending_review: '待审核',
-    approved: '已批准',
-    rejected: '已驳回',
-    active: '活跃',
-    suspended: '已暂停',
-    blacklisted: '已拉黑',
-    archived: '已归档',
-}
+// 显示文案已移到 i18n 消息目录(suppliers.status.* / suppliers.statusAction.*)
 
 // 合法状态流转表(必须跟数据库 trigger 一致)
 export const ALLOWED_TRANSITIONS: Record<SupplierStatus, SupplierStatus[]> = {
@@ -26,18 +15,6 @@ export const ALLOWED_TRANSITIONS: Record<SupplierStatus, SupplierStatus[]> = {
     suspended: ['active', 'blacklisted', 'archived'],
     blacklisted: ['archived'],
     archived: ['draft'],
-}
-
-// 每个流转动作的按钮文案
-export const TRANSITION_LABELS: Record<SupplierStatus, string> = {
-    pending_review: '提交审核',
-    approved: '批准',
-    rejected: '驳回',
-    draft: '退回草稿',
-    active: '激活',
-    suspended: '暂停',
-    blacklisted: '拉黑',
-    archived: '归档',
 }
 
 // 需要二次确认的"重要"流转

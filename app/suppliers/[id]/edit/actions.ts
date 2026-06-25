@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { getTranslations } from '@/lib/i18n/server'
 
 export type UpdateSupplierState = {
     error?: string
@@ -14,6 +15,8 @@ export async function updateSupplier(
     _prevState: UpdateSupplierState,
     formData: FormData
 ): Promise<UpdateSupplierState> {
+    const t = await getTranslations()
+
     // 1. 取出字段
     const legal_name = (formData.get('legal_name') as string)?.trim()
     const short_name = (formData.get('short_name') as string)?.trim() || null
@@ -28,10 +31,10 @@ export async function updateSupplier(
 
     // 2. 校验
     const fieldErrors: Record<string, string> = {}
-    if (!legal_name) fieldErrors.legal_name = '法人名是必填的'
-    if (!country) fieldErrors.country = '国家是必填的'
+    if (!legal_name) fieldErrors.legal_name = t('suppliers.form.errLegalName')
+    if (!country) fieldErrors.country = t('suppliers.form.errCountry')
     if (country && country.length !== 2) {
-        fieldErrors.country = '国家应该是 2 个字母的代码,例如 SG / CN / DE'
+        fieldErrors.country = t('suppliers.form.errCountryFormat')
     }
 
     if (Object.keys(fieldErrors).length > 0) {
@@ -58,7 +61,7 @@ export async function updateSupplier(
         .is('deleted_at', null) // 已软删除的不能改
 
     if (error) {
-        return { error: `保存失败: ${error.message}` }
+        return { error: t('suppliers.form.saveError', { message: error.message }) }
     }
 
     // 4. 刷新缓存 + 跳回列表页

@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import type { Database } from '@/lib/database.types'
 import { revalidatePath } from 'next/cache'
+import { getTranslations } from '@/lib/i18n/server'
 
 export type ChangeStatusState = {
     error?: string
@@ -14,6 +15,7 @@ export async function changeSupplierStatus(
     newStatus: Database['public']['Enums']['supplier_status']
 ): Promise<ChangeStatusState> {
     const supabase = await createClient()
+    const t = await getTranslations()
 
     const { error } = await supabase
         .from('suppliers')
@@ -22,7 +24,7 @@ export async function changeSupplierStatus(
         .is('deleted_at', null)
 
     if (error) {
-        return { error: `状态变更失败: ${error.message}` }
+        return { error: t('suppliers.statusPanel.changeError', { message: error.message }) }
     }
 
     revalidatePath('/suppliers')

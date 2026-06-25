@@ -2,8 +2,10 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { getTranslations } from '@/lib/i18n/server'
 
 export async function addCompliance(supplierId: string, formData: FormData) {
+    const t = await getTranslations()
     const cert_type = (formData.get('cert_type') as string)?.trim()
     const cert_no = (formData.get('cert_no') as string)?.trim() || null
     const issuing_body = (formData.get('issuing_body') as string)?.trim() || null
@@ -12,7 +14,7 @@ export async function addCompliance(supplierId: string, formData: FormData) {
     const notes = (formData.get('notes') as string)?.trim() || null
 
     if (!cert_type) {
-        return { error: '证书类型是必填的' }
+        return { error: t('suppliers.compliance.errCertType') }
     }
 
     const supabase = await createClient()
@@ -33,7 +35,7 @@ export async function addCompliance(supplierId: string, formData: FormData) {
     })
 
     if (error) {
-        return { error: `添加失败: ${error.message}` }
+        return { error: t('suppliers.compliance.addError', { message: error.message }) }
     }
 
     revalidatePath(`/suppliers/${supplierId}/edit`)
@@ -41,6 +43,7 @@ export async function addCompliance(supplierId: string, formData: FormData) {
 }
 
 export async function deleteCompliance(complianceId: string, supplierId: string) {
+    const t = await getTranslations()
     const supabase = await createClient()
     const {
         data: { user },
@@ -56,7 +59,7 @@ export async function deleteCompliance(complianceId: string, supplierId: string)
         .is('deleted_at', null)
 
     if (error) {
-        return { error: `删除失败: ${error.message}` }
+        return { error: t('suppliers.compliance.deleteError', { message: error.message }) }
     }
 
     revalidatePath(`/suppliers/${supplierId}/edit`)

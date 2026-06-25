@@ -2,6 +2,7 @@
 
 import { useTransition } from 'react'
 import { softDeleteSupplier } from './actions'
+import { useTranslations } from '@/lib/i18n/client'
 
 export default function DeleteButton({
     id,
@@ -10,11 +11,12 @@ export default function DeleteButton({
     id: string
     legalName: string
 }) {
+    const t = useTranslations()
     const [isPending, startTransition] = useTransition()
 
     function handleClick() {
         const confirmed = window.confirm(
-            `确定要删除"${legalName}"吗?\n\n(软删除:数据保留在数据库中,可以恢复。)`
+            t('suppliers.deleteConfirm', { name: legalName })
         )
         if (!confirmed) return
 
@@ -32,7 +34,7 @@ export default function DeleteButton({
             disabled={isPending}
             className="text-red-600 hover:underline disabled:text-gray-400"
         >
-            {isPending ? '删除中...' : '删除'}
+            {isPending ? t('common.deleting') : t('common.delete')}
         </button>
     )
 }
