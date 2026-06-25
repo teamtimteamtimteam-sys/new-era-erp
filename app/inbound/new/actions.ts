@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import type { InsertRow } from '@/lib/db-helpers'
+import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
@@ -14,6 +15,8 @@ export async function createInbound(
     _prevState: CreateInboundState,
     formData: FormData
 ): Promise<CreateInboundState> {
+    const t = await getTranslations()
+
     // 1. 取字段
     const material_id = (formData.get('material_id') as string) || ''
     const supplier_id = (formData.get('supplier_id') as string) || ''
@@ -26,16 +29,16 @@ export async function createInbound(
 
     // 2. 校验
     const fieldErrors: Record<string, string> = {}
-    if (!material_id) fieldErrors.material_id = '请选择物料'
-    if (!supplier_id) fieldErrors.supplier_id = '请选择供应商'
+    if (!material_id) fieldErrors.material_id = t('inbound.form.errMaterial')
+    if (!supplier_id) fieldErrors.supplier_id = t('inbound.form.errSupplier')
 
     let quantity: number | null = null
     if (!quantity_raw) {
-        fieldErrors.quantity = '数量是必填的'
+        fieldErrors.quantity = t('inbound.form.errQuantity')
     } else {
         const n = Number(quantity_raw)
         if (Number.isNaN(n) || n <= 0) {
-            fieldErrors.quantity = '数量必须是大于0的数字'
+            fieldErrors.quantity = t('inbound.form.errQuantityPositive')
         } else {
             quantity = n
         }
@@ -45,7 +48,7 @@ export async function createInbound(
     if (unit_price_raw) {
         const n = Number(unit_price_raw)
         if (Number.isNaN(n)) {
-            fieldErrors.unit_price = '单价必须是数字'
+            fieldErrors.unit_price = t('inbound.form.errUnitPrice')
         } else {
             unit_price = n
         }
@@ -78,7 +81,7 @@ export async function createInbound(
     } as InsertRow<'inbound_batches'>)
 
     if (error) {
-        return { error: `保存失败: ${error.message}` }
+        return { error: t('inbound.form.saveError', { message: error.message }) }
     }
 
     revalidatePath('/inbound')

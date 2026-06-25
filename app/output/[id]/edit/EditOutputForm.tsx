@@ -170,8 +170,8 @@ export default function EditOutputForm({
                         className="w-full border border-gray-300 px-3 py-2 rounded"
                     >
                         {STATE_OPTIONS.map((s) => (
-                            <option key={s} value={s}>
-                                {s}
+                            <option key={s.value} value={s.value}>
+                                {s.value}
                             </option>
                         ))}
                     </select>

@@ -28,10 +28,10 @@ export const CHEMISTRY_OPTIONS: MaterialSelectOption[] = [
 ]
 
 export const UNIT_OPTIONS: MaterialSelectOption[] = [
-    { value: 'kg', labelKey: 'materials.unit.kg' },
-    { value: '吨', labelKey: 'materials.unit.ton' },
-    { value: '克', labelKey: 'materials.unit.gram' },
-    { value: '件', labelKey: 'materials.unit.piece' },
+    { value: 'kg', labelKey: 'units.kg' },
+    { value: '吨', labelKey: 'units.ton' },
+    { value: '克', labelKey: 'units.gram' },
+    { value: '件', labelKey: 'units.piece' },
 ]
 
 // 选中此值时,显示自由文本输入框。既是存储值,也是 CustomSelect 的 sentinel —— 不要改。

@@ -3,6 +3,8 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import DeleteButton from './DeleteButton'
+import { STAGE_OPTIONS, labelKeyForValue } from './options'
+import { getTranslations, getLocale } from '@/lib/i18n/server'
 
 // FK 嵌入运行时是对象;TS 默认猜数组(无生成 DB 类型),用显式类型 + cast 锁住。
 type InboundRow = {
@@ -21,6 +23,9 @@ type InboundRow = {
 
 export default async function InboundPage() {
     const supabase = await createClient()
+    const t = await getTranslations()
+    const locale = await getLocale()
+    const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
     // 嵌入外键:materials 和 suppliers 通过 material_id / supplier_id 关联
     const { data, error } = await supabase
@@ -38,42 +43,48 @@ export default async function InboundPage() {
     if (error) {
         return (
             <div className="p-8">
-                <h1 className="text-2xl font-bold mb-4">Inbound</h1>
+                <h1 className="text-2xl font-bold mb-4">{t('inbound.listTitle')}</h1>
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                    <p className="font-bold">读取失败</p>
+                    <p className="font-bold">{t('inbound.loadError')}</p>
                     <pre className="text-xs mt-2">{JSON.stringify(error, null, 2)}</pre>
                 </div>
             </div>
         )
     }
 
+    // stage 存储值反查成本地化文案;未知值原样显示
+    const stageLabel = (value: string) => {
+        const key = labelKeyForValue(STAGE_OPTIONS, value)
+        return key ? t(key) : value
+    }
+
     return (
         <div className="p-8">
             <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold">进料批次 (Inbound)</h1>
+                <h1 className="text-2xl font-bold">{t('inbound.listTitle')}</h1>
                 <Link
                     href="/inbound/new"
                     className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                 >
-                    + 新增进料
+                    {t('inbound.addButton')}
                 </Link>
             </div>
             <p className="text-sm text-gray-600 mb-4">
-                共 {batches?.length ?? 0} 条记录
+                {t('inbound.recordCount', { count: batches?.length ?? 0 })}
             </p>
 
             <table className="w-full border-collapse border border-gray-300">
                 <thead className="bg-gray-100">
                     <tr>
                         <th className="border border-gray-300 px-4 py-2 text-left">Code</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">物料</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">供应商</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">数量</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">剩余</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">到货日期</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">阶段</th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">{t('inbound.colMaterial')}</th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">{t('inbound.colSupplier')}</th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">{t('inbound.colQuantity')}</th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">{t('inbound.colRemaining')}</th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">{t('inbound.colArrivalDate')}</th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">{t('inbound.colStage')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-left">Status</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">操作</th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">{t('inbound.colActions')}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -94,7 +105,7 @@ export default async function InboundPage() {
                             <td className="border border-gray-300 px-4 py-2">{b.arrival_date ?? '—'}</td>
                             <td className="border border-gray-300 px-4 py-2">
                                 <span className="px-2 py-1 bg-gray-200 rounded text-xs">
-                                    {b.stage}
+                                    {stageLabel(b.stage)}
                                 </span>
                             </td>
                             <td className="border border-gray-300 px-4 py-2">
@@ -113,7 +124,7 @@ export default async function InboundPage() {
                                 colSpan={9}
                                 className="border border-gray-300 px-4 py-8 text-center text-gray-500"
                             >
-                                还没有进料批次
+                                {t('inbound.emptyState')}
                             </td>
                         </tr>
                     )}

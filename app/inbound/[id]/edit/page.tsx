@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import EditInboundForm from './EditInboundForm'
+import { getTranslations } from '@/lib/i18n/server'
 
 export default async function EditInboundPage({
     params,
@@ -10,6 +11,7 @@ export default async function EditInboundPage({
 }) {
     const { id } = await params
     const supabase = await createClient()
+    const t = await getTranslations()
 
     const [batchRes, materialsRes, suppliersRes] = await Promise.all([
         supabase
@@ -38,9 +40,9 @@ export default async function EditInboundPage({
         const err = materialsRes.error ?? suppliersRes.error
         return (
             <div className="p-8 max-w-2xl">
-                <h1 className="text-2xl font-bold mb-4">编辑进料</h1>
+                <h1 className="text-2xl font-bold mb-4">{t('inbound.editTitle')}</h1>
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                    <p className="font-bold">读取下拉框数据失败</p>
+                    <p className="font-bold">{t('inbound.dropdownLoadError')}</p>
                     <pre className="text-xs mt-2">{JSON.stringify(err, null, 2)}</pre>
                 </div>
             </div>
@@ -56,11 +58,11 @@ export default async function EditInboundPage({
                     href="/inbound"
                     className="text-blue-600 hover:underline text-sm"
                 >
-                    ← 返回列表
+                    {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-2">编辑进料</h1>
+            <h1 className="text-2xl font-bold mb-2">{t('inbound.editTitle')}</h1>
             <p className="text-sm text-gray-600 mb-6">
                 <span className="font-mono">{batch.code}</span>
                 <span className="mx-2">·</span>

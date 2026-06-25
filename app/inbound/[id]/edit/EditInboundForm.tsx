@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { updateInbound, type UpdateInboundState } from './actions'
 import { UNIT_OPTIONS } from '../../../materials/options'
 import { STAGE_OPTIONS } from '../../options'
+import { useTranslations } from '@/lib/i18n/client'
 
 const initialState: UpdateInboundState = {}
 
@@ -33,6 +34,7 @@ export default function EditInboundForm({
     materials: MaterialOption[]
     suppliers: SupplierOption[]
 }) {
+    const t = useTranslations()
     const updateWithId = updateInbound.bind(null, batch.id)
     const [state, formAction, isPending] = useActionState(
         updateWithId,
@@ -51,7 +53,7 @@ export default function EditInboundForm({
                 {/* 物料(必填,预选)*/}
                 <div>
                     <label className="block text-sm font-medium mb-1">
-                        物料 <span className="text-red-600">*</span>
+                        {t('inbound.form.material')} <span className="text-red-600">*</span>
                     </label>
                     <select
                         name="material_id"
@@ -59,7 +61,7 @@ export default function EditInboundForm({
                         defaultValue={batch.material_id}
                         className="w-full border border-gray-300 px-3 py-2 rounded"
                     >
-                        <option value="" disabled>请选择物料</option>
+                        <option value="" disabled>{t('inbound.form.selectMaterial')}</option>
                         {materials.map((m) => (
                             <option key={m.id} value={m.id}>
                                 {m.code} - {m.name}
@@ -73,11 +75,11 @@ export default function EditInboundForm({
                     )}
                     {materials.length === 0 && (
                         <p className="text-xs text-amber-600 mt-1">
-                            还没有物料,请先到{' '}
+                            {t('inbound.form.noMaterialsHelper')}
                             <Link href="/materials/new" className="underline">
-                                物料字典
-                            </Link>{' '}
-                            创建
+                                {t('inbound.form.noMaterialsLink')}
+                            </Link>
+                            {t('inbound.form.noMaterialsHelperPost')}
                         </p>
                     )}
                 </div>
@@ -85,7 +87,7 @@ export default function EditInboundForm({
                 {/* 供应商(必填,预选)*/}
                 <div>
                     <label className="block text-sm font-medium mb-1">
-                        供应商 <span className="text-red-600">*</span>
+                        {t('inbound.form.supplier')} <span className="text-red-600">*</span>
                     </label>
                     <select
                         name="supplier_id"
@@ -93,7 +95,7 @@ export default function EditInboundForm({
                         defaultValue={batch.supplier_id}
                         className="w-full border border-gray-300 px-3 py-2 rounded"
                     >
-                        <option value="" disabled>请选择供应商</option>
+                        <option value="" disabled>{t('inbound.form.selectSupplier')}</option>
                         {suppliers.map((s) => (
                             <option key={s.id} value={s.id}>
                                 {s.code} - {s.legal_name}
@@ -107,10 +109,11 @@ export default function EditInboundForm({
                     )}
                     {suppliers.length === 0 && (
                         <p className="text-xs text-amber-600 mt-1">
-                            还没有供应商,请先{' '}
+                            {t('inbound.form.noSuppliersHelper')}
                             <Link href="/suppliers/new" className="underline">
-                                创建供应商
+                                {t('inbound.form.noSuppliersLink')}
                             </Link>
+                            {t('inbound.form.noSuppliersHelperPost')}
                         </p>
                     )}
                 </div>
@@ -118,7 +121,7 @@ export default function EditInboundForm({
                 {/* 数量(必填)*/}
                 <div>
                     <label className="block text-sm font-medium mb-1">
-                        数量 <span className="text-red-600">*</span>
+                        {t('inbound.form.quantity')} <span className="text-red-600">*</span>
                     </label>
                     <input
                         type="number"
@@ -138,7 +141,7 @@ export default function EditInboundForm({
 
                 {/* 单位 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">单位</label>
+                    <label className="block text-sm font-medium mb-1">{t('inbound.form.unit')}</label>
                     <select
                         name="unit"
                         defaultValue={batch.unit}
@@ -146,7 +149,7 @@ export default function EditInboundForm({
                     >
                         {UNIT_OPTIONS.map((u) => (
                             <option key={u.value} value={u.value}>
-                                {u.value}
+                                {t(u.labelKey)}
                             </option>
                         ))}
                     </select>
@@ -154,12 +157,15 @@ export default function EditInboundForm({
 
                 {/* 剩余可用量(只读)*/}
                 <p className="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded">
-                    剩余可用量:{batch.remaining_qty} {batch.unit}(由加工流程管理)
+                    {t('inbound.form.remainingLine', {
+                        qty: batch.remaining_qty,
+                        unit: batch.unit,
+                    })}
                 </p>
 
                 {/* 到货日期 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">到货日期</label>
+                    <label className="block text-sm font-medium mb-1">{t('inbound.form.arrivalDate')}</label>
                     <input
                         type="date"
                         name="arrival_date"
@@ -170,15 +176,15 @@ export default function EditInboundForm({
 
                 {/* 阶段 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">阶段</label>
+                    <label className="block text-sm font-medium mb-1">{t('inbound.form.stage')}</label>
                     <select
                         name="stage"
                         defaultValue={batch.stage}
                         className="w-full border border-gray-300 px-3 py-2 rounded"
                     >
                         {STAGE_OPTIONS.map((s) => (
-                            <option key={s} value={s}>
-                                {s}
+                            <option key={s.value} value={s.value}>
+                                {t(s.labelKey)}
                             </option>
                         ))}
                     </select>
@@ -186,7 +192,7 @@ export default function EditInboundForm({
 
                 {/* 单价 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">单价</label>
+                    <label className="block text-sm font-medium mb-1">{t('inbound.form.unitPrice')}</label>
                     <input
                         type="number"
                         name="unit_price"
@@ -203,7 +209,7 @@ export default function EditInboundForm({
 
                 {/* 备注 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">备注</label>
+                    <label className="block text-sm font-medium mb-1">{t('inbound.form.notes')}</label>
                     <textarea
                         name="notes"
                         rows={3}
@@ -219,13 +225,13 @@ export default function EditInboundForm({
                         disabled={isPending}
                         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                     >
-                        {isPending ? '保存中...' : '保存'}
+                        {isPending ? t('common.saving') : t('common.save')}
                     </button>
                     <Link
                         href="/inbound"
                         className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"
                     >
-                        取消
+                        {t('common.cancel')}
                     </Link>
                 </div>
             </form>
