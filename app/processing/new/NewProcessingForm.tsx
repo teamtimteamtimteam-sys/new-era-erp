@@ -7,6 +7,7 @@ import {
     type CommitProcessingPayload,
 } from './actions'
 import { UNIT_OPTIONS } from '../../materials/options'
+import { useTranslations } from '@/lib/i18n/client'
 
 export type InboundBatchOption = {
     id: string
@@ -51,6 +52,7 @@ export default function NewProcessingForm({
     inboundBatches: InboundBatchOption[]
     materials: MaterialOption[]
 }) {
+    const t = useTranslations()
     const keyCounter = useRef(0)
     const nextKey = () => keyCounter.current++
 
@@ -135,14 +137,14 @@ export default function NewProcessingForm({
             }))
 
         if (validInputs.length === 0) {
-            setError('至少需要一条有效投入')
+            setError(t('processing.validation.needValidInput'))
             return
         }
 
         const seen = new Set<string>()
         for (const inp of validInputs) {
             if (seen.has(inp.inbound_batch_id)) {
-                setError('同一进料批次不能重复添加')
+                setError(t('processing.validation.duplicateInputClient'))
                 return
             }
             seen.add(inp.inbound_batch_id)
@@ -151,7 +153,7 @@ export default function NewProcessingForm({
         for (const inp of validInputs) {
             const batch = inboundBatches.find((b) => b.id === inp.inbound_batch_id)
             if (batch && inp.quantity_consumed > batch.remaining_qty) {
-                setError(`消耗数量超过剩余量: ${batch.code}`)
+                setError(t('processing.validation.consumeExceedsClient', { code: batch.code }))
                 return
             }
         }
@@ -166,14 +168,14 @@ export default function NewProcessingForm({
             }))
 
         if (validOutputs.length === 0) {
-            setError('至少需要一条有效产出')
+            setError(t('processing.validation.needValidOutput'))
             return
         }
 
         const inSum = validInputs.reduce((s, r) => s + r.quantity_consumed, 0)
         const outSum = validOutputs.reduce((s, r) => s + r.quantity, 0)
         if (outSum > inSum) {
-            setError('产出合计不能大于投入合计')
+            setError(t('processing.validation.outputExceedsInputClient'))
             return
         }
 
@@ -181,7 +183,7 @@ export default function NewProcessingForm({
         if (lossOverride !== '') {
             const n = Number(lossOverride)
             if (Number.isNaN(n) || n < 0) {
-                setError('损耗必须是不小于0的数字')
+                setError(t('processing.validation.lossInvalidClient'))
                 return
             }
             loss_qty = n
@@ -209,11 +211,11 @@ export default function NewProcessingForm({
                     href="/processing"
                     className="text-blue-600 hover:underline text-sm"
                 >
-                    ← 返回列表
+                    {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-6">新增加工单</h1>
+            <h1 className="text-2xl font-bold mb-6">{t('processing.newTitle')}</h1>
 
             {error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -224,7 +226,7 @@ export default function NewProcessingForm({
             <form onSubmit={handleSubmit} className="space-y-4">
                 {/* 加工日期 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">加工日期</label>
+                    <label className="block text-sm font-medium mb-1">{t('processing.form.dateLabel')}</label>
                     <input
                         type="date"
                         value={processDate}
@@ -236,13 +238,13 @@ export default function NewProcessingForm({
                 {/* 投入 */}
                 <section className="border border-gray-200 rounded p-4 space-y-3">
                     <div className="flex items-center justify-between">
-                        <h2 className="font-semibold">投入(消耗进料)</h2>
+                        <h2 className="font-semibold">{t('processing.form.inputsSectionHeader')}</h2>
                         <button
                             type="button"
                             onClick={addInputRow}
                             className="text-blue-600 text-sm hover:underline"
                         >
-                            + 添加投入
+                            {t('processing.form.addInputButton')}
                         </button>
                     </div>
                     {inputRows.map((row) => {
@@ -267,11 +269,16 @@ export default function NewProcessingForm({
                                         className="flex-1 border border-gray-300 px-3 py-2 rounded"
                                     >
                                         <option value="" disabled>
-                                            请选择进料批次
+                                            {t('processing.form.selectInboundBatch')}
                                         </option>
                                         {inboundBatches.map((b) => (
                                             <option key={b.id} value={b.id}>
-                                                {b.code} - {b.materials?.name ?? '—'}(剩余 {b.remaining_qty} {b.unit})
+                                                {t('processing.form.inboundOptionLabel', {
+                                                    code: b.code,
+                                                    name: b.materials?.name ?? '—',
+                                                    remaining: b.remaining_qty,
+                                                    unit: b.unit,
+                                                })}
                                             </option>
                                         ))}
                                     </select>
@@ -279,7 +286,7 @@ export default function NewProcessingForm({
                                         type="number"
                                         step="any"
                                         min="0"
-                                        placeholder="消耗数量"
+                                        placeholder={t('processing.form.consumeQtyPlaceholder')}
                                         value={row.quantity_consumed}
                                         onChange={(e) =>
                                             updateInputRow(row.key, {
@@ -293,21 +300,22 @@ export default function NewProcessingForm({
                                         onClick={() => removeInputRow(row.key)}
                                         className="text-red-600 text-sm hover:underline py-2"
                                     >
-                                        删除
+                                        {t('processing.form.rowDelete')}
                                     </button>
                                 </div>
                                 {exceeds && (
-                                    <p className="text-red-600 text-xs mt-1 ml-1">超过剩余量</p>
+                                    <p className="text-red-600 text-xs mt-1 ml-1">{t('processing.form.rowExceeds')}</p>
                                 )}
                             </div>
                         )
                     })}
                     {inboundBatches.length === 0 && (
                         <p className="text-xs text-amber-600">
-                            没有可加工的进料批次(剩余量&gt;0),请先{' '}
+                            {t('processing.form.noInboundHelper')}
                             <Link href="/inbound/new" className="underline">
-                                创建进料
+                                {t('processing.form.noInboundLink')}
                             </Link>
+                            {t('processing.form.noInboundHelperPost')}
                         </p>
                     )}
                 </section>
@@ -315,13 +323,13 @@ export default function NewProcessingForm({
                 {/* 产出 */}
                 <section className="border border-gray-200 rounded p-4 space-y-3">
                     <div className="flex items-center justify-between">
-                        <h2 className="font-semibold">产出(生成成品)</h2>
+                        <h2 className="font-semibold">{t('processing.form.outputsSectionHeader')}</h2>
                         <button
                             type="button"
                             onClick={addOutputRow}
                             className="text-blue-600 text-sm hover:underline"
                         >
-                            + 添加产出
+                            {t('processing.form.addOutputButton')}
                         </button>
                     </div>
                     {outputRows.map((row) => (
@@ -334,7 +342,7 @@ export default function NewProcessingForm({
                                 className="flex-1 border border-gray-300 px-3 py-2 rounded"
                             >
                                 <option value="" disabled>
-                                    请选择产出物料
+                                    {t('processing.form.selectOutputMaterial')}
                                 </option>
                                 {materials.map((m) => (
                                     <option key={m.id} value={m.id}>
@@ -346,7 +354,7 @@ export default function NewProcessingForm({
                                 type="number"
                                 step="any"
                                 min="0"
-                                placeholder="数量"
+                                placeholder={t('processing.form.outputQtyPlaceholder')}
                                 value={row.quantity}
                                 onChange={(e) =>
                                     updateOutputRow(row.key, { quantity: e.target.value })
@@ -362,13 +370,13 @@ export default function NewProcessingForm({
                             >
                                 {UNIT_OPTIONS.map((u) => (
                                     <option key={u.value} value={u.value}>
-                                        {u.value}
+                                        {t(u.labelKey)}
                                     </option>
                                 ))}
                             </select>
                             <input
                                 type="text"
-                                placeholder="品位/纯度"
+                                placeholder={t('processing.form.purityPlaceholder')}
                                 value={row.purity}
                                 onChange={(e) =>
                                     updateOutputRow(row.key, { purity: e.target.value })
@@ -380,7 +388,7 @@ export default function NewProcessingForm({
                                 onClick={() => removeOutputRow(row.key)}
                                 className="text-red-600 text-sm hover:underline py-2"
                             >
-                                删除
+                                {t('processing.form.rowDelete')}
                             </button>
                         </div>
                     ))}
@@ -390,15 +398,15 @@ export default function NewProcessingForm({
                 <div className="bg-gray-50 rounded p-4 space-y-2">
                     <div className="flex items-center gap-6 flex-wrap">
                         <div>
-                            <span className="text-sm text-gray-600 mr-1">投入合计:</span>
+                            <span className="text-sm text-gray-600 mr-1">{t('processing.form.totalInputLabel')}</span>
                             <span className="font-medium">{totalInput}</span>
                         </div>
                         <div>
-                            <span className="text-sm text-gray-600 mr-1">产出合计:</span>
+                            <span className="text-sm text-gray-600 mr-1">{t('processing.form.totalOutputLabel')}</span>
                             <span className="font-medium">{totalOutput}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-600">损耗:</span>
+                            <span className="text-sm text-gray-600">{t('processing.form.lossLabel')}</span>
                             <input
                                 type="number"
                                 step="any"
@@ -412,19 +420,19 @@ export default function NewProcessingForm({
                                     onClick={() => setLossOverride('')}
                                     className="text-xs text-blue-600 hover:underline"
                                 >
-                                    重置为自动
+                                    {t('processing.form.resetToAuto')}
                                 </button>
                             )}
                         </div>
                     </div>
                     {autoLoss < 0 && (
-                        <p className="text-red-600 text-xs">产出大于投入,请检查数量</p>
+                        <p className="text-red-600 text-xs">{t('processing.form.outputExceedsWarning')}</p>
                     )}
                 </div>
 
                 {/* 备注 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">备注</label>
+                    <label className="block text-sm font-medium mb-1">{t('processing.form.notesLabel')}</label>
                     <textarea
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
@@ -440,13 +448,13 @@ export default function NewProcessingForm({
                         disabled={isPending}
                         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                     >
-                        {isPending ? '保存中...' : '保存加工单'}
+                        {isPending ? t('processing.form.saving') : t('processing.form.saveRun')}
                     </button>
                     <Link
                         href="/processing"
                         className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"
                     >
-                        取消
+                        {t('common.cancel')}
                     </Link>
                 </div>
             </form>

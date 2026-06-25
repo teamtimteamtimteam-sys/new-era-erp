@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { Database } from '@/lib/database.types'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { localizeProcessingError } from '../errorCodes'
 
 export type InputRow = {
     inbound_batch_id: string
@@ -41,7 +42,7 @@ export async function commitProcessingRun(
     } as Database['public']['Functions']['commit_processing_run']['Args'])
 
     if (error) {
-        return { error: error.message }
+        return { error: await localizeProcessingError(error.message) }
     }
 
     revalidatePath('/processing')

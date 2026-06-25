@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { localizeProcessingError } from '../errorCodes'
 
 export type DeleteProcessingState = { error?: string }
 
@@ -15,7 +16,7 @@ export async function deleteProcessingRun(
     })
 
     if (error) {
-        return { error: error.message }
+        return { error: await localizeProcessingError(error.message) }
     }
 
     revalidatePath('/processing')

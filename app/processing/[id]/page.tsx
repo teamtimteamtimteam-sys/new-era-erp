@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import DeleteButton from './DeleteButton'
+import { getTranslations } from '@/lib/i18n/server'
 
 // FK 嵌入运行时是对象(包括两层嵌套);显式类型 + cast 锁住。
 type ProcessingInputRow = {
@@ -36,6 +37,7 @@ export default async function ProcessingDetailPage({
 }) {
     const { id } = await params
     const supabase = await createClient()
+    const t = await getTranslations()
 
     const [runRes, inputsRes, outputsRes] = await Promise.all([
         supabase
@@ -64,9 +66,9 @@ export default async function ProcessingDetailPage({
         const err = inputsRes.error ?? outputsRes.error
         return (
             <div className="p-8 max-w-3xl">
-                <h1 className="text-2xl font-bold mb-4">加工单详情</h1>
+                <h1 className="text-2xl font-bold mb-4">{t('processing.detailTitle')}</h1>
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                    <p className="font-bold">读取投入/产出明细失败</p>
+                    <p className="font-bold">{t('processing.detailLoadError')}</p>
                     <pre className="text-xs mt-2">{JSON.stringify(err, null, 2)}</pre>
                 </div>
             </div>
@@ -84,13 +86,13 @@ export default async function ProcessingDetailPage({
                     href="/processing"
                     className="text-blue-600 hover:underline text-sm"
                 >
-                    ← 返回列表
+                    {t('common.back')}
                 </Link>
             </div>
 
             <div className="flex items-start justify-between mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold mb-2">加工单详情</h1>
+                    <h1 className="text-2xl font-bold mb-2">{t('processing.detailTitle')}</h1>
                     <p className="text-sm text-gray-600">
                         <span className="font-mono">{run.code}</span>
                         <span className="mx-2">·</span>
@@ -107,19 +109,19 @@ export default async function ProcessingDetailPage({
                 <div className="bg-gray-50 rounded p-4">
                     <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
                         <div>
-                            <span className="text-gray-600">加工日期:</span>{' '}
+                            <span className="text-gray-600">{t('processing.detail.processDate')}</span>{' '}
                             {run.process_date ?? '—'}
                         </div>
                         <div>
-                            <span className="text-gray-600">投入合计:</span>{' '}
+                            <span className="text-gray-600">{t('processing.detail.totalInput')}</span>{' '}
                             {run.total_input ?? '—'}
                         </div>
                         <div>
-                            <span className="text-gray-600">产出合计:</span>{' '}
+                            <span className="text-gray-600">{t('processing.detail.totalOutput')}</span>{' '}
                             {run.total_output ?? '—'}
                         </div>
                         <div>
-                            <span className="text-gray-600">损耗:</span>{' '}
+                            <span className="text-gray-600">{t('processing.detail.loss')}</span>{' '}
                             {run.loss_qty ?? '—'}
                             {run.loss_qty != null && run.total_input
                                 ? ` (${((run.loss_qty / run.total_input) * 100).toFixed(1)}%)`
@@ -128,20 +130,20 @@ export default async function ProcessingDetailPage({
                     </div>
                     {run.notes && (
                         <div className="mt-3 pt-3 border-t border-gray-200 text-sm">
-                            <span className="text-gray-600">备注:</span> {run.notes}
+                            <span className="text-gray-600">{t('processing.detail.notes')}</span> {run.notes}
                         </div>
                     )}
                 </div>
 
                 {/* 投入 */}
                 <section>
-                    <h2 className="text-lg font-semibold mb-2">投入(消耗进料)</h2>
+                    <h2 className="text-lg font-semibold mb-2">{t('processing.detail.inputsSectionHeader')}</h2>
                     <table className="w-full border-collapse border border-gray-300">
                         <thead className="bg-gray-100">
                             <tr>
-                                <th className="border border-gray-300 px-4 py-2 text-left">进料批次</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">物料</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">消耗数量</th>
+                                <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.detail.colInboundBatch')}</th>
+                                <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.detail.colMaterial')}</th>
+                                <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.detail.colConsumedQty')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -152,7 +154,7 @@ export default async function ProcessingDetailPage({
                                             '—'
                                         ) : leg.inbound_batches.deleted_at ? (
                                             <span className="text-gray-500">
-                                                {leg.inbound_batches.code}（已删除）
+                                                {leg.inbound_batches.code}{t('processing.detail.deletedMarker')}
                                             </span>
                                         ) : (
                                             <Link
@@ -177,7 +179,7 @@ export default async function ProcessingDetailPage({
                                         colSpan={3}
                                         className="border border-gray-300 px-4 py-8 text-center text-gray-500"
                                     >
-                                        没有投入记录
+                                        {t('processing.detail.noInputRecords')}
                                     </td>
                                 </tr>
                             )}
@@ -187,14 +189,14 @@ export default async function ProcessingDetailPage({
 
                 {/* 产出 */}
                 <section>
-                    <h2 className="text-lg font-semibold mb-2">产出(生成成品)</h2>
+                    <h2 className="text-lg font-semibold mb-2">{t('processing.detail.outputsSectionHeader')}</h2>
                     <table className="w-full border-collapse border border-gray-300">
                         <thead className="bg-gray-100">
                             <tr>
-                                <th className="border border-gray-300 px-4 py-2 text-left">产出批次</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">物料</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">产出数量</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">品位</th>
+                                <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.detail.colOutputBatch')}</th>
+                                <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.detail.colMaterial')}</th>
+                                <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.detail.colProducedQty')}</th>
+                                <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.detail.colPurity')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -205,7 +207,7 @@ export default async function ProcessingDetailPage({
                                             '—'
                                         ) : leg.output_batches.deleted_at ? (
                                             <span className="text-gray-500">
-                                                {leg.output_batches.code}（已删除）
+                                                {leg.output_batches.code}{t('processing.detail.deletedMarker')}
                                             </span>
                                         ) : (
                                             <Link
@@ -233,7 +235,7 @@ export default async function ProcessingDetailPage({
                                         colSpan={4}
                                         className="border border-gray-300 px-4 py-8 text-center text-gray-500"
                                     >
-                                        没有产出记录
+                                        {t('processing.detail.noOutputRecords')}
                                     </td>
                                 </tr>
                             )}

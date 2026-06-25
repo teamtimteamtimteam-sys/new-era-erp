@@ -1,10 +1,12 @@
 // app/processing/page.tsx
-// 加工单列表页(只读,无删除 — 删除需要库存回滚,留给未来增强)
+// 加工单列表页(只读,删除在详情页)
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import { getTranslations } from '@/lib/i18n/server'
 
 export default async function ProcessingPage() {
     const supabase = await createClient()
+    const t = await getTranslations()
 
     const { data: runs, error } = await supabase
         .from('processing_runs')
@@ -15,9 +17,9 @@ export default async function ProcessingPage() {
     if (error) {
         return (
             <div className="p-8">
-                <h1 className="text-2xl font-bold mb-4">Processing</h1>
+                <h1 className="text-2xl font-bold mb-4">{t('processing.listTitle')}</h1>
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                    <p className="font-bold">读取失败</p>
+                    <p className="font-bold">{t('processing.loadError')}</p>
                     <pre className="text-xs mt-2">{JSON.stringify(error, null, 2)}</pre>
                 </div>
             </div>
@@ -27,26 +29,26 @@ export default async function ProcessingPage() {
     return (
         <div className="p-8">
             <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold">加工单 (Processing)</h1>
+                <h1 className="text-2xl font-bold">{t('processing.listTitle')}</h1>
                 <Link
                     href="/processing/new"
                     className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                 >
-                    + 新增加工单
+                    {t('processing.addButton')}
                 </Link>
             </div>
             <p className="text-sm text-gray-600 mb-4">
-                共 {runs?.length ?? 0} 条记录
+                {t('processing.recordCount', { count: runs?.length ?? 0 })}
             </p>
 
             <table className="w-full border-collapse border border-gray-300">
                 <thead className="bg-gray-100">
                     <tr>
                         <th className="border border-gray-300 px-4 py-2 text-left">Code</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">加工日期</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">投入合计</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">产出合计</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">损耗</th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.colProcessDate')}</th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.colTotalInput')}</th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.colTotalOutput')}</th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.colLoss')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-left">Status</th>
                     </tr>
                 </thead>
@@ -83,7 +85,7 @@ export default async function ProcessingPage() {
                                 colSpan={6}
                                 className="border border-gray-300 px-4 py-8 text-center text-gray-500"
                             >
-                                还没有加工单
+                                {t('processing.emptyState')}
                             </td>
                         </tr>
                     )}
