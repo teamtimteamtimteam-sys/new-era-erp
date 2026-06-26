@@ -2,15 +2,14 @@
 // 任务看板(Kanban)— 服务端取数,客户端拖拽
 import { createClient } from '@/lib/supabase/server'
 import TaskBoard from './TaskBoard'
+import { TASK_COLUMNS } from './types'
 
 export default async function TasksPage() {
     const supabase = await createClient()
 
     const { data: tasks, error } = await supabase
         .from('tasks')
-        .select(
-            'id, code, title, status, priority, due_date, reminder_at, tags, task_type'
-        )
+        .select(TASK_COLUMNS)
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
 

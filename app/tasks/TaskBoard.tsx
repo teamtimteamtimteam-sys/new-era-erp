@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import {
     DndContext,
     type DragEndEvent,
@@ -11,18 +11,8 @@ import {
     useDroppable,
 } from '@dnd-kit/core'
 import { updateTaskStatus } from './actions'
-
-type Task = {
-    id: string
-    code: string
-    title: string
-    status: string
-    priority: string
-    due_date: string | null
-    reminder_at: string | null
-    tags: string[] | null
-    task_type: string
-}
+import TaskModal from './TaskModal'
+import type { Task } from './types'
 
 const COLUMNS: { id: string; label: string }[] = [
     { id: 'todo', label: 'To Do' },
@@ -112,7 +102,15 @@ function DueDate({ due, today }: { due: string; today: string | null }) {
     return <span className={'text-[11px] ' + tone}>{formatDue(due)}</span>
 }
 
-function TaskCard({ task, today }: { task: Task; today: string | null }) {
+function TaskCard({
+    task,
+    today,
+    onClick,
+}: {
+    task: Task
+    today: string | null
+    onClick: (task: Task) => void
+}) {
     const { attributes, listeners, setNodeRef, transform, isDragging } =
         useDraggable({ id: task.id })
 
@@ -129,6 +127,7 @@ function TaskCard({ task, today }: { task: Task; today: string | null }) {
             style={style}
             {...listeners}
             {...attributes}
+            onClick={() => onClick(task)}
             className={
                 'cursor-grab touch-none rounded-md border border-gray-200 bg-white p-3 shadow-sm hover:shadow ' +
                 (isDragging ? 'opacity-50' : '')
@@ -182,11 +181,13 @@ function Column({
     label,
     tasks,
     today,
+    onCardClick,
 }: {
     id: string
     label: string
     tasks: Task[]
     today: string | null
+    onCardClick: (task: Task) => void
 }) {
     const { setNodeRef, isOver } = useDroppable({ id })
 
@@ -203,7 +204,12 @@ function Column({
             </h2>
             <div className="flex min-h-16 flex-col gap-2">
                 {tasks.map((task) => (
-                    <TaskCard key={task.id} task={task} today={today} />
+                    <TaskCard
+                        key={task.id}
+                        task={task}
+                        today={today}
+                        onClick={onCardClick}
+                    />
                 ))}
                 {tasks.length === 0 && (
                     <p className="rounded border border-dashed border-gray-300 p-4 text-center text-xs text-gray-400">
@@ -215,20 +221,43 @@ function Column({
     )
 }
 
+type ModalState =
+    | { mode: 'create' }
+    | { mode: 'edit'; task: Task }
+    | null
+
 export default function TaskBoard({ tasks: initialTasks }: { tasks: Task[] }) {
     const [tasks, setTasks] = useState<Task[]>(initialTasks)
     const [, startTransition] = useTransition()
+    const [modal, setModal] = useState<ModalState>(null)
 
     // 截止日期的"紧急上色"依赖当天日期,只在挂载后计算,避免 hydration 不一致
     const [today, setToday] = useState<string | null>(null)
     useEffect(() => setToday(localToday()), [])
+
+    // 区分"点击编辑"和"拖拽":拖拽真正发生时置 true,吞掉随后的 click
+    const wasDraggingRef = useRef(false)
 
     // 拖动 5px 才算开始拖拽,避免和点击冲突
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
     )
 
+    function handleDragStart() {
+        wasDraggingRef.current = true
+    }
+
+    function handleDragCancel() {
+        // 没有产生 click,直接清掉标记
+        wasDraggingRef.current = false
+    }
+
     function handleDragEnd(event: DragEndEvent) {
+        // 拖拽后浏览器会补发一次 click,放到下个事件循环再清标记,确保那次 click 被吞掉
+        setTimeout(() => {
+            wasDraggingRef.current = false
+        }, 0)
+
         const { active, over } = event
         if (!over) return
 
@@ -257,19 +286,68 @@ export default function TaskBoard({ tasks: initialTasks }: { tasks: Task[] }) {
         })
     }
 
+    // 点击卡片 -> 编辑(若刚刚发生过拖拽则忽略这次 click)
+    function handleCardClick(task: Task) {
+        if (wasDraggingRef.current) return
+        setModal({ mode: 'edit', task })
+    }
+
+    const closeModal = useCallback(() => setModal(null), [])
+
+    // 新建/编辑成功:存在则替换,不存在则插到最前(列表按 created_at 倒序)
+    const handleSaved = useCallback((saved: Task) => {
+        setTasks((prev) =>
+            prev.some((t) => t.id === saved.id)
+                ? prev.map((t) => (t.id === saved.id ? saved : t))
+                : [saved, ...prev]
+        )
+    }, [])
+
+    const handleDeleted = useCallback((id: string) => {
+        setTasks((prev) => prev.filter((t) => t.id !== id))
+    }, [])
+
     return (
-        <DndContext id="task-board" sensors={sensors} onDragEnd={handleDragEnd}>
-            <div className="flex gap-4 overflow-x-auto">
-                {COLUMNS.map((col) => (
-                    <Column
-                        key={col.id}
-                        id={col.id}
-                        label={col.label}
-                        tasks={tasks.filter((t) => t.status === col.id)}
-                        today={today}
-                    />
-                ))}
+        <>
+            <div className="mb-4">
+                <button
+                    onClick={() => setModal({ mode: 'create' })}
+                    className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+                >
+                    + Add task
+                </button>
             </div>
-        </DndContext>
+
+            <DndContext
+                id="task-board"
+                sensors={sensors}
+                onDragStart={handleDragStart}
+                onDragCancel={handleDragCancel}
+                onDragEnd={handleDragEnd}
+            >
+                <div className="flex gap-4 overflow-x-auto">
+                    {COLUMNS.map((col) => (
+                        <Column
+                            key={col.id}
+                            id={col.id}
+                            label={col.label}
+                            tasks={tasks.filter((t) => t.status === col.id)}
+                            today={today}
+                            onCardClick={handleCardClick}
+                        />
+                    ))}
+                </div>
+            </DndContext>
+
+            {modal && (
+                <TaskModal
+                    mode={modal.mode}
+                    task={modal.mode === 'edit' ? modal.task : null}
+                    onClose={closeModal}
+                    onSaved={handleSaved}
+                    onDeleted={handleDeleted}
+                />
+            )}
+        </>
     )
 }
