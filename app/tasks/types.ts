@@ -31,25 +31,11 @@ export type TaskInput = {
     task_type: string
 }
 
+// 规范的 DB 枚举值(用于遍历下拉项与服务端校验);展示用的标签走 i18n:
+// t('tasks.status.' + value) / t('tasks.priority.' + value) / t('tasks.type.' + value)
 export const STATUS_VALUES = ['todo', 'in_progress', 'done'] as const
 export const PRIORITY_VALUES = ['high', 'medium', 'low'] as const
 export const TASK_TYPE_VALUES = ['personal', 'team'] as const
-
-// 给下拉框用的英文标签(i18n 在下一步接入)
-export const STATUS_LABELS: Record<string, string> = {
-    todo: 'To Do',
-    in_progress: 'In Progress',
-    done: 'Done',
-}
-export const PRIORITY_LABELS: Record<string, string> = {
-    high: 'High',
-    medium: 'Medium',
-    low: 'Low',
-}
-export const TASK_TYPE_LABELS: Record<string, string> = {
-    personal: 'Personal',
-    team: 'Team',
-}
 
 // action 返回结果(判别联合:用 'error' in res 区分)
 export type SaveResult = { error: string } | { success: true; task: Task }

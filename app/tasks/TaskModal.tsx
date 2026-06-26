@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useTransition } from 'react'
+import { useTranslations } from '@/lib/i18n/client'
 import { createTask, updateTask, deleteTask } from './actions'
 import {
     type Task,
@@ -8,9 +9,6 @@ import {
     STATUS_VALUES,
     PRIORITY_VALUES,
     TASK_TYPE_VALUES,
-    STATUS_LABELS,
-    PRIORITY_LABELS,
-    TASK_TYPE_LABELS,
 } from './types'
 
 // 逗号分隔字符串 -> 去重去空的标签数组
@@ -48,6 +46,7 @@ export default function TaskModal({
     onSaved: (task: Task) => void
     onDeleted: (id: string) => void
 }) {
+    const t = useTranslations()
     const [error, setError] = useState<string | null>(null)
     const [isPending, startTransition] = useTransition()
 
@@ -97,7 +96,7 @@ export default function TaskModal({
     function handleDelete() {
         if (!task) return
         const ok = window.confirm(
-            `Delete "${task.title}"?\n\n(Soft delete: data is kept and recoverable.)`
+            t('tasks.deleteConfirm', { title: task.title })
         )
         if (!ok) return
 
@@ -123,7 +122,9 @@ export default function TaskModal({
                 onClick={(e) => e.stopPropagation()}
             >
                 <h2 className="mb-4 text-lg font-bold">
-                    {mode === 'create' ? 'New Task' : 'Edit Task'}
+                    {mode === 'create'
+                        ? t('tasks.newTitle')
+                        : t('tasks.editTitle')}
                 </h2>
 
                 {error && (
@@ -136,7 +137,8 @@ export default function TaskModal({
                     {/* 标题(必填) */}
                     <div>
                         <label className={labelCls}>
-                            Title <span className="text-red-600">*</span>
+                            {t('tasks.form.title')}{' '}
+                            <span className="text-red-600">*</span>
                         </label>
                         <input
                             type="text"
@@ -145,13 +147,15 @@ export default function TaskModal({
                             autoFocus
                             defaultValue={task?.title ?? ''}
                             className={inputCls}
-                            placeholder="What needs doing?"
+                            placeholder={t('tasks.form.titlePlaceholder')}
                         />
                     </div>
 
                     {/* 描述 */}
                     <div>
-                        <label className={labelCls}>Description</label>
+                        <label className={labelCls}>
+                            {t('tasks.form.description')}
+                        </label>
                         <textarea
                             name="description"
                             rows={3}
@@ -163,7 +167,9 @@ export default function TaskModal({
                     {/* 状态 / 优先级 / 类型 */}
                     <div className="grid grid-cols-3 gap-3">
                         <div>
-                            <label className={labelCls}>Status</label>
+                            <label className={labelCls}>
+                                {t('tasks.form.status')}
+                            </label>
                             <select
                                 name="status"
                                 defaultValue={task?.status ?? 'todo'}
@@ -171,13 +177,15 @@ export default function TaskModal({
                             >
                                 {STATUS_VALUES.map((v) => (
                                     <option key={v} value={v}>
-                                        {STATUS_LABELS[v]}
+                                        {t('tasks.status.' + v)}
                                     </option>
                                 ))}
                             </select>
                         </div>
                         <div>
-                            <label className={labelCls}>Priority</label>
+                            <label className={labelCls}>
+                                {t('tasks.form.priority')}
+                            </label>
                             <select
                                 name="priority"
                                 defaultValue={task?.priority ?? 'medium'}
@@ -185,13 +193,15 @@ export default function TaskModal({
                             >
                                 {PRIORITY_VALUES.map((v) => (
                                     <option key={v} value={v}>
-                                        {PRIORITY_LABELS[v]}
+                                        {t('tasks.priority.' + v)}
                                     </option>
                                 ))}
                             </select>
                         </div>
                         <div>
-                            <label className={labelCls}>Type</label>
+                            <label className={labelCls}>
+                                {t('tasks.form.type')}
+                            </label>
                             <select
                                 name="task_type"
                                 defaultValue={task?.task_type ?? 'personal'}
@@ -199,7 +209,7 @@ export default function TaskModal({
                             >
                                 {TASK_TYPE_VALUES.map((v) => (
                                     <option key={v} value={v}>
-                                        {TASK_TYPE_LABELS[v]}
+                                        {t('tasks.type.' + v)}
                                     </option>
                                 ))}
                             </select>
@@ -209,7 +219,9 @@ export default function TaskModal({
                     {/* 截止日期 / 提醒时间 */}
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className={labelCls}>Due date</label>
+                            <label className={labelCls}>
+                                {t('tasks.form.dueDate')}
+                            </label>
                             <input
                                 type="date"
                                 name="due_date"
@@ -218,7 +230,9 @@ export default function TaskModal({
                             />
                         </div>
                         <div>
-                            <label className={labelCls}>Reminder</label>
+                            <label className={labelCls}>
+                                {t('tasks.form.reminder')}
+                            </label>
                             <input
                                 type="datetime-local"
                                 name="reminder_at"
@@ -230,16 +244,16 @@ export default function TaskModal({
 
                     {/* 标签(逗号分隔) */}
                     <div>
-                        <label className={labelCls}>Tags</label>
+                        <label className={labelCls}>{t('tasks.form.tags')}</label>
                         <input
                             type="text"
                             name="tags"
                             defaultValue={task?.tags?.join(', ') ?? ''}
                             className={inputCls}
-                            placeholder="comma, separated, tags"
+                            placeholder={t('tasks.form.tagsPlaceholder')}
                         />
                         <p className="mt-1 text-xs text-gray-500">
-                            Separate tags with commas.
+                            {t('tasks.form.tagsHint')}
                         </p>
                     </div>
 
@@ -253,7 +267,7 @@ export default function TaskModal({
                                 disabled={isPending}
                                 className="text-sm text-red-600 hover:underline disabled:text-gray-400"
                             >
-                                Delete
+                                {t('common.delete')}
                             </button>
                         ) : (
                             <span />
@@ -265,14 +279,14 @@ export default function TaskModal({
                                 onClick={onClose}
                                 className="rounded border border-gray-300 px-4 py-2 hover:bg-gray-50"
                             >
-                                Cancel
+                                {t('common.cancel')}
                             </button>
                             <button
                                 type="submit"
                                 disabled={isPending}
                                 className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:bg-gray-400"
                             >
-                                {isPending ? 'Saving…' : 'Save'}
+                                {isPending ? t('common.saving') : t('common.save')}
                             </button>
                         </div>
                     </div>

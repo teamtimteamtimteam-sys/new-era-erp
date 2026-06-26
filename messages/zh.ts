@@ -9,6 +9,7 @@ const zh = {
         output: '产出',
         processing: '加工',
         inventory: '库存',
+        tasks: '任务',
         logout: '登出',
     },
     home: {
@@ -435,6 +436,50 @@ const zh = {
         emptyState: '暂无库存',
         mixedUnit: '⚠️ 混合',
         footerNote: '原料库存 = 进料批次剩余量合计；成品库存 = 产出批次剩余量合计（剩余量 > 0 的批次）',
+    },
+    tasks: {
+        pageTitle: '任务',
+        loadError: '任务加载失败',
+        addButton: '+ 新建任务',
+        newTitle: '新建任务',
+        editTitle: '编辑任务',
+        dropPlaceholder: '拖放任务到这里',
+        deleteConfirm: '确定要删除"{title}"吗？\n\n（软删除：数据保留在数据库中，可以恢复。）',
+        deleteError: '删除失败：{message}',
+        status: {
+            todo: '待办',
+            in_progress: '进行中',
+            done: '已完成',
+        },
+        priority: {
+            high: '高',
+            medium: '中',
+            low: '低',
+        },
+        type: {
+            personal: '个人',
+            team: '团队',
+        },
+        form: {
+            title: '标题',
+            titlePlaceholder: '需要做什么？',
+            description: '描述',
+            status: '状态',
+            priority: '优先级',
+            type: '类型',
+            dueDate: '截止日期',
+            reminder: '提醒',
+            tags: '标签',
+            tagsPlaceholder: '逗号, 分隔, 标签',
+            tagsHint: '多个标签用逗号分隔。',
+            saveError: '保存失败：{message}',
+        },
+        errors: {
+            titleRequired: '标题不能为空',
+            invalidStatus: '无效的状态：{value}',
+            invalidPriority: '无效的优先级：{value}',
+            invalidType: '无效的任务类型：{value}',
+        },
     },
 } as const satisfies Messages
 

@@ -7,6 +7,7 @@ const en = {
         output: 'Output',
         processing: 'Processing',
         inventory: 'Inventory',
+        tasks: 'Tasks',
         logout: 'Log out',
     },
     home: {
@@ -433,6 +434,51 @@ const en = {
         emptyState: 'No stock',
         mixedUnit: '⚠️ Mixed',
         footerNote: 'Raw stock = sum of remaining inbound batch quantities; finished stock = sum of remaining output batch quantities (batches with remaining > 0)',
+    },
+    tasks: {
+        pageTitle: 'Tasks',
+        loadError: 'Failed to load tasks',
+        addButton: '+ Add task',
+        newTitle: 'New Task',
+        editTitle: 'Edit Task',
+        dropPlaceholder: 'Drop tasks here',
+        deleteConfirm:
+            'Delete "{title}"?\n\n(Soft delete: data is kept and recoverable.)',
+        deleteError: 'Delete failed: {message}',
+        status: {
+            todo: 'To Do',
+            in_progress: 'In Progress',
+            done: 'Done',
+        },
+        priority: {
+            high: 'High',
+            medium: 'Medium',
+            low: 'Low',
+        },
+        type: {
+            personal: 'Personal',
+            team: 'Team',
+        },
+        form: {
+            title: 'Title',
+            titlePlaceholder: 'What needs doing?',
+            description: 'Description',
+            status: 'Status',
+            priority: 'Priority',
+            type: 'Type',
+            dueDate: 'Due date',
+            reminder: 'Reminder',
+            tags: 'Tags',
+            tagsPlaceholder: 'comma, separated, tags',
+            tagsHint: 'Separate tags with commas.',
+            saveError: 'Save failed: {message}',
+        },
+        errors: {
+            titleRequired: 'Title is required',
+            invalidStatus: 'Invalid status: {value}',
+            invalidPriority: 'Invalid priority: {value}',
+            invalidType: 'Invalid task type: {value}',
+        },
     },
 } as const
 

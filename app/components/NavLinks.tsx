@@ -13,7 +13,7 @@ const NAV_ITEMS = [
     { href: '/output', key: 'nav.output' },
     { href: '/processing', key: 'nav.processing' },
     { href: '/inventory', key: 'nav.inventory' },
-    { href: '/tasks', key: 'Tasks' }, // i18n 后续步骤再接,key 找不到会原样显示 "Tasks"
+    { href: '/tasks', key: 'nav.tasks' },
 ]
 
 export default function NavLinks() {

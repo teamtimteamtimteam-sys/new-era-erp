@@ -10,15 +10,10 @@ import {
     useDraggable,
     useDroppable,
 } from '@dnd-kit/core'
+import { useTranslations } from '@/lib/i18n/client'
 import { updateTaskStatus } from './actions'
 import TaskModal from './TaskModal'
-import type { Task } from './types'
-
-const COLUMNS: { id: string; label: string }[] = [
-    { id: 'todo', label: 'To Do' },
-    { id: 'in_progress', label: 'In Progress' },
-    { id: 'done', label: 'Done' },
-]
+import { STATUS_VALUES, type Task } from './types'
 
 const PRIORITY_STYLES: Record<string, string> = {
     high: 'bg-red-100 text-red-700',
@@ -54,17 +49,17 @@ function formatDue(dueStr: string) {
 }
 
 function PriorityBadge({ priority }: { priority: string }) {
+    const t = useTranslations()
     const cls = PRIORITY_STYLES[priority] ?? 'bg-gray-100 text-gray-600'
     return (
-        <span
-            className={`rounded px-1.5 py-0.5 text-[11px] font-medium capitalize ${cls}`}
-        >
-            {priority}
+        <span className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${cls}`}>
+            {t('tasks.priority.' + priority)}
         </span>
     )
 }
 
 function TaskTypeBadge({ type }: { type: string }) {
+    const t = useTranslations()
     const isTeam = type === 'team'
     return (
         <span
@@ -73,7 +68,7 @@ function TaskTypeBadge({ type }: { type: string }) {
                 (isTeam ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-500')
             }
         >
-            {isTeam ? 'Team' : 'Personal'}
+            {t('tasks.type.' + type)}
         </span>
     )
 }
@@ -189,6 +184,7 @@ function Column({
     today: string | null
     onCardClick: (task: Task) => void
 }) {
+    const t = useTranslations()
     const { setNodeRef, isOver } = useDroppable({ id })
 
     return (
@@ -213,7 +209,7 @@ function Column({
                 ))}
                 {tasks.length === 0 && (
                     <p className="rounded border border-dashed border-gray-300 p-4 text-center text-xs text-gray-400">
-                        Drop tasks here
+                        {t('tasks.dropPlaceholder')}
                     </p>
                 )}
             </div>
@@ -227,6 +223,7 @@ type ModalState =
     | null
 
 export default function TaskBoard({ tasks: initialTasks }: { tasks: Task[] }) {
+    const t = useTranslations()
     const [tasks, setTasks] = useState<Task[]>(initialTasks)
     const [, startTransition] = useTransition()
     const [modal, setModal] = useState<ModalState>(null)
@@ -314,7 +311,7 @@ export default function TaskBoard({ tasks: initialTasks }: { tasks: Task[] }) {
                     onClick={() => setModal({ mode: 'create' })}
                     className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
                 >
-                    + Add task
+                    {t('tasks.addButton')}
                 </button>
             </div>
 
@@ -326,12 +323,12 @@ export default function TaskBoard({ tasks: initialTasks }: { tasks: Task[] }) {
                 onDragEnd={handleDragEnd}
             >
                 <div className="flex gap-4 overflow-x-auto">
-                    {COLUMNS.map((col) => (
+                    {STATUS_VALUES.map((status) => (
                         <Column
-                            key={col.id}
-                            id={col.id}
-                            label={col.label}
-                            tasks={tasks.filter((t) => t.status === col.id)}
+                            key={status}
+                            id={status}
+                            label={t('tasks.status.' + status)}
+                            tasks={tasks.filter((task) => task.status === status)}
                             today={today}
                             onCardClick={handleCardClick}
                         />

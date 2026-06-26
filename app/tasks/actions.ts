@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { getTranslations } from '@/lib/i18n/server'
 import type { InsertRow } from '@/lib/db-helpers'
 import {
     TASK_COLUMNS,
@@ -13,17 +14,21 @@ import {
     type DeleteResult,
 } from './types'
 
-// 校验枚举字段 + 标题非空;返回错误信息或 null
-function validateInput(input: TaskInput): string | null {
-    if (!input.title || !input.title.trim()) return 'Title is required'
+type Translate = (key: string, params?: Record<string, string | number>) => string
+
+// 校验枚举字段 + 标题非空;返回(已本地化的)错误信息或 null
+function validateInput(input: TaskInput, t: Translate): string | null {
+    if (!input.title || !input.title.trim()) {
+        return t('tasks.errors.titleRequired')
+    }
     if (!(STATUS_VALUES as readonly string[]).includes(input.status)) {
-        return `Invalid status: ${input.status}`
+        return t('tasks.errors.invalidStatus', { value: input.status })
     }
     if (!(PRIORITY_VALUES as readonly string[]).includes(input.priority)) {
-        return `Invalid priority: ${input.priority}`
+        return t('tasks.errors.invalidPriority', { value: input.priority })
     }
     if (!(TASK_TYPE_VALUES as readonly string[]).includes(input.task_type)) {
-        return `Invalid task type: ${input.task_type}`
+        return t('tasks.errors.invalidType', { value: input.task_type })
     }
     return null
 }
@@ -44,8 +49,9 @@ function toRow(input: TaskInput) {
 
 // 看板拖拽改状态(Step 1 已有,保留)
 export async function updateTaskStatus(id: string, newStatus: string) {
+    const t = await getTranslations()
     if (!(STATUS_VALUES as readonly string[]).includes(newStatus)) {
-        return { error: `Invalid status: ${newStatus}` }
+        return { error: t('tasks.errors.invalidStatus', { value: newStatus }) }
     }
 
     const supabase = await createClient()
@@ -55,7 +61,7 @@ export async function updateTaskStatus(id: string, newStatus: string) {
         .eq('id', id)
         .is('deleted_at', null) // 已软删除的不动
 
-    if (error) return { error: error.message }
+    if (error) return { error: t('tasks.form.saveError', { message: error.message }) }
 
     revalidatePath('/tasks')
     return { success: true }
@@ -63,7 +69,8 @@ export async function updateTaskStatus(id: string, newStatus: string) {
 
 // 新建任务。code / owner_id / created_by / 时间戳 交给 DB 默认值与触发器
 export async function createTask(input: TaskInput): Promise<SaveResult> {
-    const invalid = validateInput(input)
+    const t = await getTranslations()
+    const invalid = validateInput(input, t)
     if (invalid) return { error: invalid }
 
     const supabase = await createClient()
@@ -74,7 +81,7 @@ export async function createTask(input: TaskInput): Promise<SaveResult> {
         .select(TASK_COLUMNS)
         .single()
 
-    if (error) return { error: `Save failed: ${error.message}` }
+    if (error) return { error: t('tasks.form.saveError', { message: error.message }) }
 
     revalidatePath('/tasks')
     return { success: true, task: data }
@@ -85,7 +92,8 @@ export async function updateTask(
     id: string,
     input: TaskInput
 ): Promise<SaveResult> {
-    const invalid = validateInput(input)
+    const t = await getTranslations()
+    const invalid = validateInput(input, t)
     if (invalid) return { error: invalid }
 
     const supabase = await createClient()
@@ -97,7 +105,7 @@ export async function updateTask(
         .select(TASK_COLUMNS)
         .single()
 
-    if (error) return { error: `Save failed: ${error.message}` }
+    if (error) return { error: t('tasks.form.saveError', { message: error.message }) }
 
     revalidatePath('/tasks')
     return { success: true, task: data }
@@ -105,6 +113,7 @@ export async function updateTask(
 
 // 软删除:置 deleted_at
 export async function deleteTask(id: string): Promise<DeleteResult> {
+    const t = await getTranslations()
     const supabase = await createClient()
     const { error } = await supabase
         .from('tasks')
@@ -112,7 +121,7 @@ export async function deleteTask(id: string): Promise<DeleteResult> {
         .eq('id', id)
         .is('deleted_at', null)
 
-    if (error) return { error: `Delete failed: ${error.message}` }
+    if (error) return { error: t('tasks.deleteError', { message: error.message }) }
 
     revalidatePath('/tasks')
     return { success: true }
