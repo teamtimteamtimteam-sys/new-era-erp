@@ -529,6 +529,78 @@ export type Database = {
         }
         Relationships: []
       }
+      tasks: {
+        Row: {
+          assigned_to: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          description: string | null
+          due_date: string | null
+          editors: string[] | null
+          entity: string | null
+          id: string
+          owner_id: string | null
+          priority: string
+          reminder_at: string | null
+          shared_with: string[] | null
+          status: string
+          tags: string[] | null
+          task_type: string
+          title: string
+          updated_at: string
+          updated_by: string | null
+          visibility: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          editors?: string[] | null
+          entity?: string | null
+          id?: string
+          owner_id?: string | null
+          priority?: string
+          reminder_at?: string | null
+          shared_with?: string[] | null
+          status?: string
+          tags?: string[] | null
+          task_type?: string
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+          visibility?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          editors?: string[] | null
+          entity?: string | null
+          id?: string
+          owner_id?: string | null
+          priority?: string
+          reminder_at?: string | null
+          shared_with?: string[] | null
+          status?: string
+          tags?: string[] | null
+          task_type?: string
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+          visibility?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
