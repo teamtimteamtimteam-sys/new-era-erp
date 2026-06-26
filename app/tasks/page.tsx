@@ -8,7 +8,9 @@ export default async function TasksPage() {
 
     const { data: tasks, error } = await supabase
         .from('tasks')
-        .select('id, code, title, status, priority, due_date, tags, task_type')
+        .select(
+            'id, code, title, status, priority, due_date, reminder_at, tags, task_type'
+        )
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
 
