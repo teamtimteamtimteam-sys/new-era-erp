@@ -4,7 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import EditSupplierForm from './EditSupplierForm'
 import StatusPanel from './StatusPanel'
 import CompliancePanel from './CompliancePanel'
-import { getTranslations } from '@/lib/i18n/server'
+import AttachmentsPanel from './AttachmentsPanel'
+import { getTranslations, getLocale } from '@/lib/i18n/server'
 
 export default async function EditSupplierPage({
     params,
@@ -14,6 +15,8 @@ export default async function EditSupplierPage({
     const { id } = await params
     const supabase = await createClient()
     const t = await getTranslations()
+    const locale = await getLocale()
+    const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
     const { data: supplier, error } = await supabase
         .from('suppliers')
@@ -32,6 +35,24 @@ export default async function EditSupplierPage({
         .eq('supplier_id', id)
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
+
+    const { data: attachmentRows } = await supabase
+        .from('supplier_attachments')
+        .select('id, file_name, file_type, file_size, doc_category, storage_path, created_at')
+        .eq('supplier_id', id)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+
+    // 在服务端按当前语言格式化时间,再传给客户端面板 —— 避免客户端 toLocaleString 引发水合不一致
+    const attachments = (attachmentRows ?? []).map((a) => ({
+        id: a.id,
+        file_name: a.file_name,
+        file_type: a.file_type,
+        file_size: a.file_size,
+        doc_category: a.doc_category,
+        storage_path: a.storage_path,
+        created_at_display: new Date(a.created_at).toLocaleString(dateLocale),
+    }))
 
     return (
         <div className="p-8 max-w-4xl">
@@ -56,6 +77,7 @@ export default async function EditSupplierPage({
             <StatusPanel id={supplier.id} currentStatus={supplier.status} />
             <EditSupplierForm supplier={supplier} />
             <CompliancePanel supplierId={supplier.id} rows={complianceRows ?? []} />
+            <AttachmentsPanel supplierId={supplier.id} rows={attachments} />
         </div>
     )
 }
