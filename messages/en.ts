@@ -166,6 +166,7 @@ const en = {
             uploading: 'Uploading…',
             errNoFile: 'Please choose a file',
             errTooLarge: 'File too large (max {max})',
+            errType: 'File type not allowed. Accepted: PDF, images (PNG/JPEG), Word, Excel.',
             uploadError: 'Upload failed: {message}',
             recordError: 'File uploaded, but saving its info failed: {message}',
             downloadError: 'Could not generate download link: {message}',

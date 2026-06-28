@@ -11,6 +11,7 @@ import {
     deleteAttachment,
 } from './attachmentActions'
 import { useTranslations } from '@/lib/i18n/client'
+import { ATTACHMENT_ACCEPT, isAllowedAttachmentType } from './attachmentTypes'
 
 const BUCKET = 'supplier-attachments'
 
@@ -87,6 +88,10 @@ export default function AttachmentsPanel({
         }
         if (file.size > MAX_FILE_SIZE) {
             setError(t('suppliers.attachments.errTooLarge', { max: formatBytes(MAX_FILE_SIZE) }))
+            return
+        }
+        if (!isAllowedAttachmentType(file.type)) {
+            setError(t('suppliers.attachments.errType'))
             return
         }
 
@@ -220,6 +225,7 @@ export default function AttachmentsPanel({
                         type="file"
                         name="file"
                         required
+                        accept={ATTACHMENT_ACCEPT}
                         className="w-full text-sm file:mr-3 file:rounded file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-white hover:file:bg-blue-700"
                     />
                 </div>

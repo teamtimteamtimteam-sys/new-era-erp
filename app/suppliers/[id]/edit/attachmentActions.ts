@@ -6,6 +6,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { getTranslations } from '@/lib/i18n/server'
+import { isAllowedAttachmentType } from './attachmentTypes'
 
 const BUCKET = 'supplier-attachments'
 
@@ -31,6 +32,14 @@ export async function recordAttachment(input: RecordAttachmentInput) {
     }
 
     const supabase = await createClient()
+
+    // 服务端兜底:文件类型必须在白名单内(防止伪造的客户端绕过前端校验直接调用本动作)。
+    // 文件此刻已直传到 Storage,被拒时顺手删掉刚上传的对象,避免留下孤儿文件。
+    if (!isAllowedAttachmentType(input.fileType)) {
+        await supabase.storage.from(BUCKET).remove([storagePath])
+        return { error: t('suppliers.attachments.errType') }
+    }
+
     const {
         data: { user },
     } = await supabase.auth.getUser()

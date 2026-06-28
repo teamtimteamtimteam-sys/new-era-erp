@@ -168,6 +168,7 @@ const zh = {
             uploading: '上传中…',
             errNoFile: '请选择一个文件',
             errTooLarge: '文件过大（上限 {max}）',
+            errType: '不支持的文件类型。可上传:PDF、图片（PNG/JPEG）、Word、Excel。',
             uploadError: '上传失败：{message}',
             recordError: '文件已上传,但保存信息失败：{message}',
             downloadError: '无法生成下载链接：{message}',
