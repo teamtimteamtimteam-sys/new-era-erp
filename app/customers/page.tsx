@@ -1,21 +1,95 @@
 // app/customers/page.tsx
-// 客户列表页(只读)
+// 客户列表页:URL 驱动的搜索 / 排序 / 分页(全部在服务端的 Supabase 查询里完成)。
+// 端口自 suppliers 列表,去掉状态筛选(客户没有状态机)。
+import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import DeleteButton from './DeleteButton'
+import CustomerToolbar from './CustomerToolbar'
+import {
+    parseCustomerListParams,
+    parseCustomerPage,
+    applyCustomerFilters,
+    CUSTOMER_PAGE_SIZE,
+    type CustomerSortCol,
+} from './customerQuery'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 
-export default async function CustomersPage() {
+export default async function CustomersPage({
+    searchParams,
+}: {
+    // 本版本 Next 里 searchParams 是 Promise,需要 await
+    searchParams: Promise<{
+        q?: string
+        sort?: string
+        dir?: string
+        page?: string
+    }>
+}) {
+    const sp = await searchParams
     const supabase = await createClient()
     const t = await getTranslations()
     const locale = await getLocale()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
-    const { data: customers, error } = await supabase
+    // 解析并校验 URL 参数(都给安全默认值)—— 与导出路由共用同一份逻辑
+    const { q, sort, dir } = parseCustomerListParams(sp)
+    const requestedPage = parseCustomerPage(sp.page)
+    const filterParams = { q, sort, dir }
+
+    // 1) 先取匹配总数(同样套用过滤,所以总页数对当前搜索是准确的)。head:true 只要 count 不要行。
+    const { count } = await applyCustomerFilters(
+        supabase.from('customers').select('id', { count: 'exact', head: true }),
+        filterParams
+    )
+    const total = count ?? 0
+    const totalPages = Math.max(1, Math.ceil(total / CUSTOMER_PAGE_SIZE))
+    // 把页码上钳到总页数(手输过大的 ?page= 时回落到最后一页,而不是空表)
+    const page = Math.min(requestedPage, totalPages)
+    const from = (page - 1) * CUSTOMER_PAGE_SIZE
+    const to = from + CUSTOMER_PAGE_SIZE - 1
+
+    // 2) 取当前页的行:过滤 + 排序后再 .range(from, to)
+    const baseQuery = supabase
         .from('customers')
         .select('id, code, legal_name, country, customer_types, status, created_at')
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false })
+
+    const { data: customers, error } = await applyCustomerFilters(
+        baseQuery,
+        filterParams
+    ).range(from, to)
+
+    // 表头排序链接:点当前列翻转方向,点其它列默认升序;保留 q。不带 page —— 改排序回到第 1 页。
+    function sortHref(col: CustomerSortCol) {
+        const nextDir = sort === col && dir === 'asc' ? 'desc' : 'asc'
+        const params = new URLSearchParams()
+        if (q) params.set('q', q)
+        params.set('sort', col)
+        params.set('dir', nextDir)
+        return `/customers?${params.toString()}`
+    }
+
+    function sortableTh(col: CustomerSortCol, label: string) {
+        const indicator = sort === col ? (dir === 'asc' ? ' ▲' : ' ▼') : ''
+        return (
+            <th className="border border-gray-300 px-4 py-2 text-left">
+                <Link href={sortHref(col)} className="hover:underline">
+                    {label}
+                    {indicator}
+                </Link>
+            </th>
+        )
+    }
+
+    // 分页链接:保留当前的 q / sort / dir,只改 page
+    function pageHref(targetPage: number) {
+        const params = new URLSearchParams()
+        if (q) params.set('q', q)
+        params.set('sort', sort)
+        params.set('dir', dir)
+        params.set('page', String(targetPage))
+        return `/customers?${params.toString()}`
+    }
 
     if (error) {
         return (
@@ -40,20 +114,34 @@ export default async function CustomersPage() {
                     {t('customers.addButton')}
                 </Link>
             </div>
+
+            {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
+            <Suspense fallback={<div className="mb-4 h-10" />}>
+                <CustomerToolbar />
+            </Suspense>
+
             <p className="text-sm text-gray-600 mb-4">
-                {t('customers.recordCount', { count: customers?.length ?? 0 })}
+                {t('customers.recordCount', { count: total })}
             </p>
 
             <table className="w-full border-collapse border border-gray-300">
                 <thead className="bg-gray-100">
                     <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">Code</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">Legal Name</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">Country</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">Types</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">Status</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">Created</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('customers.colActions')}</th>
+                        {sortableTh('code', t('customers.col.code'))}
+                        {sortableTh('legal_name', t('customers.col.legalName'))}
+                        <th className="border border-gray-300 px-4 py-2 text-left">
+                            {t('customers.col.country')}
+                        </th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">
+                            {t('customers.col.types')}
+                        </th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">
+                            {t('customers.col.status')}
+                        </th>
+                        {sortableTh('created_at', t('customers.col.created'))}
+                        <th className="border border-gray-300 px-4 py-2 text-left">
+                            {t('customers.colActions')}
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -97,6 +185,39 @@ export default async function CustomersPage() {
                     )}
                 </tbody>
             </table>
+
+            {/* 分页控件:服务端 <Link>,无额外客户端 JS;首页禁用上一页、末页禁用下一页 */}
+            <div className="mt-4 flex items-center justify-between">
+                {page > 1 ? (
+                    <Link
+                        href={pageHref(page - 1)}
+                        className="rounded border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
+                    >
+                        {t('customers.pagination.prev')}
+                    </Link>
+                ) : (
+                    <span className="rounded border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-400">
+                        {t('customers.pagination.prev')}
+                    </span>
+                )}
+
+                <span className="text-sm text-gray-600">
+                    {t('customers.pagination.pageOf', { current: page, total: totalPages })}
+                </span>
+
+                {page < totalPages ? (
+                    <Link
+                        href={pageHref(page + 1)}
+                        className="rounded border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
+                    >
+                        {t('customers.pagination.next')}
+                    </Link>
+                ) : (
+                    <span className="rounded border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-400">
+                        {t('customers.pagination.next')}
+                    </span>
+                )}
+            </div>
         </div>
     )
 }
