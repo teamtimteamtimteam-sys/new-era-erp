@@ -57,6 +57,11 @@ const zh = {
         searchPlaceholder: '搜索编号、名称、税号、国家…',
         allStatuses: '全部状态',
         export: '导出',
+        pagination: {
+            prev: '← 上一页',
+            next: '下一页 →',
+            pageOf: '第 {current} / {total} 页',
+        },
         emptyState: '还没有供应商数据',
         loadError: '读取失败',
         deleteConfirm: '确定要删除"{name}"吗？\n\n（软删除：数据保留在数据库中，可以恢复。）',

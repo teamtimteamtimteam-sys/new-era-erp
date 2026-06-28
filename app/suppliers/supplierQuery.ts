@@ -18,6 +18,16 @@ export interface SupplierListParams {
     dir: 'asc' | 'desc'
 }
 
+// 列表每页行数。集中成常量,方便调整(改这一处即可)。
+export const SUPPLIER_PAGE_SIZE = 20
+
+// 解析并校验 page 参数(1-based;非法/缺省一律按第 1 页)。
+// 注意:分页只用于列表页;CSV 导出忽略 page,永远返回全部匹配行。
+export function parseSupplierPage(value: string | undefined): number {
+    const n = Number(value)
+    return Number.isInteger(n) && n >= 1 ? n : 1
+}
+
 // 解析并校验原始 URL searchParams,全部给安全默认值。
 export function parseSupplierListParams(sp: {
     q?: string

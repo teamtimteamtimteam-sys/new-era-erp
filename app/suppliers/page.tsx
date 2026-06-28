@@ -7,7 +7,9 @@ import DeleteButton from './DeleteButton'
 import SupplierToolbar from './SupplierToolbar'
 import {
     parseSupplierListParams,
+    parseSupplierPage,
     applySupplierFilters,
+    SUPPLIER_PAGE_SIZE,
     type SupplierSortCol,
 } from './supplierQuery'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
@@ -21,6 +23,7 @@ export default async function SuppliersPage({
         status?: string
         sort?: string
         dir?: string
+        page?: string
     }>
 }) {
     const sp = await searchParams
@@ -31,22 +34,35 @@ export default async function SuppliersPage({
 
     // 解析并校验 URL 参数(都给安全默认值)—— 与导出路由共用同一份逻辑
     const { q, status, sort, dir } = parseSupplierListParams(sp)
+    const requestedPage = parseSupplierPage(sp.page)
+    const filterParams = { q, status, sort, dir }
 
-    // 选列后套用共享过滤(过滤/排序逻辑在 supplierQuery 里,导出路由复用同一份)
+    // 1) 先取匹配总数(同样套用过滤,所以总页数对当前筛选是准确的)。head:true 只要 count 不要行。
+    const { count } = await applySupplierFilters(
+        supabase.from('suppliers').select('id', { count: 'exact', head: true }),
+        filterParams
+    )
+    const total = count ?? 0
+    const totalPages = Math.max(1, Math.ceil(total / SUPPLIER_PAGE_SIZE))
+    // 把页码上钳到总页数(手输过大的 ?page= 时回落到最后一页,而不是空表)
+    const page = Math.min(requestedPage, totalPages)
+    const from = (page - 1) * SUPPLIER_PAGE_SIZE
+    const to = from + SUPPLIER_PAGE_SIZE - 1
+
+    // 2) 取当前页的行:过滤 + 排序后再 .range(from, to)
     const baseQuery = supabase
         .from('suppliers')
         .select(
             'id, code, legal_name, short_name, country, supplier_types, status, tax_id, created_at'
         )
 
-    const { data: suppliers, error } = await applySupplierFilters(baseQuery, {
-        q,
-        status,
-        sort,
-        dir,
-    })
+    const { data: suppliers, error } = await applySupplierFilters(
+        baseQuery,
+        filterParams
+    ).range(from, to)
 
-    // 表头排序链接:点当前列翻转方向,点其它列默认升序;保留 q / status
+    // 表头排序链接:点当前列翻转方向,点其它列默认升序;保留 q / status。
+    // 不带 page —— 改变排序时回到第 1 页。
     function sortHref(col: SupplierSortCol) {
         const nextDir = sort === col && dir === 'asc' ? 'desc' : 'asc'
         const params = new URLSearchParams()
@@ -54,6 +70,17 @@ export default async function SuppliersPage({
         if (status) params.set('status', status)
         params.set('sort', col)
         params.set('dir', nextDir)
+        return `/suppliers?${params.toString()}`
+    }
+
+    // 分页链接:保留当前的 q / status / sort / dir,只改 page
+    function pageHref(targetPage: number) {
+        const params = new URLSearchParams()
+        if (q) params.set('q', q)
+        if (status) params.set('status', status)
+        params.set('sort', sort)
+        params.set('dir', dir)
+        params.set('page', String(targetPage))
         return `/suppliers?${params.toString()}`
     }
 
@@ -99,7 +126,7 @@ export default async function SuppliersPage({
             </Suspense>
 
             <p className="text-sm text-gray-600 mb-4">
-                {t('suppliers.recordCount', { count: suppliers?.length ?? 0 })}
+                {t('suppliers.recordCount', { count: total })}
             </p>
 
             <table className="w-full border-collapse border border-gray-300">
@@ -161,6 +188,39 @@ export default async function SuppliersPage({
                     )}
                 </tbody>
             </table>
+
+            {/* 分页控件:服务端 <Link>,无额外客户端 JS;首页禁用上一页、末页禁用下一页 */}
+            <div className="mt-4 flex items-center justify-between">
+                {page > 1 ? (
+                    <Link
+                        href={pageHref(page - 1)}
+                        className="rounded border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
+                    >
+                        {t('suppliers.pagination.prev')}
+                    </Link>
+                ) : (
+                    <span className="rounded border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-400">
+                        {t('suppliers.pagination.prev')}
+                    </span>
+                )}
+
+                <span className="text-sm text-gray-600">
+                    {t('suppliers.pagination.pageOf', { current: page, total: totalPages })}
+                </span>
+
+                {page < totalPages ? (
+                    <Link
+                        href={pageHref(page + 1)}
+                        className="rounded border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
+                    >
+                        {t('suppliers.pagination.next')}
+                    </Link>
+                ) : (
+                    <span className="rounded border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-400">
+                        {t('suppliers.pagination.next')}
+                    </span>
+                )}
+            </div>
         </div>
     )
 }
