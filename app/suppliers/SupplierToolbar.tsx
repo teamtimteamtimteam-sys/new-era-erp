@@ -56,6 +56,11 @@ export default function SupplierToolbar() {
         router.push(buildHref({ status: value || null }))
     }
 
+    // 导出链接:带上当前 q / status / sort / dir,导出的就是用户此刻筛选到的结果。
+    // 用普通 <a>(而非 next/link):整页请求命中 route handler,Content-Disposition 触发下载。
+    const exportQs = searchParams.toString()
+    const exportHref = exportQs ? `/suppliers/export?${exportQs}` : '/suppliers/export'
+
     return (
         <div className="mb-4 flex flex-wrap items-center gap-3">
             <input
@@ -77,6 +82,12 @@ export default function SupplierToolbar() {
                     </option>
                 ))}
             </select>
+            <a
+                href={exportHref}
+                className="rounded border border-gray-300 bg-white px-3 py-2 hover:bg-gray-50"
+            >
+                {t('suppliers.export')}
+            </a>
         </div>
     )
 }

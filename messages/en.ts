@@ -54,6 +54,7 @@ const en = {
         },
         searchPlaceholder: 'Search code, name, tax ID, country…',
         allStatuses: 'All statuses',
+        export: 'Export',
         emptyState: 'No suppliers yet',
         loadError: 'Load failed',
         deleteConfirm: 'Delete "{name}"?\n\n(Soft delete: data is kept and recoverable.)',

@@ -5,12 +5,12 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import DeleteButton from './DeleteButton'
 import SupplierToolbar from './SupplierToolbar'
-import { SUPPLIER_STATUSES } from './[id]/edit/statusMachine'
+import {
+    parseSupplierListParams,
+    applySupplierFilters,
+    type SupplierSortCol,
+} from './supplierQuery'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-
-// 允许排序的列白名单(防止任意列名进入 .order())
-const SORTABLE = ['legal_name', 'code', 'status', 'created_at'] as const
-type SortCol = (typeof SORTABLE)[number]
 
 export default async function SuppliersPage({
     searchParams,
@@ -29,44 +29,25 @@ export default async function SuppliersPage({
     const locale = await getLocale()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
-    // 解析并校验 URL 参数(都给安全默认值)
-    const q = (sp.q ?? '').trim()
-    const status: (typeof SUPPLIER_STATUSES)[number] | '' =
-        sp.status && (SUPPLIER_STATUSES as readonly string[]).includes(sp.status)
-            ? (sp.status as (typeof SUPPLIER_STATUSES)[number])
-            : ''
-    const sort: SortCol = (SORTABLE as readonly string[]).includes(sp.sort ?? '')
-        ? (sp.sort as SortCol)
-        : 'created_at'
-    const dir: 'asc' | 'desc' = sp.dir === 'asc' ? 'asc' : 'desc'
+    // 解析并校验 URL 参数(都给安全默认值)—— 与导出路由共用同一份逻辑
+    const { q, status, sort, dir } = parseSupplierListParams(sp)
 
-    // 构造查询:select -> 软删除过滤 -> 搜索 -> 状态 -> 排序
-    let query = supabase
+    // 选列后套用共享过滤(过滤/排序逻辑在 supplierQuery 里,导出路由复用同一份)
+    const baseQuery = supabase
         .from('suppliers')
         .select(
             'id, code, legal_name, short_name, country, supplier_types, status, tax_id, created_at'
         )
-        .is('deleted_at', null)
 
-    if (q) {
-        // 去掉会破坏 PostgREST or() 表达式的字符(逗号 / 括号),再做 ilike 模糊匹配
-        const safe = q.replace(/[,()]/g, ' ')
-        const pattern = `%${safe}%`
-        query = query.or(
-            `code.ilike.${pattern},legal_name.ilike.${pattern},short_name.ilike.${pattern},tax_id.ilike.${pattern},country.ilike.${pattern}`
-        )
-    }
-
-    if (status) {
-        query = query.eq('status', status)
-    }
-
-    query = query.order(sort, { ascending: dir === 'asc' })
-
-    const { data: suppliers, error } = await query
+    const { data: suppliers, error } = await applySupplierFilters(baseQuery, {
+        q,
+        status,
+        sort,
+        dir,
+    })
 
     // 表头排序链接:点当前列翻转方向,点其它列默认升序;保留 q / status
-    function sortHref(col: SortCol) {
+    function sortHref(col: SupplierSortCol) {
         const nextDir = sort === col && dir === 'asc' ? 'desc' : 'asc'
         const params = new URLSearchParams()
         if (q) params.set('q', q)
@@ -76,7 +57,7 @@ export default async function SuppliersPage({
         return `/suppliers?${params.toString()}`
     }
 
-    function sortableTh(col: SortCol, label: string) {
+    function sortableTh(col: SupplierSortCol, label: string) {
         const indicator = sort === col ? (dir === 'asc' ? ' ▲' : ' ▼') : ''
         return (
             <th className="border border-gray-300 px-4 py-2 text-left">
