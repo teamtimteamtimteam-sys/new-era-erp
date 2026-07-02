@@ -705,6 +705,24 @@ const en = {
             duplicate: 'A price for this metal on this date already exists',
         },
     },
+    metalContent: {
+        title: 'Metal Content (Assay)',
+        colMetal: 'Metal',
+        colPct: 'Content %',
+        colUpdated: 'Updated',
+        colActions: 'Actions',
+        selectMetal: 'Select metal',
+        alreadySet: ' (recorded)',
+        pctPlaceholder: 'Content %',
+        save: 'Save',
+        deleteConfirm: 'Remove this metal from the assay?',
+        totalLabel: 'Total',
+        totalWarning: 'Total exceeds 100% — please check',
+        errInvalid: 'Invalid metal or percentage',
+        errBatchGone: 'Batch not found or deleted',
+        saveError: 'Save failed: {message}',
+        deleteError: 'Delete failed: {message}',
+    },
 } as const
 
 export default en

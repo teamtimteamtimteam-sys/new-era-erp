@@ -2,7 +2,10 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import EditInboundForm from './EditInboundForm'
-import { getTranslations } from '@/lib/i18n/server'
+import MetalContentPanel from '@/app/components/metals/MetalContentPanel'
+import type { MetalContentRow } from '@/app/components/metals/metalContentTypes'
+import { saveInboundMetal, deleteInboundMetal } from '@/app/components/metals/metalContentActions'
+import { getTranslations, getLocale } from '@/lib/i18n/server'
 
 export default async function EditInboundPage({
     params,
@@ -12,8 +15,10 @@ export default async function EditInboundPage({
     const { id } = await params
     const supabase = await createClient()
     const t = await getTranslations()
+    const locale = await getLocale()
+    const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
-    const [batchRes, materialsRes, suppliersRes] = await Promise.all([
+    const [batchRes, materialsRes, suppliersRes, metalsRes] = await Promise.all([
         supabase
             .from('inbound_batches')
             .select('*')
@@ -30,6 +35,11 @@ export default async function EditInboundPage({
             .select('id, code, legal_name')
             .is('deleted_at', null)
             .order('legal_name'),
+        supabase
+            .from('inbound_batch_metals')
+            .select('metal, content_pct, updated_at')
+            .eq('inbound_batch_id', id)
+            .order('metal'),
     ])
 
     if (batchRes.error || !batchRes.data) {
@@ -50,6 +60,13 @@ export default async function EditInboundPage({
     }
 
     const batch = batchRes.data
+
+    // 金属含量行:服务端预格式化 updated_at,避免客户端水合不一致
+    const metalRows: MetalContentRow[] = (metalsRes.data ?? []).map((m) => ({
+        metal: m.metal,
+        content_pct: m.content_pct,
+        updated_at_display: new Date(m.updated_at).toLocaleString(dateLocale),
+    }))
 
     return (
         <div className="p-8 max-w-2xl">
@@ -75,6 +92,12 @@ export default async function EditInboundPage({
                 batch={batch}
                 materials={materialsRes.data ?? []}
                 suppliers={suppliersRes.data ?? []}
+            />
+
+            <MetalContentPanel
+                rows={metalRows}
+                saveAction={saveInboundMetal.bind(null, id)}
+                deleteAction={deleteInboundMetal.bind(null, id)}
             />
         </div>
     )

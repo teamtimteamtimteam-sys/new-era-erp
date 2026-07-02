@@ -706,6 +706,24 @@ const zh = {
             duplicate: '该金属在该日期已有价格',
         },
     },
+    metalContent: {
+        title: '金属含量(化验结果)',
+        colMetal: '金属',
+        colPct: '含量 %',
+        colUpdated: '更新时间',
+        colActions: '操作',
+        selectMetal: '选择金属',
+        alreadySet: '(已录)',
+        pctPlaceholder: '含量 %',
+        save: '保存',
+        deleteConfirm: '从化验结果中移除该金属?',
+        totalLabel: '合计',
+        totalWarning: '合计超过 100%,请核对',
+        errInvalid: '金属或百分比无效',
+        errBatchGone: '批次不存在或已删除',
+        saveError: '保存失败:{message}',
+        deleteError: '删除失败:{message}',
+    },
 } as const satisfies Messages
 
 export default zh
