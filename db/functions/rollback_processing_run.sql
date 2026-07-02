@@ -1,9 +1,9 @@
 CREATE OR REPLACE FUNCTION public.rollback_processing_run(p_run_id uuid)
  RETURNS void
  LANGUAGE plpgsql
- SECURITY DEFINER
 AS $function$
 DECLARE
+    v_user_id uuid := auth.uid();
     v_run_deleted_at timestamptz;
     v_bad_output record;
     v_input record;
@@ -63,6 +63,7 @@ BEGIN
         UPDATE inbound_batches
         SET remaining_qty = v_new_remaining,
             stage = CASE WHEN v_new_remaining >= v_quantity THEN '待加工' ELSE '加工中' END,
+            updated_by = v_user_id,
             updated_at = now()
         WHERE id = v_input.inbound_batch_id;
     END LOOP;
@@ -70,6 +71,7 @@ BEGIN
     -- 4. 软删这张单生成的产出批次
     UPDATE output_batches
     SET deleted_at = now(),
+        updated_by = v_user_id,
         updated_at = now()
     WHERE id IN (
         SELECT output_batch_id FROM processing_outputs WHERE run_id = p_run_id
@@ -78,7 +80,9 @@ BEGIN
 
     -- 5. 软删加工单本身（腿表保留作审计）
     UPDATE processing_runs
-    SET deleted_at = now(),
+    SET status = 'reversed',
+        deleted_at = now(),
+        updated_by = v_user_id,
         updated_at = now()
     WHERE id = p_run_id;
 END;

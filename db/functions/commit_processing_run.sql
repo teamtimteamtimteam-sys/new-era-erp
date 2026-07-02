@@ -82,11 +82,11 @@ BEGIN
 
     -- 4. 建加工单表头(code 由触发器生成)
     INSERT INTO processing_runs (
-        process_date, total_input, total_output, loss_qty, notes, created_by, updated_by
+        process_date, total_input, total_output, loss_qty, notes, status, created_by, updated_by
     ) VALUES (
         v_process_date, v_total_input, v_total_output,
         COALESCE(p_loss_qty, v_total_input - v_total_output),
-        p_notes, v_user_id, v_user_id
+        p_notes, 'committed', v_user_id, v_user_id
     )
     RETURNING id INTO v_run_id;
 
