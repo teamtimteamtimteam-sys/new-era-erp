@@ -133,6 +133,44 @@ export type Database = {
         }
         Relationships: []
       }
+      inbound_batch_metals: {
+        Row: {
+          content_pct: number
+          created_at: string
+          created_by: string | null
+          inbound_batch_id: string
+          metal: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          content_pct: number
+          created_at?: string
+          created_by?: string | null
+          inbound_batch_id: string
+          metal: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          content_pct?: number
+          created_at?: string
+          created_by?: string | null
+          inbound_batch_id?: string
+          metal?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_batch_metals_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inbound_batches: {
         Row: {
           arrival_date: string | null
@@ -315,6 +353,86 @@ export type Database = {
         }
         Relationships: []
       }
+      metal_prices: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          metal: string
+          notes: string | null
+          price_date: string
+          price_usd_per_tonne: number
+          source: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          metal: string
+          notes?: string | null
+          price_date: string
+          price_usd_per_tonne: number
+          source?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          metal?: string
+          notes?: string | null
+          price_date?: string
+          price_usd_per_tonne?: number
+          source?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      output_batch_metals: {
+        Row: {
+          content_pct: number
+          created_at: string
+          created_by: string | null
+          metal: string
+          output_batch_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          content_pct: number
+          created_at?: string
+          created_by?: string | null
+          metal: string
+          output_batch_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          content_pct?: number
+          created_at?: string
+          created_by?: string | null
+          metal?: string
+          output_batch_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "output_batch_metals_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       output_batches: {
         Row: {
           code: string
@@ -390,6 +508,63 @@ export type Database = {
           },
         ]
       }
+      processing_cost_entries: {
+        Row: {
+          amount_usd: number
+          cost_type: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          is_estimate: boolean
+          notes: string | null
+          run_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          amount_usd: number
+          cost_type: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          is_estimate?: boolean
+          notes?: string | null
+          run_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          amount_usd?: number
+          cost_type?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          is_estimate?: boolean
+          notes?: string | null
+          run_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       processing_inputs: {
         Row: {
           created_at: string
@@ -424,6 +599,13 @@ export type Database = {
             foreignKeyName: "processing_inputs_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_inputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_runs"
             referencedColumns: ["id"]
           },
@@ -431,25 +613,31 @@ export type Database = {
       }
       processing_outputs: {
         Row: {
+          allocated_cost_usd: number | null
           created_at: string
           id: string
           output_batch_id: string
           quantity_produced: number
           run_id: string
+          unit_cost_usd: number | null
         }
         Insert: {
+          allocated_cost_usd?: number | null
           created_at?: string
           id?: string
           output_batch_id: string
           quantity_produced: number
           run_id: string
+          unit_cost_usd?: number | null
         }
         Update: {
+          allocated_cost_usd?: number | null
           created_at?: string
           id?: string
           output_batch_id?: string
           quantity_produced?: number
           run_id?: string
+          unit_cost_usd?: number | null
         }
         Relationships: [
           {
@@ -463,6 +651,13 @@ export type Database = {
             foreignKeyName: "processing_outputs_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_runs"
             referencedColumns: ["id"]
           },
@@ -470,45 +665,66 @@ export type Database = {
       }
       processing_runs: {
         Row: {
+          allocated_at: string | null
+          allocated_by: string | null
+          allocation_basis: string
+          allocation_snapshot: Json | null
           code: string
           created_at: string
           created_by: string | null
           deleted_at: string | null
           id: string
           loss_qty: number | null
+          material_cost_usd: number | null
           notes: string | null
+          process_cost_usd: number | null
           process_date: string | null
           status: string
+          total_cost_usd: number | null
           total_input: number | null
           total_output: number | null
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          allocated_at?: string | null
+          allocated_by?: string | null
+          allocation_basis?: string
+          allocation_snapshot?: Json | null
           code: string
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
           id?: string
           loss_qty?: number | null
+          material_cost_usd?: number | null
           notes?: string | null
+          process_cost_usd?: number | null
           process_date?: string | null
-          status?: string
+          status: string
+          total_cost_usd?: number | null
           total_input?: number | null
           total_output?: number | null
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          allocated_at?: string | null
+          allocated_by?: string | null
+          allocation_basis?: string
+          allocation_snapshot?: Json | null
           code?: string
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
           id?: string
           loss_qty?: number | null
+          material_cost_usd?: number | null
           notes?: string | null
+          process_cost_usd?: number | null
           process_date?: string | null
           status?: string
+          total_cost_usd?: number | null
           total_input?: number | null
           total_output?: number | null
           updated_at?: string
@@ -771,9 +987,24 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      processing_metal_recovery: {
+        Row: {
+          input_metal_kg: number | null
+          metal: string | null
+          output_metal_kg: number | null
+          process_date: string | null
+          recovery_pct: number | null
+          run_code: string | null
+          run_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      allocate_processing_costs: {
+        Args: { p_basis?: string; p_run_id: string }
+        Returns: Json
+      }
       commit_processing_run: {
         Args: {
           p_inputs: Json

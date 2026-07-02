@@ -9,6 +9,7 @@ const NAV_ITEMS = [
     { href: '/suppliers', key: 'nav.suppliers' },
     { href: '/customers', key: 'nav.customers' },
     { href: '/materials', key: 'nav.materials' },
+    { href: '/metal-prices', key: 'nav.metalPrices' },
     { href: '/inbound', key: 'nav.inbound' },
     { href: '/output', key: 'nav.output' },
     { href: '/processing', key: 'nav.processing' },
