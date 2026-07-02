@@ -1,12 +1,25 @@
 // app/output/page.tsx
-// 产出批次列表页(只读)
+// 产出批次列表页:URL 驱动的搜索 / 状态筛选 / 客户筛选 / 物料筛选 / 排序 / 分页。
+// 端口自 inbound 列表:supplier→customer、stage→state。customer_id 可空(未售出批次无客户)。
+import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import DeleteButton from './DeleteButton'
+import OutputToolbar, { type PartyOption } from './OutputToolbar'
 import { STATE_OPTIONS, labelKeyForValue } from '../inbound/options'
+import {
+    parseOutputListParams,
+    parseOutputPage,
+    applyOutputFilters,
+    resolveOutputSearchIds,
+    buildOutputSearchOr,
+    OUTPUT_PAGE_SIZE,
+    type OutputSortCol,
+} from './outputQuery'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 
-// FK 嵌入运行时是对象;显式类型 + cast 锁住,避免 TS 默认数组推断。
+// FK 嵌入运行时是对象;TS 默认猜数组(无生成 DB 类型),用显式类型 + cast 锁住。
+// customers 可空:库存中的批次还没指派客户。
 type OutputRow = {
     id: string
     code: string
@@ -21,25 +34,127 @@ type OutputRow = {
     customers: { legal_name: string } | null
 }
 
-export default async function OutputPage() {
+export default async function OutputPage({
+    searchParams,
+}: {
+    // 本版本 Next 里 searchParams 是 Promise,需要 await
+    searchParams: Promise<{
+        q?: string
+        state?: string
+        customer_id?: string
+        material_id?: string
+        sort?: string
+        dir?: string
+        page?: string
+    }>
+}) {
+    const sp = await searchParams
     const supabase = await createClient()
     const t = await getTranslations()
     const locale = await getLocale()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
-    // 嵌入外键:materials 和 customers 通过 material_id / customer_id 关联。
-    // 注意:customer_id 可空,库存中的批次还没指派客户,customers 会是 null。
-    const { data, error } = await supabase
-        .from('output_batches')
-        .select(`
-            id, code, quantity, unit, remaining_qty, output_date, state, status, created_at,
-            materials ( name ),
-            customers ( legal_name )
-        `)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false })
+    const { q, state, customerId, materialId, sort, dir } = parseOutputListParams(sp)
+    const requestedPage = parseOutputPage(sp.page)
+    const filterParams = { q, state, customerId, materialId, sort, dir }
 
+    // 跨关联方搜索:先查匹配 q 的物料/客户 id(q 为空时零开销),再拼成本表 FK 列的 OR
+    const searchIds = await resolveOutputSearchIds(supabase, q)
+    const searchOr = buildOutputSearchOr(q, searchIds)
+
+    // 1) 匹配总数(同样套用过滤 + 搜索;只 select 'id' 不带嵌入 —— 过滤都打在本表列上,无需 join)
+    //    + 同时取客户/物料下拉选项(独立查询,并行)。
+    const [{ count }, customersRes, materialsRes] = await Promise.all([
+        applyOutputFilters(
+            supabase.from('output_batches').select('id', { count: 'exact', head: true }),
+            filterParams,
+            searchOr
+        ),
+        supabase
+            .from('customers')
+            .select('id, legal_name')
+            .is('deleted_at', null)
+            .order('legal_name'),
+        supabase
+            .from('materials')
+            .select('id, name')
+            .is('deleted_at', null)
+            .order('name'),
+    ])
+
+    const total = count ?? 0
+    const totalPages = Math.max(1, Math.ceil(total / OUTPUT_PAGE_SIZE))
+    const page = Math.min(requestedPage, totalPages)
+    const from = (page - 1) * OUTPUT_PAGE_SIZE
+    const to = from + OUTPUT_PAGE_SIZE - 1
+
+    // 2) 取当前页的行:带嵌入的 select(materials/customers 名字用于展示)+ 过滤 + 排序 + .range
+    const baseQuery = supabase.from('output_batches').select(`
+        id, code, quantity, unit, remaining_qty, output_date, state, status, created_at,
+        materials ( name ),
+        customers ( legal_name )
+    `)
+
+    const { data, error } = await applyOutputFilters(
+        baseQuery,
+        filterParams,
+        searchOr
+    ).range(from, to)
     const batches = data as unknown as OutputRow[] | null
+
+    // 下拉选项:客户按 legal_name、物料按 name 作为显示标签
+    const customerOptions: PartyOption[] = (customersRes.data ?? []).map((c) => ({
+        id: c.id,
+        label: c.legal_name,
+    }))
+    const materialOptions: PartyOption[] = (materialsRes.data ?? []).map((m) => ({
+        id: m.id,
+        label: m.name,
+    }))
+
+    // state 存储值反查成本地化文案;未知值原样显示
+    const stateLabel = (value: string) => {
+        const key = labelKeyForValue(STATE_OPTIONS, value)
+        return key ? t(key) : value
+    }
+
+    // 表头排序链接:保留所有筛选,只改 sort/dir;不带 page —— 改排序回到第 1 页。
+    function sortHref(col: OutputSortCol) {
+        const nextDir = sort === col && dir === 'asc' ? 'desc' : 'asc'
+        const params = new URLSearchParams()
+        if (q) params.set('q', q)
+        if (state) params.set('state', state)
+        if (customerId) params.set('customer_id', customerId)
+        if (materialId) params.set('material_id', materialId)
+        params.set('sort', col)
+        params.set('dir', nextDir)
+        return `/output?${params.toString()}`
+    }
+
+    function sortableTh(col: OutputSortCol, label: string) {
+        const indicator = sort === col ? (dir === 'asc' ? ' ▲' : ' ▼') : ''
+        return (
+            <th className="border border-gray-300 px-4 py-2 text-left">
+                <Link href={sortHref(col)} className="hover:underline">
+                    {label}
+                    {indicator}
+                </Link>
+            </th>
+        )
+    }
+
+    // 分页链接:保留所有筛选 + sort/dir,只改 page
+    function pageHref(targetPage: number) {
+        const params = new URLSearchParams()
+        if (q) params.set('q', q)
+        if (state) params.set('state', state)
+        if (customerId) params.set('customer_id', customerId)
+        if (materialId) params.set('material_id', materialId)
+        params.set('sort', sort)
+        params.set('dir', dir)
+        params.set('page', String(targetPage))
+        return `/output?${params.toString()}`
+    }
 
     if (error) {
         return (
@@ -53,12 +168,6 @@ export default async function OutputPage() {
         )
     }
 
-    // state 存储值反查成本地化文案;未知值原样显示
-    const stateLabel = (value: string) => {
-        const key = labelKeyForValue(STATE_OPTIONS, value)
-        return key ? t(key) : value
-    }
-
     return (
         <div className="p-8">
             <div className="flex items-center justify-between mb-4">
@@ -70,22 +179,39 @@ export default async function OutputPage() {
                     {t('output.addButton')}
                 </Link>
             </div>
+
+            {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
+            <Suspense fallback={<div className="mb-4 h-10" />}>
+                <OutputToolbar customers={customerOptions} materials={materialOptions} />
+            </Suspense>
+
             <p className="text-sm text-gray-600 mb-4">
-                {t('output.recordCount', { count: batches?.length ?? 0 })}
+                {t('output.recordCount', { count: total })}
             </p>
 
             <table className="w-full border-collapse border border-gray-300">
                 <thead className="bg-gray-100">
                     <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">Code</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('output.colMaterial')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('output.colCustomer')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('output.colQuantity')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('output.colRemaining')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('output.colOutputDate')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('output.colState')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">Status</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('output.colActions')}</th>
+                        {sortableTh('code', t('output.colCode'))}
+                        <th className="border border-gray-300 px-4 py-2 text-left">
+                            {t('output.colMaterial')}
+                        </th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">
+                            {t('output.colCustomer')}
+                        </th>
+                        {sortableTh('quantity', t('output.colQuantity'))}
+                        {sortableTh('remaining_qty', t('output.colRemaining'))}
+                        {sortableTh('output_date', t('output.colOutputDate'))}
+                        <th className="border border-gray-300 px-4 py-2 text-left">
+                            {t('output.colState')}
+                        </th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">
+                            {t('output.colStatus')}
+                        </th>
+                        {sortableTh('created_at', t('output.colCreated'))}
+                        <th className="border border-gray-300 px-4 py-2 text-left">
+                            {t('output.colActions')}
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -114,6 +240,9 @@ export default async function OutputPage() {
                                     {b.status}
                                 </span>
                             </td>
+                            <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
+                                {new Date(b.created_at).toLocaleString(dateLocale)}
+                            </td>
                             <td className="border border-gray-300 px-4 py-2">
                                 <DeleteButton id={b.id} code={b.code} />
                             </td>
@@ -122,7 +251,7 @@ export default async function OutputPage() {
                     {(!batches || batches.length === 0) && (
                         <tr>
                             <td
-                                colSpan={9}
+                                colSpan={10}
                                 className="border border-gray-300 px-4 py-8 text-center text-gray-500"
                             >
                                 {t('output.emptyState')}
@@ -131,6 +260,39 @@ export default async function OutputPage() {
                     )}
                 </tbody>
             </table>
+
+            {/* 分页控件:服务端 <Link>,无额外客户端 JS;首页禁用上一页、末页禁用下一页 */}
+            <div className="mt-4 flex items-center justify-between">
+                {page > 1 ? (
+                    <Link
+                        href={pageHref(page - 1)}
+                        className="rounded border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
+                    >
+                        {t('output.pagination.prev')}
+                    </Link>
+                ) : (
+                    <span className="rounded border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-400">
+                        {t('output.pagination.prev')}
+                    </span>
+                )}
+
+                <span className="text-sm text-gray-600">
+                    {t('output.pagination.pageOf', { current: page, total: totalPages })}
+                </span>
+
+                {page < totalPages ? (
+                    <Link
+                        href={pageHref(page + 1)}
+                        className="rounded border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
+                    >
+                        {t('output.pagination.next')}
+                    </Link>
+                ) : (
+                    <span className="rounded border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-400">
+                        {t('output.pagination.next')}
+                    </span>
+                )}
+            </div>
         </div>
     )
 }

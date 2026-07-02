@@ -11,6 +11,8 @@ import {
     parseInboundListParams,
     parseInboundPage,
     applyInboundFilters,
+    resolveInboundSearchIds,
+    buildInboundSearchOr,
     INBOUND_PAGE_SIZE,
     type InboundSortCol,
 } from './inboundQuery'
@@ -55,12 +57,17 @@ export default async function InboundPage({
     const requestedPage = parseInboundPage(sp.page)
     const filterParams = { q, stage, supplierId, materialId, sort, dir }
 
-    // 1) 匹配总数(同样套用过滤;只 select 'id' 不带嵌入 —— 过滤都打在本表列上,无需 join)
+    // 跨关联方搜索:先查匹配 q 的物料/供应商 id(q 为空时零开销),再拼成本表 FK 列的 OR
+    const searchIds = await resolveInboundSearchIds(supabase, q)
+    const searchOr = buildInboundSearchOr(q, searchIds)
+
+    // 1) 匹配总数(同样套用过滤 + 搜索;只 select 'id' 不带嵌入 —— 过滤都打在本表列上,无需 join)
     //    + 同时取供应商/物料下拉选项(独立查询,并行)。
     const [{ count }, suppliersRes, materialsRes] = await Promise.all([
         applyInboundFilters(
             supabase.from('inbound_batches').select('id', { count: 'exact', head: true }),
-            filterParams
+            filterParams,
+            searchOr
         ),
         supabase
             .from('suppliers')
@@ -87,10 +94,11 @@ export default async function InboundPage({
         suppliers ( legal_name )
     `)
 
-    const { data, error } = await applyInboundFilters(baseQuery, filterParams).range(
-        from,
-        to
-    )
+    const { data, error } = await applyInboundFilters(
+        baseQuery,
+        filterParams,
+        searchOr
+    ).range(from, to)
     const batches = data as unknown as InboundRow[] | null
 
     // 下拉选项:供应商按 legal_name、物料按 name 作为显示标签

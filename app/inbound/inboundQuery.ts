@@ -7,7 +7,14 @@
 //     不做跨嵌入关系的自由文本搜索(那需要 !inner join + 多关系 .or(),复杂)。
 //   * 嵌入(materials(name) / suppliers(legal_name))只用于展示;过滤都打在本表的列上,
 //     所以 applyInboundFilters 既能套在"带嵌入的 select"上(列表/导出),也能套在 'id' 上(count)。
+//
+// 跨关联方搜索(按物料名 / 供应商名)用【先查 id、再 OR 本表 FK 列】的两步法:
+//   不做 join —— 所以不会把无供应商的行误删,count/range/sort/export 都照常工作。
+import type { createClient } from '@/lib/supabase/server'
 import { STAGE_OPTIONS } from './options'
+
+// page.tsx 和 route.ts 都是服务端,这里只借用 server client 的"类型",不引入它的运行时。
+type ServerSupabase = Awaited<ReturnType<typeof createClient>>
 
 // 合法的 stage 规范值集合(校验下拉传入的值)
 const STAGE_VALUES: readonly string[] = STAGE_OPTIONS.map((o) => o.value)
@@ -65,6 +72,50 @@ export function parseInboundListParams(sp: {
     return { q, stage, supplierId, materialId, sort, dir }
 }
 
+// 关联方搜索:把匹配 q 的物料 / 供应商 id 查出来(各一条 ilike 查询,仅在 q 非空时执行)。
+// q 为空时不发查询,直接返回空数组 —— 常态(无搜索)零额外开销。
+export interface InboundSearchIds {
+    materialIds: string[]
+    supplierIds: string[]
+}
+
+export async function resolveInboundSearchIds(
+    supabase: ServerSupabase,
+    q: string
+): Promise<InboundSearchIds> {
+    if (!q) return { materialIds: [], supplierIds: [] }
+    const pattern = `%${q}%`
+    const [matRes, supRes] = await Promise.all([
+        supabase.from('materials').select('id').is('deleted_at', null).ilike('name', pattern),
+        supabase
+            .from('suppliers')
+            .select('id')
+            .is('deleted_at', null)
+            .ilike('legal_name', pattern),
+    ])
+    return {
+        materialIds: (matRes.data ?? []).map((r) => r.id),
+        supplierIds: (supRes.data ?? []).map((r) => r.id),
+    }
+}
+
+// 构造搜索用的 .or() 表达式(全部打在本表自有列上):
+//   始终包含 code.ilike.%q%;当匹配到物料/供应商 id 时,各加一段 *_id.in.("uuid"...)。
+//   绝不输出空的 in.() ；UUID 双引号包裹。q 为空 → 返回 null(不加搜索过滤)。
+export function buildInboundSearchOr(q: string, ids: InboundSearchIds): string | null {
+    if (!q) return null
+    // 去掉会破坏 PostgREST or() 表达式的字符(逗号 / 括号),再做 ilike 模糊匹配
+    const safe = q.replace(/[,()]/g, ' ')
+    const arms = [`code.ilike.%${safe}%`]
+    if (ids.materialIds.length) {
+        arms.push(`material_id.in.(${ids.materialIds.map((id) => `"${id}"`).join(',')})`)
+    }
+    if (ids.supplierIds.length) {
+        arms.push(`supplier_id.in.(${ids.supplierIds.map((id) => `"${id}"`).join(',')})`)
+    }
+    return arms.join(',')
+}
+
 // supabase filter builder 上我们用到的几个链式方法(都返回自身)。
 // 只声明最小子集,避免引入 supabase 那套很深的泛型 —— 否则 tsc 会因类型实例化过深而 OOM。
 interface InboundQueryChain {
@@ -75,22 +126,24 @@ interface InboundQueryChain {
 }
 
 // 在调用方已 .select(...) 好的查询上,套用 软删除过滤 / 搜索 / 阶段 / 供应商 / 物料 / 排序。
+// searchOr 由 buildInboundSearchOr 预先算好(code + 匹配的物料/供应商 id),为 null 时不加搜索。
 // 用泛型 T 透传调用方的具体查询类型(保留返回行类型,包括嵌入),内部只借助 InboundQueryChain 最小接口。
 // 注意:这里不做分页 —— 列表页另行 .range(),导出则取全部匹配行。
-export function applyInboundFilters<T>(query: T, params: InboundListParams): T {
-    const { q, stage, supplierId, materialId, sort, dir } = params
+export function applyInboundFilters<T>(
+    query: T,
+    params: InboundListParams,
+    searchOr: string | null
+): T {
+    const { stage, supplierId, materialId, sort, dir } = params
 
     let chain = query as unknown as InboundQueryChain
 
     // 软删除过滤
     chain = chain.is('deleted_at', null)
 
-    if (q) {
-        // 去掉会破坏 PostgREST or() 表达式的字符(逗号 / 括号),再做 ilike 模糊匹配。
-        // 进料只按 code(批次号)搜本表列 —— 关联方靠下拉,不在这里做跨关系搜索。
-        const safe = q.replace(/[,()]/g, ' ')
-        const pattern = `%${safe}%`
-        chain = chain.or(`code.ilike.${pattern}`)
+    // 搜索:code + 匹配到的物料/供应商 id,全部在本表自有列上做 OR(无 join)
+    if (searchOr) {
+        chain = chain.or(searchOr)
     }
 
     if (stage) {
