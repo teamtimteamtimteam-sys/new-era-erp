@@ -8,8 +8,9 @@ const PROCESSING_ERROR_CODES = new Set([
     'RUN_ALREADY_DELETED', 'INBOUND_NOT_FOUND', 'CONSUMED_EXCEEDS_REMAINING',
     'OUTPUT_EXCEEDS_INPUT', 'RUN_NOT_FOUND', 'OUTPUT_CONSUMED',
     // cut 3c — allocate_processing_costs 的错误码
+    // (fu1: MISSING_METAL_PRICE removed — unpriced metals now skip instead of erroring)
     'RUN_NOT_COMMITTED', 'INVALID_BASIS', 'UNIT_NOT_KG',
-    'MISSING_METAL_PRICE', 'NO_METAL_VALUE',
+    'NO_METAL_VALUE',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..." —— 即使 PostgREST 在前面包了前缀,

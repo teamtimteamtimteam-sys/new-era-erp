@@ -1,3 +1,18 @@
+-- ============================================================
+-- Phase 1 / Follow-up 1 — allocation skips unpriced metals
+-- Date: 2026-07-03
+-- Precondition: fresh verified pg_dump backup exists.
+--
+-- Rule change to allocate_processing_costs (metal_value basis):
+--   * Output metals WITH a usable price (deleted_at IS NULL, price_date <= run
+--     process_date) contribute to metal value, as before.
+--   * Output metals WITHOUT a usable price now contribute ZERO value and DO NOT
+--     error; they are recorded in allocation_snapshot.skipped_metals.
+--   * MISSING_METAL_PRICE is removed entirely.
+--   * NO_METAL_VALUE remains the only blocker (total metal value across all legs = 0).
+-- ============================================================
+BEGIN;
+
 CREATE OR REPLACE FUNCTION public.allocate_processing_costs(p_run_id uuid, p_basis text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -234,4 +249,6 @@ BEGIN
         'outputs', COALESCE(v_outputs, '[]'::jsonb)
     );
 END;
-$function$
+$function$;
+
+COMMIT;

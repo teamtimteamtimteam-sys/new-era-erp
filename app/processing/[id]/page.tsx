@@ -134,6 +134,12 @@ export default async function ProcessingDetailPage({
             ? t('processing.allocation.basis.' + run.allocation_basis)
             : run.allocation_basis
 
+    // 分摊快照里未参与价值分摊的金属(没有价格),用于提示
+    const snapshot = run.allocation_snapshot as { skipped_metals?: unknown } | null
+    const skippedMetals = Array.isArray(snapshot?.skipped_metals)
+        ? (snapshot!.skipped_metals as string[])
+        : []
+
     return (
         <div className="p-8 max-w-3xl">
             <div className="mb-6">
@@ -205,6 +211,16 @@ export default async function ProcessingDetailPage({
                             {t('processing.allocation.lastRun', {
                                 when: allocatedWhen,
                                 basis: basisLabel,
+                            })}
+                        </p>
+                    )}
+
+                    {skippedMetals.length > 0 && (
+                        <p className="mt-1 text-xs text-amber-600">
+                            {t('processing.allocation.skippedMetals', {
+                                metals: skippedMetals
+                                    .map((m) => metalLabel(m))
+                                    .join(locale === 'zh' ? '、' : ', '),
                             })}
                         </p>
                     )}

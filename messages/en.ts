@@ -603,8 +603,7 @@ const en = {
             RUN_NOT_COMMITTED: 'Only committed runs can be allocated (status: {0})',
             INVALID_BASIS: 'Invalid allocation basis: {0}',
             UNIT_NOT_KG: 'Batch {0} is not in kg — allocation assumes kg',
-            MISSING_METAL_PRICE: 'No price for metal "{0}" on or before the run date — add it in Metal Prices',
-            NO_METAL_VALUE: 'No metal content recorded on any output batch — record assay results first',
+            NO_METAL_VALUE: 'No priced metal content on any output batch — record assay results, or add a price for at least one contained metal in Metal Prices (or allocate by weight)',
         },
         status: {
             committed: 'Committed',
@@ -647,6 +646,7 @@ const en = {
             button: 'Calculate Allocation',
             running: 'Calculating…',
             lastRun: 'Allocated {when} · basis: {basis}',
+            skippedMetals: 'Metals without a price (excluded from value): {metals}',
             basis: {
                 metal_value: 'metal value',
                 weight: 'weight',

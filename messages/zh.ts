@@ -605,8 +605,7 @@ const zh = {
             RUN_NOT_COMMITTED: '只有已提交的加工单才能分摊(状态:{0})',
             INVALID_BASIS: '无效的分摊基准:{0}',
             UNIT_NOT_KG: '批次 {0} 的单位不是 kg,分摊按 kg 计算',
-            MISSING_METAL_PRICE: '缺少金属 "{0}" 在加工日期或之前的价格,请先到金属价格页补录',
-            NO_METAL_VALUE: '所有产出批次都没有金属含量,请先录入化验结果',
+            NO_METAL_VALUE: '所有产出批次都没有【有价格的】金属含量——请先录入化验结果,或到金属价格页为至少一种所含金属补一个价(也可以改按重量分摊)',
         },
         status: {
             committed: '已提交',
@@ -649,6 +648,7 @@ const zh = {
             button: '计算分摊',
             running: '计算中…',
             lastRun: '上次分摊 {when} · 基准:{basis}',
+            skippedMetals: '以下金属没有价格,未参与价值分摊:{metals}',
             basis: {
                 metal_value: '按金属价值',
                 weight: '按重量',
