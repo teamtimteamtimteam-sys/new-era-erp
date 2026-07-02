@@ -2,7 +2,13 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import DeleteButton from './DeleteButton'
-import { getTranslations } from '@/lib/i18n/server'
+import CostPanel from './CostPanel'
+import AllocateButton from './AllocateButton'
+import { type CostEntryRow } from './costTypes'
+import { processingStatusLabelKey } from '../status'
+import { metalLabelKey } from '@/app/metal-prices/options'
+import { formatUsd, formatUnitCost } from '@/lib/format'
+import { getTranslations, getLocale } from '@/lib/i18n/server'
 
 // FK 嵌入运行时是对象(包括两层嵌套);显式类型 + cast 锁住。
 type ProcessingInputRow = {
@@ -20,6 +26,8 @@ type ProcessingInputRow = {
 type ProcessingOutputRow = {
     id: string
     quantity_produced: number
+    allocated_cost_usd: number | null
+    unit_cost_usd: number | null
     output_batches: {
         id: string
         code: string
@@ -38,8 +46,10 @@ export default async function ProcessingDetailPage({
     const { id } = await params
     const supabase = await createClient()
     const t = await getTranslations()
+    const locale = await getLocale()
+    const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
-    const [runRes, inputsRes, outputsRes] = await Promise.all([
+    const [runRes, inputsRes, outputsRes, costsRes, recoveryRes] = await Promise.all([
         supabase
             .from('processing_runs')
             .select('*')
@@ -53,9 +63,20 @@ export default async function ProcessingDetailPage({
             .order('created_at'),
         supabase
             .from('processing_outputs')
-            .select('id, quantity_produced, output_batches ( id, code, unit, purity, deleted_at, materials ( name ) )')
+            .select('id, quantity_produced, allocated_cost_usd, unit_cost_usd, output_batches ( id, code, unit, purity, deleted_at, materials ( name ) )')
             .eq('run_id', id)
             .order('created_at'),
+        supabase
+            .from('processing_cost_entries')
+            .select('id, cost_type, amount_usd, is_estimate, notes, created_at')
+            .eq('run_id', id)
+            .is('deleted_at', null)
+            .order('created_at'),
+        supabase
+            .from('processing_metal_recovery')
+            .select('metal, input_metal_kg, output_metal_kg, recovery_pct')
+            .eq('run_id', id)
+            .order('metal'),
     ])
 
     if (runRes.error || !runRes.data) {
@@ -79,6 +100,40 @@ export default async function ProcessingDetailPage({
     const inputs = inputsRes.data as unknown as ProcessingInputRow[] | null
     const outputs = outputsRes.data as unknown as ProcessingOutputRow[] | null
 
+    const isCommitted = run.status === 'committed'
+
+    // 状态标签(未知值回退原样)
+    const statusLabel = (v: string | null) => {
+        const k = processingStatusLabelKey(v)
+        return k ? t(k) : v ?? '—'
+    }
+
+    // 成本条目行:服务端预格式化 created_at
+    const costRows: CostEntryRow[] = (costsRes.data ?? []).map((c) => ({
+        id: c.id,
+        cost_type: c.cost_type,
+        amount_usd: c.amount_usd,
+        is_estimate: c.is_estimate,
+        notes: c.notes,
+        created_at_display: new Date(c.created_at).toLocaleString(dateLocale),
+    }))
+
+    // 回收率行(视图已按 committed + 未软删过滤)
+    const recoveryRows = recoveryRes.data ?? []
+    const metalLabel = (v: string | null) => {
+        const k = metalLabelKey(v)
+        return k ? t(k) : v ?? '—'
+    }
+
+    // 分摊信息:上次分摊时间 + 基准标签
+    const allocatedWhen = run.allocated_at
+        ? new Date(run.allocated_at).toLocaleString(dateLocale)
+        : null
+    const basisLabel =
+        run.allocation_basis === 'metal_value' || run.allocation_basis === 'weight'
+            ? t('processing.allocation.basis.' + run.allocation_basis)
+            : run.allocation_basis
+
     return (
         <div className="p-8 max-w-3xl">
             <div className="mb-6">
@@ -97,7 +152,7 @@ export default async function ProcessingDetailPage({
                         <span className="font-mono">{run.code}</span>
                         <span className="mx-2">·</span>
                         <span className="px-2 py-0.5 bg-gray-200 rounded text-xs">
-                            {run.status}
+                            {statusLabel(run.status)}
                         </span>
                     </p>
                 </div>
@@ -128,12 +183,49 @@ export default async function ProcessingDetailPage({
                                 : ''}
                         </div>
                     </div>
+
+                    {/* 成本(金额,USD) */}
+                    <div className="mt-3 pt-3 border-t border-gray-200 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                        <div>
+                            <span className="text-gray-600">{t('processing.detail.materialCost')}</span>{' '}
+                            {formatUsd(run.material_cost_usd) || '—'}
+                        </div>
+                        <div>
+                            <span className="text-gray-600">{t('processing.detail.processCost')}</span>{' '}
+                            {formatUsd(run.process_cost_usd) || '—'}
+                        </div>
+                        <div>
+                            <span className="text-gray-600">{t('processing.detail.totalCost')}</span>{' '}
+                            {formatUsd(run.total_cost_usd) || '—'}
+                        </div>
+                    </div>
+
+                    {allocatedWhen && (
+                        <p className="mt-3 text-xs text-gray-500">
+                            {t('processing.allocation.lastRun', {
+                                when: allocatedWhen,
+                                basis: basisLabel,
+                            })}
+                        </p>
+                    )}
+
                     {run.notes && (
                         <div className="mt-3 pt-3 border-t border-gray-200 text-sm">
                             <span className="text-gray-600">{t('processing.detail.notes')}</span> {run.notes}
                         </div>
                     )}
                 </div>
+
+                {/* 成本条目(仅已提交单) */}
+                {isCommitted && <CostPanel runId={run.id} entries={costRows} />}
+
+                {/* 成本分摊(仅已提交单) */}
+                {isCommitted && (
+                    <div className="mt-8 pt-8 border-t">
+                        <h2 className="text-xl font-bold mb-4">{t('processing.allocation.title')}</h2>
+                        <AllocateButton runId={run.id} />
+                    </div>
+                )}
 
                 {/* 投入 */}
                 <section>
@@ -197,6 +289,8 @@ export default async function ProcessingDetailPage({
                                 <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.detail.colMaterial')}</th>
                                 <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.detail.colProducedQty')}</th>
                                 <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.detail.colPurity')}</th>
+                                <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.detail.colAllocatedCost')}</th>
+                                <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.detail.colUnitCost')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -227,12 +321,18 @@ export default async function ProcessingDetailPage({
                                     <td className="border border-gray-300 px-4 py-2">
                                         {leg.output_batches?.purity ?? '—'}
                                     </td>
+                                    <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                        {leg.allocated_cost_usd != null ? formatUsd(leg.allocated_cost_usd) : '—'}
+                                    </td>
+                                    <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                        {leg.unit_cost_usd != null ? formatUnitCost(leg.unit_cost_usd) + ' /kg' : '—'}
+                                    </td>
                                 </tr>
                             ))}
                             {(!outputs || outputs.length === 0) && (
                                 <tr>
                                     <td
-                                        colSpan={4}
+                                        colSpan={6}
                                         className="border border-gray-300 px-4 py-8 text-center text-gray-500"
                                     >
                                         {t('processing.detail.noOutputRecords')}
@@ -242,6 +342,43 @@ export default async function ProcessingDetailPage({
                         </tbody>
                     </table>
                 </section>
+
+                {/* 金属回收率(仅已提交单) */}
+                {isCommitted && (
+                    <section>
+                        <h2 className="text-lg font-semibold mb-2">{t('processing.recovery.title')}</h2>
+                        {recoveryRows.length > 0 ? (
+                            <table className="w-full border-collapse border border-gray-300">
+                                <thead className="bg-gray-100">
+                                    <tr>
+                                        <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.recovery.colMetal')}</th>
+                                        <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.recovery.colInput')}</th>
+                                        <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.recovery.colOutput')}</th>
+                                        <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.recovery.colRecovery')}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {recoveryRows.map((r, idx) => (
+                                        <tr key={r.metal ?? idx}>
+                                            <td className="border border-gray-300 px-4 py-2">{metalLabel(r.metal)}</td>
+                                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                                {r.input_metal_kg ?? '—'}
+                                            </td>
+                                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                                {r.output_metal_kg ?? '—'}
+                                            </td>
+                                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                                {r.recovery_pct != null ? r.recovery_pct.toFixed(2) + '%' : '—'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        ) : (
+                            <p className="text-sm text-gray-500">{t('processing.recovery.empty')}</p>
+                        )}
+                    </section>
+                )}
             </div>
         </div>
     )

@@ -3,10 +3,17 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { getTranslations } from '@/lib/i18n/server'
+import { processingStatusLabelKey } from './status'
 
 export default async function ProcessingPage() {
     const supabase = await createClient()
     const t = await getTranslations()
+
+    // 状态标签(未知值回退原样)
+    const statusLabel = (v: string | null) => {
+        const k = processingStatusLabelKey(v)
+        return k ? t(k) : v ?? '—'
+    }
 
     const { data: runs, error } = await supabase
         .from('processing_runs')
@@ -44,12 +51,12 @@ export default async function ProcessingPage() {
             <table className="w-full border-collapse border border-gray-300">
                 <thead className="bg-gray-100">
                     <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">Code</th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.colCode')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.colProcessDate')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.colTotalInput')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.colTotalOutput')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.colLoss')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">Status</th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.colStatus')}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -74,7 +81,7 @@ export default async function ProcessingPage() {
                             </td>
                             <td className="border border-gray-300 px-4 py-2">
                                 <span className="px-2 py-1 bg-gray-200 rounded text-xs">
-                                    {r.status}
+                                    {statusLabel(r.status)}
                                 </span>
                             </td>
                         </tr>

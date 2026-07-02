@@ -10,3 +10,13 @@ export function formatUsd(n: number | null | undefined): string {
         maximumFractionDigits: 2,
     }).format(n)
 }
+
+// formatUnitCost:单位成本(USD/kg),4 位小数(与 DB 存储精度一致);null/undefined 返回空串。
+// 展示端自行补 " /kg" 后缀,null 时展示 "—"。
+export function formatUnitCost(n: number | null | undefined): string {
+    if (n === null || n === undefined) return ''
+    return new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: 4,
+        maximumFractionDigits: 4,
+    }).format(n)
+}
