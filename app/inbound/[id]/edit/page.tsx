@@ -5,7 +5,20 @@ import EditInboundForm from './EditInboundForm'
 import MetalContentPanel from '@/app/components/metals/MetalContentPanel'
 import type { MetalContentRow } from '@/app/components/metals/metalContentTypes'
 import { saveInboundMetal, deleteInboundMetal } from '@/app/components/metals/metalContentActions'
+import MovementTimeline from '@/app/components/inventory/MovementTimeline'
+import type { MovementRow } from '@/app/components/inventory/movementTypes'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
+
+// FK 嵌入运行时是对象;显式类型 + cast 锁住。
+type MovementFetchRow = {
+    id: string
+    movement_type: string
+    qty_delta: number
+    business_date: string | null
+    notes: string | null
+    occurred_at: string
+    processing_runs: { id: string; code: string } | null
+}
 
 export default async function EditInboundPage({
     params,
@@ -18,7 +31,7 @@ export default async function EditInboundPage({
     const locale = await getLocale()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
-    const [batchRes, materialsRes, suppliersRes, metalsRes] = await Promise.all([
+    const [batchRes, materialsRes, suppliersRes, metalsRes, movementsRes] = await Promise.all([
         supabase
             .from('inbound_batches')
             .select('*')
@@ -40,6 +53,11 @@ export default async function EditInboundPage({
             .select('metal, content_pct, updated_at')
             .eq('inbound_batch_id', id)
             .order('metal'),
+        supabase
+            .from('inventory_movements')
+            .select('id, movement_type, qty_delta, business_date, notes, occurred_at, run_id, processing_runs ( id, code )')
+            .eq('inbound_batch_id', id)
+            .order('occurred_at', { ascending: false }),
     ])
 
     if (batchRes.error || !batchRes.data) {
@@ -66,6 +84,17 @@ export default async function EditInboundPage({
         metal: m.metal,
         content_pct: m.content_pct,
         updated_at_display: new Date(m.updated_at).toLocaleString(dateLocale),
+    }))
+
+    // 库存流水行:服务端预格式化 occurred_at
+    const movementRows: MovementRow[] = ((movementsRes.data as unknown as MovementFetchRow[] | null) ?? []).map((m) => ({
+        id: m.id,
+        movement_type: m.movement_type,
+        qty_delta: m.qty_delta,
+        business_date: m.business_date,
+        notes: m.notes,
+        occurred_at_display: new Date(m.occurred_at).toLocaleString(dateLocale),
+        run: m.processing_runs,
     }))
 
     return (
@@ -99,6 +128,8 @@ export default async function EditInboundPage({
                 saveAction={saveInboundMetal.bind(null, id)}
                 deleteAction={deleteInboundMetal.bind(null, id)}
             />
+
+            <MovementTimeline rows={movementRows} unit={batch.unit} />
         </div>
     )
 }

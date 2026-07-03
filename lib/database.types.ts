@@ -246,6 +246,87 @@ export type Database = {
           },
         ]
       }
+      inventory_movements: {
+        Row: {
+          business_date: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          inbound_batch_id: string | null
+          location_id: string | null
+          movement_type: string
+          notes: string | null
+          occurred_at: string
+          output_batch_id: string | null
+          qty_delta: number
+          run_id: string | null
+        }
+        Insert: {
+          business_date?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inbound_batch_id?: string | null
+          location_id?: string | null
+          movement_type: string
+          notes?: string | null
+          occurred_at?: string
+          output_batch_id?: string | null
+          qty_delta: number
+          run_id?: string | null
+        }
+        Update: {
+          business_date?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inbound_batch_id?: string | null
+          location_id?: string | null
+          movement_type?: string
+          notes?: string | null
+          occurred_at?: string
+          output_batch_id?: string | null
+          qty_delta?: number
+          run_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "storage_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       material_attachments: {
         Row: {
           created_at: string
@@ -732,6 +813,42 @@ export type Database = {
         }
         Relationships: []
       }
+      storage_locations: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          name: string | null
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          name?: string | null
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          name?: string | null
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       supplier_attachments: {
         Row: {
           created_at: string
@@ -1014,6 +1131,15 @@ export type Database = {
           p_process_date: string
         }
         Returns: string
+      }
+      record_output_sale: {
+        Args: {
+          p_notes?: string
+          p_output_batch_id: string
+          p_quantity: number
+          p_sale_date?: string
+        }
+        Returns: Json
       }
       rollback_processing_run: {
         Args: { p_run_id: string }

@@ -1,5 +1,6 @@
 // app/inventory/page.tsx
 // 库存与物料平衡(只读,JS 聚合)
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { CATEGORY_OPTIONS, UNIT_OPTIONS, labelKeyForValue } from '@/app/materials/options'
@@ -125,7 +126,10 @@ export default async function InventoryPage() {
 
     return (
         <div className="p-8 space-y-6">
-            <h1 className="text-2xl font-bold">{t('inventory.listTitle')}</h1>
+            <div>
+                <h1 className="text-2xl font-bold">{t('inventory.listTitle')}</h1>
+                <p className="text-sm text-gray-500 mt-1">{t('inventory.ledgerNote')}</p>
+            </div>
 
             {/* 物料平衡 */}
             <section>
@@ -171,8 +175,30 @@ export default async function InventoryPage() {
                             <tr key={r.material_id}>
                                 <td className="border border-gray-300 px-4 py-2">{r.name ?? '—'}</td>
                                 <td className="border border-gray-300 px-4 py-2">{categoryLabel(r.category)}</td>
-                                <td className="border border-gray-300 px-4 py-2">{r.inboundStock}</td>
-                                <td className="border border-gray-300 px-4 py-2">{r.outputStock}</td>
+                                <td className="border border-gray-300 px-4 py-2">
+                                    {r.inboundStock > 0 ? (
+                                        <Link
+                                            href={`/inventory/inbound/${r.material_id}`}
+                                            className="text-blue-600 hover:underline"
+                                        >
+                                            {r.inboundStock}
+                                        </Link>
+                                    ) : (
+                                        r.inboundStock
+                                    )}
+                                </td>
+                                <td className="border border-gray-300 px-4 py-2">
+                                    {r.outputStock > 0 ? (
+                                        <Link
+                                            href={`/inventory/output/${r.material_id}`}
+                                            className="text-blue-600 hover:underline"
+                                        >
+                                            {r.outputStock}
+                                        </Link>
+                                    ) : (
+                                        r.outputStock
+                                    )}
+                                </td>
                                 <td className="border border-gray-300 px-4 py-2">{unitLabel(r.unit)}</td>
                             </tr>
                         ))}
