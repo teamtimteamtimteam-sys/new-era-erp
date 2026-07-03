@@ -11,6 +11,7 @@
 //   count/range/sort/export 都照常工作。
 import type { createClient } from '@/lib/supabase/server'
 import { STATE_OPTIONS } from '../inbound/options'
+import { parseDateRange } from '@/lib/dateFilter'
 
 // page.tsx 和 route.ts 都是服务端,这里只借用 server client 的"类型",不引入它的运行时。
 type ServerSupabase = Awaited<ReturnType<typeof createClient>>
@@ -33,6 +34,8 @@ export interface OutputListParams {
     state: string // '' 表示不按状态过滤
     customerId: string // '' 表示不按客户过滤
     materialId: string // '' 表示不按物料过滤
+    dateFrom: string // '' 表示不按 output_date 起始过滤
+    dateTo: string // '' 表示不按 output_date 结束过滤
     sort: OutputSortCol
     dir: 'asc' | 'desc'
 }
@@ -53,10 +56,13 @@ export function parseOutputListParams(sp: {
     state?: string
     customer_id?: string
     material_id?: string
+    date_from?: string
+    date_to?: string
     sort?: string
     dir?: string
 }): OutputListParams {
     const q = (sp.q ?? '').trim()
+    const { dateFrom, dateTo } = parseDateRange(sp)
     // 只接受 STATE_OPTIONS 里的规范值;其它按"不筛选"处理
     const state = sp.state && STATE_VALUES.includes(sp.state) ? sp.state : ''
     // FK-id:原样透传(.eq 是参数化的,注入安全);空串表示不筛选
@@ -68,7 +74,7 @@ export function parseOutputListParams(sp: {
         ? (sp.sort as OutputSortCol)
         : 'created_at'
     const dir: 'asc' | 'desc' = sp.dir === 'asc' ? 'asc' : 'desc'
-    return { q, state, customerId, materialId, sort, dir }
+    return { q, state, customerId, materialId, dateFrom, dateTo, sort, dir }
 }
 
 // 关联方搜索:把匹配 q 的物料 / 客户 id 查出来(各一条 ilike 查询,仅在 q 非空时执行)。
@@ -122,6 +128,8 @@ interface OutputQueryChain {
     is(column: string, value: null): OutputQueryChain
     or(filters: string): OutputQueryChain
     eq(column: string, value: string): OutputQueryChain
+    gte(column: string, value: string): OutputQueryChain
+    lte(column: string, value: string): OutputQueryChain
     order(column: string, options: { ascending: boolean }): OutputQueryChain
 }
 
@@ -134,12 +142,20 @@ export function applyOutputFilters<T>(
     params: OutputListParams,
     searchOr: string | null
 ): T {
-    const { state, customerId, materialId, sort, dir } = params
+    const { state, customerId, materialId, dateFrom, dateTo, sort, dir } = params
 
     let chain = query as unknown as OutputQueryChain
 
     // 软删除过滤
     chain = chain.is('deleted_at', null)
+
+    // 产出日期区间(output_date)
+    if (dateFrom) {
+        chain = chain.gte('output_date', dateFrom)
+    }
+    if (dateTo) {
+        chain = chain.lte('output_date', dateTo)
+    }
 
     // 搜索:code + 匹配到的物料/客户 id,全部在本表自有列上做 OR(无 join,未售出行不受影响)
     if (searchOr) {

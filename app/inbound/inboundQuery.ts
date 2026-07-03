@@ -12,6 +12,7 @@
 //   不做 join —— 所以不会把无供应商的行误删,count/range/sort/export 都照常工作。
 import type { createClient } from '@/lib/supabase/server'
 import { STAGE_OPTIONS } from './options'
+import { parseDateRange } from '@/lib/dateFilter'
 
 // page.tsx 和 route.ts 都是服务端,这里只借用 server client 的"类型",不引入它的运行时。
 type ServerSupabase = Awaited<ReturnType<typeof createClient>>
@@ -34,6 +35,8 @@ export interface InboundListParams {
     stage: string // '' 表示不按阶段过滤
     supplierId: string // '' 表示不按供应商过滤
     materialId: string // '' 表示不按物料过滤
+    dateFrom: string // '' 表示不按 arrival_date 起始过滤
+    dateTo: string // '' 表示不按 arrival_date 结束过滤
     sort: InboundSortCol
     dir: 'asc' | 'desc'
 }
@@ -54,10 +57,13 @@ export function parseInboundListParams(sp: {
     stage?: string
     supplier_id?: string
     material_id?: string
+    date_from?: string
+    date_to?: string
     sort?: string
     dir?: string
 }): InboundListParams {
     const q = (sp.q ?? '').trim()
+    const { dateFrom, dateTo } = parseDateRange(sp)
     // 只接受 STAGE_OPTIONS 里的规范值;其它按"不筛选"处理
     const stage = sp.stage && STAGE_VALUES.includes(sp.stage) ? sp.stage : ''
     // FK-id:原样透传(.eq 是参数化的,注入安全);空串表示不筛选
@@ -69,7 +75,7 @@ export function parseInboundListParams(sp: {
         ? (sp.sort as InboundSortCol)
         : 'created_at'
     const dir: 'asc' | 'desc' = sp.dir === 'asc' ? 'asc' : 'desc'
-    return { q, stage, supplierId, materialId, sort, dir }
+    return { q, stage, supplierId, materialId, dateFrom, dateTo, sort, dir }
 }
 
 // 关联方搜索:把匹配 q 的物料 / 供应商 id 查出来(各一条 ilike 查询,仅在 q 非空时执行)。
@@ -122,6 +128,8 @@ interface InboundQueryChain {
     is(column: string, value: null): InboundQueryChain
     or(filters: string): InboundQueryChain
     eq(column: string, value: string): InboundQueryChain
+    gte(column: string, value: string): InboundQueryChain
+    lte(column: string, value: string): InboundQueryChain
     order(column: string, options: { ascending: boolean }): InboundQueryChain
 }
 
@@ -134,12 +142,20 @@ export function applyInboundFilters<T>(
     params: InboundListParams,
     searchOr: string | null
 ): T {
-    const { stage, supplierId, materialId, sort, dir } = params
+    const { stage, supplierId, materialId, dateFrom, dateTo, sort, dir } = params
 
     let chain = query as unknown as InboundQueryChain
 
     // 软删除过滤
     chain = chain.is('deleted_at', null)
+
+    // 到货日期区间(arrival_date)
+    if (dateFrom) {
+        chain = chain.gte('arrival_date', dateFrom)
+    }
+    if (dateTo) {
+        chain = chain.lte('arrival_date', dateTo)
+    }
 
     // 搜索:code + 匹配到的物料/供应商 id,全部在本表自有列上做 OR(无 join)
     if (searchOr) {

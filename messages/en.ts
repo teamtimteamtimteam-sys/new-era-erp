@@ -535,6 +535,11 @@ const en = {
         listTitle: 'Processing',
         addButton: '+ Add Processing Run',
         recordCount: 'Total: {count}',
+        pagination: {
+            prev: '← Previous',
+            next: 'Next →',
+            pageOf: 'Page {current} of {total}',
+        },
         colProcessDate: 'Process Date',
         colTotalInput: 'Total Input',
         colTotalOutput: 'Total Output',
@@ -863,6 +868,10 @@ const en = {
         errMaterial: 'Please select a material',
         errQuantity: 'Quantity must be greater than 0',
         saveError: 'Save failed: {message}',
+    },
+    listFilters: {
+        dateFrom: 'From',
+        dateTo: 'To',
     },
 } as const
 

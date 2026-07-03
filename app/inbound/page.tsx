@@ -42,6 +42,8 @@ export default async function InboundPage({
         stage?: string
         supplier_id?: string
         material_id?: string
+        date_from?: string
+        date_to?: string
         sort?: string
         dir?: string
         page?: string
@@ -53,9 +55,9 @@ export default async function InboundPage({
     const locale = await getLocale()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
-    const { q, stage, supplierId, materialId, sort, dir } = parseInboundListParams(sp)
+    const { q, stage, supplierId, materialId, dateFrom, dateTo, sort, dir } = parseInboundListParams(sp)
     const requestedPage = parseInboundPage(sp.page)
-    const filterParams = { q, stage, supplierId, materialId, sort, dir }
+    const filterParams = { q, stage, supplierId, materialId, dateFrom, dateTo, sort, dir }
 
     // 跨关联方搜索:先查匹配 q 的物料/供应商 id(q 为空时零开销),再拼成本表 FK 列的 OR
     const searchIds = await resolveInboundSearchIds(supabase, q)
@@ -125,6 +127,8 @@ export default async function InboundPage({
         if (stage) params.set('stage', stage)
         if (supplierId) params.set('supplier_id', supplierId)
         if (materialId) params.set('material_id', materialId)
+        if (dateFrom) params.set('date_from', dateFrom)
+        if (dateTo) params.set('date_to', dateTo)
         params.set('sort', col)
         params.set('dir', nextDir)
         return `/inbound?${params.toString()}`
@@ -149,6 +153,8 @@ export default async function InboundPage({
         if (stage) params.set('stage', stage)
         if (supplierId) params.set('supplier_id', supplierId)
         if (materialId) params.set('material_id', materialId)
+        if (dateFrom) params.set('date_from', dateFrom)
+        if (dateTo) params.set('date_to', dateTo)
         params.set('sort', sort)
         params.set('dir', dir)
         params.set('page', String(targetPage))

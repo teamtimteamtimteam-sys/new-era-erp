@@ -26,6 +26,8 @@ export default function OutputToolbar({
     const currentState = searchParams.get('state') ?? ''
     const currentCustomer = searchParams.get('customer_id') ?? ''
     const currentMaterial = searchParams.get('material_id') ?? ''
+    const currentDateFrom = searchParams.get('date_from') ?? ''
+    const currentDateTo = searchParams.get('date_to') ?? ''
 
     // 搜索框是受控的:本地 state 即时反映输入,URL 防抖更新
     const [q, setQ] = useState(currentQ)
@@ -116,6 +118,24 @@ export default function OutputToolbar({
                     </option>
                 ))}
             </select>
+            <label className="flex items-center gap-1 text-sm text-gray-600">
+                {t('listFilters.dateFrom')}
+                <input
+                    type="date"
+                    value={currentDateFrom}
+                    onChange={(e) => onFilterChange('date_from', e.target.value)}
+                    className="rounded border border-gray-300 bg-white px-2 py-2"
+                />
+            </label>
+            <label className="flex items-center gap-1 text-sm text-gray-600">
+                {t('listFilters.dateTo')}
+                <input
+                    type="date"
+                    value={currentDateTo}
+                    onChange={(e) => onFilterChange('date_to', e.target.value)}
+                    className="rounded border border-gray-300 bg-white px-2 py-2"
+                />
+            </label>
             <a
                 href={exportHref}
                 className="rounded border border-gray-300 bg-white px-3 py-2 hover:bg-gray-50"

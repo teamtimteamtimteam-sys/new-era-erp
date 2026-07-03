@@ -537,6 +537,11 @@ const zh = {
         listTitle: '加工单',
         addButton: '+ 新增加工单',
         recordCount: '共 {count} 条记录',
+        pagination: {
+            prev: '← 上一页',
+            next: '下一页 →',
+            pageOf: '第 {current} / {total} 页',
+        },
         colProcessDate: '加工日期',
         colTotalInput: '投入合计',
         colTotalOutput: '产出合计',
@@ -864,6 +869,10 @@ const zh = {
         errMaterial: '请选择物料',
         errQuantity: '重量必须大于 0',
         saveError: '保存失败:{message}',
+    },
+    listFilters: {
+        dateFrom: '开始日期',
+        dateTo: '结束日期',
     },
 } as const satisfies Messages
 
