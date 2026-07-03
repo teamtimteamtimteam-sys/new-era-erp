@@ -181,7 +181,7 @@ export default async function InboundPage({
                     </Link>
                     <Link
                         href="/inbound/new"
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                        className="hidden sm:inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                     >
                         {t('inbound.addButton')}
                     </Link>
