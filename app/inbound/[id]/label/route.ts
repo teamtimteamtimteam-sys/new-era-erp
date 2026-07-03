@@ -4,7 +4,6 @@
 import type { NextRequest } from 'next/server'
 import QRCode from 'qrcode'
 import { createClient } from '@/lib/supabase/server'
-import { LOCALE_COOKIE } from '@/lib/i18n/config'
 import { buildLabelHtml } from '@/app/components/labels/labelHtml'
 
 type BatchRow = {
@@ -44,11 +43,9 @@ export async function GET(
     const b = data as unknown as BatchRow
     const url = request.nextUrl.origin + `/inbound/${id}/edit`
     const qrDataUrl = await QRCode.toDataURL(url, { width: 480, margin: 1 })
-    const locale = request.cookies.get(LOCALE_COOKIE)?.value === 'en' ? 'en' : 'zh'
 
     const html = buildLabelHtml({
         kind: 'inbound',
-        locale,
         code: b.code,
         qrDataUrl,
         materialName: b.materials?.name ?? '',
