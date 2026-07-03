@@ -413,6 +413,9 @@ const en = {
         deleteError: 'Delete failed: {message}',
         newTitle: 'Add Inbound',
         editTitle: 'Edit Inbound',
+        edit: {
+            quantityLockedHint: 'Quantity is fixed after creation — stock changes go through the movement ledger',
+        },
         dropdownLoadError: 'Failed to load dropdown data',
         form: {
             material: 'Material',
@@ -475,6 +478,10 @@ const en = {
         deleteError: 'Delete failed: {message}',
         newTitle: 'Add Output',
         editTitle: 'Edit Output',
+        edit: {
+            quantityLockedHint: 'Quantity is fixed after creation — stock changes go through the movement ledger',
+            stateLockedHint: 'State is set automatically by sales and processing',
+        },
         dropdownLoadError: 'Failed to load dropdown data',
         form: {
             material: 'Material',

@@ -90,7 +90,7 @@ BEGIN
     )
     RETURNING id INTO v_run_id;
 
-    -- 5. 再遍历投入:扣库存 + 更新阶段 + 建投入腿
+    -- 5. 再遍历投入:扣库存 + 更新阶段 + 建投入腿 + 记库存流水(消耗)
     FOR v_input IN SELECT * FROM jsonb_array_elements(p_inputs)
     LOOP
         v_inbound_id := (v_input->>'inbound_batch_id')::uuid;
@@ -107,11 +107,16 @@ BEGIN
             updated_at = now()
         WHERE id = v_inbound_id;
 
+        INSERT INTO inventory_movements (inbound_batch_id, movement_type, qty_delta, run_id, business_date, created_by)
+        VALUES (v_inbound_id, 'processing_consume', -v_consumed, v_run_id, v_process_date, v_user_id);
+
         INSERT INTO processing_inputs (run_id, inbound_batch_id, quantity_consumed)
         VALUES (v_run_id, v_inbound_id, v_consumed);
     END LOOP;
 
     -- 6. 遍历产出:建产出批次 + 建产出腿
+    --    产出的入库流水由 AFTER INSERT 触发器发出;先设置上下文标记本批产出属于本加工单。
+    PERFORM set_config('evoltrya.movement_ctx', 'processing:' || v_run_id::text, true);
     FOR v_output IN SELECT * FROM jsonb_array_elements(p_outputs)
     LOOP
         v_material_id := (v_output->>'material_id')::uuid;

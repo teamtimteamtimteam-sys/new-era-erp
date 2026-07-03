@@ -415,6 +415,9 @@ const zh = {
         deleteError: '删除失败：{message}',
         newTitle: '新增进料',
         editTitle: '编辑进料',
+        edit: {
+            quantityLockedHint: '数量在创建后锁定,库存变动一律走库存流水',
+        },
         dropdownLoadError: '读取下拉框数据失败',
         form: {
             material: '物料',
@@ -477,6 +480,10 @@ const zh = {
         deleteError: '删除失败：{message}',
         newTitle: '新增产出',
         editTitle: '编辑产出',
+        edit: {
+            quantityLockedHint: '数量在创建后锁定,库存变动一律走库存流水',
+            stateLockedHint: '状态由销售和加工自动更新',
+        },
         dropdownLoadError: '读取下拉框数据失败',
         form: {
             material: '物料',

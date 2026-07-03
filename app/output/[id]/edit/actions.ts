@@ -20,28 +20,16 @@ export async function updateOutput(
     // 1. 取字段(和 createOutput 一致)
     const material_id = (formData.get('material_id') as string) || ''
     const customer_id = (formData.get('customer_id') as string) || ''
-    const quantity_raw = (formData.get('quantity') as string) || ''
+    // quantity and state are no longer editable here: quantity is immutable (DB-guarded)
+    // and state is driven by sales/processing. Both flow through the movement ledger.
     const unit = (formData.get('unit') as string)?.trim() || 'kg'
     const output_date = (formData.get('output_date') as string)?.trim() || null
-    const state = (formData.get('state') as string)?.trim() || '库存中'
     const purity = (formData.get('purity') as string)?.trim() || null
     const notes = (formData.get('notes') as string)?.trim() || null
 
     // 2. 校验(客户可选,不校验)
     const fieldErrors: Record<string, string> = {}
     if (!material_id) fieldErrors.material_id = t('output.form.errMaterial')
-
-    let quantity: number | null = null
-    if (!quantity_raw) {
-        fieldErrors.quantity = t('output.form.errQuantity')
-    } else {
-        const n = Number(quantity_raw)
-        if (Number.isNaN(n) || n <= 0) {
-            fieldErrors.quantity = t('output.form.errQuantityPositive')
-        } else {
-            quantity = n
-        }
-    }
 
     if (Object.keys(fieldErrors).length > 0) {
         return { fieldErrors }
@@ -58,10 +46,8 @@ export async function updateOutput(
         .update({
             material_id,
             customer_id: customer_id || null, // 可选
-            quantity: quantity ?? undefined,
             unit,
             output_date,
-            state,
             purity,
             notes,
             updated_by: user?.id ?? null,

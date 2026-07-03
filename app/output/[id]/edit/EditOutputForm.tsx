@@ -110,25 +110,17 @@ export default function EditOutputForm({
                     )}
                 </div>
 
-                {/* 数量(必填)*/}
+                {/* 数量(创建后锁定 —— 库存变动走库存流水;disabled 不随表单提交)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
-                        {t('output.form.quantity')} <span className="text-red-600">*</span>
-                    </label>
+                    <label className="block text-sm font-medium mb-1">{t('output.form.quantity')}</label>
                     <input
                         type="number"
                         name="quantity"
-                        required
-                        step="any"
-                        min="0"
+                        disabled
                         defaultValue={batch.quantity}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className="w-full border border-gray-300 px-3 py-2 rounded bg-gray-100 text-gray-500"
                     />
-                    {state.fieldErrors?.quantity && (
-                        <p className="text-red-600 text-xs mt-1">
-                            {state.fieldErrors.quantity}
-                        </p>
-                    )}
+                    <p className="text-xs text-gray-500 mt-1">{t('output.edit.quantityLockedHint')}</p>
                 </div>
 
                 {/* 单位 */}
@@ -166,13 +158,14 @@ export default function EditOutputForm({
                     />
                 </div>
 
-                {/* 状态 */}
+                {/* 状态(由销售/加工自动更新 —— 只读;disabled 不随表单提交)*/}
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('output.form.state')}</label>
                     <select
                         name="state"
+                        disabled
                         defaultValue={batch.state}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className="w-full border border-gray-300 px-3 py-2 rounded bg-gray-100 text-gray-500"
                     >
                         {STATE_OPTIONS.map((s) => (
                             <option key={s.value} value={s.value}>
@@ -180,6 +173,7 @@ export default function EditOutputForm({
                             </option>
                         ))}
                     </select>
+                    <p className="text-xs text-gray-500 mt-1">{t('output.edit.stateLockedHint')}</p>
                 </div>
 
                 {/* 品位/纯度 */}

@@ -20,7 +20,8 @@ export async function updateInbound(
     // 1. 取字段(和 createInbound 一致)
     const material_id = (formData.get('material_id') as string) || ''
     const supplier_id = (formData.get('supplier_id') as string) || ''
-    const quantity_raw = (formData.get('quantity') as string) || ''
+    // quantity is immutable after creation (guarded by DB trigger; stock changes go
+    // through the movement ledger) — deliberately not read or written here.
     const unit = (formData.get('unit') as string)?.trim() || 'kg'
     const arrival_date = (formData.get('arrival_date') as string)?.trim() || null
     const stage = (formData.get('stage') as string)?.trim() || '待加工'
@@ -31,18 +32,6 @@ export async function updateInbound(
     const fieldErrors: Record<string, string> = {}
     if (!material_id) fieldErrors.material_id = t('inbound.form.errMaterial')
     if (!supplier_id) fieldErrors.supplier_id = t('inbound.form.errSupplier')
-
-    let quantity: number | null = null
-    if (!quantity_raw) {
-        fieldErrors.quantity = t('inbound.form.errQuantity')
-    } else {
-        const n = Number(quantity_raw)
-        if (Number.isNaN(n) || n <= 0) {
-            fieldErrors.quantity = t('inbound.form.errQuantityPositive')
-        } else {
-            quantity = n
-        }
-    }
 
     let unit_price: number | null = null
     if (unit_price_raw) {
@@ -69,7 +58,6 @@ export async function updateInbound(
         .update({
             material_id,
             supplier_id,
-            quantity: quantity ?? undefined,
             unit,
             arrival_date,
             stage,

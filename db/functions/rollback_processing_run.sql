@@ -7,6 +7,7 @@ DECLARE
     v_run_deleted_at timestamptz;
     v_bad_output record;
     v_input record;
+    v_old_remaining numeric;
     v_new_remaining numeric;
     v_quantity numeric;
 BEGIN
@@ -24,6 +25,9 @@ BEGIN
         RAISE EXCEPTION 'RUN_ALREADY_DELETED';
     END IF;
 
+    -- 标记本次为回滚上下文,供产出批次软删触发器发出 reversal_void。
+    PERFORM set_config('evoltrya.movement_ctx', 'reversal:' || p_run_id::text, true);
+
     -- 2. 安全检查：任何一个产出批次动过就拒绝
     SELECT ob.code, ob.state, ob.quantity, ob.remaining_qty
     INTO v_bad_output
@@ -39,13 +43,13 @@ BEGIN
             v_bad_output.code, v_bad_output.state, v_bad_output.remaining_qty, v_bad_output.quantity;
     END IF;
 
-    -- 3. 还原进料：加回 remaining_qty，重判 stage
+    -- 3. 还原进料：加回 remaining_qty，重判 stage，记 reversal_restore 流水
     FOR v_input IN
         SELECT pi.inbound_batch_id, pi.quantity_consumed
         FROM processing_inputs pi
         WHERE pi.run_id = p_run_id
     LOOP
-        SELECT quantity INTO v_quantity
+        SELECT quantity, remaining_qty INTO v_quantity, v_old_remaining
         FROM inbound_batches
         WHERE id = v_input.inbound_batch_id
         FOR UPDATE;
@@ -55,8 +59,7 @@ BEGIN
         END IF;
 
         v_new_remaining := LEAST(
-            COALESCE((SELECT remaining_qty FROM inbound_batches WHERE id = v_input.inbound_batch_id), 0)
-                + v_input.quantity_consumed,
+            COALESCE(v_old_remaining, 0) + v_input.quantity_consumed,
             v_quantity
         );
 
@@ -66,9 +69,14 @@ BEGIN
             updated_by = v_user_id,
             updated_at = now()
         WHERE id = v_input.inbound_batch_id;
+
+        IF v_new_remaining - COALESCE(v_old_remaining, 0) > 0 THEN
+            INSERT INTO inventory_movements (inbound_batch_id, movement_type, qty_delta, run_id, created_by)
+            VALUES (v_input.inbound_batch_id, 'reversal_restore', v_new_remaining - COALESCE(v_old_remaining, 0), p_run_id, v_user_id);
+        END IF;
     END LOOP;
 
-    -- 4. 软删这张单生成的产出批次
+    -- 4. 软删这张单生成的产出批次(void 流水 + 归零由 BEFORE UPDATE 触发器处理)
     UPDATE output_batches
     SET deleted_at = now(),
         updated_by = v_user_id,
