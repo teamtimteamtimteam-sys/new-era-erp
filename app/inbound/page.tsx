@@ -171,12 +171,21 @@ export default async function InboundPage({
         <div className="p-8">
             <div className="flex items-center justify-between mb-4">
                 <h1 className="text-2xl font-bold">{t('inbound.listTitle')}</h1>
-                <Link
-                    href="/inbound/new"
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
-                    {t('inbound.addButton')}
-                </Link>
+                <div className="flex items-center gap-2">
+                    {/* 移动端专属:现场收货入口 */}
+                    <Link
+                        href="/inbound/receive"
+                        className="sm:hidden bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    >
+                        {t('receive.entry')}
+                    </Link>
+                    <Link
+                        href="/inbound/new"
+                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    >
+                        {t('inbound.addButton')}
+                    </Link>
+                </div>
             </div>
 
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}

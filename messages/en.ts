@@ -845,6 +845,25 @@ const en = {
         print: 'Print QR Label',
         col: 'Label',
     },
+    receive: {
+        title: 'Field Receiving',
+        entry: 'Field Receiving',
+        supplier: 'Supplier',
+        material: 'Material',
+        quantity: 'Weighed Quantity (kg)',
+        qtyPlaceholder: 'e.g. 1250.5',
+        arrivalDate: 'Arrival Date',
+        notes: 'Notes',
+        submit: 'Save & Get Label',
+        submitting: 'Saving…',
+        doneTitle: 'Received',
+        next: 'Receive Next',
+        viewBatch: 'View batch details',
+        errSupplier: 'Please select a supplier',
+        errMaterial: 'Please select a material',
+        errQuantity: 'Quantity must be greater than 0',
+        saveError: 'Save failed: {message}',
+    },
 } as const
 
 export default en

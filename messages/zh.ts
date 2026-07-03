@@ -846,6 +846,25 @@ const zh = {
         print: '打印二维码标签',
         col: '标签',
     },
+    receive: {
+        title: '现场收货',
+        entry: '现场收货',
+        supplier: '供应商',
+        material: '物料',
+        quantity: '过磅重量 (kg)',
+        qtyPlaceholder: '如 1250.5',
+        arrivalDate: '到货日期',
+        notes: '备注',
+        submit: '保存并出标签',
+        submitting: '保存中…',
+        doneTitle: '已收货',
+        next: '继续收下一批',
+        viewBatch: '查看批次详情',
+        errSupplier: '请选择供应商',
+        errMaterial: '请选择物料',
+        errQuantity: '重量必须大于 0',
+        saveError: '保存失败:{message}',
+    },
 } as const satisfies Messages
 
 export default zh
