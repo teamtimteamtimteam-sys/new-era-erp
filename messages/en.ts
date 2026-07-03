@@ -841,6 +841,10 @@ const en = {
             adjustment: 'Adjustment',
         },
     },
+    batchLabel: {
+        print: 'Print QR Label',
+        col: 'Label',
+    },
 } as const
 
 export default en

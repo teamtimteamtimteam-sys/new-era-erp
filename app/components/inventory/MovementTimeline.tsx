@@ -30,6 +30,7 @@ export default async function MovementTimeline({
                 <p className="text-sm text-gray-500">{t('movements.empty')}</p>
             ) : (
                 <>
+                    <div className="overflow-x-auto">
                     <table className="w-full border-collapse border border-gray-300">
                         <thead className="bg-gray-100">
                             <tr>
@@ -68,6 +69,7 @@ export default async function MovementTimeline({
                             ))}
                         </tbody>
                     </table>
+                    </div>
 
                     <p className="text-sm mt-3">
                         <span className="text-gray-600 mr-1">{t('movements.sumLabel')}:</span>

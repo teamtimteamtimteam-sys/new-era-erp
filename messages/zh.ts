@@ -842,6 +842,10 @@ const zh = {
             adjustment: '调整',
         },
     },
+    batchLabel: {
+        print: '打印二维码标签',
+        col: '标签',
+    },
 } as const satisfies Messages
 
 export default zh

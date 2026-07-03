@@ -211,6 +211,9 @@ export default async function InboundPage({
                         <th className="border border-gray-300 px-4 py-2 text-left">
                             {t('inbound.colActions')}
                         </th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">
+                            {t('batchLabel.col')}
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
@@ -245,12 +248,22 @@ export default async function InboundPage({
                             <td className="border border-gray-300 px-4 py-2">
                                 <DeleteButton id={b.id} code={b.code} />
                             </td>
+                            <td className="border border-gray-300 px-4 py-2">
+                                <a
+                                    href={`/inbound/${b.id}/label`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:underline text-sm"
+                                >
+                                    {t('batchLabel.col')}
+                                </a>
+                            </td>
                         </tr>
                     ))}
                     {(!batches || batches.length === 0) && (
                         <tr>
                             <td
-                                colSpan={10}
+                                colSpan={11}
                                 className="border border-gray-300 px-4 py-8 text-center text-gray-500"
                             >
                                 {t('inbound.emptyState')}

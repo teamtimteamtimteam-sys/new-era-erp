@@ -85,7 +85,8 @@ export default function MetalContentPanel({
             {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
 
             {rows.length > 0 && (
-                <table className="w-full border-collapse border border-gray-300 mb-4">
+                <div className="overflow-x-auto mb-4">
+                <table className="w-full border-collapse border border-gray-300">
                     <thead className="bg-gray-100">
                         <tr>
                             <th className="border border-gray-300 px-4 py-2 text-left">{t('metalContent.colMetal')}</th>
@@ -118,6 +119,7 @@ export default function MetalContentPanel({
                         ))}
                     </tbody>
                 </table>
+                </div>
             )}
 
             {/* 合计行:实时反映"保存后"的百分比合计;>100 只警告不拦截 */}

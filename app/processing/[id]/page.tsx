@@ -246,6 +246,7 @@ export default async function ProcessingDetailPage({
                 {/* 投入 */}
                 <section>
                     <h2 className="text-lg font-semibold mb-2">{t('processing.detail.inputsSectionHeader')}</h2>
+                    <div className="overflow-x-auto">
                     <table className="w-full border-collapse border border-gray-300">
                         <thead className="bg-gray-100">
                             <tr>
@@ -293,11 +294,13 @@ export default async function ProcessingDetailPage({
                             )}
                         </tbody>
                     </table>
+                    </div>
                 </section>
 
                 {/* 产出 */}
                 <section>
                     <h2 className="text-lg font-semibold mb-2">{t('processing.detail.outputsSectionHeader')}</h2>
+                    <div className="overflow-x-auto">
                     <table className="w-full border-collapse border border-gray-300">
                         <thead className="bg-gray-100">
                             <tr>
@@ -357,6 +360,7 @@ export default async function ProcessingDetailPage({
                             )}
                         </tbody>
                     </table>
+                    </div>
                 </section>
 
                 {/* 金属回收率(仅已提交单) */}
@@ -364,6 +368,7 @@ export default async function ProcessingDetailPage({
                     <section>
                         <h2 className="text-lg font-semibold mb-2">{t('processing.recovery.title')}</h2>
                         {recoveryRows.length > 0 ? (
+                            <div className="overflow-x-auto">
                             <table className="w-full border-collapse border border-gray-300">
                                 <thead className="bg-gray-100">
                                     <tr>
@@ -390,6 +395,7 @@ export default async function ProcessingDetailPage({
                                     ))}
                                 </tbody>
                             </table>
+                            </div>
                         ) : (
                             <p className="text-sm text-gray-500">{t('processing.recovery.empty')}</p>
                         )}

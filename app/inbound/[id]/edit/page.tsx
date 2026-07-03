@@ -98,7 +98,7 @@ export default async function EditInboundPage({
     }))
 
     return (
-        <div className="p-8 max-w-2xl">
+        <div className="p-4 sm:p-8 max-w-2xl">
             <div className="mb-6">
                 <Link
                     href="/inbound"
@@ -108,13 +108,21 @@ export default async function EditInboundPage({
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-2">{t('inbound.editTitle')}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold mb-2">{t('inbound.editTitle')}</h1>
             <p className="text-sm text-gray-600 mb-6">
                 <span className="font-mono">{batch.code}</span>
                 <span className="mx-2">·</span>
                 <span className="px-2 py-0.5 bg-gray-200 rounded text-xs">
                     {batch.status}
                 </span>
+                <a
+                    href={`/inbound/${batch.id}/label`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-3 text-blue-600 hover:underline"
+                >
+                    {t('batchLabel.print')}
+                </a>
             </p>
 
             <EditInboundForm
