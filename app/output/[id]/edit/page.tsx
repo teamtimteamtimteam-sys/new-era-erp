@@ -8,6 +8,7 @@ import { saveOutputMetal, deleteOutputMetal } from '@/app/components/metals/meta
 import MovementTimeline from '@/app/components/inventory/MovementTimeline'
 import type { MovementRow } from '@/app/components/inventory/movementTypes'
 import SalePanel from './SalePanel'
+import StocktakeQuickCount from '@/app/stocktakes/StocktakeQuickCount'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
@@ -32,7 +33,7 @@ export default async function EditOutputPage({
     const locale = await getLocale()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
-    const [batchRes, materialsRes, customersRes, metalsRes, movementsRes] = await Promise.all([
+    const [batchRes, materialsRes, customersRes, metalsRes, movementsRes, stocktakeRes] = await Promise.all([
         supabase
             .from('output_batches')
             .select('*')
@@ -59,6 +60,14 @@ export default async function EditOutputPage({
             .select('id, movement_type, qty_delta, business_date, notes, occurred_at, run_id, processing_runs ( id, code )')
             .eq('output_batch_id', id)
             .order('occurred_at', { ascending: false }),
+        // 进行中的盘点(最新一张):有则在顶部渲染"扫码即点"横幅
+        supabase
+            .from('stocktakes')
+            .select('id, code')
+            .eq('status', 'open')
+            .is('deleted_at', null)
+            .order('created_at', { ascending: false })
+            .limit(1),
     ])
 
     if (batchRes.error || !batchRes.data) {
@@ -79,6 +88,19 @@ export default async function EditOutputPage({
     }
 
     const batch = batchRes.data
+
+    // 本批在进行中盘点里的已录实点数(有则预填横幅)
+    const openStocktake = stocktakeRes.data?.[0] ?? null
+    let stocktakeCounted: number | null = null
+    if (openStocktake) {
+        const { data: countLine } = await supabase
+            .from('stocktake_lines')
+            .select('counted_qty')
+            .eq('stocktake_id', openStocktake.id)
+            .eq('output_batch_id', id)
+            .maybeSingle()
+        stocktakeCounted = countLine?.counted_qty ?? null
+    }
 
     // 金属含量行:服务端预格式化 updated_at,避免客户端水合不一致
     const metalRows: MetalContentRow[] = (metalsRes.data ?? []).map((m) => ({
@@ -125,6 +147,16 @@ export default async function EditOutputPage({
                     {t('batchLabel.print')}
                 </a>
             </p>
+
+            {openStocktake && (
+                <StocktakeQuickCount
+                    stocktakeId={openStocktake.id}
+                    stocktakeCode={openStocktake.code}
+                    side="output"
+                    batchId={batch.id}
+                    counted={stocktakeCounted}
+                />
+            )}
 
             <EditOutputForm
                 batch={batch}

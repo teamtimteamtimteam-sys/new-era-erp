@@ -813,6 +813,106 @@ export type Database = {
         }
         Relationships: []
       }
+      stocktake_lines: {
+        Row: {
+          book_qty: number
+          counted_at: string
+          counted_qty: number
+          created_by: string | null
+          id: string
+          inbound_batch_id: string | null
+          notes: string | null
+          output_batch_id: string | null
+          stocktake_id: string
+        }
+        Insert: {
+          book_qty: number
+          counted_at?: string
+          counted_qty: number
+          created_by?: string | null
+          id?: string
+          inbound_batch_id?: string | null
+          notes?: string | null
+          output_batch_id?: string | null
+          stocktake_id: string
+        }
+        Update: {
+          book_qty?: number
+          counted_at?: string
+          counted_qty?: number
+          created_by?: string | null
+          id?: string
+          inbound_batch_id?: string | null
+          notes?: string | null
+          output_batch_id?: string | null
+          stocktake_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stocktake_lines_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stocktake_lines_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stocktake_lines_stocktake_id_fkey"
+            columns: ["stocktake_id"]
+            isOneToOne: false
+            referencedRelation: "stocktakes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stocktakes: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          notes: string | null
+          posted_at: string | null
+          started_at: string
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          notes?: string | null
+          posted_at?: string | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          notes?: string | null
+          posted_at?: string | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       storage_locations: {
         Row: {
           code: string
@@ -1122,6 +1222,7 @@ export type Database = {
         Args: { p_basis?: string; p_run_id: string }
         Returns: Json
       }
+      cancel_stocktake: { Args: { p_stocktake_id: string }; Returns: undefined }
       commit_processing_run: {
         Args: {
           p_inputs: Json
@@ -1132,6 +1233,7 @@ export type Database = {
         }
         Returns: string
       }
+      post_stocktake: { Args: { p_stocktake_id: string }; Returns: Json }
       record_output_sale: {
         Args: {
           p_notes?: string

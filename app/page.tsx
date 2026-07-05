@@ -17,6 +17,7 @@ const SECTIONS = [
             { href: '/inbound', titleKey: 'home.inboundTitle', descKey: 'home.inboundDesc' },
             { href: '/output', titleKey: 'home.outputTitle', descKey: 'home.outputDesc' },
             { href: '/processing', titleKey: 'home.processingTitle', descKey: 'home.processingDesc' },
+            { href: '/stocktakes', titleKey: 'home.stocktakesTitle', descKey: 'home.stocktakesDesc' },
         ],
     },
     {

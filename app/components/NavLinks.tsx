@@ -14,6 +14,7 @@ const NAV_ITEMS = [
     { href: '/output', key: 'nav.output' },
     { href: '/processing', key: 'nav.processing' },
     { href: '/inventory', key: 'nav.inventory' },
+    { href: '/stocktakes', key: 'nav.stocktakes' },
     { href: '/tasks', key: 'nav.tasks' },
 ]
 
