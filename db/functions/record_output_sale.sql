@@ -6,6 +6,7 @@ DECLARE
     v_user          uuid := auth.uid();
     v_deleted       timestamptz;
     v_remaining     numeric;
+    v_code          text;
     v_new_remaining numeric;
     v_state         text;
     v_fx            numeric;
@@ -13,8 +14,12 @@ DECLARE
     v_movement_id   uuid;
     v_sale_id       uuid;
     v_sale_date     date := COALESCE(p_sale_date, CURRENT_DATE);
+    v_unit_cost     numeric;
+    v_cogs          numeric;
+    v_je1           jsonb;
+    v_je2           jsonb;
 BEGIN
-    SELECT deleted_at, remaining_qty INTO v_deleted, v_remaining
+    SELECT deleted_at, remaining_qty, code INTO v_deleted, v_remaining, v_code
     FROM output_batches WHERE id = p_output_batch_id FOR UPDATE;
     IF NOT FOUND THEN
         RAISE EXCEPTION 'OUTPUT_NOT_FOUND|%', p_output_batch_id;
@@ -29,7 +34,6 @@ BEGIN
         RAISE EXCEPTION 'SALE_EXCEEDS_REMAINING|%|%', p_quantity, v_remaining;
     END IF;
 
-    -- cut 1 新增:销售必须带价(关闭"收入事件零金额"缺口)
     IF p_unit_price IS NULL OR p_unit_price <= 0 THEN
         RAISE EXCEPTION 'SALE_PRICE_INVALID';
     END IF;
@@ -58,7 +62,36 @@ BEGIN
     VALUES (p_output_batch_id, p_customer_id, p_quantity, p_unit_price, p_currency, v_fx, v_amount_usd, v_sale_date, p_notes, v_movement_id, v_user)
     RETURNING id INTO v_sale_id;
 
-    -- 记账分录本 cut 不生成 —— cut 2 把 sale 事件接进 post_journal_entry。
+    -- cut 2a JE#1:收入 —— 借 1100 / 贷 4000,原币行(amount_ccy = qty × price,
+    -- fx 原样),USD 侧由 post_journal_entry 折算,与 amount_usd 同式同值。
+    v_je1 := post_journal_entry(
+        v_sale_date,
+        'Sale ' || v_code,
+        'sale', v_sale_id,
+        jsonb_build_array(
+            jsonb_build_object('account_code', '1100', 'side', 'debit',  'currency', p_currency, 'amount_ccy', p_quantity * p_unit_price, 'fx_rate', v_fx),
+            jsonb_build_object('account_code', '4000', 'side', 'credit', 'currency', p_currency, 'amount_ccy', p_quantity * p_unit_price, 'fx_rate', v_fx)));
+
+    -- cut 2a JE#2:COGS —— 有产出腿单位成本才挂;没有则只挂收入(cogs_journal 为
+    -- null),等 allocate_processing_costs 补挂(见其 COGS catch-up)。
+    SELECT po.unit_cost_usd INTO v_unit_cost
+    FROM processing_outputs po
+    WHERE po.output_batch_id = p_output_batch_id
+    LIMIT 1;
+
+    IF v_unit_cost IS NOT NULL THEN
+        v_cogs := round(p_quantity * v_unit_cost, 2);
+        IF v_cogs <> 0 THEN
+            v_je2 := post_journal_entry(
+                v_sale_date,
+                'COGS ' || v_code,
+                'sale', v_sale_id,
+                jsonb_build_array(
+                    jsonb_build_object('account_code', '5000', 'side', 'debit',  'currency', 'USD', 'amount_ccy', v_cogs),
+                    jsonb_build_object('account_code', '1220', 'side', 'credit', 'currency', 'USD', 'amount_ccy', v_cogs)));
+            UPDATE sales_records SET cogs_entry_id = (v_je2->>'entry_id')::uuid WHERE id = v_sale_id;
+        END IF;
+    END IF;
 
     v_new_remaining := v_remaining - p_quantity;
     v_state := CASE WHEN v_new_remaining = 0 THEN '已售罄' ELSE '部分售出' END;
@@ -76,7 +109,9 @@ BEGIN
         'remaining_qty', v_new_remaining,
         'state', v_state,
         'sale_id', v_sale_id,
-        'amount_usd', v_amount_usd
+        'amount_usd', v_amount_usd,
+        'revenue_journal', v_je1->>'code',
+        'cogs_journal', v_je2->>'code'
     );
 END;
 $function$

@@ -7,6 +7,8 @@ AS $function$
 -- recorded in allocation_snapshot.skipped_metals (the former missing-price hard error is gone).
 -- NO_METAL_VALUE still blocks when the total metal value across all legs is 0.
 -- (Phase 1 follow-up 1, 2026-07-03.)
+-- cut 2a (2026-07-06): 10a 资本化分录(借 1220 / 贷 1200 材料 + 贷 5xxx 费用;
+-- 重分摊 = 冲旧 + 重挂);10b 给无 COGS 的既有销售按原 sale_date 补挂 COGS。
 DECLARE
     v_user                 uuid := auth.uid();
     v_run                  processing_runs%ROWTYPE;
@@ -25,6 +27,14 @@ DECLARE
     v_outputs              jsonb;
     v_sum_alloc            numeric;
     v_snapshot             jsonb;
+    v_ct                   record;
+    v_sale                 record;
+    v_cap_lines            jsonb;
+    v_cap_total            numeric;
+    v_cap_je               jsonb;
+    v_cap_entry_id         uuid;
+    v_cogs                 numeric;
+    v_cogs_je              jsonb;
 BEGIN
     -- 1. Lock the run; must exist and be a live committed run.
     SELECT * INTO v_run FROM processing_runs WHERE id = p_run_id FOR UPDATE;
@@ -222,6 +232,83 @@ BEGIN
         updated_at          = now(),
         updated_by          = v_user
     WHERE id = p_run_id;
+
+    -- 10a. cut 2a:资本化分录。重分摊 = 先冲销旧资本化分录再重挂(净效果即差额,
+    --      且材料/费用构成变化时各科目仍精确;两张均记 CURRENT_DATE)。
+    --      借方 1220 取各对方行四舍五入后的合计,保证分录自平
+    --      (round(总) ≠ Σround(部分) 的边角防护;capitalized_cost_usd 存该合计)。
+    IF v_run.capitalization_entry_id IS NOT NULL
+       AND (SELECT status FROM journal_entries WHERE id = v_run.capitalization_entry_id) = 'posted' THEN
+        -- 已被人工冲销过的旧资本化分录不再重复冲(status <> 'posted' 直接跳过)
+        PERFORM reverse_journal_entry(v_run.capitalization_entry_id, CURRENT_DATE, 'Re-allocation ' || v_run.code);
+    END IF;
+
+    v_cap_lines := '[]'::jsonb;
+    v_cap_total := 0;
+    IF round(v_material, 2) <> 0 THEN
+        v_cap_lines := v_cap_lines || jsonb_build_object('account_code', '1200', 'side', 'credit', 'currency', 'USD', 'amount_ccy', round(v_material, 2));
+        v_cap_total := v_cap_total + round(v_material, 2);
+    END IF;
+    FOR v_ct IN
+        SELECT cost_type, round(sum(amount_usd), 2) AS amt
+        FROM processing_cost_entries
+        WHERE run_id = p_run_id AND deleted_at IS NULL
+        GROUP BY cost_type
+        ORDER BY cost_type
+    LOOP
+        IF v_ct.amt > 0 THEN
+            v_cap_lines := v_cap_lines || jsonb_build_object('account_code', fin_cost_account(v_ct.cost_type), 'side', 'credit', 'currency', 'USD', 'amount_ccy', v_ct.amt);
+            v_cap_total := v_cap_total + v_ct.amt;
+        ELSIF v_ct.amt < 0 THEN
+            -- 负净额(冲减类成本):翻到借方,保持各行 amount_ccy > 0
+            v_cap_lines := v_cap_lines || jsonb_build_object('account_code', fin_cost_account(v_ct.cost_type), 'side', 'debit', 'currency', 'USD', 'amount_ccy', -v_ct.amt);
+            v_cap_total := v_cap_total + v_ct.amt;
+        END IF;
+    END LOOP;
+
+    v_cap_entry_id := NULL;
+    IF v_cap_total <> 0 THEN
+        v_cap_lines := jsonb_build_array(
+            jsonb_build_object('account_code', '1220',
+                               'side', CASE WHEN v_cap_total > 0 THEN 'debit' ELSE 'credit' END,
+                               'currency', 'USD', 'amount_ccy', abs(v_cap_total))
+        ) || v_cap_lines;
+        v_cap_je := post_journal_entry(
+            CURRENT_DATE,
+            'Capitalize ' || v_run.code,
+            'allocation', p_run_id,
+            v_cap_lines);
+        v_cap_entry_id := (v_cap_je->>'entry_id')::uuid;
+    END IF;
+
+    UPDATE processing_runs
+    SET capitalized_cost_usd = v_cap_total,
+        capitalization_entry_id = v_cap_entry_id
+    WHERE id = p_run_id;
+
+    -- 10b. cut 2a:COGS 补挂 —— 只补此前无 COGS 分录的销售(cogs_entry_id IS NULL),
+    --      用最新 unit_cost_usd,按各自原 sale_date(撞期间锁则 PERIOD_LOCKED 直接抛出)。
+    --      已挂 COGS 不追溯重述(标准成本式简化;重述属人工冲销决策)。
+    FOR v_sale IN
+        SELECT sr.id, sr.quantity, sr.sale_date, ob.code AS batch_code, po.unit_cost_usd
+        FROM sales_records sr
+        JOIN processing_outputs po ON po.output_batch_id = sr.output_batch_id AND po.run_id = p_run_id
+        JOIN output_batches ob ON ob.id = sr.output_batch_id
+        WHERE sr.cogs_entry_id IS NULL
+        ORDER BY sr.sale_date, sr.created_at
+    LOOP
+        v_cogs := round(v_sale.quantity * v_sale.unit_cost_usd, 2);
+        IF v_cogs <> 0 THEN
+            v_cogs_je := post_journal_entry(
+                v_sale.sale_date,
+                'COGS ' || v_sale.batch_code,
+                'sale', v_sale.id,
+                jsonb_build_array(
+                    jsonb_build_object('account_code', '5000', 'side', 'debit',  'currency', 'USD', 'amount_ccy', v_cogs),
+                    jsonb_build_object('account_code', '1220', 'side', 'credit', 'currency', 'USD', 'amount_ccy', v_cogs)));
+            UPDATE sales_records SET cogs_entry_id = (v_cogs_je->>'entry_id')::uuid WHERE id = v_sale.id;
+        END IF;
+    END LOOP;
 
     -- 10. Return.
     RETURN jsonb_build_object(

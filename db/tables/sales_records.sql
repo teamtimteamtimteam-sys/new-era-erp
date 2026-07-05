@@ -19,16 +19,39 @@ CREATE TABLE public.sales_records (
     sale_date       date NOT NULL,
     notes           text,
     movement_id     uuid REFERENCES public.inventory_movements (id),
+    cogs_entry_id   uuid REFERENCES public.journal_entries (id),  -- cut 2a:COGS 分录链接(售时或 allocate 补挂)
     created_at      timestamptz DEFAULT now(),
     created_by      uuid DEFAULT auth.uid()
 );
 
 CREATE INDEX idx_sales_records_batch ON public.sales_records (output_batch_id);
 
+-- cut 2a:放宽一个精确迁移 —— cogs_entry_id 首挂(NULL → 非 NULL),其余列逐列锁死。
 CREATE OR REPLACE FUNCTION public.reject_sales_record_mutation()
 RETURNS trigger LANGUAGE plpgsql AS $fn$
 BEGIN
-    RAISE EXCEPTION 'SALE_IMMUTABLE';
+    IF TG_OP = 'DELETE' THEN
+        RAISE EXCEPTION 'SALE_IMMUTABLE';
+    END IF;
+    IF NEW.id              IS DISTINCT FROM OLD.id
+       OR NEW.output_batch_id IS DISTINCT FROM OLD.output_batch_id
+       OR NEW.customer_id     IS DISTINCT FROM OLD.customer_id
+       OR NEW.quantity        IS DISTINCT FROM OLD.quantity
+       OR NEW.unit_price      IS DISTINCT FROM OLD.unit_price
+       OR NEW.currency        IS DISTINCT FROM OLD.currency
+       OR NEW.fx_rate         IS DISTINCT FROM OLD.fx_rate
+       OR NEW.amount_usd      IS DISTINCT FROM OLD.amount_usd
+       OR NEW.sale_date       IS DISTINCT FROM OLD.sale_date
+       OR NEW.notes           IS DISTINCT FROM OLD.notes
+       OR NEW.movement_id     IS DISTINCT FROM OLD.movement_id
+       OR NEW.created_at      IS DISTINCT FROM OLD.created_at
+       OR NEW.created_by      IS DISTINCT FROM OLD.created_by
+       OR OLD.cogs_entry_id   IS NOT NULL
+       OR NEW.cogs_entry_id   IS NULL
+    THEN
+        RAISE EXCEPTION 'SALE_IMMUTABLE';
+    END IF;
+    RETURN NEW;
 END;
 $fn$;
 
@@ -41,3 +64,8 @@ CREATE POLICY "authenticated select on sales_records"
     ON public.sales_records FOR SELECT TO authenticated USING (true);
 CREATE POLICY "authenticated insert on sales_records"
     ON public.sales_records FOR INSERT TO authenticated WITH CHECK (true);
+-- cut 2a:窄用途 UPDATE 策略 —— 仅为 SECURITY INVOKER 函数补挂 cogs_entry_id 放行;
+-- 列级限制由上面的守卫触发器执行(除 COGS 首挂外一律 SALE_IMMUTABLE)。
+CREATE POLICY "authenticated update on sales_records"
+    ON public.sales_records FOR UPDATE TO authenticated
+    USING (true) WITH CHECK (true);

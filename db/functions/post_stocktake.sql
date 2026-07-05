@@ -13,6 +13,10 @@ DECLARE
     v_lines_total    integer := 0;
     v_lines_adjusted integer := 0;
     v_total_delta    numeric := 0;
+    v_value          numeric;
+    v_inv_acct       text;
+    v_amt            numeric;
+    v_je_lines       jsonb := '[]'::jsonb;
 BEGIN
     SELECT id, code, status, deleted_at INTO v_st
     FROM stocktakes WHERE id = p_stocktake_id FOR UPDATE;
@@ -28,38 +32,58 @@ BEGIN
         v_lines_total := v_lines_total + 1;
 
         IF v_line.inbound_batch_id IS NOT NULL THEN
-            SELECT code, remaining_qty, deleted_at INTO v_code, v_current, v_deleted
+            SELECT code, remaining_qty, deleted_at, unit_price INTO v_code, v_current, v_deleted, v_value
             FROM inbound_batches WHERE id = v_line.inbound_batch_id FOR UPDATE;
-            IF v_deleted IS NOT NULL THEN
-                RAISE EXCEPTION 'BATCH_DELETED|%', v_code;
-            END IF;
-            v_delta := v_line.counted_qty - v_current;
-            IF v_delta <> 0 THEN
+            v_inv_acct := '1200';
+        ELSE
+            SELECT ob.code, ob.remaining_qty, ob.deleted_at, po.unit_cost_usd
+            INTO v_code, v_current, v_deleted, v_value
+            FROM output_batches ob
+            LEFT JOIN processing_outputs po ON po.output_batch_id = ob.id
+            WHERE ob.id = v_line.output_batch_id
+            FOR UPDATE OF ob;
+            v_inv_acct := '1220';
+        END IF;
+
+        IF v_deleted IS NOT NULL THEN
+            RAISE EXCEPTION 'BATCH_DELETED|%', v_code;
+        END IF;
+
+        v_delta := v_line.counted_qty - v_current;
+        IF v_delta <> 0 THEN
+            IF v_line.inbound_batch_id IS NOT NULL THEN
                 INSERT INTO inventory_movements (inbound_batch_id, movement_type, qty_delta, business_date, notes, created_by)
                 VALUES (v_line.inbound_batch_id, 'adjustment', v_delta, CURRENT_DATE,
                         'stocktake ' || v_st.code || COALESCE(': ' || v_line.notes, ''), v_user);
                 UPDATE inbound_batches
                 SET remaining_qty = v_line.counted_qty, updated_by = v_user, updated_at = now()
                 WHERE id = v_line.inbound_batch_id;
-                v_lines_adjusted := v_lines_adjusted + 1;
-                v_total_delta := v_total_delta + v_delta;
-            END IF;
-        ELSE
-            SELECT code, remaining_qty, deleted_at INTO v_code, v_current, v_deleted
-            FROM output_batches WHERE id = v_line.output_batch_id FOR UPDATE;
-            IF v_deleted IS NOT NULL THEN
-                RAISE EXCEPTION 'BATCH_DELETED|%', v_code;
-            END IF;
-            v_delta := v_line.counted_qty - v_current;
-            IF v_delta <> 0 THEN
+            ELSE
                 INSERT INTO inventory_movements (output_batch_id, movement_type, qty_delta, business_date, notes, created_by)
                 VALUES (v_line.output_batch_id, 'adjustment', v_delta, CURRENT_DATE,
                         'stocktake ' || v_st.code || COALESCE(': ' || v_line.notes, ''), v_user);
                 UPDATE output_batches
                 SET remaining_qty = v_line.counted_qty, updated_by = v_user, updated_at = now()
                 WHERE id = v_line.output_batch_id;
-                v_lines_adjusted := v_lines_adjusted + 1;
-                v_total_delta := v_total_delta + v_delta;
+            END IF;
+            v_lines_adjusted := v_lines_adjusted + 1;
+            v_total_delta := v_total_delta + v_delta;
+
+            -- cut 2a:有单值的差异行,成对累积分录行(盘盈:借库存 贷 5200;盘亏反向)。
+            -- 无值(未计价进料 / 无成本产出)只调量不入账。
+            IF v_value IS NOT NULL THEN
+                v_amt := round(abs(v_delta) * v_value, 2);
+                IF v_amt <> 0 THEN
+                    IF v_delta > 0 THEN
+                        v_je_lines := v_je_lines
+                            || jsonb_build_object('account_code', v_inv_acct, 'side', 'debit',  'currency', 'USD', 'amount_ccy', v_amt)
+                            || jsonb_build_object('account_code', '5200',     'side', 'credit', 'currency', 'USD', 'amount_ccy', v_amt);
+                    ELSE
+                        v_je_lines := v_je_lines
+                            || jsonb_build_object('account_code', '5200',     'side', 'debit',  'currency', 'USD', 'amount_ccy', v_amt)
+                            || jsonb_build_object('account_code', v_inv_acct, 'side', 'credit', 'currency', 'USD', 'amount_ccy', v_amt);
+                    END IF;
+                END IF;
             END IF;
         END IF;
     END LOOP;
@@ -67,6 +91,15 @@ BEGIN
     UPDATE stocktakes
     SET status = 'posted', posted_at = now(), updated_by = v_user, updated_at = now()
     WHERE id = p_stocktake_id;
+
+    -- cut 2a:一张分录覆盖全部有值差异行(每行自成一对,天然自平)
+    IF jsonb_array_length(v_je_lines) >= 2 THEN
+        PERFORM post_journal_entry(
+            CURRENT_DATE,
+            'Stocktake ' || v_st.code,
+            'stocktake', p_stocktake_id,
+            v_je_lines);
+    END IF;
 
     RETURN jsonb_build_object(
         'stocktake_id', p_stocktake_id,

@@ -6,10 +6,14 @@ DECLARE
     v_user    uuid := auth.uid();
     v_old     numeric;
     v_deleted timestamptz;
+    v_qty     numeric;
+    v_code    text;
     v_fx      numeric;
     v_usd     numeric;
+    v_delta   numeric;
 BEGIN
-    SELECT unit_price, deleted_at INTO v_old, v_deleted
+    SELECT unit_price, deleted_at, quantity, code
+    INTO v_old, v_deleted, v_qty, v_code
     FROM inbound_batches WHERE id = p_inbound_batch_id FOR UPDATE;
     IF NOT FOUND OR v_deleted IS NOT NULL THEN
         RAISE EXCEPTION 'INBOUND_NOT_FOUND|%', p_inbound_batch_id;
@@ -44,6 +48,27 @@ BEGIN
 
     INSERT INTO price_history (inbound_batch_id, old_unit_price, new_unit_price, currency, original_price, fx_rate, notes, created_by)
     VALUES (p_inbound_batch_id, v_old, v_usd, p_currency, p_unit_price, v_fx, p_notes, v_user);
+
+    -- cut 2a:计价即入账 —— 整批数量 × 价差(负债在收货整批上成立,非剩余量)。
+    -- 记于定价日 CURRENT_DATE(到货日尚无金额,刻意如此);USD 口径(原币在 price_history)。
+    v_delta := round(v_qty * (v_usd - COALESCE(v_old, 0)), 2);
+    IF v_delta <> 0 THEN
+        PERFORM post_journal_entry(
+            CURRENT_DATE,
+            'Pricing ' || v_code,
+            'purchase',
+            p_inbound_batch_id,
+            CASE WHEN v_delta > 0 THEN
+                jsonb_build_array(
+                    jsonb_build_object('account_code', '1200', 'side', 'debit',  'currency', 'USD', 'amount_ccy', v_delta),
+                    jsonb_build_object('account_code', '2000', 'side', 'credit', 'currency', 'USD', 'amount_ccy', v_delta))
+            ELSE
+                jsonb_build_array(
+                    jsonb_build_object('account_code', '2000', 'side', 'debit',  'currency', 'USD', 'amount_ccy', -v_delta),
+                    jsonb_build_object('account_code', '1200', 'side', 'credit', 'currency', 'USD', 'amount_ccy', -v_delta))
+            END
+        );
+    END IF;
 
     RETURN jsonb_build_object(
         'batch_id', p_inbound_batch_id,

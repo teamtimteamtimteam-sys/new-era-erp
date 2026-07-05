@@ -56,11 +56,16 @@ END;
 $fn$;
 
 -- (b) writeoff-on-softdelete: stock out + zero the cache (reversal_void under reversal ctx)
+-- cut 2a (2026-07-06): 注销即入账 —— 已计值批次(进料 unit_price / 产出腿 unit_cost_usd)
+-- 追加 借 5200 / 贷 1200|1220 分录;reversal_void 不入账(加工产出从未入过 1220)。
 CREATE OR REPLACE FUNCTION public.emit_batch_writeoff_movement()
 RETURNS trigger LANGUAGE plpgsql AS $fn$
 DECLARE
-    v_ctx text := current_setting('evoltrya.movement_ctx', true);
-    v_run uuid;
+    v_ctx   text := current_setting('evoltrya.movement_ctx', true);
+    v_run   uuid;
+    v_value numeric;
+    v_acct  text;
+    v_amt   numeric;
 BEGIN
     IF OLD.remaining_qty > 0 THEN
         IF TG_TABLE_NAME = 'inbound_batches' THEN
@@ -76,6 +81,35 @@ BEGIN
                 VALUES (OLD.id, 'writeoff', -OLD.remaining_qty, NEW.updated_by);
             END IF;
         END IF;
+
+        -- cut 2a:注销即入账(仅已计值批次,借 5200 / 贷 1200|1220)。
+        -- processing 回滚(reversal_void)不入账:本 cut 不记加工产出/消耗分录,
+        -- void 的产出从未入过 1220,无可冲销。未计值批次只出量不入账。
+        IF v_ctx IS NULL OR split_part(v_ctx, ':', 1) <> 'reversal' THEN
+            IF TG_TABLE_NAME = 'inbound_batches' THEN
+                v_value := OLD.unit_price;
+                v_acct := '1200';
+            ELSE
+                SELECT po.unit_cost_usd INTO v_value
+                FROM public.processing_outputs po
+                WHERE po.output_batch_id = OLD.id
+                LIMIT 1;
+                v_acct := '1220';
+            END IF;
+            IF v_value IS NOT NULL THEN
+                v_amt := round(OLD.remaining_qty * v_value, 2);
+                IF v_amt <> 0 THEN
+                    PERFORM post_journal_entry(
+                        CURRENT_DATE,
+                        'Write-off ' || OLD.code,
+                        'writeoff', OLD.id,
+                        jsonb_build_array(
+                            jsonb_build_object('account_code', '5200', 'side', 'debit',  'currency', 'USD', 'amount_ccy', v_amt),
+                            jsonb_build_object('account_code', v_acct, 'side', 'credit', 'currency', 'USD', 'amount_ccy', v_amt)));
+                END IF;
+            END IF;
+        END IF;
+
         NEW.remaining_qty := 0;
     END IF;
     RETURN NEW;
