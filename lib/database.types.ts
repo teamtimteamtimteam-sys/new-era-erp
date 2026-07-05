@@ -1036,6 +1036,8 @@ export type Database = {
           allocated_by: string | null
           allocation_basis: string
           allocation_snapshot: Json | null
+          capitalization_entry_id: string | null
+          capitalized_cost_usd: number | null
           code: string
           created_at: string
           created_by: string | null
@@ -1058,6 +1060,8 @@ export type Database = {
           allocated_by?: string | null
           allocation_basis?: string
           allocation_snapshot?: Json | null
+          capitalization_entry_id?: string | null
+          capitalized_cost_usd?: number | null
           code: string
           created_at?: string
           created_by?: string | null
@@ -1080,6 +1084,8 @@ export type Database = {
           allocated_by?: string | null
           allocation_basis?: string
           allocation_snapshot?: Json | null
+          capitalization_entry_id?: string | null
+          capitalized_cost_usd?: number | null
           code?: string
           created_at?: string
           created_by?: string | null
@@ -1097,11 +1103,20 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "processing_runs_capitalization_entry_id_fkey"
+            columns: ["capitalization_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sales_records: {
         Row: {
           amount_usd: number
+          cogs_entry_id: string | null
           created_at: string | null
           created_by: string | null
           currency: string
@@ -1117,6 +1132,7 @@ export type Database = {
         }
         Insert: {
           amount_usd: number
+          cogs_entry_id?: string | null
           created_at?: string | null
           created_by?: string | null
           currency: string
@@ -1132,6 +1148,7 @@ export type Database = {
         }
         Update: {
           amount_usd?: number
+          cogs_entry_id?: string | null
           created_at?: string | null
           created_by?: string | null
           currency?: string
@@ -1146,6 +1163,13 @@ export type Database = {
           unit_price?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "sales_records_cogs_entry_id_fkey"
+            columns: ["cogs_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sales_records_currency_fkey"
             columns: ["currency"]
@@ -1595,6 +1619,11 @@ export type Database = {
           p_process_date: string
         }
         Returns: string
+      }
+      fin_cost_account: { Args: { p_cost_type: string }; Returns: string }
+      fin_cost_lines: {
+        Args: { p_amount: number; p_cost_type: string; p_reverse: boolean }
+        Returns: Json
       }
       post_journal_entry: {
         Args: {

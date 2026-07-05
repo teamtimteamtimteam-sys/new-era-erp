@@ -1,0 +1,71 @@
+'use client'
+
+import { useActionState } from 'react'
+import Link from 'next/link'
+import { updateFxRate, type UpdateFxRateState } from './actions'
+import FxRateFormFields from '../../FxRateFormFields'
+import DeleteButton from './DeleteButton'
+import { useTranslations } from '@/lib/i18n/client'
+
+const initialState: UpdateFxRateState = {}
+
+type FxRate = {
+    id: string
+    currency: string
+    rate_to_usd: number
+    rate_date: string
+    notes: string | null
+}
+
+export default function EditFxRateForm({
+    rate,
+    currencies,
+}: {
+    rate: FxRate
+    currencies: string[]
+}) {
+    const t = useTranslations()
+    const updateWithId = updateFxRate.bind(null, rate.id)
+    const [state, formAction, isPending] = useActionState(updateWithId, initialState)
+
+    return (
+        <>
+            {state.error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                    {state.error}
+                </div>
+            )}
+
+            <form action={formAction} className="space-y-4">
+                <FxRateFormFields
+                    currencies={currencies}
+                    fieldErrors={state.fieldErrors}
+                    defaults={{
+                        currency: rate.currency,
+                        rate_to_usd: rate.rate_to_usd,
+                        rate_date: rate.rate_date,
+                        notes: rate.notes,
+                    }}
+                />
+
+                <div className="flex items-center gap-3 pt-4">
+                    <button
+                        type="submit"
+                        disabled={isPending}
+                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
+                    >
+                        {isPending ? t('common.saving') : t('common.save')}
+                    </button>
+                    <Link
+                        href="/finance/fx"
+                        className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"
+                    >
+                        {t('common.cancel')}
+                    </Link>
+                    <span className="flex-1" />
+                    <DeleteButton id={rate.id} />
+                </div>
+            </form>
+        </>
+    )
+}

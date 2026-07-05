@@ -24,6 +24,7 @@ const SECTIONS = [
         titleKey: 'home.sectionReports',
         cards: [
             { href: '/inventory', titleKey: 'home.inventoryTitle', descKey: 'home.inventoryDesc' },
+            { href: '/finance', titleKey: 'home.financeTitle', descKey: 'home.financeDesc' },
         ],
     },
 ]

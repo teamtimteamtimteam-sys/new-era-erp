@@ -15,6 +15,7 @@ const NAV_ITEMS = [
     { href: '/processing', key: 'nav.processing' },
     { href: '/inventory', key: 'nav.inventory' },
     { href: '/stocktakes', key: 'nav.stocktakes' },
+    { href: '/finance', key: 'nav.finance' },
     { href: '/tasks', key: 'nav.tasks' },
 ]
 
