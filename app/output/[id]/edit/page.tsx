@@ -176,6 +176,8 @@ export default async function EditOutputPage({
                     remainingQty={batch.remaining_qty}
                     unit={batch.unit}
                     state={batch.state}
+                    customers={customersRes.data ?? []}
+                    batchCustomerId={batch.customer_id}
                 />
             ) : (
                 <section className="mt-8 pt-8 border-t">

@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounts: {
+        Row: {
+          account_type: string
+          code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          account_type: string
+          code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          account_type?: string
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      currencies: {
+        Row: {
+          code: string
+          is_base: boolean
+          name: string
+        }
+        Insert: {
+          code: string
+          is_base?: boolean
+          name: string
+        }
+        Update: {
+          code?: string
+          is_base?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
       customer_attachments: {
         Row: {
           created_at: string
@@ -132,6 +192,77 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      finance_settings: {
+        Row: {
+          id: boolean
+          locked_before: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: boolean
+          locked_before?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: boolean
+          locked_before?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      fx_rates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          currency: string
+          deleted_at: string | null
+          id: string
+          notes: string | null
+          rate_date: string
+          rate_to_usd: number
+          source: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          deleted_at?: string | null
+          id?: string
+          notes?: string | null
+          rate_date: string
+          rate_to_usd: number
+          source?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          deleted_at?: string | null
+          id?: string
+          notes?: string | null
+          rate_date?: string
+          rate_to_usd?: number
+          source?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fx_rates_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       inbound_batch_metals: {
         Row: {
@@ -323,6 +454,114 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journal_entries: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          entry_date: string
+          id: string
+          memo: string | null
+          reversed_by: string | null
+          source_id: string | null
+          source_type: string | null
+          status: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          entry_date: string
+          id?: string
+          memo?: string | null
+          reversed_by?: string | null
+          source_id?: string | null
+          source_type?: string | null
+          status?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          entry_date?: string
+          id?: string
+          memo?: string | null
+          reversed_by?: string | null
+          source_id?: string | null
+          source_type?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_entries_reversed_by_fkey"
+            columns: ["reversed_by"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journal_lines: {
+        Row: {
+          account_id: string
+          amount_ccy: number
+          created_at: string
+          credit: number
+          currency: string
+          debit: number
+          entry_id: string
+          fx_rate: number
+          id: string
+          line_memo: string | null
+        }
+        Insert: {
+          account_id: string
+          amount_ccy: number
+          created_at?: string
+          credit?: number
+          currency: string
+          debit?: number
+          entry_id: string
+          fx_rate: number
+          id?: string
+          line_memo?: string | null
+        }
+        Update: {
+          account_id?: string
+          amount_ccy?: number
+          created_at?: string
+          credit?: number
+          currency?: string
+          debit?: number
+          entry_id?: string
+          fx_rate?: number
+          id?: string
+          line_memo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_lines_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_lines_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "journal_lines_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
             referencedColumns: ["id"]
           },
         ]
@@ -589,6 +828,53 @@ export type Database = {
           },
         ]
       }
+      price_history: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          currency: string
+          fx_rate: number
+          id: string
+          inbound_batch_id: string
+          new_unit_price: number
+          notes: string | null
+          old_unit_price: number | null
+          original_price: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          fx_rate: number
+          id?: string
+          inbound_batch_id: string
+          new_unit_price: number
+          notes?: string | null
+          old_unit_price?: number | null
+          original_price: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          fx_rate?: number
+          id?: string
+          inbound_batch_id?: string
+          new_unit_price?: number
+          notes?: string | null
+          old_unit_price?: number | null
+          original_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_history_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       processing_cost_entries: {
         Row: {
           amount_usd: number
@@ -812,6 +1098,83 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      sales_records: {
+        Row: {
+          amount_usd: number
+          created_at: string | null
+          created_by: string | null
+          currency: string
+          customer_id: string | null
+          fx_rate: number
+          id: string
+          movement_id: string | null
+          notes: string | null
+          output_batch_id: string
+          quantity: number
+          sale_date: string
+          unit_price: number
+        }
+        Insert: {
+          amount_usd: number
+          created_at?: string | null
+          created_by?: string | null
+          currency: string
+          customer_id?: string | null
+          fx_rate: number
+          id?: string
+          movement_id?: string | null
+          notes?: string | null
+          output_batch_id: string
+          quantity: number
+          sale_date: string
+          unit_price: number
+        }
+        Update: {
+          amount_usd?: number
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string
+          customer_id?: string | null
+          fx_rate?: number
+          id?: string
+          movement_id?: string | null
+          notes?: string | null
+          output_batch_id?: string
+          quantity?: number
+          sale_date?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_records_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "sales_records_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_records_movement_id_fkey"
+            columns: ["movement_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_movements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_records_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stocktake_lines: {
         Row: {
@@ -1233,19 +1596,47 @@ export type Database = {
         }
         Returns: string
       }
+      post_journal_entry: {
+        Args: {
+          p_entry_date: string
+          p_lines: Json
+          p_memo: string
+          p_source_id: string
+          p_source_type: string
+        }
+        Returns: Json
+      }
       post_stocktake: { Args: { p_stocktake_id: string }; Returns: Json }
       record_output_sale: {
         Args: {
+          p_currency: string
+          p_customer_id?: string
+          p_fx_rate?: number
           p_notes?: string
           p_output_batch_id: string
           p_quantity: number
           p_sale_date?: string
+          p_unit_price: number
         }
+        Returns: Json
+      }
+      reverse_journal_entry: {
+        Args: { p_entry_id: string; p_memo?: string; p_reversal_date: string }
         Returns: Json
       }
       rollback_processing_run: {
         Args: { p_run_id: string }
         Returns: undefined
+      }
+      set_inbound_unit_price: {
+        Args: {
+          p_currency?: string
+          p_fx_rate?: number
+          p_inbound_batch_id: string
+          p_notes?: string
+          p_unit_price: number
+        }
+        Returns: Json
       }
     }
     Enums: {

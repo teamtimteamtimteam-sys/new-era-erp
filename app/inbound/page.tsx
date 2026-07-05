@@ -65,7 +65,7 @@ export default async function InboundPage({
 
     // 1) 匹配总数(同样套用过滤 + 搜索;只 select 'id' 不带嵌入 —— 过滤都打在本表列上,无需 join)
     //    + 同时取供应商/物料下拉选项(独立查询,并行)。
-    const [{ count }, suppliersRes, materialsRes] = await Promise.all([
+    const [{ count }, suppliersRes, materialsRes, unpricedRes] = await Promise.all([
         applyInboundFilters(
             supabase.from('inbound_batches').select('id', { count: 'exact', head: true }),
             filterParams,
@@ -81,6 +81,12 @@ export default async function InboundPage({
             .select('id, name')
             .is('deleted_at', null)
             .order('name'),
+        // 未计价的在册批次数(cut 1 估值缺口提示;不做筛选入口,仅提示)
+        supabase
+            .from('inbound_batches')
+            .select('id', { count: 'exact', head: true })
+            .is('deleted_at', null)
+            .is('unit_price', null),
     ])
 
     const total = count ?? 0
@@ -201,6 +207,11 @@ export default async function InboundPage({
 
             <p className="text-sm text-gray-600 mb-4">
                 {t('inbound.recordCount', { count: total })}
+                {(unpricedRes.count ?? 0) > 0 && (
+                    <span className="ml-2 text-gray-400">
+                        {t('inbound.unpricedBadge', { n: unpricedRes.count ?? 0 })}
+                    </span>
+                )}
             </p>
 
             <table className="w-full border-collapse border border-gray-300">

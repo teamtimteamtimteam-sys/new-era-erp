@@ -50,7 +50,7 @@ export default async function InventoryPage() {
 
     const todayYmd = new Date().toISOString().slice(0, 10)
 
-    const [inboundRes, outputRes, runsRes, legsRes, metalsRes, pricesRes] = await Promise.all([
+    const [inboundRes, outputRes, runsRes, legsRes, metalsRes, pricesRes, unpricedRes] = await Promise.all([
         supabase
             .from('inbound_batches')
             .select('material_id, remaining_qty, unit, unit_price, materials ( name, category )')
@@ -79,6 +79,12 @@ export default async function InventoryPage() {
             .select('metal, price_usd_per_tonne, price_date')
             .is('deleted_at', null)
             .lte('price_date', todayYmd),
+        // 未计价的在册进料批次数(与进料列表页同口径的提示徽标)
+        supabase
+            .from('inbound_batches')
+            .select('id', { count: 'exact', head: true })
+            .is('deleted_at', null)
+            .is('unit_price', null),
     ])
 
     if (inboundRes.error || outputRes.error || runsRes.error || legsRes.error || metalsRes.error || pricesRes.error) {
@@ -245,6 +251,11 @@ export default async function InventoryPage() {
                         <span className="text-gray-600">{t('valuation.totalMarketValue')}:</span>{' '}
                         <span className="font-medium font-mono">{formatUsd(totalMarketValue)}</span>
                     </div>
+                    {(unpricedRes.count ?? 0) > 0 && (
+                        <div className="text-gray-400">
+                            {t('inbound.unpricedBadge', { n: unpricedRes.count ?? 0 })}
+                        </div>
+                    )}
                 </div>
 
                 <table className="w-full border-collapse border border-gray-300">

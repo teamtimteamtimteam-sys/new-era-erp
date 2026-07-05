@@ -182,21 +182,17 @@ export default function EditInboundForm({
                     </select>
                 </div>
 
-                {/* 单价 */}
+                {/* 单价(cut 1 起锁定 —— 变更必须走下方计价面板留痕;disabled 不随表单提交)*/}
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('inbound.form.unitPrice')}</label>
                     <input
                         type="number"
                         name="unit_price"
-                        step="any"
+                        disabled
                         defaultValue={batch.unit_price ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className="w-full border border-gray-300 px-3 py-2 rounded bg-gray-100 text-gray-500"
                     />
-                    {state.fieldErrors?.unit_price && (
-                        <p className="text-red-600 text-xs mt-1">
-                            {state.fieldErrors.unit_price}
-                        </p>
-                    )}
+                    <p className="text-xs text-gray-500 mt-1">{t('inbound.edit.priceLockedHint')}</p>
                 </div>
 
                 {/* 备注 */}

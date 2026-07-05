@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import EditInboundForm from './EditInboundForm'
+import PricingPanel, { type PriceHistoryRow } from './PricingPanel'
 import MetalContentPanel from '@/app/components/metals/MetalContentPanel'
 import type { MetalContentRow } from '@/app/components/metals/metalContentTypes'
 import { saveInboundMetal, deleteInboundMetal } from '@/app/components/metals/metalContentActions'
@@ -32,7 +33,7 @@ export default async function EditInboundPage({
     const locale = await getLocale()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
-    const [batchRes, materialsRes, suppliersRes, metalsRes, movementsRes, stocktakeRes] = await Promise.all([
+    const [batchRes, materialsRes, suppliersRes, metalsRes, movementsRes, stocktakeRes, priceHistoryRes] = await Promise.all([
         supabase
             .from('inbound_batches')
             .select('*')
@@ -67,6 +68,12 @@ export default async function EditInboundPage({
             .is('deleted_at', null)
             .order('created_at', { ascending: false })
             .limit(1),
+        // 价格历史(计价面板,cut 1)
+        supabase
+            .from('price_history')
+            .select('id, old_unit_price, new_unit_price, currency, original_price, fx_rate, notes, created_at')
+            .eq('inbound_batch_id', id)
+            .order('created_at', { ascending: false }),
     ])
 
     if (batchRes.error || !batchRes.data) {
@@ -100,6 +107,18 @@ export default async function EditInboundPage({
             .maybeSingle()
         stocktakeCounted = countLine?.counted_qty ?? null
     }
+
+    // 价格历史行:服务端预格式化 created_at
+    const priceHistoryRows: PriceHistoryRow[] = (priceHistoryRes.data ?? []).map((h) => ({
+        id: h.id,
+        old_unit_price: h.old_unit_price,
+        new_unit_price: h.new_unit_price,
+        currency: h.currency,
+        original_price: h.original_price,
+        fx_rate: h.fx_rate,
+        notes: h.notes,
+        created_at_display: new Date(h.created_at).toLocaleString(dateLocale),
+    }))
 
     // 金属含量行:服务端预格式化 updated_at,避免客户端水合不一致
     const metalRows: MetalContentRow[] = (metalsRes.data ?? []).map((m) => ({
@@ -161,6 +180,12 @@ export default async function EditInboundPage({
                 batch={batch}
                 materials={materialsRes.data ?? []}
                 suppliers={suppliersRes.data ?? []}
+            />
+
+            <PricingPanel
+                batchId={batch.id}
+                unitPrice={batch.unit_price}
+                history={priceHistoryRows}
             />
 
             <MetalContentPanel

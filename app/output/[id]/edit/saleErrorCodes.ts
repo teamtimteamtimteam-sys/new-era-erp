@@ -4,6 +4,8 @@ import { getTranslations } from '@/lib/i18n/server'
 // 镜像 app/processing/errorCodes.ts 的 CODE|params 宽松解析。
 const SALE_ERROR_CODES = new Set([
     'OUTPUT_NOT_FOUND', 'OUTPUT_DELETED', 'SALE_QTY_INVALID', 'SALE_EXCEEDS_REMAINING',
+    // cut 1 — 销售必须带价
+    'SALE_PRICE_INVALID', 'CURRENCY_INVALID', 'FX_RATE_REQUIRED',
 ])
 
 const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/
