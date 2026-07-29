@@ -1,11 +1,14 @@
 import { getTranslations } from '@/lib/i18n/server'
 
-// post_journal_entry / reverse_journal_entry 抛出的错误码(端口自 processing/errorCodes.ts)。
+// post_journal_entry / reverse_journal_entry / close_period / reopen_period
+// 抛出的错误码(端口自 processing/errorCodes.ts)。
 // 不在此集合内的,是真正的(未编码的)DB/约束错误,原样返回。
 const FINANCE_ERROR_CODES = new Set([
     'JE_NOT_FOUND', 'JE_ALREADY_REVERSED', 'PERIOD_LOCKED',
     'ACCOUNT_NOT_FOUND', 'ACCOUNT_INACTIVE', 'FX_RATE_REQUIRED',
     'JOURNAL_UNBALANCED',
+    'NOT_MONTH_END', 'ALREADY_CLOSED', 'TRIAL_BALANCE_UNBALANCED',
+    'CLOSE_NOT_FOUND', 'ALREADY_REOPENED', 'REASON_REQUIRED',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..." —— 即使 PostgREST 在前面包了前缀,

@@ -1,6 +1,7 @@
 // app/finance/settings/page.tsx
 // 财务设置:期间锁(locked_before)。早于锁定日的分录会被拒绝 —— 会产生
 // 此类分录的业务操作(计价/销售/过账盘点等)也会被一并阻止。
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../Subnav'
@@ -46,6 +47,13 @@ export default async function FinanceSettingsPage() {
             </div>
 
             <LockForm lockedBefore={lockedBefore} />
+
+            {/* 手动锁是覆盖手段;正常关账走月结页 */}
+            <p className="text-sm text-gray-500 mt-4">
+                <Link href="/finance/close" className="text-blue-600 hover:underline">
+                    {t('finance.useClosePage')}
+                </Link>
+            </p>
 
             <p className="text-sm text-gray-500 mt-6">{t('finance.lockExplainer')}</p>
         </div>

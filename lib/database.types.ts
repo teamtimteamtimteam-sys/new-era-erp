@@ -1004,6 +1004,48 @@ export type Database = {
           },
         ]
       }
+      period_closes: {
+        Row: {
+          closed_at: string
+          closed_by: string | null
+          entries_count: number
+          id: string
+          notes: string | null
+          period_end: string
+          reopen_reason: string | null
+          reopened_at: string | null
+          reopened_by: string | null
+          total_credits: number
+          total_debits: number
+        }
+        Insert: {
+          closed_at?: string
+          closed_by?: string | null
+          entries_count: number
+          id?: string
+          notes?: string | null
+          period_end: string
+          reopen_reason?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
+          total_credits: number
+          total_debits: number
+        }
+        Update: {
+          closed_at?: string
+          closed_by?: string | null
+          entries_count?: number
+          id?: string
+          notes?: string | null
+          period_end?: string
+          reopen_reason?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
+          total_credits?: number
+          total_debits?: number
+        }
+        Relationships: []
+      }
       price_history: {
         Row: {
           created_at: string
@@ -1853,6 +1895,10 @@ export type Database = {
         Returns: Json
       }
       cancel_stocktake: { Args: { p_stocktake_id: string }; Returns: undefined }
+      close_period: {
+        Args: { p_notes?: string; p_period_end: string }
+        Returns: Json
+      }
       commit_processing_run: {
         Args: {
           p_inputs: Json
@@ -1908,6 +1954,10 @@ export type Database = {
           p_notes?: string
           p_payment_date?: string
         }
+        Returns: Json
+      }
+      reopen_period: {
+        Args: { p_period_end: string; p_reason: string }
         Returns: Json
       }
       reverse_journal_entry: {
