@@ -1,0 +1,33 @@
+import { getTranslations } from '@/lib/i18n/server'
+
+// record_payment / reverse_payment 抛出的错误码(端口自 financeErrorCodes.ts)。
+// FX_RATE_REQUIRED / PERIOD_LOCKED 复用 finance.errors 里已有的文案。
+// 不在此集合内的,是真正的(未编码的)DB/约束错误,原样返回。
+const PAYMENT_ERROR_CODES = new Set([
+    'DIRECTION_INVALID', 'COUNTERPARTY_NOT_FOUND', 'AMOUNT_INVALID',
+    'FX_RATE_REQUIRED', 'BANK_INVALID',
+    'ALLOC_WRONG_SIDE', 'ALLOC_WRONG_PARTY', 'ALLOC_UNPRICED',
+    'ALLOC_EXCEEDS', 'ALLOC_EXCEEDS_PAYMENT', 'PERIOD_LOCKED',
+])
+
+// 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..."(同 localizeFinanceError)。
+const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/
+
+export async function localizePaymentError(message: string): Promise<string> {
+    const raw = (message ?? '').trim()
+    const match = raw.match(CODE_RE)
+
+    if (!match || !PAYMENT_ERROR_CODES.has(match[1])) {
+        return raw // genuine non-coded DB error → surface verbatim
+    }
+
+    const code = match[1]
+    const params: Record<string, string> = {}
+    if (match[2]) {
+        match[2].split('|').forEach((v, i) => {
+            params[String(i)] = v // '0' -> first param, '1' -> second, ...
+        })
+    }
+
+    return (await getTranslations())('finance.errors.' + code, params)
+}

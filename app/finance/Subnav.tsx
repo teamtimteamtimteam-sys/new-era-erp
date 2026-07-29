@@ -1,7 +1,7 @@
 'use client'
 
 // app/finance/Subnav.tsx
-// 财务模块内部子导航(试算平衡 / 分录 / 手工分录 / 设置 / 汇率),
+// 财务模块内部子导航(试算平衡 / 分录 / 手工分录 / 应收 / 应付 / 收付款 / 设置 / 汇率),
 // 样式端口自 NavLinks,活动态按最长前缀匹配(/finance/journal/new 亮 newEntry 而非 journal)。
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -10,6 +10,9 @@ import { useTranslations } from '@/lib/i18n/client'
 const ITEMS = [
     { href: '/finance/journal/new', key: 'finance.subnav.newEntry' },
     { href: '/finance/journal', key: 'finance.subnav.journal' },
+    { href: '/finance/receivables', key: 'finance.subnav.receivables' },
+    { href: '/finance/payables', key: 'finance.subnav.payables' },
+    { href: '/finance/payments', key: 'finance.subnav.payments' },
     { href: '/finance/settings', key: 'finance.subnav.settings' },
     { href: '/finance/fx', key: 'finance.subnav.fx' },
 ]
@@ -23,11 +26,14 @@ export default function Subnav() {
         ITEMS.find((i) => pathname === i.href || pathname.startsWith(i.href + '/'))?.href ??
         '/finance'
 
-    // 展示顺序:试算平衡 / 分录 / 手工分录 / 设置 / 汇率
+    // 展示顺序:试算平衡 / 分录 / 手工分录 / 应收 / 应付 / 收付款 / 设置 / 汇率
     const ordered = [
         { href: '/finance', key: 'finance.trialBalance' },
         { href: '/finance/journal', key: 'finance.subnav.journal' },
         { href: '/finance/journal/new', key: 'finance.subnav.newEntry' },
+        { href: '/finance/receivables', key: 'finance.subnav.receivables' },
+        { href: '/finance/payables', key: 'finance.subnav.payables' },
+        { href: '/finance/payments', key: 'finance.subnav.payments' },
         { href: '/finance/settings', key: 'finance.subnav.settings' },
         { href: '/finance/fx', key: 'finance.subnav.fx' },
     ]

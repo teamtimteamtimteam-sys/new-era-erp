@@ -297,6 +297,13 @@ export type Database = {
             foreignKeyName: "inbound_batch_metals_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "ap_open_items"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_metals_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -421,6 +428,13 @@ export type Database = {
           run_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "inventory_movements_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "ap_open_items"
+            referencedColumns: ["inbound_batch_id"]
+          },
           {
             foreignKeyName: "inventory_movements_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
@@ -828,6 +842,168 @@ export type Database = {
           },
         ]
       }
+      payment_allocations: {
+        Row: {
+          allocated_usd: number
+          created_at: string | null
+          id: string
+          inbound_batch_id: string | null
+          payment_id: string
+          sales_record_id: string | null
+        }
+        Insert: {
+          allocated_usd: number
+          created_at?: string | null
+          id?: string
+          inbound_batch_id?: string | null
+          payment_id: string
+          sales_record_id?: string | null
+        }
+        Update: {
+          allocated_usd?: number
+          created_at?: string | null
+          id?: string
+          inbound_batch_id?: string | null
+          payment_id?: string
+          sales_record_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_allocations_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "ap_open_items"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_sales_record_id_fkey"
+            columns: ["sales_record_id"]
+            isOneToOne: false
+            referencedRelation: "ar_open_items"
+            referencedColumns: ["sales_record_id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_sales_record_id_fkey"
+            columns: ["sales_record_id"]
+            isOneToOne: false
+            referencedRelation: "sales_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount_ccy: number
+          amount_usd: number
+          bank_account_code: string
+          code: string
+          counterparty_type: string
+          created_at: string | null
+          created_by: string | null
+          currency: string
+          customer_id: string | null
+          direction: string
+          fx_rate: number
+          id: string
+          journal_entry_id: string | null
+          notes: string | null
+          payment_date: string
+          reversed_by_payment: string | null
+          status: string
+          supplier_id: string | null
+        }
+        Insert: {
+          amount_ccy: number
+          amount_usd: number
+          bank_account_code: string
+          code: string
+          counterparty_type: string
+          created_at?: string | null
+          created_by?: string | null
+          currency: string
+          customer_id?: string | null
+          direction: string
+          fx_rate: number
+          id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          payment_date: string
+          reversed_by_payment?: string | null
+          status?: string
+          supplier_id?: string | null
+        }
+        Update: {
+          amount_ccy?: number
+          amount_usd?: number
+          bank_account_code?: string
+          code?: string
+          counterparty_type?: string
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string
+          customer_id?: string | null
+          direction?: string
+          fx_rate?: number
+          id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          payment_date?: string
+          reversed_by_payment?: string | null
+          status?: string
+          supplier_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "payments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_reversed_by_payment_fkey"
+            columns: ["reversed_by_payment"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       price_history: {
         Row: {
           created_at: string
@@ -866,6 +1042,13 @@ export type Database = {
           original_price?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "price_history_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "ap_open_items"
+            referencedColumns: ["inbound_batch_id"]
+          },
           {
             foreignKeyName: "price_history_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
@@ -955,6 +1138,13 @@ export type Database = {
           run_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "processing_inputs_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "ap_open_items"
+            referencedColumns: ["inbound_batch_id"]
+          },
           {
             foreignKeyName: "processing_inputs_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
@@ -1235,6 +1425,13 @@ export type Database = {
           stocktake_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "stocktake_lines_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "ap_open_items"
+            referencedColumns: ["inbound_batch_id"]
+          },
           {
             foreignKeyName: "stocktake_lines_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
@@ -1591,6 +1788,52 @@ export type Database = {
       }
     }
     Views: {
+      ap_open_items: {
+        Row: {
+          amount_usd: number | null
+          bucket: string | null
+          days_outstanding: number | null
+          doc_code: string | null
+          doc_date: string | null
+          inbound_batch_id: string | null
+          open_usd: number | null
+          settled_usd: number | null
+          supplier_id: string | null
+          supplier_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_batches_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ar_open_items: {
+        Row: {
+          amount_usd: number | null
+          bucket: string | null
+          customer_id: string | null
+          customer_name: string | null
+          days_outstanding: number | null
+          doc_code: string | null
+          open_usd: number | null
+          sale_date: string | null
+          sales_record_id: string | null
+          settled_usd: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_records_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       processing_metal_recovery: {
         Row: {
           input_metal_kg: number | null
@@ -1625,6 +1868,10 @@ export type Database = {
         Args: { p_amount: number; p_cost_type: string; p_reverse: boolean }
         Returns: Json
       }
+      fin_next_payment_code: {
+        Args: { p_date: string; p_prefix: string }
+        Returns: string
+      }
       post_journal_entry: {
         Args: {
           p_entry_date: string
@@ -1649,8 +1896,26 @@ export type Database = {
         }
         Returns: Json
       }
+      record_payment: {
+        Args: {
+          p_allocations?: Json
+          p_amount: number
+          p_bank_account?: string
+          p_counterparty_id: string
+          p_currency: string
+          p_direction: string
+          p_fx_rate?: number
+          p_notes?: string
+          p_payment_date?: string
+        }
+        Returns: Json
+      }
       reverse_journal_entry: {
         Args: { p_entry_id: string; p_memo?: string; p_reversal_date: string }
+        Returns: Json
+      }
+      reverse_payment: {
+        Args: { p_memo?: string; p_payment_id: string }
         Returns: Json
       }
       rollback_processing_run: {
