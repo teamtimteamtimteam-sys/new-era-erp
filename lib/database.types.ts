@@ -351,6 +351,7 @@ export type Database = {
           legal_name: string
           notes: string | null
           payment_terms: string | null
+          payment_terms_days: number | null
           short_name: string | null
           status: string
           tax_id: string | null
@@ -371,6 +372,7 @@ export type Database = {
           legal_name: string
           notes?: string | null
           payment_terms?: string | null
+          payment_terms_days?: number | null
           short_name?: string | null
           status?: string
           tax_id?: string | null
@@ -391,6 +393,7 @@ export type Database = {
           legal_name?: string
           notes?: string | null
           payment_terms?: string | null
+          payment_terms_days?: number | null
           short_name?: string | null
           status?: string
           tax_id?: string | null
@@ -607,18 +610,27 @@ export type Database = {
       }
       finance_settings: {
         Row: {
+          gst_rate_pct: number
+          gst_registered: boolean
+          gst_registration_no: string | null
           id: boolean
           locked_before: string | null
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          gst_rate_pct?: number
+          gst_registered?: boolean
+          gst_registration_no?: string | null
           id?: boolean
           locked_before?: string | null
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          gst_rate_pct?: number
+          gst_registered?: boolean
+          gst_registration_no?: string | null
           id?: boolean
           locked_before?: string | null
           updated_at?: string
@@ -866,6 +878,168 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_lines: {
+        Row: {
+          amount_usd: number
+          created_at: string | null
+          description: string
+          id: string
+          invoice_id: string
+          invoice_voided: boolean
+          line_no: number
+          quantity: number
+          sales_record_id: string
+          unit: string
+          unit_price: number
+        }
+        Insert: {
+          amount_usd: number
+          created_at?: string | null
+          description: string
+          id?: string
+          invoice_id: string
+          invoice_voided?: boolean
+          line_no: number
+          quantity: number
+          sales_record_id: string
+          unit: string
+          unit_price: number
+        }
+        Update: {
+          amount_usd?: number
+          created_at?: string | null
+          description?: string
+          id?: string
+          invoice_id?: string
+          invoice_voided?: boolean
+          line_no?: number
+          quantity?: number
+          sales_record_id?: string
+          unit?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_lines_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "ar_open_items"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_status"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_sales_record_id_fkey"
+            columns: ["sales_record_id"]
+            isOneToOne: false
+            referencedRelation: "ar_open_items"
+            referencedColumns: ["sales_record_id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_sales_record_id_fkey"
+            columns: ["sales_record_id"]
+            isOneToOne: false
+            referencedRelation: "sales_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          bill_to_snapshot: Json
+          code: string
+          created_at: string | null
+          created_by: string | null
+          currency: string
+          customer_id: string
+          due_date: string
+          id: string
+          issue_date: string
+          notes: string | null
+          payment_terms_days: number
+          status: string
+          subtotal_usd: number
+          tax_rate_pct: number
+          tax_usd: number
+          terms_text: string | null
+          total_usd: number
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          bill_to_snapshot: Json
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          currency: string
+          customer_id: string
+          due_date: string
+          id?: string
+          issue_date: string
+          notes?: string | null
+          payment_terms_days: number
+          status?: string
+          subtotal_usd: number
+          tax_rate_pct?: number
+          tax_usd?: number
+          terms_text?: string | null
+          total_usd: number
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          bill_to_snapshot?: Json
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string
+          customer_id?: string
+          due_date?: string
+          id?: string
+          issue_date?: string
+          notes?: string | null
+          payment_terms_days?: number
+          status?: string
+          subtotal_usd?: number
+          tax_rate_pct?: number
+          tax_usd?: number
+          terms_text?: string | null
+          total_usd?: number
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
             referencedColumns: ["id"]
           },
         ]
@@ -2383,6 +2557,8 @@ export type Database = {
           customer_name: string | null
           days_outstanding: number | null
           doc_code: string | null
+          invoice_code: string | null
+          invoice_id: string | null
           open_usd: number | null
           sale_date: string | null
           sales_record_id: string | null
@@ -2438,6 +2614,39 @@ export type Database = {
           },
         ]
       }
+      invoice_status: {
+        Row: {
+          code: string | null
+          currency: string | null
+          customer_id: string | null
+          customer_name: string | null
+          days_overdue: number | null
+          due_date: string | null
+          invoice_id: string | null
+          issue_date: string | null
+          open_usd: number | null
+          overdue: boolean | null
+          payment_state: string | null
+          settled_usd: number | null
+          total_usd: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       processing_metal_recovery: {
         Row: {
           input_metal_kg: number | null
@@ -2483,6 +2692,17 @@ export type Database = {
           p_process_date: string
         }
         Returns: string
+      }
+      create_invoice: {
+        Args: {
+          p_customer_id: string
+          p_issue_date?: string
+          p_notes?: string
+          p_payment_terms_days?: number
+          p_sales_record_ids: string[]
+          p_terms_text?: string
+        }
+        Returns: Json
       }
       fin_cost_account: { Args: { p_cost_type: string }; Returns: string }
       fin_cost_lines: {
@@ -2612,6 +2832,10 @@ export type Database = {
       }
       upsert_metal_prices: {
         Args: { p_price_date: string; p_prices: Json }
+        Returns: Json
+      }
+      void_invoice: {
+        Args: { p_invoice_id: string; p_reason: string }
         Returns: Json
       }
     }
