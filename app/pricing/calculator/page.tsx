@@ -1,0 +1,67 @@
+// app/pricing/calculator/page.tsx
+// 计价器(服务端壳):取启用中的公式;支持 ?formula=&quantity=&ni=&co=… 预填,
+// 这样批次页可以带着已录的化验结果直接跳进来。
+import { createClient } from '@/lib/supabase/server'
+import { getTranslations } from '@/lib/i18n/server'
+import Subnav from '../Subnav'
+import CalculatorForm, { type FormulaOption } from './CalculatorForm'
+import { METAL_OPTIONS } from '../../metal-prices/options'
+
+function todayIso(): string {
+    return new Date().toISOString().slice(0, 10)
+}
+
+export default async function CalculatorPage({
+    searchParams,
+}: {
+    searchParams: Promise<Record<string, string | undefined>>
+}) {
+    const sp = await searchParams
+    const supabase = await createClient()
+    const t = await getTranslations()
+
+    const { data, error } = await supabase
+        .from('pricing_formulas')
+        .select('id, code, name, direction')
+        .is('deleted_at', null)
+        .eq('is_active', true)
+        .order('code')
+
+    if (error) {
+        return (
+            <div className="p-8">
+                <h1 className="text-2xl font-bold mb-4">{t('pricing.calcTitle')}</h1>
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                    <p className="font-bold">{t('finance.loadError')}</p>
+                    <pre className="text-xs mt-2">{JSON.stringify(error, null, 2)}</pre>
+                </div>
+            </div>
+        )
+    }
+
+    const formulas = (data ?? []) as FormulaOption[]
+
+    // 预填:?formula= 只在确实存在于清单里时才采纳;每个金属一个同名查询参数
+    const wanted = (sp.formula ?? '').trim()
+    const assay: Record<string, string> = {}
+    for (const opt of METAL_OPTIONS) {
+        const v = (sp[opt.value] ?? '').trim()
+        if (v) assay[opt.value] = v
+    }
+    const rawDate = (sp.date ?? '').trim()
+
+    const prefill = {
+        formulaId: formulas.some((f) => f.id === wanted) ? wanted : '',
+        quantity: (sp.quantity ?? '').trim(),
+        date: rawDate && !Number.isNaN(Date.parse(rawDate)) ? rawDate : todayIso(),
+        assay,
+    }
+
+    return (
+        <div className="p-8 max-w-5xl">
+            <h1 className="text-2xl font-bold mb-4">{t('pricing.calcTitle')}</h1>
+            <Subnav />
+            <CalculatorForm formulas={formulas} prefill={prefill} />
+        </div>
+    )
+}

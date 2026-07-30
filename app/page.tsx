@@ -8,6 +8,7 @@ const SECTIONS = [
             { href: '/suppliers', titleKey: 'home.suppliersTitle', descKey: 'home.suppliersDesc' },
             { href: '/customers', titleKey: 'home.customersTitle', descKey: 'home.customersDesc' },
             { href: '/materials', titleKey: 'home.materialsTitle', descKey: 'home.materialsDesc' },
+            { href: '/pricing', titleKey: 'home.pricingTitle', descKey: 'home.pricingDesc' },
             { href: '/metal-prices', titleKey: 'home.metalPricesTitle', descKey: 'home.metalPricesDesc' },
         ],
     },

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import EditInboundForm from './EditInboundForm'
 import PricingPanel, { type PriceHistoryRow } from './PricingPanel'
 import MetalContentPanel from '@/app/components/metals/MetalContentPanel'
+import { priceBatchHref } from '@/app/components/metals/priceBatchHref'
 import type { MetalContentRow } from '@/app/components/metals/metalContentTypes'
 import { saveInboundMetal, deleteInboundMetal } from '@/app/components/metals/metalContentActions'
 import MovementTimeline from '@/app/components/inventory/MovementTimeline'
@@ -192,6 +193,7 @@ export default async function EditInboundPage({
                 rows={metalRows}
                 saveAction={saveInboundMetal.bind(null, id)}
                 deleteAction={deleteInboundMetal.bind(null, id)}
+                priceHref={priceBatchHref(batch.quantity, metalRows)}
             />
 
             <MovementTimeline rows={movementRows} unit={batch.unit} />

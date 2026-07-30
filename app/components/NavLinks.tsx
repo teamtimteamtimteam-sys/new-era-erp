@@ -9,6 +9,8 @@ const NAV_ITEMS = [
     { href: '/suppliers', key: 'nav.suppliers' },
     { href: '/customers', key: 'nav.customers' },
     { href: '/materials', key: 'nav.materials' },
+    // 定价板块(公式 / 计价器);/metal-prices 保持原位不动,避免打断既有链接与书签
+    { href: '/pricing', key: 'nav.pricing' },
     { href: '/metal-prices', key: 'nav.metalPrices' },
     { href: '/inbound', key: 'nav.inbound' },
     { href: '/output', key: 'nav.output' },

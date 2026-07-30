@@ -120,12 +120,20 @@ export default async function MetalPricesPage({
         <div className="p-8">
             <div className="flex items-center justify-between mb-4">
                 <h1 className="text-2xl font-bold">{t('metalPrices.listTitle')}</h1>
-                <Link
-                    href="/metal-prices/new"
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
-                    {t('metalPrices.addButton')}
-                </Link>
+                <div className="flex gap-3">
+                    <Link
+                        href="/metal-prices/bulk"
+                        className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"
+                    >
+                        {t('metalPrices.bulk.entry')}
+                    </Link>
+                    <Link
+                        href="/metal-prices/new"
+                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    >
+                        {t('metalPrices.addButton')}
+                    </Link>
+                </div>
             </div>
 
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}

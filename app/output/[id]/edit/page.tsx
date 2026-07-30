@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import EditOutputForm from './EditOutputForm'
 import MetalContentPanel from '@/app/components/metals/MetalContentPanel'
+import { priceBatchHref } from '@/app/components/metals/priceBatchHref'
 import type { MetalContentRow } from '@/app/components/metals/metalContentTypes'
 import { saveOutputMetal, deleteOutputMetal } from '@/app/components/metals/metalContentActions'
 import MovementTimeline from '@/app/components/inventory/MovementTimeline'
@@ -168,6 +169,7 @@ export default async function EditOutputPage({
                 rows={metalRows}
                 saveAction={saveOutputMetal.bind(null, id)}
                 deleteAction={deleteOutputMetal.bind(null, id)}
+                priceHref={priceBatchHref(batch.quantity, metalRows)}
             />
 
             {batch.remaining_qty > 0 ? (

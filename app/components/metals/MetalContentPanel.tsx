@@ -15,10 +15,13 @@ export default function MetalContentPanel({
     rows,
     saveAction,
     deleteAction,
+    priceHref,
 }: {
     rows: MetalContentRow[]
     saveAction: (metal: string, contentPct: number) => Promise<{ error?: string }>
     deleteAction: (metal: string) => Promise<{ error?: string }>
+    // 带着本批次数量与化验结果跳计价器(新标签页);页面在有化验行时才传。
+    priceHref?: string
 }) {
     const t = useTranslations()
     const [error, setError] = useState<string | null>(null)
@@ -81,7 +84,19 @@ export default function MetalContentPanel({
 
     return (
         <section className="mt-8 pt-8 border-t">
-            <h2 className="text-xl font-bold mb-4">{t('metalContent.title')}</h2>
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">{t('metalContent.title')}</h2>
+                {priceHref && rows.length > 0 && (
+                    <a
+                        href={priceHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline text-sm"
+                    >
+                        {t('pricing.priceThisBatch')}
+                    </a>
+                )}
+            </div>
 
             {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
 
