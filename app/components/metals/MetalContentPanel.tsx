@@ -4,6 +4,7 @@
 // 所以面板本身从不接触 id。结构镜像 suppliers 的 AttachmentsPanel(mt-8 pt-8 border-t + 表格 + 录入行)。
 import { useState, useTransition } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
+import DecimalInput from '../forms/DecimalInput'
 import {
     type MetalContentRow,
     METAL_OPTIONS,
@@ -148,16 +149,12 @@ export default function MetalContentPanel({
                         </option>
                     ))}
                 </select>
-                <input
-                    type="number"
-                    // content_pct 在库里是无标度 numeric —— 微量贵金属化验值常到 3~4 位小数
-                    // (如 0.0035%),step="0.01" 会把它们挡在门外,故用 any。
-                    step="any"
-                    min="0"
-                    max="100"
+                {/* content_pct 在库里是无标度 numeric —— 微量贵金属化验值常到 3~4 位小数
+                    (如 0.0035%),用 DecimalInput 不限位数;上下限由 handleSave 校验 */}
+                <DecimalInput
                     placeholder={t('metalContent.pctPlaceholder')}
                     value={pctInput}
-                    onChange={(e) => setPctInput(e.target.value)}
+                    onChange={setPctInput}
                     className="w-32 border border-gray-300 px-3 py-2 rounded"
                 />
                 <button

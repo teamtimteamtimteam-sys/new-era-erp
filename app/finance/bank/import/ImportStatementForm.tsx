@@ -12,6 +12,7 @@ import Papa from 'papaparse'
 import { importStatement, type ImportStatementState } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount } from '@/lib/format'
+import DecimalInput, { parseDecimal } from '@/app/components/forms/DecimalInput'
 import {
     DATE_FORMATS,
     buildBankRows,
@@ -113,11 +114,11 @@ export default function ImportStatementForm({ profiles }: { profiles: ProfileOpt
     const effEnd = periodTouched ? periodEnd : dateBounds?.max ?? periodEnd
 
     // 余额早期反馈(不拦提交;DB 的 STATEMENT_NOT_BALANCED 才是权威)
-    const openingNum = Number(opening)
-    const closingNum = Number(closing)
-    const balancesEntered = !!opening && !Number.isNaN(openingNum) && !!closing && !Number.isNaN(closingNum)
-    const computed = balancesEntered ? round2(openingNum + sum) : null
-    const balanced = computed !== null && Math.round((computed - closingNum) * 100) === 0
+    const openingNum = parseDecimal(opening)
+    const closingNum = parseDecimal(closing)
+    const computed = openingNum !== null ? round2(openingNum + sum) : null
+    const balanced =
+        computed !== null && closingNum !== null && Math.round((computed - closingNum) * 100) === 0
 
     const hasErrors = parsed.errors.length > 0
     const canSubmit = parsed.rows.length > 0 && !hasErrors && !isPending
@@ -445,13 +446,13 @@ export default function ImportStatementForm({ profiles }: { profiles: ProfileOpt
                     <label className="block text-sm font-medium mb-1">
                         {t('bank.openingBalance')} <span className="text-red-600">*</span>
                     </label>
-                    <input
-                        type="number"
+                    {/* 银行余额可以是负数(透支),故 allowNegative */}
+                    <DecimalInput
                         name="opening_balance"
-                        step="any"
                         required
+                        allowNegative
                         value={opening}
-                        onChange={(e) => setOpening(e.target.value)}
+                        onChange={setOpening}
                         className="w-40 border border-gray-300 px-3 py-2 rounded"
                     />
                 </div>
@@ -459,19 +460,19 @@ export default function ImportStatementForm({ profiles }: { profiles: ProfileOpt
                     <label className="block text-sm font-medium mb-1">
                         {t('bank.enteredClosing')} <span className="text-red-600">*</span>
                     </label>
-                    <input
-                        type="number"
+                    <DecimalInput
                         name="closing_balance"
-                        step="any"
                         required
+                        allowNegative
                         value={closing}
-                        onChange={(e) => setClosing(e.target.value)}
+                        onChange={setClosing}
                         className="w-40 border border-gray-300 px-3 py-2 rounded"
                     />
                 </div>
             </div>
 
-            {computed !== null && (
+            {/* 两个余额都填了才给反馈(与改造前一致)*/}
+            {computed !== null && closingNum !== null && (
                 <p className={'text-sm ' + (balanced ? 'text-green-700' : 'text-red-600')}>
                     {balanced
                         ? `✓ ${t('bank.balanceOk')}`

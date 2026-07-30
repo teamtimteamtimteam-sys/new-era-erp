@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { createManualEntry, type CreateEntryState } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatUsd } from '@/lib/format'
+import DecimalInput from '@/app/components/forms/DecimalInput'
 
 const initialState: CreateEntryState = {}
 
@@ -177,14 +178,13 @@ export default function NewEntryForm({ accounts }: { accounts: AccountOption[] }
                             <label className="block text-sm font-medium mb-1">
                                 {t('finance.amount')} <span className="text-red-600">*</span>
                             </label>
-                            <input
-                                type="number"
+                            {/* DecimalInput 每行仍只产出一个同名字段,
+                                getAll('amount_ccy') 的按行对位不变 */}
+                            <DecimalInput
                                 name="amount_ccy"
                                 required
-                                step="any"
-                                min="0"
                                 value={r.amount}
-                                onChange={(e) => updateRow(r.key, { amount: e.target.value })}
+                                onChange={(raw) => updateRow(r.key, { amount: raw })}
                                 className="w-32 border border-gray-300 px-3 py-2 rounded"
                             />
                         </div>
@@ -193,14 +193,11 @@ export default function NewEntryForm({ accounts }: { accounts: AccountOption[] }
                                 <label className="block text-sm font-medium mb-1">
                                     {t('output.sale.fxRate')} <span className="text-red-600">*</span>
                                 </label>
-                                <input
-                                    type="number"
+                                <DecimalInput
                                     name="fx_rate"
                                     required
-                                    step="any"
-                                    min="0"
                                     value={r.fx}
-                                    onChange={(e) => updateRow(r.key, { fx: e.target.value })}
+                                    onChange={(raw) => updateRow(r.key, { fx: raw })}
                                     placeholder={t('output.sale.fxHint')}
                                     className="w-32 border border-gray-300 px-3 py-2 rounded"
                                 />

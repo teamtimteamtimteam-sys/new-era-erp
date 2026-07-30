@@ -8,6 +8,7 @@ import {
 } from './actions'
 import { UNIT_OPTIONS } from '../../materials/options'
 import { useTranslations } from '@/lib/i18n/client'
+import DecimalInput from '../../components/forms/DecimalInput'
 
 export type InboundBatchOption = {
     id: string
@@ -282,15 +283,12 @@ export default function NewProcessingForm({
                                             </option>
                                         ))}
                                     </select>
-                                    <input
-                                        type="number"
-                                        step="any"
-                                        min="0"
+                                    <DecimalInput
                                         placeholder={t('processing.form.consumeQtyPlaceholder')}
                                         value={row.quantity_consumed}
-                                        onChange={(e) =>
+                                        onChange={(raw) =>
                                             updateInputRow(row.key, {
-                                                quantity_consumed: e.target.value,
+                                                quantity_consumed: raw,
                                             })
                                         }
                                         className="w-32 border border-gray-300 px-3 py-2 rounded"
@@ -350,15 +348,10 @@ export default function NewProcessingForm({
                                     </option>
                                 ))}
                             </select>
-                            <input
-                                type="number"
-                                step="any"
-                                min="0"
+                            <DecimalInput
                                 placeholder={t('processing.form.outputQtyPlaceholder')}
                                 value={row.quantity}
-                                onChange={(e) =>
-                                    updateOutputRow(row.key, { quantity: e.target.value })
-                                }
+                                onChange={(raw) => updateOutputRow(row.key, { quantity: raw })}
                                 className="w-28 border border-gray-300 px-3 py-2 rounded"
                             />
                             <select
@@ -407,11 +400,13 @@ export default function NewProcessingForm({
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="text-sm text-gray-600">{t('processing.form.lossLabel')}</span>
-                            <input
-                                type="number"
-                                step="any"
+                            {/* 自动损耗可能为负(产出大于投入),显示的就是它 ——
+                                故允许负号,否则用户没法编辑一个负值;
+                                负数的手工覆盖仍由提交前的 lossInvalidClient 拦下 */}
+                            <DecimalInput
+                                allowNegative
                                 value={displayLoss}
-                                onChange={(e) => setLossOverride(e.target.value)}
+                                onChange={setLossOverride}
                                 className="w-28 border border-gray-300 px-2 py-1 rounded text-sm"
                             />
                             {lossOverride !== '' && (

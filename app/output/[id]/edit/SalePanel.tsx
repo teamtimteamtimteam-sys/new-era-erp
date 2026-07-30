@@ -8,6 +8,7 @@ import { recordSale, type SaleState } from './saleActions'
 import { STATE_OPTIONS, labelKeyForValue } from '../../../inbound/options'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatUsd } from '@/lib/format'
+import DecimalInput from '@/app/components/forms/DecimalInput'
 
 const initialState: SaleState = {}
 
@@ -99,14 +100,11 @@ export default function SalePanel({
                         <label className="block text-sm font-medium mb-1">
                             {t('output.sale.quantity')} <span className="text-red-600">*</span>
                         </label>
-                        <input
-                            type="number"
+                        <DecimalInput
                             name="quantity"
-                            step="any"
-                            min="0"
                             required
                             value={quantity}
-                            onChange={(e) => setQuantity(e.target.value)}
+                            onChange={setQuantity}
                             className="w-32 border border-gray-300 px-3 py-2 rounded"
                         />
                     </div>
@@ -114,14 +112,11 @@ export default function SalePanel({
                         <label className="block text-sm font-medium mb-1">
                             {t('output.sale.unitPrice')} <span className="text-red-600">*</span>
                         </label>
-                        <input
-                            type="number"
+                        <DecimalInput
                             name="unit_price"
-                            step="any"
-                            min="0"
                             required
                             value={unitPrice}
-                            onChange={(e) => setUnitPrice(e.target.value)}
+                            onChange={setUnitPrice}
                             className="w-32 border border-gray-300 px-3 py-2 rounded"
                         />
                     </div>
@@ -142,14 +137,11 @@ export default function SalePanel({
                             <label className="block text-sm font-medium mb-1">
                                 {t('output.sale.fxRate')} <span className="text-red-600">*</span>
                             </label>
-                            <input
-                                type="number"
+                            <DecimalInput
                                 name="fx_rate"
-                                step="any"
-                                min="0"
                                 required
                                 value={fxRate}
-                                onChange={(e) => setFxRate(e.target.value)}
+                                onChange={setFxRate}
                                 placeholder={t('output.sale.fxHint')}
                                 className="w-36 border border-gray-300 px-3 py-2 rounded"
                             />

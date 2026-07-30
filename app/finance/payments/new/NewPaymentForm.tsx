@@ -10,6 +10,7 @@ import Link from 'next/link'
 import { createPayment, type CreatePaymentState } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatUsd } from '@/lib/format'
+import DecimalInput from '@/app/components/forms/DecimalInput'
 
 const initialState: CreatePaymentState = {}
 
@@ -152,14 +153,11 @@ export default function NewPaymentForm({
                     <label className="block text-sm font-medium mb-1">
                         {t('finance.amount')} <span className="text-red-600">*</span>
                     </label>
-                    <input
-                        type="number"
+                    <DecimalInput
                         name="amount"
                         required
-                        step="any"
-                        min="0"
                         value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
+                        onChange={setAmount}
                         className="w-36 border border-gray-300 px-3 py-2 rounded"
                     />
                 </div>
@@ -182,14 +180,11 @@ export default function NewPaymentForm({
                         <label className="block text-sm font-medium mb-1">
                             {t('output.sale.fxRate')} <span className="text-red-600">*</span>
                         </label>
-                        <input
-                            type="number"
+                        <DecimalInput
                             name="fx_rate"
                             required
-                            step="any"
-                            min="0"
                             value={fx}
-                            onChange={(e) => setFx(e.target.value)}
+                            onChange={setFx}
                             placeholder={t('output.sale.fxHint')}
                             className="w-32 border border-gray-300 px-3 py-2 rounded"
                         />
@@ -263,15 +258,13 @@ export default function NewPaymentForm({
                                     <td className="border border-gray-300 px-4 py-2">
                                         <input type="hidden" name="alloc_id" value={i.doc_id} />
                                         <input type="hidden" name="alloc_kind" value={i.doc_kind} />
-                                        <input
-                                            type="number"
+                                        {/* 上限不再由 max 属性约束(text 输入无此语义);
+                                            超额由 DB 的 ALLOC_EXCEEDS 拦下,口径不变 */}
+                                        <DecimalInput
                                             name="alloc_amount"
-                                            step="any"
-                                            min="0"
-                                            max={i.open_usd}
                                             value={alloc[i.doc_id] ?? ''}
-                                            onChange={(e) =>
-                                                setAlloc((a) => ({ ...a, [i.doc_id]: e.target.value }))
+                                            onChange={(raw) =>
+                                                setAlloc((a) => ({ ...a, [i.doc_id]: raw }))
                                             }
                                             className="w-32 border border-gray-300 px-3 py-2 rounded"
                                         />

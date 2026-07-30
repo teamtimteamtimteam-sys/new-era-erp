@@ -10,6 +10,7 @@ import Link from 'next/link'
 import { createExpense, type CreateExpenseState } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatUsd } from '@/lib/format'
+import DecimalInput from '@/app/components/forms/DecimalInput'
 
 const initialState: CreateExpenseState = {}
 
@@ -112,14 +113,11 @@ export default function NewExpenseForm({
                     <label className="block text-sm font-medium mb-1">
                         {t('expense.form.amount')} <span className="text-red-600">*</span>
                     </label>
-                    <input
-                        type="number"
+                    <DecimalInput
                         name="amount"
                         required
-                        step="any"
-                        min="0"
                         value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
+                        onChange={setAmount}
                         className="w-36 border border-gray-300 px-3 py-2 rounded"
                     />
                 </div>
@@ -142,14 +140,11 @@ export default function NewExpenseForm({
                         <label className="block text-sm font-medium mb-1">
                             {t('expense.form.fxRate')} <span className="text-red-600">*</span>
                         </label>
-                        <input
-                            type="number"
+                        <DecimalInput
                             name="fx_rate"
                             required
-                            step="any"
-                            min="0"
                             value={fx}
-                            onChange={(e) => setFx(e.target.value)}
+                            onChange={setFx}
                             placeholder={t('output.sale.fxHint')}
                             className="w-32 border border-gray-300 px-3 py-2 rounded"
                         />
