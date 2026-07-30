@@ -11,6 +11,18 @@ export function formatUsd(n: number | null | undefined): string {
     }).format(n)
 }
 
+// formatAmount:带币种代码的金额(如 "1,234.56 SGD")。formatUsd 是【USD 专用】
+// (不带符号,靠列头标注),但银行对账里 SGD 账户的金额绝不能被当成 USD 展示 ——
+// 凡是币种随数据变化的地方用这个。null/undefined 返回 '—'。
+export function formatAmount(n: number | null | undefined, ccy: string | null | undefined): string {
+    if (n === null || n === undefined) return '—'
+    const num = new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(n)
+    return ccy ? `${num} ${ccy}` : num
+}
+
 // formatUnitCost:单位成本(USD/kg),4 位小数(与 DB 存储精度一致);null/undefined 返回空串。
 // 展示端自行补 " /kg" 后缀,null 时展示 "—"。
 export function formatUnitCost(n: number | null | undefined): string {
