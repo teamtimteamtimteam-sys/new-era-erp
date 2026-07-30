@@ -116,6 +116,7 @@ export default function EditOutputForm({
                     <input
                         type="number"
                         name="quantity"
+                        step="any"
                         disabled
                         defaultValue={batch.quantity}
                         className="w-full border border-gray-300 px-3 py-2 rounded bg-gray-100 text-gray-500"

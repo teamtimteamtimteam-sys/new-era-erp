@@ -124,6 +124,7 @@ export default function EditInboundForm({
                     <input
                         type="number"
                         name="quantity"
+                        step="any"
                         disabled
                         defaultValue={batch.quantity}
                         className="w-full border border-gray-300 px-3 py-2 rounded bg-gray-100 text-gray-500"
@@ -188,6 +189,7 @@ export default function EditInboundForm({
                     <input
                         type="number"
                         name="unit_price"
+                        step="any"
                         disabled
                         defaultValue={batch.unit_price ?? ''}
                         className="w-full border border-gray-300 px-3 py-2 rounded bg-gray-100 text-gray-500"

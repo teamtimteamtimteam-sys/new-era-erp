@@ -150,7 +150,9 @@ export default function MetalContentPanel({
                 </select>
                 <input
                     type="number"
-                    step="0.01"
+                    // content_pct 在库里是无标度 numeric —— 微量贵金属化验值常到 3~4 位小数
+                    // (如 0.0035%),step="0.01" 会把它们挡在门外,故用 any。
+                    step="any"
                     min="0"
                     max="100"
                     placeholder={t('metalContent.pctPlaceholder')}
