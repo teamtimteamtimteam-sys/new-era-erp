@@ -53,6 +53,14 @@ export default async function InvoiceDetailPage({
         notFound()
     }
 
+    // 公司抬头是否已填 —— 没填就不能出 PDF,页面上先给出提示
+    const { data: company } = await supabase
+        .from('company_profile')
+        .select('legal_name')
+        .limit(1)
+        .single()
+    const profileIncomplete = !company?.legal_name?.trim()
+
     const { data: lines } = await supabase
         .from('invoice_lines')
         .select('id, line_no, sales_record_id, description, quantity, unit, unit_price, amount_usd')
@@ -97,10 +105,31 @@ export default async function InvoiceDetailPage({
                     {t('invoice.detailTitle')}
                     <span className="ml-3 font-mono text-base text-gray-500">{inv.code}</span>
                 </h1>
-                {!isVoid && <VoidInvoiceControl invoiceId={inv.id} />}
+                <div className="flex items-center gap-3">
+                    {!profileIncomplete && (
+                        <a
+                            href={`/finance/invoices/${inv.id}/pdf`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="border border-gray-300 px-3 py-1 rounded hover:bg-gray-50 text-sm"
+                        >
+                            {t('invoice.downloadPdf')}
+                        </a>
+                    )}
+                    {!isVoid && <VoidInvoiceControl invoiceId={inv.id} />}
+                </div>
             </div>
 
             <Subnav />
+
+            {profileIncomplete && (
+                <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-4 text-sm">
+                    {t('invoice.profileIncomplete')}{' '}
+                    <Link href="/finance/company" className="text-blue-600 hover:underline">
+                        {t('company.title')}
+                    </Link>
+                </div>
+            )}
 
             {isVoid && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">

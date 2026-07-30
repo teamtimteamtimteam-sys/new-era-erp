@@ -19,6 +19,7 @@ const ITEMS = [
     { href: '/finance/expenses', key: 'finance.subnav.expenses' },
     { href: '/finance/close', key: 'finance.subnav.close' },
     { href: '/finance/settings', key: 'finance.subnav.settings' },
+    { href: '/finance/company', key: 'finance.subnav.company' },
     { href: '/finance/fx', key: 'finance.subnav.fx' },
     { href: '/finance/bank', key: 'finance.subnav.bank' },
 ]
@@ -46,6 +47,7 @@ export default function Subnav() {
         { href: '/finance/expenses', key: 'finance.subnav.expenses' },
         { href: '/finance/close', key: 'finance.subnav.close' },
         { href: '/finance/settings', key: 'finance.subnav.settings' },
+        { href: '/finance/company', key: 'finance.subnav.company' },
         { href: '/finance/fx', key: 'finance.subnav.fx' },
         { href: '/finance/bank', key: 'finance.subnav.bank' },
     ]

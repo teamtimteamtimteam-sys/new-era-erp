@@ -262,6 +262,72 @@ export type Database = {
           },
         ]
       }
+      company_profile: {
+        Row: {
+          address_lines: string | null
+          bank_account_name: string | null
+          bank_account_no: string | null
+          bank_address: string | null
+          bank_name: string | null
+          bank_swift: string | null
+          city: string | null
+          country: string | null
+          email: string | null
+          id: boolean
+          invoice_footer_text: string | null
+          legal_name: string
+          logo_path: string | null
+          phone: string | null
+          postal_code: string | null
+          registration_no: string | null
+          updated_at: string
+          updated_by: string | null
+          website: string | null
+        }
+        Insert: {
+          address_lines?: string | null
+          bank_account_name?: string | null
+          bank_account_no?: string | null
+          bank_address?: string | null
+          bank_name?: string | null
+          bank_swift?: string | null
+          city?: string | null
+          country?: string | null
+          email?: string | null
+          id?: boolean
+          invoice_footer_text?: string | null
+          legal_name?: string
+          logo_path?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          registration_no?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          website?: string | null
+        }
+        Update: {
+          address_lines?: string | null
+          bank_account_name?: string | null
+          bank_account_no?: string | null
+          bank_address?: string | null
+          bank_name?: string | null
+          bank_swift?: string | null
+          city?: string | null
+          country?: string | null
+          email?: string | null
+          id?: boolean
+          invoice_footer_text?: string | null
+          legal_name?: string
+          logo_path?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          registration_no?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       currencies: {
         Row: {
           code: string

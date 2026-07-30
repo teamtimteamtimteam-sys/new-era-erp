@@ -204,6 +204,7 @@ export default async function InvoicesPage({
                         <th className="border border-gray-300 px-4 py-2 text-right">{t('invoice.colSettled')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-right">{t('invoice.colOpen')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('invoice.colState')}</th>
+                        <th className="border border-gray-300 px-4 py-2 text-left" />
                     </tr>
                 </thead>
                 <tbody>
@@ -237,11 +238,21 @@ export default async function InvoicesPage({
                                 {r.open_usd === null ? '—' : formatUsd(r.open_usd)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">{statePill(r)}</td>
+                            <td className="border border-gray-300 px-4 py-2">
+                                <a
+                                    href={`/finance/invoices/${r.invoice_id}/pdf`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:underline text-sm"
+                                >
+                                    PDF
+                                </a>
+                            </td>
                         </tr>
                     ))}
                     {rows.length === 0 && (
                         <tr>
-                            <td colSpan={8} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
+                            <td colSpan={9} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
                                 {t('invoice.empty')}
                             </td>
                         </tr>
