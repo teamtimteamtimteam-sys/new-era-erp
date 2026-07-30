@@ -1515,6 +1515,119 @@ export type Database = {
           },
         ]
       }
+      pricing_formula_metals: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          formula_id: string
+          metal: string
+          payable_pct: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          formula_id: string
+          metal: string
+          payable_pct: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          formula_id?: string
+          metal?: string
+          payable_pct?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_formula_metals_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_formulas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_formulas: {
+        Row: {
+          average_days: number | null
+          code: string
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          deleted_at: string | null
+          direction: string
+          flat_discount_pct: number
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          price_basis: string
+          supplier_id: string | null
+          treatment_charge_usd_per_tonne: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          average_days?: number | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          deleted_at?: string | null
+          direction?: string
+          flat_discount_pct?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          price_basis?: string
+          supplier_id?: string | null
+          treatment_charge_usd_per_tonne?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          average_days?: number | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          deleted_at?: string | null
+          direction?: string
+          flat_discount_pct?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          price_basis?: string
+          supplier_id?: string | null
+          treatment_charge_usd_per_tonne?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_formulas_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_formulas_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       processing_cost_entries: {
         Row: {
           amount_usd: number
@@ -2347,6 +2460,15 @@ export type Database = {
         Args: { p_account_code: string }
         Returns: string
       }
+      calculate_metal_price: {
+        Args: {
+          p_formula_id: string
+          p_metals: Json
+          p_quantity_kg: number
+          p_reference_date?: string
+        }
+        Returns: Json
+      }
       cancel_stocktake: { Args: { p_stocktake_id: string }; Returns: undefined }
       close_period: {
         Args: { p_notes?: string; p_period_end: string }
@@ -2391,6 +2513,7 @@ export type Database = {
         Args: { p_journal_line_ids: string[]; p_statement_line_id: string }
         Returns: Json
       }
+      next_pricing_formula_code: { Args: { p_date?: string }; Returns: string }
       post_journal_entry: {
         Args: {
           p_entry_date: string
@@ -2486,6 +2609,10 @@ export type Database = {
       unreconcile_statement: {
         Args: { p_reason: string; p_statement_id: string }
         Returns: undefined
+      }
+      upsert_metal_prices: {
+        Args: { p_price_date: string; p_prices: Json }
+        Returns: Json
       }
     }
     Enums: {
