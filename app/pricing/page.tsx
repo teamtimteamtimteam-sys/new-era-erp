@@ -5,10 +5,12 @@ import Link from 'next/link'
 import { getTranslations } from '@/lib/i18n/server'
 import Subnav from './Subnav'
 
+// 第三张卡直指每日行情录入 —— 这是本板块最高频的动作,不该藏在"行情"卡再点一次按钮之后。
+// 行情历史退成卡片下方的一个小链接,仍是一次点击可达。
 const CARDS = [
     { href: '/pricing/formulas', titleKey: 'pricing.formulasCard', descKey: 'pricing.formulasDesc' },
     { href: '/pricing/calculator', titleKey: 'pricing.calculatorCard', descKey: 'pricing.calculatorDesc' },
-    { href: '/metal-prices', titleKey: 'pricing.pricesCard', descKey: 'pricing.pricesDesc' },
+    { href: '/metal-prices/bulk', titleKey: 'pricing.bulkCard', descKey: 'pricing.bulkDesc' },
 ]
 
 export default async function PricingHubPage() {
@@ -31,6 +33,13 @@ export default async function PricingHubPage() {
                     </Link>
                 ))}
             </div>
+
+            {/* 卡片之外的小链接:行情历史仍然一次点击可达 */}
+            <p className="mt-3 text-sm">
+                <Link href="/metal-prices" className="text-gray-500 hover:text-gray-900 hover:underline">
+                    {t('pricing.priceHistoryLink')}
+                </Link>
+            </p>
         </div>
     )
 }

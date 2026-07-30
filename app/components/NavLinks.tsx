@@ -9,9 +9,9 @@ const NAV_ITEMS = [
     { href: '/suppliers', key: 'nav.suppliers' },
     { href: '/customers', key: 'nav.customers' },
     { href: '/materials', key: 'nav.materials' },
-    // 定价板块(公式 / 计价器);/metal-prices 保持原位不动,避免打断既有链接与书签
+    // 定价板块(公式 / 计价器 / 行情)。/metal-prices 的路由仍然有效,只是不再单独占一个
+    // 顶级导航位 —— 入口收进定价首页与定价子导航,避免同一件事出现两个并列入口。
     { href: '/pricing', key: 'nav.pricing' },
-    { href: '/metal-prices', key: 'nav.metalPrices' },
     { href: '/inbound', key: 'nav.inbound' },
     { href: '/output', key: 'nav.output' },
     { href: '/processing', key: 'nav.processing' },

@@ -1251,6 +1251,9 @@ const en = {
         calculatorDesc: 'Value a batch from its assay and current metal prices',
         pricesCard: 'Metal prices',
         pricesDesc: 'Price history and daily entry',
+        bulkCard: 'Daily prices',
+        bulkDesc: "Enter today's metal prices in one go",
+        priceHistoryLink: 'Price history →',
         subnav: {
             formulas: 'Formulas',
             calculator: 'Calculator',

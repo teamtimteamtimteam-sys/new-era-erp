@@ -1252,6 +1252,9 @@ const zh = {
         calculatorDesc: '按化验结果与当前行情为批次估值',
         pricesCard: '金属行情',
         pricesDesc: '行情历史与每日录入',
+        bulkCard: '每日行情录入',
+        bulkDesc: '一次录入当天所有金属行情',
+        priceHistoryLink: '查看行情历史 →',
         subnav: {
             formulas: '公式',
             calculator: '计价器',
