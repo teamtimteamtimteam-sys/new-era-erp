@@ -1118,6 +1118,10 @@ const en = {
         settledAmount: 'Settled',
         relatedJournals: 'Related journal entries',
         backToAging: 'Back',
+        docKind: {
+            inbound: 'Inbound',
+            expense: 'Expense',
+        },
         aging: {
             b0_30: '0–30 days',
             b31_60: '31–60 days',

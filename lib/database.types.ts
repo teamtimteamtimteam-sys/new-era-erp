@@ -193,12 +193,112 @@ export type Database = {
         }
         Relationships: []
       }
+      expenses: {
+        Row: {
+          account_code: string
+          amount_ccy: number
+          amount_usd: number
+          bank_account_code: string | null
+          code: string
+          created_at: string | null
+          created_by: string | null
+          currency: string
+          expense_date: string
+          fx_rate: number
+          id: string
+          journal_entry_id: string | null
+          notes: string | null
+          payee_name: string | null
+          payment_status: string
+          reversed_by_expense: string | null
+          status: string
+          supplier_id: string | null
+        }
+        Insert: {
+          account_code: string
+          amount_ccy: number
+          amount_usd: number
+          bank_account_code?: string | null
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          currency: string
+          expense_date: string
+          fx_rate: number
+          id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          payee_name?: string | null
+          payment_status: string
+          reversed_by_expense?: string | null
+          status?: string
+          supplier_id?: string | null
+        }
+        Update: {
+          account_code?: string
+          amount_ccy?: number
+          amount_usd?: number
+          bank_account_code?: string | null
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string
+          expense_date?: string
+          fx_rate?: number
+          id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          payee_name?: string | null
+          payment_status?: string
+          reversed_by_expense?: string | null
+          status?: string
+          supplier_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_account_code_fkey"
+            columns: ["account_code"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "expenses_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "expenses_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_reversed_by_expense_fkey"
+            columns: ["reversed_by_expense"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       finance_attachments: {
         Row: {
           created_at: string
           created_by: string | null
           deleted_at: string | null
           doc_type: string | null
+          expense_id: string | null
           file_name: string
           file_path: string
           file_size: number | null
@@ -216,6 +316,7 @@ export type Database = {
           created_by?: string | null
           deleted_at?: string | null
           doc_type?: string | null
+          expense_id?: string | null
           file_name: string
           file_path: string
           file_size?: number | null
@@ -233,6 +334,7 @@ export type Database = {
           created_by?: string | null
           deleted_at?: string | null
           doc_type?: string | null
+          expense_id?: string | null
           file_name?: string
           file_path?: string
           file_size?: number | null
@@ -247,11 +349,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "finance_attachments_inbound_batch_id_fkey"
-            columns: ["inbound_batch_id"]
+            foreignKeyName: "finance_attachments_expense_id_fkey"
+            columns: ["expense_id"]
             isOneToOne: false
-            referencedRelation: "ap_open_items"
-            referencedColumns: ["inbound_batch_id"]
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "finance_attachments_inbound_batch_id_fkey"
@@ -387,13 +489,6 @@ export type Database = {
             foreignKeyName: "inbound_batch_metals_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
-            referencedRelation: "ap_open_items"
-            referencedColumns: ["inbound_batch_id"]
-          },
-          {
-            foreignKeyName: "inbound_batch_metals_inbound_batch_id_fkey"
-            columns: ["inbound_batch_id"]
-            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -518,13 +613,6 @@ export type Database = {
           run_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "inventory_movements_inbound_batch_id_fkey"
-            columns: ["inbound_batch_id"]
-            isOneToOne: false
-            referencedRelation: "ap_open_items"
-            referencedColumns: ["inbound_batch_id"]
-          },
           {
             foreignKeyName: "inventory_movements_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
@@ -936,6 +1024,7 @@ export type Database = {
         Row: {
           allocated_usd: number
           created_at: string | null
+          expense_id: string | null
           id: string
           inbound_batch_id: string | null
           payment_id: string
@@ -944,6 +1033,7 @@ export type Database = {
         Insert: {
           allocated_usd: number
           created_at?: string | null
+          expense_id?: string | null
           id?: string
           inbound_batch_id?: string | null
           payment_id: string
@@ -952,6 +1042,7 @@ export type Database = {
         Update: {
           allocated_usd?: number
           created_at?: string | null
+          expense_id?: string | null
           id?: string
           inbound_batch_id?: string | null
           payment_id?: string
@@ -959,11 +1050,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "payment_allocations_inbound_batch_id_fkey"
-            columns: ["inbound_batch_id"]
+            foreignKeyName: "payment_allocations_expense_id_fkey"
+            columns: ["expense_id"]
             isOneToOne: false
-            referencedRelation: "ap_open_items"
-            referencedColumns: ["inbound_batch_id"]
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "payment_allocations_inbound_batch_id_fkey"
@@ -1178,13 +1269,6 @@ export type Database = {
             foreignKeyName: "price_history_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
-            referencedRelation: "ap_open_items"
-            referencedColumns: ["inbound_batch_id"]
-          },
-          {
-            foreignKeyName: "price_history_inbound_batch_id_fkey"
-            columns: ["inbound_batch_id"]
-            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -1270,13 +1354,6 @@ export type Database = {
           run_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "processing_inputs_inbound_batch_id_fkey"
-            columns: ["inbound_batch_id"]
-            isOneToOne: false
-            referencedRelation: "ap_open_items"
-            referencedColumns: ["inbound_batch_id"]
-          },
           {
             foreignKeyName: "processing_inputs_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
@@ -1557,13 +1634,6 @@ export type Database = {
           stocktake_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "stocktake_lines_inbound_batch_id_fkey"
-            columns: ["inbound_batch_id"]
-            isOneToOne: false
-            referencedRelation: "ap_open_items"
-            referencedColumns: ["inbound_batch_id"]
-          },
           {
             foreignKeyName: "stocktake_lines_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
@@ -1922,26 +1992,20 @@ export type Database = {
     Views: {
       ap_open_items: {
         Row: {
-          amount_usd: number | null
           bucket: string | null
           days_outstanding: number | null
           doc_code: string | null
           doc_date: string | null
+          doc_id: string | null
+          doc_kind: string | null
+          doc_value_usd: number | null
           inbound_batch_id: string | null
           open_usd: number | null
           settled_usd: number | null
           supplier_id: string | null
           supplier_name: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "inbound_batches_supplier_id_fkey"
-            columns: ["supplier_id"]
-            isOneToOne: false
-            referencedRelation: "suppliers"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       ar_open_items: {
         Row: {
@@ -2019,6 +2083,21 @@ export type Database = {
         Returns: Json
       }
       post_stocktake: { Args: { p_stocktake_id: string }; Returns: Json }
+      record_expense: {
+        Args: {
+          p_account_code: string
+          p_amount: number
+          p_bank_account?: string
+          p_currency?: string
+          p_expense_date: string
+          p_fx_rate?: number
+          p_notes?: string
+          p_payee_name?: string
+          p_payment_status?: string
+          p_supplier_id?: string
+        }
+        Returns: Json
+      }
       record_output_sale: {
         Args: {
           p_currency: string
@@ -2048,6 +2127,10 @@ export type Database = {
       }
       reopen_period: {
         Args: { p_period_end: string; p_reason: string }
+        Returns: Json
+      }
+      reverse_expense: {
+        Args: { p_expense_id: string; p_memo?: string }
         Returns: Json
       }
       reverse_journal_entry: {

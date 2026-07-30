@@ -1,30 +1,70 @@
 -- db/views/ap_open_items.sql
--- AP 开放余额(应付账龄):每个已计价、未结清的在册进料批次一行。
--- 应付额 = 当前 quantity × unit_price(改价即改欠款);无到货日回退 created_at::date。
+-- AP 开放余额(应付账龄):补充 2a 起是两类单据的 UNION,每张未结清单据一行。
+--   * doc_kind 'inbound':已计价、在册的进料批次(规则不变);应付额 = 当前
+--     quantity × unit_price(改价即改欠款);无到货日回退 created_at::date。
+--   * doc_kind 'expense':挂账(unpaid)、posted 的开支单;应付额 = amount_usd;
+--     排除镜像行(被别的开支单指为 reversed_by_expense —— 它只是冲销的记录凭证,
+--     不是新的应付单据),已冲销(reversed)的开支自然被 status 条件排除。
+-- inbound_batch_id 列保留(expense 行为 NULL)—— 兼容按批次取行的旧调用方。
 -- 结清额只计 status='posted' 付款单的核销行。SECURITY INVOKER。
--- NOTE: introduced by db/migrations/2026-07-06-phase3-cut3a-payments.sql.
+-- NOTE: reworked by db/migrations/2026-07-30-phase3-s2a-expenses.sql
+-- (introduced by db/migrations/2026-07-06-phase3-cut3a-payments.sql).
+-- 列集变了 → 重建时先 DROP VIEW 再 CREATE(CREATE OR REPLACE 改不了列)。
 
 CREATE OR REPLACE VIEW public.ap_open_items
 WITH (security_invoker = on) AS
- SELECT ib.id AS inbound_batch_id,
-    ib.code AS doc_code,
-    ib.supplier_id,
-    sup.legal_name AS supplier_name,
-    COALESCE(ib.arrival_date, ib.created_at::date) AS doc_date,
-    round(ib.quantity * ib.unit_price, 2) AS amount_usd,
-    round(COALESCE(s.settled, 0::numeric), 2) AS settled_usd,
-    round(round(ib.quantity * ib.unit_price, 2) - COALESCE(s.settled, 0::numeric), 2) AS open_usd,
-    CURRENT_DATE - COALESCE(ib.arrival_date, ib.created_at::date) AS days_outstanding,
+ SELECT doc_kind,
+    doc_id,
+    doc_code,
+    inbound_batch_id,
+    supplier_id,
+    supplier_name,
+    doc_date,
+    doc_value_usd,
+    settled_usd,
+    open_usd,
+    CURRENT_DATE - doc_date AS days_outstanding,
         CASE
-            WHEN (CURRENT_DATE - COALESCE(ib.arrival_date, ib.created_at::date)) <= 30 THEN 'b0_30'::text
-            WHEN (CURRENT_DATE - COALESCE(ib.arrival_date, ib.created_at::date)) <= 60 THEN 'b31_60'::text
-            WHEN (CURRENT_DATE - COALESCE(ib.arrival_date, ib.created_at::date)) <= 90 THEN 'b61_90'::text
+            WHEN (CURRENT_DATE - doc_date) <= 30 THEN 'b0_30'::text
+            WHEN (CURRENT_DATE - doc_date) <= 60 THEN 'b31_60'::text
+            WHEN (CURRENT_DATE - doc_date) <= 90 THEN 'b61_90'::text
             ELSE 'b90_plus'::text
         END AS bucket
-   FROM inbound_batches ib
-     JOIN suppliers sup ON sup.id = ib.supplier_id
-     LEFT JOIN LATERAL ( SELECT sum(pa.allocated_usd) AS settled
-           FROM payment_allocations pa
-             JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'::text
-          WHERE pa.inbound_batch_id = ib.id) s ON true
-  WHERE ib.deleted_at IS NULL AND ib.unit_price IS NOT NULL AND round(round(ib.quantity * ib.unit_price, 2) - COALESCE(s.settled, 0::numeric), 2) > 0::numeric;
+   FROM ( SELECT 'inbound'::text AS doc_kind,
+            ib.id AS doc_id,
+            ib.code AS doc_code,
+            ib.id AS inbound_batch_id,
+            ib.supplier_id,
+            sup.legal_name AS supplier_name,
+            COALESCE(ib.arrival_date, ib.created_at::date) AS doc_date,
+            round(ib.quantity * ib.unit_price, 2) AS doc_value_usd,
+            round(COALESCE(s.settled, 0::numeric), 2) AS settled_usd,
+            round(round(ib.quantity * ib.unit_price, 2) - COALESCE(s.settled, 0::numeric), 2) AS open_usd
+           FROM inbound_batches ib
+             JOIN suppliers sup ON sup.id = ib.supplier_id
+             LEFT JOIN LATERAL ( SELECT sum(pa.allocated_usd) AS settled
+                   FROM payment_allocations pa
+                     JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'::text
+                  WHERE pa.inbound_batch_id = ib.id) s ON true
+          WHERE ib.deleted_at IS NULL AND ib.unit_price IS NOT NULL
+        UNION ALL
+         SELECT 'expense'::text AS doc_kind,
+            e.id AS doc_id,
+            e.code AS doc_code,
+            NULL::uuid AS inbound_batch_id,
+            e.supplier_id,
+            sup.legal_name AS supplier_name,
+            e.expense_date AS doc_date,
+            e.amount_usd AS doc_value_usd,
+            round(COALESCE(s.settled, 0::numeric), 2) AS settled_usd,
+            round(e.amount_usd - COALESCE(s.settled, 0::numeric), 2) AS open_usd
+           FROM expenses e
+             JOIN suppliers sup ON sup.id = e.supplier_id
+             LEFT JOIN LATERAL ( SELECT sum(pa.allocated_usd) AS settled
+                   FROM payment_allocations pa
+                     JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'::text
+                  WHERE pa.expense_id = e.id) s ON true
+          WHERE e.payment_status = 'unpaid'::text AND e.status = 'posted'::text AND NOT (EXISTS ( SELECT 1
+                   FROM expenses o
+                  WHERE o.reversed_by_expense = e.id))) d
+  WHERE open_usd > 0::numeric;

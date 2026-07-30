@@ -1119,6 +1119,10 @@ const zh = {
         settledAmount: '已结',
         relatedJournals: '关联分录',
         backToAging: '返回',
+        docKind: {
+            inbound: '进料',
+            expense: '开支',
+        },
         aging: {
             b0_30: '0–30 天',
             b31_60: '31–60 天',

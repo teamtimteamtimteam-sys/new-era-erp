@@ -1,7 +1,8 @@
 // app/finance/payables/page.tsx
-// AP 账龄:ap_open_items 全量读取(只含已计价、未结清的进料批次;端口自应收页)。
-// 汇总条 + 按供应商分组小计,供应商按未结额倒序;单据链接到 AP 单据详情页
-// (进料批次编辑页链接在详情页内)。
+// AP 账龄:ap_open_items 全量读取(补充 2a 起是两类单据的 UNION:已计价未结清的
+// 进料批次 + 挂账开支;端口自应收页)。汇总条 + 按供应商分组小计,供应商按未结额
+// 倒序;进料单据链接到 AP 单据详情页(批次编辑页链接在详情页内),开支单据的
+// 详情页 /finance/expenses/[id] 在补充 2b 落地 —— 本切先渲染纯文本编号 + 类别标签。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
@@ -11,12 +12,14 @@ import { BUCKETS, bucketPillClass } from '../agingBuckets'
 
 // 视图列生成类型全可空;行进视图即非空,本地类型锁死
 type ApRow = {
-    inbound_batch_id: string
+    doc_kind: 'inbound' | 'expense'
+    doc_id: string
     doc_code: string
+    inbound_batch_id: string | null
     supplier_id: string | null
     supplier_name: string | null
     doc_date: string
-    amount_usd: number
+    doc_value_usd: number
     settled_usd: number
     open_usd: number
     days_outstanding: number
@@ -71,7 +74,7 @@ export default async function PayablesPage() {
             groupMap.set(key, g)
         }
         g.rows.push(r)
-        g.amount += r.amount_usd
+        g.amount += r.doc_value_usd
         g.settled += r.settled_usd
         g.open += r.open_usd
     }
@@ -123,21 +126,31 @@ export default async function PayablesPage() {
                     {groups.map((g, gi) => (
                         [
                             ...g.rows.map((r, ri) => (
-                                <tr key={r.inbound_batch_id}>
+                                <tr key={r.doc_id}>
                                     <td className="border border-gray-300 px-4 py-2">
                                         {ri === 0 ? g.name : ''}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                        <Link
-                                            href={`/finance/payables/${r.inbound_batch_id}`}
-                                            className="text-blue-600 hover:underline"
-                                        >
-                                            {r.doc_code}
-                                        </Link>
+                                        {r.doc_kind === 'inbound' ? (
+                                            <Link
+                                                href={`/finance/payables/${r.doc_id}`}
+                                                className="text-blue-600 hover:underline"
+                                            >
+                                                {r.doc_code}
+                                            </Link>
+                                        ) : (
+                                            // 开支详情页 /finance/expenses/[id] 在补充 2b 落地;先纯文本 + 类别标签
+                                            <>
+                                                {r.doc_code}
+                                                <span className="ml-2 px-2 py-0.5 rounded text-xs bg-gray-200 text-gray-500">
+                                                    {t('finance.docKind.expense')}
+                                                </span>
+                                            </>
+                                        )}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2">{r.doc_date}</td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {formatUsd(r.amount_usd)}
+                                        {formatUsd(r.doc_value_usd)}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                         {formatUsd(r.settled_usd)}

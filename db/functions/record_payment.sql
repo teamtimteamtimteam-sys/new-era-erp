@@ -13,6 +13,7 @@ DECLARE
     v_alloc        jsonb;
     v_sale_id      uuid;
     v_batch_id     uuid;
+    v_expense_id   uuid;
     v_alloc_usd    numeric;
     v_doc          record;
     v_doc_value    numeric;
@@ -105,19 +106,21 @@ BEGIN
 
     -- 5. 核销行:逐条校验并立即插入(同一目标在一笔里出现两次时,
     --    后一条的累计校验能看到前一条)。顺序:存在 → 归属 → 计价 → 敞口。
+    --    'in' 只认 sales_record_id;'out' 认 inbound_batch_id 或 expense_id(挂账开支)。
     FOR v_alloc IN SELECT * FROM jsonb_array_elements(p_allocations)
     LOOP
         v_sale_id := (v_alloc->>'sales_record_id')::uuid;
         v_batch_id := (v_alloc->>'inbound_batch_id')::uuid;
+        v_expense_id := (v_alloc->>'expense_id')::uuid;
         v_alloc_usd := (v_alloc->>'amount_usd')::numeric;
 
         IF v_alloc_usd IS NULL OR v_alloc_usd <= 0
-           OR ((v_sale_id IS NULL) = (v_batch_id IS NULL)) THEN
+           OR num_nonnulls(v_sale_id, v_batch_id, v_expense_id) <> 1 THEN
             RAISE EXCEPTION 'ALLOC_INVALID|%', v_alloc::text;
         END IF;
 
         IF p_direction = 'in' THEN
-            IF v_batch_id IS NOT NULL THEN
+            IF v_batch_id IS NOT NULL OR v_expense_id IS NOT NULL THEN
                 RAISE EXCEPTION 'ALLOC_WRONG_SIDE';
             END IF;
             SELECT sr.id, ob.code AS doc_code, sr.customer_id AS party_id, sr.amount_usd AS doc_value
@@ -137,7 +140,7 @@ BEGIN
             FROM payment_allocations pa
             JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'
             WHERE pa.sales_record_id = v_sale_id;
-        ELSE
+        ELSIF v_batch_id IS NOT NULL THEN
             IF v_sale_id IS NOT NULL THEN
                 RAISE EXCEPTION 'ALLOC_WRONG_SIDE';
             END IF;
@@ -162,6 +165,27 @@ BEGIN
             FROM payment_allocations pa
             JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'
             WHERE pa.inbound_batch_id = v_batch_id;
+        ELSE
+            IF v_sale_id IS NOT NULL THEN
+                RAISE EXCEPTION 'ALLOC_WRONG_SIDE';
+            END IF;
+            -- 挂账开支:必须是 unpaid + posted(不存在/已付/已冲销 → ALLOC_INVALID)
+            SELECT e.id, e.code AS doc_code, e.supplier_id AS party_id, e.amount_usd AS doc_value
+            INTO v_doc
+            FROM expenses e
+            WHERE e.id = v_expense_id AND e.payment_status = 'unpaid' AND e.status = 'posted';
+            IF NOT FOUND THEN
+                RAISE EXCEPTION 'ALLOC_INVALID|%', v_expense_id;
+            END IF;
+            IF v_doc.party_id IS DISTINCT FROM p_counterparty_id THEN
+                RAISE EXCEPTION 'ALLOC_WRONG_PARTY|%', v_doc.doc_code;
+            END IF;
+            v_doc_value := v_doc.doc_value;
+
+            SELECT COALESCE(SUM(pa.allocated_usd), 0) INTO v_settled
+            FROM payment_allocations pa
+            JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'
+            WHERE pa.expense_id = v_expense_id;
         END IF;
 
         v_open := round(v_doc_value - v_settled, 2);
@@ -169,8 +193,8 @@ BEGIN
             RAISE EXCEPTION 'ALLOC_EXCEEDS|%|%|%', v_doc.doc_code, v_alloc_usd, v_open;
         END IF;
 
-        INSERT INTO payment_allocations (payment_id, sales_record_id, inbound_batch_id, allocated_usd)
-        VALUES (v_payment_id, v_sale_id, v_batch_id, v_alloc_usd);
+        INSERT INTO payment_allocations (payment_id, sales_record_id, inbound_batch_id, expense_id, allocated_usd)
+        VALUES (v_payment_id, v_sale_id, v_batch_id, v_expense_id, v_alloc_usd);
 
         v_alloc_total := v_alloc_total + v_alloc_usd;
     END LOOP;
@@ -190,3 +214,4 @@ BEGIN
     );
 END;
 $function$
+
