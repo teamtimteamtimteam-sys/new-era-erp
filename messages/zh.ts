@@ -1299,7 +1299,7 @@ const zh = {
             submitting: '开具中…',
             noSales: '该客户没有待开票的销售',
         },
-        defaultTerms: '请于发票日期后 {n} 天内付款。',
+        termsLabel: '条款',
         unassignedSale: '该销售未记录客户',
         mixedCurrency: '所有明细必须为同一币种。',
         void: '作废',

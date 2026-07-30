@@ -213,7 +213,14 @@ export default async function InvoiceDetailPage({
                 </div>
             </div>
 
-            {inv.terms_text && <p className="text-sm text-gray-600 mt-4">{inv.terms_text}</p>}
+            {/* 标签是界面文字,跟随界面语言;条款正文是【单据数据】,按存下来的原样显示
+                (发票一律英文开具,不因界面切换而变) */}
+            {inv.terms_text && (
+                <div className="mt-4 text-sm">
+                    <span className="text-gray-500 mr-1">{t('invoice.termsLabel')}:</span>
+                    <span className="text-gray-700">{inv.terms_text}</span>
+                </div>
+            )}
             {inv.notes && (
                 <p className="text-sm text-gray-600 mt-2">
                     <span className="text-gray-500 mr-1">{t('finance.memo')}:</span>

@@ -1298,7 +1298,7 @@ const en = {
             submitting: 'Issuing…',
             noSales: 'No uninvoiced sales for this customer',
         },
-        defaultTerms: 'Payment due within {n} days of invoice date.',
+        termsLabel: 'Terms',
         unassignedSale: 'No customer recorded on this sale',
         mixedCurrency: 'All lines must share one currency.',
         void: 'Void',

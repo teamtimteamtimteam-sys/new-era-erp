@@ -11,6 +11,12 @@ import DecimalInput from '@/app/components/forms/DecimalInput'
 
 const initialState: CreateInvoiceState = {}
 
+// 发票【一律用英文开具】(既定决策)。terms_text 是【存进单据的正文】,不是界面标签,
+// 所以它绝不能跟着操作者的界面语言走 —— 界面切成中文时开票,不应该给英文客户寄去中文条款。
+// 因此默认条款写死成英文常量,不进 messages/*.ts。字段本身仍可自由编辑。
+const defaultTermsText = (days: number) =>
+    `Payment due within ${days} days of invoice date.`
+
 export type CustomerOption = {
     id: string
     name: string
@@ -76,10 +82,11 @@ export default function NewInvoiceForm({
     const dueDate =
         effTerms !== '' && !Number.isNaN(termsNum) ? addDays(issueDate, termsNum) : ''
 
-    // 发票条款:未手改过就用默认句式(随天数变化)
+    // 发票条款:未手改过就用英文默认句式,并随天数实时重算;
+    // 一旦 Tim 自己动过(termsTextTouched),就再也不覆盖他输入的内容。
     const effTermsText = termsTextTouched
         ? termsText
-        : t('invoice.defaultTerms', { n: Number.isNaN(termsNum) ? 30 : termsNum })
+        : defaultTermsText(Number.isNaN(termsNum) ? 30 : termsNum)
 
     // 该客户的待开票销售 + 无主销售(可以开给所选客户)
     const visible = useMemo(() => {
