@@ -1,7 +1,7 @@
 // app/finance/bank/statements/[id]/page.tsx
-// 对账单详情(本切只读):头部卡 + 导入提示横幅(?overlap= / ?dups=)+ 行表
-// (金额右对齐,负数标红,状态 pill,忽略理由)+ 页脚合计与 期初 + Σ = 期末 校验行。
-// 逐笔匹配在 3c 落地;open 状态下可软删(坏导入丢弃)。
+// 对账单详情:头部卡 + 导入提示横幅(?overlap= / ?dups=)+ 行表(金额右对齐、
+// 负数标红、状态 pill、匹配到的分录链接、忽略理由)+ 页脚合计与 期初 + Σ = 期末 校验行。
+// open → "开始对账"进工作台、可软删(坏导入丢弃);reconciled → 绿色横幅 + 重新打开。
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -9,6 +9,15 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatAmount } from '@/lib/format'
 import Subnav from '../../../Subnav'
 import DeleteStatementButton from './DeleteStatementButton'
+import UnreconcileControl from './UnreconcileControl'
+
+type MatchRow = {
+    statement_line_id: string
+    journal_lines: {
+        id: string
+        journal_entries: { id: string; code: string } | null
+    } | null
+}
 
 export default async function BankStatementDetailPage({
     params,
@@ -42,6 +51,24 @@ export default async function BankStatementDetailPage({
         .order('line_no', { ascending: true })
 
     const rows = lines ?? []
+
+    // 已匹配行配到的分录(页级一次 .in),供"匹配到"列展示链接
+    const matchedLineIds = rows.filter((r) => r.match_status === 'matched').map((r) => r.id)
+    const { data: matchRows } = matchedLineIds.length
+        ? await supabase
+              .from('bank_line_matches')
+              .select('statement_line_id, journal_lines(id, journal_entries(id, code))')
+              .in('statement_line_id', matchedLineIds)
+        : { data: [] as MatchRow[] }
+    const matchesByLine = new Map<string, { entry_id: string; entry_code: string }[]>()
+    for (const m of (matchRows as unknown as MatchRow[] | null) ?? []) {
+        const entry = m.journal_lines?.journal_entries
+        if (!entry) continue
+        const list = matchesByLine.get(m.statement_line_id) ?? []
+        list.push({ entry_id: entry.id, entry_code: entry.code })
+        matchesByLine.set(m.statement_line_id, list)
+    }
+
     const sum = Math.round(rows.reduce((s, r) => s + r.amount, 0) * 100) / 100
     const computed = Math.round((stmt.opening_balance + sum) * 100) / 100
     const balanced = Math.round((computed - stmt.closing_balance) * 100) === 0
@@ -57,9 +84,33 @@ export default async function BankStatementDetailPage({
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-2">{t('bank.detailTitle')}</h1>
+            <div className="flex justify-between items-center mb-2">
+                <h1 className="text-2xl font-bold">{t('bank.detailTitle')}</h1>
+                {stmt.status === 'open' && (
+                    <Link
+                        href={`/finance/bank/statements/${stmt.id}/reconcile`}
+                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    >
+                        {t('bank.openWorkspace')}
+                    </Link>
+                )}
+            </div>
 
             <Subnav />
+
+            {/* 已对账横幅 + 重新打开 */}
+            {stmt.status === 'reconciled' && (
+                <div className="bg-green-50 border border-green-300 text-green-900 px-4 py-3 rounded mb-4 text-sm flex flex-wrap items-center gap-3">
+                    <span>
+                        {t('bank.reconciledBanner', {
+                            when: stmt.reconciled_at
+                                ? new Date(stmt.reconciled_at).toLocaleString(dateLocale)
+                                : '—',
+                        })}
+                    </span>
+                    <UnreconcileControl statementId={stmt.id} />
+                </div>
+            )}
 
             {/* 导入提示(信息,不是错误)*/}
             {(overlap > 0 || dups > 0) && (
@@ -139,6 +190,7 @@ export default async function BankStatementDetailPage({
                         <th className="border border-gray-300 px-3 py-2 text-left">{t('bank.colReference')}</th>
                         <th className="border border-gray-300 px-3 py-2 text-right">{t('bank.colAmount')}</th>
                         <th className="border border-gray-300 px-3 py-2 text-left">{t('finance.colStatus')}</th>
+                        <th className="border border-gray-300 px-3 py-2 text-left">{t('bank.colMatchedTo')}</th>
                         <th className="border border-gray-300 px-3 py-2 text-left">{t('bank.ignoreReason')}</th>
                     </tr>
                 </thead>
@@ -171,6 +223,23 @@ export default async function BankStatementDetailPage({
                                     {t('bank.lineStatus.' + r.match_status)}
                                 </span>
                             </td>
+                            <td className="border border-gray-300 px-3 py-1 text-sm">
+                                {(matchesByLine.get(r.id) ?? []).length === 0 ? (
+                                    '—'
+                                ) : (
+                                    <span className="flex flex-wrap gap-2">
+                                        {(matchesByLine.get(r.id) ?? []).map((m) => (
+                                            <Link
+                                                key={m.entry_id}
+                                                href={`/finance/journal/${m.entry_id}`}
+                                                className="text-blue-600 hover:underline font-mono"
+                                            >
+                                                {m.entry_code}
+                                            </Link>
+                                        ))}
+                                    </span>
+                                )}
+                            </td>
                             <td className="border border-gray-300 px-3 py-1 text-sm text-gray-600">
                                 {r.ignore_reason ?? '—'}
                             </td>
@@ -178,7 +247,7 @@ export default async function BankStatementDetailPage({
                     ))}
                     {rows.length === 0 && (
                         <tr>
-                            <td colSpan={7} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
+                            <td colSpan={8} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
                                 {t('bank.empty')}
                             </td>
                         </tr>
@@ -193,7 +262,7 @@ export default async function BankStatementDetailPage({
                             <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
                                 {formatAmount(sum, null)}
                             </td>
-                            <td className="border border-gray-300 px-3 py-2" colSpan={2} />
+                            <td className="border border-gray-300 px-3 py-2" colSpan={3} />
                         </tr>
                     </tfoot>
                 )}
@@ -210,7 +279,6 @@ export default async function BankStatementDetailPage({
                       })}`}
             </p>
 
-            <p className="text-sm text-gray-500 mt-4">{t('bank.matchingNextCut')}</p>
         </div>
     )
 }

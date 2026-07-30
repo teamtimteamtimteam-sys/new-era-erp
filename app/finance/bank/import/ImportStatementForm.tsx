@@ -289,6 +289,7 @@ export default function ImportStatementForm({ profiles }: { profiles: ProfileOpt
                         </div>
                     ) : (
                         <div className="grid gap-4 md:grid-cols-2">
+                            {/* 银行视角:Debit = 取款(钱出),Credit = 存款(钱进)*/}
                             <div>
                                 <label className="block text-sm font-medium mb-1">{t('bank.debitColumn')}</label>
                                 {columnSelect(mapping.debit_column, (v) => setM({ debit_column: v }))}
