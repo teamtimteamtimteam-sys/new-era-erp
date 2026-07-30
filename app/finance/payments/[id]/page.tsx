@@ -2,13 +2,15 @@
 // 收付款详情:头部(编号/日期/方向/往来单位/金额原币+USD+汇率/银行/状态/备注)
 // + 关联分录链接 + 核销行表(单据链接 + 冲销额)+ 未冲销余额行。
 // posted → 冲销按钮;reversed → "已被 X 冲销"横幅(链到镜像单)。
+// 核销行表下方:凭据附件面板(finance_attachments, parent kind 'payment')。
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getTranslations } from '@/lib/i18n/server'
+import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatUsd } from '@/lib/format'
 import Subnav from '../../Subnav'
 import ReversePaymentButton from './ReversePaymentButton'
+import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachmentsPanel'
 
 type AllocRow = {
     id: string
@@ -25,6 +27,8 @@ export default async function PaymentDetailPage({
     const { id } = await params
     const supabase = await createClient()
     const t = await getTranslations()
+    const locale = await getLocale()
+    const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
     const { data: payment, error } = await supabase
         .from('payments')
@@ -93,6 +97,24 @@ export default async function PaymentDetailPage({
     const allocTotal = Math.round(allocs.reduce((s, a) => s + a.allocated_usd, 0) * 100) / 100
     const unallocated = Math.round((payment.amount_usd - allocTotal) * 100) / 100
     const partyName = partyRes.data?.legal_name ?? '—'
+
+    // 凭据附件(在服务端按当前语言格式化时间,避免客户端水合不一致)
+    const { data: attachmentRows } = await supabase
+        .from('finance_attachments')
+        .select('id, file_name, file_path, file_size, mime_type, doc_type, notes, created_at')
+        .eq('payment_id', id)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
+    const attachments = (attachmentRows ?? []).map((a) => ({
+        id: a.id,
+        file_name: a.file_name,
+        file_path: a.file_path,
+        file_size: a.file_size,
+        mime_type: a.mime_type,
+        doc_type: a.doc_type,
+        notes: a.notes,
+        created_at_display: new Date(a.created_at).toLocaleString(dateLocale),
+    }))
 
     return (
         <div className="p-8 max-w-4xl">
@@ -248,6 +270,9 @@ export default async function PaymentDetailPage({
                     {t('finance.unallocated')}: <span className="font-mono">{formatUsd(unallocated)}</span>
                 </p>
             )}
+
+            {/* 凭据附件 */}
+            <FinanceAttachmentsPanel parent={{ kind: 'payment', id: payment.id }} rows={attachments} />
         </div>
     )
 }

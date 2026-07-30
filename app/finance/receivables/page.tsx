@@ -1,7 +1,7 @@
 // app/finance/receivables/page.tsx
 // AR 账龄:ar_open_items 全量读取(只含未结清销售,页级规模小,不分页)。
 // 汇总条(未结合计 + 四档账龄,90+ 标红),按客户分组 + 客户小计行,
-// 客户按未结额倒序;单据链接到产出批次编辑页(经 sales_records 反查 batch id)。
+// 客户按未结额倒序;单据链接到 AR 单据详情页(批次编辑页链接在详情页内)。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
@@ -53,13 +53,6 @@ export default async function ReceivablesPage() {
     }
 
     const rows = (data as unknown as ArRow[] | null) ?? []
-
-    // 单据链接:sales_record → output_batch(页级一次 .in 反查)
-    const saleIds = rows.map((r) => r.sales_record_id)
-    const { data: sales } = saleIds.length
-        ? await supabase.from('sales_records').select('id, output_batch_id').in('id', saleIds)
-        : { data: [] as { id: string; output_batch_id: string }[] }
-    const batchBySale = new Map((sales ?? []).map((s) => [s.id, s.output_batch_id]))
 
     // 汇总:未结合计 + 分档
     const totalOpen = Math.round(rows.reduce((s, r) => s + r.open_usd, 0) * 100) / 100
@@ -130,23 +123,18 @@ export default async function ReceivablesPage() {
                     {groups.map((g, gi) => (
                         [
                             ...g.rows.map((r, ri) => {
-                                const batchId = batchBySale.get(r.sales_record_id)
                                 return (
                                     <tr key={r.sales_record_id}>
                                         <td className="border border-gray-300 px-4 py-2">
                                             {ri === 0 ? g.name : ''}
                                         </td>
                                         <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                            {batchId ? (
-                                                <Link
-                                                    href={`/output/${batchId}/edit`}
-                                                    className="text-blue-600 hover:underline"
-                                                >
-                                                    {r.doc_code}
-                                                </Link>
-                                            ) : (
-                                                r.doc_code
-                                            )}
+                                            <Link
+                                                href={`/finance/receivables/${r.sales_record_id}`}
+                                                className="text-blue-600 hover:underline"
+                                            >
+                                                {r.doc_code}
+                                            </Link>
                                         </td>
                                         <td className="border border-gray-300 px-4 py-2">{r.sale_date}</td>
                                         <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">

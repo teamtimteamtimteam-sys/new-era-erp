@@ -193,6 +193,96 @@ export type Database = {
         }
         Relationships: []
       }
+      finance_attachments: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          doc_type: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          inbound_batch_id: string | null
+          mime_type: string | null
+          notes: string | null
+          payment_id: string | null
+          sales_record_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          doc_type?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          inbound_batch_id?: string | null
+          mime_type?: string | null
+          notes?: string | null
+          payment_id?: string | null
+          sales_record_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          doc_type?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          inbound_batch_id?: string | null
+          mime_type?: string | null
+          notes?: string | null
+          payment_id?: string | null
+          sales_record_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_attachments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "ap_open_items"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "finance_attachments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_attachments_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_attachments_sales_record_id_fkey"
+            columns: ["sales_record_id"]
+            isOneToOne: false
+            referencedRelation: "ar_open_items"
+            referencedColumns: ["sales_record_id"]
+          },
+          {
+            foreignKeyName: "finance_attachments_sales_record_id_fkey"
+            columns: ["sales_record_id"]
+            isOneToOne: false
+            referencedRelation: "sales_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       finance_settings: {
         Row: {
           id: boolean

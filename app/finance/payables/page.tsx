@@ -1,6 +1,7 @@
 // app/finance/payables/page.tsx
 // AP 账龄:ap_open_items 全量读取(只含已计价、未结清的进料批次;端口自应收页)。
-// 汇总条 + 按供应商分组小计,供应商按未结额倒序;单据直链进料批次编辑页。
+// 汇总条 + 按供应商分组小计,供应商按未结额倒序;单据链接到 AP 单据详情页
+// (进料批次编辑页链接在详情页内)。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
@@ -128,7 +129,7 @@ export default async function PayablesPage() {
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
                                         <Link
-                                            href={`/inbound/${r.inbound_batch_id}/edit`}
+                                            href={`/finance/payables/${r.inbound_batch_id}`}
                                             className="text-blue-600 hover:underline"
                                         >
                                             {r.doc_code}
