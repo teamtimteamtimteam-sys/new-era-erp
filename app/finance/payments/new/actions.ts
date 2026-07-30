@@ -46,19 +46,28 @@ export async function createPayment(
         return { error: t('finance.errDate') }
     }
 
-    // 核销行:空/0/非法金额的行直接剔除(挂账 = 全部不核销,允许)
+    // 核销行:空/0/非法金额的行直接剔除(挂账 = 全部不核销,允许)。
+    // 键按行的 alloc_kind 选:in → sales_record_id;out → inbound_batch_id / expense_id。
     const allocIds = formData.getAll('alloc_id').map(String)
+    const allocKinds = formData.getAll('alloc_kind').map(String)
     const allocAmounts = formData.getAll('alloc_amount').map(String)
-    type Alloc = { sales_record_id?: string; inbound_batch_id?: string; amount_usd: number }
+    type Alloc = {
+        sales_record_id?: string
+        inbound_batch_id?: string
+        expense_id?: string
+        amount_usd: number
+    }
     const allocations: Alloc[] = []
     for (let i = 0; i < allocIds.length; i++) {
         const v = Number(allocAmounts[i])
         if (!allocIds[i] || !allocAmounts[i] || Number.isNaN(v) || v <= 0) continue
-        allocations.push(
-            direction === 'in'
-                ? { sales_record_id: allocIds[i], amount_usd: v }
-                : { inbound_batch_id: allocIds[i], amount_usd: v }
-        )
+        if (direction === 'in') {
+            allocations.push({ sales_record_id: allocIds[i], amount_usd: v })
+        } else if (allocKinds[i] === 'expense') {
+            allocations.push({ expense_id: allocIds[i], amount_usd: v })
+        } else {
+            allocations.push({ inbound_batch_id: allocIds[i], amount_usd: v })
+        }
     }
 
     const supabase = await createClient()

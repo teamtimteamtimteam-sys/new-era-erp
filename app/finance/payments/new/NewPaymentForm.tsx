@@ -16,7 +16,8 @@ const initialState: CreatePaymentState = {}
 export type PartyOption = { id: string; name: string }
 
 export type OpenItem = {
-    doc_id: string // in → sales_record_id / out → inbound_batch_id
+    doc_id: string // in → sales_record_id / out → inbound_batch_id 或 expense id(按 doc_kind)
+    doc_kind: 'sale' | 'inbound' | 'expense'
     party_id: string
     doc_code: string
     doc_date: string
@@ -246,13 +247,22 @@ export default function NewPaymentForm({
                         <tbody>
                             {items.map((i) => (
                                 <tr key={i.doc_id}>
-                                    <td className="border border-gray-300 px-4 py-2 font-mono text-sm">{i.doc_code}</td>
+                                    <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
+                                        {i.doc_code}
+                                        {/* AP 侧标注单据类别(进料/开支),看清核销对象;AR 全是销售,不标 */}
+                                        {i.doc_kind !== 'sale' && (
+                                            <span className="ml-2 px-2 py-0.5 rounded text-xs bg-gray-200 text-gray-500 font-sans">
+                                                {t('finance.docKind.' + i.doc_kind)}
+                                            </span>
+                                        )}
+                                    </td>
                                     <td className="border border-gray-300 px-4 py-2">{i.doc_date}</td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                         {formatUsd(i.open_usd)}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2">
                                         <input type="hidden" name="alloc_id" value={i.doc_id} />
+                                        <input type="hidden" name="alloc_kind" value={i.doc_kind} />
                                         <input
                                             type="number"
                                             name="alloc_amount"

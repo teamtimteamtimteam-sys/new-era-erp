@@ -17,7 +17,8 @@ type ArItem = {
     open_usd: number
 }
 type ApItem = {
-    inbound_batch_id: string
+    doc_kind: 'inbound' | 'expense'
+    doc_id: string
     supplier_id: string | null
     doc_code: string
     doc_date: string
@@ -52,7 +53,7 @@ export default async function NewPaymentPage({
             .order('sale_date', { ascending: true }),
         supabase
             .from('ap_open_items')
-            .select('inbound_batch_id, supplier_id, doc_code, doc_date, open_usd')
+            .select('doc_kind, doc_id, supplier_id, doc_code, doc_date, open_usd')
             .order('doc_date', { ascending: true }),
     ])
 
@@ -79,13 +80,15 @@ export default async function NewPaymentPage({
     }))
     const arItems: OpenItem[] = ((arRes.data as unknown as ArItem[] | null) ?? []).map((r) => ({
         doc_id: r.sales_record_id,
+        doc_kind: 'sale' as const,
         party_id: r.customer_id ?? '',
         doc_code: r.doc_code,
         doc_date: r.sale_date,
         open_usd: r.open_usd,
     }))
     const apItems: OpenItem[] = ((apRes.data as unknown as ApItem[] | null) ?? []).map((r) => ({
-        doc_id: r.inbound_batch_id,
+        doc_id: r.doc_id,
+        doc_kind: r.doc_kind,
         party_id: r.supplier_id ?? '',
         doc_code: r.doc_code,
         doc_date: r.doc_date,

@@ -30,10 +30,9 @@ export function isAllowedFinanceAttachmentType(mime: string | null | undefined):
     return !!mime && (FINANCE_ATTACHMENT_MIME_TYPES as readonly string[]).includes(mime)
 }
 
-// 附件挂靠的单据类型:AR 单据(sales_record)/ AP 单据(inbound_batch)/ 收付款单。
-// 费用模块落地(补充 2)后这里加 'expense'。
+// 附件挂靠的单据类型:AR 单据(sales_record)/ AP 单据(inbound_batch)/ 收付款单 / 开支单。
 export type FinanceAttachmentParent = {
-    kind: 'sale' | 'inbound' | 'payment'
+    kind: 'sale' | 'inbound' | 'payment' | 'expense'
     id: string
 }
 
@@ -46,6 +45,8 @@ export function parentPagePath(parent: FinanceAttachmentParent): string {
             return `/finance/payables/${parent.id}`
         case 'payment':
             return `/finance/payments/${parent.id}`
+        case 'expense':
+            return `/finance/expenses/${parent.id}`
     }
 }
 

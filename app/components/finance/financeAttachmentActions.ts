@@ -44,13 +44,15 @@ export async function recordFinanceAttachment(input: RecordFinanceAttachmentInpu
         return { error: t('finAttach.errType') }
     }
 
-    // XOR 三选一外键:显式三分支(计算属性名会破坏 insert 的类型收窄)
+    // XOR 四选一外键:显式分支(计算属性名会破坏 insert 的类型收窄)
     const parentCols =
         input.parent.kind === 'sale'
             ? { sales_record_id: input.parent.id }
             : input.parent.kind === 'inbound'
               ? { inbound_batch_id: input.parent.id }
-              : { payment_id: input.parent.id }
+              : input.parent.kind === 'payment'
+                ? { payment_id: input.parent.id }
+                : { expense_id: input.parent.id }
 
     const { error } = await supabase.from('finance_attachments').insert({
         ...parentCols,

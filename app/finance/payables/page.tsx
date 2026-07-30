@@ -1,8 +1,8 @@
 // app/finance/payables/page.tsx
 // AP 账龄:ap_open_items 全量读取(补充 2a 起是两类单据的 UNION:已计价未结清的
 // 进料批次 + 挂账开支;端口自应收页)。汇总条 + 按供应商分组小计,供应商按未结额
-// 倒序;进料单据链接到 AP 单据详情页(批次编辑页链接在详情页内),开支单据的
-// 详情页 /finance/expenses/[id] 在补充 2b 落地 —— 本切先渲染纯文本编号 + 类别标签。
+// 倒序;进料单据链接到 AP 单据详情页(批次编辑页链接在详情页内),开支单据
+// 链接到开支详情页 /finance/expenses/[id],旁附类别标签。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
@@ -139,9 +139,13 @@ export default async function PayablesPage() {
                                                 {r.doc_code}
                                             </Link>
                                         ) : (
-                                            // 开支详情页 /finance/expenses/[id] 在补充 2b 落地;先纯文本 + 类别标签
                                             <>
-                                                {r.doc_code}
+                                                <Link
+                                                    href={`/finance/expenses/${r.doc_id}`}
+                                                    className="text-blue-600 hover:underline"
+                                                >
+                                                    {r.doc_code}
+                                                </Link>
                                                 <span className="ml-2 px-2 py-0.5 rounded text-xs bg-gray-200 text-gray-500">
                                                     {t('finance.docKind.expense')}
                                                 </span>
