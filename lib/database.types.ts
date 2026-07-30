@@ -56,6 +56,212 @@ export type Database = {
         }
         Relationships: []
       }
+      bank_import_profiles: {
+        Row: {
+          bank_account_code: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          mapping: Json
+          name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          bank_account_code: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          mapping: Json
+          name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          bank_account_code?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          mapping?: Json
+          name?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      bank_line_matches: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          journal_line_id: string
+          matched_amount: number
+          statement_line_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          journal_line_id: string
+          matched_amount: number
+          statement_line_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          journal_line_id?: string
+          matched_amount?: number
+          statement_line_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_line_matches_journal_line_id_fkey"
+            columns: ["journal_line_id"]
+            isOneToOne: true
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["journal_line_id"]
+          },
+          {
+            foreignKeyName: "bank_line_matches_journal_line_id_fkey"
+            columns: ["journal_line_id"]
+            isOneToOne: true
+            referencedRelation: "journal_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_line_matches_statement_line_id_fkey"
+            columns: ["statement_line_id"]
+            isOneToOne: false
+            referencedRelation: "bank_statement_lines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_statement_lines: {
+        Row: {
+          amount: number
+          created_at: string | null
+          description: string | null
+          id: string
+          ignore_reason: string | null
+          line_date: string
+          line_no: number
+          match_status: string
+          notes: string | null
+          reference: string | null
+          statement_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          ignore_reason?: string | null
+          line_date: string
+          line_no: number
+          match_status?: string
+          notes?: string | null
+          reference?: string | null
+          statement_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          ignore_reason?: string | null
+          line_date?: string
+          line_no?: number
+          match_status?: string
+          notes?: string | null
+          reference?: string | null
+          statement_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_statement_lines_statement_id_fkey"
+            columns: ["statement_id"]
+            isOneToOne: false
+            referencedRelation: "bank_statements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_statements: {
+        Row: {
+          bank_account_code: string
+          closing_balance: number
+          code: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          deleted_at: string | null
+          file_name: string | null
+          id: string
+          notes: string | null
+          opening_balance: number
+          period_end: string
+          period_start: string
+          reconciled_at: string | null
+          reconciled_by: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          bank_account_code: string
+          closing_balance: number
+          code: string
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          deleted_at?: string | null
+          file_name?: string | null
+          id?: string
+          notes?: string | null
+          opening_balance: number
+          period_end: string
+          period_start: string
+          reconciled_at?: string | null
+          reconciled_by?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          bank_account_code?: string
+          closing_balance?: number
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          deleted_at?: string | null
+          file_name?: string | null
+          id?: string
+          notes?: string | null
+          opening_balance?: number
+          period_end?: string
+          period_start?: string
+          reconciled_at?: string | null
+          reconciled_by?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_statements_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       currencies: {
         Row: {
           code: string
@@ -263,11 +469,25 @@ export type Database = {
             referencedColumns: ["code"]
           },
           {
+            foreignKeyName: "expenses_account_code_fkey"
+            columns: ["account_code"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["account_code"]
+          },
+          {
             foreignKeyName: "expenses_currency_fkey"
             columns: ["currency"]
             isOneToOne: false
             referencedRelation: "currencies"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "expenses_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
           },
           {
             foreignKeyName: "expenses_journal_entry_id_fkey"
@@ -692,6 +912,13 @@ export type Database = {
             foreignKeyName: "journal_entries_reversed_by_fkey"
             columns: ["reversed_by"]
             isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "journal_entries_reversed_by_fkey"
+            columns: ["reversed_by"]
+            isOneToOne: false
             referencedRelation: "journal_entries"
             referencedColumns: ["id"]
           },
@@ -748,6 +975,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "currencies"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "journal_lines_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
           },
           {
             foreignKeyName: "journal_lines_entry_id_fkey"
@@ -1166,6 +1400,13 @@ export type Database = {
             foreignKeyName: "payments_journal_entry_id_fkey"
             columns: ["journal_entry_id"]
             isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "payments_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
             referencedRelation: "journal_entries"
             referencedColumns: ["id"]
           },
@@ -1507,6 +1748,13 @@ export type Database = {
             foreignKeyName: "processing_runs_capitalization_entry_id_fkey"
             columns: ["capitalization_entry_id"]
             isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_capitalization_entry_id_fkey"
+            columns: ["capitalization_entry_id"]
+            isOneToOne: false
             referencedRelation: "journal_entries"
             referencedColumns: ["id"]
           },
@@ -1562,6 +1810,13 @@ export type Database = {
           unit_price?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "sales_records_cogs_entry_id_fkey"
+            columns: ["cogs_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
           {
             foreignKeyName: "sales_records_cogs_entry_id_fkey"
             columns: ["cogs_entry_id"]
@@ -2030,6 +2285,46 @@ export type Database = {
           },
         ]
       }
+      bank_reconciliation_status: {
+        Row: {
+          account_code: string | null
+          currency: string | null
+          difference: number | null
+          ignored_statement_lines: number | null
+          latest_closing_balance: number | null
+          latest_statement_code: string | null
+          latest_statement_period_end: string | null
+          ledger_balance: number | null
+          unmatched_journal_amount: number | null
+          unmatched_journal_lines: number | null
+          unmatched_statement_lines: number | null
+        }
+        Relationships: []
+      }
+      bank_unmatched_journal_lines: {
+        Row: {
+          account_code: string | null
+          amount_ccy: number | null
+          currency: string | null
+          direction: string | null
+          entry_code: string | null
+          entry_date: string | null
+          entry_id: string | null
+          journal_line_id: string | null
+          memo: string | null
+          source_id: string | null
+          source_type: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_lines_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       processing_metal_recovery: {
         Row: {
           input_metal_kg: number | null
@@ -2047,6 +2342,10 @@ export type Database = {
       allocate_processing_costs: {
         Args: { p_basis?: string; p_run_id: string }
         Returns: Json
+      }
+      bank_native_currency: {
+        Args: { p_account_code: string }
+        Returns: string
       }
       cancel_stocktake: { Args: { p_stocktake_id: string }; Returns: undefined }
       close_period: {
@@ -2072,6 +2371,26 @@ export type Database = {
         Args: { p_date: string; p_prefix: string }
         Returns: string
       }
+      ignore_bank_line: {
+        Args: { p_reason: string; p_statement_line_id: string }
+        Returns: undefined
+      }
+      import_bank_statement: {
+        Args: {
+          p_bank_account: string
+          p_closing: number
+          p_file_name: string
+          p_lines: Json
+          p_opening: number
+          p_period_end: string
+          p_period_start: string
+        }
+        Returns: Json
+      }
+      match_bank_line: {
+        Args: { p_journal_line_ids: string[]; p_statement_line_id: string }
+        Returns: Json
+      }
       post_journal_entry: {
         Args: {
           p_entry_date: string
@@ -2083,6 +2402,7 @@ export type Database = {
         Returns: Json
       }
       post_stocktake: { Args: { p_stocktake_id: string }; Returns: Json }
+      reconcile_statement: { Args: { p_statement_id: string }; Returns: Json }
       record_expense: {
         Args: {
           p_account_code: string
@@ -2154,6 +2474,18 @@ export type Database = {
           p_unit_price: number
         }
         Returns: Json
+      }
+      unignore_bank_line: {
+        Args: { p_statement_line_id: string }
+        Returns: undefined
+      }
+      unmatch_bank_line: {
+        Args: { p_statement_line_id: string }
+        Returns: undefined
+      }
+      unreconcile_statement: {
+        Args: { p_reason: string; p_statement_id: string }
+        Returns: undefined
       }
     }
     Enums: {
