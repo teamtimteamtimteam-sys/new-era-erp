@@ -52,7 +52,7 @@ export default async function CustomersPage({
     // 2) 取当前页的行:过滤 + 排序后再 .range(from, to)
     const baseQuery = supabase
         .from('customers')
-        .select('id, code, legal_name, country, customer_types, status, created_at')
+        .select('id, code, legal_name, country, contact_person, email, customer_types, status, created_at')
 
     const { data: customers, error } = await applyCustomerFilters(
         baseQuery,
@@ -133,6 +133,12 @@ export default async function CustomersPage({
                             {t('customers.col.country')}
                         </th>
                         <th className="border border-gray-300 px-4 py-2 text-left">
+                            {t('customers.col.contactPerson')}
+                        </th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">
+                            {t('customers.col.email')}
+                        </th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">
                             {t('customers.col.types')}
                         </th>
                         <th className="border border-gray-300 px-4 py-2 text-left">
@@ -157,6 +163,13 @@ export default async function CustomersPage({
                             </td>
                             <td className="border border-gray-300 px-4 py-2">{c.legal_name}</td>
                             <td className="border border-gray-300 px-4 py-2">{c.country}</td>
+                            {/* 电话不上列表(列已经够多);联系人 + 邮箱是找人时最常看的两项 */}
+                            <td className="border border-gray-300 px-4 py-2 text-sm">
+                                {c.contact_person ?? '—'}
+                            </td>
+                            <td className="border border-gray-300 px-4 py-2 text-sm break-all">
+                                {c.email ?? '—'}
+                            </td>
                             <td className="border border-gray-300 px-4 py-2 text-sm">
                                 {c.customer_types?.join(', ')}
                             </td>
@@ -176,7 +189,7 @@ export default async function CustomersPage({
                     {(!customers || customers.length === 0) && (
                         <tr>
                             <td
-                                colSpan={7}
+                                colSpan={9}
                                 className="border border-gray-300 px-4 py-8 text-center text-gray-500"
                             >
                                 {t('customers.emptyState')}

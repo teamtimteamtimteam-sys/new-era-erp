@@ -1,6 +1,38 @@
-CREATE OR REPLACE FUNCTION public.create_invoice(p_customer_id uuid, p_sales_record_ids uuid[], p_issue_date date DEFAULT NULL::date, p_payment_terms_days integer DEFAULT NULL::integer, p_notes text DEFAULT NULL::text, p_terms_text text DEFAULT NULL::text)
- RETURNS jsonb
- LANGUAGE plpgsql
+-- db/migrations/2026-07-31-phase4-cut2b-customer-contacts.sql
+-- Phase 4 cut 2b(附带):customers 增加联系方式三列 —— 开票要用。
+--
+-- cut 2a 的 B0 勘察发现 customers 上【没有任何联系人/邮箱/电话字段】,
+-- 于是发票的 bill_to_snapshot 只能存 code/legal_name/short_name/country/
+-- tax_id/address/payment_terms/incoterm。这里补上,今后开出的发票抬头就能带上
+-- 联系人与邮箱(快照按开票当刻取值,老发票不受影响)。
+--
+-- 三列都可空、都不加 CHECK:邮箱与电话的国际写法差异太大(+65 / 0086- / 分机 /
+-- 多个邮箱并列……),在库里做格式校验只会误伤真实数据。要校验就放到录入端做提示,
+-- 而不是让数据库拒收。
+--
+-- NOTE: customers 建表脚本没有 db/tables 镜像 —— 早期主数据表(customers/
+-- suppliers/materials/inbound_batches/output_batches)先于镜像约定存在,
+-- 目录里只有它们的附件子表镜像。此处不补一份残缺的镜像,仅在此说明。
+
+BEGIN;
+
+ALTER TABLE public.customers
+    ADD COLUMN email text,
+    ADD COLUMN phone text,
+    ADD COLUMN contact_person text;
+
+-- create_invoice 的抬头快照要把这三列一起存下来 —— 否则字段建了却永远到不了发票上。
+-- 只改 bill_to_snapshot 的构造,其余逻辑与 cut 2a 完全一致。
+-- 老发票的快照里没有这三个键,详情页按"有才显示"渲染,不受影响。
+CREATE OR REPLACE FUNCTION public.create_invoice(
+    p_customer_id        uuid,
+    p_sales_record_ids   uuid[],
+    p_issue_date         date DEFAULT NULL,
+    p_payment_terms_days integer DEFAULT NULL,
+    p_notes              text DEFAULT NULL,
+    p_terms_text         text DEFAULT NULL
+) RETURNS jsonb
+LANGUAGE plpgsql
 AS $function$
 DECLARE
     v_cust        customers%ROWTYPE;
@@ -164,5 +196,6 @@ BEGIN
         'currency', v_currency
     );
 END;
-$function$
+$function$;
 
+COMMIT;

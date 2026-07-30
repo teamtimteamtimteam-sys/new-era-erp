@@ -24,6 +24,9 @@ export async function createCustomer(
     const country = (formData.get('country') as string)?.trim().toUpperCase()
     const tax_id = (formData.get('tax_id') as string)?.trim() || null
     const address = (formData.get('address') as string)?.trim() || null
+    const contact_person = (formData.get('contact_person') as string)?.trim() || null
+    const email = (formData.get('email') as string)?.trim() || null
+    const phone = (formData.get('phone') as string)?.trim() || null
     const payment_terms = (formData.get('payment_terms') as string)?.trim() || null
     const incoterm = (formData.get('incoterm') as string)?.trim() || null
     const credit_rating = (formData.get('credit_rating') as string)?.trim() || null
@@ -56,6 +59,9 @@ export async function createCustomer(
         country,
         tax_id,
         address,
+        contact_person,
+        email,
+        phone,
         customer_types,
         payment_terms,
         incoterm,

@@ -44,7 +44,7 @@ export default async function ReceivableDocPage({
     }
 
     // 批次(单据号+物料)/ 客户 / 结算历史 / 收入分录 / COGS 分录 / 附件,页级小查询
-    const [batchRes, customerRes, allocsRes, revenueRes, cogsRes, attachRes] = await Promise.all([
+    const [batchRes, customerRes, allocsRes, revenueRes, cogsRes, attachRes, invoiceRes] = await Promise.all([
         supabase
             .from('output_batches')
             .select('id, code, materials(name)')
@@ -73,9 +73,17 @@ export default async function ReceivableDocPage({
             .eq('sales_record_id', saleId)
             .is('deleted_at', null)
             .order('created_at', { ascending: false }),
+        // 本销售所挂的在册发票(作废的不算)
+        supabase
+            .from('invoice_lines')
+            .select('invoice_id, invoices(id, code)')
+            .eq('sales_record_id', saleId)
+            .eq('invoice_voided', false)
+            .maybeSingle(),
     ])
 
     const allocs = ((allocsRes.data as unknown as AllocRow[] | null) ?? [])
+    const invoice = (invoiceRes.data as unknown as { invoices: { id: string; code: string } | null } | null)?.invoices ?? null
 
     // 已结额只计 posted 收款的核销(与 ar_open_items 口径一致);reversed 行仍展示。
     const settled =
@@ -188,6 +196,26 @@ export default async function ReceivableDocPage({
                     ))}
                 </p>
             )}
+
+            {/* 所属发票 */}
+            <p className="text-sm mb-4">
+                <span className="text-gray-600 mr-1">{t('invoice.detailTitle')}:</span>
+                {invoice ? (
+                    <Link
+                        href={`/finance/invoices/${invoice.id}`}
+                        className="text-blue-600 hover:underline font-mono"
+                    >
+                        {invoice.code}
+                    </Link>
+                ) : (
+                    <>
+                        <span className="text-gray-500">{t('invoice.notInvoiced')}</span>
+                        <Link href="/finance/invoices/new" className="text-blue-600 hover:underline ml-2">
+                            {t('invoice.new')}
+                        </Link>
+                    </>
+                )}
+            </p>
 
             {/* 结算历史 */}
             <h2 className="text-lg font-semibold mb-3">{t('finance.settlementHistory')}</h2>

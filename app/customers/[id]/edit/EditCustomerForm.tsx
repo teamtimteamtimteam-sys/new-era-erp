@@ -21,6 +21,9 @@ type Customer = {
     country: string
     tax_id: string | null
     address: string | null
+    contact_person: string | null
+    email: string | null
+    phone: string | null
     customer_types: string[] | null
     payment_terms: string | null
     incoterm: string | null
@@ -113,6 +116,42 @@ export default function EditCustomerForm({ customer }: { customer: Customer }) {
                         className="w-full border border-gray-300 px-3 py-2 rounded"
                     />
                 </div>
+
+                {/* 联系方式(开票抬头会用到)*/}
+                <fieldset className="border border-gray-200 rounded p-4">
+                    <legend className="text-sm font-medium px-1">{t('customers.form.contactGroup')}</legend>
+                    <div className="space-y-3">
+                        <div>
+                            <label className="block text-sm font-medium mb-1">{t('customers.form.contactPerson')}</label>
+                            <input
+                                type="text"
+                                name="contact_person"
+                                defaultValue={customer.contact_person ?? ''}
+                                className="w-full border border-gray-300 px-3 py-2 rounded"
+                            />
+                        </div>
+                        <div className="flex flex-wrap gap-3">
+                            <div className="flex-1 min-w-[14rem]">
+                                <label className="block text-sm font-medium mb-1">{t('customers.form.email')}</label>
+                                <input
+                                    type="text"
+                                    name="email"
+                                    defaultValue={customer.email ?? ''}
+                                    className="w-full border border-gray-300 px-3 py-2 rounded"
+                                />
+                            </div>
+                            <div className="flex-1 min-w-[12rem]">
+                                <label className="block text-sm font-medium mb-1">{t('customers.form.phone')}</label>
+                                <input
+                                    type="text"
+                                    name="phone"
+                                    defaultValue={customer.phone ?? ''}
+                                    className="w-full border border-gray-300 px-3 py-2 rounded"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
 
                 <div>
                     <label className="block text-sm font-medium mb-2">

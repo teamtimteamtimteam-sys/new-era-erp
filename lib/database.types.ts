@@ -340,18 +340,21 @@ export type Database = {
         Row: {
           address: string | null
           code: string
+          contact_person: string | null
           country: string
           created_at: string
           created_by: string | null
           credit_rating: string | null
           customer_types: string[] | null
           deleted_at: string | null
+          email: string | null
           id: string
           incoterm: string | null
           legal_name: string
           notes: string | null
           payment_terms: string | null
           payment_terms_days: number | null
+          phone: string | null
           short_name: string | null
           status: string
           tax_id: string | null
@@ -361,18 +364,21 @@ export type Database = {
         Insert: {
           address?: string | null
           code: string
+          contact_person?: string | null
           country: string
           created_at?: string
           created_by?: string | null
           credit_rating?: string | null
           customer_types?: string[] | null
           deleted_at?: string | null
+          email?: string | null
           id?: string
           incoterm?: string | null
           legal_name: string
           notes?: string | null
           payment_terms?: string | null
           payment_terms_days?: number | null
+          phone?: string | null
           short_name?: string | null
           status?: string
           tax_id?: string | null
@@ -382,18 +388,21 @@ export type Database = {
         Update: {
           address?: string | null
           code?: string
+          contact_person?: string | null
           country?: string
           created_at?: string
           created_by?: string | null
           credit_rating?: string | null
           customer_types?: string[] | null
           deleted_at?: string | null
+          email?: string | null
           id?: string
           incoterm?: string | null
           legal_name?: string
           notes?: string | null
           payment_terms?: string | null
           payment_terms_days?: number | null
+          phone?: string | null
           short_name?: string | null
           status?: string
           tax_id?: string | null

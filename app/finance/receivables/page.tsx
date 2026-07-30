@@ -13,6 +13,8 @@ import { BUCKETS, bucketPillClass } from '../agingBuckets'
 type ArRow = {
     sales_record_id: string
     doc_code: string
+    invoice_id: string | null
+    invoice_code: string | null
     customer_id: string | null
     customer_name: string | null
     sale_date: string
@@ -112,6 +114,7 @@ export default async function ReceivablesPage() {
                     <tr>
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colCounterparty')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colDocument')}</th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">{t('invoice.colCode')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colDate')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colAmount')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colSettled')}</th>
@@ -136,6 +139,18 @@ export default async function ReceivablesPage() {
                                                 {r.doc_code}
                                             </Link>
                                         </td>
+                                        <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
+                                            {r.invoice_id && r.invoice_code ? (
+                                                <Link
+                                                    href={`/finance/invoices/${r.invoice_id}`}
+                                                    className="text-blue-600 hover:underline"
+                                                >
+                                                    {r.invoice_code}
+                                                </Link>
+                                            ) : (
+                                                <span className="text-gray-400">—</span>
+                                            )}
+                                        </td>
                                         <td className="border border-gray-300 px-4 py-2">{r.sale_date}</td>
                                         <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                             {formatUsd(r.amount_usd)}
@@ -155,7 +170,7 @@ export default async function ReceivablesPage() {
                                 )
                             }),
                             <tr key={`subtotal-${gi}`} className="bg-gray-50 font-medium">
-                                <td className="border border-gray-300 px-4 py-2 text-sm" colSpan={3}>
+                                <td className="border border-gray-300 px-4 py-2 text-sm" colSpan={4}>
                                     {g.name} — {t('finance.totalsLabel')}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
@@ -173,7 +188,7 @@ export default async function ReceivablesPage() {
                     ))}
                     {rows.length === 0 && (
                         <tr>
-                            <td colSpan={7} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
+                            <td colSpan={8} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
                                 {t('finance.noOpenItems')}
                             </td>
                         </tr>
