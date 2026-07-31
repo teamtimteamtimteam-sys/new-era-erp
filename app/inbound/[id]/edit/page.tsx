@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import EditInboundForm from './EditInboundForm'
 import PricingPanel, { type PriceHistoryRow } from './PricingPanel'
+import PrepaymentPanel, { type PrepaymentApplicationRow } from './PrepaymentPanel'
 import MetalContentPanel from '@/app/components/metals/MetalContentPanel'
 import { priceBatchHref } from '@/app/components/metals/priceBatchHref'
 import type { MetalContentRow } from '@/app/components/metals/metalContentTypes'
@@ -96,6 +97,64 @@ export default async function EditInboundPage({
 
     const batch = batchRes.data
 
+    // 关联采购单(cut 4c):头部链接 + 行下单量;抵扣预付的资格/建议额与已抵扣记录
+    let poHeader: { po_id: string; po_code: string; ordered_qty: number | null; unit: string } | null = null
+    let applicable: {
+        purchase_order_id: string
+        po_code: string
+        batch_ap_open_usd: number
+        po_unapplied_prepayment_usd: number
+        applicable_usd: number
+    } | null = null
+    let prepaymentHistory: PrepaymentApplicationRow[] = []
+    if (batch.purchase_order_id) {
+        const [poRes, lineRes, applicableRes, historyRes] = await Promise.all([
+            supabase.from('purchase_orders').select('id, code').eq('id', batch.purchase_order_id).single(),
+            batch.purchase_order_line_id
+                ? supabase
+                      .from('purchase_order_lines')
+                      .select('quantity, unit')
+                      .eq('id', batch.purchase_order_line_id)
+                      .single()
+                : Promise.resolve({ data: null }),
+            // 资格与建议额【只从视图读】—— 与 apply_prepayment 同一口径
+            supabase
+                .from('po_prepayment_applicable')
+                .select('purchase_order_id, po_code, batch_ap_open_usd, po_unapplied_prepayment_usd, applicable_usd')
+                .eq('inbound_batch_id', id)
+                .maybeSingle(),
+            supabase
+                .from('prepayment_applications')
+                .select('id, amount_usd, created_at, journal_entry_id, journal_entries(id, code)')
+                .eq('inbound_batch_id', id)
+                .order('created_at', { ascending: false }),
+        ])
+        if (poRes.data) {
+            poHeader = {
+                po_id: poRes.data.id,
+                po_code: poRes.data.code,
+                ordered_qty: lineRes.data?.quantity ?? null,
+                unit: lineRes.data?.unit ?? batch.unit,
+            }
+        }
+        // 视图列在生成类型里全可空;行进视图即非空(WHERE 已保证),此处锁死
+        applicable = (applicableRes.data ?? null) as typeof applicable
+        prepaymentHistory = (
+            (historyRes.data as unknown as {
+                id: string
+                amount_usd: number
+                created_at: string
+                journal_entries: { id: string; code: string } | null
+            }[] | null) ?? []
+        ).map((h) => ({
+            id: h.id,
+            amount_usd: h.amount_usd,
+            created_at_display: new Date(h.created_at).toLocaleString(dateLocale),
+            journal_id: h.journal_entries?.id ?? null,
+            journal_code: h.journal_entries?.code ?? null,
+        }))
+    }
+
     // 本批在进行中盘点里的已录实点数(有则预填横幅)
     const openStocktake = stocktakeRes.data?.[0] ?? null
     let stocktakeCounted: number | null = null
@@ -165,6 +224,22 @@ export default async function EditInboundPage({
                 >
                     {t('batchLabel.print')}
                 </a>
+                {poHeader && (
+                    <span className="ml-3">
+                        {t('inbound.againstPo')}:{' '}
+                        <Link
+                            href={`/purchasing/orders/${poHeader.po_id}`}
+                            className="text-blue-600 hover:underline font-mono"
+                        >
+                            {poHeader.po_code}
+                        </Link>
+                        {poHeader.ordered_qty !== null && (
+                            <span className="text-gray-500">
+                                {' '}({t('inbound.poLineOrdered', { qty: poHeader.ordered_qty, unit: poHeader.unit })})
+                            </span>
+                        )}
+                    </span>
+                )}
             </p>
 
             {openStocktake && (
@@ -188,6 +263,9 @@ export default async function EditInboundPage({
                 unitPrice={batch.unit_price}
                 history={priceHistoryRows}
             />
+
+            {/* 抵扣预付(cut 4c):可抵扣 or 有历史时才渲染 */}
+            <PrepaymentPanel batchId={batch.id} applicable={applicable} history={prepaymentHistory} />
 
             <MetalContentPanel
                 rows={metalRows}

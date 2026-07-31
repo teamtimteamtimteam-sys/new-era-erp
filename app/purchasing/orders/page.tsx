@@ -27,6 +27,7 @@ type Row = {
     expected_delivery_date: string | null
     estimated_total_usd: number
     prepaid_usd: number | null
+    prepaid_remaining_usd: number | null
     receipt_pct: number | null
     status: string
 }
@@ -90,6 +91,7 @@ export default async function PurchaseOrdersPage({
             expected_delivery_date: r.expected_delivery_date,
             estimated_total_usd: r.estimated_total_usd,
             prepaid_usd: null,
+            prepaid_remaining_usd: null,
             receipt_pct: null,
             status: r.status,
         }))
@@ -108,7 +110,7 @@ export default async function PurchaseOrdersPage({
         const { data } = await applyStatus(
             supabase
                 .from('purchase_order_status')
-                .select('po_id, code, supplier_name, order_date, expected_delivery_date, estimated_total_usd, prepaid_usd, receipt_pct, status')
+                .select('po_id, code, supplier_name, order_date, expected_delivery_date, estimated_total_usd, prepaid_usd, prepaid_remaining_usd, receipt_pct, status')
         )
             .order('order_date', { ascending: false })
             .range((page - 1) * PAGE_SIZE, (page - 1) * PAGE_SIZE + PAGE_SIZE - 1)
@@ -201,6 +203,15 @@ export default async function PurchaseOrdersPage({
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                 {r.prepaid_usd === null ? '—' : formatUsd(r.prepaid_usd)}
+                                {/* 搁浅的定金要不点开每张单也看得见(cut 4c)*/}
+                                {(r.prepaid_remaining_usd ?? 0) > 0 && (
+                                    <span
+                                        title={t('purchasing.unappliedMarker')}
+                                        className="ml-2 inline-block px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-800 font-sans"
+                                    >
+                                        ⚠ {formatUsd(r.prepaid_remaining_usd ?? 0)}
+                                    </span>
+                                )}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">
                                 {r.receipt_pct === null ? (

@@ -18,6 +18,10 @@
 -- 为 db/migrations/2026-07-31-phase4-cut4a-purchase-orders.sql 追加(守卫函数在
 -- db/functions/guard_inbound_po_line_match.sql;两列可空 —— 没有 PO 的现场收货
 -- 照常工作;列序按线上 attnum,追加列在末尾)。
+-- cut 4c(db/migrations/2026-07-31-phase4-cut4c-po-receiving.sql)再追加两个触发器:
+--   * trg_inbound_batches_po_receivable —— 已取消/已结束的单拒收(PO_NOT_RECEIVABLE);
+--   * trg_inbound_batches_advance_po —— 首次收货把 'confirmed' 推到 'receiving'
+--     (机械且无歧义;关单是判断,永远手动走 close_purchase_order)。
 -- First-run script (plain CREATEs). Run in the Supabase SQL Editor.
 
 CREATE SEQUENCE public.inbound_code_seq;
@@ -90,6 +94,47 @@ CREATE TRIGGER trg_inbound_batches_po_line_match
     BEFORE INSERT OR UPDATE OF purchase_order_id, purchase_order_line_id
     ON public.inbound_batches
     FOR EACH ROW EXECUTE FUNCTION guard_inbound_po_line_match();
+
+-- 收货与采购单状态的联动(cut 4c)
+CREATE OR REPLACE FUNCTION public.guard_inbound_po_receivable()
+RETURNS trigger LANGUAGE plpgsql AS $fn$
+DECLARE
+    v_po record;
+BEGIN
+    IF NEW.purchase_order_id IS NULL THEN
+        RETURN NEW;
+    END IF;
+    -- UPDATE 时只在换单时把关(同单上改行号之类不重复检查)
+    IF TG_OP = 'UPDATE' AND NEW.purchase_order_id IS NOT DISTINCT FROM OLD.purchase_order_id THEN
+        RETURN NEW;
+    END IF;
+    SELECT code, status INTO v_po FROM purchase_orders WHERE id = NEW.purchase_order_id;
+    IF FOUND AND v_po.status IN ('cancelled', 'closed') THEN
+        RAISE EXCEPTION 'PO_NOT_RECEIVABLE|%|%', v_po.code, v_po.status;
+    END IF;
+    RETURN NEW;
+END;
+$fn$;
+
+CREATE TRIGGER trg_inbound_batches_po_receivable
+    BEFORE INSERT OR UPDATE OF purchase_order_id ON public.inbound_batches
+    FOR EACH ROW EXECUTE FUNCTION public.guard_inbound_po_receivable();
+
+CREATE OR REPLACE FUNCTION public.advance_po_on_receipt()
+RETURNS trigger LANGUAGE plpgsql AS $fn$
+BEGIN
+    IF NEW.purchase_order_id IS NOT NULL THEN
+        UPDATE purchase_orders
+        SET status = 'receiving', updated_by = auth.uid()
+        WHERE id = NEW.purchase_order_id AND status = 'confirmed';
+    END IF;
+    RETURN NULL;
+END;
+$fn$;
+
+CREATE TRIGGER trg_inbound_batches_advance_po
+    AFTER INSERT ON public.inbound_batches
+    FOR EACH ROW EXECUTE FUNCTION public.advance_po_on_receipt();
 
 ALTER TABLE public.inbound_batches ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "authenticated full access on inbound_batches"

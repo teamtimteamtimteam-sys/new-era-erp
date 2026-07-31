@@ -2,14 +2,14 @@
 // 移动端现场收货页(服务端抓下拉数据,渲染客户端表单)。可在任意设备用 URL 直达。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import ReceiveForm from './ReceiveForm'
+import ReceiveForm, { type PoLineOption } from './ReceiveForm'
 import { getTranslations } from '@/lib/i18n/server'
 
 export default async function ReceivePage() {
     const supabase = await createClient()
     const t = await getTranslations()
 
-    const [suppliersRes, materialsRes] = await Promise.all([
+    const [suppliersRes, materialsRes, poLinesRes] = await Promise.all([
         supabase
             .from('suppliers')
             .select('id, code, legal_name')
@@ -20,6 +20,12 @@ export default async function ReceivePage() {
             .select('id, code, name')
             .is('deleted_at', null)
             .order('name'),
+        // 可收货的采购单行(cut 4c;客户端按供应商过滤)
+        supabase
+            .from('po_receivable_lines')
+            .select('po_id, po_code, supplier_id, order_date, line_id, line_no, material_id, material_name, remaining_qty, unit')
+            .order('po_code')
+            .order('line_no'),
     ])
 
     return (
@@ -35,6 +41,7 @@ export default async function ReceivePage() {
             <ReceiveForm
                 suppliers={suppliersRes.data ?? []}
                 materials={materialsRes.data ?? []}
+                poLines={(poLinesRes.data ?? []) as PoLineOption[]}
             />
         </div>
     )

@@ -9,6 +9,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { formatUsd, formatUnitCost } from '@/lib/format'
 import Subnav from '../../Subnav'
 import CancelOrderControl from './CancelOrderControl'
+import { CloseOrderControl, ReopenOrderControl } from './CloseReopenControls'
 
 type AssayEntry = { metal: string; content_pct: number }
 
@@ -80,6 +81,18 @@ export default async function PurchaseOrderDetailPage({
     const formulaById = new Map((formulasRes.data ?? []).map((f) => [f.id, `${f.code} — ${f.name}`]))
     const openByBatch = new Map((apRes.data ?? []).map((r) => [r.inbound_batch_id ?? '', r.open_usd]))
 
+    // 每批已抵扣的预付(cut 4c:收货记录多一列)
+    const { data: appliedRows } = batchIds.length
+        ? await supabase
+              .from('prepayment_applications')
+              .select('inbound_batch_id, amount_usd')
+              .in('inbound_batch_id', batchIds)
+        : { data: [] as { inbound_batch_id: string; amount_usd: number }[] }
+    const appliedByBatch = new Map<string, number>()
+    for (const r of appliedRows ?? []) {
+        appliedByBatch.set(r.inbound_batch_id, round2((appliedByBatch.get(r.inbound_batch_id) ?? 0) + Number(r.amount_usd)))
+    }
+
     const isCancelled = po.status === 'cancelled'
     const receivedQty = poStatus?.received_qty ?? receipts.reduce((s, r) => s + Number(r.quantity), 0)
     const orderedQty = poStatus?.ordered_qty ?? lines.reduce((s, l) => s + Number(l.quantity), 0)
@@ -124,17 +137,36 @@ export default async function PurchaseOrderDetailPage({
                 </Link>
             </div>
 
-            <div className="flex justify-between items-center mb-2">
+            <div className="flex justify-between items-start mb-2 gap-4">
                 <h1 className="text-2xl font-bold">
                     {t('purchasing.orderDetailTitle')}
                     <span className="ml-3 font-mono text-base text-gray-500">{po.code}</span>
                 </h1>
-                {!isCancelled &&
-                    (cancelBlocked ? (
-                        <p className="text-sm text-gray-400">{t('purchasing.cancelBlocked')}</p>
-                    ) : (
-                        <CancelOrderControl poId={po.id} />
-                    ))}
+                <div className="flex flex-wrap items-center gap-3 justify-end">
+                    {/* 按此单收货:只在可收货状态出现 */}
+                    {(po.status === 'confirmed' || po.status === 'receiving') && (
+                        <Link
+                            href={`/inbound/new?po=${po.id}`}
+                            className="bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 text-sm"
+                        >
+                            {t('purchasing.receiveAgainst')}
+                        </Link>
+                    )}
+                    {(po.status === 'confirmed' || po.status === 'receiving') && (
+                        <CloseOrderControl
+                            poId={po.id}
+                            unappliedPrepayment={Number(poStatus?.prepaid_remaining_usd ?? 0)}
+                        />
+                    )}
+                    {po.status === 'closed' && <ReopenOrderControl poId={po.id} />}
+                    {!isCancelled &&
+                        po.status !== 'closed' &&
+                        (cancelBlocked ? (
+                            <p className="text-sm text-gray-400">{t('purchasing.cancelBlocked')}</p>
+                        ) : (
+                            <CancelOrderControl poId={po.id} />
+                        ))}
+                </div>
             </div>
 
             <Subnav />
@@ -348,6 +380,7 @@ export default async function PurchaseOrderDetailPage({
                                 <th className="border border-gray-300 px-4 py-2 text-left">{t('inbound.form.arrivalDate')}</th>
                                 <th className="border border-gray-300 px-4 py-2 text-right">{t('purchasing.colQuantity')}</th>
                                 <th className="border border-gray-300 px-4 py-2 text-right">{t('purchasing.colUnitPrice')}</th>
+                                <th className="border border-gray-300 px-4 py-2 text-right">{t('purchasing.appliedLabel')}</th>
                                 <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colOpen')}</th>
                             </tr>
                         </thead>
@@ -369,6 +402,9 @@ export default async function PurchaseOrderDetailPage({
                                         ) : (
                                             <span className="text-amber-700">{t('purchasing.unpriced')}</span>
                                         )}
+                                    </td>
+                                    <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                        {appliedByBatch.has(r.id) ? formatUsd(appliedByBatch.get(r.id)) : '—'}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                         {r.unit_price !== null ? formatUsd(openByBatch.get(r.id) ?? 0) : '—'}

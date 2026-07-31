@@ -7,6 +7,7 @@ import type { InsertRow } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { localizePurchasingError } from '@/app/purchasing/purchasingErrorCodes'
 
 export type ReceiveState = {
     error?: string
@@ -24,6 +25,9 @@ export async function createFieldReceipt(
     const quantity_raw = (formData.get('quantity') as string) || ''
     const arrival_date = (formData.get('arrival_date') as string)?.trim() || null
     const notes = (formData.get('notes') as string)?.trim() || null
+    // 关联采购单(cut 4c,可选;成对出现)
+    const purchase_order_id = (formData.get('purchase_order_id') as string) || null
+    const purchase_order_line_id = (formData.get('purchase_order_line_id') as string) || null
 
     const fieldErrors: Record<string, string> = {}
     if (!supplier_id) fieldErrors.supplier_id = t('receive.errSupplier')
@@ -57,6 +61,8 @@ export async function createFieldReceipt(
             unit: 'kg',
             arrival_date,
             notes,
+            purchase_order_id,
+            purchase_order_line_id,
             created_by: user?.id ?? null,
             updated_by: user?.id ?? null,
             // code 触发器自动生成;status 默认 'draft';stage 默认 '待加工'
@@ -65,6 +71,10 @@ export async function createFieldReceipt(
         .single()
 
     if (error || !data) {
+        // PO 关联触发器的编码错误本地化;其余仍走原样的 saveError
+        if (error && /PO_NOT_RECEIVABLE|PO_LINE_MISMATCH/.test(error.message)) {
+            return { error: await localizePurchasingError(error.message) }
+        }
         return { error: t('receive.saveError', { message: error?.message ?? '' }) }
     }
 

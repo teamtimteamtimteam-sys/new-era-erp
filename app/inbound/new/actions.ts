@@ -5,6 +5,7 @@ import type { InsertRow } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { localizePurchasingError } from '@/app/purchasing/purchasingErrorCodes'
 
 export type CreateInboundState = {
     error?: string
@@ -26,6 +27,9 @@ export async function createInbound(
     const stage = (formData.get('stage') as string)?.trim() || '待加工'
     const unit_price_raw = (formData.get('unit_price') as string) || ''
     const notes = (formData.get('notes') as string)?.trim() || null
+    // 关联采购单(cut 4c,可选;成对出现 —— 表单只在选了行时才携带)
+    const purchase_order_id = (formData.get('purchase_order_id') as string) || null
+    const purchase_order_line_id = (formData.get('purchase_order_line_id') as string) || null
 
     // 2. 校验
     const fieldErrors: Record<string, string> = {}
@@ -74,6 +78,8 @@ export async function createInbound(
         stage,
         unit_price,
         notes,
+        purchase_order_id,
+        purchase_order_line_id,
         created_by: user?.id ?? null,
         updated_by: user?.id ?? null,
         // code 不传,用触发器自动生成
@@ -81,9 +87,15 @@ export async function createInbound(
     } as InsertRow<'inbound_batches'>)
 
     if (error) {
+        // PO 关联触发器的编码错误(PO_NOT_RECEIVABLE / PO_LINE_MISMATCH)本地化;
+        // 其余仍走原样的 saveError
+        if (/PO_NOT_RECEIVABLE|PO_LINE_MISMATCH/.test(error.message)) {
+            return { error: await localizePurchasingError(error.message) }
+        }
         return { error: t('inbound.form.saveError', { message: error.message }) }
     }
 
     revalidatePath('/inbound')
+    revalidatePath('/purchasing/orders')
     redirect('/inbound')
 }
