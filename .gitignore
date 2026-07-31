@@ -43,3 +43,9 @@ next-env.d.ts
 # supabase
 supabase/.temp
 supabase/.branches
+
+# 发票 PDF 字体:仓库里只放 assets/fonts/subset.py 裁出来的 *.subset.ttf(各 ~2.2 MB)。
+# 完整字重每个 10 MB —— 进了 git history 就是每次 clone 都要拖,永远删不掉。
+# 需要重裁时按 subset.py 头部注释下载到这里即可,不会被误提交。
+/assets/fonts/NotoSansSC-Regular.ttf
+/assets/fonts/NotoSansSC-Bold.ttf

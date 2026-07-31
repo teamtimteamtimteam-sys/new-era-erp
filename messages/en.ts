@@ -1349,6 +1349,8 @@ const en = {
         settlementTitle: 'Settlement',
         downloadPdf: 'Download PDF',
         profileIncomplete: 'Company details are not set up yet — the PDF cannot be generated.',
+        fontUnsupported:
+            'The PDF cannot be generated — the invoice font cannot render these characters, and printing them as blanks on a document sent to a customer is not acceptable. Replace them, or widen the font coverage in assets/fonts/subset.py.',
         empty: 'No invoices yet',
         errTermsDays: 'Payment terms must be a whole number of days',
         errors: {

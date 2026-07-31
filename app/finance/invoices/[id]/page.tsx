@@ -8,6 +8,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatUsd, formatAmount } from '@/lib/format'
+import { checkInvoicePdfCoverage } from '@/lib/invoiceFontCoverage'
 import Subnav from '../../Subnav'
 import VoidInvoiceControl from './VoidInvoiceControl'
 
@@ -53,12 +54,13 @@ export default async function InvoiceDetailPage({
         notFound()
     }
 
-    // 公司抬头是否已填 —— 没填就不能出 PDF,页面上先给出提示
-    const { data: company } = await supabase
-        .from('company_profile')
-        .select('legal_name')
-        .limit(1)
-        .single()
+    // 公司抬头是否已填 —— 没填就不能出 PDF,页面上先给出提示。
+    // 取整行(不只是 legal_name)是因为下面的字体覆盖检查要过一遍抬头/银行/页脚里
+    // 所有会被印到 PDF 上的字段。
+    const [{ data: company }, { data: financeSettings }] = await Promise.all([
+        supabase.from('company_profile').select('*').limit(1).single(),
+        supabase.from('finance_settings').select('gst_registration_no').limit(1).single(),
+    ])
     const profileIncomplete = !company?.legal_name?.trim()
 
     const { data: lines } = await supabase
@@ -92,6 +94,40 @@ export default async function InvoiceDetailPage({
     const bill = (inv.bill_to_snapshot ?? {}) as BillTo
     const isVoid = inv.status === 'void'
 
+    // 发票 PDF 内嵌的中文字体是【裁剪过的】(见 assets/fonts/subset.py),范围外的字
+    // 会被静默画成空白。PDF 路由会拦下来返回 409,但那要等到有人去点"下载 PDF"才发现
+    // —— 而那通常已经是准备把单据寄出去的时刻了。所以在详情页上【提前】暴露出来。
+    const fontProblems =
+        company && !profileIncomplete
+            ? checkInvoicePdfCoverage({
+                  invoice: {
+                      code: inv.code,
+                      issue_date: inv.issue_date,
+                      due_date: inv.due_date,
+                      payment_terms_days: inv.payment_terms_days,
+                      currency: inv.currency,
+                      subtotal_usd: Number(inv.subtotal_usd),
+                      tax_rate_pct: Number(inv.tax_rate_pct),
+                      tax_usd: Number(inv.tax_usd),
+                      total_usd: Number(inv.total_usd),
+                      notes: inv.notes,
+                      terms_text: inv.terms_text,
+                      bill_to: (inv.bill_to_snapshot ?? {}) as Record<string, string | null | undefined>,
+                  },
+                  lines: rows.map((l) => ({
+                      line_no: l.line_no,
+                      description: l.description,
+                      quantity: Number(l.quantity),
+                      unit: l.unit,
+                      unit_price: Number(l.unit_price),
+                      amount_usd: Number(l.amount_usd),
+                  })),
+                  company: company as Record<string, unknown> & { legal_name: string },
+                  gstRegistrationNo: financeSettings?.gst_registration_no ?? null,
+              })
+            : []
+    const pdfBlocked = profileIncomplete || fontProblems.length > 0
+
     return (
         <div className="p-8 max-w-5xl">
             <div className="mb-6">
@@ -106,7 +142,7 @@ export default async function InvoiceDetailPage({
                     <span className="ml-3 font-mono text-base text-gray-500">{inv.code}</span>
                 </h1>
                 <div className="flex items-center gap-3">
-                    {!profileIncomplete && (
+                    {!pdfBlocked && (
                         <a
                             href={`/finance/invoices/${inv.id}/pdf`}
                             target="_blank"
@@ -128,6 +164,20 @@ export default async function InvoiceDetailPage({
                     <Link href="/finance/company" className="text-blue-600 hover:underline">
                         {t('company.title')}
                     </Link>
+                </div>
+            )}
+
+            {fontProblems.length > 0 && (
+                <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-4 text-sm">
+                    <p>{t('invoice.fontUnsupported')}</p>
+                    <ul className="mt-2 space-y-0.5">
+                        {fontProblems.map((p) => (
+                            <li key={p.where}>
+                                <span className="text-amber-800">{p.where}:</span>{' '}
+                                <span className="font-medium text-base">{p.chars.join('  ')}</span>
+                            </li>
+                        ))}
+                    </ul>
                 </div>
             )}
 

@@ -7,7 +7,66 @@
 //
 // 只在服务端渲染(route handler 里 renderToBuffer),不进浏览器包。
 import React from 'react'
-import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer'
+import path from 'node:path'
+import fs from 'node:fs'
+import { Document, Page, Text, View, Image, StyleSheet, Font } from '@react-pdf/renderer'
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 字体
+// ─────────────────────────────────────────────────────────────────────────────
+// 内置的 Helvetica 【没有中文字形】—— 客户名或地址里只要有一个汉字,印出来就是空白。
+// 所以整份文档改用内嵌的 Noto Sans SC(它同时含完整拉丁字母,英文发票的观感不变)。
+//
+// 【从仓库文件系统读,绝不从远程 URL 读】:react-pdf 支持给 src 传 URL,但那意味着
+// 渲染过程中要发一次网络请求 —— 一旦超时或对端挂了,拿到的就是一份字体缺失的 PDF,
+// 而且失败是静默的。这跟本目录 route.ts 里 logo 先下载再内嵌是同一个理由。
+//
+// 字体文件是【裁剪过的】(assets/fonts/subset.py):21 MB → 4.4 MB,代价是裁剪范围外
+// 的字画不出来。所以渲染前必须过一遍 lib/invoiceFontCoverage.ts 的守卫,见 route.ts。
+export const INVOICE_FONT_FAMILY = 'Noto Sans SC'
+
+const FONT_DIR = path.join(process.cwd(), 'assets', 'fonts')
+const FONT_FILES = [
+    { file: 'NotoSansSC-Regular.subset.ttf', fontWeight: 'normal' as const },
+    { file: 'NotoSansSC-Bold.subset.ttf', fontWeight: 'bold' as const },
+]
+
+// 缺文件就在【模块加载时】炸掉,而不是等到渲染时抛一个含糊的 fontkit 错误 ——
+// 字体没装好属于部署事故,应该一眼看出来。
+for (const { file } of FONT_FILES) {
+    const p = path.join(FONT_DIR, file)
+    if (!fs.existsSync(p)) {
+        throw new Error(
+            `发票字体缺失:${p}\n` +
+                `请在 assets/fonts/ 下放好完整字重后运行 python3 assets/fonts/subset.py 生成裁剪版。`
+        )
+    }
+}
+
+Font.register({
+    family: INVOICE_FONT_FAMILY,
+    fonts: FONT_FILES.map(({ file, fontWeight }) => ({
+        src: path.join(FONT_DIR, file),
+        fontStyle: 'normal' as const,
+        fontWeight,
+    })),
+})
+
+// 排版引擎【只按空格切词】(textkit 的 wrapWords:split(/([ ]+)/)),而中文不写空格 ——
+// 一整段中文地址会被当成一个不可断开的"词"。实测 69 个汉字的地址(9pt ≈ 621pt)在
+// 515pt 的正文宽里【直接冲出页面右边缘被截掉】,后面十几个字整段消失。
+//
+// 所以对含中日韩字符的词逐字切开,让断行点能落在任意两个汉字之间;纯拉丁的词保持
+// 整体,避免把英文单词拆散。
+//
+// 【已知缺陷】textkit 在断词点一律插一个连字符(breakLines 里对 penalty 节点
+// insertGlyph(HYPHEN)),中文断行处因此会多出一个 "-":"…大楼北翼-/办公室…"。
+// 中文排版上这是错的。但两害相权:多一个连字符 = 难看但信息完整;不切词 = 地址后半
+// 截直接从纸面上消失,而且没人会发现 —— 后者正是本次改动通篇在防的那类静默丢字。
+// 要彻底修好得绕开 textkit 的 hyphenation 回调(它没有"无连字符断点"这种节点),
+// 属于另一件事。
+const CJK = /[　-〿㐀-䶿一-鿿豈-﫿＀-￯]/
+Font.registerHyphenationCallback((word) => (CJK.test(word) ? Array.from(word) : [word]))
 
 export type CompanyProfile = {
     legal_name: string
@@ -59,23 +118,33 @@ const num = (n: number, dp = 2) =>
     new Intl.NumberFormat('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp }).format(n)
 
 const styles = StyleSheet.create({
-    page: { paddingTop: 36, paddingBottom: 64, paddingHorizontal: 40, fontSize: 9, color: '#111827' },
+    // fontFamily 放在 page 上,页面内所有 Text 默认继承它 —— 任何一个文本节点都不该
+    // 回落到没有中文字形的 Helvetica。下面凡是要加粗的地方一律用 fontWeight: 'bold'
+    // (而不是 fontFamily: 'Helvetica-Bold'),否则等于把那个节点换回了拉丁字体。
+    page: {
+        paddingTop: 36,
+        paddingBottom: 64,
+        paddingHorizontal: 40,
+        fontSize: 9,
+        color: '#111827',
+        fontFamily: INVOICE_FONT_FAMILY,
+    },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
     logo: { height: 44, objectFit: 'contain' },
     companyBlock: { alignItems: 'flex-end', maxWidth: 240 },
-    companyName: { fontSize: 11, fontFamily: 'Helvetica-Bold', marginBottom: 2 },
+    companyName: { fontSize: 11, fontWeight: 'bold', marginBottom: 2 },
     small: { fontSize: 8, color: '#4b5563', textAlign: 'right' },
 
     titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16 },
-    title: { fontSize: 22, fontFamily: 'Helvetica-Bold', letterSpacing: 2 },
+    title: { fontSize: 22, fontWeight: 'bold', letterSpacing: 2 },
     metaTable: { alignItems: 'flex-end' },
     metaRow: { flexDirection: 'row', marginBottom: 1 },
     metaLabel: { fontSize: 8, color: '#6b7280', width: 78, textAlign: 'right', marginRight: 8 },
     metaValue: { fontSize: 9, width: 90, textAlign: 'right' },
 
     billTo: { marginBottom: 18 },
-    sectionHeading: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#6b7280', letterSpacing: 1, marginBottom: 4 },
-    billName: { fontSize: 10, fontFamily: 'Helvetica-Bold' },
+    sectionHeading: { fontSize: 8, fontWeight: 'bold', color: '#6b7280', letterSpacing: 1, marginBottom: 4 },
+    billName: { fontSize: 10, fontWeight: 'bold' },
 
     tableHeader: {
         flexDirection: 'row',
@@ -85,7 +154,7 @@ const styles = StyleSheet.create({
         marginBottom: 2,
     },
     row: { flexDirection: 'row', paddingVertical: 4, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb' },
-    thText: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#374151' },
+    thText: { fontSize: 8, fontWeight: 'bold', color: '#374151' },
     cNo: { width: 22 },
     cDesc: { flex: 1, paddingRight: 8 },
     cQty: { width: 82, textAlign: 'right' },
@@ -96,8 +165,8 @@ const styles = StyleSheet.create({
     totalRow: { flexDirection: 'row', marginBottom: 2 },
     totalLabel: { fontSize: 9, color: '#4b5563', width: 110, textAlign: 'right', marginRight: 10 },
     totalValue: { fontSize: 9, width: 90, textAlign: 'right' },
-    grandLabel: { fontSize: 10, fontFamily: 'Helvetica-Bold', width: 110, textAlign: 'right', marginRight: 10 },
-    grandValue: { fontSize: 10, fontFamily: 'Helvetica-Bold', width: 90, textAlign: 'right' },
+    grandLabel: { fontSize: 10, fontWeight: 'bold', width: 110, textAlign: 'right', marginRight: 10 },
+    grandValue: { fontSize: 10, fontWeight: 'bold', width: 90, textAlign: 'right' },
     grandRow: { flexDirection: 'row', marginTop: 3, paddingTop: 4, borderTopWidth: 1, borderTopColor: '#111827' },
 
     block: { marginTop: 20 },
@@ -130,7 +199,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         opacity: 0.55,
     },
-    voidText: { fontSize: 40, fontFamily: 'Helvetica-Bold', color: '#dc2626', letterSpacing: 8 },
+    voidText: { fontSize: 40, fontWeight: 'bold', color: '#dc2626', letterSpacing: 8 },
 })
 
 // 只画有值的行

@@ -1350,6 +1350,8 @@ const zh = {
         settlementTitle: '收款情况',
         downloadPdf: '下载 PDF',
         profileIncomplete: '公司信息尚未填写,暂时无法生成 PDF。',
+        fontUnsupported:
+            '无法生成 PDF —— 以下字符不在发票内嵌字体的覆盖范围内。寄给客户的单据上印成空白是不可接受的,请替换这些字符,或在 assets/fonts/subset.py 中扩大字体覆盖范围后重跑该脚本。',
         empty: '暂无发票',
         errTermsDays: '付款期限必须是整数天',
         errors: {

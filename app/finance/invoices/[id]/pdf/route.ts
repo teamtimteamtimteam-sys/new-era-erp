@@ -14,6 +14,7 @@ import InvoiceDocument, {
     type InvoiceData,
     type InvoiceLine,
 } from './InvoiceDocument'
+import { checkInvoicePdfCoverage, coverageErrorMessage } from '@/lib/invoiceFontCoverage'
 import React from 'react'
 
 const LOGO_MIME: Record<string, string> = {
@@ -101,6 +102,23 @@ export async function GET(
         unit_price: Number(l.unit_price),
         amount_usd: Number(l.amount_usd),
     }))
+
+    // 守卫:内嵌的是【裁剪过的】中文字体,范围外的字会被静默画成空白 —— 一份寄给
+    // 客户的单据上出现空白是真实事故,而且没人会发现(PDF 生成"成功"了)。所以渲染前
+    // 把这份文档要印的每一个字符串过一遍,有印不出来的字就【不出 PDF】,并明确指出是
+    // 哪几个字、出现在哪。要放宽范围:改 assets/fonts/subset.py 的区间后重跑该脚本。
+    const coverageProblems = checkInvoicePdfCoverage({
+        invoice,
+        lines,
+        company: company as unknown as Record<string, unknown> & { legal_name: string },
+        gstRegistrationNo: settingsRes.data?.gst_registration_no ?? null,
+    })
+    if (coverageProblems.length) {
+        return new NextResponse(coverageErrorMessage(coverageProblems), {
+            status: 409,
+            headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+        })
+    }
 
     // renderToBuffer 的签名要求顶层元素是 ReactElement<DocumentProps>;我们的组件
     // 返回的正是 <Document>,但它自身的 props 类型不是 DocumentProps,故在此断言。
