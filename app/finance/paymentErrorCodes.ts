@@ -10,6 +10,10 @@ const PAYMENT_ERROR_CODES = new Set([
     'ALLOC_EXCEEDS', 'ALLOC_EXCEEDS_PAYMENT', 'PERIOD_LOCKED',
 ])
 
+// cut 4b:record_payment 的 PO 预付分支抛的码,文案住在 purchasing.errors 下
+// (同一个码在采购侧与付款侧要说同一句话)。
+const PURCHASING_SIDE_CODES = new Set(['PREPAY_EXCEEDS_ESTIMATE'])
+
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..."(同 localizeFinanceError)。
 const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/
 
@@ -17,7 +21,7 @@ export async function localizePaymentError(message: string): Promise<string> {
     const raw = (message ?? '').trim()
     const match = raw.match(CODE_RE)
 
-    if (!match || !PAYMENT_ERROR_CODES.has(match[1])) {
+    if (!match || (!PAYMENT_ERROR_CODES.has(match[1]) && !PURCHASING_SIDE_CODES.has(match[1]))) {
         return raw // genuine non-coded DB error → surface verbatim
     }
 
@@ -29,5 +33,8 @@ export async function localizePaymentError(message: string): Promise<string> {
         })
     }
 
-    return (await getTranslations())('finance.errors.' + code, params)
+    const t = await getTranslations()
+    return PURCHASING_SIDE_CODES.has(code)
+        ? t('purchasing.errors.' + code, params)
+        : t('finance.errors.' + code, params)
 }

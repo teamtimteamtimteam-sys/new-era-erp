@@ -7,6 +7,8 @@ import { useTranslations } from '@/lib/i18n/client'
 
 const NAV_ITEMS = [
     { href: '/suppliers', key: 'nav.suppliers' },
+    // 采购(采购单 / 付款条款模板)紧跟供应商 —— 采购单是"跟这家供应商谈成了什么"的存档
+    { href: '/purchasing', key: 'nav.purchasing' },
     { href: '/customers', key: 'nav.customers' },
     { href: '/materials', key: 'nav.materials' },
     // 定价板块(公式 / 计价器 / 行情)。/metal-prices 的路由仍然有效,只是不再单独占一个

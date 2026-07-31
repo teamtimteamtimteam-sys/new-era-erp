@@ -47,7 +47,8 @@ export async function createPayment(
     }
 
     // 核销行:空/0/非法金额的行直接剔除(挂账 = 全部不核销,允许)。
-    // 键按行的 alloc_kind 选:in → sales_record_id;out → inbound_batch_id / expense_id。
+    // 键按行的 alloc_kind 选:in → sales_record_id;
+    // out → inbound_batch_id / expense_id / purchase_order_id(预付,分录借 1300)。
     const allocIds = formData.getAll('alloc_id').map(String)
     const allocKinds = formData.getAll('alloc_kind').map(String)
     const allocAmounts = formData.getAll('alloc_amount').map(String)
@@ -55,6 +56,7 @@ export async function createPayment(
         sales_record_id?: string
         inbound_batch_id?: string
         expense_id?: string
+        purchase_order_id?: string
         amount_usd: number
     }
     const allocations: Alloc[] = []
@@ -65,6 +67,8 @@ export async function createPayment(
             allocations.push({ sales_record_id: allocIds[i], amount_usd: v })
         } else if (allocKinds[i] === 'expense') {
             allocations.push({ expense_id: allocIds[i], amount_usd: v })
+        } else if (allocKinds[i] === 'purchase_order') {
+            allocations.push({ purchase_order_id: allocIds[i], amount_usd: v })
         } else {
             allocations.push({ inbound_batch_id: allocIds[i], amount_usd: v })
         }

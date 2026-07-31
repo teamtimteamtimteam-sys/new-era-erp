@@ -17,6 +17,7 @@ type AllocRow = {
     sales_record_id: string | null
     inbound_batch_id: string | null
     expense_id: string | null
+    purchase_order_id: string | null
     allocated_usd: number
 }
 
@@ -51,7 +52,7 @@ export default async function PaymentDetailPage({
             : Promise.resolve({ data: null }),
         supabase
             .from('payment_allocations')
-            .select('id, sales_record_id, inbound_batch_id, expense_id, allocated_usd')
+            .select('id, sales_record_id, inbound_batch_id, expense_id, purchase_order_id, allocated_usd')
             .eq('payment_id', id)
             .order('created_at', { ascending: true }),
         payment.reversed_by_payment
@@ -61,11 +62,13 @@ export default async function PaymentDetailPage({
 
     const allocs = ((allocsRes.data as AllocRow[] | null) ?? [])
 
-    // 核销单据:AR 经 sales_record → output_batch 反查编号/链接,AP 直查进料批次/开支单
+    // 核销单据:AR 经 sales_record → output_batch 反查编号/链接,AP 直查进料批次/开支单;
+    // 预付行(cut 4b)查采购单编号
     const saleIds = allocs.map((a) => a.sales_record_id).filter(Boolean) as string[]
     const batchIds = allocs.map((a) => a.inbound_batch_id).filter(Boolean) as string[]
     const expenseIds = allocs.map((a) => a.expense_id).filter(Boolean) as string[]
-    const [salesRes, inboundRes, expensesRes] = await Promise.all([
+    const poIds = allocs.map((a) => a.purchase_order_id).filter(Boolean) as string[]
+    const [salesRes, inboundRes, expensesRes, poRes] = await Promise.all([
         saleIds.length
             ? supabase.from('sales_records').select('id, output_batch_id').in('id', saleIds)
             : Promise.resolve({ data: [] as { id: string; output_batch_id: string }[] }),
@@ -74,6 +77,9 @@ export default async function PaymentDetailPage({
             : Promise.resolve({ data: [] as { id: string; code: string }[] }),
         expenseIds.length
             ? supabase.from('expenses').select('id, code').in('id', expenseIds)
+            : Promise.resolve({ data: [] as { id: string; code: string }[] }),
+        poIds.length
+            ? supabase.from('purchase_orders').select('id, code').in('id', poIds)
             : Promise.resolve({ data: [] as { id: string; code: string }[] }),
     ])
     const outputBySale = new Map((salesRes.data ?? []).map((s) => [s.id, s.output_batch_id]))
@@ -84,6 +90,7 @@ export default async function PaymentDetailPage({
     const outputCodeById = new Map((outputBatches ?? []).map((b) => [b.id, b.code]))
     const inboundById = new Map((inboundRes.data ?? []).map((b) => [b.id, b.code]))
     const expenseById = new Map((expensesRes.data ?? []).map((e) => [e.id, e.code]))
+    const poById = new Map((poRes.data ?? []).map((p) => [p.id, p.code]))
 
     // 每行核销的单据编号 + 链接
     const allocDoc = (a: AllocRow): { code: string; href: string | null } => {
@@ -98,6 +105,13 @@ export default async function PaymentDetailPage({
             return {
                 code: expenseById.get(a.expense_id) ?? '—',
                 href: `/finance/expenses/${a.expense_id}`,
+            }
+        }
+        if (a.purchase_order_id) {
+            // 预付行:指向采购单(还没有单据可核销的钱,躺在 1300 里)
+            return {
+                code: poById.get(a.purchase_order_id) ?? '—',
+                href: `/purchasing/orders/${a.purchase_order_id}`,
             }
         }
         return {

@@ -25,6 +25,17 @@ export type OpenItem = {
     open_usd: number
 }
 
+// 可预付的采购单(cut 4b):没有"未结额"概念 —— 定金不是在还债,
+// 上限(估算总额 × 1.5)由 DB 把守。
+export type PoItem = {
+    po_id: string
+    party_id: string
+    code: string
+    order_date: string
+    estimated_total_usd: number
+    prepaid_usd: number
+}
+
 // 本地日期(YYYY-MM-DD),用作收付日期默认值(避免 UTC 偏移)。
 function todayIsoLocal(): string {
     const d = new Date()
@@ -41,19 +52,23 @@ export default function NewPaymentForm({
     suppliers,
     arItems,
     apItems,
+    poItems,
     initialDirection,
+    initialPartyId = '',
 }: {
     customers: PartyOption[]
     suppliers: PartyOption[]
     arItems: OpenItem[]
     apItems: OpenItem[]
+    poItems: PoItem[]
     initialDirection: 'in' | 'out'
+    initialPartyId?: string
 }) {
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(createPayment, initialState)
 
     const [direction, setDirection] = useState<'in' | 'out'>(initialDirection)
-    const [partyId, setPartyId] = useState('')
+    const [partyId, setPartyId] = useState(initialPartyId)
     const [amount, setAmount] = useState('')
     const [currency, setCurrency] = useState('USD')
     const [fx, setFx] = useState('')
@@ -78,6 +93,8 @@ export default function NewPaymentForm({
 
     const parties = direction === 'in' ? customers : suppliers
     const items = (direction === 'in' ? arItems : apItems).filter((i) => i.party_id === partyId)
+    // 付款方向:该供应商可预付的采购单(单独一组,列在 AP 单据之上)
+    const pos = direction === 'out' ? poItems.filter((p) => p.party_id === partyId) : []
 
     // 实时 USD 款额:round(amount × fx, 2),与 DB 同式;无效输入计 0
     const amountNum = Number(amount)
@@ -90,7 +107,10 @@ export default function NewPaymentForm({
         const v = Number(alloc[docId])
         return alloc[docId] && !Number.isNaN(v) && v > 0 ? v : 0
     }
-    const totalAllocated = round2(items.reduce((s, i) => s + allocValue(i.doc_id), 0))
+    const totalAllocated = round2(
+        items.reduce((s, i) => s + allocValue(i.doc_id), 0) +
+            pos.reduce((s, p) => s + allocValue(p.po_id), 0)
+    )
     const unallocated = round2(payUsd - totalAllocated)
 
     // fill:该行填到 min(未结额, 未冲销余额[不计本行])
@@ -99,6 +119,12 @@ export default function NewPaymentForm({
         const remaining = Math.max(0, round2(payUsd - others))
         const v = Math.min(item.open_usd, remaining)
         setAlloc((a) => ({ ...a, [item.doc_id]: v > 0 ? String(v) : '' }))
+    }
+    // 预付行没有单据上限(定金不是在还债)—— fill = 未冲销余额;1.5× 栏杆由 DB 把守
+    function fillPo(p: PoItem) {
+        const others = totalAllocated - allocValue(p.po_id)
+        const remaining = Math.max(0, round2(payUsd - others))
+        setAlloc((a) => ({ ...a, [p.po_id]: remaining > 0 ? String(remaining) : '' }))
     }
 
     return (
@@ -226,6 +252,62 @@ export default function NewPaymentForm({
                     />
                 </div>
             </div>
+
+            {/* 预付款(采购单):付款方向、选定供应商后,列其可预付的采购单 ——
+                排在 AP 单据之上;alloc_kind 'purchase_order' 由 action 映射为
+                purchase_order_id,分录借 1300 而不是 2000 */}
+            {partyId && pos.length > 0 && (
+                <div>
+                    <h3 className="text-sm font-bold text-gray-700 mb-2">
+                        {t('purchasing.prepaymentGroup')}
+                    </h3>
+                    <table className="w-full border-collapse border border-gray-300">
+                        <thead className="bg-gray-100">
+                            <tr>
+                                <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colDocument')}</th>
+                                <th className="border border-gray-300 px-4 py-2 text-left">{t('purchasing.colOrderDate')}</th>
+                                <th className="border border-gray-300 px-4 py-2 text-right">{t('purchasing.colEstimatedTotal')}</th>
+                                <th className="border border-gray-300 px-4 py-2 text-right">{t('purchasing.colPrepaid')}</th>
+                                <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colAllocate')}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {pos.map((p) => (
+                                <tr key={p.po_id}>
+                                    <td className="border border-gray-300 px-4 py-2 font-mono text-sm">{p.code}</td>
+                                    <td className="border border-gray-300 px-4 py-2">{p.order_date}</td>
+                                    <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                        {formatUsd(p.estimated_total_usd)}
+                                    </td>
+                                    <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                        {formatUsd(p.prepaid_usd)}
+                                    </td>
+                                    <td className="border border-gray-300 px-4 py-2">
+                                        <input type="hidden" name="alloc_id" value={p.po_id} />
+                                        <input type="hidden" name="alloc_kind" value="purchase_order" />
+                                        <DecimalInput
+                                            name="alloc_amount"
+                                            value={alloc[p.po_id] ?? ''}
+                                            onChange={(raw) =>
+                                                setAlloc((a) => ({ ...a, [p.po_id]: raw }))
+                                            }
+                                            className="w-32 border border-gray-300 px-3 py-2 rounded"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => fillPo(p)}
+                                            className="ml-2 text-blue-600 hover:underline text-sm"
+                                        >
+                                            {t('finance.fillAll')}
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    <p className="text-xs text-gray-500 mt-1">{t('purchasing.prepaymentNote')}</p>
+                </div>
+            )}
 
             {/* 核销:选定往来单位后列其未结单据 */}
             {partyId && (

@@ -14,6 +14,8 @@ const SECTIONS = [
     {
         titleKey: 'home.sectionOperations',
         cards: [
+            // 采购在收货之前 —— 流程顺序:下单 → 收货 → 加工
+            { href: '/purchasing', titleKey: 'home.purchasingTitle', descKey: 'home.purchasingDesc' },
             { href: '/inbound', titleKey: 'home.inboundTitle', descKey: 'home.inboundDesc' },
             { href: '/output', titleKey: 'home.outputTitle', descKey: 'home.outputDesc' },
             { href: '/processing', titleKey: 'home.processingTitle', descKey: 'home.processingDesc' },
