@@ -239,10 +239,11 @@ export default async function InvoicesPage({
                             </td>
                             <td className="border border-gray-300 px-4 py-2">{statePill(r)}</td>
                             <td className="border border-gray-300 px-4 py-2">
+                                {/* 列表上点 PDF 是【拿文件】(要往邮件里附),不是读 ——
+                                    所以走 ?download=1 存成附件。要看版式去详情页预览。
+                                    attachment 不会导航,故不需要 target="_blank" */}
                                 <a
-                                    href={`/finance/invoices/${r.invoice_id}/pdf`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                    href={`/finance/invoices/${r.invoice_id}/pdf?download=1`}
                                     className="text-blue-600 hover:underline text-sm"
                                 >
                                     PDF

@@ -1347,6 +1347,7 @@ const en = {
         voidedBanner: 'Voided on {date}: {reason}',
         notInvoiced: 'Not yet invoiced',
         settlementTitle: 'Settlement',
+        previewPdf: 'Preview PDF',
         downloadPdf: 'Download PDF',
         profileIncomplete: 'Company details are not set up yet — the PDF cannot be generated.',
         fontUnsupported:

@@ -142,15 +142,25 @@ export default async function InvoiceDetailPage({
                     <span className="ml-3 font-mono text-base text-gray-500">{inv.code}</span>
                 </h1>
                 <div className="flex items-center gap-3">
+                    {/* 预览是新标签页里直接打开(路由默认 inline),下载走 ?download=1
+                        (路由改成 attachment)—— 看版式和拿文件是两个不同的动作 */}
                     {!pdfBlocked && (
-                        <a
-                            href={`/finance/invoices/${inv.id}/pdf`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="border border-gray-300 px-3 py-1 rounded hover:bg-gray-50 text-sm"
-                        >
-                            {t('invoice.downloadPdf')}
-                        </a>
+                        <>
+                            <a
+                                href={`/finance/invoices/${inv.id}/pdf`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="border border-gray-300 px-3 py-1 rounded hover:bg-gray-50 text-sm"
+                            >
+                                {t('invoice.previewPdf')}
+                            </a>
+                            <a
+                                href={`/finance/invoices/${inv.id}/pdf?download=1`}
+                                className="border border-gray-300 px-3 py-1 rounded hover:bg-gray-50 text-sm"
+                            >
+                                {t('invoice.downloadPdf')}
+                            </a>
+                        </>
                     )}
                     {!isVoid && <VoidInvoiceControl invoiceId={inv.id} />}
                 </div>

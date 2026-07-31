@@ -23,11 +23,28 @@ const LOGO_MIME: Record<string, string> = {
     jpeg: 'image/jpeg',
 }
 
+// Content-Disposition 的文件名部分(RFC 6266)。发票编号目前都是 INV-2026-0001 这种
+// 纯 ASCII,但文件名是【拼进 HTTP 头】的:里面只要混进一个引号或换行就能把这个头
+// 截断。所以 filename= 走转义后的 quoted-string,并额外给一个 filename*(RFC 5987)
+// 以防编号哪天带上非 ASCII 字符 —— 浏览器优先认 filename*。
+function contentDispositionFilename(name: string): string {
+    const ascii = name
+        // eslint-disable-next-line no-control-regex
+        .replace(/[^\u0020-\u007e]/g, '_') // 非 ASCII 可打印字符一律换掉:响应头只能放
+        // ByteString,留一个汉字进去 Headers 就直接抛异常(→ 500)。真正的中文名靠
+        // 下面的 filename* 传,这里只是给老浏览器的退路。
+        .replace(/["\\]/g, '\\$&') // 引号和反斜杠:quoted-string 里要转义
+    return `filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(name)}`
+}
+
 export async function GET(
-    _req: Request,
+    req: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
     const { id } = await params
+    // ?download=1 → 存成文件(attachment);不带则在浏览器里直接打开(inline)。
+    // 两个入口对应两个不同的时刻:详情页要先看一眼版式,列表页/要往邮件里附时要拿文件。
+    const asDownload = new URL(req.url).searchParams.get('download') === '1'
     const supabase = await createClient()
 
     const [invRes, companyRes, settingsRes] = await Promise.all([
@@ -135,7 +152,9 @@ export async function GET(
     return new NextResponse(new Uint8Array(buffer), {
         headers: {
             'Content-Type': 'application/pdf',
-            'Content-Disposition': `inline; filename="${invoice.code}.pdf"`,
+            'Content-Disposition': `${asDownload ? 'attachment' : 'inline'}; ${contentDispositionFilename(
+                `${invoice.code}.pdf`
+            )}`,
             'Cache-Control': 'no-store',
         },
     })

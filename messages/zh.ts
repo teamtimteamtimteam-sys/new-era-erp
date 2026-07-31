@@ -1348,6 +1348,7 @@ const zh = {
         voidedBanner: '已于 {date} 作废:{reason}',
         notInvoiced: '尚未开票',
         settlementTitle: '收款情况',
+        previewPdf: '预览 PDF',
         downloadPdf: '下载 PDF',
         profileIncomplete: '公司信息尚未填写,暂时无法生成 PDF。',
         fontUnsupported:
