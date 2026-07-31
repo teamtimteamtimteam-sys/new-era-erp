@@ -1,0 +1,60 @@
+-- db/tables/departments.sql
+-- 部门:浅层级组织架构(部门 → 下属组),parent_department_id 自引用。
+-- 环路由 guard_department_cycle 触发器挡住(自己不能是自己的任意层上级);
+-- 上溯循环带步数上限,万一历史数据已成环也不会把触发器挂死。
+--
+-- 【不预置任何部门】—— 替 Tim 编一份组织架构就是猜。
+-- 权限切次会消费这张表(按部门授权),故 code 保持稳定、可读。
+--
+-- NOTE: introduced by db/migrations/2026-08-01-hr1a-hr-core.sql.
+-- First-run script (plain CREATEs). Run in the Supabase SQL Editor.
+
+CREATE TABLE public.departments (
+    id                   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    code                 text NOT NULL UNIQUE,
+    name_en              text NOT NULL,
+    name_zh              text NOT NULL,
+    parent_department_id uuid REFERENCES public.departments (id),
+    is_active            boolean NOT NULL DEFAULT true,
+    notes                text,
+    deleted_at           timestamptz,
+    created_at           timestamptz NOT NULL DEFAULT now(),
+    created_by           uuid DEFAULT auth.uid(),
+    updated_at           timestamptz NOT NULL DEFAULT now(),
+    updated_by           uuid DEFAULT auth.uid()
+);
+
+CREATE INDEX idx_departments_parent ON public.departments (parent_department_id);
+
+CREATE TRIGGER trg_departments_updated_at
+    BEFORE UPDATE ON public.departments
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+CREATE OR REPLACE FUNCTION public.guard_department_cycle()
+RETURNS trigger LANGUAGE plpgsql AS $fn$
+DECLARE
+    v_parent uuid := NEW.parent_department_id;
+    v_steps  integer := 0;
+BEGIN
+    WHILE v_parent IS NOT NULL LOOP
+        IF v_parent = NEW.id THEN
+            RAISE EXCEPTION 'DEPARTMENT_CYCLE';
+        END IF;
+        v_steps := v_steps + 1;
+        IF v_steps > 50 THEN
+            RAISE EXCEPTION 'DEPARTMENT_CYCLE';
+        END IF;
+        SELECT parent_department_id INTO v_parent FROM departments WHERE id = v_parent;
+    END LOOP;
+    RETURN NEW;
+END;
+$fn$;
+
+CREATE TRIGGER trg_departments_no_cycle
+    BEFORE INSERT OR UPDATE OF parent_department_id ON public.departments
+    FOR EACH ROW EXECUTE FUNCTION public.guard_department_cycle();
+
+ALTER TABLE public.departments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "authenticated full access on departments"
+    ON public.departments AS PERMISSIVE FOR ALL TO authenticated
+    USING (true) WITH CHECK (true);
