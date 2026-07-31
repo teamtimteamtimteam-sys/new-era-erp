@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import EditInboundForm from './EditInboundForm'
 import PricingPanel, { type PriceHistoryRow } from './PricingPanel'
 import PrepaymentPanel, { type PrepaymentApplicationRow } from './PrepaymentPanel'
+import AssaySection, { type AssayRow } from './AssaySection'
+import RepriceFromContentPanel from './RepriceFromContentPanel'
 import MetalContentPanel from '@/app/components/metals/MetalContentPanel'
 import { priceBatchHref } from '@/app/components/metals/priceBatchHref'
 import type { MetalContentRow } from '@/app/components/metals/metalContentTypes'
@@ -96,6 +98,28 @@ export default async function EditInboundPage({
     }
 
     const batch = batchRes.data
+
+    // 化验(cut 5b):本批次的化验单(新到旧)+ 会生效的定价公式
+    // (解析顺序与 apply_assay_result 一致:批次 → 采购单明细行)
+    const [assayRes, poLineFormulaRes] = await Promise.all([
+        supabase
+            .from('assay_results')
+            .select('id, code, assay_date, lab_name, is_final, applied_at')
+            .eq('inbound_batch_id', id)
+            .is('deleted_at', null)
+            .order('assay_date', { ascending: false })
+            .order('code', { ascending: false }),
+        batch.purchase_order_line_id
+            ? supabase
+                  .from('purchase_order_lines')
+                  .select('pricing_formula_id')
+                  .eq('id', batch.purchase_order_line_id)
+                  .single()
+            : Promise.resolve({ data: null }),
+    ])
+    const assayRows = (assayRes.data ?? []) as AssayRow[]
+    const resolvedFormulaId: string | null =
+        batch.pricing_formula_id ?? poLineFormulaRes.data?.pricing_formula_id ?? null
 
     // 关联采购单(cut 4c):头部链接 + 行下单量;抵扣预付的资格/建议额与已抵扣记录
     let poHeader: { po_id: string; po_code: string; ordered_qty: number | null; unit: string } | null = null
@@ -216,6 +240,19 @@ export default async function EditInboundPage({
                 <span className="px-2 py-0.5 bg-gray-200 rounded text-xs">
                     {batch.status}
                 </span>
+                {/* 定价状态(cut 5b):暂定价 = 还没按正式化验重算过 */}
+                <span
+                    className={
+                        'ml-2 px-2 py-0.5 rounded text-xs ' +
+                        (batch.pricing_status === 'final'
+                            ? 'bg-green-100 text-green-800'
+                            : batch.pricing_status === 'provisional'
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-gray-200 text-gray-600')
+                    }
+                >
+                    {t('assay.pricingStatus.' + batch.pricing_status)}
+                </span>
                 <a
                     href={`/inbound/${batch.id}/label`}
                     target="_blank"
@@ -258,21 +295,36 @@ export default async function EditInboundPage({
                 suppliers={suppliersRes.data ?? []}
             />
 
-            <PricingPanel
-                batchId={batch.id}
-                unitPrice={batch.unit_price}
-                history={priceHistoryRows}
-            />
-
-            {/* 抵扣预付(cut 4c):可抵扣 or 有历史时才渲染 */}
-            <PrepaymentPanel batchId={batch.id} applicable={applicable} history={prepaymentHistory} />
-
             <MetalContentPanel
                 rows={metalRows}
                 saveAction={saveInboundMetal.bind(null, id)}
                 deleteAction={deleteInboundMetal.bind(null, id)}
                 priceHref={priceBatchHref(batch.quantity, metalRows)}
+                note={t('assay.metalsFromAssay')}
             />
+
+            {/* 化验(cut 5b):含量从哪来 → 化验 → 价格往哪去,顺序读下来是一条线 */}
+            <AssaySection batchId={batch.id} rows={assayRows} />
+
+            <PricingPanel
+                batchId={batch.id}
+                unitPrice={batch.unit_price}
+                history={priceHistoryRows}
+                extraAction={
+                    resolvedFormulaId ? (
+                        <RepriceFromContentPanel
+                            batchId={batch.id}
+                            formulaId={resolvedFormulaId}
+                            currentMetals={Object.fromEntries(
+                                metalRows.map((m) => [m.metal, String(m.content_pct)])
+                            )}
+                        />
+                    ) : null
+                }
+            />
+
+            {/* 抵扣预付(cut 4c):可抵扣 or 有历史时才渲染 */}
+            <PrepaymentPanel batchId={batch.id} applicable={applicable} history={prepaymentHistory} />
 
             <MovementTimeline rows={movementRows} unit={batch.unit} />
         </div>

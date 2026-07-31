@@ -30,6 +30,9 @@ export const INBOUND_SORTABLE = [
 ] as const
 export type InboundSortCol = (typeof INBOUND_SORTABLE)[number]
 
+// 定价状态(cut 5a 起的本表列):'' 表示不筛选
+export const PRICING_STATUS_VALUES = ['unpriced', 'provisional', 'final'] as const
+
 export interface InboundListParams {
     q: string
     stage: string // '' 表示不按阶段过滤
@@ -37,6 +40,7 @@ export interface InboundListParams {
     materialId: string // '' 表示不按物料过滤
     dateFrom: string // '' 表示不按 arrival_date 起始过滤
     dateTo: string // '' 表示不按 arrival_date 结束过滤
+    pricingStatus: string // '' 表示不按定价状态过滤
     sort: InboundSortCol
     dir: 'asc' | 'desc'
 }
@@ -59,6 +63,7 @@ export function parseInboundListParams(sp: {
     material_id?: string
     date_from?: string
     date_to?: string
+    pricing_status?: string
     sort?: string
     dir?: string
 }): InboundListParams {
@@ -75,7 +80,11 @@ export function parseInboundListParams(sp: {
         ? (sp.sort as InboundSortCol)
         : 'created_at'
     const dir: 'asc' | 'desc' = sp.dir === 'asc' ? 'asc' : 'desc'
-    return { q, stage, supplierId, materialId, dateFrom, dateTo, sort, dir }
+    // 只接受三个规范值;其它按"不筛选"处理
+    const pricingStatus = (PRICING_STATUS_VALUES as readonly string[]).includes(sp.pricing_status ?? '')
+        ? sp.pricing_status!
+        : ''
+    return { q, stage, supplierId, materialId, dateFrom, dateTo, pricingStatus, sort, dir }
 }
 
 // 关联方搜索:把匹配 q 的物料 / 供应商 id 查出来(各一条 ilike 查询,仅在 q 非空时执行)。
@@ -142,7 +151,7 @@ export function applyInboundFilters<T>(
     params: InboundListParams,
     searchOr: string | null
 ): T {
-    const { stage, supplierId, materialId, dateFrom, dateTo, sort, dir } = params
+    const { stage, supplierId, materialId, dateFrom, dateTo, pricingStatus, sort, dir } = params
 
     let chain = query as unknown as InboundQueryChain
 
@@ -172,6 +181,10 @@ export function applyInboundFilters<T>(
 
     if (materialId) {
         chain = chain.eq('material_id', materialId)
+    }
+
+    if (pricingStatus) {
+        chain = chain.eq('pricing_status', pricingStatus)
     }
 
     chain = chain.order(sort, { ascending: dir === 'asc' })

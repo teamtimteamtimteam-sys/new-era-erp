@@ -28,6 +28,7 @@ type InboundRow = {
     arrival_date: string | null
     stage: string
     status: string
+    pricing_status: string
     created_at: string
     materials: { name: string } | null
     suppliers: { legal_name: string } | null
@@ -44,6 +45,7 @@ export default async function InboundPage({
         material_id?: string
         date_from?: string
         date_to?: string
+        pricing_status?: string
         sort?: string
         dir?: string
         page?: string
@@ -55,9 +57,10 @@ export default async function InboundPage({
     const locale = await getLocale()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
-    const { q, stage, supplierId, materialId, dateFrom, dateTo, sort, dir } = parseInboundListParams(sp)
+    const { q, stage, supplierId, materialId, dateFrom, dateTo, pricingStatus, sort, dir } =
+        parseInboundListParams(sp)
     const requestedPage = parseInboundPage(sp.page)
-    const filterParams = { q, stage, supplierId, materialId, dateFrom, dateTo, sort, dir }
+    const filterParams = { q, stage, supplierId, materialId, dateFrom, dateTo, pricingStatus, sort, dir }
 
     // 跨关联方搜索:先查匹配 q 的物料/供应商 id(q 为空时零开销),再拼成本表 FK 列的 OR
     const searchIds = await resolveInboundSearchIds(supabase, q)
@@ -89,6 +92,20 @@ export default async function InboundPage({
             .is('unit_price', null),
     ])
 
+    // 定价状态计数(cut 5b):等化验的批次 = 还没算对的钱,列表顶上要看得见
+    const [unpricedStatusRes, provisionalRes] = await Promise.all([
+        supabase
+            .from('inbound_batches')
+            .select('id', { count: 'exact', head: true })
+            .is('deleted_at', null)
+            .eq('pricing_status', 'unpriced'),
+        supabase
+            .from('inbound_batches')
+            .select('id', { count: 'exact', head: true })
+            .is('deleted_at', null)
+            .eq('pricing_status', 'provisional'),
+    ])
+
     const total = count ?? 0
     const totalPages = Math.max(1, Math.ceil(total / INBOUND_PAGE_SIZE))
     const page = Math.min(requestedPage, totalPages)
@@ -97,7 +114,7 @@ export default async function InboundPage({
 
     // 2) 取当前页的行:带嵌入的 select(materials/suppliers 名字用于展示)+ 过滤 + 排序 + .range
     const baseQuery = supabase.from('inbound_batches').select(`
-        id, code, quantity, unit, remaining_qty, arrival_date, stage, status, created_at,
+        id, code, quantity, unit, remaining_qty, arrival_date, stage, status, pricing_status, created_at,
         materials ( name ),
         suppliers ( legal_name )
     `)
@@ -108,6 +125,21 @@ export default async function InboundPage({
         searchOr
     ).range(from, to)
     const batches = data as unknown as InboundRow[] | null
+
+    // 本页各批次是否有"已记录未应用"的化验(cut 5b);只查当前页的 id —— 同
+    // 采购单详情页取已抵扣额的做法
+    const pageIds = (batches ?? []).map((b) => b.id)
+    const { data: assayStatusRows } = pageIds.length
+        ? await supabase
+              .from('batch_assay_status')
+              .select('inbound_batch_id, has_unapplied_assay')
+              .in('inbound_batch_id', pageIds)
+        : { data: [] as { inbound_batch_id: string | null; has_unapplied_assay: boolean | null }[] }
+    const unappliedByBatch = new Set(
+        (assayStatusRows ?? [])
+            .filter((r) => r.has_unapplied_assay)
+            .map((r) => r.inbound_batch_id ?? '')
+    )
 
     // 下拉选项:供应商按 legal_name、物料按 name 作为显示标签
     const supplierOptions: PartyOption[] = (suppliersRes.data ?? []).map((s) => ({
@@ -135,6 +167,7 @@ export default async function InboundPage({
         if (materialId) params.set('material_id', materialId)
         if (dateFrom) params.set('date_from', dateFrom)
         if (dateTo) params.set('date_to', dateTo)
+        if (pricingStatus) params.set('pricing_status', pricingStatus)
         params.set('sort', col)
         params.set('dir', nextDir)
         return `/inbound?${params.toString()}`
@@ -161,6 +194,7 @@ export default async function InboundPage({
         if (materialId) params.set('material_id', materialId)
         if (dateFrom) params.set('date_from', dateFrom)
         if (dateTo) params.set('date_to', dateTo)
+        if (pricingStatus) params.set('pricing_status', pricingStatus)
         params.set('sort', sort)
         params.set('dir', dir)
         params.set('page', String(targetPage))
@@ -212,6 +246,15 @@ export default async function InboundPage({
                         {t('inbound.unpricedBadge', { n: unpricedRes.count ?? 0 })}
                     </span>
                 )}
+                {/* 等化验/暂定价的批次数(cut 5b):这些批次的应付金额还不是最终数 */}
+                {((unpricedStatusRes.count ?? 0) > 0 || (provisionalRes.count ?? 0) > 0) && (
+                    <span className="ml-2 text-gray-400">
+                        {t('assay.awaitingFinal', {
+                            unpriced: unpricedStatusRes.count ?? 0,
+                            provisional: provisionalRes.count ?? 0,
+                        })}
+                    </span>
+                )}
             </p>
 
             <table className="w-full border-collapse border border-gray-300">
@@ -232,6 +275,9 @@ export default async function InboundPage({
                         </th>
                         <th className="border border-gray-300 px-4 py-2 text-left">
                             {t('inbound.colStatus')}
+                        </th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">
+                            {t('assay.colPricingStatus')}
                         </th>
                         {sortableTh('created_at', t('inbound.colCreated'))}
                         <th className="border border-gray-300 px-4 py-2 text-left">
@@ -268,6 +314,29 @@ export default async function InboundPage({
                                     {b.status}
                                 </span>
                             </td>
+                            <td className="border border-gray-300 px-4 py-2 whitespace-nowrap">
+                                <span
+                                    className={
+                                        'px-2 py-1 rounded text-xs ' +
+                                        (b.pricing_status === 'final'
+                                            ? 'bg-green-100 text-green-800'
+                                            : b.pricing_status === 'provisional'
+                                              ? 'bg-amber-100 text-amber-800'
+                                              : 'bg-gray-200 text-gray-600')
+                                    }
+                                >
+                                    {t('assay.pricingStatus.' + b.pricing_status)}
+                                </span>
+                                {/* 已记录未应用的化验:价格还停在旧含量上 */}
+                                {unappliedByBatch.has(b.id) && (
+                                    <span
+                                        title={t('assay.hasUnappliedMarker')}
+                                        className="ml-1 px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-800"
+                                    >
+                                        ⚠
+                                    </span>
+                                )}
+                            </td>
                             <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
                                 {new Date(b.created_at).toLocaleString(dateLocale)}
                             </td>
@@ -289,7 +358,7 @@ export default async function InboundPage({
                     {(!batches || batches.length === 0) && (
                         <tr>
                             <td
-                                colSpan={11}
+                                colSpan={12}
                                 className="border border-gray-300 px-4 py-8 text-center text-gray-500"
                             >
                                 {t('inbound.emptyState')}

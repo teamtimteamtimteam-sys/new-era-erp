@@ -16,12 +16,16 @@ export default function MetalContentPanel({
     saveAction,
     deleteAction,
     priceHref,
+    note,
 }: {
     rows: MetalContentRow[]
     saveAction: (metal: string, contentPct: number) => Promise<{ error?: string }>
     deleteAction: (metal: string) => Promise<{ error?: string }>
     // 带着本批次数量与化验结果跳计价器(新标签页);页面在有化验行时才传。
     priceHref?: string
+    // 灰字说明(进料侧 cut 5b 用来交代:含量现在由"应用化验结果"维护,
+    // 手工编辑仍然保留给没有实验室结果的批次)。
+    note?: string
 }) {
     const t = useTranslations()
     const [error, setError] = useState<string | null>(null)
@@ -97,6 +101,8 @@ export default function MetalContentPanel({
                     </a>
                 )}
             </div>
+
+            {note && <p className="text-xs text-gray-500 mb-3">{note}</p>}
 
             {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
 

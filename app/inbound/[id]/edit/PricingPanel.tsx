@@ -24,10 +24,13 @@ export default function PricingPanel({
     batchId,
     unitPrice,
     history,
+    extraAction,
 }: {
     batchId: string
     unitPrice: number | null
     history: PriceHistoryRow[]
+    // cut 5b:批次有定价公式时,页面在这里塞进"按当前含量重新计价"
+    extraAction?: React.ReactNode
 }) {
     const t = useTranslations()
     const setWithId = setInboundPrice.bind(null, batchId)
@@ -55,6 +58,8 @@ export default function PricingPanel({
                     <span className="text-gray-400">{t('inbound.pricing.notSet')}</span>
                 )}
             </div>
+
+            {extraAction}
 
             {st.error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">

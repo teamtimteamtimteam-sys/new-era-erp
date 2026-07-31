@@ -9,7 +9,8 @@ import { useTranslations } from '@/lib/i18n/client'
 import { formatUsd } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { METAL_OPTIONS } from '@/app/metal-prices/options'
-import { calculatePrice, type CalculatorState, type CalcLine } from './actions'
+import PriceBreakdown from '@/app/components/pricing/PriceBreakdown'
+import { calculatePrice, type CalculatorState } from './actions'
 
 const initialState: CalculatorState = {}
 
@@ -82,18 +83,6 @@ export default function CalculatorForm({
         } catch {
             /* 剪贴板不可用(非安全上下文)时静默失败 —— 明细本身仍在页面上 */
         }
-    }
-
-    const priceCell = (l: CalcLine) => {
-        if (l.price_usd_per_tonne == null) return <span className="text-gray-400">—</span>
-        return (
-            <>
-                <span className="font-mono">{formatUsd(l.price_usd_per_tonne)}</span>
-                <span className="text-gray-500 text-xs ml-2">
-                    {l.price_date ?? (l.price_from ? `${l.price_from} – ${l.price_to}` : '')}
-                </span>
-            </>
-        )
     }
 
     return (
@@ -211,92 +200,17 @@ export default function CalculatorForm({
                         </button>
                     </div>
 
-                    <p className="text-sm text-gray-600 mb-3">
-                        <span className="font-mono">{res.formula_code}</span> {res.formula_name}
-                        <span className="mx-2">·</span>
-                        {res.price_basis === 'average'
-                            ? t('pricing.basis.average', { days: res.average_days ?? 0 })
-                            : t('pricing.basis.spot')}
-                        <span className="mx-2">·</span>
-                        {res.reference_date}
-                        <span className="mx-2">·</span>
-                        <span className="font-mono">{res.quantity_kg} kg</span>
-                    </p>
-
-                    {res.negative_value && (
-                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-3 text-sm">
-                            {t('pricing.negativeValue')}
-                        </div>
-                    )}
-                    {res.skipped_metals.length > 0 && (
-                        <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-3 text-sm">
-                            {t('pricing.skippedNote', { metals: res.skipped_metals.join(', ') })}
-                        </div>
-                    )}
-                    {res.unpaid_metals.length > 0 && (
-                        <p className="text-sm text-gray-500 mb-3">
-                            {t('pricing.unpaidNote', { metals: res.unpaid_metals.join(', ') })}
-                        </p>
-                    )}
-
-                    <table className="w-full border-collapse border border-gray-300">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('pricing.form.colMetal')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-right">{t('pricing.colContent')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-right">{t('pricing.form.colPayable')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-right">{t('pricing.colContained')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-right">{t('pricing.colPayableKg')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('pricing.colPrice')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-right">{t('pricing.colValue')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {res.lines.map((l) => (
-                                <tr key={l.metal}>
-                                    <td className="border border-gray-300 px-3 py-2">
-                                        {t('metals.' + l.metal)}
-                                        <span className="text-gray-400 font-mono text-xs ml-2">{l.metal}</span>
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">{l.content_pct}</td>
-                                    <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">{l.payable_pct}</td>
-                                    <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">{l.contained_kg}</td>
-                                    <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">{l.payable_kg}</td>
-                                    <td className="border border-gray-300 px-3 py-2 text-sm">{priceCell(l)}</td>
-                                    <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                        {formatUsd(l.metal_value_usd)}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-
-                    <div className="mt-4 max-w-md ml-auto text-sm space-y-1">
-                        <div className="flex justify-between">
-                            <span className="text-gray-600">{t('pricing.grossValue')}</span>
-                            <span className="font-mono">{formatUsd(res.gross_value_usd)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-gray-600">{t('pricing.treatmentCharge')}</span>
-                            <span className="font-mono">−{formatUsd(res.treatment_usd)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-gray-600">{t('pricing.discountAmount')}</span>
-                            <span className="font-mono">−{formatUsd(res.discount_usd)}</span>
-                        </div>
-                        <div className="flex justify-between border-t pt-1 font-bold">
-                            <span>{t('pricing.netValue')}</span>
-                            <span className={'font-mono ' + (res.negative_value ? 'text-red-600' : '')}>
-                                {formatUsd(res.net_value_usd)}
-                            </span>
-                        </div>
-                        <div className="flex justify-between font-bold">
-                            <span>{t('pricing.unitPrice')}</span>
-                            <span className={'font-mono ' + (res.negative_value ? 'text-red-600' : '')}>
-                                {res.unit_price_usd_per_kg}
-                            </span>
-                        </div>
-                    </div>
+                    {/* 明细表与汇总抽成了共享组件(化验录入/详情的预览用的是同一份) */}
+                    <PriceBreakdown
+                        res={res}
+                        negativeNote={
+                            res.negative_value ? (
+                                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-3 text-sm">
+                                    {t('pricing.negativeValue')}
+                                </div>
+                            ) : null
+                        }
+                    />
                 </section>
             )}
         </div>

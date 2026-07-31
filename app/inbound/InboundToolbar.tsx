@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { STAGE_OPTIONS } from './options'
+import { PRICING_STATUS_VALUES } from './inboundQuery'
 
 export type PartyOption = { id: string; label: string }
 
@@ -28,6 +29,7 @@ export default function InboundToolbar({
     const currentMaterial = searchParams.get('material_id') ?? ''
     const currentDateFrom = searchParams.get('date_from') ?? ''
     const currentDateTo = searchParams.get('date_to') ?? ''
+    const currentPricingStatus = searchParams.get('pricing_status') ?? ''
 
     // 搜索框是受控的:本地 state 即时反映输入,URL 防抖更新
     const [q, setQ] = useState(currentQ)
@@ -115,6 +117,19 @@ export default function InboundToolbar({
                 {materials.map((m) => (
                     <option key={m.id} value={m.id}>
                         {m.label}
+                    </option>
+                ))}
+            </select>
+            {/* 定价状态(cut 5b):等化验的批次就是还没算对的钱,要能一眼筛出来 */}
+            <select
+                value={currentPricingStatus}
+                onChange={(e) => onFilterChange('pricing_status', e.target.value)}
+                className="rounded border border-gray-300 bg-white px-3 py-2"
+            >
+                <option value="">{t('assay.allPricingStatuses')}</option>
+                {PRICING_STATUS_VALUES.map((s) => (
+                    <option key={s} value={s}>
+                        {t('assay.pricingStatus.' + s)}
                     </option>
                 ))}
             </select>
