@@ -43,4 +43,3 @@ BEGIN
     RETURN jsonb_build_object('purchase_order_id', p_purchase_order_id, 'term_count', v_count);
 END;
 $function$
-

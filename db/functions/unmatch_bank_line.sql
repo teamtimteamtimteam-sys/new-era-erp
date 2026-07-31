@@ -25,4 +25,3 @@ BEGIN
     UPDATE bank_statement_lines SET match_status = 'unmatched' WHERE id = p_statement_line_id;
 END;
 $function$
-

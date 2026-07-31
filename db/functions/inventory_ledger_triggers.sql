@@ -1,8 +1,9 @@
 -- db/functions/inventory_ledger_triggers.sql
--- NEW MIRROR CONVENTION: this file holds the SHARED trigger functions of the inventory
--- ledger PLUS the CREATE TRIGGER attachments on the pre-existing batch tables
--- (inbound_batches / output_batches), which have no mirror file of their own. The
--- inventory_movements table's own triggers live in db/tables/inventory_movements.sql.
+-- This file holds the SHARED trigger functions of the inventory ledger. The CREATE
+-- TRIGGER attachments live with their tables: db/tables/inbound_batches.sql,
+-- db/tables/output_batches.sql, db/tables/inventory_movements.sql.
+-- (历史:批次表曾无镜像文件,挂载语句只好写在这里;2026-07-31 镜像漂移审计补齐了
+-- 两张批次表的镜像后,挂载语句移了过去 —— 每张表的镜像现在完整描述它自己的触发器。)
 --
 -- Ledger rule: remaining_qty is a guarded cache; inventory_movements is the truth.
 --   (a) emit-on-create        AFTER INSERT  on both batch tables  -> +remaining_qty in
@@ -163,37 +164,5 @@ BEGIN
 END;
 $fn$;
 
--- ---- batch-table trigger attachments (the movements-table triggers are in its own file) ----
-CREATE TRIGGER trg_inbound_batches_emit_receipt
-    AFTER INSERT ON public.inbound_batches
-    FOR EACH ROW EXECUTE FUNCTION public.emit_batch_receipt_movement();
-CREATE TRIGGER trg_output_batches_emit_receipt
-    AFTER INSERT ON public.output_batches
-    FOR EACH ROW EXECUTE FUNCTION public.emit_batch_receipt_movement();
-
-CREATE TRIGGER trg_inbound_batches_writeoff
-    BEFORE UPDATE ON public.inbound_batches
-    FOR EACH ROW WHEN (OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL)
-    EXECUTE FUNCTION public.emit_batch_writeoff_movement();
-CREATE TRIGGER trg_output_batches_writeoff
-    BEFORE UPDATE ON public.output_batches
-    FOR EACH ROW WHEN (OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL)
-    EXECUTE FUNCTION public.emit_batch_writeoff_movement();
-
-CREATE TRIGGER trg_inbound_batches_quantity_guard
-    BEFORE UPDATE ON public.inbound_batches
-    FOR EACH ROW WHEN (NEW.quantity IS DISTINCT FROM OLD.quantity)
-    EXECUTE FUNCTION public.reject_quantity_change();
-CREATE TRIGGER trg_output_batches_quantity_guard
-    BEFORE UPDATE ON public.output_batches
-    FOR EACH ROW WHEN (NEW.quantity IS DISTINCT FROM OLD.quantity)
-    EXECUTE FUNCTION public.reject_quantity_change();
-
-CREATE CONSTRAINT TRIGGER trg_inbound_batches_invariant
-    AFTER INSERT OR UPDATE ON public.inbound_batches
-    DEFERRABLE INITIALLY DEFERRED
-    FOR EACH ROW EXECUTE FUNCTION public.check_ledger_invariant();
-CREATE CONSTRAINT TRIGGER trg_output_batches_invariant
-    AFTER INSERT OR UPDATE ON public.output_batches
-    DEFERRABLE INITIALLY DEFERRED
-    FOR EACH ROW EXECUTE FUNCTION public.check_ledger_invariant();
+-- (trigger attachments moved to db/tables/inbound_batches.sql and
+--  db/tables/output_batches.sql — see header)

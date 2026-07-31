@@ -101,10 +101,6 @@ END;
 $function$
 
 
-CREATE TRIGGER trg_processing_cost_entries_journal_ins
-    AFTER INSERT ON public.processing_cost_entries
-    FOR EACH ROW EXECUTE FUNCTION public.fin_journal_cost_entry();
-
-CREATE TRIGGER trg_processing_cost_entries_journal_upd
-    AFTER UPDATE ON public.processing_cost_entries
-    FOR EACH ROW EXECUTE FUNCTION public.fin_journal_cost_entry();
+-- (trigger attachments trg_processing_cost_entries_journal_ins / _upd moved to
+--  db/tables/processing_cost_entries.sql — 2026-07-31 镜像漂移审计起,每张表的
+--  镜像完整描述它自己的触发器,函数文件只放函数)

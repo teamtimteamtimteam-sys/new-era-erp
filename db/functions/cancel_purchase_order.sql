@@ -36,4 +36,3 @@ BEGIN
     RETURN jsonb_build_object('purchase_order_id', p_id, 'code', v_po.code, 'status', 'cancelled');
 END;
 $function$
-

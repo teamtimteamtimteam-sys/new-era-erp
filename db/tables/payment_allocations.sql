@@ -27,11 +27,12 @@ CREATE TABLE public.payment_allocations (
     payment_id        uuid NOT NULL REFERENCES public.payments (id) ON DELETE RESTRICT,
     sales_record_id   uuid REFERENCES public.sales_records (id),
     inbound_batch_id  uuid REFERENCES public.inbound_batches (id),
-    expense_id        uuid REFERENCES public.expenses (id),
-    purchase_order_id uuid REFERENCES public.purchase_orders (id),
     CONSTRAINT payment_allocations_one_target CHECK (num_nonnulls(sales_record_id, inbound_batch_id, expense_id, purchase_order_id) = 1),
     allocated_usd     numeric NOT NULL CHECK (allocated_usd > 0),
-    created_at        timestamptz DEFAULT now()
+    created_at        timestamptz DEFAULT now(),
+    -- 在列序末尾:s2a / cut 4a 各用 ALTER ADD COLUMN 追加(镜像按线上 attnum 排)
+    expense_id        uuid REFERENCES public.expenses (id),
+    purchase_order_id uuid REFERENCES public.purchase_orders (id)
 );
 
 CREATE INDEX idx_payment_allocations_payment ON public.payment_allocations (payment_id);

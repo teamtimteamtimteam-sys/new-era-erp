@@ -8,4 +8,3 @@ AS $function$
         WHEN '1010' THEN 'USD'
     END;
 $function$
-

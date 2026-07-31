@@ -29,4 +29,3 @@ BEGIN
     WHERE id = p_statement_line_id;
 END;
 $function$
-

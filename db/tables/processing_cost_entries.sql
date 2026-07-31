@@ -9,7 +9,11 @@
 --   * updated_at auto-bumped by the shared update_updated_at() function (do NOT redefine it)
 --   * RLS: authenticated-only full access (matches processing_runs' policy)
 --
--- NOTE: introduced by db/migrations/2026-07-02-phase1-cut2-cost-metal-foundation.sql.
+-- NOTE: introduced by db/migrations/2026-07-02-phase1-cut2-cost-metal-foundation.sql;
+-- the two auto-journal triggers (trg_processing_cost_entries_journal_ins/_upd) were
+-- added by db/migrations/2026-07-06-phase3-cut2a-auto-journal.sql —— 该切次【漏了
+-- 同步本镜像】,2026-07-31 的镜像漂移审计发现后补正(动表的迁移必须在同一提交里
+-- 更新镜像)。fin_journal_cost_entry() 本身镜像在 db/functions/finance_journal_triggers.sql。
 -- This mirror is a first-run script (plain CREATEs). Re-running requires dropping
 -- the objects first. Run in the Supabase SQL Editor.
 
@@ -37,6 +41,19 @@ CREATE TRIGGER trg_processing_cost_entries_updated_at
     BEFORE UPDATE ON public.processing_cost_entries
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at();
+
+-- 2b. 自动过账触发器(phase3 cut 2a):录入/改动加工成本即产生对应分录。
+--     函数 fin_journal_cost_entry 见 db/functions/finance_journal_triggers.sql
+--     (软删除 = UPDATE deleted_at,也走 _upd 触发器 —— 冲销分录由函数内部判断)。
+CREATE TRIGGER trg_processing_cost_entries_journal_ins
+    AFTER INSERT ON public.processing_cost_entries
+    FOR EACH ROW
+    EXECUTE FUNCTION fin_journal_cost_entry();
+
+CREATE TRIGGER trg_processing_cost_entries_journal_upd
+    AFTER UPDATE ON public.processing_cost_entries
+    FOR EACH ROW
+    EXECUTE FUNCTION fin_journal_cost_entry();
 
 -- 3. RLS: authenticated-only full access (matches processing_runs' policy)
 ALTER TABLE public.processing_cost_entries ENABLE ROW LEVEL SECURITY;

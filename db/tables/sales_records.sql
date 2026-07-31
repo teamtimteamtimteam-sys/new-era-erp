@@ -19,9 +19,11 @@ CREATE TABLE public.sales_records (
     sale_date       date NOT NULL,
     notes           text,
     movement_id     uuid REFERENCES public.inventory_movements (id),
-    cogs_entry_id   uuid REFERENCES public.journal_entries (id),  -- cut 2a:COGS 分录链接(售时或 allocate 补挂)
     created_at      timestamptz DEFAULT now(),
-    created_by      uuid DEFAULT auth.uid()
+    created_by      uuid DEFAULT auth.uid(),
+    -- 在列序末尾:cut 2a 用 ALTER ADD COLUMN 追加(镜像按线上 attnum 排)。
+    -- COGS 分录链接(售时或 allocate 补挂)。
+    cogs_entry_id   uuid REFERENCES public.journal_entries (id)
 );
 
 CREATE INDEX idx_sales_records_batch ON public.sales_records (output_batch_id);

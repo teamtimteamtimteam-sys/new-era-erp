@@ -1,0 +1,97 @@
+-- db/tables/inbound_batches.sql
+-- 进料批次 —— 库存与应付两条账的源头单据。
+--   * remaining_qty 由库存台账触发器体系维护,quantity 一经写入禁改
+--     (trg_inbound_batches_quantity_guard),数量恒等式由 DEFERRABLE 约束触发器
+--     check_ledger_invariant 在提交时校验 —— 这四个触发器的【函数】都定义在
+--     db/functions/inventory_ledger_triggers.sql,触发器挂载在本文件;
+--   * unit_price 是【应付之锚】(应付 = quantity × unit_price,改价即改欠款),
+--     只能经 set_inbound_unit_price() 修改 —— 价格守卫触发器
+--     trg_inbound_batches_price_guard 挂载在 db/tables/price_history.sql(守卫函数
+--     与价格史同住,因为它正是"改价必须留痕"这条规则的执行者);
+--   * code 'IN-YYYY-NNNN' 由 BEFORE INSERT 触发器从序列取号(非无缝,单据连号
+--     要求只在财务凭证侧);
+--   * 无 updated_at 触发器(建表早期漏挂)—— 镜像忠实于线上。
+--
+-- NOTE: 本表早于"迁移 + 镜像"约定(建库初期直接在 Supabase SQL Editor 建的),
+-- 一直没有镜像文件;2026-07-31 镜像漂移审计后【按线上目录重建】了本文件。
+-- purchase_order_id / purchase_order_line_id 及 trg_inbound_batches_po_line_match
+-- 为 db/migrations/2026-07-31-phase4-cut4a-purchase-orders.sql 追加(守卫函数在
+-- db/functions/guard_inbound_po_line_match.sql;两列可空 —— 没有 PO 的现场收货
+-- 照常工作;列序按线上 attnum,追加列在末尾)。
+-- First-run script (plain CREATEs). Run in the Supabase SQL Editor.
+
+CREATE SEQUENCE public.inbound_code_seq;
+
+CREATE TABLE public.inbound_batches (
+    id                     uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    code                   text NOT NULL UNIQUE,  -- 'IN-YYYY-NNNN',触发器取号
+    material_id            uuid NOT NULL REFERENCES public.materials (id),
+    supplier_id            uuid NOT NULL REFERENCES public.suppliers (id),
+    quantity               numeric NOT NULL,
+    unit                   text NOT NULL DEFAULT 'kg',
+    remaining_qty          numeric NOT NULL,
+    CONSTRAINT inbound_batches_remaining_qty_nonneg CHECK (remaining_qty >= 0),
+    arrival_date           date,
+    stage                  text NOT NULL DEFAULT '待加工'
+                           CHECK (stage IN ('待加工','加工中','已加工完')),
+    unit_price             numeric,
+    notes                  text,
+    status                 text NOT NULL DEFAULT 'draft',
+    deleted_at             timestamptz,
+    created_at             timestamptz NOT NULL DEFAULT now(),
+    created_by             uuid,
+    updated_at             timestamptz NOT NULL DEFAULT now(),
+    updated_by             uuid,
+    purchase_order_id      uuid REFERENCES public.purchase_orders (id),
+    purchase_order_line_id uuid REFERENCES public.purchase_order_lines (id)
+);
+
+CREATE INDEX idx_inbound_batches_po ON public.inbound_batches (purchase_order_id);
+
+CREATE OR REPLACE FUNCTION public.generate_inbound_code()
+RETURNS trigger LANGUAGE plpgsql AS $function$
+BEGIN
+    IF NEW.code IS NULL OR NEW.code = '' THEN
+        NEW.code := 'IN-' || EXTRACT(YEAR FROM NOW())::TEXT || '-' ||
+                    LPAD(nextval('inbound_code_seq')::TEXT, 4, '0');
+    END IF;
+    RETURN NEW;
+END;
+$function$;
+
+CREATE TRIGGER trg_generate_inbound_code
+    BEFORE INSERT ON public.inbound_batches
+    FOR EACH ROW EXECUTE FUNCTION generate_inbound_code();
+
+-- 库存台账体系(函数见 db/functions/inventory_ledger_triggers.sql)
+CREATE TRIGGER trg_inbound_batches_emit_receipt
+    AFTER INSERT ON public.inbound_batches
+    FOR EACH ROW EXECUTE FUNCTION emit_batch_receipt_movement();
+
+CREATE TRIGGER trg_inbound_batches_writeoff
+    BEFORE UPDATE ON public.inbound_batches
+    FOR EACH ROW
+    WHEN (OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL)
+    EXECUTE FUNCTION emit_batch_writeoff_movement();
+
+CREATE TRIGGER trg_inbound_batches_quantity_guard
+    BEFORE UPDATE ON public.inbound_batches
+    FOR EACH ROW
+    WHEN (NEW.quantity IS DISTINCT FROM OLD.quantity)
+    EXECUTE FUNCTION reject_quantity_change();
+
+CREATE CONSTRAINT TRIGGER trg_inbound_batches_invariant
+    AFTER INSERT OR UPDATE ON public.inbound_batches
+    DEFERRABLE INITIALLY DEFERRED
+    FOR EACH ROW EXECUTE FUNCTION check_ledger_invariant();
+
+-- PO 关联守卫(cut 4a;函数见 db/functions/guard_inbound_po_line_match.sql)
+CREATE TRIGGER trg_inbound_batches_po_line_match
+    BEFORE INSERT OR UPDATE OF purchase_order_id, purchase_order_line_id
+    ON public.inbound_batches
+    FOR EACH ROW EXECUTE FUNCTION guard_inbound_po_line_match();
+
+ALTER TABLE public.inbound_batches ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "authenticated full access on inbound_batches"
+    ON public.inbound_batches AS PERMISSIVE FOR ALL TO authenticated
+    USING (true) WITH CHECK (true);

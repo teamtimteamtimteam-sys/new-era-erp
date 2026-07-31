@@ -23,7 +23,7 @@ CREATE TABLE public.finance_attachments (
     sales_record_id  uuid REFERENCES public.sales_records (id),
     inbound_batch_id uuid REFERENCES public.inbound_batches (id),
     payment_id       uuid REFERENCES public.payments (id),
-    expense_id       uuid REFERENCES public.expenses (id),
+    -- expense_id 在列序末尾(s2a 用 ALTER ADD COLUMN 追加;镜像按线上 attnum 排)
     CONSTRAINT finance_attachments_one_parent
         CHECK (num_nonnulls(sales_record_id, inbound_batch_id, payment_id, expense_id) = 1),
     -- Original filename as uploaded, for display.
@@ -39,7 +39,8 @@ CREATE TABLE public.finance_attachments (
     created_at       timestamptz NOT NULL DEFAULT now(),
     created_by       uuid DEFAULT auth.uid(),
     updated_at       timestamptz NOT NULL DEFAULT now(),
-    updated_by       uuid
+    updated_by       uuid,
+    expense_id       uuid REFERENCES public.expenses (id)
 );
 
 -- 2. BEFORE UPDATE trigger -> reuse the existing shared update_updated_at() (do NOT redefine it)

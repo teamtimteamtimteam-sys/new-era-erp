@@ -14,4 +14,3 @@ BEGIN
     RETURN 'PF-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
 END;
 $function$
-
