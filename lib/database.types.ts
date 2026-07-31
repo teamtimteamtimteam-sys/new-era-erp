@@ -56,6 +56,124 @@ export type Database = {
         }
         Relationships: []
       }
+      assay_result_metals: {
+        Row: {
+          assay_result_id: string
+          content_pct: number
+          created_at: string
+          metal: string
+        }
+        Insert: {
+          assay_result_id: string
+          content_pct: number
+          created_at?: string
+          metal: string
+        }
+        Update: {
+          assay_result_id?: string
+          content_pct?: number
+          created_at?: string
+          metal?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assay_result_metals_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "assay_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assay_results: {
+        Row: {
+          applied_at: string | null
+          applied_by: string | null
+          assay_date: string
+          certificate_ref: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          inbound_batch_id: string
+          is_final: boolean
+          lab_name: string | null
+          notes: string | null
+          sample_ref: string | null
+          superseded_by: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          applied_at?: string | null
+          applied_by?: string | null
+          assay_date: string
+          certificate_ref?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          inbound_batch_id: string
+          is_final?: boolean
+          lab_name?: string | null
+          notes?: string | null
+          sample_ref?: string | null
+          superseded_by?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          applied_at?: string | null
+          applied_by?: string | null
+          assay_date?: string
+          certificate_ref?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          inbound_batch_id?: string
+          is_final?: boolean
+          lab_name?: string | null
+          notes?: string | null
+          sample_ref?: string | null
+          superseded_by?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assay_results_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_results_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_results_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_results_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "assay_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bank_import_profiles: {
         Row: {
           bank_account_code: string
@@ -657,6 +775,13 @@ export type Database = {
             foreignKeyName: "finance_attachments_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "finance_attachments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -803,6 +928,13 @@ export type Database = {
             foreignKeyName: "inbound_batch_metals_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_metals_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -825,6 +957,8 @@ export type Database = {
           id: string
           material_id: string
           notes: string | null
+          pricing_formula_id: string | null
+          pricing_status: string
           purchase_order_id: string | null
           purchase_order_line_id: string | null
           quantity: number
@@ -846,6 +980,8 @@ export type Database = {
           id?: string
           material_id: string
           notes?: string | null
+          pricing_formula_id?: string | null
+          pricing_status?: string
           purchase_order_id?: string | null
           purchase_order_line_id?: string | null
           quantity: number
@@ -867,6 +1003,8 @@ export type Database = {
           id?: string
           material_id?: string
           notes?: string | null
+          pricing_formula_id?: string | null
+          pricing_status?: string
           purchase_order_id?: string | null
           purchase_order_line_id?: string | null
           quantity?: number
@@ -885,6 +1023,13 @@ export type Database = {
             columns: ["material_id"]
             isOneToOne: false
             referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_pricing_formula_id_fkey"
+            columns: ["pricing_formula_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_formulas"
             referencedColumns: ["id"]
           },
           {
@@ -982,6 +1127,13 @@ export type Database = {
           run_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "inventory_movements_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
           {
             foreignKeyName: "inventory_movements_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
@@ -1615,6 +1767,13 @@ export type Database = {
             foreignKeyName: "payment_allocations_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -1943,6 +2102,13 @@ export type Database = {
             foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -2035,6 +2201,13 @@ export type Database = {
           original_price?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "price_history_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
           {
             foreignKeyName: "price_history_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
@@ -2244,6 +2417,13 @@ export type Database = {
           run_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "processing_inputs_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
           {
             foreignKeyName: "processing_inputs_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
@@ -2801,6 +2981,13 @@ export type Database = {
             foreignKeyName: "stocktake_lines_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "stocktake_lines_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -3253,6 +3440,65 @@ export type Database = {
           },
         ]
       }
+      batch_assay_status: {
+        Row: {
+          assay_count: number | null
+          batch_code: string | null
+          formula_code: string | null
+          has_unapplied_assay: boolean | null
+          inbound_batch_id: string | null
+          latest_assay_applied: boolean | null
+          latest_assay_code: string | null
+          latest_assay_date: string | null
+          latest_assay_id: string | null
+          material_name: string | null
+          po_code: string | null
+          pricing_formula_id: string | null
+          pricing_status: string | null
+          purchase_order_id: string | null
+          quantity: number | null
+          supplier_name: string | null
+          unit: string | null
+          unit_price: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_batches_pricing_formula_id_fkey"
+            columns: ["pricing_formula_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_formulas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["purchase_order_id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "po_receivable_lines"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_status"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_status: {
         Row: {
           code: string | null
@@ -3404,6 +3650,14 @@ export type Database = {
         Args: { p_basis?: string; p_run_id: string }
         Returns: Json
       }
+      apply_assay_result: {
+        Args: {
+          p_assay_result_id: string
+          p_pricing_formula_id?: string
+          p_reference_date?: string
+        }
+        Returns: Json
+      }
       apply_payment_term_template: {
         Args: { p_purchase_order_id: string; p_template_id: string }
         Returns: Json
@@ -3508,6 +3762,7 @@ export type Database = {
         Args: { p_journal_line_ids: string[]; p_statement_line_id: string }
         Returns: Json
       }
+      next_assay_code: { Args: { p_date?: string }; Returns: string }
       next_pricing_formula_code: { Args: { p_date?: string }; Returns: string }
       next_purchase_order_code: { Args: { p_date?: string }; Returns: string }
       post_journal_entry: {
@@ -3522,6 +3777,19 @@ export type Database = {
       }
       post_stocktake: { Args: { p_stocktake_id: string }; Returns: Json }
       reconcile_statement: { Args: { p_statement_id: string }; Returns: Json }
+      record_assay_result: {
+        Args: {
+          p_assay_date: string
+          p_certificate_ref?: string
+          p_inbound_batch_id: string
+          p_is_final?: boolean
+          p_lab_name?: string
+          p_metals: Json
+          p_notes?: string
+          p_sample_ref?: string
+        }
+        Returns: Json
+      }
       record_expense: {
         Args: {
           p_account_code: string
@@ -3572,6 +3840,16 @@ export type Database = {
         Args: { p_purchase_order_id: string; p_reason: string }
         Returns: Json
       }
+      reprice_inbound_batch: {
+        Args: {
+          p_currency?: string
+          p_fx_rate?: number
+          p_inbound_batch_id: string
+          p_notes?: string
+          p_unit_price: number
+        }
+        Returns: Json
+      }
       reverse_expense: {
         Args: { p_expense_id: string; p_memo?: string }
         Returns: Json
@@ -3596,6 +3874,10 @@ export type Database = {
           p_notes?: string
           p_unit_price: number
         }
+        Returns: Json
+      }
+      unapply_assay_result: {
+        Args: { p_assay_result_id: string; p_reason: string }
         Returns: Json
       }
       unignore_bank_line: {

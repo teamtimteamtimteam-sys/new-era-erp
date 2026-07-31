@@ -22,6 +22,8 @@
 --   * trg_inbound_batches_po_receivable —— 已取消/已结束的单拒收(PO_NOT_RECEIVABLE);
 --   * trg_inbound_batches_advance_po —— 首次收货把 'confirmed' 推到 'receiving'
 --     (机械且无歧义;关单是判断,永远手动走 close_purchase_order)。
+-- cut 5a(db/migrations/2026-07-31-phase4-cut5a-assay-repricing.sql)追加
+-- pricing_formula_id / pricing_status 两列(见列注释;列序按线上 attnum,追加在末尾)。
 -- First-run script (plain CREATEs). Run in the Supabase SQL Editor.
 
 CREATE SEQUENCE public.inbound_code_seq;
@@ -47,7 +49,13 @@ CREATE TABLE public.inbound_batches (
     updated_at             timestamptz NOT NULL DEFAULT now(),
     updated_by             uuid,
     purchase_order_id      uuid REFERENCES public.purchase_orders (id),
-    purchase_order_line_id uuid REFERENCES public.purchase_order_lines (id)
+    purchase_order_line_id uuid REFERENCES public.purchase_order_lines (id),
+    -- cut 5a:管这批货价格的公式(手工计价的临时采购可空)与定价状态 ——
+    -- 'provisional' = 按估计/申报含量暂定,'final' = 已按正式化验重算
+    -- (只有 is_final 化验被 apply 后才升 final;手工定价永远只是 provisional)
+    pricing_formula_id     uuid REFERENCES public.pricing_formulas (id),
+    pricing_status         text NOT NULL DEFAULT 'provisional'
+                           CHECK (pricing_status IN ('unpriced','provisional','final'))
 );
 
 CREATE INDEX idx_inbound_batches_po ON public.inbound_batches (purchase_order_id);

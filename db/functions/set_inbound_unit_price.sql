@@ -2,77 +2,8 @@ CREATE OR REPLACE FUNCTION public.set_inbound_unit_price(p_inbound_batch_id uuid
  RETURNS jsonb
  LANGUAGE plpgsql
 AS $function$
-DECLARE
-    v_user    uuid := auth.uid();
-    v_old     numeric;
-    v_deleted timestamptz;
-    v_qty     numeric;
-    v_code    text;
-    v_fx      numeric;
-    v_usd     numeric;
-    v_delta   numeric;
 BEGIN
-    SELECT unit_price, deleted_at, quantity, code
-    INTO v_old, v_deleted, v_qty, v_code
-    FROM inbound_batches WHERE id = p_inbound_batch_id FOR UPDATE;
-    IF NOT FOUND OR v_deleted IS NOT NULL THEN
-        RAISE EXCEPTION 'INBOUND_NOT_FOUND|%', p_inbound_batch_id;
-    END IF;
-    IF p_unit_price IS NULL OR p_unit_price <= 0 THEN
-        RAISE EXCEPTION 'PRICE_INVALID';
-    END IF;
-    IF p_currency IS NULL OR NOT EXISTS (SELECT 1 FROM currencies c WHERE c.code = p_currency) THEN
-        RAISE EXCEPTION 'CURRENCY_INVALID|%', COALESCE(p_currency, '?');
-    END IF;
-    IF p_currency = 'USD' THEN
-        v_fx := 1;
-    ELSE
-        IF p_fx_rate IS NULL THEN
-            RAISE EXCEPTION 'FX_RATE_REQUIRED|%', p_currency;
-        END IF;
-        IF p_fx_rate <= 0 THEN
-            RAISE EXCEPTION 'FX_RATE_INVALID|%', p_fx_rate;
-        END IF;
-        v_fx := p_fx_rate;
-    END IF;
-
-    v_usd := round(p_unit_price * v_fx, 4);  -- 单价 4 位小数,与 unit_cost_usd 精度一致
-
-    -- GUC 放行本函数内的 unit_price 更新(guard_inbound_price_change),用毕即清,
-    -- 免得同事务内后续的直改被误放行(同 movement_ctx 模式)。
-    PERFORM set_config('evoltrya.price_ctx', 'set_inbound_unit_price', true);
-    UPDATE inbound_batches
-    SET unit_price = v_usd, updated_by = v_user, updated_at = now()
-    WHERE id = p_inbound_batch_id;
-    PERFORM set_config('evoltrya.price_ctx', '', true);
-
-    INSERT INTO price_history (inbound_batch_id, old_unit_price, new_unit_price, currency, original_price, fx_rate, notes, created_by)
-    VALUES (p_inbound_batch_id, v_old, v_usd, p_currency, p_unit_price, v_fx, p_notes, v_user);
-
-    -- cut 2a:计价即入账 —— 整批数量 × 价差(负债在收货整批上成立,非剩余量)。
-    -- 记于定价日 CURRENT_DATE(到货日尚无金额,刻意如此);USD 口径(原币在 price_history)。
-    v_delta := round(v_qty * (v_usd - COALESCE(v_old, 0)), 2);
-    IF v_delta <> 0 THEN
-        PERFORM post_journal_entry(
-            CURRENT_DATE,
-            'Pricing ' || v_code,
-            'purchase',
-            p_inbound_batch_id,
-            CASE WHEN v_delta > 0 THEN
-                jsonb_build_array(
-                    jsonb_build_object('account_code', '1200', 'side', 'debit',  'currency', 'USD', 'amount_ccy', v_delta),
-                    jsonb_build_object('account_code', '2000', 'side', 'credit', 'currency', 'USD', 'amount_ccy', v_delta))
-            ELSE
-                jsonb_build_array(
-                    jsonb_build_object('account_code', '2000', 'side', 'debit',  'currency', 'USD', 'amount_ccy', -v_delta),
-                    jsonb_build_object('account_code', '1200', 'side', 'credit', 'currency', 'USD', 'amount_ccy', -v_delta))
-            END
-        );
-    END IF;
-
-    RETURN jsonb_build_object(
-        'batch_id', p_inbound_batch_id,
-        'unit_price_usd', v_usd
-    );
+    RETURN reprice_inbound_batch(p_inbound_batch_id, p_unit_price, p_currency, p_fx_rate, p_notes);
 END;
 $function$
+
