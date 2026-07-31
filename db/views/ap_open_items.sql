@@ -7,7 +7,14 @@
 --     不是新的应付单据),已冲销(reversed)的开支自然被 status 条件排除。
 -- inbound_batch_id 列保留(expense 行为 NULL)—— 兼容按批次取行的旧调用方。
 -- 结清额只计 status='posted' 付款单的核销行。SECURITY INVOKER。
--- NOTE: reworked by db/migrations/2026-07-30-phase3-s2a-expenses.sql
+--
+-- cut 4a:进料侧的 settled_usd 【还要加上 prepayment_applications】—— 定金冲抵的
+-- 那部分钱同样在还这张批次的应付,不计进来的话,一张被定金付清的批次会永远显示未付。
+-- 开支侧不受影响(预付只对采购订单成立)。列集未变,故本次是 CREATE OR REPLACE。
+--
+-- NOTE: prepayment applications folded in by
+-- db/migrations/2026-07-31-phase4-cut4a-purchase-orders.sql; reworked by
+-- db/migrations/2026-07-30-phase3-s2a-expenses.sql
 -- (introduced by db/migrations/2026-07-06-phase3-cut3a-payments.sql).
 -- 列集变了 → 重建时先 DROP VIEW 再 CREATE(CREATE OR REPLACE 改不了列)。
 
@@ -38,14 +45,17 @@ WITH (security_invoker = on) AS
             sup.legal_name AS supplier_name,
             COALESCE(ib.arrival_date, ib.created_at::date) AS doc_date,
             round(ib.quantity * ib.unit_price, 2) AS doc_value_usd,
-            round(COALESCE(s.settled, 0::numeric), 2) AS settled_usd,
-            round(round(ib.quantity * ib.unit_price, 2) - COALESCE(s.settled, 0::numeric), 2) AS open_usd
+            round(COALESCE(s.settled, 0::numeric) + COALESCE(pp.applied, 0::numeric), 2) AS settled_usd,
+            round(round(ib.quantity * ib.unit_price, 2) - COALESCE(s.settled, 0::numeric) - COALESCE(pp.applied, 0::numeric), 2) AS open_usd
            FROM inbound_batches ib
              JOIN suppliers sup ON sup.id = ib.supplier_id
              LEFT JOIN LATERAL ( SELECT sum(pa.allocated_usd) AS settled
                    FROM payment_allocations pa
                      JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'::text
                   WHERE pa.inbound_batch_id = ib.id) s ON true
+             LEFT JOIN LATERAL ( SELECT sum(ppa.amount_usd) AS applied
+                   FROM prepayment_applications ppa
+                  WHERE ppa.inbound_batch_id = ib.id) pp ON true
           WHERE ib.deleted_at IS NULL AND ib.unit_price IS NOT NULL
         UNION ALL
          SELECT 'expense'::text AS doc_kind,

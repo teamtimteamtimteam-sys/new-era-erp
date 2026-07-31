@@ -811,6 +811,8 @@ export type Database = {
           id: string
           material_id: string
           notes: string | null
+          purchase_order_id: string | null
+          purchase_order_line_id: string | null
           quantity: number
           remaining_qty: number
           stage: string
@@ -830,6 +832,8 @@ export type Database = {
           id?: string
           material_id: string
           notes?: string | null
+          purchase_order_id?: string | null
+          purchase_order_line_id?: string | null
           quantity: number
           remaining_qty: number
           stage?: string
@@ -849,6 +853,8 @@ export type Database = {
           id?: string
           material_id?: string
           notes?: string | null
+          purchase_order_id?: string | null
+          purchase_order_line_id?: string | null
           quantity?: number
           remaining_qty?: number
           stage?: string
@@ -865,6 +871,27 @@ export type Database = {
             columns: ["material_id"]
             isOneToOne: false
             referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_status"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_lines"
             referencedColumns: ["id"]
           },
           {
@@ -1511,6 +1538,7 @@ export type Database = {
           id: string
           inbound_batch_id: string | null
           payment_id: string
+          purchase_order_id: string | null
           sales_record_id: string | null
         }
         Insert: {
@@ -1520,6 +1548,7 @@ export type Database = {
           id?: string
           inbound_batch_id?: string | null
           payment_id: string
+          purchase_order_id?: string | null
           sales_record_id?: string | null
         }
         Update: {
@@ -1529,6 +1558,7 @@ export type Database = {
           id?: string
           inbound_batch_id?: string | null
           payment_id?: string
+          purchase_order_id?: string | null
           sales_record_id?: string | null
         }
         Relationships: [
@@ -1554,6 +1584,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "payment_allocations_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_status"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "payment_allocations_sales_record_id_fkey"
             columns: ["sales_record_id"]
             isOneToOne: false
@@ -1568,6 +1612,89 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payment_term_template_lines: {
+        Row: {
+          created_at: string
+          days_offset: number | null
+          fixed_amount_usd: number | null
+          id: string
+          label: string
+          notes: string | null
+          percentage: number | null
+          seq: number
+          template_id: string
+          trigger_event: string
+        }
+        Insert: {
+          created_at?: string
+          days_offset?: number | null
+          fixed_amount_usd?: number | null
+          id?: string
+          label: string
+          notes?: string | null
+          percentage?: number | null
+          seq: number
+          template_id: string
+          trigger_event: string
+        }
+        Update: {
+          created_at?: string
+          days_offset?: number | null
+          fixed_amount_usd?: number | null
+          id?: string
+          label?: string
+          notes?: string | null
+          percentage?: number | null
+          seq?: number
+          template_id?: string
+          trigger_event?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_term_template_lines_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "payment_term_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_term_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       payments: {
         Row: {
@@ -1716,6 +1843,75 @@ export type Database = {
           total_debits?: number
         }
         Relationships: []
+      }
+      prepayment_applications: {
+        Row: {
+          amount_usd: number
+          created_at: string
+          created_by: string | null
+          id: string
+          inbound_batch_id: string
+          journal_entry_id: string | null
+          notes: string | null
+          purchase_order_id: string
+        }
+        Insert: {
+          amount_usd: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inbound_batch_id: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          purchase_order_id: string
+        }
+        Update: {
+          amount_usd?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inbound_batch_id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          purchase_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_status"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       price_history: {
         Row: {
@@ -2122,6 +2318,230 @@ export type Database = {
           },
         ]
       }
+      purchase_order_lines: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          estimated_amount_usd: number
+          estimated_unit_price: number | null
+          expected_assay: Json | null
+          id: string
+          line_no: number
+          material_id: string
+          notes: string | null
+          pricing_formula_id: string | null
+          purchase_order_id: string
+          quantity: number
+          unit: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          estimated_amount_usd?: number
+          estimated_unit_price?: number | null
+          expected_assay?: Json | null
+          id?: string
+          line_no: number
+          material_id: string
+          notes?: string | null
+          pricing_formula_id?: string | null
+          purchase_order_id: string
+          quantity: number
+          unit?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          estimated_amount_usd?: number
+          estimated_unit_price?: number | null
+          expected_assay?: Json | null
+          id?: string
+          line_no?: number
+          material_id?: string
+          notes?: string | null
+          pricing_formula_id?: string | null
+          purchase_order_id?: string
+          quantity?: number
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_lines_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_pricing_formula_id_fkey"
+            columns: ["pricing_formula_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_formulas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_status"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_order_payment_terms: {
+        Row: {
+          created_at: string
+          due_date: string | null
+          fixed_amount_usd: number | null
+          id: string
+          label: string
+          notes: string | null
+          percentage: number | null
+          purchase_order_id: string
+          seq: number
+          trigger_event: string
+        }
+        Insert: {
+          created_at?: string
+          due_date?: string | null
+          fixed_amount_usd?: number | null
+          id?: string
+          label: string
+          notes?: string | null
+          percentage?: number | null
+          purchase_order_id: string
+          seq: number
+          trigger_event: string
+        }
+        Update: {
+          created_at?: string
+          due_date?: string | null
+          fixed_amount_usd?: number | null
+          id?: string
+          label?: string
+          notes?: string | null
+          percentage?: number | null
+          purchase_order_id?: string
+          seq?: number
+          trigger_event?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_payment_terms_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_status"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_payment_terms_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_orders: {
+        Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          closed_at: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          deleted_at: string | null
+          estimated_total_usd: number
+          expected_delivery_date: string | null
+          fx_rate: number
+          id: string
+          incoterm: string | null
+          notes: string | null
+          order_date: string
+          status: string
+          supplier_id: string
+          terms_text: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          closed_at?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          deleted_at?: string | null
+          estimated_total_usd?: number
+          expected_delivery_date?: string | null
+          fx_rate?: number
+          id?: string
+          incoterm?: string | null
+          notes?: string | null
+          order_date: string
+          status?: string
+          supplier_id: string
+          terms_text?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          closed_at?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          deleted_at?: string | null
+          estimated_total_usd?: number
+          expected_delivery_date?: string | null
+          fx_rate?: number
+          id?: string
+          incoterm?: string | null
+          notes?: string | null
+          order_date?: string
+          status?: string
+          supplier_id?: string
+          terms_text?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "purchase_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_records: {
         Row: {
           amount_usd: number
@@ -2475,6 +2895,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           credit_rating: string | null
+          default_payment_term_template_id: string | null
           deleted_at: string | null
           id: string
           incoterm: string | null
@@ -2496,6 +2917,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           credit_rating?: string | null
+          default_payment_term_template_id?: string | null
           deleted_at?: string | null
           id?: string
           incoterm?: string | null
@@ -2517,6 +2939,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           credit_rating?: string | null
+          default_payment_term_template_id?: string | null
           deleted_at?: string | null
           id?: string
           incoterm?: string | null
@@ -2531,7 +2954,15 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "suppliers_default_payment_term_template_id_fkey"
+            columns: ["default_payment_term_template_id"]
+            isOneToOne: false
+            referencedRelation: "payment_term_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tasks: {
         Row: {
@@ -2734,10 +3165,59 @@ export type Database = {
         }
         Relationships: []
       }
+      purchase_order_status: {
+        Row: {
+          code: string | null
+          currency: string | null
+          estimated_total_usd: number | null
+          expected_delivery_date: string | null
+          order_date: string | null
+          ordered_qty: number | null
+          po_id: string | null
+          prepaid_applied_usd: number | null
+          prepaid_remaining_usd: number | null
+          prepaid_usd: number | null
+          receipt_pct: number | null
+          received_batches: number | null
+          received_qty: number | null
+          status: string | null
+          supplier_id: string | null
+          supplier_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "purchase_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       allocate_processing_costs: {
         Args: { p_basis?: string; p_run_id: string }
+        Returns: Json
+      }
+      apply_payment_term_template: {
+        Args: { p_purchase_order_id: string; p_template_id: string }
+        Returns: Json
+      }
+      apply_prepayment: {
+        Args: {
+          p_amount: number
+          p_inbound_batch_id: string
+          p_notes?: string
+          p_purchase_order_id: string
+        }
         Returns: Json
       }
       bank_native_currency: {
@@ -2751,6 +3231,10 @@ export type Database = {
           p_quantity_kg: number
           p_reference_date?: string
         }
+        Returns: Json
+      }
+      cancel_purchase_order: {
+        Args: { p_id: string; p_reason?: string }
         Returns: Json
       }
       cancel_stocktake: { Args: { p_stocktake_id: string }; Returns: undefined }
@@ -2776,6 +3260,21 @@ export type Database = {
           p_payment_terms_days?: number
           p_sales_record_ids: string[]
           p_terms_text?: string
+        }
+        Returns: Json
+      }
+      create_purchase_order: {
+        Args: {
+          p_currency: string
+          p_expected_delivery: string
+          p_fx_rate: number
+          p_incoterm: string
+          p_lines: Json
+          p_notes: string
+          p_order_date: string
+          p_payment_terms?: Json
+          p_supplier_id: string
+          p_terms_text: string
         }
         Returns: Json
       }
@@ -2809,6 +3308,7 @@ export type Database = {
         Returns: Json
       }
       next_pricing_formula_code: { Args: { p_date?: string }; Returns: string }
+      next_purchase_order_code: { Args: { p_date?: string }; Returns: string }
       post_journal_entry: {
         Args: {
           p_entry_date: string

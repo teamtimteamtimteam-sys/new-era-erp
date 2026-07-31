@@ -8,7 +8,12 @@
 -- reverse_journal_entry (SECURITY DEFINER), and the guard trigger allows solely
 -- the posted→reversed status flip (column-by-column check).
 --
--- NOTE: introduced by db/migrations/2026-07-05-phase3-cut1-finance-foundation.sql.
+-- NOTE: introduced by db/migrations/2026-07-05-phase3-cut1-finance-foundation.sql;
+-- source_type 'prepayment' added by
+-- db/migrations/2026-07-31-phase4-cut4a-purchase-orders.sql, which also corrected
+-- this mirror's source_type list —— 'expense' 是 s2a 那一切加进库里的,但当时【漏了
+-- 同步这份镜像】。照旧版镜像重建会把既有的 expense 分录判违约(实测 23514),故此处
+-- 以库里的实际取值为准。
 -- First-run script (plain CREATEs). Run in the Supabase SQL Editor.
 
 CREATE TABLE public.journal_entries (
@@ -16,7 +21,7 @@ CREATE TABLE public.journal_entries (
     code        text NOT NULL UNIQUE,
     entry_date  date NOT NULL,
     memo        text,
-    source_type text CHECK (source_type IN ('manual','purchase','sale','processing_cost','allocation','stocktake','writeoff','payment','fx')),
+    source_type text CHECK (source_type IN ('manual','purchase','sale','processing_cost','allocation','stocktake','writeoff','payment','fx','expense','prepayment')),
     source_id   uuid,
     status      text NOT NULL DEFAULT 'posted' CHECK (status IN ('posted','reversed')),
     reversed_by uuid REFERENCES public.journal_entries (id),
