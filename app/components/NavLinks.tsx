@@ -21,6 +21,7 @@ const NAV_ITEMS = [
     { href: '/stocktakes', key: 'nav.stocktakes' },
     { href: '/finance', key: 'nav.finance' },
     { href: '/tasks', key: 'nav.tasks' },
+    { href: '/hr', key: 'nav.hr' },
 ]
 
 export default function NavLinks() {
