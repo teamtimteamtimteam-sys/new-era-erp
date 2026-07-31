@@ -2459,6 +2459,36 @@ export type Database = {
         }
         Relationships: []
       }
+      permissions: {
+        Row: {
+          category: string
+          code: string
+          description_en: string | null
+          description_zh: string | null
+          name_en: string
+          name_zh: string
+          sort_order: number
+        }
+        Insert: {
+          category: string
+          code: string
+          description_en?: string | null
+          description_zh?: string | null
+          name_en: string
+          name_zh: string
+          sort_order?: number
+        }
+        Update: {
+          category?: string
+          code?: string
+          description_en?: string | null
+          description_zh?: string | null
+          name_en?: string
+          name_zh?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       prepayment_applications: {
         Row: {
           amount_usd: number
@@ -3241,6 +3271,93 @@ export type Database = {
           },
         ]
       }
+      role_permissions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          permission_code: string
+          role_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          permission_code: string
+          role_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          permission_code?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_permission_code_fkey"
+            columns: ["permission_code"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roles: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          description_en: string | null
+          description_zh: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          name_en: string
+          name_zh: string
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          description_en?: string | null
+          description_zh?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name_en: string
+          name_zh: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          description_en?: string | null
+          description_zh?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          name_en?: string
+          name_zh?: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       sales_records: {
         Row: {
           amount_usd: number
@@ -3815,6 +3932,47 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          granted_at: string
+          granted_by: string | null
+          id: string
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          role_id: string
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          role_id: string
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          role_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       ap_open_items: {
@@ -4257,6 +4415,8 @@ export type Database = {
         }
         Returns: Json
       }
+      current_user_employee: { Args: never; Returns: string }
+      current_user_permissions: { Args: never; Returns: string[] }
       fin_cost_account: { Args: { p_cost_type: string }; Returns: string }
       fin_cost_lines: {
         Args: { p_amount: number; p_cost_type: string; p_reverse: boolean }
@@ -4266,6 +4426,7 @@ export type Database = {
         Args: { p_date: string; p_prefix: string }
         Returns: string
       }
+      has_permission: { Args: { p_code: string }; Returns: boolean }
       ignore_bank_line: {
         Args: { p_reason: string; p_statement_line_id: string }
         Returns: undefined
@@ -4306,6 +4467,10 @@ export type Database = {
         Returns: Json
       }
       post_stocktake: { Args: { p_stocktake_id: string }; Returns: Json }
+      preview_reprice_inbound_batch: {
+        Args: { p_inbound_batch_id: string; p_new_unit_price: number }
+        Returns: Json
+      }
       reconcile_statement: { Args: { p_statement_id: string }; Returns: Json }
       record_assay_result: {
         Args: {
@@ -4377,6 +4542,15 @@ export type Database = {
           p_inbound_batch_id: string
           p_notes?: string
           p_unit_price: number
+        }
+        Returns: Json
+      }
+      reprice_split: {
+        Args: {
+          p_new_price: number
+          p_old_price: number
+          p_quantity: number
+          p_remaining: number
         }
         Returns: Json
       }

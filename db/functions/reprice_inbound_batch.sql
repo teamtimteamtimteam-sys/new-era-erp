@@ -11,6 +11,7 @@ DECLARE
     v_code      text;
     v_fx        numeric;
     v_usd       numeric;
+    v_split     jsonb;
     v_delta     numeric;
     v_ratio     numeric;
     v_inv       numeric := 0;
@@ -57,14 +58,15 @@ BEGIN
 
     -- cut 2a:计价即入账 —— 整批数量 × 价差(负债在收货整批上成立,非剩余量)。
     -- 记于定价日 CURRENT_DATE(到货日尚无金额,刻意如此);USD 口径(原币在 price_history)。
-    v_delta := round(v_qty * (v_usd - COALESCE(v_old, 0)), 2);
-    v_ratio := CASE WHEN v_qty = 0 THEN 1
-                    ELSE LEAST(1, GREATEST(0, v_remaining / v_qty)) END;
+    -- 拆分算术来自 reprice_split —— 与 preview_reprice_inbound_batch 共用同一份。
+    v_split := reprice_split(v_qty, v_remaining, v_old, v_usd);
+    v_delta := (v_split->>'delta_usd')::numeric;
+    v_ratio := (v_split->>'in_stock_ratio')::numeric;
 
     IF v_delta <> 0 THEN
-        -- 拆账(见文件头):在库份额进 1200,已消耗份额进 5000;贷方(负差时借方)恒 2000
-        v_inv  := round(v_delta * v_ratio, 2);
-        v_cost := round(v_delta - v_inv, 2);
+        -- 拆账:在库份额进 1200,已消耗份额进 5000;贷方(负差时借方)恒 2000
+        v_inv  := (v_split->>'inventory_share_usd')::numeric;
+        v_cost := (v_split->>'cost_share_usd')::numeric;
 
         v_lines := '[]'::jsonb;
         IF abs(v_inv) > 0 THEN
@@ -104,7 +106,7 @@ BEGIN
         'old_unit_price', v_old,
         'new_unit_price', v_usd,
         'price_delta_usd', v_delta,
-        'in_stock_ratio', round(v_ratio, 4),
+        'in_stock_ratio', v_ratio,
         'inventory_share_usd', v_inv,
         'cost_share_usd', v_cost,
         'journal_code', v_je->>'code'
