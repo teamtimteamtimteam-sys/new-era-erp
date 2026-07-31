@@ -57,6 +57,9 @@ const en = {
     suppliers: {
         listTitle: 'Suppliers',
         addButton: '+ Add Supplier',
+        defaultPaymentTerms: 'Default payment terms',
+        defaultPaymentTermsHint: 'Pre-fills the payment schedule on new purchase orders for this supplier.',
+        defaultPaymentTermsNone: 'None',
         recordCount: 'Total: {count}',
         colActions: 'Actions',
         col: {

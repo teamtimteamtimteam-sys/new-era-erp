@@ -28,6 +28,9 @@ export async function createSupplier(
     const incoterm = (formData.get('incoterm') as string)?.trim() || null
     const credit_rating = (formData.get('credit_rating') as string)?.trim() || null
     const notes = (formData.get('notes') as string)?.trim() || null
+    // 默认付款条款模板(空 = 无;非法 id 由外键拦下)
+    const default_payment_term_template_id =
+        (formData.get('default_payment_term_template_id') as string)?.trim() || null
 
     // 多选 checkbox:用 getAll 拿所有勾选的值
     const supplier_types = formData.getAll('supplier_types') as string[]
@@ -57,6 +60,7 @@ export async function createSupplier(
         incoterm,
         credit_rating,
         notes,
+        default_payment_term_template_id,
         // status 不传,用数据库默认值 'draft'
         // code 不传,用触发器自动生成
     } as InsertRow<'suppliers'>)

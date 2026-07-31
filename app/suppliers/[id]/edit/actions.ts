@@ -27,6 +27,9 @@ export async function updateSupplier(
     const incoterm = (formData.get('incoterm') as string)?.trim() || null
     const credit_rating = (formData.get('credit_rating') as string)?.trim() || null
     const notes = (formData.get('notes') as string)?.trim() || null
+    // 默认付款条款模板(空 = 无;非法 id 由外键拦下)
+    const default_payment_term_template_id =
+        (formData.get('default_payment_term_template_id') as string)?.trim() || null
     const supplier_types = formData.getAll('supplier_types') as string[]
 
     // 2. 校验
@@ -56,6 +59,7 @@ export async function updateSupplier(
             incoterm,
             credit_rating,
             notes,
+            default_payment_term_template_id,
         })
         .eq('id', id)
         .is('deleted_at', null) // 已软删除的不能改

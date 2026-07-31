@@ -43,6 +43,25 @@ export default async function EditSupplierPage({
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
 
+    // 默认付款条款模板下拉:启用的 + 该供应商当前指着的那个(即便已停用/已删,
+    // 也得让它出现在选项里 —— 否则一打开编辑页就"看起来像无",一保存就静默清掉)
+    const { data: templateRows } = await supabase
+        .from('payment_term_templates')
+        .select('id, name')
+        .is('deleted_at', null)
+        .eq('is_active', true)
+        .order('name')
+    const templates = [...(templateRows ?? [])]
+    const currentTplId = supplier.default_payment_term_template_id
+    if (currentTplId && !templates.some((tpl) => tpl.id === currentTplId)) {
+        const { data: cur } = await supabase
+            .from('payment_term_templates')
+            .select('id, name')
+            .eq('id', currentTplId)
+            .single()
+        if (cur) templates.unshift({ id: cur.id, name: `${cur.name} (${t('finance.inactive')})` })
+    }
+
     // 在服务端按当前语言格式化时间,再传给客户端面板 —— 避免客户端 toLocaleString 引发水合不一致
     const attachments = (attachmentRows ?? []).map((a) => ({
         id: a.id,
@@ -75,7 +94,7 @@ export default async function EditSupplierPage({
             </p>
 
             <StatusPanel id={supplier.id} currentStatus={supplier.status} />
-            <EditSupplierForm supplier={supplier} />
+            <EditSupplierForm supplier={supplier} templates={templates} />
             <CompliancePanel supplierId={supplier.id} rows={complianceRows ?? []} />
             <AttachmentsPanel supplierId={supplier.id} rows={attachments} />
         </div>

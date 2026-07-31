@@ -1,8 +1,10 @@
 'use client'
 
+// 新建供应商表单(原 page.tsx 的客户端内容;cut 4b 补:默认付款条款模板需要
+// 服务端取数,页面改成 server shell + 客户端表单的通行结构)。
 import { useActionState } from 'react'
 import Link from 'next/link'
-import { updateSupplier, type UpdateSupplierState } from './actions'
+import { createSupplier, type CreateSupplierState } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 
 const SUPPLIER_TYPE_OPTIONS = [
@@ -12,43 +14,20 @@ const SUPPLIER_TYPE_OPTIONS = [
     { value: 'trader', labelKey: 'suppliers.types.trader' },
 ]
 
-const initialState: UpdateSupplierState = {}
-
-type Supplier = {
-    id: string
-    legal_name: string
-    short_name: string | null
-    country: string
-    tax_id: string | null
-    address: string | null
-    supplier_types: string[] | null
-    payment_terms: string | null
-    incoterm: string | null
-    credit_rating: string | null
-    notes: string | null
-    default_payment_term_template_id: string | null
-}
+const initialState: CreateSupplierState = {}
 
 export type TemplateOption = { id: string; name: string }
 
-export default function EditSupplierForm({
-    supplier,
-    templates,
-}: {
-    supplier: Supplier
-    templates: TemplateOption[]
-}) {
+export default function NewSupplierForm({ templates }: { templates: TemplateOption[] }) {
     const t = useTranslations()
-    const updateWithId = updateSupplier.bind(null, supplier.id)
     const [state, formAction, isPending] = useActionState(
-        updateWithId,
+        createSupplier,
         initialState
     )
 
-    const currentTypes = supplier.supplier_types ?? []
-
     return (
         <>
+            {/* 通用错误显示 */}
             {state.error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
                     {state.error}
@@ -56,6 +35,7 @@ export default function EditSupplierForm({
             )}
 
             <form action={formAction} className="space-y-4">
+                {/* 法人名(必填) */}
                 <div>
                     <label className="block text-sm font-medium mb-1">
                         {t('suppliers.form.legalName')} <span className="text-red-600">*</span>
@@ -64,8 +44,8 @@ export default function EditSupplierForm({
                         type="text"
                         name="legal_name"
                         required
-                        defaultValue={supplier.legal_name}
                         className="w-full border border-gray-300 px-3 py-2 rounded"
+                        placeholder={t('suppliers.form.legalNamePlaceholder')}
                     />
                     {state.fieldErrors?.legal_name && (
                         <p className="text-red-600 text-xs mt-1">
@@ -74,16 +54,18 @@ export default function EditSupplierForm({
                     )}
                 </div>
 
+                {/* 简称 */}
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('suppliers.form.shortName')}</label>
                     <input
                         type="text"
                         name="short_name"
-                        defaultValue={supplier.short_name ?? ''}
                         className="w-full border border-gray-300 px-3 py-2 rounded"
+                        placeholder={t('suppliers.form.shortNamePlaceholder')}
                     />
                 </div>
 
+                {/* 国家(必填) */}
                 <div>
                     <label className="block text-sm font-medium mb-1">
                         {t('suppliers.form.country')} <span className="text-red-600">*</span>
@@ -93,8 +75,8 @@ export default function EditSupplierForm({
                         name="country"
                         required
                         maxLength={2}
-                        defaultValue={supplier.country}
                         className="w-full border border-gray-300 px-3 py-2 rounded uppercase"
+                        placeholder={t('suppliers.form.countryPlaceholder')}
                     />
                     {state.fieldErrors?.country && (
                         <p className="text-red-600 text-xs mt-1">
@@ -103,26 +85,27 @@ export default function EditSupplierForm({
                     )}
                 </div>
 
+                {/* 税号 */}
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('suppliers.form.taxId')}</label>
                     <input
                         type="text"
                         name="tax_id"
-                        defaultValue={supplier.tax_id ?? ''}
                         className="w-full border border-gray-300 px-3 py-2 rounded"
                     />
                 </div>
 
+                {/* 地址 */}
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('suppliers.form.address')}</label>
                     <textarea
                         name="address"
                         rows={2}
-                        defaultValue={supplier.address ?? ''}
                         className="w-full border border-gray-300 px-3 py-2 rounded"
                     />
                 </div>
 
+                {/* 供应商类型(多选) */}
                 <div>
                     <label className="block text-sm font-medium mb-2">
                         {t('suppliers.form.types')}
@@ -134,7 +117,6 @@ export default function EditSupplierForm({
                                     type="checkbox"
                                     name="supplier_types"
                                     value={opt.value}
-                                    defaultChecked={currentTypes.includes(opt.value)}
                                     className="w-4 h-4"
                                 />
                                 <span className="text-sm">{t(opt.labelKey)}</span>
@@ -143,13 +125,14 @@ export default function EditSupplierForm({
                     </div>
                 </div>
 
+                {/* 付款条款 */}
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('suppliers.form.paymentTerms')}</label>
                     <input
                         type="text"
                         name="payment_terms"
-                        defaultValue={supplier.payment_terms ?? ''}
                         className="w-full border border-gray-300 px-3 py-2 rounded"
+                        placeholder={t('suppliers.form.paymentTermsPlaceholder')}
                     />
                 </div>
 
@@ -158,7 +141,7 @@ export default function EditSupplierForm({
                     <label className="block text-sm font-medium mb-1">{t('suppliers.defaultPaymentTerms')}</label>
                     <select
                         name="default_payment_term_template_id"
-                        defaultValue={supplier.default_payment_term_template_id ?? ''}
+                        defaultValue=""
                         className="w-full border border-gray-300 px-3 py-2 rounded"
                     >
                         <option value="">{t('suppliers.defaultPaymentTermsNone')}</option>
@@ -171,36 +154,39 @@ export default function EditSupplierForm({
                     <p className="text-xs text-gray-500 mt-1">{t('suppliers.defaultPaymentTermsHint')}</p>
                 </div>
 
+                {/* Incoterm */}
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('suppliers.form.incoterm')}</label>
                     <input
                         type="text"
                         name="incoterm"
-                        defaultValue={supplier.incoterm ?? ''}
                         className="w-full border border-gray-300 px-3 py-2 rounded"
+                        placeholder={t('suppliers.form.incotermPlaceholder')}
                     />
                 </div>
 
+                {/* 信用评级 */}
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('suppliers.form.creditRating')}</label>
                     <input
                         type="text"
                         name="credit_rating"
-                        defaultValue={supplier.credit_rating ?? ''}
                         className="w-full border border-gray-300 px-3 py-2 rounded"
+                        placeholder={t('suppliers.form.creditRatingPlaceholder')}
                     />
                 </div>
 
+                {/* 备注 */}
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('suppliers.form.notes')}</label>
                     <textarea
                         name="notes"
                         rows={3}
-                        defaultValue={supplier.notes ?? ''}
                         className="w-full border border-gray-300 px-3 py-2 rounded"
                     />
                 </div>
 
+                {/* 提交按钮 */}
                 <div className="flex gap-3 pt-4">
                     <button
                         type="submit"

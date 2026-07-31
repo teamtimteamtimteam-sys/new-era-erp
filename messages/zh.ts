@@ -58,6 +58,9 @@ const zh = {
     },
     suppliers: {
         listTitle: '供应商',
+        defaultPaymentTerms: '默认付款条款',
+        defaultPaymentTermsHint: '为该供应商新建采购单时自动带入付款计划。',
+        defaultPaymentTermsNone: '无',
         addButton: '+ 新增供应商',
         recordCount: '共 {count} 条记录',
         colActions: '操作',
