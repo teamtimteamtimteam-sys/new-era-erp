@@ -2,6 +2,7 @@ import type { Messages } from '@/lib/i18n/config'
 
 const zh = {
     nav: {
+        settings: '设置',
         suppliers: '供应商',
         purchasing: '采购',
         customers: '客户',
@@ -61,6 +62,83 @@ const zh = {
         // 当前登录者无权看见某个数字时,占位显示这个词。
         // 【不能留空】(会被当成缺数据),【更不能显示 0】(那是撒谎)。
         restricted: '受限',
+    },
+    permissions: {
+        title: '权限管理',
+        denied: '你没有管理权限的权限。',
+        deniedHint: '本页需要 action.manage_permissions,请让系统管理员授予。',
+        subnav: { users: '账号', roles: '角色', reference: '权限速查' },
+
+        // users
+        notLinked: '未关联员工档案',
+        noRoles: '未授予角色',
+        noUsers: '没有系统账号。',
+        lastSignIn: '最近登录',
+        created: '创建于',
+        editUser: '编辑',
+        rolesLabel: '角色',
+        linkEmployee: '关联的员工档案',
+        noEmployee: '— 不关联 —',
+        linkEmployeeHint: '一个账号最多关联一名员工。已被别的账号关联的员工不在列表里。',
+        revokeReason: '原因(会记在被收回的每个角色上)',
+        revokeReasonHint: '例如:调去别的组',
+        saved: '已保存。',
+        noCreateUser: '账号通过 Supabase Auth 邀请创建 —— 那是后续切次的事;本页管理的是【已存在账号】的角色。',
+        recoveryTitle: '被锁在门外了?',
+        recoveryBody: '以 postgres 角色经连接池直连即可绕过 RLS,两分钟就能救回来。完整流程写在这个文件的文件头:',
+
+        // roles
+        rolesIntro: '角色与授权都是数据 —— 改它们是在这里编辑,不是发一次版。',
+        addRole: '新建角色',
+        addRoleHint: '先保存角色本身,下一屏再配授权。',
+        roleCode: '代码',
+        roleName: '名称',
+        roleDescription: '说明',
+        permissionCount: '权限数',
+        userCount: '持有人',
+        active: '启用',
+        yes: '是',
+        no: '否',
+        editRole: '编辑',
+        systemRole: '系统',
+        systemRoleLocked: '系统角色不可停用。',
+        systemRoleNoDelete: '系统角色不可删除。',
+        deleteWarnHolders: '还有 {0} 个账号持有这个角色,删除后他们会立即失去它。',
+        codeHintNew: '稳定标识,例如 "warehouse"。【建成之后不可更改】。',
+        codeHintLocked: '代码建成后固定 —— 策略与授权都靠它认这个角色。',
+        nameEn: '名称(英)',
+        nameZh: '名称(中)',
+        descriptionEn: '说明(英)',
+        descriptionZh: '说明(中)',
+        sortOrder: '排序',
+
+        // matrix
+        matrixTitle: '权限',
+        module: '模块',
+        view: '查看',
+        edit: '编辑',
+        editRequiresViewHint: '编辑必须连同查看:只能改、不能看的角色【根本存不了】—— 写入要把数据读回来。勾"编辑"会自动勾上"查看";取消"查看"会一并取消"编辑"。',
+        dataAndActions: '数据类与动作类权限',
+        dataAndActionsHint: '这几条横切所有模块。授予之前,请先读清楚每一条到底会让人看见什么。',
+        savePermissions: '保存权限',
+
+        // reference
+        referenceIntro: '完整目录,以及每条权限【当前】由哪些角色持有。数据直接来自线上授权,不会与现实脱节。',
+        permission: '权限',
+        whatItReveals: '涵盖什么',
+        heldBy: '持有角色',
+        heldByNobody: '无',
+        catModule: '模块',
+        catData: '数据',
+        catAction: '动作',
+
+        // errors
+        errLastAdmin: '这一步会让系统一个管理员都不剩,因此被拒绝了。请先把管理员角色授予其他人,再回来收回。',
+        errDenied: '你没有修改角色或授权的权限。',
+        errEditRequiresView: '给「{0}」授了编辑却没有授查看。只能改、不能看的角色根本存不了东西 —— 请把查看也勾上。',
+        errSystemRole: '这是系统角色,不能被摘掉权限管理能力。',
+        errRoleNotFound: '这个角色已经不存在了。',
+        errPermissionNotFound: '未知的权限码「{0}」。',
     },
     suppliers: {
         listTitle: '供应商',
@@ -1726,6 +1804,7 @@ const zh = {
         errUpload: '上传失败:{message}',
     },
     invoice: {
+        pdfNeedsBanking: '生成 PDF 需要「查看公司银行明细」权限',
         listTitle: '发票',
         new: '+ 开具发票',
         newTitle: '开具发票',

@@ -24,13 +24,22 @@ const NAV_ITEMS = [
     { href: '/hr', key: 'nav.hr' },
 ]
 
-export default function NavLinks() {
+export default function NavLinks({ canManagePermissions = false }: { canManagePermissions?: boolean }) {
     const pathname = usePathname()
     const t = useTranslations()
 
+    // cut 3:设置(权限)是【新增的顶级导航项】,不挂在财务或人力资源底下 ——
+    // 权限管理既不是记账也不是人事,它是系统管理。放进任何一个业务模块都会让
+    // "谁能看见什么"看起来像那个模块的内务。
+    // 没有 action.manage_permissions 的人【整个条目不渲染】(不是灰掉),
+    // 而页面本身也会自己拒绝 —— 藏链接是体贴,不是安全边界。
+    const items = canManagePermissions
+        ? [...NAV_ITEMS, { href: '/settings/permissions', key: 'nav.settings' }]
+        : NAV_ITEMS
+
     return (
         <nav className="flex gap-1 overflow-x-auto px-6 pb-2">
-            {NAV_ITEMS.map((item) => {
+            {items.map((item) => {
                 const active =
                     pathname === item.href || pathname.startsWith(item.href + '/')
                 return (

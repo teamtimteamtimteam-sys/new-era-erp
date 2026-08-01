@@ -30,6 +30,8 @@ import { createClient } from '@/lib/supabase/server'
 export const DATA_VIEW_PRICES = 'data.view_prices'
 export const DATA_VIEW_PAY = 'data.view_pay'
 export const DATA_VIEW_IDENTITY = 'data.view_identity'
+export const DATA_VIEW_BANKING = 'data.view_banking'
+export const ACTION_MANAGE_PERMISSIONS = 'action.manage_permissions'
 
 // React cache():同一次请求内多个组件调用只打一次数据库。
 export const getMyPermissions = cache(async (): Promise<string[]> => {
@@ -52,4 +54,10 @@ export async function canViewPay(): Promise<boolean> {
 }
 export async function canViewIdentity(): Promise<boolean> {
     return can(DATA_VIEW_IDENTITY)
+}
+export async function canViewBanking(): Promise<boolean> {
+    return can(DATA_VIEW_BANKING)
+}
+export async function canManagePermissions(): Promise<boolean> {
+    return can(ACTION_MANAGE_PERMISSIONS)
 }

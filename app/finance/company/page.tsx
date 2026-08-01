@@ -10,7 +10,7 @@ export default async function CompanyPage() {
     const supabase = await createClient()
     const t = await getTranslations()
 
-    const { data, error } = await supabase.from('company_profile').select('*').limit(1).single()
+    const { data, error } = await supabase.from('company_profile_masked').select('*').limit(1).single()
 
     if (error || !data) {
         return (

@@ -13,6 +13,7 @@ import Subnav from '../../Subnav'
 import VoidInvoiceControl from './VoidInvoiceControl'
 import { unmasked } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
+import { canViewBanking } from '@/lib/permissions'
 
 type BillTo = {
     code?: string | null
@@ -65,7 +66,7 @@ export default async function InvoiceDetailPage({
     // 取整行(不只是 legal_name)是因为下面的字体覆盖检查要过一遍抬头/银行/页脚里
     // 所有会被印到 PDF 上的字段。
     const [{ data: company }, { data: financeSettings }] = await Promise.all([
-        supabase.from('company_profile').select('*').limit(1).single(),
+        supabase.from('company_profile_masked').select('*').limit(1).single(),
         supabase.from('finance_settings').select('gst_registration_no').limit(1).single(),
     ])
     const profileIncomplete = !company?.legal_name?.trim()
@@ -133,7 +134,10 @@ export default async function InvoiceDetailPage({
                   gstRegistrationNo: financeSettings?.gst_registration_no ?? null,
               })
             : []
-    const pdfBlocked = profileIncomplete || fontProblems.length > 0
+    // cut 3:PDF 上印着公司收款账号,没有 data.view_banking 的人连按钮都不该看见。
+    // 路由自己也会拒(403)—— 按钮是体贴,不是安全边界。
+    const showBanking = await canViewBanking()
+    const pdfBlocked = profileIncomplete || fontProblems.length > 0 || !showBanking
 
     return (
         <div className="p-8 max-w-5xl">
@@ -168,6 +172,11 @@ export default async function InvoiceDetailPage({
                                 {t('invoice.downloadPdf')}
                             </a>
                         </>
+                    )}
+                    {!showBanking && (
+                        <span className="text-sm text-gray-400 italic">
+                            {t('invoice.pdfNeedsBanking')}
+                        </span>
                     )}
                     {!isVoid && <VoidInvoiceControl invoiceId={inv.id} />}
                 </div>

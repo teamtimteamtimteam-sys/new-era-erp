@@ -18,6 +18,7 @@ import { checkInvoicePdfCoverage, coverageErrorMessage } from '@/lib/invoiceFont
 import React from 'react'
 import { unmasked } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
+import { canViewBanking } from '@/lib/permissions'
 
 const LOGO_MIME: Record<string, string> = {
     png: 'image/png',
@@ -47,6 +48,16 @@ export async function GET(
     // ?download=1 → 存成文件(attachment);不带则在浏览器里直接打开(inline)。
     // 两个入口对应两个不同的时刻:详情页要先看一眼版式,列表页/要往邮件里附时要拿文件。
     const asDownload = new URL(req.url).searchParams.get('download') === '1'
+    // cut 3:发票 PDF 上印着公司收款账号,因此整份文件要 data.view_banking。
+    // 【为什么整份拒绝,而不是把银行区块留空】:发票是要寄出去的对外单据。银行区块
+    // 空着,客户就没法付款,而经手人多半不会察觉自己发出去的是一张残缺的单子 ——
+    // "看起来正常但付不了款"比"这份 PDF 你没有权限生成"糟糕得多。
+    // 代价:auditor 有 module.finance.view 但没有 data.view_banking,因此下载不了 PDF;
+    // 它仍然可以在详情页上读到发票的全部内容。这是有意的取舍。
+    if (!(await canViewBanking())) {
+        return new NextResponse('Forbidden: requires data.view_banking', { status: 403 })
+    }
+
     const supabase = await createClient()
 
     const [invRes, companyRes, settingsRes] = await Promise.all([
@@ -55,7 +66,7 @@ export async function GET(
             .select('code, issue_date, due_date, payment_terms_days, currency, subtotal_usd, tax_rate_pct, tax_usd, total_usd, status, notes, terms_text, bill_to_snapshot')
             .eq('id', id)
             .single(),
-        supabase.from('company_profile').select('*').limit(1).single(),
+        supabase.from('company_profile_masked').select('*').limit(1).single(),
         supabase.from('finance_settings').select('gst_registration_no').limit(1).single(),
     ])
 

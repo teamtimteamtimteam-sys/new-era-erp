@@ -5,6 +5,7 @@ import { logout } from '@/app/logout/actions'
 import { getTranslations } from '@/lib/i18n/server'
 import LanguageSwitcher from './LanguageSwitcher'
 import NavLinks from './NavLinks'
+import { canManagePermissions } from '@/lib/permissions'
 
 export default async function TopNav() {
     const supabase = await createClient()
@@ -17,6 +18,7 @@ export default async function TopNav() {
     }
 
     const t = await getTranslations()
+    const canManage = await canManagePermissions()
 
     return (
         <header className="border-b border-gray-200 bg-white">
@@ -39,7 +41,7 @@ export default async function TopNav() {
                     </form>
                 </div>
             </div>
-            <NavLinks />
+            <NavLinks canManagePermissions={canManage} />
         </header>
     )
 }

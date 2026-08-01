@@ -784,6 +784,13 @@ export type Database = {
             referencedRelation: "employees_masked"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
         ]
       }
       employment_history: {
@@ -854,6 +861,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
           },
         ]
       }
@@ -2437,6 +2451,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "payroll_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
             foreignKeyName: "payroll_lines_payroll_period_id_fkey"
             columns: ["payroll_period_id"]
             isOneToOne: false
@@ -3912,11 +3933,25 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "supplier_compliance_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "supplier_compliance_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_compliance_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -3989,11 +4024,32 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "suppliers_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "suppliers_default_payment_term_template_id_fkey"
             columns: ["default_payment_term_template_id"]
             isOneToOne: false
             referencedRelation: "payment_term_templates"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suppliers_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "suppliers_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -4139,6 +4195,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
           },
         ]
       }
@@ -4340,6 +4403,72 @@ export type Database = {
           },
         ]
       }
+      company_profile_masked: {
+        Row: {
+          address_lines: string | null
+          bank_account_name: string | null
+          bank_account_no: string | null
+          bank_address: string | null
+          bank_name: string | null
+          bank_swift: string | null
+          city: string | null
+          country: string | null
+          email: string | null
+          id: boolean | null
+          invoice_footer_text: string | null
+          legal_name: string | null
+          logo_path: string | null
+          phone: string | null
+          postal_code: string | null
+          registration_no: string | null
+          updated_at: string | null
+          updated_by: string | null
+          website: string | null
+        }
+        Insert: {
+          address_lines?: string | null
+          bank_account_name?: never
+          bank_account_no?: never
+          bank_address?: never
+          bank_name?: never
+          bank_swift?: never
+          city?: string | null
+          country?: string | null
+          email?: string | null
+          id?: boolean | null
+          invoice_footer_text?: string | null
+          legal_name?: string | null
+          logo_path?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          registration_no?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          website?: string | null
+        }
+        Update: {
+          address_lines?: string | null
+          bank_account_name?: never
+          bank_account_no?: never
+          bank_address?: never
+          bank_name?: never
+          bank_swift?: never
+          city?: string | null
+          country?: string | null
+          email?: string | null
+          id?: boolean | null
+          invoice_footer_text?: string | null
+          legal_name?: string | null
+          logo_path?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          registration_no?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       employee_directory: {
         Row: {
           annual_leave_days: number | null
@@ -4396,6 +4525,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
           },
         ]
       }
@@ -4527,6 +4663,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
           },
         ]
       }
@@ -5014,6 +5157,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
           },
           {
             foreignKeyName: "payroll_lines_payroll_period_id_fkey"
@@ -6022,6 +6172,19 @@ export type Database = {
           },
         ]
       }
+      user_directory: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          employee_code: string | null
+          employee_id: string | null
+          employee_name: string | null
+          last_sign_in_at: string | null
+          roles: Json | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       allocate_processing_costs: {
@@ -6284,6 +6447,14 @@ export type Database = {
           p_notes?: string
           p_unit_price: number
         }
+        Returns: Json
+      }
+      set_role_permissions: {
+        Args: { p_permission_codes: string[]; p_role_id: string }
+        Returns: Json
+      }
+      set_user_roles: {
+        Args: { p_reason?: string; p_role_ids: string[]; p_user_id: string }
         Returns: Json
       }
       unapply_assay_result: {

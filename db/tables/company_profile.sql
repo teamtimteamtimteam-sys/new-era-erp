@@ -63,3 +63,11 @@ CREATE POLICY "company_profile delete by permission"
     ON public.company_profile
     AS PERMISSIVE FOR DELETE TO authenticated
     USING (has_permission('module.finance.edit'::text));
+
+-- cut 3 银行明细遮蔽:收回原始银行列。表级 SELECT 蕴含所有列,
+-- 所以先整表收回,再把非银行列逐列授回。银行列只能经 company_profile_masked 读取。
+-- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
+REVOKE SELECT ON public.company_profile FROM authenticated, anon;
+GRANT SELECT (id, legal_name, registration_no, address_lines, city, postal_code, country,
+              phone, email, website, invoice_footer_text, logo_path, updated_at, updated_by)
+    ON public.company_profile TO authenticated;

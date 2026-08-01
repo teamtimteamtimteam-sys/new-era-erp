@@ -1,5 +1,6 @@
 const en = {
     nav: {
+        settings: 'Settings',
         suppliers: 'Suppliers',
         purchasing: 'Purchasing',
         customers: 'Customers',
@@ -59,6 +60,83 @@ const en = {
         // Shown in place of a figure the signed-in user has no permission to see.
         // Deliberately NOT a blank (reads as missing data) and NOT a zero (a lie).
         restricted: 'Restricted',
+    },
+    permissions: {
+        title: 'Permissions',
+        denied: 'You do not have permission to manage permissions.',
+        deniedHint: 'This page needs action.manage_permissions. Ask a system administrator to grant it.',
+        subnav: { users: 'Accounts', roles: 'Roles', reference: 'Permission reference' },
+
+        // users
+        notLinked: 'not linked to an employee',
+        noRoles: 'no roles',
+        noUsers: 'No system accounts.',
+        lastSignIn: 'Last sign-in',
+        created: 'Created',
+        editUser: 'Edit',
+        rolesLabel: 'Roles',
+        linkEmployee: 'Linked employee record',
+        noEmployee: '— not linked —',
+        linkEmployeeHint: 'One employee per account. Employees already linked to another account are not listed.',
+        revokeReason: 'Reason (recorded on any role removed)',
+        revokeReasonHint: 'e.g. moved to another team',
+        saved: 'Saved.',
+        noCreateUser: 'Accounts are created by Supabase Auth invitation, which is a later cut — this page manages roles for accounts that already exist.',
+        recoveryTitle: 'Locked out?',
+        recoveryBody: 'A lockout is recoverable in two minutes by connecting as the postgres role through the pooler, which bypasses RLS. The exact procedure is documented in the header of',
+
+        // roles
+        rolesIntro: 'Roles and their grants are data — changing them is an edit here, not a release.',
+        addRole: 'Add role',
+        addRoleHint: 'Save the role first, then set its permissions on the next screen.',
+        roleCode: 'Code',
+        roleName: 'Name',
+        roleDescription: 'Description',
+        permissionCount: 'Permissions',
+        userCount: 'Holders',
+        active: 'Active',
+        yes: 'Yes',
+        no: 'No',
+        editRole: 'Edit',
+        systemRole: 'system',
+        systemRoleLocked: 'System roles cannot be deactivated.',
+        systemRoleNoDelete: 'System roles cannot be deleted.',
+        deleteWarnHolders: '{0} account(s) still hold this role and will lose it.',
+        codeHintNew: 'A stable identifier such as "warehouse". It cannot be changed later.',
+        codeHintLocked: 'The code is fixed after creation — policies and grants identify the role by it.',
+        nameEn: 'Name (EN)',
+        nameZh: 'Name (ZH)',
+        descriptionEn: 'Description (EN)',
+        descriptionZh: 'Description (ZH)',
+        sortOrder: 'Sort order',
+
+        // matrix
+        matrixTitle: 'Permissions',
+        module: 'Module',
+        view: 'View',
+        edit: 'Edit',
+        editRequiresViewHint: 'Edit requires View: a role that can change records but not read them cannot save at all, because writes read the row back. Ticking Edit ticks View; unticking View unticks Edit.',
+        dataAndActions: 'Data and action permissions',
+        dataAndActionsHint: 'These cut across every module. Read what each one reveals before granting it.',
+        savePermissions: 'Save permissions',
+
+        // reference
+        referenceIntro: 'The full catalogue, and who currently holds each permission. Read from the live grants, so it cannot drift.',
+        permission: 'Permission',
+        whatItReveals: 'What it covers',
+        heldBy: 'Held by',
+        heldByNobody: 'nobody',
+        catModule: 'Modules',
+        catData: 'Data',
+        catAction: 'Actions',
+
+        // errors
+        errLastAdmin: 'This would leave the system with no administrator, so it was refused. Grant the administrator role to somebody else first, then remove it here.',
+        errDenied: 'You do not have permission to change roles or grants.',
+        errEditRequiresView: 'Edit was granted for "{0}" without View. A role that can change records but not read them cannot save at all — tick View as well.',
+        errSystemRole: 'This is a system role and cannot lose its permission-management rights.',
+        errRoleNotFound: 'That role no longer exists.',
+        errPermissionNotFound: 'Unknown permission code "{0}".',
     },
     suppliers: {
         listTitle: 'Suppliers',
@@ -1731,6 +1809,7 @@ const en = {
         errUpload: 'Upload failed: {message}',
     },
     invoice: {
+        pdfNeedsBanking: 'PDF needs permission to see company bank details',
         listTitle: 'Invoices',
         new: '+ New Invoice',
         newTitle: 'New Invoice',
