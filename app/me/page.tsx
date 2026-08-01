@@ -8,6 +8,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatUsd } from '@/lib/format'
+import MyLeavePanel from './MyLeavePanel'
+import MyClaimsPanel from './MyClaimsPanel'
 
 export default async function MePage() {
     const supabase = await createClient()
@@ -53,6 +55,23 @@ export default async function MePage() {
             .select('id, effective_date, change_type, job_title, employment_type, employment_status, notes')
             .eq('employee_id', employeeId)
             .order('effective_date', { ascending: false }),
+    ])
+
+    // 自助的假期与报销:全部靠 cut 4 的行级策略 + HR-2a 的函数,不需要任何模块权限
+    const [balRes, myLeaveRes, typeRes, claimRes, claimBalRes] = await Promise.all([
+        supabase.rpc('leave_balance', { p_employee_id: employeeId, p_leave_type_code: 'annual' }),
+        supabase.from('leave_requests')
+            .select('id, code, leave_type_code, start_date, end_date, days, status, created_at')
+            .eq('employee_id', employeeId).is('deleted_at', null)
+            .order('start_date', { ascending: false }).limit(50),
+        supabase.from('leave_types')
+            .select('code, name_en, name_zh, is_accrued, allows_half_day, requires_certificate_after_days, default_days_per_year')
+            .eq('is_active', true).order('sort_order'),
+        supabase.from('medical_claim_status').select('*')
+            .eq('employee_id', employeeId).order('claim_date', { ascending: false }).limit(50),
+        supabase.rpc('medical_claim_balance', {
+            p_employee_id: employeeId, p_year: new Date().getFullYear(),
+        }),
     ])
 
     const periodIds = Array.from(
@@ -269,6 +288,19 @@ export default async function MePage() {
                     </ol>
                 )}
             </section>
+
+            <MyLeavePanel
+                employeeId={employeeId}
+                balance={balRes.data as never}
+                requests={(myLeaveRes.data ?? []) as never}
+                types={(typeRes.data ?? []) as never}
+            />
+
+            <MyClaimsPanel
+                employeeId={employeeId}
+                claims={(claimRes.data ?? []) as never}
+                balance={claimBalRes.data as never}
+            />
 
             <p className="text-sm text-gray-400 italic">{t('me.comingSoon')}</p>
         </div>

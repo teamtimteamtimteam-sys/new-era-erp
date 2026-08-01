@@ -27,7 +27,15 @@ CREATE TABLE public.leave_requests (
     created_by      uuid DEFAULT auth.uid(),
     updated_at      timestamptz NOT NULL DEFAULT now(),
     updated_by      uuid DEFAULT auth.uid(),
-    CONSTRAINT leave_requests_date_order CHECK (end_date >= start_date)
+    -- cut 2b 例外路径。【ALTER 加的列留在末尾】,与线上 attnum 顺序一致(见 AGENTS.md)。
+    -- days 由 HR 手填而非 calculate_leave_days 算出,两种情形:
+    -- 六天制/轮班下周一至周五口径不对;以及逐案变通标准天数(恩恤/婚假)。
+    is_exception    boolean NOT NULL DEFAULT false,
+    exception_reason text,
+    CONSTRAINT leave_requests_date_order CHECK (end_date >= start_date),
+    -- 没有理由的例外,三个月后没人知道当时为什么这么批
+    CONSTRAINT leave_requests_exception_reason
+        CHECK (NOT is_exception OR (exception_reason IS NOT NULL AND btrim(exception_reason) <> ''))
 );
 
 CREATE INDEX idx_leave_requests_employee ON public.leave_requests (employee_id) WHERE deleted_at IS NULL;

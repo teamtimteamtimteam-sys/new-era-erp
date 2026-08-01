@@ -11,6 +11,8 @@ const ITEMS = [
     { href: '/hr/employees', key: 'hr.subnav.employees' },
     { href: '/hr/departments', key: 'hr.subnav.departments' },
     { href: '/hr/payroll', key: 'hr.subnav.payroll' },
+    { href: '/hr/leave', key: 'hr.subnav.leave' },
+    { href: '/hr/claims', key: 'hr.subnav.claims' },
     { href: '/hr/training', key: 'hr.subnav.training' },
 ]
 

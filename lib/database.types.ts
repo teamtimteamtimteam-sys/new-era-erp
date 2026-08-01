@@ -2067,7 +2067,9 @@ export type Database = {
           employee_id: string
           end_date: string
           end_half_day: boolean
+          exception_reason: string | null
           id: string
+          is_exception: boolean
           leave_type_code: string
           reason: string | null
           start_date: string
@@ -2089,7 +2091,9 @@ export type Database = {
           employee_id: string
           end_date: string
           end_half_day?: boolean
+          exception_reason?: string | null
           id?: string
+          is_exception?: boolean
           leave_type_code: string
           reason?: string | null
           start_date: string
@@ -2111,7 +2115,9 @@ export type Database = {
           employee_id?: string
           end_date?: string
           end_half_day?: boolean
+          exception_reason?: string | null
           id?: string
+          is_exception?: boolean
           leave_type_code?: string
           reason?: string | null
           start_date?: string
@@ -5809,10 +5815,14 @@ export type Database = {
           description: string | null
           employee_code: string | null
           employee_id: string | null
+          expense_amount_usd: number | null
+          expense_code: string | null
           expense_id: string | null
           legal_name: string | null
           linked_to_expense: boolean | null
           receipt_ref: string | null
+          settled_usd: number | null
+          settlement_state: string | null
           status: string | null
         }
         Relationships: [
@@ -7282,6 +7292,15 @@ export type Database = {
       next_payroll_code: { Args: { p_date?: string }; Returns: string }
       next_pricing_formula_code: { Args: { p_date?: string }; Returns: string }
       next_purchase_order_code: { Args: { p_date?: string }; Returns: string }
+      pay_medical_claim: {
+        Args: {
+          p_claim_id: string
+          p_expense_date?: string
+          p_fx_rate?: number
+          p_supplier_id?: string
+        }
+        Returns: Json
+      }
       post_journal_entry: {
         Args: {
           p_entry_date: string
@@ -7433,6 +7452,9 @@ export type Database = {
           p_employee_id: string
           p_end: string
           p_end_half?: boolean
+          p_exception_days?: number
+          p_exception_reason?: string
+          p_is_exception?: boolean
           p_leave_type_code: string
           p_reason?: string
           p_start: string
