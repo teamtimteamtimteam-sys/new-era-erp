@@ -788,6 +788,13 @@ export type Database = {
             foreignKeyName: "employees_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
             referencedRelation: "my_profile"
             referencedColumns: ["employee_id"]
           },
@@ -868,6 +875,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
           },
           {
             foreignKeyName: "employment_history_employee_id_fkey"
@@ -1205,6 +1219,36 @@ export type Database = {
             referencedColumns: ["code"]
           },
         ]
+      }
+      hr_settings: {
+        Row: {
+          carry_forward_months: number
+          id: boolean
+          medical_annual_limit_sgd: number
+          medical_pro_rate_for_joiners: boolean
+          updated_at: string
+          updated_by: string | null
+          working_days_per_week: number
+        }
+        Insert: {
+          carry_forward_months?: number
+          id?: boolean
+          medical_annual_limit_sgd?: number
+          medical_pro_rate_for_joiners?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          working_days_per_week?: number
+        }
+        Update: {
+          carry_forward_months?: number
+          id?: boolean
+          medical_annual_limit_sgd?: number
+          medical_pro_rate_for_joiners?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          working_days_per_week?: number
+        }
+        Relationships: []
       }
       inbound_batch_metals: {
         Row: {
@@ -1836,6 +1880,371 @@ export type Database = {
           },
         ]
       }
+      leave_consumption: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          days: number
+          entry_type: string
+          id: string
+          leave_grant_id: string
+          leave_request_id: string
+          notes: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          days: number
+          entry_type?: string
+          id?: string
+          leave_grant_id: string
+          leave_request_id: string
+          notes?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          days?: number
+          entry_type?: string
+          id?: string
+          leave_grant_id?: string
+          leave_request_id?: string
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_consumption_leave_grant_id_fkey"
+            columns: ["leave_grant_id"]
+            isOneToOne: false
+            referencedRelation: "leave_grants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_consumption_leave_request_id_fkey"
+            columns: ["leave_request_id"]
+            isOneToOne: false
+            referencedRelation: "leave_calendar"
+            referencedColumns: ["request_id"]
+          },
+          {
+            foreignKeyName: "leave_consumption_leave_request_id_fkey"
+            columns: ["leave_request_id"]
+            isOneToOne: false
+            referencedRelation: "leave_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leave_grants: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          days: number
+          deleted_at: string | null
+          employee_id: string
+          expires_on: string | null
+          grant_type: string
+          granted_on: string
+          id: string
+          leave_type_code: string
+          leave_year: number
+          notes: string | null
+          source_grant_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          days: number
+          deleted_at?: string | null
+          employee_id: string
+          expires_on?: string | null
+          grant_type: string
+          granted_on: string
+          id?: string
+          leave_type_code: string
+          leave_year: number
+          notes?: string | null
+          source_grant_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          days?: number
+          deleted_at?: string | null
+          employee_id?: string
+          expires_on?: string | null
+          grant_type?: string
+          granted_on?: string
+          id?: string
+          leave_type_code?: string
+          leave_year?: number
+          notes?: string | null
+          source_grant_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_grants_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_grants_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_grants_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_grants_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_grants_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_grants_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_grants_leave_type_code_fkey"
+            columns: ["leave_type_code"]
+            isOneToOne: false
+            referencedRelation: "leave_types"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leave_grants_leave_type_code_fkey"
+            columns: ["leave_type_code"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["leave_type_code"]
+          },
+          {
+            foreignKeyName: "leave_grants_source_grant_id_fkey"
+            columns: ["source_grant_id"]
+            isOneToOne: false
+            referencedRelation: "leave_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leave_requests: {
+        Row: {
+          certificate_ref: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          days: number
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          deleted_at: string | null
+          employee_id: string
+          end_date: string
+          end_half_day: boolean
+          id: string
+          leave_type_code: string
+          reason: string | null
+          start_date: string
+          start_half_day: boolean
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          certificate_ref?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          days: number
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          deleted_at?: string | null
+          employee_id: string
+          end_date: string
+          end_half_day?: boolean
+          id?: string
+          leave_type_code: string
+          reason?: string | null
+          start_date: string
+          start_half_day?: boolean
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          certificate_ref?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          days?: number
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          deleted_at?: string | null
+          employee_id?: string
+          end_date?: string
+          end_half_day?: boolean
+          id?: string
+          leave_type_code?: string
+          reason?: string | null
+          start_date?: string
+          start_half_day?: boolean
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_requests_leave_type_code_fkey"
+            columns: ["leave_type_code"]
+            isOneToOne: false
+            referencedRelation: "leave_types"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leave_requests_leave_type_code_fkey"
+            columns: ["leave_type_code"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["leave_type_code"]
+          },
+        ]
+      }
+      leave_types: {
+        Row: {
+          allows_half_day: boolean
+          code: string
+          created_at: string
+          created_by: string | null
+          default_days_per_year: number | null
+          description_en: string | null
+          description_zh: string | null
+          gender_restriction: string | null
+          is_accrued: boolean
+          is_active: boolean
+          is_paid: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          requires_approval: boolean
+          requires_certificate_after_days: number | null
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          allows_half_day?: boolean
+          code: string
+          created_at?: string
+          created_by?: string | null
+          default_days_per_year?: number | null
+          description_en?: string | null
+          description_zh?: string | null
+          gender_restriction?: string | null
+          is_accrued?: boolean
+          is_active?: boolean
+          is_paid?: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          requires_approval?: boolean
+          requires_certificate_after_days?: number | null
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          allows_half_day?: boolean
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          default_days_per_year?: number | null
+          description_en?: string | null
+          description_zh?: string | null
+          gender_restriction?: string | null
+          is_accrued?: boolean
+          is_active?: boolean
+          is_paid?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          requires_approval?: boolean
+          requires_certificate_after_days?: number | null
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       material_attachments: {
         Row: {
           created_at: string
@@ -1942,6 +2351,119 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      medical_claims: {
+        Row: {
+          amount_sgd: number
+          claim_date: string
+          claim_year: number
+          code: string
+          created_at: string
+          created_by: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          deleted_at: string | null
+          description: string | null
+          employee_id: string
+          expense_id: string | null
+          id: string
+          receipt_ref: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          amount_sgd: number
+          claim_date: string
+          claim_year: number
+          code: string
+          created_at?: string
+          created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          employee_id: string
+          expense_id?: string | null
+          id?: string
+          receipt_ref?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          amount_sgd?: number
+          claim_date?: string
+          claim_year?: number
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          employee_id?: string
+          expense_id?: string | null
+          id?: string
+          receipt_ref?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "medical_claims_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       metal_prices: {
         Row: {
@@ -2484,6 +3006,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
           },
           {
             foreignKeyName: "payroll_lines_employee_id_fkey"
@@ -3256,6 +3785,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      public_holidays: {
+        Row: {
+          country: string
+          created_at: string
+          created_by: string | null
+          holiday_date: string
+          id: string
+          is_active: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          country?: string
+          created_at?: string
+          created_by?: string | null
+          holiday_date: string
+          id?: string
+          is_active?: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          country?: string
+          created_at?: string
+          created_by?: string | null
+          holiday_date?: string
+          id?: string
+          is_active?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       purchase_order_lines: {
         Row: {
@@ -4242,6 +4813,13 @@ export type Database = {
             foreignKeyName: "training_records_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "training_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "my_profile"
             referencedColumns: ["employee_id"]
           },
@@ -4579,6 +5157,13 @@ export type Database = {
             foreignKeyName: "employees_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
             referencedRelation: "my_profile"
             referencedColumns: ["employee_id"]
           },
@@ -4719,6 +5304,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
           },
           {
             foreignKeyName: "employees_manager_id_fkey"
@@ -5122,6 +5714,173 @@ export type Database = {
           },
         ]
       }
+      leave_calendar: {
+        Row: {
+          code: string | null
+          days: number | null
+          department_id: string | null
+          employee_code: string | null
+          employee_id: string | null
+          end_date: string | null
+          end_half_day: boolean | null
+          leave_type_code: string | null
+          leave_type_en: string | null
+          leave_type_zh: string | null
+          legal_name: string | null
+          request_id: string | null
+          start_date: string | null
+          start_half_day: boolean | null
+          status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_requests_leave_type_code_fkey"
+            columns: ["leave_type_code"]
+            isOneToOne: false
+            referencedRelation: "leave_types"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leave_requests_leave_type_code_fkey"
+            columns: ["leave_type_code"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["leave_type_code"]
+          },
+        ]
+      }
+      medical_claim_status: {
+        Row: {
+          amount_sgd: number | null
+          claim_date: string | null
+          claim_id: string | null
+          claim_year: number | null
+          code: string | null
+          decided_at: string | null
+          description: string | null
+          employee_code: string | null
+          employee_id: string | null
+          expense_id: string | null
+          legal_name: string | null
+          linked_to_expense: boolean | null
+          receipt_ref: string | null
+          status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "medical_claims_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      my_leave_balance: {
+        Row: {
+          available: number | null
+          consumed: number | null
+          employee_code: string | null
+          employee_id: string | null
+          expired: number | null
+          granted: number | null
+          leave_type_code: string | null
+          name_en: string | null
+          name_zh: string | null
+        }
+        Relationships: []
+      }
       my_profile: {
         Row: {
           annual_leave_days: number | null
@@ -5258,6 +6017,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
           },
           {
             foreignKeyName: "payroll_lines_employee_id_fkey"
@@ -6365,6 +7131,15 @@ export type Database = {
         Args: { p_account_code: string }
         Returns: string
       }
+      calculate_leave_days: {
+        Args: {
+          p_end: string
+          p_end_half?: boolean
+          p_start: string
+          p_start_half?: boolean
+        }
+        Returns: number
+      }
       calculate_metal_price: {
         Args: {
           p_formula_id: string
@@ -6383,11 +7158,19 @@ export type Database = {
         }
         Returns: Json
       }
+      cancel_leave_request: {
+        Args: { p_reason?: string; p_request_id: string }
+        Returns: Json
+      }
       cancel_purchase_order: {
         Args: { p_id: string; p_reason?: string }
         Returns: Json
       }
       cancel_stocktake: { Args: { p_stocktake_id: string }; Returns: undefined }
+      carry_forward_annual_leave: {
+        Args: { p_leave_year: number }
+        Returns: Json
+      }
       close_period: {
         Args: { p_notes?: string; p_period_end: string }
         Returns: Json
@@ -6405,6 +7188,10 @@ export type Database = {
           p_process_date: string
         }
         Returns: string
+      }
+      compute_leave_encashment: {
+        Args: { p_as_of?: string; p_employee_id: string }
+        Returns: Json
       }
       create_invoice: {
         Args: {
@@ -6434,6 +7221,14 @@ export type Database = {
       }
       current_user_employee: { Args: never; Returns: string }
       current_user_permissions: { Args: never; Returns: string[] }
+      decide_leave_request: {
+        Args: { p_approve: boolean; p_notes?: string; p_request_id: string }
+        Returns: Json
+      }
+      decide_medical_claim: {
+        Args: { p_approve: boolean; p_claim_id: string; p_notes?: string }
+        Returns: Json
+      }
       fin_cost_account: { Args: { p_cost_type: string }; Returns: string }
       fin_cost_lines: {
         Args: { p_amount: number; p_cost_type: string; p_reverse: boolean }
@@ -6442,6 +7237,10 @@ export type Database = {
       fin_next_payment_code: {
         Args: { p_date: string; p_prefix: string }
         Returns: string
+      }
+      grant_annual_leave: {
+        Args: { p_employee_id: string; p_leave_year: number }
+        Returns: Json
       }
       has_permission: { Args: { p_code: string }; Returns: boolean }
       ignore_bank_line: {
@@ -6460,12 +7259,26 @@ export type Database = {
         }
         Returns: Json
       }
+      leave_balance: {
+        Args: {
+          p_as_of?: string
+          p_employee_id: string
+          p_leave_type_code?: string
+        }
+        Returns: Json
+      }
       match_bank_line: {
         Args: { p_journal_line_ids: string[]; p_statement_line_id: string }
         Returns: Json
       }
+      medical_claim_balance: {
+        Args: { p_employee_id: string; p_year: number }
+        Returns: Json
+      }
       next_assay_code: { Args: { p_date?: string }; Returns: string }
       next_employee_code: { Args: { p_date?: string }; Returns: string }
+      next_leave_request_code: { Args: { p_date?: string }; Returns: string }
+      next_medical_claim_code: { Args: { p_date?: string }; Returns: string }
       next_payroll_code: { Args: { p_date?: string }; Returns: string }
       next_pricing_formula_code: { Args: { p_date?: string }; Returns: string }
       next_purchase_order_code: { Args: { p_date?: string }; Returns: string }
@@ -6612,6 +7425,29 @@ export type Database = {
       }
       set_user_roles: {
         Args: { p_reason?: string; p_role_ids: string[]; p_user_id: string }
+        Returns: Json
+      }
+      submit_leave_request: {
+        Args: {
+          p_certificate_ref?: string
+          p_employee_id: string
+          p_end: string
+          p_end_half?: boolean
+          p_leave_type_code: string
+          p_reason?: string
+          p_start: string
+          p_start_half?: boolean
+        }
+        Returns: Json
+      }
+      submit_medical_claim: {
+        Args: {
+          p_amount_sgd: number
+          p_claim_date: string
+          p_description?: string
+          p_employee_id: string
+          p_receipt_ref?: string
+        }
         Returns: Json
       }
       unapply_assay_result: {
