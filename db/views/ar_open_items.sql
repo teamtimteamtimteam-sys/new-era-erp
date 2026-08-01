@@ -7,8 +7,11 @@
 -- NOTE: introduced by db/migrations/2026-07-06-phase3-cut3a-payments.sql;
 -- invoice 两列由 db/migrations/2026-07-31-phase4-cut2a-invoices.sql 追加(DROP+CREATE)。
 
-CREATE OR REPLACE VIEW public.ar_open_items
-WITH (security_invoker = on) AS
+-- cut 2b:本视图改读遮蔽伴生视图(<表>_masked)而非基表 —— 敏感列的遮蔽
+-- 因此是继承来的,视图体其余部分逐字未变。它仍然是 SECURITY INVOKER:
+-- 它读的遮蔽视图自带模块谓词,所以既拿得到数据,也绕不过任何模块边界。
+-- 见 db/migrations/2026-08-01-perm2b-field-masking.sql.
+CREATE VIEW public.ar_open_items WITH (security_invoker = on) AS
  SELECT sr.id AS sales_record_id,
     ob.code AS doc_code,
     sr.customer_id,
@@ -26,7 +29,7 @@ WITH (security_invoker = on) AS
         END AS bucket,
     inv.invoice_id,
     inv.invoice_code
-   FROM sales_records sr
+   FROM sales_records_masked sr
      JOIN output_batches ob ON ob.id = sr.output_batch_id
      LEFT JOIN customers c ON c.id = sr.customer_id
      LEFT JOIN LATERAL ( SELECT sum(pa.allocated_usd) AS settled
@@ -35,8 +38,8 @@ WITH (security_invoker = on) AS
           WHERE pa.sales_record_id = sr.id) s ON true
      LEFT JOIN LATERAL ( SELECT i.id AS invoice_id,
             i.code AS invoice_code
-           FROM invoice_lines il
-             JOIN invoices i ON i.id = il.invoice_id
+           FROM invoice_lines_masked il
+             JOIN invoices_masked i ON i.id = il.invoice_id
           WHERE il.sales_record_id = sr.id AND NOT il.invoice_voided
          LIMIT 1) inv ON true
   WHERE round(sr.amount_usd - COALESCE(s.settled, 0::numeric), 2) > 0::numeric;

@@ -41,7 +41,7 @@ export default async function EditEmployeePage({
     const locale = await getLocale()
 
     const [empRes, deptRes, allRes] = await Promise.all([
-        supabase.from('employees').select('*').eq('id', id).is('deleted_at', null).single(),
+        supabase.from('employees_masked').select('*').eq('id', id).is('deleted_at', null).single(),
         supabase.from('departments').select('id, code, name_en, name_zh').is('deleted_at', null).eq('is_active', true).order('code'),
         supabase
             .from('employees')

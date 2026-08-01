@@ -8,8 +8,11 @@
 -- SECURITY INVOKER。
 -- NOTE: introduced by db/migrations/2026-07-31-phase4-cut4a-purchase-orders.sql.
 
-CREATE OR REPLACE VIEW public.purchase_order_status
-WITH (security_invoker = on) AS
+-- cut 2b:本视图改读遮蔽伴生视图(<表>_masked)而非基表 —— 敏感列的遮蔽
+-- 因此是继承来的,视图体其余部分逐字未变。它仍然是 SECURITY INVOKER:
+-- 它读的遮蔽视图自带模块谓词,所以既拿得到数据,也绕不过任何模块边界。
+-- 见 db/migrations/2026-08-01-perm2b-field-masking.sql.
+CREATE VIEW public.purchase_order_status WITH (security_invoker = on) AS
  SELECT po.id AS po_id,
     po.code,
     po.supplier_id,
@@ -29,20 +32,20 @@ WITH (security_invoker = on) AS
             WHEN COALESCE(ord.qty, 0::numeric) = 0::numeric THEN NULL::numeric
             ELSE round(COALESCE(rec.qty, 0::numeric) / ord.qty * 100::numeric, 2)
         END AS receipt_pct
-   FROM purchase_orders po
+   FROM purchase_orders_masked po
      JOIN suppliers sup ON sup.id = po.supplier_id
      LEFT JOIN LATERAL ( SELECT sum(pa.allocated_usd) AS prepaid
            FROM payment_allocations pa
              JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'::text
           WHERE pa.purchase_order_id = po.id) pre ON true
      LEFT JOIN LATERAL ( SELECT sum(ppa.amount_usd) AS applied
-           FROM prepayment_applications ppa
+           FROM prepayment_applications_masked ppa
           WHERE ppa.purchase_order_id = po.id) app ON true
      LEFT JOIN LATERAL ( SELECT count(*) AS batches,
             sum(ib.quantity) AS qty
-           FROM inbound_batches ib
+           FROM inbound_batches_masked ib
           WHERE ib.purchase_order_id = po.id AND ib.deleted_at IS NULL) rec ON true
      LEFT JOIN LATERAL ( SELECT sum(pol.quantity) AS qty
-           FROM purchase_order_lines pol
+           FROM purchase_order_lines_masked pol
           WHERE pol.purchase_order_id = po.id) ord ON true
   WHERE po.deleted_at IS NULL AND po.status <> 'cancelled'::text;

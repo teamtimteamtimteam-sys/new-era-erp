@@ -11,6 +11,8 @@ import NewOrderForm, {
     type FormulaOption,
     type TemplateOption,
 } from './NewOrderForm'
+import { maskedRows } from '@/lib/maskedRows'
+import type { Tables } from '@/lib/database.types'
 
 export default async function NewOrderPage() {
     const supabase = await createClient()
@@ -42,7 +44,7 @@ export default async function NewOrderPage() {
             .eq('is_active', true)
             .order('name'),
         supabase
-            .from('payment_term_template_lines')
+            .from('payment_term_template_lines_masked')
             .select('template_id, seq, label, percentage, fixed_amount_usd, trigger_event, days_offset')
             .order('seq'),
     ])
@@ -75,7 +77,7 @@ export default async function NewOrderPage() {
         label: `${f.code} — ${f.name}`,
     }))
     const linesByTpl = new Map<string, TemplateOption['lines']>()
-    for (const l of tplLinesRes.data ?? []) {
+    for (const l of maskedRows<Tables<'payment_term_template_lines'>, 'fixed_amount_usd'>(tplLinesRes.data)) {
         const arr = linesByTpl.get(l.template_id) ?? []
         arr.push({
             label: l.label,

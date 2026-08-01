@@ -9,6 +9,10 @@ import { processingStatusLabelKey } from '../status'
 import { metalLabelKey } from '@/app/metal-prices/options'
 import { formatUsd, formatUnitCost } from '@/lib/format'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
+import { maskedRows, maskedExcept } from '@/lib/maskedRows'
+import type { Tables } from '@/lib/database.types'
+import { canViewPrices } from '@/lib/permissions'
+import { MaskedValue } from '@/app/components/MaskedValue'
 
 // FK 嵌入运行时是对象(包括两层嵌套);显式类型 + cast 锁住。
 type ProcessingInputRow = {
@@ -51,7 +55,7 @@ export default async function ProcessingDetailPage({
 
     const [runRes, inputsRes, outputsRes, costsRes, recoveryRes] = await Promise.all([
         supabase
-            .from('processing_runs')
+            .from('processing_runs_masked')
             .select('*')
             .eq('id', id)
             .is('deleted_at', null)
@@ -62,12 +66,12 @@ export default async function ProcessingDetailPage({
             .eq('run_id', id)
             .order('created_at'),
         supabase
-            .from('processing_outputs')
+            .from('processing_outputs_masked')
             .select('id, quantity_produced, allocated_cost_usd, unit_cost_usd, output_batches ( id, code, unit, purity, deleted_at, materials ( name ) )')
             .eq('run_id', id)
             .order('created_at'),
         supabase
-            .from('processing_cost_entries')
+            .from('processing_cost_entries_masked')
             .select('id, cost_type, amount_usd, is_estimate, notes, created_at')
             .eq('run_id', id)
             .is('deleted_at', null)
@@ -96,7 +100,11 @@ export default async function ProcessingDetailPage({
         )
     }
 
-    const run = runRes.data
+    // cut 2b:改读遮蔽视图(select('*') 会碰到被收回的成本列)。
+    const run = maskedExcept<
+        Tables<'processing_runs'>,
+        'material_cost_usd' | 'process_cost_usd' | 'total_cost_usd' | 'capitalized_cost_usd'
+    >(runRes.data)
     const inputs = inputsRes.data as unknown as ProcessingInputRow[] | null
     const outputs = outputsRes.data as unknown as ProcessingOutputRow[] | null
 
@@ -109,7 +117,9 @@ export default async function ProcessingDetailPage({
     }
 
     // 成本条目行:服务端预格式化 created_at
-    const costRows: CostEntryRow[] = (costsRes.data ?? []).map((c) => ({
+    const showPrices = await canViewPrices()
+
+    const costRows: CostEntryRow[] = maskedRows<Tables<'processing_cost_entries'>, 'amount_usd'>(costsRes.data).map((c) => ({
         id: c.id,
         cost_type: c.cost_type,
         amount_usd: c.amount_usd,
@@ -194,15 +204,15 @@ export default async function ProcessingDetailPage({
                     <div className="mt-3 pt-3 border-t border-gray-200 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
                         <div>
                             <span className="text-gray-600">{t('processing.detail.materialCost')}</span>{' '}
-                            {formatUsd(run.material_cost_usd) || '—'}
+                            <MaskedValue value={run.material_cost_usd} canView={showPrices} format={formatUsd} fallback="—" />
                         </div>
                         <div>
                             <span className="text-gray-600">{t('processing.detail.processCost')}</span>{' '}
-                            {formatUsd(run.process_cost_usd) || '—'}
+                            <MaskedValue value={run.process_cost_usd} canView={showPrices} format={formatUsd} fallback="—" />
                         </div>
                         <div>
                             <span className="text-gray-600">{t('processing.detail.totalCost')}</span>{' '}
-                            {formatUsd(run.total_cost_usd) || '—'}
+                            <MaskedValue value={run.total_cost_usd} canView={showPrices} format={formatUsd} fallback="—" />
                         </div>
                     </div>
 
@@ -233,7 +243,7 @@ export default async function ProcessingDetailPage({
                 </div>
 
                 {/* 成本条目(仅已提交单) */}
-                {isCommitted && <CostPanel runId={run.id} entries={costRows} />}
+                {isCommitted && <CostPanel runId={run.id} entries={costRows} canViewPrices={showPrices} />}
 
                 {/* 成本分摊(仅已提交单) */}
                 {isCommitted && (

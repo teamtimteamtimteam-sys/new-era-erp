@@ -172,3 +172,10 @@ CREATE POLICY "inbound_batches delete by permission"
     ON public.inbound_batches
     AS PERMISSIVE FOR DELETE TO authenticated
     USING (has_permission('module.inbound.edit'::text));
+
+-- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
+-- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 inbound_batches_masked 读取。
+-- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
+REVOKE SELECT ON public.inbound_batches FROM authenticated, anon;
+GRANT SELECT (id, code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, stage, notes, status, deleted_at, created_at, created_by, updated_at, updated_by, purchase_order_id, purchase_order_line_id, pricing_formula_id, pricing_status)
+    ON public.inbound_batches TO authenticated;

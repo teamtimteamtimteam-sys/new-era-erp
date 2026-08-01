@@ -5,8 +5,11 @@
 -- (同一事务里 created_at 会相同,编号无缝单调,排序必须确定)。SECURITY INVOKER。
 -- NOTE: introduced by db/migrations/2026-07-31-phase4-cut5a-assay-repricing.sql.
 
-CREATE OR REPLACE VIEW public.batch_assay_status
-WITH (security_invoker = on) AS
+-- cut 2b:本视图改读遮蔽伴生视图(<表>_masked)而非基表 —— 敏感列的遮蔽
+-- 因此是继承来的,视图体其余部分逐字未变。它仍然是 SECURITY INVOKER:
+-- 它读的遮蔽视图自带模块谓词,所以既拿得到数据,也绕不过任何模块边界。
+-- 见 db/migrations/2026-08-01-perm2b-field-masking.sql.
+CREATE VIEW public.batch_assay_status WITH (security_invoker = on) AS
  SELECT ib.id AS inbound_batch_id,
     ib.code AS batch_code,
     sup.legal_name AS supplier_name,
@@ -25,11 +28,11 @@ WITH (security_invoker = on) AS
     COALESCE(a.has_unapplied_assay, false) AS has_unapplied_assay,
     ib.purchase_order_id,
     po.code AS po_code
-   FROM inbound_batches ib
+   FROM inbound_batches_masked ib
      JOIN suppliers sup ON sup.id = ib.supplier_id
      JOIN materials m ON m.id = ib.material_id
-     LEFT JOIN pricing_formulas pf ON pf.id = ib.pricing_formula_id
-     LEFT JOIN purchase_orders po ON po.id = ib.purchase_order_id
+     LEFT JOIN pricing_formulas_masked pf ON pf.id = ib.pricing_formula_id
+     LEFT JOIN purchase_orders_masked po ON po.id = ib.purchase_order_id
      LEFT JOIN LATERAL ( SELECT count(*) AS assay_count,
             bool_or(ar.applied_at IS NULL) AS has_unapplied_assay,
             (array_agg(ar.id ORDER BY ar.assay_date DESC, ar.created_at DESC, ar.code DESC))[1] AS latest_assay_id,

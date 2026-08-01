@@ -45,10 +45,13 @@ export async function loadGridData(
     const prefill: Record<string, Partial<PayrollLineInput>> = {}
     if (sourcePeriodId) {
         const { data: lines } = await supabase
-            .from('payroll_lines')
+            .from('payroll_lines_masked')
             .select('employee_id, gross_pay, employer_cpf, employee_cpf, other_deductions, net_pay')
             .eq('payroll_period_id', sourcePeriodId)
         for (const l of lines ?? []) {
+            // cut 2b:没有 data.view_pay 时金额回来是 null。【不能】String(null) ——
+            // 那会把 "null" 填进表单格子里。看不见上期金额的人,格子就留空。
+            if (l.employee_id === null || l.gross_pay === null) continue
             prefill[l.employee_id] = {
                 gross_pay: String(l.gross_pay),
                 employer_cpf: String(l.employer_cpf),

@@ -83,3 +83,10 @@ CREATE POLICY "pricing_formulas delete by permission"
     ON public.pricing_formulas
     AS PERMISSIVE FOR DELETE TO authenticated
     USING (has_permission('module.pricing.edit'::text));
+
+-- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
+-- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 pricing_formulas_masked 读取。
+-- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
+REVOKE SELECT ON public.pricing_formulas FROM authenticated, anon;
+GRANT SELECT (id, code, name, direction, price_basis, average_days, supplier_id, customer_id, notes, is_active, deleted_at, created_at, created_by, updated_at, updated_by)
+    ON public.pricing_formulas TO authenticated;

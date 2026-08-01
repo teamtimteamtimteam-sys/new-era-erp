@@ -5,8 +5,11 @@
 -- inbound/new 与现场收货页的"关联采购单"下拉都只从这里读。SECURITY INVOKER。
 -- NOTE: introduced by db/migrations/2026-07-31-phase4-cut4c-po-receiving.sql.
 
-CREATE OR REPLACE VIEW public.po_receivable_lines
-WITH (security_invoker = on) AS
+-- cut 2b:本视图改读遮蔽伴生视图(<表>_masked)而非基表 —— 敏感列的遮蔽
+-- 因此是继承来的,视图体其余部分逐字未变。它仍然是 SECURITY INVOKER:
+-- 它读的遮蔽视图自带模块谓词,所以既拿得到数据,也绕不过任何模块边界。
+-- 见 db/migrations/2026-08-01-perm2b-field-masking.sql.
+CREATE VIEW public.po_receivable_lines WITH (security_invoker = on) AS
  SELECT po.id AS po_id,
     po.code AS po_code,
     po.supplier_id,
@@ -23,11 +26,11 @@ WITH (security_invoker = on) AS
     pol.pricing_formula_id,
     pol.estimated_unit_price,
     pol.expected_assay
-   FROM purchase_orders po
+   FROM purchase_orders_masked po
      JOIN suppliers sup ON sup.id = po.supplier_id
-     JOIN purchase_order_lines pol ON pol.purchase_order_id = po.id
+     JOIN purchase_order_lines_masked pol ON pol.purchase_order_id = po.id
      JOIN materials m ON m.id = pol.material_id
      LEFT JOIN LATERAL ( SELECT sum(ib.quantity) AS qty
-           FROM inbound_batches ib
+           FROM inbound_batches_masked ib
           WHERE ib.purchase_order_line_id = pol.id AND ib.deleted_at IS NULL) rec ON true
   WHERE po.deleted_at IS NULL AND (po.status = ANY (ARRAY['confirmed'::text, 'receiving'::text]));

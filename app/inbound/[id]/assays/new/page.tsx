@@ -10,6 +10,8 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import AssayForm from './AssayForm'
+import { maskedExcept } from '@/lib/maskedRows'
+import type { Tables } from '@/lib/database.types'
 
 export default async function NewAssayPage({
     params,
@@ -20,16 +22,19 @@ export default async function NewAssayPage({
     const supabase = await createClient()
     const t = await getTranslations()
 
-    const { data: batch, error } = await supabase
-        .from('inbound_batches')
+    const { data: batchRaw, error } = await supabase
+        .from('inbound_batches_masked')
         .select('id, code, quantity, unit, remaining_qty, unit_price, pricing_status, pricing_formula_id, purchase_order_line_id, material_id, supplier_id')
         .eq('id', id)
         .is('deleted_at', null)
         .single()
 
-    if (error || !batch) {
+    if (error || !batchRaw) {
         notFound()
     }
+
+    // 遮蔽的只有 unit_price;其余列恢复基表类型。
+    const batch = maskedExcept<Tables<'inbound_batches'>, 'unit_price'>(batchRaw)
 
     const [materialRes, supplierRes, metalsRes, lineRes] = await Promise.all([
         supabase.from('materials').select('name').eq('id', batch.material_id).single(),

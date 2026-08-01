@@ -58,6 +58,9 @@ const zh = {
         back: '← 返回列表',
         delete: '删除',
         deleting: '删除中…',
+        // 当前登录者无权看见某个数字时,占位显示这个词。
+        // 【不能留空】(会被当成缺数据),【更不能显示 0】(那是撒谎)。
+        restricted: '受限',
     },
     suppliers: {
         listTitle: '供应商',

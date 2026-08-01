@@ -14,6 +14,9 @@ import MovementTimeline from '@/app/components/inventory/MovementTimeline'
 import type { MovementRow } from '@/app/components/inventory/movementTypes'
 import StocktakeQuickCount from '@/app/stocktakes/StocktakeQuickCount'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
+import { canViewPrices } from '@/lib/permissions'
+import { maskedRows, maskedExcept } from '@/lib/maskedRows'
+import type { Tables } from '@/lib/database.types'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type MovementFetchRow = {
@@ -39,7 +42,7 @@ export default async function EditInboundPage({
 
     const [batchRes, materialsRes, suppliersRes, metalsRes, movementsRes, stocktakeRes, priceHistoryRes] = await Promise.all([
         supabase
-            .from('inbound_batches')
+            .from('inbound_batches_masked')
             .select('*')
             .eq('id', id)
             .is('deleted_at', null)
@@ -74,7 +77,7 @@ export default async function EditInboundPage({
             .limit(1),
         // 价格历史(计价面板,cut 1)
         supabase
-            .from('price_history')
+            .from('price_history_masked')
             .select('id, old_unit_price, new_unit_price, currency, original_price, fx_rate, notes, created_at')
             .eq('inbound_batch_id', id)
             .order('created_at', { ascending: false }),
@@ -97,7 +100,9 @@ export default async function EditInboundPage({
         )
     }
 
-    const batch = batchRes.data
+    // cut 2b:改读遮蔽视图(select('*') 会碰到被收回的 unit_price)。
+    // 只有 unit_price 会被遮蔽,其余列恢复基表类型。
+    const batch = maskedExcept<Tables<'inbound_batches'>, 'unit_price'>(batchRes.data)
 
     // 化验(cut 5b):本批次的化验单(新到旧)+ 会生效的定价公式
     // (解析顺序与 apply_assay_result 一致:批次 → 采购单明细行)
@@ -148,7 +153,7 @@ export default async function EditInboundPage({
                 .eq('inbound_batch_id', id)
                 .maybeSingle(),
             supabase
-                .from('prepayment_applications')
+                .from('prepayment_applications_masked')
                 .select('id, amount_usd, created_at, journal_entry_id, journal_entries(id, code)')
                 .eq('inbound_batch_id', id)
                 .order('created_at', { ascending: false }),
@@ -193,7 +198,11 @@ export default async function EditInboundPage({
     }
 
     // 价格历史行:服务端预格式化 created_at
-    const priceHistoryRows: PriceHistoryRow[] = (priceHistoryRes.data ?? []).map((h) => ({
+    const showPrices = await canViewPrices()
+    const priceHistoryRows: PriceHistoryRow[] = maskedRows<
+        Tables<'price_history'>,
+        'old_unit_price' | 'new_unit_price' | 'original_price' | 'fx_rate'
+    >(priceHistoryRes.data).map((h) => ({
         id: h.id,
         old_unit_price: h.old_unit_price,
         new_unit_price: h.new_unit_price,
@@ -307,7 +316,8 @@ export default async function EditInboundPage({
             <AssaySection batchId={batch.id} rows={assayRows} />
 
             <PricingPanel
-                batchId={batch.id}
+                        canViewPrices={showPrices}
+                        batchId={batch.id}
                 unitPrice={batch.unit_price}
                 history={priceHistoryRows}
                 extraAction={

@@ -86,7 +86,7 @@ export default async function InboundPage({
             .order('name'),
         // 未计价的在册批次数(cut 1 估值缺口提示;不做筛选入口,仅提示)
         supabase
-            .from('inbound_batches')
+            .from('inbound_batches_masked')
             .select('id', { count: 'exact', head: true })
             .is('deleted_at', null)
             .is('unit_price', null),

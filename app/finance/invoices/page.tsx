@@ -76,7 +76,7 @@ export default async function InvoicesPage({
         page = Math.min(requestedPage, totalPages)
         const { data } = await applyDates(
             supabase
-                .from('invoices')
+                .from('invoices_masked')
                 .select('id, code, customer_id, issue_date, due_date, total_usd, customers(legal_name)')
                 .eq('status', 'void')
         )
@@ -119,7 +119,7 @@ export default async function InvoicesPage({
         if (status === 'all') {
             const { data: voids } = await applyDates(
                 supabase
-                    .from('invoices')
+                    .from('invoices_masked')
                     .select('id, code, issue_date, due_date, total_usd, customers(legal_name)')
                     .eq('status', 'void')
             ).order('issue_date', { ascending: false })

@@ -52,3 +52,10 @@ CREATE POLICY "prepayment_applications insert by permission"
     ON public.prepayment_applications
     AS PERMISSIVE FOR INSERT TO authenticated
     WITH CHECK (has_permission('module.finance.edit'::text));
+
+-- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
+-- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 prepayment_applications_masked 读取。
+-- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
+REVOKE SELECT ON public.prepayment_applications FROM authenticated, anon;
+GRANT SELECT (id, purchase_order_id, inbound_batch_id, notes, journal_entry_id, created_at, created_by)
+    ON public.prepayment_applications TO authenticated;

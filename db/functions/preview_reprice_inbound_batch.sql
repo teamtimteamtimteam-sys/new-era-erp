@@ -1,7 +1,8 @@
 CREATE OR REPLACE FUNCTION public.preview_reprice_inbound_batch(p_inbound_batch_id uuid, p_new_unit_price numeric)
  RETURNS jsonb
  LANGUAGE plpgsql
- STABLE
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_old       numeric;
@@ -10,6 +11,7 @@ DECLARE
     v_usd       numeric;
     v_split     jsonb;
 BEGIN
+    PERFORM require_permission('data.view_prices');
     SELECT unit_price, quantity, remaining_qty
     INTO v_old, v_qty, v_remaining
     FROM inbound_batches
@@ -34,5 +36,4 @@ BEGIN
         'cost_share_usd', (v_split->>'cost_share_usd')::numeric
     );
 END;
-$function$
-
+$function$;

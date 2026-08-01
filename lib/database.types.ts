@@ -162,6 +162,13 @@ export type Database = {
             foreignKeyName: "assay_results_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_results_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
             referencedColumns: ["inbound_batch_id"]
           },
@@ -770,6 +777,13 @@ export type Database = {
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
         ]
       }
       employment_history: {
@@ -832,6 +846,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
             referencedColumns: ["id"]
           },
         ]
@@ -1030,6 +1051,13 @@ export type Database = {
             foreignKeyName: "finance_attachments_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_attachments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
             referencedColumns: ["inbound_batch_id"]
           },
@@ -1052,6 +1080,13 @@ export type Database = {
             columns: ["sales_record_id"]
             isOneToOne: false
             referencedRelation: "sales_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_attachments_sales_record_id_fkey"
+            columns: ["sales_record_id"]
+            isOneToOne: false
+            referencedRelation: "sales_records_masked"
             referencedColumns: ["id"]
           },
         ]
@@ -1183,6 +1218,13 @@ export type Database = {
             foreignKeyName: "inbound_batch_metals_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_metals_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
             referencedColumns: ["inbound_batch_id"]
           },
@@ -1274,6 +1316,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "inbound_batches_pricing_formula_id_fkey"
+            columns: ["pricing_formula_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_formulas_masked"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "inbound_batches_purchase_order_id_fkey"
             columns: ["purchase_order_id"]
             isOneToOne: false
@@ -1302,6 +1351,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "inbound_batches_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders_masked"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "inbound_batches_purchase_order_line_id_fkey"
             columns: ["purchase_order_line_id"]
             isOneToOne: false
@@ -1313,6 +1369,13 @@ export type Database = {
             columns: ["purchase_order_line_id"]
             isOneToOne: false
             referencedRelation: "purchase_order_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_lines_masked"
             referencedColumns: ["id"]
           },
           {
@@ -1386,6 +1449,13 @@ export type Database = {
             foreignKeyName: "inventory_movements_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
             referencedColumns: ["inbound_batch_id"]
           },
@@ -1415,6 +1485,13 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
             referencedColumns: ["id"]
           },
         ]
@@ -1482,6 +1559,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "invoice_lines_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices_masked"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "invoice_lines_sales_record_id_fkey"
             columns: ["sales_record_id"]
             isOneToOne: false
@@ -1493,6 +1577,13 @@ export type Database = {
             columns: ["sales_record_id"]
             isOneToOne: false
             referencedRelation: "sales_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_sales_record_id_fkey"
+            columns: ["sales_record_id"]
+            isOneToOne: false
+            referencedRelation: "sales_records_masked"
             referencedColumns: ["id"]
           },
         ]
@@ -2022,6 +2113,13 @@ export type Database = {
             foreignKeyName: "payment_allocations_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
             referencedColumns: ["inbound_batch_id"]
           },
@@ -2061,6 +2159,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "payment_allocations_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders_masked"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "payment_allocations_sales_record_id_fkey"
             columns: ["sales_record_id"]
             isOneToOne: false
@@ -2072,6 +2177,13 @@ export type Database = {
             columns: ["sales_record_id"]
             isOneToOne: false
             referencedRelation: "sales_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_sales_record_id_fkey"
+            columns: ["sales_record_id"]
+            isOneToOne: false
+            referencedRelation: "sales_records_masked"
             referencedColumns: ["id"]
           },
         ]
@@ -2318,6 +2430,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "payroll_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "payroll_lines_payroll_period_id_fkey"
             columns: ["payroll_period_id"]
             isOneToOne: false
@@ -2539,6 +2658,13 @@ export type Database = {
             foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
             referencedColumns: ["inbound_batch_id"]
           },
@@ -2582,6 +2708,13 @@ export type Database = {
             columns: ["purchase_order_id"]
             isOneToOne: false
             referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders_masked"
             referencedColumns: ["id"]
           },
         ]
@@ -2642,6 +2775,13 @@ export type Database = {
             foreignKeyName: "price_history_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_history_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
             referencedColumns: ["inbound_batch_id"]
           },
@@ -2681,6 +2821,13 @@ export type Database = {
             columns: ["formula_id"]
             isOneToOne: false
             referencedRelation: "pricing_formulas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_formula_metals_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_formulas_masked"
             referencedColumns: ["id"]
           },
         ]
@@ -2815,6 +2962,13 @@ export type Database = {
             referencedRelation: "processing_runs"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
         ]
       }
       processing_inputs: {
@@ -2858,6 +3012,13 @@ export type Database = {
             foreignKeyName: "processing_inputs_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_inputs_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
             referencedColumns: ["inbound_batch_id"]
           },
@@ -2873,6 +3034,13 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_inputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
             referencedColumns: ["id"]
           },
         ]
@@ -2925,6 +3093,13 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
             referencedColumns: ["id"]
           },
         ]
@@ -3081,6 +3256,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "purchase_order_lines_pricing_formula_id_fkey"
+            columns: ["pricing_formula_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_formulas_masked"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "purchase_order_lines_purchase_order_id_fkey"
             columns: ["purchase_order_id"]
             isOneToOne: false
@@ -3106,6 +3288,13 @@ export type Database = {
             columns: ["purchase_order_id"]
             isOneToOne: false
             referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders_masked"
             referencedColumns: ["id"]
           },
         ]
@@ -3174,6 +3363,13 @@ export type Database = {
             columns: ["purchase_order_id"]
             isOneToOne: false
             referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_payment_terms_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders_masked"
             referencedColumns: ["id"]
           },
         ]
@@ -3499,6 +3695,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stocktake_lines_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
             referencedColumns: ["id"]
           },
           {
@@ -3930,6 +4133,13 @@ export type Database = {
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "training_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_roles: {
@@ -4087,6 +4297,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "inbound_batches_pricing_formula_id_fkey"
+            columns: ["pricing_formula_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_formulas_masked"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "inbound_batches_purchase_order_id_fkey"
             columns: ["purchase_order_id"]
             isOneToOne: false
@@ -4112,6 +4329,13 @@ export type Database = {
             columns: ["purchase_order_id"]
             isOneToOne: false
             referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders_masked"
             referencedColumns: ["id"]
           },
         ]
@@ -4166,6 +4390,144 @@ export type Database = {
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employees_masked: {
+        Row: {
+          annual_leave_days: number | null
+          code: string | null
+          created_at: string | null
+          created_by: string | null
+          deleted_at: string | null
+          department_id: string | null
+          employment_status: string | null
+          employment_type: string | null
+          hire_date: string | null
+          id: string | null
+          identity_no: string | null
+          job_title: string | null
+          legal_name: string | null
+          manager_id: string | null
+          notes: string | null
+          preferred_name: string | null
+          probation_end_date: string | null
+          residency_status: string | null
+          separation_date: string | null
+          separation_notes: string | null
+          separation_type: string | null
+          updated_at: string | null
+          updated_by: string | null
+          user_id: string | null
+          work_category: string | null
+          work_email: string | null
+          work_pass_expiry_date: string | null
+          work_pass_issue_date: string | null
+          work_pass_no: string | null
+          work_pass_type: string | null
+          work_phone: string | null
+        }
+        Insert: {
+          annual_leave_days?: number | null
+          code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deleted_at?: string | null
+          department_id?: string | null
+          employment_status?: string | null
+          employment_type?: string | null
+          hire_date?: string | null
+          id?: string | null
+          identity_no?: never
+          job_title?: string | null
+          legal_name?: string | null
+          manager_id?: string | null
+          notes?: string | null
+          preferred_name?: string | null
+          probation_end_date?: string | null
+          residency_status?: string | null
+          separation_date?: string | null
+          separation_notes?: string | null
+          separation_type?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          user_id?: string | null
+          work_category?: string | null
+          work_email?: never
+          work_pass_expiry_date?: string | null
+          work_pass_issue_date?: string | null
+          work_pass_no?: never
+          work_pass_type?: string | null
+          work_phone?: never
+        }
+        Update: {
+          annual_leave_days?: number | null
+          code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deleted_at?: string | null
+          department_id?: string | null
+          employment_status?: string | null
+          employment_type?: string | null
+          hire_date?: string | null
+          id?: string | null
+          identity_no?: never
+          job_title?: string | null
+          legal_name?: string | null
+          manager_id?: string | null
+          notes?: string | null
+          preferred_name?: string | null
+          probation_end_date?: string | null
+          residency_status?: string | null
+          separation_date?: string | null
+          separation_notes?: string | null
+          separation_type?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          user_id?: string | null
+          work_category?: string | null
+          work_email?: never
+          work_pass_expiry_date?: string | null
+          work_pass_issue_date?: string | null
+          work_pass_no?: never
+          work_pass_type?: string | null
+          work_phone?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
         ]
       }
       hr_alerts: {
@@ -4180,6 +4542,255 @@ export type Database = {
           subject: string | null
         }
         Relationships: []
+      }
+      inbound_batches_masked: {
+        Row: {
+          arrival_date: string | null
+          code: string | null
+          created_at: string | null
+          created_by: string | null
+          deleted_at: string | null
+          id: string | null
+          material_id: string | null
+          notes: string | null
+          pricing_formula_id: string | null
+          pricing_status: string | null
+          purchase_order_id: string | null
+          purchase_order_line_id: string | null
+          quantity: number | null
+          remaining_qty: number | null
+          stage: string | null
+          status: string | null
+          supplier_id: string | null
+          unit: string | null
+          unit_price: number | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          arrival_date?: string | null
+          code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string | null
+          material_id?: string | null
+          notes?: string | null
+          pricing_formula_id?: string | null
+          pricing_status?: string | null
+          purchase_order_id?: string | null
+          purchase_order_line_id?: string | null
+          quantity?: number | null
+          remaining_qty?: number | null
+          stage?: string | null
+          status?: string | null
+          supplier_id?: string | null
+          unit?: string | null
+          unit_price?: never
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          arrival_date?: string | null
+          code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string | null
+          material_id?: string | null
+          notes?: string | null
+          pricing_formula_id?: string | null
+          pricing_status?: string | null
+          purchase_order_id?: string | null
+          purchase_order_line_id?: string | null
+          quantity?: number | null
+          remaining_qty?: number | null
+          stage?: string | null
+          status?: string | null
+          supplier_id?: string | null
+          unit?: string | null
+          unit_price?: never
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_pricing_formula_id_fkey"
+            columns: ["pricing_formula_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_formulas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_pricing_formula_id_fkey"
+            columns: ["pricing_formula_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_formulas_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["purchase_order_id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "po_receivable_lines"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_status"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: false
+            referencedRelation: "po_receivable_lines"
+            referencedColumns: ["line_id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_lines_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_lines_masked: {
+        Row: {
+          amount_usd: number | null
+          created_at: string | null
+          description: string | null
+          id: string | null
+          invoice_id: string | null
+          invoice_voided: boolean | null
+          line_no: number | null
+          quantity: number | null
+          sales_record_id: string | null
+          unit: string | null
+          unit_price: number | null
+        }
+        Insert: {
+          amount_usd?: never
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          invoice_id?: string | null
+          invoice_voided?: boolean | null
+          line_no?: number | null
+          quantity?: number | null
+          sales_record_id?: string | null
+          unit?: string | null
+          unit_price?: never
+        }
+        Update: {
+          amount_usd?: never
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          invoice_id?: string | null
+          invoice_voided?: boolean | null
+          line_no?: number | null
+          quantity?: number | null
+          sales_record_id?: string | null
+          unit?: string | null
+          unit_price?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_lines_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "ar_open_items"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_status"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_sales_record_id_fkey"
+            columns: ["sales_record_id"]
+            isOneToOne: false
+            referencedRelation: "ar_open_items"
+            referencedColumns: ["sales_record_id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_sales_record_id_fkey"
+            columns: ["sales_record_id"]
+            isOneToOne: false
+            referencedRelation: "sales_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_sales_record_id_fkey"
+            columns: ["sales_record_id"]
+            isOneToOne: false
+            referencedRelation: "sales_records_masked"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       invoice_status: {
         Row: {
@@ -4210,6 +4821,205 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices_masked: {
+        Row: {
+          bill_to_snapshot: Json | null
+          code: string | null
+          created_at: string | null
+          created_by: string | null
+          currency: string | null
+          customer_id: string | null
+          due_date: string | null
+          id: string | null
+          issue_date: string | null
+          notes: string | null
+          payment_terms_days: number | null
+          status: string | null
+          subtotal_usd: number | null
+          tax_rate_pct: number | null
+          tax_usd: number | null
+          terms_text: string | null
+          total_usd: number | null
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          bill_to_snapshot?: Json | null
+          code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          customer_id?: string | null
+          due_date?: string | null
+          id?: string | null
+          issue_date?: string | null
+          notes?: string | null
+          payment_terms_days?: number | null
+          status?: string | null
+          subtotal_usd?: never
+          tax_rate_pct?: number | null
+          tax_usd?: never
+          terms_text?: string | null
+          total_usd?: never
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          bill_to_snapshot?: Json | null
+          code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          customer_id?: string | null
+          due_date?: string | null
+          id?: string | null
+          issue_date?: string | null
+          notes?: string | null
+          payment_terms_days?: number | null
+          status?: string | null
+          subtotal_usd?: never
+          tax_rate_pct?: number | null
+          tax_usd?: never
+          terms_text?: string | null
+          total_usd?: never
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_term_template_lines_masked: {
+        Row: {
+          created_at: string | null
+          days_offset: number | null
+          fixed_amount_usd: number | null
+          id: string | null
+          label: string | null
+          notes: string | null
+          percentage: number | null
+          seq: number | null
+          template_id: string | null
+          trigger_event: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          days_offset?: number | null
+          fixed_amount_usd?: never
+          id?: string | null
+          label?: string | null
+          notes?: string | null
+          percentage?: number | null
+          seq?: number | null
+          template_id?: string | null
+          trigger_event?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          days_offset?: number | null
+          fixed_amount_usd?: never
+          id?: string | null
+          label?: string | null
+          notes?: string | null
+          percentage?: number | null
+          seq?: number | null
+          template_id?: string | null
+          trigger_event?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_term_template_lines_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "payment_term_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_lines_masked: {
+        Row: {
+          created_at: string | null
+          employee_cpf: number | null
+          employee_id: string | null
+          employer_cpf: number | null
+          gross_pay: number | null
+          id: string | null
+          net_pay: number | null
+          notes: string | null
+          other_deductions: number | null
+          payroll_period_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          employee_cpf?: never
+          employee_id?: string | null
+          employer_cpf?: never
+          gross_pay?: never
+          id?: string | null
+          net_pay?: never
+          notes?: string | null
+          other_deductions?: never
+          payroll_period_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          employee_cpf?: never
+          employee_id?: string | null
+          employer_cpf?: never
+          gross_pay?: never
+          id?: string | null
+          net_pay?: never
+          notes?: string | null
+          other_deductions?: never
+          payroll_period_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "payroll_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_lines_payroll_period_id_fkey"
+            columns: ["payroll_period_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_periods"
             referencedColumns: ["id"]
           },
         ]
@@ -4270,10 +5080,380 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "purchase_order_lines_pricing_formula_id_fkey"
+            columns: ["pricing_formula_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_formulas_masked"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "purchase_orders_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prepayment_applications_masked: {
+        Row: {
+          amount_usd: number | null
+          created_at: string | null
+          created_by: string | null
+          id: string | null
+          inbound_batch_id: string | null
+          journal_entry_id: string | null
+          notes: string | null
+          purchase_order_id: string | null
+        }
+        Insert: {
+          amount_usd?: never
+          created_at?: string | null
+          created_by?: string | null
+          id?: string | null
+          inbound_batch_id?: string | null
+          journal_entry_id?: string | null
+          notes?: string | null
+          purchase_order_id?: string | null
+        }
+        Update: {
+          amount_usd?: never
+          created_at?: string | null
+          created_by?: string | null
+          id?: string | null
+          inbound_batch_id?: string | null
+          journal_entry_id?: string | null
+          notes?: string | null
+          purchase_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["purchase_order_id"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "po_receivable_lines"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_status"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_history_masked: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          currency: string | null
+          fx_rate: number | null
+          id: string | null
+          inbound_batch_id: string | null
+          new_unit_price: number | null
+          notes: string | null
+          old_unit_price: number | null
+          original_price: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          fx_rate?: never
+          id?: string | null
+          inbound_batch_id?: string | null
+          new_unit_price?: never
+          notes?: string | null
+          old_unit_price?: never
+          original_price?: never
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          fx_rate?: never
+          id?: string | null
+          inbound_batch_id?: string | null
+          new_unit_price?: never
+          notes?: string | null
+          old_unit_price?: never
+          original_price?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_history_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "price_history_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_history_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_history_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+        ]
+      }
+      pricing_formula_metals_masked: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          formula_id: string | null
+          metal: string | null
+          payable_pct: number | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          formula_id?: string | null
+          metal?: string | null
+          payable_pct?: never
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          formula_id?: string | null
+          metal?: string | null
+          payable_pct?: never
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_formula_metals_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_formulas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_formula_metals_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_formulas_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_formulas_masked: {
+        Row: {
+          average_days: number | null
+          code: string | null
+          created_at: string | null
+          created_by: string | null
+          customer_id: string | null
+          deleted_at: string | null
+          direction: string | null
+          flat_discount_pct: number | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          notes: string | null
+          price_basis: string | null
+          supplier_id: string | null
+          treatment_charge_usd_per_tonne: number | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          average_days?: number | null
+          code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_id?: string | null
+          deleted_at?: string | null
+          direction?: string | null
+          flat_discount_pct?: never
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          notes?: string | null
+          price_basis?: string | null
+          supplier_id?: string | null
+          treatment_charge_usd_per_tonne?: never
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          average_days?: number | null
+          code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_id?: string | null
+          deleted_at?: string | null
+          direction?: string | null
+          flat_discount_pct?: never
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          notes?: string | null
+          price_basis?: string | null
+          supplier_id?: string | null
+          treatment_charge_usd_per_tonne?: never
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_formulas_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_formulas_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processing_cost_entries_masked: {
+        Row: {
+          amount_usd: number | null
+          cost_type: string | null
+          created_at: string | null
+          created_by: string | null
+          deleted_at: string | null
+          id: string | null
+          is_estimate: boolean | null
+          notes: string | null
+          run_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          amount_usd?: never
+          cost_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string | null
+          is_estimate?: boolean | null
+          notes?: string | null
+          run_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          amount_usd?: never
+          cost_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string | null
+          is_estimate?: boolean | null
+          notes?: string | null
+          run_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
             referencedColumns: ["id"]
           },
         ]
@@ -4289,6 +5469,335 @@ export type Database = {
           run_id: string | null
         }
         Relationships: []
+      }
+      processing_outputs_masked: {
+        Row: {
+          allocated_cost_usd: number | null
+          created_at: string | null
+          id: string | null
+          output_batch_id: string | null
+          quantity_produced: number | null
+          run_id: string | null
+          unit_cost_usd: number | null
+        }
+        Insert: {
+          allocated_cost_usd?: never
+          created_at?: string | null
+          id?: string | null
+          output_batch_id?: string | null
+          quantity_produced?: number | null
+          run_id?: string | null
+          unit_cost_usd?: never
+        }
+        Update: {
+          allocated_cost_usd?: never
+          created_at?: string | null
+          id?: string | null
+          output_batch_id?: string | null
+          quantity_produced?: number | null
+          run_id?: string | null
+          unit_cost_usd?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_outputs_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processing_runs_masked: {
+        Row: {
+          allocated_at: string | null
+          allocated_by: string | null
+          allocation_basis: string | null
+          allocation_snapshot: Json | null
+          capitalization_entry_id: string | null
+          capitalized_cost_usd: number | null
+          code: string | null
+          created_at: string | null
+          created_by: string | null
+          deleted_at: string | null
+          id: string | null
+          loss_qty: number | null
+          material_cost_usd: number | null
+          notes: string | null
+          process_cost_usd: number | null
+          process_date: string | null
+          status: string | null
+          total_cost_usd: number | null
+          total_input: number | null
+          total_output: number | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          allocated_at?: string | null
+          allocated_by?: string | null
+          allocation_basis?: string | null
+          allocation_snapshot?: Json | null
+          capitalization_entry_id?: string | null
+          capitalized_cost_usd?: never
+          code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string | null
+          loss_qty?: number | null
+          material_cost_usd?: never
+          notes?: string | null
+          process_cost_usd?: never
+          process_date?: string | null
+          status?: string | null
+          total_cost_usd?: never
+          total_input?: number | null
+          total_output?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          allocated_at?: string | null
+          allocated_by?: string | null
+          allocation_basis?: string | null
+          allocation_snapshot?: Json | null
+          capitalization_entry_id?: string | null
+          capitalized_cost_usd?: never
+          code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string | null
+          loss_qty?: number | null
+          material_cost_usd?: never
+          notes?: string | null
+          process_cost_usd?: never
+          process_date?: string | null
+          status?: string | null
+          total_cost_usd?: never
+          total_input?: number | null
+          total_output?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_runs_capitalization_entry_id_fkey"
+            columns: ["capitalization_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_capitalization_entry_id_fkey"
+            columns: ["capitalization_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_order_lines_masked: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          estimated_amount_usd: number | null
+          estimated_unit_price: number | null
+          expected_assay: Json | null
+          id: string | null
+          line_no: number | null
+          material_id: string | null
+          notes: string | null
+          pricing_formula_id: string | null
+          purchase_order_id: string | null
+          quantity: number | null
+          unit: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          estimated_amount_usd?: never
+          estimated_unit_price?: never
+          expected_assay?: Json | null
+          id?: string | null
+          line_no?: number | null
+          material_id?: string | null
+          notes?: string | null
+          pricing_formula_id?: string | null
+          purchase_order_id?: string | null
+          quantity?: number | null
+          unit?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          estimated_amount_usd?: never
+          estimated_unit_price?: never
+          expected_assay?: Json | null
+          id?: string | null
+          line_no?: number | null
+          material_id?: string | null
+          notes?: string | null
+          pricing_formula_id?: string | null
+          purchase_order_id?: string | null
+          quantity?: number | null
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_lines_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_pricing_formula_id_fkey"
+            columns: ["pricing_formula_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_formulas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_pricing_formula_id_fkey"
+            columns: ["pricing_formula_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_formulas_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["purchase_order_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "po_receivable_lines"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_status"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_order_payment_terms_masked: {
+        Row: {
+          created_at: string | null
+          due_date: string | null
+          fixed_amount_usd: number | null
+          id: string | null
+          label: string | null
+          notes: string | null
+          percentage: number | null
+          purchase_order_id: string | null
+          seq: number | null
+          trigger_event: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          due_date?: string | null
+          fixed_amount_usd?: never
+          id?: string | null
+          label?: string | null
+          notes?: string | null
+          percentage?: number | null
+          purchase_order_id?: string | null
+          seq?: number | null
+          trigger_event?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          due_date?: string | null
+          fixed_amount_usd?: never
+          id?: string | null
+          label?: string | null
+          notes?: string | null
+          percentage?: number | null
+          purchase_order_id?: string | null
+          seq?: number | null
+          trigger_event?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_payment_terms_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["purchase_order_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_payment_terms_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "po_receivable_lines"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_payment_terms_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_status"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_payment_terms_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_payment_terms_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders_masked"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       purchase_order_status: {
         Row: {
@@ -4326,6 +5835,193 @@ export type Database = {
           },
         ]
       }
+      purchase_orders_masked: {
+        Row: {
+          approval_status: string | null
+          approved_at: string | null
+          approved_by: string | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          closed_at: string | null
+          code: string | null
+          created_at: string | null
+          created_by: string | null
+          currency: string | null
+          deleted_at: string | null
+          estimated_total_usd: number | null
+          expected_delivery_date: string | null
+          fx_rate: number | null
+          id: string | null
+          incoterm: string | null
+          notes: string | null
+          order_date: string | null
+          status: string | null
+          supplier_id: string | null
+          terms_text: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          closed_at?: string | null
+          code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          deleted_at?: string | null
+          estimated_total_usd?: never
+          expected_delivery_date?: string | null
+          fx_rate?: never
+          id?: string | null
+          incoterm?: string | null
+          notes?: string | null
+          order_date?: string | null
+          status?: string | null
+          supplier_id?: string | null
+          terms_text?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          approval_status?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          closed_at?: string | null
+          code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          deleted_at?: string | null
+          estimated_total_usd?: never
+          expected_delivery_date?: string | null
+          fx_rate?: never
+          id?: string | null
+          incoterm?: string | null
+          notes?: string | null
+          order_date?: string | null
+          status?: string | null
+          supplier_id?: string | null
+          terms_text?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "purchase_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_records_masked: {
+        Row: {
+          amount_usd: number | null
+          cogs_entry_id: string | null
+          created_at: string | null
+          created_by: string | null
+          currency: string | null
+          customer_id: string | null
+          fx_rate: number | null
+          id: string | null
+          movement_id: string | null
+          notes: string | null
+          output_batch_id: string | null
+          quantity: number | null
+          sale_date: string | null
+          unit_price: number | null
+        }
+        Insert: {
+          amount_usd?: never
+          cogs_entry_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          customer_id?: string | null
+          fx_rate?: never
+          id?: string | null
+          movement_id?: string | null
+          notes?: string | null
+          output_batch_id?: string | null
+          quantity?: number | null
+          sale_date?: string | null
+          unit_price?: never
+        }
+        Update: {
+          amount_usd?: never
+          cogs_entry_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          customer_id?: string | null
+          fx_rate?: never
+          id?: string | null
+          movement_id?: string | null
+          notes?: string | null
+          output_batch_id?: string | null
+          quantity?: number | null
+          sale_date?: string | null
+          unit_price?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_records_cogs_entry_id_fkey"
+            columns: ["cogs_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "sales_records_cogs_entry_id_fkey"
+            columns: ["cogs_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_records_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "sales_records_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_records_movement_id_fkey"
+            columns: ["movement_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_movements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_records_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       allocate_processing_costs: {
@@ -4358,6 +6054,15 @@ export type Database = {
         Returns: string
       }
       calculate_metal_price: {
+        Args: {
+          p_formula_id: string
+          p_metals: Json
+          p_quantity_kg: number
+          p_reference_date?: string
+        }
+        Returns: Json
+      }
+      calculate_metal_price_internal: {
         Args: {
           p_formula_id: string
           p_metals: Json
@@ -4554,6 +6259,7 @@ export type Database = {
         }
         Returns: Json
       }
+      require_permission: { Args: { p_code: string }; Returns: undefined }
       reverse_expense: {
         Args: { p_expense_id: string; p_memo?: string }
         Returns: Json

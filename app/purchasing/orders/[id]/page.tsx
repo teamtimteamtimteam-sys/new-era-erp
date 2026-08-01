@@ -10,6 +10,9 @@ import { formatUsd, formatUnitCost } from '@/lib/format'
 import Subnav from '../../Subnav'
 import CancelOrderControl from './CancelOrderControl'
 import { CloseOrderControl, ReopenOrderControl } from './CloseReopenControls'
+import { canViewPrices } from '@/lib/permissions'
+import { maskedExcept, maskedRows } from '@/lib/maskedRows'
+import type { Tables } from '@/lib/database.types'
 
 type AssayEntry = { metal: string; content_pct: number }
 
@@ -24,43 +27,49 @@ export default async function PurchaseOrderDetailPage({
     const supabase = await createClient()
     const t = await getTranslations()
 
-    const { data: po, error } = await supabase
-        .from('purchase_orders')
+    const { data: poRaw, error } = await supabase
+        .from('purchase_orders_masked')
         .select('id, code, supplier_id, order_date, expected_delivery_date, currency, fx_rate, estimated_total_usd, status, approval_status, incoterm, terms_text, notes, cancelled_at, cancel_reason')
         .eq('id', id)
         .is('deleted_at', null)
         .single()
 
-    if (error || !po) {
+    if (error || !poRaw) {
         notFound()
     }
+
+    // cut 2b:改读遮蔽视图。fx_rate / estimated_total_usd 会被遮蔽(没有 data.view_prices
+    // 时为 null),其余列恢复基表类型 —— 视图带来的"人人可空"只是类型噪音。
+    const showPrices = await canViewPrices()
+    const po = maskedExcept<Tables<'purchase_orders'>, 'fx_rate' | 'estimated_total_usd'>(poRaw)
 
     const [supplierRes, linesRes, termsRes, statusRes, receiptsRes] = await Promise.all([
         supabase.from('suppliers').select('id, legal_name').eq('id', po.supplier_id).single(),
         supabase
-            .from('purchase_order_lines')
+            .from('purchase_order_lines_masked')
             .select('id, line_no, material_id, quantity, unit, pricing_formula_id, estimated_unit_price, estimated_amount_usd, expected_assay, notes')
             .eq('purchase_order_id', id)
             .order('line_no'),
         supabase
-            .from('purchase_order_payment_terms')
+            .from('purchase_order_payment_terms_masked')
             .select('seq, label, percentage, fixed_amount_usd, trigger_event, due_date')
             .eq('purchase_order_id', id)
             .order('seq'),
         // 已取消的单不在视图里 → 预付/进度区不展示
         supabase.from('purchase_order_status').select('*').eq('po_id', id).maybeSingle(),
         supabase
-            .from('inbound_batches')
+            .from('inbound_batches_masked')
             .select('id, code, arrival_date, quantity, unit, unit_price')
             .eq('purchase_order_id', id)
             .is('deleted_at', null)
             .order('created_at'),
     ])
 
-    const lines = linesRes.data ?? []
-    const terms = termsRes.data ?? []
+    // 遮蔽的是估价列;material_id / pricing_formula_id 等恢复基表类型。
+    const lines = maskedRows<Tables<'purchase_order_lines'>, 'estimated_unit_price' | 'estimated_amount_usd'>(linesRes.data)
+    const terms = maskedRows<Tables<'purchase_order_payment_terms'>, 'fixed_amount_usd'>(termsRes.data)
     const poStatus = statusRes.data
-    const receipts = receiptsRes.data ?? []
+    const receipts = maskedRows<Tables<'inbound_batches'>, 'unit_price'>(receiptsRes.data)
 
     // 物料/公式名 + 收货批次的未结应付(结清的批次不在 ap_open_items → 敞口 0)
     const materialIds = Array.from(new Set(lines.map((l) => l.material_id)))
@@ -84,12 +93,12 @@ export default async function PurchaseOrderDetailPage({
     // 每批已抵扣的预付(cut 4c:收货记录多一列)
     const { data: appliedRows } = batchIds.length
         ? await supabase
-              .from('prepayment_applications')
+              .from('prepayment_applications_masked')
               .select('inbound_batch_id, amount_usd')
               .in('inbound_batch_id', batchIds)
         : { data: [] as { inbound_batch_id: string; amount_usd: number }[] }
     const appliedByBatch = new Map<string, number>()
-    for (const r of appliedRows ?? []) {
+    for (const r of maskedRows<Tables<'prepayment_applications'>, 'amount_usd'>(appliedRows)) {
         appliedByBatch.set(r.inbound_batch_id, round2((appliedByBatch.get(r.inbound_batch_id) ?? 0) + Number(r.amount_usd)))
     }
 

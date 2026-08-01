@@ -25,7 +25,7 @@ export default async function FormulasPage() {
     const t = await getTranslations()
 
     const { data, error } = await supabase
-        .from('pricing_formulas')
+        .from('pricing_formulas_masked')
         .select('id, code, name, direction, price_basis, average_days, treatment_charge_usd_per_tonne, flat_discount_pct, supplier_id, customer_id, is_active')
         .is('deleted_at', null)
         .order('code', { ascending: false })

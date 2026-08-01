@@ -17,6 +17,10 @@ import { ApplyNowButton, UnapplyControl } from './ApplyAssayControls'
 import AssayImpactPreview from '../AssayImpactPreview'
 import { repricePreview, type AssayImpact } from '../actions'
 import type { CalcResult } from '@/app/pricing/calculator/actions'
+import { canViewPrices } from '@/lib/permissions'
+import { maskedExcept } from '@/lib/maskedRows'
+import type { Tables } from '@/lib/database.types'
+import { MaskedValue } from '@/app/components/MaskedValue'
 
 export default async function AssayDetailPage({
     params,
@@ -45,7 +49,7 @@ export default async function AssayDetailPage({
 
     const [batchRes, metalsRes, supersederRes, latestRes] = await Promise.all([
         supabase
-            .from('inbound_batches')
+            .from('inbound_batches_masked')
             .select('id, code, quantity, unit, remaining_qty, unit_price, pricing_status, pricing_formula_id, purchase_order_line_id')
             .eq('id', id)
             .is('deleted_at', null)
@@ -70,7 +74,8 @@ export default async function AssayDetailPage({
             .limit(1),
     ])
 
-    const batch = batchRes.data
+    const showPrices = await canViewPrices()
+    const batch = maskedExcept<Tables<'inbound_batches'>, 'unit_price'>(batchRes.data)
     if (!batch) notFound()
 
     const metals = metalsRes.data ?? []
@@ -79,17 +84,21 @@ export default async function AssayDetailPage({
 
     // ── 已应用:把当时真正发生的价格变动读出来 ──
     let priceChange:
-        | { old: number | null; next: number; delta: number; when: string; journalId: string | null; journalCode: string | null }
+        // cut 2b:没有 data.view_prices 时 old/next 回来是 null,delta 因此也算不出来。
+        | { old: number | null; next: number | null; delta: number | null; when: string; journalId: string | null; journalCode: string | null }
         | null = null
     if (isApplied) {
         const { data: ph } = await supabase
-            .from('price_history')
+            .from('price_history_masked')
             .select('old_unit_price, new_unit_price, created_at')
             .eq('inbound_batch_id', id)
             .eq('notes', `Assay ${assay.code} applied`)
             .order('created_at', { ascending: false })
             .limit(1)
+        // 遮蔽的是价格列;created_at 恢复基表类型。
         const row = ph?.[0]
+            ? maskedExcept<Tables<'price_history'>, 'old_unit_price' | 'new_unit_price'>(ph[0])
+            : undefined
         if (row) {
             // 同一事务写下的分录:created_at 与 price_history 行逐微秒相等(见文件头)
             const { data: je } = await supabase
@@ -102,7 +111,10 @@ export default async function AssayDetailPage({
             priceChange = {
                 old: row.old_unit_price,
                 next: row.new_unit_price,
-                delta: Math.round(Number(batch.quantity) * (Number(row.new_unit_price) - Number(row.old_unit_price ?? 0)) * 100) / 100,
+                delta:
+                    row.new_unit_price === null
+                        ? null
+                        : Math.round(Number(batch.quantity) * (Number(row.new_unit_price) - Number(row.old_unit_price ?? 0)) * 100) / 100,
                 when: new Date(row.created_at).toLocaleString(dateLocale),
                 journalId: je?.[0]?.id ?? null,
                 journalCode: je?.[0]?.code ?? null,
@@ -270,12 +282,12 @@ export default async function AssayDetailPage({
                         <div className="flex justify-between">
                             <span className="text-gray-600">{t('assay.currentPrice')}</span>
                             <span className="font-mono">
-                                {priceChange.old === null ? '—' : formatUnitCost(priceChange.old)}
+                                <MaskedValue value={priceChange.old} canView={showPrices} format={formatUnitCost} fallback="—" />
                             </span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-gray-600">{t('assay.newPrice')}</span>
-                            <span className="font-mono font-medium">{formatUnitCost(priceChange.next)}</span>
+                            <span className="font-mono font-medium"><MaskedValue value={priceChange.next} canView={showPrices} format={formatUnitCost} /></span>
                         </div>
                         <div className="flex justify-between border-t pt-1 font-bold">
                             <span>{t('assay.totalDelta')}</span>

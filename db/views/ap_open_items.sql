@@ -18,8 +18,11 @@
 -- (introduced by db/migrations/2026-07-06-phase3-cut3a-payments.sql).
 -- 列集变了 → 重建时先 DROP VIEW 再 CREATE(CREATE OR REPLACE 改不了列)。
 
-CREATE OR REPLACE VIEW public.ap_open_items
-WITH (security_invoker = on) AS
+-- cut 2b:本视图改读遮蔽伴生视图(<表>_masked)而非基表 —— 敏感列的遮蔽
+-- 因此是继承来的,视图体其余部分逐字未变。它仍然是 SECURITY INVOKER:
+-- 它读的遮蔽视图自带模块谓词,所以既拿得到数据,也绕不过任何模块边界。
+-- 见 db/migrations/2026-08-01-perm2b-field-masking.sql.
+CREATE VIEW public.ap_open_items WITH (security_invoker = on) AS
  SELECT doc_kind,
     doc_id,
     doc_code,
@@ -47,14 +50,14 @@ WITH (security_invoker = on) AS
             round(ib.quantity * ib.unit_price, 2) AS doc_value_usd,
             round(COALESCE(s.settled, 0::numeric) + COALESCE(pp.applied, 0::numeric), 2) AS settled_usd,
             round(round(ib.quantity * ib.unit_price, 2) - COALESCE(s.settled, 0::numeric) - COALESCE(pp.applied, 0::numeric), 2) AS open_usd
-           FROM inbound_batches ib
+           FROM inbound_batches_masked ib
              JOIN suppliers sup ON sup.id = ib.supplier_id
              LEFT JOIN LATERAL ( SELECT sum(pa.allocated_usd) AS settled
                    FROM payment_allocations pa
                      JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'::text
                   WHERE pa.inbound_batch_id = ib.id) s ON true
              LEFT JOIN LATERAL ( SELECT sum(ppa.amount_usd) AS applied
-                   FROM prepayment_applications ppa
+                   FROM prepayment_applications_masked ppa
                   WHERE ppa.inbound_batch_id = ib.id) pp ON true
           WHERE ib.deleted_at IS NULL AND ib.unit_price IS NOT NULL
         UNION ALL

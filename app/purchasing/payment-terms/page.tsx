@@ -29,7 +29,7 @@ export default async function PaymentTermTemplatesPage() {
             .is('deleted_at', null)
             .order('name'),
         supabase
-            .from('payment_term_template_lines')
+            .from('payment_term_template_lines_masked')
             .select('template_id, seq, label, percentage, fixed_amount_usd, trigger_event, days_offset')
             .order('seq'),
     ])

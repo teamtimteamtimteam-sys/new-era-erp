@@ -35,7 +35,7 @@ export default async function NewInvoicePage() {
             .is('deleted_at', null)
             .order('legal_name'),
         supabase
-            .from('sales_records')
+            .from('sales_records_masked')
             .select('id, customer_id, quantity, unit_price, currency, amount_usd, sale_date, output_batches(code, unit, materials(name))')
             .order('sale_date', { ascending: false }),
         supabase.from('finance_settings').select('gst_registered, gst_rate_pct').limit(1).single(),

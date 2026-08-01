@@ -56,6 +56,9 @@ const en = {
         back: '← Back to list',
         delete: 'Delete',
         deleting: 'Deleting…',
+        // Shown in place of a figure the signed-in user has no permission to see.
+        // Deliberately NOT a blank (reads as missing data) and NOT a zero (a lie).
+        restricted: 'Restricted',
     },
     suppliers: {
         listTitle: 'Suppliers',

@@ -6,16 +6,19 @@ import { useActionState, useEffect, useState } from 'react'
 import { setInboundPrice, type SetPriceState } from './pricingActions'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatUnitCost } from '@/lib/format'
+import { MaskedValue } from '@/app/components/MaskedValue'
 
 const initialState: SetPriceState = {}
 
 export type PriceHistoryRow = {
     id: string
+    // cut 2b:没有 data.view_prices 时,遮蔽视图把这四列返回 null,界面显示「受限」。
+    // old_unit_price 本来就可空(首次定价没有旧价)—— 两种 null 靠 canViewPrices 区分。
     old_unit_price: number | null
-    new_unit_price: number
+    new_unit_price: number | null
     currency: string
-    original_price: number
-    fx_rate: number
+    original_price: number | null
+    fx_rate: number | null
     notes: string | null
     created_at_display: string // 服务端预格式化,避免水合不一致
 }
@@ -24,11 +27,14 @@ export default function PricingPanel({
     batchId,
     unitPrice,
     history,
+    canViewPrices,
     extraAction,
 }: {
     batchId: string
     unitPrice: number | null
     history: PriceHistoryRow[]
+    /** cut 2b:当前登录者是否持有 data.view_prices。为 false 时价格显示「受限」。 */
+    canViewPrices: boolean
     // cut 5b:批次有定价公式时,页面在这里塞进"按当前含量重新计价"
     extraAction?: React.ReactNode
 }) {
@@ -52,7 +58,11 @@ export default function PricingPanel({
 
             <div className="bg-gray-50 rounded p-4 mb-4 text-sm">
                 <span className="text-gray-600 mr-1">{t('inbound.pricing.current')}:</span>
-                {unitPrice !== null ? (
+                {/* cut 2b:null 有两种含义 —— 没有 data.view_prices 时是「受限」,
+                    有权限而仍为 null 才是真的「未定价」。两者绝不能混为一谈。 */}
+                {!canViewPrices && unitPrice === null ? (
+                    <MaskedValue value={null} canView={false} />
+                ) : unitPrice !== null ? (
                     <span className="font-medium font-mono">{formatUnitCost(unitPrice)}</span>
                 ) : (
                     <span className="text-gray-400">{t('inbound.pricing.notSet')}</span>
@@ -146,14 +156,15 @@ export default function PricingPanel({
                                 <tr key={h.id}>
                                     <td className="border border-gray-300 px-3 py-2">{h.created_at_display}</td>
                                     <td className="border border-gray-300 px-3 py-2 font-mono">
-                                        {h.old_unit_price !== null ? formatUnitCost(h.old_unit_price) : '—'}
+                                        <MaskedValue value={h.old_unit_price} canView={canViewPrices} format={formatUnitCost} fallback="—" />
                                     </td>
                                     <td className="border border-gray-300 px-3 py-2 font-mono">
-                                        {formatUnitCost(h.new_unit_price)}
+                                        <MaskedValue value={h.new_unit_price} canView={canViewPrices} format={formatUnitCost} />
                                     </td>
                                     <td className="border border-gray-300 px-3 py-2 font-mono">
-                                        {h.original_price} {h.currency}
-                                        {h.currency !== 'USD' ? ` @ ${h.fx_rate}` : ''}
+                                        <MaskedValue value={h.original_price} canView={canViewPrices} />{' '}
+                                        {h.original_price !== null ? h.currency : ''}
+                                        {h.currency !== 'USD' && h.fx_rate !== null ? ` @ ${h.fx_rate}` : ''}
                                     </td>
                                     <td className="border border-gray-300 px-3 py-2">{h.notes ?? '—'}</td>
                                 </tr>

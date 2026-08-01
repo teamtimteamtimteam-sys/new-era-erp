@@ -47,3 +47,10 @@ CREATE POLICY "payment_term_template_lines delete by permission"
     ON public.payment_term_template_lines
     AS PERMISSIVE FOR DELETE TO authenticated
     USING (has_permission('module.purchasing.edit'::text));
+
+-- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
+-- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 payment_term_template_lines_masked 读取。
+-- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
+REVOKE SELECT ON public.payment_term_template_lines FROM authenticated, anon;
+GRANT SELECT (id, template_id, seq, label, percentage, trigger_event, days_offset, notes, created_at)
+    ON public.payment_term_template_lines TO authenticated;

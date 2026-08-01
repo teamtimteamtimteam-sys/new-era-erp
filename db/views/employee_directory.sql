@@ -9,8 +9,11 @@
 -- SECURITY INVOKER。
 -- NOTE: introduced by db/migrations/2026-08-01-hr1a-hr-core.sql.
 
-CREATE OR REPLACE VIEW public.employee_directory
-WITH (security_invoker = on) AS
+-- cut 2b:本视图改读遮蔽伴生视图(<表>_masked)而非基表 —— 敏感列的遮蔽
+-- 因此是继承来的,视图体其余部分逐字未变。它仍然是 SECURITY INVOKER:
+-- 它读的遮蔽视图自带模块谓词,所以既拿得到数据,也绕不过任何模块边界。
+-- 见 db/migrations/2026-08-01-perm2b-field-masking.sql.
+CREATE VIEW public.employee_directory WITH (security_invoker = on) AS
  SELECT e.id AS employee_id,
     e.code,
     e.legal_name,
@@ -45,12 +48,12 @@ WITH (security_invoker = on) AS
     pay.gross_pay AS current_gross_pay,
     pay.period_month AS current_pay_period,
     COALESCE(tr.training_count, 0::bigint) AS training_count
-   FROM employees e
+   FROM employees_masked e
      LEFT JOIN departments d ON d.id = e.department_id
-     LEFT JOIN employees mgr ON mgr.id = e.manager_id
+     LEFT JOIN employees_masked mgr ON mgr.id = e.manager_id
      LEFT JOIN LATERAL ( SELECT pl.gross_pay,
             pp.period_month
-           FROM payroll_lines pl
+           FROM payroll_lines_masked pl
              JOIN payroll_periods pp ON pp.id = pl.payroll_period_id
           WHERE pl.employee_id = e.id AND pp.status = 'posted'::text AND pp.deleted_at IS NULL
           ORDER BY pp.period_month DESC

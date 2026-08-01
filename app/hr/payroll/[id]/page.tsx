@@ -31,7 +31,7 @@ export default async function PayrollDetailPage({
 
     const [linesRes, jeRes] = await Promise.all([
         supabase
-            .from('payroll_lines')
+            .from('payroll_lines_masked')
             .select('id, gross_pay, employer_cpf, employee_cpf, other_deductions, net_pay, notes, employees(id, code, legal_name)')
             .eq('payroll_period_id', id),
         period.journal_entry_id

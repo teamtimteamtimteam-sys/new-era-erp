@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
     const searchIds = await resolveInboundSearchIds(supabase, params.q)
     const searchOr = buildInboundSearchOr(params.q, searchIds)
     // 保留嵌入:把 materials.name / suppliers.legal_name 摊平进 CSV
-    const baseQuery = supabase.from('inbound_batches').select(`
+    const baseQuery = supabase.from('inbound_batches_masked').select(`
         code, quantity, unit, unit_price, remaining_qty, arrival_date, stage, status, notes, created_at,
         materials ( name ),
         suppliers ( legal_name )

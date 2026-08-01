@@ -16,6 +16,8 @@ import InvoiceDocument, {
 } from './InvoiceDocument'
 import { checkInvoicePdfCoverage, coverageErrorMessage } from '@/lib/invoiceFontCoverage'
 import React from 'react'
+import { unmasked } from '@/lib/maskedRows'
+import type { Tables } from '@/lib/database.types'
 
 const LOGO_MIME: Record<string, string> = {
     png: 'image/png',
@@ -49,7 +51,7 @@ export async function GET(
 
     const [invRes, companyRes, settingsRes] = await Promise.all([
         supabase
-            .from('invoices')
+            .from('invoices_masked')
             .select('code, issue_date, due_date, payment_terms_days, currency, subtotal_usd, tax_rate_pct, tax_usd, total_usd, status, notes, terms_text, bill_to_snapshot')
             .eq('id', id)
             .single(),
@@ -74,7 +76,7 @@ export async function GET(
     }
 
     const { data: lineRows } = await supabase
-        .from('invoice_lines')
+        .from('invoice_lines_masked')
         .select('line_no, description, quantity, unit, unit_price, amount_usd')
         .eq('invoice_id', id)
         .order('line_no', { ascending: true })
@@ -94,7 +96,9 @@ export async function GET(
         }
     }
 
-    const inv = invRes.data
+    // cut 2b:改读遮蔽视图(基表原始敏感列已收回)。断言回基表行类型 —— 能取到发票 PDF 的
+    // 角色全都持有 data.view_prices,列不会被遮蔽。见 lib/maskedRows.ts。
+    const inv = unmasked<Tables<'invoices'>>(invRes.data)
     const invoice: InvoiceData = {
         code: inv.code,
         issue_date: inv.issue_date,
@@ -111,7 +115,7 @@ export async function GET(
         bill_to: (inv.bill_to_snapshot ?? {}) as Record<string, string | null | undefined>,
     }
 
-    const lines: InvoiceLine[] = (lineRows ?? []).map((l) => ({
+    const lines: InvoiceLine[] = unmasked<Tables<'invoice_lines'>[]>(lineRows ?? []).map((l) => ({
         line_no: l.line_no,
         description: l.description,
         quantity: Number(l.quantity),

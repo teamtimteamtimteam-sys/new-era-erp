@@ -159,3 +159,10 @@ CREATE POLICY "employees delete by permission"
     ON public.employees
     AS PERMISSIVE FOR DELETE TO authenticated
     USING (has_permission('module.hr.edit'::text));
+
+-- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
+-- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 employees_masked 读取。
+-- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
+REVOKE SELECT ON public.employees FROM authenticated, anon;
+GRANT SELECT (id, code, legal_name, preferred_name, department_id, job_title, manager_id, employment_type, work_category, hire_date, probation_end_date, employment_status, separation_date, separation_type, separation_notes, annual_leave_days, residency_status, work_pass_type, work_pass_issue_date, work_pass_expiry_date, user_id, notes, deleted_at, created_at, created_by, updated_at, updated_by)
+    ON public.employees TO authenticated;

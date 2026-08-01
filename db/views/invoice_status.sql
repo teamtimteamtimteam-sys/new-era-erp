@@ -6,8 +6,11 @@
 -- SECURITY INVOKER。
 -- NOTE: introduced by db/migrations/2026-07-31-phase4-cut2a-invoices.sql.
 
-CREATE OR REPLACE VIEW public.invoice_status
-WITH (security_invoker = on) AS
+-- cut 2b:本视图改读遮蔽伴生视图(<表>_masked)而非基表 —— 敏感列的遮蔽
+-- 因此是继承来的,视图体其余部分逐字未变。它仍然是 SECURITY INVOKER:
+-- 它读的遮蔽视图自带模块谓词,所以既拿得到数据,也绕不过任何模块边界。
+-- 见 db/migrations/2026-08-01-perm2b-field-masking.sql.
+CREATE VIEW public.invoice_status WITH (security_invoker = on) AS
  SELECT i.id AS invoice_id,
     i.code,
     i.customer_id,
@@ -25,10 +28,10 @@ WITH (security_invoker = on) AS
             ELSE 'unpaid'::text
         END AS payment_state,
     CURRENT_DATE > i.due_date AND round(i.total_usd - COALESCE(s.settled, 0::numeric), 2) > 0::numeric AS overdue
-   FROM invoices i
+   FROM invoices_masked i
      JOIN customers c ON c.id = i.customer_id
      LEFT JOIN LATERAL ( SELECT sum(pa.allocated_usd) AS settled
-           FROM invoice_lines il
+           FROM invoice_lines_masked il
              JOIN payment_allocations pa ON pa.sales_record_id = il.sales_record_id
              JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'::text
           WHERE il.invoice_id = i.id) s ON true

@@ -7,6 +7,8 @@ import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../../../Subnav'
 import TemplateForm from '../../TemplateForm'
 import type { TemplateLineInput } from '../../actions'
+import { maskedRows } from '@/lib/maskedRows'
+import type { Tables } from '@/lib/database.types'
 
 export default async function EditTemplatePage({
     params,
@@ -25,7 +27,7 @@ export default async function EditTemplatePage({
             .is('deleted_at', null)
             .single(),
         supabase
-            .from('payment_term_template_lines')
+            .from('payment_term_template_lines_masked')
             .select('label, percentage, fixed_amount_usd, trigger_event, days_offset')
             .eq('template_id', id)
             .order('seq'),
@@ -35,7 +37,8 @@ export default async function EditTemplatePage({
         notFound()
     }
 
-    const lines: TemplateLineInput[] = (lineRes.data ?? []).map((l) => ({
+    // 遮蔽的是 fixed_amount_usd;label/trigger_event 等恢复基表类型。
+    const lines: TemplateLineInput[] = maskedRows<Tables<'payment_term_template_lines'>, 'fixed_amount_usd'>(lineRes.data).map((l) => ({
         label: l.label,
         mode: l.percentage !== null ? ('percentage' as const) : ('fixed' as const),
         percentage: l.percentage !== null ? String(l.percentage) : '',

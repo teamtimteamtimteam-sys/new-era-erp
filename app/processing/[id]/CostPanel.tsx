@@ -7,13 +7,17 @@ import { useTranslations } from '@/lib/i18n/client'
 import { formatUsd } from '@/lib/format'
 import { COST_TYPE_OPTIONS, costTypeLabelKey, type CostEntryRow } from './costTypes'
 import { addCostEntry, updateCostEntry, softDeleteCostEntry } from './costActions'
+import { MaskedValue } from '@/app/components/MaskedValue'
 
 export default function CostPanel({
     runId,
     entries,
+    canViewPrices,
 }: {
     runId: string
     entries: CostEntryRow[]
+    /** cut 2b:当前登录者是否持有 data.view_prices。为 false 时金额显示「受限」。 */
+    canViewPrices: boolean
 }) {
     const t = useTranslations()
     const [error, setError] = useState<string | null>(null)
@@ -26,7 +30,10 @@ export default function CostPanel({
         return k ? t(k) : v
     }
 
-    const total = entries.reduce((s, e) => s + e.amount_usd, 0)
+    // cut 2b:任何一条金额被遮蔽,合计就无从算起 —— 此时整个合计显示「受限」,
+    // 而不是把 null 当 0 加进去(那会得出一个看起来像真的、其实偏小的数)。
+    const anyMasked = entries.some((e) => e.amount_usd === null)
+    const total = anyMasked ? null : entries.reduce((s, e) => s + (e.amount_usd ?? 0), 0)
     const editing = editingId ? entries.find((e) => e.id === editingId) ?? null : null
 
     function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -85,7 +92,7 @@ export default function CostPanel({
                                     )}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                    {formatUsd(e.amount_usd)}
+                                    <MaskedValue value={e.amount_usd} canView={canViewPrices} format={formatUsd} />
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-sm">{e.notes ?? '—'}</td>
                                 <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
@@ -122,7 +129,9 @@ export default function CostPanel({
             {/* 合计 */}
             <p className="text-sm mb-4">
                 <span className="text-gray-600 mr-1">{t('processing.cost.sumLabel')}:</span>
-                <span className="font-mono">{formatUsd(total)}</span>
+                <span className="font-mono">
+                    <MaskedValue value={total} canView={canViewPrices} format={formatUsd} />
+                </span>
             </p>
 
             {/* 新增 / 编辑表单(共用) */}
@@ -152,7 +161,7 @@ export default function CostPanel({
                     name="amount_usd"
                     step="0.01"
                     required
-                    defaultValue={editing ? editing.amount_usd : ''}
+                    defaultValue={editing?.amount_usd ?? ''}
                     placeholder={t('processing.cost.amountPlaceholder')}
                     className="w-32 border border-gray-300 px-3 py-2 rounded"
                 />

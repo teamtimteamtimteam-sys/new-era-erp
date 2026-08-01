@@ -19,6 +19,13 @@ export async function localizeAssayError(message: string): Promise<string> {
     const raw = (message ?? '').trim()
     const match = raw.match(CODE_RE)
 
+    // cut 2b:calculate_metal_price / preview_reprice_inbound_batch 现在会对没有
+    // data.view_prices 的人抛 PERMISSION_DENIED。那【不是错误】,是这个人不该看见价格 ——
+    // 所以显示「受限」,而不是把一串权限码摔到现场人员脸上。
+    if (match && match[1] === 'PERMISSION_DENIED') {
+        return (await getTranslations())('common.restricted')
+    }
+
     if (!match || !ASSAY_ERROR_CODES.has(match[1])) {
         return raw // genuine non-coded DB error → surface verbatim
     }

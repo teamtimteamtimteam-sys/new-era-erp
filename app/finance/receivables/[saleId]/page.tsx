@@ -10,6 +10,8 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatUsd } from '@/lib/format'
 import Subnav from '../../Subnav'
 import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachmentsPanel'
+import { unmasked } from '@/lib/maskedRows'
+import type { Tables } from '@/lib/database.types'
 
 type AllocRow = {
     id: string
@@ -33,15 +35,20 @@ export default async function ReceivableDocPage({
     const locale = await getLocale()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
-    const { data: sale, error } = await supabase
-        .from('sales_records')
+    const { data: saleRaw, error } = await supabase
+        .from('sales_records_masked')
         .select('id, output_batch_id, customer_id, quantity, unit_price, currency, fx_rate, amount_usd, sale_date, notes, cogs_entry_id')
         .eq('id', saleId)
         .single()
 
-    if (error || !sale) {
+    if (error || !saleRaw) {
         notFound()
     }
+
+    // cut 2b:改读遮蔽视图(基表的原始敏感列已被收回)。这里断言回基表行类型 ——
+    // 能进到这个页面的角色(admin / finance / auditor)全都持有 data.view_prices,
+    // 所以这些列不会被遮蔽。理由与失效条件见 lib/maskedRows.ts。
+    const sale = unmasked<Tables<'sales_records'>>(saleRaw)
 
     // 批次(单据号+物料)/ 客户 / 结算历史 / 收入分录 / COGS 分录 / 附件,页级小查询
     const [batchRes, customerRes, allocsRes, revenueRes, cogsRes, attachRes, invoiceRes] = await Promise.all([

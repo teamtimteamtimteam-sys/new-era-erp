@@ -76,7 +76,7 @@ export default async function PurchaseOrdersPage({
         page = Math.min(requestedPage, totalPages)
         const { data } = await applyFilters(
             supabase
-                .from('purchase_orders')
+                .from('purchase_orders_masked')
                 .select('id, code, order_date, expected_delivery_date, estimated_total_usd, status, suppliers(legal_name)')
                 .eq('status', 'cancelled')
                 .is('deleted_at', null)

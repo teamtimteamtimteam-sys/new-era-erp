@@ -62,7 +62,7 @@ BEGIN
         -- 3. 与计价器同一 DB 函数算价,再走与手工计价【同一条】重计价路径
         --    (reprice_inbound_batch)—— 价差分录、price_history、1200/5000 拆账
         --    三件事只存在一份实现。参考日默认化验日:结算价随行情,行情看化验那天。
-        v_calc := calculate_metal_price(v_formula, v_metals, v_batch.quantity,
+        v_calc := calculate_metal_price_internal(v_formula, v_metals, v_batch.quantity,
                                         COALESCE(p_reference_date, v_assay.assay_date));
         v_unit := (v_calc->>'unit_price_usd_per_kg')::numeric;
         SELECT code INTO v_fcode FROM pricing_formulas WHERE id = v_formula;

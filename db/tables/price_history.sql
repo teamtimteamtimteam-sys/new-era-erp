@@ -61,3 +61,10 @@ $fn$;
 CREATE TRIGGER trg_inbound_batches_price_guard
     BEFORE UPDATE ON public.inbound_batches
     FOR EACH ROW EXECUTE FUNCTION public.guard_inbound_price_change();
+
+-- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
+-- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 price_history_masked 读取。
+-- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
+REVOKE SELECT ON public.price_history FROM authenticated, anon;
+GRANT SELECT (id, inbound_batch_id, currency, notes, created_at, created_by)
+    ON public.price_history TO authenticated;

@@ -8,6 +8,8 @@ import { getTranslations } from '@/lib/i18n/server'
 import { CATEGORY_OPTIONS, UNIT_OPTIONS, labelKeyForValue } from '@/app/materials/options'
 import { formatUsd } from '@/lib/format'
 import { latestPriceByMetal, marketValuePerKg } from '@/lib/valuation'
+import { maskedRows } from '@/lib/maskedRows'
+import type { Tables } from '@/lib/database.types'
 
 type MaterialEmbed = { name: string; category: string } | null
 
@@ -52,7 +54,7 @@ export default async function InventoryPage() {
 
     const [inboundRes, outputRes, runsRes, legsRes, metalsRes, pricesRes, unpricedRes] = await Promise.all([
         supabase
-            .from('inbound_batches')
+            .from('inbound_batches_masked')
             .select('material_id, remaining_qty, unit, unit_price, materials ( name, category )')
             .is('deleted_at', null)
             .gt('remaining_qty', 0),
@@ -67,7 +69,7 @@ export default async function InventoryPage() {
             .is('deleted_at', null),
         // 产出腿:批次 → 单位成本(一个批次至多一条产出腿)
         supabase
-            .from('processing_outputs')
+            .from('processing_outputs_masked')
             .select('output_batch_id, unit_cost_usd'),
         // 金属含量(assay):批次 → 各金属含量
         supabase
@@ -81,7 +83,7 @@ export default async function InventoryPage() {
             .lte('price_date', todayYmd),
         // 未计价的在册进料批次数(与进料列表页同口径的提示徽标)
         supabase
-            .from('inbound_batches')
+            .from('inbound_batches_masked')
             .select('id', { count: 'exact', head: true })
             .is('deleted_at', null)
             .is('unit_price', null),
@@ -108,7 +110,8 @@ export default async function InventoryPage() {
 
     // 批次 → 单位成本 / 金属含量;金属 → 最新价
     const legCostByBatch = new Map<string, number>()
-    for (const leg of legsRes.data ?? []) {
+    // unit_cost_usd 会被遮蔽(没有 data.view_prices 时为 null);其余列不会。
+    for (const leg of maskedRows<Tables<'processing_outputs'>, 'unit_cost_usd'>(legsRes.data)) {
         if (leg.unit_cost_usd !== null) legCostByBatch.set(leg.output_batch_id, leg.unit_cost_usd)
     }
     const metalsByBatch = new Map<string, { metal: string; content_pct: number }[]>()

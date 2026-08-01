@@ -11,6 +11,8 @@ import { formatUsd, formatAmount } from '@/lib/format'
 import { checkInvoicePdfCoverage } from '@/lib/invoiceFontCoverage'
 import Subnav from '../../Subnav'
 import VoidInvoiceControl from './VoidInvoiceControl'
+import { unmasked } from '@/lib/maskedRows'
+import type { Tables } from '@/lib/database.types'
 
 type BillTo = {
     code?: string | null
@@ -44,15 +46,20 @@ export default async function InvoiceDetailPage({
     const locale = await getLocale()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
-    const { data: inv, error } = await supabase
-        .from('invoices')
+    const { data: invRaw, error } = await supabase
+        .from('invoices_masked')
         .select('id, code, customer_id, issue_date, due_date, payment_terms_days, currency, subtotal_usd, tax_rate_pct, tax_usd, total_usd, status, void_reason, voided_at, notes, terms_text, bill_to_snapshot')
         .eq('id', id)
         .single()
 
-    if (error || !inv) {
+    if (error || !invRaw) {
         notFound()
     }
+
+    // cut 2b:改读遮蔽视图(基表的原始敏感列已被收回)。这里断言回基表行类型 ——
+    // 能进到这个页面的角色(admin / finance / auditor)全都持有 data.view_prices,
+    // 所以这些列不会被遮蔽。理由与失效条件见 lib/maskedRows.ts。
+    const inv = unmasked<Tables<'invoices'>>(invRaw)
 
     // 公司抬头是否已填 —— 没填就不能出 PDF,页面上先给出提示。
     // 取整行(不只是 legal_name)是因为下面的字体覆盖检查要过一遍抬头/银行/页脚里
@@ -63,13 +70,13 @@ export default async function InvoiceDetailPage({
     ])
     const profileIncomplete = !company?.legal_name?.trim()
 
-    const { data: lines } = await supabase
-        .from('invoice_lines')
+    const { data: linesRaw } = await supabase
+        .from('invoice_lines_masked')
         .select('id, line_no, sales_record_id, description, quantity, unit, unit_price, amount_usd')
         .eq('invoice_id', id)
         .order('line_no', { ascending: true })
 
-    const rows = lines ?? []
+    const rows = unmasked<Tables<'invoice_lines'>[]>(linesRaw ?? [])
     const saleIds = rows.map((l) => l.sales_record_id)
 
     // 收款:这些销售上的全部核销行(含已冲销的,展示但不计入已收)

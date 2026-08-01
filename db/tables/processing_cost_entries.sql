@@ -81,3 +81,10 @@ CREATE POLICY "processing_cost_entries delete by permission"
 -- 4. Index: we always query cost entries by their owning run.
 CREATE INDEX idx_processing_cost_entries_run
     ON public.processing_cost_entries (run_id);
+
+-- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
+-- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 processing_cost_entries_masked 读取。
+-- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
+REVOKE SELECT ON public.processing_cost_entries FROM authenticated, anon;
+GRANT SELECT (id, run_id, cost_type, is_estimate, notes, deleted_at, created_at, created_by, updated_at, updated_by)
+    ON public.processing_cost_entries TO authenticated;

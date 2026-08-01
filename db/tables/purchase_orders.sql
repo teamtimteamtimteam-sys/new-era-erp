@@ -75,3 +75,10 @@ CREATE POLICY "purchase_orders delete by permission"
     ON public.purchase_orders
     AS PERMISSIVE FOR DELETE TO authenticated
     USING (has_permission('module.purchasing.edit'::text));
+
+-- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
+-- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 purchase_orders_masked 读取。
+-- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
+REVOKE SELECT ON public.purchase_orders FROM authenticated, anon;
+GRANT SELECT (id, code, supplier_id, order_date, expected_delivery_date, currency, status, approval_status, approved_at, approved_by, incoterm, terms_text, notes, closed_at, cancelled_at, cancel_reason, deleted_at, created_at, created_by, updated_at, updated_by)
+    ON public.purchase_orders TO authenticated;

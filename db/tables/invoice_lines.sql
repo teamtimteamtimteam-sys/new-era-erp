@@ -88,3 +88,10 @@ CREATE POLICY "invoice_lines update by permission"
     ON public.invoice_lines
     AS PERMISSIVE FOR UPDATE TO authenticated
     USING (has_permission('module.finance.edit'::text)) WITH CHECK (has_permission('module.finance.edit'::text));
+
+-- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
+-- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 invoice_lines_masked 读取。
+-- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
+REVOKE SELECT ON public.invoice_lines FROM authenticated, anon;
+GRANT SELECT (id, invoice_id, sales_record_id, line_no, description, quantity, unit, invoice_voided, created_at)
+    ON public.invoice_lines TO authenticated;

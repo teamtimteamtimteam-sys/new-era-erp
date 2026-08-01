@@ -7,6 +7,8 @@ import Subnav from '../../../Subnav'
 import FormulaForm, { type FormulaDefaults, type PartyOption } from '../../FormulaForm'
 import { updateFormula } from '../../actions'
 import DeleteFormulaButton from './DeleteFormulaButton'
+import { unmasked } from '@/lib/maskedRows'
+import type { Tables } from '@/lib/database.types'
 
 export default async function EditFormulaPage({
     params,
@@ -17,19 +19,23 @@ export default async function EditFormulaPage({
     const supabase = await createClient()
     const t = await getTranslations()
 
-    const { data: formula, error } = await supabase
-        .from('pricing_formulas')
+    const { data: formulaRaw, error } = await supabase
+        .from('pricing_formulas_masked')
         .select('id, code, name, direction, price_basis, average_days, treatment_charge_usd_per_tonne, flat_discount_pct, supplier_id, customer_id, notes, is_active')
         .eq('id', id)
         .is('deleted_at', null)
         .single()
 
-    if (error || !formula) {
+    if (error || !formulaRaw) {
         notFound()
     }
 
+    // cut 2b:改读遮蔽视图(基表原始敏感列已收回)。断言回基表行类型 —— 能进定价模块的
+    // 角色全都持有 data.view_prices,列不会被遮蔽。见 lib/maskedRows.ts。
+    const formula = unmasked<Tables<'pricing_formulas'>>(formulaRaw)
+
     const [metalsRes, supRes, cusRes] = await Promise.all([
-        supabase.from('pricing_formula_metals').select('metal, payable_pct').eq('formula_id', id),
+        supabase.from('pricing_formula_metals_masked').select('metal, payable_pct').eq('formula_id', id),
         supabase.from('suppliers').select('id, legal_name').is('deleted_at', null).order('legal_name'),
         supabase.from('customers').select('id, legal_name').is('deleted_at', null).order('legal_name'),
     ])

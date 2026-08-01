@@ -115,3 +115,10 @@ CREATE POLICY "invoices update by permission"
     ON public.invoices
     AS PERMISSIVE FOR UPDATE TO authenticated
     USING (has_permission('module.finance.edit'::text)) WITH CHECK (has_permission('module.finance.edit'::text));
+
+-- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
+-- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 invoices_masked 读取。
+-- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
+REVOKE SELECT ON public.invoices FROM authenticated, anon;
+GRANT SELECT (id, code, customer_id, issue_date, due_date, payment_terms_days, currency, tax_rate_pct, status, void_reason, voided_at, voided_by, notes, terms_text, bill_to_snapshot, created_at, created_by)
+    ON public.invoices TO authenticated;

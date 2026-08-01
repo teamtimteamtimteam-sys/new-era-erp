@@ -80,3 +80,9 @@ CREATE POLICY "sales_records update by permission"
 -- cut 2a:窄用途 UPDATE 策略 —— 仅为 SECURITY INVOKER 函数补挂 cogs_entry_id 放行;
 -- 列级限制由上面的守卫触发器执行(除 COGS 首挂外一律 SALE_IMMUTABLE)。
 
+-- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
+-- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 sales_records_masked 读取。
+-- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
+REVOKE SELECT ON public.sales_records FROM authenticated, anon;
+GRANT SELECT (id, output_batch_id, customer_id, quantity, currency, sale_date, notes, movement_id, created_at, created_by, cogs_entry_id)
+    ON public.sales_records TO authenticated;

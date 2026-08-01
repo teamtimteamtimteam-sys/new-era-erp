@@ -10,6 +10,8 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatUsd } from '@/lib/format'
 import Subnav from '../../Subnav'
 import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachmentsPanel'
+import { unmasked } from '@/lib/maskedRows'
+import type { Tables } from '@/lib/database.types'
 
 type AllocRow = {
     id: string
@@ -33,15 +35,20 @@ export default async function PayableDocPage({
     const locale = await getLocale()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
-    const { data: batch, error } = await supabase
-        .from('inbound_batches')
+    const { data: batchRaw, error } = await supabase
+        .from('inbound_batches_masked')
         .select('id, code, supplier_id, quantity, unit, unit_price, arrival_date, notes, created_at, materials(name)')
         .eq('id', batchId)
         .single()
 
-    if (error || !batch) {
+    if (error || !batchRaw) {
         notFound()
     }
+
+    // cut 2b:改读遮蔽视图(基表的原始敏感列已被收回)。这里断言回基表行类型 ——
+    // 能进到这个页面的角色(admin / finance / auditor)全都持有 data.view_prices,
+    // 所以这些列不会被遮蔽。理由与失效条件见 lib/maskedRows.ts。
+    const batch = unmasked<Tables<'inbound_batches'> & { materials: { name: string } | null }>(batchRaw)
 
     // 应付额 = 当前 quantity × unit_price(与 ap_open_items 口径一致;未计价 → 0 敞口页不会链进来,
     // 但直接访问 URL 也要能看:金额区显示 —)

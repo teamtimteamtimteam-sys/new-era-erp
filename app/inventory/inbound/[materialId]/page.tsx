@@ -33,7 +33,7 @@ export default async function InboundDrillPage({
     const [matRes, batchesRes] = await Promise.all([
         supabase.from('materials').select('name').eq('id', materialId).single(),
         supabase
-            .from('inbound_batches')
+            .from('inbound_batches_masked')
             .select('id, code, quantity, remaining_qty, unit, stage, arrival_date, unit_price, suppliers ( legal_name )')
             .eq('material_id', materialId)
             .is('deleted_at', null)

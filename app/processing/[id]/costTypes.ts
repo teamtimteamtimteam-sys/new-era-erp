@@ -23,7 +23,9 @@ export function costTypeLabelKey(value: string | null | undefined): string | nul
 export type CostEntryRow = {
     id: string
     cost_type: string
-    amount_usd: number
+    // cut 2b:没有 data.view_prices 时,遮蔽视图把金额返回 null。
+    // 【保持可空】—— 界面据此显示「受限」,而不是空白(像缺数据)或 0(是撒谎)。
+    amount_usd: number | null
     is_estimate: boolean
     notes: string | null
     created_at_display: string
