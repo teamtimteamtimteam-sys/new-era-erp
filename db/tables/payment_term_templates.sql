@@ -33,6 +33,22 @@ CREATE TRIGGER trg_payment_term_templates_updated_at
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 ALTER TABLE public.payment_term_templates ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on payment_term_templates"
-    ON public.payment_term_templates AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "payment_term_templates select by permission"
+    ON public.payment_term_templates
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.purchasing.view'::text));
+
+CREATE POLICY "payment_term_templates insert by permission"
+    ON public.payment_term_templates
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.purchasing.edit'::text));
+
+CREATE POLICY "payment_term_templates update by permission"
+    ON public.payment_term_templates
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.purchasing.edit'::text)) WITH CHECK (has_permission('module.purchasing.edit'::text));
+
+CREATE POLICY "payment_term_templates delete by permission"
+    ON public.payment_term_templates
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.purchasing.edit'::text));

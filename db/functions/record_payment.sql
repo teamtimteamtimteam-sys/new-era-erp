@@ -1,6 +1,8 @@
 CREATE OR REPLACE FUNCTION public.record_payment(p_direction text, p_counterparty_id uuid, p_amount numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_bank_account text DEFAULT NULL::text, p_payment_date date DEFAULT NULL::date, p_notes text DEFAULT NULL::text, p_allocations jsonb DEFAULT '[]'::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_user         uuid := auth.uid();
@@ -36,6 +38,7 @@ DECLARE
     v_found        boolean;
     v_lines        jsonb;
 BEGIN
+    PERFORM require_permission('module.finance.edit');
     -- 1. 基础校验
     IF p_direction IS NULL OR p_direction NOT IN ('in','out') THEN
         RAISE EXCEPTION 'DIRECTION_INVALID|%', COALESCE(p_direction, '?');
@@ -338,4 +341,4 @@ BEGIN
         'prepaid_total', v_po_usd
     );
 END;
-$function$
+$function$;

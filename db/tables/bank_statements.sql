@@ -49,6 +49,22 @@ CREATE TRIGGER trg_bank_statements_no_delete_reconciled
     FOR EACH ROW EXECUTE FUNCTION public.guard_bank_statement_delete();
 
 ALTER TABLE public.bank_statements ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on bank_statements"
-    ON public.bank_statements AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "bank_statements select by permission"
+    ON public.bank_statements
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.finance.view'::text));
+
+CREATE POLICY "bank_statements insert by permission"
+    ON public.bank_statements
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.finance.edit'::text));
+
+CREATE POLICY "bank_statements update by permission"
+    ON public.bank_statements
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.finance.edit'::text)) WITH CHECK (has_permission('module.finance.edit'::text));
+
+CREATE POLICY "bank_statements delete by permission"
+    ON public.bank_statements
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.finance.edit'::text));

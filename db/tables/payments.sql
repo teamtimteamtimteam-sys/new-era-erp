@@ -73,7 +73,12 @@ CREATE TRIGGER trg_payments_immutable
     FOR EACH ROW EXECUTE FUNCTION public.guard_payment_mutation();
 
 ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated select on payments"
-    ON public.payments FOR SELECT TO authenticated USING (true);
-CREATE POLICY "authenticated insert on payments"
-    ON public.payments FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "payments select by permission"
+    ON public.payments
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.finance.view'::text));
+
+CREATE POLICY "payments insert by permission"
+    ON public.payments
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.finance.edit'::text));

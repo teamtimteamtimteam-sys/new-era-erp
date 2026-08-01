@@ -16,9 +16,25 @@ CREATE TABLE public.role_permissions (
 );
 
 ALTER TABLE public.role_permissions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on role_permissions"
-    ON public.role_permissions AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "role_permissions select by permission"
+    ON public.role_permissions
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (true);
+
+CREATE POLICY "role_permissions insert by permission"
+    ON public.role_permissions
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('action.manage_permissions'::text));
+
+CREATE POLICY "role_permissions update by permission"
+    ON public.role_permissions
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('action.manage_permissions'::text)) WITH CHECK (has_permission('action.manage_permissions'::text));
+
+CREATE POLICY "role_permissions delete by permission"
+    ON public.role_permissions
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('action.manage_permissions'::text));
 
 -- 起点授权。每条都附一句理由 —— 这份种子要读起来像论证,而不是断言。
 

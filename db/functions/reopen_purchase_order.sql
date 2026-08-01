@@ -1,12 +1,15 @@
 CREATE OR REPLACE FUNCTION public.reopen_purchase_order(p_purchase_order_id uuid, p_reason text)
  RETURNS jsonb
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_user   uuid := auth.uid();
     v_po     record;
     v_status text;
 BEGIN
+    PERFORM require_permission('module.purchasing.edit');
     SELECT id, code, status INTO v_po
     FROM purchase_orders
     WHERE id = p_purchase_order_id AND deleted_at IS NULL
@@ -41,5 +44,4 @@ BEGIN
         'status', v_status
     );
 END;
-$function$
-
+$function$;

@@ -53,9 +53,25 @@ CREATE TRIGGER trg_roles_system_protected
     FOR EACH ROW EXECUTE FUNCTION public.guard_system_role();
 
 ALTER TABLE public.roles ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on roles"
-    ON public.roles AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "roles select by permission"
+    ON public.roles
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (true);
+
+CREATE POLICY "roles insert by permission"
+    ON public.roles
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('action.manage_permissions'::text));
+
+CREATE POLICY "roles update by permission"
+    ON public.roles
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('action.manage_permissions'::text)) WITH CHECK (has_permission('action.manage_permissions'::text));
+
+CREATE POLICY "roles delete by permission"
+    ON public.roles
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('action.manage_permissions'::text));
 
 -- 【七个角色是起点,不是定论】。首建需要一份可用的起点,但它们完全是可编辑的数据。
 INSERT INTO public.roles (code, name_en, name_zh, description_en, description_zh, is_system, sort_order) VALUES

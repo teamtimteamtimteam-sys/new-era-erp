@@ -1,12 +1,15 @@
 CREATE OR REPLACE FUNCTION public.unapply_assay_result(p_assay_result_id uuid, p_reason text)
  RETURNS jsonb
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_user   uuid := auth.uid();
     v_assay  record;
     v_latest uuid;
 BEGIN
+    PERFORM require_permission('module.inbound.edit');
     SELECT * INTO v_assay FROM assay_results
     WHERE id = p_assay_result_id AND deleted_at IS NULL
     FOR UPDATE;
@@ -48,5 +51,4 @@ BEGIN
         'reverted_price', false
     );
 END;
-$function$
-
+$function$;

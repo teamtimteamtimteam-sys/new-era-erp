@@ -44,6 +44,22 @@ CREATE TRIGGER trg_company_profile_updated_at
 INSERT INTO public.company_profile (id, legal_name) VALUES (true, '');
 
 ALTER TABLE public.company_profile ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on company_profile"
-    ON public.company_profile AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "company_profile select by permission"
+    ON public.company_profile
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (true);
+
+CREATE POLICY "company_profile insert by permission"
+    ON public.company_profile
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.finance.edit'::text));
+
+CREATE POLICY "company_profile update by permission"
+    ON public.company_profile
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.finance.edit'::text)) WITH CHECK (has_permission('module.finance.edit'::text));
+
+CREATE POLICY "company_profile delete by permission"
+    ON public.company_profile
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.finance.edit'::text));

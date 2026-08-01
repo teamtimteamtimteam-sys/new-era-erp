@@ -72,13 +72,25 @@ CREATE TRIGGER trg_tasks_updated_at
 -- 6. RLS: authenticated-only full access (matches suppliers' policy)
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "authenticated full access on tasks"
+CREATE POLICY "tasks select by permission"
     ON public.tasks
-    AS PERMISSIVE
-    FOR ALL
-    TO authenticated
-    USING (true)
-    WITH CHECK (true);
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.tasks.view'::text));
+
+CREATE POLICY "tasks insert by permission"
+    ON public.tasks
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.tasks.edit'::text));
+
+CREATE POLICY "tasks update by permission"
+    ON public.tasks
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.tasks.edit'::text)) WITH CHECK (has_permission('module.tasks.edit'::text));
+
+CREATE POLICY "tasks delete by permission"
+    ON public.tasks
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.tasks.edit'::text));
 
 -- 7. Deferred-enforcement note.
 -- The visibility / shared_with / editors columns are structural placeholders for a

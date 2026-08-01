@@ -1,6 +1,8 @@
 CREATE OR REPLACE FUNCTION public.apply_prepayment(p_purchase_order_id uuid, p_inbound_batch_id uuid, p_amount numeric, p_notes text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_user      uuid := auth.uid();
@@ -15,6 +17,7 @@ DECLARE
     v_app_id    uuid := gen_random_uuid();
     v_je        jsonb;
 BEGIN
+    PERFORM require_permission('module.finance.edit');
     SELECT po.id, po.code, po.supplier_id, po.status
     INTO v_po
     FROM purchase_orders po
@@ -95,4 +98,4 @@ BEGIN
         'prepaid_remaining', round(v_available - p_amount, 2)
     );
 END;
-$function$
+$function$;

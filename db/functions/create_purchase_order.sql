@@ -1,6 +1,8 @@
 CREATE OR REPLACE FUNCTION public.create_purchase_order(p_supplier_id uuid, p_order_date date, p_expected_delivery date, p_currency text, p_fx_rate numeric, p_incoterm text, p_terms_text text, p_notes text, p_lines jsonb, p_payment_terms jsonb DEFAULT '[]'::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_user       uuid := auth.uid();
@@ -24,6 +26,7 @@ DECLARE
     v_pct_total  numeric := 0;
     v_term_count integer := 0;
 BEGIN
+    PERFORM require_permission('module.purchasing.edit');
     IF p_supplier_id IS NULL OR NOT EXISTS (
         SELECT 1 FROM suppliers WHERE id = p_supplier_id AND deleted_at IS NULL
     ) THEN
@@ -140,4 +143,4 @@ BEGIN
         'term_count', v_term_count
     );
 END;
-$function$
+$function$;

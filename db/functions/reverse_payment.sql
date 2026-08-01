@@ -10,6 +10,7 @@ DECLARE
     v_mirror_code text;
     v_je          jsonb;
 BEGIN
+    PERFORM require_permission('module.finance.edit');
     SELECT * INTO v_orig FROM payments WHERE id = p_payment_id FOR UPDATE;
     IF NOT FOUND THEN
         RAISE EXCEPTION 'PAYMENT_NOT_FOUND|%', p_payment_id;
@@ -43,4 +44,4 @@ BEGIN
         'journal_code', v_je->>'code'
     );
 END;
-$function$
+$function$;

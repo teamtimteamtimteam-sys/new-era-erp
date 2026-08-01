@@ -50,13 +50,25 @@ CREATE TRIGGER trg_material_attachments_updated_at
 -- 3. RLS: authenticated-only full access (matches suppliers' policy)
 ALTER TABLE public.material_attachments ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "authenticated full access on material_attachments"
+CREATE POLICY "material_attachments select by permission"
     ON public.material_attachments
-    AS PERMISSIVE
-    FOR ALL
-    TO authenticated
-    USING (true)
-    WITH CHECK (true);
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.materials.view'::text));
+
+CREATE POLICY "material_attachments insert by permission"
+    ON public.material_attachments
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.materials.edit'::text));
+
+CREATE POLICY "material_attachments update by permission"
+    ON public.material_attachments
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.materials.edit'::text)) WITH CHECK (has_permission('module.materials.edit'::text));
+
+CREATE POLICY "material_attachments delete by permission"
+    ON public.material_attachments
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.materials.edit'::text));
 
 -- 4. Index: we always query attachments by their owning material.
 CREATE INDEX idx_material_attachments_material_id

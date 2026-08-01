@@ -12,6 +12,7 @@ DECLARE
     v_mirror_code text;
     v_je          jsonb;
 BEGIN
+    PERFORM require_permission('module.finance.edit');
     SELECT * INTO v_orig FROM expenses WHERE id = p_expense_id FOR UPDATE;
     IF NOT FOUND THEN
         RAISE EXCEPTION 'EXPENSE_NOT_FOUND|%', p_expense_id;
@@ -54,4 +55,4 @@ BEGIN
         'journal_code', v_je->>'code'
     );
 END;
-$function$
+$function$;

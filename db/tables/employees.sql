@@ -140,6 +140,22 @@ CREATE TRIGGER trg_employees_no_manager_cycle
     FOR EACH ROW EXECUTE FUNCTION public.guard_manager_cycle();
 
 ALTER TABLE public.employees ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on employees"
-    ON public.employees AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "employees select by permission"
+    ON public.employees
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.hr.view'::text));
+
+CREATE POLICY "employees insert by permission"
+    ON public.employees
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.hr.edit'::text));
+
+CREATE POLICY "employees update by permission"
+    ON public.employees
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.hr.edit'::text)) WITH CHECK (has_permission('module.hr.edit'::text));
+
+CREATE POLICY "employees delete by permission"
+    ON public.employees
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.hr.edit'::text));

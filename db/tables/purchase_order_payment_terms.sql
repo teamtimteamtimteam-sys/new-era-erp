@@ -40,6 +40,22 @@ CREATE TABLE public.purchase_order_payment_terms (
 CREATE INDEX idx_po_payment_terms_po ON public.purchase_order_payment_terms (purchase_order_id);
 
 ALTER TABLE public.purchase_order_payment_terms ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on purchase_order_payment_terms"
-    ON public.purchase_order_payment_terms AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "purchase_order_payment_terms select by permission"
+    ON public.purchase_order_payment_terms
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.purchasing.view'::text));
+
+CREATE POLICY "purchase_order_payment_terms insert by permission"
+    ON public.purchase_order_payment_terms
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.purchasing.edit'::text));
+
+CREATE POLICY "purchase_order_payment_terms update by permission"
+    ON public.purchase_order_payment_terms
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.purchasing.edit'::text)) WITH CHECK (has_permission('module.purchasing.edit'::text));
+
+CREATE POLICY "purchase_order_payment_terms delete by permission"
+    ON public.purchase_order_payment_terms
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.purchasing.edit'::text));

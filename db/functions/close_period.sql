@@ -1,6 +1,8 @@
 CREATE OR REPLACE FUNCTION public.close_period(p_period_end date, p_notes text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_locked   date;
@@ -9,6 +11,7 @@ DECLARE
     v_credits  numeric;
     v_new_lock date;
 BEGIN
+    PERFORM require_permission('module.finance.edit');
     -- 必须是月末日
     IF p_period_end IS NULL
        OR p_period_end <> (date_trunc('month', p_period_end) + interval '1 month - 1 day')::date THEN
@@ -51,4 +54,4 @@ BEGIN
         'total_credits', v_credits
     );
 END;
-$function$
+$function$;

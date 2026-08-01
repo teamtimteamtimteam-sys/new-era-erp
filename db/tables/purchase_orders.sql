@@ -56,6 +56,22 @@ CREATE TRIGGER trg_purchase_orders_updated_at
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 ALTER TABLE public.purchase_orders ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on purchase_orders"
-    ON public.purchase_orders AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "purchase_orders select by permission"
+    ON public.purchase_orders
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.purchasing.view'::text));
+
+CREATE POLICY "purchase_orders insert by permission"
+    ON public.purchase_orders
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.purchasing.edit'::text));
+
+CREATE POLICY "purchase_orders update by permission"
+    ON public.purchase_orders
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.purchasing.edit'::text)) WITH CHECK (has_permission('module.purchasing.edit'::text));
+
+CREATE POLICY "purchase_orders delete by permission"
+    ON public.purchase_orders
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.purchasing.edit'::text));

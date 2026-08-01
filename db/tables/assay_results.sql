@@ -42,6 +42,22 @@ CREATE TRIGGER trg_assay_results_updated_at
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 ALTER TABLE public.assay_results ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on assay_results"
-    ON public.assay_results AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "assay_results select by permission"
+    ON public.assay_results
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.inbound.view'::text));
+
+CREATE POLICY "assay_results insert by permission"
+    ON public.assay_results
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.inbound.edit'::text));
+
+CREATE POLICY "assay_results update by permission"
+    ON public.assay_results
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.inbound.edit'::text)) WITH CHECK (has_permission('module.inbound.edit'::text));
+
+CREATE POLICY "assay_results delete by permission"
+    ON public.assay_results
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.inbound.edit'::text));

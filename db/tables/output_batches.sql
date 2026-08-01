@@ -72,6 +72,22 @@ CREATE CONSTRAINT TRIGGER trg_output_batches_invariant
     FOR EACH ROW EXECUTE FUNCTION check_ledger_invariant();
 
 ALTER TABLE public.output_batches ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on output_batches"
-    ON public.output_batches AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "output_batches select by permission"
+    ON public.output_batches
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.output.view'::text));
+
+CREATE POLICY "output_batches insert by permission"
+    ON public.output_batches
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.output.edit'::text));
+
+CREATE POLICY "output_batches update by permission"
+    ON public.output_batches
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.output.edit'::text)) WITH CHECK (has_permission('module.output.edit'::text));
+
+CREATE POLICY "output_batches delete by permission"
+    ON public.output_batches
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.output.edit'::text));

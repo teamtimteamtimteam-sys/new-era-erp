@@ -37,6 +37,22 @@ CREATE INDEX idx_payroll_lines_period ON public.payroll_lines (payroll_period_id
 CREATE INDEX idx_payroll_lines_employee ON public.payroll_lines (employee_id);
 
 ALTER TABLE public.payroll_lines ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on payroll_lines"
-    ON public.payroll_lines AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "payroll_lines select by permission"
+    ON public.payroll_lines
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.hr.view'::text));
+
+CREATE POLICY "payroll_lines insert by permission"
+    ON public.payroll_lines
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.hr.edit'::text));
+
+CREATE POLICY "payroll_lines update by permission"
+    ON public.payroll_lines
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.hr.edit'::text)) WITH CHECK (has_permission('module.hr.edit'::text));
+
+CREATE POLICY "payroll_lines delete by permission"
+    ON public.payroll_lines
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.hr.edit'::text));

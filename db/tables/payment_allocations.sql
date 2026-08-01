@@ -53,7 +53,12 @@ CREATE TRIGGER trg_payment_allocations_immutable
     FOR EACH ROW EXECUTE FUNCTION public.reject_payment_allocation_mutation();
 
 ALTER TABLE public.payment_allocations ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated select on payment_allocations"
-    ON public.payment_allocations FOR SELECT TO authenticated USING (true);
-CREATE POLICY "authenticated insert on payment_allocations"
-    ON public.payment_allocations FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "payment_allocations select by permission"
+    ON public.payment_allocations
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.finance.view'::text));
+
+CREATE POLICY "payment_allocations insert by permission"
+    ON public.payment_allocations
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.finance.edit'::text));

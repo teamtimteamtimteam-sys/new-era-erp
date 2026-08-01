@@ -38,7 +38,11 @@ CREATE TRIGGER trg_journal_lines_immutable
     FOR EACH ROW EXECUTE FUNCTION public.reject_journal_line_mutation();
 
 CREATE OR REPLACE FUNCTION public.check_journal_balance()
-RETURNS trigger LANGUAGE plpgsql AS $fn$
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
 DECLARE
     v_count  integer;
     v_debit  numeric;
@@ -56,7 +60,7 @@ BEGIN
     END IF;
     RETURN NULL;
 END;
-$fn$;
+$function$;
 
 CREATE CONSTRAINT TRIGGER trg_journal_lines_balance
     AFTER INSERT ON public.journal_lines
@@ -64,7 +68,12 @@ CREATE CONSTRAINT TRIGGER trg_journal_lines_balance
     FOR EACH ROW EXECUTE FUNCTION public.check_journal_balance();
 
 ALTER TABLE public.journal_lines ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated select on journal_lines"
-    ON public.journal_lines FOR SELECT TO authenticated USING (true);
-CREATE POLICY "authenticated insert on journal_lines"
-    ON public.journal_lines FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "journal_lines select by permission"
+    ON public.journal_lines
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.finance.view'::text));
+
+CREATE POLICY "journal_lines insert by permission"
+    ON public.journal_lines
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.finance.edit'::text));

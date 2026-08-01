@@ -34,6 +34,22 @@ CREATE TRIGGER trg_compliance_updated_at
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 ALTER TABLE public.supplier_compliance ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on compliance"
-    ON public.supplier_compliance AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "supplier_compliance select by permission"
+    ON public.supplier_compliance
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.suppliers.view'::text));
+
+CREATE POLICY "supplier_compliance insert by permission"
+    ON public.supplier_compliance
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.suppliers.edit'::text));
+
+CREATE POLICY "supplier_compliance update by permission"
+    ON public.supplier_compliance
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.suppliers.edit'::text)) WITH CHECK (has_permission('module.suppliers.edit'::text));
+
+CREATE POLICY "supplier_compliance delete by permission"
+    ON public.supplier_compliance
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.suppliers.edit'::text));

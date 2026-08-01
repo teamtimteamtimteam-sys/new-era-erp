@@ -60,6 +60,22 @@ CREATE TRIGGER trg_payroll_periods_no_delete_posted
     FOR EACH ROW EXECUTE FUNCTION public.guard_payroll_period_delete();
 
 ALTER TABLE public.payroll_periods ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on payroll_periods"
-    ON public.payroll_periods AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "payroll_periods select by permission"
+    ON public.payroll_periods
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.hr.view'::text));
+
+CREATE POLICY "payroll_periods insert by permission"
+    ON public.payroll_periods
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.hr.edit'::text));
+
+CREATE POLICY "payroll_periods update by permission"
+    ON public.payroll_periods
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.hr.edit'::text)) WITH CHECK (has_permission('module.hr.edit'::text));
+
+CREATE POLICY "payroll_periods delete by permission"
+    ON public.payroll_periods
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.hr.edit'::text));

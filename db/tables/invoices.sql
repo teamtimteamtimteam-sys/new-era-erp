@@ -101,10 +101,17 @@ CREATE TRIGGER trg_invoices_propagate_void
     FOR EACH ROW EXECUTE FUNCTION public.propagate_invoice_void();
 
 ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated select on invoices"
-    ON public.invoices FOR SELECT TO authenticated USING (true);
-CREATE POLICY "authenticated insert on invoices"
-    ON public.invoices FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "authenticated void on invoices"
-    ON public.invoices FOR UPDATE TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "invoices select by permission"
+    ON public.invoices
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.finance.view'::text));
+
+CREATE POLICY "invoices insert by permission"
+    ON public.invoices
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.finance.edit'::text));
+
+CREATE POLICY "invoices update by permission"
+    ON public.invoices
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.finance.edit'::text)) WITH CHECK (has_permission('module.finance.edit'::text));

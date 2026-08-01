@@ -28,7 +28,22 @@ CREATE TRIGGER trg_storage_locations_updated_at
 
 ALTER TABLE public.storage_locations ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "authenticated full access on storage_locations"
+CREATE POLICY "storage_locations select by permission"
     ON public.storage_locations
-    AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.inventory.view'::text));
+
+CREATE POLICY "storage_locations insert by permission"
+    ON public.storage_locations
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.inventory.edit'::text));
+
+CREATE POLICY "storage_locations update by permission"
+    ON public.storage_locations
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.inventory.edit'::text)) WITH CHECK (has_permission('module.inventory.edit'::text));
+
+CREATE POLICY "storage_locations delete by permission"
+    ON public.storage_locations
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.inventory.edit'::text));

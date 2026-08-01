@@ -26,6 +26,22 @@ CREATE TRIGGER trg_fx_rates_updated_at
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 ALTER TABLE public.fx_rates ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on fx_rates"
-    ON public.fx_rates AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "fx_rates select by permission"
+    ON public.fx_rates
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.finance.view'::text));
+
+CREATE POLICY "fx_rates insert by permission"
+    ON public.fx_rates
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.finance.edit'::text));
+
+CREATE POLICY "fx_rates update by permission"
+    ON public.fx_rates
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.finance.edit'::text)) WITH CHECK (has_permission('module.finance.edit'::text));
+
+CREATE POLICY "fx_rates delete by permission"
+    ON public.fx_rates
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.finance.edit'::text));

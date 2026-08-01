@@ -1,6 +1,8 @@
 CREATE OR REPLACE FUNCTION public.create_invoice(p_customer_id uuid, p_sales_record_ids uuid[], p_issue_date date DEFAULT NULL::date, p_payment_terms_days integer DEFAULT NULL::integer, p_notes text DEFAULT NULL::text, p_terms_text text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_cust        customers%ROWTYPE;
@@ -25,6 +27,7 @@ DECLARE
     v_lines       jsonb := '[]'::jsonb;  -- 第一趟收集,第二趟落库
     v_line        jsonb;
 BEGIN
+    PERFORM require_permission('module.finance.edit');
     -- 1. 客户
     SELECT * INTO v_cust FROM customers
     WHERE id = p_customer_id AND deleted_at IS NULL;
@@ -164,4 +167,4 @@ BEGIN
         'currency', v_currency
     );
 END;
-$function$
+$function$;

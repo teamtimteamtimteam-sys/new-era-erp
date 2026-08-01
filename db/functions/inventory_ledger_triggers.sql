@@ -29,7 +29,11 @@ $fn$;
 
 -- (a) emit-on-create: new stock in (receipt, or processing_produce under processing ctx)
 CREATE OR REPLACE FUNCTION public.emit_batch_receipt_movement()
-RETURNS trigger LANGUAGE plpgsql AS $fn$
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
 DECLARE
     v_ctx text := current_setting('evoltrya.movement_ctx', true);
     v_run uuid;
@@ -54,13 +58,17 @@ BEGIN
 
     RETURN NULL;
 END;
-$fn$;
+$function$;
 
 -- (b) writeoff-on-softdelete: stock out + zero the cache (reversal_void under reversal ctx)
 -- cut 2a (2026-07-06): 注销即入账 —— 已计值批次(进料 unit_price / 产出腿 unit_cost_usd)
 -- 追加 借 5200 / 贷 1200|1220 分录;reversal_void 不入账(加工产出从未入过 1220)。
 CREATE OR REPLACE FUNCTION public.emit_batch_writeoff_movement()
-RETURNS trigger LANGUAGE plpgsql AS $fn$
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
 DECLARE
     v_ctx   text := current_setting('evoltrya.movement_ctx', true);
     v_run   uuid;
@@ -115,7 +123,7 @@ BEGIN
     END IF;
     RETURN NEW;
 END;
-$fn$;
+$function$;
 
 -- (c) quantity guard: quantity is immutable after creation
 CREATE OR REPLACE FUNCTION public.reject_quantity_change()
@@ -127,7 +135,11 @@ $fn$;
 
 -- (d) invariant: remaining_qty must equal Σ movements for the affected batch(es)
 CREATE OR REPLACE FUNCTION public.check_ledger_invariant()
-RETURNS trigger LANGUAGE plpgsql AS $fn$
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
 DECLARE
     v_inbound uuid;
     v_output  uuid;
@@ -162,7 +174,7 @@ BEGIN
 
     RETURN NULL;
 END;
-$fn$;
+$function$;
 
 -- (trigger attachments moved to db/tables/inbound_batches.sql and
 --  db/tables/output_batches.sql — see header)

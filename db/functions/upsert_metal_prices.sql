@@ -1,6 +1,8 @@
 CREATE OR REPLACE FUNCTION public.upsert_metal_prices(p_price_date date, p_prices jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_user     uuid := auth.uid();
@@ -13,6 +15,7 @@ DECLARE
     v_skipped  integer := 0;
     v_was_ins  boolean;
 BEGIN
+    PERFORM require_permission('module.pricing.edit');
     IF p_price_date IS NULL THEN
         RAISE EXCEPTION 'PRICE_DATE_REQUIRED';
     END IF;
@@ -64,4 +67,4 @@ BEGIN
         'skipped', v_skipped
     );
 END;
-$function$
+$function$;

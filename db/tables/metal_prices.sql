@@ -40,10 +40,22 @@ CREATE TRIGGER trg_metal_prices_updated_at
 -- 3. RLS: authenticated-only full access
 ALTER TABLE public.metal_prices ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "authenticated full access on metal_prices"
+CREATE POLICY "metal_prices select by permission"
     ON public.metal_prices
-    AS PERMISSIVE
-    FOR ALL
-    TO authenticated
-    USING (true)
-    WITH CHECK (true);
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (true);
+
+CREATE POLICY "metal_prices insert by permission"
+    ON public.metal_prices
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.pricing.edit'::text));
+
+CREATE POLICY "metal_prices update by permission"
+    ON public.metal_prices
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.pricing.edit'::text)) WITH CHECK (has_permission('module.pricing.edit'::text));
+
+CREATE POLICY "metal_prices delete by permission"
+    ON public.metal_prices
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.pricing.edit'::text));

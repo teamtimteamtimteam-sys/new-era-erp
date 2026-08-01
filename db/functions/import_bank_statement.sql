@@ -1,6 +1,8 @@
 CREATE OR REPLACE FUNCTION public.import_bank_statement(p_bank_account text, p_period_start date, p_period_end date, p_opening numeric, p_closing numeric, p_file_name text, p_lines jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_ccy          text;
@@ -16,6 +18,7 @@ DECLARE
     v_overlaps     integer;
     v_dups         integer := 0;
 BEGIN
+    PERFORM require_permission('module.finance.edit');
     v_ccy := bank_native_currency(p_bank_account);
     IF v_ccy IS NULL THEN
         RAISE EXCEPTION 'BANK_INVALID|%', COALESCE(p_bank_account, '?');
@@ -98,4 +101,4 @@ BEGIN
         'possible_duplicates', v_dups
     );
 END;
-$function$
+$function$;

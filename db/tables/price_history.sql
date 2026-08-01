@@ -36,10 +36,15 @@ CREATE TRIGGER trg_price_history_immutable
     FOR EACH ROW EXECUTE FUNCTION public.reject_price_history_mutation();
 
 ALTER TABLE public.price_history ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated select on price_history"
-    ON public.price_history FOR SELECT TO authenticated USING (true);
-CREATE POLICY "authenticated insert on price_history"
-    ON public.price_history FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "price_history select by permission"
+    ON public.price_history
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.inbound.view'::text));
+
+CREATE POLICY "price_history insert by permission"
+    ON public.price_history
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.inbound.edit'::text));
 
 -- 直改拦截(挂在 inbound_batches 上;INSERT 带价仍允许 —— 建单定价是正常路径)
 CREATE OR REPLACE FUNCTION public.guard_inbound_price_change()

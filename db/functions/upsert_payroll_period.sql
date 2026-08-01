@@ -1,6 +1,8 @@
 CREATE OR REPLACE FUNCTION public.upsert_payroll_period(p_period_month date, p_payment_date date, p_currency text, p_fx_rate numeric, p_source_note text, p_notes text, p_lines jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_user     uuid := auth.uid();
@@ -23,6 +25,7 @@ DECLARE
     v_t_other  numeric := 0;
     v_t_net    numeric := 0;
 BEGIN
+    PERFORM require_permission('module.hr.edit');
     IF p_period_month IS NULL OR p_period_month <> date_trunc('month', p_period_month)::date THEN
         RAISE EXCEPTION 'PERIOD_MONTH_INVALID|%', COALESCE(p_period_month::text, '?');
     END IF;
@@ -126,5 +129,4 @@ BEGIN
         'net_pay_total', round(v_t_net, 2)
     );
 END;
-$function$
-
+$function$;

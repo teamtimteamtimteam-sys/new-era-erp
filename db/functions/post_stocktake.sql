@@ -1,6 +1,8 @@
 CREATE OR REPLACE FUNCTION public.post_stocktake(p_stocktake_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_user           uuid := auth.uid();
@@ -18,6 +20,7 @@ DECLARE
     v_amt            numeric;
     v_je_lines       jsonb := '[]'::jsonb;
 BEGIN
+    PERFORM require_permission('module.stocktakes.edit');
     SELECT id, code, status, deleted_at INTO v_st
     FROM stocktakes WHERE id = p_stocktake_id FOR UPDATE;
     IF NOT FOUND OR v_st.deleted_at IS NOT NULL THEN
@@ -109,4 +112,4 @@ BEGIN
         'total_delta', v_total_delta
     );
 END;
-$function$
+$function$;

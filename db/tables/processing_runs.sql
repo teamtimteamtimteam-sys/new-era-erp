@@ -56,6 +56,22 @@ CREATE TRIGGER trg_generate_processing_code
     FOR EACH ROW EXECUTE FUNCTION generate_processing_code();
 
 ALTER TABLE public.processing_runs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on processing_runs"
-    ON public.processing_runs AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "processing_runs select by permission"
+    ON public.processing_runs
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.processing.view'::text));
+
+CREATE POLICY "processing_runs insert by permission"
+    ON public.processing_runs
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.processing.edit'::text));
+
+CREATE POLICY "processing_runs update by permission"
+    ON public.processing_runs
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.processing.edit'::text)) WITH CHECK (has_permission('module.processing.edit'::text));
+
+CREATE POLICY "processing_runs delete by permission"
+    ON public.processing_runs
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.processing.edit'::text));

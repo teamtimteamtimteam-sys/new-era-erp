@@ -16,6 +16,22 @@ CREATE TABLE public.processing_inputs (
 );
 
 ALTER TABLE public.processing_inputs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on processing_inputs"
-    ON public.processing_inputs AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "processing_inputs select by permission"
+    ON public.processing_inputs
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.processing.view'::text));
+
+CREATE POLICY "processing_inputs insert by permission"
+    ON public.processing_inputs
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.processing.edit'::text));
+
+CREATE POLICY "processing_inputs update by permission"
+    ON public.processing_inputs
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.processing.edit'::text)) WITH CHECK (has_permission('module.processing.edit'::text));
+
+CREATE POLICY "processing_inputs delete by permission"
+    ON public.processing_inputs
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.processing.edit'::text));

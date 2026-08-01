@@ -1,6 +1,8 @@
 CREATE OR REPLACE FUNCTION public.record_assay_result(p_inbound_batch_id uuid, p_assay_date date, p_metals jsonb, p_lab_name text DEFAULT NULL::text, p_certificate_ref text DEFAULT NULL::text, p_sample_ref text DEFAULT NULL::text, p_is_final boolean DEFAULT true, p_notes text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_user  uuid := auth.uid();
@@ -12,6 +14,7 @@ DECLARE
     v_seen  text[] := ARRAY[]::text[];
     v_count integer := 0;
 BEGIN
+    PERFORM require_permission('module.inbound.edit');
     IF NOT EXISTS (
         SELECT 1 FROM inbound_batches WHERE id = p_inbound_batch_id AND deleted_at IS NULL
     ) THEN
@@ -55,5 +58,4 @@ BEGIN
         'metal_count', v_count
     );
 END;
-$function$
-
+$function$;

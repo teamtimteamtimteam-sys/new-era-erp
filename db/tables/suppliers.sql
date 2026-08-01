@@ -106,6 +106,22 @@ CREATE TRIGGER trg_suppliers_updated_at
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 ALTER TABLE public.suppliers ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on suppliers"
-    ON public.suppliers AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "suppliers select by permission"
+    ON public.suppliers
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.suppliers.view'::text));
+
+CREATE POLICY "suppliers insert by permission"
+    ON public.suppliers
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.suppliers.edit'::text));
+
+CREATE POLICY "suppliers update by permission"
+    ON public.suppliers
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.suppliers.edit'::text)) WITH CHECK (has_permission('module.suppliers.edit'::text));
+
+CREATE POLICY "suppliers delete by permission"
+    ON public.suppliers
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.suppliers.edit'::text));

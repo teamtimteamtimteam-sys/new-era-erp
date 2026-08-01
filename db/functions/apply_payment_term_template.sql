@@ -1,12 +1,15 @@
 CREATE OR REPLACE FUNCTION public.apply_payment_term_template(p_purchase_order_id uuid, p_template_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_po    record;
     v_tpl   record;
     v_count integer := 0;
 BEGIN
+    PERFORM require_permission('module.purchasing.edit');
     SELECT id, code, order_date, status INTO v_po
     FROM purchase_orders WHERE id = p_purchase_order_id AND deleted_at IS NULL;
     IF NOT FOUND THEN
@@ -42,4 +45,4 @@ BEGIN
 
     RETURN jsonb_build_object('purchase_order_id', p_purchase_order_id, 'term_count', v_count);
 END;
-$function$
+$function$;

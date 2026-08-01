@@ -50,13 +50,25 @@ CREATE TRIGGER trg_customer_attachments_updated_at
 -- 3. RLS: authenticated-only full access (matches suppliers' policy)
 ALTER TABLE public.customer_attachments ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "authenticated full access on customer_attachments"
+CREATE POLICY "customer_attachments select by permission"
     ON public.customer_attachments
-    AS PERMISSIVE
-    FOR ALL
-    TO authenticated
-    USING (true)
-    WITH CHECK (true);
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.customers.view'::text));
+
+CREATE POLICY "customer_attachments insert by permission"
+    ON public.customer_attachments
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.customers.edit'::text));
+
+CREATE POLICY "customer_attachments update by permission"
+    ON public.customer_attachments
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.customers.edit'::text)) WITH CHECK (has_permission('module.customers.edit'::text));
+
+CREATE POLICY "customer_attachments delete by permission"
+    ON public.customer_attachments
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.customers.edit'::text));
 
 -- 4. Index: we always query attachments by their owning customer.
 CREATE INDEX idx_customer_attachments_customer_id

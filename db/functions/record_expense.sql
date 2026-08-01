@@ -1,6 +1,8 @@
 CREATE OR REPLACE FUNCTION public.record_expense(p_expense_date date, p_account_code text, p_amount numeric, p_currency text DEFAULT 'USD'::text, p_fx_rate numeric DEFAULT NULL::numeric, p_payment_status text DEFAULT 'paid'::text, p_bank_account text DEFAULT NULL::text, p_supplier_id uuid DEFAULT NULL::uuid, p_payee_name text DEFAULT NULL::text, p_notes text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_user       uuid := auth.uid();
@@ -14,6 +16,7 @@ DECLARE
     v_code       text;
     v_je         jsonb;
 BEGIN
+    PERFORM require_permission('module.finance.edit');
     -- 1. 科目:必须存在、启用,且是 expense 类型(只有 6xxx 是合法开支落点)
     IF p_expense_date IS NULL THEN
         RAISE EXCEPTION 'JE_LINE_INVALID|entry_date';
@@ -118,4 +121,4 @@ BEGIN
         'payment_status', p_payment_status
     );
 END;
-$function$
+$function$;

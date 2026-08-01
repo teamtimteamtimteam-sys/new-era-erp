@@ -31,6 +31,22 @@ CREATE TRIGGER trg_finance_settings_updated_at
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 ALTER TABLE public.finance_settings ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on finance_settings"
-    ON public.finance_settings AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "finance_settings select by permission"
+    ON public.finance_settings
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.finance.view'::text));
+
+CREATE POLICY "finance_settings insert by permission"
+    ON public.finance_settings
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.finance.edit'::text));
+
+CREATE POLICY "finance_settings update by permission"
+    ON public.finance_settings
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.finance.edit'::text)) WITH CHECK (has_permission('module.finance.edit'::text));
+
+CREATE POLICY "finance_settings delete by permission"
+    ON public.finance_settings
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.finance.edit'::text));

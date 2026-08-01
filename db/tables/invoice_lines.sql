@@ -74,10 +74,17 @@ CREATE TRIGGER trg_invoice_lines_immutable
     FOR EACH ROW EXECUTE FUNCTION public.guard_invoice_line_mutation();
 
 ALTER TABLE public.invoice_lines ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated select on invoice_lines"
-    ON public.invoice_lines FOR SELECT TO authenticated USING (true);
-CREATE POLICY "authenticated insert on invoice_lines"
-    ON public.invoice_lines FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "authenticated update on invoice_lines"
-    ON public.invoice_lines FOR UPDATE TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "invoice_lines select by permission"
+    ON public.invoice_lines
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.finance.view'::text));
+
+CREATE POLICY "invoice_lines insert by permission"
+    ON public.invoice_lines
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.finance.edit'::text));
+
+CREATE POLICY "invoice_lines update by permission"
+    ON public.invoice_lines
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.finance.edit'::text)) WITH CHECK (has_permission('module.finance.edit'::text));

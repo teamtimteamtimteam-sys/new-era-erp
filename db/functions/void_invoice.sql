@@ -1,10 +1,13 @@
 CREATE OR REPLACE FUNCTION public.void_invoice(p_invoice_id uuid, p_reason text)
  RETURNS jsonb
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_inv invoices%ROWTYPE;
 BEGIN
+    PERFORM require_permission('module.finance.edit');
     SELECT * INTO v_inv FROM invoices WHERE id = p_invoice_id FOR UPDATE;
     IF NOT FOUND THEN
         RAISE EXCEPTION 'INVOICE_NOT_FOUND|%', COALESCE(p_invoice_id::text, '?');
@@ -31,4 +34,4 @@ BEGIN
         'status', 'void'
     );
 END;
-$function$
+$function$;

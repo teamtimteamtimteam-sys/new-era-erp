@@ -1,6 +1,8 @@
 CREATE OR REPLACE FUNCTION public.commit_processing_run(p_process_date date, p_notes text, p_loss_qty numeric, p_inputs jsonb, p_outputs jsonb)
  RETURNS uuid
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_user_id      uuid := auth.uid();
@@ -20,6 +22,7 @@ DECLARE
     v_purity       text;
     v_new_output_id uuid;
 BEGIN
+    PERFORM require_permission('module.processing.edit');
     -- 0. 基本校验
     IF p_inputs IS NULL OR jsonb_array_length(p_inputs) = 0 THEN
         RAISE EXCEPTION 'NO_INPUTS';
@@ -139,4 +142,4 @@ BEGIN
 
     RETURN v_run_id;
 END;
-$function$
+$function$;

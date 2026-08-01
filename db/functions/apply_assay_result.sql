@@ -1,6 +1,8 @@
 CREATE OR REPLACE FUNCTION public.apply_assay_result(p_assay_result_id uuid, p_pricing_formula_id uuid DEFAULT NULL::uuid, p_reference_date date DEFAULT NULL::date)
  RETURNS jsonb
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_user     uuid := auth.uid();
@@ -17,6 +19,7 @@ DECLARE
     v_prior    uuid;
     v_note     text := NULL;
 BEGIN
+    PERFORM require_permission('module.inbound.edit');
     SELECT * INTO v_assay FROM assay_results
     WHERE id = p_assay_result_id AND deleted_at IS NULL
     FOR UPDATE;
@@ -123,5 +126,4 @@ BEGIN
         'note', v_note
     );
 END;
-$function$
-
+$function$;

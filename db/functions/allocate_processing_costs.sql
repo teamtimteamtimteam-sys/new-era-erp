@@ -1,6 +1,8 @@
 CREATE OR REPLACE FUNCTION public.allocate_processing_costs(p_run_id uuid, p_basis text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 -- Cost allocation. Metals with a usable price (deleted_at IS NULL, price_date <= run
 -- process_date) contribute to metal value; metals WITHOUT one contribute 0 and are
@@ -36,6 +38,7 @@ DECLARE
     v_cogs                 numeric;
     v_cogs_je              jsonb;
 BEGIN
+    PERFORM require_permission('module.processing.edit');
     -- 1. Lock the run; must exist and be a live committed run.
     SELECT * INTO v_run FROM processing_runs WHERE id = p_run_id FOR UPDATE;
     IF NOT FOUND THEN
@@ -321,4 +324,4 @@ BEGIN
         'outputs', COALESCE(v_outputs, '[]'::jsonb)
     );
 END;
-$function$
+$function$;

@@ -32,6 +32,22 @@ CREATE TABLE public.purchase_order_lines (
 CREATE INDEX idx_purchase_order_lines_po ON public.purchase_order_lines (purchase_order_id);
 
 ALTER TABLE public.purchase_order_lines ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on purchase_order_lines"
-    ON public.purchase_order_lines AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "purchase_order_lines select by permission"
+    ON public.purchase_order_lines
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.purchasing.view'::text));
+
+CREATE POLICY "purchase_order_lines insert by permission"
+    ON public.purchase_order_lines
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.purchasing.edit'::text));
+
+CREATE POLICY "purchase_order_lines update by permission"
+    ON public.purchase_order_lines
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.purchasing.edit'::text)) WITH CHECK (has_permission('module.purchasing.edit'::text));
+
+CREATE POLICY "purchase_order_lines delete by permission"
+    ON public.purchase_order_lines
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.purchasing.edit'::text));

@@ -26,6 +26,22 @@ CREATE TRIGGER trg_pricing_formula_metals_updated_at
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 ALTER TABLE public.pricing_formula_metals ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on pricing_formula_metals"
-    ON public.pricing_formula_metals AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "pricing_formula_metals select by permission"
+    ON public.pricing_formula_metals
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.pricing.view'::text));
+
+CREATE POLICY "pricing_formula_metals insert by permission"
+    ON public.pricing_formula_metals
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.pricing.edit'::text));
+
+CREATE POLICY "pricing_formula_metals update by permission"
+    ON public.pricing_formula_metals
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.pricing.edit'::text)) WITH CHECK (has_permission('module.pricing.edit'::text));
+
+CREATE POLICY "pricing_formula_metals delete by permission"
+    ON public.pricing_formula_metals
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.pricing.edit'::text));

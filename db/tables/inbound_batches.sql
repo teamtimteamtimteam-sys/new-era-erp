@@ -105,7 +105,11 @@ CREATE TRIGGER trg_inbound_batches_po_line_match
 
 -- 收货与采购单状态的联动(cut 4c)
 CREATE OR REPLACE FUNCTION public.guard_inbound_po_receivable()
-RETURNS trigger LANGUAGE plpgsql AS $fn$
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
 DECLARE
     v_po record;
 BEGIN
@@ -122,14 +126,18 @@ BEGIN
     END IF;
     RETURN NEW;
 END;
-$fn$;
+$function$;
 
 CREATE TRIGGER trg_inbound_batches_po_receivable
     BEFORE INSERT OR UPDATE OF purchase_order_id ON public.inbound_batches
     FOR EACH ROW EXECUTE FUNCTION public.guard_inbound_po_receivable();
 
 CREATE OR REPLACE FUNCTION public.advance_po_on_receipt()
-RETURNS trigger LANGUAGE plpgsql AS $fn$
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
 BEGIN
     IF NEW.purchase_order_id IS NOT NULL THEN
         UPDATE purchase_orders
@@ -138,13 +146,29 @@ BEGIN
     END IF;
     RETURN NULL;
 END;
-$fn$;
+$function$;
 
 CREATE TRIGGER trg_inbound_batches_advance_po
     AFTER INSERT ON public.inbound_batches
     FOR EACH ROW EXECUTE FUNCTION public.advance_po_on_receipt();
 
 ALTER TABLE public.inbound_batches ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on inbound_batches"
-    ON public.inbound_batches AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "inbound_batches select by permission"
+    ON public.inbound_batches
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.inbound.view'::text));
+
+CREATE POLICY "inbound_batches insert by permission"
+    ON public.inbound_batches
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.inbound.edit'::text));
+
+CREATE POLICY "inbound_batches update by permission"
+    ON public.inbound_batches
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.inbound.edit'::text)) WITH CHECK (has_permission('module.inbound.edit'::text));
+
+CREATE POLICY "inbound_batches delete by permission"
+    ON public.inbound_batches
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.inbound.edit'::text));

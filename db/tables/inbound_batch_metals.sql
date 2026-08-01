@@ -37,10 +37,22 @@ CREATE TRIGGER trg_inbound_batch_metals_updated_at
 -- 3. RLS: authenticated-only full access
 ALTER TABLE public.inbound_batch_metals ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "authenticated full access on inbound_batch_metals"
+CREATE POLICY "inbound_batch_metals select by permission"
     ON public.inbound_batch_metals
-    AS PERMISSIVE
-    FOR ALL
-    TO authenticated
-    USING (true)
-    WITH CHECK (true);
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.inbound.view'::text));
+
+CREATE POLICY "inbound_batch_metals insert by permission"
+    ON public.inbound_batch_metals
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.inbound.edit'::text));
+
+CREATE POLICY "inbound_batch_metals update by permission"
+    ON public.inbound_batch_metals
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.inbound.edit'::text)) WITH CHECK (has_permission('module.inbound.edit'::text));
+
+CREATE POLICY "inbound_batch_metals delete by permission"
+    ON public.inbound_batch_metals
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.inbound.edit'::text));

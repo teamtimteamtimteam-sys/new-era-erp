@@ -36,7 +36,12 @@ CREATE TRIGGER trg_employment_history_immutable
     FOR EACH ROW EXECUTE FUNCTION public.reject_employment_history_mutation();
 
 ALTER TABLE public.employment_history ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated select on employment_history"
-    ON public.employment_history FOR SELECT TO authenticated USING (true);
-CREATE POLICY "authenticated insert on employment_history"
-    ON public.employment_history FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "employment_history select by permission"
+    ON public.employment_history
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.hr.view'::text));
+
+CREATE POLICY "employment_history insert by permission"
+    ON public.employment_history
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.hr.edit'::text));

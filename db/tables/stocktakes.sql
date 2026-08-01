@@ -48,6 +48,22 @@ CREATE TRIGGER trg_stocktakes_updated_at
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 ALTER TABLE public.stocktakes ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on stocktakes"
-    ON public.stocktakes AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "stocktakes select by permission"
+    ON public.stocktakes
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.stocktakes.view'::text));
+
+CREATE POLICY "stocktakes insert by permission"
+    ON public.stocktakes
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.stocktakes.edit'::text));
+
+CREATE POLICY "stocktakes update by permission"
+    ON public.stocktakes
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.stocktakes.edit'::text)) WITH CHECK (has_permission('module.stocktakes.edit'::text));
+
+CREATE POLICY "stocktakes delete by permission"
+    ON public.stocktakes
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.stocktakes.edit'::text));

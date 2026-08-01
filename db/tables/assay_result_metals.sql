@@ -16,6 +16,22 @@ CREATE TABLE public.assay_result_metals (
 );
 
 ALTER TABLE public.assay_result_metals ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on assay_result_metals"
-    ON public.assay_result_metals AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "assay_result_metals select by permission"
+    ON public.assay_result_metals
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.inbound.view'::text));
+
+CREATE POLICY "assay_result_metals insert by permission"
+    ON public.assay_result_metals
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.inbound.edit'::text));
+
+CREATE POLICY "assay_result_metals update by permission"
+    ON public.assay_result_metals
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.inbound.edit'::text)) WITH CHECK (has_permission('module.inbound.edit'::text));
+
+CREATE POLICY "assay_result_metals delete by permission"
+    ON public.assay_result_metals
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.inbound.edit'::text));

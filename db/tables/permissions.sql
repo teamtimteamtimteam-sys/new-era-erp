@@ -27,8 +27,10 @@ CREATE TABLE public.permissions (
 );
 
 ALTER TABLE public.permissions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated select on permissions"
-    ON public.permissions FOR SELECT TO authenticated USING (true);
+CREATE POLICY "permissions select by permission"
+    ON public.permissions
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (true);
 
 -- 目录种子:没有这些行,权限系统无从谈起,故属于首建脚本的一部分。
 INSERT INTO public.permissions (code, category, name_en, name_zh, description_en, description_zh, sort_order) VALUES

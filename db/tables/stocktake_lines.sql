@@ -29,6 +29,22 @@ CREATE TABLE public.stocktake_lines (
 CREATE INDEX idx_stocktake_lines_stocktake ON public.stocktake_lines (stocktake_id);
 
 ALTER TABLE public.stocktake_lines ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on stocktake_lines"
-    ON public.stocktake_lines AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "stocktake_lines select by permission"
+    ON public.stocktake_lines
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.stocktakes.view'::text));
+
+CREATE POLICY "stocktake_lines insert by permission"
+    ON public.stocktake_lines
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.stocktakes.edit'::text));
+
+CREATE POLICY "stocktake_lines update by permission"
+    ON public.stocktake_lines
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.stocktakes.edit'::text)) WITH CHECK (has_permission('module.stocktakes.edit'::text));
+
+CREATE POLICY "stocktake_lines delete by permission"
+    ON public.stocktake_lines
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.stocktakes.edit'::text));

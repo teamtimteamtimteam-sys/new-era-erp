@@ -62,12 +62,21 @@ CREATE TRIGGER trg_sales_records_immutable
     FOR EACH ROW EXECUTE FUNCTION public.reject_sales_record_mutation();
 
 ALTER TABLE public.sales_records ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated select on sales_records"
-    ON public.sales_records FOR SELECT TO authenticated USING (true);
-CREATE POLICY "authenticated insert on sales_records"
-    ON public.sales_records FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "sales_records select by permission"
+    ON public.sales_records
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.finance.view'::text));
+
+CREATE POLICY "sales_records insert by permission"
+    ON public.sales_records
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.finance.edit'::text));
+
+CREATE POLICY "sales_records update by permission"
+    ON public.sales_records
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.finance.edit'::text)) WITH CHECK (has_permission('module.finance.edit'::text));
+
 -- cut 2a:窄用途 UPDATE 策略 —— 仅为 SECURITY INVOKER 函数补挂 cogs_entry_id 放行;
 -- 列级限制由上面的守卫触发器执行(除 COGS 首挂外一律 SALE_IMMUTABLE)。
-CREATE POLICY "authenticated update on sales_records"
-    ON public.sales_records FOR UPDATE TO authenticated
-    USING (true) WITH CHECK (true);
+

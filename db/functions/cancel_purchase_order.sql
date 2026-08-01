@@ -1,6 +1,8 @@
 CREATE OR REPLACE FUNCTION public.cancel_purchase_order(p_id uuid, p_reason text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_user    uuid := auth.uid();
@@ -8,6 +10,7 @@ DECLARE
     v_batches integer;
     v_applied numeric;
 BEGIN
+    PERFORM require_permission('module.purchasing.edit');
     SELECT id, code, status INTO v_po
     FROM purchase_orders WHERE id = p_id AND deleted_at IS NULL FOR UPDATE;
     IF NOT FOUND THEN
@@ -35,4 +38,4 @@ BEGIN
 
     RETURN jsonb_build_object('purchase_order_id', p_id, 'code', v_po.code, 'status', 'cancelled');
 END;
-$function$
+$function$;

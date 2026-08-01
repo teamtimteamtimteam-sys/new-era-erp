@@ -1,6 +1,8 @@
 CREATE OR REPLACE FUNCTION public.close_purchase_order(p_purchase_order_id uuid, p_notes text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_user      uuid := auth.uid();
@@ -11,6 +13,7 @@ DECLARE
     v_received  numeric;
     v_ordered   numeric;
 BEGIN
+    PERFORM require_permission('module.purchasing.edit');
     SELECT id, code, status, notes INTO v_po
     FROM purchase_orders
     WHERE id = p_purchase_order_id AND deleted_at IS NULL
@@ -72,5 +75,4 @@ BEGIN
                             ELSE round(v_received / v_ordered * 100, 2) END
     );
 END;
-$function$
-
+$function$;

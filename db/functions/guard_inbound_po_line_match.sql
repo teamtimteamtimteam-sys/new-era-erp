@@ -1,6 +1,8 @@
 CREATE OR REPLACE FUNCTION public.guard_inbound_po_line_match()
  RETURNS trigger
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_line_po uuid;
@@ -16,4 +18,4 @@ BEGIN
     END IF;
     RETURN NEW;
 END;
-$function$
+$function$;

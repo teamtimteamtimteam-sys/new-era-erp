@@ -43,6 +43,22 @@ CREATE TRIGGER trg_generate_material_code
     FOR EACH ROW EXECUTE FUNCTION generate_material_code();
 
 ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on materials"
-    ON public.materials AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "materials select by permission"
+    ON public.materials
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.materials.view'::text));
+
+CREATE POLICY "materials insert by permission"
+    ON public.materials
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.materials.edit'::text));
+
+CREATE POLICY "materials update by permission"
+    ON public.materials
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.materials.edit'::text)) WITH CHECK (has_permission('module.materials.edit'::text));
+
+CREATE POLICY "materials delete by permission"
+    ON public.materials
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.materials.edit'::text));

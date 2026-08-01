@@ -55,6 +55,22 @@ CREATE TRIGGER trg_generate_customer_code
     FOR EACH ROW EXECUTE FUNCTION generate_customer_code();
 
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on customers"
-    ON public.customers AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "customers select by permission"
+    ON public.customers
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.customers.view'::text));
+
+CREATE POLICY "customers insert by permission"
+    ON public.customers
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.customers.edit'::text));
+
+CREATE POLICY "customers update by permission"
+    ON public.customers
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.customers.edit'::text)) WITH CHECK (has_permission('module.customers.edit'::text));
+
+CREATE POLICY "customers delete by permission"
+    ON public.customers
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.customers.edit'::text));

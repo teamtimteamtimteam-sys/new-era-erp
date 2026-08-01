@@ -1,6 +1,8 @@
 CREATE OR REPLACE FUNCTION public.record_output_sale(p_output_batch_id uuid, p_quantity numeric, p_unit_price numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_customer_id uuid DEFAULT NULL::uuid, p_sale_date date DEFAULT NULL::date, p_notes text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_user          uuid := auth.uid();
@@ -19,6 +21,7 @@ DECLARE
     v_je1           jsonb;
     v_je2           jsonb;
 BEGIN
+    PERFORM require_permission('module.output.edit');
     SELECT deleted_at, remaining_qty, code INTO v_deleted, v_remaining, v_code
     FROM output_batches WHERE id = p_output_batch_id FOR UPDATE;
     IF NOT FOUND THEN
@@ -114,4 +117,4 @@ BEGIN
         'cogs_journal', v_je2->>'code'
     );
 END;
-$function$
+$function$;

@@ -65,6 +65,22 @@ CREATE TRIGGER trg_user_roles_last_admin
     FOR EACH ROW EXECUTE FUNCTION public.guard_last_admin();
 
 ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on user_roles"
-    ON public.user_roles AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "user_roles select by permission"
+    ON public.user_roles
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (true);
+
+CREATE POLICY "user_roles insert by permission"
+    ON public.user_roles
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('action.manage_permissions'::text));
+
+CREATE POLICY "user_roles update by permission"
+    ON public.user_roles
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('action.manage_permissions'::text)) WITH CHECK (has_permission('action.manage_permissions'::text));
+
+CREATE POLICY "user_roles delete by permission"
+    ON public.user_roles
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('action.manage_permissions'::text));

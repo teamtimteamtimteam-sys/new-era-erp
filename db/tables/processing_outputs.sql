@@ -18,6 +18,22 @@ CREATE TABLE public.processing_outputs (
 );
 
 ALTER TABLE public.processing_outputs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on processing_outputs"
-    ON public.processing_outputs AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "processing_outputs select by permission"
+    ON public.processing_outputs
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.processing.view'::text));
+
+CREATE POLICY "processing_outputs insert by permission"
+    ON public.processing_outputs
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.processing.edit'::text));
+
+CREATE POLICY "processing_outputs update by permission"
+    ON public.processing_outputs
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.processing.edit'::text)) WITH CHECK (has_permission('module.processing.edit'::text));
+
+CREATE POLICY "processing_outputs delete by permission"
+    ON public.processing_outputs
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.processing.edit'::text));

@@ -28,6 +28,22 @@ CREATE TABLE public.payment_term_template_lines (
 CREATE INDEX idx_ptt_lines_template ON public.payment_term_template_lines (template_id);
 
 ALTER TABLE public.payment_term_template_lines ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on payment_term_template_lines"
-    ON public.payment_term_template_lines AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "payment_term_template_lines select by permission"
+    ON public.payment_term_template_lines
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.purchasing.view'::text));
+
+CREATE POLICY "payment_term_template_lines insert by permission"
+    ON public.payment_term_template_lines
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.purchasing.edit'::text));
+
+CREATE POLICY "payment_term_template_lines update by permission"
+    ON public.payment_term_template_lines
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.purchasing.edit'::text)) WITH CHECK (has_permission('module.purchasing.edit'::text));
+
+CREATE POLICY "payment_term_template_lines delete by permission"
+    ON public.payment_term_template_lines
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.purchasing.edit'::text));

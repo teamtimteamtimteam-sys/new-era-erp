@@ -10,6 +10,7 @@ DECLARE
     v_result      jsonb;
     v_reversal_id uuid;
 BEGIN
+    PERFORM require_permission('module.finance.edit');
     SELECT * INTO v_orig FROM journal_entries WHERE id = p_entry_id FOR UPDATE;
     IF NOT FOUND THEN
         RAISE EXCEPTION 'JE_NOT_FOUND|%', p_entry_id;
@@ -52,4 +53,4 @@ BEGIN
         'code', v_result->>'code'
     );
 END;
-$function$
+$function$;

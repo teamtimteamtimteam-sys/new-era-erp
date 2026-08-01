@@ -38,10 +38,22 @@ CREATE TRIGGER trg_output_batch_metals_updated_at
 -- 3. RLS: authenticated-only full access
 ALTER TABLE public.output_batch_metals ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "authenticated full access on output_batch_metals"
+CREATE POLICY "output_batch_metals select by permission"
     ON public.output_batch_metals
-    AS PERMISSIVE
-    FOR ALL
-    TO authenticated
-    USING (true)
-    WITH CHECK (true);
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.output.view'::text));
+
+CREATE POLICY "output_batch_metals insert by permission"
+    ON public.output_batch_metals
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.output.edit'::text));
+
+CREATE POLICY "output_batch_metals update by permission"
+    ON public.output_batch_metals
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.output.edit'::text)) WITH CHECK (has_permission('module.output.edit'::text));
+
+CREATE POLICY "output_batch_metals delete by permission"
+    ON public.output_batch_metals
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.output.edit'::text));

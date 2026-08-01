@@ -29,6 +29,22 @@ CREATE INDEX idx_bank_statement_lines_date ON public.bank_statement_lines (line_
 CREATE INDEX idx_bank_statement_lines_status ON public.bank_statement_lines (match_status);
 
 ALTER TABLE public.bank_statement_lines ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on bank_statement_lines"
-    ON public.bank_statement_lines AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "bank_statement_lines select by permission"
+    ON public.bank_statement_lines
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.finance.view'::text));
+
+CREATE POLICY "bank_statement_lines insert by permission"
+    ON public.bank_statement_lines
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.finance.edit'::text));
+
+CREATE POLICY "bank_statement_lines update by permission"
+    ON public.bank_statement_lines
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.finance.edit'::text)) WITH CHECK (has_permission('module.finance.edit'::text));
+
+CREATE POLICY "bank_statement_lines delete by permission"
+    ON public.bank_statement_lines
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.finance.edit'::text));

@@ -22,6 +22,22 @@ CREATE TABLE public.bank_line_matches (
 CREATE INDEX idx_bank_line_matches_statement_line ON public.bank_line_matches (statement_line_id);
 
 ALTER TABLE public.bank_line_matches ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on bank_line_matches"
-    ON public.bank_line_matches AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "bank_line_matches select by permission"
+    ON public.bank_line_matches
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.finance.view'::text));
+
+CREATE POLICY "bank_line_matches insert by permission"
+    ON public.bank_line_matches
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.finance.edit'::text));
+
+CREATE POLICY "bank_line_matches update by permission"
+    ON public.bank_line_matches
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.finance.edit'::text)) WITH CHECK (has_permission('module.finance.edit'::text));
+
+CREATE POLICY "bank_line_matches delete by permission"
+    ON public.bank_line_matches
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.finance.edit'::text));

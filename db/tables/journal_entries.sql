@@ -62,7 +62,12 @@ CREATE TRIGGER trg_journal_entries_immutable
     FOR EACH ROW EXECUTE FUNCTION public.guard_journal_entry_mutation();
 
 ALTER TABLE public.journal_entries ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated select on journal_entries"
-    ON public.journal_entries FOR SELECT TO authenticated USING (true);
-CREATE POLICY "authenticated insert on journal_entries"
-    ON public.journal_entries FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "journal_entries select by permission"
+    ON public.journal_entries
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.finance.view'::text));
+
+CREATE POLICY "journal_entries insert by permission"
+    ON public.journal_entries
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.finance.edit'::text));

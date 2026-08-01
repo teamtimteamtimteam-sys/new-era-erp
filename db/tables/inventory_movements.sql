@@ -55,10 +55,15 @@ CREATE INDEX idx_inventory_movements_occurred ON public.inventory_movements (occ
 
 -- RLS: authenticated may SELECT and INSERT only — no UPDATE/DELETE policies exist.
 ALTER TABLE public.inventory_movements ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated select on inventory_movements"
-    ON public.inventory_movements AS PERMISSIVE FOR SELECT TO authenticated USING (true);
-CREATE POLICY "authenticated insert on inventory_movements"
-    ON public.inventory_movements AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "inventory_movements select by permission"
+    ON public.inventory_movements
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.inventory.view'::text));
+
+CREATE POLICY "inventory_movements insert by permission"
+    ON public.inventory_movements
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.inventory.edit'::text));
 
 -- Its own triggers (functions live in db/functions/inventory_ledger_triggers.sql):
 --   * immutability belt-and-braces

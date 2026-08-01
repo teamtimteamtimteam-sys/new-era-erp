@@ -1,6 +1,8 @@
 CREATE OR REPLACE FUNCTION public.match_bank_line(p_statement_line_id uuid, p_journal_line_ids uuid[])
  RETURNS jsonb
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_line   record;
@@ -9,6 +11,7 @@ DECLARE
     v_sum    numeric := 0;
     v_count  integer := 0;
 BEGIN
+    PERFORM require_permission('module.finance.edit');
     SELECT l.id, l.amount, l.match_status,
            s.status AS stmt_status, s.bank_account_code, s.currency
     INTO v_line
@@ -79,4 +82,4 @@ BEGIN
         'matched_total', round(v_sum, 2)
     );
 END;
-$function$
+$function$;

@@ -1,6 +1,8 @@
 CREATE OR REPLACE FUNCTION public.post_payroll_period(p_payroll_period_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_user  uuid := auth.uid();
@@ -10,6 +12,7 @@ DECLARE
     v_je    jsonb;
     v_cpf   numeric;
 BEGIN
+    PERFORM require_permission('module.hr.edit');
     SELECT * INTO v_p FROM payroll_periods
     WHERE id = p_payroll_period_id AND deleted_at IS NULL
     FOR UPDATE;
@@ -86,5 +89,4 @@ BEGIN
         'net_pay_total', v_p.net_pay_total
     );
 END;
-$function$
-
+$function$;

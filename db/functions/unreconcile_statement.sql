@@ -1,10 +1,13 @@
 CREATE OR REPLACE FUNCTION public.unreconcile_statement(p_statement_id uuid, p_reason text)
  RETURNS void
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_stmt record;
 BEGIN
+    PERFORM require_permission('module.finance.edit');
     SELECT * INTO v_stmt FROM bank_statements
     WHERE id = p_statement_id AND deleted_at IS NULL
     FOR UPDATE;
@@ -25,4 +28,4 @@ BEGIN
         notes = COALESCE(notes || E'\n', '') || 'UNRECONCILED ' || now()::text || ': ' || btrim(p_reason)
     WHERE id = p_statement_id;
 END;
-$function$
+$function$;

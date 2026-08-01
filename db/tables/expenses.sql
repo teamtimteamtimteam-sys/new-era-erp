@@ -82,7 +82,12 @@ CREATE TRIGGER trg_expenses_immutable
     FOR EACH ROW EXECUTE FUNCTION public.guard_expense_mutation();
 
 ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated select on expenses"
-    ON public.expenses FOR SELECT TO authenticated USING (true);
-CREATE POLICY "authenticated insert on expenses"
-    ON public.expenses FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "expenses select by permission"
+    ON public.expenses
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.finance.view'::text));
+
+CREATE POLICY "expenses insert by permission"
+    ON public.expenses
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.finance.edit'::text));

@@ -64,6 +64,22 @@ CREATE TRIGGER trg_pricing_formulas_updated_at
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 ALTER TABLE public.pricing_formulas ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on pricing_formulas"
-    ON public.pricing_formulas AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "pricing_formulas select by permission"
+    ON public.pricing_formulas
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.pricing.view'::text));
+
+CREATE POLICY "pricing_formulas insert by permission"
+    ON public.pricing_formulas
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.pricing.edit'::text));
+
+CREATE POLICY "pricing_formulas update by permission"
+    ON public.pricing_formulas
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.pricing.edit'::text)) WITH CHECK (has_permission('module.pricing.edit'::text));
+
+CREATE POLICY "pricing_formulas delete by permission"
+    ON public.pricing_formulas
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.pricing.edit'::text));

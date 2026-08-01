@@ -1,6 +1,8 @@
 CREATE OR REPLACE FUNCTION public.reprice_inbound_batch(p_inbound_batch_id uuid, p_unit_price numeric, p_currency text DEFAULT 'USD'::text, p_fx_rate numeric DEFAULT NULL::numeric, p_notes text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_user      uuid := auth.uid();
@@ -19,6 +21,7 @@ DECLARE
     v_lines     jsonb;
     v_je        jsonb := NULL;
 BEGIN
+    PERFORM require_permission('module.inbound.edit');
     SELECT unit_price, deleted_at, quantity, remaining_qty, code
     INTO v_old, v_deleted, v_qty, v_remaining, v_code
     FROM inbound_batches WHERE id = p_inbound_batch_id FOR UPDATE;
@@ -112,5 +115,4 @@ BEGIN
         'journal_code', v_je->>'code'
     );
 END;
-$function$
-
+$function$;

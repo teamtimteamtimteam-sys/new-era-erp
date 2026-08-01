@@ -55,6 +55,22 @@ CREATE TRIGGER trg_departments_no_cycle
     FOR EACH ROW EXECUTE FUNCTION public.guard_department_cycle();
 
 ALTER TABLE public.departments ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on departments"
-    ON public.departments AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "departments select by permission"
+    ON public.departments
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.hr.view'::text));
+
+CREATE POLICY "departments insert by permission"
+    ON public.departments
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.hr.edit'::text));
+
+CREATE POLICY "departments update by permission"
+    ON public.departments
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.hr.edit'::text)) WITH CHECK (has_permission('module.hr.edit'::text));
+
+CREATE POLICY "departments delete by permission"
+    ON public.departments
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.hr.edit'::text));

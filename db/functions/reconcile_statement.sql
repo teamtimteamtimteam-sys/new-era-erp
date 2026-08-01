@@ -1,6 +1,8 @@
 CREATE OR REPLACE FUNCTION public.reconcile_statement(p_statement_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_stmt        record;
@@ -8,6 +10,7 @@ DECLARE
     v_matched     integer;
     v_ignored     integer;
 BEGIN
+    PERFORM require_permission('module.finance.edit');
     SELECT * INTO v_stmt FROM bank_statements
     WHERE id = p_statement_id AND deleted_at IS NULL
     FOR UPDATE;
@@ -41,4 +44,4 @@ BEGIN
         'closing_balance', v_stmt.closing_balance
     );
 END;
-$function$
+$function$;

@@ -44,6 +44,8 @@ $function$
 CREATE OR REPLACE FUNCTION public.fin_journal_cost_entry()
  RETURNS trigger
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_run_code text;
@@ -98,9 +100,6 @@ BEGIN
     END IF;
     RETURN NULL;
 END;
-$function$
-
-
--- (trigger attachments trg_processing_cost_entries_journal_ins / _upd moved to
+$function$;-- (trigger attachments trg_processing_cost_entries_journal_ins / _upd moved to
 --  db/tables/processing_cost_entries.sql — 2026-07-31 镜像漂移审计起,每张表的
 --  镜像完整描述它自己的触发器,函数文件只放函数)

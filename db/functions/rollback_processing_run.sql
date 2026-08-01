@@ -1,6 +1,8 @@
 CREATE OR REPLACE FUNCTION public.rollback_processing_run(p_run_id uuid)
  RETURNS void
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_user_id uuid := auth.uid();
@@ -11,6 +13,7 @@ DECLARE
     v_new_remaining numeric;
     v_quantity numeric;
 BEGIN
+    PERFORM require_permission('module.processing.edit');
     -- 1. 锁定加工单，校验存在且未删除
     SELECT deleted_at INTO v_run_deleted_at
     FROM processing_runs
@@ -94,4 +97,4 @@ BEGIN
         updated_at = now()
     WHERE id = p_run_id;
 END;
-$function$
+$function$;

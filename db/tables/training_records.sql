@@ -32,6 +32,22 @@ CREATE TRIGGER trg_training_records_updated_at
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 ALTER TABLE public.training_records ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "authenticated full access on training_records"
-    ON public.training_records AS PERMISSIVE FOR ALL TO authenticated
-    USING (true) WITH CHECK (true);
+CREATE POLICY "training_records select by permission"
+    ON public.training_records
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.hr.view'::text));
+
+CREATE POLICY "training_records insert by permission"
+    ON public.training_records
+    AS PERMISSIVE FOR INSERT TO authenticated
+    WITH CHECK (has_permission('module.hr.edit'::text));
+
+CREATE POLICY "training_records update by permission"
+    ON public.training_records
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.hr.edit'::text)) WITH CHECK (has_permission('module.hr.edit'::text));
+
+CREATE POLICY "training_records delete by permission"
+    ON public.training_records
+    AS PERMISSIVE FOR DELETE TO authenticated
+    USING (has_permission('module.hr.edit'::text));

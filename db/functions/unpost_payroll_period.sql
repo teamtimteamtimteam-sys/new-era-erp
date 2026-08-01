@@ -1,12 +1,15 @@
 CREATE OR REPLACE FUNCTION public.unpost_payroll_period(p_id uuid, p_reason text)
  RETURNS jsonb
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_user uuid := auth.uid();
     v_p    record;
     v_je   jsonb;
 BEGIN
+    PERFORM require_permission('module.hr.edit');
     SELECT * INTO v_p FROM payroll_periods
     WHERE id = p_id AND deleted_at IS NULL
     FOR UPDATE;
@@ -38,5 +41,4 @@ BEGIN
         'reversal_journal_code', v_je->>'code'
     );
 END;
-$function$
-
+$function$;

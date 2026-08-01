@@ -1,11 +1,14 @@
 CREATE OR REPLACE FUNCTION public.reopen_period(p_period_end date, p_reason text)
  RETURNS jsonb
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_close_id uuid;
     v_new_lock date;
 BEGIN
+    PERFORM require_permission('module.finance.edit');
     IF p_reason IS NULL OR btrim(p_reason) = '' THEN
         RAISE EXCEPTION 'REASON_REQUIRED';
     END IF;
@@ -42,4 +45,4 @@ BEGIN
         'locked_before', v_new_lock
     );
 END;
-$function$
+$function$;
