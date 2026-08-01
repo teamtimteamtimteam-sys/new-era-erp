@@ -718,10 +718,12 @@ export type Database = {
           legal_name: string
           manager_id: string | null
           monthly_salary: number | null
+          monthly_salary_set: boolean | null
           notes: string | null
           preferred_name: string | null
           probation_end_date: string | null
           residency_status: string | null
+          review_exempt: boolean
           separation_date: string | null
           separation_notes: string | null
           separation_type: string | null
@@ -753,10 +755,12 @@ export type Database = {
           legal_name: string
           manager_id?: string | null
           monthly_salary?: number | null
+          monthly_salary_set?: boolean | null
           notes?: string | null
           preferred_name?: string | null
           probation_end_date?: string | null
           residency_status?: string | null
+          review_exempt?: boolean
           separation_date?: string | null
           separation_notes?: string | null
           separation_type?: string | null
@@ -788,10 +792,12 @@ export type Database = {
           legal_name?: string
           manager_id?: string | null
           monthly_salary?: number | null
+          monthly_salary_set?: boolean | null
           notes?: string | null
           preferred_name?: string | null
           probation_end_date?: string | null
           residency_status?: string | null
+          review_exempt?: boolean
           separation_date?: string | null
           separation_notes?: string | null
           separation_type?: string | null
@@ -3210,6 +3216,7 @@ export type Database = {
           review_type: string
           reviewer_employee_id: string | null
           salary_effective_date: string | null
+          self_assessment_submitted_at: string | null
           self_assessment_text: string | null
           status: string
           submitted_at: string | null
@@ -3239,6 +3246,7 @@ export type Database = {
           review_type: string
           reviewer_employee_id?: string | null
           salary_effective_date?: string | null
+          self_assessment_submitted_at?: string | null
           self_assessment_text?: string | null
           status?: string
           submitted_at?: string | null
@@ -3268,6 +3276,7 @@ export type Database = {
           review_type?: string
           reviewer_employee_id?: string | null
           salary_effective_date?: string | null
+          self_assessment_submitted_at?: string | null
           self_assessment_text?: string | null
           status?: string
           submitted_at?: string | null
@@ -5593,10 +5602,12 @@ export type Database = {
           legal_name: string | null
           manager_id: string | null
           monthly_salary: number | null
+          monthly_salary_set: boolean | null
           notes: string | null
           preferred_name: string | null
           probation_end_date: string | null
           residency_status: string | null
+          review_exempt: boolean | null
           separation_date: string | null
           separation_notes: string | null
           separation_type: string | null
@@ -5628,10 +5639,12 @@ export type Database = {
           legal_name?: string | null
           manager_id?: string | null
           monthly_salary?: never
+          monthly_salary_set?: boolean | null
           notes?: string | null
           preferred_name?: string | null
           probation_end_date?: string | null
           residency_status?: string | null
+          review_exempt?: boolean | null
           separation_date?: string | null
           separation_notes?: string | null
           separation_type?: string | null
@@ -5663,10 +5676,12 @@ export type Database = {
           legal_name?: string | null
           manager_id?: string | null
           monthly_salary?: never
+          monthly_salary_set?: boolean | null
           notes?: string | null
           preferred_name?: string | null
           probation_end_date?: string | null
           residency_status?: string | null
+          review_exempt?: boolean | null
           separation_date?: string | null
           separation_notes?: string | null
           separation_type?: string | null
@@ -6574,6 +6589,7 @@ export type Database = {
           review_type: string | null
           reviewer_employee_id: string | null
           salary_effective_date: string | null
+          self_assessment_submitted_at: string | null
           self_assessment_text: string | null
           status: string | null
           submitted_at: string | null
@@ -6603,6 +6619,7 @@ export type Database = {
           review_type?: string | null
           reviewer_employee_id?: string | null
           salary_effective_date?: string | null
+          self_assessment_submitted_at?: string | null
           self_assessment_text?: string | null
           status?: string | null
           submitted_at?: string | null
@@ -6632,6 +6649,7 @@ export type Database = {
           review_type?: string | null
           reviewer_employee_id?: string | null
           salary_effective_date?: string | null
+          self_assessment_submitted_at?: string | null
           self_assessment_text?: string | null
           status?: string | null
           submitted_at?: string | null
@@ -7980,6 +7998,7 @@ export type Database = {
       next_payroll_code: { Args: { p_date?: string }; Returns: string }
       next_pricing_formula_code: { Args: { p_date?: string }; Returns: string }
       next_purchase_order_code: { Args: { p_date?: string }; Returns: string }
+      open_for_self_assessment: { Args: { p_review_id: string }; Returns: Json }
       open_review_cycle: { Args: { p_cycle_id: string }; Returns: Json }
       pay_medical_claim: {
         Args: {
@@ -8113,6 +8132,15 @@ export type Database = {
         Args: { p_run_id: string }
         Returns: undefined
       }
+      save_self_assessment: {
+        Args: {
+          p_final?: boolean
+          p_goal_results?: Json
+          p_review_id: string
+          p_self_assessment_text: string
+        }
+        Returns: Json
+      }
       set_inbound_unit_price: {
         Args: {
           p_currency?: string
@@ -8121,6 +8149,10 @@ export type Database = {
           p_notes?: string
           p_unit_price: number
         }
+        Returns: Json
+      }
+      set_review_reviewer: {
+        Args: { p_review_id: string; p_reviewer_employee_id: string }
         Returns: Json
       }
       set_role_permissions: {

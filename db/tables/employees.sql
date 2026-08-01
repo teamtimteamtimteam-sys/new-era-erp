@@ -9,11 +9,16 @@
 --   work_pass_no   工作准证号
 --   work_email     办公邮箱(可定位到个人)
 --   work_phone     办公电话(可定位到个人)
---   monthly_salary 合同月薪(HR-3a 新增,归 data.view_pay)
--- 【monthly_salary 与 payroll_lines 是两个事实】:本列是 HR 谈定的合同月薪;
--- payroll_lines.gross_pay 是外包服务商算出的当期实发口径(含津贴、加班、扣款)。
+--   monthly_salary 月固定工资总额(HR-3a 新增;HR-3b 重新定义,归 data.view_pay)
+-- 【monthly_salary 与 payroll_lines 是两个事实】:本列是【合同底薪 + 固定经常性津贴】,
+-- 不含加班、奖金、AWS、佣金与报销 —— 即 MOM 的 "gross rate of pay" 口径,是假期补偿
+-- 及其它法定计算的取数来源;payroll_lines.gross_pay 是外包服务商算出的当期实发口径。
 -- 本列【不参与任何一次工资计算】,只由 approve_review 在批准带调薪的评估时更新,
 -- 并留痕于 employment_history 的 old_/new_monthly_salary。
+-- 【两者之间刻意没有自动对账】—— 它们设计上就是两个数,互相不是对方的校验对象。
+--
+-- monthly_salary_set 是派生列:【金额敏感,有无不敏感】。hr_alerts 是 SECURITY INVOKER,
+-- 直接引用被收回的 monthly_salary 会让整张待办视图对所有人 42501。
 -- 【刻意不把敏感列拆到额外的表里】—— 分散只会让"哪些字段敏感"变含糊、更难管;
 -- 集中列明 + 权限层按列控制,是更清楚的做法。
 -- ════════════════════════════════════════════════════════════════════════════
@@ -67,6 +72,11 @@ CREATE TABLE public.employees (
     -- ── HR-3a 追加的两列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
     confirmation_date    date,     -- 转正日,由 approve_review 写入
     monthly_salary       numeric CHECK (monthly_salary IS NULL OR monthly_salary >= 0),  -- RESTRICTED
+    -- ── HR-3b 追加 ───────────────────────────────────────────────────────────
+    -- 派生列:是否已录固定工资。可单独授权,金额本身仍只能经 employees_masked 读。
+    monthly_salary_set   boolean GENERATED ALWAYS AS (monthly_salary IS NOT NULL) STORED,
+    -- 免于年度评估(组织架构顶端)。open_review_cycle 整个跳过 —— 不建评估,也不报"无评估人"。
+    review_exempt        boolean NOT NULL DEFAULT false,
     -- 持工作准证的必须有准证类型与到期日 —— 否则到期提醒无从谈起
     CONSTRAINT employees_work_pass_shape CHECK (
         residency_status IS DISTINCT FROM 'work_pass'
@@ -179,7 +189,8 @@ CREATE POLICY "employees delete by permission"
 REVOKE SELECT ON public.employees FROM authenticated, anon;
 -- HR-3a:confirmation_date 授回(不敏感);monthly_salary【故意不授】,
 -- 直读原始列在 PostgREST 上是 42501,只能经 employees_masked 读。
-GRANT SELECT (id, code, legal_name, preferred_name, department_id, job_title, manager_id, employment_type, work_category, hire_date, probation_end_date, employment_status, separation_date, separation_type, separation_notes, annual_leave_days, residency_status, work_pass_type, work_pass_issue_date, work_pass_expiry_date, user_id, notes, deleted_at, created_at, created_by, updated_at, updated_by, confirmation_date)
+-- HR-3b:monthly_salary_set 与 review_exempt 同样授回 —— 都不是敏感数据。
+GRANT SELECT (id, code, legal_name, preferred_name, department_id, job_title, manager_id, employment_type, work_category, hire_date, probation_end_date, employment_status, separation_date, separation_type, separation_notes, annual_leave_days, residency_status, work_pass_type, work_pass_issue_date, work_pass_expiry_date, user_id, notes, deleted_at, created_at, created_by, updated_at, updated_by, confirmation_date, monthly_salary_set, review_exempt)
     ON public.employees TO authenticated;
 
 -- cut 4 员工自助:【追加】一条 PERMISSIVE 策略,与既有模块策略【或】起来。

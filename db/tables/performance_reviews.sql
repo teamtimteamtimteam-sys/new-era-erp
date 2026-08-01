@@ -59,6 +59,10 @@ CREATE TABLE public.performance_reviews (
     created_by             uuid DEFAULT auth.uid(),
     updated_at             timestamptz NOT NULL DEFAULT now(),
     updated_by             uuid DEFAULT auth.uid(),
+    -- ── HR-3b 追加(ALTER 加的列排在末尾)──────────────────────────────────
+    -- 员工把自评定稿的时点。非空即锁死:save_self_assessment 不再受理写入,
+    -- 要重开须由评估人再调一次 open_for_self_assessment。
+    self_assessment_submitted_at timestamptz,
 
     -- 年度评估必须属于一轮;试用期评估不属于任何一轮
     CONSTRAINT performance_reviews_cycle_shape CHECK (
@@ -120,9 +124,12 @@ CREATE TRIGGER trg_performance_reviews_updated_at
 -- 不需要为此写任何一条否定策略。评估不是财务表。
 ALTER TABLE public.performance_reviews ENABLE ROW LEVEL SECURITY;
 
+-- HR-3b:一般性读取要【两个码同时成立】。auditor 保留 module.hr.view(它还要审 HR 的
+-- 其余部分),但没有 data.view_reviews,于是读不到评估正文 —— 那是一个人对另一个人的
+-- 评价,不是可审计的账。
 CREATE POLICY "performance_reviews select by permission"
     ON public.performance_reviews AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view'));
+    USING (has_permission('module.hr.view') AND has_permission('data.view_reviews'));
 
 CREATE POLICY "performance_reviews select as reviewer"
     ON public.performance_reviews AS PERMISSIVE FOR SELECT TO authenticated
@@ -152,5 +159,6 @@ GRANT SELECT (id, employee_id, review_type, cycle_id, period_start, period_end,
               reviewer_employee_id, status, rating_code, summary_text, self_assessment_text,
               probation_outcome, salary_effective_date, submitted_at, submitted_by,
               approved_at, approved_by, acknowledged_at, void_reason, voided_at, voided_by,
-              notes, created_at, created_by, updated_at, updated_by)
+              notes, created_at, created_by, updated_at, updated_by,
+              self_assessment_submitted_at)
     ON public.performance_reviews TO authenticated;

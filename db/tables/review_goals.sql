@@ -35,9 +35,11 @@ CREATE TRIGGER trg_review_goals_updated_at
 -- RLS:与 performance_reviews 逐条对应,经 review_id 上溯。
 ALTER TABLE public.review_goals ENABLE ROW LEVEL SECURITY;
 
+-- HR-3b:与 performance_reviews 同步 —— 一般性读取要 module.hr.view AND data.view_reviews。
+-- 目标行里就是自评与评语的正文,不能比它依附的评估更宽。
 CREATE POLICY "review_goals select by permission"
     ON public.review_goals AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view'));
+    USING (has_permission('module.hr.view') AND has_permission('data.view_reviews'));
 
 CREATE POLICY "review_goals select as reviewer"
     ON public.review_goals AS PERMISSIVE FOR SELECT TO authenticated

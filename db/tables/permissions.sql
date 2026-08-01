@@ -53,3 +53,13 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
         'Salary, CPF and payroll figures',                    '工资、公积金与薪资明细',                210),
     ('data.view_identity','data',   'View identity data',  '查看身份信息',
         'Identity numbers and work pass numbers',             '身份证件号与工作准证号',                220);
+
+-- HR-3b 追加。目录扩充天然是"迁移级"的动作(见文件头),所以后续切次加的码
+-- 也要落回这份首建种子里,否则从镜像重建出来的库会缺行,role_permissions 的外键
+-- 直接挂掉。
+-- ⚠️ 已知缺口:data.view_banking(perm3)与 data.view_sales(perm3b)两条【尚未】
+--    补回本文件 —— check_mirrors 不比对数据,所以它一直是绿的。见 HR-3b 的报告。
+INSERT INTO public.permissions (code, category, name_en, name_zh, description_en, description_zh, sort_order) VALUES
+    ('data.view_reviews', 'data', 'View performance review content', '查看绩效评估正文',
+        'Ratings, written conclusions, self-assessments and goal results in performance reviews',
+        '绩效评估中的评级、书面结论、自评与目标结果', 250);
