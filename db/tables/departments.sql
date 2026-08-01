@@ -21,10 +21,16 @@ CREATE TABLE public.departments (
     created_at           timestamptz NOT NULL DEFAULT now(),
     created_by           uuid DEFAULT auth.uid(),
     updated_at           timestamptz NOT NULL DEFAULT now(),
-    updated_by           uuid DEFAULT auth.uid()
+    updated_by           uuid DEFAULT auth.uid(),
+    -- HR-3a 追加(ALTER 加的列排在末尾)。open_review_cycle 用它默认年度评估的评估人;
+    -- 可空 —— 新建部门时未必已经定下经理,未设时评估人留空由 HR 手工指派。
+    -- 【外键不写在这里】departments 与 employees 互相引用,镜像重放要能拓扑排序,
+    -- 所以那条 FK 由后建的 employees.sql 末尾补上(见该文件)。
+    manager_employee_id  uuid
 );
 
 CREATE INDEX idx_departments_parent ON public.departments (parent_department_id);
+CREATE INDEX idx_departments_manager ON public.departments (manager_employee_id);
 
 CREATE TRIGGER trg_departments_updated_at
     BEFORE UPDATE ON public.departments

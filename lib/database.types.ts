@@ -610,6 +610,7 @@ export type Database = {
           deleted_at: string | null
           id: string
           is_active: boolean
+          manager_employee_id: string | null
           name_en: string
           name_zh: string
           notes: string | null
@@ -624,6 +625,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           is_active?: boolean
+          manager_employee_id?: string | null
           name_en: string
           name_zh: string
           notes?: string | null
@@ -638,6 +640,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           is_active?: boolean
+          manager_employee_id?: string | null
           name_en?: string
           name_zh?: string
           notes?: string | null
@@ -646,6 +649,48 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "departments_manager_employee_id_fkey"
+            columns: ["manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "departments_manager_employee_id_fkey"
+            columns: ["manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "departments_manager_employee_id_fkey"
+            columns: ["manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "departments_manager_employee_id_fkey"
+            columns: ["manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "departments_manager_employee_id_fkey"
+            columns: ["manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "departments_manager_employee_id_fkey"
+            columns: ["manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
           {
             foreignKeyName: "departments_parent_department_id_fkey"
             columns: ["parent_department_id"]
@@ -659,6 +704,7 @@ export type Database = {
         Row: {
           annual_leave_days: number
           code: string
+          confirmation_date: string | null
           created_at: string
           created_by: string | null
           deleted_at: string | null
@@ -671,6 +717,7 @@ export type Database = {
           job_title: string | null
           legal_name: string
           manager_id: string | null
+          monthly_salary: number | null
           notes: string | null
           preferred_name: string | null
           probation_end_date: string | null
@@ -692,6 +739,7 @@ export type Database = {
         Insert: {
           annual_leave_days?: number
           code: string
+          confirmation_date?: string | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -704,6 +752,7 @@ export type Database = {
           job_title?: string | null
           legal_name: string
           manager_id?: string | null
+          monthly_salary?: number | null
           notes?: string | null
           preferred_name?: string | null
           probation_end_date?: string | null
@@ -725,6 +774,7 @@ export type Database = {
         Update: {
           annual_leave_days?: number
           code?: string
+          confirmation_date?: string | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -737,6 +787,7 @@ export type Database = {
           job_title?: string | null
           legal_name?: string
           manager_id?: string | null
+          monthly_salary?: number | null
           notes?: string | null
           preferred_name?: string | null
           probation_end_date?: string | null
@@ -819,7 +870,9 @@ export type Database = {
           employment_type: string | null
           id: string
           job_title: string | null
+          new_monthly_salary: number | null
           notes: string | null
+          old_monthly_salary: number | null
         }
         Insert: {
           change_type: string
@@ -832,7 +885,9 @@ export type Database = {
           employment_type?: string | null
           id?: string
           job_title?: string | null
+          new_monthly_salary?: number | null
           notes?: string | null
+          old_monthly_salary?: number | null
         }
         Update: {
           change_type?: string
@@ -845,7 +900,9 @@ export type Database = {
           employment_type?: string | null
           id?: string
           job_title?: string | null
+          new_monthly_salary?: number | null
           notes?: string | null
+          old_monthly_salary?: number | null
         }
         Relationships: [
           {
@@ -3134,6 +3191,195 @@ export type Database = {
           },
         ]
       }
+      performance_reviews: {
+        Row: {
+          acknowledged_at: string | null
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          cycle_id: string | null
+          employee_id: string
+          id: string
+          new_monthly_salary: number | null
+          notes: string | null
+          period_end: string
+          period_start: string
+          probation_outcome: string | null
+          rating_code: string | null
+          review_type: string
+          reviewer_employee_id: string | null
+          salary_effective_date: string | null
+          self_assessment_text: string | null
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          summary_text: string | null
+          updated_at: string
+          updated_by: string | null
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          cycle_id?: string | null
+          employee_id: string
+          id?: string
+          new_monthly_salary?: number | null
+          notes?: string | null
+          period_end: string
+          period_start: string
+          probation_outcome?: string | null
+          rating_code?: string | null
+          review_type: string
+          reviewer_employee_id?: string | null
+          salary_effective_date?: string | null
+          self_assessment_text?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          summary_text?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          cycle_id?: string | null
+          employee_id?: string
+          id?: string
+          new_monthly_salary?: number | null
+          notes?: string | null
+          period_end?: string
+          period_start?: string
+          probation_outcome?: string | null
+          rating_code?: string | null
+          review_type?: string
+          reviewer_employee_id?: string | null
+          salary_effective_date?: string | null
+          self_assessment_text?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          summary_text?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_reviews_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "review_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_rating_code_fkey"
+            columns: ["rating_code"]
+            isOneToOne: false
+            referencedRelation: "review_rating_scale"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "performance_reviews_reviewer_employee_id_fkey"
+            columns: ["reviewer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_reviewer_employee_id_fkey"
+            columns: ["reviewer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_reviewer_employee_id_fkey"
+            columns: ["reviewer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_reviewer_employee_id_fkey"
+            columns: ["reviewer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_reviewer_employee_id_fkey"
+            columns: ["reviewer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_reviewer_employee_id_fkey"
+            columns: ["reviewer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+        ]
+      }
       period_closes: {
         Row: {
           closed_at: string
@@ -4106,6 +4352,153 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      review_cycles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          due_date: string
+          id: string
+          name: string
+          notes: string | null
+          period_end: string
+          period_start: string
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          due_date: string
+          id?: string
+          name: string
+          notes?: string | null
+          period_end: string
+          period_start: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          due_date?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          period_end?: string
+          period_start?: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      review_goals: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          employee_result_text: string | null
+          id: string
+          objective_text: string
+          review_id: string
+          reviewer_assessment_text: string | null
+          sequence: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          employee_result_text?: string | null
+          id?: string
+          objective_text: string
+          review_id: string
+          reviewer_assessment_text?: string | null
+          sequence: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          employee_result_text?: string | null
+          id?: string
+          objective_text?: string
+          review_id?: string
+          reviewer_assessment_text?: string | null
+          sequence?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_goals_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "performance_reviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_goals_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "performance_reviews_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      review_rating_scale: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          description_en: string | null
+          description_zh: string | null
+          is_active: boolean
+          is_probation_pass: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description_en?: string | null
+          description_zh?: string | null
+          is_active?: boolean
+          is_probation_pass?: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description_en?: string | null
+          description_zh?: string | null
+          is_active?: boolean
+          is_probation_pass?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       role_permissions: {
         Row: {
@@ -5186,6 +5579,7 @@ export type Database = {
         Row: {
           annual_leave_days: number | null
           code: string | null
+          confirmation_date: string | null
           created_at: string | null
           created_by: string | null
           deleted_at: string | null
@@ -5198,6 +5592,7 @@ export type Database = {
           job_title: string | null
           legal_name: string | null
           manager_id: string | null
+          monthly_salary: number | null
           notes: string | null
           preferred_name: string | null
           probation_end_date: string | null
@@ -5219,6 +5614,7 @@ export type Database = {
         Insert: {
           annual_leave_days?: number | null
           code?: string | null
+          confirmation_date?: string | null
           created_at?: string | null
           created_by?: string | null
           deleted_at?: string | null
@@ -5231,6 +5627,7 @@ export type Database = {
           job_title?: string | null
           legal_name?: string | null
           manager_id?: string | null
+          monthly_salary?: never
           notes?: string | null
           preferred_name?: string | null
           probation_end_date?: string | null
@@ -5252,6 +5649,7 @@ export type Database = {
         Update: {
           annual_leave_days?: number | null
           code?: string | null
+          confirmation_date?: string | null
           created_at?: string | null
           created_by?: string | null
           deleted_at?: string | null
@@ -5264,6 +5662,7 @@ export type Database = {
           job_title?: string | null
           legal_name?: string | null
           manager_id?: string | null
+          monthly_salary?: never
           notes?: string | null
           preferred_name?: string | null
           probation_end_date?: string | null
@@ -5328,6 +5727,104 @@ export type Database = {
           {
             foreignKeyName: "employees_manager_id_fkey"
             columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+        ]
+      }
+      employment_history_masked: {
+        Row: {
+          change_type: string | null
+          created_at: string | null
+          created_by: string | null
+          department_id: string | null
+          effective_date: string | null
+          employee_id: string | null
+          employment_status: string | null
+          employment_type: string | null
+          id: string | null
+          job_title: string | null
+          new_monthly_salary: number | null
+          notes: string | null
+          old_monthly_salary: number | null
+        }
+        Insert: {
+          change_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_id?: string | null
+          effective_date?: string | null
+          employee_id?: string | null
+          employment_status?: string | null
+          employment_type?: string | null
+          id?: string | null
+          job_title?: string | null
+          new_monthly_salary?: never
+          notes?: string | null
+          old_monthly_salary?: never
+        }
+        Update: {
+          change_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department_id?: string | null
+          effective_date?: string | null
+          employee_id?: string | null
+          employment_status?: string | null
+          employment_type?: string | null
+          id?: string | null
+          job_title?: string | null
+          new_monthly_salary?: never
+          notes?: string | null
+          old_monthly_salary?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employment_history_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employment_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employment_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employment_history_employee_id_fkey"
+            columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["employee_id"]
@@ -6055,6 +6552,195 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payroll_periods"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      performance_reviews_masked: {
+        Row: {
+          acknowledged_at: string | null
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string | null
+          created_by: string | null
+          cycle_id: string | null
+          employee_id: string | null
+          id: string | null
+          new_monthly_salary: number | null
+          notes: string | null
+          period_end: string | null
+          period_start: string | null
+          probation_outcome: string | null
+          rating_code: string | null
+          review_type: string | null
+          reviewer_employee_id: string | null
+          salary_effective_date: string | null
+          self_assessment_text: string | null
+          status: string | null
+          submitted_at: string | null
+          submitted_by: string | null
+          summary_text: string | null
+          updated_at: string | null
+          updated_by: string | null
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          cycle_id?: string | null
+          employee_id?: string | null
+          id?: string | null
+          new_monthly_salary?: never
+          notes?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          probation_outcome?: string | null
+          rating_code?: string | null
+          review_type?: string | null
+          reviewer_employee_id?: string | null
+          salary_effective_date?: string | null
+          self_assessment_text?: string | null
+          status?: string | null
+          submitted_at?: string | null
+          submitted_by?: string | null
+          summary_text?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          cycle_id?: string | null
+          employee_id?: string | null
+          id?: string | null
+          new_monthly_salary?: never
+          notes?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          probation_outcome?: string | null
+          rating_code?: string | null
+          review_type?: string | null
+          reviewer_employee_id?: string | null
+          salary_effective_date?: string | null
+          self_assessment_text?: string | null
+          status?: string | null
+          submitted_at?: string | null
+          submitted_by?: string | null
+          summary_text?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_reviews_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "review_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_rating_code_fkey"
+            columns: ["rating_code"]
+            isOneToOne: false
+            referencedRelation: "review_rating_scale"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "performance_reviews_reviewer_employee_id_fkey"
+            columns: ["reviewer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_reviewer_employee_id_fkey"
+            columns: ["reviewer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_reviewer_employee_id_fkey"
+            columns: ["reviewer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_reviewer_employee_id_fkey"
+            columns: ["reviewer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_reviewer_employee_id_fkey"
+            columns: ["reviewer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_reviewer_employee_id_fkey"
+            columns: ["reviewer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
           },
         ]
       }
@@ -7112,6 +7798,7 @@ export type Database = {
       }
     }
     Functions: {
+      acknowledge_review: { Args: { p_review_id: string }; Returns: Json }
       allocate_processing_costs: {
         Args: { p_basis?: string; p_run_id: string }
         Returns: Json
@@ -7137,6 +7824,7 @@ export type Database = {
         }
         Returns: Json
       }
+      approve_review: { Args: { p_review_id: string }; Returns: Json }
       bank_native_currency: {
         Args: { p_account_code: string }
         Returns: string
@@ -7292,6 +7980,7 @@ export type Database = {
       next_payroll_code: { Args: { p_date?: string }; Returns: string }
       next_pricing_formula_code: { Args: { p_date?: string }; Returns: string }
       next_purchase_order_code: { Args: { p_date?: string }; Returns: string }
+      open_review_cycle: { Args: { p_cycle_id: string }; Returns: Json }
       pay_medical_claim: {
         Args: {
           p_claim_id: string
@@ -7472,6 +8161,7 @@ export type Database = {
         }
         Returns: Json
       }
+      submit_review: { Args: { p_review_id: string }; Returns: Json }
       unapply_assay_result: {
         Args: { p_assay_result_id: string; p_reason: string }
         Returns: Json
@@ -7510,6 +8200,10 @@ export type Database = {
       }
       void_invoice: {
         Args: { p_invoice_id: string; p_reason: string }
+        Returns: Json
+      }
+      void_review: {
+        Args: { p_reason: string; p_review_id: string }
         Returns: Json
       }
     }
