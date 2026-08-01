@@ -11,8 +11,65 @@ import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { localizeAssayError } from '../../assayErrorCodes'
-import { computeAssayImpact, type AssayImpact } from './assayImpact'
 import type { CalcResult } from '@/app/pricing/calculator/actions'
+
+// "如果应用会怎样"的影响数字。
+// 【拆分算术全部来自 DB】—— preview_reprice_inbound_batch 与真正入账的
+// reprice_inbound_batch 共用同一个纯函数 reprice_split(见
+// db/migrations/2026-08-01-perm1-permission-skeleton.sql),所以预览说的和提交
+// 做的不可能不一致。这里只做字段改名,不做任何计算。
+// 唯一的例外是 unit_delta(每公斤差额):它只是"新价 − 旧价"的展示项,不属于
+// 存货/成本的分摊口径,DB 也不返回它。
+export type AssayImpact = {
+    current_unit_price: number | null
+    new_unit_price: number
+    unit_delta: number
+    total_delta: number
+    in_stock_ratio: number
+    inventory_share: number
+    cost_share: number
+}
+
+// preview_reprice_inbound_batch 的返回形状
+type RepricePreview = {
+    old_unit_price: number | null
+    new_unit_price: number
+    delta_usd: number
+    in_stock_ratio: number
+    inventory_share_usd: number
+    cost_share_usd: number
+}
+
+const round4 = (n: number) => Math.round(n * 10000) / 10000
+
+function toImpact(p: RepricePreview): AssayImpact {
+    return {
+        current_unit_price: p.old_unit_price === null ? null : Number(p.old_unit_price),
+        new_unit_price: Number(p.new_unit_price),
+        unit_delta: round4(Number(p.new_unit_price) - Number(p.old_unit_price ?? 0)),
+        total_delta: Number(p.delta_usd),
+        in_stock_ratio: Number(p.in_stock_ratio),
+        inventory_share: Number(p.inventory_share_usd),
+        cost_share: Number(p.cost_share_usd),
+    }
+}
+
+// 批次 + 目标单价 → 影响。单价 ≤ 0 时【不调 DB 试算】(它会 PRICE_INVALID),
+// 直接返回 undefined:那种料 apply_assay_result 本来就不会给它定价,
+// 摆一个"调整 −X 元"的影响块反而是误导。
+export async function repricePreview(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    batchId: string,
+    unitPrice: number
+): Promise<AssayImpact | undefined> {
+    if (!(unitPrice > 0)) return undefined
+    const { data, error } = await supabase.rpc('preview_reprice_inbound_batch', {
+        p_inbound_batch_id: batchId,
+        p_new_unit_price: unitPrice,
+    })
+    if (error || !data) return undefined
+    return toImpact(data as unknown as RepricePreview)
+}
 
 export type PreviewState = { error?: string; result?: CalcResult; impact?: AssayImpact }
 
@@ -40,9 +97,10 @@ export async function previewAssayPrice(input: {
     if (!input.formulaId || payload.length === 0) return {}
 
     const supabase = await createClient()
+    // 只为算价拿数量;影响的拆分不在这里算 —— 交给 DB 的试算函数
     const { data: batch } = await supabase
         .from('inbound_batches')
-        .select('quantity, remaining_qty, unit_price')
+        .select('quantity')
         .eq('id', input.batchId)
         .is('deleted_at', null)
         .single()
@@ -59,12 +117,7 @@ export async function previewAssayPrice(input: {
     const result = data as unknown as CalcResult
     return {
         result,
-        impact: computeAssayImpact(
-            Number(batch.quantity),
-            Number(batch.remaining_qty),
-            batch.unit_price === null ? null : Number(batch.unit_price),
-            Number(result.unit_price_usd_per_kg)
-        ),
+        impact: await repricePreview(supabase, input.batchId, Number(result.unit_price_usd_per_kg)),
     }
 }
 

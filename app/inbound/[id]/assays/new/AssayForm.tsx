@@ -194,7 +194,8 @@ export default function AssayForm({
                         </div>
                     )}
 
-                    {res && impact && <AssayImpactPreview res={res} impact={impact} />}
+                    {/* impact 可能没有(净值 ≤ 0 时 DB 不给试算)—— 计价明细照常显示 */}
+                    {res && <AssayImpactPreview res={res} impact={impact} />}
                 </section>
             )}
 

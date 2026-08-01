@@ -15,7 +15,7 @@ import { metalLabelKey } from '@/app/metal-prices/options'
 import { localizeAssayError } from '../../../assayErrorCodes'
 import { ApplyNowButton, UnapplyControl } from './ApplyAssayControls'
 import AssayImpactPreview from '../AssayImpactPreview'
-import { computeAssayImpact, type AssayImpact } from '../assayImpact'
+import { repricePreview, type AssayImpact } from '../actions'
 import type { CalcResult } from '@/app/pricing/calculator/actions'
 
 export default async function AssayDetailPage({
@@ -112,7 +112,7 @@ export default async function AssayDetailPage({
 
     // ── 未应用:算一份"如果应用"的预览。化验含量是定死的,服务端一次算好即可
     //    (录入页那边含量在动,才需要防抖的实时预览)──
-    let preview: { result: CalcResult; impact: AssayImpact } | null = null
+    let preview: { result: CalcResult; impact?: AssayImpact } | null = null
     let previewError: string | null = null
     if (!isApplied) {
         // 公式解析顺序与 apply_assay_result 一致:批次 → 采购单明细行
@@ -138,12 +138,8 @@ export default async function AssayDetailPage({
                 const result = calc as unknown as CalcResult
                 preview = {
                     result,
-                    impact: computeAssayImpact(
-                        Number(batch.quantity),
-                        Number(batch.remaining_qty),
-                        batch.unit_price === null ? null : Number(batch.unit_price),
-                        Number(result.unit_price_usd_per_kg)
-                    ),
+                    // 拆分交给 DB 试算(与真正入账的那套算术是同一份)
+                    impact: await repricePreview(supabase, id, Number(result.unit_price_usd_per_kg)),
                 }
             }
         }

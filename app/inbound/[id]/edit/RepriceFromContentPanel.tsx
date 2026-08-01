@@ -72,7 +72,7 @@ export default function RepriceFromContentPanel({
             {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
             {preview.error && <p className="text-sm text-red-600 mt-2">{preview.error}</p>}
 
-            {open && preview.result && preview.impact && (
+            {open && preview.result && (
                 <div className="mt-3 border border-gray-300 rounded p-4">
                     <AssayImpactPreview res={preview.result} impact={preview.impact} />
                     <div className="flex gap-2 mt-4">
