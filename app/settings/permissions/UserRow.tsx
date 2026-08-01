@@ -5,6 +5,7 @@
 import { useState, useTransition } from 'react'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { saveUserRoles } from './actions'
+import { resendInvite } from './inviteActions'
 
 export type DirectoryRow = {
     user_id: string
@@ -84,7 +85,16 @@ export default function UserRow({
         <div className="border border-gray-200 rounded">
             <div className="flex items-center justify-between px-4 py-3 gap-4">
                 <div className="min-w-0">
-                    <div className="font-medium truncate">{row.email ?? '—'}</div>
+                    <div className="font-medium truncate flex items-center gap-2">
+                        {row.email ?? '—'}
+                        {/* 受邀但从未登录过 → last_sign_in_at 为空。这是"邀请发出去了但人还没进来",
+                            与"活跃账号"是两回事,值得一眼看出来。 */}
+                        {row.last_sign_in_at === null && (
+                            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">
+                                {t('permissions.pending')}
+                            </span>
+                        )}
+                    </div>
                     <div className="text-sm text-gray-500">
                         {row.employee_code ? (
                             <>
@@ -124,6 +134,22 @@ export default function UserRow({
                     </div>
                 </div>
 
+                {row.last_sign_in_at === null && row.email && (
+                    <button
+                        type="button"
+                        onClick={() =>
+                            startTransition(async () => {
+                                const r = await resendInvite(row.email!)
+                                if (r.error) setError(r.error)
+                                else setDone(true)
+                            })
+                        }
+                        disabled={pending}
+                        className="border border-gray-300 px-3 py-1 rounded text-sm hover:bg-gray-50 whitespace-nowrap disabled:opacity-50"
+                    >
+                        {t('permissions.resendInvite')}
+                    </button>
+                )}
                 <button
                     type="button"
                     onClick={() => setOpen((o) => !o)}

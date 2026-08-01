@@ -45,3 +45,9 @@ CREATE POLICY "employment_history insert by permission"
     ON public.employment_history
     AS PERMISSIVE FOR INSERT TO authenticated
     WITH CHECK (has_permission('module.hr.edit'::text));
+
+-- cut 4 员工自助:【追加】一条 PERMISSIVE 策略,与既有模块策略【或】起来。
+-- 自助是行级的 —— 给普通员工 module.hr.view 会让他看见所有人,那恰好是反的。
+CREATE POLICY "employment_history select own rows"
+    ON public.employment_history AS PERMISSIVE FOR SELECT TO authenticated
+    USING (employee_id = current_user_employee());

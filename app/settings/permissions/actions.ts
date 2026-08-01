@@ -26,6 +26,10 @@ async function localize(message: string): Promise<string> {
             return t('permissions.errEditRequiresView', { 0: code[2] ?? '' })
         case 'SYSTEM_ROLE_PROTECTED':
             return t('permissions.errSystemRole')
+        case 'EMPLOYEE_ALREADY_LINKED':
+            return t('permissions.errEmployeeLinked', { 0: code[2] ?? '' })
+        case 'EMPLOYEE_NOT_FOUND':
+            return t('permissions.errEmployeeNotFound')
         case 'ROLE_NOT_FOUND':
             return t('permissions.errRoleNotFound')
         case 'PERMISSION_NOT_FOUND':
@@ -50,22 +54,13 @@ export async function saveUserRoles(
     })
     if (error) return { error: await localize(error.message) }
 
-    // 账号 ↔ 员工的关联是普通的一列,不需要经过函数。
-    // employees.user_id 上有 partial unique index(user_id IS NOT NULL),
-    // 所以一个账号最多绑一名员工 —— 先解绑旧的,再绑新的。
-    const { error: unlinkErr } = await supabase
-        .from('employees')
-        .update({ user_id: null })
-        .eq('user_id', userId)
-    if (unlinkErr) return { error: unlinkErr.message }
-
-    if (employeeId) {
-        const { error: linkErr } = await supabase
-            .from('employees')
-            .update({ user_id: userId })
-            .eq('id', employeeId)
-        if (linkErr) return { error: linkErr.message }
-    }
+    // cut 4:关联走 set_user_employee_link —— 解绑旧的与绑上新的在【一次调用】里
+    // 同生共死。cut 3 这里是两条独立语句,中间失败会让账号谁也不关联。
+    const { error: linkErr } = await supabase.rpc('set_user_employee_link', {
+        p_user_id: userId,
+        p_employee_id: employeeId ?? undefined,
+    })
+    if (linkErr) return { error: await localize(linkErr.message) }
 
     revalidatePath('/settings/permissions')
     return { success: true }

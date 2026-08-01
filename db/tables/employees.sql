@@ -166,3 +166,9 @@ CREATE POLICY "employees delete by permission"
 REVOKE SELECT ON public.employees FROM authenticated, anon;
 GRANT SELECT (id, code, legal_name, preferred_name, department_id, job_title, manager_id, employment_type, work_category, hire_date, probation_end_date, employment_status, separation_date, separation_type, separation_notes, annual_leave_days, residency_status, work_pass_type, work_pass_issue_date, work_pass_expiry_date, user_id, notes, deleted_at, created_at, created_by, updated_at, updated_by)
     ON public.employees TO authenticated;
+
+-- cut 4 员工自助:【追加】一条 PERMISSIVE 策略,与既有模块策略【或】起来。
+-- 自助是行级的 —— 给普通员工 module.hr.view 会让他看见所有人,那恰好是反的。
+CREATE POLICY "employees select own row"
+    ON public.employees AS PERMISSIVE FOR SELECT TO authenticated
+    USING (id = current_user_employee());

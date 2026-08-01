@@ -51,3 +51,9 @@ CREATE POLICY "training_records delete by permission"
     ON public.training_records
     AS PERMISSIVE FOR DELETE TO authenticated
     USING (has_permission('module.hr.edit'::text));
+
+-- cut 4 员工自助:【追加】一条 PERMISSIVE 策略,与既有模块策略【或】起来。
+-- 自助是行级的 —— 给普通员工 module.hr.view 会让他看见所有人,那恰好是反的。
+CREATE POLICY "training_records select own rows"
+    ON public.training_records AS PERMISSIVE FOR SELECT TO authenticated
+    USING (employee_id = current_user_employee());

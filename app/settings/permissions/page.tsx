@@ -7,6 +7,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import Subnav from './Subnav'
 import { requireManagePermissions } from './guard'
 import UserRow, { type DirectoryRow, type RoleOption, type EmployeeOption } from './UserRow'
+import InvitePanel from './InvitePanel'
 
 export default async function PermissionUsersPage() {
     const denied = await requireManagePermissions()
@@ -54,7 +55,7 @@ export default async function PermissionUsersPage() {
                 </code>
             </div>
 
-            <p className="mb-4 text-sm text-gray-500 italic">{t('permissions.noCreateUser')}</p>
+            <InvitePanel roles={roles} employees={employees} />
 
             {rows.length === 0 ? (
                 <p className="text-gray-500">{t('permissions.noUsers')}</p>

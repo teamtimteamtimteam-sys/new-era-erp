@@ -33,9 +33,10 @@ export default function NavLinks({ canManagePermissions = false }: { canManagePe
     // "谁能看见什么"看起来像那个模块的内务。
     // 没有 action.manage_permissions 的人【整个条目不渲染】(不是灰掉),
     // 而页面本身也会自己拒绝 —— 藏链接是体贴,不是安全边界。
+    // /me 给【每一个】登录用户 —— 人人都有一份自己的档案,所以它不需要任何权限判断。
     const items = canManagePermissions
-        ? [...NAV_ITEMS, { href: '/settings/permissions', key: 'nav.settings' }]
-        : NAV_ITEMS
+        ? [...NAV_ITEMS, { href: '/me', key: 'nav.me' }, { href: '/settings/permissions', key: 'nav.settings' }]
+        : [...NAV_ITEMS, { href: '/me', key: 'nav.me' }]
 
     return (
         <nav className="flex gap-1 overflow-x-auto px-6 pb-2">

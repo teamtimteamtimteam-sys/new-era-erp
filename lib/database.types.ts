@@ -788,6 +788,13 @@ export type Database = {
             foreignKeyName: "employees_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["employee_id"]
           },
@@ -861,6 +868,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
           },
           {
             foreignKeyName: "employment_history_employee_id_fkey"
@@ -1101,6 +1115,13 @@ export type Database = {
             columns: ["sales_record_id"]
             isOneToOne: false
             referencedRelation: "sales_records_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_attachments_sales_record_id_fkey"
+            columns: ["sales_record_id"]
+            isOneToOne: false
+            referencedRelation: "sales_records_visible"
             referencedColumns: ["id"]
           },
         ]
@@ -1598,6 +1619,13 @@ export type Database = {
             columns: ["sales_record_id"]
             isOneToOne: false
             referencedRelation: "sales_records_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_sales_record_id_fkey"
+            columns: ["sales_record_id"]
+            isOneToOne: false
+            referencedRelation: "sales_records_visible"
             referencedColumns: ["id"]
           },
         ]
@@ -2200,6 +2228,13 @@ export type Database = {
             referencedRelation: "sales_records_masked"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "payment_allocations_sales_record_id_fkey"
+            columns: ["sales_record_id"]
+            isOneToOne: false
+            referencedRelation: "sales_records_visible"
+            referencedColumns: ["id"]
+          },
         ]
       }
       payment_term_template_lines: {
@@ -2449,6 +2484,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
           },
           {
             foreignKeyName: "payroll_lines_employee_id_fkey"
@@ -4200,6 +4242,13 @@ export type Database = {
             foreignKeyName: "training_records_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "training_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["employee_id"]
           },
@@ -4530,6 +4579,13 @@ export type Database = {
             foreignKeyName: "employees_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["employee_id"]
           },
@@ -4663,6 +4719,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
           },
           {
             foreignKeyName: "employees_manager_id_fkey"
@@ -4933,6 +4996,13 @@ export type Database = {
             referencedRelation: "sales_records_masked"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "invoice_lines_sales_record_id_fkey"
+            columns: ["sales_record_id"]
+            isOneToOne: false
+            referencedRelation: "sales_records_visible"
+            referencedColumns: ["id"]
+          },
         ]
       }
       invoice_status: {
@@ -5052,6 +5122,37 @@ export type Database = {
           },
         ]
       }
+      my_profile: {
+        Row: {
+          annual_leave_days: number | null
+          code: string | null
+          department_name_en: string | null
+          department_name_zh: string | null
+          employee_id: string | null
+          employment_status: string | null
+          employment_type: string | null
+          hire_date: string | null
+          identity_no: string | null
+          job_title: string | null
+          latest_payroll_code: string | null
+          latest_payroll_month: string | null
+          legal_name: string | null
+          manager_code: string | null
+          manager_name: string | null
+          preferred_name: string | null
+          probation_end_date: string | null
+          residency_status: string | null
+          training_count: number | null
+          work_category: string | null
+          work_email: string | null
+          work_pass_expiry_date: string | null
+          work_pass_issue_date: string | null
+          work_pass_no: string | null
+          work_pass_type: string | null
+          work_phone: string | null
+        }
+        Relationships: []
+      }
       payment_term_template_lines_masked: {
         Row: {
           created_at: string | null
@@ -5157,6 +5258,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
           },
           {
             foreignKeyName: "payroll_lines_employee_id_fkey"
@@ -6172,6 +6280,47 @@ export type Database = {
           },
         ]
       }
+      sales_records_visible: {
+        Row: {
+          amount_usd: number | null
+          created_at: string | null
+          created_by: string | null
+          currency: string | null
+          customer_id: string | null
+          customer_name: string | null
+          fx_rate: number | null
+          id: string | null
+          notes: string | null
+          output_batch_code: string | null
+          output_batch_id: string | null
+          quantity: number | null
+          sale_date: string | null
+          unit_price: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_records_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "sales_records_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_records_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_directory: {
         Row: {
           created_at: string | null
@@ -6431,6 +6580,10 @@ export type Database = {
         Args: { p_entry_id: string; p_memo?: string; p_reversal_date: string }
         Returns: Json
       }
+      reverse_journal_entry_internal: {
+        Args: { p_entry_id: string; p_memo?: string; p_reversal_date: string }
+        Returns: Json
+      }
       reverse_payment: {
         Args: { p_memo?: string; p_payment_id: string }
         Returns: Json
@@ -6451,6 +6604,10 @@ export type Database = {
       }
       set_role_permissions: {
         Args: { p_permission_codes: string[]; p_role_id: string }
+        Returns: Json
+      }
+      set_user_employee_link: {
+        Args: { p_employee_id?: string; p_user_id: string }
         Returns: Json
       }
       set_user_roles: {
