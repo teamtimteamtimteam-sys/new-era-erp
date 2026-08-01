@@ -351,10 +351,22 @@ export default async function ProcessingDetailPage({
                                         {leg.output_batches?.purity ?? '—'}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {leg.allocated_cost_usd != null ? formatUsd(leg.allocated_cost_usd) : '—'}
+                                        {/* 遮蔽后是 null,和"尚未分摊"是两回事 —— 前者显示「受限」,
+                                            后者才是「—」。都画成 — 会让运营以为成本没算。 */}
+                                        <MaskedValue
+                                            value={leg.allocated_cost_usd}
+                                            canView={showPrices}
+                                            format={formatUsd}
+                                            fallback="—"
+                                        />
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {leg.unit_cost_usd != null ? formatUnitCost(leg.unit_cost_usd) + ' /kg' : '—'}
+                                        <MaskedValue
+                                            value={leg.unit_cost_usd}
+                                            canView={showPrices}
+                                            format={(v) => formatUnitCost(v) + ' /kg'}
+                                            fallback="—"
+                                        />
                                     </td>
                                 </tr>
                             ))}

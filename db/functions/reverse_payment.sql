@@ -20,7 +20,7 @@ BEGIN
     END IF;
 
     -- 冲其分录(冲销日 = 今天;期间锁在 post_journal_entry 内生效)
-    v_je := reverse_journal_entry(v_orig.journal_entry_id, CURRENT_DATE, 'Payment reversal ' || v_orig.code);
+    v_je := reverse_journal_entry_internal(v_orig.journal_entry_id, CURRENT_DATE, 'Payment reversal ' || v_orig.code);
 
     -- 镜像收付款单(现金退回),挂冲销分录,不带核销行
     v_mirror_code := fin_next_payment_code(CASE WHEN v_orig.direction = 'in' THEN 'RCPT' ELSE 'PMT' END, CURRENT_DATE);

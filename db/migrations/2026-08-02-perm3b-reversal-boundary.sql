@@ -1,3 +1,110 @@
+-- db/migrations/2026-08-02-perm3b-reversal-boundary.sql
+-- 修一个 cut 2b 埋下的、在角色重塑的走查里才暴露出来的缺陷。
+--
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【症状】运营主管做第二次成本分摊时被拒:PERMISSION_DENIED|module.finance.edit。
+--         人力资源反过账一个薪资期间时同样会被拒。
+--
+-- 【原因】cut 2b 把 reverse_journal_entry 变成了一个受 module.finance.edit 把守的
+--         RPC 入口(它必须是 DEFINER —— journal_entries 是仅追加的,没有 UPDATE 策略,
+--         作为 INVOKER 它对所有人都会失败)。但它【同时还是别的动作的内部一步】:
+--             allocate_processing_costs  第二次分摊要先冲掉上一次的资本化分录
+--             unpost_payroll_period      反过账要冲掉薪资分录
+--         DEFINER 不改变 auth.uid(),所以内层的 require_permission 查的仍然是
+--         【最终用户】的权限 —— 于是运营和人力资源在各自的正当动作里被财务的码挡住。
+--
+-- 【修法】与 cut 2b 处理 calculate_metal_price 时【完全相同的一招】:把"算"和
+--         "谁能问"分开。
+--             reverse_journal_entry_internal  DEFINER,不检查,EXECUTE 对 PUBLIC 收回,
+--                                             只能从别的函数体内调用;
+--             reverse_journal_entry           DEFINER + module.finance.edit,给界面直调用。
+--         四个内部调用方一律改调 internal —— 它们各自的闸门(processing.edit /
+--         hr.edit / finance.edit)才是那个动作应该检查的权限,冲销只是实现细节。
+--
+-- 【为什么这不是把边界放松了】手工冲销一张分录仍然要 module.finance.edit。
+--         变的只是:运营做成本分摊、人力资源反过账时,检查的是【他们正在做的那件事】
+--         的权限,而不是这件事在账上留下的痕迹所属模块的权限。这正是 cut 2a
+--         B4(b) 立下的规矩:"每个函数检查的是它所执行的那个动作的权限,
+--         不是它顺带碰到的那些表的权限。"
+-- ════════════════════════════════════════════════════════════════════════════
+
+BEGIN;
+
+-- (1) 内部冲销算子:不检查权限,只能从别的函数体内被调用。
+CREATE OR REPLACE FUNCTION public.reverse_journal_entry_internal(p_entry_id uuid, p_reversal_date date, p_memo text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+    v_orig        record;
+    v_lines       jsonb;
+    v_result      jsonb;
+    v_reversal_id uuid;
+BEGIN
+    SELECT * INTO v_orig FROM journal_entries WHERE id = p_entry_id FOR UPDATE;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'JE_NOT_FOUND|%', p_entry_id;
+    END IF;
+    IF v_orig.status <> 'posted' OR v_orig.reversed_by IS NOT NULL THEN
+        RAISE EXCEPTION 'JE_ALREADY_REVERSED|%', v_orig.code;
+    END IF;
+
+    -- 行全部翻边(debit↔credit),原币金额/汇率原样 → USD 侧必然精确对冲。
+    SELECT jsonb_agg(
+        jsonb_build_object(
+            'account_code', a.code,
+            'side', CASE WHEN l.debit > 0 THEN 'credit' ELSE 'debit' END,
+            'currency', l.currency,
+            'amount_ccy', l.amount_ccy,
+            'fx_rate', l.fx_rate,
+            'line_memo', l.line_memo
+        ) ORDER BY l.created_at, l.id
+    ) INTO v_lines
+    FROM journal_lines l
+    JOIN accounts a ON a.id = l.account_id
+    WHERE l.entry_id = p_entry_id;
+
+    -- 期间锁由 post_journal_entry 对 p_reversal_date 统一执行
+    v_result := post_journal_entry(
+        p_reversal_date,
+        'REVERSAL: ' || COALESCE(p_memo, v_orig.memo, v_orig.code),
+        v_orig.source_type,
+        v_orig.id,
+        v_lines
+    );
+    v_reversal_id := (v_result->>'entry_id')::uuid;
+
+    UPDATE journal_entries
+    SET status = 'reversed', reversed_by = v_reversal_id
+    WHERE id = p_entry_id;
+
+    RETURN jsonb_build_object(
+        'reversal_id', v_reversal_id,
+        'code', v_result->>'code'
+    );
+END;
+$function$;
+
+-- 【PUBLIC 默认就有 EXECUTE】—— 不先收回 PUBLIC,任何登录用户都能拿它直接冲销分录。
+REVOKE ALL ON FUNCTION public.reverse_journal_entry_internal(p_entry_id uuid, p_reversal_date date, p_memo text) FROM PUBLIC, authenticated, anon;
+
+-- (2) 界面入口:保持 module.finance.edit,然后委托给内部算子。
+CREATE OR REPLACE FUNCTION public.reverse_journal_entry(p_entry_id uuid, p_reversal_date date, p_memo text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+BEGIN
+    PERFORM require_permission('module.finance.edit');
+    RETURN reverse_journal_entry_internal(p_entry_id, p_reversal_date, p_memo);
+END;
+$function$;
+
+-- (3) 四个内部调用方改调 internal —— 各自的闸门不变。
+-- allocate_processing_costs:闸门仍是它自己的动作权限,冲销改走内部算子
 CREATE OR REPLACE FUNCTION public.allocate_processing_costs(p_run_id uuid, p_basis text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -325,3 +432,160 @@ BEGIN
     );
 END;
 $function$;
+
+-- unpost_payroll_period:闸门仍是它自己的动作权限,冲销改走内部算子
+CREATE OR REPLACE FUNCTION public.unpost_payroll_period(p_id uuid, p_reason text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+    v_user uuid := auth.uid();
+    v_p    record;
+    v_je   jsonb;
+BEGIN
+    PERFORM require_permission('module.hr.edit');
+    SELECT * INTO v_p FROM payroll_periods
+    WHERE id = p_id AND deleted_at IS NULL
+    FOR UPDATE;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'PAYROLL_NOT_FOUND|%', COALESCE(p_id::text, '?');
+    END IF;
+    IF v_p.status <> 'posted' THEN
+        RAISE EXCEPTION 'PAYROLL_NOT_POSTED|%', v_p.code;
+    END IF;
+    IF p_reason IS NULL OR btrim(p_reason) = '' THEN
+        RAISE EXCEPTION 'REASON_REQUIRED';
+    END IF;
+
+    -- 冲销分录(冲销日 = 今天);原分录留在账上并被标记为已冲销 —— 不删账
+    v_je := reverse_journal_entry_internal(v_p.journal_entry_id, CURRENT_DATE, 'Payroll reversal ' || v_p.code);
+
+    UPDATE payroll_periods
+    SET status = 'draft',
+        journal_entry_id = NULL,
+        notes = COALESCE(notes || E'\n', '')
+                || '[' || to_char(now(), 'YYYY-MM-DD HH24:MI') || ' unposted] ' || btrim(p_reason),
+        updated_by = v_user
+    WHERE id = p_id;
+
+    RETURN jsonb_build_object(
+        'payroll_period_id', p_id,
+        'code', v_p.code,
+        'status', 'draft',
+        'reversal_journal_code', v_je->>'code'
+    );
+END;
+$function$;
+
+-- reverse_expense:闸门仍是它自己的动作权限,冲销改走内部算子
+CREATE OR REPLACE FUNCTION public.reverse_expense(p_expense_id uuid, p_memo text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+    v_orig        expenses%ROWTYPE;
+    v_mirror_id   uuid := gen_random_uuid();
+    v_year        integer;
+    v_seq         integer;
+    v_mirror_code text;
+    v_je          jsonb;
+BEGIN
+    PERFORM require_permission('module.finance.edit');
+    SELECT * INTO v_orig FROM expenses WHERE id = p_expense_id FOR UPDATE;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'EXPENSE_NOT_FOUND|%', p_expense_id;
+    END IF;
+    IF v_orig.status <> 'posted' OR v_orig.reversed_by_expense IS NOT NULL THEN
+        RAISE EXCEPTION 'EXPENSE_ALREADY_REVERSED|%', v_orig.code;
+    END IF;
+
+    -- 冲其分录(冲销日 = 今天;期间锁在 post_journal_entry 内生效)
+    v_je := reverse_journal_entry_internal(v_orig.journal_entry_id, CURRENT_DATE, 'Expense reversal ' || v_orig.code);
+
+    -- 镜像开支单(同形状、status 'posted'、挂冲销分录、不带核销行)。
+    -- 镜像行只是冲销的记录凭证,不是新的应付单据 —— ap_open_items 里按
+    -- "被别的开支单指为 reversed_by_expense" 排除它。
+    v_year := EXTRACT(YEAR FROM CURRENT_DATE)::integer;
+    PERFORM pg_advisory_xact_lock(hashtext('expense_code_' || v_year::text)::bigint);
+    SELECT COALESCE(MAX(split_part(code, '-', 3)::integer), 0) + 1
+    INTO v_seq
+    FROM expenses
+    WHERE code LIKE 'EXP-' || v_year::text || '-%';
+    v_mirror_code := 'EXP-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
+
+    INSERT INTO expenses (id, code, expense_date, account_code, amount_ccy, currency, fx_rate,
+                          amount_usd, payment_status, bank_account_code, supplier_id,
+                          payee_name, notes, journal_entry_id, created_by)
+    VALUES (v_mirror_id, v_mirror_code, CURRENT_DATE, v_orig.account_code,
+            v_orig.amount_ccy, v_orig.currency, v_orig.fx_rate, v_orig.amount_usd,
+            v_orig.payment_status, v_orig.bank_account_code, v_orig.supplier_id,
+            v_orig.payee_name,
+            'REVERSAL: ' || v_orig.code || COALESCE(' — ' || p_memo, ''),
+            (v_je->>'reversal_id')::uuid, auth.uid());
+
+    UPDATE expenses
+    SET status = 'reversed', reversed_by_expense = v_mirror_id
+    WHERE id = p_expense_id;
+
+    RETURN jsonb_build_object(
+        'reversal_expense_id', v_mirror_id,
+        'code', v_mirror_code,
+        'journal_code', v_je->>'code'
+    );
+END;
+$function$;
+
+-- reverse_payment:闸门仍是它自己的动作权限,冲销改走内部算子
+CREATE OR REPLACE FUNCTION public.reverse_payment(p_payment_id uuid, p_memo text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+    v_orig        payments%ROWTYPE;
+    v_mirror_id   uuid := gen_random_uuid();
+    v_mirror_code text;
+    v_je          jsonb;
+BEGIN
+    PERFORM require_permission('module.finance.edit');
+    SELECT * INTO v_orig FROM payments WHERE id = p_payment_id FOR UPDATE;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'PAYMENT_NOT_FOUND|%', p_payment_id;
+    END IF;
+    IF v_orig.status <> 'posted' OR v_orig.reversed_by_payment IS NOT NULL THEN
+        RAISE EXCEPTION 'PAYMENT_ALREADY_REVERSED|%', v_orig.code;
+    END IF;
+
+    -- 冲其分录(冲销日 = 今天;期间锁在 post_journal_entry 内生效)
+    v_je := reverse_journal_entry_internal(v_orig.journal_entry_id, CURRENT_DATE, 'Payment reversal ' || v_orig.code);
+
+    -- 镜像收付款单(现金退回),挂冲销分录,不带核销行
+    v_mirror_code := fin_next_payment_code(CASE WHEN v_orig.direction = 'in' THEN 'RCPT' ELSE 'PMT' END, CURRENT_DATE);
+    INSERT INTO payments (id, code, direction, counterparty_type, customer_id, supplier_id,
+                          amount_ccy, currency, fx_rate, amount_usd, bank_account_code,
+                          payment_date, notes, journal_entry_id, created_by)
+    VALUES (v_mirror_id, v_mirror_code, v_orig.direction, v_orig.counterparty_type,
+            v_orig.customer_id, v_orig.supplier_id,
+            v_orig.amount_ccy, v_orig.currency, v_orig.fx_rate, v_orig.amount_usd,
+            v_orig.bank_account_code, CURRENT_DATE,
+            'REVERSAL: ' || v_orig.code || COALESCE(' — ' || p_memo, ''),
+            (v_je->>'reversal_id')::uuid, auth.uid());
+
+    UPDATE payments
+    SET status = 'reversed', reversed_by_payment = v_mirror_id
+    WHERE id = p_payment_id;
+
+    RETURN jsonb_build_object(
+        'reversal_payment_id', v_mirror_id,
+        'code', v_mirror_code,
+        'journal_code', v_je->>'code'
+    );
+END;
+$function$;
+
+COMMIT;

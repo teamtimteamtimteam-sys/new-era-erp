@@ -24,7 +24,7 @@ BEGIN
     END IF;
 
     -- 冲销分录(冲销日 = 今天);原分录留在账上并被标记为已冲销 —— 不删账
-    v_je := reverse_journal_entry(v_p.journal_entry_id, CURRENT_DATE, 'Payroll reversal ' || v_p.code);
+    v_je := reverse_journal_entry_internal(v_p.journal_entry_id, CURRENT_DATE, 'Payroll reversal ' || v_p.code);
 
     UPDATE payroll_periods
     SET status = 'draft',

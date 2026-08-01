@@ -22,7 +22,7 @@ BEGIN
     END IF;
 
     -- 冲其分录(冲销日 = 今天;期间锁在 post_journal_entry 内生效)
-    v_je := reverse_journal_entry(v_orig.journal_entry_id, CURRENT_DATE, 'Expense reversal ' || v_orig.code);
+    v_je := reverse_journal_entry_internal(v_orig.journal_entry_id, CURRENT_DATE, 'Expense reversal ' || v_orig.code);
 
     -- 镜像开支单(同形状、status 'posted'、挂冲销分录、不带核销行)。
     -- 镜像行只是冲销的记录凭证,不是新的应付单据 —— ap_open_items 里按
