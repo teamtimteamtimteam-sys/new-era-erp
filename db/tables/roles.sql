@@ -80,12 +80,26 @@ CREATE POLICY "roles delete by permission"
     AS PERMISSIVE FOR DELETE TO authenticated
     USING (has_permission('action.manage_permissions'::text));
 
--- 【七个角色是起点,不是定论】。首建需要一份可用的起点,但它们完全是可编辑的数据。
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 【引导默认值 / BOOTSTRAP —— 全新安装的起点,不是线上快照】
+-- 这九个工作角色 + 一行保留但零权限的 employee,是 db/scripts/2026-08-02-role-set-reshape.sql
+-- 定下来的分工;那次重塑【只改了线上的数据】,本文件当时停在 cut 1 播下的七个角色上。
+-- 于是照镜像重建出来的库,拿到的是一份【已经作废的早期设计】——
+-- 没有 gm / procurement / sales,finance 还兼着 HR 与加工。
+-- 本表【仍然是运行期配置】:界面上改角色是正常的,check_mirrors 照旧不逐行比对。
+-- 这里修的是【起点】,不是把检查收紧。
+--
+-- 【为什么保留 employee 这一行】员工自助是【行级】的,靠 current_user_employee()
+-- 限定到本人相关的行,与角色无关。给它任何模块权限反而会把整张表打开。
+-- ═══════════════════════════════════════════════════════════════════════════
 INSERT INTO public.roles (code, name_en, name_zh, description_en, description_zh, is_system, sort_order) VALUES
-    ('admin',      'System Administrator', '系统管理员', 'Full access to everything',                  '拥有全部权限',               true,  10),
-    ('finance',    'Finance',              '财务',       'Ledger, payables, receivables and costs',    '总账、应收应付与成本',       false, 20),
-    ('operations', 'Operations',           '运营',       'Material flow without cost visibility',      '物料流转,不含成本可见性',   false, 30),
-    ('warehouse',  'Warehouse & Field',    '仓储现场',   'Receiving, output, stock counts',            '收货、产出与盘点',           false, 40),
-    ('hr',         'Human Resources',      '人力资源',   'Employee records, payroll and training',     '员工档案、薪资与培训',       false, 50),
-    ('auditor',    'Read-only Auditor',    '只读审计',   'Sees everything, changes nothing',           '可查看一切,不能改动',       false, 60),
-    ('employee',   'Employee Self-service','员工自助',   'Own records only',                           '仅限本人相关记录',           false, 70);
+    ('admin', 'System Administrator', '系统管理员', 'Full access to everything, including who can see what.', '拥有全部权限,包括决定谁能看见什么。', true, 10),
+    ('gm', 'General Manager', '总经理', 'Sees the whole business, including costs and margins, but cannot change who has access.', '看得见整个生意,包括成本与利润;但不能改动任何人的权限。', false, 20),
+    ('finance', 'Finance', '财务', 'Ledger, payables, receivables, invoicing and payments, with full cost visibility.', '总账、应付、应收、开票与收付款,并可见全部成本。', false, 30),
+    ('procurement', 'Procurement', '采购', 'Negotiates and raises purchase orders; sees prices but cannot pay anyone.', '议价、下采购单;看得见价格,但付不了任何钱。', false, 40),
+    ('sales', 'Sales', '销售', 'Customers, output batches and sales; invoicing is handled by finance.', '客户、产出批次与销售;开票由财务负责。', false, 50),
+    ('operations', 'Operations Supervisor', '运营主管', 'Runs processing, inventory and stocktakes: quantities, yields and recovery, never prices.', '负责加工、库存与盘点:管数量、产出与回收率,不涉及价格。', false, 60),
+    ('warehouse', 'Warehouse & Field', '仓储现场', 'Receiving, output and stock counts on the floor; no commercial data.', '现场收货、产出与盘点;不接触任何商务数据。', false, 70),
+    ('hr', 'Human Resources', '人力资源', 'Employee records, payroll and training, including pay and identity data.', '员工档案、薪资与培训,含薪酬与身份信息。', false, 80),
+    ('auditor', 'Read-only Auditor', '只读审计', 'Sees every module and all costs, changes nothing; no bank details, no salaries.', '可查看全部模块与成本,不能改动任何东西;不含银行明细与薪酬。', false, 90),
+    ('employee', 'Employee (unused)', '员工(暂未使用)', 'Not used for access. Employee self-service is row-level and applies automatically to any account linked to an employee record.', '不用于授权。员工自助是行级的,只要账号关联了员工档案即自动生效,与本角色无关。', false, 100);

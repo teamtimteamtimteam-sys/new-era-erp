@@ -37,65 +37,140 @@ CREATE POLICY "role_permissions delete by permission"
     USING (has_permission('action.manage_permissions'::text));
 
 -- ═══════════════════════════════════════════════════════════════════════════
--- 【运行期配置 / RUNTIME CONFIG —— 本段是"全新安装的默认值",不是线上快照】
+-- 【引导默认值 / BOOTSTRAP —— 全新安装的起点,不是线上快照】
 -- 授权是数据:界面上改一次就与本文件不同了,【那是系统在正常工作,不是漂移】。
--- check_mirrors.py 【不】把本表与线上比对。它只保证一件事:本文件引用的每一个
--- permission_code 都存在于 db/tables/permissions.sql 的种子里 —— 也就是镜像这一套
--- 自己首尾相顾。仅凭这一条,当年 data.view_banking / data.view_sales 那个 bug
--- 就会当场被抓住,而且完全不需要连线上。
+-- check_mirrors.py 【不】把本表与线上比对,本切也没有把它改成比对 —— 修的是起点。
 --
--- 线上当前的分工见 db/scripts/2026-08-02-role-set-reshape.sql(九个工作角色 +
--- 保留但零权限的 employee 行)。那份脚本是【线上状态】的来源,本文件是【起点】的来源,
--- 两者本来就不该相等。
+-- 这份授权来自 db/scripts/2026-08-02-role-set-reshape.sql 定下的九角色分工,
+-- 加上此后各切追加的数据类码(data.view_banking / view_sales / view_reviews)。
+-- 【它此前一直停在 cut 1 的旧设计上】:finance 兼着 HR 与加工、operations 兼着采购,
+-- 而 gm / procurement / sales 根本不存在。照镜像重建出来的库拿的就是那份旧设计。
 --
--- ⚠️ OPS-1 更新:perm2a 把 module.<m> 一分为二之后,本文件里那些未拆分的码
---    (module.finance / module.hr …)已经不存在于目录里了,照镜像重建会直接违反外键。
---    下面改用拆分后的码;auditor 只给 .view —— 拆分之前"只读"是靠策略实现的,
---    拆分之后它可以、也应该在授权里就说清楚。
+-- 【每条授权都是这三句话推出来的】
+--   1. 不相容职务分离:没有任何一个角色既能定采购价、又能付供应商的钱。
+--   2. 看得见成本的人越少越好:现场与运营不给 data.view_prices。
+--   3. 只读就写在授权里:auditor 只拿 .view,不靠"策略恰好只放行 SELECT"来假装只读。
+--
+-- 【edit 蕴含 view 这条不变式】set_role_permissions 会用 EDIT_REQUIRES_VIEW 挡住违反它的
+-- 组合,但那是 RPC 路径;引导默认值是直接 INSERT,绕不到那道检查。所以下面在种完之后
+-- 【自己验一遍】—— 一份连自己的规则都不满足的起点,比没有起点更糟。
 -- ═══════════════════════════════════════════════════════════════════════════
 
--- admin:全部 —— 定义上如此,不然它就不是管理员。
--- 【CROSS JOIN 是有意的】目录加了新码,全新安装的管理员自动就有,不会漏。
+-- admin(33):全部 —— 定义上如此,不然它就不是管理员。
 INSERT INTO public.role_permissions (role_id, permission_code)
-SELECT r.id, p.code FROM roles r CROSS JOIN permissions p WHERE r.code = 'admin';
+SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
+        'action.manage_permissions', 'data.view_banking', 'data.view_identity', 'data.view_pay',
+        'data.view_prices', 'data.view_reviews', 'data.view_sales', 'module.customers.edit',
+        'module.customers.view', 'module.finance.edit', 'module.finance.view', 'module.hr.edit',
+        'module.hr.view', 'module.inbound.edit', 'module.inbound.view', 'module.inventory.edit',
+        'module.inventory.view', 'module.materials.edit', 'module.materials.view',
+        'module.output.edit', 'module.output.view', 'module.pricing.edit',
+        'module.pricing.view', 'module.processing.edit', 'module.processing.view',
+        'module.purchasing.edit', 'module.purchasing.view', 'module.stocktakes.edit',
+        'module.stocktakes.view', 'module.suppliers.edit', 'module.suppliers.view',
+        'module.tasks.edit', 'module.tasks.view'
+) WHERE r.code = 'admin';
 
--- finance:所有模块的查看与编辑 + 看价格成本 —— 财务要对账就得穿透到每个模块的数字
+-- gm(30):看得见整个生意,包括成本与利润;【但不能改权限】—— 没有 action.manage_permissions。
 INSERT INTO public.role_permissions (role_id, permission_code)
-SELECT r.id, p.code FROM roles r CROSS JOIN permissions p
-WHERE r.code = 'finance' AND (p.category = 'module' OR p.code = 'data.view_prices');
+SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
+        'data.view_banking', 'data.view_prices', 'data.view_reviews', 'data.view_sales',
+        'module.customers.edit', 'module.customers.view', 'module.finance.edit',
+        'module.finance.view', 'module.hr.edit', 'module.hr.view', 'module.inbound.edit',
+        'module.inbound.view', 'module.inventory.edit', 'module.inventory.view',
+        'module.materials.edit', 'module.materials.view', 'module.output.edit',
+        'module.output.view', 'module.pricing.edit', 'module.pricing.view',
+        'module.processing.edit', 'module.processing.view', 'module.purchasing.edit',
+        'module.purchasing.view', 'module.stocktakes.edit', 'module.stocktakes.view',
+        'module.suppliers.edit', 'module.suppliers.view', 'module.tasks.edit',
+        'module.tasks.view'
+) WHERE r.code = 'gm';
 
--- operations:物料流转的各模块,【但不给 data.view_prices】——
--- 调度与加工不需要知道这批料多少钱,少一个人看得见成本就少一处泄露
+-- finance(23):总账、应付应收、开票收付款 + 全部成本可见。【不含 HR】—— 薪酬与员工档案不是财务的工作对象。
 INSERT INTO public.role_permissions (role_id, permission_code)
-SELECT r.id, p.code FROM roles r CROSS JOIN permissions p
-WHERE r.code = 'operations' AND p.code IN (
-    'module.suppliers.view','module.suppliers.edit','module.materials.view','module.materials.edit',
-    'module.purchasing.view','module.purchasing.edit','module.inbound.view','module.inbound.edit',
-    'module.output.view','module.output.edit','module.processing.view','module.processing.edit',
-    'module.inventory.view','module.inventory.edit','module.stocktakes.view','module.stocktakes.edit');
+SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
+        'data.view_banking', 'data.view_prices', 'data.view_sales', 'module.customers.edit',
+        'module.customers.view', 'module.finance.edit', 'module.finance.view',
+        'module.inbound.edit', 'module.inbound.view', 'module.inventory.edit',
+        'module.inventory.view', 'module.materials.edit', 'module.materials.view',
+        'module.output.edit', 'module.output.view', 'module.pricing.edit',
+        'module.pricing.view', 'module.purchasing.edit', 'module.purchasing.view',
+        'module.suppliers.edit', 'module.suppliers.view', 'module.tasks.edit',
+        'module.tasks.view'
+) WHERE r.code = 'finance';
 
--- warehouse:只有现场真正会碰的四个模块,不给任何数据类权限 ——
--- 过磅收货的人不需要看见价格,也不需要看见别人的身份信息
+-- procurement(14):议价、下采购单,看得见价格。【完全没有 finance】—— 定价的人不能同时把钱付出去(不相容职务分离)。
 INSERT INTO public.role_permissions (role_id, permission_code)
-SELECT r.id, p.code FROM roles r CROSS JOIN permissions p
-WHERE r.code = 'warehouse' AND p.code IN (
-    'module.inbound.view','module.inbound.edit','module.output.view','module.output.edit',
-    'module.inventory.view','module.inventory.edit','module.stocktakes.view','module.stocktakes.edit');
+SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
+        'data.view_prices', 'module.inbound.edit', 'module.inbound.view',
+        'module.inventory.view', 'module.materials.edit', 'module.materials.view',
+        'module.pricing.edit', 'module.pricing.view', 'module.purchasing.edit',
+        'module.purchasing.view', 'module.suppliers.edit', 'module.suppliers.view',
+        'module.tasks.edit', 'module.tasks.view'
+) WHERE r.code = 'procurement';
 
--- hr:人力资源模块 + 薪酬 + 身份信息 —— 这两类数据正是 HR 的工作对象,
--- 也正是别人不该看见的东西
+-- sales(13):客户、产出批次与销售。【开票归财务】,所以没有 finance。
 INSERT INTO public.role_permissions (role_id, permission_code)
-SELECT r.id, p.code FROM roles r CROSS JOIN permissions p
-WHERE r.code = 'hr' AND p.code IN (
-    'module.hr.view','module.hr.edit','data.view_pay','data.view_identity');
+SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
+        'data.view_prices', 'data.view_sales', 'module.customers.edit', 'module.customers.view',
+        'module.inventory.edit', 'module.inventory.view', 'module.materials.view',
+        'module.output.edit', 'module.output.view', 'module.pricing.edit',
+        'module.pricing.view', 'module.tasks.edit', 'module.tasks.view'
+) WHERE r.code = 'sales';
 
--- auditor:所有模块【只给 .view】+ 看价格成本 —— 审计看不见成本就没法审。
--- 【拆分之后,只读写在授权里】而不再只靠"策略恰好只放行 SELECT"。
+-- operations(14):加工、库存、盘点:管数量、产出与回收率。【不给 data.view_prices】—— 少一个人看得见成本就少一处泄露。
 INSERT INTO public.role_permissions (role_id, permission_code)
-SELECT r.id, p.code FROM roles r CROSS JOIN permissions p
-WHERE r.code = 'auditor'
-  AND ((p.category = 'module' AND p.code LIKE '%.view') OR p.code = 'data.view_prices');
+SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
+        'module.inbound.edit', 'module.inbound.view', 'module.inventory.edit',
+        'module.inventory.view', 'module.materials.edit', 'module.materials.view',
+        'module.output.edit', 'module.output.view', 'module.processing.edit',
+        'module.processing.view', 'module.stocktakes.edit', 'module.stocktakes.view',
+        'module.tasks.edit', 'module.tasks.view'
+) WHERE r.code = 'operations';
 
--- employee:【一个模块权限都不给】—— 员工自助不是"给他半个模块",而是"只看得见
--- 与本人相关的行",靠 current_user_employee() 做行级限定。
--- 给模块权限反而会把整张表打开。
+-- warehouse(10):现场收货、产出、盘点。【不给任何数据类权限】—— 过磅的人不需要看见价格,也不需要看见别人的身份信息。
+INSERT INTO public.role_permissions (role_id, permission_code)
+SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
+        'module.inbound.edit', 'module.inbound.view', 'module.inventory.edit',
+        'module.inventory.view', 'module.output.edit', 'module.output.view',
+        'module.stocktakes.edit', 'module.stocktakes.view', 'module.tasks.edit',
+        'module.tasks.view'
+) WHERE r.code = 'warehouse';
+
+-- hr(7):人力资源 + 薪酬 + 身份信息 + 绩效正文。这四类正是 HR 的工作对象,也正是别人不该看见的。
+INSERT INTO public.role_permissions (role_id, permission_code)
+SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
+        'data.view_identity', 'data.view_pay', 'data.view_reviews', 'module.hr.edit',
+        'module.hr.view', 'module.tasks.edit', 'module.tasks.view'
+) WHERE r.code = 'hr';
+
+-- auditor(15):全部模块【只给 .view】+ 价格 + 销售。【不给 data.view_reviews】—— 绩效是一个人对另一个人的评价,不是可审计的账;也不给薪酬与银行明细。
+INSERT INTO public.role_permissions (role_id, permission_code)
+SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
+        'data.view_prices', 'data.view_sales', 'module.customers.view', 'module.finance.view',
+        'module.hr.view', 'module.inbound.view', 'module.inventory.view',
+        'module.materials.view', 'module.output.view', 'module.pricing.view',
+        'module.processing.view', 'module.purchasing.view', 'module.stocktakes.view',
+        'module.suppliers.view', 'module.tasks.view'
+) WHERE r.code = 'auditor';
+
+-- employee:【一个模块权限都不给】—— 员工自助是行级的,靠 current_user_employee()
+-- 限定到本人相关的行。给模块权限反而会把整张表打开。
+
+-- 引导默认值的自检:edit 必须伴随同模块的 view。
+DO $bootstrap_check$
+DECLARE v_bad text;
+BEGIN
+    SELECT string_agg(r.code || ' -> ' || rp.permission_code, ', ')
+    INTO v_bad
+    FROM role_permissions rp
+    JOIN roles r ON r.id = rp.role_id
+    WHERE rp.permission_code LIKE '%.edit'
+      AND NOT EXISTS (SELECT 1 FROM role_permissions v
+                      WHERE v.role_id = rp.role_id
+                        AND v.permission_code = replace(rp.permission_code, '.edit', '.view'));
+    IF v_bad IS NOT NULL THEN
+        RAISE EXCEPTION 'BOOTSTRAP_EDIT_REQUIRES_VIEW|%', v_bad;
+    END IF;
+END;
+$bootstrap_check$;
