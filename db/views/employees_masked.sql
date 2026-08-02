@@ -1,16 +1,15 @@
 -- db/views/employees_masked.sql
--- 员工档案的遮蔽伴生视图。身份与联系方式要 data.view_identity,
--- 合同月薪 monthly_salary 要 data.view_pay —— 两者同样【对本人让路】。
+-- 员工档案的遮蔽伴生视图。身份/联系方式要 data.view_identity,月固定工资要 data.view_pay,
+-- 两者都【对本人让路】。
 --
--- 【monthly_salary_set 不遮蔽】"有没有录工资"不是敏感信息,"是多少"才是。
--- hr_alerts(SECURITY INVOKER)与列表页要能问"谁还没录"。
+-- 【年假三列都是派生的(HR-2c)】annual_leave_days 那一列已经删掉 —— 一个事实两个家
+-- 就是 monthly_salary / gross_pay 那个 bug 再来一次。现在:
+--   annual_leave_rate_days       年度【费率】(月费率 × 12),界面必须按费率标
+--   annual_leave_accrued_days    到今天已经挣到的
+--   annual_leave_available_days  扣掉已请、加上结转后真正能请的
+-- 软删的行用 deleted_at 守卫(那些函数对已删除员工会报错)。
 --
--- 【新列一律追加在末尾】employee_directory 依赖本视图;只在尾部加列,
--- CREATE OR REPLACE 就能原地改,依赖视图一个都不用动(DROP 会要 CASCADE)。
---
--- NOTE: introduced by db/migrations/2026-08-01-perm2b-field-masking.sql;
---       updated by db/migrations/2026-08-03-hr3a-performance-reviews.sql and
---       db/migrations/2026-08-04-hr3b-salary-basis-and-review-visibility.sql.
+-- NOTE: introduced/updated by db/migrations/2026-08-06-hr2c-monthly-accrual.sql.
 
 CREATE VIEW public.employees_masked WITH (security_invoker = off) AS
  SELECT id,
@@ -28,7 +27,6 @@ CREATE VIEW public.employees_masked WITH (security_invoker = off) AS
     separation_date,
     separation_type,
     separation_notes,
-    annual_leave_days,
         CASE
             WHEN has_permission('data.view_identity'::text) OR id = current_user_employee() THEN work_email
             ELSE NULL::text
@@ -62,6 +60,22 @@ CREATE VIEW public.employees_masked WITH (security_invoker = off) AS
             ELSE NULL::numeric
         END AS monthly_salary,
     monthly_salary_set,
-    review_exempt
+    review_exempt,
+        CASE
+            WHEN deleted_at IS NULL THEN annual_leave_rate_per_month(id)
+            ELSE NULL::numeric
+        END AS annual_leave_rate_days_per_month,
+        CASE
+            WHEN deleted_at IS NULL THEN annual_leave_rate_per_month(id) * 12::numeric
+            ELSE NULL::numeric
+        END AS annual_leave_rate_days,
+        CASE
+            WHEN deleted_at IS NULL THEN accrued_annual_leave(id)
+            ELSE NULL::numeric
+        END AS annual_leave_accrued_days,
+        CASE
+            WHEN deleted_at IS NULL THEN (leave_balance_internal(id, 'annual'::text) ->> 'available'::text)::numeric
+            ELSE NULL::numeric
+        END AS annual_leave_available_days
    FROM employees
   WHERE has_permission('module.hr.view'::text) OR id = current_user_employee();

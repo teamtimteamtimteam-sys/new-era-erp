@@ -20,7 +20,6 @@ import {
     EMPLOYMENT_STATUS_OPTIONS,
     RESIDENCY_OPTIONS,
     SEPARATION_TYPE_OPTIONS,
-    HANDBOOK_LEAVE_DAYS,
 } from '../options'
 import { createEmployee, updateEmployee, type EmployeeFormState } from './actions'
 
@@ -42,7 +41,6 @@ export type EmployeeRecord = {
     separation_date: string | null
     separation_type: string | null
     separation_notes: string | null
-    annual_leave_days: number
     work_email: string | null
     work_phone: string | null
     residency_status: string | null
@@ -88,9 +86,6 @@ export default function EmployeeForm({
     const [status, setStatus] = useState(employee?.employment_status ?? 'probation')
     const [residency, setResidency] = useState(employee?.residency_status ?? '')
     const [workCategory, setWorkCategory] = useState(employee?.work_category ?? 'office')
-    const [leaveDays, setLeaveDays] = useState(
-        employee ? String(employee.annual_leave_days) : ''
-    )
 
     const label = 'block text-sm font-medium mb-1'
     const field = 'w-full border border-gray-300 px-3 py-2 rounded'
@@ -269,18 +264,6 @@ export default function EmployeeForm({
                                 </option>
                             ))}
                         </select>
-                    </div>
-                    <div>
-                        <label className={label}>{t('hr.colAnnualLeave')}</label>
-                        <DecimalInput
-                            name="annual_leave_days"
-                            value={leaveDays}
-                            onChange={setLeaveDays}
-                            className="w-28 border border-gray-300 px-3 py-2 rounded"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                            {t('hr.leaveHint', { days: HANDBOOK_LEAVE_DAYS[workCategory] ?? 0 })}
-                        </p>
                     </div>
                 </div>
 

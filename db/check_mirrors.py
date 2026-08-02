@@ -93,6 +93,9 @@ SEED_TABLES = {
 RUNTIME_CONFIG_TABLES = [
     "roles", "role_permissions", "leave_types", "public_holidays",
     "review_rating_scale", "company_profile", "finance_settings", "hr_settings",
+    # HR-2c:HR 会在界面上加 override 行(一份谈定的年假是合同条款),
+    # 逐行跟踪线上会让第一个 override 就把 check_mirrors 变红,那样这个检查就没人信了。
+    "leave_accrual_rates",
 ]
 
 # 科目字面量扫描的例外名单。【只放误伤,不放"懒得处理"】,每条必须写明理由。

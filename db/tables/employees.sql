@@ -25,9 +25,8 @@
 --
 -- 其它约定:
 --   * code 'EMP-YYYY-NNNN' 无缝编号(next_employee_code + BEFORE INSERT 触发器);
---   * work_category(办公室/车间)是【年假默认值】的依据 —— 手册写 24 / 18 天,
---     由 BEFORE INSERT 触发器在调用方没给(仍是 0)时套用。【是默认值不是约束】:
---     谈定了别的天数照样存得进去;
+--   * work_category(办公室/车间)决定【年假的每月累积费率】—— 费率表在
+--     leave_accrual_rates(HR-2c),按月解析;谈定了别的天数就在那张表加一条 override;
 --   * manager_id 自引用,环路由 guard_manager_cycle 挡住;
 --   * user_id 是【给权限切次预留】的登录账号接口 —— 可空、【不建到 auth 架构的
 --     外键】(与较新的表一致,只存 uuid),部分唯一索引保证两名员工不共用一个登录。
@@ -53,7 +52,6 @@ CREATE TABLE public.employees (
     separation_date      date,
     separation_type      text CHECK (separation_type IN ('resignation','retirement','redundancy','dismissal','contract_expiry')),
     separation_notes     text,
-    annual_leave_days    numeric NOT NULL DEFAULT 0 CHECK (annual_leave_days >= 0),
     work_email           text,  -- RESTRICTED
     work_phone           text,  -- RESTRICTED
     residency_status     text CHECK (residency_status IN ('citizen','pr','work_pass')),
@@ -118,25 +116,9 @@ CREATE TRIGGER trg_employees_code
     BEFORE INSERT ON public.employees
     FOR EACH ROW EXECUTE FUNCTION public.assign_employee_code();
 
--- 年假默认值(手册:办公室 24 / 车间 18)——【默认值,不是约束】
-CREATE OR REPLACE FUNCTION public.default_employee_leave_days()
-RETURNS trigger LANGUAGE plpgsql AS $fn$
-BEGIN
-    IF NEW.annual_leave_days = 0 THEN
-        NEW.annual_leave_days := CASE NEW.work_category
-            WHEN 'office' THEN 24
-            WHEN 'shopfloor' THEN 18
-            ELSE 0
-        END;
-    END IF;
-    RETURN NEW;
-END;
-$fn$;
-
-CREATE TRIGGER trg_employees_leave_default
-    BEFORE INSERT ON public.employees
-    FOR EACH ROW EXECUTE FUNCTION public.default_employee_leave_days();
-
+-- 【年假默认值的触发器已随 HR-2c 删除】24/18 不再是这里的字面量,也不再复制成
+-- 每一行的 annual_leave_days —— 费率住在 leave_accrual_rates(生效日期式),
+-- 按月累积由 accrued_annual_leave() 逐月解析。一个事实一个家。
 -- 汇报关系环路守卫(同 departments 那套上溯法)
 CREATE OR REPLACE FUNCTION public.guard_manager_cycle()
 RETURNS trigger LANGUAGE plpgsql AS $fn$
@@ -190,7 +172,7 @@ REVOKE SELECT ON public.employees FROM authenticated, anon;
 -- HR-3a:confirmation_date 授回(不敏感);monthly_salary【故意不授】,
 -- 直读原始列在 PostgREST 上是 42501,只能经 employees_masked 读。
 -- HR-3b:monthly_salary_set 与 review_exempt 同样授回 —— 都不是敏感数据。
-GRANT SELECT (id, code, legal_name, preferred_name, department_id, job_title, manager_id, employment_type, work_category, hire_date, probation_end_date, employment_status, separation_date, separation_type, separation_notes, annual_leave_days, residency_status, work_pass_type, work_pass_issue_date, work_pass_expiry_date, user_id, notes, deleted_at, created_at, created_by, updated_at, updated_by, confirmation_date, monthly_salary_set, review_exempt)
+GRANT SELECT (id, code, legal_name, preferred_name, department_id, job_title, manager_id, employment_type, work_category, hire_date, probation_end_date, employment_status, separation_date, separation_type, separation_notes, residency_status, work_pass_type, work_pass_issue_date, work_pass_expiry_date, user_id, notes, deleted_at, created_at, created_by, updated_at, updated_by, confirmation_date, monthly_salary_set, review_exempt)
     ON public.employees TO authenticated;
 
 -- cut 4 员工自助:【追加】一条 PERMISSIVE 策略,与既有模块策略【或】起来。

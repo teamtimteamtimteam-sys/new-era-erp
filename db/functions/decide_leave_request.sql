@@ -1,7 +1,9 @@
 -- db/functions/decide_leave_request.sql
--- 审批。批准时【按到期日从早到晚】扣减授予 —— 反了的话结转来的天数会先烂掉。
+-- 审批并扣账。【先用旧的】:结转行(有失效日)先吃,吃完再从当年度的派生累积里扣。
+-- 反过来的话结转天数会先烂掉,对员工是净损失。
+-- 派生累积没有授予行可挂,所以那笔消耗记 accrual_year、leave_grant_id 留空。
 --
--- NOTE: introduced by db/migrations/2026-08-02-hr2a-leave-and-claims.sql.
+-- NOTE: introduced/updated by db/migrations/2026-08-06-hr2c-monthly-accrual.sql.
 
 CREATE OR REPLACE FUNCTION public.decide_leave_request(p_request_id uuid, p_approve boolean, p_notes text DEFAULT NULL::text)
  RETURNS jsonb
@@ -16,6 +18,7 @@ DECLARE
     v_take   numeric;
     v_bal    jsonb;
     v_avail  numeric;
+    v_accrual numeric;
     g        record;
     v_used   jsonb := '[]'::jsonb;
 BEGIN
@@ -35,25 +38,24 @@ BEGIN
     END IF;
 
     IF v_type.is_accrued THEN
-        -- 提交到审批之间别人可能已经消耗掉了,所以这里【重新验一次】
         v_bal := leave_balance(v_req.employee_id, v_req.leave_type_code, v_req.start_date);
         v_avail := (v_bal->>'available')::numeric;
         IF v_avail < v_req.days THEN
-            RAISE EXCEPTION 'INSUFFICIENT_BALANCE|%|%', v_avail, v_req.days;
+            RAISE EXCEPTION 'INSUFFICIENT_ACCRUED_LEAVE|%|%',
+                trim_scale(v_avail), trim_scale(v_req.days);
         END IF;
 
         v_need := v_req.days;
         -- ══════════════════════════════════════════════════════════════════
         -- 【先用旧的】:按 expires_on 从早到晚扣。
-        -- 这是本切最容易做反的一条 —— 反过来的话,结转来的天数会先过期烂掉,
-        -- 而当年的还好好留着,对员工是净损失。NULLS LAST 让"永不过期"的授予排最后。
+        -- 结转来的行有失效日,当年累积没有 —— 所以结转天数天然排在前面被先吃掉,
+        -- 反过来的话它们会先烂掉,对员工是净损失。
         -- ══════════════════════════════════════════════════════════════════
         FOR g IN
             SELECT gr.id, gr.days, gr.expires_on, gr.leave_year, gr.grant_type,
                    gr.days
                    - COALESCE((SELECT SUM(CASE WHEN c.entry_type='draw' THEN c.days ELSE -c.days END)
                                FROM leave_consumption c WHERE c.leave_grant_id = gr.id), 0)
-                   -- 已结转走的部分不能再从这里扣,否则同一天会被用两次
                    - COALESCE((SELECT SUM(cf.days) FROM leave_grants cf
                                WHERE cf.source_grant_id = gr.id AND cf.grant_type = 'carry_forward'
                                  AND cf.deleted_at IS NULL), 0) AS remaining
@@ -69,13 +71,31 @@ BEGIN
             INSERT INTO leave_consumption (leave_request_id, leave_grant_id, entry_type, days)
             VALUES (p_request_id, g.id, 'draw', v_take);
             v_need := v_need - v_take;
-            v_used := v_used || jsonb_build_object('grant_id', g.id, 'leave_year', g.leave_year,
+            v_used := v_used || jsonb_build_object('source', 'grant', 'grant_id', g.id,
+                                                   'leave_year', g.leave_year,
                                                    'grant_type', g.grant_type,
                                                    'expires_on', g.expires_on, 'days', v_take);
         END LOOP;
 
+        -- 结转吃完了还不够 → 从当年度的派生累积里扣(记 accrual_year,不挂授予行)
+        IF v_need > 0 AND v_type.is_accrued THEN
+            v_accrual := available_annual_accrual(v_req.employee_id, v_req.start_date);
+            v_take := LEAST(v_accrual, v_need);
+            IF v_take > 0 THEN
+                INSERT INTO leave_consumption (leave_request_id, leave_grant_id, entry_type, days, accrual_year)
+                VALUES (p_request_id, NULL, 'draw', v_take,
+                        EXTRACT(YEAR FROM v_req.start_date)::integer);
+                v_need := v_need - v_take;
+                v_used := v_used || jsonb_build_object('source', 'accrual',
+                                                       'leave_year', EXTRACT(YEAR FROM v_req.start_date)::integer,
+                                                       'grant_type', 'monthly_accrual',
+                                                       'expires_on', NULL, 'days', v_take);
+            END IF;
+        END IF;
+
         IF v_need > 0 THEN
-            RAISE EXCEPTION 'INSUFFICIENT_BALANCE|%|%', v_req.days - v_need, v_req.days;
+            RAISE EXCEPTION 'INSUFFICIENT_ACCRUED_LEAVE|%|%',
+                trim_scale(v_req.days - v_need), trim_scale(v_req.days);
         END IF;
     END IF;
 
@@ -86,4 +106,5 @@ BEGIN
     RETURN jsonb_build_object('request_id', p_request_id, 'code', v_req.code, 'status','approved',
                               'days', v_req.days, 'consumed_from', v_used);
 END;
-$function$;
+$function$
+;

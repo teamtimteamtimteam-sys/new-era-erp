@@ -1,9 +1,8 @@
 -- db/views/my_profile.sql
--- 员工自助的那一行:当前登录者自己的档案 + 部门、直属上级、培训条数、最近薪资期间。
--- 属主权限 + 视图体里的 current_user_employee() 谓词。账号没关联员工档案时自然是零行。
--- 【敏感列照给】—— 身份证件号、准证号是这个人自己的数据。
+-- 员工自助的那一行。属主权限 + 视图体里的 current_user_employee() 谓词。
+-- 【敏感列照给】—— 那是这个人自己的数据。年假三列同 employees_masked(HR-2c)。
 --
--- NOTE: introduced/updated by db/migrations/2026-08-02-perm4-self-service.sql.
+-- NOTE: introduced/updated by db/migrations/2026-08-06-hr2c-monthly-accrual.sql.
 
 CREATE VIEW public.my_profile WITH (security_invoker = off) AS
  SELECT e.id AS employee_id,
@@ -16,7 +15,10 @@ CREATE VIEW public.my_profile WITH (security_invoker = off) AS
     e.employment_status,
     e.hire_date,
     e.probation_end_date,
-    e.annual_leave_days,
+    annual_leave_rate_per_month(e.id) AS annual_leave_rate_days_per_month,
+    annual_leave_rate_per_month(e.id) * 12::numeric AS annual_leave_rate_days,
+    accrued_annual_leave(e.id) AS annual_leave_accrued_days,
+    (leave_balance_internal(e.id, 'annual'::text) ->> 'available'::text)::numeric AS annual_leave_available_days,
     e.residency_status,
     e.work_pass_type,
     e.work_pass_no,

@@ -49,10 +49,8 @@ export const TRAINING_CATEGORY_OPTIONS: Option[] = [
 
 // 手册的年假基数(办公室 24 / 车间 18)。DB 的 BEFORE INSERT 触发器也用这两个数 ——
 // 这里只是把同一份约定显示给录入的人看,【不参与任何计算】。
-export const HANDBOOK_LEAVE_DAYS: Record<string, number> = {
-    office: 24,
-    shopfloor: 18,
-}
+// HANDBOOK_LEAVE_DAYS 已删除(HR-2c):24/18 现在只住在 leave_accrual_rates,
+// 由 leave_accrual_rate() 解析。界面要显示费率就读派生列,不再自己存一份。
 
 // 当月最后一个周五 —— 手册约定的发薪日。用作新建薪资期间时 payment_date 的默认值
 // (只是默认值,照常可改)。

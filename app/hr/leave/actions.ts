@@ -17,6 +17,7 @@ export async function localizeLeaveError(message: string): Promise<string> {
     if (!m) return message
     const p = (m[2] ?? '').split('|')
     switch (m[1]) {
+        case 'INSUFFICIENT_ACCRUED_LEAVE':
         case 'INSUFFICIENT_BALANCE':
             return t('leave.errInsufficient', { 0: p[0] ?? '', 1: p[1] ?? '' })
         case 'PROBATION_NO_ANNUAL_LEAVE':
@@ -134,20 +135,7 @@ export async function previewLeaveDays(
     return data as number
 }
 
-export async function runGrantAnnualLeave(
-    employeeId: string,
-    year: number
-): Promise<LeaveState & { detail?: unknown }> {
-    const supabase = await createClient()
-    const { data, error } = await supabase.rpc('grant_annual_leave', {
-        p_employee_id: employeeId,
-        p_leave_year: year,
-    })
-    if (error) return { error: await localizeLeaveError(error.message) }
-    revalidatePath('/hr/leave/grants')
-    return { success: true, detail: data }
-}
-
+// grant_annual_leave 已随 HR-2c 删除:年假按月累积、读时派生,没有"整年发放"这个动作了。年末结转仍在下面,那是另一个来源。
 export async function runCarryForward(year: number): Promise<LeaveState & { detail?: unknown }> {
     const supabase = await createClient()
     const { data, error } = await supabase.rpc('carry_forward_annual_leave', { p_leave_year: year })

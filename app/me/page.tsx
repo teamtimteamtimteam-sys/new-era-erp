@@ -136,7 +136,7 @@ export default async function MePage() {
                     <div>
                         <div className={dt}>{t('me.annualLeave')}</div>
                         <div className={dd}>
-                            {p.annual_leave_days ?? 0} {t('me.days')}
+                            {p.annual_leave_available_days ?? 0} {t('me.days')}<span className="text-xs text-gray-500 ml-2">({p.annual_leave_accrued_days ?? 0} accrued of {p.annual_leave_rate_days ?? 0}/yr rate)</span>
                         </div>
                     </div>
                     {p.work_pass_type && (

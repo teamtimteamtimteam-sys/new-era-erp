@@ -705,7 +705,6 @@ export type Database = {
       }
       employees: {
         Row: {
-          annual_leave_days: number
           code: string
           confirmation_date: string | null
           created_at: string
@@ -742,7 +741,6 @@ export type Database = {
           work_phone: string | null
         }
         Insert: {
-          annual_leave_days?: number
           code: string
           confirmation_date?: string | null
           created_at?: string
@@ -779,7 +777,6 @@ export type Database = {
           work_phone?: string | null
         }
         Update: {
-          annual_leave_days?: number
           code?: string
           confirmation_date?: string | null
           created_at?: string
@@ -882,6 +879,7 @@ export type Database = {
           new_monthly_salary: number | null
           notes: string | null
           old_monthly_salary: number | null
+          work_category: string | null
         }
         Insert: {
           change_type: string
@@ -897,6 +895,7 @@ export type Database = {
           new_monthly_salary?: number | null
           notes?: string | null
           old_monthly_salary?: number | null
+          work_category?: string | null
         }
         Update: {
           change_type?: string
@@ -912,6 +911,7 @@ export type Database = {
           new_monthly_salary?: number | null
           notes?: string | null
           old_monthly_salary?: number | null
+          work_category?: string | null
         }
         Relationships: [
           {
@@ -1946,34 +1946,122 @@ export type Database = {
           },
         ]
       }
+      leave_accrual_rates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          days_per_month: number | null
+          effective_from: string
+          employee_id: string | null
+          id: string
+          notes: string | null
+          reason: string | null
+          updated_at: string
+          updated_by: string | null
+          work_category: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          days_per_month?: number | null
+          effective_from: string
+          employee_id?: string | null
+          id?: string
+          notes?: string | null
+          reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          work_category?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          days_per_month?: number | null
+          effective_from?: string
+          employee_id?: string | null
+          id?: string
+          notes?: string | null
+          reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          work_category?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_accrual_rates_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_accrual_rates_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_accrual_rates_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_accrual_rates_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_accrual_rates_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_accrual_rates_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+        ]
+      }
       leave_consumption: {
         Row: {
+          accrual_year: number | null
           created_at: string
           created_by: string | null
           days: number
           entry_type: string
           id: string
-          leave_grant_id: string
+          leave_grant_id: string | null
           leave_request_id: string
           notes: string | null
         }
         Insert: {
+          accrual_year?: number | null
           created_at?: string
           created_by?: string | null
           days: number
           entry_type?: string
           id?: string
-          leave_grant_id: string
+          leave_grant_id?: string | null
           leave_request_id: string
           notes?: string | null
         }
         Update: {
+          accrual_year?: number | null
           created_at?: string
           created_by?: string | null
           days?: number
           entry_type?: string
           id?: string
-          leave_grant_id?: string
+          leave_grant_id?: string | null
           leave_request_id?: string
           notes?: string | null
         }
@@ -5509,7 +5597,9 @@ export type Database = {
       }
       employee_directory: {
         Row: {
-          annual_leave_days: number | null
+          annual_leave_accrued_days: number | null
+          annual_leave_available_days: number | null
+          annual_leave_rate_days: number | null
           code: string | null
           current_gross_pay: number | null
           current_pay_period: string | null
@@ -5589,7 +5679,10 @@ export type Database = {
       }
       employees_masked: {
         Row: {
-          annual_leave_days: number | null
+          annual_leave_accrued_days: number | null
+          annual_leave_available_days: number | null
+          annual_leave_rate_days: number | null
+          annual_leave_rate_days_per_month: number | null
           code: string | null
           confirmation_date: string | null
           created_at: string | null
@@ -5626,7 +5719,10 @@ export type Database = {
           work_phone: string | null
         }
         Insert: {
-          annual_leave_days?: number | null
+          annual_leave_accrued_days?: never
+          annual_leave_available_days?: never
+          annual_leave_rate_days?: never
+          annual_leave_rate_days_per_month?: never
           code?: string | null
           confirmation_date?: string | null
           created_at?: string | null
@@ -5663,7 +5759,10 @@ export type Database = {
           work_phone?: never
         }
         Update: {
-          annual_leave_days?: number | null
+          annual_leave_accrued_days?: never
+          annual_leave_available_days?: never
+          annual_leave_rate_days?: never
+          annual_leave_rate_days_per_month?: never
           code?: string | null
           confirmation_date?: string | null
           created_at?: string | null
@@ -6408,7 +6507,10 @@ export type Database = {
       }
       my_profile: {
         Row: {
-          annual_leave_days: number | null
+          annual_leave_accrued_days: number | null
+          annual_leave_available_days: number | null
+          annual_leave_rate_days: number | null
+          annual_leave_rate_days_per_month: number | null
           code: string | null
           department_name_en: string | null
           department_name_zh: string | null
@@ -7819,10 +7921,22 @@ export type Database = {
       }
     }
     Functions: {
+      accrued_annual_leave: {
+        Args: { p_as_of?: string; p_employee_id: string }
+        Returns: number
+      }
+      accrued_annual_leave_detail: {
+        Args: { p_as_of?: string; p_employee_id: string }
+        Returns: Json
+      }
       acknowledge_review: { Args: { p_review_id: string }; Returns: Json }
       allocate_processing_costs: {
         Args: { p_basis?: string; p_run_id: string }
         Returns: Json
+      }
+      annual_leave_rate_per_month: {
+        Args: { p_as_of?: string; p_employee_id: string }
+        Returns: number
       }
       apply_assay_result: {
         Args: {
@@ -7846,6 +7960,10 @@ export type Database = {
         Returns: Json
       }
       approve_review: { Args: { p_review_id: string }; Returns: Json }
+      available_annual_accrual: {
+        Args: { p_as_of?: string; p_employee_id: string }
+        Returns: number
+      }
       bank_native_currency: {
         Args: { p_account_code: string }
         Returns: string
@@ -7912,6 +8030,10 @@ export type Database = {
         Args: { p_as_of?: string; p_employee_id: string }
         Returns: Json
       }
+      consumed_from_accrual: {
+        Args: { p_employee_id: string; p_leave_year: number }
+        Returns: number
+      }
       create_invoice: {
         Args: {
           p_customer_id: string
@@ -7948,6 +8070,10 @@ export type Database = {
         Args: { p_approve: boolean; p_claim_id: string; p_notes?: string }
         Returns: Json
       }
+      employee_work_category_at: {
+        Args: { p_employee_id: string; p_month: string }
+        Returns: string
+      }
       fin_cost_account: { Args: { p_cost_type: string }; Returns: string }
       fin_cost_lines: {
         Args: { p_amount: number; p_cost_type: string; p_reverse: boolean }
@@ -7956,10 +8082,6 @@ export type Database = {
       fin_next_payment_code: {
         Args: { p_date: string; p_prefix: string }
         Returns: string
-      }
-      grant_annual_leave: {
-        Args: { p_employee_id: string; p_leave_year: number }
-        Returns: Json
       }
       has_permission: { Args: { p_code: string }; Returns: boolean }
       ignore_bank_line: {
@@ -7978,7 +8100,23 @@ export type Database = {
         }
         Returns: Json
       }
+      leave_accrual_rate: {
+        Args: {
+          p_employee_id: string
+          p_month: string
+          p_work_category: string
+        }
+        Returns: Json
+      }
       leave_balance: {
+        Args: {
+          p_as_of?: string
+          p_employee_id: string
+          p_leave_type_code?: string
+        }
+        Returns: Json
+      }
+      leave_balance_internal: {
         Args: {
           p_as_of?: string
           p_employee_id: string

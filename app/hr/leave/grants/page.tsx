@@ -16,21 +16,14 @@ export default async function GrantsPage({
     const supabase = await createClient()
     const t = await getTranslations()
 
-    const [empRes, grantRes] = await Promise.all([
-        supabase.from('employees').select('id, code, legal_name, hire_date, annual_leave_days')
-            .is('deleted_at', null).neq('employment_status', 'separated').order('code'),
-        supabase.from('leave_grants').select('employee_id, grant_type, days, leave_year')
-            .eq('leave_type_code', 'annual').is('deleted_at', null),
-    ])
+    // 【只剩年末结转】年度发放随 HR-2c 删除:年假按月累积、读时派生。
+    const grantRes = await supabase.from('leave_grants')
+        .select('employee_id, grant_type, days, leave_year')
+        .eq('leave_type_code', 'annual').is('deleted_at', null)
 
     const grants = grantRes.data ?? []
-    const hasEntitlement = new Set(
-        grants.filter((g) => g.leave_year === year && (g.grant_type === 'entitlement' || g.grant_type === 'pro_rata'))
-              .map((g) => g.employee_id))
     const hasCarry = new Set(
         grants.filter((g) => g.leave_year === year && g.grant_type === 'carry_forward').map((g) => g.employee_id))
-
-    const missing = (empRes.data ?? []).filter((e) => !hasEntitlement.has(e.id))
 
     return (
         <div className="p-8 max-w-4xl">
@@ -49,13 +42,7 @@ export default async function GrantsPage({
                 </button>
             </form>
 
-            <GrantRunner
-                year={year}
-                missing={missing.map((e) => ({ id: e.id, code: e.code, legal_name: e.legal_name,
-                                               hire_date: e.hire_date, annual_leave_days: e.annual_leave_days }))}
-                alreadyGranted={hasEntitlement.size}
-                alreadyCarried={hasCarry.size}
-            />
+            <GrantRunner year={year} alreadyCarried={hasCarry.size} />
         </div>
     )
 }

@@ -1,24 +1,18 @@
 'use client'
 
 // app/hr/leave/grants/GrantRunner.tsx
-// 【先看会发生什么,再动手】。两个操作都会写进假期账,而账一旦错了,
-// 最后是在某个人离职那天以一个错误的补偿金额暴露出来 —— 所以先把清单摊开。
+// 年末结转。【先看会发生什么,再动手】—— 结转会写进假期账,账一旦错了,
+// 最后是在某个人离职那天以一个错误的补偿金额暴露出来。
+// 【年度发放那一半已随 HR-2c 删除】:年假按月累积、读时派生,没有"整年发放"这个动作了。
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
-import { runGrantAnnualLeave, runCarryForward } from '../actions'
-
-type Missing = {
-    id: string; code: string; legal_name: string
-    hire_date: string; annual_leave_days: number
-}
+import { runCarryForward } from '../actions'
 
 export default function GrantRunner({
-    year, missing, alreadyGranted, alreadyCarried,
+    year, alreadyCarried,
 }: {
     year: number
-    missing: Missing[]
-    alreadyGranted: number
     alreadyCarried: number
 }) {
     const t = useTranslations()
@@ -27,26 +21,7 @@ export default function GrantRunner({
     const [error, setError] = useState<string | null>(null)
     const [log, setLog] = useState<string[]>([])
 
-    // 界面上先按同一套规则预估:入职当月起算的完整月数 ÷ 12,取到 0.5。
-    // 真正的数字仍由 grant_annual_leave 算 —— 这里只是让人先看一眼。
-    function preview(m: Missing) {
-        const hire = new Date(m.hire_date + 'T00:00:00')
-        const months = hire.getFullYear() < year ? 12 : 12 - hire.getMonth()
-        return Math.round((m.annual_leave_days * months) / 12 * 2) / 2
-    }
 
-    function grantAll() {
-        setError(null); setLog([])
-        startTransition(async () => {
-            const out: string[] = []
-            for (const m of missing) {
-                const r = await runGrantAnnualLeave(m.id, year)
-                out.push(r.error ? `${m.code}: ${r.error}` : `${m.code}: ${t('leave.granted')} ${preview(m)}`)
-            }
-            setLog(out)
-            router.refresh()
-        })
-    }
 
     function carry() {
         setError(null); setLog([])
@@ -73,39 +48,6 @@ export default function GrantRunner({
                     {log.map((l, i) => <div key={i} className="font-mono text-xs">{l}</div>)}
                 </div>
             )}
-
-            <section className={card}>
-                <h2 className="font-bold mb-1">{t('leave.grantAnnualTitle', { 0: String(year) })}</h2>
-                <p className="text-sm text-gray-600 mb-3">{t('leave.grantAnnualHint')}</p>
-                <p className="text-sm mb-3">
-                    {t('leave.alreadyGranted', { 0: String(alreadyGranted) })} ·{' '}
-                    {t('leave.missingCount', { 0: String(missing.length) })}
-                </p>
-                {missing.length > 0 && (
-                    <table className="w-full border-collapse text-xs mb-3">
-                        <thead>
-                            <tr className="bg-gray-50 text-left">
-                                <th className="border border-gray-300 px-2 py-1">{t('leave.employee')}</th>
-                                <th className="border border-gray-300 px-2 py-1">{t('me.hireDate')}</th>
-                                <th className="border border-gray-300 px-2 py-1 text-right">{t('leave.willGrant')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {missing.map((m) => (
-                                <tr key={m.id}>
-                                    <td className="border border-gray-300 px-2 py-1">{m.code} — {m.legal_name}</td>
-                                    <td className="border border-gray-300 px-2 py-1">{m.hire_date}</td>
-                                    <td className="border border-gray-300 px-2 py-1 text-right font-mono">{preview(m)}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                )}
-                <button type="button" onClick={grantAll} disabled={pending || missing.length === 0}
-                        className="bg-gray-900 text-white px-4 py-1.5 rounded text-sm disabled:opacity-50">
-                    {pending ? t('common.saving') : t('leave.runGrant', { 0: String(missing.length) })}
-                </button>
-            </section>
 
             <section className={card}>
                 <h2 className="font-bold mb-1">{t('leave.carryTitle', { 0: String(year), 1: String(year + 1) })}</h2>

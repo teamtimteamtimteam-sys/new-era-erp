@@ -93,7 +93,6 @@ function readForm(formData: FormData) {
         separation_date: status === 'separated' ? s('separation_date') || null : null,
         separation_type: status === 'separated' ? s('separation_type') || null : null,
         separation_notes: status === 'separated' ? s('separation_notes') || null : null,
-        annual_leave_days: s('annual_leave_days') === '' ? 0 : Number(s('annual_leave_days')),
         work_email: s('work_email') || null,
         work_phone: s('work_phone') || null,
         residency_status: residency || null,
@@ -119,12 +118,9 @@ export async function createEmployee(
     if (f.residency_status === 'work_pass' && (!f.work_pass_type || !f.work_pass_expiry_date)) {
         return { error: t('hr.errWorkPassRequired') }
     }
-    if (Number.isNaN(f.annual_leave_days) || f.annual_leave_days < 0) {
-        return { error: t('hr.errLeaveDays') }
-    }
 
     const supabase = await createClient()
-    // annual_leave_days 传 0 时,DB 的 BEFORE INSERT 触发器按手册补默认值(24/18);
+    // 年假天数不再是员工档案的字段(HR-2c):它按月累积,费率住在 leave_accrual_rates。
     // code 同样由触发器生成 —— 故断言成 InsertRow(生成的类型不知道触发器的存在)
     const { effective_date: _effective, ...payload } = f
     void _effective
@@ -169,9 +165,6 @@ export async function updateEmployee(
     }
     if (f.employment_status === 'separated' && !f.separation_date) {
         return { error: t('hr.errSeparationDate') }
-    }
-    if (Number.isNaN(f.annual_leave_days) || f.annual_leave_days < 0) {
-        return { error: t('hr.errLeaveDays') }
     }
 
     const supabase = await createClient()

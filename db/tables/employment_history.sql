@@ -22,8 +22,8 @@ CREATE TABLE public.employment_history (
     employee_id       uuid NOT NULL REFERENCES public.employees (id) ON DELETE RESTRICT,
     effective_date    date NOT NULL,
     change_type       text NOT NULL
-                      -- HR-3a 加了 'salary_change';既有七个值一个不动。
-                      CHECK (change_type IN ('hired','confirmed','promotion','transfer','type_change','status_change','separated','salary_change')),
+                      -- HR-3a 加了 'salary_change';HR-2c 加了 'category_change'。
+                      CHECK (change_type IN ('hired','confirmed','promotion','transfer','type_change','status_change','separated','salary_change','category_change')),
     job_title         text,
     department_id     uuid REFERENCES public.departments (id),
     employment_type   text,
@@ -34,9 +34,15 @@ CREATE TABLE public.employment_history (
     -- ── HR-3a 追加的两列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
     old_monthly_salary numeric,   -- RESTRICTED
     new_monthly_salary numeric,   -- RESTRICTED
+    -- ── HR-2c 追加 ───────────────────────────────────────────────────────────
+    -- 这次变动之后的工种类别。按月累积要按【那个月当时的类别】取费率,所以类别变更必须留痕。
+    work_category      text CHECK (work_category IN ('office','shopfloor')),
     -- 调薪行必须说得出新数字(old 可为 NULL:首次录入合同月薪时本来就没有旧值)
     CONSTRAINT employment_history_salary_shape CHECK (
         change_type <> 'salary_change' OR new_monthly_salary IS NOT NULL
+    ),
+    CONSTRAINT employment_history_category_shape CHECK (
+        change_type <> 'category_change' OR work_category IS NOT NULL
     )
 );
 
@@ -75,5 +81,7 @@ CREATE POLICY "employment_history select own rows"
 -- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
 REVOKE SELECT ON public.employment_history FROM authenticated, anon;
 GRANT SELECT (id, employee_id, effective_date, change_type, job_title, department_id,
-              employment_type, employment_status, notes, created_at, created_by)
+              employment_type, employment_status, notes, created_at, created_by, work_category)
     ON public.employment_history TO authenticated;
+COMMENT ON COLUMN public.employment_history.work_category IS
+    '这次变动之后的工种类别(office/shopfloor)。按月累积要按【那个月当时的类别】取费率,所以类别的变更必须留痕。历史行没填时,解析器回落到最早一条有值的记录,再回落到 employees 当前值。';
