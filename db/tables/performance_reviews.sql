@@ -162,3 +162,7 @@ GRANT SELECT (id, employee_id, review_type, cycle_id, period_start, period_end,
               notes, created_at, created_by, updated_at, updated_by,
               self_assessment_submitted_at)
     ON public.performance_reviews TO authenticated;
+
+-- 列注释:说明写在数据库里,重建出来的库也带着它们(OPS-1 补齐)。
+COMMENT ON COLUMN public.performance_reviews.self_assessment_submitted_at IS
+    '员工把自评定稿的时点。非空即锁死:save_self_assessment 不再受理写入,要重开须由评估人再调一次 open_for_self_assessment。';

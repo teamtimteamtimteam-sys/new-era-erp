@@ -4,6 +4,13 @@
 -- NOTE: introduced by db/migrations/2026-08-02-hr2a-leave-and-claims.sql.
 -- First-run script (plain CREATEs).
 
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 【运行期配置 / RUNTIME CONFIG —— 下面的种子是"全新安装的默认值",不是线上快照】
+-- 写入策略是特意开的(module.hr.edit 的 UPDATE;刻意不给 insert/delete —— 单行固定,值要可调)。working_days_per_week 直接进假期补偿公式。
+-- 所以【线上与本文件不一致是正常的,不是漂移】,check_mirrors.py 不把本表与线上比对。
+-- 它只保证镜像这一套自己首尾相顾(本文件引用到的码/科目都存在于对应的种子里)。
+-- ═══════════════════════════════════════════════════════════════════════════
+
 CREATE TABLE public.hr_settings (
     id                     boolean PRIMARY KEY DEFAULT true CHECK (id),
     medical_annual_limit_sgd numeric NOT NULL DEFAULT 1000,

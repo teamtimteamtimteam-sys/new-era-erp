@@ -4,6 +4,13 @@
 -- NOTE: introduced by db/migrations/2026-08-02-hr2a-leave-and-claims.sql.
 -- First-run script (plain CREATEs).
 
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 【运行期配置 / RUNTIME CONFIG —— 下面的种子是"全新安装的默认值",不是线上快照】
+-- 界面上可以改(app/hr/leave/types/actions.ts:25 的 update)。
+-- 所以【线上与本文件不一致是正常的,不是漂移】,check_mirrors.py 不把本表与线上比对。
+-- 它只保证镜像这一套自己首尾相顾(本文件引用到的码/科目都存在于对应的种子里)。
+-- ═══════════════════════════════════════════════════════════════════════════
+
 CREATE TABLE public.leave_types (
     code                           text PRIMARY KEY,
     name_en                        text NOT NULL,

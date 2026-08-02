@@ -34,6 +34,16 @@
     之后是二元的:一致,或不一致。
   * 覆盖:public 里存在而重放结果里没有 = 缺镜像;反之 = 镜像的对象已不在线上。
     表/视图/函数/序列/枚举都查,双向。排除扩展自带的对象(pg_depend deptype 'e')。
+  * 【种子行 / SEED ROWS】(OPS-1 增补)结构一致不等于装得起来 —— 照镜像重建出来的
+    库曾经【一个会计科目都没有】,财务模块过不了任何一笔账,而本脚本一路是绿的。
+    现在按 SEED_TABLES 清单逐行比对【安装种子】表(见该常量的分类规则):
+      INSTALL SEED  —— 操作员在应用里【改不了】的行,与代码版本绑定 ⇒ 逐行比对线上。
+      RUNTIME CONFIG —— 操作员改得了的行 ⇒ 镜像里的是"全新安装默认值",【不与线上比】。
+  * 【镜像自洽 / INTEGRITY】(OPS-1 增补)不看线上,只看镜像这一套自己首尾相顾:
+      - 每条 has_permission('X') 里的 X 必须在 permissions 的种子里;
+      - role_permissions 种子引用的每个码必须在 permissions 的种子里;
+      - 镜像里出现的每个科目字面量必须在 accounts 的种子里,【且必须打了 is_system】。
+    这三条里的任何一条,单独就能抓住 OPS-1 那个 bug,而且完全不需要连线上。
   * 【不比】:约束名(只比定义)、注释(COMMENT ON)、GRANT、序列参数与当前值、
     表存储参数。文件级排版(如尾随换行)也不在此查 —— 目录里没有这个概念。
 
@@ -60,6 +70,55 @@ DEFAULT_DSN = (
 )
 
 MARKER = "<<<MIRROR_REPORT>>>"
+SEED_MARKER = "<<<SEED_REPORT>>>"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 种子行清单。分类的判据【只有一句话】:操作员能不能通过应用的正常使用改动这些行?
+#   不能 → INSTALL SEED:行与代码版本绑定,镜像逐行跟踪线上,不一致即失败。
+#          这些表【只许迁移写】,db/scripts/ 的数据脚本永远不许碰 —— 于是
+#          db/scripts/README.md 那句"脚本不涉及镜像"继续成立。
+#   能   → RUNTIME CONFIG:线上理应与文件不同,那是系统在正常工作。不比对。
+# 判据要有证据(哪个页面 / RPC / 脚本在写),不靠直觉。证据见各镜像文件的抬头。
+# ═══════════════════════════════════════════════════════════════════════════
+SEED_TABLES = {
+    # table: (WHERE 子句 or None, 比对的列)
+    "permissions": (None, "code, category, name_en, name_zh, "
+                          "COALESCE(description_en,'') AS description_en, "
+                          "COALESCE(description_zh,'') AS description_zh, sort_order"),
+    "currencies":  (None, "code, name, is_base"),
+    # accounts 是【混合表】:引擎点名的 22 行跟踪线上,其余是建账的人的地盘。
+    "accounts":    ("is_system", "code, name_en, name_zh, account_type, is_system"),
+}
+
+RUNTIME_CONFIG_TABLES = [
+    "roles", "role_permissions", "leave_types", "public_holidays",
+    "review_rating_scale", "company_profile", "finance_settings", "hr_settings",
+]
+
+# 科目字面量扫描的例外名单。【只放误伤,不放"懒得处理"】,每条必须写明理由。
+# 空着是对的 —— 现在一条都不需要。
+ACCOUNT_LITERAL_ALLOWLIST = {
+    # "1234": "reason why this four-digit literal is not an account code",
+}
+
+
+def scan_literals() -> dict:
+    """扫描镜像文件里的三类字面量。注释行不算 —— 注释里提一句不是依赖。"""
+    perms, accounts = set(), set()
+    for sub in ("functions", "views", "tables"):
+        for f in sorted((REPO / "db" / sub).glob("*.sql")):
+            for line in f.read_text().splitlines():
+                if line.lstrip().startswith("--"):
+                    continue
+                perms.update(re.findall(r"has_permission\(\s*'([^']+)'", line))
+                perms.update(re.findall(r"require_permission\(\s*'([^']+)'", line))
+                accounts.update(re.findall(r"'(\d{4})'", line))
+    # role_permissions 种子里 IN (...) 与 p.code = '...' 引用到的码
+    rp = (REPO / "db" / "tables" / "role_permissions.sql").read_text()
+    rp = "\n".join(l for l in rp.splitlines() if not l.lstrip().startswith("--"))
+    perms.update(re.findall(r"'((?:module|data|action)\.[a-z_.]+)'", rp))
+    accounts -= set(ACCOUNT_LITERAL_ALLOWLIST)
+    return {"permission_codes": sorted(perms), "account_codes": sorted(accounts)}
 
 
 def rewrite(sql: str) -> str:
@@ -145,6 +204,7 @@ def build_sql() -> str:
 
     compare = COMPARE_SQL.replace("'mir'", f"'{SCHEMA}'").replace("'mir.'", f"'{SCHEMA}.'")
     parts.append(compare)
+    parts.append(seed_sql())
     parts.append("ROLLBACK;")  # 万无一失:正常路径也显式回滚(本脚本永不 COMMIT)
     return "\n".join(parts)
 
@@ -268,6 +328,47 @@ SELECT jsonb_build_object(
 """
 
 
+def seed_sql() -> str:
+    """种子行 + 镜像自洽,一条 SELECT 一份 jsonb 报告。"""
+    lit = scan_literals()
+    perm_arr = "ARRAY[" + ",".join(f"'{c}'" for c in lit["permission_codes"]) + "]::text[]" \
+        if lit["permission_codes"] else "ARRAY[]::text[]"
+    acct_arr = "ARRAY[" + ",".join(f"'{c}'" for c in lit["account_codes"]) + "]::text[]" \
+        if lit["account_codes"] else "ARRAY[]::text[]"
+
+    blocks = []
+    for tbl, (where, cols) in SEED_TABLES.items():
+        w = f" WHERE {where}" if where else ""
+        blocks.append(f"""
+    '{tbl}', (
+      WITH l AS (SELECT to_jsonb(x) j FROM (SELECT {cols} FROM public.{tbl}{w}) x),
+           m AS (SELECT to_jsonb(x) j FROM (SELECT {cols} FROM {SCHEMA}.{tbl}{w}) x)
+      SELECT jsonb_build_object(
+        'live_rows',   (SELECT count(*) FROM l),
+        'mirror_rows', (SELECT count(*) FROM m),
+        'missing_from_mirror', COALESCE((SELECT jsonb_agg(j ORDER BY j::text) FROM (SELECT j FROM l EXCEPT SELECT j FROM m) s), '[]'::jsonb),
+        'extra_in_mirror',     COALESCE((SELECT jsonb_agg(j ORDER BY j::text) FROM (SELECT j FROM m EXCEPT SELECT j FROM l) s), '[]'::jsonb))
+    )""")
+
+    integ = (
+        "  'integrity', jsonb_build_object(\n"
+        f"    'permission_codes_referenced', array_length({perm_arr}, 1),\n"
+        f"    'permission_codes_missing_from_seed', COALESCE((SELECT jsonb_agg(c ORDER BY c) FROM unnest({perm_arr}) c "
+        f"WHERE c NOT IN (SELECT code FROM {SCHEMA}.permissions)), '[]'::jsonb),\n"
+        f"    'account_codes_referenced', array_length({acct_arr}, 1),\n"
+        f"    'account_codes_missing_from_seed', COALESCE((SELECT jsonb_agg(c ORDER BY c) FROM unnest({acct_arr}) c "
+        f"WHERE c NOT IN (SELECT code FROM {SCHEMA}.accounts)), '[]'::jsonb),\n"
+        # 【自维护的那一条】被代码点名、线上存在、却没打 is_system 的科目 = 名单漏了一个。
+        # 宁可多打标记也不能漏 —— 漏掉的那一个正是 OPS-1 这个 bug 换一层楼重演。
+        f"    'account_codes_referenced_but_not_is_system', COALESCE((SELECT jsonb_agg(c ORDER BY c) FROM unnest({acct_arr}) c "
+        f"WHERE EXISTS (SELECT 1 FROM public.accounts a WHERE a.code = c AND NOT a.is_system)), '[]'::jsonb)\n"
+        "  )"
+    )
+    return ("SELECT '" + SEED_MARKER + "' || (SELECT jsonb_build_object(\n"
+            "  'seed', jsonb_build_object(" + ",".join(blocks) + "\n  ),\n"
+            + integ + "))::text AS seed_report;\n")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--json", action="store_true", help="输出完整 JSON 报告")
@@ -291,20 +392,30 @@ def main() -> int:
         sys.stderr.write(f"\n重放失败(线上库未被改动 —— 见文件头【回滚保证】)。生成的 SQL 留在:{script}\n")
         return 2
 
-    report = None
+    report = seed = None
     for line in proc.stdout.splitlines():
         if line.startswith(MARKER):
             report = json.loads(line[len(MARKER):])
-            break
-    if report is None:
+        elif line.startswith(SEED_MARKER):
+            seed = json.loads(line[len(SEED_MARKER):])
+    if report is None or seed is None:
         sys.stderr.write("没有在输出里找到报告标记 —— psql 输出异常。\n")
         return 2
+    report["seed"] = seed["seed"]
+    report["integrity"] = seed["integrity"]
 
     Path(script).unlink(missing_ok=True)
 
+    seed_dirty = any(v["missing_from_mirror"] or v["extra_in_mirror"]
+                     for v in report["seed"].values())
+    integ_dirty = any(report["integrity"][k] for k in (
+        "permission_codes_missing_from_seed",
+        "account_codes_missing_from_seed",
+        "account_codes_referenced_but_not_is_system"))
     dirty = (
         report["table_drift"] or report["function_drift"] or report["view_drift"]
         or any(v for v in report["coverage"].values())
+        or seed_dirty or integ_dirty
     )
 
     if args.json:
@@ -314,12 +425,31 @@ def main() -> int:
         print(f"tables    live {s['tables']['live']:3d}  mirrored {s['tables']['mirrored']:3d}  drifted {s['tables']['drifted']}")
         print(f"functions live {s['functions']['live']:3d}  mirrored {s['functions']['mirrored']:3d}  drifted {s['functions']['drifted']}")
         print(f"views     live {s['views']['live']:3d}  mirrored {s['views']['mirrored']:3d}  drifted {s['views']['drifted']}")
+        # 【种子行的覆盖面要在每次输出里看得见】—— 不然"比了什么"又变成一个没人查的假设。
+        for tbl in sorted(report["seed"]):
+            v = report["seed"][tbl]
+            bad = len(v["missing_from_mirror"]) + len(v["extra_in_mirror"])
+            print(f"seed:{tbl:<11s} live {v['live_rows']:3d}  mirrored {v['mirror_rows']:3d}  drifted {bad}")
+        ig = report["integrity"]
+        print(f"integrity  permission codes {ig['permission_codes_referenced'] or 0:3d}"
+              f"  account codes {ig['account_codes_referenced'] or 0:3d}"
+              f"  unresolved {len(ig['permission_codes_missing_from_seed']) + len(ig['account_codes_missing_from_seed']) + len(ig['account_codes_referenced_but_not_is_system'])}")
+        print(f"           (runtime-config tables not compared: {', '.join(RUNTIME_CONFIG_TABLES)})")
         for section in ("table_drift", "function_drift", "view_drift"):
             for k, v in report[section].items():
                 print(f"  DRIFT [{section}] {k}: {json.dumps(v, ensure_ascii=False)[:400]}")
         for k, v in report["coverage"].items():
             if v:
                 print(f"  COVERAGE {k}: {json.dumps(v, ensure_ascii=False)}")
+        for tbl, v in sorted(report["seed"].items()):
+            for row in v["missing_from_mirror"]:
+                print(f"  SEED [{tbl}] MISSING FROM MIRROR: {json.dumps(row, ensure_ascii=False)}")
+            for row in v["extra_in_mirror"]:
+                print(f"  SEED [{tbl}] EXTRA IN MIRROR:     {json.dumps(row, ensure_ascii=False)}")
+        for k, v in report["integrity"].items():
+            if k.endswith("_referenced") or not v:
+                continue
+            print(f"  INTEGRITY {k}: {json.dumps(v, ensure_ascii=False)}")
         print("clean bill of health ✓" if not dirty else "drift / coverage gaps found ✗")
 
     return 1 if dirty else 0

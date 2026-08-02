@@ -13,6 +13,13 @@
 -- 动表的迁移必须在同一提交里更新镜像)。
 -- First-run script (plain CREATEs). Run in the Supabase SQL Editor.
 
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 【运行期配置 / RUNTIME CONFIG —— 下面的种子是"全新安装的默认值",不是线上快照】
+-- 界面上可以改(app/finance/settings/actions.ts:24 写 locked_before)。
+-- 所以【线上与本文件不一致是正常的,不是漂移】,check_mirrors.py 不把本表与线上比对。
+-- 它只保证镜像这一套自己首尾相顾(本文件引用到的码/科目都存在于对应的种子里)。
+-- ═══════════════════════════════════════════════════════════════════════════
+
 CREATE TABLE public.finance_settings (
     id                  boolean PRIMARY KEY DEFAULT true CHECK (id),  -- 单行表:PK 恒为 true
     locked_before       date,

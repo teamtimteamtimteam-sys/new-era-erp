@@ -22,6 +22,7 @@ export type Database = {
           created_by: string | null
           id: string
           is_active: boolean
+          is_system: boolean
           name_en: string
           name_zh: string
           notes: string | null
@@ -35,6 +36,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_active?: boolean
+          is_system?: boolean
           name_en: string
           name_zh: string
           notes?: string | null
@@ -48,6 +50,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_active?: boolean
+          is_system?: boolean
           name_en?: string
           name_zh?: string
           notes?: string | null

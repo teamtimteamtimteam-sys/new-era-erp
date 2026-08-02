@@ -206,3 +206,13 @@ CREATE POLICY "employees select own row"
 ALTER TABLE public.departments
     ADD CONSTRAINT departments_manager_employee_id_fkey
     FOREIGN KEY (manager_employee_id) REFERENCES public.employees (id);
+
+-- 列注释:说明写在数据库里,重建出来的库也带着它们(OPS-1 补齐)。
+COMMENT ON COLUMN public.employees.confirmation_date IS
+    '试用期转正日。由 approve_review 在批准 probation/confirm 的评估时写入;状态同时转为 active。';
+COMMENT ON COLUMN public.employees.monthly_salary IS
+    'RESTRICTED (data.view_pay). Monthly FIXED gross: contracted basic plus fixed recurring allowances. EXCLUDES overtime, bonus, AWS, commission and reimbursements. This is the MOM "gross rate of pay" basis and is the source for leave encashment and any other statutory computation. It is NOT the provider''s actual gross — that is payroll_lines.gross_pay — and it never feeds a payroll run. 【月固定工资总额】合同底薪 + 固定经常性津贴;不含加班、奖金、AWS、佣金与报销。这是 MOM "gross rate of pay" 口径,是假期补偿及其它法定计算的取数来源。它【不是】服务商算出的实发工资(那是 payroll_lines.gross_pay),也永远不参与任何一次工资计算。';
+COMMENT ON COLUMN public.employees.monthly_salary_set IS
+    '派生列:monthly_salary 是否已录入。【金额敏感,有无不敏感】—— hr_alerts(SECURITY INVOKER)与列表页要能问"谁还没录",但不该因此拿到金额本身。';
+COMMENT ON COLUMN public.employees.review_exempt IS
+    '免于年度评估(组织架构顶端)。open_review_cycle 【整个跳过】这些人:不建评估,也不报"没有评估人"。这与"暂时没定评估人"是两回事 —— 后者是待办,前者是决定。';

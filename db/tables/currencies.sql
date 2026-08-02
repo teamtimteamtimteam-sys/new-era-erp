@@ -6,6 +6,14 @@
 -- NOTE: introduced by db/migrations/2026-07-05-phase3-cut1-finance-foundation.sql.
 -- First-run script (plain CREATEs). Run in the Supabase SQL Editor.
 
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 【安装种子 / INSTALL SEED —— 逐行跟踪线上,check_mirrors.py 逐行比对】
+-- 界面里【没有任何地方写这张表】:app/finance/fx/* 只是读它来填下拉框,写的是 fx_rates。
+-- 而且两个币种都是代码点名的常量 —— 'SGD' 出现 9 次、'USD' 出现 38 次,散落在
+-- post_journal_entry、record_payment、payroll_periods 的默认值等 19 个镜像文件里。
+-- 【本表是迁移专属的】db/scripts/ 下的数据脚本永远不许写它。
+-- ═══════════════════════════════════════════════════════════════════════════
+
 CREATE TABLE public.currencies (
     code    text PRIMARY KEY CHECK (code IN ('USD','SGD')),  -- 加币种时同步放宽此 CHECK
     name    text NOT NULL,

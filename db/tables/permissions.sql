@@ -32,34 +32,51 @@ CREATE POLICY "permissions select by permission"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (true);
 
--- 目录种子:没有这些行,权限系统无从谈起,故属于首建脚本的一部分。
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 【安装种子 / INSTALL SEED】没有这些行,权限系统无从谈起。
+-- 本表【逐行跟踪线上】,check_mirrors.py 逐行比对 —— 少一行、多一行、内容不符都判失败。
+--
+-- 【本表是迁移专属的】db/scripts/ 下的数据脚本【永远不许写它】。理由就在文件头:
+-- 一个权限码只有在有代码去检查它的时候才有意义,所以扩充目录天生是迁移级动作。
+-- 这条规矩让 db/scripts/README.md 那句"脚本不涉及镜像"继续成立:脚本碰不到任何
+-- 被镜像逐行跟踪的表,于是脚本确实永远不需要更新镜像。
+--
+-- ⚠️ 这里正是 OPS-1 的案发现场:perm3 加的 data.view_banking 与 perm3b 加的
+--    data.view_sales 当年只写进了迁移,没写回本文件;perm2a 把 module.<m> 一分为二
+--    时,本文件也停留在旧的 13 个未拆分码上。check_mirrors 只比结构不比数据,
+--    于是它一路是绿的。现在补齐,并且从此比对种子行。
+-- ─────────────────────────────────────────────────────────────────────────────
 INSERT INTO public.permissions (code, category, name_en, name_zh, description_en, description_zh, sort_order) VALUES
-    ('module.suppliers',  'module', 'Suppliers',   '供应商',   'Supplier master data',                  '供应商主数据',           10),
-    ('module.customers',  'module', 'Customers',   '客户',     'Customer master data',                  '客户主数据',             20),
-    ('module.materials',  'module', 'Materials',   '物料',     'Material dictionary',                   '物料字典',               30),
-    ('module.pricing',    'module', 'Pricing',     '定价',     'Pricing formulas, calculator, metal prices', '定价公式、计价器与金属行情', 40),
-    ('module.purchasing', 'module', 'Purchasing',  '采购',     'Purchase orders and payment schedules', '采购单与付款计划',       50),
-    ('module.inbound',    'module', 'Inbound',     '进料',     'Inbound batches and receiving',         '进料批次与收货',         60),
-    ('module.output',     'module', 'Output',      '产出',     'Output batches and sales',              '产出批次与销售',         70),
-    ('module.processing', 'module', 'Processing',  '加工',     'Processing runs and traceability',      '加工单与追溯',           80),
-    ('module.inventory',  'module', 'Inventory',   '库存',     'Inventory and material balance',        '库存与物料平衡',         90),
-    ('module.stocktakes', 'module', 'Stocktakes',  '盘点',     'Physical counts and adjustments',       '实物盘点与调整',        100),
-    ('module.finance',    'module', 'Finance',     '财务',     'Ledger, receivables, payables, payments','总账、应收、应付与收付款', 110),
-    ('module.hr',         'module', 'HR',          '人力资源', 'Employees, payroll and training',       '员工、薪资与培训',      120),
-    ('module.tasks',      'module', 'Tasks',       '任务',     'Task board',                            '任务板',                130),
-    ('data.view_prices',  'data',   'View prices & costs', '查看价格与成本',
-        'Unit prices, pricing formulas, costs and margins',   '单价、计价公式、成本与利润',            200),
-    ('data.view_pay',     'data',   'View pay',            '查看薪酬',
-        'Salary, CPF and payroll figures',                    '工资、公积金与薪资明细',                210),
-    ('data.view_identity','data',   'View identity data',  '查看身份信息',
-        'Identity numbers and work pass numbers',             '身份证件号与工作准证号',                220);
-
--- HR-3b 追加。目录扩充天然是"迁移级"的动作(见文件头),所以后续切次加的码
--- 也要落回这份首建种子里,否则从镜像重建出来的库会缺行,role_permissions 的外键
--- 直接挂掉。
--- ⚠️ 已知缺口:data.view_banking(perm3)与 data.view_sales(perm3b)两条【尚未】
---    补回本文件 —— check_mirrors 不比对数据,所以它一直是绿的。见 HR-3b 的报告。
-INSERT INTO public.permissions (code, category, name_en, name_zh, description_en, description_zh, sort_order) VALUES
-    ('data.view_reviews', 'data', 'View performance review content', '查看绩效评估正文',
-        'Ratings, written conclusions, self-assessments and goal results in performance reviews',
-        '绩效评估中的评级、书面结论、自评与目标结果', 250);
+    ('module.suppliers.view', 'module', 'Suppliers (view)', '供应商(查看)', 'Supplier master data — read only', '供应商主数据 —— 只读', 10),
+    ('module.suppliers.edit', 'module', 'Suppliers (edit)', '供应商(编辑)', 'Supplier master data — create, change, remove', '供应商主数据 —— 新建、修改、删除', 11),
+    ('module.customers.view', 'module', 'Customers (view)', '客户(查看)', 'Customer master data — read only', '客户主数据 —— 只读', 20),
+    ('module.customers.edit', 'module', 'Customers (edit)', '客户(编辑)', 'Customer master data — create, change, remove', '客户主数据 —— 新建、修改、删除', 21),
+    ('module.materials.view', 'module', 'Materials (view)', '物料(查看)', 'Material dictionary — read only', '物料字典 —— 只读', 30),
+    ('module.materials.edit', 'module', 'Materials (edit)', '物料(编辑)', 'Material dictionary — create, change, remove', '物料字典 —— 新建、修改、删除', 31),
+    ('module.pricing.view', 'module', 'Pricing (view)', '定价(查看)', 'Pricing formulas, calculator, metal prices — read only', '定价公式、计价器与金属行情 —— 只读', 40),
+    ('module.pricing.edit', 'module', 'Pricing (edit)', '定价(编辑)', 'Pricing formulas, calculator, metal prices — create, change, remove', '定价公式、计价器与金属行情 —— 新建、修改、删除', 41),
+    ('module.purchasing.view', 'module', 'Purchasing (view)', '采购(查看)', 'Purchase orders and payment schedules — read only', '采购单与付款计划 —— 只读', 50),
+    ('module.purchasing.edit', 'module', 'Purchasing (edit)', '采购(编辑)', 'Purchase orders and payment schedules — create, change, remove', '采购单与付款计划 —— 新建、修改、删除', 51),
+    ('module.inbound.view', 'module', 'Inbound (view)', '进料(查看)', 'Inbound batches and receiving — read only', '进料批次与收货 —— 只读', 60),
+    ('module.inbound.edit', 'module', 'Inbound (edit)', '进料(编辑)', 'Inbound batches and receiving — create, change, remove', '进料批次与收货 —— 新建、修改、删除', 61),
+    ('module.output.view', 'module', 'Output (view)', '产出(查看)', 'Output batches and sales — read only', '产出批次与销售 —— 只读', 70),
+    ('module.output.edit', 'module', 'Output (edit)', '产出(编辑)', 'Output batches and sales — create, change, remove', '产出批次与销售 —— 新建、修改、删除', 71),
+    ('module.processing.view', 'module', 'Processing (view)', '加工(查看)', 'Processing runs and traceability — read only', '加工单与追溯 —— 只读', 80),
+    ('module.processing.edit', 'module', 'Processing (edit)', '加工(编辑)', 'Processing runs and traceability — create, change, remove', '加工单与追溯 —— 新建、修改、删除', 81),
+    ('module.inventory.view', 'module', 'Inventory (view)', '库存(查看)', 'Inventory and material balance — read only', '库存与物料平衡 —— 只读', 90),
+    ('module.inventory.edit', 'module', 'Inventory (edit)', '库存(编辑)', 'Inventory and material balance — create, change, remove', '库存与物料平衡 —— 新建、修改、删除', 91),
+    ('module.stocktakes.view', 'module', 'Stocktakes (view)', '盘点(查看)', 'Physical counts and adjustments — read only', '实物盘点与调整 —— 只读', 100),
+    ('module.stocktakes.edit', 'module', 'Stocktakes (edit)', '盘点(编辑)', 'Physical counts and adjustments — create, change, remove', '实物盘点与调整 —— 新建、修改、删除', 101),
+    ('module.finance.view', 'module', 'Finance (view)', '财务(查看)', 'Ledger, receivables, payables, payments — read only', '总账、应收、应付与收付款 —— 只读', 110),
+    ('module.finance.edit', 'module', 'Finance (edit)', '财务(编辑)', 'Ledger, receivables, payables, payments — create, change, remove', '总账、应收、应付与收付款 —— 新建、修改、删除', 111),
+    ('module.hr.view', 'module', 'HR (view)', '人力资源(查看)', 'Employees, payroll and training — read only', '员工、薪资与培训 —— 只读', 120),
+    ('module.hr.edit', 'module', 'HR (edit)', '人力资源(编辑)', 'Employees, payroll and training — create, change, remove', '员工、薪资与培训 —— 新建、修改、删除', 121),
+    ('module.tasks.view', 'module', 'Tasks (view)', '任务(查看)', 'Task board — read only', '任务板 —— 只读', 130),
+    ('module.tasks.edit', 'module', 'Tasks (edit)', '任务(编辑)', 'Task board — create, change, remove', '任务板 —— 新建、修改、删除', 131),
+    ('data.view_prices', 'data', 'View prices & costs', '查看价格与成本', 'Unit prices, pricing formulas, costs and margins', '单价、计价公式、成本与利润', 200),
+    ('data.view_pay', 'data', 'View pay', '查看薪酬', 'Salary, CPF and payroll figures', '工资、公积金与薪资明细', 210),
+    ('data.view_identity', 'data', 'View identity data', '查看身份信息', 'Identity numbers and work pass numbers', '身份证件号与工作准证号', 220),
+    ('data.view_banking', 'data', 'View company bank details', '查看公司银行明细', 'Company bank account name, number, SWIFT and bank address as printed on invoices', '开在发票上的公司银行户名、账号、SWIFT 与开户行地址', 230),
+    ('data.view_sales', 'data', 'View sales records', '查看销售记录', 'Quantity, unit price, amount, customer and date of sales made from output batches', '产出批次的销售数量、单价、金额、客户与日期', 240),
+    ('data.view_reviews', 'data', 'View performance review content', '查看绩效评估正文', 'Ratings, written conclusions, self-assessments and goal results in performance reviews', '绩效评估中的评级、书面结论、自评与目标结果', 250),
+    ('action.manage_permissions', 'action', 'Manage roles & permissions', '管理角色与权限', 'Create roles and change who holds what', '新建角色、调整授权', 300);

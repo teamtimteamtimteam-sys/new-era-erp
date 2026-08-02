@@ -80,3 +80,7 @@ CREATE POLICY "departments delete by permission"
     ON public.departments
     AS PERMISSIVE FOR DELETE TO authenticated
     USING (has_permission('module.hr.edit'::text));
+
+-- 列注释:说明写在数据库里,重建出来的库也带着它们(OPS-1 补齐)。
+COMMENT ON COLUMN public.departments.manager_employee_id IS
+    '部门经理。open_review_cycle 用它默认年度评估的评估人。可空 —— 未设时评估人留空,由 HR 手工指派。';

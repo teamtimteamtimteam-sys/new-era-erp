@@ -65,3 +65,7 @@ CREATE POLICY "leave_requests delete by permission"
     USING (has_permission('module.hr.edit'));
 
 -- ============================================================================
+
+-- 列注释:说明写在数据库里,重建出来的库也带着它们(OPS-1 补齐)。
+COMMENT ON COLUMN public.leave_requests.is_exception IS
+    'True when days were entered by hand rather than computed from calculate_leave_days. Two cases: (a) a six-day or shift schedule where Mon-Fri counting is wrong, (b) case-by-case leave (compassionate, marriage) varying the standard entitlement.';

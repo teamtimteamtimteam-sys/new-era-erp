@@ -9,6 +9,13 @@
 -- NOTE: introduced by db/migrations/2026-08-03-hr3a-performance-reviews.sql.
 -- First-run script (plain CREATEs).
 
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 【运行期配置 / RUNTIME CONFIG —— 下面的种子是"全新安装的默认值",不是线上快照】
+-- 写入策略是特意开的(module.hr.edit 的 insert/update/delete),界面在 HR-3c 落地;HR-3a 的 fixture 已经证明加一档、停用一档都不需要改代码。
+-- 所以【线上与本文件不一致是正常的,不是漂移】,check_mirrors.py 不把本表与线上比对。
+-- 它只保证镜像这一套自己首尾相顾(本文件引用到的码/科目都存在于对应的种子里)。
+-- ═══════════════════════════════════════════════════════════════════════════
+
 CREATE TABLE public.review_rating_scale (
     code              text PRIMARY KEY,
     name_en           text NOT NULL,

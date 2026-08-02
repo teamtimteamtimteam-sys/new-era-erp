@@ -10,6 +10,13 @@
 -- NOTE: introduced by db/migrations/2026-08-01-perm1-permission-skeleton.sql.
 -- First-run script (plain CREATEs). Run in the Supabase SQL Editor.
 
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 【运行期配置 / RUNTIME CONFIG —— 下面的种子是"全新安装的默认值",不是线上快照】
+-- 界面上可以新建 / 改名 / 停用角色(app/settings/permissions/roles + actions.ts 的 insert/update/软删),db/scripts/2026-08-02-role-set-reshape.sql 也重塑过它。
+-- 所以【线上与本文件不一致是正常的,不是漂移】,check_mirrors.py 不把本表与线上比对。
+-- 它只保证镜像这一套自己首尾相顾(本文件引用到的码/科目都存在于对应的种子里)。
+-- ═══════════════════════════════════════════════════════════════════════════
+
 CREATE TABLE public.roles (
     id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     code           text NOT NULL UNIQUE,

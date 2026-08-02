@@ -15,6 +15,13 @@
 -- NOTE: introduced by db/migrations/2026-07-31-phase4-cut3-company-profile.sql.
 -- First-run script (plain CREATEs). Run in the Supabase SQL Editor.
 
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 【运行期配置 / RUNTIME CONFIG —— 下面的种子是"全新安装的默认值",不是线上快照】
+-- 界面上可以改(app/finance/company/actions.ts:60,以及 logo 的设置/清除)。
+-- 所以【线上与本文件不一致是正常的,不是漂移】,check_mirrors.py 不把本表与线上比对。
+-- 它只保证镜像这一套自己首尾相顾(本文件引用到的码/科目都存在于对应的种子里)。
+-- ═══════════════════════════════════════════════════════════════════════════
+
 CREATE TABLE public.company_profile (
     id                  boolean PRIMARY KEY DEFAULT true CHECK (id),
     legal_name          text NOT NULL DEFAULT '',
