@@ -98,6 +98,14 @@ RUNTIME_CONFIG_TABLES = [
     "leave_accrual_rates",
 ]
 
+# 【引导默认值一行都不许是空的】RUNTIME CONFIG 的种子不与线上比对(那是对的:界面改得动),
+# 但"不比对"把另一类失败也一起藏了起来 —— 一条 INSERT ... SELECT 只要 WHERE 不再匹配,
+# 就会【安安静静地插入零行】,不报错、不漂移。实测:把 role_permissions 里 admin 的
+# 那条 WHERE 改成一个错的角色码,重建出来的库管理员一个权限都没有,而本脚本报"体检通过"。
+# 所以对每张 RUNTIME CONFIG 表:重放之后行数必须 > 0。
+# 若将来某张表【确实】应当空着引导,把它写进下面这个集合,让那件事是一次明写的决定。
+BOOTSTRAP_MAY_BE_EMPTY: set = set()
+
 # 科目字面量扫描的例外名单。【只放误伤,不放"懒得处理"】,每条必须写明理由。
 # 空着是对的 —— 现在一条都不需要。
 ACCOUNT_LITERAL_ALLOWLIST = {
@@ -107,7 +115,7 @@ ACCOUNT_LITERAL_ALLOWLIST = {
 
 def scan_literals() -> dict:
     """扫描镜像文件里的三类字面量。注释行不算 —— 注释里提一句不是依赖。"""
-    perms, accounts = set(), set()
+    perms, accounts, roles = set(), set(), set()
     for sub in ("functions", "views", "tables"):
         for f in sorted((REPO / "db" / sub).glob("*.sql")):
             for line in f.read_text().splitlines():
@@ -120,8 +128,16 @@ def scan_literals() -> dict:
     rp = (REPO / "db" / "tables" / "role_permissions.sql").read_text()
     rp = "\n".join(l for l in rp.splitlines() if not l.lstrip().startswith("--"))
     perms.update(re.findall(r"'((?:module|data|action)\.[a-z_.]+)'", rp))
+    # 【外键的另一侧】OPS-1 加了"授权引用的权限码必须存在",却没加对称的那一条:
+    # 授权引用的【角色码】也必须存在。少了它,把 WHERE r.code = 'admin' 打错成
+    # 'admin_TYPO' 会安安静静地少插 33 行,重建出来的库管理员一个权限都没有,
+    # 而行数仍然大于零,所以连"引导不能为空"那条也拦不住。实测确认过。
+    roles.update(re.findall(r"r\.code\s*=\s*'([^']+)'", rp))
+    for grp in re.findall(r"r\.code\s+IN\s*\(([^)]*)\)", rp):
+        roles.update(re.findall(r"'([^']+)'", grp))
     accounts -= set(ACCOUNT_LITERAL_ALLOWLIST)
-    return {"permission_codes": sorted(perms), "account_codes": sorted(accounts)}
+    return {"permission_codes": sorted(perms), "account_codes": sorted(accounts),
+            "role_codes": sorted(roles)}
 
 
 def rewrite(sql: str) -> str:
@@ -338,6 +354,8 @@ def seed_sql() -> str:
         if lit["permission_codes"] else "ARRAY[]::text[]"
     acct_arr = "ARRAY[" + ",".join(f"'{c}'" for c in lit["account_codes"]) + "]::text[]" \
         if lit["account_codes"] else "ARRAY[]::text[]"
+    role_arr = "ARRAY[" + ",".join(f"'{c}'" for c in lit["role_codes"]) + "]::text[]" \
+        if lit["role_codes"] else "ARRAY[]::text[]"
 
     blocks = []
     for tbl, (where, cols) in SEED_TABLES.items():
@@ -364,11 +382,17 @@ def seed_sql() -> str:
         # 【自维护的那一条】被代码点名、线上存在、却没打 is_system 的科目 = 名单漏了一个。
         # 宁可多打标记也不能漏 —— 漏掉的那一个正是 OPS-1 这个 bug 换一层楼重演。
         f"    'account_codes_referenced_but_not_is_system', COALESCE((SELECT jsonb_agg(c ORDER BY c) FROM unnest({acct_arr}) c "
-        f"WHERE EXISTS (SELECT 1 FROM public.accounts a WHERE a.code = c AND NOT a.is_system)), '[]'::jsonb)\n"
+        f"WHERE EXISTS (SELECT 1 FROM public.accounts a WHERE a.code = c AND NOT a.is_system)), '[]'::jsonb),\n"
+        f"    'role_codes_referenced', array_length({role_arr}, 1),\n"
+        f"    'role_codes_missing_from_seed', COALESCE((SELECT jsonb_agg(c ORDER BY c) FROM unnest({role_arr}) c "
+        f"WHERE c NOT IN (SELECT code FROM {SCHEMA}.roles)), '[]'::jsonb)\n"
         "  )"
     )
+    boot = ",".join(
+        f"'{t}', (SELECT count(*) FROM {SCHEMA}.{t})" for t in sorted(RUNTIME_CONFIG_TABLES))
     return ("SELECT '" + SEED_MARKER + "' || (SELECT jsonb_build_object(\n"
             "  'seed', jsonb_build_object(" + ",".join(blocks) + "\n  ),\n"
+            "  'bootstrap', jsonb_build_object(" + boot + "),\n"
             + integ + "))::text AS seed_report;\n")
 
 
@@ -406,19 +430,23 @@ def main() -> int:
         return 2
     report["seed"] = seed["seed"]
     report["integrity"] = seed["integrity"]
+    report["bootstrap"] = seed["bootstrap"]
 
     Path(script).unlink(missing_ok=True)
 
     seed_dirty = any(v["missing_from_mirror"] or v["extra_in_mirror"]
                      for v in report["seed"].values())
+    empty_bootstraps = sorted(t for t, n in report["bootstrap"].items()
+                              if n == 0 and t not in BOOTSTRAP_MAY_BE_EMPTY)
     integ_dirty = any(report["integrity"][k] for k in (
         "permission_codes_missing_from_seed",
         "account_codes_missing_from_seed",
-        "account_codes_referenced_but_not_is_system"))
+        "account_codes_referenced_but_not_is_system",
+        "role_codes_missing_from_seed"))
     dirty = (
         report["table_drift"] or report["function_drift"] or report["view_drift"]
         or any(v for v in report["coverage"].values())
-        or seed_dirty or integ_dirty
+        or seed_dirty or integ_dirty or empty_bootstraps
     )
 
     if args.json:
@@ -435,9 +463,14 @@ def main() -> int:
             print(f"seed:{tbl:<11s} live {v['live_rows']:3d}  mirrored {v['mirror_rows']:3d}  drifted {bad}")
         ig = report["integrity"]
         print(f"integrity  permission codes {ig['permission_codes_referenced'] or 0:3d}"
+              f"  role codes {ig['role_codes_referenced'] or 0:3d}"
               f"  account codes {ig['account_codes_referenced'] or 0:3d}"
-              f"  unresolved {len(ig['permission_codes_missing_from_seed']) + len(ig['account_codes_missing_from_seed']) + len(ig['account_codes_referenced_but_not_is_system'])}")
-        print(f"           (runtime-config tables not compared: {', '.join(RUNTIME_CONFIG_TABLES)})")
+              f"  unresolved {len(ig['permission_codes_missing_from_seed']) + len(ig['account_codes_missing_from_seed']) + len(ig['account_codes_referenced_but_not_is_system']) + len(ig['role_codes_missing_from_seed'])}")
+        # 引导默认值【不与线上比对】,但要看得见它到底装进去了多少行 ——
+        # 一个悄悄变成零行的引导,是这套豁免唯一藏得住的失败。
+        print("bootstrap  (runtime config, not compared against live; rows must be > 0)")
+        print("           " + "  ".join(f"{t}={report['bootstrap'][t]}"
+                                        for t in sorted(report["bootstrap"])))
         for section in ("table_drift", "function_drift", "view_drift"):
             for k, v in report[section].items():
                 print(f"  DRIFT [{section}] {k}: {json.dumps(v, ensure_ascii=False)[:400]}")
@@ -453,6 +486,8 @@ def main() -> int:
             if k.endswith("_referenced") or not v:
                 continue
             print(f"  INTEGRITY {k}: {json.dumps(v, ensure_ascii=False)}")
+        for t in empty_bootstraps:
+            print(f"  BOOTSTRAP {t}: seeded ZERO rows — a rebuilt database would start without them")
         print("clean bill of health ✓" if not dirty else "drift / coverage gaps found ✗")
 
     return 1 if dirty else 0
