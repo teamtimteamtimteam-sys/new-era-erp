@@ -25,6 +25,14 @@
 -- 默认值、生成列、约束、索引、触发器、RLS、策略、表级与列级 GRANT、序列、注释),
 -- 安装种子逐行一致,启动后有完整的权限目录(33 个码)与一个拿着全部权限的 admin。
 --
+-- 【本文件是幂等的】CREATE ... IF NOT EXISTS + 建角色的 DO 块 —— 重建体检
+-- (db/verify_rebuild.py)会反复跑它,而全新安装只跑一次;两种用法都得成立。
+--
+-- WARNING 【绝不要对着真实的 Supabase 项目跑这个文件】不是多余,是【会直接报错】:
+--    auth 架构归 supabase_auth_admin 所有,连接用的 postgres 角色对它没有 CREATE 权限,
+--    CREATE TABLE IF NOT EXISTS auth.users 会以 permission denied for schema auth 失败。
+--    (OPS-2 走安装清单时实测到的。)db/verify_rebuild.py 会自己认出目标是不是真项目并跳过本文件。
+--
 -- 【线上不需要跑这个文件】Supabase 已经把这些都准备好了。它是给"从零重建"用的,
 -- 也是把那份一直没写下来的依赖清单落到纸面上。
 -- 1. Platform roles. 270 GRANT ... TO authenticated + 20 REVOKE ... FROM authenticated, anon.
@@ -37,9 +45,9 @@ END $$;
 -- 2. The auth schema. auth.uid() appears in 134 places (every created_by/updated_by default
 --    and every self-service RLS predicate); auth.users is FK'd from suppliers and
 --    supplier_compliance and read by the user_directory view.
-CREATE SCHEMA auth;
+CREATE SCHEMA IF NOT EXISTS auth;
 
-CREATE TABLE auth.users (
+CREATE TABLE IF NOT EXISTS auth.users (
     id                uuid PRIMARY KEY,
     email             character varying,
     created_at        timestamptz,

@@ -44,3 +44,37 @@ have reported a clean bill of health.
 So: **a migration that touches a RUNTIME CONFIG table must state, in the same commit,
 whether its bootstrap default is still correct.** Not "still valid" — the harness
 answers that. Still *correct*, meaning the numbers in it still mean what they meant.
+
+## Verifying the rebuild path
+
+`check_mirrors.py` asks "do the mirrors match live". **`db/verify_rebuild.py` asks the
+other question: can this repository actually build a database at all.** OPS-1 ran that
+experiment for the first time and the answer was no — three separate walls, none of
+them written down anywhere (see `db/platform-prelude.sql`). Having fixed them, the
+experiment needs to stay repeatable rather than have been done once.
+
+```
+python3 db/verify_rebuild.py --target "<dsn of an EMPTY database>"
+python3 db/verify_rebuild.py --target "<dsn>" --skip-diff     # build only, no live comparison
+```
+
+Exit codes: **0** = builds and matches live · **1** = builds but differs · **2** = does
+not build.
+
+Prerequisites: `psql` on PATH; an **empty** target database (it gets written to — never
+point it at live); network access to live if you want the diff. A throwaway local
+cluster:
+
+```
+initdb -D /tmp/pg -U postgres --no-locale --encoding=UTF8
+pg_ctl -D /tmp/pg -o "-p 55432 -k /tmp/pgsock -c listen_addresses=''" -l /tmp/pg.log start
+createdb -h /tmp/pgsock -p 55432 -U postgres scratch
+```
+The socket directory must be short (< 103 bytes) — a deep temp path fails with
+"Unix-domain socket path is too long".
+
+**It also answers whether `db/platform-prelude.sql` is still sufficient.** When a replay
+fails on a missing schema, role, relation, function, type or extension, the script names
+the object and says the prelude is not sufficient, rather than leaving a bare psql error.
+That matters because the prelude is the only written record of what the mirrors expect
+the platform to provide, and nothing else notices when that expectation grows.

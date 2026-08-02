@@ -2,27 +2,95 @@
 
 Standing up a new Evoltrya OS project from this repository.
 
-> **Note.** No such checklist existed in this repository before OPS-2 C0 —
-> `bootstrap-first-admin` is named as a step below but **has no script in this repo**
-> (see "Known gaps"). This file records the agreed order so it is not carried around
-> in someone's head.
+> This file records the agreed order so it is not carried around in someone's head.
+> Step 2 is verified by `python3 db/verify_rebuild.py`; step 4 is deliberately manual
+> (see "Known gaps").
 
 ## The checklist
 
-1. **Create the Supabase project.**
+1. **Create the Supabase project.** Note two things you will need and cannot guess:
+   - **The database connection string.** Dashboard → Project Settings → Database →
+     *Connection string* → **Session pooler**. The pooler hostname is **per project**
+     (`aws-0-…` and `aws-1-…` both occur) — copying it from another project fails to
+     connect. The password is the one set at project creation; it is not recoverable
+     later, so record it now.
+   - **The API keys** (Project Settings → API): the `anon` key and the `service_role`
+     key. Step 8 needs both.
 2. **Run the rebuild** — `db/platform-prelude.sql`, then `db/functions/`, then
    `db/tables/` in dependency order, then `db/views/`. See the prelude's header for
    the exact procedure and the two caveats (the missing trailing semicolons, and the
    platform objects the mirrors do not contain).
+
+   `python3 db/verify_rebuild.py --target "<dsn>" --skip-diff` does exactly this.
+   Use `--skip-diff` here: there is nothing to compare a brand-new project against.
+
+   **Do not run `db/platform-prelude.sql` against a real Supabase project.** The
+   platform already provides the `auth` schema, `auth.users`, `auth.uid()`, the three
+   roles and the default privileges, and the `auth` schema is owned by
+   `supabase_auth_admin` — so the prelude fails with `permission denied for schema
+   auth`. `verify_rebuild.py` detects this and skips the prelude automatically; the
+   prelude exists for rebuilding onto bare PostgreSQL.
+
+   **Expect this step to take about nine minutes** against a remote project — it
+   replays 92 functions, 73 tables and 38 views over the network.
 3. **Run any C0.5 scripts.** *Currently none* — every intended default is expressible
    as a bootstrap seed and is applied by step 2. If that ever stops being true, the
    script's invocation goes here.
-4. **Run bootstrap-first-admin** — link the first `auth.users` row to the `admin`
-   role. Until this runs, `user_roles` is empty and nobody can read anything.
+4. **Grant the first admin.** Until this runs, `user_roles` is empty, every RLS
+   policy denies, and nobody can read anything — including the person trying to fix
+   it. There is deliberately **no script** for this: it runs exactly once per
+   database, and a permanent artefact for a one-time event is the thing we removed
+   when `grant_annual_leave` was deleted rather than kept as a spare part.
+
+   **Prerequisite — the auth user must exist first.** The snippet below reads
+   `auth.users`; if no user has been created it will grant nothing and the install
+   will look finished while being unusable. Create the account before running it:
+
+   * Dashboard → **Authentication** → **Users** → **Add user** → *Create new user*.
+     Give it the real email address of whoever will administer the system, set a
+     password, and tick *Auto Confirm User* (there is no mail configured yet).
+
+   **Finding the UUID.** The snippet does not need you to type it — it reads every
+   row of `auth.users` — but you should confirm exactly one row exists and that it
+   is the right person before running it. Either:
+
+   * Dashboard → Authentication → Users → click the user → the **UID** field; or
+   * SQL editor:
+     ```sql
+     SELECT id, email, created_at FROM auth.users ORDER BY created_at;
+     ```
+
+   **Then run, in the SQL editor:**
+   ```sql
+   -- Grants every existing auth user the admin role. On a fresh install that is
+   -- exactly one person. ON CONFLICT makes re-running harmless -- without it the
+   -- second run fails on idx_user_roles_active (the data is safe either way, but a
+   -- checklist you may have to restart should not throw a duplicate-key error).
+   INSERT INTO user_roles (user_id, role_id)
+   SELECT u.id, (SELECT id FROM roles WHERE code = 'admin')
+   FROM auth.users u
+   ON CONFLICT (user_id, role_id) WHERE revoked_at IS NULL DO NOTHING;
+
+   -- Confirm. Zero rows here means the step silently did nothing — go back and
+   -- create the auth user first.
+   SELECT u.email, r.code
+   FROM user_roles ur
+   JOIN roles r ON r.id = ur.role_id
+   JOIN auth.users u ON u.id = ur.user_id
+   WHERE ur.revoked_at IS NULL;
+   ```
+   If the second query returns no rows, **stop** — the prerequisite was not met.
 5. **Verify login.**
 6. **Disable public signup** in Supabase Auth.
 7. **Enter the per-install values** (these cannot be seeded — they are this company's
-   data, not a design default):
+   data, not a design default).
+
+   **How:** by SQL in the dashboard's SQL editor. The app's own pages for this
+   (`/finance/company`, `/finance/settings`) are not reachable yet — the deployment is
+   only configured in step 8 — so this step cannot be done through the UI in checklist
+   order. Either run the SQL now, or do this step after step 8 through the app.
+   The rows already exist (the bootstrap seeds one empty row of each); this is an
+   `UPDATE`, not an `INSERT`.
    - `company_profile` — legal name, registration number, address, city, postal code,
      country, phone, email, website, logo, invoice footer text.
    - `company_profile` banking — bank name, account name, account number, SWIFT,
@@ -32,7 +100,10 @@ Standing up a new Evoltrya OS project from this repository.
      starting state, not a placeholder to be overwritten immediately.
    - `hr_settings` — only if this company's figures differ from the seeded defaults
      (medical limit SGD 1,000, 5-day week, 12-month carry-forward).
-8. **Update Vercel environment variables** — project URL, anon key, service role key.
+8. **Update Vercel environment variables** — `NEXT_PUBLIC_SUPABASE_URL`
+   (`https://<ref>.supabase.co`), `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and
+   `SUPABASE_SERVICE_ROLE_KEY`. These are the only three the application reads.
+   Redeploy afterwards: Vercel does not rebuild on an environment-variable change.
 
 ## What step 2 already gives you
 
@@ -56,14 +127,23 @@ Everything above is applied by plain `INSERT` during the replay, so **step order
 inside step 2 is handled by the mirror toposort** — `permissions` (22) and `roles` (27)
 both replay before `role_permissions` (51). No manual ordering is required.
 
+## Verified
+
+Walked end to end against a real throwaway Supabase project on 2026-08-02 (created,
+walked, deleted). Steps 1–7 execute as written. The end state was:
+10 role rows / 159 grants / 33 permission codes / 22 system accounts / office 24 and
+shopfloor 18 accrual; the first admin logged in; `/hr/employees`,
+`/settings/permissions`, `/finance` and `/me` all rendered for that session while an
+unauthenticated request to `/hr/employees` redirected to `/login`; and after step 6 a
+second signup was refused with *"Signups not allowed for this instance"*.
+
+**Step 8 has not been executed against a real deployment** — no Vercel credentials were
+available. It is the only step in this document that has never been run.
+
 ## Known gaps
 
-- **`bootstrap-first-admin` has no script in this repo.** `db/tables/user_roles.sql`
-  carries the shape in a comment:
-  ```sql
-  INSERT INTO user_roles (user_id, role_id)
-  SELECT u.id, (SELECT id FROM roles WHERE code='admin') FROM auth.users u;
-  ```
-  Until it exists as a checked-in script, step 4 is a manual paste, and a fresh
-  install has a window where no account can read anything. `guard_last_admin`
-  protects the *last* admin from being removed; nothing creates the *first* one.
+- **There is deliberately no first-admin script.** Step 4 is a manual paste, by
+  decision rather than by omission — it runs once per database. `db/tables/user_roles.sql`
+  explains the trap in a comment and points here for the executable form, so the two
+  cannot drift apart. `guard_last_admin` protects the *last* admin from removal;
+  nothing creates the *first* one, and nothing should.

@@ -27,9 +27,13 @@
   * 重放顺序:先 db/functions(SET check_function_bodies=off,函数体不在创建时
     校验,故可先于表存在)→ 再 db/tables(按 FK / 跨表触发器依赖拓扑排序)→
     最后 db/views(按视图间引用排序)。
-  * 比对维度:表 = 列(名/类型/可空/默认值,【按 attnum 顺序】)+ 约束 + 索引 +
-    触发器 + RLS 开关 + 策略;函数 = pg_get_functiondef;视图 = pg_get_viewdef +
-    reloptions(security_invoker)。定义文本先把 schema 前缀(mir./public.)剥掉
+  * 比对维度:表 = 列(名/类型/可空/默认值/生成列/【列注释】,按 attnum 顺序)+ 约束 +
+    索引 + 触发器 + RLS 开关 + 策略;函数 = pg_get_functiondef;视图 = pg_get_viewdef +
+    reloptions(security_invoker)。
+    【列注释为什么要比】OPS-1 的重建实验发现 7 条 COMMENT ON COLUMN 只存在于线上,
+    镜像里一条都没有 —— 其中就有 HR-3b 那句界定"月固定工资总额不含加班"的说明。
+    照镜像重建出来的库,那些说明【整条丢失】,而当时的检查看不见。注释是写在数据库里
+    的规格说明,不是排版;它跟着列走,就该跟着列一起比。定义文本先把 schema 前缀(mir./public.)剥掉
     再比,因此文件里的排版、约束写法(IN vs = ANY)都不影响结果 —— 目录归一化
     之后是二元的:一致,或不一致。
   * 覆盖:public 里存在而重放结果里没有 = 缺镜像;反之 = 镜像的对象已不在线上。
@@ -44,8 +48,7 @@
       - role_permissions 种子引用的每个码必须在 permissions 的种子里;
       - 镜像里出现的每个科目字面量必须在 accounts 的种子里,【且必须打了 is_system】。
     这三条里的任何一条,单独就能抓住 OPS-1 那个 bug,而且完全不需要连线上。
-  * 【不比】:约束名(只比定义)、注释(COMMENT ON)、GRANT、序列参数与当前值、
-    表存储参数。文件级排版(如尾随换行)也不在此查 —— 目录里没有这个概念。
+  * 【不比】:约束名(只比定义)、GRANT、序列参数与当前值、表存储参数。文件级排版(如尾随换行)也不在此查 —— 目录里没有这个概念。
 
 约定(与 AGENTS.md 呼应):动了表的迁移必须在【同一个提交】里更新该表的镜像;
 拿不准就跑本脚本。
@@ -245,6 +248,8 @@ tbl_sig AS (
     'columns', (SELECT jsonb_agg(a.attname || ' | ' || replace(replace(format_type(a.atttypid, a.atttypmod),'mir.',''),'public.','')
                        || ' | ' || CASE WHEN a.attnotnull THEN 'NOT NULL' ELSE 'NULL' END
                        || ' | ' || COALESCE(replace(replace(pg_get_expr(d.adbin, d.adrelid),'mir.',''),'public.',''), '')
+                       -- 列注释是写在库里的规格说明;镜像丢了它,重建出来的库就少了那句话。
+                       || ' | comment=' || COALESCE(col_description(c.oid, a.attnum), '-')
                        ORDER BY a.attnum)
        FROM pg_attribute a LEFT JOIN pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum
        WHERE a.attrelid = c.oid AND a.attnum > 0 AND NOT a.attisdropped),
