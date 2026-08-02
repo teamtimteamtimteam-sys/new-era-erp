@@ -134,10 +134,17 @@ export default async function MePage() {
                         <div className={dd}>{fmtDate(p.hire_date)}</div>
                     </div>
                     <div>
-                        <div className={dt}>{t('me.annualLeave')}</div>
-                        <div className={dd}>
-                            {p.annual_leave_available_days ?? 0} {t('me.days')}<span className="text-xs text-gray-500 ml-2">({p.annual_leave_accrued_days ?? 0} accrued of {p.annual_leave_rate_days ?? 0}/yr rate)</span>
-                        </div>
+                        <div className={dt}>{t('me.annualLeaveAvailable')}</div>
+                        <div className={dd + ' font-mono'}>{p.annual_leave_available_days ?? 0} {t('me.days')}</div>
+                    </div>
+                    <div>
+                        <div className={dt}>{t('me.annualLeaveAccrued')}</div>
+                        <div className={dd + ' font-mono'}>{p.annual_leave_accrued_days ?? 0} {t('me.days')}</div>
+                    </div>
+                    <div>
+                        <div className={dt}>{t('me.annualLeaveRate')}</div>
+                        <div className={dd + ' font-mono'}>{p.annual_leave_rate_days ?? 0} {t('me.daysPerYear')}</div>
+                        <p className="text-xs text-gray-500 mt-1 max-w-md">{t('me.annualLeaveHint')}</p>
                     </div>
                     {p.work_pass_type && (
                         <>

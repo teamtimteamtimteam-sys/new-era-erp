@@ -159,8 +159,15 @@ export default async function EmployeeDetailPage({
                     )}
                 </div>
                 <div>
-                    <span className="text-gray-600 mr-1">{t('hr.colAnnualLeave')}:</span>
-                    <span className="font-mono">{emp.annual_leave_rate_days ?? '-'}</span><span className="text-xs text-gray-500 ml-1">/yr rate</span><span className="font-mono ml-3">{emp.annual_leave_accrued_days ?? '-'}</span><span className="text-xs text-gray-500 ml-1">accrued</span><span className="font-mono ml-3">{emp.annual_leave_available_days ?? '-'}</span><span className="text-xs text-gray-500 ml-1">available</span>
+                    <span className="text-gray-600 mr-1">{t('hr.colAnnualLeaveAvailable')}:</span>
+                    <span className="font-mono">{emp.annual_leave_available_days ?? '-'}</span>
+                    <span className="text-xs text-gray-500 ml-1">{t('hr.unitDays')}</span>
+                    <span className="text-gray-600 ml-4 mr-1">{t('hr.colAnnualLeaveAccrued')}:</span>
+                    <span className="font-mono">{emp.annual_leave_accrued_days ?? '-'}</span>
+                    <span className="text-xs text-gray-500 ml-1">{t('hr.unitDays')}</span>
+                    <span className="text-gray-600 ml-4 mr-1">{t('hr.colAnnualLeaveRate')}:</span>
+                    <span className="font-mono">{emp.annual_leave_rate_days ?? '-'}</span>
+                    <span className="text-xs text-gray-500 ml-1">{t('hr.unitDaysPerYear')}</span>
                 </div>
                 <div>
                     <span className="text-gray-600 mr-1">{t('hr.colResidency')}:</span>

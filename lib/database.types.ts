@@ -7930,6 +7930,10 @@ export type Database = {
         Args: { p_basis?: string; p_run_id: string }
         Returns: Json
       }
+      annual_leave_available_from: {
+        Args: { p_days: number; p_employee_id: string; p_from?: string }
+        Returns: string
+      }
       annual_leave_rate_per_year: {
         Args: { p_as_of?: string; p_employee_id: string }
         Returns: number

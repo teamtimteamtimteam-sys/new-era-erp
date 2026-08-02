@@ -82,7 +82,25 @@ export async function submitLeave(form: {
         p_exception_days: form.exceptionDays ?? undefined,
         p_exception_reason: form.exceptionReason ?? undefined,
     })
-    if (error) return { error: await localizeLeaveError(error.message) }
+    if (error) {
+        // 【"不够"必须说得出"什么时候够"】否则员工只能去问 HR,而那件事系统自己知道。
+        // 日期由 annual_leave_available_from 算 —— 累积规则只有一份实现,不在这里重写。
+        const m = (error.message ?? '').trim().match(/^INSUFFICIENT_ACCRUED_LEAVE\|([^|]*)\|([^|]*)$/)
+        if (m) {
+            const t = await getTranslations()
+            const { data: from } = await supabase.rpc('annual_leave_available_from', {
+                p_employee_id: form.employeeId,
+                p_days: Number(m[2]),
+                p_from: form.start,
+            })
+            return {
+                error: from
+                    ? t('leave.errInsufficientFrom', { 0: m[1], 1: m[2], 2: String(from) })
+                    : t('leave.errInsufficientNever', { 0: m[1], 1: m[2] }),
+            }
+        }
+        return { error: await localizeLeaveError(error.message) }
+    }
     revalidatePath('/hr/leave')
     revalidatePath('/me')
     return { success: true, code: (data as { code?: string })?.code }
