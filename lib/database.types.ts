@@ -1950,7 +1950,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
-          days_per_month: number | null
+          days_per_year: number | null
           effective_from: string
           employee_id: string | null
           id: string
@@ -1963,7 +1963,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
-          days_per_month?: number | null
+          days_per_year?: number | null
           effective_from: string
           employee_id?: string | null
           id?: string
@@ -1976,7 +1976,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
-          days_per_month?: number | null
+          days_per_year?: number | null
           effective_from?: string
           employee_id?: string | null
           id?: string
@@ -5682,7 +5682,6 @@ export type Database = {
           annual_leave_accrued_days: number | null
           annual_leave_available_days: number | null
           annual_leave_rate_days: number | null
-          annual_leave_rate_days_per_month: number | null
           code: string | null
           confirmation_date: string | null
           created_at: string | null
@@ -5722,7 +5721,6 @@ export type Database = {
           annual_leave_accrued_days?: never
           annual_leave_available_days?: never
           annual_leave_rate_days?: never
-          annual_leave_rate_days_per_month?: never
           code?: string | null
           confirmation_date?: string | null
           created_at?: string | null
@@ -5762,7 +5760,6 @@ export type Database = {
           annual_leave_accrued_days?: never
           annual_leave_available_days?: never
           annual_leave_rate_days?: never
-          annual_leave_rate_days_per_month?: never
           code?: string | null
           confirmation_date?: string | null
           created_at?: string | null
@@ -6510,7 +6507,6 @@ export type Database = {
           annual_leave_accrued_days: number | null
           annual_leave_available_days: number | null
           annual_leave_rate_days: number | null
-          annual_leave_rate_days_per_month: number | null
           code: string | null
           department_name_en: string | null
           department_name_zh: string | null
@@ -7934,7 +7930,7 @@ export type Database = {
         Args: { p_basis?: string; p_run_id: string }
         Returns: Json
       }
-      annual_leave_rate_per_month: {
+      annual_leave_rate_per_year: {
         Args: { p_as_of?: string; p_employee_id: string }
         Returns: number
       }

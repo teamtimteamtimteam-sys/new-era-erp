@@ -1,9 +1,10 @@
 -- db/views/employee_directory.sql
 -- 员工目录:一名【在册】员工一行。读遮蔽伴生视图而非基表,遮蔽因此是继承来的。
--- 年假三列(费率 / 已累积 / 可请)同样继承自 employees_masked(HR-2c)。
+-- 年假三列(年度费率 / 已累积 / 可请)同样继承自 employees_masked。
 -- SECURITY INVOKER。
 --
--- NOTE: introduced/updated by db/migrations/2026-08-06-hr2c-monthly-accrual.sql.
+-- NOTE: introduced by db/migrations/2026-08-06-hr2c-monthly-accrual.sql;
+--       annual-rate form by db/migrations/2026-08-07-hr2c-fu1-annual-rate-and-immutable-rates.sql.
 
 CREATE VIEW public.employee_directory WITH (security_invoker = on) AS
  SELECT e.id AS employee_id,

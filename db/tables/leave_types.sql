@@ -65,13 +65,13 @@ INSERT INTO public.leave_types
      is_paid, is_accrued, default_days_per_year, requires_certificate_after_days,
      requires_approval, allows_half_day, gender_restriction, sort_order, notes) VALUES
 
--- 年假:天数【不来自这里】,来自 employees.annual_leave_days(办公室 24 / 现场 18)。
+-- 年假:天数【不来自这里】,来自 leave_accrual_rates(办公室 24 / 现场 18 天每年,按月累积)。
 -- default_days_per_year 留空,免得两处数字打架。
 ('annual', 'Annual Leave', '年假',
- 'Paid annual leave. Entitlement comes from the employee record, not this table.',
- '带薪年假。天数取自员工档案,不取自本表。',
+ 'Paid annual leave. Earned monthly; the rate comes from leave_accrual_rates, not this table.',
+ '带薪年假。按月累积;费率取自 leave_accrual_rates,不取自本表。',
  true, true, NULL, NULL, true, true, NULL, 10,
- 'Entitlement source: employees.annual_leave_days (office 24 / shopfloor 18). Statutory minimum under the Employment Act is 7 days rising to 14 with service — the company figure is well above it.'),
+ 'Entitlement source: leave_accrual_rates (office 24 / shopfloor 18 days per year, accrued monthly). Statutory minimum under the Employment Act is 7 days rising to 14 with service — the company figure is well above it.'),
 
 -- 病假(门诊):MOM 法定 14 天(服务满 6 个月)。
 -- requires_certificate_after_days = 3 是【公司的诚信制】:3 天以内不需医生证明。

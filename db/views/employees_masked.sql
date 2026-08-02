@@ -2,14 +2,14 @@
 -- 员工档案的遮蔽伴生视图。身份/联系方式要 data.view_identity,月固定工资要 data.view_pay,
 -- 两者都【对本人让路】。
 --
--- 【年假三列都是派生的(HR-2c)】annual_leave_days 那一列已经删掉 —— 一个事实两个家
--- 就是 monthly_salary / gross_pay 那个 bug 再来一次。现在:
---   annual_leave_rate_days       年度【费率】(月费率 × 12),界面必须按费率标
+-- 【年假三列都是派生的】annual_leave_days 那一列已随 HR-2c 删除。
+--   annual_leave_rate_days       年度【费率】,界面必须按费率标,不是余额
 --   annual_leave_accrued_days    到今天已经挣到的
 --   annual_leave_available_days  扣掉已请、加上结转后真正能请的
 -- 软删的行用 deleted_at 守卫(那些函数对已删除员工会报错)。
 --
--- NOTE: introduced/updated by db/migrations/2026-08-06-hr2c-monthly-accrual.sql.
+-- NOTE: introduced by db/migrations/2026-08-06-hr2c-monthly-accrual.sql;
+--       annual-rate form by db/migrations/2026-08-07-hr2c-fu1-annual-rate-and-immutable-rates.sql.
 
 CREATE VIEW public.employees_masked WITH (security_invoker = off) AS
  SELECT id,
@@ -62,11 +62,7 @@ CREATE VIEW public.employees_masked WITH (security_invoker = off) AS
     monthly_salary_set,
     review_exempt,
         CASE
-            WHEN deleted_at IS NULL THEN annual_leave_rate_per_month(id)
-            ELSE NULL::numeric
-        END AS annual_leave_rate_days_per_month,
-        CASE
-            WHEN deleted_at IS NULL THEN annual_leave_rate_per_month(id) * 12::numeric
+            WHEN deleted_at IS NULL THEN annual_leave_rate_per_year(id)
             ELSE NULL::numeric
         END AS annual_leave_rate_days,
         CASE

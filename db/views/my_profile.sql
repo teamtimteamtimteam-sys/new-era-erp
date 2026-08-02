@@ -1,8 +1,9 @@
 -- db/views/my_profile.sql
 -- 员工自助的那一行。属主权限 + 视图体里的 current_user_employee() 谓词。
--- 【敏感列照给】—— 那是这个人自己的数据。年假三列同 employees_masked(HR-2c)。
+-- 【敏感列照给】—— 那是这个人自己的数据。年假三列同 employees_masked。
 --
--- NOTE: introduced/updated by db/migrations/2026-08-06-hr2c-monthly-accrual.sql.
+-- NOTE: introduced by db/migrations/2026-08-06-hr2c-monthly-accrual.sql;
+--       annual-rate form by db/migrations/2026-08-07-hr2c-fu1-annual-rate-and-immutable-rates.sql.
 
 CREATE VIEW public.my_profile WITH (security_invoker = off) AS
  SELECT e.id AS employee_id,
@@ -15,8 +16,7 @@ CREATE VIEW public.my_profile WITH (security_invoker = off) AS
     e.employment_status,
     e.hire_date,
     e.probation_end_date,
-    annual_leave_rate_per_month(e.id) AS annual_leave_rate_days_per_month,
-    annual_leave_rate_per_month(e.id) * 12::numeric AS annual_leave_rate_days,
+    annual_leave_rate_per_year(e.id) AS annual_leave_rate_days,
     accrued_annual_leave(e.id) AS annual_leave_accrued_days,
     (leave_balance_internal(e.id, 'annual'::text) ->> 'available'::text)::numeric AS annual_leave_available_days,
     e.residency_status,
