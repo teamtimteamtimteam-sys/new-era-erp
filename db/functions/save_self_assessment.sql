@@ -3,15 +3,15 @@
 -- 这是本仓库里唯一一个【不带】"has_permission(...) OR 本人"那半句的自助函数:
 -- 一份别人代写的自评没有价值,那正是这份文书唯一的作用所在。
 --
--- 【写得到什么由函数的形状决定,不由调用方的自觉决定】:只 UPDATE
--- performance_reviews.self_assessment_text 与 review_goals.employee_result_text,
--- 全是静态 SQL、无一处动态拼接,因此 objective_text / reviewer_assessment_text /
--- rating_code / summary_text / probation_outcome / 薪酬两列 / status 在【结构上】够不到。
+-- 【写得到什么由函数的形状决定】只 UPDATE performance_reviews.self_assessment_text 与
+-- review_goals 的 employee_result_text / actual_value,全是静态 SQL、无一处动态拼接。
+-- target_value / unit / objective_text / reviewer_assessment_text / rating_code /
+-- summary_text / probation_outcome / 薪酬两列 / status 在【结构上】够不到。
 --
--- p_goal_results 形如 '[{"goal_id":"<uuid>","result_text":"..."}]';每个 goal_id 必须
--- 属于本评估。幂等:起草期间可反复调用,每次整份覆盖。p_final = true 落定稿时点并锁死。
+-- 【用 ? 判断键在不在,而不是值是不是空】不传某个键 = 保持原值;显式传 null = 清空。
+-- 少了这个区分,一次只想改文字的保存会把已经填好的数字抹掉。
 --
--- NOTE: introduced by db/migrations/2026-08-04-hr3b-salary-basis-and-review-visibility.sql.
+-- NOTE: introduced/updated by db/migrations/2026-08-09-hr3c-quantified-goals-and-self-assessment-read.sql.
 
 CREATE OR REPLACE FUNCTION public.save_self_assessment(p_review_id uuid, p_self_assessment_text text, p_goal_results jsonb DEFAULT NULL::jsonb, p_final boolean DEFAULT false)
  RETURNS jsonb
@@ -31,7 +31,6 @@ BEGIN
         RAISE EXCEPTION 'REVIEW_NOT_FOUND|%', COALESCE(p_review_id::text, '?');
     END IF;
 
-    -- 本人,且只有本人
     IF v_me IS NULL OR v_r.employee_id IS DISTINCT FROM v_me THEN
         RAISE EXCEPTION 'NOT_REVIEW_SUBJECT';
     END IF;
@@ -58,7 +57,12 @@ BEGIN
                 RAISE EXCEPTION 'GOAL_NOT_IN_REVIEW|%', v_goal_id;
             END IF;
             UPDATE review_goals
-            SET employee_result_text = v_el->>'result_text'
+            SET employee_result_text = CASE WHEN v_el ? 'result_text'
+                                            THEN v_el->>'result_text'
+                                            ELSE employee_result_text END,
+                actual_value         = CASE WHEN v_el ? 'actual_value'
+                                            THEN (v_el->>'actual_value')::numeric
+                                            ELSE actual_value END
             WHERE id = v_goal_id;
             v_n := v_n + 1;
         END LOOP;

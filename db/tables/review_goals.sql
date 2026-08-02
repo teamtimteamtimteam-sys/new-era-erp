@@ -22,7 +22,16 @@ CREATE TABLE public.review_goals (
     created_by               uuid DEFAULT auth.uid(),
     updated_at               timestamptz NOT NULL DEFAULT now(),
     updated_by               uuid DEFAULT auth.uid(),
+    -- ── HR-3c 追加:目标可以带数字,【全部可选】────────────────────────────────
+    target_value             numeric,   -- 期初定下的量化指标
+    actual_value             numeric,   -- 期末实际值;自评期本人写,draft/submitted 评估人写
+    unit                     text,      -- 单位;填了任一数字就必须有
     UNIQUE (review_id, sequence),
+    -- 【光有数字没有单位不成其为指标】95 是什么?百分比、件、天、还是分钟?
+    CONSTRAINT review_goals_unit_required CHECK (
+        (target_value IS NULL AND actual_value IS NULL)
+        OR (unit IS NOT NULL AND btrim(unit) <> '')
+    ),
     CONSTRAINT review_goals_objective_not_blank CHECK (btrim(objective_text) <> '')
 );
 
@@ -63,3 +72,10 @@ CREATE POLICY "review_goals update by permission"
 CREATE POLICY "review_goals delete by permission"
     ON public.review_goals AS PERMISSIVE FOR DELETE TO authenticated
     USING (has_permission('module.hr.edit'));
+GRANT SELECT (target_value, actual_value, unit) ON public.review_goals TO authenticated;
+COMMENT ON COLUMN public.review_goals.target_value IS
+    '期初定下的量化指标。【可选】—— 数字编不出来就不编,这一行仍然只靠 objective_text 说清楚。';
+COMMENT ON COLUMN public.review_goals.actual_value IS
+    '期末的实际值。自评阶段由【本人】写(save_self_assessment),draft/submitted 阶段由【评估人或 HR】写(set_goal_actual_value)。两条路都碰不到 target_value 与 unit。';
+COMMENT ON COLUMN public.review_goals.unit IS
+    '指标的单位(%、件、天……)。只要填了 target_value 或 actual_value 就必须有单位:一个没有单位的数字不是指标,是一个会被读错的数。';

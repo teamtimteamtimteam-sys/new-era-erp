@@ -1117,7 +1117,6 @@ const zh = {
         colStatus: '状态',
         colHireDate: '入职日期',
         colProbationEnd: '试用期至',
-        colAnnualLeave: '年假(天)',
         colAnnualLeaveRate: '整年费率',
         colAnnualLeaveAccrued: '已累积',
         colAnnualLeaveAvailable: '可请',

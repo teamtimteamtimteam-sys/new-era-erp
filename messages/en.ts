@@ -1115,7 +1115,6 @@ const en = {
         colStatus: 'Status',
         colHireDate: 'Hire date',
         colProbationEnd: 'Probation ends',
-        colAnnualLeave: 'Annual leave (days)',
         colAnnualLeaveRate: 'Full-year rate',
         colAnnualLeaveAccrued: 'Accrued to date',
         colAnnualLeaveAvailable: 'Available to book',

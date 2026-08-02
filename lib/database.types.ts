@@ -4500,6 +4500,7 @@ export type Database = {
       }
       review_goals: {
         Row: {
+          actual_value: number | null
           created_at: string
           created_by: string | null
           employee_result_text: string | null
@@ -4508,10 +4509,13 @@ export type Database = {
           review_id: string
           reviewer_assessment_text: string | null
           sequence: number
+          target_value: number | null
+          unit: string | null
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          actual_value?: number | null
           created_at?: string
           created_by?: string | null
           employee_result_text?: string | null
@@ -4520,10 +4524,13 @@ export type Database = {
           review_id: string
           reviewer_assessment_text?: string | null
           sequence: number
+          target_value?: number | null
+          unit?: string | null
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          actual_value?: number | null
           created_at?: string
           created_by?: string | null
           employee_result_text?: string | null
@@ -4532,10 +4539,19 @@ export type Database = {
           review_id?: string
           reviewer_assessment_text?: string | null
           sequence?: number
+          target_value?: number | null
+          unit?: string | null
           updated_at?: string
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "review_goals_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "my_self_assessment"
+            referencedColumns: ["review_id"]
+          },
           {
             foreignKeyName: "review_goals_review_id_fkey"
             columns: ["review_id"]
@@ -6535,6 +6551,106 @@ export type Database = {
         }
         Relationships: []
       }
+      my_self_assessment: {
+        Row: {
+          cycle_id: string | null
+          cycle_name: string | null
+          employee_id: string | null
+          period_end: string | null
+          period_start: string | null
+          review_id: string | null
+          review_type: string | null
+          self_assessment_submitted_at: string | null
+          self_assessment_text: string | null
+          status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_reviews_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "review_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+        ]
+      }
+      my_self_assessment_goals: {
+        Row: {
+          actual_value: number | null
+          employee_result_text: string | null
+          goal_id: string | null
+          objective_text: string | null
+          review_id: string | null
+          sequence: number | null
+          target_value: number | null
+          unit: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_goals_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "my_self_assessment"
+            referencedColumns: ["review_id"]
+          },
+          {
+            foreignKeyName: "review_goals_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "performance_reviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_goals_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "performance_reviews_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_term_template_lines_masked: {
         Row: {
           created_at: string | null
@@ -8280,6 +8396,10 @@ export type Database = {
           p_review_id: string
           p_self_assessment_text: string
         }
+        Returns: Json
+      }
+      set_goal_actual_value: {
+        Args: { p_actual_value: number; p_goal_id: string }
         Returns: Json
       }
       set_inbound_unit_price: {
