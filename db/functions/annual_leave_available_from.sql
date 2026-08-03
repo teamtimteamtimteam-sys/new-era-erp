@@ -19,6 +19,12 @@ DECLARE
     v_m    date := date_trunc('month', p_from)::date;
     v_end  date;
 BEGIN
+    -- 【本人或 HR】—— 与 leave_balance 同一道口径。界面在 INSUFFICIENT_ACCRUED_LEAVE
+    -- 之后调它,那时调用者要么是本人、要么持 module.hr.edit,两种都过得去。
+    IF NOT (has_permission('module.hr.view') OR p_employee_id = current_user_employee()) THEN
+        RAISE EXCEPTION 'PERMISSION_DENIED|module.hr.view';
+    END IF;
+
     -- 逐个月末往前推:哪一个月末的可用余额够了,那天起就订得动。
     -- 累积在月末落账,所以「够了的那天」就是那个月末本身。
     WHILE v_m <= make_date(v_year, 12, 1) LOOP

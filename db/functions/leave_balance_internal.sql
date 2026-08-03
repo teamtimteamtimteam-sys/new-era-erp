@@ -22,6 +22,10 @@ DECLARE
     v_year    integer := EXTRACT(YEAR FROM p_as_of)::integer;
     r         record;
 BEGIN
+    -- 【本人或 HR】与 leave_balance 同一道口径。
+    IF NOT (has_permission('module.hr.view') OR p_employee_id = current_user_employee()) THEN
+        RAISE EXCEPTION 'PERMISSION_DENIED|module.hr.view';
+    END IF;
     FOR r IN
         SELECT g.id, g.leave_year, g.days, g.granted_on, g.expires_on, g.grant_type,
                COALESCE((SELECT SUM(CASE WHEN c.entry_type='draw' THEN c.days ELSE -c.days END)

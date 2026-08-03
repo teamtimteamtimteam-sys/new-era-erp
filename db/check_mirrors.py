@@ -117,6 +117,55 @@ RUNTIME_CONFIG_TABLES = [
 # 若将来某张表【确实】应当空着引导,把它写进下面这个集合,让那件事是一次明写的决定。
 BOOTSTRAP_MAY_BE_EMPTY: set = set()
 
+# ═══════════════════════════════════════════════════════════════════════════
+# 【SECURITY DEFINER 必须自己查调用者】(OPS-3)
+# DEFINER 函数以属主身份运行,而 public 架构里的函数默认把 EXECUTE 授给 PUBLIC ——
+# 所以"内部函数"只是命名上内部,任何登录用户都调得到。OPS-3 实测:七个假期函数
+# 让零权限员工读到了别人的余额,而对外的包装函数是拒绝的。
+#
+# 这个扫描【只看得见有没有"像样的检查"】,看不见检查得对不对:
+#   * 认得出:require_permission( / has_permission( / current_user_employee( /
+#             is_reviewer_of( / require_reviewer_of( / require_leave_visibility(
+#   * 认不出:检查写错了对象、检查了却没 RAISE、状态门当权限用(OPS-3 叫它"(e) 侥幸")
+# 所以它是一张网,不是一份证明。放行项必须写进下面的名单并说明理由。
+DEFINER_NO_CHECK_ALLOWED = {
+    # 权限判断本身的原语 —— 它们就是"检查",不可能再检查自己
+    "has_permission": "the permission check itself",
+    "current_user_permissions": "resolves the caller's own permission set",
+    "current_user_employee": "resolves the caller's own employee row",
+    "is_reviewer_of": "the identity check itself",
+    "require_permission": "raises on behalf of its callers",
+    "require_reviewer_of": "raises on behalf of its callers",
+    # 触发器函数:返回 trigger,调不动;闸门是触发它的那次基表写入(perm2a 的设计)
+    # —— 由返回类型自动排除,不需要列在这里。
+    # 已收回 EXECUTE 的内层函数(ACL 里没有 PUBLIC 项)
+    "calculate_metal_price_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "reverse_journal_entry_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+}
+
+CHECK_PATTERNS = ("require_permission(", "has_permission(", "current_user_employee(",
+                  "is_reviewer_of(", "require_reviewer_of(")
+
+
+def definer_without_caller_check() -> list:
+    """扫 db/functions:SECURITY DEFINER 且看不出任何调用者检查的函数。"""
+    bad = []
+    for f in sorted((REPO / "db" / "functions").glob("*.sql")):
+        txt = f.read_text()
+        for m in re.finditer(r"CREATE OR REPLACE FUNCTION\s+public\.([a-z0-9_]+)\s*\((.*?)\)\s*\n(.*?)(?=\nCREATE OR REPLACE FUNCTION|\Z)",
+                             txt, re.S):
+            name, body = m.group(1), m.group(3)
+            if "SECURITY DEFINER" not in body:
+                continue
+            if re.search(r"\bRETURNS\s+trigger\b", body, re.I):
+                continue          # 触发器函数:闸门是基表写入
+            if name in DEFINER_NO_CHECK_ALLOWED:
+                continue
+            if any(p in body for p in CHECK_PATTERNS):
+                continue
+            bad.append(f"{name}  ({f.name})")
+    return sorted(set(bad))
+
 # 科目字面量扫描的例外名单。【只放误伤,不放"懒得处理"】,每条必须写明理由。
 # 空着是对的 —— 现在一条都不需要。
 ACCOUNT_LITERAL_ALLOWLIST = {
@@ -449,6 +498,7 @@ def main() -> int:
 
     seed_dirty = any(v["missing_from_mirror"] or v["extra_in_mirror"]
                      for v in report["seed"].values())
+    unchecked = definer_without_caller_check()
     empty_bootstraps = sorted(t for t, n in report["bootstrap"].items()
                               if n == 0 and t not in BOOTSTRAP_MAY_BE_EMPTY)
     integ_dirty = any(report["integrity"][k] for k in (
@@ -459,7 +509,7 @@ def main() -> int:
     dirty = (
         report["table_drift"] or report["function_drift"] or report["view_drift"]
         or any(v for v in report["coverage"].values())
-        or seed_dirty or integ_dirty or empty_bootstraps
+        or seed_dirty or integ_dirty or empty_bootstraps or unchecked
     )
 
     if args.json:
@@ -481,6 +531,8 @@ def main() -> int:
               f"  unresolved {len(ig['permission_codes_missing_from_seed']) + len(ig['account_codes_missing_from_seed']) + len(ig['account_codes_referenced_but_not_is_system']) + len(ig['role_codes_missing_from_seed'])}")
         # 引导默认值【不与线上比对】,但要看得见它到底装进去了多少行 ——
         # 一个悄悄变成零行的引导,是这套豁免唯一藏得住的失败。
+        print(f"definer    {len(unchecked)} SECURITY DEFINER function(s) with no recognisable caller check"
+              f"  ({len(DEFINER_NO_CHECK_ALLOWED)} allowlisted, trigger functions excluded by return type)")
         print("bootstrap  (runtime config, not compared against live; rows must be > 0)")
         print("           " + "  ".join(f"{t}={report['bootstrap'][t]}"
                                         for t in sorted(report["bootstrap"])))
@@ -499,6 +551,8 @@ def main() -> int:
             if k.endswith("_referenced") or not v:
                 continue
             print(f"  INTEGRITY {k}: {json.dumps(v, ensure_ascii=False)}")
+        for u in unchecked:
+            print(f"  DEFINER {u}: SECURITY DEFINER with no caller check — add one, or allowlist it with a reason")
         for t in empty_bootstraps:
             print(f"  BOOTSTRAP {t}: seeded ZERO rows — a rebuilt database would start without them")
         print("clean bill of health ✓" if not dirty else "drift / coverage gaps found ✗")

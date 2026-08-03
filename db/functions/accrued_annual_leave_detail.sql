@@ -27,6 +27,10 @@ DECLARE
     v_raw      numeric := 0;
     v_months   jsonb := '[]'::jsonb;
 BEGIN
+    -- 【本人或 HR】与 leave_balance 同一道口径。
+    IF NOT (has_permission('module.hr.view') OR p_employee_id = current_user_employee()) THEN
+        RAISE EXCEPTION 'PERMISSION_DENIED|module.hr.view';
+    END IF;
     SELECT id, code, hire_date, work_category, employment_status, separation_date
     INTO v_emp FROM employees WHERE id = p_employee_id AND deleted_at IS NULL;
     IF NOT FOUND THEN RAISE EXCEPTION 'EMPLOYEE_NOT_FOUND'; END IF;

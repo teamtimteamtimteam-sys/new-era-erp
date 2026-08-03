@@ -8042,6 +8042,15 @@ export type Database = {
         Returns: Json
       }
       acknowledge_review: { Args: { p_review_id: string }; Returns: Json }
+      add_review_goal: {
+        Args: {
+          p_objective_text: string
+          p_review_id: string
+          p_target_value?: number
+          p_unit?: string
+        }
+        Returns: Json
+      }
       allocate_processing_costs: {
         Args: { p_basis?: string; p_run_id: string }
         Returns: Json
@@ -8216,6 +8225,10 @@ export type Database = {
         }
         Returns: Json
       }
+      is_reviewer_of: {
+        Args: { p_reviewer_employee_id: string }
+        Returns: boolean
+      }
       leave_accrual_rate: {
         Args: {
           p_employee_id: string
@@ -8341,6 +8354,7 @@ export type Database = {
         }
         Returns: Json
       }
+      remove_review_goal: { Args: { p_goal_id: string }; Returns: Json }
       reopen_period: {
         Args: { p_period_end: string; p_reason: string }
         Returns: Json
@@ -8369,6 +8383,10 @@ export type Database = {
         Returns: Json
       }
       require_permission: { Args: { p_code: string }; Returns: undefined }
+      require_reviewer_of: {
+        Args: { p_allowed_status: string[]; p_review_id: string }
+        Returns: undefined
+      }
       reverse_expense: {
         Args: { p_expense_id: string; p_memo?: string }
         Returns: Json
@@ -8402,6 +8420,10 @@ export type Database = {
         Args: { p_actual_value: number; p_goal_id: string }
         Returns: Json
       }
+      set_goal_assessment: {
+        Args: { p_goal_id: string; p_reviewer_assessment_text: string }
+        Returns: Json
+      }
       set_inbound_unit_price: {
         Args: {
           p_currency?: string
@@ -8409,6 +8431,14 @@ export type Database = {
           p_inbound_batch_id: string
           p_notes?: string
           p_unit_price: number
+        }
+        Returns: Json
+      }
+      set_review_conclusion: {
+        Args: {
+          p_rating_code: string
+          p_review_id: string
+          p_summary_text: string
         }
         Returns: Json
       }
@@ -8474,6 +8504,15 @@ export type Database = {
       unreconcile_statement: {
         Args: { p_reason: string; p_statement_id: string }
         Returns: undefined
+      }
+      update_review_goal: {
+        Args: {
+          p_goal_id: string
+          p_objective_text: string
+          p_target_value?: number
+          p_unit?: string
+        }
+        Returns: Json
       }
       upsert_metal_prices: {
         Args: { p_price_date: string; p_prices: Json }
