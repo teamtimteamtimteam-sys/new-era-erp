@@ -11,7 +11,8 @@ check_mirrors.py 回答的是"镜像与线上一致吗";本脚本回答的是【
     python3 db/verify_rebuild.py --target "<空库>" --live "<线上连接串>"
     python3 db/verify_rebuild.py --target "<空库>" --skip-diff   # 只建,不比
 
-退出码:0 = 建得起来且与线上一致;1 = 有差异;2 = 建不起来(重放失败)。
+退出码:0 = 全过;1 = 镜像与线上有差异;2 = 建不起来(重放失败);3 = 不变式被破坏。
+【三种失败是三件不同的事】"镜像漂了"、"仓库建不起来"、"权限不变式破了" 各有各的修法。
 
 前提
   * 一个【空的】目标库。本脚本会往里面建东西,不要指向线上。
@@ -283,6 +284,96 @@ def diff(live, scratch) -> list:
     return out
 
 
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 【两条不变式】(OPS-5)。都要【对线上和对重建各跑一遍】——
+# OPS-4 的全部发现就是这两边曾经差了 8 个函数(含冲销分录的引擎),
+# 而只有重建那一侧看得见。任何一边违反都算失败。
+#
+# 【为什么不是"安全默认"】试过了:
+#     ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+#         REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC, anon;
+# 记录进 pg_default_acl 了,但新建函数的 ACL 里 `=X/postgres`(给 PUBLIC 的那条)
+# 照样在,anon 仍然调得到 —— PostgreSQL 对函数内建的 "EXECUTE TO PUBLIC"
+# 不受默认权限的 REVOKE 压制。所以预防做不到,只能靠这两条断言检测。
+# ═══════════════════════════════════════════════════════════════════════════
+
+# B1:anon 在 public 架构里不该能执行任何函数。anon 就是互联网。
+# 【空的】—— 未登录的界面(登录页、设置密码页)走 Supabase auth 端点,不调 public 的函数;
+# 实测:注销状态下 /login、/set-password、/ 都渲染正常,服务端日志零条 permission denied。
+# 将来真有函数必须给 anon,在这里加一行【并写清楚为什么】。
+ANON_EXECUTE_ALLOWED: dict = {}
+
+# B2:SECURITY DEFINER 函数要么自己查调用者,要么谁都执行不了。
+# 下面三个是【权限判断本身的原语】:它们解析的是【调用者自己的】上下文,
+# 对 anon 来说返回的是空,所以"没有调用者检查"对它们不是漏洞 —— 它们就是检查。
+DEFINER_UNCHECKED_EXEC_ALLOWED: dict = {
+    "has_permission":
+        "the permission check itself; returns false for anyone holding nothing",
+    "current_user_permissions":
+        "resolves the CALLER's own permission set; returns an empty array for anon",
+    "current_user_employee":
+        "resolves the CALLER's own employee row; returns NULL for anon",
+}
+
+CALLER_CHECK_RE = ("require_permission\\(|has_permission\\(|current_user_employee\\("
+                   "|is_reviewer_of\\(|require_reviewer_of\\(")
+
+B1_SQL = """
+SELECT coalesce(string_agg(p.proname, ',' ORDER BY p.proname), '')
+FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public' AND p.prokind = 'f'
+  AND has_function_privilege('anon', p.oid, 'EXECUTE');
+"""
+
+B2_SQL = """
+SELECT coalesce(string_agg(p.proname, ',' ORDER BY p.proname), '')
+FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public' AND p.prokind = 'f' AND p.prosecdef
+  -- 触发器函数调不动;闸门是触发它的那次基表写入(perm2a 的设计)
+  AND pg_get_function_result(p.oid) <> 'trigger'
+  AND p.prosrc !~ '""" + CALLER_CHECK_RE + """'
+  AND (p.proacl IS NULL                                   -- 内建默认 = 给 PUBLIC
+       OR EXISTS (SELECT 1 FROM aclexplode(p.proacl) a
+                  WHERE a.grantee = 0 AND a.privilege_type = 'EXECUTE')   -- 显式给 PUBLIC
+       OR has_function_privilege('authenticated', p.oid, 'EXECUTE')
+       OR has_function_privilege('anon', p.oid, 'EXECUTE'));
+"""
+
+
+def scalar(dsn: str, sql: str) -> set:
+    r = subprocess.run(["psql", dsn, "-X", "-q", "-A", "-t", "-f", "-"],
+                       input="SET statement_timeout = 0;\n" + sql,
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        sys.stderr.write(r.stderr)
+        return {"<query failed>"}
+    out = [l for l in r.stdout.strip().splitlines() if l and l != "SET"]
+    return {x for x in (out[-1].split(",") if out else []) if x}
+
+
+def assert_invariants(live_dsn: str, target_dsn: str) -> bool:
+    """B1 + B2,两侧各跑一遍。返回 True 表示都过。"""
+    ok = True
+    print("\n== invariants (checked against BOTH live and the rebuild)")
+    for label, dsn in (("live", live_dsn), ("rebuild", target_dsn)):
+        b1 = scalar(dsn, B1_SQL) - set(ANON_EXECUTE_ALLOWED)
+        b2 = scalar(dsn, B2_SQL) - set(DEFINER_UNCHECKED_EXEC_ALLOWED)
+        print(f"   {label:8s} B1 anon-executable: {len(b1)}   "
+              f"B2 definer-unchecked-and-callable: {len(b2)}")
+        for n in sorted(b1):
+            print(f"      B1 VIOLATION [{label}] {n}: anon can EXECUTE it — "
+                  f"revoke, or allowlist it in ANON_EXECUTE_ALLOWED with a reason")
+            ok = False
+        for n in sorted(b2):
+            print(f"      B2 VIOLATION [{label}] {n}: SECURITY DEFINER, no caller check, "
+                  f"and executable — add a check, revoke EXECUTE, or allowlist with a reason")
+            ok = False
+    print(f"   allowlisted: B1 {len(ANON_EXECUTE_ALLOWED)}, B2 {len(DEFINER_UNCHECKED_EXEC_ALLOWED)}"
+          f" ({', '.join(sorted(DEFINER_UNCHECKED_EXEC_ALLOWED))})")
+    return ok
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--target", required=True, help="空库的连接串(会被写入,别指向线上)")
@@ -295,22 +386,25 @@ def main() -> int:
     rc = rebuild(args.target, args.prelude)
     if rc != 0:
         return rc
+    import os as _os
     if args.skip_diff:
-        return 0
+        live_dsn = args.live or _os.environ.get("CHECK_MIRRORS_DSN") or cm.DEFAULT_DSN
+        return 0 if assert_invariants(live_dsn, args.target) else 3
 
     import os
     live_dsn = args.live or os.environ.get("CHECK_MIRRORS_DSN") or cm.DEFAULT_DSN
     print("\n== comparing the rebuilt database against live")
     d = diff(signature(live_dsn), signature(args.target))
+    inv_ok = assert_invariants(live_dsn, args.target)
     if not d:
-        print("NO DIFFERENCES — the rebuild matches live ✓")
-        return 0
-    print(f"{len(d)} DIFFERENCE(S):\n")
+        print("\nNO DIFFERENCES — the rebuild matches live ✓")
+        return 0 if inv_ok else 3
+    print(f"\n{len(d)} DIFFERENCE(S):\n")
     for kind, k, verdict, detail in d:
         print(f"[{kind}] {k}\n    {verdict}")
         if detail:
             print(f"    {detail[:500]}")
-    return 1
+    return 1 if inv_ok else 3
 
 
 if __name__ == "__main__":
