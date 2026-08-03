@@ -104,6 +104,41 @@ composite type.
 | `python3 db/check_mirrors.py` | do the mirrors match live, including seed rows and cross-file integrity |
 | `python3 db/verify_rebuild.py --target "<empty db>"` | can this repository build a database **at all** |
 
+## The i18n key check runs on every cut that touches the app
+
+`node scripts/check-i18n.mjs` (also `npm run check:i18n`; `npm run build` runs it
+before `next build`, so the build gate cannot pass without it).
+
+The i18n resolver returns the KEY when a label is missing, so a missing
+translation prints `hr.alertType.salary_not_set` on screen and nothing fails.
+It bit three times before this check existed, all in **dynamically built keys**
+(`t('hr.alertType.' + a.alert_type)`), which a plain grep can never connect to
+the message files.
+
+The check therefore has two halves and one discipline:
+
+* **Static**: every `t('...')` literal, plus key-shaped literals feeding
+  `t(variable)` (`key:`/`labelKey:`/`titleKey=` props and the like), must exist
+  in **both** `messages/en.ts` and `messages/zh.ts` — failure names file and line.
+* **Dynamic**: every `t('prefix' + x)` construction must be classified in the
+  script's `MANIFEST`. For enumerable suffix sets the checker reads the **source
+  of truth at check time** — `CHECK (col IN (...))` in `db/tables/*.sql`,
+  `'x'::text AS alias` in views, `new Set([...])` in `*ErrorCodes.ts`, `as const`
+  arrays — so adding an enum value automatically widens the check. A resolver
+  that parses 0 suffixes fails (a broken parser is not an empty set).
+* **The discipline**: a dynamic prefix missing from `MANIFEST` is a FAILURE, not
+  a pass — a new dynamic call site must be classified (wire a source, or mark it
+  `kind:'data'` with a written reason, which is reported as a named gap every
+  run). Dead keys (defined, never referenced) are reported but never fail:
+  failing on them would push people to delete keys that dynamic code needs.
+
+As of 2026-08-03 all 62 dynamic prefixes are enumerable; the named-gap list is
+empty. Keep it that way where possible — the three historical bugs all lived in
+exactly the keys a static-only scan cannot see. (Two call shapes exist and both
+are scanned: named `t(...)`, and the direct `(await getTranslations())(...)`
+form the `*ErrorCodes.ts` files use — the latter hid eight error families from
+the first version of this scan.)
+
 **Neither substitutes for the other.** `check_mirrors` replays into a scratch schema
 *inside live*, so an unqualified reference silently resolves against live's `public` and
 passes — the check is green on a repo that cannot rebuild. `verify_rebuild` builds into

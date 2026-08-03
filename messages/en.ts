@@ -1205,6 +1205,8 @@ const en = {
             transfer: 'Transfer',
             type_change: 'Employment type change',
             status_change: 'Status change',
+            salary_change: 'Salary change',
+            category_change: 'Work category change',
             separated: 'Separated',
         },
         trainingCategory: {
@@ -1839,6 +1841,9 @@ const en = {
             writeoff: 'Write-off',
             payment: 'Payment',
             fx: 'FX',
+            expense: 'Expense',
+            prepayment: 'Prepayment',
+            payroll: 'Payroll',
         },
         status: {
             posted: 'Posted',

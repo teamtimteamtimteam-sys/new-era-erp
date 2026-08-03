@@ -1206,6 +1206,8 @@ const zh = {
             transfer: '调岗',
             type_change: '雇佣类型变更',
             status_change: '状态变更',
+            salary_change: '调薪',
+            category_change: '工作类别变更',
             separated: '离职',
         },
         trainingCategory: {
@@ -1833,6 +1835,9 @@ const zh = {
             writeoff: '冲销',
             payment: '付款',
             fx: '汇率',
+            expense: '开支',
+            prepayment: '预付',
+            payroll: '工资',
         },
         status: {
             posted: '已过账',

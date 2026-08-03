@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/check-i18n.mjs && next build",
+    "check:i18n": "node scripts/check-i18n.mjs",
     "start": "next start",
     "lint": "eslint"
   },
