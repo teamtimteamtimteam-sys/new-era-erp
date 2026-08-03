@@ -1,9 +1,8 @@
 -- db/functions/submit_review.sql
--- 提交评估:评级、书面结论、目标行三样齐了才走得动。draft / self_review 两个入口都收 ——
--- self_review 是【可选的一步】,评估人可以直接 draft → submitted。
+-- 提交评估:评级、书面结论、目标行三样齐了才走得动。draft / self_review 两个入口都收。
 -- 权限:本行的评估人,或 module.hr.edit(评估人本身未必是 HR)。
 --
--- NOTE: introduced by db/migrations/2026-08-03-hr3a-performance-reviews.sql.
+-- NOTE: introduced by db/migrations/2026-08-03-hr3d-reviewer-write-path.sql;
 
 CREATE OR REPLACE FUNCTION public.submit_review(p_review_id uuid)
  RETURNS jsonb
@@ -21,7 +20,7 @@ BEGIN
     END IF;
 
     IF NOT (has_permission('module.hr.edit')
-            OR v_r.reviewer_employee_id = current_user_employee()) THEN
+            OR is_reviewer_of(v_r.reviewer_employee_id)) THEN
         RAISE EXCEPTION 'PERMISSION_DENIED|module.hr.edit';
     END IF;
 

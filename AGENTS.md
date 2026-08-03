@@ -78,3 +78,53 @@ fails on a missing schema, role, relation, function, type or extension, the scri
 the object and says the prelude is not sufficient, rather than leaving a bare psql error.
 That matters because the prelude is the only written record of what the mirrors expect
 the platform to provide, and nothing else notices when that expectation grows.
+
+## Mirror function signatures: built-in types only
+
+**A mirror function signature — `RETURNS` and every parameter type — must name only
+built-in types. Never a table's composite type.**
+
+This is not style. The replay order is `db/functions` → `db/tables` → `db/views`, and
+`SET check_function_bodies = off` exempts a function's **body** but not its
+**signature**: the return and parameter types must already exist when `CREATE FUNCTION`
+runs. A table composite type in a signature therefore *can never work* in a rebuild,
+whatever order you try. `%ROWTYPE` inside the body is fine — that is the part the
+exemption covers.
+
+Caught the hard way: `require_reviewer_of` was written `RETURNS performance_reviews`.
+`check_mirrors` passed it; `verify_rebuild` failed with
+`type "performance_reviews" does not exist`. An audit of all 100 function mirrors and
+the live catalog found it to be the only instance, and no table column anywhere uses a
+composite type.
+
+## Both database checks run on every cut that touches the database
+
+| | question it answers |
+|---|---|
+| `python3 db/check_mirrors.py` | do the mirrors match live, including seed rows and cross-file integrity |
+| `python3 db/verify_rebuild.py --target "<empty db>"` | can this repository build a database **at all** |
+
+**Neither substitutes for the other.** `check_mirrors` replays into a scratch schema
+*inside live*, so an unqualified reference silently resolves against live's `public` and
+passes — the check is green on a repo that cannot rebuild. `verify_rebuild` builds into
+a genuinely empty database, where there is nothing to borrow. It has now caught one
+such bug that `check_mirrors` was structurally unable to see.
+
+## Migration filenames come from the system date
+
+**Run `date`. Do not increment the previous filename.**
+
+Incrementing compounds: HR-3a was dated 2026-08-03 while the clock said 2026-08-01, and
+every later cut stepped forward from the *filename* rather than the clock, reaching
+2026-08-10 on a day the clock said 2026-08-03.
+
+**Known discrepancy, left in place deliberately.** `2026-08-03-hr3a` through
+`2026-08-09-hr3c` were all committed on **2026-08-02** (verifiable with
+`git log --diff-filter=A -- db/migrations/<file>`). Their dates are fiction; their
+*sequence* is correct. Renaming them to the true date would collapse seven files onto
+`2026-08-02`, and the resulting alphabetical order —
+`hr2c-fu1, hr2c-fu2, hr2c, hr3a, hr3b, hr3c, ops1` — contradicts the real order
+`hr3a, hr3b, ops1, hr2c, hr2c-fu1, hr2c-fu2, hr3c`. Renaming any subset is worse still,
+inverting the relationship with the files left alone. Since nothing replays migrations
+by filename (they are changelog-only; the install path is entirely mirror-based), the
+misleading dates cost nothing while a rename would destroy real ordering information.

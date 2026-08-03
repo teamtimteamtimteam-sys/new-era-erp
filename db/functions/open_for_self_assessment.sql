@@ -1,9 +1,8 @@
 -- db/functions/open_for_self_assessment.sql
 -- 开启(或【重开】)自评:评估人或 module.hr.edit,draft / self_review → self_review。
--- 已定稿的自评从这里重开(清掉 self_assessment_submitted_at)—— 重开是评估人的决定,
--- 不是员工自己能做的,否则"定稿"就不成其为定稿。
+-- 已定稿的自评从这里重开(清掉 self_assessment_submitted_at)—— 重开是评估人的决定。
 --
--- NOTE: introduced by db/migrations/2026-08-04-hr3b-salary-basis-and-review-visibility.sql.
+-- NOTE: introduced by db/migrations/2026-08-03-hr3d-reviewer-write-path.sql;
 
 CREATE OR REPLACE FUNCTION public.open_for_self_assessment(p_review_id uuid)
  RETURNS jsonb
@@ -21,7 +20,7 @@ BEGIN
     END IF;
 
     IF NOT (has_permission('module.hr.edit')
-            OR v_r.reviewer_employee_id = current_user_employee()) THEN
+            OR is_reviewer_of(v_r.reviewer_employee_id)) THEN
         RAISE EXCEPTION 'PERMISSION_DENIED|module.hr.edit';
     END IF;
 

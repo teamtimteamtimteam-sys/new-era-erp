@@ -50,6 +50,24 @@ MISSING_PATTERNS = [
 ]
 
 
+def mirror_object_names() -> set:
+    """镜像集自己会创建的对象名 —— 用来判断"缺的东西"是平台的,还是我们自己的。
+
+    自己的对象缺了,说明【重放顺序】不对(或签名里用了表复合类型),
+    不是前置文件少了什么。把它写进 platform-prelude.sql 是错误修法。
+    """
+    names = set()
+    for sub, pats in (("tables", (r"CREATE TABLE\s+(?:IF NOT EXISTS\s+)?public\.([a-z0-9_]+)",
+                                  r"CREATE SEQUENCE\s+(?:IF NOT EXISTS\s+)?public\.([a-z0-9_]+)")),
+                      ("views", (r"CREATE(?:\s+OR\s+REPLACE)?\s+VIEW\s+public\.([a-z0-9_]+)",)),
+                      ("functions", (r"CREATE OR REPLACE FUNCTION\s+public\.([a-z0-9_]+)",))):
+        for f in (REPO / "db" / sub).glob("*.sql"):
+            t = f.read_text()
+            for pat in pats:
+                names.update(re.findall(pat, t, re.I))
+    return names
+
+
 def fixup(sql: str) -> str:
     """pg_get_functiondef 的原样输出不带结尾分号 —— 与 check_mirrors.rewrite() 同一行代码。"""
     return re.sub(r"^\$function\$$", "$function$;", sql, flags=re.M)
@@ -130,13 +148,27 @@ def rebuild(dsn: str, prelude: str = "auto") -> int:
             missing = []
             for pat, kind in MISSING_PATTERNS:
                 for m in re.findall(pat, err):
-                    missing.append(f"{kind} {m}")
-            if missing:
-                print("\n  db/platform-prelude.sql IS NOT SUFFICIENT - missing:")
-                for m in sorted(set(missing)):
+                    missing.append((kind, m))
+            # 【把两类"缺东西"分开】说错了比不说更糟:把镜像自己会建的对象
+            # 写进 platform-prelude.sql 是【实实在在的错误修法】。
+            own = mirror_object_names()
+            platform = [f"{k} {m}" for k, m in missing if m.split('(')[0] not in own]
+            ordering = [f"{k} {m}" for k, m in missing if m.split('(')[0] in own]
+            if ordering:
+                print("\n  REPLAY ORDERING PROBLEM - these are objects the mirror set itself creates,")
+                print("  referenced before their own replay position:")
+                for m in sorted(set(ordering)):
+                    print(f"      {m}")
+                print("  Replay order is functions -> tables -> views, and check_function_bodies=off")
+                print("  exempts a function BODY but not its SIGNATURE. A table composite type in a")
+                print("  RETURNS or parameter list can therefore never work. Use a built-in type.")
+                print("  Do NOT add these to db/platform-prelude.sql - they are not platform objects.")
+            if platform:
+                print("\n  db/platform-prelude.sql IS NOT SUFFICIENT - missing platform objects:")
+                for m in sorted(set(platform)):
                     print(f"      {m}")
                 print("  Add it to the prelude, or explain in that file why the mirrors may rely on it.")
-            else:
+            if not ordering and not platform:
                 print("\n  (not a missing-object error - the mirror itself is broken)")
             return 2
     if prelude == "run":
