@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { formatUsd, formatUnitCost } from '@/lib/format'
+import { formatMoney, formatUnitCost } from '@/lib/format'
 import Subnav from '../../Subnav'
 import CancelOrderControl from './CancelOrderControl'
 import { CloseOrderControl, ReopenOrderControl } from './CloseReopenControls'
@@ -223,7 +223,7 @@ export default async function PurchaseOrderDetailPage({
                 <div>{statusPill}</div>
                 <div>
                     <span className="text-gray-600 mr-1">{t('purchasing.colEstimatedTotal')}:</span>
-                    <span className="font-mono font-medium">{formatUsd(po.estimated_total_usd)}</span>
+                    <span className="font-mono font-medium">{formatMoney(po.estimated_total_usd)}</span>
                 </div>
             </div>
 
@@ -283,7 +283,7 @@ export default async function PurchaseOrderDetailPage({
                                 {l.estimated_unit_price !== null ? formatUnitCost(l.estimated_unit_price) : '—'}
                             </td>
                             <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                {formatUsd(l.estimated_amount_usd)}
+                                {formatMoney(l.estimated_amount_usd)}
                             </td>
                         </tr>
                     ))}
@@ -294,7 +294,7 @@ export default async function PurchaseOrderDetailPage({
                             {t('purchasing.colEstimatedTotal')}
                         </td>
                         <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                            {formatUsd(po.estimated_total_usd)}
+                            {formatMoney(po.estimated_total_usd)}
                         </td>
                     </tr>
                 </tfoot>
@@ -324,10 +324,10 @@ export default async function PurchaseOrderDetailPage({
                                         <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
                                             {l.percentage !== null
                                                 ? `${l.percentage}%`
-                                                : `${formatUsd(l.fixed_amount_usd)} USD`}
+                                                : `${formatMoney(l.fixed_amount_usd)} USD`}
                                         </td>
                                         <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                            {formatUsd(termAmount(l))}
+                                            {formatMoney(termAmount(l))}
                                         </td>
                                         <td className="border border-gray-300 px-3 py-2 text-sm">
                                             {t('purchasing.trigger.' + l.trigger_event)}
@@ -346,15 +346,15 @@ export default async function PurchaseOrderDetailPage({
                     <div className="border border-gray-300 rounded p-4 text-sm space-y-2 h-fit">
                         <div className="flex justify-between">
                             <span className="text-gray-600">{t('purchasing.prepaidLabel')}</span>
-                            <span className="font-mono">{formatUsd(poStatus.prepaid_usd)}</span>
+                            <span className="font-mono">{formatMoney(poStatus.prepaid_usd)}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-gray-600">{t('purchasing.appliedLabel')}</span>
-                            <span className="font-mono">{formatUsd(poStatus.prepaid_applied_usd)}</span>
+                            <span className="font-mono">{formatMoney(poStatus.prepaid_applied_usd)}</span>
                         </div>
                         <div className="flex justify-between font-medium border-t pt-2">
                             <span>{t('purchasing.remainingLabel')}</span>
-                            <span className="font-mono">{formatUsd(poStatus.prepaid_remaining_usd)}</span>
+                            <span className="font-mono">{formatMoney(poStatus.prepaid_remaining_usd)}</span>
                         </div>
                         {!isCancelled && (
                             <Link
@@ -413,10 +413,10 @@ export default async function PurchaseOrderDetailPage({
                                         )}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {appliedByBatch.has(r.id) ? formatUsd(appliedByBatch.get(r.id)) : '—'}
+                                        {appliedByBatch.has(r.id) ? formatMoney(appliedByBatch.get(r.id)) : '—'}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {r.unit_price !== null ? formatUsd(openByBatch.get(r.id) ?? 0) : '—'}
+                                        {r.unit_price !== null ? formatMoney(openByBatch.get(r.id) ?? 0) : '—'}
                                     </td>
                                 </tr>
                             ))}

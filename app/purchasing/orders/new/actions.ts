@@ -48,7 +48,6 @@ export async function createOrder(
     const orderDate = String(formData.get('order_date') ?? '').trim()
     const expectedDelivery = String(formData.get('expected_delivery') ?? '').trim()
     const currency = String(formData.get('currency') ?? 'USD')
-    const fxRaw = String(formData.get('fx_rate') ?? '').trim()
     const incoterm = String(formData.get('incoterm') ?? '').trim()
     const notes = String(formData.get('notes') ?? '').trim()
     const termsText = String(formData.get('terms_text') ?? '').trim()
@@ -56,14 +55,6 @@ export async function createOrder(
     if (!supplierId) return { error: t('purchasing.errors.SUPPLIER_NOT_FOUND', { 0: '?' }) }
     if (!orderDate || Number.isNaN(Date.parse(orderDate))) return { error: t('finance.errDate') }
 
-    let fxRate = 1
-    if (currency !== 'USD') {
-        const fx = Number(fxRaw)
-        if (!fxRaw || Number.isNaN(fx) || fx <= 0) {
-            return { error: t('finance.errors.FX_RATE_REQUIRED', { 0: currency }) }
-        }
-        fxRate = fx
-    }
 
     // 明细行(≥1;数量等硬校验交给 DB 的 LINE_QTY_INVALID,这里只组装)
     let lineInputs: OrderLineInput[]
@@ -143,7 +134,8 @@ export async function createOrder(
         p_order_date: orderDate,
         p_expected_delivery: (expectedDelivery || null) as unknown as string,
         p_currency: currency,
-        p_fx_rate: fxRate,
+        // FIN-0:估算按下单日行方卖出价自动取,缺牌价 DB 直接拒;签名无默认故显式传 null
+        p_fx_rate: null as unknown as number,
         p_incoterm: (incoterm || null) as unknown as string,
         p_terms_text: (termsText || null) as unknown as string,
         p_notes: (notes || null) as unknown as string,

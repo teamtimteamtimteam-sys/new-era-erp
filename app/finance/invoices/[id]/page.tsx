@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatUsd, formatAmount } from '@/lib/format'
+import { formatMoney, formatAmount } from '@/lib/format'
 import { checkInvoicePdfCoverage } from '@/lib/invoiceFontCoverage'
 import Subnav from '../../Subnav'
 import VoidInvoiceControl from './VoidInvoiceControl'
@@ -281,10 +281,10 @@ export default async function InvoiceDetailPage({
                                 {l.quantity} {l.unit}
                             </td>
                             <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                {formatUsd(l.unit_price)}
+                                {formatMoney(l.unit_price)}
                             </td>
                             <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                {formatUsd(l.amount_usd)}
+                                {formatMoney(l.amount_usd)}
                             </td>
                             <td className="border border-gray-300 px-3 py-2 text-sm">
                                 {/* 每行都能跳回它背后的 AR 单据(凭据附件挂在那里)*/}
@@ -309,7 +309,7 @@ export default async function InvoiceDetailPage({
                 {Number(inv.tax_usd) !== 0 && (
                     <div className="flex justify-between">
                         <span className="text-gray-600">{t('invoice.tax', { rate: inv.tax_rate_pct })}</span>
-                        <span className="font-mono">{formatUsd(inv.tax_usd)}</span>
+                        <span className="font-mono">{formatMoney(inv.tax_usd)}</span>
                     </div>
                 )}
                 <div className="flex justify-between border-t pt-1 font-bold">
@@ -340,11 +340,11 @@ export default async function InvoiceDetailPage({
                 <div className="bg-gray-50 rounded p-4 mb-4 flex flex-wrap gap-x-8 gap-y-2 text-sm items-center">
                     <div>
                         <span className="text-gray-600 mr-1">{t('invoice.colSettled')}:</span>
-                        <span className="font-mono">{formatUsd(settled)}</span>
+                        <span className="font-mono">{formatMoney(settled)}</span>
                     </div>
                     <div>
                         <span className="text-gray-600 mr-1">{t('invoice.colOpen')}:</span>
-                        <span className="font-mono font-bold">{formatUsd(open)}</span>
+                        <span className="font-mono font-bold">{formatMoney(open)}</span>
                     </div>
                     <span
                         className={
@@ -399,7 +399,7 @@ export default async function InvoiceDetailPage({
                                             (reversed ? ' line-through' : '')
                                         }
                                     >
-                                        {formatUsd(a.allocated_usd)}
+                                        {formatMoney(a.allocated_usd)}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-sm">
                                         {reversed ? (

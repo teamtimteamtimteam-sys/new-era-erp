@@ -7,7 +7,7 @@ import { useActionState, useEffect, useState } from 'react'
 import { recordSale, type SaleState } from './saleActions'
 import { STATE_OPTIONS, labelKeyForValue } from '../../../inbound/options'
 import { useTranslations } from '@/lib/i18n/client'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 
 const initialState: SaleState = {}
@@ -46,7 +46,6 @@ export default function SalePanel({
     const [quantity, setQuantity] = useState('')
     const [unitPrice, setUnitPrice] = useState('')
     const [currency, setCurrency] = useState('USD')
-    const [fxRate, setFxRate] = useState('')
 
     // 成功后清空录入(重挂表单 + 复位受控值)
     useEffect(() => {
@@ -55,7 +54,6 @@ export default function SalePanel({
             setQuantity('')
             setUnitPrice('')
             setCurrency('USD')
-            setFxRate('')
         }
     }, [st.success])
 
@@ -64,14 +62,13 @@ export default function SalePanel({
         return key ? t(key) : v
     }
 
-    // 实时预览:qty × price [× fx] = USD;任一项无效则不显示
+    // 实时预览:qty × price = 原币金额;SGD 折算由 DB 按当日牌价定,预览不猜数
     const qtyN = Number(quantity)
     const priceN = Number(unitPrice)
-    const fxN = currency === 'USD' ? 1 : Number(fxRate)
     const previewValid =
         quantity !== '' && unitPrice !== '' && !Number.isNaN(qtyN) && !Number.isNaN(priceN) &&
-        qtyN > 0 && priceN > 0 && (currency === 'USD' || (fxRate !== '' && !Number.isNaN(fxN) && fxN > 0))
-    const previewAmount = previewValid ? Math.round(qtyN * priceN * fxN * 100) / 100 : null
+        qtyN > 0 && priceN > 0
+    const previewAmount = previewValid ? Math.round(qtyN * priceN * 100) / 100 : null
 
     return (
         <section className="mt-8 pt-8 border-t">
@@ -132,21 +129,10 @@ export default function SalePanel({
                             <option value="SGD">SGD</option>
                         </select>
                     </div>
-                    {currency !== 'USD' && (
-                        <div>
-                            <label className="block text-sm font-medium mb-1">
-                                {t('output.sale.fxRate')} <span className="text-red-600">*</span>
-                            </label>
-                            <DecimalInput
-                                name="fx_rate"
-                                required
-                                value={fxRate}
-                                onChange={setFxRate}
-                                placeholder={t('output.sale.fxHint')}
-                                className="w-36 border border-gray-300 px-3 py-2 rounded"
-                            />
-                        </div>
-                    )}
+                    {/* FIN-0:外币按销售日行方买入价(tt_buy)自动估值,当天没牌价直接拒 */}
+                    {currency !== 'SGD' && (
+                    <p className="text-xs text-gray-500 self-end pb-2 max-w-56">{t('common.fxBoardRateHint')}</p>
+                )}
                 </div>
 
                 <div className="flex flex-wrap gap-2 items-end">
@@ -193,7 +179,7 @@ export default function SalePanel({
 
                 {previewAmount !== null && (
                     <p className="text-sm text-gray-600">
-                        {t('output.sale.amountPreview', { amount: formatUsd(previewAmount) })}
+                        {t('output.sale.amountPreview', { amount: formatMoney(previewAmount), ccy: currency })}
                     </p>
                 )}
             </form>

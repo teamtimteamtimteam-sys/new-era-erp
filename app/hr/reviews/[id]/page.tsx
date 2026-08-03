@@ -7,7 +7,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { can } from '@/lib/permissions'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import Subnav from '../../Subnav'
 import GoalsEditor from '../GoalsEditor'
 import ConclusionForm, { type RatingOption } from '../ConclusionForm'
@@ -147,7 +147,7 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
                 {canPay && (r.new_monthly_salary !== null || r.salary_effective_date !== null) && !canHrEdit && (
                     <div>
                         <span className="text-gray-600 mr-1">{t('reviews.newSalary')}:</span>
-                        <span className="font-mono">{formatUsd(r.new_monthly_salary)}</span>
+                        <span className="font-mono">{formatMoney(r.new_monthly_salary)}</span>
                         <span className="ml-2 text-gray-500">{r.salary_effective_date}</span>
                     </div>
                 )}

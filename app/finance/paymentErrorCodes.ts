@@ -4,6 +4,7 @@ import { getTranslations } from '@/lib/i18n/server'
 // FX_RATE_REQUIRED / PERIOD_LOCKED 复用 finance.errors 里已有的文案。
 // 不在此集合内的,是真正的(未编码的)DB/约束错误,原样返回。
 const PAYMENT_ERROR_CODES = new Set([
+    'FX_RATE_MISSING', 'FX_RATE_NOT_ACCEPTED',
     'DIRECTION_INVALID', 'COUNTERPARTY_NOT_FOUND', 'AMOUNT_INVALID',
     'FX_RATE_REQUIRED', 'BANK_INVALID',
     'ALLOC_WRONG_SIDE', 'ALLOC_WRONG_PARTY', 'ALLOC_UNPRICED',

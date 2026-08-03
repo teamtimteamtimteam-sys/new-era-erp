@@ -74,8 +74,8 @@ BEGIN
             RAISE EXCEPTION 'CURRENCY_INVALID|%', COALESCE(v_currency, '?');
         END IF;
 
-        IF v_currency = 'USD' THEN
-            v_fx := 1;  -- 本位币强制 1,忽略传入值
+        IF v_currency = 'SGD' THEN
+            v_fx := 1;  -- 本位币(FIN-0 起为 SGD)强制 1,忽略传入值
         ELSE
             v_fx := (v_line->>'fx_rate')::numeric;
             IF v_fx IS NULL THEN

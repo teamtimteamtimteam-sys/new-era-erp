@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import Subnav from '../../Subnav'
 import ReversePaymentButton from './ReversePaymentButton'
 import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachmentsPanel'
@@ -195,11 +195,11 @@ export default async function PaymentDetailPage({
                 <div>
                     <span className="text-gray-600 mr-1">{t('finance.amount')}:</span>
                     <span className="font-mono font-medium">
-                        {payment.currency} {formatUsd(payment.amount_ccy)}
+                        {payment.currency} {formatMoney(payment.amount_ccy)}
                     </span>
                     {payment.currency !== 'USD' && (
                         <span className="text-gray-500 ml-1 font-mono">
-                            @ {payment.fx_rate} = {formatUsd(payment.amount_usd)} USD
+                            @ {payment.fx_rate} = {formatMoney(payment.amount_usd)} USD
                         </span>
                     )}
                 </div>
@@ -265,7 +265,7 @@ export default async function PaymentDetailPage({
                                     )}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                    {formatUsd(a.allocated_usd)}
+                                    {formatMoney(a.allocated_usd)}
                                 </td>
                             </tr>
                         )
@@ -283,7 +283,7 @@ export default async function PaymentDetailPage({
                         <tr className="bg-gray-100 font-bold">
                             <td className="border border-gray-300 px-4 py-2">{t('finance.totalsLabel')}</td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatUsd(allocTotal)}
+                                {formatMoney(allocTotal)}
                             </td>
                         </tr>
                     </tfoot>
@@ -293,7 +293,7 @@ export default async function PaymentDetailPage({
             {/* 未冲销余额(挂账)*/}
             {unallocated > 0 && (
                 <p className="text-sm text-gray-500 mt-3">
-                    {t('finance.unallocated')}: <span className="font-mono">{formatUsd(unallocated)}</span>
+                    {t('finance.unallocated')}: <span className="font-mono">{formatMoney(unallocated)}</span>
                 </p>
             )}
 

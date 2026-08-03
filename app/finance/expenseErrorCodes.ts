@@ -5,6 +5,7 @@ import { getTranslations } from '@/lib/i18n/server'
 // 同码但独立成套,避免跨命名空间引用)。
 // 不在此集合内的,是真正的(未编码的)DB/约束错误,原样返回。
 const EXPENSE_ERROR_CODES = new Set([
+    'FX_RATE_MISSING', 'FX_RATE_NOT_ACCEPTED',
     'ACCOUNT_NOT_FOUND', 'ACCOUNT_INACTIVE', 'ACCOUNT_NOT_EXPENSE',
     'AMOUNT_INVALID', 'FX_RATE_REQUIRED', 'PAYMENT_STATUS_INVALID',
     'BANK_INVALID', 'SUPPLIER_REQUIRED_FOR_UNPAID', 'SUPPLIER_NOT_FOUND',

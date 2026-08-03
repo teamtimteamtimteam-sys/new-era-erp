@@ -6,7 +6,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { STATE_OPTIONS, labelKeyForValue } from '@/app/inbound/options'
 import { getTranslations } from '@/lib/i18n/server'
-import { formatUsd, formatUnitCost } from '@/lib/format'
+import { formatMoney, formatUnitCost } from '@/lib/format'
 import {
     agingDays,
     agingTone,
@@ -108,10 +108,10 @@ export default async function OutputDrillPage({
                 <span className="font-mono">{total}</span>
                 <span className="mx-2 text-gray-300">·</span>
                 <span className="text-gray-600 mr-1">{t('valuation.colCostValue')}:</span>
-                <span className="font-mono">{formatUsd(totalCostValue)}</span>
+                <span className="font-mono">{formatMoney(totalCostValue)}</span>
                 <span className="mx-2 text-gray-300">·</span>
                 <span className="text-gray-600 mr-1">{t('valuation.colMarketValue')}:</span>
-                <span className="font-mono">{formatUsd(totalMarketValue)}</span>
+                <span className="font-mono">{formatMoney(totalMarketValue)}</span>
                 {noCostCount > 0 && (
                     <span className="ml-2 text-gray-400">
                         {t('valuation.noCostCount', { n: noCostCount })}
@@ -160,10 +160,10 @@ export default async function OutputDrillPage({
                                     {r.unitCost !== null ? `${formatUnitCost(r.unitCost)} /kg` : '—'}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
-                                    {r.costValue !== null ? formatUsd(r.costValue) : '—'}
+                                    {r.costValue !== null ? formatMoney(r.costValue) : '—'}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
-                                    {r.marketValue !== null ? formatUsd(r.marketValue) : '—'}
+                                    {r.marketValue !== null ? formatMoney(r.marketValue) : '—'}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
                                     {r.ageDays !== null && tone !== null ? (

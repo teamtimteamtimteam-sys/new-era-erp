@@ -113,8 +113,8 @@ BEGIN
                         'Write-off ' || OLD.code,
                         'writeoff', OLD.id,
                         jsonb_build_array(
-                            jsonb_build_object('account_code', '5200', 'side', 'debit',  'currency', 'USD', 'amount_ccy', v_amt),
-                            jsonb_build_object('account_code', v_acct, 'side', 'credit', 'currency', 'USD', 'amount_ccy', v_amt)));
+                            jsonb_build_object('account_code', '5200', 'side', 'debit',  'currency', 'SGD', 'amount_ccy', v_amt),
+                            jsonb_build_object('account_code', v_acct, 'side', 'credit', 'currency', 'SGD', 'amount_ccy', v_amt)));
                 END IF;
             END IF;
         END IF;

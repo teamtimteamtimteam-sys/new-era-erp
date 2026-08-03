@@ -10,7 +10,7 @@
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import DecimalInput, { parseDecimal } from '@/app/components/forms/DecimalInput'
 import { savePayrollPeriod, type PayrollFormState, type PayrollLineInput } from './actions'
 
@@ -256,7 +256,7 @@ export default function PayrollGrid({
                                             <span className="text-green-700">✓</span>
                                         ) : (
                                             <span className="text-red-700">
-                                                {t('hr.expectedNet', { amount: formatUsd(check.expected) })}
+                                                {t('hr.expectedNet', { amount: formatMoney(check.expected) })}
                                             </span>
                                         )}
                                     </td>
@@ -279,11 +279,11 @@ export default function PayrollGrid({
                                     {t('hr.lineCount', { n: active.length })}
                                 </span>
                             </td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatUsd(totals.gross)}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatUsd(totals.eeCpf)}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatUsd(totals.erCpf)}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatUsd(totals.other)}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatUsd(totals.net)}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(totals.gross)}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(totals.eeCpf)}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(totals.erCpf)}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(totals.other)}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(totals.net)}</td>
                             <td className="border border-gray-300 px-3 py-2" />
                         </tr>
                     </tfoot>

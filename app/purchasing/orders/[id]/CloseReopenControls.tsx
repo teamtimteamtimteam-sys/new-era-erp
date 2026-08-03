@@ -7,7 +7,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import { closeOrder, reopenOrder } from './actions'
 
 export function CloseOrderControl({
@@ -53,7 +53,7 @@ export function CloseOrderControl({
             {needsNotes && (
                 <p className="text-amber-800 bg-amber-50 border border-amber-300 rounded px-3 py-2">
                     {t('purchasing.closeWithPrepaymentWarning', {
-                        amount: formatUsd(unappliedPrepayment),
+                        amount: formatMoney(unappliedPrepayment),
                     })}
                 </p>
             )}

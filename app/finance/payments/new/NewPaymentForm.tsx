@@ -9,7 +9,7 @@ import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { createPayment, type CreatePaymentState } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 
 const initialState: CreatePaymentState = {}
@@ -200,18 +200,19 @@ export default function NewPaymentForm({
                         <option value="SGD">SGD</option>
                     </select>
                 </div>
-                {/* 汇率(非 USD 必填)*/}
-                {currency !== 'USD' && (
+                {/* FIN-0:同币种走外币户按当日牌价自动估值;只有【跨币种】(银行实际
+                    做了兑换)才要填 —— 填水单两边实际金额折出的成交价,不是牌价(C4) */}
+                {currency === 'USD' && bank === '1000' && (
                     <div>
                         <label className="block text-sm font-medium mb-1">
-                            {t('output.sale.fxRate')} <span className="text-red-600">*</span>
+                            {t('finance.actualDealRate')} <span className="text-red-600">*</span>
                         </label>
                         <DecimalInput
                             name="fx_rate"
                             required
                             value={fx}
                             onChange={setFx}
-                            placeholder={t('output.sale.fxHint')}
+                            placeholder={t('finance.actualDealRateHint')}
                             className="w-32 border border-gray-300 px-3 py-2 rounded"
                         />
                     </div>
@@ -277,10 +278,10 @@ export default function NewPaymentForm({
                                     <td className="border border-gray-300 px-4 py-2 font-mono text-sm">{p.code}</td>
                                     <td className="border border-gray-300 px-4 py-2">{p.order_date}</td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {formatUsd(p.estimated_total_usd)}
+                                        {formatMoney(p.estimated_total_usd)}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {formatUsd(p.prepaid_usd)}
+                                        {formatMoney(p.prepaid_usd)}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2">
                                         <input type="hidden" name="alloc_id" value={p.po_id} />
@@ -335,7 +336,7 @@ export default function NewPaymentForm({
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2">{i.doc_date}</td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {formatUsd(i.open_usd)}
+                                        {formatMoney(i.open_usd)}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2">
                                         <input type="hidden" name="alloc_id" value={i.doc_id} />
@@ -371,15 +372,15 @@ export default function NewPaymentForm({
             <div className="bg-gray-50 rounded p-4 flex flex-wrap gap-8 text-sm items-center">
                 <div>
                     <span className="text-gray-600 mr-1">{t('finance.colAmount')}:</span>
-                    <span className="font-mono font-medium">{formatUsd(payUsd)}</span>
+                    <span className="font-mono font-medium">{formatMoney(payUsd)}</span>
                 </div>
                 <div>
                     <span className="text-gray-600 mr-1">{t('finance.totalAllocated')}:</span>
-                    <span className="font-mono font-medium">{formatUsd(totalAllocated)}</span>
+                    <span className="font-mono font-medium">{formatMoney(totalAllocated)}</span>
                 </div>
                 <div className={unallocated < 0 ? 'text-red-600' : 'text-gray-500'}>
                     <span className="mr-1">{t('finance.unallocated')}:</span>
-                    <span className="font-mono">{formatUsd(unallocated)}</span>
+                    <span className="font-mono">{formatMoney(unallocated)}</span>
                 </div>
             </div>
 

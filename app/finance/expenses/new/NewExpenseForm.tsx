@@ -9,7 +9,7 @@ import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { createExpense, type CreateExpenseState } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 
 const initialState: CreateExpenseState = {}
@@ -41,7 +41,6 @@ export default function NewExpenseForm({
     const [accountCode, setAccountCode] = useState('')
     const [amount, setAmount] = useState('')
     const [currency, setCurrency] = useState('SGD') // 本地开销默认新币(销售面板默认 USD,刻意不同)
-    const [fx, setFx] = useState('')
     const [paymentStatus, setPaymentStatus] = useState<'paid' | 'unpaid'>('unpaid')
     const [bank, setBank] = useState('1000') // 初始币种 SGD → 1000
 
@@ -51,12 +50,10 @@ export default function NewExpenseForm({
         setBank(c === 'SGD' ? '1000' : '1010')
     }
 
-    // 实时 USD 金额:round(amount × fx, 2),与 DB 同式;无效输入计 0
+    // 实时预览只对本位币直给;外币的 SGD 值由当日牌价决定(DB 侧),预览不猜数
     const amountNum = Number(amount)
-    const fxNum = currency === 'USD' ? 1 : Number(fx)
     const amountValid = !!amount && !Number.isNaN(amountNum) && amountNum > 0
-    const fxValid = currency === 'USD' || (!!fx && !Number.isNaN(fxNum) && fxNum > 0)
-    const amountUsd = amountValid && fxValid ? round2(amountNum * fxNum) : 0
+    const amountSgd = currency === 'SGD' && amountValid ? round2(amountNum) : null
 
     const accountLabel = accounts.find((a) => a.code === accountCode)
     const previewAccount = accountLabel ? `${accountLabel.code} ${accountLabel.name}` : '…'
@@ -134,21 +131,9 @@ export default function NewExpenseForm({
                         <option value="USD">USD</option>
                     </select>
                 </div>
-                {/* 汇率(非 USD 必填)*/}
-                {currency !== 'USD' && (
-                    <div>
-                        <label className="block text-sm font-medium mb-1">
-                            {t('expense.form.fxRate')} <span className="text-red-600">*</span>
-                        </label>
-                        <DecimalInput
-                            name="fx_rate"
-                            required
-                            value={fx}
-                            onChange={setFx}
-                            placeholder={t('output.sale.fxHint')}
-                            className="w-32 border border-gray-300 px-3 py-2 rounded"
-                        />
-                    </div>
+                {/* FIN-0:外币按费用日行方卖出价(tt_sell)自动估值,当天没牌价直接拒 */}
+                {currency !== 'SGD' && (
+                    <p className="text-xs text-gray-500 self-end pb-2 max-w-56">{t('common.fxBoardRateHint')}</p>
                 )}
                 {/* 付款状态(默认挂账)*/}
                 <div>
@@ -228,11 +213,13 @@ export default function NewExpenseForm({
             <div className="bg-gray-50 rounded p-4 text-sm space-y-1">
                 <div>
                     <span className="font-mono font-medium">
-                        {t('expense.amountPreview', { amount: formatUsd(amountUsd) })}
+                        {amountSgd !== null
+                            ? t('expense.amountPreview', { amount: formatMoney(amountSgd) })
+                            : t('common.fxBoardRateHint')}
                     </span>
-                    {currency !== 'USD' && amountValid && fxValid && (
+                    {currency !== 'SGD' && amountValid && (
                         <span className="text-gray-500 ml-2 font-mono">
-                            ({currency} {formatUsd(amountNum)} @ {fxNum})
+                            ({currency} {formatMoney(amountNum)})
                         </span>
                     )}
                 </div>

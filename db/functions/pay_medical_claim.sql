@@ -42,24 +42,19 @@ BEGIN
         RAISE EXCEPTION 'SUPPLIER_REQUIRED_FOR_UNPAID';
     END IF;
 
-    -- 报销是 SGD,账本是 USD,所以要一个汇率。没给就取【费用日期当天或之前最近】的一条;
-    -- 一条都没有就明说缺什么,而不是随便凑一个数把账做平。
-    v_fx := p_fx_rate;
-    IF v_fx IS NULL THEN
-        SELECT rate_to_usd INTO v_fx FROM fx_rates
-        WHERE currency = 'SGD' AND rate_date <= v_date AND deleted_at IS NULL
-        ORDER BY rate_date DESC LIMIT 1;
+    -- FIN-0:报销是 SGD,账本也是 SGD —— 不再需要任何汇率。
+    -- (旧版在这里取"当天或之前最近"的一条汇率;那正是 C5 要禁掉的写法,随基准换币一并拆除。)
+    IF p_fx_rate IS NOT NULL AND p_fx_rate <> 1 THEN
+        RAISE EXCEPTION 'FX_RATE_NOT_ACCEPTED|SGD';
     END IF;
-    IF v_fx IS NULL THEN
-        RAISE EXCEPTION 'FX_RATE_MISSING|SGD|%', v_date;
-    END IF;
+    v_fx := 1;
 
     v_exp := record_expense(
         p_expense_date  := v_date,
         p_account_code  := '6120',
         p_amount        := v_claim.amount_sgd,
         p_currency      := 'SGD',
-        p_fx_rate       := v_fx,
+        p_fx_rate       := NULL,
         p_payment_status:= 'unpaid',
         p_bank_account  := NULL,
         p_supplier_id   := p_supplier_id,

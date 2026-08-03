@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { parseDateRange } from '@/lib/dateFilter'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import Subnav from '../Subnav'
 import OrdersToolbar from './OrdersToolbar'
 
@@ -199,17 +199,17 @@ export default async function PurchaseOrdersPage({
                             <td className="border border-gray-300 px-4 py-2">{r.order_date}</td>
                             <td className="border border-gray-300 px-4 py-2">{r.expected_delivery_date ?? '—'}</td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatUsd(r.estimated_total_usd)}
+                                {formatMoney(r.estimated_total_usd)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {r.prepaid_usd === null ? '—' : formatUsd(r.prepaid_usd)}
+                                {r.prepaid_usd === null ? '—' : formatMoney(r.prepaid_usd)}
                                 {/* 搁浅的定金要不点开每张单也看得见(cut 4c)*/}
                                 {(r.prepaid_remaining_usd ?? 0) > 0 && (
                                     <span
                                         title={t('purchasing.unappliedMarker')}
                                         className="ml-2 inline-block px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-800 font-sans"
                                     >
-                                        ⚠ {formatUsd(r.prepaid_remaining_usd ?? 0)}
+                                        ⚠ {formatMoney(r.prepaid_remaining_usd ?? 0)}
                                     </span>
                                 )}
                             </td>

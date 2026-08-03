@@ -249,7 +249,7 @@ BEGIN
     v_cap_lines := '[]'::jsonb;
     v_cap_total := 0;
     IF round(v_material, 2) <> 0 THEN
-        v_cap_lines := v_cap_lines || jsonb_build_object('account_code', '1200', 'side', 'credit', 'currency', 'USD', 'amount_ccy', round(v_material, 2));
+        v_cap_lines := v_cap_lines || jsonb_build_object('account_code', '1200', 'side', 'credit', 'currency', 'SGD', 'amount_ccy', round(v_material, 2));
         v_cap_total := v_cap_total + round(v_material, 2);
     END IF;
     FOR v_ct IN
@@ -260,11 +260,11 @@ BEGIN
         ORDER BY cost_type
     LOOP
         IF v_ct.amt > 0 THEN
-            v_cap_lines := v_cap_lines || jsonb_build_object('account_code', fin_cost_account(v_ct.cost_type), 'side', 'credit', 'currency', 'USD', 'amount_ccy', v_ct.amt);
+            v_cap_lines := v_cap_lines || jsonb_build_object('account_code', fin_cost_account(v_ct.cost_type), 'side', 'credit', 'currency', 'SGD', 'amount_ccy', v_ct.amt);
             v_cap_total := v_cap_total + v_ct.amt;
         ELSIF v_ct.amt < 0 THEN
             -- 负净额(冲减类成本):翻到借方,保持各行 amount_ccy > 0
-            v_cap_lines := v_cap_lines || jsonb_build_object('account_code', fin_cost_account(v_ct.cost_type), 'side', 'debit', 'currency', 'USD', 'amount_ccy', -v_ct.amt);
+            v_cap_lines := v_cap_lines || jsonb_build_object('account_code', fin_cost_account(v_ct.cost_type), 'side', 'debit', 'currency', 'SGD', 'amount_ccy', -v_ct.amt);
             v_cap_total := v_cap_total + v_ct.amt;
         END IF;
     END LOOP;
@@ -274,7 +274,7 @@ BEGIN
         v_cap_lines := jsonb_build_array(
             jsonb_build_object('account_code', '1220',
                                'side', CASE WHEN v_cap_total > 0 THEN 'debit' ELSE 'credit' END,
-                               'currency', 'USD', 'amount_ccy', abs(v_cap_total))
+                               'currency', 'SGD', 'amount_ccy', abs(v_cap_total))
         ) || v_cap_lines;
         v_cap_je := post_journal_entry(
             CURRENT_DATE,
@@ -307,8 +307,8 @@ BEGIN
                 'COGS ' || v_sale.batch_code,
                 'sale', v_sale.id,
                 jsonb_build_array(
-                    jsonb_build_object('account_code', '5000', 'side', 'debit',  'currency', 'USD', 'amount_ccy', v_cogs),
-                    jsonb_build_object('account_code', '1220', 'side', 'credit', 'currency', 'USD', 'amount_ccy', v_cogs)));
+                    jsonb_build_object('account_code', '5000', 'side', 'debit',  'currency', 'SGD', 'amount_ccy', v_cogs),
+                    jsonb_build_object('account_code', '1220', 'side', 'credit', 'currency', 'SGD', 'amount_ccy', v_cogs)));
             UPDATE sales_records SET cogs_entry_id = (v_cogs_je->>'entry_id')::uuid WHERE id = v_sale.id;
         END IF;
     END LOOP;

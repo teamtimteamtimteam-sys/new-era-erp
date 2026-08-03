@@ -7,7 +7,7 @@
 // 一个角色都没有的人在这里【什么都不缺】,那正是自助的意思。
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import MyLeavePanel from './MyLeavePanel'
 import MyClaimsPanel from './MyClaimsPanel'
 import MySelfAssessmentPanel, {
@@ -234,19 +234,19 @@ export default async function MePage() {
                                             )}
                                         </td>
                                         <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                            {formatUsd(l.gross_pay)}
+                                            {formatMoney(l.gross_pay)}
                                         </td>
                                         <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                            {formatUsd(l.employer_cpf)}
+                                            {formatMoney(l.employer_cpf)}
                                         </td>
                                         <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                            {formatUsd(l.employee_cpf)}
+                                            {formatMoney(l.employee_cpf)}
                                         </td>
                                         <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                            {formatUsd(l.other_deductions)}
+                                            {formatMoney(l.other_deductions)}
                                         </td>
                                         <td className="border border-gray-300 px-3 py-2 text-right font-mono font-medium">
-                                            {formatUsd(l.net_pay)}
+                                            {formatMoney(l.net_pay)}
                                         </td>
                                     </tr>
                                 )

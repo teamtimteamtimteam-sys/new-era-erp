@@ -3,6 +3,7 @@ import { getTranslations } from '@/lib/i18n/server'
 // record_output_sale 抛出的错误码。未编码的其它错误用 saveError 包一层原文。
 // 镜像 app/processing/errorCodes.ts 的 CODE|params 宽松解析。
 const SALE_ERROR_CODES = new Set([
+    'FX_RATE_MISSING', 'FX_RATE_NOT_ACCEPTED',
     'OUTPUT_NOT_FOUND', 'OUTPUT_DELETED', 'SALE_QTY_INVALID', 'SALE_EXCEEDS_REMAINING',
     // cut 1 — 销售必须带价
     'SALE_PRICE_INVALID', 'CURRENCY_INVALID', 'FX_RATE_REQUIRED',

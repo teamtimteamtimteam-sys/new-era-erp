@@ -6,7 +6,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { STAGE_OPTIONS, labelKeyForValue } from '@/app/inbound/options'
 import { getTranslations } from '@/lib/i18n/server'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import { agingDays, agingTone, AGING_TONE_CLASSES } from '@/lib/valuation'
 
 type Row = {
@@ -77,7 +77,7 @@ export default async function InboundDrillPage({
                 <span className="font-mono">{total}</span>
                 <span className="mx-2 text-gray-300">·</span>
                 <span className="text-gray-600 mr-1">{t('valuation.colStockValue')}:</span>
-                <span className="font-mono">{formatUsd(totalValue)}</span>
+                <span className="font-mono">{formatMoney(totalValue)}</span>
                 {unpricedCount > 0 && (
                     <span className="ml-2 text-gray-400">
                         {t('valuation.unpricedCount', { n: unpricedCount })}
@@ -119,13 +119,13 @@ export default async function InboundDrillPage({
                                 <td className="border border-gray-300 px-4 py-2">{r.arrival_date ?? '—'}</td>
                                 <td className="border border-gray-300 px-4 py-2">
                                     {r.unit_price !== null ? (
-                                        formatUsd(r.unit_price)
+                                        formatMoney(r.unit_price)
                                     ) : (
                                         <span className="text-gray-400">{t('valuation.unpriced')}</span>
                                     )}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
-                                    {r.unit_price !== null ? formatUsd(r.remaining_qty * r.unit_price) : '—'}
+                                    {r.unit_price !== null ? formatMoney(r.remaining_qty * r.unit_price) : '—'}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
                                     {days !== null && tone !== null ? (

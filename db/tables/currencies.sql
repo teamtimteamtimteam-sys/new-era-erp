@@ -1,7 +1,7 @@
 -- db/tables/currencies.sql
 -- Currency reference table (finance foundation). No audit columns — reference
 -- data, rarely touched. Widen the code CHECK when adding currencies.
--- USD is the base currency (is_base); journal amounts are stored in USD.
+-- SGD is the base currency since FIN-0 (is_base); journal amounts are stored in SGD.
 --
 -- NOTE: introduced by db/migrations/2026-07-05-phase3-cut1-finance-foundation.sql.
 -- First-run script (plain CREATEs). Run in the Supabase SQL Editor.
@@ -20,9 +20,10 @@ CREATE TABLE public.currencies (
     is_base boolean NOT NULL DEFAULT false
 );
 
+-- FIN-0:本位币改为 SGD(新加坡公司,账本记新元;USD 成了外币,带汇率敞口)
 INSERT INTO public.currencies (code, name, is_base) VALUES
-    ('USD', 'US Dollar', true),
-    ('SGD', 'Singapore Dollar', false);
+    ('USD', 'US Dollar', false),
+    ('SGD', 'Singapore Dollar', true);
 
 ALTER TABLE public.currencies ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "currencies select by permission"

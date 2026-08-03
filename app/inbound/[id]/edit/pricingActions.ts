@@ -10,6 +10,7 @@ export type SetPriceState = { error?: string; success?: boolean }
 
 // set_inbound_unit_price 抛出的错误码(镜像 saleErrorCodes 的宽松解析)
 const PRICING_ERROR_CODES = new Set([
+    'FX_RATE_MISSING', 'FX_RATE_NOT_ACCEPTED',
     'INBOUND_NOT_FOUND', 'PRICE_INVALID', 'CURRENCY_INVALID', 'FX_RATE_REQUIRED',
 ])
 
@@ -51,21 +52,13 @@ export async function setInboundPrice(
         return { error: t('inbound.pricing.errors.PRICE_INVALID') }
     }
 
-    let fx_rate: number | undefined
-    if (currency !== 'USD') {
-        const fx = Number(fx_rate_raw)
-        if (!fx_rate_raw || Number.isNaN(fx) || fx <= 0) {
-            return { error: t('inbound.pricing.errors.FX_RATE_REQUIRED', { 0: currency }) }
-        }
-        fx_rate = fx
-    }
+    // FIN-0:不传汇率 —— 外币按定价日行方卖出价(tt_sell)自动估值,缺牌价 DB 直接拒
 
     const supabase = await createClient()
     const { error } = await supabase.rpc('set_inbound_unit_price', {
         p_inbound_batch_id: batchId,
         p_unit_price: price,
         p_currency: currency,
-        p_fx_rate: fx_rate,
         p_notes: notes || undefined,
     })
 

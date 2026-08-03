@@ -4,7 +4,7 @@
 // 录入页(实时)与详情页(未应用时,服务端一次算好)共用这一块 —— 两处看到的
 // 是同一份东西。所有数字都是算好后传进来的,组件本身不做算术。
 import { useTranslations } from '@/lib/i18n/client'
-import { formatUsd, formatUnitCost } from '@/lib/format'
+import { formatMoney, formatUnitCost } from '@/lib/format'
 import PriceBreakdown from '@/app/components/pricing/PriceBreakdown'
 import type { CalcResult } from '@/app/pricing/calculator/actions'
 import type { AssayImpact } from './actions'
@@ -41,18 +41,18 @@ export default function AssayImpactPreview({
                 </div>
                 <div className="flex justify-between border-t pt-1 font-bold">
                     <span>{t('assay.totalDelta')}</span>
-                    <span className="font-mono">{formatUsd(impact.total_delta)}</span>
+                    <span className="font-mono">{formatMoney(impact.total_delta)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
                     <span>
                         {t('assay.inventoryShare')}
                         <span className="text-gray-400 ml-1">({Math.round(impact.in_stock_ratio * 100)}%)</span>
                     </span>
-                    <span className="font-mono">{formatUsd(impact.inventory_share)}</span>
+                    <span className="font-mono">{formatMoney(impact.inventory_share)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
                     <span>{t('assay.costShare')}</span>
-                    <span className="font-mono">{formatUsd(impact.cost_share)}</span>
+                    <span className="font-mono">{formatMoney(impact.cost_share)}</span>
                 </div>
             </div>
             )}

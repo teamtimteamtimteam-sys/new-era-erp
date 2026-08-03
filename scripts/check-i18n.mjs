@@ -263,6 +263,7 @@ const MANIFEST = {
                                   () => sqlLiteralAs('db/views/ap_open_items.sql', 'doc_kind'),
                                   () => sqlLiteralAs('db/views/ar_open_items.sql', 'doc_kind')) },
     'finance.presets.':     { kind: 'enum', values: () => tsRegex('app/finance/pnl/page.tsx', /\{ key: '(\w+)'/g) },
+    'finance.fxPage.rateType.': { kind: 'enum', values: () => sqlEnum('db/tables/fx_rates.sql', 'rate_type') },
     'expense.status.':      { kind: 'enum', values: () => sqlEnum('db/tables/expenses.sql', 'payment_status') },
     'invoice.paymentState.': { kind: 'enum', values: () => tsRegex('app/finance/invoices/[id]/page.tsx',
                                   /paymentState = [^\n]*?'(\w+)'[^\n]*?'(\w+)'[^\n]*?'(\w+)'/g) },

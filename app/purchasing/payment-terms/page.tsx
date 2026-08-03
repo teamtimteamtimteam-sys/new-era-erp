@@ -4,7 +4,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import Subnav from '../Subnav'
 import DeleteTemplateButton from './DeleteTemplateButton'
 
@@ -47,7 +47,7 @@ export default async function PaymentTermTemplatesPage() {
         (linesByTpl.get(tplId) ?? [])
             .map((l) => {
                 const share =
-                    l.percentage !== null ? `${l.percentage}%` : `${formatUsd(l.fixed_amount_usd)} USD`
+                    l.percentage !== null ? `${l.percentage}%` : `${formatMoney(l.fixed_amount_usd)} USD`
                 const trigger = t('purchasing.trigger.' + l.trigger_event)
                 const offset =
                     l.trigger_event === 'fixed_date' && l.days_offset !== null

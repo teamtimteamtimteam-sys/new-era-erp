@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import Subnav from '../../Subnav'
 import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachmentsPanel'
 import { unmasked } from '@/lib/maskedRows'
@@ -167,15 +167,15 @@ export default async function ReceivableDocPage({
                             {sale.currency} @ {sale.fx_rate}
                         </span>
                     )}
-                    <span className="font-mono font-medium ml-1">= {formatUsd(sale.amount_usd)} USD</span>
+                    <span className="font-mono font-medium ml-1">= {formatMoney(sale.amount_usd)} USD</span>
                 </div>
                 <div>
                     <span className="text-gray-600 mr-1">{t('finance.settledAmount')}:</span>
-                    <span className="font-mono">{formatUsd(settled)}</span>
+                    <span className="font-mono">{formatMoney(settled)}</span>
                 </div>
                 <div>
                     <span className="text-gray-600 mr-1">{t('finance.openAmount')}:</span>
-                    <span className="font-mono font-bold">{formatUsd(open)}</span>
+                    <span className="font-mono font-bold">{formatMoney(open)}</span>
                 </div>
             </div>
 
@@ -265,7 +265,7 @@ export default async function ReceivableDocPage({
                                         (reversed ? ' line-through' : '')
                                     }
                                 >
-                                    {formatUsd(a.allocated_usd)}
+                                    {formatMoney(a.allocated_usd)}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-sm">
                                     {reversed ? (
@@ -296,7 +296,7 @@ export default async function ReceivableDocPage({
                                 {t('finance.settledAmount')}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatUsd(settled)}
+                                {formatMoney(settled)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2" />
                         </tr>

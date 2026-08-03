@@ -1,6 +1,7 @@
 -- db/tables/journal_lines.sql
--- Journal lines: original currency (amount_ccy + fx_rate) plus converted USD
--- in debit/credit (= round(amount_ccy × fx_rate, 2)); exactly one side nonzero.
+-- Journal lines: original currency (amount_ccy + fx_rate) plus converted BASE
+-- amounts in debit/credit (= round(amount_ccy × fx_rate, 2)); exactly one side
+-- nonzero. Base currency is SGD since FIN-0 (was USD); fx_rate is the rate to SGD.
 -- IMMUTABLE (INSERT+SELECT RLS only + trigger). Balance invariant: a DEFERRABLE
 -- INITIALLY DEFERRED constraint trigger enforces per-entry Σdebit = Σcredit and
 -- ≥ 2 lines at commit (JOURNAL_UNBALANCED|code|Σd|Σc).
@@ -18,7 +19,7 @@ CREATE TABLE public.journal_lines (
     CONSTRAINT journal_lines_one_side CHECK ((debit = 0) <> (credit = 0)),
     currency   text NOT NULL REFERENCES public.currencies (code),
     amount_ccy numeric NOT NULL CHECK (amount_ccy > 0),  -- 原币金额
-    fx_rate    numeric NOT NULL CHECK (fx_rate > 0),     -- 使用的 rate_to_usd
+    fx_rate    numeric NOT NULL CHECK (fx_rate > 0),     -- 折 SGD 的汇率(FIN-0 前是折 USD)
     line_memo  text,
     created_at timestamptz NOT NULL DEFAULT now()
 );

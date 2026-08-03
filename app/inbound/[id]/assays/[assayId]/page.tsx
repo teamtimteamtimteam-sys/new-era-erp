@@ -10,7 +10,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatUsd, formatUnitCost } from '@/lib/format'
+import { formatMoney, formatUnitCost } from '@/lib/format'
 import { metalLabelKey } from '@/app/metal-prices/options'
 import { localizeAssayError } from '../../../assayErrorCodes'
 import { ApplyNowButton, UnapplyControl } from './ApplyAssayControls'
@@ -291,7 +291,7 @@ export default async function AssayDetailPage({
                         </div>
                         <div className="flex justify-between border-t pt-1 font-bold">
                             <span>{t('assay.totalDelta')}</span>
-                            <span className="font-mono">{formatUsd(priceChange.delta)}</span>
+                            <span className="font-mono">{formatMoney(priceChange.delta)}</span>
                         </div>
                         <div className="flex justify-between text-gray-500">
                             <span>{t('inbound.pricing.colWhen')}</span>

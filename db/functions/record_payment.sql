@@ -64,8 +64,25 @@ BEGIN
     IF p_currency IS NULL OR NOT EXISTS (SELECT 1 FROM currencies c WHERE c.code = p_currency) THEN
         RAISE EXCEPTION 'CURRENCY_INVALID|%', COALESCE(p_currency, '?');
     END IF;
-    IF p_currency = 'USD' THEN
-        v_fx := 1;  -- 本位币强制 1,忽略传入值
+    -- FIN-0 三分支:
+    --   SGD(本位)                → 1,无换算;
+    --   外币、且走该币种的外币户   → 没有发生兑换,按【付款日】牌价估值:
+    --                                收款 tt_buy / 付款 tt_sell,当日无牌价即拒;
+    --   外币、但走的不是该币种的户 → 银行【实际做了兑换】,必须递入按银行水单
+    --                                实际金额折出的汇率(C4:实际兑换用实际数,
+    --                                永远不用牌价);此时 p_fx_rate 必填。
+    IF p_currency = 'SGD' THEN
+        IF p_fx_rate IS NOT NULL THEN
+            RAISE EXCEPTION 'FX_RATE_NOT_ACCEPTED|%', p_currency;
+        END IF;
+        v_fx := 1;
+    ELSIF bank_native_currency(COALESCE(p_bank_account,
+              CASE WHEN p_currency = 'SGD' THEN '1000' ELSE '1010' END)) = p_currency THEN
+        IF p_fx_rate IS NOT NULL THEN
+            RAISE EXCEPTION 'FX_RATE_NOT_ACCEPTED|%', p_currency;
+        END IF;
+        v_fx := fx_rate_for(p_currency, COALESCE(p_payment_date, CURRENT_DATE),
+                            CASE WHEN p_direction = 'in' THEN 'tt_buy' ELSE 'tt_sell' END);
     ELSE
         IF p_fx_rate IS NULL THEN
             RAISE EXCEPTION 'FX_RATE_REQUIRED|%', p_currency;

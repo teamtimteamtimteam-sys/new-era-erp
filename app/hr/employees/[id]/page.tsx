@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import Subnav from '../../Subnav'
 import { statusPillClass } from '../../reviews/reviewShared'
 
@@ -389,11 +389,11 @@ export default async function EmployeeDetailPage({
                                     )}
                                     <span className="text-gray-400 ml-2">{p.payroll_periods?.currency}</span>
                                 </td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatUsd(p.gross_pay)}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatUsd(p.employer_cpf)}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatUsd(p.employee_cpf)}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatUsd(p.other_deductions)}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono font-medium">{formatUsd(p.net_pay)}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(p.gross_pay)}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(p.employer_cpf)}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(p.employee_cpf)}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(p.other_deductions)}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-right font-mono font-medium">{formatMoney(p.net_pay)}</td>
                                 <td className="border border-gray-300 px-3 py-2">
                                     <span
                                         className={

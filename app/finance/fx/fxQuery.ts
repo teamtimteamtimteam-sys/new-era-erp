@@ -1,9 +1,9 @@
 // app/finance/fx/fxQuery.ts
 // 汇率列表的查询逻辑(币种筛选 / 排序 / 软删除过滤 / 分页),端口自 metalPricesQuery。
-// 语义:1 单位外币 = rate_to_usd 美元;USD 无需行(表单里也不给选)。
+// 语义:1 单位外币 = rate_sgd_per_unit 新元;SGD(本位币)无需行(表单里也不给选)。
 
 // 允许排序的列白名单(只含本表列)。
-export const FX_SORTABLE = ['rate_date', 'currency', 'rate_to_usd'] as const
+export const FX_SORTABLE = ['rate_date', 'currency', 'rate_type', 'rate_sgd_per_unit'] as const
 export type FxSortCol = (typeof FX_SORTABLE)[number]
 
 export interface FxListParams {

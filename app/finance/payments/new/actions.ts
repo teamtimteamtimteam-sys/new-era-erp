@@ -34,11 +34,13 @@ export async function createPayment(
     if (!amountRaw || Number.isNaN(amount) || amount <= 0) {
         return { error: t('finance.errors.AMOUNT_INVALID') }
     }
+    // FIN-0:汇率只在【跨币种】(付款币种 ≠ 银行户口本币,银行实际做了兑换)时必填,
+    // 填的是水单两边实际金额折出的成交价(C4)。同币种走牌价,由 DB 自动取。
     let fxRate: number | undefined
-    if (currency !== 'USD') {
+    if (fxRaw) {
         const fx = Number(fxRaw)
-        if (!fxRaw || Number.isNaN(fx) || fx <= 0) {
-            return { error: t('finance.errors.FX_RATE_REQUIRED', { 0: currency }) }
+        if (Number.isNaN(fx) || fx <= 0) {
+            return { error: t('finance.errors.FX_RATE_INVALID', { 0: fxRaw }) }
         }
         fxRate = fx
     }
@@ -80,7 +82,7 @@ export async function createPayment(
         p_counterparty_id: counterpartyId,
         p_amount: amount,
         p_currency: currency,
-        p_fx_rate: fxRate, // USD 时不传,DB 强制 1
+        p_fx_rate: fxRate, // FIN-0:只有跨币种(银行实际做了兑换)才传 —— 水单实际金额折出的成交价
         p_bank_account: bank || undefined,
         p_payment_date: paymentDate,
         p_notes: notes || undefined,

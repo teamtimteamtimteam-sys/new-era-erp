@@ -103,21 +103,9 @@ export default function PricingPanel({
                         <option value="SGD">SGD</option>
                     </select>
                 </div>
-                {currency !== 'USD' && (
-                    <div>
-                        <label className="block text-sm font-medium mb-1">
-                            {t('inbound.pricing.fxRate')} <span className="text-red-600">*</span>
-                        </label>
-                        <input
-                            type="number"
-                            name="fx_rate"
-                            step="any"
-                            min="0"
-                            required
-                            placeholder={t('inbound.pricing.fxHint')}
-                            className="w-36 border border-gray-300 px-3 py-2 rounded"
-                        />
-                    </div>
+                {/* FIN-0:外币按定价日行方卖出价(tt_sell)自动估值,当天没牌价直接拒 */}
+                {currency !== 'SGD' && (
+                    <p className="text-xs text-gray-500 self-end pb-2 max-w-56">{t('common.fxBoardRateHint')}</p>
                 )}
                 <div className="flex-1 min-w-[8rem]">
                     <label className="block text-sm font-medium mb-1">{t('inbound.pricing.notes')}</label>
@@ -164,7 +152,7 @@ export default function PricingPanel({
                                     <td className="border border-gray-300 px-3 py-2 font-mono">
                                         <MaskedValue value={h.original_price} canView={canViewPrices} />{' '}
                                         {h.original_price !== null ? h.currency : ''}
-                                        {h.currency !== 'USD' && h.fx_rate !== null ? ` @ ${h.fx_rate}` : ''}
+                                        {h.currency !== 'SGD' && h.fx_rate !== null ? ` @ ${h.fx_rate}` : ''}
                                     </td>
                                     <td className="border border-gray-300 px-3 py-2">{h.notes ?? '—'}</td>
                                 </tr>

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import Subnav from '../../Subnav'
 import { PostPayrollButton, UnpostPayrollControl } from './PostControls'
 
@@ -180,11 +180,11 @@ export default async function PayrollDetailPage({
                                     '—'
                                 )}
                             </td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatUsd(l.gross_pay)}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatUsd(l.employee_cpf)}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatUsd(l.employer_cpf)}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatUsd(l.other_deductions)}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono font-medium">{formatUsd(l.net_pay)}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(l.gross_pay)}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(l.employee_cpf)}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(l.employer_cpf)}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(l.other_deductions)}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right font-mono font-medium">{formatMoney(l.net_pay)}</td>
                         </tr>
                     ))}
                     {lines.length === 0 && (
@@ -203,11 +203,11 @@ export default async function PayrollDetailPage({
                                 {t('hr.lineCount', { n: lines.length })}
                             </span>
                         </td>
-                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatUsd(period.gross_total)}</td>
-                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatUsd(period.employee_cpf_total)}</td>
-                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatUsd(period.employer_cpf_total)}</td>
-                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatUsd(period.other_deductions_total)}</td>
-                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatUsd(period.net_pay_total)}</td>
+                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(period.gross_total)}</td>
+                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(period.employee_cpf_total)}</td>
+                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(period.employer_cpf_total)}</td>
+                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(period.other_deductions_total)}</td>
+                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(period.net_pay_total)}</td>
                     </tr>
                 </tfoot>
             </table>

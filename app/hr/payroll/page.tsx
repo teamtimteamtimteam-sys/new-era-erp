@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import Subnav from '../Subnav'
 
 export default async function PayrollListPage() {
@@ -73,10 +73,10 @@ export default async function PayrollListPage() {
                             <td className="border border-gray-300 px-4 py-2">{p.payment_date}</td>
                             <td className="border border-gray-300 px-4 py-2">{p.currency}</td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatUsd(p.gross_total)}
+                                {formatMoney(p.gross_total)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm font-medium">
-                                {formatUsd(p.net_pay_total)}
+                                {formatMoney(p.net_pay_total)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                 {countByPeriod.get(p.id) ?? 0}

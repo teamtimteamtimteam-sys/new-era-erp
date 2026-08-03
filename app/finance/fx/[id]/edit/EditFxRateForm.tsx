@@ -12,7 +12,9 @@ const initialState: UpdateFxRateState = {}
 type FxRate = {
     id: string
     currency: string
-    rate_to_usd: number
+    rate_type: string
+    rate_sgd_per_unit: number
+    source: string
     rate_date: string
     notes: string | null
 }
@@ -42,7 +44,9 @@ export default function EditFxRateForm({
                     fieldErrors={state.fieldErrors}
                     defaults={{
                         currency: rate.currency,
-                        rate_to_usd: rate.rate_to_usd,
+                        rate_type: rate.rate_type,
+                        rate_sgd_per_unit: rate.rate_sgd_per_unit,
+                        source: rate.source,
                         rate_date: rate.rate_date,
                         notes: rate.notes,
                     }}

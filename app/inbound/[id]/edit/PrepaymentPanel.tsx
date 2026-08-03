@@ -9,7 +9,7 @@
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { applyPrepayment, type ApplyPrepaymentState } from './prepaymentActions'
 
@@ -69,15 +69,15 @@ export default function PrepaymentPanel({
                         </div>
                         <div>
                             <span className="text-gray-600 mr-1">{t('purchasing.remainingLabel')}:</span>
-                            <span className="font-mono">{formatUsd(applicable.po_unapplied_prepayment_usd)}</span>
+                            <span className="font-mono">{formatMoney(applicable.po_unapplied_prepayment_usd)}</span>
                         </div>
                         <div>
                             <span className="text-gray-600 mr-1">{t('finance.colOpen')}:</span>
-                            <span className="font-mono">{formatUsd(applicable.batch_ap_open_usd)}</span>
+                            <span className="font-mono">{formatMoney(applicable.batch_ap_open_usd)}</span>
                         </div>
                         <div>
                             <span className="text-gray-600 mr-1">{t('purchasing.applicableAmount')}:</span>
-                            <span className="font-mono font-medium">{formatUsd(applicable.applicable_usd)}</span>
+                            <span className="font-mono font-medium">{formatMoney(applicable.applicable_usd)}</span>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -102,7 +102,7 @@ export default function PrepaymentPanel({
                             {history.map((h) => (
                                 <tr key={h.id}>
                                     <td className="border border-gray-300 px-3 py-1.5 text-right font-mono w-32">
-                                        {formatUsd(h.amount_usd)}
+                                        {formatMoney(h.amount_usd)}
                                     </td>
                                     <td className="border border-gray-300 px-3 py-1.5 text-gray-600">
                                         {h.created_at_display}

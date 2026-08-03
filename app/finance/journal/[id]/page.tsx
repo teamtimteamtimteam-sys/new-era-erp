@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import Subnav from '../../Subnav'
 import ReverseButton from './ReverseButton'
 import { resolveSourceHrefs, sourceHrefKey } from '../../sourceLinks'
@@ -168,14 +168,14 @@ export default async function JournalDetailPage({
                                 {accountName(l)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {l.debit > 0 ? formatUsd(l.debit) : ''}
+                                {l.debit > 0 ? formatMoney(l.debit) : ''}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {l.credit > 0 ? formatUsd(l.credit) : ''}
+                                {l.credit > 0 ? formatMoney(l.credit) : ''}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
                                 {l.currency !== 'USD'
-                                    ? `${l.currency} ${formatUsd(l.amount_ccy)} @ ${l.fx_rate}`
+                                    ? `${l.currency} ${formatMoney(l.amount_ccy)} @ ${l.fx_rate}`
                                     : '—'}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-sm">{l.line_memo ?? '—'}</td>
@@ -186,10 +186,10 @@ export default async function JournalDetailPage({
                     <tr className="bg-gray-100 font-bold">
                         <td className="border border-gray-300 px-4 py-2">{t('finance.totalsLabel')}</td>
                         <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                            {formatUsd(sumDebit)}
+                            {formatMoney(sumDebit)}
                         </td>
                         <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                            {formatUsd(sumCredit)}
+                            {formatMoney(sumCredit)}
                         </td>
                         <td className="border border-gray-300 px-4 py-2" colSpan={2} />
                     </tr>

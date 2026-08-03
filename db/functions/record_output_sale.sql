@@ -43,17 +43,13 @@ BEGIN
     IF p_currency IS NULL OR NOT EXISTS (SELECT 1 FROM currencies c WHERE c.code = p_currency) THEN
         RAISE EXCEPTION 'CURRENCY_INVALID|%', COALESCE(p_currency, '?');
     END IF;
-    IF p_currency = 'USD' THEN
-        v_fx := 1;  -- 本位币强制 1,忽略传入值
-    ELSE
-        IF p_fx_rate IS NULL THEN
-            RAISE EXCEPTION 'FX_RATE_REQUIRED|%', p_currency;
-        END IF;
-        IF p_fx_rate <= 0 THEN
-            RAISE EXCEPTION 'FX_RATE_INVALID|%', p_fx_rate;
-        END IF;
-        v_fx := p_fx_rate;
+    -- FIN-0:本位币 SGD 免换算;外币按【交易日】的行方买入价(tt_buy)估值 ——
+    -- 收入与应收是我们将来要【卖给银行】的外币。当日无牌价即拒(FX_RATE_MISSING),
+    -- 不许悄悄用最近一天的。汇率不再由调用方递入:牌价属于 fx_rates,不属于表单。
+    IF p_fx_rate IS NOT NULL THEN
+        RAISE EXCEPTION 'FX_RATE_NOT_ACCEPTED|%', p_currency;
     END IF;
+    v_fx := fx_rate_for(p_currency, v_sale_date, 'tt_buy');
     v_amount_usd := round(p_quantity * p_unit_price * v_fx, 2);
 
     INSERT INTO inventory_movements (output_batch_id, movement_type, qty_delta, business_date, notes, created_by)
@@ -90,8 +86,8 @@ BEGIN
                 'COGS ' || v_code,
                 'sale', v_sale_id,
                 jsonb_build_array(
-                    jsonb_build_object('account_code', '5000', 'side', 'debit',  'currency', 'USD', 'amount_ccy', v_cogs),
-                    jsonb_build_object('account_code', '1220', 'side', 'credit', 'currency', 'USD', 'amount_ccy', v_cogs)));
+                    jsonb_build_object('account_code', '5000', 'side', 'debit',  'currency', 'SGD', 'amount_ccy', v_cogs),
+                    jsonb_build_object('account_code', '1220', 'side', 'credit', 'currency', 'SGD', 'amount_ccy', v_cogs)));
             UPDATE sales_records SET cogs_entry_id = (v_je2->>'entry_id')::uuid WHERE id = v_sale_id;
         END IF;
     END IF;

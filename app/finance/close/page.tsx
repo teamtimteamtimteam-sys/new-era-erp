@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { isYmd } from '@/lib/dateFilter'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import Subnav from '../Subnav'
 import PeriodPicker, { type PeriodOption } from './PeriodPicker'
 import CloseButton from './CloseButton'
@@ -129,11 +129,11 @@ export default async function ClosePage({
                             </div>
                             <div>
                                 <span className="text-gray-600 mr-1">{t('finance.colDebits')}:</span>
-                                <span className="font-mono font-medium">{formatUsd(preview.debits)}</span>
+                                <span className="font-mono font-medium">{formatMoney(preview.debits)}</span>
                             </div>
                             <div>
                                 <span className="text-gray-600 mr-1">{t('finance.colCredits')}:</span>
-                                <span className="font-mono font-medium">{formatUsd(preview.credits)}</span>
+                                <span className="font-mono font-medium">{formatMoney(preview.credits)}</span>
                             </div>
                             <span
                                 className={
@@ -194,10 +194,10 @@ export default async function ClosePage({
                                 {c.entries_count}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatUsd(c.total_debits)}
+                                {formatMoney(c.total_debits)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatUsd(c.total_credits)}
+                                {formatMoney(c.total_credits)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">
                                 <span

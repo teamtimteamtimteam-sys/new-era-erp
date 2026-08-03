@@ -4,7 +4,7 @@
 // 底部一个共用表单:editingId 为空 = 新增,非空 = 编辑该行(表单按 key 重挂载以带入默认值)。
 import { useState, useTransition } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import { COST_TYPE_OPTIONS, costTypeLabelKey, type CostEntryRow } from './costTypes'
 import { addCostEntry, updateCostEntry, softDeleteCostEntry } from './costActions'
 import { MaskedValue } from '@/app/components/MaskedValue'
@@ -92,7 +92,7 @@ export default function CostPanel({
                                     )}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                    <MaskedValue value={e.amount_usd} canView={canViewPrices} format={formatUsd} />
+                                    <MaskedValue value={e.amount_usd} canView={canViewPrices} format={formatMoney} />
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-sm">{e.notes ?? '—'}</td>
                                 <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
@@ -130,7 +130,7 @@ export default function CostPanel({
             <p className="text-sm mb-4">
                 <span className="text-gray-600 mr-1">{t('processing.cost.sumLabel')}:</span>
                 <span className="font-mono">
-                    <MaskedValue value={total} canView={canViewPrices} format={formatUsd} />
+                    <MaskedValue value={total} canView={canViewPrices} format={formatMoney} />
                 </span>
             </p>
 

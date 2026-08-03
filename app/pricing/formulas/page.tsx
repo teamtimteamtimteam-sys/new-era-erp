@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import Subnav from '../Subnav'
 
 type FormulaRow = {
@@ -113,7 +113,7 @@ export default async function FormulasPage() {
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-sm">{basisLabel(r)}</td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatUsd(r.treatment_charge_usd_per_tonne)}
+                                {formatMoney(r.treatment_charge_usd_per_tonne)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                 {r.flat_discount_pct}

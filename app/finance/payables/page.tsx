@@ -6,7 +6,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import Subnav from '../Subnav'
 import { BUCKETS, bucketPillClass } from '../agingBuckets'
 
@@ -98,13 +98,13 @@ export default async function PayablesPage() {
             <div className="bg-gray-50 rounded p-4 mb-6 flex flex-wrap gap-x-8 gap-y-2 text-sm items-center">
                 <div>
                     <span className="text-gray-600 mr-1">{t('finance.totalOpen')}:</span>
-                    <span className="font-mono font-bold">{formatUsd(totalOpen)}</span>
+                    <span className="font-mono font-bold">{formatMoney(totalOpen)}</span>
                 </div>
                 {BUCKETS.map((b) => (
                     <div key={b}>
                         <span className="text-gray-600 mr-1">{t('finance.aging.' + b)}:</span>
                         <span className={'font-mono ' + (b === 'b90_plus' ? 'text-red-600 font-medium' : '')}>
-                            {formatUsd(Math.round((bucketTotals.get(b) ?? 0) * 100) / 100)}
+                            {formatMoney(Math.round((bucketTotals.get(b) ?? 0) * 100) / 100)}
                         </span>
                     </div>
                 ))}
@@ -154,13 +154,13 @@ export default async function PayablesPage() {
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2">{r.doc_date}</td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {formatUsd(r.doc_value_usd)}
+                                        {formatMoney(r.doc_value_usd)}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {formatUsd(r.settled_usd)}
+                                        {formatMoney(r.settled_usd)}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm font-medium">
-                                        {formatUsd(r.open_usd)}
+                                        {formatMoney(r.open_usd)}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2">
                                         <span className={'px-2 py-1 rounded text-xs ' + bucketPillClass(r.bucket)}>
@@ -174,13 +174,13 @@ export default async function PayablesPage() {
                                     {g.name} — {t('finance.totalsLabel')}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                    {formatUsd(Math.round(g.amount * 100) / 100)}
+                                    {formatMoney(Math.round(g.amount * 100) / 100)}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                    {formatUsd(Math.round(g.settled * 100) / 100)}
+                                    {formatMoney(Math.round(g.settled * 100) / 100)}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                    {formatUsd(Math.round(g.open * 100) / 100)}
+                                    {formatMoney(Math.round(g.open * 100) / 100)}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2" />
                             </tr>,

@@ -7,7 +7,7 @@ import AllocateButton from './AllocateButton'
 import { type CostEntryRow } from './costTypes'
 import { processingStatusLabelKey } from '../status'
 import { metalLabelKey } from '@/app/metal-prices/options'
-import { formatUsd, formatUnitCost } from '@/lib/format'
+import { formatMoney, formatUnitCost } from '@/lib/format'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { maskedRows, maskedExcept } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
@@ -204,15 +204,15 @@ export default async function ProcessingDetailPage({
                     <div className="mt-3 pt-3 border-t border-gray-200 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
                         <div>
                             <span className="text-gray-600">{t('processing.detail.materialCost')}</span>{' '}
-                            <MaskedValue value={run.material_cost_usd} canView={showPrices} format={formatUsd} fallback="—" />
+                            <MaskedValue value={run.material_cost_usd} canView={showPrices} format={formatMoney} fallback="—" />
                         </div>
                         <div>
                             <span className="text-gray-600">{t('processing.detail.processCost')}</span>{' '}
-                            <MaskedValue value={run.process_cost_usd} canView={showPrices} format={formatUsd} fallback="—" />
+                            <MaskedValue value={run.process_cost_usd} canView={showPrices} format={formatMoney} fallback="—" />
                         </div>
                         <div>
                             <span className="text-gray-600">{t('processing.detail.totalCost')}</span>{' '}
-                            <MaskedValue value={run.total_cost_usd} canView={showPrices} format={formatUsd} fallback="—" />
+                            <MaskedValue value={run.total_cost_usd} canView={showPrices} format={formatMoney} fallback="—" />
                         </div>
                     </div>
 
@@ -356,7 +356,7 @@ export default async function ProcessingDetailPage({
                                         <MaskedValue
                                             value={leg.allocated_cost_usd}
                                             canView={showPrices}
-                                            format={formatUsd}
+                                            format={formatMoney}
                                             fallback="—"
                                         />
                                     </td>

@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { parseDateRange } from '@/lib/dateFilter'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import Subnav from '../Subnav'
 import InvoicesToolbar from './InvoicesToolbar'
 
@@ -229,13 +229,13 @@ export default async function InvoicesPage({
                                 ) : null}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatUsd(r.total_usd)}
+                                {formatMoney(r.total_usd)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {r.settled_usd === null ? '—' : formatUsd(r.settled_usd)}
+                                {r.settled_usd === null ? '—' : formatMoney(r.settled_usd)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm font-medium">
-                                {r.open_usd === null ? '—' : formatUsd(r.open_usd)}
+                                {r.open_usd === null ? '—' : formatMoney(r.open_usd)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">{statePill(r)}</td>
                             <td className="border border-gray-300 px-4 py-2">

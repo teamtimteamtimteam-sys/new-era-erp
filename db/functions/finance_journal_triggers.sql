@@ -31,12 +31,12 @@ CREATE OR REPLACE FUNCTION public.fin_cost_lines(p_cost_type text, p_amount nume
 AS $function$
     SELECT CASE WHEN (p_amount > 0) <> p_reverse THEN
         jsonb_build_array(
-            jsonb_build_object('account_code', fin_cost_account(p_cost_type), 'side', 'debit',  'currency', 'USD', 'amount_ccy', abs(p_amount)),
-            jsonb_build_object('account_code', '2200',                        'side', 'credit', 'currency', 'USD', 'amount_ccy', abs(p_amount)))
+            jsonb_build_object('account_code', fin_cost_account(p_cost_type), 'side', 'debit',  'currency', 'SGD', 'amount_ccy', abs(p_amount)),
+            jsonb_build_object('account_code', '2200',                        'side', 'credit', 'currency', 'SGD', 'amount_ccy', abs(p_amount)))
     ELSE
         jsonb_build_array(
-            jsonb_build_object('account_code', '2200',                        'side', 'debit',  'currency', 'USD', 'amount_ccy', abs(p_amount)),
-            jsonb_build_object('account_code', fin_cost_account(p_cost_type), 'side', 'credit', 'currency', 'USD', 'amount_ccy', abs(p_amount)))
+            jsonb_build_object('account_code', '2200',                        'side', 'debit',  'currency', 'SGD', 'amount_ccy', abs(p_amount)),
+            jsonb_build_object('account_code', fin_cost_account(p_cost_type), 'side', 'credit', 'currency', 'SGD', 'amount_ccy', abs(p_amount)))
     END;
 $function$
 

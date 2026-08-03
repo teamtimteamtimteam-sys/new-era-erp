@@ -1,5 +1,5 @@
 // app/finance/fx/[id]/edit/page.tsx
-// 编辑汇率页(服务端壳):取行 + 非 USD 币种选项,表单交给客户端组件。
+// 编辑牌价页(服务端壳):取行 + 非 SGD 币种选项,表单交给客户端组件。
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -18,11 +18,11 @@ export default async function EditFxRatePage({
     const [rateRes, currenciesRes] = await Promise.all([
         supabase
             .from('fx_rates')
-            .select('id, currency, rate_to_usd, rate_date, notes')
+            .select('id, currency, rate_type, rate_sgd_per_unit, rate_date, source, notes')
             .eq('id', id)
             .is('deleted_at', null)
             .single(),
-        supabase.from('currencies').select('code').neq('code', 'USD').order('code'),
+        supabase.from('currencies').select('code').neq('code', 'SGD').order('code'),
     ])
 
     if (rateRes.error || !rateRes.data) {

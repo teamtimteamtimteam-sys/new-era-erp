@@ -1,9 +1,10 @@
 // lib/format.ts
 // 共享格式化助手。第一个是金额格式化 —— 运行详情(成本/分摊)后续也会复用这一份。
 //
-// formatUsd:两位小数 + 千分位;【不带货币符号】(列头已标注 "USD",避免重复)。
+// formatMoney:两位小数 + 千分位;【不带货币符号】(列头标注币种)。
+// FIN-0 前叫 formatUsd —— 它从来只管数字形状,不管币种;本位币换成 SGD 后名字不能再撒谎。
 // null/undefined 返回空串,方便"未分摊/未填"直接留白。
-export function formatUsd(n: number | null | undefined): string {
+export function formatMoney(n: number | null | undefined): string {
     if (n === null || n === undefined) return ''
     return new Intl.NumberFormat('en-US', {
         minimumFractionDigits: 2,
@@ -11,7 +12,7 @@ export function formatUsd(n: number | null | undefined): string {
     }).format(n)
 }
 
-// formatAmount:带币种代码的金额(如 "1,234.56 SGD")。formatUsd 是【USD 专用】
+// formatAmount:带币种代码的金额(如 "1,234.56 SGD")。formatMoney 是【无币种】
 // (不带符号,靠列头标注),但银行对账里 SGD 账户的金额绝不能被当成 USD 展示 ——
 // 凡是币种随数据变化的地方用这个。null/undefined 返回 '—'。
 export function formatAmount(n: number | null | undefined, ccy: string | null | undefined): string {

@@ -38,6 +38,10 @@ BEGIN
     IF p_fx_rate IS NULL OR p_fx_rate <= 0 THEN
         RAISE EXCEPTION 'FX_RATE_INVALID|%', COALESCE(p_fx_rate::text, '?');
     END IF;
+    -- FIN-0:SGD 是本位币,SGD 期间的 fx_rate 只能是 1
+    IF p_currency = 'SGD' AND p_fx_rate <> 1 THEN
+        RAISE EXCEPTION 'FX_RATE_INVALID|%', p_fx_rate;
+    END IF;
     IF p_lines IS NULL OR jsonb_typeof(p_lines) <> 'array' OR jsonb_array_length(p_lines) = 0 THEN
         RAISE EXCEPTION 'NO_LINES';
     END IF;

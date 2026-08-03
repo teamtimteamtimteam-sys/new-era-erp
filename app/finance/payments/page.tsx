@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { parseDateRange } from '@/lib/dateFilter'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import Subnav from '../Subnav'
 import PaymentsToolbar from './PaymentsToolbar'
 
@@ -165,10 +165,10 @@ export default async function PaymentsListPage({
                                 {nameById.get(r.customer_id ?? r.supplier_id ?? '') ?? '—'}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {r.currency} {formatUsd(r.amount_ccy)}
+                                {r.currency} {formatMoney(r.amount_ccy)}
                                 {r.currency !== 'USD' && (
                                     <span className="text-gray-500 ml-2">
-                                        = {formatUsd(r.amount_usd)} USD
+                                        = {formatMoney(r.amount_usd)} USD
                                     </span>
                                 )}
                             </td>

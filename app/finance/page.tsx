@@ -5,7 +5,7 @@ import { Fragment } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import Subnav from './Subnav'
 
 const TYPE_ORDER = ['asset', 'liability', 'equity', 'revenue', 'cogs', 'expense'] as const
@@ -136,10 +136,10 @@ export default async function FinancePage({
                                         )}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {formatUsd(r.debits)}
+                                        {formatMoney(r.debits)}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {formatUsd(r.credits)}
+                                        {formatMoney(r.credits)}
                                     </td>
                                     <td
                                         className={
@@ -147,7 +147,7 @@ export default async function FinancePage({
                                             (r.net < 0 ? 'text-red-600' : '')
                                         }
                                     >
-                                        {formatUsd(r.net)}
+                                        {formatMoney(r.net)}
                                     </td>
                                 </tr>
                             ))}
@@ -165,10 +165,10 @@ export default async function FinancePage({
                     <tr className="bg-gray-100 font-bold">
                         <td colSpan={2} className="border border-gray-300 px-4 py-2">{t('finance.totalsLabel')}</td>
                         <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                            {formatUsd(totalDebits)}
+                            {formatMoney(totalDebits)}
                         </td>
                         <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                            {formatUsd(totalCredits)}
+                            {formatMoney(totalCredits)}
                         </td>
                         <td className="border border-gray-300 px-4 py-2" />
                     </tr>

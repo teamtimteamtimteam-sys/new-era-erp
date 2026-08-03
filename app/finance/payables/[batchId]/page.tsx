@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import Subnav from '../../Subnav'
 import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachmentsPanel'
 import { unmasked } from '@/lib/maskedRows'
@@ -144,7 +144,7 @@ export default async function PayableDocPage({
                             <span className="font-mono">
                                 {batch.quantity} × {batch.unit_price}
                             </span>
-                            <span className="font-mono font-medium ml-1">= {formatUsd(amountUsd)} USD</span>
+                            <span className="font-mono font-medium ml-1">= {formatMoney(amountUsd)} USD</span>
                         </>
                     ) : (
                         <span className="font-mono">—</span>
@@ -152,11 +152,11 @@ export default async function PayableDocPage({
                 </div>
                 <div>
                     <span className="text-gray-600 mr-1">{t('finance.settledAmount')}:</span>
-                    <span className="font-mono">{formatUsd(settled)}</span>
+                    <span className="font-mono">{formatMoney(settled)}</span>
                 </div>
                 <div>
                     <span className="text-gray-600 mr-1">{t('finance.openAmount')}:</span>
-                    <span className="font-mono font-bold">{open !== null ? formatUsd(open) : '—'}</span>
+                    <span className="font-mono font-bold">{open !== null ? formatMoney(open) : '—'}</span>
                 </div>
             </div>
 
@@ -226,7 +226,7 @@ export default async function PayableDocPage({
                                         (reversed ? ' line-through' : '')
                                     }
                                 >
-                                    {formatUsd(a.allocated_usd)}
+                                    {formatMoney(a.allocated_usd)}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-sm">
                                     {reversed ? (
@@ -257,7 +257,7 @@ export default async function PayableDocPage({
                                 {t('finance.settledAmount')}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatUsd(settled)}
+                                {formatMoney(settled)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2" />
                         </tr>

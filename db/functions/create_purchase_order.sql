@@ -36,17 +36,12 @@ BEGIN
     IF p_currency IS NULL OR NOT EXISTS (SELECT 1 FROM currencies c WHERE c.code = p_currency) THEN
         RAISE EXCEPTION 'CURRENCY_INVALID|%', COALESCE(p_currency, '?');
     END IF;
-    IF p_currency = 'USD' THEN
-        v_fx := 1;
-    ELSE
-        IF p_fx_rate IS NULL THEN
-            RAISE EXCEPTION 'FX_RATE_REQUIRED|%', p_currency;
-        END IF;
-        IF p_fx_rate <= 0 THEN
-            RAISE EXCEPTION 'FX_RATE_INVALID|%', p_fx_rate;
-        END IF;
-        v_fx := p_fx_rate;
+    -- FIN-0:本位币 SGD 免换算;外币按【下单日】的行方卖出价(tt_sell)估值。
+    -- 当日无牌价即拒 —— 这也逼着牌价当天录入(隔天可能就查不到了)。
+    IF p_fx_rate IS NOT NULL THEN
+        RAISE EXCEPTION 'FX_RATE_NOT_ACCEPTED|%', p_currency;
     END IF;
+    v_fx := fx_rate_for(p_currency, p_order_date, 'tt_sell');
 
     IF p_lines IS NULL OR jsonb_typeof(p_lines) <> 'array' OR jsonb_array_length(p_lines) = 0 THEN
         RAISE EXCEPTION 'NO_LINES';

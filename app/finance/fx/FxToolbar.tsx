@@ -1,6 +1,6 @@
 'use client'
 
-// 汇率列表工具栏:币种筛选下拉(全部 + 非 USD 币种,选项由服务端页面传入)。
+// 牌价列表工具栏:币种筛选下拉(全部 + 非 SGD 币种,选项由服务端页面传入)。
 // 端口自 MetalPricesToolbar。改动只写进 URL searchParams,过滤在服务端完成。
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'

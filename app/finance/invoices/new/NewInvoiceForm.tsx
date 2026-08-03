@@ -6,7 +6,7 @@ import { useActionState, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { createInvoice, type CreateInvoiceState } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
-import { formatUsd, formatAmount } from '@/lib/format'
+import { formatMoney, formatAmount } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 
 const initialState: CreateInvoiceState = {}
@@ -224,10 +224,10 @@ export default function NewInvoiceForm({
                                         {s.quantity} {s.unit}
                                     </td>
                                     <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                        {s.currency} {formatUsd(s.unit_price)}
+                                        {s.currency} {formatMoney(s.unit_price)}
                                     </td>
                                     <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                        {formatUsd(s.amount_usd)}
+                                        {formatMoney(s.amount_usd)}
                                     </td>
                                 </tr>
                             ))}
@@ -272,7 +272,7 @@ export default function NewInvoiceForm({
                 {gstRegistered && (
                     <div className="flex justify-between">
                         <span className="text-gray-600">{t('invoice.tax', { rate: taxRate })}</span>
-                        <span className="font-mono">{formatUsd(tax)}</span>
+                        <span className="font-mono">{formatMoney(tax)}</span>
                     </div>
                 )}
                 <div className="flex justify-between border-t pt-1 font-bold">

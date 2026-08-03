@@ -1266,7 +1266,8 @@ export type Database = {
           id: string
           notes: string | null
           rate_date: string
-          rate_to_usd: number
+          rate_sgd_per_unit: number
+          rate_type: string
           source: string
           updated_at: string
           updated_by: string | null
@@ -1279,7 +1280,8 @@ export type Database = {
           id?: string
           notes?: string | null
           rate_date: string
-          rate_to_usd: number
+          rate_sgd_per_unit: number
+          rate_type: string
           source?: string
           updated_at?: string
           updated_by?: string | null
@@ -1292,7 +1294,8 @@ export type Database = {
           id?: string
           notes?: string | null
           rate_date?: string
-          rate_to_usd?: number
+          rate_sgd_per_unit?: number
+          rate_type?: string
           source?: string
           updated_at?: string
           updated_by?: string | null
@@ -6066,6 +6069,23 @@ export type Database = {
           },
         ]
       }
+      fx_rate_gaps: {
+        Row: {
+          currency: string | null
+          missing_types: string[] | null
+          rate_date: string | null
+          txn_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_lines_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       hr_alerts: {
         Row: {
           alert_type: string | null
@@ -8374,6 +8394,10 @@ export type Database = {
       fin_next_payment_code: {
         Args: { p_date: string; p_prefix: string }
         Returns: string
+      }
+      fx_rate_for: {
+        Args: { p_currency: string; p_date: string; p_rate_type: string }
+        Returns: number
       }
       has_permission: { Args: { p_code: string }; Returns: boolean }
       ignore_bank_line: {

@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.record_expense(p_expense_date date, p_account_code text, p_amount numeric, p_currency text DEFAULT 'USD'::text, p_fx_rate numeric DEFAULT NULL::numeric, p_payment_status text DEFAULT 'paid'::text, p_bank_account text DEFAULT NULL::text, p_supplier_id uuid DEFAULT NULL::uuid, p_payee_name text DEFAULT NULL::text, p_notes text DEFAULT NULL::text)
+CREATE OR REPLACE FUNCTION public.record_expense(p_expense_date date, p_account_code text, p_amount numeric, p_currency text DEFAULT 'SGD'::text, p_fx_rate numeric DEFAULT NULL::numeric, p_payment_status text DEFAULT 'paid'::text, p_bank_account text DEFAULT NULL::text, p_supplier_id uuid DEFAULT NULL::uuid, p_payee_name text DEFAULT NULL::text, p_notes text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -33,24 +33,20 @@ BEGIN
         RAISE EXCEPTION 'ACCOUNT_NOT_EXPENSE|%', v_account.code;
     END IF;
 
-    -- 2. 金额/币种/汇率(同 record_payment 约定:USD 强制 1,非 USD 必须给汇率)
+    -- 2. 金额/币种/汇率(FIN-0:SGD 本位免换算,外币按费用日牌价估值)
     IF p_amount IS NULL OR p_amount <= 0 THEN
         RAISE EXCEPTION 'AMOUNT_INVALID';
     END IF;
     IF p_currency IS NULL OR NOT EXISTS (SELECT 1 FROM currencies c WHERE c.code = p_currency) THEN
         RAISE EXCEPTION 'CURRENCY_INVALID|%', COALESCE(p_currency, '?');
     END IF;
-    IF p_currency = 'USD' THEN
-        v_fx := 1;  -- 本位币强制 1,忽略传入值
-    ELSE
-        IF p_fx_rate IS NULL THEN
-            RAISE EXCEPTION 'FX_RATE_REQUIRED|%', p_currency;
-        END IF;
-        IF p_fx_rate <= 0 THEN
-            RAISE EXCEPTION 'FX_RATE_INVALID|%', p_fx_rate;
-        END IF;
-        v_fx := p_fx_rate;
+    -- FIN-0:本位币 SGD 免换算;外币按【费用日】的行方卖出价(tt_sell)估值 ——
+    -- 应付与开销是我们将来要【向银行买】的外币。当日无牌价即拒(FX_RATE_MISSING)。
+    -- 汇率不再由调用方递入:牌价属于 fx_rates,不属于表单。
+    IF p_fx_rate IS NOT NULL THEN
+        RAISE EXCEPTION 'FX_RATE_NOT_ACCEPTED|%', p_currency;
     END IF;
+    v_fx := fx_rate_for(p_currency, p_expense_date, 'tt_sell');
 
     -- 3. 支付状态
     IF p_payment_status IS NULL OR p_payment_status NOT IN ('paid','unpaid') THEN

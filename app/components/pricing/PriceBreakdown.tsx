@@ -5,7 +5,7 @@
 // 免得两处慢慢长歪。客户端在这里【不做任何算术】:所有数字都来自
 // calculate_metal_price 的返回,本组件只负责摆放。
 import { useTranslations } from '@/lib/i18n/client'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import type { CalcResult, CalcLine } from '@/app/pricing/calculator/actions'
 
 export default function PriceBreakdown({
@@ -23,7 +23,7 @@ export default function PriceBreakdown({
         if (l.price_usd_per_tonne == null) return <span className="text-gray-400">—</span>
         return (
             <>
-                <span className="font-mono">{formatUsd(l.price_usd_per_tonne)}</span>
+                <span className="font-mono">{formatMoney(l.price_usd_per_tonne)}</span>
                 <span className="text-gray-500 text-xs ml-2">
                     {l.price_date ?? (l.price_from ? `${l.price_from} – ${l.price_to}` : '')}
                 </span>
@@ -84,7 +84,7 @@ export default function PriceBreakdown({
                                 <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">{l.payable_kg}</td>
                                 <td className="border border-gray-300 px-3 py-2 text-sm">{priceCell(l)}</td>
                                 <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                    {formatUsd(l.metal_value_usd)}
+                                    {formatMoney(l.metal_value_usd)}
                                 </td>
                             </tr>
                         ))}
@@ -95,20 +95,20 @@ export default function PriceBreakdown({
             <div className="mt-4 max-w-md ml-auto text-sm space-y-1">
                 <div className="flex justify-between">
                     <span className="text-gray-600">{t('pricing.grossValue')}</span>
-                    <span className="font-mono">{formatUsd(res.gross_value_usd)}</span>
+                    <span className="font-mono">{formatMoney(res.gross_value_usd)}</span>
                 </div>
                 <div className="flex justify-between">
                     <span className="text-gray-600">{t('pricing.treatmentCharge')}</span>
-                    <span className="font-mono">−{formatUsd(res.treatment_usd)}</span>
+                    <span className="font-mono">−{formatMoney(res.treatment_usd)}</span>
                 </div>
                 <div className="flex justify-between">
                     <span className="text-gray-600">{t('pricing.discountAmount')}</span>
-                    <span className="font-mono">−{formatUsd(res.discount_usd)}</span>
+                    <span className="font-mono">−{formatMoney(res.discount_usd)}</span>
                 </div>
                 <div className="flex justify-between border-t pt-1 font-bold">
                     <span>{t('pricing.netValue')}</span>
                     <span className={'font-mono ' + (res.negative_value ? 'text-red-600' : '')}>
-                        {formatUsd(res.net_value_usd)}
+                        {formatMoney(res.net_value_usd)}
                     </span>
                 </div>
                 <div className="flex justify-between font-bold">

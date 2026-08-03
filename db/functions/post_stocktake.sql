@@ -79,12 +79,12 @@ BEGIN
                 IF v_amt <> 0 THEN
                     IF v_delta > 0 THEN
                         v_je_lines := v_je_lines
-                            || jsonb_build_object('account_code', v_inv_acct, 'side', 'debit',  'currency', 'USD', 'amount_ccy', v_amt)
-                            || jsonb_build_object('account_code', '5200',     'side', 'credit', 'currency', 'USD', 'amount_ccy', v_amt);
+                            || jsonb_build_object('account_code', v_inv_acct, 'side', 'debit',  'currency', 'SGD', 'amount_ccy', v_amt)
+                            || jsonb_build_object('account_code', '5200',     'side', 'credit', 'currency', 'SGD', 'amount_ccy', v_amt);
                     ELSE
                         v_je_lines := v_je_lines
-                            || jsonb_build_object('account_code', '5200',     'side', 'debit',  'currency', 'USD', 'amount_ccy', v_amt)
-                            || jsonb_build_object('account_code', v_inv_acct, 'side', 'credit', 'currency', 'USD', 'amount_ccy', v_amt);
+                            || jsonb_build_object('account_code', '5200',     'side', 'debit',  'currency', 'SGD', 'amount_ccy', v_amt)
+                            || jsonb_build_object('account_code', v_inv_acct, 'side', 'credit', 'currency', 'SGD', 'amount_ccy', v_amt);
                     END IF;
                 END IF;
             END IF;

@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { parseDateRange } from '@/lib/dateFilter'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import Subnav from '../Subnav'
 import JournalToolbar from './JournalToolbar'
 import { resolveSourceHrefs, sourceHrefKey } from '../sourceLinks'
@@ -151,7 +151,7 @@ export default async function JournalListPage({
                                     )}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                    {formatUsd(amountByEntry.get(r.id) ?? 0)}
+                                    {formatMoney(amountByEntry.get(r.id) ?? 0)}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
                                     <span

@@ -6,7 +6,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import { postPayroll, unpostPayroll } from '../actions'
 
 export function PostPayrollButton({
@@ -28,11 +28,11 @@ export function PostPayrollButton({
     function onPost() {
         // confirm 里逐条列出会动的科目与金额(原币)
         const lines = [
-            `6100 ${t('hr.acct6100')}  +${formatUsd(totals.gross)} ${currency}`,
-            `6110 ${t('hr.acct6110')}  +${formatUsd(totals.employerCpf)} ${currency}`,
-            `2400 ${t('hr.acct2400')}  −${formatUsd(totals.employerCpf + totals.employeeCpf)} ${currency}`,
-            `2200 ${t('hr.acct2200')}  −${formatUsd(totals.other)} ${currency}`,
-            `${bankAccount} ${t('finance.bank.' + bankAccount)}  −${formatUsd(totals.net)} ${currency}`,
+            `6100 ${t('hr.acct6100')}  +${formatMoney(totals.gross)} ${currency}`,
+            `6110 ${t('hr.acct6110')}  +${formatMoney(totals.employerCpf)} ${currency}`,
+            `2400 ${t('hr.acct2400')}  −${formatMoney(totals.employerCpf + totals.employeeCpf)} ${currency}`,
+            `2200 ${t('hr.acct2200')}  −${formatMoney(totals.other)} ${currency}`,
+            `${bankAccount} ${t('finance.bank.' + bankAccount)}  −${formatMoney(totals.net)} ${currency}`,
         ].join('\n')
         if (!window.confirm(`${t('hr.postConfirm')}\n\n${lines}`)) return
         setError('')

@@ -19,20 +19,23 @@ export async function updateFxRate(
     const t = await getTranslations()
 
     const currency = (formData.get('currency') as string)?.trim() || ''
-    const rate_raw = (formData.get('rate_to_usd') as string) || ''
+    const rate_raw = (formData.get('rate_sgd_per_unit') as string) || ''
+    const rate_type = (formData.get('rate_type') as string)?.trim() || ''
+    const source = (formData.get('source') as string)?.trim() || 'DBS'
     const rate_date = (formData.get('rate_date') as string)?.trim() || ''
     const notes = (formData.get('notes') as string)?.trim() || null
 
     const fieldErrors: Record<string, string> = {}
-    if (!currency || currency === 'USD') fieldErrors.currency = t('finance.fxPage.form.errCurrency')
+    if (!currency || currency === 'SGD') fieldErrors.currency = t('finance.fxPage.form.errCurrency')
+    if (!['tt_buy', 'tt_sell', 'mid'].includes(rate_type)) fieldErrors.rate_type = t('finance.fxPage.form.errRateType')
 
     let rate: number | null = null
     if (!rate_raw) {
-        fieldErrors.rate_to_usd = t('finance.fxPage.form.errRate')
+        fieldErrors.rate_sgd_per_unit = t('finance.fxPage.form.errRate')
     } else {
         const n = Number(rate_raw)
         if (Number.isNaN(n) || n <= 0) {
-            fieldErrors.rate_to_usd = t('finance.fxPage.form.errRate')
+            fieldErrors.rate_sgd_per_unit = t('finance.fxPage.form.errRate')
         } else {
             rate = n
         }
@@ -55,7 +58,9 @@ export async function updateFxRate(
         .from('fx_rates')
         .update({
             currency,
-            rate_to_usd: rate ?? undefined,
+            rate_type,
+            rate_sgd_per_unit: rate ?? undefined,
+            source,
             rate_date,
             notes,
             updated_by: user?.id ?? null,

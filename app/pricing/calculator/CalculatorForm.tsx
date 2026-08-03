@@ -6,7 +6,7 @@
 // 支持 ?formula=&quantity=&ni=&co=… 预填,便于从批次页直接带着化验结果跳进来。
 import { useActionState, useState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { METAL_OPTIONS } from '@/app/metal-prices/options'
 import PriceBreakdown from '@/app/components/pricing/PriceBreakdown'
@@ -61,14 +61,14 @@ export default function CalculatorForm({
                       }`
             L.push(
                 `${l.metal.toUpperCase().padEnd(3)} content ${l.content_pct}%  payable ${l.payable_pct}%  ` +
-                    `contained ${l.contained_kg} kg  payable ${l.payable_kg} kg  ${price}  = ${formatUsd(l.metal_value_usd)} USD`
+                    `contained ${l.contained_kg} kg  payable ${l.payable_kg} kg  ${price}  = ${formatMoney(l.metal_value_usd)} USD`
             )
         }
         L.push('')
-        L.push(`Gross value:     ${formatUsd(res.gross_value_usd)} USD`)
-        L.push(`Treatment:      -${formatUsd(res.treatment_usd)} USD`)
-        L.push(`Discount:       -${formatUsd(res.discount_usd)} USD`)
-        L.push(`Net value:       ${formatUsd(res.net_value_usd)} USD`)
+        L.push(`Gross value:     ${formatMoney(res.gross_value_usd)} USD`)
+        L.push(`Treatment:      -${formatMoney(res.treatment_usd)} USD`)
+        L.push(`Discount:       -${formatMoney(res.discount_usd)} USD`)
+        L.push(`Net value:       ${formatMoney(res.net_value_usd)} USD`)
         L.push(`Unit price:      ${res.unit_price_usd_per_kg} USD/kg`)
         if (res.skipped_metals.length) L.push(`No price: ${res.skipped_metals.join(', ')}`)
         if (res.unpaid_metals.length) L.push(`Not payable: ${res.unpaid_metals.join(', ')}`)

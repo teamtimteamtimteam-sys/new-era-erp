@@ -34,19 +34,15 @@ BEGIN
     IF p_currency IS NULL OR NOT EXISTS (SELECT 1 FROM currencies c WHERE c.code = p_currency) THEN
         RAISE EXCEPTION 'CURRENCY_INVALID|%', COALESCE(p_currency, '?');
     END IF;
-    IF p_currency = 'USD' THEN
-        v_fx := 1;
-    ELSE
-        IF p_fx_rate IS NULL THEN
-            RAISE EXCEPTION 'FX_RATE_REQUIRED|%', p_currency;
-        END IF;
-        IF p_fx_rate <= 0 THEN
-            RAISE EXCEPTION 'FX_RATE_INVALID|%', p_fx_rate;
-        END IF;
-        v_fx := p_fx_rate;
+    -- FIN-0:本位币 SGD 免换算;外币按【定价日】的行方卖出价(tt_sell)估值 ——
+    -- 这批货将来要向银行买外币去付。当日无牌价即拒(FX_RATE_MISSING);
+    -- 汇率不再由调用方递入(p_fx_rate 必须为空),原币与所用汇率仍进 price_history。
+    IF p_fx_rate IS NOT NULL THEN
+        RAISE EXCEPTION 'FX_RATE_NOT_ACCEPTED|%', p_currency;
     END IF;
+    v_fx := fx_rate_for(p_currency, CURRENT_DATE, 'tt_sell');
 
-    v_usd := round(p_unit_price * v_fx, 4);  -- 单价 4 位小数,与 unit_cost_usd 精度一致
+    v_usd := round(p_unit_price * v_fx, 4);  -- 单价 4 位小数(FIN-0 起为 SGD 本位价;列名沿用 _usd,重命名与生产重建同批)
 
     -- GUC 放行本函数内的 unit_price 更新(guard_inbound_price_change),用毕即清,
     -- 免得同事务内后续的直改被误放行(同 movement_ctx 模式)。
@@ -76,20 +72,20 @@ BEGIN
             v_lines := v_lines || jsonb_build_object(
                 'account_code', '1200',
                 'side', CASE WHEN v_delta > 0 THEN 'debit' ELSE 'credit' END,
-                'currency', 'USD', 'amount_ccy', abs(v_inv),
+                'currency', 'SGD', 'amount_ccy', abs(v_inv),
                 'line_memo', 'in-stock share');
         END IF;
         IF abs(v_cost) > 0 THEN
             v_lines := v_lines || jsonb_build_object(
                 'account_code', '5000',
                 'side', CASE WHEN v_delta > 0 THEN 'debit' ELSE 'credit' END,
-                'currency', 'USD', 'amount_ccy', abs(v_cost),
+                'currency', 'SGD', 'amount_ccy', abs(v_cost),
                 'line_memo', 'consumed share');
         END IF;
         v_lines := v_lines || jsonb_build_object(
             'account_code', '2000',
             'side', CASE WHEN v_delta > 0 THEN 'credit' ELSE 'debit' END,
-            'currency', 'USD', 'amount_ccy', abs(v_delta));
+            'currency', 'SGD', 'amount_ccy', abs(v_delta));
 
         v_je := post_journal_entry(
             CURRENT_DATE,

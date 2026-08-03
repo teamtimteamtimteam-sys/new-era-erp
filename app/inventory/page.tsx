@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { CATEGORY_OPTIONS, UNIT_OPTIONS, labelKeyForValue } from '@/app/materials/options'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import { latestPriceByMetal, marketValuePerKg } from '@/lib/valuation'
 import { maskedRows } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
@@ -244,15 +244,15 @@ export default async function InventoryPage() {
                 <div className="bg-gray-50 rounded p-4 flex flex-wrap gap-8 text-sm mb-3">
                     <div>
                         <span className="text-gray-600">{t('valuation.totalInboundValue')}:</span>{' '}
-                        <span className="font-medium font-mono">{formatUsd(totalInboundValue)}</span>
+                        <span className="font-medium font-mono">{formatMoney(totalInboundValue)}</span>
                     </div>
                     <div>
                         <span className="text-gray-600">{t('valuation.totalCostValue')}:</span>{' '}
-                        <span className="font-medium font-mono">{formatUsd(totalCostValue)}</span>
+                        <span className="font-medium font-mono">{formatMoney(totalCostValue)}</span>
                     </div>
                     <div>
                         <span className="text-gray-600">{t('valuation.totalMarketValue')}:</span>{' '}
-                        <span className="font-medium font-mono">{formatUsd(totalMarketValue)}</span>
+                        <span className="font-medium font-mono">{formatMoney(totalMarketValue)}</span>
                     </div>
                     {(unpricedRes.count ?? 0) > 0 && (
                         <div className="text-gray-400">
@@ -294,11 +294,11 @@ export default async function InventoryPage() {
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
                                     {r.pricedQty > 0 && r.stockValue !== null
-                                        ? formatUsd(r.stockValue / r.pricedQty)
+                                        ? formatMoney(r.stockValue / r.pricedQty)
                                         : '—'}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
-                                    {r.stockValue !== null ? formatUsd(r.stockValue) : '—'}
+                                    {r.stockValue !== null ? formatMoney(r.stockValue) : '—'}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
                                     {r.outputStock > 0 ? (
@@ -313,10 +313,10 @@ export default async function InventoryPage() {
                                     )}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
-                                    {r.costValue !== null ? formatUsd(r.costValue) : '—'}
+                                    {r.costValue !== null ? formatMoney(r.costValue) : '—'}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
-                                    {r.marketValue !== null ? formatUsd(r.marketValue) : '—'}
+                                    {r.marketValue !== null ? formatMoney(r.marketValue) : '—'}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">{unitLabel(r.unit)}</td>
                             </tr>

@@ -13,7 +13,7 @@
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import DecimalInput, { parseDecimal } from '@/app/components/forms/DecimalInput'
 import { METAL_OPTIONS } from '@/app/metal-prices/options'
 import type { CalcResult } from '@/app/pricing/calculator/actions'
@@ -97,7 +97,6 @@ export default function NewOrderForm({
     const [supplierId, setSupplierId] = useState('')
     const [orderDate, setOrderDate] = useState(todayIsoLocal())
     const [currency, setCurrency] = useState('USD')
-    const [fx, setFx] = useState('')
     const [lines, setLines] = useState<LineRow[]>([emptyLine()])
     const [terms, setTerms] = useState<OrderTermInput[]>([])
     // 计划区一经手动编辑(含手选模板),换供应商不再自动覆盖 —— 用户的输入优先
@@ -256,20 +255,9 @@ export default function NewOrderForm({
                         <option value="SGD">SGD</option>
                     </select>
                 </div>
-                {currency !== 'USD' && (
-                    <div>
-                        <label className="block text-sm font-medium mb-1">
-                            {t('purchasing.form.fxRate')} <span className="text-red-600">*</span>
-                        </label>
-                        <DecimalInput
-                            name="fx_rate"
-                            required
-                            value={fx}
-                            onChange={setFx}
-                            placeholder={t('output.sale.fxHint')}
-                            className="w-32 border border-gray-300 px-3 py-2 rounded"
-                        />
-                    </div>
+                {/* FIN-0:外币按下单日行方卖出价(tt_sell)自动估值,当天没牌价直接拒 */}
+                {currency !== 'SGD' && (
+                    <p className="text-xs text-gray-500 self-end pb-2 max-w-56">{t('common.fxBoardRateHint')}</p>
                 )}
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('purchasing.form.incoterm')}</label>
@@ -358,7 +346,7 @@ export default function NewOrderForm({
                             </div>
                             <div className="text-sm text-gray-600 pb-1.5">
                                 {t('purchasing.colAmount')}:{' '}
-                                <span className="font-mono font-medium">{formatUsd(lineAmount(l))}</span>
+                                <span className="font-mono font-medium">{formatMoney(lineAmount(l))}</span>
                             </div>
                             <button
                                 type="button"
@@ -418,7 +406,7 @@ export default function NewOrderForm({
                                         onClick={() => patchLine(i, { calcOpen: !l.calcOpen })}
                                         className="ml-2 text-blue-600 hover:underline text-sm"
                                     >
-                                        {l.calcOpen ? '▾' : '▸'} {formatUsd(l.calc.unit_price_usd_per_kg)} /kg
+                                        {l.calcOpen ? '▾' : '▸'} {formatMoney(l.calc.unit_price_usd_per_kg)} /kg
                                     </button>
                                 )}
                                 {l.calc && l.calcOpen && (
@@ -435,21 +423,21 @@ export default function NewOrderForm({
                                                         <td className="pr-3 font-mono">× {cl.payable_pct}%</td>
                                                         <td className="pr-3 font-mono text-right">
                                                             {cl.price_usd_per_tonne !== null
-                                                                ? formatUsd(cl.price_usd_per_tonne) + '/t'
+                                                                ? formatMoney(cl.price_usd_per_tonne) + '/t'
                                                                 : '—'}
                                                         </td>
                                                         <td className="font-mono text-right">
-                                                            {formatUsd(cl.metal_value_usd)}
+                                                            {formatMoney(cl.metal_value_usd)}
                                                         </td>
                                                     </tr>
                                                 ))}
                                             </tbody>
                                         </table>
                                         <p className="font-mono text-gray-700">
-                                            {formatUsd(l.calc.gross_value_usd)} − {formatUsd(l.calc.treatment_usd)}{' '}
-                                            − {formatUsd(l.calc.discount_usd)} = {formatUsd(l.calc.net_value_usd)} →{' '}
+                                            {formatMoney(l.calc.gross_value_usd)} − {formatMoney(l.calc.treatment_usd)}{' '}
+                                            − {formatMoney(l.calc.discount_usd)} = {formatMoney(l.calc.net_value_usd)} →{' '}
                                             <span className="font-medium">
-                                                {formatUsd(l.calc.unit_price_usd_per_kg)} /kg
+                                                {formatMoney(l.calc.unit_price_usd_per_kg)} /kg
                                             </span>
                                         </p>
                                     </div>
@@ -541,7 +529,7 @@ export default function NewOrderForm({
                                     </div>
                                 </td>
                                 <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                    {formatUsd(termAmount(l))}
+                                    {formatMoney(termAmount(l))}
                                 </td>
                                 <td className="border border-gray-300 px-3 py-2">
                                     <select
@@ -604,7 +592,7 @@ export default function NewOrderForm({
             {/* ── 实时合计 ── */}
             <div className="bg-gray-50 rounded p-4 text-sm">
                 <span className="text-gray-600 mr-1">{t('purchasing.colEstimatedTotal')}:</span>
-                <span className="font-mono font-medium">{formatUsd(estTotal)}</span>
+                <span className="font-mono font-medium">{formatMoney(estTotal)}</span>
             </div>
 
             <div className="flex gap-3 pt-2">

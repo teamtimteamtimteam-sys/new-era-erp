@@ -17,7 +17,8 @@ import { getTranslations } from '@/lib/i18n/server'
 type FxRow = {
     id: string
     currency: string
-    rate_to_usd: number
+    rate_type: string
+    rate_sgd_per_unit: number
     rate_date: string
     source: string
     notes: string | null
@@ -41,13 +42,13 @@ export default async function FxRatesPage({
     const requestedPage = parseFxPage(sp.page)
     const filterParams = { currency, sort, dir }
 
-    // 1) 匹配总数 + 可选币种(非 USD;并行)
+    // 1) 匹配总数 + 可选币种(非 SGD;并行)
     const [{ count }, currenciesRes] = await Promise.all([
         applyFxFilters(
             supabase.from('fx_rates').select('id', { count: 'exact', head: true }),
             filterParams
         ),
-        supabase.from('currencies').select('code').neq('code', 'USD').order('code'),
+        supabase.from('currencies').select('code').neq('code', 'SGD').order('code'),
     ])
 
     const total = count ?? 0
@@ -58,11 +59,24 @@ export default async function FxRatesPage({
 
     // 2) 取当前页的行
     const { data, error } = await applyFxFilters(
-        supabase.from('fx_rates').select('id, currency, rate_to_usd, rate_date, source, notes'),
+        supabase.from('fx_rates').select('id, currency, rate_type, rate_sgd_per_unit, rate_date, source, notes'),
         filterParams
     ).range(from, to)
     const rows = data as unknown as FxRow[] | null
     const currencyOptions = (currenciesRes.data ?? []).map((c) => c.code)
+
+    // 缺牌价的日子:有外币过账、当天缺任一侧牌价 —— 牌价是日课,漏一天可能永远补不回
+    const { data: gapRows } = await supabase
+        .from('fx_rate_gaps')
+        .select('rate_date, currency, missing_types, txn_count')
+        .order('rate_date', { ascending: false })
+        .limit(30)
+    const gaps = (gapRows ?? []) as unknown as {
+        rate_date: string
+        currency: string
+        missing_types: string[]
+        txn_count: number
+    }[]
 
     function sortHref(col: FxSortCol) {
         const nextDir = sort === col && dir === 'asc' ? 'desc' : 'asc'
@@ -120,6 +134,21 @@ export default async function FxRatesPage({
 
             <Subnav />
 
+            {/* 缺牌价 = 有外币交易的那天没录当日牌价 —— 点名到日、到币、到缺哪侧 */}
+            {gaps.length > 0 && (
+                <div className="mb-4 rounded border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900">
+                    <p className="font-medium mb-1">{t('finance.fxPage.gapsTitle', { n: gaps.length })}</p>
+                    <ul className="text-sm space-y-0.5">
+                        {gaps.map((g) => (
+                            <li key={g.rate_date + g.currency}>
+                                <span className="font-mono">{g.rate_date}</span> · {g.currency} ·{' '}
+                                {t('finance.fxPage.gapsMissing', { 0: g.missing_types.join(', '), 1: g.txn_count })}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
                 <FxToolbar currencies={currencyOptions} />
@@ -133,7 +162,8 @@ export default async function FxRatesPage({
                 <thead className="bg-gray-100">
                     <tr>
                         {sortableTh('currency', t('finance.fxPage.colCurrency'))}
-                        {sortableTh('rate_to_usd', t('finance.fxPage.colRate'))}
+                        {sortableTh('rate_type', t('finance.fxPage.colType'))}
+                        {sortableTh('rate_sgd_per_unit', t('finance.fxPage.colRate'))}
                         {sortableTh('rate_date', t('finance.fxPage.colRateDate'))}
                         <th className="border border-gray-300 px-4 py-2 text-left">
                             {t('finance.fxPage.colSource')}
@@ -151,7 +181,10 @@ export default async function FxRatesPage({
                         <tr key={r.id}>
                             <td className="border border-gray-300 px-4 py-2 font-mono text-sm">{r.currency}</td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {r.rate_to_usd}
+                                {t('finance.fxPage.rateType.' + r.rate_type)}
+                            </td>
+                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">
+                                {r.rate_sgd_per_unit}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">{r.rate_date}</td>
                             <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">{r.source}</td>

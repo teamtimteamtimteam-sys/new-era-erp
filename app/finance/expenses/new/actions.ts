@@ -21,7 +21,6 @@ export async function createExpense(
     const accountCode = String(formData.get('account_code') ?? '').trim()
     const amountRaw = String(formData.get('amount') ?? '').trim()
     const currency = String(formData.get('currency') ?? 'SGD')
-    const fxRaw = String(formData.get('fx_rate') ?? '').trim()
     const paymentStatus = formData.get('payment_status') === 'paid' ? 'paid' : 'unpaid'
     const bank = String(formData.get('bank_account') ?? '').trim()
     const supplierId = String(formData.get('supplier_id') ?? '').trim()
@@ -39,14 +38,6 @@ export async function createExpense(
     if (!amountRaw || Number.isNaN(amount) || amount <= 0) {
         return { error: t('expense.errors.AMOUNT_INVALID') }
     }
-    let fxRate: number | undefined
-    if (currency !== 'USD') {
-        const fx = Number(fxRaw)
-        if (!fxRaw || Number.isNaN(fx) || fx <= 0) {
-            return { error: t('expense.errors.FX_RATE_REQUIRED', { 0: currency }) }
-        }
-        fxRate = fx
-    }
     if (paymentStatus === 'unpaid' && !supplierId) {
         return { error: t('expense.errors.SUPPLIER_REQUIRED_FOR_UNPAID') }
     }
@@ -57,7 +48,7 @@ export async function createExpense(
         p_account_code: accountCode,
         p_amount: amount,
         p_currency: currency,
-        p_fx_rate: fxRate, // USD 时不传,DB 强制 1
+        // FIN-0:不传汇率 —— 外币按费用日行方卖出价自动估值,当天缺牌价 DB 直接拒
         p_payment_status: paymentStatus,
         p_bank_account: paymentStatus === 'paid' ? bank || undefined : undefined,
         p_supplier_id: paymentStatus === 'unpaid' ? supplierId : undefined,

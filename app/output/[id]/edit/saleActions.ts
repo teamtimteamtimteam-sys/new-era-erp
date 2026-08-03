@@ -33,15 +33,7 @@ export async function recordSale(
         return { error: t('output.sale.errors.SALE_PRICE_INVALID') }
     }
 
-    // 非 USD 必须给汇率;USD 由 DB 强制 fx=1,不传
-    let fx_rate: number | undefined
-    if (currency !== 'USD') {
-        const fx = Number(fx_rate_raw)
-        if (!fx_rate_raw || Number.isNaN(fx) || fx <= 0) {
-            return { error: t('output.sale.errors.FX_RATE_REQUIRED', { 0: currency }) }
-        }
-        fx_rate = fx
-    }
+    // FIN-0:不传汇率 —— 外币按销售日行方买入价(tt_buy)自动估值,缺牌价 DB 直接拒
 
     const supabase = await createClient()
     const { error } = await supabase.rpc('record_output_sale', {
@@ -49,7 +41,6 @@ export async function recordSale(
         p_quantity: n,
         p_unit_price: price,
         p_currency: currency,
-        p_fx_rate: fx_rate,
         p_customer_id: customer_id || undefined,
         p_sale_date: sale_date || undefined,
         p_notes: notes || undefined,

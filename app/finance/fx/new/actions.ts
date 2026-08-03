@@ -1,7 +1,7 @@
 'use server'
 
-// 新增汇率(端口自 metal-prices/new/actions):source 用 DB 默认 'manual';
-// 唯一约束 (currency, rate_date) 冲突 → 友好的字段错误。
+// 新增牌价(端口自 metal-prices/new/actions):FIN-0 起一条 = 一币种一天一侧;
+// source 默认 'DBS'。唯一约束 (currency, rate_date, rate_type) 冲突 → 友好的字段错误。
 import { createClient } from '@/lib/supabase/server'
 import type { InsertRow } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
@@ -20,20 +20,23 @@ export async function createFxRate(
     const t = await getTranslations()
 
     const currency = (formData.get('currency') as string)?.trim() || ''
-    const rate_raw = (formData.get('rate_to_usd') as string) || ''
+    const rate_raw = (formData.get('rate_sgd_per_unit') as string) || ''
+    const rate_type = (formData.get('rate_type') as string)?.trim() || ''
+    const source = (formData.get('source') as string)?.trim() || 'DBS'
     const rate_date = (formData.get('rate_date') as string)?.trim() || ''
     const notes = (formData.get('notes') as string)?.trim() || null
 
     const fieldErrors: Record<string, string> = {}
-    if (!currency || currency === 'USD') fieldErrors.currency = t('finance.fxPage.form.errCurrency')
+    if (!currency || currency === 'SGD') fieldErrors.currency = t('finance.fxPage.form.errCurrency')
+    if (!['tt_buy', 'tt_sell', 'mid'].includes(rate_type)) fieldErrors.rate_type = t('finance.fxPage.form.errRateType')
 
     let rate: number | null = null
     if (!rate_raw) {
-        fieldErrors.rate_to_usd = t('finance.fxPage.form.errRate')
+        fieldErrors.rate_sgd_per_unit = t('finance.fxPage.form.errRate')
     } else {
         const n = Number(rate_raw)
         if (Number.isNaN(n) || n <= 0) {
-            fieldErrors.rate_to_usd = t('finance.fxPage.form.errRate')
+            fieldErrors.rate_sgd_per_unit = t('finance.fxPage.form.errRate')
         } else {
             rate = n
         }
@@ -54,16 +57,17 @@ export async function createFxRate(
 
     const { error } = await supabase.from('fx_rates').insert({
         currency,
-        rate_to_usd: rate,
+        rate_type,
+        rate_sgd_per_unit: rate,
         rate_date,
+        source,
         notes,
         created_by: user?.id ?? null,
         updated_by: user?.id ?? null,
-        // source 不传,用数据库默认值 'manual'
     } as InsertRow<'fx_rates'>)
 
     if (error) {
-        // 唯一约束 (currency, rate_date):同一币种同一天已有汇率
+        // 唯一约束 (currency, rate_date, rate_type):同一币种同一天同一侧已有牌价
         if (error.code === '23505') {
             return { fieldErrors: { rate_date: t('finance.fxPage.errors.duplicate') } }
         }

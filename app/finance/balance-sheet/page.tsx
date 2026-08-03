@@ -7,7 +7,7 @@ import { Fragment, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { isYmd } from '@/lib/dateFilter'
-import { formatUsd } from '@/lib/format'
+import { formatMoney } from '@/lib/format'
 import Subnav from '../Subnav'
 import BsToolbar from './BsToolbar'
 
@@ -131,7 +131,7 @@ export default async function BalanceSheetPage({
                             (r.net < 0 ? 'text-red-600' : '')
                         }
                     >
-                        {formatUsd(r.net)}
+                        {formatMoney(r.net)}
                     </td>
                 </tr>
             ))}
@@ -145,7 +145,7 @@ export default async function BalanceSheetPage({
                             (extraRow.value < 0 ? 'text-red-600' : '')
                         }
                     >
-                        {formatUsd(extraRow.value)}
+                        {formatMoney(extraRow.value)}
                     </td>
                 </tr>
             )}
@@ -154,7 +154,7 @@ export default async function BalanceSheetPage({
                     {t(titleKey)} — {t('finance.totalsLabel')}
                 </td>
                 <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                    {formatUsd(subtotalOverride ?? s.subtotal)}
+                    {formatMoney(subtotalOverride ?? s.subtotal)}
                 </td>
             </tr>
         </Fragment>
@@ -202,7 +202,7 @@ export default async function BalanceSheetPage({
                             {t('finance.totalAssets')}
                         </td>
                         <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                            {formatUsd(totalAssets)}
+                            {formatMoney(totalAssets)}
                         </td>
                     </tr>
                     <tr className="bg-gray-100 font-bold">
@@ -210,7 +210,7 @@ export default async function BalanceSheetPage({
                             {t('finance.totalLiabEquity')}
                         </td>
                         <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                            {formatUsd(totalLiabEquity)}
+                            {formatMoney(totalLiabEquity)}
                         </td>
                     </tr>
                 </tfoot>
