@@ -6,7 +6,8 @@
 -- approve_review 【不读它】—— 转正与否由 performance_reviews.probation_outcome 明说,
 -- 不从评级推导。推导出来的决定没法在单据上签字。
 --
--- NOTE: introduced by db/migrations/2026-08-03-hr3a-performance-reviews.sql.
+-- NOTE: introduced by db/migrations/2026-08-03-hr3a-performance-reviews.sql;
+--       SELECT opened to all authenticated by db/migrations/2026-08-03-hr3d-ui-read-support.sql.
 -- First-run script (plain CREATEs).
 
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -39,7 +40,9 @@ CREATE TRIGGER trg_review_rating_scale_updated_at
 ALTER TABLE public.review_rating_scale ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "review_rating_scale select by permission"
     ON public.review_rating_scale AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.hr.view'));
+    -- HR-3d:档位目录人人可读(同 leave_types)——评估人要挑档位,
+    -- 被评估人在批准之后要读得出自己那一档的名字。写入仍是 module.hr.edit。
+    USING (true);
 CREATE POLICY "review_rating_scale insert by permission"
     ON public.review_rating_scale AS PERMISSIVE FOR INSERT TO authenticated
     WITH CHECK (has_permission('module.hr.edit'));

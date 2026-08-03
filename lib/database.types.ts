@@ -691,6 +691,13 @@ export type Database = {
             foreignKeyName: "departments_manager_employee_id_fkey"
             columns: ["manager_employee_id"]
             isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "departments_manager_employee_id_fkey"
+            columns: ["manager_employee_id"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["employee_id"]
           },
@@ -859,6 +866,13 @@ export type Database = {
             foreignKeyName: "employees_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["employee_id"]
           },
@@ -954,6 +968,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employment_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
             referencedColumns: ["employee_id"]
           },
           {
@@ -2026,6 +2047,13 @@ export type Database = {
             foreignKeyName: "leave_accrual_rates_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_accrual_rates_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["employee_id"]
           },
@@ -2181,6 +2209,13 @@ export type Database = {
             foreignKeyName: "leave_grants_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_grants_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["employee_id"]
           },
@@ -2314,6 +2349,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
             referencedColumns: ["employee_id"]
           },
           {
@@ -2607,6 +2649,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
             referencedColumns: ["employee_id"]
           },
           {
@@ -3185,6 +3234,13 @@ export type Database = {
             foreignKeyName: "payroll_lines_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "payroll_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["employee_id"]
           },
@@ -3426,6 +3482,13 @@ export type Database = {
             foreignKeyName: "performance_reviews_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["employee_id"]
           },
@@ -3469,6 +3532,13 @@ export type Database = {
             columns: ["reviewer_employee_id"]
             isOneToOne: false
             referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_reviewer_employee_id_fkey"
+            columns: ["reviewer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
             referencedColumns: ["employee_id"]
           },
           {
@@ -4549,6 +4619,13 @@ export type Database = {
             foreignKeyName: "review_goals_review_id_fkey"
             columns: ["review_id"]
             isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["review_id"]
+          },
+          {
+            foreignKeyName: "review_goals_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
             referencedRelation: "my_self_assessment"
             referencedColumns: ["review_id"]
           },
@@ -5342,6 +5419,13 @@ export type Database = {
             foreignKeyName: "training_records_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "training_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["employee_id"]
           },
@@ -5688,6 +5772,13 @@ export type Database = {
             foreignKeyName: "employees_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["employee_id"]
           },
@@ -5858,6 +5949,13 @@ export type Database = {
             foreignKeyName: "employees_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["employee_id"]
           },
@@ -5950,6 +6048,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employment_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
             referencedColumns: ["employee_id"]
           },
           {
@@ -6412,6 +6517,13 @@ export type Database = {
             foreignKeyName: "leave_requests_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["employee_id"]
           },
@@ -6492,6 +6604,13 @@ export type Database = {
             foreignKeyName: "medical_claims_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["employee_id"]
           },
@@ -6548,6 +6667,19 @@ export type Database = {
           work_pass_no: string | null
           work_pass_type: string | null
           work_phone: string | null
+        }
+        Relationships: []
+      }
+      my_review_subjects: {
+        Row: {
+          cycle_name: string | null
+          department_name_en: string | null
+          department_name_zh: string | null
+          employee_code: string | null
+          employee_id: string | null
+          employee_name: string | null
+          job_title: string | null
+          review_id: string | null
         }
         Relationships: []
       }
@@ -6611,6 +6743,13 @@ export type Database = {
             foreignKeyName: "performance_reviews_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["employee_id"]
           },
@@ -6628,6 +6767,13 @@ export type Database = {
           unit: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "review_goals_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["review_id"]
+          },
           {
             foreignKeyName: "review_goals_review_id_fkey"
             columns: ["review_id"]
@@ -6769,6 +6915,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "payroll_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
             referencedColumns: ["employee_id"]
           },
           {
@@ -6925,6 +7078,13 @@ export type Database = {
             foreignKeyName: "performance_reviews_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["employee_id"]
           },
@@ -6968,6 +7128,13 @@ export type Database = {
             columns: ["reviewer_employee_id"]
             isOneToOne: false
             referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_reviewer_employee_id_fkey"
+            columns: ["reviewer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
             referencedColumns: ["employee_id"]
           },
           {

@@ -15,8 +15,8 @@ type AlertRow = {
     employee_code: string
     employee_name: string
     subject: string
-    due_date: string
-    days_remaining: number
+    due_date: string | null
+    days_remaining: number | null
 }
 
 type DirectoryRow = {
@@ -97,9 +97,12 @@ export default async function HrOverviewPage() {
                                                 <td className="py-1 pr-4">{a.subject}</td>
                                                 <td className="py-1 pr-4 whitespace-nowrap">{a.due_date}</td>
                                                 <td className={'py-1 whitespace-nowrap ' + rowCls[sev]}>
-                                                    {a.days_remaining < 0
-                                                        ? t('hr.overdueDays', { n: -a.days_remaining })
-                                                        : t('hr.daysRemaining', { n: a.days_remaining })}
+                                                    {/* salary_not_set 没有期限:due_date 与 days_remaining 皆 NULL */}
+                                                    {a.days_remaining === null
+                                                        ? null
+                                                        : a.days_remaining < 0
+                                                          ? t('hr.overdueDays', { n: -a.days_remaining })
+                                                          : t('hr.daysRemaining', { n: a.days_remaining })}
                                                 </td>
                                             </tr>
                                         ))}

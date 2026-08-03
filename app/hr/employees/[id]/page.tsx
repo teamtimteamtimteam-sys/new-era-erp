@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatUsd } from '@/lib/format'
 import Subnav from '../../Subnav'
+import { statusPillClass } from '../../reviews/reviewShared'
 
 export default async function EmployeeDetailPage({
     params,
@@ -58,6 +59,38 @@ export default async function EmployeeDetailPage({
             .select('id, gross_pay, employer_cpf, employee_cpf, other_deductions, net_pay, payroll_periods(id, code, period_month, currency, status)')
             .eq('employee_id', id),
     ])
+
+    // 绩效评估(HR-3d):没有 module.hr.view + data.view_reviews 的读者在这里是零行,
+    // 整节隐去 —— 一个空表头对读不到内容的人只是噪音。
+    const [empReviewsRes, ratingScaleRes] = await Promise.all([
+        supabase
+            .from('performance_reviews_masked')
+            .select('id, review_type, cycle_id, period_start, period_end, status, rating_code')
+            .eq('employee_id', id)
+            .order('period_end', { ascending: false }),
+        supabase.from('review_rating_scale').select('code, name_en, name_zh'),
+    ])
+    type EmpReview = {
+        id: string
+        review_type: string
+        cycle_id: string | null
+        period_start: string
+        period_end: string
+        status: string
+        rating_code: string | null
+    }
+    const empReviews = (empReviewsRes.data as unknown as EmpReview[] | null) ?? []
+    const cycleIds = Array.from(new Set(empReviews.map((r) => r.cycle_id).filter((x): x is string => x !== null)))
+    const { data: reviewCycles } = cycleIds.length
+        ? await supabase.from('review_cycles').select('id, name').in('id', cycleIds)
+        : { data: [] as { id: string; name: string }[] }
+    const reviewCycleById = new Map((reviewCycles ?? []).map((c) => [c.id, c.name]))
+    const ratingNameByCode = new Map(
+        ((ratingScaleRes.data ?? []) as { code: string; name_en: string; name_zh: string }[]).map((s) => [
+            s.code,
+            locale === 'zh' ? s.name_zh : s.name_en,
+        ])
+    )
 
     const dir = dirRes.data
     const history = historyRes.data ?? []
@@ -277,6 +310,49 @@ export default async function EmployeeDetailPage({
                         ))}
                     </tbody>
                 </table>
+            )}
+
+            {/* 绩效评估:零行(无权限或确实没有)时整节不渲染 */}
+            {empReviews.length > 0 && (
+                <>
+                    <h2 className="text-xl font-bold mb-3">{t('reviews.sectionTitle')}</h2>
+                    <table className="w-full border-collapse border border-gray-300 mb-6 text-sm">
+                        <thead className="bg-gray-100">
+                            <tr>
+                                <th className="border border-gray-300 px-3 py-2 text-left">{t('reviews.type')}</th>
+                                <th className="border border-gray-300 px-3 py-2 text-left">{t('reviews.cycle')}</th>
+                                <th className="border border-gray-300 px-3 py-2 text-left">{t('reviews.period')}</th>
+                                <th className="border border-gray-300 px-3 py-2 text-left">{t('reviews.status')}</th>
+                                <th className="border border-gray-300 px-3 py-2 text-left">{t('reviews.rating')}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {empReviews.map((r) => (
+                                <tr key={r.id}>
+                                    <td className="border border-gray-300 px-3 py-2">
+                                        <Link href={`/hr/reviews/${r.id}`} className="text-blue-600 hover:underline">
+                                            {t(`reviews.type_${r.review_type}`)}
+                                        </Link>
+                                    </td>
+                                    <td className="border border-gray-300 px-3 py-2">
+                                        {r.cycle_id ? reviewCycleById.get(r.cycle_id) ?? '—' : '—'}
+                                    </td>
+                                    <td className="border border-gray-300 px-3 py-2 whitespace-nowrap font-mono text-xs">
+                                        {r.period_start} → {r.period_end}
+                                    </td>
+                                    <td className="border border-gray-300 px-3 py-2">
+                                        <span className={'inline-block rounded px-2 py-0.5 text-xs ' + statusPillClass(r.status)}>
+                                            {t(`reviews.status_${r.status}`)}
+                                        </span>
+                                    </td>
+                                    <td className="border border-gray-300 px-3 py-2">
+                                        {r.rating_code ? ratingNameByCode.get(r.rating_code) ?? r.rating_code : '—'}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </>
             )}
 
             {/* 薪资历史(受限) */}

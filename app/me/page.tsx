@@ -10,6 +10,13 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatUsd } from '@/lib/format'
 import MyLeavePanel from './MyLeavePanel'
 import MyClaimsPanel from './MyClaimsPanel'
+import MySelfAssessmentPanel, {
+    type SelfAssessment,
+    type SelfAssessmentGoal,
+} from './MySelfAssessmentPanel'
+import MyReviewsPanel from './MyReviewsPanel'
+import { REVIEW_COLUMNS, type GoalRow, type ReviewRow } from '@/app/hr/reviews/reviewShared'
+import type { RatingOption } from '@/app/hr/reviews/ConclusionForm'
 
 export default async function MePage() {
     const supabase = await createClient()
@@ -73,6 +80,31 @@ export default async function MePage() {
             p_employee_id: employeeId, p_year: new Date().getFullYear(),
         }),
     ])
+
+    // 绩效评估的自助两段(HR-3d):
+    // 自评 —— 两个窄视图,只在 status='self_review' 时有行;
+    // 定论 —— 行级策略只放行 approved/acknowledged,读到的都是定过的。
+    const [selfAssessRes, selfGoalsRes, myReviewsRes, ratingRes] = await Promise.all([
+        supabase.from('my_self_assessment').select('*'),
+        supabase.from('my_self_assessment_goals').select('*'),
+        supabase
+            .from('performance_reviews_masked')
+            .select(REVIEW_COLUMNS)
+            .eq('employee_id', employeeId)
+            .in('status', ['approved', 'acknowledged'])
+            .order('period_end', { ascending: false }),
+        supabase.from('review_rating_scale').select('code, name_en, name_zh, is_active').order('sort_order'),
+    ])
+    const myReviews = (myReviewsRes.data ?? []) as unknown as ReviewRow[]
+    const { data: myReviewGoals } = myReviews.length
+        ? await supabase
+              .from('review_goals')
+              .select(
+                  'id, review_id, sequence, objective_text, target_value, unit, actual_value, employee_result_text, reviewer_assessment_text'
+              )
+              .in('review_id', myReviews.map((r) => r.id))
+              .order('sequence')
+        : { data: [] as GoalRow[] }
 
     const periodIds = Array.from(
         new Set((payRes.data ?? []).map((l) => l.payroll_period_id).filter((x): x is string => x !== null))
@@ -295,6 +327,21 @@ export default async function MePage() {
                     </ol>
                 )}
             </section>
+
+            {(selfAssessRes.data ?? []).length > 0 && (
+                <MySelfAssessmentPanel
+                    assessments={(selfAssessRes.data ?? []) as unknown as SelfAssessment[]}
+                    goals={(selfGoalsRes.data ?? []) as unknown as SelfAssessmentGoal[]}
+                />
+            )}
+
+            {myReviews.length > 0 && (
+                <MyReviewsPanel
+                    reviews={myReviews}
+                    goals={(myReviewGoals ?? []) as unknown as GoalRow[]}
+                    ratings={(ratingRes.data ?? []) as unknown as RatingOption[]}
+                />
+            )}
 
             <MyLeavePanel
                 employeeId={employeeId}

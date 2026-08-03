@@ -14,6 +14,7 @@ const ITEMS = [
     { href: '/hr/leave', key: 'hr.subnav.leave' },
     { href: '/hr/claims', key: 'hr.subnav.claims' },
     { href: '/hr/training', key: 'hr.subnav.training' },
+    { href: '/hr/reviews', key: 'hr.subnav.reviews' },
 ]
 
 export default function Subnav() {

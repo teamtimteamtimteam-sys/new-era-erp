@@ -34,9 +34,15 @@ export default function NavLinks({ canManagePermissions = false }: { canManagePe
     // 没有 action.manage_permissions 的人【整个条目不渲染】(不是灰掉),
     // 而页面本身也会自己拒绝 —— 藏链接是体贴,不是安全边界。
     // /me 给【每一个】登录用户 —— 人人都有一份自己的档案,所以它不需要任何权限判断。
+    // /my-reviews 同理是【/hr 的同级】:部门经理评下属靠的是"我是这一行的评估人"
+    // 那条行级策略,不是任何 HR 模块权限 —— 挂在 /hr 底下等于对他们隐身。
+    const SELF_ITEMS = [
+        { href: '/my-reviews', key: 'nav.myReviews' },
+        { href: '/me', key: 'nav.me' },
+    ]
     const items = canManagePermissions
-        ? [...NAV_ITEMS, { href: '/me', key: 'nav.me' }, { href: '/settings/permissions', key: 'nav.settings' }]
-        : [...NAV_ITEMS, { href: '/me', key: 'nav.me' }]
+        ? [...NAV_ITEMS, ...SELF_ITEMS, { href: '/settings/permissions', key: 'nav.settings' }]
+        : [...NAV_ITEMS, ...SELF_ITEMS]
 
     return (
         <nav className="flex gap-1 overflow-x-auto px-6 pb-2">
