@@ -65,6 +65,7 @@ const en = {
         fxBoardRateHint: 'Foreign-currency amounts are valued at that date\u2019s DBS board rate. If the day\u2019s rate is not on file, this will be refused — enter it under Finance → FX.',
     },
     leave: {
+        errYearInvalid: 'Enter a four-digit leave year. A non-numeric year silently carries forward nobody while reporting success.',
         subnav: { requests: 'Requests', balances: 'Balances', calendar: 'Calendar', grants: 'Annual operations', types: 'Leave types', holidays: 'Public holidays' },
         code: 'Ref', employee: 'Employee', type: 'Type', dates: 'Dates', days: 'Days',
         status: 'Status', reason: 'Reason', certificate: 'Medical certificate',
@@ -768,6 +769,7 @@ const en = {
             stateLockedHint: 'State is set automatically by sales and processing',
         },
         sale: {
+            errDateRequired: 'A sale date is required — it sets the FX rate used, the inventory movement date, and the period both journals post to. It is deliberately not defaulted server-side.',
             title: 'Record Sale',
             button: 'Record Sale',
             remainingLabel: 'Remaining',
@@ -1273,6 +1275,7 @@ const en = {
         },
     },
     reviews: {
+        errSelfAssessmentEmpty: 'Write your self-assessment before finalising — finalising locks it, and an empty one cannot be corrected without your reviewer reopening it.',
         title: 'Performance Reviews',
         sectionTitle: 'Performance reviews',
         detailTitle: 'Performance review',
@@ -2115,6 +2118,7 @@ const en = {
             state_done: 'done', state_outstanding: 'outstanding', state_blocked: 'blocked', state_na: 'n/a',
         },
         payrollPay: {
+            dateHint: 'The value date the money left the bank. It sets the period these journals post to — and it is NOT defaulted to today, because a blank one would post a July payroll into August.',
             title: 'Salary & statutory payments',
             date: 'Payment date',
             paidOn: 'paid {0}', outstanding: 'outstanding',
@@ -2126,7 +2130,15 @@ const en = {
         },
         costSettle: {
             title: 'Processing cost settlement',
+            dateRequired: 'A date is required — it decides which accounting period this posts to. It is deliberately not defaulted to today.',
             date: 'Date', none: 'Nothing outstanding.',
+            paymentDate: 'Payment date',
+            paymentDateHint: 'The date the money left the bank. This decides which accounting period the remittance posts to.',
+            invoiceDate: 'Invoice date',
+            invoiceDateHint: "The supplier invoice's own date. This decides which period the variance posts to — relieving a July accrual with an August date puts the variance in the wrong month.",
+            varianceUnder: 'Variance to P&L: {v} more than accrued — the estimate was too LOW, so this month takes the extra cost.',
+            varianceOver: 'Variance to P&L: {v} less than accrued — the estimate was too HIGH, so this month is credited back.',
+            varianceNone: 'No variance — the invoice matched the accrual exactly.',
             actualTitle: 'Actual costs — remit',
             estimateTitle: 'Estimates — relieve with the real invoice',
             invoiceAmount: 'Invoice amount', payStatus: 'Payment', paid: 'Paid', unpaid: 'On account',

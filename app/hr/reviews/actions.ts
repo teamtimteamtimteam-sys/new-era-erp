@@ -7,6 +7,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { localizeReviewError } from './reviewErrorCodes'
+import { getTranslations } from '@/lib/i18n/server'
 
 export type ReviewState = { error?: string; success?: boolean }
 
@@ -173,6 +174,15 @@ export async function saveSelfAssessment(
     goalResults: { goal_id: string; result_text?: string | null; actual_value?: number | null }[],
     final: boolean
 ): Promise<ReviewState> {
+    // 【定稿不能是空的】save_self_assessment 是这一族里唯一没有 btrim = '' 守卫的写入
+    // (对比 void_review 的 REASON_REQUIRED、submit_review 的 SUMMARY_REQUIRED)。
+    // p_final 为真时会无条件盖上 self_assessment_submitted_at,此后任何再存都
+    // SELF_ASSESSMENT_LOCKED —— 也就是【空白自评被永久锁死】,而评估人那一页因为
+    // 提交时间非空照样显示"已提交",正文是 '' 又不是 null,连「—」都不会显示。
+    // 存草稿仍允许留空,只有定稿要求有内容。
+    if (final && selfAssessmentText.trim() === '') {
+        return { error: (await getTranslations())('reviews.errSelfAssessmentEmpty') }
+    }
     const supabase = await createClient()
     const { error } = await supabase.rpc('save_self_assessment', {
         p_review_id: reviewId,

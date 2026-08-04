@@ -155,6 +155,13 @@ export async function previewLeaveDays(
 
 // grant_annual_leave 已随 HR-2c 删除:年假按月累积、读时派生,没有"整年发放"这个动作了。年末结转仍在下面,那是另一个来源。
 export async function runCarryForward(year: number): Promise<LeaveState & { detail?: unknown }> {
+    // 【年份必须是个真年份】非数字输入 → Number() 得 NaN → JSON 序列化成 null →
+    // p_leave_year IS NULL → 每个人的余额都算成 NULL,循环全部 CONTINUE,
+    // 返回 employees: 0, total_days: 0,而界面把它当成功报出去 ——
+    // 年末结转"跑过了"却一个人都没结转,且没有任何迹象。
+    if (!Number.isInteger(year) || year < 2000 || year > 2100) {
+        return { error: (await getTranslations())('leave.errYearInvalid') }
+    }
     const supabase = await createClient()
     const { data, error } = await supabase.rpc('carry_forward_annual_leave', { p_leave_year: year })
     if (error) return { error: await localizeLeaveError(error.message) }

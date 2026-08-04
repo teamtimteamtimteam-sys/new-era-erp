@@ -39,9 +39,20 @@ export default function PayPanel({ periods, lines, employees }: { periods: Perio
     return (
         <div>
             {error && <div className="mb-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>}
-            <label className="text-xs text-gray-600 block mb-4">{t('finance.payrollPay.date')}
-                <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-                       className="block border border-gray-300 rounded px-2 py-1 text-sm" />
+            {/* 【必填,而且不许默认】三个按钮都用这个日期。留空时动作层原本走
+                `date || undefined`,函数 COALESCE(p_payment_date, CURRENT_DATE) 于是
+                【静默按今天过账】—— 七月的薪资结进八月,屏幕上毫无迹象。
+                更坏的一点:替换成"今天"永远撞不上 PERIOD_LOCKED,所以【填对日期会报错、
+                留空反而顺利滑进未关的月份】。留空严格地比填错更危险。
+                onBlur 与 onChange 双挂:自动填充/表单状态恢复会改 DOM 而不触发 change,
+                受控输入会显示着日期而状态仍是空串(走查里就是这个形状)。 */}
+            <label className="text-xs text-gray-600 block mb-4">
+                {t('finance.payrollPay.date')} <span className="text-red-600">*</span>
+                <input type="date" value={date} required aria-invalid={date === ''}
+                       onChange={(e) => setDate(e.target.value)} onBlur={(e) => setDate(e.target.value)}
+                       className={'block border rounded px-2 py-1 text-sm '
+                           + (date === '' ? 'border-red-400 bg-red-50' : 'border-gray-300')} />
+                <span className="mt-1 block max-w-md text-gray-500">{t('finance.payrollPay.dateHint')}</span>
             </label>
             {periods.map((p) => {
                 const pls = lines.filter((l) => l.payroll_period_id === p.id)
@@ -79,21 +90,21 @@ export default function PayPanel({ periods, lines, employees }: { periods: Perio
                             </tbody>
                         </table>
                         <div className="flex gap-2 flex-wrap items-center text-sm">
-                            <button type="button" disabled={pending || chosen.length === 0}
+                            <button type="button" disabled={pending || chosen.length === 0 || date === ''}
                                 onClick={() => run(() => payLines(p.id, chosen, date, ''))}
                                 className="bg-blue-600 text-white px-3 py-1.5 rounded disabled:opacity-50">
                                 {t('finance.payrollPay.paySelected', { n: chosen.length })}
                             </button>
                             {cpf > 0 && (p.cpf_paid_at
                                 ? <span className="text-xs text-green-700">{t('finance.payrollPay.cpfPaid', { 0: p.cpf_paid_at })}</span>
-                                : <button type="button" disabled={pending}
+                                : <button type="button" disabled={pending || date === ''}
                                     onClick={() => run(() => payCpf(p.id, date))}
                                     className="border border-gray-300 px-3 py-1.5 rounded disabled:opacity-50">
                                     {t('finance.payrollPay.payCpf', { amount: formatMoney(cpf), due: cpfDue(p.period_month) })}
                                   </button>)}
                             {Number(p.other_deductions_total ?? 0) > 0 && (p.deductions_paid_at
                                 ? <span className="text-xs text-green-700">{t('finance.payrollPay.dedPaid', { 0: p.deductions_paid_at })}</span>
-                                : <button type="button" disabled={pending}
+                                : <button type="button" disabled={pending || date === ''}
                                     onClick={() => run(() => payDeductions(p.id, date))}
                                     className="border border-gray-300 px-3 py-1.5 rounded disabled:opacity-50">
                                     {t('finance.payrollPay.payDeductions', { amount: formatMoney(p.other_deductions_total) })}

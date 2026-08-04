@@ -67,6 +67,7 @@ const zh = {
         fxBoardRateHint: '外币金额按【交易日当天】的 DBS 牌价估值;当天牌价未录入会被直接拒绝 —— 在 财务 → 汇率 里补录当日牌价。',
     },
     leave: {
+        errYearInvalid: '请填一个四位数的假期年度。非数字的年份会一个人都不结转,却报成功。',
         subnav: { requests: '申请', balances: '余额', calendar: '日历', grants: '年度操作', types: '假别', holidays: '公共假期' },
         code: '编号', employee: '员工', type: '假别', dates: '日期', days: '天数',
         status: '状态', reason: '事由', certificate: '医生证明',
@@ -770,6 +771,7 @@ const zh = {
             stateLockedHint: '状态由销售和加工自动更新',
         },
         sale: {
+            errDateRequired: '销售日必填 —— 它决定用哪天的汇率、库存流水的业务日期,以及收入与 COGS 两张分录落在哪个期间。服务端【刻意不给默认值】。',
             title: '登记销售',
             button: '登记销售',
             remainingLabel: '剩余',
@@ -1274,6 +1276,7 @@ const zh = {
         },
     },
     reviews: {
+        errSelfAssessmentEmpty: '定稿前先把自评写上 —— 定稿即锁定,空白的自评没有评估人重开就改不了。',
         title: '绩效评估',
         sectionTitle: '绩效评估',
         detailTitle: '绩效评估',
@@ -2109,6 +2112,7 @@ const zh = {
             state_done: '完成', state_outstanding: '待办', state_blocked: '被挡', state_na: '不适用',
         },
         payrollPay: {
+            dateHint: '钱从银行划出去的那个起息日。它决定这些分录进哪个期间 —— 【不默认成今天】,因为留空会把七月的薪资过进八月。',
             title: '发薪与法定汇缴',
             date: '付款日期',
             paidOn: '已付 {0}', outstanding: '未付',
@@ -2120,7 +2124,15 @@ const zh = {
         },
         costSettle: {
             title: '加工成本结算',
+            dateRequired: '日期必填 —— 它决定这笔进哪个会计期间。这里【刻意不默认成今天】。',
             date: '日期', none: '没有待结的。',
+            paymentDate: '付款日',
+            paymentDateHint: '钱从银行划出去的那一天。它决定这笔汇付进哪个会计期间。',
+            invoiceDate: '发票日',
+            invoiceDateHint: '供应商发票自己的日期。它决定差异落进哪个期间 —— 拿八月的日期去结七月的应计,差异就记到了错的月份。',
+            varianceUnder: '对损益的差异:比应计多 {v} —— 当初【估低了】,这个月要多担这笔成本。',
+            varianceOver: '对损益的差异:比应计少 {v} —— 当初【估高了】,这个月冲回这笔。',
+            varianceNone: '没有差异 —— 发票与应计分毫不差。',
             actualTitle: '实际额 —— 汇付',
             estimateTitle: '估算 —— 用真实发票冲抵',
             invoiceAmount: '发票金额', payStatus: '付款方式', paid: '已付', unpaid: '挂账',
