@@ -123,6 +123,21 @@ UNION ALL
      JOIN employees e ON e.id = r.employee_id
   WHERE c.deleted_at IS NULL AND c.status = 'open'::text AND c.due_date < CURRENT_DATE AND (r.status = ANY (ARRAY['draft'::text, 'self_review'::text]))
 UNION ALL
+ SELECT 'cpf_due'::text AS alert_type,
+        CASE
+            WHEN (date_trunc('month'::text, p.period_month::timestamp with time zone) + '1 mon 13 days'::interval)::date < CURRENT_DATE THEN 'expired'::text
+            WHEN ((date_trunc('month'::text, p.period_month::timestamp with time zone) + '1 mon 13 days'::interval)::date - CURRENT_DATE) <= 3 THEN 'critical'::text
+            ELSE 'warning'::text
+        END AS severity,
+    NULL::uuid AS employee_id,
+    p.code AS employee_code,
+    'CPF'::text AS employee_name,
+    'CPF contribution unpaid — due 14th of the following month, late payment attracts interest'::text AS subject,
+    (date_trunc('month'::text, p.period_month::timestamp with time zone) + '1 mon 13 days'::interval)::date AS due_date,
+    (date_trunc('month'::text, p.period_month::timestamp with time zone) + '1 mon 13 days'::interval)::date - CURRENT_DATE AS days_remaining
+   FROM payroll_periods p
+  WHERE p.deleted_at IS NULL AND p.status = 'posted'::text AND p.cpf_paid_at IS NULL AND (COALESCE(p.employer_cpf_total, 0::numeric) + COALESCE(p.employee_cpf_total, 0::numeric)) > 0::numeric AND ((date_trunc('month'::text, p.period_month::timestamp with time zone) + '1 mon 13 days'::interval)::date - CURRENT_DATE) <= 7
+UNION ALL
  SELECT 'training_expiry'::text AS alert_type,
         CASE
             WHEN t.expiry_date < CURRENT_DATE THEN 'expired'::text

@@ -34,7 +34,14 @@ CREATE TABLE public.payroll_periods (
     created_at             timestamptz NOT NULL DEFAULT now(),
     created_by             uuid DEFAULT auth.uid(),
     updated_at             timestamptz NOT NULL DEFAULT now(),
-    updated_by             uuid DEFAULT auth.uid()
+    updated_by             uuid DEFAULT auth.uid(),
+    -- ── FIN-5 追加(ALTER 加的列排在末尾)────────────────────────────────────
+    -- CPF 与代扣款各是给一个收款方的【一笔】汇款:期间上记何时付、哪张凭证付的。
+    -- 当月的 CPF 次月 14 日前汇 —— 两个月份不同是设计,hr_alerts 的 cpf_due 盯着它。
+    cpf_paid_at                 date,
+    cpf_journal_entry_id        uuid REFERENCES public.journal_entries (id),
+    deductions_paid_at          date,
+    deductions_journal_entry_id uuid REFERENCES public.journal_entries (id)
 );
 
 CREATE UNIQUE INDEX idx_payroll_periods_month_live

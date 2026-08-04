@@ -27,6 +27,13 @@ BEGIN
                WHERE payroll_period_id = p_id AND paid_at IS NOT NULL) THEN
         RAISE EXCEPTION 'PAYROLL_LINES_PAID|%', v_p.code;
     END IF;
+    -- FIN-5:CPF / 代扣款已汇出的期间同理 —— 先冲那笔汇款
+    IF v_p.cpf_paid_at IS NOT NULL THEN
+        RAISE EXCEPTION 'PAYROLL_CPF_PAID|%', v_p.code;
+    END IF;
+    IF v_p.deductions_paid_at IS NOT NULL THEN
+        RAISE EXCEPTION 'PAYROLL_DEDUCTIONS_PAID|%', v_p.code;
+    END IF;
 
     -- 冲销分录(冲销日 = 今天);原分录留在账上并被标记为已冲销 —— 不删账
     v_je := reverse_journal_entry_internal(v_p.journal_entry_id, CURRENT_DATE, 'Payroll reversal ' || v_p.code);

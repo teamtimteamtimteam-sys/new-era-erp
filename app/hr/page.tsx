@@ -11,7 +11,7 @@ import Subnav from './Subnav'
 type AlertRow = {
     alert_type: string
     severity: string
-    employee_id: string
+    employee_id: string | null
     employee_code: string
     employee_name: string
     subject: string
@@ -85,12 +85,16 @@ export default async function HrOverviewPage() {
                                         {rows.map((a) => (
                                             <tr key={a.alert_type + a.employee_id + a.subject + a.due_date}>
                                                 <td className="py-1 pr-4 font-mono whitespace-nowrap">
-                                                    <Link
-                                                        href={`/hr/employees/${a.employee_id}`}
-                                                        className="text-blue-700 hover:underline"
-                                                    >
-                                                        {a.employee_code}
-                                                    </Link>
+                                                    {a.employee_id ? (
+                                                        <Link
+                                                            href={`/hr/employees/${a.employee_id}`}
+                                                            className="text-blue-700 hover:underline"
+                                                        >
+                                                            {a.employee_code}
+                                                        </Link>
+                                                    ) : (
+                                                        a.employee_code
+                                                    )}
                                                 </td>
                                                 <td className="py-1 pr-4">{a.employee_name}</td>
                                                 <td className="py-1 pr-4">{t('hr.alertType.' + a.alert_type)}</td>
