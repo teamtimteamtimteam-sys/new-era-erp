@@ -916,6 +916,12 @@ const zh = {
         },
         errors: {
             NO_INPUTS: '至少需要一条投入(进料)',
+            COST_ENTRY_ALREADY_SETTLED: '这条 {0} 成本已经结过了',
+            COST_ENTRY_IS_ESTIMATE: '{0} 是估算行 —— 由真实发票冲抵,不走汇付',
+            COST_ENTRY_NOT_ESTIMATE: '{0} 是实际额 —— 走汇付;发票只冲估算',
+            COST_ENTRY_SETTLED: '已结的 {0} 成本行不能再改或删',
+            COST_ENTRY_INVALID: '找不到这条成本行(或已删)',
+            RELIEF_MIXED_COST_TYPES: '一张发票只冲一个成本类型({0} 与 {1} 混了)—— 账单本来就按类型来',
             NO_OUTPUTS: '至少需要一条产出',
             LOSS_NEGATIVE: '损耗不能为负数',
             DUPLICATE_INPUT: '同一进料批次不能重复添加',

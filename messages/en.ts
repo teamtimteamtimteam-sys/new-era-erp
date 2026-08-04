@@ -914,6 +914,12 @@ const en = {
         },
         errors: {
             NO_INPUTS: 'At least one input (inbound) is required',
+            COST_ENTRY_ALREADY_SETTLED: 'This {0} cost entry has already been settled',
+            COST_ENTRY_IS_ESTIMATE: '{0} is an estimate — it is relieved by the real invoice, not remitted',
+            COST_ENTRY_NOT_ESTIMATE: '{0} is an actual cost — remit it, invoices only relieve estimates',
+            COST_ENTRY_SETTLED: 'A settled {0} cost entry can no longer be changed or deleted',
+            COST_ENTRY_INVALID: 'Cost entry not found or deleted',
+            RELIEF_MIXED_COST_TYPES: 'One invoice relieves one cost type ({0} vs {1}) — a bill is per type',
             NO_OUTPUTS: 'At least one output is required',
             LOSS_NEGATIVE: 'Loss cannot be negative',
             DUPLICATE_INPUT: 'The same inbound batch cannot be added more than once',

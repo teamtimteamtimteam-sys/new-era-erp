@@ -33,10 +33,35 @@ CREATE TABLE public.processing_cost_entries (
     created_at  timestamptz NOT NULL DEFAULT now(),
     created_by  uuid,
     updated_at  timestamptz NOT NULL DEFAULT now(),
-    updated_by  uuid
+    updated_by  uuid,
+    -- ── FIN-6 追加(ALTER 加的列排在末尾)────────────────────────────────────
+    -- 实际额行:汇付即结(remitted_*);估算行:真实发票冲抵即结(relieved_*)。
+    -- 结过的行不许再改额/软删(guard_cost_entry_settled)—— 应计已被清,再动就是孤儿。
+    remitted_at               date,
+    remitted_journal_entry_id uuid REFERENCES public.journal_entries (id),
+    relieved_at               date,
+    relief_expense_id         uuid REFERENCES public.expenses (id)
 );
 
 -- 2. BEFORE UPDATE trigger -> reuse the existing shared update_updated_at() (do NOT redefine it)
+CREATE OR REPLACE FUNCTION public.guard_cost_entry_settled()
+RETURNS trigger LANGUAGE plpgsql AS $fn$
+BEGIN
+    IF (OLD.remitted_at IS NOT NULL OR OLD.relieved_at IS NOT NULL)
+       AND (NEW.amount_base IS DISTINCT FROM OLD.amount_base
+            OR NEW.deleted_at IS DISTINCT FROM OLD.deleted_at
+            OR NEW.cost_type IS DISTINCT FROM OLD.cost_type
+            OR NEW.is_estimate IS DISTINCT FROM OLD.is_estimate) THEN
+        RAISE EXCEPTION 'COST_ENTRY_SETTLED|%', OLD.cost_type;
+    END IF;
+    RETURN NEW;
+END;
+$fn$;
+
+CREATE TRIGGER trg_processing_cost_entries_settled_guard
+    BEFORE UPDATE ON public.processing_cost_entries
+    FOR EACH ROW EXECUTE FUNCTION public.guard_cost_entry_settled();
+
 CREATE TRIGGER trg_processing_cost_entries_updated_at
     BEFORE UPDATE ON public.processing_cost_entries
     FOR EACH ROW
