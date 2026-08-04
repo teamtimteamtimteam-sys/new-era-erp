@@ -54,3 +54,8 @@ export function applyFxFilters<T>(query: T, params: FxListParams): T {
     }
     return chain as unknown as T
 }
+
+// 【FIN-7-fu1 的教训】可选币种一律按 is_base 取反(.eq('is_base', false)),不点名。
+// fx/new 曾留着 FIN-0 之前的 .neq('USD') —— 基准换成 SGD 后它只剩 SGD 可选,而
+// CHECK 拒收 SGD:界面上一条牌价都录不进去,USD 交易全被 FX_RATE_MISSING 挡死。
+// 点名基准货币的过滤器在换基准那天会静悄悄反相;is_base 不会。

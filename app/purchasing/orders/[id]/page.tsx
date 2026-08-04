@@ -211,7 +211,7 @@ export default async function PurchaseOrderDetailPage({
                     <span className="text-gray-600 mr-1">{t('purchasing.form.currency')}:</span>
                     <span className="font-mono">
                         {po.currency}
-                        {po.currency !== 'USD' && ` @ ${po.fx_rate}`}
+                        {po.currency !== 'SGD' && ` @ ${po.fx_rate}`}
                     </span>
                 </div>
                 {po.incoterm && (

@@ -22,7 +22,7 @@ export default async function EditFxRatePage({
             .eq('id', id)
             .is('deleted_at', null)
             .single(),
-        supabase.from('currencies').select('code').neq('code', 'SGD').order('code'),
+        supabase.from('currencies').select('code').eq('is_base', false).order('code'),
     ])
 
     if (rateRes.error || !rateRes.data) {

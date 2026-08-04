@@ -163,7 +163,7 @@ export default async function ExpenseDetailPage({
                     <span className="font-mono font-medium">
                         {expense.currency} {formatMoney(expense.amount_ccy)}
                     </span>
-                    {expense.currency !== 'USD' && (
+                    {expense.currency !== 'SGD' && (
                         <span className="text-gray-500 ml-1 font-mono">
                             @ {expense.fx_rate} = {formatMoney(expense.amount_base)} USD
                         </span>

@@ -197,7 +197,7 @@ export default async function PaymentDetailPage({
                     <span className="font-mono font-medium">
                         {payment.currency} {formatMoney(payment.amount_ccy)}
                     </span>
-                    {payment.currency !== 'USD' && (
+                    {payment.currency !== 'SGD' && (
                         <span className="text-gray-500 ml-1 font-mono">
                             @ {payment.fx_rate} = {formatMoney(payment.amount_base)} USD
                         </span>

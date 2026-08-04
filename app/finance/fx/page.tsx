@@ -48,7 +48,7 @@ export default async function FxRatesPage({
             supabase.from('fx_rates').select('id', { count: 'exact', head: true }),
             filterParams
         ),
-        supabase.from('currencies').select('code').neq('code', 'SGD').order('code'),
+        supabase.from('currencies').select('code').eq('is_base', false).order('code'),
     ])
 
     const total = count ?? 0
