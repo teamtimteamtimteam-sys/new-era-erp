@@ -282,12 +282,12 @@ export default async function AssayDetailPage({
                         <div className="flex justify-between">
                             <span className="text-gray-600">{t('assay.currentPrice')}</span>
                             <span className="font-mono">
-                                <MaskedValue value={priceChange.old} canView={showPrices} format={formatUnitCost} fallback="—" />
+                                <MaskedValue value={priceChange.old === null ? null : formatUnitCost(priceChange.old)} canView={showPrices} fallback="—" />
                             </span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-gray-600">{t('assay.newPrice')}</span>
-                            <span className="font-mono font-medium"><MaskedValue value={priceChange.next} canView={showPrices} format={formatUnitCost} /></span>
+                            <span className="font-mono font-medium"><MaskedValue value={priceChange.next === null || priceChange.next === undefined ? null : formatUnitCost(priceChange.next)} canView={showPrices} /></span>
                         </div>
                         <div className="flex justify-between border-t pt-1 font-bold">
                             <span>{t('assay.totalDelta')}</span>

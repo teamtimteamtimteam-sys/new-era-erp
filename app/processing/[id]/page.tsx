@@ -204,15 +204,15 @@ export default async function ProcessingDetailPage({
                     <div className="mt-3 pt-3 border-t border-gray-200 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
                         <div>
                             <span className="text-gray-600">{t('processing.detail.materialCost')}</span>{' '}
-                            <MaskedValue value={run.material_cost_base} canView={showPrices} format={formatMoney} fallback="—" />
+                            <MaskedValue value={run.material_cost_base === null ? null : formatMoney(run.material_cost_base)} canView={showPrices} fallback="—" />
                         </div>
                         <div>
                             <span className="text-gray-600">{t('processing.detail.processCost')}</span>{' '}
-                            <MaskedValue value={run.process_cost_base} canView={showPrices} format={formatMoney} fallback="—" />
+                            <MaskedValue value={run.process_cost_base === null ? null : formatMoney(run.process_cost_base)} canView={showPrices} fallback="—" />
                         </div>
                         <div>
                             <span className="text-gray-600">{t('processing.detail.totalCost')}</span>{' '}
-                            <MaskedValue value={run.total_cost_base} canView={showPrices} format={formatMoney} fallback="—" />
+                            <MaskedValue value={run.total_cost_base === null ? null : formatMoney(run.total_cost_base)} canView={showPrices} fallback="—" />
                         </div>
                     </div>
 
@@ -354,17 +354,15 @@ export default async function ProcessingDetailPage({
                                         {/* 遮蔽后是 null,和"尚未分摊"是两回事 —— 前者显示「受限」,
                                             后者才是「—」。都画成 — 会让运营以为成本没算。 */}
                                         <MaskedValue
-                                            value={leg.allocated_cost_base}
+                                            value={leg.allocated_cost_base === null ? null : formatMoney(leg.allocated_cost_base)}
                                             canView={showPrices}
-                                            format={formatMoney}
                                             fallback="—"
                                         />
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                         <MaskedValue
-                                            value={leg.unit_cost_base}
+                                            value={leg.unit_cost_base === null ? null : formatUnitCost(leg.unit_cost_base) + ' /kg'}
                                             canView={showPrices}
-                                            format={(v) => formatUnitCost(v) + ' /kg'}
                                             fallback="—"
                                         />
                                     </td>
