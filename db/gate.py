@@ -94,6 +94,13 @@ def main() -> int:
             if n == 0 and tbl not in cm.BOOTSTRAP_MAY_BE_EMPTY:
                 empties.append(tbl)
         print("bootstrap  " + ("全部 > 0 ✓" if not empties else f"✗ 引导后为空:{empties}"))
+        # FIN-3-fu2:科目表的引导默认值 —— 全新安装必须建出【完整】的账:
+        # 有权益部分、有非 is_system 的常规科目。缺了配不平,不算能用的安装。
+        n_eq = int(psql(local, "SELECT count(*) FROM public.accounts WHERE account_type='equity';"))
+        n_ns = int(psql(local, "SELECT count(*) FROM public.accounts WHERE NOT is_system;"))
+        print(f"chart      equity {n_eq}  non-system bootstrap {n_ns}" + ("  ✓" if n_eq > 0 and n_ns > 0 else "  ✗"))
+        if n_eq == 0 or n_ns == 0:
+            problems.append(f"chart incomplete on rebuild: equity={n_eq} non_system={n_ns}")
         if empties:
             problems.append(f"bootstrap empty: {empties}")
 

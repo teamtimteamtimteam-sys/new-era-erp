@@ -140,7 +140,33 @@ INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system, is
     -- 7110 未实现:只由【期末重估】进(revalue_foreign_balances);
     --              行内转账(实际金额两边入账,无 FX 行)的折算差异也最终落在这里。
     ('7100', 'FX Gain/Loss — Realised', '汇兑损益(已实现)', 'expense', true, false),      -- record_payment
-    ('7110', 'FX Gain/Loss — Unrealised', '汇兑损益(未实现)', 'expense', true, false);    -- revalue_foreign_balances
+    ('7110', 'FX Gain/Loss — Unrealised', '汇兑损益(未实现)', 'expense', true, false);
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 【引导默认值 / BOOTSTRAP DEFAULT —— 非 is_system 行】(FIN-3-fu2)
+-- 全新安装该有的完整科目表:权益、GST、固定资产、在制品、常规收入与费用。
+-- 一个建不出权益部分的库配不平,不算一个能用的安装。
+-- 这一段【不与线上逐行比对】(check_mirrors 的 accounts 比对带 WHERE is_system):
+-- 建账是操作员的地盘,他们之后加科目、改名,永远不该把门变红。
+-- 【6600 'FX Gain/Loss' 故意不在这里】—— 它是 7100/7110 之前的一次失误,已停用;
+-- 第三个汇兑桶会让人从下拉里顺手选错,不许它在每次全新安装里复活。
+-- ═══════════════════════════════════════════════════════════════════════════
+INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system, is_monetary) VALUES
+    ('1210', 'Inventory – Work in Progress', '存货-在制品', 'asset', false, false),
+    ('1400', 'GST Input Tax', 'GST 进项税', 'asset', false, true),        -- 对 IRAS 的定额债权:货币性
+    ('1500', 'Fixed Assets – Equipment', '固定资产-设备', 'asset', false, false),
+    ('1510', 'Accumulated Depreciation', '累计折旧', 'asset', false, false),
+    ('2100', 'GST Output Tax', 'GST 销项税', 'liability', false, true),   -- 对 IRAS 的定额义务:货币性
+    ('3000', 'Share Capital', '实收资本', 'equity', false, false),
+    ('3100', 'Retained Earnings', '留存收益', 'equity', false, false),
+    ('4100', 'Disposal Service Income', '处置服务收入', 'revenue', false, false),
+    ('4900', 'Other Income', '其他收入', 'revenue', false, false),
+    ('6000', 'Rent', '租金', 'expense', false, false),
+    ('6200', 'Utilities', '水电杂费', 'expense', false, false),
+    ('6300', 'Transport & Logistics', '运输物流费', 'expense', false, false),
+    ('6400', 'Professional Fees', '专业服务费', 'expense', false, false),
+    ('6500', 'Bank Charges', '银行手续费', 'expense', false, false),
+    ('6900', 'Miscellaneous', '杂项开支', 'expense', false, false);    -- revalue_foreign_balances
 COMMENT ON COLUMN public.accounts.is_monetary IS
     '货币性科目 = 期末按收盘中间价重估外币余额(FIN-3)。非货币(存货/预付/损益)保持历史汇率,重估一个不碰。';
 

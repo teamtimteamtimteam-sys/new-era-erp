@@ -183,7 +183,11 @@ def scan_literals() -> dict:
                     continue
                 perms.update(re.findall(r"has_permission\(\s*'([^']+)'", line))
                 perms.update(re.findall(r"require_permission\(\s*'([^']+)'", line))
-                accounts.update(re.findall(r"'(\d{4})'", line))
+                # 科目码:定义科目表的那个文件不算"引用"—— FIN-3-fu2 的引导默认值
+                # (非 is_system 的整套科目)就住在 accounts.sql 的种子里,把种子行
+                # 当引擎引用会逼着给权益科目打 is_system。引擎引用都在函数/视图里。
+                if f.name != "accounts.sql":
+                    accounts.update(re.findall(r"'(\d{4})'", line))
     # role_permissions 种子里 IN (...) 与 p.code = '...' 引用到的码
     rp = (REPO / "db" / "tables" / "role_permissions.sql").read_text()
     rp = "\n".join(l for l in rp.splitlines() if not l.lstrip().startswith("--"))
