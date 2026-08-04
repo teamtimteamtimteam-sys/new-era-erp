@@ -62,17 +62,24 @@ export default async function ClosePage({
     const closes = (mustRows(closesRes)) as CloseRow[]
     const activeCloses = new Set(closes.filter((c) => !c.reopened_at).map((c) => c.period_end))
 
-    // 最近 12 个月末;已有活跃关账或早于期间锁的禁选
+    // 最近 12 个月末;已有活跃关账、早于期间锁、【或该月还没过完】的禁选。
+    // 【为什么禁未来月末】i=0 是【本月】月末:今天 8-05 时它是 8-31。它既没被
+    // 关过也不早于锁,于是成了默认选中项 —— 打开页面就是"关掉这个还没过完的月",
+    // 而关账会把 8-31 之前(即整个 8 月)全锁上,并不好撤。关账是月结之后的事,
+    // 月还没结完就不该出现在候选里。
     const now = new Date()
     const y = now.getUTCFullYear()
     const m = now.getUTCMonth()
+    const todayYmd = ymdUtc(now)
     const options: PeriodOption[] = []
     for (let i = 0; i < 12; i++) {
         const periodEnd = ymdUtc(new Date(Date.UTC(y, m - i + 1, 0)))
         options.push({
             value: periodEnd,
             disabled:
-                activeCloses.has(periodEnd) || (lockedBefore !== null && periodEnd < lockedBefore),
+                periodEnd > todayYmd
+                || activeCloses.has(periodEnd)
+                || (lockedBefore !== null && periodEnd < lockedBefore),
         })
     }
 
@@ -87,11 +94,14 @@ export default async function ClosePage({
     // 预览:截至所选月末的分录数 + Σ借/Σ贷(与 close_period 同口径)
     let preview: { count: number; debits: number; credits: number } | null = null
     if (selected) {
-        const { data: lines } = await supabase
+        // 【这一格是关账的确认依据,读不出来必须报错】原本 error 被吞掉,rows 读成
+        // 空集 → 借贷都是 0 → 0 === 0 → 绿色「✓ 已平」,就悬在关账按钮正上方。
+        // 也就是说:那个对勾恰恰是【失败本身】画出来的。验不了就不能画勾。
+        const linesRes = await supabase
             .from('journal_lines')
             .select('entry_id, debit, credit, journal_entries!inner(entry_date)')
             .lte('journal_entries.entry_date', selected)
-        const rows = lines ?? []
+        const rows = mustRows(linesRes, 'journal_lines close preview')
         preview = {
             count: new Set(rows.map((l) => l.entry_id)).size,
             debits: round2(rows.reduce((s, l) => s + l.debit, 0)),
@@ -139,12 +149,16 @@ export default async function ClosePage({
                             <span
                                 className={
                                     'px-2 py-1 rounded text-xs ' +
-                                    (preview.debits === preview.credits
+                                    (preview.count === 0
+                                        ? 'bg-gray-100 text-gray-700'
+                                        : preview.debits === preview.credits
                                         ? 'bg-green-100 text-green-800'
                                         : 'bg-red-100 text-red-800')
                                 }
                             >
-                                {preview.debits === preview.credits
+                                {preview.count === 0
+                                    ? t('finance.balanceIndicator.nothingToCheck')
+                                    : preview.debits === preview.credits
                                     ? '✓ ' + t('finance.balanceIndicator.balanced')
                                     : t('finance.balanceIndicator.unbalanced')}
                             </span>

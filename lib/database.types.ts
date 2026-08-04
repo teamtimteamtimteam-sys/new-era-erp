@@ -9002,6 +9002,10 @@ export type Database = {
         Args: { p_inbound_batch_id: string; p_new_unit_price: number }
         Returns: Json
       }
+      preview_revalue_foreign_balances: {
+        Args: { p_period_end: string }
+        Returns: Json
+      }
       reconcile_statement: { Args: { p_statement_id: string }; Returns: Json }
       record_assay_result: {
         Args: {

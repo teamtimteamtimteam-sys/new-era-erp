@@ -1904,6 +1904,7 @@ const en = {
         balanceIndicator: {
             balanced: 'Balanced',
             unbalanced: 'Unbalanced',
+            nothingToCheck: 'No entries in this period — nothing to verify',
         },
         submitEntry: 'Post Entry',
         errMemo: 'Memo is required',
@@ -2139,6 +2140,9 @@ const en = {
         reval: {
             title: 'Period-end revaluation',
             noMid: 'No mid rate on file for {0} — revaluation will refuse. Enter the closing rate under FX.',
+            noMidFor: 'No mid rate on file for {0} for: {1}. Revaluation will refuse until every currency above has a closing rate — enter them under FX.',
+            nothingToRevalue: 'No foreign-currency monetary balances as at this date — nothing to revalue.',
+            netTo7110: 'Net to 7110 Unrealised FX gain/loss',
             account: 'Account · currency', native: 'Native balance', carry: 'Base carrying', mid: 'Mid rate', adj: 'Adjustment',
             run: 'Post revaluation as at {0}',
             done: 'Posted as {0}. Re-running the same date posts nothing (idempotent).',

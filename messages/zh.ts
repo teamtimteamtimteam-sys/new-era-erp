@@ -1898,6 +1898,7 @@ const zh = {
         balanceIndicator: {
             balanced: '已平衡',
             unbalanced: '未平衡',
+            nothingToCheck: '本期没有分录 —— 没有可核对的东西',
         },
         submitEntry: '过账',
         errMemo: '摘要必填',
@@ -2133,6 +2134,9 @@ const zh = {
         reval: {
             title: '期末重估',
             noMid: '{0} 没有当日中间价 —— 重估会被拒。先到汇率页录收盘价。',
+            noMidFor: '{0} 当日缺这些币种的中间价:{1}。上面每个币种都录了期末牌价,重估才会受理 —— 去汇率页补录。',
+            nothingToRevalue: '截至该日没有外币货币性余额 —— 没有要重估的东西。',
+            netTo7110: '净额进 7110 未实现汇兑损益',
             account: '科目 · 币种', native: '外币余额', carry: '基准承载额', mid: '中间价', adj: '调整额',
             run: '按 {0} 过账重估',
             done: '已过账为 {0}。同日期重跑不会再发凭证(幂等)。',
