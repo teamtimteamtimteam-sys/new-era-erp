@@ -5,6 +5,7 @@
 // 不该让操作员去待办看板里找。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { mustRows } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../../Subnav'
 import CycleForm from './CycleForm'
@@ -52,7 +53,9 @@ export default async function ReviewCyclesPage() {
             .order('code'),
     ])
 
-    const cycles = (cycleRes.data as unknown as CycleRow[] | null) ?? []
+    // 读不到就必须炸:渲染成"还没有周期"会诱使人再开一轮,而开轮会给每名员工
+    // 再生成一条评估 —— 唯一的护栏只是名称唯一索引。
+    const cycles = mustRows(cycleRes, 'review_cycles') as unknown as CycleRow[]
     const reviews = (reviewRes.data as unknown as CycleReview[] | null) ?? []
     const employees = (empRes.data as unknown as (EmployeeOption & { employment_status: string })[] | null) ?? []
     const empById = new Map(employees.map((e) => [e.id, e]))

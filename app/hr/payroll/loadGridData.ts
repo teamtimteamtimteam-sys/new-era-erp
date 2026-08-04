@@ -5,6 +5,7 @@
 import type { createClient } from '@/lib/supabase/server'
 import type { PayrollLineInput } from './actions'
 import type { EmployeeRow } from './PayrollGrid'
+import { mustRows } from '@/lib/db-helpers'
 
 type ServerSupabase = Awaited<ReturnType<typeof createClient>>
 
@@ -44,11 +45,14 @@ export async function loadGridData(
 
     const prefill: Record<string, Partial<PayrollLineInput>> = {}
     if (sourcePeriodId) {
-        const { data: lines } = await supabase
+        // 【读不到就必须炸】编辑现有期间时这就是当期明细。读成空集 → 表格全空 →
+        // 保存走 upsert_payroll_period(先 DELETE payroll_lines 再按非空行重插)
+        // → 整月工资被抹掉。读不到当前状态的表单不许提供写入。
+        const linesRes = await supabase
             .from('payroll_lines_masked')
             .select('employee_id, gross_pay, employer_cpf, employee_cpf, other_deductions, net_pay')
             .eq('payroll_period_id', sourcePeriodId)
-        for (const l of lines ?? []) {
+        for (const l of mustRows(linesRes, 'payroll_lines_masked prefill')) {
             // cut 2b:没有 data.view_pay 时金额回来是 null。【不能】String(null) ——
             // 那会把 "null" 填进表单格子里。看不见上期金额的人,格子就留空。
             if (l.employee_id === null || l.gross_pay === null) continue

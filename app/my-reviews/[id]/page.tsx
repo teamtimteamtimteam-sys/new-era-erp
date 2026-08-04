@@ -5,6 +5,7 @@
 // 不是这一行的评估人 → notFound(持 HR 权限的去 /hr/reviews/[id] 看)。
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { mustOne, mustRows } from '@/lib/db-helpers'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { can } from '@/lib/permissions'
@@ -24,12 +25,15 @@ export default async function MyReviewDetailPage({ params }: { params: Promise<{
     const t = await getTranslations()
     const locale = await getLocale()
 
-    const { data: me } = await supabase.rpc('current_user_employee')
-    const { data: reviewRow } = await supabase
+    // 失败不能被读成"这不是你的评估"—— 那是把故障说成越权,而且它决定 canWrite
+    const meRes = await supabase.rpc('current_user_employee')
+    const me = mustOne(meRes, 'current_user_employee')
+    const reviewRes = await supabase
         .from('performance_reviews_masked')
         .select(REVIEW_COLUMNS)
         .eq('id', id)
         .maybeSingle()
+    const reviewRow = mustOne(reviewRes, 'performance_reviews_masked')
     if (!me || !reviewRow) notFound()
     const r = reviewRow as unknown as ReviewRow
     if (r.reviewer_employee_id !== me) notFound()
@@ -51,9 +55,9 @@ export default async function MyReviewDetailPage({ params }: { params: Promise<{
         can('module.hr.edit'),
     ])
 
-    const goals = (goalsRes.data as unknown as GoalRow[] | null) ?? []
-    const ratings = (ratingRes.data as unknown as RatingOption[] | null) ?? []
-    const subject = subjectRes.data as unknown as {
+    const goals = mustRows(goalsRes, 'review_goals') as unknown as GoalRow[]
+    const ratings = mustRows(ratingRes, 'review_rating_scale') as unknown as RatingOption[]
+    const subject = mustOne(subjectRes, 'my_review_subjects') as unknown as {
         employee_code: string
         employee_name: string
         job_title: string | null

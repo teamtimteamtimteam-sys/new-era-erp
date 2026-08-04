@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { mustOne } from '@/lib/db-helpers'
 import EditSupplierForm from './EditSupplierForm'
 import StatusPanel from './StatusPanel'
 import CompliancePanel from './CompliancePanel'
@@ -54,11 +55,14 @@ export default async function EditSupplierPage({
     const templates = [...(templateRows ?? [])]
     const currentTplId = supplier.default_payment_term_template_id
     if (currentTplId && !templates.some((tpl) => tpl.id === currentTplId)) {
-        const { data: cur } = await supabase
+        // 上面那句注释警告的正是这个失败模式,但它只挡住了"已停用",没挡住【查询失败】:
+        // 读不到当前模板 → 选项里没有它 → 下拉回落到空的"无" → 一保存就静默清掉。
+        const curRes = await supabase
             .from('payment_term_templates')
             .select('id, name')
             .eq('id', currentTplId)
             .single()
+        const cur = mustOne(curRes, 'payment_term_templates current')
         if (cur) templates.unshift({ id: cur.id, name: `${cur.name} (${t('finance.inactive')})` })
     }
 

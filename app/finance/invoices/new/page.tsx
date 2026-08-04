@@ -56,11 +56,13 @@ export default async function NewInvoicePage() {
     }
 
     // 已挂在册(未作废)发票上的销售 —— 这些不能再开
-    const { data: takenRows } = await supabase
+    // 读不到就必须炸:takenRows 是"这些销售不能再开票"的唯一依据,
+    // 读成空集等于把重复开票的护栏拆掉。
+    const takenRes = await supabase
         .from('invoice_lines')
         .select('sales_record_id')
         .eq('invoice_voided', false)
-    const taken = new Set((takenRows ?? []).map((r) => r.sales_record_id))
+    const taken = new Set(mustRows(takenRes, 'invoice_lines taken').map((r) => r.sales_record_id))
 
     const customers: CustomerOption[] = (mustRows(customersRes)).map((c) => ({
         id: c.id,

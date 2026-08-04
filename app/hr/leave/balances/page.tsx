@@ -3,6 +3,7 @@
 // 【90 天内到期的天数高亮】:那是"再不休就烂掉"的部分,提前看见才来得及安排。
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
+import { mustOne, mustRows } from '@/lib/db-helpers'
 import Subnav from '../../Subnav'
 import LeaveSubnav from '../LeaveSubnav'
 
@@ -10,19 +11,22 @@ export default async function BalancesPage() {
     const supabase = await createClient()
     const t = await getTranslations()
 
-    const { data: emps } = await supabase
+    // 【批准人据此拍板,读不出来就必须报错】原本失败会渲染成 "0 天可用",
+    // 那不是"没有数据",是一个凭空捏造的事实,而批准人会照着它做决定。
+    const empsRes = await supabase
         .from('employees').select('id, code, legal_name, work_category')
         .is('deleted_at', null).neq('employment_status', 'separated').order('code')
+    const emps = mustRows(empsRes, 'employees')
 
     const today = new Date()
     const horizon = new Date(today.getTime() + 90 * 86400000).toISOString().slice(0, 10)
 
     const rows = await Promise.all(
-        (emps ?? []).map(async (e) => {
-            const { data } = await supabase.rpc('leave_balance', {
+        emps.map(async (e) => {
+            const balRes = await supabase.rpc('leave_balance', {
                 p_employee_id: e.id, p_leave_type_code: 'annual',
             })
-            const b = data as {
+            const b = mustOne(balRes, `leave_balance ${e.code}`) as {
                 granted: number; consumed: number; expired: number; available: number
                 breakdown: { remaining: number; expires_on: string | null; status: string }[]
             } | null
@@ -53,9 +57,9 @@ export default async function BalancesPage() {
                     {rows.map(({ e, b, expiringSoon }) => (
                         <tr key={e.id}>
                             <td className="border border-gray-300 px-3 py-2">{e.code} — {e.legal_name}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{b?.granted ?? 0}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{b?.consumed ?? 0}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono font-medium">{b?.available ?? 0}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{b?.granted ?? '—'}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{b?.consumed ?? '—'}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right font-mono font-medium">{b?.available ?? '—'}</td>
                             <td className="border border-gray-300 px-3 py-2 text-right font-mono">
                                 {expiringSoon > 0 ? (
                                     <span className="rounded bg-amber-100 px-2 py-0.5 text-amber-800">{expiringSoon}</span>

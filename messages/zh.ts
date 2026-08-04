@@ -1084,6 +1084,7 @@ const zh = {
         newDepartment: '+ 新增部门',
         departmentsEmpty: '暂无部门',
         deptHasEmployees: '该部门仍有 {n} 名员工',
+        deptCountUnavailable: '数不出该部门有多少人,已拒绝删除。请重试;若一直如此,那是故障,而不是这个部门没人。',
         deleteDepartmentConfirm: '删除部门"{0}"?',
         payrollTitle: '薪资',
         newPayroll: '+ 新建薪资期间',

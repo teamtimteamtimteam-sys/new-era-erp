@@ -5,6 +5,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { mustOne } from '@/lib/db-helpers'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { can } from '@/lib/permissions'
 import { formatMoney } from '@/lib/format'
@@ -61,7 +62,8 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
     const ratings = (ratingRes.data as unknown as RatingOption[] | null) ?? []
     const employees = (empRes.data as unknown as (EmployeeOption & { employment_status: string })[] | null) ?? []
     const cycleName = (cycleRes.data as { name: string } | null)?.name ?? null
-    const myEmployeeId = (meRes.data as string | null) ?? null
+    // 读不到就必须炸:它喂给 isReviewer → canWrite,失败会静默改写整页的写权限
+    const myEmployeeId = mustOne(meRes, 'current_user_employee') as string | null
     const uid = userRes.data.user?.id ?? null
 
     const empById = new Map(employees.map((e) => [e.id, e]))

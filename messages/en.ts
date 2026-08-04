@@ -1083,6 +1083,7 @@ const en = {
         newDepartment: '+ New Department',
         departmentsEmpty: 'No departments yet',
         deptHasEmployees: 'This department still has {n} employees',
+        deptCountUnavailable: 'Could not verify how many employees are in this department, so the deletion was refused. Try again; if it persists this is a fault, not an empty department.',
         deleteDepartmentConfirm: 'Delete department "{0}"?',
         payrollTitle: 'Payroll',
         newPayroll: '+ New Payroll Period',

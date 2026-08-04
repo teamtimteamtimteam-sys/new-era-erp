@@ -55,14 +55,20 @@ export async function deleteDepartment(departmentId: string): Promise<{ error?: 
     const t = await getTranslations()
     const supabase = await createClient()
 
-    const { count } = await supabase
+    const countRes = await supabase
         .from('employees')
         .select('id', { count: 'exact', head: true })
         .eq('department_id', departmentId)
         .is('deleted_at', null)
 
-    if ((count ?? 0) > 0) {
-        return { error: t('hr.deptHasEmployees', { n: count ?? 0 }) }
+    // 【数不出来必须挡住,不能放行】原本 `count ?? 0` 把查询失败读成"这个部门没有人",
+    // 于是护栏静默失效、有人的部门照删 —— 失败方向朝【开】,是这一类里最坏的一种。
+    if (countRes.error) {
+        return { error: t('hr.deptCountUnavailable') }
+    }
+    const headcount = countRes.count ?? 0
+    if (headcount > 0) {
+        return { error: t('hr.deptHasEmployees', { n: headcount }) }
     }
 
     const { error } = await supabase
