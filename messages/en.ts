@@ -1851,6 +1851,7 @@ const en = {
             expense: 'Expense',
             prepayment: 'Prepayment',
             payroll: 'Payroll',
+            transfer: 'Transfer',
         },
         status: {
             posted: 'Posted',

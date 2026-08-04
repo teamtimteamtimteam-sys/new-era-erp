@@ -1845,6 +1845,7 @@ const zh = {
             expense: '开支',
             prepayment: '预付',
             payroll: '工资',
+            transfer: '行内转账',
         },
         status: {
             posted: '已过账',
