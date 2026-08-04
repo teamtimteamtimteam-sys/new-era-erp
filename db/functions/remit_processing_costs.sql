@@ -4,6 +4,11 @@
 -- 估算行不走这里(COST_ENTRY_IS_ESTIMATE)—— 估算由真实发票冲抵(relieve_processing_accruals)。
 --
 -- NOTE: introduced by db/migrations/2026-08-04-fin6-relieve-processing-accruals.sql.
+--
+-- FIN-10(2026-08-05):日期不再有 CURRENT_DATE 默认值 —— 缺了就抛具名错误。
+-- 默认成今天永远撞不上 PERIOD_LOCKED,于是留空反而比填对更容易过关,
+-- 这条路径专门奖励留空。要求由函数自己声明,而不是靠调用方自觉。
+-- 详见 db/migrations/2026-08-05-fin10-no-default-posting-dates.sql。
 
 CREATE OR REPLACE FUNCTION public.remit_processing_costs(p_entry_ids uuid[], p_payment_date date DEFAULT NULL::date, p_bank_account text DEFAULT NULL::text)
  RETURNS jsonb
@@ -20,12 +25,15 @@ DECLARE
     v_je jsonb;
 BEGIN
     PERFORM require_permission('module.finance.edit');
+    IF p_payment_date IS NULL THEN
+        RAISE EXCEPTION 'PAYMENT_DATE_REQUIRED';
+    END IF;
     IF p_entry_ids IS NULL OR array_length(p_entry_ids, 1) IS NULL THEN
         RAISE EXCEPTION 'NO_LINES';
     END IF;
     v_bank := COALESCE(p_bank_account, '1000');
     IF v_bank NOT IN ('1000','1010') THEN RAISE EXCEPTION 'BANK_INVALID|%', v_bank; END IF;
-    v_date := COALESCE(p_payment_date, CURRENT_DATE);
+    v_date := p_payment_date;
 
     FOR v_e IN SELECT * FROM processing_cost_entries WHERE id = ANY (p_entry_ids) FOR UPDATE
     LOOP

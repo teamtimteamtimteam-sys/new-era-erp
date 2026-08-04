@@ -75,7 +75,7 @@ export default function ClaimControls({
                     </div>
                     <button
                         type="button"
-                        disabled={pending || !canFinance || !supplierId}
+                        disabled={pending || !canFinance || !supplierId || !date}
                         title={canFinance ? undefined : t('claims.needsFinance')}
                         onClick={() => run(() => payClaim(claimId, date, supplierId))}
                         className="bg-gray-900 text-white px-4 py-1.5 rounded text-sm disabled:opacity-50"

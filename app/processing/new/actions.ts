@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { getTranslations } from '@/lib/i18n/server'
 import type { Database } from '@/lib/database.types'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
@@ -33,6 +34,9 @@ export async function commitProcessingRun(
 ): Promise<CommitProcessingState> {
     const supabase = await createClient()
 
+    // 【必填】这个日期决定过账期间/取哪天的汇率 —— 界面禁用是第一道,这是第二道:
+    // 绕过界面也进不去。函数侧的 CURRENT_DATE 默认值已由 FIN-10 一并删除。
+    if (!payload.process_date) return { error: (await getTranslations())('processing.errProcessDateRequired') }
     const { error } = await supabase.rpc('commit_processing_run', {
         p_process_date: payload.process_date,
         p_notes: payload.notes,

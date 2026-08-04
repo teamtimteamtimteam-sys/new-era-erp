@@ -230,8 +230,10 @@ export default function NewProcessingForm({
                     <label className="block text-sm font-medium mb-1">{t('processing.form.dateLabel')}</label>
                     <input
                         type="date"
+                        required
                         value={processDate}
                         onChange={(e) => setProcessDate(e.target.value)}
+                        onBlur={(e) => setProcessDate(e.target.value)}
                         className="w-full border border-gray-300 px-3 py-2 rounded"
                     />
                 </div>
@@ -440,7 +442,7 @@ export default function NewProcessingForm({
                 <div className="flex gap-3 pt-4">
                     <button
                         type="submit"
-                        disabled={isPending}
+                        disabled={isPending || !processDate}
                         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                     >
                         {isPending ? t('processing.form.saving') : t('processing.form.saveRun')}

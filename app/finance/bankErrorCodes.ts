@@ -4,6 +4,7 @@ import { getTranslations } from '@/lib/i18n/server'
 // 覆盖 3a 引擎的【全部】错误码 —— 导入(3b)与逐笔匹配/对账(3c)共用一份,
 // 3c 落地时这里不需要再改。
 const BANK_ERROR_CODES = new Set([
+    'REVERSAL_DATE_REQUIRED',
     // import_bank_statement
     'BANK_INVALID', 'NO_LINES', 'LINE_AMOUNT_INVALID', 'LINE_DATE_OUT_OF_RANGE',
     'STATEMENT_NOT_BALANCED', 'PERIOD_INVALID',

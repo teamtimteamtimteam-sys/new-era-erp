@@ -3,6 +3,11 @@
 -- 只要 module.finance.edit —— HR 那一半的把关由"必须已批准"这个前置状态保证。
 --
 -- NOTE: updated by db/migrations/2026-08-02-hr2b-leave-exceptions-and-claims.sql.
+--
+-- FIN-10(2026-08-05):日期不再有 CURRENT_DATE 默认值 —— 缺了就抛具名错误。
+-- 默认成今天永远撞不上 PERIOD_LOCKED,于是留空反而比填对更容易过关,
+-- 这条路径专门奖励留空。要求由函数自己声明,而不是靠调用方自觉。
+-- 详见 db/migrations/2026-08-05-fin10-no-default-posting-dates.sql。
 
 CREATE OR REPLACE FUNCTION public.pay_medical_claim(p_claim_id uuid, p_expense_date date DEFAULT NULL::date, p_supplier_id uuid DEFAULT NULL::uuid, p_fx_rate numeric DEFAULT NULL::numeric)
  RETURNS jsonb
@@ -15,10 +20,14 @@ DECLARE
     v_emp   record;
     v_exp   jsonb;
     v_code  text;
-    v_date  date := COALESCE(p_expense_date, CURRENT_DATE);
+    v_date  date;
     v_fx    numeric;
 BEGIN
     PERFORM require_permission('module.finance.edit');
+    IF p_expense_date IS NULL THEN
+        RAISE EXCEPTION 'EXPENSE_DATE_REQUIRED';
+    END IF;
+    v_date := p_expense_date;
 
     SELECT * INTO v_claim FROM medical_claims WHERE id = p_claim_id AND deleted_at IS NULL FOR UPDATE;
     IF NOT FOUND THEN RAISE EXCEPTION 'CLAIM_NOT_FOUND'; END IF;

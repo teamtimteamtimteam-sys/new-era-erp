@@ -6,6 +6,11 @@
 -- 【单据记清结算的是哪个期间、何时付的】—— 当月的 CPF 次月才汇,两个月份不同是设计。
 --
 -- NOTE: introduced by db/migrations/2026-08-04-fin5-relieve-cpf.sql.
+--
+-- FIN-10(2026-08-05):日期不再有 CURRENT_DATE 默认值 —— 缺了就抛具名错误。
+-- 默认成今天永远撞不上 PERIOD_LOCKED,于是留空反而比填对更容易过关,
+-- 这条路径专门奖励留空。要求由函数自己声明,而不是靠调用方自觉。
+-- 详见 db/migrations/2026-08-05-fin10-no-default-posting-dates.sql。
 
 CREATE OR REPLACE FUNCTION public.pay_payroll_cpf(p_payroll_period_id uuid, p_payment_date date DEFAULT NULL::date, p_bank_account text DEFAULT NULL::text)
  RETURNS jsonb
@@ -20,6 +25,9 @@ DECLARE
     v_date date;
     v_je   jsonb;
 BEGIN
+    IF p_payment_date IS NULL THEN
+        RAISE EXCEPTION 'PAYMENT_DATE_REQUIRED';
+    END IF;
     IF NOT (has_permission('module.finance.edit') OR has_permission('module.hr.edit')) THEN
         RAISE EXCEPTION 'PERMISSION_DENIED|module.finance.edit';
     END IF;
@@ -41,7 +49,7 @@ BEGIN
     IF v_bank NOT IN ('1000','1010') THEN
         RAISE EXCEPTION 'BANK_INVALID|%', v_bank;
     END IF;
-    v_date := COALESCE(p_payment_date, CURRENT_DATE);
+    v_date := p_payment_date;
 
     v_je := post_journal_entry(v_date, 'CPF ' || v_p.code, 'payroll', v_p.id,
         jsonb_build_array(

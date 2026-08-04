@@ -121,6 +121,8 @@ const zh = {
         errNotPending: '本申请已经是「{0}」状态。',
     },
     claims: {
+        errExpenseDateRequired: '费用日期必填 —— 它决定这笔支付进哪个会计期间。',
+        errClaimDateRequired: '申报日期必填 —— 它决定这笔申报进哪个会计期间。',
         code: '编号', date: '日期', amount: '金额', amountSgd: '金额(新元)',
         description: '说明', receipt: '票据编号', state: '状态', year: '年度',
         record: '录入报销', submit: '提交报销', none: '没有报销记录。',
@@ -790,6 +792,7 @@ const zh = {
             saveError: '登记失败:{message}',
             errors: {
                 OUTPUT_NOT_FOUND: '产出批次不存在',
+                SALE_DATE_REQUIRED: '销售日期必填 —— 它决定汇率、库存流水的业务日期,以及收入与 COGS 两张分录的期间。',
                 OUTPUT_DELETED: '批次已被删除',
                 SALE_QTY_INVALID: '售出数量无效',
                 SALE_EXCEEDS_REMAINING: '售出数量({0})超过剩余库存({1})',
@@ -832,6 +835,7 @@ const zh = {
         },
     },
     processing: {
+        errProcessDateRequired: '加工日期必填 —— 它决定库存流水的业务日期,以及成本分摊取哪天的金属行情。',
         listTitle: '加工单',
         addButton: '+ 新增加工单',
         recordCount: '共 {count} 条记录',
@@ -919,6 +923,7 @@ const zh = {
         errors: {
             NO_INPUTS: '至少需要一条投入(进料)',
             COST_ENTRY_ALREADY_SETTLED: '这条 {0} 成本已经结过了',
+            PROCESS_DATE_REQUIRED: '加工日期必填 —— 它决定库存流水的业务日期,以及成本分摊取哪天的行情。',
             COST_ENTRY_IS_ESTIMATE: '{0} 是估算行 —— 由真实发票冲抵,不走汇付',
             COST_ENTRY_NOT_ESTIMATE: '{0} 是实际额 —— 走汇付;发票只冲估算',
             COST_ENTRY_SETTLED: '已结的 {0} 成本行不能再改或删',
@@ -1248,6 +1253,7 @@ const zh = {
         errTrainingName: '培训名称必填',
         errors: {
             PAYROLL_POSTED: '薪资期间 {0} 已过账 —— 如需修改请先撤销过账',
+            EXPENSE_DATE_REQUIRED: '费用日期必填 —— 它决定这笔支付进哪个会计期间。',
             PAYROLL_NOT_FOUND: '薪资期间不存在',
             PAYROLL_ALREADY_POSTED: '薪资期间 {0} 已经过账',
             PAYROLL_NOT_POSTED: '薪资期间 {0} 尚未过账',
@@ -1564,6 +1570,7 @@ const zh = {
             SUPPLIER_NOT_FOUND: '供应商不存在',
             NO_LINES: '请至少添加一行明细',
             MATERIAL_NOT_FOUND: '物料不存在:{0}',
+            ORDER_DATE_REQUIRED: '下单日期必填 —— 它决定用哪天的汇率给订单估值。',
             LINE_QTY_INVALID: '第 {0} 行:数量必须大于 0',
             FORMULA_NOT_FOUND: '计价公式不存在:{0}',
             FORMULA_INACTIVE: '计价公式 {0} 已停用',
@@ -2011,6 +2018,7 @@ const zh = {
         useClosePage: '正常关账请走月结页面;此处为手动覆盖。',
         errors: {
             JE_NOT_FOUND: '分录不存在',
+            PAYMENT_DATE_REQUIRED: '付款日期必填 —— 它决定这笔进哪个会计期间,以及用哪天的汇率。',
             JE_ALREADY_REVERSED: '分录已被冲销',
             PERIOD_LOCKED: '日期 {0} 早于期间锁定日({1})',
             ACCOUNT_NOT_FOUND: '科目不存在:{0}',
@@ -2123,6 +2131,7 @@ const zh = {
             dedPaid: '代扣款已汇 {0}',
         },
         costSettle: {
+            amountRequired: '发票金额必填 —— 它决定进损益的差异是多少。',
             title: '加工成本结算',
             dateRequired: '日期必填 —— 它决定这笔进哪个会计期间。这里【刻意不默认成今天】。',
             date: '日期', none: '没有待结的。',
@@ -2160,6 +2169,7 @@ const zh = {
             type: '成本类型',
         },
         transfer: {
+            errDateRequired: '划转日期必填 —— 它决定两条银行分录进哪个会计期间。',
             title: '行内转账',
             hint: '两边金额照银行水单原样录入 —— 分录两条银行线各记本币,两边对账单各自认领。',
             date: '日期', from: '转出账户', to: '转入账户',
@@ -2387,6 +2397,7 @@ const zh = {
             DUPLICATE_METAL: '金属 {0} 重复出现',
             PRICE_INVALID: '{0} 的价格无效:{1}',
             PRICE_DATE_REQUIRED: '请填写行情日期',
+            REFERENCE_DATE_REQUIRED: '参考日期必填 —— 它决定报价取哪天的金属行情。',
             NO_PRICES: '没有提交任何价格',
         },
     },
@@ -2509,6 +2520,7 @@ const zh = {
             BANK_INVALID: '银行账户无效:{0}',
             NO_LINES: '文件中没有可用的行',
             LINE_AMOUNT_INVALID: '第 {0} 行:金额无效',
+            REVERSAL_DATE_REQUIRED: '冲销日期必填 —— 它决定冲销分录进哪个会计期间。',
             LINE_DATE_OUT_OF_RANGE: '第 {0} 行:日期 {1} 不在对账期间内',
             STATEMENT_NOT_BALANCED: '期初加各行合计为 {0},与你填写的期末余额 {1} 不符',
             PERIOD_INVALID: '对账期间无效:{0} 至 {1}',

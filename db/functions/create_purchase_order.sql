@@ -1,3 +1,8 @@
+-- FIN-10(2026-08-05):日期不再有 CURRENT_DATE 默认值 —— 缺了就抛具名错误。
+-- 默认成今天永远撞不上 PERIOD_LOCKED,于是留空反而比填对更容易过关,
+-- 这条路径专门奖励留空。要求由函数自己声明,而不是靠调用方自觉。
+-- 详见 db/migrations/2026-08-05-fin10-no-default-posting-dates.sql。
+
 CREATE OR REPLACE FUNCTION public.create_purchase_order(p_supplier_id uuid, p_order_date date, p_expected_delivery date, p_currency text, p_fx_rate numeric, p_incoterm text, p_terms_text text, p_notes text, p_lines jsonb, p_payment_terms jsonb DEFAULT '[]'::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -6,7 +11,7 @@ CREATE OR REPLACE FUNCTION public.create_purchase_order(p_supplier_id uuid, p_or
 AS $function$
 DECLARE
     v_user       uuid := auth.uid();
-    v_date       date := COALESCE(p_order_date, CURRENT_DATE);
+    v_date       date;
     v_fx         numeric;
     v_po_id      uuid := gen_random_uuid();
     v_code       text;
@@ -27,6 +32,10 @@ DECLARE
     v_term_count integer := 0;
 BEGIN
     PERFORM require_permission('module.purchasing.edit');
+    IF p_order_date IS NULL THEN
+        RAISE EXCEPTION 'ORDER_DATE_REQUIRED';
+    END IF;
+    v_date := p_order_date;
     IF p_supplier_id IS NULL OR NOT EXISTS (
         SELECT 1 FROM suppliers WHERE id = p_supplier_id AND deleted_at IS NULL
     ) THEN

@@ -3,6 +3,7 @@
 // app/hr/claims/actions.ts
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { getTranslations } from '@/lib/i18n/server'
 import { localizeLeaveError } from '../leave/actions'
 
 export type ClaimState = { error?: string; success?: boolean; code?: string }
@@ -15,6 +16,9 @@ export async function submitClaim(form: {
     receiptRef: string | null
 }): Promise<ClaimState> {
     const supabase = await createClient()
+    // 【必填】这个日期决定过账期间/取哪天的汇率 —— 界面禁用是第一道,这是第二道:
+    // 绕过界面也进不去。函数侧的 CURRENT_DATE 默认值已由 FIN-10 一并删除。
+    if (!form.claimDate) return { error: (await getTranslations())('claims.errClaimDateRequired') }
     const { data, error } = await supabase.rpc('submit_medical_claim', {
         p_employee_id: form.employeeId,
         p_claim_date: form.claimDate,
@@ -44,6 +48,9 @@ export async function payClaim(
     claimId: string, expenseDate: string, supplierId: string
 ): Promise<ClaimState & { expenseCode?: string }> {
     const supabase = await createClient()
+    // 【必填】这个日期决定过账期间/取哪天的汇率 —— 界面禁用是第一道,这是第二道:
+    // 绕过界面也进不去。函数侧的 CURRENT_DATE 默认值已由 FIN-10 一并删除。
+    if (!expenseDate) return { error: (await getTranslations())('claims.errExpenseDateRequired') }
     const { data, error } = await supabase.rpc('pay_medical_claim', {
         p_claim_id: claimId,
         p_expense_date: expenseDate,

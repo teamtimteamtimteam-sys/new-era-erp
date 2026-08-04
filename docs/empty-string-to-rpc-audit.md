@@ -44,15 +44,15 @@
 - `inbound/[id]/assays/actions.ts` `calculate_metal_price(p_reference_date)` ——
   只影响【预览】报价取哪天的价;真正 apply 时用库里的 `assay_date`。误导,不误记。
 
-## 【重要】不要把这些 REJECTED 的"顺手修成" `|| undefined`
+## ~~【重要】不要把这些顺手修成 `|| undefined`~~ —— FIN-10 已从根上解决
 
-`hr/claims/actions.ts` 的 `pay_medical_claim(p_expense_date)` 现在是 REJECTED:
-空串直达 Postgres 报 22007,看得见。但它的 SQL 里有
-`COALESCE(p_expense_date, CURRENT_DATE)` —— **谁哪天顺手把它改成 `expenseDate || undefined`,
-它就立刻变成上表那种看不见的错。** 要修就加必填校验,不要改成传 undefined。
+**这条告诫已失效,保留是为了留下缘由。** 它当时说:`pay_medical_claim` 等几处
+虽然是 REJECTED(看得见),但 SQL 里蹲着 `COALESCE(..., CURRENT_DATE)`,谁把调用
+改成 `|| undefined` 就会把可见错误变成静默错账。
 
-同样形状还有:`submit_medical_claim(p_claim_date)`、`submit_leave_request(p_start/p_end)`、
-`commit_processing_run(p_process_date)`、`record_bank_transfer(p_transfer_date)`。
+FIN-10 把那些默认值【删掉了】,所以现在改成 `|| undefined` 只会得到
+`EXPENSE_DATE_REQUIRED` 之类的具名错误 —— 陷阱不存在了,不必再靠人记住。
+这也是本轮的要点:**与其警告别踩,不如把坑填掉。**
 
 ## REJECTED(看得见)与 SAFE
 
@@ -60,3 +60,36 @@
 早退),要么由 SQL 自己挡(`REASON_REQUIRED`、`AMOUNT_INVALID`、`CURRENCY_INVALID`、
 `LINE_QTY_INVALID`、`currencies` 外键),要么参数根本来自库里已有的行而非表单。
 它们会报错,而报错是可见的 —— 不构成静默错账。
+
+## FIN-10:默认值本身已被删除
+
+上面那些"看不见"的错,根都在函数里蹲着的 `COALESCE(p_date, CURRENT_DATE)`。
+只要它还在,任何调用方都能碰到,而文档只保护先读文档的人。**11 个函数的默认值
+已删除,缺日期即抛具名错误**(逐一以回滚 fixture 验证过会抛):
+
+`pay_payroll_lines` / `pay_payroll_cpf` / `pay_payroll_deductions` /
+`remit_processing_costs` / `record_payment` / `pay_medical_claim` →
+`PAYMENT_DATE_REQUIRED` · `EXPENSE_DATE_REQUIRED`;
+`record_output_sale` → `SALE_DATE_REQUIRED`;
+`commit_processing_run` → `PROCESS_DATE_REQUIRED`;
+`create_purchase_order` → `ORDER_DATE_REQUIRED`;
+`calculate_metal_price_internal` → `REFERENCE_DATE_REQUIRED`;
+`reverse_bank_transfer` → `REVERSAL_DATE_REQUIRED`。
+
+调用方已先查后删:`calculate_metal_price_internal` 的两个库内调用方都不依赖默认值
+(`apply_assay_result` 传 `COALESCE(p_reference_date, v_assay.assay_date)`,而
+`assay_date` 是 NOT NULL —— 结构上不可能为空);其余 10 个没有库内调用方。
+
+## 该留的默认值 —— 记录在案,不是漏改
+
+这些日期【既不决定过账期间也不决定汇率】,默认成今天是对的:
+
+| 函数 | 这个日期决定什么 |
+|---|---|
+| `next_employee_code` / `next_payroll_code` / `next_purchase_order_code` / `next_medical_claim_code` | 只取年份用于编号序列 |
+| `leave_balance` / `leave_balance_internal` / `accrued_annual_leave` / `accrued_annual_leave_detail` / `available_annual_accrual` / `annual_leave_available_from`(`p_as_of`) | 只读查询的"截至哪天",不写任何东西 |
+| `create_invoice`(`p_issue_date`) | 发票号年份与到期日(= 签发日 + 账期)。**不过账、不取汇率** —— 收入在销售时点就已入账 |
+
+`create_invoice` 是这里最接近边界的一个:签发日会影响应收账龄。但它不决定
+任何分录的期间,也不选任何汇率,所以按本文的判据留下默认值 —— 把它写在这里,
+是为了让"为什么没动它"有据可查,而不是靠"没被碰过"去猜。

@@ -119,6 +119,8 @@ const en = {
         errNotPending: 'This request is already {0}.',
     },
     claims: {
+        errExpenseDateRequired: 'An expense date is required — it decides which accounting period the payment posts to.',
+        errClaimDateRequired: 'A claim date is required — it decides which accounting period the claim posts to.',
         code: 'Ref', date: 'Date', amount: 'Amount', amountSgd: 'Amount (SGD)',
         description: 'Description', receipt: 'Receipt reference', state: 'State', year: 'Year',
         record: 'Record a claim', submit: 'Submit claim', none: 'No claims.',
@@ -788,6 +790,7 @@ const en = {
             saveError: 'Save failed: {message}',
             errors: {
                 OUTPUT_NOT_FOUND: 'Output batch not found',
+                SALE_DATE_REQUIRED: 'A sale date is required — it decides the FX rate, the movement date, and the period both journals post to.',
                 OUTPUT_DELETED: 'Batch has been deleted',
                 SALE_QTY_INVALID: 'Invalid sale quantity',
                 SALE_EXCEEDS_REMAINING: 'Quantity ({0}) exceeds remaining stock ({1})',
@@ -830,6 +833,7 @@ const en = {
         },
     },
     processing: {
+        errProcessDateRequired: 'A process date is required — it decides the inventory movement date and which metal prices the cost allocation uses.',
         listTitle: 'Processing',
         addButton: '+ Add Processing Run',
         recordCount: 'Total: {count}',
@@ -917,6 +921,7 @@ const en = {
         errors: {
             NO_INPUTS: 'At least one input (inbound) is required',
             COST_ENTRY_ALREADY_SETTLED: 'This {0} cost entry has already been settled',
+            PROCESS_DATE_REQUIRED: 'A process date is required — it decides the movement date and which metal prices the allocation uses.',
             COST_ENTRY_IS_ESTIMATE: '{0} is an estimate — it is relieved by the real invoice, not remitted',
             COST_ENTRY_NOT_ESTIMATE: '{0} is an actual cost — remit it, invoices only relieve estimates',
             COST_ENTRY_SETTLED: 'A settled {0} cost entry can no longer be changed or deleted',
@@ -1247,6 +1252,7 @@ const en = {
         errTrainingName: 'A training name is required',
         errors: {
             PAYROLL_POSTED: 'Payroll period {0} is already posted — unpost it before making changes',
+            EXPENSE_DATE_REQUIRED: 'An expense date is required — it decides which accounting period the payment posts to.',
             PAYROLL_NOT_FOUND: 'Payroll period not found',
             PAYROLL_ALREADY_POSTED: 'Payroll period {0} has already been posted',
             PAYROLL_NOT_POSTED: 'Payroll period {0} is not posted',
@@ -1568,6 +1574,7 @@ const en = {
             SUPPLIER_NOT_FOUND: 'Supplier not found',
             NO_LINES: 'Add at least one line',
             MATERIAL_NOT_FOUND: 'Material not found: {0}',
+            ORDER_DATE_REQUIRED: 'An order date is required — it decides which FX rate values the order.',
             LINE_QTY_INVALID: 'Line {0}: quantity must be greater than 0',
             FORMULA_NOT_FOUND: 'Pricing formula not found: {0}',
             FORMULA_INACTIVE: 'Pricing formula {0} is inactive',
@@ -2017,6 +2024,7 @@ const en = {
         useClosePage: 'Month-end close is the normal way to lock periods — use the Close page.',
         errors: {
             JE_NOT_FOUND: 'Entry not found',
+            PAYMENT_DATE_REQUIRED: 'A payment date is required — it decides the accounting period and which FX rate is used.',
             JE_ALREADY_REVERSED: 'Entry already reversed',
             PERIOD_LOCKED: 'Date {0} is before the period lock ({1})',
             ACCOUNT_NOT_FOUND: 'Account not found: {0}',
@@ -2129,6 +2137,7 @@ const en = {
             dedPaid: 'Deductions remitted {0}',
         },
         costSettle: {
+            amountRequired: 'An invoice amount is required — it decides the variance posted to P&L.',
             title: 'Processing cost settlement',
             dateRequired: 'A date is required — it decides which accounting period this posts to. It is deliberately not defaulted to today.',
             date: 'Date', none: 'Nothing outstanding.',
@@ -2166,6 +2175,7 @@ const en = {
             type: 'Cost type',
         },
         transfer: {
+            errDateRequired: 'A transfer date is required — it decides which accounting period both bank lines post to.',
             title: 'Transfer between own accounts',
             hint: 'Both amounts exactly as the bank reported them — the journal posts one line per account, each in its own currency, so both statements can reconcile.',
             date: 'Date', from: 'From', to: 'To',
@@ -2393,6 +2403,7 @@ const en = {
             DUPLICATE_METAL: 'Metal {0} appears more than once',
             PRICE_INVALID: 'Price for {0} is invalid: {1}',
             PRICE_DATE_REQUIRED: 'A price date is required',
+            REFERENCE_DATE_REQUIRED: 'A reference date is required — it decides which metal prices are quoted.',
             NO_PRICES: 'No prices submitted',
         },
     },
@@ -2517,6 +2528,7 @@ const en = {
             BANK_INVALID: 'Invalid bank account: {0}',
             NO_LINES: 'The file contains no usable rows',
             LINE_AMOUNT_INVALID: 'Line {0}: invalid amount',
+            REVERSAL_DATE_REQUIRED: 'A reversal date is required — it decides which accounting period the reversal posts to.',
             LINE_DATE_OUT_OF_RANGE: 'Line {0}: date {1} is outside the statement period',
             STATEMENT_NOT_BALANCED:
                 'Opening plus the line total comes to {0}, but the closing balance you entered is {1}',

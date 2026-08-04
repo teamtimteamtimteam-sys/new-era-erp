@@ -5,6 +5,7 @@ import { getTranslations } from '@/lib/i18n/server'
 // 抛出的错误码(端口自 paymentErrorCodes.ts)。
 // 不在此集合内的,是真正的(未编码的)DB/约束错误,原样返回。
 const PURCHASING_ERROR_CODES = new Set([
+    'ORDER_DATE_REQUIRED',
     'FX_RATE_MISSING', 'FX_RATE_NOT_ACCEPTED',
     'SUPPLIER_NOT_FOUND', 'NO_LINES', 'MATERIAL_NOT_FOUND', 'LINE_QTY_INVALID',
     'FORMULA_NOT_FOUND', 'FORMULA_INACTIVE', 'TERMS_SEQ_INVALID', 'TERMS_PCT_EXCEEDS',

@@ -3,6 +3,7 @@ import { getTranslations } from '@/lib/i18n/server'
 // 定价引擎(calculate_metal_price / upsert_metal_prices)抛出的错误码,
 // 端口自 paymentErrorCodes.ts。不在集合内的是真正未编码的 DB 错误,原样返回。
 const PRICING_ERROR_CODES = new Set([
+    'REFERENCE_DATE_REQUIRED',
     'FORMULA_NOT_FOUND', 'FORMULA_INACTIVE', 'QUANTITY_INVALID', 'NO_METALS',
     'METAL_INVALID', 'CONTENT_INVALID', 'DUPLICATE_METAL', 'PRICE_INVALID',
     'PRICE_DATE_REQUIRED', 'NO_PRICES',

@@ -4,6 +4,11 @@
 -- 转账行打上 reversed_* 标记,不许二次冲销。
 --
 -- NOTE: introduced by db/migrations/2026-08-04-fin1b-bank-transfers.sql.
+--
+-- FIN-10(2026-08-05):日期不再有 CURRENT_DATE 默认值 —— 缺了就抛具名错误。
+-- 默认成今天永远撞不上 PERIOD_LOCKED,于是留空反而比填对更容易过关,
+-- 这条路径专门奖励留空。要求由函数自己声明,而不是靠调用方自觉。
+-- 详见 db/migrations/2026-08-05-fin10-no-default-posting-dates.sql。
 
 CREATE OR REPLACE FUNCTION public.reverse_bank_transfer(p_transfer_id uuid, p_reversal_date date DEFAULT NULL::date, p_memo text DEFAULT NULL::text)
  RETURNS jsonb
@@ -16,6 +21,9 @@ DECLARE
     v_je jsonb;
 BEGIN
     PERFORM require_permission('module.finance.edit');
+    IF p_reversal_date IS NULL THEN
+        RAISE EXCEPTION 'REVERSAL_DATE_REQUIRED';
+    END IF;
 
     SELECT * INTO v_t FROM bank_transfers WHERE id = p_transfer_id FOR UPDATE;
     IF NOT FOUND THEN
@@ -26,7 +34,7 @@ BEGIN
     END IF;
 
     v_je := reverse_journal_entry_internal(v_t.journal_entry_id,
-                COALESCE(p_reversal_date, CURRENT_DATE),
+                p_reversal_date,
                 COALESCE(p_memo, 'Reverse bank transfer'));
 
     UPDATE bank_transfers

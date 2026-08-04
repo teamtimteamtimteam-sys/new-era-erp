@@ -1,3 +1,8 @@
+-- FIN-10(2026-08-05):日期不再有 CURRENT_DATE 默认值 —— 缺了就抛具名错误。
+-- 默认成今天永远撞不上 PERIOD_LOCKED,于是留空反而比填对更容易过关,
+-- 这条路径专门奖励留空。要求由函数自己声明,而不是靠调用方自觉。
+-- 详见 db/migrations/2026-08-05-fin10-no-default-posting-dates.sql。
+
 CREATE OR REPLACE FUNCTION public.record_payment(p_direction text, p_counterparty_id uuid, p_amount numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_bank_account text DEFAULT NULL::text, p_payment_date date DEFAULT NULL::date, p_notes text DEFAULT NULL::text, p_allocations jsonb DEFAULT '[]'::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -6,7 +11,7 @@ CREATE OR REPLACE FUNCTION public.record_payment(p_direction text, p_counterpart
 AS $function$
 DECLARE
     v_user         uuid := auth.uid();
-    v_date         date := COALESCE(p_payment_date, CURRENT_DATE);
+    v_date         date;
     v_fx           numeric;
     v_amount_base   numeric;
     v_doc_ccy      text;
@@ -49,6 +54,10 @@ DECLARE
     v_lines        jsonb;
 BEGIN
     PERFORM require_permission('module.finance.edit');
+    IF p_payment_date IS NULL THEN
+        RAISE EXCEPTION 'PAYMENT_DATE_REQUIRED';
+    END IF;
+    v_date := p_payment_date;
     -- 1. 基础校验
     IF p_direction IS NULL OR p_direction NOT IN ('in','out') THEN
         RAISE EXCEPTION 'DIRECTION_INVALID|%', COALESCE(p_direction, '?');
@@ -91,7 +100,7 @@ BEGIN
         IF p_fx_rate IS NOT NULL THEN
             RAISE EXCEPTION 'FX_RATE_NOT_ACCEPTED|%', p_currency;
         END IF;
-        v_fx := fx_rate_for(p_currency, COALESCE(p_payment_date, CURRENT_DATE),
+        v_fx := fx_rate_for(p_currency, v_date,
                             CASE WHEN p_direction = 'in' THEN 'tt_buy' ELSE 'tt_sell' END);
     ELSE
         IF p_fx_rate IS NULL THEN

@@ -1,3 +1,8 @@
+-- FIN-10(2026-08-05):日期不再有 CURRENT_DATE 默认值 —— 缺了就抛具名错误。
+-- 默认成今天永远撞不上 PERIOD_LOCKED,于是留空反而比填对更容易过关,
+-- 这条路径专门奖励留空。要求由函数自己声明,而不是靠调用方自觉。
+-- 详见 db/migrations/2026-08-05-fin10-no-default-posting-dates.sql。
+
 CREATE OR REPLACE FUNCTION public.record_output_sale(p_output_batch_id uuid, p_quantity numeric, p_unit_price numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_customer_id uuid DEFAULT NULL::uuid, p_sale_date date DEFAULT NULL::date, p_notes text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -15,13 +20,17 @@ DECLARE
     v_amount_base    numeric;
     v_movement_id   uuid;
     v_sale_id       uuid;
-    v_sale_date     date := COALESCE(p_sale_date, CURRENT_DATE);
+    v_sale_date     date;
     v_unit_cost     numeric;
     v_cogs          numeric;
     v_je1           jsonb;
     v_je2           jsonb;
 BEGIN
     PERFORM require_permission('module.output.edit');
+    IF p_sale_date IS NULL THEN
+        RAISE EXCEPTION 'SALE_DATE_REQUIRED';
+    END IF;
+    v_sale_date := p_sale_date;
     SELECT deleted_at, remaining_qty, code INTO v_deleted, v_remaining, v_code
     FROM output_batches WHERE id = p_output_batch_id FOR UPDATE;
     IF NOT FOUND THEN

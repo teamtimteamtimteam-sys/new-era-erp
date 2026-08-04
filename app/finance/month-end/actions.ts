@@ -71,6 +71,10 @@ export async function relieveAccruals(input: {
     const supabase = await createClient()
     // 同上:必填。空串原样递进去会在 Postgres 炸出 22007(界面只会看到一句天书)。
     if (!input.date) return { error: (await getTranslations())('finance.costSettle.dateRequired') }
+    // 实际发票额决定差异进损益多少 —— 与日期同级,服务端也要独立挡一道
+    if (!Number.isFinite(input.actual)) {
+        return { error: (await getTranslations())('finance.costSettle.amountRequired') }
+    }
     const { error, data } = await supabase.rpc('relieve_processing_accruals', {
         p_entry_ids: input.entryIds, p_actual_amount: input.actual, p_expense_date: input.date,
         p_payment_status: input.paymentStatus,
@@ -88,9 +92,15 @@ export async function runRevaluation(periodEnd: string): Promise<ActState> {
     refresh(); return { success: true, result: JSON.stringify(data) }
 }
 
-export async function reverseTransfer(transferId: string): Promise<ActState> {
+export async function reverseTransfer(transferId: string, date: string): Promise<ActState> {
     const supabase = await createClient()
-    const { error } = await supabase.rpc('reverse_bank_transfer', { p_transfer_id: transferId })
+    // FIN-10 起 reverse_bank_transfer 不再默认成今天 —— 这个动作此前【只传 id】,
+    // 完全靠那个默认值。目前界面上没有任何调用点;将来接上时必须给操作员一个
+    // 冲销日期字段,而不是在这里补一个 new Date()(那只是把同一个默认值搬到客户端)。
+    if (!date) return { error: (await getTranslations())('finance.costSettle.dateRequired') }
+    const { error } = await supabase.rpc('reverse_bank_transfer', {
+        p_transfer_id: transferId, p_reversal_date: date,
+    })
     if (error) return { error: await localizePaymentError(error.message) }
     refresh(); revalidatePath('/finance/bank'); return { success: true }
 }

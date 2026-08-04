@@ -9,6 +9,11 @@
 -- 【注意】函数默认对 PUBLIC 授予 EXECUTE,只收回 authenticated/anon 是不够的。
 --
 -- NOTE: introduced by db/migrations/2026-08-01-perm2b-field-masking.sql.
+--
+-- FIN-10(2026-08-05):日期不再有 CURRENT_DATE 默认值 —— 缺了就抛具名错误。
+-- 默认成今天永远撞不上 PERIOD_LOCKED,于是留空反而比填对更容易过关,
+-- 这条路径专门奖励留空。要求由函数自己声明,而不是靠调用方自觉。
+-- 详见 db/migrations/2026-08-05-fin10-no-default-posting-dates.sql。
 
 CREATE OR REPLACE FUNCTION public.calculate_metal_price_internal(p_formula_id uuid, p_metals jsonb, p_quantity_kg numeric, p_reference_date date DEFAULT NULL::date)
  RETURNS jsonb
@@ -18,7 +23,7 @@ CREATE OR REPLACE FUNCTION public.calculate_metal_price_internal(p_formula_id uu
 AS $function$
 DECLARE
     v_f            pricing_formulas%ROWTYPE;
-    v_ref          date := COALESCE(p_reference_date, CURRENT_DATE);
+    v_ref          date;
     v_el           jsonb;
     v_metal        text;
     v_content      numeric;
@@ -41,6 +46,10 @@ DECLARE
     v_net          numeric;
     v_unit         numeric;
 BEGIN
+    IF p_reference_date IS NULL THEN
+        RAISE EXCEPTION 'REFERENCE_DATE_REQUIRED';
+    END IF;
+    v_ref := p_reference_date;
     -- 1. 公式
     SELECT * INTO v_f FROM pricing_formulas
     WHERE id = p_formula_id AND deleted_at IS NULL;

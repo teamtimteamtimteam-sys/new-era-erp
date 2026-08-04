@@ -1,3 +1,8 @@
+-- FIN-10(2026-08-05):日期不再有 CURRENT_DATE 默认值 —— 缺了就抛具名错误。
+-- 默认成今天永远撞不上 PERIOD_LOCKED,于是留空反而比填对更容易过关,
+-- 这条路径专门奖励留空。要求由函数自己声明,而不是靠调用方自觉。
+-- 详见 db/migrations/2026-08-05-fin10-no-default-posting-dates.sql。
+
 CREATE OR REPLACE FUNCTION public.commit_processing_run(p_process_date date, p_notes text, p_loss_qty numeric, p_inputs jsonb, p_outputs jsonb)
  RETURNS uuid
  LANGUAGE plpgsql
@@ -6,7 +11,7 @@ CREATE OR REPLACE FUNCTION public.commit_processing_run(p_process_date date, p_n
 AS $function$
 DECLARE
     v_user_id      uuid := auth.uid();
-    v_process_date date := COALESCE(p_process_date, CURRENT_DATE);
+    v_process_date date;
     v_run_id       uuid;
     v_total_input  numeric := 0;
     v_total_output numeric := 0;
@@ -23,6 +28,10 @@ DECLARE
     v_new_output_id uuid;
 BEGIN
     PERFORM require_permission('module.processing.edit');
+    IF p_process_date IS NULL THEN
+        RAISE EXCEPTION 'PROCESS_DATE_REQUIRED';
+    END IF;
+    v_process_date := p_process_date;
     -- 0. 基本校验
     IF p_inputs IS NULL OR jsonb_array_length(p_inputs) = 0 THEN
         RAISE EXCEPTION 'NO_INPUTS';

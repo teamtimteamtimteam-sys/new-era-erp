@@ -198,22 +198,22 @@ loudly while leaving the field blank glides into the open month. The path
 rewards leaving it empty. Full inventory in
 `docs/empty-string-to-rpc-audit.md`.
 
-### Do NOT "tidy" these five into `|| undefined`
+### The `CURRENT_DATE` defaults are gone (FIN-10)
 
-They pass a form value to an RPC as a bare string, so a blank produces a
-visible Postgres error (`22007`). That looks like untidy code. It is not —
-each sits on top of a `COALESCE(..., CURRENT_DATE)`, so changing
-`x` to `x || undefined` **drops the key, fires the default, and converts a
-visible error into a silently wrong accounting period**:
+This section used to warn against "tidying" five call sites into
+`|| undefined`, because each sat on a `COALESCE(..., CURRENT_DATE)` that
+would turn a visible error into a silently wrong period. **Those defaults
+have been removed.** Eleven functions now raise a named error instead:
+`PAYMENT_DATE_REQUIRED`, `EXPENSE_DATE_REQUIRED`, `SALE_DATE_REQUIRED`,
+`PROCESS_DATE_REQUIRED`, `ORDER_DATE_REQUIRED`, `REFERENCE_DATE_REQUIRED`,
+`REVERSAL_DATE_REQUIRED`.
 
-* `app/hr/claims/actions.ts` — `pay_medical_claim(p_expense_date)`
-* `app/hr/claims/actions.ts` — `submit_medical_claim(p_claim_date)`
-* `app/hr/leave/actions.ts` — `submit_leave_request(p_start, p_end)`
-* `app/processing/new/actions.ts` — `commit_processing_run(p_process_date)`
-* `app/finance/bank/transferActions.ts` — `record_bank_transfer(p_transfer_date)`
-
-If you want to improve them, add the guard pair above. Do not make them
-pass `undefined`.
+So the trap is gone rather than documented — which is the point. If you add
+a new function whose date decides a posting period or a rate, **do not give
+it a `CURRENT_DATE` default**; make it required and raise a named error.
+Defaults that genuinely belong (code-numbering years, `p_as_of` read
+queries, `create_invoice`) are listed in
+`docs/empty-string-to-rpc-audit.md` so the distinction is on the record.
 
 ## A failed query must fail — never `?? []`
 

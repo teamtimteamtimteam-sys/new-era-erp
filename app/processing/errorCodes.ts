@@ -3,6 +3,7 @@ import { getTranslations } from '@/lib/i18n/server'
 // commit_processing_run / rollback_processing_run 这两个 DB 函数 RAISE 出来的 13 个错误码。
 // 不在此集合内的,是真正的(未编码的)DB/约束错误,原样返回。
 const PROCESSING_ERROR_CODES = new Set([
+    'PROCESS_DATE_REQUIRED',
     'COST_ENTRY_ALREADY_SETTLED', 'COST_ENTRY_IS_ESTIMATE', 'COST_ENTRY_NOT_ESTIMATE',
     'COST_ENTRY_SETTLED', 'COST_ENTRY_INVALID', 'RELIEF_MIXED_COST_TYPES',
     'NO_INPUTS', 'NO_OUTPUTS', 'LOSS_NEGATIVE', 'DUPLICATE_INPUT',
