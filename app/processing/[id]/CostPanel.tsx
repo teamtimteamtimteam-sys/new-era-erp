@@ -97,6 +97,13 @@ export default function CostPanel({
                                 <td className="border border-gray-300 px-4 py-2 text-sm">{e.notes ?? '—'}</td>
                                 <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
                                     {e.created_at_display}
+                                    {/* 改过就说出来 —— 只显示创建日期会让改后的数字看着像原值 */}
+                                    {e.edited_at_display && (
+                                        <span className="block text-xs text-amber-700">
+                                            {t('processing.cost.editedAt', { at: e.edited_at_display })}
+                                            {e.edited_by_name ? ` · ${e.edited_by_name}` : ''}
+                                        </span>
+                                    )}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 whitespace-nowrap">
                                     <button

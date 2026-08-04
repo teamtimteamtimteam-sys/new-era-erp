@@ -29,7 +29,7 @@ export default async function MonthEndPage({
     const supabase = await createClient()
     const t = await getTranslations()
 
-    const [gapsRes, periodRes, accrualRes, revalRes, settingsRes, midRes] = await Promise.all([
+    const [gapsRes, periodRes, accrualRes, revalRes, settingsRes, midRes, allocRes] = await Promise.all([
         supabase.from('fx_rate_gaps').select('rate_date, currency, missing_types')
             .gte('rate_date', start).lte('rate_date', end),
         supabase.from('payroll_periods')
@@ -43,6 +43,10 @@ export default async function MonthEndPage({
             .eq('source_type', 'revaluation').eq('entry_date', end).eq('status', 'posted'),
         supabase.from('finance_settings').select('locked_before').maybeSingle(),
         supabase.from('fx_rates').select('id').eq('rate_date', end).eq('rate_type', 'mid').is('deleted_at', null),
+        // FIN-8:批次成本与成本条目是否还对得上。改了条目,总账会动,批次不会 ——
+        // 月结前必须看见,否则存货和销货成本就带着这个差额结账。
+        supabase.from('processing_run_allocation_status')
+            .select('code, allocated_at, last_cost_change, is_stale, safe_to_reallocate'),
     ])
 
     // 【每一步的信号都必须真的读到】读不出来就抛,不许把失败渲染成 'done' ——
@@ -60,6 +64,9 @@ export default async function MonthEndPage({
     const cpfTotal = period ? Number(period.employer_cpf_total ?? 0) + Number(period.employee_cpf_total ?? 0) : 0
     const revalued = mustRows(revalRes, 'journal_entries revaluation').length > 0
     const midMissing = mustRows(midRes, 'fx_rates mid').length === 0
+    // 过期 + 从未分摊却已有成本,都算"批次成本对不上"
+    const allocProblems = mustRows(allocRes, 'processing_run_allocation_status')
+        .filter((r) => r.is_stale || (!r.allocated_at && r.last_cost_change))
     const settings = mustOne(settingsRes, 'finance_settings')
     const locked = !!settings?.locked_before && settings.locked_before > end
 
@@ -102,6 +109,13 @@ export default async function MonthEndPage({
             key: 'accruals', href: '/finance/processing-costs',
             state: accruals.length === 0 ? 'done' : 'outstanding',
             detail: accruals.length === 0 ? '' : t('finance.monthEnd.accrualsDetail', { n: accruals.length }),
+        },
+        {
+            key: 'staleAllocation', href: '/processing',
+            state: allocProblems.length === 0 ? 'done' : 'outstanding',
+            detail: allocProblems.length === 0 ? ''
+                 : t('finance.monthEnd.staleAllocationDetail', { n: allocProblems.length })
+                   + ': ' + allocProblems.map((r) => r.code).join(', '),
         },
         {
             key: 'revaluation', href: `/finance/revaluation?date=${end}`,

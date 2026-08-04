@@ -29,4 +29,8 @@ export type CostEntryRow = {
     is_estimate: boolean
     notes: string | null
     created_at_display: string
+    // FIN-8:改过就要看得见。原本只显示创建日期,于是一条 100 改成 200 的条目
+    // 看上去和从来就是 200 一模一样 —— 数据里其实一直有 updated_at/updated_by。
+    edited_at_display: string | null
+    edited_by_name: string | null
 }

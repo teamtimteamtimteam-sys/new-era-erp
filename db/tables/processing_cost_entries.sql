@@ -107,6 +107,14 @@ CREATE POLICY "processing_cost_entries delete by permission"
 CREATE INDEX idx_processing_cost_entries_run
     ON public.processing_cost_entries (run_id);
 
+-- FIN-8:留痕触发器(函数体在 db/functions/log_cost_entry_change.sql)
+CREATE TRIGGER trg_processing_cost_entries_history_ins
+    AFTER INSERT ON public.processing_cost_entries
+    FOR EACH ROW EXECUTE FUNCTION log_cost_entry_change();
+CREATE TRIGGER trg_processing_cost_entries_history_upd
+    AFTER UPDATE ON public.processing_cost_entries
+    FOR EACH ROW EXECUTE FUNCTION log_cost_entry_change();
+
 -- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 processing_cost_entries_masked 读取。
 -- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)

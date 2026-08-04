@@ -13,7 +13,7 @@ import { maskedRows, maskedExcept } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
 import { canViewPrices } from '@/lib/permissions'
 import { MaskedValue } from '@/app/components/MaskedValue'
-import { mustRows } from '@/lib/db-helpers'
+import { mustOne, mustRows } from '@/lib/db-helpers'
 
 // FK 嵌入运行时是对象(包括两层嵌套);显式类型 + cast 锁住。
 type ProcessingInputRow = {
@@ -73,7 +73,7 @@ export default async function ProcessingDetailPage({
             .order('created_at'),
         supabase
             .from('processing_cost_entries_masked')
-            .select('id, cost_type, amount_base, is_estimate, notes, created_at')
+            .select('id, cost_type, amount_base, is_estimate, notes, created_at, updated_at, updated_by')
             .eq('run_id', id)
             .is('deleted_at', null)
             .order('created_at'),
@@ -120,14 +120,40 @@ export default async function ProcessingDetailPage({
     // 成本条目行:服务端预格式化 created_at
     const showPrices = await canViewPrices()
 
-    const costRows: CostEntryRow[] = maskedRows<Tables<'processing_cost_entries'>, 'amount_base'>(mustRows(costsRes)).map((c) => ({
+    const rawCosts = maskedRows<Tables<'processing_cost_entries'>, 'amount_base'>(mustRows(costsRes))
+    // 改过条目的操作人姓名(一次取回,不逐行查)
+    const editorIds = [...new Set(rawCosts
+        .filter((c) => c.updated_at !== c.created_at && c.updated_by)
+        .map((c) => c.updated_by as string))]
+    const editorName = new Map<string, string>()
+    if (editorIds.length) {
+        for (const e of mustRows(await supabase.from('employees')
+            .select('user_id, legal_name').in('user_id', editorIds), 'employees editors')) {
+            if (e.user_id) editorName.set(e.user_id, e.legal_name)
+        }
+    }
+
+    const costRows: CostEntryRow[] = rawCosts.map((c) => ({
         id: c.id,
         cost_type: c.cost_type,
         amount_base: c.amount_base,
         is_estimate: c.is_estimate,
         notes: c.notes,
         created_at_display: new Date(c.created_at).toLocaleString(dateLocale),
+        edited_at_display: c.updated_at !== c.created_at
+            ? new Date(c.updated_at).toLocaleString(dateLocale) : null,
+        edited_by_name: c.updated_by ? editorName.get(c.updated_by) ?? null : null,
     }))
+
+    // FIN-8:分摊是否已过期 —— 改了成本条目,总账会动,批次不会自己重算。
+    // 视图还告诉我们【能不能安全重跑】(已过账的 COGS 不会被重述,见迁移头注)。
+    type AllocStatus = {
+        allocated_at: string | null; last_cost_change: string | null
+        is_stale: boolean | null; cogs_posted: number | null; safe_to_reallocate: boolean | null
+    }
+    const allocStatus = mustOne<AllocStatus>(await supabase.from('processing_run_allocation_status')
+        .select('allocated_at, last_cost_change, is_stale, cogs_posted, safe_to_reallocate')
+        .eq('run_id', id).maybeSingle(), 'processing_run_allocation_status')
 
     // 回收率行(视图已按 committed + 未软删过滤)
     const recoveryRows = mustRows(recoveryRes)
@@ -250,6 +276,26 @@ export default async function ProcessingDetailPage({
                 {isCommitted && (
                     <div className="mt-8 pt-8 border-t">
                         <h2 className="text-xl font-bold mb-4">{t('processing.allocation.title')}</h2>
+                        {/* 过期标记:不自动重跑(会改写已售批次的资本化),但必须说出来。
+                            有已过账 COGS 的单不能一键了事 —— 那部分成本不会被重述。 */}
+                        {(allocStatus?.is_stale
+                          || (allocStatus && !allocStatus.allocated_at && allocStatus.last_cost_change)) && (
+                            <div className={'mb-4 rounded border px-3 py-2 text-sm '
+                                + (allocStatus.safe_to_reallocate
+                                    ? 'border-amber-300 bg-amber-50 text-amber-900'
+                                    : 'border-red-300 bg-red-50 text-red-900')}>
+                                <p className="font-medium">
+                                    {allocStatus.is_stale
+                                        ? t('processing.allocation.stale')
+                                        : t('processing.allocation.neverAllocated')}
+                                </p>
+                                <p className="mt-1 text-xs">
+                                    {allocStatus.safe_to_reallocate
+                                        ? t('processing.allocation.staleSafe')
+                                        : t('processing.allocation.staleUnsafe', { n: allocStatus.cogs_posted ?? 0 })}
+                                </p>
+                            </div>
+                        )}
                         <AllocateButton runId={run.id} />
                     </div>
                 )}

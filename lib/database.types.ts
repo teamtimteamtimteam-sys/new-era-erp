@@ -1736,6 +1736,13 @@ export type Database = {
             foreignKeyName: "inventory_movements_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_runs"
             referencedColumns: ["id"]
           },
@@ -4155,11 +4162,106 @@ export type Database = {
             foreignKeyName: "processing_cost_entries_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_runs"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processing_cost_entry_history: {
+        Row: {
+          change_type: string
+          changed_at: string
+          changed_by: string | null
+          entry_id: string
+          id: string
+          new_amount_base: number | null
+          new_cost_type: string | null
+          new_is_estimate: boolean | null
+          old_amount_base: number | null
+          old_cost_type: string | null
+          old_is_estimate: boolean | null
+          run_id: string
+        }
+        Insert: {
+          change_type: string
+          changed_at?: string
+          changed_by?: string | null
+          entry_id: string
+          id?: string
+          new_amount_base?: number | null
+          new_cost_type?: string | null
+          new_is_estimate?: boolean | null
+          old_amount_base?: number | null
+          old_cost_type?: string | null
+          old_is_estimate?: boolean | null
+          run_id: string
+        }
+        Update: {
+          change_type?: string
+          changed_at?: string
+          changed_by?: string | null
+          entry_id?: string
+          id?: string
+          new_amount_base?: number | null
+          new_cost_type?: string | null
+          new_is_estimate?: boolean | null
+          old_amount_base?: number | null
+          old_cost_type?: string | null
+          old_is_estimate?: boolean | null
+          run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_cost_entry_history_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "processing_cost_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "processing_cost_entries_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_runs_masked"
@@ -4229,6 +4331,13 @@ export type Database = {
             foreignKeyName: "processing_inputs_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_inputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_runs"
             referencedColumns: ["id"]
           },
@@ -4282,6 +4391,13 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
             referencedColumns: ["run_id"]
           },
           {
@@ -6170,6 +6286,7 @@ export type Database = {
           new_monthly_salary: number | null
           notes: string | null
           old_monthly_salary: number | null
+          work_category: string | null
         }
         Insert: {
           change_type?: string | null
@@ -6185,6 +6302,7 @@ export type Database = {
           new_monthly_salary?: never
           notes?: string | null
           old_monthly_salary?: never
+          work_category?: string | null
         }
         Update: {
           change_type?: string | null
@@ -6200,6 +6318,7 @@ export type Database = {
           new_monthly_salary?: never
           notes?: string | null
           old_monthly_salary?: never
+          work_category?: string | null
         }
         Relationships: [
           {
@@ -7757,6 +7876,10 @@ export type Database = {
           id: string | null
           is_estimate: boolean | null
           notes: string | null
+          relief_expense_id: string | null
+          relieved_at: string | null
+          remitted_at: string | null
+          remitted_journal_entry_id: string | null
           run_id: string | null
           updated_at: string | null
           updated_by: string | null
@@ -7770,6 +7893,10 @@ export type Database = {
           id?: string | null
           is_estimate?: boolean | null
           notes?: string | null
+          relief_expense_id?: string | null
+          relieved_at?: string | null
+          remitted_at?: string | null
+          remitted_journal_entry_id?: string | null
           run_id?: string | null
           updated_at?: string | null
           updated_by?: string | null
@@ -7783,11 +7910,36 @@ export type Database = {
           id?: string | null
           is_estimate?: boolean | null
           notes?: string | null
+          relief_expense_id?: string | null
+          relieved_at?: string | null
+          remitted_at?: string | null
+          remitted_journal_entry_id?: string | null
           run_id?: string | null
           updated_at?: string | null
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "processing_cost_entries_relief_expense_id_fkey"
+            columns: ["relief_expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_remitted_journal_entry_id_fkey"
+            columns: ["remitted_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_remitted_journal_entry_id_fkey"
+            columns: ["remitted_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "processing_cost_entries_run_id_fkey"
             columns: ["run_id"]
@@ -7799,11 +7951,106 @@ export type Database = {
             foreignKeyName: "processing_cost_entries_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_runs"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processing_cost_entry_history_masked: {
+        Row: {
+          change_type: string | null
+          changed_at: string | null
+          changed_by: string | null
+          entry_id: string | null
+          id: string | null
+          new_amount_base: number | null
+          new_cost_type: string | null
+          new_is_estimate: boolean | null
+          old_amount_base: number | null
+          old_cost_type: string | null
+          old_is_estimate: boolean | null
+          run_id: string | null
+        }
+        Insert: {
+          change_type?: string | null
+          changed_at?: string | null
+          changed_by?: string | null
+          entry_id?: string | null
+          id?: string | null
+          new_amount_base?: never
+          new_cost_type?: string | null
+          new_is_estimate?: boolean | null
+          old_amount_base?: never
+          old_cost_type?: string | null
+          old_is_estimate?: boolean | null
+          run_id?: string | null
+        }
+        Update: {
+          change_type?: string | null
+          changed_at?: string | null
+          changed_by?: string | null
+          entry_id?: string | null
+          id?: string | null
+          new_amount_base?: never
+          new_cost_type?: string | null
+          new_is_estimate?: boolean | null
+          old_amount_base?: never
+          old_cost_type?: string | null
+          old_is_estimate?: boolean | null
+          run_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_cost_entry_history_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "processing_cost_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "processing_cost_entries_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_runs_masked"
@@ -7881,6 +8128,13 @@ export type Database = {
             foreignKeyName: "processing_outputs_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_runs"
             referencedColumns: ["id"]
           },
@@ -7892,6 +8146,18 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      processing_run_allocation_status: {
+        Row: {
+          allocated_at: string | null
+          code: string | null
+          cogs_posted: number | null
+          is_stale: boolean | null
+          last_cost_change: string | null
+          run_id: string | null
+          safe_to_reallocate: boolean | null
+        }
+        Relationships: []
       }
       processing_runs_masked: {
         Row: {
