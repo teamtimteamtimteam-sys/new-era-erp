@@ -66,7 +66,9 @@ export default async function MonthEndPage({
             detail: gaps.length === 0 ? '' : t('finance.monthEnd.gapsDetail', { n: gaps.length }),
         },
         {
-            key: 'payrollPosted', href: '/hr/payroll',
+            // 走查发现:枢纽早已取到本月期间行,链接却指着列表让人重新找 ——
+            // 有期间直达其详情页(过账按钮在那);没有期间直达新建页(下一步就是建)。
+            key: 'payrollPosted', href: period ? `/hr/payroll/${period.id}` : '/hr/payroll/new',
             state: !period ? 'na' : period.status === 'posted' ? 'done' : 'outstanding',
             detail: !period ? t('finance.monthEnd.noPeriod') : period.code,
         },
