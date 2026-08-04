@@ -22,6 +22,7 @@ export type Database = {
           created_by: string | null
           id: string
           is_active: boolean
+          is_monetary: boolean
           is_system: boolean
           name_en: string
           name_zh: string
@@ -36,6 +37,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_active?: boolean
+          is_monetary: boolean
           is_system?: boolean
           name_en: string
           name_zh: string
@@ -50,6 +52,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_active?: boolean
+          is_monetary?: boolean
           is_system?: boolean
           name_en?: string
           name_zh?: string
@@ -3254,6 +3257,8 @@ export type Database = {
           net_pay: number
           notes: string | null
           other_deductions: number
+          paid_at: string | null
+          paid_journal_entry_id: string | null
           payroll_period_id: string
         }
         Insert: {
@@ -3266,6 +3271,8 @@ export type Database = {
           net_pay: number
           notes?: string | null
           other_deductions?: number
+          paid_at?: string | null
+          paid_journal_entry_id?: string | null
           payroll_period_id: string
         }
         Update: {
@@ -3278,6 +3285,8 @@ export type Database = {
           net_pay?: number
           notes?: string | null
           other_deductions?: number
+          paid_at?: string | null
+          paid_journal_entry_id?: string | null
           payroll_period_id?: string
         }
         Relationships: [
@@ -3331,6 +3340,20 @@ export type Database = {
             referencedColumns: ["employee_id"]
           },
           {
+            foreignKeyName: "payroll_lines_paid_journal_entry_id_fkey"
+            columns: ["paid_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "payroll_lines_paid_journal_entry_id_fkey"
+            columns: ["paid_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "payroll_lines_payroll_period_id_fkey"
             columns: ["payroll_period_id"]
             isOneToOne: false
@@ -3342,9 +3365,13 @@ export type Database = {
       payroll_periods: {
         Row: {
           code: string
+          cpf_journal_entry_id: string | null
+          cpf_paid_at: string | null
           created_at: string
           created_by: string | null
           currency: string
+          deductions_journal_entry_id: string | null
+          deductions_paid_at: string | null
           deleted_at: string | null
           employee_cpf_total: number
           employer_cpf_total: number
@@ -3364,9 +3391,13 @@ export type Database = {
         }
         Insert: {
           code: string
+          cpf_journal_entry_id?: string | null
+          cpf_paid_at?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
+          deductions_journal_entry_id?: string | null
+          deductions_paid_at?: string | null
           deleted_at?: string | null
           employee_cpf_total?: number
           employer_cpf_total?: number
@@ -3386,9 +3417,13 @@ export type Database = {
         }
         Update: {
           code?: string
+          cpf_journal_entry_id?: string | null
+          cpf_paid_at?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
+          deductions_journal_entry_id?: string | null
+          deductions_paid_at?: string | null
           deleted_at?: string | null
           employee_cpf_total?: number
           employer_cpf_total?: number
@@ -3408,11 +3443,39 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "payroll_periods_cpf_journal_entry_id_fkey"
+            columns: ["cpf_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "payroll_periods_cpf_journal_entry_id_fkey"
+            columns: ["cpf_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "payroll_periods_currency_fkey"
             columns: ["currency"]
             isOneToOne: false
             referencedRelation: "currencies"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "payroll_periods_deductions_journal_entry_id_fkey"
+            columns: ["deductions_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "payroll_periods_deductions_journal_entry_id_fkey"
+            columns: ["deductions_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "payroll_periods_journal_entry_id_fkey"
@@ -4017,6 +4080,10 @@ export type Database = {
           id: string
           is_estimate: boolean
           notes: string | null
+          relief_expense_id: string | null
+          relieved_at: string | null
+          remitted_at: string | null
+          remitted_journal_entry_id: string | null
           run_id: string
           updated_at: string
           updated_by: string | null
@@ -4030,6 +4097,10 @@ export type Database = {
           id?: string
           is_estimate?: boolean
           notes?: string | null
+          relief_expense_id?: string | null
+          relieved_at?: string | null
+          remitted_at?: string | null
+          remitted_journal_entry_id?: string | null
           run_id: string
           updated_at?: string
           updated_by?: string | null
@@ -4043,11 +4114,36 @@ export type Database = {
           id?: string
           is_estimate?: boolean
           notes?: string | null
+          relief_expense_id?: string | null
+          relieved_at?: string | null
+          remitted_at?: string | null
+          remitted_journal_entry_id?: string | null
           run_id?: string
           updated_at?: string
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "processing_cost_entries_relief_expense_id_fkey"
+            columns: ["relief_expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_remitted_journal_entry_id_fkey"
+            columns: ["remitted_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_remitted_journal_entry_id_fkey"
+            columns: ["remitted_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "processing_cost_entries_run_id_fkey"
             columns: ["run_id"]
@@ -6970,6 +7066,8 @@ export type Database = {
           net_pay: number | null
           notes: string | null
           other_deductions: number | null
+          paid_at: string | null
+          paid_journal_entry_id: string | null
           payroll_period_id: string | null
         }
         Insert: {
@@ -6982,6 +7080,8 @@ export type Database = {
           net_pay?: never
           notes?: string | null
           other_deductions?: never
+          paid_at?: string | null
+          paid_journal_entry_id?: string | null
           payroll_period_id?: string | null
         }
         Update: {
@@ -6994,6 +7094,8 @@ export type Database = {
           net_pay?: never
           notes?: string | null
           other_deductions?: never
+          paid_at?: string | null
+          paid_journal_entry_id?: string | null
           payroll_period_id?: string | null
         }
         Relationships: [
@@ -7045,6 +7147,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "payroll_lines_paid_journal_entry_id_fkey"
+            columns: ["paid_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "payroll_lines_paid_journal_entry_id_fkey"
+            columns: ["paid_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "payroll_lines_payroll_period_id_fkey"
@@ -7694,6 +7810,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      processing_cost_variance: {
+        Row: {
+          actual_total: number | null
+          cost_type: string | null
+          direction: string | null
+          estimated_total: number | null
+          month: string | null
+          variance: number | null
+        }
+        Relationships: []
       }
       processing_metal_recovery: {
         Row: {
@@ -8565,6 +8692,31 @@ export type Database = {
         }
         Returns: Json
       }
+      pay_payroll_cpf: {
+        Args: {
+          p_bank_account?: string
+          p_payment_date?: string
+          p_payroll_period_id: string
+        }
+        Returns: Json
+      }
+      pay_payroll_deductions: {
+        Args: {
+          p_bank_account?: string
+          p_payment_date?: string
+          p_payroll_period_id: string
+        }
+        Returns: Json
+      }
+      pay_payroll_lines: {
+        Args: {
+          p_bank_account?: string
+          p_line_ids: string[]
+          p_payment_date?: string
+          p_payroll_period_id: string
+        }
+        Returns: Json
+      }
       post_journal_entry: {
         Args: {
           p_entry_date: string
@@ -8652,6 +8804,27 @@ export type Database = {
         }
         Returns: Json
       }
+      relieve_processing_accruals: {
+        Args: {
+          p_actual_amount: number
+          p_bank_account?: string
+          p_entry_ids: string[]
+          p_expense_date: string
+          p_notes?: string
+          p_payee_name?: string
+          p_payment_status?: string
+          p_supplier_id?: string
+        }
+        Returns: Json
+      }
+      remit_processing_costs: {
+        Args: {
+          p_bank_account?: string
+          p_entry_ids: string[]
+          p_payment_date?: string
+        }
+        Returns: Json
+      }
       remove_review_goal: { Args: { p_goal_id: string }; Returns: Json }
       reopen_period: {
         Args: { p_period_end: string; p_reason: string }
@@ -8684,6 +8857,10 @@ export type Database = {
       require_reviewer_of: {
         Args: { p_allowed_status: string[]; p_review_id: string }
         Returns: undefined
+      }
+      revalue_foreign_balances: {
+        Args: { p_period_end: string }
+        Returns: Json
       }
       reverse_bank_transfer: {
         Args: {

@@ -264,6 +264,9 @@ const MANIFEST = {
                                   () => sqlLiteralAs('db/views/ar_open_items.sql', 'doc_kind')) },
     'finance.presets.':     { kind: 'enum', values: () => tsRegex('app/finance/pnl/page.tsx', /\{ key: '(\w+)'/g) },
     'finance.fxPage.rateType.': { kind: 'enum', values: () => sqlEnum('db/tables/fx_rates.sql', 'rate_type') },
+    'processing.costTypes.': { kind: 'enum', values: () => sqlEnum('db/tables/processing_cost_entries.sql', 'cost_type') },
+    'finance.monthEnd.step_': { kind: 'enum', values: () => tsRegex('app/finance/month-end/page.tsx', /key: '(\w+)', href/g) },
+    'finance.monthEnd.state_': { kind: 'enum', values: () => ['done', 'outstanding', 'blocked', 'na'] },
     'expense.status.':      { kind: 'enum', values: () => sqlEnum('db/tables/expenses.sql', 'payment_status') },
     'invoice.paymentState.': { kind: 'enum', values: () => tsRegex('app/finance/invoices/[id]/page.tsx',
                                   /paymentState = [^\n]*?'(\w+)'[^\n]*?'(\w+)'[^\n]*?'(\w+)'/g) },
@@ -285,9 +288,13 @@ function missingFrom(key) {
     return miss
 }
 
-// 1. 静态键 + 键样字面量(同一处只报一次)
+// 1. 静态键 + 键样字面量(同一处只报一次)。
+// 下划线结尾的动态前缀('finance.monthEnd.step_')长得像完整键,会被字面量收网
+// 误捕 —— 是前缀就交给清单那条路,不按静态键报缺。
+const prefixSet = new Set([...dynamicUses.map((d) => d.prefix), ...Object.keys(MANIFEST)])
 const reported = new Set()
 for (const u of [...staticUses, ...keyLiterals]) {
+    if (prefixSet.has(u.key)) continue
     const miss = missingFrom(u.key)
     const sig = `${u.file}:${u.line}:${u.key}`
     if (miss.length && !reported.has(sig)) {

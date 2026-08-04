@@ -1,0 +1,150 @@
+// app/finance/month-end/page.tsx
+// 月结枢纽(FIN-7):一个月还差什么,按【真实】依赖序排,每步 完成/待办/被挡,
+// 被挡的说清被什么挡 —— 而不是点了才报错。这是枢纽,不替代各动作自己的屏幕。
+// 真实依赖链(A2):牌价先行(缺牌价挡外币交易与重估)→ 薪资过账 → 发薪(本月)
+// → 代扣款汇出 → 应计冲抵(发票到了才冲,记在发票期间)→ 重估(记在月末,
+// 必须在锁期之前)→ 锁期。CPF 例外:次月 14 日前汇、凭证记在【次月】,
+// 所以锁本月不挡 CPF —— 它挂在下月的账上。
+import Link from 'next/link'
+import { createClient } from '@/lib/supabase/server'
+import { getTranslations } from '@/lib/i18n/server'
+import Subnav from '../Subnav'
+import { formatMoney } from '@/lib/format'
+
+function monthRange(m: string): { start: string; end: string } {
+    const [y, mo] = m.split('-').map(Number)
+    const end = new Date(Date.UTC(y, mo, 0)).toISOString().slice(0, 10)
+    return { start: `${m}-01`, end }
+}
+
+export default async function MonthEndPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ month?: string }>
+}) {
+    const sp = await searchParams
+    const month = sp.month ?? new Date().toISOString().slice(0, 7)
+    const { start, end } = monthRange(month)
+    const supabase = await createClient()
+    const t = await getTranslations()
+
+    const [gapsRes, periodRes, accrualRes, revalRes, settingsRes, midRes] = await Promise.all([
+        supabase.from('fx_rate_gaps').select('rate_date, currency, missing_types')
+            .gte('rate_date', start).lte('rate_date', end),
+        supabase.from('payroll_periods')
+            .select('id, code, status, period_month, net_pay_total, employer_cpf_total, employee_cpf_total, other_deductions_total, cpf_paid_at, deductions_paid_at')
+            .eq('period_month', start).is('deleted_at', null).maybeSingle(),
+        supabase.from('processing_cost_entries').select('id, cost_type, amount_base, is_estimate')
+            .is('deleted_at', null).is('remitted_at', null).is('relieved_at', null)
+            .lte('created_at', end + 'T23:59:59Z'),
+        supabase.from('journal_entries').select('id, code')
+            .eq('source_type', 'revaluation').eq('entry_date', end).eq('status', 'posted'),
+        supabase.from('finance_settings').select('locked_before').maybeSingle(),
+        supabase.from('fx_rates').select('id').eq('rate_date', end).eq('rate_type', 'mid').is('deleted_at', null),
+    ])
+
+    const period = periodRes.data
+    let unpaidLines = 0
+    if (period && period.status === 'posted') {
+        const { count } = await supabase.from('payroll_lines')
+            .select('id', { count: 'exact', head: true })
+            .eq('payroll_period_id', period.id).is('paid_at', null)
+        unpaidLines = count ?? 0
+    }
+    const gaps = gapsRes.data ?? []
+    const accruals = accrualRes.data ?? []
+    const cpfTotal = period ? Number(period.employer_cpf_total ?? 0) + Number(period.employee_cpf_total ?? 0) : 0
+    const revalued = (revalRes.data ?? []).length > 0
+    const midMissing = (midRes.data ?? []).length === 0
+    const locked = !!settingsRes.data?.locked_before && settingsRes.data.locked_before > end
+
+    type Step = { key: string; state: 'done' | 'outstanding' | 'blocked' | 'na'; detail: string; href: string }
+    const steps: Step[] = [
+        {
+            key: 'rates', href: '/finance/fx',
+            state: gaps.length === 0 ? 'done' : 'outstanding',
+            detail: gaps.length === 0 ? '' : t('finance.monthEnd.gapsDetail', { n: gaps.length }),
+        },
+        {
+            key: 'payrollPosted', href: '/hr/payroll',
+            state: !period ? 'na' : period.status === 'posted' ? 'done' : 'outstanding',
+            detail: !period ? t('finance.monthEnd.noPeriod') : period.code,
+        },
+        {
+            key: 'employeesPaid', href: '/finance/payroll-payments',
+            state: !period ? 'na' : period.status !== 'posted' ? 'blocked'
+                 : unpaidLines === 0 ? 'done' : 'outstanding',
+            detail: !period ? '' : period.status !== 'posted' ? t('finance.monthEnd.blockedByPosting')
+                 : unpaidLines === 0 ? '' : t('finance.monthEnd.unpaidLines', { n: unpaidLines }),
+        },
+        {
+            key: 'cpf', href: '/finance/payroll-payments',
+            state: !period || cpfTotal === 0 ? 'na' : period.status !== 'posted' ? 'blocked'
+                 : period.cpf_paid_at ? 'done' : 'outstanding',
+            detail: !period || cpfTotal === 0 ? '' : period.status !== 'posted' ? t('finance.monthEnd.blockedByPosting')
+                 : period.cpf_paid_at ? '' : t('finance.monthEnd.cpfDetail', { amount: formatMoney(cpfTotal) }),
+        },
+        {
+            key: 'deductions', href: '/finance/payroll-payments',
+            state: !period || Number(period.other_deductions_total ?? 0) === 0 ? 'na'
+                 : period.status !== 'posted' ? 'blocked'
+                 : period.deductions_paid_at ? 'done' : 'outstanding',
+            detail: !period ? '' : period.status !== 'posted' ? t('finance.monthEnd.blockedByPosting') : '',
+        },
+        {
+            key: 'accruals', href: '/finance/processing-costs',
+            state: accruals.length === 0 ? 'done' : 'outstanding',
+            detail: accruals.length === 0 ? '' : t('finance.monthEnd.accrualsDetail', { n: accruals.length }),
+        },
+        {
+            key: 'revaluation', href: `/finance/revaluation?date=${end}`,
+            state: revalued ? 'done' : midMissing ? 'blocked' : 'outstanding',
+            detail: revalued ? '' : midMissing ? t('finance.monthEnd.blockedByMid', { 0: end }) : '',
+        },
+        {
+            key: 'lock', href: '/finance/close',
+            state: locked ? 'done' : revalued ? 'outstanding' : 'blocked',
+            detail: locked ? '' : revalued ? '' : t('finance.monthEnd.blockedByReval'),
+        },
+    ]
+
+    const badge: Record<string, string> = {
+        done: 'bg-green-100 text-green-800', outstanding: 'bg-amber-100 text-amber-800',
+        blocked: 'bg-red-100 text-red-800', na: 'bg-gray-100 text-gray-500',
+    }
+
+    return (
+        <div className="p-8 max-w-4xl">
+            <h1 className="text-2xl font-bold mb-4">{t('finance.monthEnd.title')}</h1>
+            <Subnav />
+            <form method="get" className="mb-4">
+                <input type="month" name="month" defaultValue={month}
+                       className="border border-gray-300 rounded px-2 py-1 text-sm" />
+                <button type="submit" className="ml-2 border border-gray-300 rounded px-3 py-1 text-sm">
+                    {t('reviews.filter')}
+                </button>
+            </form>
+            <p className="text-xs text-gray-500 mb-4">{t('finance.monthEnd.cpfNote')}</p>
+            <table className="w-full border-collapse border border-gray-300 text-sm">
+                <tbody>
+                    {steps.map((s, i) => (
+                        <tr key={s.key}>
+                            <td className="border border-gray-300 px-3 py-2 w-8 text-gray-500">{i + 1}</td>
+                            <td className="border border-gray-300 px-3 py-2">
+                                <Link href={s.href} className="text-blue-600 hover:underline">
+                                    {t('finance.monthEnd.step_' + s.key)}
+                                </Link>
+                            </td>
+                            <td className="border border-gray-300 px-3 py-2 w-32">
+                                <span className={'inline-block rounded px-2 py-0.5 text-xs ' + badge[s.state]}>
+                                    {t('finance.monthEnd.state_' + s.state)}
+                                </span>
+                            </td>
+                            <td className="border border-gray-300 px-3 py-2 text-gray-600">{s.detail}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    )
+}
