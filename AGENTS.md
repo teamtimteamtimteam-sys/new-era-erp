@@ -126,11 +126,21 @@ node scripts/smoke-routes.mjs      # ~2-4 min: renders all ~130 routes as admin
 Builds compile pages but never render them — two pages were broken for months
 with every gate green (an RSC serialization error and an inverted currency
 filter), each found by a human clicking. This script starts the dev server,
-signs in with a throwaway admin session (cleaned up afterwards), requests
-every route under app/ with real ids pulled live from the database, and for
-each failure captures the SERVER-side error and stack, not the browser
-message. Design redirects and contract-404s are declared in the script's
-EXPECTED map — each entry was individually verified before being allowed.
+signs in with a throwaway admin session, requests every route under app/
+with real ids pulled live from the database, and for each failure captures
+the SERVER-side error and stack, not the browser message. It also runs one
+REVIEWER-VIEW check: /my-reviews/[id] is a contract-404 for admin, so it
+would otherwise never render — the script builds a scratch fixture (two
+ZZ-SMOKE-* employees plus one probation review; scratch business rows are
+NAMED as scratch because they surface on HR screens) and requests the page
+as the actual reviewer, expecting exactly 200. Status-guarded routes get
+their expected status COMPUTED from the picked row's status column, not a
+loose "either is fine" list. Design redirects and contract-404s are declared
+in the script's EXPECTED map — each entry was individually verified before
+being allowed. Cleanup runs at START as well as at end: a finally block
+does not survive a kill, and this script drives HTTP against a live server,
+so a startup sweep of smoke-*/ZZ-SMOKE-* leftovers is the only rollback it
+can have.
 The skip list is ASSERTED, not printed: EXPECTED_SKIPS names the routes
 allowed to skip for lack of data, and drift in either direction fails the
 run — a route moving from ok to skipped is a coverage regression that looks
@@ -147,7 +157,9 @@ page-level rendering, and after any bug a human finds by clicking.
 Anything that looks wrong in the test database but is known, accepted, and
 disappears on the production rebuild gets ONE LINE in
 `docs/known-wrong-until-cutover.md` — instead of being re-explained every time
-someone notices it.
+someone notices it. Known structural issues that would SURVIVE a rebuild —
+accepted for now, to be fixed deliberately — live next door in
+`docs/known-issues.md`; remove the entry when the fix lands.
 
 ## Migrations apply over direct psql, never the Management API
 

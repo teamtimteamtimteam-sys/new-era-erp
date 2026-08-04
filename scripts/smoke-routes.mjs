@@ -4,10 +4,12 @@
 // 【为什么存在】两页断了几个月、每道门都是绿的 —— build 只编译、从不渲染;
 // RSC 的序列化错误、查询错误只有真的渲染那一页才炸。手点一页一页找,脚本一把全找。
 //
-// 做什么:起 dev server → 建一次性 admin 会话(admin API + service key)→
-// 请求 app/ 下每一条路由(动态段现从库里取一个真实 id,数据变了脚本照样活)→
-// 断言 2xx(或预期中的重定向/预期 404)→ 失败的连同【服务端】错误堆栈一起报 ——
-// 浏览器那句话什么都不说,上两只虫都因此多绕了一圈。收尾删掉临时会话。
+// 做什么:清扫上次残留 → 起 dev server → 建一次性 admin 会话 + 一次性评估人
+// fixture(两名 ZZ-SMOKE-* 员工 + 一行试用期评估,/my-reviews/[id] 以评估人
+// 视角精确断言 200 —— 对 admin 它 404 是契约,等于从未渲染)→ 请求 app/ 下每一条
+// 路由(动态段从库里取真实 id;状态门路由的预期值从被选中那一行算出来,精确断言)
+// → 失败的连同【服务端】错误堆栈一起报 —— 浏览器那句话什么都不说,上两只虫都
+// 因此多绕了一圈。收尾删掉全部临时行与会话;开跑的清扫兜住 finally 挡不住的 kill。
 //
 // 用法:node scripts/smoke-routes.mjs
 // 退出码 0 = 全通;1 = 有失败 / 跳过清单漂移(EXPECTED_SKIPS)/ 脚本自身查询炸了
@@ -58,25 +60,36 @@ const ID_SOURCES = {
     '[saleId]': { '': 'sales_records' },
     '[materialId]': { '': 'materials' },
 }
-// 预期中的"非 200":这些不是坏,是设计(第一轮全量报告逐条核实后收编)
+// 预期中的"非 200":这些不是坏,是设计(第一轮全量报告逐条核实后收编)。
+// /welcome 与 /set-password 曾在这里挂 [200,307]:两页对持会话的请求都是确定的
+// 200(/welcome 根本没有重定向;/set-password 只在无会话时回 /login),宽松项
+// 只会挡住"页面开始乱重定向"这个信号,所以删掉,让 2xx 兜底去断言。
 const EXPECTED = {
     '/logout': [307, 303],          // 登出即重定向
-    '/my-reviews/[id]': [404],      // admin 不是该行的评估人 —— notFound 是契约(HR 用 /hr/reviews)
-    '/welcome': [200, 307],
-    '/set-password': [200, 307],
+    '/my-reviews/[id]': [404],      // admin 不是评估人 —— notFound 是契约;评估人视角在主循环后精确单测
     '/purchasing': [307],           // 索引页重定向到 /purchasing/orders
-    '/hr/payroll/[id]/edit': [200, 307],    // 已过账的期间不可编辑 → 设计上重定向去详情
-    '/stocktakes/[id]/review': [200, 307],  // 非可复核状态 → 设计上重定向去详情
-    '/finance/bank/statements/[id]/reconcile': [200, 307],  // 已对平的报表 → 设计上重定向回详情
+}
+// 三条状态门路由:预期值从被选中的那一行【算出来】,精确断言 ——
+// [200,307] 那种"两个都行"会静默放过一个开始乱重定向的守卫。
+const STATUS_GUARDS = {
+    '/hr/payroll/[id]/edit':                   { table: 'payroll_periods', redirects: (s) => s === 'posted' },      // 已过账不可编辑
+    '/stocktakes/[id]/review':                 { table: 'stocktakes',      redirects: (s) => s !== 'open' },        // 非 open 不可复核
+    '/finance/bank/statements/[id]/reconcile': { table: 'bank_statements', redirects: (s) => s === 'reconciled' },  // 已对平回详情
 }
 // 跳过清单要【断言】,不能只打印:一条路由从 ok 移到 skip 是覆盖回归,
 // 而它看起来和"还没有数据"一模一样。集合变了(任一方向)都失败,点名差异。
+// (/hr/reviews/[id] 与 /my-reviews/[id] 不在此列:评估人 fixture 自带一行评估,
+// 这两条每次都真的渲染。)
 const EXPECTED_SKIPS = new Set([
     '/hr/claims/[id]',    // medical_claims 空 —— 正常运营会产生;有数据那天此断言逼人收编
     '/hr/leave/[id]',     // leave_requests 空
-    '/hr/reviews/[id]',   // performance_reviews 空
-    '/my-reviews/[id]',   // performance_reviews 空
 ])
+// ── 冒烟临时行的标识 ─────────────────────────────────────────────────────────
+// 员工行和评估行会出现在 HR 界面和待办板上 —— 必须一眼即知是脚本垃圾,不是一名
+// 幽灵员工挂着一条像真的评估(与 smoke-* 账号前缀同一条理由)。code 自供:
+// 取号触发器只在空值时才取,不烧 EMP-YYYY-NNNN 的无缝号。
+const SCRATCH_EMP_PREFIX = 'ZZ-SMOKE-'
+const SCRATCH_NAME = '【SMOKE 冒烟脚本临时行 · 勿动 · 随时可删】'
 
 async function rest(path, opts = {}) {
     const r = await fetch(URL_ + path, { ...opts,
@@ -106,20 +119,74 @@ async function firstId(table, route) {
     const rows = await restRows(`/rest/v1/${table}?select=id&limit=1${del}`, `${route} ← ${table}`)
     return rows[0]?.id ?? null
 }
-
-async function main() {
-    // ── 一次性 admin 会话 ────────────────────────────────────────────────────
-    const email = `smoke-${Date.now()}@test.local`
-    const cu = await (await rest('/auth/v1/admin/users', { method: 'POST',
-        body: JSON.stringify({ email, password: 'smoke-pass-1', email_confirm: true }) })).json()
-    const roleRows = await (await rest('/rest/v1/roles?select=id&code=eq.admin')).json()
-    await rest('/rest/v1/user_roles', { method: 'POST',
-        body: JSON.stringify({ user_id: cu.id, role_id: roleRows[0].id }) })
+async function restOk(path, opts, ctx) {
+    const r = await rest(path, opts)
+    if (!r.ok) throw new Error(`${ctx}: HTTP ${r.status} ${(await r.text()).slice(0, 300)}`)
+    return r
+}
+async function signIn(email, password) {
     const sess = await (await fetch(URL_ + '/auth/v1/token?grant_type=password', { method: 'POST',
         headers: { apikey: ANON, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: 'smoke-pass-1' }) })).json()
-    const cookie = 'sb-' + URL_.split('//')[1].split('.')[0] + '-auth-token=base64-'
+        body: JSON.stringify({ email, password }) })).json()
+    return 'sb-' + URL_.split('//')[1].split('.')[0] + '-auth-token=base64-'
         + Buffer.from(JSON.stringify(sess)).toString('base64url')
+}
+// 【开跑先扫,不只收尾再删】finally 挡不住 kill:上次崩掉的残留必须在开跑时清掉,
+// 否则一次崩溃就把临时行永久留在库里 —— 别处的 fixture 靠事务回滚兜底,
+// 本脚本驱动 HTTP 打真服务器,回滚不存在,清扫就是它唯一的机制。
+async function sweepScratch() {
+    const emps = await restRows(`/rest/v1/employees?select=id&code=like.${SCRATCH_EMP_PREFIX}*`, '清扫 ← employees')
+    if (emps.length) {
+        const ids = emps.map((e) => e.id).join(',')
+        await restOk(`/rest/v1/performance_reviews?or=(employee_id.in.(${ids}),reviewer_employee_id.in.(${ids}))`,
+            { method: 'DELETE' }, '清扫残留评估行')
+        await restOk(`/rest/v1/employees?id=in.(${ids})`, { method: 'DELETE' }, '清扫残留员工行')
+    }
+    const page = await (await restOk('/auth/v1/admin/users?per_page=1000', {}, '清扫:列账号')).json()
+    const stale = (page?.users ?? []).filter((u) =>
+        (u.email ?? '').startsWith('smoke-') && (u.email ?? '').endsWith('@test.local'))
+    for (const u of stale) {
+        await rest(`/rest/v1/user_roles?user_id=eq.${u.id}`, { method: 'DELETE' })
+        await restOk(`/auth/v1/admin/users/${u.id}`, { method: 'DELETE' }, `清扫账号 ${u.email}`)
+    }
+    if (emps.length || stale.length)
+        console.log(`  清扫上次残留:${emps.length} 员工行 / ${stale.length} 账号`)
+}
+
+async function main() {
+    await sweepScratch()
+
+    // ── 一次性 admin 会话 ────────────────────────────────────────────────────
+    const stamp = Date.now()
+    const email = `smoke-${stamp}@test.local`
+    const cu = await (await restOk('/auth/v1/admin/users', { method: 'POST',
+        body: JSON.stringify({ email, password: 'smoke-pass-1', email_confirm: true }) }, '建 admin 账号')).json()
+    const roleRows = await restRows('/rest/v1/roles?select=id&code=eq.admin', 'roles ← admin')
+    await restOk('/rest/v1/user_roles', { method: 'POST',
+        body: JSON.stringify({ user_id: cu.id, role_id: roleRows[0].id }) }, '授 admin 角色')
+    const cookie = await signIn(email, 'smoke-pass-1')
+
+    // ── 第二个一次性会话:评估人视角 ─────────────────────────────────────────
+    // /my-reviews/[id] 对 admin 是 404 契约,等于那页从未真正渲染 —— 而它正是
+    // 部门经理实际用的页。自己不能评自己(CHECK not_self_review),所以受评人、
+    // 评估人两名临时员工;评估人不授任何角色:RLS 'select as reviewer' 只看
+    // reviewer_employee_id,这同时也验证了"无角色的经理也能看自己的评估任务"。
+    const email2 = `smoke-${stamp}-reviewer@test.local`
+    const cu2 = await (await restOk('/auth/v1/admin/users', { method: 'POST',
+        body: JSON.stringify({ email: email2, password: 'smoke-pass-2', email_confirm: true }) }, '建评估人账号')).json()
+    const mkEmp = async (n, extra) => (await (await restOk('/rest/v1/employees', { method: 'POST',
+        headers: { Prefer: 'return=representation' },
+        body: JSON.stringify({ code: `${SCRATCH_EMP_PREFIX}${n}`, legal_name: `${SCRATCH_NAME} ${n}`,
+            employment_type: 'full_time', work_category: 'office', hire_date: '2026-01-01', ...extra }) },
+        `建临时员工 ${n}`)).json())[0]
+    const reviewee = await mkEmp(1, {})
+    const reviewer = await mkEmp(2, { user_id: cu2.id })
+    const review = (await (await restOk('/rest/v1/performance_reviews', { method: 'POST',
+        headers: { Prefer: 'return=representation' },
+        body: JSON.stringify({ employee_id: reviewee.id, reviewer_employee_id: reviewer.id,
+            review_type: 'probation', period_start: '2026-01-01', period_end: '2026-06-30',
+            notes: SCRATCH_NAME }) }, '建临时评估行')).json())[0]
+    const cookie2 = await signIn(email2, 'smoke-pass-2')
 
     // ── dev server ───────────────────────────────────────────────────────────
     const logChunks = []
@@ -134,6 +201,12 @@ async function main() {
     const failures = []
     let ok = 0
     const skipped = new Set()
+    const serverStack = async (before) => {
+        await new Promise((r) => setTimeout(r, 500))
+        const errLog = logChunks.slice(before).join('')
+        return [...errLog.matchAll(/⨯[\s\S]{0,600}?digest[^\n]*\n?\}/g)].map((m) => m[0]).join('\n')
+            || errLog.split('\n').filter((l) => /Error|error|⨯/.test(l)).slice(0, 8).join('\n')
+    }
     try {
         for (const route of routes.sort()) {
             let url = route
@@ -148,6 +221,17 @@ async function main() {
                 if (!rows[0]) { skipped.add(route); console.log(`  SKIP ${route}  (no data in assay_results)`); continue }
                 url = route.replace('[id]', rows[0].inbound_batch_id).replace('[assayId]', rows[0].id)
             }
+            // 状态门路由:取同一行的 id 和 status,预期值算出来、精确断言
+            let exact = null
+            const guard = STATUS_GUARDS[route]
+            if (guard) {
+                const rows = await restRows(
+                    `/rest/v1/${guard.table}?select=id,status&deleted_at=is.null&limit=1`,
+                    `${route} ← ${guard.table}`)
+                if (!rows[0]) { skipped.add(route); console.log(`  SKIP ${route}  (no data in ${guard.table})`); continue }
+                url = route.replace('[id]', rows[0].id)
+                exact = [guard.redirects(rows[0].status) ? 307 : 200]
+            }
             for (const [seg, srcs] of Object.entries(ID_SOURCES)) {
                 if (!url.includes(seg)) continue
                 const prefix = Object.keys(srcs).filter((p) => route.startsWith(p) || p === '')
@@ -161,27 +245,42 @@ async function main() {
             const res = await fetch(`http://localhost:${PORT}${url}`, {
                 headers: { cookie }, redirect: 'manual' })
             const allow = EXPECTED[route] ?? []
-            const pass = (res.status >= 200 && res.status < 300) || allow.includes(res.status)
-                || (res.status >= 300 && res.status < 400 && allow.length === 0 && route === '/logout')
+            const pass = exact ? exact.includes(res.status)
+                : (res.status >= 200 && res.status < 300) || allow.includes(res.status)
             if (pass) { ok++ }
             else {
-                await new Promise((r) => setTimeout(r, 500))
-                const errLog = logChunks.slice(before).join('')
-                const stack = [...errLog.matchAll(/⨯[\s\S]{0,600}?digest[^\n]*\n?\}/g)].map((m) => m[0]).join('\n')
-                    || errLog.split('\n').filter((l) => /Error|error|⨯/.test(l)).slice(0, 8).join('\n')
-                failures.push({ route, url, status: res.status, stack })
-                console.log(`  FAIL ${route} → ${res.status}`)
+                failures.push({ route, url, status: res.status,
+                    expected: exact?.[0], stack: await serverStack(before) })
+                console.log(`  FAIL ${route} → ${res.status}${exact ? ` (expected ${exact[0]})` : ''}`)
+            }
+        }
+
+        // ── 评估人视角:以真正的评估人会话请求 /my-reviews/[id],精确 200 ——
+        // 404 意味着守卫误伤、RLS 收紧过头或会话装配坏了,而 admin 那一遍看不见
+        {
+            const target = `/my-reviews/${review.id}`
+            const before = logChunks.length
+            const res = await fetch(`http://localhost:${PORT}${target}`, {
+                headers: { cookie: cookie2 }, redirect: 'manual' })
+            if (res.status === 200) { ok++ }
+            else {
+                failures.push({ route: '/my-reviews/[id] (as reviewer)', url: target,
+                    status: res.status, expected: 200, stack: await serverStack(before) })
+                console.log(`  FAIL /my-reviews/[id] (as reviewer) → ${res.status} (expected 200)`)
             }
         }
     } finally {
         dev.kill('SIGTERM')
+        await rest(`/rest/v1/performance_reviews?id=eq.${review.id}`, { method: 'DELETE' })
+        await rest(`/rest/v1/employees?id=in.(${reviewee.id},${reviewer.id})`, { method: 'DELETE' })
+        await rest(`/auth/v1/admin/users/${cu2.id}`, { method: 'DELETE' })
         await rest(`/rest/v1/user_roles?user_id=eq.${cu.id}`, { method: 'DELETE' })
         await rest(`/auth/v1/admin/users/${cu.id}`, { method: 'DELETE' })
     }
 
-    console.log(`\n== ${routes.length} routes: ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
+    console.log(`\n== ${routes.length} routes + 1 reviewer-view check: ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
     for (const f of failures) {
-        console.log(`\n✗ ${f.route} (${f.url}) → HTTP ${f.status}`)
+        console.log(`\n✗ ${f.route} (${f.url}) → HTTP ${f.status}${f.expected ? ` (expected ${f.expected})` : ''}`)
         if (f.stack) console.log(f.stack.split('\n').map((l) => '    ' + l).join('\n'))
     }
     const extraSkips = [...skipped].filter((r) => !EXPECTED_SKIPS.has(r))
