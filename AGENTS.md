@@ -131,6 +131,13 @@ every route under app/ with real ids pulled live from the database, and for
 each failure captures the SERVER-side error and stack, not the browser
 message. Design redirects and contract-404s are declared in the script's
 EXPECTED map — each entry was individually verified before being allowed.
+The skip list is ASSERTED, not printed: EXPECTED_SKIPS names the routes
+allowed to skip for lack of data, and drift in either direction fails the
+run — a route moving from ok to skipped is a coverage regression that looks
+identical to "no data yet" (four finance routes silently lost coverage that
+way). For the same reason a failed id query aborts loudly naming the route
+and error instead of counting as a skip: a failed query is not an empty
+table, just as a resolver parsing zero suffixes is not an empty set.
 Deliberately NOT part of db/gate.py: it needs a dev server and minutes — a
 slow gate is a skipped gate (the check_mirrors lesson). Run it after touching
 page-level rendering, and after any bug a human finds by clicking.
