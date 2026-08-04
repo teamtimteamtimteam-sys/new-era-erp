@@ -22,7 +22,7 @@ export type OpenItem = {
     party_id: string
     doc_code: string
     doc_date: string
-    open_base: number
+    open_ccy: number
 }
 
 // 可预付的采购单(cut 4b):没有"未结额"概念 —— 定金不是在还债,
@@ -117,7 +117,7 @@ export default function NewPaymentForm({
     function fill(item: OpenItem) {
         const others = totalAllocated - allocValue(item.doc_id)
         const remaining = Math.max(0, round2(payUsd - others))
-        const v = Math.min(item.open_base, remaining)
+        const v = Math.min(item.open_ccy, remaining)
         setAlloc((a) => ({ ...a, [item.doc_id]: v > 0 ? String(v) : '' }))
     }
     // 预付行没有单据上限(定金不是在还债)—— fill = 未冲销余额;1.5× 栏杆由 DB 把守
@@ -336,7 +336,7 @@ export default function NewPaymentForm({
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2">{i.doc_date}</td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {formatMoney(i.open_base)}
+                                        {formatMoney(i.open_ccy)}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2">
                                         <input type="hidden" name="alloc_id" value={i.doc_id} />

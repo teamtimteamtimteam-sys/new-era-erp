@@ -32,7 +32,10 @@ CREATE TABLE public.payment_allocations (
     created_at        timestamptz DEFAULT now(),
     -- 在列序末尾:s2a / cut 4a 各用 ALTER ADD COLUMN 追加(镜像按线上 attnum 排)
     expense_id        uuid REFERENCES public.expenses (id),
-    purchase_order_id uuid REFERENCES public.purchase_orders (id)
+    purchase_order_id uuid REFERENCES public.purchase_orders (id),
+    -- ── FIN-2 追加(ALTER 加的列排在末尾)────────────────────────────────────
+    -- 核销额以【单据币种】记 —— 敞口与关账在此空间恰好闭合。
+    allocated_ccy      numeric NOT NULL CHECK (allocated_ccy > 0)
 );
 
 CREATE INDEX idx_payment_allocations_payment ON public.payment_allocations (payment_id);
@@ -64,4 +67,7 @@ CREATE POLICY "payment_allocations insert by permission"
     WITH CHECK (has_permission('module.finance.edit'::text));
 
 -- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)
-COMMENT ON COLUMN public.payment_allocations.allocated_base IS '本位币核销金额(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 allocated_usd)。';
+COMMENT ON COLUMN public.payment_allocations.allocated_base IS
+    '本位币核销金额(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 allocated_usd)。FIN-2 起 = 单据币种核销额 × 单据汇率(解除口径)。';
+COMMENT ON COLUMN public.payment_allocations.allocated_ccy IS
+    '核销额,以【单据币种】计 —— 敞口与关账在此空间恰好闭合(FIN-2)。';

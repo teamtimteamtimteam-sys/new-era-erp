@@ -17,7 +17,7 @@ type ArItem = {
     customer_id: string | null
     doc_code: string
     sale_date: string
-    open_base: number
+    open_ccy: number
 }
 type ApItem = {
     doc_kind: 'inbound' | 'expense'
@@ -25,7 +25,7 @@ type ApItem = {
     supplier_id: string | null
     doc_code: string
     doc_date: string
-    open_base: number
+    open_ccy: number
 }
 
 export default async function NewPaymentPage({
@@ -54,11 +54,11 @@ export default async function NewPaymentPage({
             .order('legal_name'),
         supabase
             .from('ar_open_items')
-            .select('sales_record_id, customer_id, doc_code, sale_date, open_base')
+            .select('sales_record_id, customer_id, doc_code, sale_date, open_ccy')
             .order('sale_date', { ascending: true }),
         supabase
             .from('ap_open_items')
-            .select('doc_kind, doc_id, supplier_id, doc_code, doc_date, open_base')
+            .select('doc_kind, doc_id, supplier_id, doc_code, doc_date, open_ccy')
             .order('doc_date', { ascending: true }),
         // 可预付的采购单:视图本身排除已取消,这里再排除已结束的
         supabase
@@ -95,7 +95,7 @@ export default async function NewPaymentPage({
         party_id: r.customer_id ?? '',
         doc_code: r.doc_code,
         doc_date: r.sale_date,
-        open_base: r.open_base,
+        open_ccy: r.open_ccy,
     }))
     const apItems: OpenItem[] = ((apRes.data as unknown as ApItem[] | null) ?? []).map((r) => ({
         doc_id: r.doc_id,
@@ -103,7 +103,7 @@ export default async function NewPaymentPage({
         party_id: r.supplier_id ?? '',
         doc_code: r.doc_code,
         doc_date: r.doc_date,
-        open_base: r.open_base,
+        open_ccy: r.open_ccy,
     }))
     const poItems: PoItem[] = ((poRes.data as unknown as {
         po_id: string

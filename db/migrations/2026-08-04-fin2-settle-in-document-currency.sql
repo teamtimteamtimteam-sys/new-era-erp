@@ -1,3 +1,23 @@
+-- db/migrations/2026-08-04-fin2-settle-in-document-currency.sql
+-- FIN-2:结算在单据自己的币种里闭合(C 政策既定:差异归 FIN-3 期末重估,
+-- 交易时点不认列 —— 所以本切【不需要】汇兑损益科目;A1 的算术见提交说明)。
+-- USD 10,000 应付用 USD 10,000 付清 = 关清,无论中间汇率怎么走;
+-- 基准差额是重估的事,不是永远挂着几块钱的余额。
+BEGIN;
+
+ALTER TABLE public.payment_allocations ADD COLUMN allocated_ccy numeric;
+COMMENT ON COLUMN public.payment_allocations.allocated_ccy IS
+    '核销额,以【单据币种】计 —— 敞口与关账在此空间恰好闭合(FIN-2)。';
+COMMENT ON COLUMN public.payment_allocations.allocated_base IS
+    '本位币核销金额(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 allocated_usd)。FIN-2 起 = 单据币种核销额 × 单据汇率(解除口径)。';
+-- 既有测试数据:此前核销即本位币空间,一律回填 ccy = base(D6:测试数据可读即可)。
+-- 核销行不可变(触发器);回填是一次性的迁移动作,围栏放下再立起来。
+ALTER TABLE public.payment_allocations DISABLE TRIGGER trg_payment_allocations_immutable;
+UPDATE public.payment_allocations SET allocated_ccy = allocated_base WHERE allocated_ccy IS NULL;
+ALTER TABLE public.payment_allocations ENABLE TRIGGER trg_payment_allocations_immutable;
+ALTER TABLE public.payment_allocations ALTER COLUMN allocated_ccy SET NOT NULL;
+ALTER TABLE public.payment_allocations ADD CONSTRAINT payment_allocations_allocated_ccy_check CHECK (allocated_ccy > 0);
+
 CREATE OR REPLACE FUNCTION public.record_payment(p_direction text, p_counterparty_id uuid, p_amount numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_bank_account text DEFAULT NULL::text, p_payment_date date DEFAULT NULL::date, p_notes text DEFAULT NULL::text, p_allocations jsonb DEFAULT '[]'::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -369,3 +389,110 @@ BEGIN
     );
 END;
 $function$;
+
+DROP VIEW IF EXISTS public.ar_open_items;
+DROP VIEW IF EXISTS public.ap_open_items;
+
+CREATE VIEW public.ar_open_items WITH (security_invoker = on) AS
+ SELECT sr.id AS sales_record_id,
+    ob.code AS doc_code,
+    sr.customer_id,
+    c.legal_name AS customer_name,
+    sr.sale_date,
+    sr.amount_base,
+    sr.currency,
+    round(sr.quantity * sr.unit_price, 2) AS amount_ccy,
+    round(COALESCE(s.settled, 0::numeric), 2) AS settled_ccy,
+    round(sr.quantity * sr.unit_price - COALESCE(s.settled, 0::numeric), 2) AS open_ccy,
+    round((sr.quantity * sr.unit_price - COALESCE(s.settled, 0::numeric)) * sr.fx_rate, 2) AS open_base,
+    CURRENT_DATE - sr.sale_date AS days_outstanding,
+        CASE
+            WHEN (CURRENT_DATE - sr.sale_date) <= 30 THEN 'b0_30'::text
+            WHEN (CURRENT_DATE - sr.sale_date) <= 60 THEN 'b31_60'::text
+            WHEN (CURRENT_DATE - sr.sale_date) <= 90 THEN 'b61_90'::text
+            ELSE 'b90_plus'::text
+        END AS bucket,
+    inv.invoice_id,
+    inv.invoice_code
+   FROM sales_records_masked sr
+     JOIN output_batches ob ON ob.id = sr.output_batch_id
+     LEFT JOIN customers c ON c.id = sr.customer_id
+     LEFT JOIN LATERAL ( SELECT sum(pa.allocated_ccy) AS settled
+           FROM payment_allocations pa
+             JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'::text
+          WHERE pa.sales_record_id = sr.id) s ON true
+     LEFT JOIN LATERAL ( SELECT i.id AS invoice_id,
+            i.code AS invoice_code
+           FROM invoice_lines_masked il
+             JOIN invoices_masked i ON i.id = il.invoice_id
+          WHERE il.sales_record_id = sr.id AND NOT il.invoice_voided
+         LIMIT 1) inv ON true
+  WHERE round(sr.quantity * sr.unit_price - COALESCE(s.settled, 0::numeric), 2) > 0::numeric;
+
+CREATE VIEW public.ap_open_items WITH (security_invoker = on) AS
+ SELECT doc_kind,
+    doc_id,
+    doc_code,
+    inbound_batch_id,
+    supplier_id,
+    supplier_name,
+    doc_date,
+    doc_value_base,
+    settled_base,
+    open_base,
+    currency,
+    open_ccy,
+    CURRENT_DATE - doc_date AS days_outstanding,
+        CASE
+            WHEN (CURRENT_DATE - doc_date) <= 30 THEN 'b0_30'::text
+            WHEN (CURRENT_DATE - doc_date) <= 60 THEN 'b31_60'::text
+            WHEN (CURRENT_DATE - doc_date) <= 90 THEN 'b61_90'::text
+            ELSE 'b90_plus'::text
+        END AS bucket
+   FROM ( SELECT 'inbound'::text AS doc_kind,
+            ib.id AS doc_id,
+            ib.code AS doc_code,
+            ib.id AS inbound_batch_id,
+            ib.supplier_id,
+            sup.legal_name AS supplier_name,
+            COALESCE(ib.arrival_date, ib.created_at::date) AS doc_date,
+            round(ib.quantity * ib.unit_price, 2) AS doc_value_base,
+            round(COALESCE(s.settled, 0::numeric) + COALESCE(pp.applied, 0::numeric), 2) AS settled_base,
+            round(round(ib.quantity * ib.unit_price, 2) - COALESCE(s.settled, 0::numeric) - COALESCE(pp.applied, 0::numeric), 2) AS open_base,
+            'SGD'::text AS currency,
+            round(round(ib.quantity * ib.unit_price, 2) - COALESCE(s.settled, 0::numeric) - COALESCE(pp.applied, 0::numeric), 2) AS open_ccy
+           FROM inbound_batches_masked ib
+             JOIN suppliers sup ON sup.id = ib.supplier_id
+             LEFT JOIN LATERAL ( SELECT sum(pa.allocated_ccy) AS settled
+                   FROM payment_allocations pa
+                     JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'::text
+                  WHERE pa.inbound_batch_id = ib.id) s ON true
+             LEFT JOIN LATERAL ( SELECT sum(ppa.amount_base) AS applied
+                   FROM prepayment_applications_masked ppa
+                  WHERE ppa.inbound_batch_id = ib.id) pp ON true
+          WHERE ib.deleted_at IS NULL AND ib.unit_price IS NOT NULL
+        UNION ALL
+         SELECT 'expense'::text AS doc_kind,
+            e.id AS doc_id,
+            e.code AS doc_code,
+            NULL::uuid AS inbound_batch_id,
+            e.supplier_id,
+            sup.legal_name AS supplier_name,
+            e.expense_date AS doc_date,
+            e.amount_base AS doc_value_base,
+            round(COALESCE(s.settled, 0::numeric) * e.fx_rate, 2) AS settled_base,
+            round((e.amount_ccy - COALESCE(s.settled, 0::numeric)) * e.fx_rate, 2) AS open_base,
+            e.currency,
+            round(e.amount_ccy - COALESCE(s.settled, 0::numeric), 2) AS open_ccy
+           FROM expenses e
+             JOIN suppliers sup ON sup.id = e.supplier_id
+             LEFT JOIN LATERAL ( SELECT sum(pa.allocated_ccy) AS settled
+                   FROM payment_allocations pa
+                     JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'::text
+                  WHERE pa.expense_id = e.id) s ON true
+          WHERE e.payment_status = 'unpaid'::text AND e.status = 'posted'::text AND NOT (EXISTS ( SELECT 1
+                   FROM expenses o
+                  WHERE o.reversed_by_expense = e.id))) d
+  WHERE open_ccy > 0::numeric;
+
+COMMIT;

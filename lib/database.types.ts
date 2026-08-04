@@ -390,6 +390,86 @@ export type Database = {
           },
         ]
       }
+      bank_transfers: {
+        Row: {
+          amount_in: number
+          amount_out: number
+          bank_reference: string | null
+          created_at: string
+          created_by: string | null
+          from_account: string
+          id: string
+          journal_entry_id: string
+          notes: string | null
+          reversal_entry_id: string | null
+          reversed_at: string | null
+          reversed_by: string | null
+          to_account: string
+          transfer_date: string
+        }
+        Insert: {
+          amount_in: number
+          amount_out: number
+          bank_reference?: string | null
+          created_at?: string
+          created_by?: string | null
+          from_account: string
+          id?: string
+          journal_entry_id: string
+          notes?: string | null
+          reversal_entry_id?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          to_account: string
+          transfer_date: string
+        }
+        Update: {
+          amount_in?: number
+          amount_out?: number
+          bank_reference?: string | null
+          created_at?: string
+          created_by?: string | null
+          from_account?: string
+          id?: string
+          journal_entry_id?: string
+          notes?: string | null
+          reversal_entry_id?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          to_account?: string
+          transfer_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_transfers_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "bank_transfers_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_transfers_reversal_entry_id_fkey"
+            columns: ["reversal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "bank_transfers_reversal_entry_id_fkey"
+            columns: ["reversal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_profile: {
         Row: {
           address_lines: string | null
@@ -2835,6 +2915,7 @@ export type Database = {
       payment_allocations: {
         Row: {
           allocated_base: number
+          allocated_ccy: number
           created_at: string | null
           expense_id: string | null
           id: string
@@ -2845,6 +2926,7 @@ export type Database = {
         }
         Insert: {
           allocated_base: number
+          allocated_ccy: number
           created_at?: string | null
           expense_id?: string | null
           id?: string
@@ -2855,6 +2937,7 @@ export type Database = {
         }
         Update: {
           allocated_base?: number
+          allocated_ccy?: number
           created_at?: string | null
           expense_id?: string | null
           id?: string
@@ -5480,6 +5563,7 @@ export type Database = {
       ap_open_items: {
         Row: {
           bucket: string | null
+          currency: string | null
           days_outstanding: number | null
           doc_code: string | null
           doc_date: string | null
@@ -5488,6 +5572,7 @@ export type Database = {
           doc_value_base: number | null
           inbound_batch_id: string | null
           open_base: number | null
+          open_ccy: number | null
           settled_base: number | null
           supplier_id: string | null
           supplier_name: string | null
@@ -5497,7 +5582,9 @@ export type Database = {
       ar_open_items: {
         Row: {
           amount_base: number | null
+          amount_ccy: number | null
           bucket: string | null
+          currency: string | null
           customer_id: string | null
           customer_name: string | null
           days_outstanding: number | null
@@ -5505,11 +5592,19 @@ export type Database = {
           invoice_code: string | null
           invoice_id: string | null
           open_base: number | null
+          open_ccy: number | null
           sale_date: string | null
           sales_record_id: string | null
-          settled_base: number | null
+          settled_ccy: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "sales_records_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "sales_records_customer_id_fkey"
             columns: ["customer_id"]
@@ -8503,6 +8598,18 @@ export type Database = {
         }
         Returns: Json
       }
+      record_bank_transfer: {
+        Args: {
+          p_amount_in: number
+          p_amount_out: number
+          p_bank_reference?: string
+          p_from_account: string
+          p_notes?: string
+          p_to_account: string
+          p_transfer_date: string
+        }
+        Returns: Json
+      }
       record_expense: {
         Args: {
           p_account_code: string
@@ -8577,6 +8684,14 @@ export type Database = {
       require_reviewer_of: {
         Args: { p_allowed_status: string[]; p_review_id: string }
         Returns: undefined
+      }
+      reverse_bank_transfer: {
+        Args: {
+          p_memo?: string
+          p_reversal_date?: string
+          p_transfer_id: string
+        }
+        Returns: Json
       }
       reverse_expense: {
         Args: { p_expense_id: string; p_memo?: string }

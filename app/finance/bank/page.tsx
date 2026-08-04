@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatAmount } from '@/lib/format'
+import TransferForm from './TransferForm'
 import Subnav from '../Subnav'
 
 // 视图列生成类型全可空;取用列本地锁死
@@ -89,6 +90,8 @@ export default async function BankHomePage() {
             </div>
 
             <Subnav />
+
+            <TransferForm />
 
             <div className="grid gap-4 md:grid-cols-2 mb-6">
                 {rows.map((r) => (

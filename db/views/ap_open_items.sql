@@ -33,6 +33,8 @@ CREATE VIEW public.ap_open_items WITH (security_invoker = on) AS
     doc_value_base,
     settled_base,
     open_base,
+    currency,
+    open_ccy,
     CURRENT_DATE - doc_date AS days_outstanding,
         CASE
             WHEN (CURRENT_DATE - doc_date) <= 30 THEN 'b0_30'::text
@@ -49,10 +51,12 @@ CREATE VIEW public.ap_open_items WITH (security_invoker = on) AS
             COALESCE(ib.arrival_date, ib.created_at::date) AS doc_date,
             round(ib.quantity * ib.unit_price, 2) AS doc_value_base,
             round(COALESCE(s.settled, 0::numeric) + COALESCE(pp.applied, 0::numeric), 2) AS settled_base,
-            round(round(ib.quantity * ib.unit_price, 2) - COALESCE(s.settled, 0::numeric) - COALESCE(pp.applied, 0::numeric), 2) AS open_base
+            round(round(ib.quantity * ib.unit_price, 2) - COALESCE(s.settled, 0::numeric) - COALESCE(pp.applied, 0::numeric), 2) AS open_base,
+            'SGD'::text AS currency,
+            round(round(ib.quantity * ib.unit_price, 2) - COALESCE(s.settled, 0::numeric) - COALESCE(pp.applied, 0::numeric), 2) AS open_ccy
            FROM inbound_batches_masked ib
              JOIN suppliers sup ON sup.id = ib.supplier_id
-             LEFT JOIN LATERAL ( SELECT sum(pa.allocated_base) AS settled
+             LEFT JOIN LATERAL ( SELECT sum(pa.allocated_ccy) AS settled
                    FROM payment_allocations pa
                      JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'::text
                   WHERE pa.inbound_batch_id = ib.id) s ON true
@@ -69,15 +73,17 @@ CREATE VIEW public.ap_open_items WITH (security_invoker = on) AS
             sup.legal_name AS supplier_name,
             e.expense_date AS doc_date,
             e.amount_base AS doc_value_base,
-            round(COALESCE(s.settled, 0::numeric), 2) AS settled_base,
-            round(e.amount_base - COALESCE(s.settled, 0::numeric), 2) AS open_base
+            round(COALESCE(s.settled, 0::numeric) * e.fx_rate, 2) AS settled_base,
+            round((e.amount_ccy - COALESCE(s.settled, 0::numeric)) * e.fx_rate, 2) AS open_base,
+            e.currency,
+            round(e.amount_ccy - COALESCE(s.settled, 0::numeric), 2) AS open_ccy
            FROM expenses e
              JOIN suppliers sup ON sup.id = e.supplier_id
-             LEFT JOIN LATERAL ( SELECT sum(pa.allocated_base) AS settled
+             LEFT JOIN LATERAL ( SELECT sum(pa.allocated_ccy) AS settled
                    FROM payment_allocations pa
                      JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'::text
                   WHERE pa.expense_id = e.id) s ON true
           WHERE e.payment_status = 'unpaid'::text AND e.status = 'posted'::text AND NOT (EXISTS ( SELECT 1
                    FROM expenses o
                   WHERE o.reversed_by_expense = e.id))) d
-  WHERE open_base > 0::numeric;
+  WHERE open_ccy > 0::numeric;
