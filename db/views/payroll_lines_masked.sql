@@ -31,6 +31,8 @@ CREATE VIEW public.payroll_lines_masked WITH (security_invoker = off) AS
             ELSE NULL::numeric
         END AS net_pay,
     notes,
-    created_at
+    created_at,
+    paid_at,
+    paid_journal_entry_id
    FROM payroll_lines
-  WHERE has_permission('module.hr.view'::text) OR employee_id = current_user_employee();
+  WHERE has_permission('module.hr.view'::text) OR employee_id = current_user_employee() OR has_permission('module.finance.view'::text) AND has_permission('data.view_pay'::text);

@@ -26,9 +26,9 @@ BEGIN
         RAISE EXCEPTION 'NO_LINES';
     END IF;
 
-    -- 发薪走哪个银行账户由周期币种定;别的币种目前没有对应的银行科目
-    v_bank := CASE v_p.currency WHEN 'SGD' THEN '1000' WHEN 'USD' THEN '1010' END;
-    IF v_bank IS NULL THEN
+    -- FIN-4:过账【不碰银行】—— 钱还没出去。净额挂 2300 应付净薪,
+    -- 逐人付款(pay_payroll_lines)时才贷银行,一人一条,各自对账。
+    IF v_p.currency NOT IN ('SGD','USD') THEN
         RAISE EXCEPTION 'PAYROLL_CURRENCY_UNSUPPORTED|%', v_p.currency;
     END IF;
 
@@ -59,10 +59,10 @@ BEGIN
             'account_code', '2200', 'side', 'credit', 'currency', v_p.currency,
             'amount_ccy', v_p.other_deductions_total, 'fx_rate', v_p.fx_rate);
     END IF;
-    -- 贷 银行:实发净额
+    -- 贷 2300 应付净薪:实发净额,付给每个人之前都欠着
     IF v_p.net_pay_total > 0 THEN
         v_lines := v_lines || jsonb_build_object(
-            'account_code', v_bank, 'side', 'credit', 'currency', v_p.currency,
+            'account_code', '2300', 'side', 'credit', 'currency', v_p.currency,
             'amount_ccy', v_p.net_pay_total, 'fx_rate', v_p.fx_rate);
     END IF;
 

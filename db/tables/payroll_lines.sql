@@ -30,7 +30,12 @@ CREATE TABLE public.payroll_lines (
     net_pay           numeric NOT NULL CHECK (net_pay >= 0),                      -- RESTRICTED
     notes             text,
     created_at        timestamptz NOT NULL DEFAULT now(),
-    UNIQUE (payroll_period_id, employee_id)
+    UNIQUE (payroll_period_id, employee_id),
+    -- ── FIN-4 追加(ALTER 加的列排在末尾)────────────────────────────────────
+    -- 一行工资 = 一件可结算的东西:paid_at 非空即已付、不许再付;
+    -- 付款分录一人一条银行行,好让每条各自认领自己的对账单行(FIN-4 的全部要点)。
+    paid_at               timestamptz,
+    paid_journal_entry_id uuid REFERENCES public.journal_entries (id)
 );
 
 CREATE INDEX idx_payroll_lines_period ON public.payroll_lines (payroll_period_id);
@@ -41,6 +46,13 @@ CREATE POLICY "payroll_lines select by permission"
     ON public.payroll_lines
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.hr.view'::text));
+
+-- FIN-4:财务做银行对账,对账单上本来就一人一行看得见净额 ——
+-- 系统内再遮只会挡住对账本身(D 部分,已拍板)。行级放行,金额列仍走遮蔽视图。
+CREATE POLICY "payroll_lines select for reconciliation"
+    ON public.payroll_lines
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.finance.view'::text) AND has_permission('data.view_pay'::text));
 
 CREATE POLICY "payroll_lines insert by permission"
     ON public.payroll_lines
@@ -61,7 +73,7 @@ CREATE POLICY "payroll_lines delete by permission"
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 payroll_lines_masked 读取。
 -- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
 REVOKE SELECT ON public.payroll_lines FROM authenticated, anon;
-GRANT SELECT (id, payroll_period_id, employee_id, notes, created_at)
+GRANT SELECT (id, payroll_period_id, employee_id, notes, created_at, paid_at, paid_journal_entry_id)
     ON public.payroll_lines TO authenticated;
 
 -- cut 4 员工自助:【追加】一条 PERMISSIVE 策略,与既有模块策略【或】起来。

@@ -121,6 +121,7 @@ INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system, is
     ('1300', 'Prepayments', '预付款项', 'asset', true, false),                            -- apply_prepayment, record_payment
     ('2000', 'Accounts Payable', '应付账款', 'liability', true, true),                   -- apply_prepayment, record_expense, record_payment, reprice_inbound_batch
     ('2200', 'Accrued Expenses', '应计费用', 'liability', true, true),                   -- finance_journal_triggers, post_payroll_period
+    ('2300', 'Net Salary Payable', '应付净薪', 'liability', true, true),           -- post_payroll_period / pay_payroll_lines(FIN-4)
     ('2400', 'CPF Payable', '公积金应付', 'liability', true, true),                      -- post_payroll_period
     ('4000', 'Sales – Metal Products', '销售收入-金属产品', 'revenue', true, false),      -- record_output_sale
     ('5000', 'Material Cost', '材料成本', 'cogs', true, false),                           -- allocate_processing_costs, record_output_sale, reprice_inbound_batch

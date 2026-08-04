@@ -22,6 +22,11 @@ BEGIN
     IF p_reason IS NULL OR btrim(p_reason) = '' THEN
         RAISE EXCEPTION 'REASON_REQUIRED';
     END IF;
+    -- FIN-4:已有工资行付了钱,冲销周期会让那些结算变孤儿 —— 拒绝,先冲付款
+    IF EXISTS (SELECT 1 FROM payroll_lines
+               WHERE payroll_period_id = p_id AND paid_at IS NOT NULL) THEN
+        RAISE EXCEPTION 'PAYROLL_LINES_PAID|%', v_p.code;
+    END IF;
 
     -- 冲销分录(冲销日 = 今天);原分录留在账上并被标记为已冲销 —— 不删账
     v_je := reverse_journal_entry_internal(v_p.journal_entry_id, CURRENT_DATE, 'Payroll reversal ' || v_p.code);

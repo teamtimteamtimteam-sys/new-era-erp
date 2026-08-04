@@ -117,6 +117,13 @@ The verdicts stay separate because they are different failures with different
 fixes. `check_mirrors.py` and `verify_rebuild.py` remain as the engine (gate.py
 imports/spawns them); run verify_rebuild alone when you only need one side.
 
+## Test data that reads wrong on purpose
+
+Anything that looks wrong in the test database but is known, accepted, and
+disappears on the production rebuild gets ONE LINE in
+`docs/known-wrong-until-cutover.md` — instead of being re-explained every time
+someone notices it.
+
 ## Migrations apply over direct psql, never the Management API
 
 ```
