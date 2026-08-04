@@ -41,7 +41,9 @@ CREATE TABLE public.accounts (
     -- ── FIN-3 追加(ALTER 加的列排在末尾)────────────────────────────────────
     -- 货币性科目(现金、应收、应付)才做期末重估;存货/预付/损益类保持历史汇率。
     -- 分类错一个,资产负债表每期都悄悄错 —— 所以是数据,不是代码里的名单。
-    is_monetary  boolean NOT NULL DEFAULT false
+    -- 【没有 DEFAULT,故意的】建新科目必须明说货币性与否 —— 明年新增一个应付科目,
+    -- 不该因为没人问过就悄悄跳过重估(FIN-3 追问的第 1 条)。
+    is_monetary  boolean NOT NULL
 );
 
 CREATE TRIGGER trg_accounts_updated_at
@@ -110,36 +112,35 @@ CREATE POLICY "accounts delete by permission"
 -- 其余 16 个科目(1210/1400/1500/1510/2100/3000/3100/4100/4900/6000/6200/
 -- 6300/6400/6500/6600/6900)【故意不在这里】:它们是建账的人的地盘。
 -- ─────────────────────────────────────────────────────────────────────────────
-INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system) VALUES
-    ('1000', 'Cash at Bank – SGD', '现金及银行-SGD', 'asset', true),               -- bank_native_currency, record_payment, record_expense, post_payroll_period, 两个 bank 视图, 四处 CHECK
-    ('1010', 'Cash at Bank – USD', '现金及银行-USD', 'asset', true),               -- 同上(USD 侧)
-    ('1100', 'Accounts Receivable', '应收账款', 'asset', true),                    -- record_output_sale, record_payment
-    ('1200', 'Inventory – Raw Materials', '存货-原料', 'asset', true),             -- allocate_processing_costs, inventory_ledger_triggers, post_stocktake, reprice_inbound_batch
-    ('1220', 'Inventory – Finished Goods', '存货-成品', 'asset', true),            -- allocate_processing_costs, inventory_ledger_triggers, post_stocktake, record_output_sale
-    ('1300', 'Prepayments', '预付款项', 'asset', true),                            -- apply_prepayment, record_payment
-    ('2000', 'Accounts Payable', '应付账款', 'liability', true),                   -- apply_prepayment, record_expense, record_payment, reprice_inbound_batch
-    ('2200', 'Accrued Expenses', '应计费用', 'liability', true),                   -- finance_journal_triggers, post_payroll_period
-    ('2400', 'CPF Payable', '公积金应付', 'liability', true),                      -- post_payroll_period
-    ('4000', 'Sales – Metal Products', '销售收入-金属产品', 'revenue', true),      -- record_output_sale
-    ('5000', 'Material Cost', '材料成本', 'cogs', true),                           -- allocate_processing_costs, record_output_sale, reprice_inbound_batch
-    ('5100', 'Processing – Labour', '加工成本-人工', 'cogs', true),                -- finance_journal_triggers(labour)
-    ('5110', 'Processing – Electricity', '加工成本-电力', 'cogs', true),           -- finance_journal_triggers(electricity)
-    ('5120', 'Processing – Gas', '加工成本-气体', 'cogs', true),                   -- finance_journal_triggers(gas)
-    ('5130', 'Processing – Depreciation', '加工成本-折旧', 'cogs', true),          -- finance_journal_triggers(depreciation)
-    ('5140', 'Processing – Consumables', '加工成本-耗材', 'cogs', true),           -- finance_journal_triggers(consumables)
-    ('5150', 'Processing – Waste Treatment', '加工成本-废物处理', 'cogs', true),   -- finance_journal_triggers(waste_treatment)
-    ('5190', 'Processing – Other', '加工成本-其他', 'cogs', true),                 -- finance_journal_triggers 的 ELSE 兜底
-    ('5200', 'Inventory Adjustment', '存货调整损益', 'cogs', true),                -- inventory_ledger_triggers, post_stocktake
-    ('6100', 'Salaries & Wages', '工资薪金', 'expense', true),                     -- post_payroll_period
-    ('6110', 'CPF – Employer', '公积金-雇主部分', 'expense', true),                -- post_payroll_period
-    ('6120', 'Staff Welfare & Medical', '员工福利与医疗', 'expense', true),        -- pay_medical_claim
+INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system, is_monetary) VALUES
+    ('1000', 'Cash at Bank – SGD', '现金及银行-SGD', 'asset', true, true),               -- bank_native_currency, record_payment, record_expense, post_payroll_period, 两个 bank 视图, 四处 CHECK
+    ('1010', 'Cash at Bank – USD', '现金及银行-USD', 'asset', true, true),               -- 同上(USD 侧)
+    ('1100', 'Accounts Receivable', '应收账款', 'asset', true, true),                    -- record_output_sale, record_payment
+    ('1200', 'Inventory – Raw Materials', '存货-原料', 'asset', true, false),             -- allocate_processing_costs, inventory_ledger_triggers, post_stocktake, reprice_inbound_batch
+    ('1220', 'Inventory – Finished Goods', '存货-成品', 'asset', true, false),            -- allocate_processing_costs, inventory_ledger_triggers, post_stocktake, record_output_sale
+    ('1300', 'Prepayments', '预付款项', 'asset', true, false),                            -- apply_prepayment, record_payment
+    ('2000', 'Accounts Payable', '应付账款', 'liability', true, true),                   -- apply_prepayment, record_expense, record_payment, reprice_inbound_batch
+    ('2200', 'Accrued Expenses', '应计费用', 'liability', true, true),                   -- finance_journal_triggers, post_payroll_period
+    ('2400', 'CPF Payable', '公积金应付', 'liability', true, true),                      -- post_payroll_period
+    ('4000', 'Sales – Metal Products', '销售收入-金属产品', 'revenue', true, false),      -- record_output_sale
+    ('5000', 'Material Cost', '材料成本', 'cogs', true, false),                           -- allocate_processing_costs, record_output_sale, reprice_inbound_batch
+    ('5100', 'Processing – Labour', '加工成本-人工', 'cogs', true, false),                -- finance_journal_triggers(labour)
+    ('5110', 'Processing – Electricity', '加工成本-电力', 'cogs', true, false),           -- finance_journal_triggers(electricity)
+    ('5120', 'Processing – Gas', '加工成本-气体', 'cogs', true, false),                   -- finance_journal_triggers(gas)
+    ('5130', 'Processing – Depreciation', '加工成本-折旧', 'cogs', true, false),          -- finance_journal_triggers(depreciation)
+    ('5140', 'Processing – Consumables', '加工成本-耗材', 'cogs', true, false),           -- finance_journal_triggers(consumables)
+    ('5150', 'Processing – Waste Treatment', '加工成本-废物处理', 'cogs', true, false),   -- finance_journal_triggers(waste_treatment)
+    ('5190', 'Processing – Other', '加工成本-其他', 'cogs', true, false),                 -- finance_journal_triggers 的 ELSE 兜底
+    ('5200', 'Inventory Adjustment', '存货调整损益', 'cogs', true, false),                -- inventory_ledger_triggers, post_stocktake
+    ('6100', 'Salaries & Wages', '工资薪金', 'expense', true, false),                     -- post_payroll_period
+    ('6110', 'CPF – Employer', '公积金-雇主部分', 'expense', true, false),                -- post_payroll_period
+    ('6120', 'Staff Welfare & Medical', '员工福利与医疗', 'expense', true, false),        -- pay_medical_claim
     -- FIN-3:汇兑损益拆【已实现/未实现】(新加坡税务口径不同,Tim 已拍板)。
     -- 7100 已实现:只由【结算时点】的差额进(record_payment);
     -- 7110 未实现:只由【期末重估】进(revalue_foreign_balances);
     --              行内转账(实际金额两边入账,无 FX 行)的折算差异也最终落在这里。
-    ('7100', 'FX Gain/Loss — Realised', '汇兑损益(已实现)', 'expense', true),      -- record_payment
-    ('7110', 'FX Gain/Loss — Unrealised', '汇兑损益(未实现)', 'expense', true);    -- revalue_foreign_balances
-UPDATE public.accounts SET is_monetary = true WHERE code IN ('1000','1010','1100','2000','2200','2400');
+    ('7100', 'FX Gain/Loss — Realised', '汇兑损益(已实现)', 'expense', true, false),      -- record_payment
+    ('7110', 'FX Gain/Loss — Unrealised', '汇兑损益(未实现)', 'expense', true, false);    -- revalue_foreign_balances
 COMMENT ON COLUMN public.accounts.is_monetary IS
     '货币性科目 = 期末按收盘中间价重估外币余额(FIN-3)。非货币(存货/预付/损益)保持历史汇率,重估一个不碰。';
 
