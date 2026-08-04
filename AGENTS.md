@@ -117,6 +117,24 @@ The verdicts stay separate because they are different failures with different
 fixes. `check_mirrors.py` and `verify_rebuild.py` remain as the engine (gate.py
 imports/spawns them); run verify_rebuild alone when you only need one side.
 
+## Route smoke test — run on demand, whenever the render layer changed
+
+```
+node scripts/smoke-routes.mjs      # ~2-4 min: renders all ~130 routes as admin
+```
+
+Builds compile pages but never render them — two pages were broken for months
+with every gate green (an RSC serialization error and an inverted currency
+filter), each found by a human clicking. This script starts the dev server,
+signs in with a throwaway admin session (cleaned up afterwards), requests
+every route under app/ with real ids pulled live from the database, and for
+each failure captures the SERVER-side error and stack, not the browser
+message. Design redirects and contract-404s are declared in the script's
+EXPECTED map — each entry was individually verified before being allowed.
+Deliberately NOT part of db/gate.py: it needs a dev server and minutes — a
+slow gate is a skipped gate (the check_mirrors lesson). Run it after touching
+page-level rendering, and after any bug a human finds by clicking.
+
 ## Test data that reads wrong on purpose
 
 Anything that looks wrong in the test database but is known, accepted, and
