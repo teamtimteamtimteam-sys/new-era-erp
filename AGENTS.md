@@ -97,12 +97,38 @@ Caught the hard way: `require_reviewer_of` was written `RETURNS performance_revi
 the live catalog found it to be the only instance, and no table column anywhere uses a
 composite type.
 
-## Both database checks run on every cut that touches the database
+## The database gate runs on every cut that touches the database
 
-| | question it answers |
-|---|---|
-| `python3 db/check_mirrors.py` | do the mirrors match live, including seed rows and cross-file integrity |
-| `python3 db/verify_rebuild.py --target "<empty db>"` | can this repository build a database **at all** |
+```
+python3 db/gate.py        # ~2 minutes, no large payloads over the network
+```
+
+One LOCAL rebuild, two separately-reported verdicts (OPS-6 merged the two older
+tools — their build steps were identical and check_mirrors was shipping a
+~14,000-line replay through the pooler, taking 40+ minutes and dying on DNS and
+socket exhaustion):
+
+| verdict | exit | question it answers |
+|---|---|---|
+| 可重建性 | 2 on fail | can this repository build a database **at all** (prelude sufficiency, B1/B2 on live AND rebuild) |
+| 镜像 vs 线上 | 1 on fail | do the mirrors match live — structure, seed rows, bootstrap counts, cross-file integrity, definer caller checks |
+
+The verdicts stay separate because they are different failures with different
+fixes. `check_mirrors.py` and `verify_rebuild.py` remain as the engine (gate.py
+imports/spawns them); run verify_rebuild alone when you only need one side.
+
+## Migrations apply over direct psql, never the Management API
+
+```
+./db/apply_migration.sh db/migrations/<file>.sql
+```
+
+One connection, one transaction, all-or-nothing: any error aborts before
+COMMIT and the database is left untouched (proven in OPS-6 with a deliberately
+failing migration). The Management API caps payloads at ~15KB and drops
+connections — FIN-0 and FIN-1a both got chunked through it and both left the
+database half-migrated until the gates caught it. Credentials are in ~/.pgpass;
+the API remains fine for small interactive queries and rolled-back fixtures.
 
 ## The i18n key check runs on every cut that touches the app
 
