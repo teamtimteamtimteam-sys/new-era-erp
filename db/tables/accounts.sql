@@ -37,7 +37,11 @@ CREATE TABLE public.accounts (
     updated_at   timestamptz NOT NULL DEFAULT now(),
     -- ── OPS-1 追加(ALTER 加的列排在末尾)────────────────────────────────────
     -- 自动记账引擎按 code 点名依赖的科目。见文件头与 guard_system_account。
-    is_system    boolean NOT NULL DEFAULT false
+    is_system    boolean NOT NULL DEFAULT false,
+    -- ── FIN-3 追加(ALTER 加的列排在末尾)────────────────────────────────────
+    -- 货币性科目(现金、应收、应付)才做期末重估;存货/预付/损益类保持历史汇率。
+    -- 分类错一个,资产负债表每期都悄悄错 —— 所以是数据,不是代码里的名单。
+    is_monetary  boolean NOT NULL DEFAULT false
 );
 
 CREATE TRIGGER trg_accounts_updated_at
@@ -128,7 +132,16 @@ INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system) VA
     ('5200', 'Inventory Adjustment', '存货调整损益', 'cogs', true),                -- inventory_ledger_triggers, post_stocktake
     ('6100', 'Salaries & Wages', '工资薪金', 'expense', true),                     -- post_payroll_period
     ('6110', 'CPF – Employer', '公积金-雇主部分', 'expense', true),                -- post_payroll_period
-    ('6120', 'Staff Welfare & Medical', '员工福利与医疗', 'expense', true);        -- pay_medical_claim
+    ('6120', 'Staff Welfare & Medical', '员工福利与医疗', 'expense', true),        -- pay_medical_claim
+    -- FIN-3:汇兑损益拆【已实现/未实现】(新加坡税务口径不同,Tim 已拍板)。
+    -- 7100 已实现:只由【结算时点】的差额进(record_payment);
+    -- 7110 未实现:只由【期末重估】进(revalue_foreign_balances);
+    --              行内转账(实际金额两边入账,无 FX 行)的折算差异也最终落在这里。
+    ('7100', 'FX Gain/Loss — Realised', '汇兑损益(已实现)', 'expense', true),      -- record_payment
+    ('7110', 'FX Gain/Loss — Unrealised', '汇兑损益(未实现)', 'expense', true);    -- revalue_foreign_balances
+UPDATE public.accounts SET is_monetary = true WHERE code IN ('1000','1010','1100','2000','2200','2400');
+COMMENT ON COLUMN public.accounts.is_monetary IS
+    '货币性科目 = 期末按收盘中间价重估外币余额(FIN-3)。非货币(存货/预付/损益)保持历史汇率,重估一个不碰。';
 
 -- 列注释:说明写在数据库里,重建出来的库也带着它们(OPS-1 补齐)。
 COMMENT ON COLUMN public.accounts.is_system IS

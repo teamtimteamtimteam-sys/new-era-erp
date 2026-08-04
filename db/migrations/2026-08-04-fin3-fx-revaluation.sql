@@ -1,3 +1,102 @@
+-- db/migrations/2026-08-04-fin3-fx-revaluation.sql
+-- FIN-3:期末重估 + 汇兑损益拆已实现/未实现(Tim 已拍板)。
+-- C2 修订:结算的已实现差额在【结算时点】认列 —— 控制科目按单据汇率解除,
+-- 银行按结算日口径,差额进 7100;期末重估只动货币性科目余额,进 7110。
+BEGIN;
+
+ALTER TABLE public.accounts ADD COLUMN is_monetary boolean NOT NULL DEFAULT false;
+COMMENT ON COLUMN public.accounts.is_monetary IS
+    '货币性科目 = 期末按收盘中间价重估外币余额(FIN-3)。非货币(存货/预付/损益)保持历史汇率,重估一个不碰。';
+UPDATE public.accounts SET is_monetary = true WHERE code IN ('1000','1010','1100','2000','2200','2400');
+INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system) VALUES
+    ('7100', 'FX Gain/Loss — Realised', '汇兑损益(已实现)', 'expense', true),
+    ('7110', 'FX Gain/Loss — Unrealised', '汇兑损益(未实现)', 'expense', true);
+
+ALTER TABLE public.journal_entries DROP CONSTRAINT journal_entries_source_type_check;
+ALTER TABLE public.journal_entries ADD CONSTRAINT journal_entries_source_type_check
+    CHECK (source_type IN ('manual','purchase','sale','processing_cost','allocation','stocktake','writeoff','payment','fx','expense','prepayment','payroll','transfer','revaluation'));
+
+
+CREATE OR REPLACE FUNCTION public.revalue_foreign_balances(p_period_end date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+    v_row    record;
+    v_rate   numeric;
+    v_target numeric;
+    v_adj    numeric;
+    v_lines  jsonb := '[]'::jsonb;
+    v_detail jsonb := '[]'::jsonb;
+    v_total  numeric := 0;
+    v_je     jsonb;
+BEGIN
+    PERFORM require_permission('module.finance.edit');
+    IF p_period_end IS NULL THEN
+        RAISE EXCEPTION 'DATE_REQUIRED';
+    END IF;
+
+    FOR v_row IN
+        SELECT a.code, l.currency,
+               round(sum(CASE WHEN l.debit > 0 THEN l.amount_ccy ELSE -l.amount_ccy END), 2) AS native,
+               round(sum(l.debit - l.credit), 2) AS carry_fx
+        FROM journal_lines l
+        JOIN accounts a ON a.id = l.account_id
+        JOIN journal_entries e ON e.id = l.entry_id
+        WHERE e.status = 'posted' AND e.entry_date <= p_period_end
+          AND a.is_monetary AND l.currency <> 'SGD'
+        GROUP BY a.code, l.currency
+    LOOP
+        v_rate := fx_rate_for(v_row.currency, p_period_end, 'mid');
+        -- 既往重估调整行(本币行,挂在 revaluation 分录上)也算进承载额
+        SELECT v_row.carry_fx + COALESCE(round(sum(l2.debit - l2.credit), 2), 0)
+        INTO v_row.carry_fx
+        FROM journal_lines l2
+        JOIN accounts a2 ON a2.id = l2.account_id
+        JOIN journal_entries e2 ON e2.id = l2.entry_id
+        WHERE a2.code = v_row.code AND l2.currency = 'SGD'
+          AND e2.source_type = 'revaluation' AND e2.status = 'posted'
+          AND e2.entry_date <= p_period_end;
+
+        v_target := round(v_row.native * v_rate, 2);
+        v_adj := round(v_target - v_row.carry_fx, 2);
+        IF v_adj <> 0 THEN
+            v_lines := v_lines || jsonb_build_object(
+                'account_code', v_row.code,
+                'side', CASE WHEN v_adj > 0 THEN 'debit' ELSE 'credit' END,
+                'currency', 'SGD', 'amount_ccy', abs(v_adj), 'fx_rate', 1,
+                'line_memo', v_row.currency || ' @ ' || v_rate);
+            v_total := v_total + v_adj;
+            v_detail := v_detail || jsonb_build_object(
+                'account', v_row.code, 'currency', v_row.currency,
+                'native', v_row.native, 'target_base', v_target, 'adjustment', v_adj);
+        END IF;
+    END LOOP;
+
+    IF v_total <> 0 THEN
+        -- 净额对方科目:未实现汇兑损益(C5;已实现的走结算时点的 7100)
+        v_lines := v_lines || jsonb_build_object(
+            'account_code', '7110',
+            'side', CASE WHEN v_total > 0 THEN 'credit' ELSE 'debit' END,
+            'currency', 'SGD', 'amount_ccy', abs(v_total), 'fx_rate', 1);
+    END IF;
+
+    IF jsonb_array_length(v_lines) = 0 THEN
+        RETURN jsonb_build_object('period_end', p_period_end, 'adjustments', 0,
+                                  'detail', '[]'::jsonb, 'journal_code', NULL);
+    END IF;
+
+    v_je := post_journal_entry(p_period_end,
+        format('FX revaluation as at %s', p_period_end), 'revaluation', NULL, v_lines);
+
+    RETURN jsonb_build_object('period_end', p_period_end,
+                              'adjustments', jsonb_array_length(v_detail),
+                              'detail', v_detail, 'journal_code', v_je->>'code');
+END;
+$function$;
+
 CREATE OR REPLACE FUNCTION public.record_payment(p_direction text, p_counterparty_id uuid, p_amount numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_bank_account text DEFAULT NULL::text, p_payment_date date DEFAULT NULL::date, p_notes text DEFAULT NULL::text, p_allocations jsonb DEFAULT '[]'::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -410,3 +509,8 @@ BEGIN
     );
 END;
 $function$;
+
+REVOKE EXECUTE ON FUNCTION public.revalue_foreign_balances(date) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.revalue_foreign_balances(date) TO authenticated, service_role;
+
+COMMIT;

@@ -1852,6 +1852,7 @@ const en = {
             prepayment: 'Prepayment',
             payroll: 'Payroll',
             transfer: 'Transfer',
+            revaluation: 'FX revaluation',
         },
         status: {
             posted: 'Posted',

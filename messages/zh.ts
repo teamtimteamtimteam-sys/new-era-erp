@@ -1846,6 +1846,7 @@ const zh = {
             prepayment: '预付',
             payroll: '工资',
             transfer: '行内转账',
+            revaluation: '期末重估',
         },
         status: {
             posted: '已过账',
