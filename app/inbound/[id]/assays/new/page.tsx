@@ -12,6 +12,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import AssayForm from './AssayForm'
 import { maskedExcept } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
+import { mustRows } from '@/lib/db-helpers'
 
 export default async function NewAssayPage({
     params,
@@ -49,7 +50,7 @@ export default async function NewAssayPage({
                   .select('pricing_formula_id')
                   .eq('id', batch.purchase_order_line_id)
                   .single()
-            : Promise.resolve({ data: null }),
+            : Promise.resolve({ data: null, error: null }),
     ])
 
     // 公式解析顺序与 apply_assay_result 一致:批次 → 采购单明细行
@@ -60,7 +61,7 @@ export default async function NewAssayPage({
 
     // 起点含量:批次当前已录的化验值
     const currentMetals: Record<string, string> = {}
-    for (const m of metalsRes.data ?? []) {
+    for (const m of mustRows(metalsRes)) {
         currentMetals[m.metal] = String(m.content_pct)
     }
 

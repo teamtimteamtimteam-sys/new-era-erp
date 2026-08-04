@@ -50,7 +50,7 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
                 .order('code'),
             r.cycle_id
                 ? supabase.from('review_cycles').select('name').eq('id', r.cycle_id).maybeSingle()
-                : Promise.resolve({ data: null }),
+                : Promise.resolve({ data: null, error: null }),
             supabase.rpc('current_user_employee'),
             supabase.auth.getUser(),
             can('module.hr.edit'),

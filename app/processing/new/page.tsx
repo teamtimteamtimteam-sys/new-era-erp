@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import NewProcessingForm, { type InboundBatchOption } from './NewProcessingForm'
 import { getTranslations } from '@/lib/i18n/server'
+import { mustRows } from '@/lib/db-helpers'
 
 export default async function NewProcessingPage() {
     const supabase = await createClient()
@@ -38,7 +39,7 @@ export default async function NewProcessingPage() {
     return (
         <NewProcessingForm
             inboundBatches={(batchesRes.data as unknown as InboundBatchOption[] | null) ?? []}
-            materials={materialsRes.data ?? []}
+            materials={mustRows(materialsRes)}
         />
     )
 }

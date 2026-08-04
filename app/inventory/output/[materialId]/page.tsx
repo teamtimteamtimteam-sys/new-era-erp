@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import { STATE_OPTIONS, labelKeyForValue } from '@/app/inbound/options'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatMoney, formatUnitCost } from '@/lib/format'
+import { mustRows } from '@/lib/db-helpers'
 import {
     agingDays,
     agingTone,
@@ -64,7 +65,7 @@ export default async function OutputDrillPage({
     }
 
     const rows = (batchesRes.data as unknown as Row[] | null) ?? []
-    const priceByMetal = latestPriceByMetal(pricesRes.data ?? [])
+    const priceByMetal = latestPriceByMetal(mustRows(pricesRes))
 
     // 每行估值:成本 = 剩余 × 产出腿单位成本;市价 = 剩余 × 每公斤金属市价
     const valued = rows.map((r) => {

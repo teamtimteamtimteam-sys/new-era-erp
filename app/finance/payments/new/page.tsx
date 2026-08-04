@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../../Subnav'
 import NewPaymentForm, { type PartyOption, type OpenItem, type PoItem } from './NewPaymentForm'
+import { mustRows } from '@/lib/db-helpers'
 
 // 视图列生成类型全可空;行进视图即非空,取用列本地锁死
 type ArItem = {
@@ -81,11 +82,11 @@ export default async function NewPaymentPage({
         )
     }
 
-    const customers: PartyOption[] = (customersRes.data ?? []).map((c) => ({
+    const customers: PartyOption[] = (mustRows(customersRes)).map((c) => ({
         id: c.id,
         name: c.legal_name,
     }))
-    const suppliers: PartyOption[] = (suppliersRes.data ?? []).map((s) => ({
+    const suppliers: PartyOption[] = (mustRows(suppliersRes)).map((s) => ({
         id: s.id,
         name: s.legal_name,
     }))

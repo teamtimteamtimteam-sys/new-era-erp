@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatMoney } from '@/lib/format'
 import Subnav from '../Subnav'
+import { mustRows } from '@/lib/db-helpers'
 
 type FormulaRow = {
     id: string
@@ -50,14 +51,14 @@ export default async function FormulasPage() {
     const [supRes, cusRes] = await Promise.all([
         supplierIds.length
             ? supabase.from('suppliers').select('id, legal_name').in('id', supplierIds)
-            : Promise.resolve({ data: [] as { id: string; legal_name: string }[] }),
+            : Promise.resolve({ data: [] as { id: string; legal_name: string }[], error: null }),
         customerIds.length
             ? supabase.from('customers').select('id, legal_name').in('id', customerIds)
-            : Promise.resolve({ data: [] as { id: string; legal_name: string }[] }),
+            : Promise.resolve({ data: [] as { id: string; legal_name: string }[], error: null }),
     ])
     const nameById = new Map<string, string>()
-    for (const s of supRes.data ?? []) nameById.set(s.id, s.legal_name)
-    for (const c of cusRes.data ?? []) nameById.set(c.id, c.legal_name)
+    for (const s of mustRows(supRes)) nameById.set(s.id, s.legal_name)
+    for (const c of mustRows(cusRes)) nameById.set(c.id, c.legal_name)
 
     const basisLabel = (r: FormulaRow) =>
         r.price_basis === 'average'

@@ -11,6 +11,7 @@ import { formatMoney } from '@/lib/format'
 import Subnav from '../../Subnav'
 import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachmentsPanel'
 import ReverseExpenseButton from './ReverseExpenseButton'
+import { mustRows } from '@/lib/db-helpers'
 
 type AllocRow = {
     id: string
@@ -54,10 +55,10 @@ export default async function ExpenseDetailPage({
                 .single(),
             expense.supplier_id
                 ? supabase.from('suppliers').select('legal_name').eq('id', expense.supplier_id).single()
-                : Promise.resolve({ data: null }),
+                : Promise.resolve({ data: null, error: null }),
             expense.journal_entry_id
                 ? supabase.from('journal_entries').select('id, code').eq('id', expense.journal_entry_id).single()
-                : Promise.resolve({ data: null }),
+                : Promise.resolve({ data: null, error: null }),
             supabase
                 .from('payment_allocations')
                 .select('id, allocated_base, payments(id, code, payment_date, status)')
@@ -65,7 +66,7 @@ export default async function ExpenseDetailPage({
                 .order('created_at', { ascending: true }),
             expense.reversed_by_expense
                 ? supabase.from('expenses').select('id, code').eq('id', expense.reversed_by_expense).single()
-                : Promise.resolve({ data: null }),
+                : Promise.resolve({ data: null, error: null }),
             // 本单是否为镜像:查"谁把我记为 reversed_by_expense"(是则回链原单)
             supabase
                 .from('expenses')
@@ -98,7 +99,7 @@ export default async function ExpenseDetailPage({
     const open = Math.round((expense.amount_base - settled) * 100) / 100
 
     // 在服务端按当前语言格式化时间,再传给客户端面板 —— 避免客户端水合不一致
-    const attachments = (attachRes.data ?? []).map((a) => ({
+    const attachments = (mustRows(attachRes)).map((a) => ({
         id: a.id,
         file_name: a.file_name,
         file_path: a.file_path,

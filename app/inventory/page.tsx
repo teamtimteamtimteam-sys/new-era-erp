@@ -10,6 +10,7 @@ import { formatMoney } from '@/lib/format'
 import { latestPriceByMetal, marketValuePerKg } from '@/lib/valuation'
 import { maskedRows } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
+import { mustCount, mustRows } from '@/lib/db-helpers'
 
 type MaterialEmbed = { name: string; category: string } | null
 
@@ -106,21 +107,21 @@ export default async function InventoryPage() {
 
     const inbound = (inboundRes.data as unknown as InboundStockRow[] | null) ?? []
     const output = (outputRes.data as unknown as OutputStockRow[] | null) ?? []
-    const runs = runsRes.data ?? []
+    const runs = mustRows(runsRes)
 
     // 批次 → 单位成本 / 金属含量;金属 → 最新价
     const legCostByBatch = new Map<string, number>()
     // unit_cost_base 会被遮蔽(没有 data.view_prices 时为 null);其余列不会。
-    for (const leg of maskedRows<Tables<'processing_outputs'>, 'unit_cost_base'>(legsRes.data)) {
+    for (const leg of maskedRows<Tables<'processing_outputs'>, 'unit_cost_base'>(mustRows(legsRes))) {
         if (leg.unit_cost_base !== null) legCostByBatch.set(leg.output_batch_id, leg.unit_cost_base)
     }
     const metalsByBatch = new Map<string, { metal: string; content_pct: number }[]>()
-    for (const m of metalsRes.data ?? []) {
+    for (const m of mustRows(metalsRes)) {
         const list = metalsByBatch.get(m.output_batch_id)
         if (list) list.push(m)
         else metalsByBatch.set(m.output_batch_id, [m])
     }
-    const priceByMetal = latestPriceByMetal(pricesRes.data ?? [])
+    const priceByMetal = latestPriceByMetal(mustRows(pricesRes))
 
     // 按 material_id 聚合
     const rowsByMaterial = new Map<string, InventoryRow>()
@@ -254,9 +255,9 @@ export default async function InventoryPage() {
                         <span className="text-gray-600">{t('valuation.totalMarketValue')}:</span>{' '}
                         <span className="font-medium font-mono">{formatMoney(totalMarketValue)}</span>
                     </div>
-                    {(unpricedRes.count ?? 0) > 0 && (
+                    {(mustCount(unpricedRes)) > 0 && (
                         <div className="text-gray-400">
-                            {t('inbound.unpricedBadge', { n: unpricedRes.count ?? 0 })}
+                            {t('inbound.unpricedBadge', { n: mustCount(unpricedRes) })}
                         </div>
                     )}
                 </div>

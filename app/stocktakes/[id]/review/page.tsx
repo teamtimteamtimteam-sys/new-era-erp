@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { qtyDelta, roundQty, formatSigned } from '../../delta'
 import PostButton from './PostButton'
+import { mustRows } from '@/lib/db-helpers'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type BatchFetchRow = {
@@ -69,7 +70,7 @@ export default async function StocktakeReviewPage({
         )
     }
 
-    const lines = linesRes.data ?? []
+    const lines = mustRows(linesRes)
     const inbound = (inboundRes.data as unknown as BatchFetchRow[] | null) ?? []
     const output = (outputRes.data as unknown as BatchFetchRow[] | null) ?? []
     const inboundById = new Map(inbound.map((b) => [b.id, b]))

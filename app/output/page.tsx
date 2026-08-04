@@ -17,6 +17,7 @@ import {
     type OutputSortCol,
 } from './outputQuery'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
+import { mustRows } from '@/lib/db-helpers'
 
 // FK 嵌入运行时是对象;TS 默认猜数组(无生成 DB 类型),用显式类型 + cast 锁住。
 // customers 可空:库存中的批次还没指派客户。
@@ -105,11 +106,11 @@ export default async function OutputPage({
     const batches = data as unknown as OutputRow[] | null
 
     // 下拉选项:客户按 legal_name、物料按 name 作为显示标签
-    const customerOptions: PartyOption[] = (customersRes.data ?? []).map((c) => ({
+    const customerOptions: PartyOption[] = (mustRows(customersRes)).map((c) => ({
         id: c.id,
         label: c.legal_name,
     }))
-    const materialOptions: PartyOption[] = (materialsRes.data ?? []).map((m) => ({
+    const materialOptions: PartyOption[] = (mustRows(materialsRes)).map((m) => ({
         id: m.id,
         label: m.name,
     }))

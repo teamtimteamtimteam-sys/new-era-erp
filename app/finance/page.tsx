@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatMoney } from '@/lib/format'
 import Subnav from './Subnav'
+import { mustRows } from '@/lib/db-helpers'
 
 const TYPE_ORDER = ['asset', 'liability', 'equity', 'revenue', 'cogs', 'expense'] as const
 
@@ -51,8 +52,8 @@ export default async function FinancePage({
         )
     }
 
-    const accounts = (accountsRes.data ?? []) as AccountRow[]
-    const lines = linesRes.data ?? []
+    const accounts = (mustRows(accountsRes)) as AccountRow[]
+    const lines = mustRows(linesRes)
 
     // 按科目聚合借/贷
     const agg = new Map<string, { debits: number; credits: number }>()

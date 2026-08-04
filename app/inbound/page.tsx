@@ -17,6 +17,7 @@ import {
     type InboundSortCol,
 } from './inboundQuery'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
+import { mustCount, mustRows } from '@/lib/db-helpers'
 
 // FK 嵌入运行时是对象;TS 默认猜数组(无生成 DB 类型),用显式类型 + cast 锁住。
 type InboundRow = {
@@ -142,11 +143,11 @@ export default async function InboundPage({
     )
 
     // 下拉选项:供应商按 legal_name、物料按 name 作为显示标签
-    const supplierOptions: PartyOption[] = (suppliersRes.data ?? []).map((s) => ({
+    const supplierOptions: PartyOption[] = (mustRows(suppliersRes)).map((s) => ({
         id: s.id,
         label: s.legal_name,
     }))
-    const materialOptions: PartyOption[] = (materialsRes.data ?? []).map((m) => ({
+    const materialOptions: PartyOption[] = (mustRows(materialsRes)).map((m) => ({
         id: m.id,
         label: m.name,
     }))
@@ -241,17 +242,17 @@ export default async function InboundPage({
 
             <p className="text-sm text-gray-600 mb-4">
                 {t('inbound.recordCount', { count: total })}
-                {(unpricedRes.count ?? 0) > 0 && (
+                {(mustCount(unpricedRes)) > 0 && (
                     <span className="ml-2 text-gray-400">
-                        {t('inbound.unpricedBadge', { n: unpricedRes.count ?? 0 })}
+                        {t('inbound.unpricedBadge', { n: mustCount(unpricedRes) })}
                     </span>
                 )}
                 {/* 等化验/暂定价的批次数(cut 5b):这些批次的应付金额还不是最终数 */}
-                {((unpricedStatusRes.count ?? 0) > 0 || (provisionalRes.count ?? 0) > 0) && (
+                {((mustCount(unpricedStatusRes)) > 0 || (mustCount(provisionalRes)) > 0) && (
                     <span className="ml-2 text-gray-400">
                         {t('assay.awaitingFinal', {
-                            unpriced: unpricedStatusRes.count ?? 0,
-                            provisional: provisionalRes.count ?? 0,
+                            unpriced: mustCount(unpricedStatusRes),
+                            provisional: mustCount(provisionalRes),
                         })}
                     </span>
                 )}

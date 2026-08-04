@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../Subnav'
+import { mustRows } from '@/lib/db-helpers'
 
 const CLS: Record<string, string> = {
     submitted: 'bg-amber-100 text-amber-800',
@@ -30,7 +31,7 @@ export default async function ClaimsPage({
         qb.order('claim_date', { ascending: false }).limit(300),
         supabase.from('employees').select('id, code, legal_name').is('deleted_at', null).order('code'),
     ])
-    let rows = rowsRes.data ?? []
+    let rows = mustRows(rowsRes)
     if (sp.status) rows = rows.filter((r) => r.settlement_state === sp.status)
 
     const sel = 'border border-gray-300 rounded px-2 py-1 text-sm'
@@ -52,7 +53,7 @@ export default async function ClaimsPage({
                     <label className="text-xs text-gray-600">{t('leave.employee')}
                         <select name="employee" defaultValue={sp.employee ?? ''} className={`block ${sel}`}>
                             <option value="">{t('leave.allEmployees')}</option>
-                            {(empRes.data ?? []).map((e) => (
+                            {(mustRows(empRes)).map((e) => (
                                 <option key={e.id} value={e.id}>{e.code} — {e.legal_name}</option>
                             ))}
                         </select>

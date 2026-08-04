@@ -9,6 +9,7 @@ import { parseDateRange } from '@/lib/dateFilter'
 import { formatMoney } from '@/lib/format'
 import Subnav from '../Subnav'
 import PaymentsToolbar from './PaymentsToolbar'
+import { mustRows } from '@/lib/db-helpers'
 
 const PAGE_SIZE = 20
 
@@ -84,14 +85,14 @@ export default async function PaymentsListPage({
     const [customersRes, suppliersRes] = await Promise.all([
         customerIds.length
             ? supabase.from('customers').select('id, legal_name').in('id', customerIds)
-            : Promise.resolve({ data: [] as { id: string; legal_name: string }[] }),
+            : Promise.resolve({ data: [] as { id: string; legal_name: string }[], error: null }),
         supplierIds.length
             ? supabase.from('suppliers').select('id, legal_name').in('id', supplierIds)
-            : Promise.resolve({ data: [] as { id: string; legal_name: string }[] }),
+            : Promise.resolve({ data: [] as { id: string; legal_name: string }[], error: null }),
     ])
     const nameById = new Map<string, string>()
-    for (const c of customersRes.data ?? []) nameById.set(c.id, c.legal_name)
-    for (const s of suppliersRes.data ?? []) nameById.set(s.id, s.legal_name)
+    for (const c of mustRows(customersRes)) nameById.set(c.id, c.legal_name)
+    for (const s of mustRows(suppliersRes)) nameById.set(s.id, s.legal_name)
 
     function pageHref(targetPage: number) {
         const params = new URLSearchParams()

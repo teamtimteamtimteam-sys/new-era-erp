@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import Subnav from '../Subnav'
 import LeaveSubnav from './LeaveSubnav'
+import { mustRows } from '@/lib/db-helpers'
 
 type Row = {
     request_id: string
@@ -53,10 +54,10 @@ export default async function LeaveRequestsPage({
         supabase.from('leave_types').select('code, name_en, name_zh').eq('is_active', true).order('sort_order'),
     ])
 
-    const empById = new Map((empRes.data ?? []).map((e) => [e.id, e]))
-    const typeByCode = new Map((typeRes.data ?? []).map((x) => [x.code, x]))
+    const empById = new Map((mustRows(empRes)).map((e) => [e.id, e]))
+    const typeByCode = new Map((mustRows(typeRes)).map((x) => [x.code, x]))
     // 待审在最前 —— 这是一张待办清单,不是一份档案
-    const rows = (reqRes.data ?? []).sort((a, b) => {
+    const rows = (mustRows(reqRes)).sort((a, b) => {
         if (a.status === 'pending' && b.status !== 'pending') return -1
         if (b.status === 'pending' && a.status !== 'pending') return 1
         return (b.start_date ?? '').localeCompare(a.start_date ?? '')
@@ -85,7 +86,7 @@ export default async function LeaveRequestsPage({
                         {t('leave.type')}
                         <select name="type" defaultValue={sp.type ?? ''} className={`block ${sel}`}>
                             <option value="">{t('leave.allTypes')}</option>
-                            {(typeRes.data ?? []).map((x) => (
+                            {(mustRows(typeRes)).map((x) => (
                                 <option key={x.code} value={x.code}>
                                     {locale === 'zh' ? x.name_zh : x.name_en}
                                 </option>
@@ -96,7 +97,7 @@ export default async function LeaveRequestsPage({
                         {t('leave.employee')}
                         <select name="employee" defaultValue={sp.employee ?? ''} className={`block ${sel}`}>
                             <option value="">{t('leave.allEmployees')}</option>
-                            {(empRes.data ?? []).map((e) => (
+                            {(mustRows(empRes)).map((e) => (
                                 <option key={e.id} value={e.id}>{e.code} — {e.legal_name}</option>
                             ))}
                         </select>

@@ -7,6 +7,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { formatMoney } from '@/lib/format'
 import Subnav from '../Subnav'
 import DeleteTemplateButton from './DeleteTemplateButton'
+import { mustRows } from '@/lib/db-helpers'
 
 type TemplateLine = {
     template_id: string
@@ -34,7 +35,7 @@ export default async function PaymentTermTemplatesPage() {
             .order('seq'),
     ])
 
-    const templates = tplRes.data ?? []
+    const templates = mustRows(tplRes)
     const linesByTpl = new Map<string, TemplateLine[]>()
     for (const l of (lineRes.data as TemplateLine[] | null) ?? []) {
         const arr = linesByTpl.get(l.template_id) ?? []

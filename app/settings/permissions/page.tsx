@@ -8,6 +8,7 @@ import Subnav from './Subnav'
 import { requireManagePermissions } from './guard'
 import UserRow, { type DirectoryRow, type RoleOption, type EmployeeOption } from './UserRow'
 import InvitePanel from './InvitePanel'
+import { mustRows } from '@/lib/db-helpers'
 
 export default async function PermissionUsersPage() {
     const denied = await requireManagePermissions()
@@ -33,9 +34,9 @@ export default async function PermissionUsersPage() {
             .order('code'),
     ])
 
-    const rows = (dirRes.data ?? []) as unknown as DirectoryRow[]
-    const roles = (rolesRes.data ?? []) as RoleOption[]
-    const employees = (empRes.data ?? []) as EmployeeOption[]
+    const rows = (mustRows(dirRes)) as unknown as DirectoryRow[]
+    const roles = (mustRows(rolesRes)) as RoleOption[]
+    const employees = (mustRows(empRes)) as EmployeeOption[]
 
     const fmt = (v: string | null) =>
         v ? new Date(v).toLocaleString(dateLocale) : '—'

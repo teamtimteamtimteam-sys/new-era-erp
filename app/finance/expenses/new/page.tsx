@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import Subnav from '../../Subnav'
 import NewExpenseForm, { type AccountOption, type SupplierOption } from './NewExpenseForm'
+import { mustRows } from '@/lib/db-helpers'
 
 export default async function NewExpensePage() {
     const supabase = await createClient()
@@ -38,11 +39,11 @@ export default async function NewExpensePage() {
         )
     }
 
-    const accounts: AccountOption[] = (accountsRes.data ?? []).map((a) => ({
+    const accounts: AccountOption[] = (mustRows(accountsRes)).map((a) => ({
         code: a.code,
         name: locale === 'zh' ? a.name_zh : a.name_en,
     }))
-    const suppliers: SupplierOption[] = (suppliersRes.data ?? []).map((s) => ({
+    const suppliers: SupplierOption[] = (mustRows(suppliersRes)).map((s) => ({
         id: s.id,
         name: s.legal_name,
     }))

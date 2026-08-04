@@ -17,6 +17,7 @@ import MySelfAssessmentPanel, {
 import MyReviewsPanel from './MyReviewsPanel'
 import { REVIEW_COLUMNS, type GoalRow, type ReviewRow } from '@/app/hr/reviews/reviewShared'
 import type { RatingOption } from '@/app/hr/reviews/ConclusionForm'
+import { mustRows } from '@/lib/db-helpers'
 
 export default async function MePage() {
     const supabase = await createClient()
@@ -95,7 +96,7 @@ export default async function MePage() {
             .order('period_end', { ascending: false }),
         supabase.from('review_rating_scale').select('code, name_en, name_zh, is_active').order('sort_order'),
     ])
-    const myReviews = (myReviewsRes.data ?? []) as unknown as ReviewRow[]
+    const myReviews = (mustRows(myReviewsRes)) as unknown as ReviewRow[]
     const { data: myReviewGoals } = myReviews.length
         ? await supabase
               .from('review_goals')
@@ -107,7 +108,7 @@ export default async function MePage() {
         : { data: [] as GoalRow[] }
 
     const periodIds = Array.from(
-        new Set((payRes.data ?? []).map((l) => l.payroll_period_id).filter((x): x is string => x !== null))
+        new Set((mustRows(payRes)).map((l) => l.payroll_period_id).filter((x): x is string => x !== null))
     )
     const { data: periods } = periodIds.length
         ? await supabase
@@ -206,7 +207,7 @@ export default async function MePage() {
             {/* ── payslips: own figures in full ── */}
             <section className="mb-6">
                 <h2 className="text-lg font-bold mb-2">{t('me.payslips')}</h2>
-                {(payRes.data ?? []).length === 0 ? (
+                {(mustRows(payRes)).length === 0 ? (
                     <p className="text-sm text-gray-500">{t('me.noPayslips')}</p>
                 ) : (
                     <table className="w-full border-collapse text-sm">
@@ -221,7 +222,7 @@ export default async function MePage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {(payRes.data ?? []).map((l) => {
+                            {(mustRows(payRes)).map((l) => {
                                 const per = l.payroll_period_id ? periodById.get(l.payroll_period_id) : undefined
                                 return (
                                     <tr key={l.id}>
@@ -259,7 +260,7 @@ export default async function MePage() {
             {/* ── training ── */}
             <section className="mb-6">
                 <h2 className="text-lg font-bold mb-2">{t('me.training')}</h2>
-                {(trainRes.data ?? []).length === 0 ? (
+                {(mustRows(trainRes)).length === 0 ? (
                     <p className="text-sm text-gray-500">{t('me.noTraining')}</p>
                 ) : (
                     <table className="w-full border-collapse text-sm">
@@ -271,7 +272,7 @@ export default async function MePage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {(trainRes.data ?? []).map((r) => {
+                            {(mustRows(trainRes)).map((r) => {
                                 const s = expiryState(r.expiry_date)
                                 return (
                                     <tr key={r.id}>
@@ -303,11 +304,11 @@ export default async function MePage() {
             {/* ── employment history ── */}
             <section className="mb-6">
                 <h2 className="text-lg font-bold mb-2">{t('me.history')}</h2>
-                {(histRes.data ?? []).length === 0 ? (
+                {(mustRows(histRes)).length === 0 ? (
                     <p className="text-sm text-gray-500">{t('me.noHistory')}</p>
                 ) : (
                     <ol className="border-l border-gray-200 pl-4 space-y-3">
-                        {(histRes.data ?? []).map((h) => (
+                        {(mustRows(histRes)).map((h) => (
                             <li key={h.id} className="relative">
                                 <span className="absolute -left-[21px] top-1.5 h-2 w-2 rounded-full bg-gray-400" />
                                 <div className="text-sm font-medium">
@@ -328,10 +329,10 @@ export default async function MePage() {
                 )}
             </section>
 
-            {(selfAssessRes.data ?? []).length > 0 && (
+            {(mustRows(selfAssessRes)).length > 0 && (
                 <MySelfAssessmentPanel
-                    assessments={(selfAssessRes.data ?? []) as unknown as SelfAssessment[]}
-                    goals={(selfGoalsRes.data ?? []) as unknown as SelfAssessmentGoal[]}
+                    assessments={(mustRows(selfAssessRes)) as unknown as SelfAssessment[]}
+                    goals={(mustRows(selfGoalsRes)) as unknown as SelfAssessmentGoal[]}
                 />
             )}
 
@@ -339,20 +340,20 @@ export default async function MePage() {
                 <MyReviewsPanel
                     reviews={myReviews}
                     goals={(myReviewGoals ?? []) as unknown as GoalRow[]}
-                    ratings={(ratingRes.data ?? []) as unknown as RatingOption[]}
+                    ratings={(mustRows(ratingRes)) as unknown as RatingOption[]}
                 />
             )}
 
             <MyLeavePanel
                 employeeId={employeeId}
                 balance={balRes.data as never}
-                requests={(myLeaveRes.data ?? []) as never}
-                types={(typeRes.data ?? []) as never}
+                requests={(mustRows(myLeaveRes)) as never}
+                types={(mustRows(typeRes)) as never}
             />
 
             <MyClaimsPanel
                 employeeId={employeeId}
-                claims={(claimRes.data ?? []) as never}
+                claims={(mustRows(claimRes)) as never}
                 balance={claimBalRes.data as never}
             />
 

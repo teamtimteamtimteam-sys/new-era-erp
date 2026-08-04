@@ -8,6 +8,7 @@ import Subnav from '../../Subnav'
 import { requireManagePermissions } from '../../guard'
 import RoleForm from '../RoleForm'
 import PermissionMatrix, { type PermissionRow } from '../PermissionMatrix'
+import { mustRows } from '@/lib/db-helpers'
 
 export default async function RoleDetailPage({
     params,
@@ -69,14 +70,14 @@ export default async function RoleDetailPage({
                     is_active: role.is_active,
                     sort_order: role.sort_order,
                     is_system: role.is_system,
-                    user_count: (holdersRes.data ?? []).length,
+                    user_count: (mustRows(holdersRes)).length,
                 }}
             />
 
             <PermissionMatrix
                 roleId={role.id}
-                permissions={(permRes.data ?? []) as PermissionRow[]}
-                initial={(grantRes.data ?? []).map((g) => g.permission_code)}
+                permissions={(mustRows(permRes)) as PermissionRow[]}
+                initial={(mustRows(grantRes)).map((g) => g.permission_code)}
             />
         </div>
     )

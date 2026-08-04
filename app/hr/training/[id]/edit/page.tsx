@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../../../Subnav'
 import TrainingForm, { type EmployeeOption } from '../../TrainingForm'
+import { mustRows } from '@/lib/db-helpers'
 
 export default async function EditTrainingPage({
     params,
@@ -33,7 +34,7 @@ export default async function EditTrainingPage({
         notFound()
     }
 
-    const employees: EmployeeOption[] = (empRes.data ?? []).map((e) => ({
+    const employees: EmployeeOption[] = (mustRows(empRes)).map((e) => ({
         id: e.id,
         label: `${e.code} — ${e.legal_name}`,
     }))

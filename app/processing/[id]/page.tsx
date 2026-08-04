@@ -13,6 +13,7 @@ import { maskedRows, maskedExcept } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
 import { canViewPrices } from '@/lib/permissions'
 import { MaskedValue } from '@/app/components/MaskedValue'
+import { mustRows } from '@/lib/db-helpers'
 
 // FK 嵌入运行时是对象(包括两层嵌套);显式类型 + cast 锁住。
 type ProcessingInputRow = {
@@ -119,7 +120,7 @@ export default async function ProcessingDetailPage({
     // 成本条目行:服务端预格式化 created_at
     const showPrices = await canViewPrices()
 
-    const costRows: CostEntryRow[] = maskedRows<Tables<'processing_cost_entries'>, 'amount_base'>(costsRes.data).map((c) => ({
+    const costRows: CostEntryRow[] = maskedRows<Tables<'processing_cost_entries'>, 'amount_base'>(mustRows(costsRes)).map((c) => ({
         id: c.id,
         cost_type: c.cost_type,
         amount_base: c.amount_base,
@@ -129,7 +130,7 @@ export default async function ProcessingDetailPage({
     }))
 
     // 回收率行(视图已按 committed + 未软删过滤)
-    const recoveryRows = recoveryRes.data ?? []
+    const recoveryRows = mustRows(recoveryRes)
     const metalLabel = (v: string | null) => {
         const k = metalLabelKey(v)
         return k ? t(k) : v ?? '—'

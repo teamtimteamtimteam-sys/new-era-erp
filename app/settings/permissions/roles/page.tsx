@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import Subnav from '../Subnav'
 import { requireManagePermissions } from '../guard'
+import { mustRows } from '@/lib/db-helpers'
 
 type RoleRow = {
     id: string
@@ -36,11 +37,11 @@ export default async function RolesPage() {
         supabase.from('user_roles').select('role_id').is('revoked_at', null),
     ])
 
-    const roles = (rolesRes.data ?? []) as RoleRow[]
+    const roles = (mustRows(rolesRes)) as RoleRow[]
     const permCount = new Map<string, number>()
-    for (const r of permRes.data ?? []) permCount.set(r.role_id, (permCount.get(r.role_id) ?? 0) + 1)
+    for (const r of mustRows(permRes)) permCount.set(r.role_id, (permCount.get(r.role_id) ?? 0) + 1)
     const userCount = new Map<string, number>()
-    for (const r of userRes.data ?? []) userCount.set(r.role_id, (userCount.get(r.role_id) ?? 0) + 1)
+    for (const r of mustRows(userRes)) userCount.set(r.role_id, (userCount.get(r.role_id) ?? 0) + 1)
 
     return (
         <div className="p-8 max-w-6xl">

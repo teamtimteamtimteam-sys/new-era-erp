@@ -13,6 +13,7 @@ import { CloseOrderControl, ReopenOrderControl } from './CloseReopenControls'
 import { canViewPrices } from '@/lib/permissions'
 import { maskedExcept, maskedRows } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
+import { mustRows } from '@/lib/db-helpers'
 
 type AssayEntry = { metal: string; content_pct: number }
 
@@ -66,10 +67,10 @@ export default async function PurchaseOrderDetailPage({
     ])
 
     // 遮蔽的是估价列;material_id / pricing_formula_id 等恢复基表类型。
-    const lines = maskedRows<Tables<'purchase_order_lines'>, 'estimated_unit_price' | 'estimated_amount_usd'>(linesRes.data)
-    const terms = maskedRows<Tables<'purchase_order_payment_terms'>, 'fixed_amount_usd'>(termsRes.data)
+    const lines = maskedRows<Tables<'purchase_order_lines'>, 'estimated_unit_price' | 'estimated_amount_usd'>(mustRows(linesRes))
+    const terms = maskedRows<Tables<'purchase_order_payment_terms'>, 'fixed_amount_usd'>(mustRows(termsRes))
     const poStatus = statusRes.data
-    const receipts = maskedRows<Tables<'inbound_batches'>, 'unit_price'>(receiptsRes.data)
+    const receipts = maskedRows<Tables<'inbound_batches'>, 'unit_price'>(mustRows(receiptsRes))
 
     // 物料/公式名 + 收货批次的未结应付(结清的批次不在 ap_open_items → 敞口 0)
     const materialIds = Array.from(new Set(lines.map((l) => l.material_id)))
@@ -78,17 +79,17 @@ export default async function PurchaseOrderDetailPage({
     const [materialsRes, formulasRes, apRes] = await Promise.all([
         materialIds.length
             ? supabase.from('materials').select('id, code, name').in('id', materialIds)
-            : Promise.resolve({ data: [] as { id: string; code: string; name: string }[] }),
+            : Promise.resolve({ data: [] as { id: string; code: string; name: string }[], error: null }),
         formulaIds.length
             ? supabase.from('pricing_formulas').select('id, code, name').in('id', formulaIds)
-            : Promise.resolve({ data: [] as { id: string; code: string; name: string }[] }),
+            : Promise.resolve({ data: [] as { id: string; code: string; name: string }[], error: null }),
         batchIds.length
             ? supabase.from('ap_open_items').select('inbound_batch_id, open_base').in('inbound_batch_id', batchIds)
-            : Promise.resolve({ data: [] as { inbound_batch_id: string | null; open_base: number }[] }),
+            : Promise.resolve({ data: [] as { inbound_batch_id: string | null; open_base: number }[], error: null }),
     ])
-    const materialById = new Map((materialsRes.data ?? []).map((m) => [m.id, `${m.code} — ${m.name}`]))
-    const formulaById = new Map((formulasRes.data ?? []).map((f) => [f.id, `${f.code} — ${f.name}`]))
-    const openByBatch = new Map((apRes.data ?? []).map((r) => [r.inbound_batch_id ?? '', r.open_base]))
+    const materialById = new Map((mustRows(materialsRes)).map((m) => [m.id, `${m.code} — ${m.name}`]))
+    const formulaById = new Map((mustRows(formulasRes)).map((f) => [f.id, `${f.code} — ${f.name}`]))
+    const openByBatch = new Map((mustRows(apRes)).map((r) => [r.inbound_batch_id ?? '', r.open_base]))
 
     // 每批已抵扣的预付(cut 4c:收货记录多一列)
     const { data: appliedRows } = batchIds.length

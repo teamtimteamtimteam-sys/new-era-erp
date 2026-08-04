@@ -10,6 +10,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import Subnav from '../../Subnav'
 import LeaveSubnav from '../LeaveSubnav'
 import DecideControls from './DecideControls'
+import { mustRows } from '@/lib/db-helpers'
 
 export default async function LeaveRequestDetail({
     params,
@@ -153,7 +154,7 @@ export default async function LeaveRequestDetail({
             )}
 
             {/* 批准之后:这几天到底从哪几笔授予里扣的 */}
-            {(consRes.data ?? []).length > 0 && (
+            {(mustRows(consRes)).length > 0 && (
                 <section className={card + ' mb-6'}>
                     <h3 className="font-bold mb-1">{t('leave.consumption')}</h3>
                     <p className="text-xs text-gray-500 mb-3">{t('leave.consumptionHint')}</p>
@@ -167,7 +168,7 @@ export default async function LeaveRequestDetail({
                             </tr>
                         </thead>
                         <tbody>
-                            {(consRes.data ?? []).map((c) => (
+                            {(mustRows(consRes)).map((c) => (
                                 <tr key={c.id}>
                                     <td className="border border-gray-300 px-2 py-1">{t(`leave.entry_${c.entry_type}`)}</td>
                                     <td className="border border-gray-300 px-2 py-1 text-right font-mono">{c.days}</td>

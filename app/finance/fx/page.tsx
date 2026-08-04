@@ -13,6 +13,7 @@ import {
     type FxSortCol,
 } from './fxQuery'
 import { getTranslations } from '@/lib/i18n/server'
+import { mustRows } from '@/lib/db-helpers'
 
 type FxRow = {
     id: string
@@ -63,7 +64,7 @@ export default async function FxRatesPage({
         filterParams
     ).range(from, to)
     const rows = data as unknown as FxRow[] | null
-    const currencyOptions = (currenciesRes.data ?? []).map((c) => c.code)
+    const currencyOptions = (mustRows(currenciesRes)).map((c) => c.code)
 
     // 缺牌价的日子:有外币过账、当天缺任一侧牌价 —— 牌价是日课,漏一天可能永远补不回
     const { data: gapRows } = await supabase

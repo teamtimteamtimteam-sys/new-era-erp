@@ -17,6 +17,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { canViewPrices } from '@/lib/permissions'
 import { maskedRows, maskedExcept } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
+import { mustRows } from '@/lib/db-helpers'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type MovementFetchRow = {
@@ -120,9 +121,9 @@ export default async function EditInboundPage({
                   .select('pricing_formula_id')
                   .eq('id', batch.purchase_order_line_id)
                   .single()
-            : Promise.resolve({ data: null }),
+            : Promise.resolve({ data: null, error: null }),
     ])
-    const assayRows = (assayRes.data ?? []) as AssayRow[]
+    const assayRows = (mustRows(assayRes)) as AssayRow[]
     const resolvedFormulaId: string | null =
         batch.pricing_formula_id ?? poLineFormulaRes.data?.pricing_formula_id ?? null
 
@@ -145,7 +146,7 @@ export default async function EditInboundPage({
                       .select('quantity, unit')
                       .eq('id', batch.purchase_order_line_id)
                       .single()
-                : Promise.resolve({ data: null }),
+                : Promise.resolve({ data: null, error: null }),
             // 资格与建议额【只从视图读】—— 与 apply_prepayment 同一口径
             supabase
                 .from('po_prepayment_applicable')
@@ -202,7 +203,7 @@ export default async function EditInboundPage({
     const priceHistoryRows: PriceHistoryRow[] = maskedRows<
         Tables<'price_history'>,
         'old_unit_price' | 'new_unit_price' | 'original_price' | 'fx_rate'
-    >(priceHistoryRes.data).map((h) => ({
+    >(mustRows(priceHistoryRes)).map((h) => ({
         id: h.id,
         old_unit_price: h.old_unit_price,
         new_unit_price: h.new_unit_price,
@@ -214,7 +215,7 @@ export default async function EditInboundPage({
     }))
 
     // 金属含量行:服务端预格式化 updated_at,避免客户端水合不一致
-    const metalRows: MetalContentRow[] = (metalsRes.data ?? []).map((m) => ({
+    const metalRows: MetalContentRow[] = (mustRows(metalsRes)).map((m) => ({
         metal: m.metal,
         content_pct: m.content_pct,
         updated_at_display: new Date(m.updated_at).toLocaleString(dateLocale),
@@ -300,8 +301,8 @@ export default async function EditInboundPage({
 
             <EditInboundForm
                 batch={batch}
-                materials={materialsRes.data ?? []}
-                suppliers={suppliersRes.data ?? []}
+                materials={mustRows(materialsRes)}
+                suppliers={mustRows(suppliersRes)}
             />
 
             <MetalContentPanel

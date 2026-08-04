@@ -6,6 +6,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../../../Subnav'
 import DepartmentForm from '../../DepartmentForm'
 import { parentOptionsFor, type DeptNode } from '../../tree'
+import { mustRows } from '@/lib/db-helpers'
 
 export default async function EditDepartmentPage({
     params,
@@ -48,7 +49,7 @@ export default async function EditDepartmentPage({
             <Subnav />
             <DepartmentForm
                 department={deptRes.data}
-                parentOptions={parentOptionsFor((allRes.data ?? []) as DeptNode[], id)}
+                parentOptions={parentOptionsFor((mustRows(allRes)) as DeptNode[], id)}
             />
         </div>
     )

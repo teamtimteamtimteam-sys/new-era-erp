@@ -45,6 +45,54 @@ def rows_json(dsn: str, table: str, where, cols: str) -> list:
     return json.loads(out)
 
 
+# ── 列权限缺口 ───────────────────────────────────────────────────────────────
+# 【为什么有这一条】表级 INSERT/UPDATE 授权会自动延伸到新加的列,列清单 SELECT
+# 授权【不会】。于是给被遮蔽的表 ALTER 加一列,那列对 authenticated 就是有写无读:
+# 任何选它或按它过滤的查询 42501,页面 `?? []` 把错误变成空数组,门全绿而页面全空。
+# FIN-6 给 processing_cost_entries 加了四列结算列,/finance/processing-costs 与
+# /finance/month-end 的成本步骤因此从上线起就是空的,没人发现。
+# 判据:被遮蔽表的每一列,要么【授了 SELECT】,要么【在 _masked 视图里】(刻意遮蔽)。
+# 两样都不是 = 缺口,当场点名。check_mirrors 不比对 GRANT,所以这一条只能在这里做。
+GRANT_GAP_SQL = """
+WITH cg AS (
+    SELECT DISTINCT cp.table_name
+    FROM information_schema.column_privileges cp
+    WHERE cp.grantee = 'authenticated' AND cp.privilege_type = 'SELECT'
+      AND cp.table_schema = 'public'
+      AND NOT EXISTS (
+          SELECT 1 FROM information_schema.table_privileges tp
+          WHERE tp.grantee = 'authenticated' AND tp.privilege_type = 'SELECT'
+            AND tp.table_schema = 'public' AND tp.table_name = cp.table_name)
+),
+flags AS (
+    SELECT c.table_name, c.column_name, c.ordinal_position,
+        EXISTS (SELECT 1 FROM information_schema.column_privileges p
+                WHERE p.table_schema='public' AND p.table_name=c.table_name
+                  AND p.column_name=c.column_name AND p.grantee='authenticated'
+                  AND p.privilege_type='SELECT') AS granted,
+        EXISTS (SELECT 1 FROM information_schema.columns v
+                WHERE v.table_schema='public' AND v.table_name=c.table_name||'_masked'
+                  AND v.column_name=c.column_name) AS in_view,
+        EXISTS (SELECT 1 FROM information_schema.tables v
+                WHERE v.table_schema='public' AND v.table_name=c.table_name||'_masked') AS has_view
+    FROM information_schema.columns c JOIN cg ON cg.table_name = c.table_name
+    WHERE c.table_schema = 'public'
+)
+SELECT COALESCE(string_agg(line, ' | ' ORDER BY line), '') FROM (
+    SELECT table_name || ': ' || string_agg(column_name, ', ' ORDER BY ordinal_position)
+           || CASE WHEN bool_or(NOT granted AND NOT in_view) THEN ' [无 SELECT 且不在遮蔽视图]'
+                   ELSE ' [不在遮蔽视图]' END AS line
+    FROM flags
+    WHERE (NOT granted AND NOT in_view) OR (has_view AND NOT in_view)
+    GROUP BY table_name
+) q;
+"""
+
+
+def check_grant_gaps(dsn: str) -> str:
+    return psql(dsn, GRANT_GAP_SQL)
+
+
 def main() -> int:
     import argparse
     ap = argparse.ArgumentParser(description="一次本地重建,两个判词(镜像漂移 / 可重建性)")
@@ -125,6 +173,14 @@ def main() -> int:
                 integ_bad.append(f"account codes referenced but not is_system (live): {loose}")
         print("integrity  " + ("unresolved 0 ✓" if not integ_bad else "✗ " + "; ".join(integ_bad)))
         problems.extend(integ_bad)
+
+        # 列权限缺口:问【线上】(操作员真正撞上的那份)和【本地重建】(全新安装会
+        # 得到的那份)。前者抓"加了列忘了授权",后者抓"镜像里的授权清单已过时"。
+        for label, dsn in (("live", args.live), ("rebuild", local)):
+            gaps = check_grant_gaps(dsn)
+            print(f"colgrant   {label}: " + ("无缺口 ✓" if not gaps else f"✗ {gaps}"))
+            if gaps:
+                problems.append(f"column grant gap ({label}): {gaps}")
 
         unchecked = cm.definer_without_caller_check()
         print(f"definer    {len(unchecked)} SECURITY DEFINER function(s) with no recognisable caller check"

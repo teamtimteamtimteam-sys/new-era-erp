@@ -34,11 +34,16 @@ export const DATA_VIEW_BANKING = 'data.view_banking'
 export const ACTION_MANAGE_PERMISSIONS = 'action.manage_permissions'
 
 // React cache():同一次请求内多个组件调用只打一次数据库。
+// 【查询失败 ≠ 这个人没有权限】—— 本仓库爆炸半径最大的一处静默默认值:
+// 原本 `if (error || !data) return []` 把 RPC 失败读成"零权限",后果是整站一起
+// 说谎:每个遮蔽列显示「受限」、canViewPrices 一律 false、权限页直接渲染
+// 「无权访问」。一次瞬时故障和一次蓄意收权,在界面上长得一模一样。
+// 失败就抛(Next 渲染错误边界);真的没有权限是【成功返回空数组】,那才是 []。
 export const getMyPermissions = cache(async (): Promise<string[]> => {
     const supabase = await createClient()
     const { data, error } = await supabase.rpc('current_user_permissions')
-    if (error || !data) return []
-    return data as string[]
+    if (error) throw new Error(`查询失败(current_user_permissions): ${error.code ?? ''} ${error.message}`.trim())
+    return (data ?? []) as string[]
 })
 
 export async function can(code: string): Promise<boolean> {

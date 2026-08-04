@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import Subnav from '../../../Subnav'
 import EmployeeForm, { type PickOption, type EmployeeRecord } from '../../EmployeeForm'
+import { mustRows } from '@/lib/db-helpers'
 
 // 下属闭包:从自己出发,沿 manager_id 往下收集
 function reportIds(all: { id: string; manager_id: string | null }[], rootId: string): Set<string> {
@@ -54,15 +55,15 @@ export default async function EditEmployeePage({
         notFound()
     }
 
-    const all = (allRes.data ?? []).map((e) => ({ id: e.id, manager_id: e.manager_id }))
+    const all = (mustRows(allRes)).map((e) => ({ id: e.id, manager_id: e.manager_id }))
     const excluded = reportIds(all, id)
     excluded.add(id)
 
-    const departments: PickOption[] = (deptRes.data ?? []).map((d) => ({
+    const departments: PickOption[] = (mustRows(deptRes)).map((d) => ({
         id: d.id,
         label: `${d.code} — ${locale === 'zh' ? d.name_zh : d.name_en}`,
     }))
-    const managers: PickOption[] = (allRes.data ?? [])
+    const managers: PickOption[] = (mustRows(allRes))
         .filter((e) => !excluded.has(e.id) && e.employment_status !== 'separated')
         .map((e) => ({ id: e.id, label: `${e.code} — ${e.legal_name}` }))
 

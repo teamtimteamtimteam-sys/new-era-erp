@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import EditFxRateForm from './EditFxRateForm'
+import { mustRows } from '@/lib/db-helpers'
 
 export default async function EditFxRatePage({
     params,
@@ -41,7 +42,7 @@ export default async function EditFxRatePage({
 
             <EditFxRateForm
                 rate={rateRes.data}
-                currencies={(currenciesRes.data ?? []).map((c) => c.code)}
+                currencies={(mustRows(currenciesRes)).map((c) => c.code)}
             />
         </div>
     )

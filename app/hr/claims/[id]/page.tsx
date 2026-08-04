@@ -8,6 +8,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { can } from '@/lib/permissions'
 import Subnav from '../../Subnav'
 import ClaimControls from './ClaimControls'
+import { mustRows } from '@/lib/db-helpers'
 
 export default async function ClaimDetail({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -96,7 +97,7 @@ export default async function ClaimDetail({ params }: { params: Promise<{ id: st
                 status={claim.status as string}
                 alreadyLinked={!!claim.expense_id}
                 canFinance={canFinance}
-                suppliers={(supRes.data ?? []).map((s) => ({ id: s.id, name: s.legal_name }))}
+                suppliers={(mustRows(supRes)).map((s) => ({ id: s.id, name: s.legal_name }))}
             />
         </div>
     )

@@ -10,6 +10,7 @@ import { parseDateRange } from '@/lib/dateFilter'
 import { formatMoney } from '@/lib/format'
 import Subnav from '../Subnav'
 import ExpensesToolbar from './ExpensesToolbar'
+import { mustRows } from '@/lib/db-helpers'
 
 const PAGE_SIZE = 20
 
@@ -104,15 +105,15 @@ export default async function ExpensesListPage({
             ) as string[]
             return supplierIds.length
                 ? supabase.from('suppliers').select('id, legal_name').in('id', supplierIds)
-                : Promise.resolve({ data: [] as { id: string; legal_name: string }[] })
+                : Promise.resolve({ data: [] as { id: string; legal_name: string }[], error: null })
         })(),
     ])
-    const accountOptions = (accountsRes.data ?? []).map((a) => ({
+    const accountOptions = (mustRows(accountsRes)).map((a) => ({
         code: a.code,
         name: locale === 'zh' ? a.name_zh : a.name_en,
     }))
     const accountNameByCode = new Map(accountOptions.map((a) => [a.code, a.name]))
-    const supplierNameById = new Map((suppliersRes.data ?? []).map((s) => [s.id, s.legal_name]))
+    const supplierNameById = new Map((mustRows(suppliersRes)).map((s) => [s.id, s.legal_name]))
 
     function pageHref(targetPage: number) {
         const params = new URLSearchParams()

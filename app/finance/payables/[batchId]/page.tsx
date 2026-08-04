@@ -12,6 +12,7 @@ import Subnav from '../../Subnav'
 import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachmentsPanel'
 import { unmasked } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
+import { mustRows } from '@/lib/db-helpers'
 
 type AllocRow = {
     id: string
@@ -60,7 +61,7 @@ export default async function PayableDocPage({
     const [supplierRes, allocsRes, journalsRes, attachRes] = await Promise.all([
         batch.supplier_id
             ? supabase.from('suppliers').select('legal_name').eq('id', batch.supplier_id).single()
-            : Promise.resolve({ data: null }),
+            : Promise.resolve({ data: null, error: null }),
         supabase
             .from('payment_allocations')
             .select('id, allocated_base, payments(id, code, payment_date, status)')
@@ -92,7 +93,7 @@ export default async function PayableDocPage({
     const open = amountUsd !== null ? Math.round((amountUsd - settled) * 100) / 100 : null
 
     // 在服务端按当前语言格式化时间,再传给客户端面板 —— 避免客户端 toLocaleString 引发水合不一致
-    const attachments = (attachRes.data ?? []).map((a) => ({
+    const attachments = (mustRows(attachRes)).map((a) => ({
         id: a.id,
         file_name: a.file_name,
         file_path: a.file_path,
@@ -168,10 +169,10 @@ export default async function PayableDocPage({
             )}
 
             {/* 关联采购分录(改价后可能多条,全部列出)*/}
-            {(journalsRes.data ?? []).length > 0 && (
+            {(mustRows(journalsRes)).length > 0 && (
                 <p className="text-sm mb-4">
                     <span className="text-gray-600 mr-1">{t('finance.relatedJournals')}:</span>
-                    {(journalsRes.data ?? []).map((j, i) => (
+                    {(mustRows(journalsRes)).map((j, i) => (
                         <span key={j.id}>
                             {i > 0 && <span className="mx-1 text-gray-300">|</span>}
                             <Link

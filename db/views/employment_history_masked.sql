@@ -25,6 +25,9 @@ CREATE VIEW public.employment_history_masked WITH (security_invoker = off) AS
         CASE
             WHEN has_permission('data.view_pay'::text) OR employee_id = current_user_employee() THEN new_monthly_salary
             ELSE NULL::numeric
-        END AS new_monthly_salary
+        END AS new_monthly_salary,
+    -- 后加的列,补于 2026-08-04-fin7-fu-masked-grant-gaps(基表有列权限,视图里却
+    -- 没有这一列,经视图选它会 42703 —— 与 processing_cost_entries 同一类缺口)
+    work_category
    FROM employment_history
   WHERE has_permission('module.hr.view'::text) OR employee_id = current_user_employee();

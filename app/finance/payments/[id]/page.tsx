@@ -11,6 +11,7 @@ import { formatMoney } from '@/lib/format'
 import Subnav from '../../Subnav'
 import ReversePaymentButton from './ReversePaymentButton'
 import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachmentsPanel'
+import { mustRows } from '@/lib/db-helpers'
 
 type AllocRow = {
     id: string
@@ -49,7 +50,7 @@ export default async function PaymentDetailPage({
             : supabase.from('suppliers').select('legal_name').eq('id', payment.supplier_id ?? '').single(),
         payment.journal_entry_id
             ? supabase.from('journal_entries').select('id, code').eq('id', payment.journal_entry_id).single()
-            : Promise.resolve({ data: null }),
+            : Promise.resolve({ data: null, error: null }),
         supabase
             .from('payment_allocations')
             .select('id, sales_record_id, inbound_batch_id, expense_id, purchase_order_id, allocated_base')
@@ -57,7 +58,7 @@ export default async function PaymentDetailPage({
             .order('created_at', { ascending: true }),
         payment.reversed_by_payment
             ? supabase.from('payments').select('id, code').eq('id', payment.reversed_by_payment).single()
-            : Promise.resolve({ data: null }),
+            : Promise.resolve({ data: null, error: null }),
     ])
 
     const allocs = ((allocsRes.data as AllocRow[] | null) ?? [])
@@ -71,26 +72,26 @@ export default async function PaymentDetailPage({
     const [salesRes, inboundRes, expensesRes, poRes] = await Promise.all([
         saleIds.length
             ? supabase.from('sales_records').select('id, output_batch_id').in('id', saleIds)
-            : Promise.resolve({ data: [] as { id: string; output_batch_id: string }[] }),
+            : Promise.resolve({ data: [] as { id: string; output_batch_id: string }[], error: null }),
         batchIds.length
             ? supabase.from('inbound_batches').select('id, code').in('id', batchIds)
-            : Promise.resolve({ data: [] as { id: string; code: string }[] }),
+            : Promise.resolve({ data: [] as { id: string; code: string }[], error: null }),
         expenseIds.length
             ? supabase.from('expenses').select('id, code').in('id', expenseIds)
-            : Promise.resolve({ data: [] as { id: string; code: string }[] }),
+            : Promise.resolve({ data: [] as { id: string; code: string }[], error: null }),
         poIds.length
             ? supabase.from('purchase_orders').select('id, code').in('id', poIds)
-            : Promise.resolve({ data: [] as { id: string; code: string }[] }),
+            : Promise.resolve({ data: [] as { id: string; code: string }[], error: null }),
     ])
-    const outputBySale = new Map((salesRes.data ?? []).map((s) => [s.id, s.output_batch_id]))
+    const outputBySale = new Map((mustRows(salesRes)).map((s) => [s.id, s.output_batch_id]))
     const outputIds = Array.from(new Set(Array.from(outputBySale.values())))
     const { data: outputBatches } = outputIds.length
         ? await supabase.from('output_batches').select('id, code').in('id', outputIds)
         : { data: [] as { id: string; code: string }[] }
     const outputCodeById = new Map((outputBatches ?? []).map((b) => [b.id, b.code]))
-    const inboundById = new Map((inboundRes.data ?? []).map((b) => [b.id, b.code]))
-    const expenseById = new Map((expensesRes.data ?? []).map((e) => [e.id, e.code]))
-    const poById = new Map((poRes.data ?? []).map((p) => [p.id, p.code]))
+    const inboundById = new Map((mustRows(inboundRes)).map((b) => [b.id, b.code]))
+    const expenseById = new Map((mustRows(expensesRes)).map((e) => [e.id, e.code]))
+    const poById = new Map((mustRows(poRes)).map((p) => [p.id, p.code]))
 
     // 每行核销的单据编号 + 链接
     const allocDoc = (a: AllocRow): { code: string; href: string | null } => {

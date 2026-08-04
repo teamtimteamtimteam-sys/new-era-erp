@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import NewOutputForm from './NewOutputForm'
 import { getTranslations } from '@/lib/i18n/server'
+import { mustRows } from '@/lib/db-helpers'
 
 export default async function NewOutputPage() {
     const supabase = await createClient()
@@ -36,8 +37,8 @@ export default async function NewOutputPage() {
 
     return (
         <NewOutputForm
-            materials={materialsRes.data ?? []}
-            customers={customersRes.data ?? []}
+            materials={mustRows(materialsRes)}
+            customers={mustRows(customersRes)}
         />
     )
 }

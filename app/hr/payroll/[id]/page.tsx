@@ -36,7 +36,7 @@ export default async function PayrollDetailPage({
             .eq('payroll_period_id', id),
         period.journal_entry_id
             ? supabase.from('journal_entries').select('id, code').eq('id', period.journal_entry_id).single()
-            : Promise.resolve({ data: null }),
+            : Promise.resolve({ data: null, error: null }),
     ])
 
     type LineRow = {

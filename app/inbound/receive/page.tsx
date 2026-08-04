@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import ReceiveForm, { type PoLineOption } from './ReceiveForm'
 import { getTranslations } from '@/lib/i18n/server'
+import { mustRows } from '@/lib/db-helpers'
 
 export default async function ReceivePage() {
     const supabase = await createClient()
@@ -39,9 +40,9 @@ export default async function ReceivePage() {
             <h1 className="text-2xl font-bold mb-6">{t('receive.title')}</h1>
 
             <ReceiveForm
-                suppliers={suppliersRes.data ?? []}
-                materials={materialsRes.data ?? []}
-                poLines={(poLinesRes.data ?? []) as PoLineOption[]}
+                suppliers={mustRows(suppliersRes)}
+                materials={mustRows(materialsRes)}
+                poLines={(mustRows(poLinesRes)) as PoLineOption[]}
             />
         </div>
     )

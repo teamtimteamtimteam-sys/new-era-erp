@@ -6,6 +6,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../../Subnav'
 import LeaveSubnav from '../LeaveSubnav'
 import LeaveForm, { type LeaveTypeOption, type EmployeeOption } from '../LeaveForm'
+import { mustRows } from '@/lib/db-helpers'
 
 export default async function NewLeavePage() {
     const supabase = await createClient()
@@ -29,8 +30,8 @@ export default async function NewLeavePage() {
             </div>
             <h2 className="text-xl font-bold mb-4">{t('leave.recordLeave')}</h2>
             <LeaveForm
-                types={(typeRes.data ?? []) as LeaveTypeOption[]}
-                employees={(empRes.data ?? []) as EmployeeOption[]}
+                types={(mustRows(typeRes)) as LeaveTypeOption[]}
+                employees={(mustRows(empRes)) as EmployeeOption[]}
                 allowException
                 redirectTo="/hr/leave"
             />

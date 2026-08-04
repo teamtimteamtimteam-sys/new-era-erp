@@ -9,6 +9,7 @@ import { stocktakeStatusLabelKey } from '../status'
 import { qtyDelta, formatSigned } from '../delta'
 import CountList, { type CountItem } from '../CountList'
 import CancelStocktakeButton from './CancelStocktakeButton'
+import { mustRows } from '@/lib/db-helpers'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type BatchFetchRow = {
@@ -72,7 +73,7 @@ export default async function StocktakeDetailPage({
     }
 
     const st = stRes.data
-    const lines = linesRes.data ?? []
+    const lines = mustRows(linesRes)
     const inbound = (inboundRes.data as unknown as BatchFetchRow[] | null) ?? []
     const output = (outputRes.data as unknown as BatchFetchRow[] | null) ?? []
 

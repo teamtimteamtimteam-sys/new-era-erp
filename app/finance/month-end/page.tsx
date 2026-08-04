@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../Subnav'
 import { formatMoney } from '@/lib/format'
+import { mustCount, mustOne, mustRows } from '@/lib/db-helpers'
 
 function monthRange(m: string): { start: string; end: string } {
     const [y, mo] = m.split('-').map(Number)
@@ -34,7 +35,8 @@ export default async function MonthEndPage({
         supabase.from('payroll_periods')
             .select('id, code, status, period_month, net_pay_total, employer_cpf_total, employee_cpf_total, other_deductions_total, cpf_paid_at, deductions_paid_at')
             .eq('period_month', start).is('deleted_at', null).maybeSingle(),
-        supabase.from('processing_cost_entries').select('id, cost_type, amount_base, is_estimate')
+        // 遮蔽视图,不是基表:amount_base 在基表上没有 SELECT(perm2b),直接选它 42501
+        supabase.from('processing_cost_entries_masked').select('id, cost_type, amount_base, is_estimate')
             .is('deleted_at', null).is('remitted_at', null).is('relieved_at', null)
             .lte('created_at', end + 'T23:59:59Z'),
         supabase.from('journal_entries').select('id, code')
@@ -43,20 +45,23 @@ export default async function MonthEndPage({
         supabase.from('fx_rates').select('id').eq('rate_date', end).eq('rate_type', 'mid').is('deleted_at', null),
     ])
 
-    const period = periodRes.data
+    // 【每一步的信号都必须真的读到】读不出来就抛,不许把失败渲染成 'done' ——
+    // 月结枢纽是最不能说谎的一页:七个信号原本全都 `?? []`,任何一次查询失败
+    // 都会让那一步显示"已完成",而它其实从没被检查过。见 lib/db-helpers 政策注释。
+    const period = mustOne(periodRes, 'payroll_periods')
     let unpaidLines = 0
     if (period && period.status === 'posted') {
-        const { count } = await supabase.from('payroll_lines')
+        unpaidLines = mustCount(await supabase.from('payroll_lines')
             .select('id', { count: 'exact', head: true })
-            .eq('payroll_period_id', period.id).is('paid_at', null)
-        unpaidLines = count ?? 0
+            .eq('payroll_period_id', period.id).is('paid_at', null), 'payroll_lines unpaid')
     }
-    const gaps = gapsRes.data ?? []
-    const accruals = accrualRes.data ?? []
+    const gaps = mustRows(gapsRes, 'fx_rate_gaps')
+    const accruals = mustRows(accrualRes, 'processing_cost_entries_masked')
     const cpfTotal = period ? Number(period.employer_cpf_total ?? 0) + Number(period.employee_cpf_total ?? 0) : 0
-    const revalued = (revalRes.data ?? []).length > 0
-    const midMissing = (midRes.data ?? []).length === 0
-    const locked = !!settingsRes.data?.locked_before && settingsRes.data.locked_before > end
+    const revalued = mustRows(revalRes, 'journal_entries revaluation').length > 0
+    const midMissing = mustRows(midRes, 'fx_rates mid').length === 0
+    const settings = mustOne(settingsRes, 'finance_settings')
+    const locked = !!settings?.locked_before && settings.locked_before > end
 
     type Step = { key: string; state: 'done' | 'outstanding' | 'blocked' | 'na'; detail: string; href: string }
     const steps: Step[] = [

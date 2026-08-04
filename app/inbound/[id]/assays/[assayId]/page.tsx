@@ -21,6 +21,7 @@ import { canViewPrices } from '@/lib/permissions'
 import { maskedExcept } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
 import { MaskedValue } from '@/app/components/MaskedValue'
+import { mustRows } from '@/lib/db-helpers'
 
 export default async function AssayDetailPage({
     params,
@@ -61,7 +62,7 @@ export default async function AssayDetailPage({
             .order('metal'),
         assay.superseded_by
             ? supabase.from('assay_results').select('id, code').eq('id', assay.superseded_by).single()
-            : Promise.resolve({ data: null }),
+            : Promise.resolve({ data: null, error: null }),
         // 该批次最近一次【已应用】的化验 —— 只有它才允许撤销(DB 也这么判)
         supabase
             .from('assay_results')
@@ -78,7 +79,7 @@ export default async function AssayDetailPage({
     const batch = maskedExcept<Tables<'inbound_batches'>, 'unit_price'>(batchRes.data)
     if (!batch) notFound()
 
-    const metals = metalsRes.data ?? []
+    const metals = mustRows(metalsRes)
     const isApplied = assay.applied_at !== null
     const isLatestApplied = isApplied && latestRes.data?.[0]?.id === assayId
 

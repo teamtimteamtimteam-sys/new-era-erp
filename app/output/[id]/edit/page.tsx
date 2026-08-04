@@ -11,6 +11,7 @@ import type { MovementRow } from '@/app/components/inventory/movementTypes'
 import SalePanel from './SalePanel'
 import StocktakeQuickCount from '@/app/stocktakes/StocktakeQuickCount'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
+import { mustRows } from '@/lib/db-helpers'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type MovementFetchRow = {
@@ -104,7 +105,7 @@ export default async function EditOutputPage({
     }
 
     // 金属含量行:服务端预格式化 updated_at,避免客户端水合不一致
-    const metalRows: MetalContentRow[] = (metalsRes.data ?? []).map((m) => ({
+    const metalRows: MetalContentRow[] = (mustRows(metalsRes)).map((m) => ({
         metal: m.metal,
         content_pct: m.content_pct,
         updated_at_display: new Date(m.updated_at).toLocaleString(dateLocale),
@@ -161,8 +162,8 @@ export default async function EditOutputPage({
 
             <EditOutputForm
                 batch={batch}
-                materials={materialsRes.data ?? []}
-                customers={customersRes.data ?? []}
+                materials={mustRows(materialsRes)}
+                customers={mustRows(customersRes)}
             />
 
             <MetalContentPanel
@@ -178,7 +179,7 @@ export default async function EditOutputPage({
                     remainingQty={batch.remaining_qty}
                     unit={batch.unit}
                     state={batch.state}
-                    customers={customersRes.data ?? []}
+                    customers={mustRows(customersRes)}
                     batchCustomerId={batch.customer_id}
                 />
             ) : (

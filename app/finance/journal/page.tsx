@@ -10,6 +10,7 @@ import { formatMoney } from '@/lib/format'
 import Subnav from '../Subnav'
 import JournalToolbar from './JournalToolbar'
 import { resolveSourceHrefs, sourceHrefKey } from '../sourceLinks'
+import { mustRows } from '@/lib/db-helpers'
 
 const JOURNAL_PAGE_SIZE = 20
 
@@ -82,11 +83,11 @@ export default async function JournalListPage({
     const [linesRes, hrefs] = await Promise.all([
         ids.length
             ? supabase.from('journal_lines').select('entry_id, debit').in('entry_id', ids)
-            : Promise.resolve({ data: [] as { entry_id: string; debit: number }[] }),
+            : Promise.resolve({ data: [] as { entry_id: string; debit: number }[], error: null }),
         resolveSourceHrefs(supabase, rows),
     ])
     const amountByEntry = new Map<string, number>()
-    for (const l of linesRes.data ?? []) {
+    for (const l of mustRows(linesRes)) {
         amountByEntry.set(l.entry_id, (amountByEntry.get(l.entry_id) ?? 0) + l.debit)
     }
 

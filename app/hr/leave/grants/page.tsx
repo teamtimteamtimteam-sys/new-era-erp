@@ -7,6 +7,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../../Subnav'
 import LeaveSubnav from '../LeaveSubnav'
 import GrantRunner from './GrantRunner'
+import { mustRows } from '@/lib/db-helpers'
 
 export default async function GrantsPage({
     searchParams,
@@ -21,7 +22,7 @@ export default async function GrantsPage({
         .select('employee_id, grant_type, days, leave_year')
         .eq('leave_type_code', 'annual').is('deleted_at', null)
 
-    const grants = grantRes.data ?? []
+    const grants = mustRows(grantRes)
     const hasCarry = new Set(
         grants.filter((g) => g.leave_year === year && g.grant_type === 'carry_forward').map((g) => g.employee_id))
 

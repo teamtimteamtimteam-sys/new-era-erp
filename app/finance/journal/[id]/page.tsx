@@ -58,7 +58,7 @@ export default async function JournalDetailPage({
     const [reversedByRes, reversalOfRes, hrefs] = await Promise.all([
         entry.reversed_by
             ? supabase.from('journal_entries').select('id, code').eq('id', entry.reversed_by).single()
-            : Promise.resolve({ data: null }),
+            : Promise.resolve({ data: null, error: null }),
         supabase.from('journal_entries').select('id, code').eq('reversed_by', id).maybeSingle(),
         resolveSourceHrefs(supabase, [entry]),
     ])

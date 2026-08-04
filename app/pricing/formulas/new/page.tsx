@@ -5,6 +5,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../../Subnav'
 import FormulaForm, { EMPTY_FORMULA, type PartyOption } from '../FormulaForm'
 import { createFormula } from '../actions'
+import { mustRows } from '@/lib/db-helpers'
 
 export default async function NewFormulaPage() {
     const supabase = await createClient()
@@ -15,8 +16,8 @@ export default async function NewFormulaPage() {
         supabase.from('customers').select('id, legal_name').is('deleted_at', null).order('legal_name'),
     ])
 
-    const suppliers: PartyOption[] = (supRes.data ?? []).map((s) => ({ id: s.id, name: s.legal_name }))
-    const customers: PartyOption[] = (cusRes.data ?? []).map((c) => ({ id: c.id, name: c.legal_name }))
+    const suppliers: PartyOption[] = (mustRows(supRes)).map((s) => ({ id: s.id, name: s.legal_name }))
+    const customers: PartyOption[] = (mustRows(cusRes)).map((c) => ({ id: c.id, name: c.legal_name }))
 
     return (
         <div className="p-8">

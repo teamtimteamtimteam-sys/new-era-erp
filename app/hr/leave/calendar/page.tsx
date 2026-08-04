@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import Subnav from '../../Subnav'
 import LeaveSubnav from '../LeaveSubnav'
+import { mustRows } from '@/lib/db-helpers'
 
 export default async function LeaveCalendarPage({
     searchParams,
@@ -27,7 +28,7 @@ export default async function LeaveCalendarPage({
             .eq('is_active', true).gte('holiday_date', first).lte('holiday_date', last),
     ])
 
-    const holidayByDate = new Map((holRes.data ?? []).map((h) => [h.holiday_date, h]))
+    const holidayByDate = new Map((mustRows(holRes)).map((h) => [h.holiday_date, h]))
     const days: string[] = []
     for (let d = 1; d <= lastDate.getDate(); d++) {
         days.push(`${month}-${String(d).padStart(2, '0')}`)
@@ -54,7 +55,7 @@ export default async function LeaveCalendarPage({
                 {days.map((d) => {
                     const dow = new Date(d + 'T00:00:00').getDay()
                     const hol = holidayByDate.get(d)
-                    const on = (leaveRes.data ?? []).filter(
+                    const on = (mustRows(leaveRes)).filter(
                         (r) => (r.start_date ?? '') <= d && (r.end_date ?? '') >= d
                     )
                     return (

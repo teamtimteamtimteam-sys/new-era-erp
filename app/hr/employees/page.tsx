@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import Subnav from '../Subnav'
 import EmployeesToolbar, { type DeptOption } from './EmployeesToolbar'
+import { mustRows } from '@/lib/db-helpers'
 
 const PAGE_SIZE = 20
 
@@ -90,7 +91,7 @@ export default async function EmployeesPage({
     ])
 
     const rows = (rowsRes.data as unknown as Row[] | null) ?? []
-    const departments: DeptOption[] = (deptRes.data ?? []).map((d) => ({
+    const departments: DeptOption[] = (mustRows(deptRes)).map((d) => ({
         id: d.id,
         label: `${d.code} — ${locale === 'zh' ? d.name_zh : d.name_en}`,
     }))

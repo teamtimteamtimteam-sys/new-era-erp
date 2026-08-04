@@ -12,6 +12,7 @@ import Subnav from '../../Subnav'
 import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachmentsPanel'
 import { unmasked } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
+import { mustRows } from '@/lib/db-helpers'
 
 type AllocRow = {
     id: string
@@ -59,7 +60,7 @@ export default async function ReceivableDocPage({
             .single(),
         sale.customer_id
             ? supabase.from('customers').select('legal_name').eq('id', sale.customer_id).single()
-            : Promise.resolve({ data: null }),
+            : Promise.resolve({ data: null, error: null }),
         supabase
             .from('payment_allocations')
             .select('id, allocated_base, payments(id, code, payment_date, status)')
@@ -73,7 +74,7 @@ export default async function ReceivableDocPage({
             .order('created_at', { ascending: true }),
         sale.cogs_entry_id
             ? supabase.from('journal_entries').select('id, code').eq('id', sale.cogs_entry_id).single()
-            : Promise.resolve({ data: null }),
+            : Promise.resolve({ data: null, error: null }),
         supabase
             .from('finance_attachments')
             .select('id, file_name, file_path, file_size, mime_type, doc_type, notes, created_at')
@@ -102,7 +103,7 @@ export default async function ReceivableDocPage({
     const open = Math.round((sale.amount_base - settled) * 100) / 100
 
     // 在服务端按当前语言格式化时间,再传给客户端面板 —— 避免客户端 toLocaleString 引发水合不一致
-    const attachments = (attachRes.data ?? []).map((a) => ({
+    const attachments = (mustRows(attachRes)).map((a) => ({
         id: a.id,
         file_name: a.file_name,
         file_path: a.file_path,
@@ -114,7 +115,7 @@ export default async function ReceivableDocPage({
     }))
 
     const journals = [
-        ...(revenueRes.data ?? []),
+        ...(mustRows(revenueRes)),
         ...(cogsRes.data ? [cogsRes.data] : []),
     ]
 

@@ -9,6 +9,7 @@ import { updateFormula } from '../../actions'
 import DeleteFormulaButton from './DeleteFormulaButton'
 import { unmasked } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
+import { mustRows } from '@/lib/db-helpers'
 
 export default async function EditFormulaPage({
     params,
@@ -52,12 +53,12 @@ export default async function EditFormulaPage({
         notes: formula.notes ?? '',
         is_active: formula.is_active,
         payables: Object.fromEntries(
-            (metalsRes.data ?? []).map((m) => [m.metal, String(m.payable_pct)])
+            (mustRows(metalsRes)).map((m) => [m.metal, String(m.payable_pct)])
         ),
     }
 
-    const suppliers: PartyOption[] = (supRes.data ?? []).map((s) => ({ id: s.id, name: s.legal_name }))
-    const customers: PartyOption[] = (cusRes.data ?? []).map((c) => ({ id: c.id, name: c.legal_name }))
+    const suppliers: PartyOption[] = (mustRows(supRes)).map((s) => ({ id: s.id, name: s.legal_name }))
+    const customers: PartyOption[] = (mustRows(cusRes)).map((c) => ({ id: c.id, name: c.legal_name }))
 
     const updateWithId = updateFormula.bind(null, id)
 

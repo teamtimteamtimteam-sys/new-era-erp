@@ -8,6 +8,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatMoney } from '@/lib/format'
 import Subnav from '../../Subnav'
 import { statusPillClass } from '../../reviews/reviewShared'
+import { mustRows } from '@/lib/db-helpers'
 
 export default async function EmployeeDetailPage({
     params,
@@ -38,10 +39,10 @@ export default async function EmployeeDetailPage({
             .maybeSingle(),
         emp.department_id
             ? supabase.from('departments').select('code, name_en, name_zh').eq('id', emp.department_id).single()
-            : Promise.resolve({ data: null }),
+            : Promise.resolve({ data: null, error: null }),
         emp.manager_id
             ? supabase.from('employees').select('id, code, legal_name').eq('id', emp.manager_id).single()
-            : Promise.resolve({ data: null }),
+            : Promise.resolve({ data: null, error: null }),
         supabase
             .from('employment_history')
             .select('id, effective_date, change_type, job_title, department_id, employment_type, employment_status, notes')
@@ -86,15 +87,15 @@ export default async function EmployeeDetailPage({
         : { data: [] as { id: string; name: string }[] }
     const reviewCycleById = new Map((reviewCycles ?? []).map((c) => [c.id, c.name]))
     const ratingNameByCode = new Map(
-        ((ratingScaleRes.data ?? []) as { code: string; name_en: string; name_zh: string }[]).map((s) => [
+        ((mustRows(ratingScaleRes)) as { code: string; name_en: string; name_zh: string }[]).map((s) => [
             s.code,
             locale === 'zh' ? s.name_zh : s.name_en,
         ])
     )
 
     const dir = dirRes.data
-    const history = historyRes.data ?? []
-    const training = trainingRes.data ?? []
+    const history = mustRows(historyRes)
+    const training = mustRows(trainingRes)
     type PayRow = {
         id: string
         gross_pay: number

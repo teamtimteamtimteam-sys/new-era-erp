@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import Subnav from '../Subnav'
 import { requireManagePermissions } from '../guard'
+import { mustRows } from '@/lib/db-helpers'
 
 type Perm = {
     code: string
@@ -42,9 +43,9 @@ export default async function ReferencePage() {
             .select('permission_code, roles(code, name_en, name_zh, deleted_at)'),
     ])
 
-    const perms = (permRes.data ?? []) as Perm[]
+    const perms = (mustRows(permRes)) as Perm[]
     const holders = new Map<string, { code: string; name_en: string; name_zh: string }[]>()
-    for (const g of (grantRes.data ?? []) as unknown as {
+    for (const g of (mustRows(grantRes)) as unknown as {
         permission_code: string
         roles: { code: string; name_en: string; name_zh: string; deleted_at: string | null } | null
     }[]) {

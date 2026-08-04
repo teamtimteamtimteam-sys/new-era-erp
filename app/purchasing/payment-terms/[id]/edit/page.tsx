@@ -9,6 +9,7 @@ import TemplateForm from '../../TemplateForm'
 import type { TemplateLineInput } from '../../actions'
 import { maskedRows } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
+import { mustRows } from '@/lib/db-helpers'
 
 export default async function EditTemplatePage({
     params,
@@ -38,7 +39,7 @@ export default async function EditTemplatePage({
     }
 
     // 遮蔽的是 fixed_amount_usd;label/trigger_event 等恢复基表类型。
-    const lines: TemplateLineInput[] = maskedRows<Tables<'payment_term_template_lines'>, 'fixed_amount_usd'>(lineRes.data).map((l) => ({
+    const lines: TemplateLineInput[] = maskedRows<Tables<'payment_term_template_lines'>, 'fixed_amount_usd'>(mustRows(lineRes)).map((l) => ({
         label: l.label,
         mode: l.percentage !== null ? ('percentage' as const) : ('fixed' as const),
         percentage: l.percentage !== null ? String(l.percentage) : '',

@@ -111,7 +111,11 @@ CREATE INDEX idx_processing_cost_entries_run
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 processing_cost_entries_masked 读取。
 -- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
 REVOKE SELECT ON public.processing_cost_entries FROM authenticated, anon;
-GRANT SELECT (id, run_id, cost_type, is_estimate, notes, deleted_at, created_at, created_by, updated_at, updated_by)
+-- 【加列必改这一行】列清单 SELECT 授权不会自动延伸到 ALTER 加的新列(表级
+-- INSERT/UPDATE 会)。FIN-6 加的四列结算列漏在清单外,页面因此 42501 且静默空白。
+-- db/gate.py 的【列权限缺口】判据现在会当场点名,别再靠人点开页面发现。
+GRANT SELECT (id, run_id, cost_type, is_estimate, notes, deleted_at, created_at, created_by, updated_at, updated_by,
+              remitted_at, remitted_journal_entry_id, relieved_at, relief_expense_id)
     ON public.processing_cost_entries TO authenticated;
 
 -- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)

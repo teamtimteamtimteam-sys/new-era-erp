@@ -13,6 +13,7 @@ import NewOrderForm, {
 } from './NewOrderForm'
 import { maskedRows } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
+import { mustRows } from '@/lib/db-helpers'
 
 export default async function NewOrderPage() {
     const supabase = await createClient()
@@ -63,21 +64,21 @@ export default async function NewOrderPage() {
         )
     }
 
-    const suppliers: SupplierOption[] = (suppliersRes.data ?? []).map((s) => ({
+    const suppliers: SupplierOption[] = (mustRows(suppliersRes)).map((s) => ({
         id: s.id,
         name: s.legal_name,
         default_template_id: s.default_payment_term_template_id,
     }))
-    const materials: MaterialOption[] = (materialsRes.data ?? []).map((m) => ({
+    const materials: MaterialOption[] = (mustRows(materialsRes)).map((m) => ({
         id: m.id,
         label: `${m.code} — ${m.name}`,
     }))
-    const formulas: FormulaOption[] = (formulasRes.data ?? []).map((f) => ({
+    const formulas: FormulaOption[] = (mustRows(formulasRes)).map((f) => ({
         id: f.id,
         label: `${f.code} — ${f.name}`,
     }))
     const linesByTpl = new Map<string, TemplateOption['lines']>()
-    for (const l of maskedRows<Tables<'payment_term_template_lines'>, 'fixed_amount_usd'>(tplLinesRes.data)) {
+    for (const l of maskedRows<Tables<'payment_term_template_lines'>, 'fixed_amount_usd'>(mustRows(tplLinesRes))) {
         const arr = linesByTpl.get(l.template_id) ?? []
         arr.push({
             label: l.label,
@@ -88,7 +89,7 @@ export default async function NewOrderPage() {
         })
         linesByTpl.set(l.template_id, arr)
     }
-    const templates: TemplateOption[] = (templatesRes.data ?? []).map((tpl) => ({
+    const templates: TemplateOption[] = (mustRows(templatesRes)).map((tpl) => ({
         id: tpl.id,
         name: tpl.name,
         lines: linesByTpl.get(tpl.id) ?? [],

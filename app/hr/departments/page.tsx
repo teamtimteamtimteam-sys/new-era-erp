@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../Subnav'
 import DeleteDepartmentButton from './DeleteDepartmentButton'
+import { mustRows } from '@/lib/db-helpers'
 
 export default async function DepartmentsPage() {
     const supabase = await createClient()
@@ -20,10 +21,10 @@ export default async function DepartmentsPage() {
         supabase.from('employees').select('department_id').is('deleted_at', null),
     ])
 
-    const departments = deptRes.data ?? []
+    const departments = mustRows(deptRes)
     const nameById = new Map(departments.map((d) => [d.id, `${d.code} — ${d.name_en}`]))
     const countByDept = new Map<string, number>()
-    for (const e of empRes.data ?? []) {
+    for (const e of mustRows(empRes)) {
         if (e.department_id) countByDept.set(e.department_id, (countByDept.get(e.department_id) ?? 0) + 1)
     }
 

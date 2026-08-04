@@ -152,6 +152,49 @@ Deliberately NOT part of db/gate.py: it needs a dev server and minutes — a
 slow gate is a skipped gate (the check_mirrors lesson). Run it after touching
 page-level rendering, and after any bug a human finds by clicking.
 
+## Adding a column to a masked table: extend the grant, or it is invisible
+
+`perm2b` converted the masked tables to **column-list** SELECT grants
+(`REVOKE SELECT ON t; GRANT SELECT (a, b, c) ON t`). PostgreSQL treats the two
+verbs differently, and this asymmetry is the whole hazard:
+
+* table-level **INSERT/UPDATE** grants *auto-extend* to columns added later;
+* a column-list **SELECT** grant does **not** — the list is frozen.
+
+So `ALTER TABLE ... ADD COLUMN` on a masked table produces a column the app can
+write but cannot read. Every query selecting it, **or merely filtering on it**,
+fails `42501`. FIN-6 did exactly this to `processing_cost_entries`, and
+`/finance/processing-costs` plus the month-end cost step were empty from the day
+they shipped, with every gate green.
+
+**Adding a column to a masked table therefore means, in the same migration:**
+1. add it to the column-list SELECT grant (non-sensitive), or deliberately leave
+   it out (sensitive — readable only through the `_masked` view); and
+2. add it to the `<table>_masked` view.
+
+`db/gate.py` now asserts this (`colgrant` line, both live and rebuild): every
+column of a masked table must be either SELECT-granted or present in the masked
+view. Anything else is named and fails the gate. `check_mirrors` cannot see it —
+it does not compare GRANTs — which is why the check lives in the gate.
+
+## A failed query must fail — never `?? []`
+
+`lib/db-helpers.ts` exports `mustRows` / `mustOne` / `mustCount`. **Use them for
+every query result.** They throw on `error` and return the empty value only when
+the query genuinely succeeded with no rows.
+
+The rule they enforce is the same one `scripts/smoke-routes.mjs` applies in
+`restRows` and `scripts/check-i18n.mjs` applies to suffix parsing: **a failure is
+not an empty set.** Written in three places, it is one policy.
+
+Why it matters here specifically: `entriesRes.data ?? []` turns a permission
+error into an empty array, so the page returns **HTTP 200 saying "nothing
+outstanding"**. The route smoke test asserts 2xx and sails straight past it — a
+page that cannot read its data must *error*, or no gate can ever catch it.
+
+`?? []` remains correct for things that are not query results: nested relation
+fields on an already-fetched row, `Map.get(...) ?? 0`, client-side state.
+
 ## Test data that reads wrong on purpose
 
 Anything that looks wrong in the test database but is known, accepted, and

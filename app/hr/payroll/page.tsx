@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatMoney } from '@/lib/format'
 import Subnav from '../Subnav'
+import { mustRows } from '@/lib/db-helpers'
 
 export default async function PayrollListPage() {
     const supabase = await createClient()
@@ -19,9 +20,9 @@ export default async function PayrollListPage() {
         supabase.from('payroll_lines').select('payroll_period_id'),
     ])
 
-    const periods = periodsRes.data ?? []
+    const periods = mustRows(periodsRes)
     const countByPeriod = new Map<string, number>()
-    for (const l of linesRes.data ?? []) {
+    for (const l of mustRows(linesRes)) {
         countByPeriod.set(l.payroll_period_id, (countByPeriod.get(l.payroll_period_id) ?? 0) + 1)
     }
 

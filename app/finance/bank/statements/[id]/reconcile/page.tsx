@@ -6,6 +6,7 @@ import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../../../../Subnav'
+import { mustRows } from '@/lib/db-helpers'
 import ReconcileWorkspace, {
     type StatementLine,
     type Candidate,
@@ -59,7 +60,7 @@ export default async function ReconcilePage({
             .order('entry_date', { ascending: true }),
     ])
 
-    const rawLines = linesRes.data ?? []
+    const rawLines = mustRows(linesRes)
 
     // 已匹配行配到的分录(页级一次 .in;用于在行下方展示 entry code + 链接)
     const matchedLineIds = rawLines.filter((l) => l.match_status === 'matched').map((l) => l.id)
@@ -91,7 +92,7 @@ export default async function ReconcilePage({
         matches: matchesByLine.get(l.id) ?? [],
     }))
 
-    const candidates: Candidate[] = ((candidatesRes.data ?? []) as unknown as Candidate[]).map((c) => ({
+    const candidates: Candidate[] = ((mustRows(candidatesRes)) as unknown as Candidate[]).map((c) => ({
         journal_line_id: c.journal_line_id,
         entry_id: c.entry_id,
         entry_code: c.entry_code,

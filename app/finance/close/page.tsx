@@ -11,6 +11,7 @@ import Subnav from '../Subnav'
 import PeriodPicker, { type PeriodOption } from './PeriodPicker'
 import CloseButton from './CloseButton'
 import ReopenForm from './ReopenForm'
+import { mustRows } from '@/lib/db-helpers'
 
 type CloseRow = {
     id: string
@@ -58,7 +59,7 @@ export default async function ClosePage({
     }
 
     const lockedBefore = settingsRes.data?.locked_before ?? null
-    const closes = (closesRes.data ?? []) as CloseRow[]
+    const closes = (mustRows(closesRes)) as CloseRow[]
     const activeCloses = new Set(closes.filter((c) => !c.reopened_at).map((c) => c.period_end))
 
     // 最近 12 个月末;已有活跃关账或早于期间锁的禁选

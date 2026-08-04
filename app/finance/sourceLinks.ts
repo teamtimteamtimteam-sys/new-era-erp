@@ -3,6 +3,7 @@
 // 页级规模下开销可忽略;解析不到(单据已删/类型无落点)→ 无链接,纯文本展示。
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/database.types'
+import { mustRows } from '@/lib/db-helpers'
 
 export type SourceRef = { source_type: string | null; source_id: string | null }
 
@@ -33,30 +34,30 @@ export async function resolveSourceHrefs(
         // sale → sales_records.output_batch_id → 产出批次编辑页
         saleIds.length
             ? supabase.from('sales_records').select('id, output_batch_id').in('id', saleIds)
-            : Promise.resolve({ data: [] as { id: string; output_batch_id: string }[] }),
+            : Promise.resolve({ data: [] as { id: string; output_batch_id: string }[], error: null }),
         // processing_cost → 成本行的 run → 加工单详情
         costIds.length
             ? supabase.from('processing_cost_entries').select('id, run_id').in('id', costIds)
-            : Promise.resolve({ data: [] as { id: string; run_id: string }[] }),
+            : Promise.resolve({ data: [] as { id: string; run_id: string }[], error: null }),
         // writeoff 的 source_id 是批次 id,但不知道在哪张表 —— 两边都查,命中即得
         writeoffIds.length
             ? supabase.from('inbound_batches').select('id').in('id', writeoffIds)
-            : Promise.resolve({ data: [] as { id: string }[] }),
+            : Promise.resolve({ data: [] as { id: string }[], error: null }),
         writeoffIds.length
             ? supabase.from('output_batches').select('id').in('id', writeoffIds)
-            : Promise.resolve({ data: [] as { id: string }[] }),
+            : Promise.resolve({ data: [] as { id: string }[], error: null }),
     ])
 
-    for (const s of salesRes.data ?? []) {
+    for (const s of mustRows(salesRes)) {
         hrefs.set(`sale:${s.id}`, `/output/${s.output_batch_id}/edit`)
     }
-    for (const c of costRes.data ?? []) {
+    for (const c of mustRows(costRes)) {
         hrefs.set(`processing_cost:${c.id}`, `/processing/${c.run_id}`)
     }
-    for (const b of inWoRes.data ?? []) {
+    for (const b of mustRows(inWoRes)) {
         hrefs.set(`writeoff:${b.id}`, `/inbound/${b.id}/edit`)
     }
-    for (const b of outWoRes.data ?? []) {
+    for (const b of mustRows(outWoRes)) {
         hrefs.set(`writeoff:${b.id}`, `/output/${b.id}/edit`)
     }
     // 直接可拼的:purchase → 进料批次;allocation → 加工单;stocktake → 盘点单

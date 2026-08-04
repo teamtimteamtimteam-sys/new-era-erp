@@ -13,6 +13,7 @@
 import type { createClient } from '@/lib/supabase/server'
 import { STAGE_OPTIONS } from './options'
 import { parseDateRange } from '@/lib/dateFilter'
+import { mustRows } from '@/lib/db-helpers'
 
 // page.tsx 和 route.ts 都是服务端,这里只借用 server client 的"类型",不引入它的运行时。
 type ServerSupabase = Awaited<ReturnType<typeof createClient>>
@@ -109,8 +110,8 @@ export async function resolveInboundSearchIds(
             .ilike('legal_name', pattern),
     ])
     return {
-        materialIds: (matRes.data ?? []).map((r) => r.id),
-        supplierIds: (supRes.data ?? []).map((r) => r.id),
+        materialIds: (mustRows(matRes)).map((r) => r.id),
+        supplierIds: (mustRows(supRes)).map((r) => r.id),
     }
 }
 

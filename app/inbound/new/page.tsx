@@ -4,6 +4,7 @@
 import { createClient } from '@/lib/supabase/server'
 import NewInboundForm, { type PoLineOption } from './NewInboundForm'
 import { getTranslations } from '@/lib/i18n/server'
+import { mustRows } from '@/lib/db-helpers'
 
 export default async function NewInboundPage({
     searchParams,
@@ -47,9 +48,9 @@ export default async function NewInboundPage({
 
     return (
         <NewInboundForm
-            materials={materialsRes.data ?? []}
-            suppliers={suppliersRes.data ?? []}
-            poLines={(poLinesRes.data ?? []) as PoLineOption[]}
+            materials={mustRows(materialsRes)}
+            suppliers={mustRows(suppliersRes)}
+            poLines={(mustRows(poLinesRes)) as PoLineOption[]}
             initialPoId={sp.po ?? ''}
         />
     )

@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../../Subnav'
 import NewInvoiceForm, { type CustomerOption, type SaleOption } from './NewInvoiceForm'
+import { mustRows } from '@/lib/db-helpers'
 
 type SaleFetchRow = {
     id: string
@@ -61,7 +62,7 @@ export default async function NewInvoicePage() {
         .eq('invoice_voided', false)
     const taken = new Set((takenRows ?? []).map((r) => r.sales_record_id))
 
-    const customers: CustomerOption[] = (customersRes.data ?? []).map((c) => ({
+    const customers: CustomerOption[] = (mustRows(customersRes)).map((c) => ({
         id: c.id,
         name: c.legal_name,
         payment_terms_days: c.payment_terms_days,
