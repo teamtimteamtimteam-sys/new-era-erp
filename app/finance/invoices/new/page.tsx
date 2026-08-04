@@ -15,7 +15,7 @@ type SaleFetchRow = {
     quantity: number
     unit_price: number
     currency: string
-    amount_usd: number
+    amount_base: number
     sale_date: string
     output_batches: {
         code: string
@@ -36,7 +36,7 @@ export default async function NewInvoicePage() {
             .order('legal_name'),
         supabase
             .from('sales_records_masked')
-            .select('id, customer_id, quantity, unit_price, currency, amount_usd, sale_date, output_batches(code, unit, materials(name))')
+            .select('id, customer_id, quantity, unit_price, currency, amount_base, sale_date, output_batches(code, unit, materials(name))')
             .order('sale_date', { ascending: false }),
         supabase.from('finance_settings').select('gst_registered, gst_rate_pct').limit(1).single(),
     ])
@@ -79,7 +79,7 @@ export default async function NewInvoicePage() {
             unit: s.output_batches?.unit ?? 'kg',
             unit_price: s.unit_price,
             currency: s.currency,
-            amount_usd: s.amount_usd,
+            amount_base: s.amount_base,
         }))
 
     return (

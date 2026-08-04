@@ -17,7 +17,7 @@ const initialState: ApplyPrepaymentState = {}
 
 export type PrepaymentApplicationRow = {
     id: string
-    amount_usd: number
+    amount_base: number
     created_at_display: string
     journal_id: string | null
     journal_code: string | null
@@ -32,9 +32,9 @@ export default function PrepaymentPanel({
     applicable: {
         purchase_order_id: string
         po_code: string
-        batch_ap_open_usd: number
-        po_unapplied_prepayment_usd: number
-        applicable_usd: number
+        batch_ap_open_base: number
+        po_unapplied_prepayment_base: number
+        applicable_base: number
     } | null
     history: PrepaymentApplicationRow[]
 }) {
@@ -69,20 +69,20 @@ export default function PrepaymentPanel({
                         </div>
                         <div>
                             <span className="text-gray-600 mr-1">{t('purchasing.remainingLabel')}:</span>
-                            <span className="font-mono">{formatMoney(applicable.po_unapplied_prepayment_usd)}</span>
+                            <span className="font-mono">{formatMoney(applicable.po_unapplied_prepayment_base)}</span>
                         </div>
                         <div>
                             <span className="text-gray-600 mr-1">{t('finance.colOpen')}:</span>
-                            <span className="font-mono">{formatMoney(applicable.batch_ap_open_usd)}</span>
+                            <span className="font-mono">{formatMoney(applicable.batch_ap_open_base)}</span>
                         </div>
                         <div>
                             <span className="text-gray-600 mr-1">{t('purchasing.applicableAmount')}:</span>
-                            <span className="font-mono font-medium">{formatMoney(applicable.applicable_usd)}</span>
+                            <span className="font-mono font-medium">{formatMoney(applicable.applicable_base)}</span>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
                         {/* key 让服务端重读后的新默认值生效(受控默认仅初始一次)*/}
-                        <AmountInput key={applicable.applicable_usd} defaultAmount={applicable.applicable_usd} />
+                        <AmountInput key={applicable.applicable_base} defaultAmount={applicable.applicable_base} />
                         <button
                             type="submit"
                             disabled={isPending}
@@ -102,7 +102,7 @@ export default function PrepaymentPanel({
                             {history.map((h) => (
                                 <tr key={h.id}>
                                     <td className="border border-gray-300 px-3 py-1.5 text-right font-mono w-32">
-                                        {formatMoney(h.amount_usd)}
+                                        {formatMoney(h.amount_base)}
                                     </td>
                                     <td className="border border-gray-300 px-3 py-1.5 text-gray-600">
                                         {h.created_at_display}
@@ -129,7 +129,7 @@ export default function PrepaymentPanel({
     )
 }
 
-// 金额输入拆成小组件:父级用 key={applicable_usd} 重挂,接住
+// 金额输入拆成小组件:父级用 key={applicable_base} 重挂,接住
 // "apply 成功 → 服务端重读 → 可抵扣缩小 → 新默认值"的循环
 function AmountInput({ defaultAmount }: { defaultAmount: number }) {
     const [value, setValue] = useState(String(defaultAmount))

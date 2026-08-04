@@ -14,7 +14,7 @@ import ReverseExpenseButton from './ReverseExpenseButton'
 
 type AllocRow = {
     id: string
-    allocated_usd: number
+    allocated_base: number
     payments: {
         id: string
         code: string
@@ -36,7 +36,7 @@ export default async function ExpenseDetailPage({
 
     const { data: expense, error } = await supabase
         .from('expenses')
-        .select('id, code, expense_date, account_code, amount_ccy, currency, fx_rate, amount_usd, payment_status, bank_account_code, supplier_id, payee_name, notes, journal_entry_id, status, reversed_by_expense')
+        .select('id, code, expense_date, account_code, amount_ccy, currency, fx_rate, amount_base, payment_status, bank_account_code, supplier_id, payee_name, notes, journal_entry_id, status, reversed_by_expense')
         .eq('id', id)
         .single()
 
@@ -60,7 +60,7 @@ export default async function ExpenseDetailPage({
                 : Promise.resolve({ data: null }),
             supabase
                 .from('payment_allocations')
-                .select('id, allocated_usd, payments(id, code, payment_date, status)')
+                .select('id, allocated_base, payments(id, code, payment_date, status)')
                 .eq('expense_id', id)
                 .order('created_at', { ascending: true }),
             expense.reversed_by_expense
@@ -93,9 +93,9 @@ export default async function ExpenseDetailPage({
         Math.round(
             allocs
                 .filter((a) => a.payments?.status === 'posted')
-                .reduce((s, a) => s + a.allocated_usd, 0) * 100
+                .reduce((s, a) => s + a.allocated_base, 0) * 100
         ) / 100
-    const open = Math.round((expense.amount_usd - settled) * 100) / 100
+    const open = Math.round((expense.amount_base - settled) * 100) / 100
 
     // 在服务端按当前语言格式化时间,再传给客户端面板 —— 避免客户端水合不一致
     const attachments = (attachRes.data ?? []).map((a) => ({
@@ -165,7 +165,7 @@ export default async function ExpenseDetailPage({
                     </span>
                     {expense.currency !== 'USD' && (
                         <span className="text-gray-500 ml-1 font-mono">
-                            @ {expense.fx_rate} = {formatMoney(expense.amount_usd)} USD
+                            @ {expense.fx_rate} = {formatMoney(expense.amount_base)} USD
                         </span>
                     )}
                 </div>
@@ -287,7 +287,7 @@ export default async function ExpenseDetailPage({
                                                 (reversed ? ' line-through' : '')
                                             }
                                         >
-                                            {formatMoney(a.allocated_usd)}
+                                            {formatMoney(a.allocated_base)}
                                         </td>
                                         <td className="border border-gray-300 px-4 py-2 text-sm">
                                             {reversed ? (

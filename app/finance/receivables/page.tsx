@@ -18,9 +18,9 @@ type ArRow = {
     customer_id: string | null
     customer_name: string | null
     sale_date: string
-    amount_usd: number
-    settled_usd: number
-    open_usd: number
+    amount_base: number
+    settled_base: number
+    open_base: number
     days_outstanding: number
     bucket: string
 }
@@ -57,10 +57,10 @@ export default async function ReceivablesPage() {
     const rows = (data as unknown as ArRow[] | null) ?? []
 
     // 汇总:未结合计 + 分档
-    const totalOpen = Math.round(rows.reduce((s, r) => s + r.open_usd, 0) * 100) / 100
+    const totalOpen = Math.round(rows.reduce((s, r) => s + r.open_base, 0) * 100) / 100
     const bucketTotals = new Map<string, number>()
     for (const r of rows) {
-        bucketTotals.set(r.bucket, (bucketTotals.get(r.bucket) ?? 0) + r.open_usd)
+        bucketTotals.set(r.bucket, (bucketTotals.get(r.bucket) ?? 0) + r.open_base)
     }
 
     // 按客户分组,组内保持 sale_date 升序;客户按未结额倒序
@@ -73,9 +73,9 @@ export default async function ReceivablesPage() {
             groupMap.set(key, g)
         }
         g.rows.push(r)
-        g.amount += r.amount_usd
-        g.settled += r.settled_usd
-        g.open += r.open_usd
+        g.amount += r.amount_base
+        g.settled += r.settled_base
+        g.open += r.open_base
     }
     const groups = Array.from(groupMap.values()).sort((a, b) => b.open - a.open)
 
@@ -153,13 +153,13 @@ export default async function ReceivablesPage() {
                                         </td>
                                         <td className="border border-gray-300 px-4 py-2">{r.sale_date}</td>
                                         <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                            {formatMoney(r.amount_usd)}
+                                            {formatMoney(r.amount_base)}
                                         </td>
                                         <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                            {formatMoney(r.settled_usd)}
+                                            {formatMoney(r.settled_base)}
                                         </td>
                                         <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm font-medium">
-                                            {formatMoney(r.open_usd)}
+                                            {formatMoney(r.open_base)}
                                         </td>
                                         <td className="border border-gray-300 px-4 py-2">
                                             <span className={'px-2 py-1 rounded text-xs ' + bucketPillClass(r.bucket)}>

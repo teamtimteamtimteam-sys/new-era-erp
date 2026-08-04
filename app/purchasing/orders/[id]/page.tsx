@@ -83,29 +83,29 @@ export default async function PurchaseOrderDetailPage({
             ? supabase.from('pricing_formulas').select('id, code, name').in('id', formulaIds)
             : Promise.resolve({ data: [] as { id: string; code: string; name: string }[] }),
         batchIds.length
-            ? supabase.from('ap_open_items').select('inbound_batch_id, open_usd').in('inbound_batch_id', batchIds)
-            : Promise.resolve({ data: [] as { inbound_batch_id: string | null; open_usd: number }[] }),
+            ? supabase.from('ap_open_items').select('inbound_batch_id, open_base').in('inbound_batch_id', batchIds)
+            : Promise.resolve({ data: [] as { inbound_batch_id: string | null; open_base: number }[] }),
     ])
     const materialById = new Map((materialsRes.data ?? []).map((m) => [m.id, `${m.code} — ${m.name}`]))
     const formulaById = new Map((formulasRes.data ?? []).map((f) => [f.id, `${f.code} — ${f.name}`]))
-    const openByBatch = new Map((apRes.data ?? []).map((r) => [r.inbound_batch_id ?? '', r.open_usd]))
+    const openByBatch = new Map((apRes.data ?? []).map((r) => [r.inbound_batch_id ?? '', r.open_base]))
 
     // 每批已抵扣的预付(cut 4c:收货记录多一列)
     const { data: appliedRows } = batchIds.length
         ? await supabase
               .from('prepayment_applications_masked')
-              .select('inbound_batch_id, amount_usd')
+              .select('inbound_batch_id, amount_base')
               .in('inbound_batch_id', batchIds)
-        : { data: [] as { inbound_batch_id: string; amount_usd: number }[] }
+        : { data: [] as { inbound_batch_id: string; amount_base: number }[] }
     const appliedByBatch = new Map<string, number>()
-    for (const r of maskedRows<Tables<'prepayment_applications'>, 'amount_usd'>(appliedRows)) {
-        appliedByBatch.set(r.inbound_batch_id, round2((appliedByBatch.get(r.inbound_batch_id) ?? 0) + Number(r.amount_usd)))
+    for (const r of maskedRows<Tables<'prepayment_applications'>, 'amount_base'>(appliedRows)) {
+        appliedByBatch.set(r.inbound_batch_id, round2((appliedByBatch.get(r.inbound_batch_id) ?? 0) + Number(r.amount_base)))
     }
 
     const isCancelled = po.status === 'cancelled'
     const receivedQty = poStatus?.received_qty ?? receipts.reduce((s, r) => s + Number(r.quantity), 0)
     const orderedQty = poStatus?.ordered_qty ?? lines.reduce((s, l) => s + Number(l.quantity), 0)
-    const appliedUsd = Number(poStatus?.prepaid_applied_usd ?? 0)
+    const appliedUsd = Number(poStatus?.prepaid_applied_base ?? 0)
     // 取消的前置条件与 DB 的 cancel_purchase_order 一致:无收货、无已抵扣预付
     const cancelBlocked = receipts.length > 0 || appliedUsd > 0
 
@@ -164,7 +164,7 @@ export default async function PurchaseOrderDetailPage({
                     {(po.status === 'confirmed' || po.status === 'receiving') && (
                         <CloseOrderControl
                             poId={po.id}
-                            unappliedPrepayment={Number(poStatus?.prepaid_remaining_usd ?? 0)}
+                            unappliedPrepayment={Number(poStatus?.prepaid_remaining_base ?? 0)}
                         />
                     )}
                     {po.status === 'closed' && <ReopenOrderControl poId={po.id} />}
@@ -346,15 +346,15 @@ export default async function PurchaseOrderDetailPage({
                     <div className="border border-gray-300 rounded p-4 text-sm space-y-2 h-fit">
                         <div className="flex justify-between">
                             <span className="text-gray-600">{t('purchasing.prepaidLabel')}</span>
-                            <span className="font-mono">{formatMoney(poStatus.prepaid_usd)}</span>
+                            <span className="font-mono">{formatMoney(poStatus.prepaid_base)}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-gray-600">{t('purchasing.appliedLabel')}</span>
-                            <span className="font-mono">{formatMoney(poStatus.prepaid_applied_usd)}</span>
+                            <span className="font-mono">{formatMoney(poStatus.prepaid_applied_base)}</span>
                         </div>
                         <div className="flex justify-between font-medium border-t pt-2">
                             <span>{t('purchasing.remainingLabel')}</span>
-                            <span className="font-mono">{formatMoney(poStatus.prepaid_remaining_usd)}</span>
+                            <span className="font-mono">{formatMoney(poStatus.prepaid_remaining_base)}</span>
                         </div>
                         {!isCancelled && (
                             <Link

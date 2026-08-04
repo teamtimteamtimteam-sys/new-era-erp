@@ -1,6 +1,6 @@
 -- db/views/processing_runs_masked.sql
 -- 遮蔽伴生视图:processing_runs 的每一列都在,敏感列按 has_permission() 置空。
---   遮蔽的列:capitalized_cost_usd → data.view_prices, material_cost_usd → data.view_prices, process_cost_usd → data.view_prices, total_cost_usd → data.view_prices
+--   遮蔽的列:capitalized_cost_base → data.view_prices, material_cost_base → data.view_prices, process_cost_base → data.view_prices, total_cost_base → data.view_prices
 --
 -- 【属主权限,不是 SECURITY INVOKER】。invoker 视图以调用者身份读基表,于是任何
 -- 强到能挡住原始列的机制(收紧行策略、或收回列权限)同样会挡住视图本身 —— 实测
@@ -27,24 +27,24 @@ CREATE VIEW public.processing_runs_masked WITH (security_invoker = off) AS
     updated_by,
     allocation_basis,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN material_cost_usd
+            WHEN has_permission('data.view_prices'::text) THEN material_cost_base
             ELSE NULL::numeric
-        END AS material_cost_usd,
+        END AS material_cost_base,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN process_cost_usd
+            WHEN has_permission('data.view_prices'::text) THEN process_cost_base
             ELSE NULL::numeric
-        END AS process_cost_usd,
+        END AS process_cost_base,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN total_cost_usd
+            WHEN has_permission('data.view_prices'::text) THEN total_cost_base
             ELSE NULL::numeric
-        END AS total_cost_usd,
+        END AS total_cost_base,
     allocation_snapshot,
     allocated_at,
     allocated_by,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN capitalized_cost_usd
+            WHEN has_permission('data.view_prices'::text) THEN capitalized_cost_base
             ELSE NULL::numeric
-        END AS capitalized_cost_usd,
+        END AS capitalized_cost_base,
     capitalization_entry_id
    FROM processing_runs
   WHERE has_permission('module.processing.view'::text);

@@ -49,7 +49,7 @@ export type InboundValuation = {
     ageDays: number | null // 距 arrival_date;无日期为 null
 }
 
-// 产出批次:成本来自产出它的加工腿(processing_outputs.unit_cost_usd,至多一条),
+// 产出批次:成本来自产出它的加工腿(processing_outputs.unit_cost_base,至多一条),
 // 市价来自 assay 金属含量 × 最新金属价
 export type OutputValuation = {
     unitCost: number | null // USD/kg;null = 从未分摊

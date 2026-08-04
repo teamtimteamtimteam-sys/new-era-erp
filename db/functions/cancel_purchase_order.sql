@@ -26,7 +26,7 @@ BEGIN
         RAISE EXCEPTION 'PO_HAS_RECEIPTS|%', v_batches;
     END IF;
 
-    SELECT COALESCE(SUM(amount_usd), 0) INTO v_applied
+    SELECT COALESCE(SUM(amount_base), 0) INTO v_applied
     FROM prepayment_applications WHERE purchase_order_id = p_id;
     IF v_applied > 0 THEN
         RAISE EXCEPTION 'PO_HAS_APPLIED_PREPAYMENTS|%', v_applied;

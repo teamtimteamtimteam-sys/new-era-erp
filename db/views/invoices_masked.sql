@@ -1,6 +1,6 @@
 -- db/views/invoices_masked.sql
 -- 遮蔽伴生视图:invoices 的每一列都在,敏感列按 has_permission() 置空。
---   遮蔽的列:subtotal_usd → data.view_prices, tax_usd → data.view_prices, total_usd → data.view_prices
+--   遮蔽的列:subtotal_base → data.view_prices, tax_base → data.view_prices, total_base → data.view_prices
 --
 -- 【属主权限,不是 SECURITY INVOKER】。invoker 视图以调用者身份读基表,于是任何
 -- 强到能挡住原始列的机制(收紧行策略、或收回列权限)同样会挡住视图本身 —— 实测
@@ -20,18 +20,18 @@ CREATE VIEW public.invoices_masked WITH (security_invoker = off) AS
     payment_terms_days,
     currency,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN subtotal_usd
+            WHEN has_permission('data.view_prices'::text) THEN subtotal_base
             ELSE NULL::numeric
-        END AS subtotal_usd,
+        END AS subtotal_base,
     tax_rate_pct,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN tax_usd
+            WHEN has_permission('data.view_prices'::text) THEN tax_base
             ELSE NULL::numeric
-        END AS tax_usd,
+        END AS tax_base,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN total_usd
+            WHEN has_permission('data.view_prices'::text) THEN total_base
             ELSE NULL::numeric
-        END AS total_usd,
+        END AS total_base,
     status,
     void_reason,
     voided_at,

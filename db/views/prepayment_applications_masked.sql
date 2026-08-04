@@ -1,6 +1,6 @@
 -- db/views/prepayment_applications_masked.sql
 -- 遮蔽伴生视图:prepayment_applications 的每一列都在,敏感列按 has_permission() 置空。
---   遮蔽的列:amount_usd → data.view_prices
+--   遮蔽的列:amount_base → data.view_prices
 --
 -- 【属主权限,不是 SECURITY INVOKER】。invoker 视图以调用者身份读基表,于是任何
 -- 强到能挡住原始列的机制(收紧行策略、或收回列权限)同样会挡住视图本身 —— 实测
@@ -16,9 +16,9 @@ CREATE VIEW public.prepayment_applications_masked WITH (security_invoker = off) 
     purchase_order_id,
     inbound_batch_id,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN amount_usd
+            WHEN has_permission('data.view_prices'::text) THEN amount_base
             ELSE NULL::numeric
-        END AS amount_usd,
+        END AS amount_base,
     notes,
     journal_entry_id,
     created_at,

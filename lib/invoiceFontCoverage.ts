@@ -102,10 +102,10 @@ export type InvoicePdfContent = {
         due_date: string
         payment_terms_days: number
         currency: string
-        subtotal_usd: number
+        subtotal_base: number
         tax_rate_pct: number
-        tax_usd: number
-        total_usd: number
+        tax_base: number
+        total_base: number
         notes: string | null
         terms_text: string | null
         bill_to: Record<string, string | null | undefined>
@@ -116,7 +116,7 @@ export type InvoicePdfContent = {
         quantity: number
         unit: string
         unit_price: number
-        amount_usd: number
+        amount_base: number
     }[]
     company: Record<string, unknown> & { legal_name: string }
     gstRegistrationNo: string | null
@@ -175,16 +175,16 @@ export function collectInvoicePdfStrings(content: InvoicePdfContent): PdfTextFie
             { where: `Line ${l.line_no} description`, text: l.description },
             { where: `Line ${l.line_no} quantity`, text: `${num(l.quantity, 2)} ${l.unit}` },
             { where: `Line ${l.line_no} unit price`, text: num(l.unit_price) },
-            { where: `Line ${l.line_no} amount`, text: num(l.amount_usd) },
+            { where: `Line ${l.line_no} amount`, text: num(l.amount_base) },
         )
     }
 
     // 合计
     fields.push(
-        { where: 'Subtotal', text: num(invoice.subtotal_usd) },
-        { where: 'GST amount', text: num(invoice.tax_usd) },
+        { where: 'Subtotal', text: num(invoice.subtotal_base) },
+        { where: 'GST amount', text: num(invoice.tax_base) },
         { where: 'GST rate', text: num(invoice.tax_rate_pct, 0) },
-        { where: 'Total', text: num(invoice.total_usd) },
+        { where: 'Total', text: num(invoice.total_base) },
     )
 
     // 收款账户

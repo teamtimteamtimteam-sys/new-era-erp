@@ -30,8 +30,8 @@ type ProcessingInputRow = {
 type ProcessingOutputRow = {
     id: string
     quantity_produced: number
-    allocated_cost_usd: number | null
-    unit_cost_usd: number | null
+    allocated_cost_base: number | null
+    unit_cost_base: number | null
     output_batches: {
         id: string
         code: string
@@ -67,12 +67,12 @@ export default async function ProcessingDetailPage({
             .order('created_at'),
         supabase
             .from('processing_outputs_masked')
-            .select('id, quantity_produced, allocated_cost_usd, unit_cost_usd, output_batches ( id, code, unit, purity, deleted_at, materials ( name ) )')
+            .select('id, quantity_produced, allocated_cost_base, unit_cost_base, output_batches ( id, code, unit, purity, deleted_at, materials ( name ) )')
             .eq('run_id', id)
             .order('created_at'),
         supabase
             .from('processing_cost_entries_masked')
-            .select('id, cost_type, amount_usd, is_estimate, notes, created_at')
+            .select('id, cost_type, amount_base, is_estimate, notes, created_at')
             .eq('run_id', id)
             .is('deleted_at', null)
             .order('created_at'),
@@ -103,7 +103,7 @@ export default async function ProcessingDetailPage({
     // cut 2b:改读遮蔽视图(select('*') 会碰到被收回的成本列)。
     const run = maskedExcept<
         Tables<'processing_runs'>,
-        'material_cost_usd' | 'process_cost_usd' | 'total_cost_usd' | 'capitalized_cost_usd'
+        'material_cost_base' | 'process_cost_base' | 'total_cost_base' | 'capitalized_cost_base'
     >(runRes.data)
     const inputs = inputsRes.data as unknown as ProcessingInputRow[] | null
     const outputs = outputsRes.data as unknown as ProcessingOutputRow[] | null
@@ -119,10 +119,10 @@ export default async function ProcessingDetailPage({
     // 成本条目行:服务端预格式化 created_at
     const showPrices = await canViewPrices()
 
-    const costRows: CostEntryRow[] = maskedRows<Tables<'processing_cost_entries'>, 'amount_usd'>(costsRes.data).map((c) => ({
+    const costRows: CostEntryRow[] = maskedRows<Tables<'processing_cost_entries'>, 'amount_base'>(costsRes.data).map((c) => ({
         id: c.id,
         cost_type: c.cost_type,
-        amount_usd: c.amount_usd,
+        amount_base: c.amount_base,
         is_estimate: c.is_estimate,
         notes: c.notes,
         created_at_display: new Date(c.created_at).toLocaleString(dateLocale),
@@ -204,15 +204,15 @@ export default async function ProcessingDetailPage({
                     <div className="mt-3 pt-3 border-t border-gray-200 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
                         <div>
                             <span className="text-gray-600">{t('processing.detail.materialCost')}</span>{' '}
-                            <MaskedValue value={run.material_cost_usd} canView={showPrices} format={formatMoney} fallback="—" />
+                            <MaskedValue value={run.material_cost_base} canView={showPrices} format={formatMoney} fallback="—" />
                         </div>
                         <div>
                             <span className="text-gray-600">{t('processing.detail.processCost')}</span>{' '}
-                            <MaskedValue value={run.process_cost_usd} canView={showPrices} format={formatMoney} fallback="—" />
+                            <MaskedValue value={run.process_cost_base} canView={showPrices} format={formatMoney} fallback="—" />
                         </div>
                         <div>
                             <span className="text-gray-600">{t('processing.detail.totalCost')}</span>{' '}
-                            <MaskedValue value={run.total_cost_usd} canView={showPrices} format={formatMoney} fallback="—" />
+                            <MaskedValue value={run.total_cost_base} canView={showPrices} format={formatMoney} fallback="—" />
                         </div>
                     </div>
 
@@ -354,7 +354,7 @@ export default async function ProcessingDetailPage({
                                         {/* 遮蔽后是 null,和"尚未分摊"是两回事 —— 前者显示「受限」,
                                             后者才是「—」。都画成 — 会让运营以为成本没算。 */}
                                         <MaskedValue
-                                            value={leg.allocated_cost_usd}
+                                            value={leg.allocated_cost_base}
                                             canView={showPrices}
                                             format={formatMoney}
                                             fallback="—"
@@ -362,7 +362,7 @@ export default async function ProcessingDetailPage({
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                         <MaskedValue
-                                            value={leg.unit_cost_usd}
+                                            value={leg.unit_cost_base}
                                             canView={showPrices}
                                             format={(v) => formatUnitCost(v) + ' /kg'}
                                             fallback="—"

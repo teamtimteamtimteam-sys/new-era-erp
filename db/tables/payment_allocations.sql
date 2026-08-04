@@ -12,8 +12,8 @@
 --     (借 2000 / 贷 1300,记在 prepayment_applications)。
 -- IMMUTABLE(INSERT+SELECT RLS + 触发器)。开放余额视图(ar/ap_open_items)只计
 -- status='posted' 收付款的核销行 —— 冲销收付款后其核销自动失效,敞口回涨。
--- 敞口校验在 record_payment 内:AR 对 sales_records.amount_usd,AP 进料对
--- "当前 quantity × unit_price"(改价即改欠款),AP 开支对 expenses.amount_usd,
+-- 敞口校验在 record_payment 内:AR 对 sales_records.amount_base,AP 进料对
+-- "当前 quantity × unit_price"(改价即改欠款),AP 开支对 expenses.amount_base,
 -- 超额 → ALLOC_EXCEEDS。
 --
 -- NOTE: introduced by db/migrations/2026-07-06-phase3-cut3a-payments.sql;
@@ -28,7 +28,7 @@ CREATE TABLE public.payment_allocations (
     sales_record_id   uuid REFERENCES public.sales_records (id),
     inbound_batch_id  uuid REFERENCES public.inbound_batches (id),
     CONSTRAINT payment_allocations_one_target CHECK (num_nonnulls(sales_record_id, inbound_batch_id, expense_id, purchase_order_id) = 1),
-    allocated_usd     numeric NOT NULL CHECK (allocated_usd > 0),
+    allocated_base     numeric NOT NULL CHECK (allocated_base > 0),
     created_at        timestamptz DEFAULT now(),
     -- 在列序末尾:s2a / cut 4a 各用 ALTER ADD COLUMN 追加(镜像按线上 attnum 排)
     expense_id        uuid REFERENCES public.expenses (id),
@@ -62,3 +62,6 @@ CREATE POLICY "payment_allocations insert by permission"
     ON public.payment_allocations
     AS PERMISSIVE FOR INSERT TO authenticated
     WITH CHECK (has_permission('module.finance.edit'::text));
+
+-- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)
+COMMENT ON COLUMN public.payment_allocations.allocated_base IS '本位币核销金额(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 allocated_usd)。';

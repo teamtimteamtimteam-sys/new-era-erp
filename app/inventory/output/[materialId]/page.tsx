@@ -1,6 +1,6 @@
 // app/inventory/output/[materialId]/page.tsx
 // 库存钻取:某物料的在库产出批次(未软删 + remaining_qty > 0),按 remaining_qty 降序。
-// cut 5:成本估值(产出腿的 unit_cost_usd)+ 市价估值(assay 含量 × 最新金属价)+ 库龄。
+// cut 5:成本估值(产出腿的 unit_cost_base)+ 市价估值(assay 含量 × 最新金属价)+ 库龄。
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -25,7 +25,7 @@ type Row = {
     output_date: string | null
     customers: { legal_name: string } | null
     // 反向 FK 嵌入是数组:一个批次至多一条产出腿;金属含量 0..n 条
-    processing_outputs: { unit_cost_usd: number | null }[]
+    processing_outputs: { unit_cost_base: number | null }[]
     output_batch_metals: { metal: string; content_pct: number }[]
 }
 
@@ -45,7 +45,7 @@ export default async function OutputDrillPage({
         supabase
             .from('output_batches')
             .select(
-                'id, code, quantity, remaining_qty, unit, state, output_date, customers ( legal_name ), processing_outputs ( unit_cost_usd ), output_batch_metals ( metal, content_pct )'
+                'id, code, quantity, remaining_qty, unit, state, output_date, customers ( legal_name ), processing_outputs ( unit_cost_base ), output_batch_metals ( metal, content_pct )'
             )
             .eq('material_id', materialId)
             .is('deleted_at', null)
@@ -68,7 +68,7 @@ export default async function OutputDrillPage({
 
     // 每行估值:成本 = 剩余 × 产出腿单位成本;市价 = 剩余 × 每公斤金属市价
     const valued = rows.map((r) => {
-        const unitCost = r.processing_outputs[0]?.unit_cost_usd ?? null
+        const unitCost = r.processing_outputs[0]?.unit_cost_base ?? null
         const perKg = marketValuePerKg(r.output_batch_metals, priceByMetal)
         return {
             ...r,

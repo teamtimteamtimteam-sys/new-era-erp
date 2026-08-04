@@ -30,7 +30,7 @@ CREATE TABLE public.invoice_lines (
     quantity        numeric NOT NULL,
     unit            text NOT NULL,
     unit_price      numeric NOT NULL,
-    amount_usd      numeric NOT NULL,
+    amount_base      numeric NOT NULL,
     -- 冗余的作废标记,仅供下面的部分唯一索引使用;由 invoices 的触发器维护,
     -- 应用代码不要直接写它。
     invoice_voided  boolean NOT NULL DEFAULT false,
@@ -60,7 +60,7 @@ BEGIN
        OR NEW.quantity        IS DISTINCT FROM OLD.quantity
        OR NEW.unit            IS DISTINCT FROM OLD.unit
        OR NEW.unit_price      IS DISTINCT FROM OLD.unit_price
-       OR NEW.amount_usd      IS DISTINCT FROM OLD.amount_usd
+       OR NEW.amount_base      IS DISTINCT FROM OLD.amount_base
        OR NEW.created_at      IS DISTINCT FROM OLD.created_at
     THEN
         RAISE EXCEPTION 'INVOICE_IMMUTABLE';
@@ -95,3 +95,6 @@ CREATE POLICY "invoice_lines update by permission"
 REVOKE SELECT ON public.invoice_lines FROM authenticated, anon;
 GRANT SELECT (id, invoice_id, sales_record_id, line_no, description, quantity, unit, invoice_voided, created_at)
     ON public.invoice_lines TO authenticated;
+
+-- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)
+COMMENT ON COLUMN public.invoice_lines.amount_base IS '本位币金额(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 amount_usd)。';

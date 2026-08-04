@@ -32,11 +32,11 @@ BEGIN
     -- 大于 0 时必须写说明:这是【真金白银】躺在 1300 预付款项里,而这张单永远不会
     -- 再吸收它了 —— 退款、转到别的单、核销,系统今天都还没建模,所以允许关单,
     -- 但必须留下一句写下来的解释,不许无声搁浅。
-    SELECT COALESCE(SUM(pa.allocated_usd), 0) INTO v_prepaid
+    SELECT COALESCE(SUM(pa.allocated_base), 0) INTO v_prepaid
     FROM payment_allocations pa
     JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'
     WHERE pa.purchase_order_id = p_purchase_order_id;
-    SELECT COALESCE(SUM(ppa.amount_usd), 0) INTO v_applied
+    SELECT COALESCE(SUM(ppa.amount_base), 0) INTO v_applied
     FROM prepayment_applications ppa
     WHERE ppa.purchase_order_id = p_purchase_order_id;
     v_unapplied := round(v_prepaid - v_applied, 2);

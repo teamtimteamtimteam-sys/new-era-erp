@@ -1,6 +1,6 @@
 -- db/views/invoice_lines_masked.sql
 -- 遮蔽伴生视图:invoice_lines 的每一列都在,敏感列按 has_permission() 置空。
---   遮蔽的列:amount_usd → data.view_prices, unit_price → data.view_prices
+--   遮蔽的列:amount_base → data.view_prices, unit_price → data.view_prices
 --
 -- 【属主权限,不是 SECURITY INVOKER】。invoker 视图以调用者身份读基表,于是任何
 -- 强到能挡住原始列的机制(收紧行策略、或收回列权限)同样会挡住视图本身 —— 实测
@@ -24,9 +24,9 @@ CREATE VIEW public.invoice_lines_masked WITH (security_invoker = off) AS
             ELSE NULL::numeric
         END AS unit_price,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN amount_usd
+            WHEN has_permission('data.view_prices'::text) THEN amount_base
             ELSE NULL::numeric
-        END AS amount_usd,
+        END AS amount_base,
     invoice_voided,
     created_at
    FROM invoice_lines

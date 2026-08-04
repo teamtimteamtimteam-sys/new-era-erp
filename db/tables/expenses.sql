@@ -21,7 +21,7 @@ CREATE TABLE public.expenses (
     amount_ccy          numeric NOT NULL CHECK (amount_ccy > 0),
     currency            text NOT NULL REFERENCES public.currencies (code),
     fx_rate             numeric NOT NULL CHECK (fx_rate > 0),
-    amount_usd          numeric NOT NULL,  -- round(amount_ccy × fx_rate, 2)
+    amount_base          numeric NOT NULL,  -- round(amount_ccy × fx_rate, 2)
     payment_status      text NOT NULL CHECK (payment_status IN ('paid','unpaid')),
     bank_account_code   text CHECK (bank_account_code IN ('1000','1010')),
     supplier_id         uuid REFERENCES public.suppliers (id),
@@ -57,7 +57,7 @@ BEGIN
        OR NEW.amount_ccy          IS DISTINCT FROM OLD.amount_ccy
        OR NEW.currency            IS DISTINCT FROM OLD.currency
        OR NEW.fx_rate             IS DISTINCT FROM OLD.fx_rate
-       OR NEW.amount_usd          IS DISTINCT FROM OLD.amount_usd
+       OR NEW.amount_base          IS DISTINCT FROM OLD.amount_base
        OR NEW.payment_status      IS DISTINCT FROM OLD.payment_status
        OR NEW.bank_account_code   IS DISTINCT FROM OLD.bank_account_code
        OR NEW.supplier_id         IS DISTINCT FROM OLD.supplier_id
@@ -91,3 +91,6 @@ CREATE POLICY "expenses insert by permission"
     ON public.expenses
     AS PERMISSIVE FOR INSERT TO authenticated
     WITH CHECK (has_permission('module.finance.edit'::text));
+
+-- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)
+COMMENT ON COLUMN public.expenses.amount_base IS '本位币金额(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 amount_usd)。';

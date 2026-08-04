@@ -8,7 +8,7 @@ DECLARE
     v_user         uuid := auth.uid();
     v_date         date := COALESCE(p_payment_date, CURRENT_DATE);
     v_fx           numeric;
-    v_amount_usd   numeric;
+    v_amount_base   numeric;
     v_bank         text;
     v_payment_id   uuid := gen_random_uuid();
     v_code         text;
@@ -104,7 +104,7 @@ BEGIN
     END IF;
 
     -- 2. USD 金额
-    v_amount_usd := round(p_amount * v_fx, 2);
+    v_amount_base := round(p_amount * v_fx, 2);
 
     IF p_allocations IS NULL OR jsonb_typeof(p_allocations) <> 'array' THEN
         RAISE EXCEPTION 'ALLOC_INVALID|not_an_array';
@@ -121,7 +121,7 @@ BEGIN
         v_batch_id   := (v_alloc->>'inbound_batch_id')::uuid;
         v_expense_id := (v_alloc->>'expense_id')::uuid;
         v_po_id      := (v_alloc->>'purchase_order_id')::uuid;
-        v_alloc_usd  := (v_alloc->>'amount_usd')::numeric;
+        v_alloc_usd  := (v_alloc->>'amount_base')::numeric;
 
         IF v_alloc_usd IS NULL OR v_alloc_usd <= 0
            OR num_nonnulls(v_sale_id, v_batch_id, v_expense_id, v_po_id) <> 1 THEN
@@ -132,7 +132,7 @@ BEGIN
             IF v_batch_id IS NOT NULL OR v_expense_id IS NOT NULL OR v_po_id IS NOT NULL THEN
                 RAISE EXCEPTION 'ALLOC_WRONG_SIDE';
             END IF;
-            SELECT sr.id, ob.code AS doc_code, sr.customer_id AS party_id, sr.amount_usd AS doc_value
+            SELECT sr.id, ob.code AS doc_code, sr.customer_id AS party_id, sr.amount_base AS doc_value
             INTO v_doc
             FROM sales_records sr
             JOIN output_batches ob ON ob.id = sr.output_batch_id
@@ -146,7 +146,7 @@ BEGIN
             v_doc_value := v_doc.doc_value;
             v_key := v_sale_id::text;
 
-            SELECT COALESCE(SUM(pa.allocated_usd), 0) INTO v_settled
+            SELECT COALESCE(SUM(pa.allocated_base), 0) INTO v_settled
             FROM payment_allocations pa
             JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'
             WHERE pa.sales_record_id = v_sale_id;
@@ -170,7 +170,7 @@ BEGIN
             END IF;
             v_key := v_po_id::text;
 
-            SELECT COALESCE(SUM(pa.allocated_usd), 0) INTO v_settled
+            SELECT COALESCE(SUM(pa.allocated_base), 0) INTO v_settled
             FROM payment_allocations pa
             JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'
             WHERE pa.purchase_order_id = v_po_id;
@@ -210,12 +210,12 @@ BEGIN
             v_key := v_batch_id::text;
 
             -- 已结 = 收付款核销 + 预付冲抵(B6 起,预付冲抵也在还这张单的应付)
-            SELECT COALESCE(SUM(pa.allocated_usd), 0) INTO v_settled
+            SELECT COALESCE(SUM(pa.allocated_base), 0) INTO v_settled
             FROM payment_allocations pa
             JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'
             WHERE pa.inbound_batch_id = v_batch_id;
             v_settled := v_settled + COALESCE(
-                (SELECT SUM(ppa.amount_usd) FROM prepayment_applications ppa
+                (SELECT SUM(ppa.amount_base) FROM prepayment_applications ppa
                   WHERE ppa.inbound_batch_id = v_batch_id), 0);
 
         ELSE
@@ -223,7 +223,7 @@ BEGIN
                 RAISE EXCEPTION 'ALLOC_WRONG_SIDE';
             END IF;
             -- 挂账开支:必须是 unpaid + posted(不存在/已付/已冲销 → ALLOC_INVALID)
-            SELECT e.id, e.code AS doc_code, e.supplier_id AS party_id, e.amount_usd AS doc_value
+            SELECT e.id, e.code AS doc_code, e.supplier_id AS party_id, e.amount_base AS doc_value
             INTO v_doc
             FROM expenses e
             WHERE e.id = v_expense_id AND e.payment_status = 'unpaid' AND e.status = 'posted';
@@ -236,7 +236,7 @@ BEGIN
             v_doc_value := v_doc.doc_value;
             v_key := v_expense_id::text;
 
-            SELECT COALESCE(SUM(pa.allocated_usd), 0) INTO v_settled
+            SELECT COALESCE(SUM(pa.allocated_base), 0) INTO v_settled
             FROM payment_allocations pa
             JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'
             WHERE pa.expense_id = v_expense_id;
@@ -257,13 +257,13 @@ BEGIN
         v_valid := v_valid || jsonb_build_array(jsonb_build_object(
             'sales_record_id', v_sale_id, 'inbound_batch_id', v_batch_id,
             'expense_id', v_expense_id, 'purchase_order_id', v_po_id,
-            'amount_usd', v_alloc_usd));
+            'amount_base', v_alloc_usd));
         v_alloc_total := v_alloc_total + v_alloc_usd;
     END LOOP;
 
     -- Σ 核销不得超过款额(欠核销 = 挂账余额,允许)
-    IF v_alloc_total > v_amount_usd THEN
-        RAISE EXCEPTION 'ALLOC_EXCEEDS_PAYMENT|%|%', v_alloc_total, v_amount_usd;
+    IF v_alloc_total > v_amount_base THEN
+        RAISE EXCEPTION 'ALLOC_EXCEEDS_PAYMENT|%|%', v_alloc_total, v_amount_base;
     END IF;
 
     -- ========================================================================
@@ -289,7 +289,7 @@ BEGIN
             jsonb_build_object('account_code', '2000', 'side', 'debit',  'currency', p_currency, 'amount_ccy', p_amount, 'fx_rate', v_fx),
             jsonb_build_object('account_code', v_bank, 'side', 'credit', 'currency', p_currency, 'amount_ccy', p_amount, 'fx_rate', v_fx));
     ELSE
-        v_ap_usd := round(v_amount_usd - v_po_usd, 2);
+        v_ap_usd := round(v_amount_base - v_po_usd, 2);
         IF v_ap_usd <= 0 THEN
             -- 整笔都是预付:只有一条借方,不能出现 0 元行(post_journal_entry 会拒)
             v_lines := jsonb_build_array(
@@ -302,14 +302,14 @@ BEGIN
             LOOP
                 IF v_po_ccy + v_delta > 0 AND p_amount - (v_po_ccy + v_delta) > 0
                    AND round((v_po_ccy + v_delta) * v_fx, 2)
-                       + round((p_amount - v_po_ccy - v_delta) * v_fx, 2) = v_amount_usd THEN
+                       + round((p_amount - v_po_ccy - v_delta) * v_fx, 2) = v_amount_base THEN
                     v_po_ccy := v_po_ccy + v_delta;
                     v_found := true;
                     EXIT;
                 END IF;
             END LOOP;
             IF NOT v_found THEN
-                RAISE EXCEPTION 'PREPAY_SPLIT_UNBALANCED|%|%|%', v_amount_usd, v_po_usd, v_fx;
+                RAISE EXCEPTION 'PREPAY_SPLIT_UNBALANCED|%|%|%', v_amount_base, v_po_usd, v_fx;
             END IF;
             v_ap_ccy := p_amount - v_po_ccy;
             v_lines := jsonb_build_array(
@@ -326,35 +326,35 @@ BEGIN
 
     -- ③ 插入收付款单(带着分录链接一次到位;不可变表无后续 UPDATE)
     INSERT INTO payments (id, code, direction, counterparty_type, customer_id, supplier_id,
-                          amount_ccy, currency, fx_rate, amount_usd, bank_account_code,
+                          amount_ccy, currency, fx_rate, amount_base, bank_account_code,
                           payment_date, notes, journal_entry_id, created_by)
     VALUES (v_payment_id, v_code, p_direction,
             CASE WHEN p_direction = 'in' THEN 'customer' ELSE 'supplier' END,
             CASE WHEN p_direction = 'in' THEN p_counterparty_id END,
             CASE WHEN p_direction = 'out' THEN p_counterparty_id END,
-            p_amount, p_currency, v_fx, v_amount_usd, v_bank,
+            p_amount, p_currency, v_fx, v_amount_base, v_bank,
             v_date, p_notes, (v_je->>'entry_id')::uuid, v_user);
 
     -- ④ 核销行落库(①已全部校验过,这里只写)
     FOR v_alloc IN SELECT * FROM jsonb_array_elements(v_valid)
     LOOP
         INSERT INTO payment_allocations (payment_id, sales_record_id, inbound_batch_id,
-                                         expense_id, purchase_order_id, allocated_usd)
+                                         expense_id, purchase_order_id, allocated_base)
         VALUES (v_payment_id,
                 (v_alloc->>'sales_record_id')::uuid,
                 (v_alloc->>'inbound_batch_id')::uuid,
                 (v_alloc->>'expense_id')::uuid,
                 (v_alloc->>'purchase_order_id')::uuid,
-                (v_alloc->>'amount_usd')::numeric);
+                (v_alloc->>'amount_base')::numeric);
     END LOOP;
 
     RETURN jsonb_build_object(
         'payment_id', v_payment_id,
         'code', v_code,
-        'amount_usd', v_amount_usd,
+        'amount_base', v_amount_base,
         'journal_code', v_je->>'code',
         'allocated_total', v_alloc_total,
-        'unallocated', round(v_amount_usd - v_alloc_total, 2),
+        'unallocated', round(v_amount_base - v_alloc_total, 2),
         'prepaid_total', v_po_usd
     );
 END;

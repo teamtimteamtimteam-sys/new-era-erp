@@ -21,7 +21,7 @@ CREATE TABLE public.prepayment_applications (
     id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     purchase_order_id uuid NOT NULL REFERENCES public.purchase_orders (id),
     inbound_batch_id  uuid NOT NULL REFERENCES public.inbound_batches (id),
-    amount_usd        numeric NOT NULL CHECK (amount_usd > 0),
+    amount_base        numeric NOT NULL CHECK (amount_base > 0),
     notes             text,
     journal_entry_id  uuid REFERENCES public.journal_entries (id),
     created_at        timestamptz NOT NULL DEFAULT now(),
@@ -59,3 +59,6 @@ CREATE POLICY "prepayment_applications insert by permission"
 REVOKE SELECT ON public.prepayment_applications FROM authenticated, anon;
 GRANT SELECT (id, purchase_order_id, inbound_batch_id, notes, journal_entry_id, created_at, created_by)
     ON public.prepayment_applications TO authenticated;
+
+-- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)
+COMMENT ON COLUMN public.prepayment_applications.amount_base IS '本位币金额(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 amount_usd)。';

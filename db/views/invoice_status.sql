@@ -18,19 +18,19 @@ CREATE VIEW public.invoice_status WITH (security_invoker = on) AS
     i.issue_date,
     i.due_date,
     i.currency,
-    i.total_usd,
-    round(COALESCE(s.settled, 0::numeric), 2) AS settled_usd,
-    round(i.total_usd - COALESCE(s.settled, 0::numeric), 2) AS open_usd,
+    i.total_base,
+    round(COALESCE(s.settled, 0::numeric), 2) AS settled_base,
+    round(i.total_base - COALESCE(s.settled, 0::numeric), 2) AS open_base,
     GREATEST(CURRENT_DATE - i.due_date, 0) AS days_overdue,
         CASE
-            WHEN round(i.total_usd - COALESCE(s.settled, 0::numeric), 2) <= 0::numeric THEN 'paid'::text
+            WHEN round(i.total_base - COALESCE(s.settled, 0::numeric), 2) <= 0::numeric THEN 'paid'::text
             WHEN COALESCE(s.settled, 0::numeric) > 0::numeric THEN 'partial'::text
             ELSE 'unpaid'::text
         END AS payment_state,
-    CURRENT_DATE > i.due_date AND round(i.total_usd - COALESCE(s.settled, 0::numeric), 2) > 0::numeric AS overdue
+    CURRENT_DATE > i.due_date AND round(i.total_base - COALESCE(s.settled, 0::numeric), 2) > 0::numeric AS overdue
    FROM invoices_masked i
      JOIN customers c ON c.id = i.customer_id
-     LEFT JOIN LATERAL ( SELECT sum(pa.allocated_usd) AS settled
+     LEFT JOIN LATERAL ( SELECT sum(pa.allocated_base) AS settled
            FROM invoice_lines_masked il
              JOIN payment_allocations pa ON pa.sales_record_id = il.sales_record_id
              JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'::text

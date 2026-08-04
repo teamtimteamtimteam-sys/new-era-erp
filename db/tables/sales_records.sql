@@ -15,7 +15,7 @@ CREATE TABLE public.sales_records (
     unit_price      numeric NOT NULL CHECK (unit_price > 0),
     currency        text NOT NULL REFERENCES public.currencies (code),
     fx_rate         numeric NOT NULL CHECK (fx_rate > 0),
-    amount_usd      numeric NOT NULL,  -- round(quantity × unit_price × fx_rate, 2)
+    amount_base      numeric NOT NULL,  -- round(quantity × unit_price × fx_rate, 2)
     sale_date       date NOT NULL,
     notes           text,
     movement_id     uuid REFERENCES public.inventory_movements (id),
@@ -42,7 +42,7 @@ BEGIN
        OR NEW.unit_price      IS DISTINCT FROM OLD.unit_price
        OR NEW.currency        IS DISTINCT FROM OLD.currency
        OR NEW.fx_rate         IS DISTINCT FROM OLD.fx_rate
-       OR NEW.amount_usd      IS DISTINCT FROM OLD.amount_usd
+       OR NEW.amount_base      IS DISTINCT FROM OLD.amount_base
        OR NEW.sale_date       IS DISTINCT FROM OLD.sale_date
        OR NEW.notes           IS DISTINCT FROM OLD.notes
        OR NEW.movement_id     IS DISTINCT FROM OLD.movement_id
@@ -86,3 +86,6 @@ CREATE POLICY "sales_records update by permission"
 REVOKE SELECT ON public.sales_records FROM authenticated, anon;
 GRANT SELECT (id, output_batch_id, customer_id, quantity, currency, sale_date, notes, movement_id, created_at, created_by, cogs_entry_id)
     ON public.sales_records TO authenticated;
+
+-- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)
+COMMENT ON COLUMN public.sales_records.amount_base IS '本位币金额(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 amount_usd)。';

@@ -17,7 +17,7 @@ type ArItem = {
     customer_id: string | null
     doc_code: string
     sale_date: string
-    open_usd: number
+    open_base: number
 }
 type ApItem = {
     doc_kind: 'inbound' | 'expense'
@@ -25,7 +25,7 @@ type ApItem = {
     supplier_id: string | null
     doc_code: string
     doc_date: string
-    open_usd: number
+    open_base: number
 }
 
 export default async function NewPaymentPage({
@@ -54,16 +54,16 @@ export default async function NewPaymentPage({
             .order('legal_name'),
         supabase
             .from('ar_open_items')
-            .select('sales_record_id, customer_id, doc_code, sale_date, open_usd')
+            .select('sales_record_id, customer_id, doc_code, sale_date, open_base')
             .order('sale_date', { ascending: true }),
         supabase
             .from('ap_open_items')
-            .select('doc_kind, doc_id, supplier_id, doc_code, doc_date, open_usd')
+            .select('doc_kind, doc_id, supplier_id, doc_code, doc_date, open_base')
             .order('doc_date', { ascending: true }),
         // 可预付的采购单:视图本身排除已取消,这里再排除已结束的
         supabase
             .from('purchase_order_status')
-            .select('po_id, supplier_id, code, order_date, estimated_total_usd, prepaid_usd')
+            .select('po_id, supplier_id, code, order_date, estimated_total_usd, prepaid_base')
             .neq('status', 'closed')
             .order('order_date', { ascending: true }),
     ])
@@ -95,7 +95,7 @@ export default async function NewPaymentPage({
         party_id: r.customer_id ?? '',
         doc_code: r.doc_code,
         doc_date: r.sale_date,
-        open_usd: r.open_usd,
+        open_base: r.open_base,
     }))
     const apItems: OpenItem[] = ((apRes.data as unknown as ApItem[] | null) ?? []).map((r) => ({
         doc_id: r.doc_id,
@@ -103,7 +103,7 @@ export default async function NewPaymentPage({
         party_id: r.supplier_id ?? '',
         doc_code: r.doc_code,
         doc_date: r.doc_date,
-        open_usd: r.open_usd,
+        open_base: r.open_base,
     }))
     const poItems: PoItem[] = ((poRes.data as unknown as {
         po_id: string
@@ -111,14 +111,14 @@ export default async function NewPaymentPage({
         code: string
         order_date: string
         estimated_total_usd: number
-        prepaid_usd: number
+        prepaid_base: number
     }[] | null) ?? []).map((r) => ({
         po_id: r.po_id,
         party_id: r.supplier_id ?? '',
         code: r.code,
         order_date: r.order_date,
         estimated_total_usd: r.estimated_total_usd,
-        prepaid_usd: r.prepaid_usd,
+        prepaid_base: r.prepaid_base,
     }))
 
     return (

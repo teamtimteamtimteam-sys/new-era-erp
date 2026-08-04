@@ -1,6 +1,6 @@
 -- db/views/processing_outputs_masked.sql
 -- 遮蔽伴生视图:processing_outputs 的每一列都在,敏感列按 has_permission() 置空。
---   遮蔽的列:allocated_cost_usd → data.view_prices, unit_cost_usd → data.view_prices
+--   遮蔽的列:allocated_cost_base → data.view_prices, unit_cost_base → data.view_prices
 --
 -- 【属主权限,不是 SECURITY INVOKER】。invoker 视图以调用者身份读基表,于是任何
 -- 强到能挡住原始列的机制(收紧行策略、或收回列权限)同样会挡住视图本身 —— 实测
@@ -18,12 +18,12 @@ CREATE VIEW public.processing_outputs_masked WITH (security_invoker = off) AS
     quantity_produced,
     created_at,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN allocated_cost_usd
+            WHEN has_permission('data.view_prices'::text) THEN allocated_cost_base
             ELSE NULL::numeric
-        END AS allocated_cost_usd,
+        END AS allocated_cost_base,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN unit_cost_usd
+            WHEN has_permission('data.view_prices'::text) THEN unit_cost_base
             ELSE NULL::numeric
-        END AS unit_cost_usd
+        END AS unit_cost_base
    FROM processing_outputs
   WHERE has_permission('module.processing.view'::text);

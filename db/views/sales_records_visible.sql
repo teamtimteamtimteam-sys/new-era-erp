@@ -22,7 +22,7 @@ CREATE VIEW public.sales_records_visible WITH (security_invoker = off) AS
     sr.unit_price,
     sr.currency,
     sr.fx_rate,
-    sr.amount_usd,
+    sr.amount_base,
     sr.sale_date,
     sr.notes,
     sr.created_at,

@@ -59,20 +59,20 @@ export async function createPayment(
         inbound_batch_id?: string
         expense_id?: string
         purchase_order_id?: string
-        amount_usd: number
+        amount_base: number
     }
     const allocations: Alloc[] = []
     for (let i = 0; i < allocIds.length; i++) {
         const v = Number(allocAmounts[i])
         if (!allocIds[i] || !allocAmounts[i] || Number.isNaN(v) || v <= 0) continue
         if (direction === 'in') {
-            allocations.push({ sales_record_id: allocIds[i], amount_usd: v })
+            allocations.push({ sales_record_id: allocIds[i], amount_base: v })
         } else if (allocKinds[i] === 'expense') {
-            allocations.push({ expense_id: allocIds[i], amount_usd: v })
+            allocations.push({ expense_id: allocIds[i], amount_base: v })
         } else if (allocKinds[i] === 'purchase_order') {
-            allocations.push({ purchase_order_id: allocIds[i], amount_usd: v })
+            allocations.push({ purchase_order_id: allocIds[i], amount_base: v })
         } else {
-            allocations.push({ inbound_batch_id: allocIds[i], amount_usd: v })
+            allocations.push({ inbound_batch_id: allocIds[i], amount_base: v })
         }
     }
 

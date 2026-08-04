@@ -70,7 +70,7 @@ export default async function InventoryPage() {
         // 产出腿:批次 → 单位成本(一个批次至多一条产出腿)
         supabase
             .from('processing_outputs_masked')
-            .select('output_batch_id, unit_cost_usd'),
+            .select('output_batch_id, unit_cost_base'),
         // 金属含量(assay):批次 → 各金属含量
         supabase
             .from('output_batch_metals')
@@ -110,9 +110,9 @@ export default async function InventoryPage() {
 
     // 批次 → 单位成本 / 金属含量;金属 → 最新价
     const legCostByBatch = new Map<string, number>()
-    // unit_cost_usd 会被遮蔽(没有 data.view_prices 时为 null);其余列不会。
-    for (const leg of maskedRows<Tables<'processing_outputs'>, 'unit_cost_usd'>(legsRes.data)) {
-        if (leg.unit_cost_usd !== null) legCostByBatch.set(leg.output_batch_id, leg.unit_cost_usd)
+    // unit_cost_base 会被遮蔽(没有 data.view_prices 时为 null);其余列不会。
+    for (const leg of maskedRows<Tables<'processing_outputs'>, 'unit_cost_base'>(legsRes.data)) {
+        if (leg.unit_cost_base !== null) legCostByBatch.set(leg.output_batch_id, leg.unit_cost_base)
     }
     const metalsByBatch = new Map<string, { metal: string; content_pct: number }[]>()
     for (const m of metalsRes.data ?? []) {

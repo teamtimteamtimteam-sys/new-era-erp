@@ -9,14 +9,14 @@ import { getTranslations } from '@/lib/i18n/server'
 import { COST_TYPE_VALUES } from './costTypes'
 
 type ParsedCost =
-    | { cost_type: string; amount_usd: number; is_estimate: boolean; notes: string | null }
+    | { cost_type: string; amount_base: number; is_estimate: boolean; notes: string | null }
     | { error: string }
 
 // 解析 + 校验表单:cost_type ∈ 集合;amount 为有限数(允许负数 —— 副产/处置抵扣);notes 可空。
 async function parseCostForm(formData: FormData): Promise<ParsedCost> {
     const t = await getTranslations()
     const cost_type = (formData.get('cost_type') as string)?.trim() || ''
-    const amount_raw = (formData.get('amount_usd') as string) ?? ''
+    const amount_raw = (formData.get('amount_base') as string) ?? ''
     const is_estimate =
         formData.get('is_estimate') === 'on' || formData.get('is_estimate') === 'true'
     const notes = (formData.get('notes') as string)?.trim() || null
@@ -26,7 +26,7 @@ async function parseCostForm(formData: FormData): Promise<ParsedCost> {
     if (amount_raw === '' || !Number.isFinite(amount)) {
         return { error: t('processing.cost.errInvalid') }
     }
-    return { cost_type, amount_usd: amount, is_estimate, notes }
+    return { cost_type, amount_base: amount, is_estimate, notes }
 }
 
 // 加工单是否可编辑成本:存在、未软删、status = 'committed'。
@@ -59,7 +59,7 @@ export async function addCostEntry(runId: string, formData: FormData) {
     const { error } = await supabase.from('processing_cost_entries').insert({
         run_id: runId,
         cost_type: parsed.cost_type,
-        amount_usd: parsed.amount_usd,
+        amount_base: parsed.amount_base,
         is_estimate: parsed.is_estimate,
         notes: parsed.notes,
         created_by: user?.id ?? null,
@@ -96,7 +96,7 @@ export async function updateCostEntry(entryId: string, formData: FormData) {
         .from('processing_cost_entries')
         .update({
             cost_type: parsed.cost_type,
-            amount_usd: parsed.amount_usd,
+            amount_base: parsed.amount_base,
             is_estimate: parsed.is_estimate,
             notes: parsed.notes,
             updated_by: user?.id ?? null,

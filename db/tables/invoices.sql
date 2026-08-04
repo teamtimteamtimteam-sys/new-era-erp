@@ -15,7 +15,7 @@
 -- (code/legal_name/short_name/country/tax_id/address/payment_terms/incoterm)——
 -- 该表没有联系人/邮箱/电话列。客户资料日后变更,几年后重打这张发票仍显示当时寄出的内容。
 --
--- GST:公司尚未登记,tax_rate_pct/tax_usd 目前恒为 0(由 finance_settings.gst_registered
+-- GST:公司尚未登记,tax_rate_pct/tax_base 目前恒为 0(由 finance_settings.gst_registered
 -- 控制)。把 GST 接进分录属于后续切次,且【正确的确认时点是销售而不是开票】。
 --
 -- NOTE: introduced by db/migrations/2026-07-31-phase4-cut2a-invoices.sql.
@@ -29,10 +29,10 @@ CREATE TABLE public.invoices (
     due_date           date NOT NULL,
     payment_terms_days integer NOT NULL CHECK (payment_terms_days >= 0),
     currency           text NOT NULL REFERENCES public.currencies (code),
-    subtotal_usd       numeric NOT NULL,
+    subtotal_base       numeric NOT NULL,
     tax_rate_pct       numeric NOT NULL DEFAULT 0,
-    tax_usd            numeric NOT NULL DEFAULT 0,
-    total_usd          numeric NOT NULL,
+    tax_base            numeric NOT NULL DEFAULT 0,
+    total_base          numeric NOT NULL,
     status             text NOT NULL DEFAULT 'issued' CHECK (status IN ('issued','void')),
     void_reason        text,
     voided_at          timestamptz,
@@ -60,10 +60,10 @@ BEGIN
        OR NEW.due_date           IS DISTINCT FROM OLD.due_date
        OR NEW.payment_terms_days IS DISTINCT FROM OLD.payment_terms_days
        OR NEW.currency           IS DISTINCT FROM OLD.currency
-       OR NEW.subtotal_usd       IS DISTINCT FROM OLD.subtotal_usd
+       OR NEW.subtotal_base       IS DISTINCT FROM OLD.subtotal_base
        OR NEW.tax_rate_pct       IS DISTINCT FROM OLD.tax_rate_pct
-       OR NEW.tax_usd            IS DISTINCT FROM OLD.tax_usd
-       OR NEW.total_usd          IS DISTINCT FROM OLD.total_usd
+       OR NEW.tax_base            IS DISTINCT FROM OLD.tax_base
+       OR NEW.total_base          IS DISTINCT FROM OLD.total_base
        OR NEW.notes              IS DISTINCT FROM OLD.notes
        OR NEW.terms_text         IS DISTINCT FROM OLD.terms_text
        OR NEW.bill_to_snapshot   IS DISTINCT FROM OLD.bill_to_snapshot
@@ -122,3 +122,8 @@ CREATE POLICY "invoices update by permission"
 REVOKE SELECT ON public.invoices FROM authenticated, anon;
 GRANT SELECT (id, code, customer_id, issue_date, due_date, payment_terms_days, currency, tax_rate_pct, status, void_reason, voided_at, voided_by, notes, terms_text, bill_to_snapshot, created_at, created_by)
     ON public.invoices TO authenticated;
+
+-- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)
+COMMENT ON COLUMN public.invoices.subtotal_base IS '本位币小计(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 subtotal_usd)。';
+COMMENT ON COLUMN public.invoices.tax_base IS '本位币税额(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 tax_usd)。';
+COMMENT ON COLUMN public.invoices.total_base IS '本位币总额(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 total_usd)。';

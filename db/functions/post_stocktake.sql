@@ -39,7 +39,7 @@ BEGIN
             FROM inbound_batches WHERE id = v_line.inbound_batch_id FOR UPDATE;
             v_inv_acct := '1200';
         ELSE
-            SELECT ob.code, ob.remaining_qty, ob.deleted_at, po.unit_cost_usd
+            SELECT ob.code, ob.remaining_qty, ob.deleted_at, po.unit_cost_base
             INTO v_code, v_current, v_deleted, v_value
             FROM output_batches ob
             LEFT JOIN processing_outputs po ON po.output_batch_id = ob.id

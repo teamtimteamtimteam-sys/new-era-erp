@@ -36,10 +36,10 @@ BEGIN
     v_mirror_code := 'EXP-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
 
     INSERT INTO expenses (id, code, expense_date, account_code, amount_ccy, currency, fx_rate,
-                          amount_usd, payment_status, bank_account_code, supplier_id,
+                          amount_base, payment_status, bank_account_code, supplier_id,
                           payee_name, notes, journal_entry_id, created_by)
     VALUES (v_mirror_id, v_mirror_code, CURRENT_DATE, v_orig.account_code,
-            v_orig.amount_ccy, v_orig.currency, v_orig.fx_rate, v_orig.amount_usd,
+            v_orig.amount_ccy, v_orig.currency, v_orig.fx_rate, v_orig.amount_base,
             v_orig.payment_status, v_orig.bank_account_code, v_orig.supplier_id,
             v_orig.payee_name,
             'REVERSAL: ' || v_orig.code || COALESCE(' — ' || p_memo, ''),

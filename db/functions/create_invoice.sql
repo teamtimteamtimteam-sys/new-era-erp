@@ -67,7 +67,7 @@ BEGIN
         v_seen := v_seen || v_sale_id;
 
         SELECT sr.id, sr.customer_id, sr.quantity, sr.unit_price, sr.currency,
-               sr.amount_usd, ob.code AS batch_code, ob.unit, m.name AS material_name
+               sr.amount_base, ob.code AS batch_code, ob.unit, m.name AS material_name
         INTO v_sale
         FROM sales_records sr
         JOIN output_batches ob ON ob.id = sr.output_batch_id
@@ -105,9 +105,9 @@ BEGIN
             'quantity', v_sale.quantity,
             'unit', v_sale.unit,
             'unit_price', v_sale.unit_price,
-            'amount_usd', v_sale.amount_usd);
+            'amount_base', v_sale.amount_base);
 
-        v_subtotal := v_subtotal + v_sale.amount_usd;
+        v_subtotal := v_subtotal + v_sale.amount_base;
     END LOOP;
 
     -- 5. 税:未做 GST 登记时一律 0。【不过任何税金分录】—— 正确确认时点是销售,不是开票。
@@ -122,7 +122,7 @@ BEGIN
 
     -- 6. 第二趟:金额已定,一次写对发票头,再落明细行。
     INSERT INTO invoices (id, code, customer_id, issue_date, due_date, payment_terms_days,
-                          currency, subtotal_usd, tax_rate_pct, tax_usd, total_usd,
+                          currency, subtotal_base, tax_rate_pct, tax_base, total_base,
                           notes, terms_text, bill_to_snapshot)
     VALUES (v_invoice_id, v_code, p_customer_id, v_issue, v_due, v_terms,
             v_currency, v_subtotal, v_tax_rate, v_tax, round(v_subtotal + v_tax, 2),
@@ -144,7 +144,7 @@ BEGIN
     FOR v_line IN SELECT * FROM jsonb_array_elements(v_lines)
     LOOP
         INSERT INTO invoice_lines (invoice_id, sales_record_id, line_no, description,
-                                   quantity, unit, unit_price, amount_usd)
+                                   quantity, unit, unit_price, amount_base)
         VALUES (v_invoice_id,
                 (v_line->>'sales_record_id')::uuid,
                 (v_line->>'line_no')::integer,
@@ -152,7 +152,7 @@ BEGIN
                 (v_line->>'quantity')::numeric,
                 v_line->>'unit',
                 (v_line->>'unit_price')::numeric,
-                (v_line->>'amount_usd')::numeric);
+                (v_line->>'amount_base')::numeric);
     END LOOP;
 
     RETURN jsonb_build_object(
@@ -160,9 +160,9 @@ BEGIN
         'code', v_code,
         'issue_date', v_issue,
         'due_date', v_due,
-        'subtotal_usd', v_subtotal,
-        'tax_usd', v_tax,
-        'total_usd', round(v_subtotal + v_tax, 2),
+        'subtotal_base', v_subtotal,
+        'tax_base', v_tax,
+        'total_base', round(v_subtotal + v_tax, 2),
         'line_count', v_no,
         'currency', v_currency
     );

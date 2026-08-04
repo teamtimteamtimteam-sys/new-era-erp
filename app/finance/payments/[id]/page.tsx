@@ -18,7 +18,7 @@ type AllocRow = {
     inbound_batch_id: string | null
     expense_id: string | null
     purchase_order_id: string | null
-    allocated_usd: number
+    allocated_base: number
 }
 
 export default async function PaymentDetailPage({
@@ -34,7 +34,7 @@ export default async function PaymentDetailPage({
 
     const { data: payment, error } = await supabase
         .from('payments')
-        .select('id, code, direction, customer_id, supplier_id, amount_ccy, currency, fx_rate, amount_usd, bank_account_code, payment_date, notes, journal_entry_id, status, reversed_by_payment')
+        .select('id, code, direction, customer_id, supplier_id, amount_ccy, currency, fx_rate, amount_base, bank_account_code, payment_date, notes, journal_entry_id, status, reversed_by_payment')
         .eq('id', id)
         .single()
 
@@ -52,7 +52,7 @@ export default async function PaymentDetailPage({
             : Promise.resolve({ data: null }),
         supabase
             .from('payment_allocations')
-            .select('id, sales_record_id, inbound_batch_id, expense_id, purchase_order_id, allocated_usd')
+            .select('id, sales_record_id, inbound_batch_id, expense_id, purchase_order_id, allocated_base')
             .eq('payment_id', id)
             .order('created_at', { ascending: true }),
         payment.reversed_by_payment
@@ -120,8 +120,8 @@ export default async function PaymentDetailPage({
         }
     }
 
-    const allocTotal = Math.round(allocs.reduce((s, a) => s + a.allocated_usd, 0) * 100) / 100
-    const unallocated = Math.round((payment.amount_usd - allocTotal) * 100) / 100
+    const allocTotal = Math.round(allocs.reduce((s, a) => s + a.allocated_base, 0) * 100) / 100
+    const unallocated = Math.round((payment.amount_base - allocTotal) * 100) / 100
     const partyName = partyRes.data?.legal_name ?? '—'
 
     // 凭据附件(在服务端按当前语言格式化时间,避免客户端水合不一致)
@@ -199,7 +199,7 @@ export default async function PaymentDetailPage({
                     </span>
                     {payment.currency !== 'USD' && (
                         <span className="text-gray-500 ml-1 font-mono">
-                            @ {payment.fx_rate} = {formatMoney(payment.amount_usd)} USD
+                            @ {payment.fx_rate} = {formatMoney(payment.amount_base)} USD
                         </span>
                     )}
                 </div>
@@ -265,7 +265,7 @@ export default async function PaymentDetailPage({
                                     )}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                    {formatMoney(a.allocated_usd)}
+                                    {formatMoney(a.allocated_base)}
                                 </td>
                             </tr>
                         )

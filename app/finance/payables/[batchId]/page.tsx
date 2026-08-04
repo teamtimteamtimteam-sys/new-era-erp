@@ -15,7 +15,7 @@ import type { Tables } from '@/lib/database.types'
 
 type AllocRow = {
     id: string
-    allocated_usd: number
+    allocated_base: number
     payments: {
         id: string
         code: string
@@ -63,7 +63,7 @@ export default async function PayableDocPage({
             : Promise.resolve({ data: null }),
         supabase
             .from('payment_allocations')
-            .select('id, allocated_usd, payments(id, code, payment_date, status)')
+            .select('id, allocated_base, payments(id, code, payment_date, status)')
             .eq('inbound_batch_id', batchId)
             .order('created_at', { ascending: true }),
         supabase
@@ -87,7 +87,7 @@ export default async function PayableDocPage({
         Math.round(
             allocs
                 .filter((a) => a.payments?.status === 'posted')
-                .reduce((s, a) => s + a.allocated_usd, 0) * 100
+                .reduce((s, a) => s + a.allocated_base, 0) * 100
         ) / 100
     const open = amountUsd !== null ? Math.round((amountUsd - settled) * 100) / 100 : null
 
@@ -226,7 +226,7 @@ export default async function PayableDocPage({
                                         (reversed ? ' line-through' : '')
                                     }
                                 >
-                                    {formatMoney(a.allocated_usd)}
+                                    {formatMoney(a.allocated_base)}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-sm">
                                     {reversed ? (

@@ -94,10 +94,10 @@ export type InvoiceData = {
     due_date: string
     payment_terms_days: number
     currency: string
-    subtotal_usd: number
+    subtotal_base: number
     tax_rate_pct: number
-    tax_usd: number
-    total_usd: number
+    tax_base: number
+    total_base: number
     status: string
     notes: string | null
     terms_text: string | null
@@ -111,7 +111,7 @@ export type InvoiceLine = {
     quantity: number
     unit: string
     unit_price: number
-    amount_usd: number
+    amount_base: number
 }
 
 const num = (n: number, dp = 2) =>
@@ -330,7 +330,7 @@ export default function InvoiceDocument({
                             {num(l.quantity, 2)} {l.unit}
                         </Text>
                         <Text style={styles.cPrice}>{num(l.unit_price)}</Text>
-                        <Text style={styles.cAmt}>{num(l.amount_usd)}</Text>
+                        <Text style={styles.cAmt}>{num(l.amount_base)}</Text>
                     </View>
                 ))}
 
@@ -338,18 +338,18 @@ export default function InvoiceDocument({
                 <View style={styles.totals}>
                     <View style={styles.totalRow}>
                         <Text style={styles.totalLabel}>Subtotal</Text>
-                        <Text style={styles.totalValue}>{num(invoice.subtotal_usd)}</Text>
+                        <Text style={styles.totalValue}>{num(invoice.subtotal_base)}</Text>
                     </View>
                     {/* 未做 GST 登记时【整行不出现】—— 不给一家没登记的公司打印 "GST 0.00" */}
-                    {Number(invoice.tax_usd) !== 0 ? (
+                    {Number(invoice.tax_base) !== 0 ? (
                         <View style={styles.totalRow}>
                             <Text style={styles.totalLabel}>GST ({num(invoice.tax_rate_pct, 0)}%)</Text>
-                            <Text style={styles.totalValue}>{num(invoice.tax_usd)}</Text>
+                            <Text style={styles.totalValue}>{num(invoice.tax_base)}</Text>
                         </View>
                     ) : null}
                     <View style={styles.grandRow}>
                         <Text style={styles.grandLabel}>Total ({invoice.currency})</Text>
-                        <Text style={styles.grandValue}>{num(invoice.total_usd)}</Text>
+                        <Text style={styles.grandValue}>{num(invoice.total_base)}</Text>
                     </View>
                 </View>
 

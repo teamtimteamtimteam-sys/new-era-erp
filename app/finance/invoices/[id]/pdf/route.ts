@@ -63,7 +63,7 @@ export async function GET(
     const [invRes, companyRes, settingsRes] = await Promise.all([
         supabase
             .from('invoices_masked')
-            .select('code, issue_date, due_date, payment_terms_days, currency, subtotal_usd, tax_rate_pct, tax_usd, total_usd, status, notes, terms_text, bill_to_snapshot')
+            .select('code, issue_date, due_date, payment_terms_days, currency, subtotal_base, tax_rate_pct, tax_base, total_base, status, notes, terms_text, bill_to_snapshot')
             .eq('id', id)
             .single(),
         supabase.from('company_profile_masked').select('*').limit(1).single(),
@@ -88,7 +88,7 @@ export async function GET(
 
     const { data: lineRows } = await supabase
         .from('invoice_lines_masked')
-        .select('line_no, description, quantity, unit, unit_price, amount_usd')
+        .select('line_no, description, quantity, unit, unit_price, amount_base')
         .eq('invoice_id', id)
         .order('line_no', { ascending: true })
 
@@ -116,10 +116,10 @@ export async function GET(
         due_date: inv.due_date,
         payment_terms_days: inv.payment_terms_days,
         currency: inv.currency,
-        subtotal_usd: Number(inv.subtotal_usd),
+        subtotal_base: Number(inv.subtotal_base),
         tax_rate_pct: Number(inv.tax_rate_pct),
-        tax_usd: Number(inv.tax_usd),
-        total_usd: Number(inv.total_usd),
+        tax_base: Number(inv.tax_base),
+        total_base: Number(inv.total_base),
         status: inv.status,
         notes: inv.notes,
         terms_text: inv.terms_text,
@@ -132,7 +132,7 @@ export async function GET(
         quantity: Number(l.quantity),
         unit: l.unit,
         unit_price: Number(l.unit_price),
-        amount_usd: Number(l.amount_usd),
+        amount_base: Number(l.amount_base),
     }))
 
     // 守卫:内嵌的是【裁剪过的】中文字体,范围外的字会被静默画成空白 —— 一份寄给

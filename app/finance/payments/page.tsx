@@ -59,7 +59,7 @@ export default async function PaymentsListPage({
     const { data: payments, error } = await applyFilters(
         supabase
             .from('payments')
-            .select('id, code, direction, customer_id, supplier_id, amount_ccy, currency, amount_usd, bank_account_code, payment_date, status')
+            .select('id, code, direction, customer_id, supplier_id, amount_ccy, currency, amount_base, bank_account_code, payment_date, status')
     )
         .order('created_at', { ascending: false })
         .range(from, to)
@@ -168,7 +168,7 @@ export default async function PaymentsListPage({
                                 {r.currency} {formatMoney(r.amount_ccy)}
                                 {r.currency !== 'USD' && (
                                     <span className="text-gray-500 ml-2">
-                                        = {formatMoney(r.amount_usd)} USD
+                                        = {formatMoney(r.amount_base)} USD
                                     </span>
                                 )}
                             </td>

@@ -25,9 +25,9 @@ type Row = {
     customer_name: string | null
     issue_date: string
     due_date: string
-    total_usd: number
-    settled_usd: number | null
-    open_usd: number | null
+    total_base: number
+    settled_base: number | null
+    open_base: number | null
     payment_state: string | null
     days_overdue: number | null
     overdue: boolean
@@ -77,20 +77,20 @@ export default async function InvoicesPage({
         const { data } = await applyDates(
             supabase
                 .from('invoices_masked')
-                .select('id, code, customer_id, issue_date, due_date, total_usd, customers(legal_name)')
+                .select('id, code, customer_id, issue_date, due_date, total_base, customers(legal_name)')
                 .eq('status', 'void')
         )
             .order('issue_date', { ascending: false })
             .range((page - 1) * PAGE_SIZE, (page - 1) * PAGE_SIZE + PAGE_SIZE - 1)
-        rows = ((data as unknown as { id: string; code: string; issue_date: string; due_date: string; total_usd: number; customers: { legal_name: string } | null }[] | null) ?? []).map((i) => ({
+        rows = ((data as unknown as { id: string; code: string; issue_date: string; due_date: string; total_base: number; customers: { legal_name: string } | null }[] | null) ?? []).map((i) => ({
             invoice_id: i.id,
             code: i.code,
             customer_name: i.customers?.legal_name ?? null,
             issue_date: i.issue_date,
             due_date: i.due_date,
-            total_usd: i.total_usd,
-            settled_usd: null,
-            open_usd: null,
+            total_base: i.total_base,
+            settled_base: null,
+            open_base: null,
             payment_state: null,
             days_overdue: null,
             overdue: false,
@@ -120,18 +120,18 @@ export default async function InvoicesPage({
             const { data: voids } = await applyDates(
                 supabase
                     .from('invoices_masked')
-                    .select('id, code, issue_date, due_date, total_usd, customers(legal_name)')
+                    .select('id, code, issue_date, due_date, total_base, customers(legal_name)')
                     .eq('status', 'void')
             ).order('issue_date', { ascending: false })
-            const voidRows = ((voids as unknown as { id: string; code: string; issue_date: string; due_date: string; total_usd: number; customers: { legal_name: string } | null }[] | null) ?? []).map((i) => ({
+            const voidRows = ((voids as unknown as { id: string; code: string; issue_date: string; due_date: string; total_base: number; customers: { legal_name: string } | null }[] | null) ?? []).map((i) => ({
                 invoice_id: i.id,
                 code: i.code,
                 customer_name: i.customers?.legal_name ?? null,
                 issue_date: i.issue_date,
                 due_date: i.due_date,
-                total_usd: i.total_usd,
-                settled_usd: null,
-                open_usd: null,
+                total_base: i.total_base,
+                settled_base: null,
+                open_base: null,
                 payment_state: null,
                 days_overdue: null,
                 overdue: false,
@@ -229,13 +229,13 @@ export default async function InvoicesPage({
                                 ) : null}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatMoney(r.total_usd)}
+                                {formatMoney(r.total_base)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {r.settled_usd === null ? '—' : formatMoney(r.settled_usd)}
+                                {r.settled_base === null ? '—' : formatMoney(r.settled_base)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm font-medium">
-                                {r.open_usd === null ? '—' : formatMoney(r.open_usd)}
+                                {r.open_base === null ? '—' : formatMoney(r.open_base)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">{statePill(r)}</td>
                             <td className="border border-gray-300 px-4 py-2">

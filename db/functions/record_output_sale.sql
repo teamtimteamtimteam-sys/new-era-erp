@@ -12,7 +12,7 @@ DECLARE
     v_new_remaining numeric;
     v_state         text;
     v_fx            numeric;
-    v_amount_usd    numeric;
+    v_amount_base    numeric;
     v_movement_id   uuid;
     v_sale_id       uuid;
     v_sale_date     date := COALESCE(p_sale_date, CURRENT_DATE);
@@ -50,19 +50,19 @@ BEGIN
         RAISE EXCEPTION 'FX_RATE_NOT_ACCEPTED|%', p_currency;
     END IF;
     v_fx := fx_rate_for(p_currency, v_sale_date, 'tt_buy');
-    v_amount_usd := round(p_quantity * p_unit_price * v_fx, 2);
+    v_amount_base := round(p_quantity * p_unit_price * v_fx, 2);
 
     INSERT INTO inventory_movements (output_batch_id, movement_type, qty_delta, business_date, notes, created_by)
     VALUES (p_output_batch_id, 'sale', -p_quantity, v_sale_date, p_notes, v_user)
     RETURNING id INTO v_movement_id;
 
     -- customer_id 有效性由 FK 把关(可空:批次可能未指定客户)
-    INSERT INTO sales_records (output_batch_id, customer_id, quantity, unit_price, currency, fx_rate, amount_usd, sale_date, notes, movement_id, created_by)
-    VALUES (p_output_batch_id, p_customer_id, p_quantity, p_unit_price, p_currency, v_fx, v_amount_usd, v_sale_date, p_notes, v_movement_id, v_user)
+    INSERT INTO sales_records (output_batch_id, customer_id, quantity, unit_price, currency, fx_rate, amount_base, sale_date, notes, movement_id, created_by)
+    VALUES (p_output_batch_id, p_customer_id, p_quantity, p_unit_price, p_currency, v_fx, v_amount_base, v_sale_date, p_notes, v_movement_id, v_user)
     RETURNING id INTO v_sale_id;
 
     -- cut 2a JE#1:收入 —— 借 1100 / 贷 4000,原币行(amount_ccy = qty × price,
-    -- fx 原样),USD 侧由 post_journal_entry 折算,与 amount_usd 同式同值。
+    -- fx 原样),USD 侧由 post_journal_entry 折算,与 amount_base 同式同值。
     v_je1 := post_journal_entry(
         v_sale_date,
         'Sale ' || v_code,
@@ -73,7 +73,7 @@ BEGIN
 
     -- cut 2a JE#2:COGS —— 有产出腿单位成本才挂;没有则只挂收入(cogs_journal 为
     -- null),等 allocate_processing_costs 补挂(见其 COGS catch-up)。
-    SELECT po.unit_cost_usd INTO v_unit_cost
+    SELECT po.unit_cost_base INTO v_unit_cost
     FROM processing_outputs po
     WHERE po.output_batch_id = p_output_batch_id
     LIMIT 1;
@@ -108,7 +108,7 @@ BEGIN
         'remaining_qty', v_new_remaining,
         'state', v_state,
         'sale_id', v_sale_id,
-        'amount_usd', v_amount_usd,
+        'amount_base', v_amount_base,
         'revenue_journal', v_je1->>'code',
         'cogs_journal', v_je2->>'code'
     );

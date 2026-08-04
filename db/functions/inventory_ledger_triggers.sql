@@ -61,7 +61,7 @@ END;
 $function$;
 
 -- (b) writeoff-on-softdelete: stock out + zero the cache (reversal_void under reversal ctx)
--- cut 2a (2026-07-06): 注销即入账 —— 已计值批次(进料 unit_price / 产出腿 unit_cost_usd)
+-- cut 2a (2026-07-06): 注销即入账 —— 已计值批次(进料 unit_price / 产出腿 unit_cost_base)
 -- 追加 借 5200 / 贷 1200|1220 分录;reversal_void 不入账(加工产出从未入过 1220)。
 CREATE OR REPLACE FUNCTION public.emit_batch_writeoff_movement()
  RETURNS trigger
@@ -99,7 +99,7 @@ BEGIN
                 v_value := OLD.unit_price;
                 v_acct := '1200';
             ELSE
-                SELECT po.unit_cost_usd INTO v_value
+                SELECT po.unit_cost_base INTO v_value
                 FROM public.processing_outputs po
                 WHERE po.output_batch_id = OLD.id
                 LIMIT 1;

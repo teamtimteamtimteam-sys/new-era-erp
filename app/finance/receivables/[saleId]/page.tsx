@@ -15,7 +15,7 @@ import type { Tables } from '@/lib/database.types'
 
 type AllocRow = {
     id: string
-    allocated_usd: number
+    allocated_base: number
     payments: {
         id: string
         code: string
@@ -37,7 +37,7 @@ export default async function ReceivableDocPage({
 
     const { data: saleRaw, error } = await supabase
         .from('sales_records_masked')
-        .select('id, output_batch_id, customer_id, quantity, unit_price, currency, fx_rate, amount_usd, sale_date, notes, cogs_entry_id')
+        .select('id, output_batch_id, customer_id, quantity, unit_price, currency, fx_rate, amount_base, sale_date, notes, cogs_entry_id')
         .eq('id', saleId)
         .single()
 
@@ -62,7 +62,7 @@ export default async function ReceivableDocPage({
             : Promise.resolve({ data: null }),
         supabase
             .from('payment_allocations')
-            .select('id, allocated_usd, payments(id, code, payment_date, status)')
+            .select('id, allocated_base, payments(id, code, payment_date, status)')
             .eq('sales_record_id', saleId)
             .order('created_at', { ascending: true }),
         supabase
@@ -97,9 +97,9 @@ export default async function ReceivableDocPage({
         Math.round(
             allocs
                 .filter((a) => a.payments?.status === 'posted')
-                .reduce((s, a) => s + a.allocated_usd, 0) * 100
+                .reduce((s, a) => s + a.allocated_base, 0) * 100
         ) / 100
-    const open = Math.round((sale.amount_usd - settled) * 100) / 100
+    const open = Math.round((sale.amount_base - settled) * 100) / 100
 
     // 在服务端按当前语言格式化时间,再传给客户端面板 —— 避免客户端 toLocaleString 引发水合不一致
     const attachments = (attachRes.data ?? []).map((a) => ({
@@ -167,7 +167,7 @@ export default async function ReceivableDocPage({
                             {sale.currency} @ {sale.fx_rate}
                         </span>
                     )}
-                    <span className="font-mono font-medium ml-1">= {formatMoney(sale.amount_usd)} USD</span>
+                    <span className="font-mono font-medium ml-1">= {formatMoney(sale.amount_base)} USD</span>
                 </div>
                 <div>
                     <span className="text-gray-600 mr-1">{t('finance.settledAmount')}:</span>
@@ -265,7 +265,7 @@ export default async function ReceivableDocPage({
                                         (reversed ? ' line-through' : '')
                                     }
                                 >
-                                    {formatMoney(a.allocated_usd)}
+                                    {formatMoney(a.allocated_base)}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-sm">
                                     {reversed ? (

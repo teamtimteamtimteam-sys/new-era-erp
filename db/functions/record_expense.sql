@@ -8,7 +8,7 @@ DECLARE
     v_user       uuid := auth.uid();
     v_account    record;
     v_fx         numeric;
-    v_amount_usd numeric;
+    v_amount_base numeric;
     v_bank       text;
     v_expense_id uuid := gen_random_uuid();
     v_year       integer;
@@ -76,7 +76,7 @@ BEGIN
     END IF;
 
     -- 4. USD 金额
-    v_amount_usd := round(p_amount * v_fx, 2);
+    v_amount_base := round(p_amount * v_fx, 2);
 
     -- 5. 无缝编号:咨询锁串行化"取当年最大号+1"(同 JE/收付款编号手法);失败回滚会释放号码。
     v_year := EXTRACT(YEAR FROM p_expense_date)::integer;
@@ -103,16 +103,16 @@ BEGIN
 
     -- 7. 插入开支单(带着分录链接一次到位;不可变表无后续 UPDATE)
     INSERT INTO expenses (id, code, expense_date, account_code, amount_ccy, currency, fx_rate,
-                          amount_usd, payment_status, bank_account_code, supplier_id,
+                          amount_base, payment_status, bank_account_code, supplier_id,
                           payee_name, notes, journal_entry_id, created_by)
     VALUES (v_expense_id, v_code, p_expense_date, p_account_code, p_amount, p_currency, v_fx,
-            v_amount_usd, p_payment_status, v_bank, p_supplier_id,
+            v_amount_base, p_payment_status, v_bank, p_supplier_id,
             p_payee_name, p_notes, (v_je->>'entry_id')::uuid, v_user);
 
     RETURN jsonb_build_object(
         'expense_id', v_expense_id,
         'code', v_code,
-        'amount_usd', v_amount_usd,
+        'amount_base', v_amount_base,
         'journal_code', v_je->>'code',
         'payment_status', p_payment_status
     );

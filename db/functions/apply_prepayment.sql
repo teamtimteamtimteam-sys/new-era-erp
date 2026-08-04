@@ -47,12 +47,12 @@ BEGIN
     END IF;
 
     -- 可用预付 = 已付到该 PO 的预付(仅 posted 收付款) − 已冲抵的部分
-    SELECT COALESCE(SUM(pa.allocated_usd), 0) INTO v_prepaid
+    SELECT COALESCE(SUM(pa.allocated_base), 0) INTO v_prepaid
     FROM payment_allocations pa
     JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'
     WHERE pa.purchase_order_id = p_purchase_order_id;
 
-    SELECT COALESCE(SUM(ppa.amount_usd), 0) INTO v_applied
+    SELECT COALESCE(SUM(ppa.amount_base), 0) INTO v_applied
     FROM prepayment_applications ppa
     WHERE ppa.purchase_order_id = p_purchase_order_id;
 
@@ -63,12 +63,12 @@ BEGIN
 
     -- 批次敞口 = 当前批次价值 − 收付款核销 − 已冲抵的预付
     v_value := round(v_batch.quantity * v_batch.unit_price, 2);
-    SELECT COALESCE(SUM(pa.allocated_usd), 0) INTO v_settled
+    SELECT COALESCE(SUM(pa.allocated_base), 0) INTO v_settled
     FROM payment_allocations pa
     JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'
     WHERE pa.inbound_batch_id = p_inbound_batch_id;
     v_settled := v_settled + COALESCE(
-        (SELECT SUM(ppa.amount_usd) FROM prepayment_applications ppa
+        (SELECT SUM(ppa.amount_base) FROM prepayment_applications ppa
           WHERE ppa.inbound_batch_id = p_inbound_batch_id), 0);
     v_open := round(v_value - v_settled, 2);
     IF p_amount > v_open THEN
@@ -84,7 +84,7 @@ BEGIN
             jsonb_build_object('account_code', '2000', 'side', 'debit',  'currency', 'SGD', 'amount_ccy', p_amount, 'fx_rate', 1),
             jsonb_build_object('account_code', '1300', 'side', 'credit', 'currency', 'SGD', 'amount_ccy', p_amount, 'fx_rate', 1)));
 
-    INSERT INTO prepayment_applications (id, purchase_order_id, inbound_batch_id, amount_usd,
+    INSERT INTO prepayment_applications (id, purchase_order_id, inbound_batch_id, amount_base,
                                          notes, journal_entry_id, created_by)
     VALUES (v_app_id, p_purchase_order_id, p_inbound_batch_id, p_amount,
             p_notes, (v_je->>'entry_id')::uuid, v_user);
@@ -93,7 +93,7 @@ BEGIN
         'application_id', v_app_id,
         'purchase_order_id', p_purchase_order_id,
         'inbound_batch_id', p_inbound_batch_id,
-        'amount_usd', p_amount,
+        'amount_base', p_amount,
         'journal_code', v_je->>'code',
         'prepaid_remaining', round(v_available - p_amount, 2)
     );

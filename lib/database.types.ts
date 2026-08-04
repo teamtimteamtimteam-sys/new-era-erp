@@ -989,8 +989,8 @@ export type Database = {
       expenses: {
         Row: {
           account_code: string
+          amount_base: number
           amount_ccy: number
-          amount_usd: number
           bank_account_code: string | null
           code: string
           created_at: string | null
@@ -1009,8 +1009,8 @@ export type Database = {
         }
         Insert: {
           account_code: string
+          amount_base: number
           amount_ccy: number
-          amount_usd: number
           bank_account_code?: string | null
           code: string
           created_at?: string | null
@@ -1029,8 +1029,8 @@ export type Database = {
         }
         Update: {
           account_code?: string
+          amount_base?: number
           amount_ccy?: number
-          amount_usd?: number
           bank_account_code?: string | null
           code?: string
           created_at?: string | null
@@ -1667,7 +1667,7 @@ export type Database = {
       }
       invoice_lines: {
         Row: {
-          amount_usd: number
+          amount_base: number
           created_at: string | null
           description: string
           id: string
@@ -1680,7 +1680,7 @@ export type Database = {
           unit_price: number
         }
         Insert: {
-          amount_usd: number
+          amount_base: number
           created_at?: string | null
           description: string
           id?: string
@@ -1693,7 +1693,7 @@ export type Database = {
           unit_price: number
         }
         Update: {
-          amount_usd?: number
+          amount_base?: number
           created_at?: string | null
           description?: string
           id?: string
@@ -1778,11 +1778,11 @@ export type Database = {
           notes: string | null
           payment_terms_days: number
           status: string
-          subtotal_usd: number
+          subtotal_base: number
+          tax_base: number
           tax_rate_pct: number
-          tax_usd: number
           terms_text: string | null
-          total_usd: number
+          total_base: number
           void_reason: string | null
           voided_at: string | null
           voided_by: string | null
@@ -1800,11 +1800,11 @@ export type Database = {
           notes?: string | null
           payment_terms_days: number
           status?: string
-          subtotal_usd: number
+          subtotal_base: number
+          tax_base?: number
           tax_rate_pct?: number
-          tax_usd?: number
           terms_text?: string | null
-          total_usd: number
+          total_base: number
           void_reason?: string | null
           voided_at?: string | null
           voided_by?: string | null
@@ -1822,11 +1822,11 @@ export type Database = {
           notes?: string | null
           payment_terms_days?: number
           status?: string
-          subtotal_usd?: number
+          subtotal_base?: number
+          tax_base?: number
           tax_rate_pct?: number
-          tax_usd?: number
           terms_text?: string | null
-          total_usd?: number
+          total_base?: number
           void_reason?: string | null
           voided_at?: string | null
           voided_by?: string | null
@@ -2834,7 +2834,7 @@ export type Database = {
       }
       payment_allocations: {
         Row: {
-          allocated_usd: number
+          allocated_base: number
           created_at: string | null
           expense_id: string | null
           id: string
@@ -2844,7 +2844,7 @@ export type Database = {
           sales_record_id: string | null
         }
         Insert: {
-          allocated_usd: number
+          allocated_base: number
           created_at?: string | null
           expense_id?: string | null
           id?: string
@@ -2854,7 +2854,7 @@ export type Database = {
           sales_record_id?: string | null
         }
         Update: {
-          allocated_usd?: number
+          allocated_base?: number
           created_at?: string | null
           expense_id?: string | null
           id?: string
@@ -3056,8 +3056,8 @@ export type Database = {
       }
       payments: {
         Row: {
+          amount_base: number
           amount_ccy: number
-          amount_usd: number
           bank_account_code: string
           code: string
           counterparty_type: string
@@ -3076,8 +3076,8 @@ export type Database = {
           supplier_id: string | null
         }
         Insert: {
+          amount_base: number
           amount_ccy: number
-          amount_usd: number
           bank_account_code: string
           code: string
           counterparty_type: string
@@ -3096,8 +3096,8 @@ export type Database = {
           supplier_id?: string | null
         }
         Update: {
+          amount_base?: number
           amount_ccy?: number
-          amount_usd?: number
           bank_account_code?: string
           code?: string
           counterparty_type?: string
@@ -3627,7 +3627,7 @@ export type Database = {
       }
       prepayment_applications: {
         Row: {
-          amount_usd: number
+          amount_base: number
           created_at: string
           created_by: string | null
           id: string
@@ -3637,7 +3637,7 @@ export type Database = {
           purchase_order_id: string
         }
         Insert: {
-          amount_usd: number
+          amount_base: number
           created_at?: string
           created_by?: string | null
           id?: string
@@ -3647,7 +3647,7 @@ export type Database = {
           purchase_order_id: string
         }
         Update: {
-          amount_usd?: number
+          amount_base?: number
           created_at?: string
           created_by?: string | null
           id?: string
@@ -3926,7 +3926,7 @@ export type Database = {
       }
       processing_cost_entries: {
         Row: {
-          amount_usd: number
+          amount_base: number
           cost_type: string
           created_at: string
           created_by: string | null
@@ -3939,7 +3939,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
-          amount_usd: number
+          amount_base: number
           cost_type: string
           created_at?: string
           created_by?: string | null
@@ -3952,7 +3952,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
-          amount_usd?: number
+          amount_base?: number
           cost_type?: string
           created_at?: string
           created_by?: string | null
@@ -4064,31 +4064,31 @@ export type Database = {
       }
       processing_outputs: {
         Row: {
-          allocated_cost_usd: number | null
+          allocated_cost_base: number | null
           created_at: string
           id: string
           output_batch_id: string
           quantity_produced: number
           run_id: string
-          unit_cost_usd: number | null
+          unit_cost_base: number | null
         }
         Insert: {
-          allocated_cost_usd?: number | null
+          allocated_cost_base?: number | null
           created_at?: string
           id?: string
           output_batch_id: string
           quantity_produced: number
           run_id: string
-          unit_cost_usd?: number | null
+          unit_cost_base?: number | null
         }
         Update: {
-          allocated_cost_usd?: number | null
+          allocated_cost_base?: number | null
           created_at?: string
           id?: string
           output_batch_id?: string
           quantity_produced?: number
           run_id?: string
-          unit_cost_usd?: number | null
+          unit_cost_base?: number | null
         }
         Relationships: [
           {
@@ -4128,19 +4128,19 @@ export type Database = {
           allocation_basis: string
           allocation_snapshot: Json | null
           capitalization_entry_id: string | null
-          capitalized_cost_usd: number | null
+          capitalized_cost_base: number | null
           code: string
           created_at: string
           created_by: string | null
           deleted_at: string | null
           id: string
           loss_qty: number | null
-          material_cost_usd: number | null
+          material_cost_base: number | null
           notes: string | null
-          process_cost_usd: number | null
+          process_cost_base: number | null
           process_date: string | null
           status: string
-          total_cost_usd: number | null
+          total_cost_base: number | null
           total_input: number | null
           total_output: number | null
           updated_at: string
@@ -4152,19 +4152,19 @@ export type Database = {
           allocation_basis?: string
           allocation_snapshot?: Json | null
           capitalization_entry_id?: string | null
-          capitalized_cost_usd?: number | null
+          capitalized_cost_base?: number | null
           code: string
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
           id?: string
           loss_qty?: number | null
-          material_cost_usd?: number | null
+          material_cost_base?: number | null
           notes?: string | null
-          process_cost_usd?: number | null
+          process_cost_base?: number | null
           process_date?: string | null
           status: string
-          total_cost_usd?: number | null
+          total_cost_base?: number | null
           total_input?: number | null
           total_output?: number | null
           updated_at?: string
@@ -4176,19 +4176,19 @@ export type Database = {
           allocation_basis?: string
           allocation_snapshot?: Json | null
           capitalization_entry_id?: string | null
-          capitalized_cost_usd?: number | null
+          capitalized_cost_base?: number | null
           code?: string
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
           id?: string
           loss_qty?: number | null
-          material_cost_usd?: number | null
+          material_cost_base?: number | null
           notes?: string | null
-          process_cost_usd?: number | null
+          process_cost_base?: number | null
           process_date?: string | null
           status?: string
-          total_cost_usd?: number | null
+          total_cost_base?: number | null
           total_input?: number | null
           total_output?: number | null
           updated_at?: string
@@ -4785,7 +4785,7 @@ export type Database = {
       }
       sales_records: {
         Row: {
-          amount_usd: number
+          amount_base: number
           cogs_entry_id: string | null
           created_at: string | null
           created_by: string | null
@@ -4801,7 +4801,7 @@ export type Database = {
           unit_price: number
         }
         Insert: {
-          amount_usd: number
+          amount_base: number
           cogs_entry_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -4817,7 +4817,7 @@ export type Database = {
           unit_price: number
         }
         Update: {
-          amount_usd?: number
+          amount_base?: number
           cogs_entry_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -5485,10 +5485,10 @@ export type Database = {
           doc_date: string | null
           doc_id: string | null
           doc_kind: string | null
-          doc_value_usd: number | null
+          doc_value_base: number | null
           inbound_batch_id: string | null
-          open_usd: number | null
-          settled_usd: number | null
+          open_base: number | null
+          settled_base: number | null
           supplier_id: string | null
           supplier_name: string | null
         }
@@ -5496,7 +5496,7 @@ export type Database = {
       }
       ar_open_items: {
         Row: {
-          amount_usd: number | null
+          amount_base: number | null
           bucket: string | null
           customer_id: string | null
           customer_name: string | null
@@ -5504,10 +5504,10 @@ export type Database = {
           doc_code: string | null
           invoice_code: string | null
           invoice_id: string | null
-          open_usd: number | null
+          open_base: number | null
           sale_date: string | null
           sales_record_id: string | null
-          settled_usd: number | null
+          settled_base: number | null
         }
         Relationships: [
           {
@@ -6258,7 +6258,7 @@ export type Database = {
       }
       invoice_lines_masked: {
         Row: {
-          amount_usd: number | null
+          amount_base: number | null
           created_at: string | null
           description: string | null
           id: string | null
@@ -6271,7 +6271,7 @@ export type Database = {
           unit_price: number | null
         }
         Insert: {
-          amount_usd?: never
+          amount_base?: never
           created_at?: string | null
           description?: string | null
           id?: string | null
@@ -6284,7 +6284,7 @@ export type Database = {
           unit_price?: never
         }
         Update: {
-          amount_usd?: never
+          amount_base?: never
           created_at?: string | null
           description?: string | null
           id?: string | null
@@ -6365,11 +6365,11 @@ export type Database = {
           due_date: string | null
           invoice_id: string | null
           issue_date: string | null
-          open_usd: number | null
+          open_base: number | null
           overdue: boolean | null
           payment_state: string | null
-          settled_usd: number | null
-          total_usd: number | null
+          settled_base: number | null
+          total_base: number | null
         }
         Relationships: [
           {
@@ -6402,11 +6402,11 @@ export type Database = {
           notes: string | null
           payment_terms_days: number | null
           status: string | null
-          subtotal_usd: number | null
+          subtotal_base: number | null
+          tax_base: number | null
           tax_rate_pct: number | null
-          tax_usd: number | null
           terms_text: string | null
-          total_usd: number | null
+          total_base: number | null
           void_reason: string | null
           voided_at: string | null
           voided_by: string | null
@@ -6424,11 +6424,11 @@ export type Database = {
           notes?: string | null
           payment_terms_days?: number | null
           status?: string | null
-          subtotal_usd?: never
+          subtotal_base?: never
+          tax_base?: never
           tax_rate_pct?: number | null
-          tax_usd?: never
           terms_text?: string | null
-          total_usd?: never
+          total_base?: never
           void_reason?: string | null
           voided_at?: string | null
           voided_by?: string | null
@@ -6446,11 +6446,11 @@ export type Database = {
           notes?: string | null
           payment_terms_days?: number | null
           status?: string | null
-          subtotal_usd?: never
+          subtotal_base?: never
+          tax_base?: never
           tax_rate_pct?: number | null
-          tax_usd?: never
           terms_text?: string | null
-          total_usd?: never
+          total_base?: never
           void_reason?: string | null
           voided_at?: string | null
           voided_by?: string | null
@@ -6574,13 +6574,13 @@ export type Database = {
           description: string | null
           employee_code: string | null
           employee_id: string | null
-          expense_amount_usd: number | null
+          expense_amount_base: number | null
           expense_code: string | null
           expense_id: string | null
           legal_name: string | null
           linked_to_expense: boolean | null
           receipt_ref: string | null
-          settled_usd: number | null
+          settled_base: number | null
           settlement_state: string | null
           status: string | null
         }
@@ -7168,12 +7168,12 @@ export type Database = {
       }
       po_prepayment_applicable: {
         Row: {
-          applicable_usd: number | null
-          batch_ap_open_usd: number | null
+          applicable_base: number | null
+          batch_ap_open_base: number | null
           batch_code: string | null
           inbound_batch_id: string | null
           po_code: string | null
-          po_unapplied_prepayment_usd: number | null
+          po_unapplied_prepayment_base: number | null
           purchase_order_id: string | null
           supplier_id: string | null
         }
@@ -7239,7 +7239,7 @@ export type Database = {
       }
       prepayment_applications_masked: {
         Row: {
-          amount_usd: number | null
+          amount_base: number | null
           created_at: string | null
           created_by: string | null
           id: string | null
@@ -7249,7 +7249,7 @@ export type Database = {
           purchase_order_id: string | null
         }
         Insert: {
-          amount_usd?: never
+          amount_base?: never
           created_at?: string | null
           created_by?: string | null
           id?: string | null
@@ -7259,7 +7259,7 @@ export type Database = {
           purchase_order_id?: string | null
         }
         Update: {
-          amount_usd?: never
+          amount_base?: never
           created_at?: string | null
           created_by?: string | null
           id?: string | null
@@ -7538,7 +7538,7 @@ export type Database = {
       }
       processing_cost_entries_masked: {
         Row: {
-          amount_usd: number | null
+          amount_base: number | null
           cost_type: string | null
           created_at: string | null
           created_by: string | null
@@ -7551,7 +7551,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
-          amount_usd?: never
+          amount_base?: never
           cost_type?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -7564,7 +7564,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
-          amount_usd?: never
+          amount_base?: never
           cost_type?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -7614,31 +7614,31 @@ export type Database = {
       }
       processing_outputs_masked: {
         Row: {
-          allocated_cost_usd: number | null
+          allocated_cost_base: number | null
           created_at: string | null
           id: string | null
           output_batch_id: string | null
           quantity_produced: number | null
           run_id: string | null
-          unit_cost_usd: number | null
+          unit_cost_base: number | null
         }
         Insert: {
-          allocated_cost_usd?: never
+          allocated_cost_base?: never
           created_at?: string | null
           id?: string | null
           output_batch_id?: string | null
           quantity_produced?: number | null
           run_id?: string | null
-          unit_cost_usd?: never
+          unit_cost_base?: never
         }
         Update: {
-          allocated_cost_usd?: never
+          allocated_cost_base?: never
           created_at?: string | null
           id?: string | null
           output_batch_id?: string | null
           quantity_produced?: number | null
           run_id?: string | null
-          unit_cost_usd?: never
+          unit_cost_base?: never
         }
         Relationships: [
           {
@@ -7678,19 +7678,19 @@ export type Database = {
           allocation_basis: string | null
           allocation_snapshot: Json | null
           capitalization_entry_id: string | null
-          capitalized_cost_usd: number | null
+          capitalized_cost_base: number | null
           code: string | null
           created_at: string | null
           created_by: string | null
           deleted_at: string | null
           id: string | null
           loss_qty: number | null
-          material_cost_usd: number | null
+          material_cost_base: number | null
           notes: string | null
-          process_cost_usd: number | null
+          process_cost_base: number | null
           process_date: string | null
           status: string | null
-          total_cost_usd: number | null
+          total_cost_base: number | null
           total_input: number | null
           total_output: number | null
           updated_at: string | null
@@ -7702,19 +7702,19 @@ export type Database = {
           allocation_basis?: string | null
           allocation_snapshot?: Json | null
           capitalization_entry_id?: string | null
-          capitalized_cost_usd?: never
+          capitalized_cost_base?: never
           code?: string | null
           created_at?: string | null
           created_by?: string | null
           deleted_at?: string | null
           id?: string | null
           loss_qty?: number | null
-          material_cost_usd?: never
+          material_cost_base?: never
           notes?: string | null
-          process_cost_usd?: never
+          process_cost_base?: never
           process_date?: string | null
           status?: string | null
-          total_cost_usd?: never
+          total_cost_base?: never
           total_input?: number | null
           total_output?: number | null
           updated_at?: string | null
@@ -7726,19 +7726,19 @@ export type Database = {
           allocation_basis?: string | null
           allocation_snapshot?: Json | null
           capitalization_entry_id?: string | null
-          capitalized_cost_usd?: never
+          capitalized_cost_base?: never
           code?: string | null
           created_at?: string | null
           created_by?: string | null
           deleted_at?: string | null
           id?: string | null
           loss_qty?: number | null
-          material_cost_usd?: never
+          material_cost_base?: never
           notes?: string | null
-          process_cost_usd?: never
+          process_cost_base?: never
           process_date?: string | null
           status?: string | null
-          total_cost_usd?: never
+          total_cost_base?: never
           total_input?: number | null
           total_output?: number | null
           updated_at?: string | null
@@ -7950,9 +7950,9 @@ export type Database = {
           order_date: string | null
           ordered_qty: number | null
           po_id: string | null
-          prepaid_applied_usd: number | null
-          prepaid_remaining_usd: number | null
-          prepaid_usd: number | null
+          prepaid_applied_base: number | null
+          prepaid_base: number | null
+          prepaid_remaining_base: number | null
           receipt_pct: number | null
           received_batches: number | null
           received_qty: number | null
@@ -8072,7 +8072,7 @@ export type Database = {
       }
       sales_records_masked: {
         Row: {
-          amount_usd: number | null
+          amount_base: number | null
           cogs_entry_id: string | null
           created_at: string | null
           created_by: string | null
@@ -8088,7 +8088,7 @@ export type Database = {
           unit_price: number | null
         }
         Insert: {
-          amount_usd?: never
+          amount_base?: never
           cogs_entry_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -8104,7 +8104,7 @@ export type Database = {
           unit_price?: never
         }
         Update: {
-          amount_usd?: never
+          amount_base?: never
           cogs_entry_id?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -8166,7 +8166,7 @@ export type Database = {
       }
       sales_records_visible: {
         Row: {
-          amount_usd: number | null
+          amount_base: number | null
           created_at: string | null
           created_by: string | null
           currency: string | null

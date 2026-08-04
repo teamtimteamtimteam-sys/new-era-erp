@@ -31,7 +31,7 @@ type BillTo = {
 
 type AllocRow = {
     id: string
-    allocated_usd: number
+    allocated_base: number
     sales_record_id: string | null
     payments: { id: string; code: string; payment_date: string; status: string } | null
 }
@@ -49,7 +49,7 @@ export default async function InvoiceDetailPage({
 
     const { data: invRaw, error } = await supabase
         .from('invoices_masked')
-        .select('id, code, customer_id, issue_date, due_date, payment_terms_days, currency, subtotal_usd, tax_rate_pct, tax_usd, total_usd, status, void_reason, voided_at, notes, terms_text, bill_to_snapshot')
+        .select('id, code, customer_id, issue_date, due_date, payment_terms_days, currency, subtotal_base, tax_rate_pct, tax_base, total_base, status, void_reason, voided_at, notes, terms_text, bill_to_snapshot')
         .eq('id', id)
         .single()
 
@@ -73,7 +73,7 @@ export default async function InvoiceDetailPage({
 
     const { data: linesRaw } = await supabase
         .from('invoice_lines_masked')
-        .select('id, line_no, sales_record_id, description, quantity, unit, unit_price, amount_usd')
+        .select('id, line_no, sales_record_id, description, quantity, unit, unit_price, amount_base')
         .eq('invoice_id', id)
         .order('line_no', { ascending: true })
 
@@ -84,7 +84,7 @@ export default async function InvoiceDetailPage({
     const { data: allocs } = saleIds.length
         ? await supabase
               .from('payment_allocations')
-              .select('id, allocated_usd, sales_record_id, payments(id, code, payment_date, status)')
+              .select('id, allocated_base, sales_record_id, payments(id, code, payment_date, status)')
               .in('sales_record_id', saleIds)
               .order('created_at', { ascending: true })
         : { data: [] as AllocRow[] }
@@ -94,9 +94,9 @@ export default async function InvoiceDetailPage({
         Math.round(
             allocRows
                 .filter((a) => a.payments?.status === 'posted')
-                .reduce((s, a) => s + a.allocated_usd, 0) * 100
+                .reduce((s, a) => s + a.allocated_base, 0) * 100
         ) / 100
-    const open = Math.round((inv.total_usd - settled) * 100) / 100
+    const open = Math.round((inv.total_base - settled) * 100) / 100
     const paymentState = open <= 0 ? 'paid' : settled > 0 ? 'partial' : 'unpaid'
 
     const bill = (inv.bill_to_snapshot ?? {}) as BillTo
@@ -114,10 +114,10 @@ export default async function InvoiceDetailPage({
                       due_date: inv.due_date,
                       payment_terms_days: inv.payment_terms_days,
                       currency: inv.currency,
-                      subtotal_usd: Number(inv.subtotal_usd),
+                      subtotal_base: Number(inv.subtotal_base),
                       tax_rate_pct: Number(inv.tax_rate_pct),
-                      tax_usd: Number(inv.tax_usd),
-                      total_usd: Number(inv.total_usd),
+                      tax_base: Number(inv.tax_base),
+                      total_base: Number(inv.total_base),
                       notes: inv.notes,
                       terms_text: inv.terms_text,
                       bill_to: (inv.bill_to_snapshot ?? {}) as Record<string, string | null | undefined>,
@@ -128,7 +128,7 @@ export default async function InvoiceDetailPage({
                       quantity: Number(l.quantity),
                       unit: l.unit,
                       unit_price: Number(l.unit_price),
-                      amount_usd: Number(l.amount_usd),
+                      amount_base: Number(l.amount_base),
                   })),
                   company: company as Record<string, unknown> & { legal_name: string },
                   gstRegistrationNo: financeSettings?.gst_registration_no ?? null,
@@ -284,7 +284,7 @@ export default async function InvoiceDetailPage({
                                 {formatMoney(l.unit_price)}
                             </td>
                             <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                {formatMoney(l.amount_usd)}
+                                {formatMoney(l.amount_base)}
                             </td>
                             <td className="border border-gray-300 px-3 py-2 text-sm">
                                 {/* 每行都能跳回它背后的 AR 单据(凭据附件挂在那里)*/}
@@ -304,17 +304,17 @@ export default async function InvoiceDetailPage({
             <div className="mt-4 max-w-sm ml-auto text-sm space-y-1">
                 <div className="flex justify-between">
                     <span className="text-gray-600">{t('invoice.subtotal')}</span>
-                    <span className="font-mono">{formatAmount(inv.subtotal_usd, inv.currency)}</span>
+                    <span className="font-mono">{formatAmount(inv.subtotal_base, inv.currency)}</span>
                 </div>
-                {Number(inv.tax_usd) !== 0 && (
+                {Number(inv.tax_base) !== 0 && (
                     <div className="flex justify-between">
                         <span className="text-gray-600">{t('invoice.tax', { rate: inv.tax_rate_pct })}</span>
-                        <span className="font-mono">{formatMoney(inv.tax_usd)}</span>
+                        <span className="font-mono">{formatMoney(inv.tax_base)}</span>
                     </div>
                 )}
                 <div className="flex justify-between border-t pt-1 font-bold">
                     <span>{t('invoice.total')}</span>
-                    <span className="font-mono">{formatAmount(inv.total_usd, inv.currency)}</span>
+                    <span className="font-mono">{formatAmount(inv.total_base, inv.currency)}</span>
                 </div>
             </div>
 
@@ -399,7 +399,7 @@ export default async function InvoiceDetailPage({
                                             (reversed ? ' line-through' : '')
                                         }
                                     >
-                                        {formatMoney(a.allocated_usd)}
+                                        {formatMoney(a.allocated_base)}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-sm">
                                         {reversed ? (

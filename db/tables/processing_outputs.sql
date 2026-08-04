@@ -1,6 +1,6 @@
 -- db/tables/processing_outputs.sql
--- 加工产出腿:一行 = 某次加工产出了哪个批次多少量。allocated_cost_usd /
--- unit_cost_usd 由 allocate_processing_costs() 回填(分摊后的该腿成本与单位成本)。
+-- 加工产出腿:一行 = 某次加工产出了哪个批次多少量。allocated_cost_base /
+-- unit_cost_base 由 allocate_processing_costs() 回填(分摊后的该腿成本与单位成本)。
 -- ON DELETE RESTRICT:同 processing_inputs,产出史不允许硬删。
 --
 -- NOTE: 本表早于"迁移 + 镜像"约定(建库初期直接在 Supabase SQL Editor 建的),
@@ -13,8 +13,8 @@ CREATE TABLE public.processing_outputs (
     output_batch_id    uuid NOT NULL REFERENCES public.output_batches (id),
     quantity_produced  numeric NOT NULL,
     created_at         timestamptz NOT NULL DEFAULT now(),
-    allocated_cost_usd numeric,
-    unit_cost_usd      numeric
+    allocated_cost_base numeric,
+    unit_cost_base      numeric
 );
 
 ALTER TABLE public.processing_outputs ENABLE ROW LEVEL SECURITY;
@@ -44,3 +44,7 @@ CREATE POLICY "processing_outputs delete by permission"
 REVOKE SELECT ON public.processing_outputs FROM authenticated, anon;
 GRANT SELECT (id, run_id, output_batch_id, quantity_produced, created_at)
     ON public.processing_outputs TO authenticated;
+
+-- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)
+COMMENT ON COLUMN public.processing_outputs.allocated_cost_base IS '本位币分摊成本(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 allocated_cost_usd)。';
+COMMENT ON COLUMN public.processing_outputs.unit_cost_base IS '本位币单位成本(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 unit_cost_usd)。';

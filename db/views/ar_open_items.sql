@@ -17,9 +17,9 @@ CREATE VIEW public.ar_open_items WITH (security_invoker = on) AS
     sr.customer_id,
     c.legal_name AS customer_name,
     sr.sale_date,
-    sr.amount_usd,
-    round(COALESCE(s.settled, 0::numeric), 2) AS settled_usd,
-    round(sr.amount_usd - COALESCE(s.settled, 0::numeric), 2) AS open_usd,
+    sr.amount_base,
+    round(COALESCE(s.settled, 0::numeric), 2) AS settled_base,
+    round(sr.amount_base - COALESCE(s.settled, 0::numeric), 2) AS open_base,
     CURRENT_DATE - sr.sale_date AS days_outstanding,
         CASE
             WHEN (CURRENT_DATE - sr.sale_date) <= 30 THEN 'b0_30'::text
@@ -32,7 +32,7 @@ CREATE VIEW public.ar_open_items WITH (security_invoker = on) AS
    FROM sales_records_masked sr
      JOIN output_batches ob ON ob.id = sr.output_batch_id
      LEFT JOIN customers c ON c.id = sr.customer_id
-     LEFT JOIN LATERAL ( SELECT sum(pa.allocated_usd) AS settled
+     LEFT JOIN LATERAL ( SELECT sum(pa.allocated_base) AS settled
            FROM payment_allocations pa
              JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'::text
           WHERE pa.sales_record_id = sr.id) s ON true
@@ -42,4 +42,4 @@ CREATE VIEW public.ar_open_items WITH (security_invoker = on) AS
              JOIN invoices_masked i ON i.id = il.invoice_id
           WHERE il.sales_record_id = sr.id AND NOT il.invoice_voided
          LIMIT 1) inv ON true
-  WHERE round(sr.amount_usd - COALESCE(s.settled, 0::numeric), 2) > 0::numeric;
+  WHERE round(sr.amount_base - COALESCE(s.settled, 0::numeric), 2) > 0::numeric;

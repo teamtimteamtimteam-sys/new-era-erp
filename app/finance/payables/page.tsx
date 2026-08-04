@@ -19,9 +19,9 @@ type ApRow = {
     supplier_id: string | null
     supplier_name: string | null
     doc_date: string
-    doc_value_usd: number
-    settled_usd: number
-    open_usd: number
+    doc_value_base: number
+    settled_base: number
+    open_base: number
     days_outstanding: number
     bucket: string
 }
@@ -58,10 +58,10 @@ export default async function PayablesPage() {
     const rows = (data as unknown as ApRow[] | null) ?? []
 
     // 汇总:未结合计 + 分档
-    const totalOpen = Math.round(rows.reduce((s, r) => s + r.open_usd, 0) * 100) / 100
+    const totalOpen = Math.round(rows.reduce((s, r) => s + r.open_base, 0) * 100) / 100
     const bucketTotals = new Map<string, number>()
     for (const r of rows) {
-        bucketTotals.set(r.bucket, (bucketTotals.get(r.bucket) ?? 0) + r.open_usd)
+        bucketTotals.set(r.bucket, (bucketTotals.get(r.bucket) ?? 0) + r.open_base)
     }
 
     // 按供应商分组,组内保持 doc_date 升序;供应商按未结额倒序
@@ -74,9 +74,9 @@ export default async function PayablesPage() {
             groupMap.set(key, g)
         }
         g.rows.push(r)
-        g.amount += r.doc_value_usd
-        g.settled += r.settled_usd
-        g.open += r.open_usd
+        g.amount += r.doc_value_base
+        g.settled += r.settled_base
+        g.open += r.open_base
     }
     const groups = Array.from(groupMap.values()).sort((a, b) => b.open - a.open)
 
@@ -154,13 +154,13 @@ export default async function PayablesPage() {
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2">{r.doc_date}</td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {formatMoney(r.doc_value_usd)}
+                                        {formatMoney(r.doc_value_base)}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {formatMoney(r.settled_usd)}
+                                        {formatMoney(r.settled_base)}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm font-medium">
-                                        {formatMoney(r.open_usd)}
+                                        {formatMoney(r.open_base)}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2">
                                         <span className={'px-2 py-1 rounded text-xs ' + bucketPillClass(r.bucket)}>

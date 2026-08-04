@@ -1,9 +1,9 @@
 -- db/tables/processing_runs.sql
 -- 加工批次(一次投料→产出的加工事件)。status 只有 committed/reversed 两态 ——
 -- 加工一经提交只能整体冲销(rollback_processing_run),没有"编辑中"状态。
--- 成本列(material_cost_usd / process_cost_usd / total_cost_usd / allocation_*)
+-- 成本列(material_cost_base / process_cost_base / total_cost_base / allocation_*)
 -- 由 allocate_processing_costs() 填写,allocation_snapshot 存分摊当刻的完整依据;
--- capitalized_cost_usd / capitalization_entry_id 是自动过账切次的产物(成本资本化
+-- capitalized_cost_base / capitalization_entry_id 是自动过账切次的产物(成本资本化
 -- 分录)。code 'PROC-YYYY-NNNN' 触发器取号(非无缝)。
 -- 无 updated_at 触发器(建表早期漏挂)—— 镜像忠实于线上。
 --
@@ -30,13 +30,13 @@ CREATE TABLE public.processing_runs (
     updated_by              uuid,
     allocation_basis        text NOT NULL DEFAULT 'metal_value'
                             CHECK (allocation_basis IN ('weight','metal_value')),
-    material_cost_usd       numeric,
-    process_cost_usd        numeric,
-    total_cost_usd          numeric,
+    material_cost_base       numeric,
+    process_cost_base        numeric,
+    total_cost_base          numeric,
     allocation_snapshot     jsonb,
     allocated_at            timestamptz,
     allocated_by            uuid,
-    capitalized_cost_usd    numeric,
+    capitalized_cost_base    numeric,
     capitalization_entry_id uuid REFERENCES public.journal_entries (id)
 );
 
@@ -82,3 +82,9 @@ CREATE POLICY "processing_runs delete by permission"
 REVOKE SELECT ON public.processing_runs FROM authenticated, anon;
 GRANT SELECT (id, code, process_date, total_input, total_output, loss_qty, notes, status, deleted_at, created_at, created_by, updated_at, updated_by, allocation_basis, allocation_snapshot, allocated_at, allocated_by, capitalization_entry_id)
     ON public.processing_runs TO authenticated;
+
+-- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)
+COMMENT ON COLUMN public.processing_runs.capitalized_cost_base IS '本位币资本化成本(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 capitalized_cost_usd)。';
+COMMENT ON COLUMN public.processing_runs.material_cost_base IS '本位币材料成本(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 material_cost_usd)。';
+COMMENT ON COLUMN public.processing_runs.process_cost_base IS '本位币加工成本(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 process_cost_usd)。';
+COMMENT ON COLUMN public.processing_runs.total_cost_base IS '本位币总成本(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 total_cost_usd)。';

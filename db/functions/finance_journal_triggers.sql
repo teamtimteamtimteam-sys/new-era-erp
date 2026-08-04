@@ -54,25 +54,25 @@ BEGIN
     SELECT code INTO v_run_code FROM processing_runs WHERE id = NEW.run_id;
 
     IF TG_OP = 'INSERT' THEN
-        IF NEW.deleted_at IS NOT NULL OR NEW.amount_usd = 0 THEN
+        IF NEW.deleted_at IS NOT NULL OR NEW.amount_base = 0 THEN
             RETURN NULL;
         END IF;
         PERFORM post_journal_entry(
             CURRENT_DATE,
             'Cost ' || v_run_code || ' ' || NEW.cost_type,
             'processing_cost', NEW.id,
-            fin_cost_lines(NEW.cost_type, NEW.amount_usd, false));
+            fin_cost_lines(NEW.cost_type, NEW.amount_base, false));
         RETURN NULL;
     END IF;
 
     -- UPDATE:软删 → 冲销现额(优先,忽略同笔 UPDATE 里的其它变化)
     IF OLD.deleted_at IS NULL AND NEW.deleted_at IS NOT NULL THEN
-        IF OLD.amount_usd <> 0 THEN
+        IF OLD.amount_base <> 0 THEN
             PERFORM post_journal_entry(
                 CURRENT_DATE,
                 'Cost removed ' || v_run_code,
                 'processing_cost', NEW.id,
-                fin_cost_lines(OLD.cost_type, OLD.amount_usd, true));
+                fin_cost_lines(OLD.cost_type, OLD.amount_base, true));
         END IF;
         RETURN NULL;
     END IF;
@@ -81,14 +81,14 @@ BEGIN
     END IF;
 
     -- 金额/类型变化 → 一张调整分录:冲旧 + 记新(至多 4 行,自平)
-    IF NEW.amount_usd IS DISTINCT FROM OLD.amount_usd
+    IF NEW.amount_base IS DISTINCT FROM OLD.amount_base
        OR NEW.cost_type IS DISTINCT FROM OLD.cost_type THEN
         v_lines := '[]'::jsonb;
-        IF OLD.amount_usd <> 0 THEN
-            v_lines := v_lines || fin_cost_lines(OLD.cost_type, OLD.amount_usd, true);
+        IF OLD.amount_base <> 0 THEN
+            v_lines := v_lines || fin_cost_lines(OLD.cost_type, OLD.amount_base, true);
         END IF;
-        IF NEW.amount_usd <> 0 THEN
-            v_lines := v_lines || fin_cost_lines(NEW.cost_type, NEW.amount_usd, false);
+        IF NEW.amount_base <> 0 THEN
+            v_lines := v_lines || fin_cost_lines(NEW.cost_type, NEW.amount_base, false);
         END IF;
         IF jsonb_array_length(v_lines) >= 2 THEN
             PERFORM post_journal_entry(

@@ -32,8 +32,8 @@ export default function CostPanel({
 
     // cut 2b:任何一条金额被遮蔽,合计就无从算起 —— 此时整个合计显示「受限」,
     // 而不是把 null 当 0 加进去(那会得出一个看起来像真的、其实偏小的数)。
-    const anyMasked = entries.some((e) => e.amount_usd === null)
-    const total = anyMasked ? null : entries.reduce((s, e) => s + (e.amount_usd ?? 0), 0)
+    const anyMasked = entries.some((e) => e.amount_base === null)
+    const total = anyMasked ? null : entries.reduce((s, e) => s + (e.amount_base ?? 0), 0)
     const editing = editingId ? entries.find((e) => e.id === editingId) ?? null : null
 
     function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -92,7 +92,7 @@ export default function CostPanel({
                                     )}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                    <MaskedValue value={e.amount_usd} canView={canViewPrices} format={formatMoney} />
+                                    <MaskedValue value={e.amount_base} canView={canViewPrices} format={formatMoney} />
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-sm">{e.notes ?? '—'}</td>
                                 <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
@@ -158,10 +158,10 @@ export default function CostPanel({
                 </select>
                 <input
                     type="number"
-                    name="amount_usd"
+                    name="amount_base"
                     step="0.01"
                     required
-                    defaultValue={editing?.amount_usd ?? ''}
+                    defaultValue={editing?.amount_base ?? ''}
                     placeholder={t('processing.cost.amountPlaceholder')}
                     className="w-32 border border-gray-300 px-3 py-2 rounded"
                 />

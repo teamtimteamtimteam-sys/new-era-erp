@@ -26,7 +26,7 @@ CREATE TABLE public.processing_cost_entries (
     cost_type   text        NOT NULL CHECK (cost_type IN
         ('labour','electricity','gas','depreciation','consumables','waste_treatment','other')),
     -- Deliberately no sign check: by-product / disposal offsets may be negative.
-    amount_usd  numeric     NOT NULL,
+    amount_base  numeric     NOT NULL,
     is_estimate boolean     NOT NULL DEFAULT false,
     notes       text,
     deleted_at  timestamptz,
@@ -88,3 +88,6 @@ CREATE INDEX idx_processing_cost_entries_run
 REVOKE SELECT ON public.processing_cost_entries FROM authenticated, anon;
 GRANT SELECT (id, run_id, cost_type, is_estimate, notes, deleted_at, created_at, created_by, updated_at, updated_by)
     ON public.processing_cost_entries TO authenticated;
+
+-- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)
+COMMENT ON COLUMN public.processing_cost_entries.amount_base IS '本位币金额(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 amount_usd)。';

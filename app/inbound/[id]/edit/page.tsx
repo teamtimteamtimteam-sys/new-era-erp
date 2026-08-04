@@ -131,9 +131,9 @@ export default async function EditInboundPage({
     let applicable: {
         purchase_order_id: string
         po_code: string
-        batch_ap_open_usd: number
-        po_unapplied_prepayment_usd: number
-        applicable_usd: number
+        batch_ap_open_base: number
+        po_unapplied_prepayment_base: number
+        applicable_base: number
     } | null = null
     let prepaymentHistory: PrepaymentApplicationRow[] = []
     if (batch.purchase_order_id) {
@@ -149,12 +149,12 @@ export default async function EditInboundPage({
             // 资格与建议额【只从视图读】—— 与 apply_prepayment 同一口径
             supabase
                 .from('po_prepayment_applicable')
-                .select('purchase_order_id, po_code, batch_ap_open_usd, po_unapplied_prepayment_usd, applicable_usd')
+                .select('purchase_order_id, po_code, batch_ap_open_base, po_unapplied_prepayment_base, applicable_base')
                 .eq('inbound_batch_id', id)
                 .maybeSingle(),
             supabase
                 .from('prepayment_applications_masked')
-                .select('id, amount_usd, created_at, journal_entry_id, journal_entries(id, code)')
+                .select('id, amount_base, created_at, journal_entry_id, journal_entries(id, code)')
                 .eq('inbound_batch_id', id)
                 .order('created_at', { ascending: false }),
         ])
@@ -171,13 +171,13 @@ export default async function EditInboundPage({
         prepaymentHistory = (
             (historyRes.data as unknown as {
                 id: string
-                amount_usd: number
+                amount_base: number
                 created_at: string
                 journal_entries: { id: string; code: string } | null
             }[] | null) ?? []
         ).map((h) => ({
             id: h.id,
-            amount_usd: h.amount_usd,
+            amount_base: h.amount_base,
             created_at_display: new Date(h.created_at).toLocaleString(dateLocale),
             journal_id: h.journal_entries?.id ?? null,
             journal_code: h.journal_entries?.code ?? null,

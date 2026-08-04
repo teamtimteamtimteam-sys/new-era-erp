@@ -83,7 +83,7 @@ BEGIN
     WHERE pi.run_id = p_run_id;
 
     -- 5. Process cost = Σ live cost entries.
-    SELECT COALESCE(SUM(amount_usd), 0) INTO v_process
+    SELECT COALESCE(SUM(amount_base), 0) INTO v_process
     FROM processing_cost_entries
     WHERE run_id = p_run_id AND deleted_at IS NULL;
 
@@ -196,18 +196,18 @@ BEGIN
     ),
     upd AS (
         UPDATE processing_outputs po
-        SET allocated_cost_usd = f.allocated,
-            unit_cost_usd = round(f.allocated / f.quantity_produced, 4)
+        SET allocated_cost_base = f.allocated,
+            unit_cost_base = round(f.allocated / f.quantity_produced, 4)
         FROM final f
         WHERE po.id = f.leg_id
-        RETURNING f.output_batch_id, f.basis_value, f.allocated, po.unit_cost_usd
+        RETURNING f.output_batch_id, f.basis_value, f.allocated, po.unit_cost_base
     )
     SELECT jsonb_agg(
                jsonb_build_object(
                    'output_batch_id', output_batch_id,
                    'share', round(basis_value / NULLIF(v_total_basis, 0), 6),
-                   'allocated_cost_usd', allocated,
-                   'unit_cost_usd', unit_cost_usd)
+                   'allocated_cost_base', allocated,
+                   'unit_cost_base', unit_cost_base)
                ORDER BY output_batch_id),
            COALESCE(SUM(allocated), 0)
       INTO v_outputs, v_sum_alloc
@@ -225,9 +225,9 @@ BEGIN
     );
 
     UPDATE processing_runs
-    SET material_cost_usd   = round(v_material, 2),
-        process_cost_usd    = round(v_process, 2),
-        total_cost_usd      = round(v_total, 2),
+    SET material_cost_base   = round(v_material, 2),
+        process_cost_base    = round(v_process, 2),
+        total_cost_base      = round(v_total, 2),
         allocation_basis    = v_basis,
         allocation_snapshot = v_snapshot,
         allocated_at        = now(),
@@ -239,7 +239,7 @@ BEGIN
     -- 10a. cut 2a:资本化分录。重分摊 = 先冲销旧资本化分录再重挂(净效果即差额,
     --      且材料/费用构成变化时各科目仍精确;两张均记 CURRENT_DATE)。
     --      借方 1220 取各对方行四舍五入后的合计,保证分录自平
-    --      (round(总) ≠ Σround(部分) 的边角防护;capitalized_cost_usd 存该合计)。
+    --      (round(总) ≠ Σround(部分) 的边角防护;capitalized_cost_base 存该合计)。
     IF v_run.capitalization_entry_id IS NOT NULL
        AND (SELECT status FROM journal_entries WHERE id = v_run.capitalization_entry_id) = 'posted' THEN
         -- 已被人工冲销过的旧资本化分录不再重复冲(status <> 'posted' 直接跳过)
@@ -253,7 +253,7 @@ BEGIN
         v_cap_total := v_cap_total + round(v_material, 2);
     END IF;
     FOR v_ct IN
-        SELECT cost_type, round(sum(amount_usd), 2) AS amt
+        SELECT cost_type, round(sum(amount_base), 2) AS amt
         FROM processing_cost_entries
         WHERE run_id = p_run_id AND deleted_at IS NULL
         GROUP BY cost_type
@@ -285,22 +285,22 @@ BEGIN
     END IF;
 
     UPDATE processing_runs
-    SET capitalized_cost_usd = v_cap_total,
+    SET capitalized_cost_base = v_cap_total,
         capitalization_entry_id = v_cap_entry_id
     WHERE id = p_run_id;
 
     -- 10b. cut 2a:COGS 补挂 —— 只补此前无 COGS 分录的销售(cogs_entry_id IS NULL),
-    --      用最新 unit_cost_usd,按各自原 sale_date(撞期间锁则 PERIOD_LOCKED 直接抛出)。
+    --      用最新 unit_cost_base,按各自原 sale_date(撞期间锁则 PERIOD_LOCKED 直接抛出)。
     --      已挂 COGS 不追溯重述(标准成本式简化;重述属人工冲销决策)。
     FOR v_sale IN
-        SELECT sr.id, sr.quantity, sr.sale_date, ob.code AS batch_code, po.unit_cost_usd
+        SELECT sr.id, sr.quantity, sr.sale_date, ob.code AS batch_code, po.unit_cost_base
         FROM sales_records sr
         JOIN processing_outputs po ON po.output_batch_id = sr.output_batch_id AND po.run_id = p_run_id
         JOIN output_batches ob ON ob.id = sr.output_batch_id
         WHERE sr.cogs_entry_id IS NULL
         ORDER BY sr.sale_date, sr.created_at
     LOOP
-        v_cogs := round(v_sale.quantity * v_sale.unit_cost_usd, 2);
+        v_cogs := round(v_sale.quantity * v_sale.unit_cost_base, 2);
         IF v_cogs <> 0 THEN
             v_cogs_je := post_journal_entry(
                 v_sale.sale_date,
@@ -317,9 +317,9 @@ BEGIN
     RETURN jsonb_build_object(
         'run_id', p_run_id,
         'basis', v_basis,
-        'material_cost_usd', round(v_material, 2),
-        'process_cost_usd', round(v_process, 2),
-        'total_cost_usd', round(v_total, 2),
+        'material_cost_base', round(v_material, 2),
+        'process_cost_base', round(v_process, 2),
+        'total_cost_base', round(v_total, 2),
         'inputs_without_price', v_inputs_without_price,
         'outputs', COALESCE(v_outputs, '[]'::jsonb)
     );

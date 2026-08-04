@@ -33,7 +33,7 @@ export type SaleOption = {
     unit: string
     unit_price: number
     currency: string
-    amount_usd: number
+    amount_base: number
 }
 
 function todayIsoLocal(): string {
@@ -100,7 +100,7 @@ export default function NewInvoiceForm({
     }
 
     const selected = visible.filter((s) => checked[s.sales_record_id])
-    const subtotal = round2(selected.reduce((sum, s) => sum + s.amount_usd, 0))
+    const subtotal = round2(selected.reduce((sum, s) => sum + s.amount_base, 0))
     const currencies = Array.from(new Set(selected.map((s) => s.currency)))
     const mixedCurrency = currencies.length > 1
     const taxRate = gstRegistered ? gstRatePct : 0
@@ -227,7 +227,7 @@ export default function NewInvoiceForm({
                                         {s.currency} {formatMoney(s.unit_price)}
                                     </td>
                                     <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                        {formatMoney(s.amount_usd)}
+                                        {formatMoney(s.amount_base)}
                                     </td>
                                 </tr>
                             ))}

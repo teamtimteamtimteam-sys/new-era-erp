@@ -21,19 +21,19 @@ CREATE VIEW public.medical_claim_status WITH (security_invoker = off) AS
     mc.expense_id,
     mc.expense_id IS NOT NULL AS linked_to_expense,
     ex.code AS expense_code,
-    ex.amount_usd AS expense_amount_usd,
-    COALESCE(pay.settled_usd, 0::numeric) AS settled_usd,
+    ex.amount_base AS expense_amount_base,
+    COALESCE(pay.settled_base, 0::numeric) AS settled_base,
         CASE
             WHEN mc.status <> 'approved'::text THEN mc.status
             WHEN mc.expense_id IS NULL THEN 'awaiting_payment_run'::text
-            WHEN COALESCE(pay.settled_usd, 0::numeric) >= ex.amount_usd THEN 'paid'::text
-            WHEN COALESCE(pay.settled_usd, 0::numeric) > 0::numeric THEN 'part_paid'::text
+            WHEN COALESCE(pay.settled_base, 0::numeric) >= ex.amount_base THEN 'paid'::text
+            WHEN COALESCE(pay.settled_base, 0::numeric) > 0::numeric THEN 'part_paid'::text
             ELSE 'expense_raised'::text
         END AS settlement_state
    FROM medical_claims mc
      JOIN employees e ON e.id = mc.employee_id
      LEFT JOIN expenses ex ON ex.id = mc.expense_id
-     LEFT JOIN LATERAL ( SELECT sum(pa.allocated_usd) AS settled_usd
+     LEFT JOIN LATERAL ( SELECT sum(pa.allocated_base) AS settled_base
            FROM payment_allocations pa
              JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'::text
           WHERE pa.expense_id = ex.id) pay ON true

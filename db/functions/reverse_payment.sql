@@ -25,11 +25,11 @@ BEGIN
     -- 镜像收付款单(现金退回),挂冲销分录,不带核销行
     v_mirror_code := fin_next_payment_code(CASE WHEN v_orig.direction = 'in' THEN 'RCPT' ELSE 'PMT' END, CURRENT_DATE);
     INSERT INTO payments (id, code, direction, counterparty_type, customer_id, supplier_id,
-                          amount_ccy, currency, fx_rate, amount_usd, bank_account_code,
+                          amount_ccy, currency, fx_rate, amount_base, bank_account_code,
                           payment_date, notes, journal_entry_id, created_by)
     VALUES (v_mirror_id, v_mirror_code, v_orig.direction, v_orig.counterparty_type,
             v_orig.customer_id, v_orig.supplier_id,
-            v_orig.amount_ccy, v_orig.currency, v_orig.fx_rate, v_orig.amount_usd,
+            v_orig.amount_ccy, v_orig.currency, v_orig.fx_rate, v_orig.amount_base,
             v_orig.bank_account_code, CURRENT_DATE,
             'REVERSAL: ' || v_orig.code || COALESCE(' — ' || p_memo, ''),
             (v_je->>'reversal_id')::uuid, auth.uid());

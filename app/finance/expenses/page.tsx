@@ -51,14 +51,14 @@ export default async function ExpensesListPage({
     // 1) 匹配总数 + 筛选集 USD 合计(全集,不只当前页;页级规模小,直接取列求和)
     const [{ count }, sumRes] = await Promise.all([
         applyFilters(supabase.from('expenses').select('id', { count: 'exact', head: true })),
-        applyFilters(supabase.from('expenses').select('amount_usd')),
+        applyFilters(supabase.from('expenses').select('amount_base')),
     ])
 
     const total = count ?? 0
     const totalUsd =
         Math.round(
-            ((sumRes.data as { amount_usd: number }[] | null) ?? []).reduce(
-                (s, r) => s + r.amount_usd,
+            ((sumRes.data as { amount_base: number }[] | null) ?? []).reduce(
+                (s, r) => s + r.amount_base,
                 0
             ) * 100
         ) / 100
@@ -71,7 +71,7 @@ export default async function ExpensesListPage({
     const { data: expenses, error } = await applyFilters(
         supabase
             .from('expenses')
-            .select('id, code, expense_date, account_code, amount_ccy, currency, amount_usd, payment_status, supplier_id, payee_name, status')
+            .select('id, code, expense_date, account_code, amount_ccy, currency, amount_base, payment_status, supplier_id, payee_name, status')
     )
         .order('expense_date', { ascending: false })
         .order('created_at', { ascending: false })
@@ -180,7 +180,7 @@ export default async function ExpensesListPage({
                                 {r.currency} {formatMoney(r.amount_ccy)}
                                 {r.currency !== 'USD' && (
                                     <span className="text-gray-500 ml-2">
-                                        = {formatMoney(r.amount_usd)} USD
+                                        = {formatMoney(r.amount_base)} USD
                                     </span>
                                 )}
                             </td>
