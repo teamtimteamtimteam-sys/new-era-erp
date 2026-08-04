@@ -177,6 +177,44 @@ column of a masked table must be either SELECT-granted or present in the masked
 view. Anything else is named and fails the gate. `check_mirrors` cannot see it —
 it does not compare GRANTs — which is why the check lives in the gate.
 
+## Dates and amounts that decide a period: required, never defaulted
+
+A field that decides an **FX rate**, a **posting period**, or an **amount**
+needs BOTH guards, and they are the mechanism:
+
+1. the submit control is **disabled while the value is empty**, and
+2. the **server action rejects empty independently**, so bypassing the UI
+   cannot post.
+
+(A UI-only `required`/`onBlur` is a third layer, not the protection. React
+never compares a controlled input's value prop against the live DOM, so a
+field can display a date the app does not have — that is exactly how the
+cost-settlement bug submitted `""` from a filled-looking box.)
+
+**Never give these a server-side default.** `COALESCE(p_date, CURRENT_DATE)`
+substituting today is the failure mode, not the fallback: today's date can
+never hit `PERIOD_LOCKED`, so entering the correct closed-period date fails
+loudly while leaving the field blank glides into the open month. The path
+rewards leaving it empty. Full inventory in
+`docs/empty-string-to-rpc-audit.md`.
+
+### Do NOT "tidy" these five into `|| undefined`
+
+They pass a form value to an RPC as a bare string, so a blank produces a
+visible Postgres error (`22007`). That looks like untidy code. It is not —
+each sits on top of a `COALESCE(..., CURRENT_DATE)`, so changing
+`x` to `x || undefined` **drops the key, fires the default, and converts a
+visible error into a silently wrong accounting period**:
+
+* `app/hr/claims/actions.ts` — `pay_medical_claim(p_expense_date)`
+* `app/hr/claims/actions.ts` — `submit_medical_claim(p_claim_date)`
+* `app/hr/leave/actions.ts` — `submit_leave_request(p_start, p_end)`
+* `app/processing/new/actions.ts` — `commit_processing_run(p_process_date)`
+* `app/finance/bank/transferActions.ts` — `record_bank_transfer(p_transfer_date)`
+
+If you want to improve them, add the guard pair above. Do not make them
+pass `undefined`.
+
 ## A failed query must fail — never `?? []`
 
 `lib/db-helpers.ts` exports `mustRows` / `mustOne` / `mustCount`. **Use them for
