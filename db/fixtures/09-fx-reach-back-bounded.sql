@@ -20,8 +20,12 @@ BEGIN
 
     -- 造一个【自带的】长周末:2026-06-05 周五设为假日,牌价只录到 06-04 周四。
     -- 于是 06-05(五,假)06-06(六)06-07(日)都是非发布日,06-08 周一是工作日。
+    -- 【前提显式化】窗口内的牌价【与假日】都自己说了算 —— 引导数据里可能已经有
+    -- 这几天的假日(或将来会有),那会悄悄改变"哪天是发布日"(README 第 5 条)。
+    UPDATE finance_settings SET locked_before = NULL;
     DELETE FROM fx_rates WHERE currency = 'USD'
       AND rate_date BETWEEN '2026-06-01' AND '2026-06-12';
+    DELETE FROM public_holidays WHERE holiday_date BETWEEN '2026-06-01' AND '2026-06-12';
     INSERT INTO public_holidays (holiday_date, name_en, name_zh, country, is_active)
     VALUES ('2026-06-05', 'Fixture Holiday', '测试假日', 'SG', true);
     INSERT INTO fx_rates (currency, rate_date, rate_type, rate_sgd_per_unit)

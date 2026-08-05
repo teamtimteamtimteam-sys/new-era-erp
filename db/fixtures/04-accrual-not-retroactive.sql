@@ -16,7 +16,14 @@ BEGIN
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_uid), true);
 
-    -- 两个类别的费率必须不同,这条断言才有意义 —— 先自证前提
+    UPDATE finance_settings SET locked_before = NULL;
+
+    -- 【前提:这里【断言】而不是【设定】,理由要写下来】(README 第 5 条的例外分支)
+    -- 累积费率看似 RUNTIME CONFIG,但数据库自己不许改动【已生效】的费率
+    -- (guard_effective_accrual_rate → RATE_IN_EFFECT_IMMUTABLE;HR-2c 立的规矩:
+    -- 改费率只能加一条更晚生效的新行)。所以它是【被强制保证的不变量】,
+    -- 读它是安全的 —— 本 fixture 曾试图 DELETE 重设,当场被那条守卫拒掉。
+    -- 但"读"不等于"假设":两类费率必须确实不同,这条断言才有意义,所以仍要自证前提。
     SELECT days_per_year INTO v_rate_a FROM leave_accrual_rates
     WHERE work_category = 'office' AND employee_id IS NULL ORDER BY effective_from DESC LIMIT 1;
     SELECT days_per_year INTO v_rate_b FROM leave_accrual_rates

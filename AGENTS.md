@@ -215,6 +215,26 @@ Defaults that genuinely belong (code-numbering years, `p_as_of` read
 queries, `create_invoice`) are listed in
 `docs/empty-string-to-rpc-audit.md` so the distinction is on the record.
 
+## A verdict that reports but does not enforce is not a gate
+
+**Whatever verdict you add next, the first thing you do is make it fail on
+purpose and confirm `db/gate.py` stops.** Not "read the output and see the
+warning" — confirm the exit code is non-zero and the run is red.
+
+This is not hypothetical. `verify_rebuild` has returned **3** for a failed
+B1/B2 invariant assertion since OPS-5, and `db/gate.py` branched only on 1 and
+2 — so 3 fell through `structural_drift = (3 == 1)` and **the gate exited 0
+while printing a violation**. It did exactly that on 2026-08-04: the run
+printed `B1 VIOLATION … anon can EXECUTE it` and passed. The violation got
+fixed because a human read the output, which is precisely the property a gate
+is supposed to remove. Nobody had ever made that verdict fail on purpose, so
+nobody knew it did not bite.
+
+The fixtures verdict (exit 4) was fault-injected before being trusted: fixture
+07's lock date was inverted, the gate returned 4 and named the fixture. Do the
+same for the next one. A check never observed failing is not known to work —
+it is only known to be quiet.
+
 ## The third verdict: db/fixtures — does the rebuilt database WORK
 
 `verify_rebuild` asks whether the repo can build a database and whether it

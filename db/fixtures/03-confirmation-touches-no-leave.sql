@@ -17,6 +17,12 @@ BEGIN
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_uid), true);
 
+    -- 【前提显式化】锁位与评级表都是运行时可改的:即便默认值恰好合用,也要自己设定,
+    -- 否则这条断言的成立与否取决于别人改没改过配置(README 第 5 条)。
+    UPDATE finance_settings SET locked_before = NULL;
+    INSERT INTO review_rating_scale (code, name_en, name_zh, sort_order, is_probation_pass)
+    VALUES ('FIXT-PASS-03', 'Fixture Pass', '测试合格', 999, true);
+
     INSERT INTO employees (code, legal_name, employment_type, work_category, hire_date,
                            employment_status, probation_end_date, monthly_salary)
     -- 入职日必须让 probation_end_date ≤ 入职 + 3 个月(employees_probation_cap)
@@ -32,7 +38,7 @@ BEGIN
                                      probation_outcome)
     SELECT v_emp, 'probation', '2026-04-01', d,
            (SELECT id FROM employees WHERE code = 'FIXT-E3R'),
-           'submitted', (SELECT code FROM review_rating_scale WHERE is_active LIMIT 1),
+           'submitted', 'FIXT-PASS-03',
            'fixture summary', 'confirm'
     RETURNING id INTO v_rev;
 
