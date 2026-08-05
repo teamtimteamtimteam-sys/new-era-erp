@@ -43,8 +43,8 @@ export default function TransferForm() {
                 </label>
                 <label>{t('finance.transfer.from')}
                     <select value={from} onChange={(e) => setFrom(e.target.value)} className={`block ${inp}`}>
-                        <option value="1000">1000 · SGD</option>
-                        <option value="1010">1010 · USD</option>
+                        <option value="1000">{t('finance.bank.1000')}</option>
+                        <option value="1010">{t('finance.bank.1010')}</option>
                     </select>
                 </label>
                 <label>{t('finance.transfer.amountOut')}
@@ -52,8 +52,8 @@ export default function TransferForm() {
                 </label>
                 <label>{t('finance.transfer.to')}
                     <select value={to} onChange={(e) => setTo(e.target.value)} className={`block ${inp}`}>
-                        <option value="1000">1000 · SGD</option>
-                        <option value="1010">1010 · USD</option>
+                        <option value="1000">{t('finance.bank.1000')}</option>
+                        <option value="1010">{t('finance.bank.1010')}</option>
                     </select>
                 </label>
                 <label>{t('finance.transfer.amountIn')}

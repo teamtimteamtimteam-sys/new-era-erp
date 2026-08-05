@@ -8,7 +8,7 @@ import { getBaseCurrency } from '@/lib/currency'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatMoney } from '@/lib/format'
+import { formatMoney, formatAmount } from '@/lib/format'
 import Subnav from '../../Subnav'
 import ReversePaymentButton from './ReversePaymentButton'
 import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachmentsPanel'
@@ -21,6 +21,9 @@ type AllocRow = {
     expense_id: string | null
     purchase_order_id: string | null
     allocated_base: number
+    // FIN-18:这条核销消耗掉的【付款币种】金额 —— 挂账余额只能由它算
+    allocated_pay: number
+    allocated_ccy: number
 }
 
 export default async function PaymentDetailPage({
@@ -55,7 +58,7 @@ export default async function PaymentDetailPage({
             : Promise.resolve({ data: null, error: null }),
         supabase
             .from('payment_allocations')
-            .select('id, sales_record_id, inbound_batch_id, expense_id, purchase_order_id, allocated_base')
+            .select('id, sales_record_id, inbound_batch_id, expense_id, purchase_order_id, allocated_base, allocated_pay, allocated_ccy')
             .eq('payment_id', id)
             .order('created_at', { ascending: true }),
         payment.reversed_by_payment
@@ -124,7 +127,18 @@ export default async function PaymentDetailPage({
     }
 
     const allocTotal = Math.round(allocs.reduce((s, a) => s + a.allocated_base, 0) * 100) / 100
-    const unallocated = Math.round((payment.amount_base - allocTotal) * 100) / 100
+    // ════════════════════════════════════════════════════════════════════════
+    // 【挂账余额在付款币种空间算 —— FIN-18】原式是
+    //     payment.amount_base − Σ allocated_base
+    // 两个数同为本位币,却不是同一个汇率:amount_base 按结算日汇率,
+    // allocated_base 按各单据的入账汇率。差额正是记进 7100 的已实现汇兑,于是
+    // 一笔全额核销的外币收付款只要汇率动过就显示出一笔并不存在的挂账
+    //(线上 PMT-2026-0003 显示 6.08,实为 0)。
+    // allocated_pay 是 record_payment 落库的【消耗掉的付款额】,与 amount_ccy
+    // 同币种同口径 —— 相减才有意义。
+    // ════════════════════════════════════════════════════════════════════════
+    const consumedPay = Math.round(allocs.reduce((s, a) => s + a.allocated_pay, 0) * 100) / 100
+    const unallocated = Math.round((payment.amount_ccy - consumedPay) * 100) / 100
     const partyName = partyRes.data?.legal_name ?? '—'
 
     // 凭据附件(在服务端按当前语言格式化时间,避免客户端水合不一致)
@@ -202,7 +216,7 @@ export default async function PaymentDetailPage({
                     </span>
                     {payment.currency !== baseCurrency && (
                         <span className="text-gray-500 ml-1 font-mono">
-                            @ {payment.fx_rate} = {formatMoney(payment.amount_base)} USD
+                            @ {payment.fx_rate} = {formatMoney(payment.amount_base)} {baseCurrency}
                         </span>
                     )}
                 </div>
@@ -250,7 +264,11 @@ export default async function PaymentDetailPage({
                 <thead className="bg-gray-100">
                     <tr>
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colDocument')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.totalAllocated')}</th>
+                        {/* 两列都要带单位:左边是解除的应收/应付(本位币,按单据入账汇率),
+                            右边是这条核销吃掉的款额(付款币种)。跨币种时它们不是一个数,
+                            差额就是已实现汇兑 —— 摆在一起,那笔差额才解释得清。 */}
+                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.totalAllocated')} ({baseCurrency})</th>
+                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.consumedPay')} ({payment.currency})</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -270,12 +288,15 @@ export default async function PaymentDetailPage({
                                 <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                     {formatMoney(a.allocated_base)}
                                 </td>
+                                <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                    {formatMoney(a.allocated_pay)}
+                                </td>
                             </tr>
                         )
                     })}
                     {allocs.length === 0 && (
                         <tr>
-                            <td colSpan={2} className="border border-gray-300 px-4 py-4 text-center text-gray-500 text-sm">
+                            <td colSpan={3} className="border border-gray-300 px-4 py-4 text-center text-gray-500 text-sm">
                                 {t('finance.unallocated')}
                             </td>
                         </tr>
@@ -288,6 +309,9 @@ export default async function PaymentDetailPage({
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                 {formatMoney(allocTotal)}
                             </td>
+                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                {formatMoney(consumedPay)}
+                            </td>
                         </tr>
                     </tfoot>
                 )}
@@ -296,7 +320,7 @@ export default async function PaymentDetailPage({
             {/* 未冲销余额(挂账)*/}
             {unallocated > 0 && (
                 <p className="text-sm text-gray-500 mt-3">
-                    {t('finance.unallocated')}: <span className="font-mono">{formatMoney(unallocated)}</span>
+                    {t('finance.unallocated')}: <span className="font-mono">{formatAmount(unallocated, payment.currency)}</span>
                 </p>
             )}
 

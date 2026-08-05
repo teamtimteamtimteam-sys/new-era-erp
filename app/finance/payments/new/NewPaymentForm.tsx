@@ -10,7 +10,7 @@ import { bankAccountFor, currencyOfBank } from '@/lib/currencyMap'
 import Link from 'next/link'
 import { createPayment, lookupFxRate, lookupRatesFor, type CreatePaymentState } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
-import { formatMoney } from '@/lib/format'
+import { formatMoney, formatAmount } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 
 const initialState: CreatePaymentState = {}
@@ -58,6 +58,7 @@ export default function NewPaymentForm({
     poItems,
     initialDirection,
     initialPartyId = '',
+    baseCurrency,
 }: {
     customers: PartyOption[]
     suppliers: PartyOption[]
@@ -66,6 +67,8 @@ export default function NewPaymentForm({
     poItems: PoItem[]
     initialDirection: 'in' | 'out'
     initialPartyId?: string
+    // 本位币是数据(currencies.is_base)—— 客户端组件按 AGENTS.md 的规矩接成 prop
+    baseCurrency: string
 }) {
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(createPayment, initialState)
@@ -84,6 +87,11 @@ export default function NewPaymentForm({
     // 各【单据币种】在结算日的牌价 —— 用来把核销的单据额折成消耗的付款额
     const [docRates, setDocRates] = useState<Record<string, number>>({})
     const [fxError, setFxError] = useState<string | null>(null)
+    // 【单据币种】缺牌价也是缺牌价。原先 lookupRatesFor 的 error 被 `r.rates ?? {}`
+    // 一把吞掉:docRates 空 → toPay 的 `?? payRate` 按 1:1 折 → 屏幕说 USD 1,400 只
+    // 消耗 SGD 1,400 → 未冲销算成 0 → 超额护栏【不触发】→ 提交后服务端才抛
+    // FX_RATE_MISSING。fxError 只盯付款币种,盯不到这一支,所以它要有自己的状态。
+    const [docFxError, setDocFxError] = useState<string | null>(null)
     const [fxLoading, setFxLoading] = useState(false)
 
     // 方向切换清空往来单位与核销;换往来单位清空核销
@@ -146,10 +154,16 @@ export default function NewPaymentForm({
     const docCcys = [...new Set([...items.map((i) => i.currency), ...pos.map((p) => p.currency)])]
         .filter(Boolean).sort().join(',')
     useEffect(() => {
-        if (!payDate || !docCcys) { setDocRates({}); return }
+        setDocRates({})
+        setDocFxError(null)
+        if (!payDate || !docCcys) return
         let cancelled = false
         lookupRatesFor(docCcys.split(','), payDate, direction).then((r) => {
-            if (!cancelled) setDocRates(r.rates ?? {})
+            if (cancelled) return
+            // 【拒绝要浮上来】缺哪一天、哪个币种、取哪一侧,lookupRatesFor 已经说清楚了;
+            // 这里只需要不把它丢掉,并且让提交按钮跟着停下。
+            if (r.error) { setDocFxError(r.error); return }
+            setDocRates(r.rates ?? {})
         })
         return () => { cancelled = true }
     }, [docCcys, payDate, direction])
@@ -173,21 +187,44 @@ export default function NewPaymentForm({
         const v = Number(alloc[docId])
         return alloc[docId] && !Number.isNaN(v) && v > 0 ? v : 0
     }
-    // 单据额 → 消耗的付款额。与 record_payment 同式:doc × rate(doc) / rate(pay)。
-    // 同币种时比值为 1;缺牌价时按 1 显示但按钮已被 fxError 挡住,不会提交。
-    const payRate = effectiveFx ?? docRates[currency] ?? 1
-    const toPay = (docCcy: string, amt: number) =>
-        docCcy === currency ? amt : round2(amt * (docRates[docCcy] ?? payRate) / payRate)
+    // ════════════════════════════════════════════════════════════════════════
+    // 单据额 → 消耗的付款额。与 record_payment 同式:doc × rate(doc) / rate(pay);
+    // 同币种时那边【根本不查汇率】(v_alloc_pay := v_alloc_usd),这里照抄。
+    //
+    // 【不知道就说不知道 —— 返回 null,不返回一个编出来的数】原先写的是
+    //   docRates[docCcy] ?? payRate   和   effectiveFx ?? docRates[currency] ?? 1
+    // 两个都是 FX 规则明令禁止的 `?? 1`:缺牌价时比值恰好是 1,于是 USD 单据看起来
+    // 与付款等值。它不报错、不留痕,还顺手把超额护栏一起废掉(见 docFxError)。
+    // ════════════════════════════════════════════════════════════════════════
+    const payRate = effectiveFx        // null = 还不知道(跨币种未填成交价 / 牌价没查到)
+    const toPay = (docCcy: string, amt: number): number | null => {
+        if (amt === 0) return 0
+        if (docCcy === currency) return amt
+        const dr = docRates[docCcy]
+        if (payRate === null || !dr) return null
+        return round2(amt * dr / payRate)
+    }
 
-    // 核销合计有两个:单据币种口径(逐单据)与【付款币种】口径(与款额比较)
-    const totalAllocated = round2(
-        items.reduce((s, i) => s + allocValue(i.doc_id), 0) +
-            pos.reduce((s, p) => s + allocValue(p.po_id), 0)
-    )
-    const totalConsumed = round2(
-        items.reduce((s, i) => s + toPay(i.currency, allocValue(i.doc_id)), 0) +
-            pos.reduce((s, p) => s + toPay(p.currency, allocValue(p.po_id)), 0)
-    )
+    // 核销合计有两个:单据币种口径(逐单据)与【付款币种】口径(与款额比较)。
+    // 单据币种那一侧【按币种分开】—— 见下面 settlesByCcy;跨币种相加是没有意义的数。
+    const consumedRows = [
+        ...items.map((i) => toPay(i.currency, allocValue(i.doc_id))),
+        ...pos.map((p) => toPay(p.currency, allocValue(p.po_id))),
+    ]
+    // 任何一行折不出来,合计就是【不知道】,不是"其余几行的和"
+    const totalConsumed: number | null = consumedRows.includes(null)
+        ? null
+        : round2((consumedRows as number[]).reduce((s, v) => s + v, 0))
+
+    // 核销到的单据额,【按单据币种分组】。原先这里是一个横跨币种的总和,
+    // 一张 USD 单加一张 SGD 单会被直接相加 —— 那个数不代表任何东西。
+    const settlesByCcy = (() => {
+        const m = new Map<string, number>()
+        const add = (ccy: string, v: number) => { if (v > 0) m.set(ccy, round2((m.get(ccy) ?? 0) + v)) }
+        items.forEach((i) => add(i.currency, allocValue(i.doc_id)))
+        pos.forEach((p) => add(p.currency, allocValue(p.po_id)))
+        return [...m.entries()].sort(([a], [b]) => a.localeCompare(b))
+    })()
     // 是否出现了跨币种核销 —— 决定要不要把"消耗"那一列显示出来
     const mixedCcy = items.some((i) => allocValue(i.doc_id) > 0 && i.currency !== currency)
         || pos.some((p) => allocValue(p.po_id) > 0 && p.currency !== currency)
@@ -195,28 +232,55 @@ export default function NewPaymentForm({
     // 【付款币种】。本页原来拿基准额减单据币种的核销额 —— 两种货币相减,
     // 操作员读到的数和服务端校验的数根本不是一回事。
     // 未核销 = 款额 − 【已消耗的付款额】(不是单据额合计 —— 跨币种时那是两种货币相减)
-    const unallocated = round2((amountValid ? amountNum : 0) - totalConsumed)
+    const unallocated: number | null = totalConsumed === null
+        ? null
+        : round2((amountValid ? amountNum : 0) - totalConsumed)
 
     // fill:该行填到 min(未结额, 未冲销余额[不计本行])
     // 单据额 ← 付款额(toPay 的反函数),用于把"还剩多少款"换算成"还能核销多少单据额"
-    const fromPay = (docCcy: string, amt: number) =>
-        docCcy === currency ? amt : round2(amt * payRate / (docRates[docCcy] ?? payRate))
+    const fromPay = (docCcy: string, amt: number): number | null => {
+        if (amt === 0) return 0
+        if (docCcy === currency) return amt
+        const dr = docRates[docCcy]
+        if (payRate === null || !dr) return null
+        return round2(amt * payRate / dr)
+    }
+    // 折不出来就连"填满"也不能按 —— 填一个编出来的数,比不填坏得多
+    const canFill = (docCcy: string) => docCcy === currency || (payRate !== null && !!docRates[docCcy])
 
     function fill(item: OpenItem) {
         // 【两边都要换算】others 是其它行消耗掉的【付款额】;剩余款额再换回单据币种,
         // 才能与 open_ccy(单据币种)比大小。原先两边直接相减,跨币种时按汇率错。
-        const others = totalConsumed - toPay(item.currency, allocValue(item.doc_id))
-        const remainingPay = Math.max(0, round2((amountValid ? amountNum : 0) - others))
+        const self = toPay(item.currency, allocValue(item.doc_id))
+        if (totalConsumed === null || self === null) return
+        const remainingPay = Math.max(0, round2((amountValid ? amountNum : 0) - (totalConsumed - self)))
         const remaining = fromPay(item.currency, remainingPay)
+        if (remaining === null) return
         const v = Math.min(item.open_ccy, remaining)
         setAlloc((a) => ({ ...a, [item.doc_id]: v > 0 ? String(v) : '' }))
     }
     // 预付行没有单据上限(定金不是在还债)—— fill = 未冲销余额;1.5× 栏杆由 DB 把守
     function fillPo(p: PoItem) {
-        const others = totalConsumed - toPay(p.currency, allocValue(p.po_id))
-        const remainingPay = Math.max(0, round2((amountValid ? amountNum : 0) - others))
+        const self = toPay(p.currency, allocValue(p.po_id))
+        if (totalConsumed === null || self === null) return
+        const remainingPay = Math.max(0, round2((amountValid ? amountNum : 0) - (totalConsumed - self)))
         const remaining = fromPay(p.currency, remainingPay)
+        if (remaining === null) return
         setAlloc((a) => ({ ...a, [p.po_id]: remaining > 0 ? String(remaining) : '' }))
+    }
+
+    // 【每行的付款币种成本,边打字边出】操作员输入的是【单据币种】,而约束他的是
+    // 付款额。1400 打在 USD 单上,右边立刻出现 "消耗 1,736.00 SGD" —— 单位是什么,
+    // 不用解释,看一眼就知道。缺牌价时显示 —,绝不显示一个折不出来的数。
+    function RowCost({ docCcy, docId }: { docCcy: string; docId: string }) {
+        const v = allocValue(docId)
+        if (v === 0 || docCcy === currency) return null
+        const cost = toPay(docCcy, v)
+        return (
+            <div className={'text-xs mt-1 font-mono ' + (cost === null ? 'text-red-600' : 'text-gray-500')}>
+                {t('finance.rowCost', { amount: cost === null ? '—' : formatAmount(cost, currency) })}
+            </div>
+        )
     }
 
     return (
@@ -371,30 +435,39 @@ export default function NewPaymentForm({
                                 <tr key={p.po_id}>
                                     <td className="border border-gray-300 px-4 py-2 font-mono text-sm">{p.code}</td>
                                     <td className="border border-gray-300 px-4 py-2">{p.order_date}</td>
+                                    {/* 【这两列不是同一种币】estimated_total_usd 名字里带 usd,
+                                        存的却是【单据币种】(create_purchase_order 全程不乘汇率,
+                                        旧名见 docs/known-issues.md);prepaid_base 是【本位币】。
+                                        并排、都不标币种,比未结那一列还容易读错 —— 各标各的。 */}
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {formatMoney(p.estimated_total_usd)}
+                                        {formatAmount(p.estimated_total_usd, p.currency)}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {formatMoney(p.prepaid_base)}
+                                        {formatAmount(p.prepaid_base, baseCurrency)}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2">
                                         <input type="hidden" name="alloc_id" value={p.po_id} />
                                         <input type="hidden" name="alloc_kind" value="purchase_order" />
-                                        <DecimalInput
-                                            name="alloc_amount"
-                                            value={alloc[p.po_id] ?? ''}
-                                            onChange={(raw) =>
-                                                setAlloc((a) => ({ ...a, [p.po_id]: raw }))
-                                            }
-                                            className="w-32 border border-gray-300 px-3 py-2 rounded"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => fillPo(p)}
-                                            className="ml-2 text-blue-600 hover:underline text-sm"
-                                        >
-                                            {t('finance.fillAll')}
-                                        </button>
+                                        <div className="flex items-center gap-1">
+                                            <DecimalInput
+                                                name="alloc_amount"
+                                                value={alloc[p.po_id] ?? ''}
+                                                onChange={(raw) =>
+                                                    setAlloc((a) => ({ ...a, [p.po_id]: raw }))
+                                                }
+                                                className="w-32 border border-gray-300 px-3 py-2 rounded"
+                                            />
+                                            <span className="text-xs text-gray-600 font-mono">{p.currency}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => fillPo(p)}
+                                                disabled={!canFill(p.currency)}
+                                                className="ml-1 text-blue-600 hover:underline text-sm disabled:text-gray-400 disabled:no-underline"
+                                            >
+                                                {t('finance.fillAll')}
+                                            </button>
+                                        </div>
+                                        <RowCost docCcy={p.currency} docId={p.po_id} />
                                     </td>
                                 </tr>
                             ))}
@@ -429,29 +502,37 @@ export default function NewPaymentForm({
                                         )}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2">{i.doc_date}</td>
+                                    {/* 【每行都要带币种】FIN-16 之后这一列按设计就是混币种的,
+                                        不标币种的混币种金额列不是显示瑕疵,是陷阱 */}
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {formatMoney(i.open_ccy)}
+                                        {formatAmount(i.open_ccy, i.currency)}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2">
                                         <input type="hidden" name="alloc_id" value={i.doc_id} />
                                         <input type="hidden" name="alloc_kind" value={i.doc_kind} />
                                         {/* 上限不再由 max 属性约束(text 输入无此语义);
                                             超额由 DB 的 ALLOC_EXCEEDS 拦下,口径不变 */}
-                                        <DecimalInput
-                                            name="alloc_amount"
-                                            value={alloc[i.doc_id] ?? ''}
-                                            onChange={(raw) =>
-                                                setAlloc((a) => ({ ...a, [i.doc_id]: raw }))
-                                            }
-                                            className="w-32 border border-gray-300 px-3 py-2 rounded"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => fill(i)}
-                                            className="ml-2 text-blue-600 hover:underline text-sm"
-                                        >
-                                            {t('finance.fillAll')}
-                                        </button>
+                                        <div className="flex items-center gap-1">
+                                            <DecimalInput
+                                                name="alloc_amount"
+                                                value={alloc[i.doc_id] ?? ''}
+                                                onChange={(raw) =>
+                                                    setAlloc((a) => ({ ...a, [i.doc_id]: raw }))
+                                                }
+                                                className="w-32 border border-gray-300 px-3 py-2 rounded"
+                                            />
+                                            {/* 输入的是【单据币种】—— 把它写在框边上,而不是让人推断 */}
+                                            <span className="text-xs text-gray-600 font-mono">{i.currency}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => fill(i)}
+                                                disabled={!canFill(i.currency)}
+                                                className="ml-1 text-blue-600 hover:underline text-sm disabled:text-gray-400 disabled:no-underline"
+                                            >
+                                                {t('finance.fillAll')}
+                                            </button>
+                                        </div>
+                                        <RowCost docCcy={i.currency} docId={i.doc_id} />
                                     </td>
                                 </tr>
                             ))}
@@ -462,10 +543,17 @@ export default function NewPaymentForm({
                 )
             )}
 
-            {/* 缺牌价就【拒绝】—— 不回退 0、不回退 1。日期/币种/取哪一侧都说清楚 */}
+            {/* 缺牌价就【拒绝】—— 不回退 0、不回退 1。日期/币种/取哪一侧都说清楚。
+                两支各有各的横幅:fxError 是【付款币种】折不出基准额;docFxError 是
+                【单据币种】折不出消耗的付款额 —— 后者原先被静默吞掉。 */}
             {fxError && (
                 <div className="rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
                     {fxError}
+                </div>
+            )}
+            {docFxError && (
+                <div className="rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
+                    {docFxError}
                 </div>
             )}
 
@@ -499,17 +587,26 @@ export default function NewPaymentForm({
                     <span className="text-gray-600 mr-1">{t('finance.totalAllocated')}:</span>
                     {/* 【两边都摆出来】核销的是单据额;消耗的是款额。跨币种时这是两个数,
                         同币种时相等 —— 相等就不必重复显示。 */}
-                    <span className="font-mono font-medium">{formatMoney(totalConsumed)} {currency}</span>
+                    <span className="font-mono font-medium">
+                        {totalConsumed === null ? '—' : formatAmount(totalConsumed, currency)}
+                    </span>
+                    {/* 【逐币种列出,不再求一个总和】原先这里是 Σ(各单据币种的核销额),
+                        一张 USD 单加一张 SGD 单直接相加。只核销一张时看不出来,两张就
+                        是个没有单位的数。分币种写出来,加法就无处可做。 */}
                     {mixedCcy && (
                         <span className="ml-2 text-xs text-gray-500">
-                            {t('finance.settlesDocuments', { amount: formatMoney(totalAllocated) })}
+                            {t('finance.settlesDocuments', {
+                                list: settlesByCcy.map(([c, v]) => formatAmount(v, c)).join(' + '),
+                            })}
                         </span>
                     )}
                 </div>
-                <div className={unallocated < 0 ? 'text-red-600' : 'text-gray-500'}>
+                <div className={unallocated !== null && unallocated < 0 ? 'text-red-600' : 'text-gray-500'}>
                     <span className="mr-1">{t('finance.unallocated')}:</span>
-                    <span className="font-mono">{formatMoney(unallocated)} {currency}</span>
-                    {unallocated < 0 && (
+                    <span className="font-mono">
+                        {unallocated === null ? '—' : formatAmount(unallocated, currency)}
+                    </span>
+                    {unallocated !== null && unallocated < 0 && (
                         <span className="ml-2 text-xs">{t('finance.overAllocated')}</span>
                     )}
                 </div>
@@ -518,7 +615,12 @@ export default function NewPaymentForm({
             <div className="flex gap-3 pt-2">
                 <button
                     type="submit"
-                    disabled={isPending || fxLoading || effectiveFx === null || unallocated < 0}
+                    disabled={
+                        isPending || fxLoading || effectiveFx === null
+                        // 单据币种缺牌价 → 消耗额算不出 → 超额护栏无从判断。
+                        // 这一支原先漏了,于是"折不出来"的表单照样可以提交。
+                        || docFxError !== null || unallocated === null || unallocated < 0
+                    }
                     className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                 >
                     {isPending ? t('common.saving') : t('finance.submitPayment')}

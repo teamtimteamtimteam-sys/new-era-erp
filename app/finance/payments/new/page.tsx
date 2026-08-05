@@ -6,6 +6,7 @@
 // 表单交给客户端组件。
 // NOTE: 未结单据两侧全量下发、客户端按往来单位过滤 —— 免选择后的往返;
 // 数据量小(未结清才进视图),体量上来再改按需加载。
+import { getBaseCurrency } from '@/lib/currency'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../../Subnav'
@@ -39,6 +40,7 @@ export default async function NewPaymentPage({
     const sp = await searchParams
     const supabase = await createClient()
     const t = await getTranslations()
+    const baseCurrency = await getBaseCurrency()
 
     const initialDirection = sp.direction === 'out' ? 'out' : 'in'
     // 预选供应商只对付款方向有意义
@@ -140,6 +142,7 @@ export default async function NewPaymentPage({
                 poItems={poItems}
                 initialDirection={initialDirection}
                 initialPartyId={initialPartyId}
+                baseCurrency={baseCurrency}
             />
         </div>
     )

@@ -1317,6 +1317,7 @@ export type Database = {
           gst_registration_no: string | null
           id: boolean
           locked_before: string | null
+          system_start_date: string | null
           updated_at: string
           updated_by: string | null
         }
@@ -1326,6 +1327,7 @@ export type Database = {
           gst_registration_no?: string | null
           id?: boolean
           locked_before?: string | null
+          system_start_date?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -1335,6 +1337,7 @@ export type Database = {
           gst_registration_no?: string | null
           id?: boolean
           locked_before?: string | null
+          system_start_date?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -2929,6 +2932,7 @@ export type Database = {
         Row: {
           allocated_base: number
           allocated_ccy: number
+          allocated_pay: number
           created_at: string | null
           expense_id: string | null
           id: string
@@ -2940,6 +2944,7 @@ export type Database = {
         Insert: {
           allocated_base: number
           allocated_ccy: number
+          allocated_pay: number
           created_at?: string | null
           expense_id?: string | null
           id?: string
@@ -2951,6 +2956,7 @@ export type Database = {
         Update: {
           allocated_base?: number
           allocated_ccy?: number
+          allocated_pay?: number
           created_at?: string | null
           expense_id?: string | null
           id?: string

@@ -1,19 +1,73 @@
--- FIN-10(2026-08-05):日期不再有 CURRENT_DATE 默认值 —— 缺了就抛具名错误。
--- 默认成今天永远撞不上 PERIOD_LOCKED,于是留空反而比填对更容易过关,
--- 这条路径专门奖励留空。要求由函数自己声明,而不是靠调用方自觉。
--- 详见 db/migrations/2026-08-05-fin10-no-default-posting-dates.sql。
+-- db/migrations/2026-08-05-fin18-record-consumed-payment.sql
 --
--- FIN-16(2026-08-05):单据可以用【别的币种】结清。核销额仍以单据币种计(FIN-2
--- 对的那一半,单据据此归零);消耗多少付款由结算日两个币种的牌价折出。
--- 控制科目行按单据币种【逐币种】发行 —— 一笔付款可同时结掉 USD 单与 SGD 单。
--- 原 ALLOC_CURRENCY_MISMATCH 已删:那不是护栏,是缺功能。理由见迁移文件头。
--- FIN-17 更正:预付的 1.5 倍上限【不需要折算】(两边同为单据币种);需要折算的是
--- ALLOC_EXCEEDS_PAYMENT。FIN-16 在那里写过一段相反的注释,已改。
--- FIN-18(2026-08-05):核销行落库时带上 allocated_pay ——【这条核销消耗了多少
--- 付款额】。它只有这里算得出:等式里的 rate(单据币种, 结算日) 不在任何已存列上,
--- allocated_base ÷ payments.fx_rate 也换不回来(那是单据入账汇率,差额是 7100)。
--- 返回值里两个跨币种求和的字段(allocated_total / prepaid_total)同时撤掉。
+-- FIN-18:把【一条核销消耗了多少付款额】记下来。
+--
+-- 【为什么要加一列,而不是算出来】收付款详情页显示的"未冲销(挂账)"一直写作
+--     payment.amount_base − Σ payment_allocations.allocated_base
+-- 两个数同为本位币,却【不是同一个汇率】:amount_base 按结算日汇率(v_fx),
+-- allocated_base 按各单据的入账汇率(v_doc_fx)。两者之差正是 record_payment
+-- 记进 7100 的已实现汇兑。于是一笔【全额核销】的外币收付款,只要汇率动过,
+-- 页面就显示出一笔并不存在的挂账余额。线上现成的例子:PMT-2026-0003 付
+-- USD 1,215 @1.265、单据入账 @1.26,页面显示"未冲销 6.08",实际为 0。
+--
+-- 【为什么 allocated_base ÷ payment.fx_rate 不行】payments.fx_rate 确实存着,
+-- 但它不是缺的那一半。真正消耗的付款额是
+--     allocated_ccy × rate(单据币种, 结算日) / rate(付款币种, 结算日)
+-- 而 allocated_base ÷ fx_rate = allocated_ccy × rate(单据币种, 【入账日】) / fx_rate。
+-- 两式仅在"单据入账汇率 = 结算日汇率"时相等 —— 那恰好是本来就没有误差的情形。
+-- 换句话说,那个除法只是把同一个错数换算到付款币种:PMT-2026-0003 上它给
+-- 4.80,真值仍是 0。缺的是【结算日的单据币种牌价】,它既不在核销行上,
+-- 也不等于 payments.fx_rate 或任何已存列。
+--
+-- 【所以它是 consumption,要记下来】AGENTS.md 的 derived-vs-recorded:
+-- 消耗只因为有人记了一行才存在。重新去问 fx_rate_asof 是把它变成 derived ——
+-- 牌价日后被订正,历史付款的挂账余额就会跟着变,那是错的。
+--
+-- 回填:现存 5 行全部 allocated_pay = allocated_ccy。其中 3 行单据币种 = 付款
+-- 币种(同币种时 record_payment 本就不换算,v_alloc_pay := v_alloc_usd);另
+-- 2 行是 FIN-16 之前的历史行,那时【根本没有跨币种核销这回事】,核销额就是
+-- 1:1 消耗付款额,当时的分录也正是按这个平的。迁移里断言回填后每笔
+-- Σ allocated_pay ≤ amount_ccy,不成立就整体回滚。
 
+BEGIN;
+
+-- ── 1. 加列(先可空,回填后再收紧)────────────────────────────────────────
+ALTER TABLE public.payment_allocations ADD COLUMN allocated_pay numeric;
+
+COMMENT ON COLUMN public.payment_allocations.allocated_pay IS
+    '本条核销消耗掉的【付款币种】金额(FIN-18)。= allocated_ccy × rate(单据币种,结算日) / rate(付款币种,结算日);同币种时即 allocated_ccy。挂账余额 = payments.amount_ccy − Σ allocated_pay,两边同为付款币种。不要用 allocated_base 反算 —— 那是单据入账汇率,差额是已实现汇兑。';
+
+-- ── 2. 回填(核销行有 IMMUTABLE 触发器,回填期间关掉)──────────────────
+ALTER TABLE public.payment_allocations DISABLE TRIGGER trg_payment_allocations_immutable;
+UPDATE public.payment_allocations SET allocated_pay = allocated_ccy WHERE allocated_pay IS NULL;
+ALTER TABLE public.payment_allocations ENABLE TRIGGER trg_payment_allocations_immutable;
+
+-- ── 3. 回填后的自检:核销消耗不得超过款额(与 ALLOC_EXCEEDS_PAYMENT 同口径)──
+DO $mig$
+DECLARE v_bad int;
+BEGIN
+    SELECT count(*) INTO v_bad FROM (
+        SELECT pa.payment_id
+        FROM public.payment_allocations pa
+        JOIN public.payments p ON p.id = pa.payment_id
+        GROUP BY pa.payment_id, p.amount_ccy
+        HAVING round(sum(pa.allocated_pay), 2) > p.amount_ccy
+    ) q;
+    IF v_bad > 0 THEN
+        RAISE EXCEPTION 'FIN18_BACKFILL_EXCEEDS_PAYMENT|%', v_bad;
+    END IF;
+    IF EXISTS (SELECT 1 FROM public.payment_allocations WHERE allocated_pay IS NULL) THEN
+        RAISE EXCEPTION 'FIN18_BACKFILL_INCOMPLETE';
+    END IF;
+END
+$mig$;
+
+-- ── 4. 收紧 ──────────────────────────────────────────────────────────────
+ALTER TABLE public.payment_allocations ALTER COLUMN allocated_pay SET NOT NULL;
+ALTER TABLE public.payment_allocations
+    ADD CONSTRAINT payment_allocations_allocated_pay_positive CHECK (allocated_pay > 0);
+
+-- ── 5. record_payment:写入新列,并把返回值里两个跨币种求和的字段换掉 ────
 CREATE OR REPLACE FUNCTION public.record_payment(p_direction text, p_counterparty_id uuid, p_amount numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_bank_account text DEFAULT NULL::text, p_payment_date date DEFAULT NULL::date, p_notes text DEFAULT NULL::text, p_allocations jsonb DEFAULT '[]'::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -526,3 +580,5 @@ BEGIN
     );
 END;
 $function$;
+
+COMMIT;

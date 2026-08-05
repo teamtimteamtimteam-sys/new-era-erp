@@ -171,7 +171,7 @@ export default async function PaymentsListPage({
                                 {r.currency} {formatMoney(r.amount_ccy)}
                                 {r.currency !== baseCurrency && (
                                     <span className="text-gray-500 ml-2">
-                                        = {formatMoney(r.amount_base)} USD
+                                        = {formatMoney(r.amount_base)} {baseCurrency}
                                     </span>
                                 )}
                             </td>

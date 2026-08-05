@@ -143,3 +143,49 @@ fx_rate_asof(单据币种, 下单日, 'tt_sell')`。
 * 缺牌价按 FIN-13 的规矩【拒绝】,并说明取自哪一天。
 * 界面把换算摊开:`0.068 USD/kg × 1.2600 = 0.0857 SGD/kg (取 2026-08-05 的牌价)` ——
   一个折算过的价格,必须能看出它是从哪来的。
+
+---
+
+## FIN-18(2026-08-05):把币种当【正文】印出去 —— 检查看不见的那一半
+
+本文件此前只记录"币种被当成判断条件"的实例。走查 PO-2026-0003 的收货一步时,
+在 `/finance/payments` 上发现另一类:币种既不在比较里,也不在分支里,而是直接
+写在 JSX 正文上。
+
+```tsx
+{r.currency !== baseCurrency && <span>= {formatMoney(r.amount_base)} USD</span>}
+```
+
+同一行【左边刚拿 baseCurrency 比过】,右边照样印死 `USD`。FIN-0 之后本位币是
+SGD,于是一笔 USD 1,400 的付款在列表上显示成 `USD 1,400.00 = 1,736.00 USD`。
+`check-currency-literals.mjs` 的七条模式一条也不匹配 —— 它们全都在找判断 ——
+于是 `db/gate.py` 的 `currency` 行报绿。
+
+### 扩检之后一次扫出六处,写法完全相同
+
+| 文件 | 显示的量 |
+|---|---|
+| `app/finance/payments/page.tsx:174` | 付款折算基准额 |
+| `app/finance/payments/[id]/page.tsx:205` | 同上,详情页 |
+| `app/finance/expenses/page.tsx:186` | 开支折算基准额 |
+| `app/finance/expenses/[id]/page.tsx:171` | 同上,详情页 |
+| `app/finance/payables/[batchId]/page.tsx:148` | 进料批次应付额(变量名 `amountUsd` 也一并改成 `amountBase`) |
+| `app/finance/receivables/[saleId]/page.tsx:173` | 应收单据金额 |
+
+六处全部改为 `{baseCurrency}`(五处该页本来就已经取了 `baseCurrency`,
+只是没用在这里)。
+
+### 顺带修掉与留下的
+
+* `app/finance/bank/TransferForm.tsx` 的银行账户下拉写死 `1000 · SGD` /
+  `1010 · USD` —— 全站别处都用 `t('finance.bank.1000')`,这里改为一致
+  (顺带补上中文,原先是英文硬编码)。
+* **留下并写明理由**(ALLOWLIST):医疗报销的 `*_sgd` 列(按决策以新元计,
+  列名即语义)、金属报价的 `USD/kg`(市场惯例,见 AGENTS.md 的 FX 规则与
+  本文上一节记录的 `calculate_metal_price` 缺口)。
+
+### 教训
+
+这道检查存在的理由,就是"人扫会漏第三处第四处"。它确实拦下了判断类的 32 处 ——
+然后在一个它从没学会看的形状上,连着放过了六处。**盲区不在没人写的地方,
+在检查解析不到的地方。**

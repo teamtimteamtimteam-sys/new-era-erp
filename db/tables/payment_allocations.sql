@@ -35,7 +35,14 @@ CREATE TABLE public.payment_allocations (
     purchase_order_id uuid REFERENCES public.purchase_orders (id),
     -- ── FIN-2 追加(ALTER 加的列排在末尾)────────────────────────────────────
     -- 核销额以【单据币种】记 —— 敞口与关账在此空间恰好闭合。
-    allocated_ccy      numeric NOT NULL CHECK (allocated_ccy > 0)
+    allocated_ccy      numeric NOT NULL CHECK (allocated_ccy > 0),
+    -- ── FIN-18 追加 ─────────────────────────────────────────────────────────
+    -- 本条核销消耗掉的【付款币种】金额。挂账余额 = payments.amount_ccy − Σ 本列,
+    -- 两边同一币种、同一汇率口径。【不要用 allocated_base 反算】—— 那一列按单据
+    -- 入账汇率,与款额的结算日汇率之差正是已实现汇兑(7100),反算出来的"挂账"
+    -- 是一笔并不存在的余额。
+    allocated_pay      numeric NOT NULL,
+    CONSTRAINT payment_allocations_allocated_pay_positive CHECK (allocated_pay > 0)
 );
 
 CREATE INDEX idx_payment_allocations_payment ON public.payment_allocations (payment_id);
@@ -71,3 +78,5 @@ COMMENT ON COLUMN public.payment_allocations.allocated_base IS
     '本位币核销金额(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 allocated_usd)。FIN-2 起 = 单据币种核销额 × 单据汇率(解除口径)。';
 COMMENT ON COLUMN public.payment_allocations.allocated_ccy IS
     '核销额,以【单据币种】计 —— 敞口与关账在此空间恰好闭合(FIN-2)。';
+COMMENT ON COLUMN public.payment_allocations.allocated_pay IS
+    '本条核销消耗掉的【付款币种】金额(FIN-18)。= allocated_ccy × rate(单据币种,结算日) / rate(付款币种,结算日);同币种时即 allocated_ccy。挂账余额 = payments.amount_ccy − Σ allocated_pay,两边同为付款币种。不要用 allocated_base 反算 —— 那是单据入账汇率,差额是已实现汇兑。';

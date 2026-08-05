@@ -170,7 +170,7 @@ export default async function ReceivableDocPage({
                             {sale.currency} @ {sale.fx_rate}
                         </span>
                     )}
-                    <span className="font-mono font-medium ml-1">= {formatMoney(sale.amount_base)} USD</span>
+                    <span className="font-mono font-medium ml-1">= {formatMoney(sale.amount_base)} {baseCurrency}</span>
                 </div>
                 <div>
                     <span className="text-gray-600 mr-1">{t('finance.settledAmount')}:</span>

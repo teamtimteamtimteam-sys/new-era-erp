@@ -5,6 +5,7 @@
 // (source_type='purchase', source_id=批次 id —— 改价后可能有多条,全部列出)。
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { getBaseCurrency } from '@/lib/currency'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatMoney } from '@/lib/format'
@@ -33,6 +34,7 @@ export default async function PayableDocPage({
     const { batchId } = await params
     const supabase = await createClient()
     const t = await getTranslations()
+    const baseCurrency = await getBaseCurrency()
     const locale = await getLocale()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
@@ -53,7 +55,7 @@ export default async function PayableDocPage({
 
     // 应付额 = 当前 quantity × unit_price(与 ap_open_items 口径一致;未计价 → 0 敞口页不会链进来,
     // 但直接访问 URL 也要能看:金额区显示 —)
-    const amountUsd =
+    const amountBase =
         batch.unit_price !== null ? Math.round(batch.quantity * batch.unit_price * 100) / 100 : null
     const docDate = batch.arrival_date ?? batch.created_at?.slice(0, 10) ?? '—'
 
@@ -90,7 +92,7 @@ export default async function PayableDocPage({
                 .filter((a) => a.payments?.status === 'posted')
                 .reduce((s, a) => s + a.allocated_base, 0) * 100
         ) / 100
-    const open = amountUsd !== null ? Math.round((amountUsd - settled) * 100) / 100 : null
+    const open = amountBase !== null ? Math.round((amountBase - settled) * 100) / 100 : null
 
     // 在服务端按当前语言格式化时间,再传给客户端面板 —— 避免客户端 toLocaleString 引发水合不一致
     const attachments = (mustRows(attachRes)).map((a) => ({
@@ -140,12 +142,12 @@ export default async function PayableDocPage({
                 </div>
                 <div>
                     <span className="text-gray-600 mr-1">{t('finance.amount')}:</span>
-                    {amountUsd !== null ? (
+                    {amountBase !== null ? (
                         <>
                             <span className="font-mono">
                                 {batch.quantity} × {batch.unit_price}
                             </span>
-                            <span className="font-mono font-medium ml-1">= {formatMoney(amountUsd)} USD</span>
+                            <span className="font-mono font-medium ml-1">= {formatMoney(amountBase)} {baseCurrency}</span>
                         </>
                     ) : (
                         <span className="font-mono">—</span>

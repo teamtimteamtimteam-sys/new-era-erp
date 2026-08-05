@@ -290,12 +290,15 @@ python3 db/gate.py     # 0 clean · 1 mirror drift · 2 cannot build
                        # 3 B1/B2 invariant · 4 behavioural fixture failed
 ```
 
-Nine fixtures, ~20 assertions, on the paths where a silent break costs money:
+Fourteen fixtures, ~30 assertions, on the paths where a silent break costs money:
 settlement closing to exactly zero (including cross-currency), revaluation
 idempotence, confirmation not touching leave, accrual not applying a category
 change retroactively, one bank line per employee, realised 7100 never crossing
-unrealised 7110, period lock, over-allocation in both currency spaces, and the
-bounded FX reach-back. Deliberately small: every retained fixture is
+unrealised 7110, period lock, over-allocation in both currency spaces, the
+bounded FX reach-back, the three `system_start_date` bounds, and a fully
+allocated payment leaving **exactly zero** on account even when the rate moved
+between booking and settlement (FIN-18 — that one asserts the *old* formula
+differs too, so it cannot pass by both answers agreeing). Deliberately small: every retained fixture is
 maintenance on every schema move, and the HR-2c accrual change already cost one
 round of "is this staleness or regression?" judgement.
 
@@ -387,7 +390,31 @@ one file, `lib/currencyMap.ts`, mirroring `bank_native_currency()`.
 (fast feedback) and in `db/gate.py` (`currency` line). Exceptions go in its
 ALLOWLIST **with a written reason**, the same way `check_mirrors` handles
 account codes and `check-i18n` handles dynamic suffixes: the list is
-derived and visible, not remembered.
+derived and visible, not remembered. Allowlist entries are `{path, match?,
+reason}` — `match` pins the exemption to one *shape* on that path rather than
+excusing the whole file.
+
+**It checks two classes, and the second was added late (FIN-18).** The first
+only ever looked at *judgements* — comparisons, branches, `??`/`||` defaults,
+`{USD: …}` maps, `'SGD' AS`. But the most direct way to lie about a currency
+never passes through a judgement; it is JSX body text:
+
+```tsx
+{payment.currency !== baseCurrency && <>= {formatMoney(amount_base)} USD</>}
+```
+
+That line **has the base currency in its hand** — the left side just compared
+against it — and prints `USD` anyway. After FIN-0 the base is SGD, so the
+screen read `= 1,736.00 USD`. No judgement pattern matched, the check reported
+clean, and `db/gate.py` reported clean with it. The `jsx-text` class scans
+`.tsx` for bare `USD`/`SGD` surviving after string literals and comments are
+stripped; currency-picker `<option value="USD">USD</option>` is exempt
+(the value and the text are the same code — that control exists to name
+currencies). Adding it found **six** live instances of the identical
+construction — payments list and detail, expenses list and detail, the AP
+batch page and the AR document page. Two manual sweeps had missed all six.
+**"Currency clean" meant less than it looked; assume the next blind spot is
+whatever the check does not parse rather than whatever nobody wrote.**
 
 Why a check and not care: FIN-0 changed the base from USD to SGD, and the
 constants left behind broke four screens over four separate sweeps —

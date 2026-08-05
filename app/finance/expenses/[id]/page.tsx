@@ -168,7 +168,7 @@ export default async function ExpenseDetailPage({
                     </span>
                     {expense.currency !== baseCurrency && (
                         <span className="text-gray-500 ml-1 font-mono">
-                            @ {expense.fx_rate} = {formatMoney(expense.amount_base)} USD
+                            @ {expense.fx_rate} = {formatMoney(expense.amount_base)} {baseCurrency}
                         </span>
                     )}
                 </div>
