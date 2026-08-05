@@ -16,6 +16,11 @@
 **看不到自己的 /me、/my-reviews**:自助侧整个消失,而 HR 侧一切如常,最难被发现的
 一类断。反方向同样成立:`user_id` 填错成一个不存在的 uuid,插入照样成功。
 
+**【修它会同时打断 db/fixtures】** 那套行为断言正是靠这个缺陷工作的:每个 fixture
+自己插一条 `user_roles`(user_id 是个不存在的 uuid)来给自己授权。补上外键之后,
+`db/fixtures/*.sql` 会【全部】失败 —— 改法是在 `auth.users` 里建一行临时用户。
+修这条的人请一并改那里;`db/fixtures/README.md` 也反向指着本条。
+
 **为什么现在不修**:发现于路由冒烟的测试切次,不是该切次的事。修法到时候二选一:
 给 `employees.user_id`(连同 `user_roles.user_id`)补 `REFERENCES auth.users
 ON DELETE SET NULL`,或在完整性探针里加一条悬空扫描。补外键要同时改表镜像

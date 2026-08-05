@@ -13,9 +13,11 @@ pooler 里跑(40+ 分钟,先后死于 DNS 与 socket 耗尽),verify_rebuild 在�
 
 【两个判词分开报,退出码不合并】——"镜像相对线上漂了"与"仓库根本建不出库"
 是两种病、两种药,本周就有一天,把它们区分开就是全部发现。
-  exit 0 = 两个判词都干净
+  exit 0 = 三个判词都干净
   exit 1 = 建得起来,但镜像相对线上有漂移(结构 / 种子 / 自洽 / definer)
   exit 2 = 仓库建不出库(或本工具自身的环境故障)
+  exit 3 = B1/B2 不变量断言失败(verify_rebuild 的判词,此前【被本脚本吞掉了】)
+  exit 4 = 行为断言失败(db/fixtures/*.sql —— 建出来的库跑起来不对)
 """
 import json
 import os
@@ -122,6 +124,10 @@ def main() -> int:
         if vr.returncode == 2:
             print("\n判词【可重建性】:✗ 仓库建不出库 —— 先修这个,别的判词无从谈起")
             return 2
+        # 【此前这里漏了 3】verify_rebuild 用 3 表示 B1/B2 不变量断言失败,而本脚本
+        # 只认 1 和 2,于是 3 落进 structural_drift=(3==1)=False,门照样绿 ——
+        # 本会话里就真的发生过:B1 VIOLATION 打印出来了,退出码却是 0。
+        invariant_failed = (vr.returncode == 3)
         structural_drift = (vr.returncode == 1)
 
         # ── check_mirrors 独有的四项,对着同一个本地重建 ───────────────────────
@@ -191,6 +197,23 @@ def main() -> int:
         if cur.returncode != 0:
             problems.append("currency literals in app code (see check-currency-literals.mjs)")
 
+        # ── 判词三:行为断言(建出来的库跑起来对不对)────────────────────────
+        # verify_rebuild 问"结构一不一致";这里问"跑起来对不对"。同一个本地重建。
+        fx_dir = os.path.join(HERE, "fixtures")
+        fixture_fails = []
+        if os.path.isdir(fx_dir):
+            for name in sorted(f for f in os.listdir(fx_dir) if f.endswith(".sql")):
+                fp = os.path.join(fx_dir, name)
+                fr = subprocess.run(["psql", local, "-X", "-q", "-v", "ON_ERROR_STOP=1", "-f", fp],
+                                    capture_output=True, text=True)
+                if fr.returncode != 0:
+                    msg = (fr.stderr or fr.stdout).strip().split(chr(10))
+                    hit = next((l for l in msg if "FIXTURE" in l or "ERROR" in l), msg[0] if msg else "")
+                    fixture_fails.append(f"{name}: {hit[:200]}")
+                    print(f"fixture   {name:<44s} ✗")
+                else:
+                    print(f"fixture   {name:<44s} ✓")
+
         unchecked = cm.definer_without_caller_check()
         print(f"definer    {len(unchecked)} SECURITY DEFINER function(s) with no recognisable caller check"
               f"  ({len(cm.DEFINER_NO_CHECK_ALLOWED)} allowlisted)")
@@ -199,15 +222,30 @@ def main() -> int:
 
         # ── 两个判词,分开说 ────────────────────────────────────────────────
         elapsed = time.time() - t0
-        print(f"\n== 两个判词(wall-clock {elapsed:.0f}s)")
+        print(f"\n== 三个判词(wall-clock {elapsed:.0f}s)")
         print("判词【可重建性】:✓ 仓库能从零建出库(prelude 足够,B1/B2 双侧断言见上)")
         mirrors_dirty = structural_drift or bool(problems)
         if mirrors_dirty:
             print("判词【镜像 vs 线上】:✗ 有漂移" +
                   ("(结构差异见 verify_rebuild 段)" if structural_drift else "") +
                   (f";另 {len(problems)} 项:" + " | ".join(p[:120] for p in problems) if problems else ""))
+            if invariant_failed:
+                print("判词【不变量 B1/B2】:✗ 失败(详见 verify_rebuild 段)")
+            if fixture_fails:
+                print(f"判词【行为断言】:✗ {len(fixture_fails)} 个 fixture 失败")
+                for f in fixture_fails:
+                    print("   " + f)
             return 1
         print("判词【镜像 vs 线上】:✓ 一致(结构、种子、引导、自洽、definer)")
+        if invariant_failed:
+            print("判词【不变量 B1/B2】:✗ 失败(详见 verify_rebuild 段)")
+            return 3
+        if fixture_fails:
+            print(f"判词【行为断言】:✗ {len(fixture_fails)} 个 fixture 失败:")
+            for f in fixture_fails:
+                print("   " + f)
+            return 4
+        print("判词【行为断言】:✓ db/fixtures 全部通过(建出来的库跑起来是对的)")
         return 0
     finally:
         subprocess.run(["pg_ctl", "-D", datadir, "stop", "-m", "immediate"], capture_output=True)

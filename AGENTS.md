@@ -215,6 +215,43 @@ Defaults that genuinely belong (code-numbering years, `p_as_of` read
 queries, `create_invoice`) are listed in
 `docs/empty-string-to-rpc-audit.md` so the distinction is on the record.
 
+## The third verdict: db/fixtures — does the rebuilt database WORK
+
+`verify_rebuild` asks whether the repo can build a database and whether it
+matches live. **`db/fixtures/*.sql` asks whether the thing it built behaves
+correctly.** Different questions, same relationship as `check_mirrors` to
+`verify_rebuild`, so it gets its own verdict and its own exit code.
+
+```
+python3 db/gate.py     # 0 clean · 1 mirror drift · 2 cannot build
+                       # 3 B1/B2 invariant · 4 behavioural fixture failed
+```
+
+Nine fixtures, ~20 assertions, on the paths where a silent break costs money:
+settlement closing to exactly zero (including cross-currency), revaluation
+idempotence, confirmation not touching leave, accrual not applying a category
+change retroactively, one bank line per employee, realised 7100 never crossing
+unrealised 7110, period lock, over-allocation in both currency spaces, and the
+bounded FX reach-back. Deliberately small: every retained fixture is
+maintenance on every schema move, and the HR-2c accrual change already cost one
+round of "is this staleness or regression?" judgement.
+
+**Read `db/fixtures/README.md` before adding one.** Four rules, each of which
+this repo learned the hard way:
+1. assert invariants, not literals — and where a literal IS the assertion,
+   write down how it was derived;
+2. each case owns its data, no resetting between cases;
+3. a failure must fail the GATE, not print a differing string;
+4. depend only on STABLE bootstrap data (chart of accounts, currencies, roles,
+   leave types) and never on TIME-BOUND state — `public_holidays` is seeded a
+   year at a time and `finance_settings.locked_before` moves with month-end.
+   Set what you need; do not inherit it.
+
+Note the gate previously **swallowed verify_rebuild's exit 3**, so a B1/B2
+invariant failure printed a violation and still exited 0. Fixed in the same
+change that added verdict 4 — which is rule 3 applied to a check that predates
+the rule.
+
 ## THE FX RULE — one rule, of which the rest are instances
 
 > **Any amount not in the base currency converts at the rate. If no rate
