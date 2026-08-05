@@ -20,6 +20,7 @@ type PreviewRow = {
     native: number
     carry_base: number
     rate: number | null
+    rate_as_of: string | null
     target_base: number | null
     adjustment: number | null
 }
@@ -82,7 +83,17 @@ export default async function RevaluationPage({ searchParams }: { searchParams: 
                                 <td className="border border-gray-300 px-3 py-2 font-mono">{p.account} · {p.currency}</td>
                                 <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(p.native)}</td>
                                 <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(p.carry_base)}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{p.rate ?? '—'}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">
+                                    {p.rate ?? '—'}
+                                    {/* FIN-19:回溯取的是哪一天的价 —— 与期末不同就标出来。
+                                        月末落在周末时用周五的中间价是对的,但按过账键的人
+                                        有权知道自己在看哪一天。 */}
+                                    {p.rate !== null && p.rate_as_of && p.rate_as_of !== d && (
+                                        <span className="ml-1 px-1 rounded bg-amber-100 text-amber-800 font-sans text-xs">
+                                            {t('finance.fxLookup.asOf', { 0: p.rate_as_of })}
+                                        </span>
+                                    )}
+                                </td>
                                 <td className="border border-gray-300 px-3 py-2 text-right font-mono font-medium">
                                     {p.adjustment === null ? '—' : formatMoney(p.adjustment)}
                                 </td>

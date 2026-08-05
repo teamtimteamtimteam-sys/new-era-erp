@@ -142,14 +142,18 @@ export async function lookupFxRate(
 // 本笔可能涉及多种单据币种(FIN-16:单据可用别的币种结清)。页面要把"核销单据额 X
 // 会消耗付款额 Y"两边都显示出来,就需要每个币种在【结算日】的牌价 —— 一次取回,
 // 与 record_payment 用的是同一个 fx_rate_asof、同一侧。
+// FIN-19:牌价【取自哪一天】要跟着牌价一起回来。回溯被接受的条件本来就是
+// "说出来",而这条路径原先只把 rate 带回去 —— 于是行上的"消耗 336.00 SGD"
+// 既没有汇率也没有日期,操作员正是照着这个数做决定的。
 export async function lookupRatesFor(
     currencies: string[], date: string, direction: 'in' | 'out'
-): Promise<{ rates?: Record<string, number>; error?: string }> {
+): Promise<{ rates?: Record<string, number>; asOf?: Record<string, string>; error?: string }> {
     const t = await getTranslations()
-    if (!date) return { rates: {} }
+    if (!date) return { rates: {}, asOf: {} }
     const side = direction === 'in' ? 'tt_buy' : 'tt_sell'
     const supabase = await createClient()
     const out: Record<string, number> = {}
+    const asOf: Record<string, string> = {}
     for (const ccy of [...new Set(currencies)].filter(Boolean)) {
         const { data, error } = await supabase.rpc('fx_rate_asof', {
             p_currency: ccy, p_date: date, p_rate_type: side,
@@ -158,6 +162,7 @@ export async function lookupRatesFor(
         const row = (data as { rate: number; as_of: string }[] | null)?.[0]
         if (!row) return { error: t('finance.fxLookup.missing', { 0: date, 1: ccy, 2: side }) }
         out[ccy] = Number(row.rate)
+        asOf[ccy] = row.as_of
     }
-    return { rates: out }
+    return { rates: out, asOf }
 }

@@ -1,19 +1,17 @@
--- db/functions/preview_revalue_foreign_balances.sql
--- 期末重估的【只读预览】—— 与 revalue_foreign_balances 共用同一份算术:
--- 过账函数调用本函数,再据返回的逐行明细发分录。界面只负责画,不负责算。
+-- db/migrations/2026-08-06-fin19b-revaluation-reports-rate-date.sql
 --
--- 【为什么必须只有一份】/finance/revaluation 原先用 TypeScript 又算了一遍,两份
--- 实现已经漂开(既往重估行并入承载额的口径不同),而屏幕上的数字会被人当作
--- 过账将要发生什么的承诺。同病此前两次:验配影响预览、GrantRunner 假期公式。
--- 先例:preview_reprice_inbound_batch 与 reprice_inbound_batch 共用 reprice_split。
+-- FIN-19b:重估预览把【中间价取自哪一天】一并报出来。
 --
--- 缺当日中间价【不抛】,该行 rate/adjustment 返回 null 并记进 missing_rates ——
--- 页面要能把缺牌价画出来。过账那一侧仍然拒绝(D2 语义不变)。
+-- 与 FIN-19 同源。回溯之所以被接受,条件是"取自哪一天要说出来"(FIN-13 第 5 条),
+-- 而这条路径一直只把 rate 带回去。期末落在周末的机会大约是 2/7 —— 月末用周五的
+-- 中间价是对的,但操作员是照着这张表按下过账按钮的,他有权知道自己在看哪一天。
 --
--- NOTE: introduced by db/migrations/2026-08-05-fin9-revaluation-single-implementation.sql.
--- FIN-19b(2026-08-06):多返回 rate_as_of ——【中间价取自哪一天】。期末常落在周末,
--- 用周五的中间价是对的,但必须说出来(FIN-13 接受回溯的条件)。改问 fx_rate_asof
--- (缺牌价返回空行,不抛),写入侧仍再调一次 fx_rate_for 抛 FX_RATE_MISSING。
+-- 顺带把 fx_rate_for + EXCEPTION 的写法换成直接问 fx_rate_asof:缺牌价时它返回
+-- 空行而不是抛异常,拿 as_of 也只有它给得出。写入侧 revalue_foreign_balances
+-- 仍旧【故意再调一次 fx_rate_for】把 FX_RATE_MISSING 抛出来 —— 那一段不动,
+-- 错误文案仍然只有一处。算术一个字没改,只是多返回一个字段。
+
+BEGIN;
 
 CREATE OR REPLACE FUNCTION public.preview_revalue_foreign_balances(p_period_end date)
  RETURNS jsonb
@@ -91,4 +89,7 @@ BEGIN
         'total_adjustment', v_total,
         'missing_rates', v_missing);
 END;
-$function$;
+$function$
+;
+
+COMMIT;

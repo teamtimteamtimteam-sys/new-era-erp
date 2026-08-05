@@ -86,6 +86,9 @@ export default function NewPaymentForm({
     const [fxAsOf, setFxAsOf] = useState<string | null>(null)
     // 各【单据币种】在结算日的牌价 —— 用来把核销的单据额折成消耗的付款额
     const [docRates, setDocRates] = useState<Record<string, number>>({})
+    // FIN-19:每个单据币种的牌价【取自哪一天】。回溯是有条件地被接受的,
+    // 条件就是说出来 —— 一个不带日期的折算数字,和一个编出来的数字一样不可查。
+    const [docAsOf, setDocAsOf] = useState<Record<string, string>>({})
     const [fxError, setFxError] = useState<string | null>(null)
     // 【单据币种】缺牌价也是缺牌价。原先 lookupRatesFor 的 error 被 `r.rates ?? {}`
     // 一把吞掉:docRates 空 → toPay 的 `?? payRate` 按 1:1 折 → 屏幕说 USD 1,400 只
@@ -155,6 +158,7 @@ export default function NewPaymentForm({
         .filter(Boolean).sort().join(',')
     useEffect(() => {
         setDocRates({})
+        setDocAsOf({})
         setDocFxError(null)
         if (!payDate || !docCcys) return
         let cancelled = false
@@ -164,6 +168,7 @@ export default function NewPaymentForm({
             // 这里只需要不把它丢掉,并且让提交按钮跟着停下。
             if (r.error) { setDocFxError(r.error); return }
             setDocRates(r.rates ?? {})
+            setDocAsOf(r.asOf ?? {})
         })
         return () => { cancelled = true }
     }, [docCcys, payDate, direction])
@@ -276,9 +281,22 @@ export default function NewPaymentForm({
         const v = allocValue(docId)
         if (v === 0 || docCcy === currency) return null
         const cost = toPay(docCcy, v)
+        const rate = docRates[docCcy]
+        const asOf = docAsOf[docCcy]
+        // 【取自哪一天要看得见】与交易日不同时必须标出来 —— 那正是回溯当初被
+        // 接受的条件。周五的价用在周六是对的,但操作员有权知道自己在看哪一天。
+        const staleDate = !!asOf && !!payDate && asOf !== payDate
         return (
             <div className={'text-xs mt-1 font-mono ' + (cost === null ? 'text-red-600' : 'text-gray-500')}>
                 {t('finance.rowCost', { amount: cost === null ? '—' : formatAmount(cost, currency) })}
+                {cost !== null && rate && (
+                    <span className="ml-1">@ {rate}</span>
+                )}
+                {cost !== null && staleDate && (
+                    <span className="ml-1 px-1 rounded bg-amber-100 text-amber-800 font-sans">
+                        {t('finance.fxLookup.asOf', { 0: asOf })}
+                    </span>
+                )}
             </div>
         )
     }

@@ -327,18 +327,39 @@ the rule.
 Everything below is a consequence, not a separate rule. They were built one
 at a time; a new screen should inherit the rule rather than rediscover it.
 
-* **Reaching back is allowed, but only across non-publication days, and it
-  must say so** (FIN-13). A weekend transaction uses Friday's rate — that is
-  correct. `fx_rate_asof` returns the rate **and the date it came from**;
-  every screen showing a converted figure shows that date when it differs
-  from the transaction date. The reach is bounded twice: every day strictly
-  between the rate and the transaction must be a non-business day (weekend
-  or active SG public holiday), so a missed *weekday* rate is never bridged;
-  and a hard cap of **4 calendar days** backstops a mis-maintained holiday
-  table. Beyond that `fx_rate_for` still raises
-  `FX_RATE_MISSING|ccy|date|type`, unchanged.
+* **Reaching back is allowed only when the TRANSACTION DATE ITSELF is a
+  non-publication day, and it must say so** (FIN-13, corrected by FIN-19).
+  A Saturday transaction uses Friday's rate — that is correct, because the
+  market did not publish on Saturday. **A business day with no rate on file
+  refuses, exactly as an exact-match rule would.** Precisely: every day from
+  the rate date (exclusive) through the transaction date **inclusive** must be
+  a non-business day (weekend or active SG public holiday). A hard cap of
+  **4 calendar days** backstops a mis-maintained holiday table. Beyond either,
+  `fx_rate_for` raises `FX_RATE_MISSING|ccy|date|type`, unchanged.
+  `fx_rate_asof` returns the rate **and the date it came from**; every screen
+  showing a converted figure shows that date when it differs from the
+  transaction date.
   The original FIN-0 defect was that the nearest-date lookup was **silent**,
   not that it reached back at all.
+
+  > **How FIN-13 was wrong, because the shape recurs.** It said "every day
+  > *strictly between* the rate and the transaction must be a non-business
+  > day" and implemented `generate_series(v_when + 1, p_date - 1)`. For
+  > **consecutive dates that interval is empty**, so the condition is
+  > vacuously true and *every* business day silently accepted yesterday's
+  > rate. That is the exact silent nearest-date lookup FIN-0 removed from
+  > `pay_medical_claim`, reintroduced with a blessing on it — and it read as
+  > a strict rule, which is why nobody re-derived it. Live proof: 5 Aug had a
+  > rate, 6 Aug did not, and a 6 Aug receipt booked at 5 Aug's 1.24.
+  > **A guard phrased over the interior of a range is vacuous at the
+  > boundary. State such conditions over the closed range and check the
+  > endpoint explicitly.** The fix was one token; finding it took a human
+  > noticing a number on a screen.
+  >
+  > Note this also made the London/Singapore bullet below *true for the first
+  > time*: before FIN-19, a UK bank holiday that SG treats as a business day
+  > did not produce a conservative refusal — it silently took the previous
+  > day's rate whenever one existed.
 * **The London/Singapore calendar is a deliberate approximation.** Metal
   quotes follow London; the only holiday table we have is Singapore's. The
   failure mode is a false *refusal* on a UK bank holiday — conservative and
