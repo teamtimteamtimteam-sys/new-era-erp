@@ -370,13 +370,43 @@ rate* from the bank slip, not a board rate — `record_payment` requires it
 and refuses to look one up. That is still the rule: the real rate, never an
 assumed one.
 
-**Known gap, NOT yet fixed — the metal pricing path.** `calculate_metal_price`
-does not follow this rule and does not currently claim to: it never
-converts (USD in, USD out), a missing quote contributes 0 instead of
-refusing, and `spot` basis takes the nearest earlier price — the exact
-fallback `fx_rate_for` exists to forbid. Measured and written up in
-`docs/currency-literals-audit.md`. Do not "fix" it piecemeal; it needs a
-decision about what currency a formula price is denominated in.
+**The metal pricing path: closed (FIN-15), and the shape of the answer is
+worth keeping.** This paragraph used to read "known gap, NOT yet fixed" and
+list three things. All three are settled, and only one of them turned out to
+be a defect:
+
+* **The function still does not convert — and that is correct.**
+  `calculate_metal_price` is USD in, USD out: quotes are USD/tonne, treatment
+  charges are USD/tonne, and it neither takes nor applies a rate. **The
+  conversion belongs to the path, not the function.**
+  `computeLineEstimate` now converts before the number becomes a price —
+  `usd_price × fx(USD) / fx(document currency)`, both legs `tt_sell` on the
+  order date via `fx_rate_asof`, refusing and naming date/currency/side when a
+  rate is missing. A USD document needs no special case: the two rates are the
+  same and the ratio is 1. The calculator label reads `Value (USD)`, which is
+  the truth — the old `(SGD)` label was the actual lie.
+* **A missing quote refuses on the quoting path and still skips inside the
+  function — deliberately, in both places.** Skipping keeps one unpriced metal
+  from halting production for `allocate_processing_costs`; refusing keeps a
+  quote from silently going to a supplier priced too low. Same function, two
+  callers, two dispositions. **Do not unify them.** Each side's comment names
+  the other: `db/functions/allocate_processing_costs.sql` (first line) and
+  `app/pricing/calculator/actions.ts`; `computeLineEstimate` inherits the
+  refusal and points at the calculator for the reasoning.
+* **`spot` reaching back to the nearest earlier price is a decision, not a
+  fallback.** Metal markets do not quote at weekends, so a price series *must*
+  reach back — the same reasoning as FIN-13's bounded FX reach-back. What was
+  missing was never the refusal; it was saying **which date's price was used**,
+  and each line now returns `price_date` (`price_from`/`price_to` for
+  `average`). Reaching back silently was the defect; reaching back is not.
+
+Full call-site inventory in `docs/currency-literals-audit.md`.
+
+**The general lesson, which is why this paragraph was rewritten rather than
+deleted:** a note describing a hazard that no longer exists is the same defect
+as a comment asserting a hazard that cannot occur. It costs a reader the same
+wrong belief and nothing in any gate will ever catch it. **Retire a "known
+gap" in the place it lives, in the commit that closes it.**
 
 ## Currency codes are data, not constants
 

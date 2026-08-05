@@ -53,9 +53,10 @@ const ALLOWLIST = [
     {
         path: 'app/purchasing/orders/new/NewOrderForm.tsx', match: 'USD',
         reason: '金属报价【按市场惯例】以美元计价(AGENTS.md 的 FX 规则里写明:'
-            + 'USD/t 这类标签留着)。calculate_metal_price 全程 USD 进 USD 出,'
-            + '这一条是 docs/currency-literals-audit.md 记录在案的已知缺口 ——'
-            + '要改是先决定公式价以什么币种计价,不是把标签换成本位币。',
+            + 'USD/t 这类标签留着)。calculate_metal_price 全程 USD 进 USD 出 ——'
+            + '这不是缺口,是那条路的设计:换算发生在【路径上】,由 '
+            + 'computeLineEstimate 在数字变成价格之前折进单据币种(FIN-15)。'
+            + '所以这里的 USD 标签是【真的】,换成本位币反而会说谎。',
     },
 ]
 
