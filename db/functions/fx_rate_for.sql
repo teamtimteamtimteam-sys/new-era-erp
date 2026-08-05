@@ -14,6 +14,11 @@
 -- 不需要自己的调用者检查(B2 不适用)。
 --
 -- NOTE: introduced by db/migrations/2026-08-04-fin0-sgd-base-and-fx-policy.sql.
+--
+-- FIN-13(2026-08-05):汇率可以就近取上一个【发布日】,但有界、有留痕。
+-- 中间跨过的每一天都必须是非发布日(周末 / SG 生效假日),夹着工作日即拒绝;
+-- 另有 4 个自然日的硬上限。fx_rate_asof 同时返回【实际取自哪一天】。
+-- 理由与 4 天的由来见 db/migrations/2026-08-05-fin13-rate-asof-and-business-days.sql。
 
 CREATE OR REPLACE FUNCTION public.fx_rate_for(p_currency text, p_date date, p_rate_type text)
  RETURNS numeric
@@ -21,19 +26,9 @@ CREATE OR REPLACE FUNCTION public.fx_rate_for(p_currency text, p_date date, p_ra
  STABLE
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-DECLARE
-    v_rate numeric;
+DECLARE v_rate numeric;
 BEGIN
-    IF p_currency = 'SGD' THEN
-        RETURN 1;  -- 本位币没有汇率这回事
-    END IF;
-    IF p_rate_type IS NULL OR p_rate_type NOT IN ('tt_buy', 'tt_sell', 'mid') THEN
-        RAISE EXCEPTION 'FX_RATE_TYPE_INVALID|%', COALESCE(p_rate_type, '?');
-    END IF;
-    SELECT rate_sgd_per_unit INTO v_rate
-    FROM fx_rates
-    WHERE currency = p_currency AND rate_date = p_date
-      AND rate_type = p_rate_type AND deleted_at IS NULL;
+    SELECT a.rate INTO v_rate FROM fx_rate_asof(p_currency, p_date, p_rate_type) a;
     IF v_rate IS NULL THEN
         RAISE EXCEPTION 'FX_RATE_MISSING|%|%|%', p_currency, p_date, p_rate_type;
     END IF;

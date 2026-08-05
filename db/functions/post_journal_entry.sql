@@ -1,3 +1,8 @@
+-- FIN-13(2026-08-05):汇率可以就近取上一个【发布日】,但有界、有留痕。
+-- 中间跨过的每一天都必须是非发布日(周末 / SG 生效假日),夹着工作日即拒绝;
+-- 另有 4 个自然日的硬上限。fx_rate_asof 同时返回【实际取自哪一天】。
+-- 理由与 4 天的由来见 db/migrations/2026-08-05-fin13-rate-asof-and-business-days.sql。
+
 CREATE OR REPLACE FUNCTION public.post_journal_entry(p_entry_date date, p_memo text, p_source_type text, p_source_id uuid, p_lines jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -11,6 +16,8 @@ DECLARE
     v_amount       numeric;
     v_fx           numeric;
     v_usd          numeric;
+    v_fx_date      date;
+    v_base         text;
     v_total_debit  numeric := 0;
     v_total_credit numeric := 0;
     v_count        integer := 0;
@@ -19,6 +26,7 @@ DECLARE
     v_code         text;
     v_entry_id     uuid;
 BEGIN
+    SELECT c.code INTO v_base FROM currencies c WHERE c.is_base;
     IF p_entry_date IS NULL THEN
         RAISE EXCEPTION 'JE_LINE_INVALID|entry_date';
     END IF;
@@ -74,8 +82,10 @@ BEGIN
             RAISE EXCEPTION 'CURRENCY_INVALID|%', COALESCE(v_currency, '?');
         END IF;
 
-        IF v_currency = 'SGD' THEN
-            v_fx := 1;  -- 本位币(FIN-0 起为 SGD)强制 1,忽略传入值
+        v_fx_date := NULLIF(v_line->>'fx_rate_date', '')::date;
+        IF v_currency = v_base THEN
+            v_fx := 1;
+            v_fx_date := NULL;  -- 本位币没有取自哪天这回事  -- 本位币(FIN-0 起为 SGD)强制 1,忽略传入值
         ELSE
             v_fx := (v_line->>'fx_rate')::numeric;
             IF v_fx IS NULL THEN
@@ -88,7 +98,7 @@ BEGIN
 
         v_usd := round(v_amount * v_fx, 2);
 
-        INSERT INTO journal_lines (entry_id, account_id, debit, credit, currency, amount_ccy, fx_rate, line_memo)
+        INSERT INTO journal_lines (entry_id, account_id, debit, credit, currency, amount_ccy, fx_rate, fx_rate_date, line_memo)
         VALUES (
             v_entry_id,
             v_account.id,
@@ -97,6 +107,7 @@ BEGIN
             v_currency,
             v_amount,
             v_fx,
+            v_fx_date,
             v_line->>'line_memo'
         );
 
@@ -120,4 +131,4 @@ BEGIN
         'total_credit', v_total_credit
     );
 END;
-$function$
+$function$;

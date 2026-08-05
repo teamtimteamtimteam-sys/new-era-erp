@@ -83,5 +83,29 @@ export async function calculatePrice(
         return { error: await localizePricingError(error.message) }
     }
 
-    return { result: data as unknown as CalcResult }
+    const result = data as unknown as CalcResult
+    // ════════════════════════════════════════════════════════════════════════
+    // 【报价这条路:缺行情就拒绝】—— 拒绝放在【调用方】,不动 DB 函数。
+    // calculate_metal_price_internal 对缺行情的金属计 0 并列进 skipped_metals,
+    // 这是 Phase 1 的有意决定,【不能改】:allocate_processing_costs 也靠它,
+    // 而"为了一个金属没报价就卡住生产"从来不是我们要的。
+    // 但报价不一样:少算一个金属的价,报出去的是一个偏低的价,而且看不出来 ——
+    // 极端情况下加工费照扣、金属一个都没定上价,单价能算成 −0.8 USD/kg。
+    // 所以:同一个函数,两个调用方,两种处置。
+    //   * 报价(本文件)   → skipped_metals 非空即拒,并点名是哪些金属;
+    //   * 成本分摊(DB)   → 照旧跳过,不阻断生产。
+    // 【别把它们统一了】—— 它们的差异是有意的,理由就写在这里和
+    // db/functions/allocate_processing_costs.sql 的对应位置。
+    // ════════════════════════════════════════════════════════════════════════
+    if (result.skipped_metals?.length) {
+        const t = await getTranslations()
+        return {
+            error: t('pricing.errNoPriceForMetals', {
+                metals: result.skipped_metals.join(', '),
+                date: result.reference_date,
+            }),
+        }
+    }
+
+    return { result }
 }

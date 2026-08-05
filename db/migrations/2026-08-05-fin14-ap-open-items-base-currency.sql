@@ -1,27 +1,14 @@
--- db/views/ap_open_items.sql
--- AP 开放余额(应付账龄):补充 2a 起是两类单据的 UNION,每张未结清单据一行。
---   * doc_kind 'inbound':已计价、在册的进料批次(规则不变);应付额 = 当前
---     quantity × unit_price(改价即改欠款);无到货日回退 created_at::date。
---   * doc_kind 'expense':挂账(unpaid)、posted 的开支单;应付额 = amount_base;
---     排除镜像行(被别的开支单指为 reversed_by_expense —— 它只是冲销的记录凭证,
---     不是新的应付单据),已冲销(reversed)的开支自然被 status 条件排除。
--- inbound_batch_id 列保留(expense 行为 NULL)—— 兼容按批次取行的旧调用方。
--- 结清额只计 status='posted' 付款单的核销行。SECURITY INVOKER。
+-- FIN-14:ap_open_items 不再把币种写死成 'SGD'。
 --
--- cut 4a:进料侧的 settled_base 【还要加上 prepayment_applications】—— 定金冲抵的
--- 那部分钱同样在还这张批次的应付,不计进来的话,一张被定金付清的批次会永远显示未付。
--- 开支侧不受影响(预付只对采购订单成立)。列集未变,故本次是 CREATE OR REPLACE。
---
--- NOTE: prepayment applications folded in by
--- db/migrations/2026-07-31-phase4-cut4a-purchase-orders.sql; reworked by
--- db/migrations/2026-07-30-phase3-s2a-expenses.sql
--- (introduced by db/migrations/2026-07-06-phase3-cut3a-payments.sql).
--- 列集变了 → 重建时先 DROP VIEW 再 CREATE(CREATE OR REPLACE 改不了列)。
+-- 【为什么要紧】进料这一支的未结项把 currency 直接投影成字面量 'SGD'。今天没错
+-- (unit_price 就是本位币),但它已经【被人当条件用了】:FIN-12 给
+-- /finance/payments 的可核销清单加了 `i.currency === 付款币种` 的过滤,
+-- 服务端也按 ALLOC_CURRENCY_MISMATCH 校验。换一次本位币,这一支的所有 AP 单据
+-- 会突然与所有付款都不匹配,而且是【静默】的:清单空了,不报错。
+-- 这正是把币种当常量的那一类,只是长在 SQL 里 —— 也正因如此,
+-- scripts/check-currency-literals.mjs 本轮才扩到扫 db/。
 
--- cut 2b:本视图改读遮蔽伴生视图(<表>_masked)而非基表 —— 敏感列的遮蔽
--- 因此是继承来的,视图体其余部分逐字未变。它仍然是 SECURITY INVOKER:
--- 它读的遮蔽视图自带模块谓词,所以既拿得到数据,也绕不过任何模块边界。
--- 见 db/migrations/2026-08-01-perm2b-field-masking.sql.
+BEGIN;
 
 CREATE OR REPLACE VIEW public.ap_open_items WITH (security_invoker = on) AS
  SELECT doc_kind,
@@ -53,9 +40,7 @@ CREATE OR REPLACE VIEW public.ap_open_items WITH (security_invoker = on) AS
             round(ib.quantity * ib.unit_price, 2) AS doc_value_base,
             round(COALESCE(s.settled, 0::numeric) + COALESCE(pp.applied, 0::numeric), 2) AS settled_base,
             round(round(ib.quantity * ib.unit_price, 2) - COALESCE(s.settled, 0::numeric) - COALESCE(pp.applied, 0::numeric), 2) AS open_base,
-            ( SELECT c.code
-                   FROM currencies c
-                  WHERE c.is_base) AS currency,
+            ( SELECT c.code FROM currencies c WHERE c.is_base) AS currency,
             round(round(ib.quantity * ib.unit_price, 2) - COALESCE(s.settled, 0::numeric) - COALESCE(pp.applied, 0::numeric), 2) AS open_ccy
            FROM inbound_batches_masked ib
              JOIN suppliers sup ON sup.id = ib.supplier_id
@@ -90,3 +75,5 @@ CREATE OR REPLACE VIEW public.ap_open_items WITH (security_invoker = on) AS
                    FROM expenses o
                   WHERE o.reversed_by_expense = e.id))) d
   WHERE open_ccy > 0::numeric;
+
+COMMIT;

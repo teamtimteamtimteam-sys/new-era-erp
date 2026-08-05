@@ -36,7 +36,10 @@ const PATTERNS = CODES.flatMap((c) => [
     new RegExp(`case\\s+['"\`]${c}['"\`]\\s*:`),        // case 'USD':
     new RegExp(`\\?\\?\\s*['"\`]${c}['"\`]`),           // ?? 'USD'   (默认成某币种)
     new RegExp(`\\|\\|\\s*['"\`]${c}['"\`]`),           // || 'USD'
-    new RegExp(`(^|[{,\\s])['"\`]?${c}['"\`]?\\s*:`),      // { USD: … } 对照表
+    // { USD: … } 对照表(排除 'USD'::text 这类【类型转换】—— 那是数据不是分支)
+    new RegExp(`(^|[{,\\s])['"\`]?${c}['"\`]?\\s*:(?!:)`),
+    // SQL 里把币种当【投影出来的值】:'SGD'::text AS currency —— 那是在替所有行断言币种
+    new RegExp(`['"\`]${c}['"\`](::\\w+)?\\s+AS\\s`, 'i'),
 ])
 
 function* walk(dir) {
@@ -44,18 +47,23 @@ function* walk(dir) {
         if (name === 'node_modules' || name === '.next') continue
         const p = join(dir, name)
         if (statSync(p).isDirectory()) yield* walk(p)
-        else if (/\.tsx?$/.test(name) && !name.endsWith('.d.ts')) yield p
+        else if ((/\.tsx?$/.test(name) && !name.endsWith('.d.ts')) || /\.sql$/.test(name)) yield p
     }
 }
 
 const hits = []
-for (const dir of ['app', 'lib']) {
+// db/ 下的 SQL 也扫 —— fx_rate_gaps 里那句 `l.currency <> 'SGD'` 说明盲区恰恰
+// 落在本位币最要紧的地方。SQL 里判本位币要问 currencies.is_base,不要写字面量。
+for (const dir of ['app', 'lib', 'db']) {
     for (const file of walk(join(ROOT, dir))) {
         const rel = file.slice(ROOT.length)
         if (rel.includes('database.types')) continue
+        // db/migrations 是【历史记录】:当时写下的字面量不该被今天的规矩追认
+        if (rel.startsWith('db/migrations/')) continue
         const lines = readFileSync(file, 'utf8').split('\n')
         lines.forEach((line, i) => {
-            if (line.trim().startsWith('//') || line.trim().startsWith('*')) return
+            if (line.trim().startsWith('//') || line.trim().startsWith('*')
+                || line.trim().startsWith('--')) return
             if (PATTERNS.some((re) => re.test(line))) {
                 hits.push({ rel, line: i + 1, text: line.trim().slice(0, 110) })
             }

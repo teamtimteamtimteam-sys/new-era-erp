@@ -1,3 +1,12 @@
+-- 【缺行情:这里跳过,报价那边拒绝 —— 差异是有意的,别统一】
+-- 本函数对没有可用行情的金属计 0 并记进 allocation_snapshot.skipped_metals:
+-- 为了一个金属没报价就卡住生产,从来不是我们要的(Phase 1 follow-up 1 的决定,
+-- 至今有效)。成本总要落到批次上,少一个金属的价不影响这批货能不能继续走。
+-- 但【报价】那条路相反:少算一个金属就是报低了价,而且看不出来。
+-- 所以拒绝放在调用方 app/pricing/calculator/actions.ts,那里 skipped_metals
+-- 非空即拒并点名。两个调用方、两种处置,理由两边都写着。
+--
+--
 CREATE OR REPLACE FUNCTION public.allocate_processing_costs(p_run_id uuid, p_basis text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql

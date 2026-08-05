@@ -25,8 +25,7 @@
 --       updated by db/migrations/2026-08-03-hr3a-performance-reviews.sql and
 --       db/migrations/2026-08-04-hr3b-salary-basis-and-review-visibility.sql.
 
-CREATE OR REPLACE VIEW public.hr_alerts
-WITH (security_invoker = on) AS
+CREATE OR REPLACE VIEW public.hr_alerts WITH (security_invoker = on) AS
  SELECT 'work_pass_expiry'::text AS alert_type,
         CASE
             WHEN e.work_pass_expiry_date < CURRENT_DATE THEN 'expired'::text
@@ -152,4 +151,19 @@ UNION ALL
     t.expiry_date - CURRENT_DATE AS days_remaining
    FROM training_records t
      JOIN employees e ON e.id = t.employee_id
-  WHERE t.deleted_at IS NULL AND e.deleted_at IS NULL AND e.employment_status <> 'separated'::text AND t.expiry_date IS NOT NULL AND (t.expiry_date - CURRENT_DATE) <= 90 AND (t.expiry_date - CURRENT_DATE) >= '-30'::integer;
+  WHERE t.deleted_at IS NULL AND e.deleted_at IS NULL AND e.employment_status <> 'separated'::text AND t.expiry_date IS NOT NULL AND (t.expiry_date - CURRENT_DATE) <= 90 AND (t.expiry_date - CURRENT_DATE) >= '-30'::integer
+UNION ALL
+ SELECT 'holiday_calendar_missing'::text AS alert_type,
+        CASE
+            WHEN EXTRACT(month FROM CURRENT_DATE) = 12::numeric THEN 'critical'::text
+            ELSE 'warning'::text
+        END AS severity,
+    NULL::uuid AS employee_id,
+    ''::text AS employee_code,
+    ''::text AS employee_name,
+    (EXTRACT(year FROM CURRENT_DATE) + 1::numeric)::text AS subject,
+    make_date((EXTRACT(year FROM CURRENT_DATE) + 1::numeric)::integer, 1, 1) AS due_date,
+    make_date((EXTRACT(year FROM CURRENT_DATE) + 1::numeric)::integer, 1, 1) - CURRENT_DATE AS days_remaining
+  WHERE EXTRACT(month FROM CURRENT_DATE) >= 10::numeric AND NOT (EXISTS ( SELECT 1
+           FROM public_holidays h
+          WHERE h.is_active AND h.country = 'SG'::text AND EXTRACT(year FROM h.holiday_date) = (EXTRACT(year FROM CURRENT_DATE) + 1::numeric)));

@@ -1065,6 +1065,7 @@ const en = {
         headcount: 'Headcount',
         headcountTotal: 'Total',
         alertType: {
+            holiday_calendar_missing: 'Public holidays not yet entered for {0}',
             work_pass_expiry: 'Work pass expiry',
             probation_ending: 'Probation ending',
             training_expiry: 'Training expiry',
@@ -1954,6 +1955,8 @@ const en = {
         baseEquivalent: 'Base equivalent',
         overAllocated: '(over-allocated — the server will reject this)',
         fxLookup: {
+            asOf: '(rate of {0})',
+            dealt: '(actual dealt rate)',
             needCurrencyAndDate: 'Pick a currency and a date before the rate can be looked up.',
             missing: 'No {2} rate on file for {1} on {0}. The payment cannot be valued until that rate is entered under FX Rates. Receipts use tt_buy, payments use tt_sell — the same rule record_payment applies.',
         },
@@ -2310,6 +2313,7 @@ const en = {
         },
     },
     pricing: {
+        errNoPriceForMetals: 'No metal price on file for {metals} as at {date}. Enter the price under Metal Prices — a quote that silently drops a metal is priced too low.',
         hubTitle: 'Pricing',
         formulasCard: 'Pricing formulas',
         formulasDesc: 'Agreed payable percentages and charges per counterparty',

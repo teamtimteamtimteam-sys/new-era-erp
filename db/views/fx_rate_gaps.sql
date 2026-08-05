@@ -7,7 +7,7 @@
 --
 -- NOTE: introduced by db/migrations/2026-08-04-fin0-sgd-base-and-fx-policy.sql.
 
-CREATE VIEW public.fx_rate_gaps WITH (security_invoker = on) AS
+CREATE OR REPLACE VIEW public.fx_rate_gaps WITH (security_invoker = on) AS
  SELECT d.rate_date,
     d.currency,
     m.missing_types,
@@ -17,11 +17,12 @@ CREATE VIEW public.fx_rate_gaps WITH (security_invoker = on) AS
             count(DISTINCT l.entry_id) AS txn_count
            FROM journal_lines l
              JOIN journal_entries e ON e.id = l.entry_id
-          WHERE l.currency <> 'SGD'::text AND e.status = 'posted'::text
+          WHERE l.currency <> (( SELECT c.code
+                   FROM currencies c
+                  WHERE c.is_base)) AND e.status = 'posted'::text
           GROUP BY e.entry_date, l.currency) d
      CROSS JOIN LATERAL ( SELECT array_agg(t.t) AS missing_types
            FROM unnest(ARRAY['tt_buy'::text, 'tt_sell'::text, 'mid'::text]) t(t)
           WHERE NOT (EXISTS ( SELECT 1
-                   FROM fx_rates r
-                  WHERE r.currency = d.currency AND r.rate_date = d.rate_date AND r.rate_type = t.t AND r.deleted_at IS NULL))) m
+                   FROM fx_rate_asof(d.currency, d.rate_date, t.t) fx_rate_asof(rate, as_of)))) m
   WHERE m.missing_types IS NOT NULL;

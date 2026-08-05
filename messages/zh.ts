@@ -1066,6 +1066,7 @@ const zh = {
         headcount: '在职人数',
         headcountTotal: '合计',
         alertType: {
+            holiday_calendar_missing: '{0} 年的公共假日还没录入',
             work_pass_expiry: '工作准证到期',
             probation_ending: '试用期届满',
             training_expiry: '培训证书到期',
@@ -1948,6 +1949,8 @@ const zh = {
         baseEquivalent: '折合本位币',
         overAllocated: '(核销超过款额 —— 服务端会拒绝)',
         fxLookup: {
+            asOf: '(取 {0} 的牌价)',
+            dealt: '(水单实际成交价)',
             needCurrencyAndDate: '先选好币种与日期,才能查牌价。',
             missing: '{0} 当日没有 {1} 的 {2} 牌价。牌价没录进汇率页之前,这笔款无法估值。收款取 tt_buy、付款取 tt_sell —— 与 record_payment 同一条规则。',
         },
@@ -2304,6 +2307,7 @@ const zh = {
         },
     },
     pricing: {
+        errNoPriceForMetals: '{date} 当日没有 {metals} 的行情。请先到金属价格页录入 —— 少算一个金属的报价就是偏低的报价,而且看不出来。',
         hubTitle: '定价',
         formulasCard: '定价公式',
         formulasDesc: '各往来单位约定的计价比例与费用',

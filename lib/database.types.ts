@@ -2002,6 +2002,7 @@ export type Database = {
           debit: number
           entry_id: string
           fx_rate: number
+          fx_rate_date: string | null
           id: string
           line_memo: string | null
         }
@@ -2014,6 +2015,7 @@ export type Database = {
           debit?: number
           entry_id: string
           fx_rate: number
+          fx_rate_date?: string | null
           id?: string
           line_memo?: string | null
         }
@@ -2026,6 +2028,7 @@ export type Database = {
           debit?: number
           entry_id?: string
           fx_rate?: number
+          fx_rate_date?: string | null
           id?: string
           line_memo?: string | null
         }
@@ -8883,6 +8886,13 @@ export type Database = {
         Args: { p_date: string; p_prefix: string }
         Returns: string
       }
+      fx_rate_asof: {
+        Args: { p_currency: string; p_date: string; p_rate_type: string }
+        Returns: {
+          as_of: string
+          rate: number
+        }[]
+      }
       fx_rate_for: {
         Args: { p_currency: string; p_date: string; p_rate_type: string }
         Returns: number
@@ -8903,6 +8913,10 @@ export type Database = {
           p_period_start: string
         }
         Returns: Json
+      }
+      is_business_day: {
+        Args: { p_country?: string; p_date: string }
+        Returns: boolean
       }
       is_reviewer_of: {
         Args: { p_reviewer_employee_id: string }

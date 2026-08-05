@@ -224,9 +224,29 @@ queries, `create_invoice`) are listed in
 Everything below is a consequence, not a separate rule. They were built one
 at a time; a new screen should inherit the rule rather than rediscover it.
 
-* **`fx_rate_for` refuses rather than reaching for the nearest date.** No
-  rate on the day means no rate: it raises `FX_RATE_MISSING|ccy|date|type`.
-  Borrowing yesterday's rate is a silent wrong number; the error is not.
+* **Reaching back is allowed, but only across non-publication days, and it
+  must say so** (FIN-13). A weekend transaction uses Friday's rate — that is
+  correct. `fx_rate_asof` returns the rate **and the date it came from**;
+  every screen showing a converted figure shows that date when it differs
+  from the transaction date. The reach is bounded twice: every day strictly
+  between the rate and the transaction must be a non-business day (weekend
+  or active SG public holiday), so a missed *weekday* rate is never bridged;
+  and a hard cap of **4 calendar days** backstops a mis-maintained holiday
+  table. Beyond that `fx_rate_for` still raises
+  `FX_RATE_MISSING|ccy|date|type`, unchanged.
+  The original FIN-0 defect was that the nearest-date lookup was **silent**,
+  not that it reached back at all.
+* **The London/Singapore calendar is a deliberate approximation.** Metal
+  quotes follow London; the only holiday table we have is Singapore's. The
+  failure mode is a false *refusal* on a UK bank holiday — conservative and
+  self-announcing — never a silently wrong rate. Reasoned where the
+  reach-back lives (`db/functions/fx_rate_asof.sql`).
+* **`public_holidays` is load-bearing for two modules.** It drives
+  `calculate_leave_days` (leave entitlement, silently wrong if a year is
+  missing) and now `fx_rate_asof` (loudly wrong — it refuses). It is seeded
+  a year at a time, so `hr_alerts` raises `holiday_calendar_missing` from
+  October if next year has no rows. `is_business_day()` is the single
+  definition both use.
 * **Refusal is surfaced, not swallowed.** The revaluation banner names the
   date and the currencies that are missing, and disables the post button.
   Copy that shape: say what is missing, where to enter it, and disable the

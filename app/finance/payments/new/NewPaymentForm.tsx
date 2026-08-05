@@ -80,6 +80,7 @@ export default function NewPaymentForm({
     const [payDate, setPayDate] = useState(todayIsoLocal())
     // 汇率不再由本页计算 —— 向数据库要。null = 还没有结果(未查/查失败)
     const [autoFx, setAutoFx] = useState<number | null>(null)
+    const [fxAsOf, setFxAsOf] = useState<string | null>(null)
     const [fxError, setFxError] = useState<string | null>(null)
     const [fxLoading, setFxLoading] = useState(false)
 
@@ -108,6 +109,7 @@ export default function NewPaymentForm({
     // 【任一输入变化都先清空旧汇率】陈旧的汇率绝不能当成当前数字显示
     useEffect(() => {
         setAutoFx(null)
+        setFxAsOf(null)
         setFxError(null)
         if (crossCurrency) return          // 这一支用手填的实际成交价,不查牌价
         if (!currency || !payDate) return
@@ -117,7 +119,7 @@ export default function NewPaymentForm({
             if (cancelled) return
             setFxLoading(false)
             if (r.error) setFxError(r.error)
-            else setAutoFx(r.rate ?? null)
+            else { setAutoFx(r.rate ?? null); setFxAsOf(r.asOf ?? null) }
         })
         return () => { cancelled = true }
     }, [currency, payDate, direction, crossCurrency])
@@ -440,7 +442,13 @@ export default function NewPaymentForm({
                     <span className="font-mono">
                         {payBase === null ? '—' : formatMoney(payBase)}
                         {effectiveFx !== null && (
-                            <span className="ml-1 text-xs text-gray-500">@ {effectiveFx}</span>
+                            <span className="ml-1 text-xs text-gray-500">
+                                @ {effectiveFx}
+                                {/* 取自哪一天:与交易日不同时【必须说出来】 */}
+                                {!crossCurrency && fxAsOf && fxAsOf !== payDate
+                                    && ' ' + t('finance.fxLookup.asOf', { 0: fxAsOf })}
+                                {crossCurrency && ' ' + t('finance.fxLookup.dealt')}
+                            </span>
                         )}
                     </span>
                 </div>

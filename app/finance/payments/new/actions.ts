@@ -121,20 +121,20 @@ export async function createPayment(
 // ════════════════════════════════════════════════════════════════════════════
 export async function lookupFxRate(
     currency: string, date: string, direction: 'in' | 'out'
-): Promise<{ rate?: number; error?: string }> {
+): Promise<{ rate?: number; asOf?: string; error?: string }> {
     const t = await getTranslations()
     if (!currency || !date) return { error: t('finance.fxLookup.needCurrencyAndDate') }
     const side = direction === 'in' ? 'tt_buy' : 'tt_sell'
     const supabase = await createClient()
-    const { data, error } = await supabase.rpc('fx_rate_for', {
-        p_currency: currency, p_date: date, p_rate_type: side,
-    })
-    if (error) {
+    // FIN-13:问 fx_rate_asof —— 它同时告诉我们【取自哪一天】。周末用周五的价是对的,
+    // 但必须让人看见;同一套机制悄悄用上三周前的价,才是当初要除掉的那个错。
+    const { data, error } = await supabase
+        .rpc('fx_rate_asof', { p_currency: currency, p_date: date, p_rate_type: side })
+    if (error) return { error: t('finance.fxLookup.missing', { 0: date, 1: currency, 2: side }) }
+    const row = (data as { rate: number; as_of: string }[] | null)?.[0]
+    const rate = Number(row?.rate)
+    if (!row || !Number.isFinite(rate) || rate <= 0) {
         return { error: t('finance.fxLookup.missing', { 0: date, 1: currency, 2: side }) }
     }
-    const rate = Number(data)
-    if (!Number.isFinite(rate) || rate <= 0) {
-        return { error: t('finance.fxLookup.missing', { 0: date, 1: currency, 2: side }) }
-    }
-    return { rate }
+    return { rate, asOf: row.as_of }
 }

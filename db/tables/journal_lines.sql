@@ -21,7 +21,11 @@ CREATE TABLE public.journal_lines (
     amount_ccy numeric NOT NULL CHECK (amount_ccy > 0),  -- 原币金额
     fx_rate    numeric NOT NULL CHECK (fx_rate > 0),     -- 折 SGD 的汇率(FIN-0 前是折 USD)
     line_memo  text,
-    created_at timestamptz NOT NULL DEFAULT now()
+    created_at timestamptz NOT NULL DEFAULT now(),
+    -- ── FIN-13 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
+    -- 该行汇率取自牌价表的哪一天(可能早于分录日 —— 周末取上一个发布日)。
+    -- NULL = 非牌价来源:本位币行,或跨币种结算里水单上的实际成交价。
+    fx_rate_date date
 );
 
 CREATE INDEX idx_journal_lines_entry ON public.journal_lines (entry_id);
@@ -78,3 +82,6 @@ CREATE POLICY "journal_lines insert by permission"
     ON public.journal_lines
     AS PERMISSIVE FOR INSERT TO authenticated
     WITH CHECK (has_permission('module.finance.edit'::text));
+
+COMMENT ON COLUMN public.journal_lines.fx_rate_date IS
+    '该行汇率取自牌价表的哪一天(可能早于分录日:周末取上一个发布日)。NULL = 非牌价来源(本位币,或实际成交价)。';
