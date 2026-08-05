@@ -110,3 +110,36 @@ treatment_usd: 324.00     net_value_usd: -324.00        unit_price_usd_per_kg: -
 
 另外 `spot` 口径取的是 `price_date <= 参考日 ORDER BY DESC LIMIT 1` ——
 **正是 fx_rate_for 专门拒绝的"就近取上一天"**。同一个仓库里,两套相反的规矩。
+
+
+## 公式价的每一个去处 —— 会不会换汇(FIN-15 清点)
+
+`calculate_metal_price` 全程 USD 进 USD 出(行情本身按 USD/吨报价)。它的结果
+流向四处,此前只有一处做了换算 —— 而漏掉的那处正是【对外报价】那条路。
+
+| 去处 | 换汇? | 说明 |
+|---|---|---|
+| `apply_assay_result` → `reprice_inbound_batch` | ✅ 一直正确 | 显式传 `'USD'`,由 `reprice_inbound_batch` 按定价日 `tt_sell` 折本位币。进料定价这条路没问题 |
+| **采购单行估算** `computeLineEstimate` | ❌ **曾经漏掉,FIN-15 已修** | 公式给的是 USD/kg,却直接填进【单据币种】的价格框。单据是 SGD 时等于把 USD 价当 SGD 价用 |
+| **`create_purchase_order`** 存 `estimated_amount_usd` | ❌ 同上(由上一行的入参决定) | 存的是 `数量 × 行单价`,不做换算 —— 行单价折对了,这里就对了 |
+| `/pricing/calculator` 显示 | ⚠️ 标签错,数字对 | 全程 USD,标签却写 `Value (SGD)`。**已改为 `Value (USD)`** —— 计价器就是个 USD 报价工具,不是记账屏 |
+| `PriceBreakdown`(计价器与化验页共用) | ⚠️ 同上 | 同一个组件,同一个标签,一并修正 |
+
+### 代价有多大
+
+走查里的 PO-2026-0002:405 kg × 3/kg,存成 **1,215.00**。它自己存着 `fx_rate = 1.26`
+—— 机器一直都在,只是没人用它。若单据是 SGD,应为 **1,530.90**,
+**报低了 20.6%**(rounded fixture 实测)。
+
+### 换算口径
+
+USD → 单据币种 = `usd_price × fx_rate_asof('USD', 下单日, 'tt_sell') /
+fx_rate_asof(单据币种, 下单日, 'tt_sell')`。
+
+* 采购是我们【买】外币,所以两边都取 `tt_sell`,与 `create_purchase_order` 自身
+  给单据估值时用的口径一致;
+* 单据本身是 USD 时,两个汇率是同一个,比值为 1 —— **不需要特判**,换算式自然退化;
+* 单据是本位币时,分母为 1(`fx_rate_asof` 对本位币恒返回 1,不查表);
+* 缺牌价按 FIN-13 的规矩【拒绝】,并说明取自哪一天。
+* 界面把换算摊开:`0.068 USD/kg × 1.2600 = 0.0857 SGD/kg (取 2026-08-05 的牌价)` ——
+  一个折算过的价格,必须能看出它是从哪来的。

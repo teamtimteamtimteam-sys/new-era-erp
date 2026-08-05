@@ -2307,6 +2307,7 @@ const zh = {
         },
     },
     pricing: {
+        errQuoteNeedsCurrencyDate: '先选好单据币种与下单日期 —— 报价要按那天的汇率从 USD 折过来。',
         errNoPriceForMetals: '{date} 当日没有 {metals} 的行情。请先到金属价格页录入 —— 少算一个金属的报价就是偏低的报价,而且看不出来。',
         hubTitle: '定价',
         formulasCard: '定价公式',
@@ -2376,7 +2377,7 @@ const zh = {
         colContained: '含量(公斤)',
         colPayableKg: '计价重量(公斤)',
         colPrice: '行情 (USD/吨)',
-        colValue: '金额 (SGD)',
+        colValue: '金额 (USD)',
         grossValue: '毛值',
         treatmentCharge: '加工费',
         discountAmount: '折扣',

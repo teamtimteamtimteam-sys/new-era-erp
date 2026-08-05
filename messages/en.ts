@@ -2313,6 +2313,7 @@ const en = {
         },
     },
     pricing: {
+        errQuoteNeedsCurrencyDate: 'Pick the order currency and order date first — the quote converts from USD at the rate for that date.',
         errNoPriceForMetals: 'No metal price on file for {metals} as at {date}. Enter the price under Metal Prices — a quote that silently drops a metal is priced too low.',
         hubTitle: 'Pricing',
         formulasCard: 'Pricing formulas',
@@ -2382,7 +2383,7 @@ const en = {
         colContained: 'Contained kg',
         colPayableKg: 'Payable kg',
         colPrice: 'Price (USD/t)',
-        colValue: 'Value (SGD)',
+        colValue: 'Value (USD)',
         grossValue: 'Gross value',
         treatmentCharge: 'Treatment charge',
         discountAmount: 'Discount',

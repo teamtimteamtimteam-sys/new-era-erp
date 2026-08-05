@@ -164,12 +164,21 @@ export async function computeLineEstimate(input: {
     formulaId: string
     quantity: number
     assay: { metal: string; content_pct: number }[]
-}): Promise<{ error?: string; result?: CalcResult }> {
+    currency: string
+    orderDate: string
+}): Promise<{
+    error?: string
+    result?: CalcResult
+    unitPriceDoc?: number   // 折成【单据币种】的单价 —— 真正要填进行里的那个数
+    fxUsed?: number
+    fxAsOf?: string
+}> {
     const t = await getTranslations()
 
     if (!input.formulaId) return { error: t('pricing.errFormulaRequired') }
     if (!input.quantity || input.quantity <= 0) return { error: t('pricing.errors.QUANTITY_INVALID') }
     if (!input.assay.length) return { error: t('pricing.errors.NO_METALS') }
+    if (!input.currency || !input.orderDate) return { error: t('pricing.errQuoteNeedsCurrencyDate') }
 
     const supabase = await createClient()
     const { data, error } = await supabase.rpc('calculate_metal_price', {
@@ -181,5 +190,46 @@ export async function computeLineEstimate(input: {
     if (error) {
         return { error: await localizePricingError(error.message) }
     }
-    return { result: data as unknown as CalcResult }
+    const result = data as unknown as CalcResult
+    // 报价路径:缺行情即拒(与 /pricing/calculator 同一条规矩,理由见那里)
+    if (result.skipped_metals?.length) {
+        return { error: t('pricing.errNoPriceForMetals', {
+            metals: result.skipped_metals.join(', '), date: result.reference_date }) }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // 【公式价是 USD/kg,单据不一定是 USD —— 必须换算】
+    // calculate_metal_price 全程 USD 进 USD 出(行情本身按 USD/吨报价),
+    // 而 PO 的币种由操作员选。原先直接把 USD 数字填进单据币种的价格框:
+    // 单据若是 SGD,等于把一个 USD 价当成 SGD 价 —— 按 1.26~1.35 算,
+    // 【报价低了约四分之一】。这条路决定给本地供应商报什么价。
+    // 换算口径:USD → 单据币种 = usd × fx(USD) / fx(单据币种),两边都取下单日、
+    // 都走 fx_rate_asof(缺牌价即拒,并说明取自哪一天)。单据本身就是 USD 时,
+    // 两个汇率相同、比值为 1 —— 不换算,也不需要特判。
+    // ════════════════════════════════════════════════════════════════════════
+    const usdPrice = Number(result.unit_price_usd_per_kg)
+    const usd = await lookupRate('USD', input.orderDate)
+    if (usd.error) return { error: usd.error }
+    const doc = await lookupRate(input.currency, input.orderDate)
+    if (doc.error) return { error: doc.error }
+
+    const factor = (usd.rate as number) / (doc.rate as number)
+    const unitPriceDoc = Math.round(usdPrice * factor * 10000) / 10000
+    return { result, unitPriceDoc, fxUsed: factor, fxAsOf: usd.asOf }
+}
+
+// 下单日的行方卖出价(采购是我们买外币)。缺牌价即拒,并带回取自哪一天。
+async function lookupRate(currency: string, date: string):
+    Promise<{ rate?: number; asOf?: string; error?: string }> {
+    const t = await getTranslations()
+    const supabase = await createClient()
+    const { data, error } = await supabase.rpc('fx_rate_asof', {
+        p_currency: currency, p_date: date, p_rate_type: 'tt_sell',
+    })
+    if (error) return { error: t('finance.fxLookup.missing', { 0: date, 1: currency, 2: 'tt_sell' }) }
+    const row = (data as { rate: number; as_of: string }[] | null)?.[0]
+    if (!row || !Number.isFinite(Number(row.rate)) || Number(row.rate) <= 0) {
+        return { error: t('finance.fxLookup.missing', { 0: date, 1: currency, 2: 'tt_sell' }) }
+    }
+    return { rate: Number(row.rate), asOf: row.as_of }
 }

@@ -42,7 +42,8 @@ export type TemplateOption = {
     }[]
 }
 
-type LineRow = OrderLineInput & { assayOpen: boolean; calc: CalcResult | null; calcOpen: boolean; calcError: string }
+type LineRow = OrderLineInput & { assayOpen: boolean; calc: CalcResult | null; calcOpen: boolean
+    calcError: string; calcFx: number | null; calcFxAsOf: string | null }
 
 const TRIGGER_OPTIONS = ['on_order', 'on_shipment', 'on_arrival', 'post_assay', 'fixed_date'] as const
 
@@ -73,6 +74,8 @@ function emptyLine(): LineRow {
         calc: null,
         calcOpen: false,
         calcError: '',
+        calcFx: null,
+        calcFxAsOf: null,
     }
 }
 
@@ -152,13 +155,20 @@ export default function NewOrderForm({
             .map(([metal, raw]) => ({ metal, content_pct: parseDecimal(raw) }))
             .filter((a): a is { metal: string; content_pct: number } => a.content_pct !== null)
         patchLine(i, { calcError: '' })
-        const res = await computeLineEstimate({ formulaId: l.formula_id, quantity: qty ?? 0, assay })
+        const res = await computeLineEstimate({
+            formulaId: l.formula_id, quantity: qty ?? 0, assay,
+            currency, orderDate,
+        })
         if (res.error) {
             patchLine(i, { calcError: res.error, calc: null, calcOpen: false })
         } else if (res.result) {
+            // 【填进去的是折成单据币种的价】公式算的是 USD/kg;单据是 SGD 时直接
+            // 填 USD 数字就等于报低约四分之一。换算在服务端做,这里只用结果。
             patchLine(i, {
-                est_price: String(res.result.unit_price_usd_per_kg),
+                est_price: String(res.unitPriceDoc ?? res.result.unit_price_usd_per_kg),
                 calc: res.result,
+                calcFx: res.fxUsed ?? null,
+                calcFxAsOf: res.fxAsOf ?? null,
                 calcOpen: true,
                 calcError: '',
             })
@@ -408,7 +418,13 @@ export default function NewOrderForm({
                                         onClick={() => patchLine(i, { calcOpen: !l.calcOpen })}
                                         className="ml-2 text-blue-600 hover:underline text-sm"
                                     >
-                                        {l.calcOpen ? '▾' : '▸'} {formatMoney(l.calc.unit_price_usd_per_kg)} /kg
+                                        {l.calcOpen ? '▾' : '▸'} {formatMoney(l.calc.unit_price_usd_per_kg)} USD/kg
+                                        {l.calcFx && l.calcFx !== 1 && (
+                                            <span className="ml-1 text-xs text-gray-500">
+                                                × {l.calcFx.toFixed(4)} = {l.est_price} {currency}/kg
+                                                {l.calcFxAsOf && ' ' + t('finance.fxLookup.asOf', { 0: l.calcFxAsOf })}
+                                            </span>
+                                        )}
                                     </button>
                                 )}
                                 {l.calc && l.calcOpen && (
@@ -437,7 +453,7 @@ export default function NewOrderForm({
                                         </table>
                                         <p className="font-mono text-gray-700">
                                             {formatMoney(l.calc.gross_value_usd)} − {formatMoney(l.calc.treatment_usd)}{' '}
-                                            − {formatMoney(l.calc.discount_usd)} = {formatMoney(l.calc.net_value_usd)} →{' '}
+                                            − {formatMoney(l.calc.discount_usd)} = {formatMoney(l.calc.net_value_usd)} USD →{' '}
                                             <span className="font-medium">
                                                 {formatMoney(l.calc.unit_price_usd_per_kg)} /kg
                                             </span>
