@@ -1,35 +1,28 @@
--- db/views/hr_alerts.sql
--- HR 待办:需要有人去处理的事,一件一行。SECURITY INVOKER。
+-- HR-4:假日表告警 —— 当年缺,立刻报;次年缺,四季度报。
 --
--- 【只列还来得及处理的】超期 30 天以上的不再出现 —— 那已经不是"提醒"而是历史。
--- 档期:工作准证与培训 30/90 天。只含在册且未离职的员工。
+-- 【为什么改】原告警只在 10 月起检查【次年】。于是 2026 年之后做的全新安装
+-- (引导数据只播了 2026 的假日)会是这样:
+--   2027 年 3 月装库 → 当年一条假日都没有 → 请假天数把每个公共假日算成工作日,
+--   【静默】算错;而告警到 10 月才开口,说的还是 2028 年。
+-- 也就是说,这个守卫的盲区恰好就是【全新安装】—— 它唯一真正需要被守住的时刻。
 --
--- 试用期三支(HR-3a):
---   probation_ending        未到期、且还没有【批准且 confirm】的试用期评估 → warning / critical
---   probation_overdue       已过期、且还没有任何已批准的决定                → expired,【不设 30 天下限】
---   probation_not_confirmed 已批准 not_confirm 但人还挂在试用期            → expired(离职仍是手工决定)
--- 【为什么 overdue 不设下限】试用期不能延长,一份没做出的转正决定不会随时间自己了结。
+-- 现在两支两级:
+--   holiday_calendar_missing     当年没有 → expired,任何月份,立刻;
+--   holiday_calendar_next_year   次年没有 → 10 月起 warning,12 月 critical(原行为)。
 --
--- HR-3b 两支:
---   salary_not_set      在册(probation/active/notice)但月固定工资未录。这个数现在是承重的
---                       (假期补偿的取数来源),空着只会在离职那天才浮出来,那时已经来不及
---                       悄悄补。notice 的人给 critical:钱马上就要算了。
---                       【用 monthly_salary_set 而不是 monthly_salary IS NULL】—— 本视图是
---                       SECURITY INVOKER,引用被收回的 monthly_salary 会让整张待办视图对
---                       所有人 42501。生成列把"有没有"与"是多少"分开。
---   review_no_reviewer  非作废、未批准的评估没有评估人 —— 在开轮当天就说出来。
---
---   review_cycle_overdue 已开启的评估轮过了 due_date、仍有未提交的评估 → 每份一行
---
--- NOTE: introduced by db/migrations/2026-08-01-hr1a-hr-core.sql;
---       updated by db/migrations/2026-08-03-hr3a-performance-reviews.sql and
---       db/migrations/2026-08-04-hr3b-salary-basis-and-review-visibility.sql.
---
--- HR-4(2026-08-05):假日表告警分两支两级 ——
---   holiday_calendar_missing    当年一条都没有 → expired,任何月份(全新安装的处境);
---   holiday_calendar_next_year  次年没有 → 10 月起 warning、12 月 critical(原行为)。
--- 旧版只查次年、只在四季度,盲区恰好是它唯一该守住的时刻。
--- 不加"条数下限"的理由见迁移文件头(country 列已在,写死新加坡的条数是辖区常量)。
+-- 【为什么不加"条数下限"】(评估过,决定不加)
+-- 想法是:存在性检查过不了"录了 4 条就算录过"这一关,不如要求至少 N 条。
+-- 不加的理由有两条,第二条是决定性的:
+--   1. 假一致数并不固定 —— 新加坡宪报公布 11 个假日,但落在周日的会顺延出一条,
+--      所以行数在 11–14 之间浮动(本仓库 2026 年的引导数据就是 14 行)。
+--      任何阈值要么误报,要么松到抓不住 10 缺 1。
+--   2. 【country 列已经在那儿了】。这张表从一开始就是按多国设计的,把新加坡的
+--      假日条数写死进检查,就是刚花一整个切次从代码里清掉的那类"辖区常量"
+--      (见 AGENTS.md 的币种字面量规则)。加了它,第二个国家上线当天它就是错的。
+-- 机器能验的是"有没有",不能验"全不全";"全不全"写进 docs/fresh-install-checklist.md
+-- 交给人 —— 把边界说清楚,好过用一个假的精确度盖住它。
+
+BEGIN;
 
 CREATE OR REPLACE VIEW public.hr_alerts WITH (security_invoker = on) AS
  SELECT 'work_pass_expiry'::text AS alert_type,
@@ -159,6 +152,11 @@ UNION ALL
      JOIN employees e ON e.id = t.employee_id
   WHERE t.deleted_at IS NULL AND e.deleted_at IS NULL AND e.employment_status <> 'separated'::text AND t.expiry_date IS NOT NULL AND (t.expiry_date - CURRENT_DATE) <= 90 AND (t.expiry_date - CURRENT_DATE) >= '-30'::integer
 UNION ALL
+-- 【当年缺假日 —— 立刻,任何月份】这一支是给【全新安装】的。
+-- 引导数据只播了 2026 年的假日,而假日表是承重的:calculate_leave_days 用它算
+-- 请假天数、fx_rate_asof 用它判断哪天不发布牌价。2026 年之后做的全新安装会得到
+-- 一张只有 2026 的表 —— 当年的每个公共假日都被当成工作日,请假天数【静默】算错。
+-- 旧版只在 10 月起检查【次年】,于是 2027 年 3 月装的库整年没有任何提示。
  SELECT 'holiday_calendar_missing'::text AS alert_type,
     'expired'::text AS severity,
     NULL::uuid AS employee_id,
@@ -169,19 +167,23 @@ UNION ALL
     0 AS days_remaining
   WHERE NOT (EXISTS ( SELECT 1
            FROM public_holidays h
-          WHERE h.is_active AND h.country = 'SG'::text AND EXTRACT(year FROM h.holiday_date) = EXTRACT(year FROM CURRENT_DATE)))
+          WHERE h.is_active AND h.country = 'SG'::text
+            AND EXTRACT(year FROM h.holiday_date) = EXTRACT(year FROM CURRENT_DATE)))
 UNION ALL
+-- 【次年缺假日 —— 第四季度起提醒】原有行为,不变:年底前把明年的排进来。
  SELECT 'holiday_calendar_next_year'::text AS alert_type,
-        CASE
-            WHEN EXTRACT(month FROM CURRENT_DATE) = 12::numeric THEN 'critical'::text
-            ELSE 'warning'::text
-        END AS severity,
+    CASE WHEN EXTRACT(month FROM CURRENT_DATE) = 12 THEN 'critical'::text
+         ELSE 'warning'::text END AS severity,
     NULL::uuid AS employee_id,
     ''::text AS employee_code,
     ''::text AS employee_name,
     (EXTRACT(year FROM CURRENT_DATE) + 1::numeric)::text AS subject,
     make_date((EXTRACT(year FROM CURRENT_DATE) + 1::numeric)::integer, 1, 1) AS due_date,
     make_date((EXTRACT(year FROM CURRENT_DATE) + 1::numeric)::integer, 1, 1) - CURRENT_DATE AS days_remaining
-  WHERE EXTRACT(month FROM CURRENT_DATE) >= 10::numeric AND NOT (EXISTS ( SELECT 1
+  WHERE EXTRACT(month FROM CURRENT_DATE) >= 10::numeric
+    AND NOT (EXISTS ( SELECT 1
            FROM public_holidays h
-          WHERE h.is_active AND h.country = 'SG'::text AND EXTRACT(year FROM h.holiday_date) = (EXTRACT(year FROM CURRENT_DATE) + 1::numeric)));
+          WHERE h.is_active AND h.country = 'SG'::text
+            AND EXTRACT(year FROM h.holiday_date) = (EXTRACT(year FROM CURRENT_DATE) + 1::numeric)));
+
+COMMIT;

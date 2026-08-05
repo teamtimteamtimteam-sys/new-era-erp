@@ -1066,7 +1066,8 @@ const zh = {
         headcount: '在职人数',
         headcountTotal: '合计',
         alertType: {
-            holiday_calendar_missing: '{0} 年的公共假日还没录入',
+            holiday_calendar_missing: '{0} 年一条公共假日都没有 —— 请假天数正在算错',
+            holiday_calendar_next_year: '{0} 年的公共假日还没录入',
             work_pass_expiry: '工作准证到期',
             probation_ending: '试用期届满',
             training_expiry: '培训证书到期',

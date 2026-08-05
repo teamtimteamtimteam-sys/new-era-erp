@@ -1065,7 +1065,8 @@ const en = {
         headcount: 'Headcount',
         headcountTotal: 'Total',
         alertType: {
-            holiday_calendar_missing: 'Public holidays not yet entered for {0}',
+            holiday_calendar_missing: 'No public holidays entered for {0} — leave days are being miscounted right now',
+            holiday_calendar_next_year: 'Public holidays not yet entered for {0}',
             work_pass_expiry: 'Work pass expiry',
             probation_ending: 'Probation ending',
             training_expiry: 'Training expiry',
