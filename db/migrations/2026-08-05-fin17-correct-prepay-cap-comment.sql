@@ -1,14 +1,26 @@
--- FIN-10(2026-08-05):日期不再有 CURRENT_DATE 默认值 —— 缺了就抛具名错误。
--- 默认成今天永远撞不上 PERIOD_LOCKED,于是留空反而比填对更容易过关,
--- 这条路径专门奖励留空。要求由函数自己声明,而不是靠调用方自觉。
--- 详见 db/migrations/2026-08-05-fin10-no-default-posting-dates.sql。
+-- FIN-17:更正 FIN-16 在预付上限处写下的一段【错误注释】。
 --
--- FIN-16(2026-08-05):单据可以用【别的币种】结清。核销额仍以单据币种计(FIN-2
--- 对的那一半,单据据此归零);消耗多少付款由结算日两个币种的牌价折出。
--- 控制科目行按单据币种【逐币种】发行 —— 一笔付款可同时结掉 USD 单与 SGD 单。
--- 原 ALLOC_CURRENCY_MISMATCH 已删:那不是护栏,是缺功能。理由见迁移文件头。
--- FIN-17 更正:预付的 1.5 倍上限【不需要折算】(两边同为单据币种);需要折算的是
--- ALLOC_EXCEEDS_PAYMENT。FIN-16 在那里写过一段相反的注释,已改。
+-- FIN-16 声称"预付这一支需要把付款折进 PO 币种再比 1.5 倍上限",并在函数里留了
+-- 一大段解释。两件事都不成立:
+--   * 代码从未折算 —— FIN-16 实际只加了注释,比较式一个字没动;
+--   * 也【不该】折算 —— 比较的两边本来就同币种:
+--       v_alloc_usd 取自 amount_doc,按定义是单据币种;
+--       v_cap = estimated_total_usd × 1.5,estimated_total_usd 也是单据币种。
+--     付款是什么币种与这条上限无关。
+--
+-- 当时的 fixture 没能戳破它:举的例子(SGD 12,000 打给 USD 6,000 估算的 PO)
+-- 折算与不折算【都拒】,于是"通过"了,却什么也没证明。方向本身也说明问题:
+-- 把外币付款折进单据币种通常让数变小,不折算反而更严 —— 它可能误拒,不会误放。
+--
+-- 真正需要折算的是【付款额】那条守卫 ALLOC_EXCEEDS_PAYMENT(FIN-16 确实改对了):
+-- 拿 SGD 1,000 去核销 USD 1,000 的预付,消耗 SGD 1,240 > 1,000 —— 折算才拦得住,
+-- 不折算就是 1,000 对 1,000,放行。那才是"朝放行方向出错"的真实案例。
+--
+-- 本迁移只改注释,不改任何行为(比较式、金额、分录一律未动)。
+-- 留下它而不是悄悄删掉,是因为一段说反了的注释比没有注释更坏 ——
+-- 下一个人会照着它去"修"一个本来就对的比较。
+
+BEGIN;
 
 CREATE OR REPLACE FUNCTION public.record_payment(p_direction text, p_counterparty_id uuid, p_amount numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_bank_account text DEFAULT NULL::text, p_payment_date date DEFAULT NULL::date, p_notes text DEFAULT NULL::text, p_allocations jsonb DEFAULT '[]'::jsonb)
  RETURNS jsonb
@@ -503,3 +515,5 @@ BEGIN
     );
 END;
 $function$;
+
+COMMIT;
