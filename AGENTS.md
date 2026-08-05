@@ -215,6 +215,46 @@ Defaults that genuinely belong (code-numbering years, `p_as_of` read
 queries, `create_invoice`) are listed in
 `docs/empty-string-to-rpc-audit.md` so the distinction is on the record.
 
+## THE FX RULE — one rule, of which the rest are instances
+
+> **Any amount not in the base currency converts at the rate. If no rate
+> exists for that date, the system refuses and prompts for it to be
+> entered. Never a fallback, never an assumption.**
+
+Everything below is a consequence, not a separate rule. They were built one
+at a time; a new screen should inherit the rule rather than rediscover it.
+
+* **`fx_rate_for` refuses rather than reaching for the nearest date.** No
+  rate on the day means no rate: it raises `FX_RATE_MISSING|ccy|date|type`.
+  Borrowing yesterday's rate is a silent wrong number; the error is not.
+* **Refusal is surfaced, not swallowed.** The revaluation banner names the
+  date and the currencies that are missing, and disables the post button.
+  Copy that shape: say what is missing, where to enter it, and disable the
+  action.
+* **The side is part of the rate.** Receipts convert at `tt_buy`, payments
+  at `tt_sell` — `record_payment` decides it and every screen follows.
+  A receipt valued at the selling rate is wrong every single time.
+* **One implementation.** The screen asks the database for the rate; it
+  does not compute one. See the ask-the-database rule below.
+* **No `?? 0`, no `?? 1`, no defaulting to today's date** — a fabricated
+  rate and a fabricated date are the same failure wearing different hats.
+* **The base currency is data** (`currencies.is_base`), never a literal.
+  See the currency-literal rule below.
+
+**Known exception, deliberate and bounded:** cross-currency settlement,
+where the bank actually converted. There the rate is the *actual dealt
+rate* from the bank slip, not a board rate — `record_payment` requires it
+and refuses to look one up. That is still the rule: the real rate, never an
+assumed one.
+
+**Known gap, NOT yet fixed — the metal pricing path.** `calculate_metal_price`
+does not follow this rule and does not currently claim to: it never
+converts (USD in, USD out), a missing quote contributes 0 instead of
+refusing, and `spot` basis takes the nearest earlier price — the exact
+fallback `fx_rate_for` exists to forbid. Measured and written up in
+`docs/currency-literals-audit.md`. Do not "fix" it piecemeal; it needs a
+decision about what currency a formula price is denominated in.
+
 ## Currency codes are data, not constants
 
 `'USD'` / `'SGD'` must never appear in a comparison, branch or default in

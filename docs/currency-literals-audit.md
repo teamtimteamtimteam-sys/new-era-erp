@@ -69,9 +69,44 @@ FIN-0 之后本位币是 SGD,这些 `=== 'USD'` 判断于是全反了:
 | `bankAccounts.1000: 'Bank – SGD'` / `1010: 'Bank – USD'` | 账户的**专名**,就叫这个 |
 | `fxHint`、`colRate`(`1 unit = ? SGD`)、`errFxMissing` | 汇率表的定义就是"每单位外币折多少本位币",列名 `rate_sgd_per_unit` 也把 SGD 写死了。**标签与 schema 是同一个假设**,单改标签只是化妆 —— 要改就连列名一起改,属于换本位币时的整体动作 |
 
-### 未决:需要一个判断,没有替你猜
+### 已量过:标签错了,`*_usd` 没错
 
-`pricing.colValue` 现为 `'Value (SGD)'`,但它渲染的是 `calculate_metal_price`
-的结果,而那套返回值的列名是 `unit_price_usd_per_kg`。**标签说 SGD、数据说 USD,
-至少有一个是错的**,而哪个错取决于计价口径的原意。已保持原样并记在这里,
-等一个决定,而不是改成看起来对的样子。
+`pricing.colValue` 写着 `'Value (SGD)'`。手算与系统对过之后可以确定:**标签是错的。**
+
+`calculate_metal_price_internal` 里【没有一处 fx_rate_for】(grep 计数 0)。
+输入是 USD(`price_usd_per_tonne`、`treatment_charge_usd_per_tonne`),
+输出也是 USD(`gross_value_usd` / `treatment_usd` / `discount_usd` /
+`net_value_usd` / `unit_price_usd_per_kg`)。整条链路不换汇。
+
+手算(PF-2026-0001,405 kg,含镍 10%,payable 70%,TC 800 USD/t,折扣 20%,
+参考日 2026-07-30,均价口径 30 天 = 15,500):
+
+| 步骤 | 手算 | 系统 |
+|---|---|---|
+| 含镍量 | 405 × 10% = 40.5 kg | 40.5 |
+| 计价量 | 40.5 × 70% = 28.35 kg | 28.35 |
+| 金属价值 | 28.35 ÷ 1000 × 15,500 = **439.43** | 439.43 |
+| 加工费 | 405 ÷ 1000 × 800 = **324.00** | 324.00 |
+| 折扣 | 439.43 × 20% = **87.89** | 87.89 |
+| 净值 | 439.43 − 324.00 − 87.89 = **27.54** | 27.54 |
+| 单价 | 27.54 ÷ 405 = **0.068** | 0.068 |
+
+**逐项相符,且【没有乘任何汇率】。** 若按当日汇率折算,净值应是 27.54 × 1.35 ≈ 37.18。
+所以:换汇是【缺失的】,`*_usd` 的命名是准确的(不是 FIN-0 遗留),
+错的是 `'Value (SGD)'` 这个标签 —— 或者说,错的是"这条链路本该换汇却没换"。
+
+### 缺行情时不拒绝,反而算出一个负单价
+
+同一个公式,参考日换成 2020-01-01(那天没有任何镍报价):
+
+```
+metal_value_usd: 0        price_usd_per_tonne: null     skipped_metals: ["ni"]
+treatment_usd: 324.00     net_value_usd: -324.00        unit_price_usd_per_kg: -0.8
+```
+
+**它照样返回了数**:金属一个都没定上价,加工费却照扣,于是净值 −324.00、
+单价 **−0.8 USD/kg**,`negative_value: true`。缺数据没有变成拒绝,变成了一个
+看起来像算过的数字。函数里那句注释写得很直白:「缺行情从来不是硬错误」。
+
+另外 `spot` 口径取的是 `price_date <= 参考日 ORDER BY DESC LIMIT 1` ——
+**正是 fx_rate_for 专门拒绝的"就近取上一天"**。同一个仓库里,两套相反的规矩。
