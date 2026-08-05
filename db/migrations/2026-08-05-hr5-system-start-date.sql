@@ -1,13 +1,35 @@
--- db/functions/carry_forward_annual_leave.sql
--- 年末结转。【读派生的当年累积】,不再读授予行(HR-2c D3)。
--- 只结转当年挣到、没用掉的部分;上一年结转来的、今年仍没用掉的就地作废 ——
--- 用进废退只适用于上一年的结转,不适用于当年挣到的天数(D4)。
+-- HR-5:申报"本库从哪天开始运营",并据此拒绝跨越它的年末结转。
 --
--- NOTE: introduced/updated by db/migrations/2026-08-06-hr2c-monthly-accrual.sql.
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【问题】carry_forward_annual_leave 会无中生有
+-- ════════════════════════════════════════════════════════════════════════════
+-- 结转额 = accrued_annual_leave(员工, 目标年末) − 该年已用。累积按【入职日】往回算,
+-- 完全不问"本库那一年在不在运行"。于是:2027 年才建起来的库上跑"结转 2026 → 2027",
+-- 一位 2020 年入职的员工会算出 2026 全年累积、零消耗 —— 凭空多出一年的假期余额,
+-- 数字合理、无报错、事后极难发现。
 --
--- HR-5(2026-08-05):不许跨过 finance_settings.system_start_date 结转。
--- 累积按入职日往回算,与本库那年在不在运行无关 —— 跨过开始日结转会凭空造出余额。
--- 未设开始日一律拒绝(NULL ≠ 不限制)。历史余额走手工 leave_grants,见安装清单。
+-- 今天这家公司没有历史(第一位员工 2026-08-01 入职),所以现在没有东西要迁。
+-- 但切换上线可能发生在 2027 年,那时 2026 的余额是【真的】—— 它们在测试库里累积与
+-- 消耗过,而测试库不会被迁移过去。届时跑一次结转,就正好落进上面那个陷阱。
+--
+-- 【为什么是"申报的开始日"而不是"最早的业务数据"】
+-- 后者是推断:任何人补录一条更早的单据,界线就自己移动,而且没人会察觉。
+-- 前者是声明:只有改配置才会变。**历史余额必须作为一个明确的动作到达,
+-- 不能是推导出来的副产品。**
+--
+-- 【NULL 一律拒绝,不当成"不限制"】没设开始日 = 不知道本库何时开始 ——
+-- 而"从一个不知道的基线往前结转"正是要防的那件事。结转一年一次,
+-- 要求先把这个日期填上,是相称的。
+--
+-- 【历史余额的正确入口】手工写 leave_grants(grant_type、notes 记明来源与依据),
+-- 见 docs/fresh-install-checklist.md。拒绝要指向别处,不能只是挡住。
+
+BEGIN;
+
+ALTER TABLE public.finance_settings ADD COLUMN system_start_date date;
+
+COMMENT ON COLUMN public.finance_settings.system_start_date IS
+    '本数据库开始运营的日期(安装时申报)。早于它的年度动作一律拒绝 —— 那些期间的数据不在本库里,任何据此推算的余额都是凭空造的。历史余额请手工写 leave_grants。';
 
 CREATE OR REPLACE FUNCTION public.carry_forward_annual_leave(p_leave_year integer)
  RETURNS jsonb
@@ -92,3 +114,5 @@ BEGIN
                               'source', 'derived monthly accrual', 'detail', v_rows);
 END;
 $function$;
+
+COMMIT;

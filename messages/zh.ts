@@ -1256,6 +1256,8 @@ const zh = {
         errors: {
             PAYROLL_POSTED: '薪资期间 {0} 已过账 —— 如需修改请先撤销过账',
             EXPENSE_DATE_REQUIRED: '费用日期必填 —— 它决定这笔支付进哪个会计期间。',
+            SYSTEM_START_NOT_SET: '尚未设定系统启用日期。请先到 财务 → 设置 填上,再跑年末结转 —— 从一个不知道的基线往前结转,正是余额被凭空造出来的方式。',
+            CARRY_FORWARD_BEFORE_SYSTEM_START: '{0} 假期年在本库启用({1})之前就结束了。那几个月的数据不在这里,结转会凭空造出余额。历史余额请改用手工发放(leave grants)录入。',
             PAYROLL_NOT_FOUND: '薪资期间不存在',
             PAYROLL_ALREADY_POSTED: '薪资期间 {0} 已经过账',
             PAYROLL_NOT_POSTED: '薪资期间 {0} 尚未过账',

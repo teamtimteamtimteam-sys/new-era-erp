@@ -28,7 +28,10 @@ CREATE TABLE public.finance_settings (
     gst_registered      boolean NOT NULL DEFAULT false,
     gst_rate_pct        numeric NOT NULL DEFAULT 0
                         CHECK (gst_rate_pct >= 0 AND gst_rate_pct <= 100),
-    gst_registration_no text
+    gst_registration_no text,
+    -- ── HR-5 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
+    -- 本库开始运营的日期,安装时申报。早于它的年度动作一律拒绝。
+    system_start_date date
 );
 
 INSERT INTO public.finance_settings (id, locked_before) VALUES (true, NULL);
@@ -57,3 +60,6 @@ CREATE POLICY "finance_settings delete by permission"
     ON public.finance_settings
     AS PERMISSIVE FOR DELETE TO authenticated
     USING (has_permission('module.finance.edit'::text));
+
+COMMENT ON COLUMN public.finance_settings.system_start_date IS
+    '本数据库开始运营的日期(安装时申报)。早于它的年度动作一律拒绝 —— 那些期间的数据不在本库里,任何据此推算的余额都是凭空造的。历史余额请手工写 leave_grants。';
