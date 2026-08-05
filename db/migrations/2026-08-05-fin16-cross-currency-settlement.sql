@@ -1,12 +1,34 @@
--- FIN-10(2026-08-05):日期不再有 CURRENT_DATE 默认值 —— 缺了就抛具名错误。
--- 默认成今天永远撞不上 PERIOD_LOCKED,于是留空反而比填对更容易过关,
--- 这条路径专门奖励留空。要求由函数自己声明,而不是靠调用方自觉。
--- 详见 db/migrations/2026-08-05-fin10-no-default-posting-dates.sql。
+-- FIN-16:一张单可以用【别的币种】结清。
 --
--- FIN-16(2026-08-05):单据可以用【别的币种】结清。核销额仍以单据币种计(FIN-2
--- 对的那一半,单据据此归零);消耗多少付款由结算日两个币种的牌价折出。
--- 控制科目行按单据币种【逐币种】发行 —— 一笔付款可同时结掉 USD 单与 SGD 单。
--- 原 ALLOC_CURRENCY_MISMATCH 已删:那不是护栏,是缺功能。理由见迁移文件头。
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【撤掉的是哪一条,留下的是哪一条】
+-- ════════════════════════════════════════════════════════════════════════════
+-- 撤掉:ALLOC_CURRENCY_MISMATCH ——「USD 单只收 USD 付款」。
+--   欠 USD 6,000 的客户拿 SGD 付清,这张单就是清了。拒绝它不是安全护栏,
+--   是缺了一个功能。
+-- 留下:FIN-2 真正对的那一半 —— 敞口与核销都在【单据币种】里记,于是单据
+--   恰好归零。这一条与"付款是什么币种"根本无关,原样保留。
+--
+-- 于是形状是:
+--   1. 核销额 = 单据的金额,以单据币种计(这就是让单据归零的那个数);
+--   2. 它消耗多少【付款】,由结算日两个币种的牌价折出来;
+--   3. 分录不需要新东西 —— 控制科目按【单据入账汇率】解除、银行按实收实付、
+--      差额进 7100 已实现汇兑,正是 FIN-3 早就建好的结算处理,只是两个币种不同了。
+--
+-- 【为什么控制科目行要按币种拆】一笔付款可以同时结掉 USD 单和 SGD 单。原先那行
+-- 写死 'currency', p_currency 并挂 v_alloc_total(单据币种合计)—— 同币种时看不
+-- 出来,跨币种时既标错币种、又把两种货币加在了一起。现改为逐单据币种各发一行。
+--
+-- 【为什么预付那一支要单独折算,而不是跟着放开】理由写在函数里 1.5 倍上限那处:
+-- 预付没有敞口,唯一的栏杆就是那条上限,而 estimated_total_usd 存的是【单据币种】
+-- (create_purchase_order 全程不乘汇率;_usd 是 FIN-1a 留下的旧名,与内容不符,
+-- 已记入 docs/known-issues.md)。不折算就成了拿付款币种的数去比单据币种的上限。
+--
+-- 【服务端的孪生 bug】v_alloc_total 是单据币种合计,p_amount 是付款币种,原先
+-- 直接相比(ALLOC_EXCEEDS_PAYMENT)与相减(未核销额)。这与两切次前在
+-- /finance/payments 页面上修掉的是【同一个错】,只是长在服务端。
+
+BEGIN;
 
 CREATE OR REPLACE FUNCTION public.record_payment(p_direction text, p_counterparty_id uuid, p_amount numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_bank_account text DEFAULT NULL::text, p_payment_date date DEFAULT NULL::date, p_notes text DEFAULT NULL::text, p_allocations jsonb DEFAULT '[]'::jsonb)
  RETURNS jsonb
@@ -499,3 +521,5 @@ BEGIN
     );
 END;
 $function$;
+
+COMMIT;

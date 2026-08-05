@@ -8,7 +8,7 @@
 import { useActionState, useEffect, useState } from 'react'
 import { bankAccountFor, currencyOfBank } from '@/lib/currencyMap'
 import Link from 'next/link'
-import { createPayment, lookupFxRate, type CreatePaymentState } from './actions'
+import { createPayment, lookupFxRate, lookupRatesFor, type CreatePaymentState } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatMoney } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
@@ -81,6 +81,8 @@ export default function NewPaymentForm({
     // 汇率不再由本页计算 —— 向数据库要。null = 还没有结果(未查/查失败)
     const [autoFx, setAutoFx] = useState<number | null>(null)
     const [fxAsOf, setFxAsOf] = useState<string | null>(null)
+    // 各【单据币种】在结算日的牌价 —— 用来把核销的单据额折成消耗的付款额
+    const [docRates, setDocRates] = useState<Record<string, number>>({})
     const [fxError, setFxError] = useState<string | null>(null)
     const [fxLoading, setFxLoading] = useState(false)
 
@@ -124,15 +126,33 @@ export default function NewPaymentForm({
         return () => { cancelled = true }
     }, [currency, payDate, direction, crossCurrency])
 
+
     const parties = direction === 'in' ? customers : suppliers
-    // FIN-2:单据只能用自己的币种结算(服务端 ALLOC_CURRENCY_MISMATCH)。
-    // 界面原先不按币种过滤,于是 USD 付款也会把 SGD 的单据列出来给人选 ——
-    // 选了必被拒。不提供服务端注定拒绝的选项。
+    // ════════════════════════════════════════════════════════════════════════
+    // 【这里曾经按币种过滤过 —— 那是修错了层】
+    // 当时看到"页面列出了服务端会拒的选项",就让页面去迎合服务端。可那条服务端
+    // 规则(ALLOC_CURRENCY_MISMATCH:USD 单只收 USD 付款)本身才是错的:
+    // 欠 USD 6,000 的客户拿 SGD 付清,这张单就是清了 —— 拒绝它不是护栏,是缺功能。
+    // FIN-16 撤掉了那条规则,过滤也随之撤掉。
+    // 【留下的教训】"让页面与服务端一致"只在服务端是对的时候才对。页面提供了
+    //  服务端会拒的东西,首先该问的是【那条规则对不对】,而不是默认页面错了。
+    // ════════════════════════════════════════════════════════════════════════
     const items = (direction === 'in' ? arItems : apItems)
-        .filter((i) => i.party_id === partyId && i.currency === currency)
+        .filter((i) => i.party_id === partyId)
     // 付款方向:该供应商可预付的采购单(单独一组,列在 AP 单据之上)
-    const pos = direction === 'out'
-        ? poItems.filter((p) => p.party_id === partyId && p.currency === currency) : []
+    // 同上:预付也不再按币种过滤(服务端改为把付款折进 PO 币种再比 1.5 倍上限)
+    const pos = direction === 'out' ? poItems.filter((p) => p.party_id === partyId) : []
+    // 单据币种的牌价(可能与付款币种不同 —— FIN-16)
+    const docCcys = [...new Set([...items.map((i) => i.currency), ...pos.map((p) => p.currency)])]
+        .filter(Boolean).sort().join(',')
+    useEffect(() => {
+        if (!payDate || !docCcys) { setDocRates({}); return }
+        let cancelled = false
+        lookupRatesFor(docCcys.split(','), payDate, direction).then((r) => {
+            if (!cancelled) setDocRates(r.rates ?? {})
+        })
+        return () => { cancelled = true }
+    }, [docCcys, payDate, direction])
 
     // 【本页不再自己算汇率】跨币种用手填的成交价,其余用数据库返回的牌价。
     // 旧代码写的是 `currency === 'USD' ? 1 : Number(fx)` —— 那是 FIN-0 之前
@@ -153,26 +173,49 @@ export default function NewPaymentForm({
         const v = Number(alloc[docId])
         return alloc[docId] && !Number.isNaN(v) && v > 0 ? v : 0
     }
+    // 单据额 → 消耗的付款额。与 record_payment 同式:doc × rate(doc) / rate(pay)。
+    // 同币种时比值为 1;缺牌价时按 1 显示但按钮已被 fxError 挡住,不会提交。
+    const payRate = effectiveFx ?? docRates[currency] ?? 1
+    const toPay = (docCcy: string, amt: number) =>
+        docCcy === currency ? amt : round2(amt * (docRates[docCcy] ?? payRate) / payRate)
+
+    // 核销合计有两个:单据币种口径(逐单据)与【付款币种】口径(与款额比较)
     const totalAllocated = round2(
         items.reduce((s, i) => s + allocValue(i.doc_id), 0) +
             pos.reduce((s, p) => s + allocValue(p.po_id), 0)
     )
+    const totalConsumed = round2(
+        items.reduce((s, i) => s + toPay(i.currency, allocValue(i.doc_id)), 0) +
+            pos.reduce((s, p) => s + toPay(p.currency, allocValue(p.po_id)), 0)
+    )
+    // 是否出现了跨币种核销 —— 决定要不要把"消耗"那一列显示出来
+    const mixedCcy = items.some((i) => allocValue(i.doc_id) > 0 && i.currency !== currency)
+        || pos.some((p) => allocValue(p.po_id) > 0 && p.currency !== currency)
     // 【与服务端同币种】record_payment 查的是 v_alloc_total > p_amount,两边都是
     // 【付款币种】。本页原来拿基准额减单据币种的核销额 —— 两种货币相减,
     // 操作员读到的数和服务端校验的数根本不是一回事。
-    const unallocated = round2((amountValid ? amountNum : 0) - totalAllocated)
+    // 未核销 = 款额 − 【已消耗的付款额】(不是单据额合计 —— 跨币种时那是两种货币相减)
+    const unallocated = round2((amountValid ? amountNum : 0) - totalConsumed)
 
     // fill:该行填到 min(未结额, 未冲销余额[不计本行])
+    // 单据额 ← 付款额(toPay 的反函数),用于把"还剩多少款"换算成"还能核销多少单据额"
+    const fromPay = (docCcy: string, amt: number) =>
+        docCcy === currency ? amt : round2(amt * payRate / (docRates[docCcy] ?? payRate))
+
     function fill(item: OpenItem) {
-        const others = totalAllocated - allocValue(item.doc_id)
-        const remaining = Math.max(0, round2((amountValid ? amountNum : 0) - others))
+        // 【两边都要换算】others 是其它行消耗掉的【付款额】;剩余款额再换回单据币种,
+        // 才能与 open_ccy(单据币种)比大小。原先两边直接相减,跨币种时按汇率错。
+        const others = totalConsumed - toPay(item.currency, allocValue(item.doc_id))
+        const remainingPay = Math.max(0, round2((amountValid ? amountNum : 0) - others))
+        const remaining = fromPay(item.currency, remainingPay)
         const v = Math.min(item.open_ccy, remaining)
         setAlloc((a) => ({ ...a, [item.doc_id]: v > 0 ? String(v) : '' }))
     }
     // 预付行没有单据上限(定金不是在还债)—— fill = 未冲销余额;1.5× 栏杆由 DB 把守
     function fillPo(p: PoItem) {
-        const others = totalAllocated - allocValue(p.po_id)
-        const remaining = Math.max(0, round2((amountValid ? amountNum : 0) - others))
+        const others = totalConsumed - toPay(p.currency, allocValue(p.po_id))
+        const remainingPay = Math.max(0, round2((amountValid ? amountNum : 0) - others))
+        const remaining = fromPay(p.currency, remainingPay)
         setAlloc((a) => ({ ...a, [p.po_id]: remaining > 0 ? String(remaining) : '' }))
     }
 
@@ -454,7 +497,14 @@ export default function NewPaymentForm({
                 </div>
                 <div>
                     <span className="text-gray-600 mr-1">{t('finance.totalAllocated')}:</span>
-                    <span className="font-mono font-medium">{formatMoney(totalAllocated)} {currency}</span>
+                    {/* 【两边都摆出来】核销的是单据额;消耗的是款额。跨币种时这是两个数,
+                        同币种时相等 —— 相等就不必重复显示。 */}
+                    <span className="font-mono font-medium">{formatMoney(totalConsumed)} {currency}</span>
+                    {mixedCcy && (
+                        <span className="ml-2 text-xs text-gray-500">
+                            {t('finance.settlesDocuments', { amount: formatMoney(totalAllocated) })}
+                        </span>
+                    )}
                 </div>
                 <div className={unallocated < 0 ? 'text-red-600' : 'text-gray-500'}>
                     <span className="mr-1">{t('finance.unallocated')}:</span>

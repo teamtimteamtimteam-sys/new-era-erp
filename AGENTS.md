@@ -303,6 +303,37 @@ currency), unless the string is genuinely about one currency by decision —
 metal prices are quoted `USD/t` by market convention, and account names
 like `Bank – SGD` are proper nouns. Those stay.
 
+## Making the page agree with the server is only right when the server is right
+
+A page that offers something the server will reject is **a question about the
+rule**, not automatically a bug in the page. Ask which one is wrong before
+changing either.
+
+This has now gone the wrong way once, and it cost a real feature. The payment
+screen listed documents that `record_payment` refused with
+`ALLOC_CURRENCY_MISMATCH`, so the list was filtered to match. But the
+constraint was itself too strict — a customer owing USD 6,000 who pays in SGD
+**has settled that invoice**. Filtering the page made the mistake harder to
+see: the option simply stopped existing, and a missing feature looks exactly
+like a deliberate restriction. FIN-16 removed the constraint and the filter
+together.
+
+So when the two disagree:
+
+* **If the server is right**, do not offer the action — disable the control
+  and say why. (An over-allocated payment, a closed period, a settled cost
+  entry: the server is right, and the page should not present a button whose
+  only outcome is an error.)
+* **If the server is wrong**, fix the server. A UI filter over a wrong rule
+  buries it — the rule stops producing errors, so nothing ever prompts the
+  question again.
+
+The tell for the second case: the rejected action is one a person would
+reasonably want to take, and the error message describes a *policy* rather
+than an inconsistency. `ALLOC_CURRENCY_MISMATCH` said "this document is USD
+and your payment is SGD", which is a policy statement. `ALLOC_EXCEEDS` says
+"you are allocating more than is outstanding", which is an inconsistency.
+
 ## A screen that previews a posting ASKS the database what it will be
 
 **Never re-implement a posting rule in TypeScript so a page can show a

@@ -1949,6 +1949,7 @@ const en = {
         fillAll: 'Fill',
         unallocated: 'Unallocated (on account)',
         totalAllocated: 'Allocated',
+        settlesDocuments: '(settles {amount} of documents in their own currencies)',
         bankAccount: 'Bank account',
         paymentDate: 'Payment date',
         paymentAmount: 'Amount paid',

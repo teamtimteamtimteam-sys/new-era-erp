@@ -1943,6 +1943,7 @@ const zh = {
         fillAll: '填满',
         unallocated: '未冲销(预收/预付)',
         totalAllocated: '冲销合计',
+        settlesDocuments: '(结掉单据各自币种的 {amount})',
         bankAccount: '银行账户',
         paymentDate: '收付日期',
         paymentAmount: '款额',
