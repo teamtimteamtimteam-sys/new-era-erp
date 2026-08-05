@@ -1,12 +1,37 @@
--- db/functions/medical_claim_balance.sql
--- 医疗报销额度:按当年完整服务月数折算,取整到元。
+-- HR-6:医疗额度也按"完整记录起始日"设界;并把 system_start_date 的语义写准。
 --
--- NOTE: introduced by db/migrations/2026-08-02-hr2a-leave-and-claims.sql.
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【为什么这个比结转更急】它会直接多批钱出去
+-- ════════════════════════════════════════════════════════════════════════════
+-- 年度医疗额度由政策【推导】(hr_settings.medical_annual_limit_sgd),已用额来自
+-- medical_claims 里【记录】的行。切换上线时,切换前已报销的部分不在本库 ——
+-- used 偏低、remaining 偏高,整份年度额度重新可用。
+-- 而 decide_medical_claim 正是拿这个 remaining 当闸门(CLAIM_EXCEEDS_LIMIT),
+-- 所以这不是显示错,是【审批会放过本该超限的报销】。
 --
--- HR-6(2026-08-05):以 finance_settings.system_start_date 为界。
--- 额度是【推导】的、已用额是【记录】的 —— 切换前的报销不在本库,于是整份额度
--- 会重新可用,而 decide_medical_claim 就拿这个 remaining 当闸门(真的多批钱)。
--- 整年早于起始日 → 拒;起始日落在年内 → 额度按覆盖月份折算;未设 → 拒。
+-- 处置(与 HR-5 结转同形):
+--   * 整年都早于起始日 → 拒绝(CLAIM_YEAR_BEFORE_SYSTEM_START);
+--   * 起始日落在本年度内 → 额度按本库【覆盖的月份】折算。
+--     切换前的额度与消耗都在本库之外,一起排除是自洽的;"整份额度 + 零消耗"不自洽。
+--     方向偏保守:可能少给,不会多批。
+--   * 未设起始日 → 拒绝(SYSTEM_START_NOT_SET),与结转一致。
+-- 返回值新增 record_complete_from / record_incomplete_for_year,好让界面解释这个数
+-- 是怎么来的,而不是让人对着一个变小了的额度猜。
+--
+-- 【想要整份年度额度,就把记录补全】把切换前的报销作为 medical_claims 行补录,
+-- 并把 system_start_date 前移到最早那笔真实交易 —— 那一年就完整了,折算自动消失。
+--
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【顺带订正 system_start_date 的列注释】
+-- HR-5 把它写成"开始运营的日期(安装时申报)"。那说的是【时机】,不是【含义】,
+-- 而含义决定取值:它是【本库自哪一天起持有完整记录】。
+-- 若计划把切换前的交易补录进来,这个日期就该是【最早那笔真实交易】,而不是切换日 ——
+-- 两者可能相差几个月。取错了不会报错,只会让所有以它为界的守卫【站错位置】。
+
+BEGIN;
+
+COMMENT ON COLUMN public.finance_settings.system_start_date IS
+    '本库自哪一天起持有【完整】记录 —— 不是安装日、也不一定是切换日。若切换前的交易会被补录进来,取【最早那笔真实交易】的日期。所有年度性守卫(年末结转、医疗额度)以它为界:早于它的期间,本库的数据不完整,任何据此推算的余额或额度都是凭空的。取错不会报错,只会让守卫站错位置。';
 
 CREATE OR REPLACE FUNCTION public.medical_claim_balance(p_employee_id uuid, p_year integer)
  RETURNS jsonb
@@ -86,3 +111,5 @@ BEGIN
         'remaining_sgd', v_limit - v_used);
 END;
 $function$;
+
+COMMIT;

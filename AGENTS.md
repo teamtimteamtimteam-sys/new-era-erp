@@ -235,6 +235,49 @@ The fixtures verdict (exit 4) was fault-injected before being trusted: fixture
 same for the next one. A check never observed failing is not known to work —
 it is only known to be quiet.
 
+## Entitlement is DERIVED; consumption is RECORDED — so a fresh database gives everything away
+
+This is the shape behind every fresh-install bug we have found, and it makes the
+list predictable instead of remembered:
+
+> An **entitlement** is computed from first principles — a policy figure, a rate,
+> a hire date. A **consumption** exists only because someone recorded a row.
+> A rebuilt database carries the principles perfectly and the records not at all.
+> So every entitlement resets to full while every obligation against it vanishes.
+
+The asymmetry is the whole problem. Both halves being missing would be visibly
+wrong; only the recorded half being missing looks *exactly like a new employee
+with a clean slate*, and produces a plausible number with no error.
+
+Instances found so far, all the same shape:
+
+* **annual leave carry-forward** — accrual runs from hire date whether or not
+  this database was operating that year, so a 2020 hire gets a full year
+  conjured out of a year that never happened here (HR-5, now refuses);
+* **medical claim limit** — the annual allowance is derived from
+  `hr_settings`, consumption comes from `medical_claims` rows, so pre-cutover
+  claims are invisible and the *entire* allowance becomes available again.
+  Worse than display: `decide_medical_claim` gates approval on that figure, so
+  it approves claims it should refuse (HR-6, now bounded);
+* **monthly leave accrual** when the start date falls mid-year — accrues
+  January onward for months this database did not cover.
+
+**The rule of thumb: anything computing an allowance per period is a
+candidate.** A limit per year, an accrual per month, a quota per cycle — ask
+what records the consumption, and whether those records exist for the whole
+period. If the period is only partly covered, the derived half must be bounded
+to the covered portion or refused outright; never left whole against a
+consumption of zero.
+
+`finance_settings.system_start_date` is the boundary all of these consult:
+**the date from which this database holds a COMPLETE record.** Not the install
+date and not necessarily the cutover date — if pre-cutover transactions are
+being re-entered, it is the earliest real transaction, which can be months
+earlier. It is declared rather than inferred from the earliest row, because an
+inferred line moves the instant someone back-dates a document and nobody
+notices. Getting it wrong raises no error; it silently puts every guard in the
+wrong place.
+
 ## The third verdict: db/fixtures — does the rebuilt database WORK
 
 `verify_rebuild` asks whether the repo can build a database and whether it

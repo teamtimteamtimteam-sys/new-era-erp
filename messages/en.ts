@@ -1257,6 +1257,7 @@ const en = {
             EXPENSE_DATE_REQUIRED: 'An expense date is required — it decides which accounting period the payment posts to.',
             SYSTEM_START_NOT_SET: 'The system start date is not set. Enter it under Finance -> Settings before running year-end carry-forward — carrying forward from an unknown baseline is how balances get invented.',
             CARRY_FORWARD_BEFORE_SYSTEM_START: 'Leave year {0} ended before this database started operating ({1}). Those months are not recorded here, so carrying them forward would invent a balance. Enter historical balances as leave grants instead.',
+            CLAIM_YEAR_BEFORE_SYSTEM_START: 'Claim year {0} ended before this database began holding a complete record ({1}). Claims from that year are not recorded here, so any remaining allowance shown would be invented.',
             PAYROLL_NOT_FOUND: 'Payroll period not found',
             PAYROLL_ALREADY_POSTED: 'Payroll period {0} has already been posted',
             PAYROLL_NOT_POSTED: 'Payroll period {0} is not posted',

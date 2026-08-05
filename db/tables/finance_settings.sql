@@ -62,4 +62,4 @@ CREATE POLICY "finance_settings delete by permission"
     USING (has_permission('module.finance.edit'::text));
 
 COMMENT ON COLUMN public.finance_settings.system_start_date IS
-    '本数据库开始运营的日期(安装时申报)。早于它的年度动作一律拒绝 —— 那些期间的数据不在本库里,任何据此推算的余额都是凭空造的。历史余额请手工写 leave_grants。';
+    '本库自哪一天起持有【完整】记录 —— 不是安装日、也不一定是切换日。若切换前的交易会被补录进来,取【最早那笔真实交易】的日期。所有年度性守卫(年末结转、医疗额度)以它为界:早于它的期间,本库的数据不完整,任何据此推算的余额或额度都是凭空的。取错不会报错,只会让守卫站错位置。';

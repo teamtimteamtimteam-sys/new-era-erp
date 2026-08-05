@@ -4,6 +4,7 @@ import { getTranslations } from '@/lib/i18n/server'
 // 抛出的错误码。端口自 paymentErrorCodes.ts。
 // 不在集合内的是真正未编码的 DB 错误,原样返回。
 const HR_ERROR_CODES = new Set([
+    'CLAIM_YEAR_BEFORE_SYSTEM_START',
     'SYSTEM_START_NOT_SET', 'CARRY_FORWARD_BEFORE_SYSTEM_START',
     'EXPENSE_DATE_REQUIRED',
     'PAYROLL_POSTED', 'PAYROLL_NOT_FOUND', 'PAYROLL_ALREADY_POSTED', 'PAYROLL_NOT_POSTED',
