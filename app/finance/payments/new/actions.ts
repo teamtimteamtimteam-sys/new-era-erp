@@ -106,3 +106,34 @@ export async function createPayment(
     }
     redirect('/finance/payments')
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// 【屏幕上的汇率必须来自数据库,不能界面自己再算一遍】
+// 这是第四次同样的病(验配影响预览、GrantRunner 假期公式、重估预览已各修一次)。
+// record_payment 决定汇率的规则就三条(见该函数 93-107 行),这里【原样照问】:
+//   1. 本位币(SGD)→ fx_rate_for 直接返回 1,不查牌价表(FIN-0);
+//   2. 外币、且从它本币的银行户走 → fx_rate_for(币种, 日期, tt_buy/tt_sell);
+//   3. 跨币种(银行真的换汇了)→ 不查牌价,必须填水单上的【实际成交价】。
+// 【方向决定取哪一侧】收款 in = tt_buy(银行向我们买外币),付款 out = tt_sell。
+// 收款用卖出价估值,屏幕上就是个每次都错的数 —— 所以方向必须跟着走。
+// 缺牌价【拒绝】:不回退 0、不回退 1,把日期/币种/哪一侧说清楚,并禁用提交。
+// ════════════════════════════════════════════════════════════════════════════
+export async function lookupFxRate(
+    currency: string, date: string, direction: 'in' | 'out'
+): Promise<{ rate?: number; error?: string }> {
+    const t = await getTranslations()
+    if (!currency || !date) return { error: t('finance.fxLookup.needCurrencyAndDate') }
+    const side = direction === 'in' ? 'tt_buy' : 'tt_sell'
+    const supabase = await createClient()
+    const { data, error } = await supabase.rpc('fx_rate_for', {
+        p_currency: currency, p_date: date, p_rate_type: side,
+    })
+    if (error) {
+        return { error: t('finance.fxLookup.missing', { 0: date, 1: currency, 2: side }) }
+    }
+    const rate = Number(data)
+    if (!Number.isFinite(rate) || rate <= 0) {
+        return { error: t('finance.fxLookup.missing', { 0: date, 1: currency, 2: side }) }
+    }
+    return { rate }
+}

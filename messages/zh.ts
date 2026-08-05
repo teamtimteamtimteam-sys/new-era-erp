@@ -1944,6 +1944,13 @@ const zh = {
         totalAllocated: '冲销合计',
         bankAccount: '银行账户',
         paymentDate: '收付日期',
+        paymentAmount: '款额',
+        baseEquivalent: '折合本位币',
+        overAllocated: '(核销超过款额 —— 服务端会拒绝)',
+        fxLookup: {
+            needCurrencyAndDate: '先选好币种与日期,才能查牌价。',
+            missing: '{0} 当日没有 {1} 的 {2} 牌价。牌价没录进汇率页之前,这笔款无法估值。收款取 tt_buy、付款取 tt_sell —— 与 record_payment 同一条规则。',
+        },
         submitPayment: '过账',
         reversePayment: '冲销',
         reversePaymentConfirm: '冲销这笔收付款?将生成一笔反向记录。',

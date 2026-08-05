@@ -1950,6 +1950,13 @@ const en = {
         totalAllocated: 'Allocated',
         bankAccount: 'Bank account',
         paymentDate: 'Payment date',
+        paymentAmount: 'Amount paid',
+        baseEquivalent: 'Base equivalent',
+        overAllocated: '(over-allocated — the server will reject this)',
+        fxLookup: {
+            needCurrencyAndDate: 'Pick a currency and a date before the rate can be looked up.',
+            missing: 'No {2} rate on file for {1} on {0}. The payment cannot be valued until that rate is entered under FX Rates. Receipts use tt_buy, payments use tt_sell — the same rule record_payment applies.',
+        },
         submitPayment: 'Post payment',
         reversePayment: 'Reverse',
         reversePaymentConfirm: 'Reverse this payment? A mirror entry will be created.',

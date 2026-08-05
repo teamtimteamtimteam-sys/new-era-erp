@@ -215,6 +215,41 @@ Defaults that genuinely belong (code-numbering years, `p_as_of` read
 queries, `create_invoice`) are listed in
 `docs/empty-string-to-rpc-audit.md` so the distinction is on the record.
 
+## A screen that previews a posting ASKS the database what it will be
+
+**Never re-implement a posting rule in TypeScript so a page can show a
+preview.** Call the function that will do the posting — or a read-only
+companion that shares its arithmetic — and render what it returns.
+
+This has now been the same bug four times:
+
+1. the assay impact preview (Phase 4 cut 5b),
+2. the GrantRunner leave formula (deleted in HR-2c),
+3. the revaluation preview (FIN-9 — the page's own aggregation had already
+   drifted from `revalue_foreign_balances`, and the number it showed was
+   about to be posted),
+4. `/finance/payments` (FIN-12 — the form computed its own FX rate with a
+   base-currency constant left over from before FIN-0 flipped the base to
+   SGD, so a base-currency payment valued at **0.00** and a USD payment
+   valued at **1:1**).
+
+The failure is always the same shape: the two implementations agree on the
+day they are written and drift silently afterwards, and the screen is the
+one people trust because it is the one they can see.
+
+**The pattern that works** is already in the repo: `reprice_split` shared
+by `reprice_inbound_batch` and `preview_reprice_inbound_batch`;
+`preview_revalue_foreign_balances` called by both the page and
+`revalue_foreign_balances`. Add a preview function beside the writer, or
+call the writer's own helper. One implementation, two callers.
+
+**Corollary — the page must not disagree with the server about units or
+eligibility either.** If the server validates in document currency, the
+page shows document currency (`/finance/payments` was subtracting
+document-currency allocations from a base-currency amount). If the server
+will reject a combination, the page must not offer it: never render a
+submit control for an action the server is guaranteed to refuse.
+
 ## A failed query must fail — never `?? []`
 
 `lib/db-helpers.ts` exports `mustRows` / `mustOne` / `mustCount`. **Use them for

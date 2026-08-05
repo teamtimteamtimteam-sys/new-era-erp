@@ -19,6 +19,7 @@ type ArItem = {
     doc_code: string
     sale_date: string
     open_ccy: number
+    currency: string
 }
 type ApItem = {
     doc_kind: 'inbound' | 'expense'
@@ -27,6 +28,7 @@ type ApItem = {
     doc_code: string
     doc_date: string
     open_ccy: number
+    currency: string
 }
 
 export default async function NewPaymentPage({
@@ -55,16 +57,16 @@ export default async function NewPaymentPage({
             .order('legal_name'),
         supabase
             .from('ar_open_items')
-            .select('sales_record_id, customer_id, doc_code, sale_date, open_ccy')
+            .select('sales_record_id, customer_id, doc_code, sale_date, open_ccy, currency')
             .order('sale_date', { ascending: true }),
         supabase
             .from('ap_open_items')
-            .select('doc_kind, doc_id, supplier_id, doc_code, doc_date, open_ccy')
+            .select('doc_kind, doc_id, supplier_id, doc_code, doc_date, open_ccy, currency')
             .order('doc_date', { ascending: true }),
         // 可预付的采购单:视图本身排除已取消,这里再排除已结束的
         supabase
             .from('purchase_order_status')
-            .select('po_id, supplier_id, code, order_date, estimated_total_usd, prepaid_base')
+            .select('po_id, supplier_id, code, order_date, estimated_total_usd, prepaid_base, currency')
             .neq('status', 'closed')
             .order('order_date', { ascending: true }),
     ])
@@ -97,6 +99,7 @@ export default async function NewPaymentPage({
         doc_code: r.doc_code,
         doc_date: r.sale_date,
         open_ccy: r.open_ccy,
+        currency: r.currency,
     }))
     const apItems: OpenItem[] = ((apRes.data as unknown as ApItem[] | null) ?? []).map((r) => ({
         doc_id: r.doc_id,
@@ -105,6 +108,7 @@ export default async function NewPaymentPage({
         doc_code: r.doc_code,
         doc_date: r.doc_date,
         open_ccy: r.open_ccy,
+        currency: r.currency,
     }))
     const poItems: PoItem[] = ((poRes.data as unknown as {
         po_id: string
@@ -113,6 +117,7 @@ export default async function NewPaymentPage({
         order_date: string
         estimated_total_usd: number
         prepaid_base: number
+        currency: string
     }[] | null) ?? []).map((r) => ({
         po_id: r.po_id,
         party_id: r.supplier_id ?? '',
@@ -120,6 +125,7 @@ export default async function NewPaymentPage({
         order_date: r.order_date,
         estimated_total_usd: r.estimated_total_usd,
         prepaid_base: r.prepaid_base,
+        currency: r.currency,
     }))
 
     return (

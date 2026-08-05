@@ -95,6 +95,10 @@ export async function previewAssayPrice(input: {
 }): Promise<PreviewState> {
     const payload = metalsPayload(input.metals)
     if (!input.formulaId || payload.length === 0) return {}
+    // FIN-10 起 calculate_metal_price_internal 不再默认成今天 —— 空日期会抛
+    // REFERENCE_DATE_REQUIRED。这里先挡一道,免得把裸错误码甩给操作员;
+    // 而且预览用哪天的行情,本来就该由化验日说了算,不是"今天"。
+    if (!input.referenceDate) return {}
 
     const supabase = await createClient()
     // 只为算价拿数量;影响的拆分不在这里算 —— 交给 DB 的试算函数
@@ -110,7 +114,7 @@ export async function previewAssayPrice(input: {
         p_formula_id: input.formulaId,
         p_metals: payload,
         p_quantity_kg: batch.quantity,
-        p_reference_date: input.referenceDate || undefined,
+        p_reference_date: input.referenceDate,
     })
     if (error) return { error: await localizeAssayError(error.message) }
 
