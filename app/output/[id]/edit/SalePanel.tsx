@@ -29,6 +29,7 @@ export default function SalePanel({
     state,
     customers,
     batchCustomerId,
+    baseCurrency,
 }: {
     batchId: string
     remainingQty: number
@@ -36,6 +37,7 @@ export default function SalePanel({
     state: string
     customers: CustomerOption[]
     batchCustomerId: string | null
+    baseCurrency: string
 }) {
     const t = useTranslations()
     const recordWithId = recordSale.bind(null, batchId)
@@ -130,7 +132,7 @@ export default function SalePanel({
                         </select>
                     </div>
                     {/* FIN-0:外币按销售日行方买入价(tt_buy)自动估值,当天没牌价直接拒 */}
-                    {currency !== 'SGD' && (
+                    {currency !== baseCurrency && (
                     <p className="text-xs text-gray-500 self-end pb-2 max-w-56">{t('common.fxBoardRateHint')}</p>
                 )}
                 </div>

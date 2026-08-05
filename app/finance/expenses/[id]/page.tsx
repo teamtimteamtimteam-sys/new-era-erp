@@ -4,6 +4,7 @@
 // posted 收付款的核销;reversed 核销灰色删除线保留)+ 凭据附件面板(kind 'expense')。
 // posted → 冲销按钮;reversed → "已被 X 冲销"横幅;镜像单 → "冲销自 X"横幅回链原单。
 import Link from 'next/link'
+import { getBaseCurrency } from '@/lib/currency'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
@@ -31,6 +32,7 @@ export default async function ExpenseDetailPage({
 }) {
     const { id } = await params
     const supabase = await createClient()
+    const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
     const locale = await getLocale()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
@@ -164,7 +166,7 @@ export default async function ExpenseDetailPage({
                     <span className="font-mono font-medium">
                         {expense.currency} {formatMoney(expense.amount_ccy)}
                     </span>
-                    {expense.currency !== 'SGD' && (
+                    {expense.currency !== baseCurrency && (
                         <span className="text-gray-500 ml-1 font-mono">
                             @ {expense.fx_rate} = {formatMoney(expense.amount_base)} USD
                         </span>

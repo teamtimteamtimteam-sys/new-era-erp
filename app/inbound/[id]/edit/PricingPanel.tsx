@@ -29,6 +29,7 @@ export default function PricingPanel({
     history,
     canViewPrices,
     extraAction,
+    baseCurrency,
 }: {
     batchId: string
     unitPrice: number | null
@@ -37,6 +38,7 @@ export default function PricingPanel({
     canViewPrices: boolean
     // cut 5b:批次有定价公式时,页面在这里塞进"按当前含量重新计价"
     extraAction?: React.ReactNode
+    baseCurrency: string
 }) {
     const t = useTranslations()
     const setWithId = setInboundPrice.bind(null, batchId)
@@ -104,7 +106,7 @@ export default function PricingPanel({
                     </select>
                 </div>
                 {/* FIN-0:外币按定价日行方卖出价(tt_sell)自动估值,当天没牌价直接拒 */}
-                {currency !== 'SGD' && (
+                {currency !== baseCurrency && (
                     <p className="text-xs text-gray-500 self-end pb-2 max-w-56">{t('common.fxBoardRateHint')}</p>
                 )}
                 <div className="flex-1 min-w-[8rem]">
@@ -152,7 +154,7 @@ export default function PricingPanel({
                                     <td className="border border-gray-300 px-3 py-2 font-mono">
                                         <MaskedValue value={h.original_price} canView={canViewPrices} />{' '}
                                         {h.original_price !== null ? h.currency : ''}
-                                        {h.currency !== 'SGD' && h.fx_rate !== null ? ` @ ${h.fx_rate}` : ''}
+                                        {h.currency !== baseCurrency && h.fx_rate !== null ? ` @ ${h.fx_rate}` : ''}
                                     </td>
                                     <td className="border border-gray-300 px-3 py-2">{h.notes ?? '—'}</td>
                                 </tr>

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { getBaseCurrency } from '@/lib/currency'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import EditInboundForm from './EditInboundForm'
@@ -37,6 +38,7 @@ export default async function EditInboundPage({
 }) {
     const { id } = await params
     const supabase = await createClient()
+    const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
     const locale = await getLocale()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
@@ -317,6 +319,7 @@ export default async function EditInboundPage({
             <AssaySection batchId={batch.id} rows={assayRows} />
 
             <PricingPanel
+                baseCurrency={baseCurrency}
                         canViewPrices={showPrices}
                         batchId={batch.id}
                 unitPrice={batch.unit_price}

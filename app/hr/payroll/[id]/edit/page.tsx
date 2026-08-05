@@ -2,6 +2,7 @@
 // 编辑草稿期间:明细预填【本期已录的数字】(不是上一期),月份锁定 ——
 // 换月份等于换一张单,应该另建。已过账的期间不可编辑,直接退回详情页。
 import Link from 'next/link'
+import { getBaseCurrency } from '@/lib/currency'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
@@ -57,7 +58,7 @@ export default async function EditPayrollPage({
                 defaults={{
                     period_month: period.period_month?.slice(0, 7) ?? '',
                     payment_date: period.payment_date ?? '',
-                    currency: period.currency ?? 'SGD',
+                    currency: period.currency ?? await getBaseCurrency(),
                     fx_rate: String(period.fx_rate ?? ''),
                     source_note: period.source_note ?? '',
                     notes: period.notes ?? '',

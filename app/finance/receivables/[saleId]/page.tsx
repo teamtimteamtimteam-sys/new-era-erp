@@ -4,6 +4,7 @@
 // 收款的核销不计入已结额,但仍然显示为灰色删除线行,保证历史完整)+ 凭据附件面板
 // + 关联分录(收入分录 source_type='sale',COGS 经 sales_records.cogs_entry_id)。
 import Link from 'next/link'
+import { getBaseCurrency } from '@/lib/currency'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
@@ -32,6 +33,7 @@ export default async function ReceivableDocPage({
 }) {
     const { saleId } = await params
     const supabase = await createClient()
+    const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
     const locale = await getLocale()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
@@ -163,7 +165,7 @@ export default async function ReceivableDocPage({
                     <span className="font-mono">
                         {sale.quantity} × {sale.unit_price}
                     </span>
-                    {sale.currency !== 'USD' && (
+                    {sale.currency !== baseCurrency && (
                         <span className="text-gray-500 ml-1 font-mono">
                             {sale.currency} @ {sale.fx_rate}
                         </span>

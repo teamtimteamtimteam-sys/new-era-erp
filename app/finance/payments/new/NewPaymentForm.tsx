@@ -6,6 +6,7 @@
 // NOTE: 两侧未结单据全量随 props 下发,此处按往来单位过滤 —— 免一次选择后的往返;
 // 数据量小(未结清才进视图),体量上来再改按需加载。
 import { useActionState, useEffect, useState } from 'react'
+import { bankAccountFor, currencyOfBank } from '@/lib/currencyMap'
 import Link from 'next/link'
 import { createPayment, lookupFxRate, type CreatePaymentState } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
@@ -95,12 +96,12 @@ export default function NewPaymentForm({
     // 银行账户默认跟随币种(SGD → 1000,USD → 1010),之后仍可手动改
     function onCurrencyChange(c: string) {
         setCurrency(c)
-        setBank(c === 'SGD' ? '1000' : '1010')
+        setBank(bankAccountFor(c))
         setAlloc({})   // 换币种后旧的核销行可能已不同币种,清掉
     }
 
     // 银行账户的本币(bank_native_currency 的界面侧映射)
-    const bankCcy = bank === '1000' ? 'SGD' : 'USD'
+    const bankCcy = currencyOfBank(bank) ?? currency
     // 跨币种 = 银行真的换了汇 → 不查牌价,要水单上的实际成交价(record_payment 同规则)
     const crossCurrency = bankCcy !== currency
 
@@ -248,7 +249,7 @@ export default function NewPaymentForm({
                 </div>
                 {/* FIN-0:同币种走外币户按当日牌价自动估值;只有【跨币种】(银行实际
                     做了兑换)才要填 —— 填水单两边实际金额折出的成交价,不是牌价(C4) */}
-                {currency === 'USD' && bank === '1000' && (
+                {crossCurrency && (
                     <div>
                         <label className="block text-sm font-medium mb-1">
                             {t('finance.actualDealRate')} <span className="text-red-600">*</span>

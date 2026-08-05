@@ -6,6 +6,7 @@
 // 必须在锁期之前)→ 锁期。CPF 例外:次月 14 日前汇、凭证记在【次月】,
 // 所以锁本月不挡 CPF —— 它挂在下月的账上。
 import Link from 'next/link'
+import { getBaseCurrency } from '@/lib/currency'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../Subnav'
@@ -27,6 +28,7 @@ export default async function MonthEndPage({
     const month = sp.month ?? new Date().toISOString().slice(0, 7)
     const { start, end } = monthRange(month)
     const supabase = await createClient()
+    const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
 
     const [gapsRes, periodRes, accrualRes, revalRes, settingsRes, midRes, allocRes] = await Promise.all([
@@ -96,7 +98,7 @@ export default async function MonthEndPage({
             state: !period || cpfTotal === 0 ? 'na' : period.status !== 'posted' ? 'blocked'
                  : period.cpf_paid_at ? 'done' : 'outstanding',
             detail: !period || cpfTotal === 0 ? '' : period.status !== 'posted' ? t('finance.monthEnd.blockedByPosting')
-                 : period.cpf_paid_at ? '' : t('finance.monthEnd.cpfDetail', { amount: formatMoney(cpfTotal) }),
+                 : period.cpf_paid_at ? '' : t('finance.monthEnd.cpfDetail', { amount: formatMoney(cpfTotal), ccy: baseCurrency }),
         },
         {
             key: 'deductions', href: '/finance/payroll-payments',

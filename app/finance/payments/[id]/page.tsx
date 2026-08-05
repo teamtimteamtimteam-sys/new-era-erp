@@ -4,6 +4,7 @@
 // posted → 冲销按钮;reversed → "已被 X 冲销"横幅(链到镜像单)。
 // 核销行表下方:凭据附件面板(finance_attachments, parent kind 'payment')。
 import Link from 'next/link'
+import { getBaseCurrency } from '@/lib/currency'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
@@ -29,6 +30,7 @@ export default async function PaymentDetailPage({
 }) {
     const { id } = await params
     const supabase = await createClient()
+    const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
     const locale = await getLocale()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
@@ -198,7 +200,7 @@ export default async function PaymentDetailPage({
                     <span className="font-mono font-medium">
                         {payment.currency} {formatMoney(payment.amount_ccy)}
                     </span>
-                    {payment.currency !== 'SGD' && (
+                    {payment.currency !== baseCurrency && (
                         <span className="text-gray-500 ml-1 font-mono">
                             @ {payment.fx_rate} = {formatMoney(payment.amount_base)} USD
                         </span>

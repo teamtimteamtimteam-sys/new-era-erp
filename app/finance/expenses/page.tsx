@@ -3,6 +3,7 @@
 // 付款状态 + 费用科目筛选,count+range 分页(端口自收付款列表)。
 // 表格上方汇总行 = 当前筛选集的笔数 + USD 合计(全筛选集,不只当前页)。
 import { Suspense } from 'react'
+import { getBaseCurrency } from '@/lib/currency'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
@@ -26,6 +27,7 @@ export default async function ExpensesListPage({
 }) {
     const sp = await searchParams
     const supabase = await createClient()
+    const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
     const locale = await getLocale()
 
@@ -146,7 +148,7 @@ export default async function ExpensesListPage({
 
             {/* 汇总:当前筛选集的笔数 + USD 合计 */}
             <p className="text-sm text-gray-600 mb-4">
-                {t('expense.filteredTotal', { count: total, amount: formatMoney(totalUsd) })}
+                {t('expense.filteredTotal', { count: total, amount: formatMoney(totalUsd), ccy: baseCurrency })}
             </p>
 
             <table className="w-full border-collapse border border-gray-300">
@@ -179,7 +181,7 @@ export default async function ExpensesListPage({
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                 {r.currency} {formatMoney(r.amount_ccy)}
-                                {r.currency !== 'USD' && (
+                                {r.currency !== baseCurrency && (
                                     <span className="text-gray-500 ml-2">
                                         = {formatMoney(r.amount_base)} USD
                                     </span>

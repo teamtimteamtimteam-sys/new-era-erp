@@ -85,11 +85,13 @@ export default function NewOrderForm({
     materials,
     formulas,
     templates,
+    baseCurrency,
 }: {
     suppliers: SupplierOption[]
     materials: MaterialOption[]
     formulas: FormulaOption[]
     templates: TemplateOption[]
+    baseCurrency: string
 }) {
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(createOrder, initialState)
@@ -256,7 +258,7 @@ export default function NewOrderForm({
                     </select>
                 </div>
                 {/* FIN-0:外币按下单日行方卖出价(tt_sell)自动估值,当天没牌价直接拒 */}
-                {currency !== 'SGD' && (
+                {currency !== baseCurrency && (
                     <p className="text-xs text-gray-500 self-end pb-2 max-w-56">{t('common.fxBoardRateHint')}</p>
                 )}
                 <div>

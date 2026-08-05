@@ -7,6 +7,7 @@
 // 其它扣款(LINE_NOT_BALANCED);表单里的实时校验只是让人【在提交之前】就看见问题,
 // DB 那道才是后墙。
 import { createClient } from '@/lib/supabase/server'
+import { getBaseCurrency } from '@/lib/currency'
 import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
@@ -44,7 +45,7 @@ export async function savePayrollPeriod(
 
     const periodMonth = String(formData.get('period_month') ?? '').trim() // 'YYYY-MM'
     const paymentDate = String(formData.get('payment_date') ?? '').trim()
-    const currency = String(formData.get('currency') ?? 'SGD').trim()
+    const currency = String(formData.get('currency') ?? await getBaseCurrency()).trim()
     const fxRaw = String(formData.get('fx_rate') ?? '').trim()
     const sourceNote = String(formData.get('source_note') ?? '').trim()
     const notes = String(formData.get('notes') ?? '').trim()

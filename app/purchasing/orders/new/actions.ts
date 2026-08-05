@@ -9,6 +9,7 @@
 // calculate_metal_price(与计价器同一 DB 函数,客户端不做任何计算),
 // 返回完整明细供面板摊开;填入的是 unit_price_usd_per_kg。
 import { createClient } from '@/lib/supabase/server'
+import { getBaseCurrency } from '@/lib/currency'
 import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
@@ -47,7 +48,7 @@ export async function createOrder(
     const supplierId = String(formData.get('supplier_id') ?? '').trim()
     const orderDate = String(formData.get('order_date') ?? '').trim()
     const expectedDelivery = String(formData.get('expected_delivery') ?? '').trim()
-    const currency = String(formData.get('currency') ?? 'USD')
+    const currency = String(formData.get('currency') ?? await getBaseCurrency())
     const incoterm = String(formData.get('incoterm') ?? '').trim()
     const notes = String(formData.get('notes') ?? '').trim()
     const termsText = String(formData.get('terms_text') ?? '').trim()

@@ -7,6 +7,7 @@
 // 解析失败的行会拦住提交(必须先修);余额不符【不拦】—— DB 的
 // STATEMENT_NOT_BALANCED 才是权威判定,这里的指示器只是早一步的反馈。
 import { useActionState, useMemo, useState } from 'react'
+import { currencyOfBank } from '@/lib/currencyMap'
 import Link from 'next/link'
 import Papa from 'papaparse'
 import { importStatement, type ImportStatementState } from './actions'
@@ -102,7 +103,7 @@ export default function ImportStatementForm({ profiles }: { profiles: ProfileOpt
     }, [csvRows, mapping])
 
     const sum = round2(parsed.rows.reduce((s, r) => s + r.amount, 0))
-    const currency = bankAccount === '1000' ? 'SGD' : 'USD'
+    const currency = currencyOfBank(bankAccount) ?? ''
 
     // 期间自动填成解析日期的最小/最大值(用户改过之后不再覆盖)
     const dateBounds = useMemo(() => {

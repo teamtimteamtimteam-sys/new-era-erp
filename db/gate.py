@@ -182,6 +182,15 @@ def main() -> int:
             if gaps:
                 problems.append(f"column grant gap ({label}): {gaps}")
 
+        # 币种写死:界面把 'USD'/'SGD' 当常量用过四次,每次都是 FIN-0 改本位币后
+        # 没人记得改的残留。名单在 scripts/check-currency-literals.mjs 里,例外要写理由。
+        cur = subprocess.run(["node", os.path.join(HERE, "..", "scripts", "check-currency-literals.mjs")],
+                             capture_output=True, text=True)
+        print("currency   " + ("无写死 ✓" if cur.returncode == 0
+                               else "✗ " + cur.stdout.strip().split(chr(10))[-3][:160]))
+        if cur.returncode != 0:
+            problems.append("currency literals in app code (see check-currency-literals.mjs)")
+
         unchecked = cm.definer_without_caller_check()
         print(f"definer    {len(unchecked)} SECURITY DEFINER function(s) with no recognisable caller check"
               f"  ({len(cm.DEFINER_NO_CHECK_ALLOWED)} allowlisted)")

@@ -215,6 +215,34 @@ Defaults that genuinely belong (code-numbering years, `p_as_of` read
 queries, `create_invoice`) are listed in
 `docs/empty-string-to-rpc-audit.md` so the distinction is on the record.
 
+## Currency codes are data, not constants
+
+`'USD'` / `'SGD'` must never appear in a comparison, branch or default in
+app code. The base currency comes from `currencies.is_base` via
+`lib/currency.ts` (`getBaseCurrency()`, cached per request; client
+components take it as a prop). The bank-account mapping lives in exactly
+one file, `lib/currencyMap.ts`, mirroring `bank_native_currency()`.
+
+`scripts/check-currency-literals.mjs` enforces it — in `npm run build`
+(fast feedback) and in `db/gate.py` (`currency` line). Exceptions go in its
+ALLOWLIST **with a written reason**, the same way `check_mirrors` handles
+account codes and `check-i18n` handles dynamic suffixes: the list is
+derived and visible, not remembered.
+
+Why a check and not care: FIN-0 changed the base from USD to SGD, and the
+constants left behind broke four screens over four separate sweeps —
+`/finance/payments` valued a base-currency payment at 0.00 and a USD one at
+1:1 (FIN-12), and manual journal entry demanded an FX rate for base-currency
+lines. Two full manual sweeps each missed a site. The check found 32 in one
+run, including one I had just written myself.
+
+**Message files too.** `check-i18n` validates that a key exists, never what
+it says, so `'Amount (SGD)'` is invisible to it. A label that names a
+currency must take it as a `{ccy}` parameter from the row (or the base
+currency), unless the string is genuinely about one currency by decision —
+metal prices are quoted `USD/t` by market convention, and account names
+like `Bank – SGD` are proper nouns. Those stay.
+
 ## A screen that previews a posting ASKS the database what it will be
 
 **Never re-implement a posting rule in TypeScript so a page can show a

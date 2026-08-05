@@ -3,6 +3,7 @@
 // 进料补价:唯一合法的 unit_price 变更路径(cut 1),走 set_inbound_unit_price RPC,
 // 每次变更留 price_history 审计行。直接 UPDATE 会被 DB 触发器以 PRICE_VIA_FUNCTION 拒绝。
 import { createClient } from '@/lib/supabase/server'
+import { getBaseCurrency } from '@/lib/currency'
 import { revalidatePath } from 'next/cache'
 import { getTranslations } from '@/lib/i18n/server'
 
@@ -43,7 +44,7 @@ export async function setInboundPrice(
     const t = await getTranslations()
 
     const price_raw = (formData.get('price') as string) || ''
-    const currency = (formData.get('currency') as string) || 'USD'
+    const currency = (formData.get('currency') as string) || await getBaseCurrency()
     const fx_rate_raw = (formData.get('fx_rate') as string) || ''
     const notes = (formData.get('notes') as string)?.trim() || ''
 

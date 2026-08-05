@@ -4,6 +4,7 @@
 // 组装 lines jsonb → rpc post_journal_entry(source 'manual')。平衡由 DB 的延迟触发器
 // 在提交时强制(JOURNAL_UNBALANCED 从 rpc 错误里回来,本地化后展示)。
 import { createClient } from '@/lib/supabase/server'
+import { getBaseCurrency } from '@/lib/currency'
 import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
@@ -19,6 +20,8 @@ export async function createManualEntry(
     formData: FormData
 ): Promise<CreateEntryState> {
     const t = await getTranslations()
+    // 本位币从库里取 —— 写死 'USD' 是 FIN-0 之前的残留,基准币行会被误判成需要汇率
+    const base = await getBaseCurrency()
 
     const entry_date = (formData.get('entry_date') as string)?.trim() || ''
     const memo = (formData.get('memo') as string)?.trim() || ''
@@ -59,9 +62,9 @@ export async function createManualEntry(
             fieldErrors[`line_${i}`] = t('finance.errAmount', { row: rowNo })
             continue
         }
-        const currency = currencies[i] || 'USD'
+        const currency = currencies[i] || base
         let fx_rate: number | undefined
-        if (currency !== 'USD') {
+        if (currency !== base) {
             const fx = Number(fxRates[i])
             if (!fxRates[i] || Number.isNaN(fx) || fx <= 0) {
                 fieldErrors[`line_${i}`] = t('finance.errors.FX_RATE_REQUIRED', { 0: currency })

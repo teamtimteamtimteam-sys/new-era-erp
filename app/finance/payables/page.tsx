@@ -4,6 +4,7 @@
 // 倒序;进料单据链接到 AP 单据详情页(批次编辑页链接在详情页内),开支单据
 // 链接到开支详情页 /finance/expenses/[id],旁附类别标签。
 import Link from 'next/link'
+import { getBaseCurrency } from '@/lib/currency'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatMoney } from '@/lib/format'
@@ -36,6 +37,7 @@ type SupplierGroup = {
 
 export default async function PayablesPage() {
     const supabase = await createClient()
+    const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
 
     const { data, error } = await supabase
@@ -116,7 +118,7 @@ export default async function PayablesPage() {
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colCounterparty')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colDocument')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colDate')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colAmount')}</th>
+                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colAmount', { ccy: baseCurrency })}</th>
                         <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colSettled')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colOpen')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colDays')}</th>

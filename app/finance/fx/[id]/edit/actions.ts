@@ -2,6 +2,7 @@
 
 // 编辑/软删汇率(端口自 metal-prices 编辑 actions)。source 不动。
 import { createClient } from '@/lib/supabase/server'
+import { getBaseCurrency } from '@/lib/currency'
 import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
@@ -26,7 +27,7 @@ export async function updateFxRate(
     const notes = (formData.get('notes') as string)?.trim() || null
 
     const fieldErrors: Record<string, string> = {}
-    if (!currency || currency === 'SGD') fieldErrors.currency = t('finance.fxPage.form.errCurrency')
+    if (!currency || currency === await getBaseCurrency()) fieldErrors.currency = t('finance.fxPage.form.errCurrency')
     if (!['tt_buy', 'tt_sell', 'mid'].includes(rate_type)) fieldErrors.rate_type = t('finance.fxPage.form.errRateType')
 
     let rate: number | null = null

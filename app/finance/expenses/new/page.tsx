@@ -2,6 +2,7 @@
 // 开支登记页(服务端壳):取 active 的 expense 科目(按编码排序,名称按语言)
 // + 在册供应商(挂账开支要选),表单交给客户端组件。
 import { createClient } from '@/lib/supabase/server'
+import { getBaseCurrency } from '@/lib/currency'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import Subnav from '../../Subnav'
 import NewExpenseForm, { type AccountOption, type SupplierOption } from './NewExpenseForm'
@@ -9,6 +10,7 @@ import { mustRows } from '@/lib/db-helpers'
 
 export default async function NewExpensePage() {
     const supabase = await createClient()
+    const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
     const locale = await getLocale()
 
@@ -52,7 +54,8 @@ export default async function NewExpensePage() {
         <div className="p-8 max-w-4xl">
             <h1 className="text-2xl font-bold mb-4">{t('expense.new')}</h1>
             <Subnav />
-            <NewExpenseForm accounts={accounts} suppliers={suppliers} />
+            <NewExpenseForm
+                baseCurrency={baseCurrency} accounts={accounts} suppliers={suppliers} />
         </div>
     )
 }

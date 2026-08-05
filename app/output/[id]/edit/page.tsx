@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { getBaseCurrency } from '@/lib/currency'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import EditOutputForm from './EditOutputForm'
@@ -31,6 +32,7 @@ export default async function EditOutputPage({
 }) {
     const { id } = await params
     const supabase = await createClient()
+    const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
     const locale = await getLocale()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
@@ -175,6 +177,7 @@ export default async function EditOutputPage({
 
             {batch.remaining_qty > 0 ? (
                 <SalePanel
+                baseCurrency={baseCurrency}
                     batchId={batch.id}
                     remainingQty={batch.remaining_qty}
                     unit={batch.unit}

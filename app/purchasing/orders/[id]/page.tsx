@@ -3,6 +3,7 @@
 // 付款计划(比例期按估算总额折成钱)+ 预付摘要(已付/已抵扣/未抵扣 → 登记付款入口)+
 // 收货记录(关联进料批次、已收 vs 下单量)+ 取消(无收货且无已抵扣预付才允许)。
 import Link from 'next/link'
+import { getBaseCurrency } from '@/lib/currency'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
@@ -26,6 +27,7 @@ export default async function PurchaseOrderDetailPage({
 }) {
     const { id } = await params
     const supabase = await createClient()
+    const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
 
     const { data: poRaw, error } = await supabase
@@ -212,7 +214,7 @@ export default async function PurchaseOrderDetailPage({
                     <span className="text-gray-600 mr-1">{t('purchasing.form.currency')}:</span>
                     <span className="font-mono">
                         {po.currency}
-                        {po.currency !== 'SGD' && ` @ ${po.fx_rate}`}
+                        {po.currency !== baseCurrency && ` @ ${po.fx_rate}`}
                     </span>
                 </div>
                 {po.incoterm && (

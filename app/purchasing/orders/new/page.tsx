@@ -2,6 +2,7 @@
 // 新建采购单(服务端壳):在册供应商(含默认付款条款模板)/ 在册物料 / 启用的采购向
 // 计价公式 / 启用的付款条款模板(带行,供客户端套用与供应商默认自动带出)。
 import Link from 'next/link'
+import { getBaseCurrency } from '@/lib/currency'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../../Subnav'
@@ -17,6 +18,7 @@ import { mustRows } from '@/lib/db-helpers'
 
 export default async function NewOrderPage() {
     const supabase = await createClient()
+    const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
 
     const [suppliersRes, materialsRes, formulasRes, templatesRes, tplLinesRes] = await Promise.all([
@@ -105,6 +107,7 @@ export default async function NewOrderPage() {
             <h1 className="text-2xl font-bold mb-4">{t('purchasing.newOrder')}</h1>
             <Subnav />
             <NewOrderForm
+                baseCurrency={baseCurrency}
                 suppliers={suppliers}
                 materials={materials}
                 formulas={formulas}

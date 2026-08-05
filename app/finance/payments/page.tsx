@@ -2,6 +2,7 @@
 // 收付款列表:最新在前,payment_date 日期区间 + 方向筛选 + count+range 分页
 // (端口自分录列表)。往来单位名按页小批量反查(客户/供应商两次 .in)。
 import { Suspense } from 'react'
+import { getBaseCurrency } from '@/lib/currency'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
@@ -25,6 +26,7 @@ export default async function PaymentsListPage({
 }) {
     const sp = await searchParams
     const supabase = await createClient()
+    const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
 
     const { dateFrom, dateTo } = parseDateRange(sp)
@@ -167,7 +169,7 @@ export default async function PaymentsListPage({
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                 {r.currency} {formatMoney(r.amount_ccy)}
-                                {r.currency !== 'USD' && (
+                                {r.currency !== baseCurrency && (
                                     <span className="text-gray-500 ml-2">
                                         = {formatMoney(r.amount_base)} USD
                                     </span>

@@ -2,6 +2,7 @@
 // 薪资期间详情:抬头 + 合计 + 逐人明细 + 过账/撤销过账。
 // 草稿可编辑;已过账变只读(要改先撤销过账 —— 那会冲销分录)。
 import Link from 'next/link'
+import { bankAccountFor } from '@/lib/currency'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
@@ -54,7 +55,7 @@ export default async function PayrollDetailPage({
     )
 
     const isPosted = period.status === 'posted'
-    const bankAccount = period.currency === 'SGD' ? '1000' : '1010'
+    const bankAccount = bankAccountFor(period.currency ?? '')
 
     return (
         <div className="p-8 max-w-5xl">

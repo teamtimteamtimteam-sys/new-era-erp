@@ -1,6 +1,7 @@
 // app/finance/journal/new/page.tsx
 // 手工分录页(服务端壳):取活跃科目(语言侧名字这里解析好),表单交给客户端组件。
 import { createClient } from '@/lib/supabase/server'
+import { getBaseCurrency } from '@/lib/currency'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import Subnav from '../../Subnav'
 import NewEntryForm, { type AccountOption } from './NewEntryForm'
@@ -38,7 +39,7 @@ export default async function NewEntryPage() {
         <div className="p-8 max-w-5xl">
             <h1 className="text-2xl font-bold mb-4">{t('finance.newEntryTitle')}</h1>
             <Subnav />
-            <NewEntryForm accounts={accounts} />
+            <NewEntryForm accounts={accounts} baseCurrency={await getBaseCurrency()} />
         </div>
     )
 }

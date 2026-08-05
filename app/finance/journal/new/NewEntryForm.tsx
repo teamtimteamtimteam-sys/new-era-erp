@@ -38,7 +38,9 @@ function todayIsoLocal(): string {
     return `${yyyy}-${mm}-${dd}`
 }
 
-export default function NewEntryForm({ accounts }: { accounts: AccountOption[] }) {
+export default function NewEntryForm(
+    { accounts, baseCurrency }: { accounts: AccountOption[]; baseCurrency: string }
+) {
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(createManualEntry, initialState)
 
@@ -65,9 +67,11 @@ export default function NewEntryForm({ accounts }: { accounts: AccountOption[] }
     // 实时 Σ:round(amount × fx, 2),与 DB 同式;任一无效行计 0
     const usd = (r: Row) => {
         const amount = Number(r.amount)
-        const fx = r.currency === 'USD' ? 1 : Number(r.fx)
+        // 【本位币来自 prop,不是字面量】写死 'USD' 时:基准币(SGD)行会被要求
+        // 填汇率、算成 0;而 USD 行反倒按 1:1 折算。两头都错。
+        const fx = r.currency === baseCurrency ? 1 : Number(r.fx)
         if (!r.amount || Number.isNaN(amount) || amount <= 0) return 0
-        if (r.currency !== 'USD' && (!r.fx || Number.isNaN(fx) || fx <= 0)) return 0
+        if (r.currency !== baseCurrency && (!r.fx || Number.isNaN(fx) || fx <= 0)) return 0
         return Math.round(amount * fx * 100) / 100
     }
     const sumDebit = Math.round(rows.filter((r) => r.side === 'debit').reduce((s, r) => s + usd(r), 0) * 100) / 100
@@ -188,7 +192,7 @@ export default function NewEntryForm({ accounts }: { accounts: AccountOption[] }
                                 className="w-32 border border-gray-300 px-3 py-2 rounded"
                             />
                         </div>
-                        {r.currency !== 'USD' ? (
+                        {r.currency !== baseCurrency ? (
                             <div>
                                 <label className="block text-sm font-medium mb-1">
                                     {t('output.sale.fxRate')} <span className="text-red-600">*</span>

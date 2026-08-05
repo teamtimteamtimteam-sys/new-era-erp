@@ -2,6 +2,7 @@
 // 分录列表:最新在前,entry_date 日期区间 + count+range 分页(端口自 processing 列表)。
 // 来源列按 source_type 本地化,可解析的 source_id 附业务单据链接(服务端小批量反查)。
 import { Suspense } from 'react'
+import { getBaseCurrency } from '@/lib/currency'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
@@ -26,6 +27,7 @@ export default async function JournalListPage({
 }) {
     const sp = await searchParams
     const supabase = await createClient()
+    const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
 
     const { dateFrom, dateTo } = parseDateRange(sp)
@@ -123,7 +125,7 @@ export default async function JournalListPage({
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colDate')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colMemo')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colSource')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colAmount')}</th>
+                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colAmount', { ccy: baseCurrency })}</th>
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colStatus')}</th>
                     </tr>
                 </thead>

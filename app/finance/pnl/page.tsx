@@ -3,6 +3,7 @@
 // 收入 = Σ贷−Σ借,成本/费用 = Σ借−Σ贷;毛利 = 收入−成本(附毛利率),
 // 净利 = 毛利−费用(正绿负红)。零发生额科目隐藏。
 import { Fragment, Suspense } from 'react'
+import { getBaseCurrency } from '@/lib/currency'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { parseDateRange } from '@/lib/dateFilter'
@@ -37,6 +38,7 @@ export default async function PnlPage({
 }) {
     const sp = await searchParams
     const supabase = await createClient()
+    const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
     const locale = await getLocale()
 
@@ -166,7 +168,7 @@ export default async function PnlPage({
                     <tr>
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colCode')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colAccount')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colAmount')}</th>
+                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colAmount', { ccy: baseCurrency })}</th>
                     </tr>
                 </thead>
                 <tbody>

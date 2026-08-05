@@ -3,6 +3,7 @@
 // 新增牌价(端口自 metal-prices/new/actions):FIN-0 起一条 = 一币种一天一侧;
 // source 默认 'DBS'。唯一约束 (currency, rate_date, rate_type) 冲突 → 友好的字段错误。
 import { createClient } from '@/lib/supabase/server'
+import { getBaseCurrency } from '@/lib/currency'
 import type { InsertRow } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
@@ -27,7 +28,7 @@ export async function createFxRate(
     const notes = (formData.get('notes') as string)?.trim() || null
 
     const fieldErrors: Record<string, string> = {}
-    if (!currency || currency === 'SGD') fieldErrors.currency = t('finance.fxPage.form.errCurrency')
+    if (!currency || currency === await getBaseCurrency()) fieldErrors.currency = t('finance.fxPage.form.errCurrency')
     if (!['tt_buy', 'tt_sell', 'mid'].includes(rate_type)) fieldErrors.rate_type = t('finance.fxPage.form.errRateType')
 
     let rate: number | null = null

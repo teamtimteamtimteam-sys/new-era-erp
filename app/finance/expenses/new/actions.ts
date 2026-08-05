@@ -4,6 +4,7 @@
 // paid → 借费用科目/贷银行;unpaid → 借费用科目/贷 2000 应付(成为 AP 单据)。
 // 科目/供应商/期间锁等校验在 DB 内,错误码本地化后展示;成功跳开支详情。
 import { createClient } from '@/lib/supabase/server'
+import { getBaseCurrency } from '@/lib/currency'
 import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
@@ -20,7 +21,7 @@ export async function createExpense(
     const expenseDate = String(formData.get('expense_date') ?? '').trim()
     const accountCode = String(formData.get('account_code') ?? '').trim()
     const amountRaw = String(formData.get('amount') ?? '').trim()
-    const currency = String(formData.get('currency') ?? 'SGD')
+    const currency = String(formData.get('currency') ?? await getBaseCurrency())
     const paymentStatus = formData.get('payment_status') === 'paid' ? 'paid' : 'unpaid'
     const bank = String(formData.get('bank_account') ?? '').trim()
     const supplierId = String(formData.get('supplier_id') ?? '').trim()

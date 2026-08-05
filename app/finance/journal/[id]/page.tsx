@@ -3,6 +3,7 @@
 // posted → 冲销按钮;reversed → "已被 X 冲销"横幅;冲销单自身 → "冲销自 X"横幅
 // (通过 reversed_by 反查:谁的 reversed_by 指向本单,本单就是它的冲销单)。
 import Link from 'next/link'
+import { getBaseCurrency } from '@/lib/currency'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
@@ -30,6 +31,7 @@ export default async function JournalDetailPage({
 }) {
     const { id } = await params
     const supabase = await createClient()
+    const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
     const locale = await getLocale()
 
@@ -174,7 +176,7 @@ export default async function JournalDetailPage({
                                 {l.credit > 0 ? formatMoney(l.credit) : ''}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
-                                {l.currency !== 'USD'
+                                {l.currency !== baseCurrency
                                     ? `${l.currency} ${formatMoney(l.amount_ccy)} @ ${l.fx_rate}`
                                     : '—'}
                             </td>

@@ -6,6 +6,7 @@
 // unpaid → 供应商(必选,后续核销要用)。底部实时 USD 预览 + 将要生成的分录说明。
 // 提交走 createExpense(rpc record_expense)。
 import { useActionState, useState } from 'react'
+import { bankAccountFor, currencyOfBank } from '@/lib/currencyMap'
 import Link from 'next/link'
 import { createExpense, type CreateExpenseState } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
@@ -31,9 +32,11 @@ const round2 = (n: number) => Math.round(n * 100) / 100
 export default function NewExpenseForm({
     accounts,
     suppliers,
+    baseCurrency,
 }: {
     accounts: AccountOption[]
     suppliers: SupplierOption[]
+    baseCurrency: string
 }) {
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(createExpense, initialState)
@@ -47,13 +50,13 @@ export default function NewExpenseForm({
     // 银行账户默认跟随币种(SGD → 1000,USD → 1010),之后仍可手动改
     function onCurrencyChange(c: string) {
         setCurrency(c)
-        setBank(c === 'SGD' ? '1000' : '1010')
+        setBank(bankAccountFor(c))
     }
 
     // 实时预览只对本位币直给;外币的 SGD 值由当日牌价决定(DB 侧),预览不猜数
     const amountNum = Number(amount)
     const amountValid = !!amount && !Number.isNaN(amountNum) && amountNum > 0
-    const amountSgd = currency === 'SGD' && amountValid ? round2(amountNum) : null
+    const amountSgd = currency === baseCurrency && amountValid ? round2(amountNum) : null
 
     const accountLabel = accounts.find((a) => a.code === accountCode)
     const previewAccount = accountLabel ? `${accountLabel.code} ${accountLabel.name}` : '…'
@@ -132,7 +135,7 @@ export default function NewExpenseForm({
                     </select>
                 </div>
                 {/* FIN-0:外币按费用日行方卖出价(tt_sell)自动估值,当天没牌价直接拒 */}
-                {currency !== 'SGD' && (
+                {currency !== baseCurrency && (
                     <p className="text-xs text-gray-500 self-end pb-2 max-w-56">{t('common.fxBoardRateHint')}</p>
                 )}
                 {/* 付款状态(默认挂账)*/}
@@ -214,10 +217,10 @@ export default function NewExpenseForm({
                 <div>
                     <span className="font-mono font-medium">
                         {amountSgd !== null
-                            ? t('expense.amountPreview', { amount: formatMoney(amountSgd) })
+                            ? t('expense.amountPreview', { amount: formatMoney(amountSgd), ccy: baseCurrency })
                             : t('common.fxBoardRateHint')}
                     </span>
-                    {currency !== 'SGD' && amountValid && (
+                    {currency !== baseCurrency && amountValid && (
                         <span className="text-gray-500 ml-2 font-mono">
                             ({currency} {formatMoney(amountNum)})
                         </span>

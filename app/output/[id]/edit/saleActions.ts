@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { getBaseCurrency } from '@/lib/currency'
 import { revalidatePath } from 'next/cache'
 import { getTranslations } from '@/lib/i18n/server'
 import { localizeSaleError } from './saleErrorCodes'
@@ -16,7 +17,7 @@ export async function recordSale(
 
     const quantity_raw = (formData.get('quantity') as string) || ''
     const unit_price_raw = (formData.get('unit_price') as string) || ''
-    const currency = (formData.get('currency') as string) || 'USD'
+    const currency = (formData.get('currency') as string) || await getBaseCurrency()
     const fx_rate_raw = (formData.get('fx_rate') as string) || ''
     const customer_id = (formData.get('customer_id') as string) || ''
     const sale_date = (formData.get('sale_date') as string)?.trim() || ''

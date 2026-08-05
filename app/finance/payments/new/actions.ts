@@ -4,6 +4,7 @@
 // (空/0 行剔除)→ rpc record_payment(分录、单据、核销一个事务)。
 // 敞口/归属/期间锁等校验在 DB 内,错误码本地化后展示;成功跳收付款详情。
 import { createClient } from '@/lib/supabase/server'
+import { getBaseCurrency } from '@/lib/currency'
 import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
@@ -20,7 +21,7 @@ export async function createPayment(
     const direction = formData.get('direction') === 'out' ? 'out' : 'in'
     const counterpartyId = String(formData.get('counterparty_id') ?? '').trim()
     const amountRaw = String(formData.get('amount') ?? '').trim()
-    const currency = String(formData.get('currency') ?? 'USD')
+    const currency = String(formData.get('currency') ?? await getBaseCurrency())
     const fxRaw = String(formData.get('fx_rate') ?? '').trim()
     const bank = String(formData.get('bank_account') ?? '').trim()
     const paymentDate = String(formData.get('payment_date') ?? '').trim()
