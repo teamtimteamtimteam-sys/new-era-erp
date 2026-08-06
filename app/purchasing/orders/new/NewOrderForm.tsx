@@ -43,7 +43,10 @@ export type TemplateOption = {
 }
 
 type LineRow = OrderLineInput & { assayOpen: boolean; calc: CalcResult | null; calcOpen: boolean
-    calcError: string; calcFx: number | null; calcFxAsOf: string | null }
+    calcError: string; calcFx: number | null; calcFxAsOf: string | null
+    // FIN-26:价格框里的数【现在还是】估算按钮算出的那个 —— 手改一个字符就翻 false。
+    // 出处是记录不是推断:提交时 computed 行带全套重导出依据(calc + fx)。
+    priceComputed: boolean }
 
 const TRIGGER_OPTIONS = ['on_order', 'on_shipment', 'on_arrival', 'post_assay', 'fixed_date'] as const
 
@@ -69,6 +72,7 @@ function emptyLine(): LineRow {
         unit: 'kg',
         formula_id: '',
         est_price: '',
+        priceComputed: false,
         assay: {},
         assayOpen: false,
         calc: null,
@@ -166,6 +170,7 @@ export default function NewOrderForm({
             // 填 USD 数字就等于报低约四分之一。换算在服务端做,这里只用结果。
             patchLine(i, {
                 est_price: String(res.unitPriceDoc ?? res.result.unit_price_usd_per_kg),
+                priceComputed: true,
                 calc: res.result,
                 calcFx: res.fxUsed ?? null,
                 calcFxAsOf: res.fxAsOf ?? null,
@@ -176,8 +181,18 @@ export default function NewOrderForm({
     }
 
     // 提交负载(去掉纯 UI 字段)
-    const linesPayload: OrderLineInput[] = lines.map(({ material_id, quantity, unit, formula_id, est_price, assay }) => ({
-        material_id, quantity, unit, formula_id, est_price, assay,
+    const linesPayload: OrderLineInput[] = lines.map((l) => ({
+        material_id: l.material_id, quantity: l.quantity, unit: l.unit,
+        formula_id: l.formula_id, est_price: l.est_price, assay: l.assay,
+        // FIN-26:出处随行走。computed = 按钮算的且没被手改过;有价而非 computed
+        // 即 manual。依据 = 完整 CalcResult(逐金属行情与日期、公式参数)+ 汇率。
+        ...(l.est_price.trim() !== ''
+            ? l.priceComputed && l.calc
+                ? { price_source: 'computed' as const,
+                    price_provenance: { calc: l.calc, fx_factor: l.calcFx, fx_as_of: l.calcFxAsOf,
+                                        doc_price: l.est_price, currency } }
+                : { price_source: 'manual' as const }
+            : {}),
     }))
 
     const lineAmount = (l: LineRow) => {
@@ -337,7 +352,13 @@ export default function NewOrderForm({
                                 <label className="block text-xs text-gray-600 mb-1">{t('purchasing.colFormula')}</label>
                                 <select
                                     value={l.formula_id}
-                                    onChange={(e) => patchLine(i, { formula_id: e.target.value })}
+                                    onChange={(e) => patchLine(i, {
+                                        formula_id: e.target.value,
+                                        // FIN-26 Part D:选了公式就摊开化验面板 —— 没有含量,
+                                        // 公式什么都算不出;把唯一让它工作的输入折叠起来,
+                                        // 正是"没有含量字段"误会(和手敲 8.0000)的成因。
+                                        ...(e.target.value ? { assayOpen: true } : {}),
+                                    })}
                                     className="w-full border border-gray-300 px-2 py-1.5 rounded"
                                 >
                                     <option value="">—</option>
@@ -352,7 +373,7 @@ export default function NewOrderForm({
                                 <label className="block text-xs text-gray-600 mb-1">{t('purchasing.colUnitPrice')}</label>
                                 <DecimalInput
                                     value={l.est_price}
-                                    onChange={(v) => patchLine(i, { est_price: v })}
+                                    onChange={(v) => patchLine(i, { est_price: v, priceComputed: false })}
                                     className="w-28 border border-gray-300 px-2 py-1.5 rounded"
                                 />
                             </div>

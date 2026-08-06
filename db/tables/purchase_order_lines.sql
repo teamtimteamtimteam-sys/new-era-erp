@@ -26,8 +26,19 @@ CREATE TABLE public.purchase_order_lines (
     notes                text,
     created_at           timestamptz NOT NULL DEFAULT now(),
     created_by           uuid DEFAULT auth.uid(),
-    UNIQUE (purchase_order_id, line_no)
+    UNIQUE (purchase_order_id, line_no),
+    -- ── FIN-26 追加(ALTER 加的列排在末尾)──────────────────────────────────
+    -- 行价出处:记录,不从 expected_assay 推断。NULL = FIN-26 之前的行,不回填。
+    price_source         text CHECK (price_source IN ('computed', 'manual')),
+    price_provenance     jsonb,
+    CONSTRAINT po_lines_provenance_pairing
+        CHECK ((price_source = 'computed') = (price_provenance IS NOT NULL))
 );
+
+COMMENT ON COLUMN public.purchase_order_lines.price_source IS
+    '行价的出处(FIN-26):computed = 估算按钮产出(必带 price_provenance);manual = 手填。NULL = FIN-26 之前的行,当时没记 —— 【不回填猜测】,界面画"未知"。不要从 expected_assay 推断。';
+COMMENT ON COLUMN public.purchase_order_lines.price_provenance IS
+    'computed 行的重导出依据(FIN-26):化验、逐金属行情与日期、汇率与 as-of、公式参数快照(公式可编辑,行上的 id 指不住当时的样子)。不能重导出的出处只是标签。';
 
 CREATE INDEX idx_purchase_order_lines_po ON public.purchase_order_lines (purchase_order_id);
 
@@ -56,5 +67,5 @@ CREATE POLICY "purchase_order_lines delete by permission"
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 purchase_order_lines_masked 读取。
 -- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
 REVOKE SELECT ON public.purchase_order_lines FROM authenticated, anon;
-GRANT SELECT (id, purchase_order_id, line_no, material_id, quantity, unit, pricing_formula_id, expected_assay, notes, created_at, created_by)
+GRANT SELECT (id, purchase_order_id, line_no, material_id, quantity, unit, pricing_formula_id, expected_assay, notes, created_at, created_by, price_source)
     ON public.purchase_order_lines TO authenticated;

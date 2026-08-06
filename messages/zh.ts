@@ -1476,6 +1476,11 @@ const zh = {
         },
     },
     purchasing: {
+        priceSource: {
+            computed: '按预计化验算出 @ {fx}(取 {asOf} 牌价)',
+            manual: '手填估价',
+            unknown: '出处未知(FIN-26 之前的行)',
+        },
         subnav: {
             orders: '采购单',
             templates: '付款条款',
@@ -1583,6 +1588,8 @@ const zh = {
         errNoTermLines: '请至少添加一期',
         errTermLine: '第 {0} 期不完整:期次名称、有效的比例/定额与触发事件均必填',
         errors: {
+            PRICE_SOURCE_INVALID: '第 {0} 行:价格出处 {1} 不是 computed/manual',
+            PROVENANCE_REQUIRED: '第 {0} 行:computed 价必须带重导出依据 —— 出处缺失',
             FX_RATE_MISSING: '缺 {0} 在 {1} 的当日牌价({2})—— 先到 财务 → 汇率 录入当天的牌价。',
             FX_RATE_NOT_ACCEPTED: '这里不接受手工汇率 —— 外币金额按当日牌价自动估值。',
             SUPPLIER_NOT_FOUND: '供应商不存在',

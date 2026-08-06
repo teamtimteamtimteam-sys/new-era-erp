@@ -1479,6 +1479,11 @@ const en = {
         },
     },
     purchasing: {
+        priceSource: {
+            computed: 'computed from expected assay @ {fx} (rate of {asOf})',
+            manual: 'manual estimate',
+            unknown: 'origin unknown (pre-FIN-26 line)',
+        },
         subnav: {
             orders: 'Purchase orders',
             templates: 'Payment terms',
@@ -1587,6 +1592,8 @@ const en = {
         errNoTermLines: 'Add at least one instalment',
         errTermLine: 'Instalment {0} is incomplete: label, a valid share and a trigger are required',
         errors: {
+            PRICE_SOURCE_INVALID: 'Line {0}: price source {1} is not computed/manual',
+            PROVENANCE_REQUIRED: 'Line {0}: a computed price must carry the data to re-derive it — provenance is missing',
             FX_RATE_MISSING: 'No {0} board rate on file for {1} ({2}) — enter the day\u2019s rate under Finance \u2192 FX first.',
             FX_RATE_NOT_ACCEPTED: 'A manual rate is not accepted here \u2014 foreign amounts are valued at the day\u2019s board rate automatically.',
             SUPPLIER_NOT_FOUND: 'Supplier not found',

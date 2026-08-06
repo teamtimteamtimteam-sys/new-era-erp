@@ -10,6 +10,7 @@
 -- 全不可见),所以这与调用者的 RLS 逐行等价 —— 视图【不放宽任何行访问】。
 --
 -- NOTE: introduced by db/migrations/2026-08-01-perm2b-field-masking.sql.
+-- FIN-26:price_source 透出(不敏感);price_provenance 含逐金属价格 → 随 data.view_prices。
 
 CREATE VIEW public.purchase_order_lines_masked WITH (security_invoker = off) AS
  SELECT id,
@@ -30,6 +31,11 @@ CREATE VIEW public.purchase_order_lines_masked WITH (security_invoker = off) AS
     expected_assay,
     notes,
     created_at,
-    created_by
+    created_by,
+    price_source,
+        CASE
+            WHEN has_permission('data.view_prices'::text) THEN price_provenance
+            ELSE NULL::jsonb
+        END AS price_provenance
    FROM purchase_order_lines
   WHERE has_permission('module.purchasing.view'::text);

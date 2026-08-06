@@ -26,6 +26,9 @@ export type OrderLineInput = {
     formula_id: string
     est_price: string
     assay: Record<string, string> // metal code → content % 原始输入(空 = 没测)
+    // FIN-26:价格出处(记录,不推断)。computed 必带重导出依据。
+    price_source?: 'computed' | 'manual'
+    price_provenance?: Record<string, unknown>
 }
 
 export type OrderTermInput = {
@@ -80,6 +83,9 @@ export async function createOrder(
             ...(l.formula_id ? { pricing_formula_id: l.formula_id } : {}),
             ...(price !== null && !Number.isNaN(price) ? { estimated_unit_price: price } : {}),
             ...(assay.length ? { expected_assay: assay } : {}),
+            // FIN-26:出处随行进 DB;配对(computed ↔ provenance)由函数与 CHECK 双重把关
+            ...(l.price_source ? { price_source: l.price_source } : {}),
+            ...(l.price_provenance ? { price_provenance: l.price_provenance } : {}),
         }
     })
 
@@ -140,7 +146,8 @@ export async function createOrder(
         p_incoterm: (incoterm || null) as unknown as string,
         p_terms_text: (termsText || null) as unknown as string,
         p_notes: (notes || null) as unknown as string,
-        p_lines: lines,
+        // provenance jsonb 自由形状 —— 生成类型的 Json 联合装不下 CalcResult,原样断言
+        p_lines: lines as unknown as import('@/lib/database.types').Json,
         p_payment_terms: terms,
     })
 

@@ -50,7 +50,7 @@ export default async function PurchaseOrderDetailPage({
         supabase.from('suppliers').select('id, legal_name').eq('id', po.supplier_id).single(),
         supabase
             .from('purchase_order_lines_masked')
-            .select('id, line_no, material_id, quantity, unit, pricing_formula_id, estimated_unit_price, estimated_amount_usd, expected_assay, notes')
+            .select('id, line_no, material_id, quantity, unit, pricing_formula_id, estimated_unit_price, estimated_amount_usd, expected_assay, notes, price_source, price_provenance')
             .eq('purchase_order_id', id)
             .order('line_no'),
         supabase
@@ -284,6 +284,24 @@ export default async function PurchaseOrderDetailPage({
                             </td>
                             <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
                                 {l.estimated_unit_price !== null ? formatUnitCost(l.estimated_unit_price) : '—'}
+                                {/* FIN-26:价的出处 —— 读者不必懂内部机制就能分清
+                                    "公式算出的"与"手敲的"。NULL(存量行)画"未知",
+                                    不猜(B3)。computed 带汇率与取自哪天。 */}
+                                {l.estimated_unit_price !== null && (
+                                    <span className={'block text-xs font-sans mt-0.5 ' +
+                                        (l.price_source === 'computed' ? 'text-green-700'
+                                         : l.price_source === 'manual' ? 'text-amber-700'
+                                         : 'text-gray-400')}>
+                                        {l.price_source === 'computed'
+                                            ? t('purchasing.priceSource.computed', {
+                                                fx: String((l.price_provenance as { fx_factor?: number } | null)?.fx_factor ?? '—'),
+                                                asOf: String((l.price_provenance as { fx_as_of?: string } | null)?.fx_as_of ?? '—'),
+                                              })
+                                            : l.price_source === 'manual'
+                                                ? t('purchasing.priceSource.manual')
+                                                : t('purchasing.priceSource.unknown')}
+                                    </span>
+                                )}
                             </td>
                             <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
                                 {formatMoney(l.estimated_amount_usd)}

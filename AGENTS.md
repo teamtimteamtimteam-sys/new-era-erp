@@ -290,7 +290,7 @@ python3 db/gate.py     # 0 clean · 1 mirror drift · 2 cannot build
                        # 3 B1/B2 invariant · 4 behavioural fixture failed
 ```
 
-Nineteen fixtures, ~61 assertions, on the paths where a silent break costs money:
+Twenty fixtures, ~66 assertions, on the paths where a silent break costs money:
 settlement closing to exactly zero (including cross-currency), revaluation
 idempotence, confirmation not touching leave, accrual not applying a category
 change retroactively, one bank line per employee, realised 7100 never crossing
@@ -328,7 +328,11 @@ deltas propagating one edge per re-allocation through the stale flags with no
 recursion, unpriced upstreams allowed but marked cost_incomplete and never
 silent, reversal and self-consumption guards, and the metal_value arm on
 fixture 18 that numerically separates per-batch from run-level ratios —
-62.50 vs 27.50 — where the weight basis provably cannot). Deliberately small: every retained fixture is
+62.50 vs 27.50 — where the weight basis provably cannot), and PO price
+provenance (FIN-26: price_source is RECORDED, never inferred from
+expected_assay; a computed line carries enough to re-derive the number and
+the fixture actually re-derives it; existing rows stay NULL and display as
+unknown — a fabricated provenance record is worse than a blank). Deliberately small: every retained fixture is
 maintenance on every schema move, and the HR-2c accrual change already cost one
 round of "is this staleness or regression?" judgement.
 

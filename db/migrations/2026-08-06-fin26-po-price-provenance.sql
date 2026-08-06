@@ -1,11 +1,71 @@
--- FIN-10(2026-08-05):日期不再有 CURRENT_DATE 默认值 —— 缺了就抛具名错误。
--- 默认成今天永远撞不上 PERIOD_LOCKED,于是留空反而比填对更容易过关,
--- 这条路径专门奖励留空。要求由函数自己声明,而不是靠调用方自觉。
--- 详见 db/migrations/2026-08-05-fin10-no-default-posting-dates.sql。
--- FIN-26(2026-08-06):行价出处 —— price_source(computed/manual,记录不推断)+
--- computed 必带 price_provenance(化验/逐金属行情与日期/汇率与 as-of/公式参数快照)。
--- 存量行 NULL,不回填。
+-- db/migrations/2026-08-06-fin26-po-price-provenance.sql
+--
+-- FIN-26:采购单行价的出处。
+--
+-- 【问题,用 Claude 自己演示的】PO-2026-0003 的行显示 8.0000 挨着 PF-2026-0001,
+-- Claude 读成了公式的输出,还推演了为什么 ~8 对高镍料合理 —— 而它是手敲的:
+-- expected_assay 为 NULL,估算按钮根本产不出数。供应商报价单和审计读到的
+-- 与 Claude 读到的完全一样。存储里没有任何东西区分 computed 与 manual。
+--
+-- 【记录,不推断】price_source 是列,不是从 expected_assay 空不空猜出来的 ——
+-- 猜法在谁改了一个字段没改另一个的那一刻失真(B1)。computed 必带
+-- price_provenance:化验、逐金属行情与日期、汇率与取自哪天、公式当时的参数
+-- 快照 —— 不能重导出的出处只是标签(B2)。公式【可编辑】(updateFormula 直改,
+-- 无版本化)—— 这正是快照必须冻进行里的原因,also Part E 的背景。
+--
+-- 【存量行保持 NULL】不回填猜测:编造的出处比空白更坏(processing_cost_entry_
+-- history 不补造历史行的同一条规矩,B3)。界面把 NULL 画成"未知"。
+--
+-- 【perm2b】purchase_order_lines 是列清单授权表:price_source 不敏感 → 授 +
+-- 透出;price_provenance 含逐金属价格 → 只经 masked 视图、随 data.view_prices。
+-- 【预检】无新函数;无新科目;两列同迁移进授权/视图(FIN-6 之坑)。
 
+BEGIN;
+
+-- ── 1. 两列 + 配对约束 ────────────────────────────────────────────────────
+ALTER TABLE public.purchase_order_lines ADD COLUMN price_source text
+    CHECK (price_source IN ('computed', 'manual'));
+ALTER TABLE public.purchase_order_lines ADD COLUMN price_provenance jsonb;
+ALTER TABLE public.purchase_order_lines ADD CONSTRAINT po_lines_provenance_pairing
+    CHECK ((price_source = 'computed') = (price_provenance IS NOT NULL));
+
+COMMENT ON COLUMN public.purchase_order_lines.price_source IS
+    '行价的出处(FIN-26):computed = 估算按钮产出(必带 price_provenance);manual = 手填。NULL = FIN-26 之前的行,当时没记 —— 【不回填猜测】,界面画"未知"。不要从 expected_assay 推断。';
+COMMENT ON COLUMN public.purchase_order_lines.price_provenance IS
+    'computed 行的重导出依据(FIN-26):化验、逐金属行情与日期、汇率与 as-of、公式参数快照(公式可编辑,行上的 id 指不住当时的样子)。不能重导出的出处只是标签。';
+
+GRANT SELECT (price_source) ON public.purchase_order_lines TO authenticated;
+
+-- ── 2. masked 视图:source 透出,provenance 随 data.view_prices ─────────────
+CREATE OR REPLACE VIEW public.purchase_order_lines_masked WITH (security_invoker = off) AS
+ SELECT id,
+    purchase_order_id,
+    line_no,
+    material_id,
+    quantity,
+    unit,
+    pricing_formula_id,
+        CASE
+            WHEN has_permission('data.view_prices'::text) THEN estimated_unit_price
+            ELSE NULL::numeric
+        END AS estimated_unit_price,
+        CASE
+            WHEN has_permission('data.view_prices'::text) THEN estimated_amount_usd
+            ELSE NULL::numeric
+        END AS estimated_amount_usd,
+    expected_assay,
+    notes,
+    created_at,
+    created_by,
+    price_source,
+        CASE
+            WHEN has_permission('data.view_prices'::text) THEN price_provenance
+            ELSE NULL::jsonb
+        END AS price_provenance
+   FROM purchase_order_lines
+  WHERE has_permission('module.purchasing.view'::text);
+
+-- ── 3. create_purchase_order:记录出处 ─────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.create_purchase_order(p_supplier_id uuid, p_order_date date, p_expected_delivery date, p_currency text, p_fx_rate numeric, p_incoterm text, p_terms_text text, p_notes text, p_lines jsonb, p_payment_terms jsonb DEFAULT '[]'::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -175,3 +235,5 @@ BEGIN
     );
 END;
 $function$;
+
+COMMIT;

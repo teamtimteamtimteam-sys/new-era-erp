@@ -4763,6 +4763,8 @@ export type Database = {
           line_no: number
           material_id: string
           notes: string | null
+          price_provenance: Json | null
+          price_source: string | null
           pricing_formula_id: string | null
           purchase_order_id: string
           quantity: number
@@ -4778,6 +4780,8 @@ export type Database = {
           line_no: number
           material_id: string
           notes?: string | null
+          price_provenance?: Json | null
+          price_source?: string | null
           pricing_formula_id?: string | null
           purchase_order_id: string
           quantity: number
@@ -4793,6 +4797,8 @@ export type Database = {
           line_no?: number
           material_id?: string
           notes?: string | null
+          price_provenance?: Json | null
+          price_source?: string | null
           pricing_formula_id?: string | null
           purchase_order_id?: string
           quantity?: number
@@ -8557,6 +8563,8 @@ export type Database = {
           line_no: number | null
           material_id: string | null
           notes: string | null
+          price_provenance: Json | null
+          price_source: string | null
           pricing_formula_id: string | null
           purchase_order_id: string | null
           quantity: number | null
@@ -8572,6 +8580,8 @@ export type Database = {
           line_no?: number | null
           material_id?: string | null
           notes?: string | null
+          price_provenance?: never
+          price_source?: string | null
           pricing_formula_id?: string | null
           purchase_order_id?: string | null
           quantity?: number | null
@@ -8587,6 +8597,8 @@ export type Database = {
           line_no?: number | null
           material_id?: string | null
           notes?: string | null
+          price_provenance?: never
+          price_source?: string | null
           pricing_formula_id?: string | null
           purchase_order_id?: string | null
           quantity?: number | null
