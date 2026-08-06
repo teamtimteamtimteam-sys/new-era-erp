@@ -276,8 +276,9 @@ export default async function ProcessingDetailPage({
                 {isCommitted && (
                     <div className="mt-8 pt-8 border-t">
                         <h2 className="text-xl font-bold mb-4">{t('processing.allocation.title')}</h2>
-                        {/* 过期标记:不自动重跑(会改写已售批次的资本化),但必须说出来。
-                            有已过账 COGS 的单不能一键了事 —— 那部分成本不会被重述。 */}
+                        {/* 过期标记(FIN-24 起差额法):重跑把差额按处置拆 —— 在库→1220、
+                            已售→5000 补 COGS、注销→5200,全记当期。已过账 COGS 不再是
+                            不能重跑的理由;唯一的红 = 资本化分录被人工冲销(基线分道)。 */}
                         {(allocStatus?.is_stale
                           || (allocStatus && !allocStatus.allocated_at && allocStatus.last_cost_change)) && (
                             <div className={'mb-4 rounded border px-3 py-2 text-sm '
@@ -292,7 +293,7 @@ export default async function ProcessingDetailPage({
                                 <p className="mt-1 text-xs">
                                     {allocStatus.safe_to_reallocate
                                         ? t('processing.allocation.staleSafe')
-                                        : t('processing.allocation.staleUnsafe', { n: allocStatus.cogs_posted ?? 0 })}
+                                        : t('processing.allocation.staleUnsafe')}
                                 </p>
                             </div>
                         )}

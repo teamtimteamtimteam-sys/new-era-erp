@@ -1,17 +1,31 @@
--- 【缺行情:这里跳过,报价那边拒绝 —— 差异是有意的,别统一】
--- 本函数对没有可用行情的金属计 0 并记进 allocation_snapshot.skipped_metals:
--- 为了一个金属没报价就卡住生产,从来不是我们要的(Phase 1 follow-up 1 的决定,
--- 至今有效)。成本总要落到批次上,少一个金属的价不影响这批货能不能继续走。
--- 但【报价】那条路相反:少算一个金属就是报低了价,而且看不出来。
--- 所以拒绝放在调用方 app/pricing/calculator/actions.ts,那里 skipped_metals
--- 非空即拒并点名。两个调用方、两种处置,理由两边都写着。
+-- db/migrations/2026-08-06-fin24-allocation-delta-split.sql
 --
+-- FIN-24:给分摊装上 reprice 早有的"在库/已耗"拆分 —— 并修好两者的叠加错。
 --
--- FIN-24(2026-08-06):首挂全额,此后【差额法】—— 不再全额冲销重挂。逐产出批按
--- 自己的处置比例拆(在库→1220,已售已挂COGS→5000,注销→5200);材料差额贷 5000
--- (reprice 把已耗价差停在那里,同户互抵),费用差额贷/借各自科目;全部记当期。
--- 资本化分录被人工冲销 → ALLOCATION_LEDGER_DIVERGED 点名拒(唯一剩下的红)。
--- 产出批喂回再加工在 schema 上不可表示 —— 真建了必须先扩这套拆分(known-issues)。
+-- 【洞】allocate_processing_costs 全额冲销重挂:库存(1220)按新成本整体重述,
+-- 已过账 COGS 从不重述 —— 卖掉份额的价差留在库存,卖得越多错得越多。且材料价差
+-- 贷 1200,而 reprice 早把已耗份额记进 5000:两处叠加 = 重复计数 + 1200 变负
+-- (实测:100kg@1 全耗、重定价到 2、重分摊 → 1220=200、5000 多挂 100、1200=−100)。
+-- 旧横幅只能说"人工决定",而不存在正确的人工动作。
+--
+-- 【修】首挂全额不变;此后【差额法】(与重估/折旧同形,细节见函数内注释):
+-- 每产出批按自己的处置比例拆(在库→1220,已售已挂COGS→5000,注销→5200 ——
+-- Tim 裁定 5200:处置在产出粒度可知,注销总额是运营信号);材料差额贷 5000
+-- (reprice 的停车位;5000 同时是 COGS 科目,已售份额同户互抵是设计支点);
+-- 费用差额贷/借各自科目;全部记当期(CURRENT_DATE),期间锁天然挡住写回锁内。
+--
+-- 【剩下唯一的红】资本化分录被人工冲销 → ALLOCATION_LEDGER_DIVERGED 点名拒:
+-- "已记录"与总账已分道,差额基准不可信;人工冲销的修复也该是人工分录。
+--
+-- 【F2:staleness 的洞】is_stale 只看 processing_cost_entries —— 重定价进料后,
+-- 耗了它的加工单过期而【无旗】,叠加错因此隐形。视图改为同时看输入批的
+-- price_history;safe_to_reallocate 重定义为"资本化分录未被人工冲销"
+-- (差额法下,已过账 COGS 不再是不能重跑的理由 —— 红降为琥珀)。
+--
+-- 【预检,FIN-23b 的教训,这次先做了】无新函数(改写既有的,EXECUTE 已收);
+-- 1200/1220/5000/5200 全部已 is_system。无表改动,colgrant 不涉。
+
+BEGIN;
 
 CREATE OR REPLACE FUNCTION public.allocate_processing_costs(p_run_id uuid, p_basis text DEFAULT NULL::text)
  RETURNS jsonb
@@ -516,3 +530,39 @@ BEGIN
     );
 END;
 $function$;
+
+-- ── 视图:staleness 补上输入价变;safe 重定义 ────────────────────────────────
+DROP VIEW public.processing_run_allocation_status;
+CREATE VIEW public.processing_run_allocation_status WITH (security_invoker = on) AS
+ SELECT r.id AS run_id,
+    r.code,
+    r.allocated_at,
+    c.last_cost_change,
+    r.allocated_at IS NOT NULL AND c.last_cost_change IS NOT NULL AND c.last_cost_change > r.allocated_at AS is_stale,
+    COALESCE(g.cogs_posted, 0::bigint) AS cogs_posted,
+    -- FIN-24:差额法重述已售份额进 5000,已过账 COGS 不再是"不能重跑"的理由。
+    -- 唯一不能重跑的:资本化分录被人工冲销(差额基准与总账分道)——
+    -- allocate 会 ALLOCATION_LEDGER_DIVERGED 点名拒,这里把它亮出来。
+    (r.capitalization_entry_id IS NULL OR je.status = 'posted') AS safe_to_reallocate
+   FROM processing_runs r
+     LEFT JOIN journal_entries je ON je.id = r.capitalization_entry_id
+     LEFT JOIN LATERAL ( SELECT max(x.ts) AS last_cost_change
+           FROM ( SELECT GREATEST(e.created_at, e.updated_at) AS ts
+                    FROM processing_cost_entries e
+                   WHERE e.run_id = r.id
+                  UNION ALL
+                  -- FIN-24/F2:输入批被重定价 = 本单材料成本过期。price_history 是
+                  -- 定价的唯一写入路径,它的 created_at 就是"输入价何时变了"。
+                  SELECT ph.created_at
+                    FROM price_history ph
+                    JOIN processing_inputs pi ON pi.inbound_batch_id = ph.inbound_batch_id
+                   WHERE pi.run_id = r.id) x) c ON true
+     LEFT JOIN LATERAL ( SELECT count(*) AS cogs_posted
+           FROM sales_records sr
+             JOIN processing_outputs po ON po.output_batch_id = sr.output_batch_id AND po.run_id = r.id
+          WHERE sr.cogs_entry_id IS NOT NULL) g ON true
+  WHERE r.deleted_at IS NULL;
+
+GRANT SELECT ON public.processing_run_allocation_status TO authenticated;
+
+COMMIT;
