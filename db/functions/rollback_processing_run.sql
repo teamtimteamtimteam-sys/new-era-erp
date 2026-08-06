@@ -1,3 +1,7 @@
+-- FIN-25(2026-08-06):产出批投料同样还原(上游批已删则跳过 —— 其自身加工单
+-- 已冲销的情形)。
+-- FIN-25c:movement_ctx 用毕即清(残留 ctx 会让投入腿守卫放行同事务内的裸 INSERT)。
+
 CREATE OR REPLACE FUNCTION public.rollback_processing_run(p_run_id uuid)
  RETURNS void
  LANGUAGE plpgsql
@@ -46,36 +50,64 @@ BEGIN
             v_bad_output.code, v_bad_output.state, v_bad_output.remaining_qty, v_bad_output.quantity;
     END IF;
 
-    -- 3. 还原进料：加回 remaining_qty，重判 stage，记 reversal_restore 流水
+    -- 3. 还原进料：加回 remaining_qty，重判 stage，记 reversal_restore 流水。
+    --    FIN-25:产出批投料同样还原(不碰 state —— 那是销售状态)。
     FOR v_input IN
-        SELECT pi.inbound_batch_id, pi.quantity_consumed
+        SELECT pi.inbound_batch_id, pi.output_batch_id, pi.quantity_consumed
         FROM processing_inputs pi
         WHERE pi.run_id = p_run_id
     LOOP
-        SELECT quantity, remaining_qty INTO v_quantity, v_old_remaining
-        FROM inbound_batches
-        WHERE id = v_input.inbound_batch_id
-        FOR UPDATE;
+        IF v_input.inbound_batch_id IS NOT NULL THEN
+            SELECT quantity, remaining_qty INTO v_quantity, v_old_remaining
+            FROM inbound_batches
+            WHERE id = v_input.inbound_batch_id
+            FOR UPDATE;
 
-        IF NOT FOUND THEN
-            CONTINUE;  -- 进料批次已被删，跳过
-        END IF;
+            IF NOT FOUND THEN
+                CONTINUE;  -- 进料批次已被删，跳过
+            END IF;
 
-        v_new_remaining := LEAST(
-            COALESCE(v_old_remaining, 0) + v_input.quantity_consumed,
-            v_quantity
-        );
+            v_new_remaining := LEAST(
+                COALESCE(v_old_remaining, 0) + v_input.quantity_consumed,
+                v_quantity
+            );
 
-        UPDATE inbound_batches
-        SET remaining_qty = v_new_remaining,
-            stage = CASE WHEN v_new_remaining >= v_quantity THEN '待加工' ELSE '加工中' END,
-            updated_by = v_user_id,
-            updated_at = now()
-        WHERE id = v_input.inbound_batch_id;
+            UPDATE inbound_batches
+            SET remaining_qty = v_new_remaining,
+                stage = CASE WHEN v_new_remaining >= v_quantity THEN '待加工' ELSE '加工中' END,
+                updated_by = v_user_id,
+                updated_at = now()
+            WHERE id = v_input.inbound_batch_id;
 
-        IF v_new_remaining - COALESCE(v_old_remaining, 0) > 0 THEN
-            INSERT INTO inventory_movements (inbound_batch_id, movement_type, qty_delta, run_id, created_by)
-            VALUES (v_input.inbound_batch_id, 'reversal_restore', v_new_remaining - COALESCE(v_old_remaining, 0), p_run_id, v_user_id);
+            IF v_new_remaining - COALESCE(v_old_remaining, 0) > 0 THEN
+                INSERT INTO inventory_movements (inbound_batch_id, movement_type, qty_delta, run_id, created_by)
+                VALUES (v_input.inbound_batch_id, 'reversal_restore', v_new_remaining - COALESCE(v_old_remaining, 0), p_run_id, v_user_id);
+            END IF;
+        ELSE
+            SELECT quantity, remaining_qty INTO v_quantity, v_old_remaining
+            FROM output_batches
+            WHERE id = v_input.output_batch_id AND deleted_at IS NULL
+            FOR UPDATE;
+
+            IF NOT FOUND THEN
+                CONTINUE;  -- 上游产出批已被删（如其自身加工单已冲销），跳过
+            END IF;
+
+            v_new_remaining := LEAST(
+                COALESCE(v_old_remaining, 0) + v_input.quantity_consumed,
+                v_quantity
+            );
+
+            UPDATE output_batches
+            SET remaining_qty = v_new_remaining,
+                updated_by = v_user_id,
+                updated_at = now()
+            WHERE id = v_input.output_batch_id;
+
+            IF v_new_remaining - COALESCE(v_old_remaining, 0) > 0 THEN
+                INSERT INTO inventory_movements (output_batch_id, movement_type, qty_delta, run_id, created_by)
+                VALUES (v_input.output_batch_id, 'reversal_restore', v_new_remaining - COALESCE(v_old_remaining, 0), p_run_id, v_user_id);
+            END IF;
         END IF;
     END LOOP;
 
@@ -96,5 +128,7 @@ BEGIN
         updated_by = v_user_id,
         updated_at = now()
     WHERE id = p_run_id;
+
+    PERFORM set_config('evoltrya.movement_ctx', '', true);   -- 用毕即清(同 commit)
 END;
 $function$;

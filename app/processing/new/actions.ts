@@ -7,8 +7,10 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { localizeProcessingError } from '../errorCodes'
 
+// FIN-25:投料双亲 —— 恰一非空(服务端 XOR 与守卫触发器双重把关)
 export type InputRow = {
-    inbound_batch_id: string
+    inbound_batch_id?: string
+    output_batch_id?: string
     quantity_consumed: number
 }
 

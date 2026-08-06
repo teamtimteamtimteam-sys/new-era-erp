@@ -4464,21 +4464,24 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          inbound_batch_id: string
+          inbound_batch_id: string | null
+          output_batch_id: string | null
           quantity_consumed: number
           run_id: string
         }
         Insert: {
           created_at?: string
           id?: string
-          inbound_batch_id: string
+          inbound_batch_id?: string | null
+          output_batch_id?: string | null
           quantity_consumed: number
           run_id: string
         }
         Update: {
           created_at?: string
           id?: string
-          inbound_batch_id?: string
+          inbound_batch_id?: string | null
+          output_batch_id?: string | null
           quantity_consumed?: number
           run_id?: string
         }
@@ -4510,6 +4513,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
             referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "processing_inputs_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "processing_inputs_run_id_fkey"
@@ -4544,6 +4554,7 @@ export type Database = {
       processing_outputs: {
         Row: {
           allocated_cost_base: number | null
+          cost_incomplete: boolean
           created_at: string
           id: string
           output_batch_id: string
@@ -4553,6 +4564,7 @@ export type Database = {
         }
         Insert: {
           allocated_cost_base?: number | null
+          cost_incomplete?: boolean
           created_at?: string
           id?: string
           output_batch_id: string
@@ -4562,6 +4574,7 @@ export type Database = {
         }
         Update: {
           allocated_cost_base?: number | null
+          cost_incomplete?: boolean
           created_at?: string
           id?: string
           output_batch_id?: string
@@ -6200,6 +6213,19 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      batch_lineage: {
+        Row: {
+          depth: number | null
+          output_batch_id: string | null
+          parent_batch_id: string | null
+          parent_code: string | null
+          parent_kind: string | null
+          quantity_consumed: number | null
+          via_run_code: string | null
+          via_run_id: string | null
+        }
+        Relationships: []
       }
       company_profile_masked: {
         Row: {
@@ -8352,6 +8378,7 @@ export type Database = {
       processing_outputs_masked: {
         Row: {
           allocated_cost_base: number | null
+          cost_incomplete: boolean | null
           created_at: string | null
           id: string | null
           output_batch_id: string | null
@@ -8361,6 +8388,7 @@ export type Database = {
         }
         Insert: {
           allocated_cost_base?: never
+          cost_incomplete?: boolean | null
           created_at?: string | null
           id?: string | null
           output_batch_id?: string | null
@@ -8370,6 +8398,7 @@ export type Database = {
         }
         Update: {
           allocated_cost_base?: never
+          cost_incomplete?: boolean | null
           created_at?: string | null
           id?: string | null
           output_batch_id?: string | null

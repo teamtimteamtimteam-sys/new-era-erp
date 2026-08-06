@@ -290,7 +290,7 @@ python3 db/gate.py     # 0 clean · 1 mirror drift · 2 cannot build
                        # 3 B1/B2 invariant · 4 behavioural fixture failed
 ```
 
-Eighteen fixtures, ~53 assertions, on the paths where a silent break costs money:
+Nineteen fixtures, ~61 assertions, on the paths where a silent break costs money:
 settlement closing to exactly zero (including cross-currency), revaluation
 idempotence, confirmation not touching leave, accrual not applying a category
 change retroactively, one bank line per employee, realised 7100 never crossing
@@ -321,7 +321,14 @@ share to 1220, sold-with-COGS share to 5000, written-off share to 5200 — the
 material delta credits 5000 where repricing parks the consumed share, so the
 two mechanisms compose instead of double-counting; repricing an input now
 flags consuming runs stale; the one remaining red is a manually-reversed
-capitalization entry, ALLOCATION_LEDGER_DIVERGED). Deliberately small: every retained fixture is
+capitalization entry, ALLOCATION_LEDGER_DIVERGED), and re-processing (FIN-25:
+output batches feed further runs — two-sourced recovery arithmetic asserted
+against hand-computed figures, cost relieved from 1220 not 1200, upstream
+deltas propagating one edge per re-allocation through the stale flags with no
+recursion, unpriced upstreams allowed but marked cost_incomplete and never
+silent, reversal and self-consumption guards, and the metal_value arm on
+fixture 18 that numerically separates per-batch from run-level ratios —
+62.50 vs 27.50 — where the weight basis provably cannot). Deliberately small: every retained fixture is
 maintenance on every schema move, and the HR-2c accrual change already cost one
 round of "is this staleness or regression?" judgement.
 

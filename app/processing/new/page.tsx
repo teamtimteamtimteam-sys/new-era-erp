@@ -9,12 +9,19 @@ export default async function NewProcessingPage() {
     const supabase = await createClient()
     const t = await getTranslations()
 
-    const [batchesRes, materialsRes] = await Promise.all([
+    const [batchesRes, outputBatchesRes, materialsRes] = await Promise.all([
         supabase
             .from('inbound_batches')
             .select('id, code, remaining_qty, unit, materials ( name )')
             .is('deleted_at', null)
             .gt('remaining_qty', 0) // 只看还有库存的批次
+            .order('code'),
+        // FIN-25:再加工 —— 有库存的产出批也可投料
+        supabase
+            .from('output_batches')
+            .select('id, code, remaining_qty, unit, materials ( name )')
+            .is('deleted_at', null)
+            .gt('remaining_qty', 0)
             .order('code'),
         supabase
             .from('materials')
@@ -23,8 +30,8 @@ export default async function NewProcessingPage() {
             .order('name'),
     ])
 
-    if (batchesRes.error || materialsRes.error) {
-        const err = batchesRes.error ?? materialsRes.error
+    if (batchesRes.error || outputBatchesRes.error || materialsRes.error) {
+        const err = batchesRes.error ?? outputBatchesRes.error ?? materialsRes.error
         return (
             <div className="p-8 max-w-2xl">
                 <h1 className="text-2xl font-bold mb-4">{t('processing.newTitle')}</h1>
@@ -39,6 +46,7 @@ export default async function NewProcessingPage() {
     return (
         <NewProcessingForm
             inboundBatches={(batchesRes.data as unknown as InboundBatchOption[] | null) ?? []}
+            outputBatches={(outputBatchesRes.data as unknown as InboundBatchOption[] | null) ?? []}
             materials={mustRows(materialsRes)}
         />
     )

@@ -833,6 +833,15 @@ const en = {
         },
     },
     processing: {
+        lineage: {
+            title: 'Lineage — every ancestor of this run\'s outputs',
+            colDepth: 'Hops',
+            colViaRun: 'Via run',
+            colParent: 'Consumed batch',
+            colQty: 'Qty consumed',
+            kind_inbound: 'inbound',
+            kind_output: 're-processed output',
+        },
         errProcessDateRequired: 'A process date is required — it decides the inventory movement date and which metal prices the cost allocation uses.',
         listTitle: 'Processing',
         addButton: '+ Add Processing Run',
@@ -856,6 +865,8 @@ const en = {
         dropdownLoadError: 'Failed to load dropdown data',
         detailLoadError: 'Failed to load input/output details',
         form: {
+            groupInbound: 'Inbound batches',
+            groupOutput: 'Output batches (re-process)',
             dateLabel: 'Process Date',
             inputsSectionHeader: 'Inputs (consume inbound)',
             addInputButton: '+ Add Input',
@@ -890,6 +901,8 @@ const en = {
             lossInvalidClient: 'Loss must be a number ≥ 0',
         },
         detail: {
+            reprocessedTag: 're-processed',
+            costIncomplete: 'cost incomplete',
             processDate: 'Process Date:',
             totalInput: 'Total Input:',
             totalOutput: 'Total Output:',

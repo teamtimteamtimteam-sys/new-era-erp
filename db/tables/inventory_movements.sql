@@ -38,9 +38,9 @@ CREATE TABLE public.inventory_movements (
         WHEN 'writeoff' THEN qty_delta < 0
         ELSE true END),
     -- batch side must match movement_type
+    -- FIN-25b:consume/restore 放开为任一侧(再加工耗产出批);恰一批次由
+    -- one_batch XOR 把守。produce/void/sale 仍钉产出侧。
     CONSTRAINT inventory_movements_side CHECK (CASE movement_type
-        WHEN 'processing_consume' THEN inbound_batch_id IS NOT NULL
-        WHEN 'reversal_restore' THEN inbound_batch_id IS NOT NULL
         WHEN 'processing_produce' THEN output_batch_id IS NOT NULL
         WHEN 'reversal_void' THEN output_batch_id IS NOT NULL
         WHEN 'sale' THEN output_batch_id IS NOT NULL

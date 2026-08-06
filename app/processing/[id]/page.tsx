@@ -26,6 +26,14 @@ type ProcessingInputRow = {
         deleted_at: string | null
         materials: { name: string } | null
     } | null
+    // FIN-25:再加工投料 —— 双亲恰一非空
+    output_batches: {
+        id: string
+        code: string
+        unit: string
+        deleted_at: string | null
+        materials: { name: string } | null
+    } | null
 }
 
 type ProcessingOutputRow = {
@@ -33,6 +41,7 @@ type ProcessingOutputRow = {
     quantity_produced: number
     allocated_cost_base: number | null
     unit_cost_base: number | null
+    cost_incomplete: boolean
     output_batches: {
         id: string
         code: string
@@ -63,12 +72,12 @@ export default async function ProcessingDetailPage({
             .single(),
         supabase
             .from('processing_inputs')
-            .select('id, quantity_consumed, inbound_batches ( id, code, unit, deleted_at, materials ( name ) )')
+            .select('id, quantity_consumed, inbound_batches ( id, code, unit, deleted_at, materials ( name ) ), output_batches ( id, code, unit, deleted_at, materials ( name ) )')
             .eq('run_id', id)
             .order('created_at'),
         supabase
             .from('processing_outputs_masked')
-            .select('id, quantity_produced, allocated_cost_base, unit_cost_base, output_batches ( id, code, unit, purity, deleted_at, materials ( name ) )')
+            .select('id, quantity_produced, allocated_cost_base, unit_cost_base, cost_incomplete, output_batches ( id, code, unit, purity, deleted_at, materials ( name ) )')
             .eq('run_id', id)
             .order('created_at'),
         supabase
@@ -107,6 +116,25 @@ export default async function ProcessingDetailPage({
         'material_cost_base' | 'process_cost_base' | 'total_cost_base' | 'capitalized_cost_base'
     >(runRes.data)
     const inputs = inputsRes.data as unknown as ProcessingInputRow[] | null
+
+    // FIN-25:血缘 —— 本单产出批的【全部】祖先(递归视图;security_invoker,RLS 照常)。
+    // 立账公理是全链路可溯,再加工让链条真正变长,这一块是它的眼睛。
+    type LineageRow = {
+        output_batch_id: string; depth: number; via_run_id: string; via_run_code: string
+        parent_kind: string; parent_batch_id: string; parent_code: string | null
+        quantity_consumed: number
+    }
+    const outputIds = ((outputsRes.data as unknown as ProcessingOutputRow[] | null) ?? [])
+        .map((o) => o.output_batches?.id).filter(Boolean) as string[]
+    let lineage: LineageRow[] = []
+    if (outputIds.length > 0) {
+        const lineageRes = await supabase
+            .from('batch_lineage')
+            .select('output_batch_id, depth, via_run_id, via_run_code, parent_kind, parent_batch_id, parent_code, quantity_consumed')
+            .in('output_batch_id', outputIds)
+            .order('depth')
+        lineage = (mustRows(lineageRes, 'batch_lineage') as unknown as LineageRow[])
+    }
     const outputs = outputsRes.data as unknown as ProcessingOutputRow[] | null
 
     const isCommitted = run.status === 'committed'
@@ -272,6 +300,43 @@ export default async function ProcessingDetailPage({
                 {/* 成本条目(仅已提交单) */}
                 {isCommitted && <CostPanel runId={run.id} entries={costRows} canViewPrices={showPrices} />}
 
+                {/* FIN-25:血缘 —— 深度 >1 才值得占版面(一段加工的直接投入上面已经列了)*/}
+                {lineage.some((l) => l.depth > 1) && (
+                    <section>
+                        <h2 className="text-lg font-semibold mb-2">{t('processing.lineage.title')}</h2>
+                        <table className="w-auto min-w-[36rem] border-collapse border border-gray-300">
+                            <thead className="bg-gray-100">
+                                <tr>
+                                    <th className="border border-gray-300 px-3 py-2 text-left">{t('processing.lineage.colDepth')}</th>
+                                    <th className="border border-gray-300 px-3 py-2 text-left">{t('processing.lineage.colViaRun')}</th>
+                                    <th className="border border-gray-300 px-3 py-2 text-left">{t('processing.lineage.colParent')}</th>
+                                    <th className="border border-gray-300 px-3 py-2 text-right">{t('processing.lineage.colQty')}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {lineage.map((l, i) => (
+                                    <tr key={i}>
+                                        <td className="border border-gray-300 px-3 py-2 font-mono text-sm">{l.depth}</td>
+                                        <td className="border border-gray-300 px-3 py-2 font-mono text-sm">{l.via_run_code}</td>
+                                        <td className="border border-gray-300 px-3 py-2 font-mono text-sm">
+                                            <Link href={l.parent_kind === 'inbound'
+                                                    ? `/inbound/${l.parent_batch_id}/edit`
+                                                    : `/output/${l.parent_batch_id}/edit`}
+                                                  className="text-blue-600 hover:underline">
+                                                {l.parent_code ?? '—'}
+                                            </Link>
+                                            <span className="ml-2 text-xs text-gray-500 font-sans">
+                                                {t('processing.lineage.kind_' + l.parent_kind)}
+                                            </span>
+                                        </td>
+                                        <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">{l.quantity_consumed}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </section>
+                )}
+
                 {/* 成本分摊(仅已提交单) */}
                 {isCommitted && (
                     <div className="mt-8 pt-8 border-t">
@@ -314,32 +379,41 @@ export default async function ProcessingDetailPage({
                             </tr>
                         </thead>
                         <tbody>
-                            {inputs?.map((leg) => (
+                            {inputs?.map((leg) => {
+                                {/* FIN-25:双亲投料 —— 进料批或(再加工)产出批 */}
+                                const parent = leg.inbound_batches ?? leg.output_batches
+                                const href = leg.inbound_batches
+                                    ? `/inbound/${leg.inbound_batches.id}/edit`
+                                    : leg.output_batches ? `/output/${leg.output_batches.id}/edit` : null
+                                return (
                                 <tr key={leg.id}>
                                     <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                        {!leg.inbound_batches ? (
+                                        {!parent ? (
                                             '—'
-                                        ) : leg.inbound_batches.deleted_at ? (
+                                        ) : parent.deleted_at ? (
                                             <span className="text-gray-500">
-                                                {leg.inbound_batches.code}{t('processing.detail.deletedMarker')}
+                                                {parent.code}{t('processing.detail.deletedMarker')}
                                             </span>
                                         ) : (
-                                            <Link
-                                                href={`/inbound/${leg.inbound_batches.id}/edit`}
-                                                className="text-blue-600 hover:underline"
-                                            >
-                                                {leg.inbound_batches.code}
+                                            <Link href={href!} className="text-blue-600 hover:underline">
+                                                {parent.code}
                                             </Link>
+                                        )}
+                                        {leg.output_batches && (
+                                            <span className="ml-2 px-1.5 py-0.5 rounded text-xs bg-blue-50 text-blue-700 font-sans">
+                                                {t('processing.detail.reprocessedTag')}
+                                            </span>
                                         )}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2">
-                                        {leg.inbound_batches?.materials?.name ?? '—'}
+                                        {parent?.materials?.name ?? '—'}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2">
-                                        {leg.quantity_consumed} {leg.inbound_batches?.unit ?? ''}
+                                        {leg.quantity_consumed} {parent?.unit ?? ''}
                                     </td>
                                 </tr>
-                            ))}
+                                )
+                            })}
                             {(!inputs || inputs.length === 0) && (
                                 <tr>
                                     <td
@@ -413,6 +487,13 @@ export default async function ProcessingDetailPage({
                                             canView={showPrices}
                                             fallback="—"
                                         />
+                                        {/* FIN-25:含计 0 的无价投料(或上游带标)—— 零不静默,
+                                            上游补分摊后本单过期,重跑即清 */}
+                                        {leg.cost_incomplete && (
+                                            <span className="ml-1 px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-800 font-sans">
+                                                {t('processing.detail.costIncomplete')}
+                                            </span>
+                                        )}
                                     </td>
                                 </tr>
                             ))}

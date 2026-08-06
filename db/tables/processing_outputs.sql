@@ -14,8 +14,14 @@ CREATE TABLE public.processing_outputs (
     quantity_produced  numeric NOT NULL,
     created_at         timestamptz NOT NULL DEFAULT now(),
     allocated_cost_base numeric,
-    unit_cost_base      numeric
+    unit_cost_base      numeric,
+    -- ── FIN-25 追加(ALTER 加的列排在末尾)──────────────────────────────────
+    -- 不完整成本标记:单位成本含计 0 的无价投料,或上游产出带着此标记(传染)。
+    cost_incomplete boolean NOT NULL DEFAULT false
 );
+
+COMMENT ON COLUMN public.processing_outputs.cost_incomplete IS
+    '本产出的单位成本含【计 0 的无价投料】或【上游产出自己带着此标记】(FIN-25)。零永不静默,层层传染;上游补分摊后本单过期(状态视图第三支),重跑分摊即清。';
 
 ALTER TABLE public.processing_outputs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "processing_outputs select by permission"
@@ -42,7 +48,7 @@ CREATE POLICY "processing_outputs delete by permission"
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 processing_outputs_masked 读取。
 -- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
 REVOKE SELECT ON public.processing_outputs FROM authenticated, anon;
-GRANT SELECT (id, run_id, output_batch_id, quantity_produced, created_at)
+GRANT SELECT (id, run_id, output_batch_id, quantity_produced, created_at, cost_incomplete)
     ON public.processing_outputs TO authenticated;
 
 -- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)

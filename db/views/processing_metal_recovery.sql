@@ -14,15 +14,24 @@
 -- consistent with the RLS-everywhere posture.
 --
 -- First-run script. Re-running requires DROP VIEW first. Run in the Supabase SQL Editor.
+-- FIN-25:投入金属两路来源(进料批 / 再加工的产出批)—— 旧内联 join 丢产出边,
+-- 投入金属低报、回收率【高报】,而这是评判工艺的数字。fixture 19 的 A 臂钉着。
 
-CREATE VIEW public.processing_metal_recovery
-WITH (security_invoker = true) AS
+CREATE VIEW public.processing_metal_recovery WITH (security_invoker = true) AS
 WITH ins AS (
-    SELECT pi.run_id, ibm.metal,
-           SUM(pi.quantity_consumed * ibm.content_pct / 100.0) AS input_metal_kg
+    SELECT pi.run_id, m.metal,
+           SUM(pi.quantity_consumed * m.content_pct / 100.0) AS input_metal_kg
     FROM public.processing_inputs pi
-    JOIN public.inbound_batch_metals ibm ON ibm.inbound_batch_id = pi.inbound_batch_id
-    GROUP BY pi.run_id, ibm.metal
+    JOIN LATERAL (
+        SELECT ibm.metal, ibm.content_pct
+        FROM public.inbound_batch_metals ibm
+        WHERE ibm.inbound_batch_id = pi.inbound_batch_id
+        UNION ALL
+        SELECT obm.metal, obm.content_pct
+        FROM public.output_batch_metals obm
+        WHERE obm.output_batch_id = pi.output_batch_id
+    ) m ON true
+    GROUP BY pi.run_id, m.metal
 ),
 outs AS (
     SELECT po.run_id, obm.metal,
@@ -44,3 +53,5 @@ FROM ins i
 FULL JOIN outs o ON o.run_id = i.run_id AND o.metal = i.metal
 JOIN public.processing_runs r ON r.id = COALESCE(i.run_id, o.run_id)
 WHERE r.status = 'committed' AND r.deleted_at IS NULL;
+
+GRANT SELECT ON public.processing_metal_recovery TO authenticated;

@@ -835,6 +835,15 @@ const zh = {
         },
     },
     processing: {
+        lineage: {
+            title: '血缘 —— 本单产出的全部祖先',
+            colDepth: '层',
+            colViaRun: '经加工单',
+            colParent: '被耗批次',
+            colQty: '耗用量',
+            kind_inbound: '进料批',
+            kind_output: '再加工产出批',
+        },
         errProcessDateRequired: '加工日期必填 —— 它决定库存流水的业务日期,以及成本分摊取哪天的金属行情。',
         listTitle: '加工单',
         addButton: '+ 新增加工单',
@@ -858,6 +867,8 @@ const zh = {
         dropdownLoadError: '读取下拉框数据失败',
         detailLoadError: '读取投入/产出明细失败',
         form: {
+            groupInbound: '进料批次',
+            groupOutput: '产出批次(再加工)',
             dateLabel: '加工日期',
             inputsSectionHeader: '投入(消耗进料)',
             addInputButton: '+ 添加投入',
@@ -892,6 +903,8 @@ const zh = {
             lossInvalidClient: '损耗必须是不小于0的数字',
         },
         detail: {
+            reprocessedTag: '再加工',
+            costIncomplete: '成本不完整',
             processDate: '加工日期:',
             totalInput: '投入合计:',
             totalOutput: '产出合计:',

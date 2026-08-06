@@ -15,7 +15,12 @@
 --   E 注销批的份额 → 5200,不进 5000(Tim 的裁定:注销总额是运营信号);
 --   F 【F2】重定价输入批,成本条目一根手指没碰 → 耗它的加工单 is_stale = true;
 --   G 售出月已锁,之后改成本 → 差额分录记【当期】,过账成功(锁挡的是写回锁内,
---     不挡当期改正)。
+--     不挡当期改正);
+--   H 【metal_value 基准】数值上分开逐批与炉级:weight 基准下两者代数恒等
+--     (A 臂的注有推导),metal_value 的份额是价值权重,恒等式破了 ——
+--     A 100kg 含 30kg 镍(份额 0.5)售 80%,B 300kg 含 30kg(份额 0.5)售 10%,
+--     差额 100:逐批 5000 = 100×(0.5×0.8 + 0.5×0.1) = 45.00;
+--     炉级 = 100×110/400 = 27.50。将来谁把逐批"简化"回炉级,这里当场红。
 BEGIN;
 DO $$
 DECLARE
@@ -198,6 +203,45 @@ BEGIN
     WHERE source_type = 'allocation' ORDER BY created_at DESC, code DESC LIMIT 1;
     IF v_today <> CURRENT_DATE THEN
         RAISE EXCEPTION 'FIXTURE 18G 失败:差额分录应记当期(%),实得 %', CURRENT_DATE, v_today;
+    END IF;
+    -- ════════════════ H. metal_value 基准:逐批 ≠ 炉级,数值分开 ═══════════
+    -- (锁在 G 臂已推到今天;本臂全部分录都记今天,不受影响)
+    INSERT INTO metal_prices (metal, price_date, price_usd_per_tonne)
+    VALUES ('ni', v_today, 1000)
+    ON CONFLICT (metal, price_date) DO NOTHING;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
+    VALUES ('FIXT-IB18H', v_mat, v_sup, 400, 400, 'kg', v_today) RETURNING id INTO v_ib;
+    PERFORM reprice_inbound_batch(v_ib, 1, 'SGD', NULL, 'fixture H price');
+    v_run := commit_processing_run(v_today, 'fixture run H', 0,
+        jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 400)),
+        jsonb_build_array(
+            jsonb_build_object('material_id', v_matB, 'quantity', 100),
+            jsonb_build_object('material_id', v_matB, 'quantity', 300)));
+    SELECT po.output_batch_id INTO v_obA FROM processing_outputs po
+    JOIN output_batches ob ON ob.id = po.output_batch_id
+    WHERE po.run_id = v_run AND ob.quantity = 100 AND ob.deleted_at IS NULL;
+    SELECT po.output_batch_id INTO v_obB FROM processing_outputs po
+    JOIN output_batches ob ON ob.id = po.output_batch_id
+    WHERE po.run_id = v_run AND ob.quantity = 300 AND ob.deleted_at IS NULL;
+    -- A 30%(30kg 镍)、B 10%(30kg)→ 价值份额各 0.5;重量份额 0.25/0.75 —— 两个口径分道
+    INSERT INTO output_batch_metals (output_batch_id, metal, content_pct)
+    VALUES (v_obA, 'ni', 30), (v_obB, 'ni', 10);
+    PERFORM allocate_processing_costs(v_run, 'metal_value');   -- 首挂:A 200 / B 200
+
+    PERFORM record_output_sale(v_obA, 80, 10, 'SGD', NULL, v_cust, v_today, NULL);
+    PERFORM record_output_sale(v_obB, 30, 10, 'SGD', NULL, v_cust, v_today, NULL);
+    UPDATE processing_runs SET allocated_at = allocated_at - interval '1 second' WHERE id = v_run;
+    INSERT INTO processing_cost_entries (run_id, cost_type, amount_base, is_estimate, created_by)
+    VALUES (v_run, 'electricity', 100, false, v_uid);
+    PERFORM allocate_processing_costs(v_run, 'metal_value');
+
+    SELECT round(COALESCE(SUM(jl.debit), 0), 2) INTO v_n
+    FROM journal_lines jl JOIN accounts a ON a.id = jl.account_id
+    WHERE a.code = '5000' AND jl.entry_id = (
+        SELECT id FROM journal_entries WHERE source_type = 'allocation'
+        ORDER BY created_at DESC, code DESC LIMIT 1);
+    IF v_n <> 45.00 THEN
+        RAISE EXCEPTION 'FIXTURE 18H 失败:metal_value 下已售补差应 45.00(逐批 100×(0.5×0.8+0.5×0.1);炉级会是 27.50),实得 %', v_n;
     END IF;
 END $$;
 ROLLBACK;

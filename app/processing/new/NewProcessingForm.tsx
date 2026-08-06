@@ -18,6 +18,9 @@ export type InboundBatchOption = {
     materials: { name: string } | null
 }
 
+// FIN-25:再加工 —— 可投料的产出批(同形;value 前缀区分来源)
+export type OutputBatchOption = InboundBatchOption
+
 type MaterialOption = {
     id: string
     code: string
@@ -26,7 +29,8 @@ type MaterialOption = {
 
 type InputRowState = {
     key: number
-    inbound_batch_id: string
+    // FIN-25:'in:<id>'(进料批)或 'out:<id>'(产出批再加工)
+    batch_ref: string
     quantity_consumed: string
 }
 
@@ -48,9 +52,11 @@ function todayIsoLocal(): string {
 
 export default function NewProcessingForm({
     inboundBatches,
+    outputBatches,
     materials,
 }: {
     inboundBatches: InboundBatchOption[]
+    outputBatches: OutputBatchOption[]
     materials: MaterialOption[]
 }) {
     const t = useTranslations()
@@ -58,7 +64,7 @@ export default function NewProcessingForm({
     const nextKey = () => keyCounter.current++
 
     const [inputRows, setInputRows] = useState<InputRowState[]>(() => [
-        { key: nextKey(), inbound_batch_id: '', quantity_consumed: '' },
+        { key: nextKey(), batch_ref: '', quantity_consumed: '' },
     ])
     const [outputRows, setOutputRows] = useState<OutputRowState[]>(() => [
         { key: nextKey(), material_id: '', quantity: '', unit: 'kg', purity: '' },
@@ -90,14 +96,14 @@ export default function NewProcessingForm({
     function addInputRow() {
         setInputRows((rows) => [
             ...rows,
-            { key: nextKey(), inbound_batch_id: '', quantity_consumed: '' },
+            { key: nextKey(), batch_ref: '', quantity_consumed: '' },
         ])
     }
     function removeInputRow(key: number) {
         setInputRows((rows) => {
             // 至少保留一行;最后一行就地清空
             if (rows.length === 1) {
-                return [{ key: rows[0].key, inbound_batch_id: '', quantity_consumed: '' }]
+                return [{ key: rows[0].key, batch_ref: '', quantity_consumed: '' }]
             }
             return rows.filter((r) => r.key !== key)
         })
@@ -130,12 +136,13 @@ export default function NewProcessingForm({
         e.preventDefault()
         setError(null)
 
-        const validInputs = inputRows
-            .filter((r) => r.inbound_batch_id && Number(r.quantity_consumed) > 0)
-            .map((r) => ({
-                inbound_batch_id: r.inbound_batch_id,
-                quantity_consumed: Number(r.quantity_consumed),
-            }))
+        const validRows = inputRows.filter((r) => r.batch_ref && Number(r.quantity_consumed) > 0)
+        const validInputs = validRows.map((r) => ({
+            ...(r.batch_ref.startsWith('out:')
+                ? { output_batch_id: r.batch_ref.slice(4) }
+                : { inbound_batch_id: r.batch_ref.slice(3) }),
+            quantity_consumed: Number(r.quantity_consumed),
+        }))
 
         if (validInputs.length === 0) {
             setError(t('processing.validation.needValidInput'))
@@ -143,17 +150,18 @@ export default function NewProcessingForm({
         }
 
         const seen = new Set<string>()
-        for (const inp of validInputs) {
-            if (seen.has(inp.inbound_batch_id)) {
+        for (const r of validRows) {
+            if (seen.has(r.batch_ref)) {
                 setError(t('processing.validation.duplicateInputClient'))
                 return
             }
-            seen.add(inp.inbound_batch_id)
+            seen.add(r.batch_ref)
         }
 
-        for (const inp of validInputs) {
-            const batch = inboundBatches.find((b) => b.id === inp.inbound_batch_id)
-            if (batch && inp.quantity_consumed > batch.remaining_qty) {
+        for (const r of validRows) {
+            const pool = r.batch_ref.startsWith('out:') ? outputBatches : inboundBatches
+            const batch = pool.find((b) => b.id === r.batch_ref.slice(r.batch_ref.indexOf(':') + 1))
+            if (batch && Number(r.quantity_consumed) > batch.remaining_qty) {
                 setError(t('processing.validation.consumeExceedsClient', { code: batch.code }))
                 return
             }
@@ -251,9 +259,8 @@ export default function NewProcessingForm({
                         </button>
                     </div>
                     {inputRows.map((row) => {
-                        const selectedBatch = inboundBatches.find(
-                            (b) => b.id === row.inbound_batch_id
-                        )
+                        const selectedBatch = (row.batch_ref.startsWith('out:') ? outputBatches : inboundBatches)
+                            .find((b) => b.id === row.batch_ref.slice(row.batch_ref.indexOf(':') + 1))
                         const qtyNum = Number(row.quantity_consumed)
                         const exceeds =
                             selectedBatch &&
@@ -263,10 +270,10 @@ export default function NewProcessingForm({
                             <div key={row.key}>
                                 <div className="flex gap-2 items-start">
                                     <select
-                                        value={row.inbound_batch_id}
+                                        value={row.batch_ref}
                                         onChange={(e) =>
                                             updateInputRow(row.key, {
-                                                inbound_batch_id: e.target.value,
+                                                batch_ref: e.target.value,
                                             })
                                         }
                                         className="flex-1 border border-gray-300 px-3 py-2 rounded"
@@ -274,16 +281,33 @@ export default function NewProcessingForm({
                                         <option value="" disabled>
                                             {t('processing.form.selectInboundBatch')}
                                         </option>
-                                        {inboundBatches.map((b) => (
-                                            <option key={b.id} value={b.id}>
-                                                {t('processing.form.inboundOptionLabel', {
-                                                    code: b.code,
-                                                    name: b.materials?.name ?? '—',
-                                                    remaining: b.remaining_qty,
-                                                    unit: b.unit,
-                                                })}
-                                            </option>
-                                        ))}
+                                        <optgroup label={t('processing.form.groupInbound')}>
+                                            {inboundBatches.map((b) => (
+                                                <option key={b.id} value={'in:' + b.id}>
+                                                    {t('processing.form.inboundOptionLabel', {
+                                                        code: b.code,
+                                                        name: b.materials?.name ?? '—',
+                                                        remaining: b.remaining_qty,
+                                                        unit: b.unit,
+                                                    })}
+                                                </option>
+                                            ))}
+                                        </optgroup>
+                                        {/* FIN-25:再加工 —— 产出批喂回下一段 */}
+                                        {outputBatches.length > 0 && (
+                                            <optgroup label={t('processing.form.groupOutput')}>
+                                                {outputBatches.map((b) => (
+                                                    <option key={b.id} value={'out:' + b.id}>
+                                                        {t('processing.form.inboundOptionLabel', {
+                                                            code: b.code,
+                                                            name: b.materials?.name ?? '—',
+                                                            remaining: b.remaining_qty,
+                                                            unit: b.unit,
+                                                        })}
+                                                    </option>
+                                                ))}
+                                            </optgroup>
+                                        )}
                                     </select>
                                     <DecimalInput
                                         placeholder={t('processing.form.consumeQtyPlaceholder')}

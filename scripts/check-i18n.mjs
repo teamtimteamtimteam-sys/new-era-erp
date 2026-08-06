@@ -258,6 +258,7 @@ const MANIFEST = {
     'finance.direction.':   { kind: 'enum', values: () => sqlEnum('db/tables/payments.sql', 'direction') },
     'finance.source.':      { kind: 'enum', values: () => sqlEnum('db/tables/journal_entries.sql', 'source_type') },
     'assets.category.':     { kind: 'enum', values: () => sqlEnum('db/tables/fixed_assets.sql', 'category') },
+    'processing.lineage.kind_': { kind: 'enum', values: () => ['inbound', 'output'] },
     'assets.status.':       { kind: 'enum', values: () => sqlEnum('db/tables/fixed_assets.sql', 'status') },
     'finance.status.':      { kind: 'enum', values: () => sqlEnum('db/tables/expenses.sql', 'status') }, // posted/reversed,与 payments/journal 同形
     'finance.bank.':        { kind: 'enum', values: () => sqlEnum('db/tables/bank_statements.sql', 'bank_account_code') },
