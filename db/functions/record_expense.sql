@@ -1,4 +1,9 @@
-CREATE OR REPLACE FUNCTION public.record_expense(p_expense_date date, p_account_code text, p_amount numeric, p_currency text DEFAULT 'SGD'::text, p_fx_rate numeric DEFAULT NULL::numeric, p_payment_status text DEFAULT 'paid'::text, p_bank_account text DEFAULT NULL::text, p_supplier_id uuid DEFAULT NULL::uuid, p_payee_name text DEFAULT NULL::text, p_notes text DEFAULT NULL::text)
+
+-- FIN-22(2026-08-06):资本分支 —— 科目 1500 与 p_asset 互相要求;资本行借 1500
+-- 并在同一事务生成 fixed_assets 台账行(成本 = 本单金额,汇率 = 费用日 tt_sell,
+-- 即【购置日】牌价 —— 资产非货币,该汇率定格成本,永不重译)。
+
+CREATE OR REPLACE FUNCTION public.record_expense(p_expense_date date, p_account_code text, p_amount numeric, p_currency text DEFAULT 'SGD'::text, p_fx_rate numeric DEFAULT NULL::numeric, p_payment_status text DEFAULT 'paid'::text, p_bank_account text DEFAULT NULL::text, p_supplier_id uuid DEFAULT NULL::uuid, p_payee_name text DEFAULT NULL::text, p_notes text DEFAULT NULL::text, p_asset jsonb DEFAULT NULL::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -15,6 +20,12 @@ DECLARE
     v_seq        integer;
     v_code       text;
     v_je         jsonb;
+    v_asset_id   uuid;
+    v_asset_code text;
+    v_asset_seq  integer;
+    v_life       integer;
+    v_residual   numeric;
+    v_in_service date;
 BEGIN
     PERFORM require_permission('module.finance.edit');
     -- 1. 科目:必须存在、启用,且是 expense 类型(只有 6xxx 是合法开支落点)
@@ -29,7 +40,17 @@ BEGIN
     IF NOT v_account.is_active THEN
         RAISE EXCEPTION 'ACCOUNT_INACTIVE|%', v_account.code;
     END IF;
-    IF v_account.account_type <> 'expense' THEN
+    -- FIN-22:资本性支出 —— 科目 1500 与 p_asset【互相要求】。
+    --   * 1500 而无 p_asset:这条路上不许出现没有台账行的固定资产借方;
+    --   * p_asset 而非 1500:资本标记只有一个落点,别的科目不接受;
+    --   * 其余科目照旧只认 expense 类型("只有 6xxx 是合法开支落点"的原规矩)。
+    IF p_account_code = '1500' THEN
+        IF p_asset IS NULL THEN
+            RAISE EXCEPTION 'CAPITAL_REQUIRES_ASSET|1500';
+        END IF;
+    ELSIF p_asset IS NOT NULL THEN
+        RAISE EXCEPTION 'ASSET_REQUIRES_CAPITAL_ACCOUNT|%', v_account.code;
+    ELSIF v_account.account_type <> 'expense' THEN
         RAISE EXCEPTION 'ACCOUNT_NOT_EXPENSE|%', v_account.code;
     END IF;
 
@@ -109,8 +130,48 @@ BEGIN
             v_amount_base, p_payment_status, v_bank, p_supplier_id,
             p_payee_name, p_notes, (v_je->>'entry_id')::uuid, v_user);
 
+    -- FIN-22:资本行 → 同一事务生成台账。成本 = 本单金额;汇率 = 上面按
+    -- 【费用日 = 购置日】取的 tt_sell 牌价 —— 资产是非货币项目,这个汇率
+    -- 定格成本,永不重译(表注有言,重估扫不到 1500/1510)。
+    IF p_asset IS NOT NULL THEN
+        IF COALESCE(p_asset->>'description', '') = '' THEN
+            RAISE EXCEPTION 'ASSET_DESCRIPTION_REQUIRED';
+        END IF;
+        v_life := (p_asset->>'useful_life_months')::integer;
+        IF v_life IS NULL OR v_life <= 0 THEN
+            RAISE EXCEPTION 'ASSET_LIFE_INVALID|%', COALESCE(p_asset->>'useful_life_months', '?');
+        END IF;
+        v_residual := COALESCE((p_asset->>'residual_base')::numeric, 0);
+        IF v_residual < 0 OR v_residual >= v_amount_base THEN
+            RAISE EXCEPTION 'ASSET_RESIDUAL_INVALID|%|%', v_residual, v_amount_base;
+        END IF;
+        v_in_service := (p_asset->>'in_service_date')::date;
+        IF v_in_service IS NOT NULL AND v_in_service < p_expense_date THEN
+            RAISE EXCEPTION 'ASSET_IN_SERVICE_BEFORE_ACQUISITION|%|%', v_in_service, p_expense_date;
+        END IF;
+
+        v_asset_id := gen_random_uuid();
+        PERFORM pg_advisory_xact_lock(hashtext('fixed_asset_code_' || v_year::text)::bigint);
+        SELECT COALESCE(MAX(split_part(fa.code, '-', 3)::integer), 0) + 1
+        INTO v_asset_seq
+        FROM fixed_assets fa
+        WHERE fa.code LIKE 'FA-' || v_year::text || '-%';
+        v_asset_code := 'FA-' || v_year::text || '-' || LPAD(v_asset_seq::text, 4, '0');
+
+        INSERT INTO fixed_assets (id, code, description, category, acquisition_date, in_service_date,
+                                  cost_ccy, currency, fx_rate, cost_base, useful_life_months,
+                                  residual_base, depreciation_account_code, expense_id, notes, created_by)
+        VALUES (v_asset_id, v_asset_code, p_asset->>'description',
+                COALESCE(p_asset->>'category', 'equipment'),
+                p_expense_date, v_in_service,
+                p_amount, p_currency, v_fx, v_amount_base, v_life,
+                v_residual, COALESCE(p_asset->>'depreciation_account_code', '6700'),
+                v_expense_id, p_asset->>'notes', v_user);
+    END IF;
+
     RETURN jsonb_build_object(
         'expense_id', v_expense_id,
+        'asset_id', v_asset_id, 'asset_code', v_asset_code,
         'code', v_code,
         'amount_base', v_amount_base,
         'journal_code', v_je->>'code',

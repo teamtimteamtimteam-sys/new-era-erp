@@ -290,7 +290,7 @@ python3 db/gate.py     # 0 clean · 1 mirror drift · 2 cannot build
                        # 3 B1/B2 invariant · 4 behavioural fixture failed
 ```
 
-Fifteen fixtures, ~34 assertions, on the paths where a silent break costs money:
+Sixteen fixtures, ~40 assertions, on the paths where a silent break costs money:
 settlement closing to exactly zero (including cross-currency), revaluation
 idempotence, confirmation not touching leave, accrual not applying a category
 change retroactively, one bank line per employee, realised 7100 never crossing
@@ -302,7 +302,11 @@ symptoms; a fixture cannot move the server clock, so the config arm is the
 00:00–08:00 SG window), and a fully
 allocated payment leaving **exactly zero** on account even when the rate moved
 between booking and settlement (FIN-18 — that one asserts the *old* formula
-differs too, so it cannot pass by both answers agreeing). Deliberately small: every retained fixture is
+differs too, so it cannot pass by both answers agreeing), and fixed assets
+(FIN-22: depreciation from the in-service date not the acquisition date,
+idempotent by arithmetic, capped at cost minus residual, non-monetary and
+invisible to revaluation, disposal clearing 1500/1510 exactly, locked periods
+refused by name). Deliberately small: every retained fixture is
 maintenance on every schema move, and the HR-2c accrual change already cost one
 round of "is this staleness or regression?" judgement.
 

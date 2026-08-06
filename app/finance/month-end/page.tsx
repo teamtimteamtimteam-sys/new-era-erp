@@ -31,7 +31,7 @@ export default async function MonthEndPage({
     const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
 
-    const [gapsRes, periodRes, accrualRes, revalRes, settingsRes, midRes, allocRes] = await Promise.all([
+    const [gapsRes, periodRes, accrualRes, revalRes, settingsRes, depPreviewRes, midRes, allocRes] = await Promise.all([
         supabase.from('fx_rate_gaps').select('rate_date, currency, missing_types')
             .gte('rate_date', start).lte('rate_date', end),
         supabase.from('payroll_periods')
@@ -44,6 +44,8 @@ export default async function MonthEndPage({
         supabase.from('journal_entries').select('id, code')
             .eq('source_type', 'revaluation').eq('entry_date', end).eq('status', 'posted'),
         supabase.from('finance_settings').select('locked_before').maybeSingle(),
+        // FIN-22:折旧应提额 —— 与执行同一份算术(preview),0 = 本期已提平/无资产
+        supabase.rpc('preview_depreciate_fixed_assets', { p_period_end: end }),
         supabase.from('fx_rates').select('id').eq('rate_date', end).eq('rate_type', 'mid').is('deleted_at', null),
         // FIN-8:批次成本与成本条目是否还对得上。改了条目,总账会动,批次不会 ——
         // 月结前必须看见,否则存货和销货成本就带着这个差额结账。
@@ -70,6 +72,11 @@ export default async function MonthEndPage({
     const allocProblems = mustRows(allocRes, 'processing_run_allocation_status')
         .filter((r) => r.is_stale || (!r.allocated_at && r.last_cost_change))
     const settings = mustOne(settingsRes, 'finance_settings')
+    // 折旧:应提 > 0 = 还没跑(或有新资产);0 = 已提平/无在役资产
+    const depPreview = mustOne(depPreviewRes, 'preview_depreciate_fixed_assets') as unknown as
+        { total_delta: number; rows: unknown[] } | null
+    const depDelta = depPreview?.total_delta ?? 0
+    const depHasAssets = (depPreview?.rows ?? []).length > 0
     const locked = !!settings?.locked_before && settings.locked_before > end
 
     type Step = { key: string; state: 'done' | 'outstanding' | 'blocked' | 'na'; detail: string; href: string }
@@ -118,6 +125,13 @@ export default async function MonthEndPage({
             detail: allocProblems.length === 0 ? ''
                  : t('finance.monthEnd.staleAllocationDetail', { n: allocProblems.length })
                    + ': ' + allocProblems.map((r) => r.code).join(', '),
+        },
+        {
+            // FIN-22:折旧排在重估与锁之前 —— 它动 6700/5xxx 与 1510,重估后的
+            // 试算和锁进去的月份都要包含它。幂等靠算术:应提 0 即 done。
+            key: 'depreciation', href: `/finance/assets?date=${end}`,
+            state: !depHasAssets ? 'na' : depDelta === 0 ? 'done' : 'outstanding',
+            detail: depDelta === 0 ? '' : t('finance.monthEnd.depreciationDetail', { 0: formatMoney(depDelta) }),
         },
         {
             key: 'revaluation', href: `/finance/revaluation?date=${end}`,

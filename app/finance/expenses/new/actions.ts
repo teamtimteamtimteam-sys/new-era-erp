@@ -19,7 +19,7 @@ export async function createExpense(
     const t = await getTranslations()
 
     const expenseDate = String(formData.get('expense_date') ?? '').trim()
-    const accountCode = String(formData.get('account_code') ?? '').trim()
+    const accountCodeRaw = String(formData.get('account_code') ?? '').trim()
     const amountRaw = String(formData.get('amount') ?? '').trim()
     const currency = String(formData.get('currency') ?? await getBaseCurrency())
     const paymentStatus = formData.get('payment_status') === 'paid' ? 'paid' : 'unpaid'
@@ -27,12 +27,20 @@ export async function createExpense(
     const supplierId = String(formData.get('supplier_id') ?? '').trim()
     const payeeName = String(formData.get('payee_name') ?? '').trim()
     const notes = String(formData.get('notes') ?? '').trim()
+    // FIN-22:资本分支 —— capital 勾上时科目固定 1500,组 p_asset;
+    // 服务端(record_expense)双向校验 1500 ↔ p_asset,这里只组装。
+    const isCapital = formData.get('capital') === 'on'
+    const assetDescription = String(formData.get('asset_description') ?? '').trim()
+    const assetCategory = String(formData.get('asset_category') ?? 'equipment').trim()
+    const assetInService = String(formData.get('asset_in_service_date') ?? '').trim()
+    const assetLifeRaw = String(formData.get('asset_life_months') ?? '').trim()
+    const assetResidualRaw = String(formData.get('asset_residual') ?? '').trim()
 
     // 前置校验(与 DB 二道防线一致,先给友好错误)
     if (!expenseDate || Number.isNaN(Date.parse(expenseDate))) {
         return { error: t('finance.errDate') }
     }
-    if (!accountCode) {
+    if (!isCapital && !accountCodeRaw) {
         return { error: t('expense.errors.ACCOUNT_NOT_FOUND', { 0: '?' }) }
     }
     const amount = Number(amountRaw)
@@ -42,11 +50,26 @@ export async function createExpense(
     if (paymentStatus === 'unpaid' && !supplierId) {
         return { error: t('expense.errors.SUPPLIER_REQUIRED_FOR_UNPAID') }
     }
+    let assetPayload: Record<string, string | number> | undefined
+    if (isCapital) {
+        if (!assetDescription) return { error: t('expense.errors.ASSET_DESCRIPTION_REQUIRED') }
+        const life = Number(assetLifeRaw)
+        if (!assetLifeRaw || Number.isNaN(life) || life <= 0 || !Number.isInteger(life)) {
+            return { error: t('expense.errors.ASSET_LIFE_INVALID', { 0: assetLifeRaw || '?' }) }
+        }
+        assetPayload = {
+            description: assetDescription,
+            category: assetCategory,
+            useful_life_months: life,
+            ...(assetInService ? { in_service_date: assetInService } : {}),
+            ...(assetResidualRaw ? { residual_base: Number(assetResidualRaw) } : {}),
+        }
+    }
 
     const supabase = await createClient()
     const { data, error } = await supabase.rpc('record_expense', {
         p_expense_date: expenseDate,
-        p_account_code: accountCode,
+        p_account_code: isCapital ? '1500' : accountCodeRaw,
         p_amount: amount,
         p_currency: currency,
         // FIN-0:不传汇率 —— 外币按费用日行方卖出价自动估值,当天缺牌价 DB 直接拒
@@ -55,6 +78,7 @@ export async function createExpense(
         p_supplier_id: paymentStatus === 'unpaid' ? supplierId : undefined,
         p_payee_name: payeeName || undefined,
         p_notes: notes || undefined,
+        p_asset: assetPayload,
     })
 
     if (error) {

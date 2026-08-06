@@ -85,6 +85,14 @@ export async function relieveAccruals(input: {
     refresh(); return { success: true, result: JSON.stringify(data) }
 }
 
+// FIN-22:月度折旧 —— 幂等靠算术(应提 = 目标 − 已提),同期第二次跑 total_posted 0。
+export async function runDepreciation(periodEnd: string): Promise<ActState> {
+    const supabase = await createClient()
+    const { error, data } = await supabase.rpc('depreciate_fixed_assets', { p_period_end: periodEnd })
+    if (error) return { error: await localizePaymentError(error.message) }
+    refresh(); revalidatePath('/finance/assets'); return { success: true, result: JSON.stringify(data) }
+}
+
 export async function runRevaluation(periodEnd: string): Promise<ActState> {
     const supabase = await createClient()
     const { error, data } = await supabase.rpc('revalue_foreign_balances', { p_period_end: periodEnd })

@@ -1,3 +1,6 @@
+-- FIN-22(2026-08-06):挂着 fixed_assets 台账行的支出不许冲销(EXPENSE_HAS_ASSET)——
+-- 冲掉它会留下无对价的资产。先 dispose_fixed_asset,或走人工分录改正。
+
 CREATE OR REPLACE FUNCTION public.reverse_expense(p_expense_id uuid, p_memo text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -19,6 +22,11 @@ BEGIN
     END IF;
     IF v_orig.status <> 'posted' OR v_orig.reversed_by_expense IS NOT NULL THEN
         RAISE EXCEPTION 'EXPENSE_ALREADY_REVERSED|%', v_orig.code;
+    END IF;
+    -- FIN-22:挂着固定资产台账行的资本性支出不许冲销 —— 冲掉它会留下无对价的
+    -- 资产(或者说资产背后那笔应付蒸发)。先处置资产,或走人工分录改正。
+    IF EXISTS (SELECT 1 FROM fixed_assets fa WHERE fa.expense_id = p_expense_id) THEN
+        RAISE EXCEPTION 'EXPENSE_HAS_ASSET|%', v_orig.code;
     END IF;
 
     -- 冲其分录(冲销日 = 今天;期间锁在 post_journal_entry 内生效)

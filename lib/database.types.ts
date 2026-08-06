@@ -1343,6 +1343,173 @@ export type Database = {
         }
         Relationships: []
       }
+      fixed_asset_depreciation: {
+        Row: {
+          amount_base: number
+          asset_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          journal_entry_id: string
+          period_end: string
+        }
+        Insert: {
+          amount_base: number
+          asset_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          journal_entry_id: string
+          period_end: string
+        }
+        Update: {
+          amount_base?: number
+          asset_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          journal_entry_id?: string
+          period_end?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fixed_asset_depreciation_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fixed_asset_depreciation_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "fixed_asset_depreciation_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fixed_assets: {
+        Row: {
+          acquisition_date: string
+          category: string
+          code: string
+          cost_base: number
+          cost_ccy: number
+          created_at: string
+          created_by: string | null
+          currency: string
+          depreciation_account_code: string
+          description: string
+          disposal_date: string | null
+          disposal_journal_id: string | null
+          disposal_proceeds_base: number | null
+          expense_id: string
+          fx_rate: number
+          id: string
+          in_service_date: string | null
+          notes: string | null
+          residual_base: number
+          status: string
+          useful_life_months: number
+        }
+        Insert: {
+          acquisition_date: string
+          category?: string
+          code: string
+          cost_base: number
+          cost_ccy: number
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          depreciation_account_code?: string
+          description: string
+          disposal_date?: string | null
+          disposal_journal_id?: string | null
+          disposal_proceeds_base?: number | null
+          expense_id: string
+          fx_rate: number
+          id?: string
+          in_service_date?: string | null
+          notes?: string | null
+          residual_base?: number
+          status?: string
+          useful_life_months: number
+        }
+        Update: {
+          acquisition_date?: string
+          category?: string
+          code?: string
+          cost_base?: number
+          cost_ccy?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          depreciation_account_code?: string
+          description?: string
+          disposal_date?: string | null
+          disposal_journal_id?: string | null
+          disposal_proceeds_base?: number | null
+          expense_id?: string
+          fx_rate?: number
+          id?: string
+          in_service_date?: string | null
+          notes?: string | null
+          residual_base?: number
+          status?: string
+          useful_life_months?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fixed_assets_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fixed_assets_depreciation_account_code_fkey"
+            columns: ["depreciation_account_code"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fixed_assets_depreciation_account_code_fkey"
+            columns: ["depreciation_account_code"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "fixed_assets_disposal_journal_id_fkey"
+            columns: ["disposal_journal_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "fixed_assets_disposal_journal_id_fkey"
+            columns: ["disposal_journal_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fixed_assets_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fx_rates: {
         Row: {
           created_at: string
@@ -8891,6 +9058,17 @@ export type Database = {
         Args: { p_approve: boolean; p_claim_id: string; p_notes?: string }
         Returns: Json
       }
+      depreciate_fixed_assets: { Args: { p_period_end: string }; Returns: Json }
+      dispose_fixed_asset: {
+        Args: {
+          p_asset_id: string
+          p_bank_account?: string
+          p_disposal_date: string
+          p_notes?: string
+          p_proceeds?: number
+        }
+        Returns: Json
+      }
       employee_work_category_at: {
         Args: { p_employee_id: string; p_month: string }
         Returns: string
@@ -9030,6 +9208,10 @@ export type Database = {
         Returns: Json
       }
       post_stocktake: { Args: { p_stocktake_id: string }; Returns: Json }
+      preview_depreciate_fixed_assets: {
+        Args: { p_period_end: string }
+        Returns: Json
+      }
       preview_reprice_inbound_batch: {
         Args: { p_inbound_batch_id: string; p_new_unit_price: number }
         Returns: Json
@@ -9068,6 +9250,7 @@ export type Database = {
         Args: {
           p_account_code: string
           p_amount: number
+          p_asset?: Json
           p_bank_account?: string
           p_currency?: string
           p_expense_date: string

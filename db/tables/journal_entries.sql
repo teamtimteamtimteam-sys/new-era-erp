@@ -10,6 +10,8 @@
 --
 -- NOTE: introduced by db/migrations/2026-07-05-phase3-cut1-finance-foundation.sql;
 -- source_type 'payroll' added by db/migrations/2026-08-01-hr1a-hr-core.sql;
+-- source_type 'depreciation' + 'asset_disposal' added by
+-- db/migrations/2026-08-06-fin22-fixed-assets-and-depreciation.sql;
 -- source_type 'prepayment' added by
 -- db/migrations/2026-07-31-phase4-cut4a-purchase-orders.sql, which also corrected
 -- this mirror's source_type list —— 'expense' 是 s2a 那一切加进库里的,但当时【漏了
@@ -22,7 +24,7 @@ CREATE TABLE public.journal_entries (
     code        text NOT NULL UNIQUE,
     entry_date  date NOT NULL,
     memo        text,
-    source_type text CHECK (source_type IN ('manual','purchase','sale','processing_cost','allocation','stocktake','writeoff','payment','fx','expense','prepayment','payroll','transfer','revaluation')),
+    source_type text CHECK (source_type IN ('manual','purchase','sale','processing_cost','allocation','stocktake','writeoff','payment','fx','expense','prepayment','payroll','transfer','revaluation','depreciation','asset_disposal')),
     source_id   uuid,
     status      text NOT NULL DEFAULT 'posted' CHECK (status IN ('posted','reversed')),
     reversed_by uuid REFERENCES public.journal_entries (id),

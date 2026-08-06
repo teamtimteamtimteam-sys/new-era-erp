@@ -109,7 +109,7 @@ CREATE POLICY "accounts delete by permission"
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 【安装种子:22 个引擎依赖科目】。逐行跟踪线上,check_mirrors 逐行比对。
 -- 括号里是点名它的对象 —— 这份名单是有据可查的,不是分类学。
--- 其余 16 个科目(1210/1400/1500/1510/2100/3000/3100/4100/4900/6000/6200/
+-- 其余 14 个科目(1210/1400/2100/3000/3100/4100/4900/6000/6200/
 -- 6300/6400/6500/6600/6900)【故意不在这里】:它们是建账的人的地盘。
 -- ─────────────────────────────────────────────────────────────────────────────
 INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system, is_monetary) VALUES
@@ -140,9 +140,12 @@ INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system, is
     -- 7100 已实现:只由【结算时点】的差额进(record_payment);
     -- 7110 未实现:只由【期末重估】进(revalue_foreign_balances);
     --              行内转账(实际金额两边入账,无 FX 行)的折算差异也最终落在这里。
+    ('1500', 'Fixed Assets – Equipment', '固定资产-设备', 'asset', true, false),        -- record_expense 资本分支借方(FIN-22b 升 system:函数写死引用)
+    ('1510', 'Accumulated Depreciation', '累计折旧', 'asset', true, false),               -- depreciate_fixed_assets 贷方 / dispose 解除(FIN-22b 同上)
+    ('6700', 'Depreciation Expense', '折旧费用', 'expense', true, false),                    -- depreciate_fixed_assets 默认落点(FIN-22)
     ('7100', 'FX Gain/Loss — Realised', '汇兑损益(已实现)', 'expense', true, false),      -- record_payment
-    ('7110', 'FX Gain/Loss — Unrealised', '汇兑损益(未实现)', 'expense', true, false);
-
+    ('7110', 'FX Gain/Loss — Unrealised', '汇兑损益(未实现)', 'expense', true, false),
+    ('7200', 'Gain/Loss on Asset Disposal', '资产处置损益', 'expense', true, false);   -- dispose_fixed_asset(FIN-22,与 7100/7110 同形:两个方向都过)
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 【引导默认值 / BOOTSTRAP DEFAULT —— 非 is_system 行】(FIN-3-fu2)
 -- 全新安装该有的完整科目表:权益、GST、固定资产、在制品、常规收入与费用。
@@ -155,8 +158,6 @@ INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system, is
 INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system, is_monetary) VALUES
     ('1210', 'Inventory – Work in Progress', '存货-在制品', 'asset', false, false),
     ('1400', 'GST Input Tax', 'GST 进项税', 'asset', false, true),        -- 对 IRAS 的定额债权:货币性
-    ('1500', 'Fixed Assets – Equipment', '固定资产-设备', 'asset', false, false),
-    ('1510', 'Accumulated Depreciation', '累计折旧', 'asset', false, false),
     ('2100', 'GST Output Tax', 'GST 销项税', 'liability', false, true),   -- 对 IRAS 的定额义务:货币性
     ('3000', 'Share Capital', '实收资本', 'equity', false, false),
     ('3100', 'Retained Earnings', '留存收益', 'equity', false, false),
