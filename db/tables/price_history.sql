@@ -19,7 +19,12 @@ CREATE TABLE public.price_history (
     fx_rate          numeric NOT NULL,
     notes            text,
     created_at       timestamptz NOT NULL DEFAULT now(),
-    created_by       uuid DEFAULT auth.uid()
+    created_by       uuid DEFAULT auth.uid(),
+    -- ── FIN-21 追加(ALTER 加的列排在末尾)──────────────────────────────────
+    -- 所用牌价【取自哪一天、哪一侧】。事后从牌价表推不回来(牌价可被订正,
+    -- 历史留痕不能跟着变)—— 所以定价函数当场记下。NULL = FIN-21 之前的行,不补造。
+    rate_as_of       date,
+    rate_type        text CHECK (rate_type IN ('tt_buy', 'tt_sell', 'mid'))
 );
 
 CREATE INDEX idx_price_history_batch ON public.price_history (inbound_batch_id);
@@ -66,5 +71,11 @@ CREATE TRIGGER trg_inbound_batches_price_guard
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 price_history_masked 读取。
 -- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
 REVOKE SELECT ON public.price_history FROM authenticated, anon;
-GRANT SELECT (id, inbound_batch_id, currency, notes, created_at, created_by)
+GRANT SELECT (id, inbound_batch_id, currency, notes, created_at, created_by, rate_as_of, rate_type)
     ON public.price_history TO authenticated;
+
+-- FIN-21:牌价溯源列的说明(写在库里,重建出来的库也带着)
+COMMENT ON COLUMN public.price_history.rate_as_of IS
+    '所用牌价【取自哪一天】(fx_rate_asof 的 as_of,FIN-21)。与定价日不同 = 回溯(FIN-19 规则内);NULL = FIN-21 之前的行,当时没记,不补造。';
+COMMENT ON COLUMN public.price_history.rate_type IS
+    '所用牌价的侧(tt_buy / tt_sell / mid,FIN-21)。采购计价恒为 tt_sell —— 这批货将来要向银行买外币去付。NULL = FIN-21 之前的行。';

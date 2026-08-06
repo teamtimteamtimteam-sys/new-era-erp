@@ -2,6 +2,7 @@
 // 产出批次列表页:URL 驱动的搜索 / 状态筛选 / 客户筛选 / 物料筛选 / 排序 / 分页。
 // 端口自 inbound 列表:supplier→customer、stage→state。customer_id 可空(未售出批次无客户)。
 import { Suspense } from 'react'
+import { formatTimestamp } from '@/lib/format'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import DeleteButton from './DeleteButton'
@@ -251,7 +252,7 @@ export default async function OutputPage({
                                 </span>
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
-                                {new Date(b.created_at).toLocaleString(dateLocale)}
+                                {formatTimestamp(b.created_at, dateLocale)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">
                                 <DeleteButton id={b.id} code={b.code} />

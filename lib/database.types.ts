@@ -3910,6 +3910,8 @@ export type Database = {
           notes: string | null
           old_unit_price: number | null
           original_price: number
+          rate_as_of: string | null
+          rate_type: string | null
         }
         Insert: {
           created_at?: string
@@ -3922,6 +3924,8 @@ export type Database = {
           notes?: string | null
           old_unit_price?: number | null
           original_price: number
+          rate_as_of?: string | null
+          rate_type?: string | null
         }
         Update: {
           created_at?: string
@@ -3934,6 +3938,8 @@ export type Database = {
           notes?: string | null
           old_unit_price?: number | null
           original_price?: number
+          rate_as_of?: string | null
+          rate_type?: string | null
         }
         Relationships: [
           {
@@ -7699,6 +7705,8 @@ export type Database = {
           notes: string | null
           old_unit_price: number | null
           original_price: number | null
+          rate_as_of: string | null
+          rate_type: string | null
         }
         Insert: {
           created_at?: string | null
@@ -7711,6 +7719,8 @@ export type Database = {
           notes?: string | null
           old_unit_price?: never
           original_price?: never
+          rate_as_of?: string | null
+          rate_type?: string | null
         }
         Update: {
           created_at?: string | null
@@ -7723,6 +7733,8 @@ export type Database = {
           notes?: string | null
           old_unit_price?: never
           original_price?: never
+          rate_as_of?: string | null
+          rate_type?: string | null
         }
         Relationships: [
           {

@@ -8,7 +8,7 @@ import { notFound } from 'next/navigation'
 import { getBaseCurrency } from '@/lib/currency'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatMoney } from '@/lib/format'
+import { formatMoney, formatTimestamp } from '@/lib/format'
 import Subnav from '../../Subnav'
 import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachmentsPanel'
 import { unmasked } from '@/lib/maskedRows'
@@ -103,7 +103,7 @@ export default async function PayableDocPage({
         mime_type: a.mime_type,
         doc_type: a.doc_type,
         notes: a.notes,
-        created_at_display: new Date(a.created_at).toLocaleString(dateLocale),
+        created_at_display: formatTimestamp(a.created_at, dateLocale),
     }))
 
     const materialName = (batch.materials as unknown as { name: string } | null)?.name ?? '—'

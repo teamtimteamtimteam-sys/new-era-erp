@@ -2,6 +2,7 @@
 // 物料字典列表页:URL 驱动的搜索 / 分类筛选 / 排序 / 分页(全部在服务端完成)。
 // 端口自 suppliers 列表,字段适配 materials(分类筛选用 category)。
 import { Suspense } from 'react'
+import { formatTimestamp } from '@/lib/format'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import DeleteButton from './DeleteButton'
@@ -186,7 +187,7 @@ export default async function MaterialsPage({
                                 </span>
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
-                                {new Date(m.created_at).toLocaleString(dateLocale)}
+                                {formatTimestamp(m.created_at, dateLocale)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">
                                 <DeleteButton id={m.id} name={m.name} />

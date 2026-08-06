@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { formatTimestamp } from '@/lib/format'
 import { getBaseCurrency } from '@/lib/currency'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -81,7 +82,7 @@ export default async function EditInboundPage({
         // 价格历史(计价面板,cut 1)
         supabase
             .from('price_history_masked')
-            .select('id, old_unit_price, new_unit_price, currency, original_price, fx_rate, notes, created_at')
+            .select('id, old_unit_price, new_unit_price, currency, original_price, fx_rate, rate_as_of, rate_type, notes, created_at')
             .eq('inbound_batch_id', id)
             .order('created_at', { ascending: false }),
     ])
@@ -181,7 +182,7 @@ export default async function EditInboundPage({
         ).map((h) => ({
             id: h.id,
             amount_base: h.amount_base,
-            created_at_display: new Date(h.created_at).toLocaleString(dateLocale),
+            created_at_display: formatTimestamp(h.created_at, dateLocale),
             journal_id: h.journal_entries?.id ?? null,
             journal_code: h.journal_entries?.code ?? null,
         }))
@@ -212,15 +213,20 @@ export default async function EditInboundPage({
         currency: h.currency,
         original_price: h.original_price,
         fx_rate: h.fx_rate,
+        // FIN-21:牌价取自哪一天、哪一侧。定价日(SG 日历)用来判断要不要标"取自":
+        // PostgREST 现按业务时区吐 +08:00 偏移,slice(0,10) 即 SG 日期。
+        rate_as_of: h.rate_as_of,
+        rate_type: h.rate_type,
+        priced_date: h.created_at?.slice(0, 10) ?? null,
         notes: h.notes,
-        created_at_display: new Date(h.created_at).toLocaleString(dateLocale),
+        created_at_display: formatTimestamp(h.created_at, dateLocale),
     }))
 
     // 金属含量行:服务端预格式化 updated_at,避免客户端水合不一致
     const metalRows: MetalContentRow[] = (mustRows(metalsRes)).map((m) => ({
         metal: m.metal,
         content_pct: m.content_pct,
-        updated_at_display: new Date(m.updated_at).toLocaleString(dateLocale),
+        updated_at_display: formatTimestamp(m.updated_at, dateLocale),
     }))
 
     // 库存流水行:服务端预格式化 occurred_at
@@ -230,7 +236,7 @@ export default async function EditInboundPage({
         qty_delta: m.qty_delta,
         business_date: m.business_date,
         notes: m.notes,
-        occurred_at_display: new Date(m.occurred_at).toLocaleString(dateLocale),
+        occurred_at_display: formatTimestamp(m.occurred_at, dateLocale),
         run: m.processing_runs,
     }))
 

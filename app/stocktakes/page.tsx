@@ -2,6 +2,7 @@
 // 盘点单列表页。暂无筛选工具栏;count+range 分页端口自 processing 列表。
 // 新建按钮直接提交 createStocktake(空单 → 跳详情开始点数)。
 import { createClient } from '@/lib/supabase/server'
+import { formatTimestamp } from '@/lib/format'
 import Link from 'next/link'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { stocktakeStatusLabelKey } from './status'
@@ -117,10 +118,10 @@ export default async function StocktakesPage({
                                     </span>
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
-                                    {new Date(r.started_at).toLocaleString(dateLocale)}
+                                    {formatTimestamp(r.started_at, dateLocale)}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
-                                    {r.posted_at ? new Date(r.posted_at).toLocaleString(dateLocale) : '—'}
+                                    {r.posted_at ? formatTimestamp(r.posted_at, dateLocale) : '—'}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">{r.notes ?? '—'}</td>
                             </tr>

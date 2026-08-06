@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { formatTimestamp } from '@/lib/format'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import EditCustomerForm from './EditCustomerForm'
@@ -42,7 +43,7 @@ export default async function EditCustomerPage({
         file_size: a.file_size,
         doc_category: a.doc_category,
         storage_path: a.storage_path,
-        created_at_display: new Date(a.created_at).toLocaleString(dateLocale),
+        created_at_display: formatTimestamp(a.created_at, dateLocale),
     }))
 
     return (

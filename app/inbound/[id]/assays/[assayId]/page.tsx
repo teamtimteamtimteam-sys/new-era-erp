@@ -10,7 +10,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatMoney, formatUnitCost } from '@/lib/format'
+import { formatMoney, formatUnitCost, formatTimestamp } from '@/lib/format'
 import { metalLabelKey } from '@/app/metal-prices/options'
 import { localizeAssayError } from '../../../assayErrorCodes'
 import { ApplyNowButton, UnapplyControl } from './ApplyAssayControls'
@@ -116,7 +116,7 @@ export default async function AssayDetailPage({
                     row.new_unit_price === null
                         ? null
                         : Math.round(Number(batch.quantity) * (Number(row.new_unit_price) - Number(row.old_unit_price ?? 0)) * 100) / 100,
-                when: new Date(row.created_at).toLocaleString(dateLocale),
+                when: formatTimestamp(row.created_at, dateLocale),
                 journalId: je?.[0]?.id ?? null,
                 journalCode: je?.[0]?.code ?? null,
             }
@@ -232,7 +232,7 @@ export default async function AssayDetailPage({
                     }
                 >
                     {isApplied
-                        ? `${t('assay.applied')} · ${new Date(assay.applied_at!).toLocaleString(dateLocale)}`
+                        ? `${t('assay.applied')} · ${formatTimestamp(assay.applied_at!, dateLocale)}`
                         : t('assay.notApplied')}
                 </span>
                 {supersederRes.data && (

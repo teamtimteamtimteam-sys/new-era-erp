@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { formatTimestamp } from '@/lib/format'
 import { getBaseCurrency } from '@/lib/currency'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -110,7 +111,7 @@ export default async function EditOutputPage({
     const metalRows: MetalContentRow[] = (mustRows(metalsRes)).map((m) => ({
         metal: m.metal,
         content_pct: m.content_pct,
-        updated_at_display: new Date(m.updated_at).toLocaleString(dateLocale),
+        updated_at_display: formatTimestamp(m.updated_at, dateLocale),
     }))
 
     // 库存流水行:服务端预格式化 occurred_at
@@ -120,7 +121,7 @@ export default async function EditOutputPage({
         qty_delta: m.qty_delta,
         business_date: m.business_date,
         notes: m.notes,
-        occurred_at_display: new Date(m.occurred_at).toLocaleString(dateLocale),
+        occurred_at_display: formatTimestamp(m.occurred_at, dateLocale),
         run: m.processing_runs,
     }))
 

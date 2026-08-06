@@ -1,8 +1,72 @@
+-- db/migrations/2026-08-06-fin21-price-history-records-rate-date-and-side.sql
+--
+-- FIN-21:计价留痕带上【牌价取自哪一天、哪一侧】。
+--
+-- 走查发现:计价历史只显示 "4.24 USD @ 1.22" —— 没有日期、没有侧。FIN-19b 给
+-- 重估预览和收付款核销行都加了 as-of 标记,这块屏没跟上;而定价恰恰按
+-- fx_rate_for(币种, CURRENT_DATE, 'tt_sell') 解析 —— FIN-20 之前 CURRENT_DATE
+-- 还错过一整个窗口。一个折算出来的价格必须能查回它用的牌价(FIN-13 第 5 条)。
+--
+-- 【为什么是加列,不是显示时再查】与 FIN-18 同理(derived-vs-recorded):
+-- 定价那一刻用的 as-of 日期,事后从牌价表【推不回来】—— 牌价日后被订正,
+-- 历史留痕跟着变,那是错的。所以定价函数把它记下来。
+-- 旧行回填【不做】:那几行当时用的 as-of 没人记得,补出来的痕迹是假的
+-- (与 processing_cost_entry_history 不补造历史行同一条规矩)。NULL = FIN-21
+-- 之前的行,界面留白。
+--
+-- 【perm2b 连带】price_history 是列清单授权的遮蔽表:新列必须【同迁移】进
+-- SELECT 授权清单 + _masked 视图,否则应用写得进读不出(42501,FIN-6 的坑)。
+-- 两列都不敏感(日期与侧,不是价格)→ 直接授,masked 视图原样透出。
+-- gate 的 colgrant 行会两侧断言。
 
--- FIN-21(2026-08-06):改问 fx_rate_asof —— 同一条解析规则,多拿一个【取自哪一天】,
--- 与所用侧(恒 tt_sell)一起记进 price_history.rate_as_of / rate_type。
--- 缺牌价仍拒:再调一次 fx_rate_for 抛唯一的 FX_RATE_MISSING(重估写入侧同一模式)。
+BEGIN;
 
+-- ── 1. 加列 ──────────────────────────────────────────────────────────────
+ALTER TABLE public.price_history ADD COLUMN rate_as_of date;
+ALTER TABLE public.price_history ADD COLUMN rate_type text
+    CHECK (rate_type IN ('tt_buy', 'tt_sell', 'mid'));
+
+COMMENT ON COLUMN public.price_history.rate_as_of IS
+    '所用牌价【取自哪一天】(fx_rate_asof 的 as_of,FIN-21)。与定价日不同 = 回溯(FIN-19 规则内);NULL = FIN-21 之前的行,当时没记,不补造。';
+COMMENT ON COLUMN public.price_history.rate_type IS
+    '所用牌价的侧(tt_buy / tt_sell / mid,FIN-21)。采购计价恒为 tt_sell —— 这批货将来要向银行买外币去付。NULL = FIN-21 之前的行。';
+
+-- ── 2. 列清单授权补上新列(表级 SELECT 已收回,清单是冻结的 —— perm2b)────
+GRANT SELECT (rate_as_of, rate_type) ON public.price_history TO authenticated;
+
+-- ── 3. 遮蔽视图带上新列(不敏感,原样透出)───────────────────────────────
+CREATE OR REPLACE VIEW public.price_history_masked WITH (security_invoker = off) AS
+ SELECT id,
+    inbound_batch_id,
+        CASE
+            WHEN has_permission('data.view_prices'::text) THEN old_unit_price
+            ELSE NULL::numeric
+        END AS old_unit_price,
+        CASE
+            WHEN has_permission('data.view_prices'::text) THEN new_unit_price
+            ELSE NULL::numeric
+        END AS new_unit_price,
+    currency,
+        CASE
+            WHEN has_permission('data.view_prices'::text) THEN original_price
+            ELSE NULL::numeric
+        END AS original_price,
+        CASE
+            WHEN has_permission('data.view_prices'::text) THEN fx_rate
+            ELSE NULL::numeric
+        END AS fx_rate,
+    notes,
+    created_at,
+    created_by,
+    rate_as_of,
+    rate_type
+   FROM price_history
+  WHERE has_permission('module.inbound.view'::text);
+
+-- ── 4. reprice_inbound_batch:问 fx_rate_asof(要 as_of),拒绝口径不变 ────
+-- 缺牌价时 fx_rate_asof 返回空行;【再调一次 fx_rate_for】让它抛出唯一的那份
+-- FX_RATE_MISSING|币种|日期|侧 —— 重估写入侧(revalue_foreign_balances)的同一
+-- 模式,错误文案不写第二遍。
 CREATE OR REPLACE FUNCTION public.reprice_inbound_batch(p_inbound_batch_id uuid, p_unit_price numeric, p_currency text DEFAULT 'USD'::text, p_fx_rate numeric DEFAULT NULL::numeric, p_notes text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -127,3 +191,5 @@ BEGIN
     );
 END;
 $function$;
+
+COMMIT;

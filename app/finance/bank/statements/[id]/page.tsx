@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatAmount } from '@/lib/format'
+import { formatAmount, formatTimestamp } from '@/lib/format'
 import Subnav from '../../../Subnav'
 import DeleteStatementButton from './DeleteStatementButton'
 import UnreconcileControl from './UnreconcileControl'
@@ -104,7 +104,7 @@ export default async function BankStatementDetailPage({
                     <span>
                         {t('bank.reconciledBanner', {
                             when: stmt.reconciled_at
-                                ? new Date(stmt.reconciled_at).toLocaleString(dateLocale)
+                                ? formatTimestamp(stmt.reconciled_at, dateLocale)
                                 : '—',
                         })}
                     </span>
@@ -167,7 +167,7 @@ export default async function BankStatementDetailPage({
                 {stmt.reconciled_at && (
                     <div>
                         <span className="text-gray-600 mr-1">{t('bank.reconciledAt')}:</span>
-                        <span>{new Date(stmt.reconciled_at).toLocaleString(dateLocale)}</span>
+                        <span>{formatTimestamp(stmt.reconciled_at, dateLocale)}</span>
                     </div>
                 )}
                 {stmt.status === 'open' && <DeleteStatementButton statementId={stmt.id} />}

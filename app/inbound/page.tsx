@@ -2,6 +2,7 @@
 // 进料批次列表页:URL 驱动的搜索 / 阶段筛选 / 供应商筛选 / 物料筛选 / 排序 / 分页。
 // 端口自 materials 列表,适配事务表:关联方(供应商/物料)用 FK-id 下拉,嵌入仅用于展示。
 import { Suspense } from 'react'
+import { formatTimestamp } from '@/lib/format'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import DeleteButton from './DeleteButton'
@@ -339,7 +340,7 @@ export default async function InboundPage({
                                 )}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
-                                {new Date(b.created_at).toLocaleString(dateLocale)}
+                                {formatTimestamp(b.created_at, dateLocale)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">
                                 <DeleteButton id={b.id} code={b.code} />

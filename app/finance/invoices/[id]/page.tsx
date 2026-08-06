@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatMoney, formatAmount } from '@/lib/format'
+import { formatMoney, formatAmount, formatTimestamp } from '@/lib/format'
 import { checkInvoicePdfCoverage } from '@/lib/invoiceFontCoverage'
 import Subnav from '../../Subnav'
 import VoidInvoiceControl from './VoidInvoiceControl'
@@ -210,7 +210,7 @@ export default async function InvoiceDetailPage({
             {isVoid && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">
                     {t('invoice.voidedBanner', {
-                        date: inv.voided_at ? new Date(inv.voided_at).toLocaleString(dateLocale) : '—',
+                        date: inv.voided_at ? formatTimestamp(inv.voided_at, dateLocale) : '—',
                         reason: inv.void_reason ?? '—',
                     })}
                 </div>

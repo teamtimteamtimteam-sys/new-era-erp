@@ -2,6 +2,7 @@
 // 盘点详情/点数页(移动端优先,端口自 GRN 现场收货的触控风格)。
 // open = 点数界面(汇总条 + 已盘/未盘列表 + 底部粘性操作条);posted/cancelled = 只读行表。
 import Link from 'next/link'
+import { formatTimestamp } from '@/lib/format'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
@@ -143,7 +144,7 @@ export default async function StocktakeDetailPage({
                     <>
                         <span className="mx-2">·</span>
                         <span>
-                            {t('stocktakes.colPosted')}: {new Date(st.posted_at).toLocaleString(dateLocale)}
+                            {t('stocktakes.colPosted')}: {formatTimestamp(st.posted_at, dateLocale)}
                         </span>
                     </>
                 )}

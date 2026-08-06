@@ -2,6 +2,7 @@
 // 客户列表页:URL 驱动的搜索 / 排序 / 分页(全部在服务端的 Supabase 查询里完成)。
 // 端口自 suppliers 列表,去掉状态筛选(客户没有状态机)。
 import { Suspense } from 'react'
+import { formatTimestamp } from '@/lib/format'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import DeleteButton from './DeleteButton'
@@ -179,7 +180,7 @@ export default async function CustomersPage({
                                 </span>
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
-                                {new Date(c.created_at).toLocaleString(dateLocale)}
+                                {formatTimestamp(c.created_at, dateLocale)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">
                                 <DeleteButton id={c.id} legalName={c.legal_name} />

@@ -33,6 +33,8 @@ CREATE VIEW public.price_history_masked WITH (security_invoker = off) AS
         END AS fx_rate,
     notes,
     created_at,
-    created_by
+    created_by,
+    rate_as_of,
+    rate_type
    FROM price_history
   WHERE has_permission('module.inbound.view'::text);

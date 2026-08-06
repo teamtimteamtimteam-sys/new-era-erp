@@ -19,6 +19,10 @@ export type PriceHistoryRow = {
     currency: string
     original_price: number | null
     fx_rate: number | null
+    // FIN-21:所用牌价取自哪一天、哪一侧;旧行(FIN-21 前)为 null,留白不补造
+    rate_as_of: string | null
+    rate_type: string | null
+    priced_date: string | null   // 定价日(SG 日历),as-of 与它不同才标出来
     notes: string | null
     created_at_display: string // 服务端预格式化,避免水合不一致
 }
@@ -154,7 +158,18 @@ export default function PricingPanel({
                                     <td className="border border-gray-300 px-3 py-2 font-mono">
                                         <MaskedValue value={h.original_price} canView={canViewPrices} />{' '}
                                         {h.original_price !== null ? h.currency : ''}
+                                        {/* FIN-21:汇率必须带上侧与(回溯时)取自哪一天 ——
+                                            "4.24 USD @ 1.22" 是个查不回去的数;
+                                            "@ 1.22 tt_sell" + as-of 标记才是。旧行没记,留白。 */}
                                         {h.currency !== baseCurrency && h.fx_rate !== null ? ` @ ${h.fx_rate}` : ''}
+                                        {h.currency !== baseCurrency && h.fx_rate !== null && h.rate_type && (
+                                            <span className="ml-1 text-xs text-gray-500">{h.rate_type}</span>
+                                        )}
+                                        {h.currency !== baseCurrency && h.rate_as_of && h.priced_date && h.rate_as_of !== h.priced_date && (
+                                            <span className="ml-1 px-1 rounded bg-amber-100 text-amber-800 text-xs font-sans">
+                                                {t('finance.fxLookup.asOf', { 0: h.rate_as_of })}
+                                            </span>
+                                        )}
                                     </td>
                                     <td className="border border-gray-300 px-3 py-2">{h.notes ?? '—'}</td>
                                 </tr>

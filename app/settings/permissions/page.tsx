@@ -3,6 +3,7 @@
 // 数据来自 user_directory 视图(cut 3 B2):它是属主权限视图,谓词写在视图体里,
 // 没有 action.manage_permissions 的人拿到【零行而不是报错】。
 import { createClient } from '@/lib/supabase/server'
+import { formatTimestamp } from '@/lib/format'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import Subnav from './Subnav'
 import { requireManagePermissions } from './guard'
@@ -39,7 +40,7 @@ export default async function PermissionUsersPage() {
     const employees = (mustRows(empRes)) as EmployeeOption[]
 
     const fmt = (v: string | null) =>
-        v ? new Date(v).toLocaleString(dateLocale) : '—'
+        v ? formatTimestamp(v, dateLocale) : '—'
 
     return (
         <div className="p-8 max-w-6xl">

@@ -1,6 +1,7 @@
 // app/suppliers/page.tsx
 // 供应商列表页:URL 驱动的搜索 / 状态筛选 / 排序(全部在服务端的 Supabase 查询里完成)
 import { Suspense } from 'react'
+import { formatTimestamp } from '@/lib/format'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import DeleteButton from './DeleteButton'
@@ -169,7 +170,7 @@ export default async function SuppliersPage({
                                 </span>
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
-                                {new Date(s.created_at).toLocaleString(dateLocale)}
+                                {formatTimestamp(s.created_at, dateLocale)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">
                                 <DeleteButton id={s.id} legalName={s.legal_name} />

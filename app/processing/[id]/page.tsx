@@ -7,7 +7,7 @@ import AllocateButton from './AllocateButton'
 import { type CostEntryRow } from './costTypes'
 import { processingStatusLabelKey } from '../status'
 import { metalLabelKey } from '@/app/metal-prices/options'
-import { formatMoney, formatUnitCost } from '@/lib/format'
+import { formatMoney, formatUnitCost, formatTimestamp } from '@/lib/format'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { maskedRows, maskedExcept } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
@@ -139,9 +139,9 @@ export default async function ProcessingDetailPage({
         amount_base: c.amount_base,
         is_estimate: c.is_estimate,
         notes: c.notes,
-        created_at_display: new Date(c.created_at).toLocaleString(dateLocale),
+        created_at_display: formatTimestamp(c.created_at, dateLocale),
         edited_at_display: c.updated_at !== c.created_at
-            ? new Date(c.updated_at).toLocaleString(dateLocale) : null,
+            ? formatTimestamp(c.updated_at, dateLocale) : null,
         edited_by_name: c.updated_by ? editorName.get(c.updated_by) ?? null : null,
     }))
 
@@ -164,7 +164,7 @@ export default async function ProcessingDetailPage({
 
     // 分摊信息:上次分摊时间 + 基准标签
     const allocatedWhen = run.allocated_at
-        ? new Date(run.allocated_at).toLocaleString(dateLocale)
+        ? formatTimestamp(run.allocated_at, dateLocale)
         : null
     const basisLabel =
         run.allocation_basis === 'metal_value' || run.allocation_basis === 'weight'
