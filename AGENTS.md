@@ -290,7 +290,7 @@ python3 db/gate.py     # 0 clean · 1 mirror drift · 2 cannot build
                        # 3 B1/B2 invariant · 4 behavioural fixture failed
 ```
 
-Sixteen fixtures, ~40 assertions, on the paths where a silent break costs money:
+Seventeen fixtures, ~46 assertions, on the paths where a silent break costs money:
 settlement closing to exactly zero (including cross-currency), revaluation
 idempotence, confirmation not touching leave, accrual not applying a category
 change retroactively, one bank line per employee, realised 7100 never crossing
@@ -306,7 +306,16 @@ differs too, so it cannot pass by both answers agreeing), and fixed assets
 (FIN-22: depreciation from the in-service date not the acquisition date,
 idempotent by arithmetic, capped at cost minus residual, non-monetary and
 invisible to revaluation, disposal clearing 1500/1510 exactly, locked periods
-refused by name). Deliberately small: every retained fixture is
+refused by name), and year-end close (FIN-23: P&L accounts derived by
+account_type never a code range — the FX arm posts to 7100 and a 4000-6999
+implementation fails it; balance-sheet accounts untouched as one snapshot;
+idempotent by arithmetic; the closed year's P&L still reproducible — the
+report EXCLUDES year_close entries while the balance sheet INCLUDES them,
+deliberately asymmetric, comments cross-referenced in both queries; the
+YEAR_CLOSED guard in post_journal_entry is independent of locked_before, so
+month-level reopen_period cannot pierce a closed year — the fixture's E arm
+walks exactly that path; reopen reverses the closing entry with a reason and
+restores the trial balance to the cent). Deliberately small: every retained fixture is
 maintenance on every schema move, and the HR-2c accrual change already cost one
 round of "is this staleness or regression?" judgement.
 

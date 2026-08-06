@@ -1,7 +1,11 @@
 // app/finance/balance-sheet/page.tsx
 // 资产负债表:截至日(as_of,默认今天)全部分录聚合。资产净额 = Σ借−Σ贷,
 // 负债/权益净额 = Σ贷−Σ借;权益额外加"本期损益"合成行(收入−成本−费用,
-// 同一截至日口径)—— 尚无年结分录,损益还挂在损益类科目上。
+// 同一截至日口径)。
+// 【FIN-23:本表【包含】year_close 分录 —— 与损益表刻意不对称】已结年度的损益行
+// 合计归零,3100 接住净结果,合成的"本期损益"行只剩结转后的活动 —— 自洽,
+// 权益合计不变。损益表相反,【剔除】year_close(app/finance/pnl/page.tsx,注释
+// 互指):否则结转会把已结年度的损益表清成零。改任何一边前先读两边。
 // 底部 资产合计 vs 负债+权益合计,必须相等(不等出红警,理论不可能)。
 import { Fragment, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'

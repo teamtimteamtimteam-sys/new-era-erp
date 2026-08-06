@@ -52,3 +52,37 @@ export async function reopenPeriod(periodEnd: string, reason: string): Promise<C
     revalidateFinance()
     return {}
 }
+
+// ── FIN-23:年结 ────────────────────────────────────────────────────────────
+// 硬前置(月锁位、试算、重估、折旧)在 close_financial_year 内点名拒;
+// 界面靠 preview_close_financial_year 亮灯,两边同一份算术。
+export async function closeFinancialYear(yearEnd: string, notes?: string): Promise<CloseActionState> {
+    const supabase = await createClient()
+    const { error } = await supabase.rpc('close_financial_year', {
+        p_year_end: yearEnd,
+        p_notes: notes || undefined,
+    })
+    if (error) {
+        return { error: await localizeFinanceError(error.message) }
+    }
+    revalidateFinance()
+    return {}
+}
+
+export async function reopenFinancialYear(yearEnd: string, reason: string): Promise<CloseActionState> {
+    const t = await getTranslations()
+    const trimmed = (reason ?? '').trim()
+    if (!trimmed) {
+        return { error: t('finance.errors.REASON_REQUIRED') }
+    }
+    const supabase = await createClient()
+    const { error } = await supabase.rpc('reopen_financial_year', {
+        p_year_end: yearEnd,
+        p_reason: trimmed,
+    })
+    if (error) {
+        return { error: await localizeFinanceError(error.message) }
+    }
+    revalidateFinance()
+    return {}
+}

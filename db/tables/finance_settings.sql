@@ -31,7 +31,14 @@ CREATE TABLE public.finance_settings (
     gst_registration_no text,
     -- ── HR-5 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
     -- 本库开始运营的日期,安装时申报。早于它的年度动作一律拒绝。
-    system_start_date date
+    system_start_date date,
+    -- ── FIN-23 追加(ALTER 加的列排在末尾)──────────────────────────────────
+    -- 财年配置:申报,不推断(新加坡公司自选财年,不得假设 12/31)。
+    -- 引导默认 12/31 即 Tim 申报的 FYE —— RUNTIME CONFIG:默认值就是申报值,正确。
+    -- first_fy_end 可空:首个财年可长达 18 个月,定了以显式日期为准,留空按循环推。
+    fy_end_month integer NOT NULL DEFAULT 12 CHECK (fy_end_month BETWEEN 1 AND 12),
+    fy_end_day integer NOT NULL DEFAULT 31 CHECK (fy_end_day BETWEEN 1 AND 31),
+    first_fy_end date
 );
 
 INSERT INTO public.finance_settings (id, locked_before) VALUES (true, NULL);
@@ -63,3 +70,10 @@ CREATE POLICY "finance_settings delete by permission"
 
 COMMENT ON COLUMN public.finance_settings.system_start_date IS
     '本库自哪一天起持有【完整】记录 —— 不是安装日、也不一定是切换日。若切换前的交易会被补录进来,取【最早那笔真实交易】的日期。所有年度性守卫(年末结转、医疗额度)以它为界:早于它的期间,本库的数据不完整,任何据此推算的余额或额度都是凭空的。取错不会报错,只会让守卫站错位置。';
+
+COMMENT ON COLUMN public.finance_settings.fy_end_month IS
+    '财年末的月份(FIN-23,申报值 —— 新加坡公司自选财年,不得假设 12/31)。与 fy_end_day 一起推导每个财年末;首年可被 first_fy_end 覆盖。';
+COMMENT ON COLUMN public.finance_settings.fy_end_day IS
+    '财年末的日(FIN-23)。短月自动收敛到月末(2/30 → 2/28)。';
+COMMENT ON COLUMN public.finance_settings.first_fy_end IS
+    '首个财年末(FIN-23,可空)。新加坡首个财年可长达 18 个月 —— 留空按循环对推;定了以此为准。只影响第一次年结。';

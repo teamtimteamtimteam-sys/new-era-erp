@@ -1312,6 +1312,9 @@ export type Database = {
       }
       finance_settings: {
         Row: {
+          first_fy_end: string | null
+          fy_end_day: number
+          fy_end_month: number
           gst_rate_pct: number
           gst_registered: boolean
           gst_registration_no: string | null
@@ -1322,6 +1325,9 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          first_fy_end?: string | null
+          fy_end_day?: number
+          fy_end_month?: number
           gst_rate_pct?: number
           gst_registered?: boolean
           gst_registration_no?: string | null
@@ -1332,6 +1338,9 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          first_fy_end?: string | null
+          fy_end_day?: number
+          fy_end_month?: number
           gst_rate_pct?: number
           gst_registered?: boolean
           gst_registration_no?: string | null
@@ -5952,6 +5961,77 @@ export type Database = {
           },
         ]
       }
+      year_closes: {
+        Row: {
+          closed_at: string
+          closed_by: string | null
+          closing_journal_id: string
+          id: string
+          net_result: number
+          notes: string | null
+          reopen_reason: string | null
+          reopened_at: string | null
+          reopened_by: string | null
+          reversal_journal_id: string | null
+          year_end: string
+        }
+        Insert: {
+          closed_at?: string
+          closed_by?: string | null
+          closing_journal_id: string
+          id?: string
+          net_result: number
+          notes?: string | null
+          reopen_reason?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
+          reversal_journal_id?: string | null
+          year_end: string
+        }
+        Update: {
+          closed_at?: string
+          closed_by?: string | null
+          closing_journal_id?: string
+          id?: string
+          net_result?: number
+          notes?: string | null
+          reopen_reason?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
+          reversal_journal_id?: string | null
+          year_end?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "year_closes_closing_journal_id_fkey"
+            columns: ["closing_journal_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "year_closes_closing_journal_id_fkey"
+            columns: ["closing_journal_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "year_closes_reversal_journal_id_fkey"
+            columns: ["reversal_journal_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "year_closes_reversal_journal_id_fkey"
+            columns: ["reversal_journal_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       ap_open_items: {
@@ -8996,6 +9076,10 @@ export type Database = {
         Args: { p_leave_year: number }
         Returns: Json
       }
+      close_financial_year: {
+        Args: { p_notes?: string; p_year_end: string }
+        Returns: Json
+      }
       close_period: {
         Args: { p_notes?: string; p_period_end: string }
         Returns: Json
@@ -9208,6 +9292,10 @@ export type Database = {
         Returns: Json
       }
       post_stocktake: { Args: { p_stocktake_id: string }; Returns: Json }
+      preview_close_financial_year: {
+        Args: { p_year_end?: string }
+        Returns: Json
+      }
       preview_depreciate_fixed_assets: {
         Args: { p_period_end: string }
         Returns: Json
@@ -9311,6 +9399,10 @@ export type Database = {
         Returns: Json
       }
       remove_review_goal: { Args: { p_goal_id: string }; Returns: Json }
+      reopen_financial_year: {
+        Args: { p_reason: string; p_year_end: string }
+        Returns: Json
+      }
       reopen_period: {
         Args: { p_period_end: string; p_reason: string }
         Returns: Json

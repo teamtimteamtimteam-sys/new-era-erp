@@ -60,6 +60,15 @@ export default async function PnlPage({
         .gte('journal_entries.entry_date', from)
         .lte('journal_entries.entry_date', to)
         .in('accounts.account_type', ['revenue', 'cogs', 'expense'])
+        // ════════════════════════════════════════════════════════════════════
+        // 【FIN-23:剔除年结分录 —— 与资产负债表刻意不对称】本表按日期区间聚合
+        // 分录行,而结转分录恰好落在区间末日(财年末):不剔除,已结年度的损益表
+        // 会整表归零 —— 合法会计记录里【去年的报表必须永远可复现】。
+        // 资产负债表【包含】year_close(app/finance/balance-sheet/page.tsx,注释
+        // 互指):已结年度的损益行合计归零,3100 接住结果,合成的"本期损益"行
+        // 只剩结转后的活动 —— 自洽。改任何一边前先读两边。
+        // ════════════════════════════════════════════════════════════════════
+        .not('journal_entries.source_type', 'eq', 'year_close')
 
     if (error) {
         return (

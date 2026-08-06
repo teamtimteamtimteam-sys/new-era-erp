@@ -11,7 +11,8 @@ import Subnav from '../Subnav'
 import PeriodPicker, { type PeriodOption } from './PeriodPicker'
 import CloseButton from './CloseButton'
 import ReopenForm from './ReopenForm'
-import { mustRows } from '@/lib/db-helpers'
+import YearClosePanel from './YearClosePanel'
+import { mustRows, mustOne } from '@/lib/db-helpers'
 
 type CloseRow = {
     id: string
@@ -37,15 +38,20 @@ export default async function ClosePage({
     const supabase = await createClient()
     const t = await getTranslations()
 
-    const [settingsRes, closesRes] = await Promise.all([
+    const [settingsRes, closesRes, yearPreviewRes, yearClosesRes] = await Promise.all([
         supabase.from('finance_settings').select('locked_before').eq('id', true).single(),
         supabase
             .from('period_closes')
             .select('id, period_end, closed_at, notes, entries_count, total_debits, total_credits, reopened_at, reopen_reason')
             .order('closed_at', { ascending: false }),
+        // FIN-23:年结预览 —— 与 close_financial_year 同一份算术(硬前置也从这里读)
+        supabase.rpc('preview_close_financial_year'),
+        supabase.from('year_closes')
+            .select('id, year_end, net_result, closed_at, reopened_at, reopen_reason')
+            .order('closed_at', { ascending: false }),
     ])
 
-    const error = settingsRes.error ?? closesRes.error
+    const error = settingsRes.error ?? closesRes.error ?? yearPreviewRes.error ?? yearClosesRes.error
     if (error) {
         return (
             <div className="p-8">
@@ -110,6 +116,33 @@ export default async function ClosePage({
     }
 
     const monthStart = selected ? selected.slice(0, 8) + '01' : ''
+
+    // ── FIN-23:年结状态 ──────────────────────────────────────────────────────
+    type YearPreview = {
+        year_end: string
+        expected_year_end: string
+        already_closed: boolean
+        net_result: number
+        final_period_closed: boolean
+        trial_balanced: boolean
+        revaluation_level: boolean
+        depreciation_level: boolean
+        draft_payroll_count: number
+        open_accrual_count: number
+    }
+    const yp = mustOne(yearPreviewRes, 'preview_close_financial_year') as unknown as YearPreview | null
+    type YearCloseRow = {
+        id: string; year_end: string; net_result: number
+        closed_at: string; reopened_at: string | null; reopen_reason: string | null
+    }
+    const yearCloses = mustRows(yearClosesRes) as YearCloseRow[]
+    const hardChecks: { key: string; ok: boolean }[] = yp ? [
+        { key: 'finalPeriod', ok: yp.final_period_closed },
+        { key: 'trialBalance', ok: yp.trial_balanced },
+        { key: 'revaluation', ok: yp.revaluation_level },
+        { key: 'depreciation', ok: yp.depreciation_level },
+    ] : []
+    const canCloseYear = hardChecks.length > 0 && hardChecks.every((c) => c.ok)
 
     return (
         <div className="p-8 max-w-5xl">
@@ -245,6 +278,71 @@ export default async function ClosePage({
                     )}
                 </tbody>
             </table>
+
+            {/* ── FIN-23:年结 ─────────────────────────────────────────────── */}
+            <h2 className="text-lg font-semibold mt-8 mb-3">{t('finance.yearClose.title')}</h2>
+            {yp && (
+                <div className="bg-gray-50 rounded p-4 mb-4 space-y-3 text-sm">
+                    <div className="flex flex-wrap gap-x-8 gap-y-1">
+                        <div>
+                            <span className="text-gray-600 mr-1">{t('finance.yearClose.nextYearEnd')}:</span>
+                            <span className="font-mono">{yp.expected_year_end}</span>
+                        </div>
+                        <div>
+                            <span className="text-gray-600 mr-1">{t('finance.yearClose.netResult')}:</span>
+                            <span className="font-mono font-medium">{formatMoney(yp.net_result)}</span>
+                        </div>
+                    </div>
+                    {/* 硬前置四灯:任一红 → 按钮禁用(服务端仍点名拒,界面不提供必拒的动作)*/}
+                    <div className="flex flex-wrap gap-2">
+                        {hardChecks.map((c) => (
+                            <span key={c.key} className={'px-2 py-1 rounded text-xs ' +
+                                (c.ok ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800')}>
+                                {c.ok ? '✓' : '✗'} {t('finance.yearClose.check_' + c.key)}
+                            </span>
+                        ))}
+                        {/* 软警告:只亮黄,不拦(年末应计是正常会计;草稿薪资是可见的选择)*/}
+                        {yp.draft_payroll_count > 0 && (
+                            <span className="px-2 py-1 rounded text-xs bg-amber-100 text-amber-800">
+                                {t('finance.yearClose.warnDraftPayroll', { n: yp.draft_payroll_count })}
+                            </span>
+                        )}
+                        {yp.open_accrual_count > 0 && (
+                            <span className="px-2 py-1 rounded text-xs bg-amber-100 text-amber-800">
+                                {t('finance.yearClose.warnOpenAccruals', { n: yp.open_accrual_count })}
+                            </span>
+                        )}
+                    </div>
+                    <YearClosePanel yearEnd={yp.expected_year_end} canClose={canCloseYear}
+                                    alreadyClosed={yp.already_closed} />
+                </div>
+            )}
+            {yearCloses.length > 0 && (
+                <table className="w-auto min-w-[36rem] border-collapse border border-gray-300">
+                    <thead className="bg-gray-100">
+                        <tr>
+                            <th className="border border-gray-300 px-3 py-2 text-left">{t('finance.yearClose.colYearEnd')}</th>
+                            <th className="border border-gray-300 px-3 py-2 text-right">{t('finance.yearClose.netResult')}</th>
+                            <th className="border border-gray-300 px-3 py-2 text-left">{t('finance.colStatus')}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {yearCloses.map((c) => (
+                            <tr key={c.id} className={c.reopened_at ? 'text-gray-400' : ''}>
+                                <td className="border border-gray-300 px-3 py-2 font-mono text-sm">{c.year_end}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
+                                    {formatMoney(c.net_result)}
+                                </td>
+                                <td className="border border-gray-300 px-3 py-2 text-sm">
+                                    {c.reopened_at
+                                        ? t('finance.yearClose.reopened') + (c.reopen_reason ? ' — ' + c.reopen_reason : '')
+                                        : t('finance.yearClose.closed')}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            )}
         </div>
     )
 }
