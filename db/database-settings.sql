@@ -1,0 +1,24 @@
+-- db/database-settings.sql —— 数据库级 GUC:【应用配置】,不是平台基座
+--
+-- 【为什么单独一个文件,而不是并进 platform-prelude.sql】prelude 是"镜像期望平台
+-- 提供什么"—— 角色、schema、扩展;目标是真 Supabase 项目时它整个跳过。这里相反:
+-- 这些设置是【我们的业务决定】,新开的 Supabase 项目【不会】自带,重建路径上
+-- 【无论平台在不在都要跑】。混进 prelude,生产重建(新 Supabase 项目)就会静默丢掉它。
+--
+-- 【为什么时区是业务配置】FIN-20:数据库跑在 UTC 时,每天新加坡 00:00–08:00 这
+-- 八小时里服务器的 CURRENT_DATE 是【昨天】。走查实测两头:record_assay_result 把
+-- 今天的化验拒为"未来日期";reprice_inbound_batch 静默用了前一天的牌价并把分录
+-- 记在前一天 —— 后者更坏,因为没有任何东西说出来。业务在一个辖区运营,SG 假日表、
+-- is_business_day、CPF、GST 全都已经按新加坡承重;"今天"也应当按新加坡。
+-- 若将来出现第二个辖区,正确做法是把业务日期改成显式参数,而不是再改这里。
+--
+-- 【为什么用 :"DBNAME"】线上库叫 postgres,gate 的本地重建叫 gate,
+-- verify_rebuild 的目标随 DSN 走 —— psql 自动把当前库名放在 :DBNAME 里。
+-- 【生效边界】ALTER DATABASE 只影响【之后新建的会话】;执行它的会话保持原时区。
+-- gate 的 fixture 逐个新开 psql 会话,天然拿到新值。
+--
+-- 线上对应迁移:db/migrations/2026-08-06-fin20-database-timezone-asia-singapore.sql
+-- 门的守卫:db/gate.py 的 guc 行(库级 GUC 线上 vs 重建逐条比对,例外须列名并写理由)
+-- 行为断言:db/fixtures/15-current-date-is-singapore-today.sql
+
+ALTER DATABASE :"DBNAME" SET timezone TO 'Asia/Singapore';

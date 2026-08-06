@@ -111,7 +111,7 @@ socket exhaustion):
 | verdict | exit | question it answers |
 |---|---|---|
 | 可重建性 | 2 on fail | can this repository build a database **at all** (prelude sufficiency, B1/B2 on live AND rebuild) |
-| 镜像 vs 线上 | 1 on fail | do the mirrors match live — structure, seed rows, bootstrap counts, cross-file integrity, definer caller checks |
+| 镜像 vs 线上 | 1 on fail | do the mirrors match live — structure, seed rows, bootstrap counts, cross-file integrity, definer caller checks, column grants, currency literals, **database-level GUCs** (FIN-20: the rebuild inherited the dev machine's timezone while live ran UTC, so the two disagreed on what day it was for the project's whole life and nothing looked — same shape as function ACLs before OPS-4; exceptions are named in gate.py's GUC_ALLOWLIST with written reasons) |
 
 The verdicts stay separate because they are different failures with different
 fixes. `check_mirrors.py` and `verify_rebuild.py` remain as the engine (gate.py
@@ -290,12 +290,16 @@ python3 db/gate.py     # 0 clean · 1 mirror drift · 2 cannot build
                        # 3 B1/B2 invariant · 4 behavioural fixture failed
 ```
 
-Fourteen fixtures, ~30 assertions, on the paths where a silent break costs money:
+Fifteen fixtures, ~34 assertions, on the paths where a silent break costs money:
 settlement closing to exactly zero (including cross-currency), revaluation
 idempotence, confirmation not touching leave, accrual not applying a category
 change retroactively, one bank line per employee, realised 7100 never crossing
 unrealised 7110, period lock, over-allocation in both currency spaces, the
-bounded FX reach-back, the three `system_start_date` bounds, and a fully
+bounded FX reach-back, the three `system_start_date` bounds, the database's
+"today" being Singapore's today (config + semantics + both walk-observed
+symptoms; a fixture cannot move the server clock, so the config arm is the
+24-hour guard and the behaviour arms gain full discrimination during the
+00:00–08:00 SG window), and a fully
 allocated payment leaving **exactly zero** on account even when the rate moved
 between booking and settlement (FIN-18 — that one asserts the *old* formula
 differs too, so it cannot pass by both answers agreeing). Deliberately small: every retained fixture is

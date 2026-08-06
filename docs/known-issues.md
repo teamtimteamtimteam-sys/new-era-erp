@@ -26,3 +26,22 @@
 ON DELETE SET NULL`,或在完整性探针里加一条悬空扫描。补外键要同时改表镜像
 (AGENTS.md 之约)并想清楚 Supabase 对跨架构外键的备份/恢复口径 —— 这正是
 当初"较新的表"放弃外键的可能原因,修之前先把这一点查实。
+
+## 月初凌晨的服务端分录日期与期间锁(2026-08-06 记录,FIN-20 后基本消除)
+
+**现象**:一批函数把分录日期盖成 CURRENT_DATE(冲销镜像 reverse_payment /
+reverse_expense / reverse_bank_transfer、finance_journal_triggers、盘点
+post_stocktake、预付冲抵 apply_prepayment、重分摊 allocate_processing_costs、
+库存触发器)。服务器的"今天"若落后于业务的"今天"(FIN-20 之前的 UTC 库,每天
+SG 00:00–08:00 都如此),这些分录全部记在【前一天】。最尖的一角在【月初】:
+月结已把 locked_before 推到月界后,凌晨窗口里发起的冲销会拿到上月末的日期 ——
+post_journal_entry 抛 PERIOD_LOCKED,操作员看到的是"冲销一笔昨天的付款被期间锁
+拒绝",屏幕上没有任何东西解释为什么;若月结还没锁,则更糟:分录静默落进上一个
+月,已出的月报被改写。
+
+**处置**:FIN-20 把库时区定为 Asia/Singapore(库级 GUC,gate 的 guc 行与
+fixture 15 双重钉住),窗口自此不存在 —— 服务器与业务的"今天"重合。此条留档的
+理由:①谁在月初凌晨撞到过一次 PERIOD_LOCKED 的冲销,两分钟能查到这里;
+②这一类(服务端盖章日期 vs 业务日期)只要将来有第二个时区/辖区就会回来,
+到时的修法是显式业务日期参数,不是再改时区。真实撞过的实例(测试数据)列在
+known-wrong-until-cutover.md:JE-2026-0007 / 0036 / 0038。

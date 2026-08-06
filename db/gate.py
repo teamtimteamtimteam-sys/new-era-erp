@@ -188,6 +188,34 @@ def main() -> int:
             if gaps:
                 problems.append(f"column grant gap ({label}): {gaps}")
 
+        # ── 库级 GUC:线上 vs 重建逐条比对(FIN-20)──────────────────────────
+        # 行为在配置里也能藏:数据库时区决定 CURRENT_DATE,而本地重建继承开发机
+        # 时区(+08)、线上跑 UTC —— 两边对"今天是哪天"的语义分歧了整整一个项目周期,
+        # 没有任何检查在看。与 OPS-4 之前的函数 ACL 同一个形状:影响行为的配置,
+        # 线上有、重建没有(或反过来),对每个检查都不可见。一个 fixture 钉住一个
+        # GUC(fixture 15 钉时区);这里比对【全部】,把这一类关掉。
+        # 例外要列名并写理由 —— 与 check-currency-literals 的 ALLOWLIST 同一个做法。
+        GUC_ALLOWLIST = {
+            "app.settings.jwt_exp":
+                "Supabase 平台开项目时写入的 JWT 有效期,裸集群重建没有;真正的"
+                "生产重建是新 Supabase 项目,平台会自己带上 —— 平台负责,不入库管。",
+        }
+        GUC_SQL = ("SELECT COALESCE(string_agg(x, ';' ORDER BY x), '') FROM ("
+                   "SELECT unnest(s.setconfig) AS x FROM pg_db_role_setting s "
+                   "JOIN pg_database d ON d.oid = s.setdatabase "
+                   "WHERE d.datname = current_database() AND s.setrole = 0) q;")
+        guc_live = {g for g in psql(args.live, GUC_SQL).split(";") if g}
+        guc_local = {g for g in psql(local, GUC_SQL).split(";") if g}
+        guc_diff = sorted(g for g in (guc_live ^ guc_local)
+                          if g.split("=", 1)[0] not in GUC_ALLOWLIST)
+        n_allowed = len((guc_live ^ guc_local)) - len(guc_diff)
+        if guc_diff:
+            sides = [f"{g} ({'仅线上' if g in guc_live else '仅重建'})" for g in guc_diff]
+            print(f"guc        ✗ 线上与重建的库级 GUC 不一致: {'; '.join(sides)}")
+            problems.append(f"database GUC drift: {'; '.join(sides)}")
+        else:
+            print(f"guc        库级 GUC 一致 ✓ (allowlisted {n_allowed})")
+
         # 币种写死:界面把 'USD'/'SGD' 当常量用过四次,每次都是 FIN-0 改本位币后
         # 没人记得改的残留。名单在 scripts/check-currency-literals.mjs 里,例外要写理由。
         cur = subprocess.run(["node", os.path.join(HERE, "..", "scripts", "check-currency-literals.mjs")],

@@ -39,6 +39,7 @@ cm = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(cm)
 
 PRELUDE = REPO / "db" / "platform-prelude.sql"
+DB_SETTINGS = REPO / "db" / "database-settings.sql"
 
 # 重放失败时,把"缺了什么"直接指出来 —— 这就是【前置文件是否仍然够用】的答案。
 MISSING_PATTERNS = [
@@ -127,6 +128,16 @@ def rebuild(dsn: str, prelude: str = "auto") -> int:
             sys.stderr.write(p.stderr)
             print("\nPRELUDE FAILED - the platform substrate could not be created.")
             return 2
+
+    # ── 数据库级 GUC(FIN-20):应用配置,【无论平台在不在都要跑】────────────────
+    # prelude 是平台基座,真 Supabase 项目会跳过;这份不是 —— 新项目不会自带我们的
+    # 时区设定,漏掉它重建出来的库就回到 UTC 的"每天八小时今天是昨天"。
+    print("== database settings: db/database-settings.sql")
+    p = psql(dsn, DB_SETTINGS.read_text())
+    if p.returncode != 0:
+        sys.stderr.write(p.stderr)
+        print("\nDATABASE SETTINGS FAILED - db/database-settings.sql did not apply.")
+        return 2
 
     fn, tbl, vw = replay_order()
     for label, files, pre in (("functions", fn, "SET check_function_bodies = off;\n"),
