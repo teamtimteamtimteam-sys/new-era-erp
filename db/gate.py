@@ -19,8 +19,11 @@ pooler 里跑(40+ 分钟,先后死于 DNS 与 socket 耗尽),verify_rebuild 在�
   exit 3 = B1/B2 不变量断言失败(verify_rebuild 的判词,此前【被本脚本吞掉了】)
   exit 4 = 行为断言失败(db/fixtures/*.sql —— 建出来的库跑起来不对)
 """
+import difflib
 import json
 import os
+import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -89,6 +92,46 @@ SELECT COALESCE(string_agg(line, ' | ' ORDER BY line), '') FROM (
     GROUP BY table_name
 ) q;
 """
+
+
+# ── 生成类型 vs 线上 schema(OPS-10)────────────────────────────────────────
+# 【为什么归入"镜像 vs 线上"这一判词】lib/database.types.ts 是 schema 的【另一份
+# 镜像】—— db/tables/*.sql 是给重建用的,它是给编译器用的。问的是同一个问题:
+# 仓库里的这份副本还等于线上吗。药也一样:重新生成、提交。所以不另开退出码。
+#
+# 【它坏起来的样子】类型一旦落后,TypeScript 就在拿一个数据库已经不是的形状做校验:
+# 改名或删掉的列【编译干净】,到运行时才炸。FIN-28 改了四列名字是被抓住的,
+# 因为那正是那一切的主题;下一次不会有人正好在看。
+#
+# 生成是确定性的(同一 schema 连跑两次逐字节相同,实测),所以可以直接比字节。
+# 拿不到就【报错,不是跳过】—— 缺 CLI、没网、认证过期都算查不了,而查不了
+# 不等于没问题(同 restRows / mustRows / check-i18n 对"失败不是空集"的一贯口径)。
+def check_generated_types(dsn: str) -> str:
+    m = re.search(r"user=postgres\.([a-z0-9]+)", dsn)
+    if not m:
+        return "无法从连接串解析 project ref —— 查不了,不当作通过"
+    ref = m.group(1)
+    committed = pathlib.Path(HERE).parent / "lib" / "database.types.ts"
+    if not committed.is_file():
+        return "lib/database.types.ts 不存在"
+    if shutil.which("supabase") is None:
+        return "supabase CLI 不在 PATH —— 查不了,不当作通过"
+    r = subprocess.run(["supabase", "gen", "types", "typescript", "--project-id", ref],
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        return f"supabase gen types 失败(exit {r.returncode}): {r.stderr.strip()[:200]}"
+    fresh = r.stdout
+    have = committed.read_text()
+    if fresh == have:
+        return ""
+    # 说清楚差在哪:只报行数会让人再跑一遍才知道改了什么
+    diff = list(difflib.unified_diff(have.splitlines(), fresh.splitlines(),
+                                     "lib/database.types.ts", "supabase gen types", lineterm="", n=0))
+    changed = [l for l in diff if l[:1] in "+-" and l[:3] not in ("+++", "---")]
+    head = "; ".join(l.strip()[:70] for l in changed[:6])
+    return (f"lib/database.types.ts 与线上 schema 不一致({len(changed)} 行差异):{head}"
+            + (" …" if len(changed) > 6 else "")
+            + "  → 跑 npm run types:gen 并提交")
 
 
 def check_grant_gaps(dsn: str) -> str:
@@ -187,6 +230,12 @@ def main() -> int:
             print(f"colgrant   {label}: " + ("无缺口 ✓" if not gaps else f"✗ {gaps}"))
             if gaps:
                 problems.append(f"column grant gap ({label}): {gaps}")
+
+        # ── 生成类型 vs 线上 schema(OPS-10)──────────────────────────────────
+        types_gap = check_generated_types(args.live)
+        print("types      " + ("lib/database.types.ts 与线上一致 ✓" if not types_gap else f"✗ {types_gap}"))
+        if types_gap:
+            problems.append(f"generated types: {types_gap}")
 
         # ── 库级 GUC:线上 vs 重建逐条比对(FIN-20)──────────────────────────
         # 行为在配置里也能藏:数据库时区决定 CURRENT_DATE,而本地重建继承开发机

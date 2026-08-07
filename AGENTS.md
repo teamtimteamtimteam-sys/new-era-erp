@@ -100,7 +100,7 @@ composite type.
 ## The database gate runs on every cut that touches the database
 
 ```
-python3 db/gate.py        # ~2 minutes, no large payloads over the network
+python3 db/gate.py        # ~32s, no large payloads over the network
 ```
 
 One LOCAL rebuild, two separately-reported verdicts (OPS-6 merged the two older
@@ -111,7 +111,7 @@ socket exhaustion):
 | verdict | exit | question it answers |
 |---|---|---|
 | 可重建性 | 2 on fail | can this repository build a database **at all** (prelude sufficiency, B1/B2 on live AND rebuild) |
-| 镜像 vs 线上 | 1 on fail | do the mirrors match live — structure, seed rows, bootstrap counts, cross-file integrity, definer caller checks, column grants, currency literals, **database-level GUCs** (FIN-20: the rebuild inherited the dev machine's timezone while live ran UTC, so the two disagreed on what day it was for the project's whole life and nothing looked — same shape as function ACLs before OPS-4; exceptions are named in gate.py's GUC_ALLOWLIST with written reasons) |
+| 镜像 vs 线上 | 1 on fail | do the mirrors match live — structure, seed rows, bootstrap counts, cross-file integrity, definer caller checks, column grants, currency literals, **generated TypeScript types** (OPS-10: `lib/database.types.ts` is the schema's OTHER mirror — `db/tables/*.sql` is the one the rebuild reads, this is the one the COMPILER reads. When it lags, TypeScript validates against a shape the database no longer has, so a renamed or dropped column compiles clean and fails at runtime. Same question as the other mirrors and the same fix — regenerate and commit — so it shares this verdict rather than taking an exit code of its own. Regenerate with `npm run types:gen`; generation is deterministic, so the gate compares bytes. It costs ~5s of the gate's ~32s), **database-level GUCs** (FIN-20: the rebuild inherited the dev machine's timezone while live ran UTC, so the two disagreed on what day it was for the project's whole life and nothing looked — same shape as function ACLs before OPS-4; exceptions are named in gate.py's GUC_ALLOWLIST with written reasons) |
 
 The verdicts stay separate because they are different failures with different
 fixes. `check_mirrors.py` and `verify_rebuild.py` remain as the engine (gate.py

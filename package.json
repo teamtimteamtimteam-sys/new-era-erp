@@ -7,7 +7,8 @@
     "build": "node scripts/check-currency-literals.mjs && node scripts/check-i18n.mjs && next build",
     "check:i18n": "node scripts/check-i18n.mjs",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "types:gen": "supabase gen types typescript --project-id wvywpohbwkiinmipmuku > lib/database.types.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
