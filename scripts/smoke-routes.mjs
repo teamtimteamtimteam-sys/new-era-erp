@@ -193,9 +193,27 @@ async function main() {
     const dev = spawn('npx', ['next', 'dev', '-p', String(PORT)], { cwd: ROOT })
     dev.stdout.on('data', (d) => logChunks.push(d.toString()))
     dev.stderr.on('data', (d) => logChunks.push(d.toString()))
-    for (let i = 0; i < 60; i++) {
+    // 【等待要有上限,而且到了上限要报名字】原先这里 for 60 次、每次 1 秒,
+    // 到点【无论服务器起没起来都往下走】—— 服务器没起来时,后面 131 条路由
+    // 全部连接失败,屏幕上是一百多条 fetch 错误,而真正的原因(dev server 没起来)
+    // 一个字都没有。有上限不等于会报错:没有失败分支的等待,和没有上限的等待
+    // 一样难查。同一形状让一个壳等过 2 小时 47 分钟,见 db/wait_for.sh 的抬头。
+    const READY_TIMEOUT_MS = 90_000
+    const readyStart = Date.now()
+    let ready = false
+    while (Date.now() - readyStart < READY_TIMEOUT_MS) {
         await new Promise((r) => setTimeout(r, 1000))
-        if (logChunks.join('').includes('Ready in')) break
+        if (logChunks.join('').includes('Ready in')) { ready = true; break }
+        if (dev.exitCode !== null) break          // 进程死了就不必等满
+    }
+    if (!ready) {
+        const why = dev.exitCode !== null
+            ? `next dev 退出了(code ${dev.exitCode})`
+            : `${Math.round((Date.now() - readyStart) / 1000)}s 内没有看到 "Ready in"`
+        dev.kill()
+        console.error(`✗ dev server 没起来:${why}`)
+        console.error(logChunks.join('').split('\n').slice(-30).join('\n'))
+        process.exit(1)
     }
 
     const failures = []

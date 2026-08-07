@@ -117,6 +117,40 @@ The verdicts stay separate because they are different failures with different
 fixes. `check_mirrors.py` and `verify_rebuild.py` remain as the engine (gate.py
 imports/spawns them); run verify_rebuild alone when you only need one side.
 
+## A wait with no bound is a wait with no failure — use `db/wait_for.sh`
+
+```
+db/wait_for.sh --timeout 900 --label "db/gate.py 判词" -- grep -q "判词【行为断言】" /tmp/gate.log
+```
+
+**`--timeout` and `--label` are mandatory; the script refuses to run without
+either.** That is the whole point — it is not possible to express an unbounded
+wait with this tool, and on timeout it prints what it was waiting for, how long
+it waited, and the condition itself.
+
+The shape it exists to kill:
+
+```bash
+until grep -q "判词" gate.log; do sleep 5; done     # ← no exit condition
+```
+
+When the thing being waited on dies, this waits forever, silently. It happened
+twice: once on a backup, then on 2026-08-07 for **2 hours 47 minutes**, waiting
+for a fixture verdict string from a process that was no longer running. After
+the first one the response was to remember to add a bound. Remembering did not
+work — which is the usual signal that **a note was used where a mechanism was
+needed**, and the same lesson OPS-7 drew about `B1`/`is_system`.
+
+**Bounded is not enough on its own — the bound needs a failure branch.**
+`smoke-routes.mjs` waited 60×1s for the dev server and then continued *whether
+or not it was ready*: with a dead server that produced 131 connection failures
+and no statement of the actual cause. It now fails immediately when the process
+dies, names why, and prints the tail of the server log (fault-injected with a
+`next dev` that cannot start: exits 1 with `dev server 没起来`).
+
+So, for any new wait: use the script, or write the failure branch yourself. A
+wait that cannot say "I gave up on X after Ns" is indistinguishable from a hang.
+
 ## Route smoke test — run on demand, whenever the render layer changed
 
 ```
