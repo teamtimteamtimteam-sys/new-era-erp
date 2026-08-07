@@ -17,11 +17,13 @@ export type Database = {
       accounts: {
         Row: {
           account_type: string
+          cash_flow_section: string | null
           code: string
           created_at: string
           created_by: string | null
           id: string
           is_active: boolean
+          is_cash: boolean
           is_monetary: boolean
           is_system: boolean
           name_en: string
@@ -32,11 +34,13 @@ export type Database = {
         }
         Insert: {
           account_type: string
+          cash_flow_section?: string | null
           code: string
           created_at?: string
           created_by?: string | null
           id?: string
           is_active?: boolean
+          is_cash?: boolean
           is_monetary: boolean
           is_system?: boolean
           name_en: string
@@ -47,11 +51,13 @@ export type Database = {
         }
         Update: {
           account_type?: string
+          cash_flow_section?: string | null
           code?: string
           created_at?: string
           created_by?: string | null
           id?: string
           is_active?: boolean
+          is_cash?: boolean
           is_monetary?: boolean
           is_system?: boolean
           name_en?: string
@@ -9575,6 +9581,10 @@ export type Database = {
       cancel_stocktake: { Args: { p_stocktake_id: string }; Returns: undefined }
       carry_forward_annual_leave: {
         Args: { p_leave_year: number }
+        Returns: Json
+      }
+      cash_flow_statement: {
+        Args: { p_from: string; p_to: string }
         Returns: Json
       }
       close_financial_year: {

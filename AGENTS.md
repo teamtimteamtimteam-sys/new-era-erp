@@ -324,7 +324,7 @@ python3 db/gate.py     # 0 clean · 1 mirror drift · 2 cannot build
                        # 3 B1/B2 invariant · 4 behavioural fixture failed
 ```
 
-Twenty-two fixtures, ~92 assertions, on the paths where a silent break costs money:
+Twenty-three fixtures, ~104 assertions, on the paths where a silent break costs money:
 settlement closing to exactly zero (including cross-currency), revaluation
 idempotence, confirmation not touching leave, accrual not applying a category
 change retroactively, one bank line per employee, realised 7100 never crossing
@@ -393,6 +393,24 @@ rule spans two tables and a CHECK cannot see another table; and the validation
 runs BEFORE the delete, so "refused means nothing was written" is structural
 rather than a rollback artifact — the second arm asserts the order's own plan
 survives the refusal intact).
+and the cash flow statement (FIN-30: the hard part is
+not the arithmetic, it is what counts as a cash flow. 1010 is revalued each
+period end — its BASE-currency carrying value moves while no money does, and a
+statement derived from base-currency movements prints that as a phantom cash
+flow that balances perfectly. Revaluation is therefore a separate reconciling
+line below the three sections, keyed off the entry's DECLARED source_type;
+year_close is excluded, manual entries carry nothing so they are shown as their
+own "unclassified" line rather than assumed operating, and which accounts are
+cash / investing / financing is DECLARED on the account (`is_cash`,
+`cash_flow_section`) instead of hardcoded — the year-close code-range defect
+again. Self-checking: opening + sections + FX = closing, AND closing equals the
+balance-sheet cash figure computed independently; when they disagree the page
+says so instead of printing a number that does not tie. Note the third arm was
+VACUOUS on first write — a realistic year-close touches no cash, so it could
+never enter the "entries that moved cash" set and the exclusion was untested;
+deleting the filter left the fixture green. It now also posts a MALFORMED
+cash-touching year-close and asserts the statement reports ties=false, which is
+what makes the filter load-bearing).
 Deliberately small: every retained fixture is
 maintenance on every schema move, and the HR-2c accrual change already cost one
 round of "is this staleness or regression?" judgement.

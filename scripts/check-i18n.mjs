@@ -188,6 +188,14 @@ function grantStatusValues() {
 //   { kind:'data', reason } —— 后缀是业务数据,静态不可知,点名放行(现状:无)。
 // 清单外的动态前缀 = FAIL。
 const MANIFEST = {
+    // ── 财务 ────────────────────────────────────────────────────────────────
+    // FIN-30:现金流量表的活动类别。后缀集合【就是】cash_flow_statement 里那个
+    // CASE 的分支(investing/financing 来自 accounts.cash_flow_section 的 CHECK,
+    // operating 是残差,unclassified/fx_effect 是函数自己定义的两类)——
+    // 从函数镜像现读,加一个分支这道检查自动跟着变宽。
+    'finance.cashflowSectionName.':
+                            { kind: 'enum', values: () => tsRegex('db/functions/cash_flow_statement.sql',
+                                  /(?:THEN|ELSE) '(\w+)'/g) },
     // ── HR ──────────────────────────────────────────────────────────────────
     'hr.alertType.':        { kind: 'enum', values: () => sqlLiteralAs('db/views/hr_alerts.sql', 'alert_type') },
     'hr.severity.':         { kind: 'enum', values: union(

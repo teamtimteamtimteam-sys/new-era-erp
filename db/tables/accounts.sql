@@ -43,7 +43,15 @@ CREATE TABLE public.accounts (
     -- 分类错一个,资产负债表每期都悄悄错 —— 所以是数据,不是代码里的名单。
     -- 【没有 DEFAULT,故意的】建新科目必须明说货币性与否 —— 明年新增一个应付科目,
     -- 不该因为没人问过就悄悄跳过重估(FIN-3 追问的第 1 条)。
-    is_monetary  boolean NOT NULL
+    is_monetary  boolean NOT NULL,
+    -- ── FIN-30 追加(ALTER 加的列排在末尾)──────────────────────────────────
+    -- 这个科目是不是【现金及现金等价物】。现金流量表据此取科目,不写死 1000/1010。
+    -- 与 is_monetary 不是一回事:1100 应收也是 monetary(要重估),却不是现金。
+    is_cash      boolean NOT NULL DEFAULT false,
+    -- 当一笔现金流动的【对方科目】是本科目时,这笔归哪一段。只声明投资与筹资:
+    -- IAS 7 把经营定义为残差,所以 NULL = 经营是【准则的定义】,不是兜底默认值。
+    cash_flow_section text
+                 CHECK (cash_flow_section IS NULL OR cash_flow_section IN ('investing','financing'))
 );
 
 CREATE TRIGGER trg_accounts_updated_at
@@ -169,6 +177,22 @@ INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system, is
     ('6400', 'Professional Fees', '专业服务费', 'expense', false, false),
     ('6500', 'Bank Charges', '银行手续费', 'expense', false, false),
     ('6900', 'Miscellaneous', '杂项开支', 'expense', false, false);    -- revalue_foreign_balances
+-- ── FIN-30:现金流量表的两处声明 ────────────────────────────────────────────
+-- 集中在这里,而不是散进上面几十行 VALUES —— "哪些科目是现金 / 哪些算投资筹资"
+-- 是【六行数据】,读的人该一眼看全,而不是在三十行里逐行找 true/false。
+UPDATE public.accounts SET is_cash = true WHERE code IN ('1000','1010');
+UPDATE public.accounts SET cash_flow_section = 'investing' WHERE code IN ('1500','1510');
+-- 3000 实收资本【不升 is_system】:它是操作员科目表里的一行,引擎不按 code 点名
+-- 依赖它(cash_flow_statement 里一个科目码都没有,它读的是这两列)。所以这只是
+-- 引导默认值。OPS-7 预检当时对 3000 报了警告 —— 查过之后确认不需要升:
+-- 警告的职责是让人当场去查,不是替人下结论。
+UPDATE public.accounts SET cash_flow_section = 'financing' WHERE code IN ('3000','3100');
+
+COMMENT ON COLUMN public.accounts.is_cash IS
+    '这个科目是不是【现金及现金等价物】(FIN-30)。现金流量表据此取科目,不写死 1000/1010 —— 开一个新银行账户只该改数据,不该改代码。注意与 is_monetary 的区别:1100 应收是 monetary(要重估)但不是现金。';
+COMMENT ON COLUMN public.accounts.cash_flow_section IS
+    '当一笔现金流动的【对方科目】是本科目时,这笔归哪一段(FIN-30)。只声明投资与筹资:IAS 7 把经营定义为残差("不属于投资与筹资的其余活动"),所以 NULL = 经营是【准则的定义】,不是兜底默认值。';
+
 COMMENT ON COLUMN public.accounts.is_monetary IS
     '货币性科目 = 期末按收盘中间价重估外币余额(FIN-3)。非货币(存货/预付/损益)保持历史汇率,重估一个不碰。';
 

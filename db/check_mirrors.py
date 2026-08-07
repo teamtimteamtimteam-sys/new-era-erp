@@ -98,7 +98,10 @@ SEED_TABLES = {
                           "COALESCE(description_zh,'') AS description_zh, sort_order"),
     "currencies":  (None, "code, name, is_base"),
     # accounts 是【混合表】:引擎点名的 22 行跟踪线上,其余是建账的人的地盘。
-    "accounts":    ("is_system", "code, name_en, name_zh, account_type, is_system"),
+    # FIN-30:is_cash / cash_flow_section 也纳入比对 —— 它们决定现金流量表取哪些
+    # 科目、归哪一段;线上被人翻了标记而无人察觉,报表会安静地算错一整类活动。
+    "accounts":    ("is_system", "code, name_en, name_zh, account_type, is_system, "
+                                 "is_cash, COALESCE(cash_flow_section,'') AS cash_flow_section"),
 }
 
 RUNTIME_CONFIG_TABLES = [
