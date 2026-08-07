@@ -84,5 +84,4 @@ ALTER TABLE public.inventory_movements
     ADD CONSTRAINT inventory_movements_business_date_required
     CHECK (business_date IS NOT NULL) NOT VALID;
 
-COMMENT ON COLUMN public.inventory_movements.business_date IS
-    '这件事【在业务上发生在哪一天】,与 created_at(什么时候被记进系统)是两回事。收货取 arrival_date、加工取 process_date、销售取销售日、注销取 deleted_at 那天;冲销/还原取【原加工单的 process_date】—— 回滚是在更正一次记错的加工单,不是一次物理事件,所以一错一改在同一天对消。NULL = FIN-32 之前写入的行,当时这条路径根本没写它 —— 【不回填】,界面读作"未知";按今天补一个业务日是编造一条没人记录过的事实(同 FIN-26 / FIN-27)。新行由 inventory_movements_business_date_required(NOT VALID)强制必填。';
+COMMENT ON COLUMN public.inventory_movements.business_date IS '这件事【在业务上发生在哪一天】,与 created_at(什么时候被记进系统)是两回事。收货取 arrival_date、加工取 process_date、销售取销售日、注销取 deleted_at 那天、盘点调整取过账日(stocktakes.started_at 只是建单时间戳,与 created_at 逐微秒相等,不是盘点日 —— FIN-32-fu1 查证);冲销/还原取【原加工单的 process_date】—— 回滚是在更正一次记错的加工单,不是一次物理事件,所以一错一改在同一天对消。【注意两个账会给出两个日期】:同一次更正,分录侧按显式传入的冲销日入账(期间锁使然),本表按原加工日 —— 价值账带锁、数量账不带,各自回答不同的问题。NULL = FIN-32 之前写入的行,当时这条路径根本没写它 —— 【不回填】,界面读作"未知"。新行由 inventory_movements_business_date_required(NOT VALID)强制必填。';

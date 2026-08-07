@@ -55,6 +55,19 @@ BEGIN
         v_delta := v_line.counted_qty - v_current;
         IF v_delta <> 0 THEN
             IF v_line.inbound_batch_id IS NOT NULL THEN
+                -- ════════════════════════════════════════════════════════════
+                -- FIN-32-fu1:业务日 = 过账日(CURRENT_DATE),而这是【查过之后】
+                -- 的结论,不是"没有更好的来源"那种含糊话。
+                -- stocktakes 上确实有个 started_at,名字听起来像盘点日 —— 它不是:
+                -- 它是 timestamptz NOT NULL DEFAULT now(),【全代码库没有任何一处
+                -- 写过它】,而线上每一行的 started_at 与 created_at 【逐微秒相等】
+                -- (实测 3/3,最大差 0.000000 秒)。它是建单时间戳,不是盘点日期。
+                -- 所以周一盘、周二过账,这里记的仍是周二 —— 而这是【诚实的】:
+                -- 系统里根本没有人告诉过它周一。
+                -- 真要记录盘点当天,得先有一个【盘点日字段让人填】(Phase 2 的
+                -- 盘点单),那时这里改成读它 —— 与注销读 deleted_at 同一条规矩:
+                -- 日期要来自记录,而记录得先存在。
+                -- ════════════════════════════════════════════════════════════
                 INSERT INTO inventory_movements (inbound_batch_id, movement_type, qty_delta, business_date, notes, created_by)
                 VALUES (v_line.inbound_batch_id, 'adjustment', v_delta, CURRENT_DATE,
                         'stocktake ' || v_st.code || COALESCE(': ' || v_line.notes, ''), v_user);
