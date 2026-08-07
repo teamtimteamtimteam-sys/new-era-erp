@@ -15,7 +15,9 @@ export function CloseOrderControl({
     unappliedPrepayment,
 }: {
     poId: string
-    unappliedPrepayment: number
+    /** OPS-14:null = 读者没有 module.finance.view,【未抵扣预付未知】。
+     *  未知按"有"处理 —— 关单说明是给未抵扣预付留的记录,漏掉它比多写一句糟。 */
+    unappliedPrepayment: number | null
 }) {
     const t = useTranslations()
     const router = useRouter()
@@ -24,7 +26,7 @@ export function CloseOrderControl({
     const [notes, setNotes] = useState('')
     const [error, setError] = useState('')
 
-    const needsNotes = unappliedPrepayment > 0
+    const needsNotes = unappliedPrepayment === null || unappliedPrepayment > 0
     const canSubmit = !needsNotes || notes.trim() !== ''
 
     function onClose() {
@@ -52,9 +54,11 @@ export function CloseOrderControl({
         <div className="border border-gray-300 rounded p-3 text-sm space-y-2 max-w-md">
             {needsNotes && (
                 <p className="text-amber-800 bg-amber-50 border border-amber-300 rounded px-3 py-2">
-                    {t('purchasing.closeWithPrepaymentWarning', {
-                        amount: formatMoney(unappliedPrepayment),
-                    })}
+                    {unappliedPrepayment === null
+                        ? t('purchasing.closeWithPrepaymentUnknown')
+                        : t('purchasing.closeWithPrepaymentWarning', {
+                              amount: formatMoney(unappliedPrepayment),
+                          })}
                 </p>
             )}
             <div>

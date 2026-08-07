@@ -1573,6 +1573,8 @@ const zh = {
         closeNotes: '未抵扣的预付款如何处理?',
         closeWithPrepaymentWarning:
             '该采购单还有 {amount} 预付款未抵扣。请说明如何处理 —— 该金额将一直留在预付款项科目中,直到被抵扣。',
+        closeWithPrepaymentUnknown:
+            '以你的权限看不到该采购单是否还有未抵扣的预付款。请说明剩余预付款如何处理 —— 未抵扣的金额会一直留在预付款项科目中。',
         reopen: '重新打开',
         reopenConfirm: '重新打开该采购单?',
         reopenReason: '原因',

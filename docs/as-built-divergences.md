@@ -62,6 +62,25 @@ views. Doc 2 describes *row scoping by ownership*. The two answer different ques
 see this column" versus "is this row yours" — and having built the first does not advance the second.
 See `AGENTS.md` §"Adding a column to a masked table".
 
+**The column-level layer is deliberately bounded, and the bound was decided on 2026-08-08.**
+Doc 2 says field-level granularity "was not selected"; the code has it anyway, which is the code going
+further than the plan. What OPS-14 established is **how much further, and where it stops**:
+
+> **`module.finance.view` implies price visibility.** The general ledger *is* the price data —
+> `journal_lines` / `journal_entries` / `expenses` / `payments` / `accounts` carry no column-list
+> SELECT grant, so a role holding `module.finance.view` alone reads `unit_price = null` on
+> `sales_records_masked` and the same revenue in full off account 4000 (probed: 33,176.00, with
+> unmasked quantities beside it). Masking prices from someone who can read every journal line is
+> theatre. **`data.view_prices` is therefore a control for non-finance roles only**, and the GL's lack
+> of column masking is **accepted**, not a hole to be closed.
+
+This does not contradict any of the three documents — Doc 2 never claims field-level control exists,
+so there is nothing here for it to be wrong about. It is recorded next to entry 1 because this is where
+a reader asking "how does the permission model actually work" arrives, and because the answer to
+"why isn't the ledger masked?" must not have to be re-derived. Full reasoning, plus the two companion
+decisions (batch-margin predicate; master-data labels follow the document), in `AGENTS.md`
+§"Three standing decisions about what the permission model actually protects".
+
 ---
 
 ## 2 · Principle 7 is stated absolutely; five paths delete physically — DOCUMENT AHEAD

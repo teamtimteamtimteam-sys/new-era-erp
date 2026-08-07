@@ -3,12 +3,16 @@
 // count+range 分页(端口自发票列表)。
 // 在册且未取消的走 purchase_order_status(带已预付/收货进度);【已取消的不在视图里】,
 // 筛选状态为 cancelled 时另查 purchase_orders 本表(其预付/进度数字无意义,留空)。
+// OPS-14:预付两列在没有 module.finance.view 时【也是 null】—— 于是 null 有两个含义,
+// 「已取消所以无意义」与「你看不见」。前者画「—」,后者画「受限」,靠权限码分开。
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { parseDateRange } from '@/lib/dateFilter'
 import { formatMoney } from '@/lib/format'
+import { can } from '@/lib/permissions'
+import { MaskedValue } from '@/app/components/MaskedValue'
 import Subnav from '../Subnav'
 import OrdersToolbar from './OrdersToolbar'
 
@@ -42,6 +46,7 @@ export default async function PurchaseOrdersPage({
     const sp = await searchParams
     const supabase = await createClient()
     const t = await getTranslations()
+    const canFinance = await can('module.finance.view')
 
     const { dateFrom, dateTo } = parseDateRange(sp)
     const supplier = (sp.supplier ?? '').trim()
@@ -202,9 +207,9 @@ export default async function PurchaseOrdersPage({
                                 {formatMoney(r.estimated_total_ccy)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {r.prepaid_base === null ? '—' : formatMoney(r.prepaid_base)}
+                                <MaskedValue value={r.prepaid_base === null ? null : formatMoney(r.prepaid_base)} canView={canFinance} fallback="—" />
                                 {/* 搁浅的定金要不点开每张单也看得见(cut 4c)*/}
-                                {(r.prepaid_remaining_base ?? 0) > 0 && (
+                                {canFinance && (r.prepaid_remaining_base ?? 0) > 0 && (
                                     <span
                                         title={t('purchasing.unappliedMarker')}
                                         className="ml-2 inline-block px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-800 font-sans"

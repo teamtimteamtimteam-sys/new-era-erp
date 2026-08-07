@@ -1578,6 +1578,8 @@ const en = {
         closeNotes: 'How is the unapplied prepayment being resolved?',
         closeWithPrepaymentWarning:
             'This order still has {amount} of unapplied prepayment. Explain how it is being resolved — the amount stays in Prepayments until it is applied elsewhere.',
+        closeWithPrepaymentUnknown:
+            'Whether this order still has unapplied prepayment cannot be shown with your permissions. Explain how any remaining prepayment is being resolved — it stays in Prepayments until applied elsewhere.',
         reopen: 'Reopen',
         reopenConfirm: 'Reopen this purchase order?',
         reopenReason: 'Reason',

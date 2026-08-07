@@ -1,6 +1,6 @@
 -- db/views/processing_run_allocation_status.sql
 -- 一张加工单的分摊是否还作数,以及能不能安全重跑。
--- security_invoker = on:没有敏感列,让基表的 RLS 照常逐行生效(与遮蔽视图相反)。
+-- 【属主权限】(OPS-14 起;原为 security_invoker = on —— 那个选择正是本次修掉的缺陷)。
 --
 -- FIN-24:last_cost_change 同时看【成本条目】与【输入批的 price_history】——
 -- 重定价进料后,耗了它的加工单一样过期(F2 之前无旗,叠加错因此隐形)。
@@ -12,7 +12,16 @@
 -- db/migrations/2026-08-06-fin24-allocation-delta-split.sql.
 -- FIN-25:第三过期源 —— 上游重分摊(r2.allocated_at 即其单位成本的变时点)。
 
-CREATE VIEW public.processing_run_allocation_status WITH (security_invoker = on) AS
+-- OPS-14(2026-08-08):改为【属主权限】+ module.processing.view 写进视图体。
+-- 原先 invoker,却 LEFT JOIN journal_entries / sales_records(挂 module.finance.view)
+-- 与 price_history(挂 module.inbound.view)。operations 读到的 safe_to_reallocate 是
+-- NULL 而真值是 true,/processing/[id] 在这个布尔上分支、NULL 是 falsy —— 一张完全
+-- 可以重跑的单挂着红色"不能安全重跑"。更隐蔽的是 price_history:它是三个过期源之一,
+-- 少了它 is_stale【低报】,过期的单读起来是新鲜的。
+-- 借来的三样都是【派生事实】(布尔、计数、时间戳),不是金额,而加工的人需要真答案
+-- 才能干活 —— 所以是修法 (a) 而不是拆分。
+
+CREATE VIEW public.processing_run_allocation_status WITH (security_invoker = off) AS
  SELECT r.id AS run_id,
     r.code,
     r.allocated_at,
@@ -32,7 +41,6 @@ CREATE VIEW public.processing_run_allocation_status WITH (security_invoker = on)
                     JOIN processing_inputs pi ON pi.inbound_batch_id = ph.inbound_batch_id
                    WHERE pi.run_id = r.id
                   UNION ALL
-                  -- FIN-25:上游重分摊 = 本单再加工投料的估值变了
                   SELECT r2.allocated_at
                     FROM processing_inputs pi2
                     JOIN processing_outputs po2 ON po2.output_batch_id = pi2.output_batch_id
@@ -42,6 +50,6 @@ CREATE VIEW public.processing_run_allocation_status WITH (security_invoker = on)
            FROM sales_records sr
              JOIN processing_outputs po ON po.output_batch_id = sr.output_batch_id AND po.run_id = r.id
           WHERE sr.cogs_entry_id IS NOT NULL) g ON true
-  WHERE r.deleted_at IS NULL;
+  WHERE r.deleted_at IS NULL AND has_permission('module.processing.view'::text);
 
 GRANT SELECT ON public.processing_run_allocation_status TO authenticated;

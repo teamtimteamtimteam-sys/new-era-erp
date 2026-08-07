@@ -11,7 +11,8 @@ import { formatMoney, formatUnitCost } from '@/lib/format'
 import Subnav from '../../Subnav'
 import CancelOrderControl from './CancelOrderControl'
 import { CloseOrderControl, ReopenOrderControl } from './CloseReopenControls'
-import { canViewPrices } from '@/lib/permissions'
+import { can, canViewPrices } from '@/lib/permissions'
+import { MaskedValue } from '@/app/components/MaskedValue'
 import { maskedExcept, maskedRows } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
 import { mustRows } from '@/lib/db-helpers'
@@ -44,6 +45,9 @@ export default async function PurchaseOrderDetailPage({
     // cut 2b:改读遮蔽视图。fx_rate / estimated_total_ccy 会被遮蔽(没有 data.view_prices
     // 时为 null),其余列恢复基表类型 —— 视图带来的"人人可空"只是类型噪音。
     const showPrices = await canViewPrices()
+    // OPS-14:预付三列与 ap_open_items 现在都挂 module.finance.view —— 没有它读到的是
+    // NULL / 0 行,【那是"看不见",不是"没有"】。取一次权限码,才能把两者分开渲染。
+    const canFinance = await can('module.finance.view')
     const po = maskedExcept<Tables<'purchase_orders'>, 'fx_rate' | 'estimated_total_ccy'>(poRaw)
 
     const [supplierRes, linesRes, termsRes, statusRes, receiptsRes] = await Promise.all([
@@ -123,8 +127,11 @@ export default async function PurchaseOrderDetailPage({
     const receivedQty = poStatus?.received_qty ?? receipts.reduce((s, r) => s + Number(r.quantity), 0)
     const orderedQty = poStatus?.ordered_qty ?? lines.reduce((s, l) => s + Number(l.quantity), 0)
     const appliedUsd = Number(poStatus?.prepaid_applied_base ?? 0)
-    // 取消的前置条件与 DB 的 cancel_purchase_order 一致:无收货、无已抵扣预付
-    const cancelBlocked = receipts.length > 0 || appliedUsd > 0
+    // 取消的前置条件与 DB 的 cancel_purchase_order 一致:无收货、无已抵扣预付。
+    // OPS-14:【没有财务模块就无从判断第二个条件】—— 读到的 NULL 不是 0。
+    // 此时按"挡住"处理:服务端照样会拒,而摆一个注定被拒的按钮是本仓库明写的反面
+    // (AGENTS.md《页面与服务端不一致》)。
+    const cancelBlocked = receipts.length > 0 || appliedUsd > 0 || !canFinance
 
     const assayInline = (assay: unknown): string => {
         if (!Array.isArray(assay) || assay.length === 0) return ''
@@ -181,7 +188,7 @@ export default async function PurchaseOrderDetailPage({
                     {(po.status === 'confirmed' || po.status === 'receiving') && (
                         <CloseOrderControl
                             poId={po.id}
-                            unappliedPrepayment={Number(poStatus?.prepaid_remaining_base ?? 0)}
+                            unappliedPrepayment={canFinance ? Number(poStatus?.prepaid_remaining_base ?? 0) : null}
                         />
                     )}
                     {po.status === 'closed' && <ReopenOrderControl poId={po.id} />}
@@ -400,15 +407,21 @@ export default async function PurchaseOrderDetailPage({
                     <div className="border border-gray-300 rounded p-4 text-sm space-y-2 h-fit">
                         <div className="flex justify-between">
                             <span className="text-gray-600">{t('purchasing.prepaidLabel')}</span>
-                            <span className="font-mono">{formatMoney(poStatus.prepaid_base)}</span>
+                            <span className="font-mono">
+                                <MaskedValue value={poStatus.prepaid_base === null ? null : formatMoney(poStatus.prepaid_base)} canView={canFinance} />
+                            </span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-gray-600">{t('purchasing.appliedLabel')}</span>
-                            <span className="font-mono">{formatMoney(poStatus.prepaid_applied_base)}</span>
+                            <span className="font-mono">
+                                <MaskedValue value={poStatus.prepaid_applied_base === null ? null : formatMoney(poStatus.prepaid_applied_base)} canView={canFinance} />
+                            </span>
                         </div>
                         <div className="flex justify-between font-medium border-t pt-2">
                             <span>{t('purchasing.remainingLabel')}</span>
-                            <span className="font-mono">{formatMoney(poStatus.prepaid_remaining_base)}</span>
+                            <span className="font-mono">
+                                <MaskedValue value={poStatus.prepaid_remaining_base === null ? null : formatMoney(poStatus.prepaid_remaining_base)} canView={canFinance} />
+                            </span>
                         </div>
                         {!isCancelled && (
                             <Link
@@ -470,7 +483,12 @@ export default async function PurchaseOrderDetailPage({
                                         {appliedByBatch.has(r.id) ? formatMoney(appliedByBatch.get(r.id)) : '—'}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {r.unit_price !== null ? formatMoney(openByBatch.get(r.id) ?? 0) : '—'}
+                                        {r.unit_price === null ? '—' : (
+                                            <MaskedValue
+                                                value={canFinance ? formatMoney(openByBatch.get(r.id) ?? 0) : null}
+                                                canView={canFinance}
+                                            />
+                                        )}
                                     </td>
                                 </tr>
                             ))}

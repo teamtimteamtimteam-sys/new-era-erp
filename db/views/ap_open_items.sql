@@ -6,7 +6,7 @@
 --     排除镜像行(被别的开支单指为 reversed_by_expense —— 它只是冲销的记录凭证,
 --     不是新的应付单据),已冲销(reversed)的开支自然被 status 条件排除。
 -- inbound_batch_id 列保留(expense 行为 NULL)—— 兼容按批次取行的旧调用方。
--- 结清额只计 status='posted' 付款单的核销行。SECURITY INVOKER。
+-- 结清额只计 status='posted' 付款单的核销行。【属主权限】—— 见 OPS-14 note。
 --
 -- cut 4a:进料侧的 settled_base 【还要加上 prepayment_applications】—— 定金冲抵的
 -- 那部分钱同样在还这张批次的应付,不计进来的话,一张被定金付清的批次会永远显示未付。
@@ -19,11 +19,21 @@
 -- 列集变了 → 重建时先 DROP VIEW 再 CREATE(CREATE OR REPLACE 改不了列)。
 
 -- cut 2b:本视图改读遮蔽伴生视图(<表>_masked)而非基表 —— 敏感列的遮蔽
--- 因此是继承来的,视图体其余部分逐字未变。它仍然是 SECURITY INVOKER:
--- 它读的遮蔽视图自带模块谓词,所以既拿得到数据,也绕不过任何模块边界。
+-- 因此是继承来的。【OPS-14 起本视图是属主权限,不再是 invoker】,但这一段的结论
+-- 未变:遮蔽视图的把关是 has_permission() 谓词,而 has_permission() 按 auth.uid()
+-- 解析【调用者】,与谁拥有外层视图无关 —— 所以模块与数据类边界一字未动。
 -- 见 db/migrations/2026-08-01-perm2b-field-masking.sql.
 
-CREATE OR REPLACE VIEW public.ap_open_items WITH (security_invoker = on) AS
+-- OPS-14(2026-08-08):改为【属主权限】+ 整表挂 module.finance.view。
+-- 借来的是【金额】:payment_allocations / payments 的核销额。原先 invoker 时
+-- procurement(有 inbound + prices、无 finance)读 IN-2026-0029 得 已结 0 / 未结 48,000,
+-- 真值是 已结 30,000 / 未结 18,000 —— 付了一大半的应付读起来一分没付。
+-- 【为什么整表而不是把 settled/open 遮成 NULL】本视图的存在判据就是 `open_ccy > 0`,
+-- 行在不在取决于一个财务计算;遮成 NULL 会把整张表过滤空,那不是"缺席"而是另一种谎。
+-- 所以缺席的单位是【整张视图】:没有财务模块就 0 行,由一条明写的谓词给出。
+-- supplier 标签跟着单据走。
+
+CREATE VIEW public.ap_open_items WITH (security_invoker = off) AS
  SELECT doc_kind,
     doc_id,
     doc_code,
@@ -89,4 +99,4 @@ CREATE OR REPLACE VIEW public.ap_open_items WITH (security_invoker = on) AS
           WHERE e.payment_status = 'unpaid'::text AND e.status = 'posted'::text AND NOT (EXISTS ( SELECT 1
                    FROM expenses o
                   WHERE o.reversed_by_expense = e.id))) d
-  WHERE open_ccy > 0::numeric;
+  WHERE open_ccy > 0::numeric AND has_permission('module.finance.view'::text);

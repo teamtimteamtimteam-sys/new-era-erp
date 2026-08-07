@@ -3,14 +3,20 @@
 -- 推导 —— 只计 status='posted' 的收款,与 ar_open_items 同口径。
 -- 发票不参与核销:收付款依旧核销到 sales_records,发票只是把它们归拢成一份文件,
 -- 所以这里是【派生视图】而不是另一套结算账。
--- SECURITY INVOKER。
+-- 【属主权限】(OPS-14 起)—— 见下方 note。
 -- NOTE: introduced by db/migrations/2026-07-31-phase4-cut2a-invoices.sql.
 
 -- cut 2b:本视图改读遮蔽伴生视图(<表>_masked)而非基表 —— 敏感列的遮蔽
--- 因此是继承来的,视图体其余部分逐字未变。它仍然是 SECURITY INVOKER:
--- 它读的遮蔽视图自带模块谓词,所以既拿得到数据,也绕不过任何模块边界。
+-- 因此是继承来的。【OPS-14 起本视图是属主权限,不再是 invoker】,但这一段的结论
+-- 未变:遮蔽视图的把关是 has_permission() 谓词,而 has_permission() 按 auth.uid()
+-- 解析【调用者】,与谁拥有外层视图无关 —— 所以模块与数据类边界一字未动。
 -- 见 db/migrations/2026-08-01-perm2b-field-masking.sql.
-CREATE VIEW public.invoice_status WITH (security_invoker = on) AS
+
+-- OPS-14(2026-08-08):改为【属主权限】+ 整表挂 module.finance.view。
+-- payment_state 与 open_base 都是从核销额推的,理由同 ap_open_items。
+-- customer 标签跟着单据走。
+
+CREATE VIEW public.invoice_status WITH (security_invoker = off) AS
  SELECT i.id AS invoice_id,
     i.code,
     i.customer_id,
@@ -35,4 +41,4 @@ CREATE VIEW public.invoice_status WITH (security_invoker = on) AS
              JOIN payment_allocations pa ON pa.sales_record_id = il.sales_record_id
              JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'::text
           WHERE il.invoice_id = i.id) s ON true
-  WHERE i.status <> 'void'::text;
+  WHERE i.status <> 'void'::text AND has_permission('module.finance.view'::text);

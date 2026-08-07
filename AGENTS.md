@@ -244,6 +244,143 @@ with **both** doors written back into the view body — the module predicate *an
 the data-class predicate. Owner rights bypass the column grant, so omitting the
 second hands restricted values to anyone who can enter the module.
 
+### `colreader` asked about COLUMNS — `xmodule` asks about ROWS (OPS-14)
+
+**A `security_invoker` view that joins tables from more than one module does not
+restrict; it lies.**
+
+`colreader` asks whether the *columns* an invoker view reads are readable — if not,
+`42501`, loud. `xmodule` asks the other half: whether the *rows* are readable. If
+not, they **vanish silently**. An inner join drops the whole row, an outer join
+nulls it, an aggregate counts it as zero — and the view's derived columns are
+computed from exactly those rows. No error is raised. **Every reader gets a
+different answer, and nothing says so.**
+
+The survey found **11 of 15** invoker views spanning modules, and **five were
+already wrong on live** (all probed, all rolled back):
+
+* `processing_run_allocation_status` — `safe_to_reallocate` was `true` as postgres
+  and **`NULL` as `operations`**; the run page branches on that boolean and `NULL`
+  is falsy, so a run that was perfectly safe wore the **red** "cannot re-allocate"
+  banner. And `price_history` is `module.inbound.view` — it is one of three
+  staleness sources, so `is_stale` **under-reported**: a stale run read as fresh.
+* `purchase_order_status` — PO prepayment read **35,000.00** as `admin` and
+  **0.00** as `procurement`.
+* `ap_open_items` — a payable 30,000 settled read as **0 settled / fully open** to
+  `procurement`.
+* `hr_alerts` — `system_start_not_set` is written `NOT EXISTS (SELECT 1 FROM
+  finance_settings …)`. The row vanishes for a non-finance reader, so the condition
+  is **vacuously true**: the date *was* set, and the `hr` role saw a permanent false
+  alarm **it could never clear**, because the table driving it was unreadable.
+  Note the direction — a vanishing row produced a **false positive** here and a
+  false negative above. Same disease, both ways.
+* `batch_assay_status` — `INNER JOIN suppliers`: **10 rows as `admin`, 0 as
+  `warehouse`**, who can see all 10 batches. The inbound list uses it for the
+  "unapplied assay" badge, so those roles were never told.
+
+**Two remedies, not interchangeable:**
+
+| the borrowed columns are… | remedy |
+|---|---|
+| **derived facts** — a count, a boolean, a timestamp, a display label | **(a)** owner rights, with the reader's *own* module predicate in the body; the cross-module columns are then computed with owner privileges |
+| **money** | **(b)** the arm the reader cannot see is **ABSENT, not wrong** — either the whole view carries the finance predicate (when the row's *existence* is a finance computation, as in `ap_open_items`, whose `WHERE open_ccy > 0` *is* one), or the individual amounts are masked to `NULL` (`purchase_order_status`), which the `_masked`/`MaskedValue` idiom already renders as 「受限」 |
+
+**`0.00` and 「受限」 are not the same thing. The first is a lie.** That distinction
+is the whole of remedy (b), and it is why a page reading these views must check the
+permission code rather than `?? 0` — see `lib/permissions.ts`, whose entire reason
+for existing is that `null` already means something else.
+
+**Owner rights do not widen the module boundary here.** The `_masked` companions
+these views read are themselves owner-rights views gated by `has_permission()`, and
+`has_permission()` is `SECURITY DEFINER` resolving `auth.uid()` — it answers about
+the **caller**, no matter who owns the outer view. So converting an invoker view to
+owner rights leaves module and data-class gating untouched; the only thing that
+changes is that RLS base tables stop dropping rows.
+
+**What `xmodule` cannot see** — stated so a green line is not read as "clean
+everywhere". When the second module arrives through an **owner-rights view**
+(`<table>_masked`) rather than an RLS base table, `pg_policy` never sees it and the
+view counts as single-module. `po_prepayment_applicable` is exactly that shape and
+was fixed by hand in OPS-14; the check will not catch the next one. Masked views are
+deliberately excluded because their gating is a `has_permission()` predicate — it
+resolves per caller and never drops rows silently, which is the *intended*
+mechanism, not the disease.
+
+**Two traps, both inherited from OPS-13 and both re-verified before trusting a
+zero:** `security_invoker` is spelled `'on'` **or** `'true'` in `reloptions`, and
+`processing_metal_recovery` is the repo's lone `'true'` — matching only `'on'`
+examines 14 of 15 and reports clean. And the check reports **direct** dependencies
+only. `check_xmodule_views()` therefore returns the number of invoker views and
+base-table dependencies it actually examined, and the gate **fails** if either is
+zero: *a zero must be a measurement, not an absence.*
+
+**The behavioural half is fixture 26**, and it is worth knowing why it exists
+separately: `xmodule` checks the *shape*, the fixture checks the *answer* — same
+row, different reader, same result. Neither subsumes the other, because the shape
+check cannot see a predicate missing from an owner-rights view, and the fixture
+cannot see a view nobody reads yet.
+
+> **Fixtures run as `postgres`, which BYPASSES RLS.** The first draft of fixture 26
+> did not switch roles, so arms A and C were **vacuous** — the fault injection turned
+> `processing_run_allocation_status` back into an invoker view, `xmodule` went red,
+> and the fixture stayed **green**. Any fixture asserting an RLS-dependent behaviour
+> must `EXECUTE 'SET LOCAL ROLE authenticated'` around each read and `RESET ROLE`
+> after. `has_permission()` needs no role switch — it reads `request.jwt.claims` —
+> which is precisely why the two arms that used it worked and the two that needed RLS
+> did not. Same shape as FIN-30's vacuous third arm.
+
+## Three standing decisions about what the permission model actually protects
+
+Tim's calls, recorded here rather than re-argued each time a screen needs a number.
+
+### 1 · `module.finance.view` IMPLIES price visibility
+
+**The general ledger is the price data.** `journal_lines`, `journal_entries`,
+`expenses`, `payments` and `accounts` carry **no column-list SELECT grant** — perm2b
+never revoked them. Probed with a role holding `module.finance.view` and nothing
+else: `sales_records_masked` returns `unit_price = null`, `amount_base = null`, while
+`SUM` over account 4000 returns **33,176.00**, with unmasked quantities beside it.
+
+Masking prices from someone who can read every journal line is **theatre**. So the
+boundary is stated rather than patched: **a reader with `module.finance.view` may see
+prices.** Same argument already accepted when `data.view_pay` was granted to finance.
+
+Two consequences, both load-bearing:
+
+* **`data.view_prices` is a control for NON-finance roles only.** It is what keeps
+  `operations` and `warehouse` from seeing purchase prices on the floor; it is not,
+  and never was, a second lock on someone already inside the books.
+* **The GL's lack of column masking is ACCEPTED, not a hole to close.** Do not
+  "fix" it by revoking columns on `journal_lines` — that would break the P&L, the
+  balance sheet, the cash-flow statement and the journal screen to buy a distinction
+  the ledger cannot keep anyway.
+
+### 2 · A batch-margin view is owner rights with `data.view_prices AND (module.finance.view OR module.processing.view)`
+
+Decided before it is built, because the shape of the predicate is the whole question.
+Revenue lives behind finance, allocated cost behind processing, and **no live role
+holds both** — probed: the `finance` role sees 4 revenue rows and **zero** cost rows,
+so the number Doc 2 calls the one the business most needs is invisible to the role
+whose job it is. The `OR` is the point.
+
+### 3 · A master-data display LABEL follows the document, not the module
+
+A label identifying the counterparty is **a property of the document, not a separate
+secret**. If you may see the payable, you may see whose it is. Withholding the name
+while showing the amount controls nothing — and dropping the row entirely, which is
+what OPS-14 found (`0` rows against `10`), is actively wrong.
+
+**The boundary, so this does not become a general licence: only the display LABEL
+follows the row.** Substantive master-data attributes — bank accounts, credit terms,
+price files, contact details — do **not**, and stay behind their own module. OPS-14
+audited all six affected views and each borrowed exactly `legal_name` / `name` plus a
+join key. **If a view ever borrows more than a name, report it rather than folding it
+in.**
+
+Rejected, with the reason on record: LEFT JOIN with the name left `NULL`. A blank name
+reads as **missing data**, not as a permission answer — the exact failure mode
+`lib/permissions.ts` exists to prevent.
+
 ## Dates and amounts that decide a period: required, never defaulted
 
 A field that decides an **FX rate**, a **posting period**, or an **amount**

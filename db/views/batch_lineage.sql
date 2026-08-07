@@ -6,7 +6,12 @@
 --
 -- NOTE: introduced by db/migrations/2026-08-06-fin25-reprocessing.sql.
 
-CREATE VIEW public.batch_lineage WITH (security_invoker = on) AS
+-- OPS-14(2026-08-08):改为【属主权限】+ module.processing.view。
+-- 借 inbound_batches.code / output_batches.code —— 祖先批次的编号,也就是标签。
+-- 血缘的起点是 processing_outputs,所以模块就是 processing;少了这两个 code,
+-- 链条变成一串 NULL,而"可溯"正是立账公理。
+
+CREATE VIEW public.batch_lineage WITH (security_invoker = off) AS
 WITH RECURSIVE up AS (
     SELECT po.output_batch_id AS batch_id,
            pr.id AS via_run_id, pr.code AS via_run_code,
@@ -36,6 +41,7 @@ SELECT up.batch_id AS output_batch_id,
        up.quantity_consumed
 FROM up
 LEFT JOIN public.inbound_batches ib ON ib.id = up.parent_inbound_id
-LEFT JOIN public.output_batches ob ON ob.id = up.parent_output_id;
+LEFT JOIN public.output_batches ob ON ob.id = up.parent_output_id
+WHERE has_permission('module.processing.view'::text);
 
 GRANT SELECT ON public.batch_lineage TO authenticated;

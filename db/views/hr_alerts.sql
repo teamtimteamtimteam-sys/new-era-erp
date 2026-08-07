@@ -1,5 +1,5 @@
 -- db/views/hr_alerts.sql
--- HR 待办:需要有人去处理的事,一件一行。SECURITY INVOKER。
+-- HR 待办:需要有人去处理的事,一件一行。【属主权限】(OPS-14 起)。
 --
 -- 【只列还来得及处理的】超期 30 天以上的不再出现 —— 那已经不是"提醒"而是历史。
 -- 档期:工作准证与培训 30/90 天。只含在册且未离职的员工。
@@ -15,7 +15,7 @@
 --                       (假期补偿的取数来源),空着只会在离职那天才浮出来,那时已经来不及
 --                       悄悄补。notice 的人给 critical:钱马上就要算了。
 --                       【用 monthly_salary_set 而不是 monthly_salary IS NULL】—— 本视图是
---                       SECURITY INVOKER,引用被收回的 monthly_salary 会让整张待办视图对
+--                       (当时是 SECURITY INVOKER)引用被收回的 monthly_salary 会让整张待办视图对
 --                       所有人 42501。生成列把"有没有"与"是多少"分开。
 --   review_no_reviewer  非作废、未批准的评估没有评估人 —— 在开轮当天就说出来。
 --
@@ -36,7 +36,21 @@
 -- 旧版只查次年、只在四季度,盲区恰好是它唯一该守住的时刻。
 -- 不加"条数下限"的理由见迁移文件头(country 列已在,写死新加坡的条数是辖区常量)。
 
-CREATE OR REPLACE VIEW public.hr_alerts WITH (security_invoker = on) AS
+-- OPS-14(2026-08-08):改为【属主权限】+ module.hr.view 写在外层。
+-- system_start_not_set 那支读 finance_settings(挂 module.finance.view),写法是
+-- NOT EXISTS(...)。原先 invoker 时 RLS 让行消失 → NOT EXISTS 恒真 →【日期明明填了,
+-- hr 角色却永远看见这条告警】,而且他清不掉,因为驱动它的表他读不到。
+-- 行消失在这里制造【假阳性】,与 allocation_status 的假阴性相反 —— 同一个病两个方向。
+-- 谓词写在外层而不是逐支重复:12 支的可见性是同一个,复述 12 遍只会给下一个加支的人
+-- 留一个漏写的机会。
+-- 【放弃了什么】原先 employees 的 "select own row" 策略让零 HR 权限的员工能读到关于
+-- 自己的那几支。全库没有页面这么用(只有 /hr 与 /hr/training 读它,都在 HR 模块内),
+-- 自助侧走 my_profile / my_leave_balance / my_review_subjects。故无损失,记此备查。
+
+CREATE VIEW public.hr_alerts WITH (security_invoker = off) AS
+ SELECT a.alert_type, a.severity, a.employee_id, a.employee_code, a.employee_name,
+        a.subject, a.due_date, a.days_remaining
+ FROM (
  SELECT 'work_pass_expiry'::text AS alert_type,
         CASE
             WHEN e.work_pass_expiry_date < CURRENT_DATE THEN 'expired'::text
@@ -201,4 +215,6 @@ UNION ALL
     0 AS days_remaining
   WHERE NOT (EXISTS ( SELECT 1
            FROM finance_settings s
-          WHERE s.system_start_date IS NOT NULL));
+          WHERE s.system_start_date IS NOT NULL))
+ ) a
+ WHERE has_permission('module.hr.view'::text);

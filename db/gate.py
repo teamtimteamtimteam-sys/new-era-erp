@@ -191,6 +191,93 @@ def check_reader_gaps(dsn: str) -> str:
     return psql(dsn, READER_GAP_SQL)
 
 
+# ── 谁的【行】会消失(OPS-14)──────────────────────────────────────────────
+# colreader 问 invoker 视图读的【列】调用者读不读得到 —— 读不到就 42501,响亮。
+# 这一条问另一半:它读的【行】调用者读不读得到 —— 读不到就【安静地消失】。
+# 内连接掉整行、外连接掉成 NULL、聚合掉成 0,而视图的派生列正是从这些行算出来的。
+# 没有报错,只有一个错的答案,而且【每个读者拿到的答案不一样】。
+#
+# 实例(OPS-14 之前全部为真,探针实测):processing_run_allocation_status 的
+# safe_to_reallocate 对 postgres 是 true、对 operations 是 NULL,而页面在这个布尔上
+# 分支、NULL 是 falsy —— 一张完全可以重跑的加工单挂着红色"不能安全重跑"。
+# hr_alerts 的 system_start_not_set 写成 NOT EXISTS(finance_settings ...),行一消失
+# 条件恒真,于是 hr 角色永远看见一条【清不掉】的假告警。
+#
+# 判据:invoker 视图 × 它依赖的基表 × 那些基表 SELECT 策略里出现的 module.<x>.view。
+# 模块数 > 1 即点名。用 pg_depend(视图→基表)与 pg_policy(策略表达式),
+# 不解析视图 SQL —— 视图依赖哪些表、表挂哪些策略,都是目录里记着的事实。
+#
+# 【两个陷阱,都在 OPS-13 踩过,这里先验后信】
+#  * security_invoker 在 reloptions 里既可能是 'on' 也可能是 'true'。全库 15 个
+#    invoker 视图里,processing_metal_recovery 是【唯一】拼 'true' 的 —— 只认 'on'
+#    会检查 14 个并报干净。所以下面 IN ('on','true'),并且 check_xmodule_views()
+#    在返回"没有缺口"之前【先断言自己确实看见了视图和依赖】:零必须是测量,不是缺席。
+#  * 只看直接依赖。invoker 视图 A 读 invoker 视图 B 读跨模块基表 —— 点名的是 B。
+#
+# 【它看不见什么,写出来免得绿被读成"到处都干净"】另一个模块【经属主权限视图】
+# (<表>_masked)进来时,pg_policy 里看不到它 —— 目录里那个视图只有一个模块。
+# po_prepayment_applicable 正是这样:采购/进料侧走 masked 视图,财务侧走 RLS 基表,
+# 判据只数出一个模块。它的病一样真实(没有财务的读者把 settled 读成 0),
+# OPS-14 顺手修了,但判据【不会】替你抓下一个。masked 视图之所以不算,是因为它们的
+# 把关是 has_permission() 谓词 —— 按调用者解析、不会逐行消失,那是【预期机制】。
+XMODULE_SQL = """
+WITH v AS (
+    SELECT c.oid, c.relname,
+           COALESCE((SELECT o.option_value FROM pg_options_to_table(c.reloptions) o
+                     WHERE o.option_name='security_invoker'), 'off') AS invoker
+    FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname='public' AND c.relkind='v'
+), dep AS (
+    SELECT DISTINCT v.relname AS view_name, t.relname AS src_table
+    FROM v
+    JOIN pg_rewrite r ON r.ev_class = v.oid
+    JOIN pg_depend d ON d.objid = r.oid
+    JOIN pg_class t ON t.oid = d.refobjid AND t.relkind = 'r'
+    JOIN pg_namespace tn ON tn.oid = t.relnamespace AND tn.nspname='public'
+    WHERE v.invoker IN ('on','true') AND t.oid <> v.oid
+), m AS (
+    SELECT dep.view_name, mods.mod
+    FROM dep
+    JOIN pg_policy p ON p.polrelid = dep.src_table::regclass AND p.polcmd IN ('r','*')
+    CROSS JOIN LATERAL regexp_matches(pg_get_expr(p.polqual, p.polrelid),
+                                      'module\\.([a-z_]+)\\.view', 'g') AS mods(mod)
+)
+SELECT COALESCE(string_agg(x.view_name || ' 跨 ' || x.mods, ' | ' ORDER BY x.view_name), '')
+FROM (
+    SELECT view_name, array_to_string(array_agg(DISTINCT mod[1] ORDER BY mod[1]), '+') AS mods,
+           count(DISTINCT mod[1]) AS n
+    FROM m GROUP BY view_name
+) x
+WHERE x.n > 1;
+"""
+
+# 探测器的自证:invoker 视图数、被它们依赖的基表数。任何一个是 0 都说明这条检查
+# 什么也没看,而"什么也没看"与"没有缺口"在输出上长得一模一样 —— 那正是要消灭的。
+XMODULE_SELFTEST_SQL = """
+WITH v AS (
+    SELECT c.oid, c.relname,
+           COALESCE((SELECT o.option_value FROM pg_options_to_table(c.reloptions) o
+                     WHERE o.option_name='security_invoker'), 'off') AS invoker
+    FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname='public' AND c.relkind='v'
+)
+SELECT (SELECT count(*) FROM v WHERE invoker IN ('on','true'))::text || ',' ||
+       (SELECT count(*) FROM (
+            SELECT DISTINCT v.relname, t.relname AS t
+            FROM v JOIN pg_rewrite r ON r.ev_class=v.oid
+            JOIN pg_depend d ON d.objid=r.oid
+            JOIN pg_class t ON t.oid=d.refobjid AND t.relkind='r'
+            JOIN pg_namespace tn ON tn.oid=t.relnamespace AND tn.nspname='public'
+            WHERE v.invoker IN ('on','true') AND t.oid <> v.oid) z)::text;
+"""
+
+
+def check_xmodule_views(dsn: str) -> tuple:
+    """returns (gaps, n_invoker, n_deps) —— 先自证看得见,再报缺口。"""
+    n_invoker, n_deps = (int(x) for x in psql(dsn, XMODULE_SELFTEST_SQL).split(","))
+    return psql(dsn, XMODULE_SQL), n_invoker, n_deps
+
+
 def check_grant_gaps(dsn: str) -> str:
     return psql(dsn, GRANT_GAP_SQL)
 
@@ -295,6 +382,21 @@ def main() -> int:
             print(f"colreader  {label}: " + ("无 invoker 视图读被收回的列 ✓" if not rg else f"✗ {rg}"))
             if rg:
                 problems.append(f"invoker view reads revoked column ({label}): {rg}")
+
+        # OPS-14:谁的【行】会消失 —— colreader 问列,这一条问行。两侧都问,理由同上。
+        # 【零必须是测量】先要探测器自证看得见 invoker 视图和它们的基表依赖,
+        # 看不见就当场判失败,而不是安静地报"无缺口"。
+        for label, dsn in (("live", args.live), ("rebuild", local)):
+            xm, n_inv, n_dep = check_xmodule_views(dsn)
+            if n_inv == 0 or n_dep == 0:
+                print(f"xmodule    {label}: ✗ 探测器什么也没看见(invoker={n_inv} deps={n_dep})")
+                problems.append(f"xmodule detector saw nothing ({label}): invoker={n_inv} deps={n_dep}")
+            else:
+                print(f"xmodule    {label}: "
+                      + (f"{n_inv} 个 invoker 视图 / {n_dep} 条基表依赖,无跨模块 ✓" if not xm
+                         else f"✗ {xm}"))
+                if xm:
+                    problems.append(f"invoker view spans modules ({label}): {xm}")
 
         # ── 吞掉查询错误(OPS-12)────────────────────────────────────────────
         # `?? []` 把失败读成空集,页面回 200 说"没有数据" —— 冒烟断言 2xx,
