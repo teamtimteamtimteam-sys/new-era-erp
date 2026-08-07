@@ -25,7 +25,7 @@ type Row = {
     supplier_name: string | null
     order_date: string
     expected_delivery_date: string | null
-    estimated_total_usd: number
+    estimated_total_ccy: number
     prepaid_base: number | null
     prepaid_remaining_base: number | null
     receipt_pct: number | null
@@ -77,19 +77,19 @@ export default async function PurchaseOrdersPage({
         const { data } = await applyFilters(
             supabase
                 .from('purchase_orders_masked')
-                .select('id, code, order_date, expected_delivery_date, estimated_total_usd, status, suppliers(legal_name)')
+                .select('id, code, order_date, expected_delivery_date, estimated_total_ccy, status, suppliers(legal_name)')
                 .eq('status', 'cancelled')
                 .is('deleted_at', null)
         )
             .order('order_date', { ascending: false })
             .range((page - 1) * PAGE_SIZE, (page - 1) * PAGE_SIZE + PAGE_SIZE - 1)
-        rows = ((data as unknown as { id: string; code: string; order_date: string; expected_delivery_date: string | null; estimated_total_usd: number; status: string; suppliers: { legal_name: string } | null }[] | null) ?? []).map((r) => ({
+        rows = ((data as unknown as { id: string; code: string; order_date: string; expected_delivery_date: string | null; estimated_total_ccy: number; status: string; suppliers: { legal_name: string } | null }[] | null) ?? []).map((r) => ({
             po_id: r.id,
             code: r.code,
             supplier_name: r.suppliers?.legal_name ?? null,
             order_date: r.order_date,
             expected_delivery_date: r.expected_delivery_date,
-            estimated_total_usd: r.estimated_total_usd,
+            estimated_total_ccy: r.estimated_total_ccy,
             prepaid_base: null,
             prepaid_remaining_base: null,
             receipt_pct: null,
@@ -110,7 +110,7 @@ export default async function PurchaseOrdersPage({
         const { data } = await applyStatus(
             supabase
                 .from('purchase_order_status')
-                .select('po_id, code, supplier_name, order_date, expected_delivery_date, estimated_total_usd, prepaid_base, prepaid_remaining_base, receipt_pct, status')
+                .select('po_id, code, supplier_name, order_date, expected_delivery_date, estimated_total_ccy, prepaid_base, prepaid_remaining_base, receipt_pct, status')
         )
             .order('order_date', { ascending: false })
             .range((page - 1) * PAGE_SIZE, (page - 1) * PAGE_SIZE + PAGE_SIZE - 1)
@@ -199,7 +199,7 @@ export default async function PurchaseOrdersPage({
                             <td className="border border-gray-300 px-4 py-2">{r.order_date}</td>
                             <td className="border border-gray-300 px-4 py-2">{r.expected_delivery_date ?? '—'}</td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatMoney(r.estimated_total_usd)}
+                                {formatMoney(r.estimated_total_ccy)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                 {r.prepaid_base === null ? '—' : formatMoney(r.prepaid_base)}

@@ -14,7 +14,7 @@ type TemplateLine = {
     seq: number
     label: string
     percentage: number | null
-    fixed_amount_usd: number | null
+    fixed_amount_ccy: number | null
     trigger_event: string
     days_offset: number | null
 }
@@ -31,7 +31,7 @@ export default async function PaymentTermTemplatesPage() {
             .order('name'),
         supabase
             .from('payment_term_template_lines_masked')
-            .select('template_id, seq, label, percentage, fixed_amount_usd, trigger_event, days_offset')
+            .select('template_id, seq, label, percentage, fixed_amount_ccy, trigger_event, days_offset')
             .order('seq'),
     ])
 
@@ -48,7 +48,7 @@ export default async function PaymentTermTemplatesPage() {
         (linesByTpl.get(tplId) ?? [])
             .map((l) => {
                 const share =
-                    l.percentage !== null ? `${l.percentage}%` : `${formatMoney(l.fixed_amount_usd)} USD`
+                    l.percentage !== null ? `${l.percentage}%` : `${formatMoney(l.fixed_amount_ccy)} USD`
                 const trigger = t('purchasing.trigger.' + l.trigger_event)
                 const offset =
                     l.trigger_event === 'fixed_date' && l.days_offset !== null

@@ -36,7 +36,7 @@ export type TemplateOption = {
     lines: {
         label: string
         percentage: number | null
-        fixed_amount_usd: number | null
+        fixed_amount_ccy: number | null
         trigger_event: string
         days_offset: number | null
     }[]
@@ -118,7 +118,7 @@ export default function NewOrderForm({
             label: l.label,
             mode: l.percentage !== null ? ('percentage' as const) : ('fixed' as const),
             percentage: l.percentage !== null ? String(l.percentage) : '',
-            fixed_amount: l.fixed_amount_usd !== null ? String(l.fixed_amount_usd) : '',
+            fixed_amount: l.fixed_amount_ccy !== null ? String(l.fixed_amount_ccy) : '',
             trigger_event: l.trigger_event,
             due_date: l.trigger_event === 'fixed_date' ? addDays(baseDate, l.days_offset ?? 0) : '',
         }))

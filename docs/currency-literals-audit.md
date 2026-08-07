@@ -121,7 +121,7 @@ treatment_usd: 324.00     net_value_usd: -324.00        unit_price_usd_per_kg: -
 |---|---|---|
 | `apply_assay_result` → `reprice_inbound_batch` | ✅ 一直正确 | 显式传 `'USD'`,由 `reprice_inbound_batch` 按定价日 `tt_sell` 折本位币。进料定价这条路没问题 |
 | **采购单行估算** `computeLineEstimate` | ❌ **曾经漏掉,FIN-15 已修** | 公式给的是 USD/kg,却直接填进【单据币种】的价格框。单据是 SGD 时等于把 USD 价当 SGD 价用 |
-| **`create_purchase_order`** 存 `estimated_amount_usd` | ❌ 同上(由上一行的入参决定) | 存的是 `数量 × 行单价`,不做换算 —— 行单价折对了,这里就对了 |
+| **`create_purchase_order`** 存 `estimated_amount_ccy` | ❌ 同上(由上一行的入参决定) | 存的是 `数量 × 行单价`,不做换算 —— 行单价折对了,这里就对了 |
 | `/pricing/calculator` 显示 | ⚠️ 标签错,数字对 | 全程 USD,标签却写 `Value (SGD)`。**已改为 `Value (USD)`** —— 计价器就是个 USD 报价工具,不是记账屏 |
 | `PriceBreakdown`(计价器与化验页共用) | ⚠️ 同上 | 同一个组件,同一个标签,一并修正 |
 
@@ -217,3 +217,34 @@ FIN-0 换过一次本位币(USD → SGD),下一次换的时候,下面这些地�
 
 两族都记在 `scripts/check-currency-literals.mjs` 的抬头里 —— 那句
 "✓ 没有把币种当常量用的判断"必须带着确切的边界,否则它就是下一个 OPS-8。
+
+## FIN-1a 的一条分类作废(FIN-28,2026-08-07)
+
+`db/migrations/2026-08-04-fin1a-rename-base-columns.sql` 的抬头写着:
+
+> 交易币种真是 USD 的列【保留原名】:金属报价(metal_prices/pricing_formulas)、
+> 采购单据与付款条款(purchase_order*/payment_term_template_lines 的
+> estimated_*/fixed_amount_usd)—— 那些是 USD 报价,不是本位币金额。
+
+**后半句作废。** 金属报价那一半仍然成立(USD/吨是市场惯例,链路全程不换汇);
+采购单据那一半是错的:`create_purchase_order` 把各行 `quantity ×
+estimated_unit_price` 累加进去,**从来没有乘过表头的 `fx_rate`** —— 所以它既不是
+本位币,也不是 USD,而是**单据自己的币种**。FIN-16/FIN-17 的注释早就点破过
+(`v_cap = estimated_total × 1.5`,两边同币),列名拖到 FIN-28 才跟上。
+
+四列已改名(`_usd` → `_ccy`)并补了列注释:
+`purchase_orders.estimated_total_ccy`、`purchase_order_lines.estimated_amount_ccy`、
+`purchase_order_payment_terms.fixed_amount_ccy`、
+`payment_term_template_lines.fixed_amount_ccy`。至此**全库不再有 `*_usd` 结尾的列**。
+
+FIN-1a 那个文件【不改】—— 迁移是"当时上了什么"的记录,改它等于让记录说谎
+(同 OPS-7 对 FIN-23 那句提醒的处置)。作废记在这里。
+
+### 顺手发现、按规矩【不修】的一个缺陷
+
+`payment_term_template_lines.fixed_amount_ccy` 住在**模板**上,而模板不属于任何
+单据 —— 所以它的币种在被 `apply_payment_term_template` 抄到某张 PO 之前是**没有
+定义的**。同一个模板套到 USD 单和 SGD 单上,那个"定额 10,000"是两笔不同的钱,
+而没有任何地方拦这件事。FIN-28 是纯改名,**报告但不修**(改名的提交里顺手修
+一个缺陷,就再也说不清 fixture 若变红是哪一件事造成的)。要修是单独一切:
+要么给模板行加币种列,要么把定额期改成只能按比例。

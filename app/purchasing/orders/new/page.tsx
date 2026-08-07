@@ -48,7 +48,7 @@ export default async function NewOrderPage() {
             .order('name'),
         supabase
             .from('payment_term_template_lines_masked')
-            .select('template_id, seq, label, percentage, fixed_amount_usd, trigger_event, days_offset')
+            .select('template_id, seq, label, percentage, fixed_amount_ccy, trigger_event, days_offset')
             .order('seq'),
     ])
 
@@ -80,12 +80,12 @@ export default async function NewOrderPage() {
         label: `${f.code} — ${f.name}`,
     }))
     const linesByTpl = new Map<string, TemplateOption['lines']>()
-    for (const l of maskedRows<Tables<'payment_term_template_lines'>, 'fixed_amount_usd'>(mustRows(tplLinesRes))) {
+    for (const l of maskedRows<Tables<'payment_term_template_lines'>, 'fixed_amount_ccy'>(mustRows(tplLinesRes))) {
         const arr = linesByTpl.get(l.template_id) ?? []
         arr.push({
             label: l.label,
             percentage: l.percentage,
-            fixed_amount_usd: l.fixed_amount_usd,
+            fixed_amount_ccy: l.fixed_amount_ccy,
             trigger_event: l.trigger_event,
             days_offset: l.days_offset,
         })

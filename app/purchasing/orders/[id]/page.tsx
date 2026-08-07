@@ -32,7 +32,7 @@ export default async function PurchaseOrderDetailPage({
 
     const { data: poRaw, error } = await supabase
         .from('purchase_orders_masked')
-        .select('id, code, supplier_id, order_date, expected_delivery_date, currency, fx_rate, estimated_total_usd, status, approval_status, incoterm, terms_text, notes, cancelled_at, cancel_reason')
+        .select('id, code, supplier_id, order_date, expected_delivery_date, currency, fx_rate, estimated_total_ccy, status, approval_status, incoterm, terms_text, notes, cancelled_at, cancel_reason')
         .eq('id', id)
         .is('deleted_at', null)
         .single()
@@ -41,21 +41,21 @@ export default async function PurchaseOrderDetailPage({
         notFound()
     }
 
-    // cut 2b:改读遮蔽视图。fx_rate / estimated_total_usd 会被遮蔽(没有 data.view_prices
+    // cut 2b:改读遮蔽视图。fx_rate / estimated_total_ccy 会被遮蔽(没有 data.view_prices
     // 时为 null),其余列恢复基表类型 —— 视图带来的"人人可空"只是类型噪音。
     const showPrices = await canViewPrices()
-    const po = maskedExcept<Tables<'purchase_orders'>, 'fx_rate' | 'estimated_total_usd'>(poRaw)
+    const po = maskedExcept<Tables<'purchase_orders'>, 'fx_rate' | 'estimated_total_ccy'>(poRaw)
 
     const [supplierRes, linesRes, termsRes, statusRes, receiptsRes] = await Promise.all([
         supabase.from('suppliers').select('id, legal_name').eq('id', po.supplier_id).single(),
         supabase
             .from('purchase_order_lines_masked')
-            .select('id, line_no, material_id, quantity, unit, pricing_formula_id, estimated_unit_price, estimated_amount_usd, expected_assay, notes, price_source, price_provenance')
+            .select('id, line_no, material_id, quantity, unit, pricing_formula_id, estimated_unit_price, estimated_amount_ccy, expected_assay, notes, price_source, price_provenance')
             .eq('purchase_order_id', id)
             .order('line_no'),
         supabase
             .from('purchase_order_payment_terms_masked')
-            .select('seq, label, percentage, fixed_amount_usd, trigger_event, due_date')
+            .select('seq, label, percentage, fixed_amount_ccy, trigger_event, due_date')
             .eq('purchase_order_id', id)
             .order('seq'),
         // 已取消的单不在视图里 → 预付/进度区不展示
@@ -69,8 +69,8 @@ export default async function PurchaseOrderDetailPage({
     ])
 
     // 遮蔽的是估价列;material_id / pricing_formula_id 等恢复基表类型。
-    const lines = maskedRows<Tables<'purchase_order_lines'>, 'estimated_unit_price' | 'estimated_amount_usd'>(mustRows(linesRes))
-    const terms = maskedRows<Tables<'purchase_order_payment_terms'>, 'fixed_amount_usd'>(mustRows(termsRes))
+    const lines = maskedRows<Tables<'purchase_order_lines'>, 'estimated_unit_price' | 'estimated_amount_ccy'>(mustRows(linesRes))
+    const terms = maskedRows<Tables<'purchase_order_payment_terms'>, 'fixed_amount_ccy'>(mustRows(termsRes))
     const poStatus = statusRes.data
     const receipts = maskedRows<Tables<'inbound_batches'>, 'unit_price'>(mustRows(receiptsRes))
 
@@ -133,10 +133,10 @@ export default async function PurchaseOrderDetailPage({
             .join(' · ')
     }
 
-    const termAmount = (l: { percentage: number | null; fixed_amount_usd: number | null }) =>
+    const termAmount = (l: { percentage: number | null; fixed_amount_ccy: number | null }) =>
         l.percentage !== null
-            ? round2((Number(po.estimated_total_usd) * l.percentage) / 100)
-            : Number(l.fixed_amount_usd ?? 0)
+            ? round2((Number(po.estimated_total_ccy) * l.percentage) / 100)
+            : Number(l.fixed_amount_ccy ?? 0)
 
     const statusPill = (
         <span
@@ -240,7 +240,7 @@ export default async function PurchaseOrderDetailPage({
                 <div>{statusPill}</div>
                 <div>
                     <span className="text-gray-600 mr-1">{t('purchasing.colEstimatedTotal')}:</span>
-                    <span className="font-mono font-medium">{formatMoney(po.estimated_total_usd)}</span>
+                    <span className="font-mono font-medium">{formatMoney(po.estimated_total_ccy)}</span>
                 </div>
             </div>
 
@@ -332,7 +332,7 @@ export default async function PurchaseOrderDetailPage({
                                 )}
                             </td>
                             <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                {formatMoney(l.estimated_amount_usd)}
+                                {formatMoney(l.estimated_amount_ccy)}
                             </td>
                         </tr>
                     ))}
@@ -343,7 +343,7 @@ export default async function PurchaseOrderDetailPage({
                             {t('purchasing.colEstimatedTotal')}
                         </td>
                         <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                            {formatMoney(po.estimated_total_usd)}
+                            {formatMoney(po.estimated_total_ccy)}
                         </td>
                     </tr>
                 </tfoot>
@@ -373,7 +373,7 @@ export default async function PurchaseOrderDetailPage({
                                         <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
                                             {l.percentage !== null
                                                 ? `${l.percentage}%`
-                                                : `${formatMoney(l.fixed_amount_usd)} USD`}
+                                                : `${formatMoney(l.fixed_amount_ccy)} USD`}
                                         </td>
                                         <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
                                             {formatMoney(termAmount(l))}

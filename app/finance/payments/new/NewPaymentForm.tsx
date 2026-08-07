@@ -34,7 +34,7 @@ export type PoItem = {
     party_id: string
     code: string
     order_date: string
-    estimated_total_usd: number
+    estimated_total_ccy: number
     prepaid_base: number
     currency: string
 }
@@ -453,12 +453,12 @@ export default function NewPaymentForm({
                                 <tr key={p.po_id}>
                                     <td className="border border-gray-300 px-4 py-2 font-mono text-sm">{p.code}</td>
                                     <td className="border border-gray-300 px-4 py-2">{p.order_date}</td>
-                                    {/* 【这两列不是同一种币】estimated_total_usd 名字里带 usd,
+                                    {/* 【这两列不是同一种币】estimated_total_ccy 名字里带 usd,
                                         存的却是【单据币种】(create_purchase_order 全程不乘汇率,
                                         旧名见 docs/known-issues.md);prepaid_base 是【本位币】。
                                         并排、都不标币种,比未结那一列还容易读错 —— 各标各的。 */}
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {formatAmount(p.estimated_total_usd, p.currency)}
+                                        {formatAmount(p.estimated_total_ccy, p.currency)}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                         {formatAmount(p.prepaid_base, baseCurrency)}

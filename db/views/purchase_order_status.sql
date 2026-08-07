@@ -21,7 +21,7 @@ CREATE VIEW public.purchase_order_status WITH (security_invoker = on) AS
     po.expected_delivery_date,
     po.status,
     po.currency,
-    po.estimated_total_usd,
+    po.estimated_total_ccy,
     round(COALESCE(pre.prepaid, 0::numeric), 2) AS prepaid_base,
     round(COALESCE(app.applied, 0::numeric), 2) AS prepaid_applied_base,
     round(COALESCE(pre.prepaid, 0::numeric) - COALESCE(app.applied, 0::numeric), 2) AS prepaid_remaining_base,

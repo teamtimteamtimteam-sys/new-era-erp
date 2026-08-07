@@ -3253,7 +3253,7 @@ export type Database = {
         Row: {
           created_at: string
           days_offset: number | null
-          fixed_amount_usd: number | null
+          fixed_amount_ccy: number | null
           id: string
           label: string
           notes: string | null
@@ -3265,7 +3265,7 @@ export type Database = {
         Insert: {
           created_at?: string
           days_offset?: number | null
-          fixed_amount_usd?: number | null
+          fixed_amount_ccy?: number | null
           id?: string
           label: string
           notes?: string | null
@@ -3277,7 +3277,7 @@ export type Database = {
         Update: {
           created_at?: string
           days_offset?: number | null
-          fixed_amount_usd?: number | null
+          fixed_amount_ccy?: number | null
           id?: string
           label?: string
           notes?: string | null
@@ -4974,7 +4974,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
-          estimated_amount_usd: number
+          estimated_amount_ccy: number
           estimated_unit_price: number | null
           expected_assay: Json | null
           id: string
@@ -4991,7 +4991,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
-          estimated_amount_usd?: number
+          estimated_amount_ccy?: number
           estimated_unit_price?: number | null
           expected_assay?: Json | null
           id?: string
@@ -5008,7 +5008,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
-          estimated_amount_usd?: number
+          estimated_amount_ccy?: number
           estimated_unit_price?: number | null
           expected_assay?: Json | null
           id?: string
@@ -5085,7 +5085,7 @@ export type Database = {
         Row: {
           created_at: string
           due_date: string | null
-          fixed_amount_usd: number | null
+          fixed_amount_ccy: number | null
           id: string
           label: string
           notes: string | null
@@ -5097,7 +5097,7 @@ export type Database = {
         Insert: {
           created_at?: string
           due_date?: string | null
-          fixed_amount_usd?: number | null
+          fixed_amount_ccy?: number | null
           id?: string
           label: string
           notes?: string | null
@@ -5109,7 +5109,7 @@ export type Database = {
         Update: {
           created_at?: string
           due_date?: string | null
-          fixed_amount_usd?: number | null
+          fixed_amount_ccy?: number | null
           id?: string
           label?: string
           notes?: string | null
@@ -5169,7 +5169,7 @@ export type Database = {
           created_by: string | null
           currency: string
           deleted_at: string | null
-          estimated_total_usd: number
+          estimated_total_ccy: number
           expected_delivery_date: string | null
           fx_rate: number
           id: string
@@ -5194,7 +5194,7 @@ export type Database = {
           created_by?: string | null
           currency?: string
           deleted_at?: string | null
-          estimated_total_usd?: number
+          estimated_total_ccy?: number
           expected_delivery_date?: string | null
           fx_rate?: number
           id?: string
@@ -5219,7 +5219,7 @@ export type Database = {
           created_by?: string | null
           currency?: string
           deleted_at?: string | null
-          estimated_total_usd?: number
+          estimated_total_ccy?: number
           expected_delivery_date?: string | null
           fx_rate?: number
           id?: string
@@ -7643,7 +7643,7 @@ export type Database = {
         Row: {
           created_at: string | null
           days_offset: number | null
-          fixed_amount_usd: number | null
+          fixed_amount_ccy: number | null
           id: string | null
           label: string | null
           notes: string | null
@@ -7655,7 +7655,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           days_offset?: number | null
-          fixed_amount_usd?: never
+          fixed_amount_ccy?: never
           id?: string | null
           label?: string | null
           notes?: string | null
@@ -7667,7 +7667,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           days_offset?: number | null
-          fixed_amount_usd?: never
+          fixed_amount_ccy?: never
           id?: string | null
           label?: string | null
           notes?: string | null
@@ -8992,7 +8992,7 @@ export type Database = {
         Row: {
           created_at: string | null
           created_by: string | null
-          estimated_amount_usd: number | null
+          estimated_amount_ccy: number | null
           estimated_unit_price: number | null
           expected_assay: Json | null
           id: string | null
@@ -9009,7 +9009,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           created_by?: string | null
-          estimated_amount_usd?: never
+          estimated_amount_ccy?: never
           estimated_unit_price?: never
           expected_assay?: Json | null
           id?: string | null
@@ -9026,7 +9026,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           created_by?: string | null
-          estimated_amount_usd?: never
+          estimated_amount_ccy?: never
           estimated_unit_price?: never
           expected_assay?: Json | null
           id?: string | null
@@ -9103,7 +9103,7 @@ export type Database = {
         Row: {
           created_at: string | null
           due_date: string | null
-          fixed_amount_usd: number | null
+          fixed_amount_ccy: number | null
           id: string | null
           label: string | null
           notes: string | null
@@ -9115,7 +9115,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           due_date?: string | null
-          fixed_amount_usd?: never
+          fixed_amount_ccy?: never
           id?: string | null
           label?: string | null
           notes?: string | null
@@ -9127,7 +9127,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           due_date?: string | null
-          fixed_amount_usd?: never
+          fixed_amount_ccy?: never
           id?: string | null
           label?: string | null
           notes?: string | null
@@ -9178,7 +9178,7 @@ export type Database = {
         Row: {
           code: string | null
           currency: string | null
-          estimated_total_usd: number | null
+          estimated_total_ccy: number | null
           expected_delivery_date: string | null
           order_date: string | null
           ordered_qty: number | null
@@ -9223,7 +9223,7 @@ export type Database = {
           created_by: string | null
           currency: string | null
           deleted_at: string | null
-          estimated_total_usd: number | null
+          estimated_total_ccy: number | null
           expected_delivery_date: string | null
           fx_rate: number | null
           id: string | null
@@ -9248,7 +9248,7 @@ export type Database = {
           created_by?: string | null
           currency?: string | null
           deleted_at?: string | null
-          estimated_total_usd?: never
+          estimated_total_ccy?: never
           expected_delivery_date?: string | null
           fx_rate?: never
           id?: string | null
@@ -9273,7 +9273,7 @@ export type Database = {
           created_by?: string | null
           currency?: string | null
           deleted_at?: string | null
-          estimated_total_usd?: never
+          estimated_total_ccy?: never
           expected_delivery_date?: string | null
           fx_rate?: never
           id?: string | null
@@ -9508,6 +9508,10 @@ export type Database = {
       available_annual_accrual: {
         Args: { p_as_of?: string; p_employee_id: string }
         Returns: number
+      }
+      bank_account_for_currency: {
+        Args: { p_currency: string }
+        Returns: string
       }
       bank_native_currency: {
         Args: { p_account_code: string }

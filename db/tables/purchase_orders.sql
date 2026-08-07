@@ -6,7 +6,7 @@
 --   * 货到并计价了 —— 既有的 set_inbound_unit_price(借存货 / 贷 2000 应付)。
 -- 所以本表没有 journal_entry_id,也没有任何触发器去记账。
 --
--- estimated_total_usd 是【估算】:等于各明细行 quantity × estimated_unit_price 之和,
+-- estimated_total_ccy 是【估算】:等于各明细行 quantity × estimated_unit_price 之和,
 -- 由 create_purchase_order 算好写死。公式定价的料常常下单时没有单价,那一行就记 0 ——
 -- 权威金额永远是到货批次计价后的应付,不是这里。
 --
@@ -28,7 +28,7 @@ CREATE TABLE public.purchase_orders (
     expected_delivery_date date,
     currency               text NOT NULL DEFAULT 'USD' REFERENCES public.currencies (code),
     fx_rate                numeric NOT NULL DEFAULT 1 CHECK (fx_rate > 0),
-    estimated_total_usd    numeric NOT NULL DEFAULT 0,
+    estimated_total_ccy    numeric NOT NULL DEFAULT 0,
     status                 text NOT NULL DEFAULT 'confirmed'
                            CHECK (status IN ('draft','confirmed','receiving','closed','cancelled')),
     approval_status        text NOT NULL DEFAULT 'approved'
@@ -47,6 +47,9 @@ CREATE TABLE public.purchase_orders (
     updated_at             timestamptz NOT NULL DEFAULT now(),
     updated_by             uuid DEFAULT auth.uid()
 );
+
+COMMENT ON COLUMN public.purchase_orders.estimated_total_ccy IS
+    '估算总额,以【本单据自己的币种】(purchase_orders.currency)计 —— 不换算、不乘 fx_rate。FIN-28 前列名 estimated_total_usd,那个名字是错的:一张 SGD 的单存的就是 SGD。';
 
 CREATE INDEX idx_purchase_orders_supplier ON public.purchase_orders (supplier_id);
 CREATE INDEX idx_purchase_orders_order_date ON public.purchase_orders (order_date);

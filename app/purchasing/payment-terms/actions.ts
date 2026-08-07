@@ -31,7 +31,7 @@ function parseLines(raw: string):
               seq: number
               label: string
               percentage: number | null
-              fixed_amount_usd: number | null
+              fixed_amount_ccy: number | null
               trigger_event: string
               days_offset: number | null
           }[]
@@ -80,7 +80,7 @@ function parseLines(raw: string):
             seq: i + 1,
             label,
             percentage,
-            fixed_amount_usd: fixed,
+            fixed_amount_ccy: fixed,
             trigger_event: l.trigger_event,
             days_offset: offset,
         })

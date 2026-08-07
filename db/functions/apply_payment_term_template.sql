@@ -30,8 +30,8 @@ BEGIN
     DELETE FROM purchase_order_payment_terms WHERE purchase_order_id = p_purchase_order_id;
 
     INSERT INTO purchase_order_payment_terms (purchase_order_id, seq, label, percentage,
-                                              fixed_amount_usd, trigger_event, due_date, notes)
-    SELECT p_purchase_order_id, l.seq, l.label, l.percentage, l.fixed_amount_usd, l.trigger_event,
+                                              fixed_amount_ccy, trigger_event, due_date, notes)
+    SELECT p_purchase_order_id, l.seq, l.label, l.percentage, l.fixed_amount_ccy, l.trigger_event,
            -- 模板存的是相对下单日的天数偏移(模板不可能知道具体日期)
            CASE WHEN l.trigger_event = 'fixed_date'
                 THEN v_po.order_date + COALESCE(l.days_offset, 0)

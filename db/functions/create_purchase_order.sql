@@ -66,7 +66,7 @@ BEGIN
     v_code := next_purchase_order_code(v_date);
 
     INSERT INTO purchase_orders (id, code, supplier_id, order_date, expected_delivery_date,
-                                 currency, fx_rate, estimated_total_usd, status,
+                                 currency, fx_rate, estimated_total_ccy, status,
                                  approval_status, approved_at, approved_by,
                                  incoterm, terms_text, notes, created_by, updated_by)
     VALUES (v_po_id, v_code, p_supplier_id, v_date, p_expected_delivery,
@@ -129,7 +129,7 @@ BEGIN
 
         INSERT INTO purchase_order_lines (purchase_order_id, line_no, material_id, quantity,
                                           unit, pricing_formula_id, estimated_unit_price,
-                                          estimated_amount_usd, expected_assay, notes, created_by,
+                                          estimated_amount_ccy, expected_assay, notes, created_by,
                                           price_source, price_provenance)
         VALUES (v_po_id, v_line_no, v_material, v_qty,
                 COALESCE(v_line->>'unit', 'kg'), v_formula, v_price,
@@ -147,7 +147,7 @@ BEGIN
         END IF;
     END LOOP;
 
-    UPDATE purchase_orders SET estimated_total_usd = v_total, updated_by = v_user
+    UPDATE purchase_orders SET estimated_total_ccy = v_total, updated_by = v_user
     WHERE id = v_po_id;
 
     -- 付款计划是【可选的】:有些采购就是到货即付,没有分期可言。
@@ -163,10 +163,10 @@ BEGIN
             v_pct_total := v_pct_total + COALESCE((v_term->>'percentage')::numeric, 0);
 
             INSERT INTO purchase_order_payment_terms (purchase_order_id, seq, label, percentage,
-                                                      fixed_amount_usd, trigger_event, due_date, notes)
+                                                      fixed_amount_ccy, trigger_event, due_date, notes)
             VALUES (v_po_id, v_seq, v_term->>'label',
                     (v_term->>'percentage')::numeric,
-                    (v_term->>'fixed_amount_usd')::numeric,
+                    (v_term->>'fixed_amount_ccy')::numeric,
                     v_term->>'trigger_event',
                     (v_term->>'due_date')::date,
                     v_term->>'notes');
@@ -181,7 +181,7 @@ BEGIN
     RETURN jsonb_build_object(
         'purchase_order_id', v_po_id,
         'code', v_code,
-        'estimated_total_usd', v_total,
+        'estimated_total_ccy', v_total,
         'line_count', v_count,
         'committed_line_count', v_committed,
         'term_count', v_term_count

@@ -1,7 +1,7 @@
 -- db/tables/purchase_order_lines.sql
 -- 采购订单明细行:一行 = 一种料的下单量与估价。
 --
--- estimated_amount_usd = round(quantity × estimated_unit_price, 2);没给估价则为 0
+-- estimated_amount_ccy = round(quantity × estimated_unit_price, 2);没给估价则为 0
 -- (公式定价的料下单时常常没有单价 —— 那不是错误,是常态)。
 -- pricing_formula_id 记的是【谈定用哪张公式结算】,到货计价时照它算;可空。
 --
@@ -21,7 +21,7 @@ CREATE TABLE public.purchase_order_lines (
     unit                 text NOT NULL DEFAULT 'kg',
     pricing_formula_id   uuid REFERENCES public.pricing_formulas (id),
     estimated_unit_price numeric CHECK (estimated_unit_price IS NULL OR estimated_unit_price >= 0),
-    estimated_amount_usd numeric NOT NULL DEFAULT 0,
+    estimated_amount_ccy numeric NOT NULL DEFAULT 0,
     expected_assay       jsonb,
     notes                text,
     created_at           timestamptz NOT NULL DEFAULT now(),
@@ -39,6 +39,9 @@ COMMENT ON COLUMN public.purchase_order_lines.price_source IS
     '行价的出处(FIN-26):computed = 估算按钮产出(必带 price_provenance);manual = 手填。NULL = FIN-26 之前的行,当时没记 —— 【不回填猜测】,界面画"未知"。不要从 expected_assay 推断。';
 COMMENT ON COLUMN public.purchase_order_lines.price_provenance IS
     'computed 行的重导出依据(FIN-26):化验、逐金属行情与日期、汇率与 as-of、公式参数快照(公式可编辑,行上的 id 指不住当时的样子)。不能重导出的出处只是标签。';
+
+COMMENT ON COLUMN public.purchase_order_lines.estimated_amount_ccy IS
+    '行估算金额 = round(quantity × estimated_unit_price, 2),以【所属单据自己的币种】计 —— 不换算。FIN-28 前列名 estimated_amount_usd。';
 
 CREATE INDEX idx_purchase_order_lines_po ON public.purchase_order_lines (purchase_order_id);
 

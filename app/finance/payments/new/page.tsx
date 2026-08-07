@@ -68,7 +68,7 @@ export default async function NewPaymentPage({
         // 可预付的采购单:视图本身排除已取消,这里再排除已结束的
         supabase
             .from('purchase_order_status')
-            .select('po_id, supplier_id, code, order_date, estimated_total_usd, prepaid_base, currency')
+            .select('po_id, supplier_id, code, order_date, estimated_total_ccy, prepaid_base, currency')
             .neq('status', 'closed')
             .order('order_date', { ascending: true }),
     ])
@@ -117,7 +117,7 @@ export default async function NewPaymentPage({
         supplier_id: string | null
         code: string
         order_date: string
-        estimated_total_usd: number
+        estimated_total_ccy: number
         prepaid_base: number
         currency: string
     }[] | null) ?? []).map((r) => ({
@@ -125,7 +125,7 @@ export default async function NewPaymentPage({
         party_id: r.supplier_id ?? '',
         code: r.code,
         order_date: r.order_date,
-        estimated_total_usd: r.estimated_total_usd,
+        estimated_total_ccy: r.estimated_total_ccy,
         prepaid_base: r.prepaid_base,
         currency: r.currency,
     }))

@@ -126,7 +126,7 @@ export async function createOrder(
             terms.push({
                 seq: i + 1,
                 label,
-                fixed_amount_usd: n,
+                fixed_amount_ccy: n,
                 trigger_event: l.trigger_event,
                 ...(l.due_date ? { due_date: l.due_date } : {}),
             })

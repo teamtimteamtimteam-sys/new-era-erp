@@ -1,6 +1,6 @@
 -- db/views/purchase_order_payment_terms_masked.sql
 -- 遮蔽伴生视图:purchase_order_payment_terms 的每一列都在,敏感列按 has_permission() 置空。
---   遮蔽的列:fixed_amount_usd → data.view_prices
+--   遮蔽的列:fixed_amount_ccy → data.view_prices
 --
 -- 【属主权限,不是 SECURITY INVOKER】。invoker 视图以调用者身份读基表,于是任何
 -- 强到能挡住原始列的机制(收紧行策略、或收回列权限)同样会挡住视图本身 —— 实测
@@ -18,9 +18,9 @@ CREATE VIEW public.purchase_order_payment_terms_masked WITH (security_invoker = 
     label,
     percentage,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN fixed_amount_usd
+            WHEN has_permission('data.view_prices'::text) THEN fixed_amount_ccy
             ELSE NULL::numeric
-        END AS fixed_amount_usd,
+        END AS fixed_amount_ccy,
     trigger_event,
     due_date,
     notes,

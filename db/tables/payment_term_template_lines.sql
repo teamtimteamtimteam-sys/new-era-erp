@@ -15,8 +15,8 @@ CREATE TABLE public.payment_term_template_lines (
     seq              integer NOT NULL,
     label            text NOT NULL,
     percentage       numeric CHECK (percentage IS NULL OR (percentage > 0 AND percentage <= 100)),
-    fixed_amount_usd numeric CHECK (fixed_amount_usd IS NULL OR fixed_amount_usd > 0),
-    CONSTRAINT ptt_lines_pct_xor_fixed CHECK (num_nonnulls(percentage, fixed_amount_usd) = 1),
+    fixed_amount_ccy numeric CHECK (fixed_amount_ccy IS NULL OR fixed_amount_ccy > 0),
+    CONSTRAINT ptt_lines_pct_xor_fixed CHECK (num_nonnulls(percentage, fixed_amount_ccy) = 1),
     trigger_event    text NOT NULL
                      CHECK (trigger_event IN ('on_order','on_shipment','on_arrival','post_assay','fixed_date')),
     days_offset      integer,
@@ -24,6 +24,9 @@ CREATE TABLE public.payment_term_template_lines (
     created_at       timestamptz NOT NULL DEFAULT now(),
     UNIQUE (template_id, seq)
 );
+
+COMMENT ON COLUMN public.payment_term_template_lines.fixed_amount_ccy IS
+    '模板里该期的定额。模板不属于任何单据,所以它的币种要等 apply_payment_term_template 把它抄到某张 PO 上才确定 —— 抄过去之后就是【那张单的币种】。FIN-28 前列名 fixed_amount_usd。';
 
 CREATE INDEX idx_ptt_lines_template ON public.payment_term_template_lines (template_id);
 

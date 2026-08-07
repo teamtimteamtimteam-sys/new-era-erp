@@ -164,7 +164,7 @@ const BRANCH_PATTERNS = CODES.flatMap((c) => [
 // 判据:.tsx 里【剥掉字符串与注释之后】仍然出现的裸 USD / SGD。剥掉字符串是
 // 关键 —— 'USD' 作为下拉选项的 value、类型联合、对照表的键都是【数据】,留着;
 // 剥完还在的,就只能是 JSX 正文,也就是会被人读到的那一份。
-// 标识符不算(estimated_total_usd、amount_usd 是列名,大小写不同,天然不撞)。
+// 标识符不算(price_usd_per_tonne、amount_base 是列名,大小写不同,天然不撞)。
 // ════════════════════════════════════════════════════════════════════════════
 const JSX_TEXT = new RegExp(`(?<![\\w_$])(${CODES.join('|')})(?![\\w_$])`)
 
