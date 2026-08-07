@@ -19,7 +19,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { canViewPrices } from '@/lib/permissions'
 import { maskedRows, maskedExcept } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
-import { mustRows } from '@/lib/db-helpers'
+import { mustRows, mustOne } from '@/lib/db-helpers'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type MovementFetchRow = {
@@ -193,8 +193,10 @@ export default async function EditInboundPage({
                 unit: lineRes.data?.unit ?? batch.unit,
             }
         }
-        // 视图列在生成类型里全可空;行进视图即非空(WHERE 已保证),此处锁死
-        applicable = (applicableRes.data ?? null) as typeof applicable
+        // 视图列在生成类型里全可空;行进视图即非空(WHERE 已保证),此处锁死。
+        // OPS-12:失败必须抛,不许读成"没有可抵扣的预付" —— 那个数字决定操作员
+        // 抵不抵扣,读成空与"确实没有预付"在屏幕上一模一样。
+        applicable = mustOne(applicableRes) as typeof applicable
         prepaymentHistory = (
             (historyRes.data as unknown as {
                 id: string

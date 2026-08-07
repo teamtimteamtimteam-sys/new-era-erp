@@ -50,7 +50,49 @@
 导出路由(`customers|suppliers|materials/export/route.ts`)也在此列:它们的
 `error` 已经先返回 HTTP 500,`?? []` 到不了。
 
-## SHOWS FALSE DATA —— 62 处,未修
+## SHOWS FALSE DATA —— 结案(OPS-12,2026-08-07)
+
+**复查发现 62 已经不是 62 —— 是 12。** 其余 50 处在此后的切次里被顺带修掉了:
+凡是被别的原因动过的页面,重写时都用了 `mustRows` / `mustOne`(FIN-26/27/30/32
+碰过的采购、计价、现金流、库存页都在其中)。这与本仓库反复出现的那句话一致:
+**一个数字往往只是"上一个看的人看见的那个数"**;所以本轮先重新数,再动手。
+
+清点方法本身也留了下来 —— `scripts/check-error-swallowing.mjs` 就是那次扫描,
+装进了 `npm run build` 与 `db/gate.py`。
+
+### 12 处按【拿着这张错屏幕会做什么】分组
+
+**A. 会被人当数字用的(2 处)** —— 这一类与下面那类严重性不同,单列:
+
+| 位置 | 读成空会看到什么 |
+|---|---|
+| `app/finance/cost-variance/page.tsx:12` | 整张成本差异表读成空 → "本期没有差异" → 没人去查那笔超支。该页【整个文件连 error 都没解构】 |
+| `app/inbound/[id]/edit/page.tsx:197` | 可抵扣预付读成 null → "没有可抵扣的预付" → 操作员不去抵一笔确实存在的预付 |
+
+**B. 选项读短的表单(10 处)** —— 失败时少几个选项。多数**朝关失败**
+(下拉空就提交不了):bank/import 的档案、fx/new 的币种、journal/new 的科目、
+claims/new 与 training/new 的员工、pricing/calculator 的公式、
+leave/holidays 与 leave/types 与 reviews/scale 三个编辑器。
+
+其中 `hr/departments/new` 是边界情形:父部门下拉读空 → 看起来"没有可选的父级" →
+建出一个根部门而不是子部门。**它写错了东西,但没有绕过任何护栏**,而且是新建表单
+不是编辑表单(不像 FIN-7 那次 `suppliers/[id]/edit` 会静默清空既有值)。
+
+### 有没有"其实会写/会放行"的(即 FAILS OPEN 漏网)
+
+**没有,而且是特意查过的**:三个编辑器(holidays / leave types / review scale)
+形状上很像当年 `hr/payroll/loadGridData.ts` 那处 —— 读成空 + 保存 = 整月被抹掉。
+逐个查过它们的保存动作:**都是逐行 insert / delete().eq('id', …)**,不是
+"整删重插"。所以读成空只是编辑器空着,保存不会删掉任何东西。
+
+另有 6 处被判为**误伤,进 ALLOWLIST 并写明理由**:`lib/db-helpers.ts` 是
+`mustRows` 自身(上一行刚抛过)、`lib/permissions.ts` 上一行显式 throw、
+三个 export 路由的 `error` 已先返回 500、
+`ImportStatementForm` 的 `res.data` 是 **PapaParse 的解析结果不是查询**。
+
+---
+
+## SHOWS FALSE DATA —— 62 处(2026-08-05 的原始记录,留档)
 
 不放行、不毁数据,但会把一个**似是而非的数字**摆在人面前,而人会照着它做决定。
 按后果轻重,值得优先的几处:

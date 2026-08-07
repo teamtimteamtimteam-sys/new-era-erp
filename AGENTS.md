@@ -707,6 +707,20 @@ page that cannot read its data must *error*, or no gate can ever catch it.
 `?? []` remains correct for things that are not query results: nested relation
 fields on an already-fetched row, `Map.get(...) ?? 0`, client-side state.
 
+**`scripts/check-error-swallowing.mjs` now enforces it** — in `npm run build` and
+in `db/gate.py` (`swallow` line), with an ALLOWLIST carrying written reasons, the
+same shape as the currency check. It exists because the audit's own finding was
+that this was the **house style**, not 320 individual slips: sweeping without a
+check buys a clean count and nothing else, and the 321st gets written the same way.
+
+**Be clear about what it cannot see**, so a green line is not read as "no
+swallowing anywhere". It catches the dominant shape — `data ?? []` / `?? 0` /
+`?? null` on a query result. It cannot catch `if (error) return []`,
+`.catch(() => [])`, or a query whose error is never destructured at all and whose
+`data?.map(...)` quietly yields zero rows. That residue is a review question —
+*what does this page do when this query fails?* — and it is stated here rather
+than disguised as covered.
+
 ## Test data that reads wrong on purpose
 
 Anything that looks wrong in the test database but is known, accepted, and

@@ -1,5 +1,6 @@
 // 估算 vs 实际(FIN-7 C5):按成本类型 × 月,多个月并排 —— 系统性偏差才看得见。
 import { createClient } from '@/lib/supabase/server'
+import { mustRows } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../Subnav'
 import { formatMoney } from '@/lib/format'
@@ -7,9 +8,9 @@ import { formatMoney } from '@/lib/format'
 export default async function CostVariancePage() {
     const supabase = await createClient()
     const t = await getTranslations()
-    const { data } = await supabase.from('processing_cost_variance').select('*')
+    const res = await supabase.from('processing_cost_variance').select('*')
     type Row = { month: string; cost_type: string; estimated_total: number; actual_total: number; variance: number; direction: string }
-    const rows = (data ?? []) as unknown as Row[]
+    const rows = mustRows(res) as unknown as Row[]
     const months = [...new Set(rows.map((r) => r.month.slice(0, 7)))].sort().slice(-6)
     const types = [...new Set(rows.map((r) => r.cost_type))].sort()
     const by = new Map(rows.map((r) => [r.cost_type + '|' + r.month.slice(0, 7), r]))

@@ -242,6 +242,16 @@ def main() -> int:
             if gaps:
                 problems.append(f"column grant gap ({label}): {gaps}")
 
+        # ── 吞掉查询错误(OPS-12)────────────────────────────────────────────
+        # `?? []` 把失败读成空集,页面回 200 说"没有数据" —— 冒烟断言 2xx,
+        # 正好从旁边走过去。清扫完必须装上检查,否则只买到一个干净的计数。
+        swallow = subprocess.run(["node", os.path.join(HERE, "..", "scripts", "check-error-swallowing.mjs")],
+                                 capture_output=True, text=True)
+        sw_line = (swallow.stdout.strip().splitlines() or [""])[-1]
+        print("swallow    " + ("无吞错 ✓" if swallow.returncode == 0 else f"✗ {sw_line}"))
+        if swallow.returncode != 0:
+            problems.append("swallowed query errors (see check-error-swallowing.mjs)")
+
         # ── 生成类型 vs 线上 schema(OPS-10)──────────────────────────────────
         types_gap = check_generated_types(args.live)
         print("types      " + ("lib/database.types.ts 与线上一致 ✓" if not types_gap else f"✗ {types_gap}"))

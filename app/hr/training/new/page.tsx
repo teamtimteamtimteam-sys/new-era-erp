@@ -1,6 +1,7 @@
 // app/hr/training/new/page.tsx
 // ?employee= 时预选并锁定该员工(从员工档案页的"+ 录入培训"进来),保存后回档案页。
 import Link from 'next/link'
+import { mustRows } from '@/lib/db-helpers'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../../Subnav'
@@ -15,14 +16,14 @@ export default async function NewTrainingPage({
     const supabase = await createClient()
     const t = await getTranslations()
 
-    const { data } = await supabase
+    const res = await supabase
         .from('employees')
         .select('id, code, legal_name')
         .is('deleted_at', null)
         .neq('employment_status', 'separated')
         .order('code')
 
-    const employees: EmployeeOption[] = (data ?? []).map((e) => ({
+    const employees: EmployeeOption[] = mustRows(res).map((e) => ({
         id: e.id,
         label: `${e.code} — ${e.legal_name}`,
     }))

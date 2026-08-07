@@ -2,6 +2,7 @@
 // 评级档位配置。加一档、停用一档都是【数据】,不该需要发版 —— 与假别配置同一套路。
 // code 一列只读:评估行与历史都靠它认这一档。
 import Link from 'next/link'
+import { mustRows } from '@/lib/db-helpers'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../../Subnav'
@@ -10,7 +11,7 @@ import ScaleEditor, { type ScaleRow } from './ScaleEditor'
 export default async function RatingScalePage() {
     const supabase = await createClient()
     const t = await getTranslations()
-    const { data } = await supabase.from('review_rating_scale').select('*').order('sort_order')
+    const res = await supabase.from('review_rating_scale').select('*').order('sort_order')
     return (
         <div className="p-8 max-w-6xl">
             <h1 className="text-2xl font-bold mb-4">{t('hr.title')}</h1>
@@ -22,7 +23,7 @@ export default async function RatingScalePage() {
                 </Link>
             </div>
             <p className="text-sm text-gray-600 mb-4">{t('reviews.scaleIntro')}</p>
-            <ScaleEditor rows={(data ?? []) as ScaleRow[]} />
+            <ScaleEditor rows={mustRows(res) as ScaleRow[]} />
         </div>
     )
 }
