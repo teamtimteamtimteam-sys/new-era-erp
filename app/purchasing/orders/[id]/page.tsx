@@ -244,7 +244,12 @@ export default async function PurchaseOrderDetailPage({
                 </div>
             </div>
 
-            {/* 审批:结构在,流程未启用 */}
+            {/* 审批:结构在,流程未启用 —— 但【不是等权限系统】。
+                权限系统已经上线(perm1/perm2a/perm2b:模块权限、字段遮蔽、RLS),
+                它交付的是「谁能进哪个模块」,不是「谁批准这一单」。两级审批
+                (发起人 → 主管,超过阈值再升一级)按 Doc 3 排在【最终阶段】,
+                与角色结构绑定后一起启用。指着一个已经发生过的条件,
+                与描述一个不可能发生的隐患是同一种缺陷。 */}
             <p className="text-xs text-gray-400 mb-4">
                 {t('purchasing.approvalNote')}
                 <span className="ml-2 px-2 py-0.5 rounded bg-gray-100 text-gray-500">

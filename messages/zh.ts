@@ -1581,7 +1581,7 @@ const zh = {
         appliedHistory: '已抵扣记录',
         daysOffsetHint: '自下单日起的天数',
         pctUnder: '各期合计 {total}%,余下部分未列入计划。',
-        approvalNote: '审批流程将随权限系统启用,当前自动通过。',
+        approvalNote: '当前自动通过。两级审批(发起人 → 主管,超过阈值再升一级)随【最终阶段】与角色结构一起启用 —— 不是随权限系统:权限系统已经上线,它管的是「谁能进哪个模块」,不是「谁批准这一单」。',
         payDeposit: '登记付款',
         unpriced: '未计价',
         noReceipts: '该采购单尚未收货',

@@ -19,6 +19,12 @@ what the system is and what order it gets built in:
 | [`docs/Evoltrya-OS-Doc2-System-Blueprint.pdf`](docs/Evoltrya-OS-Doc2-System-Blueprint.pdf) | **Document 2 — System Blueprint.** Architecture, the ten design principles, the module map, and current-state positioning. |
 | [`docs/Evoltrya-OS-Doc3-Roadmap.pdf`](docs/Evoltrya-OS-Doc3-Roadmap.pdf) | **Document 3 — Roadmap.** The phased build plan: Phase 0 through Phase 6 plus a final unified-permissions pass, each with deliverables, dependencies and a definition of done. |
 
+**[`docs/as-built-divergences.md`](docs/as-built-divergences.md)** sits beside them: the places where
+the code and the documents disagree, each quoting the document and stating the as-built position, and
+each marked with which way it points — document ahead of the code, document simply wrong, or
+document behind a deliberate improvement. **The three documents are never edited to match the
+code** — they are the record of what was planned; the divergence is recorded next to them instead.
+
 **[`AGENTS.md`](AGENTS.md) is required reading before changing anything.** It is a different kind of
 document from the three above: where those state the plan, `AGENTS.md` records the rules that were
 learned by getting things wrong — the FX rule, the database gate, the mirror convention, why a check
@@ -26,8 +32,8 @@ that reports but does not enforce is not a gate. Nearly every rule in it exists 
 It is prescriptive and it overrides habit.
 
 Where the two disagree, `AGENTS.md` describes what the code does today and the documents
-describe where it is going; neither silently wins. Known divergences are listed in
-`docs/known-issues.md`.
+describe where it is going; neither silently wins. The differences are enumerated in
+`docs/as-built-divergences.md`.
 
 ## Working on it
 

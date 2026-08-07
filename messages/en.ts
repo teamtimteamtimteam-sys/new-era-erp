@@ -1587,7 +1587,7 @@ const en = {
         appliedHistory: 'Prepayments applied',
         daysOffsetHint: 'Days after the order date',
         pctUnder: 'Instalments total {total}% — the remainder is not scheduled.',
-        approvalNote: 'Approval workflow activates with the permissions system; orders are auto-approved for now.',
+        approvalNote: 'Orders are auto-approved for now. Two-level approval (requester to supervisor, escalating above the threshold) arrives with the Final Phase, bound to the role structure — not with the permissions system, which shipped already and governs module access rather than approval.',
         payDeposit: 'Record a payment',
         unpriced: 'Not priced',
         noReceipts: 'No goods received against this order yet',
