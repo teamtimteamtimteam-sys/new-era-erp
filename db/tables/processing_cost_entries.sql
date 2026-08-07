@@ -62,6 +62,16 @@ CREATE TRIGGER trg_processing_cost_entries_settled_guard
     BEFORE UPDATE ON public.processing_cost_entries
     FOR EACH ROW EXECUTE FUNCTION public.guard_cost_entry_settled();
 
+-- FIN-31:【不许硬删】。这张表的删除语义是软删(UPDATE deleted_at)——它过冲销
+-- 分录、留历史行,并把 updated_at 顶上去让 processing_run_allocation_status.is_stale
+-- 变 true。硬删三件全不做,还会把该行的时间戳从 last_cost_change 里拿走,于是
+-- 分摊可能【不升反降】地显示"不过期"。此前它靠 history 表外键的副作用挡着 ——
+-- 只覆盖有历史行的条目(FIN-8 之前建的没有),且外键一旦被改成 CASCADE 就无声失效。
+-- 守卫函数在 db/functions/guard_cost_entry_no_hard_delete.sql。
+CREATE TRIGGER trg_processing_cost_entries_no_hard_delete
+    BEFORE DELETE ON public.processing_cost_entries
+    FOR EACH ROW EXECUTE FUNCTION public.guard_cost_entry_no_hard_delete();
+
 CREATE TRIGGER trg_processing_cost_entries_updated_at
     BEFORE UPDATE ON public.processing_cost_entries
     FOR EACH ROW

@@ -28,7 +28,7 @@ DECLARE
     v_sup uuid; v_cust uuid; v_mat uuid; v_matB uuid;
     v_ib uuid; v_run uuid; v_obA uuid; v_obB uuid;
     v_r jsonb; v_n numeric; v_n2 numeric; v_n3 numeric;
-    v_je int; v_je2 int; v_stale boolean; v_msg text;
+    v_je int; v_je2 int; v_stale boolean; v_msg text; v_ok boolean;
     v_today date := CURRENT_DATE;
     v_b1220 numeric; v_b5000 numeric; v_b1200 numeric;   -- 场景前的基线(对线上跑时非零)
 BEGIN
@@ -242,6 +242,24 @@ BEGIN
         ORDER BY created_at DESC, code DESC LIMIT 1);
     IF v_n <> 45.00 THEN
         RAISE EXCEPTION 'FIXTURE 18H 失败:metal_value 下已售补差应 45.00(逐批 100×(0.5×0.8+0.5×0.1);炉级会是 27.50),实得 %', v_n;
+    END IF;
+
+    -- ════════ I. 成本条目【不许硬删】(FIN-31)═══════════════════════════════
+    -- 软删是这张表的删除语义:过冲销分录、留历史行、把 updated_at 顶上去让分摊
+    -- 标记过期。硬删三件全不做,还会把该行的时间戳从 last_cost_change 里【拿走】,
+    -- 于是分摊可能不升反降地显示"不过期" —— 一笔不存在的成本继续留在分摊里。
+    -- 此前它只是被 history 表的外键顺带挡住(FIN-8 之前建的条目没有历史行,
+    -- 真的删得掉),现在是一条明写的守卫。
+    v_ok := false; v_msg := NULL;
+    BEGIN
+        DELETE FROM processing_cost_entries WHERE run_id = v_run;
+    EXCEPTION WHEN OTHERS THEN
+        GET STACKED DIAGNOSTICS v_msg = MESSAGE_TEXT;
+        v_ok := v_msg LIKE 'COST_ENTRY_HARD_DELETE%';
+    END;
+    IF NOT v_ok THEN
+        RAISE EXCEPTION 'FIXTURE 18I 失败:硬删成本条目应 COST_ENTRY_HARD_DELETE 点名拒,实得:%',
+            COALESCE(v_msg, '(删成功了 —— 总账留下没有冲销的成本,而分摊不会标过期)');
     END IF;
 END $$;
 ROLLBACK;
