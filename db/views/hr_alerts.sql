@@ -25,6 +25,11 @@
 --       updated by db/migrations/2026-08-03-hr3a-performance-reviews.sql and
 --       db/migrations/2026-08-04-hr3b-salary-basis-and-review-visibility.sql.
 --
+-- HR-7(2026-08-07):system_start_not_set —— finance_settings.system_start_date 为空。
+-- 按月累积因此退回"入职 / 年初"两日期口径(accrued_annual_leave_detail 不拒绝:
+-- 余额坐在 /me 上,不能因为财务少填一个设置就对全体员工消失),所以【必须有人被催】。
+-- 与 holiday_calendar_missing 同一处置:缺配置是告警,不是让功能消失。
+--
 -- HR-4(2026-08-05):假日表告警分两支两级 ——
 --   holiday_calendar_missing    当年一条都没有 → expired,任何月份(全新安装的处境);
 --   holiday_calendar_next_year  次年没有 → 10 月起 warning、12 月 critical(原行为)。
@@ -184,4 +189,16 @@ UNION ALL
     make_date((EXTRACT(year FROM CURRENT_DATE) + 1::numeric)::integer, 1, 1) - CURRENT_DATE AS days_remaining
   WHERE EXTRACT(month FROM CURRENT_DATE) >= 10::numeric AND NOT (EXISTS ( SELECT 1
            FROM public_holidays h
-          WHERE h.is_active AND h.country = 'SG'::text AND EXTRACT(year FROM h.holiday_date) = (EXTRACT(year FROM CURRENT_DATE) + 1::numeric)));
+          WHERE h.is_active AND h.country = 'SG'::text AND EXTRACT(year FROM h.holiday_date) = (EXTRACT(year FROM CURRENT_DATE) + 1::numeric)))
+UNION ALL
+ SELECT 'system_start_not_set'::text AS alert_type,
+    'expired'::text AS severity,
+    NULL::uuid AS employee_id,
+    ''::text AS employee_code,
+    ''::text AS employee_name,
+    ''::text AS subject,
+    CURRENT_DATE AS due_date,
+    0 AS days_remaining
+  WHERE NOT (EXISTS ( SELECT 1
+           FROM finance_settings s
+          WHERE s.system_start_date IS NOT NULL));

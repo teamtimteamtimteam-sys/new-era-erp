@@ -1079,6 +1079,7 @@ const zh = {
         headcount: '在职人数',
         headcountTotal: '合计',
         alertType: {
+            system_start_not_set: '未设置完整记录起始日 —— 假期累积暂按入职日计,无法排除本库未覆盖的时期',
             holiday_calendar_missing: '{0} 年一条公共假日都没有 —— 请假天数正在算错',
             holiday_calendar_next_year: '{0} 年的公共假日还没录入',
             work_pass_expiry: '工作准证到期',

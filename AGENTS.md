@@ -294,7 +294,22 @@ Instances found so far, all the same shape:
   Worse than display: `decide_medical_claim` gates approval on that figure, so
   it approves claims it should refuse (HR-6, now bounded);
 * **monthly leave accrual** when the start date falls mid-year — accrues
-  January onward for months this database did not cover.
+  January onward for months this database did not cover. **Closed by HR-7**:
+  `accrued_annual_leave_detail` now takes `GREATEST` of all THREE dates — hire
+  month, leave-year start, and `system_start_date` — in ONE comparison. Never
+  stacked reductions: HR-6's medical limit is the proof of why, where cutting
+  once by hire month and again by start month turned 3 months into 1 and 300
+  into 100. Fixture 24 asserts both directions (hire Mar / start Oct, and hire
+  Oct / start Mar) reaching the SAME answer — that symmetry is what distinguishes
+  an intersection from an accumulation, and a stacking implementation fails it.
+  Unlike HR-5 carry-forward and HR-6 medical, an unset `system_start_date` here
+  does NOT refuse: this function sits on `my_profile` / `employees_masked`, so
+  refusing would tell every employee their leave balance is unavailable because
+  a finance setting is blank. It falls back to the two-date behaviour, reports
+  `system_start_applied: false`, and `hr_alerts` raises `system_start_not_set` —
+  the same disposition as `holiday_calendar_missing`. **The rule of thumb: an
+  ACTION may refuse; a BALANCE someone reads about themselves must degrade and
+  raise an alert instead.**
 
 **The rule of thumb: anything computing an allowance per period is a
 candidate.** A limit per year, an accrual per month, a quota per cycle — ask
@@ -324,7 +339,7 @@ python3 db/gate.py     # 0 clean · 1 mirror drift · 2 cannot build
                        # 3 B1/B2 invariant · 4 behavioural fixture failed
 ```
 
-Twenty-three fixtures, ~104 assertions, on the paths where a silent break costs money:
+Twenty-four fixtures, ~116 assertions, on the paths where a silent break costs money:
 settlement closing to exactly zero (including cross-currency), revaluation
 idempotence, confirmation not touching leave, accrual not applying a category
 change retroactively, one bank line per employee, realised 7100 never crossing

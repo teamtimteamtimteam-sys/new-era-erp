@@ -1078,6 +1078,7 @@ const en = {
         headcount: 'Headcount',
         headcountTotal: 'Total',
         alertType: {
+            system_start_not_set: 'System start date is not set — leave accrual is falling back to hire date and cannot exclude periods this database does not cover',
             holiday_calendar_missing: 'No public holidays entered for {0} — leave days are being miscounted right now',
             holiday_calendar_next_year: 'Public holidays not yet entered for {0}',
             work_pass_expiry: 'Work pass expiry',
