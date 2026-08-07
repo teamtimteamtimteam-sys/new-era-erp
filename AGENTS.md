@@ -633,6 +633,52 @@ connections — FIN-0 and FIN-1a both got chunked through it and both left the
 database half-migrated until the gates caught it. Credentials are in ~/.pgpass;
 the API remains fine for small interactive queries and rolled-back fixtures.
 
+### The script does the two checks you were told to remember (OPS-7)
+
+**FIN-22b and FIN-23b both ended with a sentence telling the next person to
+check `B1` and `is_system` before the migration. FIN-27 then did it again.**
+Three times for the anon-executable function, twice for the unpromoted account
+code. A note saying "remember X" is evidence that X needs a mechanism, not that
+the note was missing — this repo has now paid for that twice, so:
+
+* **Anon-executable new functions are PREVENTED, not detected.** PostgreSQL
+  grants `EXECUTE` to `PUBLIC` on every new function, and the revoke lives only
+  in `db/views/zzz_function_grants.sql`, which the *rebuild* runs and **live
+  does not**. So every occurrence looked identical: rebuild clean, live open,
+  visible only to `gate.py`'s B1 afterwards. `apply_migration.sh` now replays
+  that file **inside the migration's own transaction**, after the migration
+  body. It is pure ACL (1 GRANT, 9 REVOKEs, no CREATE/INSERT/SELECT), idempotent,
+  and assumes nothing about an empty database — run twice against live it moves
+  zero of 178 `proacl`s. The failure mode cannot recur; there is nothing left to
+  remember.
+* **The other two are DETECTED before the migration runs**, by
+  `db/preflight_migration.py`:
+  * an account-code literal the migration introduces that is not `is_system` —
+    **warns and continues**, because the pre-flight reads the file *before* it
+    executes and a migration may legitimately promote the code itself, so it has
+    no standing to refuse;
+  * a `CREATE OR REPLACE FUNCTION` whose signature differs from a live function
+    of the same name — **refuses**, because that is an overload rather than a
+    replacement: the old signature survives as drift the mirrors cannot see
+    (FIN-21), and no case exists where it is intended. This judgement needs only
+    the *current* live catalog, so it is decidable now — which is exactly why it
+    may refuse where the account check may not.
+  The account-code scanner is imported from `check_mirrors.py`
+  (`account_codes_in_text`), not reimplemented — one regex, one allowlist, one
+  definition, so the two can never drift apart.
+
+`PREFLIGHT=0` skips the scan; the only honest reason to use it is that the
+pre-flight itself is broken, and then the thing to fix is the pre-flight.
+
+> **The instruction this replaces.** `fd84dc7` (FIN-23) closes with *"the lesson
+> is now: new functions and newly hardcoded accounts get B1 and `is_system`
+> checked BEFORE the migration"*, and `FIN-22b` says the same thing. **Those
+> sentences are retired as of OPS-7** — a commit message cannot be edited, so
+> the retirement is recorded here, where the reader who followed the reference
+> will arrive. Do not re-adopt them as a manual step: the first is now
+> impossible to get wrong and the second is checked for you. Following them by
+> hand costs the time and proves nothing the tool has not already proven.
+
 ## The i18n key check runs on every cut that touches the app
 
 `node scripts/check-i18n.mjs` (also `npm run check:i18n`; `npm run build` runs it

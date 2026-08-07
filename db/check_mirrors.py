@@ -180,21 +180,37 @@ ACCOUNT_LITERAL_ALLOWLIST = {
 }
 
 
+def account_codes_in_text(sql: str) -> set:
+    """一段 SQL 里【引用到的科目码】。注释行不算 —— 注释里提一句不是依赖。
+
+    【本仓库里科目码的判据只有这一处】正则与例外名单都在这里。OPS-7 的迁移预检
+    (db/preflight_migration.py)导入它,不另写第二份 —— 两份判据迟早会各说各话,
+    而那正是"再检查一遍"这类提醒失效的方式。
+    """
+    out = set()
+    for line in sql.splitlines():
+        if line.lstrip().startswith("--"):
+            continue
+        out.update(re.findall(r"'(\d{4})'", line))
+    return out - set(ACCOUNT_LITERAL_ALLOWLIST)
+
+
 def scan_literals() -> dict:
     """扫描镜像文件里的三类字面量。注释行不算 —— 注释里提一句不是依赖。"""
     perms, accounts, roles = set(), set(), set()
     for sub in ("functions", "views", "tables"):
         for f in sorted((REPO / "db" / sub).glob("*.sql")):
-            for line in f.read_text().splitlines():
+            txt = f.read_text()
+            for line in txt.splitlines():
                 if line.lstrip().startswith("--"):
                     continue
                 perms.update(re.findall(r"has_permission\(\s*'([^']+)'", line))
                 perms.update(re.findall(r"require_permission\(\s*'([^']+)'", line))
-                # 科目码:定义科目表的那个文件不算"引用"—— FIN-3-fu2 的引导默认值
-                # (非 is_system 的整套科目)就住在 accounts.sql 的种子里,把种子行
-                # 当引擎引用会逼着给权益科目打 is_system。引擎引用都在函数/视图里。
-                if f.name != "accounts.sql":
-                    accounts.update(re.findall(r"'(\d{4})'", line))
+            # 科目码:定义科目表的那个文件不算"引用"—— FIN-3-fu2 的引导默认值
+            # (非 is_system 的整套科目)就住在 accounts.sql 的种子里,把种子行
+            # 当引擎引用会逼着给权益科目打 is_system。引擎引用都在函数/视图里。
+            if f.name != "accounts.sql":
+                accounts |= account_codes_in_text(txt)
     # role_permissions 种子里 IN (...) 与 p.code = '...' 引用到的码
     rp = (REPO / "db" / "tables" / "role_permissions.sql").read_text()
     rp = "\n".join(l for l in rp.splitlines() if not l.lstrip().startswith("--"))
@@ -206,7 +222,6 @@ def scan_literals() -> dict:
     roles.update(re.findall(r"r\.code\s*=\s*'([^']+)'", rp))
     for grp in re.findall(r"r\.code\s+IN\s*\(([^)]*)\)", rp):
         roles.update(re.findall(r"'([^']+)'", grp))
-    accounts -= set(ACCOUNT_LITERAL_ALLOWLIST)
     return {"permission_codes": sorted(perms), "account_codes": sorted(accounts),
             "role_codes": sorted(roles)}
 
