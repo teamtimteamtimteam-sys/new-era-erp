@@ -145,6 +145,52 @@ def check_generated_types(dsn: str) -> str:
             + "  → 跑 npm run types:gen 并提交")
 
 
+# ── 谁在读那些被收回的列(OPS-13)──────────────────────────────────────────
+# 【上面那条判据问错了一半】它问"被遮蔽表的每一列是否要么授权、要么在遮蔽视图里",
+# 那是在查【列的状态】。它从来不问【谁在读这些列】—— 于是一个
+# security_invoker 视图去读一列【故意收回】的敏感列时,它两条都满足、判词全绿,
+# 而任何 authenticated 调用者都撞 42501。
+#
+# 实例:processing_cost_variance 从上线那天起就是坏的(OPS-12 发现)——
+# 页面一直安静地回 HTTP 200 + 一张空表,因为那处 `?? []` 把 42501 吞成了空集,
+# 冒烟断言 2xx 又正好从旁边走过去。三道检查同时看不见同一件事。
+#
+# 判据:invoker 视图 × 它依赖的列 × 该列对 authenticated 是否可读。
+# 用 pg_depend 的【列级】依赖(refobjsubid > 0),不解析 SQL —— 视图引用哪些列
+# 是目录里记着的事实。
+#
+# 【security_invoker 有两种拼法】reloptions 里既可能是 'on' 也可能是 'true'。
+# 只认其中一个,就会安安静静地只检查一部分视图 —— 那正是本条要消灭的失败方式,
+# 写这条检查时先踩了一次:漏掉 'on' 会让 15 个 invoker 视图里的 14 个不被看。
+#
+# 属主权限视图读被收回的列是【正常的】(遮蔽视图正是这么工作的),所以只查 invoker。
+READER_GAP_SQL = """
+WITH v AS (
+    SELECT c.oid, c.relname,
+           COALESCE((SELECT o.option_value FROM pg_options_to_table(c.reloptions) o
+                     WHERE o.option_name='security_invoker'), 'off') AS invoker
+    FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname='public' AND c.relkind='v'
+), dep AS (
+    SELECT DISTINCT v.relname AS view_name, v.invoker, t.relname AS src_table, a.attname AS col
+    FROM v
+    JOIN pg_rewrite r ON r.ev_class = v.oid
+    JOIN pg_depend d ON d.objid = r.oid AND d.refobjsubid > 0
+    JOIN pg_class t ON t.oid = d.refobjid AND t.relkind = 'r'
+    JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = d.refobjsubid
+    JOIN pg_namespace tn ON tn.oid = t.relnamespace AND tn.nspname='public'
+)
+SELECT COALESCE(string_agg(DISTINCT view_name || ' 读 ' || src_table || '.' || col, ' | '), '')
+FROM dep
+WHERE invoker IN ('on','true')
+  AND NOT has_column_privilege('authenticated', src_table::regclass, col, 'SELECT');
+"""
+
+
+def check_reader_gaps(dsn: str) -> str:
+    return psql(dsn, READER_GAP_SQL)
+
+
 def check_grant_gaps(dsn: str) -> str:
     return psql(dsn, GRANT_GAP_SQL)
 
@@ -241,6 +287,14 @@ def main() -> int:
             print(f"colgrant   {label}: " + ("无缺口 ✓" if not gaps else f"✗ {gaps}"))
             if gaps:
                 problems.append(f"column grant gap ({label}): {gaps}")
+
+        # OPS-13:谁在读被收回的列 —— colgrant 问列的状态,这一条问读它的人。
+        # 同样两侧都问:线上是操作员真正撞上的那份,重建是全新安装会得到的那份。
+        for label, dsn in (("live", args.live), ("rebuild", local)):
+            rg = check_reader_gaps(dsn)
+            print(f"colreader  {label}: " + ("无 invoker 视图读被收回的列 ✓" if not rg else f"✗ {rg}"))
+            if rg:
+                problems.append(f"invoker view reads revoked column ({label}): {rg}")
 
         # ── 吞掉查询错误(OPS-12)────────────────────────────────────────────
         # `?? []` 把失败读成空集,页面回 200 说"没有数据" —— 冒烟断言 2xx,
