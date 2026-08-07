@@ -53,10 +53,10 @@ BEGIN
     v_je := post_journal_entry(v_date, 'Payroll deductions ' || v_p.code, 'payroll', v_p.id,
         jsonb_build_array(
             jsonb_build_object('account_code', '2200', 'side', 'debit',
-                'currency', 'SGD', 'amount_ccy', v_amt, 'fx_rate', 1,
+                'currency', base_currency_code(), 'amount_ccy', v_amt,
                 'line_memo', 'Deductions for ' || v_p.code),
             jsonb_build_object('account_code', v_bank, 'side', 'credit',
-                'currency', 'SGD', 'amount_ccy', v_amt, 'fx_rate', 1)));
+                'currency', base_currency_code(), 'amount_ccy', v_amt)));
 
     UPDATE payroll_periods
     SET deductions_paid_at = v_date, deductions_journal_entry_id = (v_je->>'entry_id')::uuid

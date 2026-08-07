@@ -81,8 +81,8 @@ BEGIN
         'Prepayment applied ' || v_po.code || ' → ' || v_batch.code,
         'prepayment', v_app_id,
         jsonb_build_array(
-            jsonb_build_object('account_code', '2000', 'side', 'debit',  'currency', 'SGD', 'amount_ccy', p_amount, 'fx_rate', 1),
-            jsonb_build_object('account_code', '1300', 'side', 'credit', 'currency', 'SGD', 'amount_ccy', p_amount, 'fx_rate', 1)));
+            jsonb_build_object('account_code', '2000', 'side', 'debit',  'currency', base_currency_code(), 'amount_ccy', p_amount),
+            jsonb_build_object('account_code', '1300', 'side', 'credit', 'currency', base_currency_code(), 'amount_ccy', p_amount)));
 
     INSERT INTO prepayment_applications (id, purchase_order_id, inbound_batch_id, amount_base,
                                          notes, journal_entry_id, created_by)

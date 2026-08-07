@@ -50,8 +50,7 @@ BEGIN
         v_lines := v_lines || jsonb_build_object(
             'account_code', v_l.code,
             'side', CASE WHEN v_l.debit > 0 THEN 'credit' ELSE 'debit' END,
-            'currency', 'SGD', 'amount_ccy', CASE WHEN v_l.debit > 0 THEN v_l.debit ELSE v_l.credit END,
-            'fx_rate', 1, 'line_memo', 'year-end close reversal');
+            'currency', base_currency_code(), 'amount_ccy', CASE WHEN v_l.debit > 0 THEN v_l.debit ELSE v_l.credit END, 'line_memo', 'year-end close reversal');
     END LOOP;
 
     -- 凭 close_ctx 过两道闸(本年 year_closes 行此刻仍有效 → YEAR_CLOSED 需豁免;

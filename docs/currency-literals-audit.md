@@ -207,16 +207,27 @@ FIN-0 换过一次本位币(USD → SGD),下一次换的时候,下面这些地�
 判断类的字面量已经全部改成读 `currencies.is_base`
 (`db/migrations/2026-08-07-ops8-currency-is-base.sql`)。
 
-### 还没盖住的两族(数过,不假装没有)
+### 那两族已经收口(OPS-11,2026-08-07)
 
-* **jsonb 分录行 `'currency', 'SGD', … 'fx_rate', 1`** —— 约 50 处、17 个文件。
-  语义是"这条分录行按本位币记账",与已经改掉的 `v_doc_ccy := 'SGD'` 同一类,
-  但形状是键值对不是比较,不在 OPS-8 的模式表里。改它是自己一切,要连 fixture 走。
-* **SQL 的参数/列默认值 `DEFAULT '<币种>'`** —— 5 处(`set_inbound_unit_price`、
-  `reprice_inbound_batch`、`record_expense` 的参数默认;上表两个列默认)。
+* **jsonb 分录负载 `'currency', 'SGD'`** —— 54 处 / 17 个过账函数,全部换成
+  `base_currency_code()`(取自 `currencies.is_base`)。逐处核对过科目,54 处
+  没有一处是别的意思。
+* **顺带删掉 28 处 `'fx_rate', 1`** —— `post_journal_entry` 对本位币行
+  【无条件覆盖】fx,那个 1 从来没被用过;但它不是无害的死负载:哪天某处币种
+  改成外币,遗留的 1 会顺着 ELSE 分支【静默】按 1:1 记一条外币账。删掉之后,
+  同样那次修改会当场 `FX_RATE_REQUIRED`。核验过 28 处每一处最近的 `'currency'`
+  都是 `'SGD'` 字面量,没有一处坐在外币行上 —— 所以删除不改变任何行为。
+* **`DEFAULT '<币种>'` 5 处** —— 只有 `record_expense` 的 `'SGD'` 是本位币假设,
+  且是死的(唯一调用方一直显式传值),已删(需要 DROP+CREATE:PostgreSQL 不许
+  `CREATE OR REPLACE` 去掉既有默认值)。另外四处【本来就不是本位币的意思】,
+  各自进 ALLOWLIST 写明理由:采购单默认 USD 是商务选择、工资期间默认 SGD 是
+  新加坡工资、两个金属计价参数默认 USD 是市场惯例。
 
-两族都记在 `scripts/check-currency-literals.mjs` 的抬头里 —— 那句
-"✓ 没有把币种当常量用的判断"必须带着确切的边界,否则它就是下一个 OPS-8。
+**纠正 OPS-8 当时的一个判断**:"列默认值里写不出子查询"属实,但**函数调用写得出来**
+—— 实测参数默认与列默认都接受。所以"表达不了"从来不是留着字面量的理由;
+留着的理由只能是"它真的就是那个币种"。
+(`CHECK` 约束仍然不行 —— 它要 IMMUTABLE,而 `base_currency_code()` 读表只能是
+STABLE。`fx_rates.sql` 那条 `CHECK (currency <> 'SGD')` 因此仍在下面的手改清单里。)
 
 ## FIN-1a 的一条分类作废(FIN-28,2026-08-07)
 

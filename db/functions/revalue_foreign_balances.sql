@@ -52,7 +52,7 @@ BEGIN
             v_lines := v_lines || jsonb_build_object(
                 'account_code', v_r->>'account',
                 'side', CASE WHEN v_adj > 0 THEN 'debit' ELSE 'credit' END,
-                'currency', 'SGD', 'amount_ccy', abs(v_adj), 'fx_rate', 1,
+                'currency', base_currency_code(), 'amount_ccy', abs(v_adj),
                 'line_memo', (v_r->>'currency') || ' @ ' || (v_r->>'rate'));
             v_total := v_total + v_adj;
             v_detail := v_detail || jsonb_build_object(
@@ -68,7 +68,7 @@ BEGIN
         v_lines := v_lines || jsonb_build_object(
             'account_code', '7110',
             'side', CASE WHEN v_total > 0 THEN 'credit' ELSE 'debit' END,
-            'currency', 'SGD', 'amount_ccy', abs(v_total), 'fx_rate', 1);
+            'currency', base_currency_code(), 'amount_ccy', abs(v_total));
     END IF;
 
     IF jsonb_array_length(v_lines) = 0 THEN
@@ -83,5 +83,4 @@ BEGIN
                               'adjustments', jsonb_array_length(v_detail),
                               'detail', v_detail, 'journal_code', v_je->>'code');
 END;
-$function$
-;
+$function$;

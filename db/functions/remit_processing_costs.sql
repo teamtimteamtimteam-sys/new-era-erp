@@ -49,10 +49,10 @@ BEGIN
 
     v_je := post_journal_entry(v_date, 'Processing cost remittance', 'processing_cost', NULL,
         jsonb_build_array(
-            jsonb_build_object('account_code', '2200', 'side', 'debit', 'currency', 'SGD',
-                               'amount_ccy', v_total, 'fx_rate', 1),
-            jsonb_build_object('account_code', v_bank, 'side', 'credit', 'currency', 'SGD',
-                               'amount_ccy', v_total, 'fx_rate', 1)));
+            jsonb_build_object('account_code', '2200', 'side', 'debit', 'currency', base_currency_code(),
+                               'amount_ccy', v_total),
+            jsonb_build_object('account_code', v_bank, 'side', 'credit', 'currency', base_currency_code(),
+                               'amount_ccy', v_total)));
 
     UPDATE processing_cost_entries
     SET remitted_at = v_date, remitted_journal_entry_id = (v_je->>'entry_id')::uuid

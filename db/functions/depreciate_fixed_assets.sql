@@ -49,11 +49,11 @@ BEGIN
         GROUP BY r->>'account' ORDER BY r->>'account'
     LOOP
         v_lines := v_lines || jsonb_build_object('account_code', v_grp.account, 'side', 'debit',
-            'currency', 'SGD', 'amount_ccy', v_grp.amt, 'fx_rate', 1,
+            'currency', base_currency_code(), 'amount_ccy', v_grp.amt,
             'line_memo', 'straight-line depreciation');
     END LOOP;
     v_lines := v_lines || jsonb_build_object('account_code', '1510', 'side', 'credit',
-        'currency', 'SGD', 'amount_ccy', v_total, 'fx_rate', 1);
+        'currency', base_currency_code(), 'amount_ccy', v_total);
 
     v_je := post_journal_entry(p_period_end,
         'Depreciation for period ending ' || p_period_end,

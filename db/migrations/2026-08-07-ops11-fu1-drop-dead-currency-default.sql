@@ -1,7 +1,32 @@
+-- OPS-11-fu1(2026-08-07):record_expense 的 p_currency 去掉 'SGD' 默认值。
+--
+-- 五处 DEFAULT '<币种>' 里,只有这一处是【本位币假设】,其余四处是"它真的就是
+-- 那个币种"(采购单默认 USD 是商务选择;工资期间默认 SGD 是新加坡工资;
+-- set_inbound_unit_price / reprice_inbound_batch 默认 USD 是金属计价的市场惯例)——
+-- 那四处进 ALLOWLIST 并写明理由,不动。
+--
+-- 这一处则是本位币,而且【是死的】:唯一调用方 app/finance/expenses/new/actions.ts
+-- 一直显式传 p_currency。所以直接删掉默认值,而不是换成 base_currency_code():
+-- 一个没人用的默认值,唯一的作用是等着某天有人漏传时替他认一个币种 ——
+-- 那正是 AGENTS.md 那条"决定金额/期间/汇率的入参不给默认值"的形状。
+-- 删掉之后,漏传就是编译期/调用期的错误,不是一条按本位币记下的开支。
+--
+-- 【签名变了但不是重载】默认值不属于函数标识签名,参数类型列表不变,
+-- 所以这是替换而不是新增一个重载(OPS-7 的预检会照常认出它是替换)。
+--
+-- 应用:./db/apply_migration.sh db/migrations/2026-08-07-ops11-fu1-drop-dead-currency-default.sql
 
--- FIN-22(2026-08-06):资本分支 —— 科目 1500 与 p_asset 互相要求;资本行借 1500
--- 并在同一事务生成 fixed_assets 台账行(成本 = 本单金额,汇率 = 费用日 tt_sell,
--- 即【购置日】牌价 —— 资产非货币,该汇率定格成本,永不重译)。
+BEGIN;
+
+-- 【必须先 DROP】PostgreSQL 不允许 CREATE OR REPLACE 去掉既有参数的默认值
+-- (cannot remove parameter defaults from existing function)。核对过:
+--   * 没有任何硬依赖指着它(pg_depend 查过,无视图/列默认/触发器);
+--   * 唯一的库内调用方 pay_medical_claim 显式传 p_currency := 'SGD'(那是
+--     医疗报销真的以新元计,已在 ALLOWLIST 里),函数体内的调用运行时解析,
+--     参数类型列表不变,所以 DROP + CREATE 之后它照常工作;
+--   * DROP 会带走 EXECUTE 授权 —— 而 apply_migration.sh 在【同一个事务里】重跑
+--     zzz_function_grants(OPS-7),授权自动回来。这正是那个兜底存在的意义。
+DROP FUNCTION public.record_expense(date,text,numeric,text,numeric,text,text,uuid,text,text,jsonb);
 
 CREATE OR REPLACE FUNCTION public.record_expense(p_expense_date date, p_account_code text, p_amount numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_payment_status text DEFAULT 'paid'::text, p_bank_account text DEFAULT NULL::text, p_supplier_id uuid DEFAULT NULL::uuid, p_payee_name text DEFAULT NULL::text, p_notes text DEFAULT NULL::text, p_asset jsonb DEFAULT NULL::jsonb)
  RETURNS jsonb
@@ -179,4 +204,7 @@ BEGIN
         'payment_status', p_payment_status
     );
 END;
-$function$;
+$function$
+;
+
+COMMIT;

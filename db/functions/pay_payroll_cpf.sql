@@ -54,10 +54,10 @@ BEGIN
     v_je := post_journal_entry(v_date, 'CPF ' || v_p.code, 'payroll', v_p.id,
         jsonb_build_array(
             jsonb_build_object('account_code', '2400', 'side', 'debit',
-                'currency', 'SGD', 'amount_ccy', v_cpf, 'fx_rate', 1,
+                'currency', base_currency_code(), 'amount_ccy', v_cpf,
                 'line_memo', 'CPF for ' || v_p.code),
             jsonb_build_object('account_code', v_bank, 'side', 'credit',
-                'currency', 'SGD', 'amount_ccy', v_cpf, 'fx_rate', 1,
+                'currency', base_currency_code(), 'amount_ccy', v_cpf,
                 'line_memo', 'CPF Board')));
 
     UPDATE payroll_periods

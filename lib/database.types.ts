@@ -9534,6 +9534,7 @@ export type Database = {
         Args: { p_account_code: string }
         Returns: string
       }
+      base_currency_code: { Args: never; Returns: string }
       calculate_leave_days: {
         Args: {
           p_end: string
@@ -9883,7 +9884,7 @@ export type Database = {
           p_amount: number
           p_asset?: Json
           p_bank_account?: string
-          p_currency?: string
+          p_currency: string
           p_expense_date: string
           p_fx_rate?: number
           p_notes?: string

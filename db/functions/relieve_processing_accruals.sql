@@ -69,20 +69,20 @@ BEGIN
     -- 借 2200 清应计;差额进当期 5xxx;贷 银行/应付 记实际
     v_var := round(p_actual_amount - v_accrued, 2);
     v_lines := jsonb_build_array(jsonb_build_object(
-        'account_code', '2200', 'side', 'debit', 'currency', 'SGD',
-        'amount_ccy', v_accrued, 'fx_rate', 1, 'line_memo', 'clear accrued ' || v_type));
+        'account_code', '2200', 'side', 'debit', 'currency', base_currency_code(),
+        'amount_ccy', v_accrued, 'line_memo', 'clear accrued ' || v_type));
     IF v_var > 0 THEN
         v_lines := v_lines || jsonb_build_object('account_code', fin_cost_account(v_type),
-            'side', 'debit', 'currency', 'SGD', 'amount_ccy', v_var, 'fx_rate', 1,
+            'side', 'debit', 'currency', base_currency_code(), 'amount_ccy', v_var,
             'line_memo', 'estimate-to-actual variance');
     ELSIF v_var < 0 THEN
         v_lines := v_lines || jsonb_build_object('account_code', fin_cost_account(v_type),
-            'side', 'credit', 'currency', 'SGD', 'amount_ccy', -v_var, 'fx_rate', 1,
+            'side', 'credit', 'currency', base_currency_code(), 'amount_ccy', -v_var,
             'line_memo', 'estimate-to-actual variance');
     END IF;
     v_lines := v_lines || jsonb_build_object(
         'account_code', CASE WHEN p_payment_status = 'paid' THEN v_bank ELSE '2000' END,
-        'side', 'credit', 'currency', 'SGD', 'amount_ccy', p_actual_amount, 'fx_rate', 1);
+        'side', 'credit', 'currency', base_currency_code(), 'amount_ccy', p_actual_amount);
 
     -- 单据号:与 record_expense 同一套(advisory lock + 年内递增)
     PERFORM pg_advisory_xact_lock(hashtext('expense_code_' || EXTRACT(YEAR FROM p_expense_date)::integer::text)::bigint);

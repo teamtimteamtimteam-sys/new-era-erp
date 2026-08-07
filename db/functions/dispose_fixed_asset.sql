@@ -50,20 +50,20 @@ BEGIN
 
     IF p_proceeds > 0 THEN
         v_lines := v_lines || jsonb_build_object('account_code', v_bank, 'side', 'debit',
-            'currency', 'SGD', 'amount_ccy', p_proceeds, 'fx_rate', 1, 'line_memo', 'disposal proceeds');
+            'currency', base_currency_code(), 'amount_ccy', p_proceeds, 'line_memo', 'disposal proceeds');
     END IF;
     IF v_accum > 0 THEN
         v_lines := v_lines || jsonb_build_object('account_code', '1510', 'side', 'debit',
-            'currency', 'SGD', 'amount_ccy', v_accum, 'fx_rate', 1, 'line_memo', 'accumulated depreciation relieved');
+            'currency', base_currency_code(), 'amount_ccy', v_accum, 'line_memo', 'accumulated depreciation relieved');
     END IF;
     v_lines := v_lines || jsonb_build_object('account_code', '1500', 'side', 'credit',
-        'currency', 'SGD', 'amount_ccy', v_a.cost_base, 'fx_rate', 1, 'line_memo', 'cost relieved');
+        'currency', base_currency_code(), 'amount_ccy', v_a.cost_base, 'line_memo', 'cost relieved');
     IF v_gain > 0 THEN
         v_lines := v_lines || jsonb_build_object('account_code', '7200', 'side', 'credit',
-            'currency', 'SGD', 'amount_ccy', v_gain, 'fx_rate', 1);
+            'currency', base_currency_code(), 'amount_ccy', v_gain);
     ELSIF v_gain < 0 THEN
         v_lines := v_lines || jsonb_build_object('account_code', '7200', 'side', 'debit',
-            'currency', 'SGD', 'amount_ccy', -v_gain, 'fx_rate', 1);
+            'currency', base_currency_code(), 'amount_ccy', -v_gain);
     END IF;
 
     v_je := post_journal_entry(p_disposal_date,

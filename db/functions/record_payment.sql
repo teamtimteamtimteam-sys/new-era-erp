@@ -428,10 +428,10 @@ BEGIN
         v_realised := round(COALESCE(v_base_total, 0) + v_unalloc_base - v_bank_base, 2);
         IF v_realised > 0 THEN
             v_lines := v_lines || jsonb_build_object('account_code', '7100', 'side', 'debit',
-                'currency', 'SGD', 'amount_ccy', v_realised, 'fx_rate', 1);
+                'currency', base_currency_code(), 'amount_ccy', v_realised);
         ELSIF v_realised < 0 THEN
             v_lines := v_lines || jsonb_build_object('account_code', '7100', 'side', 'credit',
-                'currency', 'SGD', 'amount_ccy', -v_realised, 'fx_rate', 1);
+                'currency', base_currency_code(), 'amount_ccy', -v_realised);
         END IF;
     ELSE
         FOR v_grp IN SELECT key AS ccy, (value->>'ccy')::numeric AS ccy_amt,
@@ -466,10 +466,10 @@ BEGIN
         v_realised := round((v_base_total - v_po_base) + v_unalloc_base + v_po_pay_base - v_bank_base, 2);
         IF v_realised > 0 THEN
             v_lines := v_lines || jsonb_build_object('account_code', '7100', 'side', 'credit',
-                'currency', 'SGD', 'amount_ccy', v_realised, 'fx_rate', 1);
+                'currency', base_currency_code(), 'amount_ccy', v_realised);
         ELSIF v_realised < 0 THEN
             v_lines := v_lines || jsonb_build_object('account_code', '7100', 'side', 'debit',
-                'currency', 'SGD', 'amount_ccy', -v_realised, 'fx_rate', 1);
+                'currency', base_currency_code(), 'amount_ccy', -v_realised);
         END IF;
     END IF;
 

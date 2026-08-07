@@ -87,20 +87,20 @@ BEGIN
             v_lines := v_lines || jsonb_build_object(
                 'account_code', '1200',
                 'side', CASE WHEN v_delta > 0 THEN 'debit' ELSE 'credit' END,
-                'currency', 'SGD', 'amount_ccy', abs(v_inv),
+                'currency', base_currency_code(), 'amount_ccy', abs(v_inv),
                 'line_memo', 'in-stock share');
         END IF;
         IF abs(v_cost) > 0 THEN
             v_lines := v_lines || jsonb_build_object(
                 'account_code', '5000',
                 'side', CASE WHEN v_delta > 0 THEN 'debit' ELSE 'credit' END,
-                'currency', 'SGD', 'amount_ccy', abs(v_cost),
+                'currency', base_currency_code(), 'amount_ccy', abs(v_cost),
                 'line_memo', 'consumed share');
         END IF;
         v_lines := v_lines || jsonb_build_object(
             'account_code', '2000',
             'side', CASE WHEN v_delta > 0 THEN 'credit' ELSE 'debit' END,
-            'currency', 'SGD', 'amount_ccy', abs(v_delta));
+            'currency', base_currency_code(), 'amount_ccy', abs(v_delta));
 
         v_je := post_journal_entry(
             CURRENT_DATE,

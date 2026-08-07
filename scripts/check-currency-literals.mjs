@@ -26,16 +26,19 @@
 // currencies.is_base(db/migrations/2026-08-07-ops8-currency-is-base.sql),
 // 十一处是真的就是那个币种,进了下面的 ALLOWLIST 并各自写了理由。
 //
-// 【还没盖住的两族,数过、记下来,不假装没有】——
-//   * jsonb 分录行里的 `'currency', 'SGD', … 'fx_rate', 1`:约 50 处、17 个文件
-//     (allocate_processing_costs 11、dispose_fixed_asset 5、record_payment 4…)。
-//     它们是"这条分录行按本位币记账"的意思,和 v_doc_ccy := 'SGD' 同一类,
-//     但形状是 jsonb 的键值对,不是比较。改起来是自己一切,要连着 fixture 走。
-//   * SQL 的参数/列默认值 `DEFAULT 'SGD'`:5 处(set_inbound_unit_price、
-//     reprice_inbound_batch、record_expense 三个函数参数;purchase_orders.currency、
-//     payroll_periods.currency 两个列默认)。列默认值里同样写不出子查询。
-// 【写在这里,是为了让"✓ 没有把币种当常量用的判断"这句话有确切的边界】——
-// 上一次这个边界没写出来,结果就是本次 OPS-8。
+// 【那两族已经收口 —— OPS-11(2026-08-07)】此处原本记着两个数过但没修的缺口:
+// jsonb 分录负载里的 `'currency', 'SGD'`(54 处 / 17 个过账函数)与 `DEFAULT '<币种>'`
+// (5 处)。两族现在都进了上面的模式表:
+//   * 54 处负载字面量全部换成 base_currency_code();顺带删掉 28 处 `'fx_rate', 1`
+//     —— post_journal_entry 对本位币行无条件覆盖 fx,那个 1 从来没被用过,
+//     却会在某处币种改成外币时【静默】按 1:1 记账。删的是雷。
+//   * 5 处 DEFAULT 只有 record_expense 的 'SGD' 是真的本位币假设(且唯一调用方
+//     一直显式传值)—— 已删。另外 4 处【本来就不是本位币的意思】:采购单默认 USD
+//     是商务选择、工资期间默认 SGD 是新加坡工资、两个金属计价参数默认 USD 是
+//     市场惯例 —— 各自进 ALLOWLIST 并写明理由。
+// 【顺带纠正一个当时的判断】"列默认值里写不出子查询"属实,但【函数调用写得出来】
+// (实测:参数默认与列默认都接受),所以"表达不了"从来不是留着它们的理由 ——
+// 留着的理由只能是"它真的就是那个币种"。
 // ════════════════════════════════════════════════════════════════════════════
 //
 // 【为什么补第二类】第一类只看判断,而最直接的谎法根本不经过判断:
@@ -108,6 +111,33 @@ const ALLOWLIST = [
             + '拦住新本位币的牌价、放行旧本位币的牌价。记在 '
             + 'docs/currency-literals-audit.md 的"换本位币要动哪些地方"里。',
     },
+    // ── OPS-11:剩下的四处 DEFAULT。【它们不是本位币假设】——
+    //    "写不出来"不是留着它们的理由(DEFAULT 表达式接受函数调用,实测过),
+    //    留着的理由是它们【真的就是那个币种】。第五处(record_expense 的 'SGD')
+    //    确实是本位币假设,而且是死的(唯一调用方一直显式传值)—— 已删。
+    {
+        path: 'db/tables/purchase_orders.sql', match: "DEFAULT 'USD'",
+        reason: '采购单默认币种 USD 是【商务选择】,不是本位币 —— 本位币是 SGD,'
+            + '这个默认从来就不等于它。多数采购以美元报价,所以默认 USD;'
+            + '换本位币【不该】动它。要改是商务决定,记在 currency-literals-audit.md 的'
+            + '"换本位币要手改的地方"里,让它成为一次明写的判断而不是连带效果。',
+    },
+    {
+        path: 'db/tables/payroll_periods.sql', match: "DEFAULT 'SGD'",
+        reason: '新加坡工资就是以新元发的 —— 与 medical_claims 的 *_sgd 列同源,'
+            + '是业务事实不是本位币化名。本位币若再变,这一行不该跟着变。',
+    },
+    {
+        path: 'db/functions/set_inbound_unit_price.sql', match: "DEFAULT 'USD'",
+        reason: '金属计价按市场惯例以美元报价(AGENTS.md 的 FX 规则里写明 USD/t)。'
+            + 'calculate_metal_price 全程 USD 进 USD 出,换算发生在【路径上】'
+            + '(computeLineEstimate)。这个默认是那条链的口径,不是本位币。',
+    },
+    {
+        path: 'db/functions/reprice_inbound_batch.sql', match: "DEFAULT 'USD'",
+        reason: '同 set_inbound_unit_price —— 它就是那个函数的内层实现,'
+            + '进料计价的原币恒为 USD,折本位币在函数内按定价日 tt_sell 完成。',
+    },
     {
         path: 'app/purchasing/orders/new/NewOrderForm.tsx', match: 'USD',
         reason: '金属报价【按市场惯例】以美元计价(AGENTS.md 的 FX 规则里写明:'
@@ -118,8 +148,13 @@ const ALLOWLIST = [
     },
 ]
 
+// 【比对整行,不是那截给人看的文本】h.text 是截到 110 字符的展示串;
+// 用它来判豁免,会让"命中点落在第 110 字之后"的行【永远匹配不上】自己的
+// ALLOWLIST 条目 —— 豁免写了却不生效,而屏幕上看不出区别。
+// OPS-11 撞到过:set_inbound_unit_price 的 DEFAULT 'USD' 在第 120 字左右。
+// 截断是展示,判断要用 h.full。
 const allowed = (h) => ALLOWLIST.some((a) =>
-    h.rel.startsWith(a.path) && (!a.match || h.text.includes(a.match)))
+    h.rel.startsWith(a.path) && (!a.match || h.full.includes(a.match)))
 
 // 只抓【比较/分支】里的币种字面量 —— 单纯出现在字符串或数组里(例如下拉选项、
 // 类型联合)不算,那些是数据,不是规则。
@@ -151,6 +186,18 @@ const BRANCH_PATTERNS = CODES.flatMap((c) => [
     // 它不判断任何东西,只是在没人说话的时候【替所有行认了一个币种】。
     new RegExp(`\\bCOALESCE\\s*\\([^)]*'${c}'`, 'i'),    // COALESCE(x, 'SGD')
     new RegExp(`:=\\s*'${c}'`),                          // v_ccy := 'SGD'
+    // ── OPS-11:jsonb 键值对里的币种 ────────────────────────────────────────
+    // 【最直接的谎法不经过判断,也不经过默认】—— 分录负载直接把币种当成一个值写死:
+    //     jsonb_build_object('account_code','1200','side','debit','currency','SGD', …)
+    // 一条也不匹配上面任何一条,于是 OPS-8 之后这一族(54 处 / 17 个过账函数)
+    // 仍然安然坐在【法定记录】上。判据:'currency' 这个键后面跟着币种字面量。
+    // 正确写法是 base_currency_code()(取自 currencies.is_base)。
+    new RegExp(`'currency'\\s*,\\s*'${c}'`),             // 'currency', 'SGD'
+    new RegExp(`"currency"\\s*:\\s*'${c}'`),             // "currency": 'SGD'
+    // 参数与列的默认值。子查询在 DEFAULT 里写不出来,但【函数调用可以】
+    // (实测:参数默认值与列默认值都接受函数调用),所以"写不出来"不是留着它的理由;
+    // 留下的每一处都必须在 ALLOWLIST 里说明它【真的就是那个币种】。
+    new RegExp(`\\bDEFAULT\\s+'${c}'`, 'i'),             // DEFAULT 'SGD'
 ])
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -224,14 +271,14 @@ for (const dir of ['app', 'lib', 'db']) {
             if (line.trim().startsWith('//') || line.trim().startsWith('*')
                 || line.trim().startsWith('--')) return
             if (BRANCH_PATTERNS.some((re) => re.test(line))) {
-                hits.push({ rel, line: i + 1, kind: 'branch', text: line.trim().slice(0, 110) })
+                hits.push({ rel, line: i + 1, kind: 'branch', text: line.trim().slice(0, 110), full: line })
                 return
             }
             // 印到屏幕上的币种只可能出在 .tsx 的 JSX 正文里
             if (!rel.endsWith('.tsx')) return
             const m = JSX_TEXT.exec(stripLiterals(line))
             if (m && !isCurrencyOption(line, m[1])) {
-                hits.push({ rel, line: i + 1, kind: 'jsx-text', text: line.trim().slice(0, 110) })
+                hits.push({ rel, line: i + 1, kind: 'jsx-text', text: line.trim().slice(0, 110), full: line })
             }
         })
     }

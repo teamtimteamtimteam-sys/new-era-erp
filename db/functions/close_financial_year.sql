@@ -67,7 +67,7 @@ BEGIN
         v_lines := v_lines || jsonb_build_object(
             'account_code', v_r->>'account',
             'side', CASE WHEN v_amt > 0 THEN 'debit' ELSE 'credit' END,
-            'currency', 'SGD', 'amount_ccy', abs(v_amt), 'fx_rate', 1,
+            'currency', base_currency_code(), 'amount_ccy', abs(v_amt),
             'line_memo', 'year-end close');
     END LOOP;
 
@@ -81,7 +81,7 @@ BEGIN
         v_lines := v_lines || jsonb_build_object(
             'account_code', '3100',
             'side', CASE WHEN v_net > 0 THEN 'credit' ELSE 'debit' END,
-            'currency', 'SGD', 'amount_ccy', abs(v_net), 'fx_rate', 1,
+            'currency', base_currency_code(), 'amount_ccy', abs(v_net),
             'line_memo', 'net result to retained earnings');
     END IF;
 

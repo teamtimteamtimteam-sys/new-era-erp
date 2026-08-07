@@ -21,8 +21,7 @@ AS $function$
         WHEN 'waste_treatment' THEN '5150'
         ELSE '5190'  -- 'other' 及未知值兜底
     END;
-$function$
-
+$function$;
 
 CREATE OR REPLACE FUNCTION public.fin_cost_lines(p_cost_type text, p_amount numeric, p_reverse boolean)
  RETURNS jsonb
@@ -31,15 +30,14 @@ CREATE OR REPLACE FUNCTION public.fin_cost_lines(p_cost_type text, p_amount nume
 AS $function$
     SELECT CASE WHEN (p_amount > 0) <> p_reverse THEN
         jsonb_build_array(
-            jsonb_build_object('account_code', fin_cost_account(p_cost_type), 'side', 'debit',  'currency', 'SGD', 'amount_ccy', abs(p_amount)),
-            jsonb_build_object('account_code', '2200',                        'side', 'credit', 'currency', 'SGD', 'amount_ccy', abs(p_amount)))
+            jsonb_build_object('account_code', fin_cost_account(p_cost_type), 'side', 'debit',  'currency', base_currency_code(), 'amount_ccy', abs(p_amount)),
+            jsonb_build_object('account_code', '2200',                        'side', 'credit', 'currency', base_currency_code(), 'amount_ccy', abs(p_amount)))
     ELSE
         jsonb_build_array(
-            jsonb_build_object('account_code', '2200',                        'side', 'debit',  'currency', 'SGD', 'amount_ccy', abs(p_amount)),
-            jsonb_build_object('account_code', fin_cost_account(p_cost_type), 'side', 'credit', 'currency', 'SGD', 'amount_ccy', abs(p_amount)))
+            jsonb_build_object('account_code', '2200',                        'side', 'debit',  'currency', base_currency_code(), 'amount_ccy', abs(p_amount)),
+            jsonb_build_object('account_code', fin_cost_account(p_cost_type), 'side', 'credit', 'currency', base_currency_code(), 'amount_ccy', abs(p_amount)))
     END;
-$function$
-
+$function$;
 
 CREATE OR REPLACE FUNCTION public.fin_journal_cost_entry()
  RETURNS trigger
@@ -100,6 +98,4 @@ BEGIN
     END IF;
     RETURN NULL;
 END;
-$function$;-- (trigger attachments trg_processing_cost_entries_journal_ins / _upd moved to
---  db/tables/processing_cost_entries.sql — 2026-07-31 镜像漂移审计起,每张表的
---  镜像完整描述它自己的触发器,函数文件只放函数)
+$function$;

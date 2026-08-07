@@ -356,13 +356,13 @@ BEGIN
         v_cap_lines := '[]'::jsonb;
         v_cap_total := 0;
         IF round(v_material_in, 2) <> 0 THEN
-            v_cap_lines := v_cap_lines || jsonb_build_object('account_code', '1200', 'side', 'credit', 'currency', 'SGD', 'amount_ccy', round(v_material_in, 2));
+            v_cap_lines := v_cap_lines || jsonb_build_object('account_code', '1200', 'side', 'credit', 'currency', base_currency_code(), 'amount_ccy', round(v_material_in, 2));
             v_cap_total := v_cap_total + round(v_material_in, 2);
         END IF;
         -- FIN-25:再加工材料 —— 解除的是上游产出的 1220,不是原料的 1200。
         -- 同科目 Dr(资本化进本单产出)/Cr(解除上游)两腿并存,净额即增量。
         IF round(v_material_re, 2) <> 0 THEN
-            v_cap_lines := v_cap_lines || jsonb_build_object('account_code', '1220', 'side', 'credit', 'currency', 'SGD', 'amount_ccy', round(v_material_re, 2), 'line_memo', 're-processed input relieved');
+            v_cap_lines := v_cap_lines || jsonb_build_object('account_code', '1220', 'side', 'credit', 'currency', base_currency_code(), 'amount_ccy', round(v_material_re, 2), 'line_memo', 're-processed input relieved');
             v_cap_total := v_cap_total + round(v_material_re, 2);
         END IF;
         FOR v_ct IN
@@ -373,10 +373,10 @@ BEGIN
             ORDER BY cost_type
         LOOP
             IF v_ct.amt > 0 THEN
-                v_cap_lines := v_cap_lines || jsonb_build_object('account_code', fin_cost_account(v_ct.cost_type), 'side', 'credit', 'currency', 'SGD', 'amount_ccy', v_ct.amt);
+                v_cap_lines := v_cap_lines || jsonb_build_object('account_code', fin_cost_account(v_ct.cost_type), 'side', 'credit', 'currency', base_currency_code(), 'amount_ccy', v_ct.amt);
                 v_cap_total := v_cap_total + v_ct.amt;
             ELSIF v_ct.amt < 0 THEN
-                v_cap_lines := v_cap_lines || jsonb_build_object('account_code', fin_cost_account(v_ct.cost_type), 'side', 'debit', 'currency', 'SGD', 'amount_ccy', -v_ct.amt);
+                v_cap_lines := v_cap_lines || jsonb_build_object('account_code', fin_cost_account(v_ct.cost_type), 'side', 'debit', 'currency', base_currency_code(), 'amount_ccy', -v_ct.amt);
                 v_cap_total := v_cap_total + v_ct.amt;
             END IF;
         END LOOP;
@@ -386,7 +386,7 @@ BEGIN
             v_cap_lines := jsonb_build_array(
                 jsonb_build_object('account_code', '1220',
                                    'side', CASE WHEN v_cap_total > 0 THEN 'debit' ELSE 'credit' END,
-                                   'currency', 'SGD', 'amount_ccy', abs(v_cap_total))
+                                   'currency', base_currency_code(), 'amount_ccy', abs(v_cap_total))
             ) || v_cap_lines;
             v_cap_je := post_journal_entry(
                 CURRENT_DATE,
@@ -442,7 +442,7 @@ BEGIN
                 v_cap_lines := v_cap_lines || jsonb_build_object(
                     'account_code', CASE WHEN v_ct.src IN ('material', 'material_reprocessed') THEN '5000' ELSE fin_cost_account(v_ct.src) END,
                     'side', CASE WHEN v_ct.d > 0 THEN 'credit' ELSE 'debit' END,
-                    'currency', 'SGD', 'amount_ccy', abs(v_ct.d),
+                    'currency', base_currency_code(), 'amount_ccy', abs(v_ct.d),
                     'line_memo', 'allocation delta: ' || v_ct.src);
                 v_cred_total := v_cred_total + v_ct.d;
             END IF;
@@ -489,19 +489,19 @@ BEGIN
         IF v_d1220 <> 0 THEN
             v_cap_lines := jsonb_build_array(jsonb_build_object('account_code', '1220',
                 'side', CASE WHEN v_d1220 > 0 THEN 'debit' ELSE 'credit' END,
-                'currency', 'SGD', 'amount_ccy', abs(v_d1220),
+                'currency', base_currency_code(), 'amount_ccy', abs(v_d1220),
                 'line_memo', 'in-stock share')) || v_cap_lines;
         END IF;
         IF v_d5000 <> 0 THEN
             v_cap_lines := jsonb_build_array(jsonb_build_object('account_code', '5000',
                 'side', CASE WHEN v_d5000 > 0 THEN 'debit' ELSE 'credit' END,
-                'currency', 'SGD', 'amount_ccy', abs(v_d5000),
+                'currency', base_currency_code(), 'amount_ccy', abs(v_d5000),
                 'line_memo', 'sold/consumed share — COGS catch-up / re-processing park')) || v_cap_lines;
         END IF;
         IF v_d5200 <> 0 THEN
             v_cap_lines := jsonb_build_array(jsonb_build_object('account_code', '5200',
                 'side', CASE WHEN v_d5200 > 0 THEN 'debit' ELSE 'credit' END,
-                'currency', 'SGD', 'amount_ccy', abs(v_d5200),
+                'currency', base_currency_code(), 'amount_ccy', abs(v_d5200),
                 'line_memo', 'written-off share')) || v_cap_lines;
         END IF;
 
@@ -542,8 +542,8 @@ BEGIN
                 'COGS ' || v_sale.batch_code,
                 'sale', v_sale.id,
                 jsonb_build_array(
-                    jsonb_build_object('account_code', '5000', 'side', 'debit',  'currency', 'SGD', 'amount_ccy', v_cogs),
-                    jsonb_build_object('account_code', '1220', 'side', 'credit', 'currency', 'SGD', 'amount_ccy', v_cogs)));
+                    jsonb_build_object('account_code', '5000', 'side', 'debit',  'currency', base_currency_code(), 'amount_ccy', v_cogs),
+                    jsonb_build_object('account_code', '1220', 'side', 'credit', 'currency', base_currency_code(), 'amount_ccy', v_cogs)));
             UPDATE sales_records SET cogs_entry_id = (v_cogs_je->>'entry_id')::uuid WHERE id = v_sale.id;
         END IF;
     END LOOP;
