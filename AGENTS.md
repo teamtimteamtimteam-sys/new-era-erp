@@ -324,7 +324,7 @@ python3 db/gate.py     # 0 clean · 1 mirror drift · 2 cannot build
                        # 3 B1/B2 invariant · 4 behavioural fixture failed
 ```
 
-Twenty-one fixtures, ~82 assertions, on the paths where a silent break costs money:
+Twenty-two fixtures, ~92 assertions, on the paths where a silent break costs money:
 settlement closing to exactly zero (including cross-currency), revaluation
 idempotence, confirmation not touching leave, accrual not applying a category
 change retroactively, one bank line per employee, realised 7100 never crossing
@@ -378,6 +378,21 @@ paths rather than silently falling back to the live formula; and a formula edit
 writes an append-only history row with old and new — including the metals
 sub-table, where the UI expresses "no longer payable" by DELETING the row, so a
 header-only history would be silent about the most drastic edit there is).
+and a payment term
+template's fixed instalment (FIN-29: a template belongs to no order, so its fixed
+amount had no currency at all — and `apply_payment_term_template` copies
+VERBATIM, no rate is consulted, so "deposit 10,000" landed as 10,000 on a USD
+order and on an SGD one alike and read correct on both. The template now declares
+its own currency and a different-currency order is refused BY NAME rather than
+converted — a payment term is a negotiated commitment, not a computed quantity,
+the same reasoning as FIN-27. The declaration is CONDITIONAL: percentage-only
+templates need no currency and must not be forced to invent one, which is what
+the third arm holds — a "currency always required" implementation passes the
+other three. Enforced by a guard trigger on BOTH parent and child, because the
+rule spans two tables and a CHECK cannot see another table; and the validation
+runs BEFORE the delete, so "refused means nothing was written" is structural
+rather than a rollback artifact — the second arm asserts the order's own plan
+survives the refusal intact).
 Deliberately small: every retained fixture is
 maintenance on every schema move, and the HR-2c accrual change already cost one
 round of "is this staleness or regression?" judgement.

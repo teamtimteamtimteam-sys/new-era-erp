@@ -1492,6 +1492,8 @@ const en = {
             committed: 'terms committed {code} · {on}',
             notCommitted: 'terms not committed (pre-FIN-27 line) — settlement will refuse',
         },
+        errTemplateCurrencyRequired:
+            'This template has a fixed-amount instalment — choose the currency that amount is in',
         priceSource: {
             computed: 'computed from expected assay @ {fx} (rate of {asOf})',
             manual: 'manual estimate',
@@ -1558,6 +1560,9 @@ const en = {
             addTerm: '+ Add instalment',
             percentage: 'Percentage',
             fixedAmount: 'Fixed amount',
+            templateCurrency: 'Currency of fixed amounts',
+            templateCurrencyHint:
+                'Applies only to fixed-amount instalments. This template can then be applied only to orders in this currency — fixed instalments are never restated at a rate.',
             modePct: '%',
             modeFixed: 'Fixed',
             submit: 'Create order',
@@ -1607,6 +1612,12 @@ const en = {
         errors: {
             PRICE_SOURCE_INVALID: 'Line {0}: price source {1} is not computed/manual',
             PROVENANCE_REQUIRED: 'Line {0}: a computed price must carry the data to re-derive it — provenance is missing',
+            TEMPLATE_CURRENCY_REQUIRED:
+                'Template {0} has a fixed-amount instalment, so it must declare a currency — a template belongs to no order, so nothing else can tell you what that amount is in',
+            TEMPLATE_CURRENCY_UNDECLARED:
+                'Template {0} has a fixed-amount instalment but no declared currency, so there is nothing to copy — declare the currency on the template, or use percentages',
+            TEMPLATE_CURRENCY_MISMATCH:
+                'Template {0} is in {1}, this order is in {2}. A fixed instalment is a negotiated amount, not a converted one — it is not restated at today\u2019s rate. Use a template in {2}, or enter the plan on the order directly',
             PRICING_TERMS_NOT_COMMITTED:
                 '{0} references pricing formula {1} with no settlement terms recorded at the time — settlement refuses rather than reading the formula as it stands today',
             PRICING_TERMS_ALREADY_COMMITTED: '{0} already settles under committed terms ({1})',

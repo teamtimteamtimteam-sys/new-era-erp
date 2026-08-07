@@ -1488,6 +1488,7 @@ const zh = {
             committed: '条款已承诺 {code} · {on}',
             notCommitted: '条款未承诺(FIN-27 之前的行)—— 结算会被拒',
         },
+        errTemplateCurrencyRequired: '本模板里有定额期 —— 请选择那个金额的币种',
         priceSource: {
             computed: '按预计化验算出 @ {fx}(取 {asOf} 牌价)',
             manual: '手填估价',
@@ -1554,6 +1555,9 @@ const zh = {
             addTerm: '+ 加一期',
             percentage: '百分比',
             fixedAmount: '固定金额',
+            templateCurrency: '定额的币种',
+            templateCurrencyHint:
+                '只对定额期有效。声明之后,本模板只能套用到同币种的采购单 —— 定额永远不按牌价改写。',
             modePct: '%',
             modeFixed: '定额',
             submit: '创建采购单',
@@ -1602,6 +1606,12 @@ const zh = {
         errors: {
             PRICE_SOURCE_INVALID: '第 {0} 行:价格出处 {1} 不是 computed/manual',
             PROVENANCE_REQUIRED: '第 {0} 行:computed 价必须带重导出依据 —— 出处缺失',
+            TEMPLATE_CURRENCY_REQUIRED:
+                '模板 {0} 里有定额期,必须声明币种 —— 模板不属于任何单据,不声明就没有别的东西说得出那个数是什么钱',
+            TEMPLATE_CURRENCY_UNDECLARED:
+                '模板 {0} 有定额期却没有声明币种,无从抄起 —— 请给模板声明币种,或改用比例',
+            TEMPLATE_CURRENCY_MISMATCH:
+                '模板 {0} 是 {1},本单是 {2}。定额是谈定的数,不是折算出来的 —— 不按今天的牌价改写。请用 {2} 的模板,或直接在单上录入计划',
             PRICING_TERMS_NOT_COMMITTED:
                 '{0} 引用了计价公式 {1},当时没有记下结算条款 —— 结算直接拒,不去读公式今天的样子',
             PRICING_TERMS_ALREADY_COMMITTED: '{0} 已按承诺条款({1})结算',

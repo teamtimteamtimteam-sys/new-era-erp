@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { localizePurchasingError } from '../purchasingErrorCodes'
 
 export type TemplateFormState = { error?: string }
 
@@ -101,11 +102,18 @@ export async function saveTemplate(
     const name = String(formData.get('name') ?? '').trim()
     const description = String(formData.get('description') ?? '').trim()
     const isActive = formData.get('is_active') === 'on'
+    const currency = String(formData.get('currency') ?? '').trim() || null
 
     if (!name) return { error: t('purchasing.errNameRequired') }
 
     const parsed = parseLines(String(formData.get('lines_json') ?? '[]'))
     if ('error' in parsed) return { error: t(parsed.error, parsed.params) }
+
+    // FIN-29:有定额腿就必须声明币种 —— 模板不属于任何单据,不声明就没有币种可言。
+    // 只有比例的模板不需要(百分比对任何币种都成立),所以这是【条件必填】,
+    // 不是必填。DB 侧的守卫触发器是最终把关,这里先挡一道免得把裸错误码摔给用户。
+    const hasFixed = parsed.rows.some((r) => r.fixed_amount_ccy !== null)
+    if (hasFixed && !currency) return { error: t('purchasing.errTemplateCurrencyRequired') }
 
     const supabase = await createClient()
     let templateId = id
@@ -113,7 +121,10 @@ export async function saveTemplate(
     if (id) {
         const { error } = await supabase
             .from('payment_term_templates')
-            .update({ name, description: description || null, is_active: isActive })
+            .update({ name, description: description || null, is_active: isActive,
+                      // 没有定额腿时把币种清掉:留着一个用不上的币种,下次加定额腿
+                      // 会静静地沿用它 —— 而那个币种是上一次的决定,不是这一次的。
+                      currency: hasFixed ? currency : null })
             .eq('id', id)
         if (error) {
             return {
@@ -129,7 +140,8 @@ export async function saveTemplate(
     } else {
         const { data, error } = await supabase
             .from('payment_term_templates')
-            .insert({ name, description: description || null, is_active: isActive })
+            .insert({ name, description: description || null, is_active: isActive,
+                      currency: hasFixed ? currency : null })
             .select('id')
             .single()
         if (error || !data) {
@@ -146,7 +158,7 @@ export async function saveTemplate(
     const { error: lineError } = await supabase
         .from('payment_term_template_lines')
         .insert(parsed.rows.map((r) => ({ ...r, template_id: templateId })))
-    if (lineError) return { error: lineError.message }
+    if (lineError) return { error: await localizePurchasingError(lineError.message) }
 
     revalidatePath('/purchasing/payment-terms')
     redirect('/purchasing/payment-terms')

@@ -26,7 +26,13 @@ CREATE TABLE public.payment_term_template_lines (
 );
 
 COMMENT ON COLUMN public.payment_term_template_lines.fixed_amount_ccy IS
-    '模板里该期的定额。模板不属于任何单据,所以它的币种要等 apply_payment_term_template 把它抄到某张 PO 上才确定 —— 抄过去之后就是【那张单的币种】。FIN-28 前列名 fixed_amount_usd。';
+    '模板里该期的定额,币种由【模板头】payment_term_templates.currency 声明(FIN-29)。有定额腿就必须声明,而套用时只接受币种相同的采购单 —— 不换算。FIN-29 之前这一列没有币种可言:同一个模板套到 USD 单与 SGD 单上,同一个数字是两笔差着一个汇率的钱。FIN-28 前列名 fixed_amount_usd。';
+
+-- FIN-29:插/改定额腿时,模板头必须已声明币种(守卫函数在
+-- db/functions/guard_template_fixed_needs_currency.sql)。
+CREATE TRIGGER trg_ptt_lines_fixed_needs_currency
+    BEFORE INSERT OR UPDATE ON public.payment_term_template_lines
+    FOR EACH ROW EXECUTE FUNCTION public.guard_template_fixed_needs_currency();
 
 CREATE INDEX idx_ptt_lines_template ON public.payment_term_template_lines (template_id);
 

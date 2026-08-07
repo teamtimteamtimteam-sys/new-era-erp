@@ -3300,6 +3300,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          currency: string | null
           deleted_at: string | null
           description: string | null
           id: string
@@ -3311,6 +3312,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          currency?: string | null
           deleted_at?: string | null
           description?: string | null
           id?: string
@@ -3322,6 +3324,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          currency?: string | null
           deleted_at?: string | null
           description?: string | null
           id?: string
@@ -3330,7 +3333,15 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "payment_term_templates_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       payments: {
         Row: {

@@ -21,14 +21,17 @@ export function emptyTermLine(): TemplateLineInput {
 
 export default function TemplateForm({
     template,
+    currencies,
 }: {
     template?: {
         id: string
         name: string
         description: string | null
         is_active: boolean
+        currency: string | null
         lines: TemplateLineInput[]
     }
+    currencies: { code: string }[]
 }) {
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(saveTemplate, initialState)
@@ -36,6 +39,11 @@ export default function TemplateForm({
     const [lines, setLines] = useState<TemplateLineInput[]>(
         template?.lines.length ? template.lines : [emptyTermLine()]
     )
+    const [currency, setCurrency] = useState<string>(template?.currency ?? '')
+
+    // FIN-29:定额腿才需要币种。没有定额腿时整个字段收起来 —— 摆一个用不上的
+    // 必填框,人只会随便选一个,而随便选的字段迟早被当真。
+    const hasFixed = lines.some((l) => l.mode === 'fixed')
 
     function patchLine(i: number, patch: Partial<TemplateLineInput>) {
         setLines((ls) => ls.map((l, j) => (j === i ? { ...l, ...patch } : l)))
@@ -95,6 +103,31 @@ export default function TemplateForm({
                     {t('pricing.form.active')}
                 </label>
             </div>
+
+            {/* FIN-29:定额腿的币种。模板不属于任何单据,所以定额在被套到某张 PO 上
+                之前没有币种可言 —— 声明它,套用时币种不同即拒(不换算:付款条款是
+                谈定的承诺,不是算出来的量)。只有比例的模板不需要,字段就不出现。 */}
+            {hasFixed && (
+                <div className="max-w-xs">
+                    <label className="block text-sm font-medium mb-1">
+                        {t('purchasing.form.templateCurrency')} <span className="text-red-600">*</span>
+                    </label>
+                    <select
+                        name="currency"
+                        value={currency}
+                        onChange={(e) => setCurrency(e.target.value)}
+                        required
+                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                    >
+                        <option value="">—</option>
+                        {currencies.map((c) => (
+                            <option key={c.code} value={c.code}>{c.code}</option>
+                        ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">{t('purchasing.form.templateCurrencyHint')}</p>
+                </div>
+            )}
+            {!hasFixed && <input type="hidden" name="currency" value="" />}
 
             <h2 className="font-bold pt-2">{t('purchasing.form.paymentTerms')}</h2>
             <table className="w-full border-collapse border border-gray-300">

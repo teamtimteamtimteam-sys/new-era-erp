@@ -22,8 +22,16 @@ CREATE TABLE public.payment_term_templates (
     created_at  timestamptz NOT NULL DEFAULT now(),
     created_by  uuid DEFAULT auth.uid(),
     updated_at  timestamptz NOT NULL DEFAULT now(),
-    updated_by  uuid DEFAULT auth.uid()
+    updated_by  uuid DEFAULT auth.uid(),
+    -- ── FIN-29 追加(ALTER 加的列排在末尾)──────────────────────────────────
+    -- 定额腿的币种。【可空】:只有比例的模板不需要币种,百分比对任何币种都成立。
+    -- 一旦模板里出现定额腿,这一列必须有值 —— 那条规则跨父子两张表,
+    -- CHECK 写不出来(不许子查询),由 guard_template_fixed_needs_currency 执行。
+    currency    text REFERENCES public.currencies (code)
 );
+
+COMMENT ON COLUMN public.payment_term_templates.currency IS
+    '本模板【定额腿】的币种(FIN-29)。可空:只有比例的模板不需要币种,百分比对任何币种都成立。一旦模板里出现定额腿,这一列必须有值(守卫 guard_template_fixed_needs_currency 强制),而 apply_payment_term_template 只接受币种与之相同的采购单 —— 付款条款是谈定的承诺,不按牌价折算。';
 
 CREATE UNIQUE INDEX idx_payment_term_templates_name_live
     ON public.payment_term_templates (name) WHERE deleted_at IS NULL;
@@ -31,6 +39,13 @@ CREATE UNIQUE INDEX idx_payment_term_templates_name_live
 CREATE TRIGGER trg_payment_term_templates_updated_at
     BEFORE UPDATE ON public.payment_term_templates
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- FIN-29:清空币种时,若模板里还有定额腿则拦下(守卫函数在
+-- db/functions/guard_template_fixed_needs_currency.sql;另一半挂在行表上 ——
+-- 只挡一侧等于没挡)。
+CREATE TRIGGER trg_ptt_fixed_needs_currency
+    BEFORE UPDATE ON public.payment_term_templates
+    FOR EACH ROW EXECUTE FUNCTION public.guard_template_fixed_needs_currency();
 
 ALTER TABLE public.payment_term_templates ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "payment_term_templates select by permission"

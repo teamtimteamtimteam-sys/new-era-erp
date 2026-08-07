@@ -23,7 +23,7 @@ export default async function EditTemplatePage({
     const [tplRes, lineRes] = await Promise.all([
         supabase
             .from('payment_term_templates')
-            .select('id, name, description, is_active')
+            .select('id, name, description, is_active, currency')
             .eq('id', id)
             .is('deleted_at', null)
             .single(),
@@ -37,6 +37,8 @@ export default async function EditTemplatePage({
     if (tplRes.error || !tplRes.data) {
         notFound()
     }
+    // FIN-29:币种是数据,不是写死的清单
+    const currencies = mustRows(await supabase.from('currencies').select('code').order('code'))
 
     // 遮蔽的是 fixed_amount_ccy;label/trigger_event 等恢复基表类型。
     const lines: TemplateLineInput[] = maskedRows<Tables<'payment_term_template_lines'>, 'fixed_amount_ccy'>(mustRows(lineRes)).map((l) => ({
@@ -60,7 +62,7 @@ export default async function EditTemplatePage({
                 <span className="ml-3 text-base text-gray-500">{tplRes.data.name}</span>
             </h1>
             <Subnav />
-            <TemplateForm template={{ ...tplRes.data, lines }} />
+            <TemplateForm template={{ ...tplRes.data, lines }} currencies={currencies} />
         </div>
     )
 }
