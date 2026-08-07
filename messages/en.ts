@@ -726,7 +726,8 @@ const en = {
             errMaterial: 'Please select a material',
             errSupplier: 'Please select a supplier',
             errQuantity: 'Quantity is required',
-            errQuantityPositive: 'Quantity must be a number greater than 0',
+            errArrivalDate: 'Arrival date is required — the stock movement records the day the goods actually arrived',
+        errQuantityPositive: 'Quantity must be a number greater than 0',
             errUnitPrice: 'Unit price must be a number',
             saveError: 'Save failed: {message}',
         },
@@ -1801,6 +1802,7 @@ const en = {
         col: 'Label',
     },
     receive: {
+        errArrivalDate: 'Arrival date is required — the stock movement records the day the goods actually arrived',
         title: 'Field Receiving',
         entry: 'Field Receiving',
         supplier: 'Supplier',

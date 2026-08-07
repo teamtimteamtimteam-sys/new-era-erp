@@ -728,7 +728,8 @@ const zh = {
             errMaterial: '请选择物料',
             errSupplier: '请选择供应商',
             errQuantity: '数量是必填的',
-            errQuantityPositive: '数量必须是大于0的数字',
+            errArrivalDate: '到货日必填 —— 库存流水要记下货【实际到的那一天】',
+        errQuantityPositive: '数量必须是大于0的数字',
             errUnitPrice: '单价必须是数字',
             saveError: '保存失败：{message}',
         },
@@ -1792,6 +1793,7 @@ const zh = {
         col: '标签',
     },
     receive: {
+        errArrivalDate: '到货日必填 —— 库存流水要记下货【实际到的那一天】',
         title: '现场收货',
         entry: '现场收货',
         supplier: '供应商',

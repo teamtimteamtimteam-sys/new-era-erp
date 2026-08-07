@@ -116,10 +116,21 @@ def check_generated_types(dsn: str) -> str:
         return "lib/database.types.ts 不存在"
     if shutil.which("supabase") is None:
         return "supabase CLI 不在 PATH —— 查不了,不当作通过"
-    r = subprocess.run(["supabase", "gen", "types", "typescript", "--project-id", ref],
-                       capture_output=True, text=True)
+    # 【重试一次,然后才认输】实测过一次:CLI 无缘无故 exit 1 且 stderr 为空,
+    # 重跑立刻成功。为一次网络抖动把门变红,人就会学会"红了先重跑一遍" ——
+    # 那正是让门失效的方式。所以抖一次不算数,抖两次才算,而且把两条流都打出来:
+    # 上一版只打 stderr,而那次 stderr 恰好是空的,报出来的是"失败(exit 1):"
+    # 后面什么都没有 —— 一条查不下去的错误信息等于没有错误信息。
+    last = None
+    for _ in range(2):
+        r = subprocess.run(["supabase", "gen", "types", "typescript", "--project-id", ref],
+                           capture_output=True, text=True)
+        if r.returncode == 0:
+            break
+        last = r
     if r.returncode != 0:
-        return f"supabase gen types 失败(exit {r.returncode}): {r.stderr.strip()[:200]}"
+        detail = (last.stderr.strip() or last.stdout.strip() or "(stdout 与 stderr 都是空的)")
+        return f"supabase gen types 连续两次失败(exit {last.returncode}): {detail[:200]}"
     fresh = r.stdout
     have = committed.read_text()
     if fresh == have:

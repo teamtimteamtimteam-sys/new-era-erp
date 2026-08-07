@@ -51,6 +51,8 @@ export default function ReceiveForm({
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(createFieldReceipt, initialState)
 
+    const [arrivalDate, setArrivalDate] = useState(todayIsoLocal())
+
     const [supplierId, setSupplierId] = useState('')
     const [poId, setPoId] = useState('')
     const [lineId, setLineId] = useState('')
@@ -201,13 +203,19 @@ export default function ReceiveForm({
                 {state.fieldErrors?.quantity && <p className={errCls}>{state.fieldErrors.quantity}</p>}
             </div>
 
-            {/* 到货日期 */}
+            {/* 到货日期 —— 【必填】。库存流水的 business_date 抄的就是它(FIN-32)。
+                预填今天是【便利】不是默认值:它是受控值,清空就提交不了 ——
+                与"服务端偷偷补一个 CURRENT_DATE"是两回事,后者会奖励留空。 */}
             <div>
-                <label className={labelCls}>{t('receive.arrivalDate')}</label>
+                <label className={labelCls}>
+                    {t('receive.arrivalDate')} <span className="text-red-600">*</span>
+                </label>
                 <input
                     type="date"
                     name="arrival_date"
-                    defaultValue={todayIsoLocal()}
+                    value={arrivalDate}
+                    onChange={(e) => setArrivalDate(e.target.value)}
+                    required
                     className={fieldCls}
                 />
             </div>
@@ -221,7 +229,7 @@ export default function ReceiveForm({
             {/* 提交 */}
             <button
                 type="submit"
-                disabled={isPending}
+                disabled={isPending || !arrivalDate}
                 className="w-full bg-blue-600 text-white text-base font-medium rounded px-4 py-3 min-h-[48px] hover:bg-blue-700 disabled:bg-gray-400"
             >
                 {isPending ? t('receive.submitting') : t('receive.submit')}

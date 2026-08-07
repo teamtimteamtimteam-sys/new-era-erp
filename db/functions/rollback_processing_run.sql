@@ -11,6 +11,7 @@ AS $function$
 DECLARE
     v_user_id uuid := auth.uid();
     v_run_deleted_at timestamptz;
+    v_process_date date;     -- FIN-32:还原流水的业务日 = 原加工单的加工日
     v_bad_output record;
     v_input record;
     v_old_remaining numeric;
@@ -19,6 +20,7 @@ DECLARE
 BEGIN
     PERFORM require_permission('module.processing.edit');
     -- 1. 锁定加工单，校验存在且未删除
+    SELECT process_date INTO v_process_date FROM processing_runs WHERE id = p_run_id;
     SELECT deleted_at INTO v_run_deleted_at
     FROM processing_runs
     WHERE id = p_run_id
@@ -80,8 +82,11 @@ BEGIN
             WHERE id = v_input.inbound_batch_id;
 
             IF v_new_remaining - COALESCE(v_old_remaining, 0) > 0 THEN
-                INSERT INTO inventory_movements (inbound_batch_id, movement_type, qty_delta, run_id, created_by)
-                VALUES (v_input.inbound_batch_id, 'reversal_restore', v_new_remaining - COALESCE(v_old_remaining, 0), p_run_id, v_user_id);
+                -- FIN-32:还原不是物理事件,是在更正一次记错的加工单 —— 业务日取
+                -- 【原加工单的 process_date】,于是消耗与还原在同一天对消,
+                -- 中间那几天的库存历史不会凭空少掉一批实际还在的货。
+                INSERT INTO inventory_movements (inbound_batch_id, movement_type, qty_delta, run_id, business_date, created_by)
+                VALUES (v_input.inbound_batch_id, 'reversal_restore', v_new_remaining - COALESCE(v_old_remaining, 0), p_run_id, v_process_date, v_user_id);
             END IF;
         ELSE
             SELECT quantity, remaining_qty INTO v_quantity, v_old_remaining
@@ -105,8 +110,9 @@ BEGIN
             WHERE id = v_input.output_batch_id;
 
             IF v_new_remaining - COALESCE(v_old_remaining, 0) > 0 THEN
-                INSERT INTO inventory_movements (output_batch_id, movement_type, qty_delta, run_id, created_by)
-                VALUES (v_input.output_batch_id, 'reversal_restore', v_new_remaining - COALESCE(v_old_remaining, 0), p_run_id, v_user_id);
+                -- FIN-32:同上 —— 产出批投料的还原(FIN-25 那条边)业务日一样取原加工日
+                INSERT INTO inventory_movements (output_batch_id, movement_type, qty_delta, run_id, business_date, created_by)
+                VALUES (v_input.output_batch_id, 'reversal_restore', v_new_remaining - COALESCE(v_old_remaining, 0), p_run_id, v_process_date, v_user_id);
             END IF;
         END IF;
     END LOOP;

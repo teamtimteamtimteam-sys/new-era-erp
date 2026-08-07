@@ -48,6 +48,7 @@ export default function NewInboundForm({
 
     // ?po= 预选(采购单详情"按此单收货"入口):供应商随之带出
     const initialPo = initialPoId ? poLines.find((l) => l.po_id === initialPoId) : undefined
+    const [arrivalDate, setArrivalDate] = useState('')
     const [supplierId, setSupplierId] = useState(initialPo?.supplier_id ?? '')
     const [poId, setPoId] = useState(initialPo ? initialPoId : '')
     const [lineId, setLineId] = useState('')
@@ -255,12 +256,20 @@ export default function NewInboundForm({
                     </select>
                 </div>
 
-                {/* 到货日期 */}
+                {/* 到货日期 —— 【必填】。它是收货人当场就知道的事实,而库存流水的
+                    business_date 直接抄它(FIN-32):留空,这条流水就永远说不出
+                    货是哪天到的。守卫成对(AGENTS.md):这里控制提交按钮,
+                    服务端 action 另有一道独立的拒绝,绕过界面也进不来。 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('inbound.form.arrivalDate')}</label>
+                    <label className="block text-sm font-medium mb-1">
+                        {t('inbound.form.arrivalDate')} <span className="text-red-600">*</span>
+                    </label>
                     <input
                         type="date"
                         name="arrival_date"
+                        value={arrivalDate}
+                        onChange={(e) => setArrivalDate(e.target.value)}
+                        required
                         className="w-full border border-gray-300 px-3 py-2 rounded"
                     />
                 </div>
@@ -311,7 +320,7 @@ export default function NewInboundForm({
                 <div className="flex gap-3 pt-4">
                     <button
                         type="submit"
-                        disabled={isPending}
+                        disabled={isPending || !arrivalDate}
                         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                     >
                         {isPending ? t('common.saving') : t('common.save')}

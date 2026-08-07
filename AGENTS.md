@@ -339,7 +339,7 @@ python3 db/gate.py     # 0 clean · 1 mirror drift · 2 cannot build
                        # 3 B1/B2 invariant · 4 behavioural fixture failed
 ```
 
-Twenty-four fixtures, ~116 assertions, on the paths where a silent break costs money:
+Twenty-five fixtures, ~128 assertions, on the paths where a silent break costs money:
 settlement closing to exactly zero (including cross-currency), revaluation
 idempotence, confirmation not touching leave, accrual not applying a category
 change retroactively, one bank line per employee, realised 7100 never crossing
@@ -426,6 +426,20 @@ never enter the "entries that moved cash" set and the exclusion was untested;
 deleting the filter left the fixture green. It now also posts a MALFORMED
 cash-touching year-close and asserts the statement reports ties=false, which is
 what makes the filter load-bearing).
+and the inventory ledger's business date (FIN-32:
+`business_date` is the day the thing HAPPENED, not the day it was keyed in — and
+it was 58% empty, in a pattern: writeoff / reversal_void / reversal_restore were
+100% empty because those paths never wrote it, and receipts were 80% empty
+because they copy a nullable `arrival_date`. Both ends closed. The decision worth
+knowing is the reversal's date: a rollback is NOT a physical event — batteries
+that were processed stay processed — it corrects a mis-recorded run, so it takes
+the ORIGINAL run's `process_date`, which makes the error and its correction
+cancel on the same day and stops the intervening days showing stock that was
+never really absent. Writeoff is the opposite — a real physical event — so it
+takes `deleted_at::date`, read from the row rather than the clock. New rows are
+required via `CHECK (...) NOT VALID`, which enforces on insert while leaving the
+15 historical nulls untouched: they are history, not a bug, and backfilling them
+would invent a fact nobody recorded).
 Deliberately small: every retained fixture is
 maintenance on every schema move, and the HR-2c accrual change already cost one
 round of "is this staleness or regression?" judgement.

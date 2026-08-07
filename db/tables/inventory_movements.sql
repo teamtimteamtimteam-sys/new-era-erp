@@ -20,7 +20,7 @@ CREATE TABLE public.inventory_movements (
     qty_delta        numeric NOT NULL CHECK (qty_delta <> 0),
     run_id           uuid REFERENCES public.processing_runs (id) ON DELETE RESTRICT,
     location_id      uuid REFERENCES public.storage_locations (id) ON DELETE RESTRICT,
-    business_date    date,
+    business_date    date,   -- FIN-32:见文末 COMMENT 与 NOT VALID 约束
     notes            text,
     occurred_at      timestamptz NOT NULL DEFAULT now(),
     created_at       timestamptz NOT NULL DEFAULT now(),
@@ -75,3 +75,14 @@ CREATE CONSTRAINT TRIGGER trg_inventory_movements_invariant
     AFTER INSERT ON public.inventory_movements
     DEFERRABLE INITIALLY DEFERRED
     FOR EACH ROW EXECUTE FUNCTION public.check_ledger_invariant();
+
+-- FIN-32:业务日 —— 每条写入路径都要写,而且写的是【记录里的那个日期】,不是时钟。
+-- 新行必填、老行放过:CHECK ... NOT VALID 对【新插入与更新】强制,不回头校验既有
+-- 15 行历史空值(它们不回填 —— 按今天补一个业务日是编造一条没人记录过的事实)。
+-- 本表由 reject_movement_mutation 挡住 UPDATE/DELETE,所以老行不会被"更新"撞上它。
+ALTER TABLE public.inventory_movements
+    ADD CONSTRAINT inventory_movements_business_date_required
+    CHECK (business_date IS NOT NULL) NOT VALID;
+
+COMMENT ON COLUMN public.inventory_movements.business_date IS
+    '这件事【在业务上发生在哪一天】,与 created_at(什么时候被记进系统)是两回事。收货取 arrival_date、加工取 process_date、销售取销售日、注销取 deleted_at 那天;冲销/还原取【原加工单的 process_date】—— 回滚是在更正一次记错的加工单,不是一次物理事件,所以一错一改在同一天对消。NULL = FIN-32 之前写入的行,当时这条路径根本没写它 —— 【不回填】,界面读作"未知";按今天补一个业务日是编造一条没人记录过的事实(同 FIN-26 / FIN-27)。新行由 inventory_movements_business_date_required(NOT VALID)强制必填。';

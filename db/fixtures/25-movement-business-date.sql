@@ -1,0 +1,152 @@
+-- 25 库存流水的业务日:每条写入路径都写,且写的是【那件事发生在哪一天】
+--
+-- 为什么值得常设(FIN-32):business_date 与 created_at 是两回事 —— 前者是货那天
+-- 到的 / 那天被处理的,后者是有人那天把它敲进系统。补之前 58% 为空,而空得很有
+-- 规律:writeoff / reversal_void / reversal_restore 【100% 空】(压根没写),
+-- receipt 80% 空(抄的 arrival_date 本身可空)。Phase 2 的出入库单据、状态区分的
+-- 库存、库位管理都要靠这一列,而那时表里已经有数据 —— 空值再也补不回真话。
+--
+-- 【本 fixture 钉住的两件事】
+--   ① 每条路径都写,且写的是【记录里的那个日期】,不是 now();
+--   ② 冲销/还原写的是【原加工单的加工日】,不是今天 —— 这是一个决定,
+--      所以按名断言:回滚不是物理事件(电池处理过了就是处理过了),它在更正一次
+--      记错的加工单,于是一错一改在同一天对消,中间那几天的库存历史不会凭空
+--      多出或少掉一批货。写成"今天"的实现,本 fixture 当场红。
+BEGIN;
+DO $$
+DECLARE
+    v_uid uuid := gen_random_uuid(); v_role uuid;
+    v_sup uuid; v_cust uuid; v_mat uuid; v_matB uuid;
+    v_ib uuid; v_ib2 uuid; v_ib3 uuid; v_run uuid; v_run2 uuid; v_ob uuid; v_ob2 uuid; v_st uuid;
+    v_arrival date := CURRENT_DATE - 20;   -- 货是 20 天前到的
+    v_process date := CURRENT_DATE - 10;   -- 10 天前加工
+    v_sale    date := CURRENT_DATE - 5;    -- 5 天前卖掉一部分
+    v_bd date; v_n integer; v_msg text; v_ok boolean;
+BEGIN
+    INSERT INTO roles (code, name_en, name_zh, is_active)
+    VALUES ('fixture-25', 'fixture', 'fixture', true) RETURNING id INTO v_role;
+    INSERT INTO role_permissions (role_id, permission_code) SELECT v_role, code FROM permissions;
+    INSERT INTO user_roles (user_id, role_id) VALUES (v_uid, v_role);
+    PERFORM set_config('request.jwt.claims',
+        format('{"sub":"%s","role":"authenticated"}', v_uid), true);
+    UPDATE finance_settings SET locked_before = NULL;
+
+    INSERT INTO suppliers (code, legal_name, country) VALUES ('FIXT-S25','Fixture Supplier 25','SG')
+        RETURNING id INTO v_sup;
+    INSERT INTO customers (code, legal_name, country) VALUES ('FIXT-C25','Fixture Customer 25','SG')
+        RETURNING id INTO v_cust;
+    INSERT INTO materials (code, name, category) VALUES ('FIXT-M25','Fixture Raw 25','black_mass')
+        RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, category) VALUES ('FIXT-M25B','Fixture Fine 25','black_mass')
+        RETURNING id INTO v_matB;
+
+    -- ════════ A. receipt:抄批次自己的到货日,不是今天 ═══════════════════════
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
+    VALUES ('FIXT-IB25', v_mat, v_sup, 100, 100, 'kg', v_arrival) RETURNING id INTO v_ib;
+    SELECT business_date INTO v_bd FROM inventory_movements
+    WHERE inbound_batch_id = v_ib AND movement_type = 'receipt';
+    IF v_bd IS DISTINCT FROM v_arrival THEN
+        RAISE EXCEPTION 'FIXTURE 25A 失败:收货流水的业务日应为到货日 %,实得 %(= 今天说明抄的是时钟而不是记录)',
+            v_arrival, COALESCE(v_bd::text,'NULL');
+    END IF;
+
+    -- ════════ B. processing_consume / processing_produce:加工日 ═════════════
+    PERFORM reprice_inbound_batch(v_ib, 1, 'SGD', NULL, 'fixture 25 price');
+    v_run := commit_processing_run(v_process, 'fixture 25 run', 0,
+        jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)));
+    SELECT output_batch_id INTO v_ob FROM processing_outputs WHERE run_id = v_run;
+
+    SELECT business_date INTO v_bd FROM inventory_movements
+    WHERE inbound_batch_id = v_ib AND movement_type = 'processing_consume';
+    IF v_bd IS DISTINCT FROM v_process THEN
+        RAISE EXCEPTION 'FIXTURE 25B 失败:消耗流水的业务日应为加工日 %,实得 %', v_process, COALESCE(v_bd::text,'NULL');
+    END IF;
+    SELECT business_date INTO v_bd FROM inventory_movements
+    WHERE output_batch_id = v_ob AND movement_type = 'processing_produce';
+    IF v_bd IS DISTINCT FROM v_process THEN
+        RAISE EXCEPTION 'FIXTURE 25B 失败:产出流水的业务日应为加工日 %(产出批的 output_date 即加工日),实得 %',
+            v_process, COALESCE(v_bd::text,'NULL');
+    END IF;
+
+    -- ════════ C. sale:销售日 ════════════════════════════════════════════════
+    PERFORM record_output_sale(v_ob, 30, 10, 'SGD', NULL, v_cust, v_sale, NULL);
+    SELECT business_date INTO v_bd FROM inventory_movements
+    WHERE output_batch_id = v_ob AND movement_type = 'sale';
+    IF v_bd IS DISTINCT FROM v_sale THEN
+        RAISE EXCEPTION 'FIXTURE 25C 失败:销售流水的业务日应为销售日 %,实得 %', v_sale, COALESCE(v_bd::text,'NULL');
+    END IF;
+
+    -- ════════ D. writeoff:注销那天(deleted_at 的日期)══════════════════════
+    -- 【真实物理事件】货报废在那一天,而那一天就写在行上 —— 读记录,不是当场编。
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
+    VALUES ('FIXT-IB25W', v_mat, v_sup, 50, 50, 'kg', v_arrival) RETURNING id INTO v_ib2;
+    UPDATE inbound_batches SET deleted_at = now(), updated_by = v_uid WHERE id = v_ib2;
+    SELECT business_date INTO v_bd FROM inventory_movements
+    WHERE inbound_batch_id = v_ib2 AND movement_type = 'writeoff';
+    IF v_bd IS DISTINCT FROM CURRENT_DATE THEN
+        RAISE EXCEPTION 'FIXTURE 25D 失败:注销流水的业务日应为注销当天(deleted_at 的日期)%,实得 % —— 它必须来自行上的 deleted_at,不是留空',
+            CURRENT_DATE, COALESCE(v_bd::text,'NULL');
+    END IF;
+
+    -- ════════ E. adjustment:盘点过账日 ══════════════════════════════════════
+    INSERT INTO stocktakes (code, status, created_by, updated_by)
+    VALUES ('FIXT-ST25', 'open', v_uid, v_uid) RETURNING id INTO v_st;
+    INSERT INTO stocktake_lines (stocktake_id, output_batch_id, book_qty, counted_qty, created_by)
+    VALUES (v_st, v_ob, 70, 65, v_uid);
+    PERFORM post_stocktake(v_st);
+    SELECT business_date INTO v_bd FROM inventory_movements
+    WHERE output_batch_id = v_ob AND movement_type = 'adjustment';
+    IF v_bd IS DISTINCT FROM CURRENT_DATE THEN
+        RAISE EXCEPTION 'FIXTURE 25E 失败:盘点调整的业务日应为过账日 %,实得 % —— stocktakes 表上没有盘点日字段,这是目前唯一可取的来源(Phase 2 补了盘点日就改这里)',
+            CURRENT_DATE, COALESCE(v_bd::text,'NULL');
+    END IF;
+
+    -- ════════ F. 冲销/还原:【原加工单的加工日,不是今天】═════════════════════
+    -- 这是本切的那个决定,所以按名断言。回滚不是物理事件 —— 电池处理过了就是
+    -- 处理过了;它在更正一次记错的加工单。取原加工日,消耗与还原在同一天对消,
+    -- 中间那几天的库存历史不会凭空少掉一批实际还在的货。
+    -- 写成 CURRENT_DATE 的实现在这里当场红(v_process 是 10 天前)。
+    --
+    -- 【本臂自带一炉】前面那一炉的产出已经卖掉一部分、又被盘点调过,
+    -- rollback 会按 OUTPUT_CONSUMED 拒绝 —— 那是它该拒的。回滚要测的是日期,
+    -- 不是那道守卫,所以另起一炉、一样的加工日、不碰它的产出。
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
+    VALUES ('FIXT-IB25R', v_mat, v_sup, 40, 40, 'kg', v_arrival) RETURNING id INTO v_ib3;
+    PERFORM reprice_inbound_batch(v_ib3, 1, 'SGD', NULL, 'fixture 25 rollback price');
+    v_run2 := commit_processing_run(v_process, 'fixture 25 rollback run', 0,
+        jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib3, 'quantity_consumed', 40)),
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 40)));
+    SELECT output_batch_id INTO v_ob2 FROM processing_outputs WHERE run_id = v_run2;
+
+    PERFORM rollback_processing_run(v_run2);
+
+    SELECT business_date INTO v_bd FROM inventory_movements
+    WHERE inbound_batch_id = v_ib3 AND movement_type = 'reversal_restore';
+    IF v_bd IS DISTINCT FROM v_process THEN
+        RAISE EXCEPTION 'FIXTURE 25F 失败:还原流水的业务日应为【原加工日】%,实得 % —— 写成今天会让中间那 10 天的库存历史凭空少掉这批货',
+            v_process, COALESCE(v_bd::text,'NULL');
+    END IF;
+    SELECT business_date INTO v_bd FROM inventory_movements
+    WHERE output_batch_id = v_ob2 AND movement_type = 'reversal_void';
+    IF v_bd IS DISTINCT FROM v_process THEN
+        RAISE EXCEPTION 'FIXTURE 25F 失败:冲销流水的业务日应为【原加工日】%,实得 % —— 同上,一错一改必须在同一天对消',
+            v_process, COALESCE(v_bd::text,'NULL');
+    END IF;
+
+    -- ════════ G. 新行必填(NOT VALID 约束对新插入生效)═══════════════════════
+    -- 存量空值不回填、原样留着;而【从今往后】少了业务日就插不进来。
+    v_ok := false; v_msg := NULL;
+    BEGIN
+        INSERT INTO inventory_movements (inbound_batch_id, movement_type, qty_delta, created_by)
+        VALUES (v_ib, 'adjustment', 1, v_uid);
+    EXCEPTION WHEN OTHERS THEN
+        GET STACKED DIAGNOSTICS v_msg = MESSAGE_TEXT;
+        v_ok := v_msg LIKE '%business_date%' OR v_msg LIKE '%inventory_movements_business_date_required%';
+    END;
+    IF NOT v_ok THEN
+        RAISE EXCEPTION 'FIXTURE 25G 失败:不带业务日的新流水应被约束拒绝,实得:%',
+            COALESCE(v_msg, '(插进去了 —— 那条 NOT VALID 约束没生效)');
+    END IF;
+END $$;
+ROLLBACK;

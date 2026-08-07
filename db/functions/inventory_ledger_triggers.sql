@@ -75,19 +75,38 @@ DECLARE
     v_value numeric;
     v_acct  text;
     v_amt   numeric;
+    v_bd    date;      -- FIN-32:这条流水的【业务日】
 BEGIN
     IF OLD.remaining_qty > 0 THEN
+        -- ════════════════════════════════════════════════════════════════════
+        -- FIN-32:business_date =【这件事在业务上发生在哪一天】,与它被记进系统的
+        -- 时刻是两回事。两类事,两个答案,不能共用一个:
+        --
+        --   * 注销(writeoff)是【真实发生的物理事件】—— 货报废了。发生在有人
+        --     按下注销的那天,而那天就写在行上:deleted_at。取它的日期部分,
+        --     是【读记录】而不是 CURRENT_DATE 那种【当场编一个】。
+        --     (触发器只在 deleted_at 由空变非空时触发,所以它必然有值。)
+        --
+        --   * 冲销(reversal_void)【不是物理事件】—— 电池处理过了就处理过了,
+        --     回滚是在更正一次【记错的加工单】。所以它的业务日是【原加工单的
+        --     process_date】,不是今天:那样一错一改在同一天对消,中间那几天的
+        --     库存历史不会凭空多出一批实际并不存在的货。
+        --     会计侧的先例同向:reverse_journal_entry 把冲销日做成【显式入参】,
+        --     从不假定 —— 这里没有入参可传,但答案同样来自记录(run.process_date),
+        --     不来自时钟。
+        -- ════════════════════════════════════════════════════════════════════
         IF TG_TABLE_NAME = 'inbound_batches' THEN
-            INSERT INTO public.inventory_movements (inbound_batch_id, movement_type, qty_delta, created_by)
-            VALUES (OLD.id, 'writeoff', -OLD.remaining_qty, NEW.updated_by);
+            INSERT INTO public.inventory_movements (inbound_batch_id, movement_type, qty_delta, business_date, created_by)
+            VALUES (OLD.id, 'writeoff', -OLD.remaining_qty, NEW.deleted_at::date, NEW.updated_by);
         ELSE  -- output_batches
             IF v_ctx IS NOT NULL AND split_part(v_ctx, ':', 1) = 'reversal' THEN
                 v_run := split_part(v_ctx, ':', 2)::uuid;
-                INSERT INTO public.inventory_movements (output_batch_id, movement_type, qty_delta, run_id, created_by)
-                VALUES (OLD.id, 'reversal_void', -OLD.remaining_qty, v_run, NEW.updated_by);
+                SELECT process_date INTO v_bd FROM processing_runs WHERE id = v_run;
+                INSERT INTO public.inventory_movements (output_batch_id, movement_type, qty_delta, run_id, business_date, created_by)
+                VALUES (OLD.id, 'reversal_void', -OLD.remaining_qty, v_run, v_bd, NEW.updated_by);
             ELSE
-                INSERT INTO public.inventory_movements (output_batch_id, movement_type, qty_delta, created_by)
-                VALUES (OLD.id, 'writeoff', -OLD.remaining_qty, NEW.updated_by);
+                INSERT INTO public.inventory_movements (output_batch_id, movement_type, qty_delta, business_date, created_by)
+                VALUES (OLD.id, 'writeoff', -OLD.remaining_qty, NEW.deleted_at::date, NEW.updated_by);
             END IF;
         END IF;
 

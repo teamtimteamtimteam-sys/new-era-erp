@@ -23,6 +23,9 @@ export async function createFieldReceipt(
     const supplier_id = (formData.get('supplier_id') as string) || ''
     const material_id = (formData.get('material_id') as string) || ''
     const quantity_raw = (formData.get('quantity') as string) || ''
+    // FIN-32:到货日【必填】,而且服务端【独立】拒空 —— 界面那道守卫可以被绕过,
+    // 这一道不能。也【不给服务端默认值】:补一个 CURRENT_DATE 会让"留空"比"填对"
+    // 更容易通过,那条路专门奖励留空(AGENTS.md 的日期规则)。
     const arrival_date = (formData.get('arrival_date') as string)?.trim() || null
     const notes = (formData.get('notes') as string)?.trim() || null
     // 关联采购单(cut 4c,可选;成对出现)
@@ -42,6 +45,7 @@ export async function createFieldReceipt(
         else quantity = n
     }
 
+    if (!arrival_date) fieldErrors.arrival_date = t('receive.errArrivalDate')
     if (Object.keys(fieldErrors).length > 0) {
         return { fieldErrors }
     }
