@@ -10,6 +10,9 @@ const ASSAY_ERROR_CODES = new Set([
     'REASON_REQUIRED', 'FORMULA_NOT_FOUND', 'FORMULA_INACTIVE',
     // 重计价路径(reprice_inbound_batch)可能抛的
     'PRICE_INVALID', 'QUANTITY_INVALID', 'PERIOD_LOCKED',
+    // FIN-27:结算读承诺副本 —— 没有副本就点名拒,不悄悄退回去读活公式
+    'PRICING_TERMS_NOT_COMMITTED', 'PRICING_TERMS_ALREADY_COMMITTED',
+    'PRICE_NOT_POSITIVE', 'REFERENCE_DATE_REQUIRED',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..."(同 localizeFinanceError)。

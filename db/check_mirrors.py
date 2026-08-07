@@ -141,6 +141,13 @@ DEFINER_NO_CHECK_ALLOWED = {
     # 已收回 EXECUTE 的内层函数(ACL 里没有 PUBLIC 项)
     "calculate_metal_price_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "reverse_journal_entry_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    # FIN-27 的内层算子:条款解析、计价算术、承诺写入。同上,靠"调不到"而非"查调用者"
+    "pricing_terms_of_formula": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "pricing_terms_of_commitment": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "calculate_metal_price_from_terms": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "commit_pricing_terms": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "resolve_pricing_commitment": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "committed_terms_price": "EXECUTE revoked from PUBLIC/authenticated/anon",
 }
 
 CHECK_PATTERNS = ("require_permission(", "has_permission(", "current_user_employee(",

@@ -130,6 +130,29 @@ export default async function EditInboundPage({
     const resolvedFormulaId: string | null =
         batch.pricing_formula_id ?? poLineFormulaRes.data?.pricing_formula_id ?? null
 
+    // FIN-27:这批货按哪一份【承诺条款】结算 —— 解析次序与 resolve_pricing_commitment
+    // 一致(批次自己的 → 它那条采购行的)。有公式引用却没有副本的批次,结算会点名
+    // 拒(PRICING_TERMS_NOT_COMMITTED);那不是要瞒着操作员到按下按钮才说的事,
+    // 所以这里就说,并且不渲染一个注定被拒的按钮。
+    const commitmentRes = await supabase
+        .from('pricing_term_commitments')
+        .select('id, source_formula_code, committed_at, inbound_batch_id, purchase_order_line_id')
+        .or(
+            [
+                `inbound_batch_id.eq.${id}`,
+                batch.purchase_order_line_id
+                    ? `purchase_order_line_id.eq.${batch.purchase_order_line_id}`
+                    : null,
+            ]
+                .filter(Boolean)
+                .join(',')
+        )
+    const commitmentRows = mustRows(commitmentRes)
+    const commitment =
+        commitmentRows.find((c) => c.inbound_batch_id === id) ??
+        commitmentRows.find((c) => c.purchase_order_line_id === batch.purchase_order_line_id) ??
+        null
+
     // 关联采购单(cut 4c):头部链接 + 行下单量;抵扣预付的资格/建议额与已抵扣记录
     let poHeader: { po_id: string; po_code: string; ordered_qty: number | null; unit: string } | null = null
     let applicable: {
@@ -331,14 +354,14 @@ export default async function EditInboundPage({
                 unitPrice={batch.unit_price}
                 history={priceHistoryRows}
                 extraAction={
-                    resolvedFormulaId ? (
-                        <RepriceFromContentPanel
-                            batchId={batch.id}
-                            formulaId={resolvedFormulaId}
-                            currentMetals={Object.fromEntries(
-                                metalRows.map((m) => [m.metal, String(m.content_pct)])
-                            )}
-                        />
+                    commitment ? (
+                        <RepriceFromContentPanel batchId={batch.id} />
+                    ) : resolvedFormulaId ? (
+                        /* 有公式、没有副本 = FIN-27 之前留下的引用。不回填猜测的条款,
+                           也不摆一个服务端保证会拒的按钮 —— 说清楚,指出手工定价这条路。 */
+                        <p className="mb-4 text-sm text-amber-700 border border-amber-300 bg-amber-50 rounded px-3 py-2">
+                            {t('assay.termsNotCommitted')}
+                        </p>
                     ) : null
                 }
             />

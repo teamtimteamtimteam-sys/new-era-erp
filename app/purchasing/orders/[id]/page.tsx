@@ -91,6 +91,20 @@ export default async function PurchaseOrderDetailPage({
     ])
     const materialById = new Map((mustRows(materialsRes)).map((m) => [m.id, `${m.code} — ${m.name}`]))
     const formulaById = new Map((mustRows(formulasRes)).map((f) => [f.id, `${f.code} — ${f.name}`]))
+
+    // FIN-27:这一行的结算条款是【下单时抄下来的】还是【还引着一张活公式】。
+    // 存量行(FIN-27 之前下的单)没有副本,不回填 —— 画"未承诺",与 FIN-26 的
+    // 灰色"出处未知"同一条规矩:编造的记录比缺失的记录更坏。
+    const lineIds = lines.map((l) => l.id)
+    const commitmentsRes = lineIds.length
+        ? await supabase
+              .from('pricing_term_commitments')
+              .select('purchase_order_line_id, source_formula_code, committed_at')
+              .in('purchase_order_line_id', lineIds)
+        : { data: [] as { purchase_order_line_id: string | null; source_formula_code: string; committed_at: string }[], error: null }
+    const commitmentByLine = new Map(
+        (mustRows(commitmentsRes)).map((c) => [c.purchase_order_line_id ?? '', c])
+    )
     const openByBatch = new Map((mustRows(apRes)).map((r) => [r.inbound_batch_id ?? '', r.open_base]))
 
     // 每批已抵扣的预付(cut 4c:收货记录多一列)
@@ -281,6 +295,20 @@ export default async function PurchaseOrderDetailPage({
                             </td>
                             <td className="border border-gray-300 px-3 py-2 text-sm">
                                 {l.pricing_formula_id ? (formulaById.get(l.pricing_formula_id) ?? '—') : '—'}
+                                {/* FIN-27:结算按哪一份条款。绿色 = 下单时抄下的副本,
+                                    公式此后怎么改都碰不到这一行;琥珀 = 存量行,没有副本,
+                                    结算会点名拒(不回填一份猜测的条款)。 */}
+                                {l.pricing_formula_id && (
+                                    <span className={'block text-xs mt-0.5 ' +
+                                        (commitmentByLine.has(l.id) ? 'text-green-700' : 'text-amber-700')}>
+                                        {commitmentByLine.has(l.id)
+                                            ? t('purchasing.terms.committed', {
+                                                code: commitmentByLine.get(l.id)!.source_formula_code,
+                                                on: String(commitmentByLine.get(l.id)!.committed_at).slice(0, 10),
+                                              })
+                                            : t('purchasing.terms.notCommitted')}
+                                    </span>
+                                )}
                             </td>
                             <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
                                 {l.estimated_unit_price !== null ? formatUnitCost(l.estimated_unit_price) : '—'}

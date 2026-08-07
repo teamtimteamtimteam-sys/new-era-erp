@@ -1448,6 +1448,8 @@ const zh = {
         negativeValue: '按此化验结果,该批次价值不高于零。系统会记录但不会自动定价,请手工处理。',
         metalsFromAssay: '应用化验结果会覆盖这些数值。',
         repriceFromFormula: '按当前含量重新计价',
+        termsNotCommitted:
+            '这批货引用了一张计价公式,但成交时没有记下结算条款 —— 无从结算;而照公式今天的样子抄一份,等于记下一份没人谈过的条款。请手工定价。',
         unappliedWarning: '化验单 {code} 已记录但未应用 —— 当前价格仍基于此前的含量。',
         hasUnappliedMarker: '有已记录未应用的化验',
         awaitingFinal: '{unpriced} 批未计价 · {provisional} 批暂定价',
@@ -1473,9 +1475,19 @@ const zh = {
             PRICE_INVALID: '算出的价格不是有效价格',
             QUANTITY_INVALID: '批次数量必须大于 0',
             PERIOD_LOCKED: '期间已关闭:{0} 早于锁定日 {1}',
+            REFERENCE_DATE_REQUIRED: '必须给参考日 —— 用哪天的行情由它决定',
+            PRICING_TERMS_NOT_COMMITTED:
+                '批次 {0} 引用了计价公式 {1},但成交时没有记下结算条款,无从结算。公式此后可能已被修改,现在抄一份等于记下一份没人谈过的条款。请手工定价,或另下一张单以记下条款。',
+            PRICING_TERMS_ALREADY_COMMITTED:
+                '批次 {0} 已按承诺条款({1})结算 —— 承诺不可被顶替',
+            PRICE_NOT_POSITIVE: '按承诺条款算,这批料的净值不为正({0}/kg)—— 价格请人工处理',
         },
     },
     purchasing: {
+        terms: {
+            committed: '条款已承诺 {code} · {on}',
+            notCommitted: '条款未承诺(FIN-27 之前的行)—— 结算会被拒',
+        },
         priceSource: {
             computed: '按预计化验算出 @ {fx}(取 {asOf} 牌价)',
             manual: '手填估价',
@@ -1590,6 +1602,11 @@ const zh = {
         errors: {
             PRICE_SOURCE_INVALID: '第 {0} 行:价格出处 {1} 不是 computed/manual',
             PROVENANCE_REQUIRED: '第 {0} 行:computed 价必须带重导出依据 —— 出处缺失',
+            PRICING_TERMS_NOT_COMMITTED:
+                '{0} 引用了计价公式 {1},当时没有记下结算条款 —— 结算直接拒,不去读公式今天的样子',
+            PRICING_TERMS_ALREADY_COMMITTED: '{0} 已按承诺条款({1})结算',
+            PRICING_COMMITMENT_IMMUTABLE: '已承诺的结算条款不可修改、不可删除 —— 副本就是记录',
+            COMMITMENT_TARGET_INVALID: '一份承诺只挂在一条记录上:采购行,或进料批次',
             FX_RATE_MISSING: '缺 {0} 在 {1} 的当日牌价({2})—— 先到 财务 → 汇率 录入当天的牌价。',
             FX_RATE_NOT_ACCEPTED: '这里不接受手工汇率 —— 外币金额按当日牌价自动估值。',
             SUPPLIER_NOT_FOUND: '供应商不存在',

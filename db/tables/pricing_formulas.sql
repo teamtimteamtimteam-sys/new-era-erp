@@ -63,6 +63,14 @@ CREATE TRIGGER trg_pricing_formulas_updated_at
     BEFORE UPDATE ON public.pricing_formulas
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
+-- FIN-27:编辑史(只增不改)。副本落下之后改公式对既有交易无害,但它仍然改变
+-- 此后每一次报价 —— 所以改得,不许不留痕。触发器写,不是应用写:编辑路径是普通
+-- UPDATE,没有 RPC 可以挂。函数在 db/functions/log_pricing_formula_change.sql,
+-- 历史表在 db/tables/pricing_formula_history.sql。
+CREATE TRIGGER trg_pricing_formulas_history
+    AFTER INSERT OR UPDATE ON public.pricing_formulas
+    FOR EACH ROW EXECUTE FUNCTION public.log_pricing_formula_change();
+
 ALTER TABLE public.pricing_formulas ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "pricing_formulas select by permission"
     ON public.pricing_formulas

@@ -4148,6 +4148,96 @@ export type Database = {
           },
         ]
       }
+      pricing_formula_history: {
+        Row: {
+          change_type: string
+          changed_at: string
+          changed_by: string | null
+          formula_id: string
+          id: string
+          metal: string | null
+          new_average_days: number | null
+          new_direction: string | null
+          new_flat_discount_pct: number | null
+          new_is_active: boolean | null
+          new_name: string | null
+          new_payable_pct: number | null
+          new_price_basis: string | null
+          new_treatment_charge_usd_per_tonne: number | null
+          old_average_days: number | null
+          old_direction: string | null
+          old_flat_discount_pct: number | null
+          old_is_active: boolean | null
+          old_name: string | null
+          old_payable_pct: number | null
+          old_price_basis: string | null
+          old_treatment_charge_usd_per_tonne: number | null
+        }
+        Insert: {
+          change_type: string
+          changed_at?: string
+          changed_by?: string | null
+          formula_id: string
+          id?: string
+          metal?: string | null
+          new_average_days?: number | null
+          new_direction?: string | null
+          new_flat_discount_pct?: number | null
+          new_is_active?: boolean | null
+          new_name?: string | null
+          new_payable_pct?: number | null
+          new_price_basis?: string | null
+          new_treatment_charge_usd_per_tonne?: number | null
+          old_average_days?: number | null
+          old_direction?: string | null
+          old_flat_discount_pct?: number | null
+          old_is_active?: boolean | null
+          old_name?: string | null
+          old_payable_pct?: number | null
+          old_price_basis?: string | null
+          old_treatment_charge_usd_per_tonne?: number | null
+        }
+        Update: {
+          change_type?: string
+          changed_at?: string
+          changed_by?: string | null
+          formula_id?: string
+          id?: string
+          metal?: string | null
+          new_average_days?: number | null
+          new_direction?: string | null
+          new_flat_discount_pct?: number | null
+          new_is_active?: boolean | null
+          new_name?: string | null
+          new_payable_pct?: number | null
+          new_price_basis?: string | null
+          new_treatment_charge_usd_per_tonne?: number | null
+          old_average_days?: number | null
+          old_direction?: string | null
+          old_flat_discount_pct?: number | null
+          old_is_active?: boolean | null
+          old_name?: string | null
+          old_payable_pct?: number | null
+          old_price_basis?: string | null
+          old_treatment_charge_usd_per_tonne?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_formula_history_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_formulas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_formula_history_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_formulas_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pricing_formula_metals: {
         Row: {
           created_at: string
@@ -4264,6 +4354,134 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_term_commitment_metals: {
+        Row: {
+          commitment_id: string
+          metal: string
+          payable_pct: number
+        }
+        Insert: {
+          commitment_id: string
+          metal: string
+          payable_pct: number
+        }
+        Update: {
+          commitment_id?: string
+          metal?: string
+          payable_pct?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_term_commitment_metals_commitment_id_fkey"
+            columns: ["commitment_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_term_commitments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_term_commitment_metals_commitment_id_fkey"
+            columns: ["commitment_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_term_commitments_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_term_commitments: {
+        Row: {
+          average_days: number | null
+          committed_at: string
+          committed_by: string | null
+          flat_discount_pct: number
+          id: string
+          inbound_batch_id: string | null
+          price_basis: string
+          purchase_order_line_id: string | null
+          source_formula_code: string
+          source_formula_id: string | null
+          source_formula_name: string | null
+          treatment_charge_usd_per_tonne: number
+        }
+        Insert: {
+          average_days?: number | null
+          committed_at?: string
+          committed_by?: string | null
+          flat_discount_pct: number
+          id?: string
+          inbound_batch_id?: string | null
+          price_basis: string
+          purchase_order_line_id?: string | null
+          source_formula_code: string
+          source_formula_id?: string | null
+          source_formula_name?: string | null
+          treatment_charge_usd_per_tonne: number
+        }
+        Update: {
+          average_days?: number | null
+          committed_at?: string
+          committed_by?: string | null
+          flat_discount_pct?: number
+          id?: string
+          inbound_batch_id?: string | null
+          price_basis?: string
+          purchase_order_line_id?: string | null
+          source_formula_code?: string
+          source_formula_id?: string | null
+          source_formula_name?: string | null
+          treatment_charge_usd_per_tonne?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_term_commitments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: true
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "pricing_term_commitments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: true
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_term_commitments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: true
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_term_commitments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: true
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "pricing_term_commitments_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: true
+            referencedRelation: "po_receivable_lines"
+            referencedColumns: ["line_id"]
+          },
+          {
+            foreignKeyName: "pricing_term_commitments_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: true
+            referencedRelation: "purchase_order_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_term_commitments_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: true
+            referencedRelation: "purchase_order_lines_masked"
             referencedColumns: ["id"]
           },
         ]
@@ -8046,6 +8264,96 @@ export type Database = {
           },
         ]
       }
+      pricing_formula_history_masked: {
+        Row: {
+          change_type: string | null
+          changed_at: string | null
+          changed_by: string | null
+          formula_id: string | null
+          id: string | null
+          metal: string | null
+          new_average_days: number | null
+          new_direction: string | null
+          new_flat_discount_pct: number | null
+          new_is_active: boolean | null
+          new_name: string | null
+          new_payable_pct: number | null
+          new_price_basis: string | null
+          new_treatment_charge_usd_per_tonne: number | null
+          old_average_days: number | null
+          old_direction: string | null
+          old_flat_discount_pct: number | null
+          old_is_active: boolean | null
+          old_name: string | null
+          old_payable_pct: number | null
+          old_price_basis: string | null
+          old_treatment_charge_usd_per_tonne: number | null
+        }
+        Insert: {
+          change_type?: string | null
+          changed_at?: string | null
+          changed_by?: string | null
+          formula_id?: string | null
+          id?: string | null
+          metal?: string | null
+          new_average_days?: number | null
+          new_direction?: string | null
+          new_flat_discount_pct?: never
+          new_is_active?: boolean | null
+          new_name?: string | null
+          new_payable_pct?: never
+          new_price_basis?: string | null
+          new_treatment_charge_usd_per_tonne?: never
+          old_average_days?: number | null
+          old_direction?: string | null
+          old_flat_discount_pct?: never
+          old_is_active?: boolean | null
+          old_name?: string | null
+          old_payable_pct?: never
+          old_price_basis?: string | null
+          old_treatment_charge_usd_per_tonne?: never
+        }
+        Update: {
+          change_type?: string | null
+          changed_at?: string | null
+          changed_by?: string | null
+          formula_id?: string | null
+          id?: string | null
+          metal?: string | null
+          new_average_days?: number | null
+          new_direction?: string | null
+          new_flat_discount_pct?: never
+          new_is_active?: boolean | null
+          new_name?: string | null
+          new_payable_pct?: never
+          new_price_basis?: string | null
+          new_treatment_charge_usd_per_tonne?: never
+          old_average_days?: number | null
+          old_direction?: string | null
+          old_flat_discount_pct?: never
+          old_is_active?: boolean | null
+          old_name?: string | null
+          old_payable_pct?: never
+          old_price_basis?: string | null
+          old_treatment_charge_usd_per_tonne?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_formula_history_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_formulas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_formula_history_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_formulas_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pricing_formula_metals_masked: {
         Row: {
           created_at: string | null
@@ -8162,6 +8470,134 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_term_commitment_metals_masked: {
+        Row: {
+          commitment_id: string | null
+          metal: string | null
+          payable_pct: number | null
+        }
+        Insert: {
+          commitment_id?: string | null
+          metal?: string | null
+          payable_pct?: never
+        }
+        Update: {
+          commitment_id?: string | null
+          metal?: string | null
+          payable_pct?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_term_commitment_metals_commitment_id_fkey"
+            columns: ["commitment_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_term_commitments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_term_commitment_metals_commitment_id_fkey"
+            columns: ["commitment_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_term_commitments_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_term_commitments_masked: {
+        Row: {
+          average_days: number | null
+          committed_at: string | null
+          committed_by: string | null
+          flat_discount_pct: number | null
+          id: string | null
+          inbound_batch_id: string | null
+          price_basis: string | null
+          purchase_order_line_id: string | null
+          source_formula_code: string | null
+          source_formula_id: string | null
+          source_formula_name: string | null
+          treatment_charge_usd_per_tonne: number | null
+        }
+        Insert: {
+          average_days?: number | null
+          committed_at?: string | null
+          committed_by?: string | null
+          flat_discount_pct?: never
+          id?: string | null
+          inbound_batch_id?: string | null
+          price_basis?: string | null
+          purchase_order_line_id?: string | null
+          source_formula_code?: string | null
+          source_formula_id?: string | null
+          source_formula_name?: string | null
+          treatment_charge_usd_per_tonne?: never
+        }
+        Update: {
+          average_days?: number | null
+          committed_at?: string | null
+          committed_by?: string | null
+          flat_discount_pct?: never
+          id?: string | null
+          inbound_batch_id?: string | null
+          price_basis?: string | null
+          purchase_order_line_id?: string | null
+          source_formula_code?: string | null
+          source_formula_id?: string | null
+          source_formula_name?: string | null
+          treatment_charge_usd_per_tonne?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_term_commitments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: true
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "pricing_term_commitments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: true
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_term_commitments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: true
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_term_commitments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: true
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "pricing_term_commitments_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: true
+            referencedRelation: "po_receivable_lines"
+            referencedColumns: ["line_id"]
+          },
+          {
+            foreignKeyName: "pricing_term_commitments_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: true
+            referencedRelation: "purchase_order_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_term_commitments_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: true
+            referencedRelation: "purchase_order_lines_masked"
             referencedColumns: ["id"]
           },
         ]
@@ -9095,6 +9531,15 @@ export type Database = {
         }
         Returns: Json
       }
+      calculate_metal_price_from_terms: {
+        Args: {
+          p_metals: Json
+          p_quantity_kg: number
+          p_reference_date: string
+          p_terms: Json
+        }
+        Returns: Json
+      }
       calculate_metal_price_internal: {
         Args: {
           p_formula_id: string
@@ -9129,6 +9574,14 @@ export type Database = {
         Args: { p_notes?: string; p_purchase_order_id: string }
         Returns: Json
       }
+      commit_pricing_terms: {
+        Args: {
+          p_formula_id: string
+          p_inbound_batch_id?: string
+          p_purchase_order_line_id?: string
+        }
+        Returns: string
+      }
       commit_processing_run: {
         Args: {
           p_inputs: Json
@@ -9138,6 +9591,10 @@ export type Database = {
           p_process_date: string
         }
         Returns: string
+      }
+      committed_terms_price: {
+        Args: { p_inbound_batch_id: string; p_reference_date: string }
+        Returns: Json
       }
       compute_leave_encashment: {
         Args: { p_as_of?: string; p_employee_id: string }
@@ -9333,6 +9790,14 @@ export type Database = {
         Returns: Json
       }
       post_stocktake: { Args: { p_stocktake_id: string }; Returns: Json }
+      preview_assay_price: {
+        Args: {
+          p_inbound_batch_id: string
+          p_metals: Json
+          p_reference_date: string
+        }
+        Returns: Json
+      }
       preview_close_financial_year: {
         Args: { p_year_end?: string }
         Returns: Json
@@ -9341,12 +9806,24 @@ export type Database = {
         Args: { p_period_end: string }
         Returns: Json
       }
+      preview_reprice_from_committed_terms: {
+        Args: { p_inbound_batch_id: string; p_reference_date?: string }
+        Returns: Json
+      }
       preview_reprice_inbound_batch: {
         Args: { p_inbound_batch_id: string; p_new_unit_price: number }
         Returns: Json
       }
       preview_revalue_foreign_balances: {
         Args: { p_period_end: string }
+        Returns: Json
+      }
+      pricing_terms_of_commitment: {
+        Args: { p_commitment_id: string }
+        Returns: Json
+      }
+      pricing_terms_of_formula: {
+        Args: { p_formula_id: string }
         Returns: Json
       }
       reconcile_statement: { Args: { p_statement_id: string }; Returns: Json }
@@ -9452,6 +9929,10 @@ export type Database = {
         Args: { p_purchase_order_id: string; p_reason: string }
         Returns: Json
       }
+      reprice_from_committed_terms: {
+        Args: { p_inbound_batch_id: string; p_reference_date?: string }
+        Returns: Json
+      }
       reprice_inbound_batch: {
         Args: {
           p_currency?: string
@@ -9475,6 +9956,10 @@ export type Database = {
       require_reviewer_of: {
         Args: { p_allowed_status: string[]; p_review_id: string }
         Returns: undefined
+      }
+      resolve_pricing_commitment: {
+        Args: { p_inbound_batch_id: string }
+        Returns: string
       }
       revalue_foreign_balances: {
         Args: { p_period_end: string }

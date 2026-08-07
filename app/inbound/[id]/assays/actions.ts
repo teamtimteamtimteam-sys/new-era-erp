@@ -3,9 +3,10 @@
 // 化验单据的服务端动作:实时预览 / 记录(可选顺带应用)/ 单独应用 / 撤销应用 /
 // 按当前含量重新计价。
 //
-// 【价格永远由 DB 算】客户端从不提交价格 —— 预览与提交都在服务端调
-// calculate_metal_price,提交再把它的结果交给 apply_assay_result 或
-// set_inbound_unit_price。界面上的数字只是显示。
+// 【价格永远由 DB 算】客户端从不提交价格。FIN-27 起解析也在 DB:预览走
+// preview_assay_price / preview_reprice_from_committed_terms,提交走
+// apply_assay_result / reprice_from_committed_terms —— 两侧读【同一份承诺条款】,
+// 本文件不再自己解析公式、也不再自己算价。界面上的数字只是显示。
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
@@ -86,43 +87,36 @@ function metalsPayload(metals: Record<string, string>): { metal: string; content
     return out
 }
 
-// 实时预览:算价 + 影响。无公式 / 无有效含量时返回空(界面自行提示),不当错误。
+// 实时预览:算价 + 影响。无有效含量时返回空(界面自行提示),不当错误。
+//
+// 【FIN-27:预览与应用读同一份承诺条款】此前这里把解析出的【活公式】喂给
+// calculate_metal_price,而 apply_assay_result 现在按承诺副本结算 —— 公式改过之后
+// 两者会给出不同的数,而人们信的是看得见的那一个。解析、算价、拆账试算现在都在
+// preview_assay_price 里,与 apply_assay_result 逐字同构:
+//   有副本 → 按副本算;有公式引用没副本 → 当场 PRICING_TERMS_NOT_COMMITTED;
+//   连引用都没有 → calc 为 null(手工定价的采购,不是错误)。
 export async function previewAssayPrice(input: {
     batchId: string
-    formulaId: string | null
     metals: Record<string, string>
     referenceDate: string
 }): Promise<PreviewState> {
     const payload = metalsPayload(input.metals)
-    if (!input.formulaId || payload.length === 0) return {}
-    // FIN-10 起 calculate_metal_price_internal 不再默认成今天 —— 空日期会抛
-    // REFERENCE_DATE_REQUIRED。这里先挡一道,免得把裸错误码甩给操作员;
-    // 而且预览用哪天的行情,本来就该由化验日说了算,不是"今天"。
+    if (payload.length === 0) return {}
+    // FIN-10 起计价不再默认成今天 —— 空日期会抛 REFERENCE_DATE_REQUIRED。这里先挡
+    // 一道,免得把裸错误码甩给操作员;而且预览用哪天的行情,本来就该由化验日说了算。
     if (!input.referenceDate) return {}
 
     const supabase = await createClient()
-    // 只为算价拿数量;影响的拆分不在这里算 —— 交给 DB 的试算函数
-    const { data: batch } = await supabase
-        .from('inbound_batches')
-        .select('quantity')
-        .eq('id', input.batchId)
-        .is('deleted_at', null)
-        .single()
-    if (!batch) return { error: await localizeAssayError('INBOUND_NOT_FOUND') }
-
-    const { data, error } = await supabase.rpc('calculate_metal_price', {
-        p_formula_id: input.formulaId,
+    const { data, error } = await supabase.rpc('preview_assay_price', {
+        p_inbound_batch_id: input.batchId,
         p_metals: payload,
-        p_quantity_kg: batch.quantity,
         p_reference_date: input.referenceDate,
     })
     if (error) return { error: await localizeAssayError(error.message) }
 
-    const result = data as unknown as CalcResult
-    return {
-        result,
-        impact: await repricePreview(supabase, input.batchId, Number(result.unit_price_usd_per_kg)),
-    }
+    const row = data as unknown as { calc: CalcResult | null; impact: RepricePreview | null }
+    if (!row?.calc) return {}   // 没有公式可解:界面自行提示,不是错误
+    return { result: row.calc, impact: row.impact ? toImpact(row.impact) : undefined }
 }
 
 export type SubmitAssayState = { error?: string }
@@ -237,67 +231,44 @@ export async function unapplyAssay(
 }
 
 // 按【批次当前含量】重新计价(含量是手工改的、没有化验单时用)。
-// 价格在服务端算完直接交给 set_inbound_unit_price —— 客户端提交的价格一概不信。
+//
+// 【FIN-27:解析与算术都在库里,这里只问结果】此前这个动作在 TypeScript 里
+// 重写了一遍公式解析次序,再拿【活公式】算价交给 set_inbound_unit_price ——
+// 那是"公式在交易脚下改变"的第三个入口,也是"页面不得重实现记账规则"那条规矩的
+// 又一次违反。现在一律走 reprice_from_committed_terms:结算读承诺时抄下的副本,
+// 没有副本就点名拒(PRICING_TERMS_NOT_COMMITTED),不悄悄退回去读活公式。
 export async function repriceFromCurrentContent(
     batchId: string,
     referenceDate: string
 ): Promise<{ error?: string; unitPrice?: number }> {
     const supabase = await createClient()
-
-    const { data: batch } = await supabase
-        .from('inbound_batches')
-        .select('quantity, pricing_formula_id, purchase_order_line_id')
-        .eq('id', batchId)
-        .is('deleted_at', null)
-        .single()
-    if (!batch) return { error: await localizeAssayError('INBOUND_NOT_FOUND') }
-
-    // 公式解析顺序与 apply_assay_result 一致:批次 → 采购单明细行
-    let formulaId = batch.pricing_formula_id
-    if (!formulaId && batch.purchase_order_line_id) {
-        const { data: line } = await supabase
-            .from('purchase_order_lines')
-            .select('pricing_formula_id')
-            .eq('id', batch.purchase_order_line_id)
-            .single()
-        formulaId = line?.pricing_formula_id ?? null
-    }
-    if (!formulaId) return { error: await localizeAssayError('FORMULA_NOT_FOUND|?') }
-
-    const { data: metalRows } = await supabase
-        .from('inbound_batch_metals')
-        .select('metal, content_pct')
-        .eq('inbound_batch_id', batchId)
-    const payload = (metalRows ?? []).map((m) => ({ metal: m.metal, content_pct: m.content_pct }))
-    if (payload.length === 0) return { error: await localizeAssayError('NO_METALS') }
-
-    const { data: calc, error: calcError } = await supabase.rpc('calculate_metal_price', {
-        p_formula_id: formulaId,
-        p_metals: payload,
-        p_quantity_kg: batch.quantity,
+    const { data, error } = await supabase.rpc('reprice_from_committed_terms', {
+        p_inbound_batch_id: batchId,
         p_reference_date: referenceDate || undefined,
     })
-    if (calcError) return { error: await localizeAssayError(calcError.message) }
-
-    const unit = Number((calc as unknown as CalcResult).unit_price_usd_per_kg)
-    if (!(unit > 0)) {
-        // 净值 ≤ 0 的料不进价格机器(与 apply_assay_result 同一判断)
-        return { error: (await getTranslations())('assay.negativeValue') }
-    }
-
-    const { error: priceError } = await supabase.rpc('set_inbound_unit_price', {
-        p_inbound_batch_id: batchId,
-        p_unit_price: unit,
-        p_notes: 'Repriced from current recorded content',
-    })
-    if (priceError) return { error: await localizeAssayError(priceError.message) }
-
-    // 批次上记下这张公式,下次化验可以直接解析到
-    if (!batch.pricing_formula_id) {
-        await supabase.from('inbound_batches').update({ pricing_formula_id: formulaId }).eq('id', batchId)
-    }
+    if (error) return { error: await localizeAssayError(error.message) }
 
     revalidatePath(`/inbound/${batchId}/edit`)
     revalidatePath('/finance/journal')
-    return { unitPrice: unit }
+    return { unitPrice: Number((data as { unit_price_usd_per_kg?: number } | null)?.unit_price_usd_per_kg) }
+}
+
+// 上面那个动作的【试算】—— 同一份算术(committed_terms_price),同一份承诺。
+// 预览读活公式而提交读副本,就是这个仓库数过四次的那个 bug:两份实现写下的当天
+// 一致、之后无声漂移,而人们信的偏偏是看得见的那一个。
+export async function previewRepriceFromCommittedTerms(
+    batchId: string,
+    referenceDate: string
+): Promise<PreviewState> {
+    const supabase = await createClient()
+    const { data, error } = await supabase.rpc('preview_reprice_from_committed_terms', {
+        p_inbound_batch_id: batchId,
+        p_reference_date: referenceDate || undefined,
+    })
+    if (error) return { error: await localizeAssayError(error.message) }
+    const row = data as unknown as { calc: CalcResult; impact: RepricePreview | null }
+    return {
+        result: row.calc,
+        impact: row.impact ? toImpact(row.impact) : undefined,
+    }
 }

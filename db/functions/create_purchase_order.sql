@@ -20,6 +20,7 @@ DECLARE
     v_code       text;
     v_line       jsonb;
     v_line_no    integer;
+    v_line_id    uuid;      -- FIN-27:承诺挂在行上,需要它的 id
     v_qty        numeric;
     v_price      numeric;
     v_src          text;      -- FIN-26:computed / manual / NULL(旧调用方)
@@ -30,6 +31,7 @@ DECLARE
     v_f          record;
     v_total      numeric := 0;
     v_count      integer := 0;
+    v_committed  integer := 0;  -- FIN-27:抄下条款的行数
     v_term       jsonb;
     v_seq        integer;
     v_expect     integer := 0;
@@ -132,7 +134,17 @@ BEGIN
         VALUES (v_po_id, v_line_no, v_material, v_qty,
                 COALESCE(v_line->>'unit', 'kg'), v_formula, v_price,
                 v_amount, v_line->'expected_assay', v_line->>'notes', v_user,
-                v_src, v_prov);
+                v_src, v_prov)
+        RETURNING id INTO v_line_id;
+
+        -- ── FIN-27:承诺时抄下结算条款 ───────────────────────────────────────
+        -- 【与估价无关】公式定价的行下单时常常没有单价,而条款照样是谈定的 ——
+        -- 有公式就抄,不看 estimated_unit_price。抄下之后,公式此后怎么改、
+        -- 被停用还是被软删,都碰不到这一行的结算。
+        IF v_formula IS NOT NULL THEN
+            PERFORM commit_pricing_terms(v_formula, v_line_id, NULL);
+            v_committed := v_committed + 1;
+        END IF;
     END LOOP;
 
     UPDATE purchase_orders SET estimated_total_usd = v_total, updated_by = v_user
@@ -171,6 +183,7 @@ BEGIN
         'code', v_code,
         'estimated_total_usd', v_total,
         'line_count', v_count,
+        'committed_line_count', v_committed,
         'term_count', v_term_count
     );
 END;

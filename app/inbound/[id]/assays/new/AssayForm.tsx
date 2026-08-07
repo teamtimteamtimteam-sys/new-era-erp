@@ -62,7 +62,6 @@ export default function AssayForm({
             setPreviewing(true)
             previewAssayPrice({
                 batchId: batch.id,
-                formulaId: formula.id,
                 metals: JSON.parse(metalsKey),
                 referenceDate: assayDate,
             })

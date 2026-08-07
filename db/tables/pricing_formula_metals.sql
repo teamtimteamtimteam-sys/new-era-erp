@@ -25,6 +25,14 @@ CREATE TRIGGER trg_pricing_formula_metals_updated_at
     BEFORE UPDATE ON public.pricing_formula_metals
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
+-- FIN-27:金属条款的编辑同样进 pricing_formula_history。【为什么它也要】界面表达
+-- "这个金属不再计价"的方式是 DELETE 掉那一行(actions.ts 的 clears),而本表没有
+-- 软删 —— 只记表头的历史,对最激烈的一种编辑一言不发,而沉默读起来正好等于
+-- "什么都没改"。函数在 db/functions/log_pricing_formula_metal_change.sql。
+CREATE TRIGGER trg_pricing_formula_metals_history
+    AFTER INSERT OR UPDATE OR DELETE ON public.pricing_formula_metals
+    FOR EACH ROW EXECUTE FUNCTION public.log_pricing_formula_metal_change();
+
 ALTER TABLE public.pricing_formula_metals ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "pricing_formula_metals select by permission"
     ON public.pricing_formula_metals

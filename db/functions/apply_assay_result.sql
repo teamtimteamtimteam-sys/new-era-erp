@@ -8,6 +8,10 @@ DECLARE
     v_user     uuid := auth.uid();
     v_assay    record;
     v_batch    record;
+    v_commit   uuid;
+    v_csrc     uuid;
+    v_ccode    text;
+    v_live     uuid;
     v_formula  uuid;
     v_fcode    text;
     v_metals   jsonb;
@@ -50,22 +54,36 @@ BEGIN
     FROM assay_result_metals arm
     WHERE arm.assay_result_id = p_assay_result_id;
 
-    -- 2. 公式解析:入参 → 批次 → 采购单明细行 → 无
-    v_formula := COALESCE(
-        p_pricing_formula_id,
-        v_batch.pricing_formula_id,
-        (SELECT pol.pricing_formula_id FROM purchase_order_lines pol
-          WHERE pol.id = v_batch.purchase_order_line_id)
-    );
+    -- 2. 【结算条款 = 承诺时抄下的副本】(FIN-27)。解析次序与从前解析公式同构:
+    --    批次自己的承诺 → 它那条采购行的承诺。活公式在这里【一次都不读】。
+    v_commit := resolve_pricing_commitment(v_batch.id);
 
-    IF v_formula IS NOT NULL THEN
-        -- 3. 与计价器同一 DB 函数算价,再走与手工计价【同一条】重计价路径
-        --    (reprice_inbound_batch)—— 价差分录、price_history、1200/5000 拆账
-        --    三件事只存在一份实现。参考日默认化验日:结算价随行情,行情看化验那天。
-        v_calc := calculate_metal_price_internal(v_formula, v_metals, v_batch.quantity,
-                                        COALESCE(p_reference_date, v_assay.assay_date));
+    IF p_pricing_formula_id IS NOT NULL THEN
+        -- 结算时才指名公式(无采购单的现场收货):那一刻【就是】承诺时刻,现在抄。
+        -- 已经有副本了就不许被顶掉 —— 副本一旦落下,它就是记录。
+        IF v_commit IS NULL THEN
+            v_commit := commit_pricing_terms(p_pricing_formula_id, NULL, v_batch.id);
+        ELSE
+            SELECT c.source_formula_id, c.source_formula_code INTO v_csrc, v_ccode
+            FROM pricing_term_commitments c WHERE c.id = v_commit;
+            IF v_csrc IS DISTINCT FROM p_pricing_formula_id THEN
+                RAISE EXCEPTION 'PRICING_TERMS_ALREADY_COMMITTED|%|%', v_batch.code, v_ccode;
+            END IF;
+        END IF;
+    END IF;
+
+    IF v_commit IS NOT NULL THEN
+        -- 3. 与计价器同一份算术(calculate_metal_price_from_terms),条款来自副本;
+        --    再走与手工计价【同一条】重计价路径(reprice_inbound_batch)—— 价差分录、
+        --    price_history、1200/5000 拆账三件事只存在一份实现。
+        --    参考日默认化验日:结算价随行情,行情看化验那天。
+        SELECT c.source_formula_id, c.source_formula_code INTO v_formula, v_fcode
+        FROM pricing_term_commitments c WHERE c.id = v_commit;
+
+        v_calc := calculate_metal_price_from_terms(
+            pricing_terms_of_commitment(v_commit), v_metals, v_batch.quantity,
+            COALESCE(p_reference_date, v_assay.assay_date));
         v_unit := (v_calc->>'unit_price_usd_per_kg')::numeric;
-        SELECT code INTO v_fcode FROM pricing_formulas WHERE id = v_formula;
 
         IF v_unit > 0 THEN
             v_rep := reprice_inbound_batch(v_batch.id, v_unit, 'USD', NULL,
@@ -77,8 +95,17 @@ BEGIN
             v_note := 'computed price not positive: ' || COALESCE(v_unit::text, '?');
         END IF;
     ELSE
-        -- 4. 无公式可解:含量照常落地、化验照常标记已执行,价格不动 ——
-        --    手工计价的采购本来就由人定价,这不是错误。
+        -- 4. 没有副本。有活公式引用【却没有副本】= FIN-27 之前留下的承诺,当时没记
+        --    条款 —— 点名拒。悄悄退回去读活公式正是本切要拆掉的行为,而把今天的
+        --    公式当成当时谈定的条款,是编造一份承诺(D:不回填)。
+        --    完全没有公式引用的批次照旧:手工定价的采购本来就由人定价,不是错误。
+        v_live := COALESCE(v_batch.pricing_formula_id,
+                           (SELECT pol.pricing_formula_id FROM purchase_order_lines pol
+                             WHERE pol.id = v_batch.purchase_order_line_id));
+        IF v_live IS NOT NULL THEN
+            RAISE EXCEPTION 'PRICING_TERMS_NOT_COMMITTED|%|%', v_batch.code,
+                COALESCE((SELECT pf.code FROM pricing_formulas pf WHERE pf.id = v_live), '?');
+        END IF;
         v_note := 'no pricing formula resolved';
     END IF;
 
@@ -115,6 +142,8 @@ BEGIN
         'batch_code', v_batch.code,
         'priced', v_priced,
         'formula_code', v_fcode,
+        -- FIN-27:结算按【哪一份承诺】算的 —— 供应商问起来要指得出那份副本
+        'commitment_id', v_commit,
         'old_unit_price', v_rep->'old_unit_price',
         'new_unit_price', v_rep->'new_unit_price',
         'price_delta_usd', v_rep->'price_delta_usd',

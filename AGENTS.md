@@ -290,7 +290,7 @@ python3 db/gate.py     # 0 clean · 1 mirror drift · 2 cannot build
                        # 3 B1/B2 invariant · 4 behavioural fixture failed
 ```
 
-Twenty fixtures, ~66 assertions, on the paths where a silent break costs money:
+Twenty-one fixtures, ~82 assertions, on the paths where a silent break costs money:
 settlement closing to exactly zero (including cross-currency), revaluation
 idempotence, confirmation not touching leave, accrual not applying a category
 change retroactively, one bank line per employee, realised 7100 never crossing
@@ -332,7 +332,19 @@ fixture 18 that numerically separates per-batch from run-level ratios —
 provenance (FIN-26: price_source is RECORDED, never inferred from
 expected_assay; a computed line carries enough to re-derive the number and
 the fixture actually re-derives it; existing rows stay NULL and display as
-unknown — a fabricated provenance record is worse than a blank). Deliberately small: every retained fixture is
+unknown — a fabricated provenance record is worse than a blank), and committed
+pricing terms (FIN-27: a formula referenced by a deal cannot change under it,
+because the terms are COPIED onto the committing record and settlement reads the
+copy — the fixture commits, edits the formula, settles, and asserts the
+*committed* number, with the live-formula number computed alongside and asserted
+to differ, so the arm cannot pass by both answers agreeing; a deal raised AFTER
+the same edit uses the NEW terms, which is what stops "never update anything"
+from passing too; a reference with no copy is refused BY NAME on both settlement
+paths rather than silently falling back to the live formula; and a formula edit
+writes an append-only history row with old and new — including the metals
+sub-table, where the UI expresses "no longer payable" by DELETING the row, so a
+header-only history would be silent about the most drastic edit there is).
+Deliberately small: every retained fixture is
 maintenance on every schema move, and the HR-2c accrual change already cost one
 round of "is this staleness or regression?" judgement.
 

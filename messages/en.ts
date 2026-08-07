@@ -1450,6 +1450,8 @@ const en = {
             'This assay values the batch at or below zero. It will be recorded but not priced — handle the price manually.',
         metalsFromAssay: 'Applying an assay replaces these values.',
         repriceFromFormula: 'Reprice from current content',
+        termsNotCommitted:
+            'This batch references a pricing formula, but no settlement terms were recorded when the deal was made — so there is nothing to settle from, and copying the formula as it stands today would record terms nobody agreed to. Price this batch manually.',
         unappliedWarning:
             'Assay {code} has been recorded but not applied — the price still reflects the previous content.',
         hasUnappliedMarker: 'Assay recorded but not applied',
@@ -1476,9 +1478,20 @@ const en = {
             PRICE_INVALID: 'The computed price is not a valid price',
             QUANTITY_INVALID: 'Batch quantity must be greater than 0',
             PERIOD_LOCKED: 'Period is closed: {0} is before the lock date {1}',
+            REFERENCE_DATE_REQUIRED: 'A reference date is required — the market prices used depend on it',
+            PRICING_TERMS_NOT_COMMITTED:
+                'Batch {0} references pricing formula {1} but no settlement terms were recorded when the deal was made, so there is nothing to settle from. The formula may have changed since; copying it now would record terms nobody agreed to. Price this batch manually, or raise a new order to commit terms.',
+            PRICING_TERMS_ALREADY_COMMITTED:
+                'Batch {0} already settles under committed terms ({1}) — a commitment cannot be replaced',
+            PRICE_NOT_POSITIVE:
+                'The committed terms value this batch at or below zero ({0}/kg) — handle the price manually',
         },
     },
     purchasing: {
+        terms: {
+            committed: 'terms committed {code} · {on}',
+            notCommitted: 'terms not committed (pre-FIN-27 line) — settlement will refuse',
+        },
         priceSource: {
             computed: 'computed from expected assay @ {fx} (rate of {asOf})',
             manual: 'manual estimate',
@@ -1594,6 +1607,12 @@ const en = {
         errors: {
             PRICE_SOURCE_INVALID: 'Line {0}: price source {1} is not computed/manual',
             PROVENANCE_REQUIRED: 'Line {0}: a computed price must carry the data to re-derive it — provenance is missing',
+            PRICING_TERMS_NOT_COMMITTED:
+                '{0} references pricing formula {1} with no settlement terms recorded at the time — settlement refuses rather than reading the formula as it stands today',
+            PRICING_TERMS_ALREADY_COMMITTED: '{0} already settles under committed terms ({1})',
+            PRICING_COMMITMENT_IMMUTABLE:
+                'Committed settlement terms cannot be edited or deleted — the copy is the record',
+            COMMITMENT_TARGET_INVALID: 'A commitment attaches to exactly one record: an order line or a batch',
             FX_RATE_MISSING: 'No {0} board rate on file for {1} ({2}) — enter the day\u2019s rate under Finance \u2192 FX first.',
             FX_RATE_NOT_ACCEPTED: 'A manual rate is not accepted here \u2014 foreign amounts are valued at the day\u2019s board rate automatically.',
             SUPPLIER_NOT_FOUND: 'Supplier not found',

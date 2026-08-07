@@ -127,32 +127,24 @@ export default async function AssayDetailPage({
     //    (录入页那边含量在动,才需要防抖的实时预览)──
     let preview: { result: CalcResult; impact?: AssayImpact } | null = null
     let previewError: string | null = null
-    if (!isApplied) {
-        // 公式解析顺序与 apply_assay_result 一致:批次 → 采购单明细行
-        let formulaId = batch.pricing_formula_id
-        if (!formulaId && batch.purchase_order_line_id) {
-            const { data: line } = await supabase
-                .from('purchase_order_lines')
-                .select('pricing_formula_id')
-                .eq('id', batch.purchase_order_line_id)
-                .single()
-            formulaId = line?.pricing_formula_id ?? null
-        }
-        if (formulaId && metals.length > 0) {
-            const { data: calc, error: calcErr } = await supabase.rpc('calculate_metal_price', {
-                p_formula_id: formulaId,
-                p_metals: metals.map((m) => ({ metal: m.metal, content_pct: m.content_pct })),
-                p_quantity_kg: batch.quantity,
-                p_reference_date: assay.assay_date,
-            })
-            if (calcErr) {
-                previewError = await localizeAssayError(calcErr.message)
-            } else {
-                const result = calc as unknown as CalcResult
+    if (!isApplied && metals.length > 0) {
+        // FIN-27:承诺解析 + 算价 + 拆账试算全在 preview_assay_price 里 ——
+        // 与 apply_assay_result 逐字同构,所以这一页展示的数就是按下"应用"会落的数。
+        // 有公式引用却没有承诺副本时它点名拒,错误照原样显示给操作员。
+        const { data: row, error: calcErr } = await supabase.rpc('preview_assay_price', {
+            p_inbound_batch_id: id,
+            p_metals: metals.map((m) => ({ metal: m.metal, content_pct: m.content_pct })),
+            p_reference_date: assay.assay_date,
+        })
+        if (calcErr) {
+            previewError = await localizeAssayError(calcErr.message)
+        } else {
+            const parsed = row as unknown as { calc: CalcResult | null; impact: unknown }
+            if (parsed?.calc) {
                 preview = {
-                    result,
+                    result: parsed.calc,
                     // 拆分交给 DB 试算(与真正入账的那套算术是同一份)
-                    impact: await repricePreview(supabase, id, Number(result.unit_price_usd_per_kg)),
+                    impact: await repricePreview(supabase, id, Number(parsed.calc.unit_price_usd_per_kg)),
                 }
             }
         }
