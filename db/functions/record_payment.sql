@@ -22,6 +22,7 @@ CREATE OR REPLACE FUNCTION public.record_payment(p_direction text, p_counterpart
 AS $function$
 DECLARE
     v_user         uuid := auth.uid();
+    v_base         text;   -- OPS-8:本位币从 currencies.is_base 读
     v_date         date;
     v_fx           numeric;
     v_amount_base   numeric;
@@ -73,6 +74,8 @@ DECLARE
     v_found        boolean;
     v_lines        jsonb;
 BEGIN
+    -- OPS-8:本位币是【数据】(currencies.is_base),不是字面量。
+    SELECT c.code INTO v_base FROM currencies c WHERE c.is_base;
     PERFORM require_permission('module.finance.edit');
     IF p_payment_date IS NULL THEN
         RAISE EXCEPTION 'PAYMENT_DATE_REQUIRED';
@@ -104,19 +107,19 @@ BEGIN
         RAISE EXCEPTION 'CURRENCY_INVALID|%', COALESCE(p_currency, '?');
     END IF;
     -- FIN-0 三分支:
-    --   SGD(本位)                → 1,无换算;
+    --   本位币                     → 1,无换算;
     --   外币、且走该币种的外币户   → 没有发生兑换,按【付款日】牌价估值:
     --                                收款 tt_buy / 付款 tt_sell,当日无牌价即拒;
     --   外币、但走的不是该币种的户 → 银行【实际做了兑换】,必须递入按银行水单
     --                                实际金额折出的汇率(C4:实际兑换用实际数,
     --                                永远不用牌价);此时 p_fx_rate 必填。
-    IF p_currency = 'SGD' THEN
+    IF p_currency = v_base THEN
         IF p_fx_rate IS NOT NULL THEN
             RAISE EXCEPTION 'FX_RATE_NOT_ACCEPTED|%', p_currency;
         END IF;
         v_fx := 1;
     ELSIF bank_native_currency(COALESCE(p_bank_account,
-              CASE WHEN p_currency = 'SGD' THEN '1000' ELSE '1010' END)) = p_currency THEN
+              bank_account_for_currency(p_currency))) = p_currency THEN
         IF p_fx_rate IS NOT NULL THEN
             RAISE EXCEPTION 'FX_RATE_NOT_ACCEPTED|%', p_currency;
         END IF;
@@ -132,14 +135,15 @@ BEGIN
         v_fx := p_fx_rate;
     END IF;
 
-    -- 银行科目:显式给了必须合法;不给按币种默认(SGD → 1000,USD → 1010)
+    -- 银行科目:显式给了必须合法;不给按币种默认 —— 映射只有一份
+    -- (bank_account_for_currency,bank_native_currency 的逆;同 lib/currencyMap.ts)
     IF p_bank_account IS NOT NULL THEN
         IF p_bank_account NOT IN ('1000','1010') THEN
             RAISE EXCEPTION 'BANK_INVALID|%', p_bank_account;
         END IF;
         v_bank := p_bank_account;
     ELSE
-        v_bank := CASE WHEN p_currency = 'SGD' THEN '1000' ELSE '1010' END;
+        v_bank := bank_account_for_currency(p_currency);
     END IF;
 
     -- 2. USD 金额
@@ -264,7 +268,7 @@ BEGIN
             END IF;
             -- 应付额永远对着"当前"批次价值(改价即改欠款)
             v_doc_value := round(v_doc.quantity * v_doc.unit_price, 2);
-            v_doc_ccy := 'SGD'; v_doc_fx := 1;  -- FIN-0 起批次价值即本位币
+            v_doc_ccy := v_base; v_doc_fx := 1;  -- FIN-0 起批次价值即本位币
             v_key := v_batch_id::text;
 
             -- 已结 = 收付款核销 + 预付冲抵(B6 起,预付冲抵也在还这张单的应付)

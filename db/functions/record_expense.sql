@@ -75,14 +75,15 @@ BEGIN
     END IF;
 
     IF p_payment_status = 'paid' THEN
-        -- paid:银行科目显式给了必须合法;不给按币种默认(SGD → 1000,USD → 1010)
+        -- paid:银行科目显式给了必须合法;不给按币种默认 —— 映射只有一份
+        -- (bank_account_for_currency,bank_native_currency 的逆)
         IF p_bank_account IS NOT NULL THEN
             IF p_bank_account NOT IN ('1000','1010') THEN
                 RAISE EXCEPTION 'BANK_INVALID|%', p_bank_account;
             END IF;
             v_bank := p_bank_account;
         ELSE
-            v_bank := CASE WHEN p_currency = 'SGD' THEN '1000' ELSE '1010' END;
+            v_bank := bank_account_for_currency(p_currency);
         END IF;
     ELSE
         -- unpaid:必须有在册供应商(它要成为 AP 单据);银行科目必须为空 ——

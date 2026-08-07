@@ -191,3 +191,29 @@ SGD,于是一笔 USD 1,400 的付款在列表上显示成 `USD 1,400.00 = 1,736.
 这道检查存在的理由,就是"人扫会漏第三处第四处"。它确实拦下了判断类的 32 处 ——
 然后在一个它从没学会看的形状上,连着放过了六处。**盲区不在没人写的地方,
 在检查解析不到的地方。**
+
+## 换本位币要手改的地方(OPS-8,2026-08-07)
+
+FIN-0 换过一次本位币(USD → SGD),下一次换的时候,下面这些地方【不会自己跟着走】,
+因为它们所处的语法位置写不出 `currencies.is_base` 的子查询:
+
+| 位置 | 现在写的 | 换本位币时会怎样 |
+|---|---|---|
+| `db/tables/fx_rates.sql` 的 `CHECK (currency <> 'SGD')` | 本位币对自己没有牌价 | 反过来拦住【新】本位币的牌价、放行【旧】本位币的牌价 —— CHECK 约束不允许子查询,没有第二种写法 |
+| `db/tables/purchase_orders.sql` `currency DEFAULT 'USD'` | 采购单默认币种 | 列默认值同样写不出子查询;默认值本身是业务选择,不一定要跟着本位币走,但要【看一眼再决定】 |
+| `db/tables/payroll_periods.sql` `currency DEFAULT 'SGD'` | 工资期间默认币种 | 同上(新加坡工资本来就是新元,多半不用改 —— 但这是一次决定,不是一次默认) |
+
+`check-currency-literals.mjs` 的 ALLOWLIST 里逐条写了理由并指回本节。
+判断类的字面量已经全部改成读 `currencies.is_base`
+(`db/migrations/2026-08-07-ops8-currency-is-base.sql`)。
+
+### 还没盖住的两族(数过,不假装没有)
+
+* **jsonb 分录行 `'currency', 'SGD', … 'fx_rate', 1`** —— 约 50 处、17 个文件。
+  语义是"这条分录行按本位币记账",与已经改掉的 `v_doc_ccy := 'SGD'` 同一类,
+  但形状是键值对不是比较,不在 OPS-8 的模式表里。改它是自己一切,要连 fixture 走。
+* **SQL 的参数/列默认值 `DEFAULT '<币种>'`** —— 5 处(`set_inbound_unit_price`、
+  `reprice_inbound_batch`、`record_expense` 的参数默认;上表两个列默认)。
+
+两族都记在 `scripts/check-currency-literals.mjs` 的抬头里 —— 那句
+"✓ 没有把币种当常量用的判断"必须带着确切的边界,否则它就是下一个 OPS-8。

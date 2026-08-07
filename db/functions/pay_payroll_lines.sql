@@ -47,7 +47,8 @@ BEGIN
         RAISE EXCEPTION 'NO_LINES';
     END IF;
 
-    v_bank := COALESCE(p_bank_account, CASE v_p.currency WHEN 'SGD' THEN '1000' ELSE '1010' END);
+    -- OPS-8:币种 → 银行科目的映射只有一份(bank_account_for_currency)
+    v_bank := COALESCE(p_bank_account, bank_account_for_currency(v_p.currency));
     IF v_bank NOT IN ('1000','1010') THEN
         RAISE EXCEPTION 'BANK_INVALID|%', v_bank;
     END IF;

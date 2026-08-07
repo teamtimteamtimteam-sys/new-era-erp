@@ -22,6 +22,7 @@ CREATE OR REPLACE FUNCTION public.preview_revalue_foreign_balances(p_period_end 
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
+    v_base    text;   -- OPS-8:本位币从 currencies.is_base 读
     v_row     record;
     v_rate    numeric;
     v_rate_asof date;   -- FIN-19:这个牌价【取自哪一天】
@@ -32,6 +33,8 @@ DECLARE
     v_missing jsonb := '[]'::jsonb;
     v_total   numeric := 0;
 BEGIN
+    -- OPS-8:本位币是【数据】(currencies.is_base),不是字面量。
+    SELECT c.code INTO v_base FROM currencies c WHERE c.is_base;
     PERFORM require_permission('module.finance.view');
     IF p_period_end IS NULL THEN
         RAISE EXCEPTION 'DATE_REQUIRED';
@@ -45,7 +48,7 @@ BEGIN
         JOIN accounts a ON a.id = l.account_id
         JOIN journal_entries e ON e.id = l.entry_id
         WHERE e.status = 'posted' AND e.entry_date <= p_period_end
-          AND a.is_monetary AND l.currency <> 'SGD'
+          AND a.is_monetary AND l.currency <> v_base
         GROUP BY a.code, l.currency
         ORDER BY a.code, l.currency
     LOOP
@@ -55,7 +58,7 @@ BEGIN
         FROM journal_lines l2
         JOIN accounts a2 ON a2.id = l2.account_id
         JOIN journal_entries e2 ON e2.id = l2.entry_id
-        WHERE a2.code = v_row.code AND l2.currency = 'SGD'
+        WHERE a2.code = v_row.code AND l2.currency = v_base
           AND e2.source_type = 'revaluation' AND e2.status = 'posted'
           AND e2.entry_date <= p_period_end;
 

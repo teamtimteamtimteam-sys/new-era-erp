@@ -15,6 +15,7 @@ CREATE OR REPLACE FUNCTION public.record_bank_transfer(p_transfer_date date, p_f
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
+    v_base     text;   -- OPS-8:本位币从 currencies.is_base 读
     v_from_ccy text;
     v_to_ccy   text;
     v_fx_out   numeric;
@@ -22,6 +23,8 @@ DECLARE
     v_je       jsonb;
     v_id       uuid;
 BEGIN
+    -- OPS-8:本位币是【数据】(currencies.is_base),不是字面量。
+    SELECT c.code INTO v_base FROM currencies c WHERE c.is_base;
     PERFORM require_permission('module.finance.edit');
 
     IF p_from_account IS NULL OR p_from_account NOT IN ('1000','1010') THEN
@@ -49,8 +52,8 @@ BEGIN
     END IF;
 
     -- 本位币侧 fx=1;外币侧 fx=本笔实际隐含汇率(两边都是实际数,分录恰好配平)
-    v_fx_out := CASE WHEN v_from_ccy = 'SGD' THEN 1 ELSE p_amount_in / p_amount_out END;
-    v_fx_in  := CASE WHEN v_to_ccy   = 'SGD' THEN 1 ELSE p_amount_out / p_amount_in END;
+    v_fx_out := CASE WHEN v_from_ccy = v_base THEN 1 ELSE p_amount_in / p_amount_out END;
+    v_fx_in  := CASE WHEN v_to_ccy   = v_base THEN 1 ELSE p_amount_out / p_amount_in END;
 
     v_je := post_journal_entry(
         p_transfer_date,

@@ -28,7 +28,8 @@ BEGIN
 
     -- FIN-4:过账【不碰银行】—— 钱还没出去。净额挂 2300 应付净薪,
     -- 逐人付款(pay_payroll_lines)时才贷银行,一人一条,各自对账。
-    IF v_p.currency NOT IN ('SGD','USD') THEN
+    -- OPS-8:"支持哪些币种"就是 currencies 表本身,不是这里另抄一份码表
+    IF NOT EXISTS (SELECT 1 FROM currencies c WHERE c.code = v_p.currency) THEN
         RAISE EXCEPTION 'PAYROLL_CURRENCY_UNSUPPORTED|%', v_p.currency;
     END IF;
 

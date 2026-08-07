@@ -6,6 +6,7 @@ CREATE OR REPLACE FUNCTION public.upsert_payroll_period(p_period_month date, p_p
 AS $function$
 DECLARE
     v_user     uuid := auth.uid();
+    v_base     text;   -- OPS-8:本位币从 currencies.is_base 读
     v_period   record;
     v_id       uuid;
     v_code     text;
@@ -25,6 +26,8 @@ DECLARE
     v_t_other  numeric := 0;
     v_t_net    numeric := 0;
 BEGIN
+    -- OPS-8:本位币是【数据】(currencies.is_base),不是字面量。
+    SELECT c.code INTO v_base FROM currencies c WHERE c.is_base;
     PERFORM require_permission('module.hr.edit');
     IF p_period_month IS NULL OR p_period_month <> date_trunc('month', p_period_month)::date THEN
         RAISE EXCEPTION 'PERIOD_MONTH_INVALID|%', COALESCE(p_period_month::text, '?');
@@ -38,8 +41,9 @@ BEGIN
     IF p_fx_rate IS NULL OR p_fx_rate <= 0 THEN
         RAISE EXCEPTION 'FX_RATE_INVALID|%', COALESCE(p_fx_rate::text, '?');
     END IF;
-    -- FIN-0:SGD 是本位币,SGD 期间的 fx_rate 只能是 1
-    IF p_currency = 'SGD' AND p_fx_rate <> 1 THEN
+    -- FIN-0:本位币期间的 fx_rate 只能是 1(OPS-8:本位币问 currencies.is_base,
+    -- 不写 'SGD' —— 这一句自己的注释就承认它判的是本位币)
+    IF p_currency = v_base AND p_fx_rate <> 1 THEN
         RAISE EXCEPTION 'FX_RATE_INVALID|%', p_fx_rate;
     END IF;
     IF p_lines IS NULL OR jsonb_typeof(p_lines) <> 'array' OR jsonb_array_length(p_lines) = 0 THEN

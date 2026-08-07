@@ -13,6 +13,31 @@
 //   jsx-text  —— 不允许把币种当【正文】印到 JSX 上(FIN-18 加)。
 // 币种要么来自数据行,要么来自 currencies 表(is_base),不是常量。
 //
+// ════════════════════════════════════════════════════════════════════════════
+// 【OPS-8:扫 SQL 这件事,从加上的那天到今天一直是空的】
+// 这个文件此前的抬头写着:扩展到扫 SQL,是【因为】fx_rate_gaps 里那句
+//     l.currency <> 'SGD'
+// —— 而 branch 的比较模式当时只有 `[=!]==?`,它认得 ==、!=、===、!==,
+// 【单个 = 和 <> 一个都不认】。SQL 的判断恰恰只用这两个。也就是说:它举出的
+// 那个例子,正是它匹配不了的形状。门于是一路报"币种无写死",底下压着 23 处,
+// 其中 record_payment 的三处在分支上、preview_revalue_foreign_balances 的两处
+// 决定"哪些余额算外币"。【报绿的瞎子比没有检查更坏】——它替人省掉了怀疑。
+// 补上单 =、<>、IN、= ANY、LIKE、COALESCE、:= 之后,十二处改成读
+// currencies.is_base(db/migrations/2026-08-07-ops8-currency-is-base.sql),
+// 十一处是真的就是那个币种,进了下面的 ALLOWLIST 并各自写了理由。
+//
+// 【还没盖住的两族,数过、记下来,不假装没有】——
+//   * jsonb 分录行里的 `'currency', 'SGD', … 'fx_rate', 1`:约 50 处、17 个文件
+//     (allocate_processing_costs 11、dispose_fixed_asset 5、record_payment 4…)。
+//     它们是"这条分录行按本位币记账"的意思,和 v_doc_ccy := 'SGD' 同一类,
+//     但形状是 jsonb 的键值对,不是比较。改起来是自己一切,要连着 fixture 走。
+//   * SQL 的参数/列默认值 `DEFAULT 'SGD'`:5 处(set_inbound_unit_price、
+//     reprice_inbound_batch、record_expense 三个函数参数;purchase_orders.currency、
+//     payroll_periods.currency 两个列默认)。列默认值里同样写不出子查询。
+// 【写在这里,是为了让"✓ 没有把币种当常量用的判断"这句话有确切的边界】——
+// 上一次这个边界没写出来,结果就是本次 OPS-8。
+// ════════════════════════════════════════════════════════════════════════════
+//
 // 【为什么补第二类】第一类只看判断,而最直接的谎法根本不经过判断:
 //     {payment.currency !== baseCurrency && <>= {formatMoney(amount_base)} USD</>}
 // 这一行【自己知道本位币是什么】(左边刚拿它比过),右边照样印死 "USD"。
@@ -50,6 +75,39 @@ const ALLOWLIST = [
         path: 'app/me/MyClaimsPanel.tsx', match: 'SGD',
         reason: '同 app/hr/claims/:同一组 *_sgd 列的自助视图。',
     },
+    // ── OPS-8:SQL 侧。判断类的已经改成问 currencies.is_base(见
+    //    db/migrations/2026-08-07-ops8-currency-is-base.sql);留下的是【真的就是
+    //    那个币种】的四族 ──────────────────────────────────────────────────
+    {
+        path: 'db/fixtures/',
+        reason: 'fixture 自带数据:它插了哪个币种的牌价/付款,就按哪个币种清理与断言。'
+            + '这里的 USD/SGD 不是"本位币"的化名,是这个用例自己造出来的那一行 ——'
+            + '与 db/fixtures/README.md 第 5 条(前提要显式设定)是同一件事。'
+            + '真换了本位币,这些用例会【当场报错】而不是悄悄算错:一笔本位币付款'
+            + '走到外币分支就会要牌价。',
+    },
+    {
+        path: 'db/functions/pay_medical_claim.sql', match: 'SGD',
+        reason: '医疗报销【按决策】以新元计,与 app/hr/claims/ 那条同源:'
+            + 'medical_claims.amount_sgd 存的确实是新元,限额也是新元政策数字。'
+            + '这一句把 SGD 递给 record_expense,是在说"这笔就是新元",不是在说'
+            + '"这笔是本位币"。要改成多币种报销,先改表。',
+    },
+    {
+        path: 'db/tables/currencies.sql', match: 'IN (',
+        reason: '这是【币种集合本身的定义】—— 定义一样东西的地方不算引用它,'
+            + '与 check_mirrors 把 accounts.sql 排除在科目码扫描之外同一条道理。'
+            + '加币种时本来就要改这一行。',
+    },
+    {
+        path: 'db/tables/fx_rates.sql', match: "<> 'SGD'",
+        reason: '【这确实是一句本位币测试,但 CHECK 约束里写不出来】—— 本位币对自己'
+            + '没有牌价,判据应当是 currencies.is_base;而 PostgreSQL 的 CHECK 约束'
+            + '不允许子查询,所以这里没有第二种写法(换触发器是改语义,不在 OPS-8'
+            + '的搬家范围内)。【本位币若再变一次,这一行必须手改】—— 它会反过来'
+            + '拦住新本位币的牌价、放行旧本位币的牌价。记在 '
+            + 'docs/currency-literals-audit.md 的"换本位币要动哪些地方"里。',
+    },
     {
         path: 'app/purchasing/orders/new/NewOrderForm.tsx', match: 'USD',
         reason: '金属报价【按市场惯例】以美元计价(AGENTS.md 的 FX 规则里写明:'
@@ -65,6 +123,11 @@ const allowed = (h) => ALLOWLIST.some((a) =>
 
 // 只抓【比较/分支】里的币种字面量 —— 单纯出现在字符串或数组里(例如下拉选项、
 // 类型联合)不算,那些是数据,不是规则。
+//
+// 【OPS-8:SQL 的比较运算符与 JS 的不是一套】原先这一组只有 [=!]==?,它认得
+// ==、!=、===、!==,而【单个 = 和 <> 一个都不认】。SQL 里的判断恰恰只用这两个,
+// 于是"扫 SQL"这件事从加上的那天起就是空的:七处活的判断压在下面,其中三处在
+// record_payment 的分支上,而门一路报绿。下面 sql 那一组补的就是这个。
 const BRANCH_PATTERNS = CODES.flatMap((c) => [
     new RegExp(`[=!]==?\\s*['"\`]${c}['"\`]`),          // === 'USD'
     new RegExp(`['"\`]${c}['"\`]\\s*[=!]==?`),          // 'USD' ===
@@ -75,6 +138,19 @@ const BRANCH_PATTERNS = CODES.flatMap((c) => [
     new RegExp(`(^|[{,\\s])['"\`]?${c}['"\`]?\\s*:(?!:)`),
     // SQL 里把币种当【投影出来的值】:'SGD'::text AS currency —— 那是在替所有行断言币种
     new RegExp(`['"\`]${c}['"\`](::\\w+)?\\s+AS\\s`, 'i'),
+    // ── SQL 的比较与默认(OPS-8)────────────────────────────────────────────
+    // 单个 = :前面不能是 = ! < > :(排除 ==、!=、<=、>=、:= —— := 是赋值,
+    // 不是比较,单列在下面,免得把两件事混成一条)
+    new RegExp(`(?<![=!<>:])=(?!=)\\s*'${c}'`),           // WHERE currency = 'SGD'
+    new RegExp(`'${c}'\\s*=(?!=)`),                      // 'SGD' = currency
+    new RegExp(`<>\\s*'${c}'|'${c}'\\s*<>`),            // currency <> 'SGD'
+    new RegExp(`\\bIN\\s*\\([^)]*'${c}'`, 'i'),          // currency IN ('SGD', …)
+    new RegExp(`\\bANY\\s*\\([^)]*'${c}'`, 'i'),         // = ANY(ARRAY['SGD', …])
+    new RegExp(`\\bLIKE\\s*'${c}`, 'i'),                // currency LIKE 'SGD%'
+    // 默认成某币种。比较之外的另一半 —— TypeScript 那边的 ?? 'USD' 就是这个形状,
+    // 它不判断任何东西,只是在没人说话的时候【替所有行认了一个币种】。
+    new RegExp(`\\bCOALESCE\\s*\\([^)]*'${c}'`, 'i'),    // COALESCE(x, 'SGD')
+    new RegExp(`:=\\s*'${c}'`),                          // v_ccy := 'SGD'
 ])
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -134,8 +210,9 @@ function* walk(dir) {
 }
 
 const hits = []
-// db/ 下的 SQL 也扫 —— fx_rate_gaps 里那句 `l.currency <> 'SGD'` 说明盲区恰恰
-// 落在本位币最要紧的地方。SQL 里判本位币要问 currencies.is_base,不要写字面量。
+// db/ 下的 SQL 也扫。SQL 里判本位币要问 currencies.is_base,不要写字面量。
+// (这几行原先写着"fx_rate_gaps 里那句 l.currency <> 'SGD'"——【那句话两头都过期了】:
+//  fx_rate_gaps 早已改成读 is_base,而 <> 这个形状当时根本不在模式表里。见抬头 OPS-8。)
 for (const dir of ['app', 'lib', 'db']) {
     for (const file of walk(join(ROOT, dir))) {
         const rel = file.slice(ROOT.length)
