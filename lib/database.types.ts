@@ -5344,7 +5344,7 @@ export type Database = {
           deleted_at?: string | null
           estimated_total_ccy?: number
           expected_delivery_date?: string | null
-          fx_rate?: number
+          fx_rate: number
           id?: string
           incoterm?: string | null
           notes?: string | null

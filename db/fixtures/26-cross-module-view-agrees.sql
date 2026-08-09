@@ -85,8 +85,10 @@ BEGIN
     -- 采购单 + 一笔已过账的预付,给 D 支一个【非零】的真值
     -- purchase_orders 的编号【没有触发器】—— create_purchase_order 自己调
     -- next_purchase_order_code()(无缝编号,见表头注释)。直插就得自己取号。
-    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, status)
-        VALUES (next_purchase_order_code(DATE '2026-03-02'), v_sup, DATE '2026-03-02', base_currency_code(), 'confirmed')
+    -- FIN-35:fx_rate 不再有默认值 —— 直插就得自己给。本位币恒 1(fx_rate_asof
+    -- 对本位币直接返回 1,不查牌价表),所以这里显式写 1 是【记录事实】,不是兜底。
+    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status)
+        VALUES (next_purchase_order_code(DATE '2026-03-02'), v_sup, DATE '2026-03-02', base_currency_code(), 1, 'confirmed')
         RETURNING id INTO v_po;
     -- payments 同样无取号触发器(record_payment 自己调 fin_next_payment_code,
     -- 出款前缀 'PMT')。这里不走 record_payment:它会连带过账分录、要牌价、

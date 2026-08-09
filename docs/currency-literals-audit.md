@@ -273,3 +273,62 @@ FIN-1a 那个文件【不改】—— 迁移是"当时上了什么"的记录,改
 >
 > 第二条候选(定额期只能按比例)**被否**:它靠删功能消灭缺陷,而 PO 侧仍然支持
 > 定额,模板会比它模板化的东西更弱 —— 这种不对称迟早被人"修"回来,且不带币种。
+
+---
+
+## FIN-35 — the DEFAULT survey: which column defaults encode an ASSUMPTION
+
+**Why this section exists.** `purchase_orders.fx_rate` carried `DEFAULT 1`. That is the `?? 1` the FX
+work spent several cuts removing, written as a schema default — and `check-currency-literals.mjs`
+could not see it, because it hunts currency **codes** and this is a rate **value**. The survey below
+is the whole point of the cut: an instance is a bug, a class needs a check.
+
+**Every column default in the schema was read** (28 numeric, 49 text/array, plus the identity and
+`now()` families which cannot encode an assumption). Classified against the four defaults OPS-11
+deliberately KEPT — `purchase_orders.currency 'USD'` (a commercial choice), `payroll_periods.currency
+'SGD'` (Singapore payroll really is in SGD), and the two `set_inbound_unit_price` /
+`reprice_inbound_batch` `'USD'` parameters (metal is quoted in USD by market convention). Those are
+real business defaults: the value is *true*, not *assumed*.
+
+### The distinguishing test
+
+> **A multiplier's identity is invisible; an addend's is not.**
+> A rate defaulting to **1** silently produces a number that looks exactly like a correct one. A
+> percentage or an accumulator defaulting to **0** produces a visible zero — a reader sees "no tax",
+> "nothing yet". The first hides a wrong answer; the second states an absent one.
+
+### Findings
+
+| column | default | verdict |
+|---|---|---|
+| `purchase_orders.fx_rate` | `1` | **ASSUMPTION — removed by FIN-35.** Dead on the only write path (`create_purchase_order` refuses a caller-supplied rate and derives it from `fx_rate_for(..., 'tt_sell')`), and loaded for every other. Two fixtures were quietly relying on it and now fail loudly |
+| `purchase_orders.approval_status` | `'approved'` | **ASSUMPTION, deliberately reserved.** "No flow exists, therefore approved." Belongs to APR-2, which owns flipping it |
+| `purchase_orders.status` | `'confirmed'` | **Assumption, but dead** — `create_purchase_order` passes `'confirmed'` explicitly. Every other document defaults to `'draft'`. Worth aligning whenever purchase orders are next touched; not worth a migration of its own |
+| `processing_runs.allocation_basis` | `'metal_value'` | **BORDERLINE, reported not changed.** Nothing sets it at creation — all 9 live runs carry the default — so the *costing method* is chosen by a schema default, and FIN-25 proved the two bases give provably different unit costs (62.50 vs 27.50 on the same run). It is a legitimate house default and it is a *named method the reader can see*, not a number masquerading as a measurement. The fix, if wanted, is to surface it on the run screen, not to remove it |
+| `finance_settings.gst_rate_pct` | `0` | **Real default, same shape lower severity.** 0 GST computes a plausible 0 tax — but it is an addend (visible as `0.00`), it is RUNTIME CONFIG seeded once, and it is operator-set. Allowlisted in the checker with that reason |
+| `invoices.tax_rate_pct` | `0` | as above — a copy of the settings figure onto the document |
+| accumulators: `journal_lines.debit/credit`, all `payroll_*_total`, `estimated_total_ccy`, `estimated_amount_ccy` | `0` | **Real.** "Nothing yet" is true at insert |
+| `fixed_assets.residual_base`, `pricing_formulas.flat_discount_pct`, `treatment_charge_usd_per_tonne` | `0` | **Real.** "None" is a genuine business value |
+| workflow initial states: `'draft'`, `'pending'`, `'open'`, `'submitted'`, `'todo'`, `'unmatched'`, `'provisional'` | — | **Real.** The initial state of a workflow is a fact, not a guess |
+| jurisdiction and trade constants: `country 'Singapore'` / `'SG'`, `unit 'kg'`, `fx_rates.source 'DBS'`, `fixed_assets.depreciation_account_code '6700'` | — | **Real.** The last is an account choice and is already visible to `check_mirrors`' account-code scanner |
+| policy figures: `fy_end_day 31`, `fy_end_month 12`, `carry_forward_months 12`, `medical_annual_limit_sgd 1000`, `working_days_per_week 5` | — | **Real**, and all RUNTIME CONFIG — an operator changes them and divergence from the file is the system working |
+
+**So: one instance to remove, one reserved for APR-2, one dead-but-misaligned, one borderline
+reported.** Not a large class — but large enough that a check is worth more than a memory.
+
+### The checker now sees it — `rate-default`, the third class
+
+`check-currency-literals.mjs` gained a third class alongside `branch` and `jsx-text`: a
+**rate-shaped column name carrying a numeric DEFAULT**, scanned over `db/tables/*.sql`. Matching on
+the *name* rather than the type is deliberate — the multiplier/addend distinction lives in the name,
+and the point is to force the judgement to be written down rather than remembered. It finds three
+today: `fx_rate` (fixed), and `gst_rate_pct` / `tax_rate_pct` (allowlisted, with the reason above).
+
+**Fault-injected:** putting `DEFAULT 1` back on `purchase_orders.fx_rate` makes the checker report
+`1 unallowed` and name the line; removing it again returns to clean.
+
+**What it cannot see, stated so a green line is not read as "no assumptions anywhere":** it only
+looks at column defaults in table mirrors whose column name contains `rate`. A rate stored in a
+column named `conversion`, `multiplier` or `factor` would pass, as would an assumption expressed in
+a function's parameter default (OPS-11's territory) or in application code. That residue is a review
+question, in the same way the error-swallowing checker names its own blind spot.

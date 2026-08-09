@@ -434,11 +434,15 @@ review chain writes to the log, an empty log beside a submitted review is the sy
 
 ## Two things APR-1 found that APR-2 must not inherit
 
-**1 - `purchase_orders.fx_rate` defaults to 1, and one live PO relies on it.** Decision 3 says the
+**1 - `purchase_orders.fx_rate` defaulted to 1 (removed by FIN-35) - but the live PO's 1:1 was NOT the default leaking.** Decision 3 says the
 threshold is compared in base currency **using the document's own stored rate**. PO-2026-0001 is
 **USD 120,000 with `fx_rate = 1`** - its base value reads 120,000 when the USD mid rate on its order
-date was 1.255, so the true figure is about 150,600. Both are above any plausible threshold so the
-outcome would not change *here*, but the mechanism is demonstrably fallible on live data.
+date was 1.255, so the true figure is about 150,600. **FIN-35 traced it and the APR-1 diagnosis above
+was wrong**: the PO is dated 2026-07-31, and FIN-0 flipped the base from USD to SGD on 2026-08-04 -
+so its 1:1 was CORRECT when written. `create_purchase_order` has always derived the rate from
+`fx_rate_for(..., 'tt_sell')` and refuses a caller-supplied one, so the DEFAULT never leaked into it.
+What remains true: reading that row today under an SGD base gives the wrong base figure, so APR-2's
+threshold must not treat a pre-FIN-0 document as if its stored rate were current.
 **APR-2 must refuse or flag `fx_rate = 1` on a non-base-currency document rather than treating it as
 a genuine 1:1**, exactly as `fx_rate_for` refuses a missing rate instead of defaulting. Also recorded
 in `known-wrong-until-cutover.md`, because the row itself is test data.

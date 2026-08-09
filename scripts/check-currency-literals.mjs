@@ -60,6 +60,20 @@ const CODES = ['USD', 'SGD']
 // 例外:path 是路径前缀,match(可选)是该行必须包含的片段 —— 【只豁免那一种写法】,
 // 不是整个文件从此免检。reason 必填:名单是列出来的,不是记在谁脑子里的。
 const ALLOWLIST = [
+    // ── FIN-35:rate-default 类的合法例外 ────────────────────────────────────
+    // 【百分比默认 0 与汇率默认 1 不是同一件事】0 是"没有",它加进去什么也不改变,
+    // 屏幕上也看得见(税额一栏就是 0);1 是"等值",它乘进去什么也不改变,于是
+    // 一个错的换算结果与一个对的换算结果长得一模一样。前者可留,后者不可。
+    {
+        path: 'db/tables/finance_settings.sql', match: 'gst_rate_pct',
+        reason: 'GST 税率默认 0 = 【尚未配置,不计税】—— 加数不是乘数,0 在报表上是看得见的一行,'
+            + '不会把一个错数伪装成对数。且 finance_settings 是 RUNTIME CONFIG,由操作员显式设定。',
+    },
+    {
+        path: 'db/tables/invoices.sql', match: 'tax_rate_pct',
+        reason: '同上 —— 发票上的税率是从 finance_settings 抄下来的副本,默认 0 意为不计税,'
+            + '金额栏会如实显示 0.00。',
+    },
     {
         path: 'lib/currencyMap.ts',
         reason: '币种在这里【只出现一次】:BANK_BY_CURRENCY 是银行账户与其本币的对照表,'
@@ -256,6 +270,16 @@ function* walk(dir) {
     }
 }
 
+// ── 第三类:【汇率形状的列带着数值默认值】(FIN-35)────────────────────────────
+// 前两类都只看币种【代码】,而最贵的一次假设根本没有代码:
+//     fx_rate numeric NOT NULL DEFAULT 1
+// 那是 FX 规则花了几切次清掉的 `?? 1`,写成了 schema 的默认值 —— 一条非本位币单据
+// 上的 1:1 永远是错的,而且四舍五入到分之后完全看不出来。
+// 【为什么按列名而不是按类型】乘数与加数的区别全在名字里:一个叫 *rate 的列,
+// 默认 1 意味着"当作等值",默认 0 意味着"当作没有" —— 两者都是替读者做了判断。
+// 真正该留的默认值进 ALLOWLIST 并写理由(百分比默认 0 就是这么留下的)。
+const RATE_DEFAULT = /^\s*(\w*rate\w*)\s+(numeric|real|double\s+precision)[^,]*\bDEFAULT\s+([0-9.]+)/i
+
 const hits = []
 // db/ 下的 SQL 也扫。SQL 里判本位币要问 currencies.is_base,不要写字面量。
 // (这几行原先写着"fx_rate_gaps 里那句 l.currency <> 'SGD'"——【那句话两头都过期了】:
@@ -272,6 +296,10 @@ for (const dir of ['app', 'lib', 'db']) {
                 || line.trim().startsWith('--')) return
             if (BRANCH_PATTERNS.some((re) => re.test(line))) {
                 hits.push({ rel, line: i + 1, kind: 'branch', text: line.trim().slice(0, 110), full: line })
+                return
+            }
+            if (rel.startsWith('db/tables/') && RATE_DEFAULT.test(line)) {
+                hits.push({ rel, line: i + 1, kind: 'rate-default', text: line.trim().slice(0, 110), full: line })
                 return
             }
             // 印到屏幕上的币种只可能出在 .tsx 的 JSX 正文里

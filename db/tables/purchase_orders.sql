@@ -27,7 +27,11 @@ CREATE TABLE public.purchase_orders (
     order_date             date NOT NULL,
     expected_delivery_date date,
     currency               text NOT NULL DEFAULT 'USD' REFERENCES public.currencies (code),
-    fx_rate                numeric NOT NULL DEFAULT 1 CHECK (fx_rate > 0),
+    -- 【没有默认值,这是有意的 —— FIN-35】汇率的默认值只能是一个假设,而假设出来的
+    -- 1:1 在非本位币单据上永远是错的、还看起来完全正常(就是 FX 规则清掉的那个 `?? 1`)。
+    -- create_purchase_order 按 order_date 的 tt_sell 取,缺牌价即 FX_RATE_MISSING 点名拒绝;
+    -- NOT NULL 是兜底 —— 漏传就撞它,而不是拿到一个编出来的 1。
+    fx_rate                numeric NOT NULL CHECK (fx_rate > 0),
     estimated_total_ccy    numeric NOT NULL DEFAULT 0,
     status                 text NOT NULL DEFAULT 'confirmed'
                            CHECK (status IN ('draft','confirmed','receiving','closed','cancelled')),
@@ -47,6 +51,9 @@ CREATE TABLE public.purchase_orders (
     updated_at             timestamptz NOT NULL DEFAULT now(),
     updated_by             uuid DEFAULT auth.uid()
 );
+
+COMMENT ON COLUMN public.purchase_orders.fx_rate IS
+    '本单据成立时的折本位币汇率(create_purchase_order 按 order_date 的 tt_sell 取,缺牌价即拒)。【没有默认值,这是有意的 —— FIN-35】:汇率的默认值只能是一个假设,而假设出来的 1:1 在非本位币单据上永远是错的,还看起来完全正常。NOT NULL 是兜底,带名字的拒绝在 fx_rate_for。';
 
 COMMENT ON COLUMN public.purchase_orders.estimated_total_ccy IS
     '估算总额,以【本单据自己的币种】(purchase_orders.currency)计 —— 不换算、不乘 fx_rate。FIN-28 前列名 estimated_total_usd,那个名字是错的:一张 SGD 的单存的就是 SGD。';
