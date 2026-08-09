@@ -5851,6 +5851,8 @@ export type Database = {
           movement_id: string | null
           notes: string | null
           output_batch_id: string
+          price_provenance: Json | null
+          price_source: string | null
           quantity: number
           sale_date: string
           unit_price: number
@@ -5867,6 +5869,8 @@ export type Database = {
           movement_id?: string | null
           notes?: string | null
           output_batch_id: string
+          price_provenance?: Json | null
+          price_source?: string | null
           quantity: number
           sale_date: string
           unit_price: number
@@ -5883,6 +5887,8 @@ export type Database = {
           movement_id?: string | null
           notes?: string | null
           output_batch_id?: string
+          price_provenance?: Json | null
+          price_source?: string | null
           quantity?: number
           sale_date?: string
           unit_price?: number
@@ -9739,6 +9745,8 @@ export type Database = {
           movement_id: string | null
           notes: string | null
           output_batch_id: string | null
+          price_provenance: Json | null
+          price_source: string | null
           quantity: number | null
           sale_date: string | null
           unit_price: number | null
@@ -9755,6 +9763,8 @@ export type Database = {
           movement_id?: string | null
           notes?: string | null
           output_batch_id?: string | null
+          price_provenance?: never
+          price_source?: string | null
           quantity?: number | null
           sale_date?: string | null
           unit_price?: never
@@ -9771,6 +9781,8 @@ export type Database = {
           movement_id?: string | null
           notes?: string | null
           output_batch_id?: string | null
+          price_provenance?: never
+          price_source?: string | null
           quantity?: number | null
           sale_date?: string | null
           unit_price?: never
@@ -10274,6 +10286,16 @@ export type Database = {
         Args: { p_period_end: string }
         Returns: Json
       }
+      price_output_sale: {
+        Args: {
+          p_currency: string
+          p_formula_id: string
+          p_output_batch_id: string
+          p_quantity: number
+          p_reference_date: string
+        }
+        Returns: Json
+      }
       pricing_terms_of_commitment: {
         Args: { p_commitment_id: string }
         Returns: Json
@@ -10341,6 +10363,8 @@ export type Database = {
           p_fx_rate?: number
           p_notes?: string
           p_output_batch_id: string
+          p_price_provenance?: Json
+          p_price_source?: string
           p_quantity: number
           p_sale_date?: string
           p_unit_price: number

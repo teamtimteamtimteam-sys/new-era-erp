@@ -864,6 +864,16 @@ const en = {
             stateLockedHint: 'State is set automatically by sales and processing',
         },
         sale: {
+        pricing: {
+            mode: 'Pricing',
+            manual: 'Manual price',
+            spot: 'Spot at market (preset)',
+            formula: 'Formula',
+            formulaPick: 'Formula (sale side)',
+            quote: 'Compute price',
+            quoting: 'Computing…',
+            quoted: 'Computed: {usd} USD/kg × fx {factor} ({side}) — series: {series}. Editing the price reverts it to manual.',
+        },
             errDateRequired: 'A sale date is required — it sets the FX rate used, the inventory movement date, and the period both journals post to. It is deliberately not defaulted server-side.',
             title: 'Record Sale',
             button: 'Record Sale',

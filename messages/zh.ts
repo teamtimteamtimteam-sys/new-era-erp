@@ -867,6 +867,16 @@ const zh = {
             stateLockedHint: '状态由销售和加工自动更新',
         },
         sale: {
+        pricing: {
+            mode: '定价方式',
+            manual: '手填价格',
+            spot: '现货市价(预设)',
+            formula: '按公式',
+            formulaPick: '公式(卖方向)',
+            quote: '计算价格',
+            quoting: '计算中…',
+            quoted: '算得 {usd} USD/kg × 汇率 {factor}({side})—— 序列:{series}。手改价格即退回手填。',
+        },
             errDateRequired: '销售日必填 —— 它决定用哪天的汇率、库存流水的业务日期,以及收入与 COGS 两张分录落在哪个期间。服务端【刻意不给默认值】。',
             title: '登记销售',
             button: '登记销售',

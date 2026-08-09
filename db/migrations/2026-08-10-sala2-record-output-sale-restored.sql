@@ -1,3 +1,14 @@
+-- SAL-A(补):record_output_sale 的新版本
+--
+-- 上一支迁移的组装脚本在签名断言上失败(p_fx_rate 带 DEFAULT,断言的串没带),
+-- 而迁移文件已经写好了 DROP —— 于是 DROP 执行、CREATE 缺席,record_output_sale
+-- 在线上【消失了几分钟】。本支立刻补上带出处两参的新版本。
+-- 教训与 fixture 无关,与流程有关:组装失败必须让迁移文件回到未组装状态,
+-- 而不是留下半份;已在本地流程里改为"断言失败即删除迁移文件"。
+--
+-- NOTE: apply with ./db/apply_migration.sh
+BEGIN;
+
 CREATE OR REPLACE FUNCTION public.record_output_sale(p_output_batch_id uuid, p_quantity numeric, p_unit_price numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_customer_id uuid DEFAULT NULL::uuid, p_sale_date date DEFAULT NULL::date, p_notes text DEFAULT NULL::text, p_price_source text DEFAULT NULL::text, p_price_provenance jsonb DEFAULT NULL::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -129,3 +140,5 @@ BEGIN
     );
 END;
 $function$;
+
+COMMIT;

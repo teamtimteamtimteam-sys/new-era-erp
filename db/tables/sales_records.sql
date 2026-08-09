@@ -23,7 +23,14 @@ CREATE TABLE public.sales_records (
     created_by      uuid DEFAULT auth.uid(),
     -- 在列序末尾:cut 2a 用 ALTER ADD COLUMN 追加(镜像按线上 attnum 排)。
     -- COGS 分录链接(售时或 allocate 补挂)。
-    cogs_entry_id   uuid REFERENCES public.journal_entries (id)
+    cogs_entry_id   uuid REFERENCES public.journal_entries (id),
+    -- ── SAL-A 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
+    -- 售价出处(FIN-26 的卖方半边):computed 必带依据、manual 明说、NULL = SAL-A
+    -- 之前的行(不回填)。配对 CHECK 让"没有依据的 computed"不可表示。
+    price_source     text CHECK (price_source IN ('computed', 'manual')),
+    price_provenance jsonb,
+    CONSTRAINT sales_records_provenance_pairing
+        CHECK ((price_source = 'computed') = (price_provenance IS NOT NULL))
 );
 
 CREATE INDEX idx_sales_records_batch ON public.sales_records (output_batch_id);
@@ -48,6 +55,9 @@ BEGIN
        OR NEW.movement_id     IS DISTINCT FROM OLD.movement_id
        OR NEW.created_at      IS DISTINCT FROM OLD.created_at
        OR NEW.created_by      IS DISTINCT FROM OLD.created_by
+       -- SAL-A:出处两列同样不可变 —— 卖出去之后改口"这是算出来的"与改价同罪
+       OR NEW.price_source     IS DISTINCT FROM OLD.price_source
+       OR NEW.price_provenance IS DISTINCT FROM OLD.price_provenance
        OR OLD.cogs_entry_id   IS NOT NULL
        OR NEW.cogs_entry_id   IS NULL
     THEN
@@ -84,8 +94,13 @@ CREATE POLICY "sales_records update by permission"
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 sales_records_masked 读取。
 -- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
 REVOKE SELECT ON public.sales_records FROM authenticated, anon;
-GRANT SELECT (id, output_batch_id, customer_id, quantity, currency, sale_date, notes, movement_id, created_at, created_by, cogs_entry_id)
+GRANT SELECT (id, output_batch_id, customer_id, quantity, currency, sale_date, notes, movement_id, created_at, created_by, cogs_entry_id, price_source)
     ON public.sales_records TO authenticated;
 
 -- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)
 COMMENT ON COLUMN public.sales_records.amount_base IS '本位币金额(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 amount_usd)。';
+
+COMMENT ON COLUMN public.sales_records.price_source IS
+    '售价的出处(SAL-A,FIN-26 的卖方半边):computed = 报价按钮产出(必带 price_provenance);manual = 手填。NULL = SAL-A 之前的行,当时没记 —— 【不回填猜测】,界面画"未知"。不要从公式在不在推断。';
+COMMENT ON COLUMN public.sales_records.price_provenance IS
+    'computed 行的重导出依据(SAL-A):逐金属行情与日期、金属含量、应付比例、处理费与折扣、汇率与 as-of 与【边】(tt_buy —— 收钱进来)、以及 price_series(当前恒为 metal_prices:每金属只有一条序列,LME/SMM 表达不了,出处只写真正查过的东西)。不能重导出的出处只是标签。';

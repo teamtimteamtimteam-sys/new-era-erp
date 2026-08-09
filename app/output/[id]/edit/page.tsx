@@ -132,6 +132,17 @@ export default async function EditOutputPage({
         run: m.processing_runs,
     }))
 
+    // SAL-A:卖方可用的公式(方向 sale/both、启用)。走遮蔽视图 —— 没有
+    // module.pricing.view 的读者拿到 0 行,面板于是只剩手填与现货预设,而不是报错。
+    const { data: sellFormulaRows } = await supabase
+        .from('pricing_formulas_masked')
+        .select('id, code, name, direction, is_active')
+        .in('direction', ['sale', 'both'])
+        .eq('is_active', true)
+        .is('deleted_at', null)
+        .order('code')
+    const sellFormulas = (sellFormulaRows ?? []).map((f) => ({ id: f.id as string, code: f.code as string, name: f.name as string }))
+
     return (
         <div className="p-4 sm:p-8 max-w-2xl">
             <div className="mb-6">
@@ -192,6 +203,7 @@ export default async function EditOutputPage({
                     state={batch.state}
                     customers={mustRows(customersRes)}
                     batchCustomerId={batch.customer_id}
+                    formulas={sellFormulas}
                 />
             ) : (
                 <section className="mt-8 pt-8 border-t">

@@ -4,7 +4,7 @@
 // cut 1:销售必须带价 —— 单价 + 币种(非 USD 附汇率)+ 可选客户,实时金额预览。
 // 成功后服务端 revalidate 重取,remaining/state/时间线一起刷新;表单用 formKey 清空。
 import { useActionState, useEffect, useState } from 'react'
-import { recordSale, type SaleState } from './saleActions'
+import { recordSale, quoteSalePrice, type SaleState, type QuoteState } from './saleActions'
 import { STATE_OPTIONS, labelKeyForValue } from '../../../inbound/options'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatMoney } from '@/lib/format'
@@ -30,6 +30,7 @@ export default function SalePanel({
     customers,
     batchCustomerId,
     baseCurrency,
+    formulas,
 }: {
     batchId: string
     remainingQty: number
@@ -38,6 +39,9 @@ export default function SalePanel({
     customers: CustomerOption[]
     batchCustomerId: string | null
     baseCurrency: string
+    /** SAL-A:方向为 sale/both 的启用公式(读自 pricing_formulas_masked;无 pricing
+     *  权限时为空数组 → 只剩手填与现货预设) */
+    formulas: { id: string; code: string; name: string }[]
 }) {
     const t = useTranslations()
     const recordWithId = recordSale.bind(null, batchId)
@@ -48,6 +52,15 @@ export default function SalePanel({
     const [quantity, setQuantity] = useState('')
     const [unitPrice, setUnitPrice] = useState('')
     const [currency, setCurrency] = useState('USD')
+    // SAL-A:三种模型 —— manual 手填 / formula 公式 / spot 现货预设(退化公式,
+    // 由 DB 侧填 terms 走同一台引擎,不是第四条分支)。computed 的价带出处;
+    // 【报价之后手改价格 → 出处退回 manual 并丢弃依据】:改过的数字挂着"算出来的"
+    // 依据,正是 FIN-26 修掉的那种误读。
+    const [priceMode, setPriceMode] = useState<'manual' | 'formula' | 'spot'>('manual')
+    const [quoteFormulaId, setQuoteFormulaId] = useState('')
+    const [quote, setQuote] = useState<QuoteState | null>(null)
+    const [quoting, setQuoting] = useState(false)
+    const computed = quote?.unitPrice !== undefined && unitPrice === String(quote.unitPrice)
 
     // 成功后清空录入(重挂表单 + 复位受控值)
     useEffect(() => {
@@ -56,6 +69,8 @@ export default function SalePanel({
             setQuantity('')
             setUnitPrice('')
             setCurrency('USD')
+            setQuote(null)
+            setPriceMode('manual')
         }
     }, [st.success])
 
@@ -94,6 +109,74 @@ export default function SalePanel({
             )}
 
             <form key={formKey} action={formAction} className="space-y-3">
+                {/* SAL-A:定价 —— Doc 1 点名的痛("不同定价模型整合进本模块")。
+                    现货是【预设】(DB 侧填 100%/0/0 的 terms 走同一台引擎);
+                    换算在 DB 里按 tt_buy(收钱进来)—— 不是买路径的 tt_sell。 */}
+                <div className="flex flex-wrap gap-2 items-end">
+                    <div>
+                        <label className="block text-sm font-medium mb-1">{t('output.sale.pricing.mode')}</label>
+                        <select
+                            value={priceMode}
+                            onChange={(e) => { setPriceMode(e.target.value as 'manual' | 'formula' | 'spot'); setQuote(null) }}
+                            className="border border-gray-300 px-3 py-2 rounded"
+                        >
+                            <option value="manual">{t('output.sale.pricing.manual')}</option>
+                            <option value="spot">{t('output.sale.pricing.spot')}</option>
+                            <option value="formula">{t('output.sale.pricing.formula')}</option>
+                        </select>
+                    </div>
+                    {priceMode === 'formula' && (
+                        <div>
+                            <label className="block text-sm font-medium mb-1">{t('output.sale.pricing.formulaPick')}</label>
+                            <select
+                                value={quoteFormulaId}
+                                onChange={(e) => setQuoteFormulaId(e.target.value)}
+                                className="border border-gray-300 px-3 py-2 rounded"
+                            >
+                                <option value="">—</option>
+                                {formulas.map((f) => (
+                                    <option key={f.id} value={f.id}>{f.code} · {f.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+                    {priceMode !== 'manual' && (
+                        <button
+                            type="button"
+                            disabled={quoting}
+                            onClick={() => {
+                                const fd = new FormData()
+                                fd.set('quote_formula_id', priceMode === 'formula' ? quoteFormulaId : '')
+                                fd.set('currency', currency)
+                                fd.set('quantity', quantity)
+                                fd.set('sale_date', (document.querySelector('input[name=sale_date]') as HTMLInputElement)?.value ?? '')
+                                setQuoting(true)
+                                quoteSalePrice(batchId, fd).then((q) => {
+                                    setQuoting(false)
+                                    setQuote(q)
+                                    if (q.unitPrice !== undefined) setUnitPrice(String(q.unitPrice))
+                                })
+                            }}
+                            className="bg-gray-800 text-white text-sm px-3 py-2 rounded hover:bg-gray-700 disabled:bg-gray-400"
+                        >
+                            {quoting ? t('output.sale.pricing.quoting') : t('output.sale.pricing.quote')}
+                        </button>
+                    )}
+                </div>
+                {quote?.error && <p className="text-red-600 text-sm">{quote.error}</p>}
+                {quote?.summary && (
+                    <p className="text-xs text-gray-600">
+                        {t('output.sale.pricing.quoted', {
+                            usd: String(quote.summary.usdPerKg),
+                            factor: quote.summary.fxFactor.toFixed(4),
+                            side: quote.summary.fxSide,
+                            series: quote.summary.series,
+                        })}
+                    </p>
+                )}
+                {/* 出处随行:computed 只有在【价格没被手改】时成立 */}
+                <input type="hidden" name="price_source" value={computed ? 'computed' : 'manual'} />
+                <input type="hidden" name="price_provenance" value={computed && quote?.provenance ? JSON.stringify(quote.provenance) : ''} />
                 <div className="flex flex-wrap gap-2 items-end">
                     <div>
                         <label className="block text-sm font-medium mb-1">

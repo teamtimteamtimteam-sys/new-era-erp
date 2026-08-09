@@ -1,6 +1,7 @@
 -- db/views/sales_records_masked.sql
 -- 遮蔽伴生视图:sales_records 的每一列都在,敏感列按 has_permission() 置空。
---   遮蔽的列:amount_base → data.view_prices, fx_rate → data.view_prices, unit_price → data.view_prices
+--   遮蔽的列:amount_base → data.view_prices, fx_rate → data.view_prices, unit_price → data.view_prices,
+--   price_provenance → data.view_prices(SAL-A:出处里有 USD 单价与汇率,与 unit_price 同档)
 --
 -- 【属主权限,不是 SECURITY INVOKER】。invoker 视图以调用者身份读基表,于是任何
 -- 强到能挡住原始列的机制(收紧行策略、或收回列权限)同样会挡住视图本身 —— 实测
@@ -34,6 +35,11 @@ CREATE VIEW public.sales_records_masked WITH (security_invoker = off) AS
     movement_id,
     created_at,
     created_by,
-    cogs_entry_id
+    cogs_entry_id,
+    price_source,
+        CASE
+            WHEN has_permission('data.view_prices'::text) THEN price_provenance
+            ELSE NULL::jsonb
+        END AS price_provenance
    FROM sales_records
   WHERE has_permission('module.finance.view'::text);
