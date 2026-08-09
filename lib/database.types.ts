@@ -4092,6 +4092,72 @@ export type Database = {
         }
         Relationships: []
       }
+      po_issues: {
+        Row: {
+          file_path: string
+          id: string
+          issued_at: string
+          issued_by: string | null
+          purchase_order_id: string
+          sha256: string
+          version: number
+        }
+        Insert: {
+          file_path: string
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          purchase_order_id: string
+          sha256: string
+          version: number
+        }
+        Update: {
+          file_path?: string
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          purchase_order_id?: string
+          sha256?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "po_issues_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["purchase_order_id"]
+          },
+          {
+            foreignKeyName: "po_issues_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "po_receivable_lines"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "po_issues_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_status"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "po_issues_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "po_issues_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prepayment_applications: {
         Row: {
           amount_base: number
@@ -10058,6 +10124,7 @@ export type Database = {
         Returns: Json
       }
       pnl_statement: { Args: { p_from: string; p_to: string }; Returns: Json }
+      po_document_data: { Args: { p_po_id: string }; Returns: Json }
       post_journal_entry: {
         Args: {
           p_entry_date: string
@@ -10186,6 +10253,10 @@ export type Database = {
           p_notes?: string
           p_payment_date?: string
         }
+        Returns: Json
+      }
+      record_po_issue: {
+        Args: { p_file_path: string; p_po_id: string; p_sha256: string }
         Returns: Json
       }
       reject_purchase_order: {

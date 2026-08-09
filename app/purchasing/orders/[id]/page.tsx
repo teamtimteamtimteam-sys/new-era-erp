@@ -57,7 +57,7 @@ export default async function PurchaseOrderDetailPage({
     const canFinance = await can('module.finance.view')
     const po = maskedExcept<Tables<'purchase_orders'>, 'fx_rate' | 'estimated_total_ccy'>(poRaw)
 
-    const [supplierRes, linesRes, termsRes, statusRes, receiptsRes, apprRes] = await Promise.all([
+    const [supplierRes, linesRes, termsRes, statusRes, receiptsRes, apprRes, issuesRes] = await Promise.all([
         supabase.from('suppliers').select('id, legal_name').eq('id', po.supplier_id).single(),
         supabase
             .from('purchase_order_lines_masked')
@@ -79,6 +79,9 @@ export default async function PurchaseOrderDetailPage({
             .order('created_at'),
         // APR-2c:审批是否生效。屏幕必须【说出来】—— 悄悄放行才是缺陷。
         supabase.rpc('approvals_enabled'),
+        // PUR-1:签发档 —— 供应商手里那份是某个具体版本
+        supabase.from('po_issues').select('version, issued_at, issued_by, sha256')
+            .eq('purchase_order_id', id).order('version', { ascending: false }),
     ])
 
     // APR-2c:审批是否生效 —— 决定这一页说哪一句话
@@ -293,6 +296,43 @@ export default async function PurchaseOrderDetailPage({
                     {t('purchasing.approvalOff')}
                 </p>
             )}
+
+            {/* PUR-1:采购单单据(规格:docs/purchase-order-document.md)。
+                预览按当前数据渲染、不落档;【签发】把渲染出的字节存档并记录
+                谁/何时/第几版 —— 供应商手里那份是某个具体版本,重签发产生新版本,
+                旧版本原样留着。未获批的单签发会被 record_po_issue 点名拒绝。 */}
+            <div className="border border-gray-200 rounded p-4 mb-4">
+                <h2 className="font-semibold mb-2">{t('purchasing.doc.title')}</h2>
+                <div className="flex items-center gap-3 mb-2">
+                    <a href={`/purchasing/orders/${po.id}/pdf`} target="_blank"
+                       className="text-sm text-blue-600 hover:underline">
+                        {t('purchasing.doc.preview')}
+                    </a>
+                    <form method="post" action={`/purchasing/orders/${po.id}/pdf`}>
+                        <button type="submit"
+                            className="bg-blue-600 text-white text-sm px-3 py-1.5 rounded hover:bg-blue-700">
+                            {t('purchasing.doc.issue')}
+                        </button>
+                    </form>
+                </div>
+                {mustRows(issuesRes, 'po_issues').length === 0 ? (
+                    <p className="text-xs text-gray-500">{t('purchasing.doc.neverIssued')}</p>
+                ) : (
+                    <ul className="text-sm space-y-1">
+                        {mustRows(issuesRes, 'po_issues').map((iss) => (
+                            <li key={iss.version}>
+                                <a href={`/purchasing/orders/${po.id}/pdf?version=${iss.version}`}
+                                   className="text-blue-600 hover:underline font-mono">
+                                    v{iss.version}
+                                </a>
+                                <span className="text-gray-500 ml-2">
+                                    {t('purchasing.doc.issuedAt', { at: new Date(iss.issued_at).toISOString().slice(0, 16).replace('T', ' ') })}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
 
             {po.notes && (
                 <p className="text-sm text-gray-600 mb-2">

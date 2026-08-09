@@ -1683,6 +1683,13 @@ const en = {
         approvalOn: 'Approval status:',
         approvalOff: 'Approvals are NOT in force. This order was confirmed without an approval step — the workflow is switched off in Finance settings, not skipped. See docs/fresh-install-checklist.md for what turning it on requires.',
         approvalState: { pending: 'Awaiting approval', approved: 'Approved', rejected: 'Rejected' },
+        doc: {
+            title: 'Document',
+            preview: 'Preview PDF (current data, not filed)',
+            issue: 'Issue PDF',
+            neverIssued: 'Never issued. What the supplier holds is a specific issued version — issue one before sending.',
+            issuedAt: 'issued {at} UTC',
+        },
         approvalNote: 'Orders are auto-approved for now. Two-level approval (requester to supervisor, escalating above the threshold) arrives with the Final Phase, bound to the role structure — not with the permissions system, which shipped already and governs module access rather than approval.',
         payDeposit: 'Record a payment',
         unpriced: 'Not priced',

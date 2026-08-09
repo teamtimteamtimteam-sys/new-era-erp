@@ -1678,6 +1678,13 @@ const zh = {
         approvalOn: '审批状态:',
         approvalOff: '审批流【未生效】。本单未经审批直接确认 —— 这是在财务设置里关着的,不是被跳过了。启用它的前置条件见 docs/fresh-install-checklist.md。',
         approvalState: { pending: '待审批', approved: '已批准', rejected: '已驳回' },
+        doc: {
+            title: '单据',
+            preview: '预览 PDF(按当前数据,不落档)',
+            issue: '签发 PDF',
+            neverIssued: '从未签发。供应商手里那份应是某个具体的签发版本 —— 发出前先签发。',
+            issuedAt: '签发于 {at}(UTC)',
+        },
         approvalNote: '当前自动通过。两级审批(发起人 → 主管,超过阈值再升一级)随【最终阶段】与角色结构一起启用 —— 不是随权限系统:权限系统已经上线,它管的是「谁能进哪个模块」,不是「谁批准这一单」。',
         payDeposit: '登记付款',
         unpriced: '未计价',
