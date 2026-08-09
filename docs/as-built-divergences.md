@@ -81,6 +81,42 @@ a reader asking "how does the permission model actually work" arrives, and becau
 decisions (batch-margin predicate; master-data labels follow the document), in `AGENTS.md`
 §"Three standing decisions about what the permission model actually protects".
 
+### `module.pricing.view` covers two different sensitivity classes — RECORDED, not acted on (OPS-15)
+
+**Not a defect today, and deliberately not fixed here.** It is written down because it is the kind of
+thing that gets re-derived from scratch the first time someone asks for it, and because OPS-15 stood
+directly on top of it.
+
+One module code, `module.pricing.view`, currently answers for two things that are not equally
+sensitive:
+
+| | what it is | how the data itself is gated |
+|---|---|---|
+| **market quotes** | `metal_prices` — the LME-style USD/tonne series | RLS `SELECT … USING (true)`. **Public to any authenticated reader**, no column-list revoke, no masked view |
+| **negotiated terms** | `pricing_formulas.treatment_charge_usd_per_tonne`, `.flat_discount_pct`, `pricing_formula_metals.payable_pct` | RLS `USING (has_permission('module.pricing.view'))`, **plus** a perm2b column-list revoke — readable only through `pricing_formulas_masked` / `pricing_formula_metals_masked`, gated on `data.view_prices` |
+
+The first is a market fact anyone may see. The second is **what this company agreed to pay a specific
+counterparty** — the commercial terms of a deal, and by FIN-27 they are copied onto the committing
+record precisely because they are a commitment rather than a computed quantity.
+
+**The permission catalogue's description of `module.pricing.view` — "formulas, calculator and market
+quotes" — names all three, so the code reads as one thing.** The database does not treat it as one
+thing: it puts the quotes behind `USING (true)` and the terms behind two locks.
+
+**Why it surfaced now.** OPS-15's page guards were derived from the module catalogue, so all four
+`/metal-prices` pages got `requireModule(MOD.pricing)` — a page-level refusal in front of data whose
+own RLS declares it public. The guard was removed and the rule stated in code (`lib/modules.ts`, the
+`/pricing` entry): **the guard follows the data's own RLS, not the module catalogue.** `/pricing`
+itself stays gated, because that is where the terms are.
+
+**What is still unresolved, stated so it is not mistaken for settled:** there is no way to grant
+someone the quotes without also offering them the module code that names the terms. Nothing is
+leaking — the terms have their own second lock in `data.view_prices`, and OPS-15's removal of the
+guard changed no database permission — so this is a **shape** problem, not an exposure. It becomes a
+real question the first time a role needs market quotes and must not have the module: the answer will
+be either a `module.metal_prices.view` of its own, or an explicit statement that the quotes are
+outside module gating altogether, which is what the code now does de facto for the four pages.
+
 ---
 
 ## 2 · Principle 7 is stated absolutely; five paths delete physically — DOCUMENT AHEAD

@@ -21,9 +21,17 @@ const en = {
     },
     home: {
         subtitle: 'Lithium Battery Recycling ERP',
+        noModules: 'You do not yet have access to any module.',
+        noModulesHint: 'Your account is signed in but no module has been granted to it. Ask an administrator to assign you a role.',
         sectionMasterData: 'Master Data',
         sectionOperations: 'Operations',
         sectionReports: 'Reports',
+        // 「我的」分组:不受模块权限管辖,人人可见(app/page.tsx 里无条件渲染)。
+        sectionSelf: 'Mine',
+        meTitle: 'My Profile',
+        meDesc: 'Your own record, leave balance and claims',
+        myReviewsTitle: 'My Reviews',
+        myReviewsDesc: 'Performance reviews where you are the reviewer',
         suppliersTitle: 'Suppliers',
         suppliersDesc: 'Supplier master data',
         customersTitle: 'Customers',
@@ -50,6 +58,10 @@ const en = {
         hrDesc: 'Employees, payroll, training and expiry alerts',
         purchasingTitle: 'Purchasing',
         purchasingDesc: 'Purchase orders, payment schedules & prepayments',
+        // 任务板只进导航、不出首页卡片(lib/modules.ts 里 section: null)。键仍需存在:
+        // check-i18n 扫描 titleKey/descKey 这类字面量,不看它最终有没有被渲染。
+        tasksTitle: 'Tasks',
+        tasksDesc: 'Personal task board',
     },
     common: {
         switchLang: 'EN',
@@ -62,6 +74,10 @@ const en = {
         // Shown in place of a figure the signed-in user has no permission to see.
         // Deliberately NOT a blank (reads as missing data) and NOT a zero (a lie).
         restricted: 'Restricted',
+        // 一级之上的同一条道理:整个模块进不去时,说出来,而不是渲染一张空表。
+        moduleDenied: 'You do not have access to this module.',
+        moduleDeniedHint: 'This is a permission answer, not an empty result — ask an administrator to grant you access to this module.',
+        backHome: '← Back to home',
         fxBoardRateHint: 'Foreign-currency amounts are valued at that date\u2019s DBS board rate. If the day\u2019s rate is not on file, this will be refused — enter it under Finance → FX.',
     },
     leave: {

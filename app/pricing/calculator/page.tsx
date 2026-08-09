@@ -7,6 +7,8 @@ import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../Subnav'
 import CalculatorForm, { type FormulaOption } from './CalculatorForm'
 import { METAL_OPTIONS } from '../../metal-prices/options'
+import { requireModule } from '@/app/components/moduleGuard'
+import { MOD } from '@/lib/modules'
 
 function todayIso(): string {
     return new Date().toISOString().slice(0, 10)
@@ -17,6 +19,11 @@ export default async function CalculatorPage({
 }: {
     searchParams: Promise<Record<string, string | undefined>>
 }) {
+    // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
+    // 拒绝必须是权限答复,不能是从空结果倒推。
+    const denied = await requireModule(MOD.pricing)
+    if (denied) return denied
+
     const sp = await searchParams
     const supabase = await createClient()
     const t = await getTranslations()

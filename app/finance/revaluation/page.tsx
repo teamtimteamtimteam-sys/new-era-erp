@@ -13,6 +13,8 @@ import { mustOne } from '@/lib/db-helpers'
 import Subnav from '../Subnav'
 import RevalueButton from './RevalueButton'
 import { formatMoney } from '@/lib/format'
+import { requireModule } from '@/app/components/moduleGuard'
+import { MOD } from '@/lib/modules'
 
 type PreviewRow = {
     account: string
@@ -32,6 +34,11 @@ type Preview = {
 }
 
 export default async function RevaluationPage({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
+    // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
+    // 拒绝必须是权限答复,不能是从空结果倒推。
+    const denied = await requireModule(MOD.finance)
+    if (denied) return denied
+
     const sp = await searchParams
     const d = sp.date ?? new Date().toISOString().slice(0, 10)
     const supabase = await createClient()

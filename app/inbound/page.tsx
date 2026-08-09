@@ -19,6 +19,8 @@ import {
 } from './inboundQuery'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustCount, mustRows } from '@/lib/db-helpers'
+import { requireModule } from '@/app/components/moduleGuard'
+import { MOD } from '@/lib/modules'
 
 // FK 嵌入运行时是对象;TS 默认猜数组(无生成 DB 类型),用显式类型 + cast 锁住。
 type InboundRow = {
@@ -53,6 +55,11 @@ export default async function InboundPage({
         page?: string
     }>
 }) {
+    // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
+    // 拒绝必须是权限答复,不能是从空结果倒推。
+    const denied = await requireModule(MOD.inbound)
+    if (denied) return denied
+
     const sp = await searchParams
     const supabase = await createClient()
     const t = await getTranslations()

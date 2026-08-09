@@ -20,6 +20,8 @@ import { canViewPrices } from '@/lib/permissions'
 import { maskedRows, maskedExcept } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
 import { mustRows, mustOne } from '@/lib/db-helpers'
+import { requireModule } from '@/app/components/moduleGuard'
+import { MOD } from '@/lib/modules'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type MovementFetchRow = {
@@ -37,6 +39,11 @@ export default async function EditInboundPage({
 }: {
     params: Promise<{ id: string }>
 }) {
+    // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
+    // 拒绝必须是权限答复,不能是从空结果倒推。
+    const denied = await requireModule(MOD.inbound)
+    if (denied) return denied
+
     const { id } = await params
     const supabase = await createClient()
     const baseCurrency = await getBaseCurrency()

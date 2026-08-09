@@ -14,6 +14,8 @@ import { formatMoney, formatAmount } from '@/lib/format'
 import { mustRows, mustOne } from '@/lib/db-helpers'
 import Subnav from '../Subnav'
 import DepreciateButton from './DepreciateButton'
+import { requireModule } from '@/app/components/moduleGuard'
+import { MOD } from '@/lib/modules'
 
 type AssetRow = {
     id: string
@@ -53,6 +55,11 @@ export default async function AssetsPage({
 }: {
     searchParams: Promise<{ date?: string }>
 }) {
+    // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
+    // 拒绝必须是权限答复,不能是从空结果倒推。
+    const denied = await requireModule(MOD.finance)
+    if (denied) return denied
+
     const sp = await searchParams
     const d = sp.date ?? endOfMonthIso()
     const supabase = await createClient()

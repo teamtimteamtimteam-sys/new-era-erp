@@ -35,6 +35,13 @@ export default async function MetalPricesPage({
         page?: string
     }>
 }) {
+    // 【本页没有 requireModule,是有意的,不是漏了 —— 不要"补"回来】
+    // metal_prices 的 SELECT 策略写的是 `USING (true)`(db/tables/metal_prices.sql):
+    // 数据自己声明它是公开的。挂上 module.pricing.view 会让 UI 比数据库还严 ——
+    // 对一个数据库愿意完整回答的人显示"你没有权限",而那道门数据库里根本不存在。
+    // 【把关跟着数据自己的 RLS 走,不跟模块目录走】;完整理由在 lib/modules.ts
+    // 的 /pricing 那一条(/pricing 本身仍然受管:公式与商务条款不是公开数据)。
+
     const sp = await searchParams
     const supabase = await createClient()
     const t = await getTranslations()

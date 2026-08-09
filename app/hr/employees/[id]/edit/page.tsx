@@ -8,6 +8,8 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import Subnav from '../../../Subnav'
 import EmployeeForm, { type PickOption, type EmployeeRecord } from '../../EmployeeForm'
 import { mustRows } from '@/lib/db-helpers'
+import { requireModule } from '@/app/components/moduleGuard'
+import { MOD } from '@/lib/modules'
 
 // 下属闭包:从自己出发,沿 manager_id 往下收集
 function reportIds(all: { id: string; manager_id: string | null }[], rootId: string): Set<string> {
@@ -36,6 +38,11 @@ export default async function EditEmployeePage({
 }: {
     params: Promise<{ id: string }>
 }) {
+    // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
+    // 拒绝必须是权限答复,不能是从空结果倒推。
+    const denied = await requireModule(MOD.hr)
+    if (denied) return denied
+
     const { id } = await params
     const supabase = await createClient()
     const t = await getTranslations()

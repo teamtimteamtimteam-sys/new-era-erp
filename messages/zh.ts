@@ -23,9 +23,17 @@ const zh = {
     },
     home: {
         subtitle: '锂电池回收 ERP 系统',
+        noModules: '你还没有任何模块的权限。',
+        noModulesHint: '账号已登录,但尚未被授予任何模块 —— 请联系管理员为你分配角色。',
         sectionMasterData: '主数据',
         sectionOperations: '业务操作',
         sectionReports: '报表',
+        // 「我的」分组:不受模块权限管辖,人人可见(app/page.tsx 里无条件渲染)。
+        sectionSelf: '我的',
+        meTitle: '我的档案',
+        meDesc: '本人档案、假期余额与报销',
+        myReviewsTitle: '我评的评估',
+        myReviewsDesc: '由我担任评估人的绩效评估',
         suppliersTitle: '供应商',
         suppliersDesc: '供应商主数据管理',
         customersTitle: '客户',
@@ -52,6 +60,10 @@ const zh = {
         hrDesc: '员工、薪资、培训与到期提醒',
         purchasingTitle: '采购',
         purchasingDesc: '采购单、付款计划与预付款',
+        // 任务板只进导航、不出首页卡片(lib/modules.ts 里 section: null)。键仍需存在:
+        // check-i18n 扫描 titleKey/descKey 这类字面量,不看它最终有没有被渲染。
+        tasksTitle: '任务',
+        tasksDesc: '个人任务板',
     },
     common: {
         switchLang: '中',
@@ -64,6 +76,11 @@ const zh = {
         // 当前登录者无权看见某个数字时,占位显示这个词。
         // 【不能留空】(会被当成缺数据),【更不能显示 0】(那是撒谎)。
         restricted: '受限',
+        // 高一层的同一条道理:整个模块进不去时要【说出来】,而不是渲染一张空表 ——
+        // 否则"你没权限"与"确实还没有数据"在屏幕上长得一模一样。
+        moduleDenied: '你没有进入该模块的权限。',
+        moduleDeniedHint: '这是一个【权限答复】,不是"查出来是空的" —— 请联系管理员为你开通该模块。',
+        backHome: '← 返回首页',
         fxBoardRateHint: '外币金额按【交易日当天】的 DBS 牌价估值;当天牌价未录入会被直接拒绝 —— 在 财务 → 汇率 里补录当日牌价。',
     },
     leave: {

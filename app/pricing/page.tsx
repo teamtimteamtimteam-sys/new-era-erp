@@ -4,6 +4,8 @@
 import Link from 'next/link'
 import { getTranslations } from '@/lib/i18n/server'
 import Subnav from './Subnav'
+import { requireModule } from '@/app/components/moduleGuard'
+import { MOD } from '@/lib/modules'
 
 // 第三张卡直指每日行情录入 —— 这是本板块最高频的动作,不该藏在"行情"卡再点一次按钮之后。
 // 行情历史退成卡片下方的一个小链接,仍是一次点击可达。
@@ -14,6 +16,11 @@ const CARDS = [
 ]
 
 export default async function PricingHubPage() {
+    // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
+    // 拒绝必须是权限答复,不能是从空结果倒推。
+    const denied = await requireModule(MOD.pricing)
+    if (denied) return denied
+
     const t = await getTranslations()
 
     return (

@@ -15,6 +15,8 @@ import { can } from '@/lib/permissions'
 import { MaskedValue } from '@/app/components/MaskedValue'
 import Subnav from '../Subnav'
 import OrdersToolbar from './OrdersToolbar'
+import { requireModule } from '@/app/components/moduleGuard'
+import { MOD } from '@/lib/modules'
 
 const PAGE_SIZE = 20
 
@@ -43,6 +45,11 @@ export default async function PurchaseOrdersPage({
 }: {
     searchParams: Promise<{ date_from?: string; date_to?: string; supplier?: string; status?: string; page?: string }>
 }) {
+    // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
+    // 拒绝必须是权限答复,不能是从空结果倒推。
+    const denied = await requireModule(MOD.purchasing)
+    if (denied) return denied
+
     const sp = await searchParams
     const supabase = await createClient()
     const t = await getTranslations()

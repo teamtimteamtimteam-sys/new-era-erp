@@ -16,8 +16,15 @@ import ReviewActions from '../ReviewActions'
 import HrDecisionForm from '../HrDecisionForm'
 import SetReviewerControl, { type EmployeeOption } from '../SetReviewerControl'
 import { REVIEW_COLUMNS, type GoalRow, type ReviewRow, daysInState, statusPillClass } from '../reviewShared'
+import { requireModule } from '@/app/components/moduleGuard'
+import { MOD } from '@/lib/modules'
 
 export default async function ReviewDetailPage({ params }: { params: Promise<{ id: string }> }) {
+    // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
+    // 拒绝必须是权限答复,不能是从空结果倒推。
+    const denied = await requireModule(MOD.hr)
+    if (denied) return denied
+
     const { id } = await params
     const supabase = await createClient()
     const t = await getTranslations()

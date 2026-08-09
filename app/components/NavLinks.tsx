@@ -4,27 +4,20 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
+import type { ModuleEntry } from '@/lib/modules'
 
-const NAV_ITEMS = [
-    { href: '/suppliers', key: 'nav.suppliers' },
-    // 采购(采购单 / 付款条款模板)紧跟供应商 —— 采购单是"跟这家供应商谈成了什么"的存档
-    { href: '/purchasing', key: 'nav.purchasing' },
-    { href: '/customers', key: 'nav.customers' },
-    { href: '/materials', key: 'nav.materials' },
-    // 定价板块(公式 / 计价器 / 行情)。/metal-prices 的路由仍然有效,只是不再单独占一个
-    // 顶级导航位 —— 入口收进定价首页与定价子导航,避免同一件事出现两个并列入口。
-    { href: '/pricing', key: 'nav.pricing' },
-    { href: '/inbound', key: 'nav.inbound' },
-    { href: '/output', key: 'nav.output' },
-    { href: '/processing', key: 'nav.processing' },
-    { href: '/inventory', key: 'nav.inventory' },
-    { href: '/stocktakes', key: 'nav.stocktakes' },
-    { href: '/finance', key: 'nav.finance' },
-    { href: '/tasks', key: 'nav.tasks' },
-    { href: '/hr', key: 'nav.hr' },
-]
+// OPS-15:导航项不再在本文件里手写 —— 与首页卡片共用 lib/modules.ts,
+// 由服务端(TopNav)按权限过滤后作为 prop 传进来。两份清单分开写必然漂,
+// 而这一份漂了的后果是【有人看见一个他进不去的入口】。
 
-export default function NavLinks({ canManagePermissions = false }: { canManagePermissions?: boolean }) {
+export default function NavLinks({
+    modules,
+    canManagePermissions = false,
+}: {
+    /** 已按权限过滤 —— 过滤在服务端做,这里只渲染 */
+    modules: ModuleEntry[]
+    canManagePermissions?: boolean
+}) {
     const pathname = usePathname()
     const t = useTranslations()
 
@@ -40,9 +33,10 @@ export default function NavLinks({ canManagePermissions = false }: { canManagePe
         { href: '/my-reviews', key: 'nav.myReviews' },
         { href: '/me', key: 'nav.me' },
     ]
+    const moduleItems = modules.map((m) => ({ href: m.href, key: m.navKey }))
     const items = canManagePermissions
-        ? [...NAV_ITEMS, ...SELF_ITEMS, { href: '/settings/permissions', key: 'nav.settings' }]
-        : [...NAV_ITEMS, ...SELF_ITEMS]
+        ? [...moduleItems, ...SELF_ITEMS, { href: '/settings/permissions', key: 'nav.settings' }]
+        : [...moduleItems, ...SELF_ITEMS]
 
     return (
         <nav className="flex gap-1 overflow-x-auto px-6 pb-2">

@@ -6,6 +6,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import LanguageSwitcher from './LanguageSwitcher'
 import NavLinks from './NavLinks'
 import { canManagePermissions } from '@/lib/permissions'
+import { getVisibleModules } from '@/lib/moduleAccess'
 
 export default async function TopNav() {
     const supabase = await createClient()
@@ -19,6 +20,8 @@ export default async function TopNav() {
 
     const t = await getTranslations()
     const canManage = await canManagePermissions()
+    // OPS-15:按权限过滤后的模块清单 —— 与首页卡片同一份 lib/modules.ts
+    const modules = await getVisibleModules()
 
     return (
         <header className="border-b border-gray-200 bg-white">
@@ -41,7 +44,7 @@ export default async function TopNav() {
                     </form>
                 </div>
             </div>
-            <NavLinks canManagePermissions={canManage} />
+            <NavLinks modules={modules} canManagePermissions={canManage} />
         </header>
     )
 }

@@ -11,6 +11,8 @@ import { formatMoney } from '@/lib/format'
 import Subnav from '../../Subnav'
 import ReverseButton from './ReverseButton'
 import { resolveSourceHrefs, sourceHrefKey } from '../../sourceLinks'
+import { requireModule } from '@/app/components/moduleGuard'
+import { MOD } from '@/lib/modules'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type LineRow = {
@@ -29,6 +31,11 @@ export default async function JournalDetailPage({
 }: {
     params: Promise<{ id: string }>
 }) {
+    // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
+    // 拒绝必须是权限答复,不能是从空结果倒推。
+    const denied = await requireModule(MOD.finance)
+    if (denied) return denied
+
     const { id } = await params
     const supabase = await createClient()
     const baseCurrency = await getBaseCurrency()

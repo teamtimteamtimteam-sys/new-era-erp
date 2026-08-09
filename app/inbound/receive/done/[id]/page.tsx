@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
+import { requireModule } from '@/app/components/moduleGuard'
+import { MOD } from '@/lib/modules'
 
 type Batch = {
     id: string
@@ -18,6 +20,11 @@ export default async function ReceiveDonePage({
 }: {
     params: Promise<{ id: string }>
 }) {
+    // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
+    // 拒绝必须是权限答复,不能是从空结果倒推。
+    const denied = await requireModule(MOD.inbound)
+    if (denied) return denied
+
     const { id } = await params
     const supabase = await createClient()
     const t = await getTranslations()

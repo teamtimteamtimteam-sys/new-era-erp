@@ -6,6 +6,8 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import Subnav from '../Subnav'
 import LeaveSubnav from './LeaveSubnav'
 import { mustRows } from '@/lib/db-helpers'
+import { requireModule } from '@/app/components/moduleGuard'
+import { MOD } from '@/lib/modules'
 
 type Row = {
     request_id: string
@@ -33,6 +35,11 @@ export default async function LeaveRequestsPage({
 }: {
     searchParams: Promise<{ status?: string; type?: string; employee?: string; from?: string; to?: string }>
 }) {
+    // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
+    // 拒绝必须是权限答复,不能是从空结果倒推。
+    const denied = await requireModule(MOD.hr)
+    if (denied) return denied
+
     const sp = await searchParams
     const supabase = await createClient()
     const t = await getTranslations()

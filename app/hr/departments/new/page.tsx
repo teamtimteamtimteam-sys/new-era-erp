@@ -6,8 +6,15 @@ import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../../Subnav'
 import DepartmentForm from '../DepartmentForm'
 import { parentOptionsFor, type DeptNode } from '../tree'
+import { requireModule } from '@/app/components/moduleGuard'
+import { MOD } from '@/lib/modules'
 
 export default async function NewDepartmentPage() {
+    // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
+    // 拒绝必须是权限答复,不能是从空结果倒推。
+    const denied = await requireModule(MOD.hr)
+    if (denied) return denied
+
     const supabase = await createClient()
     const t = await getTranslations()
 

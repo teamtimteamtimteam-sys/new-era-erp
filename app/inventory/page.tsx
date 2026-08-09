@@ -11,6 +11,8 @@ import { latestPriceByMetal, marketValuePerKg } from '@/lib/valuation'
 import { maskedRows } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
 import { mustCount, mustRows } from '@/lib/db-helpers'
+import { requireModule } from '@/app/components/moduleGuard'
+import { MOD } from '@/lib/modules'
 
 type MaterialEmbed = { name: string; category: string } | null
 
@@ -48,6 +50,11 @@ type InventoryRow = {
 const MIXED_UNIT = '⚠️混合'
 
 export default async function InventoryPage() {
+    // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
+    // 拒绝必须是权限答复,不能是从空结果倒推。
+    const denied = await requireModule(MOD.inventory)
+    if (denied) return denied
+
     const supabase = await createClient()
     const t = await getTranslations()
 
