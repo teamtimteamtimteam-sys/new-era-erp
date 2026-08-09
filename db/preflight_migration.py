@@ -302,6 +302,26 @@ def main() -> int:
     else:
         print("function   本迁移不建函数")
 
+    # ── 3. DROP 而不 CREATE:警告,不拒绝(SAL-A 的半份迁移事故)──────────────
+    # 组装脚本在断言上失败、而文件里已经写好了 DROP —— 迁移带着 DROP、缺着 CREATE
+    # 落到线上,record_output_sale 消失了几分钟。镜像判词【会】在下一次 gate 抓到它
+    # (mirrors_without_live_fn),所以这条警告买到的是【那几分钟】,不是正确性 ——
+    # 但那几分钟里线上函数是缺的,五行代码换它值得。
+    # 【只警告】:永久移除一个函数是正当的(全史 113 支迁移里有 4 次,HR-2c 退役了
+    # 三个 GrantRunner 时代的函数、FIN-22b 退役了 record_expense),而文件自己分不清
+    # "有意退役"与"组装漏了半截"。有意的读一行警告继续走;decidable-now-may-refuse
+    # 在这里反着切 —— 可判定的是"没重建",不可判定的是"该不该"。
+    dropped_names = set()
+    for m in re.finditer(r"\bDROP\s+FUNCTION\s+(?:IF\s+EXISTS\s+)?"
+                         r"(?:([a-zA-Z_][\w$]*)\s*\.\s*)?([a-zA-Z_][\w$]*)",
+                         noncomment(sql), re.I):
+        dropped_names.add(m.group(2).lower())
+    created_names = {n.lower() for _, n, _ in sigs}
+    for name in sorted(dropped_names - created_names):
+        warnings.append(f"本迁移 DROP 了 {name} 而没有再 CREATE 它 —— 若是有意退役,"
+                        f"照常继续;若你以为文件里有新版本,它不在(组装漏了半截,"
+                        f"SAL-A 那次线上函数缺了几分钟)")
+
     for w in warnings:
         print(f"  ⚠ {w}")
     for r in refusals:
