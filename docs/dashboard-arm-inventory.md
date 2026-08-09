@@ -39,6 +39,7 @@ module's own page.
 | 5 | `po_awaiting_receipt` | PO `confirmed`/`receiving` — goods owed to us. `draft` is deliberately **not** here | `module.purchasing.view` | `purchase_orders` | open statuses only |
 | 6 | `stocktake_open` | a count started and not posted or cancelled | `module.stocktakes.view` | `stocktakes` | open only |
 | 7 | `output_unsold_aging` | finished output with `remaining_qty > 0` sitting **≥ 60 days** | `module.output.view` | `output_batches` | the 60-day threshold **is** the bound |
+| 7b | `credit_over_limit` | customer with a limit set whose AR exposure ≥ limit (SAL-B). NULL-limit customers never appear — no limit set is not over limit. `credit_hold` deliberately not an arm: a hold is a decision someone made, not a thing waiting | `module.customers.view` | `customers` + `customer_ar_exposure_base()` | customers with a limit set (opt-in, small) |
 | 8 | `leave_pending` | leave request awaiting a decision | `module.hr.view` | `leave_requests` | pending only |
 | 9 | `claim_pending` | medical claim submitted, not decided | `module.hr.view` | `medical_claims` | submitted only |
 | 10 | `review_submitted` | performance review submitted, awaiting approval | `module.hr.view` | `performance_reviews` | submitted only |
@@ -76,6 +77,14 @@ aged 4 · 5 · 37 · 45 · 58 · 60 · 60 days:
 60 is one constant in one arm; changing it is a one-line migration. It is chosen to *discriminate*,
 not because 60 is a business rule — **if Tim has a real ageing policy for finished goods, that
 number wins over this one.** Recorded as a proposal rather than presented as a decision.
+
+### `credit_over_limit`: one arm, not two — "approaching" reported and not built (SAL-B §6)
+
+An "approaching limit" second arm needs a threshold percentage (80%? 90%?), and that number would
+be a constant nobody sees — FIN-36's schema-default lesson in dashboard form. One arm at the hard
+boundary is honest; if Tim wants an early warning, the percentage belongs in configuration
+(`certificate_types`-style, visible and editable), and THEN a second arm earns its place. Recorded
+here so the next person extends deliberately rather than hardcoding 80.
 
 ## Considered and left out — with the reason, so they are not silently re-proposed
 

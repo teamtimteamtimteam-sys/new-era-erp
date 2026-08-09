@@ -54,3 +54,7 @@ REVOKE EXECUTE ON FUNCTION public.record_approval_decision(text, uuid, text, sma
 -- 它们各自 require_permission。给了 authenticated 就等于把阈值和授权判断敞开。
 REVOKE EXECUTE ON FUNCTION public.approval_level_for(numeric) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.require_approver_for(smallint) FROM authenticated;
+-- SAL-B:客户敞口算子。无调用者检查,靠调不到 —— 消费方是 record_output_sale
+-- (definer)与 operations_now(属主视图),两者都以属主身份执行。给了
+-- authenticated 就等于把任意客户的应收敞口敞开给没有财务权限的人。
+REVOKE EXECUTE ON FUNCTION public.customer_ar_exposure_base(uuid) FROM authenticated;

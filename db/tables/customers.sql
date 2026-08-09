@@ -36,7 +36,12 @@ CREATE TABLE public.customers (
     payment_terms_days integer CHECK (payment_terms_days IS NULL OR (payment_terms_days >= 0 AND payment_terms_days <= 365)),
     email              text,
     phone              text,
-    contact_person     text
+    contact_person     text,
+    -- ── SAL-B 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
+    -- 【NULL = 没设限额(放行);0 = 现款现货(任何赊销都拒)—— 相反,不是相近】。
+    -- 全部既有客户为 NULL:管控按客户逐个启用,首日什么都不拦。变动由触发器留痕。
+    credit_limit_base numeric CHECK (credit_limit_base IS NULL OR credit_limit_base >= 0),
+    credit_hold boolean NOT NULL DEFAULT false
 );
 
 CREATE OR REPLACE FUNCTION public.generate_customer_code()
@@ -74,3 +79,13 @@ CREATE POLICY "customers delete by permission"
     ON public.customers
     AS PERMISSIVE FOR DELETE TO authenticated
     USING (has_permission('module.customers.edit'::text));
+
+-- SAL-B:限额/冻结变动留痕(函数体在 db/functions/log_customer_credit_change.sql)
+CREATE TRIGGER trg_customers_credit_history
+    BEFORE UPDATE OF credit_limit_base, credit_hold ON public.customers
+    FOR EACH ROW EXECUTE FUNCTION public.log_customer_credit_change();
+
+COMMENT ON COLUMN public.customers.credit_limit_base IS
+    '信用限额,以本位币计(SAL-B)。【NULL = 没设限额(放行);0 = 现款现货(任何赊销都拒)—— 两个都正当,而且相反】。全部既有客户为 NULL:管控按客户逐个启用,首日什么都不拦 —— 空效果是设计,不是坏了。变动由触发器留痕(customer_credit_history)。';
+COMMENT ON COLUMN public.customers.credit_hold IS
+    '人工冻结(SAL-B):无论敞口多少都停发 —— 客户在争议一张发票时停止发货不是算术条件。解除也是客户上的显式改动,同样留痕。';

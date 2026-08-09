@@ -28,6 +28,8 @@ type Customer = {
     payment_terms: string | null
     incoterm: string | null
     credit_rating: string | null
+    credit_limit_base: number | null
+    credit_hold: boolean | null
     notes: string | null
 }
 
@@ -201,6 +203,30 @@ export default function EditCustomerForm({ customer }: { customer: Customer }) {
                         defaultValue={customer.credit_rating ?? ''}
                         className="w-full border border-gray-300 px-3 py-2 rounded"
                     />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium mb-1">{t('customers.form.creditLimit')}</label>
+                    {/* SAL-B:【留空 = 没设限额(放行);0 = 现款现货(任何赊销都拒)——
+                        相反,不是相近】。全部既有客户为空:管控按客户逐个启用。 */}
+                    <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        name="credit_limit_base"
+                        defaultValue={customer.credit_limit_base ?? ''}
+                        placeholder={t('customers.form.creditLimitPlaceholder')}
+                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">{t('customers.form.creditLimitHint')}</p>
+                </div>
+
+                <div>
+                    <label className="inline-flex items-center gap-2 text-sm font-medium">
+                        <input type="checkbox" name="credit_hold" defaultChecked={customer.credit_hold ?? false} />
+                        {t('customers.form.creditHold')}
+                    </label>
+                    <p className="text-xs text-gray-500 mt-1">{t('customers.form.creditHoldHint')}</p>
                 </div>
 
                 <div>

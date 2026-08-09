@@ -1,3 +1,7 @@
+-- SAL-B2:record_output_sale 接上信用拦截(同签名 CREATE OR REPLACE)
+-- NOTE: apply with ./db/apply_migration.sh
+BEGIN;
+
 CREATE OR REPLACE FUNCTION public.record_output_sale(p_output_batch_id uuid, p_quantity numeric, p_unit_price numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_customer_id uuid DEFAULT NULL::uuid, p_sale_date date DEFAULT NULL::date, p_notes text DEFAULT NULL::text, p_price_source text DEFAULT NULL::text, p_price_provenance jsonb DEFAULT NULL::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -162,3 +166,5 @@ BEGIN
     );
 END;
 $function$;
+
+COMMIT;

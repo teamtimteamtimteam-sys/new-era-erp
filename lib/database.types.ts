@@ -779,6 +779,47 @@ export type Database = {
           },
         ]
       }
+      customer_credit_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          customer_id: string
+          id: string
+          new_credit_hold: boolean | null
+          new_credit_limit_base: number | null
+          old_credit_hold: boolean | null
+          old_credit_limit_base: number | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          customer_id: string
+          id?: string
+          new_credit_hold?: boolean | null
+          new_credit_limit_base?: number | null
+          old_credit_hold?: boolean | null
+          old_credit_limit_base?: number | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          customer_id?: string
+          id?: string
+          new_credit_hold?: boolean | null
+          new_credit_limit_base?: number | null
+          old_credit_hold?: boolean | null
+          old_credit_limit_base?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_credit_history_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address: string | null
@@ -787,6 +828,8 @@ export type Database = {
           country: string
           created_at: string
           created_by: string | null
+          credit_hold: boolean
+          credit_limit_base: number | null
           credit_rating: string | null
           customer_types: string[] | null
           deleted_at: string | null
@@ -811,6 +854,8 @@ export type Database = {
           country: string
           created_at?: string
           created_by?: string | null
+          credit_hold?: boolean
+          credit_limit_base?: number | null
           credit_rating?: string | null
           customer_types?: string[] | null
           deleted_at?: string | null
@@ -835,6 +880,8 @@ export type Database = {
           country?: string
           created_at?: string
           created_by?: string | null
+          credit_hold?: boolean
+          credit_limit_base?: number | null
           credit_rating?: string | null
           customer_types?: string[] | null
           deleted_at?: string | null
@@ -10098,6 +10145,14 @@ export type Database = {
       }
       current_user_employee: { Args: never; Returns: string }
       current_user_permissions: { Args: never; Returns: string[] }
+      customer_ar_exposure_base: {
+        Args: { p_customer_id: string }
+        Returns: number
+      }
+      customer_ar_exposure_visible: {
+        Args: { p_customer_id: string }
+        Returns: number
+      }
       decide_leave_request: {
         Args: { p_approve: boolean; p_notes?: string; p_request_id: string }
         Returns: Json

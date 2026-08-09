@@ -41,6 +41,7 @@ const TILES = [
     { itemType: 'qualification_missing', permission: 'module.suppliers.view', href: '/suppliers' },
     { itemType: 'po_awaiting_receipt', permission: 'module.purchasing.view', href: '/purchasing/orders' },
     { itemType: 'stocktake_open', permission: 'module.stocktakes.view', href: '/stocktakes' },
+    { itemType: 'credit_over_limit', permission: 'module.customers.view', href: '/customers' },
     { itemType: 'output_unsold_aging', permission: 'module.output.view', href: '/output' },
     { itemType: 'leave_pending', permission: 'module.hr.view', href: '/hr/leave' },
     { itemType: 'claim_pending', permission: 'module.hr.view', href: '/hr/claims' },
