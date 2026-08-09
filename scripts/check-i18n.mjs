@@ -196,6 +196,13 @@ const MANIFEST = {
     'finance.cashflowSectionName.':
                             { kind: 'enum', values: () => tsRegex('db/functions/cash_flow_statement.sql',
                                   /(?:THEN|ELSE) '(\w+)'/g) },
+    // ── 看板 ─────────────────────────────────────────────────────────────────
+    // OPS-18:后缀集合就是 operations_now 的支列表 —— 从视图镜像现读,加一支自动变宽。
+    // (镜像里每一支都显式写了 AS item_type;pg_get_viewdef 只保留【显式】别名,
+    // 漏写别名的支会被 normalize 成 AS text,从这里【静默消失】。全部漏写才会
+    // 触发下面的 0 后缀 FAIL —— 漏写【一支】只会让那一支的键失守,所以新支必须
+    // 带显式别名,这句话就是写给加支的人看的。)
+    'dashboard.item.':      { kind: 'enum', values: () => sqlLiteralAs('db/views/operations_now.sql', 'item_type') },
     // ── HR ──────────────────────────────────────────────────────────────────
     'hr.alertType.':        { kind: 'enum', values: () => sqlLiteralAs('db/views/hr_alerts.sql', 'alert_type') },
     'hr.severity.':         { kind: 'enum', values: union(

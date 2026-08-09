@@ -63,6 +63,27 @@ const en = {
         tasksTitle: 'Tasks',
         tasksDesc: 'Personal task board',
     },
+    // OPS-18:运营看板。dashboard.item.* 的后缀集合 = db/views/operations_now.sql 里
+    // item_type 的字面量集合(check-i18n MANIFEST 现读那个文件,加一支自动变宽)。
+    dashboard: {
+        sectionNow: 'Waiting now',
+        item: {
+            assay_unapplied: 'Assays awaiting application',
+            allocation_stale: 'Runs needing (re)allocation',
+            po_awaiting_receipt: 'POs awaiting receipt',
+            stocktake_open: 'Open stocktakes',
+            leave_pending: 'Leave requests pending',
+            claim_pending: 'Medical claims pending',
+            review_submitted: 'Reviews awaiting approval',
+            fx_rate_gap: 'FX rate gaps (45 days)',
+            bank_unmatched: 'Unmatched bank lines',
+        },
+        hrAlerts: 'HR alerts',
+        oldestSince: 'oldest: {date}',
+        restrictedHint: 'Requires module access',
+        monthEnd: 'Month-end hub',
+        monthEndDesc: 'The seven closing signals, step by step',
+    },
     common: {
         switchLang: 'EN',
         save: 'Save',

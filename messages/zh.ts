@@ -65,6 +65,27 @@ const zh = {
         tasksTitle: '任务',
         tasksDesc: '个人任务板',
     },
+    // OPS-18:运营看板。dashboard.item.* 的后缀集合 = db/views/operations_now.sql 里
+    // item_type 的字面量集合(check-i18n MANIFEST 现读那个文件,加一支自动变宽)。
+    dashboard: {
+        sectionNow: '当前待办',
+        item: {
+            assay_unapplied: '待执行化验',
+            allocation_stale: '待(重)分摊加工单',
+            po_awaiting_receipt: '待收货采购单',
+            stocktake_open: '进行中盘点',
+            leave_pending: '待批假单',
+            claim_pending: '待批医疗报销',
+            review_submitted: '待审批评估',
+            fx_rate_gap: '缺牌价天数(近 45 天)',
+            bank_unmatched: '银行未匹配行',
+        },
+        hrAlerts: 'HR 待办提醒',
+        oldestSince: '最早:{date}',
+        restrictedHint: '需要相应模块权限',
+        monthEnd: '月结枢纽',
+        monthEndDesc: '七个月结信号,按依赖序逐步核对',
+    },
     common: {
         switchLang: '中',
         save: '保存',

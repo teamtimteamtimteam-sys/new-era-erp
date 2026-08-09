@@ -1,51 +1,141 @@
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { SECTIONS } from '@/lib/modules'
+import { getMyPermissions } from '@/lib/permissions'
 import { getVisibleModules } from '@/lib/moduleAccess'
+import { mustCount, mustRows } from '@/lib/db-helpers'
 
-// OPS-15:模块卡片不再是本文件里手写的一份清单 —— 与导航条共用 lib/modules.ts。
-// 【内容没有变】分组、组内顺序、文案键与改造前逐张一致(任务板改造前就不出卡片,
-// 现在由 section: null 明写)。变的只有一件事:【进不去的模块不再出卡片】。
+// OPS-18(Phase 6):首页从【链接目录】换成【运营看板】—— 正在等人处理的事,
+// 一事一牌。目录的职责由导航条独自承担;两个首页并存的话,人落地的是目录那个,
+// 而它已经是错的。
 //
-// 藏掉入口是体贴,不是边界 —— 真正的拒绝在每个页面自己的 requireModule()
-// (app/components/moduleGuard.tsx),边界在数据库。
+// 【本页不算业务账】每块牌子的数字来自 db 的 operations_now(一个 UNION,一种等待
+// 状态一支,hr_alerts 的形状);本页只数行、取最早日期 —— 那是呈现,不是口径。
 //
-// 这一页【仍然是链接目录,不是仪表盘】。换成仪表盘是下一切次:两件事一起做,
-// 把关就没法单独审。
+// 【规矩一:0 绝不冒充"你看不见"】operations_now 对无权读者【整支缺席】,于是
+// "没有行"有两种含义。本页先查权限再渲染每块牌子:无权 → 「受限」(common.restricted,
+// 与 MaskedValue 同一词),绝不显示 0。这是仪表盘最容易犯、且 gate 查不出的错。
+//
+// 【规矩二:一块牌子一扇门】每块牌子恰好读一个来源;受限的牌子【根本不开门】。
+// 绝不"先试 A,空了再试 B,谁有行画谁"—— 在这里空集是权限答复,回退等于把数字
+// 从另一扇门里递出去。
+//
+// 【规矩三:每个信号都过 mustRows/mustCount】/finance/month-end 的先例:七个信号
+// 原本全是 `?? []`,任何一次查询失败都渲染成"已完成"。仪表盘是同一风险乘以牌数。
+//
+// 【批次毛利不在这里】设计未决(哪些限定词随数字走、已过账 COGS 还是当前成本),
+// 自成一切;谓词已录在 AGENTS.md 常设决定 2。下面 TILES 就是给它留的位置。
 
-// 【「我的」两张卡片写在这里,而不是 lib/modules.ts —— 这是有意的】
-// lib/modules.ts 是【模块清单】:每一行都带一个 module.<x>.view 权限码,并且
-// moduleForPath() 用它把子路由映射到守卫上。/me 与 /my-reviews 【按设计不属于任何模块】:
-//   * /me 是每一个登录用户自己的档案,不需要任何权限判断;
-//   * /my-reviews 靠的是"我是这一行的评估人"那条【行级】策略,不是任何 HR 模块权限 ——
-//     它是 /hr 的同级,挂进 HR 模块等于对部门经理隐身。
-// 把它们塞进 MODULES 就得给它们编一个模块码,而那个码要么恒真(等于谎称有把关),
-// 要么把两页收进某个模块(等于给它们加了一道设计上不该有的门)。所以它们在这里
-// 【无条件渲染】,与 NavLinks.tsx 的 SELF_ITEMS 同一条理由、同一个顺序。
-//
-// 后果就是这次要修的那件事:employee 角色零模块权限,过滤后一张模块卡都不剩 ——
-// 而这两页【正是那个角色的全部产品】,首页却不给入口。
+// 牌子清单:itemType 对应 operations_now 的支;permission 与视图里那一支声明的
+// 权限码【同码】(视图按它裁决缺席,本页按它裁决「受限」—— 两边必须一致)。
+const TILES = [
+    { itemType: 'assay_unapplied', permission: 'module.inbound.view', href: '/inbound' },
+    { itemType: 'allocation_stale', permission: 'module.processing.view', href: '/processing' },
+    { itemType: 'po_awaiting_receipt', permission: 'module.purchasing.view', href: '/purchasing/orders' },
+    { itemType: 'stocktake_open', permission: 'module.stocktakes.view', href: '/stocktakes' },
+    { itemType: 'leave_pending', permission: 'module.hr.view', href: '/hr/leave' },
+    { itemType: 'claim_pending', permission: 'module.hr.view', href: '/hr/claims' },
+    { itemType: 'review_submitted', permission: 'module.hr.view', href: '/hr/reviews' },
+    { itemType: 'fx_rate_gap', permission: 'module.finance.view', href: '/finance/fx' },
+    { itemType: 'bank_unmatched', permission: 'module.finance.view', href: '/finance/bank' },
+] as const
+
+// 「我的」两张卡片:不受模块把关,人人可见 —— 理由与顺序同 NavLinks 的 SELF_ITEMS
+// (OPS-15:employee 角色的全部产品恰恰是这两页,首页必须给入口)。
 const SELF_CARDS = [
     { href: '/my-reviews', titleKey: 'home.myReviewsTitle', descKey: 'home.myReviewsDesc' },
     { href: '/me', titleKey: 'home.meTitle', descKey: 'home.meDesc' },
 ]
 
-const CARD_CLASS =
-    'border border-gray-300 rounded-lg p-6 hover:bg-gray-50 hover:border-gray-400 transition block'
+type OpsRow = { item_type: string; item_code: string; item_date: string }
 
 export default async function Home() {
     const t = await getTranslations()
+    const supabase = await createClient()
+    const perms = await getMyPermissions()
     const visible = await getVisibleModules()
 
+    // 一次读回全部可见支;无权的支缺席,可见支的零是真的零(权限已单独查过)
+    const rows = mustRows(
+        await supabase.from('operations_now').select('item_type, item_code, item_date'),
+        'operations_now'
+    ) as OpsRow[]
+
+    // HR 待办牌(hr_alerts 是它唯一的门)—— 受限时【不开门】,不是"查了当没查"
+    const canHr = perms.includes('module.hr.view')
+    let hrAlertCount: number | null = null
+    if (canHr) {
+        hrAlertCount = mustCount(
+            await supabase.from('hr_alerts').select('alert_type', { count: 'exact', head: true }),
+            'hr_alerts'
+        )
+    }
+
+    const byType = new Map<string, OpsRow[]>()
+    for (const r of rows) {
+        const list = byType.get(r.item_type)
+        if (list) list.push(r)
+        else byType.set(r.item_type, [r])
+    }
+
+    const tileBox = (opts: {
+        key: string
+        title: string
+        href: string
+        allowed: boolean
+        count: number | null
+        oldest?: string | null
+    }) => {
+        const inner = (
+            <>
+                <p className="text-sm text-gray-600 mb-1">{opts.title}</p>
+                {opts.allowed ? (
+                    <>
+                        <p
+                            className={
+                                'text-3xl font-bold font-mono ' +
+                                ((opts.count ?? 0) > 0 ? 'text-amber-600' : 'text-gray-400')
+                            }
+                        >
+                            {opts.count}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1 h-4">
+                            {(opts.count ?? 0) > 0 && opts.oldest
+                                ? t('dashboard.oldestSince', { date: opts.oldest })
+                                : ' '}
+                        </p>
+                    </>
+                ) : (
+                    <>
+                        {/* 受限,不是零 —— 与 MaskedValue 的「受限」同一个词。不给链接:
+                            指向一扇必然拒绝的门的链接是一句谎话。 */}
+                        <p className="text-3xl font-bold text-gray-300">{t('common.restricted')}</p>
+                        <p className="text-xs text-gray-400 mt-1 h-4">{t('dashboard.restrictedHint')}</p>
+                    </>
+                )}
+            </>
+        )
+        const cls = 'border rounded-lg p-4 block ' +
+            (opts.allowed
+                ? 'border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition'
+                : 'border-gray-200 bg-gray-50')
+        return opts.allowed ? (
+            <Link key={opts.key} href={opts.href} className={cls}>
+                {inner}
+            </Link>
+        ) : (
+            <div key={opts.key} className={cls}>
+                {inner}
+            </div>
+        )
+    }
+
     return (
-        <div className="p-8 max-w-4xl">
+        <div className="p-8 max-w-5xl">
             <h1 className="text-2xl font-bold mb-2">Evoltrya OS</h1>
             <p className="text-gray-600 mb-8">{t('home.subtitle')}</p>
 
-            {/* 一个模块都进不去时,同样【说出来】。
-                注意这条横幅说的是"没有模块权限",不是"这一页是空的"—— 自从「我的」
-                两张卡片无条件渲染,首页对 employee 已经不再是一片空白。横幅仍然要有:
-                否则那个人只看见两张卡,分不清"我只有这些"与"其余的没加载出来"。 */}
+            {/* 零模块权限时说出来(OPS-15)—— 否则满屏「受限」与"系统坏了"分不开 */}
             {visible.length === 0 && (
                 <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded max-w-2xl mb-8">
                     <p className="font-medium">{t('home.noModules')}</p>
@@ -53,31 +143,56 @@ export default async function Home() {
                 </div>
             )}
 
-            {SECTIONS.map((section) => {
-                const cards = visible.filter((m) => m.section === section.id)
-                if (cards.length === 0) return null
-                return (
-                    <div key={section.id} className="mb-8">
-                        <h2 className="text-lg font-semibold mb-4">{t(section.titleKey)}</h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {cards.map((card) => (
-                                <Link key={card.href} href={card.href} className={CARD_CLASS}>
-                                    <h3 className="font-semibold text-lg mb-1">{t(card.titleKey)}</h3>
-                                    <p className="text-sm text-gray-600">{t(card.descKey)}</p>
-                                </Link>
-                            ))}
-                        </div>
-                    </div>
-                )
-            })}
+            <h2 className="text-lg font-semibold mb-4">{t('dashboard.sectionNow')}</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                {TILES.map((tile) => {
+                    const allowed = perms.includes(tile.permission)
+                    const mine = byType.get(tile.itemType) ?? []
+                    const oldest = mine.length
+                        ? mine.reduce((a, r) => (r.item_date < a ? r.item_date : a), mine[0].item_date)
+                        : null
+                    return tileBox({
+                        key: tile.itemType,
+                        title: t('dashboard.item.' + tile.itemType),
+                        href: tile.href,
+                        allowed,
+                        count: allowed ? mine.length : null,
+                        oldest,
+                    })
+                })}
+                {tileBox({
+                    key: 'hr_alerts',
+                    title: t('dashboard.hrAlerts'),
+                    href: '/hr',
+                    allowed: canHr,
+                    count: hrAlertCount,
+                })}
+            </div>
 
-            {/* 【无条件】—— 没有 visible.filter,也没有任何权限判断。见上面 SELF_CARDS 的理由。
-                放在模块分组之后,与导航条的顺序一致(模块在前,「我的」在后)。 */}
+            {/* 月结枢纽入口:纯链接、不复制信号(信号归 /finance/month-end 自己)。
+                没有数字可遮,所以无权时按 OPS-15 的方式【不渲染】而不是画「受限」。 */}
+            {perms.includes('module.finance.view') && (
+                <div className="mb-8">
+                    <Link
+                        href="/finance/month-end"
+                        className="inline-block border border-gray-300 rounded-lg px-4 py-3 hover:bg-gray-50 hover:border-gray-400 transition"
+                    >
+                        <span className="font-semibold">{t('dashboard.monthEnd')}</span>
+                        <span className="text-sm text-gray-600 ml-2">{t('dashboard.monthEndDesc')}</span>
+                    </Link>
+                </div>
+            )}
+
+            {/* 「我的」—— 无条件渲染,见 SELF_CARDS 的注释 */}
             <div className="mb-8">
                 <h2 className="text-lg font-semibold mb-4">{t('home.sectionSelf')}</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {SELF_CARDS.map((card) => (
-                        <Link key={card.href} href={card.href} className={CARD_CLASS}>
+                        <Link
+                            key={card.href}
+                            href={card.href}
+                            className="border border-gray-300 rounded-lg p-6 hover:bg-gray-50 hover:border-gray-400 transition block"
+                        >
                             <h3 className="font-semibold text-lg mb-1">{t(card.titleKey)}</h3>
                             <p className="text-sm text-gray-600">{t(card.descKey)}</p>
                         </Link>

@@ -7656,6 +7656,17 @@ export type Database = {
           },
         ]
       }
+      operations_now: {
+        Row: {
+          days_waiting: number | null
+          item_code: string | null
+          item_date: string | null
+          item_type: string | null
+          permission: string | null
+          subject: string | null
+        }
+        Relationships: []
+      }
       payment_term_template_lines_masked: {
         Row: {
           created_at: string | null
