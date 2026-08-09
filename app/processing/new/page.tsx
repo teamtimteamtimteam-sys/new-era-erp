@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import NewProcessingForm, { type InboundBatchOption } from './NewProcessingForm'
 import { getTranslations } from '@/lib/i18n/server'
-import { mustRows } from '@/lib/db-helpers'
+import { mustOne, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 
@@ -16,7 +16,10 @@ export default async function NewProcessingPage() {
     const supabase = await createClient()
     const t = await getTranslations()
 
-    const [batchesRes, outputBatchesRes, materialsRes] = await Promise.all([
+    // FIN-36:分摊基准的【预选值】来自配置,不是编在代码里的常量 ——
+    // 与 fy_end_month / system_start_date 同一形状。表单显示它、允许改,
+    // 并把选中的值显式送给 commit_processing_run(那边必填)。
+    const [batchesRes, outputBatchesRes, materialsRes, settingsRes] = await Promise.all([
         supabase
             .from('inbound_batches')
             .select('id, code, remaining_qty, unit, materials ( name )')
@@ -35,6 +38,7 @@ export default async function NewProcessingPage() {
             .select('id, code, name')
             .is('deleted_at', null)
             .order('name'),
+        supabase.from('finance_settings').select('default_allocation_basis').maybeSingle(),
     ])
 
     if (batchesRes.error || outputBatchesRes.error || materialsRes.error) {
@@ -55,6 +59,9 @@ export default async function NewProcessingPage() {
             inboundBatches={(batchesRes.data as unknown as InboundBatchOption[] | null) ?? []}
             outputBatches={(outputBatchesRes.data as unknown as InboundBatchOption[] | null) ?? []}
             materials={mustRows(materialsRes)}
+            defaultAllocationBasis={
+                mustOne(settingsRes, 'finance_settings')?.default_allocation_basis ?? 'metal_value'
+            }
         />
     )
 }

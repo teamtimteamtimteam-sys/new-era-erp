@@ -54,12 +54,19 @@ export default function NewProcessingForm({
     inboundBatches,
     outputBatches,
     materials,
+    defaultAllocationBasis,
 }: {
     inboundBatches: InboundBatchOption[]
     outputBatches: OutputBatchOption[]
     materials: MaterialOption[]
+    /** 预选值,来自 finance_settings.default_allocation_basis(FIN-36)*/
+    defaultAllocationBasis: string
 }) {
     const t = useTranslations()
+    // FIN-36:成本分摊基准是【选出来的】。预选自公司配置,但屏幕上看得见、改得动 ——
+    // 与它取代的那个 schema 默认值的区别全在这里。选中的值会显式送给
+    // commit_processing_run(那边必填),所以"这一单用了什么方法"是记录,不是推断。
+    const [allocationBasis, setAllocationBasis] = useState(defaultAllocationBasis)
     const keyCounter = useRef(0)
     const nextKey = () => keyCounter.current++
 
@@ -204,6 +211,7 @@ export default function NewProcessingForm({
             loss_qty,
             inputs: validInputs,
             outputs: validOutputs,
+            allocation_basis: allocationBasis,
         }
 
         startTransition(async () => {
@@ -233,6 +241,24 @@ export default function NewProcessingForm({
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
+                {/* 成本分摊基准(FIN-36)—— 预选自公司配置,但【必须看得见、改得动】。
+                    它直接决定每个产出批次的报告毛利:同一张单按重量与按金属价值分摊,
+                    单位成本可以差出一倍以上(FIN-25 量过 62.50 对 27.50)。 */}
+                <div>
+                    <label className="block text-sm font-medium mb-1">
+                        {t('processing.form.basisLabel')}
+                    </label>
+                    <select
+                        value={allocationBasis}
+                        onChange={(e) => setAllocationBasis(e.target.value)}
+                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                    >
+                        <option value="metal_value">{t('processing.allocation.basis.metal_value')}</option>
+                        <option value="weight">{t('processing.allocation.basis.weight')}</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">{t('processing.form.basisHint')}</p>
+                </div>
+
                 {/* 加工日期 */}
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('processing.form.dateLabel')}</label>

@@ -21,6 +21,9 @@
 --     A 100kg 含 30kg 镍(份额 0.5)售 80%,B 300kg 含 30kg(份额 0.5)售 10%,
 --     差额 100:逐批 5000 = 100×(0.5×0.8 + 0.5×0.1) = 45.00;
 --     炉级 = 100×110/400 = 27.50。将来谁把逐批"简化"回炉级,这里当场红。
+-- FIN-36:commit_processing_run 多了一个【必填】的分摊基准参数。
+-- 这里一律显式传 'metal_value' —— 那正是本 fixture 在 FIN-36 之前从 schema
+-- 默认值拿到的值,所以语义一字未变,只是不再有人替它做这个选择。
 BEGIN;
 DO $$
 DECLARE
@@ -66,7 +69,7 @@ BEGIN
 
     v_run := commit_processing_run(v_today, 'fixture run B', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)));
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'metal_value');
     PERFORM allocate_processing_costs(v_run, 'weight');   -- 首挂:1220=100 / 1200 贷 100
 
     -- 【fixture 的钟是冻的】整个 fixture 一个事务,now() 恒同值 —— 真实世界里
@@ -132,7 +135,7 @@ BEGIN
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 400)),
         jsonb_build_array(
             jsonb_build_object('material_id', v_matB, 'quantity', 100),
-            jsonb_build_object('material_id', v_matB, 'quantity', 300)));
+            jsonb_build_object('material_id', v_matB, 'quantity', 300)), 'metal_value');
     PERFORM allocate_processing_costs(v_run, 'weight');
     SELECT po.output_batch_id INTO v_obA FROM processing_outputs po
     JOIN output_batches ob ON ob.id = po.output_batch_id
@@ -216,7 +219,7 @@ BEGIN
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 400)),
         jsonb_build_array(
             jsonb_build_object('material_id', v_matB, 'quantity', 100),
-            jsonb_build_object('material_id', v_matB, 'quantity', 300)));
+            jsonb_build_object('material_id', v_matB, 'quantity', 300)), 'metal_value');
     SELECT po.output_batch_id INTO v_obA FROM processing_outputs po
     JOIN output_batches ob ON ob.id = po.output_batch_id
     WHERE po.run_id = v_run AND ob.quantity = 100 AND ob.deleted_at IS NULL;

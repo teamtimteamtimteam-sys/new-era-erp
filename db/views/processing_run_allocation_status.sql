@@ -45,7 +45,16 @@ CREATE VIEW public.processing_run_allocation_status WITH (security_invoker = off
                     FROM processing_inputs pi2
                     JOIN processing_outputs po2 ON po2.output_batch_id = pi2.output_batch_id
                     JOIN processing_runs r2 ON r2.id = po2.run_id
-                   WHERE pi2.run_id = r.id AND r2.allocated_at IS NOT NULL) x) c ON true
+                   WHERE pi2.run_id = r.id AND r2.allocated_at IS NOT NULL
+                UNION ALL
+                -- FIN-36:【第四个过期源 —— 分摊基准被改动】前三个是成本条目、
+                -- 输入批的 price_history、上游单重分摊。少了这一支,一次
+                -- UPDATE ... SET allocation_basis 会让存着的单位成本与单据自称的
+                -- 方法对不上而毫无信号 —— 与 FIN-25 给输入价格关掉的缺口同病异源。
+                -- allocate_processing_costs 在同一事务里改基准并重写 allocated_at,
+                -- 两个时点相等,而 is_stale 用严格大于 —— 重分摊不会自标过期。
+                 SELECT r.allocation_basis_changed_at AS ts
+) x) c ON true
      LEFT JOIN LATERAL ( SELECT count(*) AS cogs_posted
            FROM sales_records sr
              JOIN processing_outputs po ON po.output_batch_id = sr.output_batch_id AND po.run_id = r.id

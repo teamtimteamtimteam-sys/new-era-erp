@@ -214,3 +214,32 @@ every one of the three bugs this replaced.
 **Read this entry as a decision, not a lapse.** If Doc 2 is ever revised, Principle 8's *intent* stands
 unchanged and only its mechanism sentence needs updating. Full reasoning in `AGENTS.md`
 §"The i18n key check runs on every cut that touches the app".
+
+---
+
+## 5 · The allocation basis has two implementations, Doc 2 names three — DOCUMENT AHEAD
+
+> **Doc 2, processing module:** the redesigned module makes the allocation basis an explicit,
+> configurable choice rather than an implicit assumption — **by weight, by metal value, and by
+> MARKET VALUE of each output** — because the answer directly determines the reported gross margin
+> of each output batch.
+
+**As built there are two:** `processing_runs.allocation_basis CHECK (allocation_basis IN
+('weight','metal_value'))`, and `allocate_processing_costs` branches on exactly those two.
+**Market value of each output does not exist.**
+
+Found while doing FIN-36, which made the *choice* explicit (it was previously a schema default
+nobody could see). The two halves of Doc 2's sentence had different fates: **"explicit, configurable
+choice" is now true; "three bases" is still not.**
+
+**Why it was not built in the same cut, deliberately:** metal value is derivable from data the run
+already has — output metal content plus the metal price series. **Market value of the finished
+output is not**: nothing in the schema records what an output batch is worth on the market before
+it is sold. It would need either a price series per output material or a valuation entered per run,
+which is a data-capture decision rather than an arithmetic one. Building it as a third `CASE` branch
+over data that does not exist would produce a third basis that silently returns the same answer as
+one of the other two.
+
+**What to check when it is built:** FIN-25's discrimination test. A third basis that cannot be shown
+to produce a *different* unit cost from the other two on some constructed run is not a third basis —
+`db/fixtures/34` already asserts weight and metal value diverge and would extend naturally.

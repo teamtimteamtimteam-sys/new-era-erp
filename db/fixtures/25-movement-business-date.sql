@@ -12,6 +12,9 @@
 --      所以按名断言:回滚不是物理事件(电池处理过了就是处理过了),它在更正一次
 --      记错的加工单,于是一错一改在同一天对消,中间那几天的库存历史不会凭空
 --      多出或少掉一批货。写成"今天"的实现,本 fixture 当场红。
+-- FIN-36:commit_processing_run 多了一个【必填】的分摊基准参数。
+-- 这里一律显式传 'metal_value' —— 那正是本 fixture 在 FIN-36 之前从 schema
+-- 默认值拿到的值,所以语义一字未变,只是不再有人替它做这个选择。
 BEGIN;
 DO $$
 DECLARE
@@ -54,7 +57,7 @@ BEGIN
     PERFORM reprice_inbound_batch(v_ib, 1, 'SGD', NULL, 'fixture 25 price');
     v_run := commit_processing_run(v_process, 'fixture 25 run', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)));
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'metal_value');
     SELECT output_batch_id INTO v_ob FROM processing_outputs WHERE run_id = v_run;
 
     SELECT business_date INTO v_bd FROM inventory_movements
@@ -116,7 +119,7 @@ BEGIN
     PERFORM reprice_inbound_batch(v_ib3, 1, 'SGD', NULL, 'fixture 25 rollback price');
     v_run2 := commit_processing_run(v_process, 'fixture 25 rollback run', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib3, 'quantity_consumed', 40)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 40)));
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 40)), 'metal_value');
     SELECT output_batch_id INTO v_ob2 FROM processing_outputs WHERE run_id = v_run2;
 
     PERFORM rollback_processing_run(v_run2);

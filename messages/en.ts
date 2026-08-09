@@ -955,6 +955,8 @@ const en = {
         form: {
             groupInbound: 'Inbound batches',
             groupOutput: 'Output batches (re-process)',
+            basisLabel: 'Cost allocation basis',
+            basisHint: 'Determines each output batch\u2019s unit cost, and therefore its reported gross margin. Prefilled from the company default in Finance settings; change it here if this run should be costed differently.',
             dateLabel: 'Process Date',
             inputsSectionHeader: 'Inputs (consume inbound)',
             addInputButton: '+ Add Input',

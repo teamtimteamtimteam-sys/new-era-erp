@@ -1,3 +1,39 @@
+-- FIN-36d:用【显式上下文标记】区分"跟着重分摊改的基准"与"单独改的基准"
+--
+-- FIN-36c 试图靠"allocated_at 有没有跟着变"来区分,而那在【同一个事务里】不成立:
+-- now() 是事务时间,两次分摊拿到同一个 allocated_at,于是判据恒真、触发器照盖,
+-- 刚重分摊完的单子自称过期(fixture 34C 顶出来的正是这个)。
+--
+-- 换成年结穿期间锁的同一个惯用法:allocate_processing_costs 在自己那条 UPDATE
+-- 前后设置/清除 evoltrya.alloc_ctx,触发器见到它就不盖章。上下文标记不受事务
+-- 边界影响 —— 这正是时间戳给不了的东西。
+--
+-- NOTE: apply with ./db/apply_migration.sh
+BEGIN;
+
+CREATE OR REPLACE FUNCTION public.stamp_allocation_basis_changed()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    -- 跟着重分摊一起改的基准不是漂移 —— allocate_processing_costs 会挂上这个标记。
+    IF current_setting('evoltrya.alloc_ctx', true) = '1' THEN
+        RETURN NEW;
+    END IF;
+    -- 单独改的才是。clock_timestamp() 而不是 now():事务内也要走得动,否则
+    -- "分摊完之后又改了基准"与"分摊时顺手改的"分不开(fixture 32 的 seq 同一课)。
+    NEW.allocation_basis_changed_at := clock_timestamp();
+    RETURN NEW;
+END;
+$function$;
+
+DROP TRIGGER trg_processing_runs_basis_changed ON public.processing_runs;
+CREATE TRIGGER trg_processing_runs_basis_changed
+    BEFORE UPDATE OF allocation_basis ON public.processing_runs
+    FOR EACH ROW
+    WHEN (NEW.allocation_basis IS DISTINCT FROM OLD.allocation_basis)
+    EXECUTE FUNCTION public.stamp_allocation_basis_changed();
+
 CREATE OR REPLACE FUNCTION public.allocate_processing_costs(p_run_id uuid, p_basis text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -552,3 +588,5 @@ BEGIN
     );
 END;
 $function$;
+
+COMMIT;

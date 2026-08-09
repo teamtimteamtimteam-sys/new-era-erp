@@ -88,7 +88,13 @@ CREATE VIEW public.batch_margin WITH (security_invoker = off) AS
                    FROM processing_inputs pi2
                      JOIN processing_outputs po2 ON po2.output_batch_id = pi2.output_batch_id
                      JOIN processing_runs r2 ON r2.id = po2.run_id
-                  WHERE pi2.run_id = r.id AND r2.allocated_at IS NOT NULL) x) c ON true
+                  WHERE pi2.run_id = r.id AND r2.allocated_at IS NOT NULL
+                UNION ALL
+                -- FIN-36:第四个过期源 —— 分摊基准被改动。与
+                -- processing_run_allocation_status 里那一支【同一份定义】
+                -- (fixture 31E 断言两者对同一个 run 给出同一个答案)。
+                 SELECT r.allocation_basis_changed_at AS ts
+) x) c ON true
      JOIN LATERAL ( SELECT sum(sr.quantity) AS qty_sold,
             sum(sr.amount_base) AS revenue_base,
             ( SELECT sum(l.debit - l.credit) AS sum

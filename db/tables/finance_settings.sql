@@ -38,7 +38,12 @@ CREATE TABLE public.finance_settings (
     -- first_fy_end 可空:首个财年可长达 18 个月,定了以显式日期为准,留空按循环推。
     fy_end_month integer NOT NULL DEFAULT 12 CHECK (fy_end_month BETWEEN 1 AND 12),
     fy_end_day integer NOT NULL DEFAULT 31 CHECK (fy_end_day BETWEEN 1 AND 31),
-    first_fy_end date
+    first_fy_end date,
+    -- FIN-36:新建加工单时表单【预选】的分摊基准。这是 RUNTIME CONFIG ——
+    -- 操作员在设置页上看得见、改得动,与 processing_runs 上那个已被删掉的 schema
+    -- 默认值的区别就在这里(FIN-35 的判别法:看得见的默认值不是假设)。
+    default_allocation_basis text NOT NULL DEFAULT 'metal_value'
+        CHECK (default_allocation_basis IN ('weight','metal_value'))
 );
 
 INSERT INTO public.finance_settings (id, locked_before) VALUES (true, NULL);
@@ -77,3 +82,6 @@ COMMENT ON COLUMN public.finance_settings.fy_end_day IS
     '财年末的日(FIN-23)。短月自动收敛到月末(2/30 → 2/28)。';
 COMMENT ON COLUMN public.finance_settings.first_fy_end IS
     '首个财年末(FIN-23,可空)。新加坡首个财年可长达 18 个月 —— 留空按循环对推;定了以此为准。只影响第一次年结。';
+
+COMMENT ON COLUMN public.finance_settings.default_allocation_basis IS
+    '新建加工单时表单【预选】的分摊基准(FIN-36)。这是一个 RUNTIME CONFIG:操作员在设置页上看得见、改得动 —— 与 processing_runs 上那个已被删掉的 schema 默认值的区别就在这里,后者谁也看不见。真正记录"这一单用了什么"的仍然是 processing_runs.allocation_basis,由表单显式送上来。';

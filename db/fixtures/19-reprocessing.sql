@@ -15,6 +15,9 @@
 --   E 冲销守卫:stage1 的产出已被 stage2 消耗 → rollback stage1 点名拒。
 --   F 自吞守卫:裸 INSERT 拒(两种边都拒 —— 也堵进料边的既有直插洞);
 --     函数上下文内的同单自吞边也拒。
+-- FIN-36:commit_processing_run 多了一个【必填】的分摊基准参数。
+-- 这里一律显式传 'metal_value' —— 那正是本 fixture 在 FIN-36 之前从 schema
+-- 默认值拿到的值,所以语义一字未变,只是不再有人替它做这个选择。
 BEGIN;
 DO $$
 DECLARE
@@ -51,7 +54,7 @@ BEGIN
     PERFORM reprice_inbound_batch(v_ib1, 1, 'SGD', NULL, 'fixture 19 stage1 price');
     v_run1 := commit_processing_run(v_today, 'fixture 19 stage1', 20,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib1, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 80)));
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 80)), 'metal_value');
     SELECT po.output_batch_id INTO v_o1 FROM processing_outputs po WHERE po.run_id = v_run1;
     INSERT INTO output_batch_metals (output_batch_id, metal, content_pct) VALUES (v_o1, 'ni', 45);
     PERFORM allocate_processing_costs(v_run1, 'weight');   -- O1: 100 → unit 1.25
@@ -66,7 +69,7 @@ BEGIN
         jsonb_build_array(
             jsonb_build_object('output_batch_id', v_o1, 'quantity_consumed', 50),
             jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 50)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matC, 'quantity', 60)));
+        jsonb_build_array(jsonb_build_object('material_id', v_matC, 'quantity', 60)), 'metal_value');
     SELECT po.output_batch_id INTO v_o2 FROM processing_outputs po WHERE po.run_id = v_run2;
     INSERT INTO output_batch_metals (output_batch_id, metal, content_pct) VALUES (v_o2, 'ni', 50);
 
@@ -119,11 +122,11 @@ BEGIN
     -- 不计价、不分摊 stage1' —— 直接投进 stage2'
     v_run1 := commit_processing_run(v_today, 'fixture 19 stage1-unpriced', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib1, 'quantity_consumed', 30)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 30)));
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 30)), 'metal_value');
     SELECT po.output_batch_id INTO v_o1 FROM processing_outputs po WHERE po.run_id = v_run1;
     v_run2 := commit_processing_run(v_today, 'fixture 19 stage2-unpriced', 0,
         jsonb_build_array(jsonb_build_object('output_batch_id', v_o1, 'quantity_consumed', 30)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matC, 'quantity', 30)));
+        jsonb_build_array(jsonb_build_object('material_id', v_matC, 'quantity', 30)), 'metal_value');
     PERFORM allocate_processing_costs(v_run2, 'weight');   -- 上游 unit_cost NULL → 计 0,不拒
     SELECT bool_or(cost_incomplete) INTO v_flag FROM processing_outputs WHERE run_id = v_run2;
     IF NOT COALESCE(v_flag, false) THEN

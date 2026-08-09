@@ -45,6 +45,9 @@ CREATE VIEW public.processing_runs_masked WITH (security_invoker = off) AS
             WHEN has_permission('data.view_prices'::text) THEN capitalized_cost_base
             ELSE NULL::numeric
         END AS capitalized_cost_base,
-    capitalization_entry_id
+    capitalization_entry_id,
+    -- FIN-36:基准变更时点 —— 不敏感(一个时间戳),所以列级授权与遮蔽视图两边都给。
+    -- 遗漏任一边都会被 colgrant 顶出来(AGENTS.md §"给遮蔽表加列")。
+    allocation_basis_changed_at
    FROM processing_runs
   WHERE has_permission('module.processing.view'::text);

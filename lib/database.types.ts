@@ -1386,6 +1386,7 @@ export type Database = {
       }
       finance_settings: {
         Row: {
+          default_allocation_basis: string
           first_fy_end: string | null
           fy_end_day: number
           fy_end_month: number
@@ -1399,6 +1400,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          default_allocation_basis?: string
           first_fy_end?: string | null
           fy_end_day?: number
           fy_end_month?: number
@@ -1412,6 +1414,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          default_allocation_basis?: string
           first_fy_end?: string | null
           fy_end_day?: number
           fy_end_month?: number
@@ -4991,6 +4994,7 @@ export type Database = {
           allocated_at: string | null
           allocated_by: string | null
           allocation_basis: string
+          allocation_basis_changed_at: string | null
           allocation_snapshot: Json | null
           capitalization_entry_id: string | null
           capitalized_cost_base: number | null
@@ -5014,7 +5018,8 @@ export type Database = {
         Insert: {
           allocated_at?: string | null
           allocated_by?: string | null
-          allocation_basis?: string
+          allocation_basis: string
+          allocation_basis_changed_at?: string | null
           allocation_snapshot?: Json | null
           capitalization_entry_id?: string | null
           capitalized_cost_base?: number | null
@@ -5039,6 +5044,7 @@ export type Database = {
           allocated_at?: string | null
           allocated_by?: string | null
           allocation_basis?: string
+          allocation_basis_changed_at?: string | null
           allocation_snapshot?: Json | null
           capitalization_entry_id?: string | null
           capitalized_cost_base?: number | null
@@ -9125,6 +9131,7 @@ export type Database = {
           allocated_at: string | null
           allocated_by: string | null
           allocation_basis: string | null
+          allocation_basis_changed_at: string | null
           allocation_snapshot: Json | null
           capitalization_entry_id: string | null
           capitalized_cost_base: number | null
@@ -9149,6 +9156,7 @@ export type Database = {
           allocated_at?: string | null
           allocated_by?: string | null
           allocation_basis?: string | null
+          allocation_basis_changed_at?: string | null
           allocation_snapshot?: Json | null
           capitalization_entry_id?: string | null
           capitalized_cost_base?: never
@@ -9173,6 +9181,7 @@ export type Database = {
           allocated_at?: string | null
           allocated_by?: string | null
           allocation_basis?: string | null
+          allocation_basis_changed_at?: string | null
           allocation_snapshot?: Json | null
           capitalization_entry_id?: string | null
           capitalized_cost_base?: never
@@ -9830,6 +9839,7 @@ export type Database = {
       }
       commit_processing_run: {
         Args: {
+          p_allocation_basis: string
           p_inputs: Json
           p_loss_qty: number
           p_notes: string

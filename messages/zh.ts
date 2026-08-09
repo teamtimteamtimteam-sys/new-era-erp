@@ -958,6 +958,8 @@ const zh = {
         form: {
             groupInbound: '进料批次',
             groupOutput: '产出批次(再加工)',
+            basisLabel: '成本分摊基准',
+            basisHint: '决定每个产出批次的单位成本,进而决定它的报告毛利。预选自财务设置里的公司默认值;这一单需要用别的方法就在这里改。',
             dateLabel: '加工日期',
             inputsSectionHeader: '投入(消耗进料)',
             addInputButton: '+ 添加投入',

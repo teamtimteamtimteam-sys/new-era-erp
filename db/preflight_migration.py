@@ -165,6 +165,21 @@ def noncomment(sql: str) -> str:
     return "\n".join(l for l in sql.splitlines() if not l.lstrip().startswith("--"))
 
 
+def _dropped_before(dropped_fn, schema, name, si, sigs, sql):
+    """本文件里、在这条 CREATE 之前,是否 DROP 掉了同名函数的【另一个】签名。
+
+    只比名字与参数个数:参数类型串在这里还没解析成 regtype,而"同名 + 不同参数个数
+    的旧签名被显式 DROP 了"已经足以把合法的替换与真正的重载分开。参数个数相同却
+    类型不同的情形仍然会被拦下 —— 那种情况该对齐签名,不该 DROP。
+    """
+    want = (schema.lower(), name.lower())
+    n_new = len(sigs[si][2])
+    for pos, dsch, dname, dargs in dropped_fn:
+        if (dsch, dname) == want and len(dargs) != n_new:
+            return True
+    return False
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("migration")
@@ -203,6 +218,17 @@ def main() -> int:
         print("account    未引用任何科目码")
 
     # ── 2. 重载:同名、不同签名 ──────────────────────────────────────────────
+    # 【先认下本文件自己的 DROP】预检读的是执行【前】的库,所以一支合法的
+    # "DROP 旧签名 → CREATE 新签名" 迁移在这里看上去和一次重载一模一样 ——
+    # 而这正是本检查自己的错误信息让人去做的事(FIN-36 第一次撞上)。
+    # 只认【本文件里、在该 CREATE 之前】出现的 DROP:顺序错了,线上照样留两个版本。
+    dropped_fn = []
+    for m in re.finditer(r"\bDROP\s+FUNCTION\s+(?:IF\s+EXISTS\s+)?"
+                         r"([a-zA-Z_][\w$]*)\s*\.\s*([a-zA-Z_][\w$]*)\s*\(([^)]*)\)",
+                         noncomment(sql), re.I):
+        dropped_fn.append((m.start(), m.group(1).lower(), m.group(2).lower(),
+                           [a.strip() for a in m.group(3).split(',') if a.strip()]))
+
     sigs = parse_signatures(sql)
     n_stmts = len(re.findall(r"^[ \t]*CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION",
                              noncomment(sql), re.I | re.M))
@@ -261,7 +287,7 @@ def main() -> int:
             key = f"{schema}.{name}"
             if exists.get(sig):
                 repl += 1
-            elif key in live:
+            elif key in live and not _dropped_before(dropped_fn, schema, name, si, sigs, sql):
                 refusals.append(
                     f"{sig} 与线上同名函数【签名不同】—— 这是重载,不是替换。"
                     f"线上现有:{', '.join(live[key])}。旧签名会原样活下去,"

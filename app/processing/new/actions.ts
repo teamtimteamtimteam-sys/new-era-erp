@@ -27,6 +27,8 @@ export type CommitProcessingPayload = {
     loss_qty: number | null
     inputs: InputRow[]
     outputs: OutputRow[]
+    /** FIN-36:成本分摊基准 —— 表单显式选择,DB 侧必填 */
+    allocation_basis: string
 }
 
 export type CommitProcessingState = { error?: string }
@@ -45,6 +47,9 @@ export async function commitProcessingRun(
         p_loss_qty: payload.loss_qty,
         p_inputs: payload.inputs,
         p_outputs: payload.outputs,
+        // FIN-36:基准显式送上去 —— DB 侧必填(ALLOCATION_BASIS_REQUIRED),
+        // 界面禁用不是唯一一道关,绕过界面也进不去。
+        p_allocation_basis: payload.allocation_basis,
     } as Database['public']['Functions']['commit_processing_run']['Args'])
 
     if (error) {

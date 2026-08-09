@@ -73,8 +73,10 @@ BEGIN
     VALUES ('ZZFIX30-AR', v_ib, '2027-01-10') RETURNING id INTO v_ar;
 
     -- 2 allocation_stale:分摊时点(2027-01-01)早于成本变动时点(2027-02-01)
-    INSERT INTO processing_runs (code, status, allocated_at)
-    VALUES ('ZZFIX30-RUN', 'committed', '2027-01-01') RETURNING id INTO v_run;
+    -- FIN-36:allocation_basis 不再有 schema 默认值 —— 直插就得自己选。
+    -- 'metal_value' 是这些 fixture 在 FIN-36 之前拿到的那个值,语义不变。
+    INSERT INTO processing_runs (code, status, allocated_at, allocation_basis)
+    VALUES ('ZZFIX30-RUN', 'committed', '2027-01-01', 'metal_value') RETURNING id INTO v_run;
     INSERT INTO processing_cost_entries (run_id, cost_type, amount_base, created_at, updated_at)
     VALUES (v_run, 'electricity', 100, '2027-02-01', '2027-02-01');
 

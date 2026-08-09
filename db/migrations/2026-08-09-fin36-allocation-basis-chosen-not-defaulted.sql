@@ -1,3 +1,94 @@
+-- FIN-36:分摊基准必须是【选出来的】,不是默认出来的
+--
+-- processing_runs.allocation_basis 带着 DEFAULT 'metal_value',commit_processing_run
+-- 从不设它,于是线上九张加工单【全部】拿着那个默认值 —— 成本方法是被一个谁也没见过的
+-- schema 默认值挑的。Doc 2 明写这是错的:"重新设计后的模块把分摊基准做成一个显式、
+-- 可配置的选择,而不是一个隐含假设 —— 因为这个答案直接决定每个产出批次的报告毛利。"
+-- FIN-25 已经量过两种基准给出实质不同的单位成本(同一张单 62.50 对 27.50),
+-- OPS-20 的批次毛利就坐在它上面。
+--
+-- 【区别不在"有没有默认值",在于谁看得见】一个 schema 默认值没有人看得见、也无法改;
+-- 一个表单预选项【看得见、改得动、并且记下了选的是什么】。后者完全正当 ——
+-- 所以本切做的是把前者换成后者,而不是简单地把默认值删掉了事。
+--
+-- 四件事:
+--   1. finance_settings.default_allocation_basis —— 公司默认值【声明出来】,
+--      与 fy_end_month / system_start_date 同一形状(RUNTIME CONFIG,操作员可改)。
+--      表单从这里预选。它自己带默认值是【正当的】:那是一条配置行的初值,
+--      操作员在设置页上看得见(FIN-35 的判别法:看得见的默认值不是假设)。
+--   2. processing_runs.allocation_basis 去掉 schema 默认值,并由
+--      commit_processing_run 的新参数【必填】—— 缺就 ALLOCATION_BASIS_REQUIRED 点名拒绝。
+--      【为什么不在函数里回退到配置值】那只会把"没人选过"从 schema 挪到函数里,
+--      同一个病换一层。表单永远带着值来(预选自配置),所以"必填"没有代价。
+--   3. 基准变更成为【第四个过期源】。此前 is_stale 只看成本条目、输入批的
+--      price_history、上游单重分摊 —— 一次 UPDATE ... SET allocation_basis 会
+--      让存着的单位成本与单据自称的方法对不上,而没有任何信号。这正是 FIN-25
+--      给输入价格关掉的那个缺口,换了个来源。
+--   4. 九张既有单不改:它们的 metal_value 是【真的】—— 算术当时用的就是它。
+--      假的只是"有人选过"这层含义,而它们在 cutover 会消失(known-wrong 有记)。
+--
+-- 【只实现了两种基准,Doc 2 说三种 —— 这是一条分歧,不在本切里补】
+-- 缺的是"按各产出的市场价值"分摊。记在 docs/as-built-divergences.md,
+-- 不在这里顺手建:它需要每个产出批次的市场价,而那是另一套取数。
+--
+-- NOTE: apply with ./db/apply_migration.sh
+
+BEGIN;
+
+-- ── 1. 公司默认值:声明出来的配置,不是编进代码的常量 ────────────────────────
+ALTER TABLE public.finance_settings
+    ADD COLUMN default_allocation_basis text NOT NULL DEFAULT 'metal_value'
+        CHECK (default_allocation_basis IN ('weight','metal_value'));
+
+COMMENT ON COLUMN public.finance_settings.default_allocation_basis IS
+    '新建加工单时表单【预选】的分摊基准(FIN-36)。这是一个 RUNTIME CONFIG:操作员在设置页上看得见、改得动 —— 与 processing_runs 上那个已被删掉的 schema 默认值的区别就在这里,后者谁也看不见。真正记录"这一单用了什么"的仍然是 processing_runs.allocation_basis,由表单显式送上来。';
+
+-- ── 2. 运行单上的基准:去掉 schema 默认值 ──────────────────────────────────
+ALTER TABLE public.processing_runs ALTER COLUMN allocation_basis DROP DEFAULT;
+
+COMMENT ON COLUMN public.processing_runs.allocation_basis IS
+    '这一单的成本分摊基准 —— 【选出来的,不是默认出来的】(FIN-36)。没有 schema 默认值是有意的:成本方法直接决定每个产出批次的报告毛利(FIN-25 量过 62.50 对 27.50),而一个谁也看不见的默认值等于替所有人做了这个判断。commit_processing_run 必填,表单从 finance_settings.default_allocation_basis 预选。改动它会把本单标记为过期(见 allocation_basis_changed_at)。';
+
+-- ── 3. 基准变更时点:第四个过期源 ────────────────────────────────────────────
+ALTER TABLE public.processing_runs
+    ADD COLUMN allocation_basis_changed_at timestamptz;
+
+COMMENT ON COLUMN public.processing_runs.allocation_basis_changed_at IS
+    '分摊基准最后一次被改动的时点(FIN-36),由 trg_processing_runs_basis_changed 维护。processing_run_allocation_status.is_stale 与 batch_margin.is_stale 把它当【第四个过期源】—— 前三个是成本条目、输入批的 price_history、上游单重分摊。少了它,一次 UPDATE ... SET allocation_basis 会让存着的单位成本与单据自称的方法对不上而毫无信号。allocate_processing_costs 在同一个事务里改基准并重算,两个时点相等,所以重分摊【不会】把自己标成过期。';
+
+CREATE OR REPLACE FUNCTION public.stamp_allocation_basis_changed()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    -- now() 是事务时间:allocate_processing_costs 在同一个事务里既改基准又写
+    -- allocated_at,两者相等,而 is_stale 用的是【严格大于】—— 所以重分摊不会
+    -- 把自己标成过期。一次裸 UPDATE 则晚于 allocated_at,正是要抓的那种。
+    NEW.allocation_basis_changed_at := now();
+    RETURN NEW;
+END;
+$function$;
+
+CREATE TRIGGER trg_processing_runs_basis_changed
+    BEFORE UPDATE OF allocation_basis ON public.processing_runs
+    FOR EACH ROW
+    WHEN (NEW.allocation_basis IS DISTINCT FROM OLD.allocation_basis)
+    EXECUTE FUNCTION public.stamp_allocation_basis_changed();
+
+REVOKE SELECT ON public.processing_runs FROM authenticated, anon;
+GRANT SELECT (id, code, process_date, total_input, total_output, loss_qty, notes,
+              status, deleted_at, created_at, created_by, updated_at, updated_by,
+              allocation_basis, allocation_snapshot, allocated_at, allocated_by,
+              capitalization_entry_id, allocation_basis_changed_at)
+    ON public.processing_runs TO authenticated;
+
+
+-- ── 4. commit_processing_run 收下基准并必填 ────────────────────────────────
+-- 【DROP + CREATE,不是 CREATE OR REPLACE】签名变了就是重载而不是替换,
+-- db/preflight_migration.py 会拒(FIN-21 的教训:旧签名会活下来变成镜像看不见的漂移)。
+-- DROP 带走的 EXECUTE 由 apply_migration.sh 在同事务里补跑 zzz_function_grants 授回。
+DROP FUNCTION public.commit_processing_run(date, text, numeric, jsonb, jsonb);
+
 CREATE OR REPLACE FUNCTION public.commit_processing_run(p_process_date date, p_notes text, p_loss_qty numeric, p_inputs jsonb, p_outputs jsonb, p_allocation_basis text)
  RETURNS uuid
  LANGUAGE plpgsql
@@ -207,3 +298,5 @@ BEGIN
     RETURN v_run_id;
 END;
 $function$;
+
+COMMIT;
