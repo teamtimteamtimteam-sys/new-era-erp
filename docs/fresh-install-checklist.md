@@ -125,7 +125,15 @@ Standing up a new Evoltrya OS project from this repository.
    The values and the reasoning behind them are in `docs/approvals-scoping.md`; they are
    **decisions already made**, not defaults to re-derive.
 
-9. **Update Vercel environment variables** — `NEXT_PUBLIC_SUPABASE_URL`
+9. **Enter the company's own licences** into `company_compliance` (suppliers → the compliance
+   machinery is shared). The registry ships EMPTY and stays silent — for a company not yet
+   operating, silence is correct, so there is deliberately no "empty registry" alert. That also
+   means nothing will remind you: entering the hazardous-waste storage licence, NEA classes and
+   any others at standup is this checklist's job. Certificate types (and whether expiry blocks
+   receiving) are DATA in `certificate_types` — edit rows, not code. Defaults: the five legal
+   preconditions (Basel / Article 18 / TFS / NEA / GWDF) block; ISO warns.
+
+10. **Update Vercel environment variables** — `NEXT_PUBLIC_SUPABASE_URL`
    (`https://<ref>.supabase.co`), `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and
    `SUPABASE_SERVICE_ROLE_KEY`. These are the only three the application reads.
    Redeploy afterwards: Vercel does not rebuild on an environment-variable change.

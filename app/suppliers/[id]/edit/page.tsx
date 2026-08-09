@@ -40,10 +40,17 @@ export default async function EditSupplierPage({
 
     const { data: complianceRows } = await supabase
         .from('supplier_compliance')
-        .select('id, cert_type, cert_no, issuing_body, valid_from, valid_until, notes')
+        .select('id, cert_type_code, cert_no, issuing_body, valid_from, valid_until, notes, document_id')
         .eq('supplier_id', id)
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
+
+    // CMP-1:类型来自 certificate_types 表 —— 加一种证书是编辑一行数据,不是改代码
+    const { data: certTypeRows } = await supabase
+        .from('certificate_types')
+        .select('code, name_en, name_zh, disposition')
+        .eq('is_active', true)
+        .order('sort_order')
 
     const { data: attachmentRows } = await supabase
         .from('supplier_attachments')
@@ -107,7 +114,13 @@ export default async function EditSupplierPage({
 
             <StatusPanel id={supplier.id} currentStatus={supplier.status} />
             <EditSupplierForm supplier={supplier} templates={templates} />
-            <CompliancePanel supplierId={supplier.id} rows={complianceRows ?? []} />
+            <CompliancePanel
+                supplierId={supplier.id}
+                rows={complianceRows ?? []}
+                certTypes={certTypeRows ?? []}
+                attachments={(attachmentRows ?? []).map((a) => ({ id: a.id, file_name: a.file_name }))}
+                locale={locale}
+            />
             <AttachmentsPanel supplierId={supplier.id} rows={attachments} />
         </div>
     )

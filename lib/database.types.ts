@@ -547,6 +547,98 @@ export type Database = {
           },
         ]
       }
+      certificate_types: {
+        Row: {
+          code: string
+          disposition: string
+          is_active: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          sort_order: number
+          warn_lead_days: number
+        }
+        Insert: {
+          code: string
+          disposition: string
+          is_active?: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          sort_order?: number
+          warn_lead_days?: number
+        }
+        Update: {
+          code?: string
+          disposition?: string
+          is_active?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          sort_order?: number
+          warn_lead_days?: number
+        }
+        Relationships: []
+      }
+      company_compliance: {
+        Row: {
+          cert_no: string | null
+          cert_type_code: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          document_path: string | null
+          id: string
+          issuing_body: string | null
+          notes: string | null
+          scope: string | null
+          updated_at: string
+          updated_by: string | null
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          cert_no?: string | null
+          cert_type_code: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          document_path?: string | null
+          id?: string
+          issuing_body?: string | null
+          notes?: string | null
+          scope?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          cert_no?: string | null
+          cert_type_code?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          document_path?: string | null
+          id?: string
+          issuing_body?: string | null
+          notes?: string | null
+          scope?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_compliance_cert_type_code_fkey"
+            columns: ["cert_type_code"]
+            isOneToOne: false
+            referencedRelation: "certificate_types"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       company_profile: {
         Row: {
           address_lines: string | null
@@ -6070,7 +6162,7 @@ export type Database = {
       supplier_compliance: {
         Row: {
           cert_no: string | null
-          cert_type: string
+          cert_type_code: string
           created_at: string
           created_by: string | null
           deleted_at: string | null
@@ -6086,7 +6178,7 @@ export type Database = {
         }
         Insert: {
           cert_no?: string | null
-          cert_type: string
+          cert_type_code: string
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -6102,7 +6194,7 @@ export type Database = {
         }
         Update: {
           cert_no?: string | null
-          cert_type?: string
+          cert_type_code?: string
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -6118,11 +6210,25 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "supplier_compliance_cert_type_code_fkey"
+            columns: ["cert_type_code"]
+            isOneToOne: false
+            referencedRelation: "certificate_types"
+            referencedColumns: ["code"]
+          },
+          {
             foreignKeyName: "supplier_compliance_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "supplier_compliance_document_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_attachments"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "supplier_compliance_supplier_id_fkey"

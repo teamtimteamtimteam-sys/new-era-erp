@@ -110,6 +110,9 @@ RUNTIME_CONFIG_TABLES = [
     # HR-2c:HR 会在界面上加 override 行(一份谈定的年假是合同条款),
     # 逐行跟踪线上会让第一个 override 就把 check_mirrors 变红,那样这个检查就没人信了。
     "leave_accrual_rates",
+    # CMP-1:证书类型 —— disposition 与 lead days 是操作员的地盘,改了是系统在
+    # 正常工作(引导值只是默认)。逐行比对会让第一次改处置就把检查变红。
+    "certificate_types",
 ]
 
 # 【引导默认值一行都不许是空的】RUNTIME CONFIG 的种子不与线上比对(那是对的:界面改得动),

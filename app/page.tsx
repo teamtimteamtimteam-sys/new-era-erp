@@ -37,6 +37,8 @@ const TILES = [
     { itemType: 'assay_unapplied', permission: 'module.inbound.view', href: '/inbound' },
     { itemType: 'batch_unpriced', permission: 'module.inbound.view', href: '/inbound' },
     { itemType: 'allocation_stale', permission: 'module.processing.view', href: '/processing' },
+    { itemType: 'qualification_expiring', permission: 'module.suppliers.view', href: '/suppliers' },
+    { itemType: 'qualification_missing', permission: 'module.suppliers.view', href: '/suppliers' },
     { itemType: 'po_awaiting_receipt', permission: 'module.purchasing.view', href: '/purchasing/orders' },
     { itemType: 'stocktake_open', permission: 'module.stocktakes.view', href: '/stocktakes' },
     { itemType: 'output_unsold_aging', permission: 'module.output.view', href: '/output' },

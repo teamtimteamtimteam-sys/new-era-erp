@@ -112,7 +112,32 @@ CREATE OR REPLACE FUNCTION public.guard_inbound_po_receivable()
 AS $function$
 DECLARE
     v_po record;
+    v_cert record;
 BEGIN
+    -- CMP-1:【block 类型的证书过期 → 本供应商不能收货】,不论这单挂没挂采购单 ——
+    -- Doc 1 问的是"有害废物【进场】",进场是物理事件,与单据无关。只在 INSERT 时查
+    -- (换采购单的 UPDATE 不重复查:货已在场,换单不是又进了一次场)。
+    -- 【disposition 从类型表现读】—— 改一行数据就改行为,这正是类型作为表的全部意义。
+    -- 【缺证不挡】:挡的是"过期",不是"没有"—— A3 的答复只到这里。
+    IF TG_OP = 'INSERT' AND NEW.supplier_id IS NOT NULL THEN
+        SELECT ct.code, ct.name_en, sc.valid_until, s.code AS supplier_code
+        INTO v_cert
+        FROM supplier_compliance sc
+        JOIN certificate_types ct ON ct.code = sc.cert_type_code
+        JOIN suppliers s ON s.id = sc.supplier_id
+        WHERE sc.supplier_id = NEW.supplier_id
+          AND sc.deleted_at IS NULL
+          AND ct.disposition = 'block'
+          AND sc.valid_until IS NOT NULL
+          AND sc.valid_until < CURRENT_DATE
+        ORDER BY sc.valid_until
+        LIMIT 1;
+        IF FOUND THEN
+            RAISE EXCEPTION 'SUPPLIER_QUALIFICATION_EXPIRED|%|%|%',
+                v_cert.supplier_code, v_cert.code, v_cert.valid_until;
+        END IF;
+    END IF;
+
     IF NEW.purchase_order_id IS NULL THEN
         RETURN NEW;
     END IF;

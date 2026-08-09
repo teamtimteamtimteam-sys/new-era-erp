@@ -6,31 +6,43 @@ import { useTranslations } from '@/lib/i18n/client'
 
 type ComplianceRow = {
     id: string
-    cert_type: string
+    cert_type_code: string
     cert_no: string | null
     issuing_body: string | null
     valid_from: string | null
     valid_until: string | null
     notes: string | null
+    document_id: string | null
 }
 
-// 证书类型选项:专有名词保持原样,"其他" 走 i18n。value 即写入数据库的值,保持不变。
-const CERT_TYPE_OPTIONS = [
-    'Basel Convention',
-    'Article 18',
-    'NEA Import Permit',
-    'GWDF Licence',
-    'TFS Document',
-    '其他',
-]
+// CMP-1:类型选项来自 certificate_types【表】,不再硬编码 —— 加一种证书是编辑
+// 一行数据,不是改这里的数组。disposition 顺带显示,让录入的人知道这一类过期
+// 会不会挡收货。
+export type CertTypeOption = {
+    code: string
+    name_en: string
+    name_zh: string
+    disposition: string
+}
+export type AttachmentOption = { id: string; file_name: string }
 
 export default function CompliancePanel({
     supplierId,
     rows,
+    certTypes,
+    attachments,
+    locale,
 }: {
     supplierId: string
     rows: ComplianceRow[]
+    certTypes: CertTypeOption[]
+    attachments: AttachmentOption[]
+    locale: string
 }) {
+    const typeLabel = (code: string) => {
+        const ct = certTypes.find((c) => c.code === code)
+        return ct ? (locale === 'zh' ? ct.name_zh : ct.name_en) : code
+    }
     const t = useTranslations()
     const [error, setError] = useState<string | null>(null)
     const [isPending, startTransition] = useTransition()
@@ -86,7 +98,7 @@ export default function CompliancePanel({
                                 new Date(row.valid_until) < now
                             return (
                                 <tr key={row.id}>
-                                    <td className="border border-gray-300 px-4 py-2">{row.cert_type}</td>
+                                    <td className="border border-gray-300 px-4 py-2">{typeLabel(row.cert_type_code)}</td>
                                     <td className="border border-gray-300 px-4 py-2 text-sm">
                                         {row.cert_no ?? '—'}
                                     </td>
@@ -130,7 +142,7 @@ export default function CompliancePanel({
                         {t('suppliers.compliance.certType')} <span className="text-red-600">*</span>
                     </label>
                     <select
-                        name="cert_type"
+                        name="cert_type_code"
                         required
                         defaultValue=""
                         className="w-full border border-gray-300 px-3 py-2 rounded"
@@ -138,9 +150,28 @@ export default function CompliancePanel({
                         <option value="" disabled>
                             {t('suppliers.compliance.certTypePlaceholder')}
                         </option>
-                        {CERT_TYPE_OPTIONS.map((opt) => (
-                            <option key={opt} value={opt}>
-                                {opt === '其他' ? t('suppliers.compliance.otherType') : opt}
+                        {certTypes.map((ct) => (
+                            <option key={ct.code} value={ct.code}>
+                                {(locale === 'zh' ? ct.name_zh : ct.name_en) +
+                                    (ct.disposition === 'block' ? t('suppliers.compliance.blockSuffix') : '')}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium mb-1">{t('suppliers.compliance.document')}</label>
+                    {/* CMP-1:证书文件引用本供应商已上传的附件(上传走下方附件面板)——
+                        document_id 从此有外键、有人写入,证书记录能走到证书本身 */}
+                    <select
+                        name="document_id"
+                        defaultValue=""
+                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                    >
+                        <option value="">{t('suppliers.compliance.documentNone')}</option>
+                        {attachments.map((a) => (
+                            <option key={a.id} value={a.id}>
+                                {a.file_name}
                             </option>
                         ))}
                     </select>
