@@ -43,3 +43,8 @@ REVOKE EXECUTE ON FUNCTION public.calculate_metal_price_from_terms(jsonb, jsonb,
 REVOKE EXECUTE ON FUNCTION public.commit_pricing_terms(uuid, uuid, uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.resolve_pricing_commitment(uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.committed_terms_price(uuid, date) FROM authenticated;
+-- APR-1:审批留痕的唯一写入口。没有调用者检查 —— 它只从 decide_leave_request /
+-- decide_medical_claim / submit_review / approve_review / acknowledge_review 的函数体内
+-- 以属主身份被调用,而那五个各自已经把过关了。给了 authenticated 就等于任何登录用户
+-- 都能伪造一行留痕,而留痕正是"不可伪造"才有意义的东西。
+REVOKE EXECUTE ON FUNCTION public.record_approval_decision(text, uuid, text, smallint, text) FROM authenticated;

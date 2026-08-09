@@ -1,20 +1,3 @@
--- db/functions/approve_review.sql
--- 批准评估 =【一次原子事务】:批准 + 试用期转正 + 调薪。
--- 顺序刻意是「先转正、后校验调薪」,好让「调薪失败必须把转正一起撤掉」成为一条
--- 真的会被走到的路径,而不是一句注释(fixture 第 7 条证明)。
---
--- 【假期台账一个字都不写】年假的「转正才解锁」是读时按 employment_status 派生的
--- (submit_leave_request 的 PROBATION_NO_ANNUAL_LEAVE),不是账上的一行。在这里补一笔
--- 授予就是 HR-2a 结转重复计数的翻版 —— 同一份年假会被算两次。
---
--- 【not_confirm 什么都不改】不把在职状态改成 separated、不触发任何离职逻辑。
--- 离职是手工流程:人一旦 separated 就掉出工资表,而最后一个月的工资还没录进去。
---
--- 【没有 'confirmed' 这个在职状态】转正后是 'active';「转正」这个事件记在
--- employment_history.change_type = 'confirmed'。
---
--- NOTE: introduced by db/migrations/2026-08-03-hr3a-performance-reviews.sql.
-
 CREATE OR REPLACE FUNCTION public.approve_review(p_review_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -52,6 +35,10 @@ BEGIN
     UPDATE performance_reviews
     SET status = 'approved', approved_at = now(), approved_by = auth.uid()
     WHERE id = p_review_id;
+
+    -- APR-1:留痕。【纯追加,不改变本函数任何既有行为】——
+    -- 写在状态落定【之后】、返回之前;写失败就整笔回滚(漏记的留痕比出错的留痕更难查)。
+    PERFORM record_approval_decision('performance_review', p_review_id, 'approved', NULL, NULL);
 
     -- ── 试用期转正 ────────────────────────────────────────────────────────
     IF v_r.review_type = 'probation' AND v_r.probation_outcome = 'confirm' THEN
@@ -129,5 +116,4 @@ BEGIN
         'new_monthly_salary', v_r.new_monthly_salary,
         'salary_effective_date', v_r.salary_effective_date);
 END;
-$function$
-;
+$function$;

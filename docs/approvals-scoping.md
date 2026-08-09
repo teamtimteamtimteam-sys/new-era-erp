@@ -290,3 +290,168 @@ project (§2) — which becomes cut 0 if and only if §2 chooses org-chart routi
    rate is the right one to compare with.
 4. **§5** — does a PO whose value rises past the threshold need re-approval?
 5. **§7** — accept two mechanisms with one shared audit trail, or insist on one engine now?
+
+---
+
+# THE FIVE DECISIONS — MADE 2026-08-09. Later cuts read these, they do not re-open them.
+
+| # | question | **decision** |
+|---|---|---|
+| 1 | who is "the supervisor"? | **level 1 routes by ROLE.** Not the org chart — see §2: it does not exist yet, and building it is a prerequisite project, not a design choice |
+| 2 | who is "CFO"? | **level 2 routes to a NAMED PERSON, configured as a `user_id`.** Not a new `cfo` role: a one-member role puts a fiction in the permission matrix. Naming a person is also what **forces delegation to exist** rather than leaving it optional |
+| 3 | the threshold | lives in **`finance_settings`**, compared in **BASE currency** using **the document's OWN stored rate**. **Its value is still open** — the mechanism is decided, the number is not |
+| 4 | an amendment that raises the amount past the threshold | **voids the approval and re-routes.** (Answers §5's open question: approval is a decision about a specific value, not about the document in general) |
+| 5 | do the HR chains fold in? | **no — they keep their own engines, but they WRITE TO THIS LOG.** One trail, several engines |
+
+**Consequence of decision 2 that must not be lost:** because level 2 is a person rather than a role,
+**delegation is required in the cut that builds the engine (APR-2)**, not deferred. One named human
+on a plane otherwise stops every above-threshold purchase, and the workarounds people invent —
+sharing a password, or splitting a purchase into two under-threshold POs — are worse than no
+control.
+
+**Consequence of decision 3:** the threshold is a `(amount, currency)` pair in config, never a bare
+number. See §4 for why the currency is not optional.
+
+**Consequence of decision 4:** the engine needs to know an amount changed. For purchase orders that
+means watching `estimated_total_ccy` — which moves when lines are edited — so the re-route trigger
+is on the line total, not on the header.
+
+---
+
+# APR-1 — the approval log (BUILT 2026-08-09)
+
+Nothing is gated and no behaviour changed. The log records; it does not decide.
+
+## The subject: `(subject_type, subject_id)`, not a nullable-FK XOR — and what that costs
+
+**Reported before choosing, as asked.** The repo's established pattern is a nullable-FK XOR with
+`num_nonnulls(...) = 1`; `payment_allocations` runs it four ways
+(`sales_record_id` / `inbound_batch_id` / `expense_id` / `purchase_order_id`).
+
+This needs **at least six** now (leave request, medical claim, performance review, purchase order,
+payment, expense) and **eight or more** once price changes and stock issue arrive.
+
+| | nullable-FK XOR (8 columns) | `(subject_type, subject_id)` |
+|---|---|---|
+| referential integrity | **real** — the database refuses a log row pointing at a nonexistent subject | **none** — an orphaned or mistyped reference is undetectable by the FK machinery |
+| adding an action | a migration: new column, rewrite the `CHECK`, update the mirror, extend indexes | **data** — one value in the `subject_type` enum |
+| shape of a row | 8 columns of which **7 are NULL on every row** | 2 columns, both always populated |
+| typo protection | inherent | recovered by `CHECK (subject_type IN (...))` |
+
+**Chosen: the pair, with a `CHECK` enum on `subject_type`.** Three reasons, in order:
+
+1. **At this width the XOR stops paying.** Four columns is a shape; eight columns of which seven are
+   always NULL is a table fighting every future action, and every one of those migrations touches a
+   mirror the gate compares byte-for-byte.
+2. **The FK's main protection is weak HERE specifically.** Its value is catching dangling references
+   after a delete — but Principle 7 means these subjects are **soft-deleted**, and the log is
+   append-only, so the row it points at does not go away. This is a narrower claim than "FKs do not
+   matter": it is that the failure the FK prevents is largely absent from this table's subjects.
+3. **The realistic failure is a typo in `subject_type`, and the `CHECK` enum catches exactly that** —
+   and it doubles as the resolver source for the UI labels, the same way `operations_now.item_type`
+   feeds `check-i18n`.
+
+**What is lost, stated rather than hidden:** nothing stops a `subject_id` that resolves to no row.
+**The compensating control is that there is exactly one writer** —
+`record_approval_decision()` — and it **verifies the subject exists in its named table before
+inserting**, refusing by name if not. The door is narrow and it is guarded; but a direct `INSERT` by
+a superuser bypasses it, which an FK would not. If the log ever grows past a few hundred rows, a
+`gate.py` line asserting every `subject_id` resolves would convert the lost guarantee into a
+measured one.
+
+## The amount is frozen at the decision
+
+`amount_ccy`, `currency`, `fx_rate` and `amount_base` are copied onto the log row **as at the moment
+of the decision**, all-or-nothing (a `CHECK` forbids a half-populated set). Same reasoning as
+FIN-27's committed pricing terms: the document changes afterwards, and the log must answer *"what
+was this worth when it was approved"* without joining back to something that has since moved. Under
+decision 4 this is also what makes a re-route detectable — the frozen figure is what the new amount
+is compared against.
+
+**Subjects with no money carry NULL**, deliberately. A leave request's "amount" is **days**, which
+is not money and is not shoehorned into a currency column; a performance review has no amount at
+all.
+
+## §4 revisited — the backfill, and why the data argues against it
+
+**The principle in the instruction is right: `decided_at` / `decided_by` are real recorded facts,
+and reconstructing a terminal decision from them reads a record rather than inventing one.** What
+would be false is any claim of completeness, since overwritten rejections are gone.
+
+**It has almost nothing to act on.** Measured on live, 2026-08-09:
+
+```
+leave_requests with decided_at ....... 0   (0 rows in the table at all)
+medical_claims with decided_at ....... 0   (0 rows)
+performance_reviews submitted/approved 0   (0 rows)
+purchase_orders with approved_at ..... 3   (3 of 3)
+```
+
+The three HR chains have **no history to reconstruct** — not because it was overwritten, but
+because nothing has ever gone through them on live.
+
+The only rows carrying an approval are the **3 purchase orders**, and theirs is **not a decision
+anybody made**: `create_purchase_order` stamps `approval_status = 'approved'` plus `approved_at/by`
+unconditionally, because the flow does not exist — the mirror says so in as many words. Backfilling
+those as `approved` would fabricate a decision, which is the FIN-26 rule (*a fabricated provenance
+record is worse than a blank*) and the reason `pricing_formula_history` declined to backfill.
+
+**Resolution: backfill the 3 POs as `auto_approved`, `is_reconstructed = true`, with a note.** That
+is neither fabrication nor silence — it records what actually happened (*the system stamped this;
+nobody decided it*) and it answers the reader who sees "approved" on the PO screen and an otherwise
+empty log. Silence there would read as a broken log.
+
+## §5 — the reviews chain cannot route to anybody (REPORTED, not fixed here)
+
+`is_reviewer_of()` resolves through `current_user_employee()` → `employees.user_id = auth.uid()`.
+On live: **1 employee row, 0 with `user_id`, 0 with `manager_id`; 1 department with no manager;
+against 14 login accounts holding roles.** The per-person routing is correct code sitting on
+unpopulated data.
+
+**An alert IS warranted, and `holiday_calendar_missing` is the right shape** — a missing
+configuration that makes a feature silently do nothing, raised where the responsible role will see
+it. Proposed for the HR-alerts arm, not built here:
+
+* `employee_not_linked` — an in-register employee with no `user_id`. Severity `warning`; **`expired`
+  when that employee is named as a reviewer on a non-terminal review**, because then it is not a
+  gap in setup, it is a review that can never be submitted.
+* The reason it belongs in `hr_alerts` rather than the dashboard: it is HR's data to fix, and
+  `hr_alerts` already carries `system_start_not_set` and `holiday_calendar_missing`, which are the
+  same "configuration missing → feature quietly inert" shape.
+
+**Why the log makes this visible:** a decision cannot record an actor who does not exist. Once the
+review chain writes to the log, an empty log beside a submitted review is the symptom.
+
+## Not in this cut, and why
+
+* **The missing four-eyes rule on leave and medical claims.** A `module.hr.edit` holder can submit
+  on someone's behalf and approve it in the same session; only reviews forbid self-approval.
+  Forbidding it needs **somewhere for the HR person's own leave to go** — which is decision 2's
+  named approver. **It belongs with the engine (APR-2), not the log.**
+* **`void_review`** is a decision that ends a review, and it is not wired to the log in this cut.
+  Only the three points named for APR-1 were wired. It is additive whenever wanted.
+* **Gating anything.** APR-1 changes no behaviour by construction.
+
+## Two things APR-1 found that APR-2 must not inherit
+
+**1 - `purchase_orders.fx_rate` defaults to 1, and one live PO relies on it.** Decision 3 says the
+threshold is compared in base currency **using the document's own stored rate**. PO-2026-0001 is
+**USD 120,000 with `fx_rate = 1`** - its base value reads 120,000 when the USD mid rate on its order
+date was 1.255, so the true figure is about 150,600. Both are above any plausible threshold so the
+outcome would not change *here*, but the mechanism is demonstrably fallible on live data.
+**APR-2 must refuse or flag `fx_rate = 1` on a non-base-currency document rather than treating it as
+a genuine 1:1**, exactly as `fx_rate_for` refuses a missing rate instead of defaulting. Also recorded
+in `known-wrong-until-cutover.md`, because the row itself is test data.
+
+**2 - `now()` cannot order an audit log.** Two decisions in one transaction share a `decided_at`, so
+"rejected then approved" and "approved then rejected" are indistinguishable by timestamp - and that
+ordering is the whole point of the table. `approval_log.seq` (an identity column) is the tiebreaker;
+**read the log by `seq`, never by `decided_at`.** Same lesson as `batch_assay_status` using `code` to
+break the tie its `created_at` cannot.
+
+**A third, in the gate rather than the data:** `verify_rebuild` sorted its structural fingerprints
+with `ORDER BY x` under the scratch cluster's collation (`C`, from `--no-locale`) while live runs
+`en_US.UTF-8`. `approval_log` is the first table carrying both an uppercase-leading (`NOT
+is_reconstructed ...`) and a lowercase-leading (`amount_ccy ...`) CHECK, so it was the first to make
+two structurally identical tables compare unequal. Fixed to `ORDER BY x COLLATE "C"`; fault-injected
+afterwards to confirm a genuine constraint difference is still caught and named.

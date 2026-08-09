@@ -1,8 +1,3 @@
--- db/functions/decide_medical_claim.sql
--- 审批报销。超出剩余额度则拒绝。【不自动记费用】。
---
--- NOTE: introduced by db/migrations/2026-08-02-hr2a-leave-and-claims.sql.
-
 CREATE OR REPLACE FUNCTION public.decide_medical_claim(p_claim_id uuid, p_approve boolean, p_notes text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -20,6 +15,10 @@ BEGIN
     IF NOT p_approve THEN
         UPDATE medical_claims SET status='rejected', decided_at=now(), decided_by=auth.uid(),
                decision_notes=p_notes, updated_by=auth.uid() WHERE id = p_claim_id;
+
+        -- APR-1:留痕。【纯追加,不改变本函数任何既有行为】——
+        -- 写在状态落定【之后】、返回之前;写失败就整笔回滚(漏记的留痕比出错的留痕更难查)。
+        PERFORM record_approval_decision('medical_claim', p_claim_id, 'rejected', NULL, p_notes);
         RETURN jsonb_build_object('claim_id', p_claim_id, 'code', v_claim.code, 'status','rejected');
     END IF;
 
@@ -31,6 +30,10 @@ BEGIN
 
     UPDATE medical_claims SET status='approved', decided_at=now(), decided_by=auth.uid(),
            decision_notes=p_notes, updated_by=auth.uid() WHERE id = p_claim_id;
+
+    -- APR-1:留痕。【纯追加,不改变本函数任何既有行为】——
+    -- 写在状态落定【之后】、返回之前;写失败就整笔回滚(漏记的留痕比出错的留痕更难查)。
+    PERFORM record_approval_decision('medical_claim', p_claim_id, 'approved', NULL, p_notes);
 
     RETURN jsonb_build_object('claim_id', p_claim_id, 'code', v_claim.code, 'status','approved',
                               'amount_sgd', v_claim.amount_sgd,

@@ -68,6 +68,74 @@ export type Database = {
         }
         Relationships: []
       }
+      approval_log: {
+        Row: {
+          actor_user_id: string | null
+          amount_base: number | null
+          amount_ccy: number | null
+          created_at: string
+          currency: string | null
+          decided_at: string
+          decision: string
+          fx_rate: number | null
+          id: string
+          is_reconstructed: boolean
+          level: number | null
+          note: string | null
+          reconstruction_note: string | null
+          seq: number
+          subject_code: string | null
+          subject_id: string
+          subject_type: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          amount_base?: number | null
+          amount_ccy?: number | null
+          created_at?: string
+          currency?: string | null
+          decided_at?: string
+          decision: string
+          fx_rate?: number | null
+          id?: string
+          is_reconstructed?: boolean
+          level?: number | null
+          note?: string | null
+          reconstruction_note?: string | null
+          seq?: number
+          subject_code?: string | null
+          subject_id: string
+          subject_type: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          amount_base?: number | null
+          amount_ccy?: number | null
+          created_at?: string
+          currency?: string | null
+          decided_at?: string
+          decision?: string
+          fx_rate?: number | null
+          id?: string
+          is_reconstructed?: boolean
+          level?: number | null
+          note?: string | null
+          reconstruction_note?: string | null
+          seq?: number
+          subject_code?: string | null
+          subject_id?: string
+          subject_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_log_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       assay_result_metals: {
         Row: {
           assay_result_id: string
@@ -10006,6 +10074,16 @@ export type Database = {
         Returns: Json
       }
       reconcile_statement: { Args: { p_statement_id: string }; Returns: Json }
+      record_approval_decision: {
+        Args: {
+          p_decision: string
+          p_level?: number
+          p_note?: string
+          p_subject_id: string
+          p_subject_type: string
+        }
+        Returns: string
+      }
       record_assay_result: {
         Args: {
           p_assay_date: string

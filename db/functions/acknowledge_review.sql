@@ -1,9 +1,3 @@
--- db/functions/acknowledge_review.sql
--- 员工确认已阅。只有被评估人本人能调,且只能从 approved 出发 ——
--- HR 替员工点「已阅」会把这个动作的全部意义抹掉,所以这里【不给 module.hr.edit 开口子】。
---
--- NOTE: introduced by db/migrations/2026-08-03-hr3a-performance-reviews.sql.
-
 CREATE OR REPLACE FUNCTION public.acknowledge_review(p_review_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -30,7 +24,10 @@ BEGIN
     SET status = 'acknowledged', acknowledged_at = now()
     WHERE id = p_review_id;
 
+    -- APR-1:留痕。【纯追加,不改变本函数任何既有行为】——
+    -- 写在状态落定【之后】、返回之前;写失败就整笔回滚(漏记的留痕比出错的留痕更难查)。
+    PERFORM record_approval_decision('performance_review', p_review_id, 'acknowledged', NULL, NULL);
+
     RETURN jsonb_build_object('review_id', p_review_id, 'status', 'acknowledged');
 END;
-$function$
-;
+$function$;

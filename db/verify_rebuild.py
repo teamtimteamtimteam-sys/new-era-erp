@@ -201,14 +201,19 @@ SELECT jsonb_build_object(
                     ORDER BY a.attnum)
         FROM pg_attribute a LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum
         WHERE a.attrelid=c.oid AND a.attnum>0 AND NOT a.attisdropped),
-     'constraints', (SELECT COALESCE(jsonb_agg(x ORDER BY x),'[]'::jsonb) FROM
+     -- 【按 C 排序规则排,不按库的 locale】线上是 en_US.UTF-8、一次性 scratch 库是
+     -- --no-locale(C),同一组约束文本在两边的【顺序】不同 —— 于是结构完全一致的表
+     -- 也会被报成 DIFFERS。APR-1 的 approval_log 是第一张同时有大写开头(NOT ...)
+     -- 与小写开头(amount_ccy ...)CHECK 的表,把这个潜伏的假阳性顶了出来。
+     -- 比的是结构,就不能让它依赖跑在哪个 locale 上。
+     'constraints', (SELECT COALESCE(jsonb_agg(x ORDER BY x COLLATE "C"),'[]'::jsonb) FROM
         (SELECT DISTINCT pg_get_constraintdef(oid) x FROM pg_constraint WHERE conrelid=c.oid) s),
-     'indexes', (SELECT COALESCE(jsonb_agg(x ORDER BY x),'[]'::jsonb) FROM
+     'indexes', (SELECT COALESCE(jsonb_agg(x ORDER BY x COLLATE "C"),'[]'::jsonb) FROM
         (SELECT DISTINCT pg_get_indexdef(indexrelid) x FROM pg_index WHERE indrelid=c.oid) s),
-     'triggers', (SELECT COALESCE(jsonb_agg(x ORDER BY x),'[]'::jsonb) FROM
+     'triggers', (SELECT COALESCE(jsonb_agg(x ORDER BY x COLLATE "C"),'[]'::jsonb) FROM
         (SELECT DISTINCT pg_get_triggerdef(oid) x FROM pg_trigger WHERE tgrelid=c.oid AND NOT tgisinternal) s),
      'rls', c.relrowsecurity,
-     'policies', (SELECT COALESCE(jsonb_agg(x ORDER BY x),'[]'::jsonb) FROM
+     'policies', (SELECT COALESCE(jsonb_agg(x ORDER BY x COLLATE "C"),'[]'::jsonb) FROM
         (SELECT DISTINCT polname||' | '||polpermissive::text||' | '||polcmd::text
              ||' | '||COALESCE((SELECT string_agg(rolname,',' ORDER BY rolname) FROM pg_roles WHERE oid=ANY(polroles)),'-')
              ||' | '||COALESCE(pg_get_expr(polqual,polrelid),'-')

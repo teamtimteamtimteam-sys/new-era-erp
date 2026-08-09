@@ -151,6 +151,10 @@ DEFINER_NO_CHECK_ALLOWED = {
     "commit_pricing_terms": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "resolve_pricing_commitment": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "committed_terms_price": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    # APR-1:审批留痕的唯一写入口。同上 —— 靠"调不到"而非"查调用者":它只从五个
+    # 各自已把过关的 HR 决定函数体内以属主身份被调用。给了 authenticated 就等于
+    # 任何登录用户都能伪造一行留痕。
+    "record_approval_decision": "EXECUTE revoked from PUBLIC/authenticated/anon",
 }
 
 CHECK_PATTERNS = ("require_permission(", "has_permission(", "current_user_employee(",

@@ -1,10 +1,3 @@
--- db/functions/decide_leave_request.sql
--- 审批并扣账。【先用旧的】:结转行(有失效日)先吃,吃完再从当年度的派生累积里扣。
--- 反过来的话结转天数会先烂掉,对员工是净损失。
--- 派生累积没有授予行可挂,所以那笔消耗记 accrual_year、leave_grant_id 留空。
---
--- NOTE: introduced/updated by db/migrations/2026-08-06-hr2c-monthly-accrual.sql.
-
 CREATE OR REPLACE FUNCTION public.decide_leave_request(p_request_id uuid, p_approve boolean, p_notes text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -34,6 +27,10 @@ BEGIN
         UPDATE leave_requests SET status='rejected', decided_at=now(), decided_by=auth.uid(),
                decision_notes=p_notes, updated_by=auth.uid()
         WHERE id = p_request_id;
+
+        -- APR-1:留痕。【纯追加,不改变本函数任何既有行为】——
+        -- 写在状态落定【之后】、返回之前;写失败就整笔回滚(漏记的留痕比出错的留痕更难查)。
+        PERFORM record_approval_decision('leave_request', p_request_id, 'rejected', NULL, p_notes);
         RETURN jsonb_build_object('request_id', p_request_id, 'code', v_req.code, 'status','rejected');
     END IF;
 
@@ -103,8 +100,11 @@ BEGIN
            decision_notes=p_notes, updated_by=auth.uid()
     WHERE id = p_request_id;
 
+    -- APR-1:留痕。【纯追加,不改变本函数任何既有行为】——
+    -- 写在状态落定【之后】、返回之前;写失败就整笔回滚(漏记的留痕比出错的留痕更难查)。
+    PERFORM record_approval_decision('leave_request', p_request_id, 'approved', NULL, p_notes);
+
     RETURN jsonb_build_object('request_id', p_request_id, 'code', v_req.code, 'status','approved',
                               'days', v_req.days, 'consumed_from', v_used);
 END;
-$function$
-;
+$function$;

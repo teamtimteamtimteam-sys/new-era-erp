@@ -1,9 +1,3 @@
--- db/functions/submit_review.sql
--- 提交评估:评级、书面结论、目标行三样齐了才走得动。draft / self_review 两个入口都收。
--- 权限:本行的评估人,或 module.hr.edit(评估人本身未必是 HR)。
---
--- NOTE: introduced by db/migrations/2026-08-03-hr3d-reviewer-write-path.sql;
-
 CREATE OR REPLACE FUNCTION public.submit_review(p_review_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -51,8 +45,11 @@ BEGIN
     SET status = 'submitted', submitted_at = now(), submitted_by = auth.uid()
     WHERE id = p_review_id;
 
+    -- APR-1:留痕。【纯追加,不改变本函数任何既有行为】——
+    -- 写在状态落定【之后】、返回之前;写失败就整笔回滚(漏记的留痕比出错的留痕更难查)。
+    PERFORM record_approval_decision('performance_review', p_review_id, 'submitted', NULL, NULL);
+
     RETURN jsonb_build_object('review_id', p_review_id, 'status', 'submitted',
                               'rating_code', v_r.rating_code, 'goals', v_goals);
 END;
-$function$
-;
+$function$;
