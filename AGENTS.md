@@ -455,6 +455,42 @@ The fixtures verdict (exit 4) was fault-injected before being trusted: fixture
 same for the next one. A check never observed failing is not known to work —
 it is only known to be quiet.
 
+### The same disease inside a REPORT: a self-check that compares a number with itself
+
+The rule above is about gates. **A statement that claims to check itself is the
+same thing wearing accounting clothes**, and OPS-17 found one: FIN-30's
+`cash_flow_statement.ties` compared `closing_cash` against
+`closing_cash_balance_sheet` — both computed **in the same function body, from the
+same arithmetic, under the same filter**. When the filter was wrong both sides
+were wrong together, so the check reported `true` while the number was off by
+1,166.98. It shipped described as making the statement "self-checking".
+
+**Two sides are only a check if they can move apart.** Ask it explicitly of any
+`ties` / `balanced` / `reconciles` flag: *what would have to be true for these two
+to differ?* If the answer names nothing, the flag is decoration. The fix is the
+one OPS-17 made — point one side at a genuinely separate implementation
+(`balance_sheet(p_to)`), then **reintroduce the original defect and watch the flag
+go false**. It did, on all three probed periods.
+
+**The survey OPS-17 ran, so the class is bounded rather than worried about
+(2026-08-09).** Every comparison of this shape in `db/functions` and `db/views`:
+
+| site | two sides independent? | can it fail? |
+|---|---|---|
+| `cash_flow_statement.ties` | **now yes** — `balance_sheet()` is a separate function | yes, fault-injected |
+| `preview_close_financial_year.trial_balanced` | yes — `SUM(debit)` vs `SUM(credit)`, different columns | **no, structurally**: `trg_journal_lines_balance` is a DEFERRABLE constraint trigger enforcing Σd=Σc per entry at commit, so committed data cannot fail it |
+| `balance_sheet.balanced` | yes — assets vs liabilities+equity+earnings, disjoint account sets | **no, structurally**: same trigger, same reason (the identity follows from Σ(debit−credit)=0 over all accounts) |
+| `allocate_processing_costs` → `ALLOCATION_LEDGER_DIVERGED` | yes — a stored `capitalized_cost_base` vs the capitalisation entry's **status in the GL** | yes; it is the one remaining red by design |
+| `preview_close_financial_year.revaluation_level` / `.depreciation_level` | n/a — **not comparisons**: readiness flags read off one derivation | n/a |
+| `revalue_foreign_balances`, `close_financial_year`, `depreciate_fixed_assets` calling their previews | n/a — **one implementation, two callers**, which is the intended pattern | n/a — there is no second derivation to drift |
+
+Note the second and third rows are a **different** failure from the first, and worth
+naming separately: they are not self-comparisons, they are **guaranteed-true** — the
+invariant they assert is already enforced upstream. That is not a defect (they cost
+nothing and they guard against a direct-INSERT path that bypasses the writer), but
+neither should anyone read a green `balanced` as evidence that the aggregation is
+right. It is evidence that double-entry held, which the database already knew.
+
 ## Entitlement is DERIVED; consumption is RECORDED — so a fresh database gives everything away
 
 This is the shape behind every fresh-install bug we have found, and it makes the
@@ -605,8 +641,14 @@ own "unclassified" line rather than assumed operating, and which accounts are
 cash / investing / financing is DECLARED on the account (`is_cash`,
 `cash_flow_section`) instead of hardcoded — the year-close code-range defect
 again. Self-checking: opening + sections + FX = closing, AND closing equals the
-balance-sheet cash figure computed independently; when they disagree the page
-says so instead of printing a number that does not tie. Note the third arm was
+balance-sheet cash figure — **which was NOT "computed independently" until OPS-17,
+though this paragraph said it was.** Both sides came out of the same function body
+and the same arithmetic, so `ties` moved with the defect and could never report
+false; live returned `ties=true` for all five probed periods, including one that
+split a reversal pair across the period boundary. OPS-17 pointed it at
+`balance_sheet(p_to)` — a different function, a different aggregation path — so the
+sentence is now true. When they disagree the page says so instead of printing a
+number that does not tie. Note the third arm was
 VACUOUS on first write — a realistic year-close touches no cash, so it could
 never enter the "entries that moved cash" set and the exclusion was untested;
 deleting the filter left the fixture green. It now also posts a MALFORMED

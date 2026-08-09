@@ -1,3 +1,36 @@
+-- OPS-17:现金流量表的两个毛病 —— 数字是小的那一半,自检才是大的那一半
+--
+-- 【1 · status='posted' 过滤是错的】冲销对由【原分录 status='reversed'】加上一张
+-- 【status='posted' 的等额反向分录】组成(实测 JE-2026-0029/0030 逐行相反)。
+-- 只留 posted 会丢掉原分录、留下冲销分录,净额刚好错成 -原分录。
+-- 损益表与资产负债表从来没有过滤过 status,这是对的;现金流量表过滤了,这是错的。
+-- live 上这一条让现金口径差 1,166.98(资产负债表 -45,648.37 / 本函数 -44,481.39)。
+--
+-- 【三处一起去掉,不是两处】期初、期末【和期间发生额】必须取同一个总体,否则
+--   期末 = 期初 + 发生额
+-- 这条恒等式立刻不成立,ties 会对所有含冲销对的期间报 false。只改"资产负债表口径"
+-- 那两处、留下 mv 里的过滤,等于把一个错误换成另一个错误。
+--
+-- 【2 · 真正的缺陷:自检是拿自己比自己】FIN-30 写下 ties 时说它让这张表"自检",
+-- 但 closing_cash 与 closing_cash_balance_sheet 【出自同一个函数体、同一段算术】——
+-- 两侧同时错就同时错,它【从来没有可能报 false】。live 上五个期间全部 ties=true,
+-- 包括 2026-07-30..07-31 这种冲销对被期间切开的区间。
+-- OPS-16 建了 balance_sheet(as_of),于是"另一份独立实现"第一次真的存在:
+-- 现在 closing_cash_balance_sheet 【由 balance_sheet() 算出来】,ties 比的是
+-- 两个不同函数、不同聚合路径得到的同一个数。这才是自检。
+--
+-- 【为什么从 balance_sheet 里挑现金科目而不是自己再算一遍】金额【整个来自】
+-- balance_sheet 的返回值;这里只用 accounts.is_cash 这张目录去挑行。挑行是目录查询,
+-- 不是重新推导 —— 一旦自己再 sum 一次 journal_lines,就又变回拿自己比自己了。
+--
+-- 【year_close 仍然从发生额里剔除,而 balance_sheet 含它】这不是新的不一致,而是
+-- 保住 fixture 23 的那一臂:一张【碰了现金的】年结分录是畸形的,它会让两侧真的不等,
+-- ties 必须报 false。换了自检来源之后这条依然成立(balance_sheet 看得见它,mv 看不见)。
+--
+-- NOTE: apply with ./db/apply_migration.sh
+
+BEGIN;
+
 CREATE OR REPLACE FUNCTION public.cash_flow_statement(p_from date, p_to date)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -108,3 +141,5 @@ BEGIN
     );
 END;
 $function$;
+
+COMMIT;
