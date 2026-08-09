@@ -105,9 +105,18 @@ thing: it puts the quotes behind `USING (true)` and the terms behind two locks.
 
 **Why it surfaced now.** OPS-15's page guards were derived from the module catalogue, so all four
 `/metal-prices` pages got `requireModule(MOD.pricing)` — a page-level refusal in front of data whose
-own RLS declares it public. The guard was removed and the rule stated in code (`lib/modules.ts`, the
-`/pricing` entry): **the guard follows the data's own RLS, not the module catalogue.** `/pricing`
-itself stays gated, because that is where the terms are.
+own RLS declares it public. The rule was restated in code (`lib/modules.ts`, the `/pricing` entry):
+**the guard follows the data's own RLS, not the module catalogue.** `/pricing` itself stays gated,
+because that is where the terms are.
+
+Applying that rule splits the four pages, because a table's RLS has **two** answers and
+`metal_prices`' two differ — `SELECT … USING (true)` against
+`INSERT/UPDATE/DELETE … has_permission('module.pricing.edit')`. So the read page carries no guard and
+the three editors carry `requireEditPermission('module.pricing.edit', …)`. **Two answers under one
+directory is the rule applied twice, not an exception to it** — stated at all four sites so the next
+reader sees a distinction rather than an inconsistency. The refusal copy differs too
+(`common.editDenied`): someone stopped by the write half can usually *see* the data, and telling them
+they have no access to the module would be false.
 
 **What is still unresolved, stated so it is not mistaken for settled:** there is no way to grant
 someone the quotes without also offering them the module code that names the terms. Nothing is

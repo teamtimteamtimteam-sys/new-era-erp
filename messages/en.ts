@@ -77,6 +77,10 @@ const en = {
         // 一级之上的同一条道理:整个模块进不去时,说出来,而不是渲染一张空表。
         moduleDenied: 'You do not have access to this module.',
         moduleDeniedHint: 'This is a permission answer, not an empty result — ask an administrator to grant you access to this module.',
+        // 与 moduleDenied 分开的理由:走到这条的人常常【看得见】这份数据,只是改不动它。
+        // 对他说"你没有这个模块的权限"是假的。
+        editDenied: 'You do not have permission to change this data.',
+        editDeniedHint: 'You can view it — saving requires a separate edit permission. This is a permission answer, not an error; ask an administrator if you need to make changes.',
         backHome: '← Back to home',
         fxBoardRateHint: 'Foreign-currency amounts are valued at that date\u2019s DBS board rate. If the day\u2019s rate is not on file, this will be refused — enter it under Finance → FX.',
     },

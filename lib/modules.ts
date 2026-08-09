@@ -42,22 +42,39 @@ export const MODULES: ModuleEntry[] = [
       permission: 'module.customers.view', section: 'masterData' },
     { href: '/materials', navKey: 'nav.materials', titleKey: 'home.materialsTitle', descKey: 'home.materialsDesc',
       permission: 'module.materials.view', section: 'masterData' },
-    // 【/metal-prices 不在这里,而且不是漏了 —— 它【不受模块把关】,理由在数据自己身上】
+    // 【/metal-prices 不在这里,而且不是漏了 —— 它不归模块目录管,理由在数据自己身上】
     //
-    // metal_prices 的 SELECT 策略写的是 `USING (true)`(db/tables/metal_prices.sql):
-    // 任何 authenticated 都读得到,一行不遮。这是【数据自己声明它是公开的】—— 行情是
-    // 市场报价,不是本公司的秘密。页面守卫的职责是把"进不去"说出来,而不是发明一道
-    // 数据库没有的门:给这四页挂上 module.pricing.view,屏幕上就会对一个数据库愿意
-    // 完整回答的人显示"你没有权限",那是【UI 比数据严】,而且严得没有任何东西背书。
+    // 【规矩:守卫跟着数据自己的 RLS 走,不跟模块目录走。】
+    // 而一张表的 RLS 本来就有【读】和【写】两个答案,它们可以不一样 —— metal_prices
+    // 的这两个答案恰恰不一样(db/tables/metal_prices.sql):
     //
-    // 【所以这里的规矩是:把关跟着数据自己的 RLS 走,不跟模块目录走。】权限目录里
-    // module.pricing.view 那一条的描述("公式、计价器与行情")是【目录的措辞】,不是
-    // 策略;两者冲突时以策略为准。下一个读到这里的人请不要把 alsoCovers 加回来 ——
-    // 要改回去,先改 metal_prices 的 SELECT 策略,再改这里,顺序不能反。
+    //   SELECT               USING (true)                                → 公开
+    //   INSERT/UPDATE/DELETE has_permission('module.pricing.edit')       → 受管
     //
-    // 【/pricing 本身仍然受管】:公式(pricing_formulas)与计价器不是公开数据 ——
-    // 那里面有 payable_pct / treatment_charge_usd_per_tonne / flat_discount_pct,
-    // 是谈出来的商务条款,且本来就是 perm2b 撤销的列。区别就在这一句上。
+    // 所以 app/metal-prices/ 底下四页带着【两种守卫】,那是同一条规则的两半,不是
+    // 四页里有一页例外:
+    //
+    //   /metal-prices(列表,只读)           不设守卫 —— 读策略放行任何人
+    //   /metal-prices/{new,bulk,[id]/edit}   requireEditPermission('module.pricing.edit', …)
+    //
+    // 【读的那一半】行情是市场报价,不是本公司的秘密,数据自己声明它公开。页面守卫的
+    // 职责是把"进不去"说出来,而不是发明一道数据库没有的门:给列表页挂上
+    // module.pricing.view,屏幕上就会对一个数据库愿意完整回答的人显示"你没有权限",
+    // 那是【UI 比数据严】,而且严得没有任何东西背书。
+    //
+    // 【写的那一半】反过来,数据库确实有那道门,只是它叫 module.pricing.edit。用
+    // module.pricing.view 去把关会同时错两头:挡下有 edit 而无 view 的人,又放进有
+    // view 而无 edit 的人 —— 后者填完整张表单再被 42501 拒收(AGENTS.md §"永远不要
+    // 为服务端必然拒绝的动作渲染提交控件")。
+    //
+    // 权限目录里 module.pricing.view 那一条的描述("公式、计价器与行情")是【目录的
+    // 措辞】,不是策略;两者冲突时以策略为准。下一个读到这里的人请不要把 alsoCovers
+    // 加回来 —— 要改回去,先改 metal_prices 的策略,再改代码,顺序不能反。
+    //
+    // 【/pricing 本身仍然整个受管】:公式(pricing_formulas)与计价器不是公开数据 ——
+    // 它的 SELECT 策略就是 has_permission('module.pricing.view'),而 payable_pct /
+    // treatment_charge_usd_per_tonne / flat_discount_pct 是谈出来的商务条款,本来就是
+    // perm2b 撤销、藏在 data.view_prices 后面的列。区别就在这一句上。
     { href: '/pricing', navKey: 'nav.pricing', titleKey: 'home.pricingTitle', descKey: 'home.pricingDesc',
       permission: 'module.pricing.view', section: 'masterData' },
     { href: '/inbound', navKey: 'nav.inbound', titleKey: 'home.inboundTitle', descKey: 'home.inboundDesc',

@@ -35,12 +35,23 @@ export default async function MetalPricesPage({
         page?: string
     }>
 }) {
-    // 【本页没有 requireModule,是有意的,不是漏了 —— 不要"补"回来】
-    // metal_prices 的 SELECT 策略写的是 `USING (true)`(db/tables/metal_prices.sql):
-    // 数据自己声明它是公开的。挂上 module.pricing.view 会让 UI 比数据库还严 ——
-    // 对一个数据库愿意完整回答的人显示"你没有权限",而那道门数据库里根本不存在。
-    // 【把关跟着数据自己的 RLS 走,不跟模块目录走】;完整理由在 lib/modules.ts
-    // 的 /pricing 那一条(/pricing 本身仍然受管:公式与商务条款不是公开数据)。
+    // 【本页没有 requireModule,是有意的,不是漏了 —— 不要"补"回来。这是那条规矩的「读」那一半】
+    // 规矩只有一条:【守卫跟着数据自己的 RLS 走,不跟模块目录走】。
+    // 而一张表的 RLS 本来就有读、写两个答案,metal_prices 的这两个答案【不一样】——
+    // 所以 app/metal-prices/ 底下四页带着两种守卫,那是【同一条规则的两半,不是例外】:
+    //
+    //   读(列表页 /metal-prices)  SELECT ... USING (true)
+    //                             → 不设守卫
+    //   写(new / bulk / [id]/edit) INSERT|UPDATE|DELETE ... has_permission('module.pricing.edit')
+    //                             → requireEditPermission('module.pricing.edit', ...)
+    //
+    // (策略原文见 db/tables/metal_prices.sql;完整理由见 lib/modules.ts 的 /pricing 那一条。)
+    //
+    // 看行情人人可以:行情是市场报价,数据自己声明它是公开的。给本页挂 module.pricing.view
+    // 会让 UI 比数据库还严 —— 对一个数据库愿意完整回答的人显示"你没有权限",而那道门
+    // 数据库里根本不存在。目录的措辞不是策略:module.pricing.view 那一条写着"公式、计价器
+    // 与行情",两者冲突时以策略为准。要改回去,先改 metal_prices 的 SELECT 策略,再改
+    // 这里,顺序不能反。/pricing 本身仍然受管 —— 公式与商务条款不是公开数据。
 
     const sp = await searchParams
     const supabase = await createClient()

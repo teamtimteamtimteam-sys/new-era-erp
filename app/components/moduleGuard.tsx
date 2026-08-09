@@ -23,6 +23,23 @@ import { canEnterModule } from '@/lib/moduleAccess'
 import { getTranslations } from '@/lib/i18n/server'
 import type { ModuleEntry } from '@/lib/modules'
 
+/** 两种拒绝共用的那一块屏 —— 措辞不同,形状必须相同。 */
+async function refusal(titleKey: string, deniedKey: string, hintKey: string) {
+    const t = await getTranslations()
+    return (
+        <div className="p-8 max-w-2xl">
+            <h1 className="text-2xl font-bold mb-4">{t(titleKey)}</h1>
+            <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded">
+                <p className="font-medium">{t(deniedKey)}</p>
+                <p className="text-sm mt-1">{t(hintKey)}</p>
+            </div>
+            <Link href="/" className="inline-block mt-4 text-sm text-blue-600 hover:underline">
+                {t('common.backHome')}
+            </Link>
+        </div>
+    )
+}
+
 /**
  * 用法(每个受模块管辖的页面的第一行):
  *     const denied = await requireModule(MOD.finance)
@@ -31,18 +48,26 @@ import type { ModuleEntry } from '@/lib/modules'
  */
 export async function requireModule(mod: ModuleEntry) {
     if (await canEnterModule(mod.permission)) return null
+    return refusal(mod.navKey, 'common.moduleDenied', 'common.moduleDeniedHint')
+}
 
-    const t = await getTranslations()
-    return (
-        <div className="p-8 max-w-2xl">
-            <h1 className="text-2xl font-bold mb-4">{t(mod.navKey)}</h1>
-            <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded">
-                <p className="font-medium">{t('common.moduleDenied')}</p>
-                <p className="text-sm mt-1">{t('common.moduleDeniedHint')}</p>
-            </div>
-            <Link href="/" className="inline-block mt-4 text-sm text-blue-600 hover:underline">
-                {t('common.backHome')}
-            </Link>
-        </div>
-    )
+/**
+ * 【读的那一半之外,还有写的那一半】
+ *     const denied = await requireEditPermission('module.pricing.edit', 'nav.metalPrices')
+ *     if (denied) return denied
+ *
+ * requireModule 问的是"你进得来这个模块吗",对应基表的 SELECT 策略。本函数问的是
+ * "你改得动这张表吗",对应它的 INSERT / UPDATE / DELETE 策略 —— 【同一条规矩的另一半】:
+ * 守卫跟着数据自己的 RLS 走,而一张表的 RLS 本来就有读、写两个答案,它们可以不一样。
+ *
+ * 【措辞必须与模块拒绝不同】。走到这里的人往往【看得见】这份数据(读策略放行),
+ * 只是存不下 —— 对他说"你没有这个模块的权限"是假的。所以另有一套 common.editDenied。
+ *
+ * 【这不是安全边界】,与 requireModule 同理:边界是那几条 WITH CHECK 策略。这里只是
+ * 不要把一张注定被数据库拒收的表单摆到人面前(AGENTS.md §"永远不要为服务端必然拒绝
+ * 的动作渲染提交控件")。
+ */
+export async function requireEditPermission(permission: string, titleKey: string) {
+    if (await canEnterModule(permission)) return null
+    return refusal(titleKey, 'common.editDenied', 'common.editDeniedHint')
 }
