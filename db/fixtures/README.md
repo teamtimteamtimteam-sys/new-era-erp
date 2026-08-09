@@ -73,3 +73,48 @@ psql "$DSN" -X -v ON_ERROR_STOP=1 -f db/fixtures/<name>.sql
 > 那条缺陷一旦被修(补上外键),**本目录所有 fixture 会同时失败** ——
 > 届时改为在 `auth.users` 里建一行临时用户即可。修那个缺陷的人请一并改这里;
 > known-issues 那条也反向指着本文件。
+
+## 第 6 条:断言【可见性】的臂,必须自己切数据库角色
+
+**fixture 以 `postgres` 跑,而 `postgres` 是超级用户 —— RLS 对它完全不生效。**
+所以任何一条"某某读者【看不见】这一行"的断言,不切角色就是在证明空话:
+
+```sql
+EXECUTE 'SET LOCAL ROLE authenticated';   -- 读之前
+SELECT ... INTO v_x FROM some_view WHERE ...;
+RESET ROLE;                                -- 读之后
+```
+
+`has_permission()` **不需要**切角色 —— 它是 SECURITY DEFINER,按
+`request.jwt.claims` 里的 sub 解析,与数据库角色无关。**这正是最容易骗过自己的地方:**
+靠 `has_permission()` 的臂(属主权限视图的谓词、函数里的 `require_permission`)
+不切角色也是真的,靠 RLS 的臂不切角色就是假的,而两者在代码里长得一模一样。
+
+fixture 26 第一版就栽在这里:A、C 两臂靠 RLS,没切角色 —— 把
+`processing_run_allocation_status` 改回 invoker 注入故障后,gate 的 `xmodule`
+判词红了,**这份 fixture 依旧绿**。与 FIN-30 那条空转的第三臂同一种病。
+
+### 已经查过了:01–25 全部【不受影响】(OPS-14 后的普查,2026-08-09)
+
+不必再查一遍,结论与证据都在这里:
+
+* **25 份 fixture 全部只建【一个】角色,并且 `SELECT code FROM permissions` 授全部权限**,
+  各自只调一次 `set_config('request.jwt.claims', ...)`,零处 `SET LOCAL ROLE`。
+  **没有第二个读者、也没有受限读者,可见性断言在结构上无从写起。**
+* 全库 SELECT 策略无一条是 RESTRICTIVE(0 条),没有"开了 RLS 却没有 SELECT 策略"的表,
+  没有 FORCE RLS。**策略全是 PERMISSIVE(OR 语义),所以持全部权限的读者一律全见。**
+* 线上实测:130 张表/视图,`postgres` 与 `authenticated`(持全部权限)**行数零差异**;
+  其中 106 张再比【全列内容指纹】,**同样零差异**。另外 24 张比不了 ——
+  被【列授权】挡住,那是 colgrant/colreader 的地盘,不是 RLS。
+* 25 份里期待的 24 种拒绝,**全部是函数/触发器/CHECK 抛出的具名业务错**
+  (`PERIOD_LOCKED`、`ALLOC_EXCEEDS`、`TEMPLATE_CURRENCY_MISMATCH` …),
+  **没有一条是权限错或 RLS 拒绝** —— 所以也不存在"靠 RLS 拒绝"的臂。
+* 双向故障注入(scratch 库):把 5 个被 fixture 读到的视图【全部改回 invoker】,
+  01/10/18/19/24 **依旧全绿**,只有 26 变红 —— 26 是唯一的可见性断言;
+  反过来给这 5 个臂各注入【它自己该抓的那个故障】(ar 的已结额不再相减、
+  拿掉 `holiday_calendar_missing` 支、拿掉 `price_history` 过期源、
+  回收率丢掉产出边、拿掉 `system_start_not_set` 支),**五个全部按名报红** ——
+  它们绿得有理由,不是空转。
+
+**真正的结论不是"都没事",而是:这套 fixture 里只有 26 一份在测权限行为,
+OPS-14 之前是零份。** 下一份涉及"谁看得见什么"的 fixture,按本条写。

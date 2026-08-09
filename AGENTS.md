@@ -306,6 +306,22 @@ deliberately excluded because their gating is a `has_permission()` predicate —
 resolves per caller and never drops rows silently, which is the *intended*
 mechanism, not the disease.
 
+**Measured, so the gap is a size rather than a worry (2026-08-09).** Six views reach
+a module *only* through another view: `employee_directory` (hr → hides finance),
+`ap_open_items` (hides inbound), `batch_assay_status` (hides purchasing+pricing),
+`po_prepayment_applicable`, `po_receivable_lines` and `purchase_order_status` (each
+hides purchasing+inbound). **Five of the six are owner rights after OPS-14, so they
+are immune by construction** — the disease needs invoker semantics. The one that is
+still `security_invoker` is `employee_directory`, and it was probed rather than
+assumed: an `hr`-only reader gets **the row, with `current_gross_pay` NULL** — that
+is `data.view_pay` masking working correctly, not row loss — and a
+`finance+view_pay` reader gets zero rows because `employees_masked` gates on
+`module.hr.view`. Its hidden finance branch is an `OR` that only *widens*. So the
+blind spot is **bounded at one view today and that view is not defective — but the
+mechanism is general**: any new invoker view over a `_masked` view inherits it.
+The cheap defence is to prefer owner rights for anything cross-module, which is what
+the remedy table above already says.
+
 **Two traps, both inherited from OPS-13 and both re-verified before trusting a
 zero:** `security_invoker` is spelled `'on'` **or** `'true'` in `reloptions`, and
 `processing_metal_recovery` is the repo's lone `'true'` — matching only `'on'`
