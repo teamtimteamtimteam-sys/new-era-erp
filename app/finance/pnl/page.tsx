@@ -2,6 +2,15 @@
 // 损益表:期间内(from/to,默认本月)revenue/cogs/expense 三类科目的分录聚合。
 // 收入 = Σ贷−Σ借,成本/费用 = Σ借−Σ贷;毛利 = 收入−成本(附毛利率),
 // 净利 = 毛利−费用(正绿负红)。零发生额科目隐藏。
+//
+// 【本页不算账】(OPS-16)数字全部来自 db 的 pnl_statement(from, to) —— 一份实现,
+// 页面只负责画,与现金流量表同一个形状。此前这里是一条 PostgREST select 加一段
+// TypeScript 聚合;仪表盘要做期间对比,那会让同一套算术在两个地方各算一遍,而
+// AGENTS.md「预览过账的屏幕要问数据库」已经点名过这个形状四次。
+//
+// 【year_close 的不对称在函数里】损益表剔除年结分录,资产负债表包含它;两个函数体
+// 里的注释互指,理由写在那儿(FIN-23)。搬家【没有改动任何数字】—— 六个期间逐分
+// 相同,证明在 OPS-16 的提交信息里。
 import { Fragment, Suspense } from 'react'
 import { getBaseCurrency } from '@/lib/currency'
 import { createClient } from '@/lib/supabase/server'
@@ -13,24 +22,20 @@ import PnlToolbar from './PnlToolbar'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 
-// FK 嵌入运行时是对象;显式类型 + cast 锁住
-type LineRow = {
-    debit: number
-    credit: number
-    accounts: { code: string; name_en: string; name_zh: string; account_type: string } | null
-    journal_entries: { entry_date: string } | null
+type PnlRow = { code: string; name_en: string; name_zh: string; amount: number }
+type PnlSection = { rows: PnlRow[]; subtotal: number }
+type Pnl = {
+    period_from: string
+    period_to: string
+    revenue: PnlSection
+    cogs: PnlSection
+    expense: PnlSection
+    gross_profit: number
+    net_profit: number
+    /** 收入为零时为 null —— 0% 是个断言,"没有收入所以没有比率"不是 */
+    margin_pct: number | null
 }
 
-type AccountAgg = {
-    code: string
-    name_en: string
-    name_zh: string
-    account_type: string
-    debits: number
-    credits: number
-}
-
-const round2 = (n: number) => Math.round(n * 100) / 100
 const ymdUtc = (d: Date) => d.toISOString().slice(0, 10)
 
 export default async function PnlPage({
@@ -61,21 +66,7 @@ export default async function PnlPage({
     const from = dateFrom || thisMonth.from
     const to = dateTo || thisMonth.to
 
-    const { data, error } = await supabase
-        .from('journal_lines')
-        .select('debit, credit, accounts!inner(code, name_en, name_zh, account_type), journal_entries!inner(entry_date)')
-        .gte('journal_entries.entry_date', from)
-        .lte('journal_entries.entry_date', to)
-        .in('accounts.account_type', ['revenue', 'cogs', 'expense'])
-        // ════════════════════════════════════════════════════════════════════
-        // 【FIN-23:剔除年结分录 —— 与资产负债表刻意不对称】本表按日期区间聚合
-        // 分录行,而结转分录恰好落在区间末日(财年末):不剔除,已结年度的损益表
-        // 会整表归零 —— 合法会计记录里【去年的报表必须永远可复现】。
-        // 资产负债表【包含】year_close(app/finance/balance-sheet/page.tsx,注释
-        // 互指):已结年度的损益行合计归零,3100 接住结果,合成的"本期损益"行
-        // 只剩结转后的活动 —— 自洽。改任何一边前先读两边。
-        // ════════════════════════════════════════════════════════════════════
-        .not('journal_entries.source_type', 'eq', 'year_close')
+    const { data, error } = await supabase.rpc('pnl_statement', { p_from: from, p_to: to })
 
     if (error) {
         return (
@@ -88,47 +79,11 @@ export default async function PnlPage({
             </div>
         )
     }
+    const pnl = data as unknown as Pnl
 
-    const lines = ((data as unknown as LineRow[] | null) ?? []).filter((l) => l.accounts)
+    const accountName = (r: PnlRow) => (locale === 'zh' ? r.name_zh : r.name_en)
 
-    // 按科目聚合
-    const agg = new Map<string, AccountAgg>()
-    for (const l of lines) {
-        const a = l.accounts as NonNullable<LineRow['accounts']>
-        let cur = agg.get(a.code)
-        if (!cur) {
-            cur = { ...a, debits: 0, credits: 0 }
-            agg.set(a.code, cur)
-        }
-        cur.debits += l.debit
-        cur.credits += l.credit
-    }
-
-    const accountName = (a: AccountAgg) => (locale === 'zh' ? a.name_zh : a.name_en)
-
-    // amount:收入贷正,成本/费用借正;零发生额已被聚合天然排除
-    const section = (type: string, creditPositive: boolean) => {
-        const rows = Array.from(agg.values())
-            .filter((a) => a.account_type === type && (a.debits !== 0 || a.credits !== 0))
-            .map((a) => ({
-                ...a,
-                amount: round2(creditPositive ? a.credits - a.debits : a.debits - a.credits),
-            }))
-            .sort((a, b) => a.code.localeCompare(b.code))
-        const subtotal = round2(rows.reduce((s, r) => s + r.amount, 0))
-        return { rows, subtotal }
-    }
-
-    const revenue = section('revenue', true)
-    const cogs = section('cogs', false)
-    const expense = section('expense', false)
-
-    const grossProfit = round2(revenue.subtotal - cogs.subtotal)
-    const netProfit = round2(grossProfit - expense.subtotal)
-    const marginPct =
-        revenue.subtotal !== 0 ? Math.round((grossProfit / revenue.subtotal) * 1000) / 10 : null
-
-    const sectionBlock = (titleKey: string, s: { rows: (AccountAgg & { amount: number })[]; subtotal: number }) => (
+    const sectionBlock = (titleKey: string, s: PnlSection) => (
         <Fragment>
             <tr className="bg-gray-50">
                 <td colSpan={3} className="border border-gray-300 px-4 py-2 font-semibold">
@@ -188,21 +143,21 @@ export default async function PnlPage({
                     </tr>
                 </thead>
                 <tbody>
-                    {sectionBlock('finance.accountType.revenue', revenue)}
-                    {sectionBlock('finance.accountType.cogs', cogs)}
+                    {sectionBlock('finance.accountType.revenue', pnl.revenue)}
+                    {sectionBlock('finance.accountType.cogs', pnl.cogs)}
                     {/* 毛利(附毛利率)*/}
                     <tr className="font-bold">
                         <td colSpan={2} className="border border-gray-300 px-4 py-2">
                             {t('finance.grossProfit')}
-                            {marginPct !== null && (
-                                <span className="ml-2 text-gray-500 font-normal text-sm">({marginPct}%)</span>
+                            {pnl.margin_pct !== null && (
+                                <span className="ml-2 text-gray-500 font-normal text-sm">({pnl.margin_pct}%)</span>
                             )}
                         </td>
                         <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                            {formatMoney(grossProfit)}
+                            {formatMoney(pnl.gross_profit)}
                         </td>
                     </tr>
-                    {sectionBlock('finance.accountType.expense', expense)}
+                    {sectionBlock('finance.accountType.expense', pnl.expense)}
                     {/* 净利(正绿负红)*/}
                     <tr className="font-bold">
                         <td colSpan={2} className="border border-gray-300 px-4 py-2">
@@ -211,10 +166,10 @@ export default async function PnlPage({
                         <td
                             className={
                                 'border border-gray-300 px-4 py-2 text-right font-mono text-sm ' +
-                                (netProfit >= 0 ? 'text-green-700' : 'text-red-600')
+                                (pnl.net_profit >= 0 ? 'text-green-700' : 'text-red-600')
                             }
                         >
-                            {formatMoney(netProfit)}
+                            {formatMoney(pnl.net_profit)}
                         </td>
                     </tr>
                 </tbody>

@@ -9526,6 +9526,7 @@ export type Database = {
         Args: { p_as_of?: string; p_employee_id: string }
         Returns: number
       }
+      balance_sheet: { Args: { p_as_of: string }; Returns: Json }
       bank_account_for_currency: {
         Args: { p_currency: string }
         Returns: string
@@ -9801,6 +9802,7 @@ export type Database = {
         }
         Returns: Json
       }
+      pnl_statement: { Args: { p_from: string; p_to: string }; Returns: Json }
       post_journal_entry: {
         Args: {
           p_entry_date: string

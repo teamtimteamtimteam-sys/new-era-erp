@@ -2,10 +2,16 @@
 // 资产负债表:截至日(as_of,默认今天)全部分录聚合。资产净额 = Σ借−Σ贷,
 // 负债/权益净额 = Σ贷−Σ借;权益额外加"本期损益"合成行(收入−成本−费用,
 // 同一截至日口径)。
-// 【FIN-23:本表【包含】year_close 分录 —— 与损益表刻意不对称】已结年度的损益行
-// 合计归零,3100 接住净结果,合成的"本期损益"行只剩结转后的活动 —— 自洽,
-// 权益合计不变。损益表相反,【剔除】year_close(app/finance/pnl/page.tsx,注释
-// 互指):否则结转会把已结年度的损益表清成零。改任何一边前先读两边。
+//
+// 【本页不算账】(OPS-16)数字全部来自 db 的 balance_sheet(as_of) —— 一份实现,
+// 页面只负责画,与损益表、现金流量表同一个形状。
+//
+// 【FIN-23:本表【包含】year_close 分录 —— 与损益表刻意不对称】理由现在写在
+// db/functions/balance_sheet.sql 与 db/functions/pnl_statement.sql 里,两边注释互指:
+// 已结年度的损益行合计归零,3100 接住净结果,合成的"本期损益"行只剩结转后的活动。
+// 损益表相反,【剔除】year_close,否则结转会把已结年度的损益表清成零。
+// 改任何一边前先读两边;db/fixtures/28 用同一个期间同时问两个函数,把这条钉住。
+//
 // 底部 资产合计 vs 负债+权益合计,必须相等(不等出红警,理论不可能)。
 import { Fragment, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
@@ -17,24 +23,19 @@ import BsToolbar from './BsToolbar'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 
-// FK 嵌入运行时是对象;显式类型 + cast 锁住
-type LineRow = {
-    debit: number
-    credit: number
-    accounts: { code: string; name_en: string; name_zh: string; account_type: string } | null
-    journal_entries: { entry_date: string } | null
+type BsRow = { code: string; name_en: string; name_zh: string; net: number }
+type BsSection = { rows: BsRow[]; subtotal: number }
+type Bs = {
+    as_of: string
+    asset: BsSection
+    liability: BsSection
+    /** total = 科目行合计 + 本期损益合成行,屏幕上权益那一段显示的是它 */
+    equity: BsSection & { total: number }
+    current_earnings: number
+    total_assets: number
+    total_liab_equity: number
+    balanced: boolean
 }
-
-type AccountAgg = {
-    code: string
-    name_en: string
-    name_zh: string
-    account_type: string
-    debits: number
-    credits: number
-}
-
-const round2 = (n: number) => Math.round(n * 100) / 100
 
 export default async function BalanceSheetPage({
     searchParams,
@@ -54,10 +55,7 @@ export default async function BalanceSheetPage({
     const requested = (sp.as_of ?? '').trim()
     const asOf = isYmd(requested) ? requested : new Date().toISOString().slice(0, 10)
 
-    const { data, error } = await supabase
-        .from('journal_lines')
-        .select('debit, credit, accounts!inner(code, name_en, name_zh, account_type), journal_entries!inner(entry_date)')
-        .lte('journal_entries.entry_date', asOf)
+    const { data, error } = await supabase.rpc('balance_sheet', { p_as_of: asOf })
 
     if (error) {
         return (
@@ -70,59 +68,13 @@ export default async function BalanceSheetPage({
             </div>
         )
     }
+    const bs = data as unknown as Bs
 
-    const lines = ((data as unknown as LineRow[] | null) ?? []).filter((l) => l.accounts)
-
-    // 按科目聚合
-    const agg = new Map<string, AccountAgg>()
-    for (const l of lines) {
-        const a = l.accounts as NonNullable<LineRow['accounts']>
-        let cur = agg.get(a.code)
-        if (!cur) {
-            cur = { ...a, debits: 0, credits: 0 }
-            agg.set(a.code, cur)
-        }
-        cur.debits += l.debit
-        cur.credits += l.credit
-    }
-
-    const accountName = (a: AccountAgg) => (locale === 'zh' ? a.name_zh : a.name_en)
-
-    const section = (type: string, debitPositive: boolean) => {
-        const rows = Array.from(agg.values())
-            .filter((a) => a.account_type === type && (a.debits !== 0 || a.credits !== 0))
-            .map((a) => ({
-                ...a,
-                net: round2(debitPositive ? a.debits - a.credits : a.credits - a.debits),
-            }))
-            .sort((a, b) => a.code.localeCompare(b.code))
-        const subtotal = round2(rows.reduce((s, r) => s + r.net, 0))
-        return { rows, subtotal }
-    }
-
-    const assets = section('asset', true)
-    const liabilities = section('liability', false)
-    const equity = section('equity', false)
-
-    // 本期损益(截至日口径):收入 − 成本 − 费用,尚无年结分录 → 合成进权益
-    const plNet = (type: string, creditPositive: boolean) =>
-        round2(
-            Array.from(agg.values())
-                .filter((a) => a.account_type === type)
-                .reduce(
-                    (s, a) => s + (creditPositive ? a.credits - a.debits : a.debits - a.credits),
-                    0
-                )
-        )
-    const currentEarnings = round2(plNet('revenue', true) - plNet('cogs', false) - plNet('expense', false))
-
-    const totalAssets = assets.subtotal
-    const totalLiabEquity = round2(liabilities.subtotal + equity.subtotal + currentEarnings)
-    const balanced = totalAssets === totalLiabEquity
+    const accountName = (r: BsRow) => (locale === 'zh' ? r.name_zh : r.name_en)
 
     const sectionBlock = (
         titleKey: string,
-        s: { rows: (AccountAgg & { net: number })[]; subtotal: number },
+        s: BsSection,
         extraRow?: { label: string; value: number },
         subtotalOverride?: number
     ) => (
@@ -182,7 +134,7 @@ export default async function BalanceSheetPage({
                 <BsToolbar asOf={asOf} />
             </Suspense>
 
-            {!balanced && (
+            {!bs.balanced && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 font-bold">
                     {t('finance.bsImbalance')}
                 </div>
@@ -197,14 +149,14 @@ export default async function BalanceSheetPage({
                     </tr>
                 </thead>
                 <tbody>
-                    {sectionBlock('finance.accountType.asset', assets)}
-                    {sectionBlock('finance.accountType.liability', liabilities)}
+                    {sectionBlock('finance.accountType.asset', bs.asset)}
+                    {sectionBlock('finance.accountType.liability', bs.liability)}
                     {/* 权益:科目行 + 本期损益合成行,小计含两者 */}
                     {sectionBlock(
                         'finance.accountType.equity',
-                        equity,
-                        { label: t('finance.currentEarnings'), value: currentEarnings },
-                        round2(equity.subtotal + currentEarnings)
+                        bs.equity,
+                        { label: t('finance.currentEarnings'), value: bs.current_earnings },
+                        bs.equity.total
                     )}
                 </tbody>
                 <tfoot>
@@ -213,7 +165,7 @@ export default async function BalanceSheetPage({
                             {t('finance.totalAssets')}
                         </td>
                         <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                            {formatMoney(totalAssets)}
+                            {formatMoney(bs.total_assets)}
                         </td>
                     </tr>
                     <tr className="bg-gray-100 font-bold">
@@ -221,7 +173,7 @@ export default async function BalanceSheetPage({
                             {t('finance.totalLiabEquity')}
                         </td>
                         <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                            {formatMoney(totalLiabEquity)}
+                            {formatMoney(bs.total_liab_equity)}
                         </td>
                     </tr>
                 </tfoot>

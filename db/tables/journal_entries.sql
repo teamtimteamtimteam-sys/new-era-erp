@@ -63,6 +63,11 @@ CREATE TRIGGER trg_journal_entries_immutable
     BEFORE UPDATE OR DELETE ON public.journal_entries
     FOR EACH ROW EXECUTE FUNCTION public.guard_journal_entry_mutation();
 
+-- OPS-16:【每一个期间问题都走 entry_date,而它此前没有索引】——
+-- 损益表、资产负债表、现金流量表、试算平衡全都按 entry_date 圈期间;仪表盘一屏
+-- 要问好几次,做期间对比再翻一倍。此前这张表上只有 pkey 与 code 的唯一索引。
+CREATE INDEX idx_journal_entries_entry_date ON public.journal_entries (entry_date);
+
 ALTER TABLE public.journal_entries ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "journal_entries select by permission"
     ON public.journal_entries
