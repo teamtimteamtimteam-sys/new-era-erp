@@ -1,3 +1,51 @@
+-- APR-2c:审批有三种状态,不是两种
+--
+-- 【为什么需要第三种】四眼规则在【只有一个用户】的系统里无法运转:Tim 持 admin,
+-- 是唯一的人类账号,所以任何"提单人 ≠ 审批人"的规则都会把他整个挡住。而 APR-2 的
+-- "没配就拒绝路由"在这种处境下等于把采购整个停掉 —— 【空配置 + 硬拒绝,与一个
+-- 不能用的系统是同一个结果】。
+--
+-- 于是把"审批还没启用"变成一个【说得出口的状态】,而不是让它伪装成"配置漏了":
+--
+--   off        审批【有意】不生效 —— 采购单直接建成 confirmed/approved,
+--              而屏幕上【明说这一点】,不是悄悄放行
+--   on, unset  拒绝路由(APR-2 的行为)—— 【启用了却没有策略是一次配置错误】,
+--              不是可以将就的状态
+--   on, set    引擎照 APR-2 建的样子跑
+--
+-- 【两个值已经定了,但【故意不写进 finance_settings】】——
+--   一级 = finance(付钱的一方批准这笔承诺;gm 很可能就是 Tim 本人,两级会塌成一级)
+--   阈值 = 25,000 本位币(把最大的三笔路由到二级;落在 14k–29k 那段平坦区间里留出余量;
+--          避开 10k 那个"多数订单都归 Tim"的结果 —— 那恰恰复制了这个管控本该消除的痛苦)
+-- 值记在 docs/approvals-scoping.md 里【待配置】,这样"打开它"是一个刻意的动作,
+-- 而不是某天有人重新把这两个数推导一遍。
+--
+-- 【关掉不会追认已经提出来的单】approvals_enabled 转回 off 之后,先前建的 pending 单
+-- 仍然是 pending、仍然收不了货 —— 它们是在审批生效期间提出来的,把它们静默变成已批
+-- 才是撒谎。这是有意的,不是遗漏。
+--
+-- NOTE: apply with ./db/apply_migration.sh
+
+BEGIN;
+
+ALTER TABLE public.finance_settings
+    ADD COLUMN approvals_enabled boolean NOT NULL DEFAULT false;
+
+COMMENT ON COLUMN public.finance_settings.approvals_enabled IS
+    '审批流是否生效(APR-2c)。【默认 false,这是有意的】:四眼规则在只有一个人类账号的系统里无法运转,而"没配就拒绝"会把采购整个停掉 —— 空配置与不能用的系统是同一个结果。三种状态:off = 审批有意不生效,采购单直接建成 confirmed/approved 且【界面明说】;on 但策略为空 = 拒绝路由(启用却无策略是配置错误);on 且策略齐备 = 引擎照常跑。打开它的前置条件写在 docs/fresh-install-checklist.md:至少两个人类账号,且持 finance 的人不是提单人。';
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- 一个判词,给所有需要问"审批生效了吗"的地方共用
+-- ════════════════════════════════════════════════════════════════════════════
+CREATE OR REPLACE FUNCTION public.approvals_enabled()
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+    SELECT COALESCE((SELECT approvals_enabled FROM finance_settings LIMIT 1), false);
+$function$;
+
 CREATE OR REPLACE FUNCTION public.create_purchase_order(p_supplier_id uuid, p_order_date date, p_expected_delivery date, p_currency text, p_fx_rate numeric, p_incoterm text, p_terms_text text, p_notes text, p_lines jsonb, p_payment_terms jsonb DEFAULT '[]'::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -200,3 +248,146 @@ BEGIN
     );
 END;
 $function$;
+
+CREATE OR REPLACE FUNCTION public.approve_purchase_order(p_po_id uuid, p_note text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+    v_po    record;
+    v_base  numeric;
+    v_level smallint;
+BEGIN
+    PERFORM require_permission('module.purchasing.view');
+    -- APR-2c:审批未生效时,"批准"是一个没有意义的动作 —— 单据本来就已经是 approved。
+    -- 点名拒绝,而不是默默成功:后者会让人以为审批流在跑。
+    IF NOT approvals_enabled() THEN
+        RAISE EXCEPTION 'APPROVALS_NOT_ENABLED';
+    END IF;
+
+    SELECT id, code, created_by, approval_status, status, currency, fx_rate, estimated_total_ccy
+    INTO v_po FROM purchase_orders WHERE id = p_po_id AND deleted_at IS NULL;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'PO_NOT_FOUND|%', COALESCE(p_po_id::text, '?');
+    END IF;
+    IF v_po.approval_status <> 'pending' THEN
+        RAISE EXCEPTION 'PO_NOT_PENDING|%|%', v_po.code, v_po.approval_status;
+    END IF;
+
+    -- 【四眼】提单的人不能自己批。与 approve_review 的 SELF_APPROVAL_FORBIDDEN 同名同理。
+    IF v_po.created_by IS NOT NULL AND v_po.created_by = auth.uid() THEN
+        RAISE EXCEPTION 'SELF_APPROVAL_FORBIDDEN';
+    END IF;
+
+    -- 【本位币比,用单据自己存的汇率】(决定 3)。FIN-35 删掉了 fx_rate 的默认值,
+    -- 所以一张外币单要么带着真汇率,要么根本不存在 —— 这里不必再防平价。
+    v_base  := round(v_po.estimated_total_ccy * v_po.fx_rate, 2);
+    v_level := approval_level_for(v_base);
+    PERFORM require_approver_for(v_level);
+
+    UPDATE purchase_orders
+    SET approval_status = 'approved',
+        approved_at = now(),
+        approved_by = auth.uid(),
+        -- 批准把单据从 draft 推到 confirmed;advance_po_on_receipt 仍按 confirmed 走
+        status = CASE WHEN status = 'draft' THEN 'confirmed' ELSE status END,
+        updated_by = auth.uid()
+    WHERE id = p_po_id;
+
+    PERFORM record_approval_decision('purchase_order', p_po_id, 'approved', v_level, p_note);
+
+    RETURN jsonb_build_object('purchase_order_id', p_po_id, 'code', v_po.code,
+                              'level', v_level, 'amount_base', v_base);
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.reject_purchase_order(p_po_id uuid, p_reason text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+    v_po    record;
+    v_level smallint;
+BEGIN
+    PERFORM require_permission('module.purchasing.view');
+    -- APR-2c:审批未生效时,"批准"是一个没有意义的动作 —— 单据本来就已经是 approved。
+    -- 点名拒绝,而不是默默成功:后者会让人以为审批流在跑。
+    IF NOT approvals_enabled() THEN
+        RAISE EXCEPTION 'APPROVALS_NOT_ENABLED';
+    END IF;
+
+    SELECT id, code, created_by, approval_status, currency, fx_rate, estimated_total_ccy
+    INTO v_po FROM purchase_orders WHERE id = p_po_id AND deleted_at IS NULL;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'PO_NOT_FOUND|%', COALESCE(p_po_id::text, '?');
+    END IF;
+    IF v_po.approval_status <> 'pending' THEN
+        RAISE EXCEPTION 'PO_NOT_PENDING|%|%', v_po.code, v_po.approval_status;
+    END IF;
+    IF v_po.created_by IS NOT NULL AND v_po.created_by = auth.uid() THEN
+        RAISE EXCEPTION 'SELF_APPROVAL_FORBIDDEN';
+    END IF;
+    IF p_reason IS NULL OR btrim(p_reason) = '' THEN
+        RAISE EXCEPTION 'REJECT_REASON_REQUIRED';
+    END IF;
+
+    -- 驳回也要走同一道授权:能批的人才能驳
+    v_level := approval_level_for(round(v_po.estimated_total_ccy * v_po.fx_rate, 2));
+    PERFORM require_approver_for(v_level);
+
+    UPDATE purchase_orders
+    SET approval_status = 'rejected', updated_by = auth.uid()
+    WHERE id = p_po_id;
+
+    PERFORM record_approval_decision('purchase_order', p_po_id, 'rejected', v_level, p_reason);
+
+    RETURN jsonb_build_object('purchase_order_id', p_po_id, 'code', v_po.code, 'level', v_level);
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.void_approval_on_amount_increase()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+    v_old_level smallint;
+    v_new_level smallint;
+BEGIN
+    -- APR-2c:审批未生效时不作废任何东西 —— 而且【必须早退】:approval_level_for 会在
+    -- 阈值未配置时抛 APPROVAL_THRESHOLD_NOT_SET,那会让"改一下金额"在一个审批根本
+    -- 没开的库里失败。
+    IF NOT approvals_enabled() THEN
+        RETURN NEW;
+    END IF;
+    IF NEW.approval_status <> 'approved' THEN
+        RETURN NEW;
+    END IF;
+    -- 用【单据自己的汇率】折本位币,两侧同口径
+    v_old_level := approval_level_for(round(OLD.estimated_total_ccy * OLD.fx_rate, 2));
+    v_new_level := approval_level_for(round(NEW.estimated_total_ccy * NEW.fx_rate, 2));
+
+    -- 【只在需要更高一级时作废】金额下降、或仍在同一级内变动,原审批依然成立 ——
+    -- 已经批过 2 级的单子降到 1 级,再要一次批准是空转。
+    IF v_new_level > v_old_level THEN
+        NEW.approval_status := 'pending';
+        NEW.approved_at := NULL;
+        NEW.approved_by := NULL;
+        -- 留痕:这不是谁做的决定,是一个系统事件,但必须看得见
+        PERFORM record_approval_decision(
+            'purchase_order', NEW.id, 'approval_voided', v_new_level,
+            format('金额由 %s 改为 %s(本位币),所需审批级别由 %s 升到 %s —— 原审批作废,重新路由',
+                   round(OLD.estimated_total_ccy * OLD.fx_rate, 2),
+                   round(NEW.estimated_total_ccy * NEW.fx_rate, 2),
+                   v_old_level, v_new_level));
+    END IF;
+    RETURN NEW;
+END;
+$function$;
+
+COMMIT;

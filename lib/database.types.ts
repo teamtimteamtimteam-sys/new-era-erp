@@ -1389,6 +1389,7 @@ export type Database = {
           approval_level1_role_code: string | null
           approval_level2_user_id: string | null
           approval_threshold_base: number | null
+          approvals_enabled: boolean
           default_allocation_basis: string
           first_fy_end: string | null
           fy_end_day: number
@@ -1406,6 +1407,7 @@ export type Database = {
           approval_level1_role_code?: string | null
           approval_level2_user_id?: string | null
           approval_threshold_base?: number | null
+          approvals_enabled?: boolean
           default_allocation_basis?: string
           first_fy_end?: string | null
           fy_end_day?: number
@@ -1423,6 +1425,7 @@ export type Database = {
           approval_level1_role_code?: string | null
           approval_level2_user_id?: string | null
           approval_threshold_base?: number | null
+          approvals_enabled?: boolean
           default_allocation_basis?: string
           first_fy_end?: string | null
           fy_end_day?: number
@@ -9767,6 +9770,7 @@ export type Database = {
         Returns: Json
       }
       approval_level_for: { Args: { p_amount_base: number }; Returns: number }
+      approvals_enabled: { Args: never; Returns: boolean }
       approve_purchase_order: {
         Args: { p_note?: string; p_po_id: string }
         Returns: Json

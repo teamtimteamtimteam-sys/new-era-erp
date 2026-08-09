@@ -622,3 +622,49 @@ because it can then route somewhere. All three are gated on the same decision.
 **Cheap and worth doing in that cut, noted so it is not lost:** `approve_review` already has
 `SELF_APPROVAL_FORBIDDEN` and `decide_leave_request` / `decide_medical_claim` do not. The rule is
 three lines each; what it needs is the escape hatch, not the check.
+
+---
+
+# THE POLICY VALUES — DECIDED 2026-08-09, **PENDING CONFIGURATION**
+
+**These are decisions, not proposals. They are deliberately NOT written into
+`finance_settings` yet**, so that turning approvals on is one deliberate step rather than a
+rediscovery six months from now.
+
+| setting | **decided value** | why |
+|---|---|---|
+| `approval_level1_role_code` | **`finance`** | segregation of duties: the party that pays approves the commitment. `gm` would likely collapse to Tim, making both levels one person and the two-level design decorative |
+| `approval_threshold_base` | **25,000** (base currency) | routes the three largest purchases to level 2; sits inside the flat 14k–29k region measured in §A2 so it carries slack; and avoids 10k's outcome, where **the majority of orders route to Tim — reproducing the very pain the control exists to remove** |
+| `approval_level2_user_id` | Tim's `user_id` | decision 2: a named person, not a one-member role |
+| `approvals_enabled` | **`false` today** | see below |
+
+## Why the flag exists — three states, not two
+
+**Four-eyes cannot operate with one user.** Tim holds `admin` and is the only human account, so
+any requester-is-not-approver rule blocks him entirely. And APR-2's "refuse to route when
+unconfigured" would then block purchasing outright. **NULL config plus a hard refusal is the same
+outcome as an unusable system** — so "not yet in force" had to become a state the system can *say*,
+rather than something disguised as missing configuration.
+
+| state | behaviour |
+|---|---|
+| **off** (today) | POs are created `confirmed`/`approved`; the log records **`auto_approved`**, not `submitted`, because nobody decided; and **the screen says approvals are not in force** rather than being silently permissive |
+| **on, policy unset** | refuse to route — an enabled control with no policy is a misconfiguration, not a state to muddle through |
+| **on, policy set** | the engine as built in APR-2 |
+
+**Turning it off does not retroactively approve anything.** Orders raised while approvals were in
+force stay `pending` and stay unreceivable. Silently approving them would be a lie about who
+decided what.
+
+## What must be true before turning it on
+
+Recorded in `docs/fresh-install-checklist.md` as well, because that is where someone standing up
+the system will look:
+
+1. **A second human user account exists.** With one account, four-eyes blocks the only person who
+   can act.
+2. **Someone holds `finance` who is not the person raising purchase orders.** `procurement` raises;
+   if the same human holds both, `SELF_APPROVAL_FORBIDDEN` fires on every order and purchasing
+   stops.
+3. Then set all four values together — the three policy columns and the flag — in one change.
+   Setting the flag without the policy is the "on, unset" state, which refuses.

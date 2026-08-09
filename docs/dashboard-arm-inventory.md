@@ -112,3 +112,41 @@ are granted separately and nothing enforces the pairing. **If a finance role is 
 `data.view_prices`, these three arms need their declared permission revisited** — and note the
 naive fix is wrong: declaring `data.view_prices` as the arm's permission would show `procurement`
 and `sales` (who hold prices but not finance) a `0` that means "you cannot see AP at all".
+
+---
+
+## Reported, not built: the approvals tile while the flag is off (APR-2c)
+
+**A tile counting "orders awaiting approval" reads `0` when approvals are switched off — and that
+`0` means "not in force", not "none waiting".** That is the restricted-is-not-zero defect in a
+fourth costume, and this file's §"two hazards" already names the first three:
+
+| costume | what `0` / absence really meant |
+|---|---|
+| OPS-15 | a module you cannot enter renders an empty table |
+| OPS-18 | an arm you cannot see contributes no rows, so the tile shows 0 |
+| OPS-20 | a margin with no cost basis prints 100%, or would print 0 if COALESCEd |
+| **APR-2c** | **a queue that does not exist because the control is switched off** |
+
+**The recommendation, for whoever adds the arm:**
+
+* **Do not add an `approval_pending` arm that is silently empty while the flag is off.** It would be
+  correct-by-accident (there genuinely are no pending orders) and wrong-by-meaning (there is no
+  approval step at all).
+* The tile needs the **same three states the engine has**, not two:
+  * **off** → render the tile as **not in force** — the `受限` treatment's sibling, distinct in
+    wording (`受限` means *you* cannot see it; this means *nobody* is being asked). A separate
+    string, not a reused one, for the reason FIN-35 gives: the identity of a multiplier is
+    invisible, and so is a zero that means something else.
+  * **on, policy unset** → render as **misconfigured**, because that is what it is. This state
+    refuses at the database, so an operator seeing `0` here would be seeing a control that is
+    enabled and inert.
+  * **on, policy set** → the ordinary count, with `0` finally meaning zero.
+* The arm's `permission` is `module.purchasing.view`, which `procurement` holds — so the requester
+  sees their own queue depth. That is the point of the tile.
+
+**Why it is not built in APR-2c:** the flag is off, so every state but the first is unreachable
+today, and an arm whose only observable behaviour is "not in force" cannot be shown to
+discriminate — the standard `db/fixtures/34` established for a third allocation basis. It belongs
+in the cut that turns approvals on, alongside the delegation and HR four-eyes work, all three of
+which are gated on the same decision.

@@ -209,6 +209,8 @@ const MANIFEST = {
                                   /(?:THEN|ELSE) '(\w+)'::text\s*$/gm) },
     'margin.statusHint.':   { kind: 'enum', values: () => tsRegex('db/views/batch_margin.sql',
                                   /(?:THEN|ELSE) '(\w+)'::text\s*$/gm) },
+    // APR-2c:采购单审批状态。后缀集合就是 purchase_orders 的 CHECK —— 真源现读。
+    'purchasing.approvalState.': { kind: 'enum', values: () => sqlEnum('db/tables/purchase_orders.sql', 'approval_status') },
     // ── HR ──────────────────────────────────────────────────────────────────
     'hr.alertType.':        { kind: 'enum', values: () => sqlLiteralAs('db/views/hr_alerts.sql', 'alert_type') },
     'hr.severity.':         { kind: 'enum', values: union(

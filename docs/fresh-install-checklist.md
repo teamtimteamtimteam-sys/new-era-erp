@@ -100,7 +100,32 @@ Standing up a new Evoltrya OS project from this repository.
      starting state, not a placeholder to be overwritten immediately.
    - `hr_settings` — only if this company's figures differ from the seeded defaults
      (medical limit SGD 1,000, 5-day week, 12-month carry-forward).
-8. **Update Vercel environment variables** — `NEXT_PUBLIC_SUPABASE_URL`
+8. **Approvals: leave OFF until the preconditions hold.** `finance_settings.approvals_enabled`
+   ships `false` and that is deliberate — four-eyes cannot operate with one user account, and
+   "refuse to route when unconfigured" would block purchasing outright. While it is off, purchase
+   orders are created confirmed/approved, the approval log records them as `auto_approved`
+   (nobody decided), and **the order screen says approvals are not in force** rather than looking
+   like an approved order.
+
+   **Turn it on only when both of these are true:**
+   - a **second human user account** exists — with one account, four-eyes blocks the only person
+     who can act; and
+   - someone holds **`finance`** who is **not** the person raising purchase orders (`procurement`
+     raises; one human holding both makes `SELF_APPROVAL_FORBIDDEN` fire on every order).
+
+   Then set all four in **one** change — the flag alone gives the "enabled but no policy" state,
+   which refuses to route by design:
+   ```sql
+   UPDATE finance_settings SET
+       approval_level1_role_code = 'finance',      -- decided: the party that pays approves
+       approval_threshold_base   = 25000,          -- decided: base currency
+       approval_level2_user_id   = '<Tim''s auth user id>',
+       approvals_enabled         = true;
+   ```
+   The values and the reasoning behind them are in `docs/approvals-scoping.md`; they are
+   **decisions already made**, not defaults to re-derive.
+
+9. **Update Vercel environment variables** — `NEXT_PUBLIC_SUPABASE_URL`
    (`https://<ref>.supabase.co`), `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and
    `SUPABASE_SERVICE_ROLE_KEY`. These are the only three the application reads.
    Redeploy afterwards: Vercel does not rebuild on an environment-variable change.

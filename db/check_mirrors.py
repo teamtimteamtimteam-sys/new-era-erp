@@ -159,6 +159,10 @@ DEFINER_NO_CHECK_ALLOWED = {
     # 公开入口 approve_purchase_order / reject_purchase_order 各自 require_permission。
     "approval_level_for": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "require_approver_for": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    # APR-2c:审批是否生效 —— 它【必须】留给 authenticated,因为界面有义务把
+    # "审批未生效"说出来(悄悄放行才是缺陷)。吐露的只有一个布尔量,而这个
+    # 布尔量本来就该印在屏幕上,所以没有可检查的调用者,也没有要保护的东西。
+    "approvals_enabled": "discloses one boolean the UI is required to display",
 }
 
 CHECK_PATTERNS = ("require_permission(", "has_permission(", "current_user_employee(",

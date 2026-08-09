@@ -29,7 +29,10 @@ DECLARE
 BEGIN
     SELECT code INTO v_base FROM currencies WHERE is_base;
     SELECT code INTO v_fgn  FROM currencies WHERE NOT is_base LIMIT 1;
-    UPDATE finance_settings SET locked_before = NULL, system_start_date = '2027-01-01';
+    -- APR-2c:审批默认【不生效】(三态见迁移文件头)。本 fixture 测的是生效之后的
+    -- 引擎,所以先打开它 —— 关着的那一态由下面的 F 臂单独测。
+    UPDATE finance_settings SET locked_before = NULL, system_start_date = '2027-01-01',
+                                approvals_enabled = true;
 
     -- 角色:提单人与一级审批人【不同角色】—— procurement 提单,所以它不能是审批角色
     INSERT INTO roles (code, name_en, name_zh, is_active)
@@ -59,6 +62,21 @@ BEGIN
         'line_no', 1, 'material_id', v_mat, 'quantity', 10, 'estimated_unit_price', 100));
     po_small := (create_purchase_order(v_sup, '2027-03-03'::date, NULL, v_base, NULL,
                                        NULL, NULL, NULL, v_lines, NULL)->>'purchase_order_id')::uuid;
+
+    -- 【生效时必须生为 draft/pending】—— 这一条要单独断言。少了它,一个"开关打开也
+    -- 照样直接盖章"的实现只会以别的错误偶然被逮到,而不是被点名;写这一臂时实测过。
+    IF (SELECT status FROM purchase_orders WHERE id = po_small) <> 'draft'
+       OR (SELECT approval_status FROM purchase_orders WHERE id = po_small) <> 'pending' THEN
+        RAISE EXCEPTION 'FIXTURE 35E 失败:审批生效时采购单应生为 draft/pending,实得 %/% —— 一出生就已批的话,"提单人发起"仍然无处可放,审批只是装饰',
+            (SELECT status FROM purchase_orders WHERE id = po_small),
+            (SELECT approval_status FROM purchase_orders WHERE id = po_small);
+    END IF;
+    -- 而留痕应当是 submitted(有人提交),不是 auto_approved(系统盖章)
+    SELECT count(*) INTO v_n FROM approval_log
+     WHERE subject_type = 'purchase_order' AND subject_id = po_small AND decision = 'submitted';
+    IF v_n <> 1 THEN
+        RAISE EXCEPTION 'FIXTURE 35E 失败:生效时提单应留一行 submitted,实得 % 行', v_n;
+    END IF;
 
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', u_l1), true);
@@ -189,6 +207,59 @@ BEGIN
     UPDATE purchase_orders SET estimated_total_ccy = 100 WHERE id = po_big;
     IF (SELECT approval_status FROM purchase_orders WHERE id = po_big) <> 'approved' THEN
         RAISE EXCEPTION 'FIXTURE 35D 失败:金额【下降】也把审批作废了 —— 规则应当只在需要【更高】一级时触发,否则每次改价都要重批';
+    END IF;
+    -- ══════════ F. 审批【未生效】时:直接建成 confirmed/approved,且说得出口 ══════
+    -- 【第三种状态,不是"配置漏了"】四眼在只有一个用户的系统里跑不起来,而
+    -- "没配就拒绝"会把采购整个停掉 —— 空配置与不能用的系统是同一个结果。
+    UPDATE finance_settings SET approvals_enabled = false;
+
+    PERFORM set_config('request.jwt.claims',
+        format('{"sub":"%s","role":"authenticated"}', u_req), true);
+    v_lines := jsonb_build_array(jsonb_build_object(
+        'line_no', 1, 'material_id', v_mat, 'quantity', 3, 'estimated_unit_price', 100));
+    po_small := (create_purchase_order(v_sup, '2027-03-03'::date, NULL, v_base, NULL,
+                                       NULL, NULL, NULL, v_lines, NULL)->>'purchase_order_id')::uuid;
+
+    IF (SELECT approval_status FROM purchase_orders WHERE id = po_small) <> 'approved'
+       OR (SELECT status FROM purchase_orders WHERE id = po_small) <> 'confirmed' THEN
+        RAISE EXCEPTION 'FIXTURE 35F 失败:审批未生效时采购单应直接建成 confirmed/approved,实得 %/%',
+            (SELECT status FROM purchase_orders WHERE id = po_small),
+            (SELECT approval_status FROM purchase_orders WHERE id = po_small);
+    END IF;
+
+    -- 【留痕记 auto_approved,不是 submitted】没有人做过这个决定 —— 与 APR-1 回填
+    -- 那三张旧单同一个词、同一个理由:不要把"系统直接盖章"伪装成一次人的决定。
+    SELECT count(*) INTO v_n FROM approval_log
+     WHERE subject_type = 'purchase_order' AND subject_id = po_small
+       AND decision = 'auto_approved';
+    IF v_n <> 1 THEN
+        RAISE EXCEPTION 'FIXTURE 35F 失败:审批未生效时应留一行 auto_approved,实得 % 行 —— 记成 submitted 就是说有人提交给某个并不存在的审批人', v_n;
+    END IF;
+
+    -- 未生效时"批准"是个没有意义的动作,必须点名拒绝而不是默默成功
+    PERFORM set_config('request.jwt.claims',
+        format('{"sub":"%s","role":"authenticated"}', u_l1), true);
+    v_denied := false;
+    BEGIN
+        PERFORM approve_purchase_order(po_small, NULL);
+    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
+    END;
+    IF NOT v_denied OR v_msg <> 'APPROVALS_NOT_ENABLED' THEN
+        RAISE EXCEPTION 'FIXTURE 35F 失败:未生效时批准应当 APPROVALS_NOT_ENABLED,实得 denied=% msg=% —— 默默成功会让人以为审批流在跑',
+            v_denied, v_msg;
+    END IF;
+
+    -- 而收货【应当照常】—— 审批不生效不等于采购停摆,这正是三态存在的理由
+    PERFORM set_config('request.jwt.claims',
+        format('{"sub":"%s","role":"authenticated"}', u_req), true);
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
+                                 arrival_date, purchase_order_id)
+    VALUES ('ZZFIX35-IB2', v_mat, v_sup, 1, 1, '2027-03-11', po_small);
+
+    -- 改金额也不该炸:作废触发器在未生效时必须早退,否则会撞 APPROVAL_THRESHOLD_NOT_SET
+    UPDATE purchase_orders SET estimated_total_ccy = 999999 WHERE id = po_small;
+    IF (SELECT approval_status FROM purchase_orders WHERE id = po_small) <> 'approved' THEN
+        RAISE EXCEPTION 'FIXTURE 35F 失败:审批未生效时改金额不该动审批状态';
     END IF;
 END $$;
 ROLLBACK;

@@ -57,7 +57,7 @@ export default async function PurchaseOrderDetailPage({
     const canFinance = await can('module.finance.view')
     const po = maskedExcept<Tables<'purchase_orders'>, 'fx_rate' | 'estimated_total_ccy'>(poRaw)
 
-    const [supplierRes, linesRes, termsRes, statusRes, receiptsRes] = await Promise.all([
+    const [supplierRes, linesRes, termsRes, statusRes, receiptsRes, apprRes] = await Promise.all([
         supabase.from('suppliers').select('id, legal_name').eq('id', po.supplier_id).single(),
         supabase
             .from('purchase_order_lines_masked')
@@ -77,7 +77,12 @@ export default async function PurchaseOrderDetailPage({
             .eq('purchase_order_id', id)
             .is('deleted_at', null)
             .order('created_at'),
+        // APR-2c:审批是否生效。屏幕必须【说出来】—— 悄悄放行才是缺陷。
+        supabase.rpc('approvals_enabled'),
     ])
+
+    // APR-2c:审批是否生效 —— 决定这一页说哪一句话
+    const approvalsOn = (apprRes.data as unknown as boolean | null) ?? false
 
     // 遮蔽的是估价列;material_id / pricing_formula_id 等恢复基表类型。
     const lines = maskedRows<Tables<'purchase_order_lines'>, 'estimated_unit_price' | 'estimated_amount_ccy'>(mustRows(linesRes))
@@ -264,12 +269,30 @@ export default async function PurchaseOrderDetailPage({
                 (发起人 → 主管,超过阈值再升一级)按 Doc 3 排在【最终阶段】,
                 与角色结构绑定后一起启用。指着一个已经发生过的条件,
                 与描述一个不可能发生的隐患是同一种缺陷。 */}
-            <p className="text-xs text-gray-400 mb-4">
-                {t('purchasing.approvalNote')}
-                <span className="ml-2 px-2 py-0.5 rounded bg-gray-100 text-gray-500">
-                    {po.approval_status}
-                </span>
-            </p>
+            {/* APR-2c:三态各说各的话。【关着的时候必须明说"审批未生效"】——
+                一张写着 approved 而其实没人批过的单子,与一张真的被批过的单子
+                在屏幕上长得一模一样,那就是"0 冒充受限"换了第四件衣服。 */}
+            {approvalsOn ? (
+                <p className="text-xs text-gray-500 mb-4">
+                    {t('purchasing.approvalOn')}
+                    <span
+                        className={
+                            'ml-2 px-2 py-0.5 rounded ' +
+                            (po.approval_status === 'approved'
+                                ? 'bg-green-100 text-green-800'
+                                : po.approval_status === 'rejected'
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-amber-100 text-amber-900')
+                        }
+                    >
+                        {t('purchasing.approvalState.' + po.approval_status)}
+                    </span>
+                </p>
+            ) : (
+                <p className="text-xs mb-4 text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 inline-block">
+                    {t('purchasing.approvalOff')}
+                </p>
+            )}
 
             {po.notes && (
                 <p className="text-sm text-gray-600 mb-2">

@@ -9,6 +9,11 @@ DECLARE
     v_level smallint;
 BEGIN
     PERFORM require_permission('module.purchasing.view');
+    -- APR-2c:审批未生效时,"批准"是一个没有意义的动作 —— 单据本来就已经是 approved。
+    -- 点名拒绝,而不是默默成功:后者会让人以为审批流在跑。
+    IF NOT approvals_enabled() THEN
+        RAISE EXCEPTION 'APPROVALS_NOT_ENABLED';
+    END IF;
 
     SELECT id, code, created_by, approval_status, currency, fx_rate, estimated_total_ccy
     INTO v_po FROM purchase_orders WHERE id = p_po_id AND deleted_at IS NULL;

@@ -8,6 +8,12 @@ DECLARE
     v_old_level smallint;
     v_new_level smallint;
 BEGIN
+    -- APR-2c:审批未生效时不作废任何东西 —— 而且【必须早退】:approval_level_for 会在
+    -- 阈值未配置时抛 APPROVAL_THRESHOLD_NOT_SET,那会让"改一下金额"在一个审批根本
+    -- 没开的库里失败。
+    IF NOT approvals_enabled() THEN
+        RETURN NEW;
+    END IF;
     IF NEW.approval_status <> 'approved' THEN
         RETURN NEW;
     END IF;

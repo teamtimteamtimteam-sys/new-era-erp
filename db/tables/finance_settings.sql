@@ -50,7 +50,11 @@ CREATE TABLE public.finance_settings (
     approval_level1_role_code text REFERENCES public.roles (code),
     approval_threshold_base   numeric CHECK (approval_threshold_base IS NULL
                                              OR approval_threshold_base > 0),
-    approval_level2_user_id   uuid
+    approval_level2_user_id   uuid,
+    -- APR-2c:审批流是否生效。【默认 false 是有意的】—— 四眼规则在只有一个人类
+    -- 账号的系统里无法运转,而"没配就拒绝"会把采购整个停掉;空配置与不能用的
+    -- 系统是同一个结果。三态见 db/migrations/2026-08-09-apr2c-*.sql 的文件头。
+    approvals_enabled boolean NOT NULL DEFAULT false
 );
 
 INSERT INTO public.finance_settings (id, locked_before) VALUES (true, NULL);
@@ -101,3 +105,6 @@ COMMENT ON COLUMN public.finance_settings.approval_threshold_base IS
 
 COMMENT ON COLUMN public.finance_settings.approval_level2_user_id IS
     '阈值以上的审批人 —— 【一个具体的人】,不是角色(APR-2 决定 2:一个只有一名成员的角色是在权限矩阵里放一个虚构的席位)。正因为它是人,委托(delegation)才成为必需而不是可选 —— 见 docs/approvals-scoping.md §8。空 = 未配置,需要二级时拒绝路由。';
+
+COMMENT ON COLUMN public.finance_settings.approvals_enabled IS
+    '审批流是否生效(APR-2c)。【默认 false,这是有意的】:四眼规则在只有一个人类账号的系统里无法运转,而"没配就拒绝"会把采购整个停掉 —— 空配置与不能用的系统是同一个结果。三种状态:off = 审批有意不生效,采购单直接建成 confirmed/approved 且【界面明说】;on 但策略为空 = 拒绝路由(启用却无策略是配置错误);on 且策略齐备 = 引擎照常跑。打开它的前置条件写在 docs/fresh-install-checklist.md:至少两个人类账号,且持 finance 的人不是提单人。';

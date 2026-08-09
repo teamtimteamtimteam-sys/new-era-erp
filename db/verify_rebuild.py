@@ -330,6 +330,12 @@ DEFINER_UNCHECKED_EXEC_ALLOWED: dict = {
         "resolves the CALLER's own permission set; returns an empty array for anon",
     "current_user_employee":
         "resolves the CALLER's own employee row; returns NULL for anon",
+    # APR-2c:审批是否生效。【必须是 definer,且必须留给 authenticated】——
+    # finance_settings 的读策略要 module.finance.view,而需要知道这个标志的是
+    # 【采购】那几块屏幕(procurement 没有财务权限)。界面有义务把"审批未生效"
+    # 说出来,悄悄放行才是缺陷。吐露的只有这一个布尔量,而它本来就该印在屏幕上。
+    "approvals_enabled":
+        "one boolean the UI is required to display, on screens outside finance",
 }
 
 CALLER_CHECK_RE = ("require_permission\\(|has_permission\\(|current_user_employee\\("
