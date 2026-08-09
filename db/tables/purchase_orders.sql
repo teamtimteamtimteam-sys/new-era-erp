@@ -92,3 +92,14 @@ CREATE POLICY "purchase_orders delete by permission"
 REVOKE SELECT ON public.purchase_orders FROM authenticated, anon;
 GRANT SELECT (id, code, supplier_id, order_date, expected_delivery_date, currency, status, approval_status, approved_at, approved_by, incoterm, terms_text, notes, closed_at, cancelled_at, cancel_reason, deleted_at, created_at, created_by, updated_at, updated_by)
     ON public.purchase_orders TO authenticated;
+
+-- APR-2 决定 4:金额被改到需要更高一级审批时,原审批作废并重新路由。
+-- 【今天没有任何真实路径能触发它】—— 采购单与明细没有修改入口(见
+-- docs/approvals-scoping.md 的 A 部分)。规则挂在金额本身上,等修改功能建出来时
+-- 它已经在那儿了。函数体在 db/functions/void_approval_on_amount_increase.sql。
+CREATE TRIGGER trg_purchase_orders_void_approval
+    BEFORE UPDATE OF estimated_total_ccy, fx_rate ON public.purchase_orders
+    FOR EACH ROW
+    WHEN (NEW.estimated_total_ccy IS DISTINCT FROM OLD.estimated_total_ccy
+          OR NEW.fx_rate IS DISTINCT FROM OLD.fx_rate)
+    EXECUTE FUNCTION public.void_approval_on_amount_increase();

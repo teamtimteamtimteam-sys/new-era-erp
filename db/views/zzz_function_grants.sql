@@ -48,3 +48,9 @@ REVOKE EXECUTE ON FUNCTION public.committed_terms_price(uuid, date) FROM authent
 -- 以属主身份被调用,而那五个各自已经把过关了。给了 authenticated 就等于任何登录用户
 -- 都能伪造一行留痕,而留痕正是"不可伪造"才有意义的东西。
 REVOKE EXECUTE ON FUNCTION public.record_approval_decision(text, uuid, text, smallint, text) FROM authenticated;
+-- APR-2:审批引擎的两个内层算子。approval_level_for 读的是 finance_settings 上的阈值,
+-- require_approver_for 是"你能不能批这一级"的判词本身 —— 两个都没有调用者检查,
+-- 靠的就是调不到。公开入口是 approve_purchase_order / reject_purchase_order,
+-- 它们各自 require_permission。给了 authenticated 就等于把阈值和授权判断敞开。
+REVOKE EXECUTE ON FUNCTION public.approval_level_for(numeric) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.require_approver_for(smallint) FROM authenticated;

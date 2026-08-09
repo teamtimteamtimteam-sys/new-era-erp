@@ -43,7 +43,14 @@ CREATE TABLE public.finance_settings (
     -- 操作员在设置页上看得见、改得动,与 processing_runs 上那个已被删掉的 schema
     -- 默认值的区别就在这里(FIN-35 的判别法:看得见的默认值不是假设)。
     default_allocation_basis text NOT NULL DEFAULT 'metal_value'
-        CHECK (default_allocation_basis IN ('weight','metal_value'))
+        CHECK (default_allocation_basis IN ('weight','metal_value')),
+    -- ── APR-2:审批策略。三个值【全部可空,空 = 引擎拒绝路由】────────────────
+    -- A1(一级角色)与 A2(阈值)是 Tim 的决定,不是代码的 —— 候选、含义与线上
+    -- 金额分布的证据见 docs/approvals-scoping.md。没设好的管控不等于可以跳过管控。
+    approval_level1_role_code text REFERENCES public.roles (code),
+    approval_threshold_base   numeric CHECK (approval_threshold_base IS NULL
+                                             OR approval_threshold_base > 0),
+    approval_level2_user_id   uuid
 );
 
 INSERT INTO public.finance_settings (id, locked_before) VALUES (true, NULL);
@@ -85,3 +92,12 @@ COMMENT ON COLUMN public.finance_settings.first_fy_end IS
 
 COMMENT ON COLUMN public.finance_settings.default_allocation_basis IS
     '新建加工单时表单【预选】的分摊基准(FIN-36)。这是一个 RUNTIME CONFIG:操作员在设置页上看得见、改得动 —— 与 processing_runs 上那个已被删掉的 schema 默认值的区别就在这里,后者谁也看不见。真正记录"这一单用了什么"的仍然是 processing_runs.allocation_basis,由表单显式送上来。';
+
+COMMENT ON COLUMN public.finance_settings.approval_level1_role_code IS
+    '一级审批人的角色码(APR-2 决定 1:按角色路由)。【空 = 未配置,引擎拒绝路由】而不是退回某个默认角色 —— 候选与各自的含义见 docs/approvals-scoping.md §A1,那是 Tim 的决定。注意 procurement 是【提单】的角色,不能同时当审批人。';
+
+COMMENT ON COLUMN public.finance_settings.approval_threshold_base IS
+    '二级审批的门槛,以【本位币】计(_base 后缀是本仓库表达币种的既定写法,同 amount_base/total_base)。达到或超过它就要具名审批人批。【空 = 未配置,引擎拒绝路由】—— 与 SYSTEM_START_NOT_SET 同一条规矩:没设好的管控不等于可以跳过管控。取值的证据(线上采购与进料的实际金额分布对 10k/25k/50k 的命中率)见 docs/approvals-scoping.md §A2。';
+
+COMMENT ON COLUMN public.finance_settings.approval_level2_user_id IS
+    '阈值以上的审批人 —— 【一个具体的人】,不是角色(APR-2 决定 2:一个只有一名成员的角色是在权限矩阵里放一个虚构的席位)。正因为它是人,委托(delegation)才成为必需而不是可选 —— 见 docs/approvals-scoping.md §8。空 = 未配置,需要二级时拒绝路由。';

@@ -58,7 +58,11 @@ CREATE TABLE public.approval_log (
     -- 三张既有采购单就是这样来的,回填时用的正是这个值(见文件尾)。
     decision            text NOT NULL CHECK (decision IN (
                             'submitted', 'approved', 'rejected',
-                            'acknowledged', 'countersigned', 'auto_approved')),
+                            'acknowledged', 'countersigned', 'auto_approved',
+                            -- APR-2:金额被改到越过阈值 → 原审批作废(决定 4)。
+                            -- 不是谁做的决定,是系统事件 —— 但必须看得见,否则
+                            -- "批过又没批"在日志里读不出来(同 auto_approved 的性质)。
+                            'approval_voided')),
     -- 1 = 主管,2 = 阈值以上的具名审批人。HR 三条链现在没有层级 → NULL。
     level               smallint CHECK (level IS NULL OR level IN (1, 2)),
     -- 决定人。auth.uid();回填行为 NULL(见 is_reconstructed)。

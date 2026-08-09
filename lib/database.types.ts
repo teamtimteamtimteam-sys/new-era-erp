@@ -1386,6 +1386,9 @@ export type Database = {
       }
       finance_settings: {
         Row: {
+          approval_level1_role_code: string | null
+          approval_level2_user_id: string | null
+          approval_threshold_base: number | null
           default_allocation_basis: string
           first_fy_end: string | null
           fy_end_day: number
@@ -1400,6 +1403,9 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          approval_level1_role_code?: string | null
+          approval_level2_user_id?: string | null
+          approval_threshold_base?: number | null
           default_allocation_basis?: string
           first_fy_end?: string | null
           fy_end_day?: number
@@ -1414,6 +1420,9 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          approval_level1_role_code?: string | null
+          approval_level2_user_id?: string | null
+          approval_threshold_base?: number | null
           default_allocation_basis?: string
           first_fy_end?: string | null
           fy_end_day?: number
@@ -1427,7 +1436,15 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "finance_settings_approval_level1_role_code_fkey"
+            columns: ["approval_level1_role_code"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       fixed_asset_depreciation: {
         Row: {
@@ -9749,6 +9766,11 @@ export type Database = {
         }
         Returns: Json
       }
+      approval_level_for: { Args: { p_amount_base: number }; Returns: number }
+      approve_purchase_order: {
+        Args: { p_note?: string; p_po_id: string }
+        Returns: Json
+      }
       approve_review: { Args: { p_review_id: string }; Returns: Json }
       available_annual_accrual: {
         Args: { p_as_of?: string; p_employee_id: string }
@@ -10162,6 +10184,10 @@ export type Database = {
         }
         Returns: Json
       }
+      reject_purchase_order: {
+        Args: { p_po_id: string; p_reason: string }
+        Returns: Json
+      }
       relieve_processing_accruals: {
         Args: {
           p_actual_amount: number
@@ -10219,6 +10245,7 @@ export type Database = {
         }
         Returns: Json
       }
+      require_approver_for: { Args: { p_level: number }; Returns: undefined }
       require_permission: { Args: { p_code: string }; Returns: undefined }
       require_reviewer_of: {
         Args: { p_allowed_status: string[]; p_review_id: string }

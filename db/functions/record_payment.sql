@@ -1,19 +1,3 @@
--- FIN-10(2026-08-05):日期不再有 CURRENT_DATE 默认值 —— 缺了就抛具名错误。
--- 默认成今天永远撞不上 PERIOD_LOCKED,于是留空反而比填对更容易过关,
--- 这条路径专门奖励留空。要求由函数自己声明,而不是靠调用方自觉。
--- 详见 db/migrations/2026-08-05-fin10-no-default-posting-dates.sql。
---
--- FIN-16(2026-08-05):单据可以用【别的币种】结清。核销额仍以单据币种计(FIN-2
--- 对的那一半,单据据此归零);消耗多少付款由结算日两个币种的牌价折出。
--- 控制科目行按单据币种【逐币种】发行 —— 一笔付款可同时结掉 USD 单与 SGD 单。
--- 原 ALLOC_CURRENCY_MISMATCH 已删:那不是护栏,是缺功能。理由见迁移文件头。
--- FIN-17 更正:预付的 1.5 倍上限【不需要折算】(两边同为单据币种);需要折算的是
--- ALLOC_EXCEEDS_PAYMENT。FIN-16 在那里写过一段相反的注释,已改。
--- FIN-18(2026-08-05):核销行落库时带上 allocated_pay ——【这条核销消耗了多少
--- 付款额】。它只有这里算得出:等式里的 rate(单据币种, 结算日) 不在任何已存列上,
--- allocated_base ÷ payments.fx_rate 也换不回来(那是单据入账汇率,差额是 7100)。
--- 返回值里两个跨币种求和的字段(allocated_total / prepaid_total)同时撤掉。
-
 CREATE OR REPLACE FUNCTION public.record_payment(p_direction text, p_counterparty_id uuid, p_amount numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_bank_account text DEFAULT NULL::text, p_payment_date date DEFAULT NULL::date, p_notes text DEFAULT NULL::text, p_allocations jsonb DEFAULT '[]'::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -202,7 +186,8 @@ BEGIN
             -- 唯一的栏杆是"累计预付不得超过估算总额 × 1.5",防手滑多打一个零。
             SELECT po.id, po.code AS doc_code, po.supplier_id AS party_id,
                    po.estimated_total_ccy, po.status AS po_status,
-                   po.currency AS doc_ccy, po.fx_rate AS doc_fx
+                   po.currency AS doc_ccy, po.fx_rate AS doc_fx,
+                   po.approval_status AS po_approval
             INTO v_doc
             FROM purchase_orders po
             WHERE po.id = v_po_id AND po.deleted_at IS NULL;
@@ -211,6 +196,10 @@ BEGIN
             END IF;
             IF v_doc.po_status = 'cancelled' THEN
                 RAISE EXCEPTION 'ALLOC_INVALID|%', v_doc.doc_code;
+            END IF;
+            -- APR-2:未获批的采购单不能收预付款
+            IF v_doc.po_approval <> 'approved' THEN
+                RAISE EXCEPTION 'PO_NOT_APPROVED|%|%', v_doc.doc_code, v_doc.po_approval;
             END IF;
             IF v_doc.party_id IS DISTINCT FROM p_counterparty_id THEN
                 RAISE EXCEPTION 'ALLOC_WRONG_PARTY|%', v_doc.doc_code;

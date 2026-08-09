@@ -120,9 +120,14 @@ BEGIN
     IF TG_OP = 'UPDATE' AND NEW.purchase_order_id IS NOT DISTINCT FROM OLD.purchase_order_id THEN
         RETURN NEW;
     END IF;
-    SELECT code, status INTO v_po FROM purchase_orders WHERE id = NEW.purchase_order_id;
+    SELECT code, status, approval_status INTO v_po FROM purchase_orders WHERE id = NEW.purchase_order_id;
     IF FOUND AND v_po.status IN ('cancelled', 'closed') THEN
         RAISE EXCEPTION 'PO_NOT_RECEIVABLE|%|%', v_po.code, v_po.status;
+    END IF;
+    -- APR-2:【未获批的采购单不能收货】。这是审批从"状态列"变成"管控"的那一步:
+    -- 收货走的是裸 INSERT,没有 RPC,所以这个触发器就是唯一的咽喉。
+    IF FOUND AND v_po.approval_status <> 'approved' THEN
+        RAISE EXCEPTION 'PO_NOT_APPROVED|%|%', v_po.code, v_po.approval_status;
     END IF;
     RETURN NEW;
 END;

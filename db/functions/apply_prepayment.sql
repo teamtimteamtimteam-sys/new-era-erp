@@ -18,7 +18,7 @@ DECLARE
     v_je        jsonb;
 BEGIN
     PERFORM require_permission('module.finance.edit');
-    SELECT po.id, po.code, po.supplier_id, po.status
+    SELECT po.id, po.code, po.supplier_id, po.status, po.approval_status
     INTO v_po
     FROM purchase_orders po
     WHERE po.id = p_purchase_order_id AND po.deleted_at IS NULL;
@@ -27,6 +27,10 @@ BEGIN
     END IF;
     IF v_po.status = 'cancelled' THEN
         RAISE EXCEPTION 'PO_CANCELLED|%', v_po.code;
+    END IF;
+    -- APR-2:未获批的采购单不能动钱
+    IF v_po.approval_status <> 'approved' THEN
+        RAISE EXCEPTION 'PO_NOT_APPROVED|%|%', v_po.code, v_po.approval_status;
     END IF;
 
     SELECT ib.id, ib.code, ib.supplier_id, ib.quantity, ib.unit_price

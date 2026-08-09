@@ -459,3 +459,166 @@ with `ORDER BY x` under the scratch cluster's collation (`C`, from `--no-locale`
 is_reconstructed ...`) and a lowercase-leading (`amount_ccy ...`) CHECK, so it was the first to make
 two structurally identical tables compare unequal. Fixed to `ORDER BY x COLLATE "C"`; fault-injected
 afterwards to confirm a genuine constraint difference is still caught and named.
+
+---
+
+# APR-2 — Part A: reported before building
+
+## A1 · Which role approves at level 1? — **DECISION, not picked. The engine reads it from config.**
+
+Routing is by role (decision 1), so a role must be named. `module.purchasing.edit` is held by
+`admin`, `finance`, `gm` and `procurement` — and **`procurement` is the role that raises POs**, so it
+cannot also be the approver without defeating the point.
+
+| candidate | what it implies |
+|---|---|
+| **`finance`** | **segregation of duties**: the party that pays approves the commitment. The classic pattern, and it puts the person who feels the cash-flow consequence in the loop. Against it: finance may have no view on whether the material is *needed*, so approval becomes a budget check rather than a purchasing judgement |
+| **`gm`** | closest to Doc 1's word, "supervisor". One person above the requester, judging the purchase on its merits. Against it: at fifteen people `gm` may be Tim, which collapses level 1 into level 2 and makes the two-level design decorative |
+| **`admin`** | wrong on principle, for the same reason as §3: `admin` is system administration, not commercial authority |
+| **a new `approver` role** | avoids overloading an existing seat, at the cost of another row in the matrix that must be granted to somebody real |
+
+**How this is built without picking:** `finance_settings.approval_level1_role_code` is **NULL** and the
+engine **refuses to route** until it is set — `APPROVAL_LEVEL1_ROLE_NOT_SET`. Same discipline as A2's
+threshold: *an unset control is not permission to skip the control.*
+
+## A2 · The threshold — the evidence, no proposal
+
+Doc 1 says 10k, written before the scale was known. **Live purchase orders** (base currency, using
+each document's own stored rate):
+
+| order | document | base |
+|---|---|---|
+| PO-2026-0001 | USD 120,000 | 120,000.00 |
+| PO-2026-0002 | USD 1,215 | 1,530.90 |
+| PO-2026-0003 | USD 5,600 | 7,056.00 |
+
+Three orders is too thin to choose on, so the better proxy is **what has actually been bought** —
+the nine priced inbound batches, base currency:
+
+```
+2,041.20  2,069.12  2,100.00  7,104.00  10,000.00  13,300.00  30,000.00  40,000.00  48,000.00
+```
+
+| threshold | purchases at or above it | share |
+|---|---|---|
+| **10,000** | 5 of 9 | **56%** |
+| **25,000** | 3 of 9 | 33% |
+| **50,000** | 0 of 9 | 0% |
+
+**Reading it:** at 10k, *the majority of material purchases* route to level 2 — which is the concern
+in the prompt, and it is real rather than hypothetical. At 50k nothing routes to level 2 at all on
+current data, so the second level would exist without ever being exercised. 25k puts a third of
+purchases through the named approver.
+
+Note the shape of the spend: the three cheapest purchases are ~2k consumables and the rest jump
+straight to 7k–48k. **There is no dense middle**, so the threshold is not finely sensitive — anything
+between roughly 14k and 29k gives the same 3-of-9 answer. That is worth knowing before agonising
+over the number.
+
+**Until it is set, the engine refuses**: `finance_settings.approval_threshold_base` is NULL and
+routing raises `APPROVAL_THRESHOLD_NOT_SET`. Same shape as `SYSTEM_START_NOT_SET`.
+
+## A3 · The draft state — a shape change, not a correction
+
+Today `create_purchase_order` writes `status='confirmed'` and `approval_status='approved'`
+unconditionally. `'draft'` is a legal value of the CHECK that **nothing has ever written**. So an
+order is born confirmed and approved, and there is nowhere for "requester raises" to live.
+
+**What the machine has to become:**
+
+```
+create_purchase_order  ->  status='draft'      approval_status='pending'   [log: submitted]
+approve_purchase_order ->  status='confirmed'  approval_status='approved'  [log: approved, level]
+reject_purchase_order  ->  status stays draft  approval_status='rejected'  [log: rejected]
+first receipt          ->  status='receiving'   (advance_po_on_receipt, unchanged)
+close / cancel / reopen                          (unchanged)
+```
+
+`advance_po_on_receipt` already keys on `status='confirmed'`, so it keeps working with no change —
+the new `draft` state simply sits in front of it.
+
+**The three existing rows are left alone.** They are `closed`, `receiving` and `receiving`, all
+`approved` — and they are *genuinely* confirmed: goods were received against two of them and one is
+closed. Rewriting them to `draft/pending` would assert that real, completed purchases are awaiting
+approval. APR-1 already logged them as `auto_approved / is_reconstructed`, which is the honest
+record of what happened.
+
+## A4 · What approval actually gates — the question that decides control vs decoration
+
+Three candidates, and they are not equally available:
+
+| what | where the block sits | status |
+|---|---|---|
+| **Receiving against the order** | `guard_inbound_po_receivable` — a **BEFORE INSERT trigger that already exists** on `inbound_batches` and already refuses `cancelled`/`closed` orders | **GATED** — one predicate added, named `PO_NOT_APPROVED` |
+| **Prepaying the order** | `apply_prepayment` and `record_payment`'s PO branch — both already load the PO and both already refuse `cancelled` | **GATED** — same predicate, same name |
+| **Sending it to the supplier** | — | **NOTHING TO GATE: the action does not exist.** There is no PDF, no email, no export, no "issue" step anywhere in `app/purchasing`. The order is communicated to the supplier outside the system, which is precisely what Doc 1 complains about ("chasing for manual approvals and signatures") |
+
+**The receiving gate is the one that matters**, and it needed checking rather than assuming:
+**receiving is a plain `INSERT INTO inbound_batches` from the app — there is no RPC.** Had the
+existing `guard_inbound_po_receivable` trigger not been there, this cut would have had to build a
+chokepoint first, exactly as the scoping doc warned for price changes. It is there, so the gate is a
+one-line extension of a guard that already has the right shape.
+
+**Without these two, approval would be a status column with a nice screen.** With them, an
+unapproved order cannot take delivery and cannot take money — which is the whole of what a purchase
+order can do.
+
+## Amendment does not exist — reported, as suspected
+
+There is **no update path for a purchase order or its lines anywhere**: no RPC, no server action, no
+form. `app/purchasing/orders/[id]/` offers cancel, close and reopen only. Doc 1 wants change
+management with versioning; what exists is create-and-cancel.
+
+So the "amendment past the threshold voids the approval" rule **cannot be triggered by any real path
+today**. It is still built here — as a trigger on the amount, not as a hook in a non-existent edit
+function — so that whoever builds amendment inherits the rule rather than having to remember it. The
+fixture exercises it with a direct `UPDATE`, which is honest about what it is testing.
+
+---
+
+# APR-2 — Part C: reported, not folded in
+
+## Delegation — **next cut, not this one, and the reason is that it is currently unreachable**
+
+Decision 2 said naming a person forces delegation to exist, and that stands. But the condition that
+makes it *urgent* is not met yet:
+
+* `finance_settings.approval_level2_user_id` is **NULL** — no level-2 approver is configured, so
+  level 2 currently refuses for everyone rather than blocking on one person's availability.
+* There is **one human user** on the system. Delegation from Tim to Tim is not a workflow.
+* Level 2 only engages above a threshold that is **also unset**. Until A2 is answered, no order
+  routes to level 2 at all.
+
+**So the failure delegation prevents — "Tim is on a plane and every large purchase stops" — cannot
+happen until the threshold and the level-2 user are both configured AND a second person exists.**
+Building it now would be building against a shape (who else can act for Tim) that the org chart
+cannot yet express: recall §2's measurement — 1 employee row, 0 with `user_id`, 14 login accounts.
+
+**The trigger to build it is explicit, so it is not left to memory:** *the day
+`approval_level2_user_id` is set to a real person, delegation belongs in the very next cut.* Written
+here rather than in a commit message because a commit message cannot be re-read by the person who
+sets that column.
+
+**What it must not do**, carried forward from §8 so the next cut does not re-derive it: record
+"approved by B **as delegate of A**" rather than "approved by B", and never launder the four-eyes
+rule — A raising and delegating to B is fine; A approving as B's delegate is not.
+
+## The four-eyes rule on leave and medical claims — **next cut, and now it is unblocked**
+
+A `module.hr.edit` holder can still submit a leave request on someone's behalf and approve it in the
+same session. APR-1 deferred this because *forbidding self-approval needs somewhere for the HR
+person's own leave to go*.
+
+**That blocker is now removed in principle**: a level-2 named approver exists as a mechanism. But it
+is removed in principle only — the column is NULL, so routing an HR person's own leave to the
+level-2 approver would refuse today.
+
+**Read: next cut, together with whatever configures the policy values.** Doing it here would mean
+either shipping a rule that refuses in a system with one user, or wiring HR into the purchase-order
+engine — and decision 5 says HR keeps its own engines. The honest sequencing is: Tim sets the three
+policy values, delegation follows because level 2 becomes a real person, and HR four-eyes follows
+because it can then route somewhere. All three are gated on the same decision.
+
+**Cheap and worth doing in that cut, noted so it is not lost:** `approve_review` already has
+`SELF_APPROVAL_FORBIDDEN` and `decide_leave_request` / `decide_medical_claim` do not. The rule is
+three lines each; what it needs is the escape hatch, not the check.

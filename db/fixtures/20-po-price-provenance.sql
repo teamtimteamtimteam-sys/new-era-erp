@@ -62,6 +62,13 @@ BEGIN
             'price_source', 'computed', 'price_provenance', v_prov)),
         NULL);
 
+    -- APR-2:采购单现在【生为 draft/pending】,而未获批的单收不了货。本 fixture 测的
+    -- 不是审批流,所以直接把它置成已批 —— 与 fixture 26/30 为 fx_rate 显式给值同一
+    -- 性质:把新增的前置条件明写出来,而不是让它悄悄挡住别的断言。
+    -- (审批流本身由 db/fixtures/35 覆盖。)
+    UPDATE purchase_orders SET approval_status = 'approved', status = 'confirmed'
+     WHERE id = (v_po->>'purchase_order_id')::uuid;
+
     SELECT * INTO v_line FROM purchase_order_lines
     WHERE purchase_order_id = (v_po->>'purchase_order_id')::uuid AND line_no = 1;
     IF v_line.price_source IS DISTINCT FROM 'computed' OR v_line.price_provenance IS NULL THEN
@@ -94,6 +101,13 @@ BEGIN
             'expected_assay', jsonb_build_array(jsonb_build_object('metal','ni','content_pct',25)),
             'price_source', 'manual')),
         NULL);
+
+    -- APR-2:采购单现在【生为 draft/pending】,而未获批的单收不了货。本 fixture 测的
+    -- 不是审批流,所以直接把它置成已批 —— 与 fixture 26/30 为 fx_rate 显式给值同一
+    -- 性质:把新增的前置条件明写出来,而不是让它悄悄挡住别的断言。
+    -- (审批流本身由 db/fixtures/35 覆盖。)
+    UPDATE purchase_orders SET approval_status = 'approved', status = 'confirmed'
+     WHERE id = (v_po->>'purchase_order_id')::uuid;
     SELECT * INTO v_line FROM purchase_order_lines
     WHERE purchase_order_id = (v_po->>'purchase_order_id')::uuid AND line_no = 1;
     IF v_line.price_source IS DISTINCT FROM 'manual' OR v_line.price_provenance IS NOT NULL THEN
@@ -106,6 +120,13 @@ BEGIN
             'line_no', 1, 'material_id', v_mat, 'quantity', 10, 'unit', 'kg',
             'estimated_unit_price', 5)),
         NULL);
+
+    -- APR-2:采购单现在【生为 draft/pending】,而未获批的单收不了货。本 fixture 测的
+    -- 不是审批流,所以直接把它置成已批 —— 与 fixture 26/30 为 fx_rate 显式给值同一
+    -- 性质:把新增的前置条件明写出来,而不是让它悄悄挡住别的断言。
+    -- (审批流本身由 db/fixtures/35 覆盖。)
+    UPDATE purchase_orders SET approval_status = 'approved', status = 'confirmed'
+     WHERE id = (v_po->>'purchase_order_id')::uuid;
     SELECT * INTO v_line FROM purchase_order_lines
     WHERE purchase_order_id = (v_po->>'purchase_order_id')::uuid AND line_no = 1;
     IF v_line.price_source IS NOT NULL OR v_line.price_provenance IS NOT NULL THEN

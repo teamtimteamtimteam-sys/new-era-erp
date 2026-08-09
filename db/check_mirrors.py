@@ -155,6 +155,10 @@ DEFINER_NO_CHECK_ALLOWED = {
     # 各自已把过关的 HR 决定函数体内以属主身份被调用。给了 authenticated 就等于
     # 任何登录用户都能伪造一行留痕。
     "record_approval_decision": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    # APR-2:审批引擎的内层算子。同上 —— 靠"调不到"而非"查调用者";
+    # 公开入口 approve_purchase_order / reject_purchase_order 各自 require_permission。
+    "approval_level_for": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "require_approver_for": "EXECUTE revoked from PUBLIC/authenticated/anon",
 }
 
 CHECK_PATTERNS = ("require_permission(", "has_permission(", "current_user_employee(",

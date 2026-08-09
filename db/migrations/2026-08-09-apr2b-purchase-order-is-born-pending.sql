@@ -1,3 +1,18 @@
+-- APR-2b:采购单【生为 pending】,并在提单时留痕
+--
+-- APR-2 的迁移里这一半没跟上:status 改成了 draft,approval_status 却还盖着
+-- 'approved', now(), v_user —— 于是新单仍然一出生就获批,而 draft 只是个空壳。
+-- 后果被 fixture 立刻顶出来:金额作废触发器在建单过程中就跑起来(那时
+-- approval_status 已经是 approved),对着没配阈值的库抛 APPROVAL_THRESHOLD_NOT_SET,
+-- 四个既有 fixture 一起红。
+--
+-- 【提单即留痕】同时补上:submitted 那一行此前也漏了,级别留空 —— 级别是审批当时
+-- 按金额算出来的,提单时算出来存下就是一个会过期的副本。
+--
+-- NOTE: apply with ./db/apply_migration.sh
+
+BEGIN;
+
 CREATE OR REPLACE FUNCTION public.create_purchase_order(p_supplier_id uuid, p_order_date date, p_expected_delivery date, p_currency text, p_fx_rate numeric, p_incoterm text, p_terms_text text, p_notes text, p_lines jsonb, p_payment_terms jsonb DEFAULT '[]'::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -187,3 +202,5 @@ BEGIN
     );
 END;
 $function$;
+
+COMMIT;

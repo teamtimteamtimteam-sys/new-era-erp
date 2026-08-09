@@ -46,10 +46,24 @@ BEGIN
     v_po_usd := create_purchase_order(v_sup, v_today, NULL, 'USD', NULL, NULL, NULL, NULL,
         jsonb_build_array(jsonb_build_object('line_no', 1, 'material_id', v_mat,
             'quantity', 100, 'unit', 'kg', 'estimated_unit_price', 5)), NULL);
+
+    -- APR-2:采购单现在【生为 draft/pending】,而未获批的单收不了货。本 fixture 测的
+    -- 不是审批流,所以直接把它置成已批 —— 与 fixture 26/30 为 fx_rate 显式给值同一
+    -- 性质:把新增的前置条件明写出来,而不是让它悄悄挡住别的断言。
+    -- (审批流本身由 db/fixtures/35 覆盖。)
+    UPDATE purchase_orders SET approval_status = 'approved', status = 'confirmed'
+     WHERE id = (v_po_usd->>'purchase_order_id')::uuid;
     v_po_usd_id := (v_po_usd->>'purchase_order_id')::uuid;
     v_po_sgd := create_purchase_order(v_sup, v_today, NULL, 'SGD', NULL, NULL, NULL, NULL,
         jsonb_build_array(jsonb_build_object('line_no', 1, 'material_id', v_mat,
             'quantity', 100, 'unit', 'kg', 'estimated_unit_price', 5)), NULL);
+
+    -- APR-2:采购单现在【生为 draft/pending】,而未获批的单收不了货。本 fixture 测的
+    -- 不是审批流,所以直接把它置成已批 —— 与 fixture 26/30 为 fx_rate 显式给值同一
+    -- 性质:把新增的前置条件明写出来,而不是让它悄悄挡住别的断言。
+    -- (审批流本身由 db/fixtures/35 覆盖。)
+    UPDATE purchase_orders SET approval_status = 'approved', status = 'confirmed'
+     WHERE id = (v_po_sgd->>'purchase_order_id')::uuid;
     v_po_sgd_id := (v_po_sgd->>'purchase_order_id')::uuid;
 
     -- ════════ A. 同币种:定额原样抄过去 ══════════════════════════════════════
