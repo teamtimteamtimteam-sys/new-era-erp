@@ -23,19 +23,29 @@ import { mustCount, mustRows } from '@/lib/db-helpers'
 // 【规矩三:每个信号都过 mustRows/mustCount】/finance/month-end 的先例:七个信号
 // 原本全是 `?? []`,任何一次查询失败都渲染成"已完成"。仪表盘是同一风险乘以牌数。
 //
+// 【支的清单是规格,不是这里的实现细节】docs/dashboard-arm-inventory.md 写着每一支
+// 是什么意思、挂哪个权限码、界在哪里,以及【哪些支被考虑过又被排除、为什么】。
+// 加一块牌子 = 同时改那份清单、db/views/operations_now.sql 与下面的 TILES —— 三处
+// 的 permission 必须同码(视图按它裁决缺席,本页按它裁决「受限」,fixture 30 钉住)。
 // 【批次毛利不在这里】设计未决(哪些限定词随数字走、已过账 COGS 还是当前成本),
 // 自成一切;谓词已录在 AGENTS.md 常设决定 2。下面 TILES 就是给它留的位置。
 
 // 牌子清单:itemType 对应 operations_now 的支;permission 与视图里那一支声明的
 // 权限码【同码】(视图按它裁决缺席,本页按它裁决「受限」—— 两边必须一致)。
 const TILES = [
+    { itemType: 'awaiting_assay', permission: 'module.inbound.view', href: '/inbound' },
     { itemType: 'assay_unapplied', permission: 'module.inbound.view', href: '/inbound' },
+    { itemType: 'batch_unpriced', permission: 'module.inbound.view', href: '/inbound' },
     { itemType: 'allocation_stale', permission: 'module.processing.view', href: '/processing' },
     { itemType: 'po_awaiting_receipt', permission: 'module.purchasing.view', href: '/purchasing/orders' },
     { itemType: 'stocktake_open', permission: 'module.stocktakes.view', href: '/stocktakes' },
+    { itemType: 'output_unsold_aging', permission: 'module.output.view', href: '/output' },
     { itemType: 'leave_pending', permission: 'module.hr.view', href: '/hr/leave' },
     { itemType: 'claim_pending', permission: 'module.hr.view', href: '/hr/claims' },
     { itemType: 'review_submitted', permission: 'module.hr.view', href: '/hr/reviews' },
+    { itemType: 'invoice_overdue', permission: 'module.finance.view', href: '/finance/invoices' },
+    { itemType: 'ar_over_90', permission: 'module.finance.view', href: '/finance/receivables' },
+    { itemType: 'ap_over_90', permission: 'module.finance.view', href: '/finance/payables' },
     { itemType: 'fx_rate_gap', permission: 'module.finance.view', href: '/finance/fx' },
     { itemType: 'bank_unmatched', permission: 'module.finance.view', href: '/finance/bank' },
 ] as const

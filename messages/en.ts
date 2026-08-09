@@ -68,7 +68,13 @@ const en = {
     dashboard: {
         sectionNow: 'Waiting now',
         item: {
+            awaiting_assay: 'Batches awaiting assay',
             assay_unapplied: 'Assays awaiting application',
+            batch_unpriced: 'Batches unpriced',
+            output_unsold_aging: 'Output unsold 60+ days',
+            invoice_overdue: 'Invoices overdue',
+            ar_over_90: 'Receivables over 90 days',
+            ap_over_90: 'Payables over 90 days',
             allocation_stale: 'Runs needing (re)allocation',
             po_awaiting_receipt: 'POs awaiting receipt',
             stocktake_open: 'Open stocktakes',

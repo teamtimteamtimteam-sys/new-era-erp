@@ -32,6 +32,16 @@
 -- /finance/month-end 是它们的枢纽,首页放一个入口,不复制信号。
 --
 -- NOTE: introduced by db/migrations/2026-08-09-ops18-operations-now-and-the-dashboard.sql.
+-- OPS-19(2026-08-09):补上原始定稿漏掉的四支(awaiting_assay / batch_unpriced /
+-- invoice_overdue / ar_over_90 + ap_over_90),并新增 output_unsold_aging —— sales
+-- 这一行唯一够得着的支(它没有 module.finance.view,当初猜的 AR 支对它同样是「受限」)。
+-- assay_unapplied 的粒度同时从"一份未执行化验一行"改成"一个批次一行",与
+-- awaiting_assay 同源同粒度、互斥;live 该支当时为 0,故不改变任何现有数字。
+--
+-- 【规格在 docs/dashboard-arm-inventory.md】每一支是什么意思、挂哪个权限码、界在
+-- 哪里、以及【哪些支被考虑过又被排除、为什么】都在那里。
+-- 定稿只存在于一次对话里,代价是四支 —— 所以规矩是:
+-- 【加一支 = 在同一个提交里往那份清单加一行】。
 
 CREATE VIEW public.operations_now WITH (security_invoker = off) AS
  SELECT item_type,
@@ -40,14 +50,32 @@ CREATE VIEW public.operations_now WITH (security_invoker = off) AS
     subject,
     item_date,
     CURRENT_DATE - item_date AS days_waiting
-   FROM ( SELECT 'assay_unapplied'::text AS item_type,
+   FROM ( SELECT 'awaiting_assay'::text AS item_type,
             'module.inbound.view'::text AS permission,
-            ib.code AS item_code,
-            ar.code AS subject,
-            ar.created_at::date AS item_date
-           FROM assay_results ar
-             JOIN inbound_batches ib ON ib.id = ar.inbound_batch_id
-          WHERE ar.applied_at IS NULL AND ar.deleted_at IS NULL AND ib.deleted_at IS NULL
+            b.batch_code AS item_code,
+            b.supplier_name AS subject,
+            COALESCE(ib.arrival_date, ib.created_at::date) AS item_date
+           FROM batch_assay_status b
+             JOIN inbound_batches ib ON ib.id = b.inbound_batch_id
+          WHERE b.assay_count = 0
+        UNION ALL
+         SELECT 'assay_unapplied'::text AS item_type,
+            'module.inbound.view'::text AS permission,
+            b.batch_code AS item_code,
+            b.latest_assay_code AS subject,
+            COALESCE(ib.arrival_date, ib.created_at::date) AS item_date
+           FROM batch_assay_status b
+             JOIN inbound_batches ib ON ib.id = b.inbound_batch_id
+          WHERE b.has_unapplied_assay
+        UNION ALL
+         SELECT 'batch_unpriced'::text AS item_type,
+            'module.inbound.view'::text AS permission,
+            b.batch_code AS item_code,
+            b.supplier_name AS subject,
+            COALESCE(ib.arrival_date, ib.created_at::date) AS item_date
+           FROM batch_assay_status b
+             JOIN inbound_batches ib ON ib.id = b.inbound_batch_id
+          WHERE b.pricing_status = 'unpriced'::text
         UNION ALL
          SELECT 'allocation_stale'::text AS item_type,
             'module.processing.view'::text AS permission,
@@ -72,6 +100,14 @@ CREATE VIEW public.operations_now WITH (security_invoker = off) AS
             st.started_at::date AS item_date
            FROM stocktakes st
           WHERE st.deleted_at IS NULL AND st.status = 'open'::text
+        UNION ALL
+         SELECT 'output_unsold_aging'::text AS item_type,
+            'module.output.view'::text AS permission,
+            ob.code AS item_code,
+            ob.state AS subject,
+            COALESCE(ob.output_date, ob.created_at::date) AS item_date
+           FROM output_batches ob
+          WHERE ob.deleted_at IS NULL AND ob.remaining_qty > 0::numeric AND (CURRENT_DATE - COALESCE(ob.output_date, ob.created_at::date)) >= 60
         UNION ALL
          SELECT 'leave_pending'::text AS item_type,
             'module.hr.view'::text AS permission,
@@ -99,6 +135,30 @@ CREATE VIEW public.operations_now WITH (security_invoker = off) AS
            FROM performance_reviews r
              JOIN employees e ON e.id = r.employee_id
           WHERE r.status = 'submitted'::text
+        UNION ALL
+         SELECT 'invoice_overdue'::text AS item_type,
+            'module.finance.view'::text AS permission,
+            i.code AS item_code,
+            i.customer_name AS subject,
+            i.due_date AS item_date
+           FROM invoice_status i
+          WHERE i.overdue
+        UNION ALL
+         SELECT 'ar_over_90'::text AS item_type,
+            'module.finance.view'::text AS permission,
+            ar.doc_code AS item_code,
+            ar.customer_name AS subject,
+            ar.sale_date AS item_date
+           FROM ar_open_items ar
+          WHERE ar.bucket = 'b90_plus'::text
+        UNION ALL
+         SELECT 'ap_over_90'::text AS item_type,
+            'module.finance.view'::text AS permission,
+            ap.doc_code AS item_code,
+            ap.supplier_name AS subject,
+            ap.doc_date AS item_date
+           FROM ap_open_items ap
+          WHERE ap.bucket = 'b90_plus'::text
         UNION ALL
          SELECT 'fx_rate_gap'::text AS item_type,
             'module.finance.view'::text AS permission,

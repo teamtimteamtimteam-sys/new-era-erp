@@ -1,6 +1,8 @@
 -- 30 operations_now:条件成立时那一支【有】这一行,解除后【没有】;
 --    只持一个模块的读者,恰好只看见那个模块的支
 --
+-- OPS-19:十五支。支的规格(含被排除的候选)在 docs/dashboard-arm-inventory.md。
+--
 -- 【为什么值得常设(OPS-18)】首页看板的每个数字都出自这张视图的一支。一支的条件
 -- 写错,屏幕上是一个像模像样的数字,不是错误 —— 少算的样子与"处理完了"一模一样,
 -- 多算的样子与"还有活"一模一样,两个方向都无声。所以每支都要两头断言:
@@ -24,12 +26,17 @@ DECLARE
     v_run uuid; v_po uuid; v_st uuid; v_emp1 uuid; v_emp2 uuid;
     v_lr uuid; v_mc uuid; v_pr uuid; v_bs uuid; v_bl uuid;
     v_je uuid;
+    v_ib2 uuid; v_ib3 uuid; v_ib4 uuid; v_ar3 uuid;
+    v_ob uuid; v_ob2 uuid; v_cust uuid; v_sr uuid; v_inv uuid;
     v_ccy text;
     v_types text[];
     v_n int;
-    v_expected text[] := ARRAY['allocation_stale','assay_unapplied','bank_unmatched',
-        'claim_pending','fx_rate_gap','leave_pending','po_awaiting_receipt',
-        'review_submitted','stocktake_open'];
+    v_expected text[] := ARRAY['allocation_stale','ap_over_90','ar_over_90',
+        'assay_unapplied','awaiting_assay','bank_unmatched','batch_unpriced',
+        'claim_pending','fx_rate_gap','invoice_overdue','leave_pending',
+        'output_unsold_aging','po_awaiting_receipt','review_submitted','stocktake_open'];
+    -- 只持 module.inbound.view 的读者应看见的三支(同源 batch_assay_status,互斥)
+    v_inbound_only text[] := ARRAY['assay_unapplied','awaiting_assay','batch_unpriced'];
 BEGIN
     SELECT code INTO v_ccy FROM currencies WHERE is_base;
     -- 成本条目会触发自动应计过账 —— 锁不能挡住 fixture 自己的日期(回滚,无副作用)
@@ -39,8 +46,13 @@ BEGIN
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-30-all', 'f', 'f', true) RETURNING id INTO r_all;
     INSERT INTO role_permissions (role_id, permission_code)
+    -- 【为什么带 data.view_prices】invoice_overdue / ar_over_90 / ap_over_90 三支的
+    -- 行【存在性】挂在被它遮蔽的金额列上(见 docs/dashboard-arm-inventory.md 的隐患一节):
+    -- 没有它,这三支会静默少报而不是显示「受限」。live 上任何持 finance 的角色都同时
+    -- 持它(常设决定 1),所以这里照着现实配。
     SELECT r_all, unnest(ARRAY['module.inbound.view','module.processing.view',
-        'module.purchasing.view','module.stocktakes.view','module.hr.view','module.finance.view']);
+        'module.purchasing.view','module.stocktakes.view','module.hr.view',
+        'module.output.view','module.finance.view','data.view_prices']);
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-30-inb', 'f', 'f', true) RETURNING id INTO r_inb;
     INSERT INTO role_permissions (role_id, permission_code) VALUES (r_inb, 'module.inbound.view');
@@ -109,7 +121,51 @@ BEGIN
     INSERT INTO bank_statement_lines (statement_id, line_no, line_date, amount)
     VALUES (v_bs, 1, '2027-05-05', 10) RETURNING id INTO v_bl;
 
-    -- ══════════ A. 条件成立:九支【每支都在】════════════════════════════════
+    -- ── OPS-19 追加的六支 ────────────────────────────────────────────────────
+    -- 【这几支的日期必须相对 CURRENT_DATE】账龄档与 60 天阈值都是拿 CURRENT_DATE 减出来的,
+    -- 2027 那些【未来】日期会落进 b0_30 而不是 b90_plus。相对日期同时满足 README 第 4 条:
+    -- 不继承任何时点状态,自己声明"多久以前"。
+
+    -- 10 awaiting_assay:一份化验都没有(与 assay_unapplied 互斥)
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
+    VALUES ('ZZFIX30-IB2', v_mat, v_sup, 10, 10, '2027-01-09') RETURNING id INTO v_ib2;
+
+    -- 11 batch_unpriced:未计价,且化验【已执行】—— 于是只落进 batch_unpriced 这一支
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
+        arrival_date, pricing_status)
+    VALUES ('ZZFIX30-IB3', v_mat, v_sup, 10, 10, '2027-01-11', 'unpriced') RETURNING id INTO v_ib3;
+    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at)
+    VALUES ('ZZFIX30-AR3', v_ib3, '2027-01-12', now()) RETURNING id INTO v_ar3;
+
+    -- 12 ap_over_90:有单价的进料单,到货 200 天前(化验已执行,不污染进料三支)
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
+        arrival_date, unit_price)
+    VALUES ('ZZFIX30-IB4', v_mat, v_sup, 10, 10, CURRENT_DATE - 200, 100) RETURNING id INTO v_ib4;
+    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at)
+    VALUES ('ZZFIX30-AR4', v_ib4, CURRENT_DATE - 200, now());
+
+    -- 13 ar_over_90 + 14 invoice_overdue:一笔 200 天前的销售,未收款;
+    -- 发票引用同一条销售记录 —— 两支同源不同粒度(单据 vs 销售事实),都该亮。
+    INSERT INTO customers (code, legal_name, country)
+    VALUES ('ZZFIX30-C', 'fixture 30 customer', 'SG') RETURNING id INTO v_cust;
+    INSERT INTO output_batches (code, material_id, quantity, remaining_qty, output_date)
+    VALUES ('ZZFIX30-OB', v_mat, 100, 100, CURRENT_DATE - 10) RETURNING id INTO v_ob;
+    INSERT INTO sales_records (output_batch_id, customer_id, quantity, unit_price,
+        currency, fx_rate, amount_base, sale_date)
+    VALUES (v_ob, v_cust, 10, 50, v_ccy, 1, 500, CURRENT_DATE - 200) RETURNING id INTO v_sr;
+    INSERT INTO invoices (code, customer_id, issue_date, due_date, payment_terms_days,
+        currency, subtotal_base, total_base, bill_to_snapshot)
+    VALUES ('ZZFIX30-INV', v_cust, CURRENT_DATE - 200, CURRENT_DATE - 170, 30,
+        v_ccy, 500, 500, '{}'::jsonb) RETURNING id INTO v_inv;
+    INSERT INTO invoice_lines (invoice_id, sales_record_id, line_no, description,
+        quantity, unit, unit_price, amount_base)
+    VALUES (v_inv, v_sr, 1, 'fixture 30 line', 10, 'kg', 50, 500);
+
+    -- 15 output_unsold_aging:成品压了 90 天还没卖完(阈值 60 —— 提议值,见规格文件)
+    INSERT INTO output_batches (code, material_id, quantity, remaining_qty, output_date)
+    VALUES ('ZZFIX30-OB2', v_mat, 40, 40, CURRENT_DATE - 90) RETURNING id INTO v_ob2;
+
+    -- ══════════ A. 条件成立:十五支【每支都在】══════════════════════════════
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_all), true);
     EXECUTE 'SET LOCAL ROLE authenticated';
@@ -118,7 +174,7 @@ BEGIN
     RESET ROLE;
 
     IF v_types <> v_expected THEN
-        RAISE EXCEPTION 'FIXTURE 30A 失败:九支条件全部成立,应恰好看见 %,实得 % —— 少一支是条件恒假(那块牌子永远 0),多一支是支列表变了而 fixture 没跟上',
+        RAISE EXCEPTION 'FIXTURE 30A 失败:十五支条件全部成立,应恰好看见 %,实得 % —— 少一支是条件恒假(那块牌子永远 0),多一支是支列表变了而 fixture 没跟上(规格见 docs/dashboard-arm-inventory.md)',
             v_expected::text, v_types::text;
     END IF;
 
@@ -128,12 +184,12 @@ BEGIN
     EXECUTE 'SET LOCAL ROLE authenticated';
     SELECT count(*) INTO v_n FROM operations_now;
     RESET ROLE;
-    IF v_n <> 9 THEN
-        RAISE EXCEPTION 'FIXTURE 30A 失败:应恰好 9 行(每支 1 件),实得 % 行', v_n;
+    IF v_n <> 15 THEN
+        RAISE EXCEPTION 'FIXTURE 30A 失败:应恰好 15 行(每支 1 件),实得 % 行 —— 两件说明某支把同一件事数了两遍(进料三支互斥、AR 与发票同源不同粒度)', v_n;
     END IF;
 
-    -- ══════════ B. 只持 inbound 的读者:恰好只看见 inbound 的支 ══════════════
-    -- 其余八支此刻条件【全部成立】—— 缺席只能来自权限,不能来自碰巧没数据。
+    -- ══════════ B. 只持 inbound 的读者:恰好只看见 inbound 的三支 ════════════
+    -- 其余十二支此刻条件【全部成立】—— 缺席只能来自权限,不能来自碰巧没数据。
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_inb), true);
     EXECUTE 'SET LOCAL ROLE authenticated';
@@ -141,9 +197,9 @@ BEGIN
       FROM operations_now;
     RESET ROLE;
 
-    IF v_types <> ARRAY['assay_unapplied'] THEN
-        RAISE EXCEPTION 'FIXTURE 30B 失败:只持 module.inbound.view 应恰好看见 {assay_unapplied},实得 % —— 多的支是权限裁决漏了(0 会冒充成一个真数字),少的支是把自己模块的也裁掉了',
-            v_types::text;
+    IF v_types <> v_inbound_only THEN
+        RAISE EXCEPTION 'FIXTURE 30B 失败:只持 module.inbound.view 应恰好看见 %,实得 % —— 多的支是权限裁决漏了(0 会冒充成一个真数字),少的支是把自己模块的也裁掉了',
+            v_inbound_only::text, v_types::text;
     END IF;
 
     -- ══════════ C. 条件逐支解除:九支【每支都不在】═══════════════════════════
@@ -157,6 +213,26 @@ BEGIN
     INSERT INTO fx_rates (currency, rate_date, rate_type, rate_sgd_per_unit)
     SELECT 'USD', '2027-03-03', t, 1.3 FROM unnest(ARRAY['tt_buy','tt_sell','mid']) t;
     UPDATE bank_statement_lines SET match_status = 'ignored' WHERE id = v_bl;
+    -- OPS-19 六支的解除。销售记录【不可改也不可删】(SALE_IMMUTABLE),所以 AR 与
+    -- 发票只能靠【收款核销】清掉 —— 那本来就是它们在现实里消失的唯一方式,一笔全额
+    -- 收款同时结清 ar_over_90 与 invoice_overdue(发票的已结额就是从销售记录推的)。
+    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at)
+    VALUES ('ZZFIX30-AR2', v_ib2, '2027-01-20', now());              -- awaiting_assay 解除
+    UPDATE inbound_batches SET pricing_status = 'final' WHERE id = v_ib3;   -- batch_unpriced
+    UPDATE output_batches SET output_date = CURRENT_DATE - 1 WHERE id = v_ob2;  -- 不再滞销
+    -- payments_counterparty_shape:in 必须带 customer_id,out 必须带 supplier_id
+    INSERT INTO payments (code, direction, counterparty_type, customer_id, amount_ccy, currency,
+        fx_rate, amount_base, bank_account_code, payment_date)
+    VALUES ('ZZFIX30-PAY-IN', 'in', 'customer', v_cust, 500, v_ccy, 1, 500, '1000', CURRENT_DATE)
+    RETURNING id INTO v_je;
+    INSERT INTO payment_allocations (payment_id, sales_record_id, allocated_base, allocated_ccy, allocated_pay)
+    VALUES (v_je, v_sr, 500, 500, 500);                              -- ar_over_90 + invoice_overdue
+    INSERT INTO payments (code, direction, counterparty_type, supplier_id, amount_ccy, currency,
+        fx_rate, amount_base, bank_account_code, payment_date)
+    VALUES ('ZZFIX30-PAY-OUT', 'out', 'supplier', v_sup, 1000, v_ccy, 1, 1000, '1000', CURRENT_DATE)
+    RETURNING id INTO v_je;
+    INSERT INTO payment_allocations (payment_id, inbound_batch_id, allocated_base, allocated_ccy, allocated_pay)
+    VALUES (v_je, v_ib4, 1000, 1000, 1000);                          -- ap_over_90
 
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_all), true);
@@ -171,7 +247,7 @@ BEGIN
         SELECT COALESCE(array_agg(DISTINCT item_type ORDER BY item_type), '{}') INTO v_types
           FROM operations_now;
         RESET ROLE;
-        RAISE EXCEPTION 'FIXTURE 30C 失败:九个条件都已解除,应 0 行,实得 % 行(%)—— 赖着不走的支就是"处理完了牌子还亮着"的那一支',
+        RAISE EXCEPTION 'FIXTURE 30C 失败:十五个条件都已解除,应 0 行,实得 % 行(%)—— 赖着不走的支就是"处理完了牌子还亮着"的那一支',
             v_n, v_types::text;
     END IF;
 END $$;

@@ -70,7 +70,13 @@ const zh = {
     dashboard: {
         sectionNow: '当前待办',
         item: {
+            awaiting_assay: '待化验批次',
             assay_unapplied: '待执行化验',
+            batch_unpriced: '未计价批次',
+            output_unsold_aging: '滞销成品(60 天以上)',
+            invoice_overdue: '逾期发票',
+            ar_over_90: '应收超 90 天',
+            ap_over_90: '应付超 90 天',
             allocation_stale: '待(重)分摊加工单',
             po_awaiting_receipt: '待收货采购单',
             stocktake_open: '进行中盘点',
