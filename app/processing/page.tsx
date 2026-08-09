@@ -91,12 +91,20 @@ export default async function ProcessingPage({
         <div className="p-8">
             <div className="flex items-center justify-between mb-4">
                 <h1 className="text-2xl font-bold">{t('processing.listTitle')}</h1>
-                <Link
-                    href="/processing/new"
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
-                    {t('processing.addButton')}
-                </Link>
+                <div className="flex items-center gap-3">
+                    {/* 批次毛利跨两个模块(收入在财务、分摊成本在加工),所以它不在任何
+                        模块的子导航里,而是两边各给一个入口 —— 加工这侧没有子导航,
+                        入口就放在这里。页面自己用 requireAnyModule 把关。 */}
+                    <Link href="/margin" className="text-sm text-blue-600 hover:underline">
+                        {t('margin.title')}
+                    </Link>
+                    <Link
+                        href="/processing/new"
+                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    >
+                        {t('processing.addButton')}
+                    </Link>
+                </div>
             </div>
 
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}

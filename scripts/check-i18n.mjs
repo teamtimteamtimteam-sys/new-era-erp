@@ -203,6 +203,12 @@ const MANIFEST = {
     // 触发下面的 0 后缀 FAIL —— 漏写【一支】只会让那一支的键失守,所以新支必须
     // 带显式别名,这句话就是写给加支的人看的。)
     'dashboard.item.':      { kind: 'enum', values: () => sqlLiteralAs('db/views/operations_now.sql', 'item_type') },
+    // OPS-20:批次毛利算不出来时的两种原因 + ok。后缀集合就是 batch_margin 里那个
+    // CASE 的分支 —— 从视图镜像现读,加一种原因这道检查自动跟着变宽。
+    'margin.status.':       { kind: 'enum', values: () => tsRegex('db/views/batch_margin.sql',
+                                  /(?:THEN|ELSE) '(\w+)'::text\s*$/gm) },
+    'margin.statusHint.':   { kind: 'enum', values: () => tsRegex('db/views/batch_margin.sql',
+                                  /(?:THEN|ELSE) '(\w+)'::text\s*$/gm) },
     // ── HR ──────────────────────────────────────────────────────────────────
     'hr.alertType.':        { kind: 'enum', values: () => sqlLiteralAs('db/views/hr_alerts.sql', 'alert_type') },
     'hr.severity.':         { kind: 'enum', values: union(

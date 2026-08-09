@@ -52,6 +52,43 @@ export async function requireModule(mod: ModuleEntry) {
 }
 
 /**
+ * 【有些页面属于两个模块,不是一个】
+ *     const denied = await requireAnyModule([MOD.finance, MOD.processing])
+ *     if (denied) return denied
+ *
+ * requireModule 问的是【那一个】模块;本函数问【任意一个】。它存在的理由与
+ * db/views/batch_margin.sql 的谓词是同一条:收入在财务、分摊成本在加工,而
+ * 【没有任何 live 角色同时持有两个模块】—— 用单模块把关,这一页就会对它该服务的
+ * 两拨人各挡掉一拨。OR 就是要点(AGENTS.md 常设决定 2)。
+ *
+ * 【拒绝时报第一个模块的名字】—— 标题只是标题;真正的说明在 moduleDenied 那两句。
+ */
+export async function requireAnyModule(mods: ModuleEntry[]) {
+    for (const m of mods) {
+        if (await canEnterModule(m.permission)) return null
+    }
+    return refusal(mods[0].navKey, 'common.moduleDenied', 'common.moduleDeniedHint')
+}
+
+/**
+ * 【模块之外,还有数据类】
+ *     const denied = await requireDataClass('data.view_prices', 'margin.title')
+ *     if (denied) return denied
+ *
+ * 模块回答"你进得来这一片吗",数据类回答"你看得见这一类数字吗"(perm2b 的
+ * data.view_prices / data.view_pay / data.view_identity)。两者【互相不蕴含】。
+ *
+ * 【为什么必须单独把关,而不是等视图返回空】OPS-20 实测:live 的 operations 持
+ * module.processing.view 却【没有】data.view_prices,于是它过得了模块守卫、从
+ * batch_margin 读到零行,屏幕上是一张【空表】—— "没有可算毛利的批次"与"你看不见
+ * 价格"长得一模一样。这正是 moduleGuard 抬头那条病,换到了数据类这一层。
+ */
+export async function requireDataClass(permission: string, titleKey: string) {
+    if (await canEnterModule(permission)) return null
+    return refusal(titleKey, 'common.dataClassDenied', 'common.dataClassDeniedHint')
+}
+
+/**
  * 【读的那一半之外,还有写的那一半】
  *     const denied = await requireEditPermission('module.pricing.edit', 'nav.metalPrices')
  *     if (denied) return denied
