@@ -5902,6 +5902,75 @@ export type Database = {
         }
         Relationships: []
       }
+      sales_attribution_log: {
+        Row: {
+          amount_base: number
+          attributed_at: string
+          attributed_by: string | null
+          customer_id: string
+          exposure_after: number
+          id: string
+          note: string | null
+          sales_record_id: string
+        }
+        Insert: {
+          amount_base: number
+          attributed_at?: string
+          attributed_by?: string | null
+          customer_id: string
+          exposure_after: number
+          id?: string
+          note?: string | null
+          sales_record_id: string
+        }
+        Update: {
+          amount_base?: number
+          attributed_at?: string
+          attributed_by?: string | null
+          customer_id?: string
+          exposure_after?: number
+          id?: string
+          note?: string | null
+          sales_record_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_attribution_log_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_attribution_log_sales_record_id_fkey"
+            columns: ["sales_record_id"]
+            isOneToOne: false
+            referencedRelation: "ar_open_items"
+            referencedColumns: ["sales_record_id"]
+          },
+          {
+            foreignKeyName: "sales_attribution_log_sales_record_id_fkey"
+            columns: ["sales_record_id"]
+            isOneToOne: false
+            referencedRelation: "sales_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_attribution_log_sales_record_id_fkey"
+            columns: ["sales_record_id"]
+            isOneToOne: false
+            referencedRelation: "sales_records_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_attribution_log_sales_record_id_fkey"
+            columns: ["sales_record_id"]
+            isOneToOne: false
+            referencedRelation: "sales_records_visible"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_records: {
         Row: {
           amount_base: number
@@ -10086,6 +10155,14 @@ export type Database = {
       assert_posting_allowed: {
         Args: { p_entry_date: string; p_source_type: string }
         Returns: undefined
+      }
+      attribute_sale_customer: {
+        Args: {
+          p_customer_id: string
+          p_note?: string
+          p_sales_record_id: string
+        }
+        Returns: Json
       }
       available_annual_accrual: {
         Args: { p_as_of?: string; p_employee_id: string }

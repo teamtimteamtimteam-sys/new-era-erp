@@ -44,7 +44,6 @@ BEGIN
     END IF;
     IF NEW.id              IS DISTINCT FROM OLD.id
        OR NEW.output_batch_id IS DISTINCT FROM OLD.output_batch_id
-       OR NEW.customer_id     IS DISTINCT FROM OLD.customer_id
        OR NEW.quantity        IS DISTINCT FROM OLD.quantity
        OR NEW.unit_price      IS DISTINCT FROM OLD.unit_price
        OR NEW.currency        IS DISTINCT FROM OLD.currency
@@ -58,8 +57,16 @@ BEGIN
        -- SAL-A:出处两列同样不可变 —— 卖出去之后改口"这是算出来的"与改价同罪
        OR NEW.price_source     IS DISTINCT FROM OLD.price_source
        OR NEW.price_provenance IS DISTINCT FROM OLD.price_provenance
-       OR OLD.cogs_entry_id   IS NOT NULL
-       OR NEW.cogs_entry_id   IS NULL
+       -- cut 2a:cogs_entry_id 首挂(NULL → 非 NULL),挂上之后不许再动
+       OR (NEW.cogs_entry_id IS DISTINCT FROM OLD.cogs_entry_id
+           AND NOT (OLD.cogs_entry_id IS NULL AND NEW.cogs_entry_id IS NOT NULL))
+       -- SAL-C:customer_id 的【单向】放宽 —— 只允许 NULL → 某客户,且只允许
+       -- attribute_sale_customer 那一次(ctx 在场)。改投他人 / 退回 NULL 一律拒:
+       -- 把已存在的债改记到另一个人头上是另一种行为,不该从这条路够得着。
+       OR (NEW.customer_id IS DISTINCT FROM OLD.customer_id
+           AND NOT (OLD.customer_id IS NULL
+                    AND NEW.customer_id IS NOT NULL
+                    AND current_setting('evoltrya.attribution_ctx', true) = 'attribute_sale_customer'))
     THEN
         RAISE EXCEPTION 'SALE_IMMUTABLE';
     END IF;

@@ -903,6 +903,7 @@ const zh = {
             soldOut: '该批次已售罄',
             errQuantity: '数量必须大于 0',
             saveError: '登记失败:{message}',
+            noCustomerNotice: '未选择客户。这笔销售照常记录,但【不会做信用检查,也不会计入任何客户的敞口】—— 在有人把它补挂到某个客户名下之前,它不属于任何人,也不能开票给客户。',
             errors: {
                 OUTPUT_NOT_FOUND: '产出批次不存在',
                 SALE_DATE_REQUIRED: '销售日期必填 —— 它决定汇率、库存流水的业务日期,以及收入与 COGS 两张分录的期间。',
@@ -2021,6 +2022,19 @@ const zh = {
             BATCH_DELETED: '批次 {0} 已被删除',
         },
     },
+    receivables: {
+        attribute: {
+            explain: '这笔销售不属于任何客户。记录时没有选客户,所以它从未被信用检查,也不计入任何人的敞口。补挂客户记录的是一个【已经成立的事实】—— 不是新的承诺,所以同样不做信用检查;敞口在补挂之后自然上移。',
+            customer: '补挂给客户',
+            pick: '选择客户',
+            note: '备注(可选)',
+            button: '补挂',
+            blockedNoCustomer: '补挂钮不可用:还没有选择客户。',
+            confirm: '把这笔销售补挂给所选客户?\n\n这是单向操作:之后不能改投他人,也不能撤销。',
+            done: '已补挂给 {customer}。该客户当前敞口 {exposure}(本位币)。',
+            doneOver: '已补挂给 {customer}。该客户当前敞口 {exposure},限额 {limit} —— 【已经越限】,在提高限额或收款之前,新的销售会被拒绝。',
+        },
+    },
     finance: {
         yearClose: {
             title: '年结',
@@ -2571,6 +2585,7 @@ const zh = {
             NO_LINES: '请至少选择一笔待开票的销售',
             SALE_NOT_FOUND: '销售记录不存在:{0}',
             SALE_WRONG_CUSTOMER: '销售 {0} 属于其他客户',
+            SALE_NOT_ATTRIBUTED: '批次 {0} 上的这笔销售不属于任何客户,因此不能开票给客户 —— 发票是对外声称「某人欠这笔钱」,而销售本身没有记录这件事。请先把它补挂给客户(财务 → 应收 → 打开该笔销售)。',
             ALREADY_INVOICED: '销售 {0} 已开在发票 {1} 上',
             DUPLICATE_SALE: '销售 {0} 重复出现',
             MIXED_CURRENCY: '所有明细必须为同一币种({0} 与 {1} 不一致)',

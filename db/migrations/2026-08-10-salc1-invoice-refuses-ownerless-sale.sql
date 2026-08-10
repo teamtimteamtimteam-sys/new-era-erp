@@ -1,3 +1,7 @@
+-- SAL-C1:开票拒绝无主销售(理由见 2026-08-10-salc-attribute-ownerless-sale.sql 文件头)
+-- NOTE: apply with ./db/apply_migration.sh
+BEGIN;
+
 CREATE OR REPLACE FUNCTION public.create_invoice(p_customer_id uuid, p_sales_record_ids uuid[], p_issue_date date DEFAULT NULL::date, p_payment_terms_days integer DEFAULT NULL::integer, p_notes text DEFAULT NULL::text, p_terms_text text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -177,3 +181,5 @@ BEGIN
     );
 END;
 $function$;
+
+COMMIT;

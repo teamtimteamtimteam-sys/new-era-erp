@@ -900,6 +900,7 @@ const en = {
             soldOut: 'This batch is sold out',
             errQuantity: 'Quantity must be greater than 0',
             saveError: 'Save failed: {message}',
+            noCustomerNotice: 'No customer selected. This sale will be recorded, but it will not be credit-checked and it will not count towards anyone\u2019s exposure — it belongs to nobody until a customer is attached to it later, and it cannot be invoiced to a customer before that.',
             errors: {
                 OUTPUT_NOT_FOUND: 'Output batch not found',
                 SALE_DATE_REQUIRED: 'A sale date is required — it decides the FX rate, the movement date, and the period both journals post to.',
@@ -2029,6 +2030,19 @@ const en = {
             BATCH_DELETED: 'Batch {0} has been deleted',
         },
     },
+    receivables: {
+        attribute: {
+            explain: 'This sale belongs to no customer. It was recorded without one, so it was never credit-checked and it counts towards nobody\u2019s exposure. Attaching a customer records a fact that is already true — it is not a new commitment, so it is not credit-checked either; the exposure moves afterwards.',
+            customer: 'Attach to customer',
+            pick: 'Select a customer',
+            note: 'Note (optional)',
+            button: 'Attach customer',
+            blockedNoCustomer: 'Attach is disabled: no customer selected yet.',
+            confirm: 'Attach this sale to the selected customer?\n\nThis is one-way: it cannot be changed to a different customer or undone afterwards.',
+            done: 'Attached to {customer}. Their exposure is now {exposure} in the base currency.',
+            doneOver: 'Attached to {customer}. Their exposure is now {exposure} against a limit of {limit} — they are over the limit, and further sales will be refused until it is raised or paid down.',
+        },
+    },
     finance: {
         yearClose: {
             title: 'Year-end close',
@@ -2580,6 +2594,7 @@ const en = {
             NO_LINES: 'Select at least one sale to invoice',
             SALE_NOT_FOUND: 'Sale not found: {0}',
             SALE_WRONG_CUSTOMER: 'Sale {0} belongs to a different customer',
+            SALE_NOT_ATTRIBUTED: 'Sale on batch {0} belongs to no customer, so it cannot be invoiced to one — an invoice states that a named customer owes this money, and the sale itself does not record that. Attach a customer to the sale first (Finance → Receivables → open the sale).',
             ALREADY_INVOICED: 'Sale {0} is already on invoice {1}',
             DUPLICATE_SALE: 'Sale {0} appears more than once',
             MIXED_CURRENCY: 'All lines must share one currency ({0} vs {1})',

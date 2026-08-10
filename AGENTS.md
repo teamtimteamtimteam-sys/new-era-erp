@@ -336,6 +336,32 @@ row, different reader, same result. Neither subsumes the other, because the shap
 check cannot see a predicate missing from an owner-rights view, and the fixture
 cannot see a view nobody reads yet.
 
+### A fixture can be thorough about a rule and blind to the case where the rule's SUBJECT IS ABSENT
+
+`db/fixtures/39` tests the credit limit from every angle that occurred to its author: NULL limit
+versus zero limit, base currency versus document currency, cumulative exposure, hold with no
+exposure, the history rows, the dashboard arm. **Every one of its arms passes an explicit
+customer.** None asks what happens when there is no customer at all — and the answer was that
+`record_output_sale` skips the entire credit block (`IF p_customer_id IS NOT NULL THEN`), so an
+ownerless sale of any size is never checked. A 1,397 sale against a 1,000 limit went through, and
+the fixture stayed green because the situation it created was one the fixture never described.
+
+**This is not the empty-set vacuity already listed above.** There, the set was empty and the
+assertion looped over nothing. Here the set is full, the arithmetic is exercised, the refusals fire
+— and the *subject the rule is about* is missing, so the rule is not reached at all. A test suite
+shaped entirely around "the rule applies, does it apply correctly?" cannot see "does the rule apply
+at all?".
+
+**The check to run on any new rule: what is this rule's subject, and is that subject optional?**
+If a customer, a supplier, an employee, a batch or a formula can be NULL on the row the rule guards,
+there must be an arm for the NULL. Its assertion is usually not "it refuses" — the ownerless sale is
+legitimate and must be *allowed* (SAL-C) — but the fixture must state which of the two it is, because
+otherwise the behaviour is whatever the guard's opening `IF` happens to do, and nobody has read it.
+
+The same question applies to the fix: SAL-C's `attribute_sale_customer` exists precisely because
+the subject can be absent and later become known, and its fixture arms cover *both* the absence
+(recorded without a check) and the transition (attached, logged, exposure moves, one-way).
+
 > **Fixtures run as `postgres`, which BYPASSES RLS.** The first draft of fixture 26
 > did not switch roles, so arms A and C were **vacuous** — the fault injection turned
 > `processing_run_allocation_status` back into an invoker view, `xmodule` went red,

@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatAmount, formatMoneyBare, formatTimestamp } from '@/lib/format'
 import Subnav from '../../Subnav'
+import AttributeCustomerControl from './AttributeCustomerControl'
 import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachmentsPanel'
 import { unmasked } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
@@ -131,6 +132,18 @@ export default async function ReceivableDocPage({
     const batch = batchRes.data
     const materialName = (batch?.materials as unknown as { name: string } | null)?.name ?? '—'
 
+    // SAL-C:无主销售才需要补挂控件 —— 有主的看不到这条路(单向)
+    const attributable = sale.customer_id === null
+    const customerOptions = attributable
+        ? mustRows(
+              await supabase
+                  .from('customers')
+                  .select('id, code, legal_name')
+                  .is('deleted_at', null)
+                  .order('code')
+          )
+        : []
+
     return (
         <div className="p-8 max-w-4xl">
             <div className="mb-6">
@@ -188,6 +201,15 @@ export default async function ReceivableDocPage({
                     <span className="font-mono font-bold">{formatAmount(open, baseCurrency)}</span>
                 </div>
             </div>
+
+            {/* SAL-C:这笔销售【不属于任何人】—— 说清楚,并给出补挂的路。
+                走查里 INV-2026-0005 就是把这样一笔销售开给了客户:发票声称有人欠钱,
+                而销售没有记录,敞口也看不见它。 */}
+            {attributable && (
+                <div className="mb-6">
+                    <AttributeCustomerControl saleId={sale.id} customers={customerOptions} />
+                </div>
+            )}
 
             {sale.notes && (
                 <p className="text-sm text-gray-600 mb-4">

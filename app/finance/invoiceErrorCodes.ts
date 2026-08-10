@@ -4,6 +4,8 @@ import { getTranslations } from '@/lib/i18n/server'
 // 不在集合内的是真正未编码的 DB 错误,原样返回。
 const INVOICE_ERROR_CODES = new Set([
     'CUSTOMER_NOT_FOUND', 'NO_LINES', 'SALE_NOT_FOUND', 'SALE_WRONG_CUSTOMER',
+    // SAL-C:无主销售不能开给客户 —— 发票是对外声称谁欠钱
+    'SALE_NOT_ATTRIBUTED',
     'ALREADY_INVOICED', 'DUPLICATE_SALE', 'MIXED_CURRENCY',
     'INVOICE_NOT_FOUND', 'INVOICE_ALREADY_VOID', 'REASON_REQUIRED',
     'INVOICE_IMMUTABLE', 'TERMS_INVALID',

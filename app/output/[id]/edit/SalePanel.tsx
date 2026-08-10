@@ -50,6 +50,7 @@ export default function SalePanel({
 
     // 金额预览要读输入值 → 受控;成功后连同 formKey 一起复位
     const [quantity, setQuantity] = useState('')
+    const [customerId, setCustomerId] = useState(batchCustomerId ?? '')
     const [unitPrice, setUnitPrice] = useState('')
     const [currency, setCurrency] = useState('USD')
     // SAL-A:三种模型 —— manual 手填 / formula 公式 / spot 现货预设(退化公式,
@@ -225,7 +226,8 @@ export default function SalePanel({
                         <label className="block text-sm font-medium mb-1">{t('output.sale.customer')}</label>
                         <select
                             name="customer_id"
-                            defaultValue={batchCustomerId ?? ''}
+                            value={customerId}
+                            onChange={(e) => setCustomerId(e.target.value)}
                             className="border border-gray-300 px-3 py-2 rounded"
                         >
                             <option value="">{t('output.form.selectCustomerOptional')}</option>
@@ -262,6 +264,16 @@ export default function SalePanel({
                         {t('output.sale.button')}
                     </button>
                 </div>
+                {/* SAL-C:不选客户是【正当的】(客户还没登记就卖了货)—— 所以这是
+                    一条说明,不是守卫:【绝不禁用提交】。但后果要在按下之前说清楚,
+                    与收货表单同一条规矩:理由长在控件旁边,而不是点下去之后才出现。
+                    走查那 1,397 就是这么溜过信用管控的:表单只写了"(可选)",
+                    没说"可选的代价是这笔钱不算进任何人的敞口"。 */}
+                {!customerId && (
+                    <p className="mt-3 bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded text-sm">
+                        {t('output.sale.noCustomerNotice')}
+                    </p>
+                )}
 
                 {previewAmount !== null && (
                     <p className="text-sm text-gray-600">
