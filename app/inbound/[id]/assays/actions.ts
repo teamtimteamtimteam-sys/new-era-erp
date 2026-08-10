@@ -58,6 +58,10 @@ function toImpact(p: RepricePreview): AssayImpact {
 // 批次 + 目标单价 → 影响。单价 ≤ 0 时【不调 DB 试算】(它会 PRICE_INVALID),
 // 直接返回 undefined:那种料 apply_assay_result 本来就不会给它定价,
 // 摆一个"调整 −X 元"的影响块反而是误导。
+//
+// ASY-1:币种【显式传】。计价口径是 USD/kg(行情与处理费都按 USD/吨),提交路径
+// apply_assay_result 也是按 USD 递给 reprice_inbound_batch —— 试算不说币种,就会
+// 像 ASY-1 之前那样少乘一次汇率(本位币是 SGD,USD 是外币)。
 export async function repricePreview(
     supabase: Awaited<ReturnType<typeof createClient>>,
     batchId: string,
@@ -67,6 +71,7 @@ export async function repricePreview(
     const { data, error } = await supabase.rpc('preview_reprice_inbound_batch', {
         p_inbound_batch_id: batchId,
         p_new_unit_price: unitPrice,
+        p_currency: 'USD',
     })
     if (error || !data) return undefined
     return toImpact(data as unknown as RepricePreview)

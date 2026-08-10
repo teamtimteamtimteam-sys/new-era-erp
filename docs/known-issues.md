@@ -113,3 +113,25 @@ INSERT 列清单、没有 UPDATE,应用侧只读不写。线上每一行的 `sta
 在此之前:`post_stocktake` 用 `CURRENT_DATE`(过账日)是**诚实的**,理由写在函数
 体里,不是"没有更好的来源"。
 
+
+---
+
+## 【已修】化验影响预览少乘一次汇率(ASY-1,2026-08-10 修复)
+
+留一条记录,因为它是**同一株病的第四次**,而且这一次连"预览调的是 DB 试算函数"
+这层防护都没挡住。
+
+`preview_reprice_inbound_batch` 里写着 `v_usd := round(p_new_unit_price, 4)`,
+注释还留着 FIN-0 翻本位币**之前**的那句"(USD 时 fx = 1)"。而提交侧
+`apply_assay_result` 是按 `'USD'` 递给 `reprice_inbound_batch` 的,USD 在
+FIN-0 之后是外币,提交按定价日 `tt_sell` 折算入账。线上实测(已回滚):
+同一个 10 USD/kg,**预览说新单价 10.0000、总调整 500.00,提交存 12.8000、
+过账 780.00**。屏幕上"当前单价"读的还是批次里的本位币价 —— 两行并排显示,
+口径根本不同。
+
+**教训,与 FIN-12 同一条**:翻本位币留下的常量不会自己消失,而
+"预览调用了数据库函数"只保证**没有第二份 TypeScript 实现**,不保证那个
+数据库函数本身还是对的。真正的保险是**让预览走提交那条路的同一段算术**
+(ASY-1 之后 `preview_reprice_inbound_batch` 与 `reprice_inbound_batch`
+逐行同构:同一次换汇、同一份 `reprice_split`、同一批过账闸),
+并且 fixture **比两个数**而不是各测各的(fixture 40 D 臂)。

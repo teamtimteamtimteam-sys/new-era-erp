@@ -328,8 +328,10 @@ export default async function AssayDetailPage({
                             {t('assay.noFormula')}
                         </p>
                     )}
+                    {/* ASY-1:预览报错 = 应用一定会失败(试算与提交同一段算术、同一批闸)。
+                        理由横幅就在上面,按钮跟着它走 —— 不提供服务端保证会拒的控件。 */}
                     <div className="mt-4">
-                        <ApplyNowButton assayId={assayId} batchId={id} />
+                        <ApplyNowButton assayId={assayId} batchId={id} blocked={!!previewError} />
                     </div>
                 </section>
             )}

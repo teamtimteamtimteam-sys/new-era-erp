@@ -39,8 +39,12 @@ BEGIN
     v_calc := calculate_metal_price_from_terms(
         pricing_terms_of_commitment(v_commit), p_metals, v_batch.quantity, p_reference_date);
     v_unit := (v_calc->>'unit_price_usd_per_kg')::numeric;
+    -- 净值 ≤ 0 时不试算:apply_assay_result 那时也不定价(落含量、记 note),
+    -- 【这是警告不是拒绝】—— 页面的琥珀提示照旧,按钮保持可用。
     IF v_unit > 0 THEN
-        v_impact := preview_reprice_inbound_batch(p_inbound_batch_id, v_unit);
+        -- 计价口径是 USD/kg(行情与处理费都按 USD/吨),提交也是按 USD 递给
+        -- reprice_inbound_batch 的 —— 币种在这里说出来,两边才对得上。
+        v_impact := preview_reprice_inbound_batch(p_inbound_batch_id, v_unit, 'USD');
     END IF;
     RETURN jsonb_build_object('calc', v_calc, 'impact', v_impact);
 END;

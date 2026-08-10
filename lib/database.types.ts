@@ -10040,6 +10040,10 @@ export type Database = {
         Returns: Json
       }
       approve_review: { Args: { p_review_id: string }; Returns: Json }
+      assert_posting_allowed: {
+        Args: { p_entry_date: string; p_source_type: string }
+        Returns: undefined
+      }
       available_annual_accrual: {
         Args: { p_as_of?: string; p_employee_id: string }
         Returns: number
@@ -10367,7 +10371,11 @@ export type Database = {
         Returns: Json
       }
       preview_reprice_inbound_batch: {
-        Args: { p_inbound_batch_id: string; p_new_unit_price: number }
+        Args: {
+          p_currency: string
+          p_inbound_batch_id: string
+          p_new_unit_price: number
+        }
         Returns: Json
       }
       preview_revalue_foreign_balances: {

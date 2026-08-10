@@ -85,6 +85,13 @@ export default function AssayForm({
     const impact = preview.impact
     const negative = res?.negative_value === true || (res ? res.unit_price_usd_per_kg <= 0 : false)
 
+    // ASY-1:【预览报错 = 应用一定会失败】—— 试算与提交现在走同一段算术、同一批闸
+    // (承诺条款、汇率、期间锁/年结),所以预览的红横幅就是提交的拒绝。既然如此,
+    // "记录并应用"不该再摆成主按钮:不提供服务端保证会拒的控件。理由横幅已经在
+    // 屏幕上说清了,这里只让按钮跟着它走 —— 不另写一句话。
+    // 【警告不是拒绝】净值 ≤ 0(negative)照旧可应用:含量要落地,只是不定价。
+    const applyBlocked = !!preview.error
+
     return (
         <form action={formAction} className="space-y-6">
             {state.error && (
@@ -200,12 +207,18 @@ export default function AssayForm({
 
             {/* ── 提交 ── */}
             <div className="flex flex-wrap gap-3 pt-2 border-t">
+                {/* 应用被拦时,"仅记录"接过主按钮 —— 它此刻【是】那条可走的路:
+                    化验单是实验室出的客观事实,先落库,定价等条款/汇率/期间理顺再说。 */}
                 <button
                     type="submit"
                     name="intent"
                     value="record"
                     disabled={isPending}
-                    className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50 disabled:text-gray-400"
+                    className={
+                        applyBlocked
+                            ? 'bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400'
+                            : 'border border-gray-300 px-4 py-2 rounded hover:bg-gray-50 disabled:text-gray-400'
+                    }
                 >
                     {t('assay.saveOnly')}
                 </button>
@@ -213,8 +226,12 @@ export default function AssayForm({
                     type="submit"
                     name="intent"
                     value="record_apply"
-                    disabled={isPending}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
+                    disabled={isPending || applyBlocked}
+                    className={
+                        applyBlocked
+                            ? 'border border-gray-300 px-4 py-2 rounded disabled:text-gray-400'
+                            : 'bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400'
+                    }
                 >
                     {isPending ? t('common.saving') : t('assay.saveAndApply')}
                 </button>

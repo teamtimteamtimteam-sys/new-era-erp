@@ -15,7 +15,8 @@ BEGIN
     -- 单价 ≤ 0 时不试算拆账(它会 PRICE_INVALID),但明细照给 —— 那种料
     -- apply_assay_result 本来也不会给它定价,摆一个"调整 −X 元"反而是误导。
     IF v_unit > 0 THEN
-        v_impact := preview_reprice_inbound_batch(p_inbound_batch_id, v_unit);
+        -- 币种显式:提交路径 reprice_from_committed_terms 也是按 USD 递进去的
+        v_impact := preview_reprice_inbound_batch(p_inbound_batch_id, v_unit, 'USD');
     END IF;
     RETURN jsonb_build_object('calc', v_calc, 'impact', v_impact);
 END;

@@ -7,7 +7,17 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { applyAssay, unapplyAssay } from '../actions'
 
-export function ApplyNowButton({ assayId, batchId }: { assayId: string; batchId: string }) {
+// blocked:预览已经报出提交会拒的理由(ASY-1)。理由横幅由页面渲染,这里只让
+// 按钮跟着它走 —— 灰而不语在别处是病,这里不是:红横幅就在按钮上方。
+export function ApplyNowButton({
+    assayId,
+    batchId,
+    blocked = false,
+}: {
+    assayId: string
+    batchId: string
+    blocked?: boolean
+}) {
     const t = useTranslations()
     const router = useRouter()
     const [isPending, startTransition] = useTransition()
@@ -26,8 +36,12 @@ export function ApplyNowButton({ assayId, batchId }: { assayId: string; batchId:
             <button
                 type="button"
                 onClick={onApply}
-                disabled={isPending}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
+                disabled={isPending || blocked}
+                className={
+                    blocked
+                        ? 'border border-gray-300 px-4 py-2 rounded disabled:text-gray-400'
+                        : 'bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400'
+                }
             >
                 {isPending ? t('common.saving') : t('assay.applyNow')}
             </button>
