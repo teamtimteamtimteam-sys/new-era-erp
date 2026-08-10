@@ -911,6 +911,18 @@ const en = {
                 SALE_PRICE_INVALID: 'Unit price must be greater than 0',
                 CURRENCY_INVALID: 'Invalid currency: {0}',
                 FX_RATE_REQUIRED: 'Exchange rate required for {0}',
+                CREDIT_LIMIT_EXCEEDED:
+                    'Credit limit reached for customer {0}. Limit {1}, already outstanding {2}, this sale {3} — all in the base currency. Raise the limit on the customer, or take payment before releasing the goods.',
+                CREDIT_HOLD:
+                    'Customer {0} is on credit hold — no sales can be recorded until the hold is lifted on the customer record. The hold is a person\u2019s decision, so nothing here can override it.',
+                OUTPUT_BATCH_NOT_FOUND: 'Output batch not found: {0}',
+                NO_METAL_CONTENT: 'Batch {0} has no metal content recorded — a quote cannot be priced without an assay. Enter the content on the batch first.',
+                FORMULA_DIRECTION: 'Formula {0} is a {1} formula and cannot be used to quote a sale — a purchase formula prices what we pay, not what we charge.',
+                METAL_PRICE_MISSING: 'No market price on file for {0} on {1} — enter the day\u2019s quote under Pricing \u2192 Metal prices. A quote is never sent with a metal priced at zero.',
+                FORMULA_NOT_FOUND: 'Pricing formula not found: {0}',
+                FORMULA_INACTIVE: 'Pricing formula {0} is inactive',
+                REFERENCE_DATE_REQUIRED: 'A reference date is required — it decides which day\u2019s metal prices and FX rate the quote uses.',
+                QUANTITY_INVALID: 'Quantity must be greater than 0',
             },
         },
         dropdownLoadError: 'Failed to load dropdown data',

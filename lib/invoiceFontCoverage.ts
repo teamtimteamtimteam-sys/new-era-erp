@@ -102,10 +102,11 @@ export type InvoicePdfContent = {
         due_date: string
         payment_terms_days: number
         currency: string
-        subtotal_base: number
         tax_rate_pct: number
-        tax_base: number
-        total_base: number
+        // INV-1:文档印的是【单据币种】的三个数(*_base 是本位币,这份文档不印)
+        subtotal_ccy: number
+        tax_ccy: number
+        total_ccy: number
         notes: string | null
         terms_text: string | null
         bill_to: Record<string, string | null | undefined>
@@ -116,7 +117,7 @@ export type InvoicePdfContent = {
         quantity: number
         unit: string
         unit_price: number
-        amount_base: number
+        amount_ccy: number
     }[]
     company: Record<string, unknown> & { legal_name: string }
     gstRegistrationNo: string | null
@@ -175,16 +176,16 @@ export function collectInvoicePdfStrings(content: InvoicePdfContent): PdfTextFie
             { where: `Line ${l.line_no} description`, text: l.description },
             { where: `Line ${l.line_no} quantity`, text: `${num(l.quantity, 2)} ${l.unit}` },
             { where: `Line ${l.line_no} unit price`, text: num(l.unit_price) },
-            { where: `Line ${l.line_no} amount`, text: num(l.amount_base) },
+            { where: `Line ${l.line_no} amount`, text: num(l.amount_ccy) },
         )
     }
 
     // 合计
     fields.push(
-        { where: 'Subtotal', text: num(invoice.subtotal_base) },
-        { where: 'GST amount', text: num(invoice.tax_base) },
+        { where: 'Subtotal', text: num(invoice.subtotal_ccy) },
+        { where: 'GST amount', text: num(invoice.tax_ccy) },
         { where: 'GST rate', text: num(invoice.tax_rate_pct, 0) },
-        { where: 'Total', text: num(invoice.total_base) },
+        { where: 'Total', text: num(invoice.total_ccy) },
     )
 
     // 收款账户

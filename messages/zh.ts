@@ -914,6 +914,18 @@ const zh = {
                 SALE_PRICE_INVALID: '单价必须大于 0',
                 CURRENCY_INVALID: '无效币种:{0}',
                 FX_RATE_REQUIRED: '{0} 需要填写汇率',
+                CREDIT_LIMIT_EXCEEDED:
+                    '客户 {0} 已达信用限额。限额 {1}，当前未结 {2}，本单 {3} —— 均以本位币计。要么在客户上调高限额，要么先收款再发货。',
+                CREDIT_HOLD:
+                    '客户 {0} 处于信用冻结状态 —— 解冻之前不能记录销售。冻结是人的决定，这里没有任何旁路可以绕过它。',
+                OUTPUT_BATCH_NOT_FOUND: '产出批次不存在:{0}',
+                NO_METAL_CONTENT: '批次 {0} 没有录入金属含量 —— 没有化验就报不出价。请先在批次上录入含量。',
+                FORMULA_DIRECTION: '公式 {0} 是{1}方向的公式,不能用来给销售报价 —— 采购公式算的是我们付多少,不是我们收多少。',
+                METAL_PRICE_MISSING: '缺 {0} 在 {1} 的行情 —— 先到 定价 → 金属行情 录入当天报价。绝不带着一个按零计价的金属把报价发出去。',
+                FORMULA_NOT_FOUND: '定价公式不存在:{0}',
+                FORMULA_INACTIVE: '定价公式 {0} 已停用',
+                REFERENCE_DATE_REQUIRED: '参考日期必填 —— 它决定报价用哪一天的金属行情与汇率。',
+                QUANTITY_INVALID: '数量必须大于 0',
             },
         },
         dropdownLoadError: '读取下拉框数据失败',

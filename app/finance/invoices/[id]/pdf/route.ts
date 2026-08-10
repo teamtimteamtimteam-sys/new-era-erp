@@ -60,7 +60,7 @@ export async function GET(
 
     const supabase = await createClient()
 
-    const [invRes, companyRes, settingsRes] = await Promise.all([
+    const [invRes, companyRes, settingsRes, totalsRes] = await Promise.all([
         supabase
             .from('invoices_masked')
             .select('code, issue_date, due_date, payment_terms_days, currency, subtotal_base, tax_rate_pct, tax_base, total_base, status, notes, terms_text, bill_to_snapshot')
@@ -68,6 +68,13 @@ export async function GET(
             .single(),
         supabase.from('company_profile_masked').select('*').limit(1).single(),
         supabase.from('finance_settings').select('gst_registration_no').limit(1).single(),
+        // INV-1:客户账单上的数是【单据币种】的 —— *_base 是本位币,给账用的。
+        // 此前 PDF 拿 currency 标 total_base,已发出的两张各多报 1,440 / 336 USD。
+        supabase
+            .from('invoice_document_totals')
+            .select('subtotal_ccy, tax_ccy, total_ccy')
+            .eq('invoice_id', id)
+            .single(),
     ])
 
     if (invRes.error || !invRes.data) {
@@ -88,7 +95,7 @@ export async function GET(
 
     const { data: lineRows } = await supabase
         .from('invoice_lines_masked')
-        .select('line_no, description, quantity, unit, unit_price, amount_base')
+        .select('line_no, description, quantity, unit, unit_price, amount_ccy')
         .eq('invoice_id', id)
         .order('line_no', { ascending: true })
 
@@ -110,16 +117,14 @@ export async function GET(
     // cut 2b:改读遮蔽视图(基表原始敏感列已收回)。断言回基表行类型 —— 能取到发票 PDF 的
     // 角色全都持有 data.view_prices,列不会被遮蔽。见 lib/maskedRows.ts。
     const inv = unmasked<Tables<'invoices'>>(invRes.data)
-    const invoice: InvoiceData = {
+    // INV-1:金额三项来自 invoice_document_totals(单据币种),在下面与这份抬头合并。
+    const invoice: Omit<InvoiceData, 'subtotal_ccy' | 'tax_ccy' | 'total_ccy'> = {
         code: inv.code,
         issue_date: inv.issue_date,
         due_date: inv.due_date,
         payment_terms_days: inv.payment_terms_days,
         currency: inv.currency,
-        subtotal_base: Number(inv.subtotal_base),
         tax_rate_pct: Number(inv.tax_rate_pct),
-        tax_base: Number(inv.tax_base),
-        total_base: Number(inv.total_base),
         status: inv.status,
         notes: inv.notes,
         terms_text: inv.terms_text,
@@ -132,15 +137,31 @@ export async function GET(
         quantity: Number(l.quantity),
         unit: l.unit,
         unit_price: Number(l.unit_price),
-        amount_base: Number(l.amount_base),
+        amount_ccy: Number(l.amount_ccy),
     }))
 
     // 守卫:内嵌的是【裁剪过的】中文字体,范围外的字会被静默画成空白 —— 一份寄给
     // 客户的单据上出现空白是真实事故,而且没人会发现(PDF 生成"成功"了)。所以渲染前
     // 把这份文档要印的每一个字符串过一遍,有印不出来的字就【不出 PDF】,并明确指出是
     // 哪几个字、出现在哪。要放宽范围:改 assets/fonts/subset.py 的区间后重跑该脚本。
+    // INV-1:单据币种的金额取不到就【不出这张 PDF】—— 缺数的发票与错数的发票
+    // 一样会寄到客户手上;而这几个数正是他要照着付款的那几个。
+    if (totalsRes.error || !totalsRes.data) {
+        return new NextResponse(
+            `Invoice amounts in the document currency are unavailable.\n\n` +
+                `This usually means the invoice has no lines, or you lack permission to view amounts.\n`,
+            { status: 409, headers: { 'Content-Type': 'text/plain; charset=utf-8' } }
+        )
+    }
+
+    const invoiceForDoc = {
+        ...invoice,
+        subtotal_ccy: Number(totalsRes.data.subtotal_ccy),
+        tax_ccy: Number(totalsRes.data.tax_ccy),
+        total_ccy: Number(totalsRes.data.total_ccy),
+    }
     const coverageProblems = checkInvoicePdfCoverage({
-        invoice,
+        invoice: invoiceForDoc,
         lines,
         company: company as unknown as Record<string, unknown> & { legal_name: string },
         gstRegistrationNo: settingsRes.data?.gst_registration_no ?? null,
@@ -155,7 +176,7 @@ export async function GET(
     // renderToBuffer 的签名要求顶层元素是 ReactElement<DocumentProps>;我们的组件
     // 返回的正是 <Document>,但它自身的 props 类型不是 DocumentProps,故在此断言。
     const element = React.createElement(InvoiceDocument, {
-        invoice,
+        invoice: invoiceForDoc,
         lines,
         company,
         gstRegistrationNo: settingsRes.data?.gst_registration_no ?? null,

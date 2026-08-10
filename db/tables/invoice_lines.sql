@@ -35,6 +35,11 @@ CREATE TABLE public.invoice_lines (
     -- 应用代码不要直接写它。
     invoice_voided  boolean NOT NULL DEFAULT false,
     created_at      timestamptz DEFAULT now(),
+    -- INV-1(ALTER 加的列,故排在末尾 —— 与 live 的 attnum 一致):行金额的
+    -- 【单据币种】版本。生成列,round(quantity × unit_price, 2),不经汇率,
+    -- 所以与 unit_price 天生同币种,既有行由 Postgres 当场算出、无从回填错。
+    -- 客户账单印它;amount_base 是同一行的本位币金额,给账用。
+    amount_ccy      numeric GENERATED ALWAYS AS (round(quantity * unit_price, 2)) STORED,
     UNIQUE (invoice_id, line_no)
 );
 
@@ -98,3 +103,4 @@ GRANT SELECT (id, invoice_id, sales_record_id, line_no, description, quantity, u
 
 -- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)
 COMMENT ON COLUMN public.invoice_lines.amount_base IS '本位币金额(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 amount_usd)。';
+COMMENT ON COLUMN public.invoice_lines.amount_ccy IS '行金额,【单据币种】(INV-1)。= round(quantity × unit_price, 2),不经汇率,所以与 unit_price 天然同币种。客户账单上那一列印的就是它;amount_base 是同一行的【本位币】金额,给账用 —— 两者只在汇率为 1 时相等,把后者标成前者正是 INV-1 修掉的错。';

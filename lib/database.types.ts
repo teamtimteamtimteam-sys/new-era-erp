@@ -2194,6 +2194,7 @@ export type Database = {
       invoice_lines: {
         Row: {
           amount_base: number
+          amount_ccy: number | null
           created_at: string | null
           description: string
           id: string
@@ -2207,6 +2208,7 @@ export type Database = {
         }
         Insert: {
           amount_base: number
+          amount_ccy?: number | null
           created_at?: string | null
           description: string
           id?: string
@@ -2220,6 +2222,7 @@ export type Database = {
         }
         Update: {
           amount_base?: number
+          amount_ccy?: number | null
           created_at?: string | null
           description?: string
           id?: string
@@ -2237,6 +2240,13 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "ar_open_items"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_document_totals"
             referencedColumns: ["invoice_id"]
           },
           {
@@ -7526,9 +7536,28 @@ export type Database = {
           },
         ]
       }
+      invoice_document_totals: {
+        Row: {
+          currency: string | null
+          invoice_id: string | null
+          subtotal_ccy: number | null
+          tax_ccy: number | null
+          total_ccy: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       invoice_lines_masked: {
         Row: {
           amount_base: number | null
+          amount_ccy: number | null
           created_at: string | null
           description: string | null
           id: string | null
@@ -7542,6 +7571,7 @@ export type Database = {
         }
         Insert: {
           amount_base?: never
+          amount_ccy?: never
           created_at?: string | null
           description?: string | null
           id?: string | null
@@ -7555,6 +7585,7 @@ export type Database = {
         }
         Update: {
           amount_base?: never
+          amount_ccy?: never
           created_at?: string | null
           description?: string | null
           id?: string | null
@@ -7572,6 +7603,13 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "ar_open_items"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_document_totals"
             referencedColumns: ["invoice_id"]
           },
           {

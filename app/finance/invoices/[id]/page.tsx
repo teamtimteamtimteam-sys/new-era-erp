@@ -33,7 +33,7 @@ type BillTo = {
 
 type AllocRow = {
     id: string
-    allocated_base: number
+    allocated_ccy: number
     sales_record_id: string | null
     payments: { id: string; code: string; payment_date: string; status: string } | null
 }
@@ -56,7 +56,7 @@ export default async function InvoiceDetailPage({
 
     const { data: invRaw, error } = await supabase
         .from('invoices_masked')
-        .select('id, code, customer_id, issue_date, due_date, payment_terms_days, currency, subtotal_base, tax_rate_pct, tax_base, total_base, status, void_reason, voided_at, notes, terms_text, bill_to_snapshot')
+        .select('id, code, customer_id, issue_date, due_date, payment_terms_days, currency, tax_rate_pct, status, void_reason, voided_at, notes, terms_text, bill_to_snapshot')
         .eq('id', id)
         .single()
 
@@ -69,6 +69,15 @@ export default async function InvoiceDetailPage({
     // 所以这些列不会被遮蔽。理由与失效条件见 lib/maskedRows.ts。
     const inv = unmasked<Tables<'invoices'>>(invRaw)
 
+    // INV-1:客户面的三个数是【单据币种】的。invoices.*_base 是本位币,给账用的 ——
+    // 拿 inv.currency 去标它们,正是这一页(和 PDF)此前干的事:线上两张已发出的
+    // 发票各多报 1,440 / 336 USD。结算一侧同理走 allocated_ccy(单据币种的核销额)。
+    const { data: docTotals } = await supabase
+        .from('invoice_document_totals')
+        .select('subtotal_ccy, tax_ccy, total_ccy')
+        .eq('invoice_id', id)
+        .single()
+
     // 公司抬头是否已填 —— 没填就不能出 PDF,页面上先给出提示。
     // 取整行(不只是 legal_name)是因为下面的字体覆盖检查要过一遍抬头/银行/页脚里
     // 所有会被印到 PDF 上的字段。
@@ -80,7 +89,7 @@ export default async function InvoiceDetailPage({
 
     const { data: linesRaw } = await supabase
         .from('invoice_lines_masked')
-        .select('id, line_no, sales_record_id, description, quantity, unit, unit_price, amount_base')
+        .select('id, line_no, sales_record_id, description, quantity, unit, unit_price, amount_ccy')
         .eq('invoice_id', id)
         .order('line_no', { ascending: true })
 
@@ -91,7 +100,7 @@ export default async function InvoiceDetailPage({
     const { data: allocs } = saleIds.length
         ? await supabase
               .from('payment_allocations')
-              .select('id, allocated_base, sales_record_id, payments(id, code, payment_date, status)')
+              .select('id, allocated_ccy, sales_record_id, payments(id, code, payment_date, status)')
               .in('sales_record_id', saleIds)
               .order('created_at', { ascending: true })
         : { data: [] as AllocRow[] }
@@ -101,9 +110,10 @@ export default async function InvoiceDetailPage({
         Math.round(
             allocRows
                 .filter((a) => a.payments?.status === 'posted')
-                .reduce((s, a) => s + a.allocated_base, 0) * 100
+                .reduce((s, a) => s + a.allocated_ccy, 0) * 100
         ) / 100
-    const open = Math.round((inv.total_base - settled) * 100) / 100
+    const total_ccy = Number(docTotals?.total_ccy ?? 0)
+    const open = Math.round((total_ccy - settled) * 100) / 100
     const paymentState = open <= 0 ? 'paid' : settled > 0 ? 'partial' : 'unpaid'
 
     const bill = (inv.bill_to_snapshot ?? {}) as BillTo
@@ -121,10 +131,10 @@ export default async function InvoiceDetailPage({
                       due_date: inv.due_date,
                       payment_terms_days: inv.payment_terms_days,
                       currency: inv.currency,
-                      subtotal_base: Number(inv.subtotal_base),
                       tax_rate_pct: Number(inv.tax_rate_pct),
-                      tax_base: Number(inv.tax_base),
-                      total_base: Number(inv.total_base),
+                      subtotal_ccy: Number(docTotals?.subtotal_ccy ?? 0),
+                      tax_ccy: Number(docTotals?.tax_ccy ?? 0),
+                      total_ccy: Number(docTotals?.total_ccy ?? 0),
                       notes: inv.notes,
                       terms_text: inv.terms_text,
                       bill_to: (inv.bill_to_snapshot ?? {}) as Record<string, string | null | undefined>,
@@ -135,7 +145,7 @@ export default async function InvoiceDetailPage({
                       quantity: Number(l.quantity),
                       unit: l.unit,
                       unit_price: Number(l.unit_price),
-                      amount_base: Number(l.amount_base),
+                      amount_ccy: Number(l.amount_ccy),
                   })),
                   company: company as Record<string, unknown> & { legal_name: string },
                   gstRegistrationNo: financeSettings?.gst_registration_no ?? null,
@@ -291,7 +301,7 @@ export default async function InvoiceDetailPage({
                                 {formatAmount(l.unit_price, inv.currency)}
                             </td>
                             <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                {formatAmount(l.amount_base, inv.currency)}
+                                {formatAmount(l.amount_ccy, inv.currency)}
                             </td>
                             <td className="border border-gray-300 px-3 py-2 text-sm">
                                 {/* 每行都能跳回它背后的 AR 单据(凭据附件挂在那里)*/}
@@ -311,17 +321,17 @@ export default async function InvoiceDetailPage({
             <div className="mt-4 max-w-sm ml-auto text-sm space-y-1">
                 <div className="flex justify-between">
                     <span className="text-gray-600">{t('invoice.subtotal')}</span>
-                    <span className="font-mono">{formatAmount(inv.subtotal_base, inv.currency)}</span>
+                    <span className="font-mono">{formatAmount(docTotals?.subtotal_ccy ?? null, inv.currency)}</span>
                 </div>
-                {Number(inv.tax_base) !== 0 && (
+                {Number(docTotals?.tax_ccy ?? 0) !== 0 && (
                     <div className="flex justify-between">
                         <span className="text-gray-600">{t('invoice.tax', { rate: inv.tax_rate_pct })}</span>
-                        <span className="font-mono">{formatAmount(inv.tax_base, inv.currency)}</span>
+                        <span className="font-mono">{formatAmount(docTotals?.tax_ccy ?? null, inv.currency)}</span>
                     </div>
                 )}
                 <div className="flex justify-between border-t pt-1 font-bold">
                     <span>{t('invoice.total')}</span>
-                    <span className="font-mono">{formatAmount(inv.total_base, inv.currency)}</span>
+                    <span className="font-mono">{formatAmount(total_ccy, inv.currency)}</span>
                 </div>
             </div>
 
@@ -406,7 +416,7 @@ export default async function InvoiceDetailPage({
                                             (reversed ? ' line-through' : '')
                                         }
                                     >
-                                        {formatAmount(a.allocated_base, inv.currency)}
+                                        {formatAmount(a.allocated_ccy, inv.currency)}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-sm">
                                         {reversed ? (

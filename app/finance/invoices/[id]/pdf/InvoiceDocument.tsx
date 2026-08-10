@@ -94,10 +94,13 @@ export type InvoiceData = {
     due_date: string
     payment_terms_days: number
     currency: string
-    subtotal_base: number
     tax_rate_pct: number
-    tax_base: number
-    total_base: number
+    // INV-1:客户账单印的是【单据币种】的数(invoice_document_totals)。
+    // *_base 是本位币,给账用的 —— 这份文档【一个都不印】,免得再有人拿
+    // currency 去标它们(已发出的两张就是这么各多报了 1,440 / 336 USD)。
+    subtotal_ccy: number
+    tax_ccy: number
+    total_ccy: number
     status: string
     notes: string | null
     terms_text: string | null
@@ -111,7 +114,9 @@ export type InvoiceLine = {
     quantity: number
     unit: string
     unit_price: number
-    amount_base: number
+    // 单据币种的行金额 = quantity × unit_price(不经汇率)——
+    // 与 unit_price 同币种,所以这一行自己对得上账
+    amount_ccy: number
 }
 
 const num = (n: number, dp = 2) =>
@@ -319,8 +324,8 @@ export default function InvoiceDocument({
                     <Text style={[styles.thText, styles.cNo]}>#</Text>
                     <Text style={[styles.thText, styles.cDesc]}>Description</Text>
                     <Text style={[styles.thText, styles.cQty]}>Quantity</Text>
-                    <Text style={[styles.thText, styles.cPrice]}>Unit price</Text>
-                    <Text style={[styles.thText, styles.cAmt]}>Amount</Text>
+                    <Text style={[styles.thText, styles.cPrice]}>Unit price ({invoice.currency})</Text>
+                    <Text style={[styles.thText, styles.cAmt]}>Amount ({invoice.currency})</Text>
                 </View>
                 {lines.map((l) => (
                     <View key={l.line_no} style={styles.row} wrap={false}>
@@ -330,7 +335,7 @@ export default function InvoiceDocument({
                             {num(l.quantity, 2)} {l.unit}
                         </Text>
                         <Text style={styles.cPrice}>{num(l.unit_price)}</Text>
-                        <Text style={styles.cAmt}>{num(l.amount_base)}</Text>
+                        <Text style={styles.cAmt}>{num(l.amount_ccy)}</Text>
                     </View>
                 ))}
 
@@ -338,18 +343,18 @@ export default function InvoiceDocument({
                 <View style={styles.totals}>
                     <View style={styles.totalRow}>
                         <Text style={styles.totalLabel}>Subtotal</Text>
-                        <Text style={styles.totalValue}>{num(invoice.subtotal_base)}</Text>
+                        <Text style={styles.totalValue}>{num(invoice.subtotal_ccy)}</Text>
                     </View>
                     {/* 未做 GST 登记时【整行不出现】—— 不给一家没登记的公司打印 "GST 0.00" */}
-                    {Number(invoice.tax_base) !== 0 ? (
+                    {Number(invoice.tax_ccy) !== 0 ? (
                         <View style={styles.totalRow}>
                             <Text style={styles.totalLabel}>GST ({num(invoice.tax_rate_pct, 0)}%)</Text>
-                            <Text style={styles.totalValue}>{num(invoice.tax_base)}</Text>
+                            <Text style={styles.totalValue}>{num(invoice.tax_ccy)}</Text>
                         </View>
                     ) : null}
                     <View style={styles.grandRow}>
                         <Text style={styles.grandLabel}>Total ({invoice.currency})</Text>
-                        <Text style={styles.grandValue}>{num(invoice.total_base)}</Text>
+                        <Text style={styles.grandValue}>{num(invoice.total_ccy)}</Text>
                     </View>
                 </View>
 
