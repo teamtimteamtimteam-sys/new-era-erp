@@ -1146,6 +1146,17 @@ const zh = {
             colOutput: '产出 kg',
             colRecovery: '回收率 %',
             empty: '在进料和产出批次上录入金属含量后,这里会显示回收率',
+            notMeasured: '未测',
+            notMeasuredTitle: '这一侧没有任何化验测过这个金属 —— 与"测出来是零"不是一回事。',
+            blocked: {
+                input_not_measured: '算不出 —— 投入侧从未化验这个金属。这一单事后无法补救;办法是在投产【之前】把批次化验掉(看板的"待化验"支就是拦这件事的地方)。',
+                output_not_measured: '算不出 —— 产出批上还没有录入金属含量。在产出批上录入后,这个数就完整了。',
+                input_measured_zero: '算不出 —— 投入已化验且不含这个金属,没有可供回收的基数。',
+            },
+            anomalyTitle: '产出超过投入',
+            anomaly: '本单产出的{metal}多于投入({input} kg 进、{output} kg 出)。两侧都测过,所以值得查一查:可能投错了批、产出含量录错,或者物料被污染。',
+            anomalyFromZero: '本单从"化验测得不含此金属"的投入里产出了 {output} kg {metal}。两侧都测过,值得查一查。',
+            runNotComputable: '本单的回收率无从计算:这些金属没有一个在两侧都被测过。下面的表会说清缺的是哪一侧,而不是给一个 0。',
         },
     },
     inventory: {

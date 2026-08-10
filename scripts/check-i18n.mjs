@@ -242,6 +242,11 @@ const MANIFEST = {
                                   /(?:THEN|ELSE) '(\w+)'::text\s*$/gm) },
     'margin.statusHint.':   { kind: 'enum', values: () => tsRegex('db/views/batch_margin.sql',
                                   /(?:THEN|ELSE) '(\w+)'::text\s*$/gm) },
+    // REC-1:回收率算不出来的原因。后缀集合就是 processing_metal_recovery 里那个
+    // CASE 的分支(input_not_measured / output_not_measured / input_measured_zero)——
+    // 从视图镜像现读,加一种原因这道检查自动跟着变宽。写死清单只会烂在这里。
+    'processing.recovery.blocked.': { kind: 'enum', values: () => tsRegex('db/views/processing_metal_recovery.sql',
+                                  /THEN '(\w+)'::text/g) },
     // APR-2c:采购单审批状态。后缀集合就是 purchase_orders 的 CHECK —— 真源现读。
     'purchasing.approvalState.': { kind: 'enum', values: () => sqlEnum('db/tables/purchase_orders.sql', 'approval_status') },
     // ── HR ──────────────────────────────────────────────────────────────────

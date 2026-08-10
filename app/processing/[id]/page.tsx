@@ -100,7 +100,7 @@ export default async function ProcessingDetailPage({
             .order('created_at'),
         supabase
             .from('processing_metal_recovery')
-            .select('metal, input_metal_kg, output_metal_kg, recovery_pct')
+            .select('metal, input_metal_kg, output_metal_kg, recovery_pct, input_measured, output_measured, recovery_blocked_by, conservation_warning, run_recovery_computable')
             .eq('run_id', id)
             .order('metal'),
     ])
@@ -197,6 +197,13 @@ export default async function ProcessingDetailPage({
 
     // 回收率行(视图已按 committed + 未软删过滤)
     const recoveryRows = mustRows(recoveryRes)
+
+    // REC-1:整单的话由数据说(视图里的窗口聚合),不由页面从数字反推。
+    // 【投产之后无法补救】—— 所以这句话只出现在单据上,不上看板:一盏关不掉的
+    // 灯就是 hr_alerts 那盏常亮灯换个地方(预防那一半归看板的 awaiting_assay 支)。
+    const recoveryComputable = recoveryRows.length === 0 || recoveryRows[0].run_recovery_computable !== false
+    // 守恒提示:【只在两侧都测过】时才可能为真 —— 没测过的投入没有可守恒的对象。
+    const conservationRows = recoveryRows.filter((r) => r.conservation_warning)
     const metalLabel = (v: string | null) => {
         const k = metalLabelKey(v)
         return k ? t(k) : v ?? '—'
@@ -529,6 +536,27 @@ export default async function ProcessingDetailPage({
                     <section>
                         <h2 className="text-lg font-semibold mb-2">{t('processing.recovery.title')}</h2>
                         {recoveryRows.length > 0 ? (
+                            <>
+                            {!recoveryComputable && (
+                                <p className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-3 text-sm">
+                                    {t('processing.recovery.runNotComputable')}
+                                </p>
+                            )}
+                            {conservationRows.map((r) => (
+                                <p key={'warn-' + r.metal}
+                                   className="bg-red-50 border border-red-300 text-red-800 px-4 py-3 rounded mb-3 text-sm">
+                                    <span className="font-medium">{t('processing.recovery.anomalyTitle')}</span>{' — '}
+                                    {Number(r.input_metal_kg) === 0
+                                        ? t('processing.recovery.anomalyFromZero', {
+                                              metal: metalLabel(r.metal), output: String(r.output_metal_kg),
+                                          })
+                                        : t('processing.recovery.anomaly', {
+                                              metal: metalLabel(r.metal),
+                                              input: String(r.input_metal_kg),
+                                              output: String(r.output_metal_kg),
+                                          })}
+                                </p>
+                            ))}
                             <div className="overflow-x-auto">
                             <table className="w-full border-collapse border border-gray-300">
                                 <thead className="bg-gray-100">
@@ -543,20 +571,43 @@ export default async function ProcessingDetailPage({
                                     {recoveryRows.map((r, idx) => (
                                         <tr key={r.metal ?? idx}>
                                             <td className="border border-gray-300 px-4 py-2">{metalLabel(r.metal)}</td>
-                                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                                {r.input_metal_kg ?? '—'}
+                                            {/* REC-1:【未测】与【测出来是零】渲染成两样东西。此前视图把
+                                                前者压成 0,于是"投入 0 / 产出 40"看着像无中生有,其实
+                                                只是那个金属从没在投入侧被测过。 */}
+                                            <td className="border border-gray-300 px-4 py-2 text-right text-sm">
+                                                {r.input_measured ? (
+                                                    <span className="font-mono">{r.input_metal_kg}</span>
+                                                ) : (
+                                                    <span className="text-gray-400" title={t('processing.recovery.notMeasuredTitle')}>
+                                                        {t('processing.recovery.notMeasured')}
+                                                    </span>
+                                                )}
                                             </td>
-                                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                                {r.output_metal_kg ?? '—'}
+                                            <td className="border border-gray-300 px-4 py-2 text-right text-sm">
+                                                {r.output_measured ? (
+                                                    <span className="font-mono">{r.output_metal_kg}</span>
+                                                ) : (
+                                                    <span className="text-gray-400" title={t('processing.recovery.notMeasuredTitle')}>
+                                                        {t('processing.recovery.notMeasured')}
+                                                    </span>
+                                                )}
                                             </td>
-                                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                                {r.recovery_pct != null ? r.recovery_pct.toFixed(2) + '%' : '—'}
+                                            {/* 算不出的时候说【为什么】和【怎么才能算出来】,而不是一根横杠 */}
+                                            <td className="border border-gray-300 px-4 py-2 text-sm">
+                                                {r.recovery_pct != null ? (
+                                                    <span className="font-mono">{r.recovery_pct.toFixed(2)}%</span>
+                                                ) : (
+                                                    <span className="text-gray-500 text-xs">
+                                                        {t('processing.recovery.blocked.' + (r.recovery_blocked_by ?? 'input_not_measured'))}
+                                                    </span>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
                             </div>
+                            </>
                         ) : (
                             <p className="text-sm text-gray-500">{t('processing.recovery.empty')}</p>
                         )}

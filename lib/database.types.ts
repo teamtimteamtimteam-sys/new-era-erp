@@ -9318,13 +9318,18 @@ export type Database = {
       }
       processing_metal_recovery: {
         Row: {
+          conservation_warning: boolean | null
+          input_measured: boolean | null
           input_metal_kg: number | null
           metal: string | null
+          output_measured: boolean | null
           output_metal_kg: number | null
           process_date: string | null
+          recovery_blocked_by: string | null
           recovery_pct: number | null
           run_code: string | null
           run_id: string | null
+          run_recovery_computable: boolean | null
         }
         Relationships: []
       }

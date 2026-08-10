@@ -243,3 +243,40 @@ one of the other two.
 **What to check when it is built:** FIN-25's discrimination test. A third basis that cannot be shown
 to produce a *different* unit cost from the other two on some constructed run is not a third basis —
 `db/fixtures/34` already asserts weight and metal value diverge and would extend naturally.
+
+---
+
+## 回收率表的两侧【认识论上不对等】,而界面把它们并排摆着(REC-1 报告,2026-08-10)
+
+不是缺陷,是产品问题 —— 记在这里,等"产出化验"值得做的那天,Tim 会先撞见它。
+
+`processing_metal_recovery` 一行两个数,读起来像同一种事实的两次测量。其实:
+
+* **投入侧**是**化验结果**:`inbound_batch_metals` 的写入口有两个 ——
+  `apply_assay_result`(实验室出的化验单,有单号、有日期、有取代链、可撤销)
+  与批次编辑页的手工格子。
+* **产出侧只有手工格子**:`assay_results.inbound_batch_id` 是 `NOT NULL`,**没有
+  output 列** —— 这个系统里**化验单只能挂在进料批上**。产出批的金属含量是人在
+  产出批编辑页上敲进去的,没有单号、没有出处、没有"这是谁测的"。
+
+于是 REC-1 之后表上写着"投入 20 kg / 产出 30 kg",两个数的**可信度不是一回事**,
+而回收率把它们相除,得到一个看起来精确的百分比。守恒提示同理:它报的"产出多于
+投入",既可能是投错批,也可能只是**有人在产出批上敲错了一位小数**——
+而系统分不出这两者,因为它对产出侧的数【没有任何出处可查】。
+
+**线上的量**:13 个产出批只有 4 个录了任何金属含量(REC-1 之前它们全都显示为
+"产出 0",读起来像"一点都没回收出来")。
+
+**Doc 1 在"产出侧测什么指标"处是空白的** —— 所以这不是实现漏了什么,是这件事
+还没被决定。真要做,至少要回答三问:
+1. 产出化验是**同一张 assay_results 表**加一个可空的 output_batch_id(取代链、
+   撤销、应用逻辑全部复用),还是另起一张?前者要处理"两个父之一非空"的约束,
+   后者会有两套化验语义。
+2. 产出化验**要不要影响定价**?进料化验一应用就重计价并过账(apply_assay_result);
+   产出化验若照做,会动到已售批次的 COGS —— 那是另一条完全不同的账务路径。
+3. 手工录入的产出含量在有了化验之后**算什么**?FIN-26 的答案是 price_source:
+   记录它是"人填的"还是"算出来的",绝不从"有没有化验"去推断。同一个答案在这里
+   同样成立 —— 含量也该带上出处,而不是让两种来源长得一模一样。
+
+在此之前:**回收率是一个有用的估数,不是一个可审计的 KPI**,而这一句话现在
+写在这里,而不是等某天有人拿它去跟供应商对账时才发现。

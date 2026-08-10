@@ -1143,6 +1143,17 @@ const en = {
             colOutput: 'Output kg',
             colRecovery: 'Recovery %',
             empty: 'Record metal content on input and output batches to see recovery',
+            notMeasured: 'not measured',
+            notMeasuredTitle: 'No assay recorded this metal on this side — which is not the same as a measured zero.',
+            blocked: {
+                input_not_measured: 'Cannot be computed — the input was never assayed for this metal. Nothing can fix this run retrospectively; assay batches before they are processed (the dashboard\u2019s "awaiting assay" list is where that is prevented).',
+                output_not_measured: 'Cannot be computed — no metal content has been recorded on the output batches yet. Enter it on the output batch to complete this figure.',
+                input_measured_zero: 'Cannot be computed — the input was measured and contains none of this metal, so there is nothing to recover against.',
+            },
+            anomalyTitle: 'Output exceeds input',
+            anomaly: 'This run produced more {metal} than went in ({output} kg out of {input} kg). Both sides were measured, so this is worth checking: the wrong batch may have been consumed, the output content may be mistyped, or the material may be contaminated.',
+            anomalyFromZero: 'This run produced {output} kg of {metal} from an input measured to contain none. Both sides were measured, so this is worth checking.',
+            runNotComputable: 'Recovery cannot be computed for this run: none of these metals was measured on both sides. The figures below say which side is missing rather than showing a zero.',
         },
     },
     inventory: {

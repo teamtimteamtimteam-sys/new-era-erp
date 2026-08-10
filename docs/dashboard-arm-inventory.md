@@ -160,3 +160,32 @@ today, and an arm whose only observable behaviour is "not in force" cannot be sh
 discriminate — the standard `db/fixtures/34` established for a third allocation basis. It belongs
 in the cut that turns approvals on, alongside the delegation and HR four-eyes work, all three of
 which are gated on the same decision.
+
+
+---
+
+## awaiting_assay 的两处缺口(REC-1 复核,2026-08-10)—— 记录,本刀不动
+
+Tim 在 REC-1 里问:预防那一半是不是已经由 `awaiting_assay` 覆盖了?复核结论是
+**覆盖了主干,但有两处缺口**,而且其中一处正是"关不掉的灯"那个病 —— 所以更要
+先写下来再决定,不能顺手改。
+
+该支的谓词是 `batch_assay_status.assay_count = 0`,对每个未软删的进料批成立。
+
+**缺口一(已经在发生):它不排除【已经投产】的批次。** `IN-2026-0011` 与
+`IN-2026-0153` 都是零化验、零金属行,而且**都已被已提交的加工单消耗掉**,
+`remaining_qty` 已经是 0。它们此刻挂在牌上,而**没有任何操作能让它们落牌** ——
+货已经处理完了,补化验无从谈起。这正是 OPS-14 记的 `hr_alerts` 那盏常亮灯的形状,
+只是换了个地方,而且是**本来就存在的**,不是 REC-1 加进去的。
+可能的修法(留待决定):谓词加上"尚未被任何已提交加工单消耗"或 `remaining_qty > 0`。
+**没有在 REC-1 里顺手改**,因为改看板支的含义要连着这份清单一起改,而它值得
+自己的一刀与自己的 fixture。
+
+**缺口二:它是【每批】而不是【每金属】。** 一个批次只要有过任何一张化验单,
+`assay_count > 0`,这支就不再报它 —— 哪怕那张化验只测了一个金属。走查那一单正是
+这种:`IN-2026-0001` 有一张只测了 cu 的化验,钴从未被测过,而该支对此完全无感。
+要覆盖它就得回答"一张化验单该测哪些金属"——那是化验政策问题,不是看板问题
+(Doc 1 在"产出侧测什么指标"上同样是空白,见 as-built-divergences.md)。
+
+**结论**:REC-1 不加任何看板支。投产之后无从补救的事实只写在单据上;
+预防的时刻归 `awaiting_assay`,而它的这两处缺口按上面记录,各自等一刀。
