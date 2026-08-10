@@ -11,6 +11,16 @@
 // → 失败的连同【服务端】错误堆栈一起报 —— 浏览器那句话什么都不说,上两只虫都
 // 因此多绕了一圈。收尾删掉全部临时行与会话;开跑的清扫兜住 finally 挡不住的 kill。
 //
+// 【一棵树,同一时刻只跑一个冒烟;一棵树,一个 Claude Code 会话】—— 正确性要求,
+// 不是性能建议。sweepScratch() 删掉【所有】smoke-*@test.local 账号,【不看归属、
+// 不看年龄】:它分不出"上次崩掉的残骸"与"另一个进程此刻正在用的账号",于是后启动
+// 的那个一上来就把先启动的那个的会话删了,而先启动的那个会在下一次 fetch 上拿到
+// 一片 401 —— 报出来却像是路由失败。换端口救不了:库是共享的 live 库。
+// 两个会话共享的还有 .next(npm run build 会重写它、搞死正在跑的 dev server)、
+// git 索引与 /tmp。要并行就各开 worktree 加各自的库,否则排队。
+// 全部经过与诊断办法(先查 inode,不要查 diff)见
+// docs/concurrency-one-tree-one-smoke.md。
+//
 // 用法:node scripts/smoke-routes.mjs
 // 退出码 0 = 全通;1 = 有失败 / 跳过清单漂移(EXPECTED_SKIPS)/ 脚本自身查询炸了
 // 【不进 db/gate.py】整跑约 2-4 分钟且要起 dev server —— 慢门会被跳过,
@@ -131,6 +141,42 @@ async function signIn(email, password) {
     return 'sb-' + URL_.split('//')[1].split('.')[0] + '-auth-token=base64-'
         + Buffer.from(JSON.stringify(sess)).toString('base64url')
 }
+// 【同一条理由的第二半:端口】kill 留下来的不只是库里的临时行,还有一个
+// 还占着 3199 的 dev server —— finally 同样挡不住它。缺了这一扫,下一次跑在
+// EADDRINUSE 上死掉,而错误看起来像"这一刀把服务器改坏了"(2026-08-10 实际发生)。
+// 【规矩写成一句】kill 会留下什么,就得在开跑时扫什么;收尾清理永远兜不住 kill。
+//
+// 【但绝不无差别杀】docs/concurrency-one-tree-one-smoke.md 记着这条的反面教训:
+// 那天双方都在"清理 stray",双方杀掉的都是对方【正在跑】的进程。所以这里只杀
+// 【证明得了是孤儿】的:父进程已经没了(被 launchd 收养,ppid = 1)。
+// 一个还有活父进程的 dev server 属于另一个正在跑的人 —— 那时不杀,而是【拒绝开跑】
+// 并说清楚为什么,因为共享的 live 库让两次冒烟无论如何都不能同时正确。
+function sweepStalePort() {
+    let pids = []
+    try {
+        pids = execSync(`lsof -ti:${PORT}`, { encoding: 'utf8' }).trim().split('\n').filter(Boolean)
+    } catch { return }          // lsof 无匹配时退出码非 0 —— 没人占端口,正常
+    for (const pid of pids) {
+        let ppid = '', cmd = ''
+        try {
+            ppid = execSync(`ps -o ppid= -p ${pid}`, { encoding: 'utf8' }).trim()
+            cmd = execSync(`ps -o command= -p ${pid}`, { encoding: 'utf8' }).trim()
+        } catch { continue }    // 刚好退干净了
+        if (ppid === '1') {
+            process.kill(Number(pid), 'SIGKILL')
+            console.log(`  清扫孤儿 dev server:pid ${pid}(父进程已死,ppid=1)占着 ${PORT}`)
+        } else {
+            console.error(`\n✗ 端口 ${PORT} 被一个【还有活父进程】的进程占着(pid ${pid}, ppid ${ppid}):`)
+            console.error(`    ${cmd}`)
+            console.error(`  这不是孤儿 —— 多半是同一棵树上另一次冒烟正在跑。不杀它。`)
+            console.error(`  一棵树同一时刻只能跑一个冒烟(共享 live 库 + sweepScratch 无归属过滤),`)
+            console.error(`  理由见 docs/concurrency-one-tree-one-smoke.md。等它跑完,或去确认它真的是孤儿:`)
+            console.error(`    ps -o ppid,lstart -p ${pid}   ·   lsof -p ${pid} -a -d 1`)
+            process.exit(1)
+        }
+    }
+}
+
 // 【开跑先扫,不只收尾再删】finally 挡不住 kill:上次崩掉的残留必须在开跑时清掉,
 // 否则一次崩溃就把临时行永久留在库里 —— 别处的 fixture 靠事务回滚兜底,
 // 本脚本驱动 HTTP 打真服务器,回滚不存在,清扫就是它唯一的机制。
@@ -264,6 +310,7 @@ async function reachabilityForRole(roleCode, base, mkSession) {
 
 async function main() {
     const reachFailures = []
+    sweepStalePort()   // 端口先扫:库里的行扫干净了,端口被占住照样开不了跑
     await sweepScratch()
 
     // ── 一次性 admin 会话 ────────────────────────────────────────────────────
