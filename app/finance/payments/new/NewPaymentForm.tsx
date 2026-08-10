@@ -10,7 +10,7 @@ import { bankAccountFor, currencyOfBank } from '@/lib/currencyMap'
 import Link from 'next/link'
 import { createPayment, lookupFxRate, lookupRatesFor, type CreatePaymentState } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
-import { formatMoney, formatAmount } from '@/lib/format'
+import { formatAmount, formatMoneyBare } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 
 const initialState: CreatePaymentState = {}
@@ -582,14 +582,14 @@ export default function NewPaymentForm({
                         【付款币种】的金额 —— 标签说 SGD、数字后面跟着 USD,自相矛盾 */}
                     <span className="text-gray-600 mr-1">{t('finance.paymentAmount')}:</span>
                     <span className="font-mono font-medium">
-                        {formatMoney(amountValid ? amountNum : 0)} {currency}
+                        {formatMoneyBare(amountValid ? amountNum : 0, '同格内紧随其后的 {currency} 后缀')} {currency}
                     </span>
                 </div>
                 {/* 基准额单列一格,并标明是折算值 —— 与上面的付款币种金额不再混为一谈 */}
                 <div>
                     <span className="text-gray-600 mr-1">{t('finance.baseEquivalent')}:</span>
                     <span className="font-mono">
-                        {payBase === null ? '—' : formatMoney(payBase)}
+                        {payBase === null ? '—' : formatAmount(payBase, baseCurrency)}
                         {effectiveFx !== null && (
                             <span className="ml-1 text-xs text-gray-500">
                                 @ {effectiveFx}

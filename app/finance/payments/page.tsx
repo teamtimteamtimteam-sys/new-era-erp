@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { parseDateRange } from '@/lib/dateFilter'
-import { formatMoney } from '@/lib/format'
+import { formatMoneyBare } from '@/lib/format'
 import Subnav from '../Subnav'
 import PaymentsToolbar from './PaymentsToolbar'
 import { mustRows } from '@/lib/db-helpers'
@@ -175,10 +175,10 @@ export default async function PaymentsListPage({
                                 {nameById.get(r.customer_id ?? r.supplier_id ?? '') ?? '—'}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {r.currency} {formatMoney(r.amount_ccy)}
+                                {r.currency} {formatMoneyBare(r.amount_ccy, '同格内紧邻的 r.currency 前缀')}
                                 {r.currency !== baseCurrency && (
                                     <span className="text-gray-500 ml-2">
-                                        = {formatMoney(r.amount_base)} {baseCurrency}
+                                        = {formatMoneyBare(r.amount_base, '同格内紧随其后的 {baseCurrency} 后缀')} {baseCurrency}
                                     </span>
                                 )}
                             </td>

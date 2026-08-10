@@ -7,7 +7,7 @@ import AllocateButton from './AllocateButton'
 import { type CostEntryRow } from './costTypes'
 import { processingStatusLabelKey } from '../status'
 import { metalLabelKey } from '@/app/metal-prices/options'
-import { formatMoney, formatUnitCost, formatTimestamp } from '@/lib/format'
+import { formatAmount, formatMoneyBare, formatUnitCost, formatTimestamp } from '@/lib/format'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { maskedRows, maskedExcept } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
@@ -16,6 +16,7 @@ import { MaskedValue } from '@/app/components/MaskedValue'
 import { mustOne, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { getBaseCurrency } from '@/lib/currency'
 
 // FK 嵌入运行时是对象(包括两层嵌套);显式类型 + cast 锁住。
 type ProcessingInputRow = {
@@ -67,6 +68,10 @@ export default async function ProcessingDetailPage({
     const { id } = await params
     const supabase = await createClient()
     const t = await getTranslations()
+    // CCY-1:概况块的三个成本是 *_base 而【一个币种都没写】,底下产出表的列头却写着
+    // 「分摊成本 (SGD)」—— 同一页两种待遇,上面那三个就成了没人认领的数字。
+    // 本位币从 currencies.is_base 取(不写死),三个数各自带上它。
+    const baseCurrency = await getBaseCurrency()
     const locale = await getLocale()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
@@ -262,19 +267,19 @@ export default async function ProcessingDetailPage({
                         </div>
                     </div>
 
-                    {/* 成本(金额,USD) */}
+                    {/* 成本(本位币金额;币种随数写出,见文件顶部 baseCurrency)*/}
                     <div className="mt-3 pt-3 border-t border-gray-200 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
                         <div>
                             <span className="text-gray-600">{t('processing.detail.materialCost')}</span>{' '}
-                            <MaskedValue value={run.material_cost_base === null ? null : formatMoney(run.material_cost_base)} canView={showPrices} fallback="—" />
+                            <MaskedValue value={run.material_cost_base === null ? null : formatAmount(run.material_cost_base, baseCurrency)} canView={showPrices} fallback="—" />
                         </div>
                         <div>
                             <span className="text-gray-600">{t('processing.detail.processCost')}</span>{' '}
-                            <MaskedValue value={run.process_cost_base === null ? null : formatMoney(run.process_cost_base)} canView={showPrices} fallback="—" />
+                            <MaskedValue value={run.process_cost_base === null ? null : formatAmount(run.process_cost_base, baseCurrency)} canView={showPrices} fallback="—" />
                         </div>
                         <div>
                             <span className="text-gray-600">{t('processing.detail.totalCost')}</span>{' '}
-                            <MaskedValue value={run.total_cost_base === null ? null : formatMoney(run.total_cost_base)} canView={showPrices} fallback="—" />
+                            <MaskedValue value={run.total_cost_base === null ? null : formatAmount(run.total_cost_base, baseCurrency)} canView={showPrices} fallback="—" />
                         </div>
                     </div>
 
@@ -483,7 +488,7 @@ export default async function ProcessingDetailPage({
                                         {/* 遮蔽后是 null,和"尚未分摊"是两回事 —— 前者显示「受限」,
                                             后者才是「—」。都画成 — 会让运营以为成本没算。 */}
                                         <MaskedValue
-                                            value={leg.allocated_cost_base === null ? null : formatMoney(leg.allocated_cost_base)}
+                                            value={leg.allocated_cost_base === null ? null : formatMoneyBare(leg.allocated_cost_base, '列头「分摊成本 (SGD)」')}
                                             canView={showPrices}
                                             fallback="—"
                                         />

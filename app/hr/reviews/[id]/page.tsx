@@ -8,7 +8,8 @@ import { createClient } from '@/lib/supabase/server'
 import { mustOne } from '@/lib/db-helpers'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { can } from '@/lib/permissions'
-import { formatMoney } from '@/lib/format'
+import { getBaseCurrency } from '@/lib/currency'
+import { formatAmount } from '@/lib/format'
 import Subnav from '../../Subnav'
 import GoalsEditor from '../GoalsEditor'
 import ConclusionForm, { type RatingOption } from '../ConclusionForm'
@@ -29,6 +30,8 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
     const supabase = await createClient()
     const t = await getTranslations()
     const locale = await getLocale()
+    // 调薪是【本位币】的月薪,而这一页上下没有任何一处写着币种 —— 所以数字自己带上。
+    const baseCurrency = await getBaseCurrency()
 
     const { data: reviewRow } = await supabase
         .from('performance_reviews_masked')
@@ -156,7 +159,7 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
                 {canPay && (r.new_monthly_salary !== null || r.salary_effective_date !== null) && !canHrEdit && (
                     <div>
                         <span className="text-gray-600 mr-1">{t('reviews.newSalary')}:</span>
-                        <span className="font-mono">{formatMoney(r.new_monthly_salary)}</span>
+                        <span className="font-mono">{formatAmount(r.new_monthly_salary, baseCurrency)}</span>
                         <span className="ml-2 text-gray-500">{r.salary_effective_date}</span>
                     </div>
                 )}

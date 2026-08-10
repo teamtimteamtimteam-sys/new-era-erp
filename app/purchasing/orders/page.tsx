@@ -5,12 +5,16 @@
 // 筛选状态为 cancelled 时另查 purchase_orders 本表(其预付/进度数字无意义,留空)。
 // OPS-14:预付两列在没有 module.finance.view 时【也是 null】—— 于是 null 有两个含义,
 // 「已取消所以无意义」与「你看不见」。前者画「—」,后者画「受限」,靠权限码分开。
+// CCY-1:这张表里【并排两种币】——「估算总额」是采购单自己的币种(po.currency),
+// 「已预付」与那个未抵扣角标是本位币(*_base)。列头一个币种也没写,两列挨着,
+// 于是 12,000 与 8,100 看着像同一种钱。两列各自带上币种,不省。
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { parseDateRange } from '@/lib/dateFilter'
-import { formatMoney } from '@/lib/format'
+import { formatAmount } from '@/lib/format'
+import { getBaseCurrency } from '@/lib/currency'
 import { can } from '@/lib/permissions'
 import { MaskedValue } from '@/app/components/MaskedValue'
 import Subnav from '../Subnav'
@@ -31,6 +35,7 @@ type Row = {
     supplier_name: string | null
     order_date: string
     expected_delivery_date: string | null
+    currency: string
     estimated_total_ccy: number
     prepaid_base: number | null
     prepaid_remaining_base: number | null
@@ -54,6 +59,8 @@ export default async function PurchaseOrdersPage({
     const supabase = await createClient()
     const t = await getTranslations()
     const canFinance = await can('module.finance.view')
+    // 预付列是本位币 —— 从 currencies.is_base 取,不写死
+    const baseCurrency = await getBaseCurrency()
 
     const { dateFrom, dateTo } = parseDateRange(sp)
     const supplier = (sp.supplier ?? '').trim()
@@ -89,18 +96,19 @@ export default async function PurchaseOrdersPage({
         const { data } = await applyFilters(
             supabase
                 .from('purchase_orders_masked')
-                .select('id, code, order_date, expected_delivery_date, estimated_total_ccy, status, suppliers(legal_name)')
+                .select('id, code, order_date, expected_delivery_date, currency, estimated_total_ccy, status, suppliers(legal_name)')
                 .eq('status', 'cancelled')
                 .is('deleted_at', null)
         )
             .order('order_date', { ascending: false })
             .range((page - 1) * PAGE_SIZE, (page - 1) * PAGE_SIZE + PAGE_SIZE - 1)
-        rows = ((data as unknown as { id: string; code: string; order_date: string; expected_delivery_date: string | null; estimated_total_ccy: number; status: string; suppliers: { legal_name: string } | null }[] | null) ?? []).map((r) => ({
+        rows = ((data as unknown as { id: string; code: string; order_date: string; expected_delivery_date: string | null; currency: string; estimated_total_ccy: number; status: string; suppliers: { legal_name: string } | null }[] | null) ?? []).map((r) => ({
             po_id: r.id,
             code: r.code,
             supplier_name: r.suppliers?.legal_name ?? null,
             order_date: r.order_date,
             expected_delivery_date: r.expected_delivery_date,
+            currency: r.currency,
             estimated_total_ccy: r.estimated_total_ccy,
             prepaid_base: null,
             prepaid_remaining_base: null,
@@ -122,7 +130,7 @@ export default async function PurchaseOrdersPage({
         const { data } = await applyStatus(
             supabase
                 .from('purchase_order_status')
-                .select('po_id, code, supplier_name, order_date, expected_delivery_date, estimated_total_ccy, prepaid_base, prepaid_remaining_base, receipt_pct, status')
+                .select('po_id, code, supplier_name, order_date, expected_delivery_date, currency, estimated_total_ccy, prepaid_base, prepaid_remaining_base, receipt_pct, status')
         )
             .order('order_date', { ascending: false })
             .range((page - 1) * PAGE_SIZE, (page - 1) * PAGE_SIZE + PAGE_SIZE - 1)
@@ -211,17 +219,17 @@ export default async function PurchaseOrdersPage({
                             <td className="border border-gray-300 px-4 py-2">{r.order_date}</td>
                             <td className="border border-gray-300 px-4 py-2">{r.expected_delivery_date ?? '—'}</td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatMoney(r.estimated_total_ccy)}
+                                {formatAmount(r.estimated_total_ccy, r.currency)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                <MaskedValue value={r.prepaid_base === null ? null : formatMoney(r.prepaid_base)} canView={canFinance} fallback="—" />
+                                <MaskedValue value={r.prepaid_base === null ? null : formatAmount(r.prepaid_base, baseCurrency)} canView={canFinance} fallback="—" />
                                 {/* 搁浅的定金要不点开每张单也看得见(cut 4c)*/}
                                 {canFinance && (r.prepaid_remaining_base ?? 0) > 0 && (
                                     <span
                                         title={t('purchasing.unappliedMarker')}
                                         className="ml-2 inline-block px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-800 font-sans"
                                     >
-                                        ⚠ {formatMoney(r.prepaid_remaining_base ?? 0)}
+                                        ⚠ {formatAmount(r.prepaid_remaining_base ?? 0, baseCurrency)}
                                     </span>
                                 )}
                             </td>

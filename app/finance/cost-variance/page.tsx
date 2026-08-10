@@ -3,7 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { mustRows } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../Subnav'
-import { formatMoney } from '@/lib/format'
+import { formatAmount } from '@/lib/format'
+import { getBaseCurrency } from '@/lib/currency'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 
@@ -15,6 +16,8 @@ export default async function CostVariancePage() {
 
     const supabase = await createClient()
     const t = await getTranslations()
+    // 列头是月份,没有一处写着币种 —— 差异金额自己带(CCY-1)
+    const baseCurrency = await getBaseCurrency()
     const res = await supabase.from('processing_cost_variance').select('*')
     type Row = { month: string; cost_type: string; estimated_total: number; actual_total: number; variance: number; direction: string }
     const rows = mustRows(res) as unknown as Row[]
@@ -43,7 +46,7 @@ export default async function CostVariancePage() {
                                             {r ? (
                                                 <span title={`est ${r.estimated_total} / act ${r.actual_total}`}
                                                       className={r.variance > 0 ? 'text-red-700' : r.variance < 0 ? 'text-green-700' : ''}>
-                                                    {r.variance > 0 ? '+' : ''}{formatMoney(r.variance)}
+                                                    {r.variance > 0 ? '+' : ''}{formatAmount(r.variance, baseCurrency)}
                                                 </span>
                                             ) : '—'}
                                         </td>

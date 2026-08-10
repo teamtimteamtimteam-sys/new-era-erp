@@ -4,7 +4,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { formatMoney } from '@/lib/format'
+import { formatAmount } from '@/lib/format'
 import Subnav from '../Subnav'
 import DeleteTemplateButton from './DeleteTemplateButton'
 import { mustRows } from '@/lib/db-helpers'
@@ -33,7 +33,7 @@ export default async function PaymentTermTemplatesPage() {
     const [tplRes, lineRes] = await Promise.all([
         supabase
             .from('payment_term_templates')
-            .select('id, name, description, is_active')
+            .select('id, name, description, is_active, currency')
             .is('deleted_at', null)
             .order('name'),
         supabase
@@ -51,11 +51,14 @@ export default async function PaymentTermTemplatesPage() {
     }
 
     // 各期摘要:"60% 下单时 · 30% 到货时 · 10% 化验后"(定额期显示金额)
-    const summary = (tplId: string) =>
+    // 定额腿的币种由【模板头】payment_term_templates.currency 声明(FIN-29)——
+    // 这里带着它一起画。原先写死的 " USD" 是 FIN-29 之前的遗留:同一个模板
+    // 套到 USD 单与 SGD 单上,那个数字是两笔差着一个汇率的钱。
+    const summary = (tplId: string, tplCurrency: string | null) =>
         (linesByTpl.get(tplId) ?? [])
             .map((l) => {
                 const share =
-                    l.percentage !== null ? `${l.percentage}%` : `${formatMoney(l.fixed_amount_ccy)} USD`
+                    l.percentage !== null ? `${l.percentage}%` : formatAmount(l.fixed_amount_ccy, tplCurrency)
                 const trigger = t('purchasing.trigger.' + l.trigger_event)
                 const offset =
                     l.trigger_event === 'fixed_date' && l.days_offset !== null
@@ -100,7 +103,7 @@ export default async function PaymentTermTemplatesPage() {
                             <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
                                 {tpl.description ?? '—'}
                             </td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm">{summary(tpl.id) || '—'}</td>
+                            <td className="border border-gray-300 px-4 py-2 text-sm">{summary(tpl.id, tpl.currency) || '—'}</td>
                             <td className="border border-gray-300 px-4 py-2">
                                 <span
                                     className={

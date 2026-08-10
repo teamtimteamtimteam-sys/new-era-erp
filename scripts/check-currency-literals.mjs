@@ -11,6 +11,9 @@
 // 判据【两类】:
 //   branch    —— 不允许把 'USD' / 'SGD' 当比较、分支、默认值、对照表键用;
 //   jsx-text  —— 不允许把币种当【正文】印到 JSX 上(FIN-18 加)。
+//   template-text —— 不允许在模板字符串里把币种贴在插值后面(CCY-1 加):
+//     `${formatMoney(x)} USD` 里的 USD 被 stripLiterals 剥掉,jsx-text 看不见它。
+//     两处线上实例(采购单定额腿、付款条款模板)就是这么躲过检查的。
 // 币种要么来自数据行,要么来自 currencies 表(is_base),不是常量。
 //
 // ════════════════════════════════════════════════════════════════════════════
@@ -79,6 +82,13 @@ const ALLOWLIST = [
         reason: '币种在这里【只出现一次】:BANK_BY_CURRENCY 是银行账户与其本币的对照表,'
             + '对应 db/functions/bank_native_currency.sql。本位币本身仍从 currencies.is_base 读,'
             + '不写死。加银行账户时这里与那个 DB 函数必须同改。',
+    },
+    {
+        path: 'app/pricing/calculator/CalculatorForm.tsx', match: 'USD`',
+        reason: '计价器的【纯文本明细】(给人复制进邮件/微信的那一段)。金属计价全程 USD 进 USD 出 '
+            + '(行情 USD/吨、加工费 USD/吨,FIN-15 已就同一理由把本文件列入例外),而复制出去的文本'
+            + '离开了屏幕、没有列头可依 —— 每行必须自带单位,否则收件人手里就是一串没有币种的数。'
+            + 'CCY-1 新增 template-text 类后单独记这一条:被剥字符串挡住看不见,不等于它不该被看见。',
     },
     // ── 以下两族是【真的就是那个币种】,不是把本位币烤进界面 ────────────────
     {
@@ -229,6 +239,14 @@ const BRANCH_PATTERNS = CODES.flatMap((c) => [
 // ════════════════════════════════════════════════════════════════════════════
 const JSX_TEXT = new RegExp(`(?<![\\w_$])(${CODES.join('|')})(?![\\w_$])`)
 
+// template-text(CCY-1 加):【模板字符串里紧挨着插值的币种】。
+// stripLiterals 会把所有字符串内容剥掉,所以 `${formatMoney(x)} USD` 里的 USD
+// jsx-text 永远看不见 —— 两处线上实例就是这么活下来的:采购单详情的定额腿
+// 与付款条款模板列表,都把任意币种的金额后面缀了个写死的 USD。
+// 判据收得很窄,只认"数字与币种贴在一起"这一形状:插值紧接币种,或币种紧接插值。
+// 这样 'USD/t'(市场惯例)与错误码里的 |USD| 都不会被误伤。
+const TEMPLATE_TEXT = new RegExp(`\\$\\{[^}]*\\}\\s*(${CODES.join('|')})(?![\\w_$/])|(?<![\\w_$/])(${CODES.join('|')})\\s*\\$\\{`)
+
 // 剥掉行内注释与字符串/模板字面量,只留下"结构性"的代码与 JSX 正文
 function stripLiterals(line) {
     let out = ''
@@ -300,6 +318,11 @@ for (const dir of ['app', 'lib', 'db']) {
             }
             if (rel.startsWith('db/tables/') && RATE_DEFAULT.test(line)) {
                 hits.push({ rel, line: i + 1, kind: 'rate-default', text: line.trim().slice(0, 110), full: line })
+                return
+            }
+            // 模板字符串里贴着数字的币种(stripLiterals 之前扫,它正是被剥掉的那部分)
+            if ((rel.endsWith('.tsx') || rel.endsWith('.ts')) && line.includes('`') && TEMPLATE_TEXT.test(line)) {
+                hits.push({ rel, line: i + 1, kind: 'template-text', text: line.trim().slice(0, 110), full: line })
                 return
             }
             // 印到屏幕上的币种只可能出在 .tsx 的 JSX 正文里

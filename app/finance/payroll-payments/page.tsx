@@ -1,6 +1,7 @@
 // 发薪与汇缴(FIN-7 C1/C2)。逐人勾选付款 —— 转账会失败重发,部分跑批是常态;
 // CPF / 代扣款各一键,一期一次,带金额与到期日。
 import { createClient } from '@/lib/supabase/server'
+import { getBaseCurrency } from '@/lib/currency'
 import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../Subnav'
 import PayPanel from './PayPanel'
@@ -15,6 +16,8 @@ export default async function PayrollPaymentsPage() {
 
     const supabase = await createClient()
     const t = await getTranslations()
+    // PayPanel 是客户端组件,本位币当 prop 传进去(CCY-1)
+    const baseCurrency = await getBaseCurrency()
     const { data: periods } = await supabase.from('payroll_periods')
         .select('id, code, period_month, status, net_pay_total, employer_cpf_total, employee_cpf_total, other_deductions_total, cpf_paid_at, deductions_paid_at')
         .eq('status', 'posted').is('deleted_at', null)
@@ -33,7 +36,7 @@ export default async function PayrollPaymentsPage() {
         <div className="p-8 max-w-5xl">
             <h1 className="text-2xl font-bold mb-4">{t('finance.payrollPay.title')}</h1>
             <Subnav />
-            <PayPanel periods={(periods ?? []) as never} lines={(lines ?? []) as never} employees={(emps ?? []) as never} />
+            <PayPanel periods={(periods ?? []) as never} lines={(lines ?? []) as never} employees={(emps ?? []) as never} baseCurrency={baseCurrency} />
         </div>
     )
 }

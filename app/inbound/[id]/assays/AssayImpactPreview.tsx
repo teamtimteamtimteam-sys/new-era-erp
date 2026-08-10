@@ -4,7 +4,7 @@
 // 录入页(实时)与详情页(未应用时,服务端一次算好)共用这一块 —— 两处看到的
 // 是同一份东西。所有数字都是算好后传进来的,组件本身不做算术。
 import { useTranslations } from '@/lib/i18n/client'
-import { formatMoney, formatUnitCost } from '@/lib/format'
+import { formatMoneyBare, formatUnitCost } from '@/lib/format'
 import PriceBreakdown from '@/app/components/pricing/PriceBreakdown'
 import type { CalcResult } from '@/app/pricing/calculator/actions'
 import type { AssayImpact } from './actions'
@@ -57,18 +57,18 @@ export default function AssayImpactPreview({
                 </div>
                 <div className="flex justify-between border-t pt-1 font-bold">
                     <span>{t('assay.totalDelta', { ccy: baseCurrency })}</span>
-                    <span className="font-mono">{formatMoney(impact.total_delta)}</span>
+                    <span className="font-mono">{formatMoneyBare(impact.total_delta, '同行左侧的行标签「调整总额({ccy})」+ 本块抬头那句"以下为本位币 {ccy}"')}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
                     <span>
                         {t('assay.inventoryShare', { ccy: baseCurrency })}
                         <span className="text-gray-400 ml-1">({Math.round(impact.in_stock_ratio * 100)}%)</span>
                     </span>
-                    <span className="font-mono">{formatMoney(impact.inventory_share)}</span>
+                    <span className="font-mono">{formatMoneyBare(impact.inventory_share, '同行左侧的行标签「计入存货({ccy})」')}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
                     <span>{t('assay.costShare', { ccy: baseCurrency })}</span>
-                    <span className="font-mono">{formatMoney(impact.cost_share)}</span>
+                    <span className="font-mono">{formatMoneyBare(impact.cost_share, '同行左侧的行标签「计入销售成本({ccy})」')}</span>
                 </div>
             </div>
             )}

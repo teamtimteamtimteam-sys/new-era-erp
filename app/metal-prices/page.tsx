@@ -13,7 +13,7 @@ import {
     METAL_PRICES_PAGE_SIZE,
     type MetalPricesSortCol,
 } from './metalPricesQuery'
-import { formatMoney } from '@/lib/format'
+import { formatMoneyBare } from '@/lib/format'
 import { getTranslations } from '@/lib/i18n/server'
 
 type MetalPriceRow = {
@@ -185,7 +185,7 @@ export default async function MetalPricesPage({
                         <tr key={r.id}>
                             <td className="border border-gray-300 px-4 py-2">{metalLabel(r.metal)}</td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatMoney(r.price_usd_per_tonne)}
+                                {formatMoneyBare(r.price_usd_per_tonne, '列头 metalPrices.colPrice「价格 (USD/吨)」')}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">{r.price_date}</td>
                             <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">{r.source}</td>

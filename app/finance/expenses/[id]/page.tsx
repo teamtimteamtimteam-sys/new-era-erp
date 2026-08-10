@@ -8,7 +8,7 @@ import { getBaseCurrency } from '@/lib/currency'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatMoney, formatTimestamp } from '@/lib/format'
+import { formatAmount, formatMoneyBare, formatTimestamp } from '@/lib/format'
 import Subnav from '../../Subnav'
 import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachmentsPanel'
 import ReverseExpenseButton from './ReverseExpenseButton'
@@ -171,11 +171,11 @@ export default async function ExpenseDetailPage({
                 <div>
                     <span className="text-gray-600 mr-1">{t('expense.colAmount')}:</span>
                     <span className="font-mono font-medium">
-                        {expense.currency} {formatMoney(expense.amount_ccy)}
+                        {expense.currency} {formatMoneyBare(expense.amount_ccy, '同格内紧邻的 expense.currency 前缀')}
                     </span>
                     {expense.currency !== baseCurrency && (
                         <span className="text-gray-500 ml-1 font-mono">
-                            @ {expense.fx_rate} = {formatMoney(expense.amount_base)} {baseCurrency}
+                            @ {expense.fx_rate} = {formatMoneyBare(expense.amount_base, '同格内紧随其后的 {baseCurrency} 后缀')} {baseCurrency}
                         </span>
                     )}
                 </div>
@@ -249,11 +249,11 @@ export default async function ExpenseDetailPage({
                     <div className="bg-gray-50 rounded p-4 mb-4 flex flex-wrap gap-x-8 gap-y-2 text-sm items-center">
                         <div>
                             <span className="text-gray-600 mr-1">{t('finance.settledAmount')}:</span>
-                            <span className="font-mono">{formatMoney(settled)}</span>
+                            <span className="font-mono">{formatAmount(settled, baseCurrency)}</span>
                         </div>
                         <div>
                             <span className="text-gray-600 mr-1">{t('finance.openAmount')}:</span>
-                            <span className="font-mono font-bold">{formatMoney(open)}</span>
+                            <span className="font-mono font-bold">{formatAmount(open, baseCurrency)}</span>
                         </div>
                     </div>
 
@@ -297,7 +297,7 @@ export default async function ExpenseDetailPage({
                                                 (reversed ? ' line-through' : '')
                                             }
                                         >
-                                            {formatMoney(a.allocated_base)}
+                                            {formatAmount(a.allocated_base, baseCurrency)}
                                         </td>
                                         <td className="border border-gray-300 px-4 py-2 text-sm">
                                             {reversed ? (
@@ -328,7 +328,7 @@ export default async function ExpenseDetailPage({
                                         {t('finance.settledAmount')}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {formatMoney(settled)}
+                                        {formatAmount(settled, baseCurrency)}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2" />
                                 </tr>

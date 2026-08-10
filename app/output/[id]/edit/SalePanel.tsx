@@ -7,7 +7,7 @@ import { useActionState, useEffect, useState } from 'react'
 import { recordSale, quoteSalePrice, type SaleState, type QuoteState } from './saleActions'
 import { STATE_OPTIONS, labelKeyForValue } from '../../../inbound/options'
 import { useTranslations } from '@/lib/i18n/client'
-import { formatMoney } from '@/lib/format'
+import { formatMoneyBare } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 
 const initialState: SaleState = {}
@@ -265,7 +265,10 @@ export default function SalePanel({
 
                 {previewAmount !== null && (
                     <p className="text-sm text-gray-600">
-                        {t('output.sale.amountPreview', { amount: formatMoney(previewAmount), ccy: currency })}
+                        {t('output.sale.amountPreview', {
+                            amount: formatMoneyBare(previewAmount, '同句 output.sale.amountPreview 里紧跟其后的 {ccy}'),
+                            ccy: currency,
+                        })}
                     </p>
                 )}
             </form>

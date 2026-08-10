@@ -6,7 +6,8 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { isYmd } from '@/lib/dateFilter'
-import { formatMoney } from '@/lib/format'
+import { getBaseCurrency } from '@/lib/currency'
+import { formatAmount } from '@/lib/format'
 import Subnav from '../Subnav'
 import PeriodPicker, { type PeriodOption } from './PeriodPicker'
 import CloseButton from './CloseButton'
@@ -44,6 +45,8 @@ export default async function ClosePage({
     const sp = await searchParams
     const supabase = await createClient()
     const t = await getTranslations()
+    // 「借方/贷方/净结果」这些标签都不写币种 —— 金额自己带(CCY-1)
+    const baseCurrency = await getBaseCurrency()
 
     const [settingsRes, closesRes, yearPreviewRes, yearClosesRes] = await Promise.all([
         supabase.from('finance_settings').select('locked_before').eq('id', true).single(),
@@ -180,11 +183,11 @@ export default async function ClosePage({
                             </div>
                             <div>
                                 <span className="text-gray-600 mr-1">{t('finance.colDebits')}:</span>
-                                <span className="font-mono font-medium">{formatMoney(preview.debits)}</span>
+                                <span className="font-mono font-medium">{formatAmount(preview.debits, baseCurrency)}</span>
                             </div>
                             <div>
                                 <span className="text-gray-600 mr-1">{t('finance.colCredits')}:</span>
-                                <span className="font-mono font-medium">{formatMoney(preview.credits)}</span>
+                                <span className="font-mono font-medium">{formatAmount(preview.credits, baseCurrency)}</span>
                             </div>
                             <span
                                 className={
@@ -249,10 +252,10 @@ export default async function ClosePage({
                                 {c.entries_count}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatMoney(c.total_debits)}
+                                {formatAmount(c.total_debits, baseCurrency)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatMoney(c.total_credits)}
+                                {formatAmount(c.total_credits, baseCurrency)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">
                                 <span
@@ -297,7 +300,7 @@ export default async function ClosePage({
                         </div>
                         <div>
                             <span className="text-gray-600 mr-1">{t('finance.yearClose.netResult')}:</span>
-                            <span className="font-mono font-medium">{formatMoney(yp.net_result)}</span>
+                            <span className="font-mono font-medium">{formatAmount(yp.net_result, baseCurrency)}</span>
                         </div>
                     </div>
                     {/* 硬前置四灯:任一红 → 按钮禁用(服务端仍点名拒,界面不提供必拒的动作)*/}
@@ -338,7 +341,7 @@ export default async function ClosePage({
                             <tr key={c.id} className={c.reopened_at ? 'text-gray-400' : ''}>
                                 <td className="border border-gray-300 px-3 py-2 font-mono text-sm">{c.year_end}</td>
                                 <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                    {formatMoney(c.net_result)}
+                                    {formatAmount(c.net_result, baseCurrency)}
                                 </td>
                                 <td className="border border-gray-300 px-3 py-2 text-sm">
                                     {c.reopened_at

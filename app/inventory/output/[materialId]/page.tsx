@@ -6,7 +6,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { STATE_OPTIONS, labelKeyForValue } from '@/app/inbound/options'
 import { getTranslations } from '@/lib/i18n/server'
-import { formatMoney, formatUnitCost } from '@/lib/format'
+import { formatMoneyBare, formatUnitCost } from '@/lib/format'
 import { mustRows } from '@/lib/db-helpers'
 import {
     agingDays,
@@ -116,10 +116,10 @@ export default async function OutputDrillPage({
                 <span className="font-mono">{total}</span>
                 <span className="mx-2 text-gray-300">·</span>
                 <span className="text-gray-600 mr-1">{t('valuation.colCostValue')}:</span>
-                <span className="font-mono">{formatMoney(totalCostValue)}</span>
+                <span className="font-mono">{formatMoneyBare(totalCostValue, '紧挨着的行标签「成本价值 (SGD)」')}</span>
                 <span className="mx-2 text-gray-300">·</span>
                 <span className="text-gray-600 mr-1">{t('valuation.colMarketValue')}:</span>
-                <span className="font-mono">{formatMoney(totalMarketValue)}</span>
+                <span className="font-mono">{formatMoneyBare(totalMarketValue, '紧挨着的行标签「市价价值 (SGD)」')}</span>
                 {noCostCount > 0 && (
                     <span className="ml-2 text-gray-400">
                         {t('valuation.noCostCount', { n: noCostCount })}
@@ -168,10 +168,10 @@ export default async function OutputDrillPage({
                                     {r.unitCost !== null ? `${formatUnitCost(r.unitCost)} /kg` : '—'}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
-                                    {r.costValue !== null ? formatMoney(r.costValue) : '—'}
+                                    {r.costValue !== null ? formatMoneyBare(r.costValue, '列头「成本价值 (SGD)」') : '—'}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
-                                    {r.marketValue !== null ? formatMoney(r.marketValue) : '—'}
+                                    {r.marketValue !== null ? formatMoneyBare(r.marketValue, '列头「市价价值 (SGD)」') : '—'}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
                                     {r.ageDays !== null && tone !== null ? (

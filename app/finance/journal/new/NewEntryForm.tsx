@@ -6,7 +6,7 @@ import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { createManualEntry, type CreateEntryState } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
-import { formatMoney } from '@/lib/format'
+import { formatAmount } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 
 const initialState: CreateEntryState = {}
@@ -244,11 +244,11 @@ export default function NewEntryForm(
             <div className="bg-gray-50 rounded p-4 flex flex-wrap gap-8 text-sm items-center">
                 <div>
                     <span className="text-gray-600 mr-1">{t('finance.debit')}:</span>
-                    <span className="font-mono font-medium">{formatMoney(sumDebit)}</span>
+                    <span className="font-mono font-medium">{formatAmount(sumDebit, baseCurrency)}</span>
                 </div>
                 <div>
                     <span className="text-gray-600 mr-1">{t('finance.credit')}:</span>
-                    <span className="font-mono font-medium">{formatMoney(sumCredit)}</span>
+                    <span className="font-mono font-medium">{formatAmount(sumCredit, baseCurrency)}</span>
                 </div>
                 <span
                     className={

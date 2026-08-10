@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { formatMoney } from '@/lib/format'
+import { formatMoneyBare } from '@/lib/format'
 import Subnav from '../Subnav'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -81,10 +81,10 @@ export default async function PayrollListPage() {
                             <td className="border border-gray-300 px-4 py-2">{p.payment_date}</td>
                             <td className="border border-gray-300 px-4 py-2">{p.currency}</td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatMoney(p.gross_total)}
+                                {formatMoneyBare(p.gross_total, '同行「币种」列(hr.colCurrency)')}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm font-medium">
-                                {formatMoney(p.net_pay_total)}
+                                {formatMoneyBare(p.net_pay_total, '同行「币种」列(hr.colCurrency)')}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                 {countByPeriod.get(p.id) ?? 0}

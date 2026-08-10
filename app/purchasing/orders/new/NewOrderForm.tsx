@@ -10,10 +10,16 @@
 //     【绝对日期】(模板里的偏移天数在套用时按下单日换算)。
 //   * 实时合计:行金额 / 单据估算总额 / 各期折算金额(比例期按估算总额换算成钱 ——
 //     计划要能用钱读,不能只有百分比)。
+//
+// CCY-1:这张表里【也是两种口径】。行金额 / 各期金额 / 估算总额都是单据币种
+// (头部那个下拉当场就能改),它们各自把 currency 写出来 —— 一个可以随时被改掉的
+// 下拉当不了"币种写在这儿了"的凭据。而"按化验估算"摊开的那块是 calculate_metal_price
+// 的原始输出,【行情口径,恒为 USD】(见 check-currency-literals 的 ALLOWLIST 理由),
+// 那块自己每行都写着 USD,所以留裸数字并指着它。
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import { formatMoney } from '@/lib/format'
+import { formatAmount, formatMoneyBare } from '@/lib/format'
 import DecimalInput, { parseDecimal } from '@/app/components/forms/DecimalInput'
 import { METAL_OPTIONS } from '@/app/metal-prices/options'
 import type { CalcResult } from '@/app/pricing/calculator/actions'
@@ -379,7 +385,7 @@ export default function NewOrderForm({
                             </div>
                             <div className="text-sm text-gray-600 pb-1.5">
                                 {t('purchasing.colAmount')}:{' '}
-                                <span className="font-mono font-medium">{formatMoney(lineAmount(l))}</span>
+                                <span className="font-mono font-medium">{formatAmount(lineAmount(l), currency)}</span>
                             </div>
                             <button
                                 type="button"
@@ -439,7 +445,7 @@ export default function NewOrderForm({
                                         onClick={() => patchLine(i, { calcOpen: !l.calcOpen })}
                                         className="ml-2 text-blue-600 hover:underline text-sm"
                                     >
-                                        {l.calcOpen ? '▾' : '▸'} {formatMoney(l.calc.unit_price_usd_per_kg)} USD/kg
+                                        {l.calcOpen ? '▾' : '▸'} {formatMoneyBare(l.calc.unit_price_usd_per_kg, '紧跟其后的 USD/kg')} USD/kg
                                         {l.calcFx && l.calcFx !== 1 && (
                                             <span className="ml-1 text-xs text-gray-500">
                                                 × {l.calcFx.toFixed(4)} = {l.est_price} {currency}/kg
@@ -462,21 +468,21 @@ export default function NewOrderForm({
                                                         <td className="pr-3 font-mono">× {cl.payable_pct}%</td>
                                                         <td className="pr-3 font-mono text-right">
                                                             {cl.price_usd_per_tonne !== null
-                                                                ? formatMoney(cl.price_usd_per_tonne) + '/t'
+                                                                ? formatMoneyBare(cl.price_usd_per_tonne, '本块末行的「… = … USD」—— 计价明细整块是行情口径 USD') + '/t'
                                                                 : '—'}
                                                         </td>
                                                         <td className="font-mono text-right">
-                                                            {formatMoney(cl.metal_value_usd)}
+                                                            {formatMoneyBare(cl.metal_value_usd, '本块末行的「… = … USD」—— 计价明细整块是行情口径 USD')}
                                                         </td>
                                                     </tr>
                                                 ))}
                                             </tbody>
                                         </table>
                                         <p className="font-mono text-gray-700">
-                                            {formatMoney(l.calc.gross_value_usd)} − {formatMoney(l.calc.treatment_usd)}{' '}
-                                            − {formatMoney(l.calc.discount_usd)} = {formatMoney(l.calc.net_value_usd)} USD →{' '}
+                                            {formatMoneyBare(l.calc.gross_value_usd, '同一行末尾的 USD')} − {formatMoneyBare(l.calc.treatment_usd, '同一行末尾的 USD')}{' '}
+                                            − {formatMoneyBare(l.calc.discount_usd, '同一行末尾的 USD')} = {formatMoneyBare(l.calc.net_value_usd, '同一行末尾的 USD')} USD →{' '}
                                             <span className="font-medium">
-                                                {formatMoney(l.calc.unit_price_usd_per_kg)} /kg
+                                                {formatMoneyBare(l.calc.unit_price_usd_per_kg, '同一行的 USD —— 折算成单据币种的价在上面那行')} /kg
                                             </span>
                                         </p>
                                     </div>
@@ -568,7 +574,7 @@ export default function NewOrderForm({
                                     </div>
                                 </td>
                                 <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                    {formatMoney(termAmount(l))}
+                                    {formatAmount(termAmount(l), currency)}
                                 </td>
                                 <td className="border border-gray-300 px-3 py-2">
                                     <select
@@ -631,7 +637,7 @@ export default function NewOrderForm({
             {/* ── 实时合计 ── */}
             <div className="bg-gray-50 rounded p-4 text-sm">
                 <span className="text-gray-600 mr-1">{t('purchasing.colEstimatedTotal')}:</span>
-                <span className="font-mono font-medium">{formatMoney(estTotal)}</span>
+                <span className="font-mono font-medium">{formatAmount(estTotal, currency)}</span>
             </div>
 
             <div className="flex gap-3 pt-2">

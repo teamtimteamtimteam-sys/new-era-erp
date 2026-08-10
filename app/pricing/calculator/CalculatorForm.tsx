@@ -6,7 +6,7 @@
 // 支持 ?formula=&quantity=&ni=&co=… 预填,便于从批次页直接带着化验结果跳进来。
 import { useActionState, useState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
-import { formatMoney } from '@/lib/format'
+import { formatMoneyBare } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { METAL_OPTIONS } from '@/app/metal-prices/options'
 import PriceBreakdown from '@/app/components/pricing/PriceBreakdown'
@@ -61,14 +61,14 @@ export default function CalculatorForm({
                       }`
             L.push(
                 `${l.metal.toUpperCase().padEnd(3)} content ${l.content_pct}%  payable ${l.payable_pct}%  ` +
-                    `contained ${l.contained_kg} kg  payable ${l.payable_kg} kg  ${price}  = ${formatMoney(l.metal_value_usd)} USD`
+                    `contained ${l.contained_kg} kg  payable ${l.payable_kg} kg  ${price}  = ${formatMoneyBare(l.metal_value_usd, '同一行数字后面紧跟的 USD(纯文本明细,逐行自带)')} USD`
             )
         }
         L.push('')
-        L.push(`Gross value:     ${formatMoney(res.gross_value_usd)} USD`)
-        L.push(`Treatment:      -${formatMoney(res.treatment_usd)} USD`)
-        L.push(`Discount:       -${formatMoney(res.discount_usd)} USD`)
-        L.push(`Net value:       ${formatMoney(res.net_value_usd)} USD`)
+        L.push(`Gross value:     ${formatMoneyBare(res.gross_value_usd, '同一行数字后面紧跟的 USD(纯文本明细,逐行自带)')} USD`)
+        L.push(`Treatment:      -${formatMoneyBare(res.treatment_usd, '同一行数字后面紧跟的 USD(纯文本明细,逐行自带)')} USD`)
+        L.push(`Discount:       -${formatMoneyBare(res.discount_usd, '同一行数字后面紧跟的 USD(纯文本明细,逐行自带)')} USD`)
+        L.push(`Net value:       ${formatMoneyBare(res.net_value_usd, '同一行数字后面紧跟的 USD(纯文本明细,逐行自带)')} USD`)
         L.push(`Unit price:      ${res.unit_price_usd_per_kg} USD/kg`)
         if (res.skipped_metals.length) L.push(`No price: ${res.skipped_metals.join(', ')}`)
         if (res.unpaid_metals.length) L.push(`Not payable: ${res.unpaid_metals.join(', ')}`)

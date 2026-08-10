@@ -17,7 +17,8 @@ import { Fragment, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { isYmd } from '@/lib/dateFilter'
-import { formatMoney } from '@/lib/format'
+import { getBaseCurrency } from '@/lib/currency'
+import { formatAmount } from '@/lib/format'
 import Subnav from '../Subnav'
 import BsToolbar from './BsToolbar'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -51,6 +52,8 @@ export default async function BalanceSheetPage({
     const supabase = await createClient()
     const t = await getTranslations()
     const locale = await getLocale()
+    // 列头「净额」不写币种,所以每格自己带 —— 本位币是数据,不是常量
+    const baseCurrency = await getBaseCurrency()
 
     const requested = (sp.as_of ?? '').trim()
     const asOf = isYmd(requested) ? requested : new Date().toISOString().slice(0, 10)
@@ -94,7 +97,7 @@ export default async function BalanceSheetPage({
                             (r.net < 0 ? 'text-red-600' : '')
                         }
                     >
-                        {formatMoney(r.net)}
+                        {formatAmount(r.net, baseCurrency)}
                     </td>
                 </tr>
             ))}
@@ -108,7 +111,7 @@ export default async function BalanceSheetPage({
                             (extraRow.value < 0 ? 'text-red-600' : '')
                         }
                     >
-                        {formatMoney(extraRow.value)}
+                        {formatAmount(extraRow.value, baseCurrency)}
                     </td>
                 </tr>
             )}
@@ -117,7 +120,7 @@ export default async function BalanceSheetPage({
                     {t(titleKey)} — {t('finance.totalsLabel')}
                 </td>
                 <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                    {formatMoney(subtotalOverride ?? s.subtotal)}
+                    {formatAmount(subtotalOverride ?? s.subtotal, baseCurrency)}
                 </td>
             </tr>
         </Fragment>
@@ -165,7 +168,7 @@ export default async function BalanceSheetPage({
                             {t('finance.totalAssets')}
                         </td>
                         <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                            {formatMoney(bs.total_assets)}
+                            {formatAmount(bs.total_assets, baseCurrency)}
                         </td>
                     </tr>
                     <tr className="bg-gray-100 font-bold">
@@ -173,7 +176,7 @@ export default async function BalanceSheetPage({
                             {t('finance.totalLiabEquity')}
                         </td>
                         <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                            {formatMoney(bs.total_liab_equity)}
+                            {formatAmount(bs.total_liab_equity, baseCurrency)}
                         </td>
                     </tr>
                 </tfoot>

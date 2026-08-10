@@ -12,7 +12,8 @@ import { getTranslations } from '@/lib/i18n/server'
 import { mustOne } from '@/lib/db-helpers'
 import Subnav from '../Subnav'
 import RevalueButton from './RevalueButton'
-import { formatMoney } from '@/lib/format'
+import { formatAmount, formatMoneyBare } from '@/lib/format'
+import { getBaseCurrency } from '@/lib/currency'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 
@@ -43,6 +44,9 @@ export default async function RevaluationPage({ searchParams }: { searchParams: 
     const d = sp.date ?? new Date().toISOString().slice(0, 10)
     const supabase = await createClient()
     const t = await getTranslations()
+    // 行标签写的是【外币】(科目 · 币种),而承载额/调整额/合计是本位币 ——
+    // 后三者不能借行标签那句话,必须自己带币种(CCY-1 RULE 3)
+    const baseCurrency = await getBaseCurrency()
 
     // 读不出来就报错,不许把失败画成"没有要重估的东西"——
     // 这一页的数字会被过账进总账,不是只错在屏幕上。
@@ -88,8 +92,8 @@ export default async function RevaluationPage({ searchParams }: { searchParams: 
                         {rows.map((p) => (
                             <tr key={p.account + p.currency}>
                                 <td className="border border-gray-300 px-3 py-2 font-mono">{p.account} · {p.currency}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(p.native)}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(p.carry_base)}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoneyBare(p.native, '行标签「科目 · {p.currency}」已写明这格的外币')}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatAmount(p.carry_base, baseCurrency)}</td>
                                 <td className="border border-gray-300 px-3 py-2 text-right font-mono">
                                     {p.rate ?? '—'}
                                     {/* FIN-19:回溯取的是哪一天的价 —— 与期末不同就标出来。
@@ -102,7 +106,7 @@ export default async function RevaluationPage({ searchParams }: { searchParams: 
                                     )}
                                 </td>
                                 <td className="border border-gray-300 px-3 py-2 text-right font-mono font-medium">
-                                    {p.adjustment === null ? '—' : formatMoney(p.adjustment)}
+                                    {p.adjustment === null ? '—' : formatAmount(p.adjustment, baseCurrency)}
                                 </td>
                             </tr>
                         ))}
@@ -117,7 +121,7 @@ export default async function RevaluationPage({ searchParams }: { searchParams: 
                             <td className="border border-gray-300 px-3 py-2 text-right font-mono font-bold">
                                 {/* 缺牌价时合计【不是 0,是不知道】—— 画成 0 会读作"这次重估
                                     对损益没有影响",而真相是它还算不出来 */}
-                                {missing.length > 0 ? '—' : formatMoney(total)}
+                                {missing.length > 0 ? '—' : formatAmount(total, baseCurrency)}
                             </td>
                         </tr>
                     </tfoot>

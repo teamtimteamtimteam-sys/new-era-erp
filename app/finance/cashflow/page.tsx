@@ -16,7 +16,7 @@ import { getBaseCurrency } from '@/lib/currency'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { parseDateRange } from '@/lib/dateFilter'
-import { formatMoney } from '@/lib/format'
+import { formatMoneyBare } from '@/lib/format'
 import Subnav from '../Subnav'
 import CashflowToolbar from './CashflowToolbar'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -88,7 +88,9 @@ export default async function CashflowPage({
         { key: 'thisYear', ...thisYear },
     ]
 
-    const money = (n: number) => formatMoney(n)
+    // 全页只有一种币:标题下那句 cashflowDesc「……以 {ccy} 计」已经写明,
+    // 明细表列头 金额 ({ccy}) 再说一次 —— 所以每个数字不重复带币种。
+    const money = (n: number) => formatMoneyBare(n, '面板抬头 cashflowDesc「……以 {ccy} 计」+ 列头 金额 ({ccy})')
     const sign = (n: number) => (n < 0 ? 'text-red-700' : n > 0 ? 'text-green-700' : 'text-gray-500')
 
     const Row = ({ label, value, bold = false, hint }: { label: string; value: number; bold?: boolean; hint?: string }) => (
@@ -144,7 +146,7 @@ export default async function CashflowPage({
                     <Row
                         label={t('finance.cashflowFxEffect')}
                         value={cf.fx_effect}
-                        hint={t('finance.cashflowFxEffectHint')}
+                        hint={t('finance.cashflowFxEffectHint', { 0: baseCurrency })}
                     />
                     <Row label={t('finance.cashflowClosing')} value={cf.closing_cash} bold />
                 </tbody>
@@ -157,7 +159,7 @@ export default async function CashflowPage({
                         <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('finance.colDate')}</th>
                         <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('finance.colCode')}</th>
                         <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('finance.cashflowSection')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right text-sm">{t('finance.colAmount')}</th>
+                        <th className="border border-gray-300 px-3 py-2 text-right text-sm">{t('finance.colAmount', { ccy: baseCurrency })}</th>
                     </tr>
                 </thead>
                 <tbody>

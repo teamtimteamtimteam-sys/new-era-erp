@@ -4,7 +4,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
-import { formatMoney } from '@/lib/format'
+import { formatAmount } from '@/lib/format'
 import { payLines, payCpf, payDeductions } from '../month-end/actions'
 
 type Period = { id: string; code: string; period_month: string; net_pay_total: number
@@ -18,7 +18,10 @@ function cpfDue(periodMonth: string): string {
     return new Date(Date.UTC(m === 12 ? y + 1 : y, m === 12 ? 0 : m, 14)).toISOString().slice(0, 10)
 }
 
-export default function PayPanel({ periods, lines, employees }: { periods: Period[]; lines: Line[]; employees: Emp[] }) {
+// baseCurrency:本面板一个字都没写币种 —— 工资表没有 thead,CPF/代扣款按钮的文案
+// (「汇 CPF {amount}」「汇代扣款 {amount}」)也只有数字。所以每个金额自己带币种,
+// 币种来自数据(currencies.is_base),由页面传入(CCY-1)。
+export default function PayPanel({ periods, lines, employees, baseCurrency }: { periods: Period[]; lines: Line[]; employees: Emp[]; baseCurrency: string }) {
     const t = useTranslations()
     const router = useRouter()
     const [pending, start] = useTransition()
@@ -78,7 +81,7 @@ export default function PayPanel({ periods, lines, employees }: { periods: Perio
                                             </td>
                                             <td className="py-0.5 font-mono">{e?.code}</td>
                                             <td className="py-0.5">{e?.legal_name}</td>
-                                            <td className="py-0.5 text-right font-mono">{formatMoney(l.net_pay)}</td>
+                                            <td className="py-0.5 text-right font-mono">{formatAmount(l.net_pay, baseCurrency)}</td>
                                             <td className="py-0.5 pl-4 text-xs">
                                                 {l.paid_at
                                                     ? <span className="text-green-700">{t('finance.payrollPay.paidOn', { 0: l.paid_at.slice(0, 10) })}</span>
@@ -100,14 +103,14 @@ export default function PayPanel({ periods, lines, employees }: { periods: Perio
                                 : <button type="button" disabled={pending || date === ''}
                                     onClick={() => run(() => payCpf(p.id, date))}
                                     className="border border-gray-300 px-3 py-1.5 rounded disabled:opacity-50">
-                                    {t('finance.payrollPay.payCpf', { amount: formatMoney(cpf), due: cpfDue(p.period_month) })}
+                                    {t('finance.payrollPay.payCpf', { amount: formatAmount(cpf, baseCurrency), due: cpfDue(p.period_month) })}
                                   </button>)}
                             {Number(p.other_deductions_total ?? 0) > 0 && (p.deductions_paid_at
                                 ? <span className="text-xs text-green-700">{t('finance.payrollPay.dedPaid', { 0: p.deductions_paid_at })}</span>
                                 : <button type="button" disabled={pending || date === ''}
                                     onClick={() => run(() => payDeductions(p.id, date))}
                                     className="border border-gray-300 px-3 py-1.5 rounded disabled:opacity-50">
-                                    {t('finance.payrollPay.payDeductions', { amount: formatMoney(p.other_deductions_total) })}
+                                    {t('finance.payrollPay.payDeductions', { amount: formatAmount(p.other_deductions_total, baseCurrency) })}
                                   </button>)}
                         </div>
                     </section>

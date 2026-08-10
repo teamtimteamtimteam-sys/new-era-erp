@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../../../Subnav'
-import FormulaForm, { type FormulaDefaults, type PartyOption } from '../../FormulaForm'
+import FormulaForm, { type FormulaDefaults, type PartyOption, type QuoteDate } from '../../FormulaForm'
 import { updateFormula } from '../../actions'
 import DeleteFormulaButton from './DeleteFormulaButton'
 import { unmasked } from '@/lib/maskedRows'
@@ -67,6 +67,17 @@ export default async function EditFormulaPage({
     const suppliers: PartyOption[] = (mustRows(supRes)).map((s) => ({ id: s.id, name: s.legal_name }))
     const customers: PartyOption[] = (mustRows(cusRes)).map((c) => ({ id: c.id, name: c.legal_name }))
 
+    // 行情覆盖(最近一年,数据量极小):供表单当场说出"这两个基准现在算不算同一个数"。
+    // 读 price_date 而不是 created_at —— 补录过的行情按【行情日】算窗口内外。
+    const quoteRes = await supabase
+        .from('metal_prices')
+        .select('metal, price_date')
+        .is('deleted_at', null)
+        .gte('price_date', new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10))
+        .order('price_date', { ascending: false })
+    const quoteDates = mustRows(quoteRes) as QuoteDate[]
+
+
     const updateWithId = updateFormula.bind(null, id)
 
     return (
@@ -84,6 +95,7 @@ export default async function EditFormulaPage({
                 defaults={defaults}
                 suppliers={suppliers}
                 customers={customers}
+                quoteDates={quoteDates}
             />
         </div>
     )

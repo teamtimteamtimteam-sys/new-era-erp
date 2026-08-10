@@ -10,7 +10,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatMoney, formatUnitCost, formatTimestamp } from '@/lib/format'
+import { formatMoneyBare, formatUnitCost, formatTimestamp } from '@/lib/format'
 import { metalLabelKey } from '@/app/metal-prices/options'
 import { localizeAssayError } from '../../../assayErrorCodes'
 import { ApplyNowButton, UnapplyControl } from './ApplyAssayControls'
@@ -284,18 +284,18 @@ export default async function AssayDetailPage({
                     <h2 className="text-xl font-bold mb-3">{t('assay.priceChangeTitle')}</h2>
                     <div className="bg-gray-50 rounded p-4 text-sm max-w-md space-y-1">
                         <div className="flex justify-between">
-                            <span className="text-gray-600">{t('assay.currentPrice')}</span>
+                            <span className="text-gray-600">{t('assay.currentPrice', { ccy: baseCurrency })}</span>
                             <span className="font-mono">
                                 <MaskedValue value={priceChange.old === null ? null : formatUnitCost(priceChange.old)} canView={showPrices} fallback="—" />
                             </span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-gray-600">{t('assay.newPrice')}</span>
+                            <span className="text-gray-600">{t('assay.newPrice', { ccy: baseCurrency })}</span>
                             <span className="font-mono font-medium"><MaskedValue value={priceChange.next === null || priceChange.next === undefined ? null : formatUnitCost(priceChange.next)} canView={showPrices} /></span>
                         </div>
                         <div className="flex justify-between border-t pt-1 font-bold">
-                            <span>{t('assay.totalDelta')}</span>
-                            <span className="font-mono">{formatMoney(priceChange.delta)}</span>
+                            <span>{t('assay.totalDelta', { ccy: baseCurrency })}</span>
+                            <span className="font-mono">{formatMoneyBare(priceChange.delta, '同行左侧的行标签「调整总额({ccy})」—— ccy 就是本位币')}</span>
                         </div>
                         <div className="flex justify-between text-gray-500">
                             <span>{t('inbound.pricing.colWhen')}</span>

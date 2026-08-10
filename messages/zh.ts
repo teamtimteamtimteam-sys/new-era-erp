@@ -2602,6 +2602,8 @@ const zh = {
             basis: '计价基准',
             basisSpot: '最新价',
             basisAverage: 'N 日均价',
+            basisSameToday:
+                '此刻这两个基准算出来是同一个数：{metals} 个金属在 {days} 天窗口里各只有一条报价（最新 {date}），均价平均的就是那一条现货价。行情录得密一些之后，这个选择才开始有区别。',
             averageDays: '天数',
             treatment: '加工费(USD/吨)',
             discount: '统一折扣 %',

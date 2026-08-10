@@ -8,7 +8,7 @@ import { getBaseCurrency } from '@/lib/currency'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatMoney, formatAmount, formatTimestamp } from '@/lib/format'
+import { formatAmount, formatMoneyBare, formatTimestamp } from '@/lib/format'
 import Subnav from '../../Subnav'
 import ReversePaymentButton from './ReversePaymentButton'
 import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachmentsPanel'
@@ -219,11 +219,11 @@ export default async function PaymentDetailPage({
                 <div>
                     <span className="text-gray-600 mr-1">{t('finance.amount')}:</span>
                     <span className="font-mono font-medium">
-                        {payment.currency} {formatMoney(payment.amount_ccy)}
+                        {payment.currency} {formatMoneyBare(payment.amount_ccy, '同格内紧邻的 payment.currency 前缀')}
                     </span>
                     {payment.currency !== baseCurrency && (
                         <span className="text-gray-500 ml-1 font-mono">
-                            @ {payment.fx_rate} = {formatMoney(payment.amount_base)} {baseCurrency}
+                            @ {payment.fx_rate} = {formatMoneyBare(payment.amount_base, '同格内紧随其后的 {baseCurrency} 后缀')} {baseCurrency}
                         </span>
                     )}
                 </div>
@@ -293,10 +293,10 @@ export default async function PaymentDetailPage({
                                     )}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                    {formatMoney(a.allocated_base)}
+                                    {formatMoneyBare(a.allocated_base, '列头 已解除应付/应收 ({baseCurrency})')}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                    {formatMoney(a.allocated_pay)}
+                                    {formatMoneyBare(a.allocated_pay, '列头 消耗款额 ({payment.currency})')}
                                 </td>
                             </tr>
                         )
@@ -314,10 +314,10 @@ export default async function PaymentDetailPage({
                         <tr className="bg-gray-100 font-bold">
                             <td className="border border-gray-300 px-4 py-2">{t('finance.totalsLabel')}</td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatMoney(allocTotal)}
+                                {formatMoneyBare(allocTotal, '列头 已解除应付/应收 ({baseCurrency})')}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatMoney(consumedPay)}
+                                {formatMoneyBare(consumedPay, '列头 消耗款额 ({payment.currency})')}
                             </td>
                         </tr>
                     </tfoot>

@@ -7,7 +7,8 @@
 // 一个角色都没有的人在这里【什么都不缺】,那正是自助的意思。
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatMoney } from '@/lib/format'
+import { getBaseCurrency } from '@/lib/currency'
+import { formatAmount } from '@/lib/format'
 import MyLeavePanel from './MyLeavePanel'
 import MyClaimsPanel from './MyClaimsPanel'
 import MySelfAssessmentPanel, {
@@ -23,6 +24,10 @@ export default async function MePage() {
     const supabase = await createClient()
     const t = await getTranslations()
     const locale = await getLocale()
+    // 自助页上一个币种都没写:工资条五栏、评估里的调薪,全靠数字自己带。
+    // 工资条带的是【那一期自己的币种】(payroll_periods.currency,下面一并取回),
+    // 调薪没有随行币种 —— 那是本位币的月薪。
+    const baseCurrency = await getBaseCurrency()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
     const fmtDate = (v: string | null) =>
         v ? new Date(v).toLocaleDateString(dateLocale) : '—'
@@ -113,9 +118,9 @@ export default async function MePage() {
     const { data: periods } = periodIds.length
         ? await supabase
               .from('payroll_periods')
-              .select('id, code, period_month, payment_date')
+              .select('id, code, period_month, payment_date, currency')
               .in('id', periodIds)
-        : { data: [] as { id: string; code: string; period_month: string; payment_date: string }[] }
+        : { data: [] as { id: string; code: string; period_month: string; payment_date: string; currency: string }[] }
     const periodById = new Map((periods ?? []).map((x) => [x.id, x]))
 
     const deptName = locale === 'zh' ? p.department_name_zh : p.department_name_en
@@ -235,19 +240,19 @@ export default async function MePage() {
                                             )}
                                         </td>
                                         <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                            {formatMoney(l.gross_pay)}
+                                            {formatAmount(l.gross_pay, per?.currency)}
                                         </td>
                                         <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                            {formatMoney(l.employer_cpf)}
+                                            {formatAmount(l.employer_cpf, per?.currency)}
                                         </td>
                                         <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                            {formatMoney(l.employee_cpf)}
+                                            {formatAmount(l.employee_cpf, per?.currency)}
                                         </td>
                                         <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                            {formatMoney(l.other_deductions)}
+                                            {formatAmount(l.other_deductions, per?.currency)}
                                         </td>
                                         <td className="border border-gray-300 px-3 py-2 text-right font-mono font-medium">
-                                            {formatMoney(l.net_pay)}
+                                            {formatAmount(l.net_pay, per?.currency)}
                                         </td>
                                     </tr>
                                 )
@@ -338,6 +343,7 @@ export default async function MePage() {
 
             {myReviews.length > 0 && (
                 <MyReviewsPanel
+                    baseCurrency={baseCurrency}
                     reviews={myReviews}
                     goals={(myReviewGoals ?? []) as unknown as GoalRow[]}
                     ratings={(mustRows(ratingRes)) as unknown as RatingOption[]}

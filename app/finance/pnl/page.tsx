@@ -16,7 +16,7 @@ import { getBaseCurrency } from '@/lib/currency'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { parseDateRange } from '@/lib/dateFilter'
-import { formatMoney } from '@/lib/format'
+import { formatMoneyBare } from '@/lib/format'
 import Subnav from '../Subnav'
 import PnlToolbar from './PnlToolbar'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -100,7 +100,7 @@ export default async function PnlPage({
                             (r.amount < 0 ? 'text-red-600' : '')
                         }
                     >
-                        {formatMoney(r.amount)}
+                        {formatMoneyBare(r.amount, '列头 金额 ({ccy}) —— 已带本位币')}
                     </td>
                 </tr>
             ))}
@@ -109,7 +109,7 @@ export default async function PnlPage({
                     {t(titleKey)} — {t('finance.totalsLabel')}
                 </td>
                 <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                    {formatMoney(s.subtotal)}
+                    {formatMoneyBare(s.subtotal, '列头 金额 ({ccy}) —— 已带本位币')}
                 </td>
             </tr>
         </Fragment>
@@ -154,7 +154,7 @@ export default async function PnlPage({
                             )}
                         </td>
                         <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                            {formatMoney(pnl.gross_profit)}
+                            {formatMoneyBare(pnl.gross_profit, '列头 金额 ({ccy}) —— 已带本位币')}
                         </td>
                     </tr>
                     {sectionBlock('finance.accountType.expense', pnl.expense)}
@@ -169,7 +169,7 @@ export default async function PnlPage({
                                 (pnl.net_profit >= 0 ? 'text-green-700' : 'text-red-600')
                             }
                         >
-                            {formatMoney(pnl.net_profit)}
+                            {formatMoneyBare(pnl.net_profit, '列头 金额 ({ccy}) —— 已带本位币')}
                         </td>
                     </tr>
                 </tbody>

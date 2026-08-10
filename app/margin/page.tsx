@@ -25,7 +25,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getBaseCurrency } from '@/lib/currency'
 import { getTranslations } from '@/lib/i18n/server'
-import { formatMoney } from '@/lib/format'
+import { formatMoneyBare } from '@/lib/format'
 import { mustRows } from '@/lib/db-helpers'
 import { requireAnyModule, requireDataClass } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -114,8 +114,8 @@ export default async function MarginPage() {
                     </p>
                     <p className="text-sm mt-1">
                         {t('margin.coverageAmount', {
-                            covered: formatMoney(computableRevenue),
-                            total: formatMoney(revenueTotal),
+                            covered: formatMoneyBare(computableRevenue, '同句 margin.coverageAmount 末尾的 {ccy}'),
+                            total: formatMoneyBare(revenueTotal, '同句 margin.coverageAmount 末尾的 {ccy}'),
                             ccy: baseCurrency,
                         })}
                     </p>
@@ -154,14 +154,14 @@ export default async function MarginPage() {
                                         {r.qty_sold}
                                     </td>
                                     <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                        {formatMoney(r.revenue_base)}
+                                        {formatMoneyBare(r.revenue_base, '页面副标题 margin.subtitle 末尾的({ccy})')}
                                     </td>
                                     {/* 【算不出来就说算不出来】—— 不是 0,也不是空白 */}
                                     <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                        {ok ? formatMoney(r.cost_current_base as number) : '—'}
+                                        {ok ? formatMoneyBare(r.cost_current_base as number, '页面副标题 margin.subtitle 末尾的({ccy})') : '—'}
                                     </td>
                                     <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                        {ok ? formatMoney(r.margin_base as number) : '—'}
+                                        {ok ? formatMoneyBare(r.margin_base as number, '页面副标题 margin.subtitle 末尾的({ccy})') : '—'}
                                     </td>
                                     <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
                                         {ok && r.margin_pct !== null ? `${r.margin_pct}%` : '—'}
@@ -185,7 +185,7 @@ export default async function MarginPage() {
                                                 <Flag
                                                     tone="amber"
                                                     label={t('margin.flag.cogsDiffers', {
-                                                        posted: formatMoney(r.cogs_posted_base as number),
+                                                        posted: formatMoneyBare(r.cogs_posted_base as number, '页面副标题 margin.subtitle 末尾的({ccy})'),
                                                     })}
                                                     hint={t('margin.flagHint.cogsDiffers')}
                                                 />

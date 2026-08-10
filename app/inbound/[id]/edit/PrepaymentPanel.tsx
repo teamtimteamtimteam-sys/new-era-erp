@@ -6,10 +6,14 @@
 // 金额默认 = 可抵扣额,可改;提交走 applyPrepayment,成功后服务端重读,
 // 面板要么显示缩小后的数字,要么(可抵扣归零)整个消失。
 // 下方列出本批已有的抵扣记录(金额/日期/分录链接)。
+//
+// CCY-1:这一块【整块都是本位币】(*_base),而它挂在进料批次编辑页上 —— 那一页
+// 上下都是采购单的单据币种口径(批次单价、金额)。面板自己不写币种就等于借了
+// 一个说着别的币种的抬头,所以四个数字各自带上币种。
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import { formatMoney } from '@/lib/format'
+import { formatAmount } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { applyPrepayment, type ApplyPrepaymentState } from './prepaymentActions'
 
@@ -27,6 +31,7 @@ export default function PrepaymentPanel({
     batchId,
     applicable,
     history,
+    baseCurrency,
 }: {
     batchId: string
     applicable: {
@@ -37,6 +42,9 @@ export default function PrepaymentPanel({
         applicable_base: number
     } | null
     history: PrepaymentApplicationRow[]
+    /** CCY-1:本面板的金额全是本位币(*_base)。来自 currencies.is_base,
+     *  由页面 getBaseCurrency() 后传进来 —— 客户端组件不自己查,也不写死。 */
+    baseCurrency: string
 }) {
     const t = useTranslations()
     const boundAction = applyPrepayment.bind(null, batchId, applicable?.purchase_order_id ?? '')
@@ -69,15 +77,15 @@ export default function PrepaymentPanel({
                         </div>
                         <div>
                             <span className="text-gray-600 mr-1">{t('purchasing.remainingLabel')}:</span>
-                            <span className="font-mono">{formatMoney(applicable.po_unapplied_prepayment_base)}</span>
+                            <span className="font-mono">{formatAmount(applicable.po_unapplied_prepayment_base, baseCurrency)}</span>
                         </div>
                         <div>
                             <span className="text-gray-600 mr-1">{t('finance.colOpen')}:</span>
-                            <span className="font-mono">{formatMoney(applicable.batch_ap_open_base)}</span>
+                            <span className="font-mono">{formatAmount(applicable.batch_ap_open_base, baseCurrency)}</span>
                         </div>
                         <div>
                             <span className="text-gray-600 mr-1">{t('purchasing.applicableAmount')}:</span>
-                            <span className="font-mono font-medium">{formatMoney(applicable.applicable_base)}</span>
+                            <span className="font-mono font-medium">{formatAmount(applicable.applicable_base, baseCurrency)}</span>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -102,7 +110,7 @@ export default function PrepaymentPanel({
                             {history.map((h) => (
                                 <tr key={h.id}>
                                     <td className="border border-gray-300 px-3 py-1.5 text-right font-mono w-32">
-                                        {formatMoney(h.amount_base)}
+                                        {formatAmount(h.amount_base, baseCurrency)}
                                     </td>
                                     <td className="border border-gray-300 px-3 py-1.5 text-gray-600">
                                         {h.created_at_display}

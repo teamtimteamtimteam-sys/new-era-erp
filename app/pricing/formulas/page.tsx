@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { formatMoney } from '@/lib/format'
+import { formatMoneyBare } from '@/lib/format'
 import Subnav from '../Subnav'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -121,7 +121,7 @@ export default async function FormulasPage() {
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-sm">{basisLabel(r)}</td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatMoney(r.treatment_charge_usd_per_tonne)}
+                                {formatMoneyBare(r.treatment_charge_usd_per_tonne, '列头 pricing.colTreatment「加工费 (USD/吨)」')}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                 {r.flat_discount_pct}

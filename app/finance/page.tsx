@@ -5,7 +5,8 @@ import { Fragment } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatMoney } from '@/lib/format'
+import { formatAmount } from '@/lib/format'
+import { getBaseCurrency } from '@/lib/currency'
 import Subnav from './Subnav'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -36,6 +37,8 @@ export default async function FinancePage({
     const supabase = await createClient()
     const t = await getTranslations()
     const locale = await getLocale()
+    // 借方/贷方/净额三个列头都不写币种 —— 数字自己带(CCY-1)
+    const baseCurrency = await getBaseCurrency()
     const showAll = sp.all === '1'
 
     const [accountsRes, linesRes] = await Promise.all([
@@ -144,10 +147,10 @@ export default async function FinancePage({
                                         )}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {formatMoney(r.debits)}
+                                        {formatAmount(r.debits, baseCurrency)}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {formatMoney(r.credits)}
+                                        {formatAmount(r.credits, baseCurrency)}
                                     </td>
                                     <td
                                         className={
@@ -155,7 +158,7 @@ export default async function FinancePage({
                                             (r.net < 0 ? 'text-red-600' : '')
                                         }
                                     >
-                                        {formatMoney(r.net)}
+                                        {formatAmount(r.net, baseCurrency)}
                                     </td>
                                 </tr>
                             ))}
@@ -173,10 +176,10 @@ export default async function FinancePage({
                     <tr className="bg-gray-100 font-bold">
                         <td colSpan={2} className="border border-gray-300 px-4 py-2">{t('finance.totalsLabel')}</td>
                         <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                            {formatMoney(totalDebits)}
+                            {formatAmount(totalDebits, baseCurrency)}
                         </td>
                         <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                            {formatMoney(totalCredits)}
+                            {formatAmount(totalCredits, baseCurrency)}
                         </td>
                         <td className="border border-gray-300 px-4 py-2" />
                     </tr>

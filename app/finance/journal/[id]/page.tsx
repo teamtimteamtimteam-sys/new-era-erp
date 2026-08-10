@@ -7,7 +7,7 @@ import { getBaseCurrency } from '@/lib/currency'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatMoney } from '@/lib/format'
+import { formatAmount, formatMoneyBare } from '@/lib/format'
 import Subnav from '../../Subnav'
 import ReverseButton from './ReverseButton'
 import { resolveSourceHrefs, sourceHrefKey } from '../../sourceLinks'
@@ -176,15 +176,17 @@ export default async function JournalDetailPage({
                                 <span className="font-mono text-sm mr-2">{l.accounts?.code ?? '—'}</span>
                                 {accountName(l)}
                             </td>
+                            {/* 借/贷是本位币,自己带币种:同表「原币」列写的是【另一个】币种,
+                                不能拿它当"这屏已经写了币种"的凭据(CCY-1 RULE 3)。*/}
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {l.debit > 0 ? formatMoney(l.debit) : ''}
+                                {l.debit > 0 ? formatAmount(l.debit, baseCurrency) : ''}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {l.credit > 0 ? formatMoney(l.credit) : ''}
+                                {l.credit > 0 ? formatAmount(l.credit, baseCurrency) : ''}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
                                 {l.currency !== baseCurrency
-                                    ? `${l.currency} ${formatMoney(l.amount_ccy)} @ ${l.fx_rate}`
+                                    ? `${l.currency} ${formatMoneyBare(l.amount_ccy, '同格内紧邻的 l.currency 前缀')} @ ${l.fx_rate}`
                                     : '—'}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-sm">{l.line_memo ?? '—'}</td>
@@ -195,10 +197,10 @@ export default async function JournalDetailPage({
                     <tr className="bg-gray-100 font-bold">
                         <td className="border border-gray-300 px-4 py-2">{t('finance.totalsLabel')}</td>
                         <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                            {formatMoney(sumDebit)}
+                            {formatAmount(sumDebit, baseCurrency)}
                         </td>
                         <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                            {formatMoney(sumCredit)}
+                            {formatAmount(sumCredit, baseCurrency)}
                         </td>
                         <td className="border border-gray-300 px-4 py-2" colSpan={2} />
                     </tr>

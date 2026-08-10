@@ -2611,6 +2611,8 @@ const en = {
             basis: 'Price basis',
             basisSpot: 'Latest price',
             basisAverage: 'Average over N days',
+            basisSameToday:
+                'Right now these two settings give the same number: all {metals} metals have only one quote inside a {days}-day window (latest {date}), so the average is that single spot price. The choice starts to matter once quotes are entered more often.',
             averageDays: 'Days',
             treatment: 'Treatment charge (USD per tonne)',
             discount: 'Flat discount %',

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatMoney } from '@/lib/format'
+import { formatAmount } from '@/lib/format'
 import Subnav from '../../Subnav'
 import { statusPillClass } from '../../reviews/reviewShared'
 import { mustRows } from '@/lib/db-helpers'
@@ -397,11 +397,11 @@ export default async function EmployeeDetailPage({
                                     )}
                                     <span className="text-gray-400 ml-2">{p.payroll_periods?.currency}</span>
                                 </td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(p.gross_pay)}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(p.employer_cpf)}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(p.employee_cpf)}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(p.other_deductions)}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono font-medium">{formatMoney(p.net_pay)}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatAmount(p.gross_pay, p.payroll_periods?.currency)}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatAmount(p.employer_cpf, p.payroll_periods?.currency)}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatAmount(p.employee_cpf, p.payroll_periods?.currency)}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatAmount(p.other_deductions, p.payroll_periods?.currency)}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-right font-mono font-medium">{formatAmount(p.net_pay, p.payroll_periods?.currency)}</td>
                                 <td className="border border-gray-300 px-3 py-2">
                                     <span
                                         className={

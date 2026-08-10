@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { getBaseCurrency } from '@/lib/currency'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { formatMoney } from '@/lib/format'
+import { formatAmount, formatMoneyBare } from '@/lib/format'
 import Subnav from '../Subnav'
 import { BUCKETS, bucketPillClass } from '../agingBuckets'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -107,13 +107,13 @@ export default async function PayablesPage() {
             <div className="bg-gray-50 rounded p-4 mb-6 flex flex-wrap gap-x-8 gap-y-2 text-sm items-center">
                 <div>
                     <span className="text-gray-600 mr-1">{t('finance.totalOpen')}:</span>
-                    <span className="font-mono font-bold">{formatMoney(totalOpen)}</span>
+                    <span className="font-mono font-bold">{formatAmount(totalOpen, baseCurrency)}</span>
                 </div>
                 {BUCKETS.map((b) => (
                     <div key={b}>
                         <span className="text-gray-600 mr-1">{t('finance.aging.' + b)}:</span>
                         <span className={'font-mono ' + (b === 'b90_plus' ? 'text-red-600 font-medium' : '')}>
-                            {formatMoney(Math.round((bucketTotals.get(b) ?? 0) * 100) / 100)}
+                            {formatAmount(Math.round((bucketTotals.get(b) ?? 0) * 100) / 100, baseCurrency)}
                         </span>
                     </div>
                 ))}
@@ -163,13 +163,13 @@ export default async function PayablesPage() {
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2">{r.doc_date}</td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {formatMoney(r.doc_value_base)}
+                                        {formatMoneyBare(r.doc_value_base, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {formatMoney(r.settled_base)}
+                                        {formatMoneyBare(r.settled_base, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm font-medium">
-                                        {formatMoney(r.open_base)}
+                                        {formatMoneyBare(r.open_base, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2">
                                         <span className={'px-2 py-1 rounded text-xs ' + bucketPillClass(r.bucket)}>
@@ -183,13 +183,13 @@ export default async function PayablesPage() {
                                     {g.name} — {t('finance.totalsLabel')}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                    {formatMoney(Math.round(g.amount * 100) / 100)}
+                                    {formatMoneyBare(Math.round(g.amount * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                    {formatMoney(Math.round(g.settled * 100) / 100)}
+                                    {formatMoneyBare(Math.round(g.settled * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                    {formatMoney(Math.round(g.open * 100) / 100)}
+                                    {formatMoneyBare(Math.round(g.open * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2" />
                             </tr>,

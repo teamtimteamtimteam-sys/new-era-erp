@@ -8,7 +8,8 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { parseDateRange } from '@/lib/dateFilter'
-import { formatMoney } from '@/lib/format'
+import { formatAmount } from '@/lib/format'
+import { getBaseCurrency } from '@/lib/currency'
 import Subnav from '../Subnav'
 import InvoicesToolbar from './InvoicesToolbar'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -48,6 +49,8 @@ export default async function InvoicesPage({
 
     const sp = await searchParams
     const supabase = await createClient()
+    // 合计/已收/未收三列的列头都不写币种(「合计」「已收」「未收」)—— 数字自己带(CCY-1)
+    const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
 
     const { dateFrom, dateTo } = parseDateRange(sp)
@@ -236,13 +239,13 @@ export default async function InvoicesPage({
                                 ) : null}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatMoney(r.total_base)}
+                                {formatAmount(r.total_base, baseCurrency)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {r.settled_base === null ? '—' : formatMoney(r.settled_base)}
+                                {r.settled_base === null ? '—' : formatAmount(r.settled_base, baseCurrency)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm font-medium">
-                                {r.open_base === null ? '—' : formatMoney(r.open_base)}
+                                {r.open_base === null ? '—' : formatAmount(r.open_base, baseCurrency)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">{statePill(r)}</td>
                             <td className="border border-gray-300 px-4 py-2">

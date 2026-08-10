@@ -6,7 +6,7 @@ import { bankAccountFor } from '@/lib/currency'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { formatMoney } from '@/lib/format'
+import { formatMoneyBare } from '@/lib/format'
 import Subnav from '../../Subnav'
 import { PostPayrollButton, UnpostPayrollControl } from './PostControls'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -188,11 +188,11 @@ export default async function PayrollDetailPage({
                                     '—'
                                 )}
                             </td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(l.gross_pay)}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(l.employee_cpf)}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(l.employer_cpf)}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(l.other_deductions)}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono font-medium">{formatMoney(l.net_pay)}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoneyBare(l.gross_pay, '抬头「币种」:{currency} @ {fx}')}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoneyBare(l.employee_cpf, '抬头「币种」:{currency} @ {fx}')}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoneyBare(l.employer_cpf, '抬头「币种」:{currency} @ {fx}')}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoneyBare(l.other_deductions, '抬头「币种」:{currency} @ {fx}')}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right font-mono font-medium">{formatMoneyBare(l.net_pay, '抬头「币种」:{currency} @ {fx}')}</td>
                         </tr>
                     ))}
                     {lines.length === 0 && (
@@ -211,11 +211,11 @@ export default async function PayrollDetailPage({
                                 {t('hr.lineCount', { n: lines.length })}
                             </span>
                         </td>
-                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(period.gross_total)}</td>
-                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(period.employee_cpf_total)}</td>
-                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(period.employer_cpf_total)}</td>
-                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(period.other_deductions_total)}</td>
-                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(period.net_pay_total)}</td>
+                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoneyBare(period.gross_total, '抬头「币种」:{currency} @ {fx}')}</td>
+                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoneyBare(period.employee_cpf_total, '抬头「币种」:{currency} @ {fx}')}</td>
+                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoneyBare(period.employer_cpf_total, '抬头「币种」:{currency} @ {fx}')}</td>
+                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoneyBare(period.other_deductions_total, '抬头「币种」:{currency} @ {fx}')}</td>
+                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoneyBare(period.net_pay_total, '抬头「币种」:{currency} @ {fx}')}</td>
                     </tr>
                 </tfoot>
             </table>

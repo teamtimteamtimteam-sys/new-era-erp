@@ -42,16 +42,22 @@ export const EMPTY_FORMULA: FormulaDefaults = {
     payables: {},
 }
 
+// quoteDates:每个金属最近一年的行情日期(数据量极小 —— 线上目前统共 3 个行情日)。
+// 用来当场说出【选这个基准现在有没有区别】,而不是让人凭空以为均价在做平均。
+export type QuoteDate = { metal: string; price_date: string }
+
 export default function FormulaForm({
     action,
     defaults,
     suppliers,
     customers,
+    quoteDates,
 }: {
     action: (state: FormulaState, formData: FormData) => Promise<FormulaState>
     defaults: FormulaDefaults
     suppliers: PartyOption[]
     customers: PartyOption[]
+    quoteDates: QuoteDate[]
 }) {
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(action, initialState)
@@ -61,6 +67,20 @@ export default function FormulaForm({
         defaults.supplier_id ? 'supplier' : defaults.customer_id ? 'customer' : 'generic'
     )
     const [averageDays, setAverageDays] = useState(defaults.average_days)
+    // 【均价此刻在不在做平均】—— 这不是告警,是一句关于"引擎眼下到底在算什么"的事实。
+    // 窗口里只有一条报价时,average 与 spot 得出的是同一个数,基准的选择是装饰性的。
+    // 数出来的,不是断言的:窗口随上面填的天数变,行情覆盖变密了这句话自己就消失。
+    const windowDays = Number(averageDays) > 0 ? Number(averageDays) : 30
+    const cutoff = new Date(Date.now() - (windowDays - 1) * 86400000).toISOString().slice(0, 10)
+    const perMetal = new Map<string, string[]>()
+    for (const q of quoteDates) {
+        if (q.price_date < cutoff) continue
+        perMetal.set(q.metal, [...(perMetal.get(q.metal) ?? []), q.price_date])
+    }
+    const thin = [...perMetal.entries()].filter(([, d]) => d.length <= 1).map(([m]) => m)
+    const latest = quoteDates.reduce<string | null>((a, q) => (a === null || q.price_date > a ? q.price_date : a), null)
+    const allThin = perMetal.size > 0 && thin.length === perMetal.size
+
     const [treatment, setTreatment] = useState(defaults.treatment_charge_usd_per_tonne)
     const [discount, setDiscount] = useState(defaults.flat_discount_pct)
     const [payables, setPayables] = useState<Record<string, string>>(defaults.payables)
@@ -147,6 +167,20 @@ export default function FormulaForm({
                     </div>
                 )}
             </div>
+
+            {/* 选基准的人应当当场看到:眼下这两个基准算出来是不是同一个数。
+                线上实测(2026-08-10):七个金属的最新报价都是 7-30,30 天窗口里
+                各只有一条 —— 于是 average 并没有在平均任何东西。这不是告警,
+                是关于【计价引擎此刻到底做了多少事】的事实,所以摆在选择的旁边。 */}
+            {allThin && latest && (
+                <p className="text-sm bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded">
+                    {t('pricing.form.basisSameToday', {
+                        days: windowDays,
+                        metals: thin.length,
+                        date: latest,
+                    })}
+                </p>
+            )}
 
             <div className="flex flex-wrap gap-4">
                 <div>

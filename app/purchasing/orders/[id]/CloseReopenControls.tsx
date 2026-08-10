@@ -7,17 +7,22 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
-import { formatMoney } from '@/lib/format'
+import { formatAmount } from '@/lib/format'
 import { closeOrder, reopenOrder } from './actions'
 
 export function CloseOrderControl({
     poId,
     unappliedPrepayment,
+    baseCurrency,
 }: {
     poId: string
     /** OPS-14:null = 读者没有 module.finance.view,【未抵扣预付未知】。
      *  未知按"有"处理 —— 关单说明是给未抵扣预付留的记录,漏掉它比多写一句糟。 */
     unappliedPrepayment: number | null
+    /** CCY-1:未抵扣预付是本位币(prepaid_remaining_base)。那句警告里没有别的地方
+     *  写着币种,而这一页的抬头写的是【单据币种】—— 借它就等于说错话。
+     *  本位币来自 currencies.is_base,由页面传进来(客户端组件不自己查)。 */
+    baseCurrency: string
 }) {
     const t = useTranslations()
     const router = useRouter()
@@ -57,7 +62,7 @@ export function CloseOrderControl({
                     {unappliedPrepayment === null
                         ? t('purchasing.closeWithPrepaymentUnknown')
                         : t('purchasing.closeWithPrepaymentWarning', {
-                              amount: formatMoney(unappliedPrepayment),
+                              amount: formatAmount(unappliedPrepayment, baseCurrency),
                           })}
                 </p>
             )}

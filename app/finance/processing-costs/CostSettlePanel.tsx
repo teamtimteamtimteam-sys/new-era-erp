@@ -10,7 +10,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
-import { formatMoney } from '@/lib/format'
+import { formatAmount, formatMoneyBare } from '@/lib/format'
 import { remitCosts, relieveAccruals } from '../month-end/actions'
 
 type Entry = { id: string; run_id: string; cost_type: string; amount_base: number; is_estimate: boolean; created_at: string }
@@ -74,7 +74,7 @@ export default function CostSettlePanel({ entries, runs, suppliers, baseCurrency
                 onChange={(ev) => set({ ...sel, [e.id]: ev.target.checked })} /></td>
             <td className="py-0.5 font-mono">{runBy.get(e.run_id)}</td>
             <td className="py-0.5">{t('processing.costTypes.' + e.cost_type)}</td>
-            <td className="py-0.5 text-right font-mono">{formatMoney(e.amount_base)}</td>
+            <td className="py-0.5 text-right font-mono">{formatAmount(e.amount_base, baseCurrency)}</td>
             <td className="py-0.5 pl-3 text-xs text-gray-500">{e.created_at.slice(0, 10)}</td>
         </tr>
     )
@@ -140,13 +140,13 @@ export default function CostSettlePanel({ entries, runs, suppliers, baseCurrency
                         光给一个带正负号的数字,看的人还得自己想"这是估多了还是估少了" */}
                     {chosenE.length > 0 && (
                         <p className="text-sm mt-3">
-                            {t('finance.costSettle.preview', { accrued: formatMoney(accrued), ccy: baseCurrency })}
+                            {t('finance.costSettle.preview', { accrued: formatMoneyBare(accrued, '同句 preview 文案里的 {ccy} 占位符'), ccy: baseCurrency })}
                             {variance !== null && (
                                 <span className={'ml-2 font-medium ' + (variance > 0 ? 'text-red-700' : variance < 0 ? 'text-green-700' : 'text-gray-600')}>
                                     {variance > 0
-                                        ? t('finance.costSettle.varianceUnder', { v: formatMoney(variance) })
+                                        ? t('finance.costSettle.varianceUnder', { v: formatAmount(variance, baseCurrency) })
                                         : variance < 0
-                                        ? t('finance.costSettle.varianceOver', { v: formatMoney(Math.abs(variance)) })
+                                        ? t('finance.costSettle.varianceOver', { v: formatAmount(Math.abs(variance), baseCurrency) })
                                         : t('finance.costSettle.varianceNone')}
                                 </span>
                             )}

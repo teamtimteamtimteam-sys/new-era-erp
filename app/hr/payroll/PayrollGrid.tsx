@@ -10,7 +10,7 @@
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import { formatMoney } from '@/lib/format'
+import { formatAmount } from '@/lib/format'
 import DecimalInput, { parseDecimal } from '@/app/components/forms/DecimalInput'
 import { savePayrollPeriod, type PayrollFormState, type PayrollLineInput } from './actions'
 
@@ -56,6 +56,11 @@ export default function PayrollGrid({
 }) {
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(savePayrollPeriod, initialState)
+
+    // 币种受控:预期实发与合计行都要【带着币种】显示,而这张单的币种就是抬头这个
+    // 下拉里选的那个 —— 不是本位币,也不是任何常量。下拉一改,下面的数字跟着改口径,
+    // 所以它必须是 state,不能停在 defaultValue 上。
+    const [currency, setCurrency] = useState(defaults.currency)
 
     const [lines, setLines] = useState<Record<string, PayrollLineInput>>(() => {
         const out: Record<string, PayrollLineInput> = {}
@@ -143,7 +148,8 @@ export default function PayrollGrid({
                     <label className="block text-sm font-medium mb-1">{t('hr.colCurrency')}</label>
                     <select
                         name="currency"
-                        defaultValue={defaults.currency}
+                        value={currency}
+                        onChange={(e) => setCurrency(e.target.value)}
                         className="border border-gray-300 px-3 py-2 rounded"
                     >
                         <option value="SGD">SGD</option>
@@ -256,7 +262,7 @@ export default function PayrollGrid({
                                             <span className="text-green-700">✓</span>
                                         ) : (
                                             <span className="text-red-700">
-                                                {t('hr.expectedNet', { amount: formatMoney(check.expected) })}
+                                                {t('hr.expectedNet', { amount: formatAmount(check.expected, currency) })}
                                             </span>
                                         )}
                                     </td>
@@ -279,11 +285,11 @@ export default function PayrollGrid({
                                     {t('hr.lineCount', { n: active.length })}
                                 </span>
                             </td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(totals.gross)}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(totals.eeCpf)}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(totals.erCpf)}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(totals.other)}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoney(totals.net)}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatAmount(totals.gross, currency)}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatAmount(totals.eeCpf, currency)}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatAmount(totals.erCpf, currency)}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatAmount(totals.other, currency)}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatAmount(totals.net, currency)}</td>
                             <td className="border border-gray-300 px-3 py-2" />
                         </tr>
                     </tfoot>

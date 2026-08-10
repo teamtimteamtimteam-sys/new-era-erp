@@ -6,13 +6,14 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { CATEGORY_OPTIONS, UNIT_OPTIONS, labelKeyForValue } from '@/app/materials/options'
-import { formatMoney } from '@/lib/format'
+import { formatAmount, formatMoneyBare } from '@/lib/format'
 import { latestPriceByMetal, marketValuePerKg } from '@/lib/valuation'
 import { maskedRows } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
 import { mustCount, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { getBaseCurrency } from '@/lib/currency'
 
 type MaterialEmbed = { name: string; category: string } | null
 
@@ -57,6 +58,9 @@ export default async function InventoryPage() {
 
     const supabase = await createClient()
     const t = await getTranslations()
+    // CCY-1:估值合计条的三个标签(原料库存价值/成品成本价值/成品市价价值)【不带币种】,
+    // 而下面表格的列头带 —— 合计条自己把币种写出来,不去借一个没说过话的抬头。
+    const baseCurrency = await getBaseCurrency()
 
     const todayYmd = new Date().toISOString().slice(0, 10)
 
@@ -252,15 +256,15 @@ export default async function InventoryPage() {
                 <div className="bg-gray-50 rounded p-4 flex flex-wrap gap-8 text-sm mb-3">
                     <div>
                         <span className="text-gray-600">{t('valuation.totalInboundValue')}:</span>{' '}
-                        <span className="font-medium font-mono">{formatMoney(totalInboundValue)}</span>
+                        <span className="font-medium font-mono">{formatAmount(totalInboundValue, baseCurrency)}</span>
                     </div>
                     <div>
                         <span className="text-gray-600">{t('valuation.totalCostValue')}:</span>{' '}
-                        <span className="font-medium font-mono">{formatMoney(totalCostValue)}</span>
+                        <span className="font-medium font-mono">{formatAmount(totalCostValue, baseCurrency)}</span>
                     </div>
                     <div>
                         <span className="text-gray-600">{t('valuation.totalMarketValue')}:</span>{' '}
-                        <span className="font-medium font-mono">{formatMoney(totalMarketValue)}</span>
+                        <span className="font-medium font-mono">{formatAmount(totalMarketValue, baseCurrency)}</span>
                     </div>
                     {(mustCount(unpricedRes)) > 0 && (
                         <div className="text-gray-400">
@@ -302,11 +306,11 @@ export default async function InventoryPage() {
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
                                     {r.pricedQty > 0 && r.stockValue !== null
-                                        ? formatMoney(r.stockValue / r.pricedQty)
+                                        ? formatMoneyBare(r.stockValue / r.pricedQty, '列头「加权均价 (SGD)」')
                                         : '—'}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
-                                    {r.stockValue !== null ? formatMoney(r.stockValue) : '—'}
+                                    {r.stockValue !== null ? formatMoneyBare(r.stockValue, '列头「库存价值 (SGD)」') : '—'}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
                                     {r.outputStock > 0 ? (
@@ -321,10 +325,10 @@ export default async function InventoryPage() {
                                     )}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
-                                    {r.costValue !== null ? formatMoney(r.costValue) : '—'}
+                                    {r.costValue !== null ? formatMoneyBare(r.costValue, '列头「成本价值 (SGD)」') : '—'}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
-                                    {r.marketValue !== null ? formatMoney(r.marketValue) : '—'}
+                                    {r.marketValue !== null ? formatMoneyBare(r.marketValue, '列头「市价价值 (SGD)」') : '—'}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">{unitLabel(r.unit)}</td>
                             </tr>

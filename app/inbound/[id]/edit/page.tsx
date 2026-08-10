@@ -376,7 +376,7 @@ export default async function EditInboundPage({
             />
 
             {/* 抵扣预付(cut 4c):可抵扣 or 有历史时才渲染 */}
-            <PrepaymentPanel batchId={batch.id} applicable={applicable} history={prepaymentHistory} />
+            <PrepaymentPanel batchId={batch.id} applicable={applicable} history={prepaymentHistory} baseCurrency={baseCurrency} />
 
             <MovementTimeline rows={movementRows} unit={batch.unit} />
         </div>

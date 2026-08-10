@@ -2,12 +2,18 @@
 // 采购单详情:头卡(供应商/日期/币种/状态/审批)+ 明细行(含预计化验)+
 // 付款计划(比例期按估算总额折成钱)+ 预付摘要(已付/已抵扣/未抵扣 → 登记付款入口)+
 // 收货记录(关联进料批次、已收 vs 下单量)+ 取消(无收货且无已抵扣预付才允许)。
+//
+// CCY-1:【这一页换过一次币,中间没有分界线】。头卡写着「币种:USD @ 1.35」,
+// 明细行、估算总额、付款计划都是它 —— 那几处不必每格重复,指着头卡就够。
+// 但预付摘要(已预付/已抵扣/未抵扣)与收货表的「已抵扣」「未结」是 *_base,
+// 【本位币】。它们要是也裸着,就成了指着一个与自己矛盾的抬头:头卡说 USD,
+// 数字其实是 SGD。所以下半截一律带币种写出来。
 import Link from 'next/link'
 import { getBaseCurrency } from '@/lib/currency'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { formatMoney, formatUnitCost } from '@/lib/format'
+import { formatAmount, formatMoneyBare, formatUnitCost } from '@/lib/format'
 import Subnav from '../../Subnav'
 import CancelOrderControl from './CancelOrderControl'
 import { CloseOrderControl, ReopenOrderControl } from './CloseReopenControls'
@@ -204,6 +210,7 @@ export default async function PurchaseOrderDetailPage({
                         <CloseOrderControl
                             poId={po.id}
                             unappliedPrepayment={canFinance ? Number(poStatus?.prepaid_remaining_base ?? 0) : null}
+                            baseCurrency={baseCurrency}
                         />
                     )}
                     {po.status === 'closed' && <ReopenOrderControl poId={po.id} />}
@@ -262,7 +269,7 @@ export default async function PurchaseOrderDetailPage({
                 <div>{statusPill}</div>
                 <div>
                     <span className="text-gray-600 mr-1">{t('purchasing.colEstimatedTotal')}:</span>
-                    <span className="font-mono font-medium">{formatMoney(po.estimated_total_ccy)}</span>
+                    <span className="font-mono font-medium">{formatMoneyBare(po.estimated_total_ccy, '同一张头卡上的「币种」字段')}</span>
                 </div>
             </div>
 
@@ -414,7 +421,7 @@ export default async function PurchaseOrderDetailPage({
                                 )}
                             </td>
                             <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                {formatMoney(l.estimated_amount_ccy)}
+                                {formatMoneyBare(l.estimated_amount_ccy, '头卡「币种」—— 明细行是单据币种')}
                             </td>
                         </tr>
                     ))}
@@ -425,7 +432,7 @@ export default async function PurchaseOrderDetailPage({
                             {t('purchasing.colEstimatedTotal')}
                         </td>
                         <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                            {formatMoney(po.estimated_total_ccy)}
+                            {formatMoneyBare(po.estimated_total_ccy, '头卡「币种」—— 明细行是单据币种')}
                         </td>
                     </tr>
                 </tfoot>
@@ -455,10 +462,10 @@ export default async function PurchaseOrderDetailPage({
                                         <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
                                             {l.percentage !== null
                                                 ? `${l.percentage}%`
-                                                : `${formatMoney(l.fixed_amount_ccy)} USD`}
+                                                : formatAmount(l.fixed_amount_ccy, po.currency)}
                                         </td>
                                         <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                            {formatMoney(termAmount(l))}
+                                            {formatMoneyBare(termAmount(l), '头卡「币种」—— 付款计划按估算总额折算,同为单据币种')}
                                         </td>
                                         <td className="border border-gray-300 px-3 py-2 text-sm">
                                             {t('purchasing.trigger.' + l.trigger_event)}
@@ -474,23 +481,26 @@ export default async function PurchaseOrderDetailPage({
                 </div>
 
                 {poStatus && (
+                    /* CCY-1:这一块是【本位币】,而左边的付款计划与上方头卡是单据币种。
+                       两块并排,所以这三行各自把币种写出来 —— 省掉它就等于指着头卡的
+                       「币种:USD」,而这里的数字并不是 USD。 */
                     <div className="border border-gray-300 rounded p-4 text-sm space-y-2 h-fit">
                         <div className="flex justify-between">
                             <span className="text-gray-600">{t('purchasing.prepaidLabel')}</span>
                             <span className="font-mono">
-                                <MaskedValue value={poStatus.prepaid_base === null ? null : formatMoney(poStatus.prepaid_base)} canView={canFinance} />
+                                <MaskedValue value={poStatus.prepaid_base === null ? null : formatAmount(poStatus.prepaid_base, baseCurrency)} canView={canFinance} />
                             </span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-gray-600">{t('purchasing.appliedLabel')}</span>
                             <span className="font-mono">
-                                <MaskedValue value={poStatus.prepaid_applied_base === null ? null : formatMoney(poStatus.prepaid_applied_base)} canView={canFinance} />
+                                <MaskedValue value={poStatus.prepaid_applied_base === null ? null : formatAmount(poStatus.prepaid_applied_base, baseCurrency)} canView={canFinance} />
                             </span>
                         </div>
                         <div className="flex justify-between font-medium border-t pt-2">
                             <span>{t('purchasing.remainingLabel')}</span>
                             <span className="font-mono">
-                                <MaskedValue value={poStatus.prepaid_remaining_base === null ? null : formatMoney(poStatus.prepaid_remaining_base)} canView={canFinance} />
+                                <MaskedValue value={poStatus.prepaid_remaining_base === null ? null : formatAmount(poStatus.prepaid_remaining_base, baseCurrency)} canView={canFinance} />
                             </span>
                         </div>
                         {!isCancelled && (
@@ -550,12 +560,13 @@ export default async function PurchaseOrderDetailPage({
                                         )}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {appliedByBatch.has(r.id) ? formatMoney(appliedByBatch.get(r.id)) : '—'}
+                                        {/* CCY-1:抵扣额与敞口是本位币 —— 上方头卡说的是单据币种,不能借它 */}
+                                        {appliedByBatch.has(r.id) ? formatAmount(appliedByBatch.get(r.id), baseCurrency) : '—'}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                         {r.unit_price === null ? '—' : (
                                             <MaskedValue
-                                                value={canFinance ? formatMoney(openByBatch.get(r.id) ?? 0) : null}
+                                                value={canFinance ? formatAmount(openByBatch.get(r.id) ?? 0, baseCurrency) : null}
                                                 canView={canFinance}
                                             />
                                         )}

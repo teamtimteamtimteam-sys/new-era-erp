@@ -10,7 +10,7 @@ import { bankAccountFor, currencyOfBank } from '@/lib/currencyMap'
 import Link from 'next/link'
 import { createExpense, type CreateExpenseState } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
-import { formatMoney } from '@/lib/format'
+import { formatMoneyBare } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 
 const initialState: CreateExpenseState = {}
@@ -282,12 +282,12 @@ export default function NewExpenseForm({
                 <div>
                     <span className="font-mono font-medium">
                         {amountSgd !== null
-                            ? t('expense.amountPreview', { amount: formatMoney(amountSgd), ccy: baseCurrency })
+                            ? t('expense.amountPreview', { amount: formatMoneyBare(amountSgd, '同句 amountPreview 文案「金额:{amount} {ccy}」里的 {ccy}'), ccy: baseCurrency })
                             : t('common.fxBoardRateHint')}
                     </span>
                     {currency !== baseCurrency && amountValid && (
                         <span className="text-gray-500 ml-2 font-mono">
-                            ({currency} {formatMoney(amountNum)})
+                            ({currency} {formatMoneyBare(amountNum, '同格内紧邻的 {currency} 前缀')})
                         </span>
                     )}
                 </div>

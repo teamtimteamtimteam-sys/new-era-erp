@@ -10,7 +10,7 @@ import Link from 'next/link'
 import { getBaseCurrency } from '@/lib/currency'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { formatMoney, formatAmount } from '@/lib/format'
+import { formatAmount, formatMoneyBare } from '@/lib/format'
 import { mustRows, mustOne } from '@/lib/db-helpers'
 import Subnav from '../Subnav'
 import DepreciateButton from './DepreciateButton'
@@ -130,16 +130,16 @@ export default async function AssetsPage({
                                     )}
                                 </td>
                                 <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                    {formatMoney(a.cost_base)}
+                                    {formatMoneyBare(a.cost_base, '本列列头 金额 ({ccy})')}
                                 </td>
                                 <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
                                     {a.useful_life_months}
                                 </td>
                                 <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                    {formatMoney(accum)}
+                                    {formatAmount(accum, baseCurrency)}
                                 </td>
                                 <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm font-medium">
-                                    {formatMoney(nbv)}
+                                    {formatAmount(nbv, baseCurrency)}
                                 </td>
                                 <td className="border border-gray-300 px-3 py-2">
                                     <span className={'px-2 py-1 rounded text-xs ' +
@@ -184,12 +184,12 @@ export default async function AssetsPage({
                             <tr key={r.asset_id}>
                                 <td className="border border-gray-300 px-3 py-2 font-mono text-sm">{r.code}</td>
                                 <td className="border border-gray-300 px-3 py-2 font-mono text-sm">{r.account}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">{formatMoney(r.delta_base)}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">{formatMoneyBare(r.delta_base, '列头 应提({ccy})')}</td>
                             </tr>
                         ))}
                         <tr className="bg-gray-50 font-medium">
                             <td colSpan={2} className="border border-gray-300 px-3 py-2">{t('finance.totalsLabel')}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">{formatMoney(totalDelta)}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">{formatMoneyBare(totalDelta, '列头 应提({ccy})')}</td>
                         </tr>
                     </tbody>
                 </table>

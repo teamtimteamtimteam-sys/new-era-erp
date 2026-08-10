@@ -7,6 +7,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from '@/lib/i18n/client'
+import { formatAmount } from '@/lib/format'
 import { acknowledgeReview } from '@/app/hr/reviews/actions'
 import type { GoalRow, ReviewRow } from '@/app/hr/reviews/reviewShared'
 import type { RatingOption } from '@/app/hr/reviews/ConclusionForm'
@@ -15,10 +16,14 @@ export default function MyReviewsPanel({
     reviews,
     goals,
     ratings,
+    baseCurrency,
 }: {
     reviews: ReviewRow[]
     goals: GoalRow[]
     ratings: RatingOption[]
+    /** 调薪的月薪是本位币,而这块面板上没有任何一处写着币种 —— 由页面读
+     *  currencies.is_base 传进来(客户端组件拿不到,也不许猜) */
+    baseCurrency: string
 }) {
     const t = useTranslations()
     const locale = useLocale()
@@ -111,7 +116,9 @@ export default function MyReviewsPanel({
                                 {r.new_monthly_salary !== null && (
                                     <div>
                                         <span className="text-gray-600 mr-1">{t('reviews.newSalary')}:</span>
-                                        <span className="font-mono">{r.new_monthly_salary}</span>
+                                        <span className="font-mono">
+                                            {formatAmount(r.new_monthly_salary, baseCurrency)}
+                                        </span>
                                         {r.salary_effective_date && (
                                             <span className="ml-2 text-gray-500">
                                                 {t('reviews.salaryEffective')} {r.salary_effective_date}

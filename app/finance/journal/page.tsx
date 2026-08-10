@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { parseDateRange } from '@/lib/dateFilter'
-import { formatMoney } from '@/lib/format'
+import { formatMoneyBare } from '@/lib/format'
 import Subnav from '../Subnav'
 import JournalToolbar from './JournalToolbar'
 import { resolveSourceHrefs, sourceHrefKey } from '../sourceLinks'
@@ -161,7 +161,7 @@ export default async function JournalListPage({
                                     )}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                    {formatMoney(amountByEntry.get(r.id) ?? 0)}
+                                    {formatMoneyBare(amountByEntry.get(r.id) ?? 0, '列头 金额 ({ccy}) —— 已带本位币')}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
                                     <span

@@ -5,8 +5,13 @@
 // 免得两处慢慢长歪。客户端在这里【不做任何算术】:所有数字都来自
 // calculate_metal_price 的返回,本组件只负责摆放。
 import { useTranslations } from '@/lib/i18n/client'
-import { formatMoney } from '@/lib/format'
+import { formatMoneyBare } from '@/lib/format'
 import type { CalcResult, CalcLine } from '@/app/pricing/calculator/actions'
+
+// 汇总这四行(毛值/加工费/折扣/净值)不各自带币种,因为紧接着的最后一行写着
+// 「单价 (USD/公斤)」,而金属计价【全程 USD 进 USD 出】(市场惯例,见 AGENTS.md
+// 的 FX 规则)—— 折本位币发生在这块面板【之后】的路径上,不在这里。
+const SUMMARY_CCY_STATED_IN = '汇总末行 pricing.unitPrice「单价 (USD/公斤)」;上面四行按同一市场惯例同为 USD'
 
 export default function PriceBreakdown({
     res,
@@ -36,7 +41,9 @@ export default function PriceBreakdown({
         if (l.price_usd_per_tonne == null) return <span className="text-gray-400">—</span>
         return (
             <>
-                <span className="font-mono">{formatMoney(l.price_usd_per_tonne)}</span>
+                <span className="font-mono">
+                    {formatMoneyBare(l.price_usd_per_tonne, '列头 pricing.colPrice「行情 (USD/吨)」')}
+                </span>
                 <span className="text-gray-500 text-xs ml-2">
                     {l.price_date ?? (l.price_from ? `${l.price_from} – ${l.price_to}` : '')}
                 </span>
@@ -101,7 +108,8 @@ export default function PriceBreakdown({
                                 </td>
                                 <td className="border border-gray-300 px-3 py-2 text-sm">{priceCell(l)}</td>
                                 <td className="border border-gray-300 px-3 py-2 text-right text-sm">
-                                    {absent(l.metal_value_usd, formatMoney,
+                                    {absent(l.metal_value_usd,
+                                        (n) => formatMoneyBare(n, '列头 pricing.colValue「金额 (USD)」'),
                                         l.payable_pct === null ? t('pricing.termNotStated') : t('pricing.noQuoteNotStated'))}
                                 </td>
                             </tr>
@@ -113,20 +121,26 @@ export default function PriceBreakdown({
             <div className="mt-4 max-w-md ml-auto text-sm space-y-1">
                 <div className="flex justify-between">
                     <span className="text-gray-600">{t('pricing.grossValue')}</span>
-                    <span className="font-mono">{formatMoney(res.gross_value_usd)}</span>
+                    <span className="font-mono">
+                        {formatMoneyBare(res.gross_value_usd, SUMMARY_CCY_STATED_IN)}
+                    </span>
                 </div>
                 <div className="flex justify-between">
                     <span className="text-gray-600">{t('pricing.treatmentCharge')}</span>
-                    <span className="font-mono">−{formatMoney(res.treatment_usd)}</span>
+                    <span className="font-mono">
+                        −{formatMoneyBare(res.treatment_usd, SUMMARY_CCY_STATED_IN)}
+                    </span>
                 </div>
                 <div className="flex justify-between">
                     <span className="text-gray-600">{t('pricing.discountAmount')}</span>
-                    <span className="font-mono">−{formatMoney(res.discount_usd)}</span>
+                    <span className="font-mono">
+                        −{formatMoneyBare(res.discount_usd, SUMMARY_CCY_STATED_IN)}
+                    </span>
                 </div>
                 <div className="flex justify-between border-t pt-1 font-bold">
                     <span>{t('pricing.netValue')}</span>
                     <span className={'font-mono ' + (res.negative_value ? 'text-red-600' : '')}>
-                        {formatMoney(res.net_value_usd)}
+                        {formatMoneyBare(res.net_value_usd, SUMMARY_CCY_STATED_IN)}
                     </span>
                 </div>
                 <div className="flex justify-between font-bold">

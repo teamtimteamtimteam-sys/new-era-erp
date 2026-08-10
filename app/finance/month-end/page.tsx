@@ -10,7 +10,7 @@ import { getBaseCurrency } from '@/lib/currency'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../Subnav'
-import { formatMoney } from '@/lib/format'
+import { formatAmount, formatMoneyBare } from '@/lib/format'
 import { mustCount, mustOne, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -112,7 +112,7 @@ export default async function MonthEndPage({
             state: !period || cpfTotal === 0 ? 'na' : period.status !== 'posted' ? 'blocked'
                  : period.cpf_paid_at ? 'done' : 'outstanding',
             detail: !period || cpfTotal === 0 ? '' : period.status !== 'posted' ? t('finance.monthEnd.blockedByPosting')
-                 : period.cpf_paid_at ? '' : t('finance.monthEnd.cpfDetail', { amount: formatMoney(cpfTotal), ccy: baseCurrency }),
+                 : period.cpf_paid_at ? '' : t('finance.monthEnd.cpfDetail', { amount: formatMoneyBare(cpfTotal, '同句 cpfDetail 文案「待汇 {amount} {ccy}」里的 {ccy}'), ccy: baseCurrency }),
         },
         {
             key: 'deductions', href: '/finance/payroll-payments',
@@ -138,7 +138,7 @@ export default async function MonthEndPage({
             // 试算和锁进去的月份都要包含它。幂等靠算术:应提 0 即 done。
             key: 'depreciation', href: `/finance/assets?date=${end}`,
             state: !depHasAssets ? 'na' : depDelta === 0 ? 'done' : 'outstanding',
-            detail: depDelta === 0 ? '' : t('finance.monthEnd.depreciationDetail', { 0: formatMoney(depDelta) }),
+            detail: depDelta === 0 ? '' : t('finance.monthEnd.depreciationDetail', { 0: formatAmount(depDelta, baseCurrency) }),
         },
         {
             key: 'revaluation', href: `/finance/revaluation?date=${end}`,

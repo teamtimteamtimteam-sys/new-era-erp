@@ -12,6 +12,9 @@
 //         三次事故全住在这类键里,所以不许静默跳过。
 //   FAIL:出现了清单(MANIFEST)之外的动态前缀 —— 新的动态写法必须被归类;
 //         没归类的是盲区,不是通过。
+//   FAIL:文案里有占位符、调用点没传(静态可判定的那些)—— 解析器对认不出的
+//         占位符原样保留,于是屏幕上印出「1,234.00 {ccy}。」。同一个病的第二种
+//         形态:一串机器字走到人面前(ASY-3 在财务成本结算面板上撞见)。
 //   REPORT(不 FAIL):定义了但从未引用的键 —— 死键是不整洁,不是坏。
 //   REPORT(不 FAIL):后缀集合静态不可知的动态构造(kind:'data')—— 点名留档。
 //     (本仓库现状:62 个动态前缀全部可枚举,'data' 分支眼下为空,留给将来。)
@@ -70,6 +73,31 @@ const files = [...walk(join(ROOT, 'app')), ...walk(join(ROOT, 'lib'))].filter(
 )
 const lineOf = (src, idx) => src.slice(0, idx).split('\n').length
 
+// t('key', { … }) 的第二个实参:从 key 之后开始,按花括号配对切出对象字面量源码。
+// 没有第二个实参返回 null(与"传了但缺某个键"是两种不同的失败)。
+// 三种结果,必须分开 —— 把第三种当成第一种就会误报(BulkPricesForm 传的是
+// state.result 这样一个变量,实参齐不齐【静态判不出来】):
+//   null       第二个实参根本没有
+//   'dynamic'  有第二个实参,但不是对象字面量 → 判不了,不算失败(同 MANIFEST 的 'data')
+//   其它字符串 对象字面量的源码
+function argsAt(src, from) {
+    let i = from
+    while (i < src.length && /\s/.test(src[i])) i++
+    if (src[i] !== ',') return null
+    i++
+    while (i < src.length && /\s/.test(src[i])) i++
+    if (src[i] !== '{') return 'dynamic'
+    let depth = 0
+    for (let j = i; j < src.length; j++) {
+        if (src[j] === '{') depth++
+        else if (src[j] === '}') {
+            depth--
+            if (depth === 0) return src.slice(i + 1, j)
+        }
+    }
+    return 'dynamic'
+}
+
 const staticUses = []   // { key, file, line }             t('key')
 const dynamicUses = []  // { prefix, file, line }          t('prefix' + x) / t(`prefix${x}`)
 const variableUses = [] // { expr, file, line }            t(item.key) 等 —— 靠字面量收网覆盖
@@ -115,7 +143,12 @@ for (const abs of files) {
             if ((mm = rest.match(/^'([^']+)'\s*\+/)) || (mm = rest.match(/^"([^"]+)"\s*\+/))) {
                 dynamicUses.push({ prefix: mm[1], file: rel, line })
             } else if ((mm = rest.match(/^'([^']+)'/)) || (mm = rest.match(/^"([^"]+)"/))) {
-                staticUses.push({ key: mm[1], file: rel, line })
+                // 第二个参数(插值实参)照原样带上 —— 占位符体检要用(见文件头 FAIL 第四条)。
+                // 【从源码里按花括号配对取,不截窗口】:第一版用 rest(200 字符)去
+                // 匹配 /,\s*\{([^}]*)\}/,遇到跨行的实参对象就截断成"一个实参都没传",
+                // 于是 StatusPanel 那个传齐了三个的调用被误报。误报比漏报更坏 ——
+                // 它教人忽略这条检查。
+                staticUses.push({ key: mm[1], file: rel, line, args: argsAt(src, at + mm[0].length) })
             } else if ((mm = rest.match(/^`([^`$]+)\$\{/))) {
                 dynamicUses.push({ prefix: mm[1], file: rel, line })
             } else if ((mm = rest.match(/^`([^`$]+)`/))) {
@@ -363,6 +396,31 @@ for (const [prefix, d] of seenPrefixes) {
 }
 
 // 3. en/zh 结构差(satisfies 编译时也拦;这里一并报,免得只跑本检查时漏)
+// ── 占位符体检(CCY-1)────────────────────────────────────────────────────────
+// 文案里写了 {ccy},调用点没传 —— 解析器【对认不出的占位符原样保留】(见
+// lib/i18n/client.tsx 的 replace 回调),于是屏幕上真的印着「1,234.00 {ccy}。」。
+// 与"键不存在就原样印键名"是同一个病的第二种形态:一串机器字走到人面前,
+// 而在 ASY-3 之前没有任何检查看得见它 —— 财务成本结算面板就那样印了不知多久。
+// 这里只判【静态可判定】的调用:键是字面量、实参是对象字面量。判不了的不算失败。
+for (const u of [...staticUses]) {
+    const text = EN.get(u.key) ?? ZH.get(u.key)
+    if (typeof text !== 'string') continue
+    const need = [...text.matchAll(/\{(\w+)\}/g)].map((m) => m[1])
+    if (!need.length) continue
+    if (u.args === 'dynamic') continue   // 实参是变量/展开:静态判不了,不算失败
+    if (u.args === null || u.args === undefined) {
+        failures.push({ key: u.key, file: u.file, line: u.line,
+            why: `文案要 {${need.join('} {')}},调用点一个实参都没传 —— 屏幕上会原样印出占位符` })
+        continue
+    }
+    const passed = new Set([...u.args.matchAll(/(?:^|[,\s])(\w+)\s*(?::|,|$)/g)].map((m) => m[1]))
+    const missing = need.filter((n) => !passed.has(n))
+    if (missing.length) {
+        failures.push({ key: u.key, file: u.file, line: u.line,
+            why: `文案要 {${need.join('} {')}},调用点没传 {${missing.join('} {')}} —— 屏幕上会原样印出它` })
+    }
+}
+
 for (const k of EN.keys()) if (!ZH.has(k)) failures.push({ key: k, file: 'messages/zh.ts', line: 1, why: 'en 有、zh 没有' })
 for (const k of ZH.keys()) if (!EN.has(k)) failures.push({ key: k, file: 'messages/en.ts', line: 1, why: 'zh 有、en 没有' })
 

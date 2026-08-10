@@ -8,7 +8,7 @@ import { getBaseCurrency } from '@/lib/currency'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatMoney, formatTimestamp } from '@/lib/format'
+import { formatAmount, formatMoneyBare, formatTimestamp } from '@/lib/format'
 import Subnav from '../../Subnav'
 import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachmentsPanel'
 import { unmasked } from '@/lib/maskedRows'
@@ -177,15 +177,15 @@ export default async function ReceivableDocPage({
                             {sale.currency} @ {sale.fx_rate}
                         </span>
                     )}
-                    <span className="font-mono font-medium ml-1">= {formatMoney(sale.amount_base)} {baseCurrency}</span>
+                    <span className="font-mono font-medium ml-1">= {formatMoneyBare(sale.amount_base, '同格内紧随其后的 {baseCurrency} 后缀')} {baseCurrency}</span>
                 </div>
                 <div>
                     <span className="text-gray-600 mr-1">{t('finance.settledAmount')}:</span>
-                    <span className="font-mono">{formatMoney(settled)}</span>
+                    <span className="font-mono">{formatAmount(settled, baseCurrency)}</span>
                 </div>
                 <div>
                     <span className="text-gray-600 mr-1">{t('finance.openAmount')}:</span>
-                    <span className="font-mono font-bold">{formatMoney(open)}</span>
+                    <span className="font-mono font-bold">{formatAmount(open, baseCurrency)}</span>
                 </div>
             </div>
 
@@ -275,7 +275,7 @@ export default async function ReceivableDocPage({
                                         (reversed ? ' line-through' : '')
                                     }
                                 >
-                                    {formatMoney(a.allocated_base)}
+                                    {formatAmount(a.allocated_base, baseCurrency)}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-sm">
                                     {reversed ? (
@@ -306,7 +306,7 @@ export default async function ReceivableDocPage({
                                 {t('finance.settledAmount')}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatMoney(settled)}
+                                {formatAmount(settled, baseCurrency)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2" />
                         </tr>
