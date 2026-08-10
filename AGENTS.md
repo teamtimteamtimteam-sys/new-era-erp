@@ -176,8 +176,29 @@ wait that cannot say "I gave up on X after Ns" is indistinguishable from a hang.
 ## Route smoke test — run on demand, whenever the render layer changed
 
 ```
-node scripts/smoke-routes.mjs      # ~2-4 min: renders all ~130 routes as admin
+node scripts/smoke-routes.mjs            # ~2-4 min: renders all ~135 routes as admin
+node scripts/smoke-routes.mjs --reach    # + per-role reachability (10-15 min, OPT-IN)
 ```
+
+**The `--reach` half is opt-in on purpose.** It walks from `/` as `admin`,
+`operations` and `finance`, following only the links each role's pages actually
+render, and asserts the set each role can *open* but cannot *reach* — the check
+that would name a page with no entry point. It costs ten to fifteen minutes, and
+it was briefly the default: that made every commit wait on it, which is the same
+cost that kept it out of `db/gate.py` in the first place, arriving by another
+road. **A check too slow to run every time ends up never run**, so the cadence is
+written down instead: run it when navigation, subnavs, `lib/modules.ts` or a
+permission guard changed; after adding a page; before a push that accumulated
+several page-touching cuts; or when someone reports they cannot reach something.
+Not after every edit — the fast half already renders every route on every run.
+
+**Its blind spot bit within the hour it was written**, so treat this as load-bearing
+rather than a caveat: dynamic routes (`/customers/[id]`) are excluded from the
+assertion, because "this role has no rows here" and "this page has no entry point"
+are the same thing to a walker. SAL-B6's new customer page shipped with **no entry
+point at all** — the list linked only to `/edit` — and the check reported clean,
+correctly, because the page is dynamic. **When you add an `[id]` page, confirm its
+entry point by hand.**
 
 Builds compile pages but never render them — two pages were broken for months
 with every gate green (an RSC serialization error and an inverted currency

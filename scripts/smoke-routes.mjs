@@ -21,7 +21,8 @@
 // 全部经过与诊断办法(先查 inode,不要查 diff)见
 // docs/concurrency-one-tree-one-smoke.md。
 //
-// 用法:node scripts/smoke-routes.mjs
+// 用法:node scripts/smoke-routes.mjs            路由状态那一半(快,2-4 分钟)
+//       node scripts/smoke-routes.mjs --reach    另加按角色的可达性(十到十五分钟)
 // 退出码 0 = 全通;1 = 有失败 / 跳过清单漂移(EXPECTED_SKIPS)/ 脚本自身查询炸了
 // 【不进 db/gate.py】整跑约 2-4 分钟且要起 dev server —— 慢门会被跳过,
 // check_mirrors 的教训。按需跑:每次改了页面渲染层,或 Tim 又用手找到一只虫之后。
@@ -224,10 +225,27 @@ async function sweepScratch() {
 //    所以入口消失就必须被点名。注入验证时按角色分别验,别用一个角色的结果替另一个说话。
 // 4. 它不判断"这个人【应不应该】看见这个入口"—— 那是产品判断。它只保证
 //    "打得开"与"走得到"这两个集合对得上,不一致就点名。
-// 【代价】三个角色各走一遍 = 在 134 条路由的主循环之后再抓 300~700 次页面,
-// 整跑从 2-4 分钟涨到 10 分钟上下。所以它跟主循环一起【留在 gate 之外】(慢门会被
-// 跳过,check_mirrors 的教训),按需跑。也别单独跳过主循环来"提速"—— 主循环顺带把
-// 每条路由在 dev server 上编译过一遍,跳掉它编译就摊到 BFS 的每一次抓取上,反而更慢。
+// ════════════════════════════════════════════════════════════════════════════
+// 【默认不跑 —— 要跑请显式开:node scripts/smoke-routes.mjs --reach】
+// ════════════════════════════════════════════════════════════════════════════
+// 代价:三个角色各走一遍 = 在主循环之后再抓 300~700 次页面,整跑从 2-4 分钟涨到
+// 十到十五分钟。它一度是默认打开的,于是【每次提交前都要等十几分钟】—— 那正是
+// 当初把它排除在 db/gate.py 之外的同一笔代价,只是换了条路走进来。
+// 慢到每次都跑不动的检查,最后的下场是没人跑(check_mirrors 的教训),
+// 所以宁可把"什么时候该跑"写清楚,也不要让它默认拖住每一次提交。
+//
+// 【什么时候跑】
+//   * 改了【导航、首页卡片、子导航、模块清单(lib/modules.ts)、权限守卫】之后 ——
+//     这些正是"谁能走到哪"的定义;
+//   * 【新增了一个页面】之后 —— 尤其是 [id] 这类动态路由:本检查【不覆盖动态路由】
+//     (见下面第 2 条),SAL-B6 的客户状况页新建时就差点一个入口都没有,
+//     而这道检查不会替你发现,所以新页面的入口要自己确认;
+//   * 【推送之前】,若这一轮攒了几刀改过页面;
+//   * 有人报告"我进不去某一页"或"这一页我看不见入口"时。
+//
+// 【什么时候不必跑】只动了数据库、文案、单个页面内部的渲染 —— 那些由主循环
+// (每条路由渲染一遍)与 db/gate.py 覆盖,可达性不会因此改变。
+const RUN_REACH = process.argv.includes('--reach') || process.env.SMOKE_REACH === '1'
 const REACH_ROLES = ['admin', 'operations', 'finance']
 
 // 打得开却走不到、而且【是有意如此】的静态路由。drift 两个方向都失败:
@@ -449,6 +467,7 @@ async function main() {
         // admin 一遍是对照(他什么都有);operations 与 finance 是 /margin 那道题的
         // 两边 —— 一个只有加工、一个只有财务,而没有任何 live 角色同时持有两者。
         const reachUsers = []
+        if (RUN_REACH) console.log('\n== 按角色的可达性(打得开却走不到)==')
         const mkSession = async (roleCode) => {
             const em = `smoke-${stamp}-${roleCode}@test.local`
             const u = await (await restOk('/auth/v1/admin/users', { method: 'POST',
@@ -461,8 +480,11 @@ async function main() {
             reachUsers.push(u.id)
             return signIn(em, 'smoke-pass-3')
         }
-        console.log('\n== 按角色的可达性(打得开却走不到)==')
-        for (const roleCode of REACH_ROLES) {
+        if (!RUN_REACH) {
+            console.log('\n== 按角色的可达性:【跳过】(默认关闭)——'
+                + ' 改了导航/守卫/新增页面之后,或推送前,用 --reach 跑一次')
+        }
+        for (const roleCode of RUN_REACH ? REACH_ROLES : []) {
             const r = await reachabilityForRole(roleCode, `http://localhost:${PORT}`, mkSession)
             const unexpected = r.unreachable.filter((x) => !EXPECTED_UNREACHABLE[r.role].has(x))
             const gone = [...EXPECTED_UNREACHABLE[r.role]].filter((x) => !r.unreachable.includes(x))
