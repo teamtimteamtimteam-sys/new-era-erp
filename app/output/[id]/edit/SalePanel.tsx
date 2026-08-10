@@ -7,7 +7,7 @@ import { useActionState, useEffect, useState } from 'react'
 import { recordSale, quoteSalePrice, type SaleState, type QuoteState } from './saleActions'
 import { STATE_OPTIONS, labelKeyForValue } from '../../../inbound/options'
 import { useTranslations } from '@/lib/i18n/client'
-import { formatMoneyBare } from '@/lib/format'
+import { formatMoneyBare, formatAmount } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 
 const initialState: SaleState = {}
@@ -22,7 +22,20 @@ function todayIsoLocal(): string {
     return `${yyyy}-${mm}-${dd}`
 }
 
+// SAL-B6:客户信用状况(customer_credit_status 的一行)
+export type CreditRow = {
+    customer_id: string
+    code: string
+    credit_limit_base: number | null
+    credit_hold: boolean
+    exposure_base: number | null
+    headroom_base: number | null
+    sales_blocked: boolean
+}
+
 export default function SalePanel({
+    canSeeCredit,
+    credit,
     batchId,
     remainingQty,
     unit,
@@ -32,6 +45,9 @@ export default function SalePanel({
     baseCurrency,
     formulas,
 }: {
+    // 【无权时拿不到行,而不是拿到 0】—— 面板据此渲染「受限」
+    canSeeCredit: boolean
+    credit: CreditRow[]
     batchId: string
     remainingQty: number
     unit: string
@@ -51,6 +67,15 @@ export default function SalePanel({
     // 金额预览要读输入值 → 受控;成功后连同 formKey 一起复位
     const [quantity, setQuantity] = useState('')
     const [customerId, setCustomerId] = useState(batchCustomerId ?? '')
+
+    // SAL-B6:选中客户的信用状况 —— 在【录入之前】说,而不是等提交被拒才说
+    // (与收货表单同一条规矩:理由长在控件旁边)。
+    const creditRow = customerId ? credit.find((c) => c.customer_id === customerId) ?? null : null
+    // 有客户、有权限却没有行 = 那个客户被软删了;有客户、无权限 = 受限
+    const creditRestricted = customerId !== '' && !canSeeCredit
+    // 服务端【保证会拒】的两种:冻结,或敞口已经够到限额。其余情形不禁钮 ——
+    // "这一单会不会顶过线"取决于金额与汇率,那是提交时才知道的事,面板给余额让人自己判断。
+    const creditBlocked = creditRow?.sales_blocked === true
     const [unitPrice, setUnitPrice] = useState('')
     const [currency, setCurrency] = useState('USD')
     // SAL-A:三种模型 —— manual 手填 / formula 公式 / spot 现货预设(退化公式,
@@ -258,12 +283,43 @@ export default function SalePanel({
                     </div>
                     <button
                         type="submit"
-                        disabled={isPending}
+                        disabled={isPending || creditBlocked}
                         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                     >
                         {t('output.sale.button')}
                     </button>
                 </div>
+                {/* ── SAL-B6:信用状况,在录入之前 ────────────────────────────
+                    SAL-B 建了管控却没有任何一块屏把限额与敞口放在一起,于是唯一
+                    会说话的是被拒的那一刻。这里在选中客户之后就说,并且【只在
+                    服务端保证会拒时】禁钮(冻结、或敞口已够到限额)—— 其余情形
+                    给余额,让人自己判断,不假装算得出这一单会不会顶过线。 */}
+                {creditRestricted && (
+                    <p className="mt-3 text-sm text-gray-500">{t('output.sale.credit.restricted')}</p>
+                )}
+                {creditRow?.credit_hold && (
+                    <p className="mt-3 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded text-sm">
+                        {t('output.sale.credit.hold', { customer: creditRow.code })}
+                    </p>
+                )}
+                {!creditRow?.credit_hold && creditRow?.credit_limit_base !== null && creditRow !== null && (
+                    <p className={'mt-3 px-4 py-3 rounded text-sm border ' + (creditRow.sales_blocked
+                        ? 'bg-red-100 border-red-400 text-red-700'
+                        : 'bg-gray-50 border-gray-300 text-gray-700')}>
+                        {creditRow.sales_blocked
+                            ? t('output.sale.credit.over', {
+                                  customer: creditRow.code,
+                                  limit: formatAmount(creditRow.credit_limit_base, baseCurrency),
+                                  exposure: formatAmount(creditRow.exposure_base, baseCurrency),
+                              })
+                            : t('output.sale.credit.room', {
+                                  limit: formatAmount(creditRow.credit_limit_base, baseCurrency),
+                                  exposure: formatAmount(creditRow.exposure_base, baseCurrency),
+                                  headroom: formatAmount(creditRow.headroom_base, baseCurrency),
+                              })}
+                    </p>
+                )}
+
                 {/* SAL-C:不选客户是【正当的】(客户还没登记就卖了货)—— 所以这是
                     一条说明,不是守卫:【绝不禁用提交】。但后果要在按下之前说清楚,
                     与收货表单同一条规矩:理由长在控件旁边,而不是点下去之后才出现。

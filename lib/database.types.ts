@@ -781,6 +781,13 @@ export type Database = {
             foreignKeyName: "customer_attachments_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_credit_status"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "customer_attachments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
@@ -818,6 +825,13 @@ export type Database = {
           old_credit_limit_base?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_credit_history_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_credit_status"
+            referencedColumns: ["customer_id"]
+          },
           {
             foreignKeyName: "customer_credit_history_customer_id_fkey"
             columns: ["customer_id"]
@@ -2379,6 +2393,13 @@ export type Database = {
             foreignKeyName: "invoices_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_credit_status"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
@@ -3366,6 +3387,13 @@ export type Database = {
             foreignKeyName: "output_batches_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_credit_status"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "output_batches_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
@@ -3685,6 +3713,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "currencies"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "payments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_credit_status"
+            referencedColumns: ["customer_id"]
           },
           {
             foreignKeyName: "payments_customer_id_fkey"
@@ -4693,6 +4728,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "pricing_formulas_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_credit_status"
+            referencedColumns: ["customer_id"]
+          },
           {
             foreignKeyName: "pricing_formulas_customer_id_fkey"
             columns: ["customer_id"]
@@ -5938,6 +5980,13 @@ export type Database = {
             foreignKeyName: "sales_attribution_log_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_credit_status"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "sales_attribution_log_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
@@ -6047,6 +6096,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "currencies"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "sales_records_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_credit_status"
+            referencedColumns: ["customer_id"]
           },
           {
             foreignKeyName: "sales_records_customer_id_fkey"
@@ -6826,6 +6882,13 @@ export type Database = {
             foreignKeyName: "sales_records_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_credit_status"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "sales_records_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
@@ -7041,6 +7104,39 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
           website?: string | null
+        }
+        Relationships: []
+      }
+      customer_credit_status: {
+        Row: {
+          code: string | null
+          credit_hold: boolean | null
+          credit_limit_base: number | null
+          customer_id: string | null
+          exposure_base: number | null
+          headroom_base: number | null
+          legal_name: string | null
+          sales_blocked: boolean | null
+        }
+        Insert: {
+          code?: string | null
+          credit_hold?: boolean | null
+          credit_limit_base?: number | null
+          customer_id?: string | null
+          exposure_base?: never
+          headroom_base?: never
+          legal_name?: string | null
+          sales_blocked?: never
+        }
+        Update: {
+          code?: string | null
+          credit_hold?: boolean | null
+          credit_limit_base?: number | null
+          customer_id?: string | null
+          exposure_base?: never
+          headroom_base?: never
+          legal_name?: string | null
+          sales_blocked?: never
         }
         Relationships: []
       }
@@ -7760,6 +7856,13 @@ export type Database = {
             foreignKeyName: "invoices_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_credit_status"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
@@ -7839,6 +7942,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "currencies"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_credit_status"
+            referencedColumns: ["customer_id"]
           },
           {
             foreignKeyName: "invoices_customer_id_fkey"
@@ -9029,6 +9139,13 @@ export type Database = {
             foreignKeyName: "pricing_formulas_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_credit_status"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "pricing_formulas_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
@@ -9987,6 +10104,13 @@ export type Database = {
             foreignKeyName: "sales_records_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_credit_status"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "sales_records_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
@@ -10037,6 +10161,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "currencies"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "sales_records_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_credit_status"
+            referencedColumns: ["customer_id"]
           },
           {
             foreignKeyName: "sales_records_customer_id_fkey"

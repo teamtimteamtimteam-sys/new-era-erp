@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { formatTimestamp, formatAmount } from '@/lib/format'
 import { getBaseCurrency } from '@/lib/currency'
-import { canViewPrices } from '@/lib/permissions'
+import { canViewPrices, can } from '@/lib/permissions'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import EditOutputForm from './EditOutputForm'
@@ -11,7 +11,7 @@ import type { MetalContentRow } from '@/app/components/metals/metalContentTypes'
 import { saveOutputMetal, deleteOutputMetal } from '@/app/components/metals/metalContentActions'
 import MovementTimeline from '@/app/components/inventory/MovementTimeline'
 import type { MovementRow } from '@/app/components/inventory/movementTypes'
-import SalePanel from './SalePanel'
+import SalePanel, { type CreditRow } from './SalePanel'
 import StocktakeQuickCount from '@/app/stocktakes/StocktakeQuickCount'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
@@ -43,6 +43,10 @@ export default async function EditOutputPage({
     const supabase = await createClient()
     const baseCurrency = await getBaseCurrency()
     const showPrices = await canViewPrices()
+    // SAL-B6:销售面板要在【录入之前】说出限额/敞口/余额。整段挂在
+    // module.customers.view 后面 —— 无权时拿不到行,面板渲染「受限」而不是 0
+    // (0 在信用面板上读作"没有限额、余额充足",是这个管控最危险的失败)。
+    const canSeeCredit = await can('module.customers.view')
     const t = await getTranslations()
     const locale = await getLocale()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
@@ -89,6 +93,13 @@ export default async function EditOutputPage({
     // 某处的一句说明。视图自己挂着 data.view_prices AND (finance OR processing):
     // 无权者拿到零行,页面据此渲染「受限」而不是 0 —— 这一页 operations 与
     // warehouse 都进得来,所以这条尤其要紧。没卖过就没有行(不是错误)。
+    // 【失败必须失败】查询炸了不能变成"零行" —— 零行在这里的含义是"无权",
+    // 面板会据此渲染「受限」,于是一次真正的查询错误会被伪装成一个合理的权限答复。
+    // 无权的人本来就拿不到行(视图的谓词),两者必须分得开。
+    const creditRes = await supabase
+        .from('customer_credit_status')
+        .select('customer_id, code, credit_limit_base, credit_hold, exposure_base, headroom_base, sales_blocked')
+
     const marginRes = await supabase
         .from('batch_margin')
         .select('qty_sold, revenue_base, cost_current_base, margin_base, margin_pct, margin_status, cost_incomplete, is_stale, cogs_posted_base, cogs_differs')
@@ -279,6 +290,8 @@ export default async function EditOutputPage({
             {batch.remaining_qty > 0 ? (
                 <SalePanel
                 baseCurrency={baseCurrency}
+                    canSeeCredit={canSeeCredit}
+                    credit={mustRows(creditRes) as CreditRow[]}
                     batchId={batch.id}
                     remainingQty={batch.remaining_qty}
                     unit={batch.unit}

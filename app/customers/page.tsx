@@ -161,9 +161,16 @@ export default async function CustomersPage({
                 <tbody>
                     {customers?.map((c) => (
                         <tr key={c.id}>
+                            {/* SAL-B6:编号指向【状况页】(仓位:限额/敞口/余额与明细),
+                                不再直接指向编辑表单 —— 看一个客户的第一件事通常不是改他。
+                                改限额/冻结的入口在状况页上,一步之遥。
+                                【顺带记一笔】这一页新建时差点没有任何入口:客户列表上
+                                只有 /edit 的链接,而按角色可达性那道检查【不覆盖动态路由】
+                                (没数据与到不了在走查眼里一模一样,见 smoke 文件头第 2 条),
+                                所以它不会替你发现。新建一个 [id] 页面时自己确认入口。 */}
                             <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
                                 <Link
-                                    href={`/customers/${c.id}/edit`}
+                                    href={`/customers/${c.id}`}
                                     className="text-blue-600 hover:underline"
                                 >
                                     {c.code}
