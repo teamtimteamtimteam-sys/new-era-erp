@@ -27,8 +27,10 @@ import { mustCount, mustRows } from '@/lib/db-helpers'
 // 是什么意思、挂哪个权限码、界在哪里,以及【哪些支被考虑过又被排除、为什么】。
 // 加一块牌子 = 同时改那份清单、db/views/operations_now.sql 与下面的 TILES —— 三处
 // 的 permission 必须同码(视图按它裁决缺席,本页按它裁决「受限」,fixture 30 钉住)。
-// 【批次毛利不在这里】设计未决(哪些限定词随数字走、已过账 COGS 还是当前成本),
-// 自成一切;谓词已录在 AGENTS.md 常设决定 2。下面 TILES 就是给它留的位置。
+// 【批次毛利在这里了】(MAR-1)。它跨两个模块,而支的权限一直只有一个码 ——
+// 现在多了 permissionAny(任意持有其一),与视图的 arm_permission_any 同义,
+// fixture 45 钉住两侧对同一个人给出同一个答案。合成一个新权限码那条路被否掉了:
+// 那会成为"谁能看毛利"的第二份定义,与 batch_margin 自己的谓词必然漂开。
 
 // 牌子清单:itemType 对应 operations_now 的支;permission 与视图里那一支声明的
 // 权限码【同码】(视图按它裁决缺席,本页按它裁决「受限」—— 两边必须一致)。
@@ -42,6 +44,10 @@ const TILES = [
     { itemType: 'po_awaiting_receipt', permission: 'module.purchasing.view', href: '/purchasing/orders' },
     { itemType: 'stocktake_open', permission: 'module.stocktakes.view', href: '/stocktakes' },
     { itemType: 'credit_over_limit', permission: 'module.customers.view', href: '/customers' },
+    // 跨两个模块的那一支:必须有 data.view_prices,且 finance / processing 之一。
+    // 只收 no_unit_cost(分摊一次就清掉);no_run 事后无从补救,放上来就是关不掉的灯。
+    { itemType: 'margin_cost_not_allocated', permission: 'data.view_prices',
+      permissionAny: ['module.finance.view', 'module.processing.view'], href: '/margin' },
     { itemType: 'output_unsold_aging', permission: 'module.output.view', href: '/output' },
     { itemType: 'leave_pending', permission: 'module.hr.view', href: '/hr/leave' },
     { itemType: 'claim_pending', permission: 'module.hr.view', href: '/hr/claims' },
@@ -159,7 +165,11 @@ export default async function Home() {
             <h2 className="text-lg font-semibold mb-4">{t('dashboard.sectionNow')}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
                 {TILES.map((tile) => {
+                    // MAR-1:支级谓词 —— permission 必须全有,permissionAny 任意其一。
+                    // 与视图的 arm_permission_any 同义(fixture 45 钉两侧一致)。
+                    const anyCodes = 'permissionAny' in tile ? (tile.permissionAny as readonly string[]) : null
                     const allowed = perms.includes(tile.permission)
+                        && (anyCodes === null || anyCodes.some((c) => perms.includes(c)))
                     const mine = byType.get(tile.itemType) ?? []
                     const oldest = mine.length
                         ? mine.reduce((a, r) => (r.item_date < a ? r.item_date : a), mine[0].item_date)

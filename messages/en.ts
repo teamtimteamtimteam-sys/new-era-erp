@@ -85,6 +85,7 @@ const en = {
             qualification_expiring: 'Qualifications expiring / expired',
             qualification_missing: 'Suppliers with no certificate',
             credit_over_limit: 'Customers over credit limit',
+            margin_cost_not_allocated: 'Sold batches with costs not allocated',
             bank_unmatched: 'Unmatched bank lines',
         },
         hrAlerts: 'HR alerts',
@@ -839,6 +840,13 @@ const en = {
         },
     },
     output: {
+        margin: {
+            notSold: 'Nothing from this batch has been sold yet, so there is no margin to show.',
+            costIncomplete: 'Cost incomplete — one or more inputs to the run had no price, counted as zero. The margin above is overstated.',
+            stale: 'Cost stale — costs changed after this run was allocated, so the unit cost behind this figure is out of date. Re-allocate the run to refresh it.',
+            cogsDiffers: 'The general ledger posted {posted} as COGS at the moment of sale and never restates it. The figure above uses the run\u2019s current allocated cost — both are correct, for different questions.',
+            allBatches: 'All batches →',
+        },
         listTitle: 'Output',
         addButton: '+ Add Output',
         recordCount: 'Total: {count}',

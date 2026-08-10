@@ -8201,6 +8201,7 @@ export type Database = {
           item_date: string | null
           item_type: string | null
           permission: string | null
+          permission_any: string[] | null
           subject: string | null
         }
         Relationships: []
@@ -10152,6 +10153,7 @@ export type Database = {
         Returns: Json
       }
       approve_review: { Args: { p_review_id: string }; Returns: Json }
+      arm_permission_any: { Args: { p_item_type: string }; Returns: string[] }
       assert_posting_allowed: {
         Args: { p_entry_date: string; p_source_type: string }
         Returns: undefined
@@ -10353,6 +10355,7 @@ export type Database = {
         Args: { p_currency: string; p_date: string; p_rate_type: string }
         Returns: number
       }
+      has_any_permission: { Args: { p_codes: string[] }; Returns: boolean }
       has_permission: { Args: { p_code: string }; Returns: boolean }
       ignore_bank_line: {
         Args: { p_reason: string; p_statement_line_id: string }

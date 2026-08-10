@@ -1,58 +1,68 @@
--- OPS-18(Phase 6):operations_now —— 全站"正在等人处理的事",一件一行
+-- MAR-1:看板支的权限从【一个码】放宽到【一个谓词】—— 因为批次毛利需要两个模块
 --
--- 【为什么是一张视图而不是九个页面各查各的】仪表盘的每一块牌子背后都是"有多少件
--- 事在等"这一类问题;九个问题九处写,就是九份会各自漂移的实现。hr_alerts 已经证明
--- 过这个形状:一个 UNION,每一种等待状态一支,页面只负责画。
+-- 走查:/margin 没有全局入口。查明它【不是被忘了】—— 它跨两个模块(收入在财务、
+-- 分摊成本在加工),而 ModuleEntry.permission 是单个字符串,表达不了
+-- data.view_prices AND (finance OR processing)。看板这一侧本来就更接近能表达它
+-- (支的权限是数据的一列,不是清单里的一行),但它同样只有一个码。
 --
--- 【属主权限 + 每支自带 permission 列,外层一次性把关】(OPS-14 修法 (a))。
--- 本视图横跨六个模块,invoker 会让 RLS 把读者无权模块的行【静默丢掉】—— 行消失
--- 在这里意味着"那个数少算了",而不是报错。属主权限读全量,外层
--- WHERE has_permission(a.permission) 按【调用者】逐支裁决:无权的支【整支缺席】,
--- 不是零。谓词写一次而不是九遍 —— hr_alerts 的注释说过,复述 N 遍只会给下一个
--- 加支的人留一个漏写的机会;这里每支【声明】自己的权限码,外层【执行】它。
+-- 【两条路,选了 (a),理由写在这里】
+--   (a) 支级谓词:再加一列 permission_any(ANY 语义),与既有的 permission(必须全有)
+--       合起来表达"必须有 X,且 Y 之一"。本迁移走这条。
+--   (b) 合成一个新权限码(如 report.margin.view):【不走】。它会在权限目录里多出
+--       一条没人授过的条目,日后读起来像一条真的权限;更要命的是它是【第二份
+--       "谁能看毛利"的定义】—— batch_margin 自己的谓词仍是 prices AND (fin OR proc),
+--       两份必然漂开:有新码而无 prices 的人看得见牌子、点进去零行;有 prices 与
+--       finance 却没被授新码的人看不见牌子、却进得去页面。OPS-15 拆掉的正是这种双份定义。
 --
--- 【缺席 ≠ 零,页面必须自己分辨】视图对无权读者不发一行,于是"没有行"有两种
--- 含义:真的零,或者你看不见。app/page.tsx 先查权限再渲染每块牌子 —— 无权显示
--- 「受限」(common.restricted),绝不显示 0。这是仪表盘最容易犯、且任何 gate 都
--- 查不出的那个错(0 与"你看不见"在屏幕上一模一样 —— moduleGuard 的老病换了件衣服)。
+-- 【代价,如实记】
+--   * 谓词由 arm_permission_any(item_type) 【一处】声明,SELECT 与 WHERE 共用它 ——
+--     否则同一条规则会在视图里写两遍,那是本迁移正在拒绝的那种双份定义的小号版本。
+--   * 19 支现有的 SELECT 列表【一个都不用动】(UNION ALL 要求各支列一致,改一支就得
+--     改十九支);新列在外层算出来。
+--   * 页面 TILES 要拿到同样的语义(permissionAny),fixture 45 钉住两侧对同一个人
+--     给出同一个答案 —— 这正是 fixture 30 对单码支已经钉住的那件事。
 --
--- 【item_type 写成 'x'::text 字面量】check-i18n 的 sqlLiteralAs 解析器现读本文件,
--- dashboard.item.* 的后缀集合就是这里的支列表 —— 加一支,键检查自动跟着变宽。
+-- 【这一支只收"可行动的那一半"】margin_status 有两种算不出:
+--   no_unit_cost —— 加工单在、成本没分摊 → 分摊一次就清掉,是待办;
+--   no_run       —— 这批货压根不是加工单产出的 → 事后无从补救,放上看板就是一盏
+--                   关不掉的灯(REC-1 与 awaiting_assay 的同一条教训)。
+-- 所以只收 no_unit_cost;no_run 仍作为一行留在 /margin 上,那是它该在的地方。
+-- 线上此刻:no_unit_cost 3 批(收入 10,573)、no_run 1 批(24,000)。
 --
--- 【两笔贵的读数,按界所限】(OPS-16 报告点名的两处):
---   * fx_rate_gaps 按 (日期,币种) 对每组跑 fx_rate_asof,本身不受期间约束 ——
---     这里限 rate_date >= CURRENT_DATE - 45:仪表盘答"最近有没有漏",完整历史
---     归 /finance/month-end 按月翻。谓词落在分组键上,能下推进聚合。
---   * 银行对账这支【只数报表侧的未匹配行】(bank_statement_lines,行数 = 导入量,
---     天然有界)。bank_reconciliation_status 的账簿侧 LATERAL 要扫 journal_lines
---     全表 —— 那是对账页的活,不上人人都开的首页。
---
--- 【不在此列的】批次毛利 —— 有未决的设计问题(哪些限定词随数字走、已过账 COGS
--- 还是当前成本),自成一切,谓词已录在 AGENTS.md 常设决定 2。月结的七个信号 ——
--- /finance/month-end 是它们的枢纽,首页放一个入口,不复制信号。
---
--- NOTE: introduced by db/migrations/2026-08-09-ops18-operations-now-and-the-dashboard.sql.
--- OPS-19(2026-08-09):补上原始定稿漏掉的四支(awaiting_assay / batch_unpriced /
--- invoice_overdue / ar_over_90 + ap_over_90),并新增 output_unsold_aging —— sales
--- 这一行唯一够得着的支(它没有 module.finance.view,当初猜的 AR 支对它同样是「受限」)。
--- assay_unapplied 的粒度同时从"一份未执行化验一行"改成"一个批次一行",与
--- awaiting_assay 同源同粒度、互斥;live 该支当时为 0,故不改变任何现有数字。
---
--- CMP-1(2026-08-09):两支资质臂。qualification_expiring 到【类型自己的 lead days】就上牌,
--- 过期后【不落牌、无 -30 天下限】—— 工作证过期 30 天人已走,证书过期两年而进场仍可能,
--- 它就还站在那儿(live 那张 2024 年就过期的 Article 18 正是证据)。续期(valid_until
--- 前移)即安静。qualification_missing 是"一张证都没有"的缺席臂(与 awaiting_assay /
--- assay_unapplied 的分立同理)。disposition='ignore' 的类型不上牌。
--- 【规格在 docs/dashboard-arm-inventory.md】每一支是什么意思、挂哪个权限码、界在
--- 哪里、以及【哪些支被考虑过又被排除、为什么】都在那里。
--- 定稿只存在于一次对话里,代价是四支 —— 所以规矩是:
--- 【加一支 = 在同一个提交里往那份清单加一行】。
---
--- MAR-1(2026-08-10):支的权限从【一个码】放宽到【一个谓词】—— permission(必须有)
--- + permission_any(任意其一,由 arm_permission_any 一处声明,SELECT 与 WHERE 共用)。
--- 起因是批次毛利跨两个模块(prices AND (finance OR processing)),而没有任何 live 角色
--- 同时持有后两者。合成一个新权限码那条路被否掉:那会是谁能看毛利的第二份定义,
--- 与 batch_margin 自己的谓词必然漂开。fixture 45 三种读者各钉一次。
+-- 【为什么先 DROP】新列 permission_any 要插在 permission 后面才读得懂,而
+-- CREATE OR REPLACE VIEW 只能在末尾追加列。已核对:库内没有任何视图/函数依赖
+-- operations_now(唯一读者是首页)。
+-- NOTE: apply with ./db/apply_migration.sh
+
+BEGIN;
+
+CREATE OR REPLACE FUNCTION public.has_any_permission(p_codes text[])
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+    SELECT EXISTS (SELECT 1 FROM unnest(p_codes) c WHERE has_permission(c));
+$function$;
+
+COMMENT ON FUNCTION public.has_any_permission(text[]) IS
+    '持有其中【任意一个】权限码即为真(MAR-1)。has_permission 是单码判断;跨模块的看板支需要 ANY —— 批次毛利要 data.view_prices 且 finance 或 processing 之一,而没有任何 live 角色同时持有后两者。';
+
+-- 支级附加谓词的【唯一声明处】。没有附加条件的支返回 NULL。
+CREATE OR REPLACE FUNCTION public.arm_permission_any(p_item_type text)
+ RETURNS text[]
+ LANGUAGE sql
+ IMMUTABLE
+AS $function$
+    SELECT CASE WHEN p_item_type = 'margin_cost_not_allocated'
+                THEN ARRAY['module.finance.view', 'module.processing.view']
+           END;
+$function$;
+
+COMMENT ON FUNCTION public.arm_permission_any(text) IS
+    '看板某一支除 permission 之外还需要【任意持有其一】的权限码(MAR-1);无附加条件返回 NULL。视图的 SELECT 与 WHERE 都读它 —— 一条规则一处声明。首页 TILES 必须与它同义,fixture 45 钉住。';
+
+DROP VIEW public.operations_now;
 
 CREATE VIEW public.operations_now WITH (security_invoker = off) AS
  SELECT item_type,
@@ -227,6 +237,10 @@ CREATE VIEW public.operations_now WITH (security_invoker = off) AS
            FROM batch_margin bm
              JOIN output_batches ob ON ob.id = bm.output_batch_id
           WHERE bm.margin_status = 'no_unit_cost'::text) a
-  WHERE has_permission(permission) AND (arm_permission_any(item_type) IS NULL OR has_any_permission(arm_permission_any(item_type)));
+  WHERE has_permission(permission)
+    AND (arm_permission_any(item_type) IS NULL
+         OR has_any_permission(arm_permission_any(item_type)));;
 
 GRANT SELECT ON public.operations_now TO authenticated;
+
+COMMIT;

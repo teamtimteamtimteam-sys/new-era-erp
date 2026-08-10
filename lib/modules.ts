@@ -32,6 +32,24 @@ export type ModuleEntry = {
     alsoCovers?: string[]
 }
 
+// 【/margin 不在这份清单里,而且不是漏了 —— 它装不进这个形状】
+// 批次毛利跨两个模块:收入在财务,分摊成本在加工,而【没有任何 live 角色同时持有
+// 两者】(admin / auditor / gm 除外)。它要的谓词是
+//     data.view_prices AND (module.finance.view OR module.processing.view)
+// 而 ModuleEntry.permission 是【一个字符串】—— 一行一个码,表达不了 AND/OR。
+//
+// 【没有把它硬塞进导航,理由是 OPS-15 那条】在 NavLinks 里写一个绕过本清单的
+// <Link href="/margin">,就是"谁能看见什么"的第二份定义 —— 而且它对 finance 与
+// operations 会各错一次(一个看得见进得去、另一个看得见也进得去,但清单说不出为什么)。
+// 要改的话,该改的是 permission 的类型(string | { all?: string[]; any?: string[] }),
+// 求值只在 lib/moduleAccess.ts 一处,NavLinks 与首页卡片消费的仍是一个布尔值;
+// moduleForPath 要一并决定是继续对 /margin 返回 null,还是也学会谓词。
+//
+// 【在那之前它靠三个入口,每一个都在读者已经持有的模块里】
+//   * 财务子导航(app/finance/Subnav.tsx)—— 给财务侧的读者
+//   * 加工列表页页头(app/processing/page.tsx)—— 给加工侧的读者
+//   * 产出批次页上的【本批毛利数字本身】(MAR-1)—— 问题产生的地方就给答案
+//   * 首页 margin_cost_not_allocated 支(MAR-1)—— 支级谓词表达得了这个 OR
 export const MODULES: ModuleEntry[] = [
     { href: '/suppliers', navKey: 'nav.suppliers', titleKey: 'home.suppliersTitle', descKey: 'home.suppliersDesc',
       permission: 'module.suppliers.view', section: 'masterData' },

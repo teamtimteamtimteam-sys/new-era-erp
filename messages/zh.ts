@@ -87,6 +87,7 @@ const zh = {
             qualification_expiring: '资质到期 / 已过期',
             qualification_missing: '无任何证书的供应商',
             credit_over_limit: '超出信用限额的客户',
+            margin_cost_not_allocated: '已售批次:成本尚未分摊',
             bank_unmatched: '银行未匹配行',
         },
         hrAlerts: 'HR 待办提醒',
@@ -842,6 +843,13 @@ const zh = {
         },
     },
     output: {
+        margin: {
+            notSold: '这一批还没有卖出任何数量,所以没有毛利可算。',
+            costIncomplete: '成本不完整 —— 本加工单有投入未计价、按零计入,上面的毛利【被高估】。',
+            stale: '成本已过期 —— 分摊之后成本又变动过,这个数背后的单位成本不是最新的。重新分摊即可刷新。',
+            cogsDiffers: '总账在售出当时过账的 COGS 是 {posted},且永不重述;上面用的是加工单【当前】的分摊成本 —— 两个数都对,回答的是不同的问题。',
+            allBatches: '全部批次 →',
+        },
         listTitle: '产出批次',
         addButton: '+ 新增产出',
         recordCount: '共 {count} 条记录',

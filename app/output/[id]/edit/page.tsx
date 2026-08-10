@@ -1,6 +1,7 @@
 import Link from 'next/link'
-import { formatTimestamp } from '@/lib/format'
+import { formatTimestamp, formatAmount } from '@/lib/format'
 import { getBaseCurrency } from '@/lib/currency'
+import { canViewPrices } from '@/lib/permissions'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import EditOutputForm from './EditOutputForm'
@@ -41,6 +42,7 @@ export default async function EditOutputPage({
     const { id } = await params
     const supabase = await createClient()
     const baseCurrency = await getBaseCurrency()
+    const showPrices = await canViewPrices()
     const t = await getTranslations()
     const locale = await getLocale()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
@@ -81,6 +83,23 @@ export default async function EditOutputPage({
             .order('created_at', { ascending: false })
             .limit(1),
     ])
+
+    // MAR-1:这一批的毛利。【问 batch_margin,不在页面上算】—— 三个限定词
+    // (成本不完整 / 成本过期 / 与已过账 COGS 不同)必须跟着数字走,而不是缩在
+    // 某处的一句说明。视图自己挂着 data.view_prices AND (finance OR processing):
+    // 无权者拿到零行,页面据此渲染「受限」而不是 0 —— 这一页 operations 与
+    // warehouse 都进得来,所以这条尤其要紧。没卖过就没有行(不是错误)。
+    const marginRes = await supabase
+        .from('batch_margin')
+        .select('qty_sold, revenue_base, cost_current_base, margin_base, margin_pct, margin_status, cost_incomplete, is_stale, cogs_posted_base, cogs_differs')
+        .eq('output_batch_id', id)
+        .maybeSingle()
+    const marginRow = (marginRes.data as {
+        qty_sold: number; revenue_base: number; cost_current_base: number | null
+        margin_base: number | null; margin_pct: number | null; margin_status: string
+        cost_incomplete: boolean; is_stale: boolean
+        cogs_posted_base: number | null; cogs_differs: boolean
+    } | null) ?? null
 
     if (batchRes.error || !batchRes.data) {
         notFound()
@@ -193,6 +212,69 @@ export default async function EditOutputPage({
                 deleteAction={deleteOutputMetal.bind(null, id)}
                 priceHref={priceBatchHref(batch.quantity, metalRows)}
             />
+
+            {/* ── 本批毛利(MAR-1)──────────────────────────────────────────
+                "这批货挣了多少" 的答案摆在批次自己身上,而不是一条通往报表的链接:
+                问题是在这里产生的。数字全部来自 batch_margin,页面不算账。 */}
+            <section className="mt-8 pt-8 border-t">
+                <h2 className="text-xl font-bold mb-3">{t('margin.title')}</h2>
+                {!showPrices ? (
+                    // 受限,不是零 —— operations 与 warehouse 都进得来这一页
+                    <p className="text-sm text-gray-500">{t('common.restricted')}</p>
+                ) : marginRow === null ? (
+                    <p className="text-sm text-gray-500">{t('output.margin.notSold')}</p>
+                ) : (
+                    <div className="max-w-md space-y-1 text-sm">
+                        <div className="flex justify-between">
+                            <span className="text-gray-600">{t('margin.colRevenue')}</span>
+                            <span className="font-mono">{formatAmount(marginRow.revenue_base, baseCurrency)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-gray-600">{t('margin.colCost')}</span>
+                            <span className="font-mono">
+                                {marginRow.margin_status === 'ok'
+                                    ? formatAmount(marginRow.cost_current_base, baseCurrency)
+                                    : '—'}
+                            </span>
+                        </div>
+                        <div className="flex justify-between border-t pt-1 font-bold">
+                            <span>{t('margin.colMargin')}</span>
+                            <span className="font-mono">
+                                {/* 【绝不 0 成本化】算不出就留白,并说出是哪一种算不出 */}
+                                {marginRow.margin_status === 'ok'
+                                    ? `${formatAmount(marginRow.margin_base, baseCurrency)}${
+                                          marginRow.margin_pct !== null ? ` · ${marginRow.margin_pct}%` : ''
+                                      }`
+                                    : '—'}
+                            </span>
+                        </div>
+                        {marginRow.margin_status !== 'ok' && (
+                            <p className="text-sm bg-amber-50 border border-amber-300 text-amber-900 px-3 py-2 rounded mt-2">
+                                {t('margin.statusHint.' + marginRow.margin_status)}
+                            </p>
+                        )}
+                        {/* 三个限定词跟着数字走 */}
+                        {marginRow.cost_incomplete && (
+                            <p className="text-xs text-amber-800">{t('output.margin.costIncomplete')}</p>
+                        )}
+                        {marginRow.is_stale && (
+                            <p className="text-xs text-amber-800">{t('output.margin.stale')}</p>
+                        )}
+                        {marginRow.cogs_differs && (
+                            <p className="text-xs text-gray-600">
+                                {t('output.margin.cogsDiffers', {
+                                    posted: formatAmount(marginRow.cogs_posted_base, baseCurrency),
+                                })}
+                            </p>
+                        )}
+                        <p className="text-xs text-gray-500 pt-1">
+                            <Link href="/margin" className="text-blue-600 hover:underline">
+                                {t('output.margin.allBatches')}
+                            </Link>
+                        </p>
+                    </div>
+                )}
+            </section>
 
             {batch.remaining_qty > 0 ? (
                 <SalePanel

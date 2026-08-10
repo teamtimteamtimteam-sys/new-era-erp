@@ -189,3 +189,31 @@ Tim 在 REC-1 里问:预防那一半是不是已经由 `awaiting_assay` 覆盖�
 
 **结论**:REC-1 不加任何看板支。投产之后无从补救的事实只写在单据上;
 预防的时刻归 `awaiting_assay`,而它的这两处缺口按上面记录,各自等一刀。
+
+
+---
+
+## margin_cost_not_allocated(MAR-1,2026-08-10)
+
+| | |
+|---|---|
+| 含义 | 已售出、但所属加工单的成本【尚未分摊】的产出批 —— 毛利因此算不出来 |
+| 权限 | `data.view_prices` **且**(`module.finance.view` **或** `module.processing.view`) |
+| 门 | `/margin` |
+| 界 | `batch_margin.margin_status = 'no_unit_cost'` |
+| 线上 | 3 批(收入 10,573) |
+
+**这是第一支需要【谓词】而不是【一个码】的支。** 收入在财务、分摊成本在加工,
+而除 admin / auditor / gm 外没有任何 live 角色同时持有两个模块。视图因此多了一列
+`permission_any`(任意持有其一),由 `arm_permission_any(item_type)` 一处声明,
+SELECT 与 WHERE 共用;首页 TILES 的 `permissionAny` 与它同义,fixture 45 钉住
+两侧对同一个人给出同一个答案。
+
+**被排除的:`no_run`。** 那种批次压根不是加工单产出的,事后无从补救 ——
+放上看板就是一盏关不掉的灯(与 `awaiting_assay` 对已投产批次、REC-1 对未化验投入
+是同一条教训)。它仍然作为一行留在 `/margin` 上,那是它该在的地方。
+
+**被排除的:合成一个新权限码**(如 `report.margin.view`)。它会在权限目录里多出
+一条没人授过的条目,日后读起来像一条真的权限;更要命的是它会成为"谁能看毛利"的
+第二份定义,与 `batch_margin` 自己的谓词必然漂开。理由写在
+`db/migrations/2026-08-10-mar1-arm-level-predicate.sql` 的文件头。
