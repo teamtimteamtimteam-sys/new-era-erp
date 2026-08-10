@@ -21,7 +21,14 @@ function todayIsoLocal(): string {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-export default function RepriceFromContentPanel({ batchId }: { batchId: string }) {
+export default function RepriceFromContentPanel({
+    batchId,
+    baseCurrency,
+}: {
+    batchId: string
+    // ASY-3:影响块在这里换单位(上半截 USD 行情口径,下半截本位币)—— 由页面传入
+    baseCurrency: string
+}) {
     const t = useTranslations()
     const router = useRouter()
     const [isPending, startTransition] = useTransition()
@@ -68,7 +75,7 @@ export default function RepriceFromContentPanel({ batchId }: { batchId: string }
 
             {open && preview.result && (
                 <div className="mt-3 border border-gray-300 rounded p-4">
-                    <AssayImpactPreview res={preview.result} impact={preview.impact} />
+                    <AssayImpactPreview res={preview.result} impact={preview.impact} baseCurrency={baseCurrency} />
                     <div className="flex gap-2 mt-4">
                         <button
                             type="button"

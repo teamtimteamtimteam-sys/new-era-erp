@@ -9,14 +9,17 @@ import { localizePricingError } from '../pricingErrorCodes'
 export type CalcLine = {
     metal: string
     content_pct: number
-    payable_pct: number
+    // ASY-2:【null = 条款未列明这个金属】,0 = 条款谈定的零。两者相反,渲染成
+    // 同一个 0 就把"没提到"读成了"约定不付"(PO 单据的 PRICE NOT STATED 同理)。
+    payable_pct: number | null
     contained_kg: number
-    payable_kg: number
+    payable_kg: number | null
     price_usd_per_tonne: number | null
     price_date: string | null
     price_from: string | null
     price_to: string | null
-    metal_value_usd: number
+    // null = 算不出金额(未列明条款,或没有行情);0 只属于真的算出来是零
+    metal_value_usd: number | null
 }
 
 export type CalcResult = {

@@ -364,7 +364,7 @@ export default async function EditInboundPage({
                 history={priceHistoryRows}
                 extraAction={
                     commitment ? (
-                        <RepriceFromContentPanel batchId={batch.id} />
+                        <RepriceFromContentPanel batchId={batch.id} baseCurrency={baseCurrency} />
                     ) : resolvedFormulaId ? (
                         /* 有公式、没有副本 = FIN-27 之前留下的引用。不回填猜测的条款,
                            也不摆一个服务端保证会拒的按钮 —— 说清楚,指出手工定价这条路。 */

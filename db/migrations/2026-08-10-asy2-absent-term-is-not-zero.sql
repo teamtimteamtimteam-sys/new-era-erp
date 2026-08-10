@@ -1,3 +1,18 @@
+-- ASY-2:未约定的金属【印成"未列明"而不是 0】—— 0 在应付比例列里读作一条谈定的
+-- 条款("这个金属我们不付钱"),而公式其实只是没提它。PO 单据早就做对了同一件事
+-- (not_priced 印 PRICE NOT STATED,绝不印 0.00);计价明细这边一直在自相矛盾:
+-- 灰字说"本公式未约定 al、cu、fe 的应付比例",同一张表却给它们印 0 和 0.00。
+--
+-- 【两者在数据里本来就分得开】v_payables ? metal 为假 = 未约定(进 unpaid_metals);
+-- 明确写 0% 的条款为真(不进 unpaid_metals),payable_pct 的 CHECK 是 >= 0,所以
+-- "谈定 0%"是可表示且正当的一种条款。丢掉这个区别的是【输出行】,不是数据模型 ——
+-- 所以这一刀只改输出行:未约定的 payable_pct / payable_kg / metal_value_usd 给
+-- NULL,界面渲染成"—";缺行情的行金额同样给 NULL(没有行情就算不出金额)。
+-- 累加仍按 0(贡献确实为零),净值与单价【一分不变】—— fixture 41 A 臂钉住这一点。
+-- NOTE: apply with ./db/apply_migration.sh
+
+BEGIN;
+
 CREATE OR REPLACE FUNCTION public.calculate_metal_price_from_terms(p_terms jsonb, p_metals jsonb, p_quantity_kg numeric, p_reference_date date)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -167,3 +182,5 @@ BEGIN
     );
 END;
 $function$;
+
+COMMIT;

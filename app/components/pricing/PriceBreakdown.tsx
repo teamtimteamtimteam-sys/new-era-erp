@@ -19,6 +19,19 @@ export default function PriceBreakdown({
 }) {
     const t = useTranslations()
 
+    // ASY-2:【未列明 ≠ 零】。条款没提到这个金属时 DB 给 NULL,这里渲染成"—"
+    // 并挂上 title 说明 —— 应付比例列里的 0 会被读成一条谈定的条款("这个金属
+    // 我们不付钱"),而公式只是没提它。PO 单据的 PRICE NOT STATED 是同一个答案。
+    // 真的谈定 0% 时 DB 给 0,照旧印 0 —— 那个 0 是有意义的。
+    const absent = (v: number | null, fmt: (n: number) => string, note: string) =>
+        v === null ? (
+            <span className="text-gray-400" title={note}>
+                —
+            </span>
+        ) : (
+            <span className="font-mono">{fmt(v)}</span>
+        )
+
     const priceCell = (l: CalcLine) => {
         if (l.price_usd_per_tonne == null) return <span className="text-gray-400">—</span>
         return (
@@ -79,12 +92,17 @@ export default function PriceBreakdown({
                                     <span className="text-gray-400 font-mono text-xs ml-2">{l.metal}</span>
                                 </td>
                                 <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">{l.content_pct}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">{l.payable_pct}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-right text-sm">
+                                    {absent(l.payable_pct, (n) => String(n), t('pricing.termNotStated'))}
+                                </td>
                                 <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">{l.contained_kg}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">{l.payable_kg}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-right text-sm">
+                                    {absent(l.payable_kg, (n) => String(n), t('pricing.termNotStated'))}
+                                </td>
                                 <td className="border border-gray-300 px-3 py-2 text-sm">{priceCell(l)}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                    {formatMoney(l.metal_value_usd)}
+                                <td className="border border-gray-300 px-3 py-2 text-right text-sm">
+                                    {absent(l.metal_value_usd, formatMoney,
+                                        l.payable_pct === null ? t('pricing.termNotStated') : t('pricing.noQuoteNotStated'))}
                                 </td>
                             </tr>
                         ))}

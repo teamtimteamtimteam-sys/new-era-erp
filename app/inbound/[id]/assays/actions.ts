@@ -29,6 +29,10 @@ export type AssayImpact = {
     in_stock_ratio: number
     inventory_share: number
     cost_share: number
+    // ASY-1 起 DB 一并返回折算用的牌价与它取自哪天。面板【在这里换单位】——
+    // 上半截是 USD(行情口径),这一块是本位币 —— 所以把这一乘摆出来当分界线。
+    fx_rate: number | null
+    rate_as_of: string | null
 }
 
 // preview_reprice_inbound_batch 的返回形状
@@ -39,6 +43,8 @@ type RepricePreview = {
     in_stock_ratio: number
     inventory_share_usd: number
     cost_share_usd: number
+    fx_rate: number | null
+    rate_as_of: string | null
 }
 
 const round4 = (n: number) => Math.round(n * 10000) / 10000
@@ -52,6 +58,8 @@ function toImpact(p: RepricePreview): AssayImpact {
         in_stock_ratio: Number(p.in_stock_ratio),
         inventory_share: Number(p.inventory_share_usd),
         cost_share: Number(p.cost_share_usd),
+        fx_rate: p.fx_rate === null || p.fx_rate === undefined ? null : Number(p.fx_rate),
+        rate_as_of: p.rate_as_of ?? null,
     }
 }
 

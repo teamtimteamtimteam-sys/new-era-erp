@@ -10,6 +10,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import AssayForm from './AssayForm'
+import { getBaseCurrency } from '@/lib/currency'
 import { maskedExcept } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
 import { mustRows } from '@/lib/db-helpers'
@@ -29,6 +30,9 @@ export default async function NewAssayPage({
     const { id } = await params
     const supabase = await createClient()
     const t = await getTranslations()
+    // ASY-3:本位币来自数据(currencies.is_base),不是常量 —— 影响块要说出
+    // 自己是哪种货币,而面板上半截是行情口径的 USD。
+    const baseCurrency = await getBaseCurrency()
 
     const { data: batchRaw, error } = await supabase
         .from('inbound_batches_masked')
@@ -103,6 +107,7 @@ export default async function NewAssayPage({
                     pricing_status: batch.pricing_status,
                 }}
                 formula={formula ? { id: formula.id, code: formula.code, name: formula.name } : null}
+                baseCurrency={baseCurrency}
                 currentMetals={currentMetals}
             />
         </div>

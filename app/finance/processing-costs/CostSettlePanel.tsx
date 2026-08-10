@@ -17,7 +17,10 @@ type Entry = { id: string; run_id: string; cost_type: string; amount_base: numbe
 type Run = { id: string; code: string }
 type Sup = { id: string; legal_name: string }
 
-export default function CostSettlePanel({ entries, runs, suppliers }: { entries: Entry[]; runs: Run[]; suppliers: Sup[] }) {
+// baseCurrency:'{accrued} {ccy}' 这句文案一直只传了 accrued —— 解析器对认不出的
+// 占位符原样保留(lib/i18n/client.tsx),所以屏幕上真的印着"1,234.00 {ccy}。"。
+// 币种来自数据(currencies.is_base),由页面传入。
+export default function CostSettlePanel({ entries, runs, suppliers, baseCurrency }: { entries: Entry[]; runs: Run[]; suppliers: Sup[]; baseCurrency: string }) {
     const t = useTranslations()
     const router = useRouter()
     const [pending, start] = useTransition()
@@ -137,7 +140,7 @@ export default function CostSettlePanel({ entries, runs, suppliers }: { entries:
                         光给一个带正负号的数字,看的人还得自己想"这是估多了还是估少了" */}
                     {chosenE.length > 0 && (
                         <p className="text-sm mt-3">
-                            {t('finance.costSettle.preview', { accrued: formatMoney(accrued) })}
+                            {t('finance.costSettle.preview', { accrued: formatMoney(accrued), ccy: baseCurrency })}
                             {variance !== null && (
                                 <span className={'ml-2 font-medium ' + (variance > 0 ? 'text-red-700' : variance < 0 ? 'text-green-700' : 'text-gray-600')}>
                                     {variance > 0

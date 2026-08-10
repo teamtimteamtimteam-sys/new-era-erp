@@ -4,6 +4,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import Subnav from '../Subnav'
 import CostSettlePanel from './CostSettlePanel'
+import { getBaseCurrency } from '@/lib/currency'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 
@@ -15,6 +16,7 @@ export default async function ProcessingCostsPage() {
 
     const supabase = await createClient()
     const t = await getTranslations()
+    const baseCurrency = await getBaseCurrency()
     // 【走遮蔽视图,不走基表】amount_base 的 SELECT 在基表上是收回的(perm2b),
     // 直接选它一律 42501;金额只能经 _masked 按 data.view_prices 取。
     // 结算三列曾经不在视图里,两条路都不通 —— 视图已于 fin7-fu 补齐。
@@ -35,7 +37,7 @@ export default async function ProcessingCostsPage() {
             <h1 className="text-2xl font-bold mb-4">{t('finance.costSettle.title')}</h1>
             <Subnav />
             <CostSettlePanel entries={entries as never} runs={runs as never}
-                             suppliers={suppliers as never} />
+                             suppliers={suppliers as never} baseCurrency={baseCurrency} />
         </div>
     )
 }

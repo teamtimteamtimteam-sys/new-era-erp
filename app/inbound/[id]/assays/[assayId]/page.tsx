@@ -18,6 +18,7 @@ import AssayImpactPreview from '../AssayImpactPreview'
 import { repricePreview, type AssayImpact } from '../actions'
 import type { CalcResult } from '@/app/pricing/calculator/actions'
 import { canViewPrices } from '@/lib/permissions'
+import { getBaseCurrency } from '@/lib/currency'
 import { maskedExcept } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
 import { MaskedValue } from '@/app/components/MaskedValue'
@@ -42,6 +43,9 @@ export default async function AssayDetailPage({
     const supabase = await createClient()
     const t = await getTranslations()
     const locale = await getLocale()
+    // ASY-3:本位币来自数据(currencies.is_base),不是常量 —— 影响块要说出
+    // 自己是哪种货币,而面板上半截是行情口径的 USD。
+    const baseCurrency = await getBaseCurrency()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
     const { data: assay, error } = await supabase
@@ -322,7 +326,7 @@ export default async function AssayDetailPage({
                         </div>
                     )}
                     {preview ? (
-                        <AssayImpactPreview res={preview.result} impact={preview.impact} />
+                        <AssayImpactPreview res={preview.result} impact={preview.impact} baseCurrency={baseCurrency} />
                     ) : (
                         <p className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded text-sm">
                             {t('assay.noFormula')}

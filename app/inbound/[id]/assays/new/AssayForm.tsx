@@ -32,6 +32,7 @@ export default function AssayForm({
     batch,
     formula,
     currentMetals,
+    baseCurrency,
 }: {
     batch: {
         id: string
@@ -43,6 +44,8 @@ export default function AssayForm({
     }
     formula: { id: string; code: string; name: string } | null
     currentMetals: Record<string, string>
+    // ASY-3:影响块用它标出自己的货币(面板在那里换单位)
+    baseCurrency: string
 }) {
     const t = useTranslations()
     const bound = submitAssay.bind(null, batch.id)
@@ -201,7 +204,7 @@ export default function AssayForm({
                     )}
 
                     {/* impact 可能没有(净值 ≤ 0 时 DB 不给试算)—— 计价明细照常显示 */}
-                    {res && <AssayImpactPreview res={res} impact={impact} />}
+                    {res && <AssayImpactPreview res={res} impact={impact} baseCurrency={baseCurrency} />}
                 </section>
             )}
 
