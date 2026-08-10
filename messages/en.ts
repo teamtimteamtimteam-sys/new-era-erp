@@ -829,6 +829,8 @@ const en = {
         errQuantityPositive: 'Quantity must be a number greater than 0',
             errUnitPrice: 'Unit price must be a number',
             saveError: 'Save failed: {message}',
+            blockedArrivalDate: 'Save is disabled: the arrival date is not filled in.',
+            blockedCertExpired: 'Receiving from {supplier} is blocked: {cert} expired on {date}. Renew it under Suppliers → Compliance before receiving.',
         },
         stage: {
             toProcess: 'To Process',
@@ -1773,6 +1775,8 @@ const en = {
             ALLOC_WRONG_PARTY: 'Document {0} belongs to a different counterparty',
             PO_LINE_MISMATCH: 'Batch {0}: the selected line belongs to a different purchase order',
             PO_NOT_RECEIVABLE: 'Purchase order {0} is {1} and cannot receive goods — reopen it first',
+            PO_NOT_APPROVED: 'Purchase order {0} is not approved yet (approval status: {1}) — goods cannot be received against it',
+            SUPPLIER_QUALIFICATION_EXPIRED: 'Receiving from supplier {0} is blocked: certificate {1} expired on {2}. Renew it under Suppliers → Compliance',
             PO_ALREADY_CLOSED: 'Purchase order {0} is already closed',
             PO_NOT_CLOSED: 'Purchase order {0} is not closed',
             CLOSE_NOTES_REQUIRED:

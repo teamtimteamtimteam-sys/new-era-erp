@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { createInbound, type CreateInboundState } from './actions'
 import { UNIT_OPTIONS } from '../../materials/options'
 import { STAGE_OPTIONS } from '../options'
-import { useTranslations } from '@/lib/i18n/client'
+import { useLocale, useTranslations } from '@/lib/i18n/client'
 
 const initialState: CreateInboundState = {}
 
@@ -29,18 +29,31 @@ export type PoLineOption = {
     unit: string
 }
 
+// supplier_receiving_blocked 的行:该供应商今天收货会被触发器拒(CMP-2)
+export type BlockedSupplier = {
+    supplier_id: string
+    supplier_code: string
+    cert_type_code: string
+    name_en: string
+    name_zh: string
+    valid_until: string
+}
+
 export default function NewInboundForm({
     materials,
     suppliers,
     poLines,
+    blockedSuppliers,
     initialPoId = '',
 }: {
     materials: MaterialOption[]
     suppliers: SupplierOption[]
     poLines: PoLineOption[]
+    blockedSuppliers: BlockedSupplier[]
     initialPoId?: string
 }) {
     const t = useTranslations()
+    const locale = useLocale()
     const [state, formAction, isPending] = useActionState(
         createInbound,
         initialState
@@ -67,6 +80,11 @@ export default function NewInboundForm({
         []
     )
     const poLineOptions = supplierPoLines.filter((l) => l.po_id === poId)
+
+    // CMP-2:选中的供应商若会被证书拦截,禁钮【并在按钮旁说出是谁、哪张证、何时
+    // 过期】—— 灰而不语的钮,操作员分不清是系统拦截还是自己漏填(这正是本切的起因)。
+    // 服务端触发器是独立的另一道;这里只是把它已经知道的答案提前说出来。
+    const blocked = blockedSuppliers.find((b) => b.supplier_id === supplierId)
 
     function onSupplierChange(id: string) {
         setSupplierId(id)
@@ -316,11 +334,24 @@ export default function NewInboundForm({
                     />
                 </div>
 
-                {/* 提交按钮 */}
+                {/* 提交按钮 —— 禁用必须说出为什么(CMP-2):每一个禁钮条件都有一行
+                    紧邻的文字对应;新增条件时同步新增它的那一行,不许只灰不说。 */}
+                {blocked && (
+                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded text-sm">
+                        {t('inbound.form.blockedCertExpired', {
+                            supplier: blocked.supplier_code,
+                            cert: locale === 'zh' ? blocked.name_zh : blocked.name_en,
+                            date: blocked.valid_until,
+                        })}
+                    </div>
+                )}
+                {!blocked && !arrivalDate && (
+                    <p className="text-sm text-amber-700">{t('inbound.form.blockedArrivalDate')}</p>
+                )}
                 <div className="flex gap-3 pt-4">
                     <button
                         type="submit"
-                        disabled={isPending || !arrivalDate}
+                        disabled={isPending || !arrivalDate || !!blocked}
                         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                     >
                         {isPending ? t('common.saving') : t('common.save')}

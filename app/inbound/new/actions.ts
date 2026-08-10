@@ -91,9 +91,8 @@ export async function createInbound(
     } as InsertRow<'inbound_batches'>)
 
     if (error) {
-        // PO 关联触发器的编码错误(PO_NOT_RECEIVABLE / PO_LINE_MISMATCH)本地化;
-        // 其余仍走原样的 saveError
-        if (/PO_NOT_RECEIVABLE|PO_LINE_MISMATCH/.test(error.message)) {
+        // 收货触发器的编码错误本地化;其余仍走原样的 saveError
+        if (/PO_NOT_RECEIVABLE|PO_LINE_MISMATCH|PO_NOT_APPROVED|SUPPLIER_QUALIFICATION_EXPIRED/.test(error.message)) {
             return { error: await localizePurchasingError(error.message) }
         }
         return { error: t('inbound.form.saveError', { message: error.message }) }

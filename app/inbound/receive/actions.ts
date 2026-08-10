@@ -75,8 +75,8 @@ export async function createFieldReceipt(
         .single()
 
     if (error || !data) {
-        // PO 关联触发器的编码错误本地化;其余仍走原样的 saveError
-        if (error && /PO_NOT_RECEIVABLE|PO_LINE_MISMATCH/.test(error.message)) {
+        // 收货触发器的编码错误本地化;其余仍走原样的 saveError
+        if (error && /PO_NOT_RECEIVABLE|PO_LINE_MISMATCH|PO_NOT_APPROVED|SUPPLIER_QUALIFICATION_EXPIRED/.test(error.message)) {
             return { error: await localizePurchasingError(error.message) }
         }
         return { error: t('receive.saveError', { message: error?.message ?? '' }) }

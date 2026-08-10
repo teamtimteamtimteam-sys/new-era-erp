@@ -2,7 +2,7 @@
 // 移动端现场收货页(服务端抓下拉数据,渲染客户端表单)。可在任意设备用 URL 直达。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import ReceiveForm, { type PoLineOption } from './ReceiveForm'
+import ReceiveForm, { type PoLineOption, type BlockedSupplier } from './ReceiveForm'
 import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -17,7 +17,7 @@ export default async function ReceivePage() {
     const supabase = await createClient()
     const t = await getTranslations()
 
-    const [suppliersRes, materialsRes, poLinesRes] = await Promise.all([
+    const [suppliersRes, materialsRes, poLinesRes, blockedRes] = await Promise.all([
         supabase
             .from('suppliers')
             .select('id, code, legal_name')
@@ -34,6 +34,11 @@ export default async function ReceivePage() {
             .select('po_id, po_code, supplier_id, order_date, line_id, line_no, material_id, material_name, remaining_qty, unit')
             .order('po_code')
             .order('line_no'),
+        // CMP-2:收货会被证书拦截的供应商(视图与触发器同一份谓词)——
+        // 表单据此把拦截原因写在按钮旁,而不是让服务端的拒绝当第一声。
+        supabase
+            .from('supplier_receiving_blocked')
+            .select('supplier_id, supplier_code, cert_type_code, name_en, name_zh, valid_until'),
     ])
 
     return (
@@ -50,6 +55,7 @@ export default async function ReceivePage() {
                 suppliers={mustRows(suppliersRes)}
                 materials={mustRows(materialsRes)}
                 poLines={(mustRows(poLinesRes)) as PoLineOption[]}
+                blockedSuppliers={(mustRows(blockedRes)) as BlockedSupplier[]}
             />
         </div>
     )

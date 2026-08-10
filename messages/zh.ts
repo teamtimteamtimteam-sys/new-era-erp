@@ -832,6 +832,8 @@ const zh = {
         errQuantityPositive: '数量必须是大于0的数字',
             errUnitPrice: '单价必须是数字',
             saveError: '保存失败：{message}',
+            blockedArrivalDate: '保存钮不可用：到货日期还没填。',
+            blockedCertExpired: '{supplier} 的收货已被拦截：{cert} 已于 {date} 过期。请先在 供应商 → 合规 里续期，才能收货。',
         },
         stage: {
             toProcess: '待加工',
@@ -1767,6 +1769,8 @@ const zh = {
             ALLOC_WRONG_PARTY: '单据 {0} 属于其他往来单位',
             PO_LINE_MISMATCH: '批次 {0}:所选明细行属于其他采购单',
             PO_NOT_RECEIVABLE: '采购单 {0} 处于{1}状态,不能收货 —— 请先重新打开',
+            PO_NOT_APPROVED: '采购单 {0} 尚未获批（审批状态：{1}），不能按此单收货',
+            SUPPLIER_QUALIFICATION_EXPIRED: '供应商 {0} 的收货已被拦截：证书 {1} 已于 {2} 过期 —— 请在 供应商 → 合规 里续期',
             PO_ALREADY_CLOSED: '采购单 {0} 已经结束',
             PO_NOT_CLOSED: '采购单 {0} 不是已结束状态',
             CLOSE_NOTES_REQUIRED: '该采购单还有 {0} 预付款未抵扣 —— 结束前必须写明处理方式',

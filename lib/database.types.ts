@@ -637,6 +637,13 @@ export type Database = {
             referencedRelation: "certificate_types"
             referencedColumns: ["code"]
           },
+          {
+            foreignKeyName: "company_compliance_cert_type_code_fkey"
+            columns: ["cert_type_code"]
+            isOneToOne: false
+            referencedRelation: "supplier_receiving_blocked"
+            referencedColumns: ["cert_type_code"]
+          },
         ]
       }
       company_profile: {
@@ -6270,6 +6277,13 @@ export type Database = {
             referencedColumns: ["code"]
           },
           {
+            foreignKeyName: "supplier_compliance_cert_type_code_fkey"
+            columns: ["cert_type_code"]
+            isOneToOne: false
+            referencedRelation: "supplier_receiving_blocked"
+            referencedColumns: ["cert_type_code"]
+          },
+          {
             foreignKeyName: "supplier_compliance_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -9930,6 +9944,25 @@ export type Database = {
             columns: ["output_batch_id"]
             isOneToOne: false
             referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_receiving_blocked: {
+        Row: {
+          cert_type_code: string | null
+          name_en: string | null
+          name_zh: string | null
+          supplier_code: string | null
+          supplier_id: string | null
+          valid_until: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_compliance_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]

@@ -164,5 +164,67 @@ BEGIN
     IF NOT v_denied THEN
         RAISE EXCEPTION 'FIXTURE 37E 失败:未知的 cert_type_code 被接受了 —— 自由文本的病又回来了';
     END IF;
+
+    -- ══════════ F. supplier_receiving_blocked 视图 ⇔ 触发器【同一个答案】(CMP-2)══
+    -- 视图是表单"为什么点不动"的数据来源,谓词与触发器是各自写的两份 —— 会漂。
+    -- 本臂钉:视图有行 ⇔ 收货被拒,且拒绝消息里的三个数【就是】视图行里的三个数。
+    -- 注入方式:把视图谓词的 disposition='block' 删掉(warn 也上) → F1 的 S2 断言红;
+    -- 把 valid_until < CURRENT_DATE 写成 <= → F2 边界臂红。
+    DECLARE v_row record;
+    BEGIN
+        -- S1 重新过期(昨天),S2 的 warn 证也过期 —— 只有 block 的该上视图
+        UPDATE supplier_compliance SET valid_until = CURRENT_DATE - 1 WHERE id = v_cert;
+        UPDATE supplier_compliance SET valid_until = CURRENT_DATE - 10 WHERE supplier_id = sup_warn;
+
+        EXECUTE 'SET LOCAL ROLE authenticated';
+        SELECT count(*) INTO v_n FROM supplier_receiving_blocked WHERE supplier_code = 'ZZFIX37-S2';
+        RESET ROLE;
+        IF v_n <> 0 THEN
+            RAISE EXCEPTION 'FIXTURE 37F 失败:warn 类型过期不拦收货,也就不该上 blocked 视图,实得 % 行 —— 视图比触发器严,表单会灰掉一个服务端其实肯收的钮', v_n;
+        END IF;
+
+        EXECUTE 'SET LOCAL ROLE authenticated';
+        SELECT * INTO v_row FROM supplier_receiving_blocked WHERE supplier_code = 'ZZFIX37-S1';
+        RESET ROLE;
+        IF v_row IS NULL OR v_row.cert_type_code <> 'basel' OR v_row.valid_until <> CURRENT_DATE - 1 THEN
+            RAISE EXCEPTION 'FIXTURE 37F 失败:被拦供应商应在视图上且证书/日期对得上,实得 %', v_row;
+        END IF;
+        -- 触发器拒绝的三个数【就是】视图行的三个数 —— 两份谓词漂了,这里对不齐
+        v_denied := false;
+        BEGIN
+            INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
+            VALUES ('ZZFIX37-IB7', v_mat, sup_block, 1, 1, CURRENT_DATE);
+        EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
+        END;
+        IF NOT v_denied OR v_msg <> format('SUPPLIER_QUALIFICATION_EXPIRED|%s|%s|%s',
+                v_row.supplier_code, v_row.cert_type_code, v_row.valid_until) THEN
+            RAISE EXCEPTION 'FIXTURE 37F 失败:拒绝消息应与视图行逐字段一致,实得 denied=% msg=%', v_denied, v_msg;
+        END IF;
+        -- warn 过期的 S2:视图不上(前断言),收货也真的收得进 —— 同一个答案的另一半
+        INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
+        VALUES ('ZZFIX37-IB8', v_mat, sup_warn, 1, 1, CURRENT_DATE);
+
+        -- 边界:今天到期【还没过期】—— 视图无行,收货照收(两边同用 < CURRENT_DATE)
+        UPDATE supplier_compliance SET valid_until = CURRENT_DATE WHERE id = v_cert;
+        EXECUTE 'SET LOCAL ROLE authenticated';
+        SELECT count(*) INTO v_n FROM supplier_receiving_blocked WHERE supplier_code = 'ZZFIX37-S1';
+        RESET ROLE;
+        INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
+        VALUES ('ZZFIX37-IB9', v_mat, sup_block, 1, 1, CURRENT_DATE);
+        IF v_n <> 0 THEN
+            RAISE EXCEPTION 'FIXTURE 37F 失败:今天才到期的证不算过期(< 不是 <=),视图应无行,实得 % 行 —— 收货刚刚都成功了,视图却说被拦:钮和触发器在边界日互相矛盾', v_n;
+        END IF;
+
+        -- 权限门:无 module.inbound.view 的读者从视图读到零行(属主视图,门在体内)
+        UPDATE supplier_compliance SET valid_until = CURRENT_DATE - 1 WHERE id = v_cert;
+        PERFORM set_config('request.jwt.claims',
+            format('{"sub":"%s","role":"authenticated"}', gen_random_uuid()), true);
+        EXECUTE 'SET LOCAL ROLE authenticated';
+        SELECT count(*) INTO v_n FROM supplier_receiving_blocked;
+        RESET ROLE;
+        IF v_n <> 0 THEN
+            RAISE EXCEPTION 'FIXTURE 37F 失败:无 inbound 权限的读者不该看到 blocked 视图的行,实得 % 行', v_n;
+        END IF;
+    END;
 END $$;
 ROLLBACK;
