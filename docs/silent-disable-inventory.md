@@ -10,14 +10,26 @@ PayPanel、ReconcileWorkspace、RevalueButton、两处 pctOver 表单)全都认�
 为什么。灰而不语的钮,操作员分不清系统拦截和自己的漏填 —— 与"什么都不说的拒绝"
 同族(refusal-names-the-numbers 的反面)。
 
-## 已修(本切)
+## 已修
 
 | 表单 | 条件 | 修法 |
 |---|---|---|
 | app/inbound/new/NewInboundForm.tsx | `!arrivalDate`;另证书拦截原先只在触发器 | 到货日未填一行字点名;被拦供应商红框点名证书与过期日(supplier_receiving_blocked 视图) |
 | app/inbound/receive/ReceiveForm.tsx | 同上 | 同上 |
+| app/processing/new/NewProcessingForm.tsx | `!processDate` | 同一句式点名加工日期;保留预填今天 |
+| app/finance/settings/LockForm.tsx | `!date` | 同一句式点名锁定日期;【不】预填 |
+| app/finance/bank/TransferForm.tsx | `!date \|\| !out \|\| !inn` | 三个条件各自一行点名;转账日期新增预填今天 |
 
-## 未修,按伤害排序(12 处)
+**预填的判断(逐表,不求一致)**:预填只在【今天确实是最可能的答案】时才对 ——
+它是便利不是默认值(受控值,清空即禁钮并点名;与服务端偷偷补 CURRENT_DATE 是两回事)。
+
+* 现场收货(移动)与加工单:【预填】—— 操作的人就在事件现场,事件就是现在。
+* 银行转账:【预填】—— 录的人通常刚在银行端做完这笔,是公司自己的当天动作。
+* 桌面收货(/inbound/new):【不预填】—— 桌面录入常是事后补录,到货日往往不是
+  今天;预填会静默写错 business_date(FIN-32),比一个会解释自己的灰钮更坏。
+* 期间锁:【不预填】—— 锁定日是期间边界(通常上月末),今天几乎不会是答案。
+
+## 未修,按伤害排序(9 处)
 
 最恶劣的两处:
 
@@ -26,12 +38,6 @@ PayPanel、ReconcileWorkspace、RevalueButton、两处 pctOver 表单)全都认�
 2. **app/finance/payments/new/NewPaymentForm.tsx:636** — 跨币种付款没填成交价时
    `effectiveFx === null`/`unallocated === null`,界面只在合计条显示"—"。
    (同表单的 fxError/docFxError/overAllocated 腿【有】横幅 —— 只漏了这一腿。)
-
-预填日期被清空后哑掉(与收货表单同形,平时不发作):
-
-3. app/processing/new/NewProcessingForm.tsx:495 — `!processDate`(连 * 都没有)
-4. app/finance/settings/LockForm.tsx:36 — `!date`
-5. app/finance/bank/TransferForm.tsx:65 — `!date || !out || !inn`(三个字段静默把门)
 
 加行式小表单的裸 `!field` 门(无标记、无文字):
 

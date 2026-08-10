@@ -259,9 +259,12 @@ export default function NewProcessingForm({
                     <p className="text-xs text-gray-500 mt-1">{t('processing.form.basisHint')}</p>
                 </div>
 
-                {/* 加工日期 */}
+                {/* 加工日期 —— 必填(决定分录期间)。预填今天是【便利】不是默认值:
+                    记录加工的通常就是当天开工的人;清空则禁钮并在按钮旁点名。 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('processing.form.dateLabel')}</label>
+                    <label className="block text-sm font-medium mb-1">
+                        {t('processing.form.dateLabel')} <span className="text-red-600">*</span>
+                    </label>
                     <input
                         type="date"
                         required
@@ -488,7 +491,10 @@ export default function NewProcessingForm({
                     />
                 </div>
 
-                {/* 提交按钮 */}
+                {/* 提交按钮 —— 禁用必须说出为什么(CMP-2):每个禁钮条件都有紧邻的一行字。 */}
+                {!processDate && (
+                    <p className="text-sm text-amber-700">{t('processing.form.blockedProcessDate')}</p>
+                )}
                 <div className="flex gap-3 pt-4">
                     <button
                         type="submit"

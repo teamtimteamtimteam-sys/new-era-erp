@@ -9,6 +9,14 @@ import { recordTransfer } from './transferActions'
 
 const inp = 'border border-gray-300 rounded px-2 py-1 text-sm'
 
+function todayIsoLocal(): string {
+    const d = new Date()
+    const yyyy = d.getFullYear()
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    return `${yyyy}-${mm}-${dd}`
+}
+
 export default function TransferForm() {
     const t = useTranslations()
     const router = useRouter()
@@ -18,7 +26,9 @@ export default function TransferForm() {
     const [to, setTo] = useState('1000')
     const [out, setOut] = useState('')
     const [inn, setInn] = useState('')
-    const [date, setDate] = useState('')
+    // 预填今天是【便利】不是默认值(清空即禁钮并点名):录转账的通常就是刚在
+    // 银行端做完转账的人 —— 这是公司自己的当天动作,不像到货是发生在别处的事。
+    const [date, setDate] = useState(todayIsoLocal)
     const [ref, setRef] = useState('')
 
     function submit() {
@@ -67,6 +77,14 @@ export default function TransferForm() {
                     {t('common.save')}
                 </button>
             </div>
+            {/* 禁用必须说出为什么(CMP-2):每个禁钮条件都有紧邻的一行字。 */}
+            {(!date || !out || !inn) && (
+                <div className="mt-2 space-y-0.5">
+                    {!date && <p className="text-sm text-amber-700">{t('finance.transfer.blockedDate')}</p>}
+                    {!out && <p className="text-sm text-amber-700">{t('finance.transfer.blockedAmountOut')}</p>}
+                    {!inn && <p className="text-sm text-amber-700">{t('finance.transfer.blockedAmountIn')}</p>}
+                </div>
+            )}
         </div>
     )
 }
