@@ -153,7 +153,117 @@ async function sweepScratch() {
         console.log(`  清扫上次残留:${emps.length} 员工行 / ${stale.length} 账号`)
 }
 
+
+// ════════════════════════════════════════════════════════════════════════════
+// 按角色的可达性(REACH-1)—— 「打得开,却从首页走不到」
+// ════════════════════════════════════════════════════════════════════════════
+// 【为什么要有】上面那一大圈以 admin 跑,而 admin 什么都有,所以一道【太紧】的门
+// 在那里永远是 200;另一侧,纯静态的可达性走查只知道"代码里有没有这条链接",
+// 不知道"这个人的屏幕上有没有渲染出来"。两者缺的是同一个东西:
+// 【以某个角色的身份从 / 出发,只跟着他真的看得见的链接走】。
+// /margin 就是这么漏掉的:它一直有两个入口,但都在模块内部 —— 财务侧的人看不见
+// 加工那个,加工侧的人看不见财务那个,而全局导航里一个都没有。
+//
+// ── 这个检查【看不见】什么(绿灯不等于全覆盖)──────────────────────────────
+// 1.【客户端渲染出来的链接】只在 useState / 展开 / 弹窗之后才出现的入口,这里抓不到:
+//    我们读的是服务端吐出来的 HTML,不跑浏览器。要覆盖它就得引入 Playwright,
+//    那是另一个量级的项目。凡是入口藏在交互后面的页面,本检查【什么也没说】。
+// 2.【动态路由】/xxx/[id] 的可达性取决于"这个角色在列表页上看不看得见行"——
+//    没有行就没有链接,而"没有数据"与"到不了"在走查眼里长得一模一样
+//    (restricted-is-not-zero 那条病换了身测试的衣服)。所以断言【只覆盖静态路由】,
+//    动态路由单独计数报出来,绝不悄悄算进"通过"。
+// 3.【"打得开"是前提】一个人打不开的页面,谈不上"该有入口"—— 所以断言只覆盖
+//    他【打得开】的静态路由。这一条不是偷懒:operations 打不开 /margin(缺
+//    data.view_prices),对他而言那一页的入口有无都不改变什么;而 finance 打得开,
+//    所以入口消失就必须被点名。注入验证时按角色分别验,别用一个角色的结果替另一个说话。
+// 4. 它不判断"这个人【应不应该】看见这个入口"—— 那是产品判断。它只保证
+//    "打得开"与"走得到"这两个集合对得上,不一致就点名。
+// 【代价】三个角色各走一遍 = 在 134 条路由的主循环之后再抓 300~700 次页面,
+// 整跑从 2-4 分钟涨到 10 分钟上下。所以它跟主循环一起【留在 gate 之外】(慢门会被
+// 跳过,check_mirrors 的教训),按需跑。也别单独跳过主循环来"提速"—— 主循环顺带把
+// 每条路由在 dev server 上编译过一遍,跳掉它编译就摊到 BFS 的每一次抓取上,反而更慢。
+const REACH_ROLES = ['admin', 'operations', 'finance']
+
+// 打得开却走不到、而且【是有意如此】的静态路由。drift 两个方向都失败:
+// 多出来的要么是真漏了入口,要么是这里该添一行并写明理由。
+const EXPECTED_UNREACHABLE = {
+    admin: new Set(['/login', '/set-password', '/welcome']),
+    operations: new Set(['/login', '/set-password', '/welcome',
+        // metal_prices 的【读】策略是 USING (true) —— 行情是市场报价,数据自己声明
+        // 它公开(理由在 lib/modules.ts 的长注释里)。所以任何人都打得开这一页,
+        // 而入口挂在 pricing 模块里,operations 没有那个模块 —— 于是"打得开却走不到"
+        // 对他成立,并且【是有意的】。要改的是产品判断(该不该给非定价角色一个入口),
+        // 不是这个检查。
+        '/metal-prices']),
+    finance: new Set(['/login', '/set-password', '/welcome']),
+}
+
+// 拒绝页认【机器标记】不认文案:refusal() 与 requireManagePermissions() 的外层 div
+// 都带 data-access-denied="1"。首跑时这里是一串文案字符串,于是漏掉了权限管理页
+// 那一种拒绝,把 /settings/permissions 报成了"打得开却走不到"—— 误报比漏报更坏,
+// 它教人忽略这条检查。新增任何一种拒绝屏,只要复用那两个组件就自动被认出来。
+const DENIED_MARK = 'data-access-denied'
+
+function hrefsIn(html) {
+    const out = new Set()
+    for (const m of html.matchAll(/href="([^"]+)"/g)) {
+        const h = m[1].split('?')[0].split('#')[0]
+        if (h.startsWith('/') && !h.startsWith('//')) out.add(h.replace(/\/+$/, '') || '/')
+    }
+    return out
+}
+
+async function reachabilityForRole(roleCode, base, mkSession) {
+    const cookie = await mkSession(roleCode)
+    const get = async (path) => {
+        const r = await fetch(base + path, { headers: { cookie }, redirect: 'manual' })
+        const body = r.status === 200 ? await r.text() : ''
+        // CSV 导出之类的 Route Handler 不是页面 —— 谈不上"有没有入口"
+        const isHtml = (r.headers.get('content-type') ?? '').includes('text/html')
+        return { status: r.status, body, isHtml }
+    }
+
+    // ① 从 / 出发,只跟着【真的渲染出来的】链接走
+    //
+    // 【逐条打印,这不是装饰】本段一个角色要抓 200~330 个页面、跑好几分钟,
+    // 而它此前【整段沉默、只在角色跑完才吐一行】—— 于是"还在跑"与"已经挂了"
+    // 在屏幕上长得一模一样,人就会去轮询日志(2026-08-10 就是这么绕开
+    // db/wait_for.sh 的)。start-and-leave 这个用法【依赖日志自己回答"活着吗"】,
+    // 所以逐条进度是它的前提条件,不是可有可无的体贴。
+    const seen = new Set(['/'])
+    const queue = ['/']
+    let visited = 0
+    while (queue.length) {
+        const cur = queue.shift()
+        visited++
+        console.log(`  [${roleCode} 走 ${visited}/${seen.size}] ${cur}`)
+        const { status, body } = await get(cur)
+        if (status !== 200) continue
+        if (body.includes(DENIED_MARK)) continue   // 进不去的页面不往下走
+        for (const h of hrefsIn(body)) {
+            if (!seen.has(h)) { seen.add(h); queue.push(h) }
+        }
+    }
+
+    // ② 静态路由里,他【打得开】哪些(200 且不是拒绝页)
+    const staticRoutes = routes.filter((r) => !r.includes('[') && !r.startsWith('/api'))
+    const openable = []
+    let scanned = 0
+    for (const r of staticRoutes) {
+        scanned++
+        console.log(`  [${roleCode} 试开 ${scanned}/${staticRoutes.length}] ${r}`)
+        const { status, body, isHtml } = await get(r)
+        if (status === 200 && !body.includes(DENIED_MARK) && isHtml) openable.push(r)
+    }
+
+    // ③ 打得开却走不到
+    const unreachable = openable.filter((r) => !seen.has(r))
+    const dynamicCount = routes.length - staticRoutes.length
+    return { role: roleCode, reached: seen.size, openable: openable.length, unreachable, dynamicCount }
+}
+
 async function main() {
+    const reachFailures = []
     await sweepScratch()
 
     // ── 一次性 admin 会话 ────────────────────────────────────────────────────
@@ -287,6 +397,43 @@ async function main() {
                 console.log(`  FAIL /my-reviews/[id] (as reviewer) → ${res.status} (expected 200)`)
             }
         }
+
+        // ── 按角色的可达性(REACH-1)────────────────────────────────────────
+        // admin 一遍是对照(他什么都有);operations 与 finance 是 /margin 那道题的
+        // 两边 —— 一个只有加工、一个只有财务,而没有任何 live 角色同时持有两者。
+        const reachUsers = []
+        const mkSession = async (roleCode) => {
+            const em = `smoke-${stamp}-${roleCode}@test.local`
+            const u = await (await restOk('/auth/v1/admin/users', { method: 'POST',
+                body: JSON.stringify({ email: em, password: 'smoke-pass-3', email_confirm: true }) },
+                `建 ${roleCode} 账号`)).json()
+            const rr = await restRows(`/rest/v1/roles?select=id&code=eq.${roleCode}`, `roles ← ${roleCode}`)
+            if (!rr.length) throw new Error(`角色 ${roleCode} 不存在 —— 可达性检查不能对着一个空角色跑`)
+            await restOk('/rest/v1/user_roles', { method: 'POST',
+                body: JSON.stringify({ user_id: u.id, role_id: rr[0].id }) }, `授 ${roleCode}`)
+            reachUsers.push(u.id)
+            return signIn(em, 'smoke-pass-3')
+        }
+        console.log('\n== 按角色的可达性(打得开却走不到)==')
+        for (const roleCode of REACH_ROLES) {
+            const r = await reachabilityForRole(roleCode, `http://localhost:${PORT}`, mkSession)
+            const unexpected = r.unreachable.filter((x) => !EXPECTED_UNREACHABLE[r.role].has(x))
+            const gone = [...EXPECTED_UNREACHABLE[r.role]].filter((x) => !r.unreachable.includes(x))
+            console.log(`  ${r.role}: 走到 ${r.reached} · 打得开 ${r.openable} 条静态路由 · ` +
+                `其中走不到 ${r.unreachable.length}(动态路由 ${r.dynamicCount} 条不在断言范围,见文件头第 2 条)`)
+            for (const x of unexpected) {
+                reachFailures.push(`${r.role} 打得开但从首页走不到:${x}`)
+                console.log(`  ✗ ${r.role} 打得开却走不到:${x}`)
+            }
+            for (const x of gone) {
+                reachFailures.push(`${r.role} 预期走不到的 ${x} 现在走得到了 —— 把它移出 EXPECTED_UNREACHABLE`)
+                console.log(`  ✗ ${r.role} 预期走不到的 ${x} 现在走得到了`)
+            }
+        }
+        for (const id of reachUsers) {
+            await rest(`/rest/v1/user_roles?user_id=eq.${id}`, { method: 'DELETE' })
+            await rest(`/auth/v1/admin/users/${id}`, { method: 'DELETE' })
+        }
     } finally {
         dev.kill('SIGTERM')
         await rest(`/rest/v1/performance_reviews?id=eq.${review.id}`, { method: 'DELETE' })
@@ -307,7 +454,11 @@ async function main() {
         console.log(`\n✗ 预期之外的 SKIP —— 覆盖回归,查数据源,别默认"没数据": ${extraSkips.join(', ')}`)
     if (goneSkips.length)
         console.log(`\n✗ 预期会 SKIP 的路由跑起来了 —— 数据到位了,把它移出 EXPECTED_SKIPS: ${goneSkips.join(', ')}`)
-    process.exit(failures.length || extraSkips.length || goneSkips.length ? 1 : 0)
+    if (reachFailures.length) {
+        console.log(`\n✗ 可达性 ${reachFailures.length} 处 —— "打得开却走不到"就是一个没有入口的页面:`)
+        for (const r of reachFailures) console.log('   ' + r)
+    }
+    process.exit(failures.length || extraSkips.length || goneSkips.length || reachFailures.length ? 1 : 0)
 }
 main().catch((e) => {
     console.error(`\n✗ 冒烟中止(脚本自身的查询炸了,不是路由失败):\n${e.message ?? e}`)

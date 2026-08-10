@@ -141,6 +141,28 @@ the first one the response was to remember to add a bound. Remembering did not
 work — which is the usual signal that **a note was used where a mechanism was
 needed**, and the same lesson OPS-7 drew about `B1`/`is_system`.
 
+### 有上限是对的 —— 但先分清你等的是哪一种活
+
+上面那条规矩(有上限、有失败分支)是为【本该很快出现、却没出现】的等待写的:
+备份落盘、gate 吐判词、dev server 起来。那种等待里,超时几乎总是意味着出事了。
+
+**有另一种活,它跑得好好的时候就是一声不吭:** 按角色的可达性走查(三个角色、
+每个角色两三百个页面、十来分钟)、整库重建、大批量导入。对这种活,**任何上限都会
+把"还在跑"翻译成失败**,而人一旦被误判折腾几次,就会去绕开那个上限 —— 那才是真正
+的损失,因为绕开之后连失败分支都没有了。
+
+**这种活不要等,要 start-and-leave:** 后台起它、让它把日志写下来、去干别的、
+回头读结果。判断"活着还是挂了"由**日志自己回答**,所以这类脚本必须**逐条打印进度**——
+沉默五分钟的进度条,和挂死的进程在屏幕上是同一样东西。逐条进度不是体贴,
+是 start-and-leave 能不能用的前提。
+
+**2026-08-10 的实况,记下来是因为它比道理更管用:** 为了绕开 600 秒的上限,
+我把 `db/wait_for.sh` 换成了四个手写的 `until grep …; do sleep …; done`(正是这个
+脚本存在的理由),三个还在轮询同一个日志;轮询期间为了"顺便把别的做了",
+跑了一次 `npm run build` —— 它重写了 `.next`,把正在跑的 dev server 搞死了。
+**等待本身造成了它正在等的那个失败**,而且因为轮询没有失败分支,又过了很久才被发现。
+所以:等 ≠ 免费。等一个长活的正确做法是不等它。
+
 **Bounded is not enough on its own — the bound needs a failure branch.**
 `smoke-routes.mjs` waited 60×1s for the dev server and then continued *whether
 or not it was ready*: with a dead server that produced 131 connection failures

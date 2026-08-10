@@ -15,7 +15,10 @@ export async function requireManagePermissions() {
 
     const t = await getTranslations()
     return (
-        <div className="p-8 max-w-2xl">
+        // data-access-denied:给按角色的可达性检查用的【机器标记】。
+        // 靠认文案字符串去分辨"拒绝页"漏过一次就是一次误报(REACH-1 首跑
+        // 把 /settings/permissions 误当成"打得开"),所以标记跟着组件走。
+        <div className="p-8 max-w-2xl" data-access-denied="1">
             <h1 className="text-2xl font-bold mb-4">{t('permissions.title')}</h1>
             <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded">
                 <p className="font-medium">{t('permissions.denied')}</p>
