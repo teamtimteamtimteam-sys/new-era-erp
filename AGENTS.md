@@ -177,13 +177,20 @@ wait that cannot say "I gave up on X after Ns" is indistinguishable from a hang.
 
 ```
 node scripts/smoke-routes.mjs            # ~2-4 min: renders all ~135 routes as admin
-node scripts/smoke-routes.mjs --reach    # + per-role reachability (10-15 min, OPT-IN)
+node scripts/smoke-routes.mjs --reach    # + per-role reachability (~1 hour measured, OPT-IN)
 ```
 
 **The `--reach` half is opt-in on purpose.** It walks from `/` as `admin`,
 `operations` and `finance`, following only the links each role's pages actually
 render, and asserts the set each role can *open* but cannot *reach* — the check
-that would name a page with no entry point. It costs ten to fifteen minutes, and
+that would name a page with no entry point. **It costs about an hour — 65m 44s
+measured on 2026-08-11 across 139 routes and 1,018 page fetches.** This file said
+"ten to fifteen minutes" until then: that figure was an early estimate nobody went
+back and measured, and it was off by four to five times. The number matters because
+it is what someone deciding whether this cut needs `--reach` actually reads — at
+fifteen minutes you run it out of habit, at an hour you first ask whether the cut
+touched navigation, which is exactly the judgement making it opt-in was meant to
+produce. **A written-down cost must be a measured cost.** It costs about an hour, and
 it was briefly the default: that made every commit wait on it, which is the same
 cost that kept it out of `db/gate.py` in the first place, arriving by another
 road. **A check too slow to run every time ends up never run**, so the cadence is
