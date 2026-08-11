@@ -5701,6 +5701,141 @@ export type Database = {
         }
         Relationships: []
       }
+      purchase_order_history: {
+        Row: {
+          amend_reason: string | null
+          change_type: string
+          changed_at: string
+          changed_by: string | null
+          id: string
+          line_no: number | null
+          new_estimated_amount_ccy: number | null
+          new_estimated_total_ccy: number | null
+          new_estimated_unit_price: number | null
+          new_expected_delivery_date: string | null
+          new_fx_rate: number | null
+          new_incoterm: string | null
+          new_notes: string | null
+          new_order_date: string | null
+          new_quantity: number | null
+          new_terms_text: string | null
+          new_unit: string | null
+          old_estimated_amount_ccy: number | null
+          old_estimated_total_ccy: number | null
+          old_estimated_unit_price: number | null
+          old_expected_delivery_date: string | null
+          old_fx_rate: number | null
+          old_incoterm: string | null
+          old_notes: string | null
+          old_order_date: string | null
+          old_quantity: number | null
+          old_terms_text: string | null
+          old_unit: string | null
+          purchase_order_id: string
+          purchase_order_line_id: string | null
+        }
+        Insert: {
+          amend_reason?: string | null
+          change_type: string
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          line_no?: number | null
+          new_estimated_amount_ccy?: number | null
+          new_estimated_total_ccy?: number | null
+          new_estimated_unit_price?: number | null
+          new_expected_delivery_date?: string | null
+          new_fx_rate?: number | null
+          new_incoterm?: string | null
+          new_notes?: string | null
+          new_order_date?: string | null
+          new_quantity?: number | null
+          new_terms_text?: string | null
+          new_unit?: string | null
+          old_estimated_amount_ccy?: number | null
+          old_estimated_total_ccy?: number | null
+          old_estimated_unit_price?: number | null
+          old_expected_delivery_date?: string | null
+          old_fx_rate?: number | null
+          old_incoterm?: string | null
+          old_notes?: string | null
+          old_order_date?: string | null
+          old_quantity?: number | null
+          old_terms_text?: string | null
+          old_unit?: string | null
+          purchase_order_id: string
+          purchase_order_line_id?: string | null
+        }
+        Update: {
+          amend_reason?: string | null
+          change_type?: string
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          line_no?: number | null
+          new_estimated_amount_ccy?: number | null
+          new_estimated_total_ccy?: number | null
+          new_estimated_unit_price?: number | null
+          new_expected_delivery_date?: string | null
+          new_fx_rate?: number | null
+          new_incoterm?: string | null
+          new_notes?: string | null
+          new_order_date?: string | null
+          new_quantity?: number | null
+          new_terms_text?: string | null
+          new_unit?: string | null
+          old_estimated_amount_ccy?: number | null
+          old_estimated_total_ccy?: number | null
+          old_estimated_unit_price?: number | null
+          old_expected_delivery_date?: string | null
+          old_fx_rate?: number | null
+          old_incoterm?: string | null
+          old_notes?: string | null
+          old_order_date?: string | null
+          old_quantity?: number | null
+          old_terms_text?: string | null
+          old_unit?: string | null
+          purchase_order_id?: string
+          purchase_order_line_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_history_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["purchase_order_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_history_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "po_receivable_lines"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_history_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_status"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_history_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_history_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       purchase_order_lines: {
         Row: {
           created_at: string
@@ -10554,6 +10689,15 @@ export type Database = {
       }
       allocate_processing_costs: {
         Args: { p_basis?: string; p_run_id: string }
+        Returns: Json
+      }
+      amend_purchase_order: {
+        Args: {
+          p_header?: Json
+          p_lines?: Json
+          p_purchase_order_id: string
+          p_reason: string
+        }
         Returns: Json
       }
       annual_leave_available_from: {

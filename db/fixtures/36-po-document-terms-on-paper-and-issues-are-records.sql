@@ -173,7 +173,14 @@ BEGIN
 
     -- ══════════ D. 未获批的单不能签发 ═══════════════════════════════════════
     -- 发出去 = 在审批之前完成承诺 —— APR-2 A4 点名的缺口,动作存在了就要把关
+    -- PUR-2:审批状态不再能经一条直连的 UPDATE 改动(guard_po_amendable)——
+    -- 一个能把 approval_status 设成 approved 的路径就是一条不经审批的审批路径。
+    -- 【本 fixture 是在【摆前提】而不是在走业务路径】:它要的是"一张待批的单",
+    -- 而系统里没有"取消批准"这个动作。所以显式声明一次上下文,与那六个状态转换
+    -- 函数用的是同一个标记 —— 声明是明写的,不是绕过。
+    PERFORM set_config('evoltrya.po_status_ctx', '1', true);
     UPDATE purchase_orders SET approval_status = 'pending' WHERE id = v_po;
+    PERFORM set_config('evoltrya.po_status_ctx', '', true);
     v_denied := false;
     BEGIN
         PERFORM record_po_issue(v_po, 'fixture/36-v3.pdf', repeat('d', 64));

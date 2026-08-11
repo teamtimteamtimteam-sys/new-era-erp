@@ -50,8 +50,11 @@ BEGIN
     -- 行【存在性】挂在被它遮蔽的金额列上(见 docs/dashboard-arm-inventory.md 的隐患一节):
     -- 没有它,这三支会静默少报而不是显示「受限」。live 上任何持 finance 的角色都同时
     -- 持它(常设决定 1),所以这里照着现实配。
+    -- PUR-2:C 臂改走 close_purchase_order 解除 po_awaiting_receipt(状态不再能经
+    -- 直连 UPDATE 改动),而关单要 module.purchasing.edit —— 加这个码不影响任何一支
+    -- (支挂的都是 .view),arm B 用的也是另一个角色。
     SELECT r_all, unnest(ARRAY['module.inbound.view','module.processing.view',
-        'module.purchasing.view','module.stocktakes.view','module.hr.view',
+        'module.purchasing.view','module.purchasing.edit','module.stocktakes.view','module.hr.view',
         'module.output.view','module.finance.view','data.view_prices']);
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-30-inb', 'f', 'f', true) RETURNING id INTO r_inb;
@@ -209,7 +212,15 @@ BEGIN
     -- ══════════ C. 条件逐支解除:九支【每支都不在】═══════════════════════════
     UPDATE assay_results SET applied_at = now() WHERE id = v_ar;
     UPDATE processing_runs SET allocated_at = '2027-03-01' WHERE id = v_run;  -- 晚于成本变动
-    UPDATE purchase_orders SET status = 'closed' WHERE id = v_po;
+    -- 【claims 要先切回全权限那个人】B 臂把它换成了只持 inbound 的读者,
+    -- 而 close_purchase_order 要 module.purchasing.edit —— 不切回来就是
+    -- PERMISSION_DENIED,而那与本臂要测的东西毫无关系。
+    PERFORM set_config('request.jwt.claims',
+        format('{"sub":"%s","role":"authenticated"}', v_all), true);
+    -- PUR-2:状态不再能经一条直连的 UPDATE 改动(guard_po_amendable)。
+    -- 【改成走真正的那条路】—— 现实里这一支就是被"关单"清掉的,
+    -- 用 close_purchase_order 反而比原来更贴近它要模拟的事。
+    PERFORM close_purchase_order(v_po, 'fixture 30:解除 po_awaiting_receipt');
     UPDATE stocktakes SET status = 'cancelled' WHERE id = v_st;
     UPDATE leave_requests SET status = 'approved' WHERE id = v_lr;
     UPDATE medical_claims SET status = 'approved' WHERE id = v_mc;

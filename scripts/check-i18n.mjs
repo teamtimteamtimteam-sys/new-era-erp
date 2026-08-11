@@ -328,6 +328,8 @@ const MANIFEST = {
                                   () => sqlLiteralAs('db/views/ar_open_items.sql', 'doc_kind')) },
     // FRT-1:运费。三者都接真源 —— 口径与付款状态接表上的 CHECK,错误码接那个 Set,
     // 于是加一种口径 / 加一个错误码,键检查自动跟着变宽。
+    // PUR-2:改动类型接表上的 CHECK —— 加一种改动,键检查自动跟着变宽。
+    'purchasing.amend.change.': { kind: 'enum', values: () => sqlEnum('db/tables/purchase_order_history.sql', 'change_type') },
     'finance.freight.basis.':   { kind: 'enum', values: () => sqlEnum('db/tables/freight_documents.sql', 'allocation_basis') },
     'finance.freight.payment.': { kind: 'enum', values: () => sqlEnum('db/tables/freight_documents.sql', 'payment_status') },
     'finance.freight.errors.':  { kind: 'enum', values: () => tsSet('app/finance/freightErrorCodes.ts', 'FREIGHT_ERROR_CODES') },

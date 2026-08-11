@@ -72,3 +72,15 @@ CREATE POLICY "purchase_order_lines delete by permission"
 REVOKE SELECT ON public.purchase_order_lines FROM authenticated, anon;
 GRANT SELECT (id, purchase_order_id, line_no, material_id, quantity, unit, pricing_formula_id, expected_assay, notes, created_at, created_by, price_source)
     ON public.purchase_order_lines TO authenticated;
+
+-- ── PUR-2:已收下限与留痕 ────────────────────────────────────────────────────
+-- 【本表此前一个触发器都没有】连 updated_at 都没有 —— 这正是 PUR-2 的起点:
+-- "只能作废重开"不是系统在执行的规则,是应用里没有那个按钮。
+-- 函数体见 db/functions/guard_po_line_received_floor.sql 与 trg_po_history_line.sql。
+CREATE TRIGGER guard_po_lines_received_floor
+    BEFORE UPDATE OR DELETE ON public.purchase_order_lines
+    FOR EACH ROW EXECUTE FUNCTION public.guard_po_line_received_floor();
+
+CREATE TRIGGER trg_purchase_order_lines_history
+    AFTER INSERT OR UPDATE OR DELETE ON public.purchase_order_lines
+    FOR EACH ROW EXECUTE FUNCTION public.trg_po_history_line();

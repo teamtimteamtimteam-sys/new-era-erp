@@ -103,3 +103,16 @@ CREATE TRIGGER trg_purchase_orders_void_approval
     WHEN (NEW.estimated_total_ccy IS DISTINCT FROM OLD.estimated_total_ccy
           OR NEW.fx_rate IS DISTINCT FROM OLD.fx_rate)
     EXECUTE FUNCTION public.void_approval_on_amount_increase();
+
+-- ── PUR-2:修改守卫与留痕 ────────────────────────────────────────────────────
+-- 【调查结论:商业字段从来只是够不着,不是被保护】本表此前只有 updated_at 与
+-- APR-2 的作废触发器,而 RLS 允许任何持 module.purchasing.edit 的人直接 UPDATE。
+-- 所以守卫必须是【触发器】,不能只写在写入函数里 —— 否则那条直连的路照样通。
+-- 函数体见 db/functions/guard_po_amendable.sql 与 trg_po_history_header.sql。
+CREATE TRIGGER guard_purchase_orders_amendable
+    BEFORE UPDATE ON public.purchase_orders
+    FOR EACH ROW EXECUTE FUNCTION public.guard_po_amendable();
+
+CREATE TRIGGER trg_purchase_orders_history
+    AFTER UPDATE ON public.purchase_orders
+    FOR EACH ROW EXECUTE FUNCTION public.trg_po_history_header();

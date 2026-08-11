@@ -63,7 +63,7 @@ export default async function PurchaseOrderDetailPage({
     const canFinance = await can('module.finance.view')
     const po = maskedExcept<Tables<'purchase_orders'>, 'fx_rate' | 'estimated_total_ccy'>(poRaw)
 
-    const [supplierRes, linesRes, termsRes, statusRes, receiptsRes, apprRes, issuesRes] = await Promise.all([
+    const [supplierRes, linesRes, termsRes, statusRes, receiptsRes, apprRes, issuesRes, historyRes] = await Promise.all([
         supabase.from('suppliers').select('id, legal_name').eq('id', po.supplier_id).single(),
         supabase
             .from('purchase_order_lines_masked')
@@ -88,10 +88,28 @@ export default async function PurchaseOrderDetailPage({
         // PUR-1:签发档 —— 供应商手里那份是某个具体版本
         supabase.from('po_issues').select('version, issued_at, issued_by, sha256')
             .eq('purchase_order_id', id).order('version', { ascending: false }),
+        // PUR-2:编辑史。最新一行的时点用来判断"已改、未重发"
+        supabase.from('purchase_order_history')
+            .select('id, change_type, line_no, amend_reason, changed_at, old_quantity, new_quantity, old_estimated_unit_price, new_estimated_unit_price, old_estimated_total_ccy, new_estimated_total_ccy')
+            .eq('purchase_order_id', id).order('changed_at', { ascending: false }).limit(50),
     ])
 
     // APR-2c:审批是否生效 —— 决定这一页说哪一句话
     const approvalsOn = (apprRes.data as unknown as boolean | null) ?? false
+
+    // PUR-2:【已改、未重发】。比较【最新一次签发】与【最新一条编辑史】的时点 ——
+    // 修改不作废那次签发(它确实发出去过),但供应商手里那份已经不是现在这张单了。
+    const history = mustRows(historyRes, 'purchase_order_history') as unknown as {
+        id: string; change_type: string; line_no: number | null; amend_reason: string | null
+        changed_at: string; old_quantity: number | null; new_quantity: number | null
+        old_estimated_unit_price: number | null; new_estimated_unit_price: number | null
+        old_estimated_total_ccy: number | null; new_estimated_total_ccy: number | null
+    }[]
+    const issues = mustRows(issuesRes, 'po_issues')
+    const latestIssueVersion = issues.length ? Number(issues[0].version) : null
+    const amendedSinceIssue =
+        issues.length > 0 && history.length > 0 &&
+        new Date(history[0].changed_at) > new Date(issues[0].issued_at as string)
 
     // 遮蔽的是估价列;material_id / pricing_formula_id 等恢复基表类型。
     const lines = maskedRows<Tables<'purchase_order_lines'>, 'estimated_unit_price' | 'estimated_amount_ccy'>(mustRows(linesRes))
@@ -212,6 +230,16 @@ export default async function PurchaseOrderDetailPage({
                             unappliedPrepayment={canFinance ? Number(poStatus?.prepaid_remaining_base ?? 0) : null}
                             baseCurrency={baseCurrency}
                         />
+                    )}
+                    {/* PUR-2:修改入口。【已结束/已作废的不给】—— 服务端会拒,
+                        不摆一个注定失败的按钮;要改就先 reopen,让状态变化成为
+                        一次有记录的动作,而不是修改的副作用。
+                        (动态路由的入口按 AGENTS.md 的规矩由人确认:走查不断言它。) */}
+                    {po.status !== 'closed' && !isCancelled && (
+                        <Link href={`/purchasing/orders/${po.id}/amend`}
+                            className="border border-gray-300 px-3 py-1.5 rounded text-sm hover:bg-gray-50">
+                            {t('purchasing.amend.link')}
+                        </Link>
                     )}
                     {po.status === 'closed' && <ReopenOrderControl poId={po.id} />}
                     {!isCancelled &&
@@ -335,6 +363,44 @@ export default async function PurchaseOrderDetailPage({
                                 <span className="text-gray-500 ml-2">
                                     {t('purchasing.doc.issuedAt', { at: new Date(iss.issued_at).toISOString().slice(0, 16).replace('T', ' ') })}
                                 </span>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+                {/* PUR-2:【已改、未重发】—— 供应商手里那份是某个具体版本,而这张单
+                    此后又被改过。修改【不作废】那次签发(它确实发出去过,字节与摘要
+                    原样留着),它要的是一次【新的签发】。 */}
+                {amendedSinceIssue && (
+                    <p className="mt-2 text-sm text-amber-800 bg-amber-50 border border-amber-300 rounded px-3 py-2">
+                        {t('purchasing.doc.amendedSinceIssue', { version: latestIssueVersion ?? 0 })}
+                    </p>
+                )}
+            </div>
+
+            {/* PUR-2:编辑史。与 approval_log 各答各的 —— 那张答"谁批了什么金额",
+                这张答"这张单当时说的是什么"。只增不改。 */}
+            <div className="border border-gray-200 rounded p-4 mb-4">
+                <h2 className="font-semibold mb-2">{t('purchasing.amend.historyTitle')}</h2>
+                {history.length === 0 ? (
+                    <p className="text-xs text-gray-500">{t('purchasing.amend.noHistory')}</p>
+                ) : (
+                    <ul className="text-sm space-y-1">
+                        {history.map((h) => (
+                            <li key={h.id} className="flex flex-wrap gap-2">
+                                <span className="text-gray-500 font-mono text-xs">
+                                    {new Date(h.changed_at).toISOString().slice(0, 16).replace('T', ' ')}
+                                </span>
+                                <span>{t('purchasing.amend.change.' + h.change_type)}</span>
+                                {h.line_no !== null && (
+                                    <span className="text-gray-500">#{h.line_no}</span>
+                                )}
+                                {h.old_quantity !== null && h.new_quantity !== null && (
+                                    <span className="font-mono text-xs">{h.old_quantity} → {h.new_quantity}</span>
+                                )}
+                                {h.old_quantity !== null && h.new_quantity === null && (
+                                    <span className="font-mono text-xs">{h.old_quantity} →</span>
+                                )}
+                                {h.amend_reason && <span className="text-gray-600">— {h.amend_reason}</span>}
                             </li>
                         ))}
                     </ul>

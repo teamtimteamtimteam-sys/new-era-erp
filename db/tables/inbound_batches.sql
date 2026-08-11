@@ -170,9 +170,14 @@ CREATE OR REPLACE FUNCTION public.advance_po_on_receipt()
 AS $function$
 BEGIN
     IF NEW.purchase_order_id IS NOT NULL THEN
-        UPDATE purchase_orders
+        -- PUR-2:收货把单据从 confirmed 推到 receiving —— 那是一次【状态转换】,
+    -- 不是一次修改。与另外五个转换函数同一个标记,用完立刻清。
+    PERFORM set_config('evoltrya.po_status_ctx', '1', true);
+    UPDATE purchase_orders
         SET status = 'receiving', updated_by = auth.uid()
         WHERE id = NEW.purchase_order_id AND status = 'confirmed';
+    PERFORM set_config('evoltrya.po_status_ctx', '', true);
+
     END IF;
     RETURN NULL;
 END;
