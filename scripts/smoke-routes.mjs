@@ -409,6 +409,16 @@ async function main() {
     // 【最先跑,而且在 sweepStalePort / next dev 之前】—— 见 preflightIdSources 抬头:
     // 这是一个静态问题,不该等到起了服务器、建了会话、扫过临时行之后才回答。
     preflightIdSources(routes)
+    // 【临时行体检:报告,不动手】就在这里跑一次 —— 正要再造一批临时行之前,
+    // 是最该知道"上一次留下了什么"的时刻。
+    // 它【不中止冒烟】:滞留的临时行是家务,不是路由的正确性问题,
+    // 而把家务做成拦路的门,只会让人学会跳过这道门(--reach 那一课)。
+    try {
+        const { execSync } = await import('node:child_process')
+        execSync('node scripts/check-scratch-rows.mjs', { cwd: ROOT, stdio: 'inherit' })
+    } catch {
+        console.log('  (临时行体检报了滞留行 —— 见上;冒烟继续,处置由人决定)')
+    }
     sweepStalePort()   // 端口先扫:库里的行扫干净了,端口被占住照样开不了跑
     await sweepScratch()
 

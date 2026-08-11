@@ -8,7 +8,8 @@
     "check:i18n": "node scripts/check-i18n.mjs",
     "start": "next start",
     "lint": "eslint",
-    "types:gen": "supabase gen types typescript --project-id wvywpohbwkiinmipmuku > lib/database.types.ts"
+    "types:gen": "supabase gen types typescript --project-id wvywpohbwkiinmipmuku > lib/database.types.ts",
+    "check:scratch": "node scripts/check-scratch-rows.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

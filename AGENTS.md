@@ -265,6 +265,34 @@ Deliberately NOT part of db/gate.py: it needs a dev server and minutes — a
 slow gate is a skipped gate (the check_mirrors lesson). Run it after touching
 page-level rendering, and after any bug a human finds by clicking.
 
+### 临时行:报告,不清扫 —— 而这条区别本身就是判据
+
+```
+npm run check:scratch      # 也在冒烟开跑时自动跑一次(报告,不中止)
+```
+
+**一次清扫必须【依据一个它无法核实的判断去动手】**:这一行是上次崩掉的残骸,
+还是另一个进程此刻正在用的?两者长得一模一样 —— `sweepScratch` 就是这么在
+2026-08-10 删掉了另一个会话正在用的账号(`docs/concurrency-one-tree-one-smoke.md`)。
+它没有归属信息也没有年龄判据,而**把它扩到更多张表,只会让同一个 bug 的爆炸半径更大**。
+
+> **归属与年龄,正是清扫不能安全知道、而报告可以照直说出来的东西。**
+> 同样的不确定,两种代价:报告说错了,人多看一眼;清扫做错了,正在跑的活被毁掉。
+
+所以这个检查只**陈述**判断,不**依据**它动手。三件事让它不至于变成"喊狼来了":
+
+* **两小时的年龄门槛**把【这一次正在跑的行】与【滞留的行】分开。判据是实测的最长
+  一跑(`--reach` 65 分 44 秒),门槛必须明显高于它,否则一次 `--reach` 跑到一半
+  会把自己的行报成滞留 —— 而喊狼来了的报告没人看。用年龄而不是运行标记,是因为
+  实测发现的残骸**不是冒烟写的**,是一次没有回滚的 fixture/探针留下的:年龄对每
+  一种来源都成立,不需要任何一方配合。
+* **第三列报"还有谁在引用它"**,把"残骸"与"有人依赖的残骸"分开 —— 后者**不能删**。
+* **它不中止冒烟**:家务不该做成拦路的门,否则人会学会跳过那道门。
+
+**它第一次跑就证明了自己**:`materials.ZZ-SMOKE-PROBE` 命名像残骸,而**一张在册的
+真批次 `IN-2026-0180`(Acme,100,000 kg)正引用着它**。一次按命名规则的清扫会把它
+删掉,并让那张真批次指向一个已删的物料 —— 比留着残骸坏得多。
+
 ## Adding a column to a masked table: extend the grant, or it is invisible
 
 `perm2b` converted the masked tables to **column-list** SELECT grants
