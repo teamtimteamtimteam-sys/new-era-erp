@@ -120,6 +120,8 @@ RUNTIME_CONFIG_TABLES = [
     # SMM 的 quote_currency 引导里【故意为空】,Tim 声明之后线上会与本文件不同,
     # 那是系统在正常工作。
     "metal_price_indices",
+    # MAT-1:受控废物分类 —— 加一种分类是加一行(与 certificate_types 同一条)。
+    "waste_classifications",
 ]
 
 # 【引导默认值一行都不许是空的】RUNTIME CONFIG 的种子不与线上比对(那是对的:界面改得动),

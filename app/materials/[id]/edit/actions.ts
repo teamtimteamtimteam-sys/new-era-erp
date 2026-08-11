@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { getTranslations } from '@/lib/i18n/server'
+import { parseWasteClassField } from '../../wasteClassOptions'
 
 export type UpdateMaterialState = {
     error?: string
@@ -21,6 +22,9 @@ export async function updateMaterial(
     const name = (formData.get('name') as string)?.trim()
     const category = (formData.get('category') as string)?.trim()
     const chemistry = (formData.get('chemistry') as string)?.trim() || null
+    // MAT-1:分类可以被改回【未分类】—— 那是一个正当的动作(录错了要能撤回),
+    // 而不是一个应当被拦住的状态。
+    const waste_classification_code = parseWasteClassField(formData.get('waste_classification_code'))
     const unit = (formData.get('unit') as string)?.trim() || 'kg'
     const spec = (formData.get('spec') as string)?.trim() || null
     const notes = (formData.get('notes') as string)?.trim() || null
@@ -46,6 +50,7 @@ export async function updateMaterial(
             name,
             category,
             chemistry,
+            waste_classification_code,
             unit,
             spec,
             notes,

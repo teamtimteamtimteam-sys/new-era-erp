@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import type { InsertRow } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
+import { parseWasteClassField } from '../wasteClassOptions'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
@@ -21,6 +22,9 @@ export async function createMaterial(
     const name = (formData.get('name') as string)?.trim()
     const category = (formData.get('category') as string)?.trim()
     const chemistry = (formData.get('chemistry') as string)?.trim() || null
+    // MAT-1:受控废物分类。【未分类 → NULL】,而 NULL 的意思是"没有人分过类",
+    // 不是"非受控" —— 一个合规判断会踩在这个区别上。
+    const waste_classification_code = parseWasteClassField(formData.get('waste_classification_code'))
     const unit = (formData.get('unit') as string)?.trim() || 'kg'
     const spec = (formData.get('spec') as string)?.trim() || null
     const notes = (formData.get('notes') as string)?.trim() || null
@@ -44,6 +48,7 @@ export async function createMaterial(
         name,
         category,
         chemistry,
+        waste_classification_code,
         unit,
         spec,
         notes,

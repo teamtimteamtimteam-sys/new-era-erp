@@ -4,6 +4,8 @@
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import NewMaterialForm from './NewMaterialForm'
+import { getWasteClassifications } from '../wasteClassQuery'
+import { getLocale } from '@/lib/i18n/server'
 
 export default async function NewMaterialPage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -11,5 +13,9 @@ export default async function NewMaterialPage() {
     const denied = await requireModule(MOD.materials)
     if (denied) return denied
 
-    return <NewMaterialForm />
+    // MAT-1:分类选项从表里现读 —— 加一种分类是加一行,不是改代码
+    const wasteClasses = await getWasteClassifications()
+    const locale = await getLocale()
+
+    return <NewMaterialForm wasteClasses={wasteClasses} locale={locale} />
 }

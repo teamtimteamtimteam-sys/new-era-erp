@@ -3246,6 +3246,7 @@ export type Database = {
           unit: string
           updated_at: string
           updated_by: string | null
+          waste_classification_code: string | null
         }
         Insert: {
           category: string
@@ -3262,6 +3263,7 @@ export type Database = {
           unit?: string
           updated_at?: string
           updated_by?: string | null
+          waste_classification_code?: string | null
         }
         Update: {
           category?: string
@@ -3278,8 +3280,17 @@ export type Database = {
           unit?: string
           updated_at?: string
           updated_by?: string | null
+          waste_classification_code?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "materials_waste_classification_code_fkey"
+            columns: ["waste_classification_code"]
+            isOneToOne: false
+            referencedRelation: "waste_classifications"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       medical_claims: {
         Row: {
@@ -7187,6 +7198,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      waste_classifications: {
+        Row: {
+          code: string
+          created_at: string
+          is_active: boolean
+          is_controlled: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          is_active?: boolean
+          is_controlled: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          is_active?: boolean
+          is_controlled?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       year_closes: {
         Row: {

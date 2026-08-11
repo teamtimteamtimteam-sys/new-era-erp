@@ -11,6 +11,8 @@ import {
     CUSTOM_VALUE,
 } from '../../options'
 import { useTranslations } from '@/lib/i18n/client'
+import WasteClassPicker from '../../WasteClassPicker'
+import type { WasteClass } from '../../wasteClassOptions'
 
 const initialState: UpdateMaterialState = {}
 
@@ -19,12 +21,21 @@ type Material = {
     name: string
     category: string
     chemistry: string | null
+    waste_classification_code: string | null
     unit: string
     spec: string | null
     notes: string | null
 }
 
-export default function EditMaterialForm({ material }: { material: Material }) {
+export default function EditMaterialForm({
+    material,
+    wasteClasses,
+    locale,
+}: {
+    material: Material
+    wasteClasses: WasteClass[]
+    locale: string
+}) {
     const t = useTranslations()
     const updateWithId = updateMaterial.bind(null, material.id)
     const [state, formAction, isPending] = useActionState(
@@ -107,6 +118,17 @@ export default function EditMaterialForm({ material }: { material: Material }) {
                         })}
                         defaultValue={material.chemistry ?? undefined}
                     />
+                </div>
+
+                {/* MAT-1:受控废物分类。改回【未分类】是正当的动作(录错了要能撤回),
+                    而不是一个应当被拦住的状态。 */}
+                <div>
+                    <label className="block text-sm font-medium mb-1">
+                        {t('materials.form.wasteClass')}
+                    </label>
+                    <WasteClassPicker name="waste_classification_code" classes={wasteClasses}
+                        defaultValue={material.waste_classification_code} locale={locale} />
+                    <p className="text-xs text-gray-500 mt-1">{t('materials.form.wasteClassHint')}</p>
                 </div>
 
                 {/* 单位(固定列表)*/}

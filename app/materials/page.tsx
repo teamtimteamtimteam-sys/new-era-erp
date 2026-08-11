@@ -74,7 +74,7 @@ export default async function MaterialsPage({
     // 2) 取当前页的行:过滤 + 排序后再 .range(from, to)
     const baseQuery = supabase
         .from('materials')
-        .select('id, code, name, category, chemistry, unit, status, created_at')
+        .select('id, code, name, category, chemistry, unit, status, created_at, waste_classification_code, waste_classifications ( name_en, name_zh, is_controlled )')
 
     const { data: materials, error } = await applyMaterialFilters(
         baseQuery,
@@ -160,6 +160,9 @@ export default async function MaterialsPage({
                             {t('materials.colChemistry')}
                         </th>
                         <th className="border border-gray-300 px-4 py-2 text-left">
+                            {t('materials.colWasteClass')}
+                        </th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">
                             {t('materials.colUnit')}
                         </th>
                         <th className="border border-gray-300 px-4 py-2 text-left">
@@ -186,6 +189,23 @@ export default async function MaterialsPage({
                             <td className="border border-gray-300 px-4 py-2">{display(CATEGORY_OPTIONS, m.category)}</td>
                             <td className="border border-gray-300 px-4 py-2">
                                 {m.chemistry ? display(CHEMISTRY_OPTIONS, m.chemistry) : '—'}
+                            </td>
+                            <td className="border border-gray-300 px-4 py-2 text-sm">
+                                {/* MAT-1:【未分类要说出来,不能画成空白】—— 空白读起来像
+                                    "这一栏没填",而它的意思是"没有人分过类",
+                                    与"分类为非受控"在合规判断上不是一回事。 */}
+                                {m.waste_classifications ? (
+                                    <>
+                                        {locale === 'zh' ? m.waste_classifications.name_zh : m.waste_classifications.name_en}
+                                        {m.waste_classifications.is_controlled && (
+                                            <span className="ml-2 px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-800 border border-amber-300">
+                                                {t('materials.wasteClass.controlled')}
+                                            </span>
+                                        )}
+                                    </>
+                                ) : (
+                                    <span className="text-gray-400">{t('materials.wasteClass.unclassified')}</span>
+                                )}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">{display(UNIT_OPTIONS, m.unit)}</td>
                             <td className="border border-gray-300 px-4 py-2">

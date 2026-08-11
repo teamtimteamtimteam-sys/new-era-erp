@@ -3,6 +3,7 @@ import { formatTimestamp } from '@/lib/format'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import EditMaterialForm from './EditMaterialForm'
+import { getWasteClassifications } from '../../wasteClassQuery'
 import AttachmentsPanel from './AttachmentsPanel'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -22,6 +23,8 @@ export default async function EditMaterialPage({
     const supabase = await createClient()
     const t = await getTranslations()
     const locale = await getLocale()
+    // MAT-1:分类选项从表里现读
+    const wasteClasses = await getWasteClassifications()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
     const { data: material, error } = await supabase
@@ -73,7 +76,7 @@ export default async function EditMaterialPage({
                 </span>
             </p>
 
-            <EditMaterialForm material={material} />
+            <EditMaterialForm material={material} wasteClasses={wasteClasses} locale={locale} />
             <AttachmentsPanel materialId={material.id} rows={attachments} />
         </div>
     )

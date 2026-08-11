@@ -664,6 +664,11 @@ const zh = {
         colName: '名称',
         colCategory: '类别',
         colChemistry: '化学体系',
+        colWasteClass: '废物分类',
+        wasteClass: {
+            unclassified: '未分类',
+            controlled: '受控',
+        },
         colUnit: '单位',
         colStatus: '状态',
         colCreated: '创建时间',
@@ -686,6 +691,9 @@ const zh = {
             namePlaceholder: '例如:NMC极片 / 三元黑粉 / 铜',
             category: '类别',
             chemistry: '化学体系',
+            // MAT-1:受控废物分类
+            wasteClass: '受控废物分类',
+            wasteClassHint: '【监管怎么看这个物料】—— 与 category(它在我们流程里是哪一种东西)和化学体系是三回事。「未分类」的意思是还没有人做过判断,与「分类为非受控」不是一回事,而一个合规判断会踩在这个区别上。',
             unit: '单位',
             spec: '规格/描述',
             notes: '备注',

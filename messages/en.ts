@@ -661,6 +661,11 @@ const en = {
         colName: 'Name',
         colCategory: 'Category',
         colChemistry: 'Chemistry',
+        colWasteClass: 'Waste class',
+        wasteClass: {
+            unclassified: 'Not classified',
+            controlled: 'controlled',
+        },
         colUnit: 'Unit',
         colStatus: 'Status',
         colCreated: 'Created',
@@ -683,6 +688,9 @@ const en = {
             namePlaceholder: 'e.g. NMC cathode / ternary black mass / copper',
             category: 'Category',
             chemistry: 'Chemistry',
+            // MAT-1:受控废物分类
+            wasteClass: 'Waste classification',
+            wasteClassHint: 'How the regulator sees this material — separate from category (what it is in our flow) and chemistry. "Not classified" means nobody has decided yet; it is not the same as classifying it as non-controlled, and a compliance decision rests on that difference.',
             unit: 'Unit',
             spec: 'Spec / Description',
             notes: 'Notes',

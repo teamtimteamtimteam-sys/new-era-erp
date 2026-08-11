@@ -16,10 +16,18 @@ import {
     CUSTOM_VALUE,
 } from '../options'
 import { useTranslations } from '@/lib/i18n/client'
+import WasteClassPicker from '../WasteClassPicker'
+import type { WasteClass } from '../wasteClassOptions'
 
 const initialState: CreateMaterialState = {}
 
-export default function NewMaterialForm() {
+export default function NewMaterialForm({
+    wasteClasses,
+    locale,
+}: {
+    wasteClasses: WasteClass[]
+    locale: string
+}) {
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(
         createMaterial,
@@ -110,6 +118,18 @@ export default function NewMaterialForm() {
                             label: t('materials.form.chemistry'),
                         })}
                     />
+                </div>
+
+
+                {/* MAT-1:受控废物分类。【未分类是一个要选的选项,不是留空】——
+                    它的意思是"没有人分过类",与"分类为非受控"在合规判断上不是一回事。 */}
+                <div>
+                    <label className="block text-sm font-medium mb-1">
+                        {t('materials.form.wasteClass')}
+                    </label>
+                    <WasteClassPicker name="waste_classification_code" classes={wasteClasses}
+                        defaultValue={null} locale={locale} />
+                    <p className="text-xs text-gray-500 mt-1">{t('materials.form.wasteClassHint')}</p>
                 </div>
 
                 {/* 单位(固定列表)*/}
