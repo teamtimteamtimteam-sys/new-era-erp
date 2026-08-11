@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.upsert_metal_prices(p_price_date date, p_prices jsonb)
+CREATE OR REPLACE FUNCTION public.upsert_metal_prices(p_price_date date, p_prices jsonb, p_price_index text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -16,6 +16,12 @@ DECLARE
     v_was_ins  boolean;
 BEGIN
     PERFORM require_permission('module.pricing.edit');
+    -- METAL-2:录入的是【哪个指数】的行情。NULL = 未声明(老序列),它是一个
+    -- 可表示的状态而不是默认值 —— 界面上是一个必须选的下拉,而不是留空就当某个值。
+    IF p_price_index IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM metal_price_indices WHERE code = p_price_index AND is_active) THEN
+        RAISE EXCEPTION 'PRICE_INDEX_UNKNOWN|%', p_price_index;
+    END IF;
     IF p_price_date IS NULL THEN
         RAISE EXCEPTION 'PRICE_DATE_REQUIRED';
     END IF;
@@ -44,9 +50,9 @@ BEGIN
 
         -- (metal, price_date) 唯一。软删的行也占着这个位置 —— 撞上就顺手复活它
         -- (deleted_at = NULL)并写入新价,这两种情形都算 updated。
-        INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source, created_by, updated_by)
-        VALUES (v_metal, v_price, p_price_date, 'manual', v_user, v_user)
-        ON CONFLICT (metal, price_date) DO UPDATE
+        INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, price_index, source, created_by, updated_by)
+        VALUES (v_metal, v_price, p_price_date, p_price_index, 'manual', v_user, v_user)
+        ON CONFLICT (metal, price_date, price_index) DO UPDATE
         SET price_usd_per_tonne = EXCLUDED.price_usd_per_tonne,
             source              = EXCLUDED.source,
             deleted_at          = NULL,
@@ -62,6 +68,7 @@ BEGIN
 
     RETURN jsonb_build_object(
         'price_date', p_price_date,
+        'price_index', p_price_index,
         'inserted', v_inserted,
         'updated', v_updated,
         'skipped', v_skipped

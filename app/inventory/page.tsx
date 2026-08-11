@@ -10,7 +10,7 @@ import { formatAmount, formatMoneyBare } from '@/lib/format'
 import { latestPriceByMetal, marketValuePerKg } from '@/lib/valuation'
 import { maskedRows } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
-import { mustCount, mustRows } from '@/lib/db-helpers'
+import { mustCount, mustOne, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { getBaseCurrency } from '@/lib/currency'
@@ -64,7 +64,7 @@ export default async function InventoryPage() {
 
     const todayYmd = new Date().toISOString().slice(0, 10)
 
-    const [inboundRes, outputRes, runsRes, legsRes, metalsRes, pricesRes, unpricedRes] = await Promise.all([
+    const [inboundRes, outputRes, runsRes, legsRes, metalsRes, settingsRes, pricesRes, unpricedRes] = await Promise.all([
         supabase
             .from('inbound_batches_masked')
             .select('material_id, remaining_qty, unit, unit_price, materials ( name, category )')
@@ -88,9 +88,11 @@ export default async function InventoryPage() {
             .from('output_batch_metals')
             .select('output_batch_id, metal, content_pct'),
         // 每金属的最新有效价(只取今天及以前,忽略预登的未来价)
+        // METAL-2:房屋约定的那条序列(没有合同可继承指数时用它)
+        supabase.from('pricing_settings').select('default_metal_index').eq('id', true).maybeSingle(),
         supabase
             .from('metal_prices')
-            .select('metal, price_usd_per_tonne, price_date')
+            .select('metal, price_usd_per_tonne, price_date, price_index')
             .is('deleted_at', null)
             .lte('price_date', todayYmd),
         // 未计价的在册进料批次数(与进料列表页同口径的提示徽标)
@@ -132,7 +134,10 @@ export default async function InventoryPage() {
         if (list) list.push(m)
         else metalsByBatch.set(m.output_batch_id, [m])
     }
-    const priceByMetal = latestPriceByMetal(mustRows(pricesRes))
+    const priceByMetal = latestPriceByMetal(
+        mustRows(pricesRes),
+        mustOne(settingsRes, 'pricing_settings')?.default_metal_index ?? null
+    )
 
     // 按 material_id 聚合
     const rowsByMaterial = new Map<string, InventoryRow>()

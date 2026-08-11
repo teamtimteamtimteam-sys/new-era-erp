@@ -61,10 +61,17 @@ export type OutputValuation = {
 // 最新有效金属价:每个金属取 price_date 最大的一条(调用方已过滤 deleted_at / 未来日期)。
 // 不依赖输入顺序,重复日期由 DB 唯一约束排除。
 export function latestPriceByMetal(
-    rows: { metal: string; price_usd_per_tonne: number; price_date: string }[]
+    rows: { metal: string; price_usd_per_tonne: number; price_date: string; price_index?: string | null }[],
+    // METAL-2:取【哪一条序列】的价。库存估值没有合同可以继承指数,所以调用方
+    // 传的是 pricing_settings.default_metal_index —— 一个默认值在替一条缺席的
+    // 条款站位,不是"这批货按某个指数结算了"。它还没卖。
+    // null = 未标注指数的那条序列(既有 11 行所在的位置)。
+    priceIndex: string | null = null
 ): Map<string, number> {
     const best = new Map<string, { price: number; date: string }>()
     for (const r of rows) {
+        // 跨序列混着取"最新一条"会让估值在两个市场之间跳,而没有人说得出它用了哪个
+        if ((r.price_index ?? null) !== priceIndex) continue
         const cur = best.get(r.metal)
         if (!cur || r.price_date > cur.date) {
             best.set(r.metal, { price: r.price_usd_per_tonne, date: r.price_date })

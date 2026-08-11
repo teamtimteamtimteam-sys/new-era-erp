@@ -6,6 +6,8 @@ import { createMetalPrice, type CreateMetalPriceState } from './actions'
 import { METAL_OPTIONS } from '../options'
 import { useTranslations } from '@/lib/i18n/client'
 import AnomalyWarning from '../AnomalyWarning'
+import IndexPicker from '../IndexPicker'
+import type { MetalPriceIndex } from '../indexOptions'
 import { ACK_FIELD, ackSignature } from '../anomaly'
 
 const initialState: CreateMetalPriceState = {}
@@ -19,7 +21,13 @@ function todayIsoLocal(): string {
     return `${yyyy}-${mm}-${dd}`
 }
 
-export default function NewMetalPriceForm() {
+export default function NewMetalPriceForm({
+    indices,
+    locale,
+}: {
+    indices: MetalPriceIndex[]
+    locale: string
+}) {
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(
         createMetalPrice,
@@ -87,6 +95,15 @@ export default function NewMetalPriceForm() {
                             {state.fieldErrors.price_usd_per_tonne}
                         </p>
                     )}
+                </div>
+
+                {/* METAL-2:这条报价来自哪个市场 —— 与"怎么来的"(source)是两个轴 */}
+                <div>
+                    <label className="block text-sm font-medium mb-1">
+                        {t('metalPrices.form.priceIndex')}
+                    </label>
+                    <IndexPicker name="price_index" indices={indices} defaultValue={null} locale={locale} />
+                    <p className="text-xs text-gray-500 mt-1">{t('metalPrices.form.priceIndexHint')}</p>
                 </div>
 
                 {/* 价格日期(必填,默认今天)*/}

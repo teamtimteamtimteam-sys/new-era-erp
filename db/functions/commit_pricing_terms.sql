@@ -18,11 +18,11 @@ BEGIN
     INSERT INTO pricing_term_commitments (
         purchase_order_line_id, inbound_batch_id,
         source_formula_id, source_formula_code, source_formula_name,
-        price_basis, average_days, treatment_charge_usd_per_tonne, flat_discount_pct)
+        price_index, price_basis, average_days, treatment_charge_usd_per_tonne, flat_discount_pct)
     VALUES (
         p_purchase_order_line_id, p_inbound_batch_id,
         (v_terms->>'formula_id')::uuid, v_terms->>'formula_code', v_terms->>'formula_name',
-        v_terms->>'price_basis', (v_terms->>'average_days')::integer,
+        v_terms->>'price_index', v_terms->>'price_basis', (v_terms->>'average_days')::integer,
         (v_terms->>'treatment_charge_usd_per_tonne')::numeric,
         (v_terms->>'flat_discount_pct')::numeric)
     RETURNING id INTO v_id;

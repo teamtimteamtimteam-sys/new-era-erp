@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.preview_metal_price_anomalies(p_price_date date, p_prices jsonb)
+CREATE OR REPLACE FUNCTION public.preview_metal_price_anomalies(p_price_date date, p_prices jsonb, p_price_index text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  STABLE
@@ -28,12 +28,14 @@ BEGIN
         v_price := v_raw::numeric;
         CONTINUE WHEN v_price IS NULL OR v_price <= 0;
 
-        -- 覆盖已有的同日行时,那一行自己不能当参照
+        -- 覆盖【同一指数上】已有的同日行时,那一行自己不能当参照
         SELECT id INTO v_exists FROM metal_prices
-         WHERE metal = v_metal AND price_date = p_price_date AND deleted_at IS NULL;
+         WHERE metal = v_metal AND price_date = p_price_date
+           AND price_index IS NOT DISTINCT FROM p_price_index
+           AND deleted_at IS NULL;
 
         v_out := v_out || jsonb_build_array(
-            metal_price_anomaly(v_metal, v_price, p_price_date, v_exists));
+            metal_price_anomaly(v_metal, v_price, p_price_date, p_price_index, v_exists));
     END LOOP;
 
     RETURN v_out;

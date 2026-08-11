@@ -1,8 +1,9 @@
 // app/pricing/formulas/new/page.tsx
 // 新建定价公式(服务端壳):取在册供应商/客户供"适用对象"下拉。
 import { createClient } from '@/lib/supabase/server'
-import { getTranslations } from '@/lib/i18n/server'
+import { getTranslations , getLocale } from '@/lib/i18n/server'
 import Subnav from '../../Subnav'
+import { getMetalPriceIndices } from '@/app/metal-prices/indexQuery'
 import FormulaForm, { EMPTY_FORMULA, type PartyOption, type QuoteDate } from '../FormulaForm'
 import { createFormula } from '../actions'
 import { mustRows } from '@/lib/db-helpers'
@@ -35,13 +36,17 @@ export default async function NewFormulaPage() {
         .gte('price_date', new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10))
         .order('price_date', { ascending: false })
     const quoteDates = mustRows(quoteRes) as QuoteDate[]
-
+    // METAL-2:指数选项从表里现读
+    const indices = await getMetalPriceIndices()
+    const locale = await getLocale()
 
     return (
         <div className="p-8">
             <h1 className="text-2xl font-bold mb-4">{t('pricing.new')}</h1>
             <Subnav />
             <FormulaForm
+            indices={indices}
+            locale={locale}
                 action={createFormula}
                 defaults={EMPTY_FORMULA}
                 suppliers={suppliers}

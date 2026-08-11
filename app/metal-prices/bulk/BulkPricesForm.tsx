@@ -11,6 +11,8 @@ import { useTranslations } from '@/lib/i18n/client'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { METAL_OPTIONS } from '../options'
 import AnomalyWarning from '../AnomalyWarning'
+import IndexPicker from '../IndexPicker'
+import { INDEX_UNSTATED, type MetalPriceIndex } from '../indexOptions'
 import { ACK_FIELD, ackSignature } from '../anomaly'
 
 const initialState: BulkPricesState = {}
@@ -26,9 +28,15 @@ export type MetalRowData = {
 
 export default function BulkPricesForm({
     priceDate,
+    priceIndex,
+    indices,
+    locale,
     rows,
 }: {
     priceDate: string
+    priceIndex: string | null
+    indices: MetalPriceIndex[]
+    locale: string
     rows: MetalRowData[]
 }) {
     const t = useTranslations()
@@ -60,21 +68,39 @@ export default function BulkPricesForm({
                 </div>
             )}
 
-            <div>
-                <label className="block text-sm font-medium mb-1">
-                    {t('metalPrices.bulk.date')} <span className="text-red-600">*</span>
-                </label>
-                <input
-                    type="date"
-                    name="price_date"
-                    required
-                    value={priceDate}
-                    onChange={(e) => {
-                        const d = e.target.value
-                        if (d) router.replace(`${pathname}?date=${d}`)
-                    }}
-                    className="border border-gray-300 px-3 py-2 rounded"
-                />
+            <div className="flex flex-wrap gap-4">
+                <div>
+                    <label className="block text-sm font-medium mb-1">
+                        {t('metalPrices.bulk.date')} <span className="text-red-600">*</span>
+                    </label>
+                    <input
+                        type="date"
+                        name="price_date"
+                        required
+                        value={priceDate}
+                        onChange={(e) => {
+                            const d = e.target.value
+                            if (d) router.replace(`${pathname}?date=${d}&index=${priceIndex ?? INDEX_UNSTATED}`)
+                        }}
+                        className="border border-gray-300 px-3 py-2 rounded"
+                    />
+                </div>
+                {/* METAL-2:整张表属于一个指数。改它要【重取参照价】—— 拿 LME 的
+                    上一条去比 SMM 的今天,屏幕上那句"上次 X"就是错的,
+                    所以它和日期一样写进 URL,由服务端重取。 */}
+                <div>
+                    <label className="block text-sm font-medium mb-1">
+                        {t('metalPrices.form.priceIndex')}
+                    </label>
+                    <IndexPicker
+                        name="price_index"
+                        indices={indices}
+                        defaultValue={priceIndex}
+                        locale={locale}
+                        onChange={(v) => router.replace(`${pathname}?date=${priceDate}&index=${v}`)}
+                        className="border border-gray-300 px-3 py-2 rounded"
+                    />
+                </div>
             </div>
 
             <table className="w-full border-collapse border border-gray-300">

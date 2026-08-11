@@ -8,6 +8,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { revalidatePath } from 'next/cache'
 import { localizePricingError } from '../../pricing/pricingErrorCodes'
 import { ACK_FIELD, ackSignature, outsideOnly, type AnomalyVerdict } from '../anomaly'
+import { parseIndexField } from '../indexOptions'
 
 export type BulkPricesState = {
     error?: string
@@ -27,6 +28,9 @@ export async function saveBulkPrices(
         return { error: t('metalPrices.form.errPriceDate') }
     }
 
+    // METAL-2:一次批量录入属于【一个指数】—— 一天的行情单来自一个市场。
+    const priceIndex = parseIndexField(formData.get('price_index'))
+
     const metals = formData.getAll('metal').map(String)
     const prices = formData.getAll('price').map(String)
 
@@ -44,7 +48,7 @@ export async function saveBulkPrices(
     // 那份是人相信的那份。
     const { data: verdicts, error: checkError } = await supabase.rpc(
         'preview_metal_price_anomalies',
-        { p_price_date: priceDate, p_prices: payload }
+        { p_price_date: priceDate, p_prices: payload, p_price_index: priceIndex ?? undefined }
     )
     // 判据失败要说出来,不能当作"没有异常"放过去(失败不是空集)
     if (checkError) {
@@ -58,6 +62,7 @@ export async function saveBulkPrices(
     const { data, error } = await supabase.rpc('upsert_metal_prices', {
         p_price_date: priceDate,
         p_prices: payload,
+        p_price_index: priceIndex ?? undefined,
     })
 
     if (error) {

@@ -34,6 +34,9 @@ CREATE VIEW public.pricing_formulas_masked WITH (security_invoker = off) AS
     created_at,
     created_by,
     updated_at,
-    updated_by
+    updated_by,
+    price_index
    FROM pricing_formulas
   WHERE has_permission('module.pricing.view'::text);
+
+

@@ -12,6 +12,7 @@ DECLARE
     v_metals     jsonb;
     v_terms      jsonb;
     v_mode       text;
+    v_default_index text;
     v_formula_code text;
     v_formula_dir  text;
     v_formula_active boolean;
@@ -74,7 +75,13 @@ BEGIN
         -- calculate_metal_price_from_terms。fixture 38 B 臂断言它与显式的
         -- 100%/0/0 公式给出同一个数 —— 那正是"预设而非分支"的证明。
         v_mode := 'spot_preset';
+        -- METAL-2:现货预设【没有合同可以继承指数】—— 它不是一笔谈定的交易,
+        -- 而是"照今天的牌价先算个数"。所以它用 pricing_settings 里的房屋约定。
+        -- 【这是一个默认值在替一条缺席的条款站位,不是正确答案】:真正谈成的单子
+        -- 会自己声明指数,而这里只是没有人可问。读这个数时要知道它靠的是约定。
+        SELECT default_metal_index INTO v_default_index FROM pricing_settings WHERE id;
         SELECT jsonb_build_object(
+            'price_index', v_default_index,
             'price_basis', 'spot',
             'average_days', NULL,
             'treatment_charge_usd_per_tonne', 0,
@@ -91,7 +98,11 @@ BEGIN
     SELECT COALESCE(array_agg(x), ARRAY[]::text[]) INTO v_skipped
     FROM jsonb_array_elements_text(COALESCE(v_result->'skipped_metals', '[]'::jsonb)) x;
     IF array_length(v_skipped, 1) > 0 THEN
-        RAISE EXCEPTION 'METAL_PRICE_MISSING|%|%', array_to_string(v_skipped, ','), p_reference_date;
+        -- METAL-2:点名【哪个指数】。两个序列之后,"没有行情"最常见的真相是
+        -- "这个金属在【那个】指数上没有行情"—— 另一个指数上很可能正躺着一条好数字,
+        -- 而按零计价把它算成不值钱。消息里不写指数,人就会去翻错的那张表。
+        RAISE EXCEPTION 'METAL_PRICE_MISSING|%|%|%', array_to_string(v_skipped, ','),
+            p_reference_date, COALESCE(v_terms->>'price_index', '(未声明指数)');
     END IF;
 
     v_usd_price := (v_result->>'unit_price_usd_per_kg')::numeric;

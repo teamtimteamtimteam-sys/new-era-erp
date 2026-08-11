@@ -954,7 +954,11 @@ const zh = {
                 OUTPUT_BATCH_NOT_FOUND: '产出批次不存在:{0}',
                 NO_METAL_CONTENT: '批次 {0} 没有录入金属含量 —— 没有化验就报不出价。请先在批次上录入含量。',
                 FORMULA_DIRECTION: '公式 {0} 是{1}方向的公式,不能用来给销售报价 —— 采购公式算的是我们付多少,不是我们收多少。',
-                METAL_PRICE_MISSING: '缺 {0} 在 {1} 的行情 —— 先到 定价 → 金属行情 录入当天报价。绝不带着一个按零计价的金属把报价发出去。',
+                // METAL-2:{2} 是【指数】—— 另一条序列上很可能正躺着一条好数字,
+                // 而这一单不结算在那条序列上。不写指数,人就会去翻错的那张表。
+                METAL_PRICE_MISSING: '缺 {0} 在 {1} 于【{2}】指数上的行情 —— 先到 定价 → 金属行情 录入该市场当天的报价。别的指数上可能有这个金属的价,但这一单结算在 {2} 上,那条不算数。绝不带着一个按零计价的金属把报价发出去。',
+                INDEX_CURRENCY_NOT_STATED: '指数【{0}】还没有声明报价币种,所以暂时不能按它计价。到 定价 → 金属行情 声明它的币种,或把这一单结算到已声明币种的指数上 —— 那些数字不会被默认当作美元。',
+                PRICE_INDEX_UNKNOWN: '未知或已停用的行情指数【{0}】。',
                 FORMULA_NOT_FOUND: '定价公式不存在:{0}',
                 FORMULA_INACTIVE: '定价公式 {0} 已停用',
                 REFERENCE_DATE_REQUIRED: '参考日期必填 —— 它决定报价用哪一天的金属行情与汇率。',
@@ -1897,6 +1901,7 @@ const zh = {
         colPrice: '价格 (USD/吨)',
         colPriceDate: '价格日期',
         colSource: '来源',
+        colIndex: '指数',
         colNotes: '备注',
         colActions: '操作',
         editAction: '编辑',
@@ -1926,6 +1931,9 @@ const zh = {
             selectMetal: '选择金属',
             price: '价格 (USD/吨)',
             priceDate: '价格日期',
+            // METAL-2:指数是"哪个市场",与 source("怎么来的")是两个轴
+            priceIndex: '行情指数',
+            priceIndexHint: '这条报价来自哪个市场。声明了指数的公式【看不见】未标注指数的行情,反之亦然 —— 未标注的报价绝不被当作某个市场的数字。',
             notes: '备注',
             errMetal: '请选择有效的金属',
             errPrice: '价格必须为大于 0 的数字',
@@ -1949,6 +1957,11 @@ const zh = {
             noReferenceTitle: '该金属的第一条报价 —— 当时没有可比的对象。这不等于"查过、没问题"。',
             legacyBadge: '无检查记录',
             legacyTitle: '这一行录入时还没有这项检查,当时没有比对过。它同样不等于"查过、没问题"。',
+        },
+        index: {
+            unstated: '未声明指数(与既有序列一致)',
+            unstatedShort: '未声明',
+            currencyNotStated: '报价币种未声明 —— 暂时算不出钱',
         },
         settings: {
             title: '行情异常提示',
@@ -2151,6 +2164,7 @@ const zh = {
         colDate: '日期',
         colMemo: '摘要',
         colSource: '来源',
+        colIndex: '指数',
         colAmount: '金额 ({ccy})',
         colStatus: '状态',
         colOriginalCcy: '原币',
@@ -2405,6 +2419,7 @@ const zh = {
             colRate: '汇率(1 外币 = ? SGD)',
             colRateDate: '汇率日期',
             colSource: '来源',
+        colIndex: '指数',
             colNotes: '备注',
             colActions: '操作',
             editAction: '编辑',
@@ -2692,6 +2707,9 @@ const zh = {
             name: '公式名称',
             direction: '适用方向',
             basis: '计价基准',
+            // METAL-2:合同挑指数(Doc 1:"LME or SMM")—— 交易条款,承诺时抄下
+            priceIndex: '结算指数',
+            priceIndexHint: '这笔交易在哪个市场结算。成交时会抄进成交记录,此后改公式不再影响已成交的那一单。声明了指数的公式【看不见】未标注指数的行情 —— 在那个指数有报价之前,结算会点名拒绝,而不是拿一条不知出处的数字顶上。',
             basisSpot: '最新价',
             basisAverage: 'N 日均价',
             basisSameToday:
@@ -2759,6 +2777,8 @@ const zh = {
             PRICE_DATE_REQUIRED: '请填写行情日期',
             REFERENCE_DATE_REQUIRED: '参考日期必填 —— 它决定报价取哪天的金属行情。',
             NO_PRICES: '没有提交任何价格',
+            INDEX_CURRENCY_NOT_STATED: '指数【{0}】还没有声明报价币种,所以暂时不能按它计价。到 定价 → 金属行情 声明它的币种 —— 那些数字不会被默认当作美元。',
+            PRICE_INDEX_UNKNOWN: '未知或已停用的行情指数【{0}】。',
         },
     },
     bank: {

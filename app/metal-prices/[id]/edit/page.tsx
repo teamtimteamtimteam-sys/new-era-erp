@@ -3,8 +3,9 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import EditMetalPriceForm from './EditMetalPriceForm'
 import DeleteButton from './DeleteButton'
-import { getTranslations } from '@/lib/i18n/server'
+import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { requireEditPermission } from '@/app/components/moduleGuard'
+import { getMetalPriceIndices } from '../../indexQuery'
 
 export default async function EditMetalPricePage({
     params,
@@ -34,10 +35,13 @@ export default async function EditMetalPricePage({
     const { id } = await params
     const supabase = await createClient()
     const t = await getTranslations()
+    // METAL-2:指数选项从表里现读;locale 决定下拉里显示中文名还是英文名
+    const indices = await getMetalPriceIndices()
+    const locale = await getLocale()
 
     const { data: row, error } = await supabase
         .from('metal_prices')
-        .select('id, metal, price_usd_per_tonne, price_date, notes')
+        .select('id, metal, price_usd_per_tonne, price_date, price_index, notes')
         .eq('id', id)
         .is('deleted_at', null)
         .single()
@@ -62,7 +66,7 @@ export default async function EditMetalPricePage({
                 <DeleteButton id={row.id} />
             </div>
 
-            <EditMetalPriceForm row={row} />
+            <EditMetalPriceForm indices={indices} locale={locale} row={row} />
         </div>
     )
 }

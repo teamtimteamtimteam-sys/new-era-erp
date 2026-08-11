@@ -2,8 +2,9 @@
 // 编辑定价公式(服务端壳):取公式 + 其计价比例行 + 往来单位下拉;updateFormula 绑 id。
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getTranslations } from '@/lib/i18n/server'
+import { getTranslations , getLocale } from '@/lib/i18n/server'
 import Subnav from '../../../Subnav'
+import { getMetalPriceIndices } from '@/app/metal-prices/indexQuery'
 import FormulaForm, { type FormulaDefaults, type PartyOption, type QuoteDate } from '../../FormulaForm'
 import { updateFormula } from '../../actions'
 import DeleteFormulaButton from './DeleteFormulaButton'
@@ -29,7 +30,7 @@ export default async function EditFormulaPage({
 
     const { data: formulaRaw, error } = await supabase
         .from('pricing_formulas_masked')
-        .select('id, code, name, direction, price_basis, average_days, treatment_charge_usd_per_tonne, flat_discount_pct, supplier_id, customer_id, notes, is_active')
+        .select('id, code, name, direction, price_basis, price_index, average_days, treatment_charge_usd_per_tonne, flat_discount_pct, supplier_id, customer_id, notes, is_active')
         .eq('id', id)
         .is('deleted_at', null)
         .single()
@@ -52,6 +53,7 @@ export default async function EditFormulaPage({
         name: formula.name,
         direction: formula.direction,
         price_basis: formula.price_basis,
+        price_index: formula.price_index ?? null,
         average_days: formula.average_days != null ? String(formula.average_days) : '',
         treatment_charge_usd_per_tonne: String(formula.treatment_charge_usd_per_tonne ?? ''),
         flat_discount_pct: String(formula.flat_discount_pct ?? ''),
@@ -80,6 +82,10 @@ export default async function EditFormulaPage({
 
     const updateWithId = updateFormula.bind(null, id)
 
+    // METAL-2:指数选项从表里现读
+    const indices = await getMetalPriceIndices()
+    const locale = await getLocale()
+
     return (
         <div className="p-8">
             <div className="flex justify-between items-center mb-4">
@@ -91,6 +97,8 @@ export default async function EditFormulaPage({
             </div>
             <Subnav />
             <FormulaForm
+            indices={indices}
+            locale={locale}
                 action={updateWithId}
                 defaults={defaults}
                 suppliers={suppliers}

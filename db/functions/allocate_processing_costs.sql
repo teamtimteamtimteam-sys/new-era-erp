@@ -25,6 +25,7 @@ DECLARE
     v_bad_code             text;
     v_bad_metal            text;
     v_prices_used          jsonb;
+    v_default_index        text;
     v_skipped_metals       jsonb;
     v_outputs              jsonb;
     v_sum_alloc            numeric;
@@ -128,6 +129,12 @@ BEGIN
     -- 7. Basis totals. Metals without a usable price contribute 0 (LEFT JOIN + COALESCE)
     --    and are recorded in skipped_metals; only a zero grand total blocks (NO_METAL_VALUE).
     IF v_basis = 'metal_value' THEN
+        -- METAL-2:分摊【没有交易可以继承指数】—— 一张加工单不是一笔谈定的买卖,
+        -- 没有对手方、没有条款,所以它按 pricing_settings 的房屋约定取价。
+        -- 【这是默认值在替一条缺席的条款站位,不是"这批成本按某个声明的指数结算了"】。
+        -- 快照里一并记下用的是哪个指数,免得日后有人把它读成一条谈定的条款。
+        SELECT default_metal_index INTO v_default_index FROM pricing_settings WHERE id;
+
         SELECT COALESCE(SUM(
                  po.quantity_produced * obm.content_pct / 100.0 / 1000.0 * COALESCE(pr.price_usd_per_tonne, 0)
                ), 0)
@@ -138,6 +145,7 @@ BEGIN
             SELECT mp.price_usd_per_tonne
             FROM metal_prices mp
             WHERE mp.metal = obm.metal AND mp.deleted_at IS NULL
+              AND mp.price_index IS NOT DISTINCT FROM v_default_index   -- METAL-2
               AND mp.price_date <= v_process_date
             ORDER BY mp.price_date DESC
             LIMIT 1
@@ -160,6 +168,7 @@ BEGIN
             SELECT DISTINCT ON (mp.metal) mp.metal, mp.price_usd_per_tonne, mp.price_date
             FROM metal_prices mp
             WHERE mp.deleted_at IS NULL AND mp.price_date <= v_process_date
+              AND mp.price_index IS NOT DISTINCT FROM v_default_index   -- METAL-2
               AND mp.metal IN (
                   SELECT DISTINCT obm.metal
                   FROM processing_outputs po
@@ -280,6 +289,11 @@ BEGIN
         'total_output_metal_value_usd',
             CASE WHEN v_basis = 'metal_value' THEN round(v_total_metal_value, 2) ELSE NULL END,
         'prices_used', v_prices_used,
+        -- METAL-2:用的是哪个指数,以及它【是房屋约定而不是条款】。
+        -- 读快照的人必须能分清这两件事:这批成本不是"按 LME 结算"的,
+        -- 它是"在没有条款可循时,按当时的房屋约定取了 LME 的价"。
+        'price_index', v_default_index,
+        'price_index_is_house_default', true,
         'skipped_metals', v_skipped_metals
     );
 

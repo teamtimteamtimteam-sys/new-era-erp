@@ -839,6 +839,16 @@ be a defect:
   `calculate_metal_price` is USD in, USD out: quotes are USD/tonne, treatment
   charges are USD/tonne, and it neither takes nor applies a rate. **The
   conversion belongs to the path, not the function.**
+  **METAL-2 made that assumption checkable instead of assumed.** Quotes now carry
+  an index (`metal_prices.price_index` → `metal_price_indices`), and each index
+  declares the currency it quotes in. USD-in stays true because the function
+  **refuses** — `INDEX_CURRENCY_NOT_STATED|<index>` — rather than treating an
+  index whose currency nobody has declared as if it were dollars. SMM ships with
+  that column deliberately NULL: SMM publishes in CNY, but what *this company's*
+  SMM contracts settle in is a term of the deal that Tim has not stated, and
+  filling it in would be inventing one. If the answer is CNY, that is a
+  `currencies` row plus a conversion path with its own "which day's rate"
+  question — not a hurried rename.
   `computeLineEstimate` now converts before the number becomes a price —
   `usd_price × fx(USD) / fx(document currency)`, both legs `tt_sell` on the
   order date via `fx_rate_asof`, refusing and naming date/currency/side when a
@@ -846,7 +856,11 @@ be a defect:
   same and the ratio is 1. The calculator label reads `Value (USD)`, which is
   the truth — the old `(SGD)` label was the actual lie.
 * **A missing quote refuses on the quoting path and still skips inside the
-  function — deliberately, in both places.** Skipping keeps one unpriced metal
+  function — deliberately, in both places.** METAL-2 sharpened what "missing"
+  means: with two series a metal can have a perfectly good LME quote while the
+  deal settles on SMM, so the refusal and the `skipped_metals` entry now name
+  **which index** was empty. Without that, the message sends someone to look at
+  the wrong table while the right number sits one row away. Skipping keeps one unpriced metal
   from halting production for `allocate_processing_costs`; refusing keeps a
   quote from silently going to a supplier priced too low. Same function, two
   callers, two dispositions. **Do not unify them.** Each side's comment names

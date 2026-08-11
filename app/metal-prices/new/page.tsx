@@ -2,6 +2,8 @@
 // 新增金属价格:无需下拉数据(金属集合是常量),直接渲染客户端表单。
 import NewMetalPriceForm from './NewMetalPriceForm'
 import { requireEditPermission } from '@/app/components/moduleGuard'
+import { getMetalPriceIndices } from '../indexQuery'
+import { getLocale } from '@/lib/i18n/server'
 
 export default async function NewMetalPricePage() {
     // 【本页把关用 module.pricing.edit,不是 module.pricing.view。这是那条规矩的「写」那一半】
@@ -24,5 +26,9 @@ export default async function NewMetalPricePage() {
     const denied = await requireEditPermission('module.pricing.edit', 'nav.metalPrices')
     if (denied) return denied
 
-    return <NewMetalPriceForm />
+    // METAL-2:指数选项从表里现读(加一个指数是加一行,不是改代码)
+    const indices = await getMetalPriceIndices()
+    const locale = await getLocale()
+
+    return <NewMetalPriceForm indices={indices} locale={locale} />
 }

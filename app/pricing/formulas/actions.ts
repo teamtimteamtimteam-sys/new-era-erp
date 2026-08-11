@@ -6,6 +6,7 @@
 // (pricing_formula_metals 里没有的金属 payable 视为 0)。
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
+import { parseIndexField } from '@/app/metal-prices/indexOptions'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { METAL_VALUES } from '../../metal-prices/options'
@@ -19,6 +20,7 @@ type Parsed = {
     name: string
     direction: string
     price_basis: string
+    price_index: string | null
     average_days: number | null
     treatment_charge_usd_per_tonne: number
     flat_discount_pct: number
@@ -39,6 +41,9 @@ async function parseForm(formData: FormData): Promise<{ parsed?: Parsed; fieldEr
 
     const direction = String(formData.get('direction') ?? 'both')
     if (!['purchase', 'sale', 'both'].includes(direction)) fieldErrors.direction = t('pricing.errDirection')
+
+    // METAL-2:这份公式在哪个指数上结算 —— 交易条款,承诺时抄给成交记录。
+    const price_index = parseIndexField(formData.get('price_index'))
 
     const price_basis = String(formData.get('price_basis') ?? 'spot')
     if (!['spot', 'average'].includes(price_basis)) fieldErrors.price_basis = t('pricing.errBasis')
@@ -102,6 +107,7 @@ async function parseForm(formData: FormData): Promise<{ parsed?: Parsed; fieldEr
             name,
             direction,
             price_basis,
+            price_index,
             average_days,
             treatment_charge_usd_per_tonne: treat,
             flat_discount_pct: disc,
@@ -133,6 +139,7 @@ export async function createFormula(
             name: p.name,
             direction: p.direction,
             price_basis: p.price_basis,
+            price_index: p.price_index,
             average_days: p.average_days,
             treatment_charge_usd_per_tonne: p.treatment_charge_usd_per_tonne,
             flat_discount_pct: p.flat_discount_pct,
@@ -173,6 +180,7 @@ export async function updateFormula(
             name: p.name,
             direction: p.direction,
             price_basis: p.price_basis,
+            price_index: p.price_index,
             average_days: p.average_days,
             treatment_charge_usd_per_tonne: p.treatment_charge_usd_per_tonne,
             flat_discount_pct: p.flat_discount_pct,

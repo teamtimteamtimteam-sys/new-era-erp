@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import { STATE_OPTIONS, labelKeyForValue } from '@/app/inbound/options'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatMoneyBare, formatUnitCost } from '@/lib/format'
-import { mustRows } from '@/lib/db-helpers'
+import { mustOne, mustRows } from '@/lib/db-helpers'
 import {
     agingDays,
     agingTone,
@@ -48,7 +48,7 @@ export default async function OutputDrillPage({
 
     const todayYmd = new Date().toISOString().slice(0, 10)
 
-    const [matRes, batchesRes, pricesRes] = await Promise.all([
+    const [matRes, batchesRes, settingsRes, pricesRes] = await Promise.all([
         supabase.from('materials').select('name').eq('id', materialId).single(),
         supabase
             .from('output_batches')
@@ -60,9 +60,11 @@ export default async function OutputDrillPage({
             .gt('remaining_qty', 0)
             .order('remaining_qty', { ascending: false }),
         // 每金属的最新有效价(只取今天及以前,忽略预登的未来价)
+        // METAL-2:房屋约定的那条序列(没有合同可继承指数时用它)
+        supabase.from('pricing_settings').select('default_metal_index').eq('id', true).maybeSingle(),
         supabase
             .from('metal_prices')
-            .select('metal, price_usd_per_tonne, price_date')
+            .select('metal, price_usd_per_tonne, price_date, price_index')
             .is('deleted_at', null)
             .lte('price_date', todayYmd),
     ])
@@ -72,7 +74,10 @@ export default async function OutputDrillPage({
     }
 
     const rows = (batchesRes.data as unknown as Row[] | null) ?? []
-    const priceByMetal = latestPriceByMetal(mustRows(pricesRes))
+    const priceByMetal = latestPriceByMetal(
+        mustRows(pricesRes),
+        mustOne(settingsRes, 'pricing_settings')?.default_metal_index ?? null
+    )
 
     // 每行估值:成本 = 剩余 × 产出腿单位成本;市价 = 剩余 × 每公斤金属市价
     const valued = rows.map((r) => {

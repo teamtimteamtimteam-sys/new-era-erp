@@ -39,7 +39,12 @@ CREATE TABLE public.pricing_formulas (
     ),
     CONSTRAINT pricing_formulas_one_counterparty CHECK (
         num_nonnulls(supplier_id, customer_id) <= 1
-    )
+    ),
+    -- ── METAL-2 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
+    -- 这份公式在哪个指数上结算 —— 【交易条款】,与 price_basis 同级,承诺时抄进
+    -- pricing_term_commitments(FIN-27)。NULL = 未声明,只匹配未标注指数的行情;
+    -- 声明了就【看不见】未标注的行,那样才不会替一条报价宣称出处。
+    price_index text REFERENCES public.metal_price_indices (code)
 );
 
 CREATE INDEX idx_pricing_formulas_supplier ON public.pricing_formulas (supplier_id);
@@ -96,5 +101,9 @@ CREATE POLICY "pricing_formulas delete by permission"
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 pricing_formulas_masked 读取。
 -- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
 REVOKE SELECT ON public.pricing_formulas FROM authenticated, anon;
-GRANT SELECT (id, code, name, direction, price_basis, average_days, supplier_id, customer_id, notes, is_active, deleted_at, created_at, created_by, updated_at, updated_by)
+GRANT SELECT (id, code, name, direction, price_basis, average_days, supplier_id, customer_id, notes, is_active, deleted_at, created_at, created_by, updated_at, updated_by, price_index)
     ON public.pricing_formulas TO authenticated;
+
+-- METAL-2:指数是条款,可读一类(与 price_basis 同级);受限的仍只有费率两列。
+COMMENT ON COLUMN public.pricing_formulas.price_index IS
+    'METAL-2:这份公式在哪个指数上结算 —— 交易条款,与 price_basis 同级,承诺时抄进 pricing_term_commitments。NULL = 未声明,只匹配未标注指数的行情。';

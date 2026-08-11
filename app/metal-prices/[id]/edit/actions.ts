@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { METAL_VALUES } from '../../options'
 import { ACK_FIELD, ackSignature, outsideOnly, type AnomalyVerdict } from '../../anomaly'
+import { parseIndexField } from '../../indexOptions'
 
 export type UpdateMetalPriceState = {
     error?: string
@@ -26,6 +27,7 @@ export async function updateMetalPrice(
     const price_raw = (formData.get('price_usd_per_tonne') as string) || ''
     const price_date = (formData.get('price_date') as string)?.trim() || ''
     const notes = (formData.get('notes') as string)?.trim() || null
+    const price_index = parseIndexField(formData.get('price_index'))
 
     // 2. 校验(与 create 一致)
     const fieldErrors: Record<string, string> = {}
@@ -61,6 +63,7 @@ export async function updateMetalPrice(
         p_metal: metal,
         p_price: price,
         p_price_date: price_date,
+        p_price_index: price_index ?? undefined,
         p_exclude_id: id,
     })
     if (checkError) {
@@ -82,6 +85,7 @@ export async function updateMetalPrice(
             metal,
             price_usd_per_tonne: price ?? undefined,
             price_date,
+            price_index,
             notes,
             updated_by: user?.id ?? null,
         })

@@ -3237,6 +3237,53 @@ export type Database = {
           },
         ]
       }
+      metal_price_indices: {
+        Row: {
+          code: string
+          created_at: string
+          is_active: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          quote_currency: string | null
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          is_active?: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          quote_currency?: string | null
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          is_active?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          quote_currency?: string | null
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metal_price_indices_quote_currency_fkey"
+            columns: ["quote_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       metal_prices: {
         Row: {
           anomaly_check: Json | null
@@ -3247,6 +3294,7 @@ export type Database = {
           metal: string
           notes: string | null
           price_date: string
+          price_index: string | null
           price_usd_per_tonne: number
           source: string
           updated_at: string
@@ -3261,6 +3309,7 @@ export type Database = {
           metal: string
           notes?: string | null
           price_date: string
+          price_index?: string | null
           price_usd_per_tonne: number
           source?: string
           updated_at?: string
@@ -3275,12 +3324,21 @@ export type Database = {
           metal?: string
           notes?: string | null
           price_date?: string
+          price_index?: string | null
           price_usd_per_tonne?: number
           source?: string
           updated_at?: string
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "metal_prices_price_index_fkey"
+            columns: ["price_index"]
+            isOneToOne: false
+            referencedRelation: "metal_price_indices"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       output_batch_metals: {
         Row: {
@@ -4687,6 +4745,7 @@ export type Database = {
           name: string
           notes: string | null
           price_basis: string
+          price_index: string | null
           supplier_id: string | null
           treatment_charge_usd_per_tonne: number
           updated_at: string
@@ -4706,6 +4765,7 @@ export type Database = {
           name: string
           notes?: string | null
           price_basis?: string
+          price_index?: string | null
           supplier_id?: string | null
           treatment_charge_usd_per_tonne?: number
           updated_at?: string
@@ -4725,6 +4785,7 @@ export type Database = {
           name?: string
           notes?: string | null
           price_basis?: string
+          price_index?: string | null
           supplier_id?: string | null
           treatment_charge_usd_per_tonne?: number
           updated_at?: string
@@ -4746,6 +4807,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pricing_formulas_price_index_fkey"
+            columns: ["price_index"]
+            isOneToOne: false
+            referencedRelation: "metal_price_indices"
+            referencedColumns: ["code"]
+          },
+          {
             foreignKeyName: "pricing_formulas_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
@@ -4756,6 +4824,7 @@ export type Database = {
       }
       pricing_settings: {
         Row: {
+          default_metal_index: string | null
           id: boolean
           metal_price_change_warn_pct: number
           notes: string | null
@@ -4763,6 +4832,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          default_metal_index?: string | null
           id?: boolean
           metal_price_change_warn_pct: number
           notes?: string | null
@@ -4770,13 +4840,22 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          default_metal_index?: string | null
           id?: boolean
           metal_price_change_warn_pct?: number
           notes?: string | null
           updated_at?: string
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pricing_settings_default_metal_index_fkey"
+            columns: ["default_metal_index"]
+            isOneToOne: false
+            referencedRelation: "metal_price_indices"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       pricing_term_commitment_metals: {
         Row: {
@@ -4820,6 +4899,7 @@ export type Database = {
           id: string
           inbound_batch_id: string | null
           price_basis: string
+          price_index: string | null
           purchase_order_line_id: string | null
           source_formula_code: string
           source_formula_id: string | null
@@ -4834,6 +4914,7 @@ export type Database = {
           id?: string
           inbound_batch_id?: string | null
           price_basis: string
+          price_index?: string | null
           purchase_order_line_id?: string | null
           source_formula_code: string
           source_formula_id?: string | null
@@ -4848,6 +4929,7 @@ export type Database = {
           id?: string
           inbound_batch_id?: string | null
           price_basis?: string
+          price_index?: string | null
           purchase_order_line_id?: string | null
           source_formula_code?: string
           source_formula_id?: string | null
@@ -4882,6 +4964,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "po_prepayment_applicable"
             referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "pricing_term_commitments_price_index_fkey"
+            columns: ["price_index"]
+            isOneToOne: false
+            referencedRelation: "metal_price_indices"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "pricing_term_commitments_purchase_order_line_id_fkey"
@@ -9120,6 +9209,7 @@ export type Database = {
           name: string | null
           notes: string | null
           price_basis: string | null
+          price_index: string | null
           supplier_id: string | null
           treatment_charge_usd_per_tonne: number | null
           updated_at: string | null
@@ -9139,6 +9229,7 @@ export type Database = {
           name?: string | null
           notes?: string | null
           price_basis?: string | null
+          price_index?: string | null
           supplier_id?: string | null
           treatment_charge_usd_per_tonne?: never
           updated_at?: string | null
@@ -9158,6 +9249,7 @@ export type Database = {
           name?: string | null
           notes?: string | null
           price_basis?: string | null
+          price_index?: string | null
           supplier_id?: string | null
           treatment_charge_usd_per_tonne?: never
           updated_at?: string | null
@@ -9177,6 +9269,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_formulas_price_index_fkey"
+            columns: ["price_index"]
+            isOneToOne: false
+            referencedRelation: "metal_price_indices"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "pricing_formulas_supplier_id_fkey"
@@ -9229,6 +9328,7 @@ export type Database = {
           id: string | null
           inbound_batch_id: string | null
           price_basis: string | null
+          price_index: string | null
           purchase_order_line_id: string | null
           source_formula_code: string | null
           source_formula_id: string | null
@@ -9243,6 +9343,7 @@ export type Database = {
           id?: string | null
           inbound_batch_id?: string | null
           price_basis?: string | null
+          price_index?: string | null
           purchase_order_line_id?: string | null
           source_formula_code?: string | null
           source_formula_id?: string | null
@@ -9257,6 +9358,7 @@ export type Database = {
           id?: string | null
           inbound_batch_id?: string | null
           price_basis?: string | null
+          price_index?: string | null
           purchase_order_line_id?: string | null
           source_formula_code?: string | null
           source_formula_id?: string | null
@@ -9291,6 +9393,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "po_prepayment_applicable"
             referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "pricing_term_commitments_price_index_fkey"
+            columns: ["price_index"]
+            isOneToOne: false
+            referencedRelation: "metal_price_indices"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "pricing_term_commitments_purchase_order_line_id_fkey"
@@ -10579,6 +10688,7 @@ export type Database = {
           p_metal: string
           p_price: number
           p_price_date: string
+          p_price_index?: string
         }
         Returns: Json
       }
@@ -10659,7 +10769,7 @@ export type Database = {
         Returns: Json
       }
       preview_metal_price_anomalies: {
-        Args: { p_price_date: string; p_prices: Json }
+        Args: { p_price_date: string; p_price_index?: string; p_prices: Json }
         Returns: Json
       }
       preview_reprice_from_committed_terms: {
@@ -10992,7 +11102,7 @@ export type Database = {
         Returns: Json
       }
       upsert_metal_prices: {
-        Args: { p_price_date: string; p_prices: Json }
+        Args: { p_price_date: string; p_price_index?: string; p_prices: Json }
         Returns: Json
       }
       upsert_payroll_period: {

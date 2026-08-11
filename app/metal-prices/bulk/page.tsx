@@ -8,6 +8,9 @@ import { getTranslations } from '@/lib/i18n/server'
 import { METAL_OPTIONS } from '../options'
 import BulkPricesForm, { type MetalRowData } from './BulkPricesForm'
 import { requireEditPermission } from '@/app/components/moduleGuard'
+import { getMetalPriceIndices } from '../indexQuery'
+import { INDEX_UNSTATED } from '../indexOptions'
+import { getLocale } from '@/lib/i18n/server'
 
 function todayIso(): string {
     return new Date().toISOString().slice(0, 10)
@@ -16,7 +19,7 @@ function todayIso(): string {
 export default async function BulkPricesPage({
     searchParams,
 }: {
-    searchParams: Promise<{ date?: string }>
+    searchParams: Promise<{ date?: string; index?: string }>
 }) {
     // 【本页把关用 module.pricing.edit,不是 module.pricing.view。这是那条规矩的「写」那一半】
     // 规矩只有一条:【守卫跟着数据自己的 RLS 走,不跟模块目录走】。
@@ -45,12 +48,30 @@ export default async function BulkPricesPage({
     const raw = (sp.date ?? '').trim()
     const priceDate = raw && !Number.isNaN(Date.parse(raw)) ? raw : todayIso()
 
+    // METAL-2:一张批量录入表属于【一个指数】—— 一天的行情单来自一个市场。
+    // 参照价("上次多少")也必须按同一个指数取,否则拿 LME 的上一条去比 SMM 的
+    // 今天,屏幕上那句"上次 X"就是错的。
+    const indices = await getMetalPriceIndices()
+    const locale = await getLocale()
+    const rawIndex = (sp.index ?? '').trim()
+    const priceIndex =
+        rawIndex === INDEX_UNSTATED || rawIndex === ''
+            ? null
+            : indices.some((i) => i.code === rawIndex)
+              ? rawIndex
+              : null
+
     // 该日期之前(含)的全部在册行情,按金属+日期倒序 —— 首条即"最近一次"。
-    const { data: history } = await supabase
+    let historyQuery = supabase
         .from('metal_prices')
         .select('metal, price_usd_per_tonne, price_date')
         .is('deleted_at', null)
         .lte('price_date', priceDate)
+    // 未声明指数是一个【取值】,不是"不过滤" —— .is() 与 .eq() 是两个问题
+    historyQuery = priceIndex === null
+        ? historyQuery.is('price_index', null)
+        : historyQuery.eq('price_index', priceIndex)
+    const { data: history } = await historyQuery
         .order('metal')
         .order('price_date', { ascending: false })
 
@@ -77,7 +98,13 @@ export default async function BulkPricesPage({
 
             <h1 className="text-2xl font-bold mb-4">{t('metalPrices.bulk.title')}</h1>
 
-            <BulkPricesForm priceDate={priceDate} rows={rows} />
+            <BulkPricesForm
+                priceDate={priceDate}
+                priceIndex={priceIndex}
+                indices={indices}
+                locale={locale}
+                rows={rows}
+            />
         </div>
     )
 }

@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.metal_price_anomaly(p_metal text, p_price numeric, p_price_date date, p_exclude_id uuid DEFAULT NULL::uuid)
+CREATE OR REPLACE FUNCTION public.metal_price_anomaly(p_metal text, p_price numeric, p_price_date date, p_price_index text DEFAULT NULL::text, p_exclude_id uuid DEFAULT NULL::uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  STABLE
@@ -17,16 +17,19 @@ BEGIN
 
     SELECT metal_price_change_warn_pct INTO v_threshold FROM pricing_settings WHERE id;
     IF v_threshold IS NULL THEN
-        -- 引导必须给出这一行(见 db/tables/pricing_settings.sql)。没有配置就
-        -- 【说出来】,不要悄悄按某个数字判 —— 那正是本切要拆掉的东西。
         RAISE EXCEPTION 'PRICING_SETTINGS_MISSING';
     END IF;
 
+    -- 【METAL-2:参照必须来自【同一个指数】】LME 与 SMM 本来就不同价,跨着比会
+    -- 天天报警 —— 而天天报警的警报等于没有警报,人会学会点掉它,连真的那次一起点掉。
+    -- IS NOT DISTINCT FROM:未标注指数的老序列只与老序列比,不与任何新序列比。
+    --
     -- 上一条:按 price_date,不按 created_at(补录会让 created_at 说谎 —— ASY-3
     -- 实测:6-25 的行情 7-2 才录进来)
     SELECT price_usd_per_tonne, price_date INTO v_ref_price, v_ref_date
       FROM metal_prices
      WHERE metal = p_metal AND deleted_at IS NULL
+       AND price_index IS NOT DISTINCT FROM p_price_index
        AND price_date < p_price_date
        AND (p_exclude_id IS NULL OR id <> p_exclude_id)
      ORDER BY price_date DESC LIMIT 1;
@@ -34,10 +37,10 @@ BEGIN
 
     IF v_ref_price IS NULL THEN
         -- 没有更早的一条:回落到最近的更晚一条,并说明用的是哪一侧。
-        -- 补录进序列【最前面】的那一条因此照样被检查。
         SELECT price_usd_per_tonne, price_date INTO v_ref_price, v_ref_date
           FROM metal_prices
          WHERE metal = p_metal AND deleted_at IS NULL
+           AND price_index IS NOT DISTINCT FROM p_price_index
            AND price_date > p_price_date
            AND (p_exclude_id IS NULL OR id <> p_exclude_id)
          ORDER BY price_date ASC LIMIT 1;
@@ -45,16 +48,14 @@ BEGIN
     END IF;
 
     IF v_ref_price IS NULL THEN
-        -- 【第三种判词,不是 false】这个金属还没有任何别的报价可比。
-        -- 线上 7 个金属里有 4 个正是这样(al / fe / li / mn),而键错的第一条报价
-        -- 一样是错的 —— "没法查"必须与"查过、没问题"在数据上就分得开,
-        -- 界面才可能分得开。
-        -- 【补上它需要什么】per-metal 的绝对区间:7 个金属 × 上下界 = 14 个数字,
-        -- 那是一个决定(谁来给这些数字),不是一次实现。缺口明写在这里,
-        -- 而不是让它安静地长成一句"检查过了"。
+        -- 【第三种判词,不是 false】这个金属在【这个指数上】还没有别的报价可比。
+        -- 两条序列之后这一种会更常见(每个金属在每个新指数上的第一条),
+        -- 而它依然不等于"查过、没问题"。补上它需要 per-metal 的绝对区间:
+        -- 7 个金属 × 上下界 = 14 个数字,那是一个决定,不是一次实现。
         RETURN jsonb_build_object(
             'verdict', 'no_reference',
             'metal', p_metal,
+            'price_index', p_price_index,
             'price_usd_per_tonne', p_price,
             'price_date', p_price_date,
             'threshold_pct', v_threshold,
@@ -71,6 +72,7 @@ BEGIN
     RETURN jsonb_build_object(
         'verdict', CASE WHEN v_change > v_threshold THEN 'outside' ELSE 'inside' END,
         'metal', p_metal,
+        'price_index', p_price_index,
         'price_usd_per_tonne', p_price,
         'price_date', p_price_date,
         'threshold_pct', v_threshold,

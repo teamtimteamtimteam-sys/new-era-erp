@@ -1,3 +1,24 @@
+-- METAL-2 fu1(2026-08-11):把【读出指数】那一行提到币种闸门之前
+--
+-- 【闸门写在它所判断的那个值【被读出来之前】,于是它永远不开】主迁移里
+-- calculate_metal_price_from_terms 的顺序是:
+--     ① IF v_index IS NOT NULL THEN ...(检查报价币种有没有声明)
+--     ② v_index := p_terms->>'price_index';
+-- ① 跑的时候 v_index 还是 NULL,于是那个 IF 恒为假 —— 按 SMM(币种未声明)计价
+-- 【一声不吭地算了出来】,把 CNY 当成 USD 用,而那正是这道闸门存在的唯一理由。
+--
+-- 【它是怎么被发现的:因为探针问的是"它拒了吗",不是"它跑通了吗"】主迁移应用之后
+-- 逐条探了四件事,其中一条明写着"SMM 应当被拒";它打印出"【没有拒绝】—— 不对"。
+-- 如果那条探针写成"跑一遍看看结果",它会返回一个漂亮的数字,而没有人会多看一眼。
+--
+-- 【这个形状记一笔,因为它反复出现】FIN-13 的 generate_series(v_when+1, p_date-1)
+-- 在相邻日期上是空区间,于是守卫恒真;OPS-17 的 ties 两侧同源,于是自检恒真;
+-- 这里是守卫读的变量还没赋值,于是守卫恒假。三次都是【一条读起来很严的规则,
+-- 在它自己的边界上什么也没做】—— 而且三次都只能靠"让它失败一次"才发现。
+-- 所以 fixture 49 有一臂专门按 SMM 计价并断言它被点名拒绝。
+
+BEGIN;
+
 CREATE OR REPLACE FUNCTION public.calculate_metal_price_from_terms(p_terms jsonb, p_metals jsonb, p_quantity_kg numeric, p_reference_date date)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -194,3 +215,5 @@ BEGIN
     );
 END;
 $function$;
+
+COMMIT;

@@ -951,7 +951,11 @@ const en = {
                 OUTPUT_BATCH_NOT_FOUND: 'Output batch not found: {0}',
                 NO_METAL_CONTENT: 'Batch {0} has no metal content recorded — a quote cannot be priced without an assay. Enter the content on the batch first.',
                 FORMULA_DIRECTION: 'Formula {0} is a {1} formula and cannot be used to quote a sale — a purchase formula prices what we pay, not what we charge.',
-                METAL_PRICE_MISSING: 'No market price on file for {0} on {1} — enter the day\u2019s quote under Pricing \u2192 Metal prices. A quote is never sent with a metal priced at zero.',
+                // METAL-2:{2} 是【指数】—— 两条序列之后,"没有行情"最常见的真相是
+                // "这个金属在【那个】指数上没有行情",而另一条序列上很可能有一条好数字。
+                METAL_PRICE_MISSING: 'No price on file for {0} on {1} under index {2} — enter that market\u2019s quote under Pricing \u2192 Metal prices. Another index may well carry a price for this metal; it is not used, because this deal settles on {2}. A quote is never sent with a metal priced at zero.',
+                INDEX_CURRENCY_NOT_STATED: 'Index {0} has no quote currency on record, so nothing can be priced against it yet. State the currency under Pricing \u2192 Metal prices, or settle this deal on an index that has one — the figures are not assumed to be US dollars.',
+                PRICE_INDEX_UNKNOWN: 'Unknown or inactive price index {0}.',
                 FORMULA_NOT_FOUND: 'Pricing formula not found: {0}',
                 FORMULA_INACTIVE: 'Pricing formula {0} is inactive',
                 REFERENCE_DATE_REQUIRED: 'A reference date is required — it decides which day\u2019s metal prices and FX rate the quote uses.',
@@ -1905,6 +1909,7 @@ const en = {
         colPrice: 'Price (USD/t)',
         colPriceDate: 'Price Date',
         colSource: 'Source',
+        colIndex: 'Index',
         colNotes: 'Notes',
         colActions: 'Actions',
         editAction: 'Edit',
@@ -1934,6 +1939,9 @@ const en = {
             selectMetal: 'Select metal',
             price: 'Price (USD/t)',
             priceDate: 'Price Date',
+            // METAL-2:指数是"哪个市场",与 source("怎么来的")是两个轴
+            priceIndex: 'Price index',
+            priceIndexHint: 'Which market this quote comes from. A formula that states an index does not see unlabelled quotes, and vice versa — an unlabelled quote is never assumed to belong to any market.',
             notes: 'Notes',
             errMetal: 'Please select a valid metal',
             errPrice: 'Price must be a number greater than 0',
@@ -1957,6 +1965,11 @@ const en = {
             noReferenceTitle: 'First quote for this metal — there was nothing to compare it against. This is not a clean bill of health.',
             legacyBadge: 'no check on record',
             legacyTitle: 'Entered before this check existed, so nothing was compared. Not a clean bill of health either.',
+        },
+        index: {
+            unstated: 'Index not stated (same series as the existing quotes)',
+            unstatedShort: 'not stated',
+            currencyNotStated: 'quote currency not stated — cannot price yet',
         },
         settings: {
             title: 'Price anomaly warning',
@@ -2159,6 +2172,7 @@ const en = {
         colDate: 'Date',
         colMemo: 'Memo',
         colSource: 'Source',
+        colIndex: 'Index',
         colAmount: 'Amount ({ccy})',
         colStatus: 'Status',
         colOriginalCcy: 'Original',
@@ -2414,6 +2428,7 @@ const en = {
             colRate: 'Rate (1 unit = ? SGD)',
             colRateDate: 'Rate Date',
             colSource: 'Source',
+        colIndex: 'Index',
             colNotes: 'Notes',
             colActions: 'Actions',
             editAction: 'Edit',
@@ -2701,6 +2716,9 @@ const en = {
             name: 'Formula name',
             direction: 'Direction',
             basis: 'Price basis',
+            // METAL-2:合同挑指数(Doc 1:"LME or SMM")—— 交易条款,承诺时抄下
+            priceIndex: 'Settlement index',
+            priceIndexHint: 'Which market this deal settles against. Copied onto the deal when terms are committed, so changing it later never moves a deal already struck. A formula that states an index does not see unlabelled quotes — settlement refuses by name until that index has quotes, rather than using a number of unknown origin.',
             basisSpot: 'Latest price',
             basisAverage: 'Average over N days',
             basisSameToday:
@@ -2768,6 +2786,8 @@ const en = {
             PRICE_DATE_REQUIRED: 'A price date is required',
             REFERENCE_DATE_REQUIRED: 'A reference date is required — it decides which metal prices are quoted.',
             NO_PRICES: 'No prices submitted',
+            INDEX_CURRENCY_NOT_STATED: 'Index {0} has no quote currency on record, so nothing can be priced against it yet. State the currency under Pricing \u2192 Metal prices — the figures are not assumed to be US dollars.',
+            PRICE_INDEX_UNKNOWN: 'Unknown or inactive price index {0}.',
         },
     },
     bank: {

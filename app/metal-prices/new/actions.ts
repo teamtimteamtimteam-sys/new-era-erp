@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { METAL_VALUES } from '../options'
 import { ACK_FIELD, ackSignature, outsideOnly, type AnomalyVerdict } from '../anomaly'
+import { parseIndexField } from '../indexOptions'
 
 export type CreateMetalPriceState = {
     error?: string
@@ -26,6 +27,8 @@ export async function createMetalPrice(
     const price_raw = (formData.get('price_usd_per_tonne') as string) || ''
     const price_date = (formData.get('price_date') as string)?.trim() || ''
     const notes = (formData.get('notes') as string)?.trim() || null
+    // METAL-2:哪个市场的报价。未声明是一个明写的选项,不是"没填"。
+    const price_index = parseIndexField(formData.get('price_index'))
 
     // 2. 校验
     const fieldErrors: Record<string, string> = {}
@@ -63,6 +66,7 @@ export async function createMetalPrice(
         p_metal: metal,
         p_price: price,
         p_price_date: price_date,
+        p_price_index: price_index ?? undefined,
     })
     // 判据本身失败要说出来,不能当作"没有异常"放过去 ——
     // 失败不是空集(与 mustRows 同一条规矩)
@@ -83,6 +87,7 @@ export async function createMetalPrice(
         metal,
         price_usd_per_tonne: price,
         price_date,
+        price_index,
         notes,
         created_by: user?.id ?? null,
         updated_by: user?.id ?? null,

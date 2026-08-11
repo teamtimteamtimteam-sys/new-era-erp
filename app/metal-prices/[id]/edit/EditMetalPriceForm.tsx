@@ -6,6 +6,8 @@ import { updateMetalPrice, type UpdateMetalPriceState } from './actions'
 import { METAL_OPTIONS } from '../../options'
 import { useTranslations } from '@/lib/i18n/client'
 import AnomalyWarning from '../../AnomalyWarning'
+import IndexPicker from '../../IndexPicker'
+import type { MetalPriceIndex } from '../../indexOptions'
 import { ACK_FIELD, ackSignature } from '../../anomaly'
 
 const initialState: UpdateMetalPriceState = {}
@@ -15,10 +17,19 @@ type MetalPrice = {
     metal: string
     price_usd_per_tonne: number
     price_date: string
+    price_index: string | null
     notes: string | null
 }
 
-export default function EditMetalPriceForm({ row }: { row: MetalPrice }) {
+export default function EditMetalPriceForm({
+    row,
+    indices,
+    locale,
+}: {
+    row: MetalPrice
+    indices: MetalPriceIndex[]
+    locale: string
+}) {
     const t = useTranslations()
     const updateWithId = updateMetalPrice.bind(null, row.id)
     const [state, formAction, isPending] = useActionState(updateWithId, initialState)
@@ -93,6 +104,15 @@ export default function EditMetalPriceForm({ row }: { row: MetalPrice }) {
                             {state.fieldErrors.price_date}
                         </p>
                     )}
+                </div>
+
+                {/* METAL-2:改标指数会让这一行换一条序列比对,判词也跟着重算 */}
+                <div>
+                    <label className="block text-sm font-medium mb-1">
+                        {t('metalPrices.form.priceIndex')}
+                    </label>
+                    <IndexPicker name="price_index" indices={indices} defaultValue={row.price_index} locale={locale} />
+                    <p className="text-xs text-gray-500 mt-1">{t('metalPrices.form.priceIndexHint')}</p>
                 </div>
 
                 {/* 备注 */}

@@ -23,6 +23,8 @@ BEGIN
         'formula_id', v_c.source_formula_id,
         'formula_code', v_c.source_formula_code,
         'formula_name', v_c.source_formula_name,
+        -- METAL-2:成交时抄下的指数。公式事后改指数,这一单仍按当初谈的那个结算。
+        'price_index', v_c.price_index,
         'price_basis', v_c.price_basis,
         'average_days', v_c.average_days,
         'treatment_charge_usd_per_tonne', v_c.treatment_charge_usd_per_tonne,

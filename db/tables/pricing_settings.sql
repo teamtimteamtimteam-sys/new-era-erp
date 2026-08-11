@@ -20,7 +20,13 @@ CREATE TABLE public.pricing_settings (
         CHECK (metal_price_change_warn_pct > 0),
     notes text,
     updated_at timestamptz NOT NULL DEFAULT now(),
-    updated_by uuid DEFAULT auth.uid()
+    updated_by uuid DEFAULT auth.uid(),
+    -- ── METAL-2 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
+    -- 分摊、销售的现货预设、库存页估值 —— 这三条路径【没有合同可以继承指数】。
+    -- 【它是一个默认值在替一条缺席的条款站位,不是正确答案】:分摊出来的成本不是
+    -- "按 LME 结算"的,它是"在没有条款可循时按房屋约定取了价"。
+    -- NULL = 沿用未标注指数的老序列(与 METAL-2 之前的行为完全一致)。
+    default_metal_index text REFERENCES public.metal_price_indices (code)
 );
 
 CREATE TRIGGER trg_pricing_settings_updated_at
@@ -45,3 +51,6 @@ CREATE POLICY "pricing_settings update by permission"
 INSERT INTO public.pricing_settings (id, metal_price_change_warn_pct, notes)
 VALUES (true, 50,
     '默认值,不是决定:线上真实相邻变动 ≤6.25%,而 2026-07-30 那次异常是 +233% / −75%。改这一行不需要改代码。');
+
+COMMENT ON COLUMN public.pricing_settings.default_metal_index IS
+    'METAL-2:分摊、现货预设、库存估值这三条【没有合同】的路径取哪条序列的价。它替一条缺席的条款站位,不是"这些数字按某个声明的指数结算了"。NULL = 沿用未标注指数的老序列。';

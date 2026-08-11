@@ -6,6 +6,8 @@
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
+import IndexPicker from '@/app/metal-prices/IndexPicker'
+import type { MetalPriceIndex } from '@/app/metal-prices/indexOptions'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { METAL_OPTIONS } from '@/app/metal-prices/options'
 import type { FormulaState } from './actions'
@@ -18,6 +20,7 @@ export type FormulaDefaults = {
     name: string
     direction: string
     price_basis: string
+    price_index: string | null
     average_days: string
     treatment_charge_usd_per_tonne: string
     flat_discount_pct: string
@@ -32,6 +35,7 @@ export const EMPTY_FORMULA: FormulaDefaults = {
     name: '',
     direction: 'both',
     price_basis: 'spot',
+    price_index: null,
     average_days: '',
     treatment_charge_usd_per_tonne: '',
     flat_discount_pct: '',
@@ -52,12 +56,16 @@ export default function FormulaForm({
     suppliers,
     customers,
     quoteDates,
+    indices,
+    locale,
 }: {
     action: (state: FormulaState, formData: FormData) => Promise<FormulaState>
     defaults: FormulaDefaults
     suppliers: PartyOption[]
     customers: PartyOption[]
     quoteDates: QuoteDate[]
+    indices: MetalPriceIndex[]
+    locale: string
 }) {
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(action, initialState)
@@ -121,6 +129,24 @@ export default function FormulaForm({
                         <option value="sale">{t('pricing.direction.sale')}</option>
                     </select>
                 </div>
+            </div>
+
+            {/* METAL-2:结算指数 —— 交易条款,与计价基准同级。
+                合同挑指数(Doc 1:"LME or SMM"),而承诺时它会被抄进成交记录,
+                此后改公式不再影响那一单(FIN-27)。
+                【声明了指数,就看不见未标注指数的行情】—— 在那个指数的报价录进来
+                之前,结算会点名拒绝,而不是拿一条不知出处的数字顶上。 */}
+            <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">{t('pricing.form.priceIndex')}</label>
+                <div className="max-w-xs">
+                    <IndexPicker
+                        name="price_index"
+                        indices={indices}
+                        defaultValue={defaults.price_index}
+                        locale={locale}
+                    />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">{t('pricing.form.priceIndexHint')}</p>
             </div>
 
             {/* 计价基准:average 才出天数 */}

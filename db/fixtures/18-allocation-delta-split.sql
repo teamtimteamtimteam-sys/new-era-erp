@@ -211,7 +211,9 @@ BEGIN
     -- (锁在 G 臂已推到今天;本臂全部分录都记今天,不受影响)
     INSERT INTO metal_prices (metal, price_date, price_usd_per_tonne)
     VALUES ('ni', v_today, 1000)
-    ON CONFLICT (metal, price_date) DO NOTHING;
+    -- METAL-2:唯一键现在是 (metal, price_date, price_index)(NULLS NOT DISTINCT)。
+    -- 本 fixture 录的是【未标注指数】的行情,与分摊的房屋约定(默认亦未声明)对得上。
+    ON CONFLICT (metal, price_date, price_index) DO NOTHING;
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
     VALUES ('FIXT-IB18H', v_mat, v_sup, 400, 400, 'kg', v_today) RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, 'SGD', NULL, 'fixture H price');

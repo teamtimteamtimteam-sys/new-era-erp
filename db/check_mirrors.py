@@ -116,6 +116,10 @@ RUNTIME_CONFIG_TABLES = [
     # METAL-1:行情异常提示的阈值 —— 与 warn_lead_days 同一条。50 是引导默认值,
     # 不是决定;Tim 在 /metal-prices 上改一次,线上就与本文件不同,那是对的。
     "pricing_settings",
+    # METAL-2:行情指数字典 —— 加一个指数是加一行(与 certificate_types 同一条)。
+    # SMM 的 quote_currency 引导里【故意为空】,Tim 声明之后线上会与本文件不同,
+    # 那是系统在正常工作。
+    "metal_price_indices",
 ]
 
 # 【引导默认值一行都不许是空的】RUNTIME CONFIG 的种子不与线上比对(那是对的:界面改得动),

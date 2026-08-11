@@ -7,6 +7,9 @@ const PRICING_ERROR_CODES = new Set([
     'FORMULA_NOT_FOUND', 'FORMULA_INACTIVE', 'QUANTITY_INVALID', 'NO_METALS',
     'METAL_INVALID', 'CONTENT_INVALID', 'DUPLICATE_METAL', 'PRICE_INVALID',
     'PRICE_DATE_REQUIRED', 'NO_PRICES',
+    // METAL-2:指数相关的两种拒绝。INDEX_CURRENCY_NOT_STATED 是【设计好的】那一种:
+    // 报价币种没人声明之前,按那个指数算钱会被拦下 —— 拦下来是产品,不是故障。
+    'INDEX_CURRENCY_NOT_STATED', 'PRICE_INDEX_UNKNOWN',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..."(同 localizeFinanceError)。

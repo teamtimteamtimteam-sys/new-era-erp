@@ -27,6 +27,11 @@ BEGIN
         'formula_id', v_f.id,
         'formula_code', v_f.code,
         'formula_name', v_f.name,
+        -- METAL-2:结算挂在哪个指数上是【交易条款】,与 price_basis 同级 ——
+        -- 所以它跟着条款走,承诺时一并抄下(FIN-27)。
+        -- NULL = 【未声明指数】,只匹配同样未标注指数的行情,不是"匹配任意行情":
+        -- 拿一条没人说过出处的报价去结一笔说明了指数的单,就是替它宣称了出处。
+        'price_index', v_f.price_index,
         'price_basis', v_f.price_basis,
         'average_days', v_f.average_days,
         'treatment_charge_usd_per_tonne', v_f.treatment_charge_usd_per_tonne,

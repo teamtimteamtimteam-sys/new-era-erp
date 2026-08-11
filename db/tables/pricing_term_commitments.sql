@@ -58,7 +58,10 @@ CREATE TABLE public.pricing_term_commitments (
     ),
     CONSTRAINT pricing_term_commitments_average_days_required CHECK (
         price_basis <> 'average' OR average_days IS NOT NULL
-    )
+    ),
+    -- ── METAL-2 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
+    -- 成交那一刻抄下的指数。公式事后改指数,这一单仍按当初谈的那个结算。
+    price_index text REFERENCES public.metal_price_indices (code)
 );
 
 COMMENT ON TABLE public.pricing_term_commitments IS
@@ -89,5 +92,9 @@ CREATE POLICY "pricing_term_commitments select by permission"
 REVOKE SELECT ON public.pricing_term_commitments FROM authenticated, anon;
 GRANT SELECT (id, purchase_order_line_id, inbound_batch_id, source_formula_id,
               source_formula_code, source_formula_name, price_basis, average_days,
-              committed_at, committed_by)
+              committed_at, committed_by, price_index)
     ON public.pricing_term_commitments TO authenticated;
+
+-- METAL-2:成交时抄下的指数 —— 可读一类(与 price_basis 同级)。
+COMMENT ON COLUMN public.pricing_term_commitments.price_index IS
+    'METAL-2:成交那一刻抄下的指数(FIN-27)。公式事后改指数,这一单仍按当初谈的那个结算。';

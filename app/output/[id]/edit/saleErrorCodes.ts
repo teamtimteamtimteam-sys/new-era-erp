@@ -18,6 +18,9 @@ const SALE_ERROR_CODES = new Set([
     // 与信用拦截只隔一个按钮,一并接上。
     'OUTPUT_BATCH_NOT_FOUND', 'NO_METAL_CONTENT', 'FORMULA_DIRECTION', 'METAL_PRICE_MISSING',
     'FORMULA_NOT_FOUND', 'FORMULA_INACTIVE', 'REFERENCE_DATE_REQUIRED', 'QUANTITY_INVALID',
+    // METAL-2:按报价币种未声明的指数计价会被拦下(SMM 今天就是这样)。
+    // 这条拒绝要出现在【报价按钮】旁边,否则人只会看到一串机器码。
+    'INDEX_CURRENCY_NOT_STATED', 'PRICE_INDEX_UNKNOWN',
 ])
 
 const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/

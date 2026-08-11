@@ -26,6 +26,7 @@ type MetalPriceRow = {
     price_usd_per_tonne: number
     price_date: string
     source: string
+    price_index: string | null
     notes: string | null
     // METAL-1:录入那一刻的判词(记录,不事后重算 —— 后来的报价会改变"上一条")
     anomaly_check: AnomalyVerdict | null
@@ -82,7 +83,7 @@ export default async function MetalPricesPage({
     // 2) 取当前页的行
     const baseQuery = supabase
         .from('metal_prices')
-        .select('id, metal, price_usd_per_tonne, price_date, source, notes, anomaly_check')
+        .select('id, metal, price_usd_per_tonne, price_date, source, price_index, notes, anomaly_check')
 
     const { data, error } = await applyMetalPricesFilters(baseQuery, filterParams).range(
         from,
@@ -198,6 +199,9 @@ export default async function MetalPricesPage({
                         {sortableTh('price_usd_per_tonne', t('metalPrices.colPrice'))}
                         {sortableTh('price_date', t('metalPrices.colPriceDate'))}
                         <th className="border border-gray-300 px-4 py-2 text-left">
+                            {t('metalPrices.colIndex')}
+                        </th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">
                             {t('metalPrices.colSource')}
                         </th>
                         <th className="border border-gray-300 px-4 py-2 text-left">
@@ -253,6 +257,13 @@ export default async function MetalPricesPage({
                                 )}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">{r.price_date}</td>
+                            <td className="border border-gray-300 px-4 py-2 text-sm">
+                                {/* 【空白会读成"没填",而它是一个状态】未标注指数的行
+                                    要说出来 —— 它是既有 11 行所在的那条序列。 */}
+                                {r.price_index ?? (
+                                    <span className="text-gray-400">{t('metalPrices.index.unstatedShort')}</span>
+                                )}
+                            </td>
                             <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">{r.source}</td>
                             <td className="border border-gray-300 px-4 py-2 text-sm">{r.notes ?? '—'}</td>
                             <td className="border border-gray-300 px-4 py-2">

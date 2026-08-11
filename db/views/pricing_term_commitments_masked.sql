@@ -29,6 +29,9 @@ CREATE VIEW public.pricing_term_commitments_masked WITH (security_invoker = off)
             ELSE NULL::numeric
         END AS flat_discount_pct,
     committed_at,
-    committed_by
+    committed_by,
+    price_index
    FROM pricing_term_commitments
   WHERE has_permission('module.purchasing.view'::text) OR has_permission('module.inbound.view'::text);
+
+

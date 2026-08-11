@@ -15,6 +15,7 @@ type FormulaRow = {
     name: string
     direction: string
     price_basis: string
+    price_index: string | null
     average_days: number | null
     treatment_charge_usd_per_tonne: number
     flat_discount_pct: number
@@ -34,7 +35,7 @@ export default async function FormulasPage() {
 
     const { data, error } = await supabase
         .from('pricing_formulas_masked')
-        .select('id, code, name, direction, price_basis, average_days, treatment_charge_usd_per_tonne, flat_discount_pct, supplier_id, customer_id, is_active')
+        .select('id, code, name, direction, price_basis, price_index, average_days, treatment_charge_usd_per_tonne, flat_discount_pct, supplier_id, customer_id, is_active')
         .is('deleted_at', null)
         .order('code', { ascending: false })
 
