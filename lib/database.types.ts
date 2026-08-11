@@ -8307,8 +8307,10 @@ export type Database = {
       operations_now: {
         Row: {
           days_waiting: number | null
+          doc_kind: string | null
           item_code: string | null
           item_date: string | null
+          item_id: string | null
           item_type: string | null
           permission: string | null
           permission_any: string[] | null

@@ -86,6 +86,112 @@ boundary is honest; if Tim wants an early warning, the percentage belongs in con
 (`certificate_types`-style, visible and editable), and THEN a second arm earns its place. Recorded
 here so the next person extends deliberately rather than hardcoding 80.
 
+## The fourth property: a destination (LINKS-1, 2026-08-11)
+
+Until LINKS-1 every arm pointed at a **list**. The tile said "3 batches awaiting assay" and
+the click landed you on all the batches, to find the three yourself — the count was right and
+*which ones* was thrown away. So every arm now carries `item_id`, and the page links each
+waiting item to its own page.
+
+> **Adding an arm means naming its destination in the table below, in the same commit** —
+> the same rule as adding its row at all. An arm with no declared destination is an arm whose
+> link nobody chose.
+
+### The test: does the remedy live on that page?
+
+**The URL's name is not the signal.** This is worth stating flatly because the obvious
+category — "is it an edit form?" — classifies by URL and gets the answer wrong in both
+directions:
+
+* `/inbound/[id]/edit` and `/output/[id]/edit` are **document hubs**, not forms. They carry
+  assays, pricing, prepayments, the movement timeline, the sale panel. Sending someone there
+  is sending them to the batch.
+* `/suppliers/[id]/edit` is close to a plain form — and it is a **right** destination anyway,
+  because it carries `CompliancePanel`, and renewing the certificate is exactly what the
+  qualification arms are waiting for.
+
+So the question is never what the route is called. It is: **can the person do, on that page,
+the thing that makes this row go away — and does doing it change the fact rather than the
+signal?**
+
+### Two tests, not one — conflating them is what produced the URL version
+
+1. **The remedy being on the page is what justifies the link.** That is the whole test for
+   whether an arm gets a row destination.
+2. **A signal-clearing control also being on the page is a hazard to NAME, not a reason to
+   withhold the link.** Naming it is the mitigation; withholding the link costs the remedy too.
+
+`output_unsold_aging` is the case that separates them. `/output/[id]/edit` carries SalePanel,
+which renders precisely when `remaining_qty > 0` — the arm's own predicate — so the remedy is
+guaranteed present for every row the arm emits. **The same page can also edit `output_date`,
+and moving that date makes the tile go quiet while not one kilogram has moved.** That is the
+credit-limit shape (raise the limit, the alarm stops, the exposure is untouched) — but the
+credit *edit form* carries no remedy at all, which is why `credit_over_limit` points at the
+read-only position page `/customers/[id]` instead. Here the remedy is on the page and merely
+sits beside a wrong button. A reader who understands why the link exists will not reach for
+that field.
+
+### What `item_id` names
+
+> **`item_id` names the row whose page carries the remedy.**
+
+That is the waiting row in seventeen arms, and its **parent** in two:
+
+| arm | waiting row | `item_id` | why the parent |
+|---|---|---|---|
+| `bank_unmatched` | an unmatched statement **line** | the **statement** | a line has no page; matching happens in the reconcile workbench. `reconcile_statement` raises `LINES_OUTSTANDING` while any line is unmatched, so a statement this arm emits is always `open` and the link never lands on a read-only document |
+| `margin_cost_not_allocated` | a sold output **batch** | the **run** | the remedy is allocating the run's costs, and `AllocateButton` is on the run page |
+
+**Where it is the parent, several rows can share one `item_id`, and that is correct rather
+than a duplicate** — two unmatched lines on one statement are two waiting things with one
+door. This is exactly why fixture 47 cannot assert one id per row, and cannot assert
+distinctness. It asserts that `item_id` resolves to a row **of the expected table for that
+arm** — an employee id where a review id belongs fails it; a shared parent does not.
+
+Note also that two arms' `item_code` names a **neighbour** by design, so code and id are not
+the same row and must not be asserted to be: `review_submitted` shows the *employee* code
+(reviews have no `code` column), and `bank_unmatched` shows the *bank account* code.
+
+### `doc_kind` is disclosure, not accommodation
+
+Accounts payable genuinely has two document kinds. `ap_open_items` has branched on `doc_kind`
+per row since it was written, and `/finance/payables` draws its links that way. `operations_now`
+simply was not saying so out loud; it does now. The column is NULL for the eighteen arms whose
+subject has one kind. **An unrecognised kind gets no link at all** — never a guessed route,
+because a valid uuid pointed at the wrong table opens someone else's document without erroring.
+
+### The destinations
+
+| arm | destination | why |
+|---|---|---|
+| `awaiting_assay` | `/inbound/[id]/edit` | AssaySection → record an assay |
+| `assay_unapplied` | `/inbound/[id]/edit` | AssaySection links the unapplied assay |
+| `batch_unpriced` | `/inbound/[id]/edit` | PricingPanel |
+| `allocation_stale` | `/processing/[id]` | AllocateButton |
+| `po_awaiting_receipt` | `/purchasing/orders/[id]` | the order document |
+| `stocktake_open` | `/stocktakes/[id]` | the count screen |
+| `qualification_expiring` | `/suppliers/[id]/edit` | CompliancePanel — renewal changes the fact |
+| `qualification_missing` | `/suppliers/[id]/edit` | same panel, first certificate |
+| `credit_over_limit` | `/customers/[id]` | the read-only position. **Not** `/edit`: raising the limit clears the light and moves no exposure |
+| `output_unsold_aging` | `/output/[id]/edit` | SalePanel. Hazard named above |
+| `leave_pending` | `/hr/leave/[id]` | the decision |
+| `claim_pending` | `/hr/claims/[id]` | the decision |
+| `review_submitted` | `/hr/reviews/[id]` | the approval. `item_code` is the employee's |
+| `invoice_overdue` | `/finance/invoices/[id]` | the invoice |
+| `ar_over_90` | `/finance/receivables/[saleId]` | the AR document — whose number *is* the output batch code, by design |
+| `ap_over_90` | `/finance/payables/[id]` or `/finance/expenses/[id]` | by `doc_kind`; unknown kind → no link |
+| `fx_rate_gap` | `/finance/fx?currency=<ccy>` | **no row exists** — the subject is a missing rate. An honestly-filtered list, which is not the same thing as a code search |
+| `bank_unmatched` | `/finance/bank/statements/[id]/reconcile` | where matching happens |
+| `margin_cost_not_allocated` | `/processing/[runId]` | where allocation happens |
+
+### One mechanism, not two
+
+The link is built from `item_id`. **It is never a search by `item_code`.** Searching by code
+works today only because codes happen to be unique and the data happens to be small — and it
+translates "open this row" into "look for rows that resemble this one", which are different
+answers on the day either of those stops holding. `fx_rate_gap` is not an exception to this:
+it filters a list by a currency column, which is a filter, not a search for a code.
+
 ## Considered and left out — with the reason, so they are not silently re-proposed
 
 | candidate | why not |

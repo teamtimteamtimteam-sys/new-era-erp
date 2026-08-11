@@ -34,30 +34,80 @@ import { mustCount, mustRows } from '@/lib/db-helpers'
 
 // 牌子清单:itemType 对应 operations_now 的支;permission 与视图里那一支声明的
 // 权限码【同码】(视图按它裁决缺席,本页按它裁决「受限」—— 两边必须一致)。
+//
+// 【LINKS-1:itemHref —— 一件事一扇门】href 是那一支的列表(牌子标题指向它),
+// itemHref 是【这一件事自己】的门牌。判据只有一条,写在
+// docs/dashboard-arm-inventory.md:【补救动作在不在那张页面上】。URL 里有没有
+// /edit 不是信号 —— /inbound/[id]/edit 与 /output/[id]/edit 是单据主页(化验、
+// 计价、台账、销售面板都在上面),/suppliers/[id]/edit 才接近一张纯表单,而它
+// 恰好载着 CompliancePanel(续证就是补救),所以它也成立。
+//
+// 【用 item_id,不用按码搜索】按码搜今天能用只因为码唯一、数据少;那是一次搜索,
+// 不是一条链接。fx_rate_gap 是唯一没有 item_id 的支 —— 它的主体是一条【不存在的】
+// 牌价行,所以它指向按币种过滤的列表(诚实过滤的列表,不是按码搜索)。
 const TILES = [
-    { itemType: 'awaiting_assay', permission: 'module.inbound.view', href: '/inbound' },
-    { itemType: 'assay_unapplied', permission: 'module.inbound.view', href: '/inbound' },
-    { itemType: 'batch_unpriced', permission: 'module.inbound.view', href: '/inbound' },
-    { itemType: 'allocation_stale', permission: 'module.processing.view', href: '/processing' },
-    { itemType: 'qualification_expiring', permission: 'module.suppliers.view', href: '/suppliers' },
-    { itemType: 'qualification_missing', permission: 'module.suppliers.view', href: '/suppliers' },
-    { itemType: 'po_awaiting_receipt', permission: 'module.purchasing.view', href: '/purchasing/orders' },
-    { itemType: 'stocktake_open', permission: 'module.stocktakes.view', href: '/stocktakes' },
-    { itemType: 'credit_over_limit', permission: 'module.customers.view', href: '/customers' },
+    { itemType: 'awaiting_assay', permission: 'module.inbound.view', href: '/inbound',
+      itemHref: (r: OpsRow) => `/inbound/${r.item_id}/edit` },
+    { itemType: 'assay_unapplied', permission: 'module.inbound.view', href: '/inbound',
+      itemHref: (r: OpsRow) => `/inbound/${r.item_id}/edit` },
+    { itemType: 'batch_unpriced', permission: 'module.inbound.view', href: '/inbound',
+      itemHref: (r: OpsRow) => `/inbound/${r.item_id}/edit` },
+    { itemType: 'allocation_stale', permission: 'module.processing.view', href: '/processing',
+      itemHref: (r: OpsRow) => `/processing/${r.item_id}` },
+    { itemType: 'qualification_expiring', permission: 'module.suppliers.view', href: '/suppliers',
+      itemHref: (r: OpsRow) => `/suppliers/${r.item_id}/edit` },
+    { itemType: 'qualification_missing', permission: 'module.suppliers.view', href: '/suppliers',
+      itemHref: (r: OpsRow) => `/suppliers/${r.item_id}/edit` },
+    { itemType: 'po_awaiting_receipt', permission: 'module.purchasing.view', href: '/purchasing/orders',
+      itemHref: (r: OpsRow) => `/purchasing/orders/${r.item_id}` },
+    { itemType: 'stocktake_open', permission: 'module.stocktakes.view', href: '/stocktakes',
+      itemHref: (r: OpsRow) => `/stocktakes/${r.item_id}` },
+    // 信用支指向【只读的信用仓位页】,不是客户编辑表单 —— 改限额会让告警安静,
+    // 而敞口一分未动(SAL-B6 分界的理由)。
+    { itemType: 'credit_over_limit', permission: 'module.customers.view', href: '/customers',
+      itemHref: (r: OpsRow) => `/customers/${r.item_id}` },
     // 跨两个模块的那一支:必须有 data.view_prices,且 finance / processing 之一。
     // 只收 no_unit_cost(分摊一次就清掉);no_run 事后无从补救,放上来就是关不掉的灯。
+    // 【item_id 是加工单,不是批次】支报的是批次,而补救是给【加工单】分摊成本,
+    // 分摊按钮在加工单页上 —— 门牌跟着补救走。
     { itemType: 'margin_cost_not_allocated', permission: 'data.view_prices',
-      permissionAny: ['module.finance.view', 'module.processing.view'], href: '/margin' },
-    { itemType: 'output_unsold_aging', permission: 'module.output.view', href: '/output' },
-    { itemType: 'leave_pending', permission: 'module.hr.view', href: '/hr/leave' },
-    { itemType: 'claim_pending', permission: 'module.hr.view', href: '/hr/claims' },
-    { itemType: 'review_submitted', permission: 'module.hr.view', href: '/hr/reviews' },
-    { itemType: 'invoice_overdue', permission: 'module.finance.view', href: '/finance/invoices' },
-    { itemType: 'ar_over_90', permission: 'module.finance.view', href: '/finance/receivables' },
-    { itemType: 'ap_over_90', permission: 'module.finance.view', href: '/finance/payables' },
-    { itemType: 'fx_rate_gap', permission: 'module.finance.view', href: '/finance/fx' },
-    { itemType: 'bank_unmatched', permission: 'module.finance.view', href: '/finance/bank' },
+      permissionAny: ['module.finance.view', 'module.processing.view'], href: '/margin',
+      itemHref: (r: OpsRow) => `/processing/${r.item_id}` },
+    // 滞销支指向批次主页:SalePanel 恰在 remaining_qty > 0 时渲染,而那正是本支的
+    // 谓词 —— 补救(登记销售)对本支发出的每一行都保证在场。
+    // 【同一张页面上也能改 output_date,那一下会让牌子安静而一公斤都没动】——
+    // 那是要点名的隐患,不是不给链接的理由(两条判据,见清单文件)。
+    { itemType: 'output_unsold_aging', permission: 'module.output.view', href: '/output',
+      itemHref: (r: OpsRow) => `/output/${r.item_id}/edit` },
+    { itemType: 'leave_pending', permission: 'module.hr.view', href: '/hr/leave',
+      itemHref: (r: OpsRow) => `/hr/leave/${r.item_id}` },
+    { itemType: 'claim_pending', permission: 'module.hr.view', href: '/hr/claims',
+      itemHref: (r: OpsRow) => `/hr/claims/${r.item_id}` },
+    // item_code 是【员工编号】(评估表没有 code 列),item_id 是评估本身 —— 两者
+    // 不同源正是 fixture 47 要钉的那类错。
+    { itemType: 'review_submitted', permission: 'module.hr.view', href: '/hr/reviews',
+      itemHref: (r: OpsRow) => `/hr/reviews/${r.item_id}` },
+    { itemType: 'invoice_overdue', permission: 'module.finance.view', href: '/finance/invoices',
+      itemHref: (r: OpsRow) => `/finance/invoices/${r.item_id}` },
+    { itemType: 'ar_over_90', permission: 'module.finance.view', href: '/finance/receivables',
+      itemHref: (r: OpsRow) => `/finance/receivables/${r.item_id}` },
+    // 【应付有两种单据】doc_kind 来自 ap_open_items 自己(应付列表页一直照它分支);
+    // 认不出的种类【不给链接】,绝不猜一个 —— 猜错就是拿一个合法 uuid 开错人的单据。
+    { itemType: 'ap_over_90', permission: 'module.finance.view', href: '/finance/payables',
+      itemHref: (r: OpsRow) =>
+          r.doc_kind === 'inbound' ? `/finance/payables/${r.item_id}`
+        : r.doc_kind === 'expense' ? `/finance/expenses/${r.item_id}`
+        : null },
+    { itemType: 'fx_rate_gap', permission: 'module.finance.view', href: '/finance/fx',
+      itemHref: (r: OpsRow) => `/finance/fx?currency=${encodeURIComponent(r.item_code)}` },
+    // 等待的是一条对账单行,而行没有页面 —— 匹配动作在对账工作台上,所以 item_id
+    // 是对账单。同一张单上的两条未匹配行共用一个门牌,这是对的,不是重复。
+    { itemType: 'bank_unmatched', permission: 'module.finance.view', href: '/finance/bank',
+      itemHref: (r: OpsRow) => `/finance/bank/statements/${r.item_id}/reconcile` },
 ] as const
+
+// 一块牌子里最多列几件;其余交给那一支自己的列表(首页不是列表页)
+const MAX_ITEMS_PER_TILE = 5
 
 // 「我的」两张卡片:不受模块把关,人人可见 —— 理由与顺序同 NavLinks 的 SELF_ITEMS
 // (OPS-15:employee 角色的全部产品恰恰是这两页,首页必须给入口)。
@@ -66,7 +116,17 @@ const SELF_CARDS = [
     { href: '/me', titleKey: 'home.meTitle', descKey: 'home.meDesc' },
 ]
 
-type OpsRow = { item_type: string; item_code: string; item_date: string }
+// LINKS-1:item_id 是【承载补救动作的那张页面所对应的行】—— 十七支里就是等待中的
+// 那一行,bank_unmatched 与 margin_cost_not_allocated 两支里是它的父(对账单 / 加工单)。
+// fx_rate_gap 恒为 null:缺的那条牌价行没有 id。doc_kind 只有应付一支非空。
+type OpsRow = {
+    item_type: string
+    item_id: string | null
+    doc_kind: string | null
+    item_code: string
+    subject: string | null
+    item_date: string
+}
 
 export default async function Home() {
     const t = await getTranslations()
@@ -76,7 +136,9 @@ export default async function Home() {
 
     // 一次读回全部可见支;无权的支缺席,可见支的零是真的零(权限已单独查过)
     const rows = mustRows(
-        await supabase.from('operations_now').select('item_type, item_code, item_date'),
+        await supabase
+            .from('operations_now')
+            .select('item_type, item_id, doc_kind, item_code, subject, item_date'),
         'operations_now'
     ) as OpsRow[]
 
@@ -97,6 +159,8 @@ export default async function Home() {
         else byType.set(r.item_type, [r])
     }
 
+    // LINKS-1:牌子不再整块是一条链接 —— 标题与数字指向那一支的【列表】,下面每一件
+    // 事各自指向【它自己】。两层链接不能嵌套(<a> 里不能再有 <a>),所以外壳是 div。
     const tileBox = (opts: {
         key: string
         title: string
@@ -104,6 +168,7 @@ export default async function Home() {
         allowed: boolean
         count: number | null
         oldest?: string | null
+        items?: { row: OpsRow; href: string | null }[]
     }) => {
         const inner = (
             <>
@@ -134,17 +199,46 @@ export default async function Home() {
                 )}
             </>
         )
-        const cls = 'border rounded-lg p-4 block ' +
-            (opts.allowed
-                ? 'border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition'
-                : 'border-gray-200 bg-gray-50')
-        return opts.allowed ? (
-            <Link key={opts.key} href={opts.href} className={cls}>
-                {inner}
-            </Link>
-        ) : (
+        const cls = 'border rounded-lg p-4 ' +
+            (opts.allowed ? 'border-gray-300' : 'border-gray-200 bg-gray-50')
+        const shown = (opts.items ?? []).slice(0, MAX_ITEMS_PER_TILE)
+        const rest = (opts.items ?? []).length - shown.length
+        return (
             <div key={opts.key} className={cls}>
-                {inner}
+                {opts.allowed ? (
+                    <Link href={opts.href} className="block hover:opacity-75 transition">
+                        {inner}
+                    </Link>
+                ) : (
+                    inner
+                )}
+                {shown.length > 0 && (
+                    <ul className="mt-3 pt-2 border-t border-gray-200 space-y-1">
+                        {shown.map((it, i) => (
+                            <li key={`${opts.key}-${i}`} className="text-xs truncate">
+                                {/* 认不出门牌的行【不给链接】,而不是猜一个:一个合法的
+                                    uuid 指错了表,打开的是别人的单据,而且不会报错。 */}
+                                {it.href ? (
+                                    <Link href={it.href} className="font-mono text-blue-600 hover:underline">
+                                        {it.row.item_code}
+                                    </Link>
+                                ) : (
+                                    <span className="font-mono text-gray-700">{it.row.item_code}</span>
+                                )}
+                                {it.row.subject && (
+                                    <span className="text-gray-500 ml-2">{it.row.subject}</span>
+                                )}
+                            </li>
+                        ))}
+                        {rest > 0 && (
+                            <li className="text-xs">
+                                <Link href={opts.href} className="text-gray-500 hover:underline">
+                                    {t('dashboard.andMore', { n: rest })}
+                                </Link>
+                            </li>
+                        )}
+                    </ul>
+                )}
             </div>
         )
     }
@@ -174,6 +268,12 @@ export default async function Home() {
                     const oldest = mine.length
                         ? mine.reduce((a, r) => (r.item_date < a ? r.item_date : a), mine[0].item_date)
                         : null
+                    // 等得最久的排在前面 —— 牌子只列前几件,截断必须截在【新的】那头
+                    const items = allowed
+                        ? [...mine]
+                              .sort((a, b) => (a.item_date < b.item_date ? -1 : a.item_date > b.item_date ? 1 : 0))
+                              .map((row) => ({ row, href: tile.itemHref(row) }))
+                        : undefined
                     return tileBox({
                         key: tile.itemType,
                         title: t('dashboard.item.' + tile.itemType),
@@ -181,6 +281,7 @@ export default async function Home() {
                         allowed,
                         count: allowed ? mine.length : null,
                         oldest,
+                        items,
                     })
                 })}
                 {tileBox({

@@ -92,6 +92,8 @@ const zh = {
         },
         hrAlerts: 'HR 待办提醒',
         oldestSince: '最早:{date}',
+        // LINKS-1:一块牌子只列前几件,其余交给那一支自己的列表
+        andMore: '还有 {n} 件',
         restrictedHint: '需要相应模块权限',
         monthEnd: '月结枢纽',
         monthEndDesc: '七个月结信号,按依赖序逐步核对',

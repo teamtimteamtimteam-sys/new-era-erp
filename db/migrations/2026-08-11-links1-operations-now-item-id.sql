@@ -1,71 +1,44 @@
--- OPS-18(Phase 6):operations_now —— 全站"正在等人处理的事",一件一行
+-- LINKS-1(2026-08-11):看板的每一支都能指向【那一件事】,而不是它所在的那张列表
 --
--- 【为什么是一张视图而不是九个页面各查各的】仪表盘的每一块牌子背后都是"有多少件
--- 事在等"这一类问题;九个问题九处写,就是九份会各自漂移的实现。hr_alerts 已经证明
--- 过这个形状:一个 UNION,每一种等待状态一支,页面只负责画。
+-- 【病】十九支全都指着一张列表。屏幕说"3 个批次在等化验",点进去是全部批次的
+-- 列表,人要自己找出是哪三个 —— 看板把"有多少件"答对了,把"是哪几件"丢了。
+-- 其中十三支的主体本来就有自己的页面,只是没人把门牌号带出来。
 --
--- 【属主权限 + 每支自带 permission 列,外层一次性把关】(OPS-14 修法 (a))。
--- 本视图横跨六个模块,invoker 会让 RLS 把读者无权模块的行【静默丢掉】—— 行消失
--- 在这里意味着"那个数少算了",而不是报错。属主权限读全量,外层
--- WHERE has_permission(a.permission) 按【调用者】逐支裁决:无权的支【整支缺席】,
--- 不是零。谓词写一次而不是九遍 —— hr_alerts 的注释说过,复述 N 遍只会给下一个
--- 加支的人留一个漏写的机会;这里每支【声明】自己的权限码,外层【执行】它。
+-- 【一种机制,不是两种】带出来的是 item_id(uuid),不是拿 item_code 去搜。
+-- 按码搜今天能用,只因为码恰好唯一、数据恰好少 —— 那是一次【搜索】,不是一条
+-- 链接:它把"打开这一行"翻译成"找找看有没有长这样的行",而两者在数据变多的
+-- 那天会给出不同的答案。链接就该是链接。
 --
--- 【缺席 ≠ 零,页面必须自己分辨】视图对无权读者不发一行,于是"没有行"有两种
--- 含义:真的零,或者你看不见。app/page.tsx 先查权限再渲染每块牌子 —— 无权显示
--- 「受限」(common.restricted),绝不显示 0。这是仪表盘最容易犯、且任何 gate 都
--- 查不出的那个错(0 与"你看不见"在屏幕上一模一样 —— moduleGuard 的老病换了件衣服)。
+-- 【item_id 指的是谁 —— 一句话,十九支通用】
+--   item_id 指向【承载补救动作的那张页面所对应的行】。
+-- 十七支里它就是等待中的那一行;两支里它是那一行的【父】:
+--   * bank_unmatched:等待的是一条对账单行,而【行没有页面】—— 匹配动作在
+--     /finance/bank/statements/<statement>/reconcile 上。于是 item_id = 对账单。
+--     一张对账单上有两条未匹配行,就有两行共用同一个 item_id —— 那是对的,
+--     不是重复(reconcile_statement 有 LINES_OUTSTANDING 守卫:只要还有未匹配行,
+--     对账单必然是 open,所以这条链接永远不会落在一张只读的单子上)。
+--   * margin_cost_not_allocated:等待的是一个产出批,而补救是【给加工单分摊成本】,
+--     那个按钮在 /processing/<run> 上。于是 item_id = 加工单。
+-- 这条例外是【明写】的,因为它决定 fixture 能断言什么:不能断言"一行一个 id",
+-- 也不能断言 id 互不相同;能断言的是 item_id 落在【那一支该落的那张表】里 ——
+-- 接错的 join 过不了它,共用的父过得了。规格在 docs/dashboard-arm-inventory.md。
 --
--- 【item_type 写成 'x'::text 字面量】check-i18n 的 sqlLiteralAs 解析器现读本文件,
--- dashboard.item.* 的后缀集合就是这里的支列表 —— 加一支,键检查自动跟着变宽。
+-- 【doc_kind:披露,不是迁就】应付账款本来就有两种单据 —— ap_open_items 自己
+-- 就按 doc_kind 分支(进料批次 → /finance/payables/<id>,开支单 → /finance/expenses/<id>),
+-- 应付列表页也一直是这么画的。这张视图只是【没把这件事说出口】。加这一列不是为了
+-- 迁就一支的特殊性,是把数据本来的样子讲明白;其余十八支的主体只有一种,列为 NULL。
 --
--- 【两笔贵的读数,按界所限】(OPS-16 报告点名的两处):
---   * fx_rate_gaps 按 (日期,币种) 对每组跑 fx_rate_asof,本身不受期间约束 ——
---     这里限 rate_date >= CURRENT_DATE - 45:仪表盘答"最近有没有漏",完整历史
---     归 /finance/month-end 按月翻。谓词落在分组键上,能下推进聚合。
---   * 银行对账这支【只数报表侧的未匹配行】(bank_statement_lines,行数 = 导入量,
---     天然有界)。bank_reconciliation_status 的账簿侧 LATERAL 要扫 journal_lines
---     全表 —— 那是对账页的活,不上人人都开的首页。
+-- 【fx_rate_gap 没有 item_id,且不是遗漏】它的主体是一条【不存在的】牌价行:
+-- 缺的东西没有 id。它指向按币种过滤的牌价列表(/finance/fx?currency=…)——
+-- 那是"诚实过滤的列表"那一类答案,不是按码搜索。
 --
--- 【不在此列的】批次毛利 —— 有未决的设计问题(哪些限定词随数字走、已过账 COGS
--- 还是当前成本),自成一切,谓词已录在 AGENTS.md 常设决定 2。月结的七个信号 ——
--- /finance/month-end 是它们的枢纽,首页放一个入口,不复制信号。
---
--- NOTE: introduced by db/migrations/2026-08-09-ops18-operations-now-and-the-dashboard.sql.
--- OPS-19(2026-08-09):补上原始定稿漏掉的四支(awaiting_assay / batch_unpriced /
--- invoice_overdue / ar_over_90 + ap_over_90),并新增 output_unsold_aging —— sales
--- 这一行唯一够得着的支(它没有 module.finance.view,当初猜的 AR 支对它同样是「受限」)。
--- assay_unapplied 的粒度同时从"一份未执行化验一行"改成"一个批次一行",与
--- awaiting_assay 同源同粒度、互斥;live 该支当时为 0,故不改变任何现有数字。
---
--- CMP-1(2026-08-09):两支资质臂。qualification_expiring 到【类型自己的 lead days】就上牌,
--- 过期后【不落牌、无 -30 天下限】—— 工作证过期 30 天人已走,证书过期两年而进场仍可能,
--- 它就还站在那儿(live 那张 2024 年就过期的 Article 18 正是证据)。续期(valid_until
--- 前移)即安静。qualification_missing 是"一张证都没有"的缺席臂(与 awaiting_assay /
--- assay_unapplied 的分立同理)。disposition='ignore' 的类型不上牌。
--- 【规格在 docs/dashboard-arm-inventory.md】每一支是什么意思、挂哪个权限码、界在
--- 哪里、以及【哪些支被考虑过又被排除、为什么】都在那里。
--- 定稿只存在于一次对话里,代价是四支 —— 所以规矩是:
--- 【加一支 = 在同一个提交里往那份清单加一行】。
---
--- MAR-1(2026-08-10):支的权限从【一个码】放宽到【一个谓词】—— permission(必须有)
--- + permission_any(任意其一,由 arm_permission_any 一处声明,SELECT 与 WHERE 共用)。
--- 起因是批次毛利跨两个模块(prices AND (finance OR processing)),而没有任何 live 角色
--- 同时持有后两者。合成一个新权限码那条路被否掉:那会是谁能看毛利的第二份定义,
--- 与 batch_margin 自己的谓词必然漂开。fixture 45 三种读者各钉一次。
--- LINKS-1(2026-08-11):每支多带一个 item_id —— 支从"指向一张列表"变成"指向那一件事"。
--- 【item_id 指的是谁】承载【补救动作】的那张页面所对应的行。十七支里它就是等待中的
--- 那一行;两支里是它的父:bank_unmatched(行没有页面,匹配动作在对账工作台上 →
--- 对账单)与 margin_cost_not_allocated(补救是给加工单分摊成本 → 加工单)。
--- 于是同一支的几行可以共用一个 item_id,那是对的,不是重复 —— fixture 47 因此断言
--- 的是"item_id 落在这一支该落的那张表里",不是"一行一个 id",也不是互不相同。
--- 【doc_kind 是披露】应付账款本来就是两种单据(ap_open_items 自己就按它分支,
--- 应付列表页也一直照它画链接),这张视图先前只是没说出口。其余十八支主体只有一种,
--- 该列为 NULL。【fx_rate_gap 没有 item_id】它的主体是一条不存在的牌价行,缺的东西
--- 没有 id —— 它指向按币种过滤的列表,那是"诚实过滤的列表"那类答案,不是按码搜索。
--- 每支的门牌与"补救是否在那张页面上"这条判据,写在 docs/dashboard-arm-inventory.md。
--- NOTE: item_id / doc_kind added by
--- db/migrations/2026-08-11-links1-operations-now-item-id.sql(列集变了 → DROP + CREATE)。
+-- 列集变了 → 先 DROP 再 CREATE(CREATE OR REPLACE 改不了列集)。
+-- 权限模型、每支的谓词、界、item_type 字面量【一字未动】—— 本迁移只加列。
+
+BEGIN;
+
+DROP VIEW public.operations_now;
+
 CREATE VIEW public.operations_now WITH (security_invoker = off) AS
  SELECT item_type,
     permission,
@@ -282,3 +255,5 @@ CREATE VIEW public.operations_now WITH (security_invoker = off) AS
   WHERE has_permission(permission) AND (arm_permission_any(item_type) IS NULL OR has_any_permission(arm_permission_any(item_type)));
 
 GRANT SELECT ON public.operations_now TO authenticated;
+
+COMMIT;

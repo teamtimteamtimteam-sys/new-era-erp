@@ -90,6 +90,8 @@ const en = {
         },
         hrAlerts: 'HR alerts',
         oldestSince: 'oldest: {date}',
+        // LINKS-1:一块牌子只列前几件,其余交给那一支自己的列表
+        andMore: '+{n} more',
         restrictedHint: 'Requires module access',
         monthEnd: 'Month-end hub',
         monthEndDesc: 'The seven closing signals, step by step',
