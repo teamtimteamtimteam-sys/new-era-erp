@@ -1,3 +1,17 @@
+-- METAL-3 第三部分(2026-08-11):把报价换算接进计价函数
+--
+-- 【两种换算,不要混】(与 AGENTS.md 那句"本函数不换算"的关系)
+--   * 【输出】换算:USD → 单据币种,发生在【路径】上(computeLineEstimate),
+--     用成交日的 tt_buy/tt_sell。那一句仍然成立,本刀一字未动。
+--   * 【输入】换算:报价币种 → 本函数的 USD 基准,只能发生在这里 ——
+--     只有本函数知道它挑中了哪一条报价、那条报价是哪一天的。
+-- 两次换算、两个日期、两种价。
+--
+-- 【均价口径:每条各按自己那天换,再平均】先平均再换,会让窗口内的一次汇率波动
+-- 污染窗口里的每一天。fixture 50 用一个"两天汇率不同"的窗口把这两种算法分开。
+
+BEGIN;
+
 CREATE OR REPLACE FUNCTION public.calculate_metal_price_from_terms(p_terms jsonb, p_metals jsonb, p_quantity_kg numeric, p_reference_date date)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -211,3 +225,5 @@ BEGIN
     );
 END;
 $function$;
+
+COMMIT;

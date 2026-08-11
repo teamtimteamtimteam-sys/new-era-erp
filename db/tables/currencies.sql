@@ -15,7 +15,7 @@
 -- ═══════════════════════════════════════════════════════════════════════════
 
 CREATE TABLE public.currencies (
-    code    text PRIMARY KEY CHECK (code IN ('USD','SGD')),  -- 加币种时同步放宽此 CHECK
+    code    text PRIMARY KEY CHECK (code IN ('USD','SGD','CNY')),  -- 加币种时同步放宽此 CHECK
     name    text NOT NULL,
     is_base boolean NOT NULL DEFAULT false
 );
@@ -23,7 +23,14 @@ CREATE TABLE public.currencies (
 -- FIN-0:本位币改为 SGD(新加坡公司,账本记新元;USD 成了外币,带汇率敞口)
 INSERT INTO public.currencies (code, name, is_base) VALUES
     ('USD', 'US Dollar', false),
-    ('SGD', 'Singapore Dollar', true);
+    ('SGD', 'Singapore Dollar', true),
+    -- METAL-3:CNY 进来是为了【报价换算】,不是为了交易。SMM 以 CNY/吨发布,
+    -- 而本函数族的报价基准是 USD,所以换算需要一条 CNY 的中间价。
+    -- 【它不可交易,而这一点今天靠的是"没有路径把它送过去"】:界面上的币种下拉
+    -- 全是写死的 <option>,getCurrencyCodes() 无人调用,重估按 journal_lines 走。
+    -- 真要让它可交易,先看 lib/currencyMap.ts —— bankAccountFor 对未知币种回退
+    -- '1010'(美元账户),那会把一笔 CNY 付款悄悄记到美元账上。
+    ('CNY', 'Chinese Yuan', false);
 
 ALTER TABLE public.currencies ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "currencies select by permission"

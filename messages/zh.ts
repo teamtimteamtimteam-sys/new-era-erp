@@ -1899,6 +1899,8 @@ const zh = {
         recordCount: '共 {count} 条',
         colMetal: '金属',
         colPrice: '价格 (USD/吨)',
+        // METAL-3:每行的币种跟着它那条指数走(SMM 是 CNY/吨),所以列头不写币种
+        colPricePerTonne: '价格 / 吨',
         colPriceDate: '价格日期',
         colSource: '来源',
         colIndex: '指数',
@@ -1961,6 +1963,8 @@ const zh = {
         index: {
             unstated: '未声明指数(与既有序列一致)',
             unstatedShort: '未声明',
+            // 未标注指数的老序列一直是按报价基准(USD)记的
+            quoteBasisFallback: 'USD',
             currencyNotStated: '报价币种未声明 —— 暂时算不出钱',
         },
         settings: {
@@ -2463,7 +2467,7 @@ const zh = {
             cpfNote: 'CPF 次月 14 日前汇缴,凭证记在【次月】—— 锁本月不挡它。',
             noPeriod: '本月没有薪资期间',
             blockedByPosting: '被挡:薪资未过账',
-            blockedByMid: '被挡:{0} 没有当日中间价 —— 先到汇率页录入',
+            blockedByMid: '被挡:{0} 缺【{1}】的中间价 —— 先到汇率页录入。每个非本位币各要一条:重估按币种逐个换算,而以外币发布的金属行情按【报价那一天】的中间价换算。',
             blockedByReval: '被挡:先跑期末重估',
             gapsDetail: '{n} 天有外币过账但缺牌价',
             unpaidLines: '{n} 名员工尚未发薪',

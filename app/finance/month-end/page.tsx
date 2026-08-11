@@ -38,7 +38,7 @@ export default async function MonthEndPage({
     const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
 
-    const [gapsRes, periodRes, accrualRes, revalRes, settingsRes, depPreviewRes, midRes, allocRes] = await Promise.all([
+    const [gapsRes, periodRes, accrualRes, revalRes, settingsRes, depPreviewRes, midRes, nonBaseCcyRes, allocRes] = await Promise.all([
         supabase.from('fx_rate_gaps').select('rate_date, currency, missing_types')
             .gte('rate_date', start).lte('rate_date', end),
         supabase.from('payroll_periods')
@@ -53,7 +53,13 @@ export default async function MonthEndPage({
         supabase.from('finance_settings').select('locked_before').maybeSingle(),
         // FIN-22:折旧应提额 —— 与执行同一份算术(preview),0 = 本期已提平/无资产
         supabase.rpc('preview_depreciate_fixed_assets', { p_period_end: end }),
-        supabase.from('fx_rates').select('id').eq('rate_date', end).eq('rate_type', 'mid').is('deleted_at', null),
+        // METAL-3:期末中间价要【每个非本位币各一条】,不是"有任意一条就算数"。
+        // 原来只查 id 存不存在:两个币种时,一条 USD 中间价就让这一步显示成"可以做了",
+        // 而重估要按币种逐个换算。CNY 进来之后这个漏洞会真的漏 —— 它换算金属报价用的
+        // 也是 mid,而这一刀把 mid 从"存在的一种类型"变成"必须维护的一种类型"。
+        supabase.from('fx_rates').select('currency').eq('rate_date', end)
+            .eq('rate_type', 'mid').is('deleted_at', null),
+        supabase.from('currencies').select('code').eq('is_base', false),
         // FIN-8:批次成本与成本条目是否还对得上。改了条目,总账会动,批次不会 ——
         // 月结前必须看见,否则存货和销货成本就带着这个差额结账。
         supabase.from('processing_run_allocation_status')
@@ -74,7 +80,13 @@ export default async function MonthEndPage({
     const accruals = mustRows(accrualRes, 'processing_cost_entries_masked')
     const cpfTotal = period ? Number(period.employer_cpf_total ?? 0) + Number(period.employee_cpf_total ?? 0) : 0
     const revalued = mustRows(revalRes, 'journal_entries revaluation').length > 0
-    const midMissing = mustRows(midRes, 'fx_rates mid').length === 0
+    // 【缺哪几个币种要说出来】"没有中间价"与"USD 有、CNY 没有"是两件事,
+    // 而后者正是加了第三个币种之后最容易发生的一种
+    const midHave = new Set(mustRows(midRes, 'fx_rates mid').map((r) => r.currency as string))
+    const midMissingCcy = mustRows(nonBaseCcyRes, 'currencies non-base')
+        .map((r) => r.code as string)
+        .filter((c) => !midHave.has(c))
+    const midMissing = midMissingCcy.length > 0
     // 过期 + 从未分摊却已有成本,都算"批次成本对不上"
     const allocProblems = mustRows(allocRes, 'processing_run_allocation_status')
         .filter((r) => r.is_stale || (!r.allocated_at && r.last_cost_change))
@@ -143,7 +155,9 @@ export default async function MonthEndPage({
         {
             key: 'revaluation', href: `/finance/revaluation?date=${end}`,
             state: revalued ? 'done' : midMissing ? 'blocked' : 'outstanding',
-            detail: revalued ? '' : midMissing ? t('finance.monthEnd.blockedByMid', { 0: end }) : '',
+            detail: revalued ? '' : midMissing
+                ? t('finance.monthEnd.blockedByMid', { 0: end, 1: midMissingCcy.join(', ') })
+                : '',
         },
         {
             key: 'lock', href: '/finance/close',

@@ -1907,6 +1907,8 @@ const en = {
         recordCount: 'Total: {count}',
         colMetal: 'Metal',
         colPrice: 'Price (USD/t)',
+        // METAL-3:每行的币种跟着它那条指数走(SMM 是 CNY/吨),所以列头不写币种
+        colPricePerTonne: 'Price / tonne',
         colPriceDate: 'Price Date',
         colSource: 'Source',
         colIndex: 'Index',
@@ -1969,6 +1971,8 @@ const en = {
         index: {
             unstated: 'Index not stated (same series as the existing quotes)',
             unstatedShort: 'not stated',
+            // 未标注指数的老序列一直是按报价基准(USD)记的
+            quoteBasisFallback: 'USD',
             currencyNotStated: 'quote currency not stated — cannot price yet',
         },
         settings: {
@@ -2472,7 +2476,7 @@ const en = {
             cpfNote: 'CPF is due by the 14th of the FOLLOWING month and its journal lands in that month — locking this month does not block it.',
             noPeriod: 'No payroll period for this month',
             blockedByPosting: 'blocked: payroll not posted',
-            blockedByMid: 'blocked: no mid rate on file for {0} — enter it under FX first',
+            blockedByMid: 'blocked: no mid rate on file for {0} for {1} — enter it under FX first. A mid rate is needed per non-base currency: revaluation converts each one, and metal quotes published in a foreign currency convert at the mid rate of their own quote date.',
             blockedByReval: 'blocked: run the revaluation first',
             gapsDetail: '{n} day(s) with foreign postings missing board rates',
             unpaidLines: '{n} employee(s) not yet paid',

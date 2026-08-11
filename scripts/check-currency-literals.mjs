@@ -170,6 +170,26 @@ const ALLOWLIST = [
             + 'computeLineEstimate 在数字变成价格之前折进单据币种(FIN-15)。'
             + '所以这里的 USD 标签是【真的】,换成本位币反而会说谎。',
     },
+    // ── METAL-3:报价【基准】是 USD,那不是本位币的化名 ──────────────────────
+    {
+        path: 'db/functions/metal_quote_to_usd.sql', match: "c_quote_basis constant text := 'USD'",
+        reason: '这是金属计价函数族的【报价基准】,不是本位币(本位币是 SGD)。'
+            + '金属按 USD/吨报价是市场惯例,AGENTS.md 的 FX 规则已把它记成一条决定,'
+            + '而 calculate_metal_price 全程 USD 进 USD 出。本函数做的正是把以别的'
+            + '货币发布的报价(SMM 按 CNY)折进这个基准 —— 所以这个 USD 是它的'
+            + '【目标口径】,从 currencies.is_base 取反而会把它折成 SGD,当场错。',
+    },
+    {
+        path: 'db/functions/calculate_metal_price_from_terms.sql', match: "COALESCE(v_index_ccy, 'USD')",
+        reason: '未标注指数的老序列【一直是按 USD 记的】(METAL-2 之前只有一条序列,'
+            + '列名就叫 price_usd_per_tonne)。所以这个回退是在陈述那条序列的既有口径,'
+            + '不是在假设本位币。声明了指数的行各自带着自己的 quote_currency,'
+            + '走的是另一条分支。',
+    },
+    {
+        path: 'db/functions/calculate_metal_price_from_terms.sql', match: "'quote_currency', COALESCE(v_index_ccy, 'USD')",
+        reason: '同上 —— 出处里记下这条报价是按什么币种发布的;未标注指数的老序列是 USD。',
+    },
 ]
 
 // 【比对整行,不是那截给人看的文本】h.text 是截到 110 字符的展示串;

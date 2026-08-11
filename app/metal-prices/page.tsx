@@ -30,6 +30,9 @@ type MetalPriceRow = {
     notes: string | null
     // METAL-1:录入那一刻的判词(记录,不事后重算 —— 后来的报价会改变"上一条")
     anomaly_check: AnomalyVerdict | null
+    // METAL-3:这一行是【哪个币种】报的 —— SMM 是 CNY/吨,不是 USD/吨。
+    // FK 嵌入运行时是对象;显式类型 + cast 锁住(与其他页同一惯例)。
+    metal_price_indices: { quote_currency: string | null } | null
 }
 
 export default async function MetalPricesPage({
@@ -83,7 +86,7 @@ export default async function MetalPricesPage({
     // 2) 取当前页的行
     const baseQuery = supabase
         .from('metal_prices')
-        .select('id, metal, price_usd_per_tonne, price_date, source, price_index, notes, anomaly_check')
+        .select('id, metal, price_usd_per_tonne, price_date, source, price_index, notes, anomaly_check, metal_price_indices ( quote_currency )')
 
     const { data, error } = await applyMetalPricesFilters(baseQuery, filterParams).range(
         from,
@@ -196,7 +199,11 @@ export default async function MetalPricesPage({
                 <thead className="bg-gray-100">
                     <tr>
                         {sortableTh('metal', t('metalPrices.colMetal'))}
-                        {sortableTh('price_usd_per_tonne', t('metalPrices.colPrice'))}
+                        {/* METAL-3:列头不再写死 USD —— SMM 按 CNY/吨发布,
+                            一个写着 (USD/t) 的列头对那些行就是一句谎话
+                            (FIN-18 的 jsx-text 教训:最直接的说谎方式是正文)。
+                            币种跟着每一行走,见下面的单元格。 */}
+                        {sortableTh('price_usd_per_tonne', t('metalPrices.colPricePerTonne'))}
                         {sortableTh('price_date', t('metalPrices.colPriceDate'))}
                         <th className="border border-gray-300 px-4 py-2 text-left">
                             {t('metalPrices.colIndex')}
@@ -217,7 +224,12 @@ export default async function MetalPricesPage({
                         <tr key={r.id}>
                             <td className="border border-gray-300 px-4 py-2">{metalLabel(r.metal)}</td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatMoneyBare(r.price_usd_per_tonne, '列头 metalPrices.colPrice「价格 (USD/吨)」')}
+                                {formatMoneyBare(r.price_usd_per_tonne, '同格内紧跟着币种,见下一行')}
+                                {/* 【数字自己带币种】—— 未标注指数的老行按 USD 记
+                                    (那条序列一直是 USD),所以回退到报价基准。 */}
+                                <span className="ml-1 text-xs text-gray-500">
+                                    {r.metal_price_indices?.quote_currency ?? t('metalPrices.index.quoteBasisFallback')}
+                                </span>
                                 {/* METAL-1:录入那一刻的判词。outside 挂琥珀徽标;
                                     no_reference 挂灰色 —— 【它不是"检查通过"】,
                                     是"这个金属当时没有别的报价可比"。两者必须

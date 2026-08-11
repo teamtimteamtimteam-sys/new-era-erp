@@ -28,24 +28,41 @@ CREATE TABLE public.metal_price_indices (
     notes          text,
     created_at     timestamptz NOT NULL DEFAULT now(),
     updated_at     timestamptz NOT NULL DEFAULT now(),
-    updated_by     uuid DEFAULT auth.uid()
+    updated_by     uuid DEFAULT auth.uid(),
+    -- ── METAL-3 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
+    -- 这个 quote_currency 是【怎么定下来的】—— 见下面的列注释。
+    -- 'contract' = 有签下来的合同这么写;'house_assumption' = 公司认为合理,
+    -- 但还没有任何一笔交易这么约定过。
+    quote_currency_basis text
+        CHECK (quote_currency_basis IN ('house_assumption','contract')),
+    -- 声明了币种就必须说清它是怎么来的 —— 否则"CNY"会读成一条合同条款
+    CONSTRAINT metal_price_indices_currency_basis_shape
+        CHECK (quote_currency IS NULL OR quote_currency_basis IS NOT NULL)
 );
 
+COMMENT ON COLUMN public.metal_price_indices.quote_currency_basis IS
+$$这个指数的 quote_currency 是【怎么定下来的】:'contract' = 有签下来的合同这么写;
+'house_assumption' = 公司认为合理、但还没有任何一笔交易这么约定过。
+
+为什么要有这一列:光写 quote_currency = 'CNY' 会读成"合同就是这么定的"。
+Tim 给出 CNY 时明说了那是他认为合理的条款,而不是签下来的 —— 今天一笔 SMM 交易
+都还没有。真的 SMM 合同出现时可能另有说法,而代码不该读起来像是已经知道了。
+计价出处里一并记下当时是哪一种,于是【按假设算出来的那些数】日后与【按合同算出来的】
+分得开。合同落地时改这一个字段,不需要动任何代码。$$;
+
 COMMENT ON COLUMN public.metal_price_indices.quote_currency IS
-$$这个指数按什么货币报价。【NULL = 还没有人声明,而不是"未知所以按 USD 算"】。
+$$这个指数按什么货币报价。【NULL = 还没有人声明,而不是"未知所以按 USD 算"】——
+按一个没声明币种的指数计价会被点名拒绝(INDEX_CURRENCY_NOT_STATED),而不是把那些
+数字默认当成美元。新加进来的指数默认就是这个状态。
 
-为什么 SMM 这一行是空的,而且不该被顺手填上:SMM 在市场上以 CNY/吨发布,这一点
-可以查到;但【这家公司的 SMM 合同按什么货币结算】是一条交易条款,不是一个市场事实,
-而 Tim 没有说过。替他填一个,就是编造一条商务条款 —— 与给那条 80,000 编一个看起来
-合理的铜价是同一种伪造(FIN-26:宁可空着,不可编造)。
+【这个币种是怎么定下来的,看 quote_currency_basis】'contract' 是签下来的,
+'house_assumption' 是公司认为合理但还没有任何一笔交易这么约定过。两者在计价出处里
+都会被记下,于是"按假设算出来的数"日后与"按合同算出来的"分得开。
 
-空着的后果是【明写并且响亮的】:calculate_metal_price_from_terms 在算钱之前拒绝,
-报 INDEX_CURRENCY_NOT_STATED|SMM。于是 SMM 这条序列今天就可以录入、可以打标签、
-可以在界面上看见,但【在 Tim 回答之前算不出钱】。这正是它该有的样子。
-
-如果答案是 CNY:那是 currencies 里加一行、外加一条换算路径,而换算路径自带
-"用哪一天的汇率"这个问题(THE FX RULE 管着它)—— 那是它自己的一刀,
-不是在这里顺手改个列名。$$;
+SMM 今天是 CNY / house_assumption(METAL-3):Tim 说了按当天汇率换算是合理的做法,
+但一笔 SMM 交易都还没有。换算发生在【读的时候】,按【报价那一天】的中间价,
+两条腿(报价币 → 本位币 → USD);报价本身按发布原样以 CNY 存,
+存成换好的 USD 会把某一天的汇率焊进一条市场记录、并丢掉原始数字。$$;
 
 ALTER TABLE public.metal_price_indices ENABLE ROW LEVEL SECURITY;
 
@@ -58,8 +75,8 @@ CREATE POLICY "metal_price_indices write by permission"
     WITH CHECK (has_permission('module.pricing.edit'));
 
 -- ── 引导 ────────────────────────────────────────────────────────────────────
-INSERT INTO public.metal_price_indices (code, name_en, name_zh, quote_currency, sort_order, notes) VALUES
-    ('LME', 'London Metal Exchange', '伦敦金属交易所', 'USD', 1,
-     'USD/吨是 LME 的市场惯例 —— 这一条是市场事实,可以直接声明。'),
-    ('SMM', 'Shanghai Metals Market', '上海有色网', NULL, 2,
-     '报价币种【故意留空】:SMM 在市场上以 CNY/吨发布,但本公司的 SMM 合同按什么货币结算是一条交易条款,Tim 尚未声明。填一个就是编造条款 —— 在他回答之前,按此指数计价会被点名拒绝(INDEX_CURRENCY_NOT_STATED)。理由全文见 metal_price_indices.quote_currency 的列注释。');
+INSERT INTO public.metal_price_indices (code, name_en, name_zh, quote_currency, quote_currency_basis, sort_order, notes) VALUES
+    ('LME', 'London Metal Exchange', '伦敦金属交易所', 'USD', 'contract', 1,
+     'USD/吨是 LME 的市场惯例 —— 这一条是市场事实,不是某一笔合同的条款,所以按 contract(已确定)记,不是房屋假设。'),
+    ('SMM', 'Shanghai Metals Market', '上海有色网', 'CNY', 'house_assumption', 2,
+     'SMM 以 CNY/吨发布。报价币种【CNY 是房屋假设,不是合同条款】—— Tim 认为按当天汇率换算是合理的做法,但今天还没有任何一笔 SMM 交易这么约定过(quote_currency_basis = house_assumption)。真的合同出现时可能另有说法,届时改这一行即可。换算发生在读的时候:按【报价那一天】的中间价,两条腿(CNY→本位币→USD)。');

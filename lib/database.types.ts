@@ -3246,6 +3246,7 @@ export type Database = {
           name_zh: string
           notes: string | null
           quote_currency: string | null
+          quote_currency_basis: string | null
           sort_order: number
           updated_at: string
           updated_by: string | null
@@ -3258,6 +3259,7 @@ export type Database = {
           name_zh: string
           notes?: string | null
           quote_currency?: string | null
+          quote_currency_basis?: string | null
           sort_order?: number
           updated_at?: string
           updated_by?: string | null
@@ -3270,6 +3272,7 @@ export type Database = {
           name_zh?: string
           notes?: string | null
           quote_currency?: string | null
+          quote_currency_basis?: string | null
           sort_order?: number
           updated_at?: string
           updated_by?: string | null
@@ -7633,19 +7636,12 @@ export type Database = {
       fx_rate_gaps: {
         Row: {
           currency: string | null
+          gap_source: string | null
           missing_types: string[] | null
           rate_date: string | null
           txn_count: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "journal_lines_currency_fkey"
-            columns: ["currency"]
-            isOneToOne: false
-            referencedRelation: "currencies"
-            referencedColumns: ["code"]
-          },
-        ]
+        Relationships: []
       }
       hr_alerts: {
         Row: {
@@ -10691,6 +10687,17 @@ export type Database = {
           p_price_index?: string
         }
         Returns: Json
+      }
+      metal_quote_to_usd: {
+        Args: {
+          p_price: number
+          p_quote_currency: string
+          p_quote_date: string
+        }
+        Returns: {
+          leg: Json
+          usd: number
+        }[]
       }
       next_assay_code: { Args: { p_date?: string }; Returns: string }
       next_employee_code: { Args: { p_date?: string }; Returns: string }

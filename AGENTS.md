@@ -804,6 +804,22 @@ at a time; a new screen should inherit the rule rather than rediscover it.
   failure mode is a false *refusal* on a UK bank holiday — conservative and
   self-announcing — never a silently wrong rate. Reasoned where the
   reach-back lives (`db/functions/fx_rate_asof.sql`).
+  **METAL-3 added a second calendar to the same approximation, and its
+  consequence is worth stating plainly rather than as a mechanism.** SMM quotes
+  are published against Chinese market days, and `public_holidays` holds
+  Singapore's. A CNY quote dated inside Golden Week or Spring Festival needs a
+  CNY mid rate that nobody published, and the reach-back will not cross a run of
+  days Singapore counts as working — so it refuses. The shape of that refusal is
+  what matters: someone keying a week of quotes after the fact meets **a wall of
+  refusals, one per day**, not a single one. It is still conservative and still
+  self-announcing, and no wrong number is produced.
+  **The open question, named rather than answered: should a reference rate reach
+  back further than a settlement rate?** They are different risks — a settlement
+  rate that is four days stale mis-states money that actually moved, while a
+  reference rate that is four days stale mis-states a quote that was already an
+  approximation of a market. A longer bound for `mid` might be right; it needs
+  Tim's view on how far a metal quote may drift from its own conversion rate
+  before the number stops meaning anything, and nobody has been asked.
 * **`public_holidays` is load-bearing for two modules.** It drives
   `calculate_leave_days` (leave entitlement, silently wrong if a year is
   missing) and now `fx_rate_asof` (loudly wrong — it refuses). It is seeded
@@ -839,6 +855,20 @@ be a defect:
   `calculate_metal_price` is USD in, USD out: quotes are USD/tonne, treatment
   charges are USD/tonne, and it neither takes nor applies a rate. **The
   conversion belongs to the path, not the function.**
+  **METAL-3 qualified this sentence, and the qualification matters: there are
+  TWO conversions and only one of them belongs to the path.**
+  *Output* conversion — USD → document currency, at the deal's date, on
+  `tt_buy`/`tt_sell` — is the path's job (`computeLineEstimate`), exactly as
+  written here, and METAL-3 did not touch it. *Input* conversion — a quote
+  published in another currency (SMM in CNY) → the function's USD basis, at the
+  **quote's own date**, on `mid` — happens **inside** the function, because only
+  it knows which quote it picked and what day that quote is from. Converting at
+  today's rate instead would make the same historical quote worth different
+  amounts depending on when the screen is opened, which is restating history.
+  On the `average` basis each quote converts at its own date before the mean is
+  taken; averaging first would let one rate move contaminate every day in the
+  window. `mid` rather than a side because a market quote is a reference price,
+  not a dealt one — a bank's spread has no business inside a published figure.
   **METAL-2 made that assumption checkable instead of assumed.** Quotes now carry
   an index (`metal_prices.price_index` → `metal_price_indices`), and each index
   declares the currency it quotes in. USD-in stays true because the function

@@ -13,12 +13,12 @@
 -- 【D 臂:指数是条款,承诺之后不随公式改动】FIN-27 的形状,换一个字段再钉一次:
 -- 抄下来的那份说 LME,公式事后改成 SMM,已成交的那一单仍按 LME 结算。
 --
--- 【E 臂:报价币种未声明的指数【算不出钱】】SMM 的 quote_currency 引导里故意为空 ——
--- SMM 市场上以 CNY 报价是可以查到的事实,但【本公司的 SMM 合同按什么货币结算】
--- 是一条交易条款,Tim 没有说过。替他填一个就是编造条款。所以按 SMM 计价被点名拒绝,
--- 而不是把那些数字默认当成美元。
--- 【这一臂是有历史的】主迁移里这道闸门写在"读出指数"那一行【之前】,于是它读到的
--- v_index 永远是 NULL,闸门恒不开 —— 按 SMM 计价一声不吭地算了出来。fu1 修正了顺序。
+-- 【E 臂:报价币种未声明的指数【算不出钱】】它测的是【机制】:没声明报价币种就
+-- 不许算钱,而不是"SMM 恰好没声明"。所以这一臂【自己建一个没声明币种的指数】——
+-- 第一版直接拿 SMM 当例子,METAL-3 里 Tim 回答了(CNY / 房屋假设),那一臂当场变红,
+-- 而断言本身没有错:错在把一个【会被人回答的业务决定】当成了固定前提。
+-- 【这一臂是有历史的】METAL-2 主迁移里这道闸门写在"读出指数"那一行【之前】,
+-- 于是它读到的 v_index 永远是 NULL,闸门恒不开 —— 计价一声不吭地算了出来。fu1 修正了顺序。
 -- 一条守卫写在它所判断的那个值被读出来之前,和 FIN-13 那个空区间、OPS-17 那个
 -- 同源自检是同一族:读起来很严,实际什么也没做,而且只能靠【让它失败一次】发现。
 --
@@ -144,36 +144,52 @@ BEGIN
     v_calc := calculate_metal_price_from_terms(pricing_terms_of_commitment(v_commit),
         jsonb_build_array(jsonb_build_object('metal','cu','content_pct',100)), 1000, DATE '2027-05-04');
     IF (v_calc->>'unit_price_usd_per_kg')::numeric <> 10 THEN
-        RAISE EXCEPTION 'FIXTURE 49D 失败:按抄下来的 LME 结算应得 10 USD/kg(SMM 会得 12),实得 % —— 两个数字不同正是这一臂的判别力所在',
+        -- 【判别力】抄下来的是 LME(10,000 USD/t → 10 USD/kg);公式已被改判到 SMM,
+        -- 而 SMM 那条报价是另一个数、另一种币种 —— 跟着公式走就不可能还是 10。
+        RAISE EXCEPTION 'FIXTURE 49D 失败:按抄下来的 LME 结算应得 10 USD/kg,实得 % —— 公式已被改判到 SMM(另一条序列、另一个数),算出别的数就说明它跟着模板走了,而不是跟着成交记录',
             v_calc->>'unit_price_usd_per_kg';
     END IF;
 
     -- ══════════ E. 报价币种未声明的指数【算不出钱】,而且是点名拒绝 ══════════
+    -- 【本臂自己建一个没声明币种的指数,不依赖 SMM 恰好是空的】第一版直接拿 SMM
+    -- 当例子 —— 那时它的 quote_currency 确实为空。METAL-3 里 Tim 回答了(CNY),
+    -- 于是这一臂开始报"应当 INDEX_CURRENCY_NOT_STATED,实得 FX_RATE_MISSING"。
+    -- 断言本身没错,错的是它把【一个会被人回答的业务决定】当成了固定前提
+    -- (README 第 5 条:要什么前提就自己设,别继承)。它测的一直是【机制】:
+    -- 没声明币种的指数不许算钱 —— 那就自己造一个没声明的。
+    INSERT INTO metal_price_indices (code, name_en, name_zh, quote_currency, sort_order, notes)
+    VALUES ('ZZFIX49-IDX', 'fixture 49 index', 'fixture 49 指数', NULL, 99,
+            '本 fixture 自建:报价币种【故意不声明】,用来钉"没声明就不许算钱"这条闸门');
+    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, price_index)
+    VALUES ('cu', 11000, '2027-05-04', 'ZZFIX49-IDX');
+
     v_denied := false;
     BEGIN
         v_calc := calculate_metal_price_from_terms(
-            jsonb_build_object('price_index','SMM','price_basis','spot','average_days',NULL,
+            jsonb_build_object('price_index','ZZFIX49-IDX','price_basis','spot','average_days',NULL,
                 'treatment_charge_usd_per_tonne',0,'flat_discount_pct',0,
                 'payables', jsonb_build_object('cu',100)),
             jsonb_build_array(jsonb_build_object('metal','cu','content_pct',100)), 1000, DATE '2027-05-04');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
     END;
-    IF NOT v_denied OR v_msg <> 'INDEX_CURRENCY_NOT_STATED|SMM' THEN
-        RAISE EXCEPTION 'FIXTURE 49E 失败:SMM 的报价币种未声明,按它计价应点名拒绝,实得 denied=% msg=% —— 把它的数字默认当成美元,就是替这个市场宣称了一件没人说过的事(而主迁移的第一版正是这样:闸门写在读出指数之前,恒不开)',
+    IF NOT v_denied OR v_msg <> 'INDEX_CURRENCY_NOT_STATED|ZZFIX49-IDX' THEN
+        RAISE EXCEPTION 'FIXTURE 49E 失败:报价币种未声明的指数,按它计价应点名拒绝,实得 denied=% msg=% —— 把它的数字默认当成美元,就是替这个市场宣称了一件没人说过的事(METAL-2 主迁移的第一版正是这样:闸门写在读出指数之前,恒不开)',
             v_denied, COALESCE(v_msg, '(算出来了)');
     END IF;
-    -- 声明之后立刻可用 —— 这一臂同时证明那道闸门【拦的是缺席,不是 SMM 这个名字】
-    UPDATE metal_price_indices SET quote_currency = 'USD' WHERE code = 'SMM';
+
+    -- 声明之后立刻可用 —— 这一臂同时证明那道闸门【拦的是缺席,不是某个指数的名字】
+    UPDATE metal_price_indices
+       SET quote_currency = 'USD', quote_currency_basis = 'contract'
+     WHERE code = 'ZZFIX49-IDX';
     v_calc := calculate_metal_price_from_terms(
-        jsonb_build_object('price_index','SMM','price_basis','spot','average_days',NULL,
+        jsonb_build_object('price_index','ZZFIX49-IDX','price_basis','spot','average_days',NULL,
             'treatment_charge_usd_per_tonne',0,'flat_discount_pct',0,
             'payables', jsonb_build_object('cu',100)),
         jsonb_build_array(jsonb_build_object('metal','cu','content_pct',100)), 1000, DATE '2027-05-04');
-    IF (v_calc->>'unit_price_usd_per_kg')::numeric <> 12 THEN
-        RAISE EXCEPTION 'FIXTURE 49E 失败:声明币种之后按 SMM 应得 12 USD/kg,实得 % —— 闸门该拦的是"没人声明",不是某个指数本身',
+    IF (v_calc->>'unit_price_usd_per_kg')::numeric <> 11 THEN
+        RAISE EXCEPTION 'FIXTURE 49E 失败:声明币种之后应得 11 USD/kg,实得 % —— 闸门该拦的是"没人声明",不是某个指数本身',
             v_calc->>'unit_price_usd_per_kg';
     END IF;
-    UPDATE metal_price_indices SET quote_currency = NULL WHERE code = 'SMM';   -- 复原
 
     -- ══════════ F. 异常判据按指数收窄 ═══════════════════════════════════════
     -- SMM 次日 13,000:与【SMM 自己的】12,000 相差 8.3%,不该报警;
