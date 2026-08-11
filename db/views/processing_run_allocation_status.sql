@@ -21,6 +21,10 @@
 -- 借来的三样都是【派生事实】(布尔、计数、时间戳),不是金额,而加工的人需要真答案
 -- 才能干活 —— 所以是修法 (a) 而不是拆分。
 
+-- FRT-1(2026-08-11):第四过期源 —— 迟到的运费。它改变的是【已被消耗的批次】的
+-- 成本,不在这里的话,吃过那批货的单永远不标过期,而 batch_margin 会一直停在
+-- 运费之前的那个数(运费那张分录本身完全正确)。
+
 CREATE VIEW public.processing_run_allocation_status WITH (security_invoker = off) AS
  SELECT r.id AS run_id,
     r.code,
@@ -28,33 +32,32 @@ CREATE VIEW public.processing_run_allocation_status WITH (security_invoker = off
     c.last_cost_change,
     r.allocated_at IS NOT NULL AND c.last_cost_change IS NOT NULL AND c.last_cost_change > r.allocated_at AS is_stale,
     COALESCE(g.cogs_posted, 0::bigint) AS cogs_posted,
-    (r.capitalization_entry_id IS NULL OR je.status = 'posted') AS safe_to_reallocate
+    r.capitalization_entry_id IS NULL OR je.status = 'posted'::text AS safe_to_reallocate
    FROM processing_runs r
      LEFT JOIN journal_entries je ON je.id = r.capitalization_entry_id
      LEFT JOIN LATERAL ( SELECT max(x.ts) AS last_cost_change
            FROM ( SELECT GREATEST(e.created_at, e.updated_at) AS ts
-                    FROM processing_cost_entries e
-                   WHERE e.run_id = r.id
-                  UNION ALL
-                  SELECT ph.created_at
-                    FROM price_history ph
-                    JOIN processing_inputs pi ON pi.inbound_batch_id = ph.inbound_batch_id
-                   WHERE pi.run_id = r.id
-                  UNION ALL
-                  SELECT r2.allocated_at
-                    FROM processing_inputs pi2
-                    JOIN processing_outputs po2 ON po2.output_batch_id = pi2.output_batch_id
-                    JOIN processing_runs r2 ON r2.id = po2.run_id
-                   WHERE pi2.run_id = r.id AND r2.allocated_at IS NOT NULL
+                   FROM processing_cost_entries e
+                  WHERE e.run_id = r.id
                 UNION ALL
-                -- FIN-36:【第四个过期源 —— 分摊基准被改动】前三个是成本条目、
-                -- 输入批的 price_history、上游单重分摊。少了这一支,一次
-                -- UPDATE ... SET allocation_basis 会让存着的单位成本与单据自称的
-                -- 方法对不上而毫无信号 —— 与 FIN-25 给输入价格关掉的缺口同病异源。
-                -- allocate_processing_costs 在同一事务里改基准并重写 allocated_at,
-                -- 两个时点相等,而 is_stale 用严格大于 —— 重分摊不会自标过期。
-                 SELECT r.allocation_basis_changed_at AS ts
-) x) c ON true
+                 SELECT fa.created_at
+                   FROM freight_allocations fa
+                     JOIN freight_documents fd ON fd.id = fa.freight_document_id
+                     JOIN processing_inputs pif ON pif.inbound_batch_id = fa.inbound_batch_id
+                  WHERE pif.run_id = r.id AND fd.deleted_at IS NULL AND fd.status = 'posted'::text
+                UNION ALL
+                 SELECT ph.created_at
+                   FROM price_history ph
+                     JOIN processing_inputs pi ON pi.inbound_batch_id = ph.inbound_batch_id
+                  WHERE pi.run_id = r.id
+                UNION ALL
+                 SELECT r2.allocated_at
+                   FROM processing_inputs pi2
+                     JOIN processing_outputs po2 ON po2.output_batch_id = pi2.output_batch_id
+                     JOIN processing_runs r2 ON r2.id = po2.run_id
+                  WHERE pi2.run_id = r.id AND r2.allocated_at IS NOT NULL
+                UNION ALL
+                 SELECT r.allocation_basis_changed_at AS ts) x) c ON true
      LEFT JOIN LATERAL ( SELECT count(*) AS cogs_posted
            FROM sales_records sr
              JOIN processing_outputs po ON po.output_batch_id = sr.output_batch_id AND po.run_id = r.id

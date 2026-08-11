@@ -52,7 +52,8 @@ const routes = [...walk(join(ROOT, 'app'))].map((p) =>
 const ID_SOURCES = {
     '[id]': {
         '/customers': 'customers', '/finance/bank/statements': 'bank_statements',
-        '/finance/expenses': 'expenses', '/finance/fx': 'fx_rates',
+        '/finance/expenses': 'expenses', '/finance/freight': 'freight_documents',
+        '/finance/fx': 'fx_rates',
         '/finance/invoices': 'invoices', '/finance/journal': 'journal_entries',
         '/finance/payments': 'payments', '/hr/claims': 'medical_claims',
         '/hr/departments': 'departments', '/hr/employees': 'employees',
@@ -94,6 +95,9 @@ const STATUS_GUARDS = {
 const EXPECTED_SKIPS = new Set([
     '/hr/claims/[id]',    // medical_claims 空 —— 正常运营会产生;有数据那天此断言逼人收编
     '/hr/leave/[id]',     // leave_requests 空
+    // FRT-1:freight_documents 空 —— 线上还没录过运费单。录第一张的那天,
+    // 这条断言会逼人把它从这里删掉(与上面两条同一个用意:跳过是记录,不是默许)。
+    '/finance/freight/[id]',
 ])
 // ── 冒烟临时行的标识 ─────────────────────────────────────────────────────────
 // 员工行和评估行会出现在 HR 界面和待办板上 —— 必须一眼即知是脚本垃圾,不是一名

@@ -326,6 +326,11 @@ const MANIFEST = {
     'finance.docKind.':     { kind: 'enum', values: union(
                                   () => sqlLiteralAs('db/views/ap_open_items.sql', 'doc_kind'),
                                   () => sqlLiteralAs('db/views/ar_open_items.sql', 'doc_kind')) },
+    // FRT-1:运费。三者都接真源 —— 口径与付款状态接表上的 CHECK,错误码接那个 Set,
+    // 于是加一种口径 / 加一个错误码,键检查自动跟着变宽。
+    'finance.freight.basis.':   { kind: 'enum', values: () => sqlEnum('db/tables/freight_documents.sql', 'allocation_basis') },
+    'finance.freight.payment.': { kind: 'enum', values: () => sqlEnum('db/tables/freight_documents.sql', 'payment_status') },
+    'finance.freight.errors.':  { kind: 'enum', values: () => tsSet('app/finance/freightErrorCodes.ts', 'FREIGHT_ERROR_CODES') },
     'finance.presets.':     { kind: 'enum', values: () => tsRegex('app/finance/pnl/page.tsx', /\{ key: '(\w+)'/g) },
     'finance.fxPage.rateType.': { kind: 'enum', values: () => sqlEnum('db/tables/fx_rates.sql', 'rate_type') },
     'processing.costTypes.': { kind: 'enum', values: () => sqlEnum('db/tables/processing_cost_entries.sql', 'cost_type') },

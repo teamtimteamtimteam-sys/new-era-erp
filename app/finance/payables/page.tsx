@@ -15,7 +15,7 @@ import { MOD } from '@/lib/modules'
 
 // 视图列生成类型全可空;行进视图即非空,本地类型锁死
 type ApRow = {
-    doc_kind: 'inbound' | 'expense'
+    doc_kind: 'inbound' | 'expense' | 'freight'
     doc_id: string
     doc_code: string
     inbound_batch_id: string | null
@@ -140,6 +140,11 @@ export default async function PayablesPage() {
                                         {ri === 0 ? g.name : ''}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
+                                        {/* FRT-1:三种单据,三个去处。【认不出的种类不给链接】——
+                                            原来是二分的 else,新来的 freight 会被送进
+                                            /finance/expenses/<freight-id> 然后 404;而"点开是空的"
+                                            读起来像数据出了问题,不像少了一张页面,下一个人会去
+                                            查错的地方(LINKS-1 的教训)。 */}
                                         {r.doc_kind === 'inbound' ? (
                                             <Link
                                                 href={`/finance/payables/${r.doc_id}`}
@@ -147,7 +152,7 @@ export default async function PayablesPage() {
                                             >
                                                 {r.doc_code}
                                             </Link>
-                                        ) : (
+                                        ) : r.doc_kind === 'expense' ? (
                                             <>
                                                 <Link
                                                     href={`/finance/expenses/${r.doc_id}`}
@@ -159,6 +164,20 @@ export default async function PayablesPage() {
                                                     {t('finance.docKind.expense')}
                                                 </span>
                                             </>
+                                        ) : r.doc_kind === 'freight' ? (
+                                            <>
+                                                <Link
+                                                    href={`/finance/freight/${r.doc_id}`}
+                                                    className="text-blue-600 hover:underline"
+                                                >
+                                                    {r.doc_code}
+                                                </Link>
+                                                <span className="ml-2 px-2 py-0.5 rounded text-xs bg-gray-200 text-gray-500">
+                                                    {t('finance.docKind.freight')}
+                                                </span>
+                                            </>
+                                        ) : (
+                                            <span className="font-mono">{r.doc_code}</span>
                                         )}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2">{r.doc_date}</td>

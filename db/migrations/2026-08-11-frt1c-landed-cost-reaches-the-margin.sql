@@ -1,3 +1,29 @@
+-- FRT-1 第三部分(2026-08-11):让运费【走到底】—— 落地成本进分摊,迟到的运费标过期
+--
+-- 【一 · allocate 读的是落地成本,不再只是单价】运费资本化进批次之后,
+-- allocate_processing_costs 若仍只读 unit_price,运费就停在 1200/5000,永远走不到
+-- 产出批的 unit_cost_base,于是 batch_margin 继续停在运费之前的那个数 ——
+-- 而运费那张分录本身完全正确。这正是"资本化的错误藏在存货里"最具体的一种。
+--
+-- 【二 · 第四个过期源:迟到的运费】status 视图原本看三样(成本条目 / 输入批的
+-- price_history / 上游重分摊)。迟到的运费改变的是【已被消耗的批次】的成本,
+-- 它若不是第四样,吃过那批货的单永远不标过期,而 batch_margin 会一直停在运费
+-- 之前的那个数。
+-- 【一个过账全对、只是忘了标过期的实现,能通过其它每一条断言】—— 所以它不是
+-- 可选项,fixture 51 有一臂专打它。
+--
+-- 【三 · source_type 加 'freight'】不加的话 post_journal_entry 当场被 CHECK 拒。
+-- 现金流量表按【科目】归段,只对 revaluation / manual / year_close 特判,所以
+-- 一张借 1200/5000、贷银行的已付运费自然落进【经营】—— 那是对的,不需要特判。
+
+BEGIN;
+
+ALTER TABLE public.journal_entries DROP CONSTRAINT journal_entries_source_type_check;
+ALTER TABLE public.journal_entries ADD CONSTRAINT journal_entries_source_type_check
+    CHECK (source_type IN ('manual','purchase','sale','processing_cost','allocation','stocktake',
+        'writeoff','payment','fx','expense','prepayment','payroll','transfer','revaluation',
+        'depreciation','asset_disposal','year_close','freight'));
+
 CREATE OR REPLACE FUNCTION public.allocate_processing_costs(p_run_id uuid, p_basis text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -572,3 +598,44 @@ BEGIN
     );
 END;
 $function$;
+
+CREATE OR REPLACE VIEW public.processing_run_allocation_status WITH (security_invoker = off) AS
+ SELECT r.id AS run_id,
+    r.code,
+    r.allocated_at,
+    c.last_cost_change,
+    r.allocated_at IS NOT NULL AND c.last_cost_change IS NOT NULL AND c.last_cost_change > r.allocated_at AS is_stale,
+    COALESCE(g.cogs_posted, 0::bigint) AS cogs_posted,
+    r.capitalization_entry_id IS NULL OR je.status = 'posted'::text AS safe_to_reallocate
+   FROM processing_runs r
+     LEFT JOIN journal_entries je ON je.id = r.capitalization_entry_id
+     LEFT JOIN LATERAL ( SELECT max(x.ts) AS last_cost_change
+           FROM ( SELECT GREATEST(e.created_at, e.updated_at) AS ts
+                   FROM processing_cost_entries e
+                  WHERE e.run_id = r.id
+                UNION ALL
+                 SELECT fa.created_at
+                   FROM freight_allocations fa
+                     JOIN freight_documents fd ON fd.id = fa.freight_document_id
+                     JOIN processing_inputs pif ON pif.inbound_batch_id = fa.inbound_batch_id
+                  WHERE pif.run_id = r.id AND fd.deleted_at IS NULL AND fd.status = 'posted'::text
+                UNION ALL
+                 SELECT ph.created_at
+                   FROM price_history ph
+                     JOIN processing_inputs pi ON pi.inbound_batch_id = ph.inbound_batch_id
+                  WHERE pi.run_id = r.id
+                UNION ALL
+                 SELECT r2.allocated_at
+                   FROM processing_inputs pi2
+                     JOIN processing_outputs po2 ON po2.output_batch_id = pi2.output_batch_id
+                     JOIN processing_runs r2 ON r2.id = po2.run_id
+                  WHERE pi2.run_id = r.id AND r2.allocated_at IS NOT NULL
+                UNION ALL
+                 SELECT r.allocation_basis_changed_at AS ts) x) c ON true
+     LEFT JOIN LATERAL ( SELECT count(*) AS cogs_posted
+           FROM sales_records sr
+             JOIN processing_outputs po ON po.output_batch_id = sr.output_batch_id AND po.run_id = r.id
+          WHERE sr.cogs_entry_id IS NOT NULL) g ON true
+  WHERE r.deleted_at IS NULL AND has_permission('module.processing.view'::text);;
+
+COMMIT;

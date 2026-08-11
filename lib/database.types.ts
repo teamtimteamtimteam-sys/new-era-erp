@@ -1776,6 +1776,170 @@ export type Database = {
           },
         ]
       }
+      freight_allocations: {
+        Row: {
+          amount_base: number
+          basis_qty: number | null
+          created_at: string
+          created_by: string | null
+          freight_document_id: string
+          id: string
+          in_stock_ratio: number
+          inbound_batch_id: string
+        }
+        Insert: {
+          amount_base: number
+          basis_qty?: number | null
+          created_at?: string
+          created_by?: string | null
+          freight_document_id: string
+          id?: string
+          in_stock_ratio: number
+          inbound_batch_id: string
+        }
+        Update: {
+          amount_base?: number
+          basis_qty?: number | null
+          created_at?: string
+          created_by?: string | null
+          freight_document_id?: string
+          id?: string
+          in_stock_ratio?: number
+          inbound_batch_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_allocations_freight_document_id_fkey"
+            columns: ["freight_document_id"]
+            isOneToOne: false
+            referencedRelation: "freight_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_allocations_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "freight_allocations_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_allocations_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_allocations_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+        ]
+      }
+      freight_documents: {
+        Row: {
+          allocation_basis: string
+          amount_base: number
+          amount_ccy: number
+          bank_account_code: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          deleted_at: string | null
+          doc_date: string
+          fx_rate: number
+          id: string
+          journal_entry_id: string | null
+          notes: string | null
+          payment_status: string
+          status: string
+          supplier_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          allocation_basis: string
+          amount_base: number
+          amount_ccy: number
+          bank_account_code?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          deleted_at?: string | null
+          doc_date: string
+          fx_rate: number
+          id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          payment_status: string
+          status?: string
+          supplier_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          allocation_basis?: string
+          amount_base?: number
+          amount_ccy?: number
+          bank_account_code?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          deleted_at?: string | null
+          doc_date?: string
+          fx_rate?: number
+          id?: string
+          journal_entry_id?: string | null
+          notes?: string | null
+          payment_status?: string
+          status?: string
+          supplier_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_documents_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "freight_documents_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "freight_documents_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_documents_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fx_rates: {
         Row: {
           created_at: string
@@ -3477,6 +3641,7 @@ export type Database = {
           allocated_pay: number
           created_at: string | null
           expense_id: string | null
+          freight_document_id: string | null
           id: string
           inbound_batch_id: string | null
           payment_id: string
@@ -3489,6 +3654,7 @@ export type Database = {
           allocated_pay: number
           created_at?: string | null
           expense_id?: string | null
+          freight_document_id?: string | null
           id?: string
           inbound_batch_id?: string | null
           payment_id: string
@@ -3501,6 +3667,7 @@ export type Database = {
           allocated_pay?: number
           created_at?: string | null
           expense_id?: string | null
+          freight_document_id?: string | null
           id?: string
           inbound_batch_id?: string | null
           payment_id?: string
@@ -3513,6 +3680,13 @@ export type Database = {
             columns: ["expense_id"]
             isOneToOne: false
             referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_freight_document_id_fkey"
+            columns: ["freight_document_id"]
+            isOneToOne: false
+            referencedRelation: "freight_documents"
             referencedColumns: ["id"]
           },
           {
@@ -10445,6 +10619,10 @@ export type Database = {
         Returns: string
       }
       base_currency_code: { Args: never; Returns: string }
+      batch_freight_base: {
+        Args: { p_inbound_batch_id: string }
+        Returns: number
+      }
       calculate_leave_days: {
         Args: {
           p_end: string
@@ -10862,6 +11040,21 @@ export type Database = {
           p_payee_name?: string
           p_payment_status?: string
           p_supplier_id?: string
+        }
+        Returns: Json
+      }
+      record_freight_document: {
+        Args: {
+          p_allocation_basis: string
+          p_allocations?: Json
+          p_amount: number
+          p_bank_account?: string
+          p_currency: string
+          p_doc_date: string
+          p_gst_amount?: number
+          p_notes?: string
+          p_payment_status?: string
+          p_supplier_id: string
         }
         Returns: Json
       }

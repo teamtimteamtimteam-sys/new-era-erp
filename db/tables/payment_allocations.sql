@@ -27,7 +27,7 @@ CREATE TABLE public.payment_allocations (
     payment_id        uuid NOT NULL REFERENCES public.payments (id) ON DELETE RESTRICT,
     sales_record_id   uuid REFERENCES public.sales_records (id),
     inbound_batch_id  uuid REFERENCES public.inbound_batches (id),
-    CONSTRAINT payment_allocations_one_target CHECK (num_nonnulls(sales_record_id, inbound_batch_id, expense_id, purchase_order_id) = 1),
+    CONSTRAINT payment_allocations_one_target CHECK (num_nonnulls(sales_record_id, inbound_batch_id, expense_id, purchase_order_id, freight_document_id) = 1),
     allocated_base     numeric NOT NULL CHECK (allocated_base > 0),
     created_at        timestamptz DEFAULT now(),
     -- 在列序末尾:s2a / cut 4a 各用 ALTER ADD COLUMN 追加(镜像按线上 attnum 排)
@@ -42,7 +42,11 @@ CREATE TABLE public.payment_allocations (
     -- 入账汇率,与款额的结算日汇率之差正是已实现汇兑(7100),反算出来的"挂账"
     -- 是一笔并不存在的余额。
     allocated_pay      numeric NOT NULL,
-    CONSTRAINT payment_allocations_allocated_pay_positive CHECK (allocated_pay > 0)
+    CONSTRAINT payment_allocations_allocated_pay_positive CHECK (allocated_pay > 0),
+    -- ── FRT-1 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
+    -- 冲的是一张运费单(对手方是货代)。与其余四个去处同级 —— 五者恰一非空;
+    -- 少了它,未付运费永远挂着,因为没有任何一条路能把它结掉。
+    freight_document_id uuid REFERENCES public.freight_documents (id)
 );
 
 CREATE INDEX idx_payment_allocations_payment ON public.payment_allocations (payment_id);
@@ -80,3 +84,6 @@ COMMENT ON COLUMN public.payment_allocations.allocated_ccy IS
     '核销额,以【单据币种】计 —— 敞口与关账在此空间恰好闭合(FIN-2)。';
 COMMENT ON COLUMN public.payment_allocations.allocated_pay IS
     '本条核销消耗掉的【付款币种】金额(FIN-18)。= allocated_ccy × rate(单据币种,结算日) / rate(付款币种,结算日);同币种时即 allocated_ccy。挂账余额 = payments.amount_ccy − Σ allocated_pay,两边同为付款币种。不要用 allocated_base 反算 —— 那是单据入账汇率,差额是已实现汇兑。';
+
+COMMENT ON COLUMN public.payment_allocations.freight_document_id IS
+    'FRT-1:这笔核销冲的是一张运费单(对手方是货代)。与 sales_record_id / inbound_batch_id / expense_id / purchase_order_id 同级 —— 五者恰一非空。';

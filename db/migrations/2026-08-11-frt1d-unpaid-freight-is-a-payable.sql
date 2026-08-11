@@ -1,42 +1,35 @@
--- db/views/ap_open_items.sql
--- AP 开放余额(应付账龄):补充 2a 起是两类单据的 UNION,每张未结清单据一行。
---   * doc_kind 'inbound':已计价、在册的进料批次(规则不变);应付额 = 当前
---     quantity × unit_price(改价即改欠款);无到货日回退 created_at::date。
---   * doc_kind 'expense':挂账(unpaid)、posted 的开支单;应付额 = amount_base;
---     排除镜像行(被别的开支单指为 reversed_by_expense —— 它只是冲销的记录凭证,
---     不是新的应付单据),已冲销(reversed)的开支自然被 status 条件排除。
--- inbound_batch_id 列保留(expense 行为 NULL)—— 兼容按批次取行的旧调用方。
--- 结清额只计 status='posted' 付款单的核销行。【属主权限】—— 见 OPS-14 note。
+-- FRT-1 第四部分(2026-08-11):未付运费进应付账龄 —— 第三种单据类型
 --
--- cut 4a:进料侧的 settled_base 【还要加上 prepayment_applications】—— 定金冲抵的
--- 那部分钱同样在还这张批次的应付,不计进来的话,一张被定金付清的批次会永远显示未付。
--- 开支侧不受影响(预付只对采购订单成立)。列集未变,故本次是 CREATE OR REPLACE。
+-- 【为什么它不是可选的】一张未付的运费单贷 2000,而 ap_open_items 的应付明细
+-- 只从 inbound_batches 与 expenses 推。少了这一支,那笔钱【在总账里躺着,
+-- 在账龄表上不存在】—— 一个既有余额、又查不到明细的应付,正是这个仓库反复
+-- 找到的那类无声缺口。
 --
--- NOTE: prepayment applications folded in by
--- db/migrations/2026-07-31-phase4-cut4a-purchase-orders.sql; reworked by
--- db/migrations/2026-07-30-phase3-s2a-expenses.sql
--- (introduced by db/migrations/2026-07-06-phase3-cut3a-payments.sql).
--- 列集变了 → 重建时先 DROP VIEW 再 CREATE(CREATE OR REPLACE 改不了列)。
+-- 【付款要能核销它】payment_allocations 因此多一列 freight_document_id,
+-- 与既有的 sales_record_id / inbound_batch_id / expense_id 同级:三选一变四选一。
+-- 不加这一列,运费应付会【永远挂着】,因为没有任何一条路能把它结掉。
+--
+-- 【页面一起给】/finance/payables 的行按 doc_kind 分岔到详情页;
+-- 只加支不加页,会得到一张"看得见总数、点不开"的应付 —— 而"没有地方可去"
+-- 比"链接指错了"更难被发现:读的人会去查数据,而不是去找那张不存在的页面。
+-- (LINKS-1 的分岔让"不加页"是安全的 —— 安全不等于完整。)
 
--- cut 2b:本视图改读遮蔽伴生视图(<表>_masked)而非基表 —— 敏感列的遮蔽
--- 因此是继承来的。【OPS-14 起本视图是属主权限,不再是 invoker】,但这一段的结论
--- 未变:遮蔽视图的把关是 has_permission() 谓词,而 has_permission() 按 auth.uid()
--- 解析【调用者】,与谁拥有外层视图无关 —— 所以模块与数据类边界一字未动。
--- 见 db/migrations/2026-08-01-perm2b-field-masking.sql.
+BEGIN;
 
--- OPS-14(2026-08-08):改为【属主权限】+ 整表挂 module.finance.view。
--- 借来的是【金额】:payment_allocations / payments 的核销额。原先 invoker 时
--- procurement(有 inbound + prices、无 finance)读 IN-2026-0029 得 已结 0 / 未结 48,000,
--- 真值是 已结 30,000 / 未结 18,000 —— 付了一大半的应付读起来一分没付。
--- 【为什么整表而不是把 settled/open 遮成 NULL】本视图的存在判据就是 `open_ccy > 0`,
--- 行在不在取决于一个财务计算;遮成 NULL 会把整张表过滤空,那不是"缺席"而是另一种谎。
--- 所以缺席的单位是【整张视图】:没有财务模块就 0 行,由一条明写的谓词给出。
--- supplier 标签跟着单据走。
+-- 付款核销的第四个去处
+ALTER TABLE public.payment_allocations
+    ADD COLUMN freight_document_id uuid REFERENCES public.freight_documents (id);
 
--- FRT-1(2026-08-11):第三种单据 —— 未付运费单(对手方是【货代】)。
--- 少了这一支,那笔钱在总账里躺着、在账龄表上不存在。
+COMMENT ON COLUMN public.payment_allocations.freight_document_id IS
+    'FRT-1:这笔核销冲的是一张运费单(对手方是货代)。与 sales_record_id / inbound_batch_id / expense_id / purchase_order_id 同级 —— 五者恰一非空。';
 
-CREATE VIEW public.ap_open_items WITH (security_invoker = off) AS
+-- 【五选一,不是四选一】少改这条约束,新列就永远插不进去(旧约束要求恰一非空,
+-- 而它不认识新列)—— 一个"加了列却用不了"的静默失败。
+ALTER TABLE public.payment_allocations DROP CONSTRAINT payment_allocations_one_target;
+ALTER TABLE public.payment_allocations ADD CONSTRAINT payment_allocations_one_target
+    CHECK (num_nonnulls(sales_record_id, inbound_batch_id, expense_id, purchase_order_id, freight_document_id) = 1);
+
+CREATE OR REPLACE VIEW public.ap_open_items WITH (security_invoker = off) AS
  SELECT doc_kind,
     doc_id,
     doc_code,
@@ -121,7 +114,8 @@ CREATE VIEW public.ap_open_items WITH (security_invoker = off) AS
                    FROM payment_allocations pa
                      JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'::text
                   WHERE pa.freight_document_id = fd.id) s ON true
-          WHERE fd.payment_status = 'unpaid'::text AND fd.status = 'posted'::text AND fd.deleted_at IS NULL) d
-  WHERE open_ccy > 0::numeric AND has_permission('module.finance.view'::text);
+          WHERE fd.payment_status = 'unpaid'::text AND fd.status = 'posted'::text
+            AND fd.deleted_at IS NULL) d
+  WHERE open_ccy > 0::numeric AND has_permission('module.finance.view'::text);;
 
-
+COMMIT;
