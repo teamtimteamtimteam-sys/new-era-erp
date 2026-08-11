@@ -15,6 +15,10 @@ import {
 } from './metalPricesQuery'
 import { formatMoneyBare } from '@/lib/format'
 import { getTranslations } from '@/lib/i18n/server'
+import { can } from '@/lib/permissions'
+import { mustOne } from '@/lib/db-helpers'
+import ThresholdPanel from './ThresholdPanel'
+import type { AnomalyVerdict } from './anomaly'
 
 type MetalPriceRow = {
     id: string
@@ -23,6 +27,8 @@ type MetalPriceRow = {
     price_date: string
     source: string
     notes: string | null
+    // METAL-1:录入那一刻的判词(记录,不事后重算 —— 后来的报价会改变"上一条")
+    anomaly_check: AnomalyVerdict | null
 }
 
 export default async function MetalPricesPage({
@@ -76,13 +82,29 @@ export default async function MetalPricesPage({
     // 2) 取当前页的行
     const baseQuery = supabase
         .from('metal_prices')
-        .select('id, metal, price_usd_per_tonne, price_date, source, notes')
+        .select('id, metal, price_usd_per_tonne, price_date, source, notes, anomaly_check')
 
     const { data, error } = await applyMetalPricesFilters(baseQuery, filterParams).range(
         from,
         to
     )
     const rows = data as unknown as MetalPriceRow[] | null
+
+    // METAL-1:阈值(人人可读)+ 能不能改(module.pricing.edit,与 RLS 同码)。
+    // mustOne:引导必须给出这一行,读不到要炸,不能当成"没有配置"悄悄过去。
+    const settingsRes = await supabase
+        .from('pricing_settings')
+        .select('metal_price_change_warn_pct, notes')
+        .eq('id', true)
+        .maybeSingle()
+    const settings = mustOne(settingsRes, 'pricing_settings')
+    if (!settings) {
+        // 引导必须给出这一行。读不到就【说出来】—— 一块显示不出阈值的提示面板
+        // 与"没有异常"在屏幕上是同一样东西,而 metal_price_anomaly 那一侧也会
+        // 以 PRICING_SETTINGS_MISSING 拒答。
+        throw new Error('pricing_settings 引导行缺失:异常提示的阈值读不到')
+    }
+    const canEditPrices = await can('module.pricing.edit')
 
     // metal 存储值反查成本地化文案;未知值原样显示
     const metalLabel = (value: string) => {
@@ -154,6 +176,12 @@ export default async function MetalPricesPage({
                 </div>
             </div>
 
+            <ThresholdPanel
+                thresholdPct={Number(settings.metal_price_change_warn_pct)}
+                notes={settings.notes}
+                canEdit={canEditPrices}
+            />
+
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
                 <MetalPricesToolbar />
@@ -186,6 +214,43 @@ export default async function MetalPricesPage({
                             <td className="border border-gray-300 px-4 py-2">{metalLabel(r.metal)}</td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                 {formatMoneyBare(r.price_usd_per_tonne, '列头 metalPrices.colPrice「价格 (USD/吨)」')}
+                                {/* METAL-1:录入那一刻的判词。outside 挂琥珀徽标;
+                                    no_reference 挂灰色 —— 【它不是"检查通过"】,
+                                    是"这个金属当时没有别的报价可比"。两者必须
+                                    在屏幕上就分得开,否则第三种判词等于没有。 */}
+                                {r.anomaly_check?.verdict === 'outside' && (
+                                    <span
+                                        title={t('metalPrices.anomaly.badgeTitle', {
+                                            change: r.anomaly_check.change_pct ?? 0,
+                                            refPrice: r.anomaly_check.reference_price ?? 0,
+                                            refDate: r.anomaly_check.reference_date ?? '',
+                                        })}
+                                        className="ml-2 inline-block align-middle bg-amber-100 text-amber-800 border border-amber-300 rounded px-1.5 py-0.5 text-xs font-sans"
+                                    >
+                                        {t('metalPrices.anomaly.badge')}
+                                    </span>
+                                )}
+                                {/* 【判词为空 = 这一行录入时还没有这项检查】(线上 11 行
+                                    全是这样)。不画任何徽标会让它与"查过、没问题"
+                                    在屏幕上一模一样 —— 那正是本刀要拆掉的读法,
+                                    所以它有自己的、更安静的一个。FIN-26 的同一条:
+                                    旧行留空,而空要显示成"不知道",不是"没问题"。 */}
+                                {!r.anomaly_check && (
+                                    <span
+                                        title={t('metalPrices.anomaly.legacyTitle')}
+                                        className="ml-2 inline-block align-middle bg-gray-50 text-gray-400 border border-gray-200 rounded px-1.5 py-0.5 text-xs font-sans"
+                                    >
+                                        {t('metalPrices.anomaly.legacyBadge')}
+                                    </span>
+                                )}
+                                {r.anomaly_check?.verdict === 'no_reference' && (
+                                    <span
+                                        title={t('metalPrices.anomaly.noReferenceTitle')}
+                                        className="ml-2 inline-block align-middle bg-gray-100 text-gray-600 border border-gray-300 rounded px-1.5 py-0.5 text-xs font-sans"
+                                    >
+                                        {t('metalPrices.anomaly.noReferenceBadge')}
+                                    </span>
+                                )}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">{r.price_date}</td>
                             <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">{r.source}</td>

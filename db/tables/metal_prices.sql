@@ -28,14 +28,35 @@ CREATE TABLE public.metal_prices (
     updated_by  uuid,
     -- At most one price per metal per day (soft-deleted rows still occupy the slot;
     -- correct a price by updating the row, not inserting a duplicate).
-    UNIQUE (metal, price_date)
+    UNIQUE (metal, price_date),
+    -- ── METAL-1 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
+    -- 录入那一刻与【上一条报价】比出来的判词。三种:outside / inside /
+    -- no_reference(这个金属还没有别的报价可比 —— 线上 7 个金属里有 4 个是这样,
+    -- 而键错的第一条报价一样是错的,所以它不是 false)。
+    -- 【为什么记在行上而不是只在界面上说】写入有三条路径(单条新增、批量录入、
+    -- 编辑),只长在界面上的检查会被另外两条绕过;而且"上一条"会随着后来的报价
+    -- 改变,事后重算给出的是另一个答案 —— 与 FIN-26 的 price_source 同一条论证:
+    -- 记录,不推断。由 trg_metal_prices_anomaly 在写入前算一次。
+    anomaly_check jsonb
 );
+
+COMMENT ON COLUMN public.metal_prices.anomaly_check IS
+    'METAL-1:录入那一刻与【上一条报价】比出来的判词(outside / inside / no_reference)。记录,不事后推断 —— 后来的报价会改变"上一条"是什么。';
 
 -- 2. BEFORE UPDATE trigger -> reuse the existing shared update_updated_at() (do NOT redefine it)
 CREATE TRIGGER trg_metal_prices_updated_at
     BEFORE UPDATE ON public.metal_prices
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at();
+
+-- 2b. METAL-1:异常判词。【永不拒】—— 3 倍的真实行情是可能的,而系统分不出
+-- 哪一种是哪一种(与证书处置按类型分同一条理由)。触发器只把判词记下来,
+-- 提醒由界面在【录入之前】给出,人确认后照常保存。
+-- 阈值在 pricing_settings 里,看得见、改得动,不在代码里。
+CREATE TRIGGER trg_metal_prices_anomaly
+    BEFORE INSERT OR UPDATE ON public.metal_prices
+    FOR EACH ROW
+    EXECUTE FUNCTION trg_metal_price_anomaly();
 
 -- 3. RLS: authenticated-only full access
 ALTER TABLE public.metal_prices ENABLE ROW LEVEL SECURITY;

@@ -113,6 +113,9 @@ RUNTIME_CONFIG_TABLES = [
     # CMP-1:证书类型 —— disposition 与 lead days 是操作员的地盘,改了是系统在
     # 正常工作(引导值只是默认)。逐行比对会让第一次改处置就把检查变红。
     "certificate_types",
+    # METAL-1:行情异常提示的阈值 —— 与 warn_lead_days 同一条。50 是引导默认值,
+    # 不是决定;Tim 在 /metal-prices 上改一次,线上就与本文件不同,那是对的。
+    "pricing_settings",
 ]
 
 # 【引导默认值一行都不许是空的】RUNTIME CONFIG 的种子不与线上比对(那是对的:界面改得动),

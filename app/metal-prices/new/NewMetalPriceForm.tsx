@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { createMetalPrice, type CreateMetalPriceState } from './actions'
 import { METAL_OPTIONS } from '../options'
 import { useTranslations } from '@/lib/i18n/client'
+import AnomalyWarning from '../AnomalyWarning'
+import { ACK_FIELD, ackSignature } from '../anomaly'
 
 const initialState: CreateMetalPriceState = {}
 
@@ -116,14 +118,32 @@ export default function NewMetalPriceForm() {
                     />
                 </div>
 
+                {/* METAL-1:异常提示 —— 出现时这一次【没有保存】,确认钮才保存 */}
+                {state.warnings && state.warnings.length > 0 && (
+                    <>
+                        <AnomalyWarning items={state.warnings} />
+                        {/* 第二次提交带上确认位。表单里的值原样保留,人不用重敲 */}
+                        <input type="hidden" name={ACK_FIELD} value={ackSignature(state.warnings)} />
+                    </>
+                )}
+
                 {/* 提交按钮 */}
                 <div className="flex gap-3 pt-4">
                     <button
                         type="submit"
                         disabled={isPending}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
+                        className={
+                            'px-4 py-2 rounded text-white disabled:bg-gray-400 ' +
+                            (state.warnings?.length
+                                ? 'bg-amber-600 hover:bg-amber-700'
+                                : 'bg-blue-600 hover:bg-blue-700')
+                        }
                     >
-                        {isPending ? t('common.saving') : t('common.save')}
+                        {isPending
+                            ? t('common.saving')
+                            : state.warnings?.length
+                              ? t('metalPrices.anomaly.confirm')
+                              : t('common.save')}
                     </button>
                     <Link
                         href="/metal-prices"

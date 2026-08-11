@@ -3239,6 +3239,7 @@ export type Database = {
       }
       metal_prices: {
         Row: {
+          anomaly_check: Json | null
           created_at: string
           created_by: string | null
           deleted_at: string | null
@@ -3252,6 +3253,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          anomaly_check?: Json | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -3265,6 +3267,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          anomaly_check?: Json | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -4750,6 +4753,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pricing_settings: {
+        Row: {
+          id: boolean
+          metal_price_change_warn_pct: number
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: boolean
+          metal_price_change_warn_pct: number
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: boolean
+          metal_price_change_warn_pct?: number
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       pricing_term_commitment_metals: {
         Row: {
@@ -10546,6 +10573,15 @@ export type Database = {
         Args: { p_employee_id: string; p_year: number }
         Returns: Json
       }
+      metal_price_anomaly: {
+        Args: {
+          p_exclude_id?: string
+          p_metal: string
+          p_price: number
+          p_price_date: string
+        }
+        Returns: Json
+      }
       next_assay_code: { Args: { p_date?: string }; Returns: string }
       next_employee_code: { Args: { p_date?: string }; Returns: string }
       next_leave_request_code: { Args: { p_date?: string }; Returns: string }
@@ -10620,6 +10656,10 @@ export type Database = {
       }
       preview_depreciate_fixed_assets: {
         Args: { p_period_end: string }
+        Returns: Json
+      }
+      preview_metal_price_anomalies: {
+        Args: { p_price_date: string; p_prices: Json }
         Returns: Json
       }
       preview_reprice_from_committed_terms: {

@@ -5,10 +5,13 @@ import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { METAL_VALUES } from '../../options'
+import { ACK_FIELD, ackSignature, outsideOnly, type AnomalyVerdict } from '../../anomaly'
 
 export type UpdateMetalPriceState = {
     error?: string
     fieldErrors?: Record<string, string>
+    // METAL-1:异常提示。有值 = 这一次【没有保存】,等人看过两个数字再确认。
+    warnings?: AnomalyVerdict[]
 }
 
 export async function updateMetalPrice(
@@ -44,12 +47,31 @@ export async function updateMetalPrice(
         fieldErrors.price_date = t('metalPrices.form.errPriceDate')
     }
 
-    if (Object.keys(fieldErrors).length > 0) {
+    // price === null 与 fieldErrors 非空是同一件事(上面的校验保证),写在一起
+    // 是为了让类型也知道 —— 下面的判据要一个 number,不是 number | null
+    if (Object.keys(fieldErrors).length > 0 || price === null) {
         return { fieldErrors }
     }
 
-    // 3. 更新(不动 source、code)
     const supabase = await createClient()
+
+    // 2b. METAL-1:改价与新录一样要过判据 —— 【三条写入路径都盖到】,否则只长在
+    //     一条路径上的检查会被另外两条绕过。这一行自己不能当参照(p_exclude_id)。
+    const { data: verdict, error: checkError } = await supabase.rpc('metal_price_anomaly', {
+        p_metal: metal,
+        p_price: price,
+        p_price_date: price_date,
+        p_exclude_id: id,
+    })
+    if (checkError) {
+        return { error: t('metalPrices.form.saveError', { message: checkError.message }) }
+    }
+    const outside = outsideOnly([verdict as unknown as AnomalyVerdict].filter(Boolean))
+    if (outside.length > 0 && formData.get(ACK_FIELD) !== ackSignature(outside)) {
+        return { warnings: outside }
+    }
+
+    // 3. 更新(不动 source、code)
     const {
         data: { user },
     } = await supabase.auth.getUser()

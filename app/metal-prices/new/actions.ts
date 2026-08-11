@@ -6,10 +6,13 @@ import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { METAL_VALUES } from '../options'
+import { ACK_FIELD, ackSignature, outsideOnly, type AnomalyVerdict } from '../anomaly'
 
 export type CreateMetalPriceState = {
     error?: string
     fieldErrors?: Record<string, string>
+    // METAL-1:异常提示。有值 = 这一次【没有保存】,等人看过两个数字再确认。
+    warnings?: AnomalyVerdict[]
 }
 
 export async function createMetalPrice(
@@ -44,12 +47,34 @@ export async function createMetalPrice(
         fieldErrors.price_date = t('metalPrices.form.errPriceDate')
     }
 
-    if (Object.keys(fieldErrors).length > 0) {
+    // price === null 与 fieldErrors 非空是同一件事(上面的校验保证),写在一起
+    // 是为了让类型也知道 —— 下面的判据要一个 number,不是 number | null
+    if (Object.keys(fieldErrors).length > 0 || price === null) {
         return { fieldErrors }
     }
 
-    // 3. 写入
     const supabase = await createClient()
+
+    // 3. METAL-1:异常判据 —— 【问数据库,不自己算】(一份实现,预览与写入共用)。
+    //    第一次提交先把两个数字摆出来;人确认【这一组数字】之后才继续。
+    //    【服务端在这里不拒绝任何东西】—— 确认位只决定要不要先画提示,不是闸门:
+    //    3 倍的真实行情是可能的,而系统分不出哪一种是哪一种。
+    const { data: verdict, error: checkError } = await supabase.rpc('metal_price_anomaly', {
+        p_metal: metal,
+        p_price: price,
+        p_price_date: price_date,
+    })
+    // 判据本身失败要说出来,不能当作"没有异常"放过去 ——
+    // 失败不是空集(与 mustRows 同一条规矩)
+    if (checkError) {
+        return { error: t('metalPrices.form.saveError', { message: checkError.message }) }
+    }
+    const outside = outsideOnly([verdict as unknown as AnomalyVerdict].filter(Boolean))
+    if (outside.length > 0 && formData.get(ACK_FIELD) !== ackSignature(outside)) {
+        return { warnings: outside }
+    }
+
+    // 4. 写入
     const {
         data: { user },
     } = await supabase.auth.getUser()

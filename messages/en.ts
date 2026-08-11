@@ -1943,6 +1943,28 @@ const en = {
         errors: {
             duplicate: 'A price for this metal on this date already exists',
         },
+        // METAL-1:异常提示。【提醒,不拦截】—— 文案必须把两个数字都说出来,
+        // 因为要人判断的正是"这一步跳得对不对"。
+        anomaly: {
+            title: 'Unusual price — check before saving',
+            line: '{metal}: {price} is {change}% away from {refPrice} on {refDate} (warns above {threshold}%)',
+            laterSide: '(compared with the next quote — this one is back-dated)',
+            hint: 'A genuine 3× move is possible and the system cannot tell which this is. Check the figure, then confirm to save it as entered.',
+            confirm: 'Save anyway',
+            badge: 'unusual',
+            badgeTitle: '{change}% from {refPrice} on {refDate} when this was entered',
+            noReferenceBadge: 'not checked',
+            noReferenceTitle: 'First quote for this metal — there was nothing to compare it against. This is not a clean bill of health.',
+            legacyBadge: 'no check on record',
+            legacyTitle: 'Entered before this check existed, so nothing was compared. Not a clean bill of health either.',
+        },
+        settings: {
+            title: 'Price anomaly warning',
+            hint: 'A new quote more than this far from the metal’s previous quote raises a warning at entry. It never blocks the save.',
+            label: 'Warn above (%)',
+            errThreshold: 'Threshold must be a number greater than 0',
+            saved: 'Threshold saved',
+        },
     },
     metalContent: {
         title: 'Metal Content (Assay)',

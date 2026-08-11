@@ -7,10 +7,13 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { revalidatePath } from 'next/cache'
 import { localizePricingError } from '../../pricing/pricingErrorCodes'
+import { ACK_FIELD, ackSignature, outsideOnly, type AnomalyVerdict } from '../anomaly'
 
 export type BulkPricesState = {
     error?: string
     result?: { inserted: number; updated: number; skipped: number }
+    // METAL-1:异常提示。有值 = 这一次【一行都没写】,等人看过再确认整组。
+    warnings?: AnomalyVerdict[]
 }
 
 export async function saveBulkPrices(
@@ -34,6 +37,24 @@ export async function saveBulkPrices(
     }))
 
     const supabase = await createClient()
+
+    // METAL-1:一次问一整天 —— 与写入共用同一份判据(preview_metal_price_anomalies
+    // 内部就是逐个调 metal_price_anomaly)。【页面不自己算】,理由与
+    // preview_revalue_foreign_balances 同一条:两份算术迟早各自漂移,而屏幕上
+    // 那份是人相信的那份。
+    const { data: verdicts, error: checkError } = await supabase.rpc(
+        'preview_metal_price_anomalies',
+        { p_price_date: priceDate, p_prices: payload }
+    )
+    // 判据失败要说出来,不能当作"没有异常"放过去(失败不是空集)
+    if (checkError) {
+        return { error: await localizePricingError(checkError.message) }
+    }
+    const outside = outsideOnly((verdicts ?? []) as unknown as AnomalyVerdict[])
+    if (outside.length > 0 && formData.get(ACK_FIELD) !== ackSignature(outside)) {
+        return { warnings: outside }
+    }
+
     const { data, error } = await supabase.rpc('upsert_metal_prices', {
         p_price_date: priceDate,
         p_prices: payload,

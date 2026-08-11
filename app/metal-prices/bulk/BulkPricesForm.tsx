@@ -10,6 +10,8 @@ import { saveBulkPrices, type BulkPricesState } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { METAL_OPTIONS } from '../options'
+import AnomalyWarning from '../AnomalyWarning'
+import { ACK_FIELD, ackSignature } from '../anomaly'
 
 const initialState: BulkPricesState = {}
 
@@ -120,12 +122,31 @@ export default function BulkPricesForm({
                 </tbody>
             </table>
 
+            {/* METAL-1:异常提示 —— 出现时这一次【一行都没写】,确认钮才保存整组。
+                表单里的值原样留着,人可以先改掉某一个再提交(改了之后签名不同,
+                会【再提示一次】—— 确认的是那一组数字,不是"下一次提交")。 */}
+            {state.warnings && state.warnings.length > 0 && (
+                <>
+                    <AnomalyWarning items={state.warnings} />
+                    <input type="hidden" name={ACK_FIELD} value={ackSignature(state.warnings)} />
+                </>
+            )}
+
             <button
                 type="submit"
                 disabled={isPending}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
+                className={
+                    'px-4 py-2 rounded text-white disabled:bg-gray-400 ' +
+                    (state.warnings?.length
+                        ? 'bg-amber-600 hover:bg-amber-700'
+                        : 'bg-blue-600 hover:bg-blue-700')
+                }
             >
-                {isPending ? t('common.saving') : t('metalPrices.bulk.submit')}
+                {isPending
+                    ? t('common.saving')
+                    : state.warnings?.length
+                      ? t('metalPrices.anomaly.confirm')
+                      : t('metalPrices.bulk.submit')}
             </button>
         </form>
     )

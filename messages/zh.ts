@@ -1935,6 +1935,28 @@ const zh = {
         errors: {
             duplicate: '该金属在该日期已有价格',
         },
+        // METAL-1:异常提示。【提醒,不拦截】—— 文案必须把两个数字都说出来,
+        // 因为要人判断的正是"这一步跳得对不对"。
+        anomaly: {
+            title: '价格异常 —— 保存前请核对',
+            line: '{metal}:{price},与 {refDate} 的 {refPrice} 相差 {change}%(超过 {threshold}% 即提示)',
+            laterSide: '(与【更晚】的那条比 —— 这一条是补录进历史中间的)',
+            hint: '真实行情跳 3 倍是可能的,系统分不出这是哪一种。核对无误后确认,按录入的数字保存。',
+            confirm: '确认保存',
+            badge: '异常',
+            badgeTitle: '录入时与 {refDate} 的 {refPrice} 相差 {change}%',
+            noReferenceBadge: '未比对',
+            noReferenceTitle: '该金属的第一条报价 —— 当时没有可比的对象。这不等于"查过、没问题"。',
+            legacyBadge: '无检查记录',
+            legacyTitle: '这一行录入时还没有这项检查,当时没有比对过。它同样不等于"查过、没问题"。',
+        },
+        settings: {
+            title: '行情异常提示',
+            hint: '新报价与该金属【上一条】报价相差超过这个幅度,录入时给出提示。它永远不阻止保存。',
+            label: '超过多少提示(%)',
+            errThreshold: '阈值必须为大于 0 的数字',
+            saved: '阈值已保存',
+        },
     },
     metalContent: {
         title: '金属含量(化验结果)',
