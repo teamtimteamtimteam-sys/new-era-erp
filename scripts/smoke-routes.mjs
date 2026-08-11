@@ -21,6 +21,12 @@
 // 全部经过与诊断办法(先查 inode,不要查 diff)见
 // docs/concurrency-one-tree-one-smoke.md。
 //
+// 【开跑前先做一次 3 毫秒的静态预检】preflightIdSources():每条动态路由都取得到 id 吗。
+// 那是一个只需要仓库里已有文件就能回答的问题 —— 不该等到起了服务器、建了会话、
+// 扫过临时行之后才问(2026-08-11 就是那样,代价是一轮清理加重跑三十分钟)。
+// 规律与另外两次(check_mirrors 离开连接池、--reach 改成显式开启)见 AGENTS.md
+// §"一条正确的检查放错了相位,就是一条慢检查"。
+//
 // 用法:node scripts/smoke-routes.mjs            路由状态那一半(快,2-4 分钟)
 //       node scripts/smoke-routes.mjs --reach    另加按角色的可达性(十到十五分钟)
 // 退出码 0 = 全通;1 = 有失败 / 跳过清单漂移(EXPECTED_SKIPS)/ 脚本自身查询炸了
@@ -92,6 +98,10 @@ const STATUS_GUARDS = {
 // 而它看起来和"还没有数据"一模一样。集合变了(任一方向)都失败,点名差异。
 // (/hr/reviews/[id] 与 /my-reviews/[id] 不在此列:评估人 fixture 自带一行评估,
 // 这两条每次都真的渲染。)
+// 父子配套取 id 的特例(主循环里单独处理,不走 ID_SOURCES)——
+// 抽成常量,好让开跑前的预检与主循环【读同一份名单】,不至于各说各话。
+const SPECIAL_ID_ROUTES = new Set(['/inbound/[id]/assays/[assayId]'])
+
 const EXPECTED_SKIPS = new Set([
     '/hr/claims/[id]',    // medical_claims 空 —— 正常运营会产生;有数据那天此断言逼人收编
     '/hr/leave/[id]',     // leave_requests 空
@@ -330,8 +340,64 @@ async function reachabilityForRole(roleCode, base, mkSession) {
     return { role: roleCode, reached: seen.size, openable: openable.length, unreachable, dynamicCount }
 }
 
+
+// ── 开跑之前的静态预检:每条动态路由都取得到 id 吗 ──────────────────────────
+//
+// 【一条正确的检查放错了相位,就是一条慢检查】
+// 2026-08-11:新加的 /finance/freight/[id] 没有 ID_SOURCES 映射,冒烟在【走了几分钟
+// 之后】才中止。中止本身是对的(它拒绝把"没有映射"当成"没有数据"),但它回答的是
+// 一个【静态】问题 —— 而那时 dev server 已经起来、会话已经建好、临时行已经扫过,
+// 于是那次失败花掉的不只是时间,还有一轮清理,以及重跑那三十分钟。
+// 同一个形状出现过两次:check_mirrors 把 14,000 行重放推过连接池(40+ 分钟、
+// 死在 DNS 与套接字上),改成本地重建;--reach 曾经是默认,每次提交都要等它,
+// 于是改成显式开启(一条慢到不能每次跑的检查,最后会变成从来不跑)。
+// 【规矩】能在开跑前回答的问题,就在开跑前回答,而且在【还什么都没启动】的时候回答。
+//
+// 两个分支【分开报】,因为修法不同:
+//   A 段在 ID_SOURCES 里、但没有前缀命中该路由 → srcs[undefined] → 响亮中止(上面那次)
+//   B 段【压根不在】ID_SOURCES 里 → 循环不触发,字面量原样留在 URL 里去请求,
+//     于是它【不中止】,而是在跑到一半时报成一次普通的路由失败 —— 看起来像页面坏了,
+//     不像映射漏了,诊断起来严格地更糟。B 至今没有触发过,而这正是它值得被检查的理由。
+function preflightIdSources(routes) {
+    const idSegs = Object.keys(ID_SOURCES)
+    const problems = []
+    for (const route of routes.sort()) {
+        const segs = route.match(/\[[a-zA-Z]+\]/g)
+        if (!segs) continue
+        // 这三类另有取 id 的路子,不走 ID_SOURCES
+        if (STATUS_GUARDS[route] || SPECIAL_ID_ROUTES.has(route) || EXPECTED_SKIPS.has(route)) continue
+        for (const seg of segs) {
+            if (!idSegs.includes(seg)) {
+                problems.push({ route, seg, branch: 'B' })
+                continue
+            }
+            const srcs = ID_SOURCES[seg]
+            const hit = Object.keys(srcs).some((p) => route.startsWith(p) || p === '')
+            if (!hit) problems.push({ route, seg, branch: 'A' })
+        }
+    }
+    if (problems.length === 0) return
+    console.error(`\n✗ 预检不通过:${problems.length} 条动态路由取不到 id —— 【还没起 dev server,现在改还不费什么】`)
+    for (const { route, seg, branch } of problems) {
+        if (branch === 'A') {
+            console.error(`  ✗ ${route}`)
+            console.error(`      段 ${seg} 在 ID_SOURCES 里,但没有任何前缀命中这条路由 → srcs[undefined]`)
+            console.error(`      修:往 ID_SOURCES['${seg}'] 加一条前缀 → 表名;或写进 EXPECTED_SKIPS(并说明为什么没数据)`)
+        } else {
+            console.error(`  ✗ ${route}`)
+            console.error(`      段 ${seg} 【不在】 ID_SOURCES 里 —— 循环不会触发,字面量会原样进 URL,`)
+            console.error(`      于是它不中止,而是跑到一半报成一次普通的路由失败(看起来像页面坏了)`)
+            console.error(`      修:在 ID_SOURCES 里加 '${seg}' 这一段,给它前缀 → 表名`)
+        }
+    }
+    process.exit(1)
+}
+
 async function main() {
     const reachFailures = []
+    // 【最先跑,而且在 sweepStalePort / next dev 之前】—— 见 preflightIdSources 抬头:
+    // 这是一个静态问题,不该等到起了服务器、建了会话、扫过临时行之后才回答。
+    preflightIdSources(routes)
     sweepStalePort()   // 端口先扫:库里的行扫干净了,端口被占住照样开不了跑
     await sweepScratch()
 

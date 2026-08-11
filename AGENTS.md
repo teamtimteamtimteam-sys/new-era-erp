@@ -192,6 +192,35 @@ permission guard changed; after adding a page; before a push that accumulated
 several page-touching cuts; or when someone reports they cannot reach something.
 Not after every edit — the fast half already renders every route on every run.
 
+### 一条正确的检查放错了相位,就是一条慢检查
+
+**能在开跑前回答的问题,就在开跑前回答 —— 而且在【还什么都没启动】的时候回答。**
+
+2026-08-11:新加的 `/finance/freight/[id]` 没有 `ID_SOURCES` 映射,冒烟【走了几分钟
+之后】才中止。那次中止本身是**对的** —— 它拒绝把"没有映射"当成"没有数据",点名了
+路由并停下(那正是 `restRows` 那条规矩)。但它回答的是一个**静态**问题:每条动态
+路由是不是都取得到 id?而它被问的时候,dev server 已经起来、一次性会话已经建好、
+临时行已经扫过。于是那次失败花掉的不只是四分钟,还有一轮清理,以及重跑 `--reach`
+的三十分钟。
+
+现在它是 `preflightIdSources()`,跑在 `main()` 的第一行 —— 在 `sweepStalePort()`
+之前、在 `next dev` 之前。**3 毫秒,43 条动态路由,不起服务器、不建会话、不碰数据库。**
+两个分支分开报,因为修法不同:段在 `ID_SOURCES` 里却没有前缀命中(响亮中止),
+与段压根不在 `ID_SOURCES` 里(**不中止**,字面量原样进 URL,跑到一半报成一次普通的
+路由失败 —— 看起来像页面坏了,不像映射漏了)。后者至今没有触发过,而这正是它值得
+被检查的理由;两个分支都做过故障注入。
+
+**这是同一个形状的第三次,所以它是一条规律而不是一次事故:**
+
+| | 慢在哪 | 怎么改的 |
+|---|---|---|
+| `check_mirrors` | 把 ~14,000 行重放【推过连接池】,40+ 分钟,死在 DNS 与套接字耗尽上 | 改成一次**本地**重建(OPS-6),~32 秒 |
+| `--reach` | 曾经是默认,于是每一次提交都要等十几分钟 | 改成**显式开启**,把节奏写下来 —— 一条慢到不能每次跑的检查,最后会变成从来不跑 |
+| 本次 | 一个静态问题被放在【走查中途】问 | 提到开跑前,3 毫秒 |
+
+三次都不是"检查写错了",而是**问得太晚**。所以每加一条新检查,先问一句:
+**它需要什么才能回答?** 只需要仓库里已有的文件,就别让它等服务器。
+
 **Its blind spot bit within the hour it was written**, so treat this as load-bearing
 rather than a caveat: dynamic routes (`/customers/[id]`) are excluded from the
 assertion, because "this role has no rows here" and "this page has no entry point"
