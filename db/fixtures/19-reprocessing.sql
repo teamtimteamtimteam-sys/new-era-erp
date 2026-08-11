@@ -50,20 +50,20 @@ BEGIN
     -- ── stage1:进料 100kg @1(40% 镍 = 40kg),产出 O1 80kg(45% = 36kg)──────
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
     VALUES ('FIXT-IB19A', v_mat, v_sup, 100, 100, 'kg', v_today) RETURNING id INTO v_ib1;
-    INSERT INTO inbound_batch_metals (inbound_batch_id, metal, content_pct) VALUES (v_ib1, 'ni', 40);
+    INSERT INTO inbound_batch_metals (inbound_batch_id, metal, content_pct, content_source) VALUES (v_ib1, 'ni', 40, 'manual');
     PERFORM reprice_inbound_batch(v_ib1, 1, 'SGD', NULL, 'fixture 19 stage1 price');
     v_run1 := commit_processing_run(v_today, 'fixture 19 stage1', 20,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib1, 'quantity_consumed', 100)),
         jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 80)), 'metal_value');
     SELECT po.output_batch_id INTO v_o1 FROM processing_outputs po WHERE po.run_id = v_run1;
-    INSERT INTO output_batch_metals (output_batch_id, metal, content_pct) VALUES (v_o1, 'ni', 45);
+    INSERT INTO output_batch_metals (output_batch_id, metal, content_pct, content_source) VALUES (v_o1, 'ni', 45, 'manual');
     PERFORM allocate_processing_costs(v_run1, 'weight');   -- O1: 100 → unit 1.25
 
     -- ── stage2:耗 O1 50kg【产出边】+ 进料2 50kg @2(20% = 10kg)【进料边】,
     --    产出 O2 60kg(50% = 30kg)────────────────────────────────────────────
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
     VALUES ('FIXT-IB19B', v_mat, v_sup, 50, 50, 'kg', v_today) RETURNING id INTO v_ib2;
-    INSERT INTO inbound_batch_metals (inbound_batch_id, metal, content_pct) VALUES (v_ib2, 'ni', 20);
+    INSERT INTO inbound_batch_metals (inbound_batch_id, metal, content_pct, content_source) VALUES (v_ib2, 'ni', 20, 'manual');
     PERFORM reprice_inbound_batch(v_ib2, 2, 'SGD', NULL, 'fixture 19 stage2 price');
     v_run2 := commit_processing_run(v_today, 'fixture 19 stage2', 40,
         jsonb_build_array(
@@ -71,7 +71,7 @@ BEGIN
             jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 50)),
         jsonb_build_array(jsonb_build_object('material_id', v_matC, 'quantity', 60)), 'metal_value');
     SELECT po.output_batch_id INTO v_o2 FROM processing_outputs po WHERE po.run_id = v_run2;
-    INSERT INTO output_batch_metals (output_batch_id, metal, content_pct) VALUES (v_o2, 'ni', 50);
+    INSERT INTO output_batch_metals (output_batch_id, metal, content_pct, content_source) VALUES (v_o2, 'ni', 50, 'manual');
 
     -- ════════ A. 回收率:投入 = 50×45% + 50×20% = 22.5 + 10 = 32.5 kg;
     --             产出 = 60×50% = 30 kg → 30/32.5 = 92.31% ═════════════════════

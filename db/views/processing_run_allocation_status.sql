@@ -25,6 +25,15 @@
 -- 成本,不在这里的话,吃过那批货的单永远不标过期,而 batch_margin 会一直停在
 -- 运费之前的那个数(运费那张分录本身完全正确)。
 
+-- PROC-1(2026-08-12):第六过期源 —— 产出金属含量(第五源是 FIN-36 的
+-- allocation_basis_changed_at,一直在最后一条 UNION 臂上,没进这份编号)。
+-- metal_value 基准按产出金属含量拆成本(allocate_processing_costs 直接读
+-- output_batch_metals),而这里此前不看那张表:"先分摊、后应用产出化验"是
+-- 正常次序(含量在提交之后才回来),拆分因此悄悄过期 —— 这个缺口对手工改
+-- 含量同样成立,一并关上。【按基准限定 metal_value】:weight 拆分不读含量,
+-- 含量变了它不过期 —— 无条件举旗是喊狼来了,而没人看的旗和没有旗是同一样
+-- 东西(fixture 54 两个方向都钉)。
+
 CREATE VIEW public.processing_run_allocation_status WITH (security_invoker = off) AS
  SELECT r.id AS run_id,
     r.code,
@@ -56,6 +65,11 @@ CREATE VIEW public.processing_run_allocation_status WITH (security_invoker = off
                      JOIN processing_outputs po2 ON po2.output_batch_id = pi2.output_batch_id
                      JOIN processing_runs r2 ON r2.id = po2.run_id
                   WHERE pi2.run_id = r.id AND r2.allocated_at IS NOT NULL
+                UNION ALL
+                 SELECT GREATEST(obm.created_at, obm.updated_at) AS ts
+                   FROM processing_outputs po6
+                     JOIN output_batch_metals obm ON obm.output_batch_id = po6.output_batch_id
+                  WHERE po6.run_id = r.id AND r.allocation_basis = 'metal_value'::text
                 UNION ALL
                  SELECT r.allocation_basis_changed_at AS ts) x) c ON true
      LEFT JOIN LATERAL ( SELECT count(*) AS cogs_posted

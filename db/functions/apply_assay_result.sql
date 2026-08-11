@@ -30,6 +30,11 @@ BEGIN
     IF NOT FOUND THEN
         RAISE EXCEPTION 'ASSAY_NOT_FOUND|%', COALESCE(p_assay_result_id::text, '?');
     END IF;
+    -- PROC-1:产出化验不走这条路 —— 这里的第 2-5 步全是围着应付转的,
+    -- 而产出批没有应付。拆函数,不在函数里藏 IF。
+    IF v_assay.output_batch_id IS NOT NULL THEN
+        RAISE EXCEPTION 'ASSAY_IS_OUTPUT|%', v_assay.code;
+    END IF;
     IF v_assay.applied_at IS NOT NULL THEN
         RAISE EXCEPTION 'ASSAY_ALREADY_APPLIED|%', v_assay.code;
     END IF;
@@ -43,9 +48,11 @@ BEGIN
 
     -- 1. 批次含量 = 本化验的含量(删后重插)。分摊、估值、回收率读的都是
     --    inbound_batch_metals —— 它必须始终是"当前最可信的真相";化验行本身留作历史。
+    --    PROC-1:抄进的行带出处 —— content_source='assay',指回这份单据。
     DELETE FROM inbound_batch_metals WHERE inbound_batch_id = v_batch.id;
-    INSERT INTO inbound_batch_metals (inbound_batch_id, metal, content_pct, created_by, updated_by)
-    SELECT v_batch.id, arm.metal, arm.content_pct, v_user, v_user
+    INSERT INTO inbound_batch_metals (inbound_batch_id, metal, content_pct,
+                                      content_source, source_assay_id, created_by, updated_by)
+    SELECT v_batch.id, arm.metal, arm.content_pct, 'assay', p_assay_result_id, v_user, v_user
     FROM assay_result_metals arm
     WHERE arm.assay_result_id = p_assay_result_id;
 
@@ -155,4 +162,5 @@ BEGIN
         'note', v_note
     );
 END;
-$function$;
+$function$
+;

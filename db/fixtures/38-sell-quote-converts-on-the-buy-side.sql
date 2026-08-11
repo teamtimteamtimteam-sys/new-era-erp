@@ -42,7 +42,7 @@ BEGIN
     -- 产出批:100 kg,ni 50%
     INSERT INTO output_batches (code, material_id, quantity, remaining_qty, output_date)
     VALUES ('ZZFIX38-OB', v_mat, 100, 100, '2027-06-01') RETURNING id INTO ob;
-    INSERT INTO output_batch_metals (output_batch_id, metal, content_pct) VALUES (ob, 'ni', 50);
+    INSERT INTO output_batch_metals (output_batch_id, metal, content_pct, content_source) VALUES (ob, 'ni', 50, 'manual');
 
     -- 行情:ni 20,000 USD/吨 → 含 50%、100% 应付时 10 USD/kg
     INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date)

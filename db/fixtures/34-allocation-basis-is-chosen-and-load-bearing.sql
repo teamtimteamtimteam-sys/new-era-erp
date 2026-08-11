@@ -103,8 +103,8 @@ BEGIN
     IF ob_a = ob_b THEN
         RAISE EXCEPTION 'FIXTURE 34B 前置失败:两个产出批取成了同一个';
     END IF;
-    INSERT INTO output_batch_metals (output_batch_id, metal, content_pct)
-    VALUES (ob_a, 'ni', 80), (ob_b, 'ni', 10);
+    INSERT INTO output_batch_metals (output_batch_id, metal, content_pct, content_source)
+    VALUES (ob_a, 'ni', 80, 'manual'), (ob_b, 'ni', 10, 'manual');
 
     PERFORM allocate_processing_costs(v_run, 'metal_value');
     SELECT po.unit_cost_base INTO cost_metal_a FROM processing_outputs po

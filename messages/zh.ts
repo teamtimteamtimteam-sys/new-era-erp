@@ -1668,6 +1668,10 @@ const zh = {
             PRICING_TERMS_ALREADY_COMMITTED:
                 '批次 {0} 已按承诺条款({1})结算 —— 承诺不可被顶替',
             PRICE_NOT_POSITIVE: '按承诺条款算,这批料的净值不为正({0}/kg)—— 价格请人工处理',
+            ASSAY_ONE_PARENT: '化验必须恰好挂一个父 —— 进料批或产出批,不能都挂,也不能都不挂',
+            OUTPUT_NOT_FOUND: '产出批次不存在:{0}',
+            ASSAY_IS_OUTPUT: '化验 {0} 挂在产出批上 —— 请走产出化验的应用动作。进料化验的应用会重述应付,而产出批没有应付可重述。',
+            ASSAY_IS_INBOUND: '化验 {0} 挂在进料批上 —— 请走进料化验的应用动作,它会按化验含量一并重算应付。',
         },
     },
     purchasing: {

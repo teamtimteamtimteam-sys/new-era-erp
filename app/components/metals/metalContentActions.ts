@@ -37,11 +37,16 @@ export async function saveInboundMetal(batchId: string, metal: string, contentPc
         data: { user },
     } = await supabase.auth.getUser()
 
+    // PROC-1:出处是【记录】的 —— 这条路径就是"人填的",而且覆盖一行化验来源的
+    // 含量时必须把出处一并翻成 manual(留着旧的 source_assay_id 就是让化验单
+    // 替一次手工改动背书)。
     const { error } = await supabase.from('inbound_batch_metals').upsert(
         {
             inbound_batch_id: batchId,
             metal,
             content_pct: contentPct,
+            content_source: 'manual',
+            source_assay_id: null,
             updated_by: user?.id ?? null,
         },
         { onConflict: 'inbound_batch_id,metal' }
@@ -95,11 +100,14 @@ export async function saveOutputMetal(batchId: string, metal: string, contentPct
         data: { user },
     } = await supabase.auth.getUser()
 
+    // PROC-1:同上 —— 手工格子写的就是 manual,并抹掉可能残留的化验出处。
     const { error } = await supabase.from('output_batch_metals').upsert(
         {
             output_batch_id: batchId,
             metal,
             content_pct: contentPct,
+            content_source: 'manual',
+            source_assay_id: null,
             updated_by: user?.id ?? null,
         },
         { onConflict: 'output_batch_id,metal' }

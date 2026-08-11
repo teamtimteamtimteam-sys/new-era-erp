@@ -498,9 +498,11 @@ async function main() {
             // 父子路由的 id 必须【配套】:先取子行,再用它的外键定父段
             // (assay_results 也有 deleted_at —— 不过滤的话,软删行 404 会在
             // 已经烧过一次的这条路由上原样复发)
+            // PROC-1:化验有两种父,这条路由只认进料父 —— 不过滤的话,取到一份
+            // 产出化验就把字面量 "null" 塞进 [id] 段,报成一次普通路由失败
             if (route === '/inbound/[id]/assays/[assayId]') {
                 const rows = await restRows(
-                    '/rest/v1/assay_results?select=id,inbound_batch_id&deleted_at=is.null&limit=1',
+                    '/rest/v1/assay_results?select=id,inbound_batch_id&deleted_at=is.null&inbound_batch_id=not.is.null&limit=1',
                     `${route} ← assay_results`)
                 if (!rows[0]) { skipped.add(route); console.log(`  SKIP ${route}  (no data in assay_results)`); continue }
                 url = route.replace('[id]', rows[0].inbound_batch_id).replace('[assayId]', rows[0].id)

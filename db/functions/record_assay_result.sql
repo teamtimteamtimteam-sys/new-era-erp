@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.record_assay_result(p_inbound_batch_id uuid, p_assay_date date, p_metals jsonb, p_lab_name text DEFAULT NULL::text, p_certificate_ref text DEFAULT NULL::text, p_sample_ref text DEFAULT NULL::text, p_is_final boolean DEFAULT true, p_notes text DEFAULT NULL::text)
+CREATE OR REPLACE FUNCTION public.record_assay_result(p_inbound_batch_id uuid, p_assay_date date, p_metals jsonb, p_lab_name text DEFAULT NULL::text, p_certificate_ref text DEFAULT NULL::text, p_sample_ref text DEFAULT NULL::text, p_is_final boolean DEFAULT true, p_notes text DEFAULT NULL::text, p_output_batch_id uuid DEFAULT NULL::uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -14,11 +14,25 @@ DECLARE
     v_seen  text[] := ARRAY[]::text[];
     v_count integer := 0;
 BEGIN
-    PERFORM require_permission('module.inbound.edit');
-    IF NOT EXISTS (
-        SELECT 1 FROM inbound_batches WHERE id = p_inbound_batch_id AND deleted_at IS NULL
-    ) THEN
-        RAISE EXCEPTION 'INBOUND_NOT_FOUND|%', COALESCE(p_inbound_batch_id::text, '?');
+    -- PROC-1:两个父【二选一】。记录、编号、取代共享一张表一条序列;
+    -- 权限跟着父走 —— 进料化验挂 inbound 模块,产出化验挂 output 模块。
+    IF num_nonnulls(p_inbound_batch_id, p_output_batch_id) <> 1 THEN
+        RAISE EXCEPTION 'ASSAY_ONE_PARENT';
+    END IF;
+    IF p_inbound_batch_id IS NOT NULL THEN
+        PERFORM require_permission('module.inbound.edit');
+        IF NOT EXISTS (
+            SELECT 1 FROM inbound_batches WHERE id = p_inbound_batch_id AND deleted_at IS NULL
+        ) THEN
+            RAISE EXCEPTION 'INBOUND_NOT_FOUND|%', COALESCE(p_inbound_batch_id::text, '?');
+        END IF;
+    ELSE
+        PERFORM require_permission('module.output.edit');
+        IF NOT EXISTS (
+            SELECT 1 FROM output_batches WHERE id = p_output_batch_id AND deleted_at IS NULL
+        ) THEN
+            RAISE EXCEPTION 'OUTPUT_NOT_FOUND|%', COALESCE(p_output_batch_id::text, '?');
+        END IF;
     END IF;
     IF p_assay_date IS NULL OR p_assay_date > CURRENT_DATE THEN
         RAISE EXCEPTION 'ASSAY_DATE_INVALID|%', COALESCE(p_assay_date::text, '?');
@@ -28,9 +42,9 @@ BEGIN
     END IF;
 
     v_code := next_assay_code(p_assay_date);
-    INSERT INTO assay_results (id, code, inbound_batch_id, assay_date, lab_name,
+    INSERT INTO assay_results (id, code, inbound_batch_id, output_batch_id, assay_date, lab_name,
                                certificate_ref, sample_ref, is_final, notes, created_by, updated_by)
-    VALUES (v_id, v_code, p_inbound_batch_id, p_assay_date, p_lab_name,
+    VALUES (v_id, v_code, p_inbound_batch_id, p_output_batch_id, p_assay_date, p_lab_name,
             p_certificate_ref, p_sample_ref, p_is_final, p_notes, v_user, v_user);
 
     FOR v_el IN SELECT * FROM jsonb_array_elements(p_metals)
@@ -58,4 +72,5 @@ BEGIN
         'metal_count', v_count
     );
 END;
-$function$;
+$function$
+;

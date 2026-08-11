@@ -1671,6 +1671,12 @@ const en = {
                 'Batch {0} already settles under committed terms ({1}) — a commitment cannot be replaced',
             PRICE_NOT_POSITIVE:
                 'The committed terms value this batch at or below zero ({0}/kg) — handle the price manually',
+            ASSAY_ONE_PARENT: 'An assay needs exactly one parent — an inbound batch or an output batch, not both, not neither',
+            OUTPUT_NOT_FOUND: 'Output batch not found: {0}',
+            ASSAY_IS_OUTPUT:
+                'Assay {0} belongs to an output batch — apply it with the output-assay action. Applying an inbound assay means restating the payable, and an output batch has no payable to restate.',
+            ASSAY_IS_INBOUND:
+                'Assay {0} belongs to an inbound batch — apply it with the inbound-assay action, which also restates the payable from the assayed content.',
         },
     },
     purchasing: {

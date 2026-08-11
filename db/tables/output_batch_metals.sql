@@ -1,6 +1,6 @@
 -- db/tables/output_batch_metals.sql
--- Output batch metal content (assay results) — table + updated_at trigger + RLS.
--- One row per (output batch, metal); content_pct is the assayed percentage.
+-- Output batch metal content — table + updated_at trigger + RLS.
+-- One row per (output batch, metal); content_pct is the current-best percentage.
 -- Mirror of inbound_batch_metals on the output side.
 -- Conventions match existing tables:
 --   * audit fields created_by/updated_by, created_at/updated_at default now()
@@ -14,7 +14,14 @@
 --   * Shared metal set with inbound_batch_metals / metal_prices; when adding a metal,
 --     widen ALL those CHECKs together.
 --
--- NOTE: introduced by db/migrations/2026-07-02-phase1-cut2-cost-metal-foundation.sql.
+-- PROC-1(2026-08-12):含量带出处 —— content_source('assay'/'manual')+
+-- source_assay_id,NOT NULL:既有 6 行(4 个产出批)回填 'manual' 是【可证明的】,
+-- 产出化验在 PROC-1 之前不可能存在(承载它的 assay_results.output_batch_id 列
+-- 就是同一支迁移建的)。updated_at 同时是过期视图的第六个来源:metal_value 按
+-- 产出金属含量拆成本,这张表动了、已分摊的单就该举旗。
+--
+-- NOTE: introduced by db/migrations/2026-07-02-phase1-cut2-cost-metal-foundation.sql;
+-- provenance columns by db/migrations/2026-08-12-proc1-output-assays.sql.
 -- First-run script (plain CREATEs). Run in the Supabase SQL Editor.
 
 -- 1. Table
@@ -26,8 +33,17 @@ CREATE TABLE public.output_batch_metals (
     created_by  uuid,
     updated_at  timestamptz NOT NULL DEFAULT now(),
     updated_by  uuid,
-    PRIMARY KEY (output_batch_id, metal)
+    -- PROC-1(ALTER 加列,留在末尾)
+    content_source  text NOT NULL CHECK (content_source IN ('assay', 'manual')),
+    source_assay_id uuid REFERENCES public.assay_results (id),
+    PRIMARY KEY (output_batch_id, metal),
+    CONSTRAINT output_batch_metals_source_consistent CHECK (
+        (content_source = 'assay'  AND source_assay_id IS NOT NULL)
+     OR (content_source = 'manual' AND source_assay_id IS NULL))
 );
+
+COMMENT ON COLUMN public.output_batch_metals.content_source IS
+    'PROC-1:这行含量【是谁说的】—— assay(实验室,source_assay_id 指向那份单据)或 manual(人填的)。既有行回填 manual 是【可证明的】:产出化验在 PROC-1 之前不可能存在。';
 
 -- 2. BEFORE UPDATE trigger -> reuse the existing shared update_updated_at() (do NOT redefine it)
 CREATE TRIGGER trg_output_batch_metals_updated_at

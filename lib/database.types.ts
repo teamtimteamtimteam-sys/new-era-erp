@@ -176,10 +176,11 @@ export type Database = {
           created_by: string | null
           deleted_at: string | null
           id: string
-          inbound_batch_id: string
+          inbound_batch_id: string | null
           is_final: boolean
           lab_name: string | null
           notes: string | null
+          output_batch_id: string | null
           sample_ref: string | null
           superseded_by: string | null
           updated_at: string
@@ -195,10 +196,11 @@ export type Database = {
           created_by?: string | null
           deleted_at?: string | null
           id?: string
-          inbound_batch_id: string
+          inbound_batch_id?: string | null
           is_final?: boolean
           lab_name?: string | null
           notes?: string | null
+          output_batch_id?: string | null
           sample_ref?: string | null
           superseded_by?: string | null
           updated_at?: string
@@ -214,10 +216,11 @@ export type Database = {
           created_by?: string | null
           deleted_at?: string | null
           id?: string
-          inbound_batch_id?: string
+          inbound_batch_id?: string | null
           is_final?: boolean
           lab_name?: string | null
           notes?: string | null
+          output_batch_id?: string | null
           sample_ref?: string | null
           superseded_by?: string | null
           updated_at?: string
@@ -251,6 +254,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
             referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_results_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_results_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "assay_results_superseded_by_fkey"
@@ -2026,28 +2043,34 @@ export type Database = {
       inbound_batch_metals: {
         Row: {
           content_pct: number
+          content_source: string | null
           created_at: string
           created_by: string | null
           inbound_batch_id: string
           metal: string
+          source_assay_id: string | null
           updated_at: string
           updated_by: string | null
         }
         Insert: {
           content_pct: number
+          content_source?: string | null
           created_at?: string
           created_by?: string | null
           inbound_batch_id: string
           metal: string
+          source_assay_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
           content_pct?: number
+          content_source?: string | null
           created_at?: string
           created_by?: string | null
           inbound_batch_id?: string
           metal?: string
+          source_assay_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -2079,6 +2102,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "po_prepayment_applicable"
             referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_metals_source_assay_id_fkey"
+            columns: ["source_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_results"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -3521,28 +3551,34 @@ export type Database = {
       output_batch_metals: {
         Row: {
           content_pct: number
+          content_source: string
           created_at: string
           created_by: string | null
           metal: string
           output_batch_id: string
+          source_assay_id: string | null
           updated_at: string
           updated_by: string | null
         }
         Insert: {
           content_pct: number
+          content_source: string
           created_at?: string
           created_by?: string | null
           metal: string
           output_batch_id: string
+          source_assay_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
           content_pct?: number
+          content_source?: string
           created_at?: string
           created_by?: string | null
           metal?: string
           output_batch_id?: string
+          source_assay_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -3559,6 +3595,13 @@ export type Database = {
             columns: ["output_batch_id"]
             isOneToOne: false
             referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "output_batch_metals_source_assay_id_fkey"
+            columns: ["source_assay_id"]
+            isOneToOne: false
+            referencedRelation: "assay_results"
             referencedColumns: ["id"]
           },
         ]
@@ -10001,9 +10044,11 @@ export type Database = {
           conservation_warning: boolean | null
           input_measured: boolean | null
           input_metal_kg: number | null
+          input_source: string | null
           metal: string | null
           output_measured: boolean | null
           output_metal_kg: number | null
+          output_source: string | null
           process_date: string | null
           recovery_blocked_by: string | null
           recovery_pct: number | null
@@ -10766,6 +10811,7 @@ export type Database = {
         }
         Returns: Json
       }
+      apply_output_assay: { Args: { p_assay_result_id: string }; Returns: Json }
       apply_payment_term_template: {
         Args: { p_purchase_order_id: string; p_template_id: string }
         Returns: Json
@@ -11205,6 +11251,7 @@ export type Database = {
           p_lab_name?: string
           p_metals: Json
           p_notes?: string
+          p_output_batch_id?: string
           p_sample_ref?: string
         }
         Returns: Json

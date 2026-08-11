@@ -229,8 +229,8 @@ BEGIN
     JOIN output_batches ob ON ob.id = po.output_batch_id
     WHERE po.run_id = v_run AND ob.quantity = 300 AND ob.deleted_at IS NULL;
     -- A 30%(30kg 镍)、B 10%(30kg)→ 价值份额各 0.5;重量份额 0.25/0.75 —— 两个口径分道
-    INSERT INTO output_batch_metals (output_batch_id, metal, content_pct)
-    VALUES (v_obA, 'ni', 30), (v_obB, 'ni', 10);
+    INSERT INTO output_batch_metals (output_batch_id, metal, content_pct, content_source)
+    VALUES (v_obA, 'ni', 30, 'manual'), (v_obB, 'ni', 10, 'manual');
     PERFORM allocate_processing_costs(v_run, 'metal_value');   -- 首挂:A 200 / B 200
 
     PERFORM record_output_sale(v_obA, 80, 10, 'SGD', NULL, v_cust, v_today, NULL);

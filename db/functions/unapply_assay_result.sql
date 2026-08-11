@@ -9,21 +9,29 @@ DECLARE
     v_assay  record;
     v_latest uuid;
 BEGIN
-    PERFORM require_permission('module.inbound.edit');
+    -- PROC-1:先读单据才知道父是谁,权限判在任何改动之前(定义者身份读,不漏行)
     SELECT * INTO v_assay FROM assay_results
     WHERE id = p_assay_result_id AND deleted_at IS NULL
     FOR UPDATE;
     IF NOT FOUND OR v_assay.applied_at IS NULL THEN
         RAISE EXCEPTION 'ASSAY_NOT_FOUND|%', COALESCE(p_assay_result_id::text, '?');
     END IF;
+    IF v_assay.inbound_batch_id IS NOT NULL THEN
+        PERFORM require_permission('module.inbound.edit');
+    ELSE
+        PERFORM require_permission('module.output.edit');
+    END IF;
     IF p_reason IS NULL OR btrim(p_reason) = '' THEN
         RAISE EXCEPTION 'REASON_REQUIRED';
     END IF;
 
     -- 只许撤最近一次:链条中间抽走一环,superseded_by 的叙事就断了。
+    -- 链按【父】各自成链 —— 同一张表里进料链与产出链互不相扰。
     -- code 作平局裁决(applied_at 同事务内可能相同,编号无缝单调)。
     SELECT id INTO v_latest FROM assay_results
-    WHERE inbound_batch_id = v_assay.inbound_batch_id
+    WHERE (CASE WHEN v_assay.inbound_batch_id IS NOT NULL
+                THEN inbound_batch_id = v_assay.inbound_batch_id
+                ELSE output_batch_id = v_assay.output_batch_id END)
       AND applied_at IS NOT NULL AND deleted_at IS NULL
     ORDER BY applied_at DESC, code DESC LIMIT 1;
     IF v_latest IS DISTINCT FROM p_assay_result_id THEN
@@ -48,7 +56,9 @@ BEGIN
         'assay_result_id', p_assay_result_id,
         'code', v_assay.code,
         'inbound_batch_id', v_assay.inbound_batch_id,
+        'output_batch_id', v_assay.output_batch_id,
         'reverted_price', false
     );
 END;
-$function$;
+$function$
+;

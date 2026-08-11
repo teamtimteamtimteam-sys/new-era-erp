@@ -39,8 +39,8 @@ BEGIN
     -- 三个投入批:① 化验【测了 co,含量 0】 ② 一个金属都没测 ③ co 20%(守恒臂用)
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
     VALUES ('ZZFIX43-IB-ZERO', v_mat, v_sup, 100, 100, CURRENT_DATE) RETURNING id INTO ib_zero;
-    INSERT INTO inbound_batch_metals (inbound_batch_id, metal, content_pct)
-    VALUES (ib_zero, 'co', 0);          -- 【测出来是零】—— 一行真实存在的化验行
+    INSERT INTO inbound_batch_metals (inbound_batch_id, metal, content_pct, content_source)
+    VALUES (ib_zero, 'co', 0, 'manual');          -- 【测出来是零】—— 一行真实存在的化验行
 
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
     VALUES ('ZZFIX43-IB-NONE', v_mat, v_sup, 100, 100, CURRENT_DATE) RETURNING id INTO ib_none;
@@ -48,8 +48,8 @@ BEGIN
 
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
     VALUES ('ZZFIX43-IB-RICH', v_mat, v_sup, 100, 100, CURRENT_DATE) RETURNING id INTO ib_rich;
-    INSERT INTO inbound_batch_metals (inbound_batch_id, metal, content_pct)
-    VALUES (ib_rich, 'co', 20);         -- 20 kg co 投入
+    INSERT INTO inbound_batch_metals (inbound_batch_id, metal, content_pct, content_source)
+    VALUES (ib_rich, 'co', 20, 'manual');         -- 20 kg co 投入
 
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', u), true);
@@ -61,7 +61,7 @@ BEGIN
         jsonb_build_array(jsonb_build_object('inbound_batch_id', ib_zero, 'quantity_consumed', 100)),
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 50)), 'weight');
     SELECT po.output_batch_id INTO ob_a FROM processing_outputs po WHERE po.run_id = run_zero;
-    INSERT INTO output_batch_metals (output_batch_id, metal, content_pct) VALUES (ob_a, 'co', 10);
+    INSERT INTO output_batch_metals (output_batch_id, metal, content_pct, content_source) VALUES (ob_a, 'co', 10, 'manual');
 
     SELECT * INTO v_row FROM processing_metal_recovery
      WHERE run_id = run_zero AND metal = 'co';
@@ -84,7 +84,7 @@ BEGIN
         jsonb_build_array(jsonb_build_object('inbound_batch_id', ib_none, 'quantity_consumed', 100)),
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 50)), 'weight');
     SELECT po.output_batch_id INTO ob_b FROM processing_outputs po WHERE po.run_id = run_none;
-    INSERT INTO output_batch_metals (output_batch_id, metal, content_pct) VALUES (ob_b, 'co', 10);
+    INSERT INTO output_batch_metals (output_batch_id, metal, content_pct, content_source) VALUES (ob_b, 'co', 10, 'manual');
 
     SELECT * INTO v_row FROM processing_metal_recovery
      WHERE run_id = run_none AND metal = 'co';
@@ -105,7 +105,7 @@ BEGIN
         jsonb_build_array(jsonb_build_object('inbound_batch_id', ib_rich, 'quantity_consumed', 100)),
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 50)), 'weight');
     SELECT po.output_batch_id INTO ob_bare FROM processing_outputs po WHERE po.run_id = run_cons;
-    INSERT INTO output_batch_metals (output_batch_id, metal, content_pct) VALUES (ob_bare, 'co', 60);
+    INSERT INTO output_batch_metals (output_batch_id, metal, content_pct, content_source) VALUES (ob_bare, 'co', 60, 'manual');
 
     SELECT * INTO v_row FROM processing_metal_recovery
      WHERE run_id = run_cons AND metal = 'co';
@@ -150,7 +150,7 @@ BEGIN
     BEGIN
         INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
         VALUES ('ZZFIX43-IB-E', v_mat, v_sup, 100, 100, CURRENT_DATE) RETURNING id INTO ib_rich;
-        INSERT INTO inbound_batch_metals (inbound_batch_id, metal, content_pct) VALUES (ib_rich, 'ni', 30);
+        INSERT INTO inbound_batch_metals (inbound_batch_id, metal, content_pct, content_source) VALUES (ib_rich, 'ni', 30, 'manual');
         -- 产出批照常建出来,但【一个金属都不录】—— 线上 13 个产出批只有 4 个录了
         run_e := commit_processing_run(CURRENT_DATE, 'fixture 43 output unmeasured', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', ib_rich, 'quantity_consumed', 100)),
