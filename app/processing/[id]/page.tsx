@@ -100,7 +100,9 @@ export default async function ProcessingDetailPage({
             .order('created_at'),
         supabase
             .from('processing_metal_recovery')
-            .select('metal, input_metal_kg, output_metal_kg, recovery_pct, input_measured, output_measured, recovery_blocked_by, conservation_warning, run_recovery_computable')
+            // PROC-1c:两侧出处一并取 —— 守恒警告要说得出自己比的是
+            // 【实验室 vs 实验室】(真异常)还是【实验室 vs 手敲】(先怀疑打错字)
+            .select('metal, input_metal_kg, output_metal_kg, recovery_pct, input_measured, output_measured, recovery_blocked_by, conservation_warning, run_recovery_computable, input_source, output_source')
             .eq('run_id', id)
             .order('metal'),
     ])
@@ -208,6 +210,30 @@ export default async function ProcessingDetailPage({
         const k = metalLabelKey(v)
         return k ? t(k) : v ?? '—'
     }
+
+    // PROC-1c:含量出处的标签。四个取值来自视图的聚合(assay / manual / mixed /
+    // unknown),NULL = 那一侧根本没测 —— 没测过的边没有出处可言,不画。
+    // 【逐个字面量写死,不拼 key】:'mixed' 在视图里是字面量,另外三个是
+    // min(COALESCE(content_source,'unknown')) 算出来的,check-i18n 的动态键解析
+    // 取不到它们 —— 而一个解析不出后缀的动态前缀按约定是【失败】,不是放行。
+    const sourceLabel = (s: string | null) =>
+        s === 'assay' ? t('processing.recovery.source.assay')
+            : s === 'manual' ? t('processing.recovery.source.manual')
+                : s === 'mixed' ? t('processing.recovery.source.mixed')
+                    : t('processing.recovery.source.unknown')
+
+    // 守恒警告分得出自己站在哪一种情形里。两侧都测过是警告成立的前提,所以
+    // 这里只在 assay/manual/mixed/unknown 之间判:
+    //   * 两侧都是化验 → 真异常,值得追(拿错批、污染),不是打错字;
+    //   * 任一侧出处未记 → 说不出是哪一种,照直说,不猜;
+    //   * 其余(含 mixed)→ 至少有一侧不是纯化验数,先去看那一侧。
+    // 顺序要紧:unknown 先判,否则 'assay' + 'unknown' 会被当成"有手敲的"。
+    const anomalyCauseKey = (r: { input_source: string | null; output_source: string | null }) =>
+        r.input_source === 'unknown' || r.output_source === 'unknown'
+            ? 'processing.recovery.anomalyCauseUnknownSource'
+            : r.input_source === 'assay' && r.output_source === 'assay'
+                ? 'processing.recovery.anomalyCauseBothAssay'
+                : 'processing.recovery.anomalyCauseNotBothAssay'
 
     // 分摊信息:上次分摊时间 + 基准标签
     const allocatedWhen = run.allocated_at
@@ -555,6 +581,20 @@ export default async function ProcessingDetailPage({
                                               input: String(r.input_metal_kg),
                                               output: String(r.output_metal_kg),
                                           })}
+                                    {/* PROC-1c:这条警告比的是哪两种数 —— 先把两侧出处照直说出来
+                                        (事实),再给一句该先看哪里(判断)。事实单独成句,是因为
+                                        那句判断按 mixed/unknown 必然粗糙,而粗糙的判断不该把事实
+                                        一起吃掉。 */}
+                                    <span className="block mt-2 pt-2 border-t border-red-200">
+                                        <span className="font-medium">
+                                            {t('processing.recovery.sourcePair', {
+                                                input: sourceLabel(r.input_source),
+                                                output: sourceLabel(r.output_source),
+                                            })}
+                                        </span>
+                                        {' — '}
+                                        {t(anomalyCauseKey(r))}
+                                    </span>
                                 </p>
                             ))}
                             <div className="overflow-x-auto">
@@ -574,9 +614,16 @@ export default async function ProcessingDetailPage({
                                             {/* REC-1:【未测】与【测出来是零】渲染成两样东西。此前视图把
                                                 前者压成 0,于是"投入 0 / 产出 40"看着像无中生有,其实
                                                 只是那个金属从没在投入侧被测过。 */}
+                                            {/* PROC-1c:出处贴在它修饰的那个数下面 —— 回收率是
+                                                产出÷投入,"这个百分比除的是哪一种数"是【每一侧
+                                                各自】的事实,不是行级的一个标签。没测过的那一侧
+                                                不画出处:没有数就没有出处,空着才是对的。 */}
                                             <td className="border border-gray-300 px-4 py-2 text-right text-sm">
                                                 {r.input_measured ? (
-                                                    <span className="font-mono">{r.input_metal_kg}</span>
+                                                    <>
+                                                        <span className="font-mono">{r.input_metal_kg}</span>
+                                                        <span className="block text-xs text-gray-500">{sourceLabel(r.input_source)}</span>
+                                                    </>
                                                 ) : (
                                                     <span className="text-gray-400" title={t('processing.recovery.notMeasuredTitle')}>
                                                         {t('processing.recovery.notMeasured')}
@@ -585,7 +632,10 @@ export default async function ProcessingDetailPage({
                                             </td>
                                             <td className="border border-gray-300 px-4 py-2 text-right text-sm">
                                                 {r.output_measured ? (
-                                                    <span className="font-mono">{r.output_metal_kg}</span>
+                                                    <>
+                                                        <span className="font-mono">{r.output_metal_kg}</span>
+                                                        <span className="block text-xs text-gray-500">{sourceLabel(r.output_source)}</span>
+                                                    </>
                                                 ) : (
                                                     <span className="text-gray-400" title={t('processing.recovery.notMeasuredTitle')}>
                                                         {t('processing.recovery.notMeasured')}

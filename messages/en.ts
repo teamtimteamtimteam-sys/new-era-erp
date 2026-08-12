@@ -1198,6 +1198,21 @@ const en = {
             anomalyTitle: 'Output exceeds input',
             anomaly: 'This run produced more {metal} than went in ({output} kg out of {input} kg). Both sides were measured, so this is worth checking: the wrong batch may have been consumed, the output content may be mistyped, or the material may be contaminated.',
             anomalyFromZero: 'This run produced {output} kg of {metal} from an input measured to contain none. Both sides were measured, so this is worth checking.',
+            // PROC-1c: provenance of the two figures being compared. The pair is stated as
+            // fact; the cause sentence is a judgement and is kept separate from it.
+            source: {
+                assay: 'assay',
+                manual: 'hand-entered',
+                mixed: 'mixed',
+                unknown: 'source unrecorded',
+            },
+            sourcePair: 'Input: {input} · Output: {output}',
+            anomalyCauseBothAssay:
+                'both figures come from lab assays, so a typo is not the explanation — this is a real discrepancy worth chasing: check which batches were actually consumed, and whether the material was contaminated.',
+            anomalyCauseNotBothAssay:
+                'at least one side is not a lab figure, so check that side first — a mistyped content percentage is the likeliest cause and the cheapest to rule out.',
+            anomalyCauseUnknownSource:
+                'one side’s provenance was never recorded, so it cannot be said whether this compares two lab results or a lab result against a typed one. Re-assay the batch if the figure matters.',
             runNotComputable: 'Recovery cannot be computed for this run: none of these metals was measured on both sides. The figures below say which side is missing rather than showing a zero.',
         },
     },

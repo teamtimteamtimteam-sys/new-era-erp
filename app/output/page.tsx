@@ -106,6 +106,23 @@ export default async function OutputPage({
         customers ( legal_name )
     `)
 
+    // ── 这里【故意】没有"有未应用化验"的角标(PROC-1c 记,2026-08-12)──────────
+    // 进料列表有一个(app/inbound/page.tsx,读 batch_assay_status.has_unapplied_assay)。
+    // 产出侧没有,而这是一次判断,不是漏掉的一件事 —— 写在这里,是因为下一个人
+    // 会在这一行附近发现这个不对称,而"为什么没有"只有写在缺口本身上才拦得住
+    // 一次顺手补齐。
+    //
+    // 两侧的未应用化验【后果不同】:
+    //   * 进料:化验一应用就重述应付 —— 未应用 = 这批货的单价还是错的,是钱。
+    //     钱要在【列表】上就看得见,因为看列表的人正是在挑"哪一批该动"。
+    //   * 产出:产出化验不定价(没有一张应付可重述)。未应用 = 含量、回收率与
+    //     metal_value 分摊读的还是旧数,金额一分不动,要动也得有人显式重跑分摊。
+    //     而批次页【已经在说这件事】了(OutputAssaySection 顶上的琥珀色横幅)。
+    //
+    // 所以这不是"进料有、产出该跟上",是两种后果各自配了合适的位置。真要补,
+    // 代价也不是加一个 <span>:batch_assay_status 是进料专用视图(它的每一行都是
+    // 一个 inbound_batch),产出侧要么新建一个同形视图,要么把它改成双父 ——
+    // 那是一次机制改动,该有它自己的一刀和自己的理由,不该混在一次显示改动里。
     const { data, error } = await applyOutputFilters(
         baseQuery,
         filterParams,

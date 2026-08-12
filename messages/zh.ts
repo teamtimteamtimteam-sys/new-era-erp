@@ -1201,6 +1201,21 @@ const zh = {
             anomalyTitle: '产出超过投入',
             anomaly: '本单产出的{metal}多于投入({input} kg 进、{output} kg 出)。两侧都测过,所以值得查一查:可能投错了批、产出含量录错,或者物料被污染。',
             anomalyFromZero: '本单从"化验测得不含此金属"的投入里产出了 {output} kg {metal}。两侧都测过,值得查一查。',
+            // PROC-1c:这条警告比的是哪两种数。两侧出处是【事实】,先说;
+            // 该先看哪里是【判断】,单独一句,不让粗糙的判断吃掉事实。
+            source: {
+                assay: '化验',
+                manual: '手工录入',
+                mixed: '混合',
+                unknown: '出处未记',
+            },
+            sourcePair: '投入:{input} · 产出:{output}',
+            anomalyCauseBothAssay:
+                '两侧都是化验数,所以【打错字解释不了它】—— 这是一次真正的异常,值得追:查一查究竟投的是哪几批,以及物料有没有被污染。',
+            anomalyCauseNotBothAssay:
+                '至少有一侧不是化验数 —— 先去看那一侧:含量百分比敲错是最可能的原因,也是最便宜的排除项。',
+            anomalyCauseUnknownSource:
+                '有一侧的出处从没被记过,所以说不出这是【两份化验单在打架】还是【化验单对着一个手敲的数】。这个数要紧的话,重新化验那一批。',
             runNotComputable: '本单的回收率无从计算:这些金属没有一个在两侧都被测过。下面的表会说清缺的是哪一侧,而不是给一个 0。',
         },
     },
