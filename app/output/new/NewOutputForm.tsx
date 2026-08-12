@@ -6,6 +6,7 @@ import { createOutput, type CreateOutputState } from './actions'
 import { UNIT_OPTIONS } from '../../materials/options'
 import { STATE_OPTIONS } from '../../inbound/options'
 import { useTranslations } from '@/lib/i18n/client'
+import LocationPicker, { type LocationChoice } from '@/app/components/inventory/LocationPicker'
 
 const initialState: CreateOutputState = {}
 
@@ -13,9 +14,12 @@ type MaterialOption = { id: string; code: string; name: string }
 type CustomerOption = { id: string; code: string; legal_name: string }
 
 export default function NewOutputForm({
+    locations,
     materials,
     customers,
 }: {
+    // IOD-1b:收货库位的可选清单(在用库位),由页面取好传进来
+    locations: LocationChoice[]
     materials: MaterialOption[]
     customers: CustomerOption[]
 }) {
@@ -45,6 +49,8 @@ export default function NewOutputForm({
             )}
 
             <form action={formAction} className="space-y-4">
+            {/* IOD-1b:收货库位(可选)。默认「未指定 —— 之后用转移指定」 */}
+            <LocationPicker locations={locations} />
                 {/* 物料(必填)*/}
                 <div>
                     <label className="block text-sm font-medium mb-1">

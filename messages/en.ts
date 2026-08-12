@@ -1304,6 +1304,7 @@ const en = {
         receiptLocation: 'Storage location',
         receiptLocationUnspecified: 'Unspecified — assign later by transfer',
         receiptLocationHint: 'Where this stock is being put. Leaving it unspecified is a normal answer: the stock is real, it just has no place recorded yet, and a transfer can assign one at any time.',
+        receiptLocationNoCheck: 'Choosing a location does not yet check whether that location is allowed to hold this material — that check arrives with IOD-2. For now the location is recorded, not enforced.',
         saleAvailable: 'Available to sell',
         saleHeld: 'On hold (not sellable)',
         consumeAvailable: 'Available',

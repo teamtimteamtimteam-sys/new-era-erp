@@ -41,6 +41,13 @@ export default async function ReceivePage() {
             .select('supplier_id, supplier_code, cert_type_code, name_en, name_zh, valid_until'),
     ])
 
+    // IOD-1b:收货库位的可选清单 —— 只列在用库位(便利);停用/不存在由
+    // resolve_receipt_location 在函数里点名拒,下拉挡不住直接调 RPC 的人。
+    const locationChoices = mustRows(
+        await supabase.from('storage_locations').select('id, code, name').eq('is_active', true).order('code'),
+        'storage_locations'
+    ) as unknown as { id: string; code: string; name: string }[]
+
     return (
         <div className="p-4 max-w-md mx-auto">
             <div className="mb-4">
@@ -52,6 +59,7 @@ export default async function ReceivePage() {
             <h1 className="text-2xl font-bold mb-6">{t('receive.title')}</h1>
 
             <ReceiveForm
+            locations={locationChoices}
                 suppliers={mustRows(suppliersRes)}
                 materials={mustRows(materialsRes)}
                 poLines={(mustRows(poLinesRes)) as PoLineOption[]}

@@ -23,6 +23,10 @@ export async function createOutput(
     const quantity_raw = (formData.get('quantity') as string) || ''
     const unit = (formData.get('unit') as string)?.trim() || 'kg'
     const output_date = (formData.get('output_date') as string)?.trim() || null
+    // IOD-1b:收货库位【可选】。经 RPC 传进去 —— 建批次从此只有这一扇门,
+    // 库位因此进得来(app 里 set_config 到不了:每次 PostgREST 调用都是
+    // 独立会话,而 set_config 本身也不可调,实测 404 PGRST202)。
+    const location_id = (formData.get('location_id') as string)?.trim() || null
     const state = (formData.get('state') as string)?.trim() || '库存中'
     const purity = (formData.get('purity') as string)?.trim() || null
     const notes = (formData.get('notes') as string)?.trim() || null
@@ -52,22 +56,23 @@ export async function createOutput(
     const {
         data: { user },
     } = await supabase.auth.getUser()
+    // 到这里 quantity 必非空(上面的校验分支已经 return),但 TS narrow 不到。
+    // 显式收窄而不是 as number:强转会把「其实可能为空」这件事藏起来,
+    // 而这一行是进 RPC 之前的最后一道。
+    if (quantity === null) return { fieldErrors: { quantity: 'quantity' } }
 
-    const { error } = await supabase.from('output_batches').insert({
-        material_id,
-        customer_id: customer_id || null, // 可选
-        quantity,
-        unit,
-        remaining_qty: quantity, // 剩余可售量初始 = 数量
-        output_date,
-        state,
-        purity,
-        notes,
-        created_by: user?.id ?? null,
-        updated_by: user?.id ?? null,
-        // code 不传,用触发器自动生成
-        // status 不传,用数据库默认值 'draft'
-    } as InsertRow<'output_batches'>)
+
+    const { error } = await supabase.rpc('create_output_batch', {
+        p_material_id: material_id,
+        p_quantity: quantity,
+        p_unit: unit,
+        ...(output_date ? { p_output_date: output_date } : {}),
+        p_state: state,
+        ...(customer_id ? { p_customer_id: customer_id } : {}),
+        ...(purity === null ? {} : { p_purity: purity }),
+        ...(notes === null ? {} : { p_notes: notes }),
+        ...(location_id ? { p_location_id: location_id } : {}),
+    })
 
     if (error) {
         return { error: t('output.form.saveError', { message: error.message }) }

@@ -6,6 +6,7 @@
 import { useActionState, useState } from 'react'
 import { createFieldReceipt, type ReceiveState } from './actions'
 import { useLocale, useTranslations } from '@/lib/i18n/client'
+import LocationPicker, { type LocationChoice } from '@/app/components/inventory/LocationPicker'
 
 const initialState: ReceiveState = {}
 
@@ -50,11 +51,14 @@ const labelCls = 'block text-sm font-medium mb-1'
 const errCls = 'text-red-600 text-sm mt-1'
 
 export default function ReceiveForm({
+    locations,
     suppliers,
     materials,
     poLines,
     blockedSuppliers,
 }: {
+    // IOD-1b:收货库位的可选清单(在用库位),由页面取好传进来
+    locations: LocationChoice[]
     suppliers: Supplier[]
     materials: Material[]
     poLines: PoLineOption[]
@@ -99,6 +103,8 @@ export default function ReceiveForm({
 
     return (
         <form action={formAction} className="space-y-5">
+            {/* IOD-1b:收货库位(可选)。默认「未指定 —— 之后用转移指定」 */}
+            <LocationPicker locations={locations} />
             {state.error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                     {state.error}

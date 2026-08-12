@@ -66,3 +66,7 @@ REVOKE EXECUTE ON FUNCTION public.customer_ar_exposure_base(uuid) FROM authentic
 -- 体内被调用。给了 authenticated 就等于任何登录用户都能凭空写出入库/出库流水。
 REVOKE EXECUTE ON FUNCTION public.drain_stock(numeric, text, date, uuid, uuid, text[], uuid, text, uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.mirror_consume_restore(uuid, uuid, uuid, numeric, date, uuid) FROM authenticated;
+-- IOD-1b:收货库位的翻译器。三个建批次 RPC 共用它,而那三个分属两个模块
+-- (进料 inbound.edit / 产出 output.edit)且各自已把过关 —— 给它挑一个权限码
+-- 只能挑一个比两者都松的。靠"调不到"。
+REVOKE EXECUTE ON FUNCTION public.resolve_receipt_location(uuid) FROM authenticated;

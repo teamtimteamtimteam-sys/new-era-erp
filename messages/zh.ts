@@ -1304,6 +1304,7 @@ const zh = {
         receiptLocation: '存放库位',
         receiptLocationUnspecified: '未指定 —— 之后用转移指定',
         receiptLocationHint: '这批货放在哪。【不指定是一个正常答案】:货是真的,只是还没有记录放在哪,随时可以用一次转移把它指定过去。',
+        receiptLocationNoCheck: '选择库位【暂时不会】校验这个库位允不允许存放这类物料 —— 那道闸要等 IOD-2。现在库位只是被记录下来,不产生任何拦截。',
         saleAvailable: '可售',
         saleHeld: '暂扣(不可售)',
         consumeAvailable: '可用',

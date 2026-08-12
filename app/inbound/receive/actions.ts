@@ -27,6 +27,10 @@ export async function createFieldReceipt(
     // 这一道不能。也【不给服务端默认值】:补一个 CURRENT_DATE 会让"留空"比"填对"
     // 更容易通过,那条路专门奖励留空(AGENTS.md 的日期规则)。
     const arrival_date = (formData.get('arrival_date') as string)?.trim() || null
+    // IOD-1b:收货库位【可选】。经 RPC 传进去 —— 建批次从此只有这一扇门,
+    // 库位因此进得来(app 里 set_config 到不了:每次 PostgREST 调用都是
+    // 独立会话,而 set_config 本身也不可调,实测 404 PGRST202)。
+    const location_id = (formData.get('location_id') as string)?.trim() || null
     const notes = (formData.get('notes') as string)?.trim() || null
     // 关联采购单(cut 4c,可选;成对出现)
     const purchase_order_id = (formData.get('purchase_order_id') as string) || null
@@ -54,25 +58,23 @@ export async function createFieldReceipt(
     const {
         data: { user },
     } = await supabase.auth.getUser()
+    // 到这里 quantity 必非空(上面的校验分支已经 return),但 TS narrow 不到。
+    // 显式收窄而不是 as number:强转会把「其实可能为空」这件事藏起来,
+    // 而这一行是进 RPC 之前的最后一道。
+    if (quantity === null) return { fieldErrors: { quantity: 'quantity' } }
+
 
     const { data, error } = await supabase
-        .from('inbound_batches')
-        .insert({
-            material_id,
-            supplier_id,
-            quantity,
-            remaining_qty: quantity, // 剩余量初始 = 数量
-            unit: 'kg',
-            arrival_date,
-            notes,
-            purchase_order_id,
-            purchase_order_line_id,
-            created_by: user?.id ?? null,
-            updated_by: user?.id ?? null,
-            // code 触发器自动生成;status 默认 'draft';stage 默认 '待加工'
-        } as InsertRow<'inbound_batches'>)
-        .select('id')
-        .single()
+        .rpc('receive_inbound_batch_against_po', {
+            p_material_id: material_id,
+            p_supplier_id: supplier_id,
+            p_quantity: quantity,
+            ...(arrival_date ? { p_arrival_date: arrival_date } : {}),
+            ...(notes === null ? {} : { p_notes: notes }),
+            ...(purchase_order_id ? { p_purchase_order_id: purchase_order_id } : {}),
+            ...(purchase_order_line_id ? { p_purchase_order_line_id: purchase_order_line_id } : {}),
+            ...(location_id ? { p_location_id: location_id } : {}),
+        })
 
     if (error || !data) {
         // 收货触发器的编码错误本地化;其余仍走原样的 saveError
@@ -83,5 +85,6 @@ export async function createFieldReceipt(
     }
 
     revalidatePath('/inbound')
-    redirect(`/inbound/receive/done/${data.id}`)
+    // IOD-1b:RPC 返回的是新批次的 uuid 本身(不再是一行)
+    redirect(`/inbound/receive/done/${data}`)
 }

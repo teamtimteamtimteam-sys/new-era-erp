@@ -77,10 +77,13 @@ CREATE POLICY "output_batches select by permission"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.output.view'::text));
 
-CREATE POLICY "output_batches insert by permission"
-    ON public.output_batches
-    AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.output.edit'::text));
+-- 【没有面向客户端的 INSERT 策略,这是刻意的】(IOD-1b,2026-08-13)
+-- 建批次只有一扇门:create_inbound_batch / receive_inbound_batch_against_po
+-- (产出侧是 create_output_batch)。它们是 SECURITY DEFINER,以属主身份写入,
+-- 所以不需要这条策略;而撤掉它,直接 POST /rest/v1/<表> 会被 RLS 拒。
+-- 【为什么】IOD-2 要在"货落进哪个库位"上设闸,而一个留着侧门的卡口不是卡口 ——
+-- 先把门收成一扇,IOD-2 只需在这一扇门上加判断,不必追第二条路径。
+-- commit_processing_run 同为 DEFINER,不受影响(fixture 58 D 臂钉住)。
 
 CREATE POLICY "output_batches update by permission"
     ON public.output_batches

@@ -11071,6 +11071,22 @@ export type Database = {
         Args: { p_employee_id: string; p_leave_year: number }
         Returns: number
       }
+      create_inbound_batch: {
+        Args: {
+          p_arrival_date?: string
+          p_location_id?: string
+          p_material_id: string
+          p_notes?: string
+          p_purchase_order_id?: string
+          p_purchase_order_line_id?: string
+          p_quantity: number
+          p_stage?: string
+          p_supplier_id: string
+          p_unit?: string
+          p_unit_price?: number
+        }
+        Returns: string
+      }
       create_invoice: {
         Args: {
           p_customer_id: string
@@ -11081,6 +11097,20 @@ export type Database = {
           p_terms_text?: string
         }
         Returns: Json
+      }
+      create_output_batch: {
+        Args: {
+          p_customer_id?: string
+          p_location_id?: string
+          p_material_id: string
+          p_notes?: string
+          p_output_date?: string
+          p_purity?: string
+          p_quantity: number
+          p_state?: string
+          p_unit?: string
+        }
+        Returns: string
       }
       create_purchase_order: {
         Args: {
@@ -11403,6 +11433,19 @@ export type Database = {
         Args: { p_formula_id: string }
         Returns: Json
       }
+      receive_inbound_batch_against_po: {
+        Args: {
+          p_arrival_date?: string
+          p_location_id?: string
+          p_material_id: string
+          p_notes?: string
+          p_purchase_order_id?: string
+          p_purchase_order_line_id?: string
+          p_quantity: number
+          p_supplier_id: string
+        }
+        Returns: string
+      }
       reconcile_statement: { Args: { p_statement_id: string }; Returns: Json }
       record_approval_decision: {
         Args: {
@@ -11583,6 +11626,10 @@ export type Database = {
       }
       resolve_pricing_commitment: {
         Args: { p_inbound_batch_id: string }
+        Returns: string
+      }
+      resolve_receipt_location: {
+        Args: { p_location_id: string }
         Returns: string
       }
       revalue_foreign_balances: {

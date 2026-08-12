@@ -9,6 +9,7 @@ import { createInbound, type CreateInboundState } from './actions'
 import { UNIT_OPTIONS } from '../../materials/options'
 import { STAGE_OPTIONS } from '../options'
 import { useLocale, useTranslations } from '@/lib/i18n/client'
+import LocationPicker, { type LocationChoice } from '@/app/components/inventory/LocationPicker'
 
 const initialState: CreateInboundState = {}
 
@@ -40,12 +41,15 @@ export type BlockedSupplier = {
 }
 
 export default function NewInboundForm({
+    locations,
     materials,
     suppliers,
     poLines,
     blockedSuppliers,
     initialPoId = '',
 }: {
+    // IOD-1b:收货库位的可选清单(在用库位),由页面取好传进来
+    locations: LocationChoice[]
     materials: MaterialOption[]
     suppliers: SupplierOption[]
     poLines: PoLineOption[]
@@ -125,6 +129,8 @@ export default function NewInboundForm({
             )}
 
             <form action={formAction} className="space-y-4">
+            {/* IOD-1b:收货库位(可选)。默认「未指定 —— 之后用转移指定」 */}
+            <LocationPicker locations={locations} />
                 {/* 供应商(必填)—— 排在物料前:关联采购单要先知道是谁的单 */}
                 <div>
                     <label className="block text-sm font-medium mb-1">

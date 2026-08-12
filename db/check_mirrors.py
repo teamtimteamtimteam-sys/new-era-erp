@@ -161,6 +161,8 @@ DEFINER_NO_CHECK_ALLOWED = {
     # 走的是"调不到"这条路,REVOKE 写在 db/views/zzz_function_grants.sql 里。
     "drain_stock": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "mirror_consume_restore": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    # IOD-1b:收货库位翻译器,三个建批次 RPC 共用;同上,靠"调不到"
+    "resolve_receipt_location": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "reverse_journal_entry_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
     # FIN-27 的内层算子:条款解析、计价算术、承诺写入。同上,靠"调不到"而非"查调用者"
     "pricing_terms_of_formula": "EXECUTE revoked from PUBLIC/authenticated/anon",

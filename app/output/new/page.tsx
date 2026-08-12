@@ -42,8 +42,16 @@ export default async function NewOutputPage() {
         )
     }
 
+    // IOD-1b:收货库位的可选清单 —— 只列在用库位(便利);停用/不存在由
+    // resolve_receipt_location 在函数里点名拒,下拉挡不住直接调 RPC 的人。
+    const locationChoices = mustRows(
+        await supabase.from('storage_locations').select('id, code, name').eq('is_active', true).order('code'),
+        'storage_locations'
+    ) as unknown as { id: string; code: string; name: string }[]
+
     return (
         <NewOutputForm
+            locations={locationChoices}
             materials={mustRows(materialsRes)}
             customers={mustRows(customersRes)}
         />
