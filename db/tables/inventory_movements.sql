@@ -35,6 +35,19 @@ CREATE TABLE public.inventory_movements (
     -- (收货/加工/销售/盘点/冲销)动的都是可用库存 —— 那本来就是它们的语义,
     -- 所以它们一个字都不用改。【不要与 inbound_batches.status / output_batches.status
     -- 混淆】,那两列与库存无关且无人写入(见 docs/known-issues.md)。
+    -- ┌─ 【要加第三种状态?先读这两条 —— 它们是想过之后明确不放这里的】────────┐
+    -- │ * awaiting_assay(待化验)【不属于这里,它是派生的】。今天由           │
+    -- │   db/views/operations_now.sql 的 awaiting_assay 支给出,判据是         │
+    -- │   batch_assay_status.assay_count = 0 —— "这批货有没有化验单"本身就     │
+    -- │   存在 assay_results 里,现算即可。把它固化成一个【存下来的】状态,     │
+    -- │   等于给一个已有唯一真相的事实开第二个副本,而两份副本迟早不一致 ——    │
+    -- │   `?? 0` / COALESCE 那类病的反向版本:不是把缺失伪装成零,而是把       │
+    -- │   【算得出来的】变成【要维护的】。                                     │
+    -- │ * committed(已承诺)【没有写入者】。它要说"这批货许给了某张销售单",   │
+    -- │   而销售单今天还不存在(只有事后记录的 sales_records)。没有写入者的    │
+    -- │   枚举值永远为空,而空枚举值会被下一个人读成"从来没有承诺过的库存",   │
+    -- │   不是"系统还不知道承诺"。等销售单落地那一刀再加。                     │
+    -- └──────────────────────────────────────────────────────────────────────┘
     stock_status     text NOT NULL DEFAULT 'available'
                      CHECK (stock_status IN ('available','on_hold')),
     -- 状态变更是【成对】的两行,这一列把它们绑在一起(只有状态变更行带它)
