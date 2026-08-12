@@ -155,6 +155,12 @@ DEFINER_NO_CHECK_ALLOWED = {
     # —— 由返回类型自动排除,不需要列在这里。
     # 已收回 EXECUTE 的内层函数(ACL 里没有 PUBLIC 项)
     "calculate_metal_price_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    # IOD-1 的两个内层算子:库存排空与冲销镜像。三个调用方分属不同模块
+    # (销售 output.edit / 投料 processing.edit / 注销触发器 批次侧 edit),各自
+    # 已把过关;给它们挑一个权限码只能挑一个比三者都松的 —— 那不是把关。
+    # 走的是"调不到"这条路,REVOKE 写在 db/views/zzz_function_grants.sql 里。
+    "drain_stock": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "mirror_consume_restore": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "reverse_journal_entry_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
     # FIN-27 的内层算子:条款解析、计价算术、承诺写入。同上,靠"调不到"而非"查调用者"
     "pricing_terms_of_formula": "EXECUTE revoked from PUBLIC/authenticated/anon",

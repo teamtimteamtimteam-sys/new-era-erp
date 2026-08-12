@@ -1,7 +1,3 @@
--- FIN-25(2026-08-06):产出批投料同样还原(上游批已删则跳过 —— 其自身加工单
--- 已冲销的情形)。
--- FIN-25c:movement_ctx 用毕即清(残留 ctx 会让投入腿守卫放行同事务内的裸 INSERT)。
-
 CREATE OR REPLACE FUNCTION public.rollback_processing_run(p_run_id uuid)
  RETURNS void
  LANGUAGE plpgsql
@@ -85,8 +81,15 @@ BEGIN
                 -- FIN-32:还原不是物理事件,是在更正一次记错的加工单 —— 业务日取
                 -- 【原加工单的 process_date】,于是消耗与还原在同一天对消,
                 -- 中间那几天的库存历史不会凭空少掉一批实际还在的货。
-                INSERT INTO inventory_movements (inbound_batch_id, movement_type, qty_delta, run_id, business_date, created_by)
-                VALUES (v_input.inbound_batch_id, 'reversal_restore', v_new_remaining - COALESCE(v_old_remaining, 0), p_run_id, v_process_date, v_user_id);
+                --
+                -- 【IOD-1:逐行镜像原始流水,不按规则重新分配】投料现在可能跨几个
+                -- 库位桶写出多行;还原必须把货放回【它原来所在的那些桶】,而不是
+                -- 按 drain 的顺序倒着来一遍 —— 那两者在一般情形下并不相等,
+                -- 差额会安静地把库存挪到别的库位上。所以这里读原始的
+                -- processing_consume 行,逐行取反。
+                PERFORM mirror_consume_restore(p_run_id, v_input.inbound_batch_id, NULL,
+                                                 v_new_remaining - COALESCE(v_old_remaining, 0),
+                                                 v_process_date, v_user_id);
             END IF;
         ELSE
             SELECT quantity, remaining_qty INTO v_quantity, v_old_remaining
@@ -111,8 +114,9 @@ BEGIN
 
             IF v_new_remaining - COALESCE(v_old_remaining, 0) > 0 THEN
                 -- FIN-32:同上 —— 产出批投料的还原(FIN-25 那条边)业务日一样取原加工日
-                INSERT INTO inventory_movements (output_batch_id, movement_type, qty_delta, run_id, business_date, created_by)
-                VALUES (v_input.output_batch_id, 'reversal_restore', v_new_remaining - COALESCE(v_old_remaining, 0), p_run_id, v_process_date, v_user_id);
+                PERFORM mirror_consume_restore(p_run_id, NULL, v_input.output_batch_id,
+                                                 v_new_remaining - COALESCE(v_old_remaining, 0),
+                                                 v_process_date, v_user_id);
             END IF;
         END IF;
     END LOOP;
@@ -137,4 +141,6 @@ BEGIN
 
     PERFORM set_config('evoltrya.movement_ctx', '', true);   -- 用毕即清(同 commit)
 END;
-$function$;
+$function$
+
+;

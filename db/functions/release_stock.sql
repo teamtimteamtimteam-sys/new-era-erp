@@ -28,14 +28,14 @@ BEGIN
 
     INSERT INTO inventory_movements
         (inbound_batch_id, output_batch_id, location_id, movement_type,
-         qty_delta, stock_status, status_pair_id, business_date, notes, created_by)
+         qty_delta, stock_status, pair_id, business_date, notes, created_by)
     VALUES
         (p_inbound_batch_id, p_output_batch_id, p_location_id, 'status_change_out',
          -p_qty, 'on_hold',   v_pair, v_today, NULLIF(btrim(COALESCE(p_note, '')), ''), v_user),
         (p_inbound_batch_id, p_output_batch_id, p_location_id, 'status_change_in',
           p_qty, 'available', v_pair, v_today, NULLIF(btrim(COALESCE(p_note, '')), ''), v_user);
 
-    RETURN jsonb_build_object('status_pair_id', v_pair, 'qty', p_qty,
+    RETURN jsonb_build_object('pair_id', v_pair, 'qty', p_qty,
                               'held_after', v_held - p_qty);
 END;
 $function$

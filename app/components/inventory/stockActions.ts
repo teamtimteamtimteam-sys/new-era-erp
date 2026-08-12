@@ -39,6 +39,31 @@ export async function holdStockAction(
     return {}
 }
 
+// IOD-1:转移 —— 把一个桶的数量搬到另一个库位。【状态原样带过去】。
+export async function transferStockAction(
+    inboundBatchId: string | null,
+    outputBatchId: string | null,
+    fromLocationId: string | null,
+    toLocationId: string,
+    qty: string,
+    stockStatus: string,
+    note: string
+): Promise<StockActionState> {
+    const supabase = await createClient()
+    const { error } = await supabase.rpc('create_stock_transfer', {
+        p_qty: Number(qty),
+        p_to_location_id: toLocationId,
+        ...(inboundBatchId ? { p_inbound_batch_id: inboundBatchId } : {}),
+        ...(outputBatchId ? { p_output_batch_id: outputBatchId } : {}),
+        ...(fromLocationId ? { p_from_location_id: fromLocationId } : {}),
+        p_stock_status: stockStatus,
+        ...(note.trim() === '' ? {} : { p_note: note.trim() }),
+    })
+    if (error) return { error: await localizeStockError(error.message) }
+    revalidateBatch(inboundBatchId, outputBatchId)
+    return {}
+}
+
 export async function releaseStockAction(
     inboundBatchId: string | null,
     outputBatchId: string | null,

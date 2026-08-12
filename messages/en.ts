@@ -1290,6 +1290,23 @@ const en = {
         holdBlockedNoAvailable: 'Nothing available to hold at this location.',
         holdBlockedNoReason: 'A reason is required — a hold with no reason cannot be judged later.',
         releaseBlockedNoHeld: 'Nothing is held at this location.',
+        // IOD-1: transfer + receipt location + available-vs-held on sale
+        transfer: 'Transfer',
+        transferQty: 'Quantity ({unit})',
+        transferTo: 'To location',
+        transferPick: 'Pick a location…',
+        transferNote: 'Note (optional)',
+        transferConsequence: 'Moves this quantity to another location. The physical total does not change, and the stock stays available.',
+        transferConsequenceHeld: 'Moves this HELD quantity to another location. It stays on hold at the destination — transferring moves where stock is, never whether it is available.',
+        transferBlockedNoStock: 'Nothing here to move.',
+        transferBlockedNoTargets: 'No other active location exists yet — create one under Inventory → Storage Locations first.',
+        transferBlockedNoTarget: 'Pick a destination location.',
+        receiptLocation: 'Storage location',
+        receiptLocationUnspecified: 'Unspecified — assign later by transfer',
+        receiptLocationHint: 'Where this stock is being put. Leaving it unspecified is a normal answer: the stock is real, it just has no place recorded yet, and a transfer can assign one at any time.',
+        saleAvailable: 'Available to sell',
+        saleHeld: 'On hold (not sellable)',
+        consumeAvailable: 'Available',
         blockedNoQty: 'Enter a quantity.',
         errors: {
             STK_HOLD_EXCEEDS_AVAILABLE: 'Cannot hold {0} — only {1} is available at this location. Holding does not create stock; it only reserves what is already there.',
@@ -1298,6 +1315,13 @@ const en = {
             STK_QTY_INVALID: 'The quantity {0} is not usable — it must be a positive number.',
             STK_ONE_BATCH: 'A hold applies to exactly one batch.',
             STK_NEGATIVE_BUCKET: 'This would take {2} of {1} stock on batch {0} below zero. The ledger refuses to let any status bucket go negative.',
+            IOD_TRANSFER_EXCEEDS_BUCKET: 'Cannot move {0} — only {1} is in this bucket. A transfer moves stock that is already there; it does not create any.',
+            IOD_TRANSFER_SAME_LOCATION: 'Source and destination are the same location — nothing would move. Pick a different destination.',
+            IOD_TRANSFER_TO_INACTIVE: 'That destination location is not active, so stock cannot be moved into it. Reactivate it under Inventory → Storage Locations, or pick another.',
+            IOD_SALE_EXCEEDS_AVAILABLE: 'Cannot sell {0} — only {1} is available. {2} is on hold and is not sellable until it is released (Release, on the stock panel above).',
+            IOD_CONSUME_EXCEEDS_AVAILABLE: 'Cannot consume {0} — only {1} is available. {2} is on hold and cannot be processed until released.',
+            IOD_DRAIN_INSUFFICIENT: 'Only {1} of the {0} requested could be drawn from stock. Nothing was written — reload the page and try again.',
+            IOD_RESTORE_MISMATCH: 'Rollback could not restore exactly what was consumed ({0} expected, {1} mirrored). Nothing was changed.',
         },
     },
     inventory: {
@@ -2189,6 +2213,9 @@ const en = {
             // into on_hold', a release is the same shape the other way round.
             status_change_out: 'Status change (out)',
             status_change_in: 'Status change (in)',
+            // IOD-1: the two legs of a transfer — same status, different location
+            transfer_out: 'Transfer (out)',
+            transfer_in: 'Transfer (in)',
         },
     },
     batchLabel: {

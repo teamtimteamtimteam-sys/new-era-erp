@@ -2281,9 +2281,9 @@ export type Database = {
           notes: string | null
           occurred_at: string
           output_batch_id: string | null
+          pair_id: string | null
           qty_delta: number
           run_id: string | null
-          status_pair_id: string | null
           stock_status: string
         }
         Insert: {
@@ -2297,9 +2297,9 @@ export type Database = {
           notes?: string | null
           occurred_at?: string
           output_batch_id?: string | null
+          pair_id?: string | null
           qty_delta: number
           run_id?: string | null
-          status_pair_id?: string | null
           stock_status?: string
         }
         Update: {
@@ -2313,9 +2313,9 @@ export type Database = {
           notes?: string | null
           occurred_at?: string
           output_batch_id?: string | null
+          pair_id?: string | null
           qty_delta?: number
           run_id?: string | null
-          status_pair_id?: string | null
           stock_status?: string
         }
         Relationships: [
@@ -11097,6 +11097,18 @@ export type Database = {
         }
         Returns: Json
       }
+      create_stock_transfer: {
+        Args: {
+          p_from_location_id?: string
+          p_inbound_batch_id?: string
+          p_note?: string
+          p_output_batch_id?: string
+          p_qty: number
+          p_stock_status?: string
+          p_to_location_id: string
+        }
+        Returns: Json
+      }
       current_user_employee: { Args: never; Returns: string }
       current_user_permissions: { Args: never; Returns: string[] }
       customer_ar_exposure_base: {
@@ -11134,6 +11146,20 @@ export type Database = {
           p_proceeds?: number
         }
         Returns: Json
+      }
+      drain_stock: {
+        Args: {
+          p_business_date: string
+          p_created_by?: string
+          p_inbound_batch_id?: string
+          p_movement_type: string
+          p_notes?: string
+          p_output_batch_id?: string
+          p_qty: number
+          p_run_id?: string
+          p_statuses?: string[]
+        }
+        Returns: string[]
       }
       employee_work_category_at: {
         Args: { p_employee_id: string; p_month: string }
@@ -11247,6 +11273,17 @@ export type Database = {
           leg: Json
           usd: number
         }[]
+      }
+      mirror_consume_restore: {
+        Args: {
+          p_business_date: string
+          p_created_by: string
+          p_expected_total: number
+          p_inbound_batch_id: string
+          p_output_batch_id: string
+          p_run_id: string
+        }
+        Returns: undefined
       }
       next_assay_code: { Args: { p_date?: string }; Returns: string }
       next_employee_code: { Args: { p_date?: string }; Returns: string }

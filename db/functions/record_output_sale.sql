@@ -14,6 +14,9 @@ DECLARE
     v_fx            numeric;
     v_amount_base    numeric;
     v_movement_id   uuid;
+    v_movement_ids  uuid[];
+    v_available     numeric;
+    v_held          numeric;
     v_sale_id       uuid;
     v_sale_date     date;
     v_unit_cost     numeric;
@@ -37,8 +40,17 @@ BEGIN
     IF p_quantity IS NULL OR p_quantity <= 0 THEN
         RAISE EXCEPTION 'SALE_QTY_INVALID';
     END IF;
-    IF p_quantity > v_remaining THEN
-        RAISE EXCEPTION 'SALE_EXCEEDS_REMAINING|%|%', p_quantity, v_remaining;
+    -- IOD-1:【可卖的是"可用",不是"物理剩余"】。被扣住的货仍在这批里,
+    -- 但它不可动用 —— 所以拒绝必须同时说出两个数,否则人看着 remaining 够
+    -- 却卖不掉,屏幕上没有任何东西解释为什么。
+    v_available := COALESCE((SELECT sum(qty_delta) FROM inventory_movements
+                             WHERE output_batch_id = p_output_batch_id
+                               AND stock_status = 'available'), 0);
+    v_held := COALESCE((SELECT sum(qty_delta) FROM inventory_movements
+                        WHERE output_batch_id = p_output_batch_id
+                          AND stock_status = 'on_hold'), 0);
+    IF p_quantity > v_available THEN
+        RAISE EXCEPTION 'IOD_SALE_EXCEEDS_AVAILABLE|%|%|%', p_quantity, v_available, v_held;
     END IF;
 
     IF p_unit_price IS NULL OR p_unit_price <= 0 THEN
@@ -89,9 +101,17 @@ BEGIN
         END;
     END IF;
 
-    INSERT INTO inventory_movements (output_batch_id, movement_type, qty_delta, business_date, notes, created_by)
-    VALUES (p_output_batch_id, 'sale', -p_quantity, v_sale_date, p_notes, v_user)
-    RETURNING id INTO v_movement_id;
+    -- IOD-1:出货走 drain_stock —— 一次销售可能跨几个库位桶,于是写出【多行】流水。
+    -- 顺序与规则收在 drain_stock 一处(见其函数头),销售这一层只说"拿这么多出来"。
+    -- 【sales_records.movement_id 记第一行】:那一列是单值外键,而一次销售现在
+    -- 可能对应多行。取第一行是有意的取舍,不是疏忽 —— 完整的行集合按
+    -- (output_batch_id, movement_type='sale', business_date) 可取回;
+    -- 真要一一对应,该做的是给 sales_records 建一张腿表,那是另一刀。
+    v_movement_ids := drain_stock(
+        p_qty => p_quantity, p_movement_type => 'sale', p_business_date => v_sale_date,
+        p_output_batch_id => p_output_batch_id, p_statuses => ARRAY['available'],
+        p_notes => p_notes, p_created_by => v_user);
+    v_movement_id := v_movement_ids[1];
 
     -- customer_id 有效性由 FK 把关(可空:批次可能未指定客户)
     -- SAL-A(FIN-26 的卖方半边):出处是【记录】,不是从公式在不在推断。
@@ -161,4 +181,6 @@ BEGIN
         'cogs_journal', v_je2->>'code'
     );
 END;
-$function$;
+$function$
+
+;

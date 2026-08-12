@@ -16,6 +16,8 @@ DECLARE
     v_output_id    uuid;   -- FIN-25:再加工投料(产出批为源)
     v_consumed     numeric;
     v_remaining    numeric;
+    v_available     numeric;
+    v_held          numeric;
     v_new_remaining numeric;
     v_material_id  uuid;
     v_qty          numeric;
@@ -93,8 +95,19 @@ BEGIN
                 RAISE EXCEPTION 'OUTPUT_NOT_FOUND|%', v_output_id;
             END IF;
         END IF;
-        IF v_consumed > v_remaining THEN
-            RAISE EXCEPTION 'CONSUMED_EXCEEDS_REMAINING|%|%', v_consumed, v_remaining;
+        -- IOD-1:投得进去的是【可用】,不是【物理剩余】—— 被扣住的货还在批次里,
+        -- 但它不可动用。拒绝同时说出可用与暂扣两个数,否则人看着 remaining 够
+        -- 却投不进去,屏幕上没有任何解释。
+        v_available := COALESCE((SELECT sum(qty_delta) FROM inventory_movements m
+                                 WHERE m.inbound_batch_id IS NOT DISTINCT FROM v_inbound_id
+                                   AND m.output_batch_id IS NOT DISTINCT FROM v_output_id
+                                   AND m.stock_status = 'available'), 0);
+        v_held := COALESCE((SELECT sum(qty_delta) FROM inventory_movements m
+                            WHERE m.inbound_batch_id IS NOT DISTINCT FROM v_inbound_id
+                              AND m.output_batch_id IS NOT DISTINCT FROM v_output_id
+                              AND m.stock_status = 'on_hold'), 0);
+        IF v_consumed > v_available THEN
+            RAISE EXCEPTION 'IOD_CONSUME_EXCEEDS_AVAILABLE|%|%|%', v_consumed, v_available, v_held;
         END IF;
 
         v_total_input := v_total_input + v_consumed;
@@ -151,8 +164,11 @@ BEGIN
                 updated_at = now()
             WHERE id = v_inbound_id;
 
-            INSERT INTO inventory_movements (inbound_batch_id, movement_type, qty_delta, run_id, business_date, created_by)
-            VALUES (v_inbound_id, 'processing_consume', -v_consumed, v_run_id, v_process_date, v_user_id);
+            -- IOD-1:投料走 drain_stock —— 可能跨几个库位桶,于是写出多行(规则见其函数头)
+            PERFORM drain_stock(
+                p_qty => v_consumed, p_movement_type => 'processing_consume',
+                p_business_date => v_process_date, p_inbound_batch_id => v_inbound_id,
+                p_statuses => ARRAY['available'], p_run_id => v_run_id, p_created_by => v_user_id);
 
             INSERT INTO processing_inputs (run_id, inbound_batch_id, quantity_consumed)
             VALUES (v_run_id, v_inbound_id, v_consumed);
@@ -169,8 +185,10 @@ BEGIN
                 updated_at = now()
             WHERE id = v_output_id;
 
-            INSERT INTO inventory_movements (output_batch_id, movement_type, qty_delta, run_id, business_date, created_by)
-            VALUES (v_output_id, 'processing_consume', -v_consumed, v_run_id, v_process_date, v_user_id);
+            PERFORM drain_stock(
+                p_qty => v_consumed, p_movement_type => 'processing_consume',
+                p_business_date => v_process_date, p_output_batch_id => v_output_id,
+                p_statuses => ARRAY['available'], p_run_id => v_run_id, p_created_by => v_user_id);
 
             INSERT INTO processing_inputs (run_id, output_batch_id, quantity_consumed)
             VALUES (v_run_id, v_output_id, v_consumed);
@@ -206,4 +224,6 @@ BEGIN
 
     RETURN v_run_id;
 END;
-$function$;
+$function$
+
+;

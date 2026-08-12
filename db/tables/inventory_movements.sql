@@ -21,7 +21,10 @@ CREATE TABLE public.inventory_movements (
     -- 方向编码两遍(类型里一次、状态里一次),而两处编码同一件事总有对不上的那天。
     movement_type    text NOT NULL CHECK (movement_type IN
         ('receipt','processing_consume','processing_produce','reversal_restore','reversal_void','sale','writeoff','adjustment',
-         'status_change_out','status_change_in')),
+         'status_change_out','status_change_in',
+         -- IOD-1:转移的两条腿。转移【保留状态】—— 搬的是位置不是状态,
+         -- 一批被扣住的货换个货架仍然是被扣住的。
+         'transfer_out','transfer_in')),
     qty_delta        numeric NOT NULL CHECK (qty_delta <> 0),
     run_id           uuid REFERENCES public.processing_runs (id) ON DELETE RESTRICT,
     location_id      uuid REFERENCES public.storage_locations (id) ON DELETE RESTRICT,
@@ -50,8 +53,9 @@ CREATE TABLE public.inventory_movements (
     -- └──────────────────────────────────────────────────────────────────────┘
     stock_status     text NOT NULL DEFAULT 'available'
                      CHECK (stock_status IN ('available','on_hold')),
-    -- 状态变更是【成对】的两行,这一列把它们绑在一起(只有状态变更行带它)
-    status_pair_id   uuid,
+    -- 【成对流水】的两条腿由它连起来。今天两种成对:状态变更(换状态桶)与
+    -- 转移(换库位)。四种成对类型当且仅当带 pair_id。
+    pair_id          uuid,
     -- exactly one batch reference
     CONSTRAINT inventory_movements_one_batch CHECK ((inbound_batch_id IS NULL) <> (output_batch_id IS NULL)),
     -- sign must match movement_type
@@ -65,6 +69,8 @@ CREATE TABLE public.inventory_movements (
         WHEN 'writeoff' THEN qty_delta < 0
         WHEN 'status_change_out' THEN qty_delta < 0
         WHEN 'status_change_in' THEN qty_delta > 0
+        WHEN 'transfer_out' THEN qty_delta < 0
+        WHEN 'transfer_in' THEN qty_delta > 0
         ELSE true END),
     -- batch side must match movement_type
     -- FIN-25b:consume/restore 放开为任一侧(再加工耗产出批);恰一批次由
@@ -76,9 +82,9 @@ CREATE TABLE public.inventory_movements (
         ELSE true END),
     -- STK-1:配对列【当且仅当】状态变更行才有值 —— 两个方向都管:状态变更行漏了
     -- 配对 id,与普通行误带配对 id,撞的是同一条 CHECK。
-    CONSTRAINT inventory_movements_status_pair CHECK (
-        (movement_type IN ('status_change_out','status_change_in'))
-        = (status_pair_id IS NOT NULL))
+    CONSTRAINT inventory_movements_pair CHECK (
+        (movement_type IN ('status_change_out','status_change_in','transfer_out','transfer_in'))
+        = (pair_id IS NOT NULL))
 );
 -- No deleted_at, no updated_at: immutable by design.
 
@@ -86,7 +92,7 @@ CREATE INDEX idx_inventory_movements_inbound  ON public.inventory_movements (inb
 CREATE INDEX idx_inventory_movements_output   ON public.inventory_movements (output_batch_id);
 CREATE INDEX idx_inventory_movements_run      ON public.inventory_movements (run_id);
 CREATE INDEX idx_inventory_movements_occurred ON public.inventory_movements (occurred_at);
-CREATE INDEX idx_inventory_movements_status_pair ON public.inventory_movements (status_pair_id);
+CREATE INDEX idx_inventory_movements_status_pair ON public.inventory_movements (pair_id);
 CREATE INDEX idx_inventory_movements_bucket
     ON public.inventory_movements (inbound_batch_id, output_batch_id, location_id, stock_status);
 
@@ -134,5 +140,5 @@ COMMENT ON COLUMN public.inventory_movements.business_date IS '这件事【在�
 COMMENT ON COLUMN public.inventory_movements.stock_status IS
     'STK-1:这一行进入/离开的是哪个库存桶(available / on_hold)。状态是流水的属性,不是批次的字段 —— 一个批次同时可以有"60 可用、40 暂扣",一个字段答不了。既有 68 行回填 available:本刀之前系统里根本不存在"暂扣"概念,所以那是它一直在断言的事,不是猜测。【不要与 inbound_batches.status / output_batches.status 混淆】—— 那两列与库存无关(且无人写入),见 docs/known-issues.md。';
 
-COMMENT ON COLUMN public.inventory_movements.status_pair_id IS
-    'STK-1:状态变更是【成对】的两行(出一个桶、进另一个桶,同批次同库位、数量相反),这一列把它们绑在一起。只有 status_change_out / status_change_in 带它,其余类型必须为空 —— 由 inventory_movements_status_pair 强制。成对是【结构性】的保证:物理总量 = Σ qty_delta,一出一进相加为零,所以一次状态变更按构造改不动物理总量,不需要任何人记得。';
+COMMENT ON COLUMN public.inventory_movements.pair_id IS
+    'IOD-1(STK-1 起名为 status_pair_id):把一次【成对流水】的两条腿连起来。今天有两种成对:状态变更(出一个状态桶、进另一个,同批次同库位)与转移(出一个库位、进另一个,同批次同状态)。两者形状相同 —— 一出一进、数量相反,所以物理总量按构造不动,不需要任何人记得。四种成对类型当且仅当带 pair_id,由 inventory_movements_pair 双向强制。';

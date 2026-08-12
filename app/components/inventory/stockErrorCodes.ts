@@ -11,6 +11,10 @@ const STOCK_ERROR_CODES = new Set([
     // 桶不许为负 —— 正常路径撞不到它(hold/release 先按名拒绝了),
     // 但它是最后一道结构性守卫,撞上时必须说人话而不是抛一句触发器原文。
     'STK_NEGATIVE_BUCKET',
+    // IOD-1:转移与排空
+    'IOD_TRANSFER_EXCEEDS_BUCKET', 'IOD_TRANSFER_SAME_LOCATION', 'IOD_TRANSFER_TO_INACTIVE',
+    'IOD_SALE_EXCEEDS_AVAILABLE', 'IOD_CONSUME_EXCEEDS_AVAILABLE',
+    'IOD_DRAIN_INSUFFICIENT', 'IOD_RESTORE_MISMATCH',
 ])
 
 const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/

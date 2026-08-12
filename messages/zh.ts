@@ -1290,6 +1290,23 @@ const zh = {
         holdBlockedNoAvailable: '这个库位没有可暂扣的库存。',
         holdBlockedNoReason: '必须填原因 —— 一次没有理由的暂扣,事后没人判断得了该不该放。',
         releaseBlockedNoHeld: '这个库位没有被暂扣的库存。',
+        // IOD-1:转移 + 收货库位 + 销售侧的可用/暂扣
+        transfer: '转移',
+        transferQty: '数量({unit})',
+        transferTo: '转入库位',
+        transferPick: '选择库位…',
+        transferNote: '备注(可选)',
+        transferConsequence: '把这些数量搬到另一个库位。物理总量不变,货仍然是可用的。',
+        transferConsequenceHeld: '把这些【被暂扣】的数量搬到另一个库位。到了目的地它仍然是暂扣状态 —— 转移改变的是货在哪里,永远不改变它可不可用。',
+        transferBlockedNoStock: '这里没有可搬的货。',
+        transferBlockedNoTargets: '还没有第二个在用库位 —— 请先到 库存 → 库位 建一个。',
+        transferBlockedNoTarget: '请选择转入库位。',
+        receiptLocation: '存放库位',
+        receiptLocationUnspecified: '未指定 —— 之后用转移指定',
+        receiptLocationHint: '这批货放在哪。【不指定是一个正常答案】:货是真的,只是还没有记录放在哪,随时可以用一次转移把它指定过去。',
+        saleAvailable: '可售',
+        saleHeld: '暂扣(不可售)',
+        consumeAvailable: '可用',
         blockedNoQty: '请填写数量。',
         errors: {
             STK_HOLD_EXCEEDS_AVAILABLE: '扣不了 {0} —— 这个库位只有 {1} 可用。暂扣不会凭空造出库存,它只能扣住已经在那里的货。',
@@ -1298,6 +1315,13 @@ const zh = {
             STK_QTY_INVALID: '数量 {0} 不可用 —— 必须是一个正数。',
             STK_ONE_BATCH: '一次暂扣只能针对一个批次。',
             STK_NEGATIVE_BUCKET: '这一步会让批次 {0} 的「{1}」库存变成负数({2})。台账不允许任何一个状态桶为负。',
+            IOD_TRANSFER_EXCEEDS_BUCKET: '搬不了 {0} —— 这个桶里只有 {1}。转移搬的是已经在那里的货,它不会凭空造出库存。',
+            IOD_TRANSFER_SAME_LOCATION: '转出与转入是同一个库位 —— 这样什么也不会发生。请换一个转入库位。',
+            IOD_TRANSFER_TO_INACTIVE: '目标库位已停用,不能再往里放货。请到 库存 → 库位 重新启用它,或换一个。',
+            IOD_SALE_EXCEEDS_AVAILABLE: '卖不了 {0} —— 只有 {1} 可售。另有 {2} 处于暂扣,在【释放】之前不可出售(释放按钮在上面的库存分布里)。',
+            IOD_CONSUME_EXCEEDS_AVAILABLE: '投不了 {0} —— 只有 {1} 可用。另有 {2} 处于暂扣,释放之前不能投入加工。',
+            IOD_DRAIN_INSUFFICIENT: '请求 {0},但库存里只取得出 {1}。什么都没有写入 —— 请刷新页面后重试。',
+            IOD_RESTORE_MISMATCH: '回滚无法把投料原样还原(应还 {0},镜像出 {1})。没有做任何改动。',
         },
     },
     inventory: {
@@ -2175,6 +2199,9 @@ const zh = {
             // 暂扣/释放 —— 暂扣是「出可用 + 进暂扣」,释放是同一形状反过来。
             status_change_out: '状态变更(出)',
             status_change_in: '状态变更(进)',
+            // IOD-1:转移的两条腿 —— 同状态、换库位
+            transfer_out: '转移(出)',
+            transfer_in: '转移(进)',
         },
     },
     batchLabel: {

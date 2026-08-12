@@ -36,23 +36,33 @@ CREATE OR REPLACE FUNCTION public.emit_batch_receipt_movement()
 AS $function$
 DECLARE
     v_ctx text := current_setting('evoltrya.movement_ctx', true);
+    v_loc text := current_setting('evoltrya.location_ctx', true);
     v_run uuid;
+    v_location uuid;
 BEGIN
     IF NEW.remaining_qty IS NULL OR NEW.remaining_qty <= 0 THEN
         RETURN NULL;
     END IF;
 
+    -- 空串与未设置都当作【未指定库位】—— 表单不选就是不选,那是一个合法答案
+    -- (LOC-1/STK-1 的"未指定库位"是一等状态,不是缺失)。
+    IF v_loc IS NOT NULL AND btrim(v_loc) <> '' THEN
+        v_location := v_loc::uuid;
+    END IF;
+
     IF TG_TABLE_NAME = 'inbound_batches' THEN
-        INSERT INTO public.inventory_movements (inbound_batch_id, movement_type, qty_delta, business_date, created_by)
-        VALUES (NEW.id, 'receipt', NEW.remaining_qty, NEW.arrival_date, NEW.created_by);
+        INSERT INTO public.inventory_movements (inbound_batch_id, movement_type, qty_delta, location_id, business_date, created_by)
+        VALUES (NEW.id, 'receipt', NEW.remaining_qty, v_location, NEW.arrival_date, NEW.created_by);
     ELSE  -- output_batches
         IF v_ctx IS NOT NULL AND split_part(v_ctx, ':', 1) = 'processing' THEN
             v_run := split_part(v_ctx, ':', 2)::uuid;
+            -- 【加工产出一律落在"未指定库位"】—— 上架是一次转移,不是产出的副作用。
+            -- 产线上刚下来的货还没被搬到任何货架上,系统不该替人假设它在哪。
             INSERT INTO public.inventory_movements (output_batch_id, movement_type, qty_delta, run_id, business_date, created_by)
             VALUES (NEW.id, 'processing_produce', NEW.remaining_qty, v_run, NEW.output_date, NEW.created_by);
         ELSE
-            INSERT INTO public.inventory_movements (output_batch_id, movement_type, qty_delta, business_date, created_by)
-            VALUES (NEW.id, 'receipt', NEW.remaining_qty, NEW.output_date, NEW.created_by);
+            INSERT INTO public.inventory_movements (output_batch_id, movement_type, qty_delta, location_id, business_date, created_by)
+            VALUES (NEW.id, 'receipt', NEW.remaining_qty, v_location, NEW.output_date, NEW.created_by);
         END IF;
     END IF;
 
@@ -105,17 +115,26 @@ BEGIN
         -- 撞上时该问的是"这两个日期各自回答的是哪个问题",不是"哪个错了"。
         -- ════════════════════════════════════════════════════════════════════
         IF TG_TABLE_NAME = 'inbound_batches' THEN
-            INSERT INTO public.inventory_movements (inbound_batch_id, movement_type, qty_delta, business_date, created_by)
-            VALUES (OLD.id, 'writeoff', -OLD.remaining_qty, NEW.deleted_at::date, NEW.updated_by);
+            -- IOD-1:注销排空【所有】桶,两种状态都算 —— 报废一批货,不会因为其中
+            -- 一部分被扣住就留在账上。这也是三个消耗方里唯一一个必须动 on_hold 的。
+            PERFORM drain_stock(
+                p_qty => OLD.remaining_qty, p_movement_type => 'writeoff',
+                p_business_date => NEW.deleted_at::date, p_inbound_batch_id => OLD.id,
+                p_statuses => ARRAY['available','on_hold'], p_created_by => NEW.updated_by);
         ELSE  -- output_batches
             IF v_ctx IS NOT NULL AND split_part(v_ctx, ':', 1) = 'reversal' THEN
                 v_run := split_part(v_ctx, ':', 2)::uuid;
                 SELECT process_date INTO v_bd FROM processing_runs WHERE id = v_run;
-                INSERT INTO public.inventory_movements (output_batch_id, movement_type, qty_delta, run_id, business_date, created_by)
-                VALUES (OLD.id, 'reversal_void', -OLD.remaining_qty, v_run, v_bd, NEW.updated_by);
+                PERFORM drain_stock(
+                    p_qty => OLD.remaining_qty, p_movement_type => 'reversal_void',
+                    p_business_date => v_bd, p_output_batch_id => OLD.id,
+                    p_statuses => ARRAY['available','on_hold'], p_run_id => v_run,
+                    p_created_by => NEW.updated_by);
             ELSE
-                INSERT INTO public.inventory_movements (output_batch_id, movement_type, qty_delta, business_date, created_by)
-                VALUES (OLD.id, 'writeoff', -OLD.remaining_qty, NEW.deleted_at::date, NEW.updated_by);
+                PERFORM drain_stock(
+                    p_qty => OLD.remaining_qty, p_movement_type => 'writeoff',
+                    p_business_date => NEW.deleted_at::date, p_output_batch_id => OLD.id,
+                    p_statuses => ARRAY['available','on_hold'], p_created_by => NEW.updated_by);
             END IF;
         END IF;
 

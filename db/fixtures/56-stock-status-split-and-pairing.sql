@@ -137,7 +137,7 @@ BEGIN
     BEGIN
         -- 单边:只写"出 on_hold"的那条腿,而此刻 on_hold 是 0 —— 桶会变成 -25
         INSERT INTO inventory_movements
-            (inbound_batch_id, movement_type, qty_delta, stock_status, status_pair_id, business_date)
+            (inbound_batch_id, movement_type, qty_delta, stock_status, pair_id, business_date)
         VALUES (v_batch, 'status_change_out', -25, 'on_hold', gen_random_uuid(), CURRENT_DATE);
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied OR v_msg NOT LIKE 'STK_NEGATIVE_BUCKET|%' THEN
@@ -182,18 +182,18 @@ BEGIN
         VALUES (v_batch, 'status_change_in', 5, 'on_hold', CURRENT_DATE);
     EXCEPTION WHEN OTHERS THEN v_denied := true; END;
     IF NOT v_denied THEN
-        RAISE EXCEPTION 'FIXTURE 56F 失败:状态变更行没有 status_pair_id 应当被 CHECK 拒 —— 没有配对 id 的状态行,事后无从证明它有没有另一条腿';
+        RAISE EXCEPTION 'FIXTURE 56F 失败:状态变更行没有 pair_id 应当被 CHECK 拒 —— 没有配对 id 的状态行,事后无从证明它有没有另一条腿';
     END IF;
 
     v_denied := false;
     BEGIN
         -- 普通行【误带】配对 id
         INSERT INTO inventory_movements
-            (inbound_batch_id, movement_type, qty_delta, status_pair_id, business_date)
+            (inbound_batch_id, movement_type, qty_delta, pair_id, business_date)
         VALUES (v_batch, 'receipt', 5, gen_random_uuid(), CURRENT_DATE);
     EXCEPTION WHEN OTHERS THEN v_denied := true; END;
     IF NOT v_denied THEN
-        RAISE EXCEPTION 'FIXTURE 56F 失败:普通流水带 status_pair_id 应当被 CHECK 拒(配对列只属于状态变更行)';
+        RAISE EXCEPTION 'FIXTURE 56F 失败:普通流水带 pair_id 应当被 CHECK 拒(配对列只属于状态变更行)';
     END IF;
 END $$;
 ROLLBACK;

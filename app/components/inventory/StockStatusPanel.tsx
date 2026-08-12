@@ -14,6 +14,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import HoldReleaseControls from './HoldReleaseControls'
+import TransferControl, { type LocationOption } from './TransferControl'
 
 type Row = {
     location_id: string | null
@@ -40,6 +41,13 @@ export default async function StockStatusPanel({
         .select('location_id, location_code, location_name, stock_status, qty')
     q = inboundBatchId ? q.eq('inbound_batch_id', inboundBatchId) : q.eq('output_batch_id', outputBatchId!)
     const rows = mustRows(await q, 'stock_by_status') as unknown as Row[]
+
+    // IOD-1:转移目的地只列【在用】库位 —— 停用的库位不该再收货(LOC-1 的停用语义,
+    // 服务端也点名拒 IOD_TRANSFER_TO_INACTIVE;这里不提供,是不让人先撞一次)
+    const locations = mustRows(
+        await supabase.from('storage_locations').select('id, code, name').eq('is_active', true).order('code'),
+        'storage_locations'
+    ) as unknown as LocationOption[]
 
     // 按库位归组(NULL 自成一组 —— 不折叠进任何真库位)
     const byLocation = new Map<string, { code: string | null; name: string | null; available: number; held: number }>()
@@ -105,6 +113,28 @@ export default async function StockStatusPanel({
                             held={g.held}
                             unit={unit}
                         />
+                        {/* IOD-1:转移。可用与暂扣【各自一组】—— 一次转移只搬一个桶,
+                            而状态原样带过去,所以两者不能合成一个控件。 */}
+                        <TransferControl
+                            inboundBatchId={inboundBatchId}
+                            outputBatchId={outputBatchId}
+                            fromLocationId={key === '__unspecified__' ? null : key}
+                            stockStatus="available"
+                            have={g.available}
+                            unit={unit}
+                            locations={locations}
+                        />
+                        {g.held > 0 && (
+                            <TransferControl
+                                inboundBatchId={inboundBatchId}
+                                outputBatchId={outputBatchId}
+                                fromLocationId={key === '__unspecified__' ? null : key}
+                                stockStatus="on_hold"
+                                have={g.held}
+                                unit={unit}
+                                locations={locations}
+                            />
+                        )}
                     </div>
                 ))}
             </div>

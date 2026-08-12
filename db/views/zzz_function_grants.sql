@@ -58,3 +58,11 @@ REVOKE EXECUTE ON FUNCTION public.require_approver_for(smallint) FROM authentica
 -- (definer)与 operations_now(属主视图),两者都以属主身份执行。给了
 -- authenticated 就等于把任意客户的应收敞口敞开给没有财务权限的人。
 REVOKE EXECUTE ON FUNCTION public.customer_ar_exposure_base(uuid) FROM authenticated;
+-- IOD-1:库存排空与冲销镜像的内层算子。无调用者检查,靠的就是调不到 ——
+-- drain_stock 的调用方是 record_output_sale(output.edit)、commit_processing_run
+-- (processing.edit)与注销触发器(批次侧的 edit),【三者各自已经把过关】,
+-- 而它们分属不同模块:给 drain_stock 挑一个权限码只能挑一个比三者都松的,
+-- 那不是把关、那是把关的样子。mirror_consume_restore 只从 rollback_processing_run
+-- 体内被调用。给了 authenticated 就等于任何登录用户都能凭空写出入库/出库流水。
+REVOKE EXECUTE ON FUNCTION public.drain_stock(numeric, text, date, uuid, uuid, text[], uuid, text, uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.mirror_consume_restore(uuid, uuid, uuid, numeric, date, uuid) FROM authenticated;
