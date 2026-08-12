@@ -1270,6 +1270,36 @@ const en = {
                 'Location {0} cannot be deleted. Stock movements refer to it by name, so deleting it would leave that history pointing at nothing — deactivate it instead, which stops it being offered on new documents while leaving the history intact.',
         },
     },
+    // STK-1: stock status dimension — available / on hold, derived from movements.
+    stock: {
+        panelTitle: 'Stock by location & status',
+        panelNote: 'Derived from the movement ledger — nothing here is stored. Holding does not move any stock; it only marks it as not available to take.',
+        available: 'Available',
+        onHold: 'On hold',
+        nothingHeld: 'Nothing is held on this batch — all of it is available.',
+        unspecifiedLocation: 'Unspecified location',
+        unspecifiedLocationHint: 'No location was recorded on these movements. That is normal for stock received before locations existed — it is real stock, just not yet placed.',
+        hold: 'Hold',
+        release: 'Release',
+        holdQty: 'Quantity to hold ({unit})',
+        releaseQty: 'Quantity to release ({unit})',
+        holdReason: 'Reason',
+        releaseNote: 'Note (optional)',
+        holdConsequence: 'Marks this quantity as not available. It stays in the batch and the physical total does not change — but it can no longer be consumed, sold or processed until released.',
+        releaseConsequence: 'Returns this quantity to available. The physical total does not change.',
+        holdBlockedNoAvailable: 'Nothing available to hold at this location.',
+        holdBlockedNoReason: 'A reason is required — a hold with no reason cannot be judged later.',
+        releaseBlockedNoHeld: 'Nothing is held at this location.',
+        blockedNoQty: 'Enter a quantity.',
+        errors: {
+            STK_HOLD_EXCEEDS_AVAILABLE: 'Cannot hold {0} — only {1} is available at this location. Holding does not create stock; it only reserves what is already there.',
+            STK_RELEASE_EXCEEDS_HELD: 'Cannot release {0} — only {1} is on hold at this location.',
+            STK_REASON_REQUIRED: 'A reason is required to hold stock.',
+            STK_QTY_INVALID: 'The quantity {0} is not usable — it must be a positive number.',
+            STK_ONE_BATCH: 'A hold applies to exactly one batch.',
+            STK_NEGATIVE_BUCKET: 'This would take {2} of {1} stock on batch {0} below zero. The ledger refuses to let any status bucket go negative.',
+        },
+    },
     inventory: {
         listTitle: 'Inventory',
         loadError: 'Load failed',
@@ -2154,6 +2184,11 @@ const en = {
             sale: 'Sale',
             writeoff: 'Write-off',
             adjustment: 'Adjustment',
+            // STK-1: the two legs of a status change (hold / release). Deliberately
+            // named by direction, not by hold/release — a hold is 'out of available +
+            // into on_hold', a release is the same shape the other way round.
+            status_change_out: 'Status change (out)',
+            status_change_in: 'Status change (in)',
         },
     },
     batchLabel: {

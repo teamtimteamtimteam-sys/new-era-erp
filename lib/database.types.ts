@@ -2283,6 +2283,8 @@ export type Database = {
           output_batch_id: string | null
           qty_delta: number
           run_id: string | null
+          status_pair_id: string | null
+          stock_status: string
         }
         Insert: {
           business_date?: string | null
@@ -2297,6 +2299,8 @@ export type Database = {
           output_batch_id?: string | null
           qty_delta: number
           run_id?: string | null
+          status_pair_id?: string | null
+          stock_status?: string
         }
         Update: {
           business_date?: string | null
@@ -2311,6 +2315,8 @@ export type Database = {
           output_batch_id?: string | null
           qty_delta?: number
           run_id?: string | null
+          status_pair_id?: string | null
+          stock_status?: string
         }
         Relationships: [
           {
@@ -10772,6 +10778,70 @@ export type Database = {
           },
         ]
       }
+      stock_by_status: {
+        Row: {
+          batch_code: string | null
+          inbound_batch_id: string | null
+          location_code: string | null
+          location_id: string | null
+          location_name: string | null
+          output_batch_id: string | null
+          qty: number | null
+          stock_status: string | null
+          unit: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "storage_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supplier_receiving_blocked: {
         Row: {
           cert_type_code: string | null
@@ -11046,6 +11116,15 @@ export type Database = {
         Returns: Json
       }
       depreciate_fixed_assets: { Args: { p_period_end: string }; Returns: Json }
+      derived_stock_qty: {
+        Args: {
+          p_inbound_batch_id: string
+          p_location_id: string
+          p_output_batch_id: string
+          p_stock_status: string
+        }
+        Returns: number
+      }
       dispose_fixed_asset: {
         Args: {
           p_asset_id: string
@@ -11082,6 +11161,16 @@ export type Database = {
       }
       has_any_permission: { Args: { p_codes: string[] }; Returns: boolean }
       has_permission: { Args: { p_code: string }; Returns: boolean }
+      hold_stock: {
+        Args: {
+          p_inbound_batch_id?: string
+          p_location_id?: string
+          p_output_batch_id?: string
+          p_qty: number
+          p_reason: string
+        }
+        Returns: Json
+      }
       ignore_bank_line: {
         Args: { p_reason: string; p_statement_line_id: string }
         Returns: undefined
@@ -11380,6 +11469,16 @@ export type Database = {
       }
       reject_purchase_order: {
         Args: { p_po_id: string; p_reason: string }
+        Returns: Json
+      }
+      release_stock: {
+        Args: {
+          p_inbound_batch_id?: string
+          p_location_id?: string
+          p_note?: string
+          p_output_batch_id?: string
+          p_qty: number
+        }
         Returns: Json
       }
       relieve_processing_accruals: {

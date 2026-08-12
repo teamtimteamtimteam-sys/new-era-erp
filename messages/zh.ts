@@ -1270,6 +1270,36 @@ const zh = {
                 '库位 {0} 不能删除。库存流水按名字指着它,删掉会让那些历史指向一个不存在的行 —— 请改用【停用】:新单据不再提供它,历史记录保持完整。',
         },
     },
+    // STK-1:库存状态维度 —— 可用 / 暂扣,由流水派生。
+    stock: {
+        panelTitle: '库存分布(库位与状态)',
+        panelNote: '由库存流水派生 —— 这里没有任何一个数是存下来的。暂扣不搬动任何货,它只是标记这批货不可动用。',
+        available: '可用',
+        onHold: '暂扣',
+        nothingHeld: '这批货没有任何暂扣 —— 全部可用。',
+        unspecifiedLocation: '未指定库位',
+        unspecifiedLocationHint: '这些流水没有记录库位。库位这个维度是后来才有的,所以早先收的货都在这里 —— 它是实实在在的库存,只是还没有指定放在哪。',
+        hold: '暂扣',
+        release: '释放',
+        holdQty: '暂扣数量({unit})',
+        releaseQty: '释放数量({unit})',
+        holdReason: '原因',
+        releaseNote: '备注(可选)',
+        holdConsequence: '把这些数量标记为不可动用。货还在这批里,物理总量一点不变 —— 但在释放之前,它不能被消耗、销售或投入加工。',
+        releaseConsequence: '把这些数量放回可用。物理总量不变。',
+        holdBlockedNoAvailable: '这个库位没有可暂扣的库存。',
+        holdBlockedNoReason: '必须填原因 —— 一次没有理由的暂扣,事后没人判断得了该不该放。',
+        releaseBlockedNoHeld: '这个库位没有被暂扣的库存。',
+        blockedNoQty: '请填写数量。',
+        errors: {
+            STK_HOLD_EXCEEDS_AVAILABLE: '扣不了 {0} —— 这个库位只有 {1} 可用。暂扣不会凭空造出库存,它只能扣住已经在那里的货。',
+            STK_RELEASE_EXCEEDS_HELD: '放不了 {0} —— 这个库位只有 {1} 处于暂扣。',
+            STK_REASON_REQUIRED: '暂扣必须填写原因。',
+            STK_QTY_INVALID: '数量 {0} 不可用 —— 必须是一个正数。',
+            STK_ONE_BATCH: '一次暂扣只能针对一个批次。',
+            STK_NEGATIVE_BUCKET: '这一步会让批次 {0} 的「{1}」库存变成负数({2})。台账不允许任何一个状态桶为负。',
+        },
+    },
     inventory: {
         listTitle: '库存与物料平衡',
         loadError: '读取失败',
@@ -2141,6 +2171,10 @@ const zh = {
             sale: '销售出库',
             writeoff: '删除冲销',
             adjustment: '调整',
+            // STK-1:状态变更的两条腿(暂扣 / 释放)。刻意按方向命名而不是按
+            // 暂扣/释放 —— 暂扣是「出可用 + 进暂扣」,释放是同一形状反过来。
+            status_change_out: '状态变更(出)',
+            status_change_in: '状态变更(进)',
         },
     },
     batchLabel: {

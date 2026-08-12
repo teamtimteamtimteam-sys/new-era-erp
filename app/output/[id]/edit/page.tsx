@@ -10,6 +10,7 @@ import { priceBatchHref } from '@/app/components/metals/priceBatchHref'
 import type { MetalContentRow } from '@/app/components/metals/metalContentTypes'
 import { saveOutputMetal, deleteOutputMetal } from '@/app/components/metals/metalContentActions'
 import MovementTimeline from '@/app/components/inventory/MovementTimeline'
+import StockStatusPanel from '@/app/components/inventory/StockStatusPanel'
 import type { MovementRow } from '@/app/components/inventory/movementTypes'
 import SalePanel, { type CreditRow } from './SalePanel'
 import OutputAssaySection from './OutputAssaySection'
@@ -342,6 +343,10 @@ export default async function EditOutputPage({
                     <p className="text-sm text-gray-500">{t('output.sale.soldOut')}</p>
                 </section>
             )}
+
+            {/* STK-1:库存分布(库位 × 状态)与暂扣/释放 —— 摆在流水【上面】,
+                因为看批次的人先问「现在有多少可动」,再去看「它是怎么变成这样的」 */}
+            <StockStatusPanel outputBatchId={id} unit={batch.unit} />
 
             <MovementTimeline rows={movementRows} unit={batch.unit} />
         </div>

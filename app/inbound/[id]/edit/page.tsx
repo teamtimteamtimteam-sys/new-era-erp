@@ -13,6 +13,7 @@ import { priceBatchHref } from '@/app/components/metals/priceBatchHref'
 import type { MetalContentRow } from '@/app/components/metals/metalContentTypes'
 import { saveInboundMetal, deleteInboundMetal } from '@/app/components/metals/metalContentActions'
 import MovementTimeline from '@/app/components/inventory/MovementTimeline'
+import StockStatusPanel from '@/app/components/inventory/StockStatusPanel'
 import type { MovementRow } from '@/app/components/inventory/movementTypes'
 import StocktakeQuickCount from '@/app/stocktakes/StocktakeQuickCount'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
@@ -399,6 +400,10 @@ export default async function EditInboundPage({
 
             {/* 抵扣预付(cut 4c):可抵扣 or 有历史时才渲染 */}
             <PrepaymentPanel batchId={batch.id} applicable={applicable} history={prepaymentHistory} baseCurrency={baseCurrency} />
+
+            {/* STK-1:库存分布(库位 × 状态)与暂扣/释放 —— 摆在流水【上面】,
+                因为看批次的人先问「现在有多少可动」,再去看「它是怎么变成这样的」 */}
+            <StockStatusPanel inboundBatchId={id} unit={batch.unit} />
 
             <MovementTimeline rows={movementRows} unit={batch.unit} />
         </div>
