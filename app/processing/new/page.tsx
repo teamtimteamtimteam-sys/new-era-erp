@@ -54,10 +54,29 @@ export default async function NewProcessingPage() {
         )
     }
 
+    // IOD-1:每个批次的【可用】(available 桶之和)。投得进去的是可用,不是
+    // 物理剩余 —— 被扣住的货还在批次里但不可动用。表单必须显示可用,否则人
+    // 按 remaining 填了数,提交才被 IOD_CONSUME_EXCEEDS_AVAILABLE 拦下,
+    // 而屏幕上此前没有任何提示。问库,页面不算账。
+    const availRows = mustRows(
+        await supabase
+            .from('stock_by_status')
+            .select('inbound_batch_id, output_batch_id, qty')
+            .eq('stock_status', 'available'),
+        'stock_by_status'
+    ) as unknown as { inbound_batch_id: string | null; output_batch_id: string | null; qty: number }[]
+    const availByBatch = new Map<string, number>()
+    for (const r of availRows) {
+        const k = r.inbound_batch_id ?? r.output_batch_id
+        if (k) availByBatch.set(k, (availByBatch.get(k) ?? 0) + Number(r.qty))
+    }
+    const withAvailable = (rows: InboundBatchOption[] | null) =>
+        (rows ?? []).map((b) => ({ ...b, available_qty: availByBatch.get(b.id) ?? 0 }))
+
     return (
         <NewProcessingForm
-            inboundBatches={(batchesRes.data as unknown as InboundBatchOption[] | null) ?? []}
-            outputBatches={(outputBatchesRes.data as unknown as InboundBatchOption[] | null) ?? []}
+            inboundBatches={withAvailable(batchesRes.data as unknown as InboundBatchOption[] | null)}
+            outputBatches={withAvailable(outputBatchesRes.data as unknown as InboundBatchOption[] | null)}
             materials={mustRows(materialsRes)}
             defaultAllocationBasis={
                 mustOne(settingsRes, 'finance_settings')?.default_allocation_basis ?? 'metal_value'

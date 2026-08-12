@@ -1046,7 +1046,7 @@ const zh = {
             inputsSectionHeader: '投入(消耗进料)',
             addInputButton: '+ 添加投入',
             selectInboundBatch: '请选择进料批次',
-            inboundOptionLabel: '{code} - {name}(剩余 {remaining} {unit})',
+            inboundOptionLabel: '{code} - {name}(可用 {remaining} {unit})',
             consumeQtyPlaceholder: '消耗数量',
             rowDelete: '删除',
             rowExceeds: '超过剩余量',

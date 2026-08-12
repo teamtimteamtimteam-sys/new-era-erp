@@ -14,6 +14,8 @@ export type InboundBatchOption = {
     id: string
     code: string
     remaining_qty: number
+    // IOD-1:可投的是可用,不是物理剩余(被扣住的货不可动用)
+    available_qty: number
     unit: string
     materials: { name: string } | null
 }
@@ -168,7 +170,7 @@ export default function NewProcessingForm({
         for (const r of validRows) {
             const pool = r.batch_ref.startsWith('out:') ? outputBatches : inboundBatches
             const batch = pool.find((b) => b.id === r.batch_ref.slice(r.batch_ref.indexOf(':') + 1))
-            if (batch && Number(r.quantity_consumed) > batch.remaining_qty) {
+            if (batch && Number(r.quantity_consumed) > batch.available_qty) {
                 setError(t('processing.validation.consumeExceedsClient', { code: batch.code }))
                 return
             }
@@ -294,7 +296,7 @@ export default function NewProcessingForm({
                         const exceeds =
                             selectedBatch &&
                             !Number.isNaN(qtyNum) &&
-                            qtyNum > selectedBatch.remaining_qty
+                            qtyNum > selectedBatch.available_qty
                         return (
                             <div key={row.key}>
                                 <div className="flex gap-2 items-start">
@@ -316,7 +318,7 @@ export default function NewProcessingForm({
                                                     {t('processing.form.inboundOptionLabel', {
                                                         code: b.code,
                                                         name: b.materials?.name ?? '—',
-                                                        remaining: b.remaining_qty,
+                                                        remaining: b.available_qty,
                                                         unit: b.unit,
                                                     })}
                                                 </option>
@@ -330,7 +332,7 @@ export default function NewProcessingForm({
                                                         {t('processing.form.inboundOptionLabel', {
                                                             code: b.code,
                                                             name: b.materials?.name ?? '—',
-                                                            remaining: b.remaining_qty,
+                                                            remaining: b.available_qty,
                                                             unit: b.unit,
                                                         })}
                                                     </option>

@@ -38,6 +38,8 @@ export default function SalePanel({
     credit,
     batchId,
     remainingQty,
+    availableQty,
+    heldQty,
     unit,
     state,
     customers,
@@ -50,6 +52,10 @@ export default function SalePanel({
     credit: CreditRow[]
     batchId: string
     remainingQty: number
+    // IOD-1:【可卖的是可用,不是物理剩余】。两个数一起摆出来,否则人看着
+    // remaining 够却卖不掉,屏幕上没有任何东西解释为什么。
+    availableQty: number
+    heldQty: number
     unit: string
     state: string
     customers: CustomerOption[]
@@ -121,6 +127,19 @@ export default function SalePanel({
                 <div>
                     <span className="text-gray-600 mr-1">{t('output.sale.remainingLabel')}:</span>
                     <span className="font-medium font-mono">{remainingQty} {unit}</span>
+                </div>
+                {/* IOD-1:可售与暂扣分开列。remaining 留着 —— 它回答的是
+                    "这批货还剩多少",而可售回答的是"我现在能卖多少",
+                    两个问题在有暂扣时答案不同,合成一个数就等于把差额藏起来。 */}
+                <div>
+                    <span className="text-gray-600 mr-1">{t('stock.saleAvailable')}:</span>
+                    <span className="font-medium font-mono">{availableQty} {unit}</span>
+                </div>
+                <div>
+                    <span className="text-gray-600 mr-1">{t('stock.saleHeld')}:</span>
+                    <span className={'font-medium font-mono ' + (heldQty > 0 ? 'text-amber-800' : '')}>
+                        {heldQty} {unit}
+                    </span>
                 </div>
                 <div>
                     <span className="text-gray-600 mr-1">{t('output.sale.stateLabel')}:</span>

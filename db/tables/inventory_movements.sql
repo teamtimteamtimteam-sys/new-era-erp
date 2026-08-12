@@ -38,6 +38,11 @@ CREATE TABLE public.inventory_movements (
     -- (收货/加工/销售/盘点/冲销)动的都是可用库存 —— 那本来就是它们的语义,
     -- 所以它们一个字都不用改。【不要与 inbound_batches.status / output_batches.status
     -- 混淆】,那两列与库存无关且无人写入(见 docs/known-issues.md)。
+    -- 【库位与合规:IOD-1 只铺管线,不设闸】(2026-08-12)
+    -- location_id 从 IOD-1 起由收货/转移/排空三条路写入,但**没有任何一次移动
+    -- 会因为"这个库位不许放这类物料"被拒** —— storage_location_allowed_classes
+    -- 至今只是记录。落闸归 IOD-2(见那张表的表头,含未分类物料的第三态)。
+    -- 写在这里,是因为看见 location_id 的人最容易以为合规已经在管了。
     -- ┌─ 【要加第三种状态?先读这两条 —— 它们是想过之后明确不放这里的】────────┐
     -- │ * awaiting_assay(待化验)【不属于这里,它是派生的】。今天由           │
     -- │   db/views/operations_now.sql 的 awaiting_assay 支给出,判据是         │

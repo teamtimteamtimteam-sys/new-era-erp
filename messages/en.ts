@@ -1043,7 +1043,7 @@ const en = {
             inputsSectionHeader: 'Inputs (consume inbound)',
             addInputButton: '+ Add Input',
             selectInboundBatch: 'Select inbound batch',
-            inboundOptionLabel: '{code} - {name} (remaining {remaining} {unit})',
+            inboundOptionLabel: '{code} - {name} (available {remaining} {unit})',
             consumeQtyPlaceholder: 'Consumed qty',
             rowDelete: 'Remove',
             rowExceeds: 'Exceeds remaining',

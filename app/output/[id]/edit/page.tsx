@@ -175,6 +175,15 @@ export default async function EditOutputPage({
                 : null,
     }))
 
+    // IOD-1:可售 = available 桶之和;暂扣单列。问库(stock_by_status),页面不算账。
+    const stockSplitRes = await supabase
+        .from('stock_by_status')
+        .select('stock_status, qty')
+        .eq('output_batch_id', id)
+    const stockSplit = mustRows(stockSplitRes, 'stock_by_status') as unknown as { stock_status: string; qty: number }[]
+    const saleAvailable = stockSplit.filter((r) => r.stock_status === 'available').reduce((a, r) => a + Number(r.qty), 0)
+    const saleHeld = stockSplit.filter((r) => r.stock_status === 'on_hold').reduce((a, r) => a + Number(r.qty), 0)
+
     // 化验单(新到旧)—— 面板摆在金属含量旁边:化验是含量的出处,不是另一件事
     const assaysRes = await supabase
         .from('assay_results')
@@ -331,6 +340,8 @@ export default async function EditOutputPage({
                     credit={mustRows(creditRes) as CreditRow[]}
                     batchId={batch.id}
                     remainingQty={batch.remaining_qty}
+                    availableQty={saleAvailable}
+                    heldQty={saleHeld}
                     unit={batch.unit}
                     state={batch.state}
                     customers={mustRows(customersRes)}
