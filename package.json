@@ -8,7 +8,7 @@
     "check:i18n": "node scripts/check-i18n.mjs",
     "start": "next start",
     "lint": "eslint",
-    "types:gen": "supabase gen types typescript --project-id wvywpohbwkiinmipmuku > lib/database.types.ts",
+    "types:gen": "supabase gen types typescript --project-id wvywpohbwkiinmipmuku > lib/database.types.ts.tmp && mv lib/database.types.ts.tmp lib/database.types.ts || (rm -f lib/database.types.ts.tmp; exit 1)",
     "check:scratch": "node scripts/check-scratch-rows.mjs"
   },
   "dependencies": {

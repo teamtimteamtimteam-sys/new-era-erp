@@ -66,6 +66,9 @@ const ID_SOURCES = {
         '/hr/leave': 'leave_requests', '/hr/payroll': 'payroll_periods',
         '/hr/reviews': 'performance_reviews', '/hr/training': 'training_records',
         '/inbound/receive/done': 'inbound_batches', '/inbound': 'inbound_batches',
+        // LOC-1:库位。前缀取最长匹配,所以这一条不会被别的 /inventory 前缀吃掉
+        // (今天也没有别的)。线上零行,故同时列在 EXPECTED_SKIPS 里。
+        '/inventory/locations': 'storage_locations',
         '/materials': 'materials', '/metal-prices': 'metal_prices',
         '/my-reviews': 'performance_reviews', '/output': 'output_batches',
         '/pricing/formulas': 'pricing_formulas', '/processing': 'processing_runs',
@@ -114,6 +117,10 @@ const EXPECTED_SKIPS = new Set([
     // PROC-1b:线上还没有一份产出化验(机制与屏幕先于第一张真单据落地)。
     // 录第一张的那天,这条断言会逼人把它从这里删掉。
     '/output/[id]/assays/[assayId]',
+    // LOC-1:storage_locations 线上零行 —— 这张表 2026-07-03 就建了(预留),
+    // 今天第一次有了屏幕,但还没有人建过第一个库位。建第一个的那天,
+    // 这条断言会逼人把它从这里删掉(与上面几条同一个用意:跳过是记录,不是默许)。
+    '/inventory/locations/[id]/edit',
 ])
 // ── 冒烟临时行的标识 ─────────────────────────────────────────────────────────
 // 员工行和评估行会出现在 HR 界面和待办板上 —— 必须一眼即知是脚本垃圾,不是一名

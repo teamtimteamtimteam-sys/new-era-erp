@@ -222,9 +222,21 @@ export default async function InventoryPage() {
 
     return (
         <div className="p-8 space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold">{t('inventory.listTitle')}</h1>
-                <p className="text-sm text-gray-500 mt-1">{t('inventory.ledgerNote')}</p>
+            <div className="flex justify-between items-start gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold">{t('inventory.listTitle')}</h1>
+                    <p className="text-sm text-gray-500 mt-1">{t('inventory.ledgerNote')}</p>
+                </div>
+                {/* LOC-1:库位主数据的入口。【本页是它唯一的入口】—— /inventory/locations
+                    是动态路由之外的一条静态路由,但可达性走查只断言"打得开却走不到"
+                    的静态路由集合,新加一条没有入口的页面会被它抓到;这一行就是那个
+                    入口,而且它落在读者已经持有的模块里(两者同为 module.inventory)。 */}
+                <Link
+                    href="/inventory/locations"
+                    className="border border-gray-300 px-3 py-1.5 rounded hover:bg-gray-50 text-sm whitespace-nowrap"
+                >
+                    {t('locations.listTitle')}
+                </Link>
             </div>
 
             {/* 物料平衡 */}

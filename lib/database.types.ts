@@ -6744,39 +6744,81 @@ export type Database = {
         }
         Relationships: []
       }
+      storage_location_allowed_classes: {
+        Row: {
+          classification_code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          location_id: string
+        }
+        Insert: {
+          classification_code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          location_id: string
+        }
+        Update: {
+          classification_code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          location_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "storage_location_allowed_classes_classification_code_fkey"
+            columns: ["classification_code"]
+            isOneToOne: false
+            referencedRelation: "waste_classifications"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "storage_location_allowed_classes_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "storage_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       storage_locations: {
         Row: {
           code: string
           created_at: string
           created_by: string | null
-          deleted_at: string | null
           id: string
-          name: string | null
+          is_active: boolean
+          name: string
           notes: string | null
           updated_at: string
           updated_by: string | null
+          zone: string | null
         }
         Insert: {
           code: string
           created_at?: string
           created_by?: string | null
-          deleted_at?: string | null
           id?: string
-          name?: string | null
+          is_active?: boolean
+          name: string
           notes?: string | null
           updated_at?: string
           updated_by?: string | null
+          zone?: string | null
         }
         Update: {
           code?: string
           created_at?: string
           created_by?: string | null
-          deleted_at?: string | null
           id?: string
-          name?: string | null
+          is_active?: boolean
+          name?: string
           notes?: string | null
           updated_at?: string
           updated_by?: string | null
+          zone?: string | null
         }
         Relationships: []
       }

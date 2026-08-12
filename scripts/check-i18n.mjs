@@ -313,6 +313,7 @@ const MANIFEST = {
     'pricing.errors.':      { kind: 'enum', values: () => tsSet('app/pricing/pricingErrorCodes.ts', 'PRICING_ERROR_CODES') },
     'assay.errors.':        { kind: 'enum', values: () => tsSet('app/inbound/assayErrorCodes.ts', 'ASSAY_ERROR_CODES') },
     'stocktakes.errors.':   { kind: 'enum', values: () => tsSet('app/stocktakes/stocktakeErrorCodes.ts', 'STOCKTAKE_ERROR_CODES') },
+    'locations.errors.':    { kind: 'enum', values: () => tsSet('app/inventory/locations/locationErrorCodes.ts', 'LOCATION_ERROR_CODES') },
     'processing.errors.':   { kind: 'enum', values: () => tsSet('app/processing/errorCodes.ts', 'PROCESSING_ERROR_CODES') },
     'finance.accountType.': { kind: 'enum', values: () => sqlEnum('db/tables/accounts.sql', 'account_type') },
     'finance.aging.':       { kind: 'enum', values: () => tsArray('app/finance/agingBuckets.ts', 'BUCKETS') },

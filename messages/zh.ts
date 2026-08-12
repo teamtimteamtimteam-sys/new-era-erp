@@ -1219,6 +1219,57 @@ const zh = {
             runNotComputable: '本单的回收率无从计算:这些金属没有一个在两侧都被测过。下面的表会说清缺的是哪一侧,而不是给一个 0。',
         },
     },
+    // LOC-1:库位主数据。挂在 inventory 模块下 —— 全库没有 module.warehouse.*
+    // 这个码(warehouse 是一个角色,不是模块)。
+    locations: {
+        listTitle: '库位',
+        newTitle: '新建库位',
+        editTitle: '编辑库位',
+        new: '新建库位',
+        empty: '暂无库位',
+        colCode: '库位号',
+        colName: '名称',
+        colZone: '区域',
+        colAllowed: '可存放分类',
+        colStatus: '状态',
+        colActions: '操作',
+        active: '启用中',
+        inactive: '已停用',
+        // 【未配置 ≠ 无】零行的意思是还没有人决定过。
+        notConfigured: '未配置',
+        notConfiguredTitle:
+            '这个库位还没有记录任何可存放分类 —— 意思是【还没决定】,不是【什么都不能放】。将来的合规检查对它告警,而不是拒绝。',
+        recordsOnlyNotice:
+            '可存放分类在这里只是【记录】,目前没有任何东西照它拦截 —— 不会有收货或移库因为这张表被拒。落闸要等出入库单据那一刀。',
+        deactivate: '停用',
+        reactivate: '启用',
+        deactivateConsequence: '新单据不再提供这个库位。已有的库存流水继续指着它,一个字不动。',
+        reactivateConsequence: '新单据重新提供这个库位。',
+        statusSectionTitle: '可用状态',
+        inactiveNotice: '这个库位已停用 —— 新单据不再提供它。历史记录不受影响,随时可以重新启用。',
+        form: {
+            code: '库位号',
+            codeHint: '约定以 "SG-" 起头。【不强制】—— 有第二个法人实体的那天,这条规则就是错的。',
+            name: '名称',
+            zone: '区域',
+            zoneHint: '仅用于列表分组显示。合规判断永远不读这一格。',
+            notes: '备注',
+            allowedClasses: '可存放的物料分类',
+            allowedClassesHint: '这个库位可以存放哪几类受控物料。还没决定就一个都不勾。',
+            controlled: '受控',
+            unconfiguredWarning:
+                '一个都没勾 —— 这个库位会被存成【未配置】,意思是"还没决定"。它与"决定了什么都不能放"不是一回事;将来的检查对它告警,而不是拒绝。',
+            create: '新建库位',
+            save: '保存修改',
+            errCode: '库位号必填',
+            errName: '名称必填',
+        },
+        errors: {
+            LOC_CODE_EXISTS: '库位号 {0} 已经被占用了。库位号标识的是一个实际存在的地方,两个库位不能共用一个号 —— 请换一个号,或者直接启用已有的那个库位。',
+            LOCATION_NO_HARD_DELETE:
+                '库位 {0} 不能删除。库存流水按名字指着它,删掉会让那些历史指向一个不存在的行 —— 请改用【停用】:新单据不再提供它,历史记录保持完整。',
+        },
+    },
     inventory: {
         listTitle: '库存与物料平衡',
         loadError: '读取失败',

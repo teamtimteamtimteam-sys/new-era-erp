@@ -1216,6 +1216,60 @@ const en = {
             runNotComputable: 'Recovery cannot be computed for this run: none of these metals was measured on both sides. The figures below say which side is missing rather than showing a zero.',
         },
     },
+    // LOC-1: storage location master data. Lives under the inventory module —
+    // there is no module.warehouse.* code (warehouse is a role, not a module).
+    locations: {
+        listTitle: 'Storage Locations',
+        newTitle: 'New Storage Location',
+        editTitle: 'Edit Storage Location',
+        new: 'New location',
+        empty: 'No storage locations yet',
+        colCode: 'Code',
+        colName: 'Name',
+        colZone: 'Zone',
+        colAllowed: 'Allowed classes',
+        colStatus: 'Status',
+        colActions: 'Actions',
+        active: 'active',
+        inactive: 'deactivated',
+        // 【not configured ≠ none】 zero rows means nobody has decided yet.
+        notConfigured: 'not configured',
+        notConfiguredTitle:
+            'No classes have been recorded for this location — that is "not yet decided", not "nothing may be stored here". Future compliance checks will warn on this rather than refuse.',
+        recordsOnlyNotice:
+            'Allowed classes are RECORDED here, and nothing enforces them yet — no receipt or transfer is refused because of this table. Enforcement arrives with the stock in/out documents.',
+        deactivate: 'Deactivate',
+        reactivate: 'Reactivate',
+        deactivateConsequence:
+            'Stops offering this location on new documents. Existing stock movements keep pointing at it and are not changed.',
+        reactivateConsequence: 'Offers this location on new documents again.',
+        statusSectionTitle: 'Availability',
+        inactiveNotice:
+            'This location is deactivated — it is not offered on new documents. Its history is unchanged, and it can be reactivated at any time.',
+        form: {
+            code: 'Code',
+            codeHint: 'Convention: start with "SG-". Not enforced — a second entity would make that rule wrong.',
+            name: 'Name',
+            zone: 'Zone',
+            zoneHint: 'Display grouping only. Compliance never reads this field.',
+            notes: 'Notes',
+            allowedClasses: 'Allowed material classes',
+            allowedClassesHint:
+                'Which regulated classes this location may hold. Leave all unticked if it has not been decided yet.',
+            controlled: 'controlled',
+            unconfiguredWarning:
+                'Nothing ticked — this location will be saved as NOT CONFIGURED, meaning "not yet decided". That is different from deciding nothing may be stored here; future checks will warn rather than refuse.',
+            create: 'Create location',
+            save: 'Save changes',
+            errCode: 'A code is required',
+            errName: 'A name is required',
+        },
+        errors: {
+            LOC_CODE_EXISTS: 'Location code {0} is already in use. Codes identify a physical place, so two locations cannot share one — pick another code, or reactivate the existing location instead.',
+            LOCATION_NO_HARD_DELETE:
+                'Location {0} cannot be deleted. Stock movements refer to it by name, so deleting it would leave that history pointing at nothing — deactivate it instead, which stops it being offered on new documents while leaving the history intact.',
+        },
+    },
     inventory: {
         listTitle: 'Inventory',
         loadError: 'Load failed',
