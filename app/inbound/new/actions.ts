@@ -6,6 +6,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { localizePurchasingError } from '@/app/purchasing/purchasingErrorCodes'
+import { localizeStockError } from '@/app/components/inventory/stockErrorCodes'
 
 export type CreateInboundState = {
     error?: string
@@ -96,6 +97,14 @@ export async function createInbound(
     })
 
     if (error) {
+
+        // IOD-1b:收货库位的两个具名拒绝翻成人话(表单开着时库位被停用,就落这里)
+
+        if (/IOD_RECEIPT_LOCATION_/.test(error?.message ?? '')) {
+
+            return { error: await localizeStockError(error!.message) }
+
+        }
         // 收货触发器的编码错误本地化;其余仍走原样的 saveError
         if (/PO_NOT_RECEIVABLE|PO_LINE_MISMATCH|PO_NOT_APPROVED|SUPPLIER_QUALIFICATION_EXPIRED/.test(error.message)) {
             return { error: await localizePurchasingError(error.message) }

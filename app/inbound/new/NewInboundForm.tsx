@@ -296,6 +296,10 @@ export default function NewInboundForm({
                         required
                         className="w-full border border-gray-300 px-3 py-2 rounded"
                     />
+                    {/* IOD-1b:说清【为什么】必填 —— 星号只说"必填",不说这个日期
+                        会去到哪里。它是收货流水的业务日(FIN-32),而业务日永远不
+                        默认成今天:默认会让一次补录的收货悄悄记在录入那天。 */}
+                    <p className="text-xs text-gray-500 mt-1">{t('inbound.form.arrivalDateWhy')}</p>
                 </div>
 
                 {/* 阶段 */}

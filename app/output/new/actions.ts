@@ -5,6 +5,7 @@ import type { InsertRow } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { localizeStockError } from '@/app/components/inventory/stockErrorCodes'
 
 export type CreateOutputState = {
     error?: string
@@ -75,6 +76,14 @@ export async function createOutput(
     })
 
     if (error) {
+
+        // IOD-1b:收货库位的两个具名拒绝翻成人话(表单开着时库位被停用,就落这里)
+
+        if (/IOD_RECEIPT_LOCATION_/.test(error?.message ?? '')) {
+
+            return { error: await localizeStockError(error!.message) }
+
+        }
         return { error: t('output.form.saveError', { message: error.message }) }
     }
 
