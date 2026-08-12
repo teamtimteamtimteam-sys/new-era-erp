@@ -42,6 +42,10 @@ export default function MetalContentPanel({
     // 已录入的金属集合:录入下拉里给它们加 "(已录)" 后缀提示;仍可选中 —— 选中并保存即覆盖(update)。
     const existing = new Set(rows.map((r) => r.metal))
 
+    // PROC-1b:出处列 —— 化验/手工/未知三种状态要看得见。页面传了才画
+    // (标签已在服务端按语言格式化;手工覆盖一行化验值时,出处会当场翻成"手工")。
+    const showSource = rows.some((r) => r.source_label)
+
     // 实时合计:已显示各行之和;若录入的金属已存在(覆盖),用录入值替换该行的旧值,得到"保存后"的合计。
     const displayedTotal = rows.reduce((sum, r) => sum + r.content_pct, 0)
     const pendingNum = Number(pctInput)
@@ -113,6 +117,9 @@ export default function MetalContentPanel({
                         <tr>
                             <th className="border border-gray-300 px-4 py-2 text-left">{t('metalContent.colMetal')}</th>
                             <th className="border border-gray-300 px-4 py-2 text-left">{t('metalContent.colPct')}</th>
+                            {showSource && (
+                                <th className="border border-gray-300 px-4 py-2 text-left">{t('metalContent.colSource')}</th>
+                            )}
                             <th className="border border-gray-300 px-4 py-2 text-left">{t('metalContent.colUpdated')}</th>
                             <th className="border border-gray-300 px-4 py-2 text-left">{t('metalContent.colActions')}</th>
                         </tr>
@@ -124,6 +131,25 @@ export default function MetalContentPanel({
                                 <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                     {r.content_pct.toFixed(2)}%
                                 </td>
+                                {showSource && (
+                                    <td className="border border-gray-300 px-4 py-2 text-sm">
+                                        {r.source_kind === 'assay' && r.source_href ? (
+                                            // 化验来源:标签就是单据号,点过去是那份化验
+                                            <a href={r.source_href} className="px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-800 hover:underline font-mono">
+                                                {r.source_label}
+                                            </a>
+                                        ) : r.source_kind === 'unknown' ? (
+                                            // 出处未知(PROC-1 之前录的行)—— 与"手工"是两回事,不能长得一样
+                                            <span className="px-2 py-0.5 rounded text-xs bg-amber-100 text-amber-800">
+                                                {r.source_label}
+                                            </span>
+                                        ) : (
+                                            <span className="px-2 py-0.5 rounded text-xs bg-gray-200 text-gray-600">
+                                                {r.source_label}
+                                            </span>
+                                        )}
+                                    </td>
+                                )}
                                 <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
                                     {r.updated_at_display}
                                 </td>

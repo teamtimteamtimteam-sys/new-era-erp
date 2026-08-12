@@ -168,14 +168,25 @@ def noncomment(sql: str) -> str:
 def _dropped_before(dropped_fn, schema, name, si, sigs, sql):
     """本文件里、在这条 CREATE 之前,是否 DROP 掉了同名函数的【另一个】签名。
 
-    只比名字与参数个数:参数类型串在这里还没解析成 regtype,而"同名 + 不同参数个数
-    的旧签名被显式 DROP 了"已经足以把合法的替换与真正的重载分开。参数个数相同却
-    类型不同的情形仍然会被拦下 —— 那种情况该对齐签名,不该 DROP。
+    比名字 + 参数个数;个数相同再比【类型序列】(PROC-1b):把参数挪进默认值区是
+    合法的替换 —— 个数没变、顺序变了 —— 而被显式 DROP 的旧签名不可能活下去。
+    放行不牺牲安全:DROP 打错签名会让整支迁移在单事务里当场中止(apply_migration
+    的 all-or-nothing),留不下半个库。仍然拦住的是【类型序列也相同】的情形 ——
+    那是在 DROP 自己要建的东西,线上真正的旧签名照样活下去。
     """
     want = (schema.lower(), name.lower())
     n_new = len(sigs[si][2])
+    new_types = []
+    for a in sigs[si][2]:
+        c = arg_type_candidates(a)
+        new_types.append(re.sub(r"\s+", " ", (c[0] if c else a)).lower())
     for pos, dsch, dname, dargs in dropped_fn:
-        if (dsch, dname) == want and len(dargs) != n_new:
+        if (dsch, dname) != want:
+            continue
+        if len(dargs) != n_new:
+            return True
+        d_types = [re.sub(r"\s+", " ", d).lower() for d in dargs]
+        if d_types != new_types:
             return True
     return False
 

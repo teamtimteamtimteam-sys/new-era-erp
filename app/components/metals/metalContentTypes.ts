@@ -4,10 +4,18 @@
 //
 // updated_at 在服务端按当前语言预格式化成 updated_at_display 再传进来
 // —— 与附件面板一致,避免客户端 toLocaleString 造成水合不一致。
+//
+// PROC-1b:出处列 —— 这一行含量【是谁说的】。三种状态必须看得见(化验 / 手工 /
+// 出处未知),它们正是 PROC-1 买来的东西:看产出批的人要分得出哪些数出自实验室。
+// 标签在服务端按语言预格式化(同 updated_at_display 的理由);化验来源附上
+// 单据链接。两个字段都可省 —— 面板只在有任何一行带出处时才画这一列。
 export type MetalContentRow = {
     metal: string
     content_pct: number
     updated_at_display: string
+    source_kind?: 'assay' | 'manual' | 'unknown'
+    source_label?: string
+    source_href?: string | null
 }
 
 // 金属清单 / 校验集合 / 反查:复用 metal-prices 模块的定义,不在这里重复金属列表。

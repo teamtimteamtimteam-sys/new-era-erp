@@ -11177,6 +11177,10 @@ export type Database = {
         Returns: Json
       }
       post_stocktake: { Args: { p_stocktake_id: string }; Returns: Json }
+      preview_apply_output_assay: {
+        Args: { p_assay_result_id?: string; p_output_batch_id: string }
+        Returns: Json
+      }
       preview_assay_price: {
         Args: {
           p_inbound_batch_id: string
@@ -11246,7 +11250,7 @@ export type Database = {
         Args: {
           p_assay_date: string
           p_certificate_ref?: string
-          p_inbound_batch_id: string
+          p_inbound_batch_id?: string
           p_is_final?: boolean
           p_lab_name?: string
           p_metals: Json

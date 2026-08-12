@@ -100,8 +100,20 @@ composite type.
 ## The database gate runs on every cut that touches the database
 
 ```
-python3 db/gate.py        # ~32s, no large payloads over the network
+python3 db/gate.py        # ~4 min measured, no large payloads over the network
 ```
+
+> **The cost, re-measured (PROC-1b, 2026-08-12): 247s wall clock, not the ~32s
+> this line said for months.** The 32s was true when it was written and OPS-6 had
+> just cut the 40-minute pooler replay down to one local rebuild; what grew since
+> is the third verdict — **54 fixtures now, against 25 when that number was
+> written** — and each one is a full behavioural run against the rebuild. Nobody
+> re-measured, because the fixtures were added one at a time and no single one
+> ever felt like it cost anything. Same disease as `--reach`'s "ten to fifteen
+> minutes", found the same way: someone finally timed it. It is still fast enough
+> to run on every database-touching cut, which is what matters — but **a
+> written-down cost must be a measured cost**, so this one is now dated and says
+> what it was measured against.
 
 One LOCAL rebuild, two separately-reported verdicts (OPS-6 merged the two older
 tools — their build steps were identical and check_mirrors was shipping a

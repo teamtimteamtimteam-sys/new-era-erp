@@ -51,8 +51,9 @@ BEGIN
     VALUES ('FIXT-B15', v_mat, v_sup, 100, 100, 'kg', v_sg_today) RETURNING id INTO v_batch;
 
     BEGIN
-        PERFORM record_assay_result(v_batch, v_sg_today,
-            jsonb_build_array(jsonb_build_object('metal', 'ni', 'content_pct', 10)));
+        PERFORM record_assay_result(p_assay_date => v_sg_today,
+            p_metals => jsonb_build_array(jsonb_build_object('metal', 'ni', 'content_pct', 10)),
+            p_inbound_batch_id => v_batch);
     EXCEPTION WHEN OTHERS THEN
         GET STACKED DIAGNOSTICS v_msg = MESSAGE_TEXT;
     END;

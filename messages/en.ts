@@ -1624,6 +1624,21 @@ const en = {
         unapplyReason: 'Reason',
         unapplyNote:
             'Unapplying restores the metal content record but does NOT reverse the price change — reprice explicitly if that is what you want.',
+        // PROC-1b: output-side assays — same document, no payable to restate
+        output: {
+            unappliedWarning: 'Assay {code} is recorded but not applied — batch content, recovery and any metal-value allocation still read the previous figures.',
+            noPricing: 'An output assay does not touch pricing or payables — it changes what this batch is. Costs move only when someone re-runs allocation.',
+            replacesAll: 'Applying replaces the batch content in full — metals the assay does not report will be removed.',
+            colCurrent: 'Current',
+            colAfter: 'After applying',
+            applyPreviewTitle: 'What applying will change',
+            staleWarning: 'Applying will flag run {run}’s metal-value allocation as stale. Amounts do not move by themselves — re-run allocation to recost the outputs.',
+            noStaleEffect: 'Run {run} allocates by weight (or is not yet allocated) — applying does not stale its allocation.',
+            impactUnavailable: 'Could not preview the consequences of applying — recording still works; the same checks run again on apply.',
+            willRemove: 'will be removed',
+            unapplyConfirm: 'Unapply this output assay?',
+            unapplyNote: 'Unapplying only marks this result as no longer standing — the batch content stays as it is. Which figures replace it is an explicit act: a new assay, or the manual grid.',
+        },
         empty: 'No assay results recorded',
         priceChangeTitle: 'Resulting price change',
         journalLink: 'Journal entry',
@@ -2032,6 +2047,11 @@ const en = {
         title: 'Metal Content (Assay)',
         colMetal: 'Metal',
         colPct: 'Content %',
+        // PROC-1b: provenance — who said this number. Three states, all visible.
+        colSource: 'Source',
+        sourceAssay: 'assay',
+        sourceManual: 'manual',
+        sourceUnknown: 'unknown',
         colUpdated: 'Updated',
         colActions: 'Actions',
         selectMetal: 'Select metal',

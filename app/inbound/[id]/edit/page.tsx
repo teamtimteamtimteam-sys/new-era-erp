@@ -70,7 +70,8 @@ export default async function EditInboundPage({
             .order('legal_name'),
         supabase
             .from('inbound_batch_metals')
-            .select('metal, content_pct, updated_at')
+            // PROC-1b:含量带出处 —— 化验来源嵌出单据号,行上要看得见是谁说的数
+            .select('metal, content_pct, updated_at, content_source, source_assay:assay_results!inbound_batch_metals_source_assay_id_fkey ( id, code )')
             .eq('inbound_batch_id', id)
             .order('metal'),
         supabase
@@ -254,11 +255,32 @@ export default async function EditInboundPage({
         created_at_display: formatTimestamp(h.created_at, dateLocale),
     }))
 
-    // 金属含量行:服务端预格式化 updated_at,避免客户端水合不一致
-    const metalRows: MetalContentRow[] = (mustRows(metalsRes)).map((m) => ({
+    // 金属含量行:服务端预格式化 updated_at,避免客户端水合不一致。
+    // PROC-1b:出处列 —— 化验(单据号,可点)/ 手工 / 出处未知。第三种状态在
+    // 进料侧是真的:PROC-1 之前录的行 content_source 为 NULL,不回填(FIN-26),
+    // 界面照直说「未知」而不是把它演成手工或化验。
+    type MetalFetchRow = {
+        metal: string
+        content_pct: number
+        updated_at: string
+        content_source: string | null
+        source_assay: { id: string; code: string } | null
+    }
+    const metalRows: MetalContentRow[] = ((mustRows(metalsRes)) as unknown as MetalFetchRow[]).map((m) => ({
         metal: m.metal,
         content_pct: m.content_pct,
         updated_at_display: formatTimestamp(m.updated_at, dateLocale),
+        source_kind: m.content_source === 'assay' ? 'assay' : m.content_source === 'manual' ? 'manual' : 'unknown',
+        source_label:
+            m.content_source === 'assay'
+                ? m.source_assay?.code ?? t('metalContent.sourceAssay')
+                : m.content_source === 'manual'
+                    ? t('metalContent.sourceManual')
+                    : t('metalContent.sourceUnknown'),
+        source_href:
+            m.content_source === 'assay' && m.source_assay
+                ? `/inbound/${id}/assays/${m.source_assay.id}`
+                : null,
     }))
 
     // 库存流水行:服务端预格式化 occurred_at

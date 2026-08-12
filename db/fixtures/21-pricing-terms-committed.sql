@@ -106,7 +106,7 @@ BEGIN
             (v_po->>'purchase_order_id')::uuid, v_line)
     RETURNING id INTO v_batch;
 
-    v_assay := record_assay_result(v_batch, v_today, v_metals, 'Fixture Lab', NULL, NULL, true, NULL);
+    v_assay := record_assay_result(p_assay_date => v_today, p_metals => v_metals, p_lab_name => 'Fixture Lab', p_inbound_batch_id => v_batch);
     PERFORM apply_assay_result((v_assay->>'assay_result_id')::uuid);
 
     SELECT unit_price INTO v_price FROM inbound_batches WHERE id = v_batch;
@@ -159,7 +159,7 @@ BEGIN
     VALUES (v_mat, v_sup, 100, 100, 'kg', v_today,
             (v_po->>'purchase_order_id')::uuid, v_line2)
     RETURNING id INTO v_batch2;
-    v_assay := record_assay_result(v_batch2, v_today, v_metals, 'Fixture Lab', NULL, NULL, true, NULL);
+    v_assay := record_assay_result(p_assay_date => v_today, p_metals => v_metals, p_lab_name => 'Fixture Lab', p_inbound_batch_id => v_batch2);
     PERFORM apply_assay_result((v_assay->>'assay_result_id')::uuid);
 
     SELECT unit_price INTO v_price FROM inbound_batches WHERE id = v_batch2;
@@ -174,7 +174,7 @@ BEGIN
                                  arrival_date, pricing_formula_id)
     VALUES (v_mat, v_sup, 100, 100, 'kg', v_today, v_formula)
     RETURNING id INTO v_batch3;
-    v_assay := record_assay_result(v_batch3, v_today, v_metals, 'Fixture Lab', NULL, NULL, true, NULL);
+    v_assay := record_assay_result(p_assay_date => v_today, p_metals => v_metals, p_lab_name => 'Fixture Lab', p_inbound_batch_id => v_batch3);
 
     v_ok := false; v_msg := NULL;
     BEGIN

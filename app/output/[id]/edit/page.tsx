@@ -12,6 +12,7 @@ import { saveOutputMetal, deleteOutputMetal } from '@/app/components/metals/meta
 import MovementTimeline from '@/app/components/inventory/MovementTimeline'
 import type { MovementRow } from '@/app/components/inventory/movementTypes'
 import SalePanel, { type CreditRow } from './SalePanel'
+import OutputAssaySection from './OutputAssaySection'
 import StocktakeQuickCount from '@/app/stocktakes/StocktakeQuickCount'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
@@ -70,7 +71,8 @@ export default async function EditOutputPage({
             .order('legal_name'),
         supabase
             .from('output_batch_metals')
-            .select('metal, content_pct, updated_at')
+            // PROC-1b:含量带出处 —— 化验来源嵌出单据号,行上要看得见是谁说的数
+            .select('metal, content_pct, updated_at, content_source, source_assay:assay_results!output_batch_metals_source_assay_id_fkey ( id, code )')
             .eq('output_batch_id', id)
             .order('metal'),
         supabase
@@ -144,12 +146,42 @@ export default async function EditOutputPage({
         stocktakeCounted = countLine?.counted_qty ?? null
     }
 
-    // 金属含量行:服务端预格式化 updated_at,避免客户端水合不一致
-    const metalRows: MetalContentRow[] = (mustRows(metalsRes)).map((m) => ({
+    // 金属含量行:服务端预格式化 updated_at,避免客户端水合不一致。
+    // PROC-1b:出处列 —— 化验(单据号,可点)/ 手工 / 出处未知,三种状态各自可辨。
+    // 产出侧 content_source NOT NULL,'unknown' 分支在这里走不到,写着是因为
+    // 这个 map 的形状与进料侧同构,而进料侧真的有 NULL(PROC-1 之前的行)。
+    type MetalFetchRow = {
+        metal: string
+        content_pct: number
+        updated_at: string
+        content_source: string | null
+        source_assay: { id: string; code: string } | null
+    }
+    const metalRows: MetalContentRow[] = ((mustRows(metalsRes)) as unknown as MetalFetchRow[]).map((m) => ({
         metal: m.metal,
         content_pct: m.content_pct,
         updated_at_display: formatTimestamp(m.updated_at, dateLocale),
+        source_kind: m.content_source === 'assay' ? 'assay' : m.content_source === 'manual' ? 'manual' : 'unknown',
+        source_label:
+            m.content_source === 'assay'
+                ? m.source_assay?.code ?? t('metalContent.sourceAssay')
+                : m.content_source === 'manual'
+                    ? t('metalContent.sourceManual')
+                    : t('metalContent.sourceUnknown'),
+        source_href:
+            m.content_source === 'assay' && m.source_assay
+                ? `/output/${id}/assays/${m.source_assay.id}`
+                : null,
     }))
+
+    // 化验单(新到旧)—— 面板摆在金属含量旁边:化验是含量的出处,不是另一件事
+    const assaysRes = await supabase
+        .from('assay_results')
+        .select('id, code, assay_date, lab_name, is_final, applied_at')
+        .eq('output_batch_id', id)
+        .is('deleted_at', null)
+        .order('assay_date', { ascending: false })
+        .order('code', { ascending: false })
 
     // 库存流水行:服务端预格式化 occurred_at
     const movementRows: MovementRow[] = ((movementsRes.data as unknown as MovementFetchRow[] | null) ?? []).map((m) => ({
@@ -222,7 +254,11 @@ export default async function EditOutputPage({
                 saveAction={saveOutputMetal.bind(null, id)}
                 deleteAction={deleteOutputMetal.bind(null, id)}
                 priceHref={priceBatchHref(batch.quantity, metalRows)}
+                note={t('assay.metalsFromAssay')}
             />
+
+            {/* 化验(PROC-1b):含量的出处就摆在含量旁边 */}
+            <OutputAssaySection batchId={batch.id} rows={mustRows(assaysRes)} />
 
             {/* ── 本批毛利(MAR-1)──────────────────────────────────────────
                 "这批货挣了多少" 的答案摆在批次自己身上,而不是一条通往报表的链接:

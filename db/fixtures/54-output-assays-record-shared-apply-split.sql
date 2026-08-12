@@ -23,6 +23,9 @@
 --     压掉的恰恰是"有什么不对"的证据。
 --   H 出处的一致性由约束把门:assay 必须指得出单据,manual 不许指;
 --     进料新行必须声明出处(NOT VALID:老行放过,新行必填 —— FIN-32 的形状)。
+--   I 试算与应用同构(PROC-1b,fixture 40 的纪律):preview_apply_output_assay
+--     在应用会拒的地方【同码】拒;它说"会过期"的地方 D1 断言视图真的过期,
+--     说"不会"的地方(weight)D2 断言它真的不动 —— 谓词与第六过期源钉在一起。
 --
 -- 化验日期用 CURRENT_DATE(record_assay_result 拒未来日期);编号断言只断
 -- 【连续】与【同前缀】,不断绝对值 —— 序列起点取决于库里已有的化验数。
@@ -37,7 +40,7 @@ DECLARE
     ib1 uuid; ib2 uuid;
     run1 uuid; run2 uuid;
     ob_a uuid; ob_b uuid; ob_c uuid;
-    a1 jsonb; a2 jsonb; a3 jsonb; a4 jsonb; v_rep jsonb;
+    a1 jsonb; a2 jsonb; a3 jsonb; a4 jsonb; v_rep jsonb; v_prev jsonb;
     a1_id uuid; a2_id uuid; a3_id uuid; a4_id uuid;
     v_seq1 int; v_seq2 int;
     v_n int; v_je0 bigint; v_je1 bigint;
@@ -119,15 +122,15 @@ BEGIN
     PERFORM allocate_processing_costs(run2, 'weight');
 
     -- ══════════ A. 记录与编号共享;双父 XOR;权限跟着父走 ═══════════════════
-    a1 := record_assay_result(ib1, CURRENT_DATE,
-        jsonb_build_array(jsonb_build_object('metal', 'ni', 'content_pct', 50)),
-        'fixture 54 lab');
+    a1 := record_assay_result(p_assay_date => CURRENT_DATE,
+        p_metals => jsonb_build_array(jsonb_build_object('metal', 'ni', 'content_pct', 50)),
+        p_lab_name => 'fixture 54 lab', p_inbound_batch_id => ib1);
     a1_id := (a1->>'assay_result_id')::uuid;
-    a2 := record_assay_result(NULL, CURRENT_DATE,
-        jsonb_build_array(
+    a2 := record_assay_result(p_assay_date => CURRENT_DATE,
+        p_metals => jsonb_build_array(
             jsonb_build_object('metal', 'ni', 'content_pct', 75),
             jsonb_build_object('metal', 'co', 'content_pct', 5)),
-        'fixture 54 lab', NULL, NULL, true, NULL, ob_a);
+        p_lab_name => 'fixture 54 lab', p_output_batch_id => ob_a);
     a2_id := (a2->>'assay_result_id')::uuid;
 
     -- 同一条序列:紧随其后、同一个 'ASY-YYYY' 前缀。绝对值不断(取决于库里已有几份)。
@@ -141,9 +144,9 @@ BEGIN
 
     v_denied := false;
     BEGIN
-        PERFORM record_assay_result(ib1, CURRENT_DATE,
-            jsonb_build_array(jsonb_build_object('metal', 'ni', 'content_pct', 1)),
-            NULL, NULL, NULL, true, NULL, ob_a);
+        PERFORM record_assay_result(p_assay_date => CURRENT_DATE,
+            p_metals => jsonb_build_array(jsonb_build_object('metal', 'ni', 'content_pct', 1)),
+            p_inbound_batch_id => ib1, p_output_batch_id => ob_a);
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied OR v_msg <> 'ASSAY_ONE_PARENT' THEN
         RAISE EXCEPTION 'FIXTURE 54A 失败:两个父都挂的化验该被点名拒(ASSAY_ONE_PARENT),实际:%',
@@ -151,8 +154,8 @@ BEGIN
     END IF;
     v_denied := false;
     BEGIN
-        PERFORM record_assay_result(NULL, CURRENT_DATE,
-            jsonb_build_array(jsonb_build_object('metal', 'ni', 'content_pct', 1)));
+        PERFORM record_assay_result(p_assay_date => CURRENT_DATE,
+            p_metals => jsonb_build_array(jsonb_build_object('metal', 'ni', 'content_pct', 1)));
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied OR v_msg <> 'ASSAY_ONE_PARENT' THEN
         RAISE EXCEPTION 'FIXTURE 54A 失败:一个父都不挂的化验该被点名拒(ASSAY_ONE_PARENT),实际:%',
@@ -165,9 +168,9 @@ BEGIN
         format('{"sub":"%s","role":"authenticated"}', u2), true);
     v_denied := false;
     BEGIN
-        PERFORM record_assay_result(NULL, CURRENT_DATE,
-            jsonb_build_array(jsonb_build_object('metal', 'ni', 'content_pct', 1)),
-            NULL, NULL, NULL, true, NULL, ob_a);
+        PERFORM record_assay_result(p_assay_date => CURRENT_DATE,
+            p_metals => jsonb_build_array(jsonb_build_object('metal', 'ni', 'content_pct', 1)),
+            p_output_batch_id => ob_a);
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied OR v_msg <> 'PERMISSION_DENIED|module.output.edit' THEN
         RAISE EXCEPTION 'FIXTURE 54A 失败:只有 inbound 权限的人记产出化验,该按 module.output.edit 拒,实际:%',
@@ -194,6 +197,24 @@ BEGIN
             CASE WHEN v_denied THEN v_msg ELSE '成功了 —— 进料化验绕过了重算应付的那一半' END;
     END IF;
 
+    -- I(其一):试算在应用会拒的地方【同码】拒 —— 进料化验、挂错批次
+    v_denied := false;
+    BEGIN
+        PERFORM preview_apply_output_assay(ob_a, a1_id);
+    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
+    IF NOT v_denied OR v_msg <> 'ASSAY_IS_INBOUND|' || (a1->>'code') THEN
+        RAISE EXCEPTION 'FIXTURE 54I 失败:试算收进料化验该与应用同码拒(ASSAY_IS_INBOUND),实际:%',
+            CASE WHEN v_denied THEN v_msg ELSE '成功了' END;
+    END IF;
+    v_denied := false;
+    BEGIN
+        PERFORM preview_apply_output_assay(ob_b, a2_id);   -- a2 挂在 ob_a 上
+    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
+    IF NOT v_denied OR v_msg <> 'ASSAY_NOT_FOUND|' || (a2->>'code') THEN
+        RAISE EXCEPTION 'FIXTURE 54I 失败:试算收挂在别批上的化验该拒(ASSAY_NOT_FOUND),实际:%',
+            CASE WHEN v_denied THEN v_msg ELSE '成功了 —— 一份化验被预览到了别的批次头上' END;
+    END IF;
+
     -- ══════════ C+D1. 产出化验的应用:抄含量带出处、不动钱、【让过期看得见】════
     -- 先应用进料化验(ib1 无公式 → 只抄含量,不触发重计价,不污染过期源),
     -- 这也给 F 臂备好"投入侧 = assay"。
@@ -210,6 +231,24 @@ BEGIN
     END IF;
     SELECT count(*) INTO v_je0 FROM journal_entries;
     SELECT po.unit_cost_base INTO v_cost_a FROM processing_outputs po WHERE po.output_batch_id = ob_a;
+
+    -- I(其二):按下"应用"之前,试算说清"换成什么、什么会过期" ——
+    -- 换的两侧都齐(当前 1 行手工 ni 80 → 化验 2 行),过期谓词指名 run1
+    v_prev := preview_apply_output_assay(ob_a, a2_id);
+    IF jsonb_array_length(v_prev->'current_metals') <> 1
+       OR (v_prev->'current_metals'->0->>'content_source') <> 'manual'
+       OR jsonb_array_length(v_prev->'assay_metals') <> 2 THEN
+        RAISE EXCEPTION 'FIXTURE 54I 失败:试算没把"当前(手工 1 行)→ 化验后(2 行)"两侧摆齐:%', v_prev;
+    END IF;
+    IF NOT (v_prev->>'will_flag_stale')::boolean
+       OR (v_prev->>'producing_run_code') <> (SELECT code FROM processing_runs WHERE id = run1) THEN
+        RAISE EXCEPTION 'FIXTURE 54I 失败:metal_value 已分摊的单,试算该在应用【之前】点名说"会过期":%', v_prev;
+    END IF;
+    -- 不带 assay id 的形态(录入页):批次的过期后果与当前含量照答
+    v_prev := preview_apply_output_assay(ob_a);
+    IF NOT (v_prev->>'will_flag_stale')::boolean OR v_prev->'assay_metals' <> 'null'::jsonb THEN
+        RAISE EXCEPTION 'FIXTURE 54I 失败:不带化验 id 的试算(录入页形态)该只答批次侧:%', v_prev;
+    END IF;
 
     v_rep := apply_output_assay(a2_id);
 
@@ -255,10 +294,15 @@ BEGIN
     END IF;
     -- ni 80% × 50 kg = 40 kg 产出,而投入只测得 10 kg —— 守恒破了,但这是一次
     -- 【测量】:拒绝落账等于替实验室改数,压掉的正是"有什么不对"的证据。
-    a3 := record_assay_result(NULL, CURRENT_DATE,
-        jsonb_build_array(jsonb_build_object('metal', 'ni', 'content_pct', 80)),
-        'fixture 54 lab', NULL, NULL, true, NULL, ob_c);
+    a3 := record_assay_result(p_assay_date => CURRENT_DATE,
+        p_metals => jsonb_build_array(jsonb_build_object('metal', 'ni', 'content_pct', 80)),
+        p_lab_name => 'fixture 54 lab', p_output_batch_id => ob_c);
     a3_id := (a3->>'assay_result_id')::uuid;
+    -- I(其三):weight 的单,试算说"不会过期" —— 与 D2 是同一条谓词的两个观察点
+    v_prev := preview_apply_output_assay(ob_c, a3_id);
+    IF (v_prev->>'will_flag_stale')::boolean THEN
+        RAISE EXCEPTION 'FIXTURE 54I 失败:weight 的单试算却说"会过期" —— 喊狼来了的那一半回来了:%', v_prev;
+    END IF;
     v_rep := apply_output_assay(a3_id);   -- 必须成功 —— 守恒不是闸
     SELECT conservation_warning, input_metal_kg, output_metal_kg, input_source, output_source
       INTO v_warn, v_in_kg, v_out_kg, v_in_src, v_out_src
@@ -285,10 +329,19 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 54E 失败:重复应用该被拒(ASSAY_ALREADY_APPLIED),实际:%',
             CASE WHEN v_denied THEN v_msg ELSE '成功了' END;
     END IF;
+    -- I(其四):已应用的化验,试算与应用同码拒
+    v_denied := false;
+    BEGIN
+        PERFORM preview_apply_output_assay(ob_a, a2_id);
+    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
+    IF NOT v_denied OR v_msg <> 'ASSAY_ALREADY_APPLIED|' || (a2->>'code') THEN
+        RAISE EXCEPTION 'FIXTURE 54I 失败:已应用化验的试算该与应用同码拒(ASSAY_ALREADY_APPLIED),实际:%',
+            CASE WHEN v_denied THEN v_msg ELSE '成功了' END;
+    END IF;
 
-    a4 := record_assay_result(NULL, CURRENT_DATE,
-        jsonb_build_array(jsonb_build_object('metal', 'ni', 'content_pct', 70)),
-        'fixture 54 lab', NULL, NULL, true, NULL, ob_a);
+    a4 := record_assay_result(p_assay_date => CURRENT_DATE,
+        p_metals => jsonb_build_array(jsonb_build_object('metal', 'ni', 'content_pct', 70)),
+        p_lab_name => 'fixture 54 lab', p_output_batch_id => ob_a);
     a4_id := (a4->>'assay_result_id')::uuid;
     PERFORM apply_output_assay(a4_id);
 

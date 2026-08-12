@@ -100,7 +100,10 @@ const STATUS_GUARDS = {
 // 这两条每次都真的渲染。)
 // 父子配套取 id 的特例(主循环里单独处理,不走 ID_SOURCES)——
 // 抽成常量,好让开跑前的预检与主循环【读同一份名单】,不至于各说各话。
-const SPECIAL_ID_ROUTES = new Set(['/inbound/[id]/assays/[assayId]'])
+const SPECIAL_ID_ROUTES = new Set([
+    '/inbound/[id]/assays/[assayId]',
+    '/output/[id]/assays/[assayId]',      // PROC-1b:产出化验,父是 output_batch_id
+])
 
 const EXPECTED_SKIPS = new Set([
     '/hr/claims/[id]',    // medical_claims 空 —— 正常运营会产生;有数据那天此断言逼人收编
@@ -108,6 +111,9 @@ const EXPECTED_SKIPS = new Set([
     // FRT-1:freight_documents 空 —— 线上还没录过运费单。录第一张的那天,
     // 这条断言会逼人把它从这里删掉(与上面两条同一个用意:跳过是记录,不是默许)。
     '/finance/freight/[id]',
+    // PROC-1b:线上还没有一份产出化验(机制与屏幕先于第一张真单据落地)。
+    // 录第一张的那天,这条断言会逼人把它从这里删掉。
+    '/output/[id]/assays/[assayId]',
 ])
 // ── 冒烟临时行的标识 ─────────────────────────────────────────────────────────
 // 员工行和评估行会出现在 HR 界面和待办板上 —— 必须一眼即知是脚本垃圾,不是一名
@@ -506,6 +512,15 @@ async function main() {
                     `${route} ← assay_results`)
                 if (!rows[0]) { skipped.add(route); console.log(`  SKIP ${route}  (no data in assay_results)`); continue }
                 url = route.replace('[id]', rows[0].inbound_batch_id).replace('[assayId]', rows[0].id)
+            }
+            // PROC-1b:产出化验 —— 同一张表的另一个父;不按父过滤就会把另一侧的
+            // NULL 当成 id 塞进段里(与上面那条互为镜像)
+            if (route === '/output/[id]/assays/[assayId]') {
+                const rows = await restRows(
+                    '/rest/v1/assay_results?select=id,output_batch_id&deleted_at=is.null&output_batch_id=not.is.null&limit=1',
+                    `${route} ← assay_results`)
+                if (!rows[0]) { skipped.add(route); console.log(`  SKIP ${route}  (no data in assay_results)`); continue }
+                url = route.replace('[id]', rows[0].output_batch_id).replace('[assayId]', rows[0].id)
             }
             // 状态门路由:取同一行的 id 和 status,预期值算出来、精确断言
             let exact = null
