@@ -1,12 +1,11 @@
 // SO-1:销售订单在应用这一侧的形状与共用零件。
 //
-// 【权限:module.finance.*】—— 线上【没有】 module.sales.* 这对码(查过目录)。
-// 销售这条链今天是分开的:record_output_sale 要 module.output.edit,而
-// sales_records 的 RLS 与 create_invoice / attribute_sale_customer 都是
-// module.finance.*。订单四张表跟着 sales_records 自己的策略走,页面因此也用
-// requireModule(MOD.finance)。【这留下一个真实的分叉】:今天录入销售的人持的是
-// output.edit,与打开这张订单页所需的不是同一对码 —— 记在这里,等 Tim 决定是
-// 开一个 module.sales.*,还是把销售入口整体挪进财务。
+// 【权限:module.sales.view / module.sales.edit】(SO-1-fu)
+// 销售是一个真模块:自己的单据、自己的角色、自己的操作面。上一刀曾把这四张表
+// 挂在 module.finance.* 上(理由是"跟着数据自己的策略走"),那是错的 ——
+// 那条经验用来避免给【既有】数据换一套没人想过的权限,而这四张表就是新策略本身。
+// 订单先于财务:财务拥有的是事后那条链(sales_records / invoices / AR)。
+// 三条理由完整写在 db/migrations/2026-08-13-so1-fu1-sales-module-permission.sql。
 
 export const SO_STATUSES = ['draft', 'confirmed', 'closed', 'cancelled'] as const
 export type SoStatus = (typeof SO_STATUSES)[number]

@@ -29,4 +29,4 @@ ALTER TABLE public.sales_order_history ENABLE ROW LEVEL SECURITY;
 -- 留痕与签发档【没有 INSERT 策略】:唯一写入口是属主权限的函数
 -- (同 approval_log / notifications:留痕不该有第二个写法)。
 CREATE POLICY "sales_order_history select by permission" ON public.sales_order_history
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.finance.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.sales.view'::text));

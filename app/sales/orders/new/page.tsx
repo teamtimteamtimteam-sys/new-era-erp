@@ -3,12 +3,12 @@ import { createClient } from '@/lib/supabase/server'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import Subnav from '@/app/finance/Subnav'
+import Subnav from '@/app/sales/Subnav'
 import NewOrderForm from './NewOrderForm'
 import { can } from '@/lib/permissions'
 
 export default async function NewSalesOrderPage() {
-    const denied = await requireModule(MOD.finance)
+    const denied = await requireModule(MOD.sales)
     if (denied) return denied
     await getTranslations()
     const supabase = await createClient()

@@ -6,12 +6,13 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustRows, mustOne } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import Subnav from '@/app/finance/Subnav'
+import Subnav from '@/app/sales/Subnav'
 import { soStatusKey, SO_ALLOWED_NEXT } from '../salesOrderTypes'
 import TransitionPanel from './TransitionPanel'
+import IssuePanel from './IssuePanel'
 
 export default async function SalesOrderPage({ params }: { params: Promise<{ id: string }> }) {
-    const denied = await requireModule(MOD.finance)
+    const denied = await requireModule(MOD.sales)
     if (denied) return denied
     const { id } = await params
     const t = await getTranslations()
@@ -107,6 +108,7 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
 
                 <h2 className="font-medium mt-8 mb-2">{t('sales.issues')}</h2>
                 {/* 【没有"已发送"标志】系统不知道对方收没收到 —— 见 so_issues 表注释 */}
+                <IssuePanel orderId={o.id} status={o.status} />
                 <p className="text-xs text-gray-500 mb-2">{t('sales.issuesNote')}</p>
                 {issues.length === 0 ? (
                     <p className="text-gray-500 text-sm">{t('sales.noIssues')}</p>
@@ -114,7 +116,11 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                     <ul className="text-sm space-y-1">
                         {issues.map((i) => (
                             <li key={i.version} className="font-mono text-xs">
-                                v{i.version} · {new Date(i.issued_at).toLocaleString(dl)} · {i.sha256.slice(0, 12)}…
+                                <a href={`/sales/orders/${o.id}/pdf?version=${i.version}`} target="_blank"
+                                   rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                    v{i.version}
+                                </a>
+                                {' · '}{new Date(i.issued_at).toLocaleString(dl)} · {i.sha256.slice(0, 12)}…
                             </li>
                         ))}
                     </ul>

@@ -73,6 +73,10 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
     ('module.hr.edit', 'module', 'HR (edit)', '人力资源(编辑)', 'Employees, payroll and training — create, change, remove', '员工、薪资与培训 —— 新建、修改、删除', 121),
     ('module.tasks.view', 'module', 'Tasks (view)', '任务(查看)', 'Task board — read only', '任务板 —— 只读', 130),
     ('module.tasks.edit', 'module', 'Tasks (edit)', '任务(编辑)', 'Task board — create, change, remove', '任务板 —— 新建、修改、删除', 131),
+    -- SO-1-fu:销售是一个真模块(自己的单据、角色、操作面)。订单先于财务 ——
+    -- 财务拥有的是事后那条链(sales_records / invoices / AR)。
+    ('module.sales.view', 'module', 'Sales orders (view)', '销售订单(查看)', 'Sales orders — read only', '销售订单 —— 只读', 132),
+    ('module.sales.edit', 'module', 'Sales orders (edit)', '销售订单(编辑)', 'Sales orders — create, confirm, cancel, issue', '销售订单 —— 新建、确认、作废、签发', 133),
     ('data.view_prices', 'data', 'View prices & costs', '查看价格与成本', 'Unit prices, pricing formulas, costs and margins', '单价、计价公式、成本与利润', 200),
     ('data.view_pay', 'data', 'View pay', '查看薪酬', 'Salary, CPF and payroll figures', '工资、公积金与薪资明细', 210),
     ('data.view_identity', 'data', 'View identity data', '查看身份信息', 'Identity numbers and work pass numbers', '身份证件号与工作准证号', 220),

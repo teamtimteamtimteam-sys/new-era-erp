@@ -8,7 +8,7 @@ DECLARE
     v_order sales_orders%ROWTYPE;
     v_next  integer;
 BEGIN
-    PERFORM require_permission('module.finance.edit');
+    PERFORM require_permission('module.sales.edit');
 
     SELECT * INTO v_order FROM sales_orders WHERE id = p_order_id AND deleted_at IS NULL;
     IF NOT FOUND THEN

@@ -2,6 +2,7 @@ import type { Messages } from '@/lib/i18n/config'
 
 const zh = {
     nav: {
+        sales: '销售',
         me: '我的档案',
         myReviews: '我评的评估',
         settings: '设置',
@@ -22,6 +23,8 @@ const zh = {
         logout: '登出',
     },
     home: {
+        salesTitle: '销售订单',
+        salesDesc: '客户订单 —— 那份承诺,发生在发货与开票之前。',
         subtitle: '锂电池回收 ERP 系统',
         noModules: '你还没有任何模块的权限。',
         noModulesHint: '账号已登录,但尚未被授予任何模块 —— 请联系管理员为你分配角色。',
@@ -1365,6 +1368,9 @@ const zh = {
         },
     },
     sales: {
+        subnav: {
+            orders: '订单',
+        },
         listTitle: '销售订单',
         newOrder: '新建订单',
         newTitle: '新建销售订单',
@@ -1379,6 +1385,9 @@ const zh = {
         issues: '签发版本',
         issuesNote: '每次重新签发都【追加】一个新版本,旧版本原样留着 —— 客户手里那份是某个具体版本。【没有"已发送"标志】:系统不知道对方收没收到。',
         noIssues: '尚未签发。',
+        previewPdf: '预览 PDF',
+        issuePdf: '签发 PDF',
+        issueBlockedDraft: '草稿还不是承诺 —— 先确认订单再签发。',
         history: '变更留痕',
         terminal: '这张单已经是终态,没有下一步。',
         transitionNote: '允许的去处是【逐个状态列出来的】,不是"除了 X 都行" —— 数据库里有同一张表,而且它说了算。',

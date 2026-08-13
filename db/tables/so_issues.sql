@@ -33,4 +33,4 @@ CREATE TRIGGER trg_so_issues_append_only
 ALTER TABLE public.so_issues           ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "so_issues select by permission" ON public.so_issues
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.finance.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.sales.view'::text));

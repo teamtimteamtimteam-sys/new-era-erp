@@ -8,7 +8,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import Subnav from '@/app/finance/Subnav'
+import Subnav from '@/app/sales/Subnav'
 import { soStatusKey } from './salesOrderTypes'
 
 type Row = {
@@ -17,7 +17,7 @@ type Row = {
 }
 
 export default async function SalesOrdersPage() {
-    const denied = await requireModule(MOD.finance)
+    const denied = await requireModule(MOD.sales)
     if (denied) return denied
     const t = await getTranslations()
     const locale = await getLocale()

@@ -7,8 +7,9 @@
 -- 【与 sales_records 是两件事】订单是"答应卖给某人",销售记录是"已经卖了"。
 -- customer_id NOT NULL —— 订单的主语就是那个客户;无客户的销售仍走直接销售那条路。
 -- 【履约/发货状态归发货那一刀】,加在这里之前先读 status 那一列的注释。
--- 【权限 module.finance.*】module.sales.* 线上不存在(查过目录),跟着
--- sales_records 自己的策略走;这留下一个真实的分叉,见迁移抬头。
+-- 【权限 module.sales.*】(SO-1-fu)销售是一个真模块,订单先于财务 ——
+-- 财务拥有的是事后那条链(sales_records / invoices / AR)。三条理由写在
+-- db/migrations/2026-08-13-so1-fu1-sales-module-permission.sql。
 
 -- ═══ 1 · 单据头 ═════════════════════════════════════════════════════════════
 CREATE TABLE public.sales_orders (
@@ -63,11 +64,11 @@ CREATE TRIGGER trg_sales_orders_confirmed_immutable
 ALTER TABLE public.sales_orders        ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "sales_orders select by permission" ON public.sales_orders
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.finance.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.sales.view'::text));
 
 CREATE POLICY "sales_orders insert by permission" ON public.sales_orders
-    AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK (has_permission('module.finance.edit'::text));
+    AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK (has_permission('module.sales.edit'::text));
 
 CREATE POLICY "sales_orders update by permission" ON public.sales_orders
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.finance.edit'::text)) WITH CHECK (has_permission('module.finance.edit'::text));
+    USING (has_permission('module.sales.edit'::text)) WITH CHECK (has_permission('module.sales.edit'::text));

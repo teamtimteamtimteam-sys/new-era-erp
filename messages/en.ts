@@ -1,5 +1,6 @@
 const en = {
     nav: {
+        sales: 'Sales',
         me: 'My profile',
         myReviews: 'My reviews',
         settings: 'Settings',
@@ -20,6 +21,8 @@ const en = {
         logout: 'Log out',
     },
     home: {
+        salesTitle: 'Sales orders',
+        salesDesc: 'Customer orders — the commitment, before anything ships or is invoiced.',
         subtitle: 'Lithium Battery Recycling ERP',
         noModules: 'You do not yet have access to any module.',
         noModulesHint: 'Your account is signed in but no module has been granted to it. Ask an administrator to assign you a role.',
@@ -1365,6 +1368,9 @@ const en = {
         },
     },
     sales: {
+        subnav: {
+            orders: 'Orders',
+        },
         listTitle: 'Sales orders',
         newOrder: 'New order',
         newTitle: 'New sales order',
@@ -1379,6 +1385,9 @@ const en = {
         issues: 'Issued versions',
         issuesNote: 'Each re-issue appends a new version; older versions are kept because the copy the customer holds is a specific version. There is no "sent" flag — the system does not know what the counterparty received.',
         noIssues: 'Not issued yet.',
+        previewPdf: 'Preview PDF',
+        issuePdf: 'Issue PDF',
+        issueBlockedDraft: 'A draft is not a commitment — confirm the order before issuing.',
         history: 'History',
         terminal: 'This order is in a final state — no further transitions.',
         transitionNote: 'Allowed transitions are listed per state, not as an exclusion — the database holds the same table and always wins.',

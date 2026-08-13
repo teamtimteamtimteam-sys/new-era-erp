@@ -105,6 +105,10 @@ export const MODULES: ModuleEntry[] = [
       permission: 'module.inventory.view', section: 'reports' },
     { href: '/stocktakes', navKey: 'nav.stocktakes', titleKey: 'home.stocktakesTitle', descKey: 'home.stocktakesDesc',
       permission: 'module.stocktakes.view', section: 'operations' },
+    // SO-1-fu:销售是一个【真模块】—— 自己的单据、自己的角色、自己的操作面。
+    // 【additive】:只增一条,不动 NAV-1 冻结的那次重排。
+    { href: '/sales/orders', navKey: 'nav.sales', titleKey: 'home.salesTitle', descKey: 'home.salesDesc',
+      permission: 'module.sales.view', section: 'operations' },
     { href: '/finance', navKey: 'nav.finance', titleKey: 'home.financeTitle', descKey: 'home.financeDesc',
       permission: 'module.finance.view', section: 'reports' },
     // 任务板改造前就只在导航里、不在首页卡片里 —— section: null 把这件事写下来而不是让它
@@ -152,6 +156,7 @@ const byHref = (href: string): ModuleEntry => {
 }
 
 export const MOD = {
+    sales: byHref('/sales/orders'),
     suppliers: byHref('/suppliers'),
     purchasing: byHref('/purchasing'),
     customers: byHref('/customers'),

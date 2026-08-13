@@ -68,8 +68,8 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'module.pricing.view', 'module.processing.edit', 'module.processing.view',
         'module.purchasing.edit', 'module.purchasing.view', 'module.stocktakes.edit',
         'module.stocktakes.view', 'module.suppliers.edit', 'module.suppliers.view',
-        'module.tasks.edit', 'module.tasks.view'
-) WHERE r.code = 'admin';
+        'module.tasks.edit', 'module.tasks.view',
+        'module.sales.edit', 'module.sales.view') WHERE r.code = 'admin';
 
 -- gm(30):看得见整个生意,包括成本与利润;【但不能改权限】—— 没有 action.manage_permissions。
 INSERT INTO public.role_permissions (role_id, permission_code)
@@ -83,8 +83,8 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'module.processing.edit', 'module.processing.view', 'module.purchasing.edit',
         'module.purchasing.view', 'module.stocktakes.edit', 'module.stocktakes.view',
         'module.suppliers.edit', 'module.suppliers.view', 'module.tasks.edit',
-        'module.tasks.view'
-) WHERE r.code = 'gm';
+        'module.tasks.view',
+        'module.sales.edit', 'module.sales.view') WHERE r.code = 'gm';
 
 -- finance(23):总账、应付应收、开票收付款 + 全部成本可见。【不含 HR】—— 薪酬与员工档案不是财务的工作对象。
 INSERT INTO public.role_permissions (role_id, permission_code)
@@ -115,8 +115,8 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'data.view_prices', 'data.view_sales', 'module.customers.edit', 'module.customers.view',
         'module.inventory.edit', 'module.inventory.view', 'module.materials.view',
         'module.output.edit', 'module.output.view', 'module.pricing.edit',
-        'module.pricing.view', 'module.tasks.edit', 'module.tasks.view'
-) WHERE r.code = 'sales';
+        'module.pricing.view', 'module.tasks.edit', 'module.tasks.view',
+        'module.sales.edit', 'module.sales.view') WHERE r.code = 'sales';
 
 -- operations(14):加工、库存、盘点:管数量、产出与回收率。【不给 data.view_prices】—— 少一个人看得见成本就少一处泄露。
 INSERT INTO public.role_permissions (role_id, permission_code)
@@ -151,8 +151,8 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'module.hr.view', 'module.inbound.view', 'module.inventory.view',
         'module.materials.view', 'module.output.view', 'module.pricing.view',
         'module.processing.view', 'module.purchasing.view', 'module.stocktakes.view',
-        'module.suppliers.view', 'module.tasks.view'
-) WHERE r.code = 'auditor';
+        'module.suppliers.view', 'module.tasks.view',
+        'module.sales.view') WHERE r.code = 'auditor';
 
 -- employee:【一个模块权限都不给】—— 员工自助是行级的,靠 current_user_employee()
 -- 限定到本人相关的行。给模块权限反而会把整张表打开。

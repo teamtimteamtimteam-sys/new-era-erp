@@ -18,6 +18,7 @@
 --   E 状态机:closed/cancelled 是终态;作废必须带理由
 --   F 信用冻结:冻结时确认被拒,解冻后同一张单确认得了
 --   G 签发:版本从 1 递增,sha256 记下;重新签发追加;UPDATE/DELETE 按名拒
+--   I 权限:sales 读得到;无码读不到;【持 finance 而无 sales.view 也读不到】
 --   H 注入:把冻结守卫上的 customer_id 那一条拿掉 → D 臂当场失守
 --
 -- 日期无关。自带数据(README 第 2 条)。
@@ -26,7 +27,9 @@ BEGIN;
 DO $$
 DECLARE
     v_user uuid := gen_random_uuid();
-    r_all uuid; v_cust uuid; v_cust2 uuid; v_mat uuid; v_ccy text;
+    u_sales uuid := gen_random_uuid();   -- 只有 module.sales.view
+    u_fin   uuid := gen_random_uuid();   -- 只有 module.finance.*(【没有】 sales.view)
+    r_all uuid; r_sales uuid; r_fin uuid; v_cust uuid; v_cust2 uuid; v_mat uuid; v_ccy text;
     so1 uuid; so2 uuid; v_code text; v_code2 uuid;
     v_n int; v_ok boolean; v_msg text; v_ver int; d date := CURRENT_DATE;
     SHA text := repeat('a', 64);
@@ -35,6 +38,18 @@ BEGIN
     VALUES ('fixture-63', 'f', 'f', true) RETURNING id INTO r_all;
     INSERT INTO role_permissions (role_id, permission_code) SELECT r_all, code FROM permissions;
     INSERT INTO user_roles (user_id, role_id) VALUES (v_user, r_all);
+    -- SO-1-fu:两个【只读一种码】的读者,用来钉住权限真的切过去了
+    INSERT INTO roles (code, name_en, name_zh, is_active)
+    VALUES ('fixture-63-sales', 'f', 'f', true) RETURNING id INTO r_sales;
+    INSERT INTO role_permissions (role_id, permission_code) VALUES (r_sales, 'module.sales.view');
+    INSERT INTO user_roles (user_id, role_id) VALUES (u_sales, r_sales);
+
+    INSERT INTO roles (code, name_en, name_zh, is_active)
+    VALUES ('fixture-63-fin', 'f', 'f', true) RETURNING id INTO r_fin;
+    INSERT INTO role_permissions (role_id, permission_code)
+    VALUES (r_fin, 'module.finance.view'), (r_fin, 'module.finance.edit');
+    INSERT INTO user_roles (user_id, role_id) VALUES (u_fin, r_fin);
+
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_user), true);
 
@@ -207,6 +222,41 @@ BEGIN
                 v_n, COALESCE(v_msg, '(改成功了)');
         END IF;
     END LOOP;
+
+    -- ══════════ I. 权限真的切到 module.sales.* 了(SO-1-fu)═══════════════════
+    -- 【只断言"新码能读"是不够的】——那在旧码还留着的情况下同样通过。所以三个
+    -- 方向一起钉:sales 读得到、无码读不到、【持 finance 但无 sales.view 也读不到】。
+    -- 最后那一条才是"切换真的发生了"的证据。
+    PERFORM set_config('request.jwt.claims',
+        format('{"sub":"%s","role":"authenticated"}', u_sales), true);
+    EXECUTE 'SET LOCAL ROLE authenticated';
+    SELECT count(*) INTO v_n FROM sales_orders;
+    RESET ROLE;
+    IF v_n = 0 THEN
+        RAISE EXCEPTION 'FIXTURE 63I 失败:持 module.sales.view 的读者应当读得到订单';
+    END IF;
+
+    PERFORM set_config('request.jwt.claims',
+        format('{"sub":"%s","role":"authenticated"}', u_fin), true);
+    EXECUTE 'SET LOCAL ROLE authenticated';
+    SELECT count(*) INTO v_n FROM sales_orders;
+    RESET ROLE;
+    IF v_n <> 0 THEN
+        RAISE EXCEPTION 'FIXTURE 63I 失败:持 module.finance.* 但【没有】 module.sales.view 的读者不该读得到订单(实得 % 行)—— 说明策略还挂在 finance 上,切换没真的发生', v_n;
+    END IF;
+
+    PERFORM set_config('request.jwt.claims',
+        format('{"sub":"%s","role":"authenticated"}', gen_random_uuid()), true);
+    EXECUTE 'SET LOCAL ROLE authenticated';
+    SELECT count(*) INTO v_n FROM sales_orders;
+    RESET ROLE;
+    IF v_n <> 0 THEN
+        RAISE EXCEPTION 'FIXTURE 63I 失败:没有任何权限的读者不该读得到订单(实得 % 行)', v_n;
+    END IF;
+
+    -- 回到全权限读者,后面的注入臂要用
+    PERFORM set_config('request.jwt.claims',
+        format('{"sub":"%s","role":"authenticated"}', v_user), true);
 
     -- ══════════ H. 注入:把冻结守卫上的那一条拿掉 → D 臂当场失守 ═══════════════
     EXECUTE $inj$
