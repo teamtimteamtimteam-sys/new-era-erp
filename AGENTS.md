@@ -381,6 +381,28 @@ with **both** doors written back into the view body — the module predicate *an
 the data-class predicate. Owner rights bypass the column grant, so omitting the
 second hands restricted values to anyone who can enter the module.
 
+### 属主权限视图替得了【表】,替不了【函数的 EXECUTE】
+
+**`security_invoker = off` 让视图对它引用的表/视图用【视图属主】的权限。视图体里
+调用函数时,`EXECUTE` 仍然按【当前用户】判 —— 属主替换不覆盖函数执行权限。**
+
+所以"属主视图 + 体内调一个已收权的函数"这个组合【行不通】:读者会撞上
+`42501 permission denied for function …`。要么那个函数对读者可执行(那它就不能是
+靠"调不到"把关的内层函数),要么把判据放进一张【基视图】—— 视图引用视图【是】
+走属主替换的,再由带 `has_permission` 的外层视图去读它。
+
+**这条已经被发现三次,而它此前只写在学到它的那两个对象上,所以第三次又是从头查的:**
+
+* `db/views/customer_credit_status.sql` 的表注释(SAL-B4/B6):敞口因此走
+  【有检查的外壳】`customer_ar_exposure_visible`,不走被收权的内层算子;
+* `db/migrations/2026-08-10-asy1b-guard-is-invoker.sql`:同一件事在触发器守卫上
+  的版本;
+* RPT-1(2026-08-13):判据放进被收权的 SQL 函数、由属主视图调用,
+  `/inventory/reports/violations` 当场 500 —— 冒烟查出来的,改法就是上面那张基视图
+  (`stock_class_violations_all`)。
+
+**判据一句话:属主视图里出现函数调用时,先问"读者能不能执行它"。**
+
 ### `colreader` asked about COLUMNS — `xmodule` asks about ROWS (OPS-14)
 
 **A `security_invoker` view that joins tables from more than one module does not
