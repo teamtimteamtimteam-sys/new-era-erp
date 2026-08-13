@@ -14,6 +14,7 @@ import { mustCount, mustOne, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { getBaseCurrency } from '@/lib/currency'
+import Subnav from './Subnav'
 
 type MaterialEmbed = { name: string; category: string } | null
 
@@ -221,6 +222,8 @@ export default async function InventoryPage() {
     }
 
     return (
+        <>
+            <Subnav />
         <div className="p-8 space-y-6">
             <div className="flex justify-between items-start gap-4">
                 <div>
@@ -367,5 +370,6 @@ export default async function InventoryPage() {
                 </p>
             </section>
         </div>
+        </>
     )
 }

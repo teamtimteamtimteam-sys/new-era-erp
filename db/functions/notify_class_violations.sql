@@ -9,37 +9,21 @@ DECLARE
     v_fp    text;
     v_actor uuid := auth.uid();
 BEGIN
+    -- RPT-1:判据【搬出去了】—— 三态谓词现在只住在 stock_class_violations_rows()
+    -- 里,本函数与报表中心的那张视图【读的是同一处】。此前它写在这里,而报表
+    -- 要的是同一个问题的全库答案:抄一份过去,就是第二份会漂开的三态判据,
+    -- 而漂开的后果是"通知说违规、报表说没有"(或反过来)。
+    -- 【为什么读函数而不是那张视图】视图体里带 has_permission —— 那是给【读报表
+    -- 的人】用的门。发射器跑在触发器里,行为不该取决于【当时那个人】有没有库存
+    -- 模块的读权限:一个只有 materials.edit 的角色改了分类,事件照样必须留下。
+    -- 今天每个持 materials.edit 的角色恰好都有 inventory.view,所以这是一个
+    -- 【潜伏】的洞而不是已经在漏的洞 —— 但它不会报错,只会静悄悄地不发事件。
     FOR r IN
-        WITH avail AS (
-            SELECT mv.location_id,
-                   COALESCE(ib.material_id, ob.material_id) AS material_id,
-                   sum(mv.qty_delta) AS qty
-              FROM inventory_movements mv
-                   LEFT JOIN inbound_batches ib ON ib.id = mv.inbound_batch_id
-                   LEFT JOIN output_batches  ob ON ob.id = mv.output_batch_id
-             WHERE mv.stock_status = 'available'
-               AND mv.location_id IS NOT NULL
-             GROUP BY 1, 2
-            HAVING sum(mv.qty_delta) > 0
-        )
-        SELECT a.location_id, a.material_id, a.qty,
-               m.code AS material_code, m.waste_classification_code AS class_code,
-               sl.code AS location_code
-          FROM avail a
-               JOIN materials m          ON m.id  = a.material_id
-               JOIN storage_locations sl ON sl.id = a.location_id
-         WHERE (p_material_ids IS NULL OR a.material_id = ANY (p_material_ids))
-           AND (p_location_ids IS NULL OR a.location_id = ANY (p_location_ids))
-           AND m.deleted_at IS NULL
-           -- 未分类 = 没人做过决定 → 不是违规
-           AND m.waste_classification_code IS NOT NULL
-           -- 零行 = 未配置 = 没人做过决定 → 不是违规
-           AND EXISTS (SELECT 1 FROM storage_location_allowed_classes c
-                        WHERE c.location_id = a.location_id)
-           -- 配了、且不含这一类 → 违规
-           AND NOT EXISTS (SELECT 1 FROM storage_location_allowed_classes c
-                            WHERE c.location_id = a.location_id
-                              AND c.classification_code = m.waste_classification_code)
+        SELECT v.location_id, v.material_id, v.qty,
+               v.material_code, v.class_code, v.location_code
+          FROM stock_class_violations_all v
+         WHERE (p_material_ids IS NULL OR v.material_id = ANY (p_material_ids))
+           AND (p_location_ids IS NULL OR v.location_id = ANY (p_location_ids))
     LOOP
         v_fp := r.material_id::text || '|' || r.location_id::text || '|' || r.class_code;
 

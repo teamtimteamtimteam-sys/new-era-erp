@@ -89,10 +89,9 @@ def replay_order():
     meta = {f: (cm.created_tables(t), cm.table_deps(t, cm.created_tables(t), allt))
             for f, t in txt.items()}
     tbl_order = cm.toposort(meta)
-    vtxt = {f: f.read_text() for f in vw}
-    vnames = {f.stem for f in vw}
-    vw_order = sorted(vw, key=lambda f: (
-        len([v for v in vnames - {f.stem} if re.search(rf"\b{v}\b", vtxt[f])]), f.name))
+    # 【视图顺序调 check_mirrors 那一份】此前这里抄了一遍,于是 RPT-1 在那边
+    # 修好了 COMMENT 里点名造成的假依赖,这边照旧红 —— 第二份实现的老毛病。
+    vw_order = cm.view_replay_order(vw)
     return fn, tbl_order, vw_order
 
 

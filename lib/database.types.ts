@@ -2198,6 +2198,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "inbound_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stock_snapshot"
+            referencedColumns: ["material_id"]
+          },
+          {
             foreignKeyName: "inbound_batches_pricing_formula_id_fkey"
             columns: ["pricing_formula_id"]
             isOneToOne: false
@@ -3278,6 +3285,13 @@ export type Database = {
             referencedRelation: "materials"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "material_attachments_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stock_snapshot"
+            referencedColumns: ["material_id"]
+          },
         ]
       }
       materials: {
@@ -3777,6 +3791,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "materials"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "output_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stock_snapshot"
+            referencedColumns: ["material_id"]
           },
         ]
       }
@@ -6050,6 +6071,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "purchase_order_lines_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stock_snapshot"
+            referencedColumns: ["material_id"]
+          },
+          {
             foreignKeyName: "purchase_order_lines_pricing_formula_id_fkey"
             columns: ["pricing_formula_id"]
             isOneToOne: false
@@ -8285,6 +8313,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "inbound_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stock_snapshot"
+            referencedColumns: ["material_id"]
+          },
+          {
             foreignKeyName: "inbound_batches_pricing_formula_id_fkey"
             columns: ["pricing_formula_id"]
             isOneToOne: false
@@ -9417,6 +9452,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "purchase_order_lines_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stock_snapshot"
+            referencedColumns: ["material_id"]
+          },
+          {
             foreignKeyName: "purchase_order_lines_pricing_formula_id_fkey"
             columns: ["pricing_formula_id"]
             isOneToOne: false
@@ -10481,6 +10523,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "purchase_order_lines_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stock_snapshot"
+            referencedColumns: ["material_id"]
+          },
+          {
             foreignKeyName: "purchase_order_lines_pricing_formula_id_fkey"
             columns: ["pricing_formula_id"]
             isOneToOne: false
@@ -10964,6 +11013,80 @@ export type Database = {
             columns: ["output_batch_id"]
             isOneToOne: false
             referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_class_violations: {
+        Row: {
+          class_code: string | null
+          location_code: string | null
+          location_id: string | null
+          material_code: string | null
+          material_id: string | null
+          qty: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "storage_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "materials_waste_classification_code_fkey"
+            columns: ["class_code"]
+            isOneToOne: false
+            referencedRelation: "waste_classifications"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      stock_class_violations_all: {
+        Row: {
+          class_code: string | null
+          location_code: string | null
+          location_id: string | null
+          material_code: string | null
+          material_id: string | null
+          qty: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "storage_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "materials_waste_classification_code_fkey"
+            columns: ["class_code"]
+            isOneToOne: false
+            referencedRelation: "waste_classifications"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      stock_snapshot: {
+        Row: {
+          location_code: string | null
+          location_id: string | null
+          location_name: string | null
+          material_code: string | null
+          material_id: string | null
+          material_name: string | null
+          qty: number | null
+          stock_status: string | null
+          unit: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "storage_locations"
             referencedColumns: ["id"]
           },
         ]

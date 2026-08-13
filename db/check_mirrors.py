@@ -315,6 +315,36 @@ def toposort(files: dict) -> list:
     return order
 
 
+
+def view_replay_order(view_files):
+    """视图的重放顺序:正文里引用了别的视图名的排在后面。
+
+    【一处实现,两个调用方】check_mirrors 与 verify_rebuild 都要这一份顺序。
+    此前两边各写了一遍,于是 RPT-1 修好了这边、那边照旧红 —— 正是本仓库反复
+    付账的"第二份实现"。verify_rebuild 现在调这个函数。
+    """
+    txt = {f: strip_sql_strings(f.read_text()) for f in view_files}
+    names = {f.stem for f in view_files}
+    return sorted(
+        view_files,
+        key=lambda f: (len([v for v in names - {f.stem} if re.search(rf"\b{v}\b", txt[f])]), f.name),
+    )
+
+
+def strip_sql_strings(sql: str) -> str:
+    """把字符串字面量与 -- 行注释去掉,供【依赖扫描】用。
+
+    只服务于"哪张视图引用了哪张视图"的判断。视图之间的引用只出现在【标识符】
+    位置,而抬头注释与 COMMENT ON 正文经常点名别的对象 —— RPT-1 两处都踩到:
+      * COMMENT ON VIEW 的正文里写了另一张视图的名字;
+      * 文件抬头的 -- 注释里也写了。
+    两者都会被算成一次"引用",让两张视图互相依赖、计数打平,顺序退化成文件名
+    排序,重放当场失败(relation ... does not exist)。所以两种都剥掉。
+    不处理 $$ 引用体 —— 视图镜像里没有。
+    """
+    sql = re.sub(r"'(?:[^']|'')*'", "''", sql)      # 字符串字面量
+    return re.sub(r"--[^\n]*", "", sql)             # -- 行注释
+
 def build_sql() -> str:
     fn_files = sorted((REPO / "db" / "functions").glob("*.sql"))
     tbl_files = sorted((REPO / "db" / "tables").glob("*.sql"))
@@ -329,12 +359,14 @@ def build_sql() -> str:
     tbl_order = toposort(tbl_meta)
 
     # 视图排序:正文里引用了别的视图名的排后面(目前仅一层,通用写法防患未然)
-    view_txt = {f: f.read_text() for f in view_files}
-    view_names = {f.stem for f in view_files}
-    view_order = sorted(
-        view_files,
-        key=lambda f: (len([v for v in view_names - {f.stem} if re.search(rf"\b{v}\b", view_txt[f])]), f.name),
-    )
+    #
+    # 【先把字符串字面量剥掉再扫】(RPT-1 实测)COMMENT ON VIEW 的正文里提到另一张
+    # 视图的名字,会被当成一次【引用】—— 于是两张互相在注释里点名的视图各自都
+    # "依赖对方",计数打平,顺序退化成文件名排序,重放当场失败:
+    #     REPLAY FAILED ... relation "stock_class_violations_all" does not exist
+    # 而真正的依赖是单向的。视图之间的引用只会出现在【标识符】位置,不会写在
+    # 字符串里,所以剥掉字面量既安全又更准。
+    view_order = view_replay_order(view_files)
 
     parts = [
         "BEGIN;",

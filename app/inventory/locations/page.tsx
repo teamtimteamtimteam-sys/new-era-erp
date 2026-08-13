@@ -17,6 +17,7 @@ import { MOD } from '@/lib/modules'
 import { getWasteClassifications } from '@/app/materials/wasteClassQuery'
 import { isUnconfigured } from './locationTypes'
 import LocationActiveToggle from './LocationActiveToggle'
+import Subnav from '../Subnav'
 
 type FetchRow = {
     id: string
@@ -60,6 +61,8 @@ export default async function LocationsPage() {
     }
 
     return (
+        <>
+            <Subnav />
         <div className="p-4 sm:p-8">
             <div className="mb-6">
                 <Link href="/inventory" className="text-blue-600 hover:underline text-sm">
@@ -158,5 +161,6 @@ export default async function LocationsPage() {
                 </div>
             )}
         </div>
+        </>
     )
 }
