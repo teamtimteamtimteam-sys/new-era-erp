@@ -315,6 +315,10 @@ const MANIFEST = {
     'stocktakes.errors.':   { kind: 'enum', values: () => tsSet('app/stocktakes/stocktakeErrorCodes.ts', 'STOCKTAKE_ERROR_CODES') },
     'locations.errors.':    { kind: 'enum', values: () => tsSet('app/inventory/locations/locationErrorCodes.ts', 'LOCATION_ERROR_CODES') },
     'stock.errors.':        { kind: 'enum', values: () => tsSet('app/components/inventory/stockErrorCodes.ts', 'STOCK_ERROR_CODES') },
+    // IOD-2:告警走的是【返回值】那条通道,集合与拒绝分开(见那个文件的抬头)。
+    // 分开登记而不是并进上一行 —— 两个集合本来就不该混,合并会让"把告警当拒绝"
+    // 这件事重新变得写得出来。
+    'stock.warnings.':      { kind: 'enum', values: () => tsSet('app/components/inventory/stockErrorCodes.ts', 'STOCK_WARNING_CODES') },
     'processing.errors.':   { kind: 'enum', values: () => tsSet('app/processing/errorCodes.ts', 'PROCESSING_ERROR_CODES') },
     'finance.accountType.': { kind: 'enum', values: () => sqlEnum('db/tables/accounts.sql', 'account_type') },
     'finance.aging.':       { kind: 'enum', values: () => tsArray('app/finance/agingBuckets.ts', 'BUCKETS') },

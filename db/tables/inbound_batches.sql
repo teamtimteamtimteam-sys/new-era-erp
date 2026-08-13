@@ -199,6 +199,9 @@ CREATE POLICY "inbound_batches select by permission"
 -- 所以不需要这条策略;而撤掉它,直接 POST /rest/v1/<表> 会被 RLS 拒。
 -- 【为什么】IOD-2 要在"货落进哪个库位"上设闸,而一个留着侧门的卡口不是卡口 ——
 -- 先把门收成一扇,IOD-2 只需在这一扇门上加判断,不必追第二条路径。
+-- 【IOD-2 已经落闸(2026-08-13)】判断就加在这一扇门上:check_location_class,
+-- 见 storage_location_allowed_classes 表头。这条策略因此是【它的前提】,不是
+-- 一次顺手收紧 —— 撤掉它,闸就又有了一条绕过去的路。
 -- commit_processing_run 同为 DEFINER,不受影响(fixture 58 D 臂钉住)。
 
 CREATE POLICY "inbound_batches update by permission"

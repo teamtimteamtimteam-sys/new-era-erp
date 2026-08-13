@@ -70,3 +70,8 @@ REVOKE EXECUTE ON FUNCTION public.mirror_consume_restore(uuid, uuid, uuid, numer
 -- (进料 inbound.edit / 产出 output.edit)且各自已把过关 —— 给它挑一个权限码
 -- 只能挑一个比两者都松的。靠"调不到"。
 REVOKE EXECUTE ON FUNCTION public.resolve_receipt_location(uuid) FROM authenticated;
+-- IOD-2:库位/物料分类的判词。同 resolve_receipt_location —— 四个落地点共用它,
+-- 而那四个分属三个模块(inbound.edit / output.edit / inventory.edit)且各自已把
+-- 过关;给它挑一个权限码只能挑一个比三者都松的,那不是把关、是把关的样子。
+-- 它没有调用者检查,靠的就是调不到(gate 的 B2 判词认这条出路)。
+REVOKE EXECUTE ON FUNCTION public.check_location_class(uuid, uuid) FROM authenticated;

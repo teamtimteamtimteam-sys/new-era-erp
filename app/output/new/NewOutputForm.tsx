@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { createOutput, type CreateOutputState } from './actions'
 import { UNIT_OPTIONS } from '../../materials/options'
@@ -28,6 +28,8 @@ export default function NewOutputForm({
         createOutput,
         initialState
     )
+    // 产出日【必填】—— 受控是为了让提交钮那道守卫读得到它(服务端另有一道)。
+    const [outputDate, setOutputDate] = useState('')
 
     return (
         <div className="p-8 max-w-2xl">
@@ -147,14 +149,30 @@ export default function NewOutputForm({
                     </select>
                 </div>
 
-                {/* 产出日期 */}
+                {/* 产出日期 —— 【必填】。它是产出流水的 business_date(FIN-32):留空,
+                    这条流水就永远说不出货是哪天产出的。守卫成对(AGENTS.md):这里控制
+                    提交按钮,服务端 action 另有一道独立的拒绝,绕过界面也进不来。 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('output.form.outputDate')}</label>
+                    <label className="block text-sm font-medium mb-1">
+                        {t('output.form.outputDate')} <span className="text-red-600">*</span>
+                    </label>
                     <input
                         type="date"
                         name="output_date"
+                        value={outputDate}
+                        onChange={(e) => setOutputDate(e.target.value)}
+                        required
                         className="w-full border border-gray-300 px-3 py-2 rounded"
                     />
+                    {state.fieldErrors?.output_date && (
+                        <p className="text-red-600 text-xs mt-1">
+                            {state.fieldErrors.output_date}
+                        </p>
+                    )}
+                    {/* 说清【为什么】必填 —— 星号只说"必填",不说这个日期会去到哪里。
+                        它是产出流水的业务日,而业务日永远不默认成今天:默认会让一次
+                        补录的产出悄悄记在录入那天。与到货日同一条(IOD-1b)。 */}
+                    <p className="text-xs text-gray-500 mt-1">{t('output.form.outputDateWhy')}</p>
                 </div>
 
                 {/* 状态 */}
@@ -195,10 +213,13 @@ export default function NewOutputForm({
                 </div>
 
                 {/* 提交按钮 */}
+                {!outputDate && (
+                    <p className="text-sm text-amber-700">{t('output.form.blockedOutputDate')}</p>
+                )}
                 <div className="flex gap-3 pt-4">
                     <button
                         type="submit"
-                        disabled={isPending}
+                        disabled={isPending || !outputDate}
                         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                     >
                         {isPending ? t('common.saving') : t('common.save')}

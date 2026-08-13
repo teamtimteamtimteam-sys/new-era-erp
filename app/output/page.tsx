@@ -18,6 +18,7 @@ import {
     type OutputSortCol,
 } from './outputQuery'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
+import StockWarningBanner from '@/app/components/inventory/StockWarningBanner'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -52,6 +53,7 @@ export default async function OutputPage({
         sort?: string
         dir?: string
         page?: string
+        warn?: string
     }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -202,6 +204,8 @@ export default async function OutputPage({
 
     return (
         <div className="p-8">
+            {/* IOD-2:刚刚那次建批次的落地告警(成功、但有决定没人做过) */}
+            <StockWarningBanner warn={sp.warn} />
             <div className="flex items-center justify-between mb-4">
                 <h1 className="text-2xl font-bold">{t('output.listTitle')}</h1>
                 <Link

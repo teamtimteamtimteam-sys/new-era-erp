@@ -5,7 +5,7 @@ import type { InsertRow } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { localizeStockError } from '@/app/components/inventory/stockErrorCodes'
+import { localizeStockError, warningCodesFrom, warnQuery } from '@/app/components/inventory/stockErrorCodes'
 
 export type CreateOutputState = {
     error?: string
@@ -23,6 +23,9 @@ export async function createOutput(
     const customer_id = (formData.get('customer_id') as string) || ''
     const quantity_raw = (formData.get('quantity') as string) || ''
     const unit = (formData.get('unit') as string)?.trim() || 'kg'
+    // 产出日【必填】,而且服务端【独立】拒空 —— 界面那道守卫可以被绕过,这一道
+    // 不能。也【不给服务端默认值】:补一个 CURRENT_DATE 会让"留空"比"填对"更容易
+    // 通过,那条路专门奖励留空(AGENTS.md 的日期规则)。与到货日同一条(FIN-32)。
     const output_date = (formData.get('output_date') as string)?.trim() || null
     // IOD-1b:收货库位【可选】。经 RPC 传进去 —— 建批次从此只有这一扇门,
     // 库位因此进得来(app 里 set_config 到不了:每次 PostgREST 调用都是
@@ -48,6 +51,7 @@ export async function createOutput(
         }
     }
 
+    if (!output_date) fieldErrors.output_date = t('output.form.errOutputDate')
     if (Object.keys(fieldErrors).length > 0) {
         return { fieldErrors }
     }
@@ -63,7 +67,8 @@ export async function createOutput(
     if (quantity === null) return { fieldErrors: { quantity: 'quantity' } }
 
 
-    const { error } = await supabase.rpc('create_output_batch', {
+    // IOD-2:返回值从 uuid 变成 jsonb（{batch_id, warnings}）—— 告警要有地方回来。
+    const { data, error } = await supabase.rpc('create_output_batch', {
         p_material_id: material_id,
         p_quantity: quantity,
         p_unit: unit,
@@ -79,7 +84,7 @@ export async function createOutput(
 
         // IOD-1b:收货库位的两个具名拒绝翻成人话(表单开着时库位被停用,就落这里)
 
-        if (/IOD_RECEIPT_LOCATION_/.test(error?.message ?? '')) {
+        if (/IOD_RECEIPT_LOCATION_|IOD_CLASS_EXCLUDED/.test(error?.message ?? '')) {
 
             return { error: await localizeStockError(error!.message) }
 
@@ -88,5 +93,6 @@ export async function createOutput(
     }
 
     revalidatePath('/output')
-    redirect('/output')
+    // IOD-2:告警随重定向带到列表页 —— 不带,它就只存在于数据库里。
+    redirect(`/output${warnQuery(warningCodesFrom(data))}`)
 }

@@ -18,6 +18,17 @@ const STOCK_ERROR_CODES = new Set([
     // IOD-1b:收货库位。【操作员真会撞上它】—— 表单开着的时候有人把那个库位
     // 停用了,提交就落到这里;不接成句子,他看到的是一串 IOD_RECEIPT_LOCATION_INACTIVE|SG-A1。
     'IOD_RECEIPT_LOCATION_INACTIVE', 'IOD_RECEIPT_LOCATION_UNKNOWN',
+    // IOD-2:三态里【唯一会拒绝的那一态】—— 有人配了这个库位,并且没有把这一类
+    // 放进去。另外两态是告警,不走这里(它们从返回值回来,见 localizeStockWarnings)。
+    'IOD_CLASS_EXCLUDED',
+])
+
+// IOD-2:【告警】的编码集合。与上面的拒绝分开,因为它们走的通道就不同 ——
+// 拒绝从抛出的异常里来,告警从 RPC 的返回值里来(那一次调用是成功的)。
+// 分成两个集合而不是一个,是为了让"把告警错当拒绝"这件事写不出来。
+const STOCK_WARNING_CODES = new Set([
+    'IOD_CLASS_UNCONFIGURED_LOCATION',
+    'IOD_MATERIAL_UNCLASSIFIED',
 ])
 
 const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/
@@ -41,4 +52,59 @@ export async function localizeStockError(message: string): Promise<string> {
         })
     }
     return (await getTranslations())('stock.errors.' + code, params)
+}
+
+// IOD-2:把 RPC 返回值里的告警码接成句子。
+//
+// 【为什么必须有这一步,而且必须在 action 里被调用】IOD-1b 的教训是逐字的:
+// IOD_RECEIPT_LOCATION_* 在数据库那一侧一直是对的,却因为没有人把它翻成人话,
+// 操作员看到的是一串机器码。告警比拒绝更容易重蹈覆辙 —— 拒绝会挡住人,漏了
+// 立刻有人喊;告警不挡任何人,漏了就是【无声地不存在】。
+//
+// 未编码的码【原样返回】而不是丢弃,与错误那一侧同一条:看得见才修得掉。
+// IOD-2:三个建批次 RPC 成功之后都【重定向】走,而告警必须活过那一次重定向 ——
+// 否则"告警在数据库里是对的、在界面上不存在"就原样重演一次(IOD-1b 的形状)。
+// 所以编码进查询串,由落地页翻成句子(翻译留在服务端渲染那一侧)。
+export function warningCodesFrom(data: unknown): string[] {
+    const w = (data as { warnings?: unknown } | null | undefined)?.warnings
+    return Array.isArray(w) ? w.map((x) => String(x ?? '').trim()).filter(Boolean) : []
+}
+
+export function warnQuery(codes: string[]): string {
+    return codes.length > 0 ? `?warn=${encodeURIComponent(JSON.stringify(codes))}` : ''
+}
+
+// 落地页那一侧:查询串坏掉就当作没有告警(【不抛】—— 一个畸形的 URL 不该把
+// 一个已经成功的收货变成一个错误页)。
+export function warnCodesFromParam(v: string | undefined): string[] {
+    if (!v) return []
+    try {
+        const parsed = JSON.parse(v)
+        return Array.isArray(parsed) ? parsed.map((x) => String(x ?? '').trim()).filter(Boolean) : []
+    } catch {
+        return []
+    }
+}
+
+export async function localizeStockWarnings(raw: unknown): Promise<string[]> {
+    if (!Array.isArray(raw)) return []
+    const t = await getTranslations()
+    const out: string[] = []
+    for (const item of raw) {
+        const s = String(item ?? '').trim()
+        if (!s) continue
+        const match = s.match(CODE_RE)
+        if (!match || !STOCK_WARNING_CODES.has(match[1])) {
+            out.push(s)
+            continue
+        }
+        const params: Record<string, string> = {}
+        if (match[2]) {
+            match[2].split('|').forEach((v, i) => {
+                params[String(i)] = v
+            })
+        }
+        out.push(t('stock.warnings.' + match[1], params))
+    }
+    return out
 }

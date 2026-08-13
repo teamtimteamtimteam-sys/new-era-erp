@@ -994,6 +994,9 @@ const en = {
             errMaterial: 'Please select a material',
             errQuantity: 'Quantity is required',
             errQuantityPositive: 'Quantity must be a number greater than 0',
+            errOutputDate: 'Output date is required — the stock movement records the day the goods were actually produced',
+            blockedOutputDate: 'Save is disabled: the output date is not filled in.',
+            outputDateWhy: 'This is the day the goods were physically produced — it becomes the business date on the output movement. It is never defaulted to today: an output entered late would then be recorded on the day it was typed, not the day it happened.',
             saveError: 'Save failed: {message}',
         },
         state: {
@@ -1305,7 +1308,7 @@ const en = {
         receiptLocation: 'Storage location',
         receiptLocationUnspecified: 'Unspecified — assign later by transfer',
         receiptLocationHint: 'Where this stock is being put. Leaving it unspecified is a normal answer: the stock is real, it just has no place recorded yet, and a transfer can assign one at any time.',
-        receiptLocationNoCheck: 'Choosing a location does not yet check whether that location is allowed to hold this material — that check arrives with IOD-2. For now the location is recorded, not enforced.',
+        receiptLocationClassCheck: 'Choosing a location checks it against the material classes that location is allowed to hold. An explicit exclusion is refused; a location nobody has configured, or a material nobody has classified, is only flagged — a missing decision is not a decision to refuse. Stock already sitting somewhere is not re-checked if that configuration changes later.',
         saleAvailable: 'Available to sell',
         saleHeld: 'On hold (not sellable)',
         consumeAvailable: 'Available',
@@ -1326,6 +1329,11 @@ const en = {
             IOD_CONSUME_EXCEEDS_AVAILABLE: 'Cannot consume {0} — only {1} is available. {2} is on hold and cannot be processed until released.',
             IOD_DRAIN_INSUFFICIENT: 'Only {1} of the {0} requested could be drawn from stock. Nothing was written — reload the page and try again.',
             IOD_RESTORE_MISMATCH: 'Rollback could not restore exactly what was consumed ({0} expected, {1} mirrored). Nothing was changed.',
+            IOD_CLASS_EXCLUDED: 'Location {0} is configured to hold specific material classes, and {1} is not one of them — so nothing was saved. Pick another location, add {1} to that location under Inventory → Storage Locations, or correct this material\'s classification in the material dictionary.',
+        },
+        warnings: {
+            IOD_CLASS_UNCONFIGURED_LOCATION: 'Saved. Note: nobody has configured which material classes location {0} may hold, so nothing could be checked. Set its allowed classes under Inventory → Storage Locations to make this check mean something.',
+            IOD_MATERIAL_UNCLASSIFIED: 'Saved. Note: material {0} has no waste classification, so it could not be checked against this location. Classify it in the material dictionary — unclassified is not the same as unrestricted; it means nobody has decided yet.',
         },
     },
     inventory: {

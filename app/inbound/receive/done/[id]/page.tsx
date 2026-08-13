@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import StockWarningBanner from '@/app/components/inventory/StockWarningBanner'
 
 type Batch = {
     id: string
@@ -17,8 +18,11 @@ type Batch = {
 
 export default async function ReceiveDonePage({
     params,
+    searchParams,
 }: {
     params: Promise<{ id: string }>
+    // 本版本 Next 里 searchParams 是 Promise,需要 await
+    searchParams: Promise<{ warn?: string }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -26,6 +30,7 @@ export default async function ReceiveDonePage({
     if (denied) return denied
 
     const { id } = await params
+    const sp = await searchParams
     const supabase = await createClient()
     const t = await getTranslations()
 
@@ -51,6 +56,13 @@ export default async function ReceiveDonePage({
             <p className="text-gray-600 mb-8">
                 {batch.materials?.name ?? '—'} · {batch.quantity} {batch.unit}
             </p>
+
+            {/* IOD-2:落地告警。【放在成功之后、按钮之前】—— 收货确实成功了(绿勾
+                不撤),但如果有决定没人做过,这是操作员唯一会看见它的一屏。
+                靠左读:告警是句子,不是标题。 */}
+            <div className="text-left">
+                <StockWarningBanner warn={sp.warn} />
+            </div>
 
             <div className="space-y-3">
                 <a

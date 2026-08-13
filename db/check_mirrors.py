@@ -163,6 +163,10 @@ DEFINER_NO_CHECK_ALLOWED = {
     "mirror_consume_restore": "EXECUTE revoked from PUBLIC/authenticated/anon",
     # IOD-1b:收货库位翻译器,三个建批次 RPC 共用;同上,靠"调不到"
     "resolve_receipt_location": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    # IOD-2:库位/物料分类的判词。四个落地点共用,而它们分属三个模块
+    # (inbound.edit / output.edit / inventory.edit)且各自已把过关 —— 给它挑一个
+    # 权限码只能挑一个比三者都松的。同 resolve_receipt_location,靠"调不到"。
+    "check_location_class": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "reverse_journal_entry_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
     # FIN-27 的内层算子:条款解析、计价算术、承诺写入。同上,靠"调不到"而非"查调用者"
     "pricing_terms_of_formula": "EXECUTE revoked from PUBLIC/authenticated/anon",

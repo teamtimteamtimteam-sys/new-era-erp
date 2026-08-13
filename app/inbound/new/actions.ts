@@ -6,7 +6,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { localizePurchasingError } from '@/app/purchasing/purchasingErrorCodes'
-import { localizeStockError } from '@/app/components/inventory/stockErrorCodes'
+import { localizeStockError, warningCodesFrom, warnQuery } from '@/app/components/inventory/stockErrorCodes'
 
 export type CreateInboundState = {
     error?: string
@@ -82,7 +82,8 @@ export async function createInbound(
     if (quantity === null) return { fieldErrors: { quantity: 'quantity' } }
 
 
-    const { error } = await supabase.rpc('create_inbound_batch', {
+    // IOD-2:返回值从 uuid 变成 jsonb（{batch_id, warnings}）—— 告警要有地方回来。
+    const { data, error } = await supabase.rpc('create_inbound_batch', {
         p_material_id: material_id,
         p_supplier_id: supplier_id,
         p_quantity: quantity,
@@ -100,7 +101,7 @@ export async function createInbound(
 
         // IOD-1b:收货库位的两个具名拒绝翻成人话(表单开着时库位被停用,就落这里)
 
-        if (/IOD_RECEIPT_LOCATION_/.test(error?.message ?? '')) {
+        if (/IOD_RECEIPT_LOCATION_|IOD_CLASS_EXCLUDED/.test(error?.message ?? '')) {
 
             return { error: await localizeStockError(error!.message) }
 
@@ -114,5 +115,6 @@ export async function createInbound(
 
     revalidatePath('/inbound')
     revalidatePath('/purchasing/orders')
-    redirect('/inbound')
+    // IOD-2:告警随重定向带到列表页 —— 不带,它就只存在于数据库里。
+    redirect(`/inbound${warnQuery(warningCodesFrom(data))}`)
 }

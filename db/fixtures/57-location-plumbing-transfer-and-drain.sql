@@ -52,7 +52,8 @@ BEGIN
     -- 【IOD-1b:B 臂这一批走 RPC 建】被钉住的那个场景必须走【操作员真正走的那扇门】,
     -- 否则它证明的是一条没人用的路径。其余各臂仍直插建批(fixture 以 postgres 跑,
     -- RLS 不生效),那是为了把这一臂的"同一扇门"这件事single out 出来。
-    ob := create_output_batch(v_mat, 100, 'kg', CURRENT_DATE);
+    -- IOD-2:返回值从 uuid 变成 jsonb（{batch_id, warnings}）—— 这里只要批次号。
+    ob := (create_output_batch(v_mat, 100, 'kg', CURRENT_DATE) ->> 'batch_id')::uuid;
 
     -- ══════════ A. 前提 ═════════════════════════════════════════════════════
     SELECT COALESCE(sum(qty_delta),0) INTO v_null_q FROM inventory_movements

@@ -6,6 +6,12 @@
 -- 这一扇门上加判断,不必再去追有没有第二条路径绕过它。
 -- 这一臂因此不是"顺便测一下权限",它是明天那句话能不能成立的全部依据。
 --
+-- 【IOD-2 已经落闸(2026-08-13),所以 C/F 两臂从"为明天铺路"变成"守住今天"】
+-- 判断加在了这一扇门上(check_location_class,行为见 fixture 59)。侧门一旦
+-- 重新打开,那道闸就有了绕过去的路 —— F 臂守的正是这个。
+-- 另:三个 RPC 的返回值从 uuid 变成 jsonb（{batch_id, warnings}），本文件取
+-- ->>'batch_id'。
+--
 -- 各臂:
 --   A 前提:库位存在且在用;分类字典非空(IOD-2 会用到,先确认地基)
 --   B 三个 RPC 各自带库位建批 → 收货流水带着那个库位
@@ -48,21 +54,21 @@ BEGIN
     END IF;
 
     -- ══════════ B. 三个 RPC 各自带库位 ═══════════════════════════════════════
-    b := create_inbound_batch(v_mat, v_sup, 100, 'kg', d, '待加工', NULL, NULL, NULL, NULL, v_loc);
+    b := (create_inbound_batch(v_mat, v_sup, 100, 'kg', d, '待加工', NULL, NULL, NULL, NULL, v_loc) ->> 'batch_id')::uuid;
     SELECT location_id INTO v_got FROM inventory_movements
      WHERE inbound_batch_id = b AND movement_type = 'receipt';
     IF v_got IS DISTINCT FROM v_loc THEN
         RAISE EXCEPTION 'FIXTURE 58B 失败:create_inbound_batch 的库位没有落到收货流水上(得到 %)', COALESCE(v_got::text,'NULL');
     END IF;
 
-    b := receive_inbound_batch_against_po(v_mat, v_sup, 60, d, NULL, NULL, NULL, v_loc);
+    b := (receive_inbound_batch_against_po(v_mat, v_sup, 60, d, NULL, NULL, NULL, v_loc) ->> 'batch_id')::uuid;
     SELECT location_id INTO v_got FROM inventory_movements
      WHERE inbound_batch_id = b AND movement_type = 'receipt';
     IF v_got IS DISTINCT FROM v_loc THEN
         RAISE EXCEPTION 'FIXTURE 58B 失败:receive_inbound_batch_against_po 的库位没有落到收货流水上(得到 %)', COALESCE(v_got::text,'NULL');
     END IF;
 
-    ob := create_output_batch(v_mat, 40, 'kg', d, '库存中', NULL, NULL, NULL, v_loc);
+    ob := (create_output_batch(v_mat, 40, 'kg', d, '库存中', NULL, NULL, NULL, v_loc) ->> 'batch_id')::uuid;
     SELECT location_id INTO v_got FROM inventory_movements
      WHERE output_batch_id = ob AND movement_type = 'receipt';
     IF v_got IS DISTINCT FROM v_loc THEN
@@ -70,7 +76,7 @@ BEGIN
     END IF;
 
     -- ══════════ C. 不给库位 → 未指定桶 ═══════════════════════════════════════
-    b := create_inbound_batch(v_mat, v_sup, 25, 'kg', d);
+    b := (create_inbound_batch(v_mat, v_sup, 25, 'kg', d) ->> 'batch_id')::uuid;
     SELECT location_id INTO v_got FROM inventory_movements
      WHERE inbound_batch_id = b AND movement_type = 'receipt';
     IF v_got IS NOT NULL THEN
@@ -86,7 +92,7 @@ BEGIN
     -- ══════════ D. commit_processing_run 不受影响(验证,不是假定)═══════════
     -- 撤掉客户端 INSERT 策略之后,它仍然建得出产出批 —— 它是 DEFINER,
     -- 以属主身份写入,面向 authenticated 的 RLS 策略对它本就不适用。
-    b := create_inbound_batch(v_mat, v_sup, 80, 'kg', d);
+    b := (create_inbound_batch(v_mat, v_sup, 80, 'kg', d) ->> 'batch_id')::uuid;
     SELECT commit_processing_run(d, 'fixture 58 D', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', b, 'quantity_consumed', 80)),
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 80)),
@@ -140,7 +146,7 @@ BEGIN
     END IF;
 
     -- 而【经由 RPC】的同一件事必须仍然做得到(拒的是侧门,不是这件事本身)
-    b := create_inbound_batch(v_mat, v_sup, 5, 'kg', d);
+    b := (create_inbound_batch(v_mat, v_sup, 5, 'kg', d) ->> 'batch_id')::uuid;
     IF b IS NULL THEN
         RAISE EXCEPTION 'FIXTURE 58F 失败:关掉侧门之后,正门也走不通了';
     END IF;

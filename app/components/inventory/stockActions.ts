@@ -7,9 +7,11 @@
 // 页面上显示的那个数只是【上一次渲染时】的快照,拿它做判断就会与服务端漂开。
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { localizeStockError } from './stockErrorCodes'
+import { localizeStockError, localizeStockWarnings, warningCodesFrom } from './stockErrorCodes'
 
-export type StockActionState = { error?: string }
+// IOD-2:warnings —— 【这一次成功了,但有件事没人决定过】。与 error 分开两个字段,
+// 因为它们不是同一件事:有 error 时什么都没写,有 warnings 时东西已经写进去了。
+export type StockActionState = { error?: string; warnings?: string[] }
 
 function revalidateBatch(inboundId: string | null, outputId: string | null) {
     revalidatePath('/inventory')
@@ -50,7 +52,7 @@ export async function transferStockAction(
     note: string
 ): Promise<StockActionState> {
     const supabase = await createClient()
-    const { error } = await supabase.rpc('create_stock_transfer', {
+    const { data, error } = await supabase.rpc('create_stock_transfer', {
         p_qty: Number(qty),
         p_to_location_id: toLocationId,
         ...(inboundBatchId ? { p_inbound_batch_id: inboundBatchId } : {}),
@@ -61,7 +63,9 @@ export async function transferStockAction(
     })
     if (error) return { error: await localizeStockError(error.message) }
     revalidateBatch(inboundBatchId, outputBatchId)
-    return {}
+    // IOD-2:告警只可能来自【入腿】的库位校验 —— 出腿一个字都不查。
+    // 这一处不重定向,所以告警直接随返回值回到面板上。
+    return { warnings: await localizeStockWarnings(warningCodesFrom(data)) }
 }
 
 export async function releaseStockAction(

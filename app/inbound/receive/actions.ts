@@ -8,7 +8,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { localizePurchasingError } from '@/app/purchasing/purchasingErrorCodes'
-import { localizeStockError } from '@/app/components/inventory/stockErrorCodes'
+import { localizeStockError, warningCodesFrom, warnQuery } from '@/app/components/inventory/stockErrorCodes'
 
 export type ReceiveState = {
     error?: string
@@ -81,7 +81,7 @@ export async function createFieldReceipt(
 
         // IOD-1b:收货库位的两个具名拒绝翻成人话(表单开着时库位被停用,就落这里)
 
-        if (/IOD_RECEIPT_LOCATION_/.test(error?.message ?? '')) {
+        if (/IOD_RECEIPT_LOCATION_|IOD_CLASS_EXCLUDED/.test(error?.message ?? '')) {
 
             return { error: await localizeStockError(error!.message) }
 
@@ -94,6 +94,9 @@ export async function createFieldReceipt(
     }
 
     revalidatePath('/inbound')
-    // IOD-1b:RPC 返回的是新批次的 uuid 本身(不再是一行)
-    redirect(`/inbound/receive/done/${data}`)
+    // IOD-2:RPC 现在返回 jsonb（{batch_id, warnings}）—— 【这一处是唯一真的读了
+    // 返回值的调用方】(另外两个只看 error),所以改返回类型必须同时改这一行,
+    // 否则 done 页会拿到一个对象去当 uuid 用。告警带进 done 页。
+    const batchId = (data as { batch_id?: string } | null)?.batch_id
+    redirect(`/inbound/receive/done/${batchId}${warnQuery(warningCodesFrom(data))}`)
 }

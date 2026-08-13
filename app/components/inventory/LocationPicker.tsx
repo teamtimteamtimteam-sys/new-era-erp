@@ -26,10 +26,11 @@ export default function LocationPicker({ locations }: { locations: LocationChoic
                 ))}
             </select>
             <p className="text-xs text-gray-500 mt-1">{t('stock.receiptLocationHint')}</p>
-            {/* 【这句必须在】选了库位看起来像"系统会检查这里能不能放这类货",
-                而那件事今天【不存在】—— 落闸归 IOD-2。不说,这个下拉就在
-                暗示一个并不成立的保证。 */}
-            <p className="text-xs text-amber-800 mt-1">{t('stock.receiptLocationNoCheck')}</p>
+            {/* IOD-2:这句话从"不检查"改成了"检查什么"。留着它的理由变了但没有
+                消失 —— 现在它要防的是【反过来那个错觉】:闸落下了,于是看起来
+                像"分类被管住了"。管住的只有【新落地的货】,而三态里只有一态会
+                真的拒绝。存量冲突今天没有任何东西会说出来(归告警那一刀)。 */}
+            <p className="text-xs text-amber-800 mt-1">{t('stock.receiptLocationClassCheck')}</p>
         </div>
     )
 }

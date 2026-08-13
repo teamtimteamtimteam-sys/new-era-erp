@@ -34,6 +34,9 @@ export default function TransferControl({
     const router = useRouter()
     const [isPending, startTransition] = useTransition()
     const [error, setError] = useState('')
+    // IOD-2:入腿的落地告警。与 error 分开 —— 有 error 时什么都没搬,
+    // 有 warnings 时【货已经搬过去了】,只是有个决定没人做过。
+    const [warnings, setWarnings] = useState<string[]>([])
     const [qty, setQty] = useState('')
     const [to, setTo] = useState('')
     const [note, setNote] = useState('')
@@ -51,16 +54,30 @@ export default function TransferControl({
 
     function onTransfer() {
         setError('')
+        setWarnings([])
         startTransition(async () => {
             const res = await transferStockAction(inboundBatchId, outputBatchId, fromLocationId, to, qty, stockStatus, note)
             if (res.error) setError(res.error)
-            else { setQty(''); setTo(''); setNote(''); router.refresh() }
+            else {
+                // 【告警不清空表单以外的东西,也不拦任何后续操作】—— 这一次成功了。
+                setWarnings(res.warnings ?? [])
+                setQty(''); setTo(''); setNote(''); router.refresh()
+            }
         })
     }
 
     return (
         <div className="mt-3 pt-3 border-t">
             {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
+            {/* IOD-2:琥珀而不是红 —— 货已经搬过去了,红色会让人以为要重搬一次。
+                一句一行:两个告警指向两件要分别去做的事。 */}
+            {warnings.length > 0 && (
+                <div className="bg-amber-50 border border-amber-400 text-amber-900 px-3 py-2 rounded mb-2 space-y-1">
+                    {warnings.map((w, i) => (
+                        <p key={i} className="text-xs">{w}</p>
+                    ))}
+                </div>
+            )}
             <div className="flex flex-wrap items-end gap-2">
                 <div>
                     <label className="block text-xs text-gray-600 mb-1">{t('stock.transferQty', { unit })}</label>

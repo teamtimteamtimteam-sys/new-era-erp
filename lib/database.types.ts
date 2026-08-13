@@ -11028,6 +11028,10 @@ export type Database = {
         Args: { p_from: string; p_to: string }
         Returns: Json
       }
+      check_location_class: {
+        Args: { p_location_id: string; p_material_id: string }
+        Returns: string[]
+      }
       close_financial_year: {
         Args: { p_notes?: string; p_year_end: string }
         Returns: Json
@@ -11085,7 +11089,7 @@ export type Database = {
           p_unit?: string
           p_unit_price?: number
         }
-        Returns: string
+        Returns: Json
       }
       create_invoice: {
         Args: {
@@ -11110,7 +11114,7 @@ export type Database = {
           p_state?: string
           p_unit?: string
         }
-        Returns: string
+        Returns: Json
       }
       create_purchase_order: {
         Args: {
@@ -11444,7 +11448,7 @@ export type Database = {
           p_quantity: number
           p_supplier_id: string
         }
-        Returns: string
+        Returns: Json
       }
       reconcile_statement: { Args: { p_statement_id: string }; Returns: Json }
       record_approval_decision: {

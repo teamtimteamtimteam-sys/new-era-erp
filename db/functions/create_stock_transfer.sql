@@ -5,10 +5,12 @@ CREATE OR REPLACE FUNCTION public.create_stock_transfer(p_qty numeric, p_to_loca
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
-    v_user uuid := auth.uid();
-    v_pair uuid := gen_random_uuid();
-    v_have numeric;
-    v_today date := CURRENT_DATE;
+    v_user     uuid := auth.uid();
+    v_pair     uuid := gen_random_uuid();
+    v_have     numeric;
+    v_today    date := CURRENT_DATE;
+    v_material uuid;
+    v_warn     text[];
 BEGIN
     PERFORM require_permission('module.inventory.edit');
 
@@ -39,6 +41,15 @@ BEGIN
         RAISE EXCEPTION 'IOD_TRANSFER_EXCEEDS_BUCKET|%|%', p_qty, v_have;
     END IF;
 
+    -- IOD-2:落闸,【只在入腿上】。物料从批次反查 —— 两种批次二选一(上面的
+    -- XOR 已经保证恰好一个非空),两张表都有 material_id NOT NULL。
+    -- 【出腿一个字都不查】:分类管的是货可以待在哪里,不是货能不能离开;拦住
+    -- 一批放错地方的货【离开】,只会把它焊死在错的地方。
+    v_material := COALESCE(
+        (SELECT material_id FROM inbound_batches WHERE id = p_inbound_batch_id),
+        (SELECT material_id FROM output_batches  WHERE id = p_output_batch_id));
+    v_warn := check_location_class(p_to_location_id, v_material);
+
     -- 成对:出源库位、进目的库位。【状态原样带过去】—— 转移搬的是位置,
     -- 不是状态;一批被扣住的货换个货架仍然是被扣住的。
     INSERT INTO inventory_movements
@@ -50,7 +61,9 @@ BEGIN
         (p_inbound_batch_id, p_output_batch_id, p_to_location_id, 'transfer_in',
           p_qty, p_stock_status, v_pair, v_today, NULLIF(btrim(COALESCE(p_note,'')),''), v_user);
 
-    RETURN jsonb_build_object('pair_id', v_pair, 'qty', p_qty, 'stock_status', p_stock_status);
+    RETURN jsonb_build_object('pair_id', v_pair, 'qty', p_qty,
+                              'stock_status', p_stock_status,
+                              'warnings', to_jsonb(v_warn));
 END;
 $function$
 

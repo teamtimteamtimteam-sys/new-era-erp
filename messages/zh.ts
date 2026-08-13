@@ -997,6 +997,9 @@ const zh = {
             errMaterial: '请选择物料',
             errQuantity: '数量是必填的',
             errQuantityPositive: '数量必须是大于0的数字',
+            errOutputDate: '产出日必填 —— 库存流水要记下货【实际产出的那一天】',
+            blockedOutputDate: '保存钮不可用：产出日期还没填。',
+            outputDateWhy: '这是货【实际产出】的那一天 —— 它会成为产出流水的业务日。它永远不会默认成今天:补录的产出一旦默认,记下的就是录入那天,而不是发生那天。',
             saveError: '保存失败：{message}',
         },
         state: {
@@ -1305,7 +1308,7 @@ const zh = {
         receiptLocation: '存放库位',
         receiptLocationUnspecified: '未指定 —— 之后用转移指定',
         receiptLocationHint: '这批货放在哪。【不指定是一个正常答案】:货是真的,只是还没有记录放在哪,随时可以用一次转移把它指定过去。',
-        receiptLocationNoCheck: '选择库位【暂时不会】校验这个库位允不允许存放这类物料 —— 那道闸要等 IOD-2。现在库位只是被记录下来,不产生任何拦截。',
+        receiptLocationClassCheck: '选择库位会校验这个库位允不允许存放这类物料。【明确排除的会被拒绝】;而没有人配置过的库位、或者没有人分过类的物料,只提示不拦截 —— 缺一个决定,不等于决定了不行。【已经躺在库位上的货,不会因为之后配置改变而被重新检查】。',
         saleAvailable: '可售',
         saleHeld: '暂扣(不可售)',
         consumeAvailable: '可用',
@@ -1326,6 +1329,11 @@ const zh = {
             IOD_CONSUME_EXCEEDS_AVAILABLE: '投不了 {0} —— 只有 {1} 可用。另有 {2} 处于暂扣,释放之前不能投入加工。',
             IOD_DRAIN_INSUFFICIENT: '请求 {0},但库存里只取得出 {1}。什么都没有写入 —— 请刷新页面后重试。',
             IOD_RESTORE_MISMATCH: '回滚无法把投料原样还原(应还 {0},镜像出 {1})。没有做任何改动。',
+            IOD_CLASS_EXCLUDED: '库位 {0} 配置了可存放的物料分类,而【{1} 不在其中】—— 所以什么都没有保存。请换一个库位,或到 库存 → 库位 把 {1} 加进这个库位的许可分类,或到物料字典更正这个物料的分类。',
+        },
+        warnings: {
+            IOD_CLASS_UNCONFIGURED_LOCATION: '已保存。提示:还没有人配置过库位 {0} 可以存放哪些分类,所以这一次【没有东西可校验】。请到 库存 → 库位 给它配置许可分类,这道检查才有意义。',
+            IOD_MATERIAL_UNCLASSIFIED: '已保存。提示:物料 {0} 还没有分类,所以无法拿它与这个库位比对。请到物料字典给它分类 —— 【未分类不等于不受限】,它的意思是还没有人做过这个决定。',
         },
     },
     inventory: {
