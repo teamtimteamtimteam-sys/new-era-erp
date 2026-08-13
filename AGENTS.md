@@ -175,6 +175,24 @@ needed**, and the same lesson OPS-7 drew about `B1`/`is_system`.
 **等待本身造成了它正在等的那个失败**,而且因为轮询没有失败分支,又过了很久才被发现。
 所以:等 ≠ 免费。等一个长活的正确做法是不等它。
 
+### 条件必须由【循环】求值,不是由启动它的那个 shell
+
+用对了 `wait_for.sh` 仍然可以写出一个【永远不会成真】的等待:
+
+```bash
+# 坏:$(...) 在 wait_for 启动【之前】就被外层 shell 展开了一次,
+#     条件从此冻结成 test "pending" = success —— 轮询 9 分钟,值永远不变。
+./db/wait_for.sh --timeout 600 --label "部署" -- test "$(gh api … --jq .state)" = success
+
+# 好:把求值放进循环每一次要跑的那条命令里
+./db/wait_for.sh --timeout 600 --label "部署" -- \
+    sh -c 'gh api … --jq .state | grep -qx success'
+```
+
+上限救了它(到点就停),但那 10 分钟本来一秒都不必花。**判据是:这条命令
+每轮重跑一次,它的答案会变吗?** 命令替换、数组展开、以及任何在参数位置就
+算完的东西,答案都是"不会"。RPT-1 实测过一次,记在这里而不是留给下一个人。
+
 **Bounded is not enough on its own — the bound needs a failure branch.**
 `smoke-routes.mjs` waited 60×1s for the dev server and then continued *whether
 or not it was ready*: with a dead server that produced 131 connection failures
