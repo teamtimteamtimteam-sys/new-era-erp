@@ -1147,6 +1147,46 @@ someone notices it. Known structural issues that would SURVIVE a rebuild —
 accepted for now, to be fixed deliberately — live next door in
 `docs/known-issues.md`; remove the entry when the fix lands.
 
+## A cut is not done at the commit — it is done at the DEPLOY
+
+**Every cut's report must state the commit AND that it was pushed; the wrap-up must
+confirm the deployment actually went out.** Not "committed" — committed *and pushed
+and live*.
+
+This is not bookkeeping. **The database is shared and the application is not.** A
+migration is live the instant `apply_migration.sh` commits; the app code that goes
+with it is live only after a push and a Vercel build. Every unpushed cut therefore
+opens a window in which **production runs old code against a new database** — and
+that window is invisible from this machine, because the local tree, the local gate
+and the local dev server all agree with each other perfectly.
+
+**IOD-2 spent an afternoon inside that window (2026-08-13).** Two migrations were
+applied to live and both commits sat unpushed. Tim hand-walked the new behaviour on
+the production URL and got machine text twice. Two diagnoses were wrong before the
+dev-server logs settled it — **across two rounds there had never been a single POST**,
+because his clicks were never reaching this machine at all. The measured damage:
+
+* `/inbound/receive` was **broken in production**, not merely unlocalized. IOD-2
+  changed three RPCs from `RETURNS uuid` to `RETURNS jsonb`; the deployed code was
+  `redirect(\`…/done/${data}\`)` guarded by `if (error || !data)`. An object is truthy,
+  so the guard passed and the URL became `/done/[object Object]` → `notFound()`.
+  **The batch was created first**, so an operator saw a 404 after a successful
+  receipt — the exact shape that produces duplicate receipts.
+* The IOD-2 warnings did not exist in production at all: the deployed callers read
+  only `error` and discarded `data`.
+* Two named refusals rendered as raw codes, because the deployed `STOCK_ERROR_CODES`
+  predated them.
+
+**The tell, so the next person recognises it in one step:** a raw error string on a
+screen that contains a code the local tree has *just* taught the database to raise.
+That combination means old app + new DB, and it can only mean that. Check
+`git log origin/main` before diagnosing anything else — an unpushed commit explains
+it faster than any amount of reasoning about the code in front of you.
+
+**A migration applied without its commit pushed is a half-deployed cut.** If a cut
+must stop between the two, say so in the report and name what is broken until the
+push lands, rather than reporting a green gate as a finished cut.
+
 ## Migrations apply over direct psql, never the Management API
 
 ```
