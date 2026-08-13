@@ -382,7 +382,11 @@ def build_sql() -> str:
         parts.append(rewrite(tbl_txt[f]))
     for f in view_order:
         parts.append(f"-- ═══ replay {f.relative_to(REPO)} ═══")
-        parts.append(rewrite(view_txt[f]))
+        # 【读原文,不读依赖扫描用的那一份】view_replay_order 内部会把字符串与
+        # 注释剥掉【只为排序】—— 重放要的是文件本身。RPT-1 抽取排序函数时这里
+        # 曾指向那份被剥过的文本(实为 NameError),而 db/gate.py 只从本模块借
+        # 常量、自己走 verify_rebuild 重建,所以【门看不见这条路坏了】。
+        parts.append(rewrite(f.read_text()))
 
     compare = COMPARE_SQL.replace("'mir'", f"'{SCHEMA}'").replace("'mir.'", f"'{SCHEMA}.'")
     parts.append(compare)

@@ -73,6 +73,9 @@ const ID_SOURCES = {
         '/my-reviews': 'performance_reviews', '/output': 'output_batches',
         '/pricing/formulas': 'pricing_formulas', '/processing': 'processing_runs',
         '/purchasing/orders': 'purchase_orders', '/purchasing/payment-terms': 'payment_term_templates',
+        // SO-1:销售订单。线上零行(这一刀只建单据,没有既有数据),
+        // 所以同时列在 EXPECTED_SKIPS 里 —— 与 /inventory/locations 同一种情形。
+        '/sales/orders': 'sales_orders',
         '/settings/permissions/roles': 'roles', '/stocktakes': 'stocktakes',
         '/suppliers': 'suppliers',
     },
@@ -117,6 +120,10 @@ const EXPECTED_SKIPS = new Set([
     // PROC-1b:线上还没有一份产出化验(机制与屏幕先于第一张真单据落地)。
     // 录第一张的那天,这条断言会逼人把它从这里删掉。
     '/output/[id]/assays/[assayId]',
+    // SO-1:sales_orders 空 —— 这一刀只建单据,线上还没有第一张销售订单。
+    // 开出第一张的那天,这条断言会逼人把它从这里删掉(与上面几条同一个用意:
+    // 【跳过是记录,不是默许】)。
+    '/sales/orders/[id]',
     // (LOC-1 曾在这里挂过 '/inventory/locations/[id]/edit' —— 线上零行。
     //  2026-08-12 Tim 建了第一个真库位 SG2026081201,这条断言当场逼人把它删掉,
     //  正如它自己的注释所承诺的。留这句话是为了记下【它响过】。)

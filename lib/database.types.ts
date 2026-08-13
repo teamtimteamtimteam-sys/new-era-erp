@@ -6629,6 +6629,194 @@ export type Database = {
           },
         ]
       }
+      sales_order_history: {
+        Row: {
+          change_type: string
+          changed_at: string
+          changed_by: string | null
+          detail: string | null
+          id: string
+          sales_order_id: string
+        }
+        Insert: {
+          change_type: string
+          changed_at?: string
+          changed_by?: string | null
+          detail?: string | null
+          id?: string
+          sales_order_id: string
+        }
+        Update: {
+          change_type?: string
+          changed_at?: string
+          changed_by?: string | null
+          detail?: string | null
+          id?: string
+          sales_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_order_history_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_order_lines: {
+        Row: {
+          created_at: string
+          id: string
+          line_no: number
+          material_id: string
+          notes: string | null
+          price_provenance: Json | null
+          price_source: string | null
+          quantity: number
+          sales_order_id: string
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          line_no: number
+          material_id: string
+          notes?: string | null
+          price_provenance?: Json | null
+          price_source?: string | null
+          quantity: number
+          sales_order_id: string
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          line_no?: number
+          material_id?: string
+          notes?: string | null
+          price_provenance?: Json | null
+          price_source?: string | null
+          quantity?: number
+          sales_order_id?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_order_lines_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "material_stock_available"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "sales_order_lines_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_order_lines_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stock_snapshot"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "sales_order_lines_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_orders: {
+        Row: {
+          cancel_reason: string | null
+          cancelled_at: string | null
+          closed_at: string | null
+          code: string
+          confirmed_at: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_id: string
+          deleted_at: string | null
+          fx_rate: number
+          id: string
+          notes: string | null
+          order_date: string
+          status: string
+          terms_text: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          closed_at?: string | null
+          code: string
+          confirmed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          customer_id: string
+          deleted_at?: string | null
+          fx_rate: number
+          id?: string
+          notes?: string | null
+          order_date: string
+          status?: string
+          terms_text?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          closed_at?: string | null
+          code?: string
+          confirmed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string
+          deleted_at?: string | null
+          fx_rate?: number
+          id?: string
+          notes?: string | null
+          order_date?: string
+          status?: string
+          terms_text?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_orders_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "sales_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_credit_status"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "sales_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_records: {
         Row: {
           amount_base: number
@@ -6739,6 +6927,44 @@ export type Database = {
             columns: ["output_batch_id"]
             isOneToOne: false
             referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      so_issues: {
+        Row: {
+          file_path: string
+          id: string
+          issued_at: string
+          issued_by: string | null
+          sales_order_id: string
+          sha256: string
+          version: number
+        }
+        Insert: {
+          file_path: string
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          sales_order_id: string
+          sha256: string
+          version: number
+        }
+        Update: {
+          file_path?: string
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          sales_order_id?: string
+          sha256?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "so_issues_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
             referencedColumns: ["id"]
           },
         ]
@@ -11575,6 +11801,7 @@ export type Database = {
       next_payroll_code: { Args: { p_date?: string }; Returns: string }
       next_pricing_formula_code: { Args: { p_date?: string }; Returns: string }
       next_purchase_order_code: { Args: { p_date?: string }; Returns: string }
+      next_sales_order_code: { Args: { p_date?: string }; Returns: string }
       notify_class_violations: {
         Args: {
           p_cause: string
@@ -11812,6 +12039,10 @@ export type Database = {
         Args: { p_file_path: string; p_po_id: string; p_sha256: string }
         Returns: Json
       }
+      record_so_issue: {
+        Args: { p_file_path: string; p_order_id: string; p_sha256: string }
+        Returns: Json
+      }
       reject_purchase_order: {
         Args: { p_po_id: string; p_reason: string }
         Returns: Json
@@ -11970,6 +12201,10 @@ export type Database = {
       }
       set_role_permissions: {
         Args: { p_permission_codes: string[]; p_role_id: string }
+        Returns: Json
+      }
+      set_sales_order_status: {
+        Args: { p_order_id: string; p_reason?: string; p_to: string }
         Returns: Json
       }
       set_user_employee_link: {

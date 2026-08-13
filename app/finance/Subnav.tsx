@@ -15,6 +15,9 @@ const ITEMS = [
     { href: '/finance/cashflow', key: 'finance.subnav.cashflow' },
     { href: '/finance/receivables', key: 'finance.subnav.receivables' },
     { href: '/finance/invoices', key: 'finance.subnav.invoices' },
+    // SO-1:销售订单挂在财务子导航上 —— 它与本子导航其余各项同一对码
+    // (module.finance.*),这正是子导航不逐项过滤的前提。
+    { href: '/sales/orders', key: 'finance.subnav.salesOrders' },
     { href: '/finance/payables', key: 'finance.subnav.payables' },
     { href: '/finance/payments', key: 'finance.subnav.payments' },
     { href: '/finance/expenses', key: 'finance.subnav.expenses' },
@@ -52,6 +55,7 @@ export default function Subnav() {
         { href: '/finance/journal/new', key: 'finance.subnav.newEntry' },
         { href: '/finance/receivables', key: 'finance.subnav.receivables' },
         { href: '/finance/invoices', key: 'finance.subnav.invoices' },
+        { href: '/sales/orders', key: 'finance.subnav.salesOrders' },
         { href: '/finance/payables', key: 'finance.subnav.payables' },
         { href: '/finance/payments', key: 'finance.subnav.payments' },
         { href: '/finance/expenses', key: 'finance.subnav.expenses' },
