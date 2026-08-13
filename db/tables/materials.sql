@@ -94,3 +94,11 @@ $$MAT-1:这个物料的受控废物分类。
 
 COMMENT ON COLUMN public.materials.safety_stock_qty IS
     'SS-1:安全库存阈值(按物料的计量单位)。【NULL = 不监控 = 还没有人做过这个决定】,绝不等于"阈值为零":告警对 NULL 一次都不响,而这个"不响"【不可以被读成"查过了,没问题"】—— 那是 METAL-1 的 no_reference 那一课(一个不会响的检查比没有检查更坏,因为人以为系统在替他盯着)。所以物料列表把"未监控"明写出来,不留空。CHECK 只允许 NULL 或 > 0:阈值 0 是把"不监控"写成一个看起来像监控的数字,而"不监控"的唯一写法是留空。告警是【采购信号】—— 低于阈值不拦任何销售、投料或收货。';
+
+-- NTF-1:分类【改变】的那一刻,已经躺在库位上的存量可能就此违规 ——
+-- IOD-2 的闸只在货落地那一刻查,而那批货不会再落地一次给它机会。
+CREATE TRIGGER trg_materials_notify_reclassified
+    AFTER UPDATE ON public.materials
+    FOR EACH ROW
+    WHEN (OLD.waste_classification_code IS DISTINCT FROM NEW.waste_classification_code)
+    EXECUTE FUNCTION public.trg_notify_material_reclassified();

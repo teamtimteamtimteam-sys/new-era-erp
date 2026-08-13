@@ -1281,6 +1281,24 @@ const en = {
         },
     },
     // STK-1: stock status dimension — available / on hold, derived from movements.
+    notifications: {
+        title: 'Notifications',
+        bell: 'Notifications',
+        bellLabel: 'Notifications',
+        bellError: 'Notification count unavailable — this is not the same as having none',
+        empty: 'Nothing here yet.',
+        markRead: 'Mark read',
+        markAll: 'Mark all read',
+        permissionNote: 'This list shows the events your permissions allow you to see. A quiet inbox can mean nothing happened, or that what happened belongs to a module you cannot open.',
+        errNotSignedIn: 'You are not signed in.',
+        errMarkRead: 'Could not mark as read: {message}',
+        event: {
+            iod_class_unconfigured_location: 'Stock of {material} was received into {location}, which has no allowed material classes configured — so nothing could be checked.',
+            iod_material_unclassified: '{material} was received into {location}, but it has no waste classification, so it could not be checked against that location.',
+            class_violation_after_reclassify: '{material} is now classified {class}, and {qty} of it is already sitting in {location}, which does not allow that class.',
+            class_violation_after_config: '{location} was configured to hold specific classes, and {qty} of {material} ({class}) is already sitting there but is not among them.',
+        },
+        },
     stock: {
         panelTitle: 'Stock by location & status',
         panelNote: 'Derived from the movement ledger — nothing here is stored. Holding does not move any stock; it only marks it as not available to take.',

@@ -24,6 +24,8 @@ BEGIN
 
     -- IOD-2:落闸。同样在写入之前 —— 它可能抛 IOD_CLASS_EXCLUDED。
     v_warn := check_location_class(p_location_id, p_material_id);
+    -- NTF-1:告警留一份下来 —— 此前它渲染一次就没了,连响过的痕迹都没有。
+    PERFORM notify_landing_warnings(v_warn, p_location_id, p_material_id);
 
     INSERT INTO inbound_batches (
         material_id, supplier_id, quantity, unit, remaining_qty, arrival_date,

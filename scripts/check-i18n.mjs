@@ -319,6 +319,9 @@ const MANIFEST = {
     // 分开登记而不是并进上一行 —— 两个集合本来就不该混,合并会让"把告警当拒绝"
     // 这件事重新变得写得出来。
     'stock.warnings.':      { kind: 'enum', values: () => tsSet('app/components/inventory/stockErrorCodes.ts', 'STOCK_WARNING_CODES') },
+    // NTF-1:事件类型的集合就是 notifications 表上的 CHECK —— 加一种事件,
+    // 键检查自动跟着变宽,两个 locale 因此是【必须】而不是可选。
+    'notifications.event.': { kind: 'enum', values: () => sqlEnum('db/tables/notifications.sql', 'event_type') },
     'processing.errors.':   { kind: 'enum', values: () => tsSet('app/processing/errorCodes.ts', 'PROCESSING_ERROR_CODES') },
     'finance.accountType.': { kind: 'enum', values: () => sqlEnum('db/tables/accounts.sql', 'account_type') },
     'finance.aging.':       { kind: 'enum', values: () => tsArray('app/finance/agingBuckets.ts', 'BUCKETS') },

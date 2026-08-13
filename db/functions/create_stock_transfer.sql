@@ -49,6 +49,8 @@ BEGIN
         (SELECT material_id FROM inbound_batches WHERE id = p_inbound_batch_id),
         (SELECT material_id FROM output_batches  WHERE id = p_output_batch_id));
     v_warn := check_location_class(p_to_location_id, v_material);
+    -- NTF-1:告警留一份下来(入腿的库位/物料)。返回值那一份不变。
+    PERFORM notify_landing_warnings(v_warn, p_to_location_id, v_material);
 
     -- 成对:出源库位、进目的库位。【状态原样带过去】—— 转移搬的是位置,
     -- 不是状态;一批被扣住的货换个货架仍然是被扣住的。

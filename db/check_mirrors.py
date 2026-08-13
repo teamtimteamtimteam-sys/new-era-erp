@@ -167,6 +167,10 @@ DEFINER_NO_CHECK_ALLOWED = {
     # (inbound.edit / output.edit / inventory.edit)且各自已把过关 —— 给它挑一个
     # 权限码只能挑一个比三者都松的。同 resolve_receipt_location,靠"调不到"。
     "check_location_class": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    # NTF-1:两个通知发射器。它们能凭空写出一条通知,而 notifications 可信的全部
+    # 依据就是"只有属主身份的函数写得进"(同 approval_log)。靠"调不到"。
+    "notify_landing_warnings": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "notify_class_violations": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "reverse_journal_entry_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
     # FIN-27 的内层算子:条款解析、计价算术、承诺写入。同上,靠"调不到"而非"查调用者"
     "pricing_terms_of_formula": "EXECUTE revoked from PUBLIC/authenticated/anon",

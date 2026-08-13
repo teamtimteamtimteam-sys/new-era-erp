@@ -1281,6 +1281,24 @@ const zh = {
         },
     },
     // STK-1:库存状态维度 —— 可用 / 暂扣,由流水派生。
+    notifications: {
+        title: '通知',
+        bell: '通知',
+        bellLabel: '通知',
+        bellError: '通知数读不到 —— 这与"没有通知"不是一回事',
+        empty: '还没有任何通知。',
+        markRead: '标记已读',
+        markAll: '全部标记已读',
+        permissionNote: '这里只显示【你有权限看见】的事件。一个安静的收件箱可能是没有事发生,也可能是发生的事属于你打不开的模块 —— 两者在屏幕上长得一样,所以这句话必须写出来。',
+        errNotSignedIn: '尚未登录。',
+        errMarkRead: '标记已读失败:{message}',
+        event: {
+            iod_class_unconfigured_location: '{material} 被收进了 {location},而这个库位【还没有人配置过】可存放的物料分类 —— 这一次什么都没能校验。',
+            iod_material_unclassified: '{material} 被收进了 {location},但它【还没有分类】,所以无法拿它与这个库位比对。',
+            class_violation_after_reclassify: '{material} 现在被分类为 {class},而已经有 {qty} 躺在 {location} —— 那个库位不允许这一类。',
+            class_violation_after_config: '{location} 被配置为只存放特定分类,而已经有 {qty} 的 {material}({class})躺在那里,并不在许可之列。',
+        },
+        },
     stock: {
         panelTitle: '库存分布(库位与状态)',
         panelNote: '由库存流水派生 —— 这里没有任何一个数是存下来的。暂扣不搬动任何货,它只是标记这批货不可动用。',

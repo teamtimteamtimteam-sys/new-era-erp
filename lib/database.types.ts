@@ -3571,6 +3571,68 @@ export type Database = {
           },
         ]
       }
+      notification_reads: {
+        Row: {
+          notification_id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          notification_id: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          notification_id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_reads_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          occurred_at: string
+          payload: Json
+          subject_code: string | null
+          subject_id: string | null
+          subject_type: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          occurred_at?: string
+          payload?: Json
+          subject_code?: string | null
+          subject_id?: string | null
+          subject_type: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          occurred_at?: string
+          payload?: Json
+          subject_code?: string | null
+          subject_id?: string | null
+          subject_type?: string
+        }
+        Relationships: []
+      }
       output_batch_metals: {
         Row: {
           content_pct: number
@@ -11390,6 +11452,18 @@ export type Database = {
       next_payroll_code: { Args: { p_date?: string }; Returns: string }
       next_pricing_formula_code: { Args: { p_date?: string }; Returns: string }
       next_purchase_order_code: { Args: { p_date?: string }; Returns: string }
+      notify_class_violations: {
+        Args: {
+          p_cause: string
+          p_location_ids: string[]
+          p_material_ids: string[]
+        }
+        Returns: undefined
+      }
+      notify_landing_warnings: {
+        Args: { p_location_id: string; p_material_id: string; p_warn: string[] }
+        Returns: undefined
+      }
       open_for_self_assessment: { Args: { p_review_id: string }; Returns: Json }
       open_review_cycle: { Args: { p_cycle_id: string }; Returns: Json }
       pay_medical_claim: {

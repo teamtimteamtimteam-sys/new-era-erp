@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { logout } from '@/app/logout/actions'
 import { getTranslations } from '@/lib/i18n/server'
 import LanguageSwitcher from './LanguageSwitcher'
+import NotificationBell from './NotificationBell'
 import NavLinks from './NavLinks'
 import { canManagePermissions } from '@/lib/permissions'
 import { getVisibleModules } from '@/lib/moduleAccess'
@@ -33,6 +34,9 @@ export default async function TopNav() {
                     <span className="text-sm text-gray-500 hidden sm:inline">
                         {user.email}
                     </span>
+                    {/* NTF-1:铃铛在【关于你】这一区(语言、退出),不在 NavLinks 里 ——
+                        收件箱不是一个模块,它是这个人自己的东西。 */}
+                    <NotificationBell />
                     <LanguageSwitcher />
                     <form action={logout}>
                         <button

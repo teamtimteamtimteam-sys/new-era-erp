@@ -21,6 +21,8 @@ BEGIN
 
     -- IOD-2:落闸,写入之前。
     v_warn := check_location_class(p_location_id, p_material_id);
+    -- NTF-1:告警留一份下来 —— 此前它渲染一次就没了,连响过的痕迹都没有。
+    PERFORM notify_landing_warnings(v_warn, p_location_id, p_material_id);
 
     INSERT INTO output_batches (
         material_id, customer_id, quantity, unit, remaining_qty, output_date,

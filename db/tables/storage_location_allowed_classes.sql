@@ -45,10 +45,14 @@
 -- (c) 【闸看不见什么 —— 明确的范围外】
 --     检查只在【货落地的那一刻】发生。出库腿与状态变更一个字都不查(分类管的是
 --     货可以待在哪里,不是能不能离开 —— 拦住一批放错地方的货离开,只会把它焊死
---     在错的地方)。而【配置改变之后已经躺在那里的存量冲突,本系统今天不会告诉
---     任何人】:那批货不会再移动一次给落地腿机会,要发现它必须主动扫全量库存。
---     那是报表/告警问题,已排入告警/通知那一刀。fixture 59 F4 臂把这个状态造
---     出来并断言"搬走它不被拦",顺带让这个盲区在仓库里留下痕迹。
+--     在错的地方)。
+--     【存量冲突:这一段改过一次 —— NTF-1 接走了它的一半】(2026-08-13)
+--     原文写的是"本系统今天不会告诉任何人"。NTF-1 起,改这张表或改物料分类,
+--     触发器会把因此变成违规的存量写成一条【通知】(notifications:事件,不是
+--     仪表盘的臂)。所以那句话现在只对另一半成立:**"改变的那一刻"会说出来,
+--         而"此刻全库还有哪些存量违规"仍然没有** —— 那要主动扫全量,归报表中心
+--     那一刀。两者混为一谈会让人以为存量已经被盘过了。
+--     fixture 59 F4 臂仍然钉着"搬走它不被拦";发事件那一半由 fixture 61 钉。
 -- ═══════════════════════════════════════════════════════════════════════════
 --
 -- 【为什么引 code 而不是 id】`waste_classifications` 的主键就是 `code text`
@@ -68,7 +72,7 @@ CREATE TABLE public.storage_location_allowed_classes (
 );
 
 COMMENT ON TABLE public.storage_location_allowed_classes IS
-    'LOC-1:库位可存放的受控物料分类。一行 = 这个库位可以放这一类。【零行 = 未配置 = 还没决定】,检查对它告警而绝不拒绝 —— 与"配了、但不含这一类"(有人做过决定,该拒)是两回事,压成一个布尔量就是把"没人想过"演成"想过、结论是不行"。【IOD-2 起本表设闸】:判词是 check_location_class(库位, 物料),由四个落地点共用 —— 三个建批次 RPC 与 create_stock_transfer 的入腿。三态:零行告警 IOD_CLASS_UNCONFIGURED_LOCATION;物料未分类告警 IOD_MATERIAL_UNCLASSIFIED(【在已配置库位上也只是告警】—— 未分类不是被排除,是没人分过类,天真的 EXISTS 谓词会把它送进拒绝);配了且不含这一类才拒绝 IOD_CLASS_EXCLUDED。【闸只拦正在落地的货】:出库腿与状态变更永不检查(分类管的是货待在哪里,不是能不能离开);而【配置改变后已经躺在那里的存量冲突,本系统今天不会告诉任何人】—— 那要主动扫全量库存,是报表/告警问题,已排入告警那一刀。';
+    'LOC-1:库位可存放的受控物料分类。一行 = 这个库位可以放这一类。【零行 = 未配置 = 还没决定】,检查对它告警而绝不拒绝 —— 与"配了、但不含这一类"(有人做过决定,该拒)是两回事,压成一个布尔量就是把"没人想过"演成"想过、结论是不行"。【IOD-2 起本表设闸】:判词是 check_location_class(库位, 物料),由四个落地点共用 —— 三个建批次 RPC 与 create_stock_transfer 的入腿。三态:零行告警 IOD_CLASS_UNCONFIGURED_LOCATION;物料未分类告警 IOD_MATERIAL_UNCLASSIFIED(【在已配置库位上也只是告警】—— 未分类不是被排除,是没人分过类,天真的 EXISTS 谓词会把它送进拒绝);配了且不含这一类才拒绝 IOD_CLASS_EXCLUDED。【闸只拦正在落地的货】:出库腿与状态变更永不检查(分类管的是货待在哪里,不是能不能离开)。【存量冲突:NTF-1 起在"改变的那一刻"会说出来】—— 改这张表、或改物料分类,触发器会把因此变成违规的存量写成一条通知(notifications,事件而非仪表盘的臂)。仍然【没有】的是"此刻全库还有哪些存量违规"那张常驻视图:那要主动扫全量,归报表中心那一刀。';
 
 COMMENT ON COLUMN public.storage_location_allowed_classes.classification_code IS
     'LOC-1:引 waste_classifications.code(该表主键就是 code,没有 uuid 可引)。【合规逻辑将来读的是 waste_classifications.is_controlled,不是这个字符串】—— 分类的名字会增删改,"受不受控"才是语义(MAT-1)。另:materials.waste_classification_code IS NULL 意为【未分类】,永远不等于 non_focused。';
@@ -96,3 +100,13 @@ CREATE POLICY "storage_location_allowed_classes delete by permission"
     ON public.storage_location_allowed_classes
     AS PERMISSIVE FOR DELETE TO authenticated
     USING (has_permission('module.inventory.edit'::text));
+
+-- NTF-1:许可分类【被写了】之后,按最终集合看已有存量是否违规。
+-- 【语句级 + 过渡表】界面那一侧是"整体删掉再插回去",要看的是这条语句写完
+-- 之后的最终集合,不是逐行。【DELETE 那一半故意不接】:清空到零行 = 未配置
+-- = 告警态,不是违规 —— 给它发违规就是把"没人做过决定"说成"决定了不行"。
+CREATE TRIGGER trg_slac_notify_written
+    AFTER INSERT ON public.storage_location_allowed_classes
+    REFERENCING NEW TABLE AS new_rows
+    FOR EACH STATEMENT
+    EXECUTE FUNCTION public.trg_notify_location_classes_written();

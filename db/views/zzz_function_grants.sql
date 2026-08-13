@@ -75,3 +75,13 @@ REVOKE EXECUTE ON FUNCTION public.resolve_receipt_location(uuid) FROM authentica
 -- 过关;给它挑一个权限码只能挑一个比三者都松的,那不是把关、是把关的样子。
 -- 它没有调用者检查,靠的就是调不到(gate 的 B2 判词认这条出路)。
 REVOKE EXECUTE ON FUNCTION public.check_location_class(uuid, uuid) FROM authenticated;
+-- NTF-1:两个通知发射器。【它们能凭空写出一条通知】,而 notifications 之所以可信,
+-- 靠的正是"只有属主身份的函数写得进"(与 approval_log 同一条:留痕不该有第二个
+-- 写法)。给了 authenticated,任何登录用户都能伪造一条"某某库位违规"的事件 ——
+-- 而通知是拿来被相信的东西。
+-- 【调用它们的是谁】notify_landing_warnings 从四个建批次 RPC 的函数体内被调用
+-- (那四个是 DEFINER,以属主身份执行);notify_class_violations 从两个触发器函数
+-- 内被调用,而那两个触发器函数【也声明了 SECURITY DEFINER】—— 触发器函数默认以
+-- 调用者身份跑,不声明就会在这里撞上"调不到"。
+REVOKE EXECUTE ON FUNCTION public.notify_landing_warnings(text[], uuid, uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.notify_class_violations(text, uuid[], uuid[]) FROM authenticated;
