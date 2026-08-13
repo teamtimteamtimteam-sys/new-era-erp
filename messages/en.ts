@@ -1329,6 +1329,8 @@ const en = {
             IOD_CONSUME_EXCEEDS_AVAILABLE: 'Cannot consume {0} — only {1} is available. {2} is on hold and cannot be processed until released.',
             IOD_DRAIN_INSUFFICIENT: 'Only {1} of the {0} requested could be drawn from stock. Nothing was written — reload the page and try again.',
             IOD_RESTORE_MISMATCH: 'Rollback could not restore exactly what was consumed ({0} expected, {1} mirrored). Nothing was changed.',
+            ARRIVAL_DATE_REQUIRED: 'The arrival date is required — the stock movement records the day the goods actually arrived, and it is never filled in for you. Nothing was saved. Enter the date and submit again.',
+            OUTPUT_DATE_REQUIRED: 'The output date is required — the stock movement records the day the goods were actually produced, and it is never filled in for you. Nothing was saved. Enter the date and submit again.',
             IOD_CLASS_EXCLUDED: 'Location {0} is configured to hold specific material classes, and {1} is not one of them — so nothing was saved. Pick another location, add {1} to that location under Inventory → Storage Locations, or correct this material\'s classification in the material dictionary.',
         },
         warnings: {

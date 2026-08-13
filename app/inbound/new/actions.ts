@@ -6,7 +6,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { localizePurchasingError } from '@/app/purchasing/purchasingErrorCodes'
-import { localizeStockError, warningCodesFrom, warnQuery } from '@/app/components/inventory/stockErrorCodes'
+import { isStockErrorCode, localizeStockError, warningCodesFrom, warnQuery } from '@/app/components/inventory/stockErrorCodes'
 
 export type CreateInboundState = {
     error?: string
@@ -99,9 +99,11 @@ export async function createInbound(
 
     if (error) {
 
-        // IOD-1b:收货库位的两个具名拒绝翻成人话(表单开着时库位被停用,就落这里)
+        // IOD-1b/IOD-2:库存侧的具名拒绝一律翻成人话。判据来自 STOCK_ERROR_CODES
+        // 本身(isStockErrorCode)—— 手抄一份正则到三个 action 里,就是第二份会漂开
+        // 的清单,而漏掉的那一处会把机器码原样端给操作员。
 
-        if (/IOD_RECEIPT_LOCATION_|IOD_CLASS_EXCLUDED/.test(error?.message ?? '')) {
+        if (isStockErrorCode(error?.message)) {
 
             return { error: await localizeStockError(error!.message) }
 

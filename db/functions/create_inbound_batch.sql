@@ -11,6 +11,12 @@ DECLARE
 BEGIN
     PERFORM require_permission('module.inbound.edit');
 
+    -- IOD-2-fu1:到货日【按名】必填。不写这一句,漏出去的是 FIN-32 的约束原文。
+    -- 【不给默认值】:CURRENT_DATE 会让留空比填对更容易通过。
+    IF p_arrival_date IS NULL THEN
+        RAISE EXCEPTION 'ARRIVAL_DATE_REQUIRED';
+    END IF;
+
     -- 【顺序要紧】库位先校验再落库:拒绝必须发生在写入之前,否则一次被拒的
     -- 收货会留下半个批次(单事务会回滚,但错误信息的语义也该是"什么都没发生")。
     PERFORM set_config('evoltrya.location_ctx',

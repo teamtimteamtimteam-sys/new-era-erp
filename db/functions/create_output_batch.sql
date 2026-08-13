@@ -11,6 +11,11 @@ DECLARE
 BEGIN
     PERFORM require_permission('module.output.edit');
 
+    -- IOD-2-fu1:产出日【按名】必填 —— 手走就是在这一条上看见了约束原文。
+    IF p_output_date IS NULL THEN
+        RAISE EXCEPTION 'OUTPUT_DATE_REQUIRED';
+    END IF;
+
     PERFORM set_config('evoltrya.location_ctx',
                        COALESCE(resolve_receipt_location(p_location_id)::text, ''), true);
 

@@ -21,6 +21,10 @@ const STOCK_ERROR_CODES = new Set([
     // IOD-2:三态里【唯一会拒绝的那一态】—— 有人配了这个库位,并且没有把这一类
     // 放进去。另外两态是告警,不走这里(它们从返回值回来,见 localizeStockWarnings)。
     'IOD_CLASS_EXCLUDED',
+    // IOD-2-fu1:三个建批次入口的日期【按名】必填。不按名,漏到界面上的是
+    // FIN-32 那句 "violates check constraint inventory_movements_business_date_required"
+    // —— 手走查出来的正是这一句。
+    'ARRIVAL_DATE_REQUIRED', 'OUTPUT_DATE_REQUIRED',
 ])
 
 // IOD-2:【告警】的编码集合。与上面的拒绝分开,因为它们走的通道就不同 ——
@@ -32,6 +36,20 @@ const STOCK_WARNING_CODES = new Set([
 ])
 
 const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/
+
+// IOD-2-fu1:【调用点问的是"这条错误归不归我管",而不是"它长得像不像某几个码"】
+//
+// 在此之前,三个 action 各自写着一句手抄的正则:
+//     /IOD_RECEIPT_LOCATION_|IOD_CLASS_EXCLUDED/.test(error.message)
+// 那是【第二份会漂开的清单】—— 每加一个库存错误码,都要记得去三处各补一次,
+// 漏掉哪一处,那一处就把机器码原样端给操作员(IOD-1b 已经为这件事付过一次账,
+// 当时漏的是三个 action 全部)。判据只能有一份:就是下面这个集合本身。
+//
+// 于是新增一个码只要动 STOCK_ERROR_CODES 一处,三个调用点自动跟上。
+export function isStockErrorCode(message: string | null | undefined): boolean {
+    const match = (message ?? '').trim().match(CODE_RE)
+    return !!match && STOCK_ERROR_CODES.has(match[1])
+}
 
 export async function localizeStockError(message: string): Promise<string> {
     const raw = (message ?? '').trim()

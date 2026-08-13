@@ -151,5 +151,57 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 25G 失败:不带业务日的新流水应被约束拒绝,实得:%',
             COALESCE(v_msg, '(插进去了 —— 那条 NOT VALID 约束没生效)');
     END IF;
+
+    -- ════════ H. 三个建批次入口:少了日期【按名】拒绝,而不是漏出约束原文 ══════
+    -- 【这一臂是一次手走查出来的】(IOD-2-fu1)。G 臂证明了约束会拦住,但拦住
+    -- 之后操作员在屏幕上看到的是:
+    --     Save failed: new row for relation inventory_movements violates
+    --     check constraint inventory_movements_business_date_required
+    -- —— 一句数据库约束原文。app 那一层的守卫是好的(它拦得住),可【守卫成对】
+    -- 的另一半本该在 RPC 自己身上,而那半边当时是空的:任何不经过表单的调用者
+    -- (curl、导入脚本、装着旧 action id 的浏览器)都一路走到 CHECK 上。
+    --
+    -- 所以这里断言的是【名字】,不是"被拒了"。G 臂管"拦不拦得住",H 臂管
+    -- "拦住之后说的是不是人话" —— 两件事,两个臂。
+    v_ok := false; v_msg := NULL;
+    BEGIN
+        PERFORM create_inbound_batch(v_mat, v_sup, 1, 'kg');   -- 不传 p_arrival_date
+    EXCEPTION WHEN OTHERS THEN
+        GET STACKED DIAGNOSTICS v_msg = MESSAGE_TEXT;
+        v_ok := v_msg = 'ARRIVAL_DATE_REQUIRED';
+    END;
+    IF NOT v_ok THEN
+        RAISE EXCEPTION 'FIXTURE 25H 失败:create_inbound_batch 少了到货日应当按名拒绝 ARRIVAL_DATE_REQUIRED,实得:%',
+            COALESCE(v_msg, '(建出来了)');
+    END IF;
+
+    v_ok := false; v_msg := NULL;
+    BEGIN
+        PERFORM receive_inbound_batch_against_po(v_mat, v_sup, 1);
+    EXCEPTION WHEN OTHERS THEN
+        GET STACKED DIAGNOSTICS v_msg = MESSAGE_TEXT;
+        v_ok := v_msg = 'ARRIVAL_DATE_REQUIRED';
+    END;
+    IF NOT v_ok THEN
+        RAISE EXCEPTION 'FIXTURE 25H 失败:receive_inbound_batch_against_po 少了到货日应当按名拒绝,实得:%',
+            COALESCE(v_msg, '(建出来了)');
+    END IF;
+
+    v_ok := false; v_msg := NULL;
+    BEGIN
+        PERFORM create_output_batch(v_mat, 1, 'kg');           -- 不传 p_output_date
+    EXCEPTION WHEN OTHERS THEN
+        GET STACKED DIAGNOSTICS v_msg = MESSAGE_TEXT;
+        v_ok := v_msg = 'OUTPUT_DATE_REQUIRED';
+    END;
+    IF NOT v_ok THEN
+        RAISE EXCEPTION 'FIXTURE 25H 失败:create_output_batch 少了产出日应当按名拒绝 OUTPUT_DATE_REQUIRED,实得:%',
+            COALESCE(v_msg, '(建出来了)');
+    END IF;
+
+    -- 而【带上日期】的同一次调用必须仍然做得到 —— 拒的是缺日期,不是这件事本身。
+    IF (create_output_batch(v_mat, 1, 'kg', v_sale) ->> 'batch_id') IS NULL THEN
+        RAISE EXCEPTION 'FIXTURE 25H 失败:带上产出日之后,正常路径也走不通了';
+    END IF;
 END $$;
 ROLLBACK;

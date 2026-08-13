@@ -11,6 +11,11 @@ DECLARE
 BEGIN
     PERFORM require_permission('module.inbound.edit');
 
+    -- IOD-2-fu1:同上 —— 现场收货这条路一样进得到 FIN-32 的约束。
+    IF p_arrival_date IS NULL THEN
+        RAISE EXCEPTION 'ARRIVAL_DATE_REQUIRED';
+    END IF;
+
     PERFORM set_config('evoltrya.location_ctx',
                        COALESCE(resolve_receipt_location(p_location_id)::text, ''), true);
 
