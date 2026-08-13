@@ -1,80 +1,103 @@
--- OPS-18(Phase 6):operations_now —— 全站"正在等人处理的事",一件一行
+-- db/migrations/2026-08-13-ss1-safety-stock-alerts.sql
+-- SS-1:安全库存告警 —— 阈值是【有人做过的一个决定】,而空着不是零
 --
--- 【为什么是一张视图而不是九个页面各查各的】仪表盘的每一块牌子背后都是"有多少件
--- 事在等"这一类问题;九个问题九处写,就是九份会各自漂移的实现。hr_alerts 已经证明
--- 过这个形状:一个 UNION,每一种等待状态一支,页面只负责画。
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 【这一刀的全部难点在 NULL 上,不在算术上】
+-- safety_stock_qty IS NULL 的意思是【还没有人决定要盯这个物料】,不是"阈值为零"。
+-- 这两者在屏幕上长得一模一样(都不告警),但它们的【将来】完全不同:
+--   * 阈值为零 = 有人看过、决定这东西缺货也无所谓;
+--   * NULL     = 没有人想过这件事。
+-- 把后者读成"查过了,没问题",正是 METAL-1 的 no_reference 那一课:一个不会响的
+-- 检查比没有检查更坏,因为人以为系统在替他盯着。所以:
+--   * 告警对 NULL 【一次都不响】;
+--   * 而物料列表必须把"未监控"【写出来】,绝不留空 —— 空白读起来像"没事",
+--     而它的真实含义是"没人设过"。这一条在 Step 2 的列表列上兑现。
 --
--- 【属主权限 + 每支自带 permission 列,外层一次性把关】(OPS-14 修法 (a))。
--- 本视图横跨六个模块,invoker 会让 RLS 把读者无权模块的行【静默丢掉】—— 行消失
--- 在这里意味着"那个数少算了",而不是报错。属主权限读全量,外层
--- WHERE has_permission(a.permission) 按【调用者】逐支裁决:无权的支【整支缺席】,
--- 不是零。谓词写一次而不是九遍 —— hr_alerts 的注释说过,复述 N 遍只会给下一个
--- 加支的人留一个漏写的机会;这里每支【声明】自己的权限码,外层【执行】它。
+-- 【CHECK 只管"存在时必须为正"】阈值 0 会让告警永远不响,那是把"不监控"写成一个
+-- 看起来像监控的数字 —— 要不监控,就留空,那是【同一个意思的唯一一种写法】。
+-- 负数无意义。所以 NULL 或 > 0,没有第三种。
 --
--- 【缺席 ≠ 零,页面必须自己分辨】视图对无权读者不发一行,于是"没有行"有两种
--- 含义:真的零,或者你看不见。app/page.tsx 先查权限再渲染每块牌子 —— 无权显示
--- 「受限」(common.restricted),绝不显示 0。这是仪表盘最容易犯、且任何 gate 都
--- 查不出的那个错(0 与"你看不见"在屏幕上一模一样 —— moduleGuard 的老病换了件衣服)。
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 【可用量:一处求和,不是第二份 drain 逻辑】
+-- material_stock_available 把流水按物料聚合,判据只有一句:
+--     stock_status = 'available'
+-- 这与 derived_stock_qty 用的是【同一条规则】,只是粒度不同(它按 批次×库位×状态,
+-- 这里按 物料)。没有复制任何 drain / 状态流转的逻辑 —— 那些逻辑写在流水【怎么产生】
+-- 那一侧,这里只是把已经产生的流水加起来。
 --
--- 【item_type 写成 'x'::text 字面量】check-i18n 的 sqlLiteralAs 解析器现读本文件,
--- dashboard.item.* 的后缀集合就是这里的支列表 —— 加一支,键检查自动跟着变宽。
+-- 【为什么不直接调 derived_stock_qty】它按批次×库位取数,一个物料要调 N 次;而且
+-- 它自带 require_permission('module.inventory.view') —— 一个属主权限视图在体内替
+-- 调用者做权限判断是对的,但那应当由视图自己的谓词表达一次,而不是被一个算子在
+-- 每行上重复抛出。
 --
--- 【两笔贵的读数,按界所限】(OPS-16 报告点名的两处):
---   * fx_rate_gaps 按 (日期,币种) 对每组跑 fx_rate_asof,本身不受期间约束 ——
---     这里限 rate_date >= CURRENT_DATE - 45:仪表盘答"最近有没有漏",完整历史
---     归 /finance/month-end 按月翻。谓词落在分组键上,能下推进聚合。
---   * 银行对账这支【只数报表侧的未匹配行】(bank_statement_lines,行数 = 导入量,
---     天然有界)。bank_reconciliation_status 的账簿侧 LATERAL 要扫 journal_lines
---     全表 —— 那是对账页的活,不上人人都开的首页。
+-- 【暂扣的货【不】算进来,这是判据的一部分】阈值问的是"还有多少【能用】的货",
+-- 而暂扣的那部分按定义不能用。把暂扣算进可用,会让一次暂扣把缺货掩盖掉 ——
+-- 那恰好是这个告警最该说话的时刻。fixture 60 D 臂钉住这一条。
 --
--- 【不在此列的】批次毛利 —— 有未决的设计问题(哪些限定词随数字走、已过账 COGS
--- 还是当前成本),自成一切,谓词已录在 AGENTS.md 常设决定 2。月结的七个信号 ——
--- /finance/month-end 是它们的枢纽,首页放一个入口,不复制信号。
+-- 【属主权限 + 体内谓词】(AGENTS.md 修法 (a))本视图跨 materials 与
+-- inventory_movements,invoker 会让 RLS 把读者无权的行【静默丢掉】,而行丢掉在
+-- 聚合里意味着"可用量偏小" —— 一个偏小的可用量会【凭空造出告警】。所以属主权限
+-- 读全量,谓词写在体内,按调用者裁决:无权的读者【一行都没有】,不是一个错的数。
 --
--- NOTE: introduced by db/migrations/2026-08-09-ops18-operations-now-and-the-dashboard.sql.
--- OPS-19(2026-08-09):补上原始定稿漏掉的四支(awaiting_assay / batch_unpriced /
--- invoice_overdue / ar_over_90 + ap_over_90),并新增 output_unsold_aging —— sales
--- 这一行唯一够得着的支(它没有 module.finance.view,当初猜的 AR 支对它同样是「受限」)。
--- assay_unapplied 的粒度同时从"一份未执行化验一行"改成"一个批次一行",与
--- awaiting_assay 同源同粒度、互斥;live 该支当时为 0,故不改变任何现有数字。
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 【新增一支仪表盘臂:safety_stock_below】
+-- 规格见 docs/dashboard-arm-inventory.md(同一提交里加了一行 —— 那份清单的规矩)。
+--   permission : module.inventory.view(看得见库存分布 = 看得见库存模块)
+--   item_id    : 物料本身 —— 【补救动作在那张页面上】(把阈值改掉,或者去补货;
+--                前者就在物料编辑页,后者从物料出发)。
+--   subject    : 可用 / 阈值 单位 —— 差额。视图的列集是固定的,没有数值列,
+--                而这三个数正是这支唯一有用的内容,所以它们进 subject 文本。
+--   item_date  : 【最后一次库存移动】,没有就退回今天。阈值告警是一个【持续状态】,
+--                不是一件在某天发生的事 —— 它没有天然的发生日。用最后一次移动,
+--                是因为那是这个数字最后一次改变的时刻;去算"哪天跌破的"要在首页
+--                翻整段流水史,而首页那条界的规矩不允许(credit_over_limit 用
+--                COALESCE(最后一次销售, CURRENT_DATE) 是同一形状的先例)。
 --
--- CMP-1(2026-08-09):两支资质臂。qualification_expiring 到【类型自己的 lead days】就上牌,
--- 过期后【不落牌、无 -30 天下限】—— 工作证过期 30 天人已走,证书过期两年而进场仍可能,
--- 它就还站在那儿(live 那张 2024 年就过期的 Article 18 正是证据)。续期(valid_until
--- 前移)即安静。qualification_missing 是"一张证都没有"的缺席臂(与 awaiting_assay /
--- assay_unapplied 的分立同理)。disposition='ignore' 的类型不上牌。
--- 【规格在 docs/dashboard-arm-inventory.md】每一支是什么意思、挂哪个权限码、界在
--- 哪里、以及【哪些支被考虑过又被排除、为什么】都在那里。
--- 定稿只存在于一次对话里,代价是四支 —— 所以规矩是:
--- 【加一支 = 在同一个提交里往那份清单加一行】。
---
--- MAR-1(2026-08-10):支的权限从【一个码】放宽到【一个谓词】—— permission(必须有)
--- + permission_any(任意其一,由 arm_permission_any 一处声明,SELECT 与 WHERE 共用)。
--- 起因是批次毛利跨两个模块(prices AND (finance OR processing)),而没有任何 live 角色
--- 同时持有后两者。合成一个新权限码那条路被否掉:那会是谁能看毛利的第二份定义,
--- 与 batch_margin 自己的谓词必然漂开。fixture 45 三种读者各钉一次。
--- LINKS-1(2026-08-11):每支多带一个 item_id —— 支从"指向一张列表"变成"指向那一件事"。
--- 【item_id 指的是谁】承载【补救动作】的那张页面所对应的行。十七支里它就是等待中的
--- 那一行;两支里是它的父:bank_unmatched(行没有页面,匹配动作在对账工作台上 →
--- 对账单)与 margin_cost_not_allocated(补救是给加工单分摊成本 → 加工单)。
--- 于是同一支的几行可以共用一个 item_id,那是对的,不是重复 —— fixture 47 因此断言
--- 的是"item_id 落在这一支该落的那张表里",不是"一行一个 id",也不是互不相同。
--- 【doc_kind 是披露】应付账款本来就是两种单据(ap_open_items 自己就按它分支,
--- 应付列表页也一直照它画链接),这张视图先前只是没说出口。其余十八支主体只有一种,
--- 该列为 NULL。【fx_rate_gap 没有 item_id】它的主体是一条不存在的牌价行,缺的东西
--- 没有 id —— 它指向按币种过滤的列表,那是"诚实过滤的列表"那类答案,不是按码搜索。
--- 每支的门牌与"补救是否在那张页面上"这条判据,写在 docs/dashboard-arm-inventory.md。
--- NOTE: item_id / doc_kind added by
--- db/migrations/2026-08-11-links1-operations-now-item-id.sql(列集变了 → DROP + CREATE)。
--- SS-1(2026-08-13):第二十支 safety_stock_below —— 物料的可用量低于它自己的
--- 安全库存阈值。【阈值 NULL 的物料一次都不响】:NULL 是"还没有人决定要盯它",
--- 不是"阈值为零",而把不响读成"查过了没问题"正是 METAL-1 的那一课。
--- 可用量来自 material_stock_available(一处求和,暂扣不算 —— 阈值问的是"还有多少
--- 能用的货",一次暂扣若能掩盖缺货,这个告警就在最该说话的时刻哑掉)。
--- item_date 用【最后一次库存移动】退回今天:阈值告警是持续状态,没有发生日;
--- 去算"哪天跌破的"要在首页翻整段流水史,那条界不允许(credit_over_limit 同形)。
+-- 镜像:db/tables/materials.sql、db/views/{material_stock_available,operations_now}.sql、
+--       docs/dashboard-arm-inventory.md。
+-- 行为断言:fixture 60(本刀);fixture 47 的支清单 + 建行、fixture 30 的合计同步。
+-- ═══════════════════════════════════════════════════════════════════════════
 
-CREATE VIEW public.operations_now WITH (security_invoker = off) AS
+BEGIN;
+
+-- ═══ 1 · 阈值列 ═════════════════════════════════════════════════════════════
+ALTER TABLE public.materials
+    ADD COLUMN safety_stock_qty numeric;
+
+ALTER TABLE public.materials
+    ADD CONSTRAINT materials_safety_stock_qty_positive
+    CHECK (safety_stock_qty IS NULL OR safety_stock_qty > 0);
+
+COMMENT ON COLUMN public.materials.safety_stock_qty IS
+    'SS-1:安全库存阈值(按物料的计量单位)。【NULL = 不监控 = 还没有人做过这个决定】,绝不等于"阈值为零":告警对 NULL 一次都不响,而这个"不响"【不可以被读成"查过了,没问题"】—— 那是 METAL-1 的 no_reference 那一课(一个不会响的检查比没有检查更坏,因为人以为系统在替他盯着)。所以物料列表把"未监控"明写出来,不留空。CHECK 只允许 NULL 或 > 0:阈值 0 是把"不监控"写成一个看起来像监控的数字,而"不监控"的唯一写法是留空。告警是【采购信号】—— 低于阈值不拦任何销售、投料或收货。';
+
+-- ═══ 2 · 按物料的可用量:一处求和 ═══════════════════════════════════════════
+CREATE VIEW public.material_stock_available WITH (security_invoker = off) AS
+ SELECT m.id AS material_id,
+    m.code,
+    m.name,
+    m.unit,
+    m.safety_stock_qty,
+    COALESCE(s.available_qty, 0::numeric) AS available_qty,
+    s.last_movement_date
+   FROM materials m
+     LEFT JOIN ( SELECT COALESCE(ib.material_id, ob.material_id) AS material_id,
+            sum(mv.qty_delta) AS available_qty,
+            max(mv.business_date) AS last_movement_date
+           FROM inventory_movements mv
+             LEFT JOIN inbound_batches ib ON ib.id = mv.inbound_batch_id
+             LEFT JOIN output_batches ob ON ob.id = mv.output_batch_id
+          WHERE mv.stock_status = 'available'::text
+          GROUP BY (COALESCE(ib.material_id, ob.material_id))) s ON s.material_id = m.id
+  WHERE m.deleted_at IS NULL
+    AND has_permission('module.inventory.view'::text);
+
+COMMENT ON VIEW public.material_stock_available IS
+    'SS-1:按物料的【可用】库存(stock_status = ''available'' 的流水求和,两种批次都算)。与 derived_stock_qty 同一条规则、不同粒度 —— 那个按 批次×库位×状态,这个按物料;没有复制任何 drain/状态流转逻辑。【暂扣不算】:阈值问的是"还有多少能用的货",而一次暂扣若能掩盖缺货,这个告警恰好在最该说话的时刻哑掉。属主权限 + 体内 has_permission —— invoker 会让 RLS 丢行,而聚合里丢行等于可用量偏小,偏小会【凭空造出告警】。';
+
+-- ═══ 3 · 仪表盘臂 ═══════════════════════════════════════════════════════════
+-- 列集不变(只多一支 UNION),所以 CREATE OR REPLACE 够用。
+CREATE OR REPLACE VIEW public.operations_now WITH (security_invoker = off) AS
  SELECT item_type,
     permission,
     arm_permission_any(item_type) AS permission_any,
@@ -198,7 +221,7 @@ CREATE VIEW public.operations_now WITH (security_invoker = off) AS
             msa.material_id AS item_id,
             NULL::text AS doc_kind,
             msa.code AS item_code,
-            (((((trim_scale(msa.available_qty)::text || ' / '::text) || trim_scale(msa.safety_stock_qty)::text) || ' '::text) || COALESCE(msa.unit, ''::text)) || ' — short '::text) || trim_scale(msa.safety_stock_qty - msa.available_qty)::text AS subject,
+            ((((((trim_scale(msa.available_qty))::text || ' / '::text) || (trim_scale(msa.safety_stock_qty))::text) || ' '::text) || COALESCE(msa.unit, ''::text)) || ' — short '::text) || (trim_scale(msa.safety_stock_qty - msa.available_qty))::text AS subject,
             COALESCE(msa.last_movement_date, CURRENT_DATE) AS item_date
            FROM material_stock_available msa
           WHERE msa.safety_stock_qty IS NOT NULL AND msa.available_qty < msa.safety_stock_qty
@@ -299,4 +322,4 @@ CREATE VIEW public.operations_now WITH (security_invoker = off) AS
           WHERE bm.margin_status = 'no_unit_cost'::text) a
   WHERE has_permission(permission) AND (arm_permission_any(item_type) IS NULL OR has_any_permission(arm_permission_any(item_type)));
 
-GRANT SELECT ON public.operations_now TO authenticated;
+COMMIT;

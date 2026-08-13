@@ -2187,6 +2187,13 @@ export type Database = {
             foreignKeyName: "inbound_batches_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
+            referencedRelation: "material_stock_available"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
             referencedRelation: "materials"
             referencedColumns: ["id"]
           },
@@ -3261,6 +3268,13 @@ export type Database = {
             foreignKeyName: "material_attachments_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
+            referencedRelation: "material_stock_available"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "material_attachments_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
             referencedRelation: "materials"
             referencedColumns: ["id"]
           },
@@ -3277,6 +3291,7 @@ export type Database = {
           id: string
           name: string
           notes: string | null
+          safety_stock_qty: number | null
           spec: string | null
           status: string
           unit: string
@@ -3294,6 +3309,7 @@ export type Database = {
           id?: string
           name: string
           notes?: string | null
+          safety_stock_qty?: number | null
           spec?: string | null
           status?: string
           unit?: string
@@ -3311,6 +3327,7 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
+          safety_stock_qty?: number | null
           spec?: string | null
           status?: string
           unit?: string
@@ -3684,6 +3701,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "output_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "material_stock_available"
+            referencedColumns: ["material_id"]
           },
           {
             foreignKeyName: "output_batches_material_id_fkey"
@@ -5953,6 +5977,13 @@ export type Database = {
             foreignKeyName: "purchase_order_lines_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
+            referencedRelation: "material_stock_available"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
             referencedRelation: "materials"
             referencedColumns: ["id"]
           },
@@ -8181,6 +8212,13 @@ export type Database = {
             foreignKeyName: "inbound_batches_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
+            referencedRelation: "material_stock_available"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
             referencedRelation: "materials"
             referencedColumns: ["id"]
           },
@@ -8611,6 +8649,18 @@ export type Database = {
             referencedColumns: ["leave_type_code"]
           },
         ]
+      }
+      material_stock_available: {
+        Row: {
+          available_qty: number | null
+          code: string | null
+          last_movement_date: string | null
+          material_id: string | null
+          name: string | null
+          safety_stock_qty: number | null
+          unit: string | null
+        }
+        Relationships: []
       }
       medical_claim_status: {
         Row: {
@@ -9290,6 +9340,13 @@ export type Database = {
           unit: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "purchase_order_lines_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "material_stock_available"
+            referencedColumns: ["material_id"]
+          },
           {
             foreignKeyName: "purchase_order_lines_material_id_fkey"
             columns: ["material_id"]
@@ -10347,6 +10404,13 @@ export type Database = {
           unit?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "purchase_order_lines_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "material_stock_available"
+            referencedColumns: ["material_id"]
+          },
           {
             foreignKeyName: "purchase_order_lines_material_id_fkey"
             columns: ["material_id"]

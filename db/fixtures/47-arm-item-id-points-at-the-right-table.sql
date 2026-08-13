@@ -19,7 +19,7 @@
 -- 映射就是下面的 CASE —— 它同时是【规格】:新加一支若没在这里声明自己的表,
 -- 本 fixture 直接失败,不是默默放行(check-i18n 的 MANIFEST 同一条纪律)。
 --
--- 【A 臂先钉覆盖】十九支必须全部在场。少一支,它那条门牌断言就成了空转 ——
+-- 【A 臂先钉覆盖】二十支必须全部在场。少一支,它那条门牌断言就成了空转 ——
 -- 而空转的断言与通过的断言在屏幕上一模一样(fixture 26 与 FIN-30 的老账)。
 --
 -- 【D 臂钉应付的两种单据】ap_over_90 是唯一按 doc_kind 分岔的支:进料批次去
@@ -54,28 +54,34 @@ DECLARE
         'claim_pending','credit_over_limit','fx_rate_gap','invoice_overdue',
         'leave_pending','margin_cost_not_allocated','output_unsold_aging',
         'po_awaiting_receipt','qualification_expiring','qualification_missing',
-        'review_submitted','stocktake_open'];
+        'review_submitted','safety_stock_below','stocktake_open'];
 BEGIN
     SELECT code INTO v_ccy FROM currencies WHERE is_base;
     -- README 第 5 条:前提显式设定。成本条目会触发自动应计过账,锁不能挡住 fixture 的日期
     UPDATE finance_settings SET locked_before = NULL;
 
-    -- ── 一个读者,持全部十九支需要的码 ───────────────────────────────────────
+    -- ── 一个读者,持全部二十支需要的码 ───────────────────────────────────────
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-47-all', 'f', 'f', true) RETURNING id INTO r_all;
     INSERT INTO role_permissions (role_id, permission_code)
     -- data.view_prices:三支财务支的行【存在性】挂在被它遮蔽的金额列上(见清单文件
     -- 的隐患二),缺了会静默少报而不是「受限」;margin 支本身也要它。
+    -- SS-1:module.inventory.view —— safety_stock_below 挂在它上面。少了它,那一支
+    -- 被外层的 has_permission 裁掉,A 臂会报"少一支",而真正的原因是【读者没权限】,
+    -- 不是视图少了一支。两者的红长得一样,所以这一行的理由写在这里。
     SELECT r_all, unnest(ARRAY['module.inbound.view','module.processing.view',
         'module.processing.edit','module.purchasing.view','module.stocktakes.view',
         'module.hr.view','module.output.view','module.output.edit',
         'module.finance.view','module.suppliers.view','module.customers.view',
-        'data.view_prices']);
+        'module.inventory.view','data.view_prices']);
     INSERT INTO user_roles (user_id, role_id) VALUES (v_user, r_all);
 
     -- ── 主数据 ──────────────────────────────────────────────────────────────
-    INSERT INTO materials (code, name, category)
-    VALUES ('ZZFIX47-M', 'fixture 47 material', 'other') RETURNING id INTO v_mat;
+    -- SS-1:阈值设在这份 fixture 的库存够不着的地方 —— 这一支因此必然在场。
+    -- 【A 臂断言二十支全在】,少一支就意味着它那条门牌断言空转,而空转的断言
+    -- 与通过的断言长得一模一样。
+    INSERT INTO materials (code, name, category, safety_stock_qty)
+    VALUES ('ZZFIX47-M', 'fixture 47 material', 'other', 999999) RETURNING id INTO v_mat;
     INSERT INTO suppliers (code, legal_name, country, status)
     VALUES ('ZZFIX47-S', 'fixture 47 supplier', 'SG', 'active') RETURNING id INTO v_sup;
     -- 资质将到期的供应商:用 iso(warn,lead 60)—— warn 不挡收货,本 fixture 不需要
@@ -223,11 +229,11 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 47 前置失败:operations_now 一行都没读到 —— 后面每一条断言都会空转';
     END IF;
 
-    -- ══════════ A. 覆盖:十九支必须全部在场 ═════════════════════════════════
+    -- ══════════ A. 覆盖:二十支必须全部在场 ═════════════════════════════════
     SELECT COALESCE(array_agg(DISTINCT e->>'t' ORDER BY e->>'t'), '{}')
       INTO v_types FROM jsonb_array_elements(v_rows) e;
     IF v_types <> v_expected THEN
-        RAISE EXCEPTION 'FIXTURE 47A 失败:应恰好看见十九支 %,实得 % —— 少一支,它那条门牌断言就没跑过(空转的断言与通过的断言长得一模一样);多一支说明支列表变了而本 fixture 没跟上,规格见 docs/dashboard-arm-inventory.md',
+        RAISE EXCEPTION 'FIXTURE 47A 失败:应恰好看见二十支 %,实得 % —— 少一支,它那条门牌断言就没跑过(空转的断言与通过的断言长得一模一样);多一支说明支列表变了而本 fixture 没跟上,规格见 docs/dashboard-arm-inventory.md',
             v_expected::text, v_types::text;
     END IF;
 
@@ -250,6 +256,8 @@ BEGIN
             WHEN 'qualification_missing'     THEN 'suppliers'
             WHEN 'credit_over_limit'         THEN 'customers'
             WHEN 'output_unsold_aging'       THEN 'output_batches'
+            -- SS-1:补救动作在物料页上(改阈值,或从那里出发去补货)
+            WHEN 'safety_stock_below'        THEN 'materials'
             WHEN 'leave_pending'             THEN 'leave_requests'
             WHEN 'claim_pending'             THEN 'medical_claims'
             WHEN 'review_submitted'          THEN 'performance_reviews'

@@ -27,6 +27,15 @@ export async function createMaterial(
     const waste_classification_code = parseWasteClassField(formData.get('waste_classification_code'))
     const unit = (formData.get('unit') as string)?.trim() || 'kg'
     const spec = (formData.get('spec') as string)?.trim() || null
+    // SS-1:安全库存阈值。【留空 = 不监控】,所以空字符串必须落成 NULL 而不是 0 ——
+    // 0 会让告警永远不响,却看起来像"设过了",正是这一列的注释在防的那件事。
+    const safety_raw = (formData.get('safety_stock_qty') as string)?.trim() || ''
+    let safety_stock_qty: number | null = null
+    if (safety_raw !== '') {
+        const n = Number(safety_raw)
+        // 与 CHECK 同一条判据(NULL 或 > 0)—— 界面先说人话,数据库仍然兜底。
+        safety_stock_qty = Number.isNaN(n) || n <= 0 ? NaN : n
+    }
     const notes = (formData.get('notes') as string)?.trim() || null
 
     // 2. 校验
@@ -34,6 +43,9 @@ export async function createMaterial(
     if (!name) fieldErrors.name = t('materials.form.errName')
     if (!category) fieldErrors.category = t('materials.form.errCategory')
 
+    if (safety_stock_qty !== null && Number.isNaN(safety_stock_qty)) {
+        fieldErrors.safety_stock_qty = t('materials.form.errSafetyStock')
+    }
     if (Object.keys(fieldErrors).length > 0) {
         return { fieldErrors }
     }
@@ -51,6 +63,7 @@ export async function createMaterial(
         waste_classification_code,
         unit,
         spec,
+        safety_stock_qty,
         notes,
         created_by: user?.id ?? null,
         updated_by: user?.id ?? null,

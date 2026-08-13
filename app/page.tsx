@@ -79,6 +79,11 @@ const TILES = [
     // 那是要点名的隐患,不是不给链接的理由(两条判据,见清单文件)。
     { itemType: 'output_unsold_aging', permission: 'module.output.view', href: '/output',
       itemHref: (r: OpsRow) => `/output/${r.item_id}/edit` },
+    // SS-1:补救在物料自己那张页面上 —— 阈值就在那里改,补货也从那里出发。
+    // 【与 output_unsold_aging 同一个隐患,同样点名】:在这张页面上把阈值调高
+    // 或清空,牌子会安静而一公斤货都没动。那是判据之外的事,不是不给链接的理由。
+    { itemType: 'safety_stock_below', permission: 'module.inventory.view', href: '/materials',
+      itemHref: (r: OpsRow) => `/materials/${r.item_id}/edit` },
     { itemType: 'leave_pending', permission: 'module.hr.view', href: '/hr/leave',
       itemHref: (r: OpsRow) => `/hr/leave/${r.item_id}` },
     { itemType: 'claim_pending', permission: 'module.hr.view', href: '/hr/claims',

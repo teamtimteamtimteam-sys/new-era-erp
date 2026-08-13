@@ -158,6 +158,23 @@ export default function NewMaterialForm({
                     />
                 </div>
 
+                {/* SS-1:安全库存阈值。【留空 = 不监控】—— 那是一个还没有人做过的
+                    决定,不是"阈值为零";旁边那句话必须在,否则留空会被读成"没事"。 */}
+                <div>
+                    <label className="block text-sm font-medium mb-1">{t('materials.form.safetyStock')}</label>
+                    <input
+                        type="number"
+                        step="any"
+                        min="0"
+                        name="safety_stock_qty"
+                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                    />
+                    {state.fieldErrors?.safety_stock_qty && (
+                        <p className="text-red-600 text-xs mt-1">{state.fieldErrors.safety_stock_qty}</p>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1">{t('materials.form.safetyStockHint')}</p>
+                </div>
+
                 {/* 备注 */}
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('materials.form.notes')}</label>

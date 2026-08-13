@@ -74,7 +74,7 @@ export default async function MaterialsPage({
     // 2) 取当前页的行:过滤 + 排序后再 .range(from, to)
     const baseQuery = supabase
         .from('materials')
-        .select('id, code, name, category, chemistry, unit, status, created_at, waste_classification_code, waste_classifications ( name_en, name_zh, is_controlled )')
+        .select('id, code, name, category, chemistry, unit, status, created_at, safety_stock_qty, waste_classification_code, waste_classifications ( name_en, name_zh, is_controlled )')
 
     const { data: materials, error } = await applyMaterialFilters(
         baseQuery,
@@ -166,6 +166,9 @@ export default async function MaterialsPage({
                             {t('materials.colUnit')}
                         </th>
                         <th className="border border-gray-300 px-4 py-2 text-left">
+                            {t('materials.colSafetyStock')}
+                        </th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">
                             {t('materials.colStatus')}
                         </th>
                         {sortableTh('created_at', t('materials.colCreated'))}
@@ -208,6 +211,15 @@ export default async function MaterialsPage({
                                 )}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">{display(UNIT_OPTIONS, m.unit)}</td>
+                            {/* SS-1:【绝不留空】—— 空白读起来像"没事",而它的真实含义是
+                                "没有人设过这个阈值"。未监控必须自己说出来。 */}
+                            <td className="border border-gray-300 px-4 py-2">
+                                {m.safety_stock_qty === null ? (
+                                    <span className="text-gray-400">{t('materials.notMonitored')}</span>
+                                ) : (
+                                    <span>{m.safety_stock_qty} {display(UNIT_OPTIONS, m.unit)}</span>
+                                )}
+                            </td>
                             <td className="border border-gray-300 px-4 py-2">
                                 <span className="px-2 py-1 bg-gray-200 rounded text-xs">
                                     {m.status}

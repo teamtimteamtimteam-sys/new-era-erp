@@ -30,7 +30,16 @@ CREATE TABLE public.materials (
     -- 且【不回填】:给一条没人记录过的分类硬指一个值是伪造,而且是承重的伪造。
     -- 与 category(它在我们流程里是哪一种东西)、chemistry(正极化学体系)不重复:
     -- 那两个是【我们怎么看】,这个是【监管怎么看】,三者同时成立而互不蕴含。
-    waste_classification_code text REFERENCES public.waste_classifications (code)
+    waste_classification_code text REFERENCES public.waste_classifications (code),
+    -- ── SS-1 追加(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────────────
+    -- 安全库存阈值。【NULL = 不监控 = 还没有人做过这个决定】,绝不等于"阈值为零":
+    -- 告警对 NULL 一次都不响,而那个"不响"【不可以被读成"查过了,没问题"】——
+    -- METAL-1 的 no_reference 那一课。物料列表因此把"未监控"明写出来,不留空。
+    -- CHECK 只允许 NULL 或 > 0:阈值 0 是把"不监控"写成一个看起来像监控的数字,
+    -- 而"不监控"的唯一写法是留空。
+    safety_stock_qty numeric,
+    CONSTRAINT materials_safety_stock_qty_positive
+        CHECK (safety_stock_qty IS NULL OR safety_stock_qty > 0)
 );
 
 CREATE OR REPLACE FUNCTION public.generate_material_code()
@@ -82,3 +91,6 @@ $$MAT-1:这个物料的受控废物分类。
 (NMC / LFP / …)。两者都是【我们怎么看这批货】;本列说的是【监管怎么看它】,
 是一个法规属性。三者会同时成立而互不蕴含:一种非受控的进料电池,与一种受控的
 进料电池,category 与 chemistry 可以一模一样。$$;
+
+COMMENT ON COLUMN public.materials.safety_stock_qty IS
+    'SS-1:安全库存阈值(按物料的计量单位)。【NULL = 不监控 = 还没有人做过这个决定】,绝不等于"阈值为零":告警对 NULL 一次都不响,而这个"不响"【不可以被读成"查过了,没问题"】—— 那是 METAL-1 的 no_reference 那一课(一个不会响的检查比没有检查更坏,因为人以为系统在替他盯着)。所以物料列表把"未监控"明写出来,不留空。CHECK 只允许 NULL 或 > 0:阈值 0 是把"不监控"写成一个看起来像监控的数字,而"不监控"的唯一写法是留空。告警是【采购信号】—— 低于阈值不拦任何销售、投料或收货。';
