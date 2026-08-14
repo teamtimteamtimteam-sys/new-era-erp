@@ -209,6 +209,35 @@ dies, names why, and prints the tail of the server log (fault-injected with a
 So, for any new wait: use the script, or write the failure branch yourself. A
 wait that cannot say "I gave up on X after Ns" is indistinguishable from a hang.
 
+### 判据必须检查【标签承诺的那件事】—— 而空集不是"还没到"
+
+上面两条管的是"等多久"和"条件每轮重不重算"。**还有第三种死法:条件写得
+既有上限、又每轮重算,却【问的根本不是标签说的那个问题】。** SO-3b fu5 之后那条
+手写的部署等待,一句里犯了两个,两个都实测复现过:
+
+* **标签写着"部署 state=success",判据只 grep 有没有一条部署记录**
+  (`deployments?sha=… --jq .[0].id | grep -q "[0-9]"`)。一次【失败的部署】照样
+  让它变绿 —— 桩注入实测:`state=failure` 时它通过。**一个声称在检查 X、实际
+  检查 Y 的等待比不检查更坏,因为它会被信。**
+* **判据从第一轮起就不可能成立。** GitHub 的 `?sha=` 只认【完整 40 位】SHA;
+  传 7 位缩写进去,它返回 **HTTP 200 + 空数组** —— 不报错、不提示。那次轮询了
+  **877 秒**,而被等的部署【早就 success 了】。这是 `mustRows` / `restRows` /
+  `check-i18n` 后缀解析同一条规矩的第四处:**一次失败(或一个问错了的问题)
+  不是一个空集**,而把空集读成"还没到"的等待,会一直等下去。
+
+所以除了上限与"每轮重算",再加一句自检:**把标签念出来,再把判据念出来,
+两句话说的是同一件事吗?** 以及:**这个判据的"假"里,混进了"我问错了"吗?**
+
+部署这一件已经做成机制,不要再手写:
+
+```
+scripts/wait-for-deploy.sh              # 等 HEAD
+scripts/wait-for-deploy.sh 7a3f519      # 缩写在【本地】补全,不留到 API 那头变成空集
+```
+它 `git rev-parse` 补全 SHA、判据检查的就是 `state=success`、落到 `failure`/`error`
+时**立刻退出(码 4)而不耗光上限**,并打印 CST 的 success 时刻 —— 那正是切次报告里
+破窗那一栏的**终点**(起点由 `apply_migration.sh` 打印)。两个分支都做过故障注入。
+
 ## Route smoke test — run on demand, whenever the render layer changed
 
 ```
