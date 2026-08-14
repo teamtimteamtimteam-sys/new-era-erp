@@ -999,7 +999,11 @@ const en = {
             noCustomersHelper: 'No customers yet — you can ',
             noCustomersLink: 'create a customer',
             noCustomersHelperPost: ' or leave blank to assign later',
-            remainingLine: 'Remaining sellable: {qty} {unit} (managed by the sales/processing workflow)',
+            // SO-2 手走发现:这里的 {qty} 是 remaining_qty ——【物理剩余】,不是可售量。
+            // 走查当时它写着 "Remaining sellable: 600 kg",而紧挨着下面的销售面板写着
+            // "Available to sell: 588"(12 已承诺)。一个把物理量叫成可售量的标签,
+            // 在有暂扣或有预留时就是一句假话 —— 可售是派生的三态之一,只有那个面板说得准。
+            remainingLine: 'Remaining: {qty} {unit} (physical total — managed by the sales/processing workflow; how much is sellable is in the sale panel below)',
             errMaterial: 'Please select a material',
             errQuantity: 'Quantity is required',
             errQuantityPositive: 'Quantity must be a number greater than 0',

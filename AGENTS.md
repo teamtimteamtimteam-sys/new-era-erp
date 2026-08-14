@@ -1193,6 +1193,23 @@ someone notices it. Known structural issues that would SURVIVE a rebuild —
 accepted for now, to be fixed deliberately — live next door in
 `docs/known-issues.md`; remove the entry when the fix lands.
 
+## The backup runs BEFORE the migration, not after
+
+```
+~/evoltrya-backups/backup.sh        # ~10 min measured 2026-08-14, over the pooler
+```
+
+**A backup taken after `apply_migration.sh` is not a rollback — it is a snapshot of the
+thing you might need to roll back.** The migration path is atomic (one connection, one
+transaction), so a *failed* migration needs no backup; the backup is there for the case the
+gates cannot see — a migration that succeeds and is wrong. For that case, taking it
+afterwards buys nothing at all.
+
+**SO-2 (2026-08-14) ran it after. That was a slip, recorded as a slip** — not a new order of
+operations, and not something to copy from the git history. It cost nothing that day because
+the cut turned out fine, which is exactly why it is written down instead of forgotten: the
+run where the order matters is the run where you have already lost.
+
 ## A cut is not done at the commit — it is done at the DEPLOY
 
 **Every cut's report must state the commit AND that it was pushed; the wrap-up must

@@ -1002,7 +1002,9 @@ const zh = {
             noCustomersHelper: '还没有客户,可先 ',
             noCustomersLink: '创建客户',
             noCustomersHelperPost: ' 或留空稍后再指派',
-            remainingLine: '剩余可售量:{qty} {unit}(由销售/加工流程管理)',
+            // SO-2 手走发现:这里的 {qty} 是 remaining_qty ——【物理剩余】,不是可售量。
+            // 走查当时它写着「剩余可售量:600 kg」,而紧挨着下面的销售面板写着「可售 588」。
+            remainingLine: '剩余量:{qty} {unit}(物理总量,由销售/加工流程管理;【可售】多少见下方销售面板)',
             errMaterial: '请选择物料',
             errQuantity: '数量是必填的',
             errQuantityPositive: '数量必须是大于0的数字',
