@@ -1498,6 +1498,14 @@ const en = {
             SO_RELEASE_EXCEEDS: 'Cannot release {0} — this reservation is for {1}. Leave the quantity blank to release all of it.',
             SO_RESERVATION_IMMUTABLE: 'A reservation is a record of what was promised; it can be released but never edited or deleted.',
             SO_CANCEL_RESERVATIONS_LEFT: 'Order {0} still has {1} active reservation(s) after cancelling, so nothing was changed. That should be impossible — report it rather than retrying.',
+            // SO-2b — one door for creating an order
+            SO_CREATE_CUSTOMER_INVALID: 'That customer no longer exists (or has been removed). Reload the form and pick again — an order without a customer has no subject.',
+            SO_CREATE_FX_INVALID: 'The FX rate {0} is not usable — it must be greater than 0, and it is never defaulted. A made-up 1:1 is always wrong on a non-base-currency document and looks completely normal.',
+            SO_CREATE_NO_LINES: 'An order needs at least one line. Nothing was saved.',
+            SO_CREATE_LINE_INVALID: 'Line {0} is not usable: {1}. Nothing was saved — the whole order is written in one transaction, so no half-order was left behind.',
+            SO_CREATE_LINES_LOST: 'The order was not written completely ({0} lines sent, {1} stored), so nothing was saved. Report this rather than retrying.',
+            ORDER_DATE_REQUIRED: 'The order date is required — it decides the document number and the FX period, and it is never filled in for you. Nothing was saved.',
+            CURRENCY_INVALID: 'Currency {0} is not one this system knows. Reload the form and pick again.',
         },
     },
     stock: {

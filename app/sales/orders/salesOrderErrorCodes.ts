@@ -30,6 +30,18 @@ const SALES_ORDER_ERROR_CODES = new Set([
     // 结构性守卫:正常路径撞不到,但撞上时必须说人话而不是抛触发器原文。
     'SO_RESERVATION_IMMUTABLE',
     'SO_CANCEL_RESERVATIONS_LEFT',
+    // SO-2b:建单收归一扇门(create_sales_order)。【前四条操作员真会撞上】——
+    // 客户被删了、日期空着、币种没选、汇率填了 0;LINE_INVALID 点名【第几行、
+    // 哪一格】,因为表单上有二十个格子,一句"某一行不合法"等于让人自己去数。
+    'SO_CREATE_CUSTOMER_INVALID',
+    'SO_CREATE_FX_INVALID',
+    'SO_CREATE_NO_LINES',
+    'SO_CREATE_LINE_INVALID',
+    // 结构性断言:正常路径撞不到,撞上时必须说人话。
+    'SO_CREATE_LINES_LOST',
+    // 与库存那一族共用的两个码(建单也会撞上):日期必填、币种不认识
+    'ORDER_DATE_REQUIRED',
+    'CURRENCY_INVALID',
 ])
 
 const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/

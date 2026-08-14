@@ -66,8 +66,12 @@ ALTER TABLE public.sales_orders        ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "sales_orders select by permission" ON public.sales_orders
     AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.sales.view'::text));
 
-CREATE POLICY "sales_orders insert by permission" ON public.sales_orders
-    AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK (has_permission('module.sales.edit'::text));
+-- 【没有 INSERT 策略,这是刻意的】(SO-2b,2026-08-14)
+-- 建单只有一扇门:create_sales_order —— 它是 SECURITY DEFINER,同一个事务里写
+-- 单头 + 单行 + 'created' 留痕。撤掉这条策略是那扇门的【前提】,不是一次顺手
+-- 收紧:留着侧门,下一个人照样可以插一张【没有留痕】的单,而那正是这一刀要
+-- 关掉的缺陷 —— SO-1 的建单就是三条客户端直插,第三条被 RLS 拒且错误被丢弃,
+-- 于是线上 SO-2026-0001 从来没有 created 那一行。形状取自建批次(IOD-1b)。
 
 CREATE POLICY "sales_orders update by permission" ON public.sales_orders
     AS PERMISSIVE FOR UPDATE TO authenticated

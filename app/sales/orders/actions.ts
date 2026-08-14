@@ -51,27 +51,29 @@ export async function createSalesOrder(
     // 进数据库之前的最后一道(与 inbound/output 那两处同一条)。
     if (order_date === null) return { fieldErrors: { order_date: t('sales.form.errOrderDate') } }
 
+    // ══════════════════════════════════════════════════════════════════════
+    // SO-2b:【建单只有一扇门】create_sales_order —— 单头、单行、'created' 留痕
+    // 在同一个事务里写完。此前这里是三条客户端直插,而第三条(留痕)没有 INSERT
+    // 策略、被 RLS 拒、返回值又没被解构 —— 于是线上 SO-2026-0001 从来没有
+    // created 那一行,而且没有任何东西报过错。
+    // 【所以这里不是加一句 if (error) throw】那只是把同一个形状再赌一次:
+    // 三张表要么全写成、要么一张都不写,这条错误才不可能再发生。
+    // 编号也搬进函数里 —— 取号与建单之间不该有一个"取到了号但没建成单"的缝。
+    // ══════════════════════════════════════════════════════════════════════
     const supabase = await createClient()
-    const codeRes = await supabase.rpc('next_sales_order_code', { p_date: order_date })
-    if (codeRes.error) return { error: t('sales.form.saveError', { message: codeRes.error.message }) }
-
-    const ins = await supabase
-        .from('sales_orders')
-        .insert({ code: codeRes.data as string, customer_id, order_date, currency, fx_rate: fx, notes })
-        .select('id')
-        .single()
-    if (ins.error || !ins.data) {
-        return { error: await localizeSalesOrderError(ins.error?.message ?? '') }
-    }
-    const orderId = (ins.data as { id: string }).id
-
-    const lineRows = lines.map((l, i) => ({ sales_order_id: orderId, line_no: i + 1, ...l }))
-    const lineIns = await supabase.from('sales_order_lines').insert(lineRows)
-    if (lineIns.error) return { error: await localizeSalesOrderError(lineIns.error.message) }
-
-    await supabase.from('sales_order_history').insert({
-        sales_order_id: orderId, change_type: 'created', detail: codeRes.data as string,
+    const { data, error } = await supabase.rpc('create_sales_order', {
+        p_customer_id: customer_id,
+        p_order_date: order_date,
+        p_currency: currency,
+        p_fx_rate: fx,
+        p_lines: lines,
+        ...(notes ? { p_notes: notes } : {}),
     })
+    if (error) return { error: await localizeSalesOrderError(error.message) }
+    const orderId = (data as { id: string } | null)?.id
+    // 【失败不是空集】RPC 成功却没带回 id,是一件不该发生的事;把它当成"建成了"
+    // 会把人重定向到 /sales/orders/undefined,那正是 IOD-2 那次 [object Object] 的形状。
+    if (!orderId) return { error: t('sales.form.saveError', { message: 'create_sales_order returned no id' }) }
 
     revalidatePath('/sales/orders')
     redirect(`/sales/orders/${orderId}`)

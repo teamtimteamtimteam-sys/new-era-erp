@@ -11,6 +11,12 @@
 -- 全不可见),所以这与调用者的 RLS 逐行等价 —— 视图【不放宽任何行访问】。
 --
 -- NOTE: introduced by db/migrations/2026-08-01-perm2b-field-masking.sql.
+--
+-- 【SO-2b:movement_id 不在了】那一列被 DROP 掉了 —— 一次销售可能对应【多条】
+-- 流水腿(跨库位排空),而一个单值外键只装得下第一条。腿在
+-- sales_record_movements 里,一条一行。本视图是它唯一的结构性读者,所以这一刀
+-- 要 DROP + CREATE 它(以及跟着它的 ar_open_items / operations_now),
+-- 而不是 CREATE OR REPLACE —— 后者改不了列集。
 
 CREATE VIEW public.sales_records_masked WITH (security_invoker = off) AS
  SELECT id,
@@ -32,7 +38,6 @@ CREATE VIEW public.sales_records_masked WITH (security_invoker = off) AS
         END AS amount_base,
     sale_date,
     notes,
-    movement_id,
     created_at,
     created_by,
     cogs_entry_id,

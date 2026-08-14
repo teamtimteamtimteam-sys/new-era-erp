@@ -6891,6 +6891,63 @@ export type Database = {
           },
         ]
       }
+      sales_record_movements: {
+        Row: {
+          created_at: string
+          id: string
+          movement_id: string
+          sales_record_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          movement_id: string
+          sales_record_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          movement_id?: string
+          sales_record_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_record_movements_movement_id_fkey"
+            columns: ["movement_id"]
+            isOneToOne: true
+            referencedRelation: "inventory_movements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_record_movements_sales_record_id_fkey"
+            columns: ["sales_record_id"]
+            isOneToOne: false
+            referencedRelation: "ar_open_items"
+            referencedColumns: ["sales_record_id"]
+          },
+          {
+            foreignKeyName: "sales_record_movements_sales_record_id_fkey"
+            columns: ["sales_record_id"]
+            isOneToOne: false
+            referencedRelation: "sales_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_record_movements_sales_record_id_fkey"
+            columns: ["sales_record_id"]
+            isOneToOne: false
+            referencedRelation: "sales_records_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_record_movements_sales_record_id_fkey"
+            columns: ["sales_record_id"]
+            isOneToOne: false
+            referencedRelation: "sales_records_visible"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_records: {
         Row: {
           amount_base: number
@@ -6901,7 +6958,6 @@ export type Database = {
           customer_id: string | null
           fx_rate: number
           id: string
-          movement_id: string | null
           notes: string | null
           output_batch_id: string
           price_provenance: Json | null
@@ -6919,7 +6975,6 @@ export type Database = {
           customer_id?: string | null
           fx_rate: number
           id?: string
-          movement_id?: string | null
           notes?: string | null
           output_batch_id: string
           price_provenance?: Json | null
@@ -6937,7 +6992,6 @@ export type Database = {
           customer_id?: string | null
           fx_rate?: number
           id?: string
-          movement_id?: string | null
           notes?: string | null
           output_batch_id?: string
           price_provenance?: Json | null
@@ -6980,13 +7034,6 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sales_records_movement_id_fkey"
-            columns: ["movement_id"]
-            isOneToOne: false
-            referencedRelation: "inventory_movements"
             referencedColumns: ["id"]
           },
           {
@@ -11094,7 +11141,6 @@ export type Database = {
           customer_id: string | null
           fx_rate: number | null
           id: string | null
-          movement_id: string | null
           notes: string | null
           output_batch_id: string | null
           price_provenance: Json | null
@@ -11112,7 +11158,6 @@ export type Database = {
           customer_id?: string | null
           fx_rate?: never
           id?: string | null
-          movement_id?: string | null
           notes?: string | null
           output_batch_id?: string | null
           price_provenance?: never
@@ -11130,7 +11175,6 @@ export type Database = {
           customer_id?: string | null
           fx_rate?: never
           id?: string | null
-          movement_id?: string | null
           notes?: string | null
           output_batch_id?: string | null
           price_provenance?: never
@@ -11173,13 +11217,6 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sales_records_movement_id_fkey"
-            columns: ["movement_id"]
-            isOneToOne: false
-            referencedRelation: "inventory_movements"
             referencedColumns: ["id"]
           },
           {
@@ -11677,6 +11714,18 @@ export type Database = {
           p_payment_terms?: Json
           p_supplier_id: string
           p_terms_text: string
+        }
+        Returns: Json
+      }
+      create_sales_order: {
+        Args: {
+          p_currency: string
+          p_customer_id: string
+          p_fx_rate: number
+          p_lines: Json
+          p_notes?: string
+          p_order_date: string
+          p_terms_text?: string
         }
         Returns: Json
       }

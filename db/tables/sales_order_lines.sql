@@ -45,8 +45,8 @@ ALTER TABLE public.sales_order_lines   ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "sales_order_lines select by permission" ON public.sales_order_lines
     AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.sales.view'::text));
 
-CREATE POLICY "sales_order_lines insert by permission" ON public.sales_order_lines
-    AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK (has_permission('module.sales.edit'::text));
+-- 【没有 INSERT 策略,这是刻意的】(SO-2b)行与单头同生:唯一入口
+-- create_sales_order 在同一个事务里写它们。见 sales_orders.sql 的同一段。
 
 CREATE POLICY "sales_order_lines update by permission" ON public.sales_order_lines
     AS PERMISSIVE FOR UPDATE TO authenticated

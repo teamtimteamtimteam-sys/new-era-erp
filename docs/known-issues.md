@@ -378,23 +378,3 @@ UPDATE output_batches SET remaining_qty = v_line.counted_qty ...       -- 【不
 人看见过。修法是把那个 CASE 抽成一个函数,两个写入者共用 —— 但**不要在这一刀里加第二个
 state 写入者**:SO-2 的一条明确决定就是预留不碰 `state`,而"谁写这一列"必须保持
 只有一处可数。
-
-## 建单的 `created` 留痕【写不进去】,而错误被丢掉了(SO-2 普查发现,2026-08-14,未修)
-
-`app/sales/orders/actions.ts` 的 `createSalesOrder` 最后一步是:
-
-```ts
-await supabase.from('sales_order_history').insert({ sales_order_id: orderId, change_type: 'created', ... })
-```
-
-**`sales_order_history` 没有面向客户端的 INSERT 策略**(SO-1 有意为之:留痕的唯一
-写入口是属主权限的函数),所以这一句被 RLS 拒。而它的返回值**没有被检查**,于是拒绝
-无声无息。线上核对过:`SO-2026-0001` 的历史里只有 `confirmed` 与 `issued` 两行,
-**没有 `created`** —— 那张单是怎么来的,历史里查不到。
-
-**为什么记在这里而不是顺手修掉**:正确的修法是把这一句搬进数据库(建单也走一个
-DEFINER 函数,或者给 `set_sales_order_status` 那一族添一个 `record_sales_order_created`),
-而那是 SO-1 的形状问题,不是预留这一刀的。**但它是 AGENTS.md 那条"失败不是空集"的
-教科书案例**:`check-error-swallowing` 抓的是 `data ?? []` 那一族,一个**从头到尾没有
-解构 error 的 `await`** 它看不见 —— 那正是该文件自己写明的盲区。
-

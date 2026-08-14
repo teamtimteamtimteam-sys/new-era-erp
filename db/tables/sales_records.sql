@@ -1,6 +1,9 @@
 -- db/tables/sales_records.sql
 -- Sales facts (quantity + price + currency + USD amount), written only by
--- record_output_sale alongside the 'sale' inventory movement (movement_id link).
+-- record_output_sale alongside the 'sale' inventory movement(s).
+-- 【SO-2b:movement_id 那一列没有了】一次销售可以跨几个库位桶而写出【多行】流水
+-- (IOD-1 起),而一个单值外键只装得下第一条 —— 那一列因此一直在说半句真话。
+-- 腿在 db/tables/sales_record_movements.sql 里,一条一行。
 -- IMMUTABLE (INSERT+SELECT RLS only + trigger): sales are facts; corrections go
 -- through a future credit-note concept, not edits.
 --
@@ -18,7 +21,6 @@ CREATE TABLE public.sales_records (
     amount_base      numeric NOT NULL,  -- round(quantity × unit_price × fx_rate, 2)
     sale_date       date NOT NULL,
     notes           text,
-    movement_id     uuid REFERENCES public.inventory_movements (id),
     created_at      timestamptz DEFAULT now(),
     created_by      uuid DEFAULT auth.uid(),
     -- 在列序末尾:cut 2a 用 ALTER ADD COLUMN 追加(镜像按线上 attnum 排)。
@@ -51,7 +53,6 @@ BEGIN
        OR NEW.amount_base      IS DISTINCT FROM OLD.amount_base
        OR NEW.sale_date       IS DISTINCT FROM OLD.sale_date
        OR NEW.notes           IS DISTINCT FROM OLD.notes
-       OR NEW.movement_id     IS DISTINCT FROM OLD.movement_id
        OR NEW.created_at      IS DISTINCT FROM OLD.created_at
        OR NEW.created_by      IS DISTINCT FROM OLD.created_by
        -- SAL-A:出处两列同样不可变 —— 卖出去之后改口"这是算出来的"与改价同罪
@@ -101,7 +102,7 @@ CREATE POLICY "sales_records update by permission"
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 sales_records_masked 读取。
 -- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
 REVOKE SELECT ON public.sales_records FROM authenticated, anon;
-GRANT SELECT (id, output_batch_id, customer_id, quantity, currency, sale_date, notes, movement_id, created_at, created_by, cogs_entry_id, price_source)
+GRANT SELECT (id, output_batch_id, customer_id, quantity, currency, sale_date, notes, created_at, created_by, cogs_entry_id, price_source)
     ON public.sales_records TO authenticated;
 
 -- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)

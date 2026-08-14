@@ -13,7 +13,6 @@ DECLARE
     v_state         text;
     v_fx            numeric;
     v_amount_base    numeric;
-    v_movement_id   uuid;
     v_movement_ids  uuid[];
     v_available     numeric;
     v_held          numeric;
@@ -112,15 +111,14 @@ BEGIN
 
     -- IOD-1:出货走 drain_stock —— 一次销售可能跨几个库位桶,于是写出【多行】流水。
     -- 顺序与规则收在 drain_stock 一处(见其函数头),销售这一层只说"拿这么多出来"。
-    -- 【sales_records.movement_id 记第一行】:那一列是单值外键,而一次销售现在
-    -- 可能对应多行。取第一行是有意的取舍,不是疏忽 —— 完整的行集合按
-    -- (output_batch_id, movement_type='sale', business_date) 可取回;
-    -- 真要一一对应,该做的是给 sales_records 建一张腿表,那是另一刀。
+    -- 【SO-2b:腿在 sales_record_movements 里,一条一行】此前这里把 v_movement_ids[1]
+    -- 记进单值外键 sales_records.movement_id —— 一个列装不下多条腿,于是那一列一直
+    -- 在说半句真话(而且"第一条"只是排空顺序上碰巧排在前面的那条,没有任何业务
+    -- 含义)。那一列已经 DROP;下面按 drain_stock 返回的每一个 uuid 写一行腿。
     v_movement_ids := drain_stock(
         p_qty => p_quantity, p_movement_type => 'sale', p_business_date => v_sale_date,
         p_output_batch_id => p_output_batch_id, p_statuses => ARRAY['available'],
         p_notes => p_notes, p_created_by => v_user);
-    v_movement_id := v_movement_ids[1];
 
     -- customer_id 有效性由 FK 把关(可空:批次可能未指定客户)
     -- SAL-A(FIN-26 的卖方半边):出处是【记录】,不是从公式在不在推断。
@@ -132,11 +130,23 @@ BEGIN
         RAISE EXCEPTION 'PROVENANCE_REQUIRED';
     END IF;
 
-    INSERT INTO sales_records (output_batch_id, customer_id, quantity, unit_price, currency, fx_rate, amount_base, sale_date, notes, movement_id, created_by, price_source, price_provenance)
-    VALUES (p_output_batch_id, p_customer_id, p_quantity, p_unit_price, p_currency, v_fx, v_amount_base, v_sale_date, p_notes, v_movement_id, v_user,
+    INSERT INTO sales_records (output_batch_id, customer_id, quantity, unit_price, currency, fx_rate, amount_base, sale_date, notes, created_by, price_source, price_provenance)
+    VALUES (p_output_batch_id, p_customer_id, p_quantity, p_unit_price, p_currency, v_fx, v_amount_base, v_sale_date, p_notes, v_user,
             p_price_source,
             CASE WHEN p_price_source = 'computed' THEN p_price_provenance END)
     RETURNING id INTO v_sale_id;
+
+    -- SO-2b:【一条腿一行】—— drain_stock 返回几个 uuid 就写几行。
+    INSERT INTO sales_record_movements (sales_record_id, movement_id)
+    SELECT v_sale_id, x FROM unnest(v_movement_ids) x;
+    -- 【断言,不是假设】腿的条数必须等于 drain 返回的条数。一条都不能少:
+    -- 少一条,这笔销售在台账上就有一段出库没有主人,而屏幕上什么都不会变
+    -- (那正是被 DROP 掉的那一列十几周里一直在做的事)。
+    IF (SELECT count(*) FROM sales_record_movements WHERE sales_record_id = v_sale_id)
+       <> array_length(v_movement_ids, 1) THEN
+        RAISE EXCEPTION 'SALE_LEGS_LOST|%|%', array_length(v_movement_ids, 1),
+            (SELECT count(*) FROM sales_record_movements WHERE sales_record_id = v_sale_id);
+    END IF;
 
     -- cut 2a JE#1:收入 —— 借 1100 / 贷 4000,原币行(amount_ccy = qty × price,
     -- fx 原样),USD 侧由 post_journal_entry 折算,与 amount_base 同式同值。
