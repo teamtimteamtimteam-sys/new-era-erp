@@ -109,6 +109,12 @@ export default async function ReceivablesPage() {
 
             <Subnav />
 
+            {/* ── SO-3b:这张表【一共有两种应收单据,而发货不产生第三种】────────
+                选项 C 之下订单流的债生在【开票】那一刻;发货只是把合同负债换成
+                收入,不再产生任何应收。所以这里说出来 —— 一个看着账龄的人最容易
+                以为"发了货怎么没多出一笔应收",而那正是对的。 */}
+            <p className="text-xs text-gray-500 mb-4">{t('finance.arKindsNote')}</p>
+
             {/* 汇总条:未结合计 + 四档账龄(90+ 标红)*/}
             <div className="bg-gray-50 rounded p-4 mb-6 flex flex-wrap gap-x-8 gap-y-2 text-sm items-center">
                 <div>

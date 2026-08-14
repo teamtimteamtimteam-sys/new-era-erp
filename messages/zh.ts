@@ -2772,6 +2772,7 @@ const zh = {
         lockExplainer: '早于锁定日的分录会被拒绝——会产生此类分录的业务操作也会被一并阻止。',
         fxTitle: '汇率',
         receivablesTitle: '应收账款',
+        arKindsNote: '这张表里有两种单据:【销售记录】(直接销售)与【订单发票】(订单流 —— 债在开票当刻就认下了)。【发货不产生任何新的应收】—— 那张订单发票始终是它唯一的应收行,所以发一次货,这张表上不会多出一笔。',
         payablesTitle: '应付账款',
         paymentsTitle: '收付款',
         newPaymentTitle: '登记收付款',

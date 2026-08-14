@@ -24,6 +24,8 @@
 --   G 注入:把 AR 静默那条谓词拿掉 → 账龄当场多一行(证明 C 臂有牙)
 --   H 端到端:2500 归零、1100 结清、4000/5000 落账(非 1 汇率)
 --   I 角色:sales.edit 发得了货;只有 sales.view 的被拒
+--   K COGS 补挂【真的跑一遍】:先发货后分摊,补挂给发货产生的那一行挂上 COGS
+--     (C 臂只断言数据形状 —— 它抄了补挂的读法;这一臂调用补挂本身)
 --   J closed 只能从 shipped 来且是终态;partially_shipped 没有手动去处
 --     (fixture 63 E 臂把这一条让给这里 —— 只有这里走得到 shipped)
 --
@@ -44,6 +46,8 @@ DECLARE
     shp jsonb; shp2 jsonb;
     v_n int; v_n0 int; v_exp0 numeric; v_exp1 numeric; v_amt numeric;
     v_sale uuid; v_msg text; v_pay jsonb; v_ok boolean;
+    v_sup uuid; v_ib uuid; v_run uuid; v_matK uuid; obK uuid;
+    soK uuid; LK uuid; resK uuid; v_cogs_entry uuid; v_cogs_amt numeric;
     d date := CURRENT_DATE;
     FX constant numeric := 1.25;       -- 订单/发票存下来的入账汇率(非 1,刻意)
     BANK_FX constant numeric := 1.30;  -- 结算日 tt_buy
@@ -173,8 +177,10 @@ BEGIN
     IF v_n <> 1 THEN
         RAISE EXCEPTION 'FIXTURE 68C 前提失败:发货应当生成一条【带标记】的销售记录,实得 % —— 否则 AR 静默的断言是空转的', v_n;
     END IF;
-    -- COGS 补挂看得见这一行(allocate_processing_costs 按 output_batch_id 读
-    -- sales_records,并按 cogs_entry_id 是否为空分两堆 —— 断言,不假设)
+    -- 这一行【留在"未挂 COGS"那一堆里】等补挂。
+    -- 【注意这一条断言的是数据的形状,不是补挂真的看得见它】—— 它把
+    -- allocate_processing_costs 的读法在这里抄了一遍,而两份实现今天一致
+    -- 不等于将来一致。真正跑一遍补挂、看它给这一行挂上 COGS 的,是 K 臂。
     SELECT count(*) INTO v_n FROM sales_records
      WHERE output_batch_id = ob1 AND cogs_entry_id IS NULL;
     IF v_n <> 1 THEN
@@ -346,6 +352,63 @@ BEGIN
     END;
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_user), true);
+
+    -- ══════════ K. COGS 补挂【真的跑一遍】,看它挂上发货产生的那一行 ═════════
+    -- 【为什么这一臂必须存在】C 臂只断言"这一行留在未挂 COGS 那一堆里",而它
+    -- 得出这个结论的方式是把 allocate_processing_costs 的读法【抄了一遍】——
+    -- 两份实现今天一致,不等于将来一致。这一臂不抄:它建一炉真的加工单、
+    -- 让产出批走完订单流发出去、然后【调用补挂本身】,再看那一行有没有被挂上。
+    -- 补挂读的是 sales_records(按 output_batch_id,按 cogs_entry_id 是否为空
+    -- 分两堆),而发货产生的正是一条普通的 sales_records —— 这一臂就是那句
+    -- "所以它自然看得见"的证明。
+    INSERT INTO suppliers (code, legal_name, country)
+    VALUES ('ZZ68-S1', 'fixture 68 supplier', 'SG') RETURNING id INTO v_sup;
+    INSERT INTO materials (code, name, category, unit)
+    VALUES ('ZZFIX68-K', 'f68 processed', '产出-金属', 'kg') RETURNING id INTO v_matK;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
+    VALUES ('ZZ68-IB', v_mat, v_sup, 50, 50, 'kg', d) RETURNING id INTO v_ib;
+    PERFORM reprice_inbound_batch(v_ib, 2, v_ccy, NULL, 'fixture 68 K price');
+    -- 全部投进一炉,产出 50kg —— 单位成本 = 100 / 50 = 2/kg
+    v_run := commit_processing_run(d, 'fixture 68 K run', 0,
+        jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 50)),
+        jsonb_build_array(jsonb_build_object('material_id', v_matK, 'quantity', 50)), 'weight');
+    SELECT po.output_batch_id INTO obK FROM processing_outputs po WHERE po.run_id = v_run LIMIT 1;
+
+    -- 【故意先发货、后分摊】—— 补挂存在的全部理由就是这个顺序:发货当刻
+    -- 那批货还没有单位成本,COGS 挂不上;分摊之后才补。
+    INSERT INTO sales_orders (code, customer_id, order_date, currency, fx_rate)
+    VALUES (next_sales_order_code(d), v_cust, d, v_ccy, 1) RETURNING id INTO soK;
+    INSERT INTO sales_order_lines (sales_order_id, line_no, material_id, quantity, unit_price)
+    VALUES (soK, 1, v_matK, 20, 10) RETURNING id INTO LK;
+    PERFORM set_sales_order_status(soK, 'confirmed');
+    PERFORM reserve_stock(LK, obK, 20);
+    SELECT id INTO resK FROM sales_order_reservations
+     WHERE sales_order_line_id = LK AND released_at IS NULL AND consumed_at IS NULL;
+    PERFORM create_order_invoice(soK, d, NULL, NULL, NULL, ARRAY[LK]);
+    PERFORM ship_order(soK, d, jsonb_build_array(jsonb_build_object('reservation_id', resK)));
+
+    -- 发货当刻:没有单位成本 ⇒ 这一行没有 COGS(前提;否则下面的断言空转)
+    SELECT cogs_entry_id INTO v_cogs_entry FROM sales_records
+     WHERE output_batch_id = obK AND sales_order_line_id = LK;
+    IF v_cogs_entry IS NOT NULL THEN
+        RAISE EXCEPTION 'FIXTURE 68K 前提失败:分摊之前这批货不该有单位成本,COGS 不该挂得上 —— 否则本臂在空转';
+    END IF;
+
+    -- 【跑补挂本身】
+    PERFORM allocate_processing_costs(v_run, 'weight');
+
+    SELECT cogs_entry_id INTO v_cogs_entry FROM sales_records
+     WHERE output_batch_id = obK AND sales_order_line_id = LK;
+    IF v_cogs_entry IS NULL THEN
+        RAISE EXCEPTION 'FIXTURE 68K 失败:补挂【没有看见】发货产生的那一行 —— 订单流的销售记录必须与直接销售的一样被补挂 COGS';
+    END IF;
+    -- 金额:20kg × 单位成本 2 = 40(借 5000 / 贷 1220 那一对里 5000 的借方)
+    SELECT COALESCE(sum(l.debit), 0) INTO v_cogs_amt
+      FROM journal_lines l JOIN accounts a ON a.id = l.account_id
+     WHERE l.entry_id = v_cogs_entry AND a.code = '5000';
+    IF v_cogs_amt <> 40 THEN
+        RAISE EXCEPTION 'FIXTURE 68K 失败:补挂的 COGS 应当是 40(=20kg × 单位成本 2),实得 %', v_cogs_amt;
+    END IF;
 
     -- ══════════ J. closed 只能从 shipped 来,而且是终态 ═══════════════════════
     -- 【fixture 63 把这一条让给了这里】只有走到 shipped 才谈得上"走完了",

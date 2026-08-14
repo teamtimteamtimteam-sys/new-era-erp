@@ -1210,6 +1210,23 @@ operations, and not something to copy from the git history. It cost nothing that
 the cut turned out fine, which is exactly why it is written down instead of forgotten: the
 run where the order matters is the run where you have already lost.
 
+> **备份要【跑完】,不是【起过】—— SO-3b 实测(2026-08-14)。**
+> `pg_dump` 在跑的时候对每一张表持着 ACCESS SHARE 锁,而 `ALTER TABLE` 要的是
+> ACCESS EXCLUSIVE:两者冲突。于是"先起备份、马上开始迁移"会让迁移【卡在等锁上,
+> 直到 statement timeout】:
+> ```
+> == applying …  psql:<stdin>:64: ERROR:  canceling statement due to statement timeout
+> ```
+> 那次没有留下任何损伤(迁移是单事务,超时即中止、整支回滚),而且**报错本身
+> 完全不像是锁的问题** —— 它只说"语句超时",不说在等谁。上一支迁移没撞上,
+> 只是因为那次备份早就跑完了。
+> **所以规矩是"备份跑完再动库",而不是"先把备份起起来"**;判据是进程,不是文件:
+> ```
+> db/wait_for.sh --timeout 1800 --label "备份 pg_dump 收尾" -- sh -c '! pgrep -x pg_dump >/dev/null'
+> ```
+> (文件早在第一个字节写出去时就存在了,大小也一直在动 —— 拿文件判"完了没有"会
+> 判错;那次的 dump 文件在超时的那一刻正好是 0 字节。)
+
 ## A cut is not done at the commit — it is done at the DEPLOY
 
 **Every cut's report must state the commit AND that it was pushed; the wrap-up must

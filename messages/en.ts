@@ -2789,6 +2789,7 @@ const en = {
         lockExplainer: 'Journal entries dated before the lock date are rejected — business actions that would create such entries are blocked too.',
         fxTitle: 'FX Rates',
         receivablesTitle: 'Accounts Receivable',
+        arKindsNote: 'Two kinds of document appear here: a sale (direct sales) and an order invoice (order flow, where the debt is recognised when the invoice is raised). SHIPPING CREATES NO NEW RECEIVABLE — the order invoice stays the one and only AR row for that order, so a shipment adds nothing to this table.',
         payablesTitle: 'Accounts Payable',
         paymentsTitle: 'Payments',
         newPaymentTitle: 'Record Payment',
