@@ -22,8 +22,10 @@ CREATE TABLE public.sales_orders (
     -- 【物理事件日,永不默认】(AGENTS.md 的日期规矩、FIN-32 同形):
     -- 补一个 CURRENT_DATE 会让"留空"比"填对"更容易通过。
     order_date    date NOT NULL,
+    -- SO-3b:履约状态落地 —— partially_shipped / shipped 由 ship_order 按
+    -- 【已发 vs 已订】现算后写入(经 so_status_ctx 标记),不是人手点的。
     status        text NOT NULL DEFAULT 'draft'
-                  CHECK (status IN ('draft','confirmed','closed','cancelled')),
+                  CHECK (status IN ('draft','confirmed','partially_shipped','shipped','closed','cancelled')),
     currency      text NOT NULL REFERENCES public.currencies (code),
     fx_rate       numeric NOT NULL CHECK (fx_rate > 0),
     notes         text,

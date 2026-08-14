@@ -14,6 +14,10 @@
 -- db/migrations/2026-08-06-fin22-fixed-assets-and-depreciation.sql;
 -- source_type 'prepayment' added by
 -- db/migrations/2026-07-31-phase4-cut4a-purchase-orders.sql, which also corrected
+-- source_type 'shipment' added by db/migrations/2026-08-15-so3b-shipment.sql
+-- (发货过账:借 2500 释放合同负债 / 贷 4000 收入,外加与直接销售逐字同形的
+--  COGS 分录。现金流量表侧【想过】:这两类分录都不碰 is_cash 科目,进不了
+--  那张表;真正的现金在收款那一步,走既有的 ELSE 'operating')。
 -- source_type 'invoice' added by db/migrations/2026-08-14-so3a-order-flow-billing.sql
 -- (订单流发票的过账:借 1100 / 贷 2500。现金流量表侧【想过】:这类分录不碰
 --  is_cash 科目,进不了那张表;对着它收的款走 ELSE 'operating' —— 正确,
@@ -28,7 +32,7 @@ CREATE TABLE public.journal_entries (
     code        text NOT NULL UNIQUE,
     entry_date  date NOT NULL,
     memo        text,
-    source_type text CHECK (source_type IN ('manual','purchase','sale','processing_cost','allocation','stocktake','writeoff','payment','fx','expense','prepayment','payroll','transfer','revaluation','depreciation','asset_disposal','year_close','freight','invoice')),
+    source_type text CHECK (source_type IN ('manual','purchase','sale','processing_cost','allocation','stocktake','writeoff','payment','fx','expense','prepayment','payroll','transfer','revaluation','depreciation','asset_disposal','year_close','freight','invoice','shipment')),
     source_id   uuid,
     status      text NOT NULL DEFAULT 'posted' CHECK (status IN ('posted','reversed')),
     reversed_by uuid REFERENCES public.journal_entries (id),

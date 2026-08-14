@@ -1,3 +1,25 @@
+-- db/migrations/2026-08-15-so3b-fu4-comments-and-the-drain-note.sql
+-- SO-3b 收尾:两条列注释 + drain_stock 的那段【互指】注释,都上线
+--
+-- 【判词【镜像 vs 线上】抓到的三处,全是文本】两条 COMMENT 只写进了迁移
+-- (于是活在线上)却没写进表镜像;drain_stock 的注释反过来 —— 只改了镜像,
+-- 没上线上。三处都不改行为,而门红得对:镜像与线上逐字不同,就意味着
+-- 重建出来的库与线上不是同一个库。
+--
+-- 【方向:让两边都拿到那段解释】drain_stock 那段是载荷 —— 它说明"订单流发货
+-- 为什么不走排空器",而下一个读 ship_order 的人一定会问这句。
+-- 镜像:db/tables/{sales_order_reservations,sales_records}.sql(补 COMMENT)、
+--       db/functions/drain_stock.sql(不变,本支向它对齐)。
+-- ═══════════════════════════════════════════════════════════════════════════
+
+BEGIN;
+
+COMMENT ON COLUMN public.sales_order_reservations.consumed_at IS
+    'SO-3b:这条预留被【发货消耗】掉的时刻。与 released_* 并列而不是共用那三列 —— 释放是"货回到 available"(有一对反向流水),消耗是"货离开了台账"(没有反向流水,对应一条 sale 出库腿与一行 shipment_lines)。活预留 = released_at IS NULL AND consumed_at IS NULL。';
+
+COMMENT ON COLUMN public.sales_records.sales_order_line_id IS
+    'SO-3b:这一行是不是【订单流发货】产生的。非空 = 是,并指向它满足的那条订单行。后果就在本刀落地:这样的行【不产生应收】—— 那笔债在开票当刻已经记过(借 1100 / 贷 2500),发货只是把负债释放进收入。ar_open_items 的第一支与 customer_ar_exposure_base 的第一项都显式排除它,于是同一笔债不会被数两遍(选项 C 的核心不变量:应收只创建一次)。由 ship_order 在 INSERT 当刻写好,之后不可改(SALE_IMMUTABLE)。';
+
 CREATE OR REPLACE FUNCTION public.drain_stock(p_qty numeric, p_movement_type text, p_business_date date, p_inbound_batch_id uuid DEFAULT NULL::uuid, p_output_batch_id uuid DEFAULT NULL::uuid, p_statuses text[] DEFAULT ARRAY['available'::text], p_run_id uuid DEFAULT NULL::uuid, p_notes text DEFAULT NULL::text, p_created_by uuid DEFAULT NULL::uuid)
  RETURNS uuid[]
  LANGUAGE plpgsql
@@ -72,6 +94,6 @@ BEGIN
 
     RETURN v_ids;
 END;
-$function$
+$function$;
 
-;
+COMMIT;

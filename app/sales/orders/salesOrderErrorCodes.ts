@@ -30,6 +30,19 @@ const SALES_ORDER_ERROR_CODES = new Set([
     // 结构性守卫:正常路径撞不到,但撞上时必须说人话而不是抛触发器原文。
     'SO_RESERVATION_IMMUTABLE',
     'SO_CANCEL_RESERVATIONS_LEFT',
+    // SO-3b:发货。【前四条操作员真会撞上】—— 这一行还没开票、选中的预留已经
+    // 被发过/释放过、数量超出那条预留、这张单的状态发不了货。
+    'SHIP_DATE_REQUIRED',
+    'SO_SHIP_ORDER_NOT_SHIPPABLE',
+    'SO_SHIP_NO_LINES',
+    'SO_SHIP_NOT_RESERVED',
+    'SO_SHIP_NOT_INVOICED',
+    'SO_SHIP_EXCEEDS_RESERVATION',
+    'SO_RESERVATION_ALREADY_SHIPPED',
+    // 结构性断言:正常路径撞不到,撞上时必须说人话
+    'SO_SHIP_LINES_LOST',
+    'SHIPMENT_IMMUTABLE',
+    'SHIPMENT_NOT_FOUND',
     // SO-2b:建单收归一扇门(create_sales_order)。【前四条操作员真会撞上】——
     // 客户被删了、日期空着、币种没选、汇率填了 0;LINE_INVALID 点名【第几行、
     // 哪一格】,因为表单上有二十个格子,一句"某一行不合法"等于让人自己去数。

@@ -37,10 +37,19 @@ BEGIN
         IF v_n > 0 THEN
             RAISE EXCEPTION 'INVOICE_HAS_SETTLEMENTS|%|%', v_inv.code, v_n;
         END IF;
-        -- 【SO-3b 的检查落在这里】发货一旦释放过这张票的负债(部分或全部),
-        -- 冲销就没有足额的 2500 可借 —— 那时按名拒 INVOICE_SHIPPED_NOT_VOIDABLE,
-        -- 更正走【贷项凭证】(credit note,sales_records 表头停放的未来概念)。
-        -- 今天发货不存在,这条检查没有可查的表;3b 建表时在此处补上。
+        -- 【SO-3b:停放的那条检查在这里落地】发货一旦释放过这张票的负债
+        -- (部分或全部),冲销就没有足额的 2500 可借 —— 按名拒,更正走
+        -- 【贷项凭证】(credit note,sales_records 表头停放的未来概念)。
+        -- 判据是【派生】的:这张发票的行上,有没有发出去过的货。不设状态位 ——
+        -- 状态位会与真相漂开,而这个问题每次都问得起(与 ship_order 的
+        -- SO_SHIP_NOT_INVOICED 同一条)。
+        SELECT count(*) INTO v_n
+        FROM shipment_lines sl
+        JOIN invoice_lines il ON il.sales_order_line_id = sl.sales_order_line_id
+        WHERE il.invoice_id = p_invoice_id AND NOT il.invoice_voided;
+        IF v_n > 0 THEN
+            RAISE EXCEPTION 'INVOICE_SHIPPED_NOT_VOIDABLE|%', v_inv.code;
+        END IF;
         v_rev := reverse_journal_entry_internal(v_inv.entry_id, p_reversal_date, 'Void ' || v_inv.code);
     ELSE
         -- sale 头没有分录可冲 —— 收下一个日期再忽略它,是在骗调用方

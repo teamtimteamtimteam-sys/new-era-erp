@@ -19,6 +19,10 @@ AS $function$
                 WHERE pa.sales_record_id = sr.id
             ) s ON true
             WHERE sr.customer_id = p_customer_id
+              -- SO-3b:发货产生的销售记录【不带应收】—— 那笔债在开票当刻已经
+              -- 记过(借 1100 / 贷 2500)。与 ar_open_items 第一支逐字同一条谓词:
+              -- 少了它,同一笔钱会在敞口里被数两遍。
+              AND sr.sales_order_line_id IS NULL
               AND round(sr.quantity * sr.unit_price - COALESCE(s.settled, 0), 2) > 0
         ) x), 0)
     + COALESCE((

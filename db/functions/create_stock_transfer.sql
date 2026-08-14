@@ -87,7 +87,7 @@ BEGIN
           FROM sales_order_reservations r
          WHERE r.output_batch_id IS NOT DISTINCT FROM p_output_batch_id
            AND r.location_id IS NOT DISTINCT FROM p_from_location_id
-           AND r.released_at IS NULL;
+           AND r.released_at IS NULL AND r.consumed_at IS NULL;
 
         IF v_reserved > 0 AND p_qty <> v_reserved THEN
             RAISE EXCEPTION 'IOD_TRANSFER_COMMITTED_PARTIAL|%|%', p_qty, v_reserved;
@@ -99,7 +99,7 @@ BEGIN
                SET location_id = p_to_location_id
              WHERE output_batch_id IS NOT DISTINCT FROM p_output_batch_id
                AND location_id IS NOT DISTINCT FROM p_from_location_id
-               AND released_at IS NULL;
+               AND released_at IS NULL AND consumed_at IS NULL;
             PERFORM set_config('evoltrya.reservation_move_ctx', '', true);
         END IF;
     END IF;

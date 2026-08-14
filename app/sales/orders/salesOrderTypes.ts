@@ -7,13 +7,16 @@
 // 订单先于财务:财务拥有的是事后那条链(sales_records / invoices / AR)。
 // 三条理由完整写在 db/migrations/2026-08-13-so1-fu1-sales-module-permission.sql。
 
-export const SO_STATUSES = ['draft', 'confirmed', 'closed', 'cancelled'] as const
+export const SO_STATUSES = ['draft', 'confirmed', 'partially_shipped', 'shipped', 'closed', 'cancelled'] as const
 export type SoStatus = (typeof SO_STATUSES)[number]
 
 // 状态 → 文案键。静态映射,不拼动态键(check-i18n 的键样字面量收网直接验到)。
 export const SO_STATUS_KEY: Record<string, string> = {
     draft: 'sales.status.draft',
     confirmed: 'sales.status.confirmed',
+    // SO-3b:履约两态 —— 由 ship_order 现算后写入,不是人点的
+    partially_shipped: 'sales.status.partially_shipped',
+    shipped: 'sales.status.shipped',
     closed: 'sales.status.closed',
     cancelled: 'sales.status.cancelled',
 }
@@ -23,9 +26,16 @@ export const soStatusKey = (s: string) => SO_STATUS_KEY[s] ?? 'sales.status.unkn
 // 同样的允许表;界面据它决定画哪几个按钮。两处都写是【故意】的:数据库那份是
 // 闸,这份是"不给人看见一个必然被拒的按钮"。它们不一致时,数据库赢 ——
 // 所以界面永远不该比数据库更宽松。fixture 63 E 臂钉的是数据库那一份。
+// SO-3b:与 set_sales_order_status 的允许表【逐字同一张】。
+// partially_shipped / shipped 不在任何一行的右边 —— 它们由 ship_order 按
+// "已发 vs 已订"现算后写入,不是人能点的;这张表只管人能点的那些。
+// confirmed → closed 那条路【关掉了】:一张还没发货的订单"走完了"说不通。
+// partially_shipped 没有任何去处:发出去的货收不回来,更正走贷项凭证。
 export const SO_ALLOWED_NEXT: Record<string, SoStatus[]> = {
     draft: ['confirmed', 'cancelled'],
-    confirmed: ['closed', 'cancelled'],
+    confirmed: ['cancelled'],
+    partially_shipped: [],
+    shipped: ['closed'],
     closed: [],
     cancelled: [],
 }

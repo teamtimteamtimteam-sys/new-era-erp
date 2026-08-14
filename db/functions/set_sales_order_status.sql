@@ -20,11 +20,21 @@ BEGIN
     END IF;
 
     -- 【允许的去处,逐个状态写出来】
+    -- SO-3b:履约两态落地,而它们【不在这张表的右边】—— partially_shipped /
+    -- shipped 由 ship_order 按"已发 vs 已订"现算后写入(经 so_status_ctx),
+    -- 不是人手点的。这张表只管【人能点的那些】。
+    -- 【closed 现在要求发完货】confirmed → closed 那条路没了:一张还没发货的
+    -- 订单"走完了"是说不通的,而此前它是可点的。
+    -- 【发出去的货收不回来】partially_shipped 是终点之一:2500 已经释放进 4000、
+    -- 库存已经离开台账,作废它需要的是【贷项凭证】(sales_records 表头停放的
+    -- 未来概念),不是一次状态跳转。shipped 只能走向 closed,同理。
     v_ok := CASE v_order.status
-        WHEN 'draft'     THEN p_to IN ('confirmed','cancelled')
-        WHEN 'confirmed' THEN p_to IN ('closed','cancelled')
-        WHEN 'closed'    THEN false      -- 终态
-        WHEN 'cancelled' THEN false      -- 终态
+        WHEN 'draft'             THEN p_to IN ('confirmed','cancelled')
+        WHEN 'confirmed'         THEN p_to IN ('cancelled')
+        WHEN 'partially_shipped' THEN false      -- 见上:更正走贷项凭证
+        WHEN 'shipped'           THEN p_to IN ('closed')
+        WHEN 'closed'            THEN false      -- 终态
+        WHEN 'cancelled'         THEN false      -- 终态
         ELSE false
     END;
     IF NOT v_ok THEN
@@ -64,7 +74,7 @@ BEGIN
             SELECT r.id, r.qty
               FROM sales_order_reservations r
               JOIN sales_order_lines l ON l.id = r.sales_order_line_id
-             WHERE l.sales_order_id = p_order_id AND r.released_at IS NULL
+             WHERE l.sales_order_id = p_order_id AND r.released_at IS NULL AND r.consumed_at IS NULL
              ORDER BY r.created_at
         LOOP
             PERFORM release_reservation(v_res.id, NULL, 'order cancelled: ' || btrim(p_reason));
@@ -77,7 +87,7 @@ BEGIN
         SELECT count(*) INTO v_left
           FROM sales_order_reservations r
           JOIN sales_order_lines l ON l.id = r.sales_order_line_id
-         WHERE l.sales_order_id = p_order_id AND r.released_at IS NULL;
+         WHERE l.sales_order_id = p_order_id AND r.released_at IS NULL AND r.consumed_at IS NULL;
         IF v_left <> 0 THEN
             RAISE EXCEPTION 'SO_CANCEL_RESERVATIONS_LEFT|%|%', v_order.code, v_left;
         END IF;

@@ -85,3 +85,7 @@ REVOKE EXECUTE ON FUNCTION public.check_location_class(uuid, uuid) FROM authenti
 -- 调用者身份跑,不声明就会在这里撞上"调不到"。
 REVOKE EXECUTE ON FUNCTION public.notify_landing_warnings(text[], uuid, uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.notify_class_violations(text, uuid[], uuid[]) FROM authenticated;
+-- SO-3b:发货单号的取号器。无调用者检查,靠的就是调不到 —— 唯一调用方是
+-- ship_order(DEFINER,module.sales.edit,以属主身份执行)。给了 authenticated
+-- 就等于任何登录用户都能凭空烧掉一个无缝单号,而无缝的意思正是"号码之间没有洞"。
+REVOKE EXECUTE ON FUNCTION public.next_shipment_code(date) FROM authenticated;

@@ -6787,6 +6787,8 @@ export type Database = {
       }
       sales_order_reservations: {
         Row: {
+          consumed_at: string | null
+          consumed_by: string | null
           created_at: string
           created_by: string | null
           id: string
@@ -6801,6 +6803,8 @@ export type Database = {
           sales_order_line_id: string
         }
         Insert: {
+          consumed_at?: string | null
+          consumed_by?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -6815,6 +6819,8 @@ export type Database = {
           sales_order_line_id: string
         }
         Update: {
+          consumed_at?: string | null
+          consumed_by?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -7010,6 +7016,7 @@ export type Database = {
           price_source: string | null
           quantity: number
           sale_date: string
+          sales_order_line_id: string | null
           unit_price: number
         }
         Insert: {
@@ -7027,6 +7034,7 @@ export type Database = {
           price_source?: string | null
           quantity: number
           sale_date: string
+          sales_order_line_id?: string | null
           unit_price: number
         }
         Update: {
@@ -7044,6 +7052,7 @@ export type Database = {
           price_source?: string | null
           quantity?: number
           sale_date?: string
+          sales_order_line_id?: string | null
           unit_price?: number
         }
         Relationships: [
@@ -7094,6 +7103,189 @@ export type Database = {
             columns: ["output_batch_id"]
             isOneToOne: false
             referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_records_sales_order_line_id_fkey"
+            columns: ["sales_order_line_id"]
+            isOneToOne: false
+            referencedRelation: "sales_order_lines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipment_issues: {
+        Row: {
+          file_path: string
+          id: string
+          issued_at: string
+          issued_by: string | null
+          sha256: string
+          shipment_id: string
+          version: number
+        }
+        Insert: {
+          file_path: string
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          sha256: string
+          shipment_id: string
+          version: number
+        }
+        Update: {
+          file_path?: string
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          sha256?: string
+          shipment_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_issues_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipment_lines: {
+        Row: {
+          created_at: string
+          id: string
+          location_id: string | null
+          output_batch_id: string
+          qty: number
+          reservation_id: string
+          sales_order_line_id: string
+          sales_record_id: string
+          shipment_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          output_batch_id: string
+          qty: number
+          reservation_id: string
+          sales_order_line_id: string
+          sales_record_id: string
+          shipment_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          location_id?: string | null
+          output_batch_id?: string
+          qty?: number
+          reservation_id?: string
+          sales_order_line_id?: string
+          sales_record_id?: string
+          shipment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_lines_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "storage_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_lines_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "shipment_lines_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_lines_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: true
+            referencedRelation: "sales_order_reservations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_lines_sales_order_line_id_fkey"
+            columns: ["sales_order_line_id"]
+            isOneToOne: false
+            referencedRelation: "sales_order_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_lines_sales_record_id_fkey"
+            columns: ["sales_record_id"]
+            isOneToOne: false
+            referencedRelation: "sales_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_lines_sales_record_id_fkey"
+            columns: ["sales_record_id"]
+            isOneToOne: false
+            referencedRelation: "sales_records_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_lines_sales_record_id_fkey"
+            columns: ["sales_record_id"]
+            isOneToOne: false
+            referencedRelation: "sales_records_visible"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_lines_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipments: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          sales_order_id: string
+          ship_date: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          sales_order_id: string
+          ship_date: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          sales_order_id?: string
+          ship_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipments_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
             referencedColumns: ["id"]
           },
         ]
@@ -11248,6 +11440,7 @@ export type Database = {
           price_source: string | null
           quantity: number | null
           sale_date: string | null
+          sales_order_line_id: string | null
           unit_price: number | null
         }
         Insert: {
@@ -11265,6 +11458,7 @@ export type Database = {
           price_source?: string | null
           quantity?: number | null
           sale_date?: string | null
+          sales_order_line_id?: string | null
           unit_price?: never
         }
         Update: {
@@ -11282,6 +11476,7 @@ export type Database = {
           price_source?: string | null
           quantity?: number | null
           sale_date?: string | null
+          sales_order_line_id?: string | null
           unit_price?: never
         }
         Relationships: [
@@ -11332,6 +11527,13 @@ export type Database = {
             columns: ["output_batch_id"]
             isOneToOne: false
             referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_records_sales_order_line_id_fkey"
+            columns: ["sales_order_line_id"]
+            isOneToOne: false
+            referencedRelation: "sales_order_lines"
             referencedColumns: ["id"]
           },
         ]
@@ -12037,6 +12239,7 @@ export type Database = {
       next_pricing_formula_code: { Args: { p_date?: string }; Returns: string }
       next_purchase_order_code: { Args: { p_date?: string }; Returns: string }
       next_sales_order_code: { Args: { p_date?: string }; Returns: string }
+      next_shipment_code: { Args: { p_date: string }; Returns: string }
       notify_class_violations: {
         Args: {
           p_cause: string
@@ -12274,6 +12477,10 @@ export type Database = {
         Args: { p_file_path: string; p_po_id: string; p_sha256: string }
         Returns: Json
       }
+      record_shipment_issue: {
+        Args: { p_file_path: string; p_sha256: string; p_shipment_id: string }
+        Returns: Json
+      }
       record_so_issue: {
         Args: { p_file_path: string; p_order_id: string; p_sha256: string }
         Returns: Json
@@ -12461,6 +12668,10 @@ export type Database = {
       }
       set_user_roles: {
         Args: { p_reason?: string; p_role_ids: string[]; p_user_id: string }
+        Returns: Json
+      }
+      ship_order: {
+        Args: { p_lines: Json; p_sales_order_id: string; p_ship_date: string }
         Returns: Json
       }
       submit_leave_request: {

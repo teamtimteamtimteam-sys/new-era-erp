@@ -45,6 +45,7 @@ CREATE VIEW public.sales_records_masked WITH (security_invoker = off) AS
         CASE
             WHEN has_permission('data.view_prices'::text) THEN price_provenance
             ELSE NULL::jsonb
-        END AS price_provenance
+        END AS price_provenance,
+    sales_order_line_id
    FROM sales_records
   WHERE has_permission('module.finance.view'::text);

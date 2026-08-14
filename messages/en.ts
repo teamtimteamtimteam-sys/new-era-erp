@@ -1401,6 +1401,8 @@ const en = {
         status: {
             draft: 'Draft',
             confirmed: 'Confirmed',
+            partially_shipped: 'Partially shipped',
+            shipped: 'Shipped',
             closed: 'Closed',
             cancelled: 'Cancelled',
             unknown: 'Unknown status',
@@ -1449,6 +1451,31 @@ const en = {
             errLine: 'Each line needs a material, a quantity above 0 and a unit price above 0',
             errNoLines: 'An order needs at least one line',
             saveError: 'Save failed: {message}',
+        },
+        // ── SO-3b:shipment ──────────────────────────────────────────────────
+        ship: {
+            title: 'Shipping',
+            note: 'Order flow ships against a reservation on an INVOICED line. Shipping posts Dr Contract Liability / Cr Revenue at the invoice\u2019s stored rate, plus COGS where the batch has a unit cost, and the goods leave the stock ledger.',
+            notShippable: 'This order cannot be shipped in its current state — only a confirmed or partially shipped order can.',
+            shippedLabel: 'Shipped',
+            invoiced: 'invoiced',
+            notInvoiced: 'not yet invoiced',
+            invoiceRestricted: 'invoice status restricted',
+            lineCount: '{n} line(s)',
+            deliveryNote: 'Delivery note',
+            needsSalesEdit: 'shipping needs module.sales.edit.',
+            blockedNoFinanceView: 'Shipping requires knowing whether the line is invoiced, and that needs the finance module (module.finance.view).',
+            blockedNotInvoiced: 'This line is not on a live posted invoice yet. Order flow is invoice-before-shipment — raise the invoice above first.',
+            blockedNoReservation: 'No active reservation on this line. Reserve the stock first — shipping consumes a reservation, because only a reservation says which batch and which location.',
+            reservationLabel: 'Reservation to ship',
+            pickReservation: 'Pick a reservation…',
+            qtyLabel: 'Quantity ({unit}) — blank ships all of it',
+            shipDate: 'Ship date',
+            dateRequired: 'The ship date is required — it is the day the goods physically left, and it decides which period the revenue lands in. Never defaulted.',
+            overReservation: 'That reservation is for {have}.',
+            action: 'Ship',
+            consequence: 'Releases the contract liability into revenue at the invoice\u2019s stored rate, and the goods leave the stock ledger. THIS CANNOT BE UNDONE — the invoice can no longer be voided afterwards; corrections would go through a credit note, which does not exist yet.',
+            arNote: 'Shipping creates NO new receivable: the debt was recognised when the invoice was raised. The invoice stays the one and only AR row for this order.',
         },
         // ── SO-3a:order-flow billing ────────────────────────────────────────
         invoice: {
@@ -1517,6 +1544,17 @@ const en = {
             SO_RELEASE_EXCEEDS: 'Cannot release {0} — this reservation is for {1}. Leave the quantity blank to release all of it.',
             SO_RESERVATION_IMMUTABLE: 'A reservation is a record of what was promised; it can be released but never edited or deleted.',
             SO_CANCEL_RESERVATIONS_LEFT: 'Order {0} still has {1} active reservation(s) after cancelling, so nothing was changed. That should be impossible — report it rather than retrying.',
+            // SO-3b — shipment
+            SHIP_DATE_REQUIRED: 'The ship date is required — it is the day the goods physically left, and it decides which period the revenue lands in. It is never filled in for you. Nothing was saved.',
+            SO_SHIP_ORDER_NOT_SHIPPABLE: 'Order {0} is a {1}, so it cannot be shipped. Only a confirmed or partially shipped order can.',
+            SO_SHIP_NO_LINES: 'Nothing was selected to ship on order {0}.',
+            SO_SHIP_NOT_RESERVED: 'That reservation is not available to ship — it does not exist on this order, or it has already been released or shipped. Reload the order and pick again.',
+            SO_SHIP_NOT_INVOICED: 'Line {1} of order {0} is not on a live posted invoice. Order flow is invoice-before-shipment: raise the invoice first. Nothing was shipped.',
+            SO_SHIP_EXCEEDS_RESERVATION: 'Cannot ship {0} — that reservation is for {1}. Reserve more first, or ship what is reserved.',
+            SO_RESERVATION_ALREADY_SHIPPED: 'That reservation has already been shipped — goods that have left cannot be released back. A correction after shipment goes through a credit note.',
+            SO_SHIP_LINES_LOST: 'The shipment was not written completely ({0} sent, {1} stored), so nothing was saved. Report this rather than retrying.',
+            SHIPMENT_IMMUTABLE: 'A shipment is a record of goods that physically left; it can never be edited, voided or deleted. Corrections go through a credit note.',
+            SHIPMENT_NOT_FOUND: 'That shipment no longer exists. Reload and try again.',
             // SO-2b — one door for creating an order
             SO_CREATE_CUSTOMER_INVALID: 'That customer no longer exists (or has been removed). Reload the form and pick again — an order without a customer has no subject.',
             SO_CREATE_FX_INVALID: 'The FX rate {0} is not usable — it must be greater than 0, and it is never defaulted. A made-up 1:1 is always wrong on a non-base-currency document and looks completely normal.',
@@ -2684,6 +2722,8 @@ const en = {
             pageOf: 'Page {current} of {total}',
         },
         source: {
+            // SO-3b:发货分录(借 2500 / 贷 4000,外加 COGS)
+            shipment: 'Shipment (revenue)',
             // SO-3a:订单流开票分录(借 1100 / 贷 2500)
             invoice: 'Order invoice posting',
             year_close: 'Year-end close',

@@ -26,6 +26,30 @@
 -- 理由同 ap_open_items:存在判据"未结 > 0"本身就是财务计算,所以缺席的单位是整张视图。
 -- customer 标签与产出批 code 跟着单据走。
 
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 【SO-3a:第二支 —— 订单流发票】选项 C 之下开票即过账(借 1100 / 贷 2500),
+-- 于是应收有了第二个来源:已过账、未结清的订单流发票。推导在
+-- order_invoice_open_all(唯一一处 —— customer_ar_exposure_base 读的也是它,
+-- 面板显示的余额与拒绝的那道闸必须是同一个数);本视图只加门与账龄。
+-- doc_kind 判别两支('sale' / 'invoice'),消费方(收款核销、看板 ar_over_90、
+-- 应收页)按它分支 —— ap_open_items 的 doc_kind 先例。账龄锚点:第二支从
+-- issue_date 起算,与第一支从 sale_date 起算同构(都是"债生出来的那天")。
+-- 【第二支要 data.view_prices,与第一支同效】第一支读 sales_records_masked,
+-- 无 view_prices 时 unit_price 为 NULL → WHERE 求值为 NULL → 行整个消失;
+-- 第二支读的是不遮蔽的内层视图,显式加同一道门,两支对同一读者同进同退。
+--
+-- 【SO-3b:两支不相交,由一条谓词兑现 —— 不再是一句承诺】
+-- 发货产生的销售记录带着 sales_order_line_id 标记,第一支【显式排除】它们:
+-- 那笔债在开票当刻就记过了,发货只是把负债释放进收入,不产生第二笔应收。
+-- 少了这条谓词,同一笔钱会在账龄上出现两次 —— 一次以发票的身份、一次以
+-- 销售记录的身份 —— 而两次都"看起来对"。这是选项 C 的核心不变量
+-- (应收只创建一次)在这张视图上的落点,fixture 68 的 AR 静默臂钉住它。
+--
+-- 【SO-3a 那一段注释其实没有落地过,SO-3b 补写】原本要替换的锚点在标点上
+-- 差一个字符(note. / note。),而那次用的是不带断言的 replace —— 于是它
+-- 静默地什么都没做,视图体是对的、解释却一直缺席。与本仓库反复修的
+-- "失败不是空集"同一个形状,只是长在工具脚本里。
+-- ═══════════════════════════════════════════════════════════════════════════
 CREATE VIEW public.ar_open_items WITH (security_invoker = off) AS
  SELECT sr.id AS sales_record_id,
     ob.code AS doc_code,
@@ -63,6 +87,7 @@ CREATE VIEW public.ar_open_items WITH (security_invoker = off) AS
           WHERE il.sales_record_id = sr.id AND NOT il.invoice_voided
          LIMIT 1) inv ON true
   WHERE round(sr.quantity * sr.unit_price - COALESCE(s.settled, 0::numeric), 2) > 0::numeric
+    AND sr.sales_order_line_id IS NULL
     AND has_permission('module.finance.view'::text)
 UNION ALL
  SELECT NULL::uuid AS sales_record_id,

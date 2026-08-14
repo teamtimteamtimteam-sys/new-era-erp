@@ -109,7 +109,7 @@ BEGIN
           FROM sales_order_reservations r
           JOIN sales_order_lines l ON l.id = r.sales_order_line_id
           JOIN sales_orders o      ON o.id = l.sales_order_id
-         WHERE r.output_batch_id = OLD.id AND r.released_at IS NULL;
+         WHERE r.output_batch_id = OLD.id AND r.released_at IS NULL AND r.consumed_at IS NULL;
         IF v_resn > 0 THEN
             RAISE EXCEPTION 'SO_BATCH_HAS_RESERVATIONS|%|%|%', OLD.code, v_resn, v_orders;
         END IF;

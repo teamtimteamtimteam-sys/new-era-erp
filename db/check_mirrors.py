@@ -189,6 +189,11 @@ DEFINER_NO_CHECK_ALLOWED = {
     "require_approver_for": "EXECUTE revoked from PUBLIC/authenticated/anon",
     # SAL-B:敞口算子,同上 —— 靠调不到。
     "customer_ar_exposure_base": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    # SO-3b:发货单号的取号器。唯一调用方是 ship_order(它 require_permission
+    # 了 module.sales.edit),而取号本身没有可检查的调用者 —— 它不读也不写任何
+    # 业务数据,只推一个序号。给了 authenticated 就等于任何登录用户都能凭空
+    # 烧掉一个无缝单号。同上,靠"调不到"。
+    "next_shipment_code": "EXECUTE revoked from PUBLIC/authenticated/anon",
     # APR-2c:审批是否生效 —— 它【必须】留给 authenticated,因为界面有义务把
     # "审批未生效"说出来(悄悄放行才是缺陷)。吐露的只有一个布尔量,而这个
     # 布尔量本来就该印在屏幕上,所以没有可检查的调用者,也没有要保护的东西。

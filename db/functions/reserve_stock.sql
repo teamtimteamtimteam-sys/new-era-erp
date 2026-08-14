@@ -38,7 +38,10 @@ BEGIN
 
     -- 【只有确认了的订单才预留】草稿是还没答应的事,给它扣住货,等于让一张
     -- 随手建的单据把库存冻起来,而没有任何人做过那个承诺。
-    IF v_line.deleted_at IS NOT NULL OR v_line.status <> 'confirmed' THEN
+    -- 【SO-3b:partially_shipped 同样算数】一张发了一部分的单【仍然是活的】——
+    -- 剩下的行还要预留、还要发。只认 confirmed 会让任何多行订单在第一次发货
+    -- 之后就再也走不下去(fixture 68 第一次跑就撞上了这个)。
+    IF v_line.deleted_at IS NOT NULL OR v_line.status NOT IN ('confirmed', 'partially_shipped') THEN
         RAISE EXCEPTION 'SO_RESERVE_ORDER_NOT_CONFIRMED|%|%',
             v_line.order_code, COALESCE(v_line.status, '?');
     END IF;
@@ -64,7 +67,7 @@ BEGIN
     -- 许给同一行两次 —— 屏幕上看不出来,发货时才炸。
     SELECT COALESCE(sum(r.qty), 0) INTO v_already
       FROM sales_order_reservations r
-     WHERE r.sales_order_line_id = p_sales_order_line_id AND r.released_at IS NULL;
+     WHERE r.sales_order_line_id = p_sales_order_line_id AND r.released_at IS NULL AND r.consumed_at IS NULL;
     IF v_already + p_qty > v_line.quantity THEN
         RAISE EXCEPTION 'SO_RESERVE_EXCEEDS_LINE|%|%|%', p_qty, v_line.quantity, v_already;
     END IF;

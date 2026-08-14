@@ -31,6 +31,14 @@ CREATE TABLE public.sales_records (
     -- 之前的行(不回填)。配对 CHECK 让"没有依据的 computed"不可表示。
     price_source     text CHECK (price_source IN ('computed', 'manual')),
     price_provenance jsonb,
+    -- ── SO-3b 追加(ALTER 加的列排在末尾)──────────────────────────────────
+    -- 【这一行是不是订单流发货产生的】非空 = 是,并指向它满足的那条订单行。
+    -- 后果【就在本刀落地】,不是将来:这样的行【不产生应收】——
+    -- 应收在开票当刻就记过了(借 1100 / 贷 2500),发货只是把负债释放进收入。
+    -- ar_open_items 的第一支与 customer_ar_exposure_base 的第一项都排除它,
+    -- 于是同一笔债不会被数两遍(选项 C 的核心不变量:应收只创建一次)。
+    -- 【一次性写入】:由 ship_order 在 INSERT 当刻写好,之后不可改。
+    sales_order_line_id uuid REFERENCES public.sales_order_lines (id),
     CONSTRAINT sales_records_provenance_pairing
         CHECK ((price_source = 'computed') = (price_provenance IS NOT NULL))
 );
@@ -58,6 +66,9 @@ BEGIN
        -- SAL-A:出处两列同样不可变 —— 卖出去之后改口"这是算出来的"与改价同罪
        OR NEW.price_source     IS DISTINCT FROM OLD.price_source
        OR NEW.price_provenance IS DISTINCT FROM OLD.price_provenance
+       -- SO-3b:订单行标记同样不可变 —— 改它就是把一笔"已在发票上认过的债"
+       -- 悄悄变成一笔新的应收(或反过来),而两者的差别正是选项 C 的全部。
+       OR NEW.sales_order_line_id IS DISTINCT FROM OLD.sales_order_line_id
        -- cut 2a:cogs_entry_id 首挂(NULL → 非 NULL),挂上之后不许再动
        OR (NEW.cogs_entry_id IS DISTINCT FROM OLD.cogs_entry_id
            AND NOT (OLD.cogs_entry_id IS NULL AND NEW.cogs_entry_id IS NOT NULL))
@@ -104,6 +115,8 @@ CREATE POLICY "sales_records update by permission"
 REVOKE SELECT ON public.sales_records FROM authenticated, anon;
 GRANT SELECT (id, output_batch_id, customer_id, quantity, currency, sale_date, notes, created_at, created_by, cogs_entry_id, price_source)
     ON public.sales_records TO authenticated;
+-- SO-3b:订单行标记非敏感,进列清单(colgrant 由此闭合)。
+GRANT SELECT (sales_order_line_id) ON public.sales_records TO authenticated;
 
 -- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)
 COMMENT ON COLUMN public.sales_records.amount_base IS '本位币金额(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 amount_usd)。';
@@ -112,3 +125,6 @@ COMMENT ON COLUMN public.sales_records.price_source IS
     '售价的出处(SAL-A,FIN-26 的卖方半边):computed = 报价按钮产出(必带 price_provenance);manual = 手填。NULL = SAL-A 之前的行,当时没记 —— 【不回填猜测】,界面画"未知"。不要从公式在不在推断。';
 COMMENT ON COLUMN public.sales_records.price_provenance IS
     'computed 行的重导出依据(SAL-A):逐金属行情与日期、金属含量、应付比例、处理费与折扣、汇率与 as-of 与【边】(tt_buy —— 收钱进来)、以及 price_series(当前恒为 metal_prices:每金属只有一条序列,LME/SMM 表达不了,出处只写真正查过的东西)。不能重导出的出处只是标签。';
+
+COMMENT ON COLUMN public.sales_records.sales_order_line_id IS
+    'SO-3b:这一行是不是【订单流发货】产生的。非空 = 是,并指向它满足的那条订单行。后果就在本刀落地:这样的行【不产生应收】—— 那笔债在开票当刻已经记过(借 1100 / 贷 2500),发货只是把负债释放进收入。ar_open_items 的第一支与 customer_ar_exposure_base 的第一项都显式排除它,于是同一笔债不会被数两遍(选项 C 的核心不变量:应收只创建一次)。由 ship_order 在 INSERT 当刻写好,之后不可改(SALE_IMMUTABLE)。';

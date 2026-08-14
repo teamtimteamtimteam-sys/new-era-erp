@@ -12,6 +12,7 @@ import TransitionPanel from './TransitionPanel'
 import IssuePanel from './IssuePanel'
 import ReservationSection from './ReservationSection'
 import OrderInvoiceSection from './OrderInvoiceSection'
+import ShippingSection from './ShippingSection'
 
 export default async function SalesOrderPage({ params }: { params: Promise<{ id: string }> }) {
     const denied = await requireModule(MOD.sales)
@@ -113,6 +114,19 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
 
                 {/* SO-3a:开票 —— 订单流【先开票后发货】(选项 C),开票即过账 */}
                 <OrderInvoiceSection
+                    orderId={o.id}
+                    status={o.status}
+                    lines={lines.map((l) => ({
+                        id: l.id,
+                        line_no: l.line_no,
+                        material_code: l.materials?.code ?? '—',
+                        quantity: l.quantity,
+                        unit: l.materials?.unit ?? '',
+                    }))}
+                />
+
+                {/* SO-3b:发货 —— 选项 C 的第二半。摆在预留【之后】,因为它消耗预留 */}
+                <ShippingSection
                     orderId={o.id}
                     status={o.status}
                     lines={lines.map((l) => ({

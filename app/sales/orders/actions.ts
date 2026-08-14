@@ -170,6 +170,38 @@ export async function createOrderInvoice(orderId: string, issueDate: string): Pr
     return {}
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// SO-3b:发货 —— 选项 C 的第二半(借 2500 释放负债 / 贷 4000 收入 + COGS)。
+// 【错误走销售那一族】抛错的是 ship_order,它的码登记在 SALES_ORDER_ERROR_CODES;
+// 而"这一行还没开票"那条(SO_SHIP_NOT_INVOICED)也在那里 —— 判据是"抛错的函数
+// 属于哪一族",不是码里带不带 INVOICE 字样。
+// ════════════════════════════════════════════════════════════════════════════
+export async function shipOrderLine(
+    orderId: string,
+    reservationId: string,
+    qty: string,
+    shipDate: string
+): Promise<ReserveState> {
+    const supabase = await createClient()
+    const trimmed = qty.trim()
+    const { error } = await supabase.rpc('ship_order', {
+        p_sales_order_id: orderId,
+        // 【空串不是日期】空着就让服务端按名拒(SHIP_DATE_REQUIRED)
+        p_ship_date: (shipDate.trim() === '' ? null : shipDate) as unknown as string,
+        // 【数量留空 = 整条预留】—— 不传 qty,函数就整条消耗
+        p_lines: [
+            trimmed === ''
+                ? { reservation_id: reservationId }
+                : { reservation_id: reservationId, qty: Number(trimmed) },
+        ],
+    })
+    if (error) return { error: await localizeSalesOrderError(error.message) }
+    revalidatePath(`/sales/orders/${orderId}`)
+    revalidatePath('/inventory')
+    revalidatePath('/finance/receivables')
+    return {}
+}
+
 export async function listCustomersAndMaterials() {
     const supabase = await createClient()
     const customers = mustRows(

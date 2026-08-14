@@ -6,7 +6,14 @@
 --
 -- sales_order_lines 的表头写着"履约(行 ↔ 批次,多对多)归预留/发货那一刀"——
 -- 就是这一张表。一行 = 一次预留这个【事实】:某张单的某一行,在某个
--- 批次 × 库位 桶里,许出去了多少。活预留 = released_at IS NULL。
+-- 批次 × 库位 桶里,许出去了多少。
+-- 【活预留 = released_at IS NULL AND consumed_at IS NULL】(SO-3b 起两个条件)——
+-- 一条预留有两种终局,而它们是【不同的事实】,不能挤进同一列:
+--   * 释放(released_*):货【回到 available】,有一对反向流水(release_pair_id);
+--   * 消耗(consumed_*):货【离开了台账】(发货),没有反向流水,对应的是一条
+--     'sale' 出库腿与一行 shipment_lines。
+-- 把消耗记成"释放"会让台账多出一对并不存在的回流,而那正是 release_pair_id
+-- 那条 CHECK 会当场拒绝的东西 —— 约束替我们说明了为什么要第二组列。
 --
 -- 【它与 inventory_movements 说的是同一件事,而两边必须永远对得上】
 -- 一次预留在流水里是一对 status_change(出 available、进 committed),在这里是
@@ -45,19 +52,34 @@ CREATE TABLE public.sales_order_reservations (
     released_by         uuid,
     release_reason      text,
     release_pair_id     uuid,
+    -- ── SO-3b 追加:第二种终局【消耗】(ALTER 加的列排在末尾)──────────────
+    -- 发货把这一份 committed 的货取走了。没有反向流水 —— 它离开了台账。
+    consumed_at         timestamptz,
+    consumed_by         uuid,
+    -- 【没有指回 shipment_lines 的外键 —— 这是一个决定,不是遗漏】
+    -- shipment_lines.reservation_id 已经是 UNIQUE:映射是一对一的,反向
+    -- 那个指针是【冗余】的。而两张表互指会让镜像之间出现【循环依赖】,
+    -- 重建根本排不出建表顺序(verify_rebuild 当场报的就是这一条)。
+    -- "这条预留被哪一行发货消耗了"由 shipment_lines.reservation_id 反查。
     CONSTRAINT sales_order_reservations_release_complete CHECK (
         (released_at IS NULL     AND release_reason IS NULL     AND release_pair_id IS NULL)
-     OR (released_at IS NOT NULL AND release_reason IS NOT NULL AND release_pair_id IS NOT NULL))
+     OR (released_at IS NOT NULL AND release_reason IS NOT NULL AND release_pair_id IS NOT NULL)),
+    -- 【两种终局互斥】一条预留不可能既回到 available 又离开台账。
+    CONSTRAINT sales_order_reservations_one_ending CHECK (
+        released_at IS NULL OR consumed_at IS NULL)
 );
 
 COMMENT ON TABLE public.sales_order_reservations IS
-    'SO-2:销售订单的库存预留 —— 订单【行】与产出【批次】的多对多在这里出生(sales_order_lines 的注释里说要等的正是它)。一行 = 一次预留这个【事实】:某张单的某一行,在某个 批次 × 库位 桶里,许出去了多少。活预留 = released_at IS NULL。【只指向产出批次】:movement_type=''sale'' 被 inventory_movements_side 钉在产出侧,预留一个进料批次会造出永远消耗不掉的承诺库存。【释放不改 qty,而是写三列并整行作废】—— 把 40 改成 25 是在把历史改成"当初只许了 25";部分释放由 release_reservation 做成整行释放 + 就地重新预留剩余,于是每一行都仍然是一个真的事实。唯一写入口:reserve_stock / release_reservation(都要 module.sales.edit)。';
+    'SO-2:销售订单的库存预留 —— 订单【行】与产出【批次】的多对多在这里出生(sales_order_lines 的注释里说要等的正是它)。一行 = 一次预留这个【事实】:某张单的某一行,在某个 批次 × 库位 桶里,许出去了多少。【活预留 = released_at IS NULL AND consumed_at IS NULL】(SO-3b):一条预留有两种终局 —— 释放(货回到 available,有一对反向流水)与消耗(发货,货离开台账,没有反向流水,对应一条 sale 出库腿与一行 shipment_lines)。把消耗记成释放会让台账多出一对并不存在的回流。【只指向产出批次】:movement_type=''sale'' 被 inventory_movements_side 钉在产出侧,预留一个进料批次会造出永远消耗不掉的承诺库存。【释放不改 qty,而是写三列并整行作废】—— 把 40 改成 25 是在把历史改成"当初只许了 25";部分释放由 release_reservation 做成整行释放 + 就地重新预留剩余,于是每一行都仍然是一个真的事实。唯一写入口:reserve_stock / release_reservation(都要 module.sales.edit)。';
 
 COMMENT ON COLUMN public.sales_order_reservations.location_id IS
     'SO-2:这次预留占用的是哪个库位的桶。NULL = 未指定库位(一等状态,不是缺失 —— LOC-1/STK-1)。【它是本表唯一一列可以在事后被改写的】:committed 的货整桶转移到别的库位时,create_stock_transfer 在 evoltrya.reservation_move_ctx 上下文里把它改过去。改的是"这批货现在放在哪",不是"当初许了什么" —— 后者(行、批次、数量)一个字都不能动。';
 
-CREATE INDEX idx_so_reservations_line   ON public.sales_order_reservations (sales_order_line_id) WHERE released_at IS NULL;
-CREATE INDEX idx_so_reservations_bucket ON public.sales_order_reservations (output_batch_id, location_id) WHERE released_at IS NULL;
+COMMENT ON COLUMN public.sales_order_reservations.consumed_at IS
+    'SO-3b:这条预留被【发货消耗】掉的时刻。与 released_* 并列而不是共用那三列 —— 释放是"货回到 available"(有一对反向流水),消耗是"货离开了台账"(没有反向流水,对应一条 sale 出库腿与一行 shipment_lines)。活预留 = released_at IS NULL AND consumed_at IS NULL。';
+
+CREATE INDEX idx_so_reservations_line   ON public.sales_order_reservations (sales_order_line_id) WHERE released_at IS NULL AND consumed_at IS NULL;
+CREATE INDEX idx_so_reservations_bucket ON public.sales_order_reservations (output_batch_id, location_id) WHERE released_at IS NULL AND consumed_at IS NULL;
 
 -- 只增不改的守卫(函数在 db/functions/guard_sales_order_reservation_append_only.sql)
 -- 它【自己报名】抛 SO_RESERVATION_IMMUTABLE,不靠外键顺带挡(FIN-31)。

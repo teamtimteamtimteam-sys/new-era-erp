@@ -1399,6 +1399,8 @@ const zh = {
         status: {
             draft: '草稿',
             confirmed: '已确认',
+            partially_shipped: '部分发货',
+            shipped: '已发货',
             closed: '已关闭',
             cancelled: '已作废',
             unknown: '未知状态',
@@ -1447,6 +1449,31 @@ const zh = {
             errLine: '每一行都要有物料、大于 0 的数量与大于 0 的单价',
             errNoLines: '一张订单至少要有一行',
             saveError: '保存失败:{message}',
+        },
+        // ── SO-3b:发货 ──────────────────────────────────────────────────────
+        ship: {
+            title: '发货',
+            note: '订单流按【已开票行上的预留】发货。发货即过账:借 预收合同负债 / 贷 收入(按发票存下来的汇率),批次有单位成本时一并挂 COGS;同时货离开库存台账。',
+            notShippable: '这张单当前的状态发不了货 —— 只有【已确认】或【部分发货】的单可以。',
+            shippedLabel: '已发',
+            invoiced: '已开票',
+            notInvoiced: '未开票',
+            invoiceRestricted: '开票状态受限',
+            lineCount: '{n} 行',
+            deliveryNote: '送货单',
+            needsSalesEdit: '发货需要 module.sales.edit。',
+            blockedNoFinanceView: '发货要先知道这一行开票了没有,而那需要财务模块的权限(module.finance.view)。',
+            blockedNotInvoiced: '这一行还没有坐在一张在册且已过账的发票上。订单流【先开票后发货】—— 请先在上面开票。',
+            blockedNoReservation: '这一行没有活预留。请先预留库存 —— 发货消耗的是预留,因为只有预留说得出是哪一批货、哪个库位。',
+            reservationLabel: '要发的预留',
+            pickReservation: '选一条预留…',
+            qtyLabel: '数量({unit})—— 留空即整条发出',
+            shipDate: '发货日',
+            dateRequired: '发货日必填 —— 它是货实际离开的那一天,而且决定收入落进哪个期间。永不默认。',
+            overReservation: '那条预留一共 {have}。',
+            action: '发货',
+            consequence: '按发票存下来的汇率把预收合同负债释放进收入,同时货离开库存台账。【这一步不可撤销】—— 此后那张发票再也作废不了;更正要走贷项凭证,而那个概念还不存在。',
+            arNote: '发货【不产生任何新的应收】:那笔债在开票当刻就认下了。这张订单的应收始终只有发票那一行。',
         },
         // ── SO-3a:订单流开票 ────────────────────────────────────────────────
         invoice: {
@@ -1515,6 +1542,17 @@ const zh = {
             SO_RELEASE_EXCEEDS: '释放不了 {0} —— 这条预留一共 {1}。数量留空就是【整笔释放】。',
             SO_RESERVATION_IMMUTABLE: '一条预留是"当初许了什么"的记录:它可以被释放,但改不得也删不得。',
             SO_CANCEL_RESERVATIONS_LEFT: '订单 {0} 作废之后仍剩 {1} 条活预留,所以什么都没改。这本该不可能发生 —— 请报告,不要重试。',
+            // SO-3b:发货
+            SHIP_DATE_REQUIRED: '发货日必填 —— 它是货实际离开的那一天,而且决定收入落进哪个期间,永远不会替你填。什么都没保存。',
+            SO_SHIP_ORDER_NOT_SHIPPABLE: '订单 {0} 目前是【{1}】,发不了货。只有【已确认】或【部分发货】的单可以。',
+            SO_SHIP_NO_LINES: '订单 {0} 上没有选中任何要发的东西。',
+            SO_SHIP_NOT_RESERVED: '这条预留发不了 —— 它不在这张单上,或者已经被释放/发出过了。请刷新订单重选。',
+            SO_SHIP_NOT_INVOICED: '订单 {0} 的第 {1} 行还没有坐在一张在册且已过账的发票上。订单流【先开票后发货】:请先开票。什么都没发出。',
+            SO_SHIP_EXCEEDS_RESERVATION: '发不了 {0} —— 那条预留一共 {1}。请先多预留一些,或者按已预留的量发。',
+            SO_RESERVATION_ALREADY_SHIPPED: '这条预留已经发出去了 —— 出去的货放不回来。发货之后的更正走贷项凭证。',
+            SO_SHIP_LINES_LOST: '这张发货单没有写完整(递进来 {0} 行、写进去 {1} 行),所以什么都没保存。请报告,不要重试。',
+            SHIPMENT_IMMUTABLE: '一张发货单记的是【货确实离开了】这件事;它改不得、作废不得、删不得。更正走贷项凭证。',
+            SHIPMENT_NOT_FOUND: '这张发货单已经不存在了。请刷新重试。',
             // SO-2b:建单收归一扇门
             SO_CREATE_CUSTOMER_INVALID: '这个客户已经不存在(或已被删除)。请刷新表单重新选 —— 一张没有客户的订单没有主语。',
             SO_CREATE_FX_INVALID: '汇率【{0}】用不了:必须大于 0,而且它永远不会有默认值。假设出来的 1:1 在非本位币单据上永远是错的,还看起来完全正常。',
@@ -2667,6 +2705,8 @@ const zh = {
             pageOf: '第 {current} / {total} 页',
         },
         source: {
+            // SO-3b:发货分录(借 2500 / 贷 4000,外加 COGS)
+            shipment: '发货(确认收入)',
             // SO-3a:订单流开票分录(借 1100 / 贷 2500)
             invoice: '订单开票',
             year_close: '年结',

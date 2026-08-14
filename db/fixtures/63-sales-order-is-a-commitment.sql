@@ -16,6 +16,8 @@
 --   C 确认:空单不许确认;有行才通
 --   D 冻结:确认后改商业字段按名拒;备注仍可改;草稿仍可改
 --   E 状态机:closed/cancelled 是终态;作废必须带理由
+--     (SO-3b:confirmed → closed 已改为【按名拒绝】—— closed 要求发完货;
+--      closed 的可达性与终态性移到 fixture 68 J 臂,只有它走得到 shipped)
 --   F 信用冻结:冻结时确认被拒,解冻后同一张单确认得了
 --   G 签发:版本从 1 递增,sha256 记下;重新签发追加;UPDATE/DELETE 按名拒
 --   I 权限:sales 读得到;无码读不到;【持 finance 而无 sales.view 也读不到】
@@ -166,10 +168,15 @@ BEGIN
         END IF;
     END LOOP;
 
-    -- confirmed → closed 允许
-    PERFORM set_sales_order_status(so1, 'closed');
-    IF (SELECT status FROM sales_orders WHERE id = so1) <> 'closed' THEN
-        RAISE EXCEPTION 'FIXTURE 63E 失败:confirmed → closed 应当允许';
+    -- 【SO-3b 改了这一条 —— 过期,不是回归】此前 confirmed → closed 是允许的;
+    -- 发货落地之后,"走完了"要求【发完货】,所以那条路关掉了(closed 只能从
+    -- shipped 来)。一张还没发货的订单说自己"走完了",在选项 C 之下是说不通的。
+    -- 【closed 可达且是终态】由 fixture 68 的 J 臂钉住 —— 只有它走得到 shipped。
+    v_ok := false;
+    BEGIN PERFORM set_sales_order_status(so1, 'closed');
+    EXCEPTION WHEN OTHERS THEN v_ok := SQLERRM LIKE 'SO_TRANSITION_NOT_ALLOWED|confirmed|closed%'; END;
+    IF NOT v_ok THEN
+        RAISE EXCEPTION 'FIXTURE 63E 失败:SO-3b 之后 confirmed → closed 应当按名拒绝(closed 要求已发货)';
     END IF;
 
     -- ══════════ F. 信用冻结:两个方向 ════════════════════════════════════════

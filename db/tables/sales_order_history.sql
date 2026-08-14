@@ -16,7 +16,10 @@ CREATE TABLE public.sales_order_history (
                     'reserved','released',
                     -- SO-3a:开票与发票作废也进订单的历史 —— 订单流要求先开票后发货,
                     -- "这张单开过票没有"是看订单的人的问题,不该要他去翻发票列表。
-                    'invoiced','invoice_voided')),
+                    'invoiced','invoice_voided',
+                    -- SO-3b:发货也进订单历史 —— "这张单发了什么、什么时候发的"
+                    -- 是看订单的人的问题,不该要他去翻发货单列表。
+                    'shipped')),
     detail         text,
     changed_at     timestamptz NOT NULL DEFAULT now(),
     changed_by     uuid DEFAULT auth.uid()

@@ -28,6 +28,10 @@ BEGIN
     IF v_res.released_at IS NOT NULL THEN
         RAISE EXCEPTION 'SO_RESERVATION_ALREADY_RELEASED|%', p_reservation_id;
     END IF;
+    -- SO-3b:已经发出去的货放不回来 —— 更正走贷项凭证,不是"再释放一次"。
+    IF v_res.consumed_at IS NOT NULL THEN
+        RAISE EXCEPTION 'SO_RESERVATION_ALREADY_SHIPPED|%', p_reservation_id;
+    END IF;
 
     -- 【释放要留下为什么,与暂扣同一条】一次没有理由的释放,过两天没人说得清
     -- 那批货为什么不再属于那张订单了。(hold_stock 的理由必填 / release_stock 的
