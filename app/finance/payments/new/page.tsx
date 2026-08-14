@@ -18,6 +18,8 @@ import { MOD } from '@/lib/modules'
 // 视图列生成类型全可空;行进视图即非空,取用列本地锁死
 type ArItem = {
     sales_record_id: string
+    invoice_id: string | null
+    doc_kind: string
     customer_id: string | null
     doc_code: string
     sale_date: string
@@ -66,7 +68,7 @@ export default async function NewPaymentPage({
             .order('legal_name'),
         supabase
             .from('ar_open_items')
-            .select('sales_record_id, customer_id, doc_code, sale_date, open_ccy, currency')
+            .select('sales_record_id, invoice_id, doc_kind, customer_id, doc_code, sale_date, open_ccy, currency')
             .order('sale_date', { ascending: true }),
         supabase
             .from('ap_open_items')
@@ -101,9 +103,11 @@ export default async function NewPaymentPage({
         id: s.id,
         name: s.legal_name,
     }))
+    // SO-3a:应收有两种单据('sale' 销售记录 / 'invoice' 订单流发票),
+    // doc_kind 由视图自己给(ap 的先例),doc_id 相应二选一。
     const arItems: OpenItem[] = ((arRes.data as unknown as ArItem[] | null) ?? []).map((r) => ({
-        doc_id: r.sales_record_id,
-        doc_kind: 'sale' as const,
+        doc_id: r.doc_kind === 'invoice' ? (r.invoice_id as string) : r.sales_record_id,
+        doc_kind: (r.doc_kind === 'invoice' ? 'invoice' : 'sale') as OpenItem['doc_kind'],
         party_id: r.customer_id ?? '',
         doc_code: r.doc_code,
         doc_date: r.sale_date,

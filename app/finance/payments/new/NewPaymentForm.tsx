@@ -18,8 +18,8 @@ const initialState: CreatePaymentState = {}
 export type PartyOption = { id: string; name: string }
 
 export type OpenItem = {
-    doc_id: string // in → sales_record_id / out → inbound_batch_id 或 expense id(按 doc_kind)
-    doc_kind: 'sale' | 'inbound' | 'expense'
+    doc_id: string // in → sales_record_id 或 invoice_id / out → inbound_batch_id 或 expense id(按 doc_kind)
+    doc_kind: 'sale' | 'invoice' | 'inbound' | 'expense'
     party_id: string
     doc_code: string
     doc_date: string

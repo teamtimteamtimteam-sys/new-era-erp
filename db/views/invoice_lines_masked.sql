@@ -34,6 +34,7 @@ CREATE VIEW public.invoice_lines_masked WITH (security_invoker = off) AS
         CASE
             WHEN has_permission('data.view_prices'::text) THEN amount_ccy
             ELSE NULL::numeric
-        END AS amount_ccy
+        END AS amount_ccy,
+    sales_order_line_id
    FROM invoice_lines
   WHERE has_permission('module.finance.view'::text);;

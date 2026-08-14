@@ -41,11 +41,29 @@ CREATE TABLE public.invoices (
     terms_text         text,
     bill_to_snapshot   jsonb NOT NULL,
     created_at         timestamptz DEFAULT now(),
-    created_by         uuid DEFAULT auth.uid()
+    created_by         uuid DEFAULT auth.uid(),
+    -- ── SO-3a 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
+    -- 【kind 是判别列,NULL 不是】发票从此有两种:'sale' = 归拢已过账的销售
+    -- (SO-3a 之前唯一的一种,不过任何分录);'order' = 订单流的【过账单据】,
+    -- 开票即 借 1100 应收 / 贷 2500 合同负债(选项 C,Tim 定)。下面三列只在
+    -- order 上非空 —— 由 invoices_kind_consistency 双向钉死,所以 sale 行上的
+    -- NULL 不是"一列两义"的病:含义由 kind 说,NULL 只是"此列不适用"。
+    kind               text NOT NULL DEFAULT 'sale' CHECK (kind IN ('sale','order')),
+    -- 开票分录(order 专有)。作废时不清 —— 冲销分录经 reversed_by 挂在它上面。
+    entry_id           uuid REFERENCES public.journal_entries (id),
+    -- 【入账汇率,从订单【抄】来 —— FIN-27 一族】它是结算解除应收、发货释放
+    -- 负债都要用的那一个数;开屏现查行情会让同一张发票在不同日子值不同的钱。
+    fx_rate            numeric,
+    sales_order_id     uuid REFERENCES public.sales_orders (id),
+    CONSTRAINT invoices_kind_consistency CHECK (
+        (kind = 'sale'  AND sales_order_id IS NULL     AND entry_id IS NULL     AND fx_rate IS NULL)
+     OR (kind = 'order' AND sales_order_id IS NOT NULL AND entry_id IS NOT NULL AND fx_rate IS NOT NULL AND fx_rate > 0))
 );
 
 CREATE INDEX idx_invoices_customer ON public.invoices (customer_id);
 CREATE INDEX idx_invoices_issue_date ON public.invoices (issue_date);
+
+CREATE INDEX idx_invoices_order ON public.invoices (sales_order_id);
 
 CREATE OR REPLACE FUNCTION public.guard_invoice_mutation()
 RETURNS trigger LANGUAGE plpgsql AS $fn$
@@ -69,6 +87,12 @@ BEGIN
        OR NEW.bill_to_snapshot   IS DISTINCT FROM OLD.bill_to_snapshot
        OR NEW.created_at         IS DISTINCT FROM OLD.created_at
        OR NEW.created_by         IS DISTINCT FROM OLD.created_by
+       -- SO-3a:判别列与订单流三列同样不可变(entry_id 在 INSERT 当刻就写好,
+       -- 作废也不清它 —— 冲销分录经 journal_entries.reversed_by 挂在原分录上)
+       OR NEW.kind               IS DISTINCT FROM OLD.kind
+       OR NEW.entry_id           IS DISTINCT FROM OLD.entry_id
+       OR NEW.fx_rate            IS DISTINCT FROM OLD.fx_rate
+       OR NEW.sales_order_id     IS DISTINCT FROM OLD.sales_order_id
     THEN
         RAISE EXCEPTION 'INVOICE_IMMUTABLE';
     END IF;
@@ -122,8 +146,18 @@ CREATE POLICY "invoices update by permission"
 REVOKE SELECT ON public.invoices FROM authenticated, anon;
 GRANT SELECT (id, code, customer_id, issue_date, due_date, payment_terms_days, currency, tax_rate_pct, status, void_reason, voided_at, voided_by, notes, terms_text, bill_to_snapshot, created_at, created_by)
     ON public.invoices TO authenticated;
+-- SO-3a:三列非敏感,进列清单;fx_rate 与金额同档(sales_records.fx_rate 的先例),
+-- 【不进清单】—— 只能经 invoices_masked 按 data.view_prices 读(colgrant 由此闭合)。
+GRANT SELECT (kind, sales_order_id, entry_id)
+    ON public.invoices TO authenticated;
 
 -- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)
 COMMENT ON COLUMN public.invoices.subtotal_base IS '本位币小计(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 subtotal_usd)。';
 COMMENT ON COLUMN public.invoices.tax_base IS '本位币税额(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 tax_usd)。';
 COMMENT ON COLUMN public.invoices.total_base IS '本位币总额(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 total_usd)。';
+
+-- SO-3a:两列的说明写进数据库,重建出来的库也带着(与 business_date 同办)。
+COMMENT ON COLUMN public.invoices.kind IS
+    'SO-3a:发票的种类。''sale'' = 归拢已过账销售的文件(不过分录,SO-3a 之前唯一的一种);''order'' = 订单流的过账单据 —— 开票即 借 1100 应收 / 贷 2500 合同负债(选项 C),发货(3b)再释放负债进收入。entry_id/fx_rate/sales_order_id 只在 order 上非空,由 invoices_kind_consistency 双向钉死 —— NULL 的含义由 kind 说,不是一列两义。';
+COMMENT ON COLUMN public.invoices.fx_rate IS
+    'SO-3a:入账汇率,【从订单抄来】(FIN-27 一族:承诺抄下来,不再看行情)。开票分录按它过、结算按它解除、7100 已实现汇兑从它算起 —— 一个数,三处同源。sale 头恒 NULL(那种发票不过账,行背后的销售各有各的汇率)。';

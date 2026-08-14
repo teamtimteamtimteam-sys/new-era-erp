@@ -176,7 +176,21 @@ INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system, is
     ('6300', 'Transport & Logistics', '运输物流费', 'expense', false, false),
     ('6400', 'Professional Fees', '专业服务费', 'expense', false, false),
     ('6500', 'Bank Charges', '银行手续费', 'expense', false, false),
-    ('6900', 'Miscellaneous', '杂项开支', 'expense', false, false);    -- revalue_foreign_balances
+    ('6900', 'Miscellaneous', '杂项开支', 'expense', false, false);
+
+-- SO-3a:合同负债 —— 订单流发票的贷方(借 1100 应收 / 贷 2500)。
+-- 【is_monetary = false,是一个决定】这笔负债【以货清偿,不以钱清偿】:发货把它
+-- 释放进收入(按发票存下来的入账汇率),它永远不会被一笔外币现金结掉。把它标成
+-- 货币性,revalue_foreign_balances 会每期把汇兑噪声堆在一个注定按原汇率释放的
+-- 余额上 —— 7110 出现一串永远不会实现的未实现损益。
+-- 【is_cash = false,cash_flow_section 不填 —— 想过,不是漏了】开票分录
+-- (1100/2500)不碰任何 is_cash 科目,根本进不了现金流量表;而对着它收的款,
+-- 走 cash_flow_statement 的 ELSE 'operating' 分支 —— 经营性,正确。若给它填
+-- investing/financing,反而会把那些收款错分类(FIN-30 的判据:cash_flow_section
+-- 只在【碰了现金的分录】里给非现金对手科目定段)。
+INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system, is_monetary) VALUES
+    ('2500', 'Contract Liability', '预收合同负债', 'liability', true, false);
+    -- revalue_foreign_balances
 -- ── FIN-30:现金流量表的两处声明 ────────────────────────────────────────────
 -- 集中在这里,而不是散进上面几十行 VALUES —— "哪些科目是现金 / 哪些算投资筹资"
 -- 是【六行数据】,读的人该一眼看全,而不是在三十行里逐行找 true/false。

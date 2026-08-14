@@ -128,6 +128,11 @@ export default async function CustomerStatusPage({
             {/* ── 信用仓位 ─────────────────────────────────────────────────── */}
             <section className="mb-8">
                 <h2 className="text-lg font-semibold mb-2">{t('customers.status.creditTitle')}</h2>
+                {/* SO-3a:敞口从此包含【已开票未发货】的订单流发票 —— 面板显示的数
+                    与开票/销售被拒时用的数【按构造是同一个】(都出自
+                    customer_ar_exposure_base,它的第二项与应收账龄第二支读同一张
+                    内层视图)。这一句放在这里,是为了让看见数字的人知道口径。 */}
+                <p className="text-xs text-gray-500 mb-2">{t('customers.status.exposureIncludesInvoiced')}</p>
                 {credit === null ? (
                     // 拿不到行 = 无权。【不是 0】—— 0 读作"没有限额、余额充足"
                     <p className="text-sm text-gray-500">{t('common.restricted')}</p>

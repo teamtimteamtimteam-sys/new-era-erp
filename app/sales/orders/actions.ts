@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { mustRows } from '@/lib/db-helpers'
 import { localizeSalesOrderError } from './salesOrderErrorCodes'
+import { localizeInvoiceError } from '@/app/finance/invoiceErrorCodes'
 
 export type OrderFormState = { error?: string; fieldErrors?: Record<string, string> }
 
@@ -141,6 +142,31 @@ export async function releaseReservation(
     revalidatePath(`/sales/orders/${orderId}`)
     revalidatePath('/inventory')
     revalidatePath(`/output/${outputBatchId}/edit`)
+    return {}
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// SO-3a:订单流开票 —— 发票在开票当刻过账(借 1100 / 贷 2500,按订单抄来的汇率)。
+// 【错误走发票那一族】:抛错的是 create_order_invoice(发票函数),它的码
+// (含 CREDIT_* / INVOICE_DATE_REQUIRED / SO_INVOICE_*)都登记在
+// INVOICE_ERROR_CODES 里 —— 判据只有一份,不在这里手挑。
+// ════════════════════════════════════════════════════════════════════════════
+export async function createOrderInvoice(orderId: string, issueDate: string): Promise<ReserveState> {
+    const supabase = await createClient()
+    const { data, error } = await supabase.rpc('create_order_invoice', {
+        p_sales_order_id: orderId,
+        // 【空串不是日期】空着交上来就让服务端按名拒(INVOICE_DATE_REQUIRED)——
+        // 不在这里补一个今天。类型上该参数必填,所以空串经 null 断言递入。
+        p_issue_date: (issueDate.trim() === '' ? null : issueDate) as unknown as string,
+    })
+    if (error) return { error: await localizeInvoiceError(error.message) }
+    // 【失败不是空集】RPC 成功却没带回 id,不该被当成"开成了"
+    if (!(data as { invoice_id?: string } | null)?.invoice_id) {
+        return { error: 'create_order_invoice returned no id' }
+    }
+    revalidatePath(`/sales/orders/${orderId}`)
+    revalidatePath('/finance/invoices')
+    revalidatePath('/finance/receivables')
     return {}
 }
 

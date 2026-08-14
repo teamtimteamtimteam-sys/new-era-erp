@@ -22,6 +22,7 @@ type AllocRow = {
     inbound_batch_id: string | null
     expense_id: string | null
     purchase_order_id: string | null
+    invoice_id: string | null
     allocated_base: number
     // FIN-18:这条核销消耗掉的【付款币种】金额 —— 挂账余额只能由它算
     allocated_pay: number
@@ -65,7 +66,7 @@ export default async function PaymentDetailPage({
             : Promise.resolve({ data: null, error: null }),
         supabase
             .from('payment_allocations')
-            .select('id, sales_record_id, inbound_batch_id, expense_id, purchase_order_id, allocated_base, allocated_pay, allocated_ccy')
+            .select('id, sales_record_id, inbound_batch_id, expense_id, purchase_order_id, invoice_id, allocated_base, allocated_pay, allocated_ccy')
             .eq('payment_id', id)
             .order('created_at', { ascending: true }),
         payment.reversed_by_payment
@@ -81,6 +82,7 @@ export default async function PaymentDetailPage({
     const batchIds = allocs.map((a) => a.inbound_batch_id).filter(Boolean) as string[]
     const expenseIds = allocs.map((a) => a.expense_id).filter(Boolean) as string[]
     const poIds = allocs.map((a) => a.purchase_order_id).filter(Boolean) as string[]
+    const invoiceIds = allocs.map((a) => a.invoice_id).filter(Boolean) as string[]
     const [salesRes, inboundRes, expensesRes, poRes] = await Promise.all([
         saleIds.length
             ? supabase.from('sales_records').select('id, output_batch_id').in('id', saleIds)
@@ -104,9 +106,22 @@ export default async function PaymentDetailPage({
     const inboundById = new Map((mustRows(inboundRes)).map((b) => [b.id, b.code]))
     const expenseById = new Map((mustRows(expensesRes)).map((e) => [e.id, e.code]))
     const poById = new Map((mustRows(poRes)).map((p) => [p.id, p.code]))
+    // SO-3a:订单流发票的核销行 —— 单据就是发票本身
+    const invoiceById = new Map<string, string>()
+    if (invoiceIds.length) {
+        const { data: invs } = await supabase.from('invoices_masked').select('id, code').in('id', invoiceIds)
+        for (const i of (invs as { id: string; code: string }[] | null) ?? []) invoiceById.set(i.id, i.code)
+    }
 
     // 每行核销的单据编号 + 链接
     const allocDoc = (a: AllocRow): { code: string; href: string | null } => {
+        if (a.invoice_id) {
+            // SO-3a:冲的是订单流发票(它自己就是应收单据)
+            return {
+                code: invoiceById.get(a.invoice_id) ?? '—',
+                href: `/finance/invoices/${a.invoice_id}`,
+            }
+        }
         if (a.sales_record_id) {
             const batchId = outputBySale.get(a.sales_record_id)
             return {

@@ -351,6 +351,9 @@ export default function SalePanel({
                                   exposure: formatAmount(creditRow.exposure_base, baseCurrency),
                                   headroom: formatAmount(creditRow.headroom_base, baseCurrency),
                               })}
+                        {/* SO-3a:敞口的口径 —— 含已开票未发货;面板的数与拒绝用的数
+                            按构造同一个(同一个 customer_ar_exposure_base) */}
+                        <span className="block text-xs opacity-70 mt-1">{t('output.sale.credit.includesInvoiced')}</span>
                     </p>
                 )}
 

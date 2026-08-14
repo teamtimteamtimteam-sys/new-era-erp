@@ -37,7 +37,8 @@ CREATE VIEW public.ar_open_items WITH (security_invoker = off) AS
             ELSE 'b90_plus'::text
         END AS bucket,
     inv.invoice_id,
-    inv.invoice_code
+    inv.invoice_code,
+    'sale'::text AS doc_kind
    FROM sales_records_masked sr
      JOIN output_batches ob ON ob.id = sr.output_batch_id
      LEFT JOIN customers c ON c.id = sr.customer_id
@@ -52,4 +53,29 @@ CREATE VIEW public.ar_open_items WITH (security_invoker = off) AS
           WHERE il.sales_record_id = sr.id AND NOT il.invoice_voided
          LIMIT 1) inv ON true
   WHERE round(sr.quantity * sr.unit_price - COALESCE(s.settled, 0::numeric), 2) > 0::numeric
-    AND has_permission('module.finance.view'::text);
+    AND has_permission('module.finance.view'::text)
+UNION ALL
+ SELECT NULL::uuid AS sales_record_id,
+    o.code AS doc_code,
+    o.customer_id,
+    c.legal_name AS customer_name,
+    o.issue_date AS sale_date,
+    round(o.amount_ccy * o.fx_rate, 2) AS amount_base,
+    o.currency,
+    o.amount_ccy,
+    o.settled_ccy,
+    o.open_ccy,
+    o.open_base,
+    CURRENT_DATE - o.issue_date AS days_outstanding,
+        CASE
+            WHEN (CURRENT_DATE - o.issue_date) <= 30 THEN 'b0_30'::text
+            WHEN (CURRENT_DATE - o.issue_date) <= 60 THEN 'b31_60'::text
+            WHEN (CURRENT_DATE - o.issue_date) <= 90 THEN 'b61_90'::text
+            ELSE 'b90_plus'::text
+        END AS bucket,
+    o.invoice_id,
+    o.code AS invoice_code,
+    'invoice'::text AS doc_kind
+   FROM order_invoice_open_all o
+     LEFT JOIN customers c ON c.id = o.customer_id
+  WHERE has_permission('module.finance.view'::text) AND has_permission('data.view_prices'::text);

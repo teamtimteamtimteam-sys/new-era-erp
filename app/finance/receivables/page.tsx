@@ -14,7 +14,11 @@ import { MOD } from '@/lib/modules'
 
 // 视图列生成类型全可空;行进视图即非空,本地类型锁死(同 journal 详情 LineRow 手法)
 type ArRow = {
-    sales_record_id: string
+    sales_record_id: string | null
+    // SO-3a:应收两种单据('sale' 销售记录 / 'invoice' 订单流发票)。
+    // sale 行的 doc 链接去应收单据页,invoice 行去发票页 —— 猜错链接是拿一个
+    // 合法 uuid 开错页(看板 ap 分支的同一条)。
+    doc_kind: string
     doc_code: string
     invoice_id: string | null
     invoice_code: string | null
@@ -136,17 +140,31 @@ export default async function ReceivablesPage() {
                         [
                             ...g.rows.map((r, ri) => {
                                 return (
-                                    <tr key={r.sales_record_id}>
+                                    <tr key={r.sales_record_id ?? r.invoice_id ?? `${gi}-${ri}`}>
                                         <td className="border border-gray-300 px-4 py-2">
                                             {ri === 0 ? g.name : ''}
                                         </td>
                                         <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                            <Link
-                                                href={`/finance/receivables/${r.sales_record_id}`}
-                                                className="text-blue-600 hover:underline"
-                                            >
-                                                {r.doc_code}
-                                            </Link>
+                                            {r.doc_kind === 'invoice' ? (
+                                                <Link
+                                                    href={`/finance/invoices/${r.invoice_id}`}
+                                                    className="text-blue-600 hover:underline"
+                                                >
+                                                    {r.doc_code}
+                                                </Link>
+                                            ) : (
+                                                <Link
+                                                    href={`/finance/receivables/${r.sales_record_id}`}
+                                                    className="text-blue-600 hover:underline"
+                                                >
+                                                    {r.doc_code}
+                                                </Link>
+                                            )}
+                                            {r.doc_kind === 'invoice' && (
+                                                <span className="ml-2 px-1.5 py-0.5 rounded text-xs bg-blue-100 text-blue-800">
+                                                    {t('finance.docKind.invoice')}
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
                                             {r.invoice_id && r.invoice_code ? (

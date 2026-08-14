@@ -9,6 +9,28 @@ const INVOICE_ERROR_CODES = new Set([
     'ALREADY_INVOICED', 'DUPLICATE_SALE', 'MIXED_CURRENCY',
     'INVOICE_NOT_FOUND', 'INVOICE_ALREADY_VOID', 'REASON_REQUIRED',
     'INVOICE_IMMUTABLE', 'TERMS_INVALID',
+    // SO-3a:订单流开票(create_order_invoice / void_invoice 的 order 分支)。
+    // CREDIT_* 在销售那一族也有同名码 —— 各族各配各的文案,判据仍是"抛错的函数
+    // 属于哪一族",不是码长得像谁。
+    'SO_NOT_FOUND',
+    'SO_INVOICE_ORDER_NOT_CONFIRMED',
+    'SO_INVOICE_NOTHING_TO_BILL',
+    'SO_INVOICE_LINE_INVALID',
+    'SO_LINE_ALREADY_INVOICED',
+    'INVOICE_DATE_REQUIRED',
+    'INVOICE_ORDER_GST_UNSUPPORTED',
+    'INVOICE_LINE_KIND_MISMATCH',
+    'CREDIT_HOLD',
+    'CREDIT_LIMIT_EXCEEDED',
+    // 作废(order 分支)
+    'REVERSAL_DATE_REQUIRED',
+    'REVERSAL_DATE_NOT_ACCEPTED',
+    'INVOICE_HAS_SETTLEMENTS',
+    // SO-3b 落地时启用 —— 文案先备好,免得那一刀漏了翻译(键检查会盯着这一条)
+    'INVOICE_SHIPPED_NOT_VOIDABLE',
+    // 冲销分录撞上期间锁/年结时经由这里冒出来 —— 说人话,不抛原码
+    'PERIOD_LOCKED',
+    'YEAR_CLOSED',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..."(同 localizeFinanceError)。

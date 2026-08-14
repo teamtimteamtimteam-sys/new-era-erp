@@ -13,7 +13,10 @@ CREATE TABLE public.sales_order_history (
     -- 那个问题的答案不该要求他先去翻库存台账。
     change_type    text NOT NULL CHECK (change_type IN
                    ('created','confirmed','closed','cancelled','line_added','line_changed','line_removed','issued',
-                    'reserved','released')),
+                    'reserved','released',
+                    -- SO-3a:开票与发票作废也进订单的历史 —— 订单流要求先开票后发货,
+                    -- "这张单开过票没有"是看订单的人的问题,不该要他去翻发票列表。
+                    'invoiced','invoice_voided')),
     detail         text,
     changed_at     timestamptz NOT NULL DEFAULT now(),
     changed_by     uuid DEFAULT auth.uid()

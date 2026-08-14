@@ -25,6 +25,7 @@ function parsePage(value: string | undefined): number {
 type Row = {
     invoice_id: string
     code: string
+    kind: string | null
     customer_name: string | null
     issue_date: string
     due_date: string
@@ -92,9 +93,10 @@ export default async function InvoicesPage({
         )
             .order('issue_date', { ascending: false })
             .range((page - 1) * PAGE_SIZE, (page - 1) * PAGE_SIZE + PAGE_SIZE - 1)
-        rows = ((data as unknown as { id: string; code: string; issue_date: string; due_date: string; total_base: number; customers: { legal_name: string } | null }[] | null) ?? []).map((i) => ({
+        rows = ((data as unknown as { id: string; code: string; kind: string | null; issue_date: string; due_date: string; total_base: number; customers: { legal_name: string } | null }[] | null) ?? []).map((i) => ({
             invoice_id: i.id,
             code: i.code,
+            kind: i.kind,
             customer_name: i.customers?.legal_name ?? null,
             issue_date: i.issue_date,
             due_date: i.due_date,
@@ -130,12 +132,13 @@ export default async function InvoicesPage({
             const { data: voids } = await applyDates(
                 supabase
                     .from('invoices_masked')
-                    .select('id, code, issue_date, due_date, total_base, customers(legal_name)')
+                    .select('id, code, kind, issue_date, due_date, total_base, customers(legal_name)')
                     .eq('status', 'void')
             ).order('issue_date', { ascending: false })
-            const voidRows = ((voids as unknown as { id: string; code: string; issue_date: string; due_date: string; total_base: number; customers: { legal_name: string } | null }[] | null) ?? []).map((i) => ({
+            const voidRows = ((voids as unknown as { id: string; code: string; kind: string | null; issue_date: string; due_date: string; total_base: number; customers: { legal_name: string } | null }[] | null) ?? []).map((i) => ({
                 invoice_id: i.id,
                 code: i.code,
+                kind: i.kind,
                 customer_name: i.customers?.legal_name ?? null,
                 issue_date: i.issue_date,
                 due_date: i.due_date,
@@ -227,6 +230,12 @@ export default async function InvoicesPage({
                                 >
                                     {r.code}
                                 </Link>
+                                {/* SO-3a:order 头是过账单据 —— 列表上就要分得出两种 */}
+                                {r.kind === 'order' && (
+                                    <span className="ml-2 px-1.5 py-0.5 rounded text-xs bg-blue-100 text-blue-800">
+                                        {t('invoice.kind.order')}
+                                    </span>
+                                )}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">{r.customer_name ?? '—'}</td>
                             <td className="border border-gray-300 px-4 py-2">{r.issue_date}</td>

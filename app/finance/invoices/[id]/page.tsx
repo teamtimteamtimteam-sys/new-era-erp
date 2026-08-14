@@ -56,7 +56,7 @@ export default async function InvoiceDetailPage({
 
     const { data: invRaw, error } = await supabase
         .from('invoices_masked')
-        .select('id, code, customer_id, issue_date, due_date, payment_terms_days, currency, tax_rate_pct, status, void_reason, voided_at, notes, terms_text, bill_to_snapshot')
+        .select('id, code, customer_id, issue_date, due_date, payment_terms_days, currency, tax_rate_pct, status, void_reason, voided_at, notes, terms_text, bill_to_snapshot, kind, sales_order_id, entry_id, fx_rate')
         .eq('id', id)
         .single()
 
@@ -94,16 +94,41 @@ export default async function InvoiceDetailPage({
         .order('line_no', { ascending: true })
 
     const rows = unmasked<Tables<'invoice_lines'>[]>(linesRaw ?? [])
-    const saleIds = rows.map((l) => l.sales_record_id)
+    const saleIds = rows.map((l) => l.sales_record_id).filter(Boolean) as string[]
+    const isOrderKind = inv.kind === 'order'
 
-    // 收款:这些销售上的全部核销行(含已冲销的,展示但不计入已收)
-    const { data: allocs } = saleIds.length
+    // 收款:sale 头走行背后的销售(老路);order 头【发票自己就是核销对象】——
+    // 核销行直指 invoice_id(SO-3a),与 invoice_status 的第二条腿同口径。
+    const { data: allocs } = isOrderKind
+        ? await supabase
+              .from('payment_allocations')
+              .select('id, allocated_ccy, sales_record_id, payments(id, code, payment_date, status)')
+              .eq('invoice_id', inv.id)
+              .order('created_at', { ascending: true })
+        : saleIds.length
         ? await supabase
               .from('payment_allocations')
               .select('id, allocated_ccy, sales_record_id, payments(id, code, payment_date, status)')
               .in('sales_record_id', saleIds)
               .order('created_at', { ascending: true })
         : { data: [] as AllocRow[] }
+
+    // order 头:分录与订单的门牌。分录 code 从 journal_entries 取;订单行受
+    // module.sales.view 把门 —— 财务读者没有那个码时【显示受限】,不显示空白。
+    let orderRef: { id: string; code: string } | null = null
+    let entryRef: { id: string; code: string } | null = null
+    if (isOrderKind) {
+        if (inv.sales_order_id) {
+            const { data: so } = await supabase
+                .from('sales_orders').select('id, code').eq('id', inv.sales_order_id).maybeSingle()
+            orderRef = (so as { id: string; code: string } | null) ?? null
+        }
+        if (inv.entry_id) {
+            const { data: je } = await supabase
+                .from('journal_entries').select('id, code').eq('id', inv.entry_id).maybeSingle()
+            entryRef = (je as { id: string; code: string } | null) ?? null
+        }
+    }
 
     const allocRows = ((allocs as unknown as AllocRow[] | null) ?? [])
     const settled =
@@ -168,6 +193,12 @@ export default async function InvoiceDetailPage({
                 <h1 className="text-2xl font-bold">
                     {t('invoice.detailTitle')}
                     <span className="ml-3 font-mono text-base text-gray-500">{inv.code}</span>
+                    {/* SO-3a:两种发票在列表与详情上都要看得出来 —— sale 头是归拢文件,
+                        order 头是过账单据,把它们混着读会把"未收"读成"未确认" */}
+                    <span className={'ml-3 px-2 py-0.5 rounded text-xs align-middle ' +
+                        (isOrderKind ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-700')}>
+                        {t(isOrderKind ? 'invoice.kind.order' : 'invoice.kind.sale')}
+                    </span>
                 </h1>
                 <div className="flex items-center gap-3">
                     {/* 预览是新标签页里直接打开(路由默认 inline),下载走 ?download=1
@@ -195,7 +226,7 @@ export default async function InvoiceDetailPage({
                             {t('invoice.pdfNeedsBanking')}
                         </span>
                     )}
-                    {!isVoid && <VoidInvoiceControl invoiceId={inv.id} />}
+                    {!isVoid && <VoidInvoiceControl invoiceId={inv.id} kind={inv.kind} />}
                 </div>
             </div>
 
@@ -221,6 +252,24 @@ export default async function InvoiceDetailPage({
                             </li>
                         ))}
                     </ul>
+                </div>
+            )}
+
+            {isOrderKind && (
+                <div className="bg-blue-50 border border-blue-200 text-blue-900 px-4 py-3 rounded mb-4 text-sm">
+                    {t('invoice.orderKindNote')}{' '}
+                    {orderRef ? (
+                        <Link href={`/sales/orders/${orderRef.id}`} className="text-blue-700 underline font-mono">{orderRef.code}</Link>
+                    ) : (
+                        <span className="italic">{t('common.restricted')}</span>
+                    )}
+                    {' · '}
+                    {entryRef ? (
+                        <Link href={`/finance/journal/${entryRef.id}`} className="text-blue-700 underline font-mono">{entryRef.code}</Link>
+                    ) : (
+                        <span className="italic">—</span>
+                    )}
+                    {inv.fx_rate != null && <span>{' · '}{t('invoice.orderKindRate', { rate: String(inv.fx_rate) })}</span>}
                 </div>
             )}
 

@@ -94,8 +94,12 @@ const TILES = [
       itemHref: (r: OpsRow) => `/hr/reviews/${r.item_id}` },
     { itemType: 'invoice_overdue', permission: 'module.finance.view', href: '/finance/invoices',
       itemHref: (r: OpsRow) => `/finance/invoices/${r.item_id}` },
+    // SO-3a:应收也成了两种单据(doc_kind 'sale' / 'invoice');认不出的不给链接。
     { itemType: 'ar_over_90', permission: 'module.finance.view', href: '/finance/receivables',
-      itemHref: (r: OpsRow) => `/finance/receivables/${r.item_id}` },
+      itemHref: (r: OpsRow) =>
+          r.doc_kind === 'invoice' ? `/finance/invoices/${r.item_id}`
+        : r.doc_kind === 'sale' ? `/finance/receivables/${r.item_id}`
+        : null },
     // 【应付有两种单据】doc_kind 来自 ap_open_items 自己(应付列表页一直照它分支);
     // 认不出的种类【不给链接】,绝不猜一个 —— 猜错就是拿一个合法 uuid 开错人的单据。
     { itemType: 'ap_over_90', permission: 'module.finance.view', href: '/finance/payables',

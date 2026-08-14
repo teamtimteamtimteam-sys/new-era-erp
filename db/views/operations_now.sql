@@ -59,6 +59,9 @@
 -- 对账单)与 margin_cost_not_allocated(补救是给加工单分摊成本 → 加工单)。
 -- 于是同一支的几行可以共用一个 item_id,那是对的,不是重复 —— fixture 47 因此断言
 -- 的是"item_id 落在这一支该落的那张表里",不是"一行一个 id",也不是互不相同。
+-- 【SO-3a:应收也成了两种单据】ar_over_90 的 doc_kind 从此非空('sale' 销售记录 /
+-- 'invoice' 订单流发票),item_id 相应二选一 —— 门牌各是应收单据页与发票页,
+-- app/page.tsx 按 doc_kind 分支,认不出的种类不给链接(与 ap 同一条)。
 -- 【doc_kind 是披露】应付账款本来就是两种单据(ap_open_items 自己就按它分支,
 -- 应付列表页也一直照它画链接),这张视图先前只是没说出口。其余十八支主体只有一种,
 -- 该列为 NULL。【fx_rate_gap 没有 item_id】它的主体是一条不存在的牌价行,缺的东西
@@ -248,8 +251,8 @@ CREATE VIEW public.operations_now WITH (security_invoker = off) AS
         UNION ALL
          SELECT 'ar_over_90'::text AS item_type,
             'module.finance.view'::text AS permission,
-            ar.sales_record_id AS item_id,
-            NULL::text AS doc_kind,
+            COALESCE(ar.sales_record_id, ar.invoice_id) AS item_id,
+            ar.doc_kind,
             ar.doc_code AS item_code,
             ar.customer_name AS subject,
             ar.sale_date AS item_date

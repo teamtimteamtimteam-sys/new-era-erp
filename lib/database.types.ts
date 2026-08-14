@@ -1535,13 +1535,6 @@ export type Database = {
             foreignKeyName: "finance_attachments_sales_record_id_fkey"
             columns: ["sales_record_id"]
             isOneToOne: false
-            referencedRelation: "ar_open_items"
-            referencedColumns: ["sales_record_id"]
-          },
-          {
-            foreignKeyName: "finance_attachments_sales_record_id_fkey"
-            columns: ["sales_record_id"]
-            isOneToOne: false
             referencedRelation: "sales_records"
             referencedColumns: ["id"]
           },
@@ -2430,7 +2423,8 @@ export type Database = {
           invoice_voided: boolean
           line_no: number
           quantity: number
-          sales_record_id: string
+          sales_order_line_id: string | null
+          sales_record_id: string | null
           unit: string
           unit_price: number
         }
@@ -2444,7 +2438,8 @@ export type Database = {
           invoice_voided?: boolean
           line_no: number
           quantity: number
-          sales_record_id: string
+          sales_order_line_id?: string | null
+          sales_record_id?: string | null
           unit: string
           unit_price: number
         }
@@ -2458,18 +2453,12 @@ export type Database = {
           invoice_voided?: boolean
           line_no?: number
           quantity?: number
-          sales_record_id?: string
+          sales_order_line_id?: string | null
+          sales_record_id?: string | null
           unit?: string
           unit_price?: number
         }
         Relationships: [
-          {
-            foreignKeyName: "invoice_lines_invoice_id_fkey"
-            columns: ["invoice_id"]
-            isOneToOne: false
-            referencedRelation: "ar_open_items"
-            referencedColumns: ["invoice_id"]
-          },
           {
             foreignKeyName: "invoice_lines_invoice_id_fkey"
             columns: ["invoice_id"]
@@ -2499,11 +2488,18 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "invoice_lines_sales_record_id_fkey"
-            columns: ["sales_record_id"]
+            foreignKeyName: "invoice_lines_invoice_id_fkey"
+            columns: ["invoice_id"]
             isOneToOne: false
-            referencedRelation: "ar_open_items"
-            referencedColumns: ["sales_record_id"]
+            referencedRelation: "order_invoice_open_all"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_sales_order_line_id_fkey"
+            columns: ["sales_order_line_id"]
+            isOneToOne: false
+            referencedRelation: "sales_order_lines"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoice_lines_sales_record_id_fkey"
@@ -2537,10 +2533,14 @@ export type Database = {
           currency: string
           customer_id: string
           due_date: string
+          entry_id: string | null
+          fx_rate: number | null
           id: string
           issue_date: string
+          kind: string
           notes: string | null
           payment_terms_days: number
+          sales_order_id: string | null
           status: string
           subtotal_base: number
           tax_base: number
@@ -2559,10 +2559,14 @@ export type Database = {
           currency: string
           customer_id: string
           due_date: string
+          entry_id?: string | null
+          fx_rate?: number | null
           id?: string
           issue_date: string
+          kind?: string
           notes?: string | null
           payment_terms_days: number
+          sales_order_id?: string | null
           status?: string
           subtotal_base: number
           tax_base?: number
@@ -2581,10 +2585,14 @@ export type Database = {
           currency?: string
           customer_id?: string
           due_date?: string
+          entry_id?: string | null
+          fx_rate?: number | null
           id?: string
           issue_date?: string
+          kind?: string
           notes?: string | null
           payment_terms_days?: number
+          sales_order_id?: string | null
           status?: string
           subtotal_base?: number
           tax_base?: number
@@ -2615,6 +2623,27 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "invoices_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
             referencedColumns: ["id"]
           },
         ]
@@ -3811,6 +3840,7 @@ export type Database = {
           freight_document_id: string | null
           id: string
           inbound_batch_id: string | null
+          invoice_id: string | null
           payment_id: string
           purchase_order_id: string | null
           sales_record_id: string | null
@@ -3824,6 +3854,7 @@ export type Database = {
           freight_document_id?: string | null
           id?: string
           inbound_batch_id?: string | null
+          invoice_id?: string | null
           payment_id: string
           purchase_order_id?: string | null
           sales_record_id?: string | null
@@ -3837,6 +3868,7 @@ export type Database = {
           freight_document_id?: string | null
           id?: string
           inbound_batch_id?: string | null
+          invoice_id?: string | null
           payment_id?: string
           purchase_order_id?: string | null
           sales_record_id?: string | null
@@ -3885,6 +3917,41 @@ export type Database = {
             referencedColumns: ["inbound_batch_id"]
           },
           {
+            foreignKeyName: "payment_allocations_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_document_totals"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_status"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "order_invoice_open_all"
+            referencedColumns: ["invoice_id"]
+          },
+          {
             foreignKeyName: "payment_allocations_payment_id_fkey"
             columns: ["payment_id"]
             isOneToOne: false
@@ -3925,13 +3992,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "purchase_orders_masked"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payment_allocations_sales_record_id_fkey"
-            columns: ["sales_record_id"]
-            isOneToOne: false
-            referencedRelation: "ar_open_items"
-            referencedColumns: ["sales_record_id"]
           },
           {
             foreignKeyName: "payment_allocations_sales_record_id_fkey"
@@ -6603,13 +6663,6 @@ export type Database = {
             foreignKeyName: "sales_attribution_log_sales_record_id_fkey"
             columns: ["sales_record_id"]
             isOneToOne: false
-            referencedRelation: "ar_open_items"
-            referencedColumns: ["sales_record_id"]
-          },
-          {
-            foreignKeyName: "sales_attribution_log_sales_record_id_fkey"
-            columns: ["sales_record_id"]
-            isOneToOne: false
             referencedRelation: "sales_records"
             referencedColumns: ["id"]
           },
@@ -6917,13 +6970,6 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "inventory_movements"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sales_record_movements_sales_record_id_fkey"
-            columns: ["sales_record_id"]
-            isOneToOne: false
-            referencedRelation: "ar_open_items"
-            referencedColumns: ["sales_record_id"]
           },
           {
             foreignKeyName: "sales_record_movements_sales_record_id_fkey"
@@ -7899,6 +7945,7 @@ export type Database = {
           customer_name: string | null
           days_outstanding: number | null
           doc_code: string | null
+          doc_kind: string | null
           invoice_code: string | null
           invoice_id: string | null
           open_base: number | null
@@ -7907,29 +7954,7 @@ export type Database = {
           sales_record_id: string | null
           settled_ccy: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "sales_records_currency_fkey"
-            columns: ["currency"]
-            isOneToOne: false
-            referencedRelation: "currencies"
-            referencedColumns: ["code"]
-          },
-          {
-            foreignKeyName: "sales_records_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customer_credit_status"
-            referencedColumns: ["customer_id"]
-          },
-          {
-            foreignKeyName: "sales_records_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       bank_reconciliation_status: {
         Row: {
@@ -8774,6 +8799,7 @@ export type Database = {
           invoice_voided: boolean | null
           line_no: number | null
           quantity: number | null
+          sales_order_line_id: string | null
           sales_record_id: string | null
           unit: string | null
           unit_price: number | null
@@ -8788,6 +8814,7 @@ export type Database = {
           invoice_voided?: boolean | null
           line_no?: number | null
           quantity?: number | null
+          sales_order_line_id?: string | null
           sales_record_id?: string | null
           unit?: string | null
           unit_price?: never
@@ -8802,18 +8829,12 @@ export type Database = {
           invoice_voided?: boolean | null
           line_no?: number | null
           quantity?: number | null
+          sales_order_line_id?: string | null
           sales_record_id?: string | null
           unit?: string | null
           unit_price?: never
         }
         Relationships: [
-          {
-            foreignKeyName: "invoice_lines_invoice_id_fkey"
-            columns: ["invoice_id"]
-            isOneToOne: false
-            referencedRelation: "ar_open_items"
-            referencedColumns: ["invoice_id"]
-          },
           {
             foreignKeyName: "invoice_lines_invoice_id_fkey"
             columns: ["invoice_id"]
@@ -8843,11 +8864,18 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "invoice_lines_sales_record_id_fkey"
-            columns: ["sales_record_id"]
+            foreignKeyName: "invoice_lines_invoice_id_fkey"
+            columns: ["invoice_id"]
             isOneToOne: false
-            referencedRelation: "ar_open_items"
-            referencedColumns: ["sales_record_id"]
+            referencedRelation: "order_invoice_open_all"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_sales_order_line_id_fkey"
+            columns: ["sales_order_line_id"]
+            isOneToOne: false
+            referencedRelation: "sales_order_lines"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoice_lines_sales_record_id_fkey"
@@ -8882,6 +8910,7 @@ export type Database = {
           due_date: string | null
           invoice_id: string | null
           issue_date: string | null
+          kind: string | null
           open_base: number | null
           overdue: boolean | null
           payment_state: string | null
@@ -8921,10 +8950,14 @@ export type Database = {
           currency: string | null
           customer_id: string | null
           due_date: string | null
+          entry_id: string | null
+          fx_rate: number | null
           id: string | null
           issue_date: string | null
+          kind: string | null
           notes: string | null
           payment_terms_days: number | null
+          sales_order_id: string | null
           status: string | null
           subtotal_base: number | null
           tax_base: number | null
@@ -8943,10 +8976,14 @@ export type Database = {
           currency?: string | null
           customer_id?: string | null
           due_date?: string | null
+          entry_id?: string | null
+          fx_rate?: never
           id?: string | null
           issue_date?: string | null
+          kind?: string | null
           notes?: string | null
           payment_terms_days?: number | null
+          sales_order_id?: string | null
           status?: string | null
           subtotal_base?: never
           tax_base?: never
@@ -8965,10 +9002,14 @@ export type Database = {
           currency?: string | null
           customer_id?: string | null
           due_date?: string | null
+          entry_id?: string | null
+          fx_rate?: never
           id?: string | null
           issue_date?: string | null
+          kind?: string | null
           notes?: string | null
           payment_terms_days?: number | null
+          sales_order_id?: string | null
           status?: string | null
           subtotal_base?: never
           tax_base?: never
@@ -8999,6 +9040,27 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "invoices_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
             referencedColumns: ["id"]
           },
         ]
@@ -9373,6 +9435,44 @@ export type Database = {
           subject: string | null
         }
         Relationships: []
+      }
+      order_invoice_open_all: {
+        Row: {
+          amount_ccy: number | null
+          code: string | null
+          currency: string | null
+          customer_id: string | null
+          due_date: string | null
+          fx_rate: number | null
+          invoice_id: string | null
+          issue_date: string | null
+          open_base: number | null
+          open_ccy: number | null
+          settled_ccy: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_credit_status"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payment_term_template_lines_masked: {
         Row: {
@@ -11688,6 +11788,17 @@ export type Database = {
         }
         Returns: Json
       }
+      create_order_invoice: {
+        Args: {
+          p_issue_date: string
+          p_line_ids?: string[]
+          p_notes?: string
+          p_payment_terms_days?: number
+          p_sales_order_id: string
+          p_terms_text?: string
+        }
+        Returns: Json
+      }
       create_output_batch: {
         Args: {
           p_customer_id?: string
@@ -12424,7 +12535,11 @@ export type Database = {
         Returns: Json
       }
       void_invoice: {
-        Args: { p_invoice_id: string; p_reason: string }
+        Args: {
+          p_invoice_id: string
+          p_reason: string
+          p_reversal_date?: string
+        }
         Returns: Json
       }
       void_review: {

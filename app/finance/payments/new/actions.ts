@@ -57,6 +57,7 @@ export async function createPayment(
     const allocAmounts = formData.getAll('alloc_amount').map(String)
     type Alloc = {
         sales_record_id?: string
+        invoice_id?: string
         inbound_batch_id?: string
         expense_id?: string
         purchase_order_id?: string
@@ -67,7 +68,9 @@ export async function createPayment(
         const v = Number(allocAmounts[i])
         if (!allocIds[i] || !allocAmounts[i] || Number.isNaN(v) || v <= 0) continue
         if (direction === 'in') {
-            allocations.push({ sales_record_id: allocIds[i], amount_doc: v })
+            // SO-3a:应收两种单据 —— 订单流发票核销直指发票本身
+            if (allocKinds[i] === 'invoice') allocations.push({ invoice_id: allocIds[i], amount_doc: v })
+            else allocations.push({ sales_record_id: allocIds[i], amount_doc: v })
         } else if (allocKinds[i] === 'expense') {
             allocations.push({ expense_id: allocIds[i], amount_doc: v })
         } else if (allocKinds[i] === 'purchase_order') {

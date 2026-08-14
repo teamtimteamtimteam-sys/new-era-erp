@@ -1,6 +1,8 @@
 -- db/views/invoices_masked.sql
 -- 遮蔽伴生视图:invoices 的每一列都在,敏感列按 has_permission() 置空。
---   遮蔽的列:subtotal_base → data.view_prices, tax_base → data.view_prices, total_base → data.view_prices
+--   遮蔽的列:subtotal_base → data.view_prices, tax_base → data.view_prices, total_base → data.view_prices,
+--             fx_rate → data.view_prices(SO-3a,列在末尾:CREATE OR REPLACE 只能追加。
+--             与 sales_records.fx_rate 同档 —— 金额那一类;kind/sales_order_id/entry_id 非敏感,原样过)
 --
 -- 【属主权限,不是 SECURITY INVOKER】。invoker 视图以调用者身份读基表,于是任何
 -- 强到能挡住原始列的机制(收紧行策略、或收回列权限)同样会挡住视图本身 —— 实测
@@ -40,6 +42,13 @@ CREATE VIEW public.invoices_masked WITH (security_invoker = off) AS
     terms_text,
     bill_to_snapshot,
     created_at,
-    created_by
+    created_by,
+    kind,
+        CASE
+            WHEN has_permission('data.view_prices'::text) THEN fx_rate
+            ELSE NULL::numeric
+        END AS fx_rate,
+    sales_order_id,
+    entry_id
    FROM invoices
   WHERE has_permission('module.finance.view'::text);

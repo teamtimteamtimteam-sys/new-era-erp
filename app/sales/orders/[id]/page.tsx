@@ -11,6 +11,7 @@ import { soStatusKey, SO_ALLOWED_NEXT } from '../salesOrderTypes'
 import TransitionPanel from './TransitionPanel'
 import IssuePanel from './IssuePanel'
 import ReservationSection from './ReservationSection'
+import OrderInvoiceSection from './OrderInvoiceSection'
 
 export default async function SalesOrderPage({ params }: { params: Promise<{ id: string }> }) {
     const denied = await requireModule(MOD.sales)
@@ -109,6 +110,19 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                         ))}
                     </tbody>
                 </table>
+
+                {/* SO-3a:开票 —— 订单流【先开票后发货】(选项 C),开票即过账 */}
+                <OrderInvoiceSection
+                    orderId={o.id}
+                    status={o.status}
+                    lines={lines.map((l) => ({
+                        id: l.id,
+                        line_no: l.line_no,
+                        material_code: l.materials?.code ?? '—',
+                        quantity: l.quantity,
+                        unit: l.materials?.unit ?? '',
+                    }))}
+                />
 
                 {/* SO-2:预留 —— 逐行,挨着行表放,因为它回答的正是"这一行由哪几批货满足" */}
                 <ReservationSection

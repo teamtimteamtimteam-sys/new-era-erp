@@ -28,6 +28,7 @@ DECLARE
     v_batch_id     uuid;
     v_expense_id   uuid;
     v_po_id        uuid;
+    v_invoice_id   uuid;   -- SO-3a:订单流发票(第六种核销去处)
     v_alloc_usd    numeric;
     v_doc_rate     numeric;   -- 单据币种在【结算日】的牌价(折算用,不是单据入账汇率)
     v_alloc_pay    numeric;   -- 本条核销消耗掉多少【付款币种】
@@ -148,10 +149,11 @@ BEGIN
         v_batch_id   := (v_alloc->>'inbound_batch_id')::uuid;
         v_expense_id := (v_alloc->>'expense_id')::uuid;
         v_po_id      := (v_alloc->>'purchase_order_id')::uuid;
+        v_invoice_id := (v_alloc->>'invoice_id')::uuid;
         v_alloc_usd  := (v_alloc->>'amount_doc')::numeric;  -- FIN-2:单据币种金额
 
         IF v_alloc_usd IS NULL OR v_alloc_usd <= 0
-           OR num_nonnulls(v_sale_id, v_batch_id, v_expense_id, v_po_id) <> 1 THEN
+           OR num_nonnulls(v_sale_id, v_batch_id, v_expense_id, v_po_id, v_invoice_id) <> 1 THEN
             RAISE EXCEPTION 'ALLOC_INVALID|%', v_alloc::text;
         END IF;
 
@@ -159,27 +161,60 @@ BEGIN
             IF v_batch_id IS NOT NULL OR v_expense_id IS NOT NULL OR v_po_id IS NOT NULL THEN
                 RAISE EXCEPTION 'ALLOC_WRONG_SIDE';
             END IF;
-            SELECT sr.id, ob.code AS doc_code, sr.customer_id AS party_id,
-                   round(sr.quantity * sr.unit_price, 2) AS doc_value,
-                   sr.currency AS doc_ccy, sr.fx_rate AS doc_fx
-            INTO v_doc
-            FROM sales_records sr
-            JOIN output_batches ob ON ob.id = sr.output_batch_id
-            WHERE sr.id = v_sale_id;
-            IF NOT FOUND THEN
-                RAISE EXCEPTION 'ALLOC_INVALID|%', v_sale_id;
-            END IF;
-            IF v_doc.party_id IS DISTINCT FROM p_counterparty_id THEN
-                RAISE EXCEPTION 'ALLOC_WRONG_PARTY|%', v_doc.doc_code;
-            END IF;
-            v_doc_value := v_doc.doc_value;
-            v_doc_ccy := v_doc.doc_ccy; v_doc_fx := v_doc.doc_fx;
-            v_key := v_sale_id::text;
+            IF v_invoice_id IS NOT NULL THEN
+                -- ════════════════════════════════════════════════════════════
+                -- SO-3a:订单流发票 —— 它自己就是应收单据(开票即 借1100/贷2500)。
+                -- doc_value = Σ 明细行 amount_ccy(生成列,与 order_invoice_open_all
+                -- 同口径);doc_fx = 发票【存下来的】入账汇率(从订单抄来的那一个)
+                -- —— 结算按它解除,已实现汇兑(7100)也从它算起。开屏现查一个
+                -- "今天的"汇率,会让同一张发票每天欠不一样的钱。
+                -- 只认 kind='order' 且在册:sale 头的应收在 sales_records 上,
+                -- 拿它的发票来核销就是同一笔债的第二个入口(ALLOC_INVALID)。
+                -- ════════════════════════════════════════════════════════════
+                SELECT i.id, i.code AS doc_code, i.customer_id AS party_id,
+                       (SELECT COALESCE(sum(il.amount_ccy), 0) FROM invoice_lines il
+                         WHERE il.invoice_id = i.id) AS doc_value,
+                       i.currency AS doc_ccy, i.fx_rate AS doc_fx
+                INTO v_doc
+                FROM invoices i
+                WHERE i.id = v_invoice_id AND i.kind = 'order' AND i.status = 'issued';
+                IF NOT FOUND THEN
+                    RAISE EXCEPTION 'ALLOC_INVALID|%', v_invoice_id;
+                END IF;
+                IF v_doc.party_id IS DISTINCT FROM p_counterparty_id THEN
+                    RAISE EXCEPTION 'ALLOC_WRONG_PARTY|%', v_doc.doc_code;
+                END IF;
+                v_doc_value := v_doc.doc_value;
+                v_doc_ccy := v_doc.doc_ccy; v_doc_fx := v_doc.doc_fx;
+                v_key := v_invoice_id::text;
 
-            SELECT COALESCE(SUM(pa.allocated_ccy), 0) INTO v_settled
-            FROM payment_allocations pa
-            JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'
-            WHERE pa.sales_record_id = v_sale_id;
+                SELECT COALESCE(SUM(pa.allocated_ccy), 0) INTO v_settled
+                FROM payment_allocations pa
+                JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'
+                WHERE pa.invoice_id = v_invoice_id;
+            ELSE
+                SELECT sr.id, ob.code AS doc_code, sr.customer_id AS party_id,
+                       round(sr.quantity * sr.unit_price, 2) AS doc_value,
+                       sr.currency AS doc_ccy, sr.fx_rate AS doc_fx
+                INTO v_doc
+                FROM sales_records sr
+                JOIN output_batches ob ON ob.id = sr.output_batch_id
+                WHERE sr.id = v_sale_id;
+                IF NOT FOUND THEN
+                    RAISE EXCEPTION 'ALLOC_INVALID|%', v_sale_id;
+                END IF;
+                IF v_doc.party_id IS DISTINCT FROM p_counterparty_id THEN
+                    RAISE EXCEPTION 'ALLOC_WRONG_PARTY|%', v_doc.doc_code;
+                END IF;
+                v_doc_value := v_doc.doc_value;
+                v_doc_ccy := v_doc.doc_ccy; v_doc_fx := v_doc.doc_fx;
+                v_key := v_sale_id::text;
+
+                SELECT COALESCE(SUM(pa.allocated_ccy), 0) INTO v_settled
+                FROM payment_allocations pa
+                JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'
+                WHERE pa.sales_record_id = v_sale_id;
+            END IF;
 
         ELSIF v_po_id IS NOT NULL THEN
             -- 预付款:PO 上【没有敞口上限】—— 定金不是在还债,那一刻还没有债。
@@ -238,7 +273,7 @@ BEGIN
             v_doc_value := NULL;  -- 无敞口上限,跳过下面的 ALLOC_EXCEEDS
 
         ELSIF v_batch_id IS NOT NULL THEN
-            IF v_sale_id IS NOT NULL THEN
+            IF v_sale_id IS NOT NULL OR v_invoice_id IS NOT NULL THEN
                 RAISE EXCEPTION 'ALLOC_WRONG_SIDE';
             END IF;
             SELECT ib.id, ib.code AS doc_code, ib.supplier_id AS party_id,
@@ -270,7 +305,7 @@ BEGIN
                   WHERE ppa.inbound_batch_id = v_batch_id), 0);
 
         ELSE
-            IF v_sale_id IS NOT NULL THEN
+            IF v_sale_id IS NOT NULL OR v_invoice_id IS NOT NULL THEN
                 RAISE EXCEPTION 'ALLOC_WRONG_SIDE';
             END IF;
             -- 挂账开支:必须是 unpaid + posted(不存在/已付/已冲销 → ALLOC_INVALID)
@@ -346,6 +381,7 @@ BEGIN
         v_valid := v_valid || jsonb_build_array(jsonb_build_object(
             'sales_record_id', v_sale_id, 'inbound_batch_id', v_batch_id,
             'expense_id', v_expense_id, 'purchase_order_id', v_po_id,
+            'invoice_id', v_invoice_id,
             'amount_ccy', v_alloc_usd, 'amount_base', v_alloc_base,
             -- FIN-18:【消耗掉多少付款额】要落库。它是本函数唯一算得出、别处
             -- 再也算不回来的数 —— 见文件头。
@@ -482,13 +518,14 @@ BEGIN
     FOR v_alloc IN SELECT * FROM jsonb_array_elements(v_valid)
     LOOP
         INSERT INTO payment_allocations (payment_id, sales_record_id, inbound_batch_id,
-                                         expense_id, purchase_order_id, allocated_ccy, allocated_base,
-                                         allocated_pay)
+                                         expense_id, purchase_order_id, invoice_id,
+                                         allocated_ccy, allocated_base, allocated_pay)
         VALUES (v_payment_id,
                 (v_alloc->>'sales_record_id')::uuid,
                 (v_alloc->>'inbound_batch_id')::uuid,
                 (v_alloc->>'expense_id')::uuid,
                 (v_alloc->>'purchase_order_id')::uuid,
+                (v_alloc->>'invoice_id')::uuid,
                 (v_alloc->>'amount_ccy')::numeric,
                 (v_alloc->>'amount_base')::numeric,
                 (v_alloc->>'amount_pay')::numeric);
@@ -518,4 +555,6 @@ BEGIN
                              FROM jsonb_each(v_pre))
     );
 END;
-$function$;
+$function$
+
+;

@@ -45,7 +45,7 @@ module's own page.
 | 9 | `claim_pending` | medical claim submitted, not decided | `module.hr.view` | `medical_claims` | submitted only |
 | 10 | `review_submitted` | performance review submitted, awaiting approval | `module.hr.view` | `performance_reviews` | submitted only |
 | 11 | `invoice_overdue` | issued invoice past `due_date` with `open_base > 0` | `module.finance.view` | `invoice_status` | non-void invoices |
-| 12 | `ar_over_90` | receivable in the **oldest ageing bucket** (`b90_plus`) | `module.finance.view` | `ar_open_items` | open items only; oldest bucket |
+| 12 | `ar_over_90` | receivable in the **oldest ageing bucket** (`b90_plus`) | `module.finance.view` | `ar_open_items` | open items only; oldest bucket. **SO-3a: AR now has two document kinds** — `doc_kind` is `'sale'` (item_id = sales record → `/finance/receivables/[id]`) or `'invoice'` (item_id = posted order-flow invoice → `/finance/invoices/[id]`); unrecognised kinds get no link, same rule as `ap_over_90` |
 | 13 | `ap_over_90` | payable in the oldest ageing bucket (`b90_plus`) | `module.finance.view` | `ap_open_items` | open items only; oldest bucket |
 | 14 | `fx_rate_gap` | a day with foreign-currency postings and a missing rate | `module.finance.view` | `fx_rate_gaps` | **`rate_date >= CURRENT_DATE - 45`** |
 | 15 | `bank_unmatched` | imported statement line still unmatched | `module.finance.view` | `bank_statement_lines` | statement side only — see below |

@@ -14,6 +14,10 @@
 -- db/migrations/2026-08-06-fin22-fixed-assets-and-depreciation.sql;
 -- source_type 'prepayment' added by
 -- db/migrations/2026-07-31-phase4-cut4a-purchase-orders.sql, which also corrected
+-- source_type 'invoice' added by db/migrations/2026-08-14-so3a-order-flow-billing.sql
+-- (订单流发票的过账:借 1100 / 贷 2500。现金流量表侧【想过】:这类分录不碰
+--  is_cash 科目,进不了那张表;对着它收的款走 ELSE 'operating' —— 正确,
+--  见 accounts 镜像 2500 那一行的注释)。
 -- this mirror's source_type list —— 'expense' 是 s2a 那一切加进库里的,但当时【漏了
 -- 同步这份镜像】。照旧版镜像重建会把既有的 expense 分录判违约(实测 23514),故此处
 -- 以库里的实际取值为准。
@@ -24,7 +28,7 @@ CREATE TABLE public.journal_entries (
     code        text NOT NULL UNIQUE,
     entry_date  date NOT NULL,
     memo        text,
-    source_type text CHECK (source_type IN ('manual','purchase','sale','processing_cost','allocation','stocktake','writeoff','payment','fx','expense','prepayment','payroll','transfer','revaluation','depreciation','asset_disposal','year_close','freight')),
+    source_type text CHECK (source_type IN ('manual','purchase','sale','processing_cost','allocation','stocktake','writeoff','payment','fx','expense','prepayment','payroll','transfer','revaluation','depreciation','asset_disposal','year_close','freight','invoice')),
     source_id   uuid,
     status      text NOT NULL DEFAULT 'posted' CHECK (status IN ('posted','reversed')),
     reversed_by uuid REFERENCES public.journal_entries (id),

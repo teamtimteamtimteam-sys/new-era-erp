@@ -543,6 +543,7 @@ const zh = {
     customers: {
         status: {
             creditTitle: '信用仓位',
+            exposureIncludesInvoiced: '敞口 = 未结清销售 +【已开票未发货】的订单发票 —— 这里显示的数与拒绝时用的数按构造是同一个。',
             editLink: '编辑客户',
             limit: '信用限额',
             noLimit: '未设限额',
@@ -952,6 +953,7 @@ const zh = {
                 hold: '客户 {customer} 处于信用冻结状态。在客户记录上解除冻结之前,不能记录销售。',
                 over: '客户 {customer} 已达信用限额:限额 {limit},当前未结 {exposure}。在提高限额或收款之前,任何销售都会被拒绝。',
                 room: '信用限额 {limit} · 当前未结 {exposure} · 可用余额 {headroom}。超过可用余额的销售会被拒绝。',
+                includesInvoiced: '敞口包含【已开票未发货】的订单发票 —— 与拒绝时用的是同一个数。',
             },
             noCustomerNotice: '未选择客户。这笔销售照常记录,但【不会做信用检查,也不会计入任何客户的敞口】—— 在有人把它补挂到某个客户名下之前,它不属于任何人,也不能开票给客户。',
             errors: {
@@ -1445,6 +1447,23 @@ const zh = {
             errLine: '每一行都要有物料、大于 0 的数量与大于 0 的单价',
             errNoLines: '一张订单至少要有一行',
             saveError: '保存失败:{message}',
+        },
+        // ── SO-3a:订单流开票 ────────────────────────────────────────────────
+        invoice: {
+            title: '开票',
+            note: '订单流【先开票后发货】。开票即过账:借 应收账款 / 贷 预收合同负债,按订单存下来的汇率;发货再把负债释放进收入。',
+            needsFinanceView: '看发票需要财务模块的权限(module.finance.view)。',
+            needsFinanceEdit: '开票需要 module.finance.edit —— 它是一张过账单据。',
+            onlyConfirmed: '只有【已确认】的订单才能开票 —— 草稿还不是承诺。',
+            fullyBilled: '每一行都已挂在在册发票上。',
+            lineBilled: '已开票',
+            lineUnbilled: '未开票',
+            posted: '已过账',
+            voided: '已作废',
+            issueDate: '开票日',
+            dateRequired: '开票日决定过账期间 —— 必填,永不默认。',
+            consequence: '按订单的汇率过账(借 应收 / 贷 合同负债)。发货以这张发票为前提。信用限额在这里检查 —— 敞口是开票产生的。',
+            create: '开票({n} 行未开)',
         },
         // ── SO-2:预留 ───────────────────────────────────────────────────────
         reserve: {
@@ -2648,6 +2667,8 @@ const zh = {
             pageOf: '第 {current} / {total} 页',
         },
         source: {
+            // SO-3a:订单流开票分录(借 1100 / 贷 2500)
+            invoice: '订单开票',
             year_close: '年结',
             manual: '手工',
             purchase: '采购',
@@ -2824,6 +2845,9 @@ const zh = {
             inbound: '进料',
             expense: '开支',
             freight: '运费',
+            // SO-3a:应收侧也有两种单据了
+            sale: '销售记录',
+            invoice: '订单发票',
         },
         aging: {
             b0_30: '0–30 天',
@@ -3193,7 +3217,32 @@ const zh = {
             REASON_REQUIRED: '请填写原因',
             INVOICE_IMMUTABLE: '已开具的发票不可修改 —— 请作废后重开',
             TERMS_INVALID: '付款期限无效:{0}',
+            // SO-3a:订单流开票(选项 C)
+            SO_NOT_FOUND: '这张销售订单已经不存在了。请刷新重试。',
+            SO_INVOICE_ORDER_NOT_CONFIRMED: '订单 {0} 目前是【{1}】,不能开票。草稿还不是承诺 —— 先确认这张单。',
+            SO_INVOICE_NOTHING_TO_BILL: '订单 {0} 的每一行都已挂在在册发票上 —— 没有可开的东西。若那张发票开错了,先作废它。',
+            SO_INVOICE_LINE_INVALID: '所选行里有 {1} 条不属于订单 {0}。什么都没保存 —— 请刷新重选。',
+            SO_LINE_ALREADY_INVOICED: '订单行 {0} 已挂在发票 {1} 上。一行只能在一张在册发票上 —— 开错了先作废那张。',
+            INVOICE_DATE_REQUIRED: '开票日必填 —— 它决定分录落进哪个会计期间,而且永远不会替你填。什么都没保存。',
+            INVOICE_ORDER_GST_UNSUPPORTED: '订单 {0} 会产生 GST,而预收发票的销项税该在哪个时点、进哪个科目,是一个还没有人回答过的问题。什么都没保存 —— 这是一次具名拒绝,不是 bug。',
+            INVOICE_LINE_KIND_MISMATCH: '发票行必须与票头一致:{0} 头的发票要用另一种行来源。什么都没保存。',
+            CREDIT_HOLD: '客户 {0} 处于信用冻结,不能开票。先到客户页解除冻结。',
+            CREDIT_LIMIT_EXCEEDED: '这张发票会让客户 {0} 超过信用限额:限额 {1}、当前敞口 {2}、本票 {3}。敞口已包含【已开票未发货】的债。什么都没过账。',
+            REVERSAL_DATE_REQUIRED: '作废一张已过账的发票要冲销它的分录,而冲销日决定分录落进哪个期间 —— 永远不会替你填。什么都没改。',
+            REVERSAL_DATE_NOT_ACCEPTED: '发票 {0} 没有过任何分录,没有东西可冲 —— 冲销日在这里没有意义,收下再忽略等于对这个动作说谎。',
+            INVOICE_HAS_SETTLEMENTS: '发票 {0} 上还有 {1} 条在册核销。先冲销那笔收款(财务 → 收付款 → 冲销),再作废 —— 反过来会留下一堆指着已作废单据的活核销。',
+            INVOICE_SHIPPED_NOT_VOIDABLE: '发票 {0} 已经有货按它发出 —— 它过的负债已被部分释放,干净的冲销不再存在。发货之后的更正走贷项凭证。',
+            PERIOD_LOCKED: '这个日期落在已锁期间({0})。选开放月份里的日期,或先重开那个期间。',
+            YEAR_CLOSED: '这个日期落在已结账的财年里。月级重开穿不透年结。',
         },
+        // SO-3a
+        kind: {
+            sale: '归拢销售',
+            order: '过账发票',
+        },
+        orderKindNote: '这张发票在开票当刻【过账】:借 应收账款 / 贷 预收合同负债,按订单存下来的汇率。发货再把负债释放进收入。订单:',
+        orderKindRate: '汇率 {rate}(从订单抄来)',
+        voidReversalDateWhy: '冲销日 —— 决定冲销分录落进哪个期间;永不默认。',
     },
     pricing: {
         errQuoteNeedsCurrencyDate: '先选好单据币种与下单日期 —— 报价要按那天的汇率从 USD 折过来。',

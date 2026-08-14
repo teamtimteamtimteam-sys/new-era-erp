@@ -540,6 +540,7 @@ const en = {
     customers: {
         status: {
             creditTitle: 'Credit position',
+            exposureIncludesInvoiced: 'Exposure counts unsettled sales AND posted order invoices not yet shipped — the figure shown here and the one the refusals use are the same number by construction.',
             editLink: 'Edit customer',
             limit: 'Credit limit',
             noLimit: 'No limit set',
@@ -949,6 +950,7 @@ const en = {
                 hold: 'Customer {customer} is on credit hold. No sale can be recorded until the hold is lifted on the customer record.',
                 over: 'Customer {customer} has reached their credit limit: limit {limit}, already outstanding {exposure}. Any sale will be refused until the limit is raised or the balance is paid down.',
                 room: 'Credit limit {limit} · outstanding {exposure} · headroom {headroom}. A sale larger than the headroom will be refused.',
+                includesInvoiced: 'Outstanding includes posted order invoices not yet shipped — the same figure the refusal uses.',
             },
             noCustomerNotice: 'No customer selected. This sale will be recorded, but it will not be credit-checked and it will not count towards anyone\u2019s exposure — it belongs to nobody until a customer is attached to it later, and it cannot be invoiced to a customer before that.',
             errors: {
@@ -1447,6 +1449,23 @@ const en = {
             errLine: 'Each line needs a material, a quantity above 0 and a unit price above 0',
             errNoLines: 'An order needs at least one line',
             saveError: 'Save failed: {message}',
+        },
+        // ── SO-3a:order-flow billing ────────────────────────────────────────
+        invoice: {
+            title: 'Invoicing',
+            note: 'Order flow requires INVOICE BEFORE SHIPMENT. Creating the invoice posts Dr Accounts Receivable / Cr Contract Liability at the order\u2019s stored rate; shipping later releases the liability into revenue.',
+            needsFinanceView: 'seeing invoices needs the finance module (module.finance.view).',
+            needsFinanceEdit: 'raising an invoice needs module.finance.edit — it is a posting document.',
+            onlyConfirmed: 'Only a confirmed order can be invoiced — a draft is not yet a commitment.',
+            fullyBilled: 'Every line is on a live invoice.',
+            lineBilled: 'invoiced',
+            lineUnbilled: 'not yet invoiced',
+            posted: 'posted',
+            voided: 'voided',
+            issueDate: 'Issue date',
+            dateRequired: 'The issue date decides the posting period — it is required and never defaulted.',
+            consequence: 'Posts AR against contract liability at the order\u2019s rate. Shipping requires this invoice. The credit limit is checked here — invoicing is where the exposure is created.',
+            create: 'Create invoice ({n} line(s))',
         },
         // ── SO-2:reservation ────────────────────────────────────────────────
         reserve: {
@@ -2665,6 +2684,8 @@ const en = {
             pageOf: 'Page {current} of {total}',
         },
         source: {
+            // SO-3a:订单流开票分录(借 1100 / 贷 2500)
+            invoice: 'Order invoice posting',
             year_close: 'Year-end close',
             freight: 'Freight',
             manual: 'Manual',
@@ -2841,6 +2862,9 @@ const en = {
             inbound: 'Inbound',
             expense: 'Expense',
             freight: 'Freight',
+            // SO-3a:the AR side now has two document kinds too
+            sale: 'Sale',
+            invoice: 'Order invoice',
         },
         aging: {
             b0_30: '0–30 days',
@@ -3211,7 +3235,32 @@ const en = {
             REASON_REQUIRED: 'A reason is required',
             INVOICE_IMMUTABLE: 'An issued invoice cannot be edited — void it and reissue',
             TERMS_INVALID: 'Invalid payment terms: {0}',
+            // SO-3a — order-flow billing (option C)
+            SO_NOT_FOUND: 'That sales order no longer exists. Reload and try again.',
+            SO_INVOICE_ORDER_NOT_CONFIRMED: 'Order {0} is a {1}, so it cannot be invoiced. A draft is not yet a commitment — confirm the order first.',
+            SO_INVOICE_NOTHING_TO_BILL: 'Every line of order {0} is already on a live invoice — there is nothing left to bill. Void the existing invoice first if it is wrong.',
+            SO_INVOICE_LINE_INVALID: '{1} of the requested lines do not belong to order {0}. Nothing was saved — reload and pick again.',
+            SO_LINE_ALREADY_INVOICED: 'Order line {0} is already on invoice {1}. One line, one live invoice — void that invoice first if it is wrong.',
+            INVOICE_DATE_REQUIRED: 'The issue date is required — it decides which accounting period the posting lands in, and it is never filled in for you. Nothing was saved.',
+            INVOICE_ORDER_GST_UNSUPPORTED: 'Order {0} would carry GST, and GST on a pre-shipment invoice is a decision nobody has made yet (which account, which moment). Nothing was saved — this is a named refusal, not a bug.',
+            INVOICE_LINE_KIND_MISMATCH: 'An invoice line must match its header: a {0}-kind invoice takes the other line source. Nothing was saved.',
+            CREDIT_HOLD: 'Customer {0} is on credit hold, so no invoice can be raised. Lift the hold on the customer record first.',
+            CREDIT_LIMIT_EXCEEDED: 'This invoice would take customer {0} over their credit limit: limit {1}, current exposure {2}, this invoice {3}. Exposure already includes invoiced-not-yet-shipped debt. Nothing was posted.',
+            REVERSAL_DATE_REQUIRED: 'Voiding a posted invoice reverses its journal entry, and the reversal date decides which period that lands in — it is never filled in for you. Nothing was changed.',
+            REVERSAL_DATE_NOT_ACCEPTED: 'Invoice {0} posted nothing, so there is nothing to reverse — a reversal date has no meaning here and accepting one silently would be lying about what this action does.',
+            INVOICE_HAS_SETTLEMENTS: 'Invoice {0} has {1} live settlement(s) against it. Reverse the receipt first (Finance → Payments → Reverse), then void — the other order leaves live allocations pointing at a voided document.',
+            INVOICE_SHIPPED_NOT_VOIDABLE: 'Invoice {0} has already had goods shipped against it — the liability it posted is partly released, so a clean reversal no longer exists. Corrections after shipment go through a credit note.',
+            PERIOD_LOCKED: 'That date falls in a locked period ({0}). Pick a date in the open month, or reopen the period first.',
+            YEAR_CLOSED: 'That date falls in a closed financial year. A month-level reopen cannot pierce a year-end close.',
         },
+        // SO-3a
+        kind: {
+            sale: 'Groups posted sales',
+            order: 'Posting invoice',
+        },
+        orderKindNote: 'This invoice POSTED on issue: Dr Accounts Receivable / Cr Contract Liability, at the order\u2019s stored rate. Shipping later releases the liability into revenue. Order:',
+        orderKindRate: 'rate {rate} (copied from the order)',
+        voidReversalDateWhy: 'Reversal date — decides which period the reversal posts into; never defaulted.',
     },
     pricing: {
         errQuoteNeedsCurrencyDate: 'Pick the order currency and order date first — the quote converts from USD at the rate for that date.',

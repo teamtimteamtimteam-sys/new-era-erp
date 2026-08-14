@@ -24,7 +24,10 @@
 CREATE TABLE public.invoice_lines (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     invoice_id      uuid NOT NULL REFERENCES public.invoices (id) ON DELETE RESTRICT,
-    sales_record_id uuid NOT NULL REFERENCES public.sales_records (id),
+    -- SO-3a 起可空:行的来源二选一(XOR 在文末,ALTER 加的列排在末尾)——
+    -- sale 头的行指销售记录,order 头的行指订单行;头上的 kind 说了算,
+    -- guard_invoice_line_kind 钉住两边一致。
+    sales_record_id uuid REFERENCES public.sales_records (id),
     line_no         integer NOT NULL,
     description     text NOT NULL,
     quantity        numeric NOT NULL,
@@ -40,7 +43,11 @@ CREATE TABLE public.invoice_lines (
     -- 所以与 unit_price 天生同币种,既有行由 Postgres 当场算出、无从回填错。
     -- 客户账单印它;amount_base 是同一行的本位币金额,给账用。
     amount_ccy      numeric GENERATED ALWAYS AS (round(quantity * unit_price, 2)) STORED,
-    UNIQUE (invoice_id, line_no)
+    -- ── SO-3a 追加(ALTER 加的列排在末尾)──────────────────────────────────
+    -- 订单流发票的行指向【订单行】—— 开票时销售记录还不存在(发货才产生它)。
+    sales_order_line_id uuid REFERENCES public.sales_order_lines (id),
+    UNIQUE (invoice_id, line_no),
+    CONSTRAINT invoice_lines_one_source CHECK (num_nonnulls(sales_record_id, sales_order_line_id) = 1)
 );
 
 CREATE INDEX idx_invoice_lines_invoice ON public.invoice_lines (invoice_id);
@@ -49,6 +56,18 @@ CREATE INDEX idx_invoice_lines_sale ON public.invoice_lines (sales_record_id);
 -- 硬保证:一张销售最多出现在一张未作废的发票上
 CREATE UNIQUE INDEX uq_invoice_lines_live_sale
     ON public.invoice_lines (sales_record_id)
+    WHERE NOT invoice_voided;
+
+CREATE INDEX idx_invoice_lines_order_line ON public.invoice_lines (sales_order_line_id);
+
+-- SO-3a:同一条硬保证的订单侧 —— 一条订单行最多挂在一张未作废的【订单流】发票上,
+-- 索引负责正确性、create_order_invoice 的 SO_LINE_ALREADY_INVOICED 负责可读性,
+-- 与销售侧逐字同一个分工。【部分开票(一行分几张发票开)是被这个索引明确挡住的】:
+-- 要做它,先回答"行的已开金额记在哪、发货释放负债时按哪张发票的比例" —— 那是一个
+-- 形状决定;放开这个索引而不回答它,得到的是两张发票对同一行各自记全额。
+-- 要加部分开票的人,从这里开始。
+CREATE UNIQUE INDEX uq_invoice_lines_live_order_line
+    ON public.invoice_lines (sales_order_line_id)
     WHERE NOT invoice_voided;
 
 CREATE OR REPLACE FUNCTION public.guard_invoice_line_mutation()
@@ -66,6 +85,7 @@ BEGIN
        OR NEW.unit            IS DISTINCT FROM OLD.unit
        OR NEW.unit_price      IS DISTINCT FROM OLD.unit_price
        OR NEW.amount_base      IS DISTINCT FROM OLD.amount_base
+       OR NEW.sales_order_line_id IS DISTINCT FROM OLD.sales_order_line_id
        OR NEW.created_at      IS DISTINCT FROM OLD.created_at
     THEN
         RAISE EXCEPTION 'INVOICE_IMMUTABLE';
@@ -77,6 +97,13 @@ $fn$;
 CREATE TRIGGER trg_invoice_lines_immutable
     BEFORE UPDATE OR DELETE ON public.invoice_lines
     FOR EACH ROW EXECUTE FUNCTION public.guard_invoice_line_mutation();
+
+-- SO-3a:行的来源必须与头上的 kind 一致 —— XOR 只保证"恰一个",说不出"是对的
+-- 那一个"。invoice_lines 有面向客户端的 INSERT 策略(cut 2a 的遗留),所以这条
+-- 一致性不能只靠两个建票函数自觉(函数在 db/functions/guard_invoice_line_kind.sql)。
+CREATE TRIGGER trg_invoice_lines_kind
+    BEFORE INSERT ON public.invoice_lines
+    FOR EACH ROW EXECUTE FUNCTION public.guard_invoice_line_kind();
 
 ALTER TABLE public.invoice_lines ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "invoice_lines select by permission"
@@ -99,6 +126,9 @@ CREATE POLICY "invoice_lines update by permission"
 -- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
 REVOKE SELECT ON public.invoice_lines FROM authenticated, anon;
 GRANT SELECT (id, invoice_id, sales_record_id, line_no, description, quantity, unit, invoice_voided, created_at)
+    ON public.invoice_lines TO authenticated;
+-- SO-3a:订单行引用非敏感,进列清单(colgrant)。
+GRANT SELECT (sales_order_line_id)
     ON public.invoice_lines TO authenticated;
 
 -- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)

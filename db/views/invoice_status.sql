@@ -3,6 +3,10 @@
 -- 推导 —— 只计 status='posted' 的收款,与 ar_open_items 同口径。
 -- 发票不参与核销:收付款依旧核销到 sales_records,发票只是把它们归拢成一份文件,
 -- 所以这里是【派生视图】而不是另一套结算账。
+-- 【SO-3a:订单流发票不同 —— 它自己就是核销对象】kind='order' 的发票在开票当刻
+-- 过账,收款直接核销到 payment_allocations.invoice_id 上;所以已结额是【两条腿
+-- 之和】:sale 头走行背后的销售(老路,原样),order 头走指向发票本身的核销行。
+-- 两条腿按构造不相交:sale 行没有 invoice_id 核销,order 行没有 sales_record_id。
 -- 【属主权限】(OPS-14 起)—— 见下方 note。
 -- NOTE: introduced by db/migrations/2026-07-31-phase4-cut2a-invoices.sql.
 
@@ -25,15 +29,16 @@ CREATE VIEW public.invoice_status WITH (security_invoker = off) AS
     i.due_date,
     i.currency,
     i.total_base,
-    round(COALESCE(s.settled, 0::numeric), 2) AS settled_base,
-    round(i.total_base - COALESCE(s.settled, 0::numeric), 2) AS open_base,
+    round(COALESCE(s.settled, 0::numeric) + COALESCE(sd.settled, 0::numeric), 2) AS settled_base,
+    round(i.total_base - COALESCE(s.settled, 0::numeric) - COALESCE(sd.settled, 0::numeric), 2) AS open_base,
     GREATEST(CURRENT_DATE - i.due_date, 0) AS days_overdue,
         CASE
-            WHEN round(i.total_base - COALESCE(s.settled, 0::numeric), 2) <= 0::numeric THEN 'paid'::text
-            WHEN COALESCE(s.settled, 0::numeric) > 0::numeric THEN 'partial'::text
+            WHEN round(i.total_base - COALESCE(s.settled, 0::numeric) - COALESCE(sd.settled, 0::numeric), 2) <= 0::numeric THEN 'paid'::text
+            WHEN COALESCE(s.settled, 0::numeric) + COALESCE(sd.settled, 0::numeric) > 0::numeric THEN 'partial'::text
             ELSE 'unpaid'::text
         END AS payment_state,
-    CURRENT_DATE > i.due_date AND round(i.total_base - COALESCE(s.settled, 0::numeric), 2) > 0::numeric AS overdue
+    CURRENT_DATE > i.due_date AND round(i.total_base - COALESCE(s.settled, 0::numeric) - COALESCE(sd.settled, 0::numeric), 2) > 0::numeric AS overdue,
+    i.kind
    FROM invoices_masked i
      JOIN customers c ON c.id = i.customer_id
      LEFT JOIN LATERAL ( SELECT sum(pa.allocated_base) AS settled
@@ -41,4 +46,8 @@ CREATE VIEW public.invoice_status WITH (security_invoker = off) AS
              JOIN payment_allocations pa ON pa.sales_record_id = il.sales_record_id
              JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'::text
           WHERE il.invoice_id = i.id) s ON true
+     LEFT JOIN LATERAL ( SELECT sum(pa.allocated_base) AS settled
+           FROM payment_allocations pa
+             JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'::text
+          WHERE pa.invoice_id = i.id) sd ON true
   WHERE i.status <> 'void'::text AND has_permission('module.finance.view'::text);
