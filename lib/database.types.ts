@@ -12191,6 +12191,10 @@ export type Database = {
         }
         Returns: Json
       }
+      line_spoken_for: {
+        Args: { p_sales_order_line_id: string }
+        Returns: number
+      }
       match_bank_line: {
         Args: { p_journal_line_ids: string[]; p_statement_line_id: string }
         Returns: Json

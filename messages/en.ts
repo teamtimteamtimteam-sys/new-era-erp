@@ -1537,7 +1537,7 @@ const en = {
             SO_RESERVE_OUTPUT_ONLY: 'Only an output batch can be reserved, and {0} is not one (or has been written off). Sales draw from output batches; incoming material has to be processed first.',
             SO_RESERVE_MATERIAL_MISMATCH: 'Batch {0} is {1}, but this order line is for {2}. Pick a batch of the line\u2019s own material.',
             SO_RESERVE_EXCEEDS_AVAILABLE: 'Cannot reserve {0} — only {1} is available in that batch and location. Reserving does not create stock; it only sets aside what is already there.',
-            SO_RESERVE_EXCEEDS_LINE: 'Cannot reserve {0} — this line is for {1} and {2} is already reserved against it. Reserving more would promise the same line twice.',
+            SO_RESERVE_EXCEEDS_LINE: 'Cannot reserve {0} — this line is for {1} and {2} is already spoken for (shipped plus reserved). Reserving more would promise the same line twice.',
             SO_RESERVATION_NOT_FOUND: 'That reservation no longer exists. Reload the order and try again.',
             SO_RESERVATION_ALREADY_RELEASED: 'That reservation has already been released — nothing more to give back.',
             SO_RELEASE_REASON_REQUIRED: 'Releasing a reservation needs a reason. Taking back a promise that was already made is exactly the kind of thing nobody can reconstruct later.',

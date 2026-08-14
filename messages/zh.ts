@@ -1535,7 +1535,7 @@ const zh = {
             SO_RESERVE_OUTPUT_ONLY: '只有【产出批次】才能被预留,而 {0} 不是(或者已经注销了)。销售出的是产出批次,进料要先加工。',
             SO_RESERVE_MATERIAL_MISMATCH: '批次 {0} 是【{1}】,而这一行订单要的是【{2}】。请选一批本行物料的货。',
             SO_RESERVE_EXCEEDS_AVAILABLE: '预留不了 {0} —— 那个批次与库位上只有 {1} 可用。预留不会凭空造出货,它只是把已经在那里的货留出来。',
-            SO_RESERVE_EXCEEDS_LINE: '预留不了 {0} —— 这一行一共 {1},已经许出去 {2}。再许就是把同一行答应了两遍。',
+            SO_RESERVE_EXCEEDS_LINE: '预留不了 {0} —— 这一行一共 {1},已经许出去 {2}(已发 + 已预留)。再许就是把同一行答应了两遍。',
             SO_RESERVATION_NOT_FOUND: '这条预留已经不存在了。请刷新订单页重试。',
             SO_RESERVATION_ALREADY_RELEASED: '这条预留已经释放过了 —— 没有东西可以再放回去。',
             SO_RELEASE_REASON_REQUIRED: '释放预留必须填理由。撤回一个已经做出的承诺,正是过些天没有人能还原的那种事。',

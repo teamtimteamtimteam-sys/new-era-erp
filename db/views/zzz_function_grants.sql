@@ -89,3 +89,8 @@ REVOKE EXECUTE ON FUNCTION public.notify_class_violations(text, uuid[], uuid[]) 
 -- ship_order(DEFINER,module.sales.edit,以属主身份执行)。给了 authenticated
 -- 就等于任何登录用户都能凭空烧掉一个无缝单号,而无缝的意思正是"号码之间没有洞"。
 REVOKE EXECUTE ON FUNCTION public.next_shipment_code(date) FROM authenticated;
+-- SO-3b fu5:"这一行已经许出去多少"(已发 + 活预留)。无调用者检查,靠的就是
+-- 调不到 —— 消费方是 reserve_stock(DEFINER,module.sales.edit),以及下一刀
+-- SO-1b 的改单下限。它读的是订单行的履约情况,而那是 module.sales.view 的东西;
+-- 给了 authenticated 就等于任何登录用户都能一行一行问出别人订单的发货进度。
+REVOKE EXECUTE ON FUNCTION public.line_spoken_for(uuid) FROM authenticated;

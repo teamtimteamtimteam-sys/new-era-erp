@@ -97,10 +97,18 @@ BEGIN
     IF to_regclass('public.shipments') IS NULL OR to_regclass('public.shipment_lines') IS NULL THEN
         RAISE EXCEPTION 'FIXTURE 68A 失败:发货两表不在';
     END IF;
-    -- 活预留的判据【必须是两个条件】—— 少一个,已发的预留会被当成还活着,
-    -- 于是发过的货还能再发一次(而桶只会在提交时才炸)。
-    IF (SELECT prosrc FROM pg_proc WHERE proname = 'reserve_stock') NOT LIKE '%consumed_at IS NULL%' THEN
-        RAISE EXCEPTION 'FIXTURE 68A 失败:reserve_stock 的行天花板没有把【已消耗】排除在外';
+    -- 活预留的判据【必须是两个条件】—— 少一个,已发的预留会被当成还活着。
+    -- 【SO-3b fu5 起,这一句问的位置变了,而且它此前问错了地方】原文查的是
+    -- reserve_stock 的函数体里有没有 'consumed_at IS NULL',并写着"否则发过的
+    -- 货还能再发一次"。那个字符串当时【确实在】那里 —— 而双重发货照样成立,
+    -- 因为缺陷正好相反:天花板把已消耗的预留排除得太干净,连它们代表的【已发】
+    -- 也一起丢了(实测:12 的行发出 24)。判据现在住在 line_spoken_for 里,
+    -- 这一句跟着搬过去;fixture 69 才是这条行为的正主(本臂只做目录)。
+    IF (SELECT prosrc FROM pg_proc WHERE proname = 'line_spoken_for') NOT LIKE '%consumed_at IS NULL%' THEN
+        RAISE EXCEPTION 'FIXTURE 68A 失败:line_spoken_for 没有把【已消耗】排除在活预留那一半之外';
+    END IF;
+    IF (SELECT prosrc FROM pg_proc WHERE proname = 'reserve_stock') NOT LIKE '%line_spoken_for(%' THEN
+        RAISE EXCEPTION 'FIXTURE 68A 失败:reserve_stock 的行天花板没有读 line_spoken_for';
     END IF;
     -- AR 静默那条谓词在不在(G 臂靠拿掉它证明;这里先证明它现在【在】)
     IF pg_get_viewdef('public.ar_open_items'::regclass) NOT LIKE '%sales_order_line_id IS NULL%' THEN

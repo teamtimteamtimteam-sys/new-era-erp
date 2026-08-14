@@ -1,3 +1,78 @@
+-- SO-3b fu5(2026-08-15):行的天花板漏掉了【已发】—— 同一行发得了两次
+--
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【缺陷,实测出来的,不是读出来的】reserve_stock 的行天花板就地对【活预留】
+-- 求和(released_at 与 consumed_at 都为空)。而发货【正是】把 consumed_at 填上 ——
+-- 于是一条发满的行,它已经许出去的那部分从判据里整个消失,天花板重新变回满额。
+--
+-- 探针(线上,全程回滚,用的是真的 create_order_invoice / reserve_stock / ship_order):
+--     发票 INV-…  12 kg × 10 = 120         ← 第 1 行只开这一张
+--     第一次发货 SHP-…  收入 120.00  订单状态 partially_shipped
+--     二次预留   ✗ 通过了                   ← 同一行,又许出去 12
+--     第二次发货 ✗ 通过了  收入 120.00
+--     结果:第 1 行已订 12,【已发 24】;2500 净借方 120.00;4000 收入 240.00
+-- 也就是:24 kg 出库、合同负债落成【负数】、收入是发票的两倍,而应收仍是 120。
+-- 对照臂证明探针不空转:第一条预留还活着时,同一次调用被按名拒
+--     SO_RESERVE_EXCEEDS_LINE|12|12|12
+--
+-- 【可达条件】订单停在 partially_shipped(多行单,一行发完、另一行没发)。
+-- reserve_stock 与 create_order_invoice 都收 partially_shipped —— 那是 SO-3b fu1
+-- 有意放开的(只认 confirmed 会让任何多行订单在第一次发货之后走不下去)。
+-- 单行单发完即 shipped,预留会被状态那一关挡住,所以单行单不可达。
+--
+-- 【修法:一处推导,两个消费方】
+-- line_spoken_for(行) = Σ 已发 + Σ 活预留 —— "这一行已经许出去多少"。
+-- 今天由 reserve_stock 的天花板读;SO-1b 的改单【下限】读【同一个函数】,
+-- 而不是另写一遍(两份推导会在写下的那天一致,此后各自漂移 —— 这个仓库
+-- 已经为这条付过四次账:验资影响预览、GrantRunner、重估预览、/finance/payments)。
+--
+-- 【为什么已发那一半读 shipment_lines,而不是"已消耗的预留"】两者今天恒等:
+-- shipment_lines.reservation_id 是 NOT NULL UNIQUE,ship_order 在同一个事务里
+-- 写发货行、并把那条预留标成 consumed。选 shipment_lines 是因为它是【货真的
+-- 离开了】的记录,而 consumed_at 只是预留的终局标记 —— 判据该长在事实上。
+--
+-- 【第三个数的含义变了】SO_RESERVE_EXCEEDS_LINE|要预留|行数量|已许出去
+-- 第三段此前是"已预留",现在是"已发 + 活预留"。两个语言的句子同步改掉 ——
+-- 一条把 12 说成"已经预留 12"、而屏幕上一条活预留都没有的消息,比不说更糟。
+--
+-- 【没有 schema 改动】—— 两个函数,一条 REVOKE(由 apply_migration.sh 重放
+-- zzz_function_grants.sql 在同一个事务里落实,OPS-7)。
+-- ════════════════════════════════════════════════════════════════════════════
+
+BEGIN;
+
+-- ── 一处推导 ────────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.line_spoken_for(p_sales_order_line_id uuid)
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+    -- SO-3b fu5:【这一行已经许出去多少】= 已发 + 活预留。
+    --
+    -- 【这是唯一一处推导】两个消费方:
+    --   ① reserve_stock 的行天花板(许出去的 + 本次 ≤ 行数量);
+    --   ② SO-1b 改单的【下限】—— 一条已经许出去 N 的行改不到 N 以下,
+    --      读的是【同一个函数】,不另写一遍。
+    -- 两份推导会在写下的那天一致,此后各自漂移;这条缺陷本身就是"活预留"这
+    -- 一个口径被当成两个意思用出来的。
+    --
+    -- 【已发读 shipment_lines,不读"已消耗的预留"】两者恒等
+    -- (shipment_lines.reservation_id 是 NOT NULL UNIQUE,ship_order 同一个事务里
+    -- 写发货行并把预留标成 consumed),取前者是因为它是【货真的离开了】的记录。
+    -- 也因此不会重复计数:一条预留要么还活着,要么已经变成一条发货行。
+    --
+    -- 【释放了的不算】释放把货放回 available,那一份没有再许给任何人。
+    SELECT COALESCE((SELECT sum(sl.qty) FROM shipment_lines sl
+                      WHERE sl.sales_order_line_id = p_sales_order_line_id), 0)
+         + COALESCE((SELECT sum(r.qty) FROM sales_order_reservations r
+                      WHERE r.sales_order_line_id = p_sales_order_line_id
+                        AND r.released_at IS NULL
+                        AND r.consumed_at IS NULL), 0);
+$function$;
+
+-- ── 天花板读它 ──────────────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.reserve_stock(p_sales_order_line_id uuid, p_output_batch_id uuid, p_qty numeric, p_location_id uuid DEFAULT NULL::uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -127,6 +202,6 @@ BEGIN
         'line_spoken_for_after', v_already + p_qty,
         'line_quantity', v_line.quantity);
 END;
-$function$
+$function$;
 
-;
+COMMIT;
