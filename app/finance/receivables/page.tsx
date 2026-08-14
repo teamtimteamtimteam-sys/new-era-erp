@@ -26,6 +26,9 @@ type ArRow = {
     customer_name: string | null
     sale_date: string
     amount_base: number
+    // SO-3a-fu1:本视图【现在】才有 settled_base —— 此前这里读的是一个不存在的
+    // 列,于是"已结"整列空白、客户小计 NaN。补列而不是改读 settled_ccy:
+    // 那会把单据币种印进本位币那一列(INV-1 的老错)。
     settled_base: number
     open_base: number
     days_outstanding: number

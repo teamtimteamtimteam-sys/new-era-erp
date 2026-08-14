@@ -7952,6 +7952,7 @@ export type Database = {
           open_ccy: number | null
           sale_date: string | null
           sales_record_id: string | null
+          settled_base: number | null
           settled_ccy: number | null
         }
         Relationships: []

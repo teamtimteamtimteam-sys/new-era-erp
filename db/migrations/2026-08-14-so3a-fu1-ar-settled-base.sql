@@ -1,32 +1,34 @@
--- db/views/ar_open_items.sql
--- AR 开放余额(应收账龄):每张未结清 sales_record 一行。
--- 结清额只计 status='posted' 收款单的核销行 —— 冲销(reversed)收款的核销自动失效。
--- cut 2a 起增加 invoice_id / invoice_code:经 invoice_lines 反查该销售所挂的【在册】
--- 发票(作废的不算),未开票的销售这两列为 NULL。其余列全部保名保义。
+-- db/migrations/2026-08-14-so3a-fu1-ar-settled-base.sql
+-- SO-3a 收尾:应收账龄的【已结】那一列补上 —— 它从上线起就是空白
 --
--- 【SO-3a-fu1:settled_base —— 补上一列,而不是让页面自己减】本视图一直给出
--- amount_base / open_base 两个【本位币】数,却只有 settled_ccy 一个【单据币种】的
--- 已结额。应收账龄页的三列写着"同为本位币",于是它读了一个【根本不存在】的
--- settled_base:整列渲染成空白、客户小计渲染成 NaN,从上线起如此。
--- 修法【不是】把页面改成读 settled_ccy —— 那会把单据币种的数印进本位币那一列,
--- 正是 INV-1 修掉的那种错(线上两张发票各多报 1,440 / 336)。也不是让页面去减
--- amount_base − open_base:那是把一处推导搬进渲染层。补一列,口径与同排两列一致
--- (都按单据自己的入账汇率折算),三列从此真的是同一种钱。
--- 【属主权限】(OPS-14 起;原为 security_invoker = on)—— 见下方 note。
--- NOTE: introduced by db/migrations/2026-07-06-phase3-cut3a-payments.sql;
--- invoice 两列由 db/migrations/2026-07-31-phase4-cut2a-invoices.sql 追加(DROP+CREATE)。
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 【现象】/finance/receivables 的三列写着"金额 / 已结 / 未结,同为本位币",而
+-- 页面读的是 r.settled_base —— ar_open_items 【没有这一列】。于是:
+--     · 每一行的"已结"渲染成【空白】(formatMoneyBare(undefined) 返回空串);
+--     · 每个客户的小计是 NaN(数字 + undefined)。
+-- 线上唯一一张部分收款的单据 OUT-2026-0119(已结 1,129.03 USD @ 1.24 =
+-- 1,400.00 本位币)因此在账龄页上看起来【一分钱都没收过】。
+--
+-- 【为什么不是把页面改成读 settled_ccy】那会把【单据币种】的数印进一列写着
+-- 本位币的表格里 —— 正是 INV-1 修掉的那种错(当时线上两张发票各多报
+-- 1,440 / 336)。列头没说谎,缺的是那个数。
+-- 【也不是让页面去算 amount_base − open_base】两者数值上确实相等,但那是把
+-- 一处推导搬进渲染层;同一张表的另外两列都由视图给出,这一列没有理由例外。
+--
+-- 【口径与同排两列一致】按【单据自己的入账汇率】折算:sale 支用 sr.fx_rate、
+-- order 支用发票存下来的 fx_rate —— 与 open_base 逐字同一个乘数,所以
+-- 金额 = 已结 + 未结 在每一行上都成立。
+--
+-- 【CREATE OR REPLACE,列追加在末尾】—— operations_now 建在本视图上,
+-- 追加列不影响它(DROP 会连它一起带走)。
+--
+-- 镜像:db/views/ar_open_items.sql。行为断言:fixture 67 F 臂已断言两支的
+-- open_base;本支补的是显示列,由手走的那一行渲染证明。
+-- ═══════════════════════════════════════════════════════════════════════════
 
--- cut 2b:本视图改读遮蔽伴生视图(<表>_masked)而非基表 —— 敏感列的遮蔽
--- 因此是继承来的。【OPS-14 起本视图是属主权限,不再是 invoker】,但这一段的结论
--- 未变:遮蔽视图的把关是 has_permission() 谓词,而 has_permission() 按 auth.uid()
--- 解析【调用者】,与谁拥有外层视图无关 —— 所以模块与数据类边界一字未动。
--- 见 db/migrations/2026-08-01-perm2b-field-masking.sql.
+BEGIN;
 
--- OPS-14(2026-08-08):改为【属主权限】+ 整表挂 module.finance.view。
--- 理由同 ap_open_items:存在判据"未结 > 0"本身就是财务计算,所以缺席的单位是整张视图。
--- customer 标签与产出批 code 跟着单据走。
-
-CREATE VIEW public.ar_open_items WITH (security_invoker = off) AS
+CREATE OR REPLACE VIEW public.ar_open_items WITH (security_invoker = off) AS
  SELECT sr.id AS sales_record_id,
     ob.code AS doc_code,
     sr.customer_id,
@@ -90,3 +92,5 @@ UNION ALL
    FROM order_invoice_open_all o
      LEFT JOIN customers c ON c.id = o.customer_id
   WHERE has_permission('module.finance.view'::text) AND has_permission('data.view_prices'::text);
+
+COMMIT;
