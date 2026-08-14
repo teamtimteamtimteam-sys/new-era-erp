@@ -29,6 +29,7 @@ type MovementFetchRow = {
     id: string
     movement_type: string
     qty_delta: number
+    stock_status: string
     business_date: string | null
     notes: string | null
     occurred_at: string
@@ -77,7 +78,7 @@ export default async function EditInboundPage({
             .order('metal'),
         supabase
             .from('inventory_movements')
-            .select('id, movement_type, qty_delta, business_date, notes, occurred_at, run_id, processing_runs ( id, code )')
+            .select('id, movement_type, qty_delta, stock_status, business_date, notes, occurred_at, run_id, processing_runs ( id, code )')
             .eq('inbound_batch_id', id)
             .order('occurred_at', { ascending: false }),
         // 进行中的盘点(最新一张):有则在顶部渲染"扫码即点"横幅
@@ -289,6 +290,7 @@ export default async function EditInboundPage({
         id: m.id,
         movement_type: m.movement_type,
         qty_delta: m.qty_delta,
+        stock_status: m.stock_status,
         business_date: m.business_date,
         notes: m.notes,
         occurred_at_display: formatTimestamp(m.occurred_at, dateLocale),

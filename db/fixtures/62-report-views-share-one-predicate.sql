@@ -19,6 +19,12 @@
 --   G 注入:把判据里"未分类不算"那一句拿掉 → 视图多报一行【且】发射器多发
 --     一条事件 —— 两个消费者同时失守,证明它们真的读同一处
 --
+-- 【SO-2(2026-08-14)】判据放宽成【所有库存状态一起算】(违规讲的是货待在
+-- 哪里,与它扣没扣住、许给了谁无关),G 臂的注入体同步改掉那一行。本文件其余
+-- 各臂一个字没动:B/C/D 造的都是 available 的存量,数字不受影响。
+-- 【"预留不让违规消失"那一条钉在 fixture 64 G 臂】—— 它需要一张确认了的
+-- 销售订单才造得出 committed 的货,而那套装置属于预留那一刀。
+--
 -- 日期无关。自带数据(README 第 2 条)。
 -- ═══════════════════════════════════════════════════════════════════════════
 BEGIN;
@@ -130,7 +136,10 @@ BEGIN
                   FROM inventory_movements mv
                        LEFT JOIN inbound_batches ib ON ib.id = mv.inbound_batch_id
                        LEFT JOIN output_batches  ob ON ob.id = mv.output_batch_id
-                 WHERE mv.stock_status = 'available' AND mv.location_id IS NOT NULL
+                 -- SO-2:判据不再按状态过滤(违规讲的是货待在哪里)。注入体
+                 -- 必须跟着改,否则它注入的就不止"拿掉未分类那一句"这一处 ——
+                 -- 一次注入若同时改了两件事,它证明不了任何一件。
+                 WHERE mv.location_id IS NOT NULL
                  GROUP BY 1,2 HAVING sum(mv.qty_delta) > 0)
             SELECT a.material_id, m.code AS material_code, m.waste_classification_code AS class_code,
                    a.location_id, sl.code AS location_code, a.qty

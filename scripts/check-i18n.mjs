@@ -290,6 +290,10 @@ const MANIFEST = {
     'materials.attachments.cat.': { kind: 'enum', values: () => tsArray('app/materials/[id]/edit/AttachmentsPanel.tsx', 'DOC_CATEGORIES') },
     // ── inventory / pricing / inbound / output / processing ─────────────────
     'movements.type.':      { kind: 'enum', values: () => sqlEnum('db/tables/inventory_movements.sql', 'movement_type') },
+    // SO-2:流水的【桶】。与 movements.type. 同一张表、同一种读法 —— 往
+    // stock_status 的 CHECK 里加一个值,这条检查自动跟着变宽(第四个桶落地
+    // 那天,漏了译文会当场红,而不是在屏幕上印出 movements.bucket.xxx)。
+    'movements.bucket.':    { kind: 'enum', values: () => sqlEnum('db/tables/inventory_movements.sql', 'stock_status') },
     'metals.':              { kind: 'enum', values: () => sqlEnum('db/tables/assay_result_metals.sql', 'metal') },
     'pricing.direction.':   { kind: 'enum', values: () => sqlEnum('db/tables/pricing_formulas.sql', 'direction') },
     'assay.pricingStatus.': { kind: 'enum', values: () => sqlEnum('db/tables/inbound_batches.sql', 'pricing_status') },

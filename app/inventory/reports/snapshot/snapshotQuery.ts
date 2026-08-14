@@ -48,5 +48,7 @@ export function groupByLocation(rows: SnapshotRow[]) {
 export const STATUS_KEY: Record<string, string> = {
     available: 'reports.statusAvailable',
     on_hold: 'reports.statusOnHold',
+    // SO-2:第三个桶(销售订单预留)
+    committed: 'reports.statusCommitted',
 }
 export const statusKey = (s: string) => STATUS_KEY[s] ?? 'reports.statusUnknown'

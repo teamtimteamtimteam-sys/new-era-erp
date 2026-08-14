@@ -8,8 +8,12 @@
 CREATE TABLE public.sales_order_history (
     id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     sales_order_id uuid NOT NULL REFERENCES public.sales_orders (id),
+    -- SO-2:'reserved' / 'released' —— 预留与释放【留在订单的历史里】,而不是
+    -- 只留在库存流水里。看订单的人问的是"这张单许出去了什么、什么时候放回去的",
+    -- 那个问题的答案不该要求他先去翻库存台账。
     change_type    text NOT NULL CHECK (change_type IN
-                   ('created','confirmed','closed','cancelled','line_added','line_changed','line_removed','issued')),
+                   ('created','confirmed','closed','cancelled','line_added','line_changed','line_removed','issued',
+                    'reserved','released')),
     detail         text,
     changed_at     timestamptz NOT NULL DEFAULT now(),
     changed_by     uuid DEFAULT auth.uid()

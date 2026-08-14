@@ -10,6 +10,7 @@ import Subnav from '@/app/sales/Subnav'
 import { soStatusKey, SO_ALLOWED_NEXT } from '../salesOrderTypes'
 import TransitionPanel from './TransitionPanel'
 import IssuePanel from './IssuePanel'
+import ReservationSection from './ReservationSection'
 
 export default async function SalesOrderPage({ params }: { params: Promise<{ id: string }> }) {
     const denied = await requireModule(MOD.sales)
@@ -30,13 +31,16 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
         fx_rate: number; notes: string | null; cancel_reason: string | null
         customers: { code: string; legal_name: string } | null }
 
+    // SO-2:多取 id / material_id / 单位 —— 预留挂在【行】上,而单位长在物料上
+    // (订单行没有 unit 这一列)。
     const lines = mustRows(
         await supabase.from('sales_order_lines')
-            .select('line_no, quantity, unit_price, price_source, materials ( code, name )')
+            .select('id, line_no, quantity, unit_price, price_source, material_id, materials ( code, name, unit )')
             .eq('sales_order_id', id).order('line_no'),
         'sales_order_lines') as unknown as {
-            line_no: number; quantity: number; unit_price: number; price_source: string | null
-            materials: { code: string; name: string } | null }[]
+            id: string; line_no: number; quantity: number; unit_price: number; price_source: string | null
+            material_id: string
+            materials: { code: string; name: string; unit: string } | null }[]
 
     const history = mustRows(
         await supabase.from('sales_order_history')
@@ -105,6 +109,21 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                         ))}
                     </tbody>
                 </table>
+
+                {/* SO-2:预留 —— 逐行,挨着行表放,因为它回答的正是"这一行由哪几批货满足" */}
+                <ReservationSection
+                    orderId={o.id}
+                    status={o.status}
+                    lines={lines.map((l) => ({
+                        id: l.id,
+                        line_no: l.line_no,
+                        quantity: l.quantity,
+                        material_id: l.material_id,
+                        material_code: l.materials?.code ?? '—',
+                        material_name: l.materials?.name ?? '',
+                        unit: l.materials?.unit ?? '',
+                    }))}
+                />
 
                 <h2 className="font-medium mt-8 mb-2">{t('sales.issues')}</h2>
                 {/* 【没有"已发送"标志】系统不知道对方收没收到 —— 见 so_issues 表注释 */}

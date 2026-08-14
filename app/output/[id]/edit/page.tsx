@@ -25,6 +25,7 @@ type MovementFetchRow = {
     id: string
     movement_type: string
     qty_delta: number
+    stock_status: string
     business_date: string | null
     notes: string | null
     occurred_at: string
@@ -78,7 +79,7 @@ export default async function EditOutputPage({
             .order('metal'),
         supabase
             .from('inventory_movements')
-            .select('id, movement_type, qty_delta, business_date, notes, occurred_at, run_id, processing_runs ( id, code )')
+            .select('id, movement_type, qty_delta, stock_status, business_date, notes, occurred_at, run_id, processing_runs ( id, code )')
             .eq('output_batch_id', id)
             .order('occurred_at', { ascending: false }),
         // 进行中的盘点(最新一张):有则在顶部渲染"扫码即点"横幅
@@ -183,6 +184,10 @@ export default async function EditOutputPage({
     const stockSplit = mustRows(stockSplitRes, 'stock_by_status') as unknown as { stock_status: string; qty: number }[]
     const saleAvailable = stockSplit.filter((r) => r.stock_status === 'available').reduce((a, r) => a + Number(r.qty), 0)
     const saleHeld = stockSplit.filter((r) => r.stock_status === 'on_hold').reduce((a, r) => a + Number(r.qty), 0)
+    // SO-2:第三个桶。【必须单列】—— 少说一个数,屏幕上就会出现"可用 0、暂扣 0,
+    // 可是卖不掉",而真正的答案是"它许给了某张订单"。服务端的拒绝
+    // (IOD_SALE_EXCEEDS_AVAILABLE)也带着这个数,两边说的是同一句话。
+    const saleCommitted = stockSplit.filter((r) => r.stock_status === 'committed').reduce((a, r) => a + Number(r.qty), 0)
 
     // 化验单(新到旧)—— 面板摆在金属含量旁边:化验是含量的出处,不是另一件事
     const assaysRes = await supabase
@@ -198,6 +203,7 @@ export default async function EditOutputPage({
         id: m.id,
         movement_type: m.movement_type,
         qty_delta: m.qty_delta,
+        stock_status: m.stock_status,
         business_date: m.business_date,
         notes: m.notes,
         occurred_at_display: formatTimestamp(m.occurred_at, dateLocale),
@@ -342,6 +348,7 @@ export default async function EditOutputPage({
                     remainingQty={batch.remaining_qty}
                     availableQty={saleAvailable}
                     heldQty={saleHeld}
+                    committedQty={saleCommitted}
                     unit={batch.unit}
                     state={batch.state}
                     customers={mustRows(customersRes)}

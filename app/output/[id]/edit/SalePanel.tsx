@@ -40,6 +40,7 @@ export default function SalePanel({
     remainingQty,
     availableQty,
     heldQty,
+    committedQty,
     unit,
     state,
     customers,
@@ -56,6 +57,9 @@ export default function SalePanel({
     // remaining 够却卖不掉,屏幕上没有任何东西解释为什么。
     availableQty: number
     heldQty: number
+    // SO-2:第三个"货在那里但你动不了"的桶。与暂扣并列而不是合并 ——
+    // 两者不能动的【理由】不同,合成一个数就等于让人去猜是哪一个。
+    committedQty: number
     unit: string
     state: string
     customers: CustomerOption[]
@@ -140,6 +144,17 @@ export default function SalePanel({
                     <span className={'font-medium font-mono ' + (heldQty > 0 ? 'text-amber-800' : '')}>
                         {heldQty} {unit}
                     </span>
+                </div>
+                {/* SO-2:已承诺 —— 点名它是"许给了订单",并把人送到订单那一侧去
+                    (释放在那里,不在这个页面上:撤回一个承诺是销售的动作)。 */}
+                <div>
+                    <span className="text-gray-600 mr-1">{t('stock.saleCommitted')}:</span>
+                    <span className={'font-medium font-mono ' + (committedQty > 0 ? 'text-blue-800' : '')}>
+                        {committedQty} {unit}
+                    </span>
+                    {committedQty > 0 && (
+                        <span className="text-xs text-gray-500 ml-2">{t('stock.saleCommittedHint')}</span>
+                    )}
                 </div>
                 <div>
                     <span className="text-gray-600 mr-1">{t('output.sale.stateLabel')}:</span>

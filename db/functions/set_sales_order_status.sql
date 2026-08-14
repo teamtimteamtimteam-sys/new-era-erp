@@ -8,6 +8,9 @@ DECLARE
     v_order sales_orders%ROWTYPE;
     v_cust  record;
     v_ok    boolean;
+    v_res   record;
+    v_freed numeric := 0;
+    v_left  int;
 BEGIN
     PERFORM require_permission('module.sales.edit');
 
@@ -46,6 +49,40 @@ BEGIN
         END IF;
     END IF;
 
+    -- ════════════════════════════════════════════════════════════════════════
+    -- SO-2:【作废即释放,而且在改状态【之前】做】
+    -- 一张作废的订单不该继续扣着货 —— 那批货会以 committed 的身份留在账上,
+    -- 谁也卖不掉、谁也投不了,而屏幕上没有任何东西解释为什么。
+    -- 【为什么在 UPDATE 之前】释放走 release_reservation,它会重新读这一行;
+    -- 放在后面就得让它面对一个已经作废的订单,那是给自己造一个例外。
+    -- 放在前面,任何一条释放失败都会把整个作废一起回滚 —— 要么单据作废了、
+    -- 货也放回来了,要么两件都没发生。
+    -- 【closed 不释放,那是另一件事】走完的订单,它的货是发出去了,不是放回去了。
+    -- ════════════════════════════════════════════════════════════════════════
+    IF p_to = 'cancelled' THEN
+        FOR v_res IN
+            SELECT r.id, r.qty
+              FROM sales_order_reservations r
+              JOIN sales_order_lines l ON l.id = r.sales_order_line_id
+             WHERE l.sales_order_id = p_order_id AND r.released_at IS NULL
+             ORDER BY r.created_at
+        LOOP
+            PERFORM release_reservation(v_res.id, NULL, 'order cancelled: ' || btrim(p_reason));
+            v_freed := v_freed + v_res.qty;
+        END LOOP;
+
+        -- 【断言,不是假设】上面那个循环跑完之后【不该】还剩活预留。
+        -- 一条 release 悄悄没生效(将来有人给它加了一个提前 RETURN),
+        -- 结果是一张作废的单还扣着货 —— 而那件事不会有任何东西报出来。
+        SELECT count(*) INTO v_left
+          FROM sales_order_reservations r
+          JOIN sales_order_lines l ON l.id = r.sales_order_line_id
+         WHERE l.sales_order_id = p_order_id AND r.released_at IS NULL;
+        IF v_left <> 0 THEN
+            RAISE EXCEPTION 'SO_CANCEL_RESERVATIONS_LEFT|%|%', v_order.code, v_left;
+        END IF;
+    END IF;
+
     -- 上下文标记:让冻结守卫知道是【转换函数】在动状态列(同 po_status_ctx)
     PERFORM set_config('evoltrya.so_status_ctx', '1', true);
     UPDATE sales_orders
@@ -62,7 +99,8 @@ BEGIN
     INSERT INTO sales_order_history (sales_order_id, change_type, detail)
     VALUES (p_order_id, p_to, p_reason);
 
-    RETURN jsonb_build_object('id', p_order_id, 'status', p_to);
+    RETURN jsonb_build_object('id', p_order_id, 'status', p_to,
+                              'released_qty', v_freed);
 END;
 $function$
 

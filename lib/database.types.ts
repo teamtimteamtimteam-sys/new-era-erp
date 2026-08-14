@@ -6732,6 +6732,80 @@ export type Database = {
           },
         ]
       }
+      sales_order_reservations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          location_id: string | null
+          output_batch_id: string
+          pair_id: string
+          qty: number
+          release_pair_id: string | null
+          release_reason: string | null
+          released_at: string | null
+          released_by: string | null
+          sales_order_line_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          location_id?: string | null
+          output_batch_id: string
+          pair_id: string
+          qty: number
+          release_pair_id?: string | null
+          release_reason?: string | null
+          released_at?: string | null
+          released_by?: string | null
+          sales_order_line_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          location_id?: string | null
+          output_batch_id?: string
+          pair_id?: string
+          qty?: number
+          release_pair_id?: string | null
+          release_reason?: string | null
+          released_at?: string | null
+          released_by?: string | null
+          sales_order_line_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_order_reservations_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "storage_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_order_reservations_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "sales_order_reservations_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_order_reservations_sales_order_line_id_fkey"
+            columns: ["sales_order_line_id"]
+            isOneToOne: false
+            referencedRelation: "sales_order_lines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_orders: {
         Row: {
           cancel_reason: string | null
@@ -12047,6 +12121,10 @@ export type Database = {
         Args: { p_po_id: string; p_reason: string }
         Returns: Json
       }
+      release_reservation: {
+        Args: { p_qty?: number; p_reason?: string; p_reservation_id: string }
+        Returns: Json
+      }
       release_stock: {
         Args: {
           p_inbound_batch_id?: string
@@ -12119,6 +12197,15 @@ export type Database = {
       require_reviewer_of: {
         Args: { p_allowed_status: string[]; p_review_id: string }
         Returns: undefined
+      }
+      reserve_stock: {
+        Args: {
+          p_location_id?: string
+          p_output_batch_id: string
+          p_qty: number
+          p_sales_order_line_id: string
+        }
+        Returns: Json
       }
       resolve_pricing_commitment: {
         Args: { p_inbound_batch_id: string }

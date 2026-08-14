@@ -36,6 +36,9 @@ export default async function MovementTimeline({
                             <tr>
                                 <th className="border border-gray-300 px-4 py-2 text-left">{t('movements.colTime')}</th>
                                 <th className="border border-gray-300 px-4 py-2 text-left">{t('movements.colType')}</th>
+                                {/* SO-2:桶。成对流水的两条腿在此之前读起来完全一样 ——
+                                    暂扣与预留都是"状态变更(出/进)"。 */}
+                                <th className="border border-gray-300 px-4 py-2 text-left">{t('movements.colBucket')}</th>
                                 <th className="border border-gray-300 px-4 py-2 text-left">{t('movements.colQty')}</th>
                                 <th className="border border-gray-300 px-4 py-2 text-left">{t('movements.colRun')}</th>
                                 <th className="border border-gray-300 px-4 py-2 text-left">{t('movements.colBizDate')}</th>
@@ -50,6 +53,9 @@ export default async function MovementTimeline({
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2">
                                         {t('movements.type.' + r.movement_type)}
+                                    </td>
+                                    <td className="border border-gray-300 px-4 py-2 text-sm">
+                                        {t('movements.bucket.' + r.stock_status)}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                         {qtyCell(r.qty_delta)}

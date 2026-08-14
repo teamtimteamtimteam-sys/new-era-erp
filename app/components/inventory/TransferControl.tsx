@@ -25,7 +25,9 @@ export default function TransferControl({
     inboundBatchId: string | null
     outputBatchId: string | null
     fromLocationId: string | null
-    stockStatus: 'available' | 'on_hold'
+    // SO-2:第三个桶。committed 的转移【只允许整桶】—— 服务端按名拒
+    // IOD_TRANSFER_COMMITTED_PARTIAL(部分搬会让预留行与流水对不上)。
+    stockStatus: 'available' | 'on_hold' | 'committed'
     have: number
     unit: string
     locations: LocationOption[]
@@ -45,12 +47,18 @@ export default function TransferControl({
     // 但没必要让人先撞一次:把它从下拉里去掉。
     const targets = locations.filter((l) => l.id !== fromLocationId)
 
+    // SO-2:committed 只能整桶搬 —— 页面在按下【之前】就说这一条,而不是
+    // 让人撞一次服务端的拒绝("不给人看见一个必然被拒的按钮")。
+    const partialCommitted =
+        stockStatus === 'committed' && qty.trim() !== '' && Number(qty) !== have
+
     const blocked =
         have <= 0 ? 'noStock'
             : targets.length === 0 ? 'noTargets'
                 : qty.trim() === '' ? 'noQty'
                     : to === '' ? 'noTarget'
-                        : null
+                        : partialCommitted ? 'partialCommitted'
+                            : null
 
     function onTransfer() {
         setError('')
@@ -113,12 +121,19 @@ export default function TransferControl({
             {/* 后果 —— 挨着按钮。状态保持这件事必须说出来,否则搬完一批暂扣的货
                 之后,人会以为它顺便被放开了。 */}
             <p className="text-xs text-gray-500 mt-1">
-                {stockStatus === 'on_hold' ? t('stock.transferConsequenceHeld') : t('stock.transferConsequence')}
+                {stockStatus === 'on_hold'
+                    ? t('stock.transferConsequenceHeld')
+                    : stockStatus === 'committed'
+                      ? t('stock.transferConsequenceCommitted')
+                      : t('stock.transferConsequence')}
             </p>
             {blocked === 'noStock' && <p className="text-xs text-gray-500 mt-1">{t('stock.transferBlockedNoStock')}</p>}
             {blocked === 'noTargets' && <p className="text-xs text-amber-800 mt-1">{t('stock.transferBlockedNoTargets')}</p>}
             {blocked === 'noQty' && <p className="text-xs text-gray-500 mt-1">{t('stock.blockedNoQty')}</p>}
             {blocked === 'noTarget' && <p className="text-xs text-gray-500 mt-1">{t('stock.transferBlockedNoTarget')}</p>}
+            {blocked === 'partialCommitted' && (
+                <p className="text-xs text-amber-800 mt-1">{t('stock.transferBlockedCommittedPartial', { have: String(have) })}</p>
+            )}
         </div>
     )
 }

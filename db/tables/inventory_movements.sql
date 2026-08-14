@@ -49,7 +49,21 @@ CREATE TABLE public.inventory_movements (
     -- 货可以待在哪里,不是能不能离开。而【已经躺在某个库位上的货,不会因为那个
     -- 库位的配置后来改了而被重新检查】,今天也没有任何东西会把这种存量冲突说出来
     -- (归告警/通知那一刀)。看见 location_id 的人最容易以为"合规都在管了"。
-    -- ┌─ 【要加第三种状态?先读这两条 —— 它们是想过之后明确不放这里的】────────┐
+    -- ┌─ 【三个桶,以及它们之间允许走哪几条边 —— 逐条写出来】──────────────────┐
+    -- │     available → on_hold      hold_stock                               │
+    -- │     on_hold   → available    release_stock                            │
+    -- │     available → committed    reserve_stock        (SO-2)              │
+    -- │     committed → available    release_reservation  (SO-2)              │
+    -- │     on_hold  ↔  committed    【不存在,而这是一个决定】                │
+    -- │ 暂扣说的是"这批货现在不能动"(品控、争议、等复检),预留说的是"这批货  │
+    -- │ 许给了某张订单"。直接从一个跳到另一个,等于让系统替人回答"那个暂扣的   │
+    -- │ 理由还成不成立"—— 它不知道。要走这条路:先释放,再预留,两步各留各的   │
+    -- │ 理由。                                                                 │
+    -- ├─ 【SO-2 之前这里写的是"committed 没有写入者,等销售单落地那一刀再加"】─┤
+    -- │ 那句话已经【退役】,因为它的前提消失了(SO-1 落地了销售订单,SO-2 落地  │
+    -- │ 了 reserve_stock)。留着一句描述已不存在的空缺的注释,与断言一个不可能  │
+    -- │ 发生的危险同罪 —— 读的人会因此相信这里仍然没有写入者。                 │
+    -- ├─ 【要加第四种状态?先读这一条 —— 它是想过之后明确不放这里的】──────────┤
     -- │ * awaiting_assay(待化验)【不属于这里,它是派生的】。今天由           │
     -- │   db/views/operations_now.sql 的 awaiting_assay 支给出,判据是         │
     -- │   batch_assay_status.assay_count = 0 —— "这批货有没有化验单"本身就     │
@@ -57,13 +71,12 @@ CREATE TABLE public.inventory_movements (
     -- │   等于给一个已有唯一真相的事实开第二个副本,而两份副本迟早不一致 ——    │
     -- │   `?? 0` / COALESCE 那类病的反向版本:不是把缺失伪装成零,而是把       │
     -- │   【算得出来的】变成【要维护的】。                                     │
-    -- │ * committed(已承诺)【没有写入者】。它要说"这批货许给了某张销售单",   │
-    -- │   而销售单今天还不存在(只有事后记录的 sales_records)。没有写入者的    │
-    -- │   枚举值永远为空,而空枚举值会被下一个人读成"从来没有承诺过的库存",   │
-    -- │   不是"系统还不知道承诺"。等销售单落地那一刀再加。                     │
+    -- │ 判据一句话:一个新状态要进这里,它必须有一个【写入者】,而且那个写入者 │
+    -- │ 记的事实无法从别处现算出来。committed 两条都满足(预留是一个决定,      │
+    -- │ 不是一个可推导的事实);awaiting_assay 第二条不满足。                   │
     -- └──────────────────────────────────────────────────────────────────────┘
     stock_status     text NOT NULL DEFAULT 'available'
-                     CHECK (stock_status IN ('available','on_hold')),
+                     CHECK (stock_status IN ('available','on_hold','committed')),
     -- 【成对流水】的两条腿由它连起来。今天两种成对:状态变更(换状态桶)与
     -- 转移(换库位)。四种成对类型当且仅当带 pair_id。
     pair_id          uuid,
@@ -149,7 +162,7 @@ COMMENT ON COLUMN public.inventory_movements.business_date IS '这件事【在�
 
 -- STK-1:两列的说明写进数据库,重建出来的库也带着(与 business_date 同办)。
 COMMENT ON COLUMN public.inventory_movements.stock_status IS
-    'STK-1:这一行进入/离开的是哪个库存桶(available / on_hold)。状态是流水的属性,不是批次的字段 —— 一个批次同时可以有"60 可用、40 暂扣",一个字段答不了。既有 68 行回填 available:本刀之前系统里根本不存在"暂扣"概念,所以那是它一直在断言的事,不是猜测。【不要与 inbound_batches.status / output_batches.status 混淆】—— 那两列与库存无关(且无人写入),见 docs/known-issues.md。';
+    'STK-1:这一行进入/离开的是哪个库存桶(available / on_hold / committed)。状态是流水的属性,不是批次的字段 —— 一个批次同时可以有"60 可用、40 暂扣",一个字段答不了。【三个桶各自的写入者】:on_hold 由 hold_stock / release_stock 成对写;committed 由 reserve_stock / release_reservation 成对写(SO-2,销售订单预留)。【on_hold 与 committed 之间没有直达的边】—— 那是一个决定:暂扣说"现在不能动",预留说"许给了某张单",系统无从判断跳过去之后那个暂扣的理由还成不成立;要走这条路,先释放再预留,两步各留各的理由。【不要与 inbound_batches.status / output_batches.status 混淆】—— 那两列与库存无关(且无人写入),见 docs/known-issues.md。';
 
 COMMENT ON COLUMN public.inventory_movements.pair_id IS
     'IOD-1(STK-1 起名为 status_pair_id):把一次【成对流水】的两条腿连起来。今天有两种成对:状态变更(出一个状态桶、进另一个,同批次同库位)与转移(出一个库位、进另一个,同批次同状态)。两者形状相同 —— 一出一进、数量相反,所以物理总量按构造不动,不需要任何人记得。四种成对类型当且仅当带 pair_id,由 inventory_movements_pair 双向强制。';

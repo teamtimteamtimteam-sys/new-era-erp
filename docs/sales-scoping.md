@@ -63,21 +63,43 @@ One mechanical note for whoever builds it: `sales_records` is immutable by trigg
 (`SALE_IMMUTABLE`, column-by-column). Adding the link column needs the same one-way relaxation
 `cogs_entry_id` already got (NULL → set once, never changed).
 
-## 3 · Reservation — the hard version is blocked, and a soft version is not
+## 3 · Reservation — **BUILT (SO-2, 2026-08-14)**
 
-**Confirmed blocked as suspected:** `remaining_qty` is the only quantity concept, and it is bound
-to the *physical* ledger — the DEFERRABLE invariant asserts `remaining_qty = Σ inventory_movements`
-per batch, and movements are physical events. "Reserved" is committed-not-issued: expressing it by
-decrementing `remaining_qty` would require a non-physical movement type and would make the ledger
-lie about what is on the floor. **Status-differentiated stock is the unbuilt Phase 2 work, and
-hard reservation waits for it.** Said plainly rather than inventing a parallel stored quantity.
+**This section used to say hard reservation was blocked, and recommended a derived soft check
+instead. Both statements are retired here, in the cut that closed them** — a note describing a gap
+that no longer exists costs a reader the same wrong belief as a comment asserting a hazard that
+cannot occur, and no gate will ever catch it.
 
-**What CAN be built without Phase 2:** a *derived* availability check —
-`available = remaining_qty − Σ(open sales-order line quantities against this batch)` — computed at
-order time, stored nowhere. Same shape as the settled-amount derivations in `ap/ar_open_items`
-(derived from allocations, never stored). It prevents overselling on paper without touching the
-physical ledger; what it cannot do is make reserved stock *visible on the floor*, which is the
-Phase 2 half.
+What unblocked it was STK-1: the "unbuilt Phase 2 status-differentiated stock" this section was
+waiting on shipped on 2026-08-12 (`inventory_movements.stock_status`, paired movements, a
+non-negative-bucket constraint trigger). SO-2 added the third bucket, `committed`, and its writer.
+
+**The shape, so nobody re-derives it:**
+
+* reserving writes a **status-change pair** — out of `available`, into `committed`, same batch and
+  same location bucket. `remaining_qty` never moves, so the physical ledger never lies; the
+  DEFERRABLE invariant holds by construction because the pair nets to zero.
+* `output_batches.state` is **not** touched. A fully reserved batch is still 「库存中」 —
+  **a promise is not a sale.** How much is promised is read off the derived three-bucket split,
+  never off that column (which still has exactly one UPDATE writer, `record_output_sale`).
+* the order-line ↔ batch **many-to-many** that `sales_order_lines` parked lives in
+  `sales_order_reservations`, one row per reservation *fact* — released rather than edited, so a
+  partial release is "release the whole row, re-reserve the remainder" rather than a quantity edit.
+* reservation is a **sales** act: `reserve_stock` / `release_reservation` require
+  `module.sales.edit`, not `module.inventory.edit` (reasoning in the migration header, same shape
+  as `drain_stock`'s in `zzz_function_grants.sql`).
+* cancelling an order releases every active reservation, and **asserts** afterwards that none is
+  left. Closing does not: a closed order's goods went out, they were not handed back.
+* a batch with active reservations **cannot be written off** — named refusal, remedy in the
+  message. That is why the writeoff/reversal drains still pass `ARRAY['available','on_hold']`
+  unchanged: `committed` is blocked upstream and never reaches them.
+
+**Still not built: consumption at shipment.** `record_output_sale` draws from `available` only, and
+refuses beyond it while naming all three buckets. Cut 4 reads the reservation. One thing that cut
+must decide first: `drain_stock`'s emptying order ends with `m.stock_status`, which is **alphabetical**
+(`available` < `committed` < `on_hold`) and therefore incidental rather than a policy — for
+fulfilment it is backwards, since shipping against an order should relieve *that order's*
+reservation rather than eat unreserved stock and leave the promise dangling.
 
 ## 4 · The pricing models — what the engine already does, sell-side
 
@@ -168,7 +190,8 @@ pain), and nothing watches credit.
 | **SAL-D** | **FIN-27 on sales order lines**: commitments for formula-priced contract sales | C | contract sales become drift-proof |
 | **SAL-E** | **framework contracts + drawdown** (and the blanket-PO mirror when wanted) | C, D | long-contract half of Doc 1 |
 | **SAL-F** | **the invoice/shipment flow** — whichever answer §1 gets; if "shipment", this is a pre-shipment invoice *document* on PUR-1's issue machinery; if "invoice", it is a recognition rework | **§1 answered** | last, deliberately: it is the only cut that can break postings that already work |
-| *(parked)* | hard reservation | Phase 2 status-differentiated stock | — |
+| **SO-2** *(done, 2026-08-14)* | **hard reservation** — `committed` as the third `stock_status`, `sales_order_reservations` (the line ↔ batch many-to-many), manual per-line reserve/release on confirmed orders, auto-release on cancel, write-off refused while reserved | STK-1 (status-differentiated stock, 2026-08-12), SO-1 | reserved stock is visible on the floor and cannot be sold or processed out from under an order |
+| *(next)* | consumption at shipment — the sale relieves its own reservation | SO-2 | — |
 | *(parked)* | index-linked pricing (QP, LME/SMM series) | `metal_prices` keyed by source + forward-window settlement | its own scoping when a contract needs it |
 
 SAL-A and SAL-B are independent, each one cut, each visible on the screen Tim already uses.

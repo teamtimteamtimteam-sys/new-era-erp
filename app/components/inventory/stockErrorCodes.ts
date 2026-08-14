@@ -25,6 +25,12 @@ const STOCK_ERROR_CODES = new Set([
     // FIN-32 那句 "violates check constraint inventory_movements_business_date_required"
     // —— 手走查出来的正是这一句。
     'ARRIVAL_DATE_REQUIRED', 'OUTPUT_DATE_REQUIRED',
+    // SO-2:【一批还许着人的货注销不掉】。它由注销触发器抛出,所以撞上它的是
+    // 产出批次页上按注销的那个人 —— 而他多半不知道"预留"是什么。消息里因此
+    // 点名到底是哪几张订单在扣着它,并直接给出补救(先去那张单上释放)。
+    // 【为什么归在库存这一族而不是销售那一族】撞上它的是库存/产出侧的动作,
+    // 判据只能有一份(IOD-2-fu1 的教训),所以它跟着抛出它的那扇门走。
+    'SO_BATCH_HAS_RESERVATIONS',
 ])
 
 // IOD-2:【告警】的编码集合。与上面的拒绝分开,因为它们走的通道就不同 ——

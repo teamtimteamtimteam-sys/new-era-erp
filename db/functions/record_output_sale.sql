@@ -17,6 +17,7 @@ DECLARE
     v_movement_ids  uuid[];
     v_available     numeric;
     v_held          numeric;
+    v_committed     numeric;
     v_sale_id       uuid;
     v_sale_date     date;
     v_unit_cost     numeric;
@@ -43,14 +44,22 @@ BEGIN
     -- IOD-1:【可卖的是"可用",不是"物理剩余"】。被扣住的货仍在这批里,
     -- 但它不可动用 —— 所以拒绝必须同时说出两个数,否则人看着 remaining 够
     -- 却卖不掉,屏幕上没有任何东西解释为什么。
+    -- SO-2:第三个桶,同一条理由 —— 【一个说不出 committed 的拒绝,会让人
+    -- 看着"可用 0、暂扣 0"却卖不掉】,而真正的答案是"它许给了某张订单"。
+    -- 消息里因此有三个数;哪一张订单由订单页与批次面板的预留清单回答。
+    -- 【这一刀不从 committed 里卖】:发货消耗归 cut 4,它会带着订单行一起来。
     v_available := COALESCE((SELECT sum(qty_delta) FROM inventory_movements
                              WHERE output_batch_id = p_output_batch_id
                                AND stock_status = 'available'), 0);
     v_held := COALESCE((SELECT sum(qty_delta) FROM inventory_movements
                         WHERE output_batch_id = p_output_batch_id
                           AND stock_status = 'on_hold'), 0);
+    v_committed := COALESCE((SELECT sum(qty_delta) FROM inventory_movements
+                             WHERE output_batch_id = p_output_batch_id
+                               AND stock_status = 'committed'), 0);
     IF p_quantity > v_available THEN
-        RAISE EXCEPTION 'IOD_SALE_EXCEEDS_AVAILABLE|%|%|%', p_quantity, v_available, v_held;
+        RAISE EXCEPTION 'IOD_SALE_EXCEEDS_AVAILABLE|%|%|%|%',
+            p_quantity, v_available, v_held, v_committed;
     END IF;
 
     IF p_unit_price IS NULL OR p_unit_price <= 0 THEN

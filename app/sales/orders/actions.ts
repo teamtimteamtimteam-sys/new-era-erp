@@ -89,6 +89,59 @@ export async function transitionOrder(orderId: string, to: string, reason: strin
     return {}
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// SO-2:预留 / 释放
+//
+// 【页面不算库存】能预留多少、还剩多少,全部由 reserve_stock 决定,这里只转达。
+// 页面上那个"可用 590"只是【上一次渲染时】的快照,拿它做判断就会与服务端漂开
+// (与 stockActions.ts 抬头同一条)。
+// ════════════════════════════════════════════════════════════════════════════
+export type ReserveState = { error?: string }
+
+export async function reserveForLine(
+    orderId: string,
+    lineId: string,
+    outputBatchId: string,
+    locationId: string | null,
+    qty: string
+): Promise<ReserveState> {
+    const supabase = await createClient()
+    const { error } = await supabase.rpc('reserve_stock', {
+        p_sales_order_line_id: lineId,
+        p_output_batch_id: outputBatchId,
+        p_qty: Number(qty),
+        // 【库位可空,不传就是 NULL】—— "未指定库位"是一等状态,不是缺失
+        ...(locationId ? { p_location_id: locationId } : {}),
+    })
+    if (error) return { error: await localizeSalesOrderError(error.message) }
+    revalidatePath(`/sales/orders/${orderId}`)
+    revalidatePath('/inventory')
+    revalidatePath(`/output/${outputBatchId}/edit`)
+    return {}
+}
+
+export async function releaseReservation(
+    orderId: string,
+    reservationId: string,
+    outputBatchId: string,
+    qty: string,
+    reason: string
+): Promise<ReserveState> {
+    const supabase = await createClient()
+    const trimmedQty = qty.trim()
+    const { error } = await supabase.rpc('release_reservation', {
+        p_reservation_id: reservationId,
+        // 【空 = 整笔释放】,而不是 0 —— 空着不是"释放零",服务端的默认值就是全部
+        ...(trimmedQty === '' ? {} : { p_qty: Number(trimmedQty) }),
+        p_reason: reason,
+    })
+    if (error) return { error: await localizeSalesOrderError(error.message) }
+    revalidatePath(`/sales/orders/${orderId}`)
+    revalidatePath('/inventory')
+    revalidatePath(`/output/${outputBatchId}/edit`)
+    return {}
+}
+
 export async function listCustomersAndMaterials() {
     const supabase = await createClient()
     const customers = mustRows(

@@ -114,6 +114,12 @@ python3 db/gate.py        # ~4 min measured, no large payloads over the network
 > to run on every database-touching cut, which is what matters — but **a
 > written-down cost must be a measured cost**, so this one is now dated and says
 > what it was measured against.
+>
+> **Re-measured (SO-2, 2026-08-14): 191s wall clock, 64 fixtures.** Ten more
+> fixtures than the line above and it got *faster*, which is worth a sentence
+> rather than a shrug: the 247s figure was one measurement on one machine on one
+> day, and the honest reading is that this gate costs **two to four minutes**,
+> not that it has a single true number. Keep dating them; do not average them.
 
 One LOCAL rebuild, two separately-reported verdicts (OPS-6 merged the two older
 tools — their build steps were identical and check_mirrors was shipping a

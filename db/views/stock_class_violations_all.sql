@@ -12,6 +12,16 @@
 --     stock_class_violations(报表侧,在它之上加 has_permission 那道门)
 --
 -- 【客户端读不到本视图】REVOKE SELECT —— 它不带门,读得到它就等于绕过那道门。
+--
+-- 【SO-2:所有库存状态一起算,不再只看 available】
+-- 违规讲的是【这批货待在哪里】—— 它扣没扣住、许给了谁,与"这个库位能不能放
+-- 这一类"毫无关系。此前的谓词只看 available,于是【一次预留或一次暂扣就能把一条
+-- 真实存在的违规从报表里抹掉】,而货还原样躺在那个不该放它的库位上。committed
+-- 落地之前这个洞很难撞上(暂扣是罕见且刻意的动作);预留是日常动作,于是它从
+-- 一个理论缺陷变成一个会发生的事。fixture 64 的违规臂把这一条钉死:同一批货,
+-- 预留前违规、预留后仍然违规。
+-- 【别名仍叫 avail,是因为改名会让 fixture 62 G 臂的注入体与它对不上而已 ——
+--  它现在装的是所有状态的和。】
 
 CREATE VIEW public.stock_class_violations_all WITH (security_invoker = off) AS
  WITH avail AS (
@@ -21,7 +31,7 @@ CREATE VIEW public.stock_class_violations_all WITH (security_invoker = off) AS
            FROM inventory_movements mv
              LEFT JOIN inbound_batches ib ON ib.id = mv.inbound_batch_id
              LEFT JOIN output_batches ob ON ob.id = mv.output_batch_id
-          WHERE mv.stock_status = 'available'::text AND mv.location_id IS NOT NULL
+          WHERE mv.location_id IS NOT NULL
           GROUP BY mv.location_id, (COALESCE(ib.material_id, ob.material_id))
          HAVING sum(mv.qty_delta) > 0::numeric
         )
@@ -41,6 +51,6 @@ CREATE VIEW public.stock_class_violations_all WITH (security_invoker = off) AS
           WHERE c.location_id = a.location_id AND c.classification_code = m.waste_classification_code));
 
 COMMENT ON VIEW public.stock_class_violations_all IS
-    'RPT-1:分类违规的【唯一一处判据】(三态:未分类不算、未配置不算、配了且不含这一类才算)。两个消费者读同一处 —— notify_class_violations(NTF-1 的发射器,以属主身份直接读它)与 stock_class_violations(报表侧,在它之上加 has_permission 那道门)。【客户端读不到本视图】:REVOKE SELECT —— 它不带门,能读它就等于绕过那道门读全库违规。【为什么是视图而不是函数】属主权限视图对它引用的表/视图走属主替换,但视图体里调函数时 EXECUTE 仍按当前用户判 —— 前一版把判据放在被收权的函数里,authenticated 读报表当场 42501(冒烟查出来的)。';
+    'RPT-1:分类违规的【唯一一处判据】(三态:未分类不算、未配置不算、配了且不含这一类才算)。两个消费者读同一处 —— notify_class_violations(NTF-1 的发射器,以属主身份直接读它)与 stock_class_violations(报表侧,在它之上加 has_permission 那道门)。【SO-2:所有库存状态一起算,不再只看 available】违规讲的是【这批货待在哪里】,与它扣没扣住、许给了谁毫无关系;只看 available 的话,一次暂扣或一次预留就能把一条真实存在的违规从报表里抹掉 —— 而货还在那个不该放它的库位上。【客户端读不到本视图】:REVOKE SELECT —— 它不带门,能读它就等于绕过那道门读全库违规。【为什么是视图而不是函数】属主权限视图对它引用的表/视图走属主替换,但视图体里调函数时 EXECUTE 仍按当前用户判 —— 前一版把判据放在被收权的函数里,authenticated 读报表当场 42501(冒烟查出来的)。';
 
 REVOKE SELECT ON public.stock_class_violations_all FROM authenticated, anon;

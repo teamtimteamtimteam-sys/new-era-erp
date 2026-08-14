@@ -13,6 +13,23 @@ const SALES_ORDER_ERROR_CODES = new Set([
     'SO_NOT_ISSUABLE',
     'SO_ISSUE_IMMUTABLE',
     'SO_HISTORY_IMMUTABLE',
+    // SO-2:预留与释放。【操作员真会撞上前六条】—— 预留是一个日常动作,
+    // 而它的每一条拒绝都在说一件人听得懂的事(单还没确认、这不是产出批次、
+    // 物料对不上、这一行已经许满了、桶里没那么多货)。不接成句子,屏幕上
+    // 就是一串 SO_RESERVE_EXCEEDS_LINE|25|20|0(IOD-1b 付过的那笔账)。
+    'SO_RESERVE_QTY_INVALID',
+    'SO_RESERVE_ORDER_NOT_CONFIRMED',
+    'SO_RESERVE_OUTPUT_ONLY',
+    'SO_RESERVE_MATERIAL_MISMATCH',
+    'SO_RESERVE_EXCEEDS_AVAILABLE',
+    'SO_RESERVE_EXCEEDS_LINE',
+    'SO_RESERVATION_NOT_FOUND',
+    'SO_RESERVATION_ALREADY_RELEASED',
+    'SO_RELEASE_REASON_REQUIRED',
+    'SO_RELEASE_EXCEEDS',
+    // 结构性守卫:正常路径撞不到,但撞上时必须说人话而不是抛触发器原文。
+    'SO_RESERVATION_IMMUTABLE',
+    'SO_CANCEL_RESERVATIONS_LEFT',
 ])
 
 const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/

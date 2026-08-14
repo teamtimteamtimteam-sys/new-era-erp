@@ -339,3 +339,62 @@ movement_id)`,一次销售 N 行。要一并决定的两件事:
 **为什么不能只写在函数体里**:那句理由现在躺在 `record_output_sale` 的注释里,
 而会撞上它的人是【读 sales_records 的人】,不是读那个函数的人。写在这里,
 是让它出现在会去找它的那条路上。
+
+## 盘点看不见【桶】:差异一律落在 available,而 state 不重算(SO-2 记,2026-08-14,未修)
+
+**两条,同一处代码,分开写是因为修法不同。**
+
+`post_stocktake` 对每一条有差异的盘点行做两件事:
+
+```sql
+INSERT INTO inventory_movements (..., movement_type, qty_delta, ...)   -- 【不给 stock_status】
+VALUES (..., 'adjustment', v_delta, ...);
+UPDATE output_batches SET remaining_qty = v_line.counted_qty ...       -- 【不重算 state】
+```
+
+**① 差异一律落进 `available` 桶** —— 因为那一行不写 `stock_status`,吃的是列默认值。
+盘点数的是**物理总量**(`remaining_qty`),而库存现在分三个桶:可用 / 暂扣 / 已承诺。
+于是一次盘亏会把整个差异从可用里扣掉,哪怕短少的其实是被扣住或已许出去的那部分。
+盘亏够大时,`check_no_negative_bucket` 会在提交时拒掉整张盘点单,报的是
+`STK_NEGATIVE_BUCKET` —— **一条正确但读不懂的拒绝**:盘点的人没做错任何事。
+
+**这不是 SO-2 引进的**:`on_hold` 从 STK-1 起就有同样的问题。但暂扣是罕见且刻意的
+动作,而预留是日常动作,所以它从一个理论缺陷变成了一件会发生的事。**记在这里而不是
+顺手修掉**,是因为正确的答案是一个**业务判断**,不是一次实现选择:
+
+* 盘点点的是物理总量,还是"我能看见的可用货"?
+* 差异该落在哪个桶?按现有三桶的比例摊?全落 available(今天的行为)?还是让盘点
+  的人**逐桶点数**(那意味着 `stocktake_lines` 要多一根状态轴)?
+
+三个答案对操作流程的要求完全不同。在预留这一刀里替人选一个,正是这个仓库反复付账的
+那种事。**修法草案**:`stocktake_lines` 加 `stock_status`(默认 `available`),点数按桶;
+过渡期内,盘亏超过 available 时按名拒绝并**说清楚是哪个桶挡住的**(而不是抛
+`STK_NEGATIVE_BUCKET`)。
+
+**② `state` 不重算。** `record_output_sale` 是 `output_batches.state` 的**唯一** UPDATE
+写入者(它按 `remaining_qty` 归零与否写「已售罄」/「部分售出」)。`post_stocktake` 把
+`remaining_qty` 直接设成盘点数却不碰 `state`,于是**一批被盘成 0 的货仍然显示「部分售出」**,
+而一批盘盈回来的「已售罄」批次也不会变回去。今天线上没有已过账的差异行,所以还没有
+人看见过。修法是把那个 CASE 抽成一个函数,两个写入者共用 —— 但**不要在这一刀里加第二个
+state 写入者**:SO-2 的一条明确决定就是预留不碰 `state`,而"谁写这一列"必须保持
+只有一处可数。
+
+## 建单的 `created` 留痕【写不进去】,而错误被丢掉了(SO-2 普查发现,2026-08-14,未修)
+
+`app/sales/orders/actions.ts` 的 `createSalesOrder` 最后一步是:
+
+```ts
+await supabase.from('sales_order_history').insert({ sales_order_id: orderId, change_type: 'created', ... })
+```
+
+**`sales_order_history` 没有面向客户端的 INSERT 策略**(SO-1 有意为之:留痕的唯一
+写入口是属主权限的函数),所以这一句被 RLS 拒。而它的返回值**没有被检查**,于是拒绝
+无声无息。线上核对过:`SO-2026-0001` 的历史里只有 `confirmed` 与 `issued` 两行,
+**没有 `created`** —— 那张单是怎么来的,历史里查不到。
+
+**为什么记在这里而不是顺手修掉**:正确的修法是把这一句搬进数据库(建单也走一个
+DEFINER 函数,或者给 `set_sales_order_status` 那一族添一个 `record_sales_order_created`),
+而那是 SO-1 的形状问题,不是预留这一刀的。**但它是 AGENTS.md 那条"失败不是空集"的
+教科书案例**:`check-error-swallowing` 抓的是 `data ?? []` 那一族,一个**从头到尾没有
+解构 error 的 `await`** 它看不见 —— 那正是该文件自己写明的盲区。
+

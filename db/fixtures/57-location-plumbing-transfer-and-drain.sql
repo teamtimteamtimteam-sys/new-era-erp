@@ -138,8 +138,12 @@ BEGIN
     v_denied := false; v_msg := NULL;
     BEGIN PERFORM record_output_sale(ib, 61, 5, (SELECT code FROM currencies WHERE is_base), NULL, NULL, CURRENT_DATE);
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
-    IF NOT v_denied OR v_msg <> 'IOD_SALE_EXCEEDS_AVAILABLE|61|60|40' THEN
-        RAISE EXCEPTION 'FIXTURE 57E 失败:卖 61 而只有 60 可用时,应当按名拒绝并【同时说出可用与暂扣】(IOD_SALE_EXCEEDS_AVAILABLE|61|60|40),实际:%',
+    -- SO-2:消息多了第四个数(已承诺)。这是【过期,不是回归】—— 拒绝要说出
+    -- 每一个"货在那里但你动不了"的桶,而 committed 是第三个这样的桶;
+    -- 少说一个数,屏幕上就会出现"可用 0、暂扣 0,可是卖不掉"。
+    -- 段序:1=码 2=想卖 3=可用 4=暂扣 5=已承诺。
+    IF NOT v_denied OR v_msg <> 'IOD_SALE_EXCEEDS_AVAILABLE|61|60|40|0' THEN
+        RAISE EXCEPTION 'FIXTURE 57E 失败:卖 61 而只有 60 可用时,应当按名拒绝并【同时说出可用、暂扣与已承诺】(IOD_SALE_EXCEEDS_AVAILABLE|61|60|40|0),实际:%',
             CASE WHEN v_denied THEN v_msg ELSE '成功了 —— 被扣住的货被卖掉了' END;
     END IF;
     -- 60 必须卖得掉:拒绝的是"超过可用",不是"这批货有暂扣"
