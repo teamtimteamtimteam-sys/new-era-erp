@@ -55,6 +55,14 @@ fi
 # 迁移文件自带 BEGIN;/COMMIT;。把 COMMIT 换成 zzz + COMMIT,于是授权兜底落在
 # 【同一个事务里】:迁移成功而兜底失败时两者一起回滚,不会留下"函数建了、权限
 # 没收"的中间态。原文件一个字节不改(只在管道里替换),文件仍是可独立重放的。
+# ── 破窗计时:开始 ──────────────────────────────────────────────────────────
+# 【为什么脚本要打这个时间戳】迁移一提交,库就是新的;而应用要等推送 + 构建。
+# 那中间是一段【生产跑旧代码打新库】的窗口,从这台机器上完全看不见(本地树、
+# 本地门、本地 dev server 彼此完全一致)。IOD-2 在那个窗口里待了一下午。
+# 每一份切次报告都要写出这个窗口有多长 —— 而"写出来"要成立,时间就必须被
+# 【读到】,不能靠事后回忆。所以脚本打它,不是提醒人记着看表。
+# 收尾时用:窗口 = 这里的时间戳 → 部署 state=success 的时刻。
+echo "== 破窗开始(migration applied at): $(date '+%Y-%m-%d %H:%M:%S %Z')  ← 切次报告要写的那个起点"
 echo "== applying $(basename "$FILE") over direct psql (single transaction)"
 awk -v g="$GRANTS" '
         /^COMMIT;[[:space:]]*$/ && !done {
@@ -65,3 +73,4 @@ awk -v g="$GRANTS" '
         { print }
 ' "$FILE" | psql "$DSN" -X -q -v ON_ERROR_STOP=1 -f -
 echo "✓ committed atomically (含函数授权兜底)"
+echo "== 库已经是新的了($(date '+%H:%M:%S')) —— 【破窗从此刻开始计】,到部署 state=success 为止;那个时长是切次报告的一个必填字段(AGENTS.md)"
