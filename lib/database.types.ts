@@ -597,6 +597,44 @@ export type Database = {
         }
         Relationships: []
       }
+      cn_issues: {
+        Row: {
+          credit_note_id: string
+          file_path: string
+          id: string
+          issued_at: string
+          issued_by: string | null
+          sha256: string
+          version: number
+        }
+        Insert: {
+          credit_note_id: string
+          file_path: string
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          sha256: string
+          version: number
+        }
+        Update: {
+          credit_note_id?: string
+          file_path?: string
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          sha256?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cn_issues_credit_note_id_fkey"
+            columns: ["credit_note_id"]
+            isOneToOne: false
+            referencedRelation: "credit_notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_compliance: {
         Row: {
           cert_no: string | null
@@ -728,6 +766,161 @@ export type Database = {
           website?: string | null
         }
         Relationships: []
+      }
+      credit_note_lines: {
+        Row: {
+          amount: number
+          created_at: string
+          credit_note_id: string
+          id: string
+          invoice_line_id: string
+          kind: string
+          qty: number | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          credit_note_id: string
+          id?: string
+          invoice_line_id: string
+          kind: string
+          qty?: number | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          credit_note_id?: string
+          id?: string
+          invoice_line_id?: string
+          kind?: string
+          qty?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_note_lines_credit_note_id_fkey"
+            columns: ["credit_note_id"]
+            isOneToOne: false
+            referencedRelation: "credit_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_note_lines_invoice_line_id_fkey"
+            columns: ["invoice_line_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_note_lines_invoice_line_id_fkey"
+            columns: ["invoice_line_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_lines_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_notes: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          entry_id: string
+          fx_rate: number
+          id: string
+          invoice_id: string
+          note_date: string
+          reason: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          entry_id: string
+          fx_rate: number
+          id?: string
+          invoice_id: string
+          note_date: string
+          reason: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          entry_id?: string
+          fx_rate?: number
+          id?: string
+          invoice_id?: string
+          note_date?: string
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_notes_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "credit_notes_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "credit_notes_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_notes_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_document_totals"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "credit_notes_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_status"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "credit_notes_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_notes_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_notes_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "order_invoice_balance_all"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "credit_notes_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "order_invoice_open_all"
+            referencedColumns: ["invoice_id"]
+          },
+        ]
       }
       currencies: {
         Row: {
@@ -2491,6 +2684,13 @@ export type Database = {
             foreignKeyName: "invoice_lines_invoice_id_fkey"
             columns: ["invoice_id"]
             isOneToOne: false
+            referencedRelation: "order_invoice_balance_all"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
             referencedRelation: "order_invoice_open_all"
             referencedColumns: ["invoice_id"]
           },
@@ -3943,6 +4143,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "invoices_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "order_invoice_balance_all"
+            referencedColumns: ["invoice_id"]
           },
           {
             foreignKeyName: "payment_allocations_invoice_id_fkey"
@@ -8165,6 +8372,8 @@ export type Database = {
           amount_base: number | null
           amount_ccy: number | null
           bucket: string | null
+          credited_base: number | null
+          credited_ccy: number | null
           currency: string | null
           customer_id: string | null
           customer_name: string | null
@@ -9093,6 +9302,13 @@ export type Database = {
             foreignKeyName: "invoice_lines_invoice_id_fkey"
             columns: ["invoice_id"]
             isOneToOne: false
+            referencedRelation: "order_invoice_balance_all"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
             referencedRelation: "order_invoice_open_all"
             referencedColumns: ["invoice_id"]
           },
@@ -9129,6 +9345,8 @@ export type Database = {
       invoice_status: {
         Row: {
           code: string | null
+          credited_base: number | null
+          credited_ccy: number | null
           currency: string | null
           customer_id: string | null
           customer_name: string | null
@@ -9662,10 +9880,52 @@ export type Database = {
         }
         Relationships: []
       }
+      order_invoice_balance_all: {
+        Row: {
+          amount_ccy: number | null
+          code: string | null
+          credited_base: number | null
+          credited_ccy: number | null
+          currency: string | null
+          customer_id: string | null
+          due_date: string | null
+          fx_rate: number | null
+          invoice_id: string | null
+          issue_date: string | null
+          open_base: number | null
+          open_ccy: number | null
+          settled_ccy: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_credit_status"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_invoice_open_all: {
         Row: {
           amount_ccy: number | null
           code: string | null
+          credited_base: number | null
+          credited_ccy: number | null
           currency: string | null
           customer_id: string | null
           due_date: string | null
@@ -12006,6 +12266,15 @@ export type Database = {
         Args: { p_employee_id: string; p_leave_year: number }
         Returns: number
       }
+      create_credit_note: {
+        Args: {
+          p_invoice_id: string
+          p_lines: Json
+          p_note_date: string
+          p_reason: string
+        }
+        Returns: Json
+      }
       create_inbound_batch: {
         Args: {
           p_arrival_date?: string
@@ -12278,6 +12547,7 @@ export type Database = {
         Returns: undefined
       }
       next_assay_code: { Args: { p_date?: string }; Returns: string }
+      next_credit_note_code: { Args: { p_date?: string }; Returns: string }
       next_employee_code: { Args: { p_date?: string }; Returns: string }
       next_leave_request_code: { Args: { p_date?: string }; Returns: string }
       next_medical_claim_code: { Args: { p_date?: string }; Returns: string }
@@ -12456,6 +12726,14 @@ export type Database = {
           p_notes?: string
           p_to_account: string
           p_transfer_date: string
+        }
+        Returns: Json
+      }
+      record_cn_issue: {
+        Args: {
+          p_credit_note_id: string
+          p_file_path: string
+          p_sha256: string
         }
         Returns: Json
       }

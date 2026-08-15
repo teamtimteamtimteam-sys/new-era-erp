@@ -11,6 +11,7 @@ import { formatAmount, formatTimestamp } from '@/lib/format'
 import { checkInvoicePdfCoverage } from '@/lib/invoiceFontCoverage'
 import Subnav from '../../Subnav'
 import VoidInvoiceControl from './VoidInvoiceControl'
+import CreditNoteSection from './CreditNoteSection'
 import { unmasked } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
 import { canViewBanking } from '@/lib/permissions'
@@ -138,8 +139,22 @@ export default async function InvoiceDetailPage({
                 .reduce((s, a) => s + a.allocated_ccy, 0) * 100
         ) / 100
     const total_ccy = Number(docTotals?.total_ccy ?? 0)
-    const open = Math.round((total_ccy - settled) * 100) / 100
-    const paymentState = open <= 0 ? 'paid' : settled > 0 ? 'partial' : 'unpaid'
+
+    // CN-1:【已贷记的那一截也要减掉,而这个数是【问】来的,不是这一页算的】
+    // 贷项凭证只让 open 变小,settled 一个字不动 —— 少了这一项,这一页会印出
+    // 一个比真相大的欠款额,而三个数(合计 / 已结 / 未结)也不再加得起来。
+    // 数字来自 invoice_status.credited_ccy,它取自 order_invoice_balance_all ——
+    // 与服务端天花板、与账龄读的是【同一处算术】。在这里自己 sum 一遍
+    // credit_note_lines,就是给同一个数留下第四份会漂开的实现。
+    const { data: statusRow } = await supabase
+        .from('invoice_status')
+        .select('credited_ccy')
+        .eq('invoice_id', id)
+        .maybeSingle()
+    const credited = Number((statusRow as { credited_ccy: number } | null)?.credited_ccy ?? 0)
+
+    const open = Math.round((total_ccy - settled - credited) * 100) / 100
+    const paymentState = open <= 0 ? 'paid' : settled + credited > 0 ? 'partial' : 'unpaid'
 
     const bill = (inv.bill_to_snapshot ?? {}) as BillTo
     const isVoid = inv.status === 'void'
@@ -408,6 +423,16 @@ export default async function InvoiceDetailPage({
                         <span className="text-gray-600 mr-1">{t('invoice.colSettled')}:</span>
                         <span className="font-mono">{formatAmount(settled, inv.currency)}</span>
                     </div>
+                    {/* CN-1:【已贷记单列,而且只在有的时候画】"付过了"与"不用付了"
+                        对客户是两件完全不同的事;把它并进已结,这张单据就再也说不出
+                        哪一截是收到的钱。恒为 0 时不画一行零 —— 那会让每一张普通
+                        发票上多出一个永远是 0 的数。 */}
+                    {credited > 0 && (
+                        <div>
+                            <span className="text-gray-600 mr-1">{t('invoice.colCredited')}:</span>
+                            <span className="font-mono">{formatAmount(credited, inv.currency)}</span>
+                        </div>
+                    )}
                     <div>
                         <span className="text-gray-600 mr-1">{t('invoice.colOpen')}:</span>
                         <span className="font-mono font-bold">{formatAmount(open, inv.currency)}</span>
@@ -491,6 +516,27 @@ export default async function InvoiceDetailPage({
                     </tbody>
                 </table>
             </section>
+
+            {/* CN-1:贷项凭证 —— 摆在收款情况【之后】,因为它回答的是同一个问题的
+                另一半:客户还欠多少。开一张需要 module.finance.edit,而两个逐行
+                上限在动手之前就画在表上(CMP-2)。 */}
+            <CreditNoteSection
+                invoiceId={inv.id}
+                invoiceCode={inv.code}
+                currency={inv.currency}
+                isOrderKind={isOrderKind}
+                isVoid={isVoid}
+                openCcy={open}
+                lines={rows.map((l) => ({
+                    id: l.id,
+                    line_no: l.line_no,
+                    description: l.description,
+                    unit: l.unit,
+                    quantity: Number(l.quantity),
+                    unit_price: Number(l.unit_price),
+                    amount_ccy: Number(l.amount_ccy),
+                }))}
+            />
         </div>
     )
 }

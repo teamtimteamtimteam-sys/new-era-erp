@@ -30,15 +30,17 @@ CREATE VIEW public.invoice_status WITH (security_invoker = off) AS
     i.currency,
     i.total_base,
     round(COALESCE(s.settled, 0::numeric) + COALESCE(sd.settled, 0::numeric), 2) AS settled_base,
-    round(i.total_base - COALESCE(s.settled, 0::numeric) - COALESCE(sd.settled, 0::numeric), 2) AS open_base,
+    round(i.total_base - COALESCE(s.settled, 0::numeric) - COALESCE(sd.settled, 0::numeric) - COALESCE(b.credited_base, 0::numeric), 2) AS open_base,
     GREATEST(CURRENT_DATE - i.due_date, 0) AS days_overdue,
         CASE
-            WHEN round(i.total_base - COALESCE(s.settled, 0::numeric) - COALESCE(sd.settled, 0::numeric), 2) <= 0::numeric THEN 'paid'::text
-            WHEN COALESCE(s.settled, 0::numeric) + COALESCE(sd.settled, 0::numeric) > 0::numeric THEN 'partial'::text
+            WHEN round(i.total_base - COALESCE(s.settled, 0::numeric) - COALESCE(sd.settled, 0::numeric) - COALESCE(b.credited_base, 0::numeric), 2) <= 0::numeric THEN 'paid'::text
+            WHEN (COALESCE(s.settled, 0::numeric) + COALESCE(sd.settled, 0::numeric) + COALESCE(b.credited_base, 0::numeric)) > 0::numeric THEN 'partial'::text
             ELSE 'unpaid'::text
         END AS payment_state,
-    CURRENT_DATE > i.due_date AND round(i.total_base - COALESCE(s.settled, 0::numeric) - COALESCE(sd.settled, 0::numeric), 2) > 0::numeric AS overdue,
-    i.kind
+    CURRENT_DATE > i.due_date AND round(i.total_base - COALESCE(s.settled, 0::numeric) - COALESCE(sd.settled, 0::numeric) - COALESCE(b.credited_base, 0::numeric), 2) > 0::numeric AS overdue,
+    i.kind,
+    COALESCE(b.credited_ccy, 0::numeric) AS credited_ccy,
+    COALESCE(b.credited_base, 0::numeric) AS credited_base
    FROM invoices_masked i
      JOIN customers c ON c.id = i.customer_id
      LEFT JOIN LATERAL ( SELECT sum(pa.allocated_base) AS settled
@@ -50,4 +52,6 @@ CREATE VIEW public.invoice_status WITH (security_invoker = off) AS
            FROM payment_allocations pa
              JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'::text
           WHERE pa.invoice_id = i.id) sd ON true
+     LEFT JOIN order_invoice_balance_all b ON b.invoice_id = i.id
   WHERE i.status <> 'void'::text AND has_permission('module.finance.view'::text);
+

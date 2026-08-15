@@ -99,3 +99,8 @@ REVOKE EXECUTE ON FUNCTION public.line_spoken_for(uuid) FROM authenticated;
 -- module.sales.edit,以属主身份执行。给了 authenticated 就等于任何登录用户都能
 -- 一张一张问出别人订单的履约进度,而那是 module.sales.view 的东西。
 REVOKE EXECUTE ON FUNCTION public.sales_order_fulfilment_status(uuid) FROM authenticated;
+-- CN-1:贷项凭证的取号器。同 next_shipment_code —— 无调用者检查,靠的就是调不到;
+-- 唯一调用方是 create_credit_note(DEFINER,module.finance.edit,以属主身份执行)。
+-- 给了 authenticated 就等于任何登录用户都能凭空烧掉一个无缝单号,而无缝的意思
+-- 正是"号码之间没有洞"。
+REVOKE EXECUTE ON FUNCTION public.next_credit_note_code(date) FROM authenticated;

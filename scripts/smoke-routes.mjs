@@ -77,6 +77,9 @@ const ID_SOURCES = {
         // 所以同时列在 EXPECTED_SKIPS 里 —— 与 /inventory/locations 同一种情形。
         '/sales/orders': 'sales_orders',
         '/sales/shipments': 'shipments',
+        // CN-1:贷项凭证。线上零行(机制与屏幕先于第一张真凭证落地),
+        // 所以同时列在 EXPECTED_SKIPS 里 —— 开出第一张的那天,那条断言会响。
+        '/finance/credit-notes': 'credit_notes',
         '/settings/permissions/roles': 'roles', '/stocktakes': 'stocktakes',
         '/suppliers': 'suppliers',
     },
@@ -121,6 +124,12 @@ const EXPECTED_SKIPS = new Set([
     // PROC-1b:线上还没有一份产出化验(机制与屏幕先于第一张真单据落地)。
     // 录第一张的那天,这条断言会逼人把它从这里删掉。
     '/output/[id]/assays/[assayId]',
+    // CN-1:线上还没有一张贷项凭证(同上:机制与屏幕先于第一张真单据)。
+    // 【两条路由都要列】详情页与它的 PDF 路由各算一条 —— SO-3b 漏掉 pdf 那条
+    // 时,这条断言报的是"新路由悄悄变成 skip",而那与"真的没数据"在屏幕上
+    // 长得一模一样。开出第一张凭证的那天,两条一起响。
+    '/finance/credit-notes/[id]',
+    '/finance/credit-notes/[id]/pdf',
     // (SO-3b 曾在这里挂过 '/sales/shipments/[id]/pdf' —— 线上零张发货单。
     //  2026-08-14 的走查发出了第一张真发货单 SHP-2026-0001 并签发了送货单 v1,
     //  这条断言【当场响了】,正如它自己的注释所承诺的:SO-3b fu5 的冒烟里报的是

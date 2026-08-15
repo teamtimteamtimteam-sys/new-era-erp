@@ -331,6 +331,10 @@ const MANIFEST = {
     // 真源现读。加一种改动,这条检查自动跟着变宽(而漏了译文会当场红,
     // 不是在屏幕上印出 sales.changeType.header_update)。
     'sales.changeType.':    { kind: 'enum', values: () => sqlEnum('db/tables/sales_order_history.sql', 'change_type') },
+    // CN-1:贷项凭证。行的类型接 credit_note_lines 的 CHECK(加一种冲减类型,
+    // 这条检查自动跟着变宽);错误码接那个 Set —— 与 sales.errors. 同一种读法。
+    'cn.kind.':             { kind: 'enum', values: () => sqlEnum('db/tables/credit_note_lines.sql', 'kind') },
+    'cn.errors.':           { kind: 'enum', values: () => tsSet('app/finance/creditNoteErrorCodes.ts', 'CREDIT_NOTE_ERROR_CODES') },
     'processing.errors.':   { kind: 'enum', values: () => tsSet('app/processing/errorCodes.ts', 'PROCESSING_ERROR_CODES') },
     'finance.accountType.': { kind: 'enum', values: () => sqlEnum('db/tables/accounts.sql', 'account_type') },
     'finance.aging.':       { kind: 'enum', values: () => tsArray('app/finance/agingBuckets.ts', 'BUCKETS') },

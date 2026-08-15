@@ -72,7 +72,9 @@ CREATE VIEW public.ar_open_items WITH (security_invoker = off) AS
     inv.invoice_id,
     inv.invoice_code,
     'sale'::text AS doc_kind,
-    round(COALESCE(s.settled, 0::numeric) * sr.fx_rate, 2) AS settled_base
+    round(COALESCE(s.settled, 0::numeric) * sr.fx_rate, 2) AS settled_base,
+    0::numeric AS credited_ccy,
+    0::numeric AS credited_base
    FROM sales_records_masked sr
      JOIN output_batches ob ON ob.id = sr.output_batch_id
      LEFT JOIN customers c ON c.id = sr.customer_id
@@ -86,9 +88,7 @@ CREATE VIEW public.ar_open_items WITH (security_invoker = off) AS
              JOIN invoices_masked i ON i.id = il.invoice_id
           WHERE il.sales_record_id = sr.id AND NOT il.invoice_voided
          LIMIT 1) inv ON true
-  WHERE round(sr.quantity * sr.unit_price - COALESCE(s.settled, 0::numeric), 2) > 0::numeric
-    AND sr.sales_order_line_id IS NULL
-    AND has_permission('module.finance.view'::text)
+  WHERE round(sr.quantity * sr.unit_price - COALESCE(s.settled, 0::numeric), 2) > 0::numeric AND sr.sales_order_line_id IS NULL AND has_permission('module.finance.view'::text)
 UNION ALL
  SELECT NULL::uuid AS sales_record_id,
     o.code AS doc_code,
@@ -111,7 +111,10 @@ UNION ALL
     o.invoice_id,
     o.code AS invoice_code,
     'invoice'::text AS doc_kind,
-    round(o.settled_ccy * o.fx_rate, 2) AS settled_base
+    round(o.settled_ccy * o.fx_rate, 2) AS settled_base,
+    o.credited_ccy,
+    o.credited_base
    FROM order_invoice_open_all o
      LEFT JOIN customers c ON c.id = o.customer_id
   WHERE has_permission('module.finance.view'::text) AND has_permission('data.view_prices'::text);
+

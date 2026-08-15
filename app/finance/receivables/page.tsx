@@ -30,6 +30,11 @@ type ArRow = {
     // 列,于是"已结"整列空白、客户小计 NaN。补列而不是改读 settled_ccy:
     // 那会把单据币种印进本位币那一列(INV-1 的老错)。
     settled_base: number
+    // CN-1:【已贷记】—— 贷项凭证让 open 变小,而 settled 一个字不动。
+    // 少了这一列,这张表上 金额 − 已结 ≠ 未结,读的人会以为页面算错了;
+    // 而它说的又是一件与"收过钱"完全不同的事:这一截【不用付了】。
+    // sale 支恒为 0(贷项凭证只绑 order 型发票),那里的 0 是"确实没有"。
+    credited_base: number
     open_base: number
     days_outstanding: number
     bucket: string
@@ -40,6 +45,7 @@ type CustomerGroup = {
     rows: ArRow[]
     amount: number
     settled: number
+    credited: number
     open: number
 }
 
@@ -85,12 +91,13 @@ export default async function ReceivablesPage() {
         const key = r.customer_id ?? '—'
         let g = groupMap.get(key)
         if (!g) {
-            g = { name: r.customer_name ?? '—', rows: [], amount: 0, settled: 0, open: 0 }
+            g = { name: r.customer_name ?? '—', rows: [], amount: 0, settled: 0, credited: 0, open: 0 }
             groupMap.set(key, g)
         }
         g.rows.push(r)
         g.amount += r.amount_base
         g.settled += r.settled_base
+        g.credited += r.credited_base
         g.open += r.open_base
     }
     const groups = Array.from(groupMap.values()).sort((a, b) => b.open - a.open)
@@ -140,6 +147,7 @@ export default async function ReceivablesPage() {
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colDate')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colAmount', { ccy: baseCurrency })}</th>
                         <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colSettled')}</th>
+                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colCredited')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colOpen')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colDays')}</th>
                     </tr>
@@ -192,7 +200,10 @@ export default async function ReceivablesPage() {
                                             {formatMoneyBare(r.amount_base, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                         </td>
                                         <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                            {formatMoneyBare(r.settled_base, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
+                                            {formatMoneyBare(r.settled_base, '同表列头 金额 ({ccy}) —— 金额/已结/已贷记/未结四列同为本位币')}
+                                        </td>
+                                        <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                            {formatMoneyBare(r.credited_base, '同表列头 金额 ({ccy}) —— 金额/已结/已贷记/未结四列同为本位币')}
                                         </td>
                                         <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm font-medium">
                                             {formatMoneyBare(r.open_base, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
@@ -213,10 +224,13 @@ export default async function ReceivablesPage() {
                                     {formatMoneyBare(Math.round(g.amount * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                    {formatMoneyBare(Math.round(g.settled * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
+                                    {formatMoneyBare(Math.round(g.settled * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/已贷记/未结四列同为本位币')}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                    {formatMoneyBare(Math.round(g.open * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
+                                    {formatMoneyBare(Math.round(g.credited * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/已贷记/未结四列同为本位币')}
+                                </td>
+                                <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                    {formatMoneyBare(Math.round(g.open * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/已贷记/未结四列同为本位币')}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2" />
                             </tr>,
@@ -224,7 +238,7 @@ export default async function ReceivablesPage() {
                     ))}
                     {rows.length === 0 && (
                         <tr>
-                            <td colSpan={8} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
+                            <td colSpan={9} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
                                 {t('finance.noOpenItems')}
                             </td>
                         </tr>

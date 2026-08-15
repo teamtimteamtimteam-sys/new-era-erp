@@ -26,7 +26,11 @@ CREATE TABLE public.sales_order_history (
                     -- 那三个是 SO-1 定下的、至今没有任何写入者的空位;这四个带着
                     -- 成对的 old_/new_ 与理由。合并会让"这一行是怎么来的"从两个
                     -- 不同的机制变成一个含混的名字。
-                    'header_update','line_update','line_add','line_remove')),
+                    'header_update','line_update','line_add','line_remove',
+                    -- CN-1:开了一张贷项凭证。看订单的人问"这张单后来减过账没有",
+                    -- 那个问题的答案不该要求他先去翻发票列表(与 invoiced /
+                    -- invoice_voided 同一条)。
+                    'credit_noted')),
     detail         text,
     changed_at     timestamptz NOT NULL DEFAULT now(),
     changed_by     uuid DEFAULT auth.uid(),

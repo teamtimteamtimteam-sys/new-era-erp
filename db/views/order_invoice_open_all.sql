@@ -25,27 +25,21 @@
 -- SECURITY DEFINER 函数(以属主身份读),都够得着。
 
 CREATE VIEW public.order_invoice_open_all WITH (security_invoker = off) AS
- SELECT i.id AS invoice_id,
-    i.code,
-    i.customer_id,
-    i.issue_date,
-    i.due_date,
-    i.currency,
-    i.fx_rate,
-    l.amount_ccy,
-    round(COALESCE(s.settled, 0::numeric), 2) AS settled_ccy,
-    round(l.amount_ccy - COALESCE(s.settled, 0::numeric), 2) AS open_ccy,
-    round((l.amount_ccy - COALESCE(s.settled, 0::numeric)) * i.fx_rate, 2) AS open_base
-   FROM invoices i
-     JOIN LATERAL ( SELECT COALESCE(sum(il.amount_ccy), 0::numeric) AS amount_ccy
-           FROM invoice_lines il
-          WHERE il.invoice_id = i.id) l ON true
-     LEFT JOIN LATERAL ( SELECT sum(pa.allocated_ccy) AS settled
-           FROM payment_allocations pa
-             JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'::text
-          WHERE pa.invoice_id = i.id) s ON true
-  WHERE i.kind = 'order'::text AND i.status = 'issued'::text
-    AND round(l.amount_ccy - COALESCE(s.settled, 0::numeric), 2) > 0::numeric;
+ SELECT invoice_id,
+    code,
+    customer_id,
+    issue_date,
+    due_date,
+    currency,
+    fx_rate,
+    amount_ccy,
+    settled_ccy,
+    open_ccy,
+    open_base,
+    credited_ccy,
+    credited_base
+   FROM order_invoice_balance_all b
+  WHERE open_ccy > 0::numeric;
 
 COMMENT ON VIEW public.order_invoice_open_all IS
     'SO-3a:订单流发票的开放余额 ——【敞口与应收的唯一一处内层推导】。两个消费者:ar_open_items(账龄第二支)与 customer_ar_exposure_base(敞口第二项);面板显示的余额与拒绝的那道闸必须是同一个数,所以推导只写这一遍(fixture 67 目录断言钉住)。口径:kind=''order'' 且 issued;金额 = Σ 明细行 amount_ccy(生成列);已结 = payment_allocations.invoice_id 上 posted 收款的核销;open_base 按发票存下来的 fx_rate(从订单抄来的入账汇率)。【客户端读不到】:REVOKE SELECT —— 不带门,读得到就等于绕过 module.finance.view 读全库应收。';

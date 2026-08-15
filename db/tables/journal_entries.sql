@@ -18,6 +18,11 @@
 -- (发货过账:借 2500 释放合同负债 / 贷 4000 收入,外加与直接销售逐字同形的
 --  COGS 分录。现金流量表侧【想过】:这两类分录都不碰 is_cash 科目,进不了
 --  那张表;真正的现金在收款那一步,走既有的 ELSE 'operating')。
+-- source_type 'credit_note' added by db/migrations/2026-08-15-cn1-credit-note.sql
+--  (贷项凭证的过账:借 2500 未释放的负债 / 借 4000 已释放的收入 / 贷 1100。
+--   现金流量表侧【想过】:同 'invoice' / 'shipment' —— 这类分录一个 is_cash 科目
+--   都不碰,而 cash_flow_statement 只看碰了现金的分录,所以它进不了那张表、
+--   连归类分支都走不到。真正的现金在收款那一步,走既有的 ELSE 'operating')。
 -- source_type 'invoice' added by db/migrations/2026-08-14-so3a-order-flow-billing.sql
 -- (订单流发票的过账:借 1100 / 贷 2500。现金流量表侧【想过】:这类分录不碰
 --  is_cash 科目,进不了那张表;对着它收的款走 ELSE 'operating' —— 正确,
@@ -32,7 +37,7 @@ CREATE TABLE public.journal_entries (
     code        text NOT NULL UNIQUE,
     entry_date  date NOT NULL,
     memo        text,
-    source_type text CHECK (source_type IN ('manual','purchase','sale','processing_cost','allocation','stocktake','writeoff','payment','fx','expense','prepayment','payroll','transfer','revaluation','depreciation','asset_disposal','year_close','freight','invoice','shipment')),
+    source_type text CHECK (source_type IN ('manual','purchase','sale','processing_cost','allocation','stocktake','writeoff','payment','fx','expense','prepayment','payroll','transfer','revaluation','depreciation','asset_disposal','year_close','freight','invoice','shipment','credit_note')),
     source_id   uuid,
     status      text NOT NULL DEFAULT 'posted' CHECK (status IN ('posted','reversed')),
     reversed_by uuid REFERENCES public.journal_entries (id),
