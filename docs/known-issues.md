@@ -402,17 +402,25 @@ state 写入者**:SO-2 的一条明确决定就是预留不碰 `state`,而"谁�
 
 ---
 
-## `/hr/departments/[id]/edit` 与 `/hr/payroll/[id]`:INV-2a 那一跑冒烟红了两条,状态【未结】
+## 签发面板已经是【四份近乎一样的复制】,而抽取是一次单独的刀(INV-2b)
 
-INV-2a(`97bcf8a`)的冒烟是 170 条路由 165 ok / 4 skipped / **2 FAILED**,两条都是
-`/hr/*`:`/hr/departments/[id]/edit` 与 `/hr/payroll/[id]`,各报 HTTP 307,底下的
-原因分别是 `ConnectTimeoutError`(连 `104.18.38.10:443` 超时)与
-`Client network socket disconnected before secure TLS connection was established`。
+签发这一族现在有五个单据、四种形状:
 
-**这两条长得像网络,但那是一个推断,不是一次测量。** 那一刀是纯引擎(除
-`lib/database.types.ts` 外没有动过一行应用代码,更没有动过 HR 任何一页),而
-网络形状的报错在这台机器上此前已经出现过一整轮 —— 两件事合起来让"环境问题"成为
-最省事的解释,而最省事的解释正是需要一次对照才能相信的那一种。
+| 单据 | 面板 | 版本列表 | 触发 |
+|---|---|---|---|
+| 采购单 | **没有组件** | 内联在 `page.tsx` | `<form method="post" action=…/pdf>` |
+| 销售订单 | `app/sales/orders/[id]/IssuePanel.tsx`,入参 `(orderId, status)` | 内联 | `fetch(POST)` + `router.refresh()` |
+| 报价 | `app/sales/quotes/[id]/IssuePanel.tsx`,入参 `(quoteId, canIssue, blockedReason, hasLines)` | 内联 | 同上 |
+| 贷项凭证 | `app/finance/credit-notes/[id]/IssuePanel.tsx`,入参 `(noteId)` | 内联 | 同上 |
+| **发票(INV-2b)** | `app/finance/invoices/[id]/IssuePanel.tsx`,报价那一份的形状 | 内联 | 同上 |
+| 发货单 | — | — | **连详情页都没有**(`app/sales/shipments/[id]/page.tsx` 不存在),只有 PDF 路由 |
 
-**结论:未结,直到一次健康网络下的干净冒烟。** 下一刀 INV-2b 会动渲染层、本来就要
-跑冒烟,所以那一跑要**按名**说出这两条的结果;说清楚了,那次提交把本条删掉。
+四份面板的真正分歧只有【禁用理由那一支】:销售订单把 `isDraft` 写死在组件里,
+贷项凭证压根没有这一支,报价与发票把它作为两个入参传进来。其余部分逐字相同。
+
+**抽成 `app/components/` 的公共件是一次单独的刀,不要在别的刀里顺手做。** 它要
+一次把四份(以及采购单那个 `<form>` 变体)全迁过去 —— 一次渲染层的改动因此会动到
+四个在用的页面,而**每一个入口都得手工重新确认**:它们全是 `[id]` 动态路由,
+可达性走查对动态路由不做"打得开却走不到"的断言(SAL-B6 的新建客户页就是这么带着
+零入口发出去的)。发货单那一格顺带回答一个问题:那一族到底该不该有第六份,
+还是发货单先要有一张详情页。

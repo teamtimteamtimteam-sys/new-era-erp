@@ -28,6 +28,11 @@ const INVOICE_ERROR_CODES = new Set([
     'INVOICE_HAS_SETTLEMENTS',
     // SO-3b 落地时启用 —— 文案先备好,免得那一刀漏了翻译(键检查会盯着这一条)
     'INVOICE_SHIPPED_NOT_VOIDABLE',
+    // INV-2a/2b:签发档(record_invoice_issue)。INVOICE_NOT_FOUND 上面已经有了 ——
+    // 同一个码,两族共用一句文案,因为它说的确实是同一件事。
+    'INV_VOIDED_NOT_ISSUABLE',
+    'INV_NO_LINES',
+    'INV_PROFILE_INCOMPLETE',
     // 冲销分录撞上期间锁/年结时经由这里冒出来 —— 说人话,不抛原码
     'PERIOD_LOCKED',
     'YEAR_CLOSED',

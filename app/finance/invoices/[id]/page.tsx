@@ -14,7 +14,9 @@ import VoidInvoiceControl from './VoidInvoiceControl'
 import CreditNoteSection from './CreditNoteSection'
 import { unmasked } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
-import { canViewBanking } from '@/lib/permissions'
+import { canViewBanking, can } from '@/lib/permissions'
+import { mustRows } from '@/lib/db-helpers'
+import IssuePanel from './IssuePanel'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 
@@ -195,6 +197,45 @@ export default async function InvoiceDetailPage({
     // 路由自己也会拒(403)—— 按钮是体贴,不是安全边界。
     const showBanking = await canViewBanking()
     const pdfBlocked = profileIncomplete || fontProblems.length > 0 || !showBanking
+
+    // ── INV-2b:签发档 ────────────────────────────────────────────────────────
+    // 【预览不落档,签发才落档】—— 这一页上两个按钮挨着,后果差着一个档案。
+    const issues = mustRows(
+        await supabase.from('invoice_issues')
+            .select('version, sha256, issued_at, issued_by')
+            .eq('invoice_id', id).order('version', { ascending: false }),
+        'invoice_issues') as { version: number; sha256: string
+            issued_at: string; issued_by: string | null }[]
+
+    // 【签发人:名字要么给全,要么说"受限",不能给一个空白】employees 在
+    // module.hr.view 后面,而这是财务页 —— 一个只有财务权限的读者读到的是零行。
+    // 空白读起来是"没记录签发人",而真相是"你看不到" —— lib/permissions.ts 存在的
+    // 全部理由就是这两件事不能长得一样(AGENTS.md:0.00 与「受限」不是一回事)。
+    // 所以先问权限,再决定这一列说什么。
+    const canReadPeople = await can('module.hr.view')
+    const actorIds = Array.from(new Set(issues.map((i) => i.issued_by).filter(Boolean))) as string[]
+    const actorById = new Map<string, string>()
+    if (canReadPeople && actorIds.length > 0) {
+        const people = mustRows(
+            await supabase.from('employees_masked')
+                .select('user_id, legal_name, preferred_name')
+                .in('user_id', actorIds),
+            'employees_masked') as unknown as {
+                user_id: string; legal_name: string; preferred_name: string | null }[]
+        people.forEach((e) => actorById.set(e.user_id, e.preferred_name || e.legal_name))
+    }
+    function actorLabel(uid: string | null): string {
+        if (!uid) return '—'
+        if (!canReadPeople) return t('common.restricted')
+        // 【认得这个账号、但它没连到员工档案】与"看不到"是两件事:说得出来,
+        // 而不是回到一个空白。
+        return actorById.get(uid) ?? t('invoice.issuerUnlinked')
+    }
+
+    // 【贷项凭证那条派生的说明】读的时候现算,不落快照、不动横幅那套机制。
+    const creditNoteCount = issues.length === 0 ? 0 : mustRows(
+        await supabase.from('credit_notes').select('id').eq('invoice_id', id),
+        'credit_notes').length
 
     return (
         <div className="p-8 max-w-5xl">
@@ -516,6 +557,53 @@ export default async function InvoiceDetailPage({
                     </tbody>
                 </table>
             </section>
+
+            {/* ── INV-2b:签发档 ────────────────────────────────────────────
+                【预览与签发是两件事】上面那两个按钮按【此刻】的数据渲染,看完就没了;
+                这里的签发把那一刻的字节存进桶里并记一版 —— 客户手里那份是某个具体
+                版本,此后数据、渲染器、字体子集怎么变,那份字节都原样在桶里。
+                本刀之前发出去过多少次,查不出来,也不补(伪造的出处比空白更坏)。 */}
+            {showBanking && (
+                <section className="mt-8">
+                    <h2 className="text-xl font-bold mb-1">{t('invoice.issuesTitle')}</h2>
+                    <p className="text-xs text-gray-500 mb-2">{t('invoice.issuesNote')}</p>
+                    <IssuePanel
+                        invoiceId={inv.id}
+                        canIssue={!isVoid && !profileIncomplete && fontProblems.length === 0}
+                        blockedReason={
+                            isVoid ? t('invoice.issueBlockedVoid')
+                            : profileIncomplete ? t('invoice.issueBlockedProfile')
+                            : fontProblems.length > 0 ? t('invoice.issueBlockedFont')
+                            : rows.length === 0 ? t('invoice.issueBlockedNoLines') : ''}
+                        hasLines={rows.length > 0}
+                    />
+                    {issues.length === 0 ? (
+                        <p className="text-sm text-gray-500">{t('invoice.neverIssued')}</p>
+                    ) : (
+                        <ul className="text-sm space-y-1">
+                            {issues.map((iss) => (
+                                <li key={iss.version} className="font-mono text-xs">
+                                    <a href={`/finance/invoices/${inv.id}/pdf?version=${iss.version}`}
+                                       target="_blank" rel="noopener noreferrer"
+                                       className="text-blue-600 hover:underline">v{iss.version}</a>
+                                    {' · '}{formatTimestamp(iss.issued_at, dateLocale)}
+                                    {' · '}{actorLabel(iss.issued_by)}
+                                    {' · '}{iss.sha256.slice(0, 12)}…
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                    {/* 【已签发过 + 有贷项凭证】那几版上印的是【贷项之前】的数字,
+                        而这不是错 —— 它们记录的就是当时发出去的那份。贷项凭证是
+                        它【自己的】单据,不是对旧版本的修改;所以这里既不重发、
+                        也不给旧版本打标记,只说清楚这件事。读时现算。 */}
+                    {creditNoteCount > 0 && (
+                        <p className="text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded px-3 py-2 mt-3">
+                            {t('invoice.issuesPreCreditNote', { count: String(creditNoteCount) })}
+                        </p>
+                    )}
+                </section>
+            )}
 
             {/* CN-1:贷项凭证 —— 摆在收款情况【之后】,因为它回答的是同一个问题的
                 另一半:客户还欠多少。开一张需要 module.finance.edit,而两个逐行
