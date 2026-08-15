@@ -2605,6 +2605,79 @@ export type Database = {
           },
         ]
       }
+      invoice_issues: {
+        Row: {
+          file_path: string
+          id: string
+          invoice_id: string
+          issued_at: string
+          issued_by: string | null
+          sha256: string
+          version: number
+        }
+        Insert: {
+          file_path: string
+          id?: string
+          invoice_id: string
+          issued_at?: string
+          issued_by?: string | null
+          sha256: string
+          version: number
+        }
+        Update: {
+          file_path?: string
+          id?: string
+          invoice_id?: string
+          issued_at?: string
+          issued_by?: string | null
+          sha256?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_issues_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_document_totals"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "invoice_issues_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_status"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "invoice_issues_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_issues_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_issues_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "order_invoice_balance_all"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "invoice_issues_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "order_invoice_open_all"
+            referencedColumns: ["invoice_id"]
+          },
+        ]
+      }
       invoice_lines: {
         Row: {
           amount_base: number
@@ -13081,6 +13154,10 @@ export type Database = {
           p_payment_status?: string
           p_supplier_id: string
         }
+        Returns: Json
+      }
+      record_invoice_issue: {
+        Args: { p_file_path: string; p_invoice_id: string; p_sha256: string }
         Returns: Json
       }
       record_output_sale: {
