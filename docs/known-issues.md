@@ -401,3 +401,18 @@ state 写入者**:SO-2 的一条明确决定就是预留不碰 `state`,而"谁�
 这么带着零入口发出去的)。要么由人确认,要么它就没人管。
 
 ---
+
+## `/hr/departments/[id]/edit` 与 `/hr/payroll/[id]`:INV-2a 那一跑冒烟红了两条,状态【未结】
+
+INV-2a(`97bcf8a`)的冒烟是 170 条路由 165 ok / 4 skipped / **2 FAILED**,两条都是
+`/hr/*`:`/hr/departments/[id]/edit` 与 `/hr/payroll/[id]`,各报 HTTP 307,底下的
+原因分别是 `ConnectTimeoutError`(连 `104.18.38.10:443` 超时)与
+`Client network socket disconnected before secure TLS connection was established`。
+
+**这两条长得像网络,但那是一个推断,不是一次测量。** 那一刀是纯引擎(除
+`lib/database.types.ts` 外没有动过一行应用代码,更没有动过 HR 任何一页),而
+网络形状的报错在这台机器上此前已经出现过一整轮 —— 两件事合起来让"环境问题"成为
+最省事的解释,而最省事的解释正是需要一次对照才能相信的那一种。
+
+**结论:未结,直到一次健康网络下的干净冒烟。** 下一刀 INV-2b 会动渲染层、本来就要
+跑冒烟,所以那一跑要**按名**说出这两条的结果;说清楚了,那次提交把本条删掉。

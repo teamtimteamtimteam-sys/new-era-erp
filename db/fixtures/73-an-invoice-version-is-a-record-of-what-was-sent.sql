@@ -22,6 +22,11 @@
 -- 【注入臂放在最后】fixture 64/69/71 付过这笔账:注入种下的行会污染后面各臂。
 --   注入 1:摘掉只增不改守卫 → 改一版的摘要当场走通(A/B 两臂的断言因此有牙)。
 --   注入 2:给 invoice_issues 补一条 INSERT 策略 → 客户端直插当场走通。
+--   注入 3/4/5:把 record_invoice_issue 的三道门逐一删掉(作废 / 没有行 / 抬头),
+--     每次都从【原样定义】派生,所以任一时刻恰好少一道门,不累积。
+--     【自然撞到 ≠ 被这道门拒】—— B2 臂第一版声称在验抬头,实际拿回的是
+--     INV_NO_LINES;断言若只写"被拒了",一个删光了抬头检查的实现照样绿。
+--     所以每一道门都要有一次"删掉它,那次调用当场成功"的对照。
 --
 -- 自带数据(README 第 2 条)。期间锁显式设 NULL(第 5 条)。
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -33,7 +38,8 @@ DECLARE
     v_blind uuid := gen_random_uuid();   -- 连 finance.view 都没有
     r_all uuid; r_ro uuid; r_none uuid;
     v_cust uuid; v_mat uuid; v_base text;
-    invA uuid; invEmpty uuid; soA uuid; lineA uuid;
+    invA uuid; invB uuid; invEmpty uuid; soA uuid; lineA uuid; lineB uuid;
+    v_def text; v_inj text;   -- 注入 3/4/5:那个函数的【原样】定义,以及删掉一道门之后的副本
     v_res jsonb; v_msg text; v_denied boolean; v_n int;
     sha1 constant text := repeat('a', 64);
     sha2 constant text := repeat('b', 64);
@@ -85,8 +91,24 @@ BEGIN
     VALUES (next_sales_order_code(d), v_cust, d, 'USD', 1.25) RETURNING id INTO soA;
     INSERT INTO sales_order_lines (sales_order_id, line_no, material_id, quantity, unit_price)
     VALUES (soA, 1, v_mat, 10, 10) RETURNING id INTO lineA;
+    -- 【第二行、第二张发票:为注入 5 留的】抬头那道门要在【其它前提都满足】的发票上
+    -- 才试得出来(见 B2 臂的教训),而到注入的时候 invA 已经作废、invEmpty 没有行 ——
+    -- 两张都会让删掉抬头守卫之后的调用落进【别的】拒绝里,那样的注入什么也证明不了。
+    -- 所以在这里就备好一张【有行、且始终 issued】的发票。
+    INSERT INTO sales_order_lines (sales_order_id, line_no, material_id, quantity, unit_price)
+    VALUES (soA, 2, v_mat, 5, 20) RETURNING id INTO lineB;
     PERFORM set_sales_order_status(soA, 'confirmed');
     invA := (create_order_invoice(soA, d, NULL, NULL, NULL, ARRAY[lineA]) ->> 'invoice_id')::uuid;
+    invB := (create_order_invoice(soA, d, NULL, NULL, NULL, ARRAY[lineB]) ->> 'invoice_id')::uuid;
+
+    -- 【原样定义留一份】注入 3/4/5 各自从【这一份】派生,而不是从上一次注入留下的
+    -- 那个函数派生 —— 否则删掉的门会累积,第三个注入实际上少了三道门,
+    -- 它证明的就不再是"这一道门有牙"。CREATE OR REPLACE 每次整份覆盖,
+    -- 所以线上那个函数在任一时刻【恰好少一道门】。
+    -- 取自 pg_get_functiondef 而不是手抄:镜像文件按仓库的规矩就是这串字节
+    -- (db/functions/*.sql 是 pg_get_functiondef 的原样),于是"唯一的差别就是被
+    -- 删掉的那道门"是构造出来的,不是靠眼睛保证的。
+    v_def := pg_get_functiondef('public.record_invoice_issue(uuid,text,text)'::regprocedure);
 
     -- ══════════ A. 前提 + 目录 ═══════════════════════════════════════════════
     IF to_regprocedure('public.record_invoice_issue(uuid,text,text)') IS NULL THEN
@@ -283,6 +305,98 @@ BEGIN
     IF v_denied THEN
         RAISE EXCEPTION 'FIXTURE 73 注入2 失败:补上 INSERT 策略之后,直连插入【仍然】被拒(%)—— 说明 E 臂那条断言测的不是策略',
             v_msg;
+    END IF;
+
+    -- ══════════ 注入 3/4/5:把三道【只被自然撞到过】的门逐一删掉 ═══════════════
+    -- 【为什么自然撞到不够】B2 臂第一版就是活的反例:它声称在验"抬头空着要拒",
+    -- 而它实际拿回的是 INV_NO_LINES —— 断言若只写"被拒了",它会一路绿,
+    -- 而【把抬头检查整个删掉】的实现照样绿。自然臂回答"这个调用被拒了吗";
+    -- 注入回答另一个问题:"拒它的是【这一道】门吗"。两个问题都要问。
+    --
+    -- 【此刻仍然在生效的、前面注入留下的东西】(这一点是刻意的,不是顺带的):
+    --   * 注入 1 摘掉的 trg_invoice_issues_append_only —— 【仍然是摘掉的】。
+    --     它是 BEFORE UPDATE OR DELETE,下面三个注入只做 INSERT,所以不受影响;
+    --     写在这里是因为"没影响"要说出来才算判断过。
+    --   * 注入 2 补的那条 INSERT 策略 —— 【仍然在】,而且它已经往 invEmpty 上
+    --     插进去一行 version = 1。注入 4 因此期望的是 version = 2,不是 1:
+    --     版本号由数据库按现有最大值裁决,而那一行就在现有值里。
+    --   * 函数替换【不累积】(见上面 v_def 那段)。
+    -- 每个注入都断言"替换确实改动了字节",否则一次什么也没删的替换会让下面那句
+    -- "现在应当成功"变成对原函数的断言 —— 那是空转,而且是会骗人的那种。
+
+    -- ── 注入 3:删掉【作废不再签发】那道门 ────────────────────────────────────
+    -- 前提(只差这一条):invA 已作废,有明细行,抬头已填 —— C 臂刚刚验过它被拒。
+    IF (SELECT status FROM invoices WHERE id = invA) <> 'void'
+       OR (SELECT count(*) FROM invoice_lines WHERE invoice_id = invA) = 0
+       OR btrim((SELECT COALESCE(legal_name,'') FROM company_profile LIMIT 1)) = '' THEN
+        RAISE EXCEPTION 'FIXTURE 73 注入3 前提不成立:要的是【已作废、有行、抬头已填】的发票';
+    END IF;
+    v_inj := replace(v_def,
+$g$    IF v_inv.status <> 'issued' THEN
+        RAISE EXCEPTION 'INV_VOIDED_NOT_ISSUABLE|%|%', v_inv.code, v_inv.status;
+    END IF;
+$g$, '');
+    IF v_inj = v_def THEN
+        RAISE EXCEPTION 'FIXTURE 73 注入3 失败:在函数定义里没找到【作废】那道门的原文 —— 守卫被改写过,这个注入什么也没删,下面那句"应当成功"会变成空转';
+    END IF;
+    EXECUTE v_inj;
+    -- 重复 C 臂原样的那次调用,而这一次它必须【成功】
+    v_res := record_invoice_issue(invA, 'p/v3.pdf', repeat('d', 64));
+    IF (v_res->>'version') <> '3'
+       OR NOT EXISTS (SELECT 1 FROM invoice_issues WHERE invoice_id = invA AND version = 3) THEN
+        RAISE EXCEPTION 'FIXTURE 73 注入3 失败:删掉【作废】那道门之后,作废发票的签发【仍然】没写成 v3(实得 %)—— 说明 C 臂拒它的不是那道门',
+            COALESCE(v_res::text, '(被拒了)');
+    END IF;
+
+    -- ── 注入 4:删掉【没有行不给签发】那道门 ──────────────────────────────────
+    -- 前提(只差这一条):invEmpty 一行明细都没有,状态是 issued,抬头已填。
+    IF (SELECT count(*) FROM invoice_lines WHERE invoice_id = invEmpty) <> 0
+       OR (SELECT status FROM invoices WHERE id = invEmpty) <> 'issued' THEN
+        RAISE EXCEPTION 'FIXTURE 73 注入4 前提不成立:要的是【没有行、且未作废】的发票';
+    END IF;
+    v_inj := replace(v_def,
+$g$    IF v_lines = 0 THEN
+        RAISE EXCEPTION 'INV_NO_LINES|%', v_inv.code;
+    END IF;
+$g$, '');
+    IF v_inj = v_def THEN
+        RAISE EXCEPTION 'FIXTURE 73 注入4 失败:在函数定义里没找到【没有行】那道门的原文 —— 这个注入什么也没删';
+    END IF;
+    EXECUTE v_inj;
+    -- 重复 D 臂原样的那次调用。期望 version = 2 而不是 1 —— 注入 2 那条侧门
+    -- 已经在 invEmpty 上留了一行 v1,而版本号读的就是现有最大值。
+    v_res := record_invoice_issue(invEmpty, 'p/x.pdf', repeat('e', 64));
+    IF (v_res->>'version') <> '2'
+       OR NOT EXISTS (SELECT 1 FROM invoice_issues WHERE invoice_id = invEmpty AND version = 2) THEN
+        RAISE EXCEPTION 'FIXTURE 73 注入4 失败:删掉【没有行】那道门之后,白纸发票的签发【仍然】没写成 v2(实得 %)—— 说明 D 臂拒它的不是那道门',
+            COALESCE(v_res::text, '(被拒了)');
+    END IF;
+
+    -- ── 注入 5:删掉【抬头没填不给签发】那道门 ────────────────────────────────
+    -- 【前提在这一个注入上最要紧】B2 臂的教训原封不动地适用:这次调用必须落在
+    -- 一张【有行、且未作废】的发票上,否则删掉抬头那道门之后,它会掉进
+    -- INV_NO_LINES 或 INV_VOIDED_NOT_ISSUABLE —— 注入报"仍然被拒",而真正的原因
+    -- 是排在前面的另一道门。invB 就是为此留的:有行、始终 issued、还没签发过。
+    UPDATE company_profile SET legal_name = '   ';
+    IF (SELECT count(*) FROM invoice_lines WHERE invoice_id = invB) = 0
+       OR (SELECT status FROM invoices WHERE id = invB) <> 'issued'
+       OR btrim((SELECT COALESCE(legal_name,'') FROM company_profile LIMIT 1)) <> '' THEN
+        RAISE EXCEPTION 'FIXTURE 73 注入5 前提不成立:要的是【有行、未作废、而抬头空着】—— 抬头必须是【唯一】没满足的那一条';
+    END IF;
+    v_inj := replace(v_def,
+$g$    IF v_name IS NULL OR v_name = '' THEN
+        RAISE EXCEPTION 'INV_PROFILE_INCOMPLETE';
+    END IF;
+$g$, '');
+    IF v_inj = v_def THEN
+        RAISE EXCEPTION 'FIXTURE 73 注入5 失败:在函数定义里没找到【抬头】那道门的原文 —— 这个注入什么也没删';
+    END IF;
+    EXECUTE v_inj;
+    v_res := record_invoice_issue(invB, 'p/b1.pdf', repeat('7', 64));
+    IF (v_res->>'version') <> '1'
+       OR NOT EXISTS (SELECT 1 FROM invoice_issues WHERE invoice_id = invB AND version = 1) THEN
+        RAISE EXCEPTION 'FIXTURE 73 注入5 失败:删掉【抬头】那道门之后,抬头空着的签发【仍然】没写成 v1(实得 %)—— 说明 B2 臂拒它的不是那道门',
+            COALESCE(v_res::text, '(被拒了)');
     END IF;
 END $$;
 ROLLBACK;
