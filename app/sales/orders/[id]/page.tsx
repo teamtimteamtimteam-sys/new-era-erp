@@ -78,6 +78,17 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
     const amendedSinceIssue =
         lastIssueAt !== null && lastAmendAt !== null && new Date(lastAmendAt) > new Date(lastIssueAt)
 
+    // SO-4b:【这张单是照哪一张报价下的】—— 反向那半条链。
+    // 判据是订单历史里的 converted_from_quote 那一行(它的 detail 就是报价单号),
+    // 而不是订单上的一个外键:转换那一刀刻意没有在 sales_orders 上加列 ——
+    // "从报价来的"是一个【发生过的事件】,而事件住在历史里。
+    const fromQuoteCode = history.find((h) => h.change_type === 'converted_from_quote')?.detail ?? null
+    const fromQuote = fromQuoteCode
+        ? (mustOne(
+              await supabase.from('quotes').select('id, code').eq('code', fromQuoteCode).maybeSingle(),
+              'quotes') as { id: string; code: string } | null)
+        : null
+
     // 改单入口的三个状态,与 amend_sales_order 的闸【同一份表】。
     // (shipped 在数据库那边还开着一条"只许加行"的缝,但它今天没有入口 ——
     //  见 docs/known-issues.md。界面永远不该比数据库更宽松,反过来是允许的。)
@@ -105,6 +116,19 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                          <dd className="inline">{new Date(o.order_date).toLocaleDateString(dl)}</dd></div>
                     <div><dt className="inline text-gray-500">{t('sales.colCurrency')}: </dt>
                          <dd className="inline">{o.currency} @ {o.fx_rate}</dd></div>
+                    {fromQuoteCode && (
+                        <div className="col-span-2"><dt className="inline text-gray-500">{t('quotes.fromQuote')}: </dt>
+                             <dd className="inline">
+                                 {fromQuote ? (
+                                     <Link href={`/sales/quotes/${fromQuote.id}`}
+                                           className="font-mono text-blue-600 hover:underline">{fromQuote.code}</Link>
+                                 ) : (
+                                     // 【报价读不到时印单号,不留白】读不到与不存在是两件事,
+                                     // 而一片空白会被读成"没有出处"
+                                     <span className="font-mono">{fromQuoteCode}</span>
+                                 )}
+                             </dd></div>
+                    )}
                     {o.cancel_reason && (
                         <div className="col-span-2"><dt className="inline text-gray-500">{t('sales.cancelReason')}: </dt>
                              <dd className="inline">{o.cancel_reason}</dd></div>

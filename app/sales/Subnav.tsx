@@ -17,7 +17,12 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 
-const ITEMS = [{ href: '/sales/orders', key: 'sales.subnav.orders' }]
+// 【报价排在订单前面 —— 顺序就是流程】报价是承诺【之前】的那张单据。
+// 两项都挂 module.sales.view,所以本文件抬头那条前提仍然成立。
+const ITEMS = [
+    { href: '/sales/quotes', key: 'sales.subnav.quotes' },
+    { href: '/sales/orders', key: 'sales.subnav.orders' },
+]
 
 export default function Subnav() {
     const pathname = usePathname()

@@ -331,6 +331,10 @@ const MANIFEST = {
     // 真源现读。加一种改动,这条检查自动跟着变宽(而漏了译文会当场红,
     // 不是在屏幕上印出 sales.changeType.header_update)。
     'sales.changeType.':    { kind: 'enum', values: () => sqlEnum('db/tables/sales_order_history.sql', 'change_type') },
+    // SO-4b:报价。状态与留痕类型接真源的 CHECK,错误码接那个 Set ——
+    // 加一种状态 / 一个错误码,这条检查自动跟着变宽。
+    'quotes.changeType.':   { kind: 'enum', values: () => sqlEnum('db/tables/quote_history.sql', 'change_type') },
+    'quotes.errors.':       { kind: 'enum', values: () => tsSet('app/sales/quotes/quoteErrorCodes.ts', 'QUOTE_ERROR_CODES') },
     // CN-1:贷项凭证。行的类型接 credit_note_lines 的 CHECK(加一种冲减类型,
     // 这条检查自动跟着变宽);错误码接那个 Set —— 与 sales.errors. 同一种读法。
     'cn.kind.':             { kind: 'enum', values: () => sqlEnum('db/tables/credit_note_lines.sql', 'kind') },

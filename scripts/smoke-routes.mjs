@@ -76,6 +76,9 @@ const ID_SOURCES = {
         // SO-1:销售订单。线上零行(这一刀只建单据,没有既有数据),
         // 所以同时列在 EXPECTED_SKIPS 里 —— 与 /inventory/locations 同一种情形。
         '/sales/orders': 'sales_orders',
+        // SO-4b:报价。线上零行(机制与屏幕先于第一张真报价落地),所以两条
+        // [id] 路由同时列在 EXPECTED_SKIPS 里 —— 开出第一张的那天它们一起响。
+        '/sales/quotes': 'quotes',
         '/sales/shipments': 'shipments',
         // CN-1:贷项凭证。线上零行(机制与屏幕先于第一张真凭证落地),
         // 所以同时列在 EXPECTED_SKIPS 里 —— 开出第一张的那天,那条断言会响。
@@ -124,6 +127,11 @@ const EXPECTED_SKIPS = new Set([
     // PROC-1b:线上还没有一份产出化验(机制与屏幕先于第一张真单据落地)。
     // 录第一张的那天,这条断言会逼人把它从这里删掉。
     '/output/[id]/assays/[assayId]',
+    // SO-4b:线上还没有一张报价(同上)。【详情页与它的 PDF 路由各算一条】——
+    // SO-3b 漏掉 pdf 那条时,这条断言报的是"新路由悄悄变成 skip",而那与
+    // "真的没数据"在屏幕上长得一模一样。
+    '/sales/quotes/[id]',
+    '/sales/quotes/[id]/pdf',
     // (CN-1 曾在这里挂过 '/finance/credit-notes/[id]' 与它的 pdf 路由 —— 线上零张
     //  贷项凭证。2026-08-15 的手走开出了第一张真凭证 CN-2026-0001 并签发了 v1,
     //  这条断言【当场响了】,正如它自己的注释所承诺的:SO-4a 的冒烟里报的是
