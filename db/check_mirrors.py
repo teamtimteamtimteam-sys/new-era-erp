@@ -198,6 +198,11 @@ DEFINER_NO_CHECK_ALLOWED = {
     # "查调用者":消费方是 reserve_stock(require_permission 过了)与 SO-1b 的
     # 改单下限。给了 authenticated 就等于把别人订单的发货进度逐行敞开。
     "line_spoken_for": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    # SO-1b:一张单的履约状态(已发 vs 已订)。同上 —— 靠"调不到"而非"查调用者":
+    # 【一处推导,两个消费方】ship_order 与 amend_sales_order,两个都 DEFINER、
+    # 都 require_permission 过 module.sales.edit。给了 authenticated 就等于任何
+    # 登录用户都能一张一张问出别人订单的履约进度,而那是 module.sales.view 的东西。
+    "sales_order_fulfilment_status": "EXECUTE revoked from PUBLIC/authenticated/anon",
     # APR-2c:审批是否生效 —— 它【必须】留给 authenticated,因为界面有义务把
     # "审批未生效"说出来(悄悄放行才是缺陷)。吐露的只有一个布尔量,而这个
     # 布尔量本来就该印在屏幕上,所以没有可检查的调用者,也没有要保护的东西。

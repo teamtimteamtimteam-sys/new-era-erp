@@ -44,11 +44,19 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
             material_id: string
             materials: { code: string; name: string; unit: string } | null }[]
 
+    // SO-1b:改单史与事件史【同表】—— 多取三列,因为一行 line_update 的全部内容
+    // 就是 "12 → 10" 与那句理由;只印 change_type 等于把留痕做成一个空标签。
     const history = mustRows(
         await supabase.from('sales_order_history')
-            .select('change_type, detail, changed_at').eq('sales_order_id', id)
+            .select('change_type, detail, changed_at, line_no, old_quantity, new_quantity, old_unit_price, new_unit_price, amend_reason')
+            .eq('sales_order_id', id)
             .order('changed_at', { ascending: false }),
-        'sales_order_history') as { change_type: string; detail: string | null; changed_at: string }[]
+        'sales_order_history') as {
+            change_type: string; detail: string | null; changed_at: string
+            line_no: number | null
+            old_quantity: number | null; new_quantity: number | null
+            old_unit_price: number | null; new_unit_price: number | null
+            amend_reason: string | null }[]
 
     const issues = mustRows(
         await supabase.from('so_issues').select('version, file_path, sha256, issued_at')
@@ -57,6 +65,23 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
 
     const dl = locale === 'zh' ? 'zh-CN' : 'en-US'
     const nextStates = SO_ALLOWED_NEXT[o.status] ?? []
+
+    // ════════════════════════════════════════════════════════════════════════
+    // SO-1b §0(b):【签发之后又改过】——「客户手里那份」与这张单据分道扬镳的信号。
+    //
+    // 判据是【最新一次改动 vs 最新一版签发档】,不是一个"脏了"的标志位。
+    // 标志位要有人去清,而没有人会记得清它;两个时间戳一比,答案永远是当下的真相。
+    // 【只数改单那四种】—— 预留、开票、发货都不改客户手里那张纸上的字。
+    const AMEND_TYPES = ['header_update', 'line_update', 'line_add', 'line_remove']
+    const lastAmendAt = history.find((h) => AMEND_TYPES.includes(h.change_type))?.changed_at ?? null
+    const lastIssueAt = issues.length > 0 ? issues[0].issued_at : null
+    const amendedSinceIssue =
+        lastIssueAt !== null && lastAmendAt !== null && new Date(lastAmendAt) > new Date(lastIssueAt)
+
+    // 改单入口的三个状态,与 amend_sales_order 的闸【同一份表】。
+    // (shipped 在数据库那边还开着一条"只许加行"的缝,但它今天没有入口 ——
+    //  见 docs/known-issues.md。界面永远不该比数据库更宽松,反过来是允许的。)
+    const amendable = ['draft', 'confirmed', 'partially_shipped'].includes(o.status)
 
     return (
         <>
@@ -86,7 +111,28 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                     )}
                 </dl>
 
+                {/* SO-1b §0(b):签发之后又改过 —— 客户手里那份已经不是这一张了 */}
+                {amendedSinceIssue && (
+                    <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-4">
+                        {t('sales.amend.amendedSinceIssue')}
+                    </div>
+                )}
+
                 <TransitionPanel orderId={o.id} status={o.status} nextStates={nextStates} />
+
+                {/* SO-1b:改单入口。【与转换按钮并排,但不是一个转换】—— 改单不动状态,
+                    它动的是这张单说了什么。三个状态才画,与数据库那道闸同一份表。 */}
+                {amendable && (
+                    <div className="mt-3 flex flex-wrap items-baseline gap-x-3">
+                        <Link href={`/sales/orders/${o.id}/amend`}
+                              className="border border-gray-400 px-3 py-1 rounded text-sm hover:bg-gray-50">
+                            {o.status === 'draft' ? t('sales.amend.editDraft') : t('sales.amend.action')}
+                        </Link>
+                        <span className="text-xs text-gray-500">
+                            {o.status === 'draft' ? t('sales.amend.editDraftHint') : t('sales.amend.actionHint')}
+                        </span>
+                    </div>
+                )}
 
                 <h2 className="font-medium mt-8 mb-2">{t('sales.form.lines')}</h2>
                 <table className="w-full border-collapse border border-gray-300 text-sm">
@@ -154,6 +200,13 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                 />
 
                 <h2 className="font-medium mt-8 mb-2">{t('sales.issues')}</h2>
+                {/* SO-1b:签发面板【旁边】也说一次 —— 这里正是"要不要重新签发"
+                    这个问题被问出来的地方,而它在页面顶部那一句可能早被滚过去了 */}
+                {amendedSinceIssue && (
+                    <p className="text-sm text-amber-900 bg-amber-50 border border-amber-300 rounded px-3 py-2 mb-2">
+                        {t('sales.amend.reissueHint')}
+                    </p>
+                )}
                 {/* 【没有"已发送"标志】系统不知道对方收没收到 —— 见 so_issues 表注释 */}
                 <IssuePanel orderId={o.id} status={o.status} />
                 <p className="text-xs text-gray-500 mb-2">{t('sales.issuesNote')}</p>
@@ -175,12 +228,26 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
 
                 <h2 className="font-medium mt-8 mb-2">{t('sales.history')}</h2>
                 <ul className="text-sm space-y-1">
-                    {history.map((h, i) => (
-                        <li key={i} className="text-gray-600">
-                            {new Date(h.changed_at).toLocaleString(dl)} · {h.change_type}
-                            {h.detail ? ` · ${h.detail}` : ''}
-                        </li>
-                    ))}
+                    {history.map((h, i) => {
+                        // SO-1b:改动的内容【印出来】—— 一行 line_update 的全部意义
+                        // 就是 "12 → 10";只印类型名等于把留痕做成一个空标签。
+                        const moves: string[] = []
+                        if (h.old_quantity !== null || h.new_quantity !== null)
+                            moves.push(`${h.old_quantity ?? '—'} → ${h.new_quantity ?? '—'}`)
+                        if (h.old_unit_price !== null || h.new_unit_price !== null)
+                            moves.push(`@ ${h.old_unit_price ?? '—'} → ${h.new_unit_price ?? '—'}`)
+                        return (
+                            <li key={i} className="text-gray-600">
+                                {new Date(h.changed_at).toLocaleString(dl)}
+                                {/* 动态前缀,后缀集合接 sales_order_history 的 CHECK(check-i18n 的清单) */}
+                                {' · '}{t('sales.changeType.' + h.change_type)}
+                                {h.line_no !== null ? ` · #${h.line_no}` : ''}
+                                {moves.length > 0 ? ` · ${moves.join(' ')}` : ''}
+                                {h.detail ? ` · ${h.detail}` : ''}
+                                {h.amend_reason ? ` · ${h.amend_reason}` : ''}
+                            </li>
+                        )
+                    })}
                 </ul>
             </div>
         </>

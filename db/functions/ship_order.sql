@@ -231,13 +231,17 @@ BEGIN
     -- ════════════════════════════════════════════════════════════════════════
     -- 【订单状态是【现算】出来的,不是人点的】已发 vs 已订,逐行比。
     -- 经 so_status_ctx 写入 —— 冻结守卫据此知道是"函数在动状态列"。
+    -- 【SO-1b:这段推导搬进了 sales_order_fulfilment_status,两个消费方读同一份】
+    -- 改单也要问同一个问题(加一行 / 把一行改到正好等于已发),抄一份过去,
+    -- 两边会在写下的那天一致、此后各自漂移。v_ordered / v_shipped 仍然算,
+    -- 因为下面那行历史要把 "已发/已订" 印出来 —— 那是【展示】,不是判据。
     -- ════════════════════════════════════════════════════════════════════════
     SELECT COALESCE(sum(l.quantity), 0) INTO v_ordered
       FROM sales_order_lines l WHERE l.sales_order_id = p_sales_order_id;
     SELECT COALESCE(sum(sl.qty), 0) INTO v_shipped
       FROM shipment_lines sl JOIN shipments s ON s.id = sl.shipment_id
      WHERE s.sales_order_id = p_sales_order_id;
-    v_status := CASE WHEN v_shipped >= v_ordered THEN 'shipped' ELSE 'partially_shipped' END;
+    v_status := sales_order_fulfilment_status(p_sales_order_id);
 
     PERFORM set_config('evoltrya.so_status_ctx', '1', true);
     UPDATE sales_orders

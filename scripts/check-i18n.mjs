@@ -327,6 +327,10 @@ const MANIFEST = {
     // 键检查自动跟着变宽,两个 locale 因此是【必须】而不是可选。
     'notifications.event.': { kind: 'enum', values: () => sqlEnum('db/tables/notifications.sql', 'event_type') },
     'sales.errors.':        { kind: 'enum', values: () => tsSet('app/sales/orders/salesOrderErrorCodes.ts', 'SALES_ORDER_ERROR_CODES') },
+    // SO-1b:订单留痕的改动类型 —— 后缀集合就是 sales_order_history 的 CHECK,
+    // 真源现读。加一种改动,这条检查自动跟着变宽(而漏了译文会当场红,
+    // 不是在屏幕上印出 sales.changeType.header_update)。
+    'sales.changeType.':    { kind: 'enum', values: () => sqlEnum('db/tables/sales_order_history.sql', 'change_type') },
     'processing.errors.':   { kind: 'enum', values: () => tsSet('app/processing/errorCodes.ts', 'PROCESSING_ERROR_CODES') },
     'finance.accountType.': { kind: 'enum', values: () => sqlEnum('db/tables/accounts.sql', 'account_type') },
     'finance.aging.':       { kind: 'enum', values: () => tsArray('app/finance/agingBuckets.ts', 'BUCKETS') },

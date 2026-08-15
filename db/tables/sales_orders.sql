@@ -62,6 +62,13 @@ CREATE TRIGGER trg_sales_orders_confirmed_immutable
     BEFORE UPDATE ON public.sales_orders
     FOR EACH ROW EXECUTE FUNCTION public.guard_sales_order_confirmed_immutable();
 
+-- SO-1b:表头的改单留痕。【只在改单上下文里写】—— 草稿的编辑不设那个标记,
+-- 于是"草稿不进改单历史"是同一个机制的推论,不是第二条规则。
+-- 状态转换也不进来:它们走 so_status_ctx,而且各自在 change_type 上已有一行。
+CREATE TRIGGER trg_sales_orders_history
+    AFTER UPDATE ON public.sales_orders
+    FOR EACH ROW EXECUTE FUNCTION public.trg_so_history_header();
+
 -- ═══ 9 · RLS —— 跟着 sales_records 自己的那一对码 ═══════════════════════════
 ALTER TABLE public.sales_orders        ENABLE ROW LEVEL SECURITY;
 

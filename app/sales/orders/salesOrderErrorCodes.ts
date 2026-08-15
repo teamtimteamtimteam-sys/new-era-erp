@@ -55,6 +55,27 @@ const SALES_ORDER_ERROR_CODES = new Set([
     // 与库存那一族共用的两个码(建单也会撞上):日期必填、币种不认识
     'ORDER_DATE_REQUIRED',
     'CURRENCY_INVALID',
+    // SO-1b:改单。【前六条操作员天天会撞上】—— 这张单改不了、忘了写理由、
+    // 这一行已经开了票、砍到已发之下、砍到预留之下、以及三种"这一行删不掉"。
+    // 每一条都在说一件人听得懂的事,而且都带着【下一步】:作废那张票、
+    // 先释放预留、改成正好等于已发、另起一行。
+    'SO_NOT_AMENDABLE',
+    'SO_AMEND_REASON_REQUIRED',
+    'SO_AMEND_LINE_INVOICED',
+    'SO_LINE_BELOW_SHIPPED',
+    'SO_LINE_BELOW_RESERVED',
+    'SO_LINE_HAS_SHIPMENTS',
+    'SO_LINE_HAS_INVOICE',
+    'SO_LINE_HAS_RESERVATIONS',
+    // SO-1b fu1:【第四个名字,而且它不可操作】—— 一条释放过的预留、一行作废了的
+    // 发票,都是只增不改的档案,而外键盯的是订单行【在不在】,不是它活不活。
+    // 不并进上面那条"请先释放预留":对一条已经释放过的预留,那句话无解,
+    // 而一个指不出下一步的消息与一句外键约束名一样没用。
+    'SO_LINE_HAS_RECORD',
+    'SO_AMEND_LINE_INVALID',
+    // 结构性:正常路径撞不到(表单只按 id 删、只递这张单上的行),撞上时说人话
+    'SO_LINE_NOT_FOUND',
+    'SO_LINE_REMOVE_NEEDS_ID',
 ])
 
 const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/

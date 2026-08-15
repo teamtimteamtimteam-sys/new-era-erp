@@ -38,9 +38,18 @@ type ReservationRow = {
     qty: number
     created_at: string
     released_at: string | null
+    // SO-3b:一条预留有【两种】终局 —— 释放(货回到 available)与消耗(发货,
+    // 货离开台账)。只看 released_at 会把已经发出去的那一条画成"还许着",
+    // 而且给它一个【释放】按钮 —— 那个按钮按下去必然被拒。
+    consumed_at: string | null
     release_reason: string | null
     output_batches: { code: string; unit: string } | null
     storage_locations: { code: string; name: string } | null
+}
+type ConsumedRow = {
+    reservation_id: string
+    qty: number
+    shipments: { id: string; code: string } | null
 }
 
 export default async function ReservationSection({
@@ -66,12 +75,26 @@ export default async function ReservationSection({
               await supabase
                   .from('sales_order_reservations')
                   .select(
-                      'id, sales_order_line_id, output_batch_id, location_id, qty, created_at, released_at, release_reason, output_batches ( code, unit ), storage_locations ( code, name )'
+                      'id, sales_order_line_id, output_batch_id, location_id, qty, created_at, released_at, consumed_at, release_reason, output_batches ( code, unit ), storage_locations ( code, name )'
                   )
                   .in('sales_order_line_id', lineIds)
                   .order('created_at'),
               'sales_order_reservations'
           ) as unknown as ReservationRow[])) as ReservationRow[]
+
+    // SO-3b fu5:已经【消耗掉】的那些预留,各自变成了哪一张发货单的一行。
+    // 屏幕上要能说出"它去哪了",而不是只把它从活预留里减掉 —— 一条消失的
+    // 预留与一条从来不存在的预留长得一模一样。
+    const consumedRows = (lineIds.length === 0
+        ? []
+        : (mustRows(
+              await supabase
+                  .from('shipment_lines')
+                  .select('reservation_id, qty, shipments ( id, code )')
+                  .in('sales_order_line_id', lineIds),
+              'shipment_lines'
+          ) as unknown as ConsumedRow[])) as ConsumedRow[]
+    const shipByReservation = new Map(consumedRows.map((r) => [r.reservation_id, r.shipments]))
 
     // 候选:这一行的物料【还活着】的产出批次,按桶(批次 × 库位)列出可用量。
     const canSeeStock = await can('module.inventory.view')
@@ -124,7 +147,12 @@ export default async function ReservationSection({
         }
     }
 
-    const isConfirmed = status === 'confirmed'
+    // SO-3b fu5:【partially_shipped 的单仍然是活的】—— 剩下的行还要预留、还要发。
+    // reserve_stock 早就收 partially_shipped(fu1 有意放开的:只认 confirmed 会让
+    // 任何多行订单在第一次发货之后就再也走不下去),而这张页面还只画 confirmed 的
+    // 控件 —— 于是数据库允许的事,屏幕上没有入口。界面可以比数据库严,但那要是
+    // 一个【决定】;这里不是,这里是漏了。
+    const isReservable = status === 'confirmed' || status === 'partially_shipped'
 
     return (
         <section className="mt-8">
@@ -132,7 +160,7 @@ export default async function ReservationSection({
             <p className="text-xs text-gray-500 mb-3">{t('sales.reserve.note')}</p>
 
             {/* 【禁用的理由长在控件旁边】—— 不是等人点了才说 */}
-            {!isConfirmed && (
+            {!isReservable && (
                 <p className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-3">
                     {/* 【静态映射,不拼动态键】soStatusKey 是那一份唯一的表 */}
                     {t('sales.reserve.onlyConfirmed', { status: t(soStatusKey(status)) })}
@@ -142,10 +170,16 @@ export default async function ReservationSection({
             <div className="space-y-4">
                 {lines.map((l) => {
                     const mine = reservations.filter((r) => r.sales_order_line_id === l.id)
-                    const active = mine.filter((r) => r.released_at === null)
+                    // 【三堆,不是两堆】活着的 / 已发掉的 / 放回去的
+                    const active = mine.filter((r) => r.released_at === null && r.consumed_at === null)
+                    const consumed = mine.filter((r) => r.consumed_at !== null)
                     const released = mine.filter((r) => r.released_at !== null)
                     const reserved = active.reduce((s, r) => s + Number(r.qty), 0)
-                    const room = Number(l.quantity) - reserved
+                    const shipped = consumed.reduce((s, r) => s + Number(r.qty), 0)
+                    // 【已许出去 = 已发 + 活预留】—— 与 line_spoken_for 同一个口径,
+                    // 而那正是 reserve_stock 的天花板读的那一个。屏幕上写着另一个数,
+                    // 人就会以为还能再许一点,然后撞一次 SO_RESERVE_EXCEEDS_LINE。
+                    const room = Number(l.quantity) - reserved - shipped
 
                     return (
                         <div key={l.id} className="border border-gray-300 rounded p-3">
@@ -155,13 +189,18 @@ export default async function ReservationSection({
                                     <span className="text-gray-500">{l.material_name}</span>
                                 </span>
                                 <span className="text-sm">
-                                    <span className="text-gray-600">{t('sales.reserve.reservedLabel')}:</span>{' '}
+                                    <span className="text-gray-600">{t('sales.reserve.spokenForLabel')}:</span>{' '}
                                     <span className="font-mono">
-                                        {reserved} / {l.quantity} {l.unit}
+                                        {reserved + shipped} / {l.quantity} {l.unit}
                                     </span>
                                 </span>
+                                {shipped > 0 && (
+                                    <span className="text-sm text-gray-600">
+                                        {t('sales.reserve.ofWhichShipped', { qty: String(shipped) })}
+                                    </span>
+                                )}
                                 {/* 【零要说出来】留白读起来像"没加载出来" */}
-                                {reserved === 0 && (
+                                {reserved + shipped === 0 && (
                                     <span className="text-sm text-gray-500">{t('sales.reserve.nothingReserved')}</span>
                                 )}
                             </div>
@@ -189,6 +228,36 @@ export default async function ReservationSection({
                                 </ul>
                             )}
 
+                            {/* 【已发掉的预留:陈述,不给按钮】它的货已经离开台账,
+                                释放它必然被拒(SO_RESERVATION_ALREADY_SHIPPED)——
+                                摆一个注定失败的按钮比不摆更坏。链到那张发货单,
+                                因为"它去哪了"才是这里唯一还没被回答的问题。 */}
+                            {consumed.length > 0 && (
+                                <ul className="text-sm space-y-1 mb-2">
+                                    {consumed.map((r) => {
+                                        const shp = shipByReservation.get(r.id) ?? null
+                                        return (
+                                            <li key={r.id} className="flex flex-wrap items-baseline gap-x-3 text-gray-600">
+                                                <span className="font-mono">{r.output_batches?.code ?? '—'}</span>
+                                                <span className="font-mono">
+                                                    {r.qty} {r.output_batches?.unit ?? l.unit}
+                                                </span>
+                                                <span>
+                                                    {t('sales.reserve.consumedBy', { code: shp?.code ?? '—' })}
+                                                </span>
+                                                {shp && (
+                                                    <a href={`/sales/shipments/${shp.id}/pdf`} target="_blank"
+                                                       rel="noopener noreferrer"
+                                                       className="text-blue-600 hover:underline text-xs">
+                                                        {t('sales.ship.deliveryNote')}
+                                                    </a>
+                                                )}
+                                            </li>
+                                        )
+                                    })}
+                                </ul>
+                            )}
+
                             {released.length > 0 && (
                                 <details className="text-xs text-gray-500 mb-2">
                                     <summary className="cursor-pointer">
@@ -207,7 +276,7 @@ export default async function ReservationSection({
                                 </details>
                             )}
 
-                            {isConfirmed &&
+                            {isReservable &&
                                 (canSeeStock ? (
                                     <ReserveControl
                                         orderId={orderId}

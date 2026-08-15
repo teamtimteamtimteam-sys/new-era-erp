@@ -6684,28 +6684,61 @@ export type Database = {
       }
       sales_order_history: {
         Row: {
+          amend_reason: string | null
           change_type: string
           changed_at: string
           changed_by: string | null
           detail: string | null
           id: string
+          line_no: number | null
+          new_notes: string | null
+          new_quantity: number | null
+          new_terms_text: string | null
+          new_unit_price: number | null
+          old_notes: string | null
+          old_quantity: number | null
+          old_terms_text: string | null
+          old_unit_price: number | null
           sales_order_id: string
+          sales_order_line_id: string | null
         }
         Insert: {
+          amend_reason?: string | null
           change_type: string
           changed_at?: string
           changed_by?: string | null
           detail?: string | null
           id?: string
+          line_no?: number | null
+          new_notes?: string | null
+          new_quantity?: number | null
+          new_terms_text?: string | null
+          new_unit_price?: number | null
+          old_notes?: string | null
+          old_quantity?: number | null
+          old_terms_text?: string | null
+          old_unit_price?: number | null
           sales_order_id: string
+          sales_order_line_id?: string | null
         }
         Update: {
+          amend_reason?: string | null
           change_type?: string
           changed_at?: string
           changed_by?: string | null
           detail?: string | null
           id?: string
+          line_no?: number | null
+          new_notes?: string | null
+          new_quantity?: number | null
+          new_terms_text?: string | null
+          new_unit_price?: number | null
+          old_notes?: string | null
+          old_quantity?: number | null
+          old_terms_text?: string | null
+          old_unit_price?: number | null
           sales_order_id?: string
+          sales_order_line_id?: string | null
         }
         Relationships: [
           {
@@ -11796,6 +11829,15 @@ export type Database = {
         }
         Returns: Json
       }
+      amend_sales_order: {
+        Args: {
+          p_header?: Json
+          p_lines?: Json
+          p_order_id: string
+          p_reason: string
+        }
+        Returns: Json
+      }
       annual_leave_available_from: {
         Args: { p_days: number; p_employee_id: string; p_from?: string }
         Returns: string
@@ -12618,6 +12660,10 @@ export type Database = {
       rollback_processing_run: {
         Args: { p_run_id: string }
         Returns: undefined
+      }
+      sales_order_fulfilment_status: {
+        Args: { p_sales_order_id: string }
+        Returns: string
       }
       save_self_assessment: {
         Args: {

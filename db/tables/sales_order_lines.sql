@@ -40,6 +40,20 @@ CREATE TRIGGER trg_sales_order_lines_confirmed_immutable
     BEFORE INSERT OR UPDATE OR DELETE ON public.sales_order_lines
     FOR EACH ROW EXECUTE FUNCTION public.guard_sales_order_line_confirmed_immutable();
 
+-- SO-1b:三条下限 —— 已发(硬)、已开票(冻)、已预留(软)。
+-- 【名字排在上面那个之后】(c < f):同级 BEFORE 触发器按名字排,于是直连的
+-- 那条路先撞上"确认之后行是冻的",而不是先撞上一条下限 —— 后者会让人以为
+-- "只要数量够大就能直连改行"。
+CREATE TRIGGER trg_sales_order_lines_floors
+    BEFORE UPDATE OR DELETE ON public.sales_order_lines
+    FOR EACH ROW EXECUTE FUNCTION public.guard_sales_order_line_floors();
+
+-- SO-1b:明细的改单留痕。见 sales_orders 上那一支 —— 只在改单上下文里写,
+-- 所以建单的那一批行不记(否则每张新单都会先长出一份"全是新增"的历史)。
+CREATE TRIGGER trg_sales_order_lines_history
+    AFTER INSERT OR UPDATE OR DELETE ON public.sales_order_lines
+    FOR EACH ROW EXECUTE FUNCTION public.trg_so_history_line();
+
 ALTER TABLE public.sales_order_lines   ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "sales_order_lines select by permission" ON public.sales_order_lines

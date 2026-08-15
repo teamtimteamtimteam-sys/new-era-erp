@@ -135,10 +135,32 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 63D 失败:确认之后加行应当按名拒,实得:%', COALESCE(v_msg, '(加成功了)');
     END IF;
 
-    -- 【没冻的那一半真的能改】—— 备注不改变这笔交易是什么
-    UPDATE sales_orders SET notes = 'still editable after confirm' WHERE id = so1;
+    -- ════════════════════════════════════════════════════════════════════════
+    -- 【没冻的那一半真的能改 —— 但从 SO-1b 起,"能改"换了一条路】
+    --
+    -- 写下这一臂的那天,这里是一句直连的 UPDATE:备注不改变这笔交易是什么,
+    -- 所以它不在冻结之列。**SO-1b 把 notes 与 terms_text 也收进了名单**,
+    -- 理由是 §0(b):terms_text 会印在客户手里那份 PDF 上,而直连改它不留痕迹、
+    -- 不升版本 —— 一张已经签发出去的单,它的条款可以在客户不知情的情况下与
+    -- 客户手里那份分道扬镳,而系统对此一言不发。
+    --
+    -- 【这一臂要测的东西一个字没变】:全冻与只冻一半都是错的。变的是"能改"
+    -- 这条路 —— 现在它是【改单】,而改单会留下一行带理由的历史。
+    -- 所以这不是回归,是一次有意的规则变化,记在这里而不是把断言删掉。
+    -- ════════════════════════════════════════════════════════════════════════
+    v_ok := false; v_msg := NULL;
+    BEGIN
+        UPDATE sales_orders SET notes = 'sneaked in directly' WHERE id = so1;
+    EXCEPTION WHEN OTHERS THEN GET STACKED DIAGNOSTICS v_msg = MESSAGE_TEXT;
+        v_ok := v_msg LIKE 'SO_CONFIRMED_IMMUTABLE|notes|%'; END;
+    IF NOT v_ok THEN
+        RAISE EXCEPTION 'FIXTURE 63D 失败:确认之后【直连】改备注应当按名拒(SO-1b §0(b)),实得:%',
+            COALESCE(v_msg, '(改成功了)');
+    END IF;
+    PERFORM amend_sales_order(so1, '改一句备注',
+        jsonb_build_object('notes', 'still editable after confirm'), NULL);
     IF (SELECT notes FROM sales_orders WHERE id = so1) IS DISTINCT FROM 'still editable after confirm' THEN
-        RAISE EXCEPTION 'FIXTURE 63D 失败:备注不在冻结之列,应当改得动 —— 全冻与只冻一半都是错的';
+        RAISE EXCEPTION 'FIXTURE 63D 失败:备注仍然应当改得动 —— 只是要走【改单】那扇门。全冻与只冻一半都是错的';
     END IF;
 
     -- 草稿仍然随便改

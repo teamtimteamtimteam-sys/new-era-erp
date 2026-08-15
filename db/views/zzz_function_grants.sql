@@ -94,3 +94,8 @@ REVOKE EXECUTE ON FUNCTION public.next_shipment_code(date) FROM authenticated;
 -- SO-1b 的改单下限。它读的是订单行的履约情况,而那是 module.sales.view 的东西;
 -- 给了 authenticated 就等于任何登录用户都能一行一行问出别人订单的发货进度。
 REVOKE EXECUTE ON FUNCTION public.line_spoken_for(uuid) FROM authenticated;
+-- SO-1b:"这张单发完了没有"(已发 vs 已订)。同上 —— 没有调用者检查,靠的就是
+-- 调不到;两个消费方 ship_order 与 amend_sales_order 都是 DEFINER、都要
+-- module.sales.edit,以属主身份执行。给了 authenticated 就等于任何登录用户都能
+-- 一张一张问出别人订单的履约进度,而那是 module.sales.view 的东西。
+REVOKE EXECUTE ON FUNCTION public.sales_order_fulfilment_status(uuid) FROM authenticated;
