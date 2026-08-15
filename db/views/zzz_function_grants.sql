@@ -104,3 +104,9 @@ REVOKE EXECUTE ON FUNCTION public.sales_order_fulfilment_status(uuid) FROM authe
 -- 给了 authenticated 就等于任何登录用户都能凭空烧掉一个无缝单号,而无缝的意思
 -- 正是"号码之间没有洞"。
 REVOKE EXECUTE ON FUNCTION public.next_credit_note_code(date) FROM authenticated;
+-- SO-4a:报价的取号器。同上 —— 无调用者检查,靠的就是调不到。
+-- 【而建报价【走直连】,没有 RPC 门可以代取】—— 两者放在一起,客户端就永远
+-- 拿不到号。解法不是把它授出去,是让号【根本不由客户端取】:
+-- generate_quote_code(BEFORE INSERT,属主身份)在同一条语句里补上,
+-- 先例是 customers.generate_customer_code。客户端插的是一行没有号的报价。
+REVOKE EXECUTE ON FUNCTION public.next_quote_code(date) FROM authenticated;

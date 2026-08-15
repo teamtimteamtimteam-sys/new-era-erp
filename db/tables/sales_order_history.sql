@@ -30,7 +30,10 @@ CREATE TABLE public.sales_order_history (
                     -- CN-1:开了一张贷项凭证。看订单的人问"这张单后来减过账没有",
                     -- 那个问题的答案不该要求他先去翻发票列表(与 invoiced /
                     -- invoice_voided 同一条)。
-                    'credit_noted')),
+                    'credit_noted',
+                    -- SO-4a:这张单是照哪一张报价下的。从订单看不出它的出处,
+                    -- 正是三个月后有人会问的第一个问题。
+                    'converted_from_quote')),
     detail         text,
     changed_at     timestamptz NOT NULL DEFAULT now(),
     changed_by     uuid DEFAULT auth.uid(),

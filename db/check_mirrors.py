@@ -213,14 +213,31 @@ CHECK_PATTERNS = ("require_permission(", "has_permission(", "current_user_employ
                   "is_reviewer_of(", "require_reviewer_of(")
 
 
+def strip_sql_comments(sql: str) -> str:
+    """去掉整行的 SQL 注释。【注释里提一句不是一次引用】—— 与
+    account_codes_in_text / scan_literals 同一条,只是这里是给判词用的。
+
+    【为什么需要它:SO-4a 实测】quote_is_expired 的函数体注释里写着
+    "不是 SECURITY DEFINER,所以不进 B2 那道判词",而下面那句判据是一次朴素的
+    子串匹配 —— 于是【那句解释自己】把这个函数判成了 SECURITY DEFINER,
+    definer 判词当场报了一个不存在的缺口。
+    两个方向都因此更准:一个只在注释里提过 require_permission 的函数,
+    此后也不再被算作"有调用者检查"。
+    """
+    return "\n".join(l for l in sql.splitlines() if not l.lstrip().startswith("--"))
+
+
 def definer_without_caller_check() -> list:
-    """扫 db/functions:SECURITY DEFINER 且看不出任何调用者检查的函数。"""
+    """扫 db/functions:SECURITY DEFINER 且看不出任何调用者检查的函数。
+
+    【判据只看代码,不看注释】见 strip_sql_comments 的抬头。
+    """
     bad = []
     for f in sorted((REPO / "db" / "functions").glob("*.sql")):
         txt = f.read_text()
         for m in re.finditer(r"CREATE OR REPLACE FUNCTION\s+public\.([a-z0-9_]+)\s*\((.*?)\)\s*\n(.*?)(?=\nCREATE OR REPLACE FUNCTION|\Z)",
                              txt, re.S):
-            name, body = m.group(1), m.group(3)
+            name, body = m.group(1), strip_sql_comments(m.group(3))
             if "SECURITY DEFINER" not in body:
                 continue
             if re.search(r"\bRETURNS\s+trigger\b", body, re.I):

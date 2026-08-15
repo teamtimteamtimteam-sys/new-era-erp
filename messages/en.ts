@@ -1511,6 +1511,7 @@ const en = {
             line_add: 'amended — line added',
             line_remove: 'amended — line removed',
             credit_noted: 'credit note raised',
+            converted_from_quote: 'converted from quote',
         },
         // ── SO-3b:shipment ──────────────────────────────────────────────────
         ship: {

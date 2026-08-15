@@ -6563,6 +6563,257 @@ export type Database = {
           },
         ]
       }
+      qt_issues: {
+        Row: {
+          file_path: string
+          id: string
+          issued_at: string
+          issued_by: string | null
+          quote_id: string
+          sha256: string
+          version: number
+        }
+        Insert: {
+          file_path: string
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          quote_id: string
+          sha256: string
+          version: number
+        }
+        Update: {
+          file_path?: string
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          quote_id?: string
+          sha256?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qt_issues_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quote_status"
+            referencedColumns: ["quote_id"]
+          },
+          {
+            foreignKeyName: "qt_issues_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_history: {
+        Row: {
+          change_type: string
+          changed_at: string
+          changed_by: string | null
+          detail: string | null
+          id: string
+          quote_id: string
+        }
+        Insert: {
+          change_type: string
+          changed_at?: string
+          changed_by?: string | null
+          detail?: string | null
+          id?: string
+          quote_id: string
+        }
+        Update: {
+          change_type?: string
+          changed_at?: string
+          changed_by?: string | null
+          detail?: string | null
+          id?: string
+          quote_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_history_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quote_status"
+            referencedColumns: ["quote_id"]
+          },
+          {
+            foreignKeyName: "quote_history_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_lines: {
+        Row: {
+          created_at: string
+          id: string
+          line_no: number
+          material_id: string
+          notes: string | null
+          price_provenance: Json | null
+          price_source: string | null
+          quantity: number
+          quote_id: string
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          line_no: number
+          material_id: string
+          notes?: string | null
+          price_provenance?: Json | null
+          price_source?: string | null
+          quantity: number
+          quote_id: string
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          line_no?: number
+          material_id?: string
+          notes?: string | null
+          price_provenance?: Json | null
+          price_source?: string | null
+          quantity?: number
+          quote_id?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_lines_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "material_stock_available"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "quote_lines_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_lines_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stock_snapshot"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "quote_lines_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quote_status"
+            referencedColumns: ["quote_id"]
+          },
+          {
+            foreignKeyName: "quote_lines_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotes: {
+        Row: {
+          code: string
+          converted_order_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_id: string
+          decline_reason: string | null
+          deleted_at: string | null
+          fx_rate: number
+          id: string
+          notes: string | null
+          quote_date: string
+          status: string
+          terms_text: string | null
+          updated_at: string
+          updated_by: string | null
+          valid_until: string
+        }
+        Insert: {
+          code: string
+          converted_order_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          customer_id: string
+          decline_reason?: string | null
+          deleted_at?: string | null
+          fx_rate: number
+          id?: string
+          notes?: string | null
+          quote_date: string
+          status?: string
+          terms_text?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          valid_until: string
+        }
+        Update: {
+          code?: string
+          converted_order_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_id?: string
+          decline_reason?: string | null
+          deleted_at?: string | null
+          fx_rate?: number
+          id?: string
+          notes?: string | null
+          quote_date?: string
+          status?: string
+          terms_text?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          valid_until?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_converted_order_id_fkey"
+            columns: ["converted_order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "quotes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_credit_status"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "quotes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       review_cycles: {
         Row: {
           created_at: string
@@ -11717,6 +11968,60 @@ export type Database = {
           },
         ]
       }
+      quote_status: {
+        Row: {
+          amended_since_issue: boolean | null
+          code: string | null
+          converted_order_code: string | null
+          converted_order_id: string | null
+          convertible: boolean | null
+          currency: string | null
+          customer_code: string | null
+          customer_id: string | null
+          customer_name: string | null
+          decline_reason: string | null
+          expired: boolean | null
+          fx_rate: number | null
+          issue_version: number | null
+          notes: string | null
+          quote_date: string | null
+          quote_id: string | null
+          status: string | null
+          terms_text: string | null
+          updated_at: string | null
+          valid_until: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_converted_order_id_fkey"
+            columns: ["converted_order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "quotes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_credit_status"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "quotes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_records_masked: {
         Row: {
           amount_base: number | null
@@ -12266,6 +12571,10 @@ export type Database = {
         Args: { p_employee_id: string; p_leave_year: number }
         Returns: number
       }
+      convert_quote: {
+        Args: { p_order_date: string; p_quote_id: string }
+        Returns: Json
+      }
       create_credit_note: {
         Args: {
           p_invoice_id: string
@@ -12382,6 +12691,10 @@ export type Database = {
       }
       decide_medical_claim: {
         Args: { p_approve: boolean; p_claim_id: string; p_notes?: string }
+        Returns: Json
+      }
+      decline_quote: {
+        Args: { p_quote_id: string; p_reason: string }
         Returns: Json
       }
       depreciate_fixed_assets: { Args: { p_period_end: string }; Returns: Json }
@@ -12554,6 +12867,7 @@ export type Database = {
       next_payroll_code: { Args: { p_date?: string }; Returns: string }
       next_pricing_formula_code: { Args: { p_date?: string }; Returns: string }
       next_purchase_order_code: { Args: { p_date?: string }; Returns: string }
+      next_quote_code: { Args: { p_date?: string }; Returns: string }
       next_sales_order_code: { Args: { p_date?: string }; Returns: string }
       next_shipment_code: { Args: { p_date: string }; Returns: string }
       notify_class_violations: {
@@ -12679,6 +12993,7 @@ export type Database = {
         Args: { p_formula_id: string }
         Returns: Json
       }
+      quote_is_expired: { Args: { p_valid_until: string }; Returns: boolean }
       receive_inbound_batch_against_po: {
         Args: {
           p_arrival_date?: string
@@ -12799,6 +13114,10 @@ export type Database = {
       }
       record_po_issue: {
         Args: { p_file_path: string; p_po_id: string; p_sha256: string }
+        Returns: Json
+      }
+      record_qt_issue: {
+        Args: { p_file_path: string; p_quote_id: string; p_sha256: string }
         Returns: Json
       }
       record_shipment_issue: {

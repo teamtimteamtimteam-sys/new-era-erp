@@ -1509,6 +1509,7 @@ const zh = {
             line_add: '改单 —— 加行',
             line_remove: '改单 —— 删行',
             credit_noted: '开贷项凭证',
+            converted_from_quote: '由报价转来',
         },
         // ── SO-3b:发货 ──────────────────────────────────────────────────────
         ship: {
