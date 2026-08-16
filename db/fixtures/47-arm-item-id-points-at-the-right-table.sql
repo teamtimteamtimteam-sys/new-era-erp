@@ -256,6 +256,10 @@ BEGIN
             WHEN 'qualification_missing'     THEN 'suppliers'
             WHEN 'credit_over_limit'         THEN 'customers'
             WHEN 'output_unsold_aging'       THEN 'output_batches'
+            -- EXEC-1a:行情陈旧的门牌指【最近那一条报价】。"这个金属"本身没有 id,
+            -- 而人要去看、要接着往下录的就是那一行。
+            WHEN 'metal_quote_stale'         THEN 'metal_prices'
+            WHEN 'orders_unfulfilled'        THEN 'sales_orders'
             -- SS-1:补救动作在物料页上(改阈值,或从那里出发去补货)
             WHEN 'safety_stock_below'        THEN 'materials'
             WHEN 'leave_pending'             THEN 'leave_requests'

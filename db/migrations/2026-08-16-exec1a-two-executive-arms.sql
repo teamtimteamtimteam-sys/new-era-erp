@@ -1,88 +1,43 @@
--- OPS-18(Phase 6):operations_now —— 全站"正在等人处理的事",一件一行
+-- EXEC-1a:两支高管臂 —— 行情陈旧、未履约订单
 --
--- 【为什么是一张视图而不是九个页面各查各的】仪表盘的每一块牌子背后都是"有多少件
--- 事在等"这一类问题;九个问题九处写,就是九份会各自漂移的实现。hr_alerts 已经证明
--- 过这个形状:一个 UNION,每一种等待状态一支,页面只负责画。
+-- 规格取自 docs/exec-views-plan.md §2(Sandra 的 a 与 c)与
+-- docs/dashboard-arm-inventory.md 里的 ASY-3 那一节。两份文件的分工照旧:
+-- 支的规格写在 arm inventory,归属写在 plan doc,这一刀两边都不复制。
 --
--- 【属主权限 + 每支自带 permission 列,外层一次性把关】(OPS-14 修法 (a))。
--- 本视图横跨六个模块,invoker 会让 RLS 把读者无权模块的行【静默丢掉】—— 行消失
--- 在这里意味着"那个数少算了",而不是报错。属主权限读全量,外层
--- WHERE has_permission(a.permission) 按【调用者】逐支裁决:无权的支【整支缺席】,
--- 不是零。谓词写一次而不是九遍 —— hr_alerts 的注释说过,复述 N 遍只会给下一个
--- 加支的人留一个漏写的机会;这里每支【声明】自己的权限码,外层【执行】它。
+-- ── 这一刀装了什么 ────────────────────────────────────────────────────────
+--   ① pricing_settings 多一列:行情陈旧的天数阈值(NOT NULL DEFAULT 14)——
+--      ASY-3 报告为它留的那一列。METAL-1 建这张表时就是为了这一刻:
+--      "两件事都是【行情这个序列现在不可信】,一个因为它错,一个因为它旧"。
+--   ② operations_now 多两支。视图的列契约一字未动,只是 UNION 里多了两个分支。
 --
--- 【缺席 ≠ 零,页面必须自己分辨】视图对无权读者不发一行,于是"没有行"有两种
--- 含义:真的零,或者你看不见。app/page.tsx 先查权限再渲染每块牌子 —— 无权显示
--- 「受限」(common.restricted),绝不显示 0。这是仪表盘最容易犯、且任何 gate 都
--- 查不出的那个错(0 与"你看不见"在屏幕上一模一样 —— moduleGuard 的老病换了件衣服)。
+-- 【为什么阈值默认 14 而不是 7 或 30】实测(ASY-3,2026-08-10):有史以来只有
+-- 3 个行情日、分 2 次录入,四个金属各只有一条报价。按这个"六周两次"的节奏,
+-- 7 天会天天响 —— 一个天天响的警报等于没有警报;30 天则要等到 average 口径
+-- 已经开始跳过那个金属之后才响,那时数字已经错了。14 是这两者之间的一次决定,
+-- 而【它住在可见配置里】,所以它是一个可以被改的决定,不是一个藏起来的假设。
 --
--- 【item_type 写成 'x'::text 字面量】check-i18n 的 sqlLiteralAs 解析器现读本文件,
--- dashboard.item.* 的后缀集合就是这里的支列表 —— 加一支,键检查自动跟着变宽。
---
--- 【两笔贵的读数,按界所限】(OPS-16 报告点名的两处):
---   * fx_rate_gaps 按 (日期,币种) 对每组跑 fx_rate_asof,本身不受期间约束 ——
---     这里限 rate_date >= CURRENT_DATE - 45:仪表盘答"最近有没有漏",完整历史
---     归 /finance/month-end 按月翻。谓词落在分组键上,能下推进聚合。
---   * 银行对账这支【只数报表侧的未匹配行】(bank_statement_lines,行数 = 导入量,
---     天然有界)。bank_reconciliation_status 的账簿侧 LATERAL 要扫 journal_lines
---     全表 —— 那是对账页的活,不上人人都开的首页。
---
--- 【不在此列的】批次毛利 —— 有未决的设计问题(哪些限定词随数字走、已过账 COGS
--- 还是当前成本),自成一切,谓词已录在 AGENTS.md 常设决定 2。月结的七个信号 ——
--- /finance/month-end 是它们的枢纽,首页放一个入口,不复制信号。
---
--- NOTE: introduced by db/migrations/2026-08-09-ops18-operations-now-and-the-dashboard.sql.
--- EXEC-1a(2026-08-16):两支高管臂 —— metal_quote_stale(行情陈旧,阈值现读
--- pricing_settings.metal_quote_stale_days,按 price_date 不按 created_at)与
--- orders_unfulfilled(confirmed / partially_shipped 的订单)。规格见
--- docs/dashboard-arm-inventory.md;【谁要看哪一支】见 docs/exec-views-plan.md。
---
--- OPS-19(2026-08-09):补上原始定稿漏掉的四支(awaiting_assay / batch_unpriced /
--- invoice_overdue / ar_over_90 + ap_over_90),并新增 output_unsold_aging —— sales
--- 这一行唯一够得着的支(它没有 module.finance.view,当初猜的 AR 支对它同样是「受限」)。
--- assay_unapplied 的粒度同时从"一份未执行化验一行"改成"一个批次一行",与
--- awaiting_assay 同源同粒度、互斥;live 该支当时为 0,故不改变任何现有数字。
---
--- CMP-1(2026-08-09):两支资质臂。qualification_expiring 到【类型自己的 lead days】就上牌,
--- 过期后【不落牌、无 -30 天下限】—— 工作证过期 30 天人已走,证书过期两年而进场仍可能,
--- 它就还站在那儿(live 那张 2024 年就过期的 Article 18 正是证据)。续期(valid_until
--- 前移)即安静。qualification_missing 是"一张证都没有"的缺席臂(与 awaiting_assay /
--- assay_unapplied 的分立同理)。disposition='ignore' 的类型不上牌。
--- 【规格在 docs/dashboard-arm-inventory.md】每一支是什么意思、挂哪个权限码、界在
--- 哪里、以及【哪些支被考虑过又被排除、为什么】都在那里。
--- 定稿只存在于一次对话里,代价是四支 —— 所以规矩是:
--- 【加一支 = 在同一个提交里往那份清单加一行】。
---
--- MAR-1(2026-08-10):支的权限从【一个码】放宽到【一个谓词】—— permission(必须有)
--- + permission_any(任意其一,由 arm_permission_any 一处声明,SELECT 与 WHERE 共用)。
--- 起因是批次毛利跨两个模块(prices AND (finance OR processing)),而没有任何 live 角色
--- 同时持有后两者。合成一个新权限码那条路被否掉:那会是谁能看毛利的第二份定义,
--- 与 batch_margin 自己的谓词必然漂开。fixture 45 三种读者各钉一次。
--- LINKS-1(2026-08-11):每支多带一个 item_id —— 支从"指向一张列表"变成"指向那一件事"。
--- 【item_id 指的是谁】承载【补救动作】的那张页面所对应的行。十七支里它就是等待中的
--- 那一行;两支里是它的父:bank_unmatched(行没有页面,匹配动作在对账工作台上 →
--- 对账单)与 margin_cost_not_allocated(补救是给加工单分摊成本 → 加工单)。
--- 于是同一支的几行可以共用一个 item_id,那是对的,不是重复 —— fixture 47 因此断言
--- 的是"item_id 落在这一支该落的那张表里",不是"一行一个 id",也不是互不相同。
--- 【SO-3a:应收也成了两种单据】ar_over_90 的 doc_kind 从此非空('sale' 销售记录 /
--- 'invoice' 订单流发票),item_id 相应二选一 —— 门牌各是应收单据页与发票页,
--- app/page.tsx 按 doc_kind 分支,认不出的种类不给链接(与 ap 同一条)。
--- 【doc_kind 是披露】应付账款本来就是两种单据(ap_open_items 自己就按它分支,
--- 应付列表页也一直照它画链接),这张视图先前只是没说出口。其余十八支主体只有一种,
--- 该列为 NULL。【fx_rate_gap 没有 item_id】它的主体是一条不存在的牌价行,缺的东西
--- 没有 id —— 它指向按币种过滤的列表,那是"诚实过滤的列表"那类答案,不是按码搜索。
--- 每支的门牌与"补救是否在那张页面上"这条判据,写在 docs/dashboard-arm-inventory.md。
--- NOTE: item_id / doc_kind added by
--- db/migrations/2026-08-11-links1-operations-now-item-id.sql(列集变了 → DROP + CREATE)。
--- SS-1(2026-08-13):第二十支 safety_stock_below —— 物料的可用量低于它自己的
--- 安全库存阈值。【阈值 NULL 的物料一次都不响】:NULL 是"还没有人决定要盯它",
--- 不是"阈值为零",而把不响读成"查过了没问题"正是 METAL-1 的那一课。
--- 可用量来自 material_stock_available(一处求和,暂扣不算 —— 阈值问的是"还有多少
--- 能用的货",一次暂扣若能掩盖缺货,这个告警就在最该说话的时刻哑掉)。
--- item_date 用【最后一次库存移动】退回今天:阈值告警是持续状态,没有发生日;
--- 去算"哪天跌破的"要在首页翻整段流水史,那条界不允许(credit_over_limit 同形)。
+-- 【本刀不碰的两件事,写下来免得下一个人以为漏了】
+--   * 窗口太薄(average 口径下窗口内 < 2 条报价)—— 它改变的是【数字的含义】
+--     而不只是它的年龄,所以它属于计价面板,不属于看板(ASY-3 的结论,逐字照办);
+--   * 牌子、面板字段、i18n 文案 —— EXEC-1b。
+--     **例外:两个 dashboard.item.* 标签键在本刀一并加。** 不是"顺手做了 1b" ——
+--     check-i18n 的后缀集合【现读本文件的 item_type 字面量】,所以视图与那两个键
+--     是一次原子改动:少了它们,npm run build 当场红。
+BEGIN;
 
-CREATE VIEW public.operations_now AS
+-- ═══ 1 · 阈值有了家 ════════════════════════════════════════════════════════
+ALTER TABLE public.pricing_settings
+    ADD COLUMN metal_quote_stale_days integer NOT NULL DEFAULT 14
+        CHECK (metal_quote_stale_days > 0);
+
+COMMENT ON COLUMN public.pricing_settings.metal_quote_stale_days IS
+    '行情多少天没更新算【旧】(EXEC-1a,ASY-3 报告为它留的那一列)。看板的 metal_quote_stale 支现读这一列 —— 【没有任何地方写死这个数】。默认 14:实测录入节奏是"六周两次",7 天会天天响(等于没有警报),30 天要等到 average 口径已经跳过那个金属之后才响。判据按 price_date 不按 created_at —— 补录发生过(6-25 的行情 7-2 才录进来),按 created_at 会让补录当天显得刚刚更新过。';
+
+-- ═══ 2 · 两支臂 ════════════════════════════════════════════════════════════
+-- CREATE OR REPLACE:列契约一字未动(item_type / permission / permission_any /
+-- item_id / doc_kind / item_code / subject / item_date / days_waiting),
+-- 只是内层 UNION 多了两支。
+CREATE OR REPLACE VIEW public.operations_now AS
  SELECT item_type,
     permission,
     arm_permission_any(item_type) AS permission_any,
@@ -360,6 +315,6 @@ CREATE VIEW public.operations_now AS
           WHERE so.deleted_at IS NULL
             AND (so.status = ANY (ARRAY['confirmed'::text, 'partially_shipped'::text]))
 ) a
-  WHERE has_permission(permission) AND (arm_permission_any(item_type) IS NULL OR has_any_permission(arm_permission_any(item_type)));;;
+  WHERE has_permission(permission) AND (arm_permission_any(item_type) IS NULL OR has_any_permission(arm_permission_any(item_type)));;
 
-GRANT SELECT ON public.operations_now TO authenticated;
+COMMIT;

@@ -73,6 +73,8 @@ const zh = {
     dashboard: {
         sectionNow: '当前待办',
         item: {
+            metal_quote_stale: '行情未更新',
+            orders_unfulfilled: '订单尚未履约',
             awaiting_assay: '待化验批次',
             assay_unapplied: '待执行化验',
             batch_unpriced: '未计价批次',

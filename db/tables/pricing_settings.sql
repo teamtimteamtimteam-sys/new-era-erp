@@ -26,7 +26,13 @@ CREATE TABLE public.pricing_settings (
     -- 【它是一个默认值在替一条缺席的条款站位,不是正确答案】:分摊出来的成本不是
     -- "按 LME 结算"的,它是"在没有条款可循时按房屋约定取了价"。
     -- NULL = 沿用未标注指数的老序列(与 METAL-2 之前的行为完全一致)。
-    default_metal_index text REFERENCES public.metal_price_indices (code)
+    default_metal_index text REFERENCES public.metal_price_indices (code),
+    -- ── EXEC-1a 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
+    -- 行情多少天没更新算【旧】。看板的 metal_quote_stale 支现读这一列 ——
+    -- 没有任何地方写死这个数(与同表的 metal_price_change_warn_pct 同一条理由:
+    -- 一个谁也看不见的默认值等于替所有人做了这个判断)。
+    metal_quote_stale_days integer NOT NULL DEFAULT 14
+        CHECK (metal_quote_stale_days > 0)
 );
 
 CREATE TRIGGER trg_pricing_settings_updated_at
@@ -54,3 +60,6 @@ VALUES (true, 50,
 
 COMMENT ON COLUMN public.pricing_settings.default_metal_index IS
     'METAL-2:分摊、现货预设、库存估值这三条【没有合同】的路径取哪条序列的价。它替一条缺席的条款站位,不是"这些数字按某个声明的指数结算了"。NULL = 沿用未标注指数的老序列。';
+
+COMMENT ON COLUMN public.pricing_settings.metal_quote_stale_days IS
+    '行情多少天没更新算【旧】(EXEC-1a,ASY-3 报告为它留的那一列)。看板的 metal_quote_stale 支现读这一列 —— 【没有任何地方写死这个数】。默认 14:实测录入节奏是"六周两次",7 天会天天响(等于没有警报),30 天要等到 average 口径已经跳过那个金属之后才响。判据按 price_date 不按 created_at —— 补录发生过(6-25 的行情 7-2 才录进来),按 created_at 会让补录当天显得刚刚更新过。';

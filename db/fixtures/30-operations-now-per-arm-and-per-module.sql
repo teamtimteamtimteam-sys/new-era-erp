@@ -1,7 +1,13 @@
 -- 30 operations_now:条件成立时那一支【有】这一行,解除后【没有】;
 --    只持一个模块的读者,恰好只看见那个模块的支
 --
--- OPS-19:十五支。支的规格(含被排除的候选)在 docs/dashboard-arm-inventory.md。
+-- OPS-19:十五支;EXEC-1a 起【十七支】(metal_quote_stale / orders_unfulfilled)。
+-- 支的规格(含被排除的候选)在 docs/dashboard-arm-inventory.md;【谁要看哪一支】
+-- 在 docs/exec-views-plan.md —— 两份文件的分工写在它们各自的结尾。
+--
+-- 【行情陈旧那一支的边界是【>】不是【>=】,C 臂正面钉住它】解除时把报价日推到
+-- 恰好等于阈值(14 天),那一支必须【消失】—— 一个写成 >= 的实现会让它赖着不走,
+-- 而"刚好到期"与"已经过期"差一天,在一个六周录两次的序列上就是差一次维护。
 --
 -- 【为什么值得常设(OPS-18)】首页看板的每个数字都出自这张视图的一支。一支的条件
 -- 写错,屏幕上是一个像模像样的数字,不是错误 —— 少算的样子与"处理完了"一模一样,
@@ -29,11 +35,14 @@ DECLARE
     v_ib2 uuid; v_ib3 uuid; v_ib4 uuid; v_ar3 uuid;
     v_ob uuid; v_ob2 uuid; v_cust uuid; v_sr uuid; v_inv uuid;
     v_ccy text;
+    v_mp uuid; v_cust2 uuid; v_so uuid; v_mat2 uuid;   -- EXEC-1a:两支新臂自带的数据
     v_types text[];
     v_n int;
+    -- EXEC-1a 起十七支(metal_quote_stale / orders_unfulfilled)
     v_expected text[] := ARRAY['allocation_stale','ap_over_90','ar_over_90',
         'assay_unapplied','awaiting_assay','bank_unmatched','batch_unpriced',
         'claim_pending','fx_rate_gap','invoice_overdue','leave_pending',
+        'metal_quote_stale','orders_unfulfilled',
         'output_unsold_aging','po_awaiting_receipt','review_submitted','stocktake_open'];
     -- 只持 module.inbound.view 的读者应看见的三支(同源 batch_assay_status,互斥)
     v_inbound_only text[] := ARRAY['assay_unapplied','awaiting_assay','batch_unpriced'];
@@ -55,7 +64,12 @@ BEGIN
     -- (支挂的都是 .view),arm B 用的也是另一个角色。
     SELECT r_all, unnest(ARRAY['module.inbound.view','module.processing.view',
         'module.purchasing.view','module.purchasing.edit','module.stocktakes.view','module.hr.view',
-        'module.output.view','module.finance.view','data.view_prices']);
+        'module.output.view','module.finance.view','data.view_prices',
+        -- EXEC-1a:两支新臂各自的门
+        'module.pricing.view','module.sales.view',
+        -- set_sales_order_status 要 module.sales.edit(确认订单是一次销售行为)——
+        -- 与上面 purchasing.edit 同一种情形:加这个码不影响任何一支(支挂的都是 .view)
+        'module.sales.edit']);
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-30-inb', 'f', 'f', true) RETURNING id INTO r_inb;
     INSERT INTO role_permissions (role_id, permission_code) VALUES (r_inb, 'module.inbound.view');
@@ -172,6 +186,48 @@ BEGIN
     INSERT INTO output_batches (code, material_id, quantity, remaining_qty, output_date)
     VALUES ('ZZFIX30-OB2', v_mat, 40, 40, CURRENT_DATE - 90) RETURNING id INTO v_ob2;
 
+    -- ── EXEC-1a:两支新臂的条件 ──────────────────────────────────────────────
+    -- 【行情陈旧】阈值现读 pricing_settings。这里把阈值显式设成 14(README 第 5 条:
+    -- 前提要自己设,哪怕默认值恰好合用 —— 它是运营改得动的一列)。
+    -- 报价日期落在【阈值 + 1 天】之前 —— 也就是刚刚越过线。
+    UPDATE pricing_settings SET metal_quote_stale_days = 14;
+    -- 【这一支读的是【共享的】参考数据,所以前提必须自己设,不能继承】
+    -- metal_prices 是引导/运营数据,线上七个金属的最新报价都停在 2026-07-30 ——
+    -- 也就是说【不动它,这一支在这份 fixture 里天然就是亮的】,而本 fixture 的契约
+    -- 是"每支恰好一件、数据各自拥有"。所以先把所有金属推到今天(= 不旧),
+    -- 再让【一个】金属越线。这正是 README 第 5 条:要什么就自己设,不要继承。
+    -- (整个事务回滚,线上的报价一个字不动。)
+    -- 软删掉既有的全部报价(唯一约束是 (metal, price_date, price_index),
+    -- 把它们全推到同一天会撞上它;而这一支的判据本来就只看未删的行)。
+    UPDATE metal_prices SET deleted_at = now() WHERE deleted_at IS NULL;
+    -- 除了要越线的那个金属,其余每个金属给一条【今天】的报价 —— 于是它们都不旧。
+    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source)
+    SELECT m, 1000, CURRENT_DATE, 'fixture-30'
+      FROM unnest(ARRAY['co','li','mn','cu','al','fe']) m;
+    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source)
+    VALUES ('ni', 18000, CURRENT_DATE - 15, 'fixture-30') RETURNING id INTO v_mp;
+
+    -- 【未履约订单】一张 confirmed 的单 —— 答应了,一件没发。
+    INSERT INTO materials (code, name, category) VALUES ('FIXT-M30WO','f30 wo material','black_mass')
+        RETURNING id INTO v_mat2;
+    INSERT INTO customers (code, legal_name, country)
+    VALUES ('FIXT-C30WO', 'fixture 30 order customer', 'SG') RETURNING id INTO v_cust2;
+    -- 【先 draft、加行、再确认】—— SO-1b 的冻结守卫拒绝往已确认的订单上直插行
+    -- (guard_sales_order_line_confirmed_immutable)。走真实顺序,而不是绕过守卫:
+    -- 绕过去也造得出这一行,但那样造出来的单据在现实里不存在。
+    INSERT INTO sales_orders (code, customer_id, order_date, currency, fx_rate)
+    VALUES (next_sales_order_code(DATE '2027-03-05'), v_cust2, DATE '2027-03-05', 'USD', 1.25)
+    RETURNING id INTO v_so;
+    INSERT INTO sales_order_lines (sales_order_id, line_no, material_id, quantity, unit_price)
+    VALUES (v_so, 1, v_mat2, 10, 10);
+    -- 【必须走 set_sales_order_status,直改会被 SO-1b 的守卫拒】
+    -- guard_sales_order_confirmed_immutable 只认那条真路径 —— 实测直改当场被拒,
+    -- 而那是对的:确认是一次状态转换,不是一个可以顺手写的字段。
+    -- 它 require_permission('module.sales.edit'),所以这里先认人(下面那行 claims)。
+    PERFORM set_config('request.jwt.claims',
+        format('{"sub":"%s","role":"authenticated"}', v_all), true);
+    PERFORM set_sales_order_status(v_so, 'confirmed');
+
     -- ══════════ A. 条件成立:十五支【每支都在】══════════════════════════════
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_all), true);
@@ -181,7 +237,7 @@ BEGIN
     RESET ROLE;
 
     IF v_types <> v_expected THEN
-        RAISE EXCEPTION 'FIXTURE 30A 失败:十五支条件全部成立,应恰好看见 %,实得 % —— 少一支是条件恒假(那块牌子永远 0),多一支是支列表变了而 fixture 没跟上(规格见 docs/dashboard-arm-inventory.md)',
+        RAISE EXCEPTION 'FIXTURE 30A 失败:十七支条件全部成立,应恰好看见 %,实得 % —— 少一支是条件恒假(那块牌子永远 0),多一支是支列表变了而 fixture 没跟上(规格见 docs/dashboard-arm-inventory.md)',
             v_expected::text, v_types::text;
     END IF;
 
@@ -191,8 +247,8 @@ BEGIN
     EXECUTE 'SET LOCAL ROLE authenticated';
     SELECT count(*) INTO v_n FROM operations_now;
     RESET ROLE;
-    IF v_n <> 15 THEN
-        RAISE EXCEPTION 'FIXTURE 30A 失败:应恰好 15 行(每支 1 件),实得 % 行 —— 两件说明某支把同一件事数了两遍(进料三支互斥、AR 与发票同源不同粒度)', v_n;
+    IF v_n <> 17 THEN
+        RAISE EXCEPTION 'FIXTURE 30A 失败:应恰好 17 行(每支 1 件),实得 % 行 —— 两件说明某支把同一件事数了两遍(进料三支互斥、AR 与发票同源不同粒度)', v_n;
     END IF;
 
     -- ══════════ B. 只持 inbound 的读者:恰好只看见 inbound 的三支 ════════════
@@ -210,6 +266,10 @@ BEGIN
     END IF;
 
     -- ══════════ C. 条件逐支解除:九支【每支都不在】═══════════════════════════
+    -- EXEC-1a:两支的解除。
+    -- 【行情陈旧:把报价日期推到阈值【之内】—— 恰好 14 天,而判据是 > 14】
+    -- 这一改同时验了边界:14 天不算旧,15 天算。一个写成 >= 的实现在这里当场红。
+    UPDATE metal_prices SET price_date = CURRENT_DATE - 14 WHERE id = v_mp;
     UPDATE assay_results SET applied_at = now() WHERE id = v_ar;
     UPDATE processing_runs SET allocated_at = '2027-03-01' WHERE id = v_run;  -- 晚于成本变动
     -- 【claims 要先切回全权限那个人】B 臂把它换成了只持 inbound 的读者,
@@ -220,6 +280,13 @@ BEGIN
     -- PUR-2:状态不再能经一条直连的 UPDATE 改动(guard_po_amendable)。
     -- 【改成走真正的那条路】—— 现实里这一支就是被"关单"清掉的,
     -- 用 close_purchase_order 反而比原来更贴近它要模拟的事。
+    -- 【未履约订单的解除:取消这张单】—— 放在 claims 切回来【之后】,
+    -- 与 close_purchase_order 同一个理由:它也要 module.sales.edit。
+    -- 【不能直改状态】SO-1b 的守卫只认 set_sales_order_status,而它也【不接受】
+    -- confirmed → shipped(实测 SO_STATUS_NOT_EDITABLE|confirmed|shipped):
+    -- 发货不是一次手动的状态转换,它是 ship_order 的后果。这一支要测的是
+    -- "这张单还欠不欠货",取消同样让它不再欠 —— 而且走的是真路径。
+    PERFORM set_sales_order_status(v_so, 'cancelled', 'fixture 30 解除未履约');
     PERFORM close_purchase_order(v_po, 'fixture 30:解除 po_awaiting_receipt');
     UPDATE stocktakes SET status = 'cancelled' WHERE id = v_st;
     UPDATE leave_requests SET status = 'approved' WHERE id = v_lr;
@@ -262,7 +329,7 @@ BEGIN
         SELECT COALESCE(array_agg(DISTINCT item_type ORDER BY item_type), '{}') INTO v_types
           FROM operations_now;
         RESET ROLE;
-        RAISE EXCEPTION 'FIXTURE 30C 失败:十五个条件都已解除,应 0 行,实得 % 行(%)—— 赖着不走的支就是"处理完了牌子还亮着"的那一支',
+        RAISE EXCEPTION 'FIXTURE 30C 失败:十七个条件都已解除,应 0 行,实得 % 行(%)—— 赖着不走的支就是"处理完了牌子还亮着"的那一支',
             v_n, v_types::text;
     END IF;
 END $$;

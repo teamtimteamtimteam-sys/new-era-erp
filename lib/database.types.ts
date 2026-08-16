@@ -5511,6 +5511,7 @@ export type Database = {
           default_metal_index: string | null
           id: boolean
           metal_price_change_warn_pct: number
+          metal_quote_stale_days: number
           notes: string | null
           updated_at: string
           updated_by: string | null
@@ -5519,6 +5520,7 @@ export type Database = {
           default_metal_index?: string | null
           id?: boolean
           metal_price_change_warn_pct: number
+          metal_quote_stale_days?: number
           notes?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -5527,6 +5529,7 @@ export type Database = {
           default_metal_index?: string | null
           id?: boolean
           metal_price_change_warn_pct?: number
+          metal_quote_stale_days?: number
           notes?: string | null
           updated_at?: string
           updated_by?: string | null

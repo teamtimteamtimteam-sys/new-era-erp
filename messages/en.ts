@@ -71,6 +71,8 @@ const en = {
     dashboard: {
         sectionNow: 'Waiting now',
         item: {
+            metal_quote_stale: 'Metal quote not updated',
+            orders_unfulfilled: 'Order not yet fulfilled',
             awaiting_assay: 'Batches awaiting assay',
             assay_unapplied: 'Assays awaiting application',
             batch_unpriced: 'Batches unpriced',
