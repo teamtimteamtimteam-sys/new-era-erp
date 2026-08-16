@@ -18,6 +18,13 @@
 --   ⑤ 【计划外的加工不在差异视图里】—— 它不是"计划为零"的一行,因为没有人
 --      计划过零。
 --
+-- 【注入臂:三个,各删一道门,各自从【任何注入之前】取的原样定义派生】
+--   注入 1:删掉【只有放行了的工单可以开工】→ 照草稿开工当场走通(B 臂有牙)。
+--           **这一道是单层的** —— 表上没有任何东西阻止一次加工挂到草稿/已收工/
+--           已取消的工单上,所以它漏了就是真的会写进去。
+--   注入 2:把【只数没被冲销的】那个过滤整个拿掉 → 被冲销的加工重新拦住取消
+--           (D 臂④有牙)。
+--   注入 3:删掉 WO_NOT_FOUND → 落到 processing_runs 的外键上(第二层,按名断言)。
 -- 【注入臂放在最后】(fixture 64/69/71/73/74 都付过这笔账)。
 -- 原样定义在【任何注入之前】一次取齐 —— 见 fixture 74 那条同样的教训。
 -- 自带数据(README 第 2 条)。期间锁显式设 NULL(第 5 条)。
@@ -343,6 +350,42 @@ $g$, '');
         jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 4)), 'weight', woDraft);
     IF (SELECT work_order_id FROM processing_runs WHERE id = v_run) IS DISTINCT FROM woDraft THEN
         RAISE EXCEPTION 'FIXTURE 75 注入1 失败:删掉那道门之后,照草稿开工【仍然】没写进去 —— 说明 B 臂拒它的不是那道门';
+    END IF;
+
+    -- ══════════ 注入 3:删掉 WO_NOT_FOUND 那道门 ═════════════════════════════
+    -- 【这一臂预期落到第二层,而那一层是外键】—— 与 fixture 74 的注入 3/4 同形。
+    -- 门拿掉之后 SELECT ... INTO 找不到行,v_wo 各列全是 NULL,于是紧接着那句
+    -- `v_wo.status <> 'released'` 求值为 NULL —— **IF NULL 不成立**,所以它
+    -- 【也不会】拦下来(这本身就值得知道:两道门是串着的,前一道漏了会让后一道
+    -- 静默失效,而不是接住)。函数一路走到建表头,work_order_id 指着一个不存在的
+    -- 工单,由 processing_runs 的外键当场拒掉。
+    -- 所以这一臂断言的不是"现在成功了",而是【现在由外键按名拒】。
+    IF (SELECT count(*) FROM pg_constraint
+         WHERE conrelid = 'public.processing_runs'::regclass
+           AND contype = 'f' AND conname LIKE '%work_order%') <> 1 THEN
+        RAISE EXCEPTION 'FIXTURE 75 注入3 前提不成立:processing_runs 上应当有一条指向 work_orders 的外键 —— 它就是这一臂等着的第二层';
+    END IF;
+    v_inj := replace(def_commit,
+$g$        IF NOT FOUND THEN
+            RAISE EXCEPTION 'WO_NOT_FOUND|%', p_work_order_id;
+        END IF;
+$g$, '');
+    IF v_inj = def_commit THEN
+        RAISE EXCEPTION 'FIXTURE 75 注入3 失败:在函数定义里没找到 WO_NOT_FOUND 那道门的原文 —— 这个注入什么也没删';
+    END IF;
+    EXECUTE v_inj;
+    v_denied := false; v_msg := NULL;
+    BEGIN PERFORM commit_processing_run(d, '注入之后照一张不存在的工单开工', 0,
+        jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 3)),
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 2)), 'weight',
+        gen_random_uuid());
+    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
+    IF NOT v_denied OR v_msg LIKE 'WO_NOT_FOUND%' THEN
+        RAISE EXCEPTION 'FIXTURE 75 注入3 失败:删掉函数那道门之后,拒绝【仍然】来自函数(实得 %)—— 说明 B 臂拒它的不是那道门',
+            COALESCE(v_msg, '(提交成功了,而且外键也没拦 —— 那是第二个问题)');
+    END IF;
+    IF v_msg NOT LIKE '%work_order%' OR v_msg NOT LIKE '%foreign key%' THEN
+        RAISE EXCEPTION 'FIXTURE 75 注入3 失败:函数那道门删掉之后,应当由 processing_runs 的外键兜住,实得 %', v_msg;
     END IF;
 
     -- ══════════ 注入 2:把"只数没被冲销的"这个过滤【整个拿掉】════════════════
