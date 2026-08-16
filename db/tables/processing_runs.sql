@@ -46,8 +46,16 @@ CREATE TABLE public.processing_runs (
     -- 分摊基准最后一次被改动的时点,由 trg_processing_runs_basis_changed 维护。
     -- processing_run_allocation_status.is_stale 与 batch_margin.is_stale 把它当
     -- 【第四个过期源】—— 前三个是成本条目、输入批的 price_history、上游单重分摊。
-    allocation_basis_changed_at timestamptz
+    allocation_basis_changed_at timestamptz,
+    -- ── WO-1a 追加的列 ───────────────────────────────────────────────────────
+    -- 这一次加工是照哪一张工单做的。WO-1a 建列,【WO-1b 才由
+    -- commit_processing_run 写入】—— 本刀不动那个函数的签名。为空 = 临时起意的
+    -- 加工,那是合法的,而差异报表必须把它显示成【计划外】,不是显示成零。
+    work_order_id           uuid REFERENCES public.work_orders (id)
 );
+
+CREATE INDEX idx_processing_runs_work_order ON public.processing_runs (work_order_id)
+    WHERE work_order_id IS NOT NULL;
 
 CREATE OR REPLACE FUNCTION public.generate_processing_code()
 RETURNS trigger LANGUAGE plpgsql AS $function$
@@ -100,7 +108,11 @@ CREATE POLICY "processing_runs delete by permission"
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 processing_runs_masked 读取。
 -- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
 REVOKE SELECT ON public.processing_runs FROM authenticated, anon;
-GRANT SELECT (id, code, process_date, total_input, total_output, loss_qty, notes, status, deleted_at, created_at, created_by, updated_at, updated_by, allocation_basis, allocation_snapshot, allocated_at, allocated_by, capitalization_entry_id, allocation_basis_changed_at)
+-- WO-1a-fu1:work_order_id 也在列清单里。【列清单的 SELECT 授权不会自动延伸到
+-- 后加的列】(表级 INSERT/UPDATE 会,这个不对称就是全部的坑),所以 WO-1a 加完列
+-- 之后它是"写得进、读不出"的 —— 实测 has_column_privilege = false。
+-- 它不是敏感列:是一个单据之间的链接,与同表的 capitalization_entry_id 同一类。
+GRANT SELECT (id, code, process_date, total_input, total_output, loss_qty, notes, status, deleted_at, created_at, created_by, updated_at, updated_by, allocation_basis, allocation_snapshot, allocated_at, allocated_by, capitalization_entry_id, allocation_basis_changed_at, work_order_id)
     ON public.processing_runs TO authenticated;
 
 -- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)
@@ -114,3 +126,6 @@ COMMENT ON COLUMN public.processing_runs.allocation_basis IS
 
 COMMENT ON COLUMN public.processing_runs.allocation_basis_changed_at IS
     '分摊基准最后一次被改动的时点(FIN-36),由 trg_processing_runs_basis_changed 维护。processing_run_allocation_status.is_stale 与 batch_margin.is_stale 把它当【第四个过期源】—— 前三个是成本条目、输入批的 price_history、上游单重分摊。少了它,一次 UPDATE ... SET allocation_basis 会让存着的单位成本与单据自称的方法对不上而毫无信号。allocate_processing_costs 挂 evoltrya.alloc_ctx,所以重分摊自己不会被标成过期。';
+
+COMMENT ON COLUMN public.processing_runs.work_order_id IS
+    'WO-1a 建列,WO-1b 由 commit_processing_run 写入。这一次加工是照哪一张工单做的;为空 = 临时起意的加工(那是合法的,而且差异报表必须把它显示成【计划外】,不是显示成零)。';

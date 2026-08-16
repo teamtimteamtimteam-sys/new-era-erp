@@ -6098,6 +6098,7 @@ export type Database = {
           total_output: number | null
           updated_at: string
           updated_by: string | null
+          work_order_id: string | null
         }
         Insert: {
           allocated_at?: string | null
@@ -6123,6 +6124,7 @@ export type Database = {
           total_output?: number | null
           updated_at?: string
           updated_by?: string | null
+          work_order_id?: string | null
         }
         Update: {
           allocated_at?: string | null
@@ -6148,6 +6150,7 @@ export type Database = {
           total_output?: number | null
           updated_at?: string
           updated_by?: string | null
+          work_order_id?: string | null
         }
         Relationships: [
           {
@@ -6162,6 +6165,13 @@ export type Database = {
             columns: ["capitalization_entry_id"]
             isOneToOne: false
             referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_runs_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
             referencedColumns: ["id"]
           },
         ]
@@ -8594,6 +8604,231 @@ export type Database = {
           name_zh?: string
           notes?: string | null
           sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      work_order_expected_outputs: {
+        Row: {
+          created_at: string
+          expected_qty: number
+          id: string
+          material_id: string
+          work_order_id: string
+        }
+        Insert: {
+          created_at?: string
+          expected_qty: number
+          id?: string
+          material_id: string
+          work_order_id: string
+        }
+        Update: {
+          created_at?: string
+          expected_qty?: number
+          id?: string
+          material_id?: string
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_order_expected_outputs_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "material_stock_available"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "work_order_expected_outputs_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_order_expected_outputs_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stock_snapshot"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "work_order_expected_outputs_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_order_history: {
+        Row: {
+          amend_reason: string | null
+          change_type: string
+          changed_at: string
+          changed_by: string | null
+          detail: string | null
+          id: string
+          material_id: string | null
+          new_notes: string | null
+          new_qty: number | null
+          new_scheduled_date: string | null
+          old_notes: string | null
+          old_qty: number | null
+          old_scheduled_date: string | null
+          work_order_expected_id: string | null
+          work_order_id: string
+          work_order_line_id: string | null
+        }
+        Insert: {
+          amend_reason?: string | null
+          change_type: string
+          changed_at?: string
+          changed_by?: string | null
+          detail?: string | null
+          id?: string
+          material_id?: string | null
+          new_notes?: string | null
+          new_qty?: number | null
+          new_scheduled_date?: string | null
+          old_notes?: string | null
+          old_qty?: number | null
+          old_scheduled_date?: string | null
+          work_order_expected_id?: string | null
+          work_order_id: string
+          work_order_line_id?: string | null
+        }
+        Update: {
+          amend_reason?: string | null
+          change_type?: string
+          changed_at?: string
+          changed_by?: string | null
+          detail?: string | null
+          id?: string
+          material_id?: string | null
+          new_notes?: string | null
+          new_qty?: number | null
+          new_scheduled_date?: string | null
+          old_notes?: string | null
+          old_qty?: number | null
+          old_scheduled_date?: string | null
+          work_order_expected_id?: string | null
+          work_order_id?: string
+          work_order_line_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_order_history_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_order_lines: {
+        Row: {
+          created_at: string
+          id: string
+          material_id: string
+          planned_qty: number
+          work_order_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_id: string
+          planned_qty: number
+          work_order_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_id?: string
+          planned_qty?: number
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_order_lines_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "material_stock_available"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "work_order_lines_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_order_lines_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stock_snapshot"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "work_order_lines_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_orders: {
+        Row: {
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          close_reason: string | null
+          closed_at: string | null
+          closed_by: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          scheduled_date: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          close_reason?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          scheduled_date?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          close_reason?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          scheduled_date?: string | null
+          status?: string
           updated_at?: string
           updated_by?: string | null
         }
@@ -11644,6 +11879,7 @@ export type Database = {
           total_output: number | null
           updated_at: string | null
           updated_by: string | null
+          work_order_id: string | null
         }
         Insert: {
           allocated_at?: string | null
@@ -11669,6 +11905,7 @@ export type Database = {
           total_output?: number | null
           updated_at?: string | null
           updated_by?: string | null
+          work_order_id?: string | null
         }
         Update: {
           allocated_at?: string | null
@@ -11694,6 +11931,7 @@ export type Database = {
           total_output?: number | null
           updated_at?: string | null
           updated_by?: string | null
+          work_order_id?: string | null
         }
         Relationships: [
           {
@@ -11708,6 +11946,13 @@ export type Database = {
             columns: ["capitalization_entry_id"]
             isOneToOne: false
             referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_runs_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
             referencedColumns: ["id"]
           },
         ]
@@ -12476,6 +12721,19 @@ export type Database = {
         }
         Returns: Json
       }
+      amend_work_order: {
+        Args: {
+          p_expected?: Json
+          p_lines?: Json
+          p_notes?: string
+          p_reason: string
+          p_scheduled_date?: string
+          p_set_notes?: boolean
+          p_set_scheduled?: boolean
+          p_work_order_id: string
+        }
+        Returns: Json
+      }
       annual_leave_available_from: {
         Args: { p_days: number; p_employee_id: string; p_from?: string }
         Returns: string
@@ -12589,6 +12847,10 @@ export type Database = {
         Returns: Json
       }
       cancel_stocktake: { Args: { p_stocktake_id: string }; Returns: undefined }
+      cancel_work_order: {
+        Args: { p_reason: string; p_work_order_id: string }
+        Returns: Json
+      }
       carry_forward_annual_leave: {
         Args: { p_leave_year: number }
         Returns: Json
@@ -12611,6 +12873,10 @@ export type Database = {
       }
       close_purchase_order: {
         Args: { p_notes?: string; p_purchase_order_id: string }
+        Returns: Json
+      }
+      close_work_order: {
+        Args: { p_reason: string; p_work_order_id: string }
         Returns: Json
       }
       commit_pricing_terms: {
@@ -12745,6 +13011,15 @@ export type Database = {
           p_qty: number
           p_stock_status?: string
           p_to_location_id: string
+        }
+        Returns: Json
+      }
+      create_work_order: {
+        Args: {
+          p_expected?: Json
+          p_lines: Json
+          p_notes?: string
+          p_scheduled_date?: string
         }
         Returns: Json
       }
@@ -12943,6 +13218,7 @@ export type Database = {
       next_quote_code: { Args: { p_date?: string }; Returns: string }
       next_sales_order_code: { Args: { p_date?: string }; Returns: string }
       next_shipment_code: { Args: { p_date: string }; Returns: string }
+      next_work_order_code: { Args: { p_date?: string }; Returns: string }
       notify_class_violations: {
         Args: {
           p_cause: string
@@ -13223,6 +13499,7 @@ export type Database = {
         }
         Returns: Json
       }
+      release_work_order: { Args: { p_work_order_id: string }; Returns: Json }
       relieve_processing_accruals: {
         Args: {
           p_actual_amount: number

@@ -327,3 +327,62 @@ METAL-1 的 `no_reference`、METAL-2 的 `price_index IS NULL` 是同一条。
 
 完整分析(含与 `category` / `chemistry` 的分工、以及明写不做的四件编码体系)在
 `docs/material-classification-scoping.md`。
+
+---
+
+## WO-1a:工单落地时,三份蓝图里有一处【文档是错的】,另有两处读法要写下来
+
+WO-1 的调查把 Doc 1 / Doc 2 / Doc 3 关于工单的每一句都读了一遍。落地时有三件事
+必须在这里留档,否则下一个人会拿文档去对代码,然后以为代码错了。
+
+### 一 · Doc 2 说加工单从 draft 走到 submitted —— **文档是错的**
+
+Doc 2 的运营审计那一节写着:
+
+> document status-change history (e.g. the full progression of a **processing run
+> from draft to submitted**)
+
+**这个系统里的加工单没有草稿态,而且那是记录在案的设计,不是遗漏。**
+`processing_runs.status` 的 CHECK 只有 `committed` / `reversed`,镜像抬头写着
+"加工一经提交只能整体冲销(rollback_processing_run),没有'编辑中'状态"。
+理由是实的:提交那一刻库存真的被扣掉、产出批真的建出来,一个"草稿加工单"要么
+不动库存(那它就不是加工单,是计划),要么动了库存又说自己还没发生(那台账就说了谎)。
+
+**WO-1a 之后,那些计划态在【工单】上:** draft / released / closed / cancelled。
+Doc 2 想要的那件事因此是有的 —— 只是它在计划那张单据上,不在实绩这张上。
+**所以这不是"尚未实现",而是文档描述的对象错了。**
+
+### 二 · Doc 3 的 "the work order becomes the unit that carries cost" —— 读作【归拢】
+
+> Work order and execution. … **The work order becomes the unit that carries cost.**
+
+这句话有两种读法,而它们的工作量差着一个数量级:
+
+* **(a) 成本的载体从加工单搬到工单** —— `allocate_processing_costs`、
+  `processing_run_allocation_status`(四个过期源)、`batch_margin`、以及两个
+  仪表盘支(`allocation_stale`、`margin_cost_not_allocated`)全都以加工单为主体,
+  搬家是一次重构;
+* **(b) 成本仍然记在加工单上,工单层面的毛利是【把挂上来的加工单加起来】** ——
+  纯增量。
+
+**取 (b)。** 判据是 Doc 3 自己的 Milestone 3:"true per-batch and per-work-order
+gross margin" —— 一个**归拢**同样满足这句话,而且满足得更早。(a) 要付的代价没有
+任何一份文档要求过,而这个仓库反复得到的结论是:**没有被要求的重构不要顺手做。**
+若将来出现"同一笔成本要按工单而不是按加工单分摊"的真实需求,这一行就是要改的地方。
+
+### 三 · 计划【不扣料】—— 一处刻意的缺席,有证据才回来
+
+「为一张计划中的工单扣住料」今天表达不出来,而 WO-1a **没有去把它做出来**:
+
+* `on_hold` 桶有理由(自由文本)、**没有归属列** —— 一次暂扣说不出"为哪张工单";
+* `committed` 桶在结构上属于销售(`sales_order_reservations.sales_order_line_id`
+  是 `NOT NULL`),不是一个通用的"许出去了"的桶;
+* 流水表的注释还记着一个刻意的决定:**`on_hold` 与 `committed` 之间没有直达的边**,
+  因为系统无从判断跨过去之后那个暂扣的理由还成不成立。
+
+三条路(什么都不扣 / 给 `on_hold` 加归属 / 第四个桶)各有代价,而**今天没有任何
+证据说哪一条对**:线上 `on_hold` 至今**只有一对流水、净额为零**(实测 2026-08-16)。
+在这种时候造一个桶,造出来的是一个没人用、却要被后面每一次库存改动照顾的机制。
+
+**回来的判据写在这里,免得它变成一句"以后再说":出现第一例"计划中的料被别的单
+吃掉、而计划因此做不成"** —— 那时才知道该扣在哪个桶、扣多久、谁能放。

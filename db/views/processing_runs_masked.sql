@@ -48,6 +48,11 @@ CREATE VIEW public.processing_runs_masked WITH (security_invoker = off) AS
     capitalization_entry_id,
     -- FIN-36:基准变更时点 —— 不敏感(一个时间戳),所以列级授权与遮蔽视图两边都给。
     -- 遗漏任一边都会被 colgrant 顶出来(AGENTS.md §"给遮蔽表加列")。
-    allocation_basis_changed_at
+    allocation_basis_changed_at,
+    -- WO-1a:这一次加工照哪张工单做的。不敏感(单据链接,与 capitalization_entry_id
+    -- 同一类),原样透出。【授权与视图是两件事,而 colgrant 两件都查】——
+    -- WO-1a 只加了列,fu1 补了授权,fu2 才补了这里;三支拆开的每一步单独看都
+    -- "做完了"。给遮蔽表加列的授权与视图,应当写在【同一支迁移】里。
+    work_order_id
    FROM processing_runs
   WHERE has_permission('module.processing.view'::text);
