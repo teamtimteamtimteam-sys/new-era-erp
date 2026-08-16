@@ -112,3 +112,31 @@ export async function reverseTransfer(transferId: string, date: string): Promise
     if (error) return { error: await localizePaymentError(error.message) }
     refresh(); revalidatePath('/finance/bank'); return { success: true }
 }
+
+// ── FA-1b:固定资产的两个动作 ────────────────────────────────────────────────
+// 【为什么放在这里而不是新建一个 actions 文件】它们与折旧/重估/关账是同一组
+// 月结动作,共用同一个本地化器 —— 拆开只会让"资产的错误码在哪翻译"多一个答案。
+export async function disposeAsset(
+    assetId: string, disposalDate: string, proceeds: number, bankAccount: string | null,
+): Promise<ActState> {
+    const supabase = await createClient()
+    const { error, data } = await supabase.rpc('dispose_fixed_asset', {
+        p_asset_id: assetId,
+        // 【日期不给默认值】它决定处置分录落在哪个期间 —— 补一个今天会让
+        // 一个本该 PERIOD_LOCKED 的处置悄悄落进开着的月份(FIN-10 那条)。
+        p_disposal_date: disposalDate,
+        p_proceeds: proceeds,
+        p_bank_account: bankAccount,
+    } as never)
+    if (error) return { error: await localizePaymentError(error.message) }
+    refresh(); revalidatePath('/finance/assets'); return { success: true, result: JSON.stringify(data) }
+}
+
+export async function commissionAsset(assetId: string, inServiceDate: string): Promise<ActState> {
+    const supabase = await createClient()
+    const { error, data } = await supabase.rpc('set_asset_in_service', {
+        p_asset_id: assetId, p_date: inServiceDate,
+    } as never)
+    if (error) return { error: await localizePaymentError(error.message) }
+    refresh(); revalidatePath('/finance/assets'); return { success: true, result: JSON.stringify(data) }
+}

@@ -84,6 +84,17 @@ const TILES = [
     // 或清空,牌子会安静而一公斤货都没动。那是判据之外的事,不是不给链接的理由。
     { itemType: 'safety_stock_below', permission: 'module.inventory.view', href: '/materials',
       itemHref: (r: OpsRow) => `/materials/${r.item_id}/edit` },
+    // EXEC-1a/1b:行情陈旧。【补救在 /metal-prices 上】—— 那里既看得见整条序列,
+    // 也是录下一条报价的地方,而这一支说的正是"该录了"。
+    // item_id 指向【最近那一条报价】(这个金属本身没有 id),而那一行恰好就是
+    // 人要接着往下看的那一行。
+    { itemType: 'metal_quote_stale', permission: 'module.pricing.view', href: '/metal-prices',
+      itemHref: () => '/metal-prices' },
+    // EXEC-1a/1b:未履约订单。门牌指订单详情 —— 发货从那里出发,
+    // 而"还欠多少"也只有那一页答得出来(逐单完成度归
+    // sales_order_fulfilment_status,看板这一支只回答"哪些单还欠着")。
+    { itemType: 'orders_unfulfilled', permission: 'module.sales.view', href: '/sales/orders',
+      itemHref: (r: OpsRow) => `/sales/orders/${r.item_id}` },
     { itemType: 'leave_pending', permission: 'module.hr.view', href: '/hr/leave',
       itemHref: (r: OpsRow) => `/hr/leave/${r.item_id}` },
     { itemType: 'claim_pending', permission: 'module.hr.view', href: '/hr/claims',

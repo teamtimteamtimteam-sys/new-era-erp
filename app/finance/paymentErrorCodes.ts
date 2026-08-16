@@ -12,6 +12,13 @@ const PAYMENT_ERROR_CODES = new Set([
     'FX_RATE_REQUIRED', 'BANK_INVALID',
     'ALLOC_WRONG_SIDE', 'ALLOC_WRONG_PARTY', 'ALLOC_UNPRICED',
     'ALLOC_EXCEEDS', 'ALLOC_EXCEEDS_PAYMENT', 'PERIOD_LOCKED',
+    // FIN-22 / FA-1a:固定资产。处置与投用经这条路报出来(月结的动作都走
+    // month-end/actions.ts,而它统一用这个本地化器)。
+    'ASSET_NOT_FOUND', 'ASSET_ALREADY_DISPOSED', 'ASSET_ALREADY_IN_SERVICE',
+    'ASSET_DISPOSED', 'DISPOSAL_BEFORE_ACQUISITION', 'PROCEEDS_INVALID',
+    'IN_SERVICE_BEFORE_ACQUISITION',
+    // FA-1a:折旧还欠着就锁不进去 —— 这一条会在月结的关账按钮上冒出来
+    'DEPRECIATION_OUTSTANDING',
 ])
 
 // cut 4b:record_payment 的 PO 预付分支抛的码,文案住在 purchasing.errors 下

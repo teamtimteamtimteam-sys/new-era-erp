@@ -160,9 +160,20 @@ export default async function MonthEndPage({
                 : '',
         },
         {
+            // FA-1a:折旧那道闸【现在是真的】—— close_period 会按名拒
+            // DEPRECIATION_OUTSTANDING。此前这条链只是【叙述】了顺序:注释写着
+            // "锁进去的月份都要包含它",而 lock 只看重估,折旧欠着照样锁得进去。
+            // 所以这里的 blocked 也要把折旧算进去,否则牌子说"可以锁了"、
+            // 按下去却被拒 —— 页面与服务端对同一件事给两个答案(AGENTS.md 那条)。
             key: 'lock', href: '/finance/close',
-            state: locked ? 'done' : revalued ? 'outstanding' : 'blocked',
-            detail: locked ? '' : revalued ? '' : t('finance.monthEnd.blockedByReval'),
+            state: locked ? 'done'
+                 : (depHasAssets && depDelta !== 0) ? 'blocked'
+                 : revalued ? 'outstanding' : 'blocked',
+            detail: locked ? ''
+                 : (depHasAssets && depDelta !== 0)
+                     ? t('finance.monthEnd.blockedByDepreciation',
+                         { 0: formatAmount(depDelta, baseCurrency) })
+                 : revalued ? '' : t('finance.monthEnd.blockedByReval'),
         },
     ]
 

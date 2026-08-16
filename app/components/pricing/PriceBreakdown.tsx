@@ -37,6 +37,24 @@ export default function PriceBreakdown({
             <span className="font-mono">{fmt(v)}</span>
         )
 
+    // EXEC-1b:【窗口太薄】—— ASY-3 的另一半。
+    //
+    // 【为什么它长在这里,而不在看板上】看板那一支(metal_quote_stale)说的是
+    // 【维护欠账】:多少天没人录行情了。这一句说的是【这一次计价】:你眼前这个
+    // "30 天均价"实际上只有一天的行情在里面 —— 它改变的是这个数字的【含义】,
+    // 不只是它的年龄。两个读者、两个位置(ASY-3 的原话)。
+    //
+    // 【判据是"起止同一天",而不是"报价条数 < 2" —— 差别写下来】
+    // ASY-3 写的是"窗口内报价数 < 2"。而 calculate_metal_price 今天【不返回条数】,
+    // 只返回参与均值那些行的日期范围。所以这里用它真的知道的那件事:
+    // 起止同一天 = 参与均值的行全部来自一天。同一天录了两条时,这句话仍然成立
+    // 而"条数 < 2"不成立 —— 那是一个【更宽】的提示,不是一个错的提示,
+    // 而且它提示的仍然是同一件事:这个均价没有跨越任何时间。
+    // 要精确到条数,得让 calculate_metal_price 多返回一个计数 —— 那是一次
+    // 数据库改动,本刀(屏幕)刻意不做,记在这里而不是含糊过去。
+    const thinWindow = (l: CalcLine) =>
+        l.price_from != null && l.price_to != null && l.price_from === l.price_to
+
     const priceCell = (l: CalcLine) => {
         if (l.price_usd_per_tonne == null) return <span className="text-gray-400">—</span>
         return (
@@ -47,6 +65,11 @@ export default function PriceBreakdown({
                 <span className="text-gray-500 text-xs ml-2">
                     {l.price_date ?? (l.price_from ? `${l.price_from} – ${l.price_to}` : '')}
                 </span>
+                {thinWindow(l) && (
+                    <span className="text-amber-700 text-xs ml-2" title={t('pricing.thinWindowWhy')}>
+                        {t('pricing.thinWindow')}
+                    </span>
+                )}
             </>
         )
     }

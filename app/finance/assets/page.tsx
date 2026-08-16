@@ -14,6 +14,8 @@ import { formatAmount, formatMoneyBare } from '@/lib/format'
 import { mustRows, mustOne } from '@/lib/db-helpers'
 import Subnav from '../Subnav'
 import DepreciateButton from './DepreciateButton'
+import { can } from '@/lib/permissions'
+import AssetActions from './AssetActions'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 
@@ -84,6 +86,17 @@ export default async function AssetsPage({
     const previewRows = (preview?.rows ?? []).filter((r) => r.delta_base > 0)
     const totalDelta = preview?.total_delta ?? 0
 
+    // FA-1b:处置要 module.finance.edit;有价款时要挑收款账户。
+    // 【账户清单从科目表读,而不是写死】—— dispose_fixed_asset 认的是
+    // ('1000','1010') 这两个【科目码】(没有 bank_accounts 这张表);
+    // 这里按科目自己的 is_cash 标记去查,免得页面与函数各存一份名单。
+    // 名单对不上时页面会少给一个选项,而服务端仍然 BANK_INVALID 兜底 ——
+    // 页面是体贴,不是安全边界。
+    const canEdit = await can('module.finance.edit')
+    const bankAccounts = (mustRows(
+        await supabase.from('accounts').select('code').eq('is_cash', true).order('code'),
+        'accounts bank') as unknown as { code: string }[]).map((b) => b.code)
+
     return (
         <div className="p-8">
             <h1 className="text-2xl font-bold mb-4">{t('assets.title')}</h1>
@@ -103,6 +116,9 @@ export default async function AssetsPage({
                         <th className="border border-gray-300 px-3 py-2 text-right">{t('assets.colAccum')}</th>
                         <th className="border border-gray-300 px-3 py-2 text-right">{t('assets.colNbv')}</th>
                         <th className="border border-gray-300 px-3 py-2 text-left">{t('finance.colStatus')}</th>
+                        {/* FA-1b:处置终于有了入口 —— 引擎从 FIN-22 起就在,
+                            而 FA-0 查出它在 app 里一个调用点都没有。 */}
+                        <th className="border border-gray-300 px-3 py-2 text-left">{t('assets.colActions')}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -147,12 +163,19 @@ export default async function AssetsPage({
                                         {t('assets.status.' + a.status)}
                                     </span>
                                 </td>
+                                <td className="border border-gray-300 px-3 py-2">
+                                    <AssetActions
+                                        assetId={a.id} code={a.code} status={a.status}
+                                        inServiceDate={a.in_service_date}
+                                        acquisitionDate={a.acquisition_date}
+                                        canEdit={canEdit} bankAccounts={bankAccounts} />
+                                </td>
                             </tr>
                         )
                     })}
                     {assets.length === 0 && (
                         <tr>
-                            <td colSpan={11} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
+                            <td colSpan={12} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
                                 {t('assets.empty')}
                             </td>
                         </tr>
