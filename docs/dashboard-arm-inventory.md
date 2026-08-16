@@ -324,3 +324,16 @@ SELECT 与 WHERE 共用;首页 TILES 的 `permissionAny` 与它同义,fixture 45
 一条没人授过的条目,日后读起来像一条真的权限;更要命的是它会成为"谁能看毛利"的
 第二份定义,与 `batch_margin` 自己的谓词必然漂开。理由写在
 `db/migrations/2026-08-10-mar1-arm-level-predicate.sql` 的文件头。
+
+## 工单的两个候选支(WO-1c 记,2026-08-16,**未建**)
+
+WO-1b 的 `work_order_fulfilment` 让这两个数第一次算得出来,但**这一刀没有建任何仪表盘支** ——
+记在这里是为了让"没建"是一个决定,而不是一次遗漏。
+
+| 候选 | 含义 | 权限 | 数据源 | 需要先回答的问题 |
+|---|---|---|---|---|
+| `work_order_overdue` | `status = 'released'` 且 `scheduled_date < CURRENT_DATE` 的工单 | `module.processing.view`(数据自己的 RLS,OPS-15 那条) | `work_orders` | **排产日可以为空**,而空【不是逾期】—— 它是"没排期"。一个 `COALESCE(scheduled_date, ...)` 会把没排期的全部报成逾期或全部漏掉,两种都错。这一支必须显式 `scheduled_date IS NOT NULL`,并且要想清楚:一张放行了三个月、从没排过期的工单,该不该有别的支去管它? |
+| `work_order_variance_beyond` | 差异超过某个阈值的工单 | 同上 | `work_order_fulfilment` | **阈值从哪来?** 这个库里没有任何配置项承载它,而写死一个百分比等于替所有人做了一个"多少算多"的判断(与 FIN-36 的分摊基准同一条)。它需要 `finance_settings` / 一张新配置表里的一个显式值,以及 Tim 对"投入超耗"与"产出短交"是否用同一个阈值的一句话 —— 它们是两种不同的坏消息。 |
+
+**代码要改的地方:`app/page.tsx` 的 `TILES` 数组**(与批次毛利那一条同一处),
+外加各自的谓词。两支都读单模块的数据,所以不涉及 `xmodule` 那一类问题。

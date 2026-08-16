@@ -29,6 +29,9 @@ export type CommitProcessingPayload = {
     outputs: OutputRow[]
     /** FIN-36:成本分摊基准 —— 表单显式选择,DB 侧必填 */
     allocation_basis: string
+    /** WO-1c:照哪一张工单做的。【可选】—— 临时起意的加工是合法的,
+     *  必填换不来纪律,换来一堆事后补的假工单(见 commit_processing_run 的函数头)。*/
+    work_order_id?: string | null
 }
 
 export type CommitProcessingState = { error?: string }
@@ -50,6 +53,9 @@ export async function commitProcessingRun(
         // FIN-36:基准显式送上去 —— DB 侧必填(ALLOCATION_BASIS_REQUIRED),
         // 界面禁用不是唯一一道关,绕过界面也进不去。
         p_allocation_basis: payload.allocation_basis,
+        // WO-1c:空就是空 —— 服务端那一支只在给了值的时候才存在,
+        // 而它的两条拒绝(WO_NOT_FOUND / WO_NOT_RELEASED)仍然是权威。
+        p_work_order_id: payload.work_order_id || null,
     } as Database['public']['Functions']['commit_processing_run']['Args'])
 
     if (error) {
@@ -57,6 +63,7 @@ export async function commitProcessingRun(
     }
 
     revalidatePath('/processing')
+    revalidatePath('/processing/orders') // WO-1c:完成度是读出来的,列表要重算
     revalidatePath('/inbound') // 库存被消耗
     revalidatePath('/output')  // 产生新产出批次
     redirect('/processing')

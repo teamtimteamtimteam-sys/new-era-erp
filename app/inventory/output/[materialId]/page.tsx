@@ -28,7 +28,9 @@ type Row = {
     output_date: string | null
     customers: { legal_name: string } | null
     // 反向 FK 嵌入是数组:一个批次至多一条产出腿;金属含量 0..n 条
-    processing_outputs: { unit_cost_base: number | null }[]
+    // WO-1c:一条产出腿指向它的加工单,加工单可能挂着一张工单 —— 出处那一行读的就是它
+    processing_outputs: { unit_cost_base: number | null
+        processing_runs: { id: string; work_order_id: string | null } | null }[]
     output_batch_metals: { metal: string; content_pct: number }[]
 }
 
@@ -53,7 +55,7 @@ export default async function OutputDrillPage({
         supabase
             .from('output_batches')
             .select(
-                'id, code, quantity, remaining_qty, unit, state, output_date, customers ( legal_name ), processing_outputs ( unit_cost_base ), output_batch_metals ( metal, content_pct )'
+                'id, code, quantity, remaining_qty, unit, state, output_date, customers ( legal_name ), processing_outputs ( unit_cost_base, processing_runs ( id, work_order_id ) ), output_batch_metals ( metal, content_pct )'
             )
             .eq('material_id', materialId)
             .is('deleted_at', null)
@@ -80,6 +82,18 @@ export default async function OutputDrillPage({
     )
 
     // 每行估值:成本 = 剩余 × 产出腿单位成本;市价 = 剩余 × 每公斤金属市价
+    // WO-1c:这一页上出现的工单编号一次取回 —— 逐行去查会是 N+1。
+    const woIds = Array.from(new Set(rows
+        .map((r) => r.processing_outputs?.[0]?.processing_runs?.work_order_id)
+        .filter(Boolean))) as string[]
+    const woCode = new Map<string, string>()
+    if (woIds.length > 0) {
+        const woRows = mustRows(
+            await supabase.from('work_orders').select('id, code').in('id', woIds),
+            'work_orders') as { id: string; code: string }[]
+        woRows.forEach((w) => woCode.set(w.id, w.code))
+    }
+
     const valued = rows.map((r) => {
         const unitCost = r.processing_outputs[0]?.unit_cost_base ?? null
         const perKg = marketValuePerKg(r.output_batch_metals, priceByMetal)
@@ -150,6 +164,9 @@ export default async function OutputDrillPage({
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('valuation.colCostValue')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('valuation.colMarketValue')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('valuation.colAge')}</th>
+                        {/* WO-1c:这批货是照哪张计划做出来的 —— 出处是这套系统存在的理由,
+                            而【没有计划】是一个正当的答案,所以它有名字,不是空白。 */}
+                        <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.colWorkOrder')}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -187,12 +204,24 @@ export default async function OutputDrillPage({
                                         '—'
                                     )}
                                 </td>
+                                {/* WO-1c:出处 —— 有工单就点得进去,没有就【说出来】 */}
+                                <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
+                                    {(() => {
+                                        const woId = r.processing_outputs?.[0]?.processing_runs?.work_order_id ?? null
+                                        return woId
+                                            ? <Link href={`/processing/orders/${woId}`}
+                                                    className="text-blue-600 hover:underline">
+                                                  {woCode.get(woId) ?? '—'}
+                                              </Link>
+                                            : <span className="text-gray-500 italic">{t('processing.noWorkOrder')}</span>
+                                    })()}
+                                </td>
                             </tr>
                         )
                     })}
                     {valued.length === 0 && (
                         <tr>
-                            <td colSpan={10} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
+                            <td colSpan={11} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
                                 {t('inventory.emptyState')}
                             </td>
                         </tr>

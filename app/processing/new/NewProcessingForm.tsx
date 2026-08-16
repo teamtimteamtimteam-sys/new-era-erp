@@ -57,18 +57,24 @@ export default function NewProcessingForm({
     outputBatches,
     materials,
     defaultAllocationBasis,
+    workOrders,
 }: {
     inboundBatches: InboundBatchOption[]
     outputBatches: OutputBatchOption[]
     materials: MaterialOption[]
     /** 预选值,来自 finance_settings.default_allocation_basis(FIN-36)*/
     defaultAllocationBasis: string
+    /** WO-1c:【只有已放行的】—— 服务端也拒(WO_NOT_RELEASED),这里不画必然被拒的选项 */
+    workOrders: { id: string; code: string; scheduled_date: string | null }[]
 }) {
     const t = useTranslations()
     // FIN-36:成本分摊基准是【选出来的】。预选自公司配置,但屏幕上看得见、改得动 ——
     // 与它取代的那个 schema 默认值的区别全在这里。选中的值会显式送给
     // commit_processing_run(那边必填),所以"这一单用了什么方法"是记录,不是推断。
     const [allocationBasis, setAllocationBasis] = useState(defaultAllocationBasis)
+    // WO-1c:照哪张工单做的。【默认不选】—— 临时起意的加工是合法的,而
+    // 预选一张工单等于替人做了一个"这次是照计划做的"的判断。
+    const [workOrderId, setWorkOrderId] = useState('')
     const keyCounter = useRef(0)
     const nextKey = () => keyCounter.current++
 
@@ -214,6 +220,7 @@ export default function NewProcessingForm({
             inputs: validInputs,
             outputs: validOutputs,
             allocation_basis: allocationBasis,
+            work_order_id: workOrderId || null,
         }
 
         startTransition(async () => {
@@ -259,6 +266,31 @@ export default function NewProcessingForm({
                         <option value="weight">{t('processing.allocation.basis.weight')}</option>
                     </select>
                     <p className="text-xs text-gray-500 mt-1">{t('processing.form.basisHint')}</p>
+                </div>
+
+                {/* WO-1c:照哪一张工单做的 —— 【可选】。
+                    【为什么不从计划里预填投料】计划写的是【物料】(排计划时批次往往
+                    还不存在),而这里填的是【批次】。系统挑一个批次填进去,会是一个
+                    看起来很合理、而车间当天未必是这么投的答案 —— 一个似是而非的
+                    错答案比留空坏得多(与 restricted-is-not-zero 同一条)。
+                    挑批次是开工那天的决定,这里只问"这次算在哪张计划上"。 */}
+                <div>
+                    <label className="block text-sm font-medium mb-1">
+                        {t('processing.form.workOrderLabel')}
+                    </label>
+                    <select
+                        value={workOrderId}
+                        onChange={(e) => setWorkOrderId(e.target.value)}
+                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                    >
+                        <option value="">{t('processing.form.workOrderNone')}</option>
+                        {workOrders.map((w) => (
+                            <option key={w.id} value={w.id}>
+                                {w.code}{w.scheduled_date ? ` — ${w.scheduled_date}` : ''}
+                            </option>
+                        ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">{t('processing.form.workOrderHint')}</p>
                 </div>
 
                 {/* 加工日期 —— 必填(决定分录期间)。预填今天是【便利】不是默认值:

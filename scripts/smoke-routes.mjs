@@ -71,7 +71,13 @@ const ID_SOURCES = {
         '/inventory/locations': 'storage_locations',
         '/materials': 'materials', '/metal-prices': 'metal_prices',
         '/my-reviews': 'performance_reviews', '/output': 'output_batches',
-        '/pricing/formulas': 'pricing_formulas', '/processing': 'processing_runs',
+        '/pricing/formulas': 'pricing_formulas',
+        // WO-1c:工单。【必须排在 '/processing' 前面吗?—— 不必,前缀取的是最长匹配】
+        // 但它必须【在】,否则 /processing/orders/[id] 会落到 processing_runs 上,
+        // 拿一个加工单 id 去开工单详情页 —— 那会是一次看起来像"页面坏了"的 404。
+        // 线上零行(机制与屏幕同刀落地),所以同时列在 EXPECTED_SKIPS 里。
+        '/processing/orders': 'work_orders',
+        '/processing': 'processing_runs',
         '/purchasing/orders': 'purchase_orders', '/purchasing/payment-terms': 'payment_term_templates',
         // SO-1:销售订单。线上零行(这一刀只建单据,没有既有数据),
         // 所以同时列在 EXPECTED_SKIPS 里 —— 与 /inventory/locations 同一种情形。
@@ -127,6 +133,10 @@ const EXPECTED_SKIPS = new Set([
     // PROC-1b:线上还没有一份产出化验(机制与屏幕先于第一张真单据落地)。
     // 录第一张的那天,这条断言会逼人把它从这里删掉。
     '/output/[id]/assays/[assayId]',
+    // WO-1c:线上零张工单(机制与屏幕同刀落地)。开出第一张的那天,这条断言会响 ——
+    // 与报价、贷项凭证、送货单、销售订单那几次同一个用意:跳过是【记录】,不是默许。
+    // 本刀的手走会开出第一张,所以它很可能在这一刀之内就被删掉。
+    '/processing/orders/[id]',
     // (SO-4b 曾在这里挂过 '/sales/quotes/[id]' 与它的 pdf 路由 —— 线上零张报价。
     //  同一天的手走开出了第一张真报价 QT-2026-0001 并签发了两版,于是这两行
     //  【当天就被删掉了】,正如它们自己的注释所承诺的。留这句话是为了记下:

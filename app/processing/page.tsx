@@ -12,8 +12,10 @@ import {
     applyProcessingFilters,
     PROCESSING_PAGE_SIZE,
 } from './processingQuery'
+import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import Subnav from './Subnav'
 
 export default async function ProcessingPage({
     searchParams,
@@ -60,9 +62,22 @@ export default async function ProcessingPage({
     // 2) 取当前页
     const baseQuery = supabase
         .from('processing_runs')
-        .select('id, code, process_date, total_input, total_output, loss_qty, status, created_at')
+        .select('id, code, process_date, total_input, total_output, loss_qty, status, created_at, work_order_id')
 
     const { data: runs, error } = await applyProcessingFilters(baseQuery, filterParams).range(from, to)
+
+    // WO-1c:把这一页上出现的工单编号一次取回来 —— 逐行去查会是 N+1,
+    // 而列表最多 PROCESSING_PAGE_SIZE 行,一次 in() 就够。
+    const woIds = Array.from(new Set((runs ?? [])
+        .map((r) => (r as { work_order_id: string | null }).work_order_id)
+        .filter(Boolean))) as string[]
+    const woCode = new Map<string, string>()
+    if (woIds.length > 0) {
+        const woRows = mustRows(
+            await supabase.from('work_orders').select('id, code').in('id', woIds),
+            'work_orders') as { id: string; code: string }[]
+        woRows.forEach((w) => woCode.set(w.id, w.code))
+    }
 
     // 分页链接:保留日期 + sort/dir,只改 page
     function pageHref(targetPage: number) {
@@ -88,6 +103,8 @@ export default async function ProcessingPage({
     }
 
     return (
+        <>
+        <Subnav />
         <div className="p-8">
             <div className="flex items-center justify-between mb-4">
                 <h1 className="text-2xl font-bold">{t('processing.listTitle')}</h1>
@@ -126,6 +143,9 @@ export default async function ProcessingPage({
                             <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.colTotalOutput')}</th>
                             <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.colLoss')}</th>
                             <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.colStatus')}</th>
+                            {/* WO-1c:这次加工算在哪张计划上 —— 【没有就说"无计划",不留空】
+                                空白读起来是"数据缺了",而真相是一个正当的类别。 */}
+                            <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.colWorkOrder')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -153,12 +173,20 @@ export default async function ProcessingPage({
                                         {statusLabel(r.status)}
                                     </span>
                                 </td>
+                                <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
+                                    {r.work_order_id
+                                        ? <Link href={`/processing/orders/${r.work_order_id}`}
+                                                className="text-blue-600 hover:underline">
+                                              {woCode.get(r.work_order_id) ?? '—'}
+                                          </Link>
+                                        : <span className="text-gray-500 italic">{t('processing.noWorkOrder')}</span>}
+                                </td>
                             </tr>
                         ))}
                         {(!runs || runs.length === 0) && (
                             <tr>
                                 <td
-                                    colSpan={6}
+                                    colSpan={7}
                                     className="border border-gray-300 px-4 py-8 text-center text-gray-500"
                                 >
                                     {t('processing.emptyState')}
@@ -202,5 +230,6 @@ export default async function ProcessingPage({
                 )}
             </div>
         </div>
+        </>
     )
 }

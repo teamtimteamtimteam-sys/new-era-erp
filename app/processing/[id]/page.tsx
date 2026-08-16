@@ -236,6 +236,24 @@ export default async function ProcessingDetailPage({
                 : 'processing.recovery.anomalyCauseNotBothAssay'
 
     // 分摊信息:上次分摊时间 + 基准标签
+    // ── WO-1c:这次加工照的那张工单,以及它的差异 ───────────────────────────
+    // 【差异不在这里算】两个数都取自 work_order_fulfilment —— 页面自己减一遍,
+    // 就是给同一个规则留下第二处实现(AGENTS.md:一处推导,N 个消费者)。
+    const woId = (run as { work_order_id?: string | null }).work_order_id ?? null
+    const wo = woId
+        ? (mustOne(await supabase.from('work_orders').select('id, code, status')
+                    .eq('id', woId).maybeSingle(), 'work_orders') as
+            { id: string; code: string; status: string } | null)
+        : null
+    const woVariance = woId
+        ? (mustRows(await supabase.from('work_order_fulfilment')
+                .select('side, material_code, material_name, planned_or_expected_qty, actual_qty, variance_qty, has_plan')
+                .eq('work_order_id', woId), 'work_order_fulfilment') as {
+                    side: string; material_code: string | null; material_name: string | null
+                    planned_or_expected_qty: number | null; actual_qty: number
+                    variance_qty: number | null; has_plan: boolean }[])
+        : []
+
     const allocatedWhen = run.allocated_at
         ? formatTimestamp(run.allocated_at, dateLocale)
         : null
@@ -299,6 +317,61 @@ export default async function ProcessingDetailPage({
                                 : ''}
                         </div>
                     </div>
+
+                    {/* WO-1c:这次加工算在哪张计划上 —— 【没有就说"无计划",不留空】
+                        空白读起来像数据缺了,而"临时起意的加工"是一个正当的类别。 */}
+                    <div className="mt-3 pt-3 border-t border-gray-200 text-sm">
+                        <span className="text-gray-600">{t('processing.detail.workOrder')}</span>{' '}
+                        {wo
+                            ? <Link href={`/processing/orders/${wo.id}`}
+                                    className="text-blue-600 hover:underline font-mono">{wo.code}</Link>
+                            : <span className="text-gray-500 italic">{t('processing.noWorkOrder')}</span>}
+                    </div>
+
+                    {/* 【差异读的是视图,不是这里算的】而且它是【整张工单】的差异,
+                        不是这一次加工的 —— 一张工单可以有几次加工,差异只在工单这一层
+                        才有意义。标题把这件事说出来,免得有人把它读成本次的产出偏差。 */}
+                    {wo && woVariance.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-gray-200">
+                            <p className="text-sm text-gray-600 mb-1">
+                                {t('processing.detail.varianceTitle', { code: wo.code })}
+                            </p>
+                            <table className="w-full border-collapse border border-gray-300 text-xs">
+                                <tbody>
+                                    {woVariance.map((v, i) => (
+                                        <tr key={i}>
+                                            <td className="border border-gray-300 px-2 py-1">
+                                                {t(v.side === 'input'
+                                                    ? 'processing.wo.inputSide' : 'processing.wo.outputSide')}
+                                            </td>
+                                            <td className="border border-gray-300 px-2 py-1">
+                                                {v.material_code ?? '—'}
+                                            </td>
+                                            <td className="border border-gray-300 px-2 py-1 text-right font-mono">
+                                                {v.has_plan
+                                                    ? v.planned_or_expected_qty
+                                                    : <span className="text-gray-500 italic">
+                                                          {t(v.side === 'input'
+                                                              ? 'processing.wo.unplannedMaterial'
+                                                              : 'processing.wo.noExpectation')}
+                                                      </span>}
+                                            </td>
+                                            <td className="border border-gray-300 px-2 py-1 text-right font-mono">
+                                                {v.actual_qty}
+                                            </td>
+                                            <td className="border border-gray-300 px-2 py-1 text-right font-mono">
+                                                {v.variance_qty == null
+                                                    ? <span className="text-gray-400">—</span>
+                                                    : <span className={Number(v.variance_qty) < 0 ? 'text-amber-700' : ''}>
+                                                          {Number(v.variance_qty) > 0 ? '+' : ''}{v.variance_qty}
+                                                      </span>}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
 
                     {/* 成本(本位币金额;币种随数写出,见文件顶部 baseCurrency)*/}
                     <div className="mt-3 pt-3 border-t border-gray-200 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
