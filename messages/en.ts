@@ -2302,6 +2302,11 @@ const en = {
         },
     },
     reviews: {
+        blocked: {
+            noCandidates: 'No one can be assigned: a reviewer must be another employee, and no other employee is on file yet. Add the team under HR → Employees first.',
+            pickOne: 'Pick a reviewer first.',
+            sameAsCurrent: 'That is already the reviewer.',
+        },
         errSelfAssessmentEmpty: 'Write your self-assessment before finalising — finalising locks it, and an empty one cannot be corrected without your reviewer reopening it.',
         title: 'Performance Reviews',
         sectionTitle: 'Performance reviews',
@@ -3183,6 +3188,7 @@ const en = {
         unallocated: 'Unallocated (on account)',
         totalAllocated: 'Allocated',
         settlesDocuments: '(settles {list} in their own currencies)',
+        rowCostNoRate: '— no {ccy} rate on file for {date}, so this cannot be converted. Enter it at /finance/fx.',
         rowCost: 'costs {amount}',
         consumedPay: 'Consumed',
         bankAccount: 'Bank account',
@@ -3361,6 +3367,9 @@ const en = {
         closeHistoryEmpty: 'No closes yet',
         useClosePage: 'Month-end close is the normal way to lock periods — use the Close page.',
         errors: {
+            PAYMENT_NOT_FOUND: 'Payment {0} does not exist.',
+            PAYMENT_ALREADY_REVERSED: 'Payment {0} has already been reversed — a reversal reverses the original once, and reversing it twice would restore the amount it removed.',
+            REVERSAL_DATE_REQUIRED: 'A reversal date is required — it decides which period the reversing entry lands in. It is never defaulted to today: a defaulted date can never hit PERIOD_LOCKED, so the correct closed-period date would fail loudly while a blank one glided into the open month.',
             ASSET_NOT_FOUND: 'Asset {0} does not exist.',
             ASSET_ALREADY_DISPOSED: 'Asset {0} has already been disposed.',
             ASSET_ALREADY_IN_SERVICE: 'Asset {0} has been in service since {1}. Its cost is frozen and its depreciation has started — changing either is a correction made by manual journal, not an edit (see docs/fixed-asset-procedures.md).',

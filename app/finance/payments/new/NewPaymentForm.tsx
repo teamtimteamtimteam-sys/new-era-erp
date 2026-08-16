@@ -289,6 +289,17 @@ export default function NewPaymentForm({
         return (
             <div className={'text-xs mt-1 font-mono ' + (cost === null ? 'text-red-600' : 'text-gray-500')}>
                 {t('finance.rowCost', { amount: cost === null ? '—' : formatAmount(cost, currency) })}
+                {/* 【PAY-1:那个红色的破折号此前一个字都不说】
+                    cost 为 null 的意思很具体:这张单的币种在结算日【没有牌价】,
+                    所以折不出它会消耗多少付款额 —— 而不是"金额是零"、也不是
+                    "这一行不能核销"。人看见一个红破折号,唯一能做的只有猜。
+                    补救也很具体:去 /finance/fx 把那一天的牌价录进去。
+                    (服务端仍然会 FX_RATE_MISSING 兜底 —— 这一句是体贴,不是闸。) */}
+                {cost === null && (
+                    <span className="ml-1 font-sans text-red-700">
+                        {t('finance.rowCostNoRate', { ccy: docCcy, date: payDate || '—' })}
+                    </span>
+                )}
                 {cost !== null && rate && (
                     <span className="ml-1">@ {rate}</span>
                 )}

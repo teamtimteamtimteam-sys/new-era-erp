@@ -2298,6 +2298,11 @@ const zh = {
         },
     },
     reviews: {
+        blocked: {
+            noCandidates: '没有人可指派:评估人必须是【另一名】员工,而系统里还没有别的员工。请先在「人事 → 员工」把团队录进来。',
+            pickOne: '先选一个评估人。',
+            sameAsCurrent: '这就是当前的评估人。',
+        },
         errSelfAssessmentEmpty: '定稿前先把自评写上 —— 定稿即锁定,空白的自评没有评估人重开就改不了。',
         title: '绩效评估',
         sectionTitle: '绩效评估',
@@ -3166,6 +3171,7 @@ const zh = {
         unallocated: '未冲销(预收/预付)',
         totalAllocated: '冲销合计',
         settlesDocuments: '(结掉单据各自币种的 {list})',
+        rowCostNoRate: '—— {date} 没有 {ccy} 的牌价,所以折不出来。请在 /finance/fx 录入。',
         rowCost: '消耗 {amount}',
         consumedPay: '消耗款额',
         bankAccount: '银行账户',
@@ -3343,6 +3349,9 @@ const zh = {
         closeHistoryEmpty: '暂无关账记录',
         useClosePage: '正常关账请走月结页面;此处为手动覆盖。',
         errors: {
+            PAYMENT_NOT_FOUND: '付款单 {0} 不存在。',
+            PAYMENT_ALREADY_REVERSED: '付款单 {0} 已经冲销过了 —— 冲销只冲一次,再冲一次等于把它冲掉的那笔钱又加回来。',
+            REVERSAL_DATE_REQUIRED: '冲销日必填 —— 它决定冲销分录落在哪个期间。它【永不默认成今天】:一个补出来的今天永远撞不上期间锁,于是填对的封闭期日期会响亮地失败,而留空的那次反倒溜进了开着的月份。',
             ASSET_NOT_FOUND: '资产 {0} 不存在。',
             ASSET_ALREADY_DISPOSED: '资产 {0} 已经处置过了。',
             ASSET_ALREADY_IN_SERVICE: '资产 {0} 自 {1} 起已投用:成本已冻结、折旧已开始 —— 改动其中任何一个都是一次更正,走人工分录,不是一次编辑(见 docs/fixed-asset-procedures.md)。',

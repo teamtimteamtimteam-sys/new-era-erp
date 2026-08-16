@@ -12,6 +12,11 @@ const PAYMENT_ERROR_CODES = new Set([
     'FX_RATE_REQUIRED', 'BANK_INVALID',
     'ALLOC_WRONG_SIDE', 'ALLOC_WRONG_PARTY', 'ALLOC_UNPRICED',
     'ALLOC_EXCEEDS', 'ALLOC_EXCEEDS_PAYMENT', 'PERIOD_LOCKED',
+    // PAY-1:冲销那条路上的三个码。此前它们【不在集合里】,于是 localize 把原文
+    // 原样返回 —— 屏幕上就是 PAYMENT_ALREADY_REVERSED 这样一串机器串。
+    // REVERSAL_DATE_REQUIRED 的文案 FIN-10 就写好了(finance.errors 下),
+    // 只是没有人把这个码编进任何一个集合,所以那句人话一直没被用上。
+    'PAYMENT_NOT_FOUND', 'PAYMENT_ALREADY_REVERSED', 'REVERSAL_DATE_REQUIRED',
     // FIN-22 / FA-1a:固定资产。处置与投用经这条路报出来(月结的动作都走
     // month-end/actions.ts,而它统一用这个本地化器)。
     'ASSET_NOT_FOUND', 'ASSET_ALREADY_DISPOSED', 'ASSET_ALREADY_IN_SERVICE',
