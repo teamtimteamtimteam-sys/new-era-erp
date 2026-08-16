@@ -16,27 +16,31 @@ BEGIN
     END IF;
 
     WITH agg AS (
-        SELECT a.code, a.name_en, a.name_zh, a.account_type,
-               sum(l.debit) AS debits, sum(l.credit) AS credits
-        FROM journal_lines l
-        JOIN journal_entries e ON e.id = l.entry_id
-        JOIN accounts a ON a.id = l.account_id
-        WHERE e.entry_date <= p_as_of
-          -- ════════════════════════════════════════════════════════════════
-          -- 【FIN-23:本表【包含】year_close 分录 —— 与损益表刻意不对称】已结年度的
-          -- 损益行合计归零,3100 接住净结果,合成的"本期损益"行只剩结转后的活动 ——
-          -- 自洽,权益合计不变。损益表相反,【剔除】year_close(上面 pnl_statement(),
-          -- 注释互指):否则结转会把已结年度的损益表清成零。改任何一边前先读两边。
-          -- 【这里没有 source_type 过滤,不是漏了 —— 那正是"包含"的写法。】
-          -- db/fixtures/28 用同一个期间同时问这两个函数,把不对称钉住。
-          -- ════════════════════════════════════════════════════════════════
-          -- status 同样不过滤,理由与 pnl_statement 相同(冲销对必须成对进出)。
-        GROUP BY a.code, a.name_en, a.name_zh, a.account_type
+        -- ════════════════════════════════════════════════════════════════════
+        -- 【推导住在 journal_activity_lines 里】三表连接、不过滤 status、
+        -- 以及符号规则,全在那个文件的头部。此处只剩两个开关:
+        --   ① 日期形状 = 累计 (NULL, p_as_of) —— 起点不设界,这就是"截至日"。
+        --   ② 年结分录 = 【包含】(true)。
+        --
+        -- 【FIN-23:本表【包含】year_close 分录 —— 与损益表刻意不对称】已结年度的
+        -- 损益行合计归零,3100 接住净结果,合成的"本期损益"行只剩结转后的活动 ——
+        -- 自洽,权益合计不变。损益表相反,【剔除】year_close(上面 pnl_statement(),
+        -- 注释互指):否则结转会把已结年度的损益表清成零。
+        --
+        -- 【改任何一边前先读两边】—— 而"两边"现在指的是本函数与 pnl_statement
+        -- 各自那一个 true/false,不再包括推导本身。db/fixtures/28 用同一个期间
+        -- 同时问这两个函数,把不对称钉住。
+        -- ════════════════════════════════════════════════════════════════════
+        SELECT j.account_code AS code, j.account_name_en AS name_en,
+               j.account_name_zh AS name_zh, j.account_type,
+               sum(j.debit) AS debits, sum(j.credit) AS credits,
+               sum(j.signed_base) AS signed
+        FROM journal_activity_lines(NULL, p_as_of, true) j
+        GROUP BY j.account_code, j.account_name_en, j.account_name_zh, j.account_type
     ), net AS (
+        -- 资产借正,负债/权益贷正 —— 同样是共享推导的 signed_base 列。
         SELECT g.code, g.name_en, g.name_zh, g.account_type, g.debits, g.credits,
-               round(CASE WHEN g.account_type = 'asset'
-                          THEN g.debits - g.credits
-                          ELSE g.credits - g.debits END, 2) AS net
+               g.signed, round(g.signed, 2) AS net
         FROM agg g
     )
     SELECT
@@ -54,9 +58,10 @@ BEGIN
         COALESCE(round(sum(net) FILTER (WHERE account_type = 'equity'    AND (debits <> 0 OR credits <> 0)), 2), 0),
         -- 本期损益三项:【对整型别求和后才取整】—— 页面的 plNet 就是这个顺序
         -- (round2 套在 reduce 外面),与上面各行先取整再合计【不同】,照搬。
-        COALESCE(round(sum(credits - debits) FILTER (WHERE account_type = 'revenue'), 2), 0),
-        COALESCE(round(sum(debits - credits) FILTER (WHERE account_type = 'cogs'), 2), 0),
-        COALESCE(round(sum(debits - credits) FILTER (WHERE account_type = 'expense'), 2), 0)
+        -- 三项都取 signed_base:收入 = 贷−借,成本/费用 = 借−贷,与此前逐字等价。
+        COALESCE(round(sum(signed) FILTER (WHERE account_type = 'revenue'), 2), 0),
+        COALESCE(round(sum(signed) FILTER (WHERE account_type = 'cogs'), 2), 0),
+        COALESCE(round(sum(signed) FILTER (WHERE account_type = 'expense'), 2), 0)
     INTO v_asset, v_liab, v_eq, v_asset_sub, v_liab_sub, v_eq_sub, v_rev, v_cogs, v_exp
     FROM net;
 

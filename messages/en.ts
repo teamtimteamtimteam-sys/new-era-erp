@@ -3363,6 +3363,28 @@ const en = {
         totalLiabEquity: 'Total Liabilities + Equity',
         bsImbalance: 'Balance sheet does not balance — check the journal!',
         bsNote: 'Current period earnings stay in equity until a year-end closing entry exists.',
+        // ── FIN-DRILL:科目明细(报表数字的下钻)──────────────────────────
+        ledgerTitle: 'Account Ledger',
+        ledgerRangePeriod: 'Period {from} to {to}',
+        // 【累计口径要如实标】资产负债表的下钻没有起点 —— 标成一个区间就是在说
+        // 一件没发生的事。
+        ledgerRangeCumulative: 'Through {asOf}, cumulative (no start date)',
+        ledgerBackPnl: '← Back to the P&L for this period',
+        ledgerBackBs: '← Back to the balance sheet as of this date',
+        ledgerOwnTotal: 'Total of the lines below',
+        ledgerPnlFigure: 'Figure on the P&L',
+        ledgerBsFigure: 'Figure on the balance sheet',
+        // 报表不报这一行 ≠ 报表报了 0。
+        ledgerFigureAbsent: 'not reported on that statement for this period',
+        ledgerMismatch: 'These two do not agree — do not rely on either until this is resolved.',
+        ledgerMismatchHint:
+            'The lines and the statement share one derivation, so this is not an arithmetic difference: the link that brought you here is asking for a different period, a different account, or the other statement.',
+        ledgerEmpty: 'No journal entries for this account in this period.',
+        ledgerColEntry: 'Journal',
+        ledgerColCounterpart: 'Counterpart account',
+        ledgerReversed: 'reversed',
+        ledgerNote:
+            'Reversed entries and their reversals are both listed — they cancel out, and leaving either one out would change the total.',
         selectPeriod: 'Period to close',
         entriesCount: 'Entries',
         viewPnl: 'View P&L for this month',

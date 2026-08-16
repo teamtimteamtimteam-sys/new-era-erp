@@ -11,7 +11,16 @@
 // 【year_close 的不对称在函数里】损益表剔除年结分录,资产负债表包含它;两个函数体
 // 里的注释互指,理由写在那儿(FIN-23)。搬家【没有改动任何数字】—— 六个期间逐分
 // 相同,证明在 OPS-16 的提交信息里。
+//
+// 【推导只有一份】(FIN-DRILL)三表连接、刻意不过滤 status、以及符号规则,住在
+// db/functions/journal_activity_lines.sql;pnl_statement / balance_sheet /
+// account_ledger 三个读者共读它,调用点上只剩两个开关(日期形状、年结)。
+// 那句「改任何一边前先读两边」因此指的只是那两个开关,不再包括推导本身。
+//
+// 【科目行是下钻入口】(FIN-DRILL)点科目号进 /finance/ledger/[account],
+// 带上本表自己的期间。见下面 sectionBlock 里的注释。
 import { Fragment, Suspense } from 'react'
+import Link from 'next/link'
 import { getBaseCurrency } from '@/lib/currency'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
@@ -92,7 +101,20 @@ export default async function PnlPage({
             </tr>
             {s.rows.map((r) => (
                 <tr key={r.code}>
-                    <td className="border border-gray-300 px-4 py-2 font-mono text-sm">{r.code}</td>
+                    {/* ── FIN-DRILL:科目行是下钻入口 ─────────────────────────
+                        链接把【科目号】与【本表自己的期间】一起带走,由
+                        /finance/ledger/[account] 用同一段推导列出背后的行,
+                        并把它自己的合计与这里这个数字并排显示。
+                        mode=pnl 一并决定年结开关(剔除)—— 见那一页的抬头:
+                        两者总是配套的,拆成两个参数就等于允许对不上的组合。 */}
+                    <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
+                        <Link
+                            href={`/finance/ledger/${encodeURIComponent(r.code)}?mode=pnl&from=${from}&to=${to}`}
+                            className="text-blue-600 hover:underline"
+                        >
+                            {r.code}
+                        </Link>
+                    </td>
                     <td className="border border-gray-300 px-4 py-2">{accountName(r)}</td>
                     <td
                         className={

@@ -12,8 +12,17 @@
 // 损益表相反,【剔除】year_close,否则结转会把已结年度的损益表清成零。
 // 改任何一边前先读两边;db/fixtures/28 用同一个期间同时问两个函数,把这条钉住。
 //
+// 【推导只有一份】(FIN-DRILL)三表连接、刻意不过滤 status、以及符号规则,住在
+// db/functions/journal_activity_lines.sql;pnl_statement / balance_sheet /
+// account_ledger 三个读者共读它,调用点上只剩那两个开关。上面那句「先读两边」
+// 因此指的只是两个开关本身,不再包括推导。
+//
+// 【科目行是下钻入口】(FIN-DRILL)点科目号进 /finance/ledger/[account],
+// 带上本表自己的截至日。见下面 sectionBlock 里的注释。
+//
 // 底部 资产合计 vs 负债+权益合计,必须相等(不等出红警,理论不可能)。
 import { Fragment, Suspense } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { isYmd } from '@/lib/dateFilter'
@@ -89,7 +98,20 @@ export default async function BalanceSheetPage({
             </tr>
             {s.rows.map((r) => (
                 <tr key={r.code}>
-                    <td className="border border-gray-300 px-4 py-2 font-mono text-sm">{r.code}</td>
+                    {/* ── FIN-DRILL:科目行是下钻入口 ─────────────────────────
+                        链接把【科目号】与【本表自己的截至日】一起带走。
+                        mode=bs 一并决定年结开关(包含)与日期形状(累计,不设
+                        起点)—— 见 /finance/ledger/[account] 的抬头:那两件事
+                        总是配套的(FIN-23 的不对称),拆开就等于允许对不上的组合。
+                        下钻页把区间如实标成"截至 X,累计",不标成一个月份。 */}
+                    <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
+                        <Link
+                            href={`/finance/ledger/${encodeURIComponent(r.code)}?mode=bs&as_of=${asOf}`}
+                            className="text-blue-600 hover:underline"
+                        >
+                            {r.code}
+                        </Link>
+                    </td>
                     <td className="border border-gray-300 px-4 py-2">{accountName(r)}</td>
                     <td
                         className={

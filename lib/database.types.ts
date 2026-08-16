@@ -12800,6 +12800,15 @@ export type Database = {
       }
     }
     Functions: {
+      account_ledger: {
+        Args: {
+          p_account_code: string
+          p_from: string
+          p_include_year_close: boolean
+          p_to: string
+        }
+        Returns: Json
+      }
       accrued_annual_leave: {
         Args: { p_as_of?: string; p_employee_id: string }
         Returns: number
@@ -13258,6 +13267,28 @@ export type Database = {
       is_reviewer_of: {
         Args: { p_reviewer_employee_id: string }
         Returns: boolean
+      }
+      journal_activity_lines: {
+        Args: { p_from: string; p_include_year_close: boolean; p_to: string }
+        Returns: {
+          account_code: string
+          account_id: string
+          account_name_en: string
+          account_name_zh: string
+          account_type: string
+          credit: number
+          debit: number
+          entry_code: string
+          entry_date: string
+          entry_id: string
+          entry_memo: string
+          entry_status: string
+          line_id: string
+          line_memo: string
+          signed_base: number
+          source_id: string
+          source_type: string
+        }[]
       }
       leave_accrual_rate: {
         Args: {

@@ -18,43 +18,36 @@ BEGIN
     END IF;
 
     WITH agg AS (
-        SELECT a.code, a.name_en, a.name_zh, a.account_type,
-               sum(l.debit) AS debits, sum(l.credit) AS credits
-        FROM journal_lines l
-        JOIN journal_entries e ON e.id = l.entry_id
-        JOIN accounts a ON a.id = l.account_id
-        WHERE a.account_type IN ('revenue', 'cogs', 'expense')
-          AND e.entry_date BETWEEN p_from AND p_to
-          -- ════════════════════════════════════════════════════════════════
-          -- 【FIN-23:剔除年结分录 —— 与资产负债表刻意不对称】本表按日期区间聚合
-          -- 分录行,而结转分录恰好落在区间末日(财年末):不剔除,已结年度的损益表
-          -- 会整表归零 —— 合法会计记录里【去年的报表必须永远可复现】。
-          -- 资产负债表【包含】year_close(下面 balance_sheet(),注释互指):已结年度
-          -- 的损益行合计归零,3100 接住结果,合成的"本期损益"行只剩结转后的活动 ——
-          -- 自洽。改任何一边前先读两边。db/fixtures/28 把这条不对称钉住。
-          -- ════════════════════════════════════════════════════════════════
-          --
-          -- 【IS DISTINCT FROM,不是 <>】source_type 可空。页面此前写的是 PostgREST
-          -- 的 not.eq,展开成 NOT (source_type = 'year_close') —— 对 NULL 求值为
-          -- NULL,于是【source_type 为 NULL 的分录会被整条丢掉】。搬家时没有照抄这个
-          -- 行为,因为它是个 bug 而不是口径:一张少算了一笔分录的损益表不会报错,只会
-          -- 小一点。这【不影响搬家的等值证明】—— live 上 source_type 的 NULL 数为 0
-          -- (手工分录由 app/finance/journal/new/actions.ts 写成 'manual'),所以两种
-          -- 写法在现有数据上逐分相同;差别只在将来真出现 NULL 时,而那时这一版是对的。
-          AND e.source_type IS DISTINCT FROM 'year_close'
-          -- 【没有 status 过滤,是照搬,而且是对的】被冲销的原分录 status='reversed',
-          -- 冲销分录 status='posted' 且金额等额反向。只留 posted 会【丢掉原分录、留下
-          -- 冲销分录】,净额刚好错成 -原分录。页面从来没有过滤,所以本函数也没有。
-          -- (cash_flow_statement 里那句 e.status='posted' 与此不一致 —— 见 OPS-16
-          -- 提交信息里的报告,那是另一件事,本次不动。)
-        GROUP BY a.code, a.name_en, a.name_zh, a.account_type
+        -- ════════════════════════════════════════════════════════════════════
+        -- 【推导住在 journal_activity_lines 里】三表连接、不过滤 status、
+        -- 以及符号规则,全在那个文件的头部,连同它们为什么是那样的理由。
+        -- 此处只剩两个开关:
+        --   ① 日期形状 = 期间 (p_from, p_to);
+        --   ② 年结分录 = 【剔除】(false)。
+        --
+        -- 【FIN-23:剔除年结分录 —— 与资产负债表刻意不对称】本表按日期区间
+        -- 聚合分录行,而结转分录恰好落在区间末日(财年末):不剔除,已结年度的
+        -- 损益表会整表归零 —— 合法会计记录里【去年的报表必须永远可复现】。
+        -- 资产负债表【包含】year_close(下面 balance_sheet(),注释互指):
+        -- 已结年度的损益行合计归零,3100 接住结果,合成的"本期损益"行只剩
+        -- 结转后的活动 —— 自洽。db/fixtures/28 把这条不对称钉住。
+        --
+        -- 【改任何一边前先读两边】—— 而"两边"现在指的是本函数与
+        -- balance_sheet 各自那一个 false/true,不再包括推导本身:
+        -- 推导只有一份,在 journal_activity_lines。
+        -- ════════════════════════════════════════════════════════════════════
+        SELECT j.account_code AS code, j.account_name_en AS name_en,
+               j.account_name_zh AS name_zh, j.account_type,
+               sum(j.debit) AS debits, sum(j.credit) AS credits,
+               sum(j.signed_base) AS signed
+        FROM journal_activity_lines(p_from, p_to, false) j
+        WHERE j.account_type IN ('revenue', 'cogs', 'expense')
+        GROUP BY j.account_code, j.account_name_en, j.account_name_zh, j.account_type
     ), amt AS (
-        -- 收入贷正,成本/费用借正。零发生额科目在这里被排除 —— 与页面
-        -- (a.debits !== 0 || a.credits !== 0) 同一条。
+        -- 收入贷正,成本/费用借正 —— 那条规则是共享推导的 signed_base 列。
+        -- 零发生额科目在这里被排除 ——(a.debits !== 0 || a.credits !== 0) 同一条。
         SELECT g.code, g.name_en, g.name_zh, g.account_type,
-               round(CASE WHEN g.account_type = 'revenue'
-                          THEN g.credits - g.debits
-                          ELSE g.debits - g.credits END, 2) AS amount
+               round(g.signed, 2) AS amount
         FROM agg g
         WHERE g.debits <> 0 OR g.credits <> 0
     )

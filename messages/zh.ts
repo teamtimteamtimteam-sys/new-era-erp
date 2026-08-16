@@ -3345,6 +3345,27 @@ const zh = {
         totalLiabEquity: '负债及权益合计',
         bsImbalance: '资产负债不平——请检查分录!',
         bsNote: '尚未年结,本期损益并入权益列示。',
+        // ── FIN-DRILL:科目明细(报表数字的下钻)──────────────────────────
+        ledgerTitle: '科目明细',
+        ledgerRangePeriod: '期间 {from} 至 {to}',
+        // 【累计口径要如实标】资产负债表的下钻没有起点 —— 标成一个区间就是在说
+        // 一件没发生的事。
+        ledgerRangeCumulative: '截至 {asOf},累计(不设起点)',
+        ledgerBackPnl: '← 回到该期间的损益表',
+        ledgerBackBs: '← 回到该截至日的资产负债表',
+        ledgerOwnTotal: '下列明细的合计',
+        ledgerPnlFigure: '损益表上的数字',
+        ledgerBsFigure: '资产负债表上的数字',
+        // 报表不报这一行 ≠ 报表报了 0。
+        ledgerFigureAbsent: '该报表在此期间不报这个科目',
+        ledgerMismatch: '两个数对不上 —— 在查清之前,哪一个都不要采信。',
+        ledgerMismatchHint:
+            '明细与报表共用同一段推导,所以这不是算术差:是带你到这里的那条链接问错了期间、问错了科目,或者问错了报表。',
+        ledgerEmpty: '该科目在此期间没有分录。',
+        ledgerColEntry: '凭证',
+        ledgerColCounterpart: '对方科目',
+        ledgerReversed: '已冲销',
+        ledgerNote: '被冲销的原分录与冲销分录【都】列出 —— 两者相抵,少列任何一边合计都会错。',
         selectPeriod: '关账期间',
         entriesCount: '分录数',
         viewPnl: '查看当月损益表',

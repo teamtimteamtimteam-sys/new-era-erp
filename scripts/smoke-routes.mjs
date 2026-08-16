@@ -122,6 +122,12 @@ const STATUS_GUARDS = {
 const SPECIAL_ID_ROUTES = new Set([
     '/inbound/[id]/assays/[assayId]',
     '/output/[id]/assays/[assayId]',      // PROC-1b:产出化验,父是 output_batch_id
+    // FIN-DRILL:科目明细。段里放的是【科目号】(accounts.code),不是 uuid ——
+    // ID_SOURCES 一律 select=id,所以它走不了那条路。而且光取一个科目号还不够:
+    // 取到一个【没有任何分录】的科目,这条路由照样 200(那是它的具名空状态),
+    // 于是这次冒烟就没有走过任何一行明细 —— 与"预期会 SKIP 的路由跑起来了"
+    // 互为镜像的一种假绿。所以从 journal_lines 反查一个【确实有行】的科目。
+    '/finance/ledger/[account]',
 ])
 
 const EXPECTED_SKIPS = new Set([
@@ -568,6 +574,17 @@ async function main() {
                     `${route} ← assay_results`)
                 if (!rows[0]) { skipped.add(route); console.log(`  SKIP ${route}  (no data in assay_results)`); continue }
                 url = route.replace('[id]', rows[0].output_batch_id).replace('[assayId]', rows[0].id)
+            }
+            // FIN-DRILL:科目明细 —— 段是科目号,而且要一个【有分录】的科目。
+            // 从 journal_lines 反查,拿到的科目按构造至少有一行明细。
+            if (route === '/finance/ledger/[account]') {
+                const rows = await restRows(
+                    '/rest/v1/journal_lines?select=accounts(code)&limit=1',
+                    `${route} ← journal_lines`)
+                const code = rows[0]?.accounts?.code
+                if (!code) { skipped.add(route); console.log(`  SKIP ${route}  (no data in journal_lines)`); continue }
+                // 资产负债表口径(累计、含年结)—— 与它的入口链接同形
+                url = `${route.replace('[account]', encodeURIComponent(code))}?mode=bs`
             }
             // 状态门路由:取同一行的 id 和 status,预期值算出来、精确断言
             let exact = null
