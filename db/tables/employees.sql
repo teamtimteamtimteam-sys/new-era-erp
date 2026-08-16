@@ -28,8 +28,14 @@
 --   * work_category(办公室/车间)决定【年假的每月累积费率】—— 费率表在
 --     leave_accrual_rates(HR-2c),按月解析;谈定了别的天数就在那张表加一条 override;
 --   * manager_id 自引用,环路由 guard_manager_cycle 挡住;
---   * user_id 是【给权限切次预留】的登录账号接口 —— 可空、【不建到 auth 架构的
---     外键】(与较新的表一致,只存 uuid),部分唯一索引保证两名员工不共用一个登录。
+--   * user_id 是登录账号接口 —— 可空(不是每个员工都需要账号),部分唯一索引
+--     保证两名员工不共用一个登录。**EXEC-2(2026-08-16)给它补上了指向
+--     auth.users 的外键**:此前敲错一个 uuid 会【静默入库】,而这一列的读者
+--     (签发人姓名、绩效评估的分派路径)遇到指向空气的 id 时只会"查不到人" ——
+--     那与"这个人没有账号"在屏幕上一模一样。ON DELETE SET NULL:账号被回收时
+--     人还在,断的只是那根线。
+--     (原注写着"不建到 auth 架构的外键,与较新的表一致" —— 那句话当时就不准:
+--      suppliers 与 supplier_compliance 一直有这条外键,prelude 也为此建 auth.users。)
 --
 -- NOTE: introduced by db/migrations/2026-08-01-hr1a-hr-core.sql.
 -- First-run script (plain CREATEs). Run in the Supabase SQL Editor.
@@ -60,7 +66,7 @@ CREATE TABLE public.employees (
     work_pass_no         text,  -- RESTRICTED
     work_pass_issue_date date,
     work_pass_expiry_date date,
-    user_id              uuid,  -- 权限切次预留(见文件头)
+    user_id              uuid,  -- 登录账号(见文件头);外键在文件尾的 ALTER 里
     notes                text,
     deleted_at           timestamptz,
     created_at           timestamptz NOT NULL DEFAULT now(),
@@ -189,6 +195,16 @@ ALTER TABLE public.departments
     ADD CONSTRAINT departments_manager_employee_id_fkey
     FOREIGN KEY (manager_employee_id) REFERENCES public.employees (id);
 
+-- EXEC-2:员工 ↔ 登录账号。auth.users 由 db/platform-prelude.sql 提供
+-- (suppliers / supplier_compliance 也引用它),所以重建路径表达得了这条约束。
+-- ON DELETE SET NULL —— 三种删除行为都想过,理由写在迁移抬头:
+-- CASCADE 会因为删一个账号而删掉员工(档案是 HR 的记录,与有没有账号无关);
+-- RESTRICT 会拦住"回收离职者账号"这件正当的事,然后逼人手工清空 user_id ——
+-- 那正是 SET NULL 直接给出的结果,只是绕了一圈。
+ALTER TABLE public.employees
+    ADD CONSTRAINT employees_user_id_fkey
+    FOREIGN KEY (user_id) REFERENCES auth.users (id) ON DELETE SET NULL;
+
 -- 列注释:说明写在数据库里,重建出来的库也带着它们(OPS-1 补齐)。
 COMMENT ON COLUMN public.employees.confirmation_date IS
     '试用期转正日。由 approve_review 在批准 probation/confirm 的评估时写入;状态同时转为 active。';
@@ -198,3 +214,6 @@ COMMENT ON COLUMN public.employees.monthly_salary_set IS
     '派生列:monthly_salary 是否已录入。【金额敏感,有无不敏感】—— hr_alerts(SECURITY INVOKER)与列表页要能问"谁还没录",但不该因此拿到金额本身。';
 COMMENT ON COLUMN public.employees.review_exempt IS
     '免于年度评估(组织架构顶端)。open_review_cycle 【整个跳过】这些人:不建评估,也不报"没有评估人"。这与"暂时没定评估人"是两回事 —— 后者是待办,前者是决定。';
+
+COMMENT ON COLUMN public.employees.user_id IS
+    '这名员工的登录账号(auth.users.id)。EXEC-2 起有外键:敲错一个 uuid 会当场被拒,而不是静默入库 —— 这一列的读者(签发人姓名、绩效评估的分派路径)遇到一个指向空气的 id 时只会【查不到人】,而"查不到人"与"这个人没有账号"在屏幕上一模一样。ON DELETE SET NULL:账号被回收时,员工档案原样留着,只是那根线断了 —— 员工是 HR 的记录,它的存在与这个人有没有系统账号无关。可空是常态:不是每个员工都需要账号。';

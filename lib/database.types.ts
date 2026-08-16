@@ -1403,6 +1403,13 @@ export type Database = {
             referencedRelation: "user_directory"
             referencedColumns: ["employee_id"]
           },
+          {
+            foreignKeyName: "employees_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       employment_history: {
@@ -9520,6 +9527,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employees_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["user_id"]
           },
         ]
       }
