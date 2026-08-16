@@ -1,3 +1,73 @@
+-- FA-1a:固定资产 —— 从"买来了"到"开始折旧"之间那个缺掉的动词,以及锁的那道闸
+--
+-- ═══════════════════════════════════════════════════════════════════════════
+-- FA-0 的调查列了五件真实设备采购需要、而系统给不了的东西。这一刀做其中两件半:
+--   ① 【追加成本】运费、关税、安装调试 —— 它们本来就属于机器的成本,而此前
+--      record_expense 只能【一笔一台】:第二笔要么变成第二台资产,要么变成当期费用。
+--   ② 【投用这个动词】in_service_date 此前只能在【购置那一刻】填。而现实是
+--      机器先到、后调试、再投产 —— 中间那段时间它既不该折旧、也确实还没投用。
+--      FA-0 量过:NULL 的行为是对的(不折旧),缺的是把它从 NULL 变成日期的那个动作。
+--   ③ 【锁的那道闸】月结链条的注释写着"锁进去的月份都要包含它",而实测:
+--      lock 只看重估,不看折旧 —— 一个月可以在折旧还欠着的时候被锁进去,
+--      此后 PERIOD_LOCKED 让它补都补不回来(要先 reopen_period)。
+--      **一句被叙述、而没有被执行的承诺,与没有那句承诺是两回事** —— 它会被信。
+--
+-- ── 三个决定 ──────────────────────────────────────────────────────────────
+--
+-- 【一 · 同一扇门,两种模式 —— 不开第二个函数】
+-- 1500 ↔ p_asset 的互相要求是这条路上唯一的不变量。再开一个 add_cost_to_asset()
+-- 就是第二扇门,而那个不变量只守得住第一扇。所以 p_asset 带 asset_id = 追加,
+-- 不带 = 新建。同一个入口,同一套校验。
+--
+-- 【二 · 成本明细表,而不是只加一个数】
+-- 每一笔追加带【自己的】汇率:进口机器按购置日的 tt_sell 折算,本地运费按运费日
+-- 折算 —— 两笔的原币可以不同,汇率一定不同。表头那三列(cost_ccy / currency /
+-- fx_rate)是【第一笔】的,cost_base 是合计。若只把 cost_base 加大而不留明细,
+-- "这个数是怎么来的"就再也答不出来了,而资产是要被审计的东西。
+--
+-- 【三 · 投用即冻结】投用之后不许再追加成本。投用那一刻起折旧按当时的 cost_base
+-- 算,已经提过的那几期都基于它;事后加钱会让那几期全错,而它们可能已经锁进期间。
+-- 投用后的支出是一次【会计判断】(资本化改良 vs 当期费用),按名拒,交还给人。
+-- ═══════════════════════════════════════════════════════════════════════════
+
+BEGIN;
+
+-- ═══ 1 · 成本明细 ══════════════════════════════════════════════════════════
+CREATE TABLE public.fixed_asset_cost_entries (
+    id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    asset_id     uuid NOT NULL REFERENCES public.fixed_assets (id) ON DELETE RESTRICT,
+    -- 每一笔都来自一张资本性支出单 —— 资产不脱离它的应付/付款存在(FIN-22 的规矩)
+    expense_id   uuid NOT NULL REFERENCES public.expenses (id),
+    -- 三件套:这一笔自己的原币、自己那天的汇率、折出来的本位币额
+    amount_ccy   numeric NOT NULL CHECK (amount_ccy > 0),
+    currency     text    NOT NULL REFERENCES public.currencies (code),
+    fx_rate      numeric NOT NULL CHECK (fx_rate > 0),
+    amount_base  numeric NOT NULL CHECK (amount_base > 0),
+    created_at   timestamptz NOT NULL DEFAULT now(),
+    created_by   uuid,
+    -- 一张支出单只能进一次(重复调用会被它挡住,而不是把成本加两遍)
+    CONSTRAINT fixed_asset_cost_entries_one_per_expense UNIQUE (expense_id)
+);
+
+COMMENT ON TABLE public.fixed_asset_cost_entries IS
+    'FA-1a:一台资产的成本【由哪几笔构成】。购置那一笔也在里面 —— 否则第一笔要查 expenses、后续几笔要查这里,两处读法迟早各说各话。每一笔带自己的汇率:进口机器按购置日折算、本地运费按运费日折算,两笔的原币可以不同、汇率一定不同。fixed_assets 表头那三列是【第一笔】的,cost_base 是这张表的合计。';
+
+CREATE INDEX idx_fixed_asset_cost_entries_asset ON public.fixed_asset_cost_entries (asset_id);
+
+ALTER TABLE public.fixed_asset_cost_entries ENABLE ROW LEVEL SECURITY;
+-- 读 module.finance.view(与 fixed_assets 同一扇门);写只经 record_expense。
+CREATE POLICY "fixed_asset_cost_entries select by permission" ON public.fixed_asset_cost_entries
+    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.finance.view'::text));
+
+-- 【既有资产的那一笔要补进去】线上今天 0 台,所以这一句是给重建路径与将来
+-- 可能存在的行准备的 —— 让"第一笔也在明细里"这句话对每一行都成立,而不是
+-- 只对本刀之后建的资产成立。
+INSERT INTO fixed_asset_cost_entries (asset_id, expense_id, amount_ccy, currency, fx_rate, amount_base, created_by)
+SELECT fa.id, fa.expense_id, fa.cost_ccy, fa.currency, fa.fx_rate, fa.cost_base, fa.created_by
+  FROM fixed_assets fa
+ WHERE NOT EXISTS (SELECT 1 FROM fixed_asset_cost_entries c WHERE c.expense_id = fa.expense_id);
+
+-- ═══ 2 · 追加模式(同一扇门)════════════════════════════════════════════════
 CREATE OR REPLACE FUNCTION public.record_expense(p_expense_date date, p_account_code text, p_amount numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_payment_status text DEFAULT 'paid'::text, p_bank_account text DEFAULT NULL::text, p_supplier_id uuid DEFAULT NULL::uuid, p_payee_name text DEFAULT NULL::text, p_notes text DEFAULT NULL::text, p_asset jsonb DEFAULT NULL::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -228,6 +298,125 @@ BEGIN
         'payment_status', p_payment_status
     );
 END;
-$function$
+$function$;
 
-;
+-- ═══ 3 · 投用这个动词 ══════════════════════════════════════════════════════
+CREATE OR REPLACE FUNCTION public.set_asset_in_service(p_asset_id uuid, p_date date)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+    v_user uuid := auth.uid();
+    v_a    fixed_assets%ROWTYPE;
+BEGIN
+    PERFORM require_permission('module.finance.edit');
+    IF p_date IS NULL THEN
+        RAISE EXCEPTION 'DATE_REQUIRED';
+    END IF;
+
+    SELECT * INTO v_a FROM fixed_assets WHERE id = p_asset_id FOR UPDATE;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'ASSET_NOT_FOUND|%', COALESCE(p_asset_id::text, '?');
+    END IF;
+    -- 【投用只发生一次】改投用日等于把已经提过的折旧全部推翻 —— 那是一次更正,
+    -- 走人工分录,与改年限/残值同一条(见 preview_depreciate_fixed_assets 的头)。
+    IF v_a.in_service_date IS NOT NULL THEN
+        RAISE EXCEPTION 'ASSET_ALREADY_IN_SERVICE|%|%', v_a.code, v_a.in_service_date;
+    END IF;
+    IF v_a.status <> 'active' THEN
+        RAISE EXCEPTION 'ASSET_DISPOSED|%', v_a.code;
+    END IF;
+    -- 表上那条 CHECK 也拦得住,但它给的是约束名;这里按名拒,人才知道该改哪个日期。
+    IF p_date < v_a.acquisition_date THEN
+        RAISE EXCEPTION 'IN_SERVICE_BEFORE_ACQUISITION|%|%', p_date, v_a.acquisition_date;
+    END IF;
+
+    UPDATE fixed_assets SET in_service_date = p_date WHERE id = p_asset_id;
+
+    -- 折旧从这一天起算(首月按天折算,见 preview_depreciate_fixed_assets),
+    -- 而成本从这一刻起冻住 —— 再往上追加会被 record_expense 按名拒。
+    RETURN jsonb_build_object('asset_id', p_asset_id, 'code', v_a.code,
+                              'in_service_date', p_date, 'cost_base', v_a.cost_base);
+END;
+$function$;
+
+-- ═══ 4 · 锁的那道闸 ════════════════════════════════════════════════════════
+-- 【被叙述的承诺变成被执行的】月结链条的注释写着"折旧排在重估与锁之前 ——
+-- 锁进去的月份都要包含它",而 lock 此前只看重估。实测:折旧还欠着也锁得进去,
+-- 而锁上之后 depreciate_fixed_assets 的 PERIOD_LOCKED 让它补都补不回来
+-- (要先 reopen_period)。**一句被叙述、没有被执行的承诺会被信,那正是它的代价。**
+--
+-- 【判据从【同一份算术】来】preview_depreciate_fixed_assets —— 页面问它、
+-- 过账问它,现在锁也问它。第三份实现就是第三个会漂开的答案(AGENTS.md:
+-- 一处推导,N 个消费者;这个仓库为这条形状付过四次账)。
+--
+-- 【两种"没有欠账"照旧放行】没有资产(preview 返回空)与差额为 0(提完了),
+-- 两者在这里都不拦 —— 与月结中枢那三态口径一致(na / done)。
+CREATE OR REPLACE FUNCTION public.close_period(p_period_end date, p_notes text DEFAULT NULL::text)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+    v_locked   date;
+    v_count    integer;
+    v_debits   numeric;
+    v_credits  numeric;
+    v_new_lock date;
+    v_dep      numeric;
+BEGIN
+    PERFORM require_permission('module.finance.edit');
+    -- 必须是月末日
+    IF p_period_end IS NULL
+       OR p_period_end <> (date_trunc('month', p_period_end) + interval '1 month - 1 day')::date THEN
+        RAISE EXCEPTION 'NOT_MONTH_END|%', COALESCE(p_period_end::text, '?');
+    END IF;
+
+    -- 串行化 + 不可重关已锁期间
+    SELECT locked_before INTO v_locked FROM finance_settings WHERE id FOR UPDATE;
+    IF v_locked IS NOT NULL AND p_period_end < v_locked THEN
+        RAISE EXCEPTION 'ALREADY_CLOSED|%', v_locked;
+    END IF;
+
+    -- FA-1a:折旧还欠着就不许锁 —— 判据取自 preview,不另算一份。
+    v_dep := (preview_depreciate_fixed_assets(p_period_end)->>'total_delta')::numeric;
+    IF COALESCE(v_dep, 0) > 0 THEN
+        RAISE EXCEPTION 'DEPRECIATION_OUTSTANDING|%|%', p_period_end, v_dep;
+    END IF;
+
+    -- 截至 period_end 的全部分录:张数 + Σ借/Σ贷(关账即校验点)
+    SELECT COUNT(DISTINCT jl.entry_id),
+           round(COALESCE(SUM(jl.debit), 0), 2),
+           round(COALESCE(SUM(jl.credit), 0), 2)
+    INTO v_count, v_debits, v_credits
+    FROM journal_lines jl
+    JOIN journal_entries je ON je.id = jl.entry_id
+    WHERE je.entry_date <= p_period_end;
+
+    IF v_debits <> v_credits THEN
+        RAISE EXCEPTION 'TRIAL_BALANCE_UNBALANCED|%|%', v_debits, v_credits;
+    END IF;
+
+    v_new_lock := p_period_end + 1;
+
+    INSERT INTO period_closes (period_end, notes, entries_count, total_debits, total_credits)
+    VALUES (p_period_end, p_notes, v_count, v_debits, v_credits);
+
+    UPDATE finance_settings
+    SET locked_before = v_new_lock, updated_by = auth.uid()
+    WHERE id;
+
+    RETURN jsonb_build_object(
+        'period_end', p_period_end,
+        'locked_before', v_new_lock,
+        'entries_count', v_count,
+        'total_debits', v_debits,
+        'total_credits', v_credits
+    );
+END;
+$function$;
+
+COMMIT;

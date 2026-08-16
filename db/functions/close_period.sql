@@ -10,6 +10,7 @@ DECLARE
     v_debits   numeric;
     v_credits  numeric;
     v_new_lock date;
+    v_dep      numeric;
 BEGIN
     PERFORM require_permission('module.finance.edit');
     -- 必须是月末日
@@ -22,6 +23,12 @@ BEGIN
     SELECT locked_before INTO v_locked FROM finance_settings WHERE id FOR UPDATE;
     IF v_locked IS NOT NULL AND p_period_end < v_locked THEN
         RAISE EXCEPTION 'ALREADY_CLOSED|%', v_locked;
+    END IF;
+
+    -- FA-1a:折旧还欠着就不许锁 —— 判据取自 preview,不另算一份。
+    v_dep := (preview_depreciate_fixed_assets(p_period_end)->>'total_delta')::numeric;
+    IF COALESCE(v_dep, 0) > 0 THEN
+        RAISE EXCEPTION 'DEPRECIATION_OUTSTANDING|%|%', p_period_end, v_dep;
     END IF;
 
     -- 截至 period_end 的全部分录:张数 + Σ借/Σ贷(关账即校验点)
@@ -54,4 +61,6 @@ BEGIN
         'total_credits', v_credits
     );
 END;
-$function$;
+$function$
+
+;

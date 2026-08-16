@@ -1812,6 +1812,64 @@ export type Database = {
           },
         ]
       }
+      fixed_asset_cost_entries: {
+        Row: {
+          amount_base: number
+          amount_ccy: number
+          asset_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          expense_id: string
+          fx_rate: number
+          id: string
+        }
+        Insert: {
+          amount_base: number
+          amount_ccy: number
+          asset_id: string
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          expense_id: string
+          fx_rate: number
+          id?: string
+        }
+        Update: {
+          amount_base?: number
+          amount_ccy?: number
+          asset_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          expense_id?: string
+          fx_rate?: number
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fixed_asset_cost_entries_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fixed_asset_cost_entries_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fixed_asset_cost_entries_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: true
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fixed_asset_depreciation: {
         Row: {
           amount_base: number
@@ -13644,6 +13702,10 @@ export type Database = {
           p_review_id: string
           p_self_assessment_text: string
         }
+        Returns: Json
+      }
+      set_asset_in_service: {
+        Args: { p_asset_id: string; p_date: string }
         Returns: Json
       }
       set_goal_actual_value: {
