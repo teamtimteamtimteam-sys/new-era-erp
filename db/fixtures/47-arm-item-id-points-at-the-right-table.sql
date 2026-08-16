@@ -260,6 +260,11 @@ BEGIN
             -- 而人要去看、要接着往下录的就是那一行。
             WHEN 'metal_quote_stale'         THEN 'metal_prices'
             WHEN 'orders_unfulfilled'        THEN 'sales_orders'
+            -- EXEC-3a:资质两支的门牌都指【供应商】—— 续证在 /suppliers/[id]/edit
+            -- 上的 CompliancePanel(补救动作在那张页面上,这是本 fixture 的判据)。
+            -- 工单两支指工单本身:改计划/收工都在工单详情页上。
+            WHEN 'work_order_overdue'        THEN 'work_orders'
+            WHEN 'work_order_variance_beyond' THEN 'work_orders'
             -- SS-1:补救动作在物料页上(改阈值,或从那里出发去补货)
             WHEN 'safety_stock_below'        THEN 'materials'
             WHEN 'leave_pending'             THEN 'leave_requests'

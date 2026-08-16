@@ -199,12 +199,12 @@ it filters a list by a currency column, which is a filter, not a search for a co
 
 | candidate | why not |
 |---|---|
-| **Batch margin** | Open design questions: which qualifiers travel with the number, and posted COGS versus current cost. It gets its own cut; the predicate is already fixed in `AGENTS.md` standing decision 2 (owner rights, `data.view_prices AND (module.finance.view OR module.processing.view)`). The `TILES` array in `app/page.tsx` is where it will slot in. |
+| **Batch margin** | **WITHDRAWN as an arm (EXEC-3a verdict).** A low margin on a sold batch is a **state, not a to-do**: there is no clearing action — you cannot "handle" a margin that has already happened, so the tile could never go out. `operations_now` holds things waiting for someone to act (its name says so); the margin's home is `/margin`. **The actionable half is already an arm**: #15 `margin_cost_not_allocated` — cost not allocated, and allocating is a real action that turns the light off. The open design questions (which qualifiers travel with the number; posted COGS vs current cost) belong to `/margin`'s own cut, not to a dashboard arm. Predicate, if ever needed elsewhere: `AGENTS.md` standing decision 2. |
 | **The seven month-end signals** | `/finance/month-end` is their hub and states their true dependency order. Copying them here would be a second implementation of a sequence whose whole value is being ordered correctly. The dashboard links to it instead. |
 | **`hr_alerts` contents** | Already a view with its own screen and its own severity model. The dashboard shows its **count** as one tile and links out; it does not re-derive the arms. |
 | **Full bank reconciliation difference** | Requires the ledger-side whole-table scan. See the bound above. |
 | ~~**Stale metal quotes (ASY-3)**~~ | **BUILT — EXEC-1a, 2026-08-16.** Arm 16 above. The threshold landed as `pricing_settings.metal_quote_stale_days` exactly where METAL-1 left room for it; the thin-window half stays queued for the pricing panel (EXEC-1b). |
-| **Supplier / company qualification expiry (CMP-1)** | **Candidate, not built — gated on the A3 decision in `docs/compliance-scoping.md`.** Two arms when it lands: `qualification_expiring` (window + escalation, the `work_pass_expiry` shape but with NO −30-day floor for blocking instruments — live already has a certificate 2.5 years expired that a floored alert would have silently dropped) and `qualification_missing` (absence, the `holiday_calendar_missing` shape — "this supplier has no Basel certificate at all"). Permission `module.suppliers.view`: the data's own RLS (OPS-15's rule), and procurement — who chases the renewal — holds it. NOT a new compliance module for one arm; if Phase 5 builds one, this line is where the code changes. |
+| ~~**Supplier / company qualification expiry (CMP-1)**~~ | **BUILT — CMP-2 already shipped both arms** (`qualification_expiring`, `qualification_missing`), with `warn_lead_days` per certificate type and **no −30-day floor** (fixture 37C pins the 730-days-expired case). **This row said "Candidate, not built — gated on the A3 decision" until 2026-08-16, and that was stale**: EXEC-3a trusted it and added two DUPLICATE branches to `operations_now`. The duplicates were caught the same hour — by fixture 37C (one supplier, 2 rows instead of 1) and fixture 30A (25 rows instead of 21), i.e. by exactly the "某支把同一件事数了两遍" message fixture 30 carries for this purpose — and removed in `exec3a-fu1`. **A stale spec costs the same as a wrong one.** A3 itself is also settled and shipped: its conclusion was per-`cert_type` disposition (block/warn/ignore), which CMP-2 built, along with `supplier_receiving_blocked` gating receipt. |
 | **An AR/invoice arm as the `sales` role's tile** | Does not work: `sales` does not hold `module.finance.view`, so an AR arm renders 「受限」 for exactly the role it was meant to serve. This mistake was made once (OPS-18's report) and is recorded so it is not made twice. `output_unsold_aging` is the arm that actually reaches `sales`. |
 
 ## Two hazards a reader of this view must know
@@ -335,8 +335,16 @@ WO-1b 的 `work_order_fulfilment` 让这两个数第一次算得出来,但**这�
 
 | 候选 | 含义 | 权限 | 数据源 | 需要先回答的问题 |
 |---|---|---|---|---|
-| `work_order_overdue` | `status = 'released'` 且 `scheduled_date < CURRENT_DATE` 的工单 | `module.processing.view`(数据自己的 RLS,OPS-15 那条) | `work_orders` | **排产日可以为空**,而空【不是逾期】—— 它是"没排期"。一个 `COALESCE(scheduled_date, ...)` 会把没排期的全部报成逾期或全部漏掉,两种都错。这一支必须显式 `scheduled_date IS NOT NULL`,并且要想清楚:一张放行了三个月、从没排过期的工单,该不该有别的支去管它? |
-| `work_order_variance_beyond` | 差异超过某个阈值的工单 | 同上 | `work_order_fulfilment` | **阈值从哪来?** 这个库里没有任何配置项承载它,而写死一个百分比等于替所有人做了一个"多少算多"的判断(与 FIN-36 的分摊基准同一条)。它需要 `finance_settings` / 一张新配置表里的一个显式值,以及 Tim 对"投入超耗"与"产出短交"是否用同一个阈值的一句话 —— 它们是两种不同的坏消息。 |
+| ~~`work_order_overdue`~~ **BUILT(EXEC-3a)** | `status = 'released'` 且 `scheduled_date < CURRENT_DATE` 的工单 | `module.processing.view`(数据自己的 RLS,OPS-15 那条) | `work_orders` | **排产日可以为空**,而空【不是逾期】—— 它是"没排期"。一个 `COALESCE(scheduled_date, ...)` 会把没排期的全部报成逾期或全部漏掉,两种都错。这一支必须显式 `scheduled_date IS NOT NULL`,并且要想清楚:一张放行了三个月、从没排过期的工单,该不该有别的支去管它? |
+| ~~`work_order_variance_beyond`~~ **BUILT(EXEC-3a)** | 差异超过某个阈值的工单 | 同上 | `work_order_fulfilment` | **阈值从哪来?** 这个库里没有任何配置项承载它,而写死一个百分比等于替所有人做了一个"多少算多"的判断(与 FIN-36 的分摊基准同一条)。它需要 `finance_settings` / 一张新配置表里的一个显式值,以及 Tim 对"投入超耗"与"产出短交"是否用同一个阈值的一句话 —— 它们是两种不同的坏消息。 |
+
+**EXEC-3a(2026-08-16)把这两支建了。** 阈值落在 `processing_settings` 的【两列】
+(`wo_input_overrun_pct` / `wo_output_shortfall_pct`)—— 上面那个"是否用同一个阈值"
+的问题,答案是【不是】:投入超耗是成本问题、产出短交是收率问题。触发时机也不同 ——
+超耗在【放行中】的单上就报(它发生那一刻就可处理),短交【只报收了工的】
+(收工之前"少"只是"还没做完")。没记录预期的行永远不报。fixture 79 逐条钉住。
+**排产日为空仍然【不是】逾期,而"放行了很久、从没排过期"那个子问题仍然开着** ——
+它没有被这一刀回答,留在下面。
 
 **代码要改的地方:`app/page.tsx` 的 `TILES` 数组**(与批次毛利那一条同一处),
 外加各自的谓词。两支都读单模块的数据,所以不涉及 `xmodule` 那一类问题。

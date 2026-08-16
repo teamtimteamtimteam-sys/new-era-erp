@@ -6244,6 +6244,33 @@ export type Database = {
           },
         ]
       }
+      processing_settings: {
+        Row: {
+          id: boolean
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+          wo_input_overrun_pct: number
+          wo_output_shortfall_pct: number
+        }
+        Insert: {
+          id?: boolean
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          wo_input_overrun_pct?: number
+          wo_output_shortfall_pct?: number
+        }
+        Update: {
+          id?: boolean
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          wo_input_overrun_pct?: number
+          wo_output_shortfall_pct?: number
+        }
+        Relationships: []
+      }
       public_holidays: {
         Row: {
           country: string

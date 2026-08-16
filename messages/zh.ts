@@ -73,6 +73,8 @@ const zh = {
     dashboard: {
         sectionNow: '当前待办',
         item: {
+            work_order_overdue: '工单已过排产日',
+            work_order_variance_beyond: '工单差异超过阈值',
             metal_quote_stale: '行情未更新',
             orders_unfulfilled: '订单尚未履约',
             awaiting_assay: '待化验批次',

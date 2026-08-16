@@ -71,6 +71,8 @@ const en = {
     dashboard: {
         sectionNow: 'Waiting now',
         item: {
+            work_order_overdue: 'Work order past its scheduled date',
+            work_order_variance_beyond: 'Work order variance beyond threshold',
             metal_quote_stale: 'Metal quote not updated',
             orders_unfulfilled: 'Order not yet fulfilled',
             awaiting_assay: 'Batches awaiting assay',

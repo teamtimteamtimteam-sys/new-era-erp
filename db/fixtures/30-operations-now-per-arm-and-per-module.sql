@@ -36,14 +36,17 @@ DECLARE
     v_ob uuid; v_ob2 uuid; v_cust uuid; v_sr uuid; v_inv uuid;
     v_ccy text;
     v_mp uuid; v_cust2 uuid; v_so uuid; v_mat2 uuid;   -- EXEC-1a:两支新臂自带的数据
+    v_sup2 uuid; v_sup3 uuid; v_sc uuid; v_wo uuid; v_wo2 uuid; v_ibw uuid;  -- EXEC-3a:四支
+    v_res_wo jsonb; v_detail text; v_runwo uuid;
     v_types text[];
     v_n int;
-    -- EXEC-1a 起十七支(metal_quote_stale / orders_unfulfilled)
+    -- EXEC-1a 起十七支;EXEC-3a 起【二十一支】(资质两支 + 工单两支)
     v_expected text[] := ARRAY['allocation_stale','ap_over_90','ar_over_90',
         'assay_unapplied','awaiting_assay','bank_unmatched','batch_unpriced',
-        'claim_pending','fx_rate_gap','invoice_overdue','leave_pending',
-        'metal_quote_stale','orders_unfulfilled',
-        'output_unsold_aging','po_awaiting_receipt','review_submitted','stocktake_open'];
+        'claim_pending','fx_rate_gap','invoice_overdue','leave_pending','metal_quote_stale',
+        'orders_unfulfilled','output_unsold_aging','po_awaiting_receipt',
+        'qualification_expiring','qualification_missing','review_submitted',
+        'stocktake_open','work_order_overdue','work_order_variance_beyond'];
     -- 只持 module.inbound.view 的读者应看见的三支(同源 batch_assay_status,互斥)
     v_inbound_only text[] := ARRAY['assay_unapplied','awaiting_assay','batch_unpriced'];
 BEGIN
@@ -67,6 +70,10 @@ BEGIN
         'module.output.view','module.finance.view','data.view_prices',
         -- EXEC-1a:两支新臂各自的门
         'module.pricing.view','module.sales.view',
+        -- EXEC-3a:资质两支挂 suppliers,工单两支挂 processing
+        'module.suppliers.view','module.processing.edit',
+        -- reprice_inbound_batch 要 inbound.edit(给投料批定价是进料侧的动作)
+        'module.inbound.edit',
         -- set_sales_order_status 要 module.sales.edit(确认订单是一次销售行为)——
         -- 与上面 purchasing.edit 同一种情形:加这个码不影响任何一支(支挂的都是 .view)
         'module.sales.edit']);
@@ -228,6 +235,73 @@ BEGIN
         format('{"sub":"%s","role":"authenticated"}', v_all), true);
     PERFORM set_sales_order_status(v_so, 'confirmed');
 
+    -- ── EXEC-3a:四支的条件 ──────────────────────────────────────────────────
+    -- 【资质两支要先接管共享数据】线上已经有供应商与证书,而本 fixture 的契约是
+    -- "每支恰好一件、数据各自拥有"(README 第 5 条)。先把既有的软删掉,
+    -- 再造【恰好一家没有证的】与【恰好一张快到期的】。整个事务回滚,线上不动。
+    UPDATE supplier_compliance SET deleted_at = now() WHERE deleted_at IS NULL;
+    UPDATE suppliers SET deleted_at = now() WHERE deleted_at IS NULL;
+
+    -- 一家有证、而证快到期(basel 的提前量是 90 天 → 80 天后到期即命中)
+    INSERT INTO suppliers (code, legal_name, country)
+    VALUES ('FIXT-S30A', 'fixture 30 expiring', 'SG') RETURNING id INTO v_sup2;
+    INSERT INTO supplier_compliance (supplier_id, cert_type_code, cert_no, valid_from, valid_until)
+    VALUES (v_sup2, 'basel', 'F30-A', CURRENT_DATE - 400, CURRENT_DATE + 80)
+    RETURNING id INTO v_sc;
+    -- 一家【一张证都没有】
+    -- 【status 显式设 active】CMP-2 的 qualification_missing 谓词里有
+    -- `s.status = 'active'` —— 不设就落到列默认值上,那一支静默不响,
+    -- 而"没响"与"这一支坏了"在屏幕上一模一样(README 第 5 条:前提要自己设)。
+    INSERT INTO suppliers (code, legal_name, country, status)
+    VALUES ('FIXT-S30B', 'fixture 30 no cert', 'SG', 'active') RETURNING id INTO v_sup3;
+    -- 上面那家有证的,不该同时命中"缺席"那一支 —— 两支互斥,A 臂的"每支恰好一件"
+    -- 就是这一点的断言。
+
+    -- 工单:一张逾期的(放行 + 排产日在昨天),一张差异超阈的
+    INSERT INTO materials (code, name, category) VALUES ('FIXT-M30WO2','f30 wo raw','black_mass')
+        RETURNING id INTO v_mat2;
+    PERFORM set_config('request.jwt.claims',
+        format('{"sub":"%s","role":"authenticated"}', v_all), true);
+    v_types := NULL;  -- (占位,避免下面 SELECT INTO 前的未初始化告警)
+    INSERT INTO work_orders (code, status, scheduled_date, notes)
+    VALUES (next_work_order_code(CURRENT_DATE), 'released', CURRENT_DATE - 1, 'f30 overdue')
+    RETURNING id INTO v_wo;
+    INSERT INTO work_order_lines (work_order_id, material_id, planned_qty)
+    VALUES (v_wo, v_mat2, 100);
+
+    -- 差异那一支:另一张单,吃掉 200 / 计划 100(阈值 10% → 线在 110)
+    UPDATE processing_settings SET wo_input_overrun_pct = 10, wo_output_shortfall_pct = 10;
+    -- 【这一家要有证,而且是远期的】否则它会同时命中 qualification_missing,
+    -- 那一支就变成两行,而本 fixture 的契约是"每支恰好一件"。
+    -- 证的到期日推到窗口之外(basel 提前量 90 天),所以也不命中到期那一支。
+    INSERT INTO suppliers (code, legal_name, country, status)
+    VALUES ('FIXT-S30C', 'fixture 30 wo supplier', 'SG', 'active') RETURNING id INTO v_sup3;
+    INSERT INTO supplier_compliance (supplier_id, cert_type_code, cert_no, valid_from, valid_until)
+    VALUES (v_sup3, 'basel', 'F30-C', CURRENT_DATE - 10, CURRENT_DATE + 300);
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
+    VALUES ('FIXT-IB30WO', v_mat2, v_sup3, 500, 500, 'kg', CURRENT_DATE) RETURNING id INTO v_ibw;
+    PERFORM reprice_inbound_batch(v_ibw, 1, 'SGD', NULL, 'f30 price');
+    -- 【这一批要把别人的支让开】本 fixture 的契约是"每支恰好一件",而一张新的
+    -- 进料批天然会点亮 awaiting_assay(没有化验)。所以给它一份【已应用】的化验:
+    -- 它既不欠化验、也没有未应用的化验。
+    -- 实测教训:第一版没有这几行,gate 报 23 行而不是 21,多出来的正是
+    -- allocation_stale 与 awaiting_assay —— **自带数据的意思不只是"自己造",
+    -- 还包括"造出来的东西不要点亮别人的灯"。**
+    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at)
+    VALUES ('ZZFIX30-ARWO', v_ibw, CURRENT_DATE, now());
+    UPDATE inbound_batches SET pricing_status = 'final' WHERE id = v_ibw;
+    v_res_wo := create_work_order(
+        jsonb_build_array(jsonb_build_object('material_id', v_mat2, 'planned_qty', 100)),
+        NULL, CURRENT_DATE + 5, 'f30 variance');
+    v_wo2 := (v_res_wo->>'work_order_id')::uuid;
+    PERFORM release_work_order(v_wo2);
+    v_runwo := commit_processing_run(CURRENT_DATE, 'f30 overrun', 20,
+        jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ibw, 'quantity_consumed', 200)),
+        jsonb_build_array(jsonb_build_object('material_id', v_mat2, 'quantity', 180)), 'weight', v_wo2);
+    -- 同一条理由:一张【从没分摊过】的加工单会点亮 allocation_stale。
+    -- 这一支要测的是工单差异,不是分摊欠账 —— 所以把分摊时点盖上,让那盏灯归位。
+    UPDATE processing_runs SET allocated_at = now() WHERE id = v_runwo;
+
     -- ══════════ A. 条件成立:十五支【每支都在】══════════════════════════════
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_all), true);
@@ -237,7 +311,7 @@ BEGIN
     RESET ROLE;
 
     IF v_types <> v_expected THEN
-        RAISE EXCEPTION 'FIXTURE 30A 失败:十七支条件全部成立,应恰好看见 %,实得 % —— 少一支是条件恒假(那块牌子永远 0),多一支是支列表变了而 fixture 没跟上(规格见 docs/dashboard-arm-inventory.md)',
+        RAISE EXCEPTION 'FIXTURE 30A 失败:二十一支条件全部成立,应恰好看见 %,实得 % —— 少一支是条件恒假(那块牌子永远 0),多一支是支列表变了而 fixture 没跟上(规格见 docs/dashboard-arm-inventory.md)',
             v_expected::text, v_types::text;
     END IF;
 
@@ -247,8 +321,18 @@ BEGIN
     EXECUTE 'SET LOCAL ROLE authenticated';
     SELECT count(*) INTO v_n FROM operations_now;
     RESET ROLE;
-    IF v_n <> 17 THEN
-        RAISE EXCEPTION 'FIXTURE 30A 失败:应恰好 17 行(每支 1 件),实得 % 行 —— 两件说明某支把同一件事数了两遍(进料三支互斥、AR 与发票同源不同粒度)', v_n;
+    IF v_n <> 21 THEN
+        -- 【把【哪一支】多了直接说出来】原来这句只说"某支数了两遍",于是每次
+        -- 都要再跑一轮去找是哪一支 —— 而在慢链路上那一轮要八分钟。
+        -- 一条说得出主语的失败信息,值它自己那几行代码。
+        PERFORM set_config('request.jwt.claims',
+            format('{"sub":"%s","role":"authenticated"}', v_all), true);
+        EXECUTE 'SET LOCAL ROLE authenticated';
+        SELECT string_agg(item_type || '=' || c, ' ' ORDER BY item_type) INTO v_detail
+          FROM (SELECT item_type, count(*) c FROM operations_now GROUP BY 1 HAVING count(*) > 1) q;
+        RESET ROLE;
+        RAISE EXCEPTION 'FIXTURE 30A 失败:应恰好 21 行(每支 1 件),实得 % 行 —— 多出来的是:%(进料三支互斥、AR 与发票同源不同粒度)',
+            v_n, COALESCE(v_detail, '(没有任何一支超过一行 —— 那么是支数对不上,看上一条断言)');
     END IF;
 
     -- ══════════ B. 只持 inbound 的读者:恰好只看见 inbound 的三支 ════════════
@@ -266,6 +350,21 @@ BEGIN
     END IF;
 
     -- ══════════ C. 条件逐支解除:九支【每支都不在】═══════════════════════════
+    -- EXEC-3a:四支的解除。
+    -- 资质到期 → 把证书续到窗口之外(80 天 → 200 天,basel 的提前量是 90)
+    UPDATE supplier_compliance SET valid_until = CURRENT_DATE + 200 WHERE id = v_sc;
+    -- 一张证都没有 → 给那两家各补一张(缺席那一支的条件是"一张都没有")
+    INSERT INTO supplier_compliance (supplier_id, cert_type_code, cert_no, valid_from, valid_until)
+    SELECT s.id, 'basel', 'F30-FILL', CURRENT_DATE - 10, CURRENT_DATE + 200
+      FROM suppliers s
+     WHERE s.deleted_at IS NULL
+       AND NOT EXISTS (SELECT 1 FROM supplier_compliance sc
+                        WHERE sc.supplier_id = s.id AND sc.deleted_at IS NULL);
+    -- 工单逾期 → 把排产日推到将来(【不是】清空:清空也会让它消失,但那测的是
+    -- 另一条规则,而这一支要解除的是"过期了"这件事)
+    UPDATE work_orders SET scheduled_date = CURRENT_DATE + 30 WHERE id = v_wo;
+    -- 差异超阈 → 把阈值抬高到 200%(数据不动,只动配置 —— 顺带再证一次它是现读的)
+    UPDATE processing_settings SET wo_input_overrun_pct = 200, wo_output_shortfall_pct = 200;
     -- EXEC-1a:两支的解除。
     -- 【行情陈旧:把报价日期推到阈值【之内】—— 恰好 14 天,而判据是 > 14】
     -- 这一改同时验了边界:14 天不算旧,15 天算。一个写成 >= 的实现在这里当场红。
@@ -329,7 +428,7 @@ BEGIN
         SELECT COALESCE(array_agg(DISTINCT item_type ORDER BY item_type), '{}') INTO v_types
           FROM operations_now;
         RESET ROLE;
-        RAISE EXCEPTION 'FIXTURE 30C 失败:十七个条件都已解除,应 0 行,实得 % 行(%)—— 赖着不走的支就是"处理完了牌子还亮着"的那一支',
+        RAISE EXCEPTION 'FIXTURE 30C 失败:二十一个条件都已解除,应 0 行,实得 % 行(%)—— 赖着不走的支就是"处理完了牌子还亮着"的那一支',
             v_n, v_types::text;
     END IF;
 END $$;

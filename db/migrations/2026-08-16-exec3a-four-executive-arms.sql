@@ -1,98 +1,66 @@
--- OPS-18(Phase 6):operations_now —— 全站"正在等人处理的事",一件一行
+-- EXEC-3a:四支高管臂 —— 而第五支【被撤掉了】,理由写在清单里
 --
--- 【为什么是一张视图而不是九个页面各查各的】仪表盘的每一块牌子背后都是"有多少件
--- 事在等"这一类问题;九个问题九处写,就是九份会各自漂移的实现。hr_alerts 已经证明
--- 过这个形状:一个 UNION,每一种等待状态一支,页面只负责画。
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 规格取自 docs/dashboard-arm-inventory.md(它治理这件事)与
+-- docs/exec-views-plan.md §2。四支:
+--   qualification_expiring · qualification_missing(CMP-1 的两支,逐字照办)
+--   work_order_overdue · work_order_variance_beyond(WO-1c 记下的两个候选)
 --
--- 【属主权限 + 每支自带 permission 列,外层一次性把关】(OPS-14 修法 (a))。
--- 本视图横跨六个模块,invoker 会让 RLS 把读者无权模块的行【静默丢掉】—— 行消失
--- 在这里意味着"那个数少算了",而不是报错。属主权限读全量,外层
--- WHERE has_permission(a.permission) 按【调用者】逐支裁决:无权的支【整支缺席】,
--- 不是零。谓词写一次而不是九遍 —— hr_alerts 的注释说过,复述 N 遍只会给下一个
--- 加支的人留一个漏写的机会;这里每支【声明】自己的权限码,外层【执行】它。
+-- 【第五支 batch_margin 撤了】一个卖出去的批次毛利偏低,是一个【状态】,
+-- 不是一件"等人处理的事" —— 它没有清除动作:你不能"处理掉"一个已经发生的毛利。
+-- 看板装的是待办(operations_now 这个名字就是这个意思),而毛利的家是 /margin。
+-- 真正可处理的那一半【已经在册】:arm 15 margin_cost_not_allocated —— 成本没分摊,
+-- 而分摊是一个真的动作,做完灯就灭。清单里那一行改写成这个判词。
 --
--- 【缺席 ≠ 零,页面必须自己分辨】视图对无权读者不发一行,于是"没有行"有两种
--- 含义:真的零,或者你看不见。app/page.tsx 先查权限再渲染每块牌子 —— 无权显示
--- 「受限」(common.restricted),绝不显示 0。这是仪表盘最容易犯、且任何 gate 都
--- 查不出的那个错(0 与"你看不见"在屏幕上一模一样 —— moduleGuard 的老病换了件衣服)。
+-- 【本刀装的两个阈值,回答的是清单里留的那个问题】WO-1c 写着:
+-- "需要…Tim 对【投入超耗】与【产出短交】是否用同一个阈值的一句话 —— 它们是
+--  两种不同的坏消息"。答案是【不是同一个】,所以 processing_settings 有两列。
+-- 而"两种不同的坏消息"还体现在触发时机上:超耗在发生那一刻就可处理,
+-- 短交在收工之前只是"还没做完"。
 --
--- 【item_type 写成 'x'::text 字面量】check-i18n 的 sqlLiteralAs 解析器现读本文件,
--- dashboard.item.* 的后缀集合就是这里的支列表 —— 加一支,键检查自动跟着变宽。
---
--- 【两笔贵的读数,按界所限】(OPS-16 报告点名的两处):
---   * fx_rate_gaps 按 (日期,币种) 对每组跑 fx_rate_asof,本身不受期间约束 ——
---     这里限 rate_date >= CURRENT_DATE - 45:仪表盘答"最近有没有漏",完整历史
---     归 /finance/month-end 按月翻。谓词落在分组键上,能下推进聚合。
---   * 银行对账这支【只数报表侧的未匹配行】(bank_statement_lines,行数 = 导入量,
---     天然有界)。bank_reconciliation_status 的账簿侧 LATERAL 要扫 journal_lines
---     全表 —— 那是对账页的活,不上人人都开的首页。
---
--- 【不在此列的】批次毛利 —— 有未决的设计问题(哪些限定词随数字走、已过账 COGS
--- 还是当前成本),自成一切,谓词已录在 AGENTS.md 常设决定 2。月结的七个信号 ——
--- /finance/month-end 是它们的枢纽,首页放一个入口,不复制信号。
---
--- NOTE: introduced by db/migrations/2026-08-09-ops18-operations-now-and-the-dashboard.sql.
--- EXEC-3a(2026-08-16):再【两】支 —— work_order_overdue 与
--- work_order_variance_beyond(WO-1c 记下的两个候选)。差异那一支的两个阈值
--- 现读 processing_settings,【两个数不是一个】(投入超耗是成本问题、
--- 产出短交是收率问题,合成一个数等于说它们一样严重)。
--- 【本刀一度加了资质那两支,而它们 CMP-2 就已经在了】—— 清单文件里那行
--- "Candidate, not built" 是过时的,重复分支由 fixture 37C 与 30A 当场抓住,
--- fu1 撤掉。见 db/migrations/2026-08-16-exec3a-fu1-*.sql。
--- 【batch_margin 撤了】:一个卖出去的批次毛利偏低是一个【状态】,没有清除动作 ——
--- 看板装的是待办,毛利的家是 /margin;可处理的那一半已经是 arm 15。
---
--- EXEC-1a(2026-08-16):两支高管臂 —— metal_quote_stale(行情陈旧,阈值现读
--- pricing_settings.metal_quote_stale_days,按 price_date 不按 created_at)与
--- orders_unfulfilled(confirmed / partially_shipped 的订单)。规格见
--- docs/dashboard-arm-inventory.md;【谁要看哪一支】见 docs/exec-views-plan.md。
---
--- OPS-19(2026-08-09):补上原始定稿漏掉的四支(awaiting_assay / batch_unpriced /
--- invoice_overdue / ar_over_90 + ap_over_90),并新增 output_unsold_aging —— sales
--- 这一行唯一够得着的支(它没有 module.finance.view,当初猜的 AR 支对它同样是「受限」)。
--- assay_unapplied 的粒度同时从"一份未执行化验一行"改成"一个批次一行",与
--- awaiting_assay 同源同粒度、互斥;live 该支当时为 0,故不改变任何现有数字。
---
--- CMP-1(2026-08-09):两支资质臂。qualification_expiring 到【类型自己的 lead days】就上牌,
--- 过期后【不落牌、无 -30 天下限】—— 工作证过期 30 天人已走,证书过期两年而进场仍可能,
--- 它就还站在那儿(live 那张 2024 年就过期的 Article 18 正是证据)。续期(valid_until
--- 前移)即安静。qualification_missing 是"一张证都没有"的缺席臂(与 awaiting_assay /
--- assay_unapplied 的分立同理)。disposition='ignore' 的类型不上牌。
--- 【规格在 docs/dashboard-arm-inventory.md】每一支是什么意思、挂哪个权限码、界在
--- 哪里、以及【哪些支被考虑过又被排除、为什么】都在那里。
--- 定稿只存在于一次对话里,代价是四支 —— 所以规矩是:
--- 【加一支 = 在同一个提交里往那份清单加一行】。
---
--- MAR-1(2026-08-10):支的权限从【一个码】放宽到【一个谓词】—— permission(必须有)
--- + permission_any(任意其一,由 arm_permission_any 一处声明,SELECT 与 WHERE 共用)。
--- 起因是批次毛利跨两个模块(prices AND (finance OR processing)),而没有任何 live 角色
--- 同时持有后两者。合成一个新权限码那条路被否掉:那会是谁能看毛利的第二份定义,
--- 与 batch_margin 自己的谓词必然漂开。fixture 45 三种读者各钉一次。
--- LINKS-1(2026-08-11):每支多带一个 item_id —— 支从"指向一张列表"变成"指向那一件事"。
--- 【item_id 指的是谁】承载【补救动作】的那张页面所对应的行。十七支里它就是等待中的
--- 那一行;两支里是它的父:bank_unmatched(行没有页面,匹配动作在对账工作台上 →
--- 对账单)与 margin_cost_not_allocated(补救是给加工单分摊成本 → 加工单)。
--- 于是同一支的几行可以共用一个 item_id,那是对的,不是重复 —— fixture 47 因此断言
--- 的是"item_id 落在这一支该落的那张表里",不是"一行一个 id",也不是互不相同。
--- 【SO-3a:应收也成了两种单据】ar_over_90 的 doc_kind 从此非空('sale' 销售记录 /
--- 'invoice' 订单流发票),item_id 相应二选一 —— 门牌各是应收单据页与发票页,
--- app/page.tsx 按 doc_kind 分支,认不出的种类不给链接(与 ap 同一条)。
--- 【doc_kind 是披露】应付账款本来就是两种单据(ap_open_items 自己就按它分支,
--- 应付列表页也一直照它画链接),这张视图先前只是没说出口。其余十八支主体只有一种,
--- 该列为 NULL。【fx_rate_gap 没有 item_id】它的主体是一条不存在的牌价行,缺的东西
--- 没有 id —— 它指向按币种过滤的列表,那是"诚实过滤的列表"那类答案,不是按码搜索。
--- 每支的门牌与"补救是否在那张页面上"这条判据,写在 docs/dashboard-arm-inventory.md。
--- NOTE: item_id / doc_kind added by
--- db/migrations/2026-08-11-links1-operations-now-item-id.sql(列集变了 → DROP + CREATE)。
--- SS-1(2026-08-13):第二十支 safety_stock_below —— 物料的可用量低于它自己的
--- 安全库存阈值。【阈值 NULL 的物料一次都不响】:NULL 是"还没有人决定要盯它",
--- 不是"阈值为零",而把不响读成"查过了没问题"正是 METAL-1 的那一课。
--- 可用量来自 material_stock_available(一处求和,暂扣不算 —— 阈值问的是"还有多少
--- 能用的货",一次暂扣若能掩盖缺货,这个告警就在最该说话的时刻哑掉)。
--- item_date 用【最后一次库存移动】退回今天:阈值告警是持续状态,没有发生日;
--- 去算"哪天跌破的"要在首页翻整段流水史,那条界不允许(credit_over_limit 同形)。
+-- 【dashboard.item.* 的四个标签键在本刀一并加】EXEC-1a 的教训:check-i18n 的
+-- 后缀集合现读 operations_now.sql 的 item_type 字面量,所以视图与那几个键是一次
+-- 原子改动 —— 少了它们,npm run build 当场红。
+-- 牌子与设置面板是 3b。
+-- ═══════════════════════════════════════════════════════════════════════════
 
-CREATE VIEW public.operations_now AS
+BEGIN;
+
+-- ═══ 1 · 两个阈值有了家 ═════════════════════════════════════════════════════
+-- 单行配置表,形状取自 pricing_settings(METAL-1)。
+CREATE TABLE public.processing_settings (
+    id boolean PRIMARY KEY DEFAULT true CHECK (id),
+    -- 投入超耗:吃掉的比计划多出百分之几算"超了"
+    wo_input_overrun_pct numeric NOT NULL DEFAULT 10
+        CHECK (wo_input_overrun_pct > 0),
+    -- 产出短交:产出比预期少百分之几算"短了"
+    wo_output_shortfall_pct numeric NOT NULL DEFAULT 10
+        CHECK (wo_output_shortfall_pct > 0),
+    notes text,
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    updated_by uuid DEFAULT auth.uid()
+);
+
+COMMENT ON TABLE public.processing_settings IS
+    'EXEC-3a:加工模块的单行配置。今天装着工单差异的两个阈值 —— 【两个,不是一个】:投入超耗与产出短交是两种不同的坏消息(WO-1c 在 arm inventory 里问的正是这一句),一个是成本问题、一个是收率问题,合成一个数等于说它们一样严重。默认各 10%。看板的 work_order_variance_beyond 支【现读这两列】,没有任何地方写死这两个数(与 FIN-36 把分摊基准从 schema 默认值提出来同一条:一个谁也看不见的默认值等于替所有人做了这个判断)。';
+COMMENT ON COLUMN public.processing_settings.wo_input_overrun_pct IS
+    '投入超耗的阈值(百分比)。吃掉的量超过计划量 ×(1 + 本值/100)时,那张工单进看板。【开着的单和收了工的单都报】—— 超耗在它发生的那一刻就是可处理的事。';
+COMMENT ON COLUMN public.processing_settings.wo_output_shortfall_pct IS
+    '产出短交的阈值(百分比)。产出量低于预期量 ×(1 − 本值/100)时,那张工单进看板。【只报收了工的单】—— 收工之前,"少"只是"还没做完",报出来等于每天提醒一件正在进行的事。没记录预期的行永远不报:没估过不是估了零。';
+
+INSERT INTO public.processing_settings (id) VALUES (true);
+
+ALTER TABLE public.processing_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "processing_settings select by permission" ON public.processing_settings
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.processing.view'::text));
+CREATE POLICY "processing_settings update by permission" ON public.processing_settings
+    AS PERMISSIVE FOR UPDATE TO authenticated
+    USING (has_permission('module.processing.edit'::text))
+    WITH CHECK (has_permission('module.processing.edit'::text));
+
+-- ═══ 2 · 四支臂 ════════════════════════════════════════════════════════════
+CREATE OR REPLACE VIEW public.operations_now AS
  SELECT item_type,
     permission,
     arm_permission_any(item_type) AS permission_any,
@@ -343,6 +311,61 @@ CREATE VIEW public.operations_now AS
             so.order_date AS item_date
            FROM sales_orders so
           WHERE so.deleted_at IS NULL AND (so.status = ANY (ARRAY['confirmed'::text, 'partially_shipped'::text]))        UNION ALL
+-- ── EXEC-3a:资质到期(CMP-1 的第一支)───────────────────────────────────────
+-- 【没有 −30 天下限,这是这一支最要紧的一句】hr_alerts 的 work_pass_expiry 是
+-- 这个形状的原型,它带着 `>= -30` 的下限:过期超过一个月就不再报。那个下限对
+-- 工作准证是合理的(人早就走了),对【阻断类】的证书是危险的 —— 线上此刻就有
+-- 一张过期两年半的证书,带下限的告警会把它静默丢掉,而它恰恰是最该被看见的那张。
+--
+-- 【disposition = 'ignore' 的不进来】那些是公司明确决定不追的instrument,
+-- 把它们放到一块"等人处理"的看板上,只会稀释真正要处理的那几张。
+-- 这是一个判断,写下来:看板是给【要做的事】用的,不是给【所有事实】用的。
+--
+-- 窗口取 certificate_types.warn_lead_days(每类自己的提前量:阻断类 90 天、
+-- ISO 60 天、其他 30 天)—— 不写死一个数,与 metal_quote_stale 同一条。
+-- 门牌指供应商编辑页:续证就在那张页面上的 CompliancePanel(fixture 47 钉住)。
+         SELECT 'qualification_expiring'::text AS item_type,
+            'module.suppliers.view'::text AS permission,
+            sc.supplier_id AS item_id,
+            NULL::text AS doc_kind,
+            s.code AS item_code,
+            ct.name_en || ' · ' || sc.valid_until::text AS subject,
+            sc.valid_until AS item_date
+           FROM supplier_compliance sc
+             JOIN certificate_types ct ON ct.code = sc.cert_type_code
+             JOIN suppliers s ON s.id = sc.supplier_id
+          WHERE sc.deleted_at IS NULL AND s.deleted_at IS NULL
+            AND ct.is_active AND ct.disposition <> 'ignore'::text
+            AND sc.valid_until IS NOT NULL
+            AND (sc.valid_until - CURRENT_DATE) <= ct.warn_lead_days
+        UNION ALL
+-- ── EXEC-3a:一张证都没有(CMP-1 的第二支)─────────────────────────────────
+-- 【缺席不是过期,它需要自己的一支】—— 与 awaiting_assay 之于 assay_unapplied
+-- 同一条(CMP-1 的原话)。上面那一支扫的是【存在但快过期/已过期】的证书;
+-- 一个一张证都没有的供应商在那一支里【一行都不会出现】,而那是最糟的情形。
+-- 形状取自 holiday_calendar_missing:配置缺席,而不是配置过期。
+--
+-- 【判据是"一张都没有",不是"缺某一类"】—— 后者需要一张"谁必须持有哪几类"的
+-- 要求矩阵,而这个库里没有:suppliers.supplier_types 有 recycler/trader/dismantler
+-- 这些值,但没有任何东西说明哪一类必须持哪张证。造一个矩阵出来等于替人做了
+-- 一个没人做过的决定,而它会立刻变成 3 家供应商 × 5 类阻断证 = 15 行噪音。
+-- **有了"这家需要合规文件"的标记之后,这一支应当收窄到它** —— 记在
+-- docs/dashboard-arm-inventory.md 里,不在这里悄悄替它决定。
+--
+-- item_date 取供应商的建档日:days_waiting 因此读作"这家进来多久了还没有任何证"。
+         SELECT 'qualification_missing'::text AS item_type,
+            'module.suppliers.view'::text AS permission,
+            s.id AS item_id,
+            NULL::text AS doc_kind,
+            s.code AS item_code,
+            s.legal_name AS subject,
+            s.created_at::date AS item_date
+           FROM suppliers s
+          WHERE s.deleted_at IS NULL
+            AND NOT EXISTS (
+                SELECT 1 FROM supplier_compliance sc
+                 WHERE sc.supplier_id = s.id AND sc.deleted_at IS NULL)
+        UNION ALL
 -- ── EXEC-3a:工单逾期 ──────────────────────────────────────────────────────
 -- 【排产日为空【永远不是】逾期】—— 空的意思是"没排期",而不是"排在过去"。
 -- 一个 COALESCE(scheduled_date, CURRENT_DATE) 会把没排期的全部报成今天到期,
@@ -405,6 +428,6 @@ CREATE VIEW public.operations_now AS
                       * (1::numeric - (SELECT ps.wo_output_shortfall_pct FROM processing_settings ps LIMIT 1) / 100::numeric))
             )
 ) a
-  WHERE has_permission(permission) AND (arm_permission_any(item_type) IS NULL OR has_any_permission(arm_permission_any(item_type)));;;;
+  WHERE has_permission(permission) AND (arm_permission_any(item_type) IS NULL OR has_any_permission(arm_permission_any(item_type)));;
 
-GRANT SELECT ON public.operations_now TO authenticated;
+COMMIT;

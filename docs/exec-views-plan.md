@@ -44,7 +44,7 @@
 | # | 数 | 归类 | 依据 |
 |---|---|---|---|
 | a | 月度收入 / 毛利覆盖 / 现金余额 | **exists-as-page** ×3 | 收入与毛利:`/finance/pnl`;毛利覆盖另见 `/margin`(批次毛利,`allocation_stale` 是它的缺口支);现金:`/finance/cashflow` 与 `/finance/bank`。三个数都算得出来,**都不在第一屏** |
-| b | 证书/资质到期 | **missing**(候选已记) | `qualification_expiring` / `qualification_missing` 两支,arm inventory §"Reported, not built" 已经写好形状与理由(**没有 −30 天下限** —— 线上已有一张过期两年半的证书,带下限的告警会静默丢掉它)。权限 `module.suppliers.view` |
+| b | 证书/资质到期 | **exists-as-arm**(更正) | **【更正,2026-08-16】这两支 CMP-2 就已经建好了** —— `qualification_expiring` 与 `qualification_missing` 都在 `operations_now` 里,`warn_lead_days` 按证书类型走、没有 −30 天下限(fixture 37C 钉住那张过期 730 天的证)。EXEC-0 的调查把它归成 **missing**,是因为照抄了 arm inventory 里一行【过时】的 "Candidate, not built" —— EXEC-3a 依着同一行加了重复分支,被 fixture 当场抓住。**十二个数里"缺"的因此只有两个,不是三个。** 权限 `module.suppliers.view` |
 | c | 危废存储天数 vs 牌照时限 | **PARKED** | **NEA 牌照尚未持有(设备未到)。** 分类列的决定照旧成立(时限是**分类**的属性,不是证书的属性),而**数值等牌照文本**。今天不要填一个猜的数:一个猜出来的合规阈值比没有阈值坏 —— 它会让"没人看过"读成"看过了、没问题" |
 | d | 供应商合规非绿计数 | **derivable-today** | `supplier_receiving_blocked` 视图已在(谓词与 `guard_inbound_po_receivable` 的证书段**同一份**,fixture 37F 钉着两者一致)。它今天只答"会不会拦收货",而"非绿"是更宽的一档 —— 与 (b) 那两支同一刀做,共用 `certificate_types.disposition` 的三档 |
 
@@ -72,9 +72,19 @@
 | b | 现金 + 汇率缺口 | **exists-as-arm**(一半) | `fx_rate_gap`(#14,**45 天窗口**,理由是那一支会随年月增长的扫描,arm inventory §"两个被论证过的边界");现金余额是 **exists-as-page**(`/finance/cashflow`、`/finance/bank`),**没有臂** —— 而余额是一个**状态**不是一个**待办**,`operations_now` 装的是待办,所以它多半不该做成臂 |
 | c | 毛利覆盖 + 未分摊成本 | **exists-as-arm**(一半) | `allocation_stale`(#4)答"未分摊";**批次毛利本身是 arm inventory 里的头号未建候选**,谓词已定(属主权限,`data.view_prices AND (module.finance.view OR module.processing.view)`),落点是 `app/page.tsx` 的 `TILES` |
 
-**合计:exists-as-arm 6 · exists-as-page 5(含并列)· derivable-today 2 ·
-missing 3 · parked 1。** 也就是说**十二个数里有九个今天就答得出来**,
-真正缺的是三个:证书到期、行情陈旧、批次毛利 —— 而三个的规格都已经写好了。
+**合计(2026-08-16 更正后):exists-as-arm 8 · exists-as-page 5 ·
+derivable-today 2 · missing 1 · parked 1。**
+
+原本这里写的是"缺三个:证书到期、行情陈旧、批次毛利",而三个后来各自变了:
+* **证书到期【本来就有】** —— CMP-2 建的,上面 (b) 那一格已更正;
+* **行情陈旧** EXEC-1a 建了;
+* **批次毛利【撤了】** —— EXEC-3a 的判词:一个卖出去的批次毛利偏低是一个
+  【状态】,没有清除动作,而看板装的是待办;可处理的那一半已经是
+  `margin_cost_not_allocated`。
+
+**所以十二个数里,今天真正还缺的只有【一个】:危废存储天数,而它在等牌照文本。**
+把这段留着而不是改成一句干净的结论,是因为"缺三个"那句话曾经被当成依据用过 ——
+EXEC-3a 照着它去建证书那两支,建出了重复分支。
 
 ---
 
