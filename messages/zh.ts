@@ -3478,8 +3478,20 @@ const zh = {
                 tt_sell: '电汇卖出(银行卖出外币)',
                 mid: '中间价',
             },
-            gapsTitle: '{n} 天有外币过账、却没有当日牌价',
-            gapsMissing: '缺 {0} · 当天 {1} 笔凭证',
+            // FXG-1:此前那句说的是"有外币过账" —— 对纯报价日(gap_source=quote)
+            // 整句不成立,那种日子一笔外币凭证都没有。
+            gapsTitle: '{n} 天需要牌价、而当天没有',
+            gapsMissing: '缺 {0}',
+            // 【两个计数各带自己的单位】—— 合成一句就又变回那个两种单位相加的数
+            gapsEntries: '{n} 笔凭证',
+            gapsQuotes: '{n} 条报价',
+            // gap_source 的三种取值,三个字面量键(不走动态前缀)
+            gapKindPosting: '过账要价',
+            gapKindQuote: '报价要价',
+            gapKindBoth: '过账与报价都要价',
+            // 判断,与上面的事实分开一行
+            gapsKindNote:
+                '过账要价的缺口会挡住结算与重估;报价要价的缺口会挡住那条报价的金属计价。同一天可以两者都是。',
         },
         actualDealRate: '实际成交汇率',
         actualDealRateHint: '按银行水单的实际金额折算,不是牌价',
@@ -3491,7 +3503,9 @@ const zh = {
             blockedByMid: '被挡:{0} 缺【{1}】的中间价 —— 先到汇率页录入。每个非本位币各要一条:重估按币种逐个换算,而以外币发布的金属行情按【报价那一天】的中间价换算。',
             blockedByDepreciation: '还欠着 {0} 的折旧 —— 提完之前锁不了。先锁上,这笔折旧就只能在重开期间之后才补得回来。',
             blockedByReval: '被挡:先跑期末重估',
-            gapsDetail: '{n} 天有外币过账但缺牌价',
+            // FXG-1:同 fxPage.gapsTitle —— 这一步数的是行数(日期×币种),
+            // 而那些行不一定来自过账。
+            gapsDetail: '{n} 天需要牌价、而当天没有',
             unpaidLines: '{n} 名员工尚未发薪',
             cpfDetail: '待汇 {amount} {ccy}',
             accrualsDetail: '{n} 条成本行未结',

@@ -3497,8 +3497,20 @@ const en = {
                 tt_sell: 'TT sell (bank sells the foreign currency)',
                 mid: 'Mid',
             },
-            gapsTitle: '{n} day(s) have foreign-currency postings but no board rate on file',
-            gapsMissing: 'missing {0} · {1} entry(ies) that day',
+            // FXG-1:此前写的是 'have foreign-currency postings' —— 对纯报价日
+            // (gap_source=quote)整句不成立,那种日子一笔外币凭证都没有。
+            gapsTitle: '{n} day(s) need a board rate that is not on file',
+            gapsMissing: 'missing {0}',
+            // 【两个计数各带自己的单位】—— 合成一句就又变回那个两种单位相加的数
+            gapsEntries: '{n} journal entry(ies)',
+            gapsQuotes: '{n} metal quote(s)',
+            // gap_source 的三种取值,三个字面量键(不走动态前缀)
+            gapKindPosting: 'posting-driven',
+            gapKindQuote: 'quote-driven',
+            gapKindBoth: 'posting- and quote-driven',
+            // 判断,与上面的事实分开一行
+            gapsKindNote:
+                'Posting-driven gaps block settlement and revaluation; quote-driven gaps block metal pricing on that quote. A day can be both.',
         },
         actualDealRate: 'Actual deal rate',
         actualDealRateHint: 'From the bank advice — actual amounts, not the board rate',
@@ -3510,7 +3522,9 @@ const en = {
             blockedByMid: 'blocked: no mid rate on file for {0} for {1} — enter it under FX first. A mid rate is needed per non-base currency: revaluation converts each one, and metal quotes published in a foreign currency convert at the mid rate of their own quote date.',
             blockedByDepreciation: 'Depreciation of {0} is still outstanding — the period cannot be locked until it is posted. Locking first would make the charge unreachable without reopening the period.',
             blockedByReval: 'blocked: run the revaluation first',
-            gapsDetail: '{n} day(s) with foreign postings missing board rates',
+            // FXG-1:同 fxPage.gapsTitle —— 这一步数的是行数(日期×币种),
+            // 而那些行不一定来自过账。
+            gapsDetail: '{n} day(s) needing a board rate that is not on file',
             unpaidLines: '{n} employee(s) not yet paid',
             cpfDetail: '{amount} {ccy} to remit',
             accrualsDetail: '{n} cost entr(ies) unsettled',

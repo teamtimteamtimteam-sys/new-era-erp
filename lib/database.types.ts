@@ -9675,10 +9675,11 @@ export type Database = {
       fx_rate_gaps: {
         Row: {
           currency: string | null
+          entry_count: number | null
           gap_source: string | null
           missing_types: string[] | null
+          quote_count: number | null
           rate_date: string | null
-          txn_count: number | null
         }
         Relationships: []
       }

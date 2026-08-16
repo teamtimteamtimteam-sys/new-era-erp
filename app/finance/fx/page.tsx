@@ -73,18 +73,47 @@ export default async function FxRatesPage({
     const rows = data as unknown as FxRow[] | null
     const currencyOptions = (mustRows(currenciesRes)).map((c) => c.code)
 
-    // 缺牌价的日子:有外币过账、当天缺任一侧牌价 —— 牌价是日课,漏一天可能永远补不回
-    const { data: gapRows } = await supabase
+    // 缺牌价的日子 —— 牌价是日课,漏一天可能永远补不回。
+    //
+    // 【两个计数,不是一个】(FXG-1)这张视图有两支来源:过账与报价。过账那一支
+    // 数【凭证】,报价那一支数【报价条数】,而混合日两支都命中 —— 它真的有两个数。
+    // 此前它们被 sum() 进同一列、并被念成"当天 N 笔凭证":纯报价日因此声称了
+    // 它一笔都没有的凭证,混合日则把两种单位加在一起。现在各画各的,单位跟着列走,
+    // 本页不做任何推导。
+    const gapsRes = await supabase
         .from('fx_rate_gaps')
-        .select('rate_date, currency, missing_types, txn_count')
+        .select('rate_date, currency, missing_types, entry_count, quote_count, gap_source')
         .order('rate_date', { ascending: false })
         .limit(30)
-    const gaps = (gapRows ?? []) as unknown as {
+    // 【失败必须失败】此前这里是 `data ?? []`,而且 error 根本没有被解构出来 ——
+    // 一次读不到就渲染成"没有缺口",而"没有缺口"正是这块牌子最想说的好消息。
+    // check-error-swallowing 抓不到这个形状(它自己的抬头写着这一类是残余),
+    // 所以这一处是读代码读出来的。/finance/month-end 读同一张视图用的就是 mustRows。
+    const gaps = mustRows(gapsRes, 'fx_rate_gaps') as unknown as {
         rate_date: string
         currency: string
         missing_types: string[]
-        txn_count: number
+        entry_count: number
+        quote_count: number
+        gap_source: string
     }[]
+
+    // 【这一行是哪一种缺口 —— 事实,由 gap_source 直说】
+    // 三个分支都是【字面量】t() 调用,不是把 gap_source 拼进键里:静态那一半就
+    // 盖得住它们,不必往 check-i18n 的 MANIFEST 里加一条动态前缀。能静态就别动态。
+    //
+    // (顺带记一笔:这段注释的上一版把那个坏形状【原样写了出来】当反例,
+    //  check-i18n 当场把注释里的那个例子报成了一处未归类的动态前缀 ——
+    //  它的动态那一半不剥注释。是误报,但方向是安全的那一边;改法是别在注释里
+    //  写出那个形状,不是去放宽检查。)
+    function gapKindLabel(src: string): string {
+        if (src === 'posting') return t('finance.fxPage.gapKindPosting')
+        if (src === 'quote') return t('finance.fxPage.gapKindQuote')
+        if (src === 'posting+quote') return t('finance.fxPage.gapKindBoth')
+        // 视图只产出上面三种。真出了第四种,原样显示【而不是猜一个】——
+        // 一个猜出来的分类,和一个说错了的分类,在屏幕上长得一模一样。
+        return src
+    }
 
     function sortHref(col: FxSortCol) {
         const nextDir = sort === col && dir === 'asc' ? 'desc' : 'asc'
@@ -150,10 +179,27 @@ export default async function FxRatesPage({
                         {gaps.map((g) => (
                             <li key={g.rate_date + g.currency}>
                                 <span className="font-mono">{g.rate_date}</span> · {g.currency} ·{' '}
-                                {t('finance.fxPage.gapsMissing', { 0: g.missing_types.join(', '), 1: g.txn_count })}
+                                {t('finance.fxPage.gapsMissing', { 0: g.missing_types.join(', ') })} ·{' '}
+                                {gapKindLabel(g.gap_source)} ·{' '}
+                                {/* 【两个计数各说各的单位,零的那个不显示】
+                                    显示一个 "0 entries" 不是更诚实,只是更吵:
+                                    这一行为什么在这儿,gap_source 已经说了。 */}
+                                {[
+                                    g.entry_count > 0
+                                        ? t('finance.fxPage.gapsEntries', { n: g.entry_count })
+                                        : null,
+                                    g.quote_count > 0
+                                        ? t('finance.fxPage.gapsQuotes', { n: g.quote_count })
+                                        : null,
+                                ]
+                                    .filter(Boolean)
+                                    .join(' · ')}
                             </li>
                         ))}
                     </ul>
+                    {/* 【判断与事实分开一行】上面每一行是事实(缺哪几侧、哪一种缺口、
+                        各有多少);这一句是它意味着什么,单独放,不混进行里。 */}
+                    <p className="text-xs mt-2 opacity-80">{t('finance.fxPage.gapsKindNote')}</p>
                 </div>
             )}
 
