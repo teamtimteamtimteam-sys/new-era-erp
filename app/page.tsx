@@ -84,6 +84,19 @@ const TILES = [
     // 或清空,牌子会安静而一公斤货都没动。那是判据之外的事,不是不给链接的理由。
     { itemType: 'safety_stock_below', permission: 'module.inventory.view', href: '/materials',
       itemHref: (r: OpsRow) => `/materials/${r.item_id}/edit` },
+    // EXEC-3a/3b:工单逾期。【门牌指工单详情】—— 补救在那张页面上:
+    // 改排产日(改计划)、收工、或者取消,三条路都在那里。
+    // 【与 output_unsold_aging / safety_stock_below 同一个隐患,同样点名】:
+    // 在那张页面上把排产日往后推,这盏灯会安静,而一天的活都没有做 ——
+    // 那是判据之外的事,不是不给链接的理由(两条判据见清单文件)。
+    { itemType: 'work_order_overdue', permission: 'module.processing.view', href: '/processing/orders',
+      itemHref: (r: OpsRow) => `/processing/orders/${r.item_id}` },
+    // EXEC-3a/3b:工单差异超阈。同样指工单详情 —— 差异的两侧就画在那张页面上,
+    // 而改计划(投入那一侧的补救)也在那里。
+    // 【阈值在同一张列表页上改得动】那同样会让灯安静而一克料都没动,
+    // 与上面一条同一个道理;所以面板上写着这两个数是【判据】不是【目标】。
+    { itemType: 'work_order_variance_beyond', permission: 'module.processing.view', href: '/processing/orders',
+      itemHref: (r: OpsRow) => `/processing/orders/${r.item_id}` },
     // EXEC-1a/1b:行情陈旧。【补救在 /metal-prices 上】—— 那里既看得见整条序列,
     // 也是录下一条报价的地方,而这一支说的正是"该录了"。
     // item_id 指向【最近那一条报价】(这个金属本身没有 id),而那一行恰好就是

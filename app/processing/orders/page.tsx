@@ -11,12 +11,13 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { mustRows } from '@/lib/db-helpers'
+import { mustRows, mustOne } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import Subnav from '../Subnav'
 import { workOrderStatusKey } from './woTypes'
+import WoThresholdPanel from './WoThresholdPanel'
 
 export default async function WorkOrdersPage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前。
@@ -60,6 +61,13 @@ export default async function WorkOrdersPage() {
 
     const canEdit = await can('module.processing.edit')
 
+    // EXEC-3b:两个阈值 —— 看板那两块牌子现读它们,所以改它们的人就是看这块屏的人。
+    const settings = mustOne(
+        await supabase.from('processing_settings')
+            .select('wo_input_overrun_pct, wo_output_shortfall_pct').maybeSingle(),
+        'processing_settings') as
+        { wo_input_overrun_pct: number; wo_output_shortfall_pct: number } | null
+
     return (
         <>
             <Subnav />
@@ -74,6 +82,15 @@ export default async function WorkOrdersPage() {
                     )}
                 </div>
                 <p className="text-sm text-gray-600 mb-4">{t('processing.wo.listNote')}</p>
+
+                {/* EXEC-3b:差异阈值面板。人人看得见(看板上那盏灯亮不亮就取决于它),
+                    持 module.processing.edit 的人改得动。 */}
+                {settings && (
+                    <WoThresholdPanel
+                        inputPct={Number(settings.wo_input_overrun_pct)}
+                        outputPct={Number(settings.wo_output_shortfall_pct)}
+                        canEdit={canEdit} />
+                )}
 
                 <div className="overflow-x-auto">
                     <table className="w-full border-collapse border border-gray-300">
