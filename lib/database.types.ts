@@ -12679,6 +12679,23 @@ export type Database = {
         }
         Relationships: []
       }
+      work_order_fulfilment: {
+        Row: {
+          actual_qty: number | null
+          has_plan: boolean | null
+          material_code: string | null
+          material_id: string | null
+          material_name: string | null
+          planned_or_expected_qty: number | null
+          scheduled_date: string | null
+          side: string | null
+          status: string | null
+          variance_qty: number | null
+          work_order_code: string | null
+          work_order_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accrued_annual_leave: {
@@ -12895,6 +12912,7 @@ export type Database = {
           p_notes: string
           p_outputs: Json
           p_process_date: string
+          p_work_order_id?: string
         }
         Returns: string
       }

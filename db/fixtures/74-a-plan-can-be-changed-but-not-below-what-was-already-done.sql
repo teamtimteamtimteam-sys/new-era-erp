@@ -4,11 +4,11 @@
 -- 【这份 fixture 钉住的东西,以及每一条为什么需要一个对照】
 --
 --   ① 【地板是真的,不是一句注释】计划投料量不能低于挂上来的加工单已经吃掉的量。
---      这一条今天【走不到自然路径】—— commit_processing_run 要到 WO-1b 才写
---      work_order_id。所以 D 臂用一次【直改】把一条真加工单挂上去(见下面那段
---      "这座桥"的说明),让地板第一次读到非零的已耗量。没有这座桥,守卫里那段
---      join 从来没在真数据上跑过,而【一条从没跑过的守卫,与一条不存在的守卫,
---      在测试里长得一模一样】。
+--      WO-1a 写这一臂时,commit_processing_run 还不写 work_order_id,所以 D 臂
+--      用一次【直改】把加工单挂上去,并在这里写明"这座桥只活到 WO-1b"。
+--      **WO-1b 已经落地,桥拆了** —— D 臂现在把工单作为参数传给
+--      commit_processing_run,走的是真实路径。留着这段话是因为那句承诺当时
+--      写在这里,而兑现它的地方也该在这里看得见。
 --   ② 【状态迁移要连"拒绝的方向"一起验】只验 draft→released→closed 走得通,
 --      一个"什么都放行"的实现照样绿。所以矩阵里每一格的反方向各有一条断言。
 --   ③ 【短交要【被记下来】,不是被拦住】close 不检查完成度 —— 拦住它只会让人
@@ -21,11 +21,6 @@
 --      残骸派生 —— 否则门会累积,第三个注入实际少了三道门,它证明的就不再是
 --      "这一道门有牙"。每个注入先断言【替换确实改动了字节】:一次什么也没删的
 --      replace 会把"现在应当成功"变成对原函数的断言,那是会骗人的空转。
---
--- 【这座桥:直改 work_order_id】fixtures 以 postgres 身份跑,绕过 RLS,所以
--- 这一步做得到。它【只是临时的】—— WO-1b 会给 commit_processing_run 加上工单
--- 参数,那时这两臂改成走真实路径,这段注释连同直改一起删掉。写在这里而不是
--- 留在提交信息里,是因为读这份 fixture 的人才是需要知道它的人。
 --
 -- 【注入臂放在最后】fixture 64/69/71/73 都付过这笔账:注入种下的行会污染后面各臂。
 -- 自带数据(README 第 2 条)。期间锁显式设 NULL(第 5 条)。
@@ -263,9 +258,8 @@ BEGIN
     END IF;
 
     -- ══════════ D. 地板:计划改不到【已经吃掉的量】下面 ═══════════════════════
-    -- 这一臂需要一条【真的挂在工单上的加工单】。见文件头"这座桥":今天
-    -- commit_processing_run 还不写 work_order_id(那是 WO-1b),所以先正常提交
-    -- 一次加工,再直改把它挂上去。fixtures 以 postgres 身份跑,绕得过 RLS。
+    -- 【WO-1b:桥拆了】这一臂需要一条真的挂在工单上的加工单,而现在它由
+    -- commit_processing_run 的第七个参数直接挂上 —— 不再直改 work_order_id。
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
     VALUES ('ZZ74-IB', v_matA, v_sup, 100, 100, 'kg', d) RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, 'SGD', NULL, 'fixture 74 price');
@@ -278,8 +272,11 @@ BEGIN
 
     v_run := commit_processing_run(d, 'fixture 74 run', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 60)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 55)), 'weight');
-    UPDATE processing_runs SET work_order_id = woC WHERE id = v_run;   -- ← 这座桥
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 55)), 'weight',
+        woC);   -- ← WO-1b:真实路径,不再直改
+    IF (SELECT work_order_id FROM processing_runs WHERE id = v_run) IS DISTINCT FROM woC THEN
+        RAISE EXCEPTION 'FIXTURE 74D 失败:加工单应当认下它照的那张工单';
+    END IF;
 
     -- 改到 60 以上:通
     v_res := amend_work_order(woC, '现实比计划多一点', NULL, false, NULL, false,
@@ -457,7 +454,14 @@ BEGIN
         jsonb_build_array(jsonb_build_object('material_id', v_matA, 'planned_qty', 80)), NULL, d, 'f74 inj');
     woE := (v_res->>'work_order_id')::uuid;
     PERFORM release_work_order(woE);
-    UPDATE processing_runs SET work_order_id = woE WHERE id = v_run;   -- 同一条真加工单改挂过来
+    -- 【这里也不再直改】另起一次真加工,照 woE 做 —— 走的同样是那第七个参数。
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
+    VALUES ('ZZ74-IB2', v_matA, v_sup, 100, 100, 'kg', d) RETURNING id INTO v_ib;
+    PERFORM reprice_inbound_batch(v_ib, 1, 'SGD', NULL, 'fixture 74 price 2');
+    v_run := commit_processing_run(d, 'fixture 74 run 2', 0,
+        jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 60)),
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 55)), 'weight',
+        woE);
     IF (SELECT status FROM work_orders WHERE id = woE) <> 'released'
        OR (SELECT count(*) FROM processing_runs WHERE work_order_id = woE AND status='committed') <> 1 THEN
         RAISE EXCEPTION 'FIXTURE 74 注入1 前提不成立:要的是【released、且挂着一条已提交加工单】的工单';

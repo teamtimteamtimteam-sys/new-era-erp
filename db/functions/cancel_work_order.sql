@@ -24,8 +24,18 @@ BEGIN
     -- 【已经开过工的单子不能取消 —— 它只能收工】取消的意思是"这件事没有发生过";
     -- 而挂着一条加工单,就意味着料真的下去了、产出真的进了库。把它标成 cancelled
     -- 会让那几次加工失去它们的出处,而出处是这套系统存在的理由。
+    --
+    -- 【只数没有被冲销的 —— 而这两个条件今天是【等价】的】
+    -- 链接是历史,它断言过的消耗不是:一次被冲销的加工,料退回了、产出批作废了,
+    -- 那次消耗不再是发生过的事实,所以它拦不住取消。
+    -- rollback_processing_run 同时写 status='reversed' 与 deleted_at,所以单写
+    -- deleted_at IS NULL 也能得到同一个结果 —— 两个条件都在这里,是因为它们的
+    -- 等价【是一个巧合】:哪天有一条路径只写其中一列,它们就分开了,而那时没有
+    -- 任何东西会喊。把隐含的巧合写成显式的判据。
+    -- (WO-1b 一度把这写成"修掉了 WO-1a 的一个 bug" —— 那句话是错的,
+    --  见 db/migrations/2026-08-16-wo1b-fu1-*.sql。)
     SELECT count(*) INTO v_runs FROM processing_runs
-     WHERE work_order_id = p_work_order_id AND deleted_at IS NULL;
+     WHERE work_order_id = p_work_order_id AND deleted_at IS NULL AND status = 'committed';
     IF v_runs > 0 THEN
         RAISE EXCEPTION 'WO_HAS_RUNS|%|%', v_wo.code, v_runs;
     END IF;

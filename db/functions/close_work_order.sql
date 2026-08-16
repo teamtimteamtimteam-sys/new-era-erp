@@ -26,8 +26,10 @@ BEGIN
     -- 事实。拦住它只会让人把计划改小以求关单,而那正好把差异从账上抹掉 ——
     -- 一条逼人去伪造数据的规则比没有规则更坏。收工时挂了几条加工单一并记进理由行,
     -- 让"关的时候是什么样"留在历史里,而不必事后重算。
+    -- 口径与 WO_HAS_RUNS、与改单的地板一致(见 cancel_work_order 里那段说明:
+    -- 两个条件今天等价,写全是为了让判据显式而不是靠巧合)。
     SELECT count(*) INTO v_runs FROM processing_runs
-     WHERE work_order_id = p_work_order_id AND deleted_at IS NULL;
+     WHERE work_order_id = p_work_order_id AND deleted_at IS NULL AND status = 'committed';
 
     UPDATE work_orders
        SET status = 'closed', closed_at = now(), closed_by = v_user,

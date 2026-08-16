@@ -46,7 +46,10 @@ CREATE TABLE public.approval_log (
     subject_type        text NOT NULL CHECK (subject_type IN (
                             'leave_request', 'medical_claim', 'performance_review',
                             'purchase_order', 'payment', 'expense',
-                            'pricing_formula', 'stocktake')),
+                            'pricing_formula', 'stocktake',
+                            -- WO-1b:工单。可审批的动作是【放行】—— 不是新建
+                            -- (草稿谁都可以写),也不是收工(那是事后记录)。
+                            'work_order')),
     subject_id          uuid NOT NULL,
     -- 人读的编号,冻结在当时 —— 单据可以改名/作废,留痕不跟着变
     subject_code        text,

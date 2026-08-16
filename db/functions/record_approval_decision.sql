@@ -52,6 +52,13 @@ BEGIN
         WHEN 'stocktake' THEN
             SELECT true, s.code INTO v_ok, v_code
               FROM stocktakes s WHERE s.id = p_subject_id;
+        WHEN 'work_order' THEN
+            -- WO-1b:工单【没有金额】—— 它是一份要做什么的计划,不是一笔钱。
+            -- 与 leave_request / performance_review / stocktake 同一类:
+            -- 只冻结编号,金额那四列留空,而不是塞一个 0 进去
+            -- (0 会让它在按金额筛的报表里排到最前面,那是一句假话)。
+            SELECT true, w.code INTO v_ok, v_code
+              FROM work_orders w WHERE w.id = p_subject_id;
         ELSE
             RAISE EXCEPTION 'APPROVAL_SUBJECT_TYPE_UNKNOWN|%', p_subject_type;
     END CASE;
@@ -68,4 +75,6 @@ BEGIN
 
     RETURN v_id;
 END;
-$function$;
+$function$
+
+;

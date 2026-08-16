@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.commit_processing_run(p_process_date date, p_notes text, p_loss_qty numeric, p_inputs jsonb, p_outputs jsonb, p_allocation_basis text)
+CREATE OR REPLACE FUNCTION public.commit_processing_run(p_process_date date, p_notes text, p_loss_qty numeric, p_inputs jsonb, p_outputs jsonb, p_allocation_basis text, p_work_order_id uuid DEFAULT NULL::uuid)
  RETURNS uuid
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -24,6 +24,7 @@ DECLARE
     v_unit         text;
     v_purity       text;
     v_new_output_id uuid;
+    v_wo           work_orders%ROWTYPE;   -- WO-1b
 BEGIN
     PERFORM require_permission('module.processing.edit');
     IF p_process_date IS NULL THEN
@@ -38,6 +39,25 @@ BEGIN
     END IF;
     IF p_allocation_basis NOT IN ('weight','metal_value') THEN
         RAISE EXCEPTION 'INVALID_BASIS|%', p_allocation_basis;
+    END IF;
+
+    -- ── WO-1b:工单这一支【只在给了参数的时候才存在】────────────────────────
+    -- 【为什么是可选的,而不是必填】临时起意的加工是合法的 —— 车间不会为了系统
+    -- 先去补一张计划。把它变成必填,得到的不是纪律,是一堆事后补的假工单。
+    -- 差异报表因此必须把 work_order_id 为空的那些显示成【计划外】这一个具名的
+    -- 类别,而不是让它们悄悄消失(那是 WO-1c 的事,规则记在这里)。
+    IF p_work_order_id IS NOT NULL THEN
+        SELECT * INTO v_wo FROM work_orders WHERE id = p_work_order_id FOR UPDATE;
+        IF NOT FOUND THEN
+            RAISE EXCEPTION 'WO_NOT_FOUND|%', p_work_order_id;
+        END IF;
+        -- 【只有放行了的工单可以开工】草稿是还没答应的事(与 reserve_stock 只认
+        -- 已确认订单同一条);而 closed / cancelled 是【已经结束的事】,再往上挂
+        -- 一次加工会让那张单的完成度在它收工之后继续变 —— 收工时写进理由行的
+        -- 那句"runs=N"从此不再复算得出来。
+        IF v_wo.status <> 'released' THEN
+            RAISE EXCEPTION 'WO_NOT_RELEASED|%|%', v_wo.code, v_wo.status;
+        END IF;
     END IF;
 
     v_process_date := p_process_date;
@@ -134,11 +154,11 @@ BEGIN
     -- 4. 建加工单表头(code 由触发器生成)
     INSERT INTO processing_runs (
         process_date, total_input, total_output, loss_qty, notes, status,
-        allocation_basis, created_by, updated_by
+        allocation_basis, work_order_id, created_by, updated_by
     ) VALUES (
         v_process_date, v_total_input, v_total_output,
         COALESCE(p_loss_qty, v_total_input - v_total_output),
-        p_notes, 'committed', p_allocation_basis, v_user_id, v_user_id
+        p_notes, 'committed', p_allocation_basis, p_work_order_id, v_user_id, v_user_id
     )
     RETURNING id INTO v_run_id;
 
