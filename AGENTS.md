@@ -120,6 +120,19 @@ python3 db/gate.py        # ~4 min measured, no large payloads over the network
 > rather than a shrug: the 247s figure was one measurement on one machine on one
 > day, and the honest reading is that this gate costs **two to four minutes**,
 > not that it has a single true number. Keep dating them; do not average them.
+>
+> **Re-measured again (WO-1a / WO-1a-fu, 2026-08-16): 74 fixtures, and four runs
+> the same afternoon came in at 130s, 152s, 379s and 266s.** The 379s is the one
+> worth naming: it is 2.5× the 130s measured two hours earlier on the *same
+> machine* with the same fixture count ±1. Nothing in the repo explains it — the
+> new fixture's `pg_get_functiondef` captures are catalog reads costing
+> milliseconds, and the run before it was cold too. The likeliest cause is the
+> pooler/network, which this machine has already been observed to degrade on
+> (see the INV-2a smoke episode). **So the honest reading is now a range with a
+> fat tail: two to six minutes, occasionally worse, and the variance is not in
+> the fixture count.** If a run ever exceeds ~400s, measure before assuming the
+> gate got heavier — the variance so far has been environmental, and mistaking it
+> for growth is how someone ends up "optimising" a gate that is not slow.
 
 One LOCAL rebuild, two separately-reported verdicts (OPS-6 merged the two older
 tools — their build steps were identical and check_mirrors was shipping a
@@ -382,6 +395,26 @@ they shipped, with every gate green.
 column of a masked table must be either SELECT-granted or present in the masked
 view. Anything else is named and fails the gate. `check_mirrors` cannot see it —
 it does not compare GRANTs — which is why the check lives in the gate.
+
+**It is THREE changes, and they belong in ONE migration** (WO-1a, 2026-08-16):
+the `ADD COLUMN`, the column-list `GRANT SELECT`, and the `_masked` view. WO-1a
+split them across three migrations and **each step looked complete on its own** —
+the DDL landed (column writable, `has_column_privilege(...)` measured `false`),
+`fu1` added the grant and the gate was *still* red because `colgrant`'s predicate
+is `(NOT granted AND NOT in_view) OR (has_view AND NOT in_view)`: **once a table
+has a `_masked` companion, every column must be in that view, grant or no grant.**
+`fu2` closed it.
+
+The documentation above was already there and already clear; what was missing was
+a check that fires at the right *time*. **`db/preflight_migration.py` does not yet
+warn on a partial one** — it reads the migration file before execution and could
+see "this file adds a column to a table that has a `_masked` companion, and does
+not also touch the grant and the view", which is exactly the shape it already
+handles for account codes and overloaded signatures. `colgrant` catches it, but
+only *after* the migration has been applied to live. **QUEUED: add that pre-flight
+scan the next time `apply_migration.sh` / `preflight_migration.py` is touched.**
+Not built in WO-1a — writing a new checker inside a cut that just tripped over the
+gap is how a hurried checker gets written.
 
 ### `colgrant` asked half the question — `colreader` asks the other half (OPS-13)
 

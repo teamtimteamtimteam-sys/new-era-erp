@@ -43,6 +43,10 @@ DECLARE
     v_run uuid;
     v_res jsonb; v_msg text; v_denied boolean; v_n integer; v_qty numeric; v_status text;
     v_def text; v_inj text;
+    -- 【五份原样定义,在【任何注入之前】一次取齐】注入 3 会替换 close_work_order,
+    -- 而注入 5 也要 close 的原样定义 —— 到那时现取,取到的是【已经缺了一道门的】
+    -- 那一份,于是第二个注入实际少了两道门,它证明的就不再是「这一道门有牙」。
+    def_create text; def_release text; def_close text; def_cancel text; def_amend text;
     d date := CURRENT_DATE;
 BEGIN
     INSERT INTO roles (code, name_en, name_zh, is_active)
@@ -71,6 +75,13 @@ BEGIN
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_user), true);
     UPDATE finance_settings SET locked_before = NULL;
+
+    -- 【原样定义在这里取,而不是各注入临用临取】理由见上面的声明。
+    def_create  := pg_get_functiondef('public.create_work_order(jsonb,jsonb,date,text)'::regprocedure);
+    def_release := pg_get_functiondef('public.release_work_order(uuid)'::regprocedure);
+    def_close   := pg_get_functiondef('public.close_work_order(uuid,text)'::regprocedure);
+    def_cancel  := pg_get_functiondef('public.cancel_work_order(uuid,text)'::regprocedure);
+    def_amend   := pg_get_functiondef('public.amend_work_order(uuid,text,date,boolean,text,boolean,jsonb,jsonb)'::regprocedure);
 
     INSERT INTO suppliers (code, legal_name, country)
     VALUES ('ZZ74-S', 'fixture 74 supplier', 'SG') RETURNING id INTO v_sup;
@@ -452,7 +463,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 74 注入1 前提不成立:要的是【released、且挂着一条已提交加工单】的工单';
     END IF;
 
-    v_def := pg_get_functiondef('public.amend_work_order(uuid,text,date,boolean,text,boolean,jsonb,jsonb)'::regprocedure);
+    v_def := def_amend;
     v_inj := replace(v_def,
 $g$                IF v_qty < v_consumed THEN
                     RAISE EXCEPTION 'WO_LINE_BELOW_CONSUMED|%|%|%', v_mat, v_qty, v_consumed;
@@ -476,7 +487,7 @@ $g$, '');
        OR (SELECT count(*) FROM processing_runs WHERE work_order_id = woE AND deleted_at IS NULL) <> 1 THEN
         RAISE EXCEPTION 'FIXTURE 74 注入2 前提不成立:要的是【released、且挂着加工单】';
     END IF;
-    v_def := pg_get_functiondef('public.cancel_work_order(uuid,text)'::regprocedure);
+    v_def := def_cancel;
     v_inj := replace(v_def,
 $g$    IF v_runs > 0 THEN
         RAISE EXCEPTION 'WO_HAS_RUNS|%|%', v_wo.code, v_runs;
@@ -497,7 +508,7 @@ $g$, '');
         jsonb_build_array(jsonb_build_object('material_id', v_matC, 'planned_qty', 3)), NULL, NULL, 'f74 inj3');
     woD := (v_res->>'work_order_id')::uuid;
     PERFORM release_work_order(woD);
-    v_def := pg_get_functiondef('public.close_work_order(uuid,text)'::regprocedure);
+    v_def := def_close;
     v_inj := replace(v_def,
 $g$    IF p_reason IS NULL OR btrim(p_reason) = '' THEN
         RAISE EXCEPTION 'WO_CLOSE_REASON_REQUIRED|%', v_wo.code;
@@ -523,7 +534,7 @@ $g$, '');
 
     -- ── 注入 4:删掉 create 的【重复物料】那道门 ───────────────────────────
     -- 前提:两行都合法、物料都在,只有"同一物料两次"这一件没满足。
-    v_def := pg_get_functiondef('public.create_work_order(jsonb,jsonb,date,text)'::regprocedure);
+    v_def := def_create;
     v_inj := replace(v_def,
 $g$    IF v_mat IS NOT NULL THEN
         RAISE EXCEPTION 'WO_DUPLICATE_MATERIAL|%', v_mat;
@@ -546,5 +557,128 @@ $g$, '');
     IF v_msg NOT LIKE '%work_order_lines_one_per_material%' THEN
         RAISE EXCEPTION 'FIXTURE 74 注入4 失败:函数那道门删掉之后,应当由唯一约束兜住,实得 %', v_msg;
     END IF;
+
+    -- ══════════ 注入 5/6/7/8:四道【状态门】——  WO-1a 里唯一没有第二层的一类 ═══
+    -- 【为什么这四道单独值得一组注入】前面四个注入里有两个(3 收工理由、4 重复物料)
+    -- 删掉之后拒绝【没有消失】,只是落到了表上的 CHECK / UNIQUE —— 那是好事,
+    -- 但也说明那两道门就算漏了也不会写坏数据。
+    -- **状态门不一样:`status` 的 CHECK 只枚举【取值】,不约束【迁移】。**
+    -- 所以一道状态门若失效,一次非法迁移是【真的会写进去】的。这一组注入要
+    -- 验的正是这件事:门拿掉之后,那次调用不但不报错,而且【状态真的变了】。
+    -- 每一个仍然从原样定义派生(def_* 在任何注入之前取的),一次只少一道门。
+
+    -- ── 注入 5:close 的状态门(WO_NOT_RELEASED)────────────────────────────
+    -- 重复 C 臂那次被拒的方向:关一张【草稿】。另起一张,因为前面几张都进终态了。
+    v_res := create_work_order(
+        jsonb_build_array(jsonb_build_object('material_id', v_matC, 'planned_qty', 2)), NULL, NULL, 'f74 inj5');
+    woD := (v_res->>'work_order_id')::uuid;
+    IF (SELECT status FROM work_orders WHERE id = woD) <> 'draft' THEN
+        RAISE EXCEPTION 'FIXTURE 74 注入5 前提不成立:要的是一张【草稿】';
+    END IF;
+    v_inj := replace(def_close,
+$g$    IF v_wo.status <> 'released' THEN
+        -- draft 的单子要"不做了",走 cancel —— 见上面那张迁移表的最后一段
+        RAISE EXCEPTION 'WO_NOT_RELEASED|%|%', v_wo.code, v_wo.status;
+    END IF;
+$g$, '');
+    IF v_inj = def_close THEN
+        RAISE EXCEPTION 'FIXTURE 74 注入5 失败:在函数定义里没找到 close 那道状态门的原文 —— 这个注入什么也没删';
+    END IF;
+    EXECUTE v_inj;
+    PERFORM close_work_order(woD, '注入之后关一张草稿');
+    SELECT status INTO v_status FROM work_orders WHERE id = woD;
+    IF v_status <> 'closed' THEN
+        RAISE EXCEPTION 'FIXTURE 74 注入5 失败:删掉 close 的状态门之后,草稿【仍然】没被关成 closed(实得 %)—— 说明 C 臂拒它的不是那道门',
+            v_status;
+    END IF;
+
+    -- ── 注入 6:amend 的状态门(WO_NOT_AMENDABLE)──────────────────────────
+    -- 重复 F 臂那次被拒的方向:改一张【已收工】的单。而这一臂断言的是
+    -- 【行真的被改了】—— 状态门失效最贵的后果不是状态本身,是它放进来的那次写入。
+    IF (SELECT status FROM work_orders WHERE id = woC) <> 'closed' THEN
+        RAISE EXCEPTION 'FIXTURE 74 注入6 前提不成立:要的是一张【已收工】的单';
+    END IF;
+    SELECT planned_qty INTO v_qty FROM work_order_lines WHERE work_order_id = woC AND material_id = v_matA;
+    v_inj := replace(def_amend,
+$g$    IF v_wo.status NOT IN ('draft','released') THEN
+        RAISE EXCEPTION 'WO_NOT_AMENDABLE|%|%', v_wo.code, v_wo.status;
+    END IF;
+$g$, '');
+    IF v_inj = def_amend THEN
+        RAISE EXCEPTION 'FIXTURE 74 注入6 失败:在函数定义里没找到 amend 那道状态门的原文 —— 这个注入什么也没删';
+    END IF;
+    EXECUTE v_inj;
+    PERFORM amend_work_order(woC, '注入之后改一张收了工的单', NULL, false, NULL, false,
+        jsonb_build_array(jsonb_build_object('material_id', v_matA, 'planned_qty', 99)), NULL);
+    IF (SELECT planned_qty FROM work_order_lines WHERE work_order_id = woC AND material_id = v_matA) <> 99 THEN
+        RAISE EXCEPTION 'FIXTURE 74 注入6 失败:删掉 amend 的状态门之后,已收工的单的计划行【仍然】没被改到 99(原值 %)—— 说明 F 臂拒它的不是那道门',
+            v_qty;
+    END IF;
+
+    -- ── 注入 7:release 的状态门(WO_NOT_DRAFT)────────────────────────────
+    -- 重复 C 臂那次被拒的方向:放行一张【已经放行过】的单。
+    -- 【为什么不用"放行一张已收工的"】—— 那正是这一组注入意外量到的东西,
+    -- 见注入 8 底下那段说明:closed → released 会撞上表上的
+    -- work_orders_closed_consistent(closed_at 还在,而 status 不再是 closed),
+    -- 于是它【有】第二层。released → released 没有那层遮挡,
+    -- 是这道门唯一裸露的方向,所以它才是该被验的那一个。
+    v_res := create_work_order(
+        jsonb_build_array(jsonb_build_object('material_id', v_matC, 'planned_qty', 4)), NULL, NULL, 'f74 inj7');
+    woE := (v_res->>'work_order_id')::uuid;
+    PERFORM release_work_order(woE);
+    UPDATE work_orders SET updated_by = NULL WHERE id = woE;   -- 让"写没写"看得见
+    IF (SELECT status FROM work_orders WHERE id = woE) <> 'released'
+       OR (SELECT updated_by FROM work_orders WHERE id = woE) IS NOT NULL THEN
+        RAISE EXCEPTION 'FIXTURE 74 注入7 前提不成立:要的是一张【已放行、且 updated_by 已清空】的单';
+    END IF;
+    v_inj := replace(def_release,
+$g$    IF v_wo.status <> 'draft' THEN
+        RAISE EXCEPTION 'WO_NOT_DRAFT|%|%', v_wo.code, v_wo.status;
+    END IF;
+$g$, '');
+    IF v_inj = def_release THEN
+        RAISE EXCEPTION 'FIXTURE 74 注入7 失败:在函数定义里没找到 release 那道状态门的原文 —— 这个注入什么也没删';
+    END IF;
+    EXECUTE v_inj;
+    PERFORM release_work_order(woE);
+    -- 【状态本来就是 released,所以"状态变了"验不出来 —— 验那次写入落地了没有】
+    -- updated_by 被清空过,函数会把它写回来;还有多出来的那条 released 痕。
+    IF (SELECT updated_by FROM work_orders WHERE id = woE) IS NULL THEN
+        RAISE EXCEPTION 'FIXTURE 74 注入7 失败:删掉 release 的状态门之后,那次写入【仍然】没落地 —— 说明 C 臂拒它的不是那道门';
+    END IF;
+    IF (SELECT count(*) FROM work_order_history
+         WHERE work_order_id = woE AND change_type = 'released') <> 2 THEN
+        RAISE EXCEPTION 'FIXTURE 74 注入7 失败:第二次放行应当也留了一条痕(共两条)';
+    END IF;
+
+    -- ── 注入 8:cancel 的状态门(WO_NOT_CANCELLABLE)───────────────────────
+    -- 重复 C 臂那次被拒的方向:取消一张【已取消】的单。
+    -- 同样避开 closed → cancelled(那条路上有 closed_consistent 那层遮挡)。
+    IF (SELECT status FROM work_orders WHERE id = woB) <> 'cancelled' THEN
+        RAISE EXCEPTION 'FIXTURE 74 注入8 前提不成立:要的是一张【已取消】的单';
+    END IF;
+    v_inj := replace(def_cancel,
+$g$    IF v_wo.status NOT IN ('draft','released') THEN
+        RAISE EXCEPTION 'WO_NOT_CANCELLABLE|%|%', v_wo.code, v_wo.status;
+    END IF;
+$g$, '');
+    IF v_inj = def_cancel THEN
+        RAISE EXCEPTION 'FIXTURE 74 注入8 失败:在函数定义里没找到 cancel 那道状态门的原文 —— 这个注入什么也没删';
+    END IF;
+    EXECUTE v_inj;
+    PERFORM cancel_work_order(woB, '注入之后把理由改掉');
+    IF (SELECT cancel_reason FROM work_orders WHERE id = woB) <> '注入之后把理由改掉' THEN
+        RAISE EXCEPTION 'FIXTURE 74 注入8 失败:删掉 cancel 的状态门之后,那次写入【仍然】没落地(取消理由没被盖掉)—— 说明 C 臂拒它的不是那道门';
+    END IF;
+
+    -- ── 这一组注入量到的一件没预料到的事,记在这里 ─────────────────────────
+    -- 【"状态门没有第二层"只对了一半。】表上那两条一致性 CHECK
+    -- (work_orders_closed_consistent / work_orders_cancelled_consistent)
+    -- 顺带挡住了【所有从终态出去的迁移】:closed → released 会让 closed_at 还在
+    -- 而 status 不再是 closed,cancelled → closed 同理 —— 两者都当场违反 CHECK。
+    -- 它们不是为此写的(它们要的是"状态与它的证据同时成立"),但效果是真的。
+    -- 所以裸露的其实只有【终态之内 / 尚未进终态】那几条边,上面四臂验的正是它们。
+    -- 写下来是因为下一个人多半会先想到 closed → released,然后发现它撞的是 CHECK
+    -- 而不是那道门,并以为注入写错了。
 END $$;
 ROLLBACK;
