@@ -177,6 +177,17 @@ CREATE TRIGGER trg_inbound_batches_po_receivable
     BEFORE INSERT OR UPDATE OF purchase_order_id ON public.inbound_batches
     FOR EACH ROW EXECUTE FUNCTION public.guard_inbound_po_receivable();
 
+-- SUP-TYPE-1a:不许把货收在一个【不供货】的往来户名下(房东、水电、保险这一类)。
+-- 函数见 db/functions/guard_inbound_supplier_supplies_goods.sql。
+-- 【为什么是触发器,不是写进两个收货 RPC】实测:authenticated 裸 INSERT 被 RLS 拒
+-- (本表有 RLS 却没有 INSERT 策略),但 service_role / postgres 都 rolbypassrls,
+-- 服务密钥那条路绕得过 RLS —— 而收货侧其余五条规矩也全是触发器。
+-- 【BEFORE INSERT OR UPDATE,函数内部只对 INSERT 与【换了供应商】开火】
+-- 写宽一格会让挂在非供货户下的历史收货软删不掉(软删是一次 UPDATE)。
+CREATE TRIGGER trg_inbound_batches_supplier_supplies_goods
+    BEFORE INSERT OR UPDATE ON public.inbound_batches
+    FOR EACH ROW EXECUTE FUNCTION guard_inbound_supplier_supplies_goods();
+
 CREATE OR REPLACE FUNCTION public.advance_po_on_receipt()
  RETURNS trigger
  LANGUAGE plpgsql

@@ -29,6 +29,10 @@
 -- 【短交的定义只有一处】本视图读 grn_discrepancies,不重算。三个阈值现读
 -- receiving_settings 并【原样返回】,好让屏幕显示的就是判出这些计数的那三个数。
 --
+-- 【SUP-TYPE-1a:只统计【供货的】供应商】一个不供货的往来户(房东、水电、保险)
+-- 一次货都不会收,于是这块面板会对它永远显示"没有可比对的收货" —— 那句话虽然为真,
+-- 却是在回答一个对它根本不成立的问题。判据是 suppliers.supplies_goods。
+--
 -- 【属主权限 + module.purchasing.view】跨 purchasing × inbound 两模块,invoker 会
 -- 让无权那侧的行被 RLS 静默丢掉(OPS-14)。实测线上没有任何角色持 purchasing.view
 -- 而不持 inbound.view,所以这道门不比今天任何一条路径更宽。
@@ -131,7 +135,7 @@ CREATE VIEW public.supplier_receipt_pattern WITH (security_invoker = off) AS
      LEFT JOIN line_agg la ON la.supplier_id = s.id
      LEFT JOIN excluded_agg ea ON ea.supplier_id = s.id
      LEFT JOIN undated_agg ua ON ua.supplier_id = s.id
-  WHERE s.deleted_at IS NULL AND has_permission('module.purchasing.view'::text);
+  WHERE s.deleted_at IS NULL AND s.supplies_goods AND has_permission('module.purchasing.view'::text);
 ;
 
 COMMENT ON VIEW public.supplier_receipt_pattern IS 'GRN-2:一家供应商一行 —— 这家是不是【一直】短交。一次短交是行情,连续短交是供应商问题,而 grn_discrepancies 逐条说得出"这一条怎么了",说不出"这一家一向如何"。

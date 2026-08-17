@@ -53,6 +53,18 @@
 -- assay_unapplied 的粒度同时从"一份未执行化验一行"改成"一个批次一行",与
 -- awaiting_assay 同源同粒度、互斥;live 该支当时为 0,故不改变任何现有数字。
 --
+-- ── SUP-TYPE-1a(2026-08-18):qualification_missing 收窄到【供货的】供应商 ──
+-- EXEC-3a 在 2026-08-16-exec3a-four-executive-arms.sql:349 写着:判据是"一张都没有"
+-- 而不是"缺某一类",因为没有一张"谁必须持哪张证"的要求矩阵;并且明写着
+-- **"有了'这家需要合规文件'的标记之后,这一支应当收窄到它"**。
+-- **那个标记现在有了(suppliers.supplies_goods),这一支已经收窄,那句话到此退休。**
+-- 提交信息改不了历史文件,所以退休记录写在这里 —— 沿着引用走过来的人在这里落地。
+--
+-- 【为什么必须收窄:实测过的永久亮灯】SUP-TYPE-0 把它走了一遍:把一个只收钱、
+-- 不供货的往来户沿合法路径推到 status='active',这一支当场亮起、days_waiting 一路
+-- 长下去,而它永远不会灭 —— 房东不会去办危废证。收窄之后同样的走法【不再亮】,
+-- 而一个没有证书的【真供应商】仍然照亮(fixture 89 两边都钉)。
+--
 -- CMP-1(2026-08-09):两支资质臂。qualification_expiring 到【类型自己的 lead days】就上牌,
 -- 过期后【不落牌、无 -30 天下限】—— 工作证过期 30 天人已走,证书过期两年而进场仍可能,
 -- 它就还站在那儿(live 那张 2024 年就过期的 Article 18 正是证据)。续期(valid_until
@@ -191,7 +203,7 @@ CREATE VIEW public.operations_now AS
             s_2.legal_name AS subject,
             s_2.created_at::date AS item_date
            FROM suppliers s_2
-          WHERE s_2.deleted_at IS NULL AND s_2.status = 'active'::supplier_status AND NOT (EXISTS ( SELECT 1
+          WHERE s_2.deleted_at IS NULL AND s_2.supplies_goods AND s_2.status = 'active'::supplier_status AND NOT (EXISTS ( SELECT 1
                    FROM supplier_compliance sc2
                   WHERE sc2.supplier_id = s_2.id AND sc2.deleted_at IS NULL))
         UNION ALL

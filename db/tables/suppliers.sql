@@ -43,8 +43,19 @@ CREATE TABLE public.suppliers (
     created_by                       uuid REFERENCES auth.users (id),
     updated_at                       timestamptz NOT NULL DEFAULT now(),
     updated_by                       uuid REFERENCES auth.users (id),
-    default_payment_term_template_id uuid REFERENCES public.payment_term_templates (id)
+    default_payment_term_template_id uuid REFERENCES public.payment_term_templates (id),
+    -- ── SUP-TYPE-1a 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────
+    -- 【我们会不会从这一家收到实物货】。详见列注释;它【不是】"是不是员工"。
+    supplies_goods                   boolean NOT NULL DEFAULT true
 );
+
+COMMENT ON COLUMN public.suppliers.supplies_goods IS 'SUP-TYPE-1a:【我们会不会从这一家收到实物货】。true = 会(收货、采购单、收货差异统计都对它成立);false = 不会 —— 房东、水电、保险、专业服务、承包商这一类:我们向他们采购并付钱,但永远不会有一车货到场,他们也永远不会持有一张危废证。
+【它不是"是不是员工"】员工报销走的是另一条路,Tim 的决定是让它整个离开 suppliers 表(PAYEE-1)。SUP-2026-0083(Staff Reimbursements)在本迁移里被标成 false,那是【过渡】——PAYEE-1 预期会把那一行整个退休;这个标记真正长期承载的是房东/水电那一类。
+【为什么不用 supplier_types】那一列是 text[]、无 CHECK、多选,而且回答的是【他们做哪一行】(recycler/trader/dismantler/battery_factory_scrap),不是【我们收不收他们的货】。实测它至今没有任何代码读它做判断。把一个从未校验过、且答着另一个问题的列升格成判据,正是本刀要终结的那次混同。
+【为什么是 boolean 而不是枚举】问题本身是二元的。一家既供货又收钱的供应商(线上 Acme)仍然是 true —— 本列问的是"收货这条路成不成立",不是"他们唯一的角色是什么"。
+【默认 true】现存供应商一律视为供货,这是安全的方向:默认 false 会把真供应商挡在收货门外。
+它把关三处:operations_now 的 qualification_missing 支、supplier_receipt_pattern、以及收货触发器 guard_inbound_supplier_supplies_goods(RECEIPT_AGAINST_NON_GOODS_VENDOR)。';
+
 
 CREATE INDEX idx_suppliers_code ON public.suppliers (code);
 CREATE INDEX idx_suppliers_country ON public.suppliers (country) WHERE deleted_at IS NULL;

@@ -8810,6 +8810,7 @@ export type Database = {
           short_name: string | null
           status: Database["public"]["Enums"]["supplier_status"]
           supplier_types: string[]
+          supplies_goods: boolean
           tax_id: string | null
           updated_at: string
           updated_by: string | null
@@ -8832,6 +8833,7 @@ export type Database = {
           short_name?: string | null
           status?: Database["public"]["Enums"]["supplier_status"]
           supplier_types?: string[]
+          supplies_goods?: boolean
           tax_id?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -8854,6 +8856,7 @@ export type Database = {
           short_name?: string | null
           status?: Database["public"]["Enums"]["supplier_status"]
           supplier_types?: string[]
+          supplies_goods?: boolean
           tax_id?: string | null
           updated_at?: string
           updated_by?: string | null
