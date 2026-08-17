@@ -31,7 +31,7 @@ DECLARE
     v_all uuid := gen_random_uuid();    -- 全部权限
     v_hr  uuid := gen_random_uuid();    -- 只有 module.hr.view —— 【另一个模块】
     r_all uuid; r_hr uuid;
-    sup_1of5 uuid; sup_4of5 uuid; sup_none uuid; sup_win uuid;
+    sup_1of5 uuid; sup_4of5 uuid; sup_none uuid; sup_win uuid; sup_x uuid;
     mat uuid; po_1 uuid; po_4 uuid; po_win uuid;
     l uuid; b uuid;
     v_win int;
@@ -379,6 +379,41 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 88I 数量必须按【采购行】汇总:−200 +(−400)= −600。按收货求和会把两次收货的那条行算两遍得 −1000。实得 %', rec.short_qty;
     END IF;
     RAISE NOTICE '88I 一行两次收货:次数 3、行数 2、数量 −600(不是 −1000)✓';
+
+    -- ══════════════════════════════════════════════════════════════════════════
+    -- J. 【分母为 0,而"没能评判的"不为 0】—— 线上 Staff Reimbursements 的形状
+    --
+    --    【为什么 G 臂不够】G 建的供应商一条收货都没有,三个计数全是 0。
+    --    而这一臂建的供应商【有收货】,只是一条也比对不了 —— 于是
+    --    comparable_receipts = 0 与 excluded_receipts = 1 【同时成立】。
+    --    这正是最容易被读成"记录干净"的那一种:屏幕上没有任何差异,
+    --    而真相是"没有任何一条能被检验"。页面据此渲染具名空状态,
+    --    所以这两个数必须能同时出现、并且各自正确。
+    --    (线上 Staff Reimbursements 就是 0 / 1 / 0,这不是假想的形状。)
+    -- ══════════════════════════════════════════════════════════════════════════
+    INSERT INTO suppliers (code, legal_name, country)
+    VALUES ('FX88-SX', 'fixture 88 supplier uncheckable', 'SG') RETURNING id INTO sup_x;
+    -- 唯一一条收货:有日期、在窗口内、【没挂采购行】
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date)
+    VALUES ('FX88-XONLY', mat, sup_x, 500, 'kg', 500, CURRENT_DATE - 1);
+
+    SELECT count(*) INTO n FROM supplier_receipt_pattern WHERE supplier_id = sup_x;
+    IF n <> 1 THEN
+        RAISE EXCEPTION 'FIXTURE 88J 这家供应商必须出现(一行),实得 % 行', n;
+    END IF;
+    SELECT * INTO rec FROM supplier_receipt_pattern WHERE supplier_id = sup_x;
+    IF rec.comparable_receipts <> 0 THEN
+        RAISE EXCEPTION 'FIXTURE 88J 一条也比对不了 —— 分母必须是 0,实得 %', rec.comparable_receipts;
+    END IF;
+    IF rec.excluded_receipts <> 1 THEN
+        RAISE EXCEPTION 'FIXTURE 88J 那一条收货必须【被数进 excluded】,实得 % —— 分母 0 配 excluded 0 会让页面把"没人能检验"渲染成"记录干净"', rec.excluded_receipts;
+    END IF;
+    -- 【两个 0 不是同一个 0】没有差异,是因为没有可比对的东西 —— 不是因为都合规
+    IF rec.receipts_with_any_discrepancy <> 0 OR rec.short_receipts <> 0 THEN
+        RAISE EXCEPTION 'FIXTURE 88J 没有可比对的收货就不该有任何差异计数,实得 any=% short=%',
+            rec.receipts_with_any_discrepancy, rec.short_receipts;
+    END IF;
+    RAISE NOTICE '88J 分母 0 而 excluded 1(线上 Staff Reimbursements 的形状):两者同时成立且各自正确 ✓';
 
     RAISE NOTICE 'FIXTURE 88 全部通过';
 END $$;
