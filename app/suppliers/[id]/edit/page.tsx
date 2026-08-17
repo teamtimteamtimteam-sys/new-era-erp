@@ -10,6 +10,11 @@ import AttachmentsPanel from './AttachmentsPanel'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { can } from '@/lib/permissions'
+import { mustRows } from '@/lib/db-helpers'
+import ReceiptPatternPanel, {
+    type PatternRow, type ContributingReceipt,
+} from './ReceiptPatternPanel'
 
 export default async function EditSupplierPage({
     params,
@@ -58,6 +63,44 @@ export default async function EditSupplierPage({
         .eq('supplier_id', id)
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
+
+    // ── GRN-2:这家供应商的收货模式 ──────────────────────────────────────────
+    // 【这一页的门与这份数据的门不是同一道】页面是 module.suppliers.view,
+    // supplier_receipt_pattern 是 module.purchasing.view。少了这个判据,
+    // 一个没有采购权限的读者会看到一块空面板 —— 而空面板读起来是"记录干净"。
+    // 【先问权限,再决定查不查】不查询就没有"0 行"可以被误读成"没有差异",
+    // 这比查完再解释 null 更不容易出错(GRN-1b 在批次详情上栽的正是那一处)。
+    const canSeePattern = await can(MOD.purchasing.permission)
+    let patternRow: PatternRow | null = null
+    let contributing: ContributingReceipt[] = []
+    if (canSeePattern) {
+        const [patRes, conRes] = await Promise.all([
+            supabase
+                .from('supplier_receipt_pattern')
+                .select('window_days, window_from, comparable_receipts, short_receipts, over_receipts, ' +
+                        'declared_vs_actual_receipts, material_mismatch_receipts, assay_beyond_receipts, ' +
+                        'receipts_with_any_discrepancy, short_lines, over_lines, short_qty, over_qty, ' +
+                        'excluded_receipts, undated_receipts, undated_with_discrepancy, ' +
+                        'earliest_receipt, latest_receipt, grn_short_pct, grn_over_pct, grn_assay_tolerance_pct')
+                .eq('supplier_id', id)
+                .maybeSingle(),
+            // 逐条点名的那一份 —— 【窗口由视图那一行说了算,不在这里再写一个 180】
+            supabase
+                .from('grn_discrepancies')
+                .select('batch_id, batch_code, arrival_date, kinds')
+                .eq('supplier_id', id)
+                .order('arrival_date', { ascending: false }),
+        ])
+        // 【失败必须失败】读不出来的模式面板必须报错,不许渲染成一块干净的记录
+        patternRow = mustOne(patRes, 'supplier_receipt_pattern') as unknown as PatternRow | null
+        const all = mustRows(conRes, 'grn_discrepancies') as unknown as ContributingReceipt[]
+        // 只列【真的有差异】的那些,并且只列窗口内的 —— 判断是视图下的,
+        // 这里只按视图给的 window_from 做展示筛选,不重新判定什么算差异。
+        const from = patternRow?.window_from ?? null
+        contributing = all.filter(
+            (r) => r.kinds?.length > 0 && r.arrival_date !== null && (!from || r.arrival_date >= from)
+        )
+    }
 
     // 默认付款条款模板下拉:启用的 + 该供应商当前指着的那个(即便已停用/已删,
     // 也得让它出现在选项里 —— 否则一打开编辑页就"看起来像无",一保存就静默清掉)
@@ -113,6 +156,12 @@ export default async function EditSupplierPage({
             </p>
 
             <StatusPanel id={supplier.id} currentStatus={supplier.status} />
+            {/* GRN-2:摆在编辑表单【之前】—— 决定要不要再跟这家下单的人,
+                该先读到这家的收货记录,而不是先看到一堆可改的字段。 */}
+            <ReceiptPatternPanel
+                row={patternRow}
+                receipts={contributing}
+                canSee={canSeePattern} />
             <EditSupplierForm supplier={supplier} templates={templates} />
             <CompliancePanel
                 supplierId={supplier.id}

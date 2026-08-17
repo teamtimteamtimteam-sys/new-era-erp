@@ -1642,6 +1642,13 @@ export type Database = {
             foreignKeyName: "expenses_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "expenses_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
@@ -2245,6 +2252,13 @@ export type Database = {
             foreignKeyName: "freight_documents_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "freight_documents_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
@@ -2603,6 +2617,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "purchase_order_lines_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
           },
           {
             foreignKeyName: "inbound_batches_supplier_id_fkey"
@@ -4733,6 +4754,13 @@ export type Database = {
             foreignKeyName: "payments_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "payments_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
@@ -5773,6 +5801,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "metal_price_indices"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "pricing_formulas_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
           },
           {
             foreignKeyName: "pricing_formulas_supplier_id_fkey"
@@ -7042,6 +7077,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "currencies"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "purchase_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
           },
           {
             foreignKeyName: "purchase_orders_supplier_id_fkey"
@@ -8636,6 +8678,13 @@ export type Database = {
             foreignKeyName: "supplier_attachments_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "supplier_attachments_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
@@ -8718,6 +8767,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "supplier_attachments"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_compliance_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
           },
           {
             foreignKeyName: "supplier_compliance_supplier_id_fkey"
@@ -10241,6 +10297,13 @@ export type Database = {
             foreignKeyName: "inbound_batches_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
@@ -10464,6 +10527,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "purchase_order_lines_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
           },
           {
             foreignKeyName: "inbound_batches_supplier_id_fkey"
@@ -11614,6 +11684,13 @@ export type Database = {
             foreignKeyName: "purchase_orders_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
@@ -11673,6 +11750,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pricing_formulas_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
           },
           {
             foreignKeyName: "purchase_orders_supplier_id_fkey"
@@ -12120,6 +12204,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "metal_price_indices"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "pricing_formulas_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
           },
           {
             foreignKeyName: "pricing_formulas_supplier_id_fkey"
@@ -13014,6 +13105,13 @@ export type Database = {
             foreignKeyName: "purchase_orders_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
@@ -13111,6 +13209,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "currencies"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "purchase_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
           },
           {
             foreignKeyName: "purchase_orders_supplier_id_fkey"
@@ -13496,6 +13601,35 @@ export type Database = {
           },
         ]
       }
+      supplier_receipt_pattern: {
+        Row: {
+          assay_beyond_receipts: number | null
+          comparable_receipts: number | null
+          declared_vs_actual_receipts: number | null
+          earliest_receipt: string | null
+          excluded_receipts: number | null
+          grn_assay_tolerance_pct: number | null
+          grn_over_pct: number | null
+          grn_short_pct: number | null
+          latest_receipt: string | null
+          material_mismatch_receipts: number | null
+          over_lines: number | null
+          over_qty: number | null
+          over_receipts: number | null
+          receipts_with_any_discrepancy: number | null
+          short_lines: number | null
+          short_qty: number | null
+          short_receipts: number | null
+          supplier_code: string | null
+          supplier_id: string | null
+          supplier_name: string | null
+          undated_receipts: number | null
+          undated_with_discrepancy: number | null
+          window_days: number | null
+          window_from: string | null
+        }
+        Relationships: []
+      }
       supplier_receiving_blocked: {
         Row: {
           cert_type_code: string | null
@@ -13506,6 +13640,13 @@ export type Database = {
           valid_until: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "supplier_compliance_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
           {
             foreignKeyName: "supplier_compliance_supplier_id_fkey"
             columns: ["supplier_id"]

@@ -810,6 +810,23 @@ const zh = {
     },
     // GRN-1b:收货差异(GRN-1a 建的 grn_discrepancies / receiving_settings 的屏幕那一半)
     grn: {
+        pattern: {
+            title: '收货记录',
+            window: '最近 {days} 天(自 {from} 起)。',
+            restricted: '这份记录在采购模块那道门后面，而你没有那个权限。这是一句【权限答复】—— 它不是在说这家供应商记录干净。',
+            notInView: '这家供应商没有返回收货记录行。这不该发生,请不要把它读成"记录干净"。',
+            noComparable: '最近 {days} 天里，没有任何一条【有订量可比】的收货 —— 所以这里没有可供评判的东西。这【不是】一份干净的记录:它的意思是，还没有人能够检验这家供应商。',
+            denominator: '{total} 条收货比对得了订量,其中 {withAny} 条有地方对不上。',
+            shortLine: '短交:{total} 条里 {n} 条,涉及 {lines} 条采购行,合计 {qty}。阈值 {threshold}%。',
+            overLine: '超收:{total} 条里 {n} 条,涉及 {lines} 条采购行,合计 {qty}。阈值 {threshold}%。',
+            declaredLine: '申报与实收不符:{total} 条里 {n} 条。',
+            materialLine: '收到的不是订的料:{total} 条里 {n} 条。',
+            assayLine: '化验超出容差:{total} 条里 {n} 条。容差 {threshold}%(相对偏差)。',
+            excluded: '没法评判:本窗口内有 {n} 条收货没有订量可比。它们【不算合规】—— 它们被数在这里。',
+            undated: '没有到货日:{n} 条收货放不进任何窗口,所以它们不在上面任何一个数字里。',
+            undatedWithDiscrepancy: '这些没有到货日的收货里,有 {n} 条【确实带着差异】—— 它们没进上面的计数,只是因为没有到货日。把那些日期补上,这块面板说的话就会变。',
+            contributing: '这些计数背后的收货:',
+        },
         kind: {
             short: '短交',
             over: '超收',

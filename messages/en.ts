@@ -808,6 +808,23 @@ const en = {
     },
     // GRN-1b:收货差异(GRN-1a 建的 grn_discrepancies / receiving_settings 的屏幕那一半)
     grn: {
+        pattern: {
+            title: 'Receiving record',
+            window: 'Last {days} days (since {from}).',
+            restricted: 'This record sits behind the purchasing module, which you do not have access to. That is a permission answer — it is not a statement that this supplier has a clean record.',
+            notInView: 'No receiving record row was returned for this supplier. That should not happen; do not read it as a clean record.',
+            noComparable: 'No receipts with an ordered quantity in the last {days} days — so there is nothing here that can be judged. This is NOT a clean record: it means nobody has been able to check this supplier.',
+            denominator: '{total} receipt(s) could be compared against an order; {withAny} of them had something that did not line up.',
+            shortLine: 'Short: {n} of {total} receipt(s), across {lines} order line(s), {qty} in total. Threshold {threshold}%.',
+            overLine: 'Over: {n} of {total} receipt(s), across {lines} order line(s), {qty} in total. Threshold {threshold}%.',
+            declaredLine: 'Declared vs weighed: {n} of {total} receipt(s).',
+            materialLine: 'Different material than ordered: {n} of {total} receipt(s).',
+            assayLine: 'Assay outside tolerance: {n} of {total} receipt(s). Tolerance {threshold}% (relative).',
+            excluded: 'Could not be judged: {n} receipt(s) in this window had no ordered quantity to compare against. They are NOT counted as compliant — they are counted here.',
+            undated: 'No arrival date: {n} receipt(s) cannot be placed in any window at all, so they are outside every figure above.',
+            undatedWithDiscrepancy: 'Of the undated receipts, {n} DO carry a discrepancy — they are absent from the counts above only because they have no arrival date. Filling in those dates would change what this panel says.',
+            contributing: 'Receipts behind these counts:',
+        },
         kind: {
             short: 'Short delivery',
             over: 'Over-delivery',
