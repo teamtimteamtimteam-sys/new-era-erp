@@ -14,6 +14,8 @@ import StockStatusPanel from '@/app/components/inventory/StockStatusPanel'
 import type { MovementRow } from '@/app/components/inventory/movementTypes'
 import SalePanel, { type CreditRow } from './SalePanel'
 import OutputAssaySection from './OutputAssaySection'
+import TraceabilitySection, { type IssueRow } from './TraceabilitySection'
+import { fetchTraceability } from '@/app/output/traceabilityShared'
 import StocktakeQuickCount from '@/app/stocktakes/StocktakeQuickCount'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
@@ -182,6 +184,21 @@ export default async function EditOutputPage({
         .select('stock_status, qty')
         .eq('output_batch_id', id)
     const stockSplit = mustRows(stockSplitRes, 'stock_by_status') as unknown as { stock_status: string; qty: number }[]
+
+    // ── AUD-2:可追溯报告 ────────────────────────────────────────────────
+    // 【具名拒绝原样带下去,不吞成空】NOTHING_TO_REPORT 是一个答案,
+    // 而屏幕要把那句话说出来 —— 一张空表与"这批料没有可讲的来历"不是一回事。
+    const traceReport = await fetchTraceability(supabase, batch.id)
+    // 【失败必须失败】签发档列表不 `?? []`:读不出来会渲染成"从未签发",
+    // 而那正是这一块最不能撒的谎(客户手里可能已经有一份)。
+    const traceIssues = mustRows(
+        await supabase
+            .from('traceability_report_issues')
+            .select('code, version, issued_at, sha256')
+            .eq('output_batch_id', batch.id)
+            .order('version', { ascending: false }),
+        'traceability_report_issues'
+    ) as unknown as IssueRow[]
     const saleAvailable = stockSplit.filter((r) => r.stock_status === 'available').reduce((a, r) => a + Number(r.qty), 0)
     const saleHeld = stockSplit.filter((r) => r.stock_status === 'on_hold').reduce((a, r) => a + Number(r.qty), 0)
     // SO-2:第三个桶。【必须单列】—— 少说一个数,屏幕上就会出现"可用 0、暂扣 0,
@@ -275,6 +292,14 @@ export default async function EditOutputPage({
 
             {/* 化验(PROC-1b):含量的出处就摆在含量旁边 */}
             <OutputAssaySection batchId={batch.id} rows={mustRows(assaysRes)} />
+
+            {/* ── 客户审计报告(AUD-2)────────────────────────────────────
+                摆在化验之后:含量从哪来 → 这批料从哪来、怎么做的 → 发给客户的那份纸。 */}
+            <TraceabilitySection
+                batchId={batch.id}
+                report={traceReport}
+                issues={traceIssues}
+            />
 
             {/* ── 本批毛利(MAR-1)──────────────────────────────────────────
                 "这批货挣了多少" 的答案摆在批次自己身上,而不是一条通往报表的链接:

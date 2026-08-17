@@ -252,6 +252,17 @@ const MANIFEST = {
     // 若把 0 读成空集,这一族的键从此无人看管。改的是指向,不是判据。
     'processing.recovery.blocked.': { kind: 'enum', values: () => tsRegex('db/views/processing_metal_recovery_all.sql',
                                   /THEN '(\w+)'::text/g) },
+    // ── AUD-2:客户审计报告 ──────────────────────────────────────────────
+    // 【回收率算不出的原因】与 processing.recovery.blocked. 同一个真源
+    // (基视图里的那个 CASE),外加一个【本地兜底键】unspecified:
+    // 视图只产出三种原因,但屏幕与 PDF 共用的 recoveryText 还有一条"认不出的
+    // 第四种"的分支 —— 它宁可说"算不出",也不编一个数。那条分支要有键可用,
+    // 所以并进来;而三种真原因仍然【现读真源】,视图加一种,检查自动跟上。
+    'traceability.blocked.': { kind: 'enum', values: union(
+                                  () => tsRegex('db/views/processing_metal_recovery_all.sql', /THEN '(\w+)'::text/g),
+                                  () => ['unspecified']) },
+    // 具名拒绝:接那个 Set 的真源。
+    'traceability.errors.': { kind: 'enum', values: () => tsSet('app/output/traceabilityErrorCodes.ts', 'TRACEABILITY_ERROR_CODES') },
     // APR-2c:采购单审批状态。后缀集合就是 purchase_orders 的 CHECK —— 真源现读。
     'purchasing.approvalState.': { kind: 'enum', values: () => sqlEnum('db/tables/purchase_orders.sql', 'approval_status') },
     // ── HR ──────────────────────────────────────────────────────────────────
