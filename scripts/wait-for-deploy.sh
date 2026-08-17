@@ -38,9 +38,15 @@
 #   推送 14:48:32Z → 部署记录 created_at 15:25:29Z → success 15:25:30Z。
 # 默认上限 900 秒(15 分)因此超时退 3,并印出脚本那句
 # "被等的那个东西多半已经死了或从未开始;去看它的日志,不要加大上限"。
-# **那句诊断在这一次是错的** —— 它没死,它只是慢,而且慢在 GitHub 这一侧:
-# 记录 created_at 与 success 只差 1 秒,说明 Vercel 是【构建完成之后】才登记
-# 这条记录的,所以在那 37 分钟里【根本没有记录可轮询】,不是记录存在而状态未定。
+# **那句诊断在这一次是错的** —— 它没死,它只是慢。
+#
+# 【慢在哪一侧,当时没查出来 —— 两个候选,都不要当成结论】
+#   (a) Vercel 是【构建完成之后】才登记这条记录的:created_at 与 success 只差
+#       1 秒,与这个说法一致,那样 37 分钟里根本没有记录可轮询;
+#   (b) GitHub 自己当时就在劣化:同一晚 23:38–23:42 实测 api.github.com 的
+#       **GraphQL 连续 HTTP 503**(REST 正常),那么登记延迟也可能出在 GitHub 侧。
+# 两者都解释得通这 37 分钟,而【当时没有人去分辨】。写成两个候选而不是一个结论,
+# 正是因为上一段刚刚才为"猜一个原因写上去"付过账。
 #
 # 这条记下来而不是顺手把默认改大,理由有两条:
 #   * AGENTS.md 那条二分(快而没出现 = 多半死了)对这一段**不成立**,而一个
@@ -69,8 +75,34 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 
 # 【缩写在这里就变成完整,不留到 API 那头变成空集】
 SHA=$(git rev-parse "$REF" 2>/dev/null) || { echo "✗ wait-for-deploy:解析不了 $REF" >&2; exit 2; }
-REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner 2>/dev/null) \
-    || { echo "✗ wait-for-deploy:问不出仓库(gh 没登录?)" >&2; exit 2; }
+# ── 仓库名【先从 git remote 本地解析,不走网络】────────────────────────────
+# 【为什么不是 gh repo view】那条命令走 GitHub 的 **GraphQL**,而这个脚本别的
+# 每一次调用走的都是 **REST**。2026-08-17 实测到两者【会分开坏】:
+#     REST  repos/…/deployments  → 正常返回
+#     GraphQL api.github.com/graphql → HTTP 503(连续两次)
+# 于是这个脚本整个死在启动上,而它真正要做的事(读部署记录与状态)其实完全可用。
+# 一个只为"问一句仓库叫什么"而引入的依赖,不该有权否决整个脚本 —— 何况这个
+# 问题【根本不需要网络】:答案就在 git remote 里。
+#
+# 【报出真正的错,不要猜一个】此前这里是 `2>/dev/null || echo "…(gh 没登录?)"`,
+# 它把 gh 说的话丢掉,换上一个【自己猜的原因】。上面那次 503 正是被它说成
+# "没登录?" 的 —— 而 gh 当时登录得好好的(`gh auth status` 同一分钟内确认),
+# 于是排查从第一步就走错了方向。一条声称在说 X、实际没有检查过 X 的消息,
+# 比不说更坏(AGENTS.md 反复点名的那一类)。
+REPO=$(git config --get remote.origin.url 2>/dev/null \
+       | sed -E 's#^git@github\.com:#https://github.com/#; s#^https://[^/]*/##; s#\.git$##')
+if [ -z "$REPO" ] || [ "$(printf '%s' "$REPO" | tr -cd '/' | wc -c)" -ne 1 ]; then
+    # 兜底才问 gh(可能走 GraphQL,可能因此失败)—— 并且把它的原话原样印出来
+    REPO_ERR=$(mktemp)
+    REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner 2>"$REPO_ERR") || {
+        echo "✗ wait-for-deploy:问不出仓库。git remote.origin.url 解析不出 owner/repo," >&2
+        echo "  退回 gh repo view 也失败了 —— gh 原话:" >&2
+        sed 's/^/    /' "$REPO_ERR" >&2
+        echo "  (登录状态用 \`gh auth status\` 查;GitHub 的 GraphQL 单独挂掉也会长这样)" >&2
+        rm -f "$REPO_ERR"; exit 2
+    }
+    rm -f "$REPO_ERR"
+fi
 
 echo "== 等部署:$REPO @ ${SHA:0:7}(完整 $SHA)"
 
