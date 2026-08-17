@@ -105,13 +105,27 @@ if [ -z "$REPO" ] || [ "$(printf '%s' "$REPO" | tr -cd '/' | wc -c)" -ne 1 ]; th
 fi
 
 echo "== 等部署:$REPO @ ${SHA:0:7}(完整 $SHA)"
+# 【这个脚本等的是一份下游登记,不是部署本身】—— 开跑就说,别等超时才让人明白。
+# 实测 2026-08-17/18:两次部署在 Vercel 上各 1 分 04 秒 Ready,而 GitHub 的记录
+# 32 分钟后仍然是 0 条;另一次滞后 37 分钟。**记录不在 ≠ 部署没发生。**
+echo "   注:判据是 GitHub 的【部署记录】—— 一份可能滞后 30 分钟以上、也可能" >&2
+echo "   干脆不出现的下游登记。真源是 Vercel 面板;超时【不是】部署失败的证据。" >&2
 
 # ── ① 先等【部署记录出现】——— 推送之后 Vercel 要几秒到几十秒才建它 ────────
 # 判据放在 sh -c 的单引号里,于是它【每一轮都重新求值】(RPT-1:命令替换写在
 # 参数位置上会被外层 shell 只算一次,把条件冻成一个常量)。
-"$HERE/../db/wait_for.sh" --timeout "$TIMEOUT" --label "部署记录出现(${SHA:0:7})" -- \
-    sh -c "gh api \"repos/$REPO/deployments?sha=$SHA&per_page=1\" --jq '.[0].id' | grep -qE '^[0-9]+$'" \
-    || exit 3
+if ! "$HERE/../db/wait_for.sh" --timeout "$TIMEOUT" --label "部署记录出现(${SHA:0:7})" -- \
+    sh -c "gh api \"repos/$REPO/deployments?sha=$SHA&per_page=1\" --jq '.[0].id' | grep -qE '^[0-9]+$'"
+then
+    # 【超时那句话必须说对】wait_for.sh 的通用提示是"多半已经死了或从未开始",
+    # 对这一段【常常是错的】:登记滞后与登记失败都长这样,而部署可能早就成功了。
+    echo "" >&2
+    echo "✗ 等不到 GitHub 的部署记录(${SHA:0:7})。**这不等于部署失败。**" >&2
+    echo "  先去 Vercel 面板看这个 commit 的 deployment state —— 那才是真源。" >&2
+    echo "  已实测过两次:登记滞后 37 分钟一次,32 分钟仍为 0 条一次," >&2
+    echo "  而两次部署本身都成功了(各约 1 分钟)。" >&2
+    exit 3
+fi
 
 DEP=$(gh api "repos/$REPO/deployments?sha=$SHA&per_page=1" --jq '.[0].id')
 echo "== 部署 id $DEP"
