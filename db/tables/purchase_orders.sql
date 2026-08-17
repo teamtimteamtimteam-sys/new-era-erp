@@ -116,3 +116,11 @@ CREATE TRIGGER guard_purchase_orders_amendable
 CREATE TRIGGER trg_purchase_orders_history
     AFTER UPDATE ON public.purchase_orders
     FOR EACH ROW EXECUTE FUNCTION public.trg_po_history_header();
+
+-- AUDEL-1a:硬删按名拒(PO_NO_HARD_DELETE|单号)。此前拦住【带明细】采购单的是一次
+-- 顺带:CASCADE 删明细时触发写历史,那条历史行的外键指回已删的单,于是失败 ——
+-- 报出来的是 "insert or update on table purchase_order_history violates foreign key
+-- constraint ...",既没说是哪张单也没说规矩;而【零明细】的单它完全不拦(实测删得掉)。
+CREATE TRIGGER trg_purchase_orders_no_hard_delete
+    BEFORE DELETE ON public.purchase_orders
+    FOR EACH ROW EXECUTE FUNCTION public.guard_purchase_order_no_hard_delete();

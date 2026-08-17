@@ -97,3 +97,9 @@ CREATE POLICY "output_batches delete by permission"
     ON public.output_batches
     AS PERMISSIVE FOR DELETE TO authenticated
     USING (has_permission('module.output.edit'::text));
+
+-- AUDEL-1a:硬删按名拒(BATCH_NO_HARD_DELETE|批号),理由与 inbound_batches 逐字相同
+-- (output_batch_metals 同样是 CASCADE)。守卫只挡 DELETE,软删照常。
+CREATE TRIGGER trg_output_batches_no_hard_delete
+    BEFORE DELETE ON public.output_batches
+    FOR EACH ROW EXECUTE FUNCTION public.guard_batch_no_hard_delete();

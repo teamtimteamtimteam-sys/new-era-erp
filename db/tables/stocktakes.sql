@@ -63,7 +63,11 @@ CREATE POLICY "stocktakes update by permission"
     AS PERMISSIVE FOR UPDATE TO authenticated
     USING (has_permission('module.stocktakes.edit'::text)) WITH CHECK (has_permission('module.stocktakes.edit'::text));
 
-CREATE POLICY "stocktakes delete by permission"
-    ON public.stocktakes
-    AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.stocktakes.edit'::text));
+-- AUDEL-1a:硬删按名拒(STOCKTAKE_NO_HARD_DELETE|单号)。盘点单是【解释一次
+-- 库存调整的那份单据】,而它的 adjustment 流水不可改 —— 单据没了、流水还在,
+-- 台账说库存动过而没有任何东西说得出为什么,幸存的证据看起来还是完整的。
+-- DELETE 策略【一并删掉】:PostgREST 把它暴露给任何持 module.stocktakes.edit 的人,
+-- 而界面上根本没有这个按钮。两层,与流水那一族同形。
+CREATE TRIGGER trg_stocktakes_no_hard_delete
+    BEFORE DELETE ON public.stocktakes
+    FOR EACH ROW EXECUTE FUNCTION public.guard_stocktake_no_hard_delete();

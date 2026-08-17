@@ -44,7 +44,8 @@ CREATE POLICY "stocktake_lines update by permission"
     AS PERMISSIVE FOR UPDATE TO authenticated
     USING (has_permission('module.stocktakes.edit'::text)) WITH CHECK (has_permission('module.stocktakes.edit'::text));
 
-CREATE POLICY "stocktake_lines delete by permission"
-    ON public.stocktake_lines
-    AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.stocktakes.edit'::text));
+-- AUDEL-1a:硬删按名拒,报【父单】的号 —— 把行从表头底下删走与删掉表头是同一件事,
+-- 而"先删行再删头"正是 AUDEL-0 实测通过的那条两步路。DELETE 策略一并删掉。
+CREATE TRIGGER trg_stocktake_lines_no_hard_delete
+    BEFORE DELETE ON public.stocktake_lines
+    FOR EACH ROW EXECUTE FUNCTION public.guard_stocktake_no_hard_delete();

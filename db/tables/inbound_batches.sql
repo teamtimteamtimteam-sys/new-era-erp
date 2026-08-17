@@ -220,3 +220,11 @@ CREATE POLICY "inbound_batches delete by permission"
 REVOKE SELECT ON public.inbound_batches FROM authenticated, anon;
 GRANT SELECT (id, code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, stage, notes, status, deleted_at, created_at, created_by, updated_at, updated_by, purchase_order_id, purchase_order_line_id, pricing_formula_id, pricing_status)
     ON public.inbound_batches TO authenticated;
+
+-- AUDEL-1a:硬删按名拒(BATCH_NO_HARD_DELETE|批号),【与动没动过无关】。
+-- 外键的 RESTRICT 只在批次已有台账行时才拦得住;而一个从未动过的批次删得干净,
+-- 并且 inbound_batch_metals 是 CASCADE —— 那些是【化验结果】,会跟着一起消失。
+-- 撤销走软删(置 deleted_at),它会写一条 writeoff 流水。守卫只挡 DELETE。
+CREATE TRIGGER trg_inbound_batches_no_hard_delete
+    BEFORE DELETE ON public.inbound_batches
+    FOR EACH ROW EXECUTE FUNCTION public.guard_batch_no_hard_delete();
