@@ -38,6 +38,10 @@ export async function createInbound(
     // 关联采购单(cut 4c,可选;成对出现 —— 表单只在选了行时才携带)
     const purchase_order_id = (formData.get('purchase_order_id') as string) || null
     const purchase_order_line_id = (formData.get('purchase_order_line_id') as string) || null
+    // GRN-1b:申报量【可选】。空 = 没记录过,【不是 0】—— 所以空的时候整个
+    // p_declared_qty 参数都不传,让库里落 NULL。传 0 会让"供应商申报了零"
+    // 成为一条记录,而那是一句没人说过的话。
+    const declared_raw = (formData.get('declared_qty') as string)?.trim() || ''
 
     // 2. 校验
     const fieldErrors: Record<string, string> = {}
@@ -64,6 +68,14 @@ export async function createInbound(
         } else {
             unit_price = n
         }
+    }
+
+    // 填了就必须是个正数;没填是合法的(那是"没记录")。
+    let declared_qty: number | null = null
+    if (declared_raw) {
+        const d = Number(declared_raw)
+        if (Number.isNaN(d) || d <= 0) fieldErrors.declared_qty = t('inbound.form.errDeclaredQty')
+        else declared_qty = d
     }
 
     if (!arrival_date) fieldErrors.arrival_date = t('inbound.form.errArrivalDate')
@@ -95,6 +107,8 @@ export async function createInbound(
         ...(purchase_order_id ? { p_purchase_order_id: purchase_order_id } : {}),
         ...(purchase_order_line_id ? { p_purchase_order_line_id: purchase_order_line_id } : {}),
         ...(location_id ? { p_location_id: location_id } : {}),
+        // GRN-1b:没填就【整个参数不传】,库里落 NULL(具名的"没记录过")
+        ...(declared_qty === null ? {} : { p_declared_qty: declared_qty }),
     })
 
     if (error) {

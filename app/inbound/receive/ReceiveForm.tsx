@@ -226,6 +226,32 @@ export default function ReceiveForm({
                 {state.fieldErrors?.quantity && <p className={errCls}>{state.fieldErrors.quantity}</p>}
             </div>
 
+            {/* GRN-1b:申报量【可选】。供应商说要来多少,与上面磅秤说的多少是两回事。
+                【绝不从采购行预填】—— 上面那个数量框预填 remaining_qty 是便利
+                (过磅的人必然会照磅改),申报量预填则是【替供应商说了话】:
+                它会让"申报与实收一致"这句话在没有任何供应商文件的情况下成立,
+                而那正是这一列存在要回答的问题。空着 = 没记录过,是一个具名状态,
+                不是 0(action 传 undefined,库里落 NULL)。 */}
+            <div>
+                <label className={labelCls}>{t('receive.declaredQty')}</label>
+                <div className="flex items-stretch gap-2">
+                    <input
+                        type="number"
+                        name="declared_qty"
+                        step="any"
+                        min="0"
+                        inputMode="decimal"
+                        placeholder={t('receive.declaredQtyPlaceholder')}
+                        className={fieldCls}
+                    />
+                    <span className="flex items-center px-3 text-base text-gray-600 bg-gray-100 border border-gray-300 rounded">
+                        kg
+                    </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">{t('receive.declaredQtyHint')}</p>
+                {state.fieldErrors?.declared_qty && <p className={errCls}>{state.fieldErrors.declared_qty}</p>}
+            </div>
+
             {/* 到货日期 —— 【必填】。库存流水的 business_date 抄的就是它(FIN-32)。
                 预填今天是【便利】不是默认值:它是受控值,清空就提交不了 ——
                 与"服务端偷偷补一个 CURRENT_DATE"是两回事,后者会奖励留空。 */}

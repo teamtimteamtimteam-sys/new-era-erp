@@ -144,6 +144,17 @@ python3 db/gate.py        # ~4 min measured, no large payloads over the network
 > the gate now costs eight minutes — the next run may well be two. The range
 > stands: two to six minutes with a fat tail. What would change the reading is a
 > *run of* slow measurements, not this one.
+>
+> **Re-measured (GRN-1b, 2026-08-17, same day, same machine): 87 fixtures — the
+> identical set — in 155s.** That is 3.1× faster than the 483s logged hours
+> earlier with **the same fixture count**, so it closes the question the previous
+> paragraph left open: the 483s was **environmental, not growth**. Same-day
+> corroboration: `select 1` against the pooler measured **2.9–4.4s** during the
+> slow window (see the NET-CHECK entry in `docs/known-issues.md` — this machine's
+> own egress, not the database). **Two measurements of the same set, 3× apart, are
+> the strongest evidence in this table that fixture count is not the variable.**
+> The range still reads two to six minutes with a fat tail; nobody should
+> "optimise" this gate.
 
 One LOCAL rebuild, two separately-reported verdicts (OPS-6 merged the two older
 tools — their build steps were identical and check_mirrors was shipping a

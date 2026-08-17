@@ -17,12 +17,16 @@ import StockStatusPanel from '@/app/components/inventory/StockStatusPanel'
 import type { MovementRow } from '@/app/components/inventory/movementTypes'
 import StocktakeQuickCount from '@/app/stocktakes/StocktakeQuickCount'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { canViewPrices } from '@/lib/permissions'
+import { can, canViewPrices } from '@/lib/permissions'
 import { maskedRows, maskedExcept } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
 import { mustRows, mustOne } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import DiscrepancyKinds, {
+    type DiscrepancyRow as GrnRow,
+    type ReceivingThresholds as GrnThresholds,
+} from '@/app/components/receiving/DiscrepancyKinds'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type MovementFetchRow = {
@@ -254,6 +258,40 @@ export default async function EditInboundPage({
         }))
     }
 
+    // ── GRN-1b:这一条收货的差异 ────────────────────────────────────────────
+    // 【三种"没有"必须分得开,而它们在屏幕上长得一模一样】
+    //   ① 这一批没挂采购行  → 视图里根本没有它。不是"没有差异",是【没得比】;
+    //   ② 挂了行、但一切正常 → 视图里有它,kinds 是空数组;
+    //   ③ 读不出来          → mustOne 抛,页面报错(绝不渲染成 ① 或 ②)。
+    // 判据取 batch.purchase_order_line_id —— 它是【视图收不收这一行的那个条件】
+    // 本身,不是从空结果倒推出来的猜测。
+    // 阈值与判词一起发:判词是视图用【当时那三个数】算的,两者之间有人改了阈值,
+    // 屏幕会显示新阈值配旧判词。窄,但写下来而不是假装没有。
+    const [grnRes, grnSettingsRes] = await Promise.all([
+        supabase
+            .from('grn_discrepancies')
+            .select('batch_id, batch_code, po_code, po_status, line_no, ' +
+                    'ordered_material_code, received_material_code, ordered_qty, ordered_unit, ' +
+                    'received_qty, received_unit, declared_qty, line_received_qty, ' +
+                    'line_receipt_count, line_delta_qty, line_delta_pct, declared_delta_qty, ' +
+                    'assay_beyond_tolerance, assay_metals_compared, kinds')
+            .eq('batch_id', id)
+            .maybeSingle(),
+        supabase
+            .from('receiving_settings')
+            .select('grn_short_pct, grn_over_pct, grn_assay_tolerance_pct')
+            .maybeSingle(),
+    ])
+    const grnRow = mustOne(grnRes, 'grn_discrepancies') as unknown as GrnRow | null
+    const grnSettings = mustOne(grnSettingsRes, 'receiving_settings') as GrnThresholds | null
+    // 【第四种"没有":你没有权限看订量】这一页的门是 module.inbound.view,
+    // 而 grn_discrepancies 的门是 module.purchasing.view —— 两者【不是同一道】。
+    // 实测(2026-08-17):warehouse 与 operations 持前者、不持后者,所以他们打得开
+    // 这一页、却从视图读到 0 行。少了这个判据,上面那句 notInView(「这不该发生」)
+    // 会【对着两个真实角色天天说一句吓人的假话】—— 而真相只是"订量在另一道门后面"。
+    // 这正是 lib/permissions.ts 存在的全部理由:null 已经有别的意思了。
+    const canSeeOrderedQty = await can(MOD.purchasing.permission)
+
     // 本批在进行中盘点里的已录实点数(有则预填横幅)
     const openStocktake = stocktakeRes.data?.[0] ?? null
     let stocktakeCounted: number | null = null
@@ -384,6 +422,46 @@ export default async function EditInboundPage({
                     </span>
                 )}
             </p>
+
+            {/* GRN-1b:这一条收货的差异。摆在表单【上面】—— 看这块屏的人在改任何
+                东西之前,先该知道这批货与单子对不对得上。
+                三种"没有"三句话,绝不合并成一句(合并就等于让"没得比"读作"没问题"):
+                  · 没挂采购行 → 【没得比】,并说清是为什么;
+                  · 挂了、正常 → 【对得上】,并把比过的两个数摆出来当证据;
+                  · 有差异     → 逐条点名(DiscrepancyKinds)。 */}
+            <div className="mb-6">
+                <h2 className="text-sm font-medium text-gray-700 mb-2">{t('grn.batch.heading')}</h2>
+                {!batch.purchase_order_line_id ? (
+                    <p className="text-sm text-gray-600 border border-gray-300 rounded px-3 py-2">
+                        {t('grn.batch.noPoLine')}
+                    </p>
+                ) : !canSeeOrderedQty ? (
+                    /* 【受限,不是"没有差异"】订量本来就只在采购那道门后面。
+                       说"受限"而不是留白 —— 留白会被读成"这批货没问题"。 */
+                    <p className="text-sm text-gray-600 border border-gray-300 rounded px-3 py-2">
+                        {t('grn.batch.restricted')}
+                    </p>
+                ) : !grnRow ? (
+                    /* 挂了采购行、视图里却没有这一行 —— 【不该发生】。不猜"那就是没问题",
+                       因为那正是把一次读取异常粉饰成一句好消息。说出实情。 */
+                    <p className="text-sm text-amber-700 border border-amber-300 bg-amber-50 rounded px-3 py-2">
+                        {t('grn.batch.notInView')}
+                    </p>
+                ) : grnRow.kinds.length === 0 ? (
+                    <p className="text-sm text-green-800 border border-green-300 bg-green-50 rounded px-3 py-2">
+                        {t('grn.batch.clean', {
+                            po: grnRow.po_code,
+                            ordered: grnRow.ordered_qty,
+                            received: grnRow.line_received_qty,
+                            unit: grnRow.ordered_unit,
+                        })}
+                    </p>
+                ) : grnSettings ? (
+                    /* 【本页不给化验链接】—— 化验区就在这块屏下面几屏的地方,
+                       给一个指回本页的链接是噪音。清单页与采购单详情才需要它。 */
+                    <DiscrepancyKinds row={grnRow} thresholds={grnSettings} />
+                ) : null}
+            </div>
 
             {openStocktake && (
                 <StocktakeQuickCount

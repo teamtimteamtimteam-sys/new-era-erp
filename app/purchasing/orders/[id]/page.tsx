@@ -23,9 +23,13 @@ import { MaskedValue } from '@/app/components/MaskedValue'
 import { maskedExcept, maskedRows } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
 import IssuePanel from '@/app/components/IssuePanel'
-import { mustRows } from '@/lib/db-helpers'
+import { mustRows, mustOne } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import DiscrepancyKinds, {
+    type DiscrepancyRow as GrnRow,
+    type ReceivingThresholds as GrnThresholds,
+} from '@/app/components/receiving/DiscrepancyKinds'
 
 type AssayEntry = { metal: string; content_pct: number }
 
@@ -95,6 +99,41 @@ export default async function PurchaseOrderDetailPage({
             .select('id, change_type, line_no, amend_reason, changed_at, old_quantity, new_quantity, old_estimated_unit_price, new_estimated_unit_price, old_estimated_total_ccy, new_estimated_total_ccy')
             .eq('purchase_order_id', id).order('changed_at', { ascending: false }).limit(50),
     ])
+
+    // ── GRN-1b:这张单的收货差异,【按采购行】────────────────────────────────
+    // 【为什么这一块必须在这里,而不是只在批次详情上】
+    // po_receivable_lines 只收 confirmed/receiving —— 单一关那一行就消失了,
+    // 而短交恰恰是关单之后才成为问题的;上面那句"已收 / 已订"是【单级】汇总,
+    // 一行超一行短可以正好抵成 100%。grn_discrepancies 两者都不做,所以它在
+    // 关掉的单上仍然说得出话 —— 那正是 GRN-1a 的全部意义,也是这一块存在的理由。
+    const [grnRes, grnSettingsRes] = await Promise.all([
+        supabase
+            .from('grn_discrepancies')
+            .select('batch_id, batch_code, po_code, po_status, line_id, line_no, ' +
+                    'ordered_material_code, received_material_code, ordered_qty, ordered_unit, ' +
+                    'received_qty, received_unit, declared_qty, line_received_qty, ' +
+                    'line_receipt_count, line_delta_qty, line_delta_pct, declared_delta_qty, ' +
+                    'assay_beyond_tolerance, assay_metals_compared, kinds')
+            .eq('po_id', id)
+            .order('line_no'),
+        supabase
+            .from('receiving_settings')
+            .select('grn_short_pct, grn_over_pct, grn_assay_tolerance_pct')
+            .maybeSingle(),
+    ])
+    // 【失败必须失败】读不出来时不许渲染成"这张单没有差异"
+    const grnRows = mustRows(grnRes, 'grn_discrepancies') as unknown as (GrnRow & { line_id: string })[]
+    const grnSettings = mustOne(grnSettingsRes, 'receiving_settings') as GrnThresholds | null
+
+    // 按采购行归拢。short/over 是【行级】事实,挂在该行的每一条收货上,所以
+    // 同一行的多条收货带着同一个结论 —— 按行显示时取第一条即可,而按行计数
+    // 正是视图注释里说的 DISTINCT line_id(这里用 Map 达到同样效果)。
+    const grnByLine = new Map<string, (GrnRow & { line_id: string })[]>()
+    for (const r of grnRows) {
+        const cur = grnByLine.get(r.line_id) ?? []
+        cur.push(r)
+        grnByLine.set(r.line_id, cur)
+    }
 
     // APR-2c:审批是否生效 —— 决定这一页说哪一句话
     const approvalsOn = (apprRes.data as unknown as boolean | null) ?? false
@@ -598,6 +637,77 @@ export default async function PurchaseOrderDetailPage({
                         )}
                     </div>
                 )}
+            </div>
+
+            {/* ── GRN-1b:收货差异,按采购行 ─────────────────────────────────────
+                【它活过关单】上面那句"已收 / 已订"是单级汇总(一行超一行短抵成
+                100%),而 po_receivable_lines 在单一关就不再收这一行。这一块两者
+                都不做,所以关掉的单上它照样说得出话。 */}
+            <h2 className="text-xl font-bold mb-3">{t('grn.po.heading')}</h2>
+            <p className="text-sm text-gray-600 mb-3">{t('grn.po.note')}</p>
+            <div className="space-y-3 mb-8">
+                {lines.map((l) => {
+                    const rows = grnByLine.get(l.id) ?? []
+                    const withKinds = rows.filter((r) => r.kinds && r.kinds.length > 0)
+                    return (
+                        <div key={l.id} className="border border-gray-300 rounded-lg p-3">
+                            <p className="text-sm mb-2">
+                                <span className="text-gray-500">#{l.line_no}</span>
+                                <span className="ml-2 font-mono">{materialById.get(l.material_id) ?? '—'}</span>
+                                <span className="ml-2 text-gray-600">
+                                    {t('grn.po.orderedLabel', { qty: Number(l.quantity), unit: l.unit ?? 'kg' })}
+                                </span>
+                                {rows.length > 0 && (
+                                    <span className="ml-2 text-gray-600">
+                                        {t('grn.po.receivedLabel', {
+                                            qty: rows[0].line_received_qty,
+                                            unit: l.unit ?? 'kg',
+                                            receipts: rows[0].line_receipt_count,
+                                        })}
+                                    </span>
+                                )}
+                            </p>
+
+                            {rows.length === 0 ? (
+                                /* 【GRN-1a 点名的盲区,写在它最该被读到的地方】
+                                   这张视图的粒度是一条收货一行,所以一条【一次都没
+                                   收过】的采购行【根本不产生行】—— 而那恰恰是最彻底
+                                   的短交。空白在这里【不是】"没问题",这一句就是不让
+                                   它被那样读的全部办法。**绝不**在这里自己补一个
+                                   "订量 − 0"的算式:那就是 GRN-1a 拒绝顺手做掉的那张
+                                   伴生视图,写在页面里等于写成第二份会漂开的实现。 */
+                                <p className="text-sm text-amber-800 border border-amber-300 bg-amber-50 rounded px-3 py-2">
+                                    {t('grn.po.noReceipts')}
+                                </p>
+                            ) : withKinds.length === 0 ? (
+                                <p className="text-sm text-green-800">{t('grn.po.lineClean')}</p>
+                            ) : grnSettings ? (
+                                <DiscrepancyKinds
+                                    row={withKinds[0]}
+                                    thresholds={grnSettings}
+                                    assayHref={`/inbound/${withKinds[0].batch_id}/edit`} />
+                            ) : null}
+
+                            {/* 逐条收货点名 —— 行级结论说的是"这一行短了",而人还要
+                                知道它是由哪几条收货组成的。 */}
+                            {rows.length > 0 && (
+                                <p className="text-xs text-gray-500 mt-2">
+                                    {t('grn.po.receiptsList')}{' '}
+                                    {rows.map((r, i) => (
+                                        <span key={r.batch_id}>
+                                            {i > 0 && ', '}
+                                            <Link href={`/inbound/${r.batch_id}/edit`}
+                                                  className="font-mono text-blue-600 hover:underline">
+                                                {r.batch_code}
+                                            </Link>
+                                            <span> ({r.received_qty} {r.received_unit})</span>
+                                        </span>
+                                    ))}
+                                </p>
+                            )}
+                        </div>
+                    )
+                })}
             </div>
 
             {/* 收货记录 */}

@@ -260,6 +260,12 @@ const MANIFEST = {
                                   /SELECT '(\w+)'::text AS (?:record_kind|text)/g) },
     // AUDEL-1b:删除那一族的具名拒绝。接真源那个 Set —— 加一个码,检查自动跟上。
     'deletion.errors.': { kind: 'enum', values: () => tsSet('app/components/inventory/deletionErrorCodes.ts', 'DELETION_ERROR_CODES') },
+    // GRN-1b:收货差异的种类。真源是【视图自己拼 kinds 的那几个字面量】——
+    // grn_discrepancies 每一支写着 ARRAY['short'::text] 之类,加一种就自动被查到。
+    // 【接视图而不是接一份 TS 常量】是因为判断"是哪一种"从头到尾只发生在视图里:
+    // 应用层一个字都没重复它,所以也没有第二份可接 —— 那正是这一刀想要的样子。
+    'grn.kind.': { kind: 'enum', values: () => tsRegex('db/views/grn_discrepancies.sql',
+                                  /ARRAY\['(\w+)'::text\]/g) },
     // ── AUD-2:客户审计报告 ──────────────────────────────────────────────
     // 【回收率算不出的原因】与 processing.recovery.blocked. 同一个真源
     // (基视图里的那个 CASE),外加一个【本地兜底键】unspecified:

@@ -8,6 +8,9 @@ import { useTranslations } from '@/lib/i18n/client'
 
 const ITEMS = [
     { href: '/purchasing/orders', key: 'purchasing.subnav.orders' },
+    // GRN-1b:收货差异。【它必须在导航里】—— 差异此前唯一的到达方式是敲 URL,
+    // 而那不是导航,那是记忆(SAL-B6 那一课:一个没有入口的页面等于不存在)。
+    { href: '/purchasing/discrepancies', key: 'purchasing.subnav.discrepancies' },
     { href: '/purchasing/payment-terms', key: 'purchasing.subnav.templates' },
 ]
 

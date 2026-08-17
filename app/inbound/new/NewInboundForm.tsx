@@ -264,6 +264,32 @@ export default function NewInboundForm({
                     )}
                 </div>
 
+                {/* GRN-1b:申报量【可选】。供应商说要来多少,与上面磅秤说的多少是
+                    两回事。【绝不从采购行预填】—— 上面那个数量框预填 remaining_qty
+                    是便利(过磅的人必然会照磅改),申报量预填则是【替供应商说了话】:
+                    它会让"申报与实收一致"这句话在没有任何供应商文件的情况下成立,
+                    而那正是这一列存在要回答的问题。空着 = 没记录过,是一个具名状态,
+                    不是 0(action 传 undefined,库里落 NULL)。 */}
+                <div>
+                    <label className="block text-sm font-medium mb-1">
+                        {t('inbound.form.declaredQty')}
+                    </label>
+                    <input
+                        type="number"
+                        name="declared_qty"
+                        step="any"
+                        min="0"
+                        placeholder={t('inbound.form.declaredQtyPlaceholder')}
+                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">{t('inbound.form.declaredQtyHint')}</p>
+                    {state.fieldErrors?.declared_qty && (
+                        <p className="text-red-600 text-xs mt-1">
+                            {state.fieldErrors.declared_qty}
+                        </p>
+                    )}
+                </div>
+
                 {/* 单位 */}
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('inbound.form.unit')}</label>
