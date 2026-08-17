@@ -37,6 +37,7 @@ DECLARE
     v_user uuid := gen_random_uuid();
     r_all uuid;
     v_mat uuid; v_sup uuid; v_sup_cert uuid; v_sup_none uuid;
+    v_mat_asy uuid;   -- ASY-P1:awaiting_assay 专用的物料(只有它声明化验要求)
     v_cust uuid; v_cust2 uuid;
     v_ib1 uuid; v_ib2 uuid; v_ib3 uuid; v_ib4 uuid; v_ib_run uuid;
     v_run uuid; v_run_margin uuid; v_po uuid; v_st uuid; v_emp1 uuid; v_emp2 uuid;
@@ -82,6 +83,13 @@ BEGIN
     -- 与通过的断言长得一模一样。
     INSERT INTO materials (code, name, category, safety_stock_qty)
     VALUES ('ZZFIX47-M', 'fixture 47 material', 'other', 999999) RETURNING id INTO v_mat;
+    -- 【ASY-P1:awaiting_assay 只在物料声明了化验要求时才可能亮】给它一个专用物料,
+    -- v_mat 上不声明 —— 否则 IB1 / IB3 会一起点亮这一支,而本 fixture 断言的是
+    -- "每支恰好一件"。
+    INSERT INTO materials (code, name, category)
+    VALUES ('ZZFIX47-M-ASY', 'fixture 47 material (assay required)', 'other')
+    RETURNING id INTO v_mat_asy;
+    INSERT INTO material_required_metals (material_id, metal) VALUES (v_mat_asy, 'cu');
     INSERT INTO suppliers (code, legal_name, country, status)
     VALUES ('ZZFIX47-S', 'fixture 47 supplier', 'SG', 'active') RETURNING id INTO v_sup;
     -- 资质将到期的供应商:用 iso(warn,lead 60)—— warn 不挡收货,本 fixture 不需要
@@ -105,8 +113,8 @@ BEGIN
     INSERT INTO assay_results (code, inbound_batch_id, assay_date)
     VALUES ('ZZFIX47-AR1', v_ib1, CURRENT_DATE - 4);                 -- assay_unapplied
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
-    VALUES ('ZZFIX47-IB2', v_mat, v_sup, 10, 10, CURRENT_DATE - 5) RETURNING id INTO v_ib2;
-                                                                      -- awaiting_assay(零化验)
+    VALUES ('ZZFIX47-IB2', v_mat_asy, v_sup, 10, 10, CURRENT_DATE - 5) RETURNING id INTO v_ib2;
+                                                    -- awaiting_assay(要求 cu,零化验,还有料)
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
         arrival_date, pricing_status)
     VALUES ('ZZFIX47-IB3', v_mat, v_sup, 10, 10, CURRENT_DATE - 5, 'unpriced') RETURNING id INTO v_ib3;

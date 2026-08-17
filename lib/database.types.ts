@@ -238,6 +238,13 @@ export type Database = {
             foreignKeyName: "assay_results_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_results_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -1707,6 +1714,13 @@ export type Database = {
             foreignKeyName: "finance_attachments_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "finance_attachments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -2094,6 +2108,13 @@ export type Database = {
             foreignKeyName: "freight_allocations_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "freight_allocations_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -2331,6 +2352,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_metals_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -2589,6 +2617,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -3661,6 +3696,49 @@ export type Database = {
           },
         ]
       }
+      material_required_metals: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          material_id: string
+          metal: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          material_id: string
+          metal: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          material_id?: string
+          metal?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_required_metals_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "material_stock_available"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "material_required_metals_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_required_metals_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stock_snapshot"
+            referencedColumns: ["material_id"]
+          },
+        ]
+      }
       materials: {
         Row: {
           category: string
@@ -4231,6 +4309,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -5202,6 +5287,13 @@ export type Database = {
             foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -5319,6 +5411,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "price_history_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -5700,6 +5799,13 @@ export type Database = {
             foreignKeyName: "pricing_term_commitments_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: true
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "pricing_term_commitments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: true
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -5984,6 +6090,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "processing_inputs_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -8043,6 +8156,13 @@ export type Database = {
             foreignKeyName: "stocktake_lines_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "stocktake_lines_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -9191,6 +9311,44 @@ export type Database = {
           unit_cost_base: number | null
         }
         Relationships: []
+      }
+      batch_required_assay_gaps: {
+        Row: {
+          arrival_date: string | null
+          batch_code: string | null
+          inbound_batch_id: string | null
+          material_code: string | null
+          material_id: string | null
+          material_name: string | null
+          missing_metals: string[] | null
+          remaining_qty: number | null
+          required_metals: string[] | null
+          sampleable: boolean | null
+          supplier_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "material_stock_available"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stock_snapshot"
+            referencedColumns: ["material_id"]
+          },
+        ]
       }
       company_profile_masked: {
         Row: {
@@ -11119,6 +11277,13 @@ export type Database = {
             foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -11236,6 +11401,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "price_history_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -11573,6 +11745,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: true
             referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "pricing_term_commitments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: true
+            referencedRelation: "batch_required_assay_gaps"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -12630,6 +12809,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -13797,6 +13983,10 @@ export type Database = {
           p_notes?: string
           p_unit_price: number
         }
+        Returns: Json
+      }
+      set_material_required_metals: {
+        Args: { p_material_id: string; p_metals: string[] }
         Returns: Json
       }
       set_review_conclusion: {

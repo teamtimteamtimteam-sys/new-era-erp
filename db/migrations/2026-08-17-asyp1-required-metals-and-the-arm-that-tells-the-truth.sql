@@ -1,105 +1,232 @@
--- OPS-18(Phase 6):operations_now —— 全站"正在等人处理的事",一件一行
+-- ASY-P1:物料带着它要求的金属,awaiting_assay 于是说得出真话(数据库那一半)
 --
--- 【为什么是一张视图而不是九个页面各查各的】仪表盘的每一块牌子背后都是"有多少件
--- 事在等"这一类问题;九个问题九处写,就是九份会各自漂移的实现。hr_alerts 已经证明
--- 过这个形状:一个 UNION,每一种等待状态一支,页面只负责画。
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【改之前那一支在问什么】operations_now 的 awaiting_assay 支写的是
+--     FROM batch_assay_status b WHERE b.assay_count = 0
+-- 也就是【这个批次一份化验都没有】。它有两个毛病,都是线上量出来的:
 --
--- 【属主权限 + 每支自带 permission 列,外层一次性把关】(OPS-14 修法 (a))。
--- 本视图横跨六个模块,invoker 会让 RLS 把读者无权模块的行【静默丢掉】—— 行消失
--- 在这里意味着"那个数少算了",而不是报错。属主权限读全量,外层
--- WHERE has_permission(a.permission) 按【调用者】逐支裁决:无权的支【整支缺席】,
--- 不是零。谓词写一次而不是九遍 —— hr_alerts 的注释说过,复述 N 遍只会给下一个
--- 加支的人留一个漏写的机会;这里每支【声明】自己的权限码,外层【执行】它。
+--   ① **它看不见"化验做了一半"。** IN-2026-0001 只有一份已应用化验,覆盖 cu 一种
+--      金属;IN-2026-0156 只覆盖 co。两个都【不亮】,因为 assay_count > 0 ——
+--      而"这个批次该化验的金属化验齐了吗"这个问题,它从来没有问过。
+--   ② **它点着两盏永远灭不掉的灯。** IN-2026-0011(14 kg)与 IN-2026-0153(680 kg)
+--      的 remaining_qty 都是 **0** —— 料已经全部耗掉了。化验要取样,而【样没了】,
+--      所以这两盏灯不是"等人处理",是"没人处理得了"。一盏灭不掉的灯会教人别看
+--      这块看板,那比不点这盏灯坏得多。
 --
--- 【缺席 ≠ 零,页面必须自己分辨】视图对无权读者不发一行,于是"没有行"有两种
--- 含义:真的零,或者你看不见。app/page.tsx 先查权限再渲染每块牌子 —— 无权显示
--- 「受限」(common.restricted),绝不显示 0。这是仪表盘最容易犯、且任何 gate 都
--- 查不出的那个错(0 与"你看不见"在屏幕上一模一样 —— moduleGuard 的老病换了件衣服)。
+-- 【新的一支问的是】:这个批次的物料【声明了】要化验哪些金属,而其中至少一种
+-- 还没有被一份【已应用的】化验覆盖,并且这个批次【还救得回来】(remaining_qty > 0)。
+-- 行上点名【缺哪几种金属】。
 --
--- 【item_type 写成 'x'::text 字面量】check-i18n 的 sqlLiteralAs 解析器现读本文件,
--- dashboard.item.* 的后缀集合就是这里的支列表 —— 加一支,键检查自动跟着变宽。
+-- 【"覆盖"读的是哪几列 —— 量过之后选的,不是挑的】两条候选:
+--   P1  assay_results(applied_at IS NOT NULL, deleted_at IS NULL)
+--       ⋈ assay_result_metals(metal)          ← 采用
+--   P2  inbound_batch_metals.content_source = 'assay'
+--   线上实测:**19 行进料含量的 content_source 全部是 NULL**(PROC-1 之前写入,
+--   出处未知,刻意不回填)。用 P2 会把【每一个批次】判成零覆盖,包括 IN-2026-0152
+--   与 IN-2026-0181 那两个六种金属齐备的。P1 在同一批数据上给出正确答案。
+--   而且 P1 是"已应用的化验覆盖了这种金属"这句话的【字面】表达,不需要中转。
 --
--- 【两笔贵的读数,按界所限】(OPS-16 报告点名的两处):
---   * fx_rate_gaps 按 (日期,币种) 对每组跑 fx_rate_asof,本身不受期间约束 ——
---     这里限 rate_date >= CURRENT_DATE - 45:仪表盘答"最近有没有漏",完整历史
---     归 /finance/month-end 按月翻。谓词落在分组键上,能下推进聚合。
---   * 银行对账这支【只数报表侧的未匹配行】(bank_statement_lines,行数 = 导入量,
---     天然有界)。bank_reconciliation_status 的账簿侧 LATERAL 要扫 journal_lines
---     全表 —— 那是对账页的活,不上人人都开的首页。
+-- 【手工填的含量不算覆盖,这是有意的】IN-2026-0003 有 co/cu/ni 三行含量却没有任何
+-- 化验单。这一支叫 awaiting_ASSAY —— 人手敲进去的数字不是实验室结论。
+-- 与 PROC-1 那条同源:出处是【记录】的,绝不从"有没有数字"反推。
 --
--- 【不在此列的】批次毛利 —— 有未决的设计问题(哪些限定词随数字走、已过账 COGS
--- 还是当前成本),自成一切,谓词已录在 AGENTS.md 常设决定 2。月结的七个信号 ——
--- /finance/month-end 是它们的枢纽,首页放一个入口,不复制信号。
+-- 【为什么耗尽的批次退出,而理由要说准】任务书上的说法是"没有任何东西补救得了"。
+-- **那句话不准确,而准确的理由更强**:耗尽的批次【财务上仍然补救得了】——
+-- reprice_split 对 remaining_qty = 0 的批次照样算,差额整份进 5000。
+-- 真正的理由是【取不到样】:料已经不在了,这份化验永远做不出来。
+-- 对一支"等化验"的告警,这才是它该退出的原因。
 --
--- NOTE: introduced by db/migrations/2026-08-09-ops18-operations-now-and-the-dashboard.sql.
--- EXEC-3a(2026-08-16):再【两】支 —— work_order_overdue 与
--- work_order_variance_beyond(WO-1c 记下的两个候选)。差异那一支的两个阈值
--- 现读 processing_settings,【两个数不是一个】(投入超耗是成本问题、
--- 产出短交是收率问题,合成一个数等于说它们一样严重)。
--- 【本刀一度加了资质那两支,而它们 CMP-2 就已经在了】—— 清单文件里那行
--- "Candidate, not built" 是过时的,重复分支由 fixture 37C 与 30A 当场抓住,
--- fu1 撤掉。见 db/migrations/2026-08-16-exec3a-fu1-*.sql。
--- 【batch_margin 撤了】:一个卖出去的批次毛利偏低是一个【状态】,没有清除动作 ——
--- 看板装的是待办,毛利的家是 /margin;可处理的那一半已经是 arm 15。
---
--- EXEC-1a(2026-08-16):两支高管臂 —— metal_quote_stale(行情陈旧,阈值现读
--- pricing_settings.metal_quote_stale_days,按 price_date 不按 created_at)与
--- orders_unfulfilled(confirmed / partially_shipped 的订单)。规格见
--- docs/dashboard-arm-inventory.md;【谁要看哪一支】见 docs/exec-views-plan.md。
---
--- OPS-19(2026-08-09):补上原始定稿漏掉的四支(awaiting_assay / batch_unpriced /
--- invoice_overdue / ar_over_90 + ap_over_90),并新增 output_unsold_aging —— sales
--- 这一行唯一够得着的支(它没有 module.finance.view,当初猜的 AR 支对它同样是「受限」)。
--- assay_unapplied 的粒度同时从"一份未执行化验一行"改成"一个批次一行",与
--- awaiting_assay 同源同粒度、互斥;live 该支当时为 0,故不改变任何现有数字。
---
--- CMP-1(2026-08-09):两支资质臂。qualification_expiring 到【类型自己的 lead days】就上牌,
--- 过期后【不落牌、无 -30 天下限】—— 工作证过期 30 天人已走,证书过期两年而进场仍可能,
--- 它就还站在那儿(live 那张 2024 年就过期的 Article 18 正是证据)。续期(valid_until
--- 前移)即安静。qualification_missing 是"一张证都没有"的缺席臂(与 awaiting_assay /
--- assay_unapplied 的分立同理)。disposition='ignore' 的类型不上牌。
--- 【规格在 docs/dashboard-arm-inventory.md】每一支是什么意思、挂哪个权限码、界在
--- 哪里、以及【哪些支被考虑过又被排除、为什么】都在那里。
--- 定稿只存在于一次对话里,代价是四支 —— 所以规矩是:
--- 【加一支 = 在同一个提交里往那份清单加一行】。
---
--- MAR-1(2026-08-10):支的权限从【一个码】放宽到【一个谓词】—— permission(必须有)
--- + permission_any(任意其一,由 arm_permission_any 一处声明,SELECT 与 WHERE 共用)。
--- 起因是批次毛利跨两个模块(prices AND (finance OR processing)),而没有任何 live 角色
--- 同时持有后两者。合成一个新权限码那条路被否掉:那会是谁能看毛利的第二份定义,
--- 与 batch_margin 自己的谓词必然漂开。fixture 45 三种读者各钉一次。
--- ASY-P1(2026-08-17):awaiting_assay 那一支【换了问题】。原来问的是"这个批次一份
--- 化验都没有"(batch_assay_status.assay_count = 0),它看不见"化验做了一半",
--- 也灭不掉料已耗尽那两盏灯(线上 IN-2026-0011 / IN-2026-0153,remaining_qty = 0)。
--- 现在读 batch_required_assay_gaps:物料声明了要验哪些金属、其中至少一种还没有被
--- 一份【已应用的】化验覆盖、并且【还取得到样】。subject 从供应商名换成【缺哪几种
--- 金属】—— subject 这一列在每一支里放的都是那一支最该让人看见的事实,而能让人
--- 下一步动起来的是缺哪几种。判据与理由住在那张视图里,不在这里。
--- LINKS-1(2026-08-11):每支多带一个 item_id —— 支从"指向一张列表"变成"指向那一件事"。
--- 【item_id 指的是谁】承载【补救动作】的那张页面所对应的行。十七支里它就是等待中的
--- 那一行;两支里是它的父:bank_unmatched(行没有页面,匹配动作在对账工作台上 →
--- 对账单)与 margin_cost_not_allocated(补救是给加工单分摊成本 → 加工单)。
--- 于是同一支的几行可以共用一个 item_id,那是对的,不是重复 —— fixture 47 因此断言
--- 的是"item_id 落在这一支该落的那张表里",不是"一行一个 id",也不是互不相同。
--- 【SO-3a:应收也成了两种单据】ar_over_90 的 doc_kind 从此非空('sale' 销售记录 /
--- 'invoice' 订单流发票),item_id 相应二选一 —— 门牌各是应收单据页与发票页,
--- app/page.tsx 按 doc_kind 分支,认不出的种类不给链接(与 ap 同一条)。
--- 【doc_kind 是披露】应付账款本来就是两种单据(ap_open_items 自己就按它分支,
--- 应付列表页也一直照它画链接),这张视图先前只是没说出口。其余十八支主体只有一种,
--- 该列为 NULL。【fx_rate_gap 没有 item_id】它的主体是一条不存在的牌价行,缺的东西
--- 没有 id —— 它指向按币种过滤的列表,那是"诚实过滤的列表"那类答案,不是按码搜索。
--- 每支的门牌与"补救是否在那张页面上"这条判据,写在 docs/dashboard-arm-inventory.md。
--- NOTE: item_id / doc_kind added by
--- db/migrations/2026-08-11-links1-operations-now-item-id.sql(列集变了 → DROP + CREATE)。
--- SS-1(2026-08-13):第二十支 safety_stock_below —— 物料的可用量低于它自己的
--- 安全库存阈值。【阈值 NULL 的物料一次都不响】:NULL 是"还没有人决定要盯它",
--- 不是"阈值为零",而把不响读成"查过了没问题"正是 METAL-1 的那一课。
--- 可用量来自 material_stock_available(一处求和,暂扣不算 —— 阈值问的是"还有多少
--- 能用的货",一次暂扣若能掩盖缺货,这个告警就在最该说话的时刻哑掉)。
--- item_date 用【最后一次库存移动】退回今天:阈值告警是持续状态,没有发生日;
--- 去算"哪天跌破的"要在首页翻整段流水史,那条界不允许(credit_over_limit 同形)。
+-- 【选项 3 成立:可见,但绝不拦路】本迁移不改任何提交路径 —— 收货、应用化验、
+-- 计价、加工一个字没动。缺化验是【看板上的一行】,不是一道闸。
+-- ════════════════════════════════════════════════════════════════════════════
+BEGIN;
 
-CREATE VIEW public.operations_now AS
+-- ════════════════════════════════════════════════════════════════════════════
+-- 1. 物料要求哪些金属
+-- ════════════════════════════════════════════════════════════════════════════
+CREATE TABLE public.material_required_metals (
+    material_id uuid NOT NULL REFERENCES public.materials (id) ON DELETE CASCADE,
+    -- 【七金属 CHECK:照抄,因为这个仓库没有别的写法】
+    -- 全库没有 domain、没有 enum —— 同一个集合内联在 7 张表的 CHECK 与 3 个函数的
+    -- IF 里(metal_prices / inbound_batch_metals / output_batch_metals /
+    -- assay_result_metals / pricing_formula_metals / pricing_formula_history /
+    -- pricing_term_commitment_metals)。加金属时要【同时】放宽全部这些。
+    -- 本表因此是第八处,而不是第一处例外:现在去建 domain 会是一次动 10 个地方的
+    -- 单独的刀,混进这一刀里就是趁人不注意改一条全库约定。
+    metal       text NOT NULL CHECK (metal IN ('ni','co','li','mn','cu','al','fe')),
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    created_by  uuid DEFAULT auth.uid(),
+    -- 【复合主键【就是】那条 UNIQUE (material_id, metal)】—— 与
+    -- inbound_batch_metals / assay_result_metals 同形:属性行,没有代理键,没有软删。
+    PRIMARY KEY (material_id, metal)
+);
+
+COMMENT ON TABLE public.material_required_metals IS
+$$ASY-P1:这种物料【应当化验哪些金属】。一物料一金属一行。
+
+【没有行 = 没有要求,而这是一个假设,不是一个事实】它读作"这种物料不需要化验",
+而它同样是"还没有人为这种物料想过这件事"的样子 —— 两者在本表里长得一模一样。
+所以界面那一半(ASY-P2)必须在【每一个】物料上把这个状态按名印出来(「无化验要求」),
+而不是让空白自己去说话。本迁移落地时线上 4 个在册物料【全部】没有要求,
+因此 awaiting_assay 会安静下来,直到有人填进来 —— 那是这条默认的直接后果,写在这里。
+
+【为什么不给一个"已决定:不需要"的第三态】那会是更诚实的模型,而它也会是一次
+关于"谁在什么时候决定的、凭什么"的设计,不属于这一刀。缺口记在这里。$$;
+
+ALTER TABLE public.material_required_metals ENABLE ROW LEVEL SECURITY;
+
+-- 【读跟着物料字典走】能看物料的人就能看它要求哪些金属 —— 这不是第二个秘密。
+CREATE POLICY "material_required_metals select by permission"
+    ON public.material_required_metals
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.materials.view'::text));
+
+-- 【写只走函数,所以基表上【不给】INSERT/UPDATE/DELETE 策略】
+-- 没有策略 = 没有任何 authenticated 的写入路径能过 RLS。唯一入口是下面那个
+-- SECURITY DEFINER 函数,它自己 require_permission('module.materials.edit')。
+-- 这样"整套要求"永远是一次替换,不会出现改了一半的中间态。
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- 2. 唯一写入口:整套替换
+-- ════════════════════════════════════════════════════════════════════════════
+CREATE OR REPLACE FUNCTION public.set_material_required_metals(
+    p_material_id uuid,
+    p_metals text[])
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+    v_code text;
+    v_metal text;
+    v_clean text[];
+BEGIN
+    PERFORM require_permission('module.materials.edit');
+
+    IF p_material_id IS NULL THEN
+        RAISE EXCEPTION 'MATERIAL_REQUIRED';
+    END IF;
+    SELECT code INTO v_code FROM materials WHERE id = p_material_id AND deleted_at IS NULL;
+    -- 【物料不存在 ≠ 物料没有要求】前者是问错了问题。合成一个"没有要求"就是把
+    -- 打错的 id 显示成一个正当的答案(mustRows / restRows / ACCOUNT_NOT_FOUND 同一条)。
+    IF v_code IS NULL THEN
+        RAISE EXCEPTION 'MATERIAL_NOT_FOUND|%', p_material_id;
+    END IF;
+
+    -- 【NULL 与空数组【都】是"清空要求",而它们必须走到同一个地方】
+    -- 一个把 NULL 读成"什么都不做"的实现,会让"取消全部要求"这个动作静默失败。
+    v_clean := COALESCE(p_metals, ARRAY[]::text[]);
+
+    FOREACH v_metal IN ARRAY v_clean LOOP
+        IF v_metal IS NULL OR v_metal NOT IN ('ni','co','li','mn','cu','al','fe') THEN
+            RAISE EXCEPTION 'METAL_UNKNOWN|%', COALESCE(v_metal, '(null)');
+        END IF;
+    END LOOP;
+
+    -- 【重复的金属按名拒,不是悄悄去重】传 ['cu','cu'] 的调用方对自己要什么是糊涂的,
+    -- 而去重会让它以为自己说清楚了。
+    IF (SELECT count(*) FROM unnest(v_clean)) <>
+       (SELECT count(DISTINCT x) FROM unnest(v_clean) x) THEN
+        RAISE EXCEPTION 'METAL_DUPLICATED|%', array_to_string(v_clean, ',');
+    END IF;
+
+    -- 整套替换:先删后插,同一个事务 —— 不存在"改了一半"的中间态。
+    DELETE FROM material_required_metals WHERE material_id = p_material_id;
+    INSERT INTO material_required_metals (material_id, metal)
+    SELECT p_material_id, x FROM unnest(v_clean) x;
+
+    RETURN jsonb_build_object(
+        'material_id', p_material_id,
+        'material_code', v_code,
+        -- 【空集就报空集,并且说出来它是空的】调用方(ASY-P2 的界面)据此印
+        -- 「无化验要求」那句话,而不是靠"数组长度是 0"自己去猜一句文案。
+        'metals', COALESCE(to_jsonb(v_clean), '[]'::jsonb),
+        'metal_count', COALESCE(array_length(v_clean, 1), 0),
+        'has_requirement', COALESCE(array_length(v_clean, 1), 0) > 0
+    );
+END;
+$function$;
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- 3. 缺口视图:一个批次一行,点名缺哪几种金属
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【为什么是一张视图而不是把谓词塞进 operations_now】三个消费者:看板那一支、
+-- ASY-P2 的批次页、以及 fixture。三处各写一遍就是三份会漂开的实现 ——
+-- 这一条在这个仓库已经付过四次学费(AGENTS.md「预览过账的屏幕要问数据库」)。
+--
+-- 【属主权限,不是 invoker】它跨 inbound / materials / suppliers 三处。
+-- invoker 会让 RLS 把读者无权那部分的行【静默丢掉】,而这里行消失意味着
+-- "这个批次不缺化验" —— 一个错的好消息(OPS-14 的 xmodule 那一课)。
+-- 所以属主权限读全量,体内带【读者自己的】模块谓词。
+CREATE VIEW public.batch_required_assay_gaps WITH (security_invoker = off) AS
+ SELECT g.inbound_batch_id,
+    g.batch_code,
+    g.material_id,
+    g.material_code,
+    g.material_name,
+    g.supplier_name,
+    g.arrival_date,
+    g.remaining_qty,
+    g.required_metals,
+    g.missing_metals,
+    -- 【还救不救得回来】料没了就取不到样,这份化验永远做不出来。
+    -- 注意它【不是】"财务上还补救得了":reprice_split 对耗尽的批次照样算,
+    -- 差额整份进 5000。取样与补价是两件事,这一支管的是前者。
+    (g.remaining_qty > 0) AS sampleable
+   FROM ( SELECT ib.id AS inbound_batch_id,
+            ib.code AS batch_code,
+            ib.material_id,
+            m.code AS material_code,
+            m.name AS material_name,
+            sup.legal_name AS supplier_name,
+            COALESCE(ib.arrival_date, ib.created_at::date) AS arrival_date,
+            ib.remaining_qty,
+            array_agg(r.metal ORDER BY r.metal) AS required_metals,
+            -- 【缺 = 没有任何一份【已应用且在册】的化验带着这种金属的含量行】
+            -- 读的就是 assay_results.applied_at + assay_result_metals.metal;
+            -- 不读 inbound_batch_metals.content_source(线上 19 行全是 NULL,
+            -- 用它会把每个批次都判成零覆盖 —— 见本迁移抬头的实测)。
+            array_agg(r.metal ORDER BY r.metal) FILTER (
+                WHERE NOT EXISTS (
+                    SELECT 1
+                      FROM assay_results ar
+                      JOIN assay_result_metals arm ON arm.assay_result_id = ar.id
+                     WHERE ar.inbound_batch_id = ib.id
+                       AND ar.deleted_at IS NULL
+                       AND ar.applied_at IS NOT NULL
+                       AND arm.metal = r.metal)) AS missing_metals
+           FROM inbound_batches ib
+             JOIN materials m ON m.id = ib.material_id
+             -- 【INNER JOIN 就是"这个物料有要求"那一条】没有要求的物料在这里
+             -- 整个消失,不需要第二个判断。
+             JOIN material_required_metals r ON r.material_id = ib.material_id
+             LEFT JOIN suppliers sup ON sup.id = ib.supplier_id
+          WHERE ib.deleted_at IS NULL
+          GROUP BY ib.id, ib.code, ib.material_id, m.code, m.name, sup.legal_name,
+                   ib.arrival_date, ib.created_at, ib.remaining_qty) g
+  -- 一种都不缺的批次不出现在这里(array_agg FILTER 全不命中时是 NULL)
+  WHERE g.missing_metals IS NOT NULL
+    AND has_permission('module.inbound.view'::text);
+
+COMMENT ON VIEW public.batch_required_assay_gaps IS
+    'ASY-P1:每个【物料声明了化验要求、而其中至少一种金属还没有被一份已应用化验覆盖】的在册进料批一行,点名缺哪几种(missing_metals)。覆盖读 assay_results.applied_at ⋈ assay_result_metals.metal —— 手工敲进 inbound_batch_metals 的含量不算覆盖(这一支叫 awaiting_assay)。sampleable = remaining_qty > 0:料没了就取不到样,那盏灯灭不掉,所以看板那一支只取 sampleable 的行。属主权限 + 体内 module.inbound.view 谓词(跨三个模块,invoker 会静默丢行)。';
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- 4. 那一支本身
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【subject 从"供应商名"换成"缺哪几种金属"】subject 这一列在每一支里都是
+-- 【那一支最该让人看见的那个事实】(assay_unapplied 放的是化验单号,
+-- batch_unpriced 放的是供应商)。对这一支,能让人下一步动起来的是【缺哪几种】,
+-- 不是这批货是谁送来的 —— 供应商名仍在 batch_required_assay_gaps 上,
+-- 批次页要用随时取得到。
+-- 【WHERE g.sampleable】= remaining_qty > 0。耗尽的批次退出这一支,理由见抬头:
+-- 取不到样,所以这盏灯灭不掉;一盏灭不掉的灯会教人别看这块看板。
+--
+-- CREATE OR REPLACE 成立:输出列名、类型、顺序一个都没动,改的只是 UNION 里
+-- 那一支的取数。
+
+CREATE OR REPLACE VIEW public.operations_now AS
  SELECT item_type,
     permission,
     arm_permission_any(item_type) AS permission_any,
@@ -414,3 +541,5 @@ CREATE VIEW public.operations_now AS
   WHERE has_permission(permission) AND (arm_permission_any(item_type) IS NULL OR has_any_permission(arm_permission_any(item_type)));;;;
 
 GRANT SELECT ON public.operations_now TO authenticated;
+
+COMMIT;

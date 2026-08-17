@@ -29,6 +29,7 @@ DECLARE
     v_inb uuid := gen_random_uuid();   -- 只持 module.inbound.view
     r_all uuid; r_inb uuid;
     v_sup uuid; v_mat uuid; v_ib uuid; v_ar uuid;
+    v_mat_asy uuid;   -- ASY-P1:awaiting_assay 专用的物料(只有它声明化验要求)
     v_run uuid; v_po uuid; v_st uuid; v_emp1 uuid; v_emp2 uuid;
     v_lr uuid; v_mc uuid; v_pr uuid; v_bs uuid; v_bl uuid;
     v_je uuid;
@@ -87,6 +88,14 @@ BEGIN
     VALUES ('ZZFIX30-S', 'fixture 30 supplier', 'SG') RETURNING id INTO v_sup;
     INSERT INTO materials (code, name, category)
     VALUES ('ZZFIX30-M', 'fixture 30 material', 'other') RETURNING id INTO v_mat;
+    -- 【ASY-P1:awaiting_assay 从"零化验"改成"要求的金属没验齐"】
+    -- 那一支现在只在【物料声明了化验要求】时才可能亮。所以给它一个【专用】物料:
+    -- v_mat 上不声明任何要求 —— 否则 IB / IB3 / IB4 那几个批次会一起点亮这一支,
+    -- 而本 fixture 的契约是"每支恰好一件"。
+    INSERT INTO materials (code, name, category)
+    VALUES ('ZZFIX30-M-ASY', 'fixture 30 material (assay required)', 'other')
+    RETURNING id INTO v_mat_asy;
+    INSERT INTO material_required_metals (material_id, metal) VALUES (v_mat_asy, 'cu');
 
     -- 1 assay_unapplied:化验已录、applied_at 为空
     -- arrival_date 必填不是本支的条件,是 FIN-32:进料触发器把它抄成收货台账行的
@@ -154,9 +163,11 @@ BEGIN
     -- 2027 那些【未来】日期会落进 b0_30 而不是 b90_plus。相对日期同时满足 README 第 4 条:
     -- 不继承任何时点状态,自己声明"多久以前"。
 
-    -- 10 awaiting_assay:一份化验都没有(与 assay_unapplied 互斥)
+    -- 10 awaiting_assay:物料要求 cu、而这个批次一份化验都没有(与 assay_unapplied 互斥)
+    -- ASY-P1 起用的是【声明了要求的那个物料】v_mat_asy;remaining_qty > 0,
+    -- 否则它取不到样、按设计退出这一支。
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
-    VALUES ('ZZFIX30-IB2', v_mat, v_sup, 10, 10, '2027-01-09') RETURNING id INTO v_ib2;
+    VALUES ('ZZFIX30-IB2', v_mat_asy, v_sup, 10, 10, '2027-01-09') RETURNING id INTO v_ib2;
 
     -- 11 batch_unpriced:未计价,且化验【已执行】—— 于是只落进 batch_unpriced 这一支
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
@@ -397,8 +408,13 @@ BEGIN
     -- OPS-19 六支的解除。销售记录【不可改也不可删】(SALE_IMMUTABLE),所以 AR 与
     -- 发票只能靠【收款核销】清掉 —— 那本来就是它们在现实里消失的唯一方式,一笔全额
     -- 收款同时结清 ar_over_90 与 invoice_overdue(发票的已结额就是从销售记录推的)。
+    -- ASY-P1:解除的条件不再是"有一份化验",而是【要求的那种金属被覆盖了】——
+    -- 所以这份化验必须真的带着 cu 那一行,否则它解除不了(这正是新那一支的重点:
+    -- 一份不含所需金属的化验,不算把那件事做完)。
     INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at)
-    VALUES ('ZZFIX30-AR2', v_ib2, '2027-01-20', now());              -- awaiting_assay 解除
+    VALUES ('ZZFIX30-AR2', v_ib2, '2027-01-20', now()) RETURNING id INTO v_ar;
+    INSERT INTO assay_result_metals (assay_result_id, metal, content_pct)
+    VALUES (v_ar, 'cu', 10);                                          -- awaiting_assay 解除
     UPDATE inbound_batches SET pricing_status = 'final' WHERE id = v_ib3;   -- batch_unpriced
     UPDATE output_batches SET output_date = CURRENT_DATE - 1 WHERE id = v_ob2;  -- 不再滞销
     -- payments_counterparty_shape:in 必须带 customer_id,out 必须带 supplier_id
