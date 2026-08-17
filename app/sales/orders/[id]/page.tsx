@@ -9,7 +9,7 @@ import { MOD } from '@/lib/modules'
 import Subnav from '@/app/sales/Subnav'
 import { soStatusKey, SO_ALLOWED_NEXT } from '../salesOrderTypes'
 import TransitionPanel from './TransitionPanel'
-import IssuePanel from './IssuePanel'
+import IssuePanel from '@/app/components/IssuePanel'
 import ReservationSection from './ReservationSection'
 import OrderInvoiceSection from './OrderInvoiceSection'
 import ShippingSection from './ShippingSection'
@@ -232,7 +232,17 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                     </p>
                 )}
                 {/* 【没有"已发送"标志】系统不知道对方收没收到 —— 见 so_issues 表注释 */}
-                <IssuePanel orderId={o.id} status={o.status} />
+                {/* EXT-1:入参从 (orderId, status) 换成公共件的形状。
+                    禁用条件与文案逐字不变 —— 草稿不给签发,理由摆在旁边。
+                    此前 isDraft 写死在组件里,现在由本页说出来:哪一页知道
+                    自己什么时候不能签发,就该由哪一页说。 */}
+                <IssuePanel
+                    pdfHref={`/sales/orders/${o.id}/pdf`}
+                    previewLabel={t('sales.previewPdf')}
+                    issueLabel={t('sales.issuePdf')}
+                    canIssue={o.status !== 'draft'}
+                    blockedReason={o.status === 'draft' ? t('sales.issueBlockedDraft') : ''}
+                />
                 <p className="text-xs text-gray-500 mb-2">{t('sales.issuesNote')}</p>
                 {issues.length === 0 ? (
                     <p className="text-gray-500 text-sm">{t('sales.noIssues')}</p>

@@ -16,7 +16,7 @@ import { unmasked } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
 import { canViewBanking, can } from '@/lib/permissions'
 import { mustRows } from '@/lib/db-helpers'
-import IssuePanel from './IssuePanel'
+import IssuePanel from '@/app/components/IssuePanel'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 
@@ -568,7 +568,9 @@ export default async function InvoiceDetailPage({
                     <h2 className="text-xl font-bold mb-1">{t('invoice.issuesTitle')}</h2>
                     <p className="text-xs text-gray-500 mb-2">{t('invoice.issuesNote')}</p>
                     <IssuePanel
-                        invoiceId={inv.id}
+                        pdfHref={`/finance/invoices/${inv.id}/pdf`}
+                        previewLabel={t('invoice.previewPdf')}
+                        issueLabel={t('invoice.issuePdf')}
                         canIssue={!isVoid && !profileIncomplete && fontProblems.length === 0}
                         blockedReason={
                             isVoid ? t('invoice.issueBlockedVoid')

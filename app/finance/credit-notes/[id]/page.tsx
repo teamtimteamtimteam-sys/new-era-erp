@@ -14,7 +14,7 @@ import { formatAmount, formatMoneyBare } from '@/lib/format'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import Subnav from '../../Subnav'
-import IssuePanel from './IssuePanel'
+import IssuePanel from '@/app/components/IssuePanel'
 
 export default async function CreditNotePage({ params }: { params: Promise<{ id: string }> }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前。
@@ -166,7 +166,13 @@ export default async function CreditNotePage({ params }: { params: Promise<{ id:
                 </table>
 
                 <h2 className="font-medium mt-8 mb-2">{t('cn.issues')}</h2>
-                <IssuePanel noteId={cn.id} />
+                {/* EXT-1:凭证一出生就已经过账了,不存在"还不是承诺"的中间态 ——
+                    所以【不传】canIssue / hasLines,按钮永不禁用,与此前逐字相同。 */}
+                <IssuePanel
+                    pdfHref={`/finance/credit-notes/${cn.id}/pdf`}
+                    previewLabel={t('cn.previewPdf')}
+                    issueLabel={t('cn.issuePdf')}
+                />
                 <p className="text-xs text-gray-500 mb-2">{t('cn.issuesNote')}</p>
                 {issues.length === 0 ? (
                     <p className="text-gray-500 text-sm">{t('cn.noIssues')}</p>

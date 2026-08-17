@@ -104,7 +104,12 @@ export default async function ShippingSection({
                 <ul className="text-sm space-y-1 mb-3">
                     {shipments.map((s) => (
                         <li key={s.id} className="flex flex-wrap items-baseline gap-x-3">
-                            <span className="font-mono">{s.code}</span>
+                            {/* EXT-1:【这是发货单详情页的入口】此前这一段只给了一条
+                                直指 PDF 的链接,于是"这张发货单是什么"在系统里只有
+                                一个答案 —— 一份渲染出来的纸。单号现在进详情页,
+                                送货单那条链接留在原处不动。 */}
+                            <a href={`/sales/shipments/${s.id}`}
+                               className="font-mono text-blue-600 hover:underline">{s.code}</a>
                             <span className="text-gray-500">{new Date(s.ship_date).toLocaleDateString(dl)}</span>
                             <span className="text-gray-500">
                                 {t('sales.ship.lineCount', { n: String((s.shipment_lines ?? []).length) })}

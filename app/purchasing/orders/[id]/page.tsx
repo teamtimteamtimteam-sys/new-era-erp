@@ -21,6 +21,7 @@ import { can, canViewPrices } from '@/lib/permissions'
 import { MaskedValue } from '@/app/components/MaskedValue'
 import { maskedExcept, maskedRows } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
+import IssuePanel from '@/app/components/IssuePanel'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -338,18 +339,22 @@ export default async function PurchaseOrderDetailPage({
                 旧版本原样留着。未获批的单签发会被 record_po_issue 点名拒绝。 */}
             <div className="border border-gray-200 rounded p-4 mb-4">
                 <h2 className="font-semibold mb-2">{t('purchasing.doc.title')}</h2>
-                <div className="flex items-center gap-3 mb-2">
-                    <a href={`/purchasing/orders/${po.id}/pdf`} target="_blank"
-                       className="text-sm text-blue-600 hover:underline">
-                        {t('purchasing.doc.preview')}
-                    </a>
-                    <form method="post" action={`/purchasing/orders/${po.id}/pdf`}>
-                        <button type="submit"
-                            className="bg-blue-600 text-white text-sm px-3 py-1.5 rounded hover:bg-blue-700">
-                            {t('purchasing.doc.issue')}
-                        </button>
-                    </form>
-                </div>
+                {/* EXT-1:此前这里是这一族里唯一的 <form method="post"> 变体。
+                    换成公共件之后有三处【看得见的】变化,都记在切次报告里:
+                      ① 外观并入这一族(蓝色实心钮 → 描边钮,蓝色文字链 → 描边链);
+                      ② 服务端拒绝【不再整页显示】,而是摆在按钮旁边(此前表单提交
+                         是一次导航,浏览器把那段纯文本当成一页渲染出来);
+                      ③ 签发之后版本列表会刷新 —— 表单那一版下载完就停在原地,
+                         新版本要手工刷新才看得见。
+                    【签发即下载没有丢】:采购单那条 POST 回的是 PDF 字节本身,
+                    组件按 Content-Type 分叉把它存下来(见组件抬头)。
+                    【不传 canIssue】—— 此前这个钮永不禁用,保持不变;未获批的单
+                    由 record_po_issue 按名拒,那句拒绝现在显示在旁边。 */}
+                <IssuePanel
+                    pdfHref={`/purchasing/orders/${po.id}/pdf`}
+                    previewLabel={t('purchasing.doc.preview')}
+                    issueLabel={t('purchasing.doc.issue')}
+                />
                 {mustRows(issuesRes, 'po_issues').length === 0 ? (
                     <p className="text-xs text-gray-500">{t('purchasing.doc.neverIssued')}</p>
                 ) : (

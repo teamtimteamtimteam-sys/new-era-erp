@@ -21,7 +21,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import Subnav from '@/app/sales/Subnav'
 import { quoteStatusKey } from '../quoteTypes'
-import IssuePanel from './IssuePanel'
+import IssuePanel from '@/app/components/IssuePanel'
 import ConvertControl from './ConvertControl'
 import DeclineControl from './DeclineControl'
 import QuoteLinesEditor from './QuoteLinesEditor'
@@ -191,7 +191,9 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
                     </p>
                 )}
                 <IssuePanel
-                    quoteId={q.quote_id}
+                    pdfHref={`/sales/quotes/${q.quote_id}/pdf`}
+                    previewLabel={t('quotes.previewPdf')}
+                    issueLabel={t('quotes.issuePdf')}
                     canIssue={canEdit && !isConverted && !isDeclined}
                     blockedReason={isConverted ? t('quotes.issueBlockedConverted')
                                    : isDeclined ? t('quotes.issueBlockedDeclined')

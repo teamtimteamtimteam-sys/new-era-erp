@@ -1678,6 +1678,31 @@ const en = {
             consequence: 'Releases the contract liability into revenue at the invoice\u2019s stored rate, and the goods leave the stock ledger. THIS CANNOT BE UNDONE — the invoice can no longer be voided afterwards; corrections would go through a credit note, which does not exist yet.',
             arNote: 'Shipping creates NO new receivable: the debt was recognised when the invoice was raised. The invoice stays the one and only AR row for this order.',
         },
+        // ── EXT-1:发货单详情页(这一族缺的第五张)────────────────────────
+        shipDetail: {
+            title: 'Shipment',
+            backToOrder: '← Sales order {code}',
+            colCustomer: 'Customer',
+            colShipDate: 'Ship date',
+            colCreatedAt: 'Recorded at',
+            colNotes: 'Notes',
+            immutableNote:
+                'A shipment cannot be voided or reversed — the goods left, the contract liability was released into revenue, and the stock left the ledger. Corrections go through a credit note.',
+            linesTitle: 'Lines',
+            noLines: 'This shipment has no lines — a shipment without lines should not exist, so this is worth reporting rather than ignoring.',
+            colLineNo: 'Order line',
+            colMaterial: 'Material',
+            colBatch: 'Batch',
+            colLocation: 'Location when shipped',
+            colQty: 'Quantity',
+            issuesTitle: 'Delivery note',
+            issuesNote:
+                'Preview renders from today\u2019s data and is not filed. Issuing stores those exact bytes and records a version — the copy the customer holds is one specific version.',
+            previewPdf: 'Preview delivery note',
+            issuePdf: 'Issue delivery note',
+            issueBlockedNoLines: 'A shipment with no lines cannot be issued — the delivery note would have nothing on it.',
+            neverIssued: 'Never issued.',
+        },
         // ── SO-3a:order-flow billing ────────────────────────────────────────
         invoice: {
             title: 'Invoicing',
