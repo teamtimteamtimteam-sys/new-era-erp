@@ -85,6 +85,18 @@ export default async function StocktakeDetailPage({
     const inbound = (inboundRes.data as unknown as BatchFetchRow[] | null) ?? []
     const output = (outputRes.data as unknown as BatchFetchRow[] | null) ?? []
 
+    // AUDEL-2:取消要看得见【谁】和【为什么】—— 一个只说"已取消"的状态标签,
+    // 事后没有人答得出为什么这次盘点不算数。人名由 employees.user_id 反查
+    // (与 /processing/[id] 那一段同一套);反查不到就印 uuid,不留空:
+    // 留空读起来像"没有人做过这件事"。
+    let cancelledByName: string | null = null
+    if (st.cancelled_by) {
+        const rows = mustRows(
+            await supabase.from('employees').select('user_id, legal_name').eq('user_id', st.cancelled_by),
+            'employees canceller')
+        cancelledByName = rows[0]?.legal_name ?? null
+    }
+
     const statusKey = stocktakeStatusLabelKey(st.status)
     const statusLabel = statusKey ? t(statusKey) : st.status
 
@@ -147,6 +159,15 @@ export default async function StocktakeDetailPage({
                 <span className="font-mono">{st.code}</span>
                 <span className="mx-2">·</span>
                 <span className="px-2 py-0.5 bg-gray-200 rounded text-xs">{statusLabel}</span>
+                {st.cancelled_at && (
+                    <>
+                        <span className="mx-2">·</span>
+                        <span>
+                            {t('stocktakes.cancelledAt')}: {formatTimestamp(st.cancelled_at, dateLocale)}
+                            {st.cancelled_by ? ` · ${cancelledByName ?? st.cancelled_by}` : ''}
+                        </span>
+                    </>
+                )}
                 {st.posted_at && (
                     <>
                         <span className="mx-2">·</span>
@@ -156,6 +177,11 @@ export default async function StocktakeDetailPage({
                     </>
                 )}
             </p>
+            {st.cancel_reason && (
+                <p className="text-sm text-amber-900 bg-amber-50 border border-amber-300 rounded px-3 py-2 mb-4">
+                    {t('stocktakes.cancelReasonLabel')}: {st.cancel_reason}
+                </p>
+            )}
 
             {isOpen ? (
                 <>

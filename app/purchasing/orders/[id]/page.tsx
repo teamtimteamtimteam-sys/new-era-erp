@@ -47,7 +47,7 @@ export default async function PurchaseOrderDetailPage({
 
     const { data: poRaw, error } = await supabase
         .from('purchase_orders_masked')
-        .select('id, code, supplier_id, order_date, expected_delivery_date, currency, fx_rate, estimated_total_ccy, status, approval_status, incoterm, terms_text, notes, cancelled_at, cancel_reason')
+        .select('id, code, supplier_id, order_date, expected_delivery_date, currency, fx_rate, estimated_total_ccy, status, approval_status, incoterm, terms_text, notes, cancelled_at, cancel_reason, cancelled_by')
         .eq('id', id)
         .is('deleted_at', null)
         .single()
@@ -100,6 +100,15 @@ export default async function PurchaseOrderDetailPage({
 
     // PUR-2:【已改、未重发】。比较【最新一次签发】与【最新一条编辑史】的时点 ——
     // 修改不作废那次签发(它确实发出去过),但供应商手里那份已经不是现在这张单了。
+    // AUDEL-2:取消人的姓名(单条反查,与本页别处同一套)
+    let cancelledByName: string | null = null
+    if (po.cancelled_by) {
+        const rows = mustRows(
+            await supabase.from('employees').select('user_id, legal_name').eq('user_id', po.cancelled_by),
+            'employees canceller')
+        cancelledByName = rows[0]?.legal_name ?? null
+    }
+
     const history = mustRows(historyRes, 'purchase_order_history') as unknown as {
         id: string; change_type: string; line_no: number | null; amend_reason: string | null
         changed_at: string; old_quantity: number | null; new_quantity: number | null
@@ -259,6 +268,10 @@ export default async function PurchaseOrderDetailPage({
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">
                     {t('purchasing.status.cancelled')}
                     {po.cancelled_at ? ` · ${po.cancelled_at.slice(0, 10)}` : ''}
+                    {/* AUDEL-2:取消要看得见【谁】和【为什么】,不只是"已取消"这个事实。
+                        人名由 employees.user_id 反查(与本页成本条目那一段同一套);
+                        反查不到时【印 uuid 而不是留空】—— 留空读起来像"没有人做过这件事"。 */}
+                    {po.cancelled_by ? ` · ${cancelledByName ?? po.cancelled_by}` : ''}
                     {po.cancel_reason ? `:${po.cancel_reason}` : ''}
                 </div>
             )}

@@ -1,40 +1,21 @@
 'use client'
 
-import { useTransition } from 'react'
+// AUDEL-2:同 inbound —— 删除前先问为什么;软删保留记录并写一条 writeoff 流水。
+import ReasonPrompt from '@/app/components/ReasonPrompt'
 import { softDeleteOutput } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 
-export default function DeleteButton({
-    id,
-    code,
-}: {
-    id: string
-    code: string
-}) {
+export default function DeleteButton({ id, code }: { id: string; code: string }) {
     const t = useTranslations()
-    const [isPending, startTransition] = useTransition()
-
-    function handleClick() {
-        const confirmed = window.confirm(
-            t('output.deleteConfirm', { code })
-        )
-        if (!confirmed) return
-
-        startTransition(async () => {
-            const result = await softDeleteOutput(id)
-            if (result?.error) {
-                alert(result.error)
-            }
-        })
-    }
-
     return (
-        <button
-            onClick={handleClick}
-            disabled={isPending}
-            className="text-red-600 hover:underline disabled:text-gray-400"
-        >
-            {isPending ? t('common.deleting') : t('common.delete')}
-        </button>
+        <ReasonPrompt
+            variant="link"
+            triggerLabel={t('common.delete')}
+            title={t('output.deleteConfirm', { code })}
+            consequence={t('output.deleteConsequence')}
+            confirmLabel={t('common.delete')}
+            placeholder={t('output.deleteReasonPlaceholder')}
+            action={(reason) => softDeleteOutput(id, reason)}
+        />
     )
 }

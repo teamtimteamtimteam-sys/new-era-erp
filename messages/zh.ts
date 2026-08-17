@@ -148,6 +148,8 @@ const zh = {
         note: '未售批次不在此列 —— 它们没有毛利可言;滞销成品见首页看板。',
     },
     common: {
+        reasonRequired: '理由(必填)',
+        reasonBlankHint: '必须填写理由',
         switchLang: '中',
         saved: '已保存。',
         save: '保存',
@@ -805,6 +807,8 @@ const zh = {
         piece: '件',
     },
     inbound: {
+        deleteConsequence: '这会保留记录,并按剩余数量写一条注销流水 —— 它不会抹掉这个批次。谁删的、为什么删,两样都会记下来。',
+        deleteReasonPlaceholder: '例如:录错了供应商',
         listTitle: '进料批次',
         addButton: '+ 新增进料',
         againstPo: '关联采购单',
@@ -908,6 +912,8 @@ const zh = {
         },
     },
     output: {
+        deleteConsequence: '这会保留记录,并按剩余数量写一条注销流水 —— 它不会抹掉这个批次。谁删的、为什么删,两样都会记下来。',
+        deleteReasonPlaceholder: '例如:记到了错误的加工单下',
         margin: {
             notSold: '这一批还没有卖出任何数量,所以没有毛利可算。',
             costIncomplete: '成本不完整 —— 本加工单有投入未计价、按零计入,上面的毛利【被高估】。',
@@ -1260,8 +1266,11 @@ const zh = {
             noOutputRecords: '没有产出记录',
         },
         delete: {
+            confirmButton: '确认回滚',
+            confirmTitle: '要回滚这张加工单吗?',
+            consequence: '这会【冲销】这张加工单:耗掉的投入会还回原批次、产出批次会被作废、台账上写入一串冲销流水。此操作不可撤销。',
+            reasonPlaceholder: '例如:选错了投入批次',
             triggerButton: '删除加工单',
-            confirmText: '确定删除这张加工单吗?会撤销这次加工:消耗的进料退回、生成的产出批次作废。此操作不可恢复。',
             deleting: '删除中…',
             confirmDelete: '确认删除',
         },
@@ -2584,6 +2593,7 @@ const zh = {
         },
     },
     purchasing: {
+        cancelConsequence: '这张单据就此结束,不能再打开。谁取消的、为什么取消,两样都会记下来。',
         terms: {
             committed: '条款已承诺 {code} · {on}',
             notCommitted: '条款未承诺(FIN-27 之前的行)—— 结算会被拒',
@@ -3078,6 +3088,10 @@ const zh = {
         saveError: '保存失败:{message}',
     },
     stocktakes: {
+        cancelConsequence: '已点数的行会留档,但永远不会过账。谁取消的、为什么取消,两样都会记下来。',
+        cancelReasonPlaceholder: '例如:数错了,明天重盘',
+        cancelledAt: '已取消',
+        cancelReasonLabel: '取消理由',
         listTitle: '盘点',
         new: '+ 新建盘点',
         recordCount: '共 {count} 条记录',

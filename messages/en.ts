@@ -146,6 +146,8 @@ const en = {
         note: 'Unsold batches are not listed here — they have no margin. Ageing stock is on the home dashboard.',
     },
     common: {
+        reasonRequired: 'Reason (required)',
+        reasonBlankHint: 'a reason is required',
         switchLang: 'EN',
         save: 'Save',
         saved: 'Saved.',
@@ -803,6 +805,8 @@ const en = {
         piece: 'pcs',
     },
     inbound: {
+        deleteConsequence: 'This keeps the record and writes a write-off movement for the remaining quantity — it does not erase the batch. Who deleted it and why are both recorded.',
+        deleteReasonPlaceholder: 'e.g. keyed against the wrong supplier',
         listTitle: 'Inbound',
         addButton: '+ Add Inbound',
         againstPo: 'Against purchase order',
@@ -906,6 +910,8 @@ const en = {
         },
     },
     output: {
+        deleteConsequence: 'This keeps the record and writes a write-off movement for the remaining quantity — it does not erase the batch. Who deleted it and why are both recorded.',
+        deleteReasonPlaceholder: 'e.g. produced against the wrong run',
         margin: {
             notSold: 'Nothing from this batch has been sold yet, so there is no margin to show.',
             costIncomplete: 'Cost incomplete — one or more inputs to the run had no price, counted as zero. The margin above is overstated.',
@@ -1260,8 +1266,11 @@ const en = {
             noOutputRecords: 'No output records',
         },
         delete: {
+            confirmButton: 'Roll back this run',
+            confirmTitle: 'Roll this processing run back?',
+            consequence: 'This REVERSES the run: the consumed inputs are restored to their batches, the output batches are voided, and reversing movements are written to the stock ledger. It cannot be undone.',
+            reasonPlaceholder: 'e.g. wrong input batch selected',
             triggerButton: 'Delete Processing Run',
-            confirmText: 'Delete this processing run? It will reverse this run: consumed inbound is returned and the generated output batches are voided. This cannot be undone.',
             deleting: 'Deleting…',
             confirmDelete: 'Confirm Delete',
         },
@@ -2596,6 +2605,7 @@ const en = {
         },
     },
     purchasing: {
+        cancelConsequence: 'The order is closed for good — it cannot be reopened. Who cancelled it and why are both recorded.',
         terms: {
             committed: 'terms committed {code} · {on}',
             notCommitted: 'terms not committed (pre-FIN-27 line) — settlement will refuse',
@@ -3096,6 +3106,10 @@ const en = {
         saveError: 'Save failed: {message}',
     },
     stocktakes: {
+        cancelConsequence: 'The counted lines are kept for the record but will never be posted. Who cancelled it and why are both recorded.',
+        cancelReasonPlaceholder: 'e.g. miscounted, recounting tomorrow',
+        cancelledAt: 'Cancelled',
+        cancelReasonLabel: 'Cancellation reason',
         listTitle: 'Stocktakes',
         new: '+ New Stocktake',
         recordCount: 'Total: {count}',
