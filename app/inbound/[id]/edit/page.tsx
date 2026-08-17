@@ -216,26 +216,36 @@ export default async function EditInboundPage({
                 .eq('inbound_batch_id', id)
                 .order('created_at', { ascending: false }),
         ])
-        if (poRes.data) {
+        // GRN-1a:【失败必须失败】此前这三处的错误一个都没被读过。
+        // 最贵的是 lineRes —— 它的 `?? null` 让【查不出订单量】与【这一行本来
+        // 就没有订单量】在屏幕上一模一样,而 GRN-1a 之后订单量正是"收够了没有"
+        // 这个判断的左边那个数:读成空的页面会安静地说不出短交。
+        // poRes 同理:失败时 poHeader 停在 null,于是一张【挂着采购单】的批次
+        // 渲染得跟自采收货一分不差 —— 连采购单链接都不见了。
+        // (lineRes 那条三元分支给出的是 {data:null,error:null},那是【真的没有
+        //  明细行】,mustOne 照直返回 null —— 两者从此分得开。)
+        const poRow = mustOne(poRes, '采购单表头')
+        const lineRow = mustOne(lineRes, '采购单明细行')
+        if (poRow) {
             poHeader = {
-                po_id: poRes.data.id,
-                po_code: poRes.data.code,
-                ordered_qty: lineRes.data?.quantity ?? null,
-                unit: lineRes.data?.unit ?? batch.unit,
+                po_id: poRow.id,
+                po_code: poRow.code,
+                ordered_qty: lineRow?.quantity ?? null,
+                unit: lineRow?.unit ?? batch.unit,
             }
         }
         // 视图列在生成类型里全可空;行进视图即非空(WHERE 已保证),此处锁死。
         // OPS-12:失败必须抛,不许读成"没有可抵扣的预付" —— 那个数字决定操作员
         // 抵不抵扣,读成空与"确实没有预付"在屏幕上一模一样。
         applicable = mustOne(applicableRes) as typeof applicable
-        prepaymentHistory = (
-            (historyRes.data as unknown as {
-                id: string
-                amount_base: number
-                created_at: string
-                journal_entries: { id: string; code: string } | null
-            }[] | null) ?? []
-        ).map((h) => ({
+        // 同上:已抵扣记录读不出来时,页面会说"一次都没抵扣过" —— 而操作员
+        // 正是照着这句话决定要不要再抵一次。
+        prepaymentHistory = (mustRows(historyRes) as unknown as {
+            id: string
+            amount_base: number
+            created_at: string
+            journal_entries: { id: string; code: string } | null
+        }[]).map((h) => ({
             id: h.id,
             amount_base: h.amount_base,
             created_at_display: formatTimestamp(h.created_at, dateLocale),

@@ -58,11 +58,20 @@ CREATE TABLE public.inbound_batches (
                            CHECK (pricing_status IN ('unpriced','provisional','final')),
     -- ── AUDEL-1b 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────
     deleted_by    uuid,
-    delete_reason text
+    delete_reason text,
+    -- ── GRN-1a 追加(同上,排在末尾)────────────────────────────────────────
+    -- 供应商【申报】的到货量。NULL = 没记录过,是一个具名状态,永不推断。
+    -- 【绝不用采购行的量预填它】—— 详见列注释。
+    declared_qty  numeric
 );
 
 COMMENT ON COLUMN public.inbound_batches.delete_reason IS
     'AUDEL-1b:为什么注销这一批。由 soft_delete_inbound_batch() 必填写入;守卫不允许在没有它的情况下置 deleted_at。【历史行为空是真的空】—— 本刀之前的软删没有记过理由,不回填(FIN-26:伪造的出处比空白更坏)。';
+COMMENT ON COLUMN public.inbound_batches.declared_qty IS
+    'GRN-1a:供应商【申报】的到货量,与 quantity(磅秤说的数)是两回事。【NULL = 没有记录过,是一个具名状态,永不推断】。
+【绝对不要用采购行的量去预填它】—— 那是【我们下的单】,不是【他们的申报】。一个被预填的申报量,是系统替供应商说了话:它会让"申报与实收一致"这句话在没有任何供应商文件的情况下成立,而那正是这一列存在要回答的问题。收货表单的数量框预填 remaining_qty 是【便利】(操作员必然会照磅改),申报量预填则是【伪造一条记录】,两者不是同一件事。
+两个收货 RPC 的 p_declared_qty 因此 DEFAULT NULL:不填就是没记,而不是等于订量。
+差异【不拒绝】—— 它是一条被记下来的事实,由 grn_discrepancies 说出来,由人去判断。';
 
 CREATE INDEX idx_inbound_batches_po ON public.inbound_batches (purchase_order_id);
 
@@ -224,7 +233,7 @@ CREATE POLICY "inbound_batches delete by permission"
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 inbound_batches_masked 读取。
 -- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
 REVOKE SELECT ON public.inbound_batches FROM authenticated, anon;
-GRANT SELECT (id, code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, stage, notes, status, deleted_at, created_at, created_by, updated_at, updated_by, purchase_order_id, purchase_order_line_id, pricing_formula_id, pricing_status, deleted_by, delete_reason)
+GRANT SELECT (id, code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, stage, notes, status, deleted_at, created_at, created_by, updated_at, updated_by, purchase_order_id, purchase_order_line_id, pricing_formula_id, pricing_status, deleted_by, delete_reason, declared_qty)
     ON public.inbound_batches TO authenticated;
 
 -- AUDEL-1a:硬删按名拒(BATCH_NO_HARD_DELETE|批号),【与动没动过无关】。

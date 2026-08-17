@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.create_inbound_batch(p_material_id uuid, p_supplier_id uuid, p_quantity numeric, p_unit text DEFAULT 'kg'::text, p_arrival_date date DEFAULT NULL::date, p_stage text DEFAULT '待加工'::text, p_unit_price numeric DEFAULT NULL::numeric, p_notes text DEFAULT NULL::text, p_purchase_order_id uuid DEFAULT NULL::uuid, p_purchase_order_line_id uuid DEFAULT NULL::uuid, p_location_id uuid DEFAULT NULL::uuid)
+CREATE OR REPLACE FUNCTION public.create_inbound_batch(p_material_id uuid, p_supplier_id uuid, p_quantity numeric, p_unit text DEFAULT 'kg'::text, p_arrival_date date DEFAULT NULL::date, p_stage text DEFAULT '待加工'::text, p_unit_price numeric DEFAULT NULL::numeric, p_notes text DEFAULT NULL::text, p_purchase_order_id uuid DEFAULT NULL::uuid, p_purchase_order_line_id uuid DEFAULT NULL::uuid, p_location_id uuid DEFAULT NULL::uuid, p_declared_qty numeric DEFAULT NULL::numeric)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -27,14 +27,15 @@ BEGIN
     -- NTF-1:告警留一份下来 —— 此前它渲染一次就没了,连响过的痕迹都没有。
     PERFORM notify_landing_warnings(v_warn, p_location_id, p_material_id);
 
+    -- GRN-1a:p_declared_qty 原样落库,【不拒绝任何差异】,也【绝不从采购行推断】。
     INSERT INTO inbound_batches (
         material_id, supplier_id, quantity, unit, remaining_qty, arrival_date,
         stage, unit_price, notes, purchase_order_id, purchase_order_line_id,
-        created_by, updated_by)
+        declared_qty, created_by, updated_by)
     VALUES (
         p_material_id, p_supplier_id, p_quantity, COALESCE(p_unit,'kg'), p_quantity, p_arrival_date,
         COALESCE(p_stage,'待加工'), p_unit_price, p_notes, p_purchase_order_id, p_purchase_order_line_id,
-        v_user, v_user)
+        p_declared_qty, v_user, v_user)
     RETURNING id INTO v_id;
 
     -- 用毕即清 —— 同 commit_processing_run 的 movement_ctx:免得同事务内后续的

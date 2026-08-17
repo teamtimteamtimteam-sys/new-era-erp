@@ -122,6 +122,9 @@ RUNTIME_CONFIG_TABLES = [
     "metal_price_indices",
     # MAT-1:受控废物分类 —— 加一种分类是加一行(与 certificate_types 同一条)。
     "waste_classifications",
+    # GRN-1a:收货差异的三个阈值 —— 与 processing_settings 的两个工单阈值同一条。
+    # 5/5/10 是引导默认值,不是决定;运营改一次线上就与本文件不同,那是对的。
+    "receiving_settings",
 ]
 
 # 【引导默认值一行都不许是空的】RUNTIME CONFIG 的种子不与线上比对(那是对的:界面改得动),

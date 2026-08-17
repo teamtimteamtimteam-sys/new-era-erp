@@ -133,6 +133,17 @@ python3 db/gate.py        # ~4 min measured, no large payloads over the network
 > the fixture count.** If a run ever exceeds ~400s, measure before assuming the
 > gate got heavier — the variance so far has been environmental, and mistaking it
 > for growth is how someone ends up "optimising" a gate that is not slow.
+>
+> **Re-measured (GRN-1a, 2026-08-17): 87 fixtures, 483s — one run, and it is the
+> slowest yet recorded.** It crosses the ~400s line the paragraph above draws, so
+> the line was honoured rather than shrugged at: 87 fixtures against 74 is +18%,
+> and 483s against the 130s measured the same month is +270%. **The growth in
+> fixture count does not come close to explaining it**, which is the same
+> conclusion the 379s run reached by a different road. Recorded as one dated
+> measurement, not averaged into the others, and **not** treated as evidence that
+> the gate now costs eight minutes — the next run may well be two. The range
+> stands: two to six minutes with a fat tail. What would change the reading is a
+> *run of* slow measurements, not this one.
 
 One LOCAL rebuild, two separately-reported verdicts (OPS-6 merged the two older
 tools — their build steps were identical and check_mirrors was shipping a
