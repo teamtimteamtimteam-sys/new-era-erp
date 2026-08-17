@@ -69,6 +69,9 @@ const en = {
     // OPS-18:运营看板。dashboard.item.* 的后缀集合 = db/views/operations_now.sql 里
     // item_type 的字面量集合(check-i18n MANIFEST 现读那个文件,加一支自动变宽)。
     dashboard: {
+        // ASY-P2:awaiting_assay 那一支的 subject 是缺的金属 —— 加个前缀,
+        // 一个光秃秃的 "Lithium" 挂在批次号旁边读不出是什么意思
+        awaitingMetals: 'awaiting: {metals}',
         sectionNow: 'Waiting now',
         item: {
             work_order_overdue: 'Work order past its scheduled date',
@@ -145,6 +148,7 @@ const en = {
     common: {
         switchLang: 'EN',
         save: 'Save',
+        saved: 'Saved.',
         saving: 'Saving…',
         cancel: 'Cancel',
         back: '← Back to list',
@@ -671,6 +675,27 @@ const en = {
         colCategory: 'Category',
         colChemistry: 'Chemistry',
         colWasteClass: 'Waste class',
+        // ASY-P2:每一个物料都要把化验要求说出来,包括"没有"
+        colAssayRequired: 'Assay required',
+        // ── ASY-P2:化验要求编辑器 ────────────────────────────────────────
+        assayPolicy: {
+            title: 'Assay requirement',
+            // 【一句人话:这些勾有什么后果】没有它,七个方框就只是七个没有后果的方框
+            note: 'Tick the metals a batch of this material must be assayed for. A batch appears on the dashboard\u2019s awaiting-assay list until every ticked metal has an applied assay. Tick nothing and this material never appears there.',
+            currentLabel: 'Currently:',
+            // 【默认必须看得见】空集合是一个状态,不是一片空白
+            noRequirement: 'No assay requirement',
+            currentSet: 'assay required for {metals}',
+            emptyMeans:
+                'Saving with nothing ticked means this material requires no assay — batches of it will never appear on the awaiting-assay list.',
+            needsEdit: 'Changing the assay requirement needs module.materials.edit.',
+            errors: {
+                MATERIAL_REQUIRED: 'No material was given.',
+                MATERIAL_NOT_FOUND: 'That material does not exist (or has been deleted): {0}',
+                METAL_UNKNOWN: 'Unknown metal: {0}',
+                METAL_DUPLICATED: 'The same metal was listed twice: {0}',
+            },
+        },
         wasteClass: {
             unclassified: 'Not classified',
             controlled: 'controlled',
@@ -2448,6 +2473,15 @@ const en = {
         },
     },
     assay: {
+        // ASY-P2:这个批次的化验要求现状,三种状态各说各的话
+        policy: {
+            noRequirement:
+                'This material declares no assay requirement, so this batch never appears on the dashboard\u2019s awaiting-assay list. Requirements are set per material, on the material page.',
+            allCovered: 'Every metal this material requires has been assayed and applied.',
+            missing: 'Still awaiting an applied assay for: {metals}.',
+            notSampleable:
+                'This batch is fully consumed, so no sample can be drawn — the gap stays on record here but is not on the dashboard, because nobody can close it.',
+        },
         title: 'Assay Results',
         newTitle: 'Record Assay Result',
         detailTitle: 'Assay Result',

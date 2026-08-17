@@ -71,6 +71,9 @@ const zh = {
     // OPS-18:运营看板。dashboard.item.* 的后缀集合 = db/views/operations_now.sql 里
     // item_type 的字面量集合(check-i18n MANIFEST 现读那个文件,加一支自动变宽)。
     dashboard: {
+        // ASY-P2:awaiting_assay 那一支的 subject 是缺的金属 —— 加个前缀,
+        // 一个光秃秃的「锂」挂在批次号旁边读不出是什么意思
+        awaitingMetals: '待化验:{metals}',
         sectionNow: '当前待办',
         item: {
             work_order_overdue: '工单已过排产日',
@@ -146,6 +149,7 @@ const zh = {
     },
     common: {
         switchLang: '中',
+        saved: '已保存。',
         save: '保存',
         saving: '保存中…',
         cancel: '取消',
@@ -674,6 +678,26 @@ const zh = {
         colCategory: '类别',
         colChemistry: '化学体系',
         colWasteClass: '废物分类',
+        // ASY-P2:每一个物料都要把化验要求说出来,包括"没有"
+        colAssayRequired: '化验要求',
+        // ── ASY-P2:化验要求编辑器 ────────────────────────────────────────
+        assayPolicy: {
+            title: '化验要求',
+            // 【一句人话:这些勾有什么后果】没有它,七个方框就只是七个没有后果的方框
+            note: '勾选这种物料的批次必须化验的金属。只要还有勾选的金属没有已应用的化验,该批次就会出现在首页的「待化验」里。一个都不勾,这种物料就永远不出现在那里。',
+            currentLabel: '当前:',
+            // 【默认必须看得见】空集合是一个状态,不是一片空白
+            noRequirement: '无化验要求',
+            currentSet: '要求化验 {metals}',
+            emptyMeans: '一个都不勾就保存,意思是这种物料不需要化验 —— 它的批次永远不会出现在「待化验」里。',
+            needsEdit: '修改化验要求需要 module.materials.edit 权限。',
+            errors: {
+                MATERIAL_REQUIRED: '没有指定物料。',
+                MATERIAL_NOT_FOUND: '该物料不存在(或已删除):{0}',
+                METAL_UNKNOWN: '不认识的金属:{0}',
+                METAL_DUPLICATED: '同一种金属出现了两次:{0}',
+            },
+        },
         wasteClass: {
             unclassified: '未分类',
             controlled: '受控',
@@ -2444,6 +2468,15 @@ const zh = {
         },
     },
     assay: {
+        // ASY-P2:这个批次的化验要求现状,三种状态各说各的话
+        policy: {
+            noRequirement:
+                '这种物料没有声明任何化验要求,所以这个批次永远不会出现在首页的「待化验」里。化验要求按物料设定,在物料页上。',
+            allCovered: '这种物料要求的金属都已化验并应用。',
+            missing: '还缺已应用的化验:{metals}。',
+            notSampleable:
+                '这个批次的料已经全部耗尽,取不到样 —— 缺口仍然记在这里,但不上首页,因为没有人补得上。',
+        },
         title: '化验结果',
         newTitle: '录入化验结果',
         detailTitle: '化验单',

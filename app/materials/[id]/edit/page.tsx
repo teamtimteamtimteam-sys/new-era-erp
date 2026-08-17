@@ -5,8 +5,11 @@ import { createClient } from '@/lib/supabase/server'
 import EditMaterialForm from './EditMaterialForm'
 import { getWasteClassifications } from '../../wasteClassQuery'
 import AttachmentsPanel from './AttachmentsPanel'
+import RequiredMetalsPanel from './RequiredMetalsPanel'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
+import { canEnterModule } from '@/lib/moduleAccess'
+import { mustRows } from '@/lib/db-helpers'
 import { MOD } from '@/lib/modules'
 
 export default async function EditMaterialPage({
@@ -45,6 +48,19 @@ export default async function EditMaterialPage({
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
 
+    // ── ASY-P2:这种物料要化验哪些金属 ──────────────────────────────────────
+    // 【失败必须失败】不 `?? []`:读不出来会渲染成"无化验要求",而那正是这一族
+    // 最不能撒的谎 —— 它读起来像一个决定,实际是一次没读到。
+    const requiredRes = await supabase
+        .from('material_required_metals')
+        .select('metal')
+        .eq('material_id', id)
+        .order('metal')
+    const requiredMetals = mustRows(requiredRes, 'material_required_metals').map((r) => r.metal)
+    // 改这件事要 module.materials.edit(与 ASY-P1 的函数同一个码)——
+    // 没有就渲染成只读,而不是摆一个必然被拒的保存钮。
+    const canEditMaterials = await canEnterModule('module.materials.edit')
+
     // 在服务端按当前语言格式化时间,再传给客户端面板 —— 避免客户端 toLocaleString 引发水合不一致
     const attachments = (attachmentRows ?? []).map((a) => ({
         id: a.id,
@@ -77,6 +93,11 @@ export default async function EditMaterialPage({
             </p>
 
             <EditMaterialForm material={material} wasteClasses={wasteClasses} locale={locale} />
+            <RequiredMetalsPanel
+                materialId={material.id}
+                initial={requiredMetals}
+                canEdit={canEditMaterials}
+            />
             <AttachmentsPanel materialId={material.id} rows={attachments} />
         </div>
     )

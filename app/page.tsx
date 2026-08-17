@@ -4,6 +4,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { getMyPermissions } from '@/lib/permissions'
 import { getVisibleModules } from '@/lib/moduleAccess'
 import { mustCount, mustRows } from '@/lib/db-helpers'
+import { metalLabelKey } from '@/app/metal-prices/options'
 
 // OPS-18(Phase 6):首页从【链接目录】换成【运营看板】—— 正在等人处理的事,
 // 一事一牌。目录的职责由导航条独自承担;两个首页并存的话,人落地的是目录那个,
@@ -175,6 +176,24 @@ export default async function Home() {
         'operations_now'
     ) as OpsRow[]
 
+    // ── ASY-P2:awaiting_assay 那一行的脸 ────────────────────────────────────
+    // 视图给的 subject 是【缺的那几种金属的 code】,逗号分隔("li" / "cu, li")。
+    // 一个光秃秃的 "li" 挂在批次号旁边,读的人没有办法知道那是一种金属、还是一个
+    // 状态码、还是别的什么 —— 所以这里把它翻成金属名,并加上"待化验:"这个前缀。
+    // 【只有这一支需要翻 subject】别的支放的是供应商名、单号、科目,本来就是人话。
+    // 【认不出的 code 原样显示,不丢掉】少显示一种缺的金属,比显示一个 code 更坏。
+    function subjectText(row: OpsRow): string | null {
+        if (row.item_type !== 'awaiting_assay') return row.subject
+        if (!row.subject) return null
+        const names = row.subject
+            .split(',')
+            .map((c) => c.trim())
+            .filter(Boolean)
+            .map((c) => (metalLabelKey(c) ? t('metals.' + c) : c))
+        if (names.length === 0) return null
+        return t('dashboard.awaitingMetals', { metals: names.join(', ') })
+    }
+
     // HR 待办牌(hr_alerts 是它唯一的门)—— 受限时【不开门】,不是"查了当没查"
     const canHr = perms.includes('module.hr.view')
     let hrAlertCount: number | null = null
@@ -258,8 +277,8 @@ export default async function Home() {
                                 ) : (
                                     <span className="font-mono text-gray-700">{it.row.item_code}</span>
                                 )}
-                                {it.row.subject && (
-                                    <span className="text-gray-500 ml-2">{it.row.subject}</span>
+                                {subjectText(it.row) && (
+                                    <span className="text-gray-500 ml-2">{subjectText(it.row)}</span>
                                 )}
                             </li>
                         ))}

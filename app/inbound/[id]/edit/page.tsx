@@ -137,6 +137,27 @@ export default async function EditInboundPage({
             : Promise.resolve({ data: null, error: null }),
     ])
     const assayRows = (mustRows(assayRes)) as AssayRow[]
+
+    // ── ASY-P2:这个批次的化验要求现状 ──────────────────────────────────────
+    // 【两次查询,因为"没有缺口"有两种意思】batch_required_assay_gaps 里没有这一行,
+    // 可能是【全验齐了】,也可能是【这个物料压根没有化验要求】—— 屏幕上那是两句
+    // 完全不同的话,所以要求本身要单独问一次。把它们合成一个 boolean 就是把
+    // "没有政策"显示成"已经做完了"。
+    // 【失败必须失败】两处都用 mustRows:读不出来会渲染成"无化验要求",
+    // 而那是这一族最不能撒的谎。
+    const [gapRes, reqRes] = await Promise.all([
+        supabase
+            .from('batch_required_assay_gaps')
+            .select('missing_metals, sampleable')
+            .eq('inbound_batch_id', batch.id),
+        supabase
+            .from('material_required_metals')
+            .select('metal')
+            .eq('material_id', batch.material_id),
+    ])
+    const assayGap = (mustRows(gapRes) as unknown as
+        { missing_metals: string[]; sampleable: boolean }[])[0] ?? null
+    const hasAssayRequirement = mustRows(reqRes).length > 0
     const resolvedFormulaId: string | null =
         batch.pricing_formula_id ?? poLineFormulaRes.data?.pricing_formula_id ?? null
 
@@ -379,7 +400,13 @@ export default async function EditInboundPage({
             />
 
             {/* 化验(cut 5b):含量从哪来 → 化验 → 价格往哪去,顺序读下来是一条线 */}
-            <AssaySection batchId={batch.id} rows={assayRows} />
+            <AssaySection
+                batchId={batch.id}
+                rows={assayRows}
+                missingMetals={assayGap?.missing_metals ?? []}
+                hasRequirement={hasAssayRequirement}
+                sampleable={assayGap?.sampleable ?? true}
+            />
 
             <PricingPanel
                 baseCurrency={baseCurrency}

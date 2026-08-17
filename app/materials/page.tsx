@@ -4,6 +4,7 @@
 import { Suspense } from 'react'
 import { formatTimestamp } from '@/lib/format'
 import { createClient } from '@/lib/supabase/server'
+import { mustRows } from '@/lib/db-helpers'
 import Link from 'next/link'
 import DeleteButton from './DeleteButton'
 import MaterialToolbar from './MaterialToolbar'
@@ -80,6 +81,31 @@ export default async function MaterialsPage({
         baseQuery,
         filterParams
     ).range(from, to)
+
+    // ── ASY-P2:每一个物料都要把自己的化验要求说出来,包括"没有" ────────────
+    // 【为什么列表页也要有这一列】ASY-P1 的模型是「没有行 = 没有要求」,而那是一个
+    // 假设:它读作"这种物料不需要化验",同时也是"还没有人想过这件事"的样子。
+    // 只在编辑页说,就要求人一个一个点进去才知道自己有没有漏掉谁 —— 而这份政策
+    // 是【逐个物料】做的决定,列表正是看见"还有谁没决定"的那张屏。
+    // 【失败必须失败】不 `?? []`:读不出来会把每一行都画成"无化验要求"。
+    const pageIds = (materials ?? []).map((m) => m.id)
+    const reqRows = pageIds.length
+        ? mustRows(
+              await supabase
+                  .from('material_required_metals')
+                  .select('material_id, metal')
+                  .in('material_id', pageIds)
+                  .order('metal'),
+              'material_required_metals'
+          )
+        : []
+    const requiredByMaterial = new Map<string, string[]>()
+    for (const r of reqRows) {
+        requiredByMaterial.set(r.material_id, [
+            ...(requiredByMaterial.get(r.material_id) ?? []),
+            r.metal,
+        ])
+    }
 
     // 表头排序链接:点当前列翻转方向,点其它列默认升序;保留 q / category。不带 page —— 改排序回到第 1 页。
     function sortHref(col: MaterialSortCol) {
@@ -163,6 +189,9 @@ export default async function MaterialsPage({
                             {t('materials.colWasteClass')}
                         </th>
                         <th className="border border-gray-300 px-4 py-2 text-left">
+                            {t('materials.colAssayRequired')}
+                        </th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">
                             {t('materials.colUnit')}
                         </th>
                         <th className="border border-gray-300 px-4 py-2 text-left">
@@ -208,6 +237,22 @@ export default async function MaterialsPage({
                                     </>
                                 ) : (
                                     <span className="text-gray-400">{t('materials.wasteClass.unclassified')}</span>
+                                )}
+                            </td>
+                            {/* ASY-P2:【"无化验要求"要说出来,不能画成空白】——
+                                与旁边那一列同一条规矩:空白读起来像"这一栏没填",
+                                而这里它的意思是一个决定(或者一个还没做的决定)。 */}
+                            <td className="border border-gray-300 px-4 py-2 text-sm">
+                                {(requiredByMaterial.get(m.id) ?? []).length === 0 ? (
+                                    <span className="text-gray-400">
+                                        {t('materials.assayPolicy.noRequirement')}
+                                    </span>
+                                ) : (
+                                    <span className="font-mono text-xs">
+                                        {(requiredByMaterial.get(m.id) ?? [])
+                                            .map((c) => t('metals.' + c))
+                                            .join(', ')}
+                                    </span>
                                 )}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">{display(UNIT_OPTIONS, m.unit)}</td>
