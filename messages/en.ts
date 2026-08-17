@@ -18,6 +18,7 @@ const en = {
         finance: 'Finance',
         tasks: 'Tasks',
         hr: 'HR',
+        deleted: 'Deleted records',
         logout: 'Log out',
     },
     home: {
@@ -146,6 +147,7 @@ const en = {
         note: 'Unsold batches are not listed here — they have no margin. Ageing stock is on the home dashboard.',
     },
     common: {
+        filter: 'Filter',
         reasonRequired: 'Reason (required)',
         reasonBlankHint: 'a reason is required',
         switchLang: 'EN',
@@ -2928,6 +2930,38 @@ const en = {
             STOCKTAKE_NO_HARD_DELETE: 'Stocktake {0} cannot be permanently deleted — cancel it instead, which records who and why.',
             PO_NO_HARD_DELETE: 'Purchase order {0} cannot be permanently deleted — cancel it instead, which records who and why.',
             SO_BATCH_HAS_RESERVATIONS: 'Batch {0} still has {1} live reservation(s) on order(s) {2} — release them first.',
+        },
+    },
+    actor: {
+        // AUDEL-3:三种状态三句话 —— 绝不裸印 uuid、绝不留空
+        unrecorded: 'not recorded',
+        noEmployeeRecord: 'account not linked to an employee record',
+    },
+    deleted: {
+        title: 'Deleted records',
+        intro: 'Everything that has been deleted or rolled back, with who did it and why. Each kind follows its own module\u2019s read permission \u2014 a kind you cannot read is absent here, not empty.',
+        noRestoreNote:
+            'This page is read-only and deliberately offers no restore. Undoing a deletion is a decision nobody has taken: the write-off is already on the stock ledger, and a rolled-back run has already returned its inputs. A button here would take that decision silently.',
+        allKinds: 'All kinds',
+        empty: 'Nothing has been deleted \u2014 or nothing that you have permission to see.',
+        beforeAudel1b: 'deleted before the system recorded who',
+        reasonUnrecorded: 'not recorded',
+        ledgerLink: 'write-off movement',
+        reversalIsTheRun: 'the reversal is the run itself',
+        colKind: 'Kind',
+        colCode: 'Record',
+        colWhen: 'Deleted',
+        colWho: 'By',
+        colReason: 'Reason',
+        colLedger: 'Ledger',
+        kind: {
+            inbound_batch: 'Inbound batch',
+            output_batch: 'Output batch',
+            processing_run: 'Processing run',
+            stocktake: 'Stocktake',
+            purchase_order: 'Purchase order',
+            sales_order: 'Sales order',
+            quote: 'Quotation',
         },
     },
     metals: {

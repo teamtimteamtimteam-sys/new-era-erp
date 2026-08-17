@@ -1,4 +1,5 @@
 import { getTranslations } from '@/lib/i18n/server'
+import { STATE_OPTIONS } from '@/app/inbound/options'
 
 // commit_processing_run / rollback_processing_run 这两个 DB 函数 RAISE 出来的 13 个错误码。
 // 不在此集合内的,是真正的(未编码的)DB/约束错误,原样返回。
@@ -51,5 +52,22 @@ export async function localizeProcessingError(message: string): Promise<string> 
         })
     }
 
-    return (await getTranslations())('processing.errors.' + code, params)
+    const t = await getTranslations()
+
+    // ── AUDEL-3:【存进库里的状态值不能原样塞进句子】────────────────────────
+    // Tim 的验收里看到过一句英文拒绝里夹着中文:
+    //     "output batch OUT-… has already been touched (state=部分售出, …)"
+    // 原因是 output_batches.state 的【取值本身就是中文】
+    //     CHECK (state IN ('库存中','部分售出','已售罄'))
+    // 而 OUTPUT_CONSUMED 把它当参数直接插进模板。界面上早就有这份映射
+    // (app/inbound/options.ts 的 STATE_OPTIONS,value → labelKey),
+    // 这里接上它 —— 不是新写一份对照表。
+    // 【认不出的取值原样显示】而不是猜:一个猜出来的状态与一个说错了的状态,
+    // 在屏幕上长得一模一样。
+    if (code === 'OUTPUT_CONSUMED' && params['1']) {
+        const key = STATE_OPTIONS.find((o) => o.value === params['1'])?.labelKey
+        if (key) params['1'] = t(key)
+    }
+
+    return t('processing.errors.' + code, params)
 }

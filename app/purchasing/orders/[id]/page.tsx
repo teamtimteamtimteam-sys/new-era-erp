@@ -16,6 +16,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { formatAmount, formatMoneyBare, formatUnitCost } from '@/lib/format'
 import Subnav from '../../Subnav'
 import CancelOrderControl from './CancelOrderControl'
+import ActorName, { loadActorNames } from '@/app/components/ActorName'
 import { CloseOrderControl, ReopenOrderControl } from './CloseReopenControls'
 import { can, canViewPrices } from '@/lib/permissions'
 import { MaskedValue } from '@/app/components/MaskedValue'
@@ -100,14 +101,8 @@ export default async function PurchaseOrderDetailPage({
 
     // PUR-2:【已改、未重发】。比较【最新一次签发】与【最新一条编辑史】的时点 ——
     // 修改不作废那次签发(它确实发出去过),但供应商手里那份已经不是现在这张单了。
-    // AUDEL-2:取消人的姓名(单条反查,与本页别处同一套)
-    let cancelledByName: string | null = null
-    if (po.cancelled_by) {
-        const rows = mustRows(
-            await supabase.from('employees').select('user_id, legal_name').eq('user_id', po.cancelled_by),
-            'employees canceller')
-        cancelledByName = rows[0]?.legal_name ?? null
-    }
+    // AUDEL-3:取名与兜底只有一处 —— app/components/ActorName.tsx。
+    const cancelNames = await loadActorNames(supabase, [po.cancelled_by])
 
     const history = mustRows(historyRes, 'purchase_order_history') as unknown as {
         id: string; change_type: string; line_no: number | null; amend_reason: string | null
@@ -269,9 +264,15 @@ export default async function PurchaseOrderDetailPage({
                     {t('purchasing.status.cancelled')}
                     {po.cancelled_at ? ` · ${po.cancelled_at.slice(0, 10)}` : ''}
                     {/* AUDEL-2:取消要看得见【谁】和【为什么】,不只是"已取消"这个事实。
-                        人名由 employees.user_id 反查(与本页成本条目那一段同一套);
-                        反查不到时【印 uuid 而不是留空】—— 留空读起来像"没有人做过这件事"。 */}
-                    {po.cancelled_by ? ` · ${cancelledByName ?? po.cancelled_by}` : ''}
+                        AUDEL-3:取名与兜底移进 app/components/ActorName.tsx ——
+                        此前这里写着"反查不到就印 uuid",那句话已经不成立了,
+                        现在印的是具名状态,uuid 只作小字附注。 */}
+                    {po.cancelled_by && (
+                        <>
+                            {' · '}
+                            <ActorName userId={po.cancelled_by} names={cancelNames} />
+                        </>
+                    )}
                     {po.cancel_reason ? `:${po.cancel_reason}` : ''}
                 </div>
             )}

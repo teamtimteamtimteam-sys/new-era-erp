@@ -20,6 +20,7 @@ const zh = {
         finance: '财务',
         tasks: '任务',
         hr: '人力资源',
+        deleted: '已删除记录',
         logout: '登出',
     },
     home: {
@@ -148,6 +149,7 @@ const zh = {
         note: '未售批次不在此列 —— 它们没有毛利可言;滞销成品见首页看板。',
     },
     common: {
+        filter: '筛选',
         reasonRequired: '理由(必填)',
         reasonBlankHint: '必须填写理由',
         switchLang: '中',
@@ -2911,6 +2913,38 @@ const zh = {
             STOCKTAKE_NO_HARD_DELETE: '盘点单 {0} 不能被永久删除 —— 请改用取消,那样会记下谁和为什么。',
             PO_NO_HARD_DELETE: '采购单 {0} 不能被永久删除 —— 请改用取消,那样会记下谁和为什么。',
             SO_BATCH_HAS_RESERVATIONS: '批次 {0} 上还有 {1} 条活预留(订单 {2})—— 请先释放。',
+        },
+    },
+    actor: {
+        // AUDEL-3:三种状态三句话 —— 绝不裸印 uuid、绝不留空
+        unrecorded: '未记录',
+        noEmployeeRecord: '该账号未关联员工档案',
+    },
+    deleted: {
+        title: '已删除的记录',
+        intro: '所有被删除或被回滚的记录,连同【谁做的】与【为什么】。每一类跟着它自己模块的读权限 —— 你看不了的那一类在这里是【缺席】,不是空。',
+        noRestoreNote:
+            '本页只读,并且【刻意不提供恢复】。撤销一次删除是一个没有人做过的决定:注销流水已经写进台账,被回滚的加工单也已经把投入还了回去。这里放一个按钮,等于替所有人默默把那个决定做了。',
+        allKinds: '全部种类',
+        empty: '没有任何东西被删除过 —— 或者说,没有你有权看见的。',
+        beforeAudel1b: '删除时系统还没有记录操作人',
+        reasonUnrecorded: '未记录',
+        ledgerLink: '注销流水',
+        reversalIsTheRun: '冲销就是这张单本身',
+        colKind: '种类',
+        colCode: '记录',
+        colWhen: '删除时间',
+        colWho: '操作人',
+        colReason: '理由',
+        colLedger: '台账',
+        kind: {
+            inbound_batch: '进料批次',
+            output_batch: '产出批次',
+            processing_run: '加工单',
+            stocktake: '盘点单',
+            purchase_order: '采购单',
+            sales_order: '销售订单',
+            quote: '报价',
         },
     },
     metals: {

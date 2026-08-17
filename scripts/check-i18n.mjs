@@ -252,6 +252,12 @@ const MANIFEST = {
     // 若把 0 读成空集,这一族的键从此无人看管。改的是指向,不是判据。
     'processing.recovery.blocked.': { kind: 'enum', values: () => tsRegex('db/views/processing_metal_recovery_all.sql',
                                   /THEN '(\w+)'::text/g) },
+    // AUDEL-3:已删除记录的种类。真源是【视图自己那几个字面量】——
+    // deleted_records 的每一支都写着 'inbound_batch'::text 之类,加一支就自动被查到。
+    // 【判据是每一支 UNION 的第一列】pg_get_viewdef 只给第一支写 `AS record_kind`,
+    // 其余几支归一化成 `AS text` —— 两种写法都收,加一支就自动被查到。
+    'deleted.kind.': { kind: 'enum', values: () => tsRegex('db/views/deleted_records.sql',
+                                  /SELECT '(\w+)'::text AS (?:record_kind|text)/g) },
     // AUDEL-1b:删除那一族的具名拒绝。接真源那个 Set —— 加一个码,检查自动跟上。
     'deletion.errors.': { kind: 'enum', values: () => tsSet('app/components/inventory/deletionErrorCodes.ts', 'DELETION_ERROR_CODES') },
     // ── AUD-2:客户审计报告 ──────────────────────────────────────────────

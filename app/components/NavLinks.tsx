@@ -29,8 +29,18 @@ export default function NavLinks({
     // /me 给【每一个】登录用户 —— 人人都有一份自己的档案,所以它不需要任何权限判断。
     // /my-reviews 同理是【/hr 的同级】:部门经理评下属靠的是"我是这一行的评估人"
     // 那条行级策略,不是任何 HR 模块权限 —— 挂在 /hr 底下等于对他们隐身。
+    // AUDEL-3:/deleted 与 /margin 一样【装不进 lib/modules.ts 的形状】—— 它跨七个
+    // 模块,ModuleEntry.permission 是一个字符串,表达不了那个并集。而它与 /margin
+    // 不同的是:它【不需要】表达。视图 deleted_records 每一行自带 permission,
+    // 无权的种类整类缺席,所以这个链接对任何人点开都是一个正当答案 ——
+    // 有模块的人看见他那些模块里被删的东西,一个模块都没有的人看见那句具名空状态。
+    // 【为什么不按权限藏起来】要藏就得在这里写一个"任一模块"的谓词,那正是 OPS-15
+    // 说的第二份定义;而藏错的代价(有人看不见一个他本可以看的审计入口)比
+    // 露错的代价(一句"你看得见的范围里没有")大。/my-reviews 是同一条:
+    // 它对非评估人也是空的,一样不藏。
     const SELF_ITEMS = [
         { href: '/my-reviews', key: 'nav.myReviews' },
+        { href: '/deleted', key: 'nav.deleted' },
         { href: '/me', key: 'nav.me' },
     ]
     const moduleItems = modules.map((m) => ({ href: m.href, key: m.navKey }))

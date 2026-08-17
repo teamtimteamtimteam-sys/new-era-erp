@@ -9599,6 +9599,20 @@ export type Database = {
         }
         Relationships: []
       }
+      deleted_records: {
+        Row: {
+          code: string | null
+          delete_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          detail: string | null
+          movement_id: string | null
+          permission: string | null
+          record_id: string | null
+          record_kind: string | null
+        }
+        Relationships: []
+      }
       employee_directory: {
         Row: {
           annual_leave_accrued_days: number | null

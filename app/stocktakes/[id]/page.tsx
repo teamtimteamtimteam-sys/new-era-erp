@@ -11,6 +11,7 @@ import { qtyDelta, formatSigned } from '../delta'
 import CountList, { type CountItem } from '../CountList'
 import CancelStocktakeButton from './CancelStocktakeButton'
 import { mustRows } from '@/lib/db-helpers'
+import ActorName, { loadActorNames } from '@/app/components/ActorName'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 
@@ -86,16 +87,12 @@ export default async function StocktakeDetailPage({
     const output = (outputRes.data as unknown as BatchFetchRow[] | null) ?? []
 
     // AUDEL-2:取消要看得见【谁】和【为什么】—— 一个只说"已取消"的状态标签,
-    // 事后没有人答得出为什么这次盘点不算数。人名由 employees.user_id 反查
-    // (与 /processing/[id] 那一段同一套);反查不到就印 uuid,不留空:
-    // 留空读起来像"没有人做过这件事"。
-    let cancelledByName: string | null = null
-    if (st.cancelled_by) {
-        const rows = mustRows(
-            await supabase.from('employees').select('user_id, legal_name').eq('user_id', st.cancelled_by),
-            'employees canceller')
-        cancelledByName = rows[0]?.legal_name ?? null
-    }
+    // 事后没有人答得出为什么这次盘点不算数。
+    // AUDEL-3:取名与兜底【只有一处】—— app/components/ActorName.tsx。
+    // 【这里原本写着"反查不到就印 uuid",那句话现在是错的,所以删掉而不是留着】:
+    // Tim 的验收正是在这一族看到了一个裸 uuid,而 uuid 对读的人不是一个答案 ——
+    // 它看起来像一个答案。现在印的是具名状态「该账号未关联员工档案」加一行小字 id。
+    const cancelNames = await loadActorNames(supabase, [st.cancelled_by])
 
     const statusKey = stocktakeStatusLabelKey(st.status)
     const statusLabel = statusKey ? t(statusKey) : st.status
@@ -164,7 +161,8 @@ export default async function StocktakeDetailPage({
                         <span className="mx-2">·</span>
                         <span>
                             {t('stocktakes.cancelledAt')}: {formatTimestamp(st.cancelled_at, dateLocale)}
-                            {st.cancelled_by ? ` · ${cancelledByName ?? st.cancelled_by}` : ''}
+                            {' · '}
+                            <ActorName userId={st.cancelled_by} names={cancelNames} />
                         </span>
                     </>
                 )}
