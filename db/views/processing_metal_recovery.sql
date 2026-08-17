@@ -38,66 +38,26 @@
 -- 【它是全库唯一把 security_invoker 拼成 'true' 的视图】—— 只认 'on' 的检测器会检查
 -- 15 个里的 14 个并报干净。OPS-13 踩过一次,OPS-14 的普查先验证了这一点才敢信零。
 
+-- AUD-1(2026-08-17):体改成读 processing_metal_recovery_all —— 判据仍在这里,
+-- 推导搬去了基视图。列名、类型、顺序一个没动;理由见 batch_lineage_all 抬头。
+
 CREATE VIEW public.processing_metal_recovery WITH (security_invoker = off) AS
- WITH ins AS (
-         SELECT pi.run_id,
-            m.metal,
-            sum(pi.quantity_consumed * m.content_pct / 100.0) AS input_metal_kg,
-            CASE
-                WHEN min(COALESCE(m.content_source, 'unknown'::text)) = max(COALESCE(m.content_source, 'unknown'::text)) THEN min(COALESCE(m.content_source, 'unknown'::text))
-                ELSE 'mixed'::text
-            END AS input_source
-           FROM processing_inputs pi
-             JOIN LATERAL ( SELECT ibm.metal,
-                    ibm.content_pct,
-                    ibm.content_source
-                   FROM inbound_batch_metals ibm
-                  WHERE ibm.inbound_batch_id = pi.inbound_batch_id
-                UNION ALL
-                 SELECT obm.metal,
-                    obm.content_pct,
-                    obm.content_source
-                   FROM output_batch_metals obm
-                  WHERE obm.output_batch_id = pi.output_batch_id) m ON true
-          GROUP BY pi.run_id, m.metal
-        ), outs AS (
-         SELECT po.run_id,
-            obm.metal,
-            sum(po.quantity_produced * obm.content_pct / 100.0) AS output_metal_kg,
-            CASE
-                WHEN min(obm.content_source) = max(obm.content_source) THEN min(obm.content_source)
-                ELSE 'mixed'::text
-            END AS output_source
-           FROM processing_outputs po
-             JOIN output_batch_metals obm ON obm.output_batch_id = po.output_batch_id
-          GROUP BY po.run_id, obm.metal
-        )
- SELECT r.id AS run_id,
-    r.code AS run_code,
-    r.process_date,
-    COALESCE(i.metal, o.metal) AS metal,
-    i.input_metal_kg,
-    o.output_metal_kg,
-    i.metal IS NOT NULL AS input_measured,
-    o.metal IS NOT NULL AS output_measured,
-        CASE
-            WHEN i.metal IS NOT NULL AND o.metal IS NOT NULL AND i.input_metal_kg > 0::numeric THEN round(o.output_metal_kg / i.input_metal_kg * 100::numeric, 2)
-            ELSE NULL::numeric
-        END AS recovery_pct,
-        CASE
-            WHEN i.metal IS NULL THEN 'input_not_measured'::text
-            WHEN o.metal IS NULL THEN 'output_not_measured'::text
-            WHEN i.input_metal_kg = 0::numeric THEN 'input_measured_zero'::text
-            ELSE NULL::text
-        END AS recovery_blocked_by,
-    i.metal IS NOT NULL AND o.metal IS NOT NULL AND o.output_metal_kg > i.input_metal_kg AS conservation_warning,
-    bool_or(i.metal IS NOT NULL AND o.metal IS NOT NULL AND i.input_metal_kg > 0::numeric) OVER (PARTITION BY r.id) AS run_recovery_computable,
-    i.input_source,
-    o.output_source
-   FROM ins i
-     FULL JOIN outs o ON o.run_id = i.run_id AND o.metal = i.metal
-     JOIN processing_runs r ON r.id = COALESCE(i.run_id, o.run_id)
-  WHERE r.status = 'committed'::text AND r.deleted_at IS NULL AND has_permission('module.processing.view'::text);
+ SELECT run_id,
+    run_code,
+    process_date,
+    metal,
+    input_metal_kg,
+    output_metal_kg,
+    input_measured,
+    output_measured,
+    recovery_pct,
+    recovery_blocked_by,
+    conservation_warning,
+    run_recovery_computable,
+    input_source,
+    output_source
+   FROM processing_metal_recovery_all v
+  WHERE has_permission('module.processing.view'::text);
 
 COMMENT ON VIEW public.processing_metal_recovery IS
     '每个已提交加工单 × 金属的回收率(REC-1 起区分【测出来是零】与【根本没测】)。input_metal_kg / output_metal_kg 为 NULL 表示那一侧从未测过这个金属 —— 不再压成 0,因为两者导向相反的结论。recovery_blocked_by 说明算不出的原因;conservation_warning 只在两侧都测过、且产出大于投入时为真,它【永远只是提示,绝不设闸】—— 而且不只因为时序(产出含量往往在提交之后才录):化验是一次对事实的测量,因为它与期望相矛盾就拒绝落账,压掉的恰恰是"有什么不对"的证据。PROC-1 起每侧带聚合出处 input_source / output_source(assay / manual / mixed / unknown)—— 这个警告从此分得出"实验室 vs 手敲"与"实验室 vs 实验室",这张表也终于能说出自己除的是哪一种数(unknown = PROC-1 之前录的行,出处没人记过)。';

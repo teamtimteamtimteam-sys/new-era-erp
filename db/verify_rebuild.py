@@ -337,8 +337,11 @@ DEFINER_UNCHECKED_EXEC_ALLOWED: dict = {
         "one boolean the UI is required to display, on screens outside finance",
 }
 
+# AUD-1(2026-08-17):加 has_any_permission —— 它是 has_permission 的析取,
+# 同样按 auth.uid() 解析调用者。此前没有 DEFINER 函数用它,所以这条漏认从未显形。
+# db/check_mirrors.py 的 CHECK_PATTERNS 同改,两处必须一致(它们回答同一个问题)。
 CALLER_CHECK_RE = ("require_permission\\(|has_permission\\(|current_user_employee\\("
-                   "|is_reviewer_of\\(|require_reviewer_of\\(")
+                   "|is_reviewer_of\\(|require_reviewer_of\\(|has_any_permission\\(")
 
 B1_SQL = """
 SELECT coalesce(string_agg(p.proname, ',' ORDER BY p.proname), '')

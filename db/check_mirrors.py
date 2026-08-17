@@ -210,7 +210,15 @@ DEFINER_NO_CHECK_ALLOWED = {
 }
 
 CHECK_PATTERNS = ("require_permission(", "has_permission(", "current_user_employee(",
-                  "is_reviewer_of(", "require_reviewer_of(")
+                  "is_reviewer_of(", "require_reviewer_of(",
+                  # AUD-1(2026-08-17):has_any_permission 也是一次【调用者检查】——
+                  # 它就是 has_permission 的析取(见那个函数的函数体),按 auth.uid()
+                  # 解析调用者。此前没有任何 DEFINER 函数用它,所以这条漏认从来没有
+                  # 显形;AUD-1 的两个函数用 OR 把关(销售 或 加工),当场被判成
+                  # "看不出任何调用者检查"。**漏认的方向是安全的那一边(误报,不是漏报)**,
+                  # 但一个把正确写法判成违规的检查,会教人去 allowlist 它 —— 而那才是
+                  # 真正的损失。verify_rebuild.py 的 CALLER_CHECK_RE 同改,两处必须一致。
+                  "has_any_permission(")
 
 
 def strip_sql_comments(sql: str) -> str:

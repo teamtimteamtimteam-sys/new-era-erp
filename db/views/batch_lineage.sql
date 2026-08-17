@@ -11,37 +11,19 @@
 -- 血缘的起点是 processing_outputs,所以模块就是 processing;少了这两个 code,
 -- 链条变成一串 NULL,而"可溯"正是立账公理。
 
+-- AUD-1(2026-08-17):体改成读 batch_lineage_all —— 判据仍在这里,递归搬去了基视图。
+-- 列名、类型、顺序一个没动;拆分的理由写在 batch_lineage_all 的抬头。
+
 CREATE VIEW public.batch_lineage WITH (security_invoker = off) AS
-WITH RECURSIVE up AS (
-    SELECT po.output_batch_id AS batch_id,
-           pr.id AS via_run_id, pr.code AS via_run_code,
-           pi.inbound_batch_id AS parent_inbound_id,
-           pi.output_batch_id  AS parent_output_id,
-           pi.quantity_consumed, 1 AS depth
-    FROM public.processing_outputs po
-    JOIN public.processing_runs pr ON pr.id = po.run_id AND pr.deleted_at IS NULL
-    JOIN public.processing_inputs pi ON pi.run_id = pr.id
-  UNION ALL
-    SELECT up.batch_id, pr2.id, pr2.code,
-           pi2.inbound_batch_id, pi2.output_batch_id,
-           pi2.quantity_consumed, up.depth + 1
-    FROM up
-    JOIN public.processing_outputs po2 ON po2.output_batch_id = up.parent_output_id
-    JOIN public.processing_runs pr2 ON pr2.id = po2.run_id AND pr2.deleted_at IS NULL
-    JOIN public.processing_inputs pi2 ON pi2.run_id = pr2.id
-    WHERE up.parent_output_id IS NOT NULL
-)
-SELECT up.batch_id AS output_batch_id,
-       up.depth,
-       up.via_run_id,
-       up.via_run_code,
-       CASE WHEN up.parent_inbound_id IS NOT NULL THEN 'inbound' ELSE 'output' END AS parent_kind,
-       COALESCE(up.parent_inbound_id, up.parent_output_id) AS parent_batch_id,
-       COALESCE(ib.code, ob.code) AS parent_code,
-       up.quantity_consumed
-FROM up
-LEFT JOIN public.inbound_batches ib ON ib.id = up.parent_inbound_id
-LEFT JOIN public.output_batches ob ON ob.id = up.parent_output_id
-WHERE has_permission('module.processing.view'::text);
+ SELECT output_batch_id,
+    depth,
+    via_run_id,
+    via_run_code,
+    parent_kind,
+    parent_batch_id,
+    parent_code,
+    quantity_consumed
+   FROM batch_lineage_all l
+  WHERE has_permission('module.processing.view'::text);
 
 GRANT SELECT ON public.batch_lineage TO authenticated;

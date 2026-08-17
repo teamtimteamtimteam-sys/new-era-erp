@@ -2686,6 +2686,13 @@ export type Database = {
             foreignKeyName: "inventory_movements_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_allocation_status"
             referencedColumns: ["run_id"]
           },
@@ -5945,6 +5952,13 @@ export type Database = {
             foreignKeyName: "processing_cost_entries_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_allocation_status"
             referencedColumns: ["run_id"]
           },
@@ -6034,6 +6048,13 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -6152,6 +6173,13 @@ export type Database = {
             foreignKeyName: "processing_inputs_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_inputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_allocation_status"
             referencedColumns: ["run_id"]
           },
@@ -6229,6 +6257,13 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -8643,6 +8678,54 @@ export type Database = {
         }
         Relationships: []
       }
+      traceability_report_issues: {
+        Row: {
+          code: string
+          file_path: string
+          id: string
+          issued_at: string
+          issued_by: string | null
+          output_batch_id: string
+          sha256: string
+          version: number
+        }
+        Insert: {
+          code: string
+          file_path: string
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          output_batch_id: string
+          sha256: string
+          version: number
+        }
+        Update: {
+          code?: string
+          file_path?: string
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          output_batch_id?: string
+          sha256?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "traceability_report_issues_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "traceability_report_issues_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       training_records: {
         Row: {
           category: string | null
@@ -9279,6 +9362,19 @@ export type Database = {
         ]
       }
       batch_lineage: {
+        Row: {
+          depth: number | null
+          output_batch_id: string | null
+          parent_batch_id: string | null
+          parent_code: string | null
+          parent_kind: string | null
+          quantity_consumed: number | null
+          via_run_code: string | null
+          via_run_id: string | null
+        }
+        Relationships: []
+      }
+      batch_lineage_all: {
         Row: {
           depth: number | null
           output_batch_id: string | null
@@ -11897,6 +11993,13 @@ export type Database = {
             foreignKeyName: "processing_cost_entries_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_allocation_status"
             referencedColumns: ["run_id"]
           },
@@ -11992,6 +12095,13 @@ export type Database = {
             foreignKeyName: "processing_cost_entry_history_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_allocation_status"
             referencedColumns: ["run_id"]
           },
@@ -12023,6 +12133,25 @@ export type Database = {
         Relationships: []
       }
       processing_metal_recovery: {
+        Row: {
+          conservation_warning: boolean | null
+          input_measured: boolean | null
+          input_metal_kg: number | null
+          input_source: string | null
+          metal: string | null
+          output_measured: boolean | null
+          output_metal_kg: number | null
+          output_source: string | null
+          process_date: string | null
+          recovery_blocked_by: string | null
+          recovery_pct: number | null
+          run_code: string | null
+          run_id: string | null
+          run_recovery_computable: boolean | null
+        }
+        Relationships: []
+      }
+      processing_metal_recovery_all: {
         Row: {
           conservation_warning: boolean | null
           input_measured: boolean | null
@@ -12099,6 +12228,13 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
             referencedColumns: ["run_id"]
           },
           {
@@ -13556,6 +13692,10 @@ export type Database = {
       next_quote_code: { Args: { p_date?: string }; Returns: string }
       next_sales_order_code: { Args: { p_date?: string }; Returns: string }
       next_shipment_code: { Args: { p_date: string }; Returns: string }
+      next_traceability_report_code: {
+        Args: { p_date?: string }
+        Returns: string
+      }
       next_work_order_code: { Args: { p_date?: string }; Returns: string }
       notify_class_violations: {
         Args: {
@@ -13819,6 +13959,14 @@ export type Database = {
         Args: { p_file_path: string; p_order_id: string; p_sha256: string }
         Returns: Json
       }
+      record_traceability_report_issue: {
+        Args: {
+          p_file_path: string
+          p_output_batch_id: string
+          p_sha256: string
+        }
+        Returns: Json
+      }
       reject_purchase_order: {
         Args: { p_po_id: string; p_reason: string }
         Returns: Json
@@ -14048,6 +14196,10 @@ export type Database = {
         Returns: Json
       }
       submit_review: { Args: { p_review_id: string }; Returns: Json }
+      traceability_report_data: {
+        Args: { p_output_batch_id: string }
+        Returns: Json
+      }
       unapply_assay_result: {
         Args: { p_assay_result_id: string; p_reason: string }
         Returns: Json

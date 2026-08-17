@@ -245,7 +245,12 @@ const MANIFEST = {
     // REC-1:回收率算不出来的原因。后缀集合就是 processing_metal_recovery 里那个
     // CASE 的分支(input_not_measured / output_not_measured / input_measured_zero)——
     // 从视图镜像现读,加一种原因这道检查自动跟着变宽。写死清单只会烂在这里。
-    'processing.recovery.blocked.': { kind: 'enum', values: () => tsRegex('db/views/processing_metal_recovery.sql',
+    // AUD-1(2026-08-17):真源换了文件 —— recovery_blocked_by 那个 CASE 随推导搬进了
+    // 【基视图】processing_metal_recovery_all(判据挪到外层那一刀)。对外那一张
+    // 现在只是一层 SELECT,里面一个字面量都没有,于是这个解析器解出 0 个后缀。
+    // **而它报的是"解析器坏了",不是"没有值"** —— 那条规矩当场救了这一处:
+    // 若把 0 读成空集,这一族的键从此无人看管。改的是指向,不是判据。
+    'processing.recovery.blocked.': { kind: 'enum', values: () => tsRegex('db/views/processing_metal_recovery_all.sql',
                                   /THEN '(\w+)'::text/g) },
     // APR-2c:采购单审批状态。后缀集合就是 purchase_orders 的 CHECK —— 真源现读。
     'purchasing.approvalState.': { kind: 'enum', values: () => sqlEnum('db/tables/purchase_orders.sql', 'approval_status') },
