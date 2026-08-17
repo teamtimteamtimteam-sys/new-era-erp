@@ -252,6 +252,8 @@ const MANIFEST = {
     // 若把 0 读成空集,这一族的键从此无人看管。改的是指向,不是判据。
     'processing.recovery.blocked.': { kind: 'enum', values: () => tsRegex('db/views/processing_metal_recovery_all.sql',
                                   /THEN '(\w+)'::text/g) },
+    // AUDEL-1b:删除那一族的具名拒绝。接真源那个 Set —— 加一个码,检查自动跟上。
+    'deletion.errors.': { kind: 'enum', values: () => tsSet('app/components/inventory/deletionErrorCodes.ts', 'DELETION_ERROR_CODES') },
     // ── AUD-2:客户审计报告 ──────────────────────────────────────────────
     // 【回收率算不出的原因】与 processing.recovery.blocked. 同一个真源
     // (基视图里的那个 CASE),外加一个【本地兜底键】unspecified:

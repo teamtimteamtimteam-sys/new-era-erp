@@ -234,7 +234,13 @@ BEGIN
     -- 【线上的真实同类是 OUT-2026-0001 / OUT-2026-0002:在册、零支生产单】——
     -- 而那四个 reversed+软删的批次(0005/0006/0159/0160)撞的是 BATCH_NOT_FOUND,
     -- 因为它们【自己】也是软删的。两件事分得开,值得分开测。
-    UPDATE processing_runs SET deleted_at = now() WHERE id = run2;
+    -- AUDEL-1b:这里不是在测软删,是在【造一个没有血缘的批次】。软删要走门,
+    -- 而 processing_runs 没有门(它只被 rollback_processing_run 软删)——
+    -- 所以自己设标记并填两列,与将来那扇门做同一件事。
+    PERFORM set_config('evoltrya.soft_delete_ctx', '1', true);
+    UPDATE processing_runs SET deleted_at = now(), deleted_by = v_user,
+           delete_reason = 'fixture:造一个无血缘的批次' WHERE id = run2;
+    PERFORM set_config('evoltrya.soft_delete_ctx', '', true);
     v_denied := false;
     BEGIN PERFORM traceability_report_data(ob2);
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
@@ -291,7 +297,13 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 83F 失败:改签发档应被具名拒,实得 %', COALESCE(v_msg, '(改成功了)');
     END IF;
     -- 【记档案那条路也要拒得住 NOTHING_TO_REPORT,而且它不自己重判】
-    UPDATE processing_runs SET deleted_at = now() WHERE id = run2;
+    -- AUDEL-1b:这里不是在测软删,是在【造一个没有血缘的批次】。软删要走门,
+    -- 而 processing_runs 没有门(它只被 rollback_processing_run 软删)——
+    -- 所以自己设标记并填两列,与将来那扇门做同一件事。
+    PERFORM set_config('evoltrya.soft_delete_ctx', '1', true);
+    UPDATE processing_runs SET deleted_at = now(), deleted_by = v_user,
+           delete_reason = 'fixture:造一个无血缘的批次' WHERE id = run2;
+    PERFORM set_config('evoltrya.soft_delete_ctx', '', true);
     v_denied := false;
     BEGIN PERFORM record_traceability_report_issue(ob2, 'p/3.pdf', repeat('d', 64));
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;

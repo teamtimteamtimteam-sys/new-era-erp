@@ -178,7 +178,8 @@ BEGIN
     -- COGS、注销 270)→ B 差额拆:COGS 30/300×45=4.5 → 5000;注销 270/300×45
     -- = 40.5 → 5200。A:已售 80% → 12 → 5000,3 → 1220。
     -- 断言最新差额分录:5200 借 = 40.50。
-    UPDATE output_batches SET deleted_at = now(), updated_by = v_uid WHERE id = v_obB;
+    -- AUDEL-1b:软删只能走门(直连 UPDATE 被 guard_soft_delete_provenance 按名拒)
+    PERFORM soft_delete_output_batch(v_obB, 'fixture:AUDEL-1b 之后理由必填');
     INSERT INTO processing_cost_entries (run_id, cost_type, amount_base, is_estimate, created_by)
     VALUES (v_run, 'electricity', 60, false, v_uid);
     PERFORM allocate_processing_costs(v_run, 'weight');

@@ -31,7 +31,10 @@ CREATE TABLE public.output_batches (
     created_at    timestamptz NOT NULL DEFAULT now(),
     created_by    uuid,
     updated_at    timestamptz NOT NULL DEFAULT now(),
-    updated_by    uuid
+    updated_by    uuid,
+    -- ── AUDEL-1b 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────
+    deleted_by    uuid,
+    delete_reason text
 );
 
 CREATE OR REPLACE FUNCTION public.generate_output_code()
@@ -103,3 +106,9 @@ CREATE POLICY "output_batches delete by permission"
 CREATE TRIGGER trg_output_batches_no_hard_delete
     BEFORE DELETE ON public.output_batches
     FOR EACH ROW EXECUTE FUNCTION public.guard_batch_no_hard_delete();
+
+-- AUDEL-1b:置 deleted_at 必须走【门】(函数),且 deleted_by / delete_reason 必须填好。
+-- 光加两列挡不住任何事 —— 软删本来就是一次直连 UPDATE。
+CREATE TRIGGER trg_output_batches_soft_delete_provenance
+    BEFORE UPDATE ON public.output_batches
+    FOR EACH ROW EXECUTE FUNCTION public.guard_soft_delete_provenance();

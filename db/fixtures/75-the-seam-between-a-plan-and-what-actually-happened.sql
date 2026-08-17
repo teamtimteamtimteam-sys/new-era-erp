@@ -258,7 +258,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 75D 前提不成立:冲销之前差异视图应当数到 70,实得 %', v_actual;
     END IF;
 
-    PERFORM rollback_processing_run(v_run2);
+    PERFORM rollback_processing_run(v_run2, 'fixture:AUDEL-1b 之后理由必填');
 
     -- 冲销之后,四件事:
     -- ① 链接【留在那一行上】—— 那次加工确实是照这张工单做的,抹掉它是篡改历史
@@ -414,7 +414,7 @@ $g$, '');
         v_runx := commit_processing_run(d, 'f75 rev2 run', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ibx, 'quantity_consumed', 20)),
             jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 18)), 'weight', woRev2);
-        PERFORM rollback_processing_run(v_runx);
+        PERFORM rollback_processing_run(v_runx, 'fixture:AUDEL-1b 之后理由必填');
         -- 修好的版本:取消得掉(这是 D 臂已经验过的,这里只作注入的对照起点)
         IF (SELECT status FROM processing_runs WHERE id = v_runx) <> 'reversed' THEN
             RAISE EXCEPTION 'FIXTURE 75 注入2 前提不成立:那次加工应当已经是 reversed';

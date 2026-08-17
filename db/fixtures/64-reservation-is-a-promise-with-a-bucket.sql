@@ -363,7 +363,7 @@ BEGIN
     -- ══════════ F. 注销:有活预留就拒,释放之后【同一次注销通得过】════════════
     PERFORM reserve_stock(L2, ob5, 25);
     BEGIN
-        UPDATE output_batches SET deleted_at = now() WHERE id = ob5;
+        PERFORM soft_delete_output_batch(ob5, 'fixture:AUDEL-1b 之后理由必填');   -- AUDEL-1b:走门
         RAISE EXCEPTION 'FIXTURE 64F 失败:一批还许着人的货不该注销得了';
     EXCEPTION WHEN OTHERS THEN
         IF SQLERRM NOT LIKE 'SO_BATCH_HAS_RESERVATIONS%' THEN RAISE; END IF;
@@ -372,7 +372,7 @@ BEGIN
     PERFORM release_reservation(
         (SELECT id FROM sales_order_reservations WHERE output_batch_id = ob5 AND released_at IS NULL),
         NULL, 'batch scrapped');
-    UPDATE output_batches SET deleted_at = now() WHERE id = ob5;
+    PERFORM soft_delete_output_batch(ob5, 'fixture:AUDEL-1b 之后理由必填');   -- AUDEL-1b:走门
     SELECT remaining_qty FROM output_batches WHERE id = ob5 INTO v_rem;
     IF v_rem <> 0 THEN
         RAISE EXCEPTION 'FIXTURE 64F 失败:释放之后注销应当照常排空,实得 remaining_qty=%', v_rem;

@@ -84,7 +84,8 @@ BEGIN
     -- 【真实物理事件】货报废在那一天,而那一天就写在行上 —— 读记录,不是当场编。
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
     VALUES ('FIXT-IB25W', v_mat, v_sup, 50, 50, 'kg', v_arrival) RETURNING id INTO v_ib2;
-    UPDATE inbound_batches SET deleted_at = now(), updated_by = v_uid WHERE id = v_ib2;
+    -- AUDEL-1b:软删只能走门
+    PERFORM soft_delete_inbound_batch(v_ib2, 'fixture:AUDEL-1b 之后理由必填');
     SELECT business_date INTO v_bd FROM inventory_movements
     WHERE inbound_batch_id = v_ib2 AND movement_type = 'writeoff';
     IF v_bd IS DISTINCT FROM CURRENT_DATE THEN
@@ -122,7 +123,7 @@ BEGIN
         jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 40)), 'metal_value');
     SELECT output_batch_id INTO v_ob2 FROM processing_outputs WHERE run_id = v_run2;
 
-    PERFORM rollback_processing_run(v_run2);
+    PERFORM rollback_processing_run(v_run2, 'fixture:AUDEL-1b 之后理由必填');
 
     SELECT business_date INTO v_bd FROM inventory_movements
     WHERE inbound_batch_id = v_ib3 AND movement_type = 'reversal_restore';

@@ -55,8 +55,14 @@ CREATE TABLE public.inbound_batches (
     -- (只有 is_final 化验被 apply 后才升 final;手工定价永远只是 provisional)
     pricing_formula_id     uuid REFERENCES public.pricing_formulas (id),
     pricing_status         text NOT NULL DEFAULT 'provisional'
-                           CHECK (pricing_status IN ('unpriced','provisional','final'))
+                           CHECK (pricing_status IN ('unpriced','provisional','final')),
+    -- ── AUDEL-1b 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────
+    deleted_by    uuid,
+    delete_reason text
 );
+
+COMMENT ON COLUMN public.inbound_batches.delete_reason IS
+    'AUDEL-1b:为什么注销这一批。由 soft_delete_inbound_batch() 必填写入;守卫不允许在没有它的情况下置 deleted_at。【历史行为空是真的空】—— 本刀之前的软删没有记过理由,不回填(FIN-26:伪造的出处比空白更坏)。';
 
 CREATE INDEX idx_inbound_batches_po ON public.inbound_batches (purchase_order_id);
 
@@ -218,7 +224,7 @@ CREATE POLICY "inbound_batches delete by permission"
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 inbound_batches_masked 读取。
 -- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
 REVOKE SELECT ON public.inbound_batches FROM authenticated, anon;
-GRANT SELECT (id, code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, stage, notes, status, deleted_at, created_at, created_by, updated_at, updated_by, purchase_order_id, purchase_order_line_id, pricing_formula_id, pricing_status)
+GRANT SELECT (id, code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, stage, notes, status, deleted_at, created_at, created_by, updated_at, updated_by, purchase_order_id, purchase_order_line_id, pricing_formula_id, pricing_status, deleted_by, delete_reason)
     ON public.inbound_batches TO authenticated;
 
 -- AUDEL-1a:硬删按名拒(BATCH_NO_HARD_DELETE|批号),【与动没动过无关】。
@@ -228,3 +234,9 @@ GRANT SELECT (id, code, material_id, supplier_id, quantity, unit, remaining_qty,
 CREATE TRIGGER trg_inbound_batches_no_hard_delete
     BEFORE DELETE ON public.inbound_batches
     FOR EACH ROW EXECUTE FUNCTION public.guard_batch_no_hard_delete();
+
+-- AUDEL-1b:置 deleted_at 必须走【门】(函数),且 deleted_by / delete_reason 必须填好。
+-- 光加两列挡不住任何事 —— 软删本来就是一次直连 UPDATE。
+CREATE TRIGGER trg_inbound_batches_soft_delete_provenance
+    BEFORE UPDATE ON public.inbound_batches
+    FOR EACH ROW EXECUTE FUNCTION public.guard_soft_delete_provenance();

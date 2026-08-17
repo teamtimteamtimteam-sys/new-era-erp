@@ -4,6 +4,8 @@ import { getTranslations } from '@/lib/i18n/server'
 // 不在此集合内的,是真正的(未编码的)DB/约束错误,原样返回。
 const STOCKTAKE_ERROR_CODES = new Set([
     'STOCKTAKE_NOT_FOUND', 'STOCKTAKE_NOT_OPEN', 'BATCH_DELETED',
+
+    'STOCKTAKE_CANCEL_REASON_REQUIRED',   // AUDEL-1b
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..." —— 即使 PostgREST 在前面包了前缀,

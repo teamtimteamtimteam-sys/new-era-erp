@@ -89,6 +89,12 @@ DECLARE
     v_resn  int;       -- SO-2:这批货上还有几条【活预留】
     v_orders text;
 BEGIN
+    -- AUDEL-1b:三处 drain_stock 的 p_created_by 从 NEW.updated_by 改成
+    -- COALESCE(NEW.deleted_by, NEW.updated_by) —— 台账要记的是【谁注销了这批料】,
+    -- 那就是 deleted_by。门会把两者设成同一个人,所以今天的值不变;
+    -- COALESCE 兜住 rollback 那条路(它设的是 updated_by)与任何历史行。
+    -- 【函数体其余部分逐字未动】—— 预留守卫、business_date 的两类推理、
+    -- 注销入账那一段都在原处。
     -- ════════════════════════════════════════════════════════════════════════
     -- SO-2:【一批还许着人的货,不能就这么注销掉】
     -- 排空一律走 drain_stock 的 ARRAY['available','on_hold'] —— 那两个桶是
@@ -150,7 +156,7 @@ BEGIN
             PERFORM drain_stock(
                 p_qty => OLD.remaining_qty, p_movement_type => 'writeoff',
                 p_business_date => NEW.deleted_at::date, p_inbound_batch_id => OLD.id,
-                p_statuses => ARRAY['available','on_hold'], p_created_by => NEW.updated_by);
+                p_statuses => ARRAY['available','on_hold'], p_created_by => COALESCE(NEW.deleted_by, NEW.updated_by));
         ELSE  -- output_batches
             IF v_ctx IS NOT NULL AND split_part(v_ctx, ':', 1) = 'reversal' THEN
                 v_run := split_part(v_ctx, ':', 2)::uuid;
@@ -159,12 +165,12 @@ BEGIN
                     p_qty => OLD.remaining_qty, p_movement_type => 'reversal_void',
                     p_business_date => v_bd, p_output_batch_id => OLD.id,
                     p_statuses => ARRAY['available','on_hold'], p_run_id => v_run,
-                    p_created_by => NEW.updated_by);
+                    p_created_by => COALESCE(NEW.deleted_by, NEW.updated_by));
             ELSE
                 PERFORM drain_stock(
                     p_qty => OLD.remaining_qty, p_movement_type => 'writeoff',
                     p_business_date => NEW.deleted_at::date, p_output_batch_id => OLD.id,
-                    p_statuses => ARRAY['available','on_hold'], p_created_by => NEW.updated_by);
+                    p_statuses => ARRAY['available','on_hold'], p_created_by => COALESCE(NEW.deleted_by, NEW.updated_by));
             END IF;
         END IF;
 

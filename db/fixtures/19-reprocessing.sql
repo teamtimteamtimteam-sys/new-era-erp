@@ -149,7 +149,7 @@ BEGIN
     -- ════════ E. 冲销守卫:上游产出被下游耗过 → rollback 点名拒 ═══════════════
     v_ok := false; v_msg := NULL;
     BEGIN
-        PERFORM rollback_processing_run(v_run1);
+        PERFORM rollback_processing_run(v_run1, 'fixture:AUDEL-1b 之后理由必填');
     EXCEPTION WHEN OTHERS THEN
         GET STACKED DIAGNOSTICS v_msg = MESSAGE_TEXT;
         v_ok := v_msg LIKE 'OUTPUT_CONSUMED%';

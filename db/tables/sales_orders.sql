@@ -42,7 +42,10 @@ CREATE TABLE public.sales_orders (
     -- 作废必须给理由(与采购单同形):一张没有理由的作废单,三个月后没有人
     -- 说得出它为什么作废。
     CONSTRAINT sales_orders_cancel_reason_required
-        CHECK (status <> 'cancelled' OR cancel_reason IS NOT NULL)
+        CHECK (status <> 'cancelled' OR cancel_reason IS NOT NULL),
+    -- ── AUDEL-1b 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────
+    deleted_by    uuid,
+    delete_reason text
 );
 
 COMMENT ON TABLE public.sales_orders IS
@@ -85,3 +88,9 @@ CREATE POLICY "sales_orders select by permission" ON public.sales_orders
 CREATE POLICY "sales_orders update by permission" ON public.sales_orders
     AS PERMISSIVE FOR UPDATE TO authenticated
     USING (has_permission('module.sales.edit'::text)) WITH CHECK (has_permission('module.sales.edit'::text));
+
+-- AUDEL-1b:置 deleted_at 必须走【门】(函数),且 deleted_by / delete_reason 必须填好。
+-- 光加两列挡不住任何事 —— 软删本来就是一次直连 UPDATE。
+CREATE TRIGGER trg_sales_orders_soft_delete_provenance
+    BEFORE UPDATE ON public.sales_orders
+    FOR EACH ROW EXECUTE FUNCTION public.guard_soft_delete_provenance();

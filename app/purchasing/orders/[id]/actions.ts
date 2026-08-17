@@ -12,7 +12,9 @@ export async function cancelOrder(
     const supabase = await createClient()
     const { error } = await supabase.rpc('cancel_purchase_order', {
         p_id: poId,
-        p_reason: reason.trim() || undefined,
+        // AUDEL-1b:默认值已经摘掉 —— 传 undefined 等于少传一个参数,
+        // 那会是一句"函数不存在"而不是"理由必填"。空串照传,由 DB 按名拒。
+        p_reason: reason.trim(),
     })
     if (error) {
         return { error: await localizePurchasingError(error.message) }

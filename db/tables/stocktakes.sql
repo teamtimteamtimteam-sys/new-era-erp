@@ -36,7 +36,13 @@ CREATE TABLE public.stocktakes (
     created_by  uuid DEFAULT auth.uid(),
     updated_by  uuid DEFAULT auth.uid(),
     created_at  timestamptz NOT NULL DEFAULT now(),
-    updated_at  timestamptz NOT NULL DEFAULT now()
+    updated_at  timestamptz NOT NULL DEFAULT now(),
+    -- ── AUDEL-1b 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────
+    deleted_by    uuid,
+    delete_reason text,
+    cancelled_at  timestamptz,
+    cancelled_by  uuid,
+    cancel_reason text
 );
 
 CREATE TRIGGER trg_generate_stocktake_code
@@ -71,3 +77,9 @@ CREATE POLICY "stocktakes update by permission"
 CREATE TRIGGER trg_stocktakes_no_hard_delete
     BEFORE DELETE ON public.stocktakes
     FOR EACH ROW EXECUTE FUNCTION public.guard_stocktake_no_hard_delete();
+
+-- AUDEL-1b:置 deleted_at 必须走【门】(函数),且 deleted_by / delete_reason 必须填好。
+-- 光加两列挡不住任何事 —— 软删本来就是一次直连 UPDATE。
+CREATE TRIGGER trg_stocktakes_soft_delete_provenance
+    BEFORE UPDATE ON public.stocktakes
+    FOR EACH ROW EXECUTE FUNCTION public.guard_soft_delete_provenance();

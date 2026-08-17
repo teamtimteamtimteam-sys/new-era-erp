@@ -131,9 +131,12 @@ export async function saveCount(
 }
 
 // 取消盘点:行保留存档,但永远不会过账。留在详情页(revalidate 后变只读)。
-export async function cancelStocktake(stocktakeId: string): Promise<StocktakeActionState> {
+// AUDEL-1b:理由【必填】,而【录入框是 AUDEL-2】。
+// 在那之前,界面传空串 → 数据库按名拒 → 屏幕上是一句看得懂的"请填写理由"。
+// 这是刻意的:一个大声拒绝的按钮,好过一个悄悄写下空理由的按钮。
+export async function cancelStocktake(stocktakeId: string, reason: string = ''): Promise<StocktakeActionState> {
     const supabase = await createClient()
-    const { error } = await supabase.rpc('cancel_stocktake', { p_stocktake_id: stocktakeId })
+    const { error } = await supabase.rpc('cancel_stocktake', { p_stocktake_id: stocktakeId, p_reason: reason })
     if (error) {
         return { error: await localizeStocktakeError(error.message) }
     }

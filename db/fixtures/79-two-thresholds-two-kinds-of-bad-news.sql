@@ -159,7 +159,7 @@ BEGIN
                     WHERE item_type = 'work_order_variance_beyond' AND item_id = woRev) THEN
         RAISE EXCEPTION 'FIXTURE 79E 前提不成立:吃掉 200 / 计划 100 应当先报出来';
     END IF;
-    PERFORM rollback_processing_run(v_run);
+    PERFORM rollback_processing_run(v_run, 'fixture:AUDEL-1b 之后理由必填');
     IF EXISTS (SELECT 1 FROM operations_now
                 WHERE item_type = 'work_order_variance_beyond' AND item_id = woRev) THEN
         RAISE EXCEPTION 'FIXTURE 79E 失败:被冲销的加工不该把工单推过超耗线 —— 它的消耗不再是发生过的事实(WO-1b 的规则)';

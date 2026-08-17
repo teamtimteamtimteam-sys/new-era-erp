@@ -40,6 +40,9 @@ CREATE VIEW public.purchase_orders_masked WITH (security_invoker = off) AS
     created_at,
     created_by,
     updated_at,
-    updated_by
+    updated_by,
+    deleted_by,
+    delete_reason,
+    cancelled_by
    FROM purchase_orders
   WHERE has_permission('module.purchasing.view'::text);

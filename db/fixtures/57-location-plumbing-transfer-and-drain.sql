@@ -155,7 +155,8 @@ BEGIN
     END IF;
 
     -- ══════════ F. 注销排空【所有】桶,含 on_hold ════════════════════════════
-    UPDATE output_batches SET deleted_at = now(), updated_by = v_user WHERE id = ib;
+    -- AUDEL-1b:软删只能走门
+    PERFORM soft_delete_output_batch(ib, 'fixture:AUDEL-1b 之后理由必填');
     SELECT COALESCE(sum(qty_delta),0) INTO v_held FROM inventory_movements
      WHERE output_batch_id = ib AND stock_status = 'on_hold';
     IF v_held <> 0 THEN
@@ -198,7 +199,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 57H 失败:跨两个桶的投料应当写出两行 consume,实际 %', v_n;
     END IF;
 
-    PERFORM rollback_processing_run(run1);
+    PERFORM rollback_processing_run(run1, 'fixture:AUDEL-1b 之后理由必填');
 
     SELECT COALESCE(sum(qty_delta),0) INTO v_null_q FROM inventory_movements
      WHERE inbound_batch_id = ib AND location_id IS NULL AND stock_status = 'available';

@@ -49,7 +49,11 @@ CREATE TABLE public.purchase_orders (
     created_at             timestamptz NOT NULL DEFAULT now(),
     created_by             uuid DEFAULT auth.uid(),
     updated_at             timestamptz NOT NULL DEFAULT now(),
-    updated_by             uuid DEFAULT auth.uid()
+    updated_by             uuid DEFAULT auth.uid(),
+    -- ── AUDEL-1b 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────
+    deleted_by    uuid,
+    delete_reason text,
+    cancelled_by  uuid
 );
 
 COMMENT ON COLUMN public.purchase_orders.fx_rate IS
@@ -90,7 +94,7 @@ CREATE POLICY "purchase_orders delete by permission"
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 purchase_orders_masked 读取。
 -- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
 REVOKE SELECT ON public.purchase_orders FROM authenticated, anon;
-GRANT SELECT (id, code, supplier_id, order_date, expected_delivery_date, currency, status, approval_status, approved_at, approved_by, incoterm, terms_text, notes, closed_at, cancelled_at, cancel_reason, deleted_at, created_at, created_by, updated_at, updated_by)
+GRANT SELECT (id, code, supplier_id, order_date, expected_delivery_date, currency, status, approval_status, approved_at, approved_by, incoterm, terms_text, notes, closed_at, cancelled_at, cancel_reason, deleted_at, created_at, created_by, updated_at, updated_by, deleted_by, delete_reason, cancelled_by)
     ON public.purchase_orders TO authenticated;
 
 -- APR-2 决定 4:金额被改到需要更高一级审批时,原审批作废并重新路由。
@@ -124,3 +128,9 @@ CREATE TRIGGER trg_purchase_orders_history
 CREATE TRIGGER trg_purchase_orders_no_hard_delete
     BEFORE DELETE ON public.purchase_orders
     FOR EACH ROW EXECUTE FUNCTION public.guard_purchase_order_no_hard_delete();
+
+-- AUDEL-1b:置 deleted_at 必须走【门】(函数),且 deleted_by / delete_reason 必须填好。
+-- 光加两列挡不住任何事 —— 软删本来就是一次直连 UPDATE。
+CREATE TRIGGER trg_purchase_orders_soft_delete_provenance
+    BEFORE UPDATE ON public.purchase_orders
+    FOR EACH ROW EXECUTE FUNCTION public.guard_soft_delete_provenance();

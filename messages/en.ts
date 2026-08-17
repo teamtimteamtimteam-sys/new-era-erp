@@ -1266,6 +1266,9 @@ const en = {
             confirmDelete: 'Confirm Delete',
         },
         errors: {
+            DELETE_REASON_REQUIRED: 'A reason is required to delete {1} — the rollback soft-deletes it. (Table: {0})',
+            SOFT_DELETE_NO_DIRECT_UPDATE: 'That record can only be deleted through the deletion function, which records who and why. {1} ({0}) was not.',
+            ROLLBACK_REASON_REQUIRED: 'A reason is required to roll back processing run {0} — it soft-deletes the output batches and reverses the ledger.',
             ALLOCATION_BASIS_REQUIRED: 'Pick a cost allocation basis — it decides each output batch\'s reported gross margin, so it is a choice, never a default.',
             WO_NOT_FOUND: 'Work order {0} does not exist.',
             WO_NOT_RELEASED: 'Work order {0} is {1} — only a RELEASED order can be worked against. A draft has not been agreed yet; a closed or cancelled one has already ended.',
@@ -2721,6 +2724,7 @@ const en = {
             historyTitle: 'Amendment history',
             noHistory: 'No amendments recorded.',
             change: {
+                cancelled: 'Cancelled',
                 header_update: 'Header changed',
                 line_update: 'Line changed',
                 line_add: 'Line added',
@@ -2758,6 +2762,7 @@ const en = {
         errNoTermLines: 'Add at least one instalment',
         errTermLine: 'Instalment {0} is incomplete: label, a valid share and a trigger are required',
         errors: {
+            PO_CANCEL_REASON_REQUIRED: 'A reason is required to cancel purchase order {0}.',
             PRICE_SOURCE_INVALID: 'Line {0}: price source {1} is not computed/manual',
             PROVENANCE_REQUIRED: 'Line {0}: a computed price must carry the data to re-derive it — provenance is missing',
             TEMPLATE_CURRENCY_REQUIRED:
@@ -2901,6 +2906,18 @@ const en = {
             BATCH_NOT_FOUND: 'That batch does not exist, or has been deleted: {0}',
             NOT_AN_OUTPUT_BATCH: '{0} is an inbound (supplier) batch, not an output batch \u2014 audit reports are issued for what we produced.',
             NOTHING_TO_REPORT: 'No ancestry on record for {0}: nothing consumed it and no processing run produced it, so there is nothing to trace. A report is not issued rather than one that says \u201corigin unknown\u201d.',
+        },
+    },
+    deletion: {
+        errors: {
+            DELETE_REASON_REQUIRED: 'A reason is required to delete {1} — a deletion nobody can explain later is worse than the record it removed. (Table: {0})',
+            SOFT_DELETE_NO_DIRECT_UPDATE: 'This record can only be deleted through the deletion function, which records who and why. {1} ({0}) was not.',
+            INBOUND_NOT_FOUND: 'That inbound batch does not exist, or is already deleted: {0}',
+            OUTPUT_NOT_FOUND: 'That output batch does not exist, or is already deleted: {0}',
+            BATCH_NO_HARD_DELETE: 'Batch {0} cannot be permanently deleted — use delete (which keeps the record and writes a write-off movement).',
+            STOCKTAKE_NO_HARD_DELETE: 'Stocktake {0} cannot be permanently deleted — cancel it instead, which records who and why.',
+            PO_NO_HARD_DELETE: 'Purchase order {0} cannot be permanently deleted — cancel it instead, which records who and why.',
+            SO_BATCH_HAS_RESERVATIONS: 'Batch {0} still has {1} live reservation(s) on order(s) {2} — release them first.',
         },
     },
     metals: {
@@ -3128,6 +3145,7 @@ const en = {
         errQty: 'Quantity must be 0 or more',
         saveError: 'Save failed: {message}',
         errors: {
+            STOCKTAKE_CANCEL_REASON_REQUIRED: 'A reason is required to cancel stocktake {0}.',
             STOCKTAKE_NOT_FOUND: 'Stocktake not found',
             STOCKTAKE_NOT_OPEN: 'Stocktake is not open (status: {0})',
             BATCH_DELETED: 'Batch {0} has been deleted',

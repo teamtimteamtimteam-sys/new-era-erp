@@ -19,7 +19,7 @@ CREATE TABLE public.purchase_order_history (
     purchase_order_line_id uuid,      -- 行改动才有;删行时这个 id 已经不存在,故无外键
     line_no           integer,
     change_type       text NOT NULL CHECK (change_type IN
-                      ('header_update','line_update','line_add','line_remove')),
+                      ('header_update','line_update','line_add','line_remove','cancelled')),
     -- 表头侧
     old_order_date    date,          new_order_date    date,
     old_expected_delivery_date date,  new_expected_delivery_date date,

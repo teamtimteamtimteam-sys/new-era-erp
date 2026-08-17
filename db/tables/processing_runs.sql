@@ -51,8 +51,14 @@ CREATE TABLE public.processing_runs (
     -- 这一次加工是照哪一张工单做的。WO-1a 建列,【WO-1b 才由
     -- commit_processing_run 写入】—— 本刀不动那个函数的签名。为空 = 临时起意的
     -- 加工,那是合法的,而差异报表必须把它显示成【计划外】,不是显示成零。
-    work_order_id           uuid REFERENCES public.work_orders (id)
+    work_order_id           uuid REFERENCES public.work_orders (id),
+    -- ── AUDEL-1b 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────
+    deleted_by    uuid,
+    delete_reason text
 );
+
+COMMENT ON COLUMN public.processing_runs.delete_reason IS
+    'AUDEL-1b:为什么回滚这张加工单。加工单的"删除"就是它的冲销(status=reversed + deleted_at),所以理由记在这里 —— rollback_processing_run() 必填。';
 
 CREATE INDEX idx_processing_runs_work_order ON public.processing_runs (work_order_id)
     WHERE work_order_id IS NOT NULL;
@@ -112,7 +118,7 @@ REVOKE SELECT ON public.processing_runs FROM authenticated, anon;
 -- 后加的列】(表级 INSERT/UPDATE 会,这个不对称就是全部的坑),所以 WO-1a 加完列
 -- 之后它是"写得进、读不出"的 —— 实测 has_column_privilege = false。
 -- 它不是敏感列:是一个单据之间的链接,与同表的 capitalization_entry_id 同一类。
-GRANT SELECT (id, code, process_date, total_input, total_output, loss_qty, notes, status, deleted_at, created_at, created_by, updated_at, updated_by, allocation_basis, allocation_snapshot, allocated_at, allocated_by, capitalization_entry_id, allocation_basis_changed_at, work_order_id)
+GRANT SELECT (id, code, process_date, total_input, total_output, loss_qty, notes, status, deleted_at, created_at, created_by, updated_at, updated_by, allocation_basis, allocation_snapshot, allocated_at, allocated_by, capitalization_entry_id, allocation_basis_changed_at, work_order_id, deleted_by, delete_reason)
     ON public.processing_runs TO authenticated;
 
 -- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)
@@ -129,3 +135,9 @@ COMMENT ON COLUMN public.processing_runs.allocation_basis_changed_at IS
 
 COMMENT ON COLUMN public.processing_runs.work_order_id IS
     'WO-1a 建列,WO-1b 由 commit_processing_run 写入。这一次加工是照哪一张工单做的;为空 = 临时起意的加工(那是合法的,而且差异报表必须把它显示成【计划外】,不是显示成零)。';
+
+-- AUDEL-1b:置 deleted_at 必须走【门】(函数),且 deleted_by / delete_reason 必须填好。
+-- 光加两列挡不住任何事 —— 软删本来就是一次直连 UPDATE。
+CREATE TRIGGER trg_processing_runs_soft_delete_provenance
+    BEFORE UPDATE ON public.processing_runs
+    FOR EACH ROW EXECUTE FUNCTION public.guard_soft_delete_provenance();

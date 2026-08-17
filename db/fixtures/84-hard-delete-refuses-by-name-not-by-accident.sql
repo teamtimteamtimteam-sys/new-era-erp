@@ -160,7 +160,8 @@ BEGIN
     -- 【这一臂是必须的】撤销一个录错的批次靠的就是软删(它还会写一条 writeoff
     -- 流水)。一个把 UPDATE 也挡掉的守卫会让"撤销"这件事没有任何合法做法,
     -- 而那时人只会去找别的路。
-    UPDATE inbound_batches SET deleted_at = now(), updated_by = v_user WHERE id = ib_stocked;
+    -- AUDEL-1b:软删只能走门;这一臂要测的仍然是【硬删守卫不误伤软删】
+    PERFORM soft_delete_inbound_batch(ib_stocked, 'fixture:AUDEL-1b 之后理由必填');
     GET DIAGNOSTICS n = ROW_COUNT;
     IF n <> 1 THEN
         RAISE EXCEPTION 'FIXTURE 84G 失败:软删(UPDATE deleted_at)被守卫误伤了,影响 % 行', n;

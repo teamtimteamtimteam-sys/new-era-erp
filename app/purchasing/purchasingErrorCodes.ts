@@ -26,6 +26,8 @@ const PURCHASING_ERROR_CODES = new Set([
     // CMP-2:这两个码一直会从收货触发器抛出,却不在这张表里 —— 打到操作员脸上的
     // 是裸管道串。拒绝要点名(供应商、证书、过期日 / 采购单、审批状态),用人话。
     'SUPPLIER_QUALIFICATION_EXPIRED', 'PO_NOT_APPROVED',
+
+    'PO_CANCEL_REASON_REQUIRED',   // AUDEL-1b
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..."(同 localizeFinanceError)。

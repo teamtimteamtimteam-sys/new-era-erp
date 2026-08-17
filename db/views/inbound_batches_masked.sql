@@ -35,6 +35,8 @@ CREATE VIEW public.inbound_batches_masked WITH (security_invoker = off) AS
     purchase_order_id,
     purchase_order_line_id,
     pricing_formula_id,
-    pricing_status
+    pricing_status,
+    deleted_by,
+    delete_reason
    FROM inbound_batches
   WHERE has_permission('module.inbound.view'::text);

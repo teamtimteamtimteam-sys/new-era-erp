@@ -1266,6 +1266,9 @@ const zh = {
             confirmDelete: '确认删除',
         },
         errors: {
+            DELETE_REASON_REQUIRED: '删除 {1} 必须填写理由 —— 回滚会把它软删掉。(表:{0})',
+            SOFT_DELETE_NO_DIRECT_UPDATE: '该记录只能经由删除函数删除,那样才会记下谁和为什么。{1}({0})没有走那条路。',
+            ROLLBACK_REASON_REQUIRED: '回滚加工单 {0} 必须填写理由 —— 它会软删产出批并冲销台账。',
             ALLOCATION_BASIS_REQUIRED: '请选择成本分摊基准 —— 它直接决定每个产出批次的报告毛利,所以是一个选择,不是一个默认值。',
             WO_NOT_FOUND: '工单 {0} 不存在。',
             WO_NOT_RELEASED: '工单 {0} 是{1} —— 只有【已放行】的工单可以开工。草稿是还没答应的事;已收工或已取消的,是已经结束的事。',
@@ -2707,6 +2710,7 @@ const zh = {
             historyTitle: '修改记录',
             noHistory: '还没有修改记录。',
             change: {
+                cancelled: '已取消',
                 header_update: '表头改动',
                 line_update: '明细改动',
                 line_add: '新增明细',
@@ -2744,6 +2748,7 @@ const zh = {
         errNoTermLines: '请至少添加一期',
         errTermLine: '第 {0} 期不完整:期次名称、有效的比例/定额与触发事件均必填',
         errors: {
+            PO_CANCEL_REASON_REQUIRED: '取消采购单 {0} 必须填写理由。',
             PRICE_SOURCE_INVALID: '第 {0} 行:价格出处 {1} 不是 computed/manual',
             PROVENANCE_REQUIRED: '第 {0} 行:computed 价必须带重导出依据 —— 出处缺失',
             TEMPLATE_CURRENCY_REQUIRED:
@@ -2884,6 +2889,18 @@ const zh = {
             BATCH_NOT_FOUND: '该批次不存在,或已删除:{0}',
             NOT_AN_OUTPUT_BATCH: '{0} 是进料(供应商)批次,不是产出批 —— 审计报告签发的是【我们做出来的东西】。',
             NOTHING_TO_REPORT: '{0} 没有任何来源记录:没有加工单产出过它,也就无从追溯。这时候【不发】报告,而不是发一份写着"来源不详"的。',
+        },
+    },
+    deletion: {
+        errors: {
+            DELETE_REASON_REQUIRED: '删除 {1} 必须填写理由 —— 一次事后没人解释得了的删除,比它删掉的那条记录更坏。(表:{0})',
+            SOFT_DELETE_NO_DIRECT_UPDATE: '这条记录只能经由删除函数删除,那样才会记下谁和为什么。{1}({0})没有走那条路。',
+            INBOUND_NOT_FOUND: '该进料批次不存在,或已删除:{0}',
+            OUTPUT_NOT_FOUND: '该产出批次不存在,或已删除:{0}',
+            BATCH_NO_HARD_DELETE: '批次 {0} 不能被永久删除 —— 请用删除(它保留记录,并写一条注销流水)。',
+            STOCKTAKE_NO_HARD_DELETE: '盘点单 {0} 不能被永久删除 —— 请改用取消,那样会记下谁和为什么。',
+            PO_NO_HARD_DELETE: '采购单 {0} 不能被永久删除 —— 请改用取消,那样会记下谁和为什么。',
+            SO_BATCH_HAS_RESERVATIONS: '批次 {0} 上还有 {1} 条活预留(订单 {2})—— 请先释放。',
         },
     },
     metals: {
@@ -3110,6 +3127,7 @@ const zh = {
         errQty: '数量必须大于等于 0',
         saveError: '保存失败:{message}',
         errors: {
+            STOCKTAKE_CANCEL_REASON_REQUIRED: '取消盘点单 {0} 必须填写理由。',
             STOCKTAKE_NOT_FOUND: '盘点单不存在',
             STOCKTAKE_NOT_OPEN: '盘点单不是进行中状态(状态:{0})',
             BATCH_DELETED: '批次 {0} 已被删除',
