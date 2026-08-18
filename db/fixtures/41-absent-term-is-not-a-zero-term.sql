@@ -29,8 +29,8 @@ BEGIN
 
     -- 行情:ni 20,000 USD/吨;al 【本臂自己造】1,000 USD/吨,免得继承线上有没有
     DELETE FROM metal_prices WHERE metal IN ('ni','al') AND price_date = CURRENT_DATE;
-    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date)
-    VALUES ('ni', 20000, CURRENT_DATE), ('al', 1000, CURRENT_DATE);
+    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source)
+    VALUES ('ni', 20000, CURRENT_DATE, 'broker_quote'), ('al', 1000, CURRENT_DATE, 'broker_quote');
 
     -- 两张公式:一张对 al【只字不提】,一张对 al【明确写 0%】
     INSERT INTO pricing_formulas (code, name, direction, price_basis,

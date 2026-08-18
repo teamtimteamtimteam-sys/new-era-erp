@@ -53,10 +53,10 @@ BEGIN
     INSERT INTO user_roles (user_id, role_id) VALUES (v_user, r_all);
 
     -- ══════════ A. 超出区间:提醒【并且照常保存】═════════════════════════════
-    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date)
-    VALUES ('li', 100, '2027-03-01');
-    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date)
-    VALUES ('li', 200, '2027-03-02');          -- +100%,阈值 50
+    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source)
+    VALUES ('li', 100, '2027-03-01', 'broker_quote');
+    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source)
+    VALUES ('li', 200, '2027-03-02', 'broker_quote');          -- +100%,阈值 50
 
     SELECT anomaly_check, price_usd_per_tonne INTO v_verdict, v_saved
       FROM metal_prices WHERE metal = 'li' AND price_date = '2027-03-02';
@@ -78,10 +78,10 @@ BEGIN
     END IF;
 
     -- ══════════ B. 区间之内:不提醒 ═════════════════════════════════════════
-    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date)
-    VALUES ('mn', 100, '2027-03-01');
-    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date)
-    VALUES ('mn', 140, '2027-03-02');          -- +40%,阈值 50
+    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source)
+    VALUES ('mn', 100, '2027-03-01', 'broker_quote');
+    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source)
+    VALUES ('mn', 140, '2027-03-02', 'broker_quote');          -- +40%,阈值 50
 
     SELECT anomaly_check INTO v_verdict
       FROM metal_prices WHERE metal = 'mn' AND price_date = '2027-03-02';
@@ -94,10 +94,10 @@ BEGIN
     -- 【本 fixture 的重心】阈值写死在代码里的实现,过不了这一臂。
     UPDATE pricing_settings SET metal_price_change_warn_pct = 150 WHERE id;
 
-    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date)
-    VALUES ('fe', 100, '2027-03-01');
-    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date)
-    VALUES ('fe', 200, '2027-03-02');          -- 与 li 【完全相同】的一步:+100%
+    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source)
+    VALUES ('fe', 100, '2027-03-01', 'broker_quote');
+    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source)
+    VALUES ('fe', 200, '2027-03-02', 'broker_quote');          -- 与 li 【完全相同】的一步:+100%
 
     SELECT anomaly_check INTO v_verdict
       FROM metal_prices WHERE metal = 'fe' AND price_date = '2027-03-02';
@@ -121,8 +121,8 @@ BEGIN
     UPDATE pricing_settings SET metal_price_change_warn_pct = 50 WHERE id;   -- 复原,后面几臂用它
 
     -- ══════════ D. 第一条报价:no_reference,既不是 outside 也不是 inside ════
-    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date)
-    VALUES ('al', 12345, '2027-03-05');
+    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source)
+    VALUES ('al', 12345, '2027-03-05', 'broker_quote');
     SELECT anomaly_check INTO v_verdict
       FROM metal_prices WHERE metal = 'al' AND price_date = '2027-03-05';
     IF v_verdict->>'verdict' <> 'no_reference' THEN
@@ -135,10 +135,10 @@ BEGIN
 
     -- ══════════ E. 补录:参照按 price_date 取,回落到更晚的一条并说明 ════════
     -- 'co' 先有一条 2027-04-10,再补录一条【更早】的 2027-04-01
-    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date)
-    VALUES ('co', 100, '2027-04-10');
-    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date)
-    VALUES ('co', 300, '2027-04-01');          -- 补录:没有更早的邻居
+    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source)
+    VALUES ('co', 100, '2027-04-10', 'broker_quote');
+    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source)
+    VALUES ('co', 300, '2027-04-01', 'broker_quote');          -- 补录:没有更早的邻居
 
     SELECT anomaly_check INTO v_verdict
       FROM metal_prices WHERE metal = 'co' AND price_date = '2027-04-01';

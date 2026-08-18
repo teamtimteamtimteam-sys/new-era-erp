@@ -19,7 +19,11 @@ CREATE TABLE public.metal_prices (
     metal               text    NOT NULL CHECK (metal IN ('ni','co','li','mn','cu','al','fe')),
     price_usd_per_tonne numeric NOT NULL CHECK (price_usd_per_tonne > 0),
     price_date          date    NOT NULL,
-    source              text    NOT NULL DEFAULT 'manual',
+    -- LME-1a:这个数【是哪一种来源】。四取一,**没有默认值** ——
+    -- 有默认值时任何漏填都会被悄悄补上一个看起来像答案的值;没有默认值,
+    -- 漏填就是一次失败(实测:直插本表是走得通的,所以这道闸必须在表上)。
+    source              text    NOT NULL
+        CHECK (source IN ('published_index','broker_quote','internal_estimate','unknown')),
     notes               text,
     deleted_at          timestamptz,
     created_at  timestamptz NOT NULL DEFAULT now(),
@@ -49,8 +53,29 @@ CREATE TABLE public.metal_prices (
     -- 时没有人选过,而指派一个就是替它宣称出处(与给那条 80,000 编个数字同罪)。
     -- 声明了指数的条款【看不见】这些行,反之亦然(IS NOT DISTINCT FROM)。
     -- 与 source 是两个轴:source 说"怎么来的",这一列说"哪个市场"。
-    price_index text REFERENCES public.metal_price_indices (code)
+    price_index text REFERENCES public.metal_price_indices (code),
+    -- ── LME-1a 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
+    -- 争议时答得出来的两样东西。都可空,而【空就是一个答案】:没有记录过。
+    source_reference text,
+    quote_delayed    boolean,
+    -- published_index 必须说得出【是哪一个】——"来自某个发布的指数、但不知道
+    -- 是哪一个"是一句自相矛盾的话:LME 与 SMM 报价币种不同、换算路径不同。
+    CONSTRAINT metal_prices_index_source_pairing
+        CHECK (source <> 'published_index' OR price_index IS NOT NULL)
 );
+
+COMMENT ON COLUMN public.metal_prices.source IS 'LME-1a:这个数【是哪一种来源】。四取一,没有默认值 —— 漏填就是一次失败,而不是悄悄补上一个看起来像答案的值。
+published_index=发布的指数行情(【是哪一个由 price_index 回答】,两列合起来才是完整出处,并由 metal_prices_index_source_pairing 强制配对);broker_quote=交易对手/经纪商报价;internal_estimate=我们自己的估计(它不是市场价,把它当市场价正是本列要防的事);unknown=没有记录过。
+【unknown 是可表示的状态,不是默认值】新录入必须明说是哪一种;只有 LME-1a 之前的历史行携带它。
+【本列此前是一句空话】text NOT NULL DEFAULT ''manual'' 且无 CHECK,而唯一的写入函数把它写死成 ''manual'' —— 于是它看起来在回答"从哪来",实际只回答了"有人打字进来的",而那对任何一条记录都成立。
+【约束在表上,不只在函数里】实测:以 authenticated + module.pricing.edit 直插本表【成功】,source 悄悄落成默认值 —— upsert_metal_prices 不是唯一的门。';
+
+COMMENT ON COLUMN public.metal_prices.source_reference IS 'LME-1a:这条行情的【凭据】—— 一份单据号、一个截图文件名、一封经纪商邮件的主题行。**自由文本是刻意的:它是证据,不是数据**,没有人会按它做聚合或判断,而任何结构化都会逼着录入的人把手里真实的那一样东西塞进一个不合身的格子里。
+【空 = 没有记录过凭据】不是"没有凭据"。不推断、不给默认值。';
+
+COMMENT ON COLUMN public.metal_prices.quote_delayed IS 'LME-1a:这个数是【当天的】还是【延迟/次日的】。true=延迟(例如 LME 免费的次日行情),false=当天,**NULL=没有记录过**——三种状态,不是两种。
+【为什么要单独记】LME-0 勘察到:免费那一档是次日延迟的。一个次日的数用在当天成交的合同上,可能根本不合格;而"合不合格"这件事,事后只有这一列答得出来。
+【不推断】不会从 source 或 price_date 猜它 —— 猜出来的合规判断比没有更坏。';
 
 COMMENT ON COLUMN public.metal_prices.price_index IS
     'METAL-2:这条报价来自哪个市场。【NULL = 未声明指数】—— 既有 11 行都是这样,因为录入时没有人选过,而指派一个就是替它宣称出处。声明了指数的条款看不见这些行,反之亦然。与 source(这个数字怎么来的)是两个轴。';

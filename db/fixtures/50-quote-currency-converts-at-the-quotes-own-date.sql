@@ -61,9 +61,9 @@ BEGIN
         -- 那天没有报价,所以 spot 取 6-11 那条,而参考日是 6-12。两个日子的汇率
         -- 必须不同,"按报价日换"与"按参考日换"才会给出不同的数。
         ('CNY', '2027-06-12', 'mid', 0.40), ('USD', '2027-06-12', 'mid', 1.00);
-    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, price_index) VALUES
-        ('cu', 100000, '2027-06-10', 'SMM'),
-        ('cu', 100000, '2027-06-11', 'SMM');
+    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, price_index, source) VALUES
+        ('cu', 100000, '2027-06-10', 'SMM', 'broker_quote'),
+        ('cu', 100000, '2027-06-11', 'SMM', 'broker_quote');
 
     v_terms := jsonb_build_object('price_index','SMM','price_basis','spot','average_days',NULL,
         'treatment_charge_usd_per_tonne',0,'flat_discount_pct',0,
@@ -133,8 +133,8 @@ BEGIN
     -- 【正常的】,fx_rate_asof 会合法地就近取周五的价,于是不会拒绝。第一版就写在
     -- 6-12,这一臂因此测不到它想测的东西(拒绝没发生,而那是对的)。
     -- 6-25 距最近一条汇率 14 天,远超 4 天硬上限,无论周末与否都必然拒绝。
-    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, price_index)
-    VALUES ('ni', 90000, '2027-06-25', 'SMM');
+    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, price_index, source)
+    VALUES ('ni', 90000, '2027-06-25', 'SMM', 'broker_quote');
     v_terms := jsonb_build_object('price_index','SMM','price_basis','spot','average_days',NULL,
         'treatment_charge_usd_per_tonne',0,'flat_discount_pct',0,
         'payables', jsonb_build_object('ni',100));

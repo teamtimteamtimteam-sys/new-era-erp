@@ -53,8 +53,8 @@ BEGIN
     INSERT INTO fx_rates (currency, rate_date, rate_type, rate_sgd_per_unit)
     VALUES ('USD', v_today, 'tt_sell', v_fx);
     DELETE FROM metal_prices WHERE metal = 'ni' AND price_date = v_today;
-    INSERT INTO metal_prices (metal, price_date, price_usd_per_tonne)
-    VALUES ('ni', v_today, 15000);
+    INSERT INTO metal_prices (metal, price_date, price_usd_per_tonne, source)
+    VALUES ('ni', v_today, 15000, 'broker_quote');
 
     -- 本 fixture 自带公式(不借引导数据):可付 ni 70% / co 55%,处理费 200,折扣 0
     INSERT INTO pricing_formulas (code, name, direction, price_basis,

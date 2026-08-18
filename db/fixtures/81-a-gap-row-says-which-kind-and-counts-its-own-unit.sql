@@ -75,8 +75,8 @@ BEGIN
 
     -- ── ① 纯报价日:2 条报价,零凭证 ─────────────────────────────────────────
     INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source, price_index)
-    VALUES ('ni', 15000, d_quote, 'fixture81', 'FXG81'),
-           ('co', 22000, d_quote, 'fixture81', 'FXG81');
+    VALUES ('ni', 15000, d_quote, 'broker_quote', 'FXG81'),
+           ('co', 22000, d_quote, 'broker_quote', 'FXG81');
 
     -- ── ② 纯过账日:1 笔 USD 凭证,零报价 ────────────────────────────────────
     INSERT INTO journal_entries (code, entry_date, memo, source_type, status)
@@ -96,9 +96,9 @@ BEGIN
                (e_mixed, a2, 0, 100, 'CNY', 500, 0.2);
     END LOOP;
     INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source, price_index)
-    VALUES ('ni', 15100, d_mixed, 'fixture81', 'FXG81'),
-           ('co', 22100, d_mixed, 'fixture81', 'FXG81'),
-           ('cu',  8100, d_mixed, 'fixture81', 'FXG81');
+    VALUES ('ni', 15100, d_mixed, 'broker_quote', 'FXG81'),
+           ('co', 22100, d_mixed, 'broker_quote', 'FXG81'),
+           ('cu',  8100, d_mixed, 'broker_quote', 'FXG81');
 
     -- ══════════ A. 纯报价日:数报价,【永远不】声称凭证 ═══════════════════════
     SELECT * INTO rec FROM fx_rate_gaps g WHERE g.rate_date = d_quote AND g.currency = 'CNY';

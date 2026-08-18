@@ -210,8 +210,8 @@ BEGIN
     END IF;
     -- ════════════════ H. metal_value 基准:逐批 ≠ 炉级,数值分开 ═══════════
     -- (锁在 G 臂已推到今天;本臂全部分录都记今天,不受影响)
-    INSERT INTO metal_prices (metal, price_date, price_usd_per_tonne)
-    VALUES ('ni', v_today, 1000)
+    INSERT INTO metal_prices (metal, price_date, price_usd_per_tonne, source)
+    VALUES ('ni', v_today, 1000, 'broker_quote')
     -- METAL-2:唯一键现在是 (metal, price_date, price_index)(NULLS NOT DISTINCT)。
     -- 本 fixture 录的是【未标注指数】的行情,与分摊的房屋约定(默认亦未声明)对得上。
     ON CONFLICT (metal, price_date, price_index) DO NOTHING;

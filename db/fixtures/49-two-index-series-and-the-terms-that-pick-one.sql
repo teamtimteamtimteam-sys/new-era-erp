@@ -56,10 +56,10 @@ BEGIN
     -- 三条序列,同一个金属同一天:LME 有价、SMM 有价、未标注也有价。
     -- 【三个数字彼此不同】—— 这是本 fixture 全部判别力的来源:取错序列就会算出
     -- 另一个数,而不是碰巧相同。
-    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, price_index) VALUES
-        ('cu', 10000, '2027-05-04', 'LME'),
-        ('cu', 12000, '2027-05-04', 'SMM'),
-        ('cu',  8000, '2027-05-04', NULL);
+    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, price_index, source) VALUES
+        ('cu', 10000, '2027-05-04', 'LME', 'broker_quote'),
+        ('cu', 12000, '2027-05-04', 'SMM', 'broker_quote'),
+        ('cu',  8000, '2027-05-04', NULL, 'broker_quote');
 
     -- ══════════ A. 三条序列同日共存(唯一键按指数分开)══════════════════════
     IF (SELECT count(*) FROM metal_prices
@@ -70,8 +70,8 @@ BEGIN
     -- 但【同一条序列】上一天仍然只许一条(NULLS NOT DISTINCT 保住老规矩)
     v_denied := false;
     BEGIN
-        INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, price_index)
-        VALUES ('cu', 9999, '2027-05-04', NULL);
+        INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, price_index, source)
+        VALUES ('cu', 9999, '2027-05-04', NULL, 'broker_quote');
     EXCEPTION WHEN unique_violation THEN v_denied := true;
     END;
     IF NOT v_denied THEN
@@ -160,8 +160,8 @@ BEGIN
     INSERT INTO metal_price_indices (code, name_en, name_zh, quote_currency, sort_order, notes)
     VALUES ('ZZFIX49-IDX', 'fixture 49 index', 'fixture 49 指数', NULL, 99,
             '本 fixture 自建:报价币种【故意不声明】,用来钉"没声明就不许算钱"这条闸门');
-    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, price_index)
-    VALUES ('cu', 11000, '2027-05-04', 'ZZFIX49-IDX');
+    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, price_index, source)
+    VALUES ('cu', 11000, '2027-05-04', 'ZZFIX49-IDX', 'broker_quote');
 
     v_denied := false;
     BEGIN
@@ -194,8 +194,8 @@ BEGIN
     -- ══════════ F. 异常判据按指数收窄 ═══════════════════════════════════════
     -- SMM 次日 13,000:与【SMM 自己的】12,000 相差 8.3%,不该报警;
     -- 若跨指数拿未标注那条 8,000 当参照,就是 +62.5%,会误报。
-    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, price_index)
-    VALUES ('cu', 13000, '2027-05-05', 'SMM');
+    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, price_index, source)
+    VALUES ('cu', 13000, '2027-05-05', 'SMM', 'broker_quote');
     SELECT anomaly_check INTO v_verdict
       FROM metal_prices WHERE metal='cu' AND price_date='2027-05-05' AND price_index='SMM';
     IF v_verdict->>'verdict' <> 'inside' THEN
@@ -207,8 +207,8 @@ BEGIN
             v_verdict->>'reference_price';
     END IF;
     -- 而【同一条序列内】的真跳变照样报:SMM 13,000 → 30,000 是 +130%
-    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, price_index)
-    VALUES ('cu', 30000, '2027-05-06', 'SMM');
+    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, price_index, source)
+    VALUES ('cu', 30000, '2027-05-06', 'SMM', 'broker_quote');
     SELECT anomaly_check INTO v_verdict
       FROM metal_prices WHERE metal='cu' AND price_date='2027-05-06' AND price_index='SMM';
     IF v_verdict->>'verdict' <> 'outside' THEN
@@ -216,8 +216,8 @@ BEGIN
             v_verdict->>'verdict';
     END IF;
     -- 每个金属【在每个新指数上】的第一条仍然是 no_reference,不是"查过没问题"
-    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, price_index)
-    VALUES ('ni', 20000, '2027-05-06', 'SMM');
+    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, price_index, source)
+    VALUES ('ni', 20000, '2027-05-06', 'SMM', 'broker_quote');
     SELECT anomaly_check INTO v_verdict
       FROM metal_prices WHERE metal='ni' AND price_date='2027-05-06' AND price_index='SMM';
     IF v_verdict->>'verdict' <> 'no_reference' THEN

@@ -45,8 +45,8 @@ BEGIN
     INSERT INTO output_batch_metals (output_batch_id, metal, content_pct, content_source) VALUES (ob, 'ni', 50, 'manual');
 
     -- 行情:ni 20,000 USD/吨 → 含 50%、100% 应付时 10 USD/kg
-    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date)
-    VALUES ('ni', 20000, '2027-06-01');
+    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source)
+    VALUES ('ni', 20000, '2027-06-01', 'broker_quote');
     -- 【tt_buy ≠ tt_sell,故意拉开】—— 这一对就是 A 臂的判别力
     INSERT INTO fx_rates (currency, rate_date, rate_type, rate_sgd_per_unit)
     VALUES ('USD', '2027-06-05', 'tt_buy', 1.20), ('USD', '2027-06-05', 'tt_sell', 1.30);
@@ -163,7 +163,7 @@ BEGIN
             v_denied, v_msg;
     END IF;
     -- 缺汇率:2027-06-10(周四,工作日)没有 USD 牌价 → 换外币报价必须拒
-    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date) VALUES ('ni', 21000, '2027-06-10');
+    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source) VALUES ('ni', 21000, '2027-06-10', 'broker_quote');
     v_denied := false;
     BEGIN
         PERFORM price_output_sale(ob, NULL, 'USD', 100, '2027-06-10');

@@ -37,8 +37,8 @@ BEGIN
     VALUES ('ZZFIX40-S', 'fixture 40 supplier', 'SG', 'active') RETURNING id INTO v_sup;
 
     -- 行情与牌价:ni 20,000 USD/吨;USD tt_sell 1.30(【今天】—— 提交按定价日折算)
-    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date)
-    VALUES ('ni', 20000, CURRENT_DATE);
+    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source)
+    VALUES ('ni', 20000, CURRENT_DATE, 'broker_quote');
     DELETE FROM fx_rates WHERE currency = 'USD' AND rate_date = CURRENT_DATE AND rate_type = 'tt_sell';
     INSERT INTO fx_rates (currency, rate_date, rate_type, rate_sgd_per_unit)
     VALUES ('USD', CURRENT_DATE, 'tt_sell', 1.30);

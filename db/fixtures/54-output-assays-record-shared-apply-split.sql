@@ -83,8 +83,8 @@ BEGIN
     RETURNING id INTO ib2;
 
     -- metal_value 基准要金属行情;插得足够早,spot 的"就近向前取"覆盖任何参考日
-    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date)
-    VALUES ('ni', 20000, '2020-01-01');
+    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source)
+    VALUES ('ni', 20000, '2020-01-01', 'broker_quote');
 
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', u1), true);

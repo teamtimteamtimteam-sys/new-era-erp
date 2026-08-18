@@ -42,7 +42,7 @@ BEGIN
     -- 接管共享数据:清掉既有报价,只留【一条 20 天前的】
     UPDATE metal_prices SET deleted_at = now() WHERE deleted_at IS NULL;
     INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source)
-    VALUES ('cu', 9000, CURRENT_DATE - 20, 'fixture-76');
+    VALUES ('cu', 9000, CURRENT_DATE - 20, 'broker_quote');
 
     -- ══════════ A. 阈值 14:20 天前的报价是【旧】的 ═════════════════════════
     UPDATE pricing_settings SET metal_quote_stale_days = 14;

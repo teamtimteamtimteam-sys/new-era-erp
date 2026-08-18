@@ -4124,7 +4124,9 @@ export type Database = {
           price_date: string
           price_index: string | null
           price_usd_per_tonne: number
+          quote_delayed: boolean | null
           source: string
+          source_reference: string | null
           updated_at: string
           updated_by: string | null
         }
@@ -4139,7 +4141,9 @@ export type Database = {
           price_date: string
           price_index?: string | null
           price_usd_per_tonne: number
-          source?: string
+          quote_delayed?: boolean | null
+          source: string
+          source_reference?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -4154,7 +4158,9 @@ export type Database = {
           price_date?: string
           price_index?: string | null
           price_usd_per_tonne?: number
+          quote_delayed?: boolean | null
           source?: string
+          source_reference?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -14919,7 +14925,14 @@ export type Database = {
         Returns: Json
       }
       upsert_metal_prices: {
-        Args: { p_price_date: string; p_price_index?: string; p_prices: Json }
+        Args: {
+          p_price_date: string
+          p_price_index?: string
+          p_prices: Json
+          p_quote_delayed?: boolean
+          p_source?: string
+          p_source_reference?: string
+        }
         Returns: Json
       }
       upsert_payroll_period: {

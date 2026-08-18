@@ -220,10 +220,10 @@ BEGIN
     UPDATE metal_prices SET deleted_at = now() WHERE deleted_at IS NULL;
     -- 除了要越线的那个金属,其余每个金属给一条【今天】的报价 —— 于是它们都不旧。
     INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source)
-    SELECT m, 1000, CURRENT_DATE, 'fixture-30'
+    SELECT m, 1000, CURRENT_DATE, 'broker_quote'
       FROM unnest(ARRAY['co','li','mn','cu','al','fe']) m;
     INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source)
-    VALUES ('ni', 18000, CURRENT_DATE - 15, 'fixture-30') RETURNING id INTO v_mp;
+    VALUES ('ni', 18000, CURRENT_DATE - 15, 'broker_quote') RETURNING id INTO v_mp;
 
     -- 【未履约订单】一张 confirmed 的单 —— 答应了,一件没发。
     INSERT INTO materials (code, name, category) VALUES ('FIXT-M30WO','f30 wo material','black_mass')

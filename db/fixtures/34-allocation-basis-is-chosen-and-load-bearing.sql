@@ -54,8 +54,8 @@ BEGIN
 
     -- metal_value 基准要拿金属行情算价值比 —— 没有行情它会 NO_METAL_VALUE。
     -- 自己设,不继承(README 第 4 条)。
-    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date)
-    VALUES ('ni', 20000, '2027-01-01');
+    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source)
+    VALUES ('ni', 20000, '2027-01-01', 'broker_quote');
 
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', u), true);

@@ -10,6 +10,11 @@ const PRICING_ERROR_CODES = new Set([
     // METAL-2:指数相关的两种拒绝。INDEX_CURRENCY_NOT_STATED 是【设计好的】那一种:
     // 报价币种没人声明之前,按那个指数算钱会被拦下 —— 拦下来是产品,不是故障。
     'INDEX_CURRENCY_NOT_STATED', 'PRICE_INDEX_UNKNOWN',
+    // LME-1a:出处必填之后 upsert_metal_prices 会抛这四个。不登记它们,
+    // 屏幕上出现的就是机器码(IOD-2 那一课)—— 而录入表单在 1b 之前
+    // 【本来就会撞上第一个】,所以这四条文案是此刻最要紧的东西。
+    'QUOTE_SOURCE_REQUIRED', 'QUOTE_SOURCE_INVALID',
+    'QUOTE_SOURCE_UNKNOWN_NOT_ALLOWED_FOR_NEW', 'QUOTE_SOURCE_INDEX_REQUIRED',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..."(同 localizeFinanceError)。
