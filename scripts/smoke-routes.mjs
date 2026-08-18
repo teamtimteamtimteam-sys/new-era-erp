@@ -172,6 +172,32 @@ const EXPECTED_SKIPS = new Set([
 // 员工行和评估行会出现在 HR 界面和待办板上 —— 必须一眼即知是脚本垃圾,不是一名
 // 幽灵员工挂着一条像真的评估(与 smoke-* 账号前缀同一条理由)。code 自供:
 // 取号触发器只在空值时才取,不烧 EMP-YYYY-NNNN 的无缝号。
+// ── SMOKE-CONN-1:中止时也要交出【已经做完的那一部分】────────────────────────
+// 【为什么】两次历史中止(fetch failed)把整轮结果一起丢掉了,于是十一刀攒下来的
+// 按名欠账一条都没答上。**一个残缺的答案胜过没有答案** —— 已经走过的路由是
+// 真的走过了,它们的结论不该因为后面某一步炸了而作废。
+// 【为什么是模块级】failures/ok/skipped 都是 main() 的局部变量,顶层的 catch
+// 看不见它们;这份记录只做一件事:让 catch 说得出"炸之前做完了什么"。
+// 【它不参与任何判断】不进退出码、不进断言、不改 SKIP 清单口径 ——
+// 纯粹是一份进度回执。加它的那一刀【没有跑过一次冒烟】,所以它被刻意做成
+// 无法影响结论的形状。
+const PROGRESS = { phase: '启动', ok: [], failed: [], skipped: [] }
+function printProgress() {
+    const done = PROGRESS.ok.length + PROGRESS.failed.length + PROGRESS.skipped.length
+    if (done === 0) {
+        console.error(`   中止于【${PROGRESS.phase}】阶段 —— 还没有任何路由被走过,没有部分结果可交。`)
+        return
+    }
+    console.error(`\n── 中止前已完成(阶段:${PROGRESS.phase})—— 这些结论是真的,别丢 ──`)
+    console.error(`   走过 ${done} 条:ok ${PROGRESS.ok.length} · FAIL ${PROGRESS.failed.length} · SKIP ${PROGRESS.skipped.length}`)
+    if (PROGRESS.failed.length) {
+        console.error('   FAILED:')
+        for (const f of PROGRESS.failed) console.error('     ' + f)
+    }
+    if (PROGRESS.skipped.length) console.error('   SKIP: ' + PROGRESS.skipped.join(', '))
+    if (PROGRESS.ok.length) console.error('   ok  : ' + PROGRESS.ok.join(', '))
+}
+
 const SCRATCH_EMP_PREFIX = 'ZZ-SMOKE-'
 const SCRATCH_NAME = '【SMOKE 冒烟脚本临时行 · 勿动 · 随时可删】'
 
@@ -467,6 +493,7 @@ async function main() {
     const reachFailures = []
     // 【最先跑,而且在 sweepStalePort / next dev 之前】—— 见 preflightIdSources 抬头:
     // 这是一个静态问题,不该等到起了服务器、建了会话、扫过临时行之后才回答。
+    PROGRESS.phase = '静态预检(ID_SOURCES)'
     preflightIdSources(routes)
     // 【临时行体检:报告,不动手】就在这里跑一次 —— 正要再造一批临时行之前,
     // 是最该知道"上一次留下了什么"的时刻。
@@ -478,10 +505,12 @@ async function main() {
     } catch {
         console.log('  (临时行体检报了滞留行 —— 见上;冒烟继续,处置由人决定)')
     }
+    PROGRESS.phase = '清扫端口与临时行'
     sweepStalePort()   // 端口先扫:库里的行扫干净了,端口被占住照样开不了跑
     await sweepScratch()
 
     // ── 一次性 admin 会话 ────────────────────────────────────────────────────
+    PROGRESS.phase = '建一次性会话'
     const stamp = Date.now()
     const email = `smoke-${stamp}@test.local`
     const cu = await (await restOk('/auth/v1/admin/users', { method: 'POST',
@@ -551,6 +580,7 @@ async function main() {
             || errLog.split('\n').filter((l) => /Error|error|⨯/.test(l)).slice(0, 8).join('\n')
     }
     try {
+        PROGRESS.phase = '逐条走路由'
         for (const route of routes.sort()) {
             let url = route
             let skip = null
@@ -605,15 +635,16 @@ async function main() {
                 if (!id) { skip = `no data in ${srcs[prefix]}`; break }
                 url = url.replace(seg, id)
             }
-            if (skip) { skipped.add(route); console.log(`  SKIP ${route}  (${skip})`); continue }
+            if (skip) { skipped.add(route); PROGRESS.skipped.push(route); console.log(`  SKIP ${route}  (${skip})`); continue }
             const before = logChunks.length
             const res = await fetch(`http://localhost:${PORT}${url}`, {
                 headers: { cookie }, redirect: 'manual' })
             const allow = EXPECTED[route] ?? []
             const pass = exact ? exact.includes(res.status)
                 : (res.status >= 200 && res.status < 300) || allow.includes(res.status)
-            if (pass) { ok++ }
+            if (pass) { ok++; PROGRESS.ok.push(route) }
             else {
+                PROGRESS.failed.push(`${route} → ${res.status}${exact ? ` (expected ${exact[0]})` : ''}`)
                 failures.push({ route, url, status: res.status,
                     expected: exact?.[0], stack: await serverStack(before) })
                 console.log(`  FAIL ${route} → ${res.status}${exact ? ` (expected ${exact[0]})` : ''}`)
@@ -703,5 +734,6 @@ async function main() {
 }
 main().catch((e) => {
     console.error(`\n✗ 冒烟中止(脚本自身的查询炸了,不是路由失败):\n${e.message ?? e}`)
+    printProgress()
     process.exit(1)
 })
