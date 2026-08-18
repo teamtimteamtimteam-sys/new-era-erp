@@ -1,6 +1,8 @@
 CREATE OR REPLACE FUNCTION public.trg_tasks_history()
  RETURNS trigger
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 BEGIN
     IF NEW.task_type <> 'team' THEN RETURN NEW; END IF;   -- 私人任务不记

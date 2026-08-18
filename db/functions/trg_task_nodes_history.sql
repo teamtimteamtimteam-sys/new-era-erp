@@ -1,6 +1,8 @@
 CREATE OR REPLACE FUNCTION public.trg_task_nodes_history()
  RETURNS trigger
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_type text := NULL;
