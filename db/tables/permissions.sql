@@ -73,6 +73,11 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
     ('module.hr.edit', 'module', 'HR (edit)', '人力资源(编辑)', 'Employees, payroll and training — create, change, remove', '员工、薪资与培训 —— 新建、修改、删除', 121),
     ('module.tasks.view', 'module', 'Tasks (view)', '任务(查看)', 'Task board — read only', '任务板 —— 只读', 130),
     ('module.tasks.edit', 'module', 'Tasks (edit)', '任务(编辑)', 'Task board — create, change, remove', '任务板 —— 新建、修改、删除', 131),
+    -- TASK-1a:一把【点名的】钥匙,默认没有任何角色持有(role_permissions 里查不到它)。
+    -- 描述照直说它是什么 —— 「读别人的私人任务」,不是"任务模块的管理权限":
+    -- 私人任务上那个「私人」的标签,只在没有人持有这条权限时才是诚实的,
+    -- 所以一旦有人被授予它,读到这份清单的人必须一眼看出那意味着什么。
+    ('module.tasks.view_all', 'module', 'Tasks (read others'' personal)', '任务(查看他人私人任务)', 'Reads OTHER PEOPLE''S PERSONAL tasks. Not general admin access.', '读【别人的私人任务】。这不是"任务模块的管理权限",就是这一件事。', 132),
     -- SO-1-fu:销售是一个真模块(自己的单据、角色、操作面)。订单先于财务 ——
     -- 财务拥有的是事后那条链(sales_records / invoices / AR)。
     ('module.sales.view', 'module', 'Sales orders (view)', '销售订单(查看)', 'Sales orders — read only', '销售订单 —— 只读', 132),

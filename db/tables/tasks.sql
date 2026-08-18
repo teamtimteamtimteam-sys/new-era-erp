@@ -106,3 +106,18 @@ COMMENT ON COLUMN public.tasks.editors IS
     'Reserved: users granted edit permission by the creator. NOT enforced until the user system exists.';
 COMMENT ON COLUMN public.tasks.owner_id IS
     'Ownership (transferable), distinct from created_by (audit, immutable). Defaults to creator; reserved for the future permission model.';
+
+-- ═══ TASK-1a ═══════════════════════════════════════════════════════════════
+-- 硬删按名拒绝。【DELETE 策略保留】(与 inbound_batches / purchase_orders 同处理,
+-- 不同于 AUDEL-1a 对盘点两张表的做法):策略一旦拿掉,RLS 会先把行过滤掉,
+-- 触发器根本轮不到,普通用户看到的是【0 行】而不是那句具名拒绝 ——
+-- 而任务是一块人天天点的屏幕,静默的 0 行会被读成"删掉了"。
+CREATE TRIGGER trg_tasks_no_hard_delete
+    BEFORE DELETE ON public.tasks
+    FOR EACH ROW EXECUTE FUNCTION trg_tasks_no_hard_delete();
+
+-- 表头改动进 task_history —— 【只给团队任务】。私人任务不留痕:
+-- 一个人不需要一份关于自己的审计。
+CREATE TRIGGER trg_tasks_history
+    AFTER UPDATE ON public.tasks
+    FOR EACH ROW EXECUTE FUNCTION trg_tasks_history();

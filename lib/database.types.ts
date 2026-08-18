@@ -9002,6 +9002,630 @@ export type Database = {
           },
         ]
       }
+      task_history: {
+        Row: {
+          change_type: string
+          changed_at: string
+          changed_by: string | null
+          employee_id: string | null
+          id: string
+          new_description: string | null
+          new_due_date: string | null
+          new_node_done: boolean | null
+          new_node_target_date: string | null
+          new_node_title: string | null
+          new_priority: string | null
+          new_reminder_at: string | null
+          new_sort_order: number | null
+          new_status: string | null
+          new_tags: string[] | null
+          new_title: string | null
+          node_id: string | null
+          old_description: string | null
+          old_due_date: string | null
+          old_node_done: boolean | null
+          old_node_target_date: string | null
+          old_node_title: string | null
+          old_priority: string | null
+          old_reminder_at: string | null
+          old_sort_order: number | null
+          old_status: string | null
+          old_tags: string[] | null
+          old_title: string | null
+          task_id: string
+        }
+        Insert: {
+          change_type: string
+          changed_at?: string
+          changed_by?: string | null
+          employee_id?: string | null
+          id?: string
+          new_description?: string | null
+          new_due_date?: string | null
+          new_node_done?: boolean | null
+          new_node_target_date?: string | null
+          new_node_title?: string | null
+          new_priority?: string | null
+          new_reminder_at?: string | null
+          new_sort_order?: number | null
+          new_status?: string | null
+          new_tags?: string[] | null
+          new_title?: string | null
+          node_id?: string | null
+          old_description?: string | null
+          old_due_date?: string | null
+          old_node_done?: boolean | null
+          old_node_target_date?: string | null
+          old_node_title?: string | null
+          old_priority?: string | null
+          old_reminder_at?: string | null
+          old_sort_order?: number | null
+          old_status?: string | null
+          old_tags?: string[] | null
+          old_title?: string | null
+          task_id: string
+        }
+        Update: {
+          change_type?: string
+          changed_at?: string
+          changed_by?: string | null
+          employee_id?: string | null
+          id?: string
+          new_description?: string | null
+          new_due_date?: string | null
+          new_node_done?: boolean | null
+          new_node_target_date?: string | null
+          new_node_title?: string | null
+          new_priority?: string | null
+          new_reminder_at?: string | null
+          new_sort_order?: number | null
+          new_status?: string | null
+          new_tags?: string[] | null
+          new_title?: string | null
+          node_id?: string | null
+          old_description?: string | null
+          old_due_date?: string | null
+          old_node_done?: boolean | null
+          old_node_target_date?: string | null
+          old_node_title?: string | null
+          old_priority?: string | null
+          old_reminder_at?: string | null
+          old_sort_order?: number | null
+          old_status?: string | null
+          old_tags?: string[] | null
+          old_title?: string | null
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_history_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "task_board_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_history_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_nodes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          depth: number
+          done: boolean
+          done_at: string | null
+          done_by: string | null
+          id: string
+          parent_depth: number | null
+          parent_id: string | null
+          sort_order: number
+          target_date: string | null
+          task_id: string
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          depth?: number
+          done?: boolean
+          done_at?: string | null
+          done_by?: string | null
+          id?: string
+          parent_depth?: number | null
+          parent_id?: string | null
+          sort_order: number
+          target_date?: string | null
+          task_id: string
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          depth?: number
+          done?: boolean
+          done_at?: string | null
+          done_by?: string | null
+          id?: string
+          parent_depth?: number | null
+          parent_id?: string | null
+          sort_order?: number
+          target_date?: string | null
+          task_id?: string
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_nodes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_nodes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_nodes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_nodes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_nodes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_nodes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_nodes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_nodes_done_by_fkey"
+            columns: ["done_by"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_nodes_done_by_fkey"
+            columns: ["done_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_nodes_done_by_fkey"
+            columns: ["done_by"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_nodes_done_by_fkey"
+            columns: ["done_by"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_nodes_done_by_fkey"
+            columns: ["done_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_nodes_done_by_fkey"
+            columns: ["done_by"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_nodes_done_by_fkey"
+            columns: ["done_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_nodes_parent_id_task_id_parent_depth_fkey"
+            columns: ["parent_id", "task_id", "parent_depth"]
+            isOneToOne: false
+            referencedRelation: "task_nodes"
+            referencedColumns: ["id", "task_id", "depth"]
+          },
+          {
+            foreignKeyName: "task_nodes_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "task_board_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_nodes_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_nodes_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_nodes_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_nodes_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_nodes_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_nodes_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_nodes_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_nodes_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+        ]
+      }
+      task_participants: {
+        Row: {
+          added_at: string
+          added_by: string
+          employee_id: string
+          id: string
+          removed_at: string | null
+          removed_by: string | null
+          task_id: string
+        }
+        Insert: {
+          added_at?: string
+          added_by: string
+          employee_id: string
+          id?: string
+          removed_at?: string | null
+          removed_by?: string | null
+          task_id: string
+        }
+        Update: {
+          added_at?: string
+          added_by?: string
+          employee_id?: string
+          id?: string
+          removed_at?: string | null
+          removed_by?: string | null
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_participants_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_participants_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_participants_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_participants_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_participants_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_participants_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_participants_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_participants_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_participants_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_participants_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_participants_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_participants_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_participants_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_participants_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_participants_removed_by_fkey"
+            columns: ["removed_by"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_participants_removed_by_fkey"
+            columns: ["removed_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_participants_removed_by_fkey"
+            columns: ["removed_by"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_participants_removed_by_fkey"
+            columns: ["removed_by"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_participants_removed_by_fkey"
+            columns: ["removed_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_participants_removed_by_fkey"
+            columns: ["removed_by"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_participants_removed_by_fkey"
+            columns: ["removed_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_participants_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "task_board_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_participants_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           assigned_to: string | null
@@ -13772,6 +14396,24 @@ export type Database = {
           },
         ]
       }
+      task_board_rows: {
+        Row: {
+          code: string | null
+          done_count: number | null
+          due_date: string | null
+          id: string | null
+          node_count: number | null
+          owner_id: string | null
+          priority: string | null
+          reminder_at: string | null
+          status: string | null
+          steps_overrun_due_date: boolean | null
+          tags: string[] | null
+          task_type: string | null
+          title: string | null
+        }
+        Relationships: []
+      }
       user_directory: {
         Row: {
           created_at: string | null
@@ -13970,6 +14612,8 @@ export type Database = {
         }
         Returns: Json
       }
+      can_edit_task: { Args: { p_task_id: string }; Returns: boolean }
+      can_view_task: { Args: { p_task_id: string }; Returns: boolean }
       cancel_leave_request: {
         Args: { p_reason?: string; p_request_id: string }
         Returns: Json
@@ -14505,6 +15149,10 @@ export type Database = {
         Returns: Json
       }
       quote_is_expired: { Args: { p_valid_until: string }; Returns: boolean }
+      rebalance_task_nodes: {
+        Args: { p_parent_id: string; p_task_id: string }
+        Returns: number
+      }
       receive_inbound_batch_against_po: {
         Args: {
           p_arrival_date?: string

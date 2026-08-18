@@ -180,7 +180,7 @@ socket exhaustion):
 | verdict | exit | question it answers |
 |---|---|---|
 | 可重建性 | 2 on fail | can this repository build a database **at all** (prelude sufficiency, B1/B2 on live AND rebuild) |
-| 镜像 vs 线上 | 1 on fail | do the mirrors match live — structure, seed rows, bootstrap counts, cross-file integrity, definer caller checks, column grants, invoker views reading revoked columns (OPS-13), currency literals, **generated TypeScript types** (OPS-10: `lib/database.types.ts` is the schema's OTHER mirror — `db/tables/*.sql` is the one the rebuild reads, this is the one the COMPILER reads. When it lags, TypeScript validates against a shape the database no longer has, so a renamed or dropped column compiles clean and fails at runtime. Same question as the other mirrors and the same fix — regenerate and commit — so it shares this verdict rather than taking an exit code of its own. Regenerate with `npm run types:gen`; generation is deterministic, so the gate compares bytes. It costs ~5s of the gate's ~32s), **database-level GUCs** (FIN-20: the rebuild inherited the dev machine's timezone while live ran UTC, so the two disagreed on what day it was for the project's whole life and nothing looked — same shape as function ACLs before OPS-4; exceptions are named in gate.py's GUC_ALLOWLIST with written reasons) |
+| 镜像 vs 线上 | 1 on fail | do the mirrors match live — structure, seed rows, bootstrap counts, cross-file integrity, definer caller checks, column grants, invoker views reading revoked columns (OPS-13), currency literals, **generated TypeScript types** (OPS-10: `lib/database.types.ts` is the schema's OTHER mirror — `db/tables/*.sql` is the one the rebuild reads, this is the one the COMPILER reads. When it lags, TypeScript validates against a shape the database no longer has, so a renamed or dropped column compiles clean and fails at runtime. Same question as the other mirrors and the same fix — regenerate and commit — so it shares this verdict rather than taking an exit code of its own. Regenerate with `npm run types:gen`; generation is deterministic, so the gate compares bytes. It costs ~5s of the gate's ~32s. **但它读的是 PostgREST 的 schema 缓存,不是 pg_catalog —— 刚 DROP 过东西时它会吐一份【过时】的文件**(TASK-1a-fu1 实测:函数在 `pg_proc` 里已经是 0 行,`types:gen` 仍然把它写了出来,gate 于是为一件不存在的漂移报红)。**DROP 之后先 `NOTIFY pgrst, 'reload schema';` 等十几秒再生成。** 这不是 gate 的毛病:两边都在说实话,只是其中一边看的是一份旧快照 —— 与本文件反复说的「先问这个判据读的是哪一份真源」是同一条), **database-level GUCs** (FIN-20: the rebuild inherited the dev machine's timezone while live ran UTC, so the two disagreed on what day it was for the project's whole life and nothing looked — same shape as function ACLs before OPS-4; exceptions are named in gate.py's GUC_ALLOWLIST with written reasons) |
 
 The verdicts stay separate because they are different failures with different
 fixes. `check_mirrors.py` and `verify_rebuild.py` remain as the engine (gate.py
@@ -1410,6 +1410,23 @@ accepted for now, to be fixed deliberately — live next door in
 ~/evoltrya-backups/backup.sh        # ~10 min measured 2026-08-14, over the pooler
 ```
 
+> **重新测过(TASK-1a,2026-08-18):同一台机器、同一天、同一条连接串,
+> 一次 8 分钟(20:13 起,EXIT=0,2.3M),一次跑到 34 分钟仍未结束(20:37 起,
+> 最后被主动杀掉)。** 所以上面那个「~10 min」是【一次取样】,不是一个上界 ——
+> 与 `db/gate.py` 那张表得到的是同一个结论,而这已经是本周第二次
+> **一个过时的耗时估计参与了决策**(第一次是 gate 的 483s)。
+>
+> **两件事因此要分开说:**
+> * **备份要多久,没有一个可以照着规划的数。** 要等它,就用它自己的退出码等,
+>   并且准备好它可能是 8 分钟也可能是半小时。
+> * **慢的是【连接池那条传输】,不一定是"网络坏了"。** 同一时刻实测
+>   REST 后续请求中位数 **412 ms**(健康档),而 pg_dump 走 5432 的那条路
+>   慢到四倍以上 —— 正是 SMOKE-CONN-1 那条「量错了传输层」的同一个区别。
+>   **判断"能不能干活"之前,先问这件活走的是哪条路。**
+>
+> 顺带,那次主动杀掉把 BK-FIX 的三道检查【实测跑了一遍】:
+> `BACKUP_EXIT=1`、失败分支按名说了原因、0 字节的残骸被删掉。它是好用的。
+
 **A backup taken after `apply_migration.sh` is not a rollback — it is a snapshot of the
 thing you might need to roll back.** The migration path is atomic (one connection, one
 transaction), so a *failed* migration needs no backup; the backup is there for the case the
@@ -1462,6 +1479,44 @@ run where the order matters is the run where you have already lost.
 > **`backup.sh` 住在仓库【外面】(`~/evoltrya-backups/`),所以这几行字是本仓库对它
 > 唯一的把手。** 换一台机器、或者有人重装了那个脚本,这里写的东西就是要重新做一遍的
 > 清单 —— 而不是"上次好像修过"。
+>
+> #### 那条判据【在后台跑的时候会失效】—— 拿到的是启动器的退出码(TASK-1a,2026-08-18)
+>
+> BK-FIX 定下的规矩是对的:**看脚本自己的退出码**。但它写的那一行
+> (`backup.sh || { …; exit 1; }`)默认备份跑在**前台**。**一旦把它放到后台,
+> 那条规矩就静默地失效了** —— 你读到的 0 是【启动它的那个东西】的,不是它的。
+>
+> 实测:用 `( backup.sh > backup.log 2>&1; echo "EXIT=$?" >> backup.log ) &` 起了备份,
+> 几秒后收到「completed (exit code 0)」。那个 0 是外层那句 `echo` 的。当时的真实状态是:
+>
+> ```
+> pg_dump ALIVE — backup still running
+> evoltrya-backup-2026-08-18-2013.dump   0 字节
+> ```
+>
+> **又是一个 0 字节、名字完全正常的 dump,配一个绿色的退出码** —— 与 BK-FIX 那次
+> 一模一样的画面,只是这次的假绿灯来自【启动方式】,不是脚本本身。
+>
+> **判据补一句,把后台这条路堵上:**
+>
+> > **备份跑完的唯一证据,是 `backup.log` 里那一行【脚本自己打出来的退出码】。**
+> > 不是启动器的状态、不是通知、不是 `pgrep`、不是文件存在、不是 `ls -t` 最新的那个。
+> > 用了包装/后台,它就**必须把脚本的退出码传出来**,否则不要用。
+>
+> ```
+> # 后台起备份,然后【等脚本自己的那一行】,有上限、有失败分支
+> ( ~/evoltrya-backups/backup.sh; echo "BACKUP_EXIT=$?" ) > /tmp/backup.log 2>&1 &
+> db/wait_for.sh --timeout 1800 --label "备份脚本自报退出码" -- \
+>     sh -c 'grep -q "^BACKUP_EXIT=" /tmp/backup.log'
+> grep -q "^BACKUP_EXIT=0$" /tmp/backup.log || { echo "备份失败 —— 不要动库"; exit 1; }
+> ```
+>
+> **这是同一个形状的第三次,所以按规律记而不是按事故记:一个判词答的不是它标签
+> 上写的那个问题。** 前两次是 `! pgrep`(答的是"进程还在吗",标签写的是"备份好了吗")
+> 与 `backup.sh` 自己失败还退 0;这一次是**启动器的退出码冒充了脚本的退出码**。
+> 与部署那条(GitHub 的登记冒充 Vercel 的状态)、与 `?sha=` 缩写(空集冒充"还没到")
+> 是同一族。**每加一条等待或一条判据,把标签念出来,再把判据念出来,
+> 两句话说的是同一件事吗?**
 
 ## A cut is not done at the commit — it is done at the DEPLOY
 
