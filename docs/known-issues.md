@@ -380,7 +380,7 @@ state 写入者**:SO-2 的一条明确决定就是预留不碰 `state`,而"谁�
 留此划掉行的理由:下一个人 grep「抽成公共件」时会命中这里,而不是去找一条已经
 不存在的欠账。
 
-## WO-1c / EXEC-1b / FA-1b 的冒烟与可达性走查【欠着】——【原因已定位:本机的 VPN 出口】
+## ~~WO-1c / EXEC-1b / FA-1b 的冒烟【欠着】~~(SMOKE-DEBT-2 已还;`--reach` 那一半仍欠)
 
 WO-1c 是渲染层的一刀,新增了 `/processing/orders`、`/processing/orders/new`、
 `/processing/orders/[id]` 三个页面与一条子导航 —— 那正是可达性走查(`--reach`)
@@ -413,7 +413,7 @@ dev server + 线上库的路,快的那一半跑不完,慢的那一半更跑不�
    所以这一半只有 `--reach` 答得了。
 补跑那次提交把本条删掉。
 
-#### GRN-1b(2026-08-17)把同一笔欠账又加了一项 —— 【同一个原因,同一台机器】
+#### ~~GRN-1b(2026-08-17)把同一笔欠账又加了一项~~(SMOKE-DEBT-2 已还;`--reach` 仍欠)
 
 GRN-1b 是渲染层的一刀,新增 `/purchasing/discrepancies`(静态路由)并往采购子导航
 加了一项 —— 与 WO-1c 逐字同一个触发条件。跑之前照例测了网络:
@@ -434,7 +434,7 @@ GRN-1b 是渲染层的一刀,新增 `/purchasing/discrepancies`(静态路由)并
 `app/purchasing/Subnav.tsx:12` 的静态链接,不是动态路由 —— SAL-B6 那个盲区
 (动态路由的入口走查给不了断言)在这里不适用。
 
-#### GRN-2(2026-08-18)再加一项 —— 【同一个原因,第三次】
+#### ~~GRN-2(2026-08-18)再加一项~~(SMOKE-DEBT-2 已还清:`/suppliers/[id]/edit` ok)
 
 GRN-2 往 `/suppliers/[id]/edit` 上加了一块面板(`ReceiptPatternPanel`),
 并新增视图 `supplier_receipt_pattern`。跑之前照例测网络:`select 1` 要
@@ -642,7 +642,7 @@ nameserver[0] : 103.86.96.108      ← NordVPN 的解析器
 留此划掉行的理由:第 2 条【还欠着一支迁移】,而它是这条记录里唯一没有
 真正回家的那一件 —— 划掉整条会让它消失。
 
-#### PAYEE-1b(2026-08-18):冒烟与 --reach 欠着 —— 第七次,原因同前
+#### ~~PAYEE-1b(2026-08-18):冒烟欠着~~(SMOKE-DEBT-2 已还清:四条全 ok)
 
 `select 1` 实测 **2.8–6.2 秒**(当天三次取样)。与 WO-1c 起连续第七刀同一个理由:
 在这个条件下跑冒烟,就是那条被明令禁止的重试循环。
@@ -657,7 +657,7 @@ nameserver[0] : 103.86.96.108      ← NordVPN 的解析器
 
 **入口不欠**:三处改动都长在【已存在的】页面上,没有引入任何新路由。
 
-#### SUP-TYPE-1b(2026-08-18):冒烟欠着 —— 第八次,原因同前
+#### ~~SUP-TYPE-1b(2026-08-18):冒烟欠着~~(SMOKE-DEBT-2 已还;手走那一条仍欠)
 
 `select 1` 实测 **2.4–4.3 秒**。连续第八刀同一个理由。
 
@@ -699,7 +699,7 @@ violates not-null constraint`(约束原文,不是具名码)。两条现在都通
 
 留此划掉行的理由:上面那条收窄是一个仍然悬着的决定。
 
-#### LME-1b(2026-08-18):冒烟欠着 —— 第十一次
+#### ~~LME-1b(2026-08-18):冒烟欠着~~(SMOKE-DEBT-2 已还;手走那一条仍欠)
 
 `select 1` 实测 **3.7–4.8 秒**。连续第十一刀同一个理由。
 
@@ -784,3 +784,67 @@ import 只有 `node:fs` / `node:child_process` / `node:path` —— **没有 `pg
 node -e "…fetch(URL+'/rest/v1/suppliers?select=id&limit=1')…"   # 后续请求中位数
 ```
 而不是 `psql -c 'select 1'`。
+
+---
+
+## ✅ 冒烟欠账已还清(SMOKE-DEBT-2,2026-08-18)
+
+**一次完整冒烟跑成了,退出码 0。**
+
+```
+== 177 routes + 1 reviewer-view check: 174 ok, 4 skipped (no data), 0 FAILED
+```
+
+**跳过清单两个方向都成立**:退出码 0 意味着 `extraSkips` 与 `goneSkips` 都为空 ——
+既没有"预期之外的 SKIP"(覆盖回归),也没有"预期会 SKIP 却跑起来了"(数据到位了
+该收编)。四条 SKIP 与 `EXPECTED_SKIPS` 逐条对上:
+
+| SKIP | 原因 |
+|---|---|
+| `/finance/freight/[id]` | freight_documents 空 |
+| `/hr/claims/[id]` | medical_claims 空 |
+| `/hr/leave/[id]` | leave_requests 空 |
+| `/output/[id]/assays/[assayId]` | assay_results 空(产出化验) |
+
+### 按名回答(这些条目当初按名写下,就按名答)
+
+| 欠账来自 | 路由 | 结果 |
+|---|---|---|
+| WO-1c | `/processing/orders` | **ok** |
+| WO-1c | `/processing/orders/new` | **ok** |
+| WO-1c | `/processing/orders/[id]` | **ok** |
+| GRN-1b | `/purchasing/discrepancies` | **ok** |
+| GRN-1b | `/inbound/[id]/edit` | **ok** |
+| GRN-1b | `/purchasing/orders/[id]` | **ok** |
+| GRN-2 | `/suppliers/[id]/edit` | **ok** |
+| PAYEE-1b | `/finance/payables` | **ok** |
+| PAYEE-1b | `/finance/expenses/new` | **ok** |
+| PAYEE-1b | `/finance/payments/new` | **ok** |
+| PAYEE-1b | `/`(看板) | **ok** |
+| SUP-TYPE-1b | `/inbound/new` | **ok** |
+| SUP-TYPE-1b | `/inbound/receive` | **ok** |
+| SUP-TYPE-1b | `/purchasing/orders/new` | **ok** |
+| SUP-TYPE-1b | `/suppliers/new` | **ok** |
+| LME-1b | `/metal-prices` | **ok** |
+| LME-1b | `/metal-prices/new` | **ok** |
+| LME-1b | `/metal-prices/bulk` | **ok** |
+| LME-1b | `/metal-prices/[id]/edit` | **ok** |
+
+**十九条,零 FAILED。** 特别值得记的是那几条【新增了 mustRows/mustOne 的】路由
+(`/suppliers/[id]/edit`、`/finance/*`、`/metal-prices/*`):它们把此前静默的读取
+失败改成了真的 500,而这一跑证明【没有一条真的触发】—— 那正是当初欠着要看的东西。
+
+### 仍然欠着的(冒烟够不到的那一类)
+
+* **`--reach`**:只欠 WO-1c 的 `/processing/orders` + `/processing/orders/new`
+  与 GRN-1b 的 `/purchasing/discrepancies`(三条静态路由的按角色可达性)。
+  后四刀都写明了不欠。
+* **两条手走**(冒烟只发 GET,不提交表单):
+  1. SUP-TYPE-1b:把一家供应商的"会供货"勾掉,确认它离开三个收货/采购下拉、
+     而仍留在开支/付款/运费/加工成本四个下拉里;
+  2. LME-1b:实际提交一条行情,走通出处三件套。
+
+### 顺带记下:滞留的临时行 9 条
+
+`check:scratch` 在这一跑里报了 9 条(最老 285 小时),其中 6 条标着【仍被引用】。
+**按它自己的规矩:报告,不清扫** —— 处置是人的决定,不是这一刀的事。
