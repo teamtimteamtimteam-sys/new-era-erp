@@ -1,5 +1,6 @@
 'use server'
 
+import { parseSourceFields } from '../sourceParse'
 // 每日行情批量录入:并列数组(metal[]/price[])组装 prices jsonb → rpc upsert_metal_prices。
 // 空价格由 DB 侧跳过(表单常常只填其中几个金属),金属集合/价格正负由 DB 校验。
 // 不重定向 —— 每日录入是重复动作,停在原页并回报 {inserted, updated, skipped}。
@@ -59,10 +60,16 @@ export async function saveBulkPrices(
         return { warnings: outside }
     }
 
+    // LME-1b:出处随批次一起走 —— 一次批量录入是【同一个来源】的一批数,
+    // 所以三个字段挂在批次上而不是每个金属一份。
+    const { source, sourceReference, quoteDelayed } = parseSourceFields(formData)
     const { data, error } = await supabase.rpc('upsert_metal_prices', {
         p_price_date: priceDate,
         p_prices: payload,
         p_price_index: priceIndex ?? undefined,
+        p_source: source || undefined,
+        p_source_reference: sourceReference ?? undefined,
+        p_quote_delayed: quoteDelayed ?? undefined,
     })
 
     if (error) {

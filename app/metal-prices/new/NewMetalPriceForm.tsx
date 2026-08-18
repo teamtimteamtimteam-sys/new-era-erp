@@ -6,7 +6,7 @@ import { createMetalPrice, type CreateMetalPriceState } from './actions'
 import { METAL_OPTIONS } from '../options'
 import { useTranslations } from '@/lib/i18n/client'
 import AnomalyWarning from '../AnomalyWarning'
-import IndexPicker from '../IndexPicker'
+import SourcePicker from '../SourcePicker'
 import type { MetalPriceIndex } from '../indexOptions'
 import { ACK_FIELD, ackSignature } from '../anomaly'
 
@@ -97,14 +97,10 @@ export default function NewMetalPriceForm({
                     )}
                 </div>
 
-                {/* METAL-2:这条报价来自哪个市场 —— 与"怎么来的"(source)是两个轴 */}
-                <div>
-                    <label className="block text-sm font-medium mb-1">
-                        {t('metalPrices.form.priceIndex')}
-                    </label>
-                    <IndexPicker name="price_index" indices={indices} defaultValue={null} locale={locale} />
-                    <p className="text-xs text-gray-500 mt-1">{t('metalPrices.form.priceIndexHint')}</p>
-                </div>
+                {/* LME-1b:出处三件套。指数下拉在 SourcePicker 里,只有选了
+                    "发布的指数"才启用 —— 镜像 1a 的配对 CHECK。 */}
+                <SourcePicker indices={indices} locale={locale}
+                              error={state.fieldErrors?.quote_source} />
 
                 {/* 价格日期(必填,默认今天)*/}
                 <div>

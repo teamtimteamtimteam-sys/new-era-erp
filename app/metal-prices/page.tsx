@@ -2,6 +2,7 @@
 // 金属价格列表页:URL 驱动的金属筛选 / 排序 / 分页。
 // 端口自 inbound 列表,精简为单表参考表:无搜索、无导出、无关联方下拉。
 import { Suspense } from 'react'
+import { sourceLabelKey } from './sourceOptions'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import MetalPricesToolbar from './MetalPricesToolbar'
@@ -276,7 +277,13 @@ export default async function MetalPricesPage({
                                     <span className="text-gray-400">{t('metalPrices.index.unstatedShort')}</span>
                                 )}
                             </td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">{r.source}</td>
+                            {/* LME-1b:出处用【人话】显示 —— 此前这里直接印列值,
+                                于是屏幕上是 'unknown'(1a 之前是 'manual')。
+                                那十条老行情读作「来源未记录」:既不是空白,也不是
+                                一个看起来像答案的英文单词。 */}
+                            <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
+                                {t(sourceLabelKey(r.source))}
+                            </td>
                             <td className="border border-gray-300 px-4 py-2 text-sm">{r.notes ?? '—'}</td>
                             <td className="border border-gray-300 px-4 py-2">
                                 <Link

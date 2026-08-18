@@ -11,7 +11,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { METAL_OPTIONS } from '../options'
 import AnomalyWarning from '../AnomalyWarning'
-import IndexPicker from '../IndexPicker'
+import SourcePicker from '../SourcePicker'
 import { INDEX_UNSTATED, type MetalPriceIndex } from '../indexOptions'
 import { ACK_FIELD, ackSignature } from '../anomaly'
 
@@ -88,19 +88,15 @@ export default function BulkPricesForm({
                 {/* METAL-2:整张表属于一个指数。改它要【重取参照价】—— 拿 LME 的
                     上一条去比 SMM 的今天,屏幕上那句"上次 X"就是错的,
                     所以它和日期一样写进 URL,由服务端重取。 */}
-                <div>
-                    <label className="block text-sm font-medium mb-1">
-                        {t('metalPrices.form.priceIndex')}
-                    </label>
-                    <IndexPicker
-                        name="price_index"
-                        indices={indices}
-                        defaultValue={priceIndex}
-                        locale={locale}
-                        onChange={(v) => router.replace(`${pathname}?date=${priceDate}&index=${v}`)}
-                        className="border border-gray-300 px-3 py-2 rounded"
-                    />
-                </div>
+                {/* LME-1b:出处三件套(出处 / 指数 / 凭据 / 当天还是延迟)。
+                    指数下拉搬进 SourcePicker —— 它只在"发布的指数"时才启用,
+                    镜像 1a 那条配对 CHECK。换指数仍然重取参照价。 */}
+                <SourcePicker
+                    indices={indices}
+                    locale={locale}
+                    defaultIndex={priceIndex}
+                    onIndexChange={(v) => router.replace(`${pathname}?date=${priceDate}&index=${v}`)}
+                />
             </div>
 
             <table className="w-full border-collapse border border-gray-300">

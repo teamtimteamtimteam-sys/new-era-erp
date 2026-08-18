@@ -3044,6 +3044,23 @@ const zh = {
         fe: '铁',
     },
     metalPrices: {
+        source: {
+            label: '这条行情从哪来',
+            choose: '请选择出处',
+            published_index: '发布的指数行情',
+            broker_quote: '经纪商 / 交易对手报价',
+            internal_estimate: '我们自己的估计',
+            unknown: '来源未记录',
+            unknownNotOffered: '这里不提供「来源未记录」—— 它只用来描述我们开始记录出处【之前】录入的那些行情。新录入必须说得出出处。',
+            referenceLabel: '凭据(可选)',
+            referencePlaceholder: '例如:经纪商邮件主题、截图文件名、单据号',
+            referenceHint: '这里是自由文本,是刻意的 —— 它是证据,不是数据。手上没有可指的东西就留空;空表示「没有记录过」,不是「没有证据」。',
+            delayLabel: '当天的还是延迟的?',
+            delayUnrecorded: '未记录',
+            delaySameDay: '当天行情',
+            delayDelayed: '延迟 / 次日行情',
+            delayHint: '免费的行情源常常是次日的。一个数当时够不够格用在当天成交的合同上,只有现在记下来、事后才答得出 —— 所以它从不被推断。',
+        },
         listTitle: '金属价格',
         addButton: '+ 新增金属价格',
         recordCount: '共 {count} 条',
@@ -3111,6 +3128,9 @@ const zh = {
             legacyTitle: '这一行录入时还没有这项检查,当时没有比对过。它同样不等于"查过、没问题"。',
         },
         index: {
+            label: '哪一个指数',
+            onlyForPublished: '—— 只有「发布的指数行情」才需要选 ——',
+            onlyForPublishedHint: '经纪商报价与我们自己的估计不归属于任何一条发布序列,所以它们落在【未标注】那条序列上。',
             unstated: '未声明指数(与既有序列一致)',
             unstatedShort: '未声明',
             // 未标注指数的老序列一直是按报价基准(USD)记的

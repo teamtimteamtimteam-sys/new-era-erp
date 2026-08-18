@@ -1,5 +1,6 @@
 'use server'
 
+import { parseSourceFields } from '../sourceParse'
 import { createClient } from '@/lib/supabase/server'
 import type { InsertRow } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
@@ -22,16 +23,24 @@ export async function createMetalPrice(
 ): Promise<CreateMetalPriceState> {
     const t = await getTranslations()
 
-    // 1. 取字段(source 不在表单里 —— 用数据库默认值 'manual')
+    // 1. 取字段。LME-1b:出处现在【在表单里】—— 1a 之后它必填,
+    //    而这条路此前直插、不给 source,于是撞的是裸的 NOT NULL 约束原文。
     const metal = (formData.get('metal') as string)?.trim() || ''
     const price_raw = (formData.get('price_usd_per_tonne') as string) || ''
     const price_date = (formData.get('price_date') as string)?.trim() || ''
     const notes = (formData.get('notes') as string)?.trim() || null
     // METAL-2:哪个市场的报价。未声明是一个明写的选项,不是"没填"。
     const price_index = parseIndexField(formData.get('price_index'))
+    const { source, sourceReference, quoteDelayed } = parseSourceFields(formData)
 
     // 2. 校验
     const fieldErrors: Record<string, string> = {}
+    // 【表单先说人话,库仍然是权威】两条都要:漏了出处,库会拒(NOT NULL),
+    // 但那是约束原文;这里先按名拦下来。配对那条同理。
+    if (!source) fieldErrors.quote_source = t('pricing.errors.QUOTE_SOURCE_REQUIRED')
+    else if (source === 'published_index' && !price_index) {
+        fieldErrors.quote_source = t('pricing.errors.QUOTE_SOURCE_INDEX_REQUIRED')
+    }
     if (!METAL_VALUES.includes(metal)) fieldErrors.metal = t('metalPrices.form.errMetal')
 
     let price: number | null = null
@@ -91,7 +100,11 @@ export async function createMetalPrice(
         notes,
         created_by: user?.id ?? null,
         updated_by: user?.id ?? null,
-        // source 不传,用数据库默认值 'manual'
+        // LME-1b:出处三件套。source 必填(库里没有默认值了);
+        // 凭据空 → NULL;延迟三态 → true/false/null。
+        source,
+        source_reference: sourceReference,
+        quote_delayed: quoteDelayed,
         // id/created_at/updated_at 用默认值
     } as InsertRow<'metal_prices'>)
 

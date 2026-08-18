@@ -260,6 +260,10 @@ const MANIFEST = {
                                   /SELECT '(\w+)'::text AS (?:record_kind|text)/g) },
     // AUDEL-1b:删除那一族的具名拒绝。接真源那个 Set —— 加一个码,检查自动跟上。
     'deletion.errors.': { kind: 'enum', values: () => tsSet('app/components/inventory/deletionErrorCodes.ts', 'DELETION_ERROR_CODES') },
+    // LME-1b:行情出处。真源是 metal_prices 那条 CHECK —— 加一种出处要改 CHECK
+    // (一支迁移),这个检查因此自动跟上。**四个值都要有文案,包括 unknown**:
+    // 它不在录入下拉里,但十条老行情在列表上就读它。
+    'metalPrices.source.': { kind: 'enum', values: () => sqlEnum('db/tables/metal_prices.sql', 'source') },
     // PAYEE-1b:应付往来对象的种类(供应商 / 员工)。真源是 ap_open_items
     // 那个 CASE 里的两个字面量 —— 库里加第三种往来对象,这里自动跟上。
     // 【为什么不接 payments_counterparty_type_check 的三个值】那一条含 'customer',

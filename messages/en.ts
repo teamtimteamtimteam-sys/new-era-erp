@@ -3061,6 +3061,23 @@ const en = {
         fe: 'Iron',
     },
     metalPrices: {
+        source: {
+            label: 'Where this quote came from',
+            choose: 'Choose a source',
+            published_index: 'Published index',
+            broker_quote: 'Broker / counterparty quotation',
+            internal_estimate: 'Internal estimate',
+            unknown: 'Source not recorded',
+            unknownNotOffered: '"Source not recorded" is not offered here — it exists only to describe quotes entered before we started recording provenance. A new quote must say where it came from.',
+            referenceLabel: 'Evidence reference (optional)',
+            referencePlaceholder: 'e.g. broker email subject, screenshot filename, document number',
+            referenceHint: 'Free text on purpose — this is evidence, not data. Leave it blank if you have nothing to point at; blank means "not recorded", not "no evidence exists".',
+            delayLabel: 'Same-day or delayed figure?',
+            delayUnrecorded: 'Not recorded',
+            delaySameDay: 'Same-day figure',
+            delayDelayed: 'Delayed / next-day figure',
+            delayHint: 'Free feeds are often next-day. Whether a figure was eligible for a same-day deal can only be answered later if it is recorded now — so it is never inferred.',
+        },
         listTitle: 'Metal Prices',
         addButton: '+ Add Metal Price',
         recordCount: 'Total: {count}',
@@ -3128,6 +3145,9 @@ const en = {
             legacyTitle: 'Entered before this check existed, so nothing was compared. Not a clean bill of health either.',
         },
         index: {
+            label: 'Which index',
+            onlyForPublished: '— only for a published-index quote —',
+            onlyForPublishedHint: 'A broker quotation or an internal estimate is not attributed to a published series, so it goes onto the unlabelled series.',
             unstated: 'Index not stated (same series as the existing quotes)',
             unstatedShort: 'not stated',
             // 未标注指数的老序列一直是按报价基准(USD)记的

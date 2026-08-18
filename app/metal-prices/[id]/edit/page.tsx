@@ -41,7 +41,7 @@ export default async function EditMetalPricePage({
 
     const { data: row, error } = await supabase
         .from('metal_prices')
-        .select('id, metal, price_usd_per_tonne, price_date, price_index, notes')
+        .select('id, metal, price_usd_per_tonne, price_date, price_index, notes, source')
         .eq('id', id)
         .is('deleted_at', null)
         .single()

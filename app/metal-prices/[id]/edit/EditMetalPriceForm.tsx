@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState } from 'react'
+import { sourceLabelKey } from '../../sourceOptions'
 import Link from 'next/link'
 import { updateMetalPrice, type UpdateMetalPriceState } from './actions'
 import { METAL_OPTIONS } from '../../options'
@@ -18,6 +19,7 @@ type MetalPrice = {
     price_usd_per_tonne: number
     price_date: string
     price_index: string | null
+    source: string | null
     notes: string | null
 }
 
@@ -112,6 +114,18 @@ export default function EditMetalPriceForm({
                         {t('metalPrices.form.priceIndex')}
                     </label>
                     <IndexPicker name="price_index" indices={indices} defaultValue={row.price_index} locale={locale} />
+                </div>
+
+                {/* LME-1b:出处【只读】—— 这张表单不改它,而它是这条行情最要紧的
+                    一句话之一。不显示,读的人就得回列表去看;显示成可编辑的,
+                    又会假装这里能改(action 不动 source)。 */}
+                <div>
+                    <label className="block text-sm font-medium mb-1">
+                        {t('metalPrices.source.label')}
+                    </label>
+                    <p className="text-sm text-gray-700 border border-gray-200 bg-gray-50 rounded px-3 py-2">
+                        {t(sourceLabelKey(row.source))}
+                    </p>
                     <p className="text-xs text-gray-500 mt-1">{t('metalPrices.form.priceIndexHint')}</p>
                 </div>
 
