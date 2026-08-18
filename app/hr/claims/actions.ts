@@ -45,7 +45,7 @@ export async function decideClaim(claimId: string, approve: boolean, notes: stri
 // 【建费用是财务的动作】—— 函数要 module.finance.edit。
 // HR 审核在前(claim 必须已 approved),财务在后,两步两人。
 export async function payClaim(
-    claimId: string, expenseDate: string, supplierId: string
+    claimId: string, expenseDate: string
 ): Promise<ClaimState & { expenseCode?: string }> {
     const supabase = await createClient()
     // 【必填】这个日期决定过账期间/取哪天的汇率 —— 界面禁用是第一道,这是第二道:
@@ -54,7 +54,8 @@ export async function payClaim(
     const { data, error } = await supabase.rpc('pay_medical_claim', {
         p_claim_id: claimId,
         p_expense_date: expenseDate,
-        p_supplier_id: supplierId,
+        // PAYEE-1a:报销的收款人【就是提交报销的那个员工】,函数自己从报销单取。
+        // p_supplier_id 已从函数签名里删掉 —— 传它会 404。
     })
     if (error) return { error: await localizeLeaveError(error.message) }
     revalidatePath('/hr/claims')

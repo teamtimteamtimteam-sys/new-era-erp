@@ -42,7 +42,9 @@ BEGIN
     UPDATE finance_settings SET locked_before = NULL;
 
     -- 【原样定义在任何注入之前取齐】临用临取会取到已经被上一个注入改过的那一份
-    def_rec   := pg_get_functiondef('public.record_expense(date,text,numeric,text,numeric,text,text,uuid,text,text,jsonb)'::regprocedure);
+    def_rec   := pg_get_functiondef(-- PAYEE-1a:签名多了 p_employee_id(往来对象二选一),这里跟着改。
+    --【它把签名钉死是对的】—— 注入要替换的就是这一个具体的函数。
+    'public.record_expense(date,text,numeric,text,numeric,text,text,uuid,text,text,jsonb,uuid)'::regprocedure);
     def_close := pg_get_functiondef('public.close_period(date,text)'::regprocedure);
     def_sis   := pg_get_functiondef('public.set_asset_in_service(uuid,date)'::regprocedure);
 

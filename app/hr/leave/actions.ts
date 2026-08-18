@@ -46,8 +46,9 @@ export async function localizeLeaveError(message: string): Promise<string> {
             return t('claims.errAlreadyPaid', { 0: p[0] ?? '' })
         case 'CLAIM_EXCEEDS_LIMIT':
             return t('claims.errExceedsLimit', { 0: p[0] ?? '', 1: p[1] ?? '' })
-        case 'SUPPLIER_REQUIRED_FOR_UNPAID':
-            return t('claims.errSupplierRequired')
+        // PAYEE-1a:'SUPPLIER_REQUIRED_FOR_UNPAID' 这一支【退休】——
+        // pay_medical_claim 不再需要供应商,这条路径抛不出它了。
+        // 留着一个抛不出来的分支,与留着一条描述已不存在约束的注释同罪。
         case 'FX_RATE_MISSING':
             return t('claims.errFxMissing', { 0: p[1] ?? '' })
         default:

@@ -36,6 +36,20 @@
 -- FRT-1(2026-08-11):第三种单据 —— 未付运费单(对手方是【货代】)。
 -- 少了这一支,那笔钱在总账里躺着、在账龄表上不存在。
 
+-- PAYEE-1a(2026-08-18):费用支【由 INNER JOIN 改成 LEFT JOIN】,并新增
+-- counterparty_kind / counterparty_id / counterparty_name 三列(追加在列尾,
+-- 迁移里用 CREATE OR REPLACE(列追加在尾部),所以 operations_now 的依赖不必 DROP;
+-- 本镜像是首次运行脚本,照惯例写 CREATE VIEW。
+-- 【为什么必须改】原来是 JOIN suppliers —— 一条 supplier_id 为空的费用
+-- 【整行消失】,不是显示成空白往来对象。那是 OPS-14 抓到的同一种病:
+-- 静默丢行,没有错误,读者看到的是"这笔应付不存在"。
+-- 【supplier_id / supplier_name 原样保留,员工行为 NULL】不把员工姓名塞进
+-- 供应商那一列 —— 那正是 SUP-TYPE / PAYEE 这一系列在拆的那次混同。
+-- 要"这笔欠谁"就读 counterparty_*,它们【永远非空】。
+-- 【属主权限不变】employees 有 RLS(module.hr.view 或本人);本视图
+-- security_invoker=off,所以财务读者不会因为没有 HR 权限而丢掉员工行
+-- (OPS-14 的解法 a)。只借 legal_name 一个显示标签(AGENTS.md 第三条决定)。
+
 CREATE VIEW public.ap_open_items WITH (security_invoker = off) AS
  SELECT doc_kind,
     doc_id,
@@ -55,7 +69,10 @@ CREATE VIEW public.ap_open_items WITH (security_invoker = off) AS
             WHEN (CURRENT_DATE - doc_date) <= 60 THEN 'b31_60'::text
             WHEN (CURRENT_DATE - doc_date) <= 90 THEN 'b61_90'::text
             ELSE 'b90_plus'::text
-        END AS bucket
+        END AS bucket,
+    counterparty_kind,
+    counterparty_id,
+    counterparty_name
    FROM ( SELECT 'inbound'::text AS doc_kind,
             ib.id AS doc_id,
             ib.code AS doc_code,
@@ -69,7 +86,10 @@ CREATE VIEW public.ap_open_items WITH (security_invoker = off) AS
             ( SELECT c.code
                    FROM currencies c
                   WHERE c.is_base) AS currency,
-            round(round(ib.quantity * ib.unit_price, 2) - COALESCE(s.settled, 0::numeric) - COALESCE(pp.applied, 0::numeric), 2) AS open_ccy
+            round(round(ib.quantity * ib.unit_price, 2) - COALESCE(s.settled, 0::numeric) - COALESCE(pp.applied, 0::numeric), 2) AS open_ccy,
+            'supplier'::text AS counterparty_kind,
+            ib.supplier_id AS counterparty_id,
+            sup.legal_name AS counterparty_name
            FROM inbound_batches_masked ib
              JOIN suppliers sup ON sup.id = ib.supplier_id
              LEFT JOIN LATERAL ( SELECT sum(pa.allocated_ccy) AS settled
@@ -92,9 +112,16 @@ CREATE VIEW public.ap_open_items WITH (security_invoker = off) AS
             round(COALESCE(s.settled, 0::numeric) * e.fx_rate, 2) AS settled_base,
             round((e.amount_ccy - COALESCE(s.settled, 0::numeric)) * e.fx_rate, 2) AS open_base,
             e.currency,
-            round(e.amount_ccy - COALESCE(s.settled, 0::numeric), 2) AS open_ccy
+            round(e.amount_ccy - COALESCE(s.settled, 0::numeric), 2) AS open_ccy,
+                CASE
+                    WHEN e.employee_id IS NOT NULL THEN 'employee'::text
+                    ELSE 'supplier'::text
+                END AS counterparty_kind,
+            COALESCE(e.supplier_id, e.employee_id) AS counterparty_id,
+            COALESCE(sup.legal_name, emp.legal_name) AS counterparty_name
            FROM expenses e
-             JOIN suppliers sup ON sup.id = e.supplier_id
+             LEFT JOIN suppliers sup ON sup.id = e.supplier_id
+             LEFT JOIN employees emp ON emp.id = e.employee_id
              LEFT JOIN LATERAL ( SELECT sum(pa.allocated_ccy) AS settled
                    FROM payment_allocations pa
                      JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'::text
@@ -114,7 +141,10 @@ CREATE VIEW public.ap_open_items WITH (security_invoker = off) AS
             round(COALESCE(s.settled, 0::numeric) * fd.fx_rate, 2) AS settled_base,
             round((fd.amount_ccy - COALESCE(s.settled, 0::numeric)) * fd.fx_rate, 2) AS open_base,
             fd.currency,
-            round(fd.amount_ccy - COALESCE(s.settled, 0::numeric), 2) AS open_ccy
+            round(fd.amount_ccy - COALESCE(s.settled, 0::numeric), 2) AS open_ccy,
+            'supplier'::text AS counterparty_kind,
+            fd.supplier_id AS counterparty_id,
+            sup.legal_name AS counterparty_name
            FROM freight_documents fd
              JOIN suppliers sup ON sup.id = fd.supplier_id
              LEFT JOIN LATERAL ( SELECT sum(pa.allocated_ccy) AS settled
@@ -122,6 +152,4 @@ CREATE VIEW public.ap_open_items WITH (security_invoker = off) AS
                      JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'::text
                   WHERE pa.freight_document_id = fd.id) s ON true
           WHERE fd.payment_status = 'unpaid'::text AND fd.status = 'posted'::text AND fd.deleted_at IS NULL) d
-  WHERE open_ccy > 0::numeric AND has_permission('module.finance.view'::text);
-
-
+  WHERE open_ccy > 0::numeric AND has_permission('module.finance.view'::text);;

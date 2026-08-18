@@ -10,6 +10,15 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 When in doubt run `python3 db/check_mirrors.py` — it replays the whole mirror set into a scratch schema inside a rolled-back transaction and diffs the catalogs against live (exit 0 = clean). Never paste a table mirror into the live DB directly: table mirrors contain `CREATE OR REPLACE FUNCTION` and would silently overwrite live functions — the script's header explains both hazards.
 
+**从 `pg_get_viewdef()` 重新生成一份视图镜像时,`WITH (...)` 那一段【不会跟过来】。**
+它只吐 `SELECT …`,不吐 reloptions。所以照它重建镜像会把
+`WITH (security_invoker = off)` 悄悄丢掉(PAYEE-1a 实测,由判词二抓到)。
+**要把话说准:丢掉它【不会】把视图变成 invoker** —— PostgreSQL 的默认本来就是
+属主权限,所以行为一致,红的是【镜像文本】那一栏,不是那张视图的行为。
+但仍然必须补回去:镜像要能一字不差地重建线上,而且下一个读镜像的人会据此
+判断这张视图是不是刻意声明过。线上有 61 张显式 `security_invoker=off` 的视图,
+本刀顺手全查了一遍,镜像缺这一句的:**0 张**。
+
 ## RUNTIME CONFIG bootstraps: what the harness cannot see
 
 `check_mirrors.py` classifies seeded tables two ways (see `SEED_TABLES` /
@@ -215,6 +224,28 @@ needed**, and the same lesson OPS-7 drew about `B1`/`is_system`.
 跑了一次 `npm run build` —— 它重写了 `.next`,把正在跑的 dev server 搞死了。
 **等待本身造成了它正在等的那个失败**,而且因为轮询没有失败分支,又过了很久才被发现。
 所以:等 ≠ 免费。等一个长活的正确做法是不等它。
+
+### 重试的【延时】必须由一次测量撑着,不能由一个整数撑着(PAYEE-1a,2026-08-18)
+
+> **一次重试之前要等多久,答案只能来自"我观察到那次故障已经过去了"。
+> 来自"半小时听起来差不多"的延时,是一个没有证据的等待 —— 而它花掉的时间
+> 与一次真正的观察一样长。**
+>
+> **没有那个测量时,正确的做法是:【立刻重试一次,然后停下来】。**
+
+PAYEE-1a 的备份被网络打断(`Can't assign requested address`),当时的处置是
+"30 分钟后重试一次"。**那 30 分钟没有任何依据**:这台机器的出口当天
+【一整天都是慢的】—— `select 1` 从早到晚是 2.5s → 5.0s → 7.6s,单调变差,
+没有任何一次测量显示它曾经恢复过。等 30 分钟与等 30 秒的区别,只在于
+多花了 30 分钟。**间歇性的故障值得等;持续性的故障只值得再试一次。**
+
+判据一句话:**你能指出哪一次测量说明"它会好起来"吗?**
+* 能(例如实测到 `select 1` 已经回到亚秒、或者上游状态页说故障已解除)
+  → 按那次测量决定等多久;
+* 不能 → 立刻重试一次。**还失败就停下来报告,不要开始猜第二个整数。**
+
+这与"不要对着劣化的网络做重试循环"是同一条的两半:
+那条说【不要循环】,这条说【连那一次重试之前的延时,也要有出处】。
 
 ### 条件必须由【循环】求值,不是由启动它的那个 shell
 

@@ -1,10 +1,11 @@
-CREATE OR REPLACE FUNCTION public.record_payment(p_direction text, p_counterparty_id uuid, p_amount numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_bank_account text DEFAULT NULL::text, p_payment_date date DEFAULT NULL::date, p_notes text DEFAULT NULL::text, p_allocations jsonb DEFAULT '[]'::jsonb)
+CREATE OR REPLACE FUNCTION public.record_payment(p_direction text, p_counterparty_id uuid, p_amount numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_bank_account text DEFAULT NULL::text, p_payment_date date DEFAULT NULL::date, p_notes text DEFAULT NULL::text, p_allocations jsonb DEFAULT '[]'::jsonb, p_counterparty_kind text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
+    v_kind text;
     v_user         uuid := auth.uid();
     v_base         text;   -- OPS-8:本位币从 currencies.is_base 读
     v_date         date;
@@ -71,15 +72,36 @@ BEGIN
         RAISE EXCEPTION 'DIRECTION_INVALID|%', COALESCE(p_direction, '?');
     END IF;
 
-    IF p_direction = 'in' THEN
+    -- PAYEE-1a:往来对象【是哪一种】不再由 direction 推断,而是说出来的。
+    -- 不填时退回本刀之前的默认('in'→客户,'out'→供应商),于是既有调用方一字不改。
+    -- 【为什么不靠"在供应商里找不到就去员工里找"】那是一次静默回退:
+    -- 打错一个 uuid 会从"找不到"变成"在另一张表里也找不到",错误信息指向错的地方;
+    -- 而一个真的两边都存在的 id(理论上可能)会挑中谁,没有人说得清。
+    v_kind := COALESCE(NULLIF(btrim(p_counterparty_kind), ''),
+                       CASE WHEN p_direction = 'in' THEN 'customer' ELSE 'supplier' END);
+
+    IF p_direction = 'in' AND v_kind <> 'customer' THEN
+        RAISE EXCEPTION 'COUNTERPARTY_KIND_INVALID|%|%', p_direction, v_kind;
+    END IF;
+    IF p_direction = 'out' AND v_kind NOT IN ('supplier', 'employee') THEN
+        RAISE EXCEPTION 'COUNTERPARTY_KIND_INVALID|%|%', p_direction, v_kind;
+    END IF;
+
+    IF v_kind = 'customer' THEN
         IF p_counterparty_id IS NULL OR NOT EXISTS (
             SELECT 1 FROM customers WHERE id = p_counterparty_id AND deleted_at IS NULL
         ) THEN
             RAISE EXCEPTION 'COUNTERPARTY_NOT_FOUND|%', COALESCE(p_counterparty_id::text, '?');
         END IF;
-    ELSE
+    ELSIF v_kind = 'supplier' THEN
         IF p_counterparty_id IS NULL OR NOT EXISTS (
             SELECT 1 FROM suppliers WHERE id = p_counterparty_id AND deleted_at IS NULL
+        ) THEN
+            RAISE EXCEPTION 'COUNTERPARTY_NOT_FOUND|%', COALESCE(p_counterparty_id::text, '?');
+        END IF;
+    ELSE
+        IF p_counterparty_id IS NULL OR NOT EXISTS (
+            SELECT 1 FROM employees WHERE id = p_counterparty_id AND deleted_at IS NULL
         ) THEN
             RAISE EXCEPTION 'COUNTERPARTY_NOT_FOUND|%', COALESCE(p_counterparty_id::text, '?');
         END IF;
@@ -309,7 +331,10 @@ BEGIN
                 RAISE EXCEPTION 'ALLOC_WRONG_SIDE';
             END IF;
             -- 挂账开支:必须是 unpaid + posted(不存在/已付/已冲销 → ALLOC_INVALID)
-            SELECT e.id, e.code AS doc_code, e.supplier_id AS party_id,
+            -- PAYEE-1a:往来对象二选一,所以 party_id 取"那一个"。
+            -- CHECK 保证 num_nonnulls(supplier_id, employee_id) = 1,于是 COALESCE
+            -- 不会把两个混起来 —— 它挑的是唯一非空的那个。
+            SELECT e.id, e.code AS doc_code, COALESCE(e.supplier_id, e.employee_id) AS party_id,
                    e.amount_ccy AS doc_value, e.currency AS doc_ccy, e.fx_rate AS doc_fx
             INTO v_doc
             FROM expenses e
@@ -505,12 +530,14 @@ BEGIN
 
     -- ③ 插入收付款单(带着分录链接一次到位;不可变表无后续 UPDATE)
     INSERT INTO payments (id, code, direction, counterparty_type, customer_id, supplier_id,
+                          employee_id,
                           amount_ccy, currency, fx_rate, amount_base, bank_account_code,
                           payment_date, notes, journal_entry_id, created_by)
     VALUES (v_payment_id, v_code, p_direction,
-            CASE WHEN p_direction = 'in' THEN 'customer' ELSE 'supplier' END,
-            CASE WHEN p_direction = 'in' THEN p_counterparty_id END,
-            CASE WHEN p_direction = 'out' THEN p_counterparty_id END,
+            v_kind,
+            CASE WHEN v_kind = 'customer' THEN p_counterparty_id END,
+            CASE WHEN v_kind = 'supplier' THEN p_counterparty_id END,
+            CASE WHEN v_kind = 'employee' THEN p_counterparty_id END,
             p_amount, p_currency, v_fx, v_amount_base, v_bank,
             v_date, p_notes, (v_je->>'entry_id')::uuid, v_user);
 
@@ -555,6 +582,4 @@ BEGIN
                              FROM jsonb_each(v_pre))
     );
 END;
-$function$
-
-;
+$function$;

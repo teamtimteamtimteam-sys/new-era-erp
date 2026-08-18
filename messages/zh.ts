@@ -251,7 +251,6 @@ const zh = {
         errNotApproved: '本报销当前状态为「{0}」,请先批准。',
         errAlreadyPaid: '本报销已经生成过费用单({0})。',
         errExceedsLimit: '超出剩余额度:剩余 {0},本次 {1}。',
-        errSupplierRequired: '请选择付款对象 —— 应付账需要一个往来户。',
         errFxMissing: '{0} 或之前没有新元汇率。请先到「财务 → 汇率」录入。',
     },
     setPassword: {
@@ -4367,6 +4366,9 @@ const zh = {
             FX_RATE_REQUIRED: '{0} 需要提供汇率',
             PAYMENT_STATUS_INVALID: '付款状态无效:{0}',
             BANK_INVALID: '银行账户无效:{0}',
+            COUNTERPARTY_REQUIRED_FOR_UNPAID: '挂账的费用必须说得出欠谁 —— 供应商或员工',
+            COUNTERPARTY_AMBIGUOUS: '一笔费用要么欠供应商,要么欠员工,不能两个都填',
+            EMPLOYEE_NOT_FOUND: '员工不存在',
             SUPPLIER_REQUIRED_FOR_UNPAID: '挂账开支必须选择供应商',
             CAPITAL_REQUIRES_ASSET: '科目 1500 必须附带资产明细 —— 固定资产借方不能没有台账行',
             ASSET_REQUIRES_CAPITAL_ACCOUNT: '给了资产明细但科目是 {0} —— 资本性支出只落 1500',

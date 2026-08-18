@@ -6,18 +6,16 @@ import { useTranslations } from '@/lib/i18n/client'
 import { decideClaim, payClaim } from '../actions'
 
 export default function ClaimControls({
-    claimId, status, alreadyLinked, canFinance, suppliers,
+    claimId, status, alreadyLinked, canFinance,
 }: {
     claimId: string
     status: string
     alreadyLinked: boolean
     canFinance: boolean
-    suppliers: { id: string; name: string }[]
 }) {
     const t = useTranslations()
     const router = useRouter()
     const [notes, setNotes] = useState('')
-    const [supplierId, setSupplierId] = useState(suppliers[0]?.id ?? '')
     const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
     const [error, setError] = useState<string | null>(null)
     const [ok, setOk] = useState<string | null>(null)
@@ -65,19 +63,12 @@ export default function ClaimControls({
                         <label className="text-xs">{t('claims.expenseDate')}
                             <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
                                    className="block border border-gray-300 rounded px-2 py-1 text-sm" /></label>
-                        <label className="text-xs">{t('claims.counterparty')}
-                            <select value={supplierId} onChange={(e) => setSupplierId(e.target.value)}
-                                    className="block border border-gray-300 rounded px-2 py-1 text-sm">
-                                {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                            </select>
-                            <span className="mt-1 block text-[11px] text-gray-500">{t('claims.counterpartyHint')}</span>
-                        </label>
                     </div>
                     <button
                         type="button"
-                        disabled={pending || !canFinance || !supplierId || !date}
+                        disabled={pending || !canFinance || !date}
                         title={canFinance ? undefined : t('claims.needsFinance')}
-                        onClick={() => run(() => payClaim(claimId, date, supplierId))}
+                        onClick={() => run(() => payClaim(claimId, date))}
                         className="bg-gray-900 text-white px-4 py-1.5 rounded text-sm disabled:opacity-50"
                     >
                         {pending ? t('common.saving') : t('claims.createExpense')}

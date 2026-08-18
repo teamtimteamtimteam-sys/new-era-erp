@@ -602,3 +602,35 @@ SUP-TYPE-1a 是**纯数据库那一半**:一个列、一个触发器、两支视
 错误信息是具名的(不是机器码),所以它坏得体面,但它仍然坏着。
 线上今天唯一被标成非供货的是 SUP-2026-0083(Staff Reimbursements),
 而 PAYEE-1 预期把那一行整个退休。
+
+#### PAYEE-1a(2026-08-18):员工可以被直接付款了 —— 而【屏幕还不知道】
+
+PAYEE-1a 是数据库那一半:`expenses.employee_id` / `payments.employee_id`、
+三条 CHECK 换成"供应商 XOR 员工"、`ap_open_items` 长出
+`counterparty_kind / counterparty_id / counterparty_name`。**屏幕是 1b。**
+
+**在 1b 落地之前,下面这些是真的坏着的(或者说不出话),按名列出来:**
+
+1. **AP 账龄把员工那一行归到「—」里**。`app/finance/payables/page.tsx:79,82`
+   按 `r.supplier_id ?? '—'` 分组、按 `r.supplier_name ?? '—'` 取名,
+   而员工行的 `supplier_*` 【诚实地为 NULL】。所以它会和其它无名行汇成一堆。
+   改法:读 `counterparty_id` / `counterparty_name`(视图已经给了,永远非空)。
+2. **看板 `ap_over_90` 的 subject 对员工行是空的**。
+   `db/views/operations_now.sql` 那一支取 `ap.supplier_name AS subject`。
+   同样改读 `counterparty_name`。
+3. **付款页开不出"付给员工"这条路**。`app/finance/payments/new/page.tsx:65`
+   只列 `suppliers`;`record_payment` 的新参数 `p_counterparty_kind` 没有人传
+   (不传 = 旧行为,所以【不会坏】,只是到不了)。
+4. **开支表单同理**:`app/finance/expenses/new/page.tsx:32` 只列供应商,
+   它自己那道前置检查仍要求 `supplierId` —— 对那张表单是【对的】(它还没有
+   员工选项),但 1b 要把两者一起改,否则会出现"页面要求供应商、
+   服务端并不要求"的反向不一致。
+5. **`SUPPLIER_REQUIRED_FOR_UNPAID` 数据库侧不再抛**。它仍留在
+   `app/finance/expenseErrorCodes.ts` 与 messages 里,因为开支表单自己的
+   前置检查还在用那句文案。1b 把表单改完之后,连这个码一起退休。
+
+**已经在本刀里做掉的屏幕改动,只有一处,而且是【删除】**:报销页那个供应商
+下拉(`app/hr/claims/[id]/ClaimControls.tsx`)。留着它就是留一个"选了也没用"
+的控件 —— 而且它本来就永远是空的(筛 `status='active'`,而线上没有 active
+供应商),付款按钮被 `!supplierId` 永久禁用。也就是说**报销付款这条路在本刀
+之前根本走不通**;删掉之后它才第一次能走。

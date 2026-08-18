@@ -9,7 +9,7 @@
 -- 这条路径专门奖励留空。要求由函数自己声明,而不是靠调用方自觉。
 -- 详见 db/migrations/2026-08-05-fin10-no-default-posting-dates.sql。
 
-CREATE OR REPLACE FUNCTION public.pay_medical_claim(p_claim_id uuid, p_expense_date date DEFAULT NULL::date, p_supplier_id uuid DEFAULT NULL::uuid, p_fx_rate numeric DEFAULT NULL::numeric)
+CREATE OR REPLACE FUNCTION public.pay_medical_claim(p_claim_id uuid, p_expense_date date DEFAULT NULL::date, p_fx_rate numeric DEFAULT NULL::numeric)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -44,12 +44,14 @@ BEGIN
 
     SELECT id, code, legal_name INTO v_emp FROM employees WHERE id = v_claim.employee_id;
 
-    -- 【未付费用必须有一个往来对象】:expenses 的 CHECK 要求 unpaid 时 supplier_id 非空
-    -- (应付账上总得有"付给谁")。员工不是供应商,所以实务上建一个
-    -- "员工报销 / Staff Reimbursements" 的往来户,具体是谁写在 payee_name 与备注里。
-    IF p_supplier_id IS NULL THEN
-        RAISE EXCEPTION 'SUPPLIER_REQUIRED_FOR_UNPAID';
-    END IF;
+    -- ── PAYEE-1a:上面那段"建一个 Staff Reimbursements 往来户"的注释【已退休】──
+    -- 它原本写着:"expenses 的 CHECK 要求 unpaid 时 supplier_id 非空(应付账上
+    -- 总得有'付给谁')。员工不是供应商,所以实务上建一个往来户,具体是谁写在
+    -- payee_name 与备注里。" —— 那段话准确描述了一个【真实存在过的】变通,
+    -- 而本刀移除了它的必要性:expenses 现在收得下 employee_id,应付账按人分行。
+    -- 【注释与它描述的东西一起退休】—— 一条描述着已不存在的约束的注释,
+    -- 与一条断言着不可能发生的隐患的注释是同一个缺陷(AGENTS.md)。
+    -- 报销的收款人【就是提交报销的那个员工】,不需要任何人再挑一次。
 
     -- FIN-0:报销是 SGD,账本也是 SGD —— 不再需要任何汇率。
     -- (旧版在这里取"当天或之前最近"的一条汇率;那正是 C5 要禁掉的写法,随基准换币一并拆除。)
@@ -66,7 +68,8 @@ BEGIN
         p_fx_rate       := NULL,
         p_payment_status:= 'unpaid',
         p_bank_account  := NULL,
-        p_supplier_id   := p_supplier_id,
+        p_supplier_id   := NULL,
+        p_employee_id   := v_claim.employee_id,
         p_payee_name    := v_emp.legal_name,
         p_notes         := format('Medical claim %s (%s)', v_claim.code, v_emp.code));
 

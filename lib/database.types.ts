@@ -1544,6 +1544,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           currency: string
+          employee_id: string | null
           expense_date: string
           fx_rate: number
           id: string
@@ -1564,6 +1565,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           currency: string
+          employee_id?: string | null
           expense_date: string
           fx_rate: number
           id?: string
@@ -1584,6 +1586,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           currency?: string
+          employee_id?: string | null
           expense_date?: string
           fx_rate?: number
           id?: string
@@ -1616,6 +1619,55 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "currencies"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "expenses_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "expenses_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "expenses_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "expenses_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "expenses_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
           },
           {
             foreignKeyName: "expenses_journal_entry_id_fkey"
@@ -4658,6 +4710,7 @@ export type Database = {
           currency: string
           customer_id: string | null
           direction: string
+          employee_id: string | null
           fx_rate: number
           id: string
           journal_entry_id: string | null
@@ -4678,6 +4731,7 @@ export type Database = {
           currency: string
           customer_id?: string | null
           direction: string
+          employee_id?: string | null
           fx_rate: number
           id?: string
           journal_entry_id?: string | null
@@ -4698,6 +4752,7 @@ export type Database = {
           currency?: string
           customer_id?: string | null
           direction?: string
+          employee_id?: string | null
           fx_rate?: number
           id?: string
           journal_entry_id?: string | null
@@ -4728,6 +4783,55 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "payments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "payments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "payments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "payments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
           },
           {
             foreignKeyName: "payments_journal_entry_id_fkey"
@@ -9494,6 +9598,9 @@ export type Database = {
       ap_open_items: {
         Row: {
           bucket: string | null
+          counterparty_id: string | null
+          counterparty_kind: string | null
+          counterparty_name: string | null
           currency: string | null
           days_outstanding: number | null
           doc_code: string | null
@@ -14288,7 +14395,6 @@ export type Database = {
           p_claim_id: string
           p_expense_date?: string
           p_fx_rate?: number
-          p_supplier_id?: string
         }
         Returns: Json
       }
@@ -14459,6 +14565,7 @@ export type Database = {
           p_asset?: Json
           p_bank_account?: string
           p_currency: string
+          p_employee_id?: string
           p_expense_date: string
           p_fx_rate?: number
           p_notes?: string
@@ -14508,6 +14615,7 @@ export type Database = {
           p_amount: number
           p_bank_account?: string
           p_counterparty_id: string
+          p_counterparty_kind?: string
           p_currency: string
           p_direction: string
           p_fx_rate?: number

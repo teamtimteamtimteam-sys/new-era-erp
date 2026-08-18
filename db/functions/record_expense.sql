@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.record_expense(p_expense_date date, p_account_code text, p_amount numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_payment_status text DEFAULT 'paid'::text, p_bank_account text DEFAULT NULL::text, p_supplier_id uuid DEFAULT NULL::uuid, p_payee_name text DEFAULT NULL::text, p_notes text DEFAULT NULL::text, p_asset jsonb DEFAULT NULL::jsonb)
+CREATE OR REPLACE FUNCTION public.record_expense(p_expense_date date, p_account_code text, p_amount numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_payment_status text DEFAULT 'paid'::text, p_bank_account text DEFAULT NULL::text, p_supplier_id uuid DEFAULT NULL::uuid, p_payee_name text DEFAULT NULL::text, p_notes text DEFAULT NULL::text, p_asset jsonb DEFAULT NULL::jsonb, p_employee_id uuid DEFAULT NULL::uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -85,11 +85,22 @@ BEGIN
     ELSE
         -- unpaid:必须有在册供应商(它要成为 AP 单据);银行科目必须为空 ——
         -- 传了也直接忽略(挂账时根本没动银行,存下来只会误导)
-        IF p_supplier_id IS NULL THEN
-            RAISE EXCEPTION 'SUPPLIER_REQUIRED_FOR_UNPAID';
+        -- PAYEE-1a:往来对象【二选一】—— 供应商 或 员工,恰好一个。
+        -- 【两个都给是矛盾,不是"取其一"】一笔钱不可能同时欠着两个人;
+        -- 悄悄挑一个会让另一个人的账凭空消失,所以按名拒绝。
+        IF num_nonnulls(p_supplier_id, p_employee_id) = 0 THEN
+            RAISE EXCEPTION 'COUNTERPARTY_REQUIRED_FOR_UNPAID';
         END IF;
-        IF NOT EXISTS (SELECT 1 FROM suppliers WHERE id = p_supplier_id AND deleted_at IS NULL) THEN
+        IF num_nonnulls(p_supplier_id, p_employee_id) > 1 THEN
+            RAISE EXCEPTION 'COUNTERPARTY_AMBIGUOUS';
+        END IF;
+        IF p_supplier_id IS NOT NULL
+           AND NOT EXISTS (SELECT 1 FROM suppliers WHERE id = p_supplier_id AND deleted_at IS NULL) THEN
             RAISE EXCEPTION 'SUPPLIER_NOT_FOUND|%', p_supplier_id;
+        END IF;
+        IF p_employee_id IS NOT NULL
+           AND NOT EXISTS (SELECT 1 FROM employees WHERE id = p_employee_id AND deleted_at IS NULL) THEN
+            RAISE EXCEPTION 'EMPLOYEE_NOT_FOUND|%', p_employee_id;
         END IF;
         v_bank := NULL;
     END IF;
@@ -122,10 +133,10 @@ BEGIN
 
     -- 7. 插入开支单(带着分录链接一次到位;不可变表无后续 UPDATE)
     INSERT INTO expenses (id, code, expense_date, account_code, amount_ccy, currency, fx_rate,
-                          amount_base, payment_status, bank_account_code, supplier_id,
+                          amount_base, payment_status, bank_account_code, supplier_id, employee_id,
                           payee_name, notes, journal_entry_id, created_by)
     VALUES (v_expense_id, v_code, p_expense_date, p_account_code, p_amount, p_currency, v_fx,
-            v_amount_base, p_payment_status, v_bank, p_supplier_id,
+            v_amount_base, p_payment_status, v_bank, p_supplier_id, p_employee_id,
             p_payee_name, p_notes, (v_je->>'entry_id')::uuid, v_user);
 
     -- FIN-22:资本行 → 同一事务生成台账。成本 = 本单金额;汇率 = 上面按
@@ -228,6 +239,4 @@ BEGIN
         'payment_status', p_payment_status
     );
 END;
-$function$
-
-;
+$function$;

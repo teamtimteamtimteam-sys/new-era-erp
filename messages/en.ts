@@ -248,7 +248,6 @@ const en = {
         errNotApproved: 'This claim is {0} — approve it first.',
         errAlreadyPaid: 'An expense ({0}) has already been raised for this claim.',
         errExceedsLimit: 'That exceeds the remaining entitlement: {0} left, {1} claimed.',
-        errSupplierRequired: 'Choose who the reimbursement is paid to — accounts payable needs a counterparty.',
         errFxMissing: 'No SGD exchange rate on or before {0}. Add one in Finance → FX rates.',
     },
     setPassword: {
@@ -4390,6 +4389,9 @@ const en = {
             FX_RATE_REQUIRED: 'Exchange rate required for {0}',
             PAYMENT_STATUS_INVALID: 'Invalid payment status: {0}',
             BANK_INVALID: 'Invalid bank account: {0}',
+            COUNTERPARTY_REQUIRED_FOR_UNPAID: 'An unpaid expense must say who it is owed to — a supplier or an employee',
+            COUNTERPARTY_AMBIGUOUS: 'An expense is owed to a supplier or to an employee, not to both',
+            EMPLOYEE_NOT_FOUND: 'Employee not found',
             SUPPLIER_REQUIRED_FOR_UNPAID: 'A supplier is required for unpaid expenses',
             CAPITAL_REQUIRES_ASSET: 'Account 1500 requires asset details — a fixed-asset debit cannot exist without its register entry',
             ASSET_REQUIRES_CAPITAL_ACCOUNT: 'Asset details were given but the account is {0} — capital expenditure posts to 1500',

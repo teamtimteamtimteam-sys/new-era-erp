@@ -30,13 +30,13 @@ export default async function ClaimDetail({ params }: { params: Promise<{ id: st
     const employeeId = claim.employee_id as string
     const claimYear = claim.claim_year as number
 
-    const [balRes, supRes] = await Promise.all([
-        supabase.rpc('medical_claim_balance', {
-            p_employee_id: employeeId, p_year: claimYear,
-        }),
-        supabase.from('suppliers').select('id, legal_name').is('deleted_at', null)
-            .eq('status', 'active').order('legal_name'),
-    ])
+    // PAYEE-1a:供应商下拉【已删除】—— 报销的收款人就是提交报销的那个员工,
+    // pay_medical_claim 自己从报销单取。此前那个下拉筛 status='active',
+    // 而线上没有任何 active 供应商,于是付款按钮被 !supplierId 永久禁用:
+    // 这条路径在本刀之前【根本走不通】。
+    const balRes = await supabase.rpc('medical_claim_balance', {
+        p_employee_id: employeeId, p_year: claimYear,
+    })
     const bal = balRes.data as {
         pro_rated_limit_sgd: number; claimed_sgd: number; remaining_sgd: number; months_of_service: number
     } | null
@@ -104,7 +104,6 @@ export default async function ClaimDetail({ params }: { params: Promise<{ id: st
                 status={claim.status as string}
                 alreadyLinked={!!claim.expense_id}
                 canFinance={canFinance}
-                suppliers={(mustRows(supRes)).map((s) => ({ id: s.id, name: s.legal_name }))}
             />
         </div>
     )
