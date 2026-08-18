@@ -1,5 +1,6 @@
 'use server'
 
+import { parseCounterparty } from '@/app/components/finance/counterpartyOptions'
 // 开支登记:表单 → rpc record_expense(校验、无缝编号、自动分录一个事务)。
 // paid → 借费用科目/贷银行;unpaid → 借费用科目/贷 2000 应付(成为 AP 单据)。
 // 科目/供应商/期间锁等校验在 DB 内,错误码本地化后展示;成功跳开支详情。
@@ -24,7 +25,8 @@ export async function createExpense(
     const currency = String(formData.get('currency') ?? await getBaseCurrency())
     const paymentStatus = formData.get('payment_status') === 'paid' ? 'paid' : 'unpaid'
     const bank = String(formData.get('bank_account') ?? '').trim()
-    const supplierId = String(formData.get('supplier_id') ?? '').trim()
+    // PAYEE-1b:一个字段同时带来"哪一种"与"哪一个" —— 两者不可能不一致。
+    const counterparty = parseCounterparty(String(formData.get('counterparty') ?? '').trim())
     const payeeName = String(formData.get('payee_name') ?? '').trim()
     const notes = String(formData.get('notes') ?? '').trim()
     // FIN-22:资本分支 —— capital 勾上时科目固定 1500,组 p_asset;
@@ -47,8 +49,9 @@ export async function createExpense(
     if (!amountRaw || Number.isNaN(amount) || amount <= 0) {
         return { error: t('expense.errors.AMOUNT_INVALID') }
     }
-    if (paymentStatus === 'unpaid' && !supplierId) {
-        return { error: t('expense.errors.SUPPLIER_REQUIRED_FOR_UNPAID') }
+    if (paymentStatus === 'unpaid' && !counterparty) {
+        // 服务端也会拒(COUNTERPARTY_REQUIRED_FOR_UNPAID),这里只是早一步说人话
+        return { error: t('expense.errors.COUNTERPARTY_REQUIRED_FOR_UNPAID') }
     }
     let assetPayload: Record<string, string | number> | undefined
     if (isCapital) {
@@ -75,7 +78,11 @@ export async function createExpense(
         // FIN-0:不传汇率 —— 外币按费用日行方卖出价自动估值,当天缺牌价 DB 直接拒
         p_payment_status: paymentStatus,
         p_bank_account: paymentStatus === 'paid' ? bank || undefined : undefined,
-        p_supplier_id: paymentStatus === 'unpaid' ? supplierId : undefined,
+        // 【二选一,原样传给库】库里那条 CHECK 要的就是恰好一个非空。
+        p_supplier_id: paymentStatus === 'unpaid' && counterparty?.kind === 'supplier'
+            ? counterparty.id : undefined,
+        p_employee_id: paymentStatus === 'unpaid' && counterparty?.kind === 'employee'
+            ? counterparty.id : undefined,
         p_payee_name: payeeName || undefined,
         p_notes: notes || undefined,
         p_asset: assetPayload,

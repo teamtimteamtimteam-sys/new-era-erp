@@ -603,34 +603,46 @@ SUP-TYPE-1a 是**纯数据库那一半**:一个列、一个触发器、两支视
 线上今天唯一被标成非供货的是 SUP-2026-0083(Staff Reimbursements),
 而 PAYEE-1 预期把那一行整个退休。
 
-#### PAYEE-1a(2026-08-18):员工可以被直接付款了 —— 而【屏幕还不知道】
+#### ~~PAYEE-1a(2026-08-18):员工可以被直接付款了 —— 而【屏幕还不知道】~~(PAYEE-1b 同日清账)
 
-PAYEE-1a 是数据库那一半:`expenses.employee_id` / `payments.employee_id`、
-三条 CHECK 换成"供应商 XOR 员工"、`ap_open_items` 长出
-`counterparty_kind / counterparty_id / counterparty_name`。**屏幕是 1b。**
+【划掉】PAYEE-1b 把三条都做了,逐条对上:
 
-**在 1b 落地之前,下面这些是真的坏着的(或者说不出话),按名列出来:**
+1. **AP 账龄不再把员工行归进「—」** —— `app/finance/payables/page.tsx` 现在按
+   `counterparty_id` 分组、按 `counterparty_name` 取名,并在名字旁标出种类
+   (供应商 / 员工)。**那两个 `?? '—'` 的兜底整个删掉了**:视图给的
+   `counterparty_*` 永远非空,还留着兜底只会把"视图坏了"伪装成"这行没名字"。
+2. **看板 `ap_over_90` 不再是空 subject** —— 由 `app/page.tsx` 读同一张
+   `ap_open_items` 的 `counterparty_name` 补上。
+   **这一处是权宜**:它长久该待的地方是 `operations_now` 那一行
+   (`supplier_name` → `counterparty_name`),那是【一行】的事,但要一支迁移,
+   而 1b 是纯渲染。**下一支动数据库的刀请把它搬回视图,并删掉 app/page.tsx
+   里那一段**(那段注释自己也这么写着)。
+3. **两张表单都开得出"员工"这条路** —— 开支表单与付款表单共用
+   `app/components/finance/counterpartyOptions.tsx`:一个下拉、两组选项,
+   value 是 `kind:uuid`,所以"种类"与"哪一个"【不可能互相矛盾】;
+   员工名单为空时那一组里放的是一句话(「员工名单为空,先在人事模块录入」),
+   不是空白 —— 空下拉配死按钮正是 1a 不得不从报销页删掉的形状。
+   默认仍是"请选择",供应商在前,既有用法一步没变。
 
-1. **AP 账龄把员工那一行归到「—」里**。`app/finance/payables/page.tsx:79,82`
-   按 `r.supplier_id ?? '—'` 分组、按 `r.supplier_name ?? '—'` 取名,
-   而员工行的 `supplier_*` 【诚实地为 NULL】。所以它会和其它无名行汇成一堆。
-   改法:读 `counterparty_id` / `counterparty_name`(视图已经给了,永远非空)。
-2. **看板 `ap_over_90` 的 subject 对员工行是空的**。
-   `db/views/operations_now.sql` 那一支取 `ap.supplier_name AS subject`。
-   同样改读 `counterparty_name`。
-3. **付款页开不出"付给员工"这条路**。`app/finance/payments/new/page.tsx:65`
-   只列 `suppliers`;`record_payment` 的新参数 `p_counterparty_kind` 没有人传
-   (不传 = 旧行为,所以【不会坏】,只是到不了)。
-4. **开支表单同理**:`app/finance/expenses/new/page.tsx:32` 只列供应商,
-   它自己那道前置检查仍要求 `supplierId` —— 对那张表单是【对的】(它还没有
-   员工选项),但 1b 要把两者一起改,否则会出现"页面要求供应商、
-   服务端并不要求"的反向不一致。
-5. **`SUPPLIER_REQUIRED_FOR_UNPAID` 数据库侧不再抛**。它仍留在
-   `app/finance/expenseErrorCodes.ts` 与 messages 里,因为开支表单自己的
-   前置检查还在用那句文案。1b 把表单改完之后,连这个码一起退休。
+**顺带清掉的两处死文案**:`claims.counterpartyHint`(它逐字写着
+「Use a "Staff Reimbursements" record」—— 那个变通已经不存在了)与
+1a 留下的 `SUPPLIER_REQUIRED_FOR_UNPAID` 前置检查(开支表单现在检查的是
+"有没有选往来对象",错误码换成 `COUNTERPARTY_REQUIRED_FOR_UNPAID`)。
 
-**已经在本刀里做掉的屏幕改动,只有一处,而且是【删除】**:报销页那个供应商
-下拉(`app/hr/claims/[id]/ClaimControls.tsx`)。留着它就是留一个"选了也没用"
-的控件 —— 而且它本来就永远是空的(筛 `status='active'`,而线上没有 active
-供应商),付款按钮被 `!supplierId` 永久禁用。也就是说**报销付款这条路在本刀
-之前根本走不通**;删掉之后它才第一次能走。
+留此划掉行的理由:第 2 条【还欠着一支迁移】,而它是这条记录里唯一没有
+真正回家的那一件 —— 划掉整条会让它消失。
+
+#### PAYEE-1b(2026-08-18):冒烟与 --reach 欠着 —— 第七次,原因同前
+
+`select 1` 实测 **2.8–6.2 秒**(当天三次取样)。与 WO-1c 起连续第七刀同一个理由:
+在这个条件下跑冒烟,就是那条被明令禁止的重试循环。
+
+**这一刀欠的:**
+1. `/finance/payables`、`/finance/expenses/new`、`/finance/payments/new`、`/` 四条
+   在一次完整冒烟里仍是 `ok` —— 前三条都新增了查询(`employees_masked`),
+   而**新加的 `mustRows` 会把此前静默的读取失败变成一次真的 500**,那正是要它
+   变成的样子,但得有人看见它没有触发;
+2. **`--reach` 这一刀不欠**:没动导航、没加路由、没改 `lib/modules.ts`
+   或任何权限守卫。按 AGENTS.md 的触发条件一条都不满足。
+
+**入口不欠**:三处改动都长在【已存在的】页面上,没有引入任何新路由。

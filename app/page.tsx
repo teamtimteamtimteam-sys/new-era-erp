@@ -176,13 +176,45 @@ export default async function Home() {
         'operations_now'
     ) as OpsRow[]
 
+    // ── PAYEE-1b:ap_over_90 那一行的脸 ─────────────────────────────────────
+    // 【问题】operations_now 的这一支取的是 ap_open_items.supplier_name,
+    // 而 PAYEE-1a 之后应付的往来对象可以是【员工】—— 员工行的 supplier_name
+    // 诚实地为 NULL,于是这一行在看板上【连名字都不显示】(subjectText 为空即隐藏)。
+    // 一条只有单号、说不出欠谁的逾期应付,是这块看板最没用的一种行。
+    //
+    // 【为什么在这里补,而不是改视图】改 operations_now 那一行(supplier_name →
+    // counterparty_name)是【一行】的事,也是它长久该待的地方 —— 但那是一支迁移,
+    // 而本刀是纯渲染。所以这里【读同一个权威列】(ap_open_items.counterparty_name),
+    // 不是另算一份名字:同一个真源,晚一跳而已。
+    // **下一支动数据库的刀请把这一行搬回视图里,并删掉这一段。**
+    const apOver90Ids = rows.filter((r) => r.item_type === 'ap_over_90')
+                            .map((r) => r.item_id).filter(Boolean) as string[]
+    const apPartyById = new Map<string, string>()
+    if (apOver90Ids.length > 0) {
+        const apRes = await supabase
+            .from('ap_open_items')
+            .select('doc_id, counterparty_name')
+            .in('doc_id', apOver90Ids)
+        for (const r of mustRows(apRes, 'ap_open_items counterparty') as
+                 { doc_id: string; counterparty_name: string }[]) {
+            apPartyById.set(r.doc_id, r.counterparty_name)
+        }
+    }
+
     // ── ASY-P2:awaiting_assay 那一行的脸 ────────────────────────────────────
     // 视图给的 subject 是【缺的那几种金属的 code】,逗号分隔("li" / "cu, li")。
     // 一个光秃秃的 "li" 挂在批次号旁边,读的人没有办法知道那是一种金属、还是一个
     // 状态码、还是别的什么 —— 所以这里把它翻成金属名,并加上"待化验:"这个前缀。
-    // 【只有这一支需要翻 subject】别的支放的是供应商名、单号、科目,本来就是人话。
+    // 【需要翻 subject 的支现在有两个】本支(金属 code → 金属名)与 ap_over_90
+    // (见上:视图那一列对员工行为空)。其余各支放的是名字、单号、科目,本来就是人话。
     // 【认不出的 code 原样显示,不丢掉】少显示一种缺的金属,比显示一个 code 更坏。
     function subjectText(row: OpsRow): string | null {
+        // PAYEE-1b:逾期应付一律显示【往来对象】的名字(供应商或员工)。
+        // 视图那一列对员工行是 NULL —— 兜底回 row.subject 只是保守,
+        // 正常情况下 apPartyById 一定命中(两者读的是同一张 ap_open_items)。
+        if (row.item_type === 'ap_over_90') {
+            return (row.item_id ? apPartyById.get(row.item_id) : null) ?? row.subject
+        }
         if (row.item_type !== 'awaiting_assay') return row.subject
         if (!row.subject) return null
         const names = row.subject

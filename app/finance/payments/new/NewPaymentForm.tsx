@@ -1,5 +1,6 @@
 'use client'
 
+import { CounterpartyOptions, parseCounterparty, counterpartyValue } from '@/app/components/finance/counterpartyOptions'
 // 收付款表单:方向切换(收=客户 / 付=供应商),币种↔银行账户联动(非 USD 出汇率输入),
 // 选定往来单位后列出其未结单据逐张核销('fill' 快捷填充 = min(未结, 未冲销余额)),
 // 底部实时 USD 款额 / 冲销合计 / 未冲销余额(>0 = 挂账,允许)。提交走 createPayment。
@@ -53,6 +54,7 @@ const round2 = (n: number) => Math.round(n * 100) / 100
 export default function NewPaymentForm({
     customers,
     suppliers,
+    employees,
     arItems,
     apItems,
     poItems,
@@ -62,6 +64,7 @@ export default function NewPaymentForm({
 }: {
     customers: PartyOption[]
     suppliers: PartyOption[]
+    employees: PartyOption[]
     arItems: OpenItem[]
     apItems: OpenItem[]
     poItems: PoItem[]
@@ -74,7 +77,7 @@ export default function NewPaymentForm({
     const [state, formAction, isPending] = useActionState(createPayment, initialState)
 
     const [direction, setDirection] = useState<'in' | 'out'>(initialDirection)
-    const [partyId, setPartyId] = useState(initialPartyId)
+    const [partyValue, setPartyValue] = useState(initialPartyId ? counterpartyValue(direction === 'in' ? 'customer' : 'supplier', initialPartyId) : '')
     const [amount, setAmount] = useState('')
     const [currency, setCurrency] = useState('USD')
     const [fx, setFx] = useState('')
@@ -100,11 +103,11 @@ export default function NewPaymentForm({
     // 方向切换清空往来单位与核销;换往来单位清空核销
     function onDirectionChange(d: 'in' | 'out') {
         setDirection(d)
-        setPartyId('')
+        setPartyValue('')
         setAlloc({})
     }
-    function onPartyChange(id: string) {
-        setPartyId(id)
+    function onPartyChange(v: string) {
+        setPartyValue(v)
         setAlloc({})
     }
     // 银行账户默认跟随币种(SGD → 1000,USD → 1010),之后仍可手动改
@@ -138,7 +141,12 @@ export default function NewPaymentForm({
     }, [currency, payDate, direction, crossCurrency])
 
 
-    const parties = direction === 'in' ? customers : suppliers
+    // PAYEE-1b:出款的往来对象有两种(供应商 / 员工),收款仍只有客户。
+    // 【下拉的 value 带着种类】`kind:uuid` —— 一次选择就是一个完整答案,
+    // 不存在"种类"与"id"两个字段互相矛盾的可能(库里那条 XOR 的表单形态)。
+    // 过滤核销候选用的仍是【裸 uuid】,所以这里把两者分开拿。
+    const selectedParty = parseCounterparty(partyValue)
+    const partyId = selectedParty?.id ?? ''
     // ════════════════════════════════════════════════════════════════════════
     // 【这里曾经按币种过滤过 —— 那是修错了层】
     // 当时看到"页面列出了服务端会拒的选项",就让页面去迎合服务端。可那条服务端
@@ -340,20 +348,32 @@ export default function NewPaymentForm({
                         {t('finance.colCounterparty')} <span className="text-red-600">*</span>
                     </label>
                     <select
-                        name="counterparty_id"
+                        name="counterparty"
                         required
-                        value={partyId}
+                        value={partyValue}
                         onChange={(e) => onPartyChange(e.target.value)}
                         className="w-full border border-gray-300 px-3 py-2 rounded"
                     >
                         <option value="" disabled>
                             {t('finance.selectCounterparty')}
                         </option>
-                        {parties.map((p) => (
-                            <option key={p.id} value={p.id}>
-                                {p.name}
-                            </option>
-                        ))}
+                        {direction === 'in' ? (
+                            customers.map((p) => (
+                                <option key={p.id} value={counterpartyValue('customer', p.id)}>
+                                    {p.name}
+                                </option>
+                            ))
+                        ) : (
+                            /* PAYEE-1b:付款方向 —— 供应商【或】员工(报销),两组选项一个下拉。
+                               员工名单为空时那一组里放的是【一句话】,不是空白:
+                               空下拉配死按钮正是 PAYEE-1a 不得不从报销页删掉的形状。 */
+                            <CounterpartyOptions
+                                suppliers={suppliers}
+                                employees={employees}
+                                supplierLabel={t('finance.counterpartyKind.supplier')}
+                                employeeLabel={t('finance.counterpartyKind.employee')}
+                                employeesEmptyLabel={t('finance.employeesEmpty')} />
+                        )}
                     </select>
                 </div>
             </div>

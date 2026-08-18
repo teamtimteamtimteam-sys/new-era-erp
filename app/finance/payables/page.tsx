@@ -21,6 +21,11 @@ type ApRow = {
     inbound_batch_id: string | null
     supplier_id: string | null
     supplier_name: string | null
+    // PAYEE-1a:往来对象可以是供应商【或员工】。supplier_* 对员工行诚实地为 NULL
+    // —— 所以分组与显示一律走 counterparty_*,它们永远非空。
+    counterparty_kind: 'supplier' | 'employee'
+    counterparty_id: string
+    counterparty_name: string
     doc_date: string
     doc_value_base: number
     settled_base: number
@@ -29,8 +34,12 @@ type ApRow = {
     bucket: string
 }
 
-type SupplierGroup = {
+// PAYEE-1b:分组的主体不再"是一个供应商",而是"一个往来对象" ——
+// 它可能是供应商,也可能是员工(报销)。kind 一起带上,因为屏幕上必须
+// 说得出是哪一种:一个只有名字的分组,读的人分不出"张三公司"与"张三"。
+type CounterpartyGroup = {
     name: string
+    kind: 'supplier' | 'employee'
     rows: ApRow[]
     amount: number
     settled: number
@@ -74,12 +83,18 @@ export default async function PayablesPage() {
     }
 
     // 按供应商分组,组内保持 doc_date 升序;供应商按未结额倒序
-    const groupMap = new Map<string, SupplierGroup>()
+    // PAYEE-1b:按【往来对象】分组 —— 键与名字都取 counterparty_*。
+    // 【为什么不能再用 supplier_id ?? '—'】员工行的 supplier_id 是 NULL,
+    // 于是所有员工的欠款会被并进同一个叫「—」的分组里:既分不出是谁,
+    // 也点不开。视图给的 counterparty_id / counterparty_name 永远非空,
+    // 所以这里不需要任何兜底 —— 出现兜底就说明视图那侧出了问题。
+    const groupMap = new Map<string, CounterpartyGroup>()
     for (const r of rows) {
-        const key = r.supplier_id ?? '—'
+        const key = r.counterparty_id
         let g = groupMap.get(key)
         if (!g) {
-            g = { name: r.supplier_name ?? '—', rows: [], amount: 0, settled: 0, open: 0 }
+            g = { name: r.counterparty_name, kind: r.counterparty_kind,
+                  rows: [], amount: 0, settled: 0, open: 0 }
             groupMap.set(key, g)
         }
         g.rows.push(r)
@@ -137,7 +152,14 @@ export default async function PayablesPage() {
                             ...g.rows.map((r, ri) => (
                                 <tr key={r.doc_id}>
                                     <td className="border border-gray-300 px-4 py-2">
-                                        {ri === 0 ? g.name : ''}
+                                        {ri === 0 ? (
+                                            <>
+                                                {g.name}
+                                                <span className="ml-2 px-1.5 py-0.5 rounded text-[11px] bg-gray-200 text-gray-700">
+                                                    {t('finance.counterpartyKind.' + g.kind)}
+                                                </span>
+                                            </>
+                                        ) : ''}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
                                         {/* FRT-1:三种单据,三个去处。【认不出的种类不给链接】——
@@ -199,7 +221,7 @@ export default async function PayablesPage() {
                             )),
                             <tr key={`subtotal-${gi}`} className="bg-gray-50 font-medium">
                                 <td className="border border-gray-300 px-4 py-2 text-sm" colSpan={3}>
-                                    {g.name} — {t('finance.totalsLabel')}
+                                    {g.name}（{t('finance.counterpartyKind.' + g.kind)}） — {t('finance.totalsLabel')}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                     {formatMoneyBare(Math.round(g.amount * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}

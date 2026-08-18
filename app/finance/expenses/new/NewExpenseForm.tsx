@@ -1,5 +1,6 @@
 'use client'
 
+import { CounterpartyOptions } from '@/app/components/finance/counterpartyOptions'
 // 开支表单:费用科目(仅 active expense 科目)、金额/币种/汇率(默认 SGD ——
 // 本地开销多为新币,与销售面板的 USD 默认刻意不同)、付款状态(默认挂账 ——
 // 账单通常先到后付):paid → 银行账户(默认随币种,可改)+ 收款方(可选);
@@ -32,10 +33,12 @@ const round2 = (n: number) => Math.round(n * 100) / 100
 export default function NewExpenseForm({
     accounts,
     suppliers,
+    employees,
     baseCurrency,
 }: {
     accounts: AccountOption[]
     suppliers: SupplierOption[]
+    employees: SupplierOption[]
     baseCurrency: string
 }) {
     const t = useTranslations()
@@ -185,23 +188,28 @@ export default function NewExpenseForm({
                     </div>
                 ) : (
                     <div className="flex-1 min-w-[16rem]">
+                        {/* PAYEE-1b:挂账的往来对象 —— 供应商【或】员工(报销)。
+                            一个下拉、两组选项:一次选择就是一个不可分割的答案,
+                            没有第二个字段能和它矛盾(库里那条 XOR 的表单形态)。
+                            默认仍是"请选择",供应商在前 —— 既有用法一步没变。 */}
                         <label className="block text-sm font-medium mb-1">
-                            {t('expense.form.supplier')} <span className="text-red-600">*</span>
+                            {t('expense.form.counterparty')} <span className="text-red-600">*</span>
                         </label>
                         <select
-                            name="supplier_id"
+                            name="counterparty"
                             required
                             defaultValue=""
                             className="w-full border border-gray-300 px-3 py-2 rounded"
                         >
                             <option value="" disabled>
-                                {t('expense.form.selectSupplier')}
+                                {t('expense.form.selectCounterparty')}
                             </option>
-                            {suppliers.map((s) => (
-                                <option key={s.id} value={s.id}>
-                                    {s.name}
-                                </option>
-                            ))}
+                            <CounterpartyOptions
+                                suppliers={suppliers}
+                                employees={employees}
+                                supplierLabel={t('finance.counterpartyKind.supplier')}
+                                employeeLabel={t('finance.counterpartyKind.employee')}
+                                employeesEmptyLabel={t('finance.employeesEmpty')} />
                         </select>
                     </div>
                 )}

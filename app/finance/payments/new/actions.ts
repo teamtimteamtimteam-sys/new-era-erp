@@ -1,5 +1,6 @@
 'use server'
 
+import { parseCounterparty } from '@/app/components/finance/counterpartyOptions'
 // 收付款登记:并列数组核销字段(alloc_id[]/alloc_amount[])组装 allocations jsonb
 // (空/0 行剔除)→ rpc record_payment(分录、单据、核销一个事务)。
 // 敞口/归属/期间锁等校验在 DB 内,错误码本地化后展示;成功跳收付款详情。
@@ -19,7 +20,9 @@ export async function createPayment(
     const t = await getTranslations()
 
     const direction = formData.get('direction') === 'out' ? 'out' : 'in'
-    const counterpartyId = String(formData.get('counterparty_id') ?? '').trim()
+    // PAYEE-1b:一个字段带来"哪一种"与"哪一个",两者不可能不一致。
+    const party = parseCounterparty(String(formData.get('counterparty') ?? '').trim())
+    const counterpartyId = party?.id ?? ''
     const amountRaw = String(formData.get('amount') ?? '').trim()
     const currency = String(formData.get('currency') ?? await getBaseCurrency())
     const fxRaw = String(formData.get('fx_rate') ?? '').trim()
@@ -84,6 +87,8 @@ export async function createPayment(
     const { data, error } = await supabase.rpc('record_payment', {
         p_direction: direction,
         p_counterparty_id: counterpartyId,
+        // 不填时库里退回旧行为('in'→客户,'out'→供应商);这里【明写】。
+        p_counterparty_kind: party?.kind,
         p_amount: amount,
         p_currency: currency,
         p_fx_rate: fxRate, // FIN-0:只有跨币种(银行实际做了兑换)才传 —— 水单实际金额折出的成交价

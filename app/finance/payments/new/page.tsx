@@ -29,7 +29,8 @@ type ArItem = {
 type ApItem = {
     doc_kind: 'inbound' | 'expense'
     doc_id: string
-    supplier_id: string | null
+    // PAYEE-1b:往来对象可以是供应商或员工;这一列永远非空。
+    counterparty_id: string
     doc_code: string
     doc_date: string
     open_ccy: number
@@ -55,7 +56,7 @@ export default async function NewPaymentPage({
     // 预选供应商只对付款方向有意义
     const initialPartyId = initialDirection === 'out' ? (sp.supplier ?? '') : ''
 
-    const [customersRes, suppliersRes, arRes, apRes, poRes] = await Promise.all([
+    const [customersRes, suppliersRes, employeesRes, arRes, apRes, poRes] = await Promise.all([
         supabase
             .from('customers')
             .select('id, legal_name')
@@ -66,13 +67,21 @@ export default async function NewPaymentPage({
             .select('id, legal_name')
             .is('deleted_at', null)
             .order('legal_name'),
+        // PAYEE-1b:出款也可以付给员工(报销)。读遮蔽视图,门是 module.hr.view。
+        supabase
+            .from('employees_masked')
+            .select('id, legal_name')
+            .is('deleted_at', null)
+            .order('legal_name'),
         supabase
             .from('ar_open_items')
             .select('sales_record_id, invoice_id, doc_kind, customer_id, doc_code, sale_date, open_ccy, currency')
             .order('sale_date', { ascending: true }),
+        // PAYEE-1b:核销候选按【往来对象】取 —— 员工行的 supplier_id 是 NULL,
+        // 照旧读它,员工的应付永远匹配不上任何一个选中的往来对象(等于看不见)。
         supabase
             .from('ap_open_items')
-            .select('doc_kind, doc_id, supplier_id, doc_code, doc_date, open_ccy, currency')
+            .select('doc_kind, doc_id, counterparty_id, doc_code, doc_date, open_ccy, currency')
             .order('doc_date', { ascending: true }),
         // 可预付的采购单:视图本身排除已取消,这里再排除已结束的
         supabase
@@ -82,7 +91,7 @@ export default async function NewPaymentPage({
             .order('order_date', { ascending: true }),
     ])
 
-    const error = customersRes.error ?? suppliersRes.error ?? arRes.error ?? apRes.error ?? poRes.error
+    const error = customersRes.error ?? suppliersRes.error ?? employeesRes.error ?? arRes.error ?? apRes.error ?? poRes.error
     if (error) {
         return (
             <div className="p-8">
@@ -103,6 +112,8 @@ export default async function NewPaymentPage({
         id: s.id,
         name: s.legal_name,
     }))
+    const employees: PartyOption[] = (mustRows(employeesRes) as { id: string; legal_name: string }[])
+        .map((e) => ({ id: e.id, name: e.legal_name }))
     // SO-3a:应收有两种单据('sale' 销售记录 / 'invoice' 订单流发票),
     // doc_kind 由视图自己给(ap 的先例),doc_id 相应二选一。
     const arItems: OpenItem[] = ((arRes.data as unknown as ArItem[] | null) ?? []).map((r) => ({
@@ -117,7 +128,7 @@ export default async function NewPaymentPage({
     const apItems: OpenItem[] = ((apRes.data as unknown as ApItem[] | null) ?? []).map((r) => ({
         doc_id: r.doc_id,
         doc_kind: r.doc_kind,
-        party_id: r.supplier_id ?? '',
+        party_id: r.counterparty_id,
         doc_code: r.doc_code,
         doc_date: r.doc_date,
         open_ccy: r.open_ccy,
@@ -148,6 +159,7 @@ export default async function NewPaymentPage({
             <NewPaymentForm
                 customers={customers}
                 suppliers={suppliers}
+                employees={employees}
                 arItems={arItems}
                 apItems={apItems}
                 poItems={poItems}
