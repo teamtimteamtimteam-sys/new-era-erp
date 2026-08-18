@@ -49,6 +49,7 @@ export type EmployeeRecord = {
     work_pass_no: string | null
     work_pass_issue_date: string | null
     work_pass_expiry_date: string | null
+    user_id: string | null
     notes: string | null
 }
 
@@ -73,11 +74,19 @@ export default function EmployeeForm({
     employee,
     departments,
     managers,
+    accounts,
+    canLinkAccount,
+    linkedAccountLabel,
 }: {
     employee?: EmployeeRecord
     departments: PickOption[]
     // 上级候选:服务端已剔除自己与自己的下属
     managers: PickOption[]
+    // 可选的登录账号:服务端只给【还没有关联任何员工】的,外加这名员工当前关联的那个
+    accounts: PickOption[]
+    // 读得到 user_directory 吗(action.manage_permissions)。false 时不渲染下拉
+    canLinkAccount: boolean
+    linkedAccountLabel: string | null
 }) {
     const t = useTranslations()
     const action = employee ? updateEmployee.bind(null, employee.id) : createEmployee
@@ -123,6 +132,61 @@ export default function EmployeeForm({
                             className={field}
                         />
                     </div>
+                </div>
+
+                {/* ── 登录账号 ─────────────────────────────────────────────────
+                    employees.user_id 一直存在(EXEC-2 还给了它外键),但这张表单
+                    从来没有一栏能设它 —— 于是这条关联只能从【账号】页那一头做。
+                    这里补上从员工这一头的入口;写入仍然走 set_user_employee_link,
+                    同一个事实只有一种写法,两个入口。
+
+                    ┌───────────────────────────────────────────────────────────┐
+                    │ 【改这一栏之前先读】                                        │
+                    │ docs/known-issues.md                                       │
+                    │ §「员工 ↔ 登录账号的关联:【两扇门,两套规矩】(LINK-1)」    │
+                    │                                                            │
+                    │ 那一条说的是:这一栏与账号页那一栏写的是同一个事实,而两边   │
+                    │ 对"选中一个已被占用的账号"给出【不同的答案】(那边静默改绑, │
+                    │ 这边拒绝)。要统一它们,**第一步是裁定哪一侧的语义是对的**,  │
+                    │ 不是在这里再加一条守卫 —— 那只会把不一致从两处变成三处。     │
+                    └───────────────────────────────────────────────────────────┘
+
+                    【空是一个有名字的状态,不是一个空白】。没有登录账号的员工是常态
+                    (车间的人多半没有),所以第一项写的是"未关联账号"而不是一条
+                    破折号 —— 破折号读起来像"还没填",而它其实就是答案。 */}
+                <div className="mt-4">
+                    <label className={label}>{t('hr.colLoginAccount')}</label>
+                    {canLinkAccount ? (
+                        <>
+                            <select
+                                name="user_id"
+                                defaultValue={employee?.user_id ?? ''}
+                                className={`${field} max-w-md`}
+                            >
+                                <option value="">{t('hr.loginAccountNone')}</option>
+                                {accounts.map((a) => (
+                                    <option key={a.id} value={a.id}>
+                                        {a.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="mt-1 text-sm text-gray-600">{t('hr.loginAccountHelp')}</p>
+                        </>
+                    ) : (
+                        /* 【不渲染一个空的下拉】。user_directory 对没有
+                           action.manage_permissions 的人返回【零行而不是报错】,
+                           照着渲染就会得到一个空的选择框 —— 那读起来是"没有账号可选",
+                           而真相是"你不被允许看"。这正是 lib/permissions.ts 存在的
+                           理由:空集不是答案,所以这里把它说出来。 */
+                        <p className="text-sm text-gray-600">
+                            {linkedAccountLabel
+                                ? t('hr.loginAccountCurrent', { 0: linkedAccountLabel })
+                                : employee?.user_id
+                                  ? t('hr.loginAccountUnknown')
+                                  : t('hr.loginAccountNone')}{' '}
+                            {t('hr.loginAccountNoPermission')}
+                        </p>
+                    )}
                 </div>
                 <div className="flex flex-wrap gap-4 mt-4">
                     <div className="flex-1 min-w-[14rem]">

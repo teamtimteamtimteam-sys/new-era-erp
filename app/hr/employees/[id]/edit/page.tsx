@@ -9,6 +9,7 @@ import Subnav from '../../../Subnav'
 import EmployeeForm, { type PickOption, type EmployeeRecord } from '../../EmployeeForm'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
+import { canManagePermissions } from '@/lib/permissions'
 import { MOD } from '@/lib/modules'
 
 // 下属闭包:从自己出发,沿 manager_id 往下收集
@@ -66,6 +67,27 @@ export default async function EditEmployeePage({
     const excluded = reportIds(all, id)
     excluded.add(id)
 
+    // 见 new/page.tsx 的同一段:权限回答"能不能看",列表只负责列。
+    // 可选项 = 【还没关联任何员工的账号】+ 这名员工当前关联的那一个
+    //(否则一进编辑页,当前值就不在选项里,浏览器会把它显示成第一项 ——
+    // 一次纯粹的显示错位就会在保存时变成一次真的改绑)。
+    const canLinkAccount = await canManagePermissions()
+    const accountRows = canLinkAccount
+        ? mustRows(
+              await supabase
+                  .from('user_directory')
+                  .select('user_id, email, employee_id')
+                  .or(`employee_id.is.null,employee_id.eq.${id}`)
+                  .order('email')
+          )
+        : []
+    const accounts: PickOption[] = accountRows.map((u) => ({
+        id: u.user_id as string,
+        label: (u.email as string | null) ?? (u.user_id as string),
+    }))
+    const linkedAccountLabel =
+        accounts.find((a) => a.id === (empRes.data as { user_id: string | null }).user_id)?.label ?? null
+
     const departments: PickOption[] = (mustRows(deptRes)).map((d) => ({
         id: d.id,
         label: `${d.code} — ${locale === 'zh' ? d.name_zh : d.name_en}`,
@@ -90,6 +112,9 @@ export default async function EditEmployeePage({
                 employee={empRes.data as EmployeeRecord}
                 departments={departments}
                 managers={managers}
+                accounts={accounts}
+                canLinkAccount={canLinkAccount}
+                linkedAccountLabel={linkedAccountLabel}
             />
         </div>
     )

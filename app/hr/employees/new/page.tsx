@@ -6,6 +6,7 @@ import Subnav from '../../Subnav'
 import EmployeeForm, { type PickOption } from '../EmployeeForm'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
+import { canManagePermissions } from '@/lib/permissions'
 import { MOD } from '@/lib/modules'
 
 export default async function NewEmployeePage() {
@@ -28,6 +29,21 @@ export default async function NewEmployeePage() {
             .order('code'),
     ])
 
+    // 【先问权限,再决定要不要查】。user_directory 对没有 action.manage_permissions
+    // 的人返回【零行而不是报错】,所以"查出来是空的"同时是"没有可选账号"和
+    // "你不被允许看"两件事 —— 空集不能当答案用(lib/permissions.ts 的立身之本)。
+    // 权限自己回答这个问题,列表只负责列。
+    const canLinkAccount = await canManagePermissions()
+    const accounts: PickOption[] = canLinkAccount
+        ? (mustRows(
+              await supabase
+                  .from('user_directory')
+                  .select('user_id, email')
+                  .is('employee_id', null)
+                  .order('email')
+          )).map((u) => ({ id: u.user_id as string, label: (u.email as string | null) ?? (u.user_id as string) }))
+        : []
+
     const departments: PickOption[] = (mustRows(deptRes)).map((d) => ({
         id: d.id,
         label: `${d.code} — ${locale === 'zh' ? d.name_zh : d.name_en}`,
@@ -47,7 +63,13 @@ export default async function NewEmployeePage() {
             </div>
             <h1 className="text-2xl font-bold mb-4">{t('hr.newEmployee')}</h1>
             <Subnav />
-            <EmployeeForm departments={departments} managers={managers} />
+            <EmployeeForm
+                departments={departments}
+                managers={managers}
+                accounts={accounts}
+                canLinkAccount={canLinkAccount}
+                linkedAccountLabel={null}
+            />
         </div>
     )
 }
