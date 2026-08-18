@@ -398,6 +398,10 @@ const zh = {
         errEmployeeNotFound: '该员工档案已不存在。',
     },
     suppliers: {
+        noGoodsSuppliers: '没有可收货的供应商 —— 收货只列【会供货】的往来户。',
+        noGoodsSuppliersLink: '去供应商模块把对方标为供货商',
+        suppliesGoods: '会从这一家收到实物货',
+        suppliesGoodsHint: '打开:可以对它收货,它出现在收货与采购单的下拉里,并受合规证书的把关。关掉:房东、水电、保险、专业服务、承包商这一类 —— 我们向他们采购、付钱,但永远不会有一车货到场。',
         listTitle: '供应商',
         defaultPaymentTerms: '默认付款条款',
         defaultPaymentTermsHint: '为该供应商新建采购单时自动带入付款计划。',

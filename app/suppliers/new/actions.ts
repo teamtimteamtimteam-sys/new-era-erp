@@ -34,6 +34,10 @@ export async function createSupplier(
 
     // 多选 checkbox:用 getAll 拿所有勾选的值
     const supplier_types = formData.getAll('supplier_types') as string[]
+    // SUP-TYPE-1b:未勾选的 checkbox【什么都不发】—— 所以判据是"这个字段在不在",
+    // 不是"它的值真不真"。用 formData.get(...) !== null 而不是 Boolean(值):
+    // 后者会把 value="on" 之外的任何写法悄悄读成 false。
+    const supplies_goods = formData.get('supplies_goods') !== null
 
     // 2. 基本校验
     const fieldErrors: Record<string, string> = {}
@@ -56,6 +60,7 @@ export async function createSupplier(
         tax_id,
         address,
         supplier_types,
+        supplies_goods,
         payment_terms,
         incoterm,
         credit_rating,

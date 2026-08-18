@@ -22,6 +22,7 @@ type Supplier = {
     tax_id: string | null
     address: string | null
     supplier_types: string[] | null
+    supplies_goods: boolean | null
     payment_terms: string | null
     incoterm: string | null
     credit_rating: string | null
@@ -141,6 +142,27 @@ export default function EditSupplierForm({
                             </label>
                         ))}
                     </div>
+                </div>
+
+                {/* SUP-TYPE-1b:【会不会从这一家收到货】—— 1a 加了这一列,但没有
+                    任何表单能设它,于是它只能靠直接改库。一个只有默认值、没人
+                    改得动的开关,等于没有这个能力。
+                    【它不是 supplier_types】那一列说的是"他们做哪一行",这一个
+                    说的是"我们收不收他们的货"—— 1a 的迁移抬头写了三条理由。 */}
+                <div>
+                    <label className="flex items-center gap-2">
+                        <input
+                            type="checkbox"
+                            name="supplies_goods"
+                            value="on"
+                            defaultChecked={supplier.supplies_goods !== false}
+                            className="w-4 h-4"
+                        />
+                        <span className="text-sm font-medium">{t('suppliers.suppliesGoods')}</span>
+                    </label>
+                    <p className="text-xs text-gray-500 mt-1 max-w-2xl">
+                        {t('suppliers.suppliesGoodsHint')}
+                    </p>
                 </div>
 
                 <div>

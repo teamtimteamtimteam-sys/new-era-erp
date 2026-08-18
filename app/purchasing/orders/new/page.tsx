@@ -30,9 +30,19 @@ export default async function NewOrderPage() {
 
     const [suppliersRes, materialsRes, formulasRes, templatesRes, tplLinesRes] = await Promise.all([
         supabase
+            // SUP-TYPE-1b:【只列供货的供应商】——【但这里的理由与收货那两张不同,
+            // 不要照抄】实测:purchase_orders 上【没有任何守卫】看 supplies_goods,
+            // 所以开一张给房东的采购单,服务端是【收下的】。
+            // 收窄它是一个【判断】,不是"别摆出会被拒的控件":
+            // 一张永远收不到货的采购单没有意义 —— 收货那一侧会按名拒
+            // (RECEIPT_AGAINST_NON_GOODS_VENDOR),于是这张单只能一直挂着。
+            // 【所以这一处比收货那两处弱】它拦得住手滑,拦不住决心:
+            // 直连仍然建得出来。真要禁,得在 purchase_orders 上加一道守卫,
+            // 那是一支迁移,不在本刀(纯渲染)范围内 —— 记在 known-issues 里。
             .from('suppliers')
             .select('id, legal_name, default_payment_term_template_id')
             .is('deleted_at', null)
+            .eq('supplies_goods', true)
             .order('legal_name'),
         supabase
             .from('materials')

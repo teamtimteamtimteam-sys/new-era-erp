@@ -29,9 +29,16 @@ export default async function NewInboundPage({
             .is('deleted_at', null)
             .order('name'),
         supabase
+            // SUP-TYPE-1b:【只列供货的供应商】。1a 之后 guard_inbound_supplier_supplies_goods
+            // 会按名拒绝往非供货往来户名下收货(RECEIPT_AGAINST_NON_GOODS_VENDOR),
+            // 而这个下拉此前把每一家在册供应商都摆出来 —— 那正是 AGENTS.md 禁的
+            // 「页面摆出一个服务端保证会拒的控件」。
+            // 【服务端那道闸仍然是权威的】这里只是不再提供一个必被拒的选项;
+            // 直连/服务密钥绕过页面时,触发器照样拒。
             .from('suppliers')
             .select('id, code, legal_name')
             .is('deleted_at', null)
+            .eq('supplies_goods', true)
             .order('legal_name'),
         supabase
             .from('po_receivable_lines')

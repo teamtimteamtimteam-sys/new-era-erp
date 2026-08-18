@@ -395,6 +395,10 @@ const en = {
         errEmployeeNotFound: 'That employee record no longer exists.',
     },
     suppliers: {
+        noGoodsSuppliers: 'No goods suppliers yet — receiving only lists vendors we actually take delivery from.',
+        noGoodsSuppliersLink: 'Mark a vendor as supplying goods',
+        suppliesGoods: 'We receive goods from this vendor',
+        suppliesGoodsHint: 'On means deliveries can be booked against them, they appear in the receiving and purchase-order pickers, and they are subject to compliance checks. Off is for landlords, utilities, insurers, professional services and contractors — we buy from them and pay them, but no goods ever arrive.',
         listTitle: 'Suppliers',
         addButton: '+ Add Supplier',
         defaultPaymentTerms: 'Default payment terms',

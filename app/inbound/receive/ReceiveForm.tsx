@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 // 现场收货(移动端一步式)。cut 4c:选定供应商后,若其有可收货的采购单,追加
 // 可选的采购单/行两个下拉 —— 选行预填物料与数量,但【数量始终归过磅的人】,
 // 预填只是省几次按键。没有采购单的供应商,页面与从前一字不差。
@@ -135,6 +136,17 @@ export default function ReceiveForm({
                     ))}
                 </select>
                 {state.fieldErrors?.supplier_id && <p className={errCls}>{state.fieldErrors.supplier_id}</p>}
+                {/* SUP-TYPE-1b:只列供货的供应商 —— 空的时候【说出为什么】,
+                    而不是留一个空下拉配一个按不动的按钮(PAYEE-1a 从报销页
+                    删掉的正是那个形状)。 */}
+                {suppliers.length === 0 && (
+                    <p className="text-xs text-amber-700 mt-1">
+                        {t('suppliers.noGoodsSuppliers')}{' '}
+                        <Link href="/suppliers" className="underline">
+                            {t('suppliers.noGoodsSuppliersLink')}
+                        </Link>
+                    </p>
+                )}
             </div>
 
             {/* 关联采购单(仅当该供应商有可收货的单;没有则控件数与从前一样少)*/}

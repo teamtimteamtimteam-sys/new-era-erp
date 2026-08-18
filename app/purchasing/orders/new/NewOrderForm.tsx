@@ -254,6 +254,15 @@ export default function NewOrderForm({
                             </option>
                         ))}
                     </select>
+                    {/* SUP-TYPE-1b:同上 —— 只列供货的供应商,空了要说出原因。 */}
+                    {suppliers.length === 0 && (
+                        <p className="text-xs text-amber-700 mt-1">
+                            {t('suppliers.noGoodsSuppliers')}{' '}
+                            <Link href="/suppliers" className="underline">
+                                {t('suppliers.noGoodsSuppliersLink')}
+                            </Link>
+                        </p>
+                    )}
                 </div>
                 <div>
                     <label className="block text-sm font-medium mb-1">

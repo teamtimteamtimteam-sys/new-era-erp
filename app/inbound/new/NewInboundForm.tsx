@@ -155,13 +155,15 @@ export default function NewInboundForm({
                             {state.fieldErrors.supplier_id}
                         </p>
                     )}
+                    {/* SUP-TYPE-1b:这个下拉现在只列【供货的】供应商,所以空的时候
+                        不能再说"还没有供应商" —— register 里可能有好几家,只是
+                        没有一家被标成供货。说错原因的空状态,比没有空状态更难查。 */}
                     {suppliers.length === 0 && (
-                        <p className="text-xs text-amber-600 mt-1">
-                            {t('inbound.form.noSuppliersHelper')}
-                            <Link href="/suppliers/new" className="underline">
-                                {t('inbound.form.noSuppliersLink')}
+                        <p className="text-xs text-amber-700 mt-1">
+                            {t('suppliers.noGoodsSuppliers')}{' '}
+                            <Link href="/suppliers" className="underline">
+                                {t('suppliers.noGoodsSuppliersLink')}
                             </Link>
-                            {t('inbound.form.noSuppliersHelperPost')}
                         </p>
                     )}
                 </div>
