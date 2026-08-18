@@ -848,3 +848,46 @@ node -e "…fetch(URL+'/rest/v1/suppliers?select=id&limit=1')…"   # 后续请�
 
 `check:scratch` 在这一跑里报了 9 条(最老 285 小时),其中 6 条标着【仍被引用】。
 **按它自己的规矩:报告,不清扫** —— 处置是人的决定,不是这一刀的事。
+
+---
+
+## 两句【永远本地化不了】的拒绝,它们在数据库里(FIX-1 扫出,2026-08-18,未修 —— 要迁移)
+
+FIX-1 的第三项要扫的是「英文句子里嵌一个中文状态词」。**那一类扫完是零** ——
+唯一把中文列值拼进拒绝的是 `rollback_processing_run` 的 `OUTPUT_CONSUMED|%|%|%|%`,
+而它早已经过 `app/processing/errorCodes.ts:68` 的 `STATE_OPTIONS` 翻好了;全库只有
+`inbound_batches.stage` 与 `output_batches.state` 两列存中文,应用里碰它们的三处都是
+`<select>` 的 value(必须是原值,不是显示文本)。
+
+**但同一种病换了个机制,扫出来两条:**
+
+1. **`price_output_sale`** 把一句中文【字面量】拼进错误码的参数位:
+   `METAL_PRICE_MISSING|…|COALESCE(v_terms->>'price_index', '(未声明指数)')`。
+   前端按 `|` 拆参数、再套模板,所以英文界面上那句话会长成
+   "no price for (未声明指数)" —— 与被扫的那一类一模一样,只是中文来自代码而非列值。
+   **改法**:那一格该是一个空值或一个**码**(例如 `INDEX_UNDECLARED`),由前端翻译。
+2. **`validate_supplier_status_transition`** 抛的是 `'非法状态跳转: % → %'` ——
+   **整句中文,而且没有错误码的形状**。前端无从识别,只能原样印。
+   **改法**:改成 `SUPPLIER_STATUS_TRANSITION|<from>|<to>`,并在
+   `app/suppliers/errorCodes.ts` 里给两端配上已有的状态词表。
+
+**为什么没有在 FIX-1 里顺手改**:两条都要动数据库函数 = 一支迁移 + 备份 + 闸,
+而 FIX-1 是一刀**只动渲染层**的活(brief 明写 no migration, no backup)。在一刀
+渲染的活里夹一支迁移,破窗那一栏就得从"无"变成一个要测量的数字 —— 不划算,
+也不诚实。**记在这里,按名等下一刀。**
+
+---
+
+## `--reach` 又欠一条:`/finance/credit-notes`(FIX-1,2026-08-18)
+
+FIX-1 新增了 `/finance/credit-notes` 这条静态路由,并**动了两处导航**
+(财务子导航加一项;进料列表那两个钮从"按屏宽互斥"改成一直都在)。
+按 AGENTS.md 写下的节奏,这正是该跑 `--reach` 的那一类改动 —— 而 brief 明写
+「ONE SMOKE RUN (no --reach)」,所以它照旧欠着,连同上面那三条。
+
+**现在欠的是四条静态路由**:`/processing/orders`、`/processing/orders/new`、
+`/purchasing/discrepancies`、`/finance/credit-notes`。一次 `--reach` 一小时,
+够把四条一起还掉。
+
+**顺带**:这一刀发现了 `--reach` 的第二个盲区(CSS 隐藏的链接对走查可达、
+对人不可见),已写进 AGENTS.md 里 `[id]` 那条盲区的旁边。

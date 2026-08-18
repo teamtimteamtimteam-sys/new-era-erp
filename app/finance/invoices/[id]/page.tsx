@@ -14,9 +14,10 @@ import VoidInvoiceControl from './VoidInvoiceControl'
 import CreditNoteSection from './CreditNoteSection'
 import { unmasked } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
-import { canViewBanking, can } from '@/lib/permissions'
+import { canViewBanking } from '@/lib/permissions'
 import { mustRows } from '@/lib/db-helpers'
 import IssuePanel from '@/app/components/IssuePanel'
+import ActorName, { loadActorNames } from '@/app/components/ActorName'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 
@@ -207,30 +208,12 @@ export default async function InvoiceDetailPage({
         'invoice_issues') as { version: number; sha256: string
             issued_at: string; issued_by: string | null }[]
 
-    // 【签发人:名字要么给全,要么说"受限",不能给一个空白】employees 在
-    // module.hr.view 后面,而这是财务页 —— 一个只有财务权限的读者读到的是零行。
-    // 空白读起来是"没记录签发人",而真相是"你看不到" —— lib/permissions.ts 存在的
-    // 全部理由就是这两件事不能长得一样(AGENTS.md:0.00 与「受限」不是一回事)。
-    // 所以先问权限,再决定这一列说什么。
-    const canReadPeople = await can('module.hr.view')
-    const actorIds = Array.from(new Set(issues.map((i) => i.issued_by).filter(Boolean))) as string[]
-    const actorById = new Map<string, string>()
-    if (canReadPeople && actorIds.length > 0) {
-        const people = mustRows(
-            await supabase.from('employees_masked')
-                .select('user_id, legal_name, preferred_name')
-                .in('user_id', actorIds),
-            'employees_masked') as unknown as {
-                user_id: string; legal_name: string; preferred_name: string | null }[]
-        people.forEach((e) => actorById.set(e.user_id, e.preferred_name || e.legal_name))
-    }
-    function actorLabel(uid: string | null): string {
-        if (!uid) return '—'
-        if (!canReadPeople) return t('common.restricted')
-        // 【认得这个账号、但它没连到员工档案】与"看不到"是两件事:说得出来,
-        // 而不是回到一个空白。
-        return actorById.get(uid) ?? t('invoice.issuerUnlinked')
-    }
+    // 【签发人】FIX-1 之前这里是本页私有的 actorLabel():它把权限问对了
+    // (受限 ≠ 空白),但它是"谁做的"这件事的【第二份实现】—— 而 ActorName 的
+    // 抬头写着这一族只能有一处。现在反过来了:那句权限答复搬进了 ActorName
+    // (状态 ④),本页改用共用组件。搬的方向是【把对的那一半带过去】,不是
+    // 把这里将就成三种状态。
+    const issuerNames = await loadActorNames(supabase, issues.map((i) => i.issued_by))
 
     // 【贷项凭证那条派生的说明】读的时候现算,不落快照、不动横幅那套机制。
     const creditNoteCount = issues.length === 0 ? 0 : mustRows(
@@ -589,7 +572,7 @@ export default async function InvoiceDetailPage({
                                        target="_blank" rel="noopener noreferrer"
                                        className="text-blue-600 hover:underline">v{iss.version}</a>
                                     {' · '}{formatTimestamp(iss.issued_at, dateLocale)}
-                                    {' · '}{actorLabel(iss.issued_by)}
+                                    {' · '}<ActorName userId={iss.issued_by} names={issuerNames} />
                                     {' · '}{iss.sha256.slice(0, 12)}…
                                 </li>
                             ))}

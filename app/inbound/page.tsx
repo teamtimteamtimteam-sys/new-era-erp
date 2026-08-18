@@ -230,22 +230,29 @@ export default async function InboundPage({
             <StockWarningBanner warn={sp.warn} />
             <div className="flex items-center justify-between mb-4">
                 <h1 className="text-2xl font-bold">{t('inbound.listTitle')}</h1>
+                {/* FIX-1:这两个钮原本是 sm:hidden / hidden sm:inline-block ——
+                    【互斥】的:桌面上现场收货那条路根本不出现,手机上完整录入
+                    那条不出现。于是"从采购单收货"在桌面浏览器里没有任何入口,
+                    而 --reach 也看不见:两个 <a> 都在 HTML 里,只是被 CSS 藏了。
+                    可达性走查读的是标记,人读的是屏幕 —— 这是那道检查的盲区,
+                    与 [id] 动态路由那条并列。现在两条路一直都在,并用下面那一行
+                    说出它们的区别(而不是让人靠钮的名字猜)。 */}
                 <div className="flex items-center gap-2">
-                    {/* 移动端专属:现场收货入口 */}
                     <Link
                         href="/inbound/receive"
-                        className="sm:hidden bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                        className="border border-blue-600 text-blue-600 px-4 py-2 rounded hover:bg-blue-50"
                     >
                         {t('receive.entry')}
                     </Link>
                     <Link
                         href="/inbound/new"
-                        className="hidden sm:inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                     >
                         {t('inbound.addButton')}
                     </Link>
                 </div>
             </div>
+            <p className="text-sm text-gray-500 mb-4">{t('inbound.twoPathsHint')}</p>
 
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>

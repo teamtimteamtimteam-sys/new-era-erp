@@ -164,6 +164,13 @@ python3 db/gate.py        # ~4 min measured, no large payloads over the network
 > the strongest evidence in this table that fixture count is not the variable.**
 > The range still reads two to six minutes with a fat tail; nobody should
 > "optimise" this gate.
+>
+> **Re-measured (FIX-1, 2026-08-18): 91 fixtures — four more than the pair
+> above — in 133s.** That is the **fastest run yet recorded at the highest
+> fixture count yet**: +4 fixtures against GRN-1b's 87, and 22s *faster*. It is
+> the cleanest single refutation in this table of the idea that the gate is
+> growing, and it changes nothing else — **two to six minutes with a fat tail,
+> and the variance is environmental**.
 
 One LOCAL rebuild, two separately-reported verdicts (OPS-6 merged the two older
 tools — their build steps were identical and check_mirrors was shipping a
@@ -441,6 +448,20 @@ are the same thing to a walker. SAL-B6's new customer page shipped with **no ent
 point at all** — the list linked only to `/edit` — and the check reported clean,
 correctly, because the page is dynamic. **When you add an `[id]` page, confirm its
 entry point by hand.**
+
+**A second blind spot, same shape, found by a human clicking (FIX-1,
+2026-08-18): a link hidden by CSS is reachable to the walker and invisible to
+the person.** The inbound list carried both of its entry points as plain `<a>`
+tags — `/inbound/receive` under `sm:hidden` and `/inbound/new` under
+`hidden sm:inline-block`. They are **mutually exclusive by viewport width**, so
+on a desktop browser there was no way at all to reach field receiving (and
+therefore no way to receive against a purchase order line), while `--reach`
+would have called both routes reachable, correctly, because both anchors are in
+the markup. **The walker reads the DOM; a person reads the screen.** Responsive
+visibility classes are the one construction where those two answers come apart
+without anything being broken, so `sm:hidden` / `hidden sm:` on a *navigation*
+element deserves the same hand-check an `[id]` page gets: open it at the width
+the person actually uses.
 
 Builds compile pages but never render them — two pages were broken for months
 with every gate green (an RSC serialization error and an inverted currency
