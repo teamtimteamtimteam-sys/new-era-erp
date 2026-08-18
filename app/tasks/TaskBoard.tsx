@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import {
     DndContext,
@@ -106,6 +107,7 @@ function TaskCard({
     today: string | null
     onClick: (task: Task) => void
 }) {
+    const t = useTranslations()
     const { attributes, listeners, setNodeRef, transform, isDragging } =
         useDraggable({ id: task.id })
 
@@ -152,6 +154,34 @@ function TaskCard({
                         )}
                     </span>
                 )}
+            </div>
+
+            {/* TASK-1b:派生值 —— 全部来自 task_board_rows,卡片不自己算。
+                【零步骤时这里一个字都没有】:不是 0/0,也不是空进度条 ——
+                0/0 读成"全没做"还是"全做完"取决于除法往哪边倒,两个都是编的。 */}
+            {(task.node_count ?? 0) > 0 && (
+                <div className="mt-1.5 text-[11px] text-gray-500">
+                    {task.done_count}/{task.node_count}
+                </div>
+            )}
+            {/* 【一句陈述,不是一个警告色】。没有截止日、或者没有带日期的未完成步骤时,
+                视图给的是 null —— 那时这里什么都不说,而不是画一个"一切正常"的绿点。 */}
+            {task.steps_overrun_due_date === true && (
+                <div className="mt-1 text-[11px] text-amber-800">{t('tasks.card.stepsOverrun')}</div>
+            )}
+
+            {/* 详情入口。【故意不带任何响应式显隐】——
+                FIX-1:sm:hidden / hidden sm: 的导航元素对走查器是可达的、对人是看不见的,
+                收货那条路就是这么在桌面上整个消失的。这里一个宽度都不藏。 */}
+            <div className="mt-2">
+                <Link
+                    href={`/tasks/${task.id}`}
+                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    className="text-[11px] text-blue-700 hover:underline"
+                >
+                    {t('tasks.card.openDetail')}
+                </Link>
             </div>
 
             {/* 标签 */}

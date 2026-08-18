@@ -22,22 +22,40 @@ export default async function TasksPage() {
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
 
-    if (error) {
+    // TASK-1b:步骤数 / 已完成数 / 「步骤排到了截止日之后」——【一律来自视图】,
+    // 页面不自己算。两次查询而不是一次,只是因为看板还要 description 之类
+    // 视图不吐的列;算法仍然只有 task_board_rows 那一处。
+    const { data: derived, error: derivedError } = await supabase
+        .from('task_board_rows')
+        .select('id, node_count, done_count, steps_overrun_due_date')
+
+    if (error || derivedError) {
         return (
             <div className="p-8">
                 <h1 className="mb-4 text-2xl font-bold">{t('tasks.pageTitle')}</h1>
                 <div className="rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700">
                     <p className="font-bold">{t('tasks.loadError')}</p>
-                    <pre className="mt-2 text-xs">{JSON.stringify(error, null, 2)}</pre>
+                    <pre className="mt-2 text-xs">{JSON.stringify(error ?? derivedError, null, 2)}</pre>
                 </div>
             </div>
         )
     }
 
+    const byId = new Map((derived ?? []).map((d) => [d.id, d]))
+    const merged = (tasks ?? []).map((row) => {
+        const d = byId.get(row.id)
+        return {
+            ...row,
+            node_count: d?.node_count ?? 0,
+            done_count: d?.done_count ?? 0,
+            steps_overrun_due_date: d?.steps_overrun_due_date ?? null,
+        }
+    })
+
     return (
         <div className="p-8">
             <h1 className="mb-4 text-2xl font-bold">{t('tasks.pageTitle')}</h1>
-            <TaskBoard tasks={tasks ?? []} />
+            <TaskBoard tasks={merged} />
         </div>
     )
 }

@@ -260,6 +260,7 @@ const MANIFEST = {
                                   /SELECT '(\w+)'::text AS (?:record_kind|text)/g) },
     // AUDEL-1b:删除那一族的具名拒绝。接真源那个 Set —— 加一个码,检查自动跟上。
     'deletion.errors.': { kind: 'enum', values: () => tsSet('app/components/inventory/deletionErrorCodes.ts', 'DELETION_ERROR_CODES') },
+    'tasks.opErrors.':      { kind: 'enum', values: () => tsSet('app/tasks/taskErrorCodes.ts', 'TASK_ERROR_CODES') },
     // LME-1b:行情出处。真源是 metal_prices 那条 CHECK —— 加一种出处要改 CHECK
     // (一支迁移),这个检查因此自动跟上。**四个值都要有文案,包括 unknown**:
     // 它不在录入下拉里,但十条老行情在列表上就读它。
@@ -322,6 +323,7 @@ const MANIFEST = {
     'tasks.status.':        { kind: 'enum', values: () => sqlEnum('db/tables/tasks.sql', 'status') },
     'tasks.priority.':      { kind: 'enum', values: () => sqlEnum('db/tables/tasks.sql', 'priority') },
     'tasks.type.':          { kind: 'enum', values: () => sqlEnum('db/tables/tasks.sql', 'task_type') },
+    'tasks.history.type.':  { kind: 'enum', values: () => sqlEnum('db/tables/task_history.sql', 'change_type') },
     // ── suppliers / customers / materials ───────────────────────────────────
     'suppliers.status.':        { kind: 'enum', values: () => tsArray('app/suppliers/[id]/edit/statusMachine.ts', 'SUPPLIER_STATUSES') },
     'suppliers.statusAction.':  { kind: 'enum', values: () => tsArray('app/suppliers/[id]/edit/statusMachine.ts', 'SUPPLIER_STATUSES') },

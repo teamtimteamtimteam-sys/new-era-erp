@@ -17,6 +17,16 @@ export type Task = {
     reminder_at: string | null // ISO timestamp
     tags: string[] | null
     task_type: string
+    // TASK-1b:派生值【只有一处实现】—— task_board_rows。看板与详情页读同一个表达式,
+    // 否则两份实现从写下的第二天开始漂移(这个仓库为这件事付过四次学费)。
+    //
+    // 【可选,因为它们不属于"一行任务",属于"看板上的一行"】新建/保存返回的是
+    // tasks 那张表的行,它身上【没有】这三个值 —— 缺席在这里是诚实的。
+    // 卡片按"缺席就什么都不显示"处理,而那恰好也是零步骤该有的样子(Q11);
+    // revalidatePath 之后服务端重取,值就回来了。
+    node_count?: number
+    done_count?: number
+    steps_overrun_due_date?: boolean | null
 }
 
 // 表单提交给 action 的结构化输入

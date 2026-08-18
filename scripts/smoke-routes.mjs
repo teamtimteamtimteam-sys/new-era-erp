@@ -89,6 +89,8 @@ const ID_SOURCES = {
         // CN-1:贷项凭证。线上零行(机制与屏幕先于第一张真凭证落地),
         // 所以同时列在 EXPECTED_SKIPS 里 —— 开出第一张的那天,那条断言会响。
         '/finance/credit-notes': 'credit_notes',
+        // TASK-1b:任务详情。**取的 id 必须是一张【团队】任务** —— 见 ID_FILTERS。
+        '/tasks': 'tasks',
         '/settings/permissions/roles': 'roles', '/stocktakes': 'stocktakes',
         '/suppliers': 'suppliers',
     },
@@ -224,9 +226,18 @@ async function restRows(path, ctx) {
         throw new Error(`id 查询失败(${ctx}): HTTP ${r.status} ${body.slice(0, 300)}`)
     return rows
 }
+// 【为什么会需要按条件挑 id,而不是随手拿第一行】
+// 冒烟是以 admin 登录跑的。TASK-1c 之后,一张【私人】任务属于别人,而 admin
+// 并不持有 module.tasks.view_all —— 那一页会【正当地】拒绝。从六行里随机挑,
+// 得到的是一个【时好时坏】的冒烟,而那比一直红更坏:没有人会去查一个偶尔绿的失败。
+// 所以这里按名声明"这条路由要的是哪一种行",而不是让它去赌。
+const ID_FILTERS = {
+    tasks: '&task_type=eq.team',
+}
 async function firstId(table, route) {
     const del = SOFT_DELETED.has(table) ? '&deleted_at=is.null' : ''
-    const rows = await restRows(`/rest/v1/${table}?select=id&limit=1${del}`, `${route} ← ${table}`)
+    const filter = ID_FILTERS[table] ?? ''
+    const rows = await restRows(`/rest/v1/${table}?select=id&limit=1${del}${filter}`, `${route} ← ${table}`)
     return rows[0]?.id ?? null
 }
 async function restOk(path, opts, ctx) {
