@@ -44,13 +44,13 @@ BEGIN
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_user), true);
 
-    INSERT INTO suppliers (code, legal_name, country, status)
-    VALUES ('ZZFIX52-S', 'fixture 52 supplier', 'SG', 'active') RETURNING id INTO v_sup;
+    INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)
+    VALUES ('ZZFIX52-S', 'fixture 52 supplier', 'SG', 'active', 'goods_supplier') RETURNING id INTO v_sup;
     -- 【第二个供应商是有意的】C 臂要试"把供应商换成【另一个真实存在的】供应商"。
     -- 拿一个随机 uuid 去试,外键会先一步拒绝 —— 那样即使守卫被拿掉,这一臂也照样红,
     -- 于是它测的是外键,不是守卫。故障注入时正是这么暴露的。
-    INSERT INTO suppliers (code, legal_name, country, status)
-    VALUES ('ZZFIX52-S2', 'fixture 52 other supplier', 'SG', 'active') RETURNING id INTO v_sup2;
+    INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)
+    VALUES ('ZZFIX52-S2', 'fixture 52 other supplier', 'SG', 'active', 'goods_supplier') RETURNING id INTO v_sup2;
     INSERT INTO materials (code, name, category)
     VALUES ('ZZFIX52-M', 'fixture 52 material', 'other') RETURNING id INTO v_mat;
 

@@ -51,8 +51,8 @@ BEGIN
 
     def_view := pg_get_viewdef('public.operations_now'::regclass, true);
 
-    INSERT INTO suppliers (code, legal_name, country)
-    VALUES ('ZZ79-S', 'fixture 79 supplier', 'SG') RETURNING id INTO v_sup;
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
+    VALUES ('ZZ79-S', 'fixture 79 supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
     INSERT INTO materials (code, name, category) VALUES ('ZZ79-MA','f79 raw','black_mass')
         RETURNING id INTO v_matA;
     INSERT INTO materials (code, name, category) VALUES ('ZZ79-MB','f79 fine','black_mass')

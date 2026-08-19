@@ -48,8 +48,8 @@ BEGIN
     def_close := pg_get_functiondef('public.close_period(date,text)'::regprocedure);
     def_sis   := pg_get_functiondef('public.set_asset_in_service(uuid,date)'::regprocedure);
 
-    INSERT INTO suppliers (code, legal_name, country)
-    VALUES ('FIXT-S77', 'Fixture Supplier 77', 'SG') RETURNING id INTO v_sup;
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
+    VALUES ('FIXT-S77', 'Fixture Supplier 77', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
     -- 汇率:USD 那两天各一个(资产按【自己那天】的牌价定格)
     -- 【汇率由库给,不由调用方给】record_expense 对非结算路径拒绝外来汇率
     -- (FX_RATE_NOT_ACCEPTED)—— 那正是 FX 规矩:一处实现,页面不自己算。

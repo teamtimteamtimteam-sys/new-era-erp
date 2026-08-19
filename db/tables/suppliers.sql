@@ -44,17 +44,32 @@ CREATE TABLE public.suppliers (
     updated_at                       timestamptz NOT NULL DEFAULT now(),
     updated_by                       uuid REFERENCES auth.users (id),
     default_payment_term_template_id uuid REFERENCES public.payment_term_templates (id),
-    -- ── SUP-TYPE-1a 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────
-    -- 【我们会不会从这一家收到实物货】。详见列注释;它【不是】"是不是员工"。
-    supplies_goods                   boolean NOT NULL DEFAULT true
+    -- ── ALTER 加的列排在末尾,与 attnum 顺序一致 ──────────────────────────
+    -- LOG-1a:交易对手类型 —— 唯一的真源。NOT NULL 且【没有默认值】:写入方必须选。
+    counterparty_type                text NOT NULL
+                                     CHECK (counterparty_type IN ('goods_supplier', 'forwarder', 'service_vendor')),
+    -- LOG-1a:supplies_goods 由上一列【派生】,不可写。它在 attnum 上排最后,
+    -- 因为本刀把原来那个普通列 DROP 之后重新 ADD 成了生成列
+    -- (PostgreSQL 不能把普通列原地改成生成列)。
+    supplies_goods                   boolean
+                                     GENERATED ALWAYS AS (counterparty_type = 'goods_supplier') STORED
 );
 
-COMMENT ON COLUMN public.suppliers.supplies_goods IS 'SUP-TYPE-1a:【我们会不会从这一家收到实物货】。true = 会(收货、采购单、收货差异统计都对它成立);false = 不会 —— 房东、水电、保险、专业服务、承包商这一类:我们向他们采购并付钱,但永远不会有一车货到场,他们也永远不会持有一张危废证。
-【它不是"是不是员工"】员工报销走的是另一条路,Tim 的决定是让它整个离开 suppliers 表(PAYEE-1)。SUP-2026-0083(Staff Reimbursements)在本迁移里被标成 false,那是【过渡】——PAYEE-1 预期会把那一行整个退休;这个标记真正长期承载的是房东/水电那一类。
-【为什么不用 supplier_types】那一列是 text[]、无 CHECK、多选,而且回答的是【他们做哪一行】(recycler/trader/dismantler/battery_factory_scrap),不是【我们收不收他们的货】。实测它至今没有任何代码读它做判断。把一个从未校验过、且答着另一个问题的列升格成判据,正是本刀要终结的那次混同。
-【为什么是 boolean 而不是枚举】问题本身是二元的。一家既供货又收钱的供应商(线上 Acme)仍然是 true —— 本列问的是"收货这条路成不成立",不是"他们唯一的角色是什么"。
-【默认 true】现存供应商一律视为供货,这是安全的方向:默认 false 会把真供应商挡在收货门外。
-它把关三处:operations_now 的 qualification_missing 支、supplier_receipt_pattern、以及收货触发器 guard_inbound_supplier_supplies_goods(RECEIPT_AGAINST_NON_GOODS_VENDOR)。';
+COMMENT ON COLUMN public.suppliers.counterparty_type IS
+'LOG-1a:这一家【是什么】—— 单值,唯一的真源。
+goods_supplier = 我们向他们买货并收货;forwarder = 货代/承运人,我们付他们运费、永远不会收到他们的"货";
+service_vendor = 房东、水电、保险、专业服务、承包商这一类:付钱,但不会有一车货到场。
+【货代保留 supplier id 是有意的】:一家公司一个 id,应付账龄、付款分摊、预付冲抵、外币重估整条链因此一个字都不用改
+(ap_open_items 早就有一支 doc_kind=''freight'')。类型只决定他【出现在哪些名单里】,不决定他在账上是谁。
+【NOT NULL 且无默认】:写入方必须选。默认值会让"没想过"与"确实是供货商"无法区分。
+supplies_goods 是本列的【派生列】,不要反过来写它。';
+
+COMMENT ON COLUMN public.suppliers.supplies_goods IS
+'SUP-TYPE-1a 建立,LOG-1a 起【改为派生】:GENERATED ALWAYS AS (counterparty_type = ''goods_supplier'') STORED。
+语义一个字没变 —— 仍然是【我们会不会收到这一家的实物货】,仍然把关三处:operations_now 的 qualification_missing 支、supplier_receipt_pattern、以及收货触发器 guard_inbound_supplier_supplies_goods(RECEIPT_AGAINST_NON_GOODS_VENDOR)。
+变的是【谁说了算】:真源是 counterparty_type,这一列跟着它走。
+【它不可写】。想改一家的供货能力,改 counterparty_type;直接写这一列会被 PostgreSQL 拒绝,那是刻意的 —— 两处都能写就是两个真源。
+货代(forwarder)与服务商(service_vendor)在这里都是 false,但它们【不是同一类】:前者不进供应商名单,后者要留在费用类的选择器里。要区分它们请读 counterparty_type,不要读这一列。';
 
 
 CREATE INDEX idx_suppliers_code ON public.suppliers (code);

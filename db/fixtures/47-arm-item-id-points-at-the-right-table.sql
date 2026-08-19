@@ -90,17 +90,17 @@ BEGIN
     VALUES ('ZZFIX47-M-ASY', 'fixture 47 material (assay required)', 'other')
     RETURNING id INTO v_mat_asy;
     INSERT INTO material_required_metals (material_id, metal) VALUES (v_mat_asy, 'cu');
-    INSERT INTO suppliers (code, legal_name, country, status)
-    VALUES ('ZZFIX47-S', 'fixture 47 supplier', 'SG', 'active') RETURNING id INTO v_sup;
+    INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)
+    VALUES ('ZZFIX47-S', 'fixture 47 supplier', 'SG', 'active', 'goods_supplier') RETURNING id INTO v_sup;
     -- 资质将到期的供应商:用 iso(warn,lead 60)—— warn 不挡收货,本 fixture 不需要
     -- 拦截语义,只需要这一支【上牌】。
-    INSERT INTO suppliers (code, legal_name, country, status)
-    VALUES ('ZZFIX47-S-CERT', 'fixture 47 cert supplier', 'SG', 'active') RETURNING id INTO v_sup_cert;
+    INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)
+    VALUES ('ZZFIX47-S-CERT', 'fixture 47 cert supplier', 'SG', 'active', 'goods_supplier') RETURNING id INTO v_sup_cert;
     INSERT INTO supplier_compliance (supplier_id, cert_type_code, cert_no, valid_from, valid_until)
     VALUES (v_sup_cert, 'iso', 'ZZFIX47-CERT', CURRENT_DATE - 365, CURRENT_DATE + 30);
     -- 一张证都没有的供应商(缺席臂)
-    INSERT INTO suppliers (code, legal_name, country, status)
-    VALUES ('ZZFIX47-S-NONE', 'fixture 47 no-cert supplier', 'SG', 'active') RETURNING id INTO v_sup_none;
+    INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)
+    VALUES ('ZZFIX47-S-NONE', 'fixture 47 no-cert supplier', 'SG', 'active', 'goods_supplier') RETURNING id INTO v_sup_none;
     INSERT INTO customers (code, legal_name, country)
     VALUES ('ZZFIX47-C', 'fixture 47 customer', 'SG') RETURNING id INTO v_cust;
     INSERT INTO customers (code, legal_name, country)

@@ -39,8 +39,8 @@ BEGIN
 
     INSERT INTO materials (code, name, category, unit)
     VALUES ('ZZFIX58-M', 'fixture 58 material', '进料-电池', 'kg') RETURNING id INTO v_mat;
-    INSERT INTO suppliers (code, legal_name, country)
-    VALUES ('FIXT-S58', 'Fixture Supplier 58', 'SG') RETURNING id INTO v_sup;
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
+    VALUES ('FIXT-S58', 'Fixture Supplier 58', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
     INSERT INTO storage_locations (code, name) VALUES ('ZZ58-A', 'rack A') RETURNING id INTO v_loc;
     INSERT INTO storage_locations (code, name, is_active) VALUES ('ZZ58-OFF', 'retired rack', false) RETURNING id INTO v_loc2;
 

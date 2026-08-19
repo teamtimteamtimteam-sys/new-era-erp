@@ -65,7 +65,7 @@ BEGIN
     -- ── 数据:每个用例自带,重建库里无处可借 ─────────────────────────────
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', v_all), true);
 
-    INSERT INTO suppliers (legal_name, country, status) VALUES ('ZZ-FIX26 Supplier','SG','active') RETURNING id INTO v_sup;
+    INSERT INTO suppliers (legal_name, country, status, counterparty_type) VALUES ('ZZ-FIX26 Supplier','SG','active', 'goods_supplier') RETURNING id INTO v_sup;
     INSERT INTO materials (name, category, unit, status) VALUES ('ZZ-FIX26 Material','black_mass','kg','active') RETURNING id INTO v_mat;
     INSERT INTO inbound_batches (material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, unit_price, pricing_status, status)
         VALUES (v_mat, v_sup, 100, 'kg', 100, DATE '2026-03-02', 5, 'final', 'active') RETURNING id INTO v_batch;

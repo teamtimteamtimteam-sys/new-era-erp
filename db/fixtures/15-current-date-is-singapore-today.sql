@@ -43,7 +43,7 @@ BEGIN
     END IF;
 
     -- ── C. 端到端(被拒的那一半):SG 今天的化验必须不是"未来" ─────────────
-    INSERT INTO suppliers (code, legal_name, country) VALUES ('FIXT-S15', 'Fixture Supplier 15', 'SG')
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type) VALUES ('FIXT-S15', 'Fixture Supplier 15', 'SG', 'goods_supplier')
         RETURNING id INTO v_sup;
     INSERT INTO materials (code, name, category) VALUES ('FIXT-M15', 'Fixture Material 15', 'black_mass')
         RETURNING id INTO v_mat;

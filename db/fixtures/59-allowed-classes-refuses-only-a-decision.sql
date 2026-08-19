@@ -52,8 +52,8 @@ BEGIN
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_user), true);
 
-    INSERT INTO suppliers (code, legal_name, country)
-    VALUES ('FIXT-S59', 'Fixture Supplier 59', 'SG') RETURNING id INTO v_sup;
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
+    VALUES ('FIXT-S59', 'Fixture Supplier 59', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
 
     INSERT INTO materials (code, name, category, unit, waste_classification_code)
     VALUES ('ZZFIX59-F', 'fixture 59 focused', '进料-电池', 'kg', 'focused') RETURNING id INTO m_foc;

@@ -80,8 +80,8 @@ BEGIN
     UPDATE receiving_settings
        SET grn_short_pct = 10, grn_over_pct = 10, grn_assay_tolerance_pct = 10;
 
-    INSERT INTO suppliers (code, legal_name, country)
-    VALUES ('FX87-SUP', 'fixture 87 supplier', 'SG') RETURNING id INTO sup;
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
+    VALUES ('FX87-SUP', 'fixture 87 supplier', 'SG', 'goods_supplier') RETURNING id INTO sup;
     INSERT INTO materials (code, name, category)
     VALUES ('FX87-MA', 'fixture 87 material A', 'other') RETURNING id INTO mat_a;
     INSERT INTO materials (code, name, category)

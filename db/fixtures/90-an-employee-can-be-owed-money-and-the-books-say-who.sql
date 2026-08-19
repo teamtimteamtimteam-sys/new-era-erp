@@ -56,8 +56,8 @@ BEGIN
     INSERT INTO employees (code, legal_name, employment_type, work_category, hire_date, employment_status)
     VALUES ('FX90-E2', 'fixture 90 employee two', 'full_time', 'office', CURRENT_DATE - 400, 'active')
     RETURNING id INTO emp_b;
-    INSERT INTO suppliers (code, legal_name, country)
-    VALUES ('FX90-SUP', 'fixture 90 supplier', 'SG') RETURNING id INTO sup;
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
+    VALUES ('FX90-SUP', 'fixture 90 supplier', 'SG', 'goods_supplier') RETURNING id INTO sup;
 
     -- ══════════════════════════════════════════════════════════════════════════
     -- A. 挂员工、不挂供应商的未付费用【被接受】—— 这一刀的全部要点

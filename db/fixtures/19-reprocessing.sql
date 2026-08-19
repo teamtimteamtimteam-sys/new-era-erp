@@ -36,7 +36,7 @@ BEGIN
         format('{"sub":"%s","role":"authenticated"}', v_uid), true);
     UPDATE finance_settings SET locked_before = NULL;
 
-    INSERT INTO suppliers (code, legal_name, country) VALUES ('FIXT-S19', 'Fixture Supplier 19', 'SG')
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type) VALUES ('FIXT-S19', 'Fixture Supplier 19', 'SG', 'goods_supplier')
         RETURNING id INTO v_sup;
     INSERT INTO customers (code, legal_name, country) VALUES ('FIXT-C19', 'Fixture Customer 19', 'SG')
         RETURNING id INTO v_cust;

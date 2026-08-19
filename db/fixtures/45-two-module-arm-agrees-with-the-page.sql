@@ -43,7 +43,7 @@ BEGIN
 
     -- 一批:有加工单、成本【未分摊】、且已售出 → margin_status = no_unit_cost
     INSERT INTO materials (code, name, category) VALUES ('ZZFIX45-M','f','other') RETURNING id INTO v_mat;
-    INSERT INTO suppliers (code, legal_name, country, status) VALUES ('ZZFIX45-S','f','SG','active') RETURNING id INTO v_sup;
+    INSERT INTO suppliers (code, legal_name, country, status, counterparty_type) VALUES ('ZZFIX45-S','f','SG','active', 'goods_supplier') RETURNING id INTO v_sup;
     INSERT INTO customers (code, legal_name, country) VALUES ('ZZFIX45-C','f','SG') RETURNING id INTO v_cust;
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date, unit_price)
     VALUES ('ZZFIX45-IB', v_mat, v_sup, 100, 100, CURRENT_DATE, 5) RETURNING id INTO ib;

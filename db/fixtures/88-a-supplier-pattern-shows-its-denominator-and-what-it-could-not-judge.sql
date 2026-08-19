@@ -61,8 +61,8 @@ BEGIN
     -- ══════════════════════════════════════════════════════════════════════════
     -- A. 5 次里 1 次短 —— 原始计数,不是一个布尔量
     -- ══════════════════════════════════════════════════════════════════════════
-    INSERT INTO suppliers (code, legal_name, country)
-    VALUES ('FX88-S1', 'fixture 88 supplier 1of5', 'SG') RETURNING id INTO sup_1of5;
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
+    VALUES ('FX88-S1', 'fixture 88 supplier 1of5', 'SG', 'goods_supplier') RETURNING id INTO sup_1of5;
 
     -- 窗口取视图自己返回的那个数 —— 【不在 fixture 里写第二个 180】。
     -- 写死一份就是第二个定义,而视图哪天改了窗口,这份 fixture 会因为一个
@@ -113,8 +113,8 @@ BEGIN
     --    【两家并存正是这一臂的意义】任何把计数压成布尔量的实现,都会让
     --    A 与 B 在某个阈值两侧变成"一样"或"截然不同";原始计数下它们是 1 与 4。
     -- ══════════════════════════════════════════════════════════════════════════
-    INSERT INTO suppliers (code, legal_name, country)
-    VALUES ('FX88-S4', 'fixture 88 supplier 4of5', 'SG') RETURNING id INTO sup_4of5;
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
+    VALUES ('FX88-S4', 'fixture 88 supplier 4of5', 'SG', 'goods_supplier') RETURNING id INTO sup_4of5;
     INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status)
     VALUES ('FX88-PO4', sup_4of5, CURRENT_DATE, 'USD', 1.3, 'receiving', 'approved') RETURNING id INTO po_4;
 
@@ -234,8 +234,8 @@ BEGIN
     -- ══════════════════════════════════════════════════════════════════════════
     -- E. 窗口边界:两边各钉一天,【边界当天必须在内】(谓词是 >=)
     -- ══════════════════════════════════════════════════════════════════════════
-    INSERT INTO suppliers (code, legal_name, country)
-    VALUES ('FX88-SW', 'fixture 88 supplier window', 'SG') RETURNING id INTO sup_win;
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
+    VALUES ('FX88-SW', 'fixture 88 supplier window', 'SG', 'goods_supplier') RETURNING id INTO sup_win;
     INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status)
     VALUES ('FX88-POW', sup_win, CURRENT_DATE - v_win - 5, 'USD', 1.3, 'receiving', 'approved')
     RETURNING id INTO po_win;
@@ -303,8 +303,8 @@ BEGIN
     -- G. 没有可比对收货的供应商【仍然出现,值为 0】——
     --    否则页面分不出"没有可比对的收货"与"查不到这家供应商"
     -- ══════════════════════════════════════════════════════════════════════════
-    INSERT INTO suppliers (code, legal_name, country)
-    VALUES ('FX88-SN', 'fixture 88 supplier no receipts', 'SG') RETURNING id INTO sup_none;
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
+    VALUES ('FX88-SN', 'fixture 88 supplier no receipts', 'SG', 'goods_supplier') RETURNING id INTO sup_none;
     SELECT count(*) INTO n FROM supplier_receipt_pattern WHERE supplier_id = sup_none;
     IF n <> 1 THEN
         RAISE EXCEPTION 'FIXTURE 88G 一家没有任何收货的供应商必须【出现】(一行,全 0),实得 % 行 —— 整行缺席会让页面把它和"查不到这家供应商"混为一谈', n;
@@ -391,8 +391,8 @@ BEGIN
     --    所以这两个数必须能同时出现、并且各自正确。
     --    (线上 Staff Reimbursements 就是 0 / 1 / 0,这不是假想的形状。)
     -- ══════════════════════════════════════════════════════════════════════════
-    INSERT INTO suppliers (code, legal_name, country)
-    VALUES ('FX88-SX', 'fixture 88 supplier uncheckable', 'SG') RETURNING id INTO sup_x;
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
+    VALUES ('FX88-SX', 'fixture 88 supplier uncheckable', 'SG', 'goods_supplier') RETURNING id INTO sup_x;
     -- 唯一一条收货:有日期、在窗口内、【没挂采购行】
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date)
     VALUES ('FX88-XONLY', mat, sup_x, 500, 'kg', 500, CURRENT_DATE - 1);

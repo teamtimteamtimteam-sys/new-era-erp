@@ -74,8 +74,8 @@ BEGIN
     def_commit := pg_get_functiondef('public.commit_processing_run(date,text,numeric,jsonb,jsonb,text,uuid)'::regprocedure);
     def_cancel := pg_get_functiondef('public.cancel_work_order(uuid,text)'::regprocedure);
 
-    INSERT INTO suppliers (code, legal_name, country)
-    VALUES ('ZZ75-S', 'fixture 75 supplier', 'SG') RETURNING id INTO v_sup;
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
+    VALUES ('ZZ75-S', 'fixture 75 supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
     INSERT INTO materials (code, name, category) VALUES ('ZZ75-MA','f75 raw','black_mass')
         RETURNING id INTO v_matA;
     INSERT INTO materials (code, name, category) VALUES ('ZZ75-MB','f75 fine','black_mass')

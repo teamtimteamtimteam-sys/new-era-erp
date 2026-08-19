@@ -33,8 +33,8 @@ BEGIN
 
     INSERT INTO materials (code, name, category)
     VALUES ('ZZFIX43-M', 'fixture 43 material', 'other') RETURNING id INTO v_mat;
-    INSERT INTO suppliers (code, legal_name, country, status)
-    VALUES ('ZZFIX43-S', 'fixture 43 supplier', 'SG', 'active') RETURNING id INTO v_sup;
+    INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)
+    VALUES ('ZZFIX43-S', 'fixture 43 supplier', 'SG', 'active', 'goods_supplier') RETURNING id INTO v_sup;
 
     -- 三个投入批:① 化验【测了 co,含量 0】 ② 一个金属都没测 ③ co 20%(守恒臂用)
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)

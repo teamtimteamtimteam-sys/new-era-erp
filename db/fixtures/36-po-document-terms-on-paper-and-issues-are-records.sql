@@ -36,8 +36,8 @@ BEGIN
                            'module.pricing.view','data.view_prices']);
     INSERT INTO user_roles (user_id, role_id) VALUES (u, r);
 
-    INSERT INTO suppliers (code, legal_name, country, address, tax_id)
-    VALUES ('ZZFIX36-S', 'fixture 36 supplier', 'SG', '1 Test Way', 'T36') RETURNING id INTO v_sup;
+    INSERT INTO suppliers (code, legal_name, country, address, tax_id, counterparty_type)
+    VALUES ('ZZFIX36-S', 'fixture 36 supplier', 'SG', '1 Test Way', 'T36', 'goods_supplier') RETURNING id INTO v_sup;
     INSERT INTO materials (code, name, category)
     VALUES ('ZZFIX36-M', 'fixture 36 material', 'other') RETURNING id INTO v_mat;
 

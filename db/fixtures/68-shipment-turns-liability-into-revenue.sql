@@ -369,8 +369,8 @@ BEGIN
     -- 补挂读的是 sales_records(按 output_batch_id,按 cogs_entry_id 是否为空
     -- 分两堆),而发货产生的正是一条普通的 sales_records —— 这一臂就是那句
     -- "所以它自然看得见"的证明。
-    INSERT INTO suppliers (code, legal_name, country)
-    VALUES ('ZZ68-S1', 'fixture 68 supplier', 'SG') RETURNING id INTO v_sup;
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
+    VALUES ('ZZ68-S1', 'fixture 68 supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
     INSERT INTO materials (code, name, category, unit)
     VALUES ('ZZFIX68-K', 'f68 processed', '产出-金属', 'kg') RETURNING id INTO v_matK;
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)

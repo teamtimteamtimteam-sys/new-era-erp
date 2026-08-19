@@ -43,7 +43,7 @@ BEGIN
 
     INSERT INTO materials (code, name, category, unit)
     VALUES ('ZZFIX56-M', 'fixture 56 material', '进料-电池', 'kg') RETURNING id INTO v_mat;
-    INSERT INTO suppliers (code, legal_name, country) VALUES ('FIXT-S56', 'Fixture Supplier 56', 'SG') RETURNING id INTO v_sup;
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type) VALUES ('FIXT-S56', 'Fixture Supplier 56', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
 
     -- 一张 100 kg 的进料批。**收货流水不用手写** —— 建批次时台账触发器自己发一条
     -- receipt(这一点本身就值得断言:A 臂数的就是它)。而它【不显式给 stock_status】,

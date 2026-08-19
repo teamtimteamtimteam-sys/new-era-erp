@@ -37,12 +37,17 @@ export async function createSupplier(
     // SUP-TYPE-1b:未勾选的 checkbox【什么都不发】—— 所以判据是"这个字段在不在",
     // 不是"它的值真不真"。用 formData.get(...) !== null 而不是 Boolean(值):
     // 后者会把 value="on" 之外的任何写法悄悄读成 false。
-    const supplies_goods = formData.get('supplies_goods') !== null
+    // LOG-1a:supplies_goods 现在是 counterparty_type 的【派生列】,写不得 ——
+    // 写它会被 PostgreSQL 直接拒绝(生成列)。所以这里写的是类型本身。
+    const counterparty_type = String(formData.get('counterparty_type') ?? '')
 
     // 2. 基本校验
     const fieldErrors: Record<string, string> = {}
     if (!legal_name) fieldErrors.legal_name = t('suppliers.form.errLegalName')
     if (!country) fieldErrors.country = t('suppliers.form.errCountry')
+    if (!['goods_supplier', 'forwarder', 'service_vendor'].includes(counterparty_type)) {
+        fieldErrors.counterparty_type = t('suppliers.form.errCounterpartyType')
+    }
     if (country && country.length !== 2) {
         fieldErrors.country = t('suppliers.form.errCountryFormat')
     }
@@ -60,7 +65,7 @@ export async function createSupplier(
         tax_id,
         address,
         supplier_types,
-        supplies_goods,
+        counterparty_type,
         payment_terms,
         incoterm,
         credit_rating,

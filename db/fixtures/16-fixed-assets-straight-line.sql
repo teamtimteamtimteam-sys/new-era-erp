@@ -28,7 +28,7 @@ BEGIN
     -- 期间锁是运行时状态:先清掉,F 臂自己再设(README 第 5 条)
     UPDATE finance_settings SET locked_before = NULL;
 
-    INSERT INTO suppliers (code, legal_name, country) VALUES ('FIXT-S16', 'Fixture Supplier 16', 'SG')
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type) VALUES ('FIXT-S16', 'Fixture Supplier 16', 'SG', 'goods_supplier')
         RETURNING id INTO v_sup;
 
     -- ════════════════════════════════════════════════════════════════════════

@@ -134,3 +134,10 @@ CREATE TRIGGER trg_purchase_orders_no_hard_delete
 CREATE TRIGGER trg_purchase_orders_soft_delete_provenance
     BEFORE UPDATE ON public.purchase_orders
     FOR EACH ROW EXECUTE FUNCTION public.guard_soft_delete_provenance();
+
+-- ═══ LOG-1a ════════════════════════════════════════════════════════════════
+-- 货代不能当采购单的供应商。【界面同时会把货代从选择器里排除(LOG-1b),
+-- 但那是体贴,不是边界】—— 谁都可以直接打 PostgREST,所以判据装在触发器上。
+CREATE TRIGGER trg_purchase_orders_vendor_not_forwarder
+    BEFORE INSERT OR UPDATE ON public.purchase_orders
+    FOR EACH ROW EXECUTE FUNCTION guard_po_vendor_not_forwarder();

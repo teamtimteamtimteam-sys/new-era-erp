@@ -42,8 +42,8 @@ BEGIN
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_user), true);
 
-    INSERT INTO suppliers (code, legal_name, country)
-    VALUES ('FIXT-S60', 'Fixture Supplier 60', 'SG') RETURNING id INTO v_sup;
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
+    VALUES ('FIXT-S60', 'Fixture Supplier 60', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
 
     INSERT INTO materials (code, name, category, unit, safety_stock_qty)
     VALUES ('ZZFIX60-W', 'fixture 60 watched', '进料-电池', 'kg', 50) RETURNING id INTO m_watch;

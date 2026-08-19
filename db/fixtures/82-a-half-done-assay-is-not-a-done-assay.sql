@@ -49,8 +49,8 @@ BEGIN
     -- 化验日必须 <= CURRENT_DATE(record_assay_result 的 ASSAY_DATE_INVALID),
     -- 所以这里用的是过去的固定日期,不是未来的年份。
 
-    INSERT INTO suppliers (code, legal_name, country)
-    VALUES ('FX82-SUP', 'fixture 82 supplier', 'SG') RETURNING id INTO sup;
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
+    VALUES ('FX82-SUP', 'fixture 82 supplier', 'SG', 'goods_supplier') RETURNING id INTO sup;
     INSERT INTO materials (code, name, category)
     VALUES ('FX82-REQ', 'fixture 82 material WITH requirement', 'black_mass') RETURNING id INTO m_req;
     INSERT INTO materials (code, name, category)

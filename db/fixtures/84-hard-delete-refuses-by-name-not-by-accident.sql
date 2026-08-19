@@ -43,8 +43,8 @@ BEGIN
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_user), true);
 
-    INSERT INTO suppliers (code, legal_name, country)
-    VALUES ('FX84-SUP', 'fixture 84 supplier', 'SG') RETURNING id INTO sup;
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
+    VALUES ('FX84-SUP', 'fixture 84 supplier', 'SG', 'goods_supplier') RETURNING id INTO sup;
     INSERT INTO materials (code, name, category)
     VALUES ('FX84-M', 'fixture 84 material', 'other') RETURNING id INTO mat;
 

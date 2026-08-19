@@ -22,7 +22,7 @@ type Supplier = {
     tax_id: string | null
     address: string | null
     supplier_types: string[] | null
-    supplies_goods: boolean | null
+    counterparty_type: string | null
     payment_terms: string | null
     incoterm: string | null
     credit_rating: string | null
@@ -144,24 +144,21 @@ export default function EditSupplierForm({
                     </div>
                 </div>
 
-                {/* SUP-TYPE-1b:【会不会从这一家收到货】—— 1a 加了这一列,但没有
-                    任何表单能设它,于是它只能靠直接改库。一个只有默认值、没人
-                    改得动的开关,等于没有这个能力。
-                    【它不是 supplier_types】那一列说的是"他们做哪一行",这一个
-                    说的是"我们收不收他们的货"—— 1a 的迁移抬头写了三条理由。 */}
+                {/* LOG-1a:【这一家是什么】。取代了原来那个 supplies_goods 复选框 ——
+                    那一列现在是本选择的【派生列】,写不得。
+                    三选一而不是勾选,是因为问题不再是二元的:货代与房东/水电
+                    都"不供货",但前者不该出现在供应商名单里,后者要留在费用选择器里。 */}
                 <div>
-                    <label className="flex items-center gap-2">
-                        <input
-                            type="checkbox"
-                            name="supplies_goods"
-                            value="on"
-                            defaultChecked={supplier.supplies_goods !== false}
-                            className="w-4 h-4"
-                        />
-                        <span className="text-sm font-medium">{t('suppliers.suppliesGoods')}</span>
+                    <label className="block text-sm font-medium mb-1">
+                        {t('suppliers.counterpartyType')} <span className="text-red-600">*</span>
                     </label>
+                    <select name="counterparty_type" defaultValue={supplier.counterparty_type ?? 'goods_supplier'} className="w-full border border-gray-300 px-3 py-2 rounded">
+                        <option value="goods_supplier">{t('suppliers.type.goods_supplier')}</option>
+                        <option value="forwarder">{t('suppliers.type.forwarder')}</option>
+                        <option value="service_vendor">{t('suppliers.type.service_vendor')}</option>
+                    </select>
                     <p className="text-xs text-gray-500 mt-1 max-w-2xl">
-                        {t('suppliers.suppliesGoodsHint')}
+                        {t('suppliers.counterpartyTypeHint')}
                     </p>
                 </div>
 

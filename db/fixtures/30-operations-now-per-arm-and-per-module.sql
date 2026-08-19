@@ -84,8 +84,8 @@ BEGIN
     INSERT INTO user_roles (user_id, role_id) VALUES (v_all, r_all), (v_inb, r_inb);
 
     -- ── 九支的数据,每支一个等待中的条件 ─────────────────────────────────────
-    INSERT INTO suppliers (code, legal_name, country)
-    VALUES ('ZZFIX30-S', 'fixture 30 supplier', 'SG') RETURNING id INTO v_sup;
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
+    VALUES ('ZZFIX30-S', 'fixture 30 supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
     INSERT INTO materials (code, name, category)
     VALUES ('ZZFIX30-M', 'fixture 30 material', 'other') RETURNING id INTO v_mat;
     -- 【ASY-P1:awaiting_assay 从"零化验"改成"要求的金属没验齐"】
@@ -254,8 +254,8 @@ BEGIN
     UPDATE suppliers SET deleted_at = now() WHERE deleted_at IS NULL;
 
     -- 一家有证、而证快到期(basel 的提前量是 90 天 → 80 天后到期即命中)
-    INSERT INTO suppliers (code, legal_name, country)
-    VALUES ('FIXT-S30A', 'fixture 30 expiring', 'SG') RETURNING id INTO v_sup2;
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
+    VALUES ('FIXT-S30A', 'fixture 30 expiring', 'SG', 'goods_supplier') RETURNING id INTO v_sup2;
     INSERT INTO supplier_compliance (supplier_id, cert_type_code, cert_no, valid_from, valid_until)
     VALUES (v_sup2, 'basel', 'F30-A', CURRENT_DATE - 400, CURRENT_DATE + 80)
     RETURNING id INTO v_sc;
@@ -263,8 +263,8 @@ BEGIN
     -- 【status 显式设 active】CMP-2 的 qualification_missing 谓词里有
     -- `s.status = 'active'` —— 不设就落到列默认值上,那一支静默不响,
     -- 而"没响"与"这一支坏了"在屏幕上一模一样(README 第 5 条:前提要自己设)。
-    INSERT INTO suppliers (code, legal_name, country, status)
-    VALUES ('FIXT-S30B', 'fixture 30 no cert', 'SG', 'active') RETURNING id INTO v_sup3;
+    INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)
+    VALUES ('FIXT-S30B', 'fixture 30 no cert', 'SG', 'active', 'goods_supplier') RETURNING id INTO v_sup3;
     -- 上面那家有证的,不该同时命中"缺席"那一支 —— 两支互斥,A 臂的"每支恰好一件"
     -- 就是这一点的断言。
 
@@ -285,8 +285,8 @@ BEGIN
     -- 【这一家要有证,而且是远期的】否则它会同时命中 qualification_missing,
     -- 那一支就变成两行,而本 fixture 的契约是"每支恰好一件"。
     -- 证的到期日推到窗口之外(basel 提前量 90 天),所以也不命中到期那一支。
-    INSERT INTO suppliers (code, legal_name, country, status)
-    VALUES ('FIXT-S30C', 'fixture 30 wo supplier', 'SG', 'active') RETURNING id INTO v_sup3;
+    INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)
+    VALUES ('FIXT-S30C', 'fixture 30 wo supplier', 'SG', 'active', 'goods_supplier') RETURNING id INTO v_sup3;
     INSERT INTO supplier_compliance (supplier_id, cert_type_code, cert_no, valid_from, valid_until)
     VALUES (v_sup3, 'basel', 'F30-C', CURRENT_DATE - 10, CURRENT_DATE + 300);
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)

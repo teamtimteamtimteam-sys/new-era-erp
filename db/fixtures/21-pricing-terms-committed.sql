@@ -45,7 +45,7 @@ BEGIN
     -- 前提显式设定(README 第 5 条):期间不锁、牌价与行情自己插。
     UPDATE finance_settings SET locked_before = NULL;
 
-    INSERT INTO suppliers (code, legal_name, country) VALUES ('FIXT-S21', 'Fixture Supplier 21', 'SG')
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type) VALUES ('FIXT-S21', 'Fixture Supplier 21', 'SG', 'goods_supplier')
         RETURNING id INTO v_sup;
     INSERT INTO materials (code, name, category) VALUES ('FIXT-M21', 'Fixture Material 21', 'black_mass')
         RETURNING id INTO v_mat;

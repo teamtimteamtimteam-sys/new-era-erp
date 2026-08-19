@@ -78,8 +78,8 @@ BEGIN
     def_cancel  := pg_get_functiondef('public.cancel_work_order(uuid,text)'::regprocedure);
     def_amend   := pg_get_functiondef('public.amend_work_order(uuid,text,date,boolean,text,boolean,jsonb,jsonb)'::regprocedure);
 
-    INSERT INTO suppliers (code, legal_name, country)
-    VALUES ('ZZ74-S', 'fixture 74 supplier', 'SG') RETURNING id INTO v_sup;
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
+    VALUES ('ZZ74-S', 'fixture 74 supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
     INSERT INTO materials (code, name, category) VALUES ('ZZ74-MA','f74 raw','black_mass')
         RETURNING id INTO v_matA;
     INSERT INTO materials (code, name, category) VALUES ('ZZ74-MB','f74 fine','black_mass')

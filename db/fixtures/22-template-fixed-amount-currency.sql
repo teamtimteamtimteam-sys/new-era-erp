@@ -37,7 +37,7 @@ BEGIN
     INSERT INTO fx_rates (currency, rate_date, rate_type, rate_sgd_per_unit)
     VALUES ('USD', v_today, 'tt_sell', 1.26);
 
-    INSERT INTO suppliers (code, legal_name, country) VALUES ('FIXT-S22', 'Fixture Supplier 22', 'SG')
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type) VALUES ('FIXT-S22', 'Fixture Supplier 22', 'SG', 'goods_supplier')
         RETURNING id INTO v_sup;
     INSERT INTO materials (code, name, category) VALUES ('FIXT-M22', 'Fixture Material 22', 'black_mass')
         RETURNING id INTO v_mat;

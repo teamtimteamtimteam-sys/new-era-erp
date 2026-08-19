@@ -68,8 +68,8 @@ BEGIN
     SELECT r2, unnest(ARRAY['module.inbound.edit','module.inbound.view']);
     INSERT INTO user_roles (user_id, role_id) VALUES (u2, r2);
 
-    INSERT INTO suppliers (code, legal_name, country)
-    VALUES ('ZZFIX54-S', 'fixture 54 supplier', 'SG') RETURNING id INTO v_sup;
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
+    VALUES ('ZZFIX54-S', 'fixture 54 supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
     INSERT INTO materials (code, name, category)
     VALUES ('ZZFIX54-M', 'fixture 54 material', 'other') RETURNING id INTO v_mat;
 

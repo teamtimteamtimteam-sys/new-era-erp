@@ -38,12 +38,13 @@ BEGIN
     INSERT INTO materials (code, name, category)
     VALUES ('FX89-M', 'fixture 89 material', 'other') RETURNING id INTO mat;
 
-    -- 【两家,只差一个标记】—— 其余字段完全一致,于是任何差异都只能来自 supplies_goods。
+    -- 【两家,只差一个标记】—— 其余字段完全一致,于是任何差异都只能来自这个标记。
+    -- LOG-1a 起写的是 counterparty_type:supplies_goods 成了它的派生列,写不得。
     -- 两家都【没有任何合规证书】,这是 A/B 这一对的前提:证书不是变量,标记才是。
-    INSERT INTO suppliers (code, legal_name, country, supplies_goods)
-    VALUES ('FX89-GOODS', 'fixture 89 goods supplier', 'SG', true) RETURNING id INTO sup_goods;
-    INSERT INTO suppliers (code, legal_name, country, supplies_goods)
-    VALUES ('FX89-VENDOR', 'fixture 89 landlord', 'SG', false) RETURNING id INTO sup_vendor;
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
+    VALUES ('FX89-GOODS', 'fixture 89 goods supplier', 'SG', 'goods_supplier') RETURNING id INTO sup_goods;
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
+    VALUES ('FX89-VENDOR', 'fixture 89 landlord', 'SG', 'service_vendor') RETURNING id INTO sup_vendor;
 
     -- 两家都推到 active —— 那正是 SUP-TYPE-0 用来证明永久亮灯的那条合法路径。
     -- 【状态机一个字没动】(本刀明确不碰它),所以必须逐级走。
@@ -144,7 +145,7 @@ BEGIN
     --    而一个在任意 UPDATE 上开火的守卫会让它再也删不掉。
     --    本刀清理 IN-2026-0267 时撞的就是这堵墙,所以它被写成一臂。
     -- ══════════════════════════════════════════════════════════════════════════
-    UPDATE suppliers SET supplies_goods = false WHERE id = sup_goods;
+    UPDATE suppliers SET counterparty_type = 'service_vendor' WHERE id = sup_goods;
     v_denied := false; v_msg := NULL;
     BEGIN
         PERFORM soft_delete_inbound_batch(b, '测试:供应商转为不供货之后,历史收货仍可注销');
@@ -160,7 +161,7 @@ BEGIN
     IF n <> 1 THEN
         RAISE EXCEPTION 'FIXTURE 89F 软删应当记下人与理由,实得 % 行', n;
     END IF;
-    UPDATE suppliers SET supplies_goods = true WHERE id = sup_goods;
+    UPDATE suppliers SET counterparty_type = 'goods_supplier' WHERE id = sup_goods;
     RAISE NOTICE '89F 供应商转为不供货后,历史收货仍软删得掉(且记下了人与理由)✓';
 
     -- ══════════════════════════════════════════════════════════════════════════
@@ -178,17 +179,30 @@ BEGIN
     RAISE NOTICE '89G/H 收货模式:不供货缺席、供货在场 ✓';
 
     -- ══════════════════════════════════════════════════════════════════════════
-    -- I. 【默认是供货】—— 不写这一列建出来的供应商必须是 true
-    --    默认 false 会把每一家新供应商一建出来就挡在收货门外。
+    -- I. 【不许不选】—— LOG-1a 把这一臂整个翻过来了,理由写在这里
+    --    从前:不写这一列默认 supplies_goods = true(默认 false 会把新供应商挡在收货门外)。
+    --    现在:真源是 counterparty_type,它 NOT NULL 且【没有默认值】——
+    --    因为默认值会让"没想过"与"确实是供货商"在库里长成同一个样子,
+    --    而这一列的全部意义就是把货代与供货商分开。
+    --    所以正确的断言不再是"默认为真",而是【不选就写不进去】。
+    --    人话那一句由应用层给(suppliers.form.errCounterpartyType);
+    --    这里断言的是库这一侧的保证。
     -- ══════════════════════════════════════════════════════════════════════════
-    INSERT INTO suppliers (code, legal_name, country)
-    VALUES ('FX89-DEFAULT', 'fixture 89 default supplier', 'SG');
-    SELECT count(*) INTO n FROM suppliers
-     WHERE code = 'FX89-DEFAULT' AND supplies_goods;
-    IF n <> 1 THEN
-        RAISE EXCEPTION 'FIXTURE 89I 不指定时必须默认【供货】—— 默认 false 会把每一家新供应商挡在收货门外';
+    v_denied := false; v_msg := NULL;
+    BEGIN
+        -- 【这一条【故意】不写 counterparty_type】—— 本臂断言的就是"不选就写不进去"。
+        -- LOG-1a 批量给所有 fixture 的供应商插入补类型时,把这一处也补上了,
+        -- 于是这条臂当场变绿而它本该是红的。**一次把被测对象改好了的批量修改,
+        -- 与一段会修好注入的前提代码是同一种病**(fixture 95 那次注入没咬住,同因)。
+        INSERT INTO suppliers (code, legal_name, country)
+        VALUES ('FX89-DEFAULT', 'fixture 89 default supplier', 'SG');
+    EXCEPTION WHEN OTHERS THEN
+        v_denied := true; v_msg := SQLERRM;
+    END;
+    IF NOT v_denied THEN
+        RAISE EXCEPTION 'FIXTURE 89I 不选交易对手类型竟然建得出供应商 —— 那个默认值正是本刀要去掉的东西';
     END IF;
-    RAISE NOTICE '89I 新供应商默认供货 ✓';
+    RAISE NOTICE '89I 不选类型就建不出供应商 ✓(%)', left(v_msg, 60);
 
     RAISE NOTICE 'FIXTURE 89 全部通过';
 END $$;

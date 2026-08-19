@@ -58,10 +58,10 @@ BEGIN
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_user), true);
 
-    INSERT INTO suppliers (code, legal_name, country, status)
-    VALUES ('ZZFIX51-MAT', 'fixture 51 material supplier', 'SG', 'active') RETURNING id INTO v_sup;
-    INSERT INTO suppliers (code, legal_name, country, status)
-    VALUES ('ZZFIX51-FWD', 'fixture 51 forwarder', 'SG', 'active') RETURNING id INTO v_fwd;
+    INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)
+    VALUES ('ZZFIX51-MAT', 'fixture 51 material supplier', 'SG', 'active', 'goods_supplier') RETURNING id INTO v_sup;
+    INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)
+    VALUES ('ZZFIX51-FWD', 'fixture 51 forwarder', 'SG', 'active', 'goods_supplier') RETURNING id INTO v_fwd;
     INSERT INTO materials (code, name, category)
     VALUES ('ZZFIX51-M', 'fixture 51 material', 'other') RETURNING id INTO v_mat;
     INSERT INTO customers (code, legal_name, country)

@@ -2159,6 +2159,138 @@ export type Database = {
           },
         ]
       }
+      forwarder_details: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          dg_classes: string | null
+          free_time_terms: string | null
+          main_routes: string | null
+          notes: string | null
+          ports_served: string | null
+          supplier_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          dg_classes?: string | null
+          free_time_terms?: string | null
+          main_routes?: string | null
+          notes?: string | null
+          ports_served?: string | null
+          supplier_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          dg_classes?: string | null
+          free_time_terms?: string | null
+          main_routes?: string | null
+          notes?: string | null
+          ports_served?: string | null
+          supplier_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forwarder_details_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: true
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "forwarder_details_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: true
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forwarder_rate_quotes: {
+        Row: {
+          amount_ccy: number
+          created_at: string
+          created_by: string | null
+          currency: string
+          deleted_at: string | null
+          id: string
+          lane_id: string
+          notes: string | null
+          supplier_id: string
+          valid_from: string
+          valid_to: string
+        }
+        Insert: {
+          amount_ccy: number
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          deleted_at?: string | null
+          id?: string
+          lane_id: string
+          notes?: string | null
+          supplier_id: string
+          valid_from: string
+          valid_to: string
+        }
+        Update: {
+          amount_ccy?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          deleted_at?: string | null
+          id?: string
+          lane_id?: string
+          notes?: string | null
+          supplier_id?: string
+          valid_from?: string
+          valid_to?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forwarder_rate_quotes_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "forwarder_rate_quotes_lane_id_fkey"
+            columns: ["lane_id"]
+            isOneToOne: false
+            referencedRelation: "lane_checklist_status"
+            referencedColumns: ["lane_id"]
+          },
+          {
+            foreignKeyName: "forwarder_rate_quotes_lane_id_fkey"
+            columns: ["lane_id"]
+            isOneToOne: false
+            referencedRelation: "lanes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forwarder_rate_quotes_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "forwarder_rate_quotes_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       freight_allocations: {
         Row: {
           amount_base: number
@@ -3308,6 +3440,99 @@ export type Database = {
             columns: ["entry_id"]
             isOneToOne: false
             referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lane_document_requirements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          document_type: string
+          id: string
+          lane_id: string
+          notes: string | null
+          regime: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          document_type: string
+          id?: string
+          lane_id: string
+          notes?: string | null
+          regime?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          document_type?: string
+          id?: string
+          lane_id?: string
+          notes?: string | null
+          regime?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lane_document_requirements_lane_id_fkey"
+            columns: ["lane_id"]
+            isOneToOne: false
+            referencedRelation: "lane_checklist_status"
+            referencedColumns: ["lane_id"]
+          },
+          {
+            foreignKeyName: "lane_document_requirements_lane_id_fkey"
+            columns: ["lane_id"]
+            isOneToOne: false
+            referencedRelation: "lanes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lanes: {
+        Row: {
+          checklist_reviewed_at: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          destination_port_id: string
+          id: string
+          origin_port_id: string
+        }
+        Insert: {
+          checklist_reviewed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          destination_port_id: string
+          id?: string
+          origin_port_id: string
+        }
+        Update: {
+          checklist_reviewed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          destination_port_id?: string
+          id?: string
+          origin_port_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lanes_destination_port_id_fkey"
+            columns: ["destination_port_id"]
+            isOneToOne: false
+            referencedRelation: "ports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lanes_origin_port_id_fkey"
+            columns: ["origin_port_id"]
+            isOneToOne: false
+            referencedRelation: "ports"
             referencedColumns: ["id"]
           },
         ]
@@ -5557,6 +5782,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ports: {
+        Row: {
+          code: string
+          country: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          code: string
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          code?: string
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
       prepayment_applications: {
         Row: {
@@ -8989,6 +9244,7 @@ export type Database = {
         Row: {
           address: string | null
           code: string
+          counterparty_type: string
           country: string
           created_at: string
           created_by: string | null
@@ -9004,7 +9260,7 @@ export type Database = {
           short_name: string | null
           status: Database["public"]["Enums"]["supplier_status"]
           supplier_types: string[]
-          supplies_goods: boolean
+          supplies_goods: boolean | null
           tax_id: string | null
           updated_at: string
           updated_by: string | null
@@ -9012,6 +9268,7 @@ export type Database = {
         Insert: {
           address?: string | null
           code: string
+          counterparty_type: string
           country: string
           created_at?: string
           created_by?: string | null
@@ -9027,7 +9284,7 @@ export type Database = {
           short_name?: string | null
           status?: Database["public"]["Enums"]["supplier_status"]
           supplier_types?: string[]
-          supplies_goods?: boolean
+          supplies_goods?: boolean | null
           tax_id?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -9035,6 +9292,7 @@ export type Database = {
         Update: {
           address?: string | null
           code?: string
+          counterparty_type?: string
           country?: string
           created_at?: string
           created_by?: string | null
@@ -9050,7 +9308,7 @@ export type Database = {
           short_name?: string | null
           status?: Database["public"]["Enums"]["supplier_status"]
           supplier_types?: string[]
-          supplies_goods?: boolean
+          supplies_goods?: boolean | null
           tax_id?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -11797,6 +12055,15 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      lane_checklist_status: {
+        Row: {
+          checklist_reviewed_at: string | null
+          checklist_state: string | null
+          lane_id: string | null
+          requirement_count: number | null
+        }
+        Relationships: []
       }
       leave_calendar: {
         Row: {

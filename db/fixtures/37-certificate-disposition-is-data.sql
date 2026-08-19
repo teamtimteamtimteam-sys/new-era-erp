@@ -33,12 +33,12 @@ BEGIN
     VALUES ('ZZFIX37-M', 'fixture 37 material', 'other') RETURNING id INTO v_mat;
 
     -- 三个供应商:持过期 block 证的、持过期 warn 证的、一张证都没有的
-    INSERT INTO suppliers (code, legal_name, country, status)
-    VALUES ('ZZFIX37-S1', 'fixture 37 blocked supplier', 'SG', 'active') RETURNING id INTO sup_block;
-    INSERT INTO suppliers (code, legal_name, country, status)
-    VALUES ('ZZFIX37-S2', 'fixture 37 warned supplier', 'SG', 'active') RETURNING id INTO sup_warn;
-    INSERT INTO suppliers (code, legal_name, country, status)
-    VALUES ('ZZFIX37-S3', 'fixture 37 bare supplier', 'SG', 'active') RETURNING id INTO sup_none;
+    INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)
+    VALUES ('ZZFIX37-S1', 'fixture 37 blocked supplier', 'SG', 'active', 'goods_supplier') RETURNING id INTO sup_block;
+    INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)
+    VALUES ('ZZFIX37-S2', 'fixture 37 warned supplier', 'SG', 'active', 'goods_supplier') RETURNING id INTO sup_warn;
+    INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)
+    VALUES ('ZZFIX37-S3', 'fixture 37 bare supplier', 'SG', 'active', 'goods_supplier') RETURNING id INTO sup_none;
 
     -- 过期【两年】的 block 证(basel 引导默认 block)与过期的 warn 证(iso 默认 warn)。
     -- 两年是特意的:无下限那一臂靠它成立。

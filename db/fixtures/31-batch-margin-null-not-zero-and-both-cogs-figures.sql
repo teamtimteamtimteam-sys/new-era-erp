@@ -52,8 +52,8 @@ BEGIN
 
     INSERT INTO materials (code, name, category)
     VALUES ('ZZFIX31-M', 'fixture 31 material', 'other') RETURNING id INTO v_mat;
-    INSERT INTO suppliers (code, legal_name, country)
-    VALUES ('ZZFIX31-S', 'fixture 31 supplier', 'SG') RETURNING id INTO v_sup;
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
+    VALUES ('ZZFIX31-S', 'fixture 31 supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
     INSERT INTO customers (code, legal_name, country)
     VALUES ('ZZFIX31-C', 'fixture 31 customer', 'SG') RETURNING id INTO v_cust;
 

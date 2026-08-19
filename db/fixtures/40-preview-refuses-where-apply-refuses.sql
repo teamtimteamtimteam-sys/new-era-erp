@@ -33,8 +33,8 @@ BEGIN
 
     INSERT INTO materials (code, name, category)
     VALUES ('ZZFIX40-M', 'fixture 40 material', 'other') RETURNING id INTO v_mat;
-    INSERT INTO suppliers (code, legal_name, country, status)
-    VALUES ('ZZFIX40-S', 'fixture 40 supplier', 'SG', 'active') RETURNING id INTO v_sup;
+    INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)
+    VALUES ('ZZFIX40-S', 'fixture 40 supplier', 'SG', 'active', 'goods_supplier') RETURNING id INTO v_sup;
 
     -- 行情与牌价:ni 20,000 USD/吨;USD tt_sell 1.30(【今天】—— 提交按定价日折算)
     INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source)

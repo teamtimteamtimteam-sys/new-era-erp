@@ -118,8 +118,8 @@ BEGIN
      WHERE metal='cu' AND price_date='2027-05-04' AND price_index='LME';
 
     -- ══════════ D. 指数是条款:承诺之后不随公式改动(FIN-27 的形状)═════════
-    INSERT INTO suppliers (code, legal_name, country, status)
-    VALUES ('ZZFIX49-S', 'fixture 49 supplier', 'SG', 'active') RETURNING id INTO v_sup;
+    INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)
+    VALUES ('ZZFIX49-S', 'fixture 49 supplier', 'SG', 'active', 'goods_supplier') RETURNING id INTO v_sup;
     INSERT INTO materials (code, name, category)
     VALUES ('ZZFIX49-M', 'fixture 49 material', 'other') RETURNING id INTO v_mat;
     INSERT INTO pricing_formulas (code, name, direction, price_basis, price_index,
