@@ -27,7 +27,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
 
     const taskRes = await supabase
         .from('tasks')
-        .select('id, code, title, description, status, priority, task_type, due_date, reminder_at, tags')
+        .select('id, code, title, description, status, priority, task_type, due_date, reminder_at, tags, owner_id')
         .eq('id', id)
         .is('deleted_at', null)
         .maybeSingle()
@@ -92,8 +92,18 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
 
     // 【选错类型的那扇门只在它开着的时候出现】——「有别人来过」之后就关上了,
     // 而关上之后类型是一段文字,不是一个下拉框:不提供做不到的手势。
-    const everyoneEver = participants.filter((p) => p.employee_id !== myEmployeeId)
-    const correctable = isTeam && participants.length <= 1 && everyoneEver.length === 0
+    // 【判据取自"有没有别人【来过】",不是"此刻还在不在"】——
+    // 与库里的降级分支一字对应,理由见 tasks.task_type 的列注释:
+    // 退出是软的,行留着,所以"来过"抹不掉 —— 那正是 task_type='personal'
+    // 能够蕴含"这张任务从来不曾真正是团队任务"的唯一原因。
+    // 【TASK-1c-c 改成过 activeOthers,又撤回了】:那一改会删掉这条隐私规则,
+    // gate 的 fixture 94D 当场红了。裁定之前不动它。
+    // 比较的对象是 task.owner_id,不是"我" —— 一个非归属人的参与者打开它时,
+    // 答案必须与服务端是同一个(此前这里比的是 myEmployeeId,那是一处真的偏差)。
+    const everOthers = participants.filter(
+        (p) => p.employee_id !== (task as { owner_id: string | null }).owner_id
+    )
+    const correctable = isTeam && everOthers.length === 0
 
     return (
         <div className="p-8">

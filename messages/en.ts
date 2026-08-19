@@ -2954,7 +2954,7 @@ const en = {
             addedBy: 'added by',
             stillReads: 'They are no longer on this task. They can still read it — their edits are in the record.',
             correctType: 'Wrong type — change back to personal',
-            typeLocked: 'Others have been on this task, so it stays a team task.',
+            typeLocked: 'Someone else has been on this task, so it stays a team task — turning it personal would leave them unable to read what they worked on.',
             promoteBlockedNoEmployee: 'Your login is not linked to an employee record, so this task has no owner to put on the team. Ask HR to link your account, then this becomes available.',
             noAssignPermission: 'You do not have permission to add people to tasks, so the list of employees is not shown here.',
             nobodyEligible: 'Every employee with a login account is already on this task. Staff without a login account cannot be added — link their account under HR first.',

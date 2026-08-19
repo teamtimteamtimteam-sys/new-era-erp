@@ -133,14 +133,23 @@ export default function Participants({
                 </div>
             ) : null}
 
-            <div className="mt-4 text-xs">
-                {correctable ? (
-                    <button className="text-gray-700 underline" disabled={pending} onClick={() => run(() => correctType(taskId))}>
-                        {labels.correctType}
-                    </button>
-                ) : (
-                    <span className="text-gray-500">{labels.typeLocked}</span>
+            {/* TASK-1c-c:【控件不再静默消失】。服务端会拒绝时,它渲染成禁用的,
+                理由写在屏幕上 —— 与 PromotePanel 给 Team 那一项的处理同一套,
+                不另写第二套。一个消失了的控件说不出"为什么不能",
+                而那正是 Tim 卡住的地方:他看到的不是拒绝,是【什么都没有】。 */}
+            <div className="mt-4">
+                {correctable ? null : (
+                    <p className="mb-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                        {labels.typeLocked}
+                    </p>
                 )}
+                <button
+                    className="text-xs text-gray-700 underline disabled:no-underline disabled:text-gray-400"
+                    disabled={pending || !correctable}
+                    onClick={() => run(() => correctType(taskId))}
+                >
+                    {labels.correctType}
+                </button>
             </div>
         </section>
     )
