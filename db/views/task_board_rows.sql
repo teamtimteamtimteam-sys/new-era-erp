@@ -31,4 +31,5 @@ COMMENT ON VIEW public.task_board_rows IS
 '看板与详情页共用的派生值:步骤数、已完成数、以及【步骤是否排到了截止日之后】。
 【一处实现,两个调用者】—— 把 3/5 算在 TaskBoard.tsx 里,详情页就会算第二遍,然后两份实现从写下的第二天开始漂移(这个仓库为这件事付过四次学费:化验预览、GrantRunner、重估预览、/finance/payments)。
 【security_invoker = on 是【有意】的,而它的 61 个邻居都是 off】:这张视图的行过滤【就是】RLS 本身。把它改成 off,视图对读者依旧工作得完美无缺 —— 只是每一张任务对每一个持 module.tasks.view 的人都可见了,而且不报任何错。绿的,却对某一类读者是错的:这正是 OPS-14 那五处 xmodule 缺陷的签名。要改它之前,先想清楚谁来做行过滤。
+【owner_id 自 TASK-1c-a 起是员工空间(employees.id)】,不再是 auth.uid();这里只投影它,不比较它。
 注意 reloptions 里 security_invoker 可能写成 on 也可能写成 true —— 任何用 grep 找它的检查两种都要认(processing_metal_recovery 是本仓库唯一的 true)。';

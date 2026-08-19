@@ -139,7 +139,8 @@ BEGIN
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_owner), true);
     INSERT INTO tasks (title, task_type) VALUES ('ZZ92 team', 'team') RETURNING id INTO v_team;
     -- 归属人自己那一行(不写历史:变更记录记的是改动,不是初始状态)
-    INSERT INTO task_participants (task_id, employee_id, added_by) VALUES (v_team, e_owner, e_owner);
+    -- 【TASK-1c-a 起,归属人这一行由创建门自动补】(trg_tasks_team_owner_participant
+    --  → ensure_task_owner_participant)。这里再插一次会撞 uq_task_participants_active。
     INSERT INTO task_participants (task_id, employee_id, added_by) VALUES (v_team, e_p2, e_owner);
     INSERT INTO task_nodes (task_id, title, sort_order) VALUES (v_team, 'ZZ92 team step', 1024);
 

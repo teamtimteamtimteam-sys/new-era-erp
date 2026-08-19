@@ -35,9 +35,11 @@ BEGIN
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_own), true);
 
     INSERT INTO tasks (title, task_type, due_date) VALUES ('ZZ93 team','team', DATE '2026-09-30') RETURNING id INTO t_team;
-    INSERT INTO task_participants (task_id, employee_id, added_by) VALUES (t_team, e_own, e_own);
+    -- 【TASK-1c-a 起,归属人这一行由创建门自动补】(trg_tasks_team_owner_participant
+    --  → ensure_task_owner_participant)。这里再插一次会撞 uq_task_participants_active。
     INSERT INTO tasks (title, task_type) VALUES ('ZZ93 other team','team') RETURNING id INTO t_two;
-    INSERT INTO task_participants (task_id, employee_id, added_by) VALUES (t_two, e_own, e_own);
+    -- 【TASK-1c-a 起,归属人这一行由创建门自动补】(trg_tasks_team_owner_participant
+    --  → ensure_task_owner_participant)。这里再插一次会撞 uq_task_participants_active。
 
     INSERT INTO task_nodes (task_id, title, sort_order) VALUES (t_team,'ZZ93 top',1024) RETURNING id INTO n_top;
     INSERT INTO task_nodes (task_id, parent_id, depth, title, sort_order)

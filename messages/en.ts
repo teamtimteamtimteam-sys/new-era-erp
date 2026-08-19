@@ -2991,6 +2991,7 @@ const en = {
             TASK_HARD_DELETE_REFUSED: 'Tasks are not hard-deleted — {0} is removed by soft delete, so the change history keeps pointing at something real.',
             TASK_NODE_HAS_CHILDREN: '"{0}" has {1} sub-step(s). Delete those first — they will not be removed along with it.',
             TASK_OWNER_NOT_AN_EMPLOYEE: 'The owner of {0} has no employee record with a login, so nobody would be able to edit it once it became a team task.',
+            TASK_CREATOR_NOT_AN_EMPLOYEE: 'Your login is not linked to an employee record, so {0} would have no owner. Link the account under HR first.',
             TASK_TYPE_LOCKED_PARTICIPANTS: '{1} other person/people have been on {0}. Making it personal would leave them unable to read what they worked on.',
             TASK_TYPE_TRANSITION_UNKNOWN: 'Unrecognised task type change ({0} → {1}).',
             TASK_NODE_SHAPE_REFUSED: 'A step can only sit under a top-level step of the same task — steps go one level deep, and cannot move to another task.',

@@ -73,26 +73,36 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 94A 失败:刚升级的任务连归属人都改不动(实改 % 行)—— 这正是"参与者为零"会造成的那张死任务', v_rows;
     END IF;
 
-    -- ══════════ B. 归属人不是在册员工 → 按名拒绝 ═══════════════════════════
-    PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_ghost), true);
-    INSERT INTO tasks (title, task_type) VALUES ('ZZ94 ghost owner','personal') RETURNING id INTO t_b;
+    -- ══════════ B. 归属人不再是【在册】员工 → 按名拒绝 ═════════════════════
+    -- 【这一臂的搭法被 TASK-1c-a 改了,原因值得写下来】:原来它让一个【没有员工
+    -- 档案】的账号去建任务。那条路现在走不通了 —— owner_id 有了外键,而
+    -- trg_tasks_owner_required 会在建的时候就按名拒绝(TASK_CREATOR_NOT_AN_EMPLOYEE)。
+    -- 于是 TASK_OWNER_NOT_AN_EMPLOYEE 只剩下一条可达路径:**归属人的员工档案
+    -- 后来被软删了**(Site A 过滤 e.deleted_at IS NULL)。臂改成那一条 ——
+    -- 一个再也到不了的拒绝,断言它就是在断言一句空话。
+    PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_own), true);
+    INSERT INTO tasks (title, task_type) VALUES ('ZZ94 owner later removed','personal') RETURNING id INTO t_b;
+    UPDATE employees SET deleted_at = now() WHERE id = e_own;
     v_denied := false; v_msg := NULL;
     BEGIN
         PERFORM promote_task_to_team(t_b);
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
     IF NOT v_denied OR position('TASK_OWNER_NOT_AN_EMPLOYEE' in v_msg) = 0 THEN
-        RAISE EXCEPTION 'FIXTURE 94B 失败:归属人没有员工档案时,升级没有按名拒绝 —— 实得:%', COALESCE(v_msg,'(没有拒绝)');
+        RAISE EXCEPTION 'FIXTURE 94B 失败:归属人的员工档案已软删时,升级没有按名拒绝 —— 实得:%', COALESCE(v_msg,'(没有拒绝)');
     END IF;
     SELECT task_type INTO v_type FROM tasks WHERE id = t_b;
     IF v_type <> 'personal' THEN
         RAISE EXCEPTION 'FIXTURE 94B 失败:拒绝之后类型还是变了(%)—— "拒绝"必须意味着什么都没写', v_type;
     END IF;
+    -- 把档案恢复回来:后面几臂还要用同一个人。
+    UPDATE employees SET deleted_at = NULL WHERE id = e_own;
 
     -- ══════════ C. 选错类型:没有别人来过 → 改得回去 ═══════════════════════
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_own), true);
     INSERT INTO tasks (title, task_type) VALUES ('ZZ94 mis-set','team') RETURNING id INTO t_c;
-    INSERT INTO task_participants (task_id, employee_id, added_by) VALUES (t_c, e_own, e_own);
+    -- 【TASK-1c-a 起,归属人这一行由创建门自动补】(trg_tasks_team_owner_participant
+    --  → ensure_task_owner_participant)。这里再插一次会撞 uq_task_participants_active。
     PERFORM correct_task_type(t_c);
     SELECT task_type INTO v_type FROM tasks WHERE id = t_c;
     IF v_type <> 'personal' THEN
@@ -101,7 +111,8 @@ BEGIN
 
     -- ══════════ D. 排空 ≠ 私人 ═════════════════════════════════════════════
     INSERT INTO tasks (title, task_type) VALUES ('ZZ94 drained','team') RETURNING id INTO t_d;
-    INSERT INTO task_participants (task_id, employee_id, added_by) VALUES (t_d, e_own, e_own);
+    -- 【TASK-1c-a 起,归属人这一行由创建门自动补】(trg_tasks_team_owner_participant
+    --  → ensure_task_owner_participant)。这里再插一次会撞 uq_task_participants_active。
     INSERT INTO task_participants (task_id, employee_id, added_by) VALUES (t_d, e_p2, e_own);
     UPDATE task_participants SET removed_at = now(), removed_by = e_own
      WHERE task_id = t_d AND employee_id = e_p2;

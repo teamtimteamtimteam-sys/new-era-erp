@@ -9768,75 +9768,117 @@ export type Database = {
       }
       tasks: {
         Row: {
-          assigned_to: string | null
           code: string
           created_at: string
           created_by: string | null
           deleted_at: string | null
           description: string | null
           due_date: string | null
-          editors: string[] | null
-          entity: string | null
           id: string
           owner_id: string | null
           priority: string
           reminder_at: string | null
-          shared_with: string[] | null
           status: string
           tags: string[] | null
           task_type: string
           title: string
           updated_at: string
           updated_by: string | null
-          visibility: string
         }
         Insert: {
-          assigned_to?: string | null
           code: string
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
           description?: string | null
           due_date?: string | null
-          editors?: string[] | null
-          entity?: string | null
           id?: string
           owner_id?: string | null
           priority?: string
           reminder_at?: string | null
-          shared_with?: string[] | null
           status?: string
           tags?: string[] | null
           task_type?: string
           title: string
           updated_at?: string
           updated_by?: string | null
-          visibility?: string
         }
         Update: {
-          assigned_to?: string | null
           code?: string
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
           description?: string | null
           due_date?: string | null
-          editors?: string[] | null
-          entity?: string | null
           id?: string
           owner_id?: string | null
           priority?: string
           reminder_at?: string | null
-          shared_with?: string[] | null
           status?: string
           tags?: string[] | null
           task_type?: string
           title?: string
           updated_at?: string
           updated_by?: string | null
-          visibility?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+        ]
       }
       traceability_report_issues: {
         Row: {
@@ -14640,7 +14682,64 @@ export type Database = {
           task_type: string | null
           title: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+        ]
       }
       task_participant_directory: {
         Row: {
@@ -15289,6 +15388,10 @@ export type Database = {
       }
       employee_work_category_at: {
         Args: { p_employee_id: string; p_month: string }
+        Returns: string
+      }
+      ensure_task_owner_participant: {
+        Args: { p_actor?: string; p_owner_emp: string; p_task_id: string }
         Returns: string
       }
       fin_cost_account: { Args: { p_cost_type: string }; Returns: string }

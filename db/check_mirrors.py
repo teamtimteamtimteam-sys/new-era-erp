@@ -158,6 +158,10 @@ DEFINER_NO_CHECK_ALLOWED = {
     # —— 由返回类型自动排除,不需要列在这里。
     # 已收回 EXECUTE 的内层函数(ACL 里没有 PUBLIC 项)
     "calculate_metal_price_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    # TASK-1c-a:两扇门(创建门与升级门)共用的那一个写入者。没有调用者检查,
+    # 靠的就是调不到 —— fu1 已把 authenticated 的 EXECUTE 收回(gate 的 B2 抓过一次:
+    # 留着它等于给每个登录用户一把针对全部团队任务的写权限)。
+    "ensure_task_owner_participant": "EXECUTE revoked from PUBLIC/authenticated/anon (TASK-1c-a-fu1); only called from the two door triggers, owner-rights",
     # IOD-1 的两个内层算子:库存排空与冲销镜像。三个调用方分属不同模块
     # (销售 output.edit / 投料 processing.edit / 注销触发器 批次侧 edit),各自
     # 已把过关;给它们挑一个权限码只能挑一个比三者都松的 —— 那不是把关。

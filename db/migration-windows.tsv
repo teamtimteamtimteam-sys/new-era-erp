@@ -1,0 +1,5 @@
+# 破窗起点(migration commit)。终点见 scripts/wait-for-deploy.sh 打印的 success 时刻。
+# applied_at	migration	head_sha_at_apply
+2026-08-19T13:26:38+0800	2026-08-19-task1c-a-ownership-into-employee-space.sql	947f695
+2026-08-19T13:44:18+0800	2026-08-19-task1c-a-fu1-revoke-the-inner-participant-writer.sql	947f695
+2026-08-19T13:50:51+0800	2026-08-19-task1c-a-fu2-policies-are-scoped-to-authenticated.sql	947f695

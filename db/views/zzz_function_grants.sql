@@ -43,6 +43,12 @@ REVOKE EXECUTE ON FUNCTION public.calculate_metal_price_from_terms(jsonb, jsonb,
 REVOKE EXECUTE ON FUNCTION public.commit_pricing_terms(uuid, uuid, uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.resolve_pricing_commitment(uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.committed_terms_price(uuid, date) FROM authenticated;
+-- TASK-1c-a-fu1:【一个事实,一个写入者】那个函数 —— 归属人置为活跃参与者。
+-- 它没有调用者检查,只从两扇门的触发器体内被调用(属主身份),所以靠的就是调不到。
+-- 门被 gate 的 B2 抓到过一次:留着 authenticated 的 EXECUTE,任何登录用户都能
+-- 把【自己】插成【任何一张任务】的活跃参与者 —— 而活跃参与者正是 can_edit_task
+-- 团队分支的全部判据。也就是说它等于一把万能写权限。
+REVOKE EXECUTE ON FUNCTION public.ensure_task_owner_participant(uuid, uuid, uuid) FROM authenticated;
 -- APR-1:审批留痕的唯一写入口。没有调用者检查 —— 它只从 decide_leave_request /
 -- decide_medical_claim / submit_review / approve_review / acknowledge_review 的函数体内
 -- 以属主身份被调用,而那五个各自已经把过关了。给了 authenticated 就等于任何登录用户

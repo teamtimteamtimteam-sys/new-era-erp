@@ -2975,6 +2975,7 @@ const zh = {
             TASK_HARD_DELETE_REFUSED: '任务不做硬删 —— {0} 走软删,这样变更记录指向的东西才还在。',
             TASK_NODE_HAS_CHILDREN: '「{0}」下面还有 {1} 个子步骤。请先删掉它们 —— 它们不会被连带删除。',
             TASK_OWNER_NOT_AN_EMPLOYEE: '{0} 的归属人没有对应的在册员工(或者没有登录账号),升级成团队任务之后将没有任何人改得动它。',
+            TASK_CREATOR_NOT_AN_EMPLOYEE: '你的登录账号还没有关联在册员工档案,所以 {0} 会没有归属人。请先在 HR 里关联账号。',
             TASK_TYPE_LOCKED_PARTICIPANTS: '{0} 上有 {1} 个别人来过。改成私人会让他们读不到自己参与过的东西。',
             TASK_TYPE_TRANSITION_UNKNOWN: '无法识别的任务类型变更({0} → {1})。',
             TASK_NODE_SHAPE_REFUSED: '一个步骤只能挂在【同一张任务】的顶层步骤下面 —— 步骤只有一层,也不能挪到别的任务上。',

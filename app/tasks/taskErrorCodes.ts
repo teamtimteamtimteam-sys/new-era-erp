@@ -20,6 +20,8 @@ const TASK_ERROR_CODES = new Set([
     'TASK_NODE_HAS_CHILDREN',
     // TASK-1b
     'TASK_OWNER_NOT_AN_EMPLOYEE',
+    // TASK-1c-a:建/改任务时归属人解析不出在册员工。守卫抛它,而不是让 NOT NULL 抛 23502。
+    'TASK_CREATOR_NOT_AN_EMPLOYEE',
     'TASK_TYPE_LOCKED_PARTICIPANTS',
     'TASK_TYPE_TRANSITION_UNKNOWN',
     // 约束兜底(见文件头)——不是数据库抛的字面量,是本文件按约束名派生的

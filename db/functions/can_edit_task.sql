@@ -15,7 +15,7 @@ AS $function$
                          WHERE p.task_id = t.id
                            AND p.employee_id = current_user_employee()
                            AND p.removed_at IS NULL)
-                    ELSE t.owner_id = auth.uid()      -- ← 1c 搬 owner_id 时改这里
+                    ELSE t.owner_id = current_user_employee()   -- ← 1c-a:已在员工空间
                   END
        );
 $function$

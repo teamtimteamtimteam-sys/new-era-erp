@@ -73,4 +73,29 @@ awk -v g="$GRANTS" '
         { print }
 ' "$FILE" | psql "$DSN" -X -q -v ON_ERROR_STOP=1 -f -
 echo "✓ committed atomically (含函数授权兜底)"
+
+# ── 破窗计时:起点【落盘】,不是打印 ────────────────────────────────────────
+# 【为什么 stdout 不算数】上面那两个 echo 从 IOD-2 起就在打这个时间戳,而
+# TASK-1b 的切次报告仍然只能把窗口写成【一个区间】(22:41–23:02),不是一个数字:
+# 打它的那个会话结束了,滚屏没了,时间戳就没了。事后能翻到的只有备份完成时刻
+# 与门日志的 mtime,于是起点靠【夹逼】倒推出来。
+#
+# 这正是本仓库反复得到的那一课的又一次:**一个只存在于人(或滚屏)记忆里的事实,
+# 与一个没被记录的事实,在下一份报告里长得一模一样。** AGENTS.md 那条写着
+# 「时间由脚本打,不由人记」—— 打了,但打进了一个会消失的地方,所以它只兑现了一半。
+# 从本次起:同一个时间戳【追加到磁盘上的一份记录里】,下一个人不必在场也读得到。
+#
+# 只记【起点】。终点由 scripts/wait-for-deploy.sh 从 Vercel/GitHub 那侧读,
+# 它已经会打印 CST 的 success 时刻 —— 两端各由能看见它的那一方负责,不互相转述。
+WINDOW_LOG="${WINDOW_LOG:-$(cd "$(dirname "$0")" && pwd)/migration-windows.tsv}"
+APPLIED_AT="$(date '+%Y-%m-%dT%H:%M:%S%z')"
+HEAD_SHA="$(git -C "$(cd "$(dirname "$0")/.." && pwd)" rev-parse --short HEAD 2>/dev/null || echo nogit)"
+if [ ! -f "$WINDOW_LOG" ]; then
+    printf '# 破窗起点(migration commit)。终点见 scripts/wait-for-deploy.sh 打印的 success 时刻。\n' >> "$WINDOW_LOG"
+    printf '# applied_at\tmigration\thead_sha_at_apply\n' >> "$WINDOW_LOG"
+fi
+printf '%s\t%s\t%s\n' "$APPLIED_AT" "$(basename "$FILE")" "$HEAD_SHA" >> "$WINDOW_LOG"
+
 echo "== 库已经是新的了($(date '+%H:%M:%S')) —— 【破窗从此刻开始计】,到部署 state=success 为止;那个时长是切次报告的一个必填字段(AGENTS.md)"
+echo "== 破窗起点已落盘:$WINDOW_LOG"
+echo "   $APPLIED_AT  $(basename "$FILE")  $HEAD_SHA"
