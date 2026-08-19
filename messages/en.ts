@@ -2962,6 +2962,8 @@ const en = {
             promote: 'Make this a team task',
         },
         history: {
+            actor: 'by',
+            actorUnrecordedHint: 'recorded before this module kept who did it',
             heading: 'Change history',
             empty: 'Nothing has changed yet.',
             ticked: 'ticked',
@@ -3118,6 +3120,7 @@ const en = {
         // AUDEL-3:三种状态三句话 —— 绝不裸印 uuid、绝不留空
         unrecorded: 'not recorded',
         noEmployeeRecord: 'account not linked to an employee record',
+        employeeGone: 'employee record no longer available',
     },
     deleted: {
         title: 'Deleted records',

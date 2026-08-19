@@ -2946,6 +2946,8 @@ const zh = {
             promote: '变成团队任务',
         },
         history: {
+            actor: '操作人',
+            actorUnrecordedHint: '早于本模块开始记录操作人',
             heading: '变更记录',
             empty: '还没有任何改动。',
             ticked: '勾上',
@@ -3101,6 +3103,7 @@ const zh = {
         // AUDEL-3:三种状态三句话 —— 绝不裸印 uuid、绝不留空
         unrecorded: '未记录',
         noEmployeeRecord: '该账号未关联员工档案',
+        employeeGone: '这份员工档案已不在',
     },
     deleted: {
         title: '已删除的记录',

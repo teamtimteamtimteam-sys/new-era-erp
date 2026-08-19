@@ -15,6 +15,7 @@ import NodeTree, { type NodeRow } from './NodeTree'
 import Participants, { type ParticipantRow, type AssignableRow } from './Participants'
 import ChangeHistory, { type HistoryRow } from './ChangeHistory'
 import TaskHeader from './TaskHeader'
+import { loadActorNames } from '@/app/components/ActorName'
 import { STATUS_VALUES, PRIORITY_VALUES } from '../types'
 
 export default async function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -80,11 +81,16 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
         ? mustRows<HistoryRow>(
               await supabase
                   .from('task_history')
-                  .select('id, change_type, node_id, changed_at, old_title, new_title, old_status, new_status, old_priority, new_priority, old_due_date, new_due_date, old_node_title, new_node_title, old_node_target_date, new_node_target_date, old_node_done, new_node_done, old_sort_order, new_sort_order')
+                  .select('id, change_type, node_id, changed_at, changed_by, old_title, new_title, old_status, new_status, old_priority, new_priority, old_due_date, new_due_date, old_node_title, new_node_title, old_node_target_date, new_node_target_date, old_node_done, new_node_done, old_sort_order, new_sort_order')
                   .eq('task_id', id)
                   .order('changed_at', { ascending: false })
           )
         : []
+
+    // TASK-1c-d:变更记录的操作人。changed_by 是【员工空间】(employees.id),
+    // 所以走 loadActorNames 的第二个参数 —— 同一个组件、同一份兜底,
+    // 不另写一个取名器(ActorName 抬头的那条理由)。
+    const actorNames = await loadActorNames(supabase, [], history.map((h) => h.changed_by))
 
     const me = await supabase.rpc('current_user_employee')
     const myEmployeeId = (me.data as string | null) ?? null
@@ -210,6 +216,9 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
             {isTeam ? (
                 <ChangeHistory
                     rows={history}
+                    actorNames={actorNames}
+                    actorLabel={t('tasks.history.actor')}
+                    unrecordedHint={t('tasks.history.actorUnrecordedHint')}
                     heading={t('tasks.history.heading')}
                     empty={t('tasks.history.empty')}
                 />

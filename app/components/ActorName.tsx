@@ -18,6 +18,12 @@
 //      "没有人做过这件事",而真相是"当时没有人记下来"。
 //   ④ 你看不到人事         → 印「受限」。
 //
+// 【TASK-1c-d:② 分成了两句】。有些列记的是 employees.id 而不是登录账号
+// (task_history.changed_by 就是这一种),那时「查不到」的意思是
+// 【这份档案不在了】,而不是「这个账号没关联档案」—— 说错那一句会把读者
+// 引向完全错误的排查方向。同一个组件、同一份名字表,由 space 参数决定说哪一句;
+// **没有第二个取名器** —— 那正是本文件抬头那条理由。
+//
 // 【④ 是 FIX-1 补上的,而它此前是一句谎话】employees 的 RLS 是
 // has_permission('module.hr.view')(外加"自己那一行")。没有那个权限的读者
 // 查回来的是【零行,不是错误】—— 于是 mustRows 一路放行,每一个 uuid 都落进
@@ -41,25 +47,48 @@ export type ActorNameMap = { names: Map<string, string>; restricted: boolean }
 /** 一次把一批 uuid 的姓名查回来 —— 逐行查会是 N 次往返。 */
 export async function loadActorNames(
     supabase: SupabaseClient<Database>,
-    ids: (string | null | undefined)[]
+    ids: (string | null | undefined)[],
+    /**
+     * 【员工空间的 actor】—— TASK-1c-d。有些列记的是 employees.id 而不是登录账号
+     * (task_history.changed_by 自 TASK-1a 起就是这一种)。它们查的是同一张表、
+     * 同一套兜底、同一份名字表,只是【认的那一列】不同 —— 所以扩这一个参数,
+     * 而不是另写一个取名器:这个组件存在的全部理由就是"谁做的"只有一种答法。
+     * 不传时行为与从前【一字不差】。
+     */
+    employeeIds: (string | null | undefined)[] = []
 ): Promise<ActorNameMap> {
     // 先问权限,再决定查不到时说什么(抬头 ④)。ids 为空时也要问 ——
     // 否则「这一页没有任何 actor」与「你看不到人事」会在别处被读成同一件事。
     const restricted = !(await can('module.hr.view'))
     const unique = [...new Set(ids.filter((x): x is string => !!x))]
+    const uniqueEmp = [...new Set(employeeIds.filter((x): x is string => !!x))]
     const map: ActorNameMap = { names: new Map(), restricted }
-    if (unique.length === 0) return map
+    if (unique.length === 0 && uniqueEmp.length === 0) return map
     // 【失败必须失败】用 mustRows,不用 `?? []` —— 读不到名字表时每一行都会退化成
     // 「该账号未关联员工档案」,而那是一句【断言】,不是一次读取失败该说的话。
     // 走【基表】而不是 employees_masked:基表的 RLS 额外放行"自己那一行"
     // (employees_masked 整张按 module.hr.view 判),所以一个没有人事权限的人
     // 至少认得出自己做的那件事。称呼名优先 —— 屏幕上要出现的是人怎么被叫。
-    const rows = mustRows(
-        await supabase.from('employees').select('user_id, legal_name, preferred_name').in('user_id', unique),
-        'employees actor names'
-    )
-    for (const r of rows) {
-        if (r.user_id) map.names.set(r.user_id, r.preferred_name || r.legal_name)
+    if (unique.length > 0) {
+        const rows = mustRows(
+            await supabase.from('employees').select('user_id, legal_name, preferred_name').in('user_id', unique),
+            'employees actor names'
+        )
+        for (const r of rows) {
+            if (r.user_id) map.names.set(r.user_id, r.preferred_name || r.legal_name)
+        }
+    }
+    // 员工空间的那一批:同一张表、同一份兜底,认的是 id 这一列。
+    // 两个空间的 uuid 放进同一张表不会撞:它们来自不同的生成域,
+    // 而调用方本来就知道自己传的是哪一种(见 ActorName 的 space)。
+    if (uniqueEmp.length > 0) {
+        const rows = mustRows(
+            await supabase.from('employees').select('id, legal_name, preferred_name').in('id', uniqueEmp),
+            'employees actor names (employee space)'
+        )
+        for (const r of rows) {
+            if (r.id) map.names.set(r.id, r.preferred_name || r.legal_name)
+        }
     }
     return map
 }
@@ -69,10 +98,19 @@ export default async function ActorName({
     names,
     /** 没有记过人时那句话的来由(例如"这条记录早于 AUDEL-1b") */
     unrecordedHint,
+    /**
+     * 这个 id 是哪一种(TASK-1c-d)。只影响【状态 ②】那句话:
+     * 一个查不到的【登录账号】说的是"这个账号没关联员工档案";
+     * 一个查不到的【员工 id】说的是"这份档案已经不在了" —— 两句不是一回事,
+     * 而说错的那一句会把读者引向完全错误的排查方向。默认 'account',
+     * 所以既有调用方一个字都不用改。
+     */
+    space = 'account',
 }: {
     userId: string | null | undefined
     names: ActorNameMap
     unrecordedHint?: string
+    space?: 'account' | 'employee'
 }) {
     const t = await getTranslations()
 
@@ -95,10 +133,10 @@ export default async function ActorName({
     // ④ 看不到人事 —— 这是一句【权限答复】,不能说成"没有这个人"
     if (names.restricted) return <span className="text-gray-500">{t('common.restricted')}</span>
 
-    // ② 有账号、没档案 —— 具名状态 + 小字 id
+    // ② 查不到 —— 具名状态 + 小字 id。【绝不留空,也绝不裸印一串 uuid】(AUDEL-2/3)
     return (
         <span className="text-gray-600">
-            {t('actor.noEmployeeRecord')}
+            {space === 'employee' ? t('actor.employeeGone') : t('actor.noEmployeeRecord')}
             <span className="ml-1 text-xs text-gray-400 font-mono">{userId.slice(0, 8)}…</span>
         </span>
     )

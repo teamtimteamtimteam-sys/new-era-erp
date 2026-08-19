@@ -1,4 +1,5 @@
 import { getTranslations } from '@/lib/i18n/server'
+import ActorName, { type ActorNameMap } from '@/app/components/ActorName'
 
 // app/tasks/[id]/ChangeHistory.tsx
 // TASK-1b:【变更记录】。只读,倒序,形状照 MovementTimeline。
@@ -16,6 +17,8 @@ export type HistoryRow = {
     change_type: string
     node_id: string | null
     changed_at: string
+    // TASK-1c-d:【员工空间】的 actor(employees.id,自 TASK-1a 起就是这一种)
+    changed_by: string | null
     old_title: string | null; new_title: string | null
     old_status: string | null; new_status: string | null
     old_priority: string | null; new_priority: string | null
@@ -32,8 +35,14 @@ function pair(from: string | null | undefined, to: string | null | undefined) {
 }
 
 export default async function ChangeHistory({
-    rows, heading, empty,
-}: { rows: HistoryRow[]; heading: string; empty: string }) {
+    rows, heading, empty, actorNames, actorLabel, unrecordedHint,
+}: {
+    rows: HistoryRow[]; heading: string; empty: string
+    actorNames: ActorNameMap
+    actorLabel: string
+    /** 那一行【早于本模块开始记人】—— 具名状态的来由,不是一句猜测 */
+    unrecordedHint: string
+}) {
     const t = await getTranslations()
 
     const detail = (r: HistoryRow): string => {
@@ -67,6 +76,7 @@ export default async function ChangeHistory({
                                 <th className="border border-gray-300 px-3 py-2 text-left">{t('tasks.history.colTime')}</th>
                                 <th className="border border-gray-300 px-3 py-2 text-left">{t('tasks.history.colWhat')}</th>
                                 <th className="border border-gray-300 px-3 py-2 text-left">{t('tasks.history.colDetail')}</th>
+                                <th className="border border-gray-300 px-3 py-2 text-left">{actorLabel}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -75,6 +85,17 @@ export default async function ChangeHistory({
                                     <td className="border border-gray-300 px-3 py-1">{r.changed_at.slice(0, 16).replace('T', ' ')}</td>
                                     <td className="border border-gray-300 px-3 py-1">{t('tasks.history.type.' + r.change_type)}</td>
                                     <td className="border border-gray-300 px-3 py-1">{detail(r)}</td>
+                                    {/* 【空绝不留空】:没有 changed_by 的那一行是本模块开始记人之前留下的,
+                                        它要说出这件事,而不是留一格白 —— 白格会被读成"没有人做过这件事"。
+                                        查不到的员工 id 也不留白,印具名状态 + 小字 id(AUDEL-2/3)。 */}
+                                    <td className="border border-gray-300 px-3 py-1">
+                                        <ActorName
+                                            userId={r.changed_by}
+                                            names={actorNames}
+                                            space="employee"
+                                            unrecordedHint={unrecordedHint}
+                                        />
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
