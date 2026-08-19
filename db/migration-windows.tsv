@@ -5,3 +5,4 @@
 2026-08-19T13:50:51+0800	2026-08-19-task1c-a-fu2-policies-are-scoped-to-authenticated.sql	947f695
 2026-08-19T15:34:12+0800	2026-08-19-task1c-c-a-person-who-left-stops-blocking-demotion.sql	14bb055
 2026-08-19T15:43:12+0800	2026-08-19-task1c-c-revert-pending-a-decision-on-the-privacy-invariant.sql	14bb055
+2026-08-19T16:13:38+0800	2026-08-19-fix-select-policy-must-be-evaluable-on-the-row-being-inserted.sql	2f471a6

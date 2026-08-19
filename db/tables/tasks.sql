@@ -66,10 +66,24 @@ CREATE TRIGGER trg_tasks_updated_at
 -- 6. RLS: authenticated-only full access (matches suppliers' policy)
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 
+-- 【这一条【不能】写成 can_view_task(id)】—— 那样连"新建任务"都做不成。
+-- PostgreSQL 把 SELECT 策略同样施加在 `INSERT ... RETURNING` 上,而
+-- can_view_task 是回头去 tasks 里查一行来回答的:那一行此刻还不在自己这条命令的
+-- 快照里,谓词为假,报出来却是 "new row violates row-level security policy"。
+-- 所以这里把谓词写在【手里这一行】上 —— 它就是 can_view_task 的函数体去掉自查。
+-- 子表(task_nodes / task_participants / task_history)仍然用 can_view_task:
+-- 它们手里只有别的表的 task_id,必须回头查。同一句话,两处能拿到的东西不同。
 CREATE POLICY "tasks select by predicate"
     ON public.tasks
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (can_view_task(id));
+    USING (
+        has_permission('module.tasks.view'::text)
+        AND (
+            task_type = 'team'::text
+            OR owner_id = current_user_employee()
+            OR has_permission('module.tasks.view_all'::text)
+        )
+    );
 
 CREATE POLICY "tasks insert by permission"
     ON public.tasks
