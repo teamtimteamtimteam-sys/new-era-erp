@@ -66,6 +66,8 @@ export default async function NewPaymentPage({
             .from('suppliers')
             .select('id, legal_name')
             .is('deleted_at', null)
+            // LOG-1b:货代不进供应商名单(他们保留 supplier id 只为账上那条链)
+            .neq('counterparty_type', 'forwarder')
             .order('legal_name'),
         // PAYEE-1b:出款也可以付给员工(报销)。读遮蔽视图,门是 module.hr.view。
         supabase

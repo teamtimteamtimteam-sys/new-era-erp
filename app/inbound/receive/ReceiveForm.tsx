@@ -117,24 +117,31 @@ export default function ReceiveForm({
                 <label className={labelCls}>
                     {t('receive.supplier')} <span className="text-red-600">*</span>
                 </label>
-                <select
-                    name="supplier_id"
-                    required
-                    value={supplierId}
-                    onChange={(e) => {
-                        setSupplierId(e.target.value)
-                        setPoId('')
-                        setLineId('')
-                    }}
-                    className={fieldCls}
-                >
-                    <option value="" disabled>{t('receive.supplier')}</option>
-                    {suppliers.map((s) => (
-                        <option key={s.id} value={s.id}>
-                            {s.code} - {s.legal_name}
-                        </option>
-                    ))}
-                </select>
+                {/* LOG-1b:空名单不画空下拉 —— 说出它是哪一种空(货代那一侧另有一句)。 */}
+                {suppliers.length === 0 ? (
+                    <p className="text-sm text-amber-900 bg-amber-50 border border-amber-300 rounded px-3 py-2 max-w-xl">
+                        {t('suppliers.pickerEmptyGoods')}
+                    </p>
+                ) : (
+                    <select
+                        name="supplier_id"
+                        required
+                        value={supplierId}
+                        onChange={(e) => {
+                            setSupplierId(e.target.value)
+                            setPoId('')
+                            setLineId('')
+                        }}
+                        className={fieldCls}
+                    >
+                        <option value="" disabled>{t('receive.supplier')}</option>
+                        {suppliers.map((s) => (
+                            <option key={s.id} value={s.id}>
+                                {s.code} - {s.legal_name}
+                            </option>
+                        ))}
+                    </select>
+                )}
                 {state.fieldErrors?.supplier_id && <p className={errCls}>{state.fieldErrors.supplier_id}</p>}
                 {/* SUP-TYPE-1b:只列供货的供应商 —— 空的时候【说出为什么】,
                     而不是留一个空下拉配一个按不动的按钮(PAYEE-1a 从报销页

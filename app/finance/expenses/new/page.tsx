@@ -32,6 +32,9 @@ export default async function NewExpensePage() {
             .from('suppliers')
             .select('id, legal_name')
             .is('deleted_at', null)
+            // LOG-1b:货代不进供应商名单(他们保留 supplier id 只为账上那条链)
+            // 【服务商(房东/水电)要留下】—— 只排货代,不是只留供货商
+            .neq('counterparty_type', 'forwarder')
             .order('legal_name'),
         // PAYEE-1b:未付费用的往来对象可以是员工(报销)。
         // 【读 employees_masked】它是遮蔽视图,门是 module.hr.view —— 没有 HR

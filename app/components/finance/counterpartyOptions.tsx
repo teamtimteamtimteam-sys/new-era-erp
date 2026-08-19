@@ -38,7 +38,7 @@ export function counterpartyValue(kind: CounterpartyKind, id: string): string {
 }
 
 export function CounterpartyOptions({
-    suppliers, employees, supplierLabel, employeeLabel, employeesEmptyLabel,
+    suppliers, employees, supplierLabel, employeeLabel, employeesEmptyLabel, suppliersEmptyLabel,
 }: {
     suppliers: PartyOption[]
     employees: PartyOption[]
@@ -46,15 +46,25 @@ export function CounterpartyOptions({
     employeeLabel: string
     /** 员工名单为空时显示的【那句话】—— 必须说得出下一步去哪 */
     employeesEmptyLabel: string
+    /** LOG-1b:供应商名单为空时的【那句话】。排除货代之后这一栏可能真的空,
+        而一个空 optgroup 读起来像"加载失败",不像"还没有供货商"。
+        形状照抄上面 employees 那一支 —— 同一个问题只有一种答法。 */
+    suppliersEmptyLabel: string
 }): ReactNode {
     return (
         <>
             <optgroup label={supplierLabel}>
-                {suppliers.map((s) => (
-                    <option key={`s-${s.id}`} value={counterpartyValue('supplier', s.id)}>
-                        {s.name}
+                {suppliers.length === 0 ? (
+                    <option value="" disabled>
+                        {suppliersEmptyLabel}
                     </option>
-                ))}
+                ) : (
+                    suppliers.map((s) => (
+                        <option key={`s-${s.id}`} value={counterpartyValue('supplier', s.id)}>
+                            {s.name}
+                        </option>
+                    ))
+                )}
             </optgroup>
             <optgroup label={employeeLabel}>
                 {employees.length === 0 ? (

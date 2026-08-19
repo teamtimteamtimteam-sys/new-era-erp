@@ -209,7 +209,8 @@ export default function NewExpenseForm({
                                 employees={employees}
                                 supplierLabel={t('finance.counterpartyKind.supplier')}
                                 employeeLabel={t('finance.counterpartyKind.employee')}
-                                employeesEmptyLabel={t('finance.employeesEmpty')} />
+                                employeesEmptyLabel={t('finance.employeesEmpty')}
+                                suppliersEmptyLabel={t('suppliers.pickerEmptyGoods')} />
                         </select>
                     </div>
                 )}

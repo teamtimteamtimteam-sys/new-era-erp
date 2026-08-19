@@ -58,7 +58,8 @@ export async function GET(request: NextRequest) {
     const params = parseSupplierListParams(sp)
 
     const supabase = await createClient()
-    const baseQuery = supabase.from('suppliers').select(EXPORT_COLUMNS)
+    // LOG-1b:导出与名单同口径 —— 货代不在供应商名单里
+    const baseQuery = supabase.from('suppliers').select(EXPORT_COLUMNS).neq('counterparty_type', 'forwarder')
     const { data, error } = await applySupplierFilters(baseQuery, params)
 
     if (error) {

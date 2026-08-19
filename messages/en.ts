@@ -401,6 +401,8 @@ const en = {
         suppliesGoodsHint: 'On means deliveries can be booked against them, they appear in the receiving and purchase-order pickers, and they are subject to compliance checks. Off is for landlords, utilities, insurers, professional services and contractors — we buy from them and pay them, but no goods ever arrive.',
         counterpartyType: 'What this company is',
         counterpartyTypeHint: 'Goods supplier = we buy and receive physical goods. Forwarder = we pay them freight and never receive their goods; they keep the same id so payables, ageing and revaluation are unchanged, but they never appear in supplier or purchase-order lists. Service vendor = landlord, utilities, insurance, professional services.',
+        pickerEmptyForwarders: 'No forwarders yet — a company has to be typed as a forwarder before freight can be paid to it.',
+        pickerEmptyGoods: 'No goods suppliers yet — add one under Suppliers first.',
         type: {
             goods_supplier: 'Goods supplier',
             forwarder: 'Forwarder / carrier',

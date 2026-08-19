@@ -58,7 +58,8 @@ export default async function FormulasPage() {
     const customerIds = Array.from(new Set(rows.map((r) => r.customer_id).filter(Boolean))) as string[]
     const [supRes, cusRes] = await Promise.all([
         supplierIds.length
-            ? supabase.from('suppliers').select('id, legal_name').in('id', supplierIds)
+            ? // LOG-1b:【这一处绝不过滤 counterparty_type】—— 解析器,不是选择器。
+              supabase.from('suppliers').select('id, legal_name').in('id', supplierIds)
             : Promise.resolve({ data: [] as { id: string; legal_name: string }[], error: null }),
         customerIds.length
             ? supabase.from('customers').select('id, legal_name').in('id', customerIds)

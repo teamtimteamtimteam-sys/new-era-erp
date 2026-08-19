@@ -20,7 +20,8 @@ export default async function NewFormulaPage() {
     const t = await getTranslations()
 
     const [supRes, cusRes] = await Promise.all([
-        supabase.from('suppliers').select('id, legal_name').is('deleted_at', null).order('legal_name'),
+        // LOG-1b:货代不进供应商名单
+        supabase.from('suppliers').select('id, legal_name').is('deleted_at', null).neq('counterparty_type', 'forwarder').order('legal_name'),
         supabase.from('customers').select('id, legal_name').is('deleted_at', null).order('legal_name'),
     ])
 

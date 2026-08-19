@@ -47,7 +47,7 @@ export default async function SuppliersPage({
 
     // 1) 先取匹配总数(同样套用过滤,所以总页数对当前筛选是准确的)。head:true 只要 count 不要行。
     const { count } = await applySupplierFilters(
-        supabase.from('suppliers').select('id', { count: 'exact', head: true }),
+        supabase.from('suppliers').select('id', { count: 'exact', head: true }).neq('counterparty_type', 'forwarder'),
         filterParams
     )
     const total = count ?? 0
@@ -63,6 +63,8 @@ export default async function SuppliersPage({
         .select(
             'id, code, legal_name, short_name, country, supplier_types, status, tax_id, created_at'
         )
+        // LOG-1b:货代不进供应商名单(他们保留 supplier id 只为账上那条链)
+        .neq('counterparty_type', 'forwarder')
 
     const { data: suppliers, error } = await applySupplierFilters(
         baseQuery,

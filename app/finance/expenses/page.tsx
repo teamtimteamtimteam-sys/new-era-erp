@@ -113,7 +113,9 @@ export default async function ExpensesListPage({
                 new Set(rows.map((r) => r.supplier_id).filter(Boolean))
             ) as string[]
             return supplierIds.length
-                ? supabase.from('suppliers').select('id, legal_name').in('id', supplierIds)
+                ? // LOG-1b:【这一处绝不过滤 counterparty_type】—— 解析器,不是选择器。
+                  //         过滤它只会让已有单据的对方名字变成空白。
+                  supabase.from('suppliers').select('id, legal_name').in('id', supplierIds)
                 : Promise.resolve({ data: [] as { id: string; legal_name: string }[], error: null })
         })(),
     ])

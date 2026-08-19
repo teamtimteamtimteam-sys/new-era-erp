@@ -96,7 +96,10 @@ export default async function PaymentsListPage({
             ? supabase.from('customers').select('id, legal_name').in('id', customerIds)
             : Promise.resolve({ data: [] as { id: string; legal_name: string }[], error: null }),
         supplierIds.length
-            ? supabase.from('suppliers').select('id, legal_name').in('id', supplierIds)
+            ? // LOG-1b:【这一处绝不过滤 counterparty_type】—— 它把 id 换成名字,不是选择器。
+              //         过滤它会让【货代那几笔运费付款】的收款方名字变成空白,
+              //         而那正是本模块存在的理由。
+              supabase.from('suppliers').select('id, legal_name').in('id', supplierIds)
             : Promise.resolve({ data: [] as { id: string; legal_name: string }[], error: null }),
     ])
     const nameById = new Map<string, string>()

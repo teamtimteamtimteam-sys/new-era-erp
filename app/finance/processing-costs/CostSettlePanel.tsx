@@ -121,11 +121,18 @@ export default function CostSettlePanel({ entries, runs, suppliers, baseCurrency
                         </label>
                         {payStatus === 'unpaid' && (
                             <label>{t('finance.costSettle.supplier')}
-                                <select value={supplier} onChange={(e) => setSupplier(e.target.value)}
-                                        className="block border border-gray-300 rounded px-2 py-1 text-sm">
-                                    <option value=""></option>
-                                    {suppliers.map((s) => <option key={s.id} value={s.id}>{s.legal_name}</option>)}
-                                </select>
+                                {/* LOG-1b:空名单不画空下拉 —— 说出它是哪一种空(货代那一侧另有一句)。 */}
+                                {suppliers.length === 0 ? (
+                                    <p className="text-sm text-amber-900 bg-amber-50 border border-amber-300 rounded px-3 py-2 max-w-xl">
+                                        {t('suppliers.pickerEmptyGoods')}
+                                    </p>
+                                ) : (
+                                    <select value={supplier} onChange={(e) => setSupplier(e.target.value)}
+                                            className="block border border-gray-300 rounded px-2 py-1 text-sm">
+                                        <option value=""></option>
+                                        {suppliers.map((s) => <option key={s.id} value={s.id}>{s.legal_name}</option>)}
+                                    </select>
+                                )}
                             </label>
                         )}
                         <button type="button"

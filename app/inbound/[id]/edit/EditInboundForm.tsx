@@ -89,19 +89,26 @@ export default function EditInboundForm({
                     <label className="block text-sm font-medium mb-1">
                         {t('inbound.form.supplier')} <span className="text-red-600">*</span>
                     </label>
-                    <select
-                        name="supplier_id"
-                        required
-                        defaultValue={batch.supplier_id}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
-                    >
-                        <option value="" disabled>{t('inbound.form.selectSupplier')}</option>
-                        {suppliers.map((s) => (
-                            <option key={s.id} value={s.id}>
-                                {s.code} - {s.legal_name}
-                            </option>
-                        ))}
-                    </select>
+                    {/* LOG-1b:空名单不画空下拉 —— 说出它是哪一种空(货代那一侧另有一句)。 */}
+                    {suppliers.length === 0 ? (
+                        <p className="text-sm text-amber-900 bg-amber-50 border border-amber-300 rounded px-3 py-2 max-w-xl">
+                            {t('suppliers.pickerEmptyGoods')}
+                        </p>
+                    ) : (
+                        <select
+                            name="supplier_id"
+                            required
+                            defaultValue={batch.supplier_id}
+                            className="w-full border border-gray-300 px-3 py-2 rounded"
+                        >
+                            <option value="" disabled>{t('inbound.form.selectSupplier')}</option>
+                            {suppliers.map((s) => (
+                                <option key={s.id} value={s.id}>
+                                    {s.code} - {s.legal_name}
+                                </option>
+                            ))}
+                        </select>
+                    )}
                     {state.fieldErrors?.supplier_id && (
                         <p className="text-red-600 text-xs mt-1">
                             {state.fieldErrors.supplier_id}

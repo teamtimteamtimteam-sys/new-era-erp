@@ -80,13 +80,23 @@ export default function NewFreightForm({
                         <label className="block text-sm font-medium mb-1">
                             {t('finance.freight.colForwarder')} <span className="text-red-600">*</span>
                         </label>
-                        <select name="supplier_id" required defaultValue=""
-                            className="border border-gray-300 px-3 py-2 rounded min-w-64">
-                            <option value="" disabled>{t('finance.freight.selectForwarder')}</option>
-                            {suppliers.map((s) => (
-                                <option key={s.id} value={s.id}>{s.legal_name}</option>
-                            ))}
-                        </select>
+                        {/* LOG-1b:【空名单要说出它是哪一种空】。这里过滤的是货代,
+                            所以空的时候要说"还没有货代",而不是画一个空的下拉框 ——
+                            一个空下拉读起来像"选项加载失败",而真相是"还没有人被标成货代"。
+                            今天线上货代数为 0,所以这一支【就是当前会看到的那一支】。 */}
+                        {suppliers.length === 0 ? (
+                            <p className="text-sm text-amber-900 bg-amber-50 border border-amber-300 rounded px-3 py-2 max-w-xl">
+                                {t('suppliers.pickerEmptyForwarders')}
+                            </p>
+                        ) : (
+                            <select name="supplier_id" required defaultValue=""
+                                className="border border-gray-300 px-3 py-2 rounded min-w-64">
+                                <option value="" disabled>{t('finance.freight.selectForwarder')}</option>
+                                {suppliers.map((s) => (
+                                    <option key={s.id} value={s.id}>{s.legal_name}</option>
+                                ))}
+                            </select>
+                        )}
                         {/* 【货代,不是材料供应商】—— 未付运费的应付记在这个人名下 */}
                         <p className="text-xs text-gray-500 mt-1">{t('finance.freight.forwarderHint')}</p>
                     </div>

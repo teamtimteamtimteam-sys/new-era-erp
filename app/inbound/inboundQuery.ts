@@ -107,6 +107,8 @@ export async function resolveInboundSearchIds(
             .from('suppliers')
             .select('id')
             .is('deleted_at', null)
+            // LOG-1b:货代不进供应商名单(他们保留 supplier id 只为账上那条链)
+            .neq('counterparty_type', 'forwarder')
             .ilike('legal_name', pattern),
     ])
     return {

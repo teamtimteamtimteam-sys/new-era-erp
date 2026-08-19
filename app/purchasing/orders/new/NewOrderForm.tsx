@@ -238,22 +238,29 @@ export default function NewOrderForm({
                     <label className="block text-sm font-medium mb-1">
                         {t('purchasing.form.supplier')} <span className="text-red-600">*</span>
                     </label>
-                    <select
-                        name="supplier_id"
-                        required
-                        value={supplierId}
-                        onChange={(e) => onSupplierChange(e.target.value)}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
-                    >
-                        <option value="" disabled>
-                            {t('finance.selectCounterparty')}
-                        </option>
-                        {suppliers.map((s) => (
-                            <option key={s.id} value={s.id}>
-                                {s.name}
+                    {/* LOG-1b:空名单不画空下拉 —— 说出它是哪一种空(货代那一侧另有一句)。 */}
+                    {suppliers.length === 0 ? (
+                        <p className="text-sm text-amber-900 bg-amber-50 border border-amber-300 rounded px-3 py-2 max-w-xl">
+                            {t('suppliers.pickerEmptyGoods')}
+                        </p>
+                    ) : (
+                        <select
+                            name="supplier_id"
+                            required
+                            value={supplierId}
+                            onChange={(e) => onSupplierChange(e.target.value)}
+                            className="w-full border border-gray-300 px-3 py-2 rounded"
+                        >
+                            <option value="" disabled>
+                                {t('finance.selectCounterparty')}
                             </option>
-                        ))}
-                    </select>
+                            {suppliers.map((s) => (
+                                <option key={s.id} value={s.id}>
+                                    {s.name}
+                                </option>
+                            ))}
+                        </select>
+                    )}
                     {/* SUP-TYPE-1b:同上 —— 只列供货的供应商,空了要说出原因。 */}
                     {suppliers.length === 0 && (
                         <p className="text-xs text-amber-700 mt-1">

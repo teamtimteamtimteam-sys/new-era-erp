@@ -18,8 +18,11 @@ export default async function NewFreightPage() {
     const currencies = await getCurrencyCodes()
 
     const suppliers = mustRows(
+        // LOG-1b:【反向过滤】运费的收款方只能是货代。这一处与其它十一处方向相反,
+        // 所以它单独写在这里,而不是复用那条排除条件。
         await supabase.from('suppliers').select('id, code, legal_name')
-            .is('deleted_at', null).eq('status', 'active').order('legal_name'),
+            .is('deleted_at', null).eq('status', 'active')
+            .eq('counterparty_type', 'forwarder').order('legal_name'),
         'suppliers'
     ) as { id: string; code: string; legal_name: string }[]
 

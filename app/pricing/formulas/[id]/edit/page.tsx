@@ -45,7 +45,8 @@ export default async function EditFormulaPage({
 
     const [metalsRes, supRes, cusRes] = await Promise.all([
         supabase.from('pricing_formula_metals_masked').select('metal, payable_pct').eq('formula_id', id),
-        supabase.from('suppliers').select('id, legal_name').is('deleted_at', null).order('legal_name'),
+        // LOG-1b:货代不进供应商名单
+        supabase.from('suppliers').select('id, legal_name').is('deleted_at', null).neq('counterparty_type', 'forwarder').order('legal_name'),
         supabase.from('customers').select('id, legal_name').is('deleted_at', null).order('legal_name'),
     ])
 

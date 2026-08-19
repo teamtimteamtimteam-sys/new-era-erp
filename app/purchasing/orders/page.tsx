@@ -152,6 +152,8 @@ export default async function PurchaseOrdersPage({
         .from('suppliers')
         .select('id, legal_name')
         .is('deleted_at', null)
+        // LOG-1b:货代不进供应商名单
+        .neq('counterparty_type', 'forwarder')
         .order('legal_name')
     const supplierOptions = (supplierRows ?? []).map((s) => ({ id: s.id, name: s.legal_name }))
 

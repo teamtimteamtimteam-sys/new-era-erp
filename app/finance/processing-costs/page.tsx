@@ -26,7 +26,8 @@ export default async function ProcessingCostsPage() {
             .is('deleted_at', null).is('remitted_at', null).is('relieved_at', null)
             .order('created_at'),
         supabase.from('processing_runs').select('id, code'),
-        supabase.from('suppliers').select('id, legal_name').is('deleted_at', null).order('legal_name'),
+        // LOG-1b:货代不进供应商名单
+        supabase.from('suppliers').select('id, legal_name').is('deleted_at', null).neq('counterparty_type', 'forwarder').order('legal_name'),
     ])
     // 读不出来就报错,不许渲染成「没有待结算」—— 见 lib/db-helpers 的政策注释
     const entries = mustRows(entriesRes, 'processing_cost_entries_masked')

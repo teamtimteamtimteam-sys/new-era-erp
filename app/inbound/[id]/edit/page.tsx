@@ -73,6 +73,8 @@ export default async function EditInboundPage({
             .from('suppliers')
             .select('id, code, legal_name')
             .is('deleted_at', null)
+            // LOG-1b:货代不进供应商名单(他们保留 supplier id 只为账上那条链)
+            .neq('counterparty_type', 'forwarder')
             .order('legal_name'),
         supabase
             .from('inbound_batch_metals')
