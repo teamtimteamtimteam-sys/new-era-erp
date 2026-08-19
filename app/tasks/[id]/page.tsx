@@ -15,6 +15,7 @@ import NodeTree, { type NodeRow } from './NodeTree'
 import Participants, { type ParticipantRow, type AssignableRow } from './Participants'
 import ChangeHistory, { type HistoryRow } from './ChangeHistory'
 import TaskHeader from './TaskHeader'
+import { STATUS_VALUES, PRIORITY_VALUES } from '../types'
 
 export default async function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const denied = await requireModule(MOD.tasks)
@@ -137,8 +138,12 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
                     reminderAt: t('tasks.form.reminder'),
                     tags: t('tasks.form.tags'),
                     tagsHint: t('tasks.form.tagsHint'),
-                    statusOf: (v: string) => t('tasks.status.' + v),
-                    priorityOf: (v: string) => t('tasks.priority.' + v),
+                    statusLabels: Object.fromEntries(
+                        STATUS_VALUES.map((v) => [v, t('tasks.status.' + v)])
+                    ),
+                    priorityLabels: Object.fromEntries(
+                        PRIORITY_VALUES.map((v) => [v, t('tasks.priority.' + v)])
+                    ),
                 }}
             />
 
