@@ -2939,6 +2939,9 @@ const zh = {
             stillReads: '他们已经不在这张任务上了。但仍然读得到 —— 他们的编辑在记录里。',
             correctType: '类型选错了 —— 改回私人',
             typeLocked: '这张任务上有别人来过,所以它保持为团队任务。',
+            promoteBlockedNoEmployee: '你的登录账号还没有关联在册员工档案,所以这张任务没有可放进团队的归属人。请让 HR 关联你的账号,之后这里就可以用了。',
+            noAssignPermission: '你没有把人加进任务的权限,所以这里不显示员工名单。',
+            nobodyEligible: '有登录账号的员工都已经在这张任务上了。没有登录账号的员工加不进来 —— 请先在 HR 里关联他的账号。',
             personalHint: '这是一张私人任务。只有你看得见,也只有你改得动。',
             promote: '变成团队任务',
         },
@@ -2970,6 +2973,7 @@ const zh = {
         opErrors: {
             TASK_PARTICIPANT_NO_LOGIN: '这名员工还没有登录账号 —— 加进来的话,他会在屏幕上"在这件事上",却永远打不开它。请先在 HR 里关联账号。',
             TASK_OWNER_CANNOT_LEAVE: '归属人不能退出自己的任务 —— 那是一次【转移归属】。',
+            TASK_PARTICIPANT_ALREADY_ON: '这个人已经在这张任务上了。如果你想重新加回已退出的人,他在下面的「已退出」名单里。',
             TASK_PARTICIPANT_REMOVE_DENIED: '只有归属人、或者当初把他加进来的那个人,才能把他移出。',
             TASK_PARTICIPANT_REMOVER_NOT_ON_TASK: '你已经退出这张任务了,不能再把别人移出。',
             TASK_HARD_DELETE_REFUSED: '任务不做硬删 —— {0} 走软删,这样变更记录指向的东西才还在。',
@@ -3001,6 +3005,11 @@ const zh = {
         type: {
             personal: '个人',
             team: '团队',
+        },
+        header: {
+            edit: '编辑任务',
+            del: '删除任务',
+            confirmDelete: '确认删除',
         },
         form: {
             title: '标题',

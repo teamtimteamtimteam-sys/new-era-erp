@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { getTranslations } from '@/lib/i18n/server'
+import { localizeTaskError } from './taskErrorCodes'
 import type { InsertRow } from '@/lib/db-helpers'
 import {
     TASK_COLUMNS,
@@ -61,7 +62,7 @@ export async function updateTaskStatus(id: string, newStatus: string) {
         .eq('id', id)
         .is('deleted_at', null) // 已软删除的不动
 
-    if (error) return { error: t('tasks.form.saveError', { message: error.message }) }
+    if (error) return { error: await localizeTaskError(error.message) }
 
     revalidatePath('/tasks')
     return { success: true }
@@ -81,48 +82,13 @@ export async function createTask(input: TaskInput): Promise<SaveResult> {
         .select(TASK_COLUMNS)
         .single()
 
-    if (error) return { error: t('tasks.form.saveError', { message: error.message }) }
+    if (error) return { error: await localizeTaskError(error.message) }
 
     revalidatePath('/tasks')
     return { success: true, task: data }
 }
 
-// 更新已有任务的可编辑字段
-export async function updateTask(
-    id: string,
-    input: TaskInput
-): Promise<SaveResult> {
-    const t = await getTranslations()
-    const invalid = validateInput(input, t)
-    if (invalid) return { error: invalid }
-
-    const supabase = await createClient()
-    const { data, error } = await supabase
-        .from('tasks')
-        .update(toRow(input))
-        .eq('id', id)
-        .is('deleted_at', null) // 不能改一条已删除的
-        .select(TASK_COLUMNS)
-        .single()
-
-    if (error) return { error: t('tasks.form.saveError', { message: error.message }) }
-
-    revalidatePath('/tasks')
-    return { success: true, task: data }
-}
-
-// 软删除:置 deleted_at
-export async function deleteTask(id: string): Promise<DeleteResult> {
-    const t = await getTranslations()
-    const supabase = await createClient()
-    const { error } = await supabase
-        .from('tasks')
-        .update({ deleted_at: new Date().toISOString() })
-        .eq('id', id)
-        .is('deleted_at', null)
-
-    if (error) return { error: t('tasks.deleteError', { message: error.message }) }
-
-    revalidatePath('/tasks')
-    return { success: true }
-}
+// 【updateTask / deleteTask 在 TASK-1c-b 删掉了】——它们的调用者(弹窗的编辑态)
+// 退休了,而改任务与软删现在住在 app/tasks/[id]/actions.ts 里。
+// 留着它们不是"备用",是把刚拆掉的第二扇门原样放回去:两个写同一个事实的入口,
+// 规矩迟早各自演化(1c-a 为账号关联那一处记过同样的账)。

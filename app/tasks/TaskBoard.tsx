@@ -101,11 +101,9 @@ function DueDate({ due, today }: { due: string; today: string | null }) {
 function TaskCard({
     task,
     today,
-    onClick,
 }: {
     task: Task
     today: string | null
-    onClick: (task: Task) => void
 }) {
     const t = useTranslations()
     const { attributes, listeners, setNodeRef, transform, isDragging } =
@@ -124,12 +122,19 @@ function TaskCard({
             style={style}
             {...listeners}
             {...attributes}
-            onClick={() => onClick(task)}
             className={
                 'cursor-grab touch-none rounded-md border border-gray-200 bg-white p-3 shadow-sm hover:shadow ' +
                 (isDragging ? 'opacity-50' : '')
             }
         >
+            {/* TASK-1c-b:【整张卡片就是入口】。
+                它是一个真正的 <a href>,不是一个 onClick —— 走查器读的是 DOM,
+                只挂 onClick 的话 /tasks/[id] 在标记里就【没有入口】了,
+                而那正是 SAL-B6 那张新建客户页栽过的地方(动态路由不在断言范围内,
+                所以检查会正当地报绿,人却点不到)。
+                也【不带任何响应式显隐】—— FIX-1 的那条:CSS 藏起来的链接
+                对走查器可达、对人不可见。 */}
+            <Link href={`/tasks/${task.id}`} className="block">
             {/* 标题 + 类型 */}
             <div className="flex items-start justify-between gap-2">
                 <div className="text-sm font-medium leading-snug text-gray-900">
@@ -170,20 +175,6 @@ function TaskCard({
                 <div className="mt-1 text-[11px] text-amber-800">{t('tasks.card.stepsOverrun')}</div>
             )}
 
-            {/* 详情入口。【故意不带任何响应式显隐】——
-                FIX-1:sm:hidden / hidden sm: 的导航元素对走查器是可达的、对人是看不见的,
-                收货那条路就是这么在桌面上整个消失的。这里一个宽度都不藏。 */}
-            <div className="mt-2">
-                <Link
-                    href={`/tasks/${task.id}`}
-                    onClick={(e) => e.stopPropagation()}
-                    onPointerDown={(e) => e.stopPropagation()}
-                    className="text-[11px] text-blue-700 hover:underline"
-                >
-                    {t('tasks.card.openDetail')}
-                </Link>
-            </div>
-
             {/* 标签 */}
             {hasTags && (
                 <div className="mt-1.5 flex flex-wrap gap-1">
@@ -197,6 +188,7 @@ function TaskCard({
                     ))}
                 </div>
             )}
+            </Link>
         </div>
     )
 }
@@ -206,13 +198,11 @@ function Column({
     label,
     tasks,
     today,
-    onCardClick,
 }: {
     id: string
     label: string
     tasks: Task[]
     today: string | null
-    onCardClick: (task: Task) => void
 }) {
     const t = useTranslations()
     const { setNodeRef, isOver } = useDroppable({ id })
@@ -234,7 +224,6 @@ function Column({
                         key={task.id}
                         task={task}
                         today={today}
-                        onClick={onCardClick}
                     />
                 ))}
                 {tasks.length === 0 && (
@@ -247,10 +236,8 @@ function Column({
     )
 }
 
-type ModalState =
-    | { mode: 'create' }
-    | { mode: 'edit'; task: Task }
-    | null
+// TASK-1c-b:弹窗只剩【新建】。改任务在 /tasks/[id] —— 一个事实一个入口。
+type ModalState = { mode: 'create' } | null
 
 export default function TaskBoard({ tasks: initialTasks }: { tasks: Task[] }) {
     const t = useTranslations()
@@ -313,12 +300,6 @@ export default function TaskBoard({ tasks: initialTasks }: { tasks: Task[] }) {
         })
     }
 
-    // 点击卡片 -> 编辑(若刚刚发生过拖拽则忽略这次 click)
-    function handleCardClick(task: Task) {
-        if (wasDraggingRef.current) return
-        setModal({ mode: 'edit', task })
-    }
-
     const closeModal = useCallback(() => setModal(null), [])
 
     // 新建/编辑成功:存在则替换,不存在则插到最前(列表按 created_at 倒序)
@@ -330,9 +311,6 @@ export default function TaskBoard({ tasks: initialTasks }: { tasks: Task[] }) {
         )
     }, [])
 
-    const handleDeleted = useCallback((id: string) => {
-        setTasks((prev) => prev.filter((t) => t.id !== id))
-    }, [])
 
     return (
         <>
@@ -360,7 +338,6 @@ export default function TaskBoard({ tasks: initialTasks }: { tasks: Task[] }) {
                             label={t('tasks.status.' + status)}
                             tasks={tasks.filter((task) => task.status === status)}
                             today={today}
-                            onCardClick={handleCardClick}
                         />
                     ))}
                 </div>
@@ -368,11 +345,9 @@ export default function TaskBoard({ tasks: initialTasks }: { tasks: Task[] }) {
 
             {modal && (
                 <TaskModal
-                    mode={modal.mode}
-                    task={modal.mode === 'edit' ? modal.task : null}
+                    mode="create"
                     onClose={closeModal}
                     onSaved={handleSaved}
-                    onDeleted={handleDeleted}
                 />
             )}
         </>

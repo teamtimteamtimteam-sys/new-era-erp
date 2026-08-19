@@ -31,12 +31,15 @@ type Labels = {
     heading: string; empty: string; add: string; pick: string
     left: string; removed: string; removeOther: string; leave: string
     addedBy: string; stillReads: string; correctType: string; typeLocked: string
+    noAssignPermission: string; nobodyEligible: string
 }
 
 export default function Participants({
-    taskId, rows, assignable, canEdit, myEmployeeId, correctable, labels,
+    taskId, rows, assignable, mayAssign, canEdit, myEmployeeId, correctable, labels,
 }: {
     taskId: string; rows: ParticipantRow[]; assignable: AssignableRow[]
+    // 【权限自己回答能不能看】,不由 assignable 是不是空来倒推
+    mayAssign: boolean
     canEdit: boolean; myEmployeeId: string | null; correctable: boolean; labels: Labels
 }) {
     const [error, setError] = useState<string | null>(null)
@@ -95,7 +98,18 @@ export default function Participants({
                 </>
             ) : null}
 
-            {canEdit ? (
+            {/* TASK-1c-b STEP 4:【三种状态,三句不同的话】。
+                以前这里只有"有没有行"两种,于是"你不被允许看"与"没有人可选"
+                长成了同一个空下拉 —— 空集不是答案(lib/permissions.ts 的立身之本)。 */}
+            {canEdit && !mayAssign ? (
+                <p className="mt-4 text-sm text-gray-600">{labels.noAssignPermission}</p>
+            ) : null}
+
+            {canEdit && mayAssign && assignable.filter((a) => a.employee_id && !onIt.has(a.employee_id)).length === 0 ? (
+                <p className="mt-4 text-sm text-gray-600">{labels.nobodyEligible}</p>
+            ) : null}
+
+            {canEdit && mayAssign && assignable.filter((a) => a.employee_id && !onIt.has(a.employee_id)).length > 0 ? (
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                     <select
                         className="rounded border px-2 py-1 text-sm"
@@ -132,7 +146,7 @@ export default function Participants({
     )
 }
 
-export function PromoteButton({ taskId, label }: { taskId: string; label: string }) {
+export function PromoteButton({ taskId, label, disabled = false }: { taskId: string; label: string; disabled?: boolean }) {
     const [error, setError] = useState<string | null>(null)
     const [pending, start] = useTransition()
     return (
@@ -142,7 +156,7 @@ export function PromoteButton({ taskId, label }: { taskId: string; label: string
             ) : null}
             <button
                 className="rounded bg-blue-600 px-3 py-1 text-sm text-white disabled:opacity-50"
-                disabled={pending}
+                disabled={pending || disabled}
                 onClick={() =>
                     start(async () => {
                         const res = await promoteToTeam(taskId)

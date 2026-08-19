@@ -2955,6 +2955,9 @@ const en = {
             stillReads: 'They are no longer on this task. They can still read it — their edits are in the record.',
             correctType: 'Wrong type — change back to personal',
             typeLocked: 'Others have been on this task, so it stays a team task.',
+            promoteBlockedNoEmployee: 'Your login is not linked to an employee record, so this task has no owner to put on the team. Ask HR to link your account, then this becomes available.',
+            noAssignPermission: 'You do not have permission to add people to tasks, so the list of employees is not shown here.',
+            nobodyEligible: 'Every employee with a login account is already on this task. Staff without a login account cannot be added — link their account under HR first.',
             personalHint: 'This is a personal task. Only you can see it and change it.',
             promote: 'Make this a team task',
         },
@@ -2986,6 +2989,7 @@ const en = {
         opErrors: {
             TASK_PARTICIPANT_NO_LOGIN: 'That employee has no login account yet, so they could be shown on this task and still never be able to open it. Link their account in HR first.',
             TASK_OWNER_CANNOT_LEAVE: 'The owner cannot leave their own task — that would be a transfer of ownership.',
+            TASK_PARTICIPANT_ALREADY_ON: 'That person is already on this task. If you meant to re-add someone who left, they are listed under the past participants.',
             TASK_PARTICIPANT_REMOVE_DENIED: 'Only the owner, or whoever added them, can take someone off this task.',
             TASK_PARTICIPANT_REMOVER_NOT_ON_TASK: 'You have left this task, so you can no longer take others off it.',
             TASK_HARD_DELETE_REFUSED: 'Tasks are not hard-deleted — {0} is removed by soft delete, so the change history keeps pointing at something real.',
@@ -3018,6 +3022,11 @@ const en = {
         type: {
             personal: 'Personal',
             team: 'Team',
+        },
+        header: {
+            edit: 'Edit task',
+            del: 'Delete task',
+            confirmDelete: 'Confirm delete',
         },
         form: {
             title: 'Title',

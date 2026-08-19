@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
-import { createTask, updateTask, deleteTask } from './actions'
+import { createTask } from './actions'
 import {
     type Task,
     type TaskInput,
@@ -33,18 +33,17 @@ function toLocalDatetime(iso: string | null): string {
 const inputCls = 'w-full border border-gray-300 px-3 py-2 rounded'
 const labelCls = 'block text-sm font-medium mb-1'
 
+// TASK-1c-b:【只建不改】。改任务(含软删)在 /tasks/[id]。
+// 一个事实一个入口 —— 这不是省事,是把"两扇门规矩各自演化"那一类毛病
+// 从根上拆掉(1c-a 为账号关联那一处记过同样的账)。
+// 顺带:类型下拉也随之消失,所以原计划里"把它改成只读"那一条自然作废。
 export default function TaskModal({
-    mode,
-    task,
     onClose,
     onSaved,
-    onDeleted,
 }: {
-    mode: 'create' | 'edit'
-    task: Task | null
+    mode?: 'create'
     onClose: () => void
     onSaved: (task: Task) => void
-    onDeleted: (id: string) => void
 }) {
     const t = useTranslations()
     const [error, setError] = useState<string | null>(null)
@@ -79,35 +78,13 @@ export default function TaskModal({
 
         setError(null)
         startTransition(async () => {
-            const res =
-                mode === 'create'
-                    ? await createTask(input)
-                    : await updateTask(task!.id, input)
+            const res = await createTask(input)
 
             if ('error' in res) {
                 setError(res.error)
                 return
             }
             onSaved(res.task)
-            onClose()
-        })
-    }
-
-    function handleDelete() {
-        if (!task) return
-        const ok = window.confirm(
-            t('tasks.deleteConfirm', { title: task.title })
-        )
-        if (!ok) return
-
-        setError(null)
-        startTransition(async () => {
-            const res = await deleteTask(task.id)
-            if ('error' in res) {
-                setError(res.error)
-                return
-            }
-            onDeleted(task.id)
             onClose()
         })
     }
@@ -122,9 +99,7 @@ export default function TaskModal({
                 onClick={(e) => e.stopPropagation()}
             >
                 <h2 className="mb-4 text-lg font-bold">
-                    {mode === 'create'
-                        ? t('tasks.newTitle')
-                        : t('tasks.editTitle')}
+                    {t('tasks.newTitle')}
                 </h2>
 
                 {error && (
@@ -145,7 +120,7 @@ export default function TaskModal({
                             name="title"
                             required
                             autoFocus
-                            defaultValue={task?.title ?? ''}
+                            defaultValue=""
                             className={inputCls}
                             placeholder={t('tasks.form.titlePlaceholder')}
                         />
@@ -159,7 +134,7 @@ export default function TaskModal({
                         <textarea
                             name="description"
                             rows={3}
-                            defaultValue={task?.description ?? ''}
+                            defaultValue=""
                             className={inputCls}
                         />
                     </div>
@@ -172,7 +147,7 @@ export default function TaskModal({
                             </label>
                             <select
                                 name="status"
-                                defaultValue={task?.status ?? 'todo'}
+                                defaultValue="todo"
                                 className={inputCls}
                             >
                                 {STATUS_VALUES.map((v) => (
@@ -188,7 +163,7 @@ export default function TaskModal({
                             </label>
                             <select
                                 name="priority"
-                                defaultValue={task?.priority ?? 'medium'}
+                                defaultValue="medium"
                                 className={inputCls}
                             >
                                 {PRIORITY_VALUES.map((v) => (
@@ -204,7 +179,7 @@ export default function TaskModal({
                             </label>
                             <select
                                 name="task_type"
-                                defaultValue={task?.task_type ?? 'personal'}
+                                defaultValue="personal"
                                 className={inputCls}
                             >
                                 {TASK_TYPE_VALUES.map((v) => (
@@ -225,7 +200,7 @@ export default function TaskModal({
                             <input
                                 type="date"
                                 name="due_date"
-                                defaultValue={task?.due_date ?? ''}
+                                defaultValue=""
                                 className={inputCls}
                             />
                         </div>
@@ -236,7 +211,7 @@ export default function TaskModal({
                             <input
                                 type="datetime-local"
                                 name="reminder_at"
-                                defaultValue={toLocalDatetime(task?.reminder_at ?? null)}
+                                defaultValue=""
                                 className={inputCls}
                             />
                         </div>
@@ -248,7 +223,7 @@ export default function TaskModal({
                         <input
                             type="text"
                             name="tags"
-                            defaultValue={task?.tags?.join(', ') ?? ''}
+                            defaultValue=""
                             className={inputCls}
                             placeholder={t('tasks.form.tagsPlaceholder')}
                         />
@@ -259,19 +234,8 @@ export default function TaskModal({
 
                     {/* 操作按钮 */}
                     <div className="flex items-center justify-between pt-2">
-                        {/* 删除只在编辑态出现 */}
-                        {mode === 'edit' ? (
-                            <button
-                                type="button"
-                                onClick={handleDelete}
-                                disabled={isPending}
-                                className="text-sm text-red-600 hover:underline disabled:text-gray-400"
-                            >
-                                {t('common.delete')}
-                            </button>
-                        ) : (
-                            <span />
-                        )}
+                        {/* 删除【不在这里】—— 它随表头一起搬到了 /tasks/[id]。 */}
+                        <span />
 
                         <div className="flex gap-3">
                             <button

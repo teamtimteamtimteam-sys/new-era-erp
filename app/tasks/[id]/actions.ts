@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { getTranslations } from '@/lib/i18n/server'
 import { localizeTaskError } from '../taskErrorCodes'
+import { STATUS_VALUES, PRIORITY_VALUES } from '../types'
 
 // app/tasks/[id]/actions.ts
 // TASK-1b:步骤 / 参与者 / 类型迁移的服务端动作。
@@ -180,4 +181,64 @@ export async function correctType(taskId: string): Promise<Result> {
     const { error } = await supabase.rpc('correct_task_type', { p_task_id: taskId } as never)
     if (error) return fail(error.message)
     return done(`/tasks/${taskId}`)
+}
+
+// ── 表头 ────────────────────────────────────────────────────────────────────
+// TASK-1c-b:弹窗退休成【只建不改】之后,表头七个字段搬到详情页来。
+//
+// 【这里【故意】不收 task_type】。类型迁移只剩两扇具名的门
+// (promote_task_to_team / correct_task_type),而它们在参与者面板上。
+// 表头再收一次 task_type,就等于把刚刚拆掉的第二扇门又装回来 ——
+// 而两扇门规矩不一致正是 1c-a 记进 known-issues 的那一类毛病。
+export type HeaderInput = {
+    title: string
+    description: string | null
+    status: string
+    priority: string
+    due_date: string | null
+    reminder_at: string | null
+    tags: string[]
+}
+
+export async function updateTaskHeader(taskId: string, input: HeaderInput): Promise<Result> {
+    const t = await getTranslations()
+    if (!input.title.trim()) return { error: t('tasks.errors.titleRequired') }
+    if (!(STATUS_VALUES as readonly string[]).includes(input.status)) {
+        return { error: t('tasks.errors.invalidStatus', { value: input.status }) }
+    }
+    if (!(PRIORITY_VALUES as readonly string[]).includes(input.priority)) {
+        return { error: t('tasks.errors.invalidPriority', { value: input.priority }) }
+    }
+
+    const supabase = await createClient()
+    const { error } = await supabase
+        .from('tasks')
+        .update({
+            title: input.title.trim(),
+            description: input.description?.trim() || null,
+            status: input.status,
+            priority: input.priority,
+            due_date: input.due_date || null,
+            reminder_at: input.reminder_at || null,
+            tags: input.tags ?? [],
+        })
+        .eq('id', taskId)
+        .is('deleted_at', null)
+
+    if (error) return fail(error.message)
+    return done(`/tasks/${taskId}`)
+}
+
+// 软删。硬删由 trg_tasks_no_hard_delete 按名拒绝,这里走的是支持的那条路。
+export async function softDeleteTask(taskId: string): Promise<Result> {
+    const supabase = await createClient()
+    const { error } = await supabase
+        .from('tasks')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', taskId)
+        .is('deleted_at', null)
+
+    if (error) return fail(error.message)
+    revalidatePath('/tasks')
+    return { success: true }
 }

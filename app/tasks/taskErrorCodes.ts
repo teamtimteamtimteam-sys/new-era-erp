@@ -43,6 +43,14 @@ export async function localizeTaskError(message: string): Promise<string> {
         return t('tasks.opErrors.TASK_NODE_SHAPE_REFUSED')
     }
 
+    // 【重复键不是一句可交付的拒绝】。uq_task_participants_active 是
+    // (task_id, employee_id) WHERE removed_at IS NULL —— 撞上它意味着这个人
+    // 【已经在这张任务上了】。数据库那句 "duplicate key value violates unique
+    // constraint" 对操作员是天书,而它描述的事实其实非常简单。
+    if (raw.includes('uq_task_participants_active')) {
+        return t('tasks.opErrors.TASK_PARTICIPANT_ALREADY_ON')
+    }
+
     const match = raw.match(CODE_RE)
     if (match && match[1] === 'PERMISSION_DENIED') {
         return t('common.restricted')

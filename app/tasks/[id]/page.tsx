@@ -9,10 +9,12 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { can } from '@/lib/permissions'
 import { mustRows, mustOne } from '@/lib/db-helpers'
 import NodeTree, { type NodeRow } from './NodeTree'
 import Participants, { type ParticipantRow, type AssignableRow } from './Participants'
 import ChangeHistory, { type HistoryRow } from './ChangeHistory'
+import TaskHeader from './TaskHeader'
 
 export default async function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const denied = await requireModule(MOD.tasks)
@@ -56,7 +58,12 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
           )
         : []
 
-    const assignable = isTeam
+    // TASK-1c-b STEP 4:【三种状态要分开说】。task_assignable_employees 把
+    // has_permission 写在 WHERE 里,所以【没有权限的人拿到的是零行,不是报错】——
+    // 照着渲染就是一个空下拉,读起来是"没有人可选",而真相可能是"你不被允许看"。
+    // 权限由权限本身回答,列表只负责列(与员工表单那个账号选择器同一条)。
+    const mayAssign = isTeam ? await can('module.tasks.edit') : false
+    const assignable = isTeam && mayAssign
         ? mustRows<AssignableRow>(
               await supabase
                   .from('task_assignable_employees')
@@ -101,7 +108,39 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
                 {task.due_date ? ` · ${t('tasks.form.dueDate')} ${task.due_date}` : ''}
             </p>
 
-            {task.description ? <p className="mb-6 whitespace-pre-wrap text-sm">{task.description}</p> : null}
+            {task.description ? <p className="mb-4 whitespace-pre-wrap text-sm">{task.description}</p> : null}
+
+            {/* TASK-1c-b:表头七个字段 + 软删,从退休的弹窗搬过来。
+                【类型不在这里】—— personal ↔ team 只剩参与者面板上那两扇具名的门。 */}
+            <TaskHeader
+                task={{
+                    id: task.id,
+                    title: task.title,
+                    description: task.description,
+                    status: task.status,
+                    priority: task.priority,
+                    due_date: task.due_date,
+                    reminder_at: task.reminder_at,
+                    tags: task.tags,
+                }}
+                labels={{
+                    edit: t('tasks.header.edit'),
+                    save: t('common.save'),
+                    cancel: t('common.cancel'),
+                    del: t('tasks.header.del'),
+                    confirmDelete: t('tasks.header.confirmDelete'),
+                    title: t('tasks.form.title'),
+                    description: t('tasks.form.description'),
+                    status: t('tasks.form.status'),
+                    priority: t('tasks.form.priority'),
+                    dueDate: t('tasks.form.dueDate'),
+                    reminderAt: t('tasks.form.reminder'),
+                    tags: t('tasks.form.tags'),
+                    tagsHint: t('tasks.form.tagsHint'),
+                    statusOf: (v: string) => t('tasks.status.' + v),
+                    priorityOf: (v: string) => t('tasks.priority.' + v),
+                }}
+            />
 
             <NodeTree
                 taskId={task.id}
@@ -128,6 +167,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
                     taskId={task.id}
                     rows={participants}
                     assignable={assignable}
+                    mayAssign={mayAssign}
                     canEdit={iAmParticipant}
                     myEmployeeId={myEmployeeId}
                     correctable={correctable}
@@ -144,10 +184,12 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
                         stillReads: t('tasks.participants.stillReads'),
                         correctType: t('tasks.participants.correctType'),
                         typeLocked: t('tasks.participants.typeLocked'),
+                        noAssignPermission: t('tasks.participants.noAssignPermission'),
+                        nobodyEligible: t('tasks.participants.nobodyEligible'),
                     }}
                 />
             ) : (
-                <PromotePanel taskId={task.id} />
+                <PromotePanel taskId={task.id} canPromote={myEmployeeId !== null} />
             )}
 
             {isTeam ? (
@@ -162,14 +204,24 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
 }
 
 // 私人任务:升级是一条【单向】的路,所以这里只有一个按钮,没有"改回私人"。
-async function PromotePanel({ taskId }: { taskId: string }) {
+async function PromotePanel({ taskId, canPromote }: { taskId: string; canPromote: boolean }) {
     const t = await getTranslations()
     const Client = (await import('./Participants')).PromoteButton
     return (
         <section className="mt-8 border-t pt-6">
             <h2 className="mb-2 text-xl font-bold">{t('tasks.participants.heading')}</h2>
             <p className="mb-3 text-sm text-gray-600">{t('tasks.participants.personalHint')}</p>
-            <Client taskId={taskId} label={t('tasks.participants.promote')} />
+            {/* TASK-1c-b STEP 3:【绝不摆一个服务端会拒绝的按钮】。
+                没有在册员工档案时,升级必然撞 TASK_OWNER_NOT_AN_EMPLOYEE ——
+                所以这里把按钮禁掉,并且【把理由写在屏幕上】,不是塞进 title 提示:
+                要悬停才读得到的理由,对读屏幕的人等于不存在(FIX-1 的同一条:
+                走查器读 DOM,人读屏幕)。 */}
+            {canPromote ? null : (
+                <p className="mb-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                    {t('tasks.participants.promoteBlockedNoEmployee')}
+                </p>
+            )}
+            <Client taskId={taskId} label={t('tasks.participants.promote')} disabled={!canPromote} />
         </section>
     )
 }
