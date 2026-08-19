@@ -19,6 +19,10 @@ export async function createSupplier(
     const t = await getTranslations()
 
     // 1. 从表单里取出字段
+    // LOG-1c:【同一条创建路径,两个入口】。货代也是一行 suppliers,只是类型不同 ——
+    // 所以货代页复用这个 action,只用一个隐藏字段换掉回跳目标,
+    // 而不是另写一处 insert(两处写同一张表,规矩迟早各自演化)。
+    const redirect_to = ((formData.get('redirect_to') as string) || '/suppliers').trim()
     const legal_name = (formData.get('legal_name') as string)?.trim()
     const short_name = (formData.get('short_name') as string)?.trim() || null
     const country = (formData.get('country') as string)?.trim().toUpperCase()
@@ -79,9 +83,10 @@ export async function createSupplier(
         return { error: t('suppliers.form.saveError', { message: error.message }) }
     }
 
-    // 4. 让 /suppliers 列表页重新读取数据(否则会显示缓存的旧数据)
+    // 4. 让列表页重新读取数据(否则会显示缓存的旧数据)
     revalidatePath('/suppliers')
+    revalidatePath('/logistics/forwarders')
 
-    // 5. 跳回列表页
-    redirect('/suppliers')
+    // 5. 跳回来处的列表页
+    redirect(redirect_to)
 }

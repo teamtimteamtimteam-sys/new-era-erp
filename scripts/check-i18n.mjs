@@ -261,6 +261,8 @@ const MANIFEST = {
     // AUDEL-1b:删除那一族的具名拒绝。接真源那个 Set —— 加一个码,检查自动跟上。
     'deletion.errors.': { kind: 'enum', values: () => tsSet('app/components/inventory/deletionErrorCodes.ts', 'DELETION_ERROR_CODES') },
     'tasks.opErrors.':      { kind: 'enum', values: () => tsSet('app/tasks/taskErrorCodes.ts', 'TASK_ERROR_CODES') },
+    // LOG-1c:物流的具名拒绝。真源是那个 Set —— 与 tasks.opErrors 同一种接法。
+    'logistics.opErrors.': { kind: 'enum', values: () => tsSet('app/logistics/logisticsErrorCodes.ts', 'LOGISTICS_ERROR_CODES') },
     // LME-1b:行情出处。真源是 metal_prices 那条 CHECK —— 加一种出处要改 CHECK
     // (一支迁移),这个检查因此自动跟上。**四个值都要有文案,包括 unknown**:
     // 它不在录入下拉里,但十条老行情在列表上就读它。

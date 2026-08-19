@@ -117,6 +117,14 @@ export const MODULES: ModuleEntry[] = [
       permission: 'module.tasks.view', section: null },
     { href: '/hr', navKey: 'nav.hr', titleKey: 'home.hrTitle', descKey: 'home.hrDesc',
       permission: 'module.hr.view', section: 'reports' },
+    // LOG-1c:物流。【把关用的是 module.purchasing.view,而不是一个新码】——
+    // 本刀只动渲染层,不铸权限码;而且 LOG-1a 给 ports / lanes /
+    // forwarder_rate_quotes / forwarder_details / lane_document_requirements
+    // 装的 RLS 就是 module.purchasing.*,换别的码只会得到一个"打得开、但零行"的页面。
+    // 【将来那个码是 module.logistics.view】—— LOG-0 的勘察把物流定在商务线
+    // (exec-views-plan.md:18,物流 HC 在 CCO 那里),等有人在岗、权限那一刀铸码时改这里。
+    { href: '/logistics/forwarders', navKey: 'nav.logistics', titleKey: 'home.logisticsTitle',
+      descKey: 'home.logisticsDesc', permission: 'module.purchasing.view', section: 'operations' },
 ]
 
 /** 首页三组的顺序与标题(组内顺序 = MODULES 的相对顺序)。 */
@@ -170,4 +178,7 @@ export const MOD = {
     finance: byHref('/finance'),
     tasks: byHref('/tasks'),
     hr: byHref('/hr'),
+    // LOG-1c:物流。把关码目前是 module.purchasing.view(见 MODULES 里那条注释),
+    // 将来铸出 module.logistics.view 时只改 MODULES 那一行,这里不用动。
+    logistics: byHref('/logistics/forwarders'),
 } as const
