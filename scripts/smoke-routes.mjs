@@ -238,7 +238,14 @@ async function rest(path, opts = {}) {
 // 有软删列的表跳过已删行 —— 详情页对已删行 404 是契约,不是坏。
 // 【只列真有 deleted_at 列的表】expenses/invoices/sales_records 没有这列,曾被错列进来:
 // 过滤报错被读成"没数据",四条路由悄悄失去覆盖(下面 restRows 就是那次的教训)。
-const SOFT_DELETED = new Set(['containers','customers','suppliers','materials','bank_statements',
+// FRT-FIX 之后又一处同形的漏登记(2026-08-20):tasks 有 deleted_at,却不在这里。
+// 线上 7 张 team 任务里 5 张已软删,而取 id 的那条查询【没有 order by】,
+// PostgREST 按物理顺序返回 —— 实测五次全部返回 TASK-2026-0005(2026-08-19 13:26
+// 软删)。详情页对已删行 notFound 是【契约】(app/tasks/[id]/page.tsx:33/36),
+// 所以那个 404 是这条检查【问错了主语】,不是页面坏了。
+// 更坏的是它【不稳定】:物理顺序会随更新漂移,于是这条断言迟早会时绿时红,
+// 而那比一直红更难查(ID_FILTERS 上面那段注释说的就是这件事)。
+const SOFT_DELETED = new Set(['containers','customers','suppliers','materials','bank_statements','tasks',
     'inbound_batches','leave_requests','medical_claims','metal_prices','output_batches',
     'payroll_periods','payment_term_templates','pricing_formulas','processing_runs','purchase_orders',
     'review_cycles','stocktakes','training_records','fx_rates','employees','departments'])
