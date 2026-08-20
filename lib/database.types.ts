@@ -6062,35 +6062,58 @@ export type Database = {
       prepayment_applications: {
         Row: {
           amount_base: number
+          amount_ccy: number | null
           created_at: string
           created_by: string | null
+          currency: string | null
+          expense_id: string | null
           id: string
-          inbound_batch_id: string
+          inbound_batch_id: string | null
           journal_entry_id: string | null
           notes: string | null
           purchase_order_id: string
         }
         Insert: {
           amount_base: number
+          amount_ccy?: number | null
           created_at?: string
           created_by?: string | null
+          currency?: string | null
+          expense_id?: string | null
           id?: string
-          inbound_batch_id: string
+          inbound_batch_id?: string | null
           journal_entry_id?: string | null
           notes?: string | null
           purchase_order_id: string
         }
         Update: {
           amount_base?: number
+          amount_ccy?: number | null
           created_at?: string
           created_by?: string | null
+          currency?: string | null
+          expense_id?: string | null
           id?: string
-          inbound_batch_id?: string
+          inbound_batch_id?: string | null
           journal_entry_id?: string | null
           notes?: string | null
           purchase_order_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "prepayment_applications_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
@@ -13352,8 +13375,11 @@ export type Database = {
       prepayment_applications_masked: {
         Row: {
           amount_base: number | null
+          amount_ccy: number | null
           created_at: string | null
           created_by: string | null
+          currency: string | null
+          expense_id: string | null
           id: string | null
           inbound_batch_id: string | null
           journal_entry_id: string | null
@@ -13362,8 +13388,11 @@ export type Database = {
         }
         Insert: {
           amount_base?: never
+          amount_ccy?: never
           created_at?: string | null
           created_by?: string | null
+          currency?: string | null
+          expense_id?: string | null
           id?: string | null
           inbound_batch_id?: string | null
           journal_entry_id?: string | null
@@ -13372,8 +13401,11 @@ export type Database = {
         }
         Update: {
           amount_base?: never
+          amount_ccy?: never
           created_at?: string | null
           created_by?: string | null
+          currency?: string | null
+          expense_id?: string | null
           id?: string | null
           inbound_batch_id?: string | null
           journal_entry_id?: string | null
@@ -13381,6 +13413,20 @@ export type Database = {
           purchase_order_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "prepayment_applications_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
@@ -15657,6 +15703,7 @@ export type Database = {
       apply_prepayment: {
         Args: {
           p_amount: number
+          p_expense_id?: string
           p_inbound_batch_id: string
           p_notes?: string
           p_purchase_order_id: string

@@ -64,6 +64,59 @@
   哪几个状态"并在一处实现,要么明说不管。在有人决定之前,**不动**——
   FRT-1 当年只在运费页单独加过一次 status 过滤,而那一次的下场就是 FRT-FIX。
 
+## `apply_prepayment` 用 `CURRENT_DATE` 记账日(2026-08-21 记录,EQP-1b-i)
+
+**现象**:`db/functions/apply_prepayment.sql` 把冲抵分录过在 `CURRENT_DATE`,
+而 AGENTS.md 那条「决定期间的日期:必填,永不默认」说的正是这种日期 ——
+一个 `COALESCE(p_date, CURRENT_DATE)` 式的默认让"留空"永远撞不上 `PERIOD_LOCKED`,
+于是这条路奖励留空。
+
+**为什么 EQP-1b-i 没有顺手修**:改它要给函数加一个必填的日期参数,而
+`app/inbound/[id]/edit/prepaymentActions.ts` 是它现存的唯一调用方 ——
+那是一次【界面改动】,而 EQP-1b-i 明写了不碰任何界面。
+一个只在服务端要求日期、界面却不给字段的版本,等于把这条路直接关掉。
+
+**删除条件(明写,不是"以后再说")**:**EQP-1c** —— 冲抵的界面那一刀。
+它给界面加上日期字段的同时,把 `p_application_date` 变成必填、拒绝为空并按名报错。
+那一刀落地时删掉本节。
+
+## `reverse_expense` 冲销不了【欠员工】的费用单(2026-08-21 记录,EQP-1b-i 顺带查到)
+
+**现象**:`db/functions/reverse_expense.sql` 第 46–54 行那条镜像单的 `INSERT`
+**不复制 `employee_id`**,而 `expenses_counterparty_shape` 要求 unpaid 的费用单
+【恰好有一个】往来对象。于是冲销一张欠员工的报销单会撞上一条**裸的约束违例**:
+
+```
+new row for relation "expenses" violates check constraint "expenses_counterparty_shape"
+```
+
+线上实测过(直插 + 复刻镜像 INSERT,整支回滚),不是推断。
+
+**从哪来**:PAYEE-1a 加了 `employee_id` 这一列、也放宽了那条 CHECK,
+但没有同时改 `reverse_expense` 的镜像 INSERT —— 那一刀之前,unpaid 必有供应商,
+镜像照抄 `supplier_id` 就够了。
+
+**为什么不在 EQP-1b-i 里修**:它与预付冲抵没有任何关系,而在一次刚好路过的切次里
+顺手改动【费用单的冲销路径】,正是本仓库反复说的 "while I was in there" ——
+它该有自己的 fixture(冲销一张员工报销、断言镜像单带着同一个人)。
+
+**删除条件**:镜像 INSERT 补上 `employee_id`,并有一条 fixture 钉住
+"冲销一张欠员工的费用单"这条路。修好那天删掉本节。
+
+## 机器没到货、定金要核销 —— 今天没有这条路(2026-08-21 记录,EQP-1b-i 明确不做)
+
+**是什么**:付了定金,供应商没交机器,那笔躺在 1300 里的钱要变成一笔坏掉的
+【对供应商的应收】。今天系统里没有任何一条路能这么做 ——
+`close_purchase_order` 允许带着未冲抵的预付关单,但要求写一句说明,
+所以它不会无声搁浅,只是也没有被核销掉。
+
+**为什么现在不建**:它是一笔【供应商欠款变坏】,很少见,而且它的会计判断
+(转应收?计提?什么时候确认损失?)没有人问过 Tim。
+现在替它设计,就是对着一个想象出来的案例建模 —— 而这个仓库已经因为
+"两个实现迟早各说各话"付过学费。
+
+**删除条件**:真的发生一次,或者 Tim 给出这笔钱该落到哪个科目的判断。
+
 ## `purchase_order_status.ordered_qty` 是一个【不看单位】的合计(2026-08-21 记录,自 EQP-1a 勘察搬入)
 
 **现象**:`db/views/purchase_order_status.sql` 里那一支是

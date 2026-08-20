@@ -109,10 +109,10 @@ CREATE VIEW public.ap_open_items WITH (security_invoker = off) AS
             sup.legal_name AS supplier_name,
             e.expense_date AS doc_date,
             e.amount_base AS doc_value_base,
-            round(COALESCE(s.settled, 0::numeric) * e.fx_rate, 2) AS settled_base,
-            round((e.amount_ccy - COALESCE(s.settled, 0::numeric)) * e.fx_rate, 2) AS open_base,
+            round((COALESCE(s.settled, 0::numeric) + COALESCE(pp.applied, 0::numeric)) * e.fx_rate, 2) AS settled_base,
+            round((e.amount_ccy - COALESCE(s.settled, 0::numeric) - COALESCE(pp.applied, 0::numeric)) * e.fx_rate, 2) AS open_base,
             e.currency,
-            round(e.amount_ccy - COALESCE(s.settled, 0::numeric), 2) AS open_ccy,
+            round(e.amount_ccy - COALESCE(s.settled, 0::numeric) - COALESCE(pp.applied, 0::numeric), 2) AS open_ccy,
                 CASE
                     WHEN e.employee_id IS NOT NULL THEN 'employee'::text
                     ELSE 'supplier'::text
@@ -126,6 +126,9 @@ CREATE VIEW public.ap_open_items WITH (security_invoker = off) AS
                    FROM payment_allocations pa
                      JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'::text
                   WHERE pa.expense_id = e.id) s ON true
+             LEFT JOIN LATERAL ( SELECT sum(ppa.amount_ccy) AS applied
+                   FROM prepayment_applications_masked ppa
+                  WHERE ppa.expense_id = e.id) pp ON true
           WHERE e.payment_status = 'unpaid'::text AND e.status = 'posted'::text AND NOT (EXISTS ( SELECT 1
                    FROM expenses o
                   WHERE o.reversed_by_expense = e.id))
@@ -152,4 +155,4 @@ CREATE VIEW public.ap_open_items WITH (security_invoker = off) AS
                      JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'::text
                   WHERE pa.freight_document_id = fd.id) s ON true
           WHERE fd.payment_status = 'unpaid'::text AND fd.status = 'posted'::text AND fd.deleted_at IS NULL) d
-  WHERE open_ccy > 0::numeric AND has_permission('module.finance.view'::text);;
+  WHERE open_ccy > 0::numeric AND has_permission('module.finance.view'::text);

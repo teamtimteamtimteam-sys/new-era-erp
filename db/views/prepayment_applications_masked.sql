@@ -22,6 +22,12 @@ CREATE VIEW public.prepayment_applications_masked WITH (security_invoker = off) 
     notes,
     journal_entry_id,
     created_at,
-    created_by
+    created_by,
+    expense_id,
+    currency,
+        CASE
+            WHEN has_permission('data.view_prices'::text) THEN amount_ccy
+            ELSE NULL::numeric
+        END AS amount_ccy
    FROM prepayment_applications
   WHERE has_permission('module.finance.view'::text);

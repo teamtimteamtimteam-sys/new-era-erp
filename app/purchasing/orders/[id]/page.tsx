@@ -207,6 +207,11 @@ export default async function PurchaseOrderDetailPage({
         : { data: [] as { inbound_batch_id: string; amount_base: number }[] }
     const appliedByBatch = new Map<string, number>()
     for (const r of maskedRows<Tables<'prepayment_applications'>, 'amount_base'>(appliedRows)) {
+        // EQP-1b-i:inbound_batch_id 可空了 —— 冲抵的第二个目的地是费用单。
+        // 那种行【不属于】这张按批次归集的表(它们没有批次),所以跳过而不是
+        // 塞进一个空键里。查询本身已经 .in(batchIds) 过滤掉了它们,这一句是
+        // 让类型与那个事实对齐,不是一层新的过滤。
+        if (r.inbound_batch_id === null) continue
         appliedByBatch.set(r.inbound_batch_id, round2((appliedByBatch.get(r.inbound_batch_id) ?? 0) + Number(r.amount_base)))
     }
 
