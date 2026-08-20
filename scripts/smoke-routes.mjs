@@ -93,6 +93,13 @@ const ID_SOURCES = {
         '/tasks': 'tasks',
         '/settings/permissions/roles': 'roles', '/stocktakes': 'stocktakes',
         '/suppliers': 'suppliers',
+        // FRT-FIX(2026-08-20):这两条【自建成起就没登记过】,于是 preflightIdSources
+        // 每一次都在 3 毫秒内中止整轮冒烟 —— 也就是说 LOG-1b / LOG-2b 之后,
+        // 这套路由检查【一次都没跑起来过】。那是这次回归能悄悄上线的一半原因。
+        '/logistics/containers': 'containers',
+        // 货代详情对【非货代】是 notFound(契约),所以取 id 时必须挑一个货代 ——
+        // 见下面 ID_FILTERS 的按路由键。
+        '/logistics/forwarders': 'suppliers',
     },
     '[assayId]': { '': 'assay_results' },
     '[batchId]': { '': 'inbound_batches' },
@@ -103,6 +110,24 @@ const ID_SOURCES = {
 // /welcome 与 /set-password 曾在这里挂 [200,307]:两页对持会话的请求都是确定的
 // 200(/welcome 根本没有重定向;/set-password 只在无会话时回 /login),宽松项
 // 只会挡住"页面开始乱重定向"这个信号,所以删掉,让 2xx 兜底去断言。
+// ── 内容断言:状态码看不见的那一类失败 ──────────────────────────────────────
+// FRT-FIX(2026-08-20):/finance/freight/new 的货代下拉【自建成起就是空的】
+// (一句遗留的 .eq('status','active') 撞上 suppliers.status 默认 'draft'),
+// 而那一页始终 HTTP 200 —— 它渲染的是"还没有货代"那句空状态,一句【假话】。
+// 冒烟只断言状态码,所以它一路绿着;LOG-1b 也从未往本文件加过任何断言
+// (它那一刀 27 个文件,一个都不是这里)。
+//
+// 【判据要挑那个"空与非空长得不一样"的东西】这里是 name="supplier_id":
+// 下拉只在 suppliers.length > 0 时渲染,为空时渲染的是那段琥珀色文字。
+// 所以这个字符串在不在,恰好就是"选得到人"与"选不到人"的分界 ——
+// 而它与语言无关(断言文案会被下一次改文案弄红,那是喊狼来了)。
+const MUST_CONTAIN = {
+    '/finance/freight/new': [
+        { needle: 'name="supplier_id"',
+          why: '货代下拉是空的 —— 页面会显示"还没有货代",而线上有货代(FRT-FIX 的回归)' },
+    ],
+}
+
 const EXPECTED = {
     '/logout': [307, 303],          // 登出即重定向
     '/my-reviews/[id]': [404],      // admin 不是评估人 —— notFound 是契约;评估人视角在主循环后精确单测
@@ -135,9 +160,11 @@ const SPECIAL_ID_ROUTES = new Set([
 const EXPECTED_SKIPS = new Set([
     '/hr/claims/[id]',    // medical_claims 空 —— 正常运营会产生;有数据那天此断言逼人收编
     '/hr/leave/[id]',     // leave_requests 空
-    // FRT-1:freight_documents 空 —— 线上还没录过运费单。录第一张的那天,
-    // 这条断言会逼人把它从这里删掉(与上面两条同一个用意:跳过是记录,不是默许)。
-    '/finance/freight/[id]',
+    // 【FRT-1 的那条跳过已经删掉了 —— 它自己逼出来的(FRT-FIX,2026-08-20)】
+    // 原文写着"录第一张的那天,这条断言会逼人把它从这里删掉"。LOG-4b 的端到端
+    // 验证在线上留下了三张(已冲销的)运费单,于是那一天到了:这一跑报的是
+    // 「预期会 SKIP 的路由跑起来了 —— 数据到位了」,而那正是这条断言存在的理由。
+    // 跳过是记录,不是默许。
     // PROC-1b:线上还没有一份产出化验(机制与屏幕先于第一张真单据落地)。
     // 录第一张的那天,这条断言会逼人把它从这里删掉。
     '/output/[id]/assays/[assayId]',
@@ -211,7 +238,7 @@ async function rest(path, opts = {}) {
 // 有软删列的表跳过已删行 —— 详情页对已删行 404 是契约,不是坏。
 // 【只列真有 deleted_at 列的表】expenses/invoices/sales_records 没有这列,曾被错列进来:
 // 过滤报错被读成"没数据",四条路由悄悄失去覆盖(下面 restRows 就是那次的教训)。
-const SOFT_DELETED = new Set(['customers','suppliers','materials','bank_statements',
+const SOFT_DELETED = new Set(['containers','customers','suppliers','materials','bank_statements',
     'inbound_batches','leave_requests','medical_claims','metal_prices','output_batches',
     'payroll_periods','payment_term_templates','pricing_formulas','processing_runs','purchase_orders',
     'review_cycles','stocktakes','training_records','fx_rates','employees','departments'])
@@ -231,12 +258,16 @@ async function restRows(path, ctx) {
 // 并不持有 module.tasks.view_all —— 那一页会【正当地】拒绝。从六行里随机挑,
 // 得到的是一个【时好时坏】的冒烟,而那比一直红更坏:没有人会去查一个偶尔绿的失败。
 // 所以这里按名声明"这条路由要的是哪一种行",而不是让它去赌。
+// 键可以是【表名】,也可以是【整条路由】。后者是 FRT-FIX 加的:suppliers 这张表
+// 同时喂 /suppliers/[id]/edit 与 /logistics/forwarders/[id],而后者对非货代
+// 是 notFound(契约)—— 只按表名过滤没法把两者分开。路由键优先。
 const ID_FILTERS = {
     tasks: '&task_type=eq.team',
+    '/logistics/forwarders/[id]': '&counterparty_type=eq.forwarder',
 }
 async function firstId(table, route) {
     const del = SOFT_DELETED.has(table) ? '&deleted_at=is.null' : ''
-    const filter = ID_FILTERS[table] ?? ''
+    const filter = ID_FILTERS[route] ?? ID_FILTERS[table] ?? ''
     const rows = await restRows(`/rest/v1/${table}?select=id&limit=1${del}${filter}`, `${route} ← ${table}`)
     return rows[0]?.id ?? null
 }
@@ -653,7 +684,21 @@ async function main() {
             const allow = EXPECTED[route] ?? []
             const pass = exact ? exact.includes(res.status)
                 : (res.status >= 200 && res.status < 300) || allow.includes(res.status)
-            if (pass) { ok++; PROGRESS.ok.push(route) }
+            // 【内容断言在状态码之后跑】只有 2xx 的页面才谈得上"内容对不对";
+            // 一个 500 已经失败了,再报一次内容缺失只是噪音。
+            let contentMiss = null
+            if (pass && MUST_CONTAIN[route]) {
+                const html = await res.text()
+                const missing = MUST_CONTAIN[route].filter((a) => !html.includes(a.needle))
+                if (missing.length) contentMiss = missing.map((m) => `${m.needle} —— ${m.why}`).join(' | ')
+            }
+            if (pass && !contentMiss) { ok++; PROGRESS.ok.push(route) }
+            else if (contentMiss) {
+                PROGRESS.failed.push(`${route} → 200 但内容缺失:${contentMiss}`)
+                failures.push({ route, url, status: res.status, expected: exact?.[0],
+                    stack: `内容断言未通过:${contentMiss}` })
+                console.log(`  FAIL ${route} → 200 但内容缺失:${contentMiss}`)
+            }
             else {
                 PROGRESS.failed.push(`${route} → ${res.status}${exact ? ` (expected ${exact[0]})` : ''}`)
                 failures.push({ route, url, status: res.status,

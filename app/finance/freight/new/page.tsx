@@ -20,8 +20,18 @@ export default async function NewFreightPage() {
     const suppliers = mustRows(
         // LOG-1b:【反向过滤】运费的收款方只能是货代。这一处与其它十一处方向相反,
         // 所以它单独写在这里,而不是复用那条排除条件。
+        //
+        // ── FRT-FIX(2026-08-20):这里【曾经还有一句 .eq('status','active')】────
+        // 它来自 FRT-1,那时这个下拉列的是【全部供应商】,滤掉未启用的是合理的。
+        // LOG-1b 把它收窄成"只列货代"之后,那一句就成了遗留物 —— 而它是致命的:
+        //   * suppliers.status 的默认值就是 'draft'(db/tables/suppliers.sql:38),
+        //     走完 draft → pending_review → approved → active 要四步;
+        //   * 线上唯一一家真货代 BDP 建于 2026-08-19 22:29,至今是 draft;
+        //   * 于是这个下拉【自建成起就没有真的列出过任何人】,而页面还说"还没有货代"。
+        // 全仓十一个读 suppliers 的下拉,【没有第二个】过滤 status —— 只有这里。
+        // 所以删掉它是回到房里的写法,不是放宽一条规则。
         await supabase.from('suppliers').select('id, code, legal_name')
-            .is('deleted_at', null).eq('status', 'active')
+            .is('deleted_at', null)
             .eq('counterparty_type', 'forwarder').order('legal_name'),
         'suppliers'
     ) as { id: string; code: string; legal_name: string }[]
