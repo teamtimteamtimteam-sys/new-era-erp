@@ -197,6 +197,14 @@ function tsRegex(file, pattern) {
     const src = readFileSync(join(ROOT, file), 'utf8')
     return [...new Set([...src.matchAll(pattern)].flatMap((m) => m.slice(1).filter(Boolean)))]
 }
+// 表镜像里 CHECK (col IN ('a','b',...)) 推导出来的枚举列。
+// 【找不到就抛,不返回空集】—— 与 sqlCaseAs 同一条:一个 0 必须是一次测量,不是一次缺席。
+function sqlCheckIn(file, column) {
+    const src = readFileSync(join(ROOT, file), 'utf8')
+    const m = src.match(new RegExp(String.raw`CHECK \(${column} IN\s*\(([\s\S]*?)\)\)`))
+    if (!m) throw new Error(`${file} 里找不到 CHECK (${column} IN (...))`)
+    return [...m[1].matchAll(/'(\w+)'/g)].map((x) => x[1])
+}
 const union = (...fns) => () => [...new Set(fns.flatMap((f) => f()))]
 // 视图里 CASE ... END AS 别名 推导出来的枚举列:收该块里 THEN/ELSE 的字面量
 function sqlCaseAs(file, alias) {
@@ -263,6 +271,10 @@ const MANIFEST = {
     'tasks.opErrors.':      { kind: 'enum', values: () => tsSet('app/tasks/taskErrorCodes.ts', 'TASK_ERROR_CODES') },
     // LOG-1c:物流的具名拒绝。真源是那个 Set —— 与 tasks.opErrors 同一种接法。
     'logistics.opErrors.': { kind: 'enum', values: () => tsSet('app/logistics/logisticsErrorCodes.ts', 'LOGISTICS_ERROR_CODES') },
+    // LOG-2b:集装箱里程碑。**真源是表上那条 CHECK**(db/tables/container_milestones.sql)——
+    // 往库里加一个里程碑,这道检查立刻要求两个语言都补上标签,于是页面那份清单
+    // 也不会被悄悄落下。写死一份清单只会烂在这里。
+    'logistics.milestoneLabel.': { kind: 'enum', values: () => sqlCheckIn('db/tables/container_milestones.sql', 'milestone') },
     // LME-1b:行情出处。真源是 metal_prices 那条 CHECK —— 加一种出处要改 CHECK
     // (一支迁移),这个检查因此自动跟上。**四个值都要有文案,包括 unknown**:
     // 它不在录入下拉里,但十条老行情在列表上就读它。

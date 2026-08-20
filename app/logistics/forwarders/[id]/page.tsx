@@ -154,7 +154,13 @@ export default async function ForwarderDetailPage({ params }: { params: Promise<
                             <tbody>
                                 {freight.map((f) => (
                                     <tr key={f.id as string}>
-                                        <td className="border border-gray-300 px-3 py-1 font-mono text-xs">{f.code}</td>
+                                        {/* LOG-2b:运费凭证【有自己的页面】(app/finance/freight/[id]),
+                                            所以这里从只读文本变成链接。 */}
+                                        <td className="border border-gray-300 px-3 py-1 font-mono text-xs">
+                                            <Link href={`/finance/freight/${f.id}`} className="text-blue-700 hover:underline">
+                                                {f.code as string}
+                                            </Link>
+                                        </td>
                                         <td className="border border-gray-300 px-3 py-1">{f.doc_date}</td>
                                         <td className="border border-gray-300 px-3 py-1 text-right">
                                             {formatAmount(Number(f.amount_ccy), f.currency as string)}

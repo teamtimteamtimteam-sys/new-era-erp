@@ -9,6 +9,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import LogisticsSubnav from '../Subnav'
 import LanesPanel from './LanesPanel'
 
 export default async function LanesPage() {
@@ -42,6 +43,7 @@ export default async function LanesPage() {
     return (
         <div className="p-8">
             <h1 className="text-2xl font-bold mb-4">{t('logistics.lanesTitle')}</h1>
+            <LogisticsSubnav />
             <LanesPanel
                 ports={ports.map((p) => ({ id: p.id as string, label: `${p.code} ${p.name}` }))}
                 lanes={lanes.map((l) => ({

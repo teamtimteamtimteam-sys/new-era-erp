@@ -1,0 +1,247 @@
+'use client'
+
+import { useState, useTransition } from 'react'
+import Link from 'next/link'
+import {
+    saveContainerHead, attachShipment, detachShipment,
+    addMilestone, instantiateDocuments, setDocumentStatus, addDocument,
+} from './actions'
+
+type Ship = { id: string; code: string; ship_date: string; order_code: string; customer: string }
+type Ms = { id: string; milestone: string; event_date: string; note: string | null; label: string }
+type Doc = { id: string; document_type: string; regime: string | null; status: string; na_reason: string | null; from_lane: boolean }
+
+export default function ContainerPanels({
+    containerId, head, hasLane, laneChecklistState, attached, attachable,
+    milestones, documents, milestoneTypes, labels,
+}: {
+    containerId: string
+    head: { container_number: string | null; vessel: string | null; voyage: string | null; bl_number: string | null; notes: string | null }
+    hasLane: boolean
+    laneChecklistState: string
+    attached: Ship[]; attachable: Ship[]
+    milestones: Ms[]; documents: Doc[]
+    milestoneTypes: { value: string; label: string }[]
+    labels: Record<string, string>
+}) {
+    const [error, setError] = useState<string | null>(null)
+    const [pending, start] = useTransition()
+    const [detaching, setDetaching] = useState<string | null>(null)
+    const field = 'rounded border border-gray-300 px-2 py-1 text-sm'
+    const run = (fn: () => Promise<unknown>, after?: () => void) =>
+        start(async () => {
+            const res = await fn()
+            if (res && typeof res === 'object' && 'error' in res) setError((res as { error: string }).error)
+            else { setError(null); after?.() }
+        })
+
+    return (
+        <>
+            {error && <div className="mb-4 rounded border border-red-400 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>}
+
+            {/* ── 头 ── */}
+            <section className="border-t pt-6">
+                <h2 className="mb-3 text-xl font-bold">{labels.headHeading}</h2>
+                <form
+                    className="flex max-w-4xl flex-wrap items-end gap-3"
+                    onSubmit={(e) => { e.preventDefault(); const d = new FormData(e.currentTarget)
+                        run(() => saveContainerHead(containerId, {
+                            container_number: (d.get('container_number') as string)?.trim() || null,
+                            vessel: (d.get('vessel') as string)?.trim() || null,
+                            voyage: (d.get('voyage') as string)?.trim() || null,
+                            bl_number: (d.get('bl_number') as string)?.trim() || null,
+                            notes: (d.get('notes') as string)?.trim() || null,
+                        })) }}
+                >
+                    <div><label className="block text-xs font-medium mb-1">{labels.containerNumber}</label>
+                        <input name="container_number" defaultValue={head.container_number ?? ''} className={field} /></div>
+                    <div><label className="block text-xs font-medium mb-1">{labels.vessel}</label>
+                        <input name="vessel" defaultValue={head.vessel ?? ''} className={field} /></div>
+                    <div><label className="block text-xs font-medium mb-1">{labels.voyage}</label>
+                        <input name="voyage" defaultValue={head.voyage ?? ''} className={`${field} w-24`} /></div>
+                    <div><label className="block text-xs font-medium mb-1">{labels.bl}</label>
+                        <input name="bl_number" defaultValue={head.bl_number ?? ''} className={field} /></div>
+                    <div className="min-w-[16rem] flex-1"><label className="block text-xs font-medium mb-1">{labels.notes}</label>
+                        <input name="notes" defaultValue={head.notes ?? ''} className={`${field} w-full`} /></div>
+                    <button disabled={pending} className="rounded bg-blue-600 px-3 py-1 text-sm text-white disabled:opacity-50">{labels.save}</button>
+                </form>
+                {/* 【开航日不在这里改】—— 它在 DB 上没有开口子给按列放行,改它要另一条路 */}
+                <p className="mt-2 text-xs text-gray-500">{labels.blHint}</p>
+            </section>
+
+            {/* ── 装着的发货单 ── */}
+            <section className="mt-8 border-t pt-6">
+                <h2 className="mb-3 text-xl font-bold">{labels.shipmentsHeading}</h2>
+                {attached.length === 0 ? (
+                    <p className="text-sm text-gray-500">{labels.shipmentsEmpty}</p>
+                ) : (
+                    <table className="mb-4 w-full border-collapse border border-gray-300 text-sm">
+                        <tbody>
+                            {attached.map((s) => (
+                                <tr key={s.id}>
+                                    <td className="border border-gray-300 px-3 py-1">
+                                        <Link href={`/sales/shipments/${s.id}`} className="font-mono text-xs text-blue-700 hover:underline">{s.code}</Link>
+                                    </td>
+                                    <td className="border border-gray-300 px-3 py-1 font-mono text-xs">{s.order_code}</td>
+                                    <td className="border border-gray-300 px-3 py-1">{s.customer}</td>
+                                    <td className="border border-gray-300 px-3 py-1">{s.ship_date}</td>
+                                    <td className="border border-gray-300 px-3 py-1">
+                                        {detaching === s.id ? (
+                                            <form
+                                                className="flex items-center gap-2"
+                                                onSubmit={(e) => { e.preventDefault(); const d = new FormData(e.currentTarget)
+                                                    run(() => detachShipment(containerId, s.id, (d.get('reason') as string) ?? ''),
+                                                        () => setDetaching(null)) }}
+                                            >
+                                                {/* 【理由由服务端说了算】:这里【不加 required】,空白判定与库里的 btrim 一致 ——
+                                                    两处各判一次,迟早给出两个答案。 */}
+                                                <input name="reason" placeholder={labels.detachReason} className={`${field} w-64`} />
+                                                <button disabled={pending} className="text-xs text-red-700 hover:underline">{labels.detach}</button>
+                                            </form>
+                                        ) : (
+                                            <button type="button" disabled={pending} onClick={() => setDetaching(s.id)}
+                                                className="text-xs text-red-700 hover:underline">{labels.detach}</button>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+
+                {attachable.length === 0 ? (
+                    <p className="text-sm text-gray-600">{labels.attachEmpty}</p>
+                ) : (
+                    <form
+                        className="flex items-end gap-2"
+                        onSubmit={(e) => { e.preventDefault(); const d = new FormData(e.currentTarget)
+                            run(() => attachShipment(containerId, d.get('shipment_id') as string)) }}
+                    >
+                        <select name="shipment_id" required className={field}>
+                            {attachable.map((s) => (
+                                <option key={s.id} value={s.id}>{s.code} · {s.order_code} · {s.customer}</option>
+                            ))}
+                        </select>
+                        <button disabled={pending} className="rounded bg-blue-600 px-3 py-1 text-sm text-white disabled:opacity-50">{labels.attach}</button>
+                    </form>
+                )}
+            </section>
+
+            {/* ── 里程碑 ── */}
+            <section className="mt-8 border-t pt-6">
+                <h2 className="mb-2 text-xl font-bold">{labels.milestonesHeading}</h2>
+                <p className="mb-3 max-w-3xl text-sm text-gray-600">{labels.correctionNote}</p>
+                <form
+                    className="mb-4 flex flex-wrap items-end gap-2"
+                    onSubmit={(e) => { e.preventDefault(); const f = e.currentTarget; const d = new FormData(f)
+                        run(() => addMilestone(containerId, {
+                            milestone: d.get('milestone') as string,
+                            event_date: d.get('event_date') as string,
+                            note: (d.get('note') as string)?.trim() || null,
+                        }), () => f.reset()) }}
+                >
+                    <div><label className="block text-xs font-medium mb-1">{labels.milestone}</label>
+                        <select name="milestone" required className={field}>
+                            {milestoneTypes.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                        </select></div>
+                    <div><label className="block text-xs font-medium mb-1">{labels.eventDate} <span className="text-red-600">*</span></label>
+                        {/* 【没有 defaultValue】—— 世界那一侧的日期,系统不代填 */}
+                        <input type="date" name="event_date" required className={field} /></div>
+                    <div className="min-w-[16rem] flex-1"><label className="block text-xs font-medium mb-1">{labels.milestoneNote}</label>
+                        <input name="note" className={`${field} w-full`} /></div>
+                    <button disabled={pending} className="rounded bg-blue-600 px-3 py-1 text-sm text-white disabled:opacity-50">{labels.addMilestone}</button>
+                </form>
+                <p className="mb-3 text-xs text-gray-500">{labels.eventDateHint}</p>
+
+                {milestones.length === 0 ? (
+                    <p className="text-sm text-gray-500">{labels.milestonesEmpty}</p>
+                ) : (
+                    <ol className="space-y-1 text-sm">
+                        {milestones.map((m, i) => {
+                            // 【更正读起来要像更正】:同一个里程碑出现第二次时,
+                            // 后记的那一条是更正 —— 列表按日期倒序,所以先出现的是最新的一条。
+                            const isCorrection = milestones.findIndex((x) => x.milestone === m.milestone) !== i
+                            return (
+                                <li key={m.id} className="flex gap-3 border-l-2 border-gray-200 pl-3">
+                                    <span className="font-mono text-xs text-gray-500 w-24">{m.event_date}</span>
+                                    <span className="font-medium">{m.label}</span>
+                                    {isCorrection && <span className="rounded bg-amber-100 px-1.5 text-xs text-amber-900">↺</span>}
+                                    {m.note && <span className="text-gray-600">{m.note}</span>}
+                                </li>
+                            )
+                        })}
+                    </ol>
+                )}
+            </section>
+
+            {/* ── 单据 ── */}
+            <section className="mt-8 border-t pt-6">
+                <h2 className="mb-2 text-xl font-bold">{labels.documentsHeading}</h2>
+
+                {/* 【航段清单的三种状态,三句不同的话】 */}
+                {!hasLane && <p className="mb-3 text-sm text-gray-500">{labels.noLane}</p>}
+                {hasLane && laneChecklistState === 'not_defined' && (
+                    <p className="mb-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">{labels.notDefined}</p>
+                )}
+                {hasLane && laneChecklistState === 'defined_empty' && (
+                    <p className="mb-3 rounded border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700">{labels.definedEmpty}</p>
+                )}
+                {hasLane && (
+                    <button type="button" disabled={pending} onClick={() => run(() => instantiateDocuments(containerId))}
+                        className="mb-4 rounded border px-3 py-1 text-sm">{labels.instantiate}</button>
+                )}
+
+                {documents.length > 0 && (
+                    <table className="mb-4 w-full border-collapse border border-gray-300 text-sm">
+                        <tbody>
+                            {documents.map((d) => (
+                                <tr key={d.id} className={d.from_lane ? '' : 'bg-gray-50'}>
+                                    <td className="border border-gray-300 px-3 py-1">
+                                        {d.document_type}
+                                        {d.regime && <span className="ml-2 text-xs text-gray-500">({d.regime})</span>}
+                                        {/* 清单来的 vs 人后加的,看得出来 */}
+                                        <span className="ml-2 text-xs text-gray-400">
+                                            {d.from_lane ? labels.fromLane : labels.handAdded}
+                                        </span>
+                                    </td>
+                                    <td className="border border-gray-300 px-3 py-1">
+                                        <form
+                                            className="flex items-center gap-2"
+                                            onSubmit={(e) => { e.preventDefault(); const dd = new FormData(e.currentTarget)
+                                                run(() => setDocumentStatus(containerId, d.id,
+                                                    dd.get('status') as string,
+                                                    ((dd.get('na_reason') as string) ?? '') || null)) }}
+                                        >
+                                            <select name="status" defaultValue={d.status} className={field}>
+                                                <option value="pending">{labels.statusPending}</option>
+                                                <option value="received">{labels.statusReceived}</option>
+                                                <option value="not_applicable">{labels.statusNa}</option>
+                                            </select>
+                                            {/* 理由框一直在:n/a 要不要理由由服务端判,与库里那条守卫同一个答案 */}
+                                            <input name="na_reason" defaultValue={d.na_reason ?? ''}
+                                                placeholder={labels.naReason} className={`${field} w-56`} />
+                                            <button disabled={pending} className="text-xs text-blue-700 hover:underline">{labels.save}</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+
+                <form
+                    className="flex flex-wrap items-end gap-2"
+                    onSubmit={(e) => { e.preventDefault(); const f = e.currentTarget; const d = new FormData(f)
+                        run(() => addDocument(containerId, d.get('document_type') as string,
+                            (d.get('regime') as string)?.trim() || null), () => f.reset()) }}
+                >
+                    <div><label className="block text-xs font-medium mb-1">{labels.documentType}</label>
+                        <input name="document_type" required className={field} /></div>
+                    <div><label className="block text-xs font-medium mb-1">{labels.regime}</label>
+                        <input name="regime" className={field} /></div>
+                    <button disabled={pending} className="rounded bg-blue-600 px-3 py-1 text-sm text-white disabled:opacity-50">{labels.addDocument}</button>
+                </form>
+            </section>
+        </>
+    )
+}

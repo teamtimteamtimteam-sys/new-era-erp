@@ -42,7 +42,8 @@ export default async function ShipmentDetailPage({
         await supabase
             .from('shipments')
             .select(
-                'id, code, ship_date, notes, created_at, ' +
+                'id, code, ship_date, notes, created_at, container_id, ' +
+                'containers ( id, code ), ' +
                 'sales_orders ( id, code, customers ( code, legal_name ) )'
             )
             .eq('id', id)
@@ -54,6 +55,8 @@ export default async function ShipmentDetailPage({
         ship_date: string
         notes: string | null
         created_at: string
+        container_id: string | null
+        containers: { id: string; code: string } | null
         sales_orders: {
             id: string
             code: string
@@ -132,6 +135,19 @@ export default async function ShipmentDetailPage({
                 <dt className="text-gray-500">{t('sales.shipDetail.colShipDate')}</dt>
                 {/* 物理事件日 —— 货是哪天离开仓库的,同时决定收入落进哪个期间 */}
                 <dd className="font-mono">{head.ship_date}</dd>
+                {/* LOG-2b:【装箱了才出现】。没装箱时这里【什么都不画】——
+                    一个空的"集装箱:—"会让人以为漏填了,而真相是这张单还没装箱。 */}
+                {head.containers && (
+                    <>
+                        <dt className="text-gray-500">{t('logistics.containerOf')}</dt>
+                        <dd>
+                            <Link href={`/logistics/containers/${head.containers.id}`}
+                                className="font-mono text-blue-700 hover:underline">
+                                {head.containers.code}
+                            </Link>
+                        </dd>
+                    </>
+                )}
                 <dt className="text-gray-500">{t('sales.shipDetail.colCreatedAt')}</dt>
                 <dd>{new Date(head.created_at).toLocaleString(dl)}</dd>
                 {head.notes && (
