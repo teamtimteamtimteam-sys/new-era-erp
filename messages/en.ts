@@ -14,7 +14,7 @@ const en = {
         newContainer: 'New container',
         emptyContainers: 'No containers yet.',
         colContainerCode: 'Container',
-        colContainerNumber: 'Box number',
+        colContainerNumber: 'Container number',
         colLane: 'Lane',
         colVessel: 'Vessel',
         colVoyage: 'Voyage',
