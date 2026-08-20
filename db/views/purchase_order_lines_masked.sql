@@ -12,6 +12,7 @@
 -- NOTE: introduced by db/migrations/2026-08-01-perm2b-field-masking.sql.
 -- FIN-26:price_source 透出(不敏感);price_provenance 含逐金属价格 → 随 data.view_prices。
 
+-- EQP-1a(2026-08-20):追加 asset_id(在末尾)—— 与加列、加列清单授权同一支迁移。
 CREATE VIEW public.purchase_order_lines_masked WITH (security_invoker = off) AS
  SELECT id,
     purchase_order_id,
@@ -36,6 +37,8 @@ CREATE VIEW public.purchase_order_lines_masked WITH (security_invoker = off) AS
         CASE
             WHEN has_permission('data.view_prices'::text) THEN price_provenance
             ELSE NULL::jsonb
-        END AS price_provenance
+        END AS price_provenance,
+    asset_id
    FROM purchase_order_lines
   WHERE has_permission('module.purchasing.view'::text);
+

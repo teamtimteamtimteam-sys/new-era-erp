@@ -21,6 +21,7 @@ DECLARE
     v_prov         jsonb;     -- FIN-26:computed 行的重导出依据
     v_amount     numeric;
     v_material   uuid;
+    v_asset       uuid;
     v_formula    uuid;
     v_f          record;
     v_total      numeric := 0;
@@ -80,14 +81,27 @@ BEGIN
         v_count := v_count + 1;
         v_line_no := COALESCE((v_line->>'line_no')::integer, v_count);
         v_material := (v_line->>'material_id')::uuid;
+        -- EQP-1a:设备行 —— 引用一张【已经存在】的资产卡,行不创建资产
+        v_asset := (v_line->>'asset_id')::uuid;
         v_qty := (v_line->>'quantity')::numeric;
         v_price := (v_line->>'estimated_unit_price')::numeric;
         v_formula := (v_line->>'pricing_formula_id')::uuid;
 
-        IF v_material IS NULL OR NOT EXISTS (
+        -- EQP-1a:恰一非空 —— 与表上那条 CHECK 同一句话,在这里【先】说一遍,
+        -- 好让走门的人拿到一个具名拒绝而不是一条约束原文。
+        IF num_nonnulls(v_material, v_asset) <> 1 THEN
+            RAISE EXCEPTION 'PO_LINE_KIND_INVALID|%', v_line_no
+              USING HINT = '一行要么订材料、要么订一台已建卡的设备,不能都给、也不能都不给';
+        END IF;
+        IF v_material IS NOT NULL AND NOT EXISTS (
             SELECT 1 FROM materials WHERE id = v_material AND deleted_at IS NULL
         ) THEN
             RAISE EXCEPTION 'MATERIAL_NOT_FOUND|%', COALESCE(v_material::text, '?');
+        END IF;
+        IF v_asset IS NOT NULL AND NOT EXISTS (
+            SELECT 1 FROM fixed_assets WHERE id = v_asset
+        ) THEN
+            RAISE EXCEPTION 'ASSET_NOT_FOUND|%', COALESCE(v_asset::text, '?');
         END IF;
         IF v_qty IS NULL OR v_qty <= 0 THEN
             RAISE EXCEPTION 'LINE_QTY_INVALID|%', v_line_no;
@@ -127,11 +141,11 @@ BEGIN
             v_src := NULL; v_prov := NULL;   -- 没有价就没有出处
         END IF;
 
-        INSERT INTO purchase_order_lines (purchase_order_id, line_no, material_id, quantity,
+        INSERT INTO purchase_order_lines (purchase_order_id, line_no, material_id, asset_id, quantity,
                                           unit, pricing_formula_id, estimated_unit_price,
                                           estimated_amount_ccy, expected_assay, notes, created_by,
                                           price_source, price_provenance)
-        VALUES (v_po_id, v_line_no, v_material, v_qty,
+        VALUES (v_po_id, v_line_no, v_material, v_asset, v_qty,
                 COALESCE(v_line->>'unit', 'kg'), v_formula, v_price,
                 v_amount, v_line->'expected_assay', v_line->>'notes', v_user,
                 v_src, v_prov)
@@ -199,4 +213,5 @@ BEGIN
         'term_count', v_term_count
     );
 END;
-$function$;
+$function$
+

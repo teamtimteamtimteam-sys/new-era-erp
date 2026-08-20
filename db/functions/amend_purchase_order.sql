@@ -93,13 +93,24 @@ BEGIN
 
             IF v_line_id IS NULL THEN
                 -- 新增行:与建单同口径(金额 = 数量 × 单价,无价则 0)
-                INSERT INTO purchase_order_lines (purchase_order_id, line_no, material_id,
+                -- EQP-1a:改单也能加设备行 —— 恰一非空,与建单同一句话
+                IF num_nonnulls((v_el->>'material_id')::uuid, (v_el->>'asset_id')::uuid) <> 1 THEN
+                    RAISE EXCEPTION 'PO_LINE_KIND_INVALID|%', COALESCE(v_el->>'line_no', '?')
+                      USING HINT = '一行要么订材料、要么订一台已建卡的设备,不能都给、也不能都不给';
+                END IF;
+                IF (v_el->>'asset_id') IS NOT NULL AND NOT EXISTS (
+                    SELECT 1 FROM fixed_assets WHERE id = (v_el->>'asset_id')::uuid
+                ) THEN
+                    RAISE EXCEPTION 'ASSET_NOT_FOUND|%', v_el->>'asset_id';
+                END IF;
+                INSERT INTO purchase_order_lines (purchase_order_id, line_no, material_id, asset_id,
                     quantity, unit, estimated_unit_price, estimated_amount_ccy, notes, created_by)
                 VALUES (p_purchase_order_id,
                     COALESCE((v_el->>'line_no')::integer,
                         (SELECT COALESCE(MAX(line_no), 0) + 1 FROM purchase_order_lines
                           WHERE purchase_order_id = p_purchase_order_id)),
-                    (v_el->>'material_id')::uuid, v_qty, COALESCE(v_el->>'unit', 'kg'),
+                    (v_el->>'material_id')::uuid, (v_el->>'asset_id')::uuid,
+                    v_qty, COALESCE(v_el->>'unit', 'kg'),
                     v_price, round(v_qty * COALESCE(v_price, 0), 2), v_el->>'notes', v_user);
             ELSE
                 -- 【已收下限由触发器把关】砍到已收之下 → PO_LINE_BELOW_RECEIVED
@@ -167,4 +178,5 @@ BEGIN
         'estimated_total_ccy', v_total,
         'approval_status', (SELECT approval_status FROM purchase_orders WHERE id = p_purchase_order_id));
 END;
-$function$;
+$function$
+

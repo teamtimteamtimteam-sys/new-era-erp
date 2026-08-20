@@ -23,6 +23,9 @@ const PURCHASING_ERROR_CODES = new Set([
     // cut 4c:收货联动与结束/重开
     'PO_NOT_RECEIVABLE', 'PO_ALREADY_CLOSED', 'PO_NOT_CLOSED',
     'CLOSE_NOTES_REQUIRED', 'REASON_REQUIRED',
+    // EQP-1a:采购单装得下一台机器之后,新出现的四条具名拒绝
+    'PO_LINE_KIND_INVALID', 'ASSET_NOT_FOUND',
+    'PO_LINES_MIXED_KINDS', 'PO_LINE_EQUIPMENT_NOT_RECEIVABLE',
     // CMP-2:这两个码一直会从收货触发器抛出,却不在这张表里 —— 打到操作员脸上的
     // 是裸管道串。拒绝要点名(供应商、证书、过期日 / 采购单、审批状态),用人话。
     'SUPPLIER_QUALIFICATION_EXPIRED', 'PO_NOT_APPROVED',

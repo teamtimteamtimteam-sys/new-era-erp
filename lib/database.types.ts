@@ -7468,6 +7468,7 @@ export type Database = {
       }
       purchase_order_lines: {
         Row: {
+          asset_id: string | null
           created_at: string
           created_by: string | null
           estimated_amount_ccy: number
@@ -7475,7 +7476,7 @@ export type Database = {
           expected_assay: Json | null
           id: string
           line_no: number
-          material_id: string
+          material_id: string | null
           notes: string | null
           price_provenance: Json | null
           price_source: string | null
@@ -7485,6 +7486,7 @@ export type Database = {
           unit: string
         }
         Insert: {
+          asset_id?: string | null
           created_at?: string
           created_by?: string | null
           estimated_amount_ccy?: number
@@ -7492,7 +7494,7 @@ export type Database = {
           expected_assay?: Json | null
           id?: string
           line_no: number
-          material_id: string
+          material_id?: string | null
           notes?: string | null
           price_provenance?: Json | null
           price_source?: string | null
@@ -7502,6 +7504,7 @@ export type Database = {
           unit?: string
         }
         Update: {
+          asset_id?: string | null
           created_at?: string
           created_by?: string | null
           estimated_amount_ccy?: number
@@ -7509,7 +7512,7 @@ export type Database = {
           expected_assay?: Json | null
           id?: string
           line_no?: number
-          material_id?: string
+          material_id?: string | null
           notes?: string | null
           price_provenance?: Json | null
           price_source?: string | null
@@ -7519,6 +7522,13 @@ export type Database = {
           unit?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "purchase_order_lines_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "purchase_order_lines_material_id_fkey"
             columns: ["material_id"]
@@ -14434,6 +14444,7 @@ export type Database = {
       }
       purchase_order_lines_masked: {
         Row: {
+          asset_id: string | null
           created_at: string | null
           created_by: string | null
           estimated_amount_ccy: number | null
@@ -14451,6 +14462,7 @@ export type Database = {
           unit: string | null
         }
         Insert: {
+          asset_id?: string | null
           created_at?: string | null
           created_by?: string | null
           estimated_amount_ccy?: never
@@ -14468,6 +14480,7 @@ export type Database = {
           unit?: string | null
         }
         Update: {
+          asset_id?: string | null
           created_at?: string | null
           created_by?: string | null
           estimated_amount_ccy?: never
@@ -14485,6 +14498,13 @@ export type Database = {
           unit?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "purchase_order_lines_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "purchase_order_lines_material_id_fkey"
             columns: ["material_id"]

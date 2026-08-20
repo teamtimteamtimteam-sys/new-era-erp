@@ -16,7 +16,8 @@ CREATE TABLE public.purchase_order_lines (
     id                   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     purchase_order_id    uuid NOT NULL REFERENCES public.purchase_orders (id) ON DELETE CASCADE,
     line_no              integer NOT NULL,
-    material_id          uuid NOT NULL REFERENCES public.materials (id),
+    -- EQP-1a:可空 —— 设备行不订物料。与 asset_id 恰一非空(见末尾那条 CHECK)。
+    material_id          uuid REFERENCES public.materials (id),
     quantity             numeric NOT NULL CHECK (quantity > 0),
     unit                 text NOT NULL DEFAULT 'kg',
     pricing_formula_id   uuid REFERENCES public.pricing_formulas (id),
@@ -32,7 +33,11 @@ CREATE TABLE public.purchase_order_lines (
     price_source         text CHECK (price_source IN ('computed', 'manual')),
     price_provenance     jsonb,
     CONSTRAINT po_lines_provenance_pairing
-        CHECK ((price_source = 'computed') = (price_provenance IS NOT NULL))
+        CHECK ((price_source = 'computed') = (price_provenance IS NOT NULL)),
+    -- ── EQP-1a 追加(ALTER 加的列排在末尾)──────────────────────────────────
+    asset_id             uuid REFERENCES public.fixed_assets (id),
+    CONSTRAINT purchase_order_lines_material_xor_asset
+        CHECK (num_nonnulls(material_id, asset_id) = 1)
 );
 
 COMMENT ON COLUMN public.purchase_order_lines.price_source IS
@@ -70,7 +75,7 @@ CREATE POLICY "purchase_order_lines delete by permission"
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 purchase_order_lines_masked 读取。
 -- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
 REVOKE SELECT ON public.purchase_order_lines FROM authenticated, anon;
-GRANT SELECT (id, purchase_order_id, line_no, material_id, quantity, unit, pricing_formula_id, expected_assay, notes, created_at, created_by, price_source)
+GRANT SELECT (id, purchase_order_id, line_no, material_id, quantity, unit, pricing_formula_id, expected_assay, notes, created_at, created_by, price_source, asset_id)
     ON public.purchase_order_lines TO authenticated;
 
 -- ── PUR-2:已收下限与留痕 ────────────────────────────────────────────────────
@@ -84,3 +89,20 @@ CREATE TRIGGER guard_po_lines_received_floor
 CREATE TRIGGER trg_purchase_order_lines_history
     AFTER INSERT OR UPDATE OR DELETE ON public.purchase_order_lines
     FOR EACH ROW EXECUTE FUNCTION public.trg_po_history_line();
+
+COMMENT ON COLUMN public.purchase_order_lines.asset_id IS
+    'EQP-1a:这一行订的是【一台已经建了卡的固定资产】。
+【行不创建资产】—— 资产卡先建、成本后挂,与 record_expense(p_asset := …) 同一条顺序。
+与 material_id 恰一非空(purchase_order_lines_material_xor_asset);
+两者都空或都有,直插也会被拒。设备行【不可收货】:机器到货不是一次入库
+(不产生批次、没有化验、不进库位),由 guard_inbound_po_line_match 按名拒。';
+
+-- EQP-1a · N1:一张采购单不许混装材料行与设备行。
+-- 【延迟的约束触发器,不是 CHECK、也不是普通行触发器】—— CHECK 看不见别的行;
+-- 而 amend_purchase_order 在一个循环里【按载荷顺序】逐元素增删改,普通行触发器
+-- 会因为"载荷把新增排在删除之前"误伤一次正当的改单。延迟到提交时判【最终状态】,
+-- 判的才是规则本身。同形先例:journal_lines 的借贷平衡、inbound_batches 的数量恒等式。
+CREATE CONSTRAINT TRIGGER trg_po_lines_single_kind
+    AFTER INSERT OR UPDATE ON public.purchase_order_lines
+    DEFERRABLE INITIALLY DEFERRED
+    FOR EACH ROW EXECUTE FUNCTION guard_po_lines_single_kind();

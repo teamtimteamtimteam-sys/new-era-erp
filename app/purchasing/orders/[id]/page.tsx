@@ -162,7 +162,11 @@ export default async function PurchaseOrderDetailPage({
     const receipts = maskedRows<Tables<'inbound_batches'>, 'unit_price'>(mustRows(receiptsRes))
 
     // 物料/公式名 + 收货批次的未结应付(结清的批次不在 ap_open_items → 敞口 0)
-    const materialIds = Array.from(new Set(lines.map((l) => l.material_id)))
+    // EQP-1a:material_id 现在可空(设备行不订物料)。这里【滤掉 null】——
+    // 只是不去查一个不存在的物料,不是把设备行藏起来:行本身照旧在 lines 里。
+    // TypeScript 抓到的正是这一处:(string | null)[] 喂不进 .in('id', …)。
+    const materialIds = Array.from(new Set(
+        lines.map((l) => l.material_id).filter((id): id is string => id !== null)))
     const formulaIds = Array.from(new Set(lines.map((l) => l.pricing_formula_id).filter(Boolean))) as string[]
     const batchIds = receipts.map((r) => r.id)
     const [materialsRes, formulasRes, apRes] = await Promise.all([
@@ -496,7 +500,9 @@ export default async function PurchaseOrderDetailPage({
                         <tr key={l.id}>
                             <td className="border border-gray-300 px-3 py-2 text-sm text-gray-500">{l.line_no}</td>
                             <td className="border border-gray-300 px-3 py-2 text-sm">
-                                {materialById.get(l.material_id) ?? '—'}
+                                {/* EQP-1a:material_id 可空了。材料行逐字节照旧;设备行落到
+                                    既有的兜底 —— 把机器名字显示出来是【表单那一刀】的事。 */}
+                                {l.material_id ? (materialById.get(l.material_id) ?? '—') : '—'}
                                 {assayInline(l.expected_assay) && (
                                     <span className="block text-xs text-gray-500 mt-0.5">
                                         {t('purchasing.form.expectedAssay')}: {assayInline(l.expected_assay)}
@@ -653,7 +659,7 @@ export default async function PurchaseOrderDetailPage({
                         <div key={l.id} className="border border-gray-300 rounded-lg p-3">
                             <p className="text-sm mb-2">
                                 <span className="text-gray-500">#{l.line_no}</span>
-                                <span className="ml-2 font-mono">{materialById.get(l.material_id) ?? '—'}</span>
+                                <span className="ml-2 font-mono">{l.material_id ? (materialById.get(l.material_id) ?? '—') : '—'}</span>
                                 <span className="ml-2 text-gray-600">
                                     {t('grn.po.orderedLabel', { qty: Number(l.quantity), unit: l.unit ?? 'kg' })}
                                 </span>

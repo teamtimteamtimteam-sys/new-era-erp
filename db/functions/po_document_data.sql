@@ -27,7 +27,7 @@ BEGIN
     -- ── 逐行:定价状态在这里裁决,PDF 只负责画(docs/purchase-order-document.md §B)──
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
         'line_no', l.line_no,
-        'material_name', m.name,
+        'material_name', COALESCE(m.name, fa.description),
         'quantity', l.quantity,
         'unit', l.unit,
         'unit_price', l.estimated_unit_price,          -- 单据币种;可空
@@ -61,7 +61,11 @@ BEGIN
     ) ORDER BY l.line_no), '[]'::jsonb)
     INTO v_lines
     FROM purchase_order_lines l
-    JOIN materials m ON m.id = l.material_id
+    -- EQP-1a:【INNER → LEFT】原先是 JOIN materials —— 设备行会从【打印出来的
+    -- 采购单】上整行消失,而单据其余部分照常成立:没有错误、没有空行,
+    -- 只是那台机器不在发给供应商的纸上。
+    LEFT JOIN materials m ON m.id = l.material_id
+    LEFT JOIN fixed_assets fa ON fa.id = l.asset_id
     LEFT JOIN pricing_term_commitments c ON c.purchase_order_line_id = l.id
     WHERE l.purchase_order_id = p_po_id;
 
@@ -94,4 +98,5 @@ BEGIN
         'payment_terms', v_terms
     );
 END;
-$function$;
+$function$
+
