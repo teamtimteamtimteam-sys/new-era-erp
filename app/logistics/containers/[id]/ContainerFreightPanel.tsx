@@ -54,16 +54,26 @@ export default async function ContainerFreightPanel({
     }
     const actualCurrencies = [...totals.keys()].sort()
 
-    // ── 免柜期那一侧:最晚的那条 arrived ───────────────────────────────────
-    // 【锚点规则与库里那一支臂逐字一致】ORDER BY event_date DESC, recorded_at DESC
-    // —— 也与 container_overview 的既成惯例一致。里程碑只增不改,更正的写法是
-    // 再记一条,所以取最晚的那条等于让更正自动生效。
+    // ── 免柜期那一侧:【最后被录入】的那条 arrived ─────────────────────────
+    // ════════════════════════════════════════════════════════════════════════
+    // 【锚点规则:recorded_at DESC, id DESC —— 与库里那一支臂逐字一致】
+    // 对应实现在 db/views/operations_now.sql 的 free_time_expiring 那一支
+    // (migration:db/migrations/2026-08-20-log5d-a-correction-must-win.sql)。
+    // **两处必须一起改** —— 这一页与看板算的是同一件事,口径一旦分岔,
+    // 屏幕上写着"剩余 1 天"而看板一声不吭(或反过来),而没有任何东西会报错。
+    // LOG-5d 就是把两处一起改的那一刀。
+    //
+    // 【为什么不是 event_date DESC】里程碑只增不改,更正的写法是再记一条;
+    // 而一条把日期改【早】的更正在 event_date 排序下永远排不到前面 ——
+    // 它一次都不会生效。线上 CTR-2026-0009 就是这么躺着的:
+    // arrived 08-16(先录)、arrived 08-14(后录、更早),所有读者仍锚在 08-16。
+    // ════════════════════════════════════════════════════════════════════════
     const arrivals = mustRows(
         await supabase.from('container_milestones')
-            .select('event_date, recorded_at')
+            .select('id, event_date, recorded_at')
             .eq('container_id', containerId).eq('milestone', 'arrived')
-            .order('event_date', { ascending: false })
             .order('recorded_at', { ascending: false })
+            .order('id', { ascending: false })
             .limit(1),
         'container arrivals'
     ) as unknown as { event_date: string }[]

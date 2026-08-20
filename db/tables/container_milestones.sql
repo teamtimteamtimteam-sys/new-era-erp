@@ -10,7 +10,7 @@ CREATE TABLE public.container_milestones (
     event_date   date NOT NULL,
     note         text,
     recorded_by  uuid DEFAULT auth.uid(),
-    recorded_at  timestamptz NOT NULL DEFAULT now()
+    recorded_at  timestamptz NOT NULL DEFAULT clock_timestamp()
 );
 
 COMMENT ON TABLE public.container_milestones IS
@@ -40,3 +40,9 @@ CREATE POLICY "container_milestones select" ON public.container_milestones
     AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.purchasing.view'::text));
 CREATE POLICY "container_milestones insert" ON public.container_milestones
     AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK (has_permission('module.purchasing.edit'::text));
+
+COMMENT ON COLUMN public.container_milestones.recorded_at IS
+    'LOG-5d:这一行是【什么时候被录进来的】——【不是】事情发生的时间(那是 event_date)。
+同一种里程碑之内,算数的是 recorded_at 最晚的那一条:更正的唯一写法是再记一条,
+所以最后写下的那条就是算数的那条。默认值是 clock_timestamp() 而不是 now() ——
+now() 是事务时刻,同一事务里插两条会拿到同一个值,那时"哪一条算数"就变成随意的了。';

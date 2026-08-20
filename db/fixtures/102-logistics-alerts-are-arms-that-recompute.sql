@@ -2,10 +2,15 @@
 --
 -- 【这份 fixture 的头号断言是"自愈"】臂的全部好处就在这一条:它每次被读都重算,
 -- 所以一条更正【不需要任何人去把告警关掉】—— 下一次读它自己就不在了。
--- 里程碑是只增不改的,更正的写法是【再记一条】;取最晚的那一条,等于让更正生效。
--- 【一个只取"第一条 arrived"的实现,能通过下面除自愈臂以外的每一条断言】——
--- 它照样在 remaining=2 时响、在 3 时不响、NULL 时沉默。所以自愈那一臂单独存在,
--- 而且注入过:把锚点改成最早的一条,只有它红。
+-- 里程碑是只增不改的,更正的写法是【再记一条】;算数的是【最后被录入】的那一条。
+--
+-- 【LOG-5d:此前这里只测了一个方向,而那个盲区上了线】
+-- B 臂测"把日期改【晚】",B2 臂测"把日期改【早】"。旧实现按 event_date DESC 排,
+-- 改晚的碰巧排到前面、碰巧生效 —— 于是 B 臂一直绿着,而改早的更正
+-- 【一次都没有生效过】(线上 CTR-2026-0009 就是这么躺着的)。
+-- **一个只覆盖一个方向的断言,读起来与一个覆盖两个方向的断言一模一样。**
+-- 注入把锚点退回 event_date DESC 时【只有 B2 红、B 仍然绿】——
+-- 那正是这两臂必须分开存在的证明。
 --
 -- 【第二头号断言:NULL ≠ 0,两个方向都钉】
 -- free_days 为 NULL = "这份报价没写免柜期" → 沉默;
@@ -32,6 +37,7 @@ DECLARE
     c_r2 uuid; c_r3 uuid; c_neg uuid; c_null uuid; c_zero uuid;
     c_heal uuid; c_noarr uuid; c_eta uuid; c_etanull uuid;
     c_docs uuid; c_nodocs uuid; c_del1 uuid; c_del2 uuid;
+    c_early uuid; c_depearly uuid;
     v_res jsonb; v_n int; v_subject text; v_denied boolean; v_msg text;
     v_doc uuid;
 BEGIN
@@ -183,6 +189,59 @@ BEGIN
      WHERE container_id = c_heal AND milestone = 'arrived';
     IF v_n <> 2 THEN
         RAISE EXCEPTION 'FIXTURE 102B 失败:两条 arrived 都该留着(只增不改),实得 % 条', v_n;
+    END IF;
+
+    -- ══════════ B2. 【缺的那个方向】更正把日期改【早】,也必须生效 ═════════
+    -- 【LOG-5d:这一臂是本文件此前的盲区】上面 B 臂测的是"改晚" ——
+    -- 而在 event_date DESC 的旧排序下,改晚的更正碰巧排到前面、碰巧生效,
+    -- 所以 B 臂一直是绿的,而【改早的更正一次都没生效过】。
+    -- 一个只覆盖一个方向的断言,读起来与一个覆盖两个方向的断言一模一样。
+    --
+    -- 【Tim 在线上撞到的形状,原样搬过来】CTR-2026-0009:
+    --     arrived event=08-16 recorded=18:22:38
+    --     arrived event=08-14 recorded=18:25:13   ← 录得更晚、日期更早
+    -- 这里用相对日期复现同一件事,并且让它【跨过阈值】——
+    -- 只断言"锚点变了"不够,要断言这一支的【答案】跟着变。
+    v_res := create_container(ln_a, CURRENT_DATE - 32, 'ZZ102EARLY', NULL, NULL, v_fwd, NULL, NULL);
+    c_early := (v_res->>'id')::uuid;      -- ln_a 那份报价:free_days = 10
+    INSERT INTO container_milestones (container_id, milestone, event_date)
+    VALUES (c_early, 'arrived', CURRENT_DATE - 3);        -- remaining = 10 − 3 = 7 → 不响
+    SELECT count(*) INTO v_n FROM operations_now
+     WHERE item_type = 'free_time_expiring' AND item_id = c_early;
+    IF v_n <> 0 THEN
+        RAISE EXCEPTION 'FIXTURE 102B2 前提失败:更正之前应当【不响】(remaining = 7),实得 % 行', v_n;
+    END IF;
+
+    -- 更正:其实是九天前就到了 —— 只增不改,所以再记一条(日期【更早】)
+    INSERT INTO container_milestones (container_id, milestone, event_date, note)
+    VALUES (c_early, 'arrived', CURRENT_DATE - 9, 'fixture 102:更正,实际早六天到');
+
+    SELECT count(*), max(subject) INTO v_n, v_subject FROM operations_now
+     WHERE item_type = 'free_time_expiring' AND item_id = c_early;
+    IF v_n <> 1 THEN
+        RAISE EXCEPTION 'FIXTURE 102B2 失败(改【早】的更正):追加一条日期更早的 arrived 之后,锚点应当移到它身上(remaining 变成 1),这一支应当【开始响】,实得 % 行 —— 锚点若按 event_date 排,更早的那条永远排不到前面,这条更正一次都不会生效,而【没有任何东西会报错】',
+            v_n;
+    END IF;
+    IF v_subject NOT LIKE '1 left of 10%' THEN
+        RAISE EXCEPTION 'FIXTURE 102B2 失败:锚点应当是被更正后的那一天(剩余 1),实得 subject = %', v_subject;
+    END IF;
+
+    -- 【同一条规则对 departed 也成立】—— 无到港那一支的钟
+    v_res := create_container(ln_b, CURRENT_DATE - 42, 'ZZ102DEPEARLY', NULL, NULL, v_fwd, NULL, NULL);
+    c_depearly := (v_res->>'id')::uuid;
+    INSERT INTO container_milestones (container_id, milestone, event_date)
+    VALUES (c_depearly, 'departed', CURRENT_DATE - 10);   -- 10 < 14 → 不响
+    SELECT count(*) INTO v_n FROM operations_now
+     WHERE item_type = 'container_no_arrival' AND item_id = c_depearly;
+    IF v_n <> 0 THEN
+        RAISE EXCEPTION 'FIXTURE 102B2 前提失败:开走 10 天时无到港那一支不该响,实得 % 行', v_n;
+    END IF;
+    INSERT INTO container_milestones (container_id, milestone, event_date, note)
+    VALUES (c_depearly, 'departed', CURRENT_DATE - 20, 'fixture 102:更正,其实早十天就开了');
+    SELECT count(*) INTO v_n FROM operations_now
+     WHERE item_type = 'container_no_arrival' AND item_id = c_depearly;
+    IF v_n <> 1 THEN
+        RAISE EXCEPTION 'FIXTURE 102B2 失败(departed 侧):把开航日改早到 20 天前之后,无到港那一支应当开始响,实得 % 行', v_n;
     END IF;
 
     -- ══════════ C. 走了 14 天没人说到了 ═════════════════════════════════════
