@@ -81,7 +81,7 @@ export default async function ForwarderDetailPage({ params }: { params: Promise<
     const quotes = mustRows(
         await supabase
             .from('forwarder_rate_quotes')
-            .select('id, lane_id, amount_ccy, currency, valid_from, valid_to')
+            .select('id, lane_id, amount_ccy, currency, valid_from, valid_to, free_days')
             .eq('supplier_id', id)
             .is('deleted_at', null)
             .order('valid_from', { ascending: false }),
@@ -120,6 +120,8 @@ export default async function ForwarderDetailPage({ params }: { params: Promise<
                     currency: q.currency as string,
                     valid_from: q.valid_from as string,
                     valid_to: q.valid_to as string,
+                    // 【null 要原样传到底】—— 用 ?? 0 顶一下,三态就在这里塌成两态
+                    free_days: q.free_days === null ? null : Number(q.free_days),
                 }))}
                 currencies={currencies}
                 labels={{
@@ -140,6 +142,10 @@ export default async function ForwarderDetailPage({ params }: { params: Promise<
                     validTo: t('logistics.quoteValidTo'),
                     addQuote: t('logistics.addQuote'),
                     removeQuote: t('logistics.removeQuote'),
+                    freeDays: t('logistics.quoteFreeDays'),
+                    freeDaysHint: t('logistics.quoteFreeDaysHint'),
+                    freeDaysNotStated: t('logistics.quoteFreeDaysNotStated'),
+                    noEditDoor: t('logistics.quotesNoEditDoor'),
                     noLanes: t('logistics.noLanes'),
                 }}
             />

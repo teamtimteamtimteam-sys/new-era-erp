@@ -10,7 +10,9 @@ import { saveForwarderDetails, addRateQuote, removeRateQuote } from './actions'
 // 在报价旁边摆一个"付"按钮,就是让一份说过的话看起来像一笔负债。
 
 type Details = { main_routes: string | null; ports_served: string | null; free_time_terms: string | null; dg_classes: string | null; notes: string | null } | null
-type Quote = { id: string; lane_id: string; amount_ccy: string; currency: string; valid_from: string; valid_to: string }
+// free_days 是【三态】:数字 / null(报价没写)—— 不是 number 就是 null,
+// 绝不用 0 顶替 null(列注释与 addRateQuote 里那段是同一条规矩)。
+type Quote = { id: string; lane_id: string; amount_ccy: string; currency: string; valid_from: string; valid_to: string; free_days: number | null }
 
 export default function ForwarderPanels({
     supplierId, details, lanes, quotes, currencies, labels,
@@ -55,6 +57,9 @@ export default function ForwarderPanels({
                 currency: fd.get('currency') as string,
                 valid_from: fd.get('valid_from') as string,
                 valid_to: fd.get('valid_to') as string,
+                // 【原样送下去,不在这里折算】空字符串的含义由服务端那一处判 ——
+                // 两处各判一次,迟早各说各话。
+                free_days: (fd.get('free_days') as string) ?? '',
             })
             if ('error' in res) setError(res.error)
             else form.reset()
@@ -132,11 +137,23 @@ export default function ForwarderPanels({
                             <label className="block text-xs font-medium mb-1">{labels.validTo}</label>
                             <input name="valid_to" type="date" required className={field} />
                         </div>
+                        {/* 【不是 required】—— 留空是一个正当答案("这份报价没写免柜期"),
+                            不是漏填。min=0 允许真正的 0,而 0 与留空是两件不同的事。 */}
+                        <div>
+                            <label className="block text-xs font-medium mb-1">{labels.freeDays}</label>
+                            <input name="free_days" type="number" step="1" min="0"
+                                className={`${field} w-24`} />
+                        </div>
                         <button type="submit" disabled={pending} className="rounded bg-blue-600 px-3 py-1 text-sm text-white disabled:opacity-50">
                             {labels.addQuote}
                         </button>
+                        <p className="mt-1 w-full text-xs text-gray-600 max-w-3xl">{labels.freeDaysHint}</p>
                     </form>
                 )}
+
+                {/* 【报价没有"改"这扇门】—— 只有新增与撤回(软删)。说出来,
+                    否则人会在列表里找一个不存在的编辑按钮。 */}
+                <p className="mb-3 text-xs text-gray-500 max-w-3xl">{labels.noEditDoor}</p>
 
                 {quotes.length === 0 ? (
                     <p className="text-sm text-gray-500">{labels.quotesEmpty}</p>
@@ -149,6 +166,13 @@ export default function ForwarderPanels({
                                         <td className="border border-gray-300 px-3 py-1">{laneLabel.get(q.lane_id) ?? q.lane_id}</td>
                                         <td className="border border-gray-300 px-3 py-1 text-right">{q.amount_ccy} {q.currency}</td>
                                         <td className="border border-gray-300 px-3 py-1">{q.valid_from} → {q.valid_to}</td>
+                                        {/* 【三态各有各的样子】数字 / "未写明"。
+                                            空单元格会被读成 0,而 0 是另一件事。 */}
+                                        <td className="border border-gray-300 px-3 py-1 text-right">
+                                            {q.free_days === null
+                                                ? <span className="text-gray-500 italic">{labels.freeDaysNotStated}</span>
+                                                : q.free_days}
+                                        </td>
                                         <td className="border border-gray-300 px-3 py-1">
                                             <button
                                                 type="button"

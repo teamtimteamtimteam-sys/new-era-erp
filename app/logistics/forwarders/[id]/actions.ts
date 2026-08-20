@@ -28,9 +28,24 @@ export async function saveForwarderDetails(
 
 export async function addRateQuote(
     supplierId: string,
-    input: { lane_id: string; amount_ccy: string; currency: string; valid_from: string; valid_to: string }
+    input: { lane_id: string; amount_ccy: string; currency: string; valid_from: string
+             valid_to: string; free_days: string }
 ): Promise<Result> {
     const supabase = await createClient()
+    // ════════════════════════════════════════════════════════════════════════
+    // LOG-5c:【空 ≠ 0,而这一行就是那条区别活下来的地方】
+    // 列注释把它写死了:NULL =「这份报价没写免柜期」→ 告警沉默;
+    // 0 =「零个免费天」→ 从到港当天起计滞港费。
+    // 所以【绝不能】写成 Number(input.free_days) —— Number('') 是 0,
+    // 那一句会把"没写"静默地变成"写了零天",而后果是每个到港的箱子从第一天起报警。
+    // 也不能写成 Number(x) || null —— 那把【真正的 0】变成 NULL,方向相反、
+    // 后果更贵:一个真的在烧钱的箱子从此一声不吭。
+    // 判据只能是【那个框里有没有东西】,不是那个数是不是真值。
+    const raw = input.free_days.trim()
+    const freeDays = raw === '' ? null : Number(raw)
+    if (freeDays !== null && (!Number.isInteger(freeDays) || freeDays < 0)) {
+        return fail('FREE_DAYS_INVALID')
+    }
     const { error } = await supabase.from('forwarder_rate_quotes').insert({
         supplier_id: supplierId,
         lane_id: input.lane_id,
@@ -38,6 +53,7 @@ export async function addRateQuote(
         currency: input.currency,
         valid_from: input.valid_from,
         valid_to: input.valid_to,
+        free_days: freeDays,
     })
     if (error) return fail(error.message)
     revalidatePath(`/logistics/forwarders/${supplierId}`)
