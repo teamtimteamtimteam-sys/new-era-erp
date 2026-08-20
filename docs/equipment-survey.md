@@ -337,3 +337,92 @@ expected_arrival_date 与里程碑;**把它用于进口所缺的是"装什么"�
 * `depreciation_account_code` 逐资产可设(默认 6700),但**没有界面暴露它**。
 * `fixed_asset_cost_entries` 没有"这一笔是什么"的分类列(运费?安装?培训?)——
   只有金额与来源支出;日后要回答"这台机器的成本里安装占多少"答不出来。
+
+---
+
+# EQP-1a · STEP 1 枚举(2026-08-20,停在闸门,未迁移)
+
+只读。本节是 EQP-1a 的 Step 1 产出;**按 brief 的停机条件停下,没有写迁移。**
+
+## 每一个读者 / 写者与它在 D2 下的处置
+
+来源:线上目录(`pg_get_functiondef` / `pg_get_viewdef` 全文匹配 + `pg_trigger`),
+不是 grep —— 挂在表上的两个触发器函数正是 grep 看不见的那一类。
+
+| 对象 | 类型 | 怎么用 material_id | 处置 |
+|---|---|---|---|
+| `create_purchase_order` | 函数(写) | 从 JSON 取 `material_id` 写入 | **必须改** —— 否则设备行【无门可造】 |
+| `amend_purchase_order` | 函数(写) | 同上,改单时重插行 | **必须改** —— 同上 |
+| `po_document_data` | 函数(读) | `JOIN materials m ON m.id = l.material_id`(**INNER**) | **必须改** —— 设备行会从【打印出来的采购单】上无声消失 |
+| `po_receivable_lines` | 视图(读) | `JOIN materials`(INNER) | **不改** —— 设备行不可收货,它不在"可收货行"里是【对的】 |
+| `grn_discrepancies` | 视图(读) | 经 `inbound_batches.purchase_order_line_id` 反查 | **不改** —— 设备行永远没有收货行,自然不出现 |
+| `purchase_order_lines_masked` | 视图(读) | 逐列透出,含 `material_id` | **必须改** —— 见下面那条硬规矩 |
+| `purchase_order_lines` 的列级 SELECT 授权 | 授权 | 冻结的列清单 | **必须改** —— 与上一条同一支迁移 |
+| `purchase_order_status` | 视图(读) | `sum(pol.quantity)`,不碰 material_id | **要报告** —— 见 Q1 第 4 条 |
+| `guard_po_line_received_floor` | 触发器 | 只读 `quantity` 与已收数 | 不受影响 |
+| `trg_po_history_line` | 触发器 | 只记 `line_no`,历史表【没有】material_id 列 | 不受影响 |
+| `guard_inbound_po_line_match` | 触发器(在 `inbound_batches` 上) | 只校验行属于该 PO | **D3 的落点** |
+| `apply_assay_result` / `preview_assay_price` / `committed_terms_price` / `close_purchase_order` | 函数 | 提到表但不碰 material_id | 不受影响 |
+
+**那条硬规矩**(AGENTS.md,FIN-6 付过账):`purchase_order_lines` 是【被遮蔽的表】——
+`REVOKE SELECT` + 列清单 `GRANT SELECT (…)`。**列清单 SELECT 授权不会自动扩展到新列。**
+所以加 `asset_id` 必须在【同一支迁移】里同时做三件事:加列、加进列清单授权、加进
+`_masked` 视图。少任何一件,`db/gate.py` 的 `colgrant` 判词就红,而在它红之前
+那一列是"写得进、读不出"。
+
+## Q1 · 哪些读者会把 NULL 变成【错的答案】而不是【缺席的行】
+
+1. **`po_document_data` —— 会。** INNER JOIN materials。一张给供应商的采购单
+   打印出来时,设备行【整行消失】,而单据其余部分照常成立 ——
+   没有错误、没有空行,只是那台机器不在纸上。这是本次枚举里最危险的一条。
+2. `po_receivable_lines` —— **不会**(缺席是对的:设备行本来就不可收货)。
+3. `grn_discrepancies` —— **不会**(它从收货行反查,设备行没有收货行)。
+4. **`purchase_order_status.ordered_qty` —— 会,但是既有的病**:
+   `sum(pol.quantity)` 跨行相加而【不看单位】。今天线上 6 行全是 `kg`,
+   所以还没现形;一台机器进来就是 "1" 加进 "50000",而 `unit` 上【没有 CHECK】,
+   它是自由文本、默认 `'kg'`。**报告,不在本刀修** —— 它先于设备存在。
+
+## Q2 · NOT NULL 的行列对一台机器意味着什么(报告,不发明约定)
+
+`purchase_order_lines` 的 NOT NULL 列:`purchase_order_id` / `line_no` /
+`material_id`(本刀要改)/ `quantity`(CHECK > 0)/ `unit`(默认 `'kg'`,
+**没有取值 CHECK**)/ `estimated_amount_ccy`(默认 0)。
+
+一台机器要放进去,这三列必须携带【某个】值,而它们的含义都得有人定:
+* `quantity` —— 大概是 1,但 CHECK 只要求 > 0,系统不会替谁决定;
+* `unit` —— 默认 `'kg'` 对一台机器是错的;线上现存值只有 `kg` 一种;
+  用 `'unit'` / `'each'` / `'set'` 都需要一次决定,而那会成为第一个非 kg 的值;
+* `estimated_amount_ccy` —— 默认 0;机器价填这里还是留 0 由报价决定,未定。
+
+**本节不选,任何一个都不选。**
+
+## Q3 · 预付挂在表头还是行(决定下一刀的大小)
+
+**挂在【表头】** —— 两处都是:
+* `payment_allocations.purchase_order_id`(收钱那一侧,借 1300);
+* `prepayment_applications.purchase_order_id`(核销那一侧)。
+行一级没有任何预付引用。**所以 D1 不受影响:设备行不需要承载预付。**
+
+**但第二半是坏消息,而它决定下一刀的大小:**
+`prepayment_applications` 还有一列 **`inbound_batch_id`** ——
+`apply_prepayment()` 把 1300 挪到 2000 时,挪的是【某一个进料批次的应付】。
+而设备行按 D3 **永远不会产生批次**。
+所以:**押金收得进(表头,1300),却没有任何既有机制把它转出来。**
+下一刀"预付 + 发票进 1500"因此【不是小刀】—— 它要么给
+`prepayment_applications` 开第二种去处,要么另走一条路。
+
+## 停下的理由(brief 的停机条件,逐条对照)
+
+* **「枚举发现了没人知道的写者」—— 命中。** `create_purchase_order` 与
+  `amend_purchase_order` 都写 `material_id`,而 D1–D4 一个字没提它们。
+  不改它们,`asset_id` 就是一列【任何受支持的函数都写不进去的列】——
+  D1 说的"设备行引用一张既有的 fixed_assets 行"只能靠直插实现,
+  而这个仓库对"建得出来、没有门"的形状付过三次账。
+* **「Q1 里有读者关不掉」—— 没有命中,但代价要说清。** `po_document_data` 关得掉
+  (INNER → LEFT,或按行类型分支),它是数据库函数不是屏幕,在 scope 内。
+  只是它不在 D1–D4 列的四件事里。
+* **「Q3 让 D1 做不成」—— 没有命中。** 表头级预付对 D1 无碍。
+
+**结论:D1–D4 列的四件事(可空、XOR CHECK、asset_id + FK、收货守卫)
+【不足以】交付一个能用的门。** 真正要动的是八个对象,不是四件事。
+差额是一次决定,不是一次顺手补 —— 所以停在这里。
