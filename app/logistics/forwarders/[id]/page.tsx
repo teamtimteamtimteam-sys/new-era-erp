@@ -43,7 +43,7 @@ export default async function ForwarderDetailPage({ params }: { params: Promise<
     const freight = mustRows(
         await supabase
             .from('freight_documents')
-            .select('id, code, doc_date, amount_ccy, currency, payment_status, status')
+            .select('id, code, doc_date, amount_ccy, currency, payment_status, status, direction')
             .eq('supplier_id', id)
             .is('deleted_at', null)
             .order('doc_date', { ascending: false }),
@@ -160,6 +160,11 @@ export default async function ForwarderDetailPage({ params }: { params: Promise<
                                             <Link href={`/finance/freight/${f.id}`} className="text-blue-700 hover:underline">
                                                 {f.code as string}
                                             </Link>
+                                        </td>
+                                        {/* LOG-4b:方向一个字。进货运费与出口运费在这张表上
+                                            长得一模一样,而它们去的是完全不同的科目。 */}
+                                        <td className="border border-gray-300 px-3 py-1 text-xs text-gray-600">
+                                            {t('finance.freight.directionShort.' + (f.direction as string))}
                                         </td>
                                         <td className="border border-gray-300 px-3 py-1">{f.doc_date}</td>
                                         <td className="border border-gray-300 px-3 py-1 text-right">

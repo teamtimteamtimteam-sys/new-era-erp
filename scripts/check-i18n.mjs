@@ -421,6 +421,9 @@ const MANIFEST = {
     'purchasing.amend.change.': { kind: 'enum', values: () => sqlEnum('db/tables/purchase_order_history.sql', 'change_type') },
     'finance.freight.basis.':   { kind: 'enum', values: () => sqlEnum('db/tables/freight_documents.sql', 'allocation_basis') },
     'finance.freight.payment.': { kind: 'enum', values: () => sqlEnum('db/tables/freight_documents.sql', 'payment_status') },
+    // LOG-4b:两个前缀,同一条 CHECK —— 往库里加第三个方向,两个语言会同时被要求补标签。
+    'finance.freight.direction.': { kind: 'enum', values: () => sqlEnum('db/tables/freight_documents.sql', 'direction') },
+    'finance.freight.directionShort.': { kind: 'enum', values: () => sqlEnum('db/tables/freight_documents.sql', 'direction') },
     'finance.freight.errors.':  { kind: 'enum', values: () => tsSet('app/finance/freightErrorCodes.ts', 'FREIGHT_ERROR_CODES') },
     'finance.presets.':     { kind: 'enum', values: () => tsRegex('app/finance/pnl/page.tsx', /\{ key: '(\w+)'/g) },
     'finance.fxPage.rateType.': { kind: 'enum', values: () => sqlEnum('db/tables/fx_rates.sql', 'rate_type') },

@@ -9,6 +9,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import LogisticsSubnav from '../../Subnav'
 import ContainerPanels from './ContainerPanels'
+import ContainerFreightPanel from './ContainerFreightPanel'
 
 export default async function ContainerDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const denied = await requireModule(MOD.logistics)
@@ -121,6 +122,15 @@ export default async function ContainerDetailPage({ params }: { params: Promise<
                     notDefined: t('logistics.checklistNotDefined'), definedEmpty: t('logistics.checklistDefinedEmpty'),
                     noLane: t('logistics.noLaneOnContainer'),
                 }}
+            />
+
+            {/* LOG-4b:运费面板 —— 服务端渲染,只读。它不属于 ContainerPanels
+                (那是编辑态的客户端组件),所以不往那条已经很宽的 props 里再塞一层。 */}
+            <ContainerFreightPanel
+                containerId={id}
+                laneId={head.data.lane_id as string | null}
+                forwarderId={head.data.forwarder_id as string | null}
+                departureDate={head.data.departure_date as string}
             />
         </div>
     )

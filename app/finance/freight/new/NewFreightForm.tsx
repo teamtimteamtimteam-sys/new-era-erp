@@ -25,6 +25,13 @@ export type BatchOption = {
     arrival_date: string | null
 }
 
+export type ContainerOption = {
+    id: string
+    code: string
+    lane: string | null
+    departure_date: string
+}
+
 const initialState: FreightState = {}
 
 export default function NewFreightForm({
@@ -32,14 +39,20 @@ export default function NewFreightForm({
     batches,
     currencies,
     baseCurrency,
+    containers,
 }: {
     suppliers: { id: string; code: string; legal_name: string }[]
     batches: BatchOption[]
     currencies: string[]
     baseCurrency: string
+    containers: ContainerOption[]
 }) {
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(createFreightDocument, initialState)
+    // LOG-4b:【方向不是一个标签,它决定这笔钱去哪里】。没有默认成"进货"的诱惑:
+    // 两个都摆出来,人选一个 —— 与 allocation_basis 同一条(FIN-36)。
+    const [direction, setDirection] = useState<'inbound' | 'outbound'>('inbound')
+    const outbound = direction === 'outbound'
     const [basis, setBasis] = useState('weight')
     const [paid, setPaid] = useState(false)
     const [picked, setPicked] = useState<Record<string, boolean>>({})
@@ -49,7 +62,7 @@ export default function NewFreightForm({
     const chosen = batches.filter((b) => picked[b.id])
     // value 口径遇未计价批次:服务端会点名拒 —— 页面【先说出来】,
     // 不把一张注定被拒的表单摆到人面前(CMP-2 的规矩)
-    const unpriced = basis === 'value' ? chosen.filter((b) => b.unit_price === null) : []
+    const unpriced = !outbound && basis === 'value' ? chosen.filter((b) => b.unit_price === null) : []
 
     return (
         <div className="max-w-4xl">
@@ -59,7 +72,9 @@ export default function NewFreightForm({
                 </Link>
             </div>
             <h1 className="text-2xl font-bold mb-2">{t('finance.freight.newTitle')}</h1>
-            <p className="text-sm text-gray-600 mb-6 max-w-3xl">{t('finance.freight.newIntro')}</p>
+            <p className="text-sm text-gray-600 mb-4 max-w-3xl">
+                {outbound ? t('finance.freight.exportHint') : t('finance.freight.newIntro')}
+            </p>
 
             {state.error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -68,6 +83,21 @@ export default function NewFreightForm({
             )}
 
             <form action={formAction} className="space-y-4">
+                {/* 【方向先问】它决定后面这张表单是哪一张 —— 分摊那一段在出境时
+                    根本不存在,而不是"存在但空着"。 */}
+                <div>
+                    <label className="block text-sm font-medium mb-1">
+                        {t('finance.freight.colDirection')} <span className="text-red-600">*</span>
+                    </label>
+                    <select name="direction" value={direction}
+                        onChange={(e) => setDirection(e.target.value as 'inbound' | 'outbound')}
+                        className="border border-gray-300 px-3 py-2 rounded min-w-96">
+                        <option value="inbound">{t('finance.freight.direction.inbound')}</option>
+                        <option value="outbound">{t('finance.freight.direction.outbound')}</option>
+                    </select>
+                    <p className="text-xs text-gray-600 mt-1 max-w-3xl">{t('finance.freight.directionHint')}</p>
+                </div>
+
                 <div className="flex flex-wrap gap-4">
                     <div>
                         <label className="block text-sm font-medium mb-1">
@@ -117,8 +147,9 @@ export default function NewFreightForm({
                     </div>
                 </div>
 
-                {/* 口径:一次明写的选择 */}
-                <div>
+                {/* 口径:一次明写的选择。【出境没有这一项】—— 出口运费不分摊,
+                    摆一个禁用的下拉等于说"这里本该有个答案";它本来就不该有。 */}
+                {!outbound && <div>
                     <label className="block text-sm font-medium mb-1">
                         {t('finance.freight.colBasis')} <span className="text-red-600">*</span>
                     </label>
@@ -129,7 +160,7 @@ export default function NewFreightForm({
                         <option value="stated">{t('finance.freight.basis.stated')}</option>
                     </select>
                     <p className="text-xs text-gray-600 mt-1 max-w-3xl">{t('finance.freight.basisHint')}</p>
-                </div>
+                </div>}
 
                 {/* 付款方式 */}
                 <div className="flex flex-wrap gap-4 items-end">
@@ -154,8 +185,34 @@ export default function NewFreightForm({
                     )}
                 </div>
 
-                {/* 批次 */}
-                <div>
+                {/* 【出境:集装箱选择器,而且【没有】任何分摊 UI】。
+                    不是"分摊那一段禁用了",是它根本不在这张表单上 —— 出口运费
+                    不摊到任何批次,摆一个空的批次表等于暗示这里少填了东西。 */}
+                {outbound && (
+                    <div>
+                        <label className="block text-sm font-medium mb-1">{t('finance.freight.colContainer')}</label>
+                        {containers.length === 0 ? (
+                            <p className="text-sm text-amber-900 bg-amber-50 border border-amber-300 rounded px-3 py-2 max-w-xl">
+                                {t('finance.freight.noContainers')}
+                            </p>
+                        ) : (
+                            <select name="container_id" defaultValue=""
+                                className="border border-gray-300 px-3 py-2 rounded min-w-96">
+                                {/* 【不指定是一个正当选项】—— 单据才是钱的对象 */}
+                                <option value="">{t('finance.freight.selectContainer')}</option>
+                                {containers.map((c) => (
+                                    <option key={c.id} value={c.id}>
+                                        {c.code}{c.lane ? ` · ${c.lane}` : ''} · {c.departure_date}
+                                    </option>
+                                ))}
+                            </select>
+                        )}
+                        <p className="text-xs text-gray-600 mt-1 max-w-3xl">{t('finance.freight.containerHint')}</p>
+                    </div>
+                )}
+
+                {/* 批次(仅进境)*/}
+                {!outbound && <div>
                     <p className="block text-sm font-medium mb-1">{t('finance.freight.pickBatches')}</p>
                     <p className="text-xs text-gray-600 mb-2">{t('finance.freight.pickBatchesHint')}</p>
                     {unpriced.length > 0 && (
@@ -202,7 +259,7 @@ export default function NewFreightForm({
                             </tbody>
                         </table>
                     </div>
-                </div>
+                </div>}
 
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('finance.freight.colNotes')}</label>
@@ -210,7 +267,9 @@ export default function NewFreightForm({
                 </div>
 
                 <div className="flex gap-3 pt-2">
-                    <button type="submit" disabled={isPending || chosen.length === 0}
+                    {/* 【提交条件按方向分】进境必须挑至少一个批次(服务端 FREIGHT_NO_BATCHES);
+                        出境没有批次可挑,把那条禁用条件留着会让按钮永远按不下去。 */}
+                    <button type="submit" disabled={isPending || (!outbound && chosen.length === 0)}
                         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400">
                         {isPending ? t('common.saving') : t('common.save')}
                     </button>

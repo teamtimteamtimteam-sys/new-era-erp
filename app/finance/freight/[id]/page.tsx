@@ -15,6 +15,7 @@ import Subnav from '../../Subnav'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import ReverseFreightControl from './ReverseFreightControl'
 
 type AllocRow = {
     id: string
@@ -34,9 +35,12 @@ export default async function FreightDetailPage({ params }: { params: Promise<{ 
     const t = await getTranslations()
     const baseCurrency = await getBaseCurrency()
 
+    // 【两条外键都指向 journal_entries，所以两个嵌套都要按约束名消歧】
+    // （原分录 journal_entry_id / 冲销分录 reversal_entry_id）。不写约束名，
+    // PostgREST 无从知道要哪一条，而它报的错读起来像是“这一列不存在”。
     const { data: doc } = await supabase
         .from('freight_documents')
-        .select('id, code, doc_date, amount_ccy, currency, fx_rate, amount_base, allocation_basis, payment_status, bank_account_code, notes, status, journal_entry_id, suppliers ( legal_name ), journal_entries ( id, code )')
+        .select('id, code, doc_date, amount_ccy, currency, fx_rate, amount_base, allocation_basis, payment_status, bank_account_code, notes, status, journal_entry_id, direction, container_id, reversed_at, reversal_reason, reversal_entry_id, suppliers ( legal_name ), containers ( id, code ), journal_entries!freight_documents_journal_entry_id_fkey ( id, code ), reversal_entry:journal_entries!freight_documents_reversal_entry_id_fkey ( id, code )')
         .eq('id', id)
         .is('deleted_at', null)
         .maybeSingle()
@@ -45,11 +49,20 @@ export default async function FreightDetailPage({ params }: { params: Promise<{ 
         code: string; doc_date: string; amount_ccy: number; currency: string; fx_rate: number
         amount_base: number; allocation_basis: string; payment_status: string
         bank_account_code: string | null; notes: string | null; status: string
+        direction: string
+        reversed_at: string | null; reversal_reason: string | null
         suppliers: { legal_name: string } | null
         journal_entries: { id: string; code: string } | null
+        containers: { id: string; code: string } | null
+        reversal_entry: { id: string; code: string } | null
     }
+    const outbound = d.direction === 'outbound'
+    const reversed = d.status === 'reversed'
 
-    const allocs = mustRows(
+    // 【出境单据不查分摊行】不是"查了是空的" —— 库里的守卫保证它一行都不可能有
+    // (EXPORT_FREIGHT_HAS_NO_ALLOCATIONS)。查一次再显示成空表,
+    // 是把一个【结构上不存在】的东西显示成【暂时没有】。
+    const allocs = outbound ? [] : mustRows(
         await supabase
             .from('freight_allocations')
             .select('id, amount_base, basis_qty, in_stock_ratio, inbound_batches ( id, code, quantity, unit )')
@@ -66,7 +79,40 @@ export default async function FreightDetailPage({ params }: { params: Promise<{ 
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-4">{d.code}</h1>
+            <div className="flex items-start justify-between gap-4 mb-4">
+                <h1 className="text-2xl font-bold">
+                    {d.code}
+                    {/* 【方向就在单号旁边】它决定这笔钱去了 6300 还是 1200/5000 */}
+                    <span className={'ml-3 align-middle text-xs font-sans px-2 py-0.5 rounded '
+                        + (outbound ? 'bg-purple-100 text-purple-800' : 'bg-sky-100 text-sky-800')}>
+                        {t('finance.freight.direction.' + d.direction)}
+                    </span>
+                </h1>
+                {/* 已冲销的单据没有冲销钮 —— 服务端会按名拒(FREIGHT_ALREADY_REVERSED),
+                    所以这里干脆不渲染一个注定被拒的控件 */}
+                {!reversed && <ReverseFreightControl id={id} />}
+            </div>
+
+            {reversed && (
+                <div className="border border-amber-300 bg-amber-50 text-amber-900 rounded px-4 py-3 mb-4 text-sm max-w-3xl">
+                    <p className="font-medium mb-1">{t('finance.freight.reversedBanner')}</p>
+                    <div className="grid grid-cols-2 gap-2">
+                        <div><span className="text-amber-700">{t('finance.freight.colReversedAt')}: </span>{d.reversed_at ?? '—'}</div>
+                        {d.reversal_entry && (
+                            <div>
+                                <span className="text-amber-700">{t('finance.freight.colReversalEntry')}: </span>
+                                <Link href={`/finance/journal/${d.reversal_entry.id}`} className="text-blue-700 hover:underline font-mono">
+                                    {d.reversal_entry.code}
+                                </Link>
+                            </div>
+                        )}
+                        <div className="col-span-2">
+                            <span className="text-amber-700">{t('finance.freight.colReversalReason')}: </span>
+                            {d.reversal_reason ?? '—'}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="border border-gray-300 rounded-lg p-4 mb-6 grid grid-cols-2 gap-3 text-sm">
                 <div><span className="text-gray-500">{t('finance.freight.colDate')}: </span>{d.doc_date}</div>
@@ -76,7 +122,23 @@ export default async function FreightDetailPage({ params }: { params: Promise<{ 
                     <span className="text-gray-500">{t('finance.freight.colAmount')}: </span>
                     <span className="font-mono">{formatAmount(d.amount_base, baseCurrency)}</span>
                 </div>
-                <div><span className="text-gray-500">{t('finance.freight.colBasis')}: </span>{t('finance.freight.basis.' + d.allocation_basis)}</div>
+                {/* 【出境单据不显示分摊口径】它在库里是 'stated' 只因为那一列 NOT NULL,
+                    而出境根本不分摊 —— 把它当成一个"口径"显示出来就是在说一件没发生的事。 */}
+                {!outbound && (
+                    <div><span className="text-gray-500">{t('finance.freight.colBasis')}: </span>{t('finance.freight.basis.' + d.allocation_basis)}</div>
+                )}
+                {outbound && (
+                    <div>
+                        <span className="text-gray-500">{t('finance.freight.colContainer')}: </span>
+                        {d.containers ? (
+                            <Link href={`/logistics/containers/${d.containers.id}`} className="text-blue-600 hover:underline font-mono">
+                                {d.containers.code}
+                            </Link>
+                        ) : (
+                            <span className="text-gray-400">{t('finance.freight.selectContainer')}</span>
+                        )}
+                    </div>
+                )}
                 <div><span className="text-gray-500">{t('finance.freight.colPayment')}: </span>{t('finance.freight.payment.' + d.payment_status)}</div>
                 {d.journal_entries && (
                     <div>
@@ -89,6 +151,15 @@ export default async function FreightDetailPage({ params }: { params: Promise<{ 
                 {d.notes && <div className="col-span-2 text-gray-600">{d.notes}</div>}
             </div>
 
+            {/* 【空状态要说出它是哪一种空】出境单据没有分摊行,不是"还没有记" ——
+                所以这里是一句话,不是一张空表。 */}
+            {outbound ? (
+                <>
+                    <h2 className="text-lg font-semibold mb-2">{t('finance.freight.outboundNoAllocTitle')}</h2>
+                    <p className="text-sm text-gray-600 max-w-3xl">{t('finance.freight.outboundNoAlloc')}</p>
+                </>
+            ) : (
+            <>
             <h2 className="text-lg font-semibold mb-2">{t('finance.freight.allocTitle')}</h2>
             <p className="text-sm text-gray-600 mb-3 max-w-3xl">{t('finance.freight.allocHint')}</p>
             <table className="w-full border-collapse border border-gray-300">
@@ -126,6 +197,8 @@ export default async function FreightDetailPage({ params }: { params: Promise<{ 
                     ))}
                 </tbody>
             </table>
+            </>
+            )}
         </div>
     )
 }
