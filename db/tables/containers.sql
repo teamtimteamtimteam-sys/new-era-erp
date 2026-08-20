@@ -49,6 +49,18 @@ CREATE TRIGGER trg_containers_forwarder
     BEFORE INSERT OR UPDATE ON public.containers
     FOR EACH ROW EXECUTE FUNCTION guard_container_forwarder();
 
+-- LOG-4a:箱号的形状。CTR-YYYY-NNNN。
+-- 【NOT VALID,而且在【重建】里也是 NOT VALID】—— 不是为了绕过什么,是为了
+-- 让镜像逐字重建线上:线上有一行 code 里装着的不是箱号,是一段 PostgREST 错误负载
+-- ({"code":"42501",...,"message":"permission denied for function next_container_code"}),
+-- 由一条绕过 create_container 的直插留下,已软删。它【违反】这条 CHECK,
+-- 所以线上跑不了 VALIDATE CONSTRAINT;重建库里若把它建成 VALID,
+-- 两边的 convalidated 就不一样,而那是一次真的镜像漂移。
+-- 留着那一行而不改写历史;这条 CHECK 拦的是【下一次】。
+ALTER TABLE public.containers
+    ADD CONSTRAINT containers_code_format
+    CHECK (code ~ '^CTR-[0-9]{4}-[0-9]{4}$') NOT VALID;
+
 ALTER TABLE public.containers ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "containers select" ON public.containers
     AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.purchasing.view'::text));

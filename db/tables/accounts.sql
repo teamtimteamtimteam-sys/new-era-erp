@@ -117,8 +117,9 @@ CREATE POLICY "accounts delete by permission"
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 【安装种子:22 个引擎依赖科目】。逐行跟踪线上,check_mirrors 逐行比对。
 -- 括号里是点名它的对象 —— 这份名单是有据可查的,不是分类学。
--- 其余 13 个科目(1210/1400/2100/3000/4100/4900/6000/6200/
--- 6300/6400/6500/6600/6900)【故意不在这里】:它们是建账的人的地盘。
+-- 其余 12 个科目(1210/1400/2100/3000/4100/4900/6000/6200/
+-- 6400/6500/6600/6900)【故意不在这里】:它们是建账的人的地盘。
+-- 【6300 于 LOG-4a fu1 离开那一段】,理由与 1500/1510/3100/6700 相同:函数写死引用。
 -- ─────────────────────────────────────────────────────────────────────────────
 INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system, is_monetary) VALUES
     ('1000', 'Cash at Bank – SGD', '现金及银行-SGD', 'asset', true, true),               -- bank_native_currency, record_payment, record_expense, post_payroll_period, 两个 bank 视图, 四处 CHECK
@@ -154,7 +155,8 @@ INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system, is
     ('6700', 'Depreciation Expense', '折旧费用', 'expense', true, false),                    -- depreciate_fixed_assets 默认落点(FIN-22)
     ('7100', 'FX Gain/Loss — Realised', '汇兑损益(已实现)', 'expense', true, false),      -- record_payment
     ('7110', 'FX Gain/Loss — Unrealised', '汇兑损益(未实现)', 'expense', true, false),
-    ('7200', 'Gain/Loss on Asset Disposal', '资产处置损益', 'expense', true, false);   -- dispose_fixed_asset(FIN-22,与 7100/7110 同形:两个方向都过)
+    ('7200', 'Gain/Loss on Asset Disposal', '资产处置损益', 'expense', true, false),   -- dispose_fixed_asset(FIN-22,与 7100/7110 同形:两个方向都过)
+    ('6300', 'Transport & Logistics', '运输物流费', 'expense', true, false);          -- record_export_freight_document 借方(LOG-4a fu1 升 system:函数写死引用)
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 【引导默认值 / BOOTSTRAP DEFAULT —— 非 is_system 行】(FIN-3-fu2)
 -- 全新安装该有的完整科目表:权益、GST、固定资产、在制品、常规收入与费用。
@@ -173,7 +175,6 @@ INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system, is
     ('4900', 'Other Income', '其他收入', 'revenue', false, false),
     ('6000', 'Rent', '租金', 'expense', false, false),
     ('6200', 'Utilities', '水电杂费', 'expense', false, false),
-    ('6300', 'Transport & Logistics', '运输物流费', 'expense', false, false),
     ('6400', 'Professional Fees', '专业服务费', 'expense', false, false),
     ('6500', 'Bank Charges', '银行手续费', 'expense', false, false),
     ('6900', 'Miscellaneous', '杂项开支', 'expense', false, false);

@@ -23,6 +23,11 @@ COMMENT ON TABLE public.forwarder_rate_quotes IS
 把它们混成一张表,就等于让一份报价看起来像一笔负债 —— 而本仓库对"看起来像答案的东西"点过很多次名。
 汇率在这里【不锁】:报价只带币种,锁率发生在实际运费凭证上(freight_documents.fx_rate)。';
 
+COMMENT ON COLUMN public.forwarder_rate_quotes.amount_ccy IS
+    'LOG-4a:分母是【每一个集装箱】(Tim 定)。这一列不带单位列,是因为单位是一条
+【决定】而不是一个字段:改成每票或每重量单位,要动的是这条决定与随之而来的比较口径,
+不是给这张表加一列。实际运费与它的比较在 LOG-4b 之后才成立 —— 那时读的仍是这个分母。';
+
 CREATE TRIGGER trg_forwarder_rate_quotes_guard
     BEFORE INSERT OR UPDATE ON public.forwarder_rate_quotes
     FOR EACH ROW EXECUTE FUNCTION guard_forwarder_rate_quote();

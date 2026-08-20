@@ -90,9 +90,14 @@ BEGIN
     RAISE NOTICE '97B 收货守卫经由派生列仍然开火(前提已证)✓';
 
     -- ══════════ C. 货代的应付,和供应商的应付走同一条链 ═════════════════════
+    -- LOG-4a:direction 是新的 NOT NULL 列,【没有 schema 默认值】(有意如此)——
+    -- 所以直插必须自己说清是哪一个方向。本臂问的是"货代的应付挂在谁名下",
+    -- 与方向无关,取 'inbound' 即可。
     INSERT INTO freight_documents (code, doc_date, supplier_id, amount_ccy, currency, fx_rate,
-                                   amount_base, allocation_basis, payment_status, status)
-    VALUES ('FX97-FRT-1', CURRENT_DATE, s_fwd, 1000, 'USD', 1.35, 1350, 'weight', 'unpaid', 'posted')
+                                   amount_base, allocation_basis, payment_status, status,
+                                   direction)
+    VALUES ('FX97-FRT-1', CURRENT_DATE, s_fwd, 1000, 'USD', 1.35, 1350, 'weight', 'unpaid', 'posted',
+            'inbound')
     RETURNING id INTO v_fd;
 
     EXECUTE 'SET LOCAL ROLE authenticated';

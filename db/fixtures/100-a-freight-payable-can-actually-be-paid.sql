@@ -157,9 +157,11 @@ BEGIN
         'fixture 100 B1', NULL);
     v_fd2 := (v_res->>'freight_document_id')::uuid;
     v_c2  := v_res->>'code';
-    -- 【直接 UPDATE,因为这个仓库没有 reverse_freight_document】—— 那本身是一处
-    -- 缺口(本刀的勘察报告里点了名),但本臂要的只是"status 是 reversed 时会怎样"。
-    UPDATE freight_documents SET status = 'reversed' WHERE id = v_fd2;
+    -- 【LOG-4a 起走正门】此前这里是一句直接 UPDATE,并在旁边记着"因为这个仓库
+    -- 没有 reverse_freight_document"。那个缺口已经补上,而且补的同时立了一条守卫:
+    -- 直接 UPDATE status 现在【按名被拒】(FREIGHT_STATUS_NO_DIRECT_UPDATE)。
+    -- 所以这一句改走正门 —— 本臂要的仍然只是"status 是 reversed 时会怎样"。
+    PERFORM reverse_freight_document(v_fd2, 'fixture 100 B1:把它冲掉,好测已冲销的单据');
 
     v_denied := false; v_msg := NULL;
     BEGIN

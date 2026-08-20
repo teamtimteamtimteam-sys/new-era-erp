@@ -2575,16 +2575,22 @@ export type Database = {
           amount_ccy: number
           bank_account_code: string | null
           code: string
+          container_id: string | null
           created_at: string
           created_by: string | null
           currency: string
           deleted_at: string | null
+          direction: string
           doc_date: string
           fx_rate: number
           id: string
           journal_entry_id: string | null
           notes: string | null
           payment_status: string
+          reversal_entry_id: string | null
+          reversal_reason: string | null
+          reversed_at: string | null
+          reversed_by: string | null
           status: string
           supplier_id: string
           updated_at: string
@@ -2596,16 +2602,22 @@ export type Database = {
           amount_ccy: number
           bank_account_code?: string | null
           code: string
+          container_id?: string | null
           created_at?: string
           created_by?: string | null
           currency: string
           deleted_at?: string | null
+          direction: string
           doc_date: string
           fx_rate: number
           id?: string
           journal_entry_id?: string | null
           notes?: string | null
           payment_status: string
+          reversal_entry_id?: string | null
+          reversal_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
           status?: string
           supplier_id: string
           updated_at?: string
@@ -2617,22 +2629,42 @@ export type Database = {
           amount_ccy?: number
           bank_account_code?: string | null
           code?: string
+          container_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
           deleted_at?: string | null
+          direction?: string
           doc_date?: string
           fx_rate?: number
           id?: string
           journal_entry_id?: string | null
           notes?: string | null
           payment_status?: string
+          reversal_entry_id?: string | null
+          reversal_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
           status?: string
           supplier_id?: string
           updated_at?: string
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "freight_documents_container_id_fkey"
+            columns: ["container_id"]
+            isOneToOne: false
+            referencedRelation: "container_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_documents_container_id_fkey"
+            columns: ["container_id"]
+            isOneToOne: false
+            referencedRelation: "containers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "freight_documents_currency_fkey"
             columns: ["currency"]
@@ -2650,6 +2682,20 @@ export type Database = {
           {
             foreignKeyName: "freight_documents_journal_entry_id_fkey"
             columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_documents_reversal_entry_id_fkey"
+            columns: ["reversal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "freight_documents_reversal_entry_id_fkey"
+            columns: ["reversal_entry_id"]
             isOneToOne: false
             referencedRelation: "journal_entries"
             referencedColumns: ["id"]
@@ -16314,6 +16360,19 @@ export type Database = {
         }
         Returns: Json
       }
+      record_export_freight_document: {
+        Args: {
+          p_amount: number
+          p_bank_account?: string
+          p_container_id?: string
+          p_currency: string
+          p_doc_date: string
+          p_notes?: string
+          p_payment_status?: string
+          p_supplier_id: string
+        }
+        Returns: Json
+      }
       record_freight_document: {
         Args: {
           p_allocation_basis: string
@@ -16500,6 +16559,10 @@ export type Database = {
       }
       reverse_expense: {
         Args: { p_expense_id: string; p_memo?: string }
+        Returns: Json
+      }
+      reverse_freight_document: {
+        Args: { p_freight_document_id: string; p_reason: string }
         Returns: Json
       }
       reverse_journal_entry: {

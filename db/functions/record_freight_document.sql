@@ -141,12 +141,14 @@ BEGIN
     -- 【顺序是被外键逼出来的,不是风格】freight_allocations 的外键指向本单,
     -- 所以分摊行不可能先于单据存在。record_expense 是"先过分录再插单据",
     -- 那条顺序在这里【不成立】—— 照抄它就是第一版那个外键错。
+    -- LOG-4a:direction 是【字面量 'inbound'】。这个函数没有出境分支,
+    -- 出境走 record_export_freight_document —— 进料臂因此逐字节不动。
     INSERT INTO freight_documents (id, code, doc_date, supplier_id, amount_ccy, currency,
         fx_rate, amount_base, allocation_basis, payment_status, bank_account_code,
-        notes, created_by, updated_by)
+        notes, created_by, updated_by, direction)
     VALUES (v_doc_id, v_code, p_doc_date, p_supplier_id, p_amount, p_currency,
         v_fx, v_base, p_allocation_basis, p_payment_status, v_bank,
-        p_notes, v_user, v_user);
+        p_notes, v_user, v_user, 'inbound');
 
     -- ── 逐批分摊 + 拆账 ─────────────────────────────────────────────────────
     FOR v_el IN SELECT * FROM jsonb_array_elements(p_allocations)
@@ -222,4 +224,5 @@ BEGIN
         'in_stock_base', round(v_inv_tot, 2), 'consumed_base', round(v_cost_tot, 2),
         'entry_id', v_je->>'entry_id', 'allocations', v_rows);
 END;
-$function$;
+$function$
+

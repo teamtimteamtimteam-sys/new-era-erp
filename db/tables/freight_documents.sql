@@ -39,7 +39,19 @@ CREATE TABLE public.freight_documents (
     CONSTRAINT freight_documents_payment_shape CHECK (
         (payment_status = 'paid'   AND bank_account_code IS NOT NULL) OR
         (payment_status = 'unpaid' AND bank_account_code IS NULL)
-    )
+    ),
+    -- ── LOG-4a 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
+    -- 【direction 没有 schema 默认值】看得见的默认值才不是假设(FIN-36)。
+    -- 一个默认成 inbound 的出口运费会安静地钻进存货 —— 那正是
+    -- docs/landed-cost-scoping.md 说的"看不见的错误"。
+    direction         text NOT NULL CHECK (direction IN ('inbound','outbound')),
+    -- 出口运费【可以】指向一个箱子,但单据本身才是钱的对象(Tim 定)。
+    container_id      uuid REFERENCES public.containers (id),
+    -- 冲销的留痕(AUDEL 家族:谁、为什么、哪一张冲销分录)
+    reversed_at       timestamptz,
+    reversed_by       uuid,
+    reversal_reason   text,
+    reversal_entry_id uuid REFERENCES public.journal_entries (id)
 );
 
 COMMENT ON COLUMN public.freight_documents.supplier_id IS
@@ -47,9 +59,36 @@ COMMENT ON COLUMN public.freight_documents.supplier_id IS
 COMMENT ON COLUMN public.freight_documents.allocation_basis IS
     'FRT-1:这一单怎么分到各批 —— weight(按重量)/ value(按货值)/ stated(单据自己列明)。【逐单申报,不给 schema 默认值】:重量口径与货值口径【恰恰在最要紧的时候分歧最大】(一批轻而贵的货与一批重而便宜的货同船)。stated 不是点缀:货代常常自己列明,而对一张已经回答了这个问题的单据再去分摊,是在编造一个分法。';
 
+COMMENT ON COLUMN public.freight_documents.direction IS
+    'LOG-4a:这张运费单是【进货运费】还是【出口运费】。两者【不是同一种成本】:
+inbound 资本化进批次成本(借 1200/5000,分摊到进料批);outbound 是期间费用(借 6300),
+永不进存货、永不进 COGS、【永远没有分摊行】(freight_allocations 上的守卫按名拒)。
+没有 schema 默认值 —— 一个默认成 inbound 的出口运费会安静地钻进存货,
+而那正是 docs/landed-cost-scoping.md 说的"看不见的错误"。';
+COMMENT ON COLUMN public.freight_documents.container_id IS
+    'LOG-4a:出口运费【可以】指向一个箱子,但单据本身才是钱的对象(Tim 定)——
+所以这一列可空:货代的一张账单可能同时覆盖几个箱子,也可能在箱子建档之前就到。
+指了就必须指得中:箱子不存在或已软删【按名拒】(EXPORT_FREIGHT_CONTAINER_NOT_FOUND)。
+进货运费不用这一列 —— 它的归属是分摊行指向的那些进料批。';
+COMMENT ON COLUMN public.freight_documents.reversal_reason IS
+    'LOG-4a:冲销的理由,必填(AUDEL 家族)。没有理由的冲销,事后没人答得出为什么。';
+
 CREATE TRIGGER trg_freight_documents_updated_at
     BEFORE UPDATE ON public.freight_documents
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- LOG-4a:运费的对手方只能是货代。containers.forwarder_id 与
+-- forwarder_rate_quotes.supplier_id 早就有这条守卫,【唯独运费单没有】——
+-- FRT-1 早于 counterparty_type,那是时间差,不是决定。
+CREATE TRIGGER trg_freight_documents_forwarder
+    BEFORE INSERT OR UPDATE OF supplier_id ON public.freight_documents
+    FOR EACH ROW EXECUTE FUNCTION guard_freight_document_forwarder();
+
+-- LOG-4a:status 不再是手改得到的 —— 'reversed' 只能由 reverse_freight_document
+-- 写进去,它会记下理由、经手人,并冲掉那张分录。
+CREATE TRIGGER trg_freight_documents_status_guard
+    BEFORE UPDATE ON public.freight_documents
+    FOR EACH ROW EXECUTE FUNCTION guard_freight_status_transition();
 
 ALTER TABLE public.freight_documents ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "freight_documents select by permission"
@@ -90,3 +129,9 @@ CREATE POLICY "freight_allocations write by permission"
     WITH CHECK (has_permission('module.finance.edit'));
 
 CREATE INDEX idx_freight_allocations_batch ON public.freight_allocations (inbound_batch_id);
+
+-- LOG-4a:出境单据【没有分摊行】—— 在表上拒,不是靠"RPC 没提供那条路"。
+-- RPC 不提供只是没铺路,守卫才是墙,而直插是这套系统里真实存在的一条路。
+CREATE TRIGGER trg_freight_allocations_direction
+    BEFORE INSERT OR UPDATE ON public.freight_allocations
+    FOR EACH ROW EXECUTE FUNCTION guard_freight_allocation_direction();
