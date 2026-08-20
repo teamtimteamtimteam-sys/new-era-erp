@@ -7,6 +7,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import LogisticsSubnav from '../Subnav'
+import NewContainerForm from './NewContainerForm'
 
 export default async function ContainersPage() {
     const denied = await requireModule(MOD.logistics)
@@ -53,16 +54,24 @@ export default async function ContainersPage() {
             <h1 className="text-2xl font-bold mb-4">{t('logistics.containersTitle')}</h1>
             <LogisticsSubnav />
 
-            {/* LOG-2b:【这里本该是新建表单,而它没有做成 —— 理由写在屏幕上】。
-                无缝的 CTR- 取号器对 authenticated 是收权的(LOG-2a-fu1 为了 B2 那条不变式),
-                而收权是对的:它没有调用者检查,靠的就是调不到。正确的形状是一个
-                SECURITY DEFINER 的 create_container(),正如 ship_order 在自己体内调
-                next_shipment_code —— 但那是【库改】,本刀只动渲染层。
-                【绝不摆一个服务端一定会拒绝的按钮】(LOG-1c 立下的那条),
-                所以这里不是一个坏掉的表单,是一句说得出下一步的话。 */}
-            <p className="mt-4 max-w-3xl rounded border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                {t('logistics.createBlocked')}
-            </p>
+            <NewContainerForm
+                lanes={lanes.map((l) => ({ id: l.id as string, label: laneLabel(l.id as string) }))}
+                forwarders={forwarders.map((f) => ({ id: f.id as string, label: f.legal_name as string }))}
+                labels={{
+                    heading: t('logistics.newContainer'),
+                    lane: t('logistics.colLane'),
+                    departure: t('logistics.colDeparture'),
+                    departureHint: t('logistics.departureHint'),
+                    containerNumber: t('logistics.colContainerNumber'),
+                    vessel: t('logistics.colVessel'),
+                    voyage: t('logistics.colVoyage'),
+                    forwarder: t('logistics.colName'),
+                    bl: t('logistics.blNumber'),
+                    blHint: t('logistics.blHint'),
+                    submit: t('logistics.newContainer'),
+                    noLanes: t('logistics.noLanes'),
+                }}
+            />
 
             {rows.length === 0 ? (
                 <p className="mt-6 max-w-2xl rounded border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">

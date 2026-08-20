@@ -15752,6 +15752,19 @@ export type Database = {
         Returns: Json
       }
       correct_task_type: { Args: { p_task_id: string }; Returns: undefined }
+      create_container: {
+        Args: {
+          p_bl_number?: string
+          p_container_number?: string
+          p_departure_date: string
+          p_forwarder_id?: string
+          p_lane_id: string
+          p_notes?: string
+          p_vessel?: string
+          p_voyage?: string
+        }
+        Returns: Json
+      }
       create_credit_note: {
         Args: {
           p_invoice_id: string
