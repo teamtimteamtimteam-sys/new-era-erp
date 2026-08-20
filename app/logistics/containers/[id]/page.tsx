@@ -26,6 +26,20 @@ export default async function ContainerDetailPage({ params }: { params: Promise<
     if (head.error) throw new Error(head.error.message)
     if (!head.data) notFound()
 
+    // CTN-FWD:承运方候选与当前那一家的名字。【只列货代】—— 与运费录入页
+    // 那一处同向(.eq),与其余十一处 .neq 相反,所以它单独写在这里。
+    const forwarders = mustRows(
+        await supabase.from('suppliers').select('id, legal_name')
+            .is('deleted_at', null).eq('counterparty_type', 'forwarder').order('legal_name'),
+        'forwarders'
+    ) as unknown as { id: string; legal_name: string }[]
+    // 【先把它取到一个局部里】—— notFound() 的收窄跨不过回调,
+    // 在 .find() 里再读 head.data 会被 TS 判成可能为 null。
+    const fwdId = head.data.forwarder_id as string | null
+    const forwarderName = fwdId
+        ? (forwarders.find((f) => f.id === fwdId)?.legal_name ?? null)
+        : null
+
     const ov = await supabase.from('container_overview').select('lane_checklist_state').eq('id', id).maybeSingle()
     if (ov.error) throw new Error(ov.error.message)
 
@@ -82,7 +96,10 @@ export default async function ContainerDetailPage({ params }: { params: Promise<
                     bl_number: head.data.bl_number,
                     notes: head.data.notes,
                     expected_arrival_date: head.data.expected_arrival_date as string | null,
+                    forwarder_id: fwdId,
+                    forwarder_name: forwarderName,
                 }}
+                forwarders={forwarders.map((f) => ({ id: f.id, name: f.legal_name }))}
                 hasLane={head.data.lane_id !== null}
                 laneChecklistState={(ov.data?.lane_checklist_state as string) ?? 'no_lane'}
                 attached={attached.map((r) => shape(r as Record<string, unknown>))}
@@ -125,6 +142,10 @@ export default async function ContainerDetailPage({ params }: { params: Promise<
                     // LOG-5b
                     etaLabel: t('logistics.etaLabel'), etaHint: t('logistics.etaHint'),
                     checklistDefinedNotInstantiated: t('logistics.checklistDefinedNotInstantiated'),
+                    // CTN-FWD
+                    forwarderLabel: t('logistics.containerForwarder'),
+                    forwarderNone: t('logistics.containerForwarderNone'),
+                    forwarderHint: t('logistics.containerForwarderHint'),
                 }}
             />
 

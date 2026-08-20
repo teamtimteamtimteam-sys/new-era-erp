@@ -122,7 +122,13 @@ export default async function ContainerFreightPanel({
             <div className="mb-6 rounded-lg border border-gray-300 p-4">
                 <h3 className="font-semibold mb-2 text-sm">{t('logistics.freeTimeHeading')}</h3>
                 {!forwarderId ? (
-                    <p className="text-sm text-gray-600 max-w-3xl">{t('logistics.freeTimeNoForwarder')}</p>
+                    /* 【指向那个控件】—— 与"清单从没实例化过"那句指向它的按钮同一条:
+                       一句说出缺什么的话,要顺带说出去哪里补。此前这一句指着的是一个
+                       【没有门】的字段(CTN-FWD 之前箱子页既不显示也不能改承运方)。 */
+                    <p className="text-sm text-gray-600 max-w-3xl">
+                        {t('logistics.freeTimeNoForwarder')}{' '}
+                        <span className="text-gray-800">{t('logistics.containerNoForwarderPointer')}</span>
+                    </p>
                 ) : quoteState.kind !== 'found' ? (
                     <p className="text-sm text-gray-600 max-w-3xl">{t('logistics.freeTimeNoQuote')}</p>
                 ) : arrivedOn === null ? (
@@ -202,7 +208,8 @@ export default async function ContainerFreightPanel({
                 <div className="border border-gray-300 rounded-lg p-4">
                     <h3 className="font-semibold mb-2 text-sm">{t('logistics.freightQuoteHeading')}</h3>
                     {quoteState.kind === 'no_lane' && empty(t('logistics.quoteNoLane'))}
-                    {quoteState.kind === 'no_forwarder' && empty(t('logistics.quoteNoForwarder'))}
+                    {quoteState.kind === 'no_forwarder' && empty(
+                        t('logistics.quoteNoForwarder') + ' ' + t('logistics.containerNoForwarderPointer'))}
                     {quoteState.kind === 'none_from_forwarder' && empty(t('logistics.quoteNoneFromForwarder'))}
                     {quoteState.kind === 'not_valid_on_departure'
                         && empty(t('logistics.quoteNotValidOnDeparture', { date: departureDate }))}

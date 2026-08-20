@@ -12,11 +12,13 @@ type Ms = { id: string; milestone: string; event_date: string; note: string | nu
 type Doc = { id: string; document_type: string; regime: string | null; status: string; na_reason: string | null; from_lane: boolean }
 
 export default function ContainerPanels({
-    containerId, head, hasLane, laneChecklistState, attached, attachable,
+    containerId, head, forwarders, hasLane, laneChecklistState, attached, attachable,
     milestones, documents, milestoneTypes, labels,
 }: {
     containerId: string
-    head: { container_number: string | null; vessel: string | null; voyage: string | null; bl_number: string | null; notes: string | null; expected_arrival_date: string | null }
+    head: { container_number: string | null; vessel: string | null; voyage: string | null; bl_number: string | null; notes: string | null; expected_arrival_date: string | null
+            forwarder_id: string | null; forwarder_name: string | null }
+    forwarders: { id: string; name: string }[]
     hasLane: boolean
     laneChecklistState: string
     attached: Ship[]; attachable: Ship[]
@@ -53,6 +55,8 @@ export default function ContainerPanels({
                             notes: (d.get('notes') as string)?.trim() || null,
                             // 【清空 → null】—— 撤回一个估计是"没有 ETA",不是一个错误
                             expected_arrival_date: (d.get('expected_arrival_date') as string)?.trim() || null,
+                            // 【清回"不指定" → null】—— 承运方还没定是一个真实的状态
+                            forwarder_id: (d.get('forwarder_id') as string)?.trim() || null,
                         })) }}
                 >
                     <div><label className="block text-xs font-medium mb-1">{labels.containerNumber}</label>
@@ -63,6 +67,16 @@ export default function ContainerPanels({
                         <input name="voyage" defaultValue={head.voyage ?? ''} className={`${field} w-24`} /></div>
                     <div><label className="block text-xs font-medium mb-1">{labels.bl}</label>
                         <input name="bl_number" defaultValue={head.bl_number ?? ''} className={field} /></div>
+                    {/* 【承运方:免柜期与报价都按它去查】所以它必须在这一页上改得动 ——
+                        此前这一页既不显示也不能改它,而免柜期那一行却有一句
+                        "箱子没有指定货代" —— 一句指着一个没有门的字段的话。 */}
+                    <div><label className="block text-xs font-medium mb-1">{labels.forwarderLabel}</label>
+                        <select name="forwarder_id" defaultValue={head.forwarder_id ?? ''} className={field}>
+                            <option value="">{labels.forwarderNone}</option>
+                            {forwarders.map((f) => (
+                                <option key={f.id} value={f.id}>{f.name}</option>
+                            ))}
+                        </select></div>
                     {/* 【世界那一侧的日期:永不预填】没有 defaultValue 的兜底,
                         没有"默认今天",空着就是空着 —— 与 event_date 那条列注释同一条规矩。 */}
                     <div><label className="block text-xs font-medium mb-1">{labels.etaLabel}</label>
@@ -75,6 +89,16 @@ export default function ContainerPanels({
                 {/* 【开航日不在这里改】—— 它在 DB 上没有开口子给按列放行,改它要另一条路 */}
                 <p className="mt-2 text-xs text-gray-500">{labels.blHint}</p>
                 <p className="mt-1 text-xs text-gray-500 max-w-3xl">{labels.etaHint}</p>
+                <p className="mt-1 text-xs text-gray-500 max-w-3xl">{labels.forwarderHint}</p>
+                {/* 【设了就把它显示成一个门牌】—— 报价与免柜天数编辑在货代那一页,
+                    所以这里给出去那一页的路,而不只是一个名字。 */}
+                {head.forwarder_id && head.forwarder_name && (
+                    <p className="mt-2 text-sm">
+                        <span className="text-gray-500">{labels.forwarderLabel}: </span>
+                        <Link href={`/logistics/forwarders/${head.forwarder_id}`}
+                            className="text-blue-700 hover:underline">{head.forwarder_name}</Link>
+                    </p>
+                )}
             </section>
 
             {/* ── 装着的发货单 ── */}

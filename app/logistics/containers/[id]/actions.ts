@@ -15,6 +15,13 @@ export async function saveContainerHead(id: string, input: {
     // 一个被撤回的估计的正确写法是"没有 ETA",而 date 列收到 '' 会直接报类型错。
     // 清空是一个【正当动作】,不是一次失败(container_eta_overdue 对 NULL 沉默)。
     expected_arrival_date: string | null
+    // CTN-FWD:承运方。【既有的这扇门装得下它 —— 查证过,不是假设】:
+    // forwarder_id 对 authenticated 有列级 UPDATE 授权,containers 的写策略是
+    // ALL(module.purchasing.edit),而唯一挂在它上面的守卫
+    // guard_container_forwarder 【允许 NULL、允许货代】,只按名拒非货代
+    // (CONTAINER_FORWARDER_NOT_A_FORWARDER)。所以不需要新的写入路径。
+    // 【空字符串 → NULL】清回"不指定"是一个正当动作,不是一次失败。
+    forwarder_id: string | null
 }): Promise<Result> {
     const supabase = await createClient()
     const { error } = await supabase.from('containers').update(input as never).eq('id', id)
