@@ -19,6 +19,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatAmount } from '@/lib/format'
 import { mustRows } from '@/lib/db-helpers'
+import { operativeOf } from './operativeMilestone'
 
 type Doc = {
     id: string; code: string; doc_date: string
@@ -68,16 +69,17 @@ export default async function ContainerFreightPanel({
     // 它一次都不会生效。线上 CTR-2026-0009 就是这么躺着的:
     // arrived 08-16(先录)、arrived 08-14(后录、更早),所有读者仍锚在 08-16。
     // ════════════════════════════════════════════════════════════════════════
+    // CTN-OP:【判据不再写在这条查询的 ORDER BY 里】—— 它与时间轴上那个
+    // 「当前认定」标记必须是同一句话,所以两处都调 operativeMilestone.ts。
+    // 排序从 SQL 挪进那一份判据,行为不变(fetch 全部 arrived,再挑算数的那条);
+    // 变的是【这条规则在页面这一侧只剩一份】。
     const arrivals = mustRows(
         await supabase.from('container_milestones')
-            .select('id, event_date, recorded_at')
-            .eq('container_id', containerId).eq('milestone', 'arrived')
-            .order('recorded_at', { ascending: false })
-            .order('id', { ascending: false })
-            .limit(1),
+            .select('id, milestone, event_date, recorded_at')
+            .eq('container_id', containerId).eq('milestone', 'arrived'),
         'container arrivals'
-    ) as unknown as { event_date: string }[]
-    const arrivedOn = arrivals[0]?.event_date ?? null
+    ) as unknown as { id: string; milestone: string; event_date: string; recorded_at: string }[]
+    const arrivedOn = operativeOf(arrivals, 'arrived')?.event_date ?? null
 
     // ── 报价那一侧 ──────────────────────────────────────────────────────────
     let quoteState:

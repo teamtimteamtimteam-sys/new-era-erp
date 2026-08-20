@@ -12,13 +12,15 @@ type Ms = { id: string; milestone: string; event_date: string; note: string | nu
 type Doc = { id: string; document_type: string; regime: string | null; status: string; na_reason: string | null; from_lane: boolean }
 
 export default function ContainerPanels({
-    containerId, head, forwarders, hasLane, laneChecklistState, attached, attachable,
+    containerId, head, forwarders, hasLane, laneChecklistState, attached, attachable, operativeIds,
     milestones, documents, milestoneTypes, labels,
 }: {
     containerId: string
     head: { container_number: string | null; vessel: string | null; voyage: string | null; bl_number: string | null; notes: string | null; expected_arrival_date: string | null
             forwarder_id: string | null; forwarder_name: string | null }
     forwarders: { id: string; name: string }[]
+    /** CTN-OP:每一种里程碑里【算数】的那一条的 id(operativeMilestone.ts 判定) */
+    operativeIds: string[]
     hasLane: boolean
     laneChecklistState: string
     attached: Ship[]; attachable: Ship[]
@@ -189,20 +191,37 @@ export default function ContainerPanels({
                     <p className="text-sm text-gray-500">{labels.milestonesEmpty}</p>
                 ) : (
                     <ol className="space-y-1 text-sm">
-                        {milestones.map((m, i) => {
-                            // 【更正读起来要像更正】:同一个里程碑出现第二次时,
-                            // 后记的那一条是更正 —— 列表按日期倒序,所以先出现的是最新的一条。
-                            const isCorrection = milestones.findIndex((x) => x.milestone === m.milestone) !== i
+                        {milestones.map((m) => {
+                            // ════════════════════════════════════════════════════════
+                            // 【此前这里算错了,而且恰好把真相说反】旧写法是
+                            //   findIndex(同类型) !== i —— 即"在【当前显示顺序】里
+                            //   第一次出现的那条是原始行"。而列表是按 event_date 排的,
+                            //   于是【日期最晚】的那条被当成原始行(不打标),
+                            //   后录的更正反而被打上 ↺。Tim 正是这么把顶行读成了系统的答案。
+                            // 现在:算数的那条由 operativeMilestone.ts 判定
+                            //   (recorded_at DESC, id DESC —— 与库里那两支臂同一条规则),
+                            //   显示顺序【一个字没动】,仍然按事件日读。
+                            // ════════════════════════════════════════════════════════
+                            const isOperative = operativeIds.includes(m.id)
                             return (
-                                <li key={m.id} className="flex gap-3 border-l-2 border-gray-200 pl-3">
-                                    <span className="font-mono text-xs text-gray-500 w-24">{m.event_date}</span>
-                                    <span className="font-medium">{m.label}</span>
-                                    {isCorrection && <span className="rounded bg-amber-100 px-1.5 text-xs text-amber-900">↺</span>}
-                                    {m.note && <span className="text-gray-600">{m.note}</span>}
+                                <li key={m.id}
+                                    className={'flex gap-3 border-l-2 pl-3 '
+                                        + (isOperative ? 'border-gray-400' : 'border-gray-200 text-gray-400')}>
+                                    <span className={'font-mono text-xs w-24 ' + (isOperative ? 'text-gray-600' : 'text-gray-400')}>
+                                        {m.event_date}
+                                    </span>
+                                    <span className={isOperative ? 'font-medium' : ''}>{m.label}</span>
+                                    {isOperative
+                                        ? <span className="rounded bg-emerald-100 px-1.5 text-xs text-emerald-900">{labels.milestoneOperative}</span>
+                                        : <span className="rounded bg-gray-100 px-1.5 text-xs text-gray-500">↺ {labels.milestoneSuperseded}</span>}
+                                    {m.note && <span>{m.note}</span>}
                                 </li>
                             )
                         })}
                     </ol>
+                )}
+                {milestones.length > 0 && (
+                    <p className="mt-3 max-w-3xl text-xs text-gray-600">{labels.milestoneLegend}</p>
                 )}
             </section>
 

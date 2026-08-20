@@ -10,6 +10,7 @@ import { MOD } from '@/lib/modules'
 import LogisticsSubnav from '../../Subnav'
 import ContainerPanels from './ContainerPanels'
 import ContainerFreightPanel from './ContainerFreightPanel'
+import { operativeMilestoneIds } from './operativeMilestone'
 
 export default async function ContainerDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const denied = await requireModule(MOD.logistics)
@@ -61,6 +62,12 @@ export default async function ContainerDetailPage({ params }: { params: Promise<
             .eq('container_id', id).order('event_date', { ascending: false }).order('recorded_at', { ascending: false }),
         'milestones'
     )
+    // CTN-OP:【哪一条算数】只判一次,判据在 operativeMilestone.ts —— 显示顺序
+    // 仍然是上面那句 order by event_date,两件事分开。
+    const operativeIds = [...operativeMilestoneIds(milestones.map((m) => ({
+        id: m.id as string, milestone: m.milestone as string, recorded_at: m.recorded_at as string,
+    })))]
+
     const documents = mustRows(
         await supabase.from('container_documents')
             .select('id, document_type, regime, status, na_reason, from_lane')
@@ -114,6 +121,7 @@ export default async function ContainerDetailPage({ params }: { params: Promise<
                     regime: (d.regime as string | null) ?? null, status: d.status as string,
                     na_reason: (d.na_reason as string | null) ?? null, from_lane: d.from_lane as boolean,
                 }))}
+                operativeIds={operativeIds}
                 // 【真源是库里那条 CHECK】(db/tables/container_milestones.sql)。
                 // 这里只决定【下拉的顺序】;往库里加一个里程碑时,check-i18n 会立刻
                 // 要求两个语言补标签(manifest 接的就是那条 CHECK),于是这一行不会被悄悄落下。
@@ -142,6 +150,9 @@ export default async function ContainerDetailPage({ params }: { params: Promise<
                     // LOG-5b
                     etaLabel: t('logistics.etaLabel'), etaHint: t('logistics.etaHint'),
                     checklistDefinedNotInstantiated: t('logistics.checklistDefinedNotInstantiated'),
+                    milestoneOperative: t('logistics.milestoneOperative'),
+                    milestoneSuperseded: t('logistics.milestoneSuperseded'),
+                    milestoneLegend: t('logistics.milestoneLegend'),
                     // CTN-FWD
                     forwarderLabel: t('logistics.containerForwarder'),
                     forwarderNone: t('logistics.containerForwarderNone'),
