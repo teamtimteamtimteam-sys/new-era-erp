@@ -86,6 +86,18 @@ BEGIN
             END IF;
 
             v_qty := (v_el->>'quantity')::numeric;
+            -- EQP-1a-TAIL:设备行同一条规矩 —— 省略即给默认,给错则按名拒。
+            IF (v_el->>'asset_id') IS NOT NULL THEN
+                IF v_qty IS NULL THEN v_qty := 1; END IF;
+                IF v_qty <> 1 THEN
+                    RAISE EXCEPTION 'PO_LINE_EQUIPMENT_QTY|%|%', COALESCE(v_el->>'line_no','?'), v_qty
+                      USING HINT = '一条设备行订的是【一台】机器 —— 四台是四条行';
+                END IF;
+                IF COALESCE(v_el->>'unit', 'unit') <> 'unit' THEN
+                    RAISE EXCEPTION 'PO_LINE_EQUIPMENT_UNIT|%|%', COALESCE(v_el->>'line_no','?'), v_el->>'unit'
+                      USING HINT = '设备行的计量单位恒为 unit —— 留空即取它';
+                END IF;
+            END IF;
             IF v_qty IS NULL OR v_qty <= 0 THEN
                 RAISE EXCEPTION 'PO_LINE_QUANTITY_INVALID|%', COALESCE(v_el->>'line_no', '?');
             END IF;
@@ -110,7 +122,7 @@ BEGIN
                         (SELECT COALESCE(MAX(line_no), 0) + 1 FROM purchase_order_lines
                           WHERE purchase_order_id = p_purchase_order_id)),
                     (v_el->>'material_id')::uuid, (v_el->>'asset_id')::uuid,
-                    v_qty, COALESCE(v_el->>'unit', 'kg'),
+                    v_qty, COALESCE(v_el->>'unit', CASE WHEN (v_el->>'asset_id') IS NOT NULL THEN 'unit' ELSE 'kg' END),
                     v_price, round(v_qty * COALESCE(v_price, 0), 2), v_el->>'notes', v_user);
             ELSE
                 -- 【已收下限由触发器把关】砍到已收之下 → PO_LINE_BELOW_RECEIVED
@@ -179,4 +191,5 @@ BEGIN
         'approval_status', (SELECT approval_status FROM purchase_orders WHERE id = p_purchase_order_id));
 END;
 $function$
+
 

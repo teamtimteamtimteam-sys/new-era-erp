@@ -37,8 +37,24 @@ CREATE TABLE public.purchase_order_lines (
     -- ── EQP-1a 追加(ALTER 加的列排在末尾)──────────────────────────────────
     asset_id             uuid REFERENCES public.fixed_assets (id),
     CONSTRAINT purchase_order_lines_material_xor_asset
-        CHECK (num_nonnulls(material_id, asset_id) = 1)
+        CHECK (num_nonnulls(material_id, asset_id) = 1),
+    -- ── EQP-1a-TAIL:两条约定变成规则(它们在【表上】,直插也逃不掉)────────
+    CONSTRAINT purchase_order_lines_equipment_qty_one
+        CHECK (asset_id IS NULL OR quantity = 1),
+    CONSTRAINT purchase_order_lines_equipment_unit
+        CHECK (asset_id IS NULL OR unit = 'unit')
 );
+
+COMMENT ON CONSTRAINT purchase_order_lines_equipment_qty_one ON public.purchase_order_lines IS
+'EQP-1a-TAIL:一条设备行订的是【一台】机器 —— quantity 恒为 1。
+四台机器是四条行(或四张单),不是一条 quantity = 4 的行:它们各有各的资产卡、
+各自的投用日与折旧。材料行(asset_id IS NULL)不受这条约束。';
+
+COMMENT ON CONSTRAINT purchase_order_lines_equipment_unit ON public.purchase_order_lines IS
+'EQP-1a-TAIL:设备行的计量单位恒为 ''unit''。
+【这条 CHECK 存在的全部理由】unit 的列默认值是 ''kg'' —— 省略它的设备行会
+无声地变成公斤,而 purchase_order_status.ordered_qty 是一个【不看单位】的
+sum(quantity),于是那台机器会被加进公斤里。约定挡不住"忘了填",CHECK 挡得住。';
 
 COMMENT ON COLUMN public.purchase_order_lines.price_source IS
     '行价的出处(FIN-26):computed = 估算按钮产出(必带 price_provenance);manual = 手填。NULL = FIN-26 之前的行,当时没记 —— 【不回填猜测】,界面画"未知"。不要从 expected_assay 推断。';

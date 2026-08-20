@@ -377,10 +377,11 @@ expected_arrival_date 与里程碑;**把它用于进口所缺的是"装什么"�
    没有错误、没有空行,只是那台机器不在纸上。这是本次枚举里最危险的一条。
 2. `po_receivable_lines` —— **不会**(缺席是对的:设备行本来就不可收货)。
 3. `grn_discrepancies` —— **不会**(它从收货行反查,设备行没有收货行)。
-4. **`purchase_order_status.ordered_qty` —— 会,但是既有的病**:
-   `sum(pol.quantity)` 跨行相加而【不看单位】。今天线上 6 行全是 `kg`,
-   所以还没现形;一台机器进来就是 "1" 加进 "50000",而 `unit` 上【没有 CHECK】,
-   它是自由文本、默认 `'kg'`。**报告,不在本刀修** —— 它先于设备存在。
+4. **`purchase_order_status.ordered_qty` —— 会,但是既有的病。**
+   **【EQP-1a-TAIL 把这条记录搬走了】** 它是一个【重建之后依然存在】的结构缺陷,
+   所以正确的归档处是 `docs/known-issues.md` 的
+   「`purchase_order_status.ordered_qty` 是一个不看单位的合计」一节,不是这份勘察。
+   这里留一行指路,而不是悄悄删掉。
 
 ## Q2 · NOT NULL 的行列对一台机器意味着什么(报告,不发明约定)
 

@@ -25,7 +25,7 @@ DECLARE
     r_all uuid;
     v_sup uuid; v_mat uuid; v_ccy text;
     v_asset uuid; v_res jsonb;
-    po_mat uuid; po_eqp uuid; line_mat uuid; line_eqp uuid;
+    po_mat uuid; po_eqp uuid; po_a4 uuid; line_mat uuid; line_eqp uuid;
     v_n int; v_msg text; v_denied boolean; v_doc jsonb;
 BEGIN
     SELECT code INTO v_ccy FROM currencies WHERE is_base;
@@ -165,6 +165,52 @@ BEGIN
     IF (v_doc->'lines'->0->>'material_name') IS DISTINCT FROM 'fixture 103 press' THEN
         RAISE EXCEPTION 'FIXTURE 103F5 失败:那一行的名字应当回退到资产描述,实得 %',
             COALESCE(v_doc->'lines'->0->>'material_name', '(空)');
+    END IF;
+
+    -- ══════════ A · EQP-1a-TAIL:两条【约定】现在是【规则】 ═════════════════
+    -- 【这一段钉的是"忘了填"这件事】此前 quantity = 1 / unit = 'unit' 只活在
+    -- 这份 fixture 里,而 unit 的列默认值是 'kg' —— 一条省略了 unit 的设备行会
+    -- 【无声地变成公斤】,再被 ordered_qty 那个不看单位的 sum 加进去。
+    -- 约定挡不住"忘了填",CHECK 挡得住。三臂都用【直插】,因为要证的是
+    -- 【表】上的拒绝,不是 RPC 的拒绝(RPC 那一层另有具名拒绝,见迁移 T3)。
+
+    -- A4 · 【前提先立】材料行照旧:'kg' + 任意数量,插得进去
+    -- 【自己一张单】—— 第一版往 po_mat 上加行,把 F6 那条"单据恰一行"的前提搅了
+    -- (README 第 2 条:用例之间不共享可变状态,否则会因为错的理由红/绿)。
+    v_res := create_purchase_order(v_sup, DATE '2027-01-12', DATE '2027-04-01', v_ccy, NULL,
+        NULL, NULL, 'fixture 103 A4 material PO',
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 250,
+                                             'unit', 'kg', 'estimated_unit_price', 3)));
+    po_a4 := (v_res->>'purchase_order_id')::uuid;
+    SELECT count(*) INTO v_n FROM purchase_order_lines
+     WHERE purchase_order_id = po_a4 AND unit = 'kg' AND quantity = 250;
+    IF v_n <> 1 THEN
+        RAISE EXCEPTION 'FIXTURE 103A4 前提失败:材料行应当照旧插得进(kg + 任意数量),实得 % —— 前提不成立的话,下面两条拒绝证明不了"只拦设备行"',
+            v_n;
+    END IF;
+
+    -- A1 · 设备行【省略 unit】→ 落到列默认值 'kg' → 必须被拒(本刀的全部理由)
+    v_denied := false; v_msg := NULL;
+    BEGIN
+        INSERT INTO purchase_order_lines (purchase_order_id, line_no, asset_id, quantity)
+        VALUES (po_eqp, 81, v_asset, 1);
+    EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
+    END;
+    IF NOT v_denied OR position('purchase_order_lines_equipment_unit' in v_msg) = 0 THEN
+        RAISE EXCEPTION 'FIXTURE 103A1 失败:省略 unit 的设备行必须被 purchase_order_lines_equipment_unit 拒,实得 denied=% msg=% —— 不拒就是【无声变成公斤】,而那正是这一刀存在的理由',
+            v_denied, COALESCE(v_msg, '(收下了)');
+    END IF;
+
+    -- A2 · 设备行 quantity <> 1 → 必须被拒
+    v_denied := false; v_msg := NULL;
+    BEGIN
+        INSERT INTO purchase_order_lines (purchase_order_id, line_no, asset_id, quantity, unit)
+        VALUES (po_eqp, 82, v_asset, 5, 'unit');
+    EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
+    END;
+    IF NOT v_denied OR position('purchase_order_lines_equipment_qty_one' in v_msg) = 0 THEN
+        RAISE EXCEPTION 'FIXTURE 103A2 失败:quantity <> 1 的设备行必须被 purchase_order_lines_equipment_qty_one 拒,实得 denied=% msg=% —— 四台机器是四条行,各有各的资产卡与投用日',
+            v_denied, COALESCE(v_msg, '(收下了)');
     END IF;
 
     -- ══════════ F6 · 门移动不是拓宽(第二半:改单 + 单据)═══════════════════

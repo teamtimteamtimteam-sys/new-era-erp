@@ -3088,6 +3088,8 @@ const en = {
             ASSET_NOT_FOUND: 'No asset card {0}. A purchase-order line references a machine that already exists; it does not create one.',
             PO_LINES_MIXED_KINDS: 'Purchase order {0} would end up holding {1} material line(s) and {2} equipment line(s). One order is either all material or all equipment — mixing them makes its ordered quantity a number that adds kilograms to machines.',
             PO_LINE_EQUIPMENT_NOT_RECEIVABLE: 'Receipt {0} is against an equipment line. A machine arriving is not a stock receipt — it creates no batch, has no assay and enters no location. Its arrival is recorded as the in-service date on the asset card.',
+            PO_LINE_EQUIPMENT_QTY: 'Line {0} orders one machine, so its quantity must be 1 — you sent {1}. Four machines are four lines: each has its own asset card, its own in-service date and its own depreciation.',
+            PO_LINE_EQUIPMENT_UNIT: 'Line {0} orders a machine, so its unit is "unit" — you sent "{1}". Leave it out and it is filled in for you; sending kg would add that machine into a kilogram total.',
             PO_NOT_RECEIVABLE: 'Purchase order {0} is {1} and cannot receive goods — reopen it first',
             PO_NOT_APPROVED: 'Purchase order {0} is not approved yet (approval status: {1}) — goods cannot be received against it',
             SUPPLIER_QUALIFICATION_EXPIRED: 'Receiving from supplier {0} is blocked: certificate {1} expired on {2}. Renew it under Suppliers → Compliance',

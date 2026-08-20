@@ -26,6 +26,8 @@ const PURCHASING_ERROR_CODES = new Set([
     // EQP-1a:采购单装得下一台机器之后,新出现的四条具名拒绝
     'PO_LINE_KIND_INVALID', 'ASSET_NOT_FOUND',
     'PO_LINES_MIXED_KINDS', 'PO_LINE_EQUIPMENT_NOT_RECEIVABLE',
+    // EQP-1a-TAIL:设备行的数量与单位从【约定】变成【规则】
+    'PO_LINE_EQUIPMENT_QTY', 'PO_LINE_EQUIPMENT_UNIT',
     // CMP-2:这两个码一直会从收货触发器抛出,却不在这张表里 —— 打到操作员脸上的
     // 是裸管道串。拒绝要点名(供应商、证书、过期日 / 采购单、审批状态),用人话。
     'SUPPLIER_QUALIFICATION_EXPIRED', 'PO_NOT_APPROVED',

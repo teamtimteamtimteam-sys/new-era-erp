@@ -103,6 +103,20 @@ BEGIN
         ) THEN
             RAISE EXCEPTION 'ASSET_NOT_FOUND|%', COALESCE(v_asset::text, '?');
         END IF;
+        -- EQP-1a-TAIL:设备行的 quantity 与 unit 【省略即给默认,给错则按名拒】。
+        -- 只给默认不够 —— 一个明确传了 quantity = 5 的调用方会通过下面那条
+        -- "> 0" 的校验,然后撞上一条【裸的约束违例】,而屏幕上永不出现裸码。
+        IF v_asset IS NOT NULL THEN
+            IF v_qty IS NULL THEN v_qty := 1; END IF;
+            IF v_qty <> 1 THEN
+                RAISE EXCEPTION 'PO_LINE_EQUIPMENT_QTY|%|%', v_line_no, v_qty
+                  USING HINT = '一条设备行订的是【一台】机器 —— 四台是四条行,它们各有各的资产卡与投用日';
+            END IF;
+            IF COALESCE(v_line->>'unit', 'unit') <> 'unit' THEN
+                RAISE EXCEPTION 'PO_LINE_EQUIPMENT_UNIT|%|%', v_line_no, v_line->>'unit'
+                  USING HINT = '设备行的计量单位恒为 unit —— 留空即取它;填 kg 会让这台机器被加进公斤里';
+            END IF;
+        END IF;
         IF v_qty IS NULL OR v_qty <= 0 THEN
             RAISE EXCEPTION 'LINE_QTY_INVALID|%', v_line_no;
         END IF;
@@ -146,7 +160,7 @@ BEGIN
                                           estimated_amount_ccy, expected_assay, notes, created_by,
                                           price_source, price_provenance)
         VALUES (v_po_id, v_line_no, v_material, v_asset, v_qty,
-                COALESCE(v_line->>'unit', 'kg'), v_formula, v_price,
+                COALESCE(v_line->>'unit', CASE WHEN v_asset IS NOT NULL THEN 'unit' ELSE 'kg' END), v_formula, v_price,
                 v_amount, v_line->'expected_assay', v_line->>'notes', v_user,
                 v_src, v_prov)
         RETURNING id INTO v_line_id;
@@ -214,4 +228,5 @@ BEGIN
     );
 END;
 $function$
+
 
