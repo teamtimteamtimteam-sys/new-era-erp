@@ -201,6 +201,7 @@ DEFINER_NO_CHECK_ALLOWED = {
     # 业务数据,只推一个序号。给了 authenticated 就等于任何登录用户都能凭空
     # 烧掉一个无缝单号。同上,靠"调不到"。
     "next_shipment_code": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "next_container_code": "EXECUTE revoked from PUBLIC/authenticated/anon (LOG-2a); same shape as next_shipment_code",
     # SO-3b fu5:行的"已许出去"算子(已发 + 活预留)。同上 —— 靠"调不到"而非
     # "查调用者":消费方是 reserve_stock(require_permission 过了)与 SO-1b 的
     # 改单下限。给了 authenticated 就等于把别人订单的发货进度逐行敞开。

@@ -275,3 +275,142 @@ B6 尤其问得好 —— 因为它明写了"拿不准就说未知"。
    *不答的默认:跟商务(`exec-views-plan.md:18` 是唯一有据的一句)。*
 8. **要不要运费暂估?** 没有它,晚到的发票落错期间。
    *不答的默认:不做,接受期间错配。*
+
+---
+
+# 第 3 层勘察:发运单据的地基(LOG-2-SURVEY)
+
+**READ ONLY,2026-08-19。** 只报告现状,不提议。
+本节存在的理由是一句已经裁定的话:**Tim 确认一个集装箱可以装两个客户的订单** ——
+而今天 `shipments.sales_order_id` 是 `NOT NULL` 的单值。下面把改这件事的价钱摊开。
+
+## 1 · shipments 与 shipment_lines 的现状
+
+**`shipments`**(SO-3b):`id` · `code`(`SHP-YYYY-NNNN`,无缝,自己的咨询锁)·
+**`sales_order_id uuid NOT NULL REFERENCES sales_orders(id)`** · `ship_date date NOT NULL` ·
+`notes` · `created_at` · `created_by`。
+索引 `idx_shipments_order (sales_order_id, ship_date)`。
+触发器 `trg_shipments_append_only`(BEFORE UPDATE OR DELETE → `guard_shipment_append_only()`)。
+RLS:**只有 SELECT 策略**,没有 INSERT/UPDATE/DELETE —— 唯一写入口是 `ship_order`
+(DEFINER,`module.sales.edit`)。抬头写着这是前提不是遗漏。
+
+**`shipment_lines`**:`shipment_id`(ON DELETE RESTRICT)· `sales_order_line_id` ·
+**`reservation_id UNIQUE`** · `output_batch_id` · `location_id` · `qty > 0` · `sales_record_id`。
+同样只增不改,同样只有 SELECT 策略。
+**一行 = 消耗掉一条【整条】预留**,`qty` 恒等于那条预留的全部数量 —— 这条不变量
+让「committed 桶 = Σ 活预留」成立。
+
+**读 `shipments.sales_order_id` 的函数:**
+* `ship_order()` —— 写入它,并用它校验每条预留确实属于这张单;
+* `sales_order_fulfilment_status()` —— **整个判据就架在它上面**(见 §3)。
+
+## 2 · `sales_order_id` 的读者(逐个文件)
+
+**库这一侧(迁移历史除外)——3 处:**
+| 文件 | 怎么用 |
+|---|---|
+| `db/tables/shipments.sql` | 列定义 + 索引 |
+| `db/functions/ship_order.sql:67` | INSERT,并比对预留归属 |
+| `db/functions/sales_order_fulfilment_status.sql:22` | `WHERE s.sales_order_id = p_sales_order_id` |
+
+**fixture ——2 个文件 4 处:** `68-shipment-turns-liability-into-revenue.sql`(:337, :346)、
+`69-a-line-remembers-what-it-already-shipped.sql`(:156, :252)。
+
+**app ——【零处直接读它】,但有两处经它取客户:**
+`app/sales/shipments/[id]/pdf/route.ts:26` 走
+`sales_orders ( code, customers ( code, legal_name ) )` 拿客户抬头;
+`app/sales/orders/[id]/ShippingSection.tsx:84` 按订单反查发货单。
+`app/sales/shipments/[id]/page.tsx` 读单头。
+
+**合计:库 3 + fixture 4 + app 3 = 10 个必须走访的点位。**
+比"到处都是"少得多 —— 因为 `sales_order_id` 从一开始就只被两个函数用。
+
+## 3 · ship_order 与「这张单发完了没有」
+
+`ship_order(p_sales_order_id, p_ship_date, p_lines)` 一次建一张单头 + N 行,
+每行必须坐在一张**在册且已过账**的订单流发票上(派生检查,不是状态位),
+并按那张票**存下来的汇率**释放合同负债。
+
+完成度判据(`sales_order_fulfilment_status`)今天是:
+
+```sql
+sum(sl.qty) FROM shipment_lines sl JOIN shipments s ON s.id = sl.shipment_id
+ WHERE s.sales_order_id = p_sales_order_id
+>= sum(l.quantity) FROM sales_order_lines l WHERE l.sales_order_id = p_sales_order_id
+```
+
+**一张发货单跨两张订单之后,这条 SQL 就问错了对象。**
+可用的替代真源【已经在行上】:`shipment_lines.sales_order_line_id → sales_order_lines.sales_order_id`。
+也就是说完成度应当从**行**往上数,而不是从**单头**往下数。
+这不是新增数据,是换一个 JOIN —— 那条 FK 从 SO-3b 起就在。
+
+## 4 · ship_date 与会计期间
+
+`ship_date` 在 `ship_order` 里被用了 **6 次**,其中 3 次是 `post_journal_entry(p_ship_date, …)`
+(收入侧 + COGS 侧),1 次喂 `next_shipment_code(p_ship_date)`,1 次进单头,1 次进返回的 jsonb。
+app 侧 4 处都是**显示**(详情页、送货单 PDF、订单页发运区),不参与记账。
+
+**关键:`post_journal_entry` 今天【每张发货单调用一次】,拿的是单头那一个日期。**
+只要「一次物理离场 = 一个日期」成立,跨两张订单本身不会让期间出错 ——
+两张订单的收入落进同一个期间,而它们本来就是同一天离场的。
+**会出错的是另一种形状**:如果"发货单"将来变成一个跨两天装载的集装箱,
+单头那个日期就不再是每一行的收入日期了。见 §7 的第三个岔口。
+
+## 5 · 线上数据
+
+```
+SHP-2026-0001 · 2026-08-14 · SO-2026-0001 · Test Customer-2 · 1 行
+```
+
+**全库只有一张发货单、一行、一张订单、一个客户。**
+**没有任何一行在新形状下会变得含混** —— 这次改形状不需要数据迁移。
+
+## 6 · 单据族与号段
+
+签发族现有七个:`so_issues` / `po_issues` / `qt_issues` / `invoice_issues` /
+`cn_issues` / `shipment_issues` / `traceability_report_issues`。
+形状统一:`version` + `file_path` + `sha256` + `issued_at/by` + `UNIQUE(单据, version)`。
+
+**第七个(可追溯报告)与另外六个的唯一不同,正是本层要复用或避开的那一点:**
+> 另外六个族的号在**单据本身**上(发票有 code、发货单有 code),
+> 而可追溯报告**没有一张"单据"** —— 它是围着一个产出批临时组装出来的,
+> 所以报告号住在签发档里。**code 属于"这个批次的报告",不属于每一版**:
+> 第 1 版铸号,重发沿用同一个号(客户引用的是那个号)。
+
+`shipment_issues` **没有 code**,因为发货单自己有 `SHP-`。
+**一个"发运单据"要不要重复第七个的做法,取决于它挂在谁身上** —— 见 §7。
+
+**号段现状(已占用):** `ASY- BS- CN- CUS- EMP- EXP- FA- FRT- IN- INV- JE- LV-
+MAT- MC- OUT- PAY- PF- PO- PROC- QT- SHP- SO- ST- SUP- TASK- TRC- WO-`。
+序列共 10 条,其中 `shipment_code_seq` 归发货单。
+**空着的、语义贴切的:`CTR-`(集装箱)、`BL-`(提单)、`MF-`(舱单)、`CNS-`(consignment)。**
+**`CN-` 已被贷项凭证占用**,所以 `CNS-` 虽然空着,但与它只差一个字母 —— 视觉上会撞。
+
+---
+
+## 这块地基暴露出来的三个岔口(不提议,只把问题和赌注写清楚)
+
+**岔口一:一个集装箱装两张订单,到底改成什么形状?**
+(甲)`shipments` 直接与订单**多对多** —— 去掉 `sales_order_id`,订单从
+`shipment_lines → sales_order_lines.sales_order_id` 推出来;
+(乙)在 `shipments` **之上**加一层(集装箱/consignment),一张发货单仍然一张订单,
+两张发货单共用一个箱子。
+**赌注:** 甲要走访 §2 那 10 个点位、重建 `idx_shipments_order`、把
+`sales_order_fulfilment_status` 换成从行往上数,并回答"送货单 PDF 的客户抬头从哪来";
+乙一个既有点位都不用动,代价是多一层对象,而且「一次物理离场」被拆成两条记录 ——
+`ship_date`、分录、`shipment_issues` 都会各有两份。
+
+**岔口二:送货单是一张还是两张?**
+今天 `shipment_issues` 没有 code,因为发货单有。
+**一个箱子装着两个客户的货时,一张列着两家货的送货单,谁都不能给。**
+**赌注:** 若"一张发货单 = 一个客户",甲方案就必须在文件这一层再分一次;
+若送货单改为**按客户**签发,它就变成第八个签发族成员,并且要不要像第七个那样
+**把号放进签发档**,取决于它挂在一个有 code 的单据上还是一个没有 code 的组合上。
+
+**岔口三:`ship_date` 留在单头,还是下沉到行?**
+今天它在单头,`post_journal_entry` 每张发货单调一次。
+**只要「一次装载 = 一天」,跨订单不影响期间。** 但如果这一层的"箱子"是跨天装载的,
+单头那个日期就不再是每一行的收入日期。
+**赌注:** 它决定收入期间是**一次**决定还是**每行**决定 —— 而这个仓库对
+"决定期间的日期"有一条硬规矩(必填、永不默认、FIN-10 一族),
+下沉意味着那条规矩要在行上再实现一遍。

@@ -7,3 +7,5 @@
 2026-08-19T15:43:12+0800	2026-08-19-task1c-c-revert-pending-a-decision-on-the-privacy-invariant.sql	14bb055
 2026-08-19T16:13:38+0800	2026-08-19-fix-select-policy-must-be-evaluable-on-the-row-being-inserted.sql	2f471a6
 2026-08-19T21:08:25+0800	2026-08-19-log1a-counterparty-type-and-logistics-master-data.sql	69e6e44
+2026-08-20T07:47:07+0800	2026-08-20-log2a-container-layer-above-shipments.sql	e6216b8
+2026-08-20T07:54:48+0800	2026-08-20-log2a-fu1-owner-rights-view-and-revoke-the-numberer.sql	e6216b8

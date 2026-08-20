@@ -781,6 +781,200 @@ export type Database = {
         }
         Relationships: []
       }
+      container_documents: {
+        Row: {
+          container_id: string
+          created_at: string
+          created_by: string | null
+          document_type: string
+          from_lane: boolean
+          id: string
+          na_reason: string | null
+          notes: string | null
+          regime: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          container_id: string
+          created_at?: string
+          created_by?: string | null
+          document_type: string
+          from_lane?: boolean
+          id?: string
+          na_reason?: string | null
+          notes?: string | null
+          regime?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          container_id?: string
+          created_at?: string
+          created_by?: string | null
+          document_type?: string
+          from_lane?: boolean
+          id?: string
+          na_reason?: string | null
+          notes?: string | null
+          regime?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "container_documents_container_id_fkey"
+            columns: ["container_id"]
+            isOneToOne: false
+            referencedRelation: "container_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "container_documents_container_id_fkey"
+            columns: ["container_id"]
+            isOneToOne: false
+            referencedRelation: "containers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      container_milestones: {
+        Row: {
+          container_id: string
+          event_date: string
+          id: string
+          milestone: string
+          note: string | null
+          recorded_at: string
+          recorded_by: string | null
+        }
+        Insert: {
+          container_id: string
+          event_date: string
+          id?: string
+          milestone: string
+          note?: string | null
+          recorded_at?: string
+          recorded_by?: string | null
+        }
+        Update: {
+          container_id?: string
+          event_date?: string
+          id?: string
+          milestone?: string
+          note?: string | null
+          recorded_at?: string
+          recorded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "container_milestones_container_id_fkey"
+            columns: ["container_id"]
+            isOneToOne: false
+            referencedRelation: "container_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "container_milestones_container_id_fkey"
+            columns: ["container_id"]
+            isOneToOne: false
+            referencedRelation: "containers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      containers: {
+        Row: {
+          bl_number: string | null
+          code: string
+          container_number: string | null
+          created_at: string
+          created_by: string | null
+          delete_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          departure_date: string
+          forwarder_id: string | null
+          id: string
+          lane_id: string | null
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+          vessel: string | null
+          voyage: string | null
+        }
+        Insert: {
+          bl_number?: string | null
+          code: string
+          container_number?: string | null
+          created_at?: string
+          created_by?: string | null
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          departure_date: string
+          forwarder_id?: string | null
+          id?: string
+          lane_id?: string | null
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          vessel?: string | null
+          voyage?: string | null
+        }
+        Update: {
+          bl_number?: string | null
+          code?: string
+          container_number?: string | null
+          created_at?: string
+          created_by?: string | null
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          departure_date?: string
+          forwarder_id?: string | null
+          id?: string
+          lane_id?: string | null
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          vessel?: string | null
+          voyage?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "containers_forwarder_id_fkey"
+            columns: ["forwarder_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "containers_forwarder_id_fkey"
+            columns: ["forwarder_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "containers_lane_id_fkey"
+            columns: ["lane_id"]
+            isOneToOne: false
+            referencedRelation: "lane_checklist_status"
+            referencedColumns: ["lane_id"]
+          },
+          {
+            foreignKeyName: "containers_lane_id_fkey"
+            columns: ["lane_id"]
+            isOneToOne: false
+            referencedRelation: "lanes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_note_lines: {
         Row: {
           amount: number
@@ -8768,6 +8962,7 @@ export type Database = {
       shipments: {
         Row: {
           code: string
+          container_id: string | null
           created_at: string
           created_by: string | null
           id: string
@@ -8777,6 +8972,7 @@ export type Database = {
         }
         Insert: {
           code: string
+          container_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -8786,6 +8982,7 @@ export type Database = {
         }
         Update: {
           code?: string
+          container_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -8794,6 +8991,20 @@ export type Database = {
           ship_date?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "shipments_container_id_fkey"
+            columns: ["container_id"]
+            isOneToOne: false
+            referencedRelation: "container_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipments_container_id_fkey"
+            columns: ["container_id"]
+            isOneToOne: false
+            referencedRelation: "containers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "shipments_sales_order_id_fkey"
             columns: ["sales_order_id"]
@@ -10988,6 +11199,56 @@ export type Database = {
           website?: string | null
         }
         Relationships: []
+      }
+      container_overview: {
+        Row: {
+          bl_number: string | null
+          code: string | null
+          container_number: string | null
+          customer_count: number | null
+          departure_date: string | null
+          documents_pending: number | null
+          forwarder_id: string | null
+          forwarder_name: string | null
+          id: string | null
+          lane_checklist_state: string | null
+          lane_id: string | null
+          latest_milestone: string | null
+          latest_milestone_date: string | null
+          shipment_count: number | null
+          vessel: string | null
+          voyage: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "containers_forwarder_id_fkey"
+            columns: ["forwarder_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "containers_forwarder_id_fkey"
+            columns: ["forwarder_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "containers_lane_id_fkey"
+            columns: ["lane_id"]
+            isOneToOne: false
+            referencedRelation: "lane_checklist_status"
+            referencedColumns: ["lane_id"]
+          },
+          {
+            foreignKeyName: "containers_lane_id_fkey"
+            columns: ["lane_id"]
+            isOneToOne: false
+            referencedRelation: "lanes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       customer_credit_status: {
         Row: {
@@ -15342,6 +15603,10 @@ export type Database = {
         Args: { p_entry_date: string; p_source_type: string }
         Returns: undefined
       }
+      attach_shipment_to_container: {
+        Args: { p_container_id: string; p_shipment_id: string }
+        Returns: Json
+      }
       attribute_sale_customer: {
         Args: {
           p_customer_id: string
@@ -15629,6 +15894,10 @@ export type Database = {
         }
         Returns: number
       }
+      detach_shipment_from_container: {
+        Args: { p_reason: string; p_shipment_id: string }
+        Returns: Json
+      }
       dispose_fixed_asset: {
         Args: {
           p_asset_id: string
@@ -15707,6 +15976,10 @@ export type Database = {
           p_period_end: string
           p_period_start: string
         }
+        Returns: Json
+      }
+      instantiate_container_documents: {
+        Args: { p_container_id: string }
         Returns: Json
       }
       is_business_day: {
@@ -15808,6 +16081,7 @@ export type Database = {
         Returns: undefined
       }
       next_assay_code: { Args: { p_date?: string }; Returns: string }
+      next_container_code: { Args: { p_date: string }; Returns: string }
       next_credit_note_code: { Args: { p_date?: string }; Returns: string }
       next_employee_code: { Args: { p_date?: string }; Returns: string }
       next_leave_request_code: { Args: { p_date?: string }; Returns: string }
@@ -16300,6 +16574,10 @@ export type Database = {
       }
       ship_order: {
         Args: { p_lines: Json; p_sales_order_id: string; p_ship_date: string }
+        Returns: Json
+      }
+      soft_delete_container: {
+        Args: { p_container_id: string; p_reason: string }
         Returns: Json
       }
       soft_delete_inbound_batch: {

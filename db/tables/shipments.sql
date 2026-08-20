@@ -25,13 +25,22 @@ CREATE TABLE public.shipments (
     ship_date      date NOT NULL,
     notes          text,
     created_at     timestamptz NOT NULL DEFAULT now(),
-    created_by     uuid DEFAULT auth.uid()
+    created_by     uuid DEFAULT auth.uid(),
+    -- LOG-2a:装在哪个箱子里(ALTER 加的列排在末尾,与 attnum 一致)
+    container_id   uuid REFERENCES public.containers (id) ON DELETE RESTRICT
 );
+
+COMMENT ON COLUMN public.shipments.container_id IS
+'LOG-2a:这张发货单装在哪个箱子里。**可空** —— 一张发货单可以先存在、后装箱
+(线上那一张 SHP-2026-0001 就保持 NULL,本刀一个字没动它)。
+ON DELETE RESTRICT:箱子不能把发货单带走。
+【它是 shipments 上唯一可改的列】,见 guard_shipment_append_only 的抬头。';
 
 COMMENT ON TABLE public.shipments IS
     'SO-3b:发货单头(选项 C 的第二半)。一张发货单属于一张订单;每一行都必须坐在一张【在册且已过账】的订单流发票上 —— 那是一条派生检查(查 invoice_lines/invoices),不是订单上的状态位,因为状态位会与真相漂开。【不可作废、没有冲销】:货发出去了、负债已释放进收入、库存已离开台账,更正走贷项凭证(sales_records 表头停放的未来概念)。ship_date 是物理事件日,必填、永不默认 —— 它同时决定收入落进哪个会计期间。';
 
 CREATE INDEX idx_shipments_order ON public.shipments (sales_order_id, ship_date);
+CREATE INDEX idx_shipments_container ON public.shipments (container_id) WHERE container_id IS NOT NULL;
 
 -- 只增不改(函数在 db/functions/guard_shipment_append_only.sql)
 CREATE TRIGGER trg_shipments_append_only
