@@ -21,7 +21,7 @@ export default async function ContainerDetailPage({ params }: { params: Promise<
 
     const head = await supabase
         .from('containers')
-        .select('id, code, container_number, vessel, voyage, bl_number, notes, departure_date, lane_id, forwarder_id')
+        .select('id, code, container_number, vessel, voyage, bl_number, notes, departure_date, lane_id, forwarder_id, expected_arrival_date')
         .eq('id', id).is('deleted_at', null).maybeSingle()
     if (head.error) throw new Error(head.error.message)
     if (!head.data) notFound()
@@ -81,6 +81,7 @@ export default async function ContainerDetailPage({ params }: { params: Promise<
                     voyage: head.data.voyage,
                     bl_number: head.data.bl_number,
                     notes: head.data.notes,
+                    expected_arrival_date: head.data.expected_arrival_date as string | null,
                 }}
                 hasLane={head.data.lane_id !== null}
                 laneChecklistState={(ov.data?.lane_checklist_state as string) ?? 'no_lane'}
@@ -121,6 +122,9 @@ export default async function ContainerDetailPage({ params }: { params: Promise<
                     regime: t('logistics.regime'),
                     notDefined: t('logistics.checklistNotDefined'), definedEmpty: t('logistics.checklistDefinedEmpty'),
                     noLane: t('logistics.noLaneOnContainer'),
+                    // LOG-5b
+                    etaLabel: t('logistics.etaLabel'), etaHint: t('logistics.etaHint'),
+                    checklistDefinedNotInstantiated: t('logistics.checklistDefinedNotInstantiated'),
                 }}
             />
 

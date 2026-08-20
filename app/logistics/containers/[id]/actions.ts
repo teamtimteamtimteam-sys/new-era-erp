@@ -11,6 +11,10 @@ function touch(id: string) { revalidatePath(`/logistics/containers/${id}`) }
 export async function saveContainerHead(id: string, input: {
     container_number: string | null; vessel: string | null; voyage: string | null
     bl_number: string | null; notes: string | null
+    // LOG-5b:预计到达。【空字符串要落成 NULL,不是落成空串】——
+    // 一个被撤回的估计的正确写法是"没有 ETA",而 date 列收到 '' 会直接报类型错。
+    // 清空是一个【正当动作】,不是一次失败(container_eta_overdue 对 NULL 沉默)。
+    expected_arrival_date: string | null
 }): Promise<Result> {
     const supabase = await createClient()
     const { error } = await supabase.from('containers').update(input as never).eq('id', id)

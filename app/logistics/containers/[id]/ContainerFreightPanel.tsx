@@ -54,13 +54,28 @@ export default async function ContainerFreightPanel({
     }
     const actualCurrencies = [...totals.keys()].sort()
 
+    // ── 免柜期那一侧:最晚的那条 arrived ───────────────────────────────────
+    // 【锚点规则与库里那一支臂逐字一致】ORDER BY event_date DESC, recorded_at DESC
+    // —— 也与 container_overview 的既成惯例一致。里程碑只增不改,更正的写法是
+    // 再记一条,所以取最晚的那条等于让更正自动生效。
+    const arrivals = mustRows(
+        await supabase.from('container_milestones')
+            .select('event_date, recorded_at')
+            .eq('container_id', containerId).eq('milestone', 'arrived')
+            .order('event_date', { ascending: false })
+            .order('recorded_at', { ascending: false })
+            .limit(1),
+        'container arrivals'
+    ) as unknown as { event_date: string }[]
+    const arrivedOn = arrivals[0]?.event_date ?? null
+
     // ── 报价那一侧 ──────────────────────────────────────────────────────────
     let quoteState:
         | { kind: 'no_lane' }
         | { kind: 'no_forwarder' }
         | { kind: 'none_from_forwarder' }
         | { kind: 'not_valid_on_departure' }
-        | { kind: 'found'; amount: number; currency: string; from: string; to: string }
+        | { kind: 'found'; amount: number; currency: string; from: string; to: string; free_days: number | null }
     if (!laneId) {
         quoteState = { kind: 'no_lane' }
     } else if (!forwarderId) {
@@ -68,11 +83,11 @@ export default async function ContainerFreightPanel({
     } else {
         const quotes = mustRows(
             await supabase.from('forwarder_rate_quotes')
-                .select('amount_ccy, currency, valid_from, valid_to')
+                .select('amount_ccy, currency, valid_from, valid_to, free_days')
                 .eq('supplier_id', forwarderId).eq('lane_id', laneId)
                 .is('deleted_at', null),
             'forwarder rate quotes'
-        ) as unknown as { amount_ccy: number; currency: string; valid_from: string; valid_to: string }[]
+        ) as unknown as { amount_ccy: number; currency: string; valid_from: string; valid_to: string; free_days: number | null }[]
         if (quotes.length === 0) {
             quoteState = { kind: 'none_from_forwarder' }
         } else {
@@ -80,7 +95,8 @@ export default async function ContainerFreightPanel({
             const hit = quotes.find((q) => q.valid_from <= departureDate && departureDate <= q.valid_to)
             quoteState = hit
                 ? { kind: 'found', amount: Number(hit.amount_ccy), currency: hit.currency,
-                    from: hit.valid_from, to: hit.valid_to }
+                    from: hit.valid_from, to: hit.valid_to,
+                    free_days: hit.free_days === null ? null : Number(hit.free_days) }
                 : { kind: 'not_valid_on_departure' }
         }
     }
@@ -96,6 +112,52 @@ export default async function ContainerFreightPanel({
         <section className="mt-8 border-t pt-6">
             <h2 className="mb-1 text-xl font-bold">{t('logistics.freightPanelHeading')}</h2>
             <p className="mb-4 text-sm text-gray-600 max-w-3xl">{t('logistics.freightPanelHint')}</p>
+
+            {/* ── 免柜期:一行,五种"算不出来"各说各的话 ─────────────────────
+                【这一页算 remaining 只为了【显示】,而不是决定何时告警】——
+                告警的阈值住在 operations_now 的 free_time_expiring 那一支里,
+                这里连 <= 2 都不判。两处若各判一次,屏幕与看板迟早各说各话。
+                (口径仍然是同一条:同一个锚点、同一份报价。这一处重复是【已知的】,
+                 见本刀的报告 —— 去掉它要一个库侧的算子,而本刀不动库。) */}
+            <div className="mb-6 rounded-lg border border-gray-300 p-4">
+                <h3 className="font-semibold mb-2 text-sm">{t('logistics.freeTimeHeading')}</h3>
+                {!forwarderId ? (
+                    <p className="text-sm text-gray-600 max-w-3xl">{t('logistics.freeTimeNoForwarder')}</p>
+                ) : quoteState.kind !== 'found' ? (
+                    <p className="text-sm text-gray-600 max-w-3xl">{t('logistics.freeTimeNoQuote')}</p>
+                ) : arrivedOn === null ? (
+                    /* 【"还没到港"不是"时间还很多"】—— 这一句就是那条区别 */
+                    <p className="text-sm text-gray-600 max-w-3xl">{t('logistics.freeTimeNoArrival')}</p>
+                ) : quoteState.free_days === null ? (
+                    /* 【NULL ≠ 0】报价没写免柜期,不是零个免费天 */
+                    <p className="text-sm text-gray-600 max-w-3xl">{t('logistics.freeTimeQuoteSilent')}</p>
+                ) : (() => {
+                    const since = Math.floor(
+                        (Date.parse(new Date().toISOString().slice(0, 10)) - Date.parse(arrivedOn)) / 86400000)
+                    const remaining = (quoteState.free_days as number) - since
+                    return (
+                        <>
+                            {quoteState.free_days === 0 && (
+                                <p className="mb-2 text-sm text-amber-900 bg-amber-50 border border-amber-300 rounded px-3 py-2 max-w-3xl">
+                                    {t('logistics.freeTimeZero')}
+                                </p>
+                            )}
+                            {/* 【两段,不是一段】剩余天数要能单独染红,而在一整句里
+                                按数字去 split 会在"到港 2 天 / 剩余 2 天"这种句子上
+                                把同一个 span 插两次 —— 那是一个等着发生的渲染错。 */}
+                            <p className="text-sm">
+                                {t('logistics.freeTimeComputed', {
+                                    days: String(since), free: String(quoteState.free_days),
+                                })}
+                                {' · '}
+                                <span className={remaining < 0 ? 'text-red-700 font-semibold' : ''}>
+                                    {t('logistics.freeTimeRemaining', { remaining: String(remaining) })}
+                                </span>
+                            </p>
+                        </>
+                    )
+                })()}
+            </div>
 
             <div className="grid gap-6 md:grid-cols-2">
                 {/* ── 实际 ─────────────────────────────────────────────── */}

@@ -51,6 +51,31 @@ module's own page.
 | 13 | `ap_over_90` | payable in the oldest ageing bucket (`b90_plus`) | `module.finance.view` | `ap_open_items` | open items only; oldest bucket |
 | 14 | `fx_rate_gap` | a day with foreign-currency postings and a missing rate | `module.finance.view` | `fx_rate_gaps` | **`rate_date >= CURRENT_DATE - 45`** |
 | 15 | `bank_unmatched` | imported statement line still unmatched | `module.finance.view` | `bank_statement_lines` | statement side only — see below |
+| 23 | `free_time_expiring` | free time on an arrived container is down to **2 days or fewer, including negative** (already accruing demurrage) | `module.purchasing.view` **+ `module.finance.view` via `arm_permission_widen`** — 滞港费是钱的事,而录里程碑的人在操作侧 | `containers` × 最晚的那条 `arrived` 里程碑 × `forwarder_rate_quotes.free_days` | 排除软删箱子。**`free_days IS NULL` 一支不响**(报价没写免柜期 ≠ 零个免费天);阈值 **2** 写死 |
+| 24 | `container_no_arrival` | 开走 **14 天**,而没有任何 `arrived` 里程碑 | `module.purchasing.view` | `container_milestones` | 排除软删箱子。**这一支是第 23 支的 companion**:没有到港记录时第 23 支永远安静,而安静与"没问题"长得一样 |
+| 25 | `container_eta_overdue` | `expected_arrival_date < CURRENT_DATE` 且尚无 `arrived` | `module.purchasing.view` | `containers` | 排除软删箱子。**ETA 为 NULL 时沉默** —— 与 `work_order_overdue` 逐字同形的【已知局限】 |
+| 26 | `container_documents_late` | 有 `pending` 单据,且开航已 **7 天** | `module.purchasing.view` | `container_documents` | 排除软删箱子。**从没实例化过清单的箱子沉默**(pending 数为 0)—— 屏幕上由 LOG-5b 的第六句话点名 |
+
+
+### 物流四支的【补救在哪一页】(LOG-5b,2026-08-20)
+
+**四支的门牌全部指向 `/logistics/containers/[id]`,而且补救确实都在那一页上** ——
+这是这张表要求每一支回答的那个问题,四支的答案一致:
+
+| 支 | 补救动作 | 在那一页上? |
+|---|---|---|
+| `free_time_expiring` | 录到港里程碑 / 修正到港日 / 把免柜天数写进报价 | **是**(里程碑面板;报价在 `/logistics/forwarders/[id]`,箱子页把它的状态说出来) |
+| `container_no_arrival` | 录一条 `arrived` | **是**(里程碑面板) |
+| `container_eta_overdue` | 录到港,或撤回/更新 ETA | **是**(头部的预计到达可改、可清空) |
+| `container_documents_late` | 实例化清单 / 把单据标为已收或不适用 | **是**(单据面板) |
+
+**唯一不完全在那一页上的是免柜天数本身**:`forwarder_rate_quotes.free_days` 编辑在
+货代那一页。箱子页因此【说出它是哪一种缺】(报价没写免柜期 / 这条航段没有有效报价 /
+箱子没有货代),而不是留白 —— 那三句话就是通往正确那一页的指路。
+
+**三个阈值 2 / 14 / 7 全部写死(v1,Tim 定)。** 要可调时抄
+`certificate_types.warn_lead_days`:一张 RUNTIME CONFIG 表,每类自带提前期【和】后果
+(block / warn / ignore),"加一种是编辑一行,不是跑一次迁移"。
 
 ### The two bounds that were argued rather than assumed
 

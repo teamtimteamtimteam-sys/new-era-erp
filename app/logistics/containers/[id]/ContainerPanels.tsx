@@ -16,7 +16,7 @@ export default function ContainerPanels({
     milestones, documents, milestoneTypes, labels,
 }: {
     containerId: string
-    head: { container_number: string | null; vessel: string | null; voyage: string | null; bl_number: string | null; notes: string | null }
+    head: { container_number: string | null; vessel: string | null; voyage: string | null; bl_number: string | null; notes: string | null; expected_arrival_date: string | null }
     hasLane: boolean
     laneChecklistState: string
     attached: Ship[]; attachable: Ship[]
@@ -51,6 +51,8 @@ export default function ContainerPanels({
                             voyage: (d.get('voyage') as string)?.trim() || null,
                             bl_number: (d.get('bl_number') as string)?.trim() || null,
                             notes: (d.get('notes') as string)?.trim() || null,
+                            // 【清空 → null】—— 撤回一个估计是"没有 ETA",不是一个错误
+                            expected_arrival_date: (d.get('expected_arrival_date') as string)?.trim() || null,
                         })) }}
                 >
                     <div><label className="block text-xs font-medium mb-1">{labels.containerNumber}</label>
@@ -61,12 +63,18 @@ export default function ContainerPanels({
                         <input name="voyage" defaultValue={head.voyage ?? ''} className={`${field} w-24`} /></div>
                     <div><label className="block text-xs font-medium mb-1">{labels.bl}</label>
                         <input name="bl_number" defaultValue={head.bl_number ?? ''} className={field} /></div>
+                    {/* 【世界那一侧的日期:永不预填】没有 defaultValue 的兜底,
+                        没有"默认今天",空着就是空着 —— 与 event_date 那条列注释同一条规矩。 */}
+                    <div><label className="block text-xs font-medium mb-1">{labels.etaLabel}</label>
+                        <input type="date" name="expected_arrival_date"
+                            defaultValue={head.expected_arrival_date ?? ''} className={field} /></div>
                     <div className="min-w-[16rem] flex-1"><label className="block text-xs font-medium mb-1">{labels.notes}</label>
                         <input name="notes" defaultValue={head.notes ?? ''} className={`${field} w-full`} /></div>
                     <button disabled={pending} className="rounded bg-blue-600 px-3 py-1 text-sm text-white disabled:opacity-50">{labels.save}</button>
                 </form>
                 {/* 【开航日不在这里改】—— 它在 DB 上没有开口子给按列放行,改它要另一条路 */}
                 <p className="mt-2 text-xs text-gray-500">{labels.blHint}</p>
+                <p className="mt-1 text-xs text-gray-500 max-w-3xl">{labels.etaHint}</p>
             </section>
 
             {/* ── 装着的发货单 ── */}
@@ -185,6 +193,14 @@ export default function ContainerPanels({
                 )}
                 {hasLane && laneChecklistState === 'defined_empty' && (
                     <p className="mb-3 rounded border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700">{labels.definedEmpty}</p>
+                )}
+                {/* 【第六种沉默,而且是最容易被读错的那一种】航段【有】清单,
+                    却从没被复制到这个箱子上 —— 下面那张表因此是空的。
+                    不说出来,它读起来就是"这一票不需要单据",而那正好相反。 */}
+                {hasLane && laneChecklistState === 'defined' && documents.length === 0 && (
+                    <p className="mb-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                        {labels.checklistDefinedNotInstantiated}
+                    </p>
                 )}
                 {hasLane && (
                     <button type="button" disabled={pending} onClick={() => run(() => instantiateDocuments(containerId))}

@@ -142,6 +142,20 @@ const TILES = [
     // 是对账单。同一张单上的两条未匹配行共用一个门牌,这是对的,不是重复。
     { itemType: 'bank_unmatched', permission: 'module.finance.view', href: '/finance/bank',
       itemHref: (r: OpsRow) => `/finance/bank/statements/${r.item_id}/reconcile` },
+    // ── LOG-5b:物流四支(第 23–26)。【补救都在箱子那一页上】——
+    // 录到港、填 ETA、实例化清单、收单据,四件事全在集装箱详情做,
+    // 所以四支的门牌都指向同一处。这一条写进 docs/dashboard-arm-inventory.md。
+    // 【权限跟着视图里那一支声明的码走】,这里不再声明第二遍 ——
+    // 免柜期那一支在库里由 arm_permission_widen 额外放给财务,而首页读的是
+    // operations_now 已经筛过的行,所以这里写它的【主】码就够了。
+    { itemType: 'free_time_expiring', permission: 'module.purchasing.view', href: '/logistics/containers',
+      itemHref: (r: OpsRow) => `/logistics/containers/${r.item_id}` },
+    { itemType: 'container_no_arrival', permission: 'module.purchasing.view', href: '/logistics/containers',
+      itemHref: (r: OpsRow) => `/logistics/containers/${r.item_id}` },
+    { itemType: 'container_eta_overdue', permission: 'module.purchasing.view', href: '/logistics/containers',
+      itemHref: (r: OpsRow) => `/logistics/containers/${r.item_id}` },
+    { itemType: 'container_documents_late', permission: 'module.purchasing.view', href: '/logistics/containers',
+      itemHref: (r: OpsRow) => `/logistics/containers/${r.item_id}` },
 ] as const
 
 // 一块牌子里最多列几件;其余交给那一支自己的列表(首页不是列表页)
