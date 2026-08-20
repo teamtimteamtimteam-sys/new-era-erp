@@ -1,3 +1,27 @@
+-- PAY-FRT(2026-08-20):record_payment 认识运费单。
+--
+-- 【这一刀关的是一条已经张着的缝,不是加一个功能】
+--   * payment_allocations 的 CHECK 早就是【六】选一,含 freight_document_id(FRT-1 加的);
+--   * ap_open_items 的运费支早就按 pa.freight_document_id 去减已结清额;
+--   * 只有【写入函数】停在五选一 —— 全函数搜 freight 零命中。
+-- 于是未付运费进得了账龄、出不了门:画面上选中它,alloc_kind 落进 else 分支,
+-- 被当成 inbound_batch_id 送下来,批次查不到 → ALLOC_INVALID。
+-- **那是一次按名拒绝,但它拒绝的名字指着错的东西**,而且这套系统里
+-- 没有任何一条路能把一张未付运费单结清。线上看不出来,只因为运费单一张都没有。
+--
+-- 【运费臂逐字照着开支臂写】两者是同一种单据:自带币种与入账汇率、贷 2000、
+-- 挂在一个往来对象名下的应付。所以敞口(ALLOC_EXCEEDS)、跨币种结算、
+-- 已实现汇兑(7100)三条全部落在【共用】的那段里,本臂一行新的 FX 算术都没有。
+-- 另外五臂一个字节没动。
+--
+-- 【筛选条件与 ap_open_items 的运费支逐字一致】unpaid + posted + 未软删 ——
+-- 少一条,能被选到的单据与能被核销的单据就会分家。
+--
+-- 签名不变(p_allocations 是 jsonb),所以 preflight 的重载判据不会触发,
+-- lib/database.types.ts 也没有可漂移的东西。
+
+BEGIN;
+
 CREATE OR REPLACE FUNCTION public.record_payment(p_direction text, p_counterparty_id uuid, p_amount numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_bank_account text DEFAULT NULL::text, p_payment_date date DEFAULT NULL::date, p_notes text DEFAULT NULL::text, p_allocations jsonb DEFAULT '[]'::jsonb, p_counterparty_kind text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -626,3 +650,5 @@ BEGIN
     );
 END;
 $function$;
+
+COMMIT;

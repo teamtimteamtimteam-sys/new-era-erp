@@ -54,7 +54,12 @@ export async function createPayment(
 
     // 核销行:空/0/非法金额的行直接剔除(挂账 = 全部不核销,允许)。
     // 键按行的 alloc_kind 选:in → sales_record_id;
-    // out → inbound_batch_id / expense_id / purchase_order_id(预付,分录借 1300)。
+    // out → inbound_batch_id / expense_id / purchase_order_id(预付,分录借 1300)
+    //      / freight_document_id(运费,PAY-FRT)。
+    // 【为什么这个 else 曾经是一个洞】兜底分支把【任何认不出的种类】当成进料批
+    // 送下去。运费行于是以 inbound_batch_id 的名义发出,批次查不到 →
+    // ALLOC_INVALID:一次按名拒绝,但它拒绝的名字指着错的东西。
+    // 新增的种类要在这里【显式】接一支,而不是靠兜底 —— 兜底能接住的只有"猜"。
     const allocIds = formData.getAll('alloc_id').map(String)
     const allocKinds = formData.getAll('alloc_kind').map(String)
     const allocAmounts = formData.getAll('alloc_amount').map(String)
@@ -64,6 +69,7 @@ export async function createPayment(
         inbound_batch_id?: string
         expense_id?: string
         purchase_order_id?: string
+        freight_document_id?: string
         amount_doc: number
     }
     const allocations: Alloc[] = []
@@ -78,6 +84,8 @@ export async function createPayment(
             allocations.push({ expense_id: allocIds[i], amount_doc: v })
         } else if (allocKinds[i] === 'purchase_order') {
             allocations.push({ purchase_order_id: allocIds[i], amount_doc: v })
+        } else if (allocKinds[i] === 'freight') {
+            allocations.push({ freight_document_id: allocIds[i], amount_doc: v })
         } else {
             allocations.push({ inbound_batch_id: allocIds[i], amount_doc: v })
         }

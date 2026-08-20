@@ -27,7 +27,10 @@ type ArItem = {
     currency: string
 }
 type ApItem = {
-    doc_kind: 'inbound' | 'expense'
+    // PAY-FRT:视图的第三支('freight')此前没有出现在这个类型里 —— 它照样被
+    // 原样传下去,只是 TypeScript 不知道有这一种,于是 action 的分支漏掉它
+    // 也没有任何东西会红。把它写出来,是让编译器参与这件事。
+    doc_kind: 'inbound' | 'expense' | 'freight'
     doc_id: string
     // PAYEE-1b:往来对象可以是供应商或员工;这一列永远非空。
     counterparty_id: string
@@ -66,8 +69,19 @@ export default async function NewPaymentPage({
             .from('suppliers')
             .select('id, legal_name')
             .is('deleted_at', null)
-            // LOG-1b:货代不进供应商名单(他们保留 supplier id 只为账上那条链)
-            .neq('counterparty_type', 'forwarder')
+            // ════════════════════════════════════════════════════════════════
+            // PAY-FRT:这里【不】排除货代 —— LOG-1b 在 11 个点位加了
+            // `.neq('counterparty_type','forwarder')`,十个是对的(供应商名单、
+            // 采购、收货、计价公式:货代不供货,不该出现在那些地方)。
+            // 【这一个不是】:这是【付款对象】的下拉,而货代恰恰是一个你欠钱的
+            // 往来对象 —— 未付运费的贷方就记在它名下。把它排除掉,等于
+            // record_payment 认识运费单了、账龄里也看得见,而屏幕上【选不到那个人】,
+            // 于是那扇门仍旧是关的,只是关在了上一层。
+            // 【这与 SUP-TYPE-1b 立的规矩是同一条】:非供货往来户必须留在
+            // 开支/付款/运费/加工成本这几个下拉里 —— "后者正是非供货往来户存在的
+            // 理由,收窄它们会是一次真正的功能损失"(docs/known-issues.md)。
+            // 货代是那句话最纯粹的例子。
+            // ════════════════════════════════════════════════════════════════
             .order('legal_name'),
         // PAYEE-1b:出款也可以付给员工(报销)。读遮蔽视图,门是 module.hr.view。
         supabase

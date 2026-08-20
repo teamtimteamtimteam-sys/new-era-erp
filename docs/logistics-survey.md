@@ -414,3 +414,604 @@ MAT- MC- OUT- PAY- PF- PO- PROC- QT- SHP- SO- ST- SUP- TASK- TRC- WO-`。
 **赌注:** 它决定收入期间是**一次**决定还是**每行**决定 —— 而这个仓库对
 "决定期间的日期"有一条硬规矩(必填、永不默认、FIN-10 一族),
 下沉意味着那条规矩要在行上再实现一遍。
+
+---
+
+# 第 4 层勘察:出口运费的钱去哪儿(LOG-3-SURVEY)
+
+**2026-08-20,只读。** 本节没有改动任何代码、任何数据库对象、任何数据。
+勘察基线:`HEAD = 6d78893`(LABEL-FIX:集装箱号的英文标签改为 Container number),
+工作区干净。所有"线上"数字来自 Management API 的实时查询,所有结构断言都同时
+对过【镜像文本】与 `information_schema` / `pg_catalog`。
+
+## 0 · 一处命名更正(先说,免得后面每一句都要绕)
+
+brief 里的 `freight_document_lines` **这张表不存在**。分摊行叫
+`public.freight_allocations`。镜像也不是单独一个文件 —— 两张表都住在
+`db/tables/freight_documents.sql` 里(文件头第一行就写着
+`-- db/tables/freight_documents.sql + freight_allocations`)。
+下文一律用真名。
+
+---
+
+## 1 · `freight_documents` 与 `freight_allocations` 的原样
+
+### 1.1 两张表的列(线上 = 镜像,逐列比对无漂移)
+
+`public.freight_documents`,19 列,attnum 顺序:
+
+| # | 列 | 类型 | 空 | 默认 |
+|---|---|---|---|---|
+| 1 | `id` | uuid | NOT NULL | `gen_random_uuid()` |
+| 2 | `code` | text | NOT NULL | — |
+| 3 | `doc_date` | date | NOT NULL | — |
+| 4 | `supplier_id` | uuid | NOT NULL | — |
+| 5 | `amount_ccy` | numeric | NOT NULL | — |
+| 6 | `currency` | text | NOT NULL | — |
+| 7 | `fx_rate` | numeric | NOT NULL | — |
+| 8 | `amount_base` | numeric | NOT NULL | — |
+| 9 | `allocation_basis` | text | NOT NULL | — |
+| 10 | `payment_status` | text | NOT NULL | — |
+| 11 | `bank_account_code` | text | NULL | — |
+| 12 | `notes` | text | NULL | — |
+| 13 | `journal_entry_id` | uuid | NULL | — |
+| 14 | `status` | text | NOT NULL | `'posted'` |
+| 15 | `deleted_at` | timestamptz | NULL | — |
+| 16 | `created_at` | timestamptz | NOT NULL | `now()` |
+| 17 | `created_by` | uuid | NULL | `auth.uid()` |
+| 18 | `updated_at` | timestamptz | NOT NULL | `now()` |
+| 19 | `updated_by` | uuid | NULL | `auth.uid()` |
+
+**这张表上没有任何一列指向集装箱、发运单、航段或销售订单。** 第 6 节全部建立在这一条上。
+
+`public.freight_allocations`,8 列:
+`id` / `freight_document_id`(NOT NULL)/ `inbound_batch_id`(NOT NULL)/
+`amount_base`(NOT NULL)/ `basis_qty`(NULL)/ `in_stock_ratio`(NOT NULL)/
+`created_at`(NOT NULL)/ `created_by`(NULL)。
+
+### 1.2 外键 —— 全部五条,一条不漏
+
+出去的(本族 → 别人):
+
+* `freight_documents.supplier_id → suppliers(id)`(无 ON DELETE 子句)
+* `freight_documents.currency → currencies(code)`
+* `freight_documents.journal_entry_id → journal_entries(id)`
+* `freight_allocations.freight_document_id → freight_documents(id) ON DELETE RESTRICT`
+* `freight_allocations.inbound_batch_id → inbound_batches(id)`
+
+进来的(别人 → 本族),只有两条:
+
+* `freight_allocations.freight_document_id`(同上)
+* `payment_allocations.freight_document_id → freight_documents(id)`(FIN 侧的核销去处)
+
+**注意 `supplier_id` 的 FK 上没有"必须是货代"的约束。** 货代身份在
+`containers.forwarder_id` 和 `forwarder_rate_quotes.supplier_id` 上都由触发器守着
+(`guard_container_forwarder` / `guard_forwarder_rate_quote`,两者都按名拒:
+`CONTAINER_FORWARDER_NOT_A_FORWARDER` / `RATE_QUOTE_VENDOR_NOT_A_FORWARDER`),
+**唯独运费单没有**。FRT-1 早于 LOG-1a 的 `counterparty_type`,这是时间差留下的一个
+不对称,不是一个决定。
+
+### 1.3 触发器与守卫 —— 只有一个
+
+```
+CREATE TRIGGER trg_freight_documents_updated_at BEFORE UPDATE ON public.freight_documents
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at()
+```
+
+`freight_allocations` 上**一个触发器都没有**。所以:
+
+* 分摊行**不是 append-only**(与 `container_milestones`、`payment_allocations` 不同 ——
+  后者有 `trg_payment_allocations_immutable` 明确 `ALLOCATION_IMMUTABLE`);
+* `status` 的 `'posted' → 'reversed'` **没有状态机守卫**,只有 CHECK 约束;
+* 软删 `deleted_at` **没有 provenance 守卫**(`guard_soft_delete_provenance` 存在,
+  但没挂在这张表上),也没有 `delete_reason` / `deleted_by` 两列可写。
+
+CHECK 约束共 7 条(线上原文):`amount_ccy > 0`、`fx_rate > 0`、
+`allocation_basis IN ('weight','value','stated')`、`payment_status IN ('paid','unpaid')`、
+`bank_account_code IN ('1000','1010')`、`status IN ('posted','reversed')`,
+以及形状约束 `freight_documents_payment_shape`(已付必有银行科目 / 未付必无)。
+分摊行两条:`amount_base >= 0`、`in_stock_ratio BETWEEN 0 AND 1`,
+加一条 `UNIQUE (freight_document_id, inbound_batch_id)`。
+
+**冲销路径不存在。** 全库没有 `reverse_freight_document`;`status = 'reversed'`
+是一个只能被手工 UPDATE 写进去的值,而那条 UPDATE 除了 `updated_at` 之外没有人看着。
+(对照:`reverse_expense`、`reverse_payment`、`reverse_journal_entry` 都有。)
+
+### 1.4 过账路径
+
+**唯一的写入口是 `record_freight_document(...)`**(`SECURITY DEFINER`,
+`search_path = public, pg_temp`,进门第一句 `require_permission('module.finance.edit')`)。
+它调 `post_journal_entry(p_doc_date, 'Freight ' || v_code, 'freight', v_doc_id, v_lines)`。
+`'freight'` 是 `journal_entries_source_type_check` 里 21 个允许值之一。
+
+分录的科目,原样:
+
+* **借 `1200`**(存货-原料)—— 金额 = Σ `round(share × in_stock_ratio, 2)`,
+  行备注 `'freight — in-stock share'`,币种恒为本位币;
+* **借 `5000`**(材料成本 / COGS)—— 金额 = 单据金额 − 上面那笔,
+  行备注 `'freight — consumed share'`,币种恒为本位币;
+* **贷 `1000` 或 `1010`(已付)/ `2000`(未付)** —— 金额是
+  **单据币种的 `amount_ccy`**,带 `fx_rate`,行备注 `'freight payable — forwarder'`。
+
+两条借方任一为 0 时那一行**不发**(`IF round(...) <> 0`),不是发一条零行。
+
+取整误差**归到最后一批**:`v_alloc_tot <> v_base` 时 UPDATE 最后一条分摊行补差,
+并重算在库/已耗两半 —— 分摊之和【等于】单据金额,不是约等于。
+
+### 1.5 `fx_rate` 在哪里锁
+
+在 `record_freight_document` 内,**单据落地之前**:
+
+```
+IF p_currency = base_currency_code() THEN v_fx := 1;
+ELSE v_fx := fx_rate_for(p_currency, p_doc_date, 'tt_sell'); END IF;
+v_base := round(p_amount * v_fx, 2);
+```
+
+三件事各自要紧:
+
+1. **锚是 `doc_date`,不是今天** —— 与 FIN-10 一族同规矩,日期决定期间【和】汇率;
+2. **口径是 `tt_sell`**(行方卖出价),理由写在函数注释里:我们付钱出去;
+3. **锁在凭证上,不锁在报价上** —— `forwarder_rate_quotes` 的表注释明写
+   「汇率在这里【不锁】:报价只带币种,锁率发生在实际运费凭证上」。
+   第 6 节的"实际 vs 报价"因此**天然是一个跨汇率的比较**,而不是两个数直接相减。
+
+缺率即拒:`fx_rate_for` 抛 `FX_RATE_MISSING`,已在 `freightErrorCodes.ts` 的具名集合里。
+
+### 1.6 反问:`inbound_batch_id NOT NULL` 是不是唯一的绑定?
+
+**不是。** 除了那条 NOT NULL + FK,还有【六】条把这一族钉死在进料侧,
+每一条都要单独拆:
+
+1. **RPC 的入参形状**:`p_allocations` 为 NULL / 非数组 / 空数组 → `FREIGHT_NO_BATCHES`;
+   每个元素都必须解析成一行活着的 `inbound_batches` → 否则 `INBOUND_NOT_FOUND`。
+   **一张不指向任何进料批的运费单,今天根本造不出来。**
+2. **分摊数学的读数全部来自 `inbound_batches`**:`quantity`(weight 口径)、
+   `quantity × unit_price`(value 口径)、`unit`(混合单位拒收)、
+   `remaining_qty`(拆账比例)。三个口径没有一个是形状无关的。
+3. **借方的拆分口径是进料批的在库比例**:`in_stock_ratio = remaining_qty / quantity`,
+   在库进 1200、已耗进 5000。**这不是一个 FK,这是借方科目本身的形状** ——
+   出口运费没有"这批货还剩多少在库"这个概念可读。
+4. **唯一的读者签名是进料批**:`batch_freight_base(p_inbound_batch_id uuid)`。
+5. **加工侧的过期判定**:`processing_run_allocation_status` 把
+   `freight_allocations → processing_inputs.inbound_batch_id` 连起来,
+   迟到的运费把吃过那批货的加工单标为 stale。
+6. **RLS 的读权限带着进料模块**:两张表的 SELECT 策略都是
+   `has_permission('module.inbound.view') OR has_permission('module.finance.view')`。
+   出口运费给进料模块看,没有理由。
+
+**结论:进料绑定有七处,FK 只是其中最容易看见的一处。**
+
+---
+
+## 2 · `allocation_basis` 与 `batch_freight_base()`
+
+### 2.1 「`allocation_basis`」是**两个不同的词表共用一个列名**
+
+线上三条 CHECK,原文:
+
+| 表 | 允许值 |
+|---|---|
+| `freight_documents` | `weight` / `value` / `stated` |
+| `processing_runs` | `weight` / `metal_value` |
+| `finance_settings.default_allocation_basis` | `weight` / `metal_value` |
+
+`finance_settings.default_allocation_basis` 线上是 `metal_value` ——
+**它只喂加工单,与运费无关**。运费那一列 FIN-36 起【逐单申报、没有 schema 默认值】,
+这条不能被"反正 finance_settings 里有个默认"顺手推翻。
+`stamp_allocation_basis_changed()` 触发器同理:它挂在 `processing_runs` 上,
+不在运费单上。
+
+### 2.2 `batch_freight_base()` 的全部调用方
+
+```sql
+CREATE OR REPLACE FUNCTION public.batch_freight_base(p_inbound_batch_id uuid)
+RETURNS numeric LANGUAGE sql STABLE   -- FRT-1 fu2 起 SECURITY INVOKER
+SELECT COALESCE(SUM(fa.amount_base), 0) FROM freight_allocations fa
+  JOIN freight_documents fd ON fd.id = fa.freight_document_id
+ WHERE fa.inbound_batch_id = p_inbound_batch_id
+   AND fd.deleted_at IS NULL AND fd.status = 'posted';
+```
+
+全仓搜索,**生产代码里只有一个调用方**:
+
+* `db/functions/allocate_processing_costs.sql:110` —— 材料成本口径
+  `unit_price + batch_freight_base(ib.id) / ib.quantity`,把落地成本带进产出批的
+  `unit_cost_base`,再经 `batch_margin` 到毛利。
+
+其余命中都不是调用:`db/migrations/2026-08-11-frt1c-*.sql`(同一段代码的迁移原文)、
+`db/migrations/2026-08-11-frt1-fu2-*.sql`(改 INVOKER)、
+`lib/database.types.ts:15632`(生成的类型)。
+
+**没有任何页面调用它。** 落地成本在屏幕上不是一个可以直接读到的数字 ——
+它只以"产出批单位成本"的形式间接现身。
+
+### 2.3 分摊数学是 inbound-specific,不是 shape-agnostic
+
+逐条:
+
+* `weight` → `inbound_batches.quantity`,并且跨不同 `unit` 直接拒
+  (`FREIGHT_MIXED_UNITS`,不是近似);
+* `value` → `quantity × unit_price`,遇 `unit_price IS NULL` **点名拒**
+  (`FREIGHT_BATCH_UNPRICED`)—— 理由写在函数里:给零份额等于把它那份悄悄摊给别人;
+* `stated` → 人直接列明,必须**正好**加总到单据金额(`FREIGHT_STATED_SUM_MISMATCH`),
+  `basis_qty` 留空;
+* 三个口径之后,**无条件**再按 `remaining_qty / quantity` 拆一次 1200/5000。
+
+**只有 `stated` 这一个口径在数学上与"被分摊的东西是什么"无关。**
+另外两个口径 + 拆账那一步,全部是进料批的形状。
+
+---
+
+## 3 · `docs/landed-cost-scoping.md` 对本层的约束
+
+那份文件 79 行,四节。**它已经定下、并且约束第 4 层的**:
+
+1. **运费资本化进批次成本,是"第二个成本组件",绝不并进 `unit_price`。**
+   原文:「那是应付之锚,并进去等于让系统以为欠材料供应商更多钱,而运费欠的是货代」。
+2. **未付运费即成为一张应付单据**,原文点名
+   「`ap_open_items.doc_kind = 'freight'`」。
+3. **资本化的代价被明写为一条判据**:
+   > 资本化之后,一次错的分摊【藏在存货里】,而不是显示在损益表上。
+   > 费用化的错误看得见,资本化的错误看不见。
+4. **关税不是"另一种分摊口径"**:
+   > 关税是按【那一批货】的完税价格课的,而且税率常常随材料而异。
+   > 所以在一张混装货上把它分摊出去【是错的】,不是"换一个口径"。
+   > **不要因为"都是落地成本"就把它接进运费的表单。** 运费的表单允许分摊,
+   > 而关税允许分摊就是允许出错。
+5. **进口 GST 永远不资本化**:
+   > 进口 GST 是【可抵扣的进项税】(科目 1400),它永远不资本化。
+   > 资本化它会同时高估存货【并】毁掉抵扣。
+   登记之后的走法也已写死:「GST 部分单独借 1400、**不参与任何分摊**,只有净额进 1200/5000。
+   那时这道闸门从"一律拒收"改成"拆出来",而不是"放行"」。
+6. **保险悬而未决,且不许被读成有结论** —— 按航次投保与年度保单是两种形状,
+   Tim 没答之前【不建】。
+
+### 3.1 出口运费**不是**落地成本 —— 盲目复用会把它资本化的三条具体路径
+
+这份文件通篇假设"运费 = 进货运费"。它**从未讨论过出口运费**,
+所以下面三条不是它写错了,是它不适用而形状又恰好接得上 —— 这才是危险处:
+
+* **路径 A(最直接)**:用 `record_freight_document` 记一张出口运费单。
+  它的借方**写死**是 `1200` / `5000` 两选,没有第三条分支。
+  出口运费于是【一定】进存货或材料成本,没有任何拒绝会响。
+* **路径 B(最隐蔽)**:`allocate_processing_costs:110` 把
+  `batch_freight_base(ib.id) / ib.quantity` 加进材料成本。
+  只要那张出口运费单挂在任何一个还会被投料的进料批上,
+  出口运费就会**穿过加工单进入产出批的 `unit_cost_base`**,
+  再经 `batch_margin` 抬高"成本"、压低毛利 —— 而且是对**别的**订单。
+  这正是那份文件自己说的"藏在存货里的错误",只是主语换了。
+* **路径 C(会计口径)**:`batch_margin` 的 `cogs_posted_base` 是按
+  `accounts.account_type = 'cogs'` 抓 `journal_lines` 加总的。
+  出口运费若落在任何一个 `cogs` 科目上(`5000`–`5200` 全是),
+  它就会被算进**那张销售记录**的已过账 COGS —— 不管它是不是那一票货的运费。
+
+**另有一条不属于"资本化",但同样是盲目复用的账**:
+`record_freight_document` 的 GST 闸门(`FREIGHT_GST_NOT_CAPITALISABLE`)
+是照着"运费资本化"这个前提写的。出口运费如果费用化,
+那条闸门的措辞("不可资本化")对它就不成立 —— 出口服务多半 zero-rated,
+那是**另一个理由**得出的同一个动作。复用那句拒绝,等于把对的结论配上错的理由。
+
+---
+
+## 4 · 科目 —— 今天有什么,缺什么
+
+线上 `accounts` 共 **44** 行。与本层相关的:
+
+### 4.1 出口运费能落在哪
+
+**只有一个现成的**:
+
+| 科目 | 名 | 类型 | is_monetary | is_system | is_active |
+|---|---|---|---|---|---|
+| `6300` | Transport & Logistics / 运输物流费 | `expense` | false | **false** | true |
+
+`6300` 是**建账的人的地盘**(`db/tables/accounts.sql:121` 明写:
+「6300/6400/6500/6600/6900【故意不在这里】:它们是建账的人的地盘」),
+即 `is_system = false`,可以停用、可以改名。
+全仓只有一处代码提到它:`db/fixtures/77-*.sql:132`,一次 `record_expense` 的固定装置。
+**生产路径上没有任何一处往 `6300` 过账。**
+
+`expenses.account_code` 是对 `accounts(code)` 的裸 FK(没有 `account_type` 限制),
+所以**今天就能**用 `record_expense(..., '6300', ...)` 把一张出口运费单记成
+普通挂账开支,贷 `2000`,并自动出现在 `ap_open_items` 的 `expense` 支上。
+**这条路今天是通的** —— 它换来的是:没有集装箱/航段的引用、没有与报价的比较、
+没有"这一票货的运费"这个概念。
+
+### 4.2 缺什么
+
+* **没有销售/分销费用分组**。`6000`–`6900` 是一个平的行政费用带
+  (租金、工资、公积金、福利、水电、运输物流、专业服务、银行手续费、折旧、杂项)。
+  出口运费若要与"卖东西的成本"区分开,今天没有一个位置说它是分销费用而不是行政费用。
+* **没有关税科目**。44 行里一条都没有(`duty` / `customs` / `关税` 零命中)。
+* **`5000`–`5200` 全是 `cogs`**,且 `5100`–`5190` 全部被"加工成本"占满
+  (人工/电力/气体/折旧/耗材/废物处理/其他),`5200` 是存货调整损益。
+  **`cogs` 段里没有一个空位天然属于"出口运费"**,而借用任何一个都会被
+  `batch_margin` 的 `account_type = 'cogs'` 汇总抓走(见 3.1 路径 C)。
+
+### 4.3 关税与进口 GST 今天记在哪 —— 哪儿都没有
+
+* **关税**:**没有科目、没有表、没有列、没有函数、没有一行数据。**
+  `docs/landed-cost-scoping.md` 第二节把它的形状写下来了,但**一个对象都没建**。
+* **进口 GST**:科目 `1400`(GST Input Tax,`asset`,`is_monetary = true`,
+  `is_system = false`)**存在**,并且 `2026-08-04-fin3-fu2-chart-bootstrap.sql`
+  专门把它和 `2100` 标成货币性(所以它**会**被 `revalue_foreign_balances` 重估)。
+  但全仓搜索 `'1400'`:**只有三处命中,全是科目表的定义与 bootstrap,
+  没有任何一处过账。**
+* 线上 `finance_settings`:`gst_registered = false`、`gst_rate_pct = 0`、
+  `gst_registration_no = null`。
+* 承载它们的对象:**没有。** 今天唯一提到进口 GST 的生产代码是
+  `record_freight_document` 里那道**拒绝**(`FREIGHT_GST_NOT_CAPITALISABLE`),
+  它不承载 GST,它只是不让 GST 进来。
+
+**所以 brief 第 4 问的答案是:关税与进口 GST 今天没有任何去处,
+一个"路由到不同收款方"的层要连它们的容器一起造,而不是接进一个已有的容器。**
+
+---
+
+## 5 · `ap_open_items.doc_kind` —— 线上、代码里、以及加一种会撞到什么
+
+### 5.1 现状
+
+`ap_open_items` 是**视图**(不是表),`security_invoker = off`,
+整表挂 `has_permission('module.finance.view')`,三支 UNION ALL:
+
+| `doc_kind` | 来源 | 应付额 |
+|---|---|---|
+| `inbound` | `inbound_batches_masked`(已计价、在册) | `quantity × unit_price` − 付款核销 − 预付冲抵 |
+| `expense` | `expenses`(unpaid + posted,排除冲销镜像行) | `amount_base` − 核销 |
+| `freight` | `freight_documents`(unpaid + posted + 未软删) | `amount_base` − 核销 |
+
+三支都带 `counterparty_kind` / `counterparty_id` / `counterparty_name`(PAYEE-1a),
+运费支恒为 `'supplier'`。行的存在判据是 `open_ccy > 0`。
+
+标签在 `messages/{en,zh}.ts` 的 `finance.docKind.*`:
+`inbound` / `expense` / `freight` / `sale` / `invoice` 五个都在。
+
+### 5.2 加一种(或复用 `'freight'`)会触到什么
+
+**账龄 —— 自动跟上,不用改。**
+`days_outstanding` 与 `bucket`(`b0_30` / `b31_60` / `b61_90` / `b90_plus`)
+在最外层按 `doc_date` 算,与 `doc_kind` 无关。新的一支只要给出
+`doc_date` / `open_ccy` / `currency` 就落进桶里。
+
+**重估 —— 不按 `doc_kind` 走,不用改。**
+`revalue_foreign_balances` / `preview_revalue_foreign_balances` 完全不认识
+`ap_open_items`;它按 `accounts.is_monetary` 逐科目逐币种算。
+**决定重估行为的是贷方落在哪个科目**(`2000` 是 `is_monetary = true`),
+不是 `doc_kind`。若出口运费未付走 `2000`,它自动被重估;
+若走 `2200`(应计费用,也是货币性)同理。
+
+**核销 —— 这里有一个【已经存在的】洞,加一种会把它加宽。**
+
+`record_payment` **完全不认识运费**。全函数搜索 `freight`:零命中。
+它的 XOR 是五选一:
+
+```
+num_nonnulls(v_sale_id, v_batch_id, v_expense_id, v_po_id, v_invoice_id) <> 1
+    → ALLOC_INVALID
+```
+
+而 `payment_allocations` 的 CHECK 是**六**选一(含 `freight_document_id`),
+`ap_open_items` 的运费支也确实按 `pa.freight_document_id` 去减已结清额。
+**表和视图都准备好了,写入函数没有。**
+
+顺着 UI 走一遍,后果是具体的:
+`app/finance/payments/new/page.tsx:86` 原样读出视图的 `doc_kind`,
+`NewPaymentForm.tsx:562` 把它塞进 `alloc_kind` 隐藏域;
+`app/finance/payments/new/actions.ts:78-82` 只认 `expense` 与 `purchase_order`,
+**其余一律落进 `else` 分支,当作 `inbound_batch_id` 送下去**。
+于是选中一张未付运费单去付款,送给 `record_payment` 的是
+`{ inbound_batch_id: <freight_document_id> }`,批次查不到 →
+`ALLOC_INVALID|<uuid>`。
+
+**这是一次按名拒绝,不是静默错账** —— 但它拒绝的名字指着错的东西
+(说"这个进料批不合法",而人选的是一张运费单),
+而且**未付运费今天在这套系统里没有任何一条路可以结清**。
+线上暂时看不出来,只因为运费单一张都没有(第 7 节)。
+
+**看板 —— 已经有一个洞。**
+`operations_now` 的 `ap_over_90` 支原样透出 `ap.doc_kind`,
+`app/page.tsx:132-134` 只映射 `inbound` → `/finance/payables/`、
+`expense` → `/finance/expenses/`,**其余返回 `null`(不给链接)**。
+`freight` 已经落在这个 `null` 里。写法本身是对的
+(注释明写「认不出的种类【不给链接】,绝不猜一个 —— 猜错就是拿一个合法 uuid
+开错人的单据」),但结果是:一张逾期 90 天的运费应付在看板上**有行、无门**。
+`/finance/freight/[id]` 这个页面是存在的,只是没人把它接上。
+再加一种 `doc_kind`,就是第三条无门的行。
+
+**对账单 —— 没有这个东西。**
+全仓没有供应商对账单(supplier statement)。`reconcile_statement` /
+`import_bank_statement` 是**银行对账单**,按银行流水行匹配,不按 `doc_kind` 分支。
+所以 brief 第 5 问里的"statements"这一项:**今天不存在可被触到的对象。**
+
+**其余读者**:`/finance/payables` 页面(`app/finance/payables/page.tsx:18`)
+的类型已经是 `'inbound' | 'expense' | 'freight'`,并且三支都有分支渲染 ——
+加第四种要同时改类型与分支,否则新种类会落进它的兜底。
+
+---
+
+## 6 · 比较之锚 —— "实际运费 vs 这条航段的报价"要哪些 join,以及缺什么
+
+### 6.1 两端今天的形状
+
+**报价端**(`forwarder_rate_quotes`,LOG-1a):
+`supplier_id`(必须是货代,触发器守着)+ `lane_id` + `amount_ccy` + `currency`
++ `valid_from` / `valid_to`。同一家 × 同一航段**有效期不许重叠**
+(`FORWARDER_RATE_QUOTE_OVERLAP`),所以给定(货代,航段,日期)最多一份报价。
+表注释明写它**什么都不入账**、**汇率不锁**。
+
+**航段端**(`lanes`):`origin_port_id` + `destination_port_id`,仅此。
+**没有 `mode`、没有 `container_size`、没有 `service`。**
+
+**箱子端**(`containers`,LOG-2a):`lane_id`(**可空**)、`forwarder_id`(**可空**,
+非空时触发器要求是货代)、`departure_date`(NOT NULL)、`container_number`、
+`vessel` / `voyage` / `bl_number`。
+
+**实际端**(`freight_documents`):`supplier_id` + `doc_date` + `amount_ccy` + `currency`。
+
+### 6.2 要把两个数放在一起,需要的 join
+
+```
+freight_documents fd
+  → ??? → containers c            -- 【这一跳今天不存在】
+  → lanes l              ON l.id = c.lane_id                      -- c.lane_id 可空
+  → forwarder_rate_quotes q
+        ON  q.supplier_id = fd.supplier_id      -- 或 c.forwarder_id?两者可以不同
+        AND q.lane_id     = c.lane_id
+        AND <某个日期> BETWEEN q.valid_from AND q.valid_to
+        AND q.deleted_at IS NULL
+  → currencies / fx_rate_for(...)  -- 币种可能不同,报价没锁率
+```
+
+### 6.3 缺什么 —— 五条,每一条都足以让这个 join 停下
+
+1. **`freight_documents` 上没有集装箱(或发运单、或航段)引用。**
+   19 列里一条都没有。第一跳就断。今天唯一的公共键是
+   `freight_documents.supplier_id = containers.forwarder_id`,
+   而那不是一个连接,那是**同一家货代的所有箱子**。
+2. **`containers.lane_id` 与 `containers.forwarder_id` 都可空。**
+   线上 4 个箱子里 2 个 `forwarder_id` 为空(见第 7 节)。
+   航段缺失时 `container_overview` 已经明说是 `'no_lane'` 而不是空白 ——
+   同一条纪律要在这里再走一遍:**"没有报价可比"与"报出来比多了"是两种空,
+   不能显示成同一个空。**
+3. **报价没有单位。** `amount_ccy` 是"一箱多少"还是"一票多少"还是"一 CBM 多少"?
+   表里没有这个维度,`lanes` 里也没有 `container_size`。
+   **不知道分母的两个数不能相减。**
+4. **有效期用哪个日期取?** 候选至少三个:`containers.departure_date`(世界侧)、
+   `freight_documents.doc_date`(凭证侧)、里程碑里的实际开航日。
+   三者可以落在不同的报价有效期里,给出**三个不同的"报价"**。
+   这是一个必须被决定的口径,不是一个可以取默认值的字段 ——
+   而世界侧的日期按房规【永不预填】。
+5. **币种与汇率。** 报价带币种不带汇率(明写不锁),实际单据把汇率锁在
+   `doc_date` 的 `tt_sell`。所以"差多少"至少有两个都说得通的答案:
+   **按报价币种比**(不涉汇率,但两张单据币种不同时无法相减),
+   **按本位币比**(要给报价选一个汇率日,而那正是那张表拒绝回答的事)。
+
+**还有一条不算"缺",但会咬人**:权限模块不同。
+`containers` / `lanes` / `forwarder_rate_quotes` 全部挂 `module.purchasing.*`
+(`lib/modules.ts:126-127` 明写物流暂借采购的码,「将来那个码是 `module.logistics.view`」),
+而 `freight_documents` 挂 `module.finance.edit` + (`module.inbound.view` OR `module.finance.view`)。
+**任何把"实际"与"报价"放在一起的视图,都跨了两个模块的边界** ——
+按 OPS-14 的先例,这类视图要么整块挂一条明写的谓词,要么会对某些角色
+**静默丢行**,而那是这个仓库点过名的病。
+
+---
+
+## 7 · 线上数据
+
+查询时间 2026-08-20,Management API,以 `postgres` 身份(绕过 RLS)。
+
+| 对象 | 数量 |
+|---|---|
+| `freight_documents` | **0** |
+| `freight_allocations` | **0**(0 张单、0 个批次) |
+| `forwarder_rate_quotes` | **0** |
+| `lanes` | 6 |
+| `containers` | 4(其中 **3 已软删**,1 在册) |
+| `shipments` | 3(**0 挂在箱子上**) |
+| `suppliers` where `counterparty_type='forwarder'` | 4 |
+
+**运费单的状态分布:没有状态可报 —— 一张都没有过。**
+`FRT-1` 建于 2026-08-11,九天来生产上一次都没被用过。
+`docs/known-issues.md:804` 的冒烟跳过清单与此一致:
+`/finance/freight/[id]` 因 `freight_documents 空` 被 SKIP。
+
+**四个箱子:**
+
+| code | container_number | lane | forwarder | departure | 状态 |
+|---|---|---|---|---|---|
+| `CTR-2026-0001` | ZC7382U1 | 有 | 无 | 2026-08-21 | 软删 |
+| `CTR-2026-0002` | GXCU5738405 | 有 | 有 | 2026-08-20 | **在册** |
+| `CTR-2026-0003` | ZB6016U1 | 有 | 无 | 2026-08-21 | 软删 |
+| (见下) | ZZ2BU0000001 | 有 | 有 | 2026-08-20 | 软删 |
+
+**顺带记下一条,不属于本次 scope,但看见了就写下来:**
+第四行的 `code` 列里装着的**不是**一个箱号,是一个 106 字符的 PostgREST 错误负载:
+
+```
+{"code":"42501","details":null,"hint":null,"message":"permission denied for function next_container_code"}
+```
+
+`created_by` 为 NULL,`delete_reason` 写着「LOG-2b 验证用的临时箱子;里程碑只增不改,
+所以它只能软删」。**它是 LOG-2b 的验证残留,已软删,而且因为不以 `CTR-` 开头,
+`CTR-` 号段的无缝性没有被它破坏**(在册与软删的三条真行是 0001/0002/0003,连续)。
+但它证明了一件事:**存在一条绕过 `create_container` DEFINER 的直插路径,
+而且那条路径把 RPC 的错误对象当成字符串写进了 `code` 列。**
+处置是人的决定,本节只报告。
+
+**这一节最要紧的一句话:第 4 层的两端今天都是空的。**
+没有一张运费单、没有一份报价、没有一个箱子挂着发运单。
+**任何"实际 vs 报价"的东西造出来之后,第一眼看到的必然是空状态** ——
+所以按房规,那些空状态必须各自说清是**哪一种**空:
+没有箱子 / 箱子没有航段 / 航段上这家货代没有报价 / 有报价但不覆盖那个日期 /
+有报价但币种不同无法相减。这五种今天会长得一模一样。
+
+---
+
+## 8 · 岔口(不提议,只把问题与赌注写清楚)
+
+**岔口一:出口运费费用化,还是"资本化到销售成本"?**
+今天 `record_freight_document` 的借方写死 `1200` / `5000`,没有第三条分支。
+若出口运费费用化,它与 `record_expense` 同形(贷 2000,借某个费用科目),
+`freight_documents` 这张表**它一列都用不上**;
+若要它跟着那一票货走进 COGS,那就要回答"跟着哪一票"——
+而 `shipments → sales_orders` 已经有答案,`freight_documents` 没有。
+**赌注:** 前者意味着第 4 层的主要工作是**科目与对手方**(第 4 节的缺口),
+运费那一族原样不动;后者意味着要在 `freight_documents` 上开一条与
+`freight_allocations` 平行的**出口分摊**,而那条分摊的分母是发运单不是进料批 ——
+`in_stock_ratio` / `basis_qty` / `FREIGHT_MIXED_UNITS` 三样全部要重新定义。
+
+**岔口二:复用 `freight_documents`,还是另起一张单据?**
+复用能白拿:无缝 `FRT-` 号段、`fx_rate` 锁点、`payment_shape` 约束、
+`ap_open_items` 的第三支、`payment_allocations.freight_document_id` 那条已存在的 FK、
+以及 `freightErrorCodes.ts` 那 18 个具名拒绝。
+另起则要把这些**逐样再造一遍**。
+**赌注:** 复用的代价是那张表上每一条"进料"的假设都变成一个必须加判别的地方
+(第 1.6 节七条),而且**借方那两个写死的科目是最脏的一处** ——
+一次漏判就是把出口运费记进存货,而那正是
+`docs/landed-cost-scoping.md` 说的"看不见的错误"。
+另起的代价是**两张形状相近的运费单从此各自漂移**,
+以及 `batch_freight_base` 之外要不要再有一个 `shipment_freight_base`。
+
+**岔口三:比较之锚挂在箱子上,还是挂在运费单上?**
+(甲)给 `freight_documents` 加 `container_id` —— 一张运费单对一个箱子;
+(乙)给箱子加一张"这个箱子花了多少"的汇总 —— 一个箱子可以有多张单
+(海运费 + THC + 文件费 + 滞港费,货代的账单本来就是这样开的)。
+**赌注:** 甲简单,但**它假设了一箱一单**,而这个假设一旦不成立,
+第二张单要么造第二个箱子(假的),要么挂不上(丢的);
+乙诚实,但"报价"是一个数而"实际"是一堆数,
+**比较就从"两数相减"变成"哪些费目算在报价里"** ——
+而 `forwarder_rate_quotes` 今天没有费目这个维度,`notes` 是自由文本。
+
+**岔口四:报价的分母是什么?**
+`forwarder_rate_quotes.amount_ccy` 今天没有单位。
+若定为"每箱",那 `lanes` 上缺 `container_size`(20GP 与 40HQ 不是一个价);
+若定为"每票",那一个箱子装两张订单时报价与实际的口径就错开了;
+若定为"每重量单位",那要回答按毛重还是净重 —— 而 §B7「哪个重量说了算」
+在第 0 层就已经把这个问题标成未决。
+**赌注:** 这个答案决定 `forwarder_rate_quotes` 要不要迁移加列。
+**在它被回答之前,任何"实际 vs 报价"的比较都只是把两个数并排放着,
+而不是在比较** —— 并排放着的两个数,读的人会自己相减。
+
+**岔口五:关税与进口 GST 的收款方是"另一个 payee",还是"另一类单据"?**
+brief 说要把它们路由到不同的收款方。但今天 `suppliers.counterparty_type`
+的取值里(线上三种:`forwarder` / `goods_supplier` / `service_vendor`)
+**没有"海关"这一类**,而海关也不是一个可以走 `ap_open_items` 账龄的对手方
+(关税通常在放行前付清,不存在 30/60/90 天的账龄)。
+报关行(customs broker)才是那个真正被欠钱的人,而它今天多半会被建成
+`service_vendor`。
+**赌注:** 若答案是"另一个 payee",那第 4 层要新增的是
+`counterparty_type` 的第四个值 + 一个关税科目,而 `freight_documents` 不动;
+若答案是"另一类单据"(`docs/landed-cost-scoping.md` 第二节倾向的那条 ——
+【逐批】、只许 `stated`),那要造的是一张新表,
+而那份文件已经明说这**是一次决定,不是一个开关**。
+
+**岔口六:`record_payment` 那个洞现在补,还是跟着第 4 层一起补?**
+未付运费进得了账龄、出不了门(第 5.2 节)。
+现在补是一次小刀:`record_payment` 的 XOR 从五扩到六 + 敞口校验 +
+`actions.ts` 的 `alloc_kind` 分支 + `app/page.tsx` 的看板链接。
+跟着第 4 层一起补,则那把刀要同时容纳还没定形状的出口运费。
+**赌注:** 分开做,第 4 层的迁移窗口小、fixture 边界干净;
+一起做,`record_payment` 只动一次,但它是全仓最长的写入函数之一,
+一次改两种新单据,fixture 的"注入必须咬"会更难保证咬的是哪一条。

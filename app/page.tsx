@@ -125,12 +125,16 @@ const TILES = [
           r.doc_kind === 'invoice' ? `/finance/invoices/${r.item_id}`
         : r.doc_kind === 'sale' ? `/finance/receivables/${r.item_id}`
         : null },
-    // 【应付有两种单据】doc_kind 来自 ap_open_items 自己(应付列表页一直照它分支);
+    // 【应付有三种单据】doc_kind 来自 ap_open_items 自己(应付列表页一直照它分支);
     // 认不出的种类【不给链接】,绝不猜一个 —— 猜错就是拿一个合法 uuid 开错人的单据。
+    // PAY-FRT:第三支 'freight' 一直落在那个"认不出"的 null 里 —— 那条兜底本身是
+    // 对的,而结果是一张逾期 90 天的运费应付【有行、无门】,尽管 /finance/freight/[id]
+    // 这个页面一直存在。补的是映射,不是兜底。
     { itemType: 'ap_over_90', permission: 'module.finance.view', href: '/finance/payables',
       itemHref: (r: OpsRow) =>
           r.doc_kind === 'inbound' ? `/finance/payables/${r.item_id}`
         : r.doc_kind === 'expense' ? `/finance/expenses/${r.item_id}`
+        : r.doc_kind === 'freight' ? `/finance/freight/${r.item_id}`
         : null },
     { itemType: 'fx_rate_gap', permission: 'module.finance.view', href: '/finance/fx',
       itemHref: (r: OpsRow) => `/finance/fx?currency=${encodeURIComponent(r.item_code)}` },
