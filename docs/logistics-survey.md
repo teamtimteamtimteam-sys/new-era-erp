@@ -1015,3 +1015,331 @@ brief 说要把它们路由到不同的收款方。但今天 `suppliers.counterp
 **赌注:** 分开做,第 4 层的迁移窗口小、fixture 边界干净;
 一起做,`record_payment` 只动一次,但它是全仓最长的写入函数之一,
 一次改两种新单据,fixture 的"注入必须咬"会更难保证咬的是哪一条。
+
+---
+
+# 第 5 层勘察:告警的地基(LOG-5-SURVEY)
+
+**2026-08-20,只读。** 没有改动任何代码、任何数据库对象、任何数据。
+基线 `HEAD = 992572c`,工作区干净。所有线上数字来自实时查询。
+**跟踪仍然只有手工录入 —— 没有对接、没有轮询**(`container_milestones` 表注释里
+原话:「跟踪只有手工录入 —— 没有对接、没有轮询、没有自动状态机。所以这里的每一行
+都有一个人」)。本节的一切都建立在那一句上。
+
+## 1 · 今天的告警机制:【两套】,而且它们不是一回事
+
+这个仓库已经有两套并行的机制,而**把它们分开正是 NTF-1 那一刀的全部内容**。
+`db/tables/notifications.sql` 的表注释把区别写死了:
+
+> **事件 ≠ 仪表盘的臂,别合并**
+> * 臂(`operations_now`)是一个【持续成立的状态】,补上货它自己就消失了;
+> * 事件是一件【发生过的事】,它不会消失,只能被读过。
+
+### 1.1 `operations_now` —— 计算出来的【臂】,不存行
+
+一张视图,**22 支** UNION ALL,每次读都重算:
+`awaiting_assay` / `assay_unapplied` / `batch_unpriced` / `allocation_stale` /
+`po_awaiting_receipt` / `stocktake_open` / `qualification_expiring` /
+`qualification_missing` / `credit_over_limit` / `output_unsold_aging` /
+`safety_stock_below` / `leave_pending` / `claim_pending` / `review_submitted` /
+`invoice_overdue` / `fx_rate_gap` / `bank_unmatched` /
+`margin_cost_not_allocated` / `metal_quote_stale` / `orders_unfulfilled` /
+`work_order_overdue` / `work_order_variance_beyond`。
+
+* **不产生任何行**,所以【没有去重问题,也没有已读概念】—— 条件不成立那一支就消失;
+* 每支自带 `permission`(+ `arm_permission_any`),读者看不见的支不出现;
+* 每支给 `item_type / item_id / doc_kind / item_code / subject / item_date`,
+  最外层算 `days_waiting = CURRENT_DATE - item_date`;
+* **安全库存(SS-1)就是其中一支**,不是通知:
+  `WHERE msa.safety_stock_qty IS NOT NULL AND msa.available_qty < msa.safety_stock_qty`。
+  阈值 NULL 一次都不响,而那个"不响"【不可以被读成"查过了没问题"】(METAL-1 那一课)。
+
+### 1.2 `notifications` —— 只增不改的【事件】,由触发器/RPC 写
+
+* **谁写**:`notify_class_violations()` 与 `notify_landing_warnings()`,都是
+  `SECURITY DEFINER`、对 `authenticated` 收权。
+  发射点是**触发器**(`trg_materials_notify_reclassified` 挂在 `materials`、
+  `trg_slac_notify_written` 挂在 `storage_location_allowed_classes`)与
+  **四个建批次 RPC 的函数体内**(`create_inbound_batch` / `receive_inbound_batch_against_po`
+  / `create_stock_transfer` / `create_output_batch`)。
+  **不是轮询,不是读的时候算** —— 事情发生的那一刻写一行。
+* **表上没有 INSERT 策略**:唯一写入口就是那两个属主权限函数。
+* **去重规则(brief 问的那一条)**,原文在 `notify_class_violations`:
+  ```
+  v_fp := material_id || '|' || location_id || '|' || class_code;
+  -- 同指纹且【未读】的已经在 → 不再写
+  IF EXISTS (SELECT 1 FROM notifications n
+              WHERE n.payload->>'fingerprint' = v_fp
+                AND NOT EXISTS (SELECT 1 FROM notification_reads nr
+                                 WHERE nr.notification_id = n.id))
+  THEN CONTINUE; END IF;
+  ```
+  **指纹 + 未读**。所以一个条件在被读掉之前只有一行;读掉之后若仍然成立,
+  下一次事件会再写一行。**而"每次页面加载写一行"这件事根本无从发生 ——
+  因为写入点不在读路径上**。这一点值得说清楚:brief 的问法预设了 on-read 生成,
+  而这个仓库不是那样做的。
+  索引 `idx_notifications_fingerprint ON (payload->>'fingerprint')` 就是为它建的。
+* **已读**:单独一张 `notification_reads (notification_id, user_id, read_at)`,
+  主键是两者。**刻意不写在 `notifications.read_at` 上** —— 表注释:已读是【每个读者
+  自己的】状态,写在事件行上今天更省,但第二个用户出现那天会静默变错
+  (一个人读过 = 所有人已读)。三条 RLS 全锁 `user_id = auth.uid()`,
+  而且这张表**允许客户端直写**(它记的是"我看过了",那句话只有读者自己说得出)。
+* **`event_type` 与 `subject_type` 都是 CHECK 白名单**;RLS 按 `subject_type`
+  分派模块权限码,**`ELSE false`** —— 新主体在有人给它声明模块之前不可见。
+  **这一条对第 5 层是硬约束**:任何 `container` 主体的通知,必须同时改这两条 CHECK
+  与那条 RLS `CASE`,否则它写得进、读不出。
+* **被遮蔽的表**(REVOKE + 列清单 GRANT):将来加的列必须同时进那个清单。
+
+### 1.3 它们各自在屏幕上出现在哪
+
+| 机制 | 出口 |
+|---|---|
+| `operations_now` | 首页看板(`app/page.tsx`,按 `itemType` 逐支给门牌) |
+| `notifications` | `/notifications` 一页 + `app/components/NotificationBell.tsx` 的铃铛 |
+
+铃铛**刻意不给精确数**:它只扫最近 `BELL_LIMIT` 条再减去已读,注释写着
+「同 operations_now 那条"人人都开的页面上不许无界扫描"」——
+精确数字在 `/notifications` 那一页上。
+
+### 1.4 还有第三处,形状不同,值得记一笔
+
+`metal_prices.anomaly_check` —— 行情异常**持久在那一列上**并有自己的确认流程,
+`notifications` 表注释【明确把它排除在外】,理由是本层最该记住的一句:
+
+> **要接第三个来源,先问它是不是已经有一份持久记录 —— 如果是,通知应当【指向】它,
+> 而不是【复制】它。** 复制过来 = 同一件事的第二份状态,而两份状态迟早各说各话。
+
+---
+
+## 2 · 免柜期(free time):有一个字段,但它不是一个数
+
+`db/tables/forwarder_details.sql:8`:
+
+```sql
+free_time_terms text,
+```
+
+**自由文本,可空,没有 CHECK、没有单位、没有默认值、没有锚点。**
+
+要算"从某个里程碑起 N 个免费天",需要两样东西,而**两样都不在**:
+
+1. **一个数**(N)。今天只有一段人写的话("14 days free at destination,
+   thereafter USD 75/day" 之类)。从自由文本里解析出数字是把一句话当成一个字段用,
+   而这个仓库对那类做法点过名。
+2. **一个锚点**(从哪一天起数)。`free_time_terms` 里没有任何东西指向
+   `container_milestones` 的哪一个值。
+
+**而且它挂错了层级 —— 这是本节最要紧的一条**:`free_time_terms` 挂在
+**货代**身上(`forwarder_details.supplier_id` 是主键),不是挂在**航段**或**箱子**上。
+同一家货代在不同航段、不同船公司、不同目的港的免柜期常常不同;
+一个挂在货代身上的单值,对第二条航段就已经不成立了。
+**报告这一点,不提议形状**(brief 明令)。
+
+**线上实况:`forwarder_details` 一行都没有。** 所以今天不只是"没有数字",
+是**连一条自由文本都没有**。
+
+---
+
+## 3 · 预计到达:**确认 —— 全库没有任何 ETA 字段**
+
+全库 `db/tables/*.sql` 搜 `eta` / `expected_arrival` / `expected_date` /
+`estimated_arrival` / `arrival_estimate`:**零命中**(唯一形似的
+`purchase_order_lines.expected_assay` 是化验成分,与日期无关)。
+
+`containers` 的日期只有一个:`departure_date`(NOT NULL)。
+`container_milestones` 记的是 **`event_date` —— 这一步是哪天【发生】的**,
+表注释原话。**没有任何一列表达"我们预期它哪天到"。**
+
+### 3.1 一个"逾期"告警需要一个可比的期望,而 FIN-10 对它有话说
+
+`container_milestones.event_date` 的列注释已经把这条界划得很清楚,而它**直接决定**
+第 5 层能不能给 ETA 一个默认值:
+
+> * 世界那一侧的事件(departed / arrived / customs_cleared)系统【无从知道】,
+>   必须有人录;**给它一个 CURRENT_DATE 默认值,会让"没填"比"填对"更容易通过。**
+> * 系统自己见证的事件日期是【已知的】,由那个调用方显式传今天。
+> **区别在于【谁知道这件事】,不在于用了哪个函数。**
+
+一个 ETA **属于第一类**:它是世界那一侧的一个说法(船公司给的、货代转述的)。
+所以按 FIN-10 一族的规矩,它**必填、永不预填、永不由系统推算**——
+特别是**不可以**由"开航日 + 航段平均天数"算出来:那会造出一个看起来像事实的估计,
+而没有人说过那句话。同一条规矩已经在 `create_container` 上兑现过:
+`CONTAINER_DEPARTURE_DATE_REQUIRED`,HINT 写着「开航日是世界那一侧的事实,
+系统无从代填」。
+
+### 3.2 已经存在的、拿"期望"比"现实"的三支 —— 可抄的形状在这里
+
+| 支 | 期望从哪来 | 判据 |
+|---|---|---|
+| `work_order_overdue` | `work_orders.scheduled_date`(**表上的一个可空日期列**) | `status='released' AND scheduled_date IS NOT NULL AND scheduled_date < CURRENT_DATE` |
+| `invoice_overdue` | `invoice_status.due_date`(从付款条件推出来) | `WHERE i.overdue` |
+| `qualification_expiring` | `supplier_compliance.valid_until` + **每类证书自己的提前期** | `valid_until <= CURRENT_DATE + ct.warn_lead_days` |
+
+**第三支的形状对第 5 层最有参考价值**:`certificate_types` 是一张
+**RUNTIME CONFIG** 表,每一类证书自带 `warn_lead_days`(提前多少天上看板)
+**和 `disposition`(`block` 挡收货 / `warn` 只提醒 / `ignore` 不管)**——
+「加一种证书是编辑一行,不是跑一次迁移」。
+也就是说:**"提前几天响"与"响了之后拦不拦"在这个仓库里已经是数据,不是常量。**
+
+**另记一条 `work_order_overdue` 留下的、至今开着的问题**(视图里原文):
+「"放行了三个月、从没排过期"该不该有别的支管 —— 仍然是一个开着的问题…
+这一支不假装回答它:它只报"排了期而且过了期"的。」
+**ETA 会原样继承这个问题**:一个从来没人填过 ETA 的箱子,是"没问题",还是
+"最该被问的那一个"?
+
+---
+
+## 4 · 缺单据:`pending` 有了,而"迟"没有锚
+
+`container_documents`:
+
+```sql
+document_type text NOT NULL,
+regime        text,
+status        text NOT NULL DEFAULT 'pending'
+                  CHECK (status IN ('pending','received','not_applicable')),
+na_reason     text,
+from_lane     boolean NOT NULL DEFAULT false,
+created_at    timestamptz NOT NULL DEFAULT now(),
+```
+
+**没有 `received_at`,没有 `doc_date`,没有 `due_date`。**
+所以一份单据从 `pending` 变成 `received` 的**那一刻没有被记下来**——
+今天只知道"现在是什么状态",不知道"什么时候变的"。
+
+「迟」可以锚到哪里,以及各自的代价(**只列,不选**):
+
+* **`container_documents.created_at`** —— 系统侧,清单被实例化的那一刻。
+  好处:一定存在。坏处:它是**系统的日子**,不是世界的日子;
+  清单晚建三周,所有单据就都"晚了三周才开始计时"。
+* **`containers.departure_date`** —— 世界侧,NOT NULL,一定存在。
+  坏处:有些单据(装箱单、订舱确认)在**开航之前**就该到,
+  以开航日为零点会让它们永远不迟。
+* **某一个 `container_milestone`** —— 世界侧,语义最准
+  (「提单应当在 departed 之后 N 天内到」)。坏处见 4.1。
+
+### 4.1 里程碑当锚点有一个【实测到的】麻烦:同一个里程碑可以有多行
+
+`container_milestones` 是 **append-only**,表注释明写「记错了就再记一条并在 note 里
+说清楚,绝不回头改一行」。线上就是这样:
+
+| 箱子 | 里程碑 | event_date |
+|---|---|---|
+| CTR-2026-0002 | `departed` | 2026-08-20 |
+| CTR-2026-0002 | `departed` | **2026-08-21** |
+| CTR-2026-0004 | `loaded` | 2026-08-13 |
+| CTR-2026-0004 | `loaded` | **2026-08-15** |
+
+**两个在册箱子,每一个的同一个里程碑都有两行。**
+所以"从 departed 起算"必须先回答**哪一个 departed**:最早的?最晚的?
+最后录入的?`container_overview` 已经有一个既成惯例可抄 ——
+`ORDER BY m.event_date DESC, m.recorded_at DESC LIMIT 1`(**最晚的事件日,
+同日则取最后录入的**)—— 但那是给"现在走到哪一步了"用的,
+**不等于**它就是计时的正确起点(一次把 08-21 改成 08-20 的更正,会让免柜期
+**往回**跳一天,而告警可能已经响过)。
+
+### 4.2 有没有现成的「状态 X 在事件 Y 之后 N 天仍然成立」可抄?
+
+**有两支,但形状差一截:**
+
+* `output_unsold_aging`:
+  `remaining_qty > 0 AND (CURRENT_DATE - COALESCE(output_date, created_at::date)) >= 60`
+  —— **"状态仍然成立" + "距某个日期已过 N 天"**,N 是**写死的 60**;
+* `ar_over_90` / `ap_over_90`:靠 `ap_open_items.bucket = 'b90_plus'`,
+  账龄桶在视图里算,**阈值同样写死**。
+
+所以:**这个形状存在,而且有两个现成实现;但它们的 N 都是常量。**
+唯一把 N 做成**数据**的是 `certificate_types.warn_lead_days`(§3.2),
+而那正是免柜期最需要的性质 —— 免柜期本来就是逐货代、逐航段不同的。
+
+---
+
+## 5 · 线上实况:day one 这三个告警**都没有话可说**
+
+| | |
+|---|---|
+| 在册集装箱 | **2**(CTR-2026-0002、CTR-2026-0004) |
+| 其中有航段的 | 2 |
+| 其中有货代的 | **1** |
+| 里程碑(在册箱子上) | **4** —— 而且是 2 个箱子 × 同一里程碑各 2 行(见 4.1) |
+| 已录的里程碑种类 | 只有 `departed` 与 `loaded`。**没有一条 `arrived` / `customs_cleared` / `delivered`** |
+| `container_documents`(在册箱子上) | **0**,其中 pending **0** —— 清单**一次都没有被实例化过** |
+| `lane_document_requirements` | **1**(有一条航段定义了一项清单) |
+| `forwarder_details` | **0 行** —— 所以 `free_time_terms` 全库为空 |
+| 挂在在册箱子上的发货单 | **0** |
+| `notifications`(有史以来) | **2** |
+
+**逐条对着第 5 层的三个告警看:**
+
+* **免柜期**:货代侧一行条款都没有,而且唯一有货代的箱子只有 1 个。
+  **无论做成什么形状,day one 都是零条。**
+* **预计到达**:字段不存在,所以连"未填"都还不是一个可以被数出来的状态。
+* **缺单据**:在册箱子上**一份单据都没有**,pending 恒为 0。
+  而 `lane_document_requirements` 有 1 行 —— 也就是说清单**定义了却没被实例化**,
+  `container_overview.lane_checklist_state` 会把这种情形报成
+  `defined_empty` 那一档(LOG-2b 已经把三种"空"分开了)。
+
+**所以这一层最先会被看见的,不是告警本身,而是它的空状态。**
+按房规,那些空必须各自说出是哪一种空 —— 而这里至少有五种:
+没有箱子 / 箱子没货代 / 货代没条款 / 清单没实例化 / 没人录过里程碑。
+
+---
+
+## 6 · 岔口(不提议,只把问题与赌注写清楚)
+
+**岔口一:告警住在哪 —— `operations_now` 的臂,还是 `notifications` 的行?**
+两者在这个仓库里是【被刻意分开的两种东西】,判据也已经写死:
+**臂 = 持续成立、补上就消失的状态;事件 = 发生过、只能被读过的事实。**
+「免柜期还剩 2 天」是一个持续状态(卸了柜它自己就消失)→ 看着像臂;
+「免柜期已经开始计费」是一件发生过的事(事后补录不会让那一天没发生)→ 看着像事件。
+**赌注:** 做成臂,就没有已读、没有历史,也**永远不会有人在事后被问到"你什么时候
+知道的"**;做成事件,就要同时改 `notifications` 的两条 CHECK 与那条 `ELSE false`
+的 RLS `CASE`(加 `container` 主体),并回答**指纹是什么**——
+而免柜期的"同一个条件"每天都在变(还剩 3 天 / 2 天 / 1 天),
+指纹若含天数就是每天一行,不含天数就只响一次。
+
+**岔口二:免柜期从哪一个里程碑起算?**
+候选:`arrived`(到港)/ `customs_cleared`(放行)/ `delivered`(交付)/
+`departure_date`(表上唯一 NOT NULL 的日子)。
+**赌注:** 线上**一条 `arrived` 都没有** —— 选它,告警在有人开始录到港日之前恒为零,
+而"从不响"与"没问题"在屏幕上长得一样(METAL-1 那一课);
+选 `departure_date` 则一定算得出来,但**它算的不是免柜期**,只是"离港多久了"。
+外加 4.1 那条:**同一个里程碑可以有多行**,所以还要选"哪一个"——
+而一次事后更正会让已经响过的告警往回跳。
+
+**岔口三:ETA 是箱子上的一列,还是里程碑表里的一个类型?**
+(甲)`containers.eta date`(可空)—— 与 `work_order_overdue` 读
+`work_orders.scheduled_date` 完全同形,现成的抄法;
+(乙)`container_milestones` 里加一个 `expected_arrival` 类型,
+让**"预期"与"已发生"住在同一张表**。
+**赌注:** 甲简单,但一个箱子的 ETA **会变**(船期一改就变),而
+`containers` 是可改的行 —— 改掉就没有痕迹,"上周他们说的是 15 号"查不回来;
+乙自带历史(append-only,改期就是再记一条),但它会让那张表的语义从
+**"发生过的事"**变成**"发生过的事 + 说过的话"**,而表注释目前把它定义成前者
+(`event_date`:「这一步是哪天发生的」)。**那句注释会因此变成半真的**——
+要么改语义并把注释改掉,要么另立一张表。
+
+**岔口四:N 是常量还是数据?**
+仓库里两种先例并存:`output_unsold_aging` 写死 60、账龄桶写死 90;
+`certificate_types.warn_lead_days` 是 RUNTIME CONFIG,逐类可编辑,还配一个
+`disposition`(block / warn / ignore)。
+**赌注:** 写死最省,但免柜期**按定义**就是逐货代、逐航段不同的,
+写死一个数等于对所有航段说同一句话;做成数据则要先回答**它挂在哪一层**——
+而 §2 已经指出 `free_time_terms` 今天挂在【货代】上,那一层多半就是错的。
+
+**岔口五:缺单据的"迟"锚在哪?**
+`created_at`(系统侧,一定有,但清单晚建就整体后移)/ `departure_date`
+(世界侧,一定有,但开航前该到的单据永远不迟)/ 某个里程碑(语义最准,
+但线上还没有 `arrived`,且有 4.1 那个多行问题)。
+**赌注:** 前两个能保证"算得出来",第三个能保证"算的是对的东西"。
+而且在册箱子上**一份单据都没有**,所以无论选哪个,第一眼看到的都是空状态 ——
+那个空必须说清是"这条航段没定义清单""定义了但没实例化"还是"实例化了但都收齐了"。
+
+**岔口六(brief 没点,但它先于上面五条):这三个告警的读者是谁?**
+`operations_now` 每一支都自带 `permission`,而物流今天借的是
+`module.purchasing.view`(`lib/modules.ts:126-127` 明写「将来那个码是
+`module.logistics.view`」)。免柜期是**钱**的事(滞港费),
+它的读者更像财务;而录里程碑的人在操作侧。
+**赌注:** 挂 `module.purchasing.view`,财务看不见一笔正在发生的费用;
+挂 `module.finance.view`,那个每天录里程碑、最该被提醒的人看不见它。
+`arm_permission_any` 已经支持一支挂多个码 —— 但**那是一个决定,不是一个开关**。

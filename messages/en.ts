@@ -211,6 +211,10 @@ const en = {
         item: {
             work_order_overdue: 'Work order past its scheduled date',
             work_order_variance_beyond: 'Work order variance beyond threshold',
+            free_time_expiring: 'Free time running out',
+            container_no_arrival: 'Sailed, no arrival recorded',
+            container_eta_overdue: 'Past its expected arrival',
+            container_documents_late: 'Documents still outstanding',
             metal_quote_stale: 'Metal quote not updated',
             orders_unfulfilled: 'Order not yet fulfilled',
             awaiting_assay: 'Batches awaiting assay',

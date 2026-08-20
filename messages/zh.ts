@@ -213,6 +213,10 @@ const zh = {
         item: {
             work_order_overdue: '工单已过排产日',
             work_order_variance_beyond: '工单差异超过阈值',
+            free_time_expiring: '免柜期将尽',
+            container_no_arrival: '开走了,没人录到港',
+            container_eta_overdue: '过了预计到达日',
+            container_documents_late: '单据还欠着',
             metal_quote_stale: '行情未更新',
             orders_unfulfilled: '订单尚未履约',
             awaiting_assay: '待化验批次',

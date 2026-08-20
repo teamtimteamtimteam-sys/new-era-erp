@@ -22,7 +22,10 @@ CREATE TABLE public.containers (
     created_at       timestamptz NOT NULL DEFAULT now(),
     created_by       uuid DEFAULT auth.uid(),
     updated_at       timestamptz NOT NULL DEFAULT now(),
-    updated_by       uuid DEFAULT auth.uid()
+    updated_by       uuid DEFAULT auth.uid(),
+    -- ── LOG-5a 追加的列 ──────────────────────────────────────────────────
+    -- 【世界那一侧的日期】:是某个人说过的一句话,不是算出来的。可空、无默认值。
+    expected_arrival_date date
 );
 
 COMMENT ON TABLE public.containers IS
@@ -57,6 +60,16 @@ CREATE TRIGGER trg_containers_forwarder
 -- 所以线上跑不了 VALIDATE CONSTRAINT;重建库里若把它建成 VALID,
 -- 两边的 convalidated 就不一样,而那是一次真的镜像漂移。
 -- 留着那一行而不改写历史;这条 CHECK 拦的是【下一次】。
+COMMENT ON COLUMN public.containers.expected_arrival_date IS
+    'LOG-5a:预计到达日。【世界那一侧的事实 —— 是某个人说过的一句话,不是算出来的】。
+没有默认值,永不预填,【尤其不许由"开航日 + 航段平均天数"推出来】:那会造出一个
+看起来像事实的估计,而没有人说过那句话。同一条规矩已经在 create_container 的
+CONTAINER_DEPARTURE_DATE_REQUIRED 上兑现过(HINT:开航日是世界那一侧的事实,
+系统无从代填),也写在 container_milestones.event_date 的列注释里:
+【区别在于谁知道这件事,不在于用了哪个函数】。
+可空:船期没给之前,"不知道"是一个正当状态 —— 而 container_eta_overdue
+对 NULL 一支不响,那是一条【已知的局限】(与 work_order_overdue 同形)。';
+
 ALTER TABLE public.containers
     ADD CONSTRAINT containers_code_format
     CHECK (code ~ '^CTR-[0-9]{4}-[0-9]{4}$') NOT VALID;

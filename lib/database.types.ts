@@ -897,6 +897,7 @@ export type Database = {
           deleted_at: string | null
           deleted_by: string | null
           departure_date: string
+          expected_arrival_date: string | null
           forwarder_id: string | null
           id: string
           lane_id: string | null
@@ -916,6 +917,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           departure_date: string
+          expected_arrival_date?: string | null
           forwarder_id?: string | null
           id?: string
           lane_id?: string | null
@@ -935,6 +937,7 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           departure_date?: string
+          expected_arrival_date?: string | null
           forwarder_id?: string | null
           id?: string
           lane_id?: string | null
@@ -2414,6 +2417,7 @@ export type Database = {
           created_by: string | null
           currency: string
           deleted_at: string | null
+          free_days: number | null
           id: string
           lane_id: string
           notes: string | null
@@ -2427,6 +2431,7 @@ export type Database = {
           created_by?: string | null
           currency: string
           deleted_at?: string | null
+          free_days?: number | null
           id?: string
           lane_id: string
           notes?: string | null
@@ -2440,6 +2445,7 @@ export type Database = {
           created_by?: string | null
           currency?: string
           deleted_at?: string | null
+          free_days?: number | null
           id?: string
           lane_id?: string
           notes?: string | null
@@ -15645,6 +15651,7 @@ export type Database = {
       }
       approve_review: { Args: { p_review_id: string }; Returns: Json }
       arm_permission_any: { Args: { p_item_type: string }; Returns: string[] }
+      arm_permission_widen: { Args: { p_item_type: string }; Returns: string[] }
       assert_posting_allowed: {
         Args: { p_entry_date: string; p_source_type: string }
         Returns: undefined

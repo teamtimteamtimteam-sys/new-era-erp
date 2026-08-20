@@ -1,121 +1,84 @@
--- OPS-18(Phase 6):operations_now —— 全站"正在等人处理的事",一件一行
+-- LOG-5a(2026-08-20):物流告警的库侧 —— 四支【臂】,没有事件行。
 --
--- 【为什么是一张视图而不是九个页面各查各的】仪表盘的每一块牌子背后都是"有多少件
--- 事在等"这一类问题;九个问题九处写,就是九份会各自漂移的实现。hr_alerts 已经证明
--- 过这个形状:一个 UNION,每一种等待状态一支,页面只负责画。
+-- Tim 已定,本迁移不再论证:四个告警全部是 operations_now 的臂(不是 notifications
+-- 的事件);free_days 落在 forwarder_rate_quotes 上;锚点是【最晚的那条 arrived】,
+-- 用 container_overview 的既成惯例;ETA 是 containers 上一列可空的世界侧日期;
+-- 单据迟到锚 departure_date;v1 阈值写死;免柜期那一支财务也要看得见。
 --
--- 【属主权限 + 每支自带 permission 列,外层一次性把关】(OPS-14 修法 (a))。
--- 本视图横跨六个模块,invoker 会让 RLS 把读者无权模块的行【静默丢掉】—— 行消失
--- 在这里意味着"那个数少算了",而不是报错。属主权限读全量,外层
--- WHERE has_permission(a.permission) 按【调用者】逐支裁决:无权的支【整支缺席】,
--- 不是零。谓词写一次而不是九遍 —— hr_alerts 的注释说过,复述 N 遍只会给下一个
--- 加支的人留一个漏写的机会;这里每支【声明】自己的权限码,外层【执行】它。
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【一处必须先说的偏离 —— brief 指定的机制做不到它要的事】
+-- brief 写的是"免柜期那一支 additionally finance via arm_permission_any"。
+-- 但 arm_permission_any 在视图末尾是【与】进去的:
+--     WHERE has_permission(permission) AND (any IS NULL OR has_any_permission(any))
+-- 也就是说它只会【收窄】,永远不会放宽。既有的唯一使用者
+-- margin_cost_not_allocated 之所以成立,是因为它的 permission 是一个【两边都持有】
+-- 的数据类码(data.view_prices),any 才是模块的"二选一"。
+-- 而 logistics(暂借 module.purchasing.view)与 finance 之间【没有任何共同码】——
+-- 线上 36 个权限码里一个都没有。所以照 brief 的字面写,财务【看不见】那一支。
 --
--- 【缺席 ≠ 零,页面必须自己分辨】视图对无权读者不发一行,于是"没有行"有两种
--- 含义:真的零,或者你看不见。app/page.tsx 先查权限再渲染每块牌子 —— 无权显示
--- 「受限」(common.restricted),绝不显示 0。这是仪表盘最容易犯、且任何 gate 都
--- 查不出的那个错(0 与"你看不见"在屏幕上一模一样 —— moduleGuard 的老病换了件衣服)。
---
--- 【item_type 写成 'x'::text 字面量】check-i18n 的 sqlLiteralAs 解析器现读本文件,
--- dashboard.item.* 的后缀集合就是这里的支列表 —— 加一支,键检查自动跟着变宽。
---
--- 【两笔贵的读数,按界所限】(OPS-16 报告点名的两处):
---   * fx_rate_gaps 按 (日期,币种) 对每组跑 fx_rate_asof,本身不受期间约束 ——
---     这里限 rate_date >= CURRENT_DATE - 45:仪表盘答"最近有没有漏",完整历史
---     归 /finance/month-end 按月翻。谓词落在分组键上,能下推进聚合。
---   * 银行对账这支【只数报表侧的未匹配行】(bank_statement_lines,行数 = 导入量,
---     天然有界)。bank_reconciliation_status 的账簿侧 LATERAL 要扫 journal_lines
---     全表 —— 那是对账页的活,不上人人都开的首页。
---
--- 【不在此列的】批次毛利 —— 有未决的设计问题(哪些限定词随数字走、已过账 COGS
--- 还是当前成本),自成一切,谓词已录在 AGENTS.md 常设决定 2。月结的七个信号 ——
--- /finance/month-end 是它们的枢纽,首页放一个入口,不复制信号。
---
--- NOTE: introduced by db/migrations/2026-08-09-ops18-operations-now-and-the-dashboard.sql.
--- EXEC-3a(2026-08-16):再【两】支 —— work_order_overdue 与
--- work_order_variance_beyond(WO-1c 记下的两个候选)。差异那一支的两个阈值
--- 现读 processing_settings,【两个数不是一个】(投入超耗是成本问题、
--- 产出短交是收率问题,合成一个数等于说它们一样严重)。
--- 【本刀一度加了资质那两支,而它们 CMP-2 就已经在了】—— 清单文件里那行
--- "Candidate, not built" 是过时的,重复分支由 fixture 37C 与 30A 当场抓住,
--- fu1 撤掉。见 db/migrations/2026-08-16-exec3a-fu1-*.sql。
--- 【batch_margin 撤了】:一个卖出去的批次毛利偏低是一个【状态】,没有清除动作 ——
--- 看板装的是待办,毛利的家是 /margin;可处理的那一半已经是 arm 15。
---
--- EXEC-1a(2026-08-16):两支高管臂 —— metal_quote_stale(行情陈旧,阈值现读
--- pricing_settings.metal_quote_stale_days,按 price_date 不按 created_at)与
--- orders_unfulfilled(confirmed / partially_shipped 的订单)。规格见
--- docs/dashboard-arm-inventory.md;【谁要看哪一支】见 docs/exec-views-plan.md。
---
--- OPS-19(2026-08-09):补上原始定稿漏掉的四支(awaiting_assay / batch_unpriced /
--- invoice_overdue / ar_over_90 + ap_over_90),并新增 output_unsold_aging —— sales
--- 这一行唯一够得着的支(它没有 module.finance.view,当初猜的 AR 支对它同样是「受限」)。
--- assay_unapplied 的粒度同时从"一份未执行化验一行"改成"一个批次一行",与
--- awaiting_assay 同源同粒度、互斥;live 该支当时为 0,故不改变任何现有数字。
---
--- ── SUP-TYPE-1a(2026-08-18):qualification_missing 收窄到【供货的】供应商 ──
--- EXEC-3a 在 2026-08-16-exec3a-four-executive-arms.sql:349 写着:判据是"一张都没有"
--- 而不是"缺某一类",因为没有一张"谁必须持哪张证"的要求矩阵;并且明写着
--- **"有了'这家需要合规文件'的标记之后,这一支应当收窄到它"**。
--- **那个标记现在有了(suppliers.supplies_goods),这一支已经收窄,那句话到此退休。**
--- 提交信息改不了历史文件,所以退休记录写在这里 —— 沿着引用走过来的人在这里落地。
---
--- 【为什么必须收窄:实测过的永久亮灯】SUP-TYPE-0 把它走了一遍:把一个只收钱、
--- 不供货的往来户沿合法路径推到 status='active',这一支当场亮起、days_waiting 一路
--- 长下去,而它永远不会灭 —— 房东不会去办危废证。收窄之后同样的走法【不再亮】,
--- 而一个没有证书的【真供应商】仍然照亮(fixture 89 两边都钉)。
---
--- CMP-1(2026-08-09):两支资质臂。qualification_expiring 到【类型自己的 lead days】就上牌,
--- 过期后【不落牌、无 -30 天下限】—— 工作证过期 30 天人已走,证书过期两年而进场仍可能,
--- 它就还站在那儿(live 那张 2024 年就过期的 Article 18 正是证据)。续期(valid_until
--- 前移)即安静。qualification_missing 是"一张证都没有"的缺席臂(与 awaiting_assay /
--- assay_unapplied 的分立同理)。disposition='ignore' 的类型不上牌。
--- 【规格在 docs/dashboard-arm-inventory.md】每一支是什么意思、挂哪个权限码、界在
--- 哪里、以及【哪些支被考虑过又被排除、为什么】都在那里。
--- 定稿只存在于一次对话里,代价是四支 —— 所以规矩是:
--- 【加一支 = 在同一个提交里往那份清单加一行】。
---
--- MAR-1(2026-08-10):支的权限从【一个码】放宽到【一个谓词】—— permission(必须有)
--- + permission_any(任意其一,由 arm_permission_any 一处声明,SELECT 与 WHERE 共用)。
--- 起因是批次毛利跨两个模块(prices AND (finance OR processing)),而没有任何 live 角色
--- 同时持有后两者。合成一个新权限码那条路被否掉:那会是谁能看毛利的第二份定义,
--- 与 batch_margin 自己的谓词必然漂开。fixture 45 三种读者各钉一次。
--- ASY-P1(2026-08-17):awaiting_assay 那一支【换了问题】。原来问的是"这个批次一份
--- 化验都没有"(batch_assay_status.assay_count = 0),它看不见"化验做了一半",
--- 也灭不掉料已耗尽那两盏灯(线上 IN-2026-0011 / IN-2026-0153,remaining_qty = 0)。
--- 现在读 batch_required_assay_gaps:物料声明了要验哪些金属、其中至少一种还没有被
--- 一份【已应用的】化验覆盖、并且【还取得到样】。subject 从供应商名换成【缺哪几种
--- 金属】—— subject 这一列在每一支里放的都是那一支最该让人看见的事实,而能让人
--- 下一步动起来的是缺哪几种。判据与理由住在那张视图里,不在这里。
--- LINKS-1(2026-08-11):每支多带一个 item_id —— 支从"指向一张列表"变成"指向那一件事"。
--- 【item_id 指的是谁】承载【补救动作】的那张页面所对应的行。十七支里它就是等待中的
--- 那一行;两支里是它的父:bank_unmatched(行没有页面,匹配动作在对账工作台上 →
--- 对账单)与 margin_cost_not_allocated(补救是给加工单分摊成本 → 加工单)。
--- 于是同一支的几行可以共用一个 item_id,那是对的,不是重复 —— fixture 47 因此断言
--- 的是"item_id 落在这一支该落的那张表里",不是"一行一个 id",也不是互不相同。
--- 【SO-3a:应收也成了两种单据】ar_over_90 的 doc_kind 从此非空('sale' 销售记录 /
--- 'invoice' 订单流发票),item_id 相应二选一 —— 门牌各是应收单据页与发票页,
--- app/page.tsx 按 doc_kind 分支,认不出的种类不给链接(与 ap 同一条)。
--- 【doc_kind 是披露】应付账款本来就是两种单据(ap_open_items 自己就按它分支,
--- 应付列表页也一直照它画链接),这张视图先前只是没说出口。其余十八支主体只有一种,
--- 该列为 NULL。【fx_rate_gap 没有 item_id】它的主体是一条不存在的牌价行,缺的东西
--- 没有 id —— 它指向按币种过滤的列表,那是"诚实过滤的列表"那类答案,不是按码搜索。
--- 每支的门牌与"补救是否在那张页面上"这条判据,写在 docs/dashboard-arm-inventory.md。
--- NOTE: item_id / doc_kind added by
--- db/migrations/2026-08-11-links1-operations-now-item-id.sql(列集变了 → DROP + CREATE)。
--- SS-1(2026-08-13):第二十支 safety_stock_below —— 物料的可用量低于它自己的
--- 安全库存阈值。【阈值 NULL 的物料一次都不响】:NULL 是"还没有人决定要盯它",
--- 不是"阈值为零",而把不响读成"查过了没问题"正是 METAL-1 的那一课。
--- 可用量来自 material_stock_available(一处求和,暂扣不算 —— 阈值问的是"还有多少
--- 能用的货",一次暂扣若能掩盖缺货,这个告警就在最该说话的时刻哑掉)。
--- item_date 用【最后一次库存移动】退回今天:阈值告警是持续状态,没有发生日;
--- 去算"哪天跌破的"要在首页翻整段流水史,那条界不允许(credit_over_limit 同形)。
+-- 【本迁移的做法】另加一个【放宽】用的算子 arm_permission_widen(),与收窄的
+-- arm_permission_any() 并列,末尾改成:
+--     WHERE (has_permission(permission) OR has_any_permission(arm_permission_widen(item_type)))
+--       AND (arm_permission_any(item_type) IS NULL OR has_any_permission(...))
+-- 【对既有 22 支逐支无影响,而且这是可证的】:arm_permission_widen 对除
+-- free_time_expiring 以外的每一个 item_type 都返回 NULL,而
+-- has_any_permission(NULL) = EXISTS(SELECT … FROM unnest(NULL)) = false ——
+-- 于是 `has_permission(permission) OR false` 与改动前逐字节等价。
+-- fixture 里两个方向都断言。
+-- ════════════════════════════════════════════════════════════════════════════
 
--- LOG-5a(2026-08-20):第 23–26 支 —— 物流的四支告警。全部是【臂】(算出来、
--- 会自愈),不是 notifications 的事件。末尾的 WHERE 多了一个【放宽】算子
--- arm_permission_widen():它与收窄用的 arm_permission_any() 方向相反,
--- 对除 free_time_expiring 以外的每一支都返回 NULL(fixture 102G 逐支断言)。
-CREATE VIEW public.operations_now AS
+BEGIN;
+
+-- ── (a) 免柜天数 ────────────────────────────────────────────────────────────
+ALTER TABLE public.forwarder_rate_quotes
+    ADD COLUMN free_days integer CHECK (free_days IS NULL OR free_days >= 0);
+
+COMMENT ON COLUMN public.forwarder_rate_quotes.free_days IS
+'LOG-5a:这份报价给了几个免柜天。
+【NULL 与 0 是两件不同的事,而这条区别撑着整支告警】
+  * NULL = 【这份报价没有写免柜期】—— 我们不知道,于是那一支告警【保持沉默】;
+  * 0    = 【零个免费天】—— 一到港就开始计滞港费,告警从第一天起就该响。
+把 NULL 当成 0,会让每一个到港的箱子从第一天起报警(喊狼来了);
+把 0 当成 NULL,会让一个【真的从第一天起就在烧钱】的箱子一声不吭。
+两种错的方向相反,而后一种更贵 —— 所以两者都不许被推断,只能被写下来。
+CHECK 允许 0,正因为 0 是一个【有人做过的决定】,不是"没填"。';
+
+-- ── (b) 预计到达 ────────────────────────────────────────────────────────────
+ALTER TABLE public.containers
+    ADD COLUMN expected_arrival_date date;
+
+COMMENT ON COLUMN public.containers.expected_arrival_date IS
+'LOG-5a:预计到达日。【世界那一侧的事实 —— 是某个人说过的一句话,不是算出来的】。
+没有默认值,永不预填,【尤其不许由"开航日 + 航段平均天数"推出来】:那会造出一个
+看起来像事实的估计,而没有人说过那句话。同一条规矩已经在 create_container 的
+CONTAINER_DEPARTURE_DATE_REQUIRED 上兑现过(HINT:开航日是世界那一侧的事实,
+系统无从代填),也写在 container_milestones.event_date 的列注释里:
+【区别在于谁知道这件事,不在于用了哪个函数】。
+可空:船期没给之前,"不知道"是一个正当状态 —— 而 container_eta_overdue
+对 NULL 一支不响,那是一条【已知的局限】(与 work_order_overdue 同形)。';
+
+-- ── (c·放宽算子)────────────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.arm_permission_widen(p_item_type text)
+ RETURNS text[]
+ LANGUAGE sql
+ IMMUTABLE
+AS $function$
+    -- 【放宽】:持有其中任一码的读者,即便没有那一支声明的 permission,也看得见它。
+    -- 与 arm_permission_any() 【方向相反】—— 那一个是【收窄】(与 permission 相与)。
+    -- 两个名字很像而语义相反,所以两处注释互相点名。
+    -- 免柜期是【钱】的事(滞港费),而录里程碑的人在操作侧:两边都要看得见,
+    -- 而它们之间没有共同的权限码,所以只能放宽。
+    SELECT CASE WHEN p_item_type = 'free_time_expiring'
+                THEN ARRAY['module.purchasing.view', 'module.finance.view']
+           END;
+$function$;
+
+COMMENT ON FUNCTION public.arm_permission_any(text) IS
+'OPS/EXEC:某一支【额外要求】的模块码集合 —— 与那一支的 permission 【相与】,所以它只会收窄。放宽用 arm_permission_widen()(LOG-5a),两者方向相反。';
+
+-- ── (c·四支臂)──────────────────────────────────────────────────────────────
+-- 列集未变(仍是那九列),所以 CREATE OR REPLACE 够用,不必 DROP。
+CREATE OR REPLACE VIEW public.operations_now AS
  SELECT item_type,
     permission,
     arm_permission_any(item_type) AS permission_any,
@@ -534,3 +497,5 @@ CREATE VIEW public.operations_now AS
     AND (arm_permission_any(item_type) IS NULL OR has_any_permission(arm_permission_any(item_type)));
 
 GRANT SELECT ON public.operations_now TO authenticated;
+
+COMMIT;
