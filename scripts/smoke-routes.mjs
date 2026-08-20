@@ -122,11 +122,70 @@ const ID_SOURCES = {
 // 所以这个字符串在不在,恰好就是"选得到人"与"选不到人"的分界 ——
 // 而它与语言无关(断言文案会被下一次改文案弄红,那是喊狼来了)。
 const MUST_CONTAIN = {
+    // ── 静态判据:下拉在,就说明名单非空 ────────────────────────────────────
+    // 这九个下拉是【同一个形状】:名单非空时渲染 <select name="supplier_id">,
+    // 为空时改渲染一段琥珀色文字("还没有货代 / 还没有供货商")。所以那个字符串
+    // 在不在,恰好就是"选得到人"与"选不到人"的分界,而且与语言无关。
+    // 【为什么可以让它在真的没有供应商时红】这几页是收货、采购、计价的主路径,
+    // "一个供货商都没有"本来就该响,不是喊狼来了。
     '/finance/freight/new': [
         { needle: 'name="supplier_id"',
           why: '货代下拉是空的 —— 页面会显示"还没有货代",而线上有货代(FRT-FIX 的回归)' },
+        // 出境分支的集装箱选择器【由客户端状态开合】,服务端 HTML 里没有那个 <select>。
+        // 能验的是【数据有没有到客户端】—— 它作为 prop 序列化在 flight 负载里。
+        { probe: '/rest/v1/containers?select=id&limit=1&deleted_at=is.null',
+          why: '在册的集装箱没有进到出境分支的选择器负载里(选不到箱子,单据就只能不指出处)' },
+        { probe: '/rest/v1/suppliers?select=id&limit=1&deleted_at=is.null&counterparty_type=eq.forwarder',
+          why: '那一家在册货代没有出现在货代下拉的负载里' },
+    ],
+    '/inbound/new': [{ needle: 'name="supplier_id"', why: '供货商下拉是空的' }],
+    '/inbound/receive': [{ needle: 'name="supplier_id"', why: '供货商下拉是空的' }],
+    '/inbound/[id]/edit': [{ needle: 'name="supplier_id"', why: '供货商下拉是空的' }],
+    '/purchasing/orders/new': [{ needle: 'name="supplier_id"', why: '供货商下拉是空的' }],
+    // 【这两条用探针,不用静态串】计价公式表单的供应商下拉包在
+    // {mode === 'supplier' && …} 里,而 mode 默认是 'generic'(FormulaForm.tsx:74-76)——
+    // 服务端 HTML 里【根本没有】那个 <select>。第一版按 name="supplier_id" 写,
+    // 两条路由当场报红,而红的是判据不是页面:一个永远满足不了的判据是坏判据。
+    // 与 freight/new 出境分支的箱子选择器同一种情形,处置也相同:验负载。
+    '/pricing/formulas/new': [
+        { probe: '/rest/v1/suppliers?select=id&limit=1&deleted_at=is.null&counterparty_type=neq.forwarder',
+          why: '供货商名单没有到客户端 —— 切到"按供应商"那一档就会看到"还没有供货商"' },
+    ],
+    '/pricing/formulas/[id]/edit': [
+        { probe: '/rest/v1/suppliers?select=id&limit=1&deleted_at=is.null&counterparty_type=neq.forwarder',
+          why: '供货商名单没有到客户端 —— 切到"按供应商"那一档就会看到"还没有供货商"' },
+    ],
+
+    // ── 探针判据:名单藏在负载里,静态字符串表达不了 ────────────────────────
+    // 付款页的往来对象是【一个 select 里的一组 option】(CounterpartyOptions),
+    // 名单为空时它渲染的是一个禁用 option,不是另一个块 —— 所以
+    // name="counterparty" 永远在,不具判别力。PAY-FRT 那次的病是
+    // "货代被排除在付款对象之外,于是未付运费永远付不掉",要验的就是那一条:
+    // 拿一家在册货代的 id,断言它确实到了客户端。
+    '/finance/payments/new': [
+        { probe: '/rest/v1/suppliers?select=id&limit=1&deleted_at=is.null&counterparty_type=eq.forwarder',
+          why: '货代不在付款对象名单里 —— 未付运费就永远付不掉(PAY-FRT 的回归)' },
     ],
 }
+
+// 探针为空时【跳过并说出来】,不算失败:"线上还没有货代"是一个正当状态,
+// 为它报红就是喊狼来了。与整套冒烟对"没数据 → SKIP"的处置同一条。
+const contentSkips = []
+async function contentMisses(route, html) {
+    const misses = []
+    for (const a of MUST_CONTAIN[route] ?? []) {
+        if (a.needle) {
+            if (!html.includes(a.needle)) misses.push(`${a.needle} —— ${a.why}`)
+            continue
+        }
+        const rows = await restRows(a.probe, `${route} ← 内容探针`)
+        if (rows.length === 0) { contentSkips.push(`${route}: ${a.why}(探针无数据,跳过)`); continue }
+        const id = rows[0].id
+        if (!html.includes(id)) misses.push(`${id} —— ${a.why}`)
+    }
+    return misses
+}
+
 
 const EXPECTED = {
     '/logout': [307, 303],          // 登出即重定向
@@ -245,7 +304,14 @@ async function rest(path, opts = {}) {
 // 所以那个 404 是这条检查【问错了主语】,不是页面坏了。
 // 更坏的是它【不稳定】:物理顺序会随更新漂移,于是这条断言迟早会时绿时红,
 // 而那比一直红更难查(ID_FILTERS 上面那段注释说的就是这件事)。
+// SWEEP-HYGIENE(2026-08-20):按【线上目录】把这一类关掉,不再靠人想起来。
+// 判据是一句话:一张有 deleted_at 列的表,只要喂着某条 [id] 路由,就必须在这里。
+// 审计方法与结果记在 docs/known-issues.md;这一轮补了 5 张:
+// assay_results / freight_documents / quotes / roles / sales_orders。
+// 每一张都是一次【与 tasks 同形的、间歇性的】失败:取到一行已删的,
+// 详情页按契约 404,而那个 404 读起来像页面坏了。
 const SOFT_DELETED = new Set(['containers','customers','suppliers','materials','bank_statements','tasks',
+    'assay_results','freight_documents','quotes','roles','sales_orders',
     'inbound_batches','leave_requests','medical_claims','metal_prices','output_batches',
     'payroll_periods','payment_term_templates','pricing_formulas','processing_runs','purchase_orders',
     'review_cycles','stocktakes','training_records','fx_rates','employees','departments'])
@@ -272,10 +338,17 @@ const ID_FILTERS = {
     tasks: '&task_type=eq.team',
     '/logistics/forwarders/[id]': '&counterparty_type=eq.forwarder',
 }
+// 【没有 order by 的 limit 1 是一个会漂的判据】PostgREST 按物理顺序返回,而物理
+// 顺序随更新而变。tasks 那一次是软删撞上它,但病根是排序:同一条断言今天绿、
+// 明天红,而"时好时坏的冒烟比一直红更坏"(ID_FILTERS 上面那段注释)。
+// 取【最新的在册那一行】,并以 id 收尾破平局 —— 同一批种子数据的 created_at 常常
+// 一模一样,只按时间排序仍然是不确定的。ID_SOURCES 用到的 36 张表全部有 created_at
+// (实测,不是假设),所以这里可以统一。
+const ORDER = '&order=created_at.desc,id.desc'
 async function firstId(table, route) {
     const del = SOFT_DELETED.has(table) ? '&deleted_at=is.null' : ''
     const filter = ID_FILTERS[route] ?? ID_FILTERS[table] ?? ''
-    const rows = await restRows(`/rest/v1/${table}?select=id&limit=1${del}${filter}`, `${route} ← ${table}`)
+    const rows = await restRows(`/rest/v1/${table}?select=id&limit=1${del}${filter}${ORDER}`, `${route} ← ${table}`)
     return rows[0]?.id ?? null
 }
 async function restOk(path, opts, ctx) {
@@ -695,9 +768,8 @@ async function main() {
             // 一个 500 已经失败了,再报一次内容缺失只是噪音。
             let contentMiss = null
             if (pass && MUST_CONTAIN[route]) {
-                const html = await res.text()
-                const missing = MUST_CONTAIN[route].filter((a) => !html.includes(a.needle))
-                if (missing.length) contentMiss = missing.map((m) => `${m.needle} —— ${m.why}`).join(' | ')
+                const missing = await contentMisses(route, await res.text())
+                if (missing.length) contentMiss = missing.join(' | ')
             }
             if (pass && !contentMiss) { ok++; PROGRESS.ok.push(route) }
             else if (contentMiss) {
@@ -779,6 +851,12 @@ async function main() {
     }
 
     console.log(`\n== ${routes.length} routes + 1 reviewer-view check: ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
+    // 【被跳过的内容判据要说出来】一条静默跳过的断言与一条不存在的断言,
+    // 在输出里长得一模一样 —— 而这套东西刚刚为这件事付过两次代价。
+    if (contentSkips.length) {
+        console.log(`   内容判据跳过 ${contentSkips.length} 条(探针无数据,不算失败):`)
+        for (const c of contentSkips) console.log(`     · ${c}`)
+    }
     for (const f of failures) {
         console.log(`\n✗ ${f.route} (${f.url}) → HTTP ${f.status}${f.expected ? ` (expected ${f.expected})` : ''}`)
         if (f.stack) console.log(f.stack.split('\n').map((l) => '    ' + l).join('\n'))
