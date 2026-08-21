@@ -54,7 +54,10 @@ CREATE TABLE public.processing_runs (
     work_order_id           uuid REFERENCES public.work_orders (id),
     -- ── AUDEL-1b 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────
     deleted_by    uuid,
-    delete_reason text
+    delete_reason text,
+    -- ── EQP-2a 追加的列(同上,attnum 27)────────────────────────────────
+    -- 这一炉是哪台机器跑的。可空,而"空"是一个【具名类别】(未归属),不是零。
+    equipment_id  uuid REFERENCES public.fixed_assets (id)
 );
 
 COMMENT ON COLUMN public.processing_runs.delete_reason IS
@@ -62,6 +65,7 @@ COMMENT ON COLUMN public.processing_runs.delete_reason IS
 
 CREATE INDEX idx_processing_runs_work_order ON public.processing_runs (work_order_id)
     WHERE work_order_id IS NOT NULL;
+CREATE INDEX idx_processing_runs_equipment ON public.processing_runs (equipment_id);
 
 CREATE OR REPLACE FUNCTION public.generate_processing_code()
 RETURNS trigger LANGUAGE plpgsql AS $function$
@@ -118,7 +122,10 @@ REVOKE SELECT ON public.processing_runs FROM authenticated, anon;
 -- 后加的列】(表级 INSERT/UPDATE 会,这个不对称就是全部的坑),所以 WO-1a 加完列
 -- 之后它是"写得进、读不出"的 —— 实测 has_column_privilege = false。
 -- 它不是敏感列:是一个单据之间的链接,与同表的 capitalization_entry_id 同一类。
-GRANT SELECT (id, code, process_date, total_input, total_output, loss_qty, notes, status, deleted_at, created_at, created_by, updated_at, updated_by, allocation_basis, allocation_snapshot, allocated_at, allocated_by, capitalization_entry_id, allocation_basis_changed_at, work_order_id, deleted_by, delete_reason)
+-- EQP-2a:equipment_id 也在列清单里 —— 它不是钱,是一台机器的引用。
+-- 【而它同时也必须进 processing_runs_masked】:一旦一张表有了 _masked 伴生,
+-- 每一列都得在那张视图里,授没授权都一样(colgrant 的第二个分支,WO-1a-fu1 红过)。
+GRANT SELECT (id, code, process_date, total_input, total_output, loss_qty, notes, status, deleted_at, created_at, created_by, updated_at, updated_by, allocation_basis, allocation_snapshot, allocated_at, allocated_by, capitalization_entry_id, allocation_basis_changed_at, work_order_id, deleted_by, delete_reason, equipment_id)
     ON public.processing_runs TO authenticated;
 
 -- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)
@@ -141,3 +148,17 @@ COMMENT ON COLUMN public.processing_runs.work_order_id IS
 CREATE TRIGGER trg_processing_runs_soft_delete_provenance
     BEFORE UPDATE ON public.processing_runs
     FOR EACH ROW EXECUTE FUNCTION public.guard_soft_delete_provenance();
+
+COMMENT ON COLUMN public.processing_runs.equipment_id IS 'EQP-2a:这一炉是【哪台机器】跑的。可空。
+【为什么可空,而且"空"必须是一个有名字的类别】线上十三炉一台机器都没有归属
+(而且当时全库连一张资产卡都没有);临时起意、或者当时没人记下来,都是常态。
+把它做成必填,得到的不是纪律,是一堆事后补的假归属。**所以任何按机器汇总的
+读法都必须把 equipment_id 为空的那些显示成【未归属】这一个具名类别,
+而不是让它们悄悄消失、更不是把它们算成零** —— 与 WO-1b 给 work_order_id
+立的规矩逐字相同(那边叫【计划外】)。
+【它归的是机器,不是产线也不是工位】fixed_assets 一张卡就是一台机器
+(EQP-1a-TAIL:一条设备采购行订一台,四台是四行)。
+【谁能写它】commit_processing_run,并且只在两种情形之外:加工日早于该卡的
+取得日(EQUIPMENT_NOT_ACQUIRED)、或晚于它的处置日(EQUIPMENT_DISPOSED)。
+**投用之前的试车是【允许】归属的** —— 那是这盘生意里真实存在的一段,
+而且正是它证明了投用日(见 docs/equipment-survey.md 的资本化边界一节)。';

@@ -1752,6 +1752,63 @@ export type Database = {
           },
         ]
       }
+      equipment_downtime: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          duration: string | null
+          ended_at: string | null
+          equipment_id: string
+          id: string
+          notes: string | null
+          reason: string
+          started_at: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          duration?: string | null
+          ended_at?: string | null
+          equipment_id: string
+          id?: string
+          notes?: string | null
+          reason: string
+          started_at: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          duration?: string | null
+          ended_at?: string | null
+          equipment_id?: string
+          id?: string
+          notes?: string | null
+          reason?: string
+          started_at?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_downtime_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_usage"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "equipment_downtime_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expenses: {
         Row: {
           account_code: string
@@ -2201,6 +2258,13 @@ export type Database = {
             foreignKeyName: "fixed_asset_cost_entries_asset_id_fkey"
             columns: ["asset_id"]
             isOneToOne: false
+            referencedRelation: "equipment_usage"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "fixed_asset_cost_entries_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
             referencedRelation: "fixed_assets"
             referencedColumns: ["id"]
           },
@@ -2249,6 +2313,13 @@ export type Database = {
           period_end?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fixed_asset_depreciation_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_usage"
+            referencedColumns: ["equipment_id"]
+          },
           {
             foreignKeyName: "fixed_asset_depreciation_asset_id_fkey"
             columns: ["asset_id"]
@@ -7215,6 +7286,7 @@ export type Database = {
           delete_reason: string | null
           deleted_at: string | null
           deleted_by: string | null
+          equipment_id: string | null
           id: string
           loss_qty: number | null
           material_cost_base: number | null
@@ -7243,6 +7315,7 @@ export type Database = {
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          equipment_id?: string | null
           id?: string
           loss_qty?: number | null
           material_cost_base?: number | null
@@ -7271,6 +7344,7 @@ export type Database = {
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          equipment_id?: string | null
           id?: string
           loss_qty?: number | null
           material_cost_base?: number | null
@@ -7298,6 +7372,20 @@ export type Database = {
             columns: ["capitalization_entry_id"]
             isOneToOne: false
             referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_usage"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
             referencedColumns: ["id"]
           },
           {
@@ -7576,6 +7664,13 @@ export type Database = {
           unit?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "purchase_order_lines_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_usage"
+            referencedColumns: ["equipment_id"]
+          },
           {
             foreignKeyName: "purchase_order_lines_asset_id_fkey"
             columns: ["asset_id"]
@@ -11815,6 +11910,23 @@ export type Database = {
           },
         ]
       }
+      equipment_usage: {
+        Row: {
+          acquisition_date: string | null
+          equipment_code: string | null
+          equipment_description: string | null
+          equipment_id: string | null
+          equipment_status: string | null
+          first_run_date: string | null
+          in_service_date: string | null
+          input_kg: number | null
+          last_run_date: string | null
+          loss_kg: number | null
+          output_kg: number | null
+          run_count: number | null
+        }
+        Relationships: []
+      }
       fx_rate_gaps: {
         Row: {
           currency: string | null
@@ -14425,6 +14537,7 @@ export type Database = {
           delete_reason: string | null
           deleted_at: string | null
           deleted_by: string | null
+          equipment_id: string | null
           id: string | null
           loss_qty: number | null
           material_cost_base: number | null
@@ -14453,6 +14566,7 @@ export type Database = {
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          equipment_id?: string | null
           id?: string | null
           loss_qty?: number | null
           material_cost_base?: never
@@ -14481,6 +14595,7 @@ export type Database = {
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          equipment_id?: string | null
           id?: string | null
           loss_qty?: number | null
           material_cost_base?: never
@@ -14508,6 +14623,20 @@ export type Database = {
             columns: ["capitalization_entry_id"]
             isOneToOne: false
             referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_usage"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
             referencedColumns: ["id"]
           },
           {
@@ -14575,6 +14704,13 @@ export type Database = {
           unit?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "purchase_order_lines_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_usage"
+            referencedColumns: ["equipment_id"]
+          },
           {
             foreignKeyName: "purchase_order_lines_asset_id_fkey"
             columns: ["asset_id"]
@@ -15878,6 +16014,7 @@ export type Database = {
       commit_processing_run: {
         Args: {
           p_allocation_basis: string
+          p_equipment_id?: string
           p_inputs: Json
           p_loss_qty: number
           p_notes: string

@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.commit_processing_run(p_process_date date, p_notes text, p_loss_qty numeric, p_inputs jsonb, p_outputs jsonb, p_allocation_basis text, p_work_order_id uuid DEFAULT NULL::uuid)
+CREATE OR REPLACE FUNCTION public.commit_processing_run(p_process_date date, p_notes text, p_loss_qty numeric, p_inputs jsonb, p_outputs jsonb, p_allocation_basis text, p_work_order_id uuid DEFAULT NULL::uuid, p_equipment_id uuid DEFAULT NULL::uuid)
  RETURNS uuid
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -25,6 +25,7 @@ DECLARE
     v_purity       text;
     v_new_output_id uuid;
     v_wo           work_orders%ROWTYPE;   -- WO-1b
+    v_eq           fixed_assets%ROWTYPE;  -- EQP-2a:这一炉归给哪台机器
 BEGIN
     PERFORM require_permission('module.processing.edit');
     IF p_process_date IS NULL THEN
@@ -58,6 +59,37 @@ BEGIN
         IF v_wo.status <> 'released' THEN
             RAISE EXCEPTION 'WO_NOT_RELEASED|%|%', v_wo.code, v_wo.status;
         END IF;
+    END IF;
+
+    -- ── EQP-2a:机器这一支【也只在给了参数的时候才存在】────────────────────
+    -- 位置跟着 WO-1b 那一支放。【为什么可空】线上十三炉一台机器都没有归属,
+    -- 而临时起意的加工是合法的 —— "未归属"必须是一个【具名类别】,不是一个零。
+    IF p_equipment_id IS NOT NULL THEN
+        SELECT * INTO v_eq FROM fixed_assets WHERE id = p_equipment_id;
+        IF NOT FOUND THEN
+            RAISE EXCEPTION 'EQUIPMENT_NOT_FOUND|%', p_equipment_id;
+        END IF;
+        -- 【拒绝的边界钉在"真的不可能"上,不钉在"还没投用"上】
+        -- 加工日早于取得日 = 那天这台机器还不是我们的。
+        IF p_process_date < v_eq.acquisition_date THEN
+            RAISE EXCEPTION 'EQUIPMENT_NOT_ACQUIRED|%|%|%',
+                v_eq.code, v_eq.acquisition_date, p_process_date
+              USING HINT = '这一炉的日期早于这台机器的取得日 —— 那天它还不是我们的';
+        END IF;
+        -- 处置之后它已经不在了。
+        IF v_eq.status = 'disposed' AND v_eq.disposal_date IS NOT NULL
+           AND p_process_date > v_eq.disposal_date THEN
+            RAISE EXCEPTION 'EQUIPMENT_DISPOSED|%|%|%',
+                v_eq.code, v_eq.disposal_date, p_process_date
+              USING HINT = '这一炉的日期晚于这台机器的处置日 —— 那时它已经不在了';
+        END IF;
+        -- 【投用之前【不】拒 —— 这是本刀对原设计改动最大的一处】
+        -- 原设计要拒"加工日那天机器不在役",而 in_service_date 是【投用】日。
+        -- 投用之前的试车是这盘生意里一件有名有姓的事:
+        -- docs/equipment-survey.md 的资本化边界那一节把"试车料"与安装、调试并列。
+        -- 拒掉它们,系统就【记不下那些正好用来证明投用日的加工】,也丢掉了
+        -- 那段真实的磨损 —— 而 EQP-2b 的保养间隔要读它。
+        -- 剩下被拒的两种都是真的不可能,所以它们【是拒绝,不是警告】。
     END IF;
 
     v_process_date := p_process_date;
@@ -154,11 +186,12 @@ BEGIN
     -- 4. 建加工单表头(code 由触发器生成)
     INSERT INTO processing_runs (
         process_date, total_input, total_output, loss_qty, notes, status,
-        allocation_basis, work_order_id, created_by, updated_by
+        allocation_basis, work_order_id, created_by, updated_by, equipment_id
     ) VALUES (
         v_process_date, v_total_input, v_total_output,
         COALESCE(p_loss_qty, v_total_input - v_total_output),
-        p_notes, 'committed', p_allocation_basis, p_work_order_id, v_user_id, v_user_id
+        p_notes, 'committed', p_allocation_basis, p_work_order_id, v_user_id, v_user_id,
+        p_equipment_id
     )
     RETURNING id INTO v_run_id;
 

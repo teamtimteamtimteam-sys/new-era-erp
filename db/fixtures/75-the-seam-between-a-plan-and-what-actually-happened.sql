@@ -71,7 +71,12 @@ BEGIN
 
     -- 【原样定义在任何注入之前取齐】fixture 74 学到的:临用临取会取到已经被
     -- 上一个注入改过的那一份,于是门会累积。
-    def_commit := pg_get_functiondef('public.commit_processing_run(date,text,numeric,jsonb,jsonb,text,uuid)'::regprocedure);
+    -- EQP-2a:签名又多了一个 p_equipment_id(这一炉归给哪台机器),这里跟着改。
+    -- 【它把签名钉死是对的,而且改签名【一定】会在这里红一次 —— 那是设计】
+    -- regprocedure 找不到那个签名就当场报错,于是"签名动了"永远不会静悄悄过去。
+    -- 同一形状已经发生过两次(WO-1b 加 p_work_order_id、本刀加 p_equipment_id),
+    -- 而 fixture 77 对 record_expense 也是同一条 —— 所以它是规律,不是意外。
+    def_commit := pg_get_functiondef('public.commit_processing_run(date,text,numeric,jsonb,jsonb,text,uuid,uuid)'::regprocedure);
     def_cancel := pg_get_functiondef('public.cancel_work_order(uuid,text)'::regprocedure);
 
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)

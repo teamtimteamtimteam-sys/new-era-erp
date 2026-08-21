@@ -10,6 +10,8 @@
 -- 全不可见),所以这与调用者的 RLS 逐行等价 —— 视图【不放宽任何行访问】。
 --
 -- NOTE: introduced by db/migrations/2026-08-01-perm2b-field-masking.sql.
+-- EQP-2a:加了 equipment_id(不遮蔽,原样透出)。**一旦一张表有了 _masked 伴生,
+-- 它的每一列都必须在这张视图里** —— 授没授权都一样(colgrant 的第二个分支)。
 
 CREATE VIEW public.processing_runs_masked WITH (security_invoker = off) AS
  SELECT id,
@@ -49,6 +51,7 @@ CREATE VIEW public.processing_runs_masked WITH (security_invoker = off) AS
     allocation_basis_changed_at,
     work_order_id,
     deleted_by,
-    delete_reason
+    delete_reason,
+    equipment_id
    FROM processing_runs
   WHERE has_permission('module.processing.view'::text);
