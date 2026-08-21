@@ -55,7 +55,45 @@ module's own page.
 | 24 | `container_no_arrival` | 开走 **14 天**,而没有任何 `arrived` 里程碑 | `module.purchasing.view` | `container_milestones` | 排除软删箱子。**这一支是第 23 支的 companion**:没有到港记录时第 23 支永远安静,而安静与"没问题"长得一样 |
 | 25 | `container_eta_overdue` | `expected_arrival_date < CURRENT_DATE` 且尚无 `arrived` | `module.purchasing.view` | `containers` | 排除软删箱子。**ETA 为 NULL 时沉默** —— 与 `work_order_overdue` 逐字同形的【已知局限】 |
 | 26 | `container_documents_late` | 有 `pending` 单据,且开航已 **7 天** | `module.purchasing.view` | `container_documents` | 排除软删箱子。**从没实例化过清单的箱子沉默**(pending 数为 0)—— 屏幕上由 LOG-5b 的第六句话点名 |
+| 27 | `equipment_service_due` | 一台机器的一条保养间隔【到了】—— 距上一次那一种保养的公斤数或天数,**任一个**达到它自己的间隔 | `module.processing.view` **+ `module.finance.view` via `arm_permission_widen`** —— 机器卡在财务、干活的人在加工,而底下每一张表/视图的读者本来就是这两个码的 OR | `equipment_service_status`(读 `equipment_service_intervals` × `equipment_maintenance` × `processing_runs`) | **间隔是自愿配的**,所以扫描量跟着【间隔行数】走,不跟机器数走 —— 未监控的机器不触发那两个 LATERAL。与 `safety_stock_below` / `credit_over_limit` 同一条 opt-in 的界。`disposition = 'ignore'` 与已处置的机器都不上牌 |
+| 28 | `equipment_service_approaching` | 同一条间隔【快到了】—— 达到 `interval − lead`,但**还没**到期 | 同上 | 同上 | 同上。**与第 27 支互斥**:`is_approaching` 自带 `AND NOT is_due`,所以一台到期的机器不会同时出现在两支里(同一件事数两遍,正是 fixture 30 那句话要抓的东西) |
 
+
+
+### 保养那两支:为什么是【两支】,而它们的提前量为什么不在一张类型表上(EQP-2c,2026-08-21)
+
+**两支而不是一支带等级。** `operations_now` 的九列契约里没有"严重程度"这一列,
+所以唯一在【结构上】分得开"到期"与"将到期"的办法就是两个 `item_type` ——
+一支带一个文字等级,在任何按支计数的地方都会重新塌回一个不分轻重的告警。
+同形先例:`qualification_expiring` / `qualification_missing`,
+`container_no_arrival` / `container_eta_overdue`。
+
+**提前量(`lead_kg` / `lead_days`)与后果(`disposition`)落在【间隔行】上,
+不落在一张按 `kind` 的类型表上** —— 这是对 `certificate_types` 形状的一处刻意偏离,
+两条理由:
+
+1. `kind` 的域【已经】写在 `equipment_maintenance.kind` 那条 CHECK 上。再建一张按
+   `kind` 的目录表,就是同一个域的第二份定义 —— 本仓库为"两份定义必然漂开"付过很多次账。
+2. **一个固定的提前量服务不了两个量级的间隔。** 500 公斤的间隔与 50,000 公斤的间隔,
+   "提前 1,000 公斤"分别是【永远亮着】与【几乎不亮】。间隔行本来就是这件事最细的
+   配置粒度,提前量跟它走才对得上。
+
+`certificate_types` 真正要的东西一个没丢:**提前量是行,后果也是行**,改一行数据
+就改行为,fixture 111 的 F6 在同一笔事务里两个方向都验过。
+
+**`disposition` 只有 `warn` / `ignore`,没有 `block`。** `certificate_types` 的 `block`
+是有人兑现的(收货闸门读它);EQP-2c 什么都不拦,一个没有任何地方兑现的枚举值只会是
+一句谎。**返回条件:哪天有一道门要按"保养逾期"拦住什么,连同那道门一起把它加进来。**
+
+**三个状态,别压成两个。** 没有间隔行 = 【未监控】(没人决定要盯它);
+`disposition='ignore'` = 【盯着,不吵】;`warn` = 上看板。用删行去关灯会把前两者混掉。
+未监控的机器在 `equipment_service_status` 里【仍然有一行】,每个量度都是 **NULL**,
+**绝不是 `false`** —— fixture 111 的 F4 正面钉住这一条。
+
+**牌子在 EQP-2d。** 这一刀落的是两支的【行】与 `dashboard.item.*` 那两个键
+(后者是被迫同刀:check-i18n 的后缀集合现读 `db/views/operations_now.sql` 的
+`item_type` 字面量,少了键 `npm run build` 当场红)。首页的两块牌子、机器页上的
+那一块、以及配间隔的表单,都在 2d。
 
 ### 物流四支的【补救在哪一页】(LOG-5b,2026-08-20)
 

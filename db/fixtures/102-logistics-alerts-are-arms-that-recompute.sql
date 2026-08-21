@@ -40,6 +40,7 @@ DECLARE
     c_early uuid; c_depearly uuid;
     v_res jsonb; v_n int; v_subject text; v_denied boolean; v_msg text;
     v_doc uuid;
+    v_arms text[]; v_widened text[];   -- EQP-2c:放宽那一条不再手抄清单
 BEGIN
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-102-log', 'f', 'f', true) RETURNING id INTO r_log;
@@ -393,23 +394,34 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 102G 失败:财务【不该】看得见另外三支(它们只声明了物流的码),实得 % 行 —— 放宽算子写宽了,这一条会红', v_n;
     END IF;
 
-    -- 【放宽算子对其余每一支都是无操作 —— 可证,不是相信】
+    -- 【放宽算子只对【点过名的】那几支非空 —— 可证,不是相信】
+    --
+    -- 【EQP-2c(2026-08-21)改了这一段:清单从【手抄】改成【从视图定义现读】】
+    -- 原来这里躺着一个二十五个元素的手抄数组,而它当时就已经【漏了两支】
+    -- (ap_over_90 / ar_over_90 —— 实测,视图里当时是二十八支)。手抄的清单
+    -- 有两种烂法,这里两种都占了:漏抄的那几支从来没被查过;而新加的支
+    -- 【永远不会自己进来】。EQP-2c 加了保养那两支并且【放宽了它们】,
+    -- 于是这一段那句"除免柜期以外每一支都返回 NULL"当场变成一句【假话】——
+    -- 而它照旧是绿的,因为新支不在数组里。
+    -- **一个说着 X、其实只查了 X 的一个子集的判据,比不查更坏,因为它会被信。**
+    -- 现在真源是 operations_now 自己的定义(与 check-i18n 的 dashboard.item.*
+    -- 后缀解析、与 fixture 111F1 同一份),放宽的允许名单单独列在这里 ——
+    -- 加一支臂,它自动进入被查的集合;要放宽一支,必须来这里写下它的名字。
     IF arm_permission_widen('free_time_expiring') IS NULL THEN
         RAISE EXCEPTION 'FIXTURE 102G 失败:免柜期那一支应当有放宽码集';
     END IF;
-    SELECT count(*) INTO v_n FROM (
-        SELECT DISTINCT x FROM unnest(ARRAY[
-            'awaiting_assay','assay_unapplied','batch_unpriced','allocation_stale',
-            'po_awaiting_receipt','stocktake_open','qualification_expiring',
-            'qualification_missing','credit_over_limit','output_unsold_aging',
-            'safety_stock_below','leave_pending','claim_pending','review_submitted',
-            'invoice_overdue','fx_rate_gap','bank_unmatched','margin_cost_not_allocated',
-            'metal_quote_stale','orders_unfulfilled','work_order_overdue',
-            'work_order_variance_beyond','container_no_arrival',
-            'container_eta_overdue','container_documents_late']) x
-         WHERE arm_permission_widen(x) IS NOT NULL) z;
-    IF v_n <> 0 THEN
-        RAISE EXCEPTION 'FIXTURE 102G 失败:放宽算子对除免柜期以外的每一支都必须返回 NULL(否则那一支就被悄悄放宽了),实得 % 支非空', v_n;
+    SELECT COALESCE(array_agg(DISTINCT m[1] ORDER BY m[1]), '{}') INTO v_arms
+      FROM regexp_matches(pg_get_viewdef('public.operations_now'::regclass),
+                          '''([a-z_0-9]+)''::text AS item_type', 'g') m;
+    IF COALESCE(array_length(v_arms, 1), 0) = 0 THEN
+        RAISE EXCEPTION 'FIXTURE 102G 失败:一支都没解出来 —— 这是【解析器坏了】,不是"没有支"。空集不许被读成答案(check-i18n 后缀解析、mustRows、restRows 同一条)';
+    END IF;
+    -- 【允许被放宽的,逐一点名】写下名字是一次决定;漏写会让这一条当场红。
+    SELECT COALESCE(array_agg(x ORDER BY x), '{}') INTO v_widened FROM (
+        SELECT DISTINCT unnest(v_arms) AS x) y WHERE arm_permission_widen(y.x) IS NOT NULL;
+    IF v_widened <> ARRAY['equipment_service_approaching','equipment_service_due',
+                          'free_time_expiring'] THEN
+        RAISE EXCEPTION 'FIXTURE 102G 失败:被放宽的支应当【恰好】是点过名的那三支(免柜期,以及 EQP-2c 保养的两支),实得 %。多一支 = 某一支被悄悄放宽了(它的 permission 从此形同虚设);少一支 = 放宽算子漏了它,而那一支的读者会在首页读到「受限」,尽管他读得到底下的数据', v_widened::text;
     END IF;
 END $$;
 ROLLBACK;

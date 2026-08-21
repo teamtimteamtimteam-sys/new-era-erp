@@ -237,6 +237,8 @@ const en = {
             container_no_arrival: 'Sailed, no arrival recorded',
             container_eta_overdue: 'Past its expected arrival',
             container_documents_late: 'Documents still outstanding',
+            equipment_service_due: 'Service due',
+            equipment_service_approaching: 'Service approaching',
             metal_quote_stale: 'Metal quote not updated',
             orders_unfulfilled: 'Order not yet fulfilled',
             awaiting_assay: 'Batches awaiting assay',

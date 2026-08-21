@@ -1797,6 +1797,13 @@ export type Database = {
             foreignKeyName: "equipment_downtime_equipment_id_fkey"
             columns: ["equipment_id"]
             isOneToOne: false
+            referencedRelation: "equipment_service_status"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "equipment_downtime_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
             referencedRelation: "equipment_usage"
             referencedColumns: ["equipment_id"]
           },
@@ -1889,6 +1896,13 @@ export type Database = {
             foreignKeyName: "equipment_maintenance_equipment_id_fkey"
             columns: ["equipment_id"]
             isOneToOne: false
+            referencedRelation: "equipment_service_status"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "equipment_maintenance_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
             referencedRelation: "equipment_usage"
             referencedColumns: ["equipment_id"]
           },
@@ -1974,6 +1988,76 @@ export type Database = {
             columns: ["performed_by_supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_service_intervals: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          disposition: string
+          equipment_id: string
+          id: string
+          interval_days: number | null
+          interval_kg: number | null
+          kind: string
+          lead_days: number | null
+          lead_kg: number | null
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          disposition?: string
+          equipment_id: string
+          id?: string
+          interval_days?: number | null
+          interval_kg?: number | null
+          kind: string
+          lead_days?: number | null
+          lead_kg?: number | null
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          disposition?: string
+          equipment_id?: string
+          id?: string
+          interval_days?: number | null
+          interval_kg?: number | null
+          kind?: string
+          lead_days?: number | null
+          lead_kg?: number | null
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_service_intervals_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_service_status"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "equipment_service_intervals_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_usage"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "equipment_service_intervals_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
             referencedColumns: ["id"]
           },
         ]
@@ -2427,6 +2511,13 @@ export type Database = {
             foreignKeyName: "fixed_asset_cost_entries_asset_id_fkey"
             columns: ["asset_id"]
             isOneToOne: false
+            referencedRelation: "equipment_service_status"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "fixed_asset_cost_entries_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
             referencedRelation: "equipment_usage"
             referencedColumns: ["equipment_id"]
           },
@@ -2482,6 +2573,13 @@ export type Database = {
           period_end?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fixed_asset_depreciation_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_service_status"
+            referencedColumns: ["equipment_id"]
+          },
           {
             foreignKeyName: "fixed_asset_depreciation_asset_id_fkey"
             columns: ["asset_id"]
@@ -7574,6 +7672,13 @@ export type Database = {
             foreignKeyName: "processing_runs_equipment_id_fkey"
             columns: ["equipment_id"]
             isOneToOne: false
+            referencedRelation: "equipment_service_status"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
             referencedRelation: "equipment_usage"
             referencedColumns: ["equipment_id"]
           },
@@ -7860,6 +7965,13 @@ export type Database = {
           unit?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "purchase_order_lines_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_service_status"
+            referencedColumns: ["equipment_id"]
+          },
           {
             foreignKeyName: "purchase_order_lines_asset_id_fkey"
             columns: ["asset_id"]
@@ -12127,6 +12239,13 @@ export type Database = {
             foreignKeyName: "equipment_maintenance_equipment_id_fkey"
             columns: ["equipment_id"]
             isOneToOne: false
+            referencedRelation: "equipment_service_status"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "equipment_maintenance_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
             referencedRelation: "equipment_usage"
             referencedColumns: ["equipment_id"]
           },
@@ -12145,6 +12264,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      equipment_service_status: {
+        Row: {
+          acquisition_date: string | null
+          approaching_reason: string | null
+          baseline_date: string | null
+          days_since: number | null
+          disposition: string | null
+          due_days: boolean | null
+          due_kg: boolean | null
+          due_reason: string | null
+          equipment_code: string | null
+          equipment_description: string | null
+          equipment_id: string | null
+          equipment_status: string | null
+          interval_days: number | null
+          interval_id: string | null
+          interval_kg: number | null
+          is_approaching: boolean | null
+          is_due: boolean | null
+          kg_since: number | null
+          last_service_date: string | null
+          lead_days: number | null
+          lead_kg: number | null
+          monitored: boolean | null
+          never_serviced: boolean | null
+          service_kind: string | null
+          unattributed_runs_in_window: number | null
+        }
+        Relationships: []
       }
       equipment_usage: {
         Row: {
@@ -14865,6 +15014,13 @@ export type Database = {
             foreignKeyName: "processing_runs_equipment_id_fkey"
             columns: ["equipment_id"]
             isOneToOne: false
+            referencedRelation: "equipment_service_status"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "processing_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
             referencedRelation: "equipment_usage"
             referencedColumns: ["equipment_id"]
           },
@@ -14940,6 +15096,13 @@ export type Database = {
           unit?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "purchase_order_lines_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_service_status"
+            referencedColumns: ["equipment_id"]
+          },
           {
             foreignKeyName: "purchase_order_lines_asset_id_fkey"
             columns: ["asset_id"]

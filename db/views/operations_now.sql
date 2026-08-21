@@ -118,6 +118,11 @@
 -- LOG-5d(2026-08-20):同一种里程碑之内,算数的是【最后被录入】的那一条
 -- (recorded_at DESC, id DESC)。此前按 event_date DESC 排,于是一条把日期
 -- 改【早】的更正永远排不到前面、一次都不会生效(线上 CTR-2026-0009)。
+-- EQP-2c(2026-08-21):第 27–28 支 —— 保养【到期】与【将到期】,两支不是一支。
+-- 列契约一字未动。规格见 docs/dashboard-arm-inventory.md;推导与它的基线
+-- (那两条"低读数有两种意思"的事实)整段写在 equipment_service_status 的视图注释里。
+-- 【放宽】两支都走 arm_permission_widen(processing OR finance)—— 机器卡在财务、
+-- 干活的人在加工,而它们底下每一张表/视图的读者都是这两个码的 OR。
 CREATE VIEW public.operations_now AS
  SELECT item_type,
     permission,
@@ -542,6 +547,45 @@ CREATE VIEW public.operations_now AS
           WHERE c.deleted_at IS NULL
             AND p.n > 0
             AND (CURRENT_DATE - c.departure_date) >= 7
+        UNION ALL
+-- ── EQP-2c · 保养到期,以及【将到期】——【两支,不是一支带等级】────────────
+-- operations_now 的列契约里没有"严重程度"这一列,所以唯一在结构上分得开的
+-- 办法就是两个 item_type。与 qualification_expiring / qualification_missing、
+-- container_no_arrival / container_eta_overdue 同形。
+-- 【两支互斥】已到期的不再出现在"将到期"里(is_approaching 自己带 NOT is_due)
+-- —— 否则同一件事被数两遍,那正是 fixture 30 那句话要抓的东西。
+-- 【提前量是【数据】】lead_kg / lead_days 在 equipment_service_intervals 的行上,
+-- 视图现读;fixture 111 F6 在同一笔事务里两个方向都验过。
+-- 【item_id 是机器,不是间隔行】判据是 LINKS-1 那一条:门牌指向【承载补救动作】
+-- 的那张页面所对应的行。补救动作是"给这台机器记一次保养",而它发生在机器那一页
+-- (/finance/assets/[id],EQP-1c-b 建的)—— 间隔行今天没有自己的页面。
+-- 与 bank_unmatched / margin_cost_not_allocated 取父行是同一条规矩。
+-- 【item_date 是基线日】= 上一次那一种保养,没有就是取得日。于是
+-- days_waiting 读出来就是"距上一次保养多少天",【正好就是两个量度里的天数那一个】,
+-- 不是第三个数。
+-- 【未监控的机器一支都不响,而那是一个具名状态不是零】判据 s.monitored ——
+-- 理由整段写在 equipment_service_status 的视图注释里,这里不复述。
+-- 【已处置的机器不收】一件"去保养它"的待办,对一台已经不在的机器没有意义。
+-- 【牌子在 EQP-2d】本刀落的是这两支的【行】;首页那两块牌子在 2d。
+         SELECT 'equipment_service_due'::text AS item_type,
+            'module.processing.view'::text AS permission,
+            ess.equipment_id AS item_id,
+            NULL::text AS doc_kind,
+            ess.equipment_code AS item_code,
+            (ess.service_kind || ' — '::text) || ess.equipment_description AS subject,
+            ess.baseline_date AS item_date
+           FROM equipment_service_status ess
+          WHERE ess.monitored AND ess.disposition = 'warn'::text AND ess.equipment_status <> 'disposed'::text AND ess.is_due
+        UNION ALL
+         SELECT 'equipment_service_approaching'::text AS item_type,
+            'module.processing.view'::text AS permission,
+            ess_1.equipment_id AS item_id,
+            NULL::text AS doc_kind,
+            ess_1.equipment_code AS item_code,
+            (ess_1.service_kind || ' — '::text) || ess_1.equipment_description AS subject,
+            ess_1.baseline_date AS item_date
+           FROM equipment_service_status ess_1
+          WHERE ess_1.monitored AND ess_1.disposition = 'warn'::text AND ess_1.equipment_status <> 'disposed'::text AND ess_1.is_approaching
 ) a
   WHERE (has_permission(permission) OR has_any_permission(arm_permission_widen(item_type)))
     AND (arm_permission_any(item_type) IS NULL OR has_any_permission(arm_permission_any(item_type)));

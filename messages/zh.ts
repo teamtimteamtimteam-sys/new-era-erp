@@ -239,6 +239,8 @@ const zh = {
             container_no_arrival: '开走了,没人录到港',
             container_eta_overdue: '过了预计到达日',
             container_documents_late: '单据还欠着',
+            equipment_service_due: '保养已到期',
+            equipment_service_approaching: '保养将到期',
             metal_quote_stale: '行情未更新',
             orders_unfulfilled: '订单尚未履约',
             awaiting_assay: '待化验批次',
