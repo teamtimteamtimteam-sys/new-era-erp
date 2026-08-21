@@ -125,6 +125,9 @@ RUNTIME_CONFIG_TABLES = [
     # GRN-1a:收货差异的三个阈值 —— 与 processing_settings 的两个工单阈值同一条。
     # 5/5/10 是引导默认值,不是决定;运营改一次线上就与本文件不同,那是对的。
     "receiving_settings",
+    # EQP-2b:资本化阈值(百分比 + 绝对下限)—— 同上。10 / 1000 是引导默认值,
+    # 而它是一条【会计政策】,Tim 改一次线上就与本文件不同,那是系统在正常工作。
+    "maintenance_settings",
 ]
 
 # 【引导默认值一行都不许是空的】RUNTIME CONFIG 的种子不与线上比对(那是对的:界面改得动),

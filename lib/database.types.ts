@@ -1809,6 +1809,175 @@ export type Database = {
           },
         ]
       }
+      equipment_maintenance: {
+        Row: {
+          capitalisation_reason: string | null
+          capitalised: boolean
+          capitalised_expense_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          downtime_id: string | null
+          equipment_id: string
+          expense_id: string | null
+          id: string
+          kind: string
+          notes: string | null
+          performed_by_employee_id: string | null
+          performed_by_name: string | null
+          performed_by_supplier_id: string | null
+          performed_on: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          capitalisation_reason?: string | null
+          capitalised?: boolean
+          capitalised_expense_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description: string
+          downtime_id?: string | null
+          equipment_id: string
+          expense_id?: string | null
+          id?: string
+          kind: string
+          notes?: string | null
+          performed_by_employee_id?: string | null
+          performed_by_name?: string | null
+          performed_by_supplier_id?: string | null
+          performed_on: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          capitalisation_reason?: string | null
+          capitalised?: boolean
+          capitalised_expense_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          downtime_id?: string | null
+          equipment_id?: string
+          expense_id?: string | null
+          id?: string
+          kind?: string
+          notes?: string | null
+          performed_by_employee_id?: string | null
+          performed_by_name?: string | null
+          performed_by_supplier_id?: string | null
+          performed_on?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_maintenance_capitalised_expense_id_fkey"
+            columns: ["capitalised_expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_maintenance_downtime_id_fkey"
+            columns: ["downtime_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_downtime"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_maintenance_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_usage"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "equipment_maintenance_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_maintenance_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_maintenance_performed_by_employee_id_fkey"
+            columns: ["performed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "equipment_maintenance_performed_by_employee_id_fkey"
+            columns: ["performed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_maintenance_performed_by_employee_id_fkey"
+            columns: ["performed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_maintenance_performed_by_employee_id_fkey"
+            columns: ["performed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "equipment_maintenance_performed_by_employee_id_fkey"
+            columns: ["performed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "equipment_maintenance_performed_by_employee_id_fkey"
+            columns: ["performed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "equipment_maintenance_performed_by_employee_id_fkey"
+            columns: ["performed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "equipment_maintenance_performed_by_employee_id_fkey"
+            columns: ["performed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "equipment_maintenance_performed_by_supplier_id_fkey"
+            columns: ["performed_by_supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "equipment_maintenance_performed_by_supplier_id_fkey"
+            columns: ["performed_by_supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expenses: {
         Row: {
           account_code: string
@@ -4381,6 +4550,33 @@ export type Database = {
           requires_approval?: boolean
           requires_certificate_after_days?: number | null
           sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      maintenance_settings: {
+        Row: {
+          capitalise_floor_base: number
+          capitalise_pct_of_cost: number
+          id: boolean
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          capitalise_floor_base?: number
+          capitalise_pct_of_cost?: number
+          id?: boolean
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          capitalise_floor_base?: number
+          capitalise_pct_of_cost?: number
+          id?: boolean
+          notes?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -11907,6 +12103,46 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["employee_id"]
+          },
+        ]
+      }
+      equipment_maintenance_advice: {
+        Row: {
+          capitalise_floor_base: number | null
+          capitalise_pct_of_cost: number | null
+          capitalised: boolean | null
+          equipment_code: string | null
+          equipment_cost_base: number | null
+          equipment_id: string | null
+          expense_id: string | null
+          kind: string | null
+          maintenance_id: string | null
+          meets_threshold: boolean | null
+          pct_of_equipment_cost: number | null
+          performed_on: string | null
+          work_cost_base: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_maintenance_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_usage"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "equipment_maintenance_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_maintenance_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
           },
         ]
       }
