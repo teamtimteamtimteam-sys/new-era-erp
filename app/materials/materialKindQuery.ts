@@ -12,7 +12,7 @@ export async function getMaterialKinds(): Promise<MaterialKind[]> {
     return mustRows(
         await supabase
             .from('material_kinds')
-            .select('code, name_en, name_zh, may_ever_be_processed')
+            .select('code, name_en, name_zh, may_ever_be_processed, has_condition_axes')
             .eq('is_active', true)
             .order('sort_order'),
         'material_kinds'

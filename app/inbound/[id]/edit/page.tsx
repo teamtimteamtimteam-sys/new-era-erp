@@ -17,6 +17,7 @@ import StockStatusPanel from '@/app/components/inventory/StockStatusPanel'
 import type { MovementRow } from '@/app/components/inventory/movementTypes'
 import StocktakeQuickCount from '@/app/stocktakes/StocktakeQuickCount'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
+import IntakeConditionPanel from './IntakeConditionPanel'
 import { can, canViewPrices } from '@/lib/permissions'
 import { maskedRows, maskedExcept } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
@@ -55,6 +56,26 @@ export default async function EditInboundPage({
     const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
     const locale = await getLocale()
+
+    // ── PROC-2b:到货状态的两条轴 ────────────────────────────────────────────
+    // 【读之前先对遮蔽清单】(S2):
+    //   * inbound_batches 是【遮蔽表】—— 本页的 batch 已经走 inbound_batches_masked,
+    //     所以 chemistry_certainty_code 直接从它上面取,不另查表;
+    //   * inbound_batch_safety_states 实测【没有】_masked 伴生,表级 SELECT 授权,直读;
+    //   * 两张字典同样没有伴生视图,表级授权,直读。
+    const [statesRes, certRes, pickedRes] = await Promise.all([
+        supabase.from('inbound_safety_states')
+            .select('code, name_en, name_zh, may_be_fed').eq('is_active', true).order('sort_order'),
+        supabase.from('inbound_chemistry_certainties')
+            .select('code, name_en, name_zh, may_be_fed').eq('is_active', true).order('sort_order'),
+        supabase.from('inbound_batch_safety_states')
+            .select('safety_state_code').eq('inbound_batch_id', id),
+    ])
+    const safetyStates = mustRows(statesRes, 'inbound_safety_states')
+    const certainties = mustRows(certRes, 'inbound_chemistry_certainties')
+    const pickedStates = (mustRows(pickedRes, 'inbound_batch_safety_states') as { safety_state_code: string }[])
+        .map((r) => r.safety_state_code)
+    const canEditInbound = await can('module.inbound.edit')
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
     const [batchRes, materialsRes, suppliersRes, metalsRes, movementsRes, stocktakeRes, priceHistoryRes] = await Promise.all([
@@ -522,6 +543,15 @@ export default async function EditInboundPage({
 
             {/* STK-1:库存分布(库位 × 状态)与暂扣/释放 —— 摆在流水【上面】,
                 因为看批次的人先问「现在有多少可动」,再去看「它是怎么变成这样的」 */}
+            {/* PROC-2b:到货状态 —— 摆在库存分布【之前】,因为它回答的是
+                「这批货【是什么状态】」,而库存回答的是「它现在在哪、还有多少」。
+                【它也是能被【改】的那一块】:一批货到的时候带电,后来才放电并核验,
+                而那个转变正是 PROC-3 的闸要能被满足所依赖的东西。 */}
+            <IntakeConditionPanel batchId={id} states={safetyStates as never[]}
+                certainties={certainties as never[]} currentStates={pickedStates}
+                currentCertainty={batch.chemistry_certainty_code ?? null}
+                canEdit={canEditInbound} locale={locale} />
+
             <StockStatusPanel inboundBatchId={id} unit={batch.unit} />
 
             <MovementTimeline rows={movementRows} unit={batch.unit} />

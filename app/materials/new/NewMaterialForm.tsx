@@ -9,8 +9,9 @@ import { useActionState } from 'react'
 import Link from 'next/link'
 import { createMaterial, type CreateMaterialState } from './actions'
 import CustomSelect from '../CustomSelect'
-import MaterialKindPicker from '../MaterialKindPicker'
+import MaterialAxesPicker from '../MaterialAxesPicker'
 import type { MaterialKind } from '../materialKindOptions'
+import type { MaterialForm, MaterialSource, MaterialSizeFormat } from '../materialAxesOptions'
 import {
     CHEMISTRY_OPTIONS,
     UNIT_OPTIONS,
@@ -25,10 +26,16 @@ const initialState: CreateMaterialState = {}
 export default function NewMaterialForm({
     wasteClasses,
     kinds,
+    forms,
+    sources,
+    sizeFormats,
     locale,
 }: {
     wasteClasses: WasteClass[]
     kinds: MaterialKind[]
+    forms: MaterialForm[]
+    sources: MaterialSource[]
+    sizeFormats: MaterialSizeFormat[]
     locale: string
 }) {
     const t = useTranslations()
@@ -82,14 +89,19 @@ export default function NewMaterialForm({
                 </div>
 
                 {/* PROC-1:种类(字典)+ 能不能投料(明说出来的选择,不给默认)*/}
-                <MaterialKindPicker kinds={kinds} defaultKind={null}
-                    defaultProcessable={null} locale={locale} />
+                <MaterialAxesPicker kinds={kinds} forms={forms} sources={sources} sizeFormats={sizeFormats}
+                    defaultKind={null} defaultProcessable={null}
+                    defaultForm={null} defaultSource={null} defaultSizeFormat={null} locale={locale} />
                 {state.fieldErrors?.kind_code && (
                     <p className="text-red-600 text-xs -mt-2">{state.fieldErrors.kind_code}</p>
                 )}
                 {state.fieldErrors?.may_be_processed && (
                     <p className="text-red-600 text-xs -mt-2">{state.fieldErrors.may_be_processed}</p>
                 )}
+                {(['form_code', 'source_code', 'size_format_code'] as const).map((f) =>
+                    state.fieldErrors?.[f]
+                        ? <p key={f} className="text-red-600 text-xs -mt-2">{state.fieldErrors[f]}</p>
+                        : null)}
 
                 {/* 化学体系(可选,可自定义)*/}
                 <div>

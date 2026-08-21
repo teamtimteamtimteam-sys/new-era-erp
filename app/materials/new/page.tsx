@@ -6,6 +6,7 @@ import { MOD } from '@/lib/modules'
 import NewMaterialForm from './NewMaterialForm'
 import { getWasteClassifications } from '../wasteClassQuery'
 import { getMaterialKinds } from '../materialKindQuery'
+import { getMaterialAxes } from '../materialAxesQuery'
 import { getLocale } from '@/lib/i18n/server'
 
 export default async function NewMaterialPage() {
@@ -18,7 +19,10 @@ export default async function NewMaterialPage() {
     const wasteClasses = await getWasteClassifications()
     // PROC-1:种类同样从表里现读 —— 加一种是加一行
     const kinds = await getMaterialKinds()
+    // PROC-2b:三条状态轴同样从表里现读 —— 加一个取值是加一行
+    const axes = await getMaterialAxes()
     const locale = await getLocale()
 
-    return <NewMaterialForm wasteClasses={wasteClasses} kinds={kinds} locale={locale} />
+    return <NewMaterialForm wasteClasses={wasteClasses} kinds={kinds}
+        forms={axes.forms} sources={axes.sources} sizeFormats={axes.sizeFormats} locale={locale} />
 }

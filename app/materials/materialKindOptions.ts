@@ -9,6 +9,10 @@ export type MaterialKind = {
     name_en: string
     name_zh: string
     may_ever_be_processed: boolean
+    // PROC-2b:这一类要不要回答【状态轴】(形态 / 来源 / 规格尺寸)。
+    // 屏幕靠它决定那三个控件是画出来、还是画一句"不适用"—— 而"不适用"与
+    // "还没选种类所以还不知道"是两句不同的话(见 MaterialAxesPicker 抬头)。
+    has_condition_axes: boolean
 }
 
 // 表单里代表【还没选】的取值。

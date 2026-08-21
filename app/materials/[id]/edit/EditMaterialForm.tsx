@@ -3,8 +3,9 @@
 import { useActionState } from 'react'
 import Link from 'next/link'
 import { updateMaterial, type UpdateMaterialState } from './actions'
-import MaterialKindPicker from '../../MaterialKindPicker'
+import MaterialAxesPicker from '../../MaterialAxesPicker'
 import type { MaterialKind } from '../../materialKindOptions'
+import type { MaterialForm, MaterialSource, MaterialSizeFormat } from '../../materialAxesOptions'
 import CustomSelect from '../../CustomSelect'
 import {
     CHEMISTRY_OPTIONS,
@@ -22,6 +23,9 @@ type Material = {
     name: string
     kind_code: string | null
     may_be_processed: boolean | null
+    form_code: string | null
+    source_code: string | null
+    size_format_code: string | null
     chemistry: string | null
     waste_classification_code: string | null
     unit: string
@@ -34,11 +38,17 @@ export default function EditMaterialForm({
     material,
     wasteClasses,
     kinds,
+    forms,
+    sources,
+    sizeFormats,
     locale,
 }: {
     material: Material
     wasteClasses: WasteClass[]
     kinds: MaterialKind[]
+    forms: MaterialForm[]
+    sources: MaterialSource[]
+    sizeFormats: MaterialSizeFormat[]
     locale: string
 }) {
     const t = useTranslations()
@@ -87,14 +97,20 @@ export default function EditMaterialForm({
                     所以这一行【在有人把种类说出来之前存不下去】。那是想要的行为,
                     而屏幕上由 MaterialKindPicker 那句琥珀色的话说出来,
                     不是漏一条裸约束名出去。 */}
-                <MaterialKindPicker kinds={kinds} defaultKind={material.kind_code}
-                    defaultProcessable={material.may_be_processed} locale={locale} />
+                <MaterialAxesPicker kinds={kinds} forms={forms} sources={sources} sizeFormats={sizeFormats}
+                    defaultKind={material.kind_code} defaultProcessable={material.may_be_processed}
+                    defaultForm={material.form_code} defaultSource={material.source_code}
+                    defaultSizeFormat={material.size_format_code} locale={locale} />
                 {state.fieldErrors?.kind_code && (
                     <p className="text-red-600 text-xs -mt-2">{state.fieldErrors.kind_code}</p>
                 )}
                 {state.fieldErrors?.may_be_processed && (
                     <p className="text-red-600 text-xs -mt-2">{state.fieldErrors.may_be_processed}</p>
                 )}
+                {(['form_code', 'source_code', 'size_format_code'] as const).map((f) =>
+                    state.fieldErrors?.[f]
+                        ? <p key={f} className="text-red-600 text-xs -mt-2">{state.fieldErrors[f]}</p>
+                        : null)}
 
                 {/* 化学体系(可选,可自定义)*/}
                 <div>

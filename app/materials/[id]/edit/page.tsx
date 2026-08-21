@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import EditMaterialForm from './EditMaterialForm'
 import { getWasteClassifications } from '../../wasteClassQuery'
 import { getMaterialKinds } from '../../materialKindQuery'
+import { getMaterialAxes } from '../../materialAxesQuery'
 import AttachmentsPanel from './AttachmentsPanel'
 import RequiredMetalsPanel from './RequiredMetalsPanel'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
@@ -30,6 +31,7 @@ export default async function EditMaterialPage({
     // MAT-1:分类选项从表里现读
     const wasteClasses = await getWasteClassifications()
     const kinds = await getMaterialKinds()
+    const axes = await getMaterialAxes()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
     const { data: material, error } = await supabase
@@ -94,7 +96,8 @@ export default async function EditMaterialPage({
                 </span>
             </p>
 
-            <EditMaterialForm material={material} wasteClasses={wasteClasses} kinds={kinds} locale={locale} />
+            <EditMaterialForm material={material} wasteClasses={wasteClasses} kinds={kinds}
+                forms={axes.forms} sources={axes.sources} sizeFormats={axes.sizeFormats} locale={locale} />
             <RequiredMetalsPanel
                 materialId={material.id}
                 initial={requiredMetals}
