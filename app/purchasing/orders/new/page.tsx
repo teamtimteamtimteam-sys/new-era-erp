@@ -83,7 +83,10 @@ export default async function NewOrderPage() {
             : Promise.resolve({ data: [] as { id: string; code: string; description: string; cost_base: number }[], error: null }),
         // 已经挂在某条采购单行上的资产 —— 挑过的不该再挑一次(表上没有唯一约束
         // 拦这件事,所以这里只是【不引导人去踩】,不是一道保证)。
-        supabase.from('purchase_order_lines').select('asset_id').not('asset_id', 'is', null),
+        // 【读遮蔽视图】这一句今天只选 asset_id(一个已授权的列),所以它
+        // 【碰巧】能直接查表 —— 而那正是陷阱:哪天有人往 select 里加一个被扣住的
+        // 列,它会突然 42501。判据不该是"我这次只选了安全的列"。
+        supabase.from('purchase_order_lines_masked').select('asset_id').not('asset_id', 'is', null),
     ])
 
     const error =

@@ -24,7 +24,7 @@ export default async function NewExpensePage() {
     const t = await getTranslations()
     const locale = await getLocale()
 
-    const [accountsRes, suppliersRes, employeesRes, assetsRes, poLinesRes, capAccountRes] = await Promise.all([
+    const [accountsRes, suppliersRes, employeesRes, assetsRes, poLinesRes, poHeadsRes, lineExpensesRes, capAccountRes] = await Promise.all([
         supabase
             .from('accounts')
             .select('code, name_en, name_zh')
@@ -64,16 +64,27 @@ export default async function NewExpensePage() {
         // uq_expenses_live_po_line(索引,负责正确)、record_expense 的
         // PO_LINE_ALREADY_EXPENSED(函数,负责可读)、以及这里(列表,只负责
         // 【不引导人去踩】)。前两者是保证,这一处不是:即便挑错了,服务端照样按名拒。
-        supabase.from('purchase_order_lines')
-            .select('id, line_no, asset_id, purchase_order_id, estimated_amount_ccy, ' +
-                    'purchase_orders(code, supplier_id, status, approval_status, currency, deleted_at), ' +
-                    'expenses(id, code, status)')
+        // 【读遮蔽视图,不读表】—— purchase_order_lines 是遮蔽表(REVOKE SELECT +
+        // 列清单授权),而本查询要的 estimated_amount_ccy 【正是被扣住的三列之一】
+        // (另两列是 estimated_unit_price / price_provenance)。直接查表 → 42501。
+        // 【PostgreSQL 给的提示是"把表的 SELECT 授给 authenticated" —— 不能照做】
+        // 那会把遮蔽整个撤掉,把金额列敞给每一个登录用户。提示是机械的:
+        // 它不知道那几列是【故意】扣住的。
+        // 【视图上不做 embed】本仓库每一处读遮蔽视图的地方都是分开查、在 TS 里拼
+        // (invoices_masked / invoice_lines_masked 那几处就是),这里照办。
+        supabase.from('purchase_order_lines_masked')
+            .select('id, line_no, asset_id, purchase_order_id, estimated_amount_ccy')
             .not('asset_id', 'is', null),
+        supabase.from('purchase_orders_masked')
+            .select('id, code, supplier_id, status, approval_status, currency, deleted_at'),
+        supabase.from('expenses')
+            .select('id, code, status, purchase_order_line_id')
+            .not('purchase_order_line_id', 'is', null),
         // 1500 的名字【从库里取】,不写死 —— 资本支出的借方就是它(record_expense 定死)。
         supabase.from('accounts').select('code, name_en, name_zh').eq('code', '1500').maybeSingle(),
     ])
 
-    const error = accountsRes.error ?? suppliersRes.error ?? employeesRes.error ?? assetsRes.error ?? poLinesRes.error
+    const error = accountsRes.error ?? suppliersRes.error ?? employeesRes.error ?? assetsRes.error ?? poLinesRes.error ?? poHeadsRes.error ?? lineExpensesRes.error
     if (error) {
         return (
             <div className="p-8">
@@ -93,11 +104,19 @@ export default async function NewExpensePage() {
     type RawLine = {
         id: string; line_no: number; asset_id: string | null; purchase_order_id: string
         estimated_amount_ccy: number | null
-        purchase_orders: { code: string; supplier_id: string; status: string
-                           approval_status: string; currency: string; deleted_at: string | null } | null
-        expenses: { id: string; code: string; status: string }[] | null
+    }
+    type RawHead = { id: string; code: string; supplier_id: string; status: string
+                     approval_status: string; currency: string; deleted_at: string | null }
+    // 【在 TS 里拼,而不是在视图上 embed】—— 见上面那段注释。
+    const headById = new Map((mustRows(poHeadsRes) as unknown as RawHead[]).map((h) => [h.id, h]))
+    const billedByLine = new Map<string, string>()
+    for (const e of mustRows(lineExpensesRes) as unknown as
+            { id: string; code: string; status: string; purchase_order_line_id: string }[]) {
+        // 【已报销 = status='posted'】—— EQP-1b-ii 的原话,判据一字未改。
+        if (e.status === 'posted') billedByLine.set(e.purchase_order_line_id, e.code)
     }
     const poLines: PoLineOption[] = (mustRows(poLinesRes) as unknown as RawLine[])
+        .map((l) => ({ ...l, purchase_orders: headById.get(l.purchase_order_id) ?? null }))
         // 【与 record_expense 的 D2 三条守卫同口径】单据要存在(未软删)、未作废、已获批。
         // 挑到一条不满足的,服务端会按名拒(PO_NOT_FOUND / PO_CANCELLED / PO_NOT_APPROVED)——
         // 这里只是不把它摆出来。
@@ -115,7 +134,7 @@ export default async function NewExpensePage() {
             estimate: l.estimated_amount_ccy,
             // 【已报销 = 那条行上有一笔 status='posted' 的支出】—— EQP-1b-ii 的原话。
             // 带上编号,好让那个【禁用的】选项说得出是被哪一张单占着的。
-            billedBy: (l.expenses ?? []).find((e) => e.status === 'posted')?.code ?? null,
+            billedBy: billedByLine.get(l.id) ?? null,
         }))
     // 【读不到采购单与"没有采购单"是两件事】空列表要说得出是哪一种(见表单)。
     const canSeePurchasing = await can('module.purchasing.view')

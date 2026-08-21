@@ -93,7 +93,8 @@ async function renderPo(supabase: Awaited<ReturnType<typeof createClient>>, poId
     // 带 asset_id 就是整单的种类。这里读的是【种类】,而行的名字仍然来自
     // po_document_data(它已经 COALESCE 过资产描述)—— 屏幕与纸不会各说各话。
     const { data: kindRows } = await supabase
-        .from('purchase_order_lines').select('asset_id').eq('purchase_order_id', poId).limit(1)
+        // 【读遮蔽视图】同上:今天只选 asset_id 才没炸,而那是运气不是判据。
+        .from('purchase_order_lines_masked').select('asset_id').eq('purchase_order_id', poId).limit(1)
     const isEquipment = (kindRows ?? []).some((r) => r.asset_id !== null)
 
     const element = React.createElement(PurchaseOrderDocument, { data, company, logo, isEquipment }) as React.ReactElement<DocumentProps>

@@ -53,19 +53,31 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
             .eq('asset_id', id).order('created_at'),
         supabase.from('fixed_asset_depreciation')
             .select('amount_base, period_end').eq('asset_id', id),
+        // 【读遮蔽视图,不读表】—— purchase_order_lines 是遮蔽表,而
+        // estimated_amount_ccy 【正是被扣住的三列之一】,直接查表 → 42501。
+        // 这一处与开支表单那一处是【同一个缺陷的两个实例】:走查报的是那一个,
+        // 而它是这一个 —— 记录完开支之后落地的正是本页。
+        // 【视图上不做 embed】采购单表头另查一次,在 TS 里拼(本仓库既有做法)。
         canSeePurchasing
-            ? supabase.from('purchase_order_lines')
-                .select('id, line_no, purchase_order_id, estimated_amount_ccy, purchase_orders(code, status, approval_status, currency)')
+            ? supabase.from('purchase_order_lines_masked')
+                .select('id, line_no, purchase_order_id, estimated_amount_ccy')
                 .eq('asset_id', id).maybeSingle()
             : Promise.resolve({ data: null, error: null }),
     ])
 
     const entries = mustRows(entriesRes)
     const accum = mustRows(deprRes).reduce((s, d) => s + Number(d.amount_base ?? 0), 0)
-    const line = lineRes.data as {
+    const lineRaw = lineRes.data as {
         id: string; line_no: number; purchase_order_id: string; estimated_amount_ccy: number | null
-        purchase_orders: { code: string; status: string; approval_status: string; currency: string } | null
     } | null
+    const headRes = lineRaw
+        ? await supabase.from('purchase_orders_masked')
+            .select('code, status, approval_status, currency').eq('id', lineRaw.purchase_order_id).maybeSingle()
+        : { data: null, error: null }
+    const line = lineRaw
+        ? { ...lineRaw, purchase_orders: headRes.data as
+              { code: string; status: string; approval_status: string; currency: string } | null }
+        : null
 
     // 那张单上还有多少定金没冲抵 —— 【问数据库,不自己算】
     const poStatusRes = line
