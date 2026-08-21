@@ -43,8 +43,13 @@ BEGIN
 
     -- 【原样定义在任何注入之前取齐】临用临取会取到已经被上一个注入改过的那一份
     def_rec   := pg_get_functiondef(-- PAYEE-1a:签名多了 p_employee_id(往来对象二选一),这里跟着改。
+    -- EQP-1b-ii:又多了 p_purchase_order_line(这笔支出付的那一条采购单行),再跟着改。
     --【它把签名钉死是对的】—— 注入要替换的就是这一个具体的函数。
-    'public.record_expense(date,text,numeric,text,numeric,text,text,uuid,text,text,jsonb,uuid)'::regprocedure);
+    -- 【所以改 record_expense 的签名,一定会在这里红一次,而那是【对的】】
+    -- 两次都是这样(PAYEE-1a、本刀),所以它是规律不是意外:regprocedure 找不到
+    -- 那个签名就当场报错,于是"签名动了"永远不会静悄悄地过去。改签名的人在这里
+    -- 补一个类型,顺带确认自己知道这份 fixture 在注入什么。
+    'public.record_expense(date,text,numeric,text,numeric,text,text,uuid,text,text,jsonb,uuid,uuid)'::regprocedure);
     def_close := pg_get_functiondef('public.close_period(date,text)'::regprocedure);
     def_sis   := pg_get_functiondef('public.set_asset_in_service(uuid,date)'::regprocedure);
 

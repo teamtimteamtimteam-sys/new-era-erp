@@ -19,6 +19,17 @@ const EXPENSE_ERROR_CODES = new Set([
     'CAPITAL_REQUIRES_ASSET', 'ASSET_REQUIRES_CAPITAL_ACCOUNT',
     'ASSET_DESCRIPTION_REQUIRED', 'ASSET_LIFE_INVALID', 'ASSET_RESIDUAL_INVALID',
     'ASSET_IN_SERVICE_BEFORE_ACQUISITION', 'EXPENSE_HAS_ASSET',
+    // EQP-1b-ii:支出挂上采购单行之后新出现的具名拒绝。
+    // 三条单据守卫(PO_*)与 apply_prepayment 同码同义 —— 同一件事在两条路上
+    // 说同一句话,不为了"这是费用侧"另起一套名字。
+    'PO_LINE_NOT_FOUND', 'PO_NOT_FOUND', 'PO_CANCELLED', 'PO_NOT_APPROVED',
+    'PO_LINE_NOT_EQUIPMENT',
+    // D3 下半拆成三条,因为三种情形的【修法不同】
+    'EXPENSE_NOT_CAPITAL', 'EXPENSE_CREATES_ASSET', 'EXPENSE_ASSET_MISMATCH',
+    // 主体可缺席:paid 的费用单合法地没有供应商,那不是"不一致"
+    'EXPENSE_SUPPLIER_NOT_STATED', 'SUPPLIER_MISMATCH',
+    // D4:一条设备行只报销一次
+    'PO_LINE_ALREADY_EXPENSED',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..."(同 localizeFinanceError)。

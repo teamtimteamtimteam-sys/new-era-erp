@@ -122,3 +122,27 @@ CREATE CONSTRAINT TRIGGER trg_po_lines_single_kind
     AFTER INSERT OR UPDATE ON public.purchase_order_lines
     DEFERRABLE INITIALLY DEFERRED
     FOR EACH ROW EXECUTE FUNCTION guard_po_lines_single_kind();
+
+-- ── EQP-1b-ii:expenses → purchase_order_lines 的外键【住在这里】────────────
+-- 【为什么不在 db/tables/expenses.sql 里】那三张表构成一个真实的引用环:
+--     expenses.purchase_order_line_id → purchase_order_lines   (本刀)
+--     purchase_order_lines.asset_id   → fixed_assets           (EQP-1a)
+--     fixed_assets.expense_id         → expenses               (FIN-22)
+-- check_mirrors 的 toposort 是【按文本里的 REFERENCES public.x】给表镜像排序的
+-- (db/check_mirrors.py 的 table_deps),遇到环直接退出并点名参与的文件 ——
+-- 本刀第一版把外键写在 expenses 的建表语句里,它当场列了 24 个文件。
+-- 环是【线上真实存在】的,不是镜像的毛病;能挪的只有"什么时候把这条边接上"。
+-- 所以它挪到环上【最后】被建的那张表(本表)的镜像末尾,用一条 ALTER 补。
+--
+-- 【下面那个 CREATE INDEX 同时在替 toposort 说话,这一点是刻意的】
+-- 它写着 `ON public.expenses`,而 table_deps 正是认 `REFERENCES public.x` 与
+-- `ON public.x` 两种写法 —— 于是"本表要在 expenses 之后建"成为一条排序器
+-- 【看得见】的边,而不是一句靠 fixed_assets 传递过来、指望它别变的巧合。
+-- 这条索引本来就该在这里:它服务的是 guard_po_line_received_floor 的删除支。
+ALTER TABLE public.expenses
+    ADD CONSTRAINT expenses_purchase_order_line_id_fkey
+    FOREIGN KEY (purchase_order_line_id) REFERENCES public.purchase_order_lines (id);
+
+-- guard_po_line_received_floor 的删除支要查这条行上【全部状态】的支出(已冲销的
+-- 也算 —— 外键照样指着);uq_expenses_live_po_line 只收 posted 的,谓词不蕴含。
+CREATE INDEX idx_expenses_po_line ON public.expenses (purchase_order_line_id);

@@ -37,6 +37,9 @@ const PURCHASING_ERROR_CODES = new Set([
     'SUPPLIER_QUALIFICATION_EXPIRED', 'PO_NOT_APPROVED',
 
     'PO_CANCEL_REASON_REQUIRED',   // AUDEL-1b
+    // EQP-1b-ii:报销过的采购单行删不得。设备行【没有收货】,所以既有的
+    // PO_LINE_HAS_RECEIPTS 对它恒为假 —— 这一条是它那一半。
+    'PO_LINE_HAS_EXPENSE',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..."(同 localizeFinanceError)。

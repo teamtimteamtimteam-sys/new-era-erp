@@ -1,3 +1,159 @@
+-- EQP-1b-ii:费用 ↔ 采购单行的关联,以及【一条设备行只报销一次】的推导
+--
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【问题,由 EQP-1b-i 自己的勘察立下】材料靠【收货】封顶:一条材料行能被计费
+-- 多少,由 inbound_batches 上真的到了多少货说了算。而设备行【按设计没有收货】
+-- (guard_inbound_po_line_match 按名拒),于是今天 record_expense 会为同一台
+-- 机器再记一笔 1500 借方、再累一次成本,没有任何东西反对。
+--
+-- 本刀把那条缺失的边补上,并在它上面立一条推导。
+-- ════════════════════════════════════════════════════════════════════════════
+--
+-- 【expenses 不是遮蔽表 —— 查过了,不是假定的】
+-- pg_class.relacl:authenticated 与 anon 都持【表级】SELECT(`arwdDxtm` 里的 r),
+-- pg_attribute.attacl 全为 NULL,没有 expenses_masked 视图。
+-- 对照组 purchase_order_lines:表级没有 r,13 列各有一条 attacl —— 那才是遮蔽表。
+-- gate.py 的 colgrant 判据先用 cg 这个 CTE 挑出"有列授权、却没有表级授权"的表,
+-- expenses 根本进不了那个集合。所以本刀【不需要】列级 GRANT,也【不需要】
+-- _masked 视图 —— 四刀为这一句的缺席付过账,所以这一句写在这里,两个方向都说。
+-- (AGENTS.md 那条"module.finance.view 蕴含价格可见"也早已把 expenses 点名为
+--  perm2b 从未收权的五张表之一,与这次实测一致。)
+--
+-- ── 八个对象 ────────────────────────────────────────────────────────────────
+--  1 expenses.purchase_order_line_id            新列(可空)+ 外键
+--  2 idx_expenses_po_line                       普通索引(删除守卫按【全状态】查)
+--  3 uq_expenses_live_po_line                   部分唯一索引 = D4 的第二层
+--  4 guard_expense_po_line()                    新触发器函数 = D3 上半的表上一层
+--  5 trg_expenses_po_line_kind                  BEFORE INSERT 触发器
+--  6 record_expense(…, p_purchase_order_line)   先 DROP 旧签名再建(不是重载)
+--  7 guard_po_line_received_floor()             删除守卫多认一种"删不得"
+--  8 列注释 + 约束/索引的说明                    D5 要求写在表上的那段话
+--
+-- 【破窗】本刀不改任何渲染:EQP-1c 才是界面。窗口里生产跑的是旧代码 + 新库,
+-- 而旧代码根本不传 p_purchase_order_line(具名参数、带默认值),所以窗口里
+-- 【没有任何东西是坏的】—— 既有的开支登记逐字照旧。
+--
+-- 应用:./db/apply_migration.sh db/migrations/2026-08-21-eqp1bii-an-equipment-line-is-expensed-once.sql
+
+BEGIN;
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- 1 · 列
+-- ════════════════════════════════════════════════════════════════════════════
+ALTER TABLE public.expenses
+    ADD COLUMN purchase_order_line_id uuid REFERENCES public.purchase_order_lines (id);
+
+COMMENT ON COLUMN public.expenses.purchase_order_line_id IS
+'EQP-1b-ii:这笔支出付的是【哪一条采购单行】—— 具体说,是买下那台机器的那一行。
+
+【它是什么】设备行没有收货,所以它没有别的东西可以封顶"这条行能被计费多少"。
+这一列就是那条边:一条设备行【只报销一次】(uq_expenses_live_po_line 与
+record_expense 里的 PO_LINE_ALREADY_EXPENSED,两层,谓词逐字相同)。
+
+【它不是什么 —— 这一段比上一段重要】它【不是】"一台机器只能有一笔支出"。
+机器的其它成本 —— 运费、关税、安装、第三方调试验收 —— 统统挂在【资产】上,
+经 record_expense 的追加模式(p_asset.asset_id)累进 fixed_asset_cost_entries,
+并且【不带采购单行】(这一列为 NULL)。fixture 77 早就断言了一台机器三笔支出。
+把"一行一次"读成"一台机器一次",会把资本化安装费这条正当的路堵死。
+
+【可空,而且大多数时候就是空的】绝大多数支出根本没有采购单(水电、差旅、
+月度服务费),所以这一列的常态是 NULL,不是例外。
+
+【它管的是【行】,不是【机器】—— 说清楚,免得被读成它没做的保证】
+资产卡是由一笔【新建模式】的 1500 支出生出来的,而那笔支出【不可能带这一列】:
+行上的 asset_id 是外键,资产必须先存在,行才建得出来。所以"同一台机器被建成
+两张资产卡"(连着两次新建模式)这条路,本刀【没有】关掉,也关不掉 ——
+本刀关掉的是"同一条订单行被开两次票"。这两句话不一样,而只有后一句是真的。
+
+【冲销之后这条行重新可计费】判据是 status = ''posted'' 一句。它站得住,是因为
+guard_expense_mutation 只放行 posted→reversed 且同时首挂 reversed_by_expense、
+并拒绝一切 DELETE —— 两列永远同步,所以"已冲销"在这张表上只有一种写法。
+
+【reverse_expense 的镜像单【不得】带这一列 —— 这句是给下一个人的】
+冲销镜像是一张记录凭证,不是第二张账单;它带上这一列就会立刻重新占住那条行,
+而那条行的"重新可计费"是本刀的 F3 明文断言过的行为。今天它不带,是因为
+reverse_expense 的 INSERT 列清单里没有它 —— 但那份清单【也漏着 employee_id】,
+而补齐它已经是一件排着队的事。补那一件的人:employee_id 要补,这一列【不要】。
+fixture 105 的 F3 第三条断言就是钉这一句的。';
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- 2 · 两个索引,各有各的活
+-- ════════════════════════════════════════════════════════════════════════════
+-- 普通索引给【删除守卫】用:它要查这条行上【全部状态】的支出(已冲销的也算,
+-- 因为外键照样指着),而下面那个部分索引只收 posted 的,谓词不蕴含,用不上。
+CREATE INDEX idx_expenses_po_line ON public.expenses (purchase_order_line_id);
+
+-- 硬保证:一条采购单行最多挂一笔【未冲销的】支出。
+-- 【这里不需要 invoice_lines 那个冗余列】那边的部分索引要看的 void 状态住在
+-- invoices 上,而部分索引的 WHERE 引用不了另一张表,所以它被迫加了一列
+-- invoice_voided + 一个传播触发器。这边不用:'reversed' 就写在 expenses 自己
+-- 身上。抄那个形状的【结论】(索引负责正确、函数检查负责可读),不抄它那半
+-- 为跨表付的代价 —— 否则下一个人会连那半一起抄走。
+CREATE UNIQUE INDEX uq_expenses_live_po_line
+    ON public.expenses (purchase_order_line_id)
+    WHERE purchase_order_line_id IS NOT NULL AND status = 'posted';
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- 3 · D3 上半的【表上】一层
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【为什么 D3 上半值得一个触发器,而下半不值得 —— 威胁模型不同,不是懒】
+-- authenticated 对 expenses 持表级 INSERT(relacl 里的 a)且有一条 INSERT 策略,
+-- 所以【直插进得来】。这正是 D4 要一个索引、而不是只靠函数检查的理由。
+-- 同一个理由原样适用于"链接只能落在设备行上":一行伪造的 expenses 就足以
+-- 让材料行被计一次费,而那条行还照旧走着收货计价 —— 两条路,没有对账。
+-- 【下半(资产必须是行上那一台)不同】一行伪造的 expenses 【不足以】
+-- 把钱记到错的机器上:那还需要第二行伪造的 fixed_asset_cost_entries。
+-- 一行就能造成的伤害值一道结构保证;要两行合谋才造成的,记在函数里。
+-- (真要做成结构的,得是一条 DEFERRABLE 的约束触发器 —— 成本明细是在
+--  expenses 那一行【之后】才写的,INSERT 当刻看不见。留给需要它的那一刀。)
+--
+-- 【SECURITY DEFINER 是必须的,不是顺手加的】它要读 purchase_order_lines,
+-- 而那张表的 SELECT 策略要 module.purchasing.view。一个只有财务权限的人
+-- 直插一行时,以调用者身份读那张表会读到【零行】—— 于是这道守卫会把
+-- "你没权限看这条行"报成 PO_LINE_NOT_FOUND,而那是 OPS-14 那条
+-- "行悄悄消失"的病原样重演。属主身份读,判的才是事实。
+-- 触发器函数不进 B2(verify_rebuild 明文排除 RETURNS trigger)。
+CREATE OR REPLACE FUNCTION public.guard_expense_po_line()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+    v_line record;
+BEGIN
+    -- 常态:绝大多数支出没有采购单行。一句就走。
+    IF NEW.purchase_order_line_id IS NULL THEN
+        RETURN NEW;
+    END IF;
+
+    SELECT l.id, l.line_no, l.asset_id INTO v_line
+    FROM purchase_order_lines l
+    WHERE l.id = NEW.purchase_order_line_id;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'PO_LINE_NOT_FOUND|%', NEW.purchase_order_line_id;
+    END IF;
+
+    IF v_line.asset_id IS NULL THEN
+        RAISE EXCEPTION 'PO_LINE_NOT_EQUIPMENT|%', v_line.line_no;
+    END IF;
+
+    RETURN NEW;
+END;
+$function$;
+
+CREATE TRIGGER trg_expenses_po_line_kind
+    BEFORE INSERT ON public.expenses
+    FOR EACH ROW EXECUTE FUNCTION public.guard_expense_po_line();
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- 4 · record_expense —— 先 DROP 旧签名再建新签名(【不是重载】)
+-- ════════════════════════════════════════════════════════════════════════════
+-- preflight_migration.py 认这个形状:同一文件里、在 CREATE 之【前】显式 DROP 过
+-- 的旧签名不可能活下去。打错签名会让整支迁移在单事务里当场中止。
+-- (先例:2026-08-21-eqp1bi 给 apply_prepayment 加 p_expense_id 时同一手法。)
+DROP FUNCTION public.record_expense(date, text, numeric, text, numeric, text, text, uuid, text, text, jsonb, uuid);
+
 CREATE OR REPLACE FUNCTION public.record_expense(p_expense_date date, p_account_code text, p_amount numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_payment_status text DEFAULT 'paid'::text, p_bank_account text DEFAULT NULL::text, p_supplier_id uuid DEFAULT NULL::uuid, p_payee_name text DEFAULT NULL::text, p_notes text DEFAULT NULL::text, p_asset jsonb DEFAULT NULL::jsonb, p_employee_id uuid DEFAULT NULL::uuid, p_purchase_order_line uuid DEFAULT NULL::uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -343,3 +499,66 @@ BEGIN
     );
 END;
 $function$;
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- 5 · 删除守卫多认一种【删不得】
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【为什么这一条必须有】amend_purchase_order 的 remove 支会 DELETE 采购单行,
+-- 而既有的守卫只挡"收过货的行" —— 设备行按设计【永远没有收货】,所以它今天
+-- 一律删得掉。加上外键之后,删一条已经报销过的设备行会撞出一条【裸的 23503】,
+-- 而这个仓库的规矩是屏幕上不出现裸的约束违例。BEFORE DELETE 跑在外键之前,
+-- 所以按名拒绝抢得到那个位置。
+--
+-- 【它连【已冲销的】支出也拦 —— 而这是刻意的,不是漏了过滤】
+-- 外键不认 status:一笔冲销掉的支出照样指着这条行,所以这条行照样删不掉。
+-- 判据要与【结构上真的会发生的事】一致,否则就成了本仓库反复点名的那种病:
+-- 标签承诺的和判据检查的不是同一件事。于是消息把两种情形分开说 ——
+-- "还欠着"与"报销过、已冲销,而那条记录仍然把这行留在单上"。
+-- 想让这条行消失,作废整张单;想改价,改行不删行(UPDATE 支只看数量下限,
+-- 设备行的已收货恒为 0,所以改价一路畅通)。
+CREATE OR REPLACE FUNCTION public.guard_po_line_received_floor()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+    v_received numeric;
+    v_line record;
+    v_exp record;
+BEGIN
+    v_line := CASE TG_OP WHEN 'DELETE' THEN OLD ELSE NEW END;
+
+    SELECT COALESCE(SUM(ib.quantity), 0) INTO v_received
+    FROM inbound_batches ib
+    WHERE ib.purchase_order_line_id = v_line.id AND ib.deleted_at IS NULL;
+
+    IF TG_OP = 'DELETE' THEN
+        -- 收过货的行不能删:那批货真的到了,单据上却没有它的出处
+        IF v_received > 0 THEN
+            RAISE EXCEPTION 'PO_LINE_HAS_RECEIPTS|%|%', OLD.line_no, v_received;
+        END IF;
+        -- EQP-1b-ii:报销过的行也不能删 —— 设备行没有收货,上面那条对它恒为假,
+        -- 于是在本刀之前它一律删得掉。已冲销的照样拦(外键不认 status),
+        -- 所以消息把状态一并说出来,让"为什么还拦着"是可读的。
+        SELECT e.code, e.status INTO v_exp
+        FROM expenses e
+        WHERE e.purchase_order_line_id = OLD.id
+        ORDER BY (e.status = 'posted') DESC, e.created_at
+        LIMIT 1;
+        IF FOUND THEN
+            RAISE EXCEPTION 'PO_LINE_HAS_EXPENSE|%|%|%', OLD.line_no, v_exp.code, v_exp.status;
+        END IF;
+        RETURN OLD;
+    END IF;
+
+    -- 【下限是"已收",不是"零"】把订量砍到已收之下,等于让单据宣称我们订的
+    -- 比实际到的还少 —— 而货已经在院子里了。等于已收是允许的(边界在内)。
+    IF NEW.quantity < v_received THEN
+        RAISE EXCEPTION 'PO_LINE_BELOW_RECEIVED|%|%|%', NEW.line_no, v_received, NEW.quantity;
+    END IF;
+    RETURN NEW;
+END;
+$function$;
+
+COMMIT;

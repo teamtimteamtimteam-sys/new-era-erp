@@ -1770,6 +1770,7 @@ export type Database = {
           notes: string | null
           payee_name: string | null
           payment_status: string
+          purchase_order_line_id: string | null
           reversed_by_expense: string | null
           status: string
           supplier_id: string | null
@@ -1791,6 +1792,7 @@ export type Database = {
           notes?: string | null
           payee_name?: string | null
           payment_status: string
+          purchase_order_line_id?: string | null
           reversed_by_expense?: string | null
           status?: string
           supplier_id?: string | null
@@ -1812,6 +1814,7 @@ export type Database = {
           notes?: string | null
           payee_name?: string | null
           payment_status?: string
+          purchase_order_line_id?: string | null
           reversed_by_expense?: string | null
           status?: string
           supplier_id?: string | null
@@ -1906,6 +1909,34 @@ export type Database = {
             columns: ["journal_entry_id"]
             isOneToOne: false
             referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: false
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["line_id"]
+          },
+          {
+            foreignKeyName: "expenses_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: false
+            referencedRelation: "po_receivable_lines"
+            referencedColumns: ["line_id"]
+          },
+          {
+            foreignKeyName: "expenses_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_lines_masked"
             referencedColumns: ["id"]
           },
           {
@@ -16430,6 +16461,7 @@ export type Database = {
           p_notes?: string
           p_payee_name?: string
           p_payment_status?: string
+          p_purchase_order_line?: string
           p_supplier_id?: string
         }
         Returns: Json
