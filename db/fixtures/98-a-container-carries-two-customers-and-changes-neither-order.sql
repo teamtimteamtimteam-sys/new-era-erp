@@ -28,7 +28,7 @@ BEGIN
     INSERT INTO user_roles (user_id, role_id) VALUES (u, r);
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u), true);
 
-    INSERT INTO materials (code, name, category) VALUES ('FX98-MAT','fixture 98','copper') RETURNING id INTO mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed) VALUES ('FX98-MAT','fixture 98', 'battery_material', true) RETURNING id INTO mat;
     INSERT INTO customers (code, legal_name, country) VALUES ('FX98-CA','fixture 98 customer A','SG') RETURNING id INTO cus_a;
     INSERT INTO customers (code, legal_name, country) VALUES ('FX98-CB','fixture 98 customer B','SG') RETURNING id INTO cus_b;
     INSERT INTO sales_orders (code, customer_id, order_date, currency, fx_rate, status)

@@ -22,8 +22,8 @@ BEGIN
     VALUES ('USD', d, 'tt_buy', 1.24), ('USD', d, 'tt_sell', 1.24);
     INSERT INTO customers (code, legal_name, country)
     VALUES ('FIXT-C8', 'Fixture Customer 8', 'SG') RETURNING id INTO v_cust;
-    INSERT INTO materials (code, name, category)
-    VALUES ('FIXT-M8', 'Fixture Material 8', 'black_mass') RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed)
+    VALUES ('FIXT-M8', 'Fixture Material 8', 'battery_material', true) RETURNING id INTO v_mat;
 
     -- 用例 A 与用例 B 各自一张单据(不共享 —— 共享会让后一条因前一条的累计而被拒,
     -- 那种"通过"与被测规则无关)

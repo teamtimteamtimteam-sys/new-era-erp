@@ -86,14 +86,14 @@ BEGIN
     -- ── 九支的数据,每支一个等待中的条件 ─────────────────────────────────────
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
     VALUES ('ZZFIX30-S', 'fixture 30 supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
-    INSERT INTO materials (code, name, category)
-    VALUES ('ZZFIX30-M', 'fixture 30 material', 'other') RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed)
+    VALUES ('ZZFIX30-M', 'fixture 30 material', 'battery_material', true) RETURNING id INTO v_mat;
     -- 【ASY-P1:awaiting_assay 从"零化验"改成"要求的金属没验齐"】
     -- 那一支现在只在【物料声明了化验要求】时才可能亮。所以给它一个【专用】物料:
     -- v_mat 上不声明任何要求 —— 否则 IB / IB3 / IB4 那几个批次会一起点亮这一支,
     -- 而本 fixture 的契约是"每支恰好一件"。
-    INSERT INTO materials (code, name, category)
-    VALUES ('ZZFIX30-M-ASY', 'fixture 30 material (assay required)', 'other')
+    INSERT INTO materials (code, name, kind_code, may_be_processed)
+    VALUES ('ZZFIX30-M-ASY', 'fixture 30 material (assay required)', 'battery_material', true)
     RETURNING id INTO v_mat_asy;
     INSERT INTO material_required_metals (material_id, metal) VALUES (v_mat_asy, 'cu');
 
@@ -226,7 +226,7 @@ BEGIN
     VALUES ('ni', 18000, CURRENT_DATE - 15, 'broker_quote') RETURNING id INTO v_mp;
 
     -- 【未履约订单】一张 confirmed 的单 —— 答应了,一件没发。
-    INSERT INTO materials (code, name, category) VALUES ('FIXT-M30WO','f30 wo material','black_mass')
+    INSERT INTO materials (code, name, kind_code, may_be_processed) VALUES ('FIXT-M30WO','f30 wo material', 'battery_material', true)
         RETURNING id INTO v_mat2;
     INSERT INTO customers (code, legal_name, country)
     VALUES ('FIXT-C30WO', 'fixture 30 order customer', 'SG') RETURNING id INTO v_cust2;
@@ -269,7 +269,7 @@ BEGIN
     -- 就是这一点的断言。
 
     -- 工单:一张逾期的(放行 + 排产日在昨天),一张差异超阈的
-    INSERT INTO materials (code, name, category) VALUES ('FIXT-M30WO2','f30 wo raw','black_mass')
+    INSERT INTO materials (code, name, kind_code, may_be_processed) VALUES ('FIXT-M30WO2','f30 wo raw', 'battery_material', true)
         RETURNING id INTO v_mat2;
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_all), true);

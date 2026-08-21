@@ -45,7 +45,7 @@ BEGIN
     -- ── C. 端到端(被拒的那一半):SG 今天的化验必须不是"未来" ─────────────
     INSERT INTO suppliers (code, legal_name, country, counterparty_type) VALUES ('FIXT-S15', 'Fixture Supplier 15', 'SG', 'goods_supplier')
         RETURNING id INTO v_sup;
-    INSERT INTO materials (code, name, category) VALUES ('FIXT-M15', 'Fixture Material 15', 'black_mass')
+    INSERT INTO materials (code, name, kind_code, may_be_processed) VALUES ('FIXT-M15', 'Fixture Material 15', 'battery_material', true)
         RETURNING id INTO v_mat;
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
     VALUES ('FIXT-B15', v_mat, v_sup, 100, 100, 'kg', v_sg_today) RETURNING id INTO v_batch;

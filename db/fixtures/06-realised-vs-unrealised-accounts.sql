@@ -24,8 +24,8 @@ BEGIN
 
     INSERT INTO customers (code, legal_name, country)
     VALUES ('FIXT-C6', 'Fixture Customer 6', 'SG') RETURNING id INTO v_cust;
-    INSERT INTO materials (code, name, category)
-    VALUES ('FIXT-M6', 'Fixture Material 6', 'black_mass') RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed)
+    VALUES ('FIXT-M6', 'Fixture Material 6', 'battery_material', true) RETURNING id INTO v_mat;
     INSERT INTO output_batches (material_id, code, quantity, remaining_qty, unit,
                                 output_date, state, customer_id)
     VALUES (v_mat, 'FIXT-B6', 100, 100, 'kg', d, '库存中', v_cust) RETURNING id INTO v_batch;

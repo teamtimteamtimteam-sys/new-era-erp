@@ -7,16 +7,17 @@ import { createClient } from '@/lib/supabase/server'
 import { parseMaterialListParams, applyMaterialFilters } from '../materialQuery'
 
 // 导出列。顺序即 CSV 列顺序,与下方表头一一对应。
-// category / chemistry / unit 导出【规范存储值】(而非翻译标签)—— 稳定、机器可读,
+// kind_code / chemistry / unit 导出【规范存储值】(而非翻译标签)—— 稳定、机器可读,
 // 与 suppliers 导出 status 规范值一致。
 const EXPORT_COLUMNS =
-    'code, name, category, chemistry, unit, spec, status, notes, created_at'
+    'code, name, kind_code, may_be_processed, chemistry, unit, spec, status, notes, created_at'
 
 // CSV 表头:用稳定、机器可读的英文。
 const CSV_HEADERS = [
     'Code',
     'Name',
-    'Category',
+    'Kind',
+    'May Be Processed',
     'Chemistry',
     'Unit',
     'Spec',
@@ -72,7 +73,8 @@ export async function GET(request: NextRequest) {
             [
                 csvCell(r.code),
                 csvCell(r.name),
-                csvCell(r.category),
+                csvCell(r.kind_code),
+                csvCell(r.may_be_processed === null ? '' : String(r.may_be_processed)),
                 csvCell(r.chemistry),
                 csvCell(r.unit),
                 csvCell(r.spec),
@@ -83,7 +85,7 @@ export async function GET(request: NextRequest) {
         )
     }
 
-    // CRLF 行尾 + UTF-8 BOM:让 Excel 正确按行分割并识别中文(name / category 等可能是中文)。
+    // CRLF 行尾 + UTF-8 BOM:让 Excel 正确按行分割并识别中文(name 等可能是中文)。
     const csv = '\uFEFF' + lines.join('\r\n') + '\r\n'
 
     return new Response(csv, {

@@ -4,8 +4,8 @@
 // 快照页,不做日期筛选(既定约定)。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { getTranslations } from '@/lib/i18n/server'
-import { CATEGORY_OPTIONS, UNIT_OPTIONS, labelKeyForValue } from '@/app/materials/options'
+import { getTranslations, getLocale } from '@/lib/i18n/server'
+import { UNIT_OPTIONS, labelKeyForValue } from '@/app/materials/options'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
 import { latestPriceByMetal, marketValuePerKg } from '@/lib/valuation'
 import { maskedRows } from '@/lib/maskedRows'
@@ -16,7 +16,8 @@ import { MOD } from '@/lib/modules'
 import { getBaseCurrency } from '@/lib/currency'
 import Subnav from './Subnav'
 
-type MaterialEmbed = { name: string; category: string } | null
+// PROC-1:种类从 material_kinds 嵌进来,不再是物料上的一列自由文本
+type MaterialEmbed = { name: string; material_kinds: { name_en: string; name_zh: string } | null } | null
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type InboundStockRow = {
@@ -38,7 +39,7 @@ type OutputStockRow = {
 type InventoryRow = {
     material_id: string
     name: string | null
-    category: string | null
+    kindLabel: string | null
     unit: string
     inboundStock: number
     outputStock: number
@@ -59,6 +60,7 @@ export default async function InventoryPage() {
 
     const supabase = await createClient()
     const t = await getTranslations()
+    const locale = await getLocale()
     // CCY-1:估值合计条的三个标签(原料库存价值/成品成本价值/成品市价价值)【不带币种】,
     // 而下面表格的列头带 —— 合计条自己把币种写出来,不去借一个没说过话的抬头。
     const baseCurrency = await getBaseCurrency()
@@ -68,12 +70,12 @@ export default async function InventoryPage() {
     const [inboundRes, outputRes, runsRes, legsRes, metalsRes, settingsRes, pricesRes, unpricedRes] = await Promise.all([
         supabase
             .from('inbound_batches_masked')
-            .select('material_id, remaining_qty, unit, unit_price, materials ( name, category )')
+            .select('material_id, remaining_qty, unit, unit_price, materials ( name, material_kinds ( name_en, name_zh ) )')
             .is('deleted_at', null)
             .gt('remaining_qty', 0),
         supabase
             .from('output_batches')
-            .select('id, material_id, remaining_qty, unit, materials ( name, category )')
+            .select('id, material_id, remaining_qty, unit, materials ( name, material_kinds ( name_en, name_zh ) )')
             .is('deleted_at', null)
             .gt('remaining_qty', 0),
         supabase
@@ -158,7 +160,9 @@ export default async function InventoryPage() {
         const fresh: InventoryRow = {
             material_id: materialId,
             name: embed?.name ?? null,
-            category: embed?.category ?? null,
+            kindLabel: embed?.material_kinds
+                ? (locale === 'zh' ? embed.material_kinds.name_zh : embed.material_kinds.name_en)
+                : null,
             unit,
             inboundStock: 0,
             outputStock: 0,
@@ -207,12 +211,9 @@ export default async function InventoryPage() {
     const balLoss = runs.reduce((s, r) => s + (r.loss_qty ?? 0), 0)
     const lossRate = balInput > 0 ? ((balLoss / balInput) * 100).toFixed(1) : null
 
-    // 类别存储值反查成本地化文案;自定义/未知值原样显示
-    const categoryLabel = (value: string | null) => {
-        if (!value) return '—'
-        const key = labelKeyForValue(CATEGORY_OPTIONS, value)
-        return key ? t(key) : value
-    }
+    // PROC-1:种类的标签由 material_kinds 直接给出(字典,不是自由文本反查)。
+    // 【没有种类】按名印出来,不印一根横杠 —— "没人决定过"与"没有种类"是两回事。
+    const categoryLabel = (value: string | null) => value ?? t('materials.kindUndecided')
 
     // 单位:混合 sentinel → i18n;真实单位 → units.* 反查;未知值原样
     const unitLabel = (value: string) => {
@@ -311,7 +312,7 @@ export default async function InventoryPage() {
                         {rows.map((r) => (
                             <tr key={r.material_id}>
                                 <td className="border border-gray-300 px-4 py-2">{r.name ?? '—'}</td>
-                                <td className="border border-gray-300 px-4 py-2">{categoryLabel(r.category)}</td>
+                                <td className="border border-gray-300 px-4 py-2">{categoryLabel(r.kindLabel)}</td>
                                 <td className="border border-gray-300 px-4 py-2">
                                     {r.inboundStock > 0 ? (
                                         <Link

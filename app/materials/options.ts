@@ -4,15 +4,14 @@
 
 export type MaterialSelectOption = { value: string; labelKey: string }
 
-export const CATEGORY_OPTIONS: MaterialSelectOption[] = [
-    { value: '进料-电池', labelKey: 'materials.category.inboundBattery' },
-    { value: '进料-黑粉', labelKey: 'materials.category.inboundBlackMass' },
-    { value: '产出-黑粉', labelKey: 'materials.category.outputBlackMass' },
-    { value: '产出-金属', labelKey: 'materials.category.outputMetal' },
-    { value: '产出-其他', labelKey: 'materials.category.outputOther' },
-    { value: '耗材辅料', labelKey: 'materials.category.consumable' },
-    { value: '其他', labelKey: 'materials.category.other' },
-]
+// 【PROC-1:CATEGORY_OPTIONS 已移除 —— 它是这套系统的【第三份命名权威】】
+// 它按【方向】切在最前面(进料- / 产出-),而方向不是物料的属性:
+// MAT-2026-0001 标着「进料-电池」却有 10 个产出批。
+// 它还把黑粉切成两个值(进料-黑粉 / 产出-黑粉)—— 那会给同一种东西两个
+// material_id,库存合计与批次血缘就地裂开。而它自带一个「其他」逃生门。
+// 取而代之的是 material_kinds 那张【带外键的字典】(见 materialKindQuery.ts)。
+// 【本文件其余部分留着】CHEMISTRY_OPTIONS 是 G18 的地盘,UNIT_OPTIONS 无关 ——
+// brief 说"移除 options.ts",而那会顺手杀掉两件本刀不管的东西。
 
 export const CHEMISTRY_OPTIONS: MaterialSelectOption[] = [
     { value: 'NMC', labelKey: 'materials.chemistry.nmc' },

@@ -4750,6 +4750,36 @@ export type Database = {
           },
         ]
       }
+      material_kinds: {
+        Row: {
+          code: string
+          is_active: boolean
+          may_ever_be_processed: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          is_active?: boolean
+          may_ever_be_processed: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          is_active?: boolean
+          may_ever_be_processed?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Relationships: []
+      }
       material_required_metals: {
         Row: {
           created_at: string
@@ -4795,13 +4825,14 @@ export type Database = {
       }
       materials: {
         Row: {
-          category: string
           chemistry: string | null
           code: string
           created_at: string
           created_by: string | null
           deleted_at: string | null
           id: string
+          kind_code: string | null
+          may_be_processed: boolean | null
           name: string
           notes: string | null
           safety_stock_qty: number | null
@@ -4813,13 +4844,14 @@ export type Database = {
           waste_classification_code: string | null
         }
         Insert: {
-          category: string
           chemistry?: string | null
           code: string
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
           id?: string
+          kind_code?: string | null
+          may_be_processed?: boolean | null
           name: string
           notes?: string | null
           safety_stock_qty?: number | null
@@ -4831,13 +4863,14 @@ export type Database = {
           waste_classification_code?: string | null
         }
         Update: {
-          category?: string
           chemistry?: string | null
           code?: string
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
           id?: string
+          kind_code?: string | null
+          may_be_processed?: boolean | null
           name?: string
           notes?: string | null
           safety_stock_qty?: number | null
@@ -4849,6 +4882,13 @@ export type Database = {
           waste_classification_code?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "materials_kind_code_fkey"
+            columns: ["kind_code"]
+            isOneToOne: false
+            referencedRelation: "material_kinds"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "materials_waste_classification_code_fkey"
             columns: ["waste_classification_code"]

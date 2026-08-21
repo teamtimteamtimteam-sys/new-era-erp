@@ -1,6 +1,6 @@
 // app/materials/page.tsx
 // 物料字典列表页:URL 驱动的搜索 / 分类筛选 / 排序 / 分页(全部在服务端完成)。
-// 端口自 suppliers 列表,字段适配 materials(分类筛选用 category)。
+// 端口自 suppliers 列表,字段适配 materials(种类筛选用 kind_code — PROC-1)。
 import { Suspense } from 'react'
 import { formatTimestamp } from '@/lib/format'
 import { createClient } from '@/lib/supabase/server'
@@ -8,8 +8,8 @@ import { mustRows } from '@/lib/db-helpers'
 import Link from 'next/link'
 import DeleteButton from './DeleteButton'
 import MaterialToolbar from './MaterialToolbar'
+import { getMaterialKinds } from './materialKindQuery'
 import {
-    CATEGORY_OPTIONS,
     CHEMISTRY_OPTIONS,
     UNIT_OPTIONS,
     labelKeyForValue,
@@ -32,7 +32,7 @@ export default async function MaterialsPage({
     // 本版本 Next 里 searchParams 是 Promise,需要 await
     searchParams: Promise<{
         q?: string
-        category?: string
+        kind?: string
         sort?: string
         dir?: string
         page?: string
@@ -56,9 +56,10 @@ export default async function MaterialsPage({
     }
 
     // 解析并校验 URL 参数(都给安全默认值)—— 与导出路由共用同一份逻辑
-    const { q, category, sort, dir } = parseMaterialListParams(sp)
+    const kinds = await getMaterialKinds()
+    const { q, kind, sort, dir } = parseMaterialListParams(sp)
     const requestedPage = parseMaterialPage(sp.page)
-    const filterParams = { q, category, sort, dir }
+    const filterParams = { q, kind, sort, dir }
 
     // 1) 先取匹配总数(同样套用过滤,所以总页数对当前筛选是准确的)。head:true 只要 count 不要行。
     const { count } = await applyMaterialFilters(
@@ -75,7 +76,7 @@ export default async function MaterialsPage({
     // 2) 取当前页的行:过滤 + 排序后再 .range(from, to)
     const baseQuery = supabase
         .from('materials')
-        .select('id, code, name, category, chemistry, unit, status, created_at, safety_stock_qty, waste_classification_code, waste_classifications ( name_en, name_zh, is_controlled )')
+        .select('id, code, name, kind_code, may_be_processed, chemistry, unit, status, created_at, safety_stock_qty, waste_classification_code, material_kinds ( name_en, name_zh ), waste_classifications ( name_en, name_zh, is_controlled )')
 
     const { data: materials, error } = await applyMaterialFilters(
         baseQuery,
@@ -107,12 +108,12 @@ export default async function MaterialsPage({
         ])
     }
 
-    // 表头排序链接:点当前列翻转方向,点其它列默认升序;保留 q / category。不带 page —— 改排序回到第 1 页。
+    // 表头排序链接:点当前列翻转方向,点其它列默认升序;保留 q / kind。不带 page —— 改排序回到第 1 页。
     function sortHref(col: MaterialSortCol) {
         const nextDir = sort === col && dir === 'asc' ? 'desc' : 'asc'
         const params = new URLSearchParams()
         if (q) params.set('q', q)
-        if (category) params.set('category', category)
+        if (kind) params.set('kind', kind)
         params.set('sort', col)
         params.set('dir', nextDir)
         return `/materials?${params.toString()}`
@@ -130,11 +131,11 @@ export default async function MaterialsPage({
         )
     }
 
-    // 分页链接:保留当前的 q / category / sort / dir,只改 page
+    // 分页链接:保留当前的 q / kind / sort / dir,只改 page
     function pageHref(targetPage: number) {
         const params = new URLSearchParams()
         if (q) params.set('q', q)
-        if (category) params.set('category', category)
+        if (kind) params.set('kind', kind)
         params.set('sort', sort)
         params.set('dir', dir)
         params.set('page', String(targetPage))
@@ -167,7 +168,7 @@ export default async function MaterialsPage({
 
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
-                <MaterialToolbar />
+                <MaterialToolbar kinds={kinds} locale={locale} />
             </Suspense>
 
             <p className="text-sm text-gray-600 mb-4">
@@ -218,7 +219,14 @@ export default async function MaterialsPage({
                                 </Link>
                             </td>
                             <td className="border border-gray-300 px-4 py-2">{m.name}</td>
-                            <td className="border border-gray-300 px-4 py-2">{display(CATEGORY_OPTIONS, m.category)}</td>
+                            {/* PROC-1:种类从字典读标签;【没人决定过】按名印出来,不留空 —— 空白会被读成"没有种类" */}
+                            <td className="border border-gray-300 px-4 py-2">
+                                {(m.material_kinds as { name_en: string; name_zh: string } | null)
+                                    ? (locale === 'zh'
+                                        ? (m.material_kinds as { name_zh: string }).name_zh
+                                        : (m.material_kinds as { name_en: string }).name_en)
+                                    : <span className="text-amber-700">{t('materials.kindUndecided')}</span>}
+                            </td>
                             <td className="border border-gray-300 px-4 py-2">
                                 {m.chemistry ? display(CHEMISTRY_OPTIONS, m.chemistry) : '—'}
                             </td>

@@ -35,7 +35,7 @@ BEGIN
 
     INSERT INTO customers (code, legal_name, country) VALUES ('FIXT-C14', 'Fixture Customer 14', 'SG')
         RETURNING id INTO v_cust;
-    INSERT INTO materials (code, name, category) VALUES ('FIXT-M14', 'Fixture Material 14', 'black_mass')
+    INSERT INTO materials (code, name, kind_code, may_be_processed) VALUES ('FIXT-M14', 'Fixture Material 14', 'battery_material', true)
         RETURNING id INTO v_mat;
 
     -- ════════════════════════════════════════════════════════════════════════

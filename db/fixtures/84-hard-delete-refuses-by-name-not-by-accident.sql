@@ -45,8 +45,8 @@ BEGIN
 
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
     VALUES ('FX84-SUP', 'fixture 84 supplier', 'SG', 'goods_supplier') RETURNING id INTO sup;
-    INSERT INTO materials (code, name, category)
-    VALUES ('FX84-M', 'fixture 84 material', 'other') RETURNING id INTO mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed)
+    VALUES ('FX84-M', 'fixture 84 material', 'battery_material', true) RETURNING id INTO mat;
 
     -- ── 全部【没有子行】:外键在这里不会拦,拒绝只可能来自守卫 ────────────────
     -- 批次:remaining_qty = 0 且【零条台账行】—— 恒等式成立(0 = Σ∅),

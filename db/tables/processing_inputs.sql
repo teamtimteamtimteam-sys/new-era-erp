@@ -31,6 +31,10 @@ COMMENT ON COLUMN public.processing_inputs.output_batch_id IS
 -- 【别因为"只有再加工用它"而删】:它守的是两侧。
 CREATE OR REPLACE FUNCTION public.guard_processing_input()
 RETURNS trigger LANGUAGE plpgsql AS $fn$
+DECLARE
+    v_material_id uuid;
+    v_may  boolean;
+    v_code text;
 BEGIN
     IF current_setting('evoltrya.movement_ctx', true) NOT LIKE 'processing:%'
        AND current_setting('evoltrya.movement_ctx', true) NOT LIKE 'reversal:%' THEN
@@ -42,10 +46,29 @@ BEGIN
     ) THEN
         RAISE EXCEPTION 'PROCESSING_INPUT_SELF_CONSUME|%', NEW.run_id;
     END IF;
+    -- ── PROC-1:只有【说了可以投料】的物料进得来 ────────────────────────────
+    -- 【NULL 不放行】八行历史物料的 may_be_processed 是空的,而空的意思是
+    -- "没有人决定过" —— 把它读成"可以"正是本仓库反复付账的那一个错
+    -- (METAL-1 的 no_reference、SS-1 的阈值为 NULL)。所以判据写成
+    -- `IS NOT TRUE`:空与 false 一样被拦,而拒绝的话说得出是哪一种。
+    SELECT COALESCE(ib.material_id, ob.material_id) INTO v_material_id
+      FROM (SELECT 1) x
+      LEFT JOIN inbound_batches ib ON ib.id = NEW.inbound_batch_id
+      LEFT JOIN output_batches  ob ON ob.id = NEW.output_batch_id;
+    IF v_material_id IS NOT NULL THEN
+        SELECT m.may_be_processed, m.code INTO v_may, v_code
+          FROM materials m WHERE m.id = v_material_id;
+        IF v_may IS NOT TRUE THEN
+            RAISE EXCEPTION 'MATERIAL_NOT_PROCESSABLE|%|%', v_code,
+                CASE WHEN v_may IS NULL THEN 'undecided' ELSE 'false' END
+              USING HINT = '这一种物料没有被声明为可投料;第二个参数说的是【没人决定过】还是【决定了不投】。';
+        END IF;
+    END IF;
     RETURN NEW;
 END;
 $fn$;
 REVOKE EXECUTE ON FUNCTION public.guard_processing_input() FROM PUBLIC, anon;
+
 CREATE TRIGGER trg_processing_inputs_guard
     BEFORE INSERT ON public.processing_inputs
     FOR EACH ROW EXECUTE FUNCTION public.guard_processing_input();

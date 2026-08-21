@@ -47,9 +47,9 @@ BEGIN
         RETURNING id INTO v_sup;
     INSERT INTO customers (code, legal_name, country) VALUES ('FIXT-C18', 'Fixture Customer 18', 'SG')
         RETURNING id INTO v_cust;
-    INSERT INTO materials (code, name, category) VALUES ('FIXT-M18', 'Fixture Material 18', 'black_mass')
+    INSERT INTO materials (code, name, kind_code, may_be_processed) VALUES ('FIXT-M18', 'Fixture Material 18', 'battery_material', true)
         RETURNING id INTO v_mat;
-    INSERT INTO materials (code, name, category) VALUES ('FIXT-M18B', 'Fixture Product 18', 'black_mass')
+    INSERT INTO materials (code, name, kind_code, may_be_processed) VALUES ('FIXT-M18B', 'Fixture Product 18', 'battery_material', true)
         RETURNING id INTO v_matB;
 
     -- ════════════════ B(先跑 —— 本切的全部理由)═══════════════════════════

@@ -38,9 +38,9 @@ BEGIN
         RETURNING id INTO v_sup;
     INSERT INTO customers (code, legal_name, country) VALUES ('FIXT-C25','Fixture Customer 25','SG')
         RETURNING id INTO v_cust;
-    INSERT INTO materials (code, name, category) VALUES ('FIXT-M25','Fixture Raw 25','black_mass')
+    INSERT INTO materials (code, name, kind_code, may_be_processed) VALUES ('FIXT-M25','Fixture Raw 25', 'battery_material', true)
         RETURNING id INTO v_mat;
-    INSERT INTO materials (code, name, category) VALUES ('FIXT-M25B','Fixture Fine 25','black_mass')
+    INSERT INTO materials (code, name, kind_code, may_be_processed) VALUES ('FIXT-M25B','Fixture Fine 25', 'battery_material', true)
         RETURNING id INTO v_matB;
 
     -- ════════ A. receipt:抄批次自己的到货日,不是今天 ═══════════════════════

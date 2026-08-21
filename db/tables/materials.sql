@@ -1,5 +1,15 @@
 -- db/tables/materials.sql
--- 物料主档。code 'MAT-YYYY-NNNN' 由 BEFORE INSERT 触发器从序列取号(非无缝,
+-- 物料主档。
+--
+-- 【PROC-1(2026-08-21):category 已退役,换成 material_kinds 这张字典。】
+-- 退役的依据是量出来的(docs/proc-reality.md N10/F1/F3):视图 0 处、函数 0 处、
+-- fixture 只有一处读它(53 的 A 臂,已改读 kind_code 且因此更强),
+-- 唯一的读者是物料列表的筛选下拉,而它的合法取值住在【第三个地方】
+-- (app/materials/options.ts,已随本刀移除 CATEGORY_OPTIONS)。
+-- 也就是说【没有任何一处拿它做决定】,而它的取值已经与数据矛盾:
+-- MAT-2026-0001 标着「进料-电池」却有 10 个产出批 —— 方向不是物料的属性。
+--
+-- code 'MAT-YYYY-NNNN' 由 BEFORE INSERT 触发器从序列取号(非无缝,
 -- 主档无审计连号要求)。软删除 deleted_at;status 自由文本。
 -- 注意线上【没有】updated_at 触发器(建表早期漏挂,updated_at 靠应用层写)——
 -- 镜像忠实于线上;要补触发器请走迁移,别只改这里。
@@ -14,7 +24,6 @@ CREATE TABLE public.materials (
     id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     code       text NOT NULL UNIQUE,  -- 'MAT-YYYY-NNNN',触发器取号
     name       text NOT NULL,
-    category   text NOT NULL,
     chemistry  text,
     unit       text NOT NULL DEFAULT 'kg',
     spec       text,
@@ -39,8 +48,27 @@ CREATE TABLE public.materials (
     -- 而"不监控"的唯一写法是留空。
     safety_stock_qty numeric,
     CONSTRAINT materials_safety_stock_qty_positive
-        CHECK (safety_stock_qty IS NULL OR safety_stock_qty > 0)
+        CHECK (safety_stock_qty IS NULL OR safety_stock_qty > 0),
+    -- ── PROC-1 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
+    -- 【为什么不是 NOT NULL】D2 要 NOT NULL,而"不许为满足约束编造值"同时成立;
+    -- 八行既有物料【每一行都被批次引用着】,删不掉(删物料要一路串进总账)。
+    -- 于是用 materials_kind_stated 那条 NOT VALID 的 CHECK:新行必拦,旧行留空。
+    -- 本表自己的先例:waste_classification_code(MAT-1,既有行全 NULL 不回填)。
+    kind_code        text REFERENCES public.material_kinds (code),
+    may_be_processed boolean
 );
+
+-- 【NOT VALID 必须【单独一条 ALTER】,不能写进 CREATE TABLE 里】
+-- 实测:写在 CREATE TABLE 的列约束里,PostgreSQL 收下它但把约束标成 valid ——
+-- 于是线上 convalidated = false、重建 = true,两边的 pg_get_constraintdef 一个带
+-- 「NOT VALID」一个不带,check_mirrors 当场红。
+-- 【而且这不是为了绕过检查】重建库里【也必须】是 NOT VALID:生产就是一次重建,
+-- 而这条约束的语义就是"对新行强制、不回头校验" —— 那个语义要跟着重建走。
+-- 先例三处:containers_code_format / inventory_movements_business_date_required /
+-- inbound_batch_metals_content_source_required,全部是这个写法。
+ALTER TABLE public.materials
+    ADD CONSTRAINT materials_kind_stated
+    CHECK (kind_code IS NOT NULL AND may_be_processed IS NOT NULL) NOT VALID;
 
 CREATE OR REPLACE FUNCTION public.generate_material_code()
 RETURNS trigger LANGUAGE plpgsql AS $function$
@@ -102,3 +130,98 @@ CREATE TRIGGER trg_materials_notify_reclassified
     FOR EACH ROW
     WHEN (OLD.waste_classification_code IS DISTINCT FROM NEW.waste_classification_code)
     EXECUTE FUNCTION public.trg_notify_material_reclassified();
+
+COMMENT ON COLUMN public.material_kinds.may_ever_be_processed IS
+'PROC-1:这一类东西【有没有可能】被一炉加工吃掉。
+
+【它与 materials.may_be_processed 是两个问题,不是一个】
+本列说的是【这一类】(耗材永远不可能是投料);那一列说的是【这一件】
+(某一种电池料,我们决定不投它)。前者是一条规则,后者是一次判断。
+两者的关系由 guard_material_kind_processable 执行:
+**这一列为 false 时,那一列不许为 true。反之【不】强制** ——
+一件可以被投料的东西,我们完全可能决定不投它。';
+
+COMMENT ON COLUMN public.materials.kind_code IS
+'PROC-1:这一种物料【是什么】—— 指向 material_kinds。
+
+【为什么不是 NOT NULL,而这【不是】一次退让】D2 要的是 NOT NULL,而 D7 同时
+禁止"为了满足约束而编造值"。两者在今天【互相矛盾】,因为 materials 的八行
+(四在册 + 四软删)**每一行都被批次引用着**,删不掉:MAT-2026-0001 有 9 进
+10 出,连 ZZ-SMOKE-PROBE 上都挂着一张在册的 IN-2026-0180(100,000 kg,
+AGENTS.md 点名"不要删")。真正的 NOT NULL 必须为这八行编造八个值。
+**处置:materials_kind_stated 那条 CHECK ... NOT VALID** —— 新行必须说出来,
+旧行留空不动,而【留空的意思就是"没有人决定过"，那是真话】。
+本表自己的先例:MAT-1 的 waste_classification_code(既有物料全部 NULL,不回填);
+同族先例:FIN-32 的 business_date。**清库发生在切换那一天,不是本刀。**
+
+【NOT VALID 在 UPDATE 上也拦,而那是【想要的】】改一行既有物料时,
+它会要求你顺手把种类说出来 —— 也就是说这八行【在有人决定它们是什么之前改不动】。
+屏幕上必须把这句话说成人话(物料表单已接),而不是漏一条裸约束名出去。';
+
+COMMENT ON COLUMN public.materials.may_be_processed IS
+'PROC-1:这一种物料【可不可以被一炉加工吃掉】—— 加工那道闸唯一读的就是这一列。
+
+【它与 material_kinds.may_ever_be_processed 是两个问题】那一列说【这一类】
+有没有可能(耗材永远不可能);本列说【这一件】要不要。前者是规则,后者是判断。
+
+【为什么"这里产的"不是一列】黑粉既买进来也自己产 —— 而"它是不是这里产的"
+的答案是"它有没有产出批",不是它身上的一个布尔。线上两个真实物料【都】同时
+有进料批与产出批,所以任何按功能切一刀的单值分区今天就不成立。';
+
+COMMENT ON CONSTRAINT materials_kind_stated ON public.materials IS
+'PROC-1:一行物料必须【同时】说出它是什么、以及能不能投料。
+NOT VALID:对 INSERT 与 UPDATE 生效,而八行历史留空不动 ——
+它们【本来就是"没有人决定过"】,回填等于发明一个没人记录过的事实
+(MAT-1 在本表上做过同样的决定,FIN-32 在 business_date 上做过同样的决定)。';
+
+-- ── PROC-1:两列不许互相矛盾(跨表规矩 → 触发器,CHECK 看不见另一张表)──
+CREATE OR REPLACE FUNCTION public.guard_material_kind_processable()
+RETURNS trigger LANGUAGE plpgsql AS $fn$
+DECLARE
+    v_allowed boolean;
+    v_zh      text;
+BEGIN
+    -- 种类还没说 → 不是本守卫的事,交给 materials_kind_stated 那条 CHECK。
+    -- 【八行历史行正落在这里】它们 kind_code 为空,本守卫对它们一言不发。
+    IF NEW.kind_code IS NULL OR NEW.may_be_processed IS NULL THEN
+        RETURN NEW;
+    END IF;
+    SELECT mk.may_ever_be_processed, mk.name_zh INTO v_allowed, v_zh
+      FROM material_kinds mk WHERE mk.code = NEW.kind_code;
+    -- 外键保证查得到;查不到只可能是外键被绕过,那要响,不要静默放行。
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'MATERIAL_KIND_NOT_FOUND|%', NEW.kind_code;
+    END IF;
+    IF NEW.may_be_processed AND NOT v_allowed THEN
+        RAISE EXCEPTION 'MATERIAL_KIND_NOT_PROCESSABLE|%|%', NEW.kind_code, v_zh
+          USING HINT = '这一类东西不可能被投料;要改的是它的种类,或者那一类的规则。';
+    END IF;
+    RETURN NEW;
+END;
+$fn$;
+REVOKE EXECUTE ON FUNCTION public.guard_material_kind_processable() FROM PUBLIC, anon;
+
+COMMENT ON FUNCTION public.guard_material_kind_processable() IS
+'PROC-1:materials.may_be_processed 不许越过它那一类的 may_ever_be_processed。
+
+════════════════════════════════════════════════════════════════════════════
+【它【挡不住】什么 —— 写在这里,因为本仓库最常犯的缺陷是守卫的名字比它的射程宽】
+
+它挡住的是【不可能】:一个 consumable / packaging / spare_part 被标成可投料。
+**它挡不住【一个本该可投料的 battery_material 被建成 may_be_processed = false】**
+—— 那是一个业务判断,schema 看不见,而且它的症状是【沉默】:
+有人想投料,发现投不了,而那一刻离建卡那一刻可能隔着几个月。
+
+**那一半由两处负责,都不是这个守卫:**
+  1. **物料表单把这个选择【明说出来】**(PROC-1 同刀),不给默认值 ——
+     一个预设某一侧的勾选框就是一个没人做过的决定,从表单进来而不是从 NULL 进来;
+  2. **物料列表上一个筛选**:kind_code = ''battery_material'' 且
+     may_be_processed = false 的行。**它【不该】做成看板的一支臂** ——
+     那不是"等着人处理的事",它可能完全正确(确实有不该被加工的电池料)。
+     与 EQP-2d 记下的「哪些机器没人在盯」同一个形状、同一条判据。
+════════════════════════════════════════════════════════════════════════════';
+
+CREATE TRIGGER trg_materials_kind_processable
+    BEFORE INSERT OR UPDATE ON public.materials
+    FOR EACH ROW EXECUTE FUNCTION public.guard_material_kind_processable();
+

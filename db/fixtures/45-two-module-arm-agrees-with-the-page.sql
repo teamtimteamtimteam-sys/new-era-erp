@@ -42,7 +42,7 @@ BEGIN
     INSERT INTO user_roles (user_id, role_id) VALUES (u_price, r_price);
 
     -- 一批:有加工单、成本【未分摊】、且已售出 → margin_status = no_unit_cost
-    INSERT INTO materials (code, name, category) VALUES ('ZZFIX45-M','f','other') RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed) VALUES ('ZZFIX45-M','f', 'battery_material', true) RETURNING id INTO v_mat;
     INSERT INTO suppliers (code, legal_name, country, status, counterparty_type) VALUES ('ZZFIX45-S','f','SG','active', 'goods_supplier') RETURNING id INTO v_sup;
     INSERT INTO customers (code, legal_name, country) VALUES ('ZZFIX45-C','f','SG') RETURNING id INTO v_cust;
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date, unit_price)

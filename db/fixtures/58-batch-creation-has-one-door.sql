@@ -37,8 +37,8 @@ BEGIN
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_user), true);
 
-    INSERT INTO materials (code, name, category, unit)
-    VALUES ('ZZFIX58-M', 'fixture 58 material', '进料-电池', 'kg') RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, unit)
+    VALUES ('ZZFIX58-M', 'fixture 58 material', 'battery_material', true, 'kg') RETURNING id INTO v_mat;
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
     VALUES ('FIXT-S58', 'Fixture Supplier 58', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
     INSERT INTO storage_locations (code, name) VALUES ('ZZ58-A', 'rack A') RETURNING id INTO v_loc;

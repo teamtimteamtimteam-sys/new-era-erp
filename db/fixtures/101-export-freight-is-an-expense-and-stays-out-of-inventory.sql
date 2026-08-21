@@ -65,8 +65,8 @@ BEGIN
     INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)
     VALUES ('ZZFIX101-FWD', 'fixture 101 forwarder', 'SG', 'active', 'forwarder')
     RETURNING id INTO v_fwd;
-    INSERT INTO materials (code, name, category)
-    VALUES ('ZZFIX101-M', 'fixture 101 material', 'other') RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed)
+    VALUES ('ZZFIX101-M', 'fixture 101 material', 'battery_material', true) RETURNING id INTO v_mat;
     INSERT INTO customers (code, legal_name, country)
     VALUES ('ZZFIX101-C', 'fixture 101 customer', 'SG') RETURNING id INTO v_cust;
 

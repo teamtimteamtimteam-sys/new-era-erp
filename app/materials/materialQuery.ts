@@ -1,25 +1,24 @@
 // app/materials/materialQuery.ts
 // 物料列表的查询逻辑(搜索 q / 分类 category / 排序 sort+dir / 软删除过滤)集中在这里。
 // 列表页 page.tsx 和 CSV 导出 export/route.ts 都调用这里 —— 过滤条件只有一份定义,两边不漂移。
-// 对照 suppliers:这里的"分类筛选"对应 suppliers 的"状态筛选",但 category 不是 DB 枚举,
-// 而是 app 层用 options.ts(CATEGORY_OPTIONS)约束的值;且 CustomSelect 允许自由文本,
-// 所以自由文本的 category 行无法被下拉选中(可接受 —— 仍可被搜索命中)。
-import { CATEGORY_OPTIONS } from './options'
-
-// 合法的 category 规范值集合(用于校验下拉传入的值,挡掉乱填的 URL 参数)
-const CATEGORY_VALUES: readonly string[] = CATEGORY_OPTIONS.map((o) => o.value)
+// 【PROC-1:筛的是 kind_code,不再是 category】
+// 旧的分类筛选读的是一列【自由文本】,而它的合法取值住在 app 的 options.ts ——
+// 第三份命名权威。实测后果:线上四行里有两行(NiH / black_mass)的值不在那份
+// 清单里,于是【那个下拉根本选不中它们】,而没有任何东西说过这件事。
+// 现在 kind_code 有外键,合法取值就是 material_kinds 的行 —— 校验因此交给数据库,
+// 这里只做一件事:把乱填的 URL 参数当作"不筛选"。
 
 // 允许排序的列白名单(防止任意列名进入 .order())。
 // 不含 category(按中文规范值排序无意义)、不含 status(单一死值)。
 export const MATERIAL_SORTABLE = ['code', 'name', 'created_at'] as const
 export type MaterialSortCol = (typeof MATERIAL_SORTABLE)[number]
 
-// 空字符串表示"不按分类过滤"
-export type MaterialCategoryFilter = string
+// 空字符串表示"不按种类过滤"
+export type MaterialKindFilter = string
 
 export interface MaterialListParams {
     q: string
-    category: MaterialCategoryFilter
+    kind: MaterialKindFilter
     sort: MaterialSortCol
     dir: 'asc' | 'desc'
 }
@@ -37,21 +36,21 @@ export function parseMaterialPage(value: string | undefined): number {
 // 解析并校验原始 URL searchParams,全部给安全默认值。
 export function parseMaterialListParams(sp: {
     q?: string
-    category?: string
+    kind?: string
     sort?: string
     dir?: string
 }): MaterialListParams {
     const q = (sp.q ?? '').trim()
-    // 只接受 CATEGORY_OPTIONS 里的规范值;其它(含自由文本/乱填)按"不筛选"处理
-    const category: MaterialCategoryFilter =
-        sp.category && CATEGORY_VALUES.includes(sp.category) ? sp.category : ''
+    // 【合法性由外键保证,这里只挡形状】一个不存在的 code 会筛出零行,
+    // 而"零行"与"不筛选"是两回事 —— 所以照传,由页面显示零行,不静默改成全量。
+    const kind: MaterialKindFilter = (sp.kind ?? '').trim()
     const sort: MaterialSortCol = (MATERIAL_SORTABLE as readonly string[]).includes(
         sp.sort ?? ''
     )
         ? (sp.sort as MaterialSortCol)
         : 'created_at'
     const dir: 'asc' | 'desc' = sp.dir === 'asc' ? 'asc' : 'desc'
-    return { q, category, sort, dir }
+    return { q, kind, sort, dir }
 }
 
 // supabase filter builder 上我们用到的几个链式方法(都返回自身)。
@@ -67,7 +66,7 @@ interface MaterialQueryChain {
 // 用泛型 T 透传调用方的具体查询类型(保留返回行类型),内部只借助 MaterialQueryChain 这一最小接口。
 // 注意:这里不做分页 —— 列表页另行 .range(),导出则取全部匹配行。
 export function applyMaterialFilters<T>(query: T, params: MaterialListParams): T {
-    const { q, category, sort, dir } = params
+    const { q, kind, sort, dir } = params
 
     let chain = query as unknown as MaterialQueryChain
 
@@ -83,8 +82,8 @@ export function applyMaterialFilters<T>(query: T, params: MaterialListParams): T
         )
     }
 
-    if (category) {
-        chain = chain.eq('category', category)
+    if (kind) {
+        chain = chain.eq('kind_code', kind)
     }
 
     chain = chain.order(sort, { ascending: dir === 'asc' })

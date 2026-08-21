@@ -41,8 +41,8 @@ BEGIN
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_user), true);
 
-    INSERT INTO materials (code, name, category, unit)
-    VALUES ('ZZFIX57-M', 'fixture 57 material', '产出-黑粉', 'kg') RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, unit)
+    VALUES ('ZZFIX57-M', 'fixture 57 material', 'battery_material', true, 'kg') RETURNING id INTO v_mat;
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
     VALUES ('FIXT-S57', 'Fixture Supplier 57', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
     -- 【库位 code 故意让 A < B】—— D 臂断言的正是"按 code 升序"

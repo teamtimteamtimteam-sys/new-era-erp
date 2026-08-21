@@ -52,8 +52,8 @@ BEGIN
 
     INSERT INTO customers (code, legal_name, country)
     VALUES ('ZZ69-C1', 'fixture 69 customer', 'SG') RETURNING id INTO v_cust;
-    INSERT INTO materials (code, name, category, unit)
-    VALUES ('ZZFIX69-M', 'f69 material', '产出-金属', 'kg') RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, unit)
+    VALUES ('ZZFIX69-M', 'f69 material', 'battery_material', true, 'kg') RETURNING id INTO v_mat;
 
     obB := (create_output_batch(v_mat, 100, 'kg', d, '库存中', NULL, NULL, NULL, NULL) ->> 'batch_id')::uuid;
     obC := (create_output_batch(v_mat, 100, 'kg', d, '库存中', NULL, NULL, NULL, NULL) ->> 'batch_id')::uuid;

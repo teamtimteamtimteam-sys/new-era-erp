@@ -65,8 +65,8 @@ BEGIN
     -- 那时这一列还没有 'forwarder' 这个取值。运费单的货代守卫上线后它当场被拒,
     -- 而那是【前提本来就写错了】,不是守卫写宽了:这一行的名字一直叫 FWD。
     VALUES ('ZZFIX51-FWD', 'fixture 51 forwarder', 'SG', 'active', 'forwarder') RETURNING id INTO v_fwd;
-    INSERT INTO materials (code, name, category)
-    VALUES ('ZZFIX51-M', 'fixture 51 material', 'other') RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed)
+    VALUES ('ZZFIX51-M', 'fixture 51 material', 'battery_material', true) RETURNING id INTO v_mat;
     INSERT INTO customers (code, legal_name, country)
     VALUES ('ZZFIX51-C', 'fixture 51 customer', 'SG') RETURNING id INTO v_cust;
 

@@ -45,11 +45,11 @@ BEGIN
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
     VALUES ('FIXT-S60', 'Fixture Supplier 60', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
 
-    INSERT INTO materials (code, name, category, unit, safety_stock_qty)
-    VALUES ('ZZFIX60-W', 'fixture 60 watched', '进料-电池', 'kg', 50) RETURNING id INTO m_watch;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, unit, safety_stock_qty)
+    VALUES ('ZZFIX60-W', 'fixture 60 watched', 'battery_material', true, 'kg', 50) RETURNING id INTO m_watch;
     -- 【不写 safety_stock_qty】—— 未监控是"没有人做过这个决定",不是某个值
-    INSERT INTO materials (code, name, category, unit)
-    VALUES ('ZZFIX60-U', 'fixture 60 unmonitored', '进料-电池', 'kg') RETURNING id INTO m_null;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, unit)
+    VALUES ('ZZFIX60-U', 'fixture 60 unmonitored', 'battery_material', true, 'kg') RETURNING id INTO m_null;
 
     -- ══════════ A. 前提 ═════════════════════════════════════════════════════
     IF (SELECT safety_stock_qty FROM materials WHERE id = m_null) IS NOT NULL THEN

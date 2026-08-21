@@ -64,8 +64,8 @@ BEGIN
     -- 于是它测的是外键,不是守卫(fixture 52 C 臂踩过、写过这一段)。
     INSERT INTO customers (code, legal_name, country)
     VALUES ('ZZ70-C2', 'fixture 70 other customer', 'SG') RETURNING id INTO v_cust2;
-    INSERT INTO materials (code, name, category, unit)
-    VALUES ('ZZFIX70-M', 'f70 material', '产出-金属', 'kg') RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, unit)
+    VALUES ('ZZFIX70-M', 'f70 material', 'battery_material', true, 'kg') RETURNING id INTO v_mat;
 
     -- ══════════ A. 前提 + 目录 ═══════════════════════════════════════════════
     IF to_regprocedure('public.amend_sales_order(uuid,text,jsonb,jsonb)') IS NULL THEN

@@ -1016,3 +1016,63 @@ WHERE mp.price_date <= v_ref  ORDER BY mp.price_date DESC LIMIT 1
 **U2 关闭**(采购按到货湿重,系统已经如此)。**U3 改写**(不再问基准是什么,
 而是问它作为条款挂在哪 → G25)。
 
+
+---
+
+# 第八部分 · PROC-1 落地(2026-08-21)—— G1 与 G31 关闭
+
+**这一刀只动主数据:物料【是什么】,以及它【能不能被投料】。**
+进料批、加工单、化验、计价一律没碰(唯一的例外见下面 ②)。
+
+## 建了什么
+
+| 对象 | 是什么 |
+|---|---|
+| `material_kinds` | 字典表,五行:`battery_material` / `ewaste` / `packaging` / `consumable` / `spare_part`。**RUNTIME CONFIG** —— 加一种是加一行。规则列 `may_ever_be_processed` 在行上(certificate_types 的形状) |
+| `materials.kind_code` | 外键指向字典 |
+| `materials.may_be_processed` | 加工闸【唯一读的那一列】 |
+| `materials_kind_stated` | `CHECK (两列都不为空) NOT VALID` —— 新行必拦,八行历史留空 |
+| `guard_material_kind_processable` | 触发器:`may_be_processed` 不许越过它那一类的规则 |
+| `guard_processing_input`(改) | **多一条具名拒绝** `MATERIAL_NOT_PROCESSABLE` |
+| `materials.category` | **已退役**,连同 `CATEGORY_OPTIONS` 与七个 i18n 键 |
+
+## grill 改了三处
+
+**① D2 的 NOT NULL 与 D7 的"清库重建"【互相矛盾】,而 D7 那一半今天做不到。**
+实测:八行物料(四在册 + 四软删)**每一行都被批次引用着** ——
+`MAT-2026-0001` 9 进 10 出、`MAT-2026-0002` 8 进 7 出,连两行冒烟残骸也各挂着一张
+在册批次(`ZZ-SMOKE-PROBE` 上那张是 AGENTS.md 点名"不要删"的 `IN-2026-0180`)。
+删物料要先删批次,而删批次要一路串进总账。**所以清库在切换那天,不是本刀。**
+而只要那八行还在,真 `NOT NULL` 就【必须】编造八个值 —— 正是 D7 自己禁止的事。
+**处置:`CHECK ... NOT VALID`**,本表自己的先例(MAT-1 的 `waste_classification_code`)。
+
+**② F4 要的那道闸在 brief 自己的排除清单里("Anything about runs")。**
+但一个没有任何地方兑现的 `may_be_processed` 就是 D8 亲口说的缺陷 —— 库建好了、没有门。
+**处置:加,但只加一条,而且加在 `guard_processing_input` 上** ——
+那个守卫本来就是"什么可以当投料"的那道门。`commit_processing_run` 一个字没动。
+
+**③ D6 说"移除 app/materials/options.ts",那会顺手杀掉 `CHEMISTRY_OPTIONS`(十个值,
+G18 的地盘)与 `UNIT_OPTIONS`。处置:只移除 `CATEGORY_OPTIONS`,文件留着。**
+
+## 一条对我自己先前说法的更正
+
+> **PROC-0 的 N10 说「fixture 只 INSERT 不断言」—— 那句话【错了】。**
+> `db/fixtures/53` 的 A 臂**读它**:
+> `SELECT count(DISTINCT category || '|' || COALESCE(chemistry,''))`,
+> 用来证明"受控分类与 category/chemistry 互不蕴含"。
+> **一处漏掉的读者,足以让"没有人读它"这个结论从『量过的』降级成『大致上』。**
+> 已改读 `kind_code`,**而那条断言因此更强了**:category 是自由文本,三行相同只说明
+> 三次敲了同一个字符串;`kind_code` 有外键,三行相同是【同一个种类】。
+
+## D7 的答案:**一行都没走,一行都没重建**
+
+八行**全部留着**(删不掉),两列**全部留空**。
+**没有人为任何一行决定过值,所以没有人的名字挂在任何一个值上** —— 这正是想要的:
+留空的意思就是"没有人决定过",而那是真话。清库在切换那天。
+
+## GAP LIST 更新
+
+* ~~**G1** 物料的 kind + may_be_processed~~ **已完成(PROC-1)**
+* ~~**G31** kind 用字典表而非 CHECK~~ **已完成(PROC-1)** —— 它把 **G2 从 EXPENSIVE 变成 CHEAP**
+* **G2(电池料的状态轴)现在是 CHEAP** —— 状态可以挂成字典上的行。仍然 blocked on **U0**
+

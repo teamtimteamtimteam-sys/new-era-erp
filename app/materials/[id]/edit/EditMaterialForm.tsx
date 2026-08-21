@@ -3,9 +3,10 @@
 import { useActionState } from 'react'
 import Link from 'next/link'
 import { updateMaterial, type UpdateMaterialState } from './actions'
+import MaterialKindPicker from '../../MaterialKindPicker'
+import type { MaterialKind } from '../../materialKindOptions'
 import CustomSelect from '../../CustomSelect'
 import {
-    CATEGORY_OPTIONS,
     CHEMISTRY_OPTIONS,
     UNIT_OPTIONS,
     CUSTOM_VALUE,
@@ -19,7 +20,8 @@ const initialState: UpdateMaterialState = {}
 type Material = {
     id: string
     name: string
-    category: string
+    kind_code: string | null
+    may_be_processed: boolean | null
     chemistry: string | null
     waste_classification_code: string | null
     unit: string
@@ -31,10 +33,12 @@ type Material = {
 export default function EditMaterialForm({
     material,
     wasteClasses,
+    kinds,
     locale,
 }: {
     material: Material
     wasteClasses: WasteClass[]
+    kinds: MaterialKind[]
     locale: string
 }) {
     const t = useTranslations()
@@ -44,10 +48,6 @@ export default function EditMaterialForm({
         initialState
     )
 
-    const categoryOptions = CATEGORY_OPTIONS.map((o) => ({
-        value: o.value,
-        label: t(o.labelKey),
-    }))
     const chemistryOptions = CHEMISTRY_OPTIONS.map((o) => ({
         value: o.value,
         label: t(o.labelKey),
@@ -81,28 +81,20 @@ export default function EditMaterialForm({
                     )}
                 </div>
 
-                {/* 类别(必填,可自定义)*/}
-                <div>
-                    <CustomSelect
-                        name="category"
-                        label={t('materials.form.category')}
-                        placeholder={t('materials.form.selectPlaceholder', {
-                            label: t('materials.form.category'),
-                        })}
-                        options={categoryOptions}
-                        customValue={CUSTOM_VALUE}
-                        customInputPlaceholder={t('materials.form.customPlaceholder', {
-                            label: t('materials.form.category'),
-                        })}
-                        required
-                        defaultValue={material.category}
-                    />
-                    {state.fieldErrors?.category && (
-                        <p className="text-red-600 text-xs mt-1">
-                            {state.fieldErrors.category}
-                        </p>
-                    )}
-                </div>
+                {/* PROC-1:种类(字典)+ 能不能投料。
+                    【既有物料两列都是空的 —— 那是"没有人决定过",而它是真话】
+                    materials_kind_stated 是 NOT VALID 的:它对 UPDATE 也生效,
+                    所以这一行【在有人把种类说出来之前存不下去】。那是想要的行为,
+                    而屏幕上由 MaterialKindPicker 那句琥珀色的话说出来,
+                    不是漏一条裸约束名出去。 */}
+                <MaterialKindPicker kinds={kinds} defaultKind={material.kind_code}
+                    defaultProcessable={material.may_be_processed} locale={locale} />
+                {state.fieldErrors?.kind_code && (
+                    <p className="text-red-600 text-xs -mt-2">{state.fieldErrors.kind_code}</p>
+                )}
+                {state.fieldErrors?.may_be_processed && (
+                    <p className="text-red-600 text-xs -mt-2">{state.fieldErrors.may_be_processed}</p>
+                )}
 
                 {/* 化学体系(可选,可自定义)*/}
                 <div>

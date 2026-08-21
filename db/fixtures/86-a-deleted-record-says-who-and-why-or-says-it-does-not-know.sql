@@ -38,8 +38,8 @@ BEGIN
 
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
     VALUES ('FX86-SUP', 'fixture 86 supplier', 'SG', 'goods_supplier') RETURNING id INTO sup;
-    INSERT INTO materials (code, name, category)
-    VALUES ('FX86-M', 'fixture 86 material', 'other') RETURNING id INTO mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed)
+    VALUES ('FX86-M', 'fixture 86 material', 'battery_material', true) RETURNING id INTO mat;
 
     -- ── ① 走门删掉的批次:人与理由都在 ─────────────────────────────────────
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date)

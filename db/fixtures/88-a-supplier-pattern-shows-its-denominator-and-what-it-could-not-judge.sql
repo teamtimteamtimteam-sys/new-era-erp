@@ -55,8 +55,8 @@ BEGIN
     UPDATE receiving_settings
        SET grn_short_pct = 5, grn_over_pct = 5, grn_assay_tolerance_pct = 10;
 
-    INSERT INTO materials (code, name, category)
-    VALUES ('FX88-M', 'fixture 88 material', 'other') RETURNING id INTO mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed)
+    VALUES ('FX88-M', 'fixture 88 material', 'battery_material', true) RETURNING id INTO mat;
 
     -- ══════════════════════════════════════════════════════════════════════════
     -- A. 5 次里 1 次短 —— 原始计数,不是一个布尔量

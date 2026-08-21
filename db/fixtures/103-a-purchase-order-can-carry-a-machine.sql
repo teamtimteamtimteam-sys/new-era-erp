@@ -41,8 +41,8 @@ BEGIN
     INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)
     VALUES ('ZZFIX103-S', 'fixture 103 supplier', 'SG', 'active', 'goods_supplier')
     RETURNING id INTO v_sup;
-    INSERT INTO materials (code, name, category)
-    VALUES ('ZZFIX103-M', 'fixture 103 material', 'other') RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed)
+    VALUES ('ZZFIX103-M', 'fixture 103 material', 'battery_material', true) RETURNING id INTO v_mat;
 
     -- 一台【已经建了卡】的资产 —— D1:行引用它,行不创建它
     v_res := record_expense(DATE '2027-01-05', '1500', 50000, v_ccy, NULL, 'unpaid', NULL,

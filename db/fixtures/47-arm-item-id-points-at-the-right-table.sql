@@ -81,13 +81,13 @@ BEGIN
     -- SS-1:阈值设在这份 fixture 的库存够不着的地方 —— 这一支因此必然在场。
     -- 【A 臂断言二十支全在】,少一支就意味着它那条门牌断言空转,而空转的断言
     -- 与通过的断言长得一模一样。
-    INSERT INTO materials (code, name, category, safety_stock_qty)
-    VALUES ('ZZFIX47-M', 'fixture 47 material', 'other', 999999) RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, safety_stock_qty)
+    VALUES ('ZZFIX47-M', 'fixture 47 material', 'battery_material', true, 999999) RETURNING id INTO v_mat;
     -- 【ASY-P1:awaiting_assay 只在物料声明了化验要求时才可能亮】给它一个专用物料,
     -- v_mat 上不声明 —— 否则 IB1 / IB3 会一起点亮这一支,而本 fixture 断言的是
     -- "每支恰好一件"。
-    INSERT INTO materials (code, name, category)
-    VALUES ('ZZFIX47-M-ASY', 'fixture 47 material (assay required)', 'other')
+    INSERT INTO materials (code, name, kind_code, may_be_processed)
+    VALUES ('ZZFIX47-M-ASY', 'fixture 47 material (assay required)', 'battery_material', true)
     RETURNING id INTO v_mat_asy;
     INSERT INTO material_required_metals (material_id, metal) VALUES (v_mat_asy, 'cu');
     INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)

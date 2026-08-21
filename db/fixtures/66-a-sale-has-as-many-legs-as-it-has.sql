@@ -46,8 +46,8 @@ BEGIN
 
     INSERT INTO customers (code, legal_name, country)
     VALUES ('ZZ66-C1', 'fixture 66 customer', 'SG') RETURNING id INTO v_cust;
-    INSERT INTO materials (code, name, category, unit)
-    VALUES ('ZZFIX66-M', 'f66 material', '产出-金属', 'kg') RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, unit)
+    VALUES ('ZZFIX66-M', 'f66 material', 'battery_material', true, 'kg') RETURNING id INTO v_mat;
     INSERT INTO storage_locations (code, name) VALUES ('ZZ66-A', 'f66 A') RETURNING id INTO loc_a;
     INSERT INTO storage_locations (code, name) VALUES ('ZZ66-B', 'f66 B') RETURNING id INTO loc_b;
 

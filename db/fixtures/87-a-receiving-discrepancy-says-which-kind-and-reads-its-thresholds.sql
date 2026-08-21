@@ -82,10 +82,10 @@ BEGIN
 
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
     VALUES ('FX87-SUP', 'fixture 87 supplier', 'SG', 'goods_supplier') RETURNING id INTO sup;
-    INSERT INTO materials (code, name, category)
-    VALUES ('FX87-MA', 'fixture 87 material A', 'other') RETURNING id INTO mat_a;
-    INSERT INTO materials (code, name, category)
-    VALUES ('FX87-MB', 'fixture 87 material B', 'other') RETURNING id INTO mat_b;
+    INSERT INTO materials (code, name, kind_code, may_be_processed)
+    VALUES ('FX87-MA', 'fixture 87 material A', 'battery_material', true) RETURNING id INTO mat_a;
+    INSERT INTO materials (code, name, kind_code, may_be_processed)
+    VALUES ('FX87-MB', 'fixture 87 material B', 'battery_material', true) RETURNING id INTO mat_b;
 
     -- 五张单。approval_status 必须 approved、status 必须可收(confirmed/receiving),
     -- 否则收货在触发器那一层就被拒了 —— 那测的是 APR-2,不是本视图。

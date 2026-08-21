@@ -31,8 +31,8 @@ BEGIN
                            'module.finance.edit','module.finance.view','module.pricing.view']);
     INSERT INTO user_roles (user_id, role_id) VALUES (u, r);
 
-    INSERT INTO materials (code, name, category)
-    VALUES ('ZZFIX40-M', 'fixture 40 material', 'other') RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed)
+    VALUES ('ZZFIX40-M', 'fixture 40 material', 'battery_material', true) RETURNING id INTO v_mat;
     INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)
     VALUES ('ZZFIX40-S', 'fixture 40 supplier', 'SG', 'active', 'goods_supplier') RETURNING id INTO v_sup;
 

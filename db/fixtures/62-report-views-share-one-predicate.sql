@@ -46,12 +46,12 @@ BEGIN
 
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
     VALUES ('FIXT-S62', 'Fixture Supplier 62', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
-    INSERT INTO materials (code, name, category, unit, waste_classification_code)
-    VALUES ('ZZFIX62-F', 'f62 focused', '进料-电池', 'kg', 'focused') RETURNING id INTO m_foc;
-    INSERT INTO materials (code, name, category, unit, waste_classification_code)
-    VALUES ('ZZFIX62-N', 'f62 non-focused', '进料-电池', 'kg', 'non_focused') RETURNING id INTO m_non;
-    INSERT INTO materials (code, name, category, unit)
-    VALUES ('ZZFIX62-U', 'f62 unclassified', '进料-电池', 'kg') RETURNING id INTO m_null;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, unit, waste_classification_code)
+    VALUES ('ZZFIX62-F', 'f62 focused', 'battery_material', true, 'kg', 'focused') RETURNING id INTO m_foc;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, unit, waste_classification_code)
+    VALUES ('ZZFIX62-N', 'f62 non-focused', 'battery_material', true, 'kg', 'non_focused') RETURNING id INTO m_non;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, unit)
+    VALUES ('ZZFIX62-U', 'f62 unclassified', 'battery_material', true, 'kg') RETURNING id INTO m_null;
     INSERT INTO storage_locations (code, name) VALUES ('ZZ62-UN', 'unconfigured') RETURNING id INTO loc_un;
     INSERT INTO storage_locations (code, name) VALUES ('ZZ62-FOC', 'focused only') RETURNING id INTO loc_foc;
     INSERT INTO storage_location_allowed_classes (location_id, classification_code)

@@ -1,5 +1,6 @@
 'use server'
 
+import { KIND_UNCHOSEN, parseProcessableField } from '../materialKindOptions'
 import { createClient } from '@/lib/supabase/server'
 import type { InsertRow } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
@@ -20,7 +21,11 @@ export async function createMaterial(
 
     // 1. 取字段
     const name = (formData.get('name') as string)?.trim()
-    const category = (formData.get('category') as string)?.trim()
+    // PROC-1:两列都【必须是明说出来的选择】。哨兵值 / null 由 materialKindOptions
+    // 解析,而不是用空串 —— 空串在 FormData 里与"没提交"分不开。
+    const kindRaw = String(formData.get('kind_code') ?? '').trim()
+    const kind_code = kindRaw === '' || kindRaw === KIND_UNCHOSEN ? null : kindRaw
+    const may_be_processed = parseProcessableField(formData.get('may_be_processed'))
     const chemistry = (formData.get('chemistry') as string)?.trim() || null
     // MAT-1:受控废物分类。【未分类 → NULL】,而 NULL 的意思是"没有人分过类",
     // 不是"非受控" —— 一个合规判断会踩在这个区别上。
@@ -41,7 +46,11 @@ export async function createMaterial(
     // 2. 校验
     const fieldErrors: Record<string, string> = {}
     if (!name) fieldErrors.name = t('materials.form.errName')
-    if (!category) fieldErrors.category = t('materials.form.errCategory')
+    // 【服务端独立拒空】—— 表单那一层是第一道,这里是第二道,表上的
+    // materials_kind_stated 是第三道。三层都要在(AGENTS.md 那条决定期间的日期的规矩,
+    // 同一个形状:提交控件禁用 + 服务端独立拒 + 数据库兜底)。
+    if (!kind_code) fieldErrors.kind_code = t('materials.form.errKind')
+    if (may_be_processed === null) fieldErrors.may_be_processed = t('materials.form.errProcessable')
 
     if (safety_stock_qty !== null && Number.isNaN(safety_stock_qty)) {
         fieldErrors.safety_stock_qty = t('materials.form.errSafetyStock')
@@ -58,7 +67,8 @@ export async function createMaterial(
 
     const { error } = await supabase.from('materials').insert({
         name,
-        category,
+        kind_code,
+        may_be_processed,
         chemistry,
         waste_classification_code,
         unit,

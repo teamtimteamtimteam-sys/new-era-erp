@@ -38,8 +38,8 @@ BEGIN
 
     INSERT INTO suppliers (code, legal_name, country, address, tax_id, counterparty_type)
     VALUES ('ZZFIX36-S', 'fixture 36 supplier', 'SG', '1 Test Way', 'T36', 'goods_supplier') RETURNING id INTO v_sup;
-    INSERT INTO materials (code, name, category)
-    VALUES ('ZZFIX36-M', 'fixture 36 material', 'other') RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed)
+    VALUES ('ZZFIX36-M', 'fixture 36 material', 'battery_material', true) RETURNING id INTO v_mat;
 
     -- 一张公式:spot、TC 120 USD/t、折扣 2.5%、Ni 应付 81%
     INSERT INTO pricing_formulas (code, name, direction, price_basis,

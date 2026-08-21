@@ -9,8 +9,9 @@ import { useActionState } from 'react'
 import Link from 'next/link'
 import { createMaterial, type CreateMaterialState } from './actions'
 import CustomSelect from '../CustomSelect'
+import MaterialKindPicker from '../MaterialKindPicker'
+import type { MaterialKind } from '../materialKindOptions'
 import {
-    CATEGORY_OPTIONS,
     CHEMISTRY_OPTIONS,
     UNIT_OPTIONS,
     CUSTOM_VALUE,
@@ -23,9 +24,11 @@ const initialState: CreateMaterialState = {}
 
 export default function NewMaterialForm({
     wasteClasses,
+    kinds,
     locale,
 }: {
     wasteClasses: WasteClass[]
+    kinds: MaterialKind[]
     locale: string
 }) {
     const t = useTranslations()
@@ -34,10 +37,6 @@ export default function NewMaterialForm({
         initialState
     )
 
-    const categoryOptions = CATEGORY_OPTIONS.map((o) => ({
-        value: o.value,
-        label: t(o.labelKey),
-    }))
     const chemistryOptions = CHEMISTRY_OPTIONS.map((o) => ({
         value: o.value,
         label: t(o.labelKey),
@@ -82,27 +81,15 @@ export default function NewMaterialForm({
                     )}
                 </div>
 
-                {/* 类别(必填,可自定义)*/}
-                <div>
-                    <CustomSelect
-                        name="category"
-                        label={t('materials.form.category')}
-                        placeholder={t('materials.form.selectPlaceholder', {
-                            label: t('materials.form.category'),
-                        })}
-                        options={categoryOptions}
-                        customValue={CUSTOM_VALUE}
-                        customInputPlaceholder={t('materials.form.customPlaceholder', {
-                            label: t('materials.form.category'),
-                        })}
-                        required
-                    />
-                    {state.fieldErrors?.category && (
-                        <p className="text-red-600 text-xs mt-1">
-                            {state.fieldErrors.category}
-                        </p>
-                    )}
-                </div>
+                {/* PROC-1:种类(字典)+ 能不能投料(明说出来的选择,不给默认)*/}
+                <MaterialKindPicker kinds={kinds} defaultKind={null}
+                    defaultProcessable={null} locale={locale} />
+                {state.fieldErrors?.kind_code && (
+                    <p className="text-red-600 text-xs -mt-2">{state.fieldErrors.kind_code}</p>
+                )}
+                {state.fieldErrors?.may_be_processed && (
+                    <p className="text-red-600 text-xs -mt-2">{state.fieldErrors.may_be_processed}</p>
+                )}
 
                 {/* 化学体系(可选,可自定义)*/}
                 <div>

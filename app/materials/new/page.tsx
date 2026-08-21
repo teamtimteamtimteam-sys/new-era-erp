@@ -5,6 +5,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import NewMaterialForm from './NewMaterialForm'
 import { getWasteClassifications } from '../wasteClassQuery'
+import { getMaterialKinds } from '../materialKindQuery'
 import { getLocale } from '@/lib/i18n/server'
 
 export default async function NewMaterialPage() {
@@ -15,7 +16,9 @@ export default async function NewMaterialPage() {
 
     // MAT-1:分类选项从表里现读 —— 加一种分类是加一行,不是改代码
     const wasteClasses = await getWasteClassifications()
+    // PROC-1:种类同样从表里现读 —— 加一种是加一行
+    const kinds = await getMaterialKinds()
     const locale = await getLocale()
 
-    return <NewMaterialForm wasteClasses={wasteClasses} locale={locale} />
+    return <NewMaterialForm wasteClasses={wasteClasses} kinds={kinds} locale={locale} />
 }

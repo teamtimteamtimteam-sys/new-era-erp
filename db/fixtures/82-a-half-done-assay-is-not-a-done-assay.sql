@@ -51,10 +51,10 @@ BEGIN
 
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
     VALUES ('FX82-SUP', 'fixture 82 supplier', 'SG', 'goods_supplier') RETURNING id INTO sup;
-    INSERT INTO materials (code, name, category)
-    VALUES ('FX82-REQ', 'fixture 82 material WITH requirement', 'black_mass') RETURNING id INTO m_req;
-    INSERT INTO materials (code, name, category)
-    VALUES ('FX82-FREE', 'fixture 82 material WITHOUT requirement', 'black_mass') RETURNING id INTO m_free;
+    INSERT INTO materials (code, name, kind_code, may_be_processed)
+    VALUES ('FX82-REQ', 'fixture 82 material WITH requirement', 'battery_material', true) RETURNING id INTO m_req;
+    INSERT INTO materials (code, name, kind_code, may_be_processed)
+    VALUES ('FX82-FREE', 'fixture 82 material WITHOUT requirement', 'battery_material', true) RETURNING id INTO m_free;
 
     -- ── 要求:cu 与 li。【经由函数写入】,不是直接插表 ──────────────────────
     v_rec := set_material_required_metals(m_req, ARRAY['cu','li']);

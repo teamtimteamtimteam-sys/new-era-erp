@@ -37,17 +37,20 @@ BEGIN
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_user), true);
 
-    -- 三个物料,三种状态。【category 与 chemistry 故意完全相同】——
+    -- 三个物料,三种状态。【kind_code 与 chemistry 故意完全相同】——
     -- 那正是"本列与它们不重复"的证明:我们怎么看这批货一模一样,
     -- 而监管怎么看它可以不同。
-    INSERT INTO materials (code, name, category, chemistry, waste_classification_code)
-    VALUES ('ZZFIX53-F', 'fixture 53 focused', '进料-电池', 'NMC', 'focused')
+    -- 【PROC-1:此前这一臂比的是 category,而 category 已经退役】
+    -- 换成 kind_code 之后这条断言【更强了】:category 是自由文本,三行相同
+    -- 只说明三次都敲了同一个字符串;kind_code 有外键,三行相同是【同一个种类】。
+    INSERT INTO materials (code, name, kind_code, may_be_processed, chemistry, waste_classification_code)
+    VALUES ('ZZFIX53-F', 'fixture 53 focused', 'battery_material', true, 'NMC', 'focused')
     RETURNING id INTO v_m_focused;
-    INSERT INTO materials (code, name, category, chemistry, waste_classification_code)
-    VALUES ('ZZFIX53-N', 'fixture 53 non-focused', '进料-电池', 'NMC', 'non_focused')
+    INSERT INTO materials (code, name, kind_code, may_be_processed, chemistry, waste_classification_code)
+    VALUES ('ZZFIX53-N', 'fixture 53 non-focused', 'battery_material', true, 'NMC', 'non_focused')
     RETURNING id INTO v_m_non;
-    INSERT INTO materials (code, name, category, chemistry)
-    VALUES ('ZZFIX53-U', 'fixture 53 unclassified', '进料-电池', 'NMC')
+    INSERT INTO materials (code, name, kind_code, may_be_processed, chemistry)
+    VALUES ('ZZFIX53-U', 'fixture 53 unclassified', 'battery_material', true, 'NMC')
     RETURNING id INTO v_m_null;
 
     -- ══════════ A. 三种状态各自可辨 —— 未分类既不算受控,也不算非受控 ═════════
@@ -74,19 +77,19 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 53A 失败:未分类的物料【解析不出任何 is_controlled 值】才是对的 —— 解析出 false 就是把"没人分过类"读成了"分过、结论是不受控",而一个合规判断会踩在这个区别上';
     END IF;
 
-    -- 【与 category / chemistry 不重复】三者的 category 与 chemistry 完全相同
-    SELECT count(DISTINCT category || '|' || COALESCE(chemistry,'')) INTO v_n
+    -- 【与 kind_code / chemistry 不重复】三者的种类与化学体系完全相同
+    SELECT count(DISTINCT kind_code || '|' || COALESCE(chemistry,'')) INTO v_n
       FROM materials WHERE code IN ('ZZFIX53-F','ZZFIX53-N','ZZFIX53-U');
     IF v_n <> 1 THEN
-        RAISE EXCEPTION 'FIXTURE 53A 前置失败:三个物料的 category/chemistry 本应完全相同(才证明得了新列与它们不蕴含),实得 % 种组合', v_n;
+        RAISE EXCEPTION 'FIXTURE 53A 前置失败:三个物料的 kind_code/chemistry 本应完全相同(才证明得了新列与它们不蕴含),实得 % 种组合', v_n;
     END IF;
 
     -- ══════════ B. 第三种分类 = 加一行,不动任何 CHECK ═══════════════════════
     INSERT INTO waste_classifications (code, name_en, name_zh, is_controlled, sort_order, notes)
     VALUES ('ZZFIX53-THIRD', 'fixture third class', 'fixture 第三类', true, 99,
             'fixture 53:证明加一种分类是加一行');
-    INSERT INTO materials (code, name, category, waste_classification_code)
-    VALUES ('ZZFIX53-T', 'fixture 53 third', '进料-电池', 'ZZFIX53-THIRD')
+    INSERT INTO materials (code, name, kind_code, may_be_processed, waste_classification_code)
+    VALUES ('ZZFIX53-T', 'fixture 53 third', 'battery_material', true, 'ZZFIX53-THIRD')
     RETURNING id INTO v_m_third;
     IF (SELECT wc.is_controlled FROM materials m
          JOIN waste_classifications wc ON wc.code = m.waste_classification_code
@@ -97,12 +100,12 @@ BEGIN
     -- ══════════ C. 外键真的在:指向不存在的分类码应被拒 ══════════════════════
     v_denied := false;
     BEGIN
-        INSERT INTO materials (code, name, category, waste_classification_code)
-        VALUES ('ZZFIX53-BAD', 'fixture 53 bad', '进料-电池', 'no_such_class');
+        INSERT INTO materials (code, name, kind_code, may_be_processed, waste_classification_code)
+        VALUES ('ZZFIX53-BAD', 'fixture 53 bad', 'battery_material', true, 'no_such_class');
     EXCEPTION WHEN foreign_key_violation THEN v_denied := true;
     END;
     IF NOT v_denied THEN
-        RAISE EXCEPTION 'FIXTURE 53C 失败:指向不存在的分类码应当被外键挡住 —— 否则这一列就是自由文本,而自由文本的分类在第一次手滑之后会变成两种拼法(materials.category 今天正是这样:线上已有 NiH 与 black_mass 两个不在选项表里的值)';
+        RAISE EXCEPTION 'FIXTURE 53C 失败:指向不存在的分类码应当被外键挡住 —— 否则这一列就是自由文本,而自由文本的分类在第一次手滑之后会变成两种拼法 —— materials.category 曾经正是这样(线上长出过 NiH / black_mass / 进料-电池 / 产出-黑粉 四种命名法),PROC-1 已把它退役并换成 material_kinds 这张带外键的字典';
     END IF;
 
     -- ══════════ D. 引导的两行:语义在 is_controlled 上,不在 code 上 ══════════

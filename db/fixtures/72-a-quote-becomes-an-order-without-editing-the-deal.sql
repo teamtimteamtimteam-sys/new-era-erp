@@ -63,10 +63,10 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 72 前置失败:新客户应当是 draft —— 报价不该要求先开户';
     END IF;
 
-    INSERT INTO materials (code, name, category, unit)
-    VALUES ('ZZFIX72-M', 'f72 material', '产出-金属', 'kg') RETURNING id INTO v_mat;
-    INSERT INTO materials (code, name, category, unit)
-    VALUES ('ZZFIX72-M2', 'f72 material 2', '产出-金属', 'kg') RETURNING id INTO v_mat2;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, unit)
+    VALUES ('ZZFIX72-M', 'f72 material', 'battery_material', true, 'kg') RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, unit)
+    VALUES ('ZZFIX72-M2', 'f72 material 2', 'battery_material', true, 'kg') RETURNING id INTO v_mat2;
 
     -- ══════════ A. 前提 + 目录 ═══════════════════════════════════════════════
     IF to_regprocedure('public.convert_quote(uuid,date)') IS NULL THEN

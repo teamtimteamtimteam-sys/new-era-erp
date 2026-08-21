@@ -122,6 +122,9 @@ RUNTIME_CONFIG_TABLES = [
     "metal_price_indices",
     # MAT-1:受控废物分类 —— 加一种分类是加一行(与 certificate_types 同一条)。
     "waste_classifications",
+    # PROC-1:物料种类字典 —— 加一种物料种类是加一行(与 certificate_types 同一条)。
+    # 引导播五行;Tim 在界面上加一种,线上就与本文件不同,那是系统在正常工作。
+    "material_kinds",
     # GRN-1a:收货差异的三个阈值 —— 与 processing_settings 的两个工单阈值同一条。
     # 5/5/10 是引导默认值,不是决定;运营改一次线上就与本文件不同,那是对的。
     "receiving_settings",

@@ -49,10 +49,10 @@ BEGIN
 
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
     VALUES ('FIXT-S61', 'Fixture Supplier 61', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
-    INSERT INTO materials (code, name, category, unit, waste_classification_code)
-    VALUES ('ZZFIX61-F', 'fixture 61 focused', '进料-电池', 'kg', 'focused') RETURNING id INTO m_foc;
-    INSERT INTO materials (code, name, category, unit)
-    VALUES ('ZZFIX61-U', 'fixture 61 unclassified', '进料-电池', 'kg') RETURNING id INTO m_null;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, unit, waste_classification_code)
+    VALUES ('ZZFIX61-F', 'fixture 61 focused', 'battery_material', true, 'kg', 'focused') RETURNING id INTO m_foc;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, unit)
+    VALUES ('ZZFIX61-U', 'fixture 61 unclassified', 'battery_material', true, 'kg') RETURNING id INTO m_null;
     INSERT INTO storage_locations (code, name) VALUES ('ZZ61-UN', 'unconfigured') RETURNING id INTO loc_un;
     INSERT INTO storage_locations (code, name) VALUES ('ZZ61-FOC', 'focused only') RETURNING id INTO loc_foc;
     INSERT INTO storage_location_allowed_classes (location_id, classification_code)

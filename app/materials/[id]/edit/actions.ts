@@ -1,5 +1,6 @@
 'use server'
 
+import { KIND_UNCHOSEN, parseProcessableField } from '../../materialKindOptions'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
@@ -20,7 +21,10 @@ export async function updateMaterial(
 
     // 1. 取字段
     const name = (formData.get('name') as string)?.trim()
-    const category = (formData.get('category') as string)?.trim()
+    // PROC-1:见 new/actions.ts 抬头 —— 两列都必须明说,三层拒空。
+    const kindRaw = String(formData.get('kind_code') ?? '').trim()
+    const kind_code = kindRaw === '' || kindRaw === KIND_UNCHOSEN ? null : kindRaw
+    const may_be_processed = parseProcessableField(formData.get('may_be_processed'))
     const chemistry = (formData.get('chemistry') as string)?.trim() || null
     // MAT-1:分类可以被改回【未分类】—— 那是一个正当的动作(录错了要能撤回),
     // 而不是一个应当被拦住的状态。
@@ -41,7 +45,8 @@ export async function updateMaterial(
     // 2. 校验
     const fieldErrors: Record<string, string> = {}
     if (!name) fieldErrors.name = t('materials.form.errName')
-    if (!category) fieldErrors.category = t('materials.form.errCategory')
+    if (!kind_code) fieldErrors.kind_code = t('materials.form.errKind')
+    if (may_be_processed === null) fieldErrors.may_be_processed = t('materials.form.errProcessable')
 
     if (safety_stock_qty !== null && Number.isNaN(safety_stock_qty)) {
         fieldErrors.safety_stock_qty = t('materials.form.errSafetyStock')
@@ -60,7 +65,8 @@ export async function updateMaterial(
         .from('materials')
         .update({
             name,
-            category,
+            kind_code,
+            may_be_processed,
             chemistry,
             waste_classification_code,
             unit,

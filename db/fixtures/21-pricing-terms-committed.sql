@@ -47,7 +47,7 @@ BEGIN
 
     INSERT INTO suppliers (code, legal_name, country, counterparty_type) VALUES ('FIXT-S21', 'Fixture Supplier 21', 'SG', 'goods_supplier')
         RETURNING id INTO v_sup;
-    INSERT INTO materials (code, name, category) VALUES ('FIXT-M21', 'Fixture Material 21', 'black_mass')
+    INSERT INTO materials (code, name, kind_code, may_be_processed) VALUES ('FIXT-M21', 'Fixture Material 21', 'battery_material', true)
         RETURNING id INTO v_mat;
     DELETE FROM fx_rates WHERE currency = 'USD' AND rate_date = v_today AND rate_type = 'tt_sell';
     INSERT INTO fx_rates (currency, rate_date, rate_type, rate_sgd_per_unit)

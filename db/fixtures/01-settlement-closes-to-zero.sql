@@ -29,7 +29,7 @@ BEGIN
 
     INSERT INTO customers (code, legal_name, country) VALUES ('FIXT-C1', 'Fixture Customer 1', 'SG')
         RETURNING id INTO v_cust;
-    INSERT INTO materials (code, name, category) VALUES ('FIXT-M1', 'Fixture Material 1', 'black_mass')
+    INSERT INTO materials (code, name, kind_code, may_be_processed) VALUES ('FIXT-M1', 'Fixture Material 1', 'battery_material', true)
         RETURNING id INTO v_mat;
 
     -- ── A. 同币种全额结清 → 敞口恰好 0 ────────────────────────────────────

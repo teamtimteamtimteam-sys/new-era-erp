@@ -44,8 +44,8 @@ BEGIN
 
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
     VALUES ('ZZFIX33-S', 'fixture 33 supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
-    INSERT INTO materials (code, name, category)
-    VALUES ('ZZFIX33-M', 'fixture 33 material', 'other') RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed)
+    VALUES ('ZZFIX33-M', 'fixture 33 material', 'battery_material', true) RETURNING id INTO v_mat;
 
     v_lines := jsonb_build_array(jsonb_build_object(
         'line_no', 1, 'material_id', v_mat, 'quantity', 10, 'estimated_unit_price', 100));

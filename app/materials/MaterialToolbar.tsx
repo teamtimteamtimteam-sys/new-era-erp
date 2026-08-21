@@ -1,20 +1,22 @@
 'use client'
 
-// 物料列表工具栏:搜索框(q)+ 分类下拉(category)+ 导出。端口自 SupplierToolbar。
+// 物料列表工具栏:搜索框(q)+ 种类下拉(kind)+ 导出。端口自 SupplierToolbar。
+// 【PROC-1】下拉从 CATEGORY_OPTIONS(app 里写死的第三份权威)改成 material_kinds
+// 的行 —— 由服务端 page.tsx 取好传进来,加一种物料种类是加一行。
 // 改动只写进 URL searchParams,真正的过滤在服务端 page.tsx 完成。
 import { useEffect, useRef, useState } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
-import { CATEGORY_OPTIONS } from './options'
+import type { MaterialKind } from './materialKindOptions'
 
-export default function MaterialToolbar() {
+export default function MaterialToolbar({ kinds, locale }: { kinds: MaterialKind[]; locale: string }) {
     const t = useTranslations()
     const router = useRouter()
     const pathname = usePathname()
     const searchParams = useSearchParams()
 
     const currentQ = searchParams.get('q') ?? ''
-    const currentCategory = searchParams.get('category') ?? ''
+    const currentKind = searchParams.get('kind') ?? ''
 
     // 搜索框是受控的:本地 state 即时反映输入,URL 防抖更新
     const [q, setQ] = useState(currentQ)
@@ -53,10 +55,10 @@ export default function MaterialToolbar() {
 
     function onCategoryChange(value: string) {
         // push:筛选切换是离散动作,保留在历史里。page:null —— 改筛选回到第 1 页。
-        router.push(buildHref({ category: value || null, page: null }))
+        router.push(buildHref({ kind: value || null, page: null }))
     }
 
-    // 导出链接:带上当前 q / category / sort / dir,导出的就是用户此刻筛选到的结果。
+    // 导出链接:带上当前 q / kind / sort / dir,导出的就是用户此刻筛选到的结果。
     // 但【剔除 page】—— 导出永远是全部匹配行,不受分页影响。
     // 用普通 <a>(而非 next/link):整页请求命中 route handler,Content-Disposition 触发下载。
     const exportParams = new URLSearchParams(searchParams.toString())
@@ -74,14 +76,14 @@ export default function MaterialToolbar() {
                 className="w-72 max-w-full rounded border border-gray-300 px-3 py-2"
             />
             <select
-                value={currentCategory}
+                value={currentKind}
                 onChange={(e) => onCategoryChange(e.target.value)}
                 className="rounded border border-gray-300 bg-white px-3 py-2"
             >
-                <option value="">{t('materials.allCategories')}</option>
-                {CATEGORY_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                        {t(o.labelKey)}
+                <option value="">{t('materials.allKinds')}</option>
+                {kinds.map((k) => (
+                    <option key={k.code} value={k.code}>
+                        {locale === 'zh' ? k.name_zh : k.name_en}
                     </option>
                 ))}
             </select>
