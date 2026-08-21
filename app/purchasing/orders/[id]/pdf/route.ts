@@ -88,7 +88,15 @@ async function renderPo(supabase: Awaited<ReturnType<typeof createClient>>, poId
         }
     }
 
-    const element = React.createElement(PurchaseOrderDocument, { data, company, logo }) as React.ReactElement<DocumentProps>
+    // EQP-1c-b-fu2:这张单是不是设备单 —— 只决定明细的列头(Machine vs Material)。
+    // 【一张单只有一种】EQP-1a 的 N1 由延迟约束触发器保证不混装,所以任意一行
+    // 带 asset_id 就是整单的种类。这里读的是【种类】,而行的名字仍然来自
+    // po_document_data(它已经 COALESCE 过资产描述)—— 屏幕与纸不会各说各话。
+    const { data: kindRows } = await supabase
+        .from('purchase_order_lines').select('asset_id').eq('purchase_order_id', poId).limit(1)
+    const isEquipment = (kindRows ?? []).some((r) => r.asset_id !== null)
+
+    const element = React.createElement(PurchaseOrderDocument, { data, company, logo, isEquipment }) as React.ReactElement<DocumentProps>
     const buffer = await renderToBuffer(element)
     return { buffer, code: data.code }
 }

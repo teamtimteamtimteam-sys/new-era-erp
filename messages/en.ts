@@ -2879,6 +2879,7 @@ const en = {
         },
     },
     purchasing: {
+            equipmentOrderNote: 'This is an equipment order. A machine arriving is not a goods receipt — it creates no batch, has no assay and does not enter a location, so there is no “receive” action here. Record what the machine cost as an expense against its order line; its arrival and commissioning live on its asset card under Finance → Assets.',
             colMachine: 'Machine',
             releaseDate: 'Release date',
         cancelConsequence: 'The order is closed for good — it cannot be reopened. Who cancelled it and why are both recorded.',

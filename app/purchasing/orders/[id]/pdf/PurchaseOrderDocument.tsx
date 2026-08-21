@@ -12,6 +12,7 @@
 import React from 'react'
 import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer'
 import { INVOICE_FONT_FAMILY, type CompanyProfile } from '@/app/finance/invoices/[id]/pdf/InvoiceDocument'
+import { countryIfDistinct } from '@/lib/companyAddress'
 
 export type PoCommittedTerms = {
     source_formula_code: string
@@ -57,6 +58,26 @@ export type PoDocData = {
         due_date: string | null
         notes: string | null
     }[]
+}
+
+// EQP-1c-b-fu2:付款触发条件印成一句【完整的英文】,而不是把枚举值原样铺开
+// 再在前面补一个 "on"。
+// 【走查看到的是 "on on shipment"】,而第三行印的是 "on post assay" —— 一个 on。
+// 【错的只有模板这一半,数据那一半不存在】on_shipment 作为一个枚举键完全正确,
+// 而屏幕那一侧【早就】把它映射成了 "On shipment"(t('purchasing.trigger.' + …));
+// 只有这份 PDF 从来没用过那份映射:它 replace('_',' ') 之后自己补了一个介词。
+// 所以修的是这一处,一个地方,而且【不动任何已播下的触发值】。
+// 【未知的值不补介词】—— 将来加一种触发条件时,最坏的结果是印出它的原文,
+// 而不是再长出一个 "on on"。
+const TRIGGER_PHRASE: Record<string, string> = {
+    on_order: 'on order',
+    on_shipment: 'on shipment',
+    on_arrival: 'on arrival',
+    post_assay: 'after assay',
+    fixed_date: 'on the fixed date',
+}
+function triggerPhrase(ev: string): string {
+    return TRIGGER_PHRASE[ev] ?? ev.replace(/_/g, ' ')
 }
 
 const num = (n: number, dp = 2) =>
@@ -140,12 +161,22 @@ export default function PurchaseOrderDocument({
     data,
     company,
     logo,
+    isEquipment = false,
 }: {
     data: PoDocData
     company: CompanyProfile
     logo: string | null
+    // EQP-1c-b-fu2:这张单是不是设备单 —— 只用来决定明细的【列头】。
+    // 【为什么不放进 po_document_data】那个函数回答的是"这张单印出来是什么内容",
+    // 而"这张单是什么种类"是一个【新的】问题;把它塞进去等于让那份共用实现
+    // 多回答一件它此前不回答的事,而调用方(路由)手上本来就有这个事实。
+    // 值那一半仍然共用 po_document_data —— 机器的名字早就 COALESCE 过资产描述。
+    isEquipment?: boolean
 }) {
-    const addr = [company.address_lines, company.city, company.postal_code, company.country]
+    // EQP-1c-b-fu2:国家与城市相同就不再印一遍(新加坡是城邦)。
+    // 【规则住在 lib/companyAddress.ts,两份单据共用一个实现】—— 版式没动。
+    const addr = [company.address_lines, company.city, company.postal_code,
+                  countryIfDistinct(company)]
         .filter(Boolean)
         .join(', ')
     return (
@@ -195,7 +226,15 @@ export default function PurchaseOrderDocument({
                 <View style={[styles.table, styles.section]}>
                     <View style={[styles.tr, styles.th]}>
                         <Text style={styles.cNo}>#</Text>
-                        <Text style={styles.cDesc}>Material</Text>
+                        {/* EQP-1c-b-fu2:一台机器上面写着 "Material" 是一个【说错了的】
+                            列头,不是一个空列。一张单只有一种(EQP-1a 的 N1),
+                            所以整列跟着单据走。
+                            【为什么这里是一个英文字面量,而屏幕那边走 i18n】
+                            这份 PDF 是发给供应商的对外单据,全篇英文、没有翻译器 ——
+                            两边【本来就】不是同一套文字机制,而【值】那一半仍然
+                            共用 po_document_data(material_name 已经 COALESCE 过
+                            资产描述)。所以屏幕与纸不会各说各话。 */}
+                        <Text style={styles.cDesc}>{isEquipment ? 'Machine' : 'Material'}</Text>
                         <Text style={styles.cQty}>Quantity</Text>
                         <Text style={styles.cPrice}>Unit price</Text>
                         <Text style={styles.cAmt}>Amount ({data.currency})</Text>
@@ -232,7 +271,7 @@ export default function PurchaseOrderDocument({
                                 {t.percentage !== null
                                     ? `${num(t.percentage, 1)}%`
                                     : `${num(t.fixed_amount_ccy ?? 0)} ${data.currency}`}
-                                {t.trigger_event ? ` — on ${t.trigger_event.replace(/_/g, ' ')}` : ''}
+                                {t.trigger_event ? ` — ${triggerPhrase(t.trigger_event)}` : ''}
                                 {t.due_date ? ` — due ${t.due_date}` : ''}
                                 {t.notes ? ` (${t.notes})` : ''}
                             </Text>

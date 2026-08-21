@@ -73,7 +73,7 @@ export default async function PurchaseOrderDetailPage({
         supabase.from('suppliers').select('id, legal_name').eq('id', po.supplier_id).single(),
         supabase
             .from('purchase_order_lines_masked')
-            .select('id, line_no, material_id, quantity, unit, pricing_formula_id, estimated_unit_price, estimated_amount_ccy, expected_assay, notes, price_source, price_provenance')
+            .select('id, line_no, material_id, asset_id, quantity, unit, pricing_formula_id, estimated_unit_price, estimated_amount_ccy, expected_assay, notes, price_source, price_provenance')
             .eq('purchase_order_id', id)
             .order('line_no'),
         supabase
@@ -180,6 +180,13 @@ export default async function PurchaseOrderDetailPage({
             ? supabase.from('ap_open_items').select('inbound_batch_id, open_base').in('inbound_batch_id', batchIds)
             : Promise.resolve({ data: [] as { inbound_batch_id: string | null; open_base: number }[], error: null }),
     ])
+    // ── EQP-1c-b-fu2:这张单是【设备单】还是【材料单】───────────────────────
+    // 【一张单只有一种】EQP-1a 的 N1 由一条延迟约束触发器保证不混装,所以
+    // "任意一行有 asset_id" 就是整单的种类,不需要逐行判。
+    // 这一个布尔量决定了下面【一整批】只对材料成立的东西出不出现 ——
+    // 走查看到的是"按此单收货"那一个按钮,而按钮只是其中一项(见本刀的分类表)。
+    const isEquipmentOrder = lines.some((l) => l.asset_id !== null)
+
     const materialById = new Map((mustRows(materialsRes)).map((m) => [m.id, `${m.code} — ${m.name}`]))
 
     // ── EQP-1c-b(P3):设备行的名字 ────────────────────────────────────────
@@ -285,8 +292,16 @@ export default async function PurchaseOrderDetailPage({
                     <span className="ml-3 font-mono text-base text-gray-500">{po.code}</span>
                 </h1>
                 <div className="flex flex-wrap items-center gap-3 justify-end">
-                    {/* 按此单收货:只在可收货状态出现 */}
-                    {(po.status === 'confirmed' || po.status === 'receiving') && (
+                    {/* 按此单收货:只在可收货状态出现。
+                        【EQP-1c-b-fu2:设备单上【隐藏】,不是变灰】——
+                        机器到厂【不是一次收货】(不产生批次、没有化验、不进库位),
+                        而 guard_inbound_po_line_match 在库里按名拒。
+                        本仓库的规矩是:问题【不适用】就隐藏,问题适用但此刻做不到
+                        才变灰加一句话。"这台机器收几公斤"是前者 —— 它根本不是
+                        一个可以问的问题。
+                        【拿掉按钮不等于解决困惑】所以下面那一句告诉人该去哪 ——
+                        否则只是把困惑挪了个地方。 */}
+                    {!isEquipmentOrder && (po.status === 'confirmed' || po.status === 'receiving') && (
                         <Link
                             href={`/inbound/new?po=${po.id}`}
                             className="bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 text-sm"
@@ -323,6 +338,14 @@ export default async function PurchaseOrderDetailPage({
             </div>
 
             <Subnav />
+
+            {/* A3:拿掉了"收货"这个动作,就得说清楚机器到了该去哪 —— 否则
+                删掉按钮只是把困惑搬了个家。 */}
+            {isEquipmentOrder && (
+                <p className="mb-4 rounded border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+                    {t('purchasing.equipmentOrderNote')}
+                </p>
+            )}
 
             {isCancelled && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">
@@ -510,9 +533,18 @@ export default async function PurchaseOrderDetailPage({
                 <thead className="bg-gray-100">
                     <tr>
                         <th className="border border-gray-300 px-3 py-2 text-left w-10">#</th>
-                        <th className="border border-gray-300 px-3 py-2 text-left">{t('purchasing.colMaterial')}</th>
+                        {/* EQP-1c-b-fu2:表头跟着单据的种类走 —— 一台机器上面写着
+                            「物料」,那不是一个空列,是一个【说错了的】列头。 */}
+                        <th className="border border-gray-300 px-3 py-2 text-left">
+                            {isEquipmentOrder ? t('purchasing.colMachine') : t('purchasing.colMaterial')}
+                        </th>
                         <th className="border border-gray-300 px-3 py-2 text-right">{t('purchasing.colQuantity')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-left">{t('purchasing.colFormula')}</th>
+                        {/* 【计价公式这一列在设备单上【永远】只能是一个破折号】——
+                            而一张单不许混装,所以它不是"这次是空的",是"它不可能适用"。
+                            整列拿掉,不是留着画横杠。 */}
+                        {!isEquipmentOrder && (
+                            <th className="border border-gray-300 px-3 py-2 text-left">{t('purchasing.colFormula')}</th>
+                        )}
                         <th className="border border-gray-300 px-3 py-2 text-right">{t('purchasing.colUnitPrice')}</th>
                         <th className="border border-gray-300 px-3 py-2 text-right">{t('purchasing.colAmount')}</th>
                     </tr>
@@ -533,6 +565,7 @@ export default async function PurchaseOrderDetailPage({
                             <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
                                 {Number(l.quantity)} {l.unit}
                             </td>
+{!isEquipmentOrder && (
                             <td className="border border-gray-300 px-3 py-2 text-sm">
                                 {l.pricing_formula_id ? (formulaById.get(l.pricing_formula_id) ?? '—') : '—'}
                                 {/* FIN-27:结算按哪一份条款。绿色 = 下单时抄下的副本,
@@ -550,6 +583,7 @@ export default async function PurchaseOrderDetailPage({
                                     </span>
                                 )}
                             </td>
+                            )}
                             <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
                                 {l.estimated_unit_price !== null ? formatUnitCost(l.estimated_unit_price) : '—'}
                                 {/* FIN-26:价的出处 —— 读者不必懂内部机制就能分清
@@ -670,6 +704,13 @@ export default async function PurchaseOrderDetailPage({
                 【它活过关单】上面那句"已收 / 已订"是单级汇总(一行超一行短抵成
                 100%),而 po_receivable_lines 在单一关就不再收这一行。这一块两者
                 都不做,所以关掉的单上它照样说得出话。 */}
+            {/* ── EQP-1c-b-fu2:整块【收货】的东西在设备单上不出现 ──────────────
+                走查看到的是"按此单收货"那个按钮,但按钮只是入口;这两整节
+                (收货差异、收货批次)同样只对材料成立 —— 设备行【永远】没有收货行,
+                所以它们在设备单上会渲染成一排"暂无收货",而那读起来像
+                "还没收到货",不像"这件事不适用"。
+                【与那个按钮同一条判据】问题不适用 → 隐藏。 */}
+            {!isEquipmentOrder && (<>
             <h2 className="text-xl font-bold mb-3">{t('grn.po.heading')}</h2>
             <p className="text-sm text-gray-600 mb-3">{t('grn.po.note')}</p>
             <div className="space-y-3 mb-8">
@@ -801,6 +842,7 @@ export default async function PurchaseOrderDetailPage({
             ) : (
                 <p className="text-sm text-gray-500">{t('purchasing.noReceipts')}</p>
             )}
+            </>)}
         </div>
     )
 }

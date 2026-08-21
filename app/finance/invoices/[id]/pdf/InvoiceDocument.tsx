@@ -6,6 +6,7 @@
 // 这里出现的 'INVOICE'、'Bill To'、'Subtotal' 等都是【单据正文】,不是界面标签。
 //
 // 只在服务端渲染(route handler 里 renderToBuffer),不进浏览器包。
+import { countryIfDistinct } from '@/lib/companyAddress'
 import React from 'react'
 import path from 'node:path'
 import fs from 'node:fs'
@@ -262,7 +263,12 @@ export default function InvoiceDocument({
                                   ))
                             : null}
                         {cityLine ? <Text style={styles.small}>{cityLine}</Text> : null}
-                        {company.country ? <Text style={styles.small}>{company.country}</Text> : null}
+                        {/* EQP-1c-b-fu2:国家与城市相同就不再印一遍(新加坡是城邦)。
+                            此前这里印的是 "Singapore 189218" 之后【再来一行】"Singapore"。
+                            错的是模板不是数据 —— company_profile 每一列装的都对。
+                            规则住在 lib/companyAddress.ts,与采购单共用一个实现。 */}
+                        {countryIfDistinct(company)
+                            ? <Text style={styles.small}>{countryIfDistinct(company)}</Text> : null}
                         {company.registration_no ? (
                             <Text style={styles.small}>Co. Reg. No: {company.registration_no}</Text>
                         ) : null}
