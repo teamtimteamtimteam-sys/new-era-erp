@@ -4,13 +4,7 @@ import { useActionState } from 'react'
 import Link from 'next/link'
 import { updateSupplier, type UpdateSupplierState } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
-
-const SUPPLIER_TYPE_OPTIONS = [
-    { value: 'dismantler', labelKey: 'suppliers.types.dismantler' },
-    { value: 'battery_factory_scrap', labelKey: 'suppliers.types.batteryScrap' },
-    { value: 'recycler', labelKey: 'suppliers.types.recycler' },
-    { value: 'trader', labelKey: 'suppliers.types.trader' },
-]
+import { SUPPLIER_TYPE_OPTIONS } from '../../supplierTypes'
 
 const initialState: UpdateSupplierState = {}
 

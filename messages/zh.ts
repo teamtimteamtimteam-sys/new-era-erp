@@ -628,6 +628,7 @@ const zh = {
             batteryScrap: '电池厂废料车间',
             recycler: '回收商',
             trader: '贸易商',
+            equipmentVendor: '设备供应商',
         },
         status: {
             draft: '草稿',
@@ -2925,6 +2926,7 @@ const zh = {
         editLink: '编辑',
         filterAllSuppliers: '全部供应商',
         form: {
+                removeLineOnlyOne: '一张单至少要有一行,所以最后一行删不掉。',
                 kind: { material: '材料', equipment: '设备' },
                 kindRule: '一张单要么全是材料,要么全是设备 —— 不能混装。请在动手【之前】选好:这条规矩在提交时才执行,而一次打完字之后才到来的拒绝,浪费的正是那些字。',
                 kindEquipmentNote: '设备单买的是【已经登记成资产卡】的机器,一行一台。设备行永远不收货 —— 机器到厂不是一次入库;它的成本以发票的形式记到这条行上。',

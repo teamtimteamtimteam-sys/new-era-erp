@@ -224,10 +224,12 @@ const SPECIAL_ID_ROUTES = new Set([
 ])
 
 const EXPECTED_SKIPS = new Set([
-    // EQP-1c-b:线上 fixed_assets 今天【零行】—— 这套台账从建成起就没被真的用过。
-    // 【Tim 走查登记第一台机器的那一天,这条断言会报"预期会 SKIP 的路由跑起来了",
-    //  而那是它存在的理由:跳过是记录,不是默许。】届时把这一行删掉。
-    '/finance/assets/[id]',
+    // (EQP-1c-b 曾在这里挂过 '/finance/assets/[id]' —— 线上 fixed_assets 零行。
+    //  2026-08-21 Tim 的走查登记了第一台真机器 FA-2026-0001
+    //  「Bosch Deep Discharging Machine」,于是这条断言【在同一天】就报了
+    //  「预期会 SKIP 的路由跑起来了 —— 数据到位了」,正如它自己的注释所承诺的。
+    //  这一行因此被删掉。留这句话是为了记下:它只跳过了一次跑就到期了,
+    //  而那正是"跳过是记录,不是默许"的意思。)
     '/hr/claims/[id]',    // medical_claims 空 —— 正常运营会产生;有数据那天此断言逼人收编
     '/hr/leave/[id]',     // leave_requests 空
     // 【FRT-1 的那条跳过已经删掉了 —— 它自己逼出来的(FRT-FIX,2026-08-20)】

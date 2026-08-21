@@ -625,6 +625,7 @@ const en = {
             batteryScrap: 'Battery plant scrap',
             recycler: 'Recycler',
             trader: 'Trader',
+            equipmentVendor: 'Equipment vendor',
         },
         status: {
             draft: 'Draft',
@@ -2938,6 +2939,7 @@ const en = {
         editLink: 'Edit',
         filterAllSuppliers: 'All suppliers',
         form: {
+                removeLineOnlyOne: 'An order needs at least one line, so the last one cannot be removed.',
                 kind: { material: 'Materials', equipment: 'Equipment' },
                 kindRule: 'One order is either materials or equipment — never both. Choose before you type: the rule is enforced when you submit, and a refusal after typing wastes the typing.',
                 kindEquipmentNote: 'An equipment order buys machines that are already registered as asset cards. Each line is one machine. Equipment lines are never received into stock — the machine arriving is not a goods receipt; its cost arrives as an invoice recorded against the line.',

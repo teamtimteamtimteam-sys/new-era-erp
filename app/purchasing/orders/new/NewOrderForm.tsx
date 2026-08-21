@@ -83,12 +83,21 @@ function addDays(iso: string, days: number): string {
 
 const round2 = (n: number) => Math.round(n * 100) / 100
 
-function emptyLine(): LineRow {
+// EQP-1c-b-fu:【设备行的 1 unit 必须是【真的状态】,不是一句写死的显示】
+// 走查发现的那个 0.00 就是这么来的:此前设备行的 quantity 留在 '',而
+// "1 unit" 只是屏幕上的一段文字,数量 1 只在【提交负载】里被替换。于是
+// lineAmount = 数量 × 单价 里的数量是 null,金额【永远】是 0.00 ——
+// 不只是"填价之前",填了价也还是 0.00。
+// 更远的一处:estTotal 是各行金额之和,而【按百分比的付款计划】乘的就是它 ——
+// 一台机器订单上的"30% 定金"会算成 0。
+// 所以数量与单位在建行时就写进状态,屏幕显示的是状态本身。
+function emptyLine(kind: 'material' | 'equipment' = 'material'): LineRow {
+    const equip = kind === 'equipment'
     return {
         material_id: '',
         asset_id: '',
-        quantity: '',
-        unit: 'kg',
+        quantity: equip ? '1' : '',
+        unit: equip ? 'unit' : 'kg',
         formula_id: '',
         est_price: '',
         priceComputed: false,
@@ -217,7 +226,13 @@ export default function NewOrderForm({
         // 设备行只带 asset_id;数量与单位由服务端按规则定死(见 actions.ts)。
         ...(isEquipment ? { asset_id: l.asset_id } : {}),
         quantity: isEquipment ? '1' : l.quantity, unit: isEquipment ? 'unit' : l.unit,
-        formula_id: l.formula_id, est_price: l.est_price, assay: l.assay,
+        // 【隐藏了的东西,下游也不许再读到值】设备行的公式与化验现在【给不出来】,
+        // 所以这里明确清空,而不是指望"状态恰好还是空的"。
+        // (第一版把它写成了一个 spread 放在前面 —— 被后面这两个显式键盖掉了,
+        //  也就是一次【什么也没做】的清空。写在键上,才真的清得掉。)
+        formula_id: isEquipment ? '' : l.formula_id,
+        est_price: l.est_price,
+        assay: isEquipment ? {} : l.assay,
         // FIN-26:出处随行走。computed = 按钮算的且没被手改过;有价而非 computed
         // 即 manual。依据 = 完整 CalcResult(逐金属行情与日期、公式参数)+ 汇率。
         ...(l.est_price.trim() !== ''
@@ -371,7 +386,7 @@ export default function NewOrderForm({
                                     // 换模式就把行重置 —— 留着上一模式填了一半的行,
                                     // 等于把那条不混装的规矩又推回提交那一刻。
                                     setOrderKind(k)
-                                    setLines([emptyLine()])
+                                    setLines([emptyLine(k)])
                                 }}
                             />
                             {t('purchasing.form.kind.' + k)}
@@ -446,8 +461,9 @@ export default function NewOrderForm({
                                     <label className="block text-xs text-gray-600 mb-1">
                                         {t('purchasing.colQuantity')} · {t('inbound.form.unit')}
                                     </label>
+                                    {/* 显示的是【状态本身】,不是一段写死的文字 —— 见 emptyLine 的注释。 */}
                                     <p className="w-40 border border-gray-200 bg-gray-50 px-2 py-1.5 rounded text-sm text-gray-700">
-                                        1 unit
+                                        {l.quantity} {l.unit}
                                     </p>
                                     <p className="mt-1 text-xs text-gray-600">{t('purchasing.form.equipmentQtyFixed')}</p>
                                 </div>
@@ -475,6 +491,11 @@ export default function NewOrderForm({
                                     </div>
                                 </>
                             )}
+                            {/* EQP-1c-b-fu(走查):【计价公式是材料行独有的】——
+                                一台机器有一个谈定的价,不按行情公式结算。
+                                **隐藏,而不是禁用**:一个禁用的控件邀请人问"我为什么不能用它",
+                                而这里的答案是【这个问题不适用】,不是"你现在不行"。 */}
+                            {!isEquipment && (
                             <div className="min-w-[12rem]">
                                 <label className="block text-xs text-gray-600 mb-1">{t('purchasing.colFormula')}</label>
                                 <select
@@ -496,6 +517,7 @@ export default function NewOrderForm({
                                     ))}
                                 </select>
                             </div>
+                            )}
                             <div>
                                 <label className="block text-xs text-gray-600 mb-1">{t('purchasing.colUnitPrice')}</label>
                                 <DecimalInput
@@ -508,17 +530,27 @@ export default function NewOrderForm({
                                 {t('purchasing.colAmount')}:{' '}
                                 <span className="font-mono font-medium">{formatAmount(lineAmount(l), currency)}</span>
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => setLines((ls) => (ls.length > 1 ? ls.filter((_, j) => j !== i) : ls))}
-                                disabled={lines.length === 1}
-                                className="text-red-600 hover:underline text-sm pb-1.5 disabled:text-gray-300 disabled:no-underline"
-                            >
-                                {t('purchasing.form.removeLine')}
-                            </button>
+                            {/* EQP-1c-b-fu(走查):【每一个禁用都把理由摆在旁边】(CMP-2 的规矩)——
+                                一个按不下去又不说为什么的按钮读起来像是坏了。
+                                这里的理由只有一个:它是最后一行,而一张单不能没有行。 */}
+                            <div className="pb-1.5">
+                                <button
+                                    type="button"
+                                    onClick={() => setLines((ls) => (ls.length > 1 ? ls.filter((_, j) => j !== i) : ls))}
+                                    disabled={lines.length === 1}
+                                    className="text-red-600 hover:underline text-sm disabled:text-gray-300 disabled:no-underline"
+                                >
+                                    {t('purchasing.form.removeLine')}
+                                </button>
+                                {lines.length === 1 && (
+                                    <p className="text-xs text-gray-500">{t('purchasing.form.removeLineOnlyOne')}</p>
+                                )}
+                            </div>
                         </div>
 
-                        {/* 预计化验(折叠;空 = 没测。最终计价以到货批次的实际化验为准)*/}
+                        {/* EQP-1c-b-fu(走查):【预计化验是材料行独有的】——
+                            一台机器没有金属含量。同样是隐藏,不是禁用。 */}
+                        {!isEquipment && (
                         <div>
                             <button
                                 type="button"
@@ -548,9 +580,13 @@ export default function NewOrderForm({
                                 </div>
                             )}
                         </div>
+                        )}
 
-                        {/* 按化验估算:公式 + 化验都有才出现;结果摊开,数字可解释 */}
-                        {l.formula_id && assayCount(l) > 0 && (
+                        {/* 按化验估算:公式 + 化验都有才出现;结果摊开,数字可解释。
+                            设备行两者都给不出来,所以它本来就不会出现 —— 这里把
+                            !isEquipment 明写出来,是为了让"它为什么不在"读得出来,
+                            而不是靠两个条件恰好都为假(F2a 数出来的第三个材料专属控件)。 */}
+                        {!isEquipment && l.formula_id && assayCount(l) > 0 && (
                             <div>
                                 <button
                                     type="button"
@@ -615,7 +651,7 @@ export default function NewOrderForm({
             </div>
             <button
                 type="button"
-                onClick={() => setLines((ls) => [...ls, emptyLine()])}
+                onClick={() => setLines((ls) => [...ls, emptyLine(orderKind)])}
                 className="text-blue-600 hover:underline text-sm"
             >
                 {t('purchasing.form.addLine')}
