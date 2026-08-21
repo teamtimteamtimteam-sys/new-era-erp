@@ -7,6 +7,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { loadIntakeConditionOptions, loadMaterialAxes } from '../intakeConditionQuery'
 
 export default async function NewInboundPage({
     searchParams,
@@ -73,8 +74,18 @@ export default async function NewInboundPage({
         'storage_locations'
     ) as unknown as { id: string; code: string; name: string }[]
 
+    // PROC-2c:门口就问的两条轴。字典与"哪些物料说得上它们"都由共用的一支取,
+    // 三个页面(批次页 + 建批次两条路)读的是同一份实现。
+    const [condition, materialAxes] = await Promise.all([
+        loadIntakeConditionOptions(supabase),
+        loadMaterialAxes(supabase),
+    ])
+
     return (
         <NewInboundForm
+            safetyStates={condition.states}
+            certainties={condition.certainties}
+            materialAxes={materialAxes}
             locations={locationChoices}
             materials={mustRows(materialsRes)}
             suppliers={mustRows(suppliersRes)}

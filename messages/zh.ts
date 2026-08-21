@@ -959,6 +959,9 @@ const zh = {
             inbound_batches_chemistry_certainty_code_fkey: '这个化学体系确定度不存在。它来自一张字典。',
             inbound_batch_safety_states_safety_state_code_fkey: '这个安全状态不存在。它来自一张字典。',
             inbound_batch_safety_states_pkey: '这一批货上已经记过这个安全状态了。记两次不是"更确定",它只会让任何按状态计数的读法开始骗人。',
+            INBOUND_CONDITION_NOT_APPLICABLE: '一{1}没有"安全状态",也没有要判定确定度的化学体系。要记这两样,先改这个物料的种类。',
+            SAFETY_STATES_BATCH_REQUIRED: '记给哪一批?记安全状态得有一个批次可记。',
+            INBOUND_NOT_FOUND: '进料批次 {0} 不存在。',
         },
         chemistry: {
             nmc: 'NMC',
@@ -1132,6 +1135,8 @@ const zh = {
             certaintyUnchosen: '— 没有记过 —',
             certaintyBoundary: '**「已知混合」的意思是你【知道】它是混的** —— 一个确立的事实。如果你分不出来它是什么,那是「待识别」,不是「已知混合」。',
             certaintyNotRecorded: '还没有人记过。**这与「待识别」不是一回事** —— 后者是有人做过的一个判断。',
+            notApplicable: '不适用:一{kind}没有"安全状态"可言,也没有需要判定确定度的化学体系。只有电池料要回答这两条轴。',
+            atGateHint: '在门口就把【现在已经看得出来】的记下来。答不上来的留空 —— **留空的意思是没有人记过**,批次页面上还可以补(一批货可以到的时候带电、后来才被放电)。',
             saveHint: '保存会用这里勾中的这一组【整组替换】已有的安全状态。',
         },
         pagination: {

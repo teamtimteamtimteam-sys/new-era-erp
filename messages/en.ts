@@ -957,6 +957,9 @@ const en = {
             inbound_batches_chemistry_certainty_code_fkey: 'That chemistry-certainty value does not exist. It comes from a dictionary.',
             inbound_batch_safety_states_safety_state_code_fkey: 'That safety state does not exist. It comes from a dictionary.',
             inbound_batch_safety_states_pkey: 'That safety state is already recorded on this batch. Recording it twice is not more certain - it would only make any count of states start lying.',
+            INBOUND_CONDITION_NOT_APPLICABLE: 'A {1} has no safety state and no chemistry certainty. To record those, change the material\'s kind first.',
+            SAFETY_STATES_BATCH_REQUIRED: 'Which batch? Recording safety states needs a batch to record them against.',
+            INBOUND_NOT_FOUND: 'Inbound batch {0} does not exist.',
         },
         chemistry: {
             nmc: 'NMC',
@@ -1130,6 +1133,8 @@ const en = {
             certaintyUnchosen: '- not recorded -',
             certaintyBoundary: '"Mixed" means you KNOW it is mixed - an established fact. If you could not tell what it is, that is "Unknown, pending identification", not "Mixed".',
             certaintyNotRecorded: 'Nobody has recorded this yet. That is not the same as "unknown pending identification" - that one is a judgement somebody made.',
+            notApplicable: 'Does not apply: a {kind} has no safety state and no chemistry to be certain about. Only battery material answers these axes.',
+            atGateHint: 'Record what you can already see at the gate. Anything you cannot answer yet stays blank - a blank means NOBODY HAS RECORDED IT, and the batch page can record it later (a load can arrive charged and be discharged afterwards).',
             saveHint: 'Saving replaces the whole set of safety states with what is ticked here.',
         },
         pagination: {

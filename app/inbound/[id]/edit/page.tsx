@@ -22,6 +22,7 @@ import { can, canViewPrices } from '@/lib/permissions'
 import { maskedRows, maskedExcept } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
 import { mustRows, mustOne } from '@/lib/db-helpers'
+import { loadMaterialAxes } from '@/app/inbound/intakeConditionQuery'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import DiscrepancyKinds, {
@@ -144,6 +145,22 @@ export default async function EditInboundPage({
     // cut 2b:改读遮蔽视图(select('*') 会碰到被收回的 unit_price)。
     // 只有 unit_price 会被遮蔽,其余列恢复基表类型。
     const batch = maskedExcept<Tables<'inbound_batches'>, 'unit_price'>(batchRes.data)
+
+    // 【PROC-2c:这批货的种类说不说得上这两条轴】PROC-2b 把这一块无条件摆了出来,
+    // 而 PROC-2c 之后库里有了 guard_inbound_condition_applicable —— 于是一箱吨袋的
+    // 批次页面上会摆着一组【服务端保证会拒】的控件,正是 AGENTS.md 禁的那件事。
+    // 这不是 PROC-2b 写错了:那时那道守卫还不存在,页面与服务端是一致的。
+    // **一条新守卫会让别处一个本来诚实的控件变成一个骗人的控件** —— 加守卫时要回头
+    // 看一眼谁在摆这个动作,这是本刀记下来的一条。
+    //
+    // 判据与建批次那两条路【读同一支】(loadMaterialAxes),因为它们问的是同一个
+    // 问题;而那一支的判据又与库里那道守卫逐字同源:**查不到种类 = 没有人记过,
+    // 那【不是】"不适用"**,照常可编辑(库那一侧此时也放行)。
+    const materialAxes = await loadMaterialAxes(supabase)
+    const axis = materialAxes[batch.material_id]
+    const conditionApplicable = axis ? axis.has_axes : true
+    const conditionKindLabel = axis ? (locale === 'zh' ? axis.kind_zh : axis.kind_en) : ''
+
 
     // 化验(cut 5b):本批次的化验单(新到旧)+ 会生效的定价公式
     // (解析顺序与 apply_assay_result 一致:批次 → 采购单明细行)
@@ -547,10 +564,23 @@ export default async function EditInboundPage({
                 「这批货【是什么状态】」,而库存回答的是「它现在在哪、还有多少」。
                 【它也是能被【改】的那一块】:一批货到的时候带电,后来才放电并核验,
                 而那个转变正是 PROC-3 的闸要能被满足所依赖的东西。 */}
-            <IntakeConditionPanel batchId={id} states={safetyStates as never[]}
-                certainties={certainties as never[]} currentStates={pickedStates}
-                currentCertainty={batch.chemistry_certainty_code ?? null}
-                canEdit={canEditInbound} locale={locale} />
+            {conditionApplicable ? (
+                <IntakeConditionPanel batchId={id} states={safetyStates as never[]}
+                    certainties={certainties as never[]} currentStates={pickedStates}
+                    currentCertainty={batch.chemistry_certainty_code ?? null}
+                    canEdit={canEditInbound} locale={locale} />
+            ) : (
+                /* 【不适用时说出是哪一种种类,而不是让这一块凭空消失】——
+                   一块无声消失的界面读起来像"这个功能坏了",而不像一个答复。 */
+                <div className="mb-8">
+                    <h2 className="text-sm font-medium text-gray-700 mb-2">{t('inbound.condition.title')}</h2>
+                    <div className="border border-gray-300 rounded p-3 max-w-2xl bg-gray-50">
+                        <p className="text-xs text-gray-600">
+                            {t('inbound.condition.notApplicable', { kind: conditionKindLabel })}
+                        </p>
+                    </div>
+                </div>
+            )}
 
             <StockStatusPanel inboundBatchId={id} unit={batch.unit} />
 

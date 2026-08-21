@@ -10,6 +10,8 @@ import { UNIT_OPTIONS } from '../../materials/options'
 import { STAGE_OPTIONS } from '../options'
 import { useLocale, useTranslations } from '@/lib/i18n/client'
 import LocationPicker, { type LocationChoice } from '@/app/components/inventory/LocationPicker'
+import IntakeConditionFormSection, { type MaterialAxis } from '../IntakeConditionFormSection'
+import type { SafetyState, Certainty } from '../IntakeConditionFields'
 
 const initialState: CreateInboundState = {}
 
@@ -46,6 +48,9 @@ export default function NewInboundForm({
     suppliers,
     poLines,
     blockedSuppliers,
+    safetyStates,
+    certainties,
+    materialAxes,
     initialPoId = '',
 }: {
     // IOD-1b:收货库位的可选清单(在用库位),由页面取好传进来
@@ -54,6 +59,10 @@ export default function NewInboundForm({
     suppliers: SupplierOption[]
     poLines: PoLineOption[]
     blockedSuppliers: BlockedSupplier[]
+    // PROC-2c:门口就问的两条轴 —— 两本字典,以及每个物料的种类【说不说得上】它们
+    safetyStates: SafetyState[]
+    certainties: Certainty[]
+    materialAxes: Record<string, MaterialAxis>
     initialPoId?: string
 }) {
     const t = useTranslations()
@@ -368,6 +377,14 @@ export default function NewInboundForm({
                         </p>
                     )}
                 </div>
+
+                {/* PROC-2c:到货状态 —— 摆在【备注之前】,因为它是一件要在秤边
+                    看着这批货回答的事,而备注是回头补的。适不适用由种类决定,
+                    整块的判断在 IntakeConditionFormSection 里,只有一份。 */}
+                <IntakeConditionFormSection
+                    states={safetyStates} certainties={certainties}
+                    materialAxes={materialAxes} materialId={materialId} locale={locale}
+                />
 
                 {/* 备注 */}
                 <div>

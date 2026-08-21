@@ -1,21 +1,33 @@
 'use server'
 
 // PROC-2b:安全状态(多值)与化学体系确定度的写入。
+// PROC-2c:整组写从【先删后插两条语句】改成【一个 RPC】。
 //
-// 【直连表 + RLS,没有 RPC】两张目标都带策略:
-//   * inbound_batches 的 UPDATE 策略是 module.inbound.edit(实测);
-//   * inbound_batch_safety_states 的 INSERT/DELETE 策略同上。
+// ════════════════════════════════════════════════════════════════════════════
+// 【那扇窗是什么,以及为什么它必须关】
+//
+// PostgREST 一次一条语句,两条语句之间没有共同的事务。所以 PROC-2b 的
+//     delete(整组) → insert(新的一组)
+// 在 delete 成功、insert 失败时会留下一个【空集】—— 而这张表的表注写着:
+// **一条安全状态都没有 ≠ 安全,它的意思是"没有人记过"。**
+// 也就是说那一刻库里存着的不是"写了一半",而是一句【意思完全不同的真话】,
+// 而且没有任何东西会说它是失败的残骸。
+//
+// 【现在】set_inbound_safety_states 在一个函数体里删+插 —— **一个函数体对调用方
+// 永远是原子的**:要么整组换成新的,要么原样不动(旧的一组原封不动留着)。
+// 这不是"更整洁",是把一个能产生【错误意思】的中间态从系统里去掉。
+//
+// 【确定度那一列仍然是直连表 UPDATE】它是 inbound_batches 上的一列,一条语句
+// 自己就是原子的,不需要 RPC。**两次写之间仍然没有共同事务** —— 确定度写成了、
+// 安全状态整组失败,是可能的;但那时【两边各自都是完整的】,没有哪一边落在
+// 一个意思错了的中间态上。这与上面那扇窗是两回事,写在这里免得被读成还没修完。
+//
 // 【读走遮蔽视图,写走表】—— inbound_batches 是遮蔽表,读它必须经
 // inbound_batches_masked(S2);而写没有遮蔽这回事,策略就是门。
-//
-// 【多值的写法:整组替换,不做增量】收货的人心里有的是"这批货【现在】是什么状态"
-// 这一整件事,不是"加一个/减一个"。整组替换让屏幕上看到的与库里存的永远一致;
-// 增量写法则要求两边对同一个起点达成一致 —— 而那个起点会过期。
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { localizeMaterialError } from '@/app/materials/materialErrorCodes'
-
-const CERTAINTY_UNCHOSEN = '__unchosen__'
+import { CERTAINTY_UNCHOSEN } from '@/app/inbound/IntakeConditionFields'
 
 export type IntakeConditionState = { error?: string; success?: boolean }
 
@@ -37,22 +49,13 @@ export async function setIntakeCondition(input: {
         .eq('id', input.batchId)
     if (upd.error) return { error: await localizeMaterialError(upd.error.message) }
 
-    // 【整组替换】先删后插。两步之间失败会留下一个空集,而空集的意思是
-    // "没有人记过" —— 那与真相(有人记过、只是没存上)不一样。
-    // **这是一个已知的窄窗口,写在这里而不是假装它不存在**:两张表的写入
-    // 没有共同的事务(PostgREST 一次一条语句)。要它原子,就要一个 RPC,
-    // 而那是 PROC-2c 顺手做的事(它本来就要改那两个 RPC 的签名)。
-    const del = await supabase.from('inbound_batch_safety_states')
-        .delete().eq('inbound_batch_id', input.batchId)
-    if (del.error) return { error: await localizeMaterialError(del.error.message) }
-
-    if (input.safetyStates.length > 0) {
-        const ins = await supabase.from('inbound_batch_safety_states')
-            .insert(input.safetyStates.map((code) => ({
-                inbound_batch_id: input.batchId, safety_state_code: code,
-            })) as never)
-        if (ins.error) return { error: await localizeMaterialError(ins.error.message) }
-    }
+    // 【整组替换,一笔写完】空数组【也要传】—— "全部取消勾选"是一个正当的动作
+    // (记错了要能撤回),它的意思是把这批货退回"没有人记过"。不传就成了"不动它"。
+    const { error } = await supabase.rpc('set_inbound_safety_states', {
+        p_inbound_batch_id: input.batchId,
+        p_codes: input.safetyStates,
+    })
+    if (error) return { error: await localizeMaterialError(error.message) }
 
     revalidatePath(`/inbound/${input.batchId}/edit`)
     revalidatePath('/inbound')

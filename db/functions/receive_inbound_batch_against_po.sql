@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.receive_inbound_batch_against_po(p_material_id uuid, p_supplier_id uuid, p_quantity numeric, p_arrival_date date DEFAULT NULL::date, p_notes text DEFAULT NULL::text, p_purchase_order_id uuid DEFAULT NULL::uuid, p_purchase_order_line_id uuid DEFAULT NULL::uuid, p_location_id uuid DEFAULT NULL::uuid, p_declared_qty numeric DEFAULT NULL::numeric)
+CREATE OR REPLACE FUNCTION public.receive_inbound_batch_against_po(p_material_id uuid, p_supplier_id uuid, p_quantity numeric, p_arrival_date date DEFAULT NULL::date, p_notes text DEFAULT NULL::text, p_purchase_order_id uuid DEFAULT NULL::uuid, p_purchase_order_line_id uuid DEFAULT NULL::uuid, p_location_id uuid DEFAULT NULL::uuid, p_declared_qty numeric DEFAULT NULL::numeric, p_safety_states text[] DEFAULT NULL::text[], p_chemistry_certainty text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -34,12 +34,17 @@ BEGIN
     INSERT INTO inbound_batches (
         material_id, supplier_id, quantity, remaining_qty, unit, arrival_date,
         notes, purchase_order_id, purchase_order_line_id, declared_qty,
-        created_by, updated_by)
+        chemistry_certainty_code, created_by, updated_by)
     VALUES (
         p_material_id, p_supplier_id, p_quantity, p_quantity, 'kg', p_arrival_date,
         p_notes, p_purchase_order_id, p_purchase_order_line_id, p_declared_qty,
-        v_user, v_user)
+        p_chemistry_certainty, v_user, v_user)
     RETURNING id INTO v_id;
+
+    -- PROC-2c:见 create_inbound_batch 里同一段注释 —— NULL 与 '{}' 是两件事。
+    IF p_safety_states IS NOT NULL THEN
+        PERFORM set_inbound_safety_states(v_id, p_safety_states);
+    END IF;
 
     PERFORM set_config('evoltrya.location_ctx', '', true);
     RETURN jsonb_build_object('batch_id', v_id, 'warnings', to_jsonb(v_warn));

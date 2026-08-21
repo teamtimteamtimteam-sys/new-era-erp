@@ -43,3 +43,10 @@ CREATE POLICY "inbound_batch_safety_states delete by permission"
     ON public.inbound_batch_safety_states
     AS PERMISSIVE FOR DELETE TO authenticated
     USING (has_permission('module.inbound.edit'::text));
+
+-- PROC-2c:适用性守卫。**函数住在 db/functions/**(两张表共用它,而重放顺序是
+-- functions → tables,所以两边的触发器都挂得上;先例 guard_soft_delete_provenance)。
+CREATE TRIGGER trg_inbound_safety_states_applicable
+    BEFORE INSERT ON public.inbound_batch_safety_states
+    FOR EACH ROW EXECUTE FUNCTION public.guard_inbound_condition_applicable();
+

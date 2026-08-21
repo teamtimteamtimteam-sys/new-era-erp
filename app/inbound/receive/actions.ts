@@ -9,6 +9,8 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { localizePurchasingError } from '@/app/purchasing/purchasingErrorCodes'
 import { isStockErrorCode, localizeStockError, warningCodesFrom, warnQuery } from '@/app/components/inventory/stockErrorCodes'
+import { localizeMaterialError } from '@/app/materials/materialErrorCodes'
+import { CERTAINTY_UNCHOSEN, FIELD_SAFETY_STATES, FIELD_CERTAINTY } from '../IntakeConditionFields'
 
 export type ReceiveState = {
     error?: string
@@ -40,6 +42,17 @@ export async function createFieldReceipt(
     // 整个 p_declared_qty 参数都不传(下面用展开),让库里落 NULL。
     // 传 0 会让"供应商申报了零"成为一条记录,而那是一句没人说过的话。
     const declared_raw = (formData.get('declared_qty') as string)?.trim() || ''
+    // PROC-2c:到货状态的两条轴 —— 【门口已经知道的事,在门口就记下来】。
+    // 安全状态是多值,所以用 getAll;哨兵串翻成"没有记过"(NULL / 不传)。
+    // 【空的一组不传,而不是传空数组】建批次时这两者【逐字同结果】(新批次本来
+    // 就没有任何状态行),而不传更诚实:它说的是"这次没有人记过",不是
+    // "有人看过、结论是一条都不符合"。那个区别本身是 D3 记在
+    // set_inbound_safety_states 的函数注释里的一条【已知缺口】,PROC-3 会碰它。
+    const safety_states = formData.getAll(FIELD_SAFETY_STATES)
+        .map((v) => String(v).trim()).filter((v) => v !== '')
+    const certainty_raw = String(formData.get(FIELD_CERTAINTY) ?? '').trim()
+    const chemistry_certainty =
+        certainty_raw === '' || certainty_raw === CERTAINTY_UNCHOSEN ? null : certainty_raw
 
     const fieldErrors: Record<string, string> = {}
     if (!supplier_id) fieldErrors.supplier_id = t('receive.errSupplier')
@@ -89,6 +102,10 @@ export async function createFieldReceipt(
             ...(location_id ? { p_location_id: location_id } : {}),
             // GRN-1b:没填就【整个参数不传】,库里落 NULL(具名的"没记录过")
             ...(declared_qty === null ? {} : { p_declared_qty: declared_qty }),
+            // PROC-2c:两条轴跟着建批次【一笔写完】—— 建批次成功而状态没记上,
+            // 或者反过来,都不可能发生(RPC 是一个事务)。
+            ...(safety_states.length === 0 ? {} : { p_safety_states: safety_states }),
+            ...(chemistry_certainty === null ? {} : { p_chemistry_certainty: chemistry_certainty }),
         })
 
     if (error || !data) {
@@ -105,6 +122,11 @@ export async function createFieldReceipt(
         // 收货触发器的编码错误本地化;其余仍走原样的 saveError
         if (error && /PO_NOT_RECEIVABLE|PO_LINE_MISMATCH|PO_NOT_APPROVED|SUPPLIER_QUALIFICATION_EXPIRED/.test(error.message)) {
             return { error: await localizePurchasingError(error.message) }
+        }
+        // PROC-2c:状态轴那几条具名拒绝翻成人话(判据来自 MATERIAL_ERROR_CODES)。
+        if (error) {
+            const localized = await localizeMaterialError(error.message)
+            if (localized !== error.message.trim()) return { error: localized }
         }
         return { error: t('receive.saveError', { message: error?.message ?? '' }) }
     }

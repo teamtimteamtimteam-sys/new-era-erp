@@ -16787,6 +16787,7 @@ export type Database = {
       create_inbound_batch: {
         Args: {
           p_arrival_date?: string
+          p_chemistry_certainty?: string
           p_declared_qty?: number
           p_location_id?: string
           p_material_id: string
@@ -16794,6 +16795,7 @@ export type Database = {
           p_purchase_order_id?: string
           p_purchase_order_line_id?: string
           p_quantity: number
+          p_safety_states?: string[]
           p_stage?: string
           p_supplier_id: string
           p_unit?: string
@@ -17252,6 +17254,7 @@ export type Database = {
       receive_inbound_batch_against_po: {
         Args: {
           p_arrival_date?: string
+          p_chemistry_certainty?: string
           p_declared_qty?: number
           p_location_id?: string
           p_material_id: string
@@ -17259,6 +17262,7 @@ export type Database = {
           p_purchase_order_id?: string
           p_purchase_order_line_id?: string
           p_quantity: number
+          p_safety_states?: string[]
           p_supplier_id: string
         }
         Returns: Json
@@ -17570,6 +17574,10 @@ export type Database = {
       }
       set_goal_assessment: {
         Args: { p_goal_id: string; p_reviewer_assessment_text: string }
+        Returns: Json
+      }
+      set_inbound_safety_states: {
+        Args: { p_codes: string[]; p_inbound_batch_id: string }
         Returns: Json
       }
       set_inbound_unit_price: {

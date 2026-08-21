@@ -273,3 +273,8 @@ COMMENT ON COLUMN public.inbound_batches.chemistry_certainty_code IS
 下一个人无论先打开哪一个,读到的都是同一句(Tim 点名要这样)。
 【可空】既有进料批不回填 —— 空的意思是"没有人记过",而那是真话。';
 
+-- PROC-2c:化学体系确定度的适用性守卫(与安全状态共用一个函数,见 db/functions/)。
+CREATE TRIGGER trg_inbound_batches_condition_applicable
+    BEFORE INSERT OR UPDATE ON public.inbound_batches
+    FOR EACH ROW EXECUTE FUNCTION public.guard_inbound_condition_applicable();
+

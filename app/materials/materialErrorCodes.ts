@@ -28,6 +28,16 @@ const MATERIAL_ERROR_CODES = new Set([
     'MATERIAL_KIND_HAS_NO_CONDITION_AXES',
     'MATERIAL_SIZE_FORMAT_REQUIRED',
     'MATERIAL_SIZE_FORMAT_NOT_APPLICABLE',
+    // ── 具名码:PROC-2c 的适用性守卫与整组写 ───────────────────────────────
+    // 【这三条【只有两条到得了屏幕】,写下来免得下一个人当它们是死键】
+    // INBOUND_CONDITION_NOT_APPLICABLE 会:页面已经按种类不摆那两个控件了,
+    // 但绕过页面(直连/服务密钥)仍然撞得到,而那时它必须是人话。
+    // SAFETY_STATES_BATCH_REQUIRED / INBOUND_NOT_FOUND 是 RPC 的参数守卫 ——
+    // 走界面到不了(batchId 来自路由),留着是因为**一个到不了的错也要说人话**:
+    // 它到得了的那一天,是有人写错了调用,那时最不需要的就是一串机器码。
+    'INBOUND_CONDITION_NOT_APPLICABLE',
+    'SAFETY_STATES_BATCH_REQUIRED',
+    'INBOUND_NOT_FOUND',
     // ── 具名码:PROC-1 的两条,**至今没有句子** ────────────────────────────
     'MATERIAL_KIND_NOT_PROCESSABLE',
     'MATERIAL_KIND_NOT_FOUND',

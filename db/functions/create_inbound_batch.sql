@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.create_inbound_batch(p_material_id uuid, p_supplier_id uuid, p_quantity numeric, p_unit text DEFAULT 'kg'::text, p_arrival_date date DEFAULT NULL::date, p_stage text DEFAULT '待加工'::text, p_unit_price numeric DEFAULT NULL::numeric, p_notes text DEFAULT NULL::text, p_purchase_order_id uuid DEFAULT NULL::uuid, p_purchase_order_line_id uuid DEFAULT NULL::uuid, p_location_id uuid DEFAULT NULL::uuid, p_declared_qty numeric DEFAULT NULL::numeric)
+CREATE OR REPLACE FUNCTION public.create_inbound_batch(p_material_id uuid, p_supplier_id uuid, p_quantity numeric, p_unit text DEFAULT 'kg'::text, p_arrival_date date DEFAULT NULL::date, p_stage text DEFAULT '待加工'::text, p_unit_price numeric DEFAULT NULL::numeric, p_notes text DEFAULT NULL::text, p_purchase_order_id uuid DEFAULT NULL::uuid, p_purchase_order_line_id uuid DEFAULT NULL::uuid, p_location_id uuid DEFAULT NULL::uuid, p_declared_qty numeric DEFAULT NULL::numeric, p_safety_states text[] DEFAULT NULL::text[], p_chemistry_certainty text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -28,15 +28,25 @@ BEGIN
     PERFORM notify_landing_warnings(v_warn, p_location_id, p_material_id);
 
     -- GRN-1a:p_declared_qty 原样落库,【不拒绝任何差异】,也【绝不从采购行推断】。
+    -- PROC-2c:确定度随表头一起落 —— 适用性由 trg_inbound_batches_condition_applicable
+    -- 判(它在库里,所以这条路、批次页面、直连 SQL 三条一起盖住)。
     INSERT INTO inbound_batches (
         material_id, supplier_id, quantity, unit, remaining_qty, arrival_date,
         stage, unit_price, notes, purchase_order_id, purchase_order_line_id,
-        declared_qty, created_by, updated_by)
+        declared_qty, chemistry_certainty_code, created_by, updated_by)
     VALUES (
         p_material_id, p_supplier_id, p_quantity, COALESCE(p_unit,'kg'), p_quantity, p_arrival_date,
         COALESCE(p_stage,'待加工'), p_unit_price, p_notes, p_purchase_order_id, p_purchase_order_line_id,
-        p_declared_qty, v_user, v_user)
+        p_declared_qty, p_chemistry_certainty, v_user, v_user)
     RETURNING id INTO v_id;
+
+    -- PROC-2c:安全状态【只在给了参数时才碰】。
+    -- 【NULL 与 '{}' 在这里是两件事】NULL = "这条路没提这件事"(既有调用点),
+    -- '{}' = "明说了:一个状态都没有"。两者结果相同(零行),但只有前者
+    -- 保证【一个字节都不动】—— F1 钉的正是这个。
+    IF p_safety_states IS NOT NULL THEN
+        PERFORM set_inbound_safety_states(v_id, p_safety_states);
+    END IF;
 
     -- 用毕即清 —— 同 commit_processing_run 的 movement_ctx:免得同事务内后续的
     -- 插入把这个库位当成自己的(那正是 ctx 这种机制唯一的锋利处)。

@@ -8,6 +8,8 @@ import { useActionState, useState } from 'react'
 import { createFieldReceipt, type ReceiveState } from './actions'
 import { useLocale, useTranslations } from '@/lib/i18n/client'
 import LocationPicker, { type LocationChoice } from '@/app/components/inventory/LocationPicker'
+import IntakeConditionFormSection, { type MaterialAxis } from '../IntakeConditionFormSection'
+import type { SafetyState, Certainty } from '../IntakeConditionFields'
 
 const initialState: ReceiveState = {}
 
@@ -57,6 +59,9 @@ export default function ReceiveForm({
     materials,
     poLines,
     blockedSuppliers,
+    safetyStates,
+    certainties,
+    materialAxes,
 }: {
     // IOD-1b:收货库位的可选清单(在用库位),由页面取好传进来
     locations: LocationChoice[]
@@ -64,6 +69,10 @@ export default function ReceiveForm({
     materials: Material[]
     poLines: PoLineOption[]
     blockedSuppliers: BlockedSupplier[]
+    // PROC-2c:门口就问的两条轴 —— 现场收货这条路与 /inbound/new 用【同一块控件】
+    safetyStates: SafetyState[]
+    certainties: Certainty[]
+    materialAxes: Record<string, MaterialAxis>
 }) {
     const t = useTranslations()
     const locale = useLocale()
@@ -287,6 +296,13 @@ export default function ReceiveForm({
                     className={fieldCls}
                 />
             </div>
+
+            {/* PROC-2c:到货状态 —— 现场收货的人正站在货前面,这是【他能回答而
+                后面的人答不了】的一刻。适不适用由种类决定,判断只有一份。 */}
+            <IntakeConditionFormSection
+                states={safetyStates} certainties={certainties}
+                materialAxes={materialAxes} materialId={materialId} locale={locale}
+            />
 
             {/* 备注 */}
             <div>

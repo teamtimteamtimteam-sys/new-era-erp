@@ -7,6 +7,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { loadIntakeConditionOptions, loadMaterialAxes } from '../intakeConditionQuery'
 
 export default async function ReceivePage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -55,6 +56,12 @@ export default async function ReceivePage() {
         'storage_locations'
     ) as unknown as { id: string; code: string; name: string }[]
 
+    // PROC-2c:门口就问的两条轴 —— 与 /inbound/new 读同一支(见 intakeConditionQuery)。
+    const [condition, materialAxes] = await Promise.all([
+        loadIntakeConditionOptions(supabase),
+        loadMaterialAxes(supabase),
+    ])
+
     return (
         <div className="p-4 max-w-md mx-auto">
             <div className="mb-4">
@@ -66,6 +73,9 @@ export default async function ReceivePage() {
             <h1 className="text-2xl font-bold mb-6">{t('receive.title')}</h1>
 
             <ReceiveForm
+            safetyStates={condition.states}
+            certainties={condition.certainties}
+            materialAxes={materialAxes}
             locations={locationChoices}
                 suppliers={mustRows(suppliersRes)}
                 materials={mustRows(materialsRes)}
