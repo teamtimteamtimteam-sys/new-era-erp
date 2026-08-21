@@ -247,6 +247,29 @@ the first one the response was to remember to add a bound. Remembering did not
 work — which is the usual signal that **a note was used where a mechanism was
 needed**, and the same lesson OPS-7 drew about `B1`/`is_system`.
 
+### 后台跑一支长脚本:用 `db/run_detached.sh`,不要再手写那三行(EQP-2c,2026-08-21)
+
+```
+db/run_detached.sh --log /tmp/backup.log --label "备份" --token BACKUP --timeout 2700 \
+    -- ~/evoltrya-backups/backup.sh
+```
+
+**为什么是脚本而不是本文件下面那段样板。** 备份那一节已经把判据写清楚了 ——
+「唯一证据是 `backup.log` 里那一行【脚本自己打出来的退出码】」,并且给了
+子壳 + `wait_for.sh` + `grep` 的三行样板。**那段样板没能拦住任何一次:**
+同一次会话里【启动器的退出码冒充脚本的退出码】**五次**(备份一次、冒烟四次),
+EQP-1c-b-fu2 的提交信息记下了第四次,然后第五次照样发生。
+**样板要人照抄,机制不照抄就跑不起来** —— 与 OPS-7 用脚本替掉两句"记得检查
+B1 与 is_system"、`wait_for.sh` 替掉"记得给等待加上限",是同一次替换。
+
+它做三件事:子壳把**命令自己的**退出码追加成 `<TOKEN>_EXIT=n`(那一行的作者是被等的
+脚本,不是启动它的东西);用 `wait_for.sh` 等它;**拿不到那一行就拒绝给判词** ——
+退 **3**,并明说「本脚本因此【不知道】它成没成功,这不是失败的证据,也不是成功的」。
+四个分支都做过故障注入(0 / 7 / 超时 / 用法错)。
+**它不解决"脚本自己撒谎"**(BK-FIX 之前的 `backup.sh` 印着失败却退 0)——
+那一条的处置是修那支脚本,已经做过。两条叠起来才完整:
+**脚本要说真话(BK-FIX),而它说的话要真的被读到(本脚本)。**
+
 ### 有上限是对的 —— 但先分清你等的是哪一种活
 
 上面那条规矩(有上限、有失败分支)是为【本该很快出现、却没出现】的等待写的:
@@ -873,6 +896,36 @@ it a `CURRENT_DATE` default**; make it required and raise a named error.
 Defaults that genuinely belong (code-numbering years, `p_as_of` read
 queries, `create_invoice`) are listed in
 `docs/empty-string-to-rpc-audit.md` so the distinction is on the record.
+
+## 故障注入的还原完整性:用 `db/injection_probe.py`,不要靠 restore() 记得住
+
+**一张故障注入矩阵的每一格都假设:这一格看到的库与基线只差我刚注入的那一处。**
+那个假设由手写的 `restore()` 撑着,而**漏一句,后面每一格都跑在被污染的库上,
+不会有任何东西报错。**
+
+实际发生过:EQP-2b 的注入脚本里 F3 执行
+`ALTER TABLE equipment_maintenance ALTER COLUMN downtime_id SET NOT NULL`,
+而 `restore()` 里没有对应的 `DROP NOT NULL` —— F4/F5/F6 全跑在一张被改过的表上。
+下一版脚本补上了,旁边写着"上一轮就是漏了这两句"。**它是被人读出来的,
+不是被任何检查抓到的。** 连着两刀栽在同一处之后的结论是"这里需要一张清单",
+而本仓库对"需要一张清单"的处置是把它换成机制。
+
+```python
+import sys; sys.path.insert(0, 'db')
+from injection_probe import Pristine
+P = Pristine(DSN, ['public.t', 'public.v', 'public.f(text)']).capture()   # 任何注入之前
+for name, what, sql in CASES:
+    restore(); P.assert_clean(what)      # ← 下一格开跑之前,先证明库是干净的
+    run_sql(sql); ...
+```
+
+**判据是比【定义】,不是比"我记得改过什么"** —— 后者会和 `restore()` 犯同一个错。
+表比列/约束/索引/RLS/策略,视图比 `pg_get_viewdef` **加 `reloptions`**
+(viewdef 不吐 `WITH (…)`,本文件为此记过一次 `security_invoker`),函数比 `functiondef`。
+不一致就当场退出并点名那个对象。**故障注入过**:复刻上面那次漏还原,probe 当场停下。
+
+**它住在仓库里,而注入脚本住在仓库外面** —— 后者一刀一份、用完即弃,
+那正是 `restore()` 被复制、同一个疏漏被犯两次的原因。共享的那一半必须留下来。
 
 ## A verdict that reports but does not enforce is not a gate
 
