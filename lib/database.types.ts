@@ -2287,7 +2287,7 @@ export type Database = {
           disposal_date: string | null
           disposal_journal_id: string | null
           disposal_proceeds_base: number | null
-          expense_id: string
+          expense_id: string | null
           fx_rate: number
           id: string
           in_service_date: string | null
@@ -2310,7 +2310,7 @@ export type Database = {
           disposal_date?: string | null
           disposal_journal_id?: string | null
           disposal_proceeds_base?: number | null
-          expense_id: string
+          expense_id?: string | null
           fx_rate: number
           id?: string
           in_service_date?: string | null
@@ -2333,7 +2333,7 @@ export type Database = {
           disposal_date?: string | null
           disposal_journal_id?: string | null
           disposal_proceeds_base?: number | null
-          expense_id?: string
+          expense_id?: string | null
           fx_rate?: number
           id?: string
           in_service_date?: string | null
@@ -15925,6 +15925,17 @@ export type Database = {
         }
         Returns: Json
       }
+      create_fixed_asset: {
+        Args: {
+          p_acquisition_date: string
+          p_category?: string
+          p_depreciation_account_code?: string
+          p_description: string
+          p_notes?: string
+          p_useful_life_months: number
+        }
+        Returns: Json
+      }
       create_inbound_batch: {
         Args: {
           p_arrival_date?: string
@@ -16248,6 +16259,7 @@ export type Database = {
       next_container_code: { Args: { p_date: string }; Returns: string }
       next_credit_note_code: { Args: { p_date?: string }; Returns: string }
       next_employee_code: { Args: { p_date?: string }; Returns: string }
+      next_fixed_asset_code: { Args: { p_on: string }; Returns: string }
       next_leave_request_code: { Args: { p_date?: string }; Returns: string }
       next_medical_claim_code: { Args: { p_date?: string }; Returns: string }
       next_payroll_code: { Args: { p_date?: string }; Returns: string }

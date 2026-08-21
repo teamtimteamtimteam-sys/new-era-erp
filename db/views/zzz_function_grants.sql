@@ -118,3 +118,9 @@ REVOKE EXECUTE ON FUNCTION public.next_credit_note_code(date) FROM authenticated
 -- generate_quote_code(BEFORE INSERT,属主身份)在同一条语句里补上,
 -- 先例是 customers.generate_customer_code。客户端插的是一行没有号的报价。
 REVOKE EXECUTE ON FUNCTION public.next_quote_code(date) FROM authenticated;
+-- EQP-1c-a:固定资产的取号器。同 next_shipment_code / next_container_code /
+-- next_quote_code —— 没有调用者检查,靠的就是调不到。它有【两个】调用方
+-- (record_expense 的新建支与 create_fixed_asset),两个都是 DEFINER 且各自
+-- require_permission('module.finance.edit'),以属主身份执行。给了 authenticated
+-- 就等于任何登录用户都能凭空烧掉一个 FA 号,而"无缝"的意思正是号码之间没有洞。
+REVOKE EXECUTE ON FUNCTION public.next_fixed_asset_code(date) FROM authenticated;

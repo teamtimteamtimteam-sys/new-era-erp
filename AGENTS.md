@@ -186,6 +186,43 @@ The verdicts stay separate because they are different failures with different
 fixes. `check_mirrors.py` and `verify_rebuild.py` remain as the engine (gate.py
 imports/spawns them); run verify_rebuild alone when you only need one side.
 
+### 杀掉 `check_mirrors.py` 【不会】结束它在库上那笔事务(EQP-1c-a,2026-08-21)
+
+> **`pkill -f check_mirrors.py` 杀的是本机那个 Python 进程。它在【线上】开着的那笔
+> 事务不会跟着结束 —— 连接经连接池活下来,会话停在 `idle in transaction`,
+> 手里攥着它replay 到一半的那些锁。**
+
+实测:为了不与 `db/gate.py` 抢 scratch schema,`check_mirrors.py` 被 `pkill` 掉。
+七分钟后,一条最普通的 `INSERT INTO suppliers` 撞上 **`canceling statement due to
+statement timeout`** —— 报错一个字都没提锁。`pg_stat_activity` 里是这样:
+
+```
+pid 2269989 | idle in transaction | xact_age 00:07:12 | CREATE POLICY "roles insert by permission" ON mir.roles …
+pid    5452 | active              | wait_event Lock/relation
+```
+
+也就是说**那笔事务还在,连别的会话都开始排在它后面了**,而本机上看不出任何异常。
+这与本文件已经记着的两条是同一族:`pg_dump` 持着 ACCESS SHARE 让 `ALTER TABLE`
+卡到超时(报错同样只说"语句超时",不说在等谁);以及"启动器的退出码冒充脚本的
+退出码"。**共同点是:本机的进程状态,不等于库那一侧的状态。**
+
+**处置(实测有效,而且是安全的):**
+
+```sql
+SELECT pid, state, now()-xact_start AS age, left(query,60)
+  FROM pg_stat_activity WHERE state = 'idle in transaction' ORDER BY xact_start;
+SELECT pg_terminate_backend(<pid>);
+```
+
+终止它是安全的:`check_mirrors` **整支都跑在一笔最终必然回滚的事务里**,
+所以终止 = 提前回滚,那正是它本来的结局。实测终止后 `mir` schema 是 0 个,
+排队的会话立刻放行。
+
+**更好的做法是别制造这一幕:`db/gate.py` 内部就会跑 check_mirrors,
+不要再单独起一个;真起了要停,用 `pg_terminate_backend` 收尾,不要只 `pkill`。**
+顺带:单独跑 `check_mirrors.py` 是把 ~14,000 行重放【推过连接池】,
+在这台机器的隧道上本来就慢得没道理 —— OPS-6 把它换成本地重建正是为了这个。
+
 ## A wait with no bound is a wait with no failure — use `db/wait_for.sh`
 
 ```

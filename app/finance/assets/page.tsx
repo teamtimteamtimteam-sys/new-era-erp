@@ -33,7 +33,8 @@ type AssetRow = {
     useful_life_months: number
     residual_base: number
     status: string
-    expense_id: string
+    // EQP-1c-a:可空 —— create_fixed_asset 建出来的卡没有出生凭证。
+    expense_id: string | null
 }
 
 type PreviewRow = {
@@ -128,9 +129,14 @@ export default async function AssetsPage({
                         return (
                             <tr key={a.id} className={a.status === 'disposed' ? 'text-gray-400' : ''}>
                                 <td className="border border-gray-300 px-3 py-2 font-mono text-sm">
-                                    <Link href={`/finance/expenses/${a.expense_id}`} className="text-blue-600 hover:underline">
-                                        {a.code}
-                                    </Link>
+                                    {/* EQP-1c-a:资产编号链到【生出这张卡的那笔支出】,而由
+                                        create_fixed_asset 建出来的卡没有那笔支出。没有就不画链接 ——
+                                        画一个指向 /finance/expenses/null 的链接,比不画坏得多。 */}
+                                    {a.expense_id
+                                        ? <Link href={`/finance/expenses/${a.expense_id}`} className="text-blue-600 hover:underline">
+                                            {a.code}
+                                          </Link>
+                                        : a.code}
                                 </td>
                                 <td className="border border-gray-300 px-3 py-2">{a.description}</td>
                                 <td className="border border-gray-300 px-3 py-2 text-sm">{t('assets.category.' + a.category)}</td>

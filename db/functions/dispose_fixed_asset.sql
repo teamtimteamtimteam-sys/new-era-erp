@@ -2,6 +2,8 @@
 -- 处置:出售或报废(FIN-22)。1500 按成本解除、1510 按累计折旧解除,差额对净收款
 -- 进 7200(与 7100/7110 同形,两个方向都过)。收款 > 0 必须给银行科目;报废收款 0。
 -- 【不自动补提】处置月折旧 —— 想提就先跑月度例程再处置;未提部分如实进损益。
+-- 【EQP-1c-a:零成本的卡处置不了】—— 那条 1500 贷方是无条件发出的,而
+-- journal_lines 要求 amount_ccy > 0;按名拒(ASSET_HAS_NO_COST),不出裸约束违例。
 
 CREATE OR REPLACE FUNCTION public.dispose_fixed_asset(p_asset_id uuid, p_disposal_date date, p_proceeds numeric DEFAULT 0, p_bank_account text DEFAULT NULL::text, p_notes text DEFAULT NULL::text)
  RETURNS jsonb
@@ -28,6 +30,19 @@ BEGIN
     END IF;
     IF v_a.status <> 'active' THEN
         RAISE EXCEPTION 'ASSET_ALREADY_DISPOSED|%', v_a.code;
+    END IF;
+    -- EQP-1c-a:【零成本的卡处置不了 —— 而这一条是本刀自己造出来的路,所以本刀关它】
+    -- 下面那条 1500 贷方是【无条件】发出的,金额就是 cost_base;而
+    -- journal_lines_amount_ccy_check 是 CHECK (amount_ccy > 0)。于是处置一张
+    -- 零成本卡会撞出一条【裸的 23514】,而不是一句人话。
+    -- 【为什么不改成"金额为 0 就不发那条行"】那会让处置【悄悄成功】,
+    -- 把一张"还没买成的机器"变成一张"已处置"的资产 —— 而这两件事在账上
+    -- 完全不是一回事。一张还没有成本的卡要退场,那是【取消一次采购承诺】,
+    -- 不是【处置一台资产】,而那条路今天不存在(docs/known-issues.md 有记录)。
+    -- 与 set_asset_in_service 用同一个码:同一句话 —— 这张卡还不是一台资产。
+    IF v_a.cost_base = 0 THEN
+        RAISE EXCEPTION 'ASSET_HAS_NO_COST|%', v_a.code
+          USING HINT = '这张卡还没有任何成本,不构成一次处置 —— 它要退场是另一件事,今天没有那条路';
     END IF;
     IF p_disposal_date < v_a.acquisition_date THEN
         RAISE EXCEPTION 'DISPOSAL_BEFORE_ACQUISITION|%|%', p_disposal_date, v_a.acquisition_date;

@@ -22,6 +22,11 @@ const PAYMENT_ERROR_CODES = new Set([
     'ASSET_NOT_FOUND', 'ASSET_ALREADY_DISPOSED', 'ASSET_ALREADY_IN_SERVICE',
     'ASSET_DISPOSED', 'DISPOSAL_BEFORE_ACQUISITION', 'PROCEEDS_INVALID',
     'IN_SERVICE_BEFORE_ACQUISITION',
+    // EQP-1c-a:资产卡的【第二扇门】(create_fixed_asset)与它带来的一条新规矩。
+    // 【现在还没有屏幕在调它 —— 码先备好是刻意的】EQP-1c 接上界面那天,
+    // 没备好的码就是打到操作员脸上的裸管道串(CMP-2 为这件事付过账)。
+    'ASSET_HAS_NO_COST', 'ASSET_ACQUISITION_DATE_REQUIRED', 'ASSET_CATEGORY_INVALID',
+    'ASSET_DESCRIPTION_REQUIRED', 'ASSET_LIFE_INVALID',
     // FA-1a:折旧还欠着就锁不进去 —— 这一条会在月结的关账按钮上冒出来
     'DEPRECIATION_OUTSTANDING',
 ])

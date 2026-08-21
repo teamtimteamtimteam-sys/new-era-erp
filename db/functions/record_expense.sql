@@ -19,7 +19,6 @@ DECLARE
     v_append_id  uuid;   -- FA-1a:追加模式的目标资产
     v_target     fixed_assets%ROWTYPE;
     v_asset_code text;
-    v_asset_seq  integer;
     v_life       integer;
     v_residual   numeric;
     v_in_service date;
@@ -297,6 +296,16 @@ BEGIN
         END IF;
 
         -- ── 新建(FIN-22 起的原样路径)──────────────────────────────────────
+        -- 【两扇建卡的门,而【两扇都不是遗留】—— EQP-1c-a 记在这里,免得下一个
+        --   读到 create_fixed_asset 的人以为这一支该被删掉。】
+        --   * 这一支(卡与成本【同时】诞生):一台【没有采购单、当场买断】的机器。
+        --     那件事的真实形状就是"一张发票同时带来这台机器和它的成本",
+        --     硬要拆成两步反而是编造一个不存在的中间状态。
+        --   * create_fixed_asset(卡先诞生、成本后到):设备采购的常态 ——
+        --     先下单(而采购单行必须引用一张【已存在】的卡,EQP-1a),
+        --     后开票。发票经【追加】模式落到那张卡上。
+        --   判据一句话:**这台机器在拿到它的成本之前,需不需要先被别的单据引用?**
+        --   需要 → create_fixed_asset;不需要 → 这一支。
         IF COALESCE(p_asset->>'description', '') = '' THEN
             RAISE EXCEPTION 'ASSET_DESCRIPTION_REQUIRED';
         END IF;
@@ -314,12 +323,11 @@ BEGIN
         END IF;
 
         v_asset_id := gen_random_uuid();
-        PERFORM pg_advisory_xact_lock(hashtext('fixed_asset_code_' || v_year::text)::bigint);
-        SELECT COALESCE(MAX(split_part(fa.code, '-', 3)::integer), 0) + 1
-        INTO v_asset_seq
-        FROM fixed_assets fa
-        WHERE fa.code LIKE 'FA-' || v_year::text || '-%';
-        v_asset_code := 'FA-' || v_year::text || '-' || LPAD(v_asset_seq::text, 4, '0');
+        -- EQP-1c-a:取号提成 next_fixed_asset_code(),两扇门共用一个号段。
+        -- 【行为逐字不变】它就是原来这四行:同一把咨询锁(键也是按年拼的
+        -- 'fixed_asset_code_'||year)、同一个"当年最大号 + 1"。提出来是因为
+        -- 现在有【两扇】建卡的门,而两份同样的取号逻辑迟早会漂开。
+        v_asset_code := next_fixed_asset_code(p_expense_date);
 
         INSERT INTO fixed_assets (id, code, description, category, acquisition_date, in_service_date,
                                   cost_ccy, currency, fx_rate, cost_base, useful_life_months,
