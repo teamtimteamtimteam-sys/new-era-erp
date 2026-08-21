@@ -4724,6 +4724,8 @@ const zh = {
             ASSET_RESIDUAL_INVALID: '残值 {0} 必须 ≥ 0 且低于成本 {1}',
             ASSET_IN_SERVICE_BEFORE_ACQUISITION: '在役日 {0} 早于购置日 {1}',
             EXPENSE_HAS_ASSET: '开支 {0} 挂着固定资产 —— 先处置资产,或走人工分录改正',
+            ASSET_IN_SERVICE_COST_LOCKED: '开支 {0} 已资本化进资产 {1},而它已于 {2} 投用。它的成本不能再被冲回 —— 折旧已经按这个成本基数算过了。这需要一次财务上的裁定。',
+            ASSET_COST_LEDGER_DIVERGED: '资产 {0}:台账记的成本 {1} 与它未冲销明细之和 {2} 对不上。本次冲销已被拒绝,而不是写下一个对不上的数。',
             SUPPLIER_NOT_FOUND: '供应商不存在',
             PERIOD_LOCKED: '日期 {0} 早于期间锁({1})',
             EXPENSE_NOT_FOUND: '开支单不存在',
@@ -4740,7 +4742,7 @@ const zh = {
             EXPENSE_ASSET_MISMATCH: '这笔支出资本化的是资产 {0},而那条订单行买的是资产 {1} —— B 机器的发票不能记到 A 机器的订单行上。',
             EXPENSE_SUPPLIER_NOT_STATED: '挂在采购单 {0} 上的支出,必须说出开这张票的供应商',
             SUPPLIER_MISMATCH: '采购单 {0} 属于另一家供应商,与这笔支出上的({1})不是同一家',
-            PO_LINE_ALREADY_EXPENSED: '第 {0} 行已经由 {1} 报销过了 —— 一条设备行只报销一次。若订单上的估价与发票对不上,请【改订单行】,不要再记一笔。',
+            PO_LINE_ALREADY_EXPENSED: '第 {0} 行已经由 {1} 报销过了 —— 一条设备行只报销一次。若订单上的估价与发票对不上,请【改订单行】,不要再记一笔。若是发票本身开错了,冲销 {1} 再录一笔即可 —— 但这只在机器【尚未投用】时做得到。',
         },
     },
     finAttach: {

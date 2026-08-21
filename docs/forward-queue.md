@@ -73,7 +73,8 @@
 
 | 切次 | |
 |---|---|
-| ~~**EQP-1b-ii**~~ | ~~费用 ↔ 采购单行的关联,以及"一条设备行只能报销一次"的推导~~ **已完成 2026-08-21**。`expenses.purchase_order_line_id` + 部分唯一索引 `uq_expenses_live_po_line` + `record_expense` 的七条具名拒绝 + `trg_expenses_po_line_kind`,fixture 105。**它管的是【行】不是【机器】** —— 两次新建模式的资本支出仍能为同一台机器建两张卡,写在 `expenses.purchase_order_line_id` 的列注释里。顺带记下一条缺陷:`docs/known-issues.md`「冲销一笔追加模式的资本支出,不会退回资产成本」。 |
+| ~~**EQP-1b-ii**~~ | ~~费用 ↔ 采购单行的关联,以及"一条设备行只能报销一次"的推导~~ **已完成 2026-08-21**。`expenses.purchase_order_line_id` + 部分唯一索引 `uq_expenses_live_po_line` + `record_expense` 的七条具名拒绝 + `trg_expenses_po_line_kind`,fixture 105。**它管的是【行】不是【机器】** —— 两次新建模式的资本支出仍能为同一台机器建两张卡,写在 `expenses.purchase_order_line_id` 的列注释里。顺带记下一条缺陷(冲销不退回资产成本),**已由 EQP-1b-iii 修复并退役**。 |
+| ~~**EQP-1b-iii**~~ | ~~冲销一笔资本支出必须把成本一起退回去~~ **已完成 2026-08-21**。`reverse_expense` 退回 `cost_base` 并当场核对「表头 = 未冲销明细之和」;资产【已投用】则按名拒 `ASSET_IN_SERVICE_COST_LOCKED`(与 `record_expense` 拒绝追加同一个铰链);顺带补上镜像单漏抄的 `employee_id`。**没有 DDL** —— 「这条明细还算不算数」由它那笔支出的 `status` 推导,不另立一列。fixture 106。 |
 | **EQP-1c** | 界面;**并且带着 `apply_prepayment` 的 `CURRENT_DATE` 修复**(删除条件写在 `docs/known-issues.md` 里,由这一刀触发) |
 | | ↑ **到这里,一个操作员才真的用得了这个模块** |
 | **EQP-2a** | 保养与维修,库这一半,**含阶段 0 的两件** |

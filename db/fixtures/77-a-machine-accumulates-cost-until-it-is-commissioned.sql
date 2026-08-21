@@ -119,8 +119,15 @@ BEGIN
     IF (SELECT count(DISTINCT currency) FROM fixed_asset_cost_entries WHERE asset_id = v_asset) <> 2 THEN
         RAISE EXCEPTION 'FIXTURE 77B 失败:三笔里应当有两种原币(USD 机器 + SGD 运费)';
     END IF;
-    IF (SELECT round(SUM(amount_base), 2) FROM fixed_asset_cost_entries WHERE asset_id = v_asset) <> v_cost THEN
-        RAISE EXCEPTION 'FIXTURE 77B 失败:明细合计应当等于表头的 cost_base —— 两个数一旦对不上,审计要问的正是这一句';
+    -- EQP-1b-iii:合计只数【未冲销】的明细。一笔支出被冲销之后它那条明细
+    -- 就不再算数(判据是它那笔支出的 status —— 一个事实一个地方,不另立一列),
+    -- 而本臂没有任何冲销,所以两种写法在这里给出同一个数;写成现在这样,
+    -- 是为了让这句断言说的就是那条不变量本身,而不是它的一个特例。
+    IF (SELECT round(COALESCE(SUM(fce.amount_base), 0), 2)
+          FROM fixed_asset_cost_entries fce
+          JOIN expenses e ON e.id = fce.expense_id
+         WHERE fce.asset_id = v_asset AND e.status = 'posted') <> v_cost THEN
+        RAISE EXCEPTION 'FIXTURE 77B 失败:【未冲销的】明细合计应当等于表头的 cost_base —— 两个数一旦对不上,审计要问的正是这一句';
     END IF;
 
     -- ══════════ C. 追加的三条拒绝,各自只差它自己那一件 ═══════════════════════

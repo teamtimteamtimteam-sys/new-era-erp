@@ -4747,6 +4747,8 @@ const en = {
             ASSET_RESIDUAL_INVALID: 'Residual value {0} must be ≥ 0 and below cost {1}',
             ASSET_IN_SERVICE_BEFORE_ACQUISITION: 'In-service date {0} is before the acquisition date {1}',
             EXPENSE_HAS_ASSET: 'Expense {0} carries a fixed asset — dispose the asset first, or correct by manual journal',
+            ASSET_IN_SERVICE_COST_LOCKED: 'Expense {0} was capitalised into asset {1}, which went into service on {2}. Its cost cannot be reversed — depreciation has already been computed from that cost base. This needs a finance decision.',
+            ASSET_COST_LEDGER_DIVERGED: 'Asset {0}: the recorded cost {1} does not equal the sum of its live cost entries {2}. The reversal was refused rather than write a figure that does not tie.',
             SUPPLIER_NOT_FOUND: 'Supplier not found',
             PERIOD_LOCKED: 'Date {0} is before the period lock ({1})',
             EXPENSE_NOT_FOUND: 'Expense not found',
@@ -4763,7 +4765,7 @@ const en = {
             EXPENSE_ASSET_MISMATCH: 'This expense capitalises asset {0}, but that order line bought asset {1} — one machine\u2019s invoice cannot be capitalised against another machine\u2019s order line.',
             EXPENSE_SUPPLIER_NOT_STATED: 'An expense linked to purchase order {0} must name the supplier that issued the invoice',
             SUPPLIER_MISMATCH: 'Purchase order {0} belongs to a different supplier than the one on this expense ({1})',
-            PO_LINE_ALREADY_EXPENSED: 'Line {0} has already been expensed on {1} — one equipment line is expensed once. If the order\u2019s estimate does not match the invoice, amend the order line; do not record a second expense.',
+            PO_LINE_ALREADY_EXPENSED: 'Line {0} has already been expensed on {1} — one equipment line is expensed once. If the order\u2019s estimate does not match the invoice, amend the order line; do not record a second expense. If the invoice itself was wrong, reverse {1} and enter it again — possible only while the machine is not yet in service.',
         },
     },
     finAttach: {
