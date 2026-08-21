@@ -394,6 +394,26 @@ failed == routes` 成为一条【断言】而不是一句印出来的话 ——
 **`/finance/assets/[id]` 那一条 `--reach` 永远答不了**(动态路由被断言排除,
 AGENTS.md 明写过这个盲点),所以它进 `docs/manual-walk-list.md`,不进这里。
 
+### EQP-2d 往这笔欠账里加了【零条路由】—— 而这句话本身要写下来(2026-08-21)
+
+**EQP-2d 建了三块面板(保养 / 停机 / 保养间隔),它们全部落在
+`/finance/assets/[id]` 这一条【已经存在】的路由上,没有新建任何页面,
+也没有改任何导航或子导航。** 所以按本仓库的规矩,它【不欠】一次 `--reach`。
+
+**为什么把"零"写下来,而不是什么都不写:** 上面那一条把 EQP-1c-b 的三条按名记着,
+而一个读到这里的人接着会问"那 2d 呢"。**没有条目与"没人记"在文件里长得一模一样**
+—— 这正是本仓库反复付账的那个形状(GRN-2 那一刀也专门写过一句"这一次不欠")。
+
+**唯一一处【确实动了的可达性】,以及为什么它仍然不欠:**
+首页多了两块牌子(`equipment_service_due` / `equipment_service_approaching`),
+它们指向 `/finance/assets` 与 `/finance/assets/[id]`。
+**两条目的地都【已经】从主导航可达**,所以这两条新链接只是多了一条通路,
+没有让任何页面从"够不到"变成"够得到" —— 而 `--reach` 断言的正是后者。
+
+**仍然要靠人手点的那一条没变**:`/finance/assets/[id]` 是动态路由,
+`--reach` 的断言结构上跳过它。三块新面板全在那一页上,所以它们**整体**由
+`docs/manual-walk-list.md` §9 覆盖 —— 那一节同时是这一刀的关闭条件。
+
 ## 机器没到货、定金要核销 —— 今天没有这条路(2026-08-21 记录,EQP-1b-i 明确不做)
 
 **是什么**:付了定金,供应商没交机器,那笔躺在 1300 里的钱要变成一笔坏掉的
@@ -1450,3 +1470,67 @@ unique index 一次也不会响。** 唯一性约束在这条路上【根本不�
 
 **这一条与本文件里 EQP-2b 那条「大修资本化今天走不通」是同一族**:
 两条都是"设备模块的下一刀要动 2b 的表",可以合并成一刀,也可以不合。
+
+## 设备三张表【没有 RPC】,于是它们的拒绝是【约束违反】而不是具名业务码(EQP-2d,2026-08-21,已缓解未消除)
+
+`equipment_maintenance`(EQP-2b)、`equipment_downtime`(EQP-2a)、
+`equipment_service_intervals`(EQP-2c)三张表**一个 RPC 都没有** ——
+写入走 PostgREST 直连 + RLS。于是它们的每一条拒绝到达浏览器时长这样:
+
+```
+new row for relation "equipment_service_intervals" violates check
+constraint "equipment_service_intervals_at_least_one"
+duplicate key value violates unique constraint "uq_equipment_downtime_open"
+```
+
+**本仓库其余每一支 `*ErrorCodes.ts` 解析的都是 `CODE|参数` 形状的具名码**,
+对着上面这种消息只会原样吐回去 —— 也就是把 Postgres 的英文机器话打到操作员脸上。
+
+**EQP-2d 的缓解:** `app/finance/assets/equipmentErrorCodes.ts` 按【约束名】认,
+把全部 **16 条**约束接上了 en/zh 两句人话,并且 `check-i18n` 的
+`equipment.errors.*` 后缀集合**现读那个 Set** —— 加一条约束而不写句子,
+`npm run build` 当场红。**所以今天屏幕上不会出现裸约束名。**
+
+**为什么这只是缓解,不是消除 —— 两条,都写清楚:**
+
+1. **约束名是【实现细节】,而现在它成了一份对外契约的一半。** 有人重命名一条
+   约束(一次纯粹的整理),句子就静默失配,消息退回裸英文,而**没有任何检查会红**
+   —— `check-i18n` 只保证"Set 里的每个名字都有句子",不保证"每条约束都在 Set 里"。
+   具名业务码没有这个毛病:改了码名,抛它的那个函数就在旁边。
+2. **`NOT NULL` 违反根本没有名字可认**(消息里只有列名)。EQP-2d 因此让服务端
+   动作【自己】先抛具名码(`MAINT_DATE_REQUIRED` 等),表上那条 `NOT NULL`
+   退成第三层兜底。**也就是说"拒空"这一族已经是两套机制并存了。**
+
+### 删除条件
+
+给这三张表各配一组 RPC(`record_equipment_maintenance` / `open_equipment_downtime` /
+`close_equipment_downtime` / `save_equipment_service_interval`),把 CHECK 换成
+函数里的具名 `RAISE EXCEPTION`,`equipmentErrorCodes.ts` 退回本仓库通用的
+`CODE|参数` 形状。**约束本身留着**(它们挡的是直连那条路),但屏幕不再依赖它们的名字。
+
+**为什么 EQP-2d 没有顺手做:** 那是一支迁移 + 四个函数 + 镜像 + fixture,
+而 2a/2b/2c 三刀都是按"表 + RLS"这个形状建的。**改写入路径是一次设计变更,
+不是一次上屏** —— 在一次刚被它绊到的切次里现写四个新函数,正是本仓库
+「匆忙写出来的检查」那一课的另一个版本。
+
+## 全库没有一处看得见【哪些机器没人在盯】(EQP-2d,2026-08-21,未建)
+
+一台没有保养间隔的机器是**「未监控」**,而 EQP-2c 把这个状态做进了数据
+(`equipment_service_status.monitored = false`,每个量度都是 NULL 而不是 0),
+EQP-2d 把它画在了机器自己那一页上(灰底、一句话说明它不等于「未到期」)。
+
+**但那是【一台一台】才看得见的。** 今天没有任何一处回答"这批机器里有几台
+根本没人在盯" —— 首页两块牌子按定义只收【被监控且到期/将到期】的行,
+固定资产台账上也没有这一列。
+
+**为什么没有顺手加一支臂:** `operations_now` 装的是【等着人处理的事】,
+而"没人决定要盯它"是一个**状态**,不是一件待办 —— 这与 EXEC-3a 把批次毛利
+撤出看板是同一条判据(那一条写在 `docs/dashboard-arm-inventory.md` 的
+「考虑过又排除」里)。而且本刀明确不动 2a/2b/2c 的臂。
+
+### 删除条件
+
+在**固定资产台账**(`/finance/assets`)上加一列或一个筛选器:「有没有在盯」。
+判据现读 `equipment_service_status.monitored`,不要另算一份。
+**今天全库只有一台机器,所以这条的代价是零** —— 它值得记下来,是因为
+第二台机器进场那天,没有人会想起来去一台一台点。

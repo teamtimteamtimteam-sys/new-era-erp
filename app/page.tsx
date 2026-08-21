@@ -148,7 +148,11 @@ const TILES = [
     // 【权限跟着视图里那一支声明的码走】,这里不再声明第二遍 ——
     // 免柜期那一支在库里由 arm_permission_widen 额外放给财务,而首页读的是
     // operations_now 已经筛过的行,所以这里写它的【主】码就够了。
-    { itemType: 'free_time_expiring', permission: 'module.purchasing.view', href: '/logistics/containers',
+    // 【放宽:免柜期这一支库里就放给了财务(LOG-5a 的 arm_permission_widen)】——
+    // 见下面 permissionWiden 那一段:此前这里只写主码,于是一个只持财务的读者
+    // 【拿得到行、屏幕上却写着「受限」】。EQP-2d 补上。
+    { itemType: 'free_time_expiring', permission: 'module.purchasing.view',
+      permissionWiden: ['module.purchasing.view', 'module.finance.view'], href: '/logistics/containers',
       itemHref: (r: OpsRow) => `/logistics/containers/${r.item_id}` },
     { itemType: 'container_no_arrival', permission: 'module.purchasing.view', href: '/logistics/containers',
       itemHref: (r: OpsRow) => `/logistics/containers/${r.item_id}` },
@@ -156,6 +160,21 @@ const TILES = [
       itemHref: (r: OpsRow) => `/logistics/containers/${r.item_id}` },
     { itemType: 'container_documents_late', permission: 'module.purchasing.view', href: '/logistics/containers',
       itemHref: (r: OpsRow) => `/logistics/containers/${r.item_id}` },
+    // ── EQP-2d:保养那两支(第 27–28)。【门牌指机器那一页】—— 补救是"给这台
+    // 机器记一次保养",而那张表单 EQP-2d 就建在 /finance/assets/[id] 上。
+    // item_id 是 fixed_assets 的行(间隔行没有自己的页面),与 bank_unmatched /
+    // margin_cost_not_allocated 取父行同一条规矩。
+    // 【两支分开画,永远不合并】到期与将到期是两件事:一个已经欠着,一个还来得及。
+    // 合成一块牌子就是把"该停机检修了"和"下周安排一下"说成同一句话。
+    // 【与 safety_stock_below / work_order_overdue 同一个隐患,同样点名】:
+    // 在那张页面上把间隔调大、或者把那一行删掉,这盏灯会安静,而一次保养都没做 ——
+    // 那是判据之外的事,不是不给链接的理由(两条判据见清单文件)。
+    { itemType: 'equipment_service_due', permission: 'module.processing.view',
+      permissionWiden: ['module.processing.view', 'module.finance.view'], href: '/finance/assets',
+      itemHref: (r: OpsRow) => `/finance/assets/${r.item_id}` },
+    { itemType: 'equipment_service_approaching', permission: 'module.processing.view',
+      permissionWiden: ['module.processing.view', 'module.finance.view'], href: '/finance/assets',
+      itemHref: (r: OpsRow) => `/finance/assets/${r.item_id}` },
 ] as const
 
 // 一块牌子里最多列几件;其余交给那一支自己的列表(首页不是列表页)
@@ -204,7 +223,27 @@ export default async function Home() {
     // counterparty_name)是【一行】的事,也是它长久该待的地方 —— 但那是一支迁移,
     // 而本刀是纯渲染。所以这里【读同一个权威列】(ap_open_items.counterparty_name),
     // 不是另算一份名字:同一个真源,晚一跳而已。
-    // **下一支动数据库的刀请把这一行搬回视图里,并删掉这一段。**
+    // ── A1(EQP-2d,2026-08-21):这句话【原本写得太宽,已改写】───────────────
+    // 原文是「**下一支动数据库的刀**请把这一行搬回视图里,并删掉这一段」。
+    // **那个条件是错的,而它已经实测收过一次账**:EQP-2c 是一支动数据库的刀,
+    // 而它的 F1 前提正是【既有的支在内容上一个字节都不变】—— 两者直接冲突。
+    // 那一刀选择了守住前提、把冲突写进报告,而不是悄悄选一边。那是对的;
+    // **错的是这句话本身**:「动了数据库」与「该动这一行」根本不是同一个条件。
+    // 一条把无关的刀拉进来的待办,每一刀都要重新判一次"这算不算我",
+    // 而判出来的答案多半是"不算" —— 于是它永远不会被做,还每次都要花一次判断。
+    //
+    // **条件改写成它真正依赖的那件事:**
+    // > 下一支【动 ap_over_90 这一支本身】的刀 —— 也就是要改这一支的
+    // > 谓词、subject、item_id 或 doc_kind 的那一刀 —— 把 supplier_name 换成
+    // > ap_open_items.counterparty_name,并删掉本段与下面那次补查。
+    // 那时它是【顺手一行】,而且那一刀本来就要重画这一支的 fixture 期望值;
+    // 今天单独去改,要为一行渲染动一次视图定义,并让 fixture 30 / 47 / 111 的
+    // 支内容断言全部重新论证一遍。
+    //
+    // 【为什么这一刀只改注解、不做它要求的事】本刀是纯渲染,一支迁移都没有;
+    // 而把 operations_now 改一行需要迁移 + 镜像 + 三份 fixture 的重新论证。
+    // **这里被修的是【那条待办本身】,不是它指向的那件事** —— 一条条件写错的
+    // 待办会一直被误读,而误读的代价刚刚由 EQP-2c 付过一次。
     const apOver90Ids = rows.filter((r) => r.item_type === 'ap_over_90')
                             .map((r) => r.item_id).filter(Boolean) as string[]
     const apPartyById = new Map<string, string>()
@@ -363,8 +402,22 @@ export default async function Home() {
                 {TILES.map((tile) => {
                     // MAR-1:支级谓词 —— permission 必须全有,permissionAny 任意其一。
                     // 与视图的 arm_permission_any 同义(fixture 45 钉两侧一致)。
+                    //
+                    // 【EQP-2d 补上第三个算子:permissionWiden —— 与库里的
+                    //   arm_permission_widen 同义,方向是【放宽】(或)。】
+                    // 这一整行现在与视图末尾那个 WHERE 逐字同形:
+                    //     (has_permission(permission) OR has_any_permission(widen))
+                    //     AND (any IS NULL OR has_any_permission(any))
+                    // **在这之前这里【没有】放宽那一半,而库里从 LOG-5a 起就有了。**
+                    // 后果是一个真实的、方向相反的谎:一个只持 module.finance.view
+                    // 的读者【拿得到 free_time_expiring 的行】(视图放宽了),
+                    // 而这块牌子照旧显示「受限」—— 也就是把"你看得见"说成
+                    // "你看不见"。看板那条规矩(缺席 ≠ 零)防的是另一个方向,
+                    // 这一个此前没人防。EQP-2c 放宽保养两支时撞上同一处,所以一并补。
                     const anyCodes = 'permissionAny' in tile ? (tile.permissionAny as readonly string[]) : null
-                    const allowed = perms.includes(tile.permission)
+                    const widenCodes = 'permissionWiden' in tile ? (tile.permissionWiden as readonly string[]) : null
+                    const allowed = (perms.includes(tile.permission)
+                            || (widenCodes !== null && widenCodes.some((c) => perms.includes(c))))
                         && (anyCodes === null || anyCodes.some((c) => perms.includes(c)))
                     const mine = byType.get(tile.itemType) ?? []
                     const oldest = mine.length

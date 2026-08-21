@@ -284,6 +284,16 @@ const MANIFEST = {
     'tasks.opErrors.':      { kind: 'enum', values: () => tsSet('app/tasks/taskErrorCodes.ts', 'TASK_ERROR_CODES') },
     // LOG-1c:物流的具名拒绝。真源是那个 Set —— 与 tasks.opErrors 同一种接法。
     'logistics.opErrors.': { kind: 'enum', values: () => tsSet('app/logistics/logisticsErrorCodes.ts', 'LOGISTICS_ERROR_CODES') },
+    // EQP-2d:设备三张表的拒绝。**真源是那个 Set,而它装的多半是【约束名】** ——
+    // equipment_maintenance / equipment_downtime / equipment_service_intervals
+    // 没有任何 RPC,拒绝到达浏览器时是 Postgres 的约束违反,不是 `CODE|args`。
+    // 加一条 CHECK 就要来那个 Set 里加一个名字,于是这道检查立刻要求两个语言
+    // 都补上句子 —— 与 logistics.milestoneLabel 接表上那条 CHECK 是同一种接法。
+    'equipment.errors.': { kind: 'enum', values: () => tsSet('app/finance/assets/equipmentErrorCodes.ts', 'EQUIPMENT_ERROR_CODES') },
+    // EQP-2d:活的种类。**真源是 equipment_maintenance 表上那条 CHECK** ——
+    // 往库里加一种活(EQP-2c 的 known-issue 里那条 service_type 就会),
+    // 这道检查立刻要求两个语言都补上标签。写死一份清单只会烂在这里。
+    'equipment.kind.': { kind: 'enum', values: () => sqlCheckIn('db/tables/equipment_maintenance.sql', 'kind') },
     // LOG-2b:集装箱里程碑。**真源是表上那条 CHECK**(db/tables/container_milestones.sql)——
     // 往库里加一个里程碑,这道检查立刻要求两个语言都补上标签,于是页面那份清单
     // 也不会被悄悄落下。写死一份清单只会烂在这里。
