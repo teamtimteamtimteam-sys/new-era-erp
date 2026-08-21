@@ -120,8 +120,8 @@ BEGIN
     -- ══════════ D. 指数是条款:承诺之后不随公式改动(FIN-27 的形状)═════════
     INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)
     VALUES ('ZZFIX49-S', 'fixture 49 supplier', 'SG', 'active', 'goods_supplier') RETURNING id INTO v_sup;
-    INSERT INTO materials (code, name, kind_code, may_be_processed)
-    VALUES ('ZZFIX49-M', 'fixture 49 material', 'battery_material', true) RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
+    VALUES ('ZZFIX49-M', 'fixture 49 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
     INSERT INTO pricing_formulas (code, name, direction, price_basis, price_index,
         treatment_charge_usd_per_tonne, flat_discount_pct)
     VALUES ('ZZFIX49-PF', 'fixture 49 formula', 'both', 'spot', 'LME', 0, 0)

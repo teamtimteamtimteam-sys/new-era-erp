@@ -29,7 +29,7 @@ BEGIN
 
     INSERT INTO suppliers (code, legal_name, country, counterparty_type) VALUES ('FIXT-S20', 'Fixture Supplier 20', 'SG', 'goods_supplier')
         RETURNING id INTO v_sup;
-    INSERT INTO materials (code, name, kind_code, may_be_processed) VALUES ('FIXT-M20', 'Fixture Material 20', 'battery_material', true)
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code) VALUES ('FIXT-M20', 'Fixture Material 20', 'battery_material', true, 'black_mass', 'end_of_life')
         RETURNING id INTO v_mat;
     -- 下单日牌价(单据 SGD:分子 fx(USD)=1.26,分母 fx(SGD)=1 → factor 1.26)
     DELETE FROM fx_rates WHERE currency = 'USD' AND rate_date = v_today AND rate_type = 'tt_sell';

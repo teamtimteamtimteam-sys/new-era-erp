@@ -39,7 +39,7 @@ BEGIN
 
     INSERT INTO suppliers (code, legal_name, country, counterparty_type) VALUES ('FIXT-S22', 'Fixture Supplier 22', 'SG', 'goods_supplier')
         RETURNING id INTO v_sup;
-    INSERT INTO materials (code, name, kind_code, may_be_processed) VALUES ('FIXT-M22', 'Fixture Material 22', 'battery_material', true)
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code) VALUES ('FIXT-M22', 'Fixture Material 22', 'battery_material', true, 'black_mass', 'end_of_life')
         RETURNING id INTO v_mat;
 
     -- 两张单:一张 USD、一张 SGD(本位币,无需牌价)

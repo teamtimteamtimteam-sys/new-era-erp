@@ -76,8 +76,8 @@ BEGIN
     -- 限额客户:限额 1,已经没有余地 —— 用来证明【发货不查信用】
     INSERT INTO customers (code, legal_name, country, credit_limit_base)
     VALUES ('ZZ68-C2', 'fixture 68 limited', 'SG', 1) RETURNING id INTO v_lim;
-    INSERT INTO materials (code, name, kind_code, may_be_processed, unit)
-    VALUES ('ZZFIX68-M', 'f68 material', 'battery_material', true, 'kg') RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, unit)
+    VALUES ('ZZFIX68-M', 'f68 material', 'battery_material', true, 'black_mass', 'end_of_life', 'kg') RETURNING id INTO v_mat;
 
     ob1  := (create_output_batch(v_mat, 100, 'kg', d, '库存中', NULL, NULL, NULL, NULL) ->> 'batch_id')::uuid;
     ob2  := (create_output_batch(v_mat, 100, 'kg', d, '库存中', NULL, NULL, NULL, NULL) ->> 'batch_id')::uuid;
@@ -371,8 +371,8 @@ BEGIN
     -- "所以它自然看得见"的证明。
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
     VALUES ('ZZ68-S1', 'fixture 68 supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
-    INSERT INTO materials (code, name, kind_code, may_be_processed, unit)
-    VALUES ('ZZFIX68-K', 'f68 processed', 'battery_material', true, 'kg') RETURNING id INTO v_matK;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, unit)
+    VALUES ('ZZFIX68-K', 'f68 processed', 'battery_material', true, 'black_mass', 'end_of_life', 'kg') RETURNING id INTO v_matK;
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
     VALUES ('ZZ68-IB', v_mat, v_sup, 50, 50, 'kg', d) RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 2, v_ccy, NULL, 'fixture 68 K price');

@@ -3260,9 +3260,81 @@ export type Database = {
           },
         ]
       }
+      inbound_batch_safety_states: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          inbound_batch_id: string
+          safety_state_code: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          inbound_batch_id: string
+          safety_state_code: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          inbound_batch_id?: string
+          safety_state_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_batch_safety_states_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_safety_state_code_fkey"
+            columns: ["safety_state_code"]
+            isOneToOne: false
+            referencedRelation: "inbound_safety_states"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       inbound_batches: {
         Row: {
           arrival_date: string | null
+          chemistry_certainty_code: string | null
           code: string
           created_at: string
           created_by: string | null
@@ -3289,6 +3361,7 @@ export type Database = {
         }
         Insert: {
           arrival_date?: string | null
+          chemistry_certainty_code?: string | null
           code: string
           created_at?: string
           created_by?: string | null
@@ -3315,6 +3388,7 @@ export type Database = {
         }
         Update: {
           arrival_date?: string | null
+          chemistry_certainty_code?: string | null
           code?: string
           created_at?: string
           created_by?: string | null
@@ -3340,6 +3414,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "inbound_batches_chemistry_certainty_code_fkey"
+            columns: ["chemistry_certainty_code"]
+            isOneToOne: false
+            referencedRelation: "inbound_chemistry_certainties"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "inbound_batches_material_id_fkey"
             columns: ["material_id"]
@@ -3460,6 +3541,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      inbound_chemistry_certainties: {
+        Row: {
+          code: string
+          is_active: boolean
+          may_be_fed: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          is_active?: boolean
+          may_be_fed: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          is_active?: boolean
+          may_be_fed?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      inbound_safety_states: {
+        Row: {
+          code: string
+          is_active: boolean
+          may_be_fed: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          is_active?: boolean
+          may_be_fed: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          is_active?: boolean
+          may_be_fed?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Relationships: []
       }
       inventory_movements: {
         Row: {
@@ -4750,9 +4891,40 @@ export type Database = {
           },
         ]
       }
+      material_forms: {
+        Row: {
+          code: string
+          implies_dismantling: boolean
+          is_active: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          implies_dismantling: boolean
+          is_active?: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          implies_dismantling?: boolean
+          is_active?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Relationships: []
+      }
       material_kinds: {
         Row: {
           code: string
+          has_condition_axes: boolean
           is_active: boolean
           may_ever_be_processed: boolean
           name_en: string
@@ -4762,6 +4934,7 @@ export type Database = {
         }
         Insert: {
           code: string
+          has_condition_axes?: boolean
           is_active?: boolean
           may_ever_be_processed: boolean
           name_en: string
@@ -4771,6 +4944,7 @@ export type Database = {
         }
         Update: {
           code?: string
+          has_condition_axes?: boolean
           is_active?: boolean
           may_ever_be_processed?: boolean
           name_en?: string
@@ -4823,6 +4997,63 @@ export type Database = {
           },
         ]
       }
+      material_size_formats: {
+        Row: {
+          code: string
+          is_active: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          is_active?: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          is_active?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      material_sources: {
+        Row: {
+          code: string
+          implies_never_charged: boolean
+          is_active: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          implies_never_charged: boolean
+          is_active?: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          implies_never_charged?: boolean
+          is_active?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Relationships: []
+      }
       materials: {
         Row: {
           chemistry: string | null
@@ -4830,12 +5061,15 @@ export type Database = {
           created_at: string
           created_by: string | null
           deleted_at: string | null
+          form_code: string | null
           id: string
           kind_code: string | null
           may_be_processed: boolean | null
           name: string
           notes: string | null
           safety_stock_qty: number | null
+          size_format_code: string | null
+          source_code: string | null
           spec: string | null
           status: string
           unit: string
@@ -4849,12 +5083,15 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
+          form_code?: string | null
           id?: string
           kind_code?: string | null
           may_be_processed?: boolean | null
           name: string
           notes?: string | null
           safety_stock_qty?: number | null
+          size_format_code?: string | null
+          source_code?: string | null
           spec?: string | null
           status?: string
           unit?: string
@@ -4868,12 +5105,15 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
+          form_code?: string | null
           id?: string
           kind_code?: string | null
           may_be_processed?: boolean | null
           name?: string
           notes?: string | null
           safety_stock_qty?: number | null
+          size_format_code?: string | null
+          source_code?: string | null
           spec?: string | null
           status?: string
           unit?: string
@@ -4883,10 +5123,31 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "materials_form_code_fkey"
+            columns: ["form_code"]
+            isOneToOne: false
+            referencedRelation: "material_forms"
+            referencedColumns: ["code"]
+          },
+          {
             foreignKeyName: "materials_kind_code_fkey"
             columns: ["kind_code"]
             isOneToOne: false
             referencedRelation: "material_kinds"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "materials_size_format_code_fkey"
+            columns: ["size_format_code"]
+            isOneToOne: false
+            referencedRelation: "material_size_formats"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "materials_source_code_fkey"
+            columns: ["source_code"]
+            isOneToOne: false
+            referencedRelation: "material_sources"
             referencedColumns: ["code"]
           },
           {
@@ -12468,6 +12729,7 @@ export type Database = {
       inbound_batches_masked: {
         Row: {
           arrival_date: string | null
+          chemistry_certainty_code: string | null
           code: string | null
           created_at: string | null
           created_by: string | null
@@ -12494,6 +12756,7 @@ export type Database = {
         }
         Insert: {
           arrival_date?: string | null
+          chemistry_certainty_code?: string | null
           code?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -12520,6 +12783,7 @@ export type Database = {
         }
         Update: {
           arrival_date?: string | null
+          chemistry_certainty_code?: string | null
           code?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -12545,6 +12809,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "inbound_batches_chemistry_certainty_code_fkey"
+            columns: ["chemistry_certainty_code"]
+            isOneToOne: false
+            referencedRelation: "inbound_chemistry_certainties"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "inbound_batches_material_id_fkey"
             columns: ["material_id"]

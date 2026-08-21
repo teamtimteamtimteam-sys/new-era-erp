@@ -29,8 +29,8 @@ BEGIN
                            'module.inbound.edit','module.inbound.view']);
     INSERT INTO user_roles (user_id, role_id) VALUES (u, r);
 
-    INSERT INTO materials (code, name, kind_code, may_be_processed)
-    VALUES ('ZZFIX37-M', 'fixture 37 material', 'battery_material', true) RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
+    VALUES ('ZZFIX37-M', 'fixture 37 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
 
     -- 三个供应商:持过期 block 证的、持过期 warn 证的、一张证都没有的
     INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)

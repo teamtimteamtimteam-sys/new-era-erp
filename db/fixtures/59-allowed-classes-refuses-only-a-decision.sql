@@ -55,13 +55,13 @@ BEGIN
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
     VALUES ('FIXT-S59', 'Fixture Supplier 59', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
 
-    INSERT INTO materials (code, name, kind_code, may_be_processed, unit, waste_classification_code)
-    VALUES ('ZZFIX59-F', 'fixture 59 focused', 'battery_material', true, 'kg', 'focused') RETURNING id INTO m_foc;
-    INSERT INTO materials (code, name, kind_code, may_be_processed, unit, waste_classification_code)
-    VALUES ('ZZFIX59-N', 'fixture 59 non-focused', 'battery_material', true, 'kg', 'non_focused') RETURNING id INTO m_non;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, unit, waste_classification_code)
+    VALUES ('ZZFIX59-F', 'fixture 59 focused', 'battery_material', true, 'black_mass', 'end_of_life', 'kg', 'focused') RETURNING id INTO m_foc;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, unit, waste_classification_code)
+    VALUES ('ZZFIX59-N', 'fixture 59 non-focused', 'battery_material', true, 'black_mass', 'end_of_life', 'kg', 'non_focused') RETURNING id INTO m_non;
     -- 【不写 waste_classification_code】—— 未分类是"没有人分过类",不是某个值
-    INSERT INTO materials (code, name, kind_code, may_be_processed, unit)
-    VALUES ('ZZFIX59-U', 'fixture 59 unclassified', 'battery_material', true, 'kg') RETURNING id INTO m_null;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, unit)
+    VALUES ('ZZFIX59-U', 'fixture 59 unclassified', 'battery_material', true, 'black_mass', 'end_of_life', 'kg') RETURNING id INTO m_null;
 
     INSERT INTO storage_locations (code, name) VALUES ('ZZ59-UN', 'unconfigured rack') RETURNING id INTO loc_un;
     INSERT INTO storage_locations (code, name) VALUES ('ZZ59-FOC', 'focused-only rack') RETURNING id INTO loc_foc;

@@ -43,8 +43,8 @@ BEGIN
 
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
     VALUES ('ZZFIX34-S', 'fixture 34 supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
-    INSERT INTO materials (code, name, kind_code, may_be_processed)
-    VALUES ('ZZFIX34-M', 'fixture 34 material', 'battery_material', true) RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
+    VALUES ('ZZFIX34-M', 'fixture 34 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
 
     -- 一批有价的投料:100 kg,单价 10 → 材料成本 1000
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,

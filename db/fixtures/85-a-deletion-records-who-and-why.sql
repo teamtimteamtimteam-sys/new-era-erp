@@ -32,8 +32,8 @@ BEGIN
 
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
     VALUES ('FX85-SUP', 'fixture 85 supplier', 'SG', 'goods_supplier') RETURNING id INTO sup;
-    INSERT INTO materials (code, name, kind_code, may_be_processed)
-    VALUES ('FX85-M', 'fixture 85 material', 'battery_material', true) RETURNING id INTO mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
+    VALUES ('FX85-M', 'fixture 85 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO mat;
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date)
     VALUES ('FX85-IN', mat, sup, 10, 'kg', 10, '2026-05-01') RETURNING id INTO ib;
     INSERT INTO inventory_movements (inbound_batch_id, movement_type, qty_delta, business_date)

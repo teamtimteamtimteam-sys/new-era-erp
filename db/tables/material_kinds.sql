@@ -27,7 +27,9 @@ CREATE TABLE public.material_kinds (
     may_ever_be_processed boolean NOT NULL,
     is_active             boolean NOT NULL DEFAULT true,
     sort_order            integer NOT NULL DEFAULT 0,
-    notes                 text
+    notes                 text,
+    -- ── PROC-2 追加(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────────
+    has_condition_axes    boolean NOT NULL DEFAULT false
 );
 
 COMMENT ON TABLE public.material_kinds IS
@@ -64,19 +66,19 @@ COMMENT ON COLUMN public.material_kinds.may_ever_be_processed IS
 **这一列为 false 时,那一列不许为 true。反之【不】强制** ——
 一件可以被投料的东西,我们完全可能决定不投它。';
 
-INSERT INTO public.material_kinds (code, name_en, name_zh, may_ever_be_processed, sort_order, notes) VALUES
-    ('battery_material', 'Battery material', '电池料', true, 1,
+INSERT INTO public.material_kinds (code, name_en, name_zh, may_ever_be_processed, sort_order, has_condition_axes, notes) VALUES
+    ('battery_material', 'Battery material', '电池料', true, 1, true,
      '【按【功能】起名,不按某一个实例】它覆盖:整颗电芯与模组、极片废料、以及【我们买进来的黑粉】。'
      || '早先提过的 "battery" 这个名字被否掉了 —— 看到它的人会读成"整颗电池",第一天就会把买进来的黑粉分错类。'),
-    ('ewaste', 'E-waste', '电子废料', true, 2,
+    ('ewaste', 'E-waste', '电子废料', true, 2, false,
      '非电池的电子废料。may_ever_be_processed = true 是【允许】,不是【断言我们会加工它】——'
      || '具体某一种要不要投,由 materials.may_be_processed 逐件决定。'),
-    ('packaging', 'Packaging', '包装材料', false, 3,
+    ('packaging', 'Packaging', '包装材料', false, 3, false,
      '吨袋一类。【自成一类,不并进耗材】它可能随货出去、也可能可回收,'
      || '而耗材是被【工艺】吃掉的 —— 两者的成本归属与补货触发都不同(PROC-0b N8,Tim 裁定)。'),
-    ('consumable', 'Consumable', '耗材辅料', false, 4,
+    ('consumable', 'Consumable', '耗材辅料', false, 4, false,
      '被工艺消耗掉、成为生产成本的那些。'),
-    ('spare_part', 'Spare part', '备件', false, 5,
+    ('spare_part', 'Spare part', '备件', false, 5, false,
      '机器的备件。【自成一类】它挂在一台机器上、有关键度,而且【不按批次追溯】——'
      || '并进耗材会在保养模块(EQP-2b/2c)接上它之前就把那条链丢掉(PROC-0b N3,Tim 裁定)。');
 
@@ -95,3 +97,16 @@ CREATE POLICY "material_kinds update by permission"
     AS PERMISSIVE FOR UPDATE TO authenticated
     USING (has_permission('module.materials.edit'::text))
     WITH CHECK (has_permission('module.materials.edit'::text));
+
+COMMENT ON COLUMN public.material_kinds.has_condition_axes IS
+'PROC-2:这一类物料要不要回答【状态轴】(形态 / 来源 / 规格尺寸)。
+
+【为什么只有 battery_material 是 true】那三条轴的取值全部是电池形状的
+(整包 / 模组 / 散电芯 / 极片废料 / 黑粉;退役料 / 厂内边角料;EV / 两轮 / 储能…)。
+包装、耗材、备件没有形态可言;**电子废料(ewaste)也没有** ——
+它不是电池,那套取值对它一个都不合适。ewaste 将来若要自己的一套轴,
+那是它自己的一刀,不是把这三条硬套过去。
+
+【它是【适用条件】,不是【重要性】】为 false 时那三列留空的意思是"不适用",
+而不是"没人决定过" —— 而这正是本仓库反复付账的那个区别。';
+

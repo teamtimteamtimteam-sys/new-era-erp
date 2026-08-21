@@ -40,11 +40,11 @@ BEGIN
         RETURNING id INTO v_sup;
     INSERT INTO customers (code, legal_name, country) VALUES ('FIXT-C19', 'Fixture Customer 19', 'SG')
         RETURNING id INTO v_cust;
-    INSERT INTO materials (code, name, kind_code, may_be_processed) VALUES ('FIXT-M19', 'Fixture Raw 19', 'battery_material', true)
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code) VALUES ('FIXT-M19', 'Fixture Raw 19', 'battery_material', true, 'black_mass', 'end_of_life')
         RETURNING id INTO v_mat;
-    INSERT INTO materials (code, name, kind_code, may_be_processed) VALUES ('FIXT-M19B', 'Fixture Mid 19', 'battery_material', true)
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code) VALUES ('FIXT-M19B', 'Fixture Mid 19', 'battery_material', true, 'black_mass', 'end_of_life')
         RETURNING id INTO v_matB;
-    INSERT INTO materials (code, name, kind_code, may_be_processed) VALUES ('FIXT-M19C', 'Fixture Fine 19', 'battery_material', true)
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code) VALUES ('FIXT-M19C', 'Fixture Fine 19', 'battery_material', true, 'black_mass', 'end_of_life')
         RETURNING id INTO v_matC;
 
     -- ── stage1:进料 100kg @1(40% 镍 = 40kg),产出 O1 80kg(45% = 36kg)──────

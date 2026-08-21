@@ -42,10 +42,10 @@ BEGIN
     VALUES ('ZZ65-C1', 'fixture 65 customer', 'SG') RETURNING id INTO v_cust;
     INSERT INTO customers (code, legal_name, country, deleted_at)
     VALUES ('ZZ65-C2', 'fixture 65 deleted customer', 'SG', now()) RETURNING id INTO v_cust2;
-    INSERT INTO materials (code, name, kind_code, may_be_processed, unit)
-    VALUES ('ZZFIX65-A', 'f65 a', 'battery_material', true, 'kg') RETURNING id INTO v_mat;
-    INSERT INTO materials (code, name, kind_code, may_be_processed, unit)
-    VALUES ('ZZFIX65-B', 'f65 b', 'battery_material', true, 'kg') RETURNING id INTO v_mat2;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, unit)
+    VALUES ('ZZFIX65-A', 'f65 a', 'battery_material', true, 'black_mass', 'end_of_life', 'kg') RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, unit)
+    VALUES ('ZZFIX65-B', 'f65 b', 'battery_material', true, 'black_mass', 'end_of_life', 'kg') RETURNING id INTO v_mat2;
 
     -- ══════════ A. 前提 ═════════════════════════════════════════════════════
     IF to_regprocedure('public.create_sales_order(uuid,date,text,numeric,jsonb,text,text)') IS NULL THEN

@@ -63,8 +63,8 @@ BEGIN
 
     INSERT INTO customers (code, legal_name, country)
     VALUES ('ZZ71-C1', 'fixture 71 customer', 'SG') RETURNING id INTO v_cust;
-    INSERT INTO materials (code, name, kind_code, may_be_processed, unit)
-    VALUES ('ZZFIX71-M', 'f71 material', 'battery_material', true, 'kg') RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, unit)
+    VALUES ('ZZFIX71-M', 'f71 material', 'battery_material', true, 'black_mass', 'end_of_life', 'kg') RETURNING id INTO v_mat;
 
     -- ══════════ A. 前提 + 目录:【一处推导,四个消费方】═════════════════════
     IF to_regprocedure('public.create_credit_note(uuid,date,text,jsonb)') IS NULL THEN

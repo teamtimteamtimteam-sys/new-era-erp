@@ -69,8 +69,8 @@ BEGIN
     VALUES ('ZZ67-C1', 'fixture 67 customer', 'SG') RETURNING id INTO v_cust;
     INSERT INTO customers (code, legal_name, country, credit_limit_base)
     VALUES ('ZZ67-C2', 'fixture 67 limited', 'SG', 1000) RETURNING id INTO v_cust2;
-    INSERT INTO materials (code, name, kind_code, may_be_processed, unit)
-    VALUES ('ZZFIX67-M', 'f67 material', 'battery_material', true, 'kg') RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, unit)
+    VALUES ('ZZFIX67-M', 'f67 material', 'battery_material', true, 'black_mass', 'end_of_life', 'kg') RETURNING id INTO v_mat;
 
     -- 订单一:USD @ 1.25,两行(100×5 + 60×5 = 800 USD)
     INSERT INTO sales_orders (code, customer_id, order_date, currency, fx_rate)

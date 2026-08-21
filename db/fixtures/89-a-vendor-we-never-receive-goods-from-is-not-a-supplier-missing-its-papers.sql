@@ -35,8 +35,8 @@ BEGIN
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_all), true);
 
-    INSERT INTO materials (code, name, kind_code, may_be_processed)
-    VALUES ('FX89-M', 'fixture 89 material', 'battery_material', true) RETURNING id INTO mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
+    VALUES ('FX89-M', 'fixture 89 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO mat;
 
     -- 【两家,只差一个标记】—— 其余字段完全一致,于是任何差异都只能来自这个标记。
     -- LOG-1a 起写的是 counterparty_type:supplies_goods 成了它的派生列,写不得。

@@ -63,8 +63,8 @@ BEGIN
     INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)
     VALUES ('ZZFIX100-FWD', 'fixture 100 forwarder', 'SG', 'active', 'forwarder')
     RETURNING id INTO v_fwd;
-    INSERT INTO materials (code, name, kind_code, may_be_processed)
-    VALUES ('ZZFIX100-M', 'fixture 100 material', 'battery_material', true) RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
+    VALUES ('ZZFIX100-M', 'fixture 100 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
 
     -- ══════════ A. 部分付 → 敞口下降 → 超付按名拒 → 付清 → 账龄里没有了 ══════
     -- 每一臂自带批次与运费单(README 第 2 条:用例之间不共享可变状态 ——

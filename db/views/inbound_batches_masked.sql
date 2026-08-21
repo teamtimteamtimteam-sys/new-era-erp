@@ -1,4 +1,7 @@
 -- db/views/inbound_batches_masked.sql
+-- 【PROC-2:多一列 chemistry_certainty_code】遮蔽表加一列是三件事,这是第三件 ——
+-- gate 的 colgrant 判据是「一张表一旦有 _masked 伴生,每一列都必须在那张视图里,
+-- 授权与否都一样」,所以这一列即便是非敏感的、已经列级授权了,也必须在这里出现。
 -- 遮蔽伴生视图:inbound_batches 的每一列都在,敏感列按 has_permission() 置空。
 --   遮蔽的列:unit_price → data.view_prices
 --
@@ -42,6 +45,7 @@ CREATE VIEW public.inbound_batches_masked WITH (security_invoker = off) AS
     pricing_status,
     deleted_by,
     delete_reason,
-    declared_qty
+    declared_qty,
+    chemistry_certainty_code
    FROM inbound_batches
   WHERE has_permission('module.inbound.view'::text);

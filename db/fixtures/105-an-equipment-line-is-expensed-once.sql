@@ -84,8 +84,8 @@ BEGIN
 
     -- ══════════ F1(b) · 材料的下单 → 收货链条,照旧 ════════════════════════
     RAISE NOTICE 'fixture 105 · 进入 %', 'F1(b)';
-    INSERT INTO materials (code, name, kind_code, may_be_processed)
-    VALUES ('ZZFIX105-M', 'fixture 105 material', 'battery_material', true) RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
+    VALUES ('ZZFIX105-M', 'fixture 105 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
     v_res := create_purchase_order(v_sup, DATE '2027-01-10', DATE '2027-03-01', v_ccy, NULL,
         NULL, NULL, 'fixture 105 material PO',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,

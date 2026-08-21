@@ -51,8 +51,8 @@ BEGIN
     -- 于是它测的是外键,不是守卫。故障注入时正是这么暴露的。
     INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)
     VALUES ('ZZFIX52-S2', 'fixture 52 other supplier', 'SG', 'active', 'goods_supplier') RETURNING id INTO v_sup2;
-    INSERT INTO materials (code, name, kind_code, may_be_processed)
-    VALUES ('ZZFIX52-M', 'fixture 52 material', 'battery_material', true) RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
+    VALUES ('ZZFIX52-M', 'fixture 52 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
 
     -- ══════════ A. 已收下限:砍到已收之下拒,等于已收放行(边界在内)═══════════
     v_po := (create_purchase_order(v_sup, DATE '2027-03-01', NULL, v_ccy, NULL, NULL, NULL, NULL,

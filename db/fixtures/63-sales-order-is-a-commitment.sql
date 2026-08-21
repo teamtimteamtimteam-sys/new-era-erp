@@ -60,8 +60,8 @@ BEGIN
     VALUES ('ZZ63-C1', 'fixture 63 customer', 'SG') RETURNING id INTO v_cust;
     INSERT INTO customers (code, legal_name, country, credit_hold)
     VALUES ('ZZ63-C2', 'fixture 63 held customer', 'SG', true) RETURNING id INTO v_cust2;
-    INSERT INTO materials (code, name, kind_code, may_be_processed, unit)
-    VALUES ('ZZFIX63-M', 'f63 material', 'battery_material', true, 'kg') RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, unit)
+    VALUES ('ZZFIX63-M', 'f63 material', 'battery_material', true, 'black_mass', 'end_of_life', 'kg') RETURNING id INTO v_mat;
 
     -- ══════════ A. 前提 ═════════════════════════════════════════════════════
     v_code := next_sales_order_code(d);

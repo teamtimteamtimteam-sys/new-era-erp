@@ -86,12 +86,12 @@ BEGIN
 
     INSERT INTO customers (code, legal_name, country)
     VALUES ('ZZ64-C1', 'fixture 64 customer', 'SG') RETURNING id INTO v_cust;
-    INSERT INTO materials (code, name, kind_code, may_be_processed, unit)
-    VALUES ('ZZFIX64-M', 'f64 material', 'battery_material', true, 'kg') RETURNING id INTO v_mat;
-    INSERT INTO materials (code, name, kind_code, may_be_processed, unit, waste_classification_code)
-    VALUES ('ZZFIX64-N', 'f64 classified', 'battery_material', true, 'kg', 'non_focused') RETURNING id INTO m_cls;
-    INSERT INTO materials (code, name, kind_code, may_be_processed, unit, safety_stock_qty)
-    VALUES ('ZZFIX64-S', 'f64 safety-watched', 'battery_material', true, 'kg', 50) RETURNING id INTO m_saf;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, unit)
+    VALUES ('ZZFIX64-M', 'f64 material', 'battery_material', true, 'black_mass', 'end_of_life', 'kg') RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, unit, waste_classification_code)
+    VALUES ('ZZFIX64-N', 'f64 classified', 'battery_material', true, 'black_mass', 'end_of_life', 'kg', 'non_focused') RETURNING id INTO m_cls;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, unit, safety_stock_qty)
+    VALUES ('ZZFIX64-S', 'f64 safety-watched', 'battery_material', true, 'black_mass', 'end_of_life', 'kg', 50) RETURNING id INTO m_saf;
 
     INSERT INTO storage_locations (code, name) VALUES ('ZZ64-A', 'f64 A') RETURNING id INTO loc_a;
     INSERT INTO storage_locations (code, name) VALUES ('ZZ64-B', 'f64 B') RETURNING id INTO loc_b;

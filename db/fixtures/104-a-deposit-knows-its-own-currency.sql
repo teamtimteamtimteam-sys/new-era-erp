@@ -80,8 +80,8 @@ BEGIN
     INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)
     VALUES ('ZZFIX104-S', 'fixture 104 supplier', 'SG', 'active', 'goods_supplier')
     RETURNING id INTO v_sup;
-    INSERT INTO materials (code, name, kind_code, may_be_processed)
-    VALUES ('ZZFIX104-M', 'fixture 104 material', 'battery_material', true) RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
+    VALUES ('ZZFIX104-M', 'fixture 104 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
 
     -- ══════════ A · 前提:本位币进料冲抵,与从前逐分相同 ═════════════════════
     v_res := create_purchase_order(v_sup, DATE '2027-02-01', DATE '2027-04-01', v_base, NULL,

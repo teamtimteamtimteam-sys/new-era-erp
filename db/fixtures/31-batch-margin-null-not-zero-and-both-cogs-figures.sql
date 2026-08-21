@@ -50,8 +50,8 @@ BEGIN
     VALUES (r_np, 'module.finance.view'), (r_np, 'module.processing.view');
     INSERT INTO user_roles (user_id, role_id) VALUES (u_fin, r_fin), (u_proc, r_proc), (u_np, r_np);
 
-    INSERT INTO materials (code, name, kind_code, may_be_processed)
-    VALUES ('ZZFIX31-M', 'fixture 31 material', 'battery_material', true) RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
+    VALUES ('ZZFIX31-M', 'fixture 31 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
     VALUES ('ZZFIX31-S', 'fixture 31 supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
     INSERT INTO customers (code, legal_name, country)

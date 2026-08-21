@@ -53,9 +53,9 @@ BEGIN
 
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
     VALUES ('ZZ79-S', 'fixture 79 supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
-    INSERT INTO materials (code, name, kind_code, may_be_processed) VALUES ('ZZ79-MA','f79 raw', 'battery_material', true)
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code) VALUES ('ZZ79-MA','f79 raw', 'battery_material', true, 'black_mass', 'end_of_life')
         RETURNING id INTO v_matA;
-    INSERT INTO materials (code, name, kind_code, may_be_processed) VALUES ('ZZ79-MB','f79 fine', 'battery_material', true)
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code) VALUES ('ZZ79-MB','f79 fine', 'battery_material', true, 'black_mass', 'end_of_life')
         RETURNING id INTO v_matB;
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
     VALUES ('ZZ79-IB', v_matA, v_sup, 1000, 1000, 'kg', d) RETURNING id INTO v_ib;

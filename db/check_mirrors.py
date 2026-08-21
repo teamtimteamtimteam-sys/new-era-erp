@@ -125,6 +125,10 @@ RUNTIME_CONFIG_TABLES = [
     # PROC-1:物料种类字典 —— 加一种物料种类是加一行(与 certificate_types 同一条)。
     # 引导播五行;Tim 在界面上加一种,线上就与本文件不同,那是系统在正常工作。
     "material_kinds",
+    # PROC-2:五条进料状态轴,五张字典 —— 同一条。轴在 PROC-2 定死,取值可以后到,
+    # 而"后到"的代价正是一行数据,这就是把它们做成字典换来的东西。
+    "material_forms", "material_sources", "material_size_formats",
+    "inbound_safety_states", "inbound_chemistry_certainties",
     # GRN-1a:收货差异的三个阈值 —— 与 processing_settings 的两个工单阈值同一条。
     # 5/5/10 是引导默认值,不是决定;运营改一次线上就与本文件不同,那是对的。
     "receiving_settings",

@@ -82,7 +82,10 @@ BEGIN
     END IF;
     v_denied := false; v_msg := NULL;
     BEGIN
-        INSERT INTO materials (code, name, kind_code) VALUES ('ZZ112-NP', 'f112 no flag', 'battery_material');
+        -- 【PROC-2:补上形态与来源】它们不是这一臂要测的东西,但不给就会先撞上
+        -- 状态轴那道守卫 —— 一条撞在别的守卫上的断言,证不了它自己说的那件事。
+        INSERT INTO materials (code, name, kind_code, form_code, source_code)
+        VALUES ('ZZ112-NP', 'f112 no flag', 'battery_material', 'black_mass', 'end_of_life');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE '%materials_kind_stated%' THEN
         RAISE EXCEPTION 'FIXTURE 112F3 失败:进入 F3 —— 不说【能不能投料】的新行同样必须被拦(默认某一侧就是一个没人做过的决定),实得 denied=%、msg=「%」', v_denied, COALESCE(v_msg,'(通过了)');
@@ -93,12 +96,12 @@ BEGIN
     VALUES ('ZZ112-S','f112 supplier','SG','goods_supplier') RETURNING id INTO v_sup;
     -- 【不可投料的那一个】它是一种合法的电池料,只是我们决定不投它 ——
     -- 也就是说这一臂测的不是"种类不对",而是【这一件的判断】。
-    INSERT INTO materials (code, name, kind_code, may_be_processed)
-    VALUES ('ZZ112-NO','f112 battery material we do not feed','battery_material', false) RETURNING id INTO v_bad;
-    INSERT INTO materials (code, name, kind_code, may_be_processed)
-    VALUES ('ZZ112-YES','f112 feed','battery_material', true) RETURNING id INTO v_mat;
-    INSERT INTO materials (code, name, kind_code, may_be_processed)
-    VALUES ('ZZ112-OUT','f112 output','battery_material', true) RETURNING id INTO v_matB;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
+    VALUES ('ZZ112-NO','f112 battery material we do not feed','battery_material', false, 'black_mass', 'end_of_life') RETURNING id INTO v_bad;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
+    VALUES ('ZZ112-YES','f112 feed','battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
+    VALUES ('ZZ112-OUT','f112 output','battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_matB;
 
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
     VALUES ('ZZ112-IBNO', v_bad, v_sup, 100, 100, 'kg', v_process - 1) RETURNING id INTO v_ib;
@@ -132,8 +135,8 @@ BEGIN
     -- **少了这一支,守卫里 `IS NOT TRUE` 与 `IS FALSE` 的区别就没有任何东西验过** ——
     -- 而那正是"没人决定过"被读成"可以"的那一个错(METAL-1 的 no_reference)。
     ALTER TABLE public.materials DROP CONSTRAINT materials_kind_stated;
-    INSERT INTO materials (code, name, kind_code, may_be_processed)
-    VALUES ('ZZ112-UND','f112 nobody decided','battery_material', NULL) RETURNING id INTO v_bad;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
+    VALUES ('ZZ112-UND','f112 nobody decided','battery_material', NULL, 'black_mass', 'end_of_life') RETURNING id INTO v_bad;
     ALTER TABLE public.materials ADD CONSTRAINT materials_kind_stated
         CHECK (kind_code IS NOT NULL AND may_be_processed IS NOT NULL) NOT VALID;
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
@@ -157,8 +160,8 @@ BEGIN
     UPDATE material_kinds SET may_ever_be_processed = false WHERE code = 'battery_material';
     v_denied := false; v_msg := NULL;
     BEGIN
-        INSERT INTO materials (code, name, kind_code, may_be_processed)
-        VALUES ('ZZ112-F5A', 'f112 after flip', 'battery_material', true);
+        INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
+        VALUES ('ZZ112-F5A', 'f112 after flip', 'battery_material', true, 'black_mass', 'end_of_life');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE '%MATERIAL_KIND_NOT_PROCESSABLE%' THEN
         RAISE EXCEPTION 'FIXTURE 112F5 失败:进入 F5 —— 在同一笔事务里把 battery_material 的 may_ever_be_processed 翻成 false 之后,一个可投料的电池料必须【当场】建不出来。实得 denied=%、msg=「%」。这一步测的是"规则【现读】字典",而不是"规则写死在某处而字典只是装饰"', v_denied, COALESCE(v_msg,'(通过了)');
@@ -166,8 +169,8 @@ BEGIN
     -- 方向二:翻回去 → 同一条 INSERT 必须【成功】
     -- 【单向测试对一个"永远拒绝"的实现是绿的】—— fixture 76 与 111 立的同一条判据。
     UPDATE material_kinds SET may_ever_be_processed = true WHERE code = 'battery_material';
-    INSERT INTO materials (code, name, kind_code, may_be_processed)
-    VALUES ('ZZ112-F5B', 'f112 flipped back', 'battery_material', true);
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
+    VALUES ('ZZ112-F5B', 'f112 flipped back', 'battery_material', true, 'black_mass', 'end_of_life');
     SELECT count(*) INTO v_n FROM materials WHERE code = 'ZZ112-F5B';
     IF v_n <> 1 THEN
         RAISE EXCEPTION 'FIXTURE 112F5 失败:进入 F5 —— 把规则翻回来之后,同一条 INSERT 必须成功。只验一个方向,一个恒拒的实现照样通过';

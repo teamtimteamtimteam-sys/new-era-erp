@@ -30,8 +30,8 @@ BEGIN
                            'module.finance.view','data.view_prices']);
     INSERT INTO user_roles (user_id, role_id) VALUES (u, r);
 
-    INSERT INTO materials (code, name, kind_code, may_be_processed)
-    VALUES ('ZZFIX39-M', 'fixture 39 material', 'battery_material', true) RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
+    VALUES ('ZZFIX39-M', 'fixture 39 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
     INSERT INTO output_batches (code, material_id, quantity, remaining_qty, output_date)
     VALUES ('ZZFIX39-OB', v_mat, 10000, 10000, '2027-07-01') RETURNING id INTO ob;
 

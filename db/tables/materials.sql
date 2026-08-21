@@ -55,7 +55,14 @@ CREATE TABLE public.materials (
     -- 于是用 materials_kind_stated 那条 NOT VALID 的 CHECK:新行必拦,旧行留空。
     -- 本表自己的先例:waste_classification_code(MAT-1,既有行全 NULL 不回填)。
     kind_code        text REFERENCES public.material_kinds (code),
-    may_be_processed boolean
+    may_be_processed boolean,
+    -- ── PROC-2 追加的三条【状态轴】(ALTER 加的列排在末尾)───────────────────
+    -- 【有条件适用,而条件本身是数据】适用与否由 material_kinds.has_condition_axes
+    -- 与 material_forms.implies_dismantling 回答,由 guard_material_condition_axes
+    -- 两个方向都执行(该填没填要拦,不适用却填了也要拦)。
+    form_code        text REFERENCES public.material_forms (code),
+    source_code      text REFERENCES public.material_sources (code),
+    size_format_code text REFERENCES public.material_size_formats (code)
 );
 
 -- 【NOT VALID 必须【单独一条 ALTER】,不能写进 CREATE TABLE 里】
@@ -224,4 +231,82 @@ COMMENT ON FUNCTION public.guard_material_kind_processable() IS
 CREATE TRIGGER trg_materials_kind_processable
     BEFORE INSERT OR UPDATE ON public.materials
     FOR EACH ROW EXECUTE FUNCTION public.guard_material_kind_processable();
+
+COMMENT ON COLUMN public.materials.form_code IS
+'PROC-2:这一种物料是什么形态 —— 决定货进哪一条链。
+【只对带状态轴的种类成立】适用条件是 material_kinds.has_condition_axes;
+不适用时留空【是"不适用"】,不是"没人决定过"。那个区别由那一列回答。';
+
+COMMENT ON COLUMN public.materials.source_code IS
+'PROC-2:这一种物料从哪来 —— 决定废物代码,以及"要不要放电"这个问题成不成立。
+【与供应商类型互相独立】理由(三条,都量过)写在 material_sources 的表注上。';
+
+COMMENT ON COLUMN public.materials.size_format_code IS
+'PROC-2:来自哪一类应用 —— 决定拆解工作量与搬运方式。
+【适用条件是 material_forms.implies_dismantling】黑粉与极片废料没有拆解可言,
+所以它们这一列留空【是"不适用"】。**这是本刀里第二处"空有两种意思"的地方,
+而两处都由数据回答,不由读的人猜。**';
+
+-- ── PROC-2:状态轴的有条件必填(跨表 → 触发器)──────────────────────────
+CREATE OR REPLACE FUNCTION public.guard_material_condition_axes()
+RETURNS trigger LANGUAGE plpgsql AS $fn$
+DECLARE
+    v_needs boolean;
+    v_dismantle boolean;
+BEGIN
+    -- 种类还没说 → 不是本守卫的事(materials_kind_stated 管那一条)。
+    -- 【八行历史物料正落在这里】它们 kind_code 为空,本守卫对它们一言不发。
+    IF NEW.kind_code IS NULL THEN
+        RETURN NEW;
+    END IF;
+    SELECT mk.has_condition_axes INTO v_needs FROM material_kinds mk WHERE mk.code = NEW.kind_code;
+    IF NOT COALESCE(v_needs, false) THEN
+        -- 【这一类没有状态轴 —— 那三列必须【空着】,不许填】
+        -- 允许填,就等于允许"一箱吨袋是整包形态"这种句子存在。
+        IF NEW.form_code IS NOT NULL OR NEW.source_code IS NOT NULL OR NEW.size_format_code IS NOT NULL THEN
+            RAISE EXCEPTION 'MATERIAL_KIND_HAS_NO_CONDITION_AXES|%', NEW.kind_code
+              USING HINT = '这一类物料没有形态/来源/规格尺寸可言;要填这三列,先改它的种类。';
+        END IF;
+        RETURN NEW;
+    END IF;
+    IF NEW.form_code IS NULL OR NEW.source_code IS NULL THEN
+        RAISE EXCEPTION 'MATERIAL_CONDITION_AXES_REQUIRED|%', NEW.kind_code
+          USING HINT = '这一类物料要说出形态与来源 —— 两者都永远不会替你填。';
+    END IF;
+    SELECT mf.implies_dismantling INTO v_dismantle FROM material_forms mf WHERE mf.code = NEW.form_code;
+    IF v_dismantle THEN
+        IF NEW.size_format_code IS NULL THEN
+            RAISE EXCEPTION 'MATERIAL_SIZE_FORMAT_REQUIRED|%', NEW.form_code
+              USING HINT = '这个形态需要拆解,所以要说出它来自哪一类应用(拆解工作量由它决定)。';
+        END IF;
+    ELSE
+        -- 【不拆解的形态不许有规格尺寸】黑粉没有"来自哪一类应用"可言 ——
+        -- 允许填,那一列就会长出一堆没人能依据的值,而空与非空再也分不清含义。
+        IF NEW.size_format_code IS NOT NULL THEN
+            RAISE EXCEPTION 'MATERIAL_SIZE_FORMAT_NOT_APPLICABLE|%', NEW.form_code
+              USING HINT = '这个形态不需要拆解(黑粉、极片废料),规格尺寸对它不适用。';
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$fn$;
+REVOKE EXECUTE ON FUNCTION public.guard_material_condition_axes() FROM PUBLIC, anon;
+
+COMMENT ON FUNCTION public.guard_material_condition_axes() IS
+'PROC-2:三条物料级状态轴的【有条件必填】,以及它的反面【不适用就不许填】。
+
+【为什么两个方向都要拦】只拦"该填没填",那一列就会在不适用的行上长出值,
+于是"空"再也不只有一种意思 —— 而把空的两种意思分开,正是这三条轴存在的理由之一。
+
+【它管不到什么】它保证这三列【被回答了】,保证不了【答对了】:
+一批实际是模组的料被登记成整包,schema 看不见。那一半靠收货的人与走查。
+
+【适用条件全部是【数据】,不是写死的 code】
+  * 哪些种类要回答 → material_kinds.has_condition_axes
+  * 哪些形态要说规格尺寸 → material_forms.implies_dismantling
+改一行数据就改行为,而这正是 PROC-1 把 CHECK 换成字典换来的东西。';
+
+CREATE TRIGGER trg_materials_condition_axes
+    BEFORE INSERT OR UPDATE ON public.materials
+    FOR EACH ROW EXECUTE FUNCTION public.guard_material_condition_axes();
 

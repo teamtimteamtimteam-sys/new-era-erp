@@ -62,7 +62,10 @@ CREATE TABLE public.inbound_batches (
     -- ── GRN-1a 追加(同上,排在末尾)────────────────────────────────────────
     -- 供应商【申报】的到货量。NULL = 没记录过,是一个具名状态,永不推断。
     -- 【绝不用采购行的量预填它】—— 详见列注释。
-    declared_qty  numeric
+    declared_qty  numeric,
+    -- ── PROC-2 追加(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────────
+    -- 【遮蔽表加一列 = 三件事一支迁移】列 + 列级授权 + _masked 视图,缺一 gate 红。
+    chemistry_certainty_code text REFERENCES public.inbound_chemistry_certainties (code)
 );
 
 COMMENT ON COLUMN public.inbound_batches.delete_reason IS
@@ -244,7 +247,7 @@ CREATE POLICY "inbound_batches delete by permission"
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 inbound_batches_masked 读取。
 -- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
 REVOKE SELECT ON public.inbound_batches FROM authenticated, anon;
-GRANT SELECT (id, code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, stage, notes, status, deleted_at, created_at, created_by, updated_at, updated_by, purchase_order_id, purchase_order_line_id, pricing_formula_id, pricing_status, deleted_by, delete_reason, declared_qty)
+GRANT SELECT (id, code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, stage, notes, status, deleted_at, created_at, created_by, updated_at, updated_by, purchase_order_id, purchase_order_line_id, pricing_formula_id, pricing_status, deleted_by, delete_reason, declared_qty, chemistry_certainty_code)
     ON public.inbound_batches TO authenticated;
 
 -- AUDEL-1a:硬删按名拒(BATCH_NO_HARD_DELETE|批号),【与动没动过无关】。
@@ -260,3 +263,13 @@ CREATE TRIGGER trg_inbound_batches_no_hard_delete
 CREATE TRIGGER trg_inbound_batches_soft_delete_provenance
     BEFORE UPDATE ON public.inbound_batches
     FOR EACH ROW EXECUTE FUNCTION public.guard_soft_delete_provenance();
+
+COMMENT ON COLUMN public.inbound_batches.chemistry_certainty_code IS
+'PROC-2:对【这一批】料的化学体系我们知道多少 —— 逐批不同,只有收货的人看得见。
+【与 materials.chemistry 不是同一件事】那一列说"这一种物料【是】什么",
+本列说"这一批货我们【知道】什么"。两者可以同时成立、也可以各自独立成立:
+一批 NMC 物料的货可能来的时候是混的,一批混合料的货也可能完全如预期。
+**同一段话写在 inbound_chemistry_certainties 的表注上,两边一字不差** ——
+下一个人无论先打开哪一个,读到的都是同一句(Tim 点名要这样)。
+【可空】既有进料批不回填 —— 空的意思是"没有人记过",而那是真话。';
+

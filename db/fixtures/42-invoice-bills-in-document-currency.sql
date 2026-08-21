@@ -40,8 +40,8 @@ BEGIN
     SELECT r2, unnest(ARRAY['module.finance.view']);
     INSERT INTO user_roles (user_id, role_id) VALUES (u2, r2);
 
-    INSERT INTO materials (code, name, kind_code, may_be_processed)
-    VALUES ('ZZFIX42-M', 'fixture 42 material', 'battery_material', true) RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
+    VALUES ('ZZFIX42-M', 'fixture 42 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
     INSERT INTO customers (code, legal_name, country)
     VALUES ('ZZFIX42-C', 'fixture 42 customer', 'SG') RETURNING id INTO v_cust;
     INSERT INTO output_batches (code, material_id, quantity, remaining_qty, output_date)

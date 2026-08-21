@@ -41,8 +41,8 @@ BEGIN
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_user), true);
 
-    INSERT INTO materials (code, name, kind_code, may_be_processed, unit)
-    VALUES ('ZZFIX56-M', 'fixture 56 material', 'battery_material', true, 'kg') RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, unit)
+    VALUES ('ZZFIX56-M', 'fixture 56 material', 'battery_material', true, 'black_mass', 'end_of_life', 'kg') RETURNING id INTO v_mat;
     INSERT INTO suppliers (code, legal_name, country, counterparty_type) VALUES ('FIXT-S56', 'Fixture Supplier 56', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
 
     -- 一张 100 kg 的进料批。**收货流水不用手写** —— 建批次时台账触发器自己发一条

@@ -43,14 +43,14 @@ BEGIN
     -- 【PROC-1:此前这一臂比的是 category,而 category 已经退役】
     -- 换成 kind_code 之后这条断言【更强了】:category 是自由文本,三行相同
     -- 只说明三次都敲了同一个字符串;kind_code 有外键,三行相同是【同一个种类】。
-    INSERT INTO materials (code, name, kind_code, may_be_processed, chemistry, waste_classification_code)
-    VALUES ('ZZFIX53-F', 'fixture 53 focused', 'battery_material', true, 'NMC', 'focused')
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, chemistry, waste_classification_code)
+    VALUES ('ZZFIX53-F', 'fixture 53 focused', 'battery_material', true, 'black_mass', 'end_of_life', 'NMC', 'focused')
     RETURNING id INTO v_m_focused;
-    INSERT INTO materials (code, name, kind_code, may_be_processed, chemistry, waste_classification_code)
-    VALUES ('ZZFIX53-N', 'fixture 53 non-focused', 'battery_material', true, 'NMC', 'non_focused')
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, chemistry, waste_classification_code)
+    VALUES ('ZZFIX53-N', 'fixture 53 non-focused', 'battery_material', true, 'black_mass', 'end_of_life', 'NMC', 'non_focused')
     RETURNING id INTO v_m_non;
-    INSERT INTO materials (code, name, kind_code, may_be_processed, chemistry)
-    VALUES ('ZZFIX53-U', 'fixture 53 unclassified', 'battery_material', true, 'NMC')
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, chemistry)
+    VALUES ('ZZFIX53-U', 'fixture 53 unclassified', 'battery_material', true, 'black_mass', 'end_of_life', 'NMC')
     RETURNING id INTO v_m_null;
 
     -- ══════════ A. 三种状态各自可辨 —— 未分类既不算受控,也不算非受控 ═════════
@@ -88,8 +88,8 @@ BEGIN
     INSERT INTO waste_classifications (code, name_en, name_zh, is_controlled, sort_order, notes)
     VALUES ('ZZFIX53-THIRD', 'fixture third class', 'fixture 第三类', true, 99,
             'fixture 53:证明加一种分类是加一行');
-    INSERT INTO materials (code, name, kind_code, may_be_processed, waste_classification_code)
-    VALUES ('ZZFIX53-T', 'fixture 53 third', 'battery_material', true, 'ZZFIX53-THIRD')
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, waste_classification_code)
+    VALUES ('ZZFIX53-T', 'fixture 53 third', 'battery_material', true, 'black_mass', 'end_of_life', 'ZZFIX53-THIRD')
     RETURNING id INTO v_m_third;
     IF (SELECT wc.is_controlled FROM materials m
          JOIN waste_classifications wc ON wc.code = m.waste_classification_code
@@ -100,8 +100,8 @@ BEGIN
     -- ══════════ C. 外键真的在:指向不存在的分类码应被拒 ══════════════════════
     v_denied := false;
     BEGIN
-        INSERT INTO materials (code, name, kind_code, may_be_processed, waste_classification_code)
-        VALUES ('ZZFIX53-BAD', 'fixture 53 bad', 'battery_material', true, 'no_such_class');
+        INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, waste_classification_code)
+        VALUES ('ZZFIX53-BAD', 'fixture 53 bad', 'battery_material', true, 'black_mass', 'end_of_life', 'no_such_class');
     EXCEPTION WHEN foreign_key_violation THEN v_denied := true;
     END;
     IF NOT v_denied THEN

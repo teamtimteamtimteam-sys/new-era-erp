@@ -70,8 +70,8 @@ BEGIN
 
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
     VALUES ('ZZFIX54-S', 'fixture 54 supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
-    INSERT INTO materials (code, name, kind_code, may_be_processed)
-    VALUES ('ZZFIX54-M', 'fixture 54 material', 'battery_material', true) RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
+    VALUES ('ZZFIX54-M', 'fixture 54 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
 
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
         arrival_date, unit_price, pricing_status)

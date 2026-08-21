@@ -80,11 +80,11 @@ BEGIN
 
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
     VALUES ('ZZ74-S', 'fixture 74 supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
-    INSERT INTO materials (code, name, kind_code, may_be_processed) VALUES ('ZZ74-MA','f74 raw', 'battery_material', true)
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code) VALUES ('ZZ74-MA','f74 raw', 'battery_material', true, 'black_mass', 'end_of_life')
         RETURNING id INTO v_matA;
-    INSERT INTO materials (code, name, kind_code, may_be_processed) VALUES ('ZZ74-MB','f74 fine', 'battery_material', true)
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code) VALUES ('ZZ74-MB','f74 fine', 'battery_material', true, 'black_mass', 'end_of_life')
         RETURNING id INTO v_matB;
-    INSERT INTO materials (code, name, kind_code, may_be_processed) VALUES ('ZZ74-MC','f74 other', 'battery_material', true)
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code) VALUES ('ZZ74-MC','f74 other', 'battery_material', true, 'black_mass', 'end_of_life')
         RETURNING id INTO v_matC;
 
     -- ══════════ A. 新建:出生即 draft,行都在,预期产出可选 ═══════════════════

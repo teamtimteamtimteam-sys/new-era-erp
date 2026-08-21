@@ -48,8 +48,8 @@ BEGIN
 
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
     VALUES ('ZZFIX35-S', 'fixture 35 supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
-    INSERT INTO materials (code, name, kind_code, may_be_processed)
-    VALUES ('ZZFIX35-M', 'fixture 35 material', 'battery_material', true) RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
+    VALUES ('ZZFIX35-M', 'fixture 35 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
     -- 外币牌价:1 外币 = 1.26 本位币(FIN-35 起外币单必须有真汇率)
     INSERT INTO fx_rates (currency, rate_date, rate_type, rate_sgd_per_unit)
     VALUES (v_fgn, '2027-03-03', 'tt_sell', 1.26);

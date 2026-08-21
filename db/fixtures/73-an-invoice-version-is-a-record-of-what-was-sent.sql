@@ -75,8 +75,8 @@ BEGIN
 
     INSERT INTO customers (code, legal_name, country)
     VALUES ('ZZ73-C1', 'fixture 73 customer', 'SG') RETURNING id INTO v_cust;
-    INSERT INTO materials (code, name, kind_code, may_be_processed, unit)
-    VALUES ('ZZFIX73-M', 'f73 material', 'battery_material', true, 'kg') RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, unit)
+    VALUES ('ZZFIX73-M', 'f73 material', 'battery_material', true, 'black_mass', 'end_of_life', 'kg') RETURNING id INTO v_mat;
 
     -- 【主臂用 order 型,而这【不是】随手挑的载体】
     -- 第一版这里直接插了一张 sale 型发票加一行,当场撞上

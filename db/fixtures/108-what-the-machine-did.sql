@@ -43,8 +43,8 @@ BEGIN
 
     INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)
     VALUES ('ZZFIX108-S', 'fixture 108 supplier', 'SG', 'active', 'goods_supplier') RETURNING id INTO v_sup;
-    INSERT INTO materials (code, name, kind_code, may_be_processed) VALUES ('ZZFIX108-M', 'fixture 108 raw', 'battery_material', true) RETURNING id INTO v_mat;
-    INSERT INTO materials (code, name, kind_code, may_be_processed) VALUES ('ZZFIX108-MB', 'fixture 108 out', 'battery_material', true) RETURNING id INTO v_matB;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code) VALUES ('ZZFIX108-M', 'fixture 108 raw', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code) VALUES ('ZZFIX108-MB', 'fixture 108 out', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_matB;
 
     -- ══════════ F1 · 不给机器 id 的加工,逐字照旧 ═══════════════════════════
     RAISE NOTICE 'fixture 108 · 进入 F1';

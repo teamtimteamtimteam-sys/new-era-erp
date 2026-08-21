@@ -44,7 +44,7 @@ BEGIN
     SELECT r_blind, unnest(ARRAY['module.output.edit','module.output.view']);
     INSERT INTO user_roles (user_id, role_id) VALUES (u_blind, r_blind);
 
-    INSERT INTO materials (code, name, kind_code, may_be_processed) VALUES ('ZZFIX46-M','f', 'battery_material', true) RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code) VALUES ('ZZFIX46-M','f', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
     INSERT INTO output_batches (code, material_id, quantity, remaining_qty, output_date)
     VALUES ('ZZFIX46-OB', v_mat, 10000, 10000, '2027-11-01') RETURNING id INTO ob;
 

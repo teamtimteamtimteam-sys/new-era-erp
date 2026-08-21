@@ -50,8 +50,8 @@ BEGIN
 
     INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)
     VALUES ('ZZFIX109-S', 'fixture 109 supplier', 'SG', 'active', 'goods_supplier') RETURNING id INTO v_sup;
-    INSERT INTO materials (code, name, kind_code, may_be_processed) VALUES ('ZZFIX109-M', 'fixture 109 raw', 'battery_material', true) RETURNING id INTO v_mat;
-    INSERT INTO materials (code, name, kind_code, may_be_processed) VALUES ('ZZFIX109-MB', 'fixture 109 out', 'battery_material', true) RETURNING id INTO v_matB;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code) VALUES ('ZZFIX109-M', 'fixture 109 raw', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
+    INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code) VALUES ('ZZFIX109-MB', 'fixture 109 out', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_matB;
     INSERT INTO employees (code, legal_name, employment_type, work_category, hire_date, employment_status)
     VALUES ('ZZFIX109-E', 'fixture 109 technician', 'full_time', 'shopfloor', CURRENT_DATE - 200, 'active')
     RETURNING id INTO v_emp;
