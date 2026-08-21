@@ -38,6 +38,10 @@
 --
 -- 【SET CONSTRAINTS ALL IMMEDIATE】journal_lines 的借贷平衡是 DEFERRABLE 的
 -- 约束触发器;不设成 IMMEDIATE,一支不平的分录要到 COMMIT 才报,而这里 ROLLBACK。
+-- 【EQP-1c-b(X1)之后:冲抵日是【必填参数】,不再是 CURRENT_DATE】——
+-- 本 fixture 每一处调用因此都显式给了日期。给的是 2027-03-01,与各臂的
+-- 发票日同月:这些臂断言的是【金额与科目】,不是期间,所以只要它是一个
+-- 确定的、不随"今天"漂移的日子就够 —— 而"不随今天漂移"正是 X1 的全部理由。
 BEGIN;
 DO $$
 DECLARE
@@ -93,7 +97,7 @@ BEGIN
         20, 'fixture 104 A batch', NULL, NULL, NULL, NULL);
     b1 := (v_res->>'batch_id')::uuid;
 
-    v_res := apply_prepayment(po1, b1, 1000);
+    v_res := apply_prepayment(po1, b1, 1000, NULL, NULL, DATE '2027-03-01');
     v_app := (v_res->>'application_id')::uuid;
     SELECT id INTO v_entry FROM journal_entries WHERE source_id = v_app;
 
@@ -152,7 +156,7 @@ BEGIN
         jsonb_build_object('description', 'fixture 104 press', 'useful_life_months', 120), NULL);
     exp2 := (v_res->>'expense_id')::uuid;
 
-    v_res := apply_prepayment(po2, NULL, 10000, 'fixture 104 B release', exp2);
+    v_res := apply_prepayment(po2, NULL, 10000, 'fixture 104 B release', exp2, DATE '2027-03-01');
     v_app := (v_res->>'application_id')::uuid;
     SELECT id INTO v_entry FROM journal_entries WHERE source_id = v_app;
 
@@ -210,7 +214,7 @@ BEGIN
         10, 'fixture 104 D batch', NULL, NULL, NULL, NULL);
     b3 := (v_res->>'batch_id')::uuid;
 
-    v_res := apply_prepayment(po3, b3, 13000);
+    v_res := apply_prepayment(po3, b3, 13000, NULL, NULL, DATE '2027-03-01');
     v_app := (v_res->>'application_id')::uuid;
     SELECT id INTO v_entry FROM journal_entries WHERE source_id = v_app;
 
@@ -254,7 +258,7 @@ BEGIN
 
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM apply_prepayment(po4, NULL, 1000, NULL, exp4);
+        PERFORM apply_prepayment(po4, NULL, 1000, NULL, exp4, DATE '2027-03-01');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
     IF NOT v_denied OR position('PREPAY_TWO_FOREIGN_CURRENCIES' in v_msg) = 0 THEN
@@ -328,7 +332,7 @@ BEGIN
 
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM apply_prepayment(po5, b5, 1);
+        PERFORM apply_prepayment(po5, b5, 1, NULL, NULL, DATE '2027-03-01');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
     IF NOT v_denied OR position('PREPAY_INSUFFICIENT' in v_msg) = 0 THEN

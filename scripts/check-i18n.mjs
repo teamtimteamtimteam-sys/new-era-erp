@@ -237,6 +237,11 @@ const MANIFEST = {
     'finance.cashflowSectionName.':
                             { kind: 'enum', values: () => tsRegex('db/functions/cash_flow_statement.sql',
                                   /(?:THEN|ELSE) '(\w+)'/g) },
+    // EQP-1c-b:一张采购单是材料单还是设备单。后缀集合【就是】下单表单里那个
+    // ORDER_KINDS 数组 —— 从组件现读,将来多一种就自动变宽。
+    'purchasing.form.kind.': { kind: 'enum', values: () => tsRegex(
+                                  'app/purchasing/orders/new/NewOrderForm.tsx',
+                                  /const ORDER_KINDS = \['(\w+)', '(\w+)'\] as const/g) },
     // ── 看板 ─────────────────────────────────────────────────────────────────
     // OPS-18:后缀集合就是 operations_now 的支列表 —— 从视图镜像现读,加一支自动变宽。
     // (镜像里每一支都显式写了 AS item_type;pg_get_viewdef 只保留【显式】别名,

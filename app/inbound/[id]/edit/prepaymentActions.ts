@@ -23,12 +23,21 @@ export async function applyPrepayment(
         return { error: t('purchasing.errors.AMOUNT_INVALID') }
     }
 
+    // EQP-1c-b(X1):冲抵日必填,且【不给默认值】。它决定这笔分录的期间;
+    // 服务端 apply_prepayment 也独立拒空(RELEASE_DATE_REQUIRED)——
+    // 这里是第一层,不是唯一那层。
+    const releaseDate = String(formData.get('release_date') ?? '').trim()
+    if (!releaseDate) {
+        return { error: t('purchasing.errors.RELEASE_DATE_REQUIRED') }
+    }
+
     const supabase = await createClient()
     const { error } = await supabase.rpc('apply_prepayment', {
         p_purchase_order_id: poId,
         p_inbound_batch_id: batchId,
         p_amount: amount,
-    })
+        p_release_date: releaseDate,
+    } as never)
 
     if (error) {
         return { error: await localizePurchasingError(error.message) }

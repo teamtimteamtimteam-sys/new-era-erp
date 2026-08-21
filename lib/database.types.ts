@@ -15738,6 +15738,7 @@ export type Database = {
           p_inbound_batch_id: string
           p_notes?: string
           p_purchase_order_id: string
+          p_release_date?: string
         }
         Returns: Json
       }

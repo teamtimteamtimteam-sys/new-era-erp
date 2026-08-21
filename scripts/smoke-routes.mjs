@@ -60,6 +60,13 @@ const ID_SOURCES = {
         '/customers': 'customers', '/finance/bank/statements': 'bank_statements',
         '/finance/expenses': 'expenses', '/finance/freight': 'freight_documents',
         '/finance/fx': 'fx_rates',
+        // EQP-1c-b:资产卡片页。【必须在这里,否则 /finance/assets/[id] 会落到
+        // /finance/expenses 那条前缀上吗?—— 不会,前缀取最长匹配,而
+        // '/finance/assets' 更长。】它在这里是因为【不在就中止】:预检
+        // preflightIdSources() 在 3 毫秒内点名了它,连服务器都没起 —— 那正是
+        // "能在开跑前回答的问题就在开跑前回答"。
+        // 线上 fixed_assets 今天零行,故同时列在 EXPECTED_SKIPS 里。
+        '/finance/assets': 'fixed_assets',
         '/finance/invoices': 'invoices', '/finance/journal': 'journal_entries',
         '/finance/payments': 'payments', '/hr/claims': 'medical_claims',
         '/hr/departments': 'departments', '/hr/employees': 'employees',
@@ -217,6 +224,10 @@ const SPECIAL_ID_ROUTES = new Set([
 ])
 
 const EXPECTED_SKIPS = new Set([
+    // EQP-1c-b:线上 fixed_assets 今天【零行】—— 这套台账从建成起就没被真的用过。
+    // 【Tim 走查登记第一台机器的那一天,这条断言会报"预期会 SKIP 的路由跑起来了",
+    //  而那是它存在的理由:跳过是记录,不是默许。】届时把这一行删掉。
+    '/finance/assets/[id]',
     '/hr/claims/[id]',    // medical_claims 空 —— 正常运营会产生;有数据那天此断言逼人收编
     '/hr/leave/[id]',     // leave_requests 空
     // 【FRT-1 的那条跳过已经删掉了 —— 它自己逼出来的(FRT-FIX,2026-08-20)】

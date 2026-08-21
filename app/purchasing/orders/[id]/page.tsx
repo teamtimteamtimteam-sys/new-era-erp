@@ -181,6 +181,23 @@ export default async function PurchaseOrderDetailPage({
             : Promise.resolve({ data: [] as { inbound_batch_id: string | null; open_base: number }[], error: null }),
     ])
     const materialById = new Map((mustRows(materialsRes)).map((m) => [m.id, `${m.code} — ${m.name}`]))
+
+    // ── EQP-1c-b(P3):设备行的名字 ────────────────────────────────────────
+    // 【为什么不直接查 fixed_assets】那张表的 SELECT 策略要 module.finance.view,
+    // 而本页的门是 module.purchasing.view。一个只有采购权限的人直接查它会读到
+    // 【零行】—— 于是机器名又变回一个破折号,而且是【悄悄】变回去的:
+    // 没有错误、没有提示,正是 OPS-14 那条"跨模块的行会无声消失"。
+    // 【改从 po_document_data 拿】它是 DEFINER + require_permission('module.purchasing.view'),
+    // 以属主身份算 COALESCE(m.name, fa.description) —— 也就是说
+    // **供应商手里那份和这块屏幕从此读的是同一份实现**,不可能各说各话。
+    const docRes = await supabase.rpc('po_document_data', { p_po_id: id })
+    const docLines = (docRes.data as { lines?: { line_no: number; material_name: string | null }[] } | null)?.lines ?? []
+    const docNameByLineNo = new Map(docLines.map((d) => [d.line_no, d.material_name]))
+    // 材料行照旧画 `编号 — 名称`(信息比单独一个名字多);设备行画机器的描述,
+    // 与供应商那份逐字相同。两者都拿不到时才是真的破折号。
+    const lineName = (l: { line_no: number; material_id: string | null }): string =>
+        (l.material_id ? materialById.get(l.material_id) : docNameByLineNo.get(l.line_no) ?? null)
+        ?? docNameByLineNo.get(l.line_no) ?? '—'
     const formulaById = new Map((mustRows(formulasRes)).map((f) => [f.id, `${f.code} — ${f.name}`]))
 
     // FIN-27:这一行的结算条款是【下单时抄下来的】还是【还引着一张活公式】。
@@ -505,9 +522,8 @@ export default async function PurchaseOrderDetailPage({
                         <tr key={l.id}>
                             <td className="border border-gray-300 px-3 py-2 text-sm text-gray-500">{l.line_no}</td>
                             <td className="border border-gray-300 px-3 py-2 text-sm">
-                                {/* EQP-1a:material_id 可空了。材料行逐字节照旧;设备行落到
-                                    既有的兜底 —— 把机器名字显示出来是【表单那一刀】的事。 */}
-                                {l.material_id ? (materialById.get(l.material_id) ?? '—') : '—'}
+                                {/* EQP-1c-b:设备行终于有名字了(EQP-1a 刻意留的破折号)。 */}
+                                {lineName(l)}
                                 {assayInline(l.expected_assay) && (
                                     <span className="block text-xs text-gray-500 mt-0.5">
                                         {t('purchasing.form.expectedAssay')}: {assayInline(l.expected_assay)}
@@ -664,7 +680,7 @@ export default async function PurchaseOrderDetailPage({
                         <div key={l.id} className="border border-gray-300 rounded-lg p-3">
                             <p className="text-sm mb-2">
                                 <span className="text-gray-500">#{l.line_no}</span>
-                                <span className="ml-2 font-mono">{l.material_id ? (materialById.get(l.material_id) ?? '—') : '—'}</span>
+                                <span className="ml-2 font-mono">{lineName(l)}</span>
                                 <span className="ml-2 text-gray-600">
                                     {t('grn.po.orderedLabel', { qty: Number(l.quantity), unit: l.unit ?? 'kg' })}
                                 </span>

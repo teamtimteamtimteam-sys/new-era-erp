@@ -1,3 +1,28 @@
+-- EQP-1c-b(X1):冲抵有了自己的日期 —— 而这正是它那条 known-issue 的删除条件
+--
+-- ════════════════════════════════════════════════════════════════════════════
+-- apply_prepayment 把冲抵分录过在 CURRENT_DATE。AGENTS.md 那条「决定期间的日期:
+-- 必填,永不默认」点名的就是这种默认 —— **今天的日期永远撞不上 PERIOD_LOCKED**,
+-- 于是"把日期留空"比"填对一个已关期间的日期"更顺,这条路【奖励留空】。
+-- docs/known-issues.md 里那一节明写删除条件是"冲抵的界面那一刀",也就是本刀。
+-- 本刀同时给了界面日期字段(两处调用点),所以它退役得干净,不是半截。
+--
+-- 【参数带默认值,而拒绝按名】不是让它在位置上必填 —— FIN-10 那十一个函数的先例:
+-- 老调用方少传一个参数时应当拿到一句人话,而不是 "function does not exist"。
+-- 破窗期间生产跑的是【旧代码 + 新库】,旧代码不传这个参数,于是它落在
+-- RELEASE_DATE_REQUIRED 上 —— 一个可读的拒绝,而不是一个看起来像宕机的错误。
+-- **窗口里坏掉的正是这一件事:进料侧的"抵扣预付"按钮,在部署完成前会拒绝。**
+-- 这是本刀唯一在窗口里坏掉的东西,而它按名拒、不写坏任何数据。
+--
+-- 签名变了,所以【先 DROP 旧签名再建】—— 不是重载(先例:EQP-1b-i 给它加
+-- p_expense_id 时同一手法;preflight_migration.py 认这个形状)。
+--
+-- 应用:./db/apply_migration.sh db/migrations/2026-08-21-eqp1cb-a-release-states-its-own-date.sql
+
+BEGIN;
+
+DROP FUNCTION public.apply_prepayment(uuid, uuid, numeric, text, uuid);
+
 CREATE OR REPLACE FUNCTION public.apply_prepayment(p_purchase_order_id uuid, p_inbound_batch_id uuid, p_amount numeric, p_notes text DEFAULT NULL::text, p_expense_id uuid DEFAULT NULL::uuid, p_release_date date DEFAULT NULL::date)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -274,4 +299,6 @@ BEGIN
         'prepaid_remaining', round(v_available - v_dep_base, 2)
     );
 END;
-$function$
+$function$;
+
+COMMIT;

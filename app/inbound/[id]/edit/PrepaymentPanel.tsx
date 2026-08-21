@@ -91,6 +91,15 @@ export default function PrepaymentPanel({
                     <div className="flex items-center gap-2">
                         {/* key 让服务端重读后的新默认值生效(受控默认仅初始一次)*/}
                         <AmountInput key={applicable.applicable_base} defaultAmount={applicable.applicable_base} />
+                        {/* EQP-1c-b(X1):冲抵日。【不预填今天】—— 它决定这笔分录
+                            落在哪个期间,而一个默认成今天的日期【永远撞不上
+                            PERIOD_LOCKED】,于是留空反而比填对更顺(AGENTS.md 那条)。
+                            服务端也独立拒空(RELEASE_DATE_REQUIRED)。 */}
+                        <label className="text-sm text-gray-600" htmlFor="release_date">
+                            {t('purchasing.releaseDate')}
+                        </label>
+                        <input id="release_date" name="release_date" type="date" required
+                            className="border border-gray-300 px-2 py-1.5 rounded text-sm" />
                         <button
                             type="submit"
                             disabled={isPending}

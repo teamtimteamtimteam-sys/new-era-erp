@@ -40,6 +40,16 @@ const PURCHASING_ERROR_CODES = new Set([
     // EQP-1b-ii:报销过的采购单行删不得。设备行【没有收货】,所以既有的
     // PO_LINE_HAS_RECEIPTS 对它恒为假 —— 这一条是它那一半。
     'PO_LINE_HAS_EXPENSE',
+    // EQP-1c-b(S4 的产出):这八条【一直会被抛出,却从来没有句子】——
+    // 全部来自改单/作废那条路,而 Tim 的走查正好要走它。它们不是本模块引进的,
+    // 是本刀的 S4 普查扫出来的既有缺口:打到操作员脸上的是裸管道串。
+    // PO_LINE_HAS_RECEIPTS 尤其值得一提 —— 它是 EQP-1b-ii 那条已接好的
+    // PO_LINE_HAS_EXPENSE 的【亲兄弟】,同一个守卫的另一半,却一直没有句子。
+    'PO_NOT_AMENDABLE', 'PO_AMEND_REASON_REQUIRED', 'PO_LINE_REMOVE_NEEDS_ID',
+    'PO_LINE_QUANTITY_INVALID', 'PO_LINE_BELOW_RECEIVED', 'PO_LINE_HAS_RECEIPTS',
+    'PO_PLAN_FIXED_MISMATCH', 'PO_HAS_APPLIED_PREPAYMENTS',
+    // EQP-1c-b(X1):冲抵日必填
+    'RELEASE_DATE_REQUIRED',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..."(同 localizeFinanceError)。

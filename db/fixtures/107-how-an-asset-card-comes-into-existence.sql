@@ -117,7 +117,8 @@ BEGIN
     v_exp := (v_res->>'expense_id')::uuid;
 
     -- 定金冲抵到那张发票上
-    PERFORM apply_prepayment(v_po, NULL, 30000, 'fixture 107 release', v_exp);
+    -- EQP-1c-b(X1):冲抵日现在【必填】—— 它决定这笔分录落在哪个期间。
+    PERFORM apply_prepayment(v_po, NULL, 30000, 'fixture 107 release', v_exp, DATE '2027-03-05');
 
     SELECT purchase_order_line_id INTO v_link FROM expenses WHERE id = v_exp;
     IF v_link IS DISTINCT FROM v_line THEN

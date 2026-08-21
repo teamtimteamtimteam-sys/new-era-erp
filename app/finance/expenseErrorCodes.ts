@@ -34,6 +34,8 @@ const EXPENSE_ERROR_CODES = new Set([
     // ASSET_COST_LEDGER_DIVERGED 是【本不该发生】的那一条(表头与明细之和对不上),
     // 但它照样要有人话:一条只会在出事时出现的拒绝,恰恰最不该是一串机器码。
     'ASSET_IN_SERVICE_COST_LOCKED', 'ASSET_COST_LEDGER_DIVERGED',
+    // EQP-1c-b(S4):record_expense 在日期为空时抛它,而它一直没有句子。
+    'JE_LINE_INVALID',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..."(同 localizeFinanceError)。

@@ -100,7 +100,18 @@ export default async function AssetsPage({
 
     return (
         <div className="p-8">
-            <h1 className="text-2xl font-bold mb-4">{t('assets.title')}</h1>
+            <div className="flex items-center justify-between mb-4">
+                <h1 className="text-2xl font-bold">{t('assets.title')}</h1>
+                {/* EQP-1c-b(P1):台账此前【没有新增入口】—— 唯一的建卡门在开支表单里,
+                    而那扇门要求同时过一笔账。设备的真实顺序是先下单、后开票,
+                    所以这里是第二扇门的入口。 */}
+                {canEdit && (
+                    <Link href="/finance/assets/new"
+                        className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm">
+                        {t('assets.register')}
+                    </Link>
+                )}
+            </div>
             <Subnav />
 
             <table className="w-full border-collapse border border-gray-300 mb-8">
@@ -132,11 +143,13 @@ export default async function AssetsPage({
                                     {/* EQP-1c-a:资产编号链到【生出这张卡的那笔支出】,而由
                                         create_fixed_asset 建出来的卡没有那笔支出。没有就不画链接 ——
                                         画一个指向 /finance/expenses/null 的链接,比不画坏得多。 */}
-                                    {a.expense_id
-                                        ? <Link href={`/finance/expenses/${a.expense_id}`} className="text-blue-600 hover:underline">
-                                            {a.code}
-                                          </Link>
-                                        : a.code}
+                                    {/* EQP-1c-b:编号链到【这台机器的卡片】。
+                                        (EQP-1c-a 之前它链的是"生出这张卡的那笔支出"——
+                                         而现在有了卡片页,那笔支出在卡片页上有自己的位置,
+                                         并且不是每张卡都有一笔。) */}
+                                    <Link href={`/finance/assets/${a.id}`} className="text-blue-600 hover:underline">
+                                        {a.code}
+                                    </Link>
                                 </td>
                                 <td className="border border-gray-300 px-3 py-2">{a.description}</td>
                                 <td className="border border-gray-300 px-3 py-2 text-sm">{t('assets.category.' + a.category)}</td>

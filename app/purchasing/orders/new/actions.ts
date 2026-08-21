@@ -21,6 +21,9 @@ export type CreateOrderState = { error?: string }
 
 export type OrderLineInput = {
     material_id: string
+    // EQP-1c-b(P2):设备行订的是一张【已存在】的资产卡,不是物料。
+    // 与 material_id 恰一非空 —— 表上那条 XOR 是 EQP-1a 立的。
+    asset_id?: string
     quantity: string
     unit: string
     formula_id: string
@@ -75,11 +78,18 @@ export async function createOrder(
             .map(([metal, raw]) => ({ metal, content_pct: Number(String(raw).trim()) }))
             .filter((a) => String(l.assay[a.metal]).trim() !== '' && !Number.isNaN(a.content_pct))
         const price = l.est_price.trim() === '' ? null : Number(l.est_price)
+        // EQP-1c-b(P2):设备行与材料行走同一个负载,但【只带其中一个 id】——
+        // create_purchase_order 按"恰一非空"分支(PO_LINE_KIND_INVALID),
+        // 表上还有一条同义的 XOR。两者都空或都给,直插也逃不掉。
+        const isEquipment = Boolean(l.asset_id)
         return {
             line_no: i + 1,
-            material_id: l.material_id,
-            quantity: Number(l.quantity),
-            unit: l.unit.trim() || 'kg',
+            ...(isEquipment ? { asset_id: l.asset_id } : { material_id: l.material_id }),
+            // 设备行的数量与单位【由规则定死】,不是表单填的:EQP-1a-TAIL 把
+            // "一台机器一条行、单位 unit" 做成了表上的 CHECK。这里照它送,
+            // 屏幕上也只显示不让改 —— 两边说的是同一件事。
+            quantity: isEquipment ? 1 : Number(l.quantity),
+            unit: isEquipment ? 'unit' : (l.unit.trim() || 'kg'),
             ...(l.formula_id ? { pricing_formula_id: l.formula_id } : {}),
             ...(price !== null && !Number.isNaN(price) ? { estimated_unit_price: price } : {}),
             ...(assay.length ? { expected_assay: assay } : {}),

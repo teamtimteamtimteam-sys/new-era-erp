@@ -12,6 +12,8 @@ import { formatAmount, formatMoneyBare, formatTimestamp } from '@/lib/format'
 import Subnav from '../../Subnav'
 import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachmentsPanel'
 import ReverseExpenseButton from './ReverseExpenseButton'
+import ReleasePrepaymentPanel from './ReleasePrepaymentPanel'
+import { can } from '@/lib/permissions'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -46,12 +48,43 @@ export default async function ExpenseDetailPage({
 
     const { data: expense, error } = await supabase
         .from('expenses')
-        .select('id, code, expense_date, account_code, amount_ccy, currency, fx_rate, amount_base, payment_status, bank_account_code, supplier_id, payee_name, notes, journal_entry_id, status, reversed_by_expense')
+        .select('id, code, expense_date, account_code, amount_ccy, currency, fx_rate, amount_base, payment_status, bank_account_code, supplier_id, payee_name, notes, journal_entry_id, status, reversed_by_expense, purchase_order_line_id')
         .eq('id', id)
         .single()
 
     if (error || !expense) {
         notFound()
+    }
+
+    // ── EQP-1c-b(P5):这张费用单能不能冲定金 ─────────────────────────────
+    // 三个事实,【全部问数据库,一个都不自己算】:
+    //   1. 它挂在哪一条采购单行上(EQP-1b-ii 的那一列);
+    //   2. 它自己还欠多少 —— ap_open_items.open_ccy,以【单据币种】计,
+    //      正是 apply_prepayment 的 p_amount 所用的单位;
+    //   3. 那张采购单上还有多少定金没冲 —— purchase_order_status.prepaid_remaining_base,
+    //      以本位币计。
+    // 【两个数不同币种,页面【不】替它取 min】—— 跨币种的上限要读定金的加权
+    // 平均汇率才算得出,而那是 apply_prepayment 的事(R1/R2/R3 三条支路)。
+    // 在这里算等于把 FIN-12 那个"页面自己算汇率"的毛病换个地方再犯一次。
+    const canEdit = await can('module.finance.edit')
+    let release: { poId: string; poCode: string; openCcy: number; remainingBase: number } | null = null
+    if (expense.status === 'posted' && expense.payment_status === 'unpaid' && expense.purchase_order_line_id) {
+        const lineRes = await supabase.from('purchase_order_lines')
+            .select('purchase_order_id, purchase_orders(code)')
+            .eq('id', expense.purchase_order_line_id).maybeSingle()
+        const ln = lineRes.data as { purchase_order_id: string; purchase_orders: { code: string } | null } | null
+        if (ln) {
+            const [openRes, statusRes] = await Promise.all([
+                supabase.from('ap_open_items').select('open_ccy').eq('doc_kind', 'expense').eq('doc_id', expense.id).maybeSingle(),
+                supabase.from('purchase_order_status').select('prepaid_remaining_base').eq('po_id', ln.purchase_order_id).maybeSingle(),
+            ])
+            release = {
+                poId: ln.purchase_order_id,
+                poCode: ln.purchase_orders?.code ?? '—',
+                openCcy: Number(openRes.data?.open_ccy ?? 0),
+                remainingBase: Number(statusRes.data?.prepaid_remaining_base ?? 0),
+            }
+        }
     }
 
     // 科目名 / 供应商 / 分录 / 核销行 / 镜像单双向 / 附件,页级小查询
@@ -222,6 +255,18 @@ export default async function ExpenseDetailPage({
                 </div>
                 {expense.status === 'posted' && <ReverseExpenseButton expenseId={expense.id} />}
             </div>
+
+            {/* EQP-1c-b(P5):设备侧的冲抵门。只在【这张费用单确实挂在一条采购单行上】
+                时出现 —— 没有那条行,就没有"哪张单上的定金"这个问题。
+                进料侧那扇门在 app/inbound/[id]/edit,两扇门对应两种应付单据。 */}
+            {release && (
+                <ReleasePrepaymentPanel
+                    expenseId={expense.id} poId={release.poId} poCode={release.poCode}
+                    openCcy={release.openCcy} currency={String(expense.currency)}
+                    remainingBase={release.remainingBase} baseCurrency={baseCurrency}
+                    canEdit={canEdit}
+                />
+            )}
 
             {expense.notes && (
                 <p className="text-sm text-gray-600 mb-4">

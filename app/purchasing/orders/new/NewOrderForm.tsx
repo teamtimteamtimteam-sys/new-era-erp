@@ -56,6 +56,18 @@ type LineRow = OrderLineInput & { assayOpen: boolean; calc: CalcResult | null; c
 
 const TRIGGER_OPTIONS = ['on_order', 'on_shipment', 'on_arrival', 'post_assay', 'fixed_date'] as const
 
+// EQP-1c-b(P2):可挑的资产卡。
+// 【空列表有两种,而它们的下一步完全不同】——「一台都还没登记」要去登记;
+// 「你看不到」要去要权限。fixed_assets 的门是 module.finance.view,而本页的门是
+// 采购 —— 只有采购权限的人【读得到零行】。所以服务端把 canSeeAssets 一起传下来,
+// 空状态才说得出是哪一种(lib/permissions.ts 存在的全部理由)。
+export type AssetOption = { id: string; label: string; onOrder: boolean }
+
+// EQP-1c-b:一张采购单的两种"种类"。**这个数组是 purchasing.form.kind.* 那族
+// 文案的【真源】** —— scripts/check-i18n.mjs 的 MANIFEST 现读这一行,
+// 将来多一种就自动跟着变宽,不必记得去改检查。
+const ORDER_KINDS = ['material', 'equipment'] as const
+
 function todayIsoLocal(): string {
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -74,6 +86,7 @@ const round2 = (n: number) => Math.round(n * 100) / 100
 function emptyLine(): LineRow {
     return {
         material_id: '',
+        asset_id: '',
         quantity: '',
         unit: 'kg',
         formula_id: '',
@@ -99,12 +112,16 @@ export default function NewOrderForm({
     formulas,
     templates,
     baseCurrency,
+    assets,
+    canSeeAssets,
 }: {
     suppliers: SupplierOption[]
     materials: MaterialOption[]
     formulas: FormulaOption[]
     templates: TemplateOption[]
     baseCurrency: string
+    assets: AssetOption[]
+    canSeeAssets: boolean
 }) {
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(createOrder, initialState)
@@ -113,6 +130,14 @@ export default function NewOrderForm({
     const [orderDate, setOrderDate] = useState(todayIsoLocal())
     const [currency, setCurrency] = useState('USD')
     const [lines, setLines] = useState<LineRow[]>([emptyLine()])
+    // ── EQP-1c-b(P2):这张单是【材料单】还是【设备单】────────────────────
+    // 【为什么是整单一个开关,而不是每行一个下拉】不混装是【单据一级】的规矩
+    // (EQP-1a 的 N1,由一个延迟约束触发器在提交时判最终状态)。做成每行一选,
+    // 操作员可以把两种行都建出来、填完、按下提交,然后才被拒 ——
+    // **一次打完字之后才到来的拒绝,浪费的正是那些字。**
+    // 做成模式,那条规矩就在【动手之前】说清了,而不是之后。
+    const [orderKind, setOrderKind] = useState<'material' | 'equipment'>('material')
+    const isEquipment = orderKind === 'equipment'
     const [terms, setTerms] = useState<OrderTermInput[]>([])
     // 计划区一经手动编辑(含手选模板),换供应商不再自动覆盖 —— 用户的输入优先
     const [termsEdited, setTermsEdited] = useState(false)
@@ -188,7 +213,10 @@ export default function NewOrderForm({
 
     // 提交负载(去掉纯 UI 字段)
     const linesPayload: OrderLineInput[] = lines.map((l) => ({
-        material_id: l.material_id, quantity: l.quantity, unit: l.unit,
+        material_id: isEquipment ? '' : l.material_id,
+        // 设备行只带 asset_id;数量与单位由服务端按规则定死(见 actions.ts)。
+        ...(isEquipment ? { asset_id: l.asset_id } : {}),
+        quantity: isEquipment ? '1' : l.quantity, unit: isEquipment ? 'unit' : l.unit,
         formula_id: l.formula_id, est_price: l.est_price, assay: l.assay,
         // FIN-26:出处随行走。computed = 按钮算的且没被手改过;有价而非 computed
         // 即 manual。依据 = 完整 CalcResult(逐金属行情与日期、公式参数)+ 汇率。
@@ -326,50 +354,127 @@ export default function NewOrderForm({
 
             {/* ── 明细行 ── */}
             <h2 className="font-bold">{t('purchasing.form.lines')}</h2>
+
+            {/* ── EQP-1c-b(P2):这张单订的是材料还是设备 ──────────────────────
+                【规矩在动手【之前】说,不在提交之后说】不混装是单据一级的规矩,
+                由一条延迟约束触发器在提交时判最终状态。若做成每行一个下拉,
+                操作员可以两种行都建、都填完、按下提交,才收到 PO_LINES_MIXED_KINDS
+                —— 那次拒绝浪费的正是刚打完的那些字。 */}
+            <div className="border border-gray-300 rounded p-3 bg-gray-50">
+                <div className="flex gap-6 items-center">
+                    {ORDER_KINDS.map((k) => (
+                        <label key={k} className="flex items-center gap-2 text-sm">
+                            <input
+                                type="radio" name="order_kind" value={k}
+                                checked={orderKind === k}
+                                onChange={() => {
+                                    // 换模式就把行重置 —— 留着上一模式填了一半的行,
+                                    // 等于把那条不混装的规矩又推回提交那一刻。
+                                    setOrderKind(k)
+                                    setLines([emptyLine()])
+                                }}
+                            />
+                            {t('purchasing.form.kind.' + k)}
+                        </label>
+                    ))}
+                </div>
+                <p className="mt-2 text-xs text-gray-700">{t('purchasing.form.kindRule')}</p>
+                {isEquipment && (
+                    <p className="mt-1 text-xs text-gray-700">{t('purchasing.form.kindEquipmentNote')}</p>
+                )}
+            </div>
             <div className="space-y-3">
                 {lines.map((l, i) => (
                     <div key={i} className="border border-gray-300 rounded p-3 space-y-2">
                         <div className="flex flex-wrap gap-3 items-end">
                             <div className="flex-1 min-w-[14rem]">
                                 <label className="block text-xs text-gray-600 mb-1">
-                                    {t('purchasing.colMaterial')} <span className="text-red-600">*</span>
+                                    {isEquipment ? t('purchasing.colMachine') : t('purchasing.colMaterial')}{' '}
+                                    <span className="text-red-600">*</span>
                                 </label>
-                                <select
-                                    required
-                                    value={l.material_id}
-                                    onChange={(e) => patchLine(i, { material_id: e.target.value })}
-                                    className="w-full border border-gray-300 px-2 py-1.5 rounded"
-                                >
-                                    <option value="" disabled>
-                                        —
-                                    </option>
-                                    {materials.map((m) => (
-                                        <option key={m.id} value={m.id}>
-                                            {m.label}
+                                {isEquipment ? (
+                                    <>
+                                        <select
+                                            required
+                                            value={l.asset_id}
+                                            onChange={(e) => patchLine(i, { asset_id: e.target.value })}
+                                            className="w-full border border-gray-300 px-2 py-1.5 rounded"
+                                        >
+                                            <option value="" disabled>—</option>
+                                            {assets.map((a) => (
+                                                <option key={a.id} value={a.id} disabled={a.onOrder}>
+                                                    {a.label}{a.onOrder ? ` — ${t('purchasing.form.assetAlreadyOnOrder')}` : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {/* 【空列表说清是哪一种空】—— 两种空的下一步完全不同。 */}
+                                        {assets.length === 0 && (
+                                            <p className="mt-1 text-xs text-amber-700">
+                                                {canSeeAssets
+                                                    ? t('purchasing.form.noAssetsRegistered')
+                                                    : t('purchasing.form.assetsRestricted')}
+                                            </p>
+                                        )}
+                                        <p className="mt-1 text-xs text-gray-600">
+                                            {t('purchasing.form.assetLineHint')}
+                                        </p>
+                                    </>
+                                ) : (
+                                    <select
+                                        required
+                                        value={l.material_id}
+                                        onChange={(e) => patchLine(i, { material_id: e.target.value })}
+                                        className="w-full border border-gray-300 px-2 py-1.5 rounded"
+                                    >
+                                        <option value="" disabled>
+                                            —
                                         </option>
-                                    ))}
-                                </select>
+                                        {materials.map((m) => (
+                                            <option key={m.id} value={m.id}>
+                                                {m.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
                             </div>
-                            <div>
-                                <label className="block text-xs text-gray-600 mb-1">
-                                    {t('purchasing.colQuantity')} <span className="text-red-600">*</span>
-                                </label>
-                                <DecimalInput
-                                    required
-                                    value={l.quantity}
-                                    onChange={(v) => patchLine(i, { quantity: v })}
-                                    className="w-28 border border-gray-300 px-2 py-1.5 rounded"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs text-gray-600 mb-1">{t('inbound.form.unit')}</label>
-                                <input
-                                    type="text"
-                                    value={l.unit}
-                                    onChange={(e) => patchLine(i, { unit: e.target.value })}
-                                    className="w-16 border border-gray-300 px-2 py-1.5 rounded"
-                                />
-                            </div>
+                            {/* 【设备行的数量与单位是规则,不是输入】EQP-1a-TAIL 把它们做成了
+                                表上的 CHECK:一条设备行订【一台】机器,单位恒为 unit。
+                                所以这里【显示但不让改】,并把理由摆在旁边 ——
+                                一个能填、填了又被拒的框,浪费的是填它的那次动作。 */}
+                            {isEquipment ? (
+                                <div>
+                                    <label className="block text-xs text-gray-600 mb-1">
+                                        {t('purchasing.colQuantity')} · {t('inbound.form.unit')}
+                                    </label>
+                                    <p className="w-40 border border-gray-200 bg-gray-50 px-2 py-1.5 rounded text-sm text-gray-700">
+                                        1 unit
+                                    </p>
+                                    <p className="mt-1 text-xs text-gray-600">{t('purchasing.form.equipmentQtyFixed')}</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div>
+                                        <label className="block text-xs text-gray-600 mb-1">
+                                            {t('purchasing.colQuantity')} <span className="text-red-600">*</span>
+                                        </label>
+                                        <DecimalInput
+                                            required
+                                            value={l.quantity}
+                                            onChange={(v) => patchLine(i, { quantity: v })}
+                                            className="w-28 border border-gray-300 px-2 py-1.5 rounded"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs text-gray-600 mb-1">{t('inbound.form.unit')}</label>
+                                        <input
+                                            type="text"
+                                            value={l.unit}
+                                            onChange={(e) => patchLine(i, { unit: e.target.value })}
+                                            className="w-16 border border-gray-300 px-2 py-1.5 rounded"
+                                        />
+                                    </div>
+                                </>
+                            )}
                             <div className="min-w-[12rem]">
                                 <label className="block text-xs text-gray-600 mb-1">{t('purchasing.colFormula')}</label>
                                 <select

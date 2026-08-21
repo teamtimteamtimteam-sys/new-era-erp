@@ -76,7 +76,7 @@
 | ~~**EQP-1b-ii**~~ | ~~费用 ↔ 采购单行的关联,以及"一条设备行只能报销一次"的推导~~ **已完成 2026-08-21**。`expenses.purchase_order_line_id` + 部分唯一索引 `uq_expenses_live_po_line` + `record_expense` 的七条具名拒绝 + `trg_expenses_po_line_kind`,fixture 105。**它管的是【行】不是【机器】** —— 两次新建模式的资本支出仍能为同一台机器建两张卡,写在 `expenses.purchase_order_line_id` 的列注释里。顺带记下一条缺陷(冲销不退回资产成本),**已由 EQP-1b-iii 修复并退役**。 |
 | ~~**EQP-1b-iii**~~ | ~~冲销一笔资本支出必须把成本一起退回去~~ **已完成 2026-08-21**。`reverse_expense` 退回 `cost_base` 并当场核对「表头 = 未冲销明细之和」;资产【已投用】则按名拒 `ASSET_IN_SERVICE_COST_LOCKED`(与 `record_expense` 拒绝追加同一个铰链);顺带补上镜像单漏抄的 `employee_id`。**没有 DDL** —— 「这条明细还算不算数」由它那笔支出的 `status` 推导,不另立一列。fixture 106。 |
 | ~~**EQP-1c-a**~~ | ~~一张资产卡怎么诞生(库这一半)~~ **已完成 2026-08-21**。`create_fixed_asset` 建【零成本主数据卡】,于是【先下单、后开票】这条真实顺序终于走得通 —— 此前唯一那扇门要同时过一笔账,设备链根本起不了步(EQP-1a 的设计缺口)。`expense_id` 改可空、三条 CHECK 恰好放宽、取号提成 `next_fixed_asset_code` 由两扇门共用;零成本卡【投用不了也处置不了】(`ASSET_HAS_NO_COST`)。fixture 107。 |
-| **EQP-1c** | 界面;**并且带着 `apply_prepayment` 的 `CURRENT_DATE` 修复**(删除条件写在 `docs/known-issues.md` 里,由这一刀触发) |
+| ~~**EQP-1c-b**~~ | ~~设备采购的界面~~ **已完成 2026-08-21**。登记机器的表单、采购单的【材料 / 设备】模式开关(规矩在动手之前说,不在提交之后说)、采购单页与打印件上的机器名、资产卡片页、以及设备侧的定金冲抵门(挂在【费用单】上 —— 那才是应付单据)。**并且带着 `apply_prepayment` 的 `CURRENT_DATE` 修复**(X1:冲抵日成为必填参数,两处调用点都加了日期字段)—— 那条 known-issue 已随本刀退役。顺带把 S4 普查出来的【九条一直没有句子的既有拒绝】接上 en/zh。**本刀的关闭条件是 Tim 的走查,不是绿闸门。** |
 | | ↑ **到这里,一个操作员才真的用得了这个模块** |
 | **EQP-2a** | 保养与维修,库这一半,**含阶段 0 的两件** |
 | **EQP-2b** | 保养的界面 |

@@ -11,10 +11,12 @@ import NewOrderForm, {
     type MaterialOption,
     type FormulaOption,
     type TemplateOption,
+    type AssetOption,
 } from './NewOrderForm'
 import { maskedRows } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
 import { mustRows } from '@/lib/db-helpers'
+import { can } from '@/lib/permissions'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 
@@ -28,7 +30,12 @@ export default async function NewOrderPage() {
     const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
 
-    const [suppliersRes, materialsRes, formulasRes, templatesRes, tplLinesRes] = await Promise.all([
+    // EQP-1c-b(P2):可挑的资产卡 + 【读者看不看得见它们】。
+    // fixed_assets 的门是 module.finance.view,而本页的门是采购 —— 只有采购权限的
+    // 人读它会得到零行。把这个事实取出来,空状态才说得出是"还没登记"还是"你看不到"。
+    const canSeeAssets = await can('module.finance.view')
+
+    const [suppliersRes, materialsRes, formulasRes, templatesRes, tplLinesRes, assetsRes, onOrderRes] = await Promise.all([
         supabase
             // SUP-TYPE-1b:【只列供货的供应商】——【但这里的理由与收货那两张不同,
             // 不要照抄】实测:purchase_orders 上【没有任何守卫】看 supplies_goods,
@@ -67,10 +74,21 @@ export default async function NewOrderPage() {
             .from('payment_term_template_lines_masked')
             .select('template_id, seq, label, percentage, fixed_amount_ccy, trigger_event, days_offset')
             .order('seq'),
+        // 可挑的机器:在册(active)、【还没投用】的卡。投用之后成本就冻住了
+        // (record_expense 按名拒追加),再给它开一张采购单没有意义。
+        canSeeAssets
+            ? supabase.from('fixed_assets')
+                .select('id, code, description, cost_base')
+                .eq('status', 'active').is('in_service_date', null).order('code')
+            : Promise.resolve({ data: [] as { id: string; code: string; description: string; cost_base: number }[], error: null }),
+        // 已经挂在某条采购单行上的资产 —— 挑过的不该再挑一次(表上没有唯一约束
+        // 拦这件事,所以这里只是【不引导人去踩】,不是一道保证)。
+        supabase.from('purchase_order_lines').select('asset_id').not('asset_id', 'is', null),
     ])
 
     const error =
         suppliersRes.error ?? materialsRes.error ?? formulasRes.error ?? templatesRes.error ?? tplLinesRes.error
+        ?? assetsRes.error ?? onOrderRes.error
     if (error) {
         return (
             <div className="p-8">
@@ -87,6 +105,13 @@ export default async function NewOrderPage() {
         id: s.id,
         name: s.legal_name,
         default_template_id: s.default_payment_term_template_id,
+    }))
+    const onOrder = new Set((mustRows(onOrderRes)).map((r) => r.asset_id).filter(Boolean) as string[])
+    const assets: AssetOption[] = (mustRows(assetsRes)).map((a) => ({
+        id: a.id,
+        // 编号 + 描述,与材料行的 `编号 — 名称` 同形。
+        label: `${a.code} — ${a.description}`,
+        onOrder: onOrder.has(a.id),
     }))
     const materials: MaterialOption[] = (mustRows(materialsRes)).map((m) => ({
         id: m.id,
@@ -127,6 +152,8 @@ export default async function NewOrderPage() {
                 baseCurrency={baseCurrency}
                 suppliers={suppliers}
                 materials={materials}
+                assets={assets}
+                canSeeAssets={canSeeAssets}
                 formulas={formulas}
                 templates={templates}
             />
