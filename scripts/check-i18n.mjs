@@ -242,6 +242,14 @@ const MANIFEST = {
     'purchasing.form.kind.': { kind: 'enum', values: () => tsRegex(
                                   'app/purchasing/orders/new/NewOrderForm.tsx',
                                   /const ORDER_KINDS = \['(\w+)', '(\w+)'\] as const/g) },
+    // EQP-1c-c:资本支出的两扇门(新建一台机器 / 给已登记的机器加成本)。
+    // 后缀集合【就是】开支表单里那个 CAPITAL_MODES 数组 —— 从组件现读。
+    'expense.form.capitalMode.': { kind: 'enum', values: () => tsRegex(
+                                  'app/finance/expenses/new/NewExpenseForm.tsx',
+                                  /const CAPITAL_MODES = \['(\w+)', '(\w+)'\] as const/g) },
+    'expense.form.capitalModeHint.': { kind: 'enum', values: () => tsRegex(
+                                  'app/finance/expenses/new/NewExpenseForm.tsx',
+                                  /const CAPITAL_MODES = \['(\w+)', '(\w+)'\] as const/g) },
     // ── 看板 ─────────────────────────────────────────────────────────────────
     // OPS-18:后缀集合就是 operations_now 的支列表 —— 从视图镜像现读,加一支自动变宽。
     // (镜像里每一支都显式写了 AS item_type;pg_get_viewdef 只保留【显式】别名,

@@ -36,6 +36,13 @@ const EXPENSE_ERROR_CODES = new Set([
     'ASSET_IN_SERVICE_COST_LOCKED', 'ASSET_COST_LEDGER_DIVERGED',
     // EQP-1c-b(S4):record_expense 在日期为空时抛它,而它一直没有句子。
     'JE_LINE_INVALID',
+    // EQP-1c-c:**追加那条路的三条拒绝,以前一条都到不了这里** —— 因为此前
+    // 这张表单根本走不到追加模式。门一开,它们立刻会打到人脸上,所以先接好。
+    // (它们在 finance.errors 下有句子,那是月结面板用的;这个本地化器读的是
+    //  expense.errors,两套名字空间各自独立 —— 见本文件抬头。)
+    'ASSET_NOT_FOUND', 'ASSET_ALREADY_IN_SERVICE', 'ASSET_DISPOSED',
+    // 顺带补上一个既有的缺口:币种非法在普通路径上也抛得出来。
+    'CURRENCY_INVALID',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..."(同 localizeFinanceError)。

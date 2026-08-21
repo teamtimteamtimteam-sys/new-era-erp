@@ -53,8 +53,23 @@ export async function createExpense(
         // 服务端也会拒(COUNTERPARTY_REQUIRED_FOR_UNPAID),这里只是早一步说人话
         return { error: t('expense.errors.COUNTERPARTY_REQUIRED_FOR_UNPAID') }
     }
+    // ── EQP-1c-c:资本支出的两扇门,【由表单明说,不由这里推断】─────────────
+    // capital_mode 是人选的(见表单里那两句话)。**不要从"assetId 填没填"倒推** ——
+    // 一个推断出来的模式是一个没有人选过的模式,而选错的代价不对称:
+    // 把"给旧机器加钱"错走成"买新机器",会多出一张【撤不回来】的资产卡。
+    const capitalMode = String(formData.get('capital_mode') ?? 'new')
+    const isAppend = isCapital && capitalMode === 'existing'
+    const assetIdRaw = String(formData.get('asset_id') ?? '').trim()
+    const poLineIdRaw = String(formData.get('purchase_order_line_id') ?? '').trim()
+
     let assetPayload: Record<string, string | number> | undefined
-    if (isCapital) {
+    if (isAppend) {
+        // 【追加模式:p_asset 只带 asset_id】record_expense 按这一个键分支
+        //  (v_append_id := p_asset->>'asset_id')。出生字段一个都不送 ——
+        //  它们属于【卡】,不属于这笔支出,而表单在这个模式下也不再显示它们。
+        if (!assetIdRaw) return { error: t('expense.errors.ASSET_NOT_FOUND', { 0: '?' }) }
+        assetPayload = { asset_id: assetIdRaw }
+    } else if (isCapital) {
         if (!assetDescription) return { error: t('expense.errors.ASSET_DESCRIPTION_REQUIRED') }
         const life = Number(assetLifeRaw)
         if (!assetLifeRaw || Number.isNaN(life) || life <= 0 || !Number.isInteger(life)) {
@@ -86,6 +101,11 @@ export async function createExpense(
         p_payee_name: payeeName || undefined,
         p_notes: notes || undefined,
         p_asset: assetPayload,
+        // EQP-1b-ii 的那一列,终于有了门。【可选】—— 没有采购单就买断一台机器是
+        // 合法的,record_expense 也允许(那一列可空)。只在追加模式下可能有值:
+        // 新建模式那一笔【不可能】带它(行上的 asset_id 是外键,资产得先存在),
+        // 而 record_expense 对那种组合按名拒(EXPENSE_CREATES_ASSET)。
+        ...(isAppend && poLineIdRaw ? { p_purchase_order_line: poLineIdRaw } : {}),
     })
 
     if (error) {
