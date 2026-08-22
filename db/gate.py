@@ -43,6 +43,33 @@ def psql(dsn: str, sql: str) -> str:
     return p.stdout.strip()
 
 
+# ── fixture 泄漏检查(PROC-CLEANUP)────────────────────────────────────────────
+# 【为什么有这一条】README 第 2 条要求每支 fixture 自带数据【且不留痕】——
+# 整支包在 BEGIN/ROLLBACK 里。PROC-5 给 fixture 54 补的一行 INSERT 落在 `BEGIN;`
+# 【之前】,于是它**提交进了重建库**,泄漏给后面每一支。
+# **门看不见它**:每支 fixture 只跑一次,没有第二个人撞上那一行。
+#
+# 【为什么是"每支前后比指纹",而不是"整套跑两遍"】两条都试过、都量过:
+#   * 跑两遍:118 支 3.07 秒,再跑一遍还是 3 秒 —— 便宜。但它只抓得住
+#     **会撞车的**泄漏(比如主键冲突);一行带随机 uuid 的泄漏跑两遍照样全绿。
+#     而且它只会说"第二遍红了",不说是谁泄漏的。
+#   * 前后比指纹:一次 32 毫秒,118 支合计约 3.8 秒 —— 一样便宜,
+#     **而且它抓【任何】泄漏,并当场点名是哪一支、多了几行**。
+# 后者严格更强,所以只做后者。加起来约占 gate 总时长的 1%(gate 实测 333–436s)。
+_LEAK_SQL = """SELECT md5(string_agg(t || '=' || n::text, ',' ORDER BY t)) || '|' || sum(n)::text
+FROM (SELECT c.relname AS t,
+             (xpath('/row/c/text()', query_to_xml(
+                format('SELECT count(*) c FROM public.%I', c.relname), false, true, '')))[1]::text::bigint AS n
+        FROM pg_class c JOIN pg_namespace ns ON ns.oid = c.relnamespace
+       WHERE ns.nspname = 'public' AND c.relkind = 'r') x;"""
+
+
+def _leak_digest(dsn: str) -> str:
+    p = subprocess.run(["psql", dsn, "-X", "-At", "-v", "ON_ERROR_STOP=1", "-c", _LEAK_SQL],
+                       capture_output=True, text=True)
+    return p.stdout.strip() if p.returncode == 0 else "(指纹取不到)"
+
+
 def rows_json(dsn: str, table: str, where, cols: str) -> list:
     w = f" WHERE {where}" if where else ""
     out = psql(dsn, f"SELECT COALESCE(json_agg(to_jsonb(x) ORDER BY to_jsonb(x)::text), '[]'::json) "
@@ -456,17 +483,30 @@ def main() -> int:
         fx_dir = os.path.join(HERE, "fixtures")
         fixture_fails = []
         if os.path.isdir(fx_dir):
+            before = _leak_digest(local)
             for name in sorted(f for f in os.listdir(fx_dir) if f.endswith(".sql")):
                 fp = os.path.join(fx_dir, name)
                 fr = subprocess.run(["psql", local, "-X", "-q", "-v", "ON_ERROR_STOP=1", "-f", fp],
                                     capture_output=True, text=True)
+                after = _leak_digest(local)
                 if fr.returncode != 0:
                     msg = (fr.stderr or fr.stdout).strip().split(chr(10))
                     hit = next((l for l in msg if "FIXTURE" in l or "ERROR" in l), msg[0] if msg else "")
                     fixture_fails.append(f"{name}: {hit[:200]}")
                     print(f"fixture   {name:<44s} ✗")
+                elif after != before:
+                    # 【跑通了,但留下了痕迹】—— 那是 README 第 2 条的另一半。
+                    nb = before.split("|")[-1]
+                    na = after.split("|")[-1]
+                    fixture_fails.append(
+                        f"{name}: 【泄漏】跑通了,但库里多/少了行(总行数 {nb} → {na})。"
+                        f"整支 fixture 必须包在 BEGIN/ROLLBACK 里 —— "
+                        f"落在 BEGIN 之前的 INSERT 会提交进重建库,泄漏给后面每一支"
+                        f"(PROC-5 的 fixture 54 就是这么漏的,而门当时看不见)。")
+                    print(f"fixture   {name:<44s} ✗ 泄漏({nb} → {na} 行)")
                 else:
                     print(f"fixture   {name:<44s} ✓")
+                before = after
 
         unchecked = cm.definer_without_caller_check()
         print(f"definer    {len(unchecked)} SECURITY DEFINER function(s) with no recognisable caller check"

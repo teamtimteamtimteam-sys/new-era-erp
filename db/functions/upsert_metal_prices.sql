@@ -52,7 +52,11 @@ BEGIN
     FOR v_el IN SELECT * FROM jsonb_array_elements(p_prices)
     LOOP
         v_metal := v_el->>'metal';
-        IF v_metal IS NULL OR v_metal NOT IN ('ni','co','li','mn','cu','al','fe') THEN
+        -- PROC-CLEANUP:【现读字典】。这里原本写死七个码 —— 那是 PROC-4 漏掉的三份之一。
+        -- PROC-4 报的"残留 0"只对【约束】成立,它的 S1 没有查函数体。
+        -- 后果是具体的:往 substances 加一行之后,外键放行,而这里按 METAL_INVALID 拒 ——
+        -- 于是"加一种物质 = 加一行"这句承诺,在这条路上不成立。
+        IF v_metal IS NULL OR NOT EXISTS (SELECT 1 FROM substances WHERE code = v_metal) THEN
             RAISE EXCEPTION 'METAL_INVALID|%', COALESCE(v_metal, '?');
         END IF;
 

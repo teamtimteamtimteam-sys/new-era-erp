@@ -1,3 +1,32 @@
+-- PROC-CLEANUP:让 substances 那张字典【真的活着】—— 补上 PROC-4 漏掉的三支函数
+--
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【A1:怎么查的,以及为什么之前会漏】
+-- PROC-4 报"残留的写死清单 0"。**那句话对【约束】成立,而它被当成了全部答案** ——
+-- 它的 S1 只查了 pg_constraint。PROC-6 顺手撞见函数体里还有,本刀把四处一起查:
+--
+--   查法:在【线上目录】里,把 substances 的每一个 code 拿去匹配四类对象的定义
+--         (pg_get_functiondef / pg_get_viewdef / pg_get_constraintdef /
+--          pg_get_triggerdef),命中 >= 4 个码的算嫌疑。
+--   **而且先用 regexp_replace 剥掉 SQL 注释再匹配** —— 否则 record_assay_result
+--   会是假阳性:PROC-6 在它的注释里【引用了】那份旧清单。
+--   (不在仓库里 grep:db/migrations 全是历史,会把答案淹掉。)
+--
+--   结果:函数 3 支 · 视图 0 · 约束 0 · 触发器 0 · app 0。
+--
+-- 【三支都是同一个形状】
+--     IF v_metal IS NULL OR v_metal NOT IN ('ni','co','li','mn','cu','al','fe') THEN
+--   后果是具体的:往 substances 加一行(比如氟)之后,**外键会放行它,
+--   而这三支函数按 METAL_INVALID 把它拒掉** —— 那张字典因此只活了一半。
+--
+-- 【本刀是【加法且可选】的】三支函数都是把判据从"写死七个"改成"读字典",
+-- **接受的集合只会变大,不会变小**;没有新参数,旧调用方一个字都不用改。
+-- 所以走标准顺序,不是 app-first(app-first 是给"旧调用方会被拒"的那一类的,
+-- PROC-6 就是那一类,它让新化验单 22 分钟记不下来)。
+-- ════════════════════════════════════════════════════════════════════════════
+
+BEGIN;
+
 CREATE OR REPLACE FUNCTION public.calculate_metal_price_from_terms(p_terms jsonb, p_metals jsonb, p_quantity_kg numeric, p_reference_date date)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -215,3 +244,173 @@ BEGIN
     );
 END;
 $function$;
+
+CREATE OR REPLACE FUNCTION public.set_material_required_metals(p_material_id uuid, p_metals text[])
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+    v_code text;
+    v_metal text;
+    v_clean text[];
+BEGIN
+    PERFORM require_permission('module.materials.edit');
+
+    IF p_material_id IS NULL THEN
+        RAISE EXCEPTION 'MATERIAL_REQUIRED';
+    END IF;
+    SELECT code INTO v_code FROM materials WHERE id = p_material_id AND deleted_at IS NULL;
+    -- 【物料不存在 ≠ 物料没有要求】前者是问错了问题。合成一个"没有要求"就是把
+    -- 打错的 id 显示成一个正当的答案(mustRows / restRows / ACCOUNT_NOT_FOUND 同一条)。
+    IF v_code IS NULL THEN
+        RAISE EXCEPTION 'MATERIAL_NOT_FOUND|%', p_material_id;
+    END IF;
+
+    -- 【NULL 与空数组【都】是"清空要求",而它们必须走到同一个地方】
+    -- 一个把 NULL 读成"什么都不做"的实现,会让"取消全部要求"这个动作静默失败。
+    v_clean := COALESCE(p_metals, ARRAY[]::text[]);
+
+    FOREACH v_metal IN ARRAY v_clean LOOP
+        -- PROC-CLEANUP:【现读字典】。这里原本写死七个码 —— 那是 PROC-4 漏掉的三份之一。
+        -- PROC-4 报的"残留 0"只对【约束】成立,它的 S1 没有查函数体。
+        -- 后果是具体的:往 substances 加一行之后,外键放行,而这里按 METAL_INVALID 拒 ——
+        -- 于是"加一种物质 = 加一行"这句承诺,在这条路上不成立。
+        IF v_metal IS NULL OR NOT EXISTS (SELECT 1 FROM substances WHERE code = v_metal) THEN
+            RAISE EXCEPTION 'METAL_UNKNOWN|%', COALESCE(v_metal, '(null)');
+        END IF;
+    END LOOP;
+
+    -- 【重复的金属按名拒,不是悄悄去重】传 ['cu','cu'] 的调用方对自己要什么是糊涂的,
+    -- 而去重会让它以为自己说清楚了。
+    IF (SELECT count(*) FROM unnest(v_clean)) <>
+       (SELECT count(DISTINCT x) FROM unnest(v_clean) x) THEN
+        RAISE EXCEPTION 'METAL_DUPLICATED|%', array_to_string(v_clean, ',');
+    END IF;
+
+    -- 整套替换:先删后插,同一个事务 —— 不存在"改了一半"的中间态。
+    DELETE FROM material_required_metals WHERE material_id = p_material_id;
+    INSERT INTO material_required_metals (material_id, metal)
+    SELECT p_material_id, x FROM unnest(v_clean) x;
+
+    RETURN jsonb_build_object(
+        'material_id', p_material_id,
+        'material_code', v_code,
+        -- 【空集就报空集,并且说出来它是空的】调用方(ASY-P2 的界面)据此印
+        -- 「无化验要求」那句话,而不是靠"数组长度是 0"自己去猜一句文案。
+        'metals', COALESCE(to_jsonb(v_clean), '[]'::jsonb),
+        'metal_count', COALESCE(array_length(v_clean, 1), 0),
+        'has_requirement', COALESCE(array_length(v_clean, 1), 0) > 0
+    );
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.upsert_metal_prices(p_price_date date, p_prices jsonb, p_price_index text DEFAULT NULL::text, p_source text DEFAULT NULL::text, p_source_reference text DEFAULT NULL::text, p_quote_delayed boolean DEFAULT NULL::boolean)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+    v_user     uuid := auth.uid();
+    v_el       jsonb;
+    v_metal    text;
+    v_raw      text;
+    v_price    numeric;
+    v_inserted integer := 0;
+    v_updated  integer := 0;
+    v_skipped  integer := 0;
+    v_was_ins  boolean;
+BEGIN
+    PERFORM require_permission('module.pricing.edit');
+    -- METAL-2:录入的是【哪个指数】的行情。NULL = 未声明(老序列),它是一个
+    -- 可表示的状态而不是默认值 —— 界面上是一个必须选的下拉,而不是留空就当某个值。
+    IF p_price_index IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM metal_price_indices WHERE code = p_price_index AND is_active) THEN
+        RAISE EXCEPTION 'PRICE_INDEX_UNKNOWN|%', p_price_index;
+    END IF;
+    IF p_price_date IS NULL THEN
+        RAISE EXCEPTION 'PRICE_DATE_REQUIRED';
+    END IF;
+
+    -- LME-1a:【出处必填,而且按名拒】p_source 有 DEFAULT NULL 只是为了不打断
+    -- 既有调用方的参数写法 —— 它【不是】一个可以省略的参数,漏了就在这里停下。
+    -- 表上那条 NOT NULL(已拿掉 DEFAULT)是兜底:它挡得住绕过本函数的直插,
+    -- 但抛出来的是约束原文;这一句是给人看的那一版。
+    IF p_source IS NULL OR btrim(p_source) = '' THEN
+        RAISE EXCEPTION 'QUOTE_SOURCE_REQUIRED';
+    END IF;
+    IF p_source NOT IN ('published_index','broker_quote','internal_estimate','unknown') THEN
+        RAISE EXCEPTION 'QUOTE_SOURCE_INVALID|%', p_source;
+    END IF;
+    -- 【unknown 不许用在新录入上】它是给 LME-1a 之前那些无从考证的历史行的。
+    -- 允许新录入选 unknown,等于把这一列变回一句空话 —— 只是换了个词。
+    IF p_source = 'unknown' THEN
+        RAISE EXCEPTION 'QUOTE_SOURCE_UNKNOWN_NOT_ALLOWED_FOR_NEW';
+    END IF;
+    -- 【published_index 必须说得出是哪一个】表上有同样的 CHECK;这一句先说人话。
+    IF p_source = 'published_index' AND p_price_index IS NULL THEN
+        RAISE EXCEPTION 'QUOTE_SOURCE_INDEX_REQUIRED';
+    END IF;
+    IF p_prices IS NULL OR jsonb_typeof(p_prices) <> 'array' THEN
+        RAISE EXCEPTION 'NO_PRICES';
+    END IF;
+
+    FOR v_el IN SELECT * FROM jsonb_array_elements(p_prices)
+    LOOP
+        v_metal := v_el->>'metal';
+        -- PROC-CLEANUP:【现读字典】。这里原本写死七个码 —— 那是 PROC-4 漏掉的三份之一。
+        -- PROC-4 报的"残留 0"只对【约束】成立,它的 S1 没有查函数体。
+        -- 后果是具体的:往 substances 加一行之后,外键放行,而这里按 METAL_INVALID 拒 ——
+        -- 于是"加一种物质 = 加一行"这句承诺,在这条路上不成立。
+        IF v_metal IS NULL OR NOT EXISTS (SELECT 1 FROM substances WHERE code = v_metal) THEN
+            RAISE EXCEPTION 'METAL_INVALID|%', COALESCE(v_metal, '?');
+        END IF;
+
+        -- 空值跳过而不是报错:UI 的每日录入表单常常只填了其中几个金属。
+        v_raw := v_el->>'price_usd_per_tonne';
+        IF v_raw IS NULL OR btrim(v_raw) = '' THEN
+            v_skipped := v_skipped + 1;
+            CONTINUE;
+        END IF;
+
+        v_price := v_raw::numeric;
+        IF v_price IS NULL OR v_price <= 0 THEN
+            RAISE EXCEPTION 'PRICE_INVALID|%|%', v_metal, v_raw;
+        END IF;
+
+        -- (metal, price_date) 唯一。软删的行也占着这个位置 —— 撞上就顺手复活它
+        -- (deleted_at = NULL)并写入新价,这两种情形都算 updated。
+        INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, price_index, source,
+                                  source_reference, quote_delayed, created_by, updated_by)
+        VALUES (v_metal, v_price, p_price_date, p_price_index, p_source,
+                nullif(btrim(coalesce(p_source_reference,'')), ''), p_quote_delayed, v_user, v_user)
+        ON CONFLICT (metal, price_date, price_index) DO UPDATE
+        SET price_usd_per_tonne = EXCLUDED.price_usd_per_tonne,
+            source              = EXCLUDED.source,
+            source_reference    = EXCLUDED.source_reference,
+            quote_delayed       = EXCLUDED.quote_delayed,
+            deleted_at          = NULL,
+            updated_by          = v_user
+        RETURNING (xmax = 0) INTO v_was_ins;
+
+        IF v_was_ins THEN
+            v_inserted := v_inserted + 1;
+        ELSE
+            v_updated := v_updated + 1;
+        END IF;
+    END LOOP;
+
+    RETURN jsonb_build_object(
+        'price_date', p_price_date,
+        'price_index', p_price_index,
+        'source', p_source,
+        'inserted', v_inserted,
+        'updated', v_updated,
+        'skipped', v_skipped
+    );
+END;
+$function$;
+
+COMMIT;

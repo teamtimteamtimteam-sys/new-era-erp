@@ -32,6 +32,40 @@ restore() 出错的方式恰恰是"我忘了我改过它",所以任何"把改过
         pg_get_viewdef 不吐 WITH (…),AGENTS.md 为此记过一次 security_invoker)
 * 函数 = pg_get_functiondef
 
+════════════════════════════════════════════════════════════════════════════
+【这个探针看得见什么,看不见什么 —— 站在用它的人面前把话说清楚】
+
+**一个对自己没走过的地面报"干净"的检查,比没有检查更坏:它制造信心。**
+这已经付过两次账,两次都是 assert_clean 说干净而库是脏的:
+  * **PROC-4**:一格注入 `DELETE FROM substances WHERE code='fe'` —— 改的是【行】,
+    对象定义一个字节没变,探针一路说干净,注入矩阵第一轮 **0/7**。
+  * **PROC-6**:一格注入把触发器换成 `BEFORE INSERT OR UPDATE` —— 改的是【触发器】,
+    当时不在捕获范围内,三格错落到别的臂,"还原后"才红。
+
+现在的覆盖面(PROC-CLEANUP 之后):
+
+  表 / 视图
+    ✓ 列(名 / 类型 / 可空 / 默认)      ✓ 约束(名 / 定义 / convalidated)
+    ✓ 索引                              ✓ RLS 开关 + 策略
+    ✓ reloptions                        ✓ 表级授权
+    ✓ 视图定义(pg_get_viewdef)
+    ✓ **触发器**(pg_get_triggerdef,非内部)          ← PROC-CLEANUP 补
+    ✓ **表注与列注**                                   ← PROC-CLEANUP 补
+    ✓ **行内容**,当这张表是 RUNTIME CONFIG 字典时      ← PROC-CLEANUP 补
+      (清单直接读 check_mirrors.RUNTIME_CONFIG_TABLES —— **不靠调用方记得声明**,
+       那正是"清单要靠记、机制不用"的同一条)
+  函数
+    ✓ pg_get_functiondef
+
+  **它【仍然】看不见的(点名,不含糊):**
+    ✗ 非字典表的行内容 —— 业务表的数据不在捕获范围内。fixture 自己回滚,
+      而注入脚本若去改业务数据,得自己还原。
+    ✗ 序列的当前值(nextval 推进过就回不去了,而重放通常不在乎)
+    ✗ 对象属主与列级授权(表级授权在,列级不在)
+    ✗ 本次没有列进 objects 清单的任何对象 —— **探针只看你交给它的那些**。
+      这一条最容易忘:注入改了 A,而你只把 B 交给了探针。
+
+════════════════════════════════════════════════════════════════════════════
 【能共享,而且【应当】共享 —— 这是本模块的第二个理由】
 fi109 与 fi110 的 restore() 是两份【复制】,各自维护自己的还原清单,于是同一个
 疏漏可以在两份里各犯一次(实际就是这样)。注入脚本本身住在仓库【外面】的
@@ -50,8 +84,29 @@ fi109 与 fi110 的 restore() 是两份【复制】,各自维护自己的还原�
 就变成了"我注入的东西生效了吗",那是另一个问题。
 ════════════════════════════════════════════════════════════════════════════
 """
+import os
 import subprocess
 import sys
+
+
+def _runtime_config_tables():
+    """RUNTIME CONFIG 字典的清单 —— **直接读 check_mirrors 那一份,不抄第二份**。
+
+    PROC-4 的第一轮 0/7 就是因为一格注入删了一行字典而探针看不见。
+    补它的时候有两条路:让调用方声明"这几张要连行一起比",或者让探针自己知道。
+    **选后者**:清单要靠人记就会漏,而这个仓库对"需要一张清单"有成文处置 ——
+    换成机制。于是加一张新字典时,探针自动开始守它的行,没有人需要记得什么。
+    """
+    here = os.path.dirname(os.path.abspath(__file__))
+    if here not in sys.path:
+        sys.path.insert(0, here)
+    try:
+        import check_mirrors
+        return set(check_mirrors.RUNTIME_CONFIG_TABLES)
+    except Exception as e:                       # 读不到就【说出来】,不要静静当成空集
+        sys.exit("✗ injection_probe:读不到 check_mirrors.RUNTIME_CONFIG_TABLES(%s)。"
+                 "\n  空集合会让字典的行【重新变成盲区】,而那正是 PROC-4 栽过的地方 —— "
+                 "所以这里宁可停下。" % e)
 
 _TABLE_SQL = """
 SELECT jsonb_build_object(
@@ -80,7 +135,18 @@ SELECT jsonb_build_object(
                   THEN pg_get_viewdef(%(oid)s, true) ELSE NULL END,
   'grants', COALESCE((SELECT jsonb_agg(DISTINCT g.privilege_type || ':' || g.grantee)
      FROM information_schema.role_table_grants g
-    WHERE (g.table_schema || '.' || g.table_name) = %(oid)s::regclass::text), '[]'::jsonb)
+    WHERE (g.table_schema || '.' || g.table_name) = %(oid)s::regclass::text), '[]'::jsonb),
+  -- PROC-CLEANUP:触发器。PROC-6 有一格注入把 BEFORE INSERT 换成了
+  -- BEFORE INSERT OR UPDATE,而当时这里看不见 —— 于是三格错落到别的臂。
+  'triggers', COALESCE((SELECT jsonb_agg(pg_get_triggerdef(t.oid) ORDER BY t.tgname)
+     FROM pg_trigger t WHERE t.tgrelid = %(oid)s AND NOT t.tgisinternal), '[]'::jsonb),
+  -- PROC-CLEANUP:表注与列注。check_mirrors 比它们,而注入矩阵此前不比 ——
+  -- 一格改了注释的注入会安静地活到后面每一格。
+  'comment', obj_description(%(oid)s),
+  'colcomments', COALESCE((SELECT jsonb_agg(jsonb_build_object(
+        'n', a.attname, 'c', col_description(%(oid)s, a.attnum)) ORDER BY a.attnum)
+     FROM pg_attribute a WHERE a.attrelid = %(oid)s AND a.attnum > 0 AND NOT a.attisdropped
+       AND col_description(%(oid)s, a.attnum) IS NOT NULL), '[]'::jsonb)
 )::text
 """
 
@@ -93,6 +159,7 @@ class Pristine(object):
         self.dsn = dsn
         self.objects = list(objects)
         self.baseline = None
+        self._dict_tables = _runtime_config_tables()
         if not self.objects:
             sys.exit("✗ injection_probe:对象清单是空的 —— 一个什么都不看的检查比没有更坏")
 
@@ -109,6 +176,15 @@ class Pristine(object):
             out = self._psql("SELECT pg_get_functiondef('%s'::regprocedure);" % obj)
         else:                                            # 表 / 视图
             out = self._psql(_TABLE_SQL.replace("%(oid)s", "'%s'::regclass" % obj))
+            # PROC-CLEANUP:**字典表连【行】一起比**。
+            # 一行被 DELETE 掉的字典行不改变任何对象定义 —— PROC-4 的注入矩阵
+            # 第一轮 0/7 就是这么来的,而 assert_clean 一路说"干净"。
+            bare = obj.split(".")[-1]
+            if bare in self._dict_tables:
+                digest = self._psql(
+                    "SELECT COALESCE(md5(string_agg(t::text, '|' ORDER BY t::text)), '(空表)') "
+                    "|| ' / ' || count(*)::text FROM %s t;" % obj)
+                out = out + "\n-- ROWS(RUNTIME CONFIG): " + digest
         # 【空回答不许被当成一份定义】对象被 DROP 之后 regclass 会直接报错(上面
         # 已退出);但万一某天它安静地回了空,那也是"我问错了",不是"它没变"。
         # 与 check-i18n 后缀解析、mustRows、restRows 是同一条规矩。
@@ -123,8 +199,13 @@ class Pristine(object):
     def capture(self):
         """在【任何注入之前】调用一次。"""
         self.baseline = self._snap()
+        watched = [o for o in self.objects
+                   if "(" not in o and o.split(".")[-1] in self._dict_tables]
         print("· injection_probe:抓下 %d 个对象的基线定义(%s)"
               % (len(self.objects), ", ".join(self.objects)))
+        print("· injection_probe:覆盖 列/约束/索引/RLS/策略/reloptions/授权/视图定义/"
+              "**触发器**/**注释**;字典表另比【行】:%s"
+              % (", ".join(watched) if watched else "(本次没有字典表)"))
         return self
 
     def assert_clean(self, where=""):
