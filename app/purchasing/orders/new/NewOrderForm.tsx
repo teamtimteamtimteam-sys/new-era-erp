@@ -21,7 +21,7 @@ import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
 import DecimalInput, { parseDecimal } from '@/app/components/forms/DecimalInput'
-import { METAL_OPTIONS } from '@/app/metal-prices/options'
+import type { MetalOption } from '@/app/metal-prices/options'
 import type { CalcResult } from '@/app/pricing/calculator/actions'
 import {
     createOrder,
@@ -116,6 +116,7 @@ function emptyTerm(): OrderTermInput {
 }
 
 export default function NewOrderForm({
+    substanceOptions,
     suppliers,
     materials,
     formulas,
@@ -124,6 +125,10 @@ export default function NewOrderForm({
     assets,
     canSeeAssets,
 }: {
+    // PROC-4:物质清单由页面从 substances 那张字典读好传进来。
+    // 【表单不再自己拿着一份清单】那份清单曾经是这份名单的第五个副本,
+    // 而它与库里的顺序【实测已经对不上】(它按重要性,库里的视图按字母序)。
+    substanceOptions: MetalOption[]
     suppliers: SupplierOption[]
     materials: MaterialOption[]
     formulas: FormulaOption[]
@@ -564,7 +569,7 @@ export default function NewOrderForm({
                             </button>
                             {l.assayOpen && (
                                 <div className="mt-2 flex flex-wrap gap-3">
-                                    {METAL_OPTIONS.map((m) => (
+                                    {substanceOptions.filter((s) => s.isActive).map((m) => (
                                         <label key={m.value} className="flex items-center gap-1 text-sm">
                                             <span className="w-8 text-gray-600">{t(m.labelKey)}</span>
                                             <DecimalInput

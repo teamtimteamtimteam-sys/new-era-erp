@@ -34,7 +34,7 @@ CREATE TABLE public.pricing_formula_history (
     formula_id                         uuid NOT NULL REFERENCES public.pricing_formulas (id),
     change_type                        text NOT NULL CHECK (change_type IN
                                        ('create','update','delete','restore','metal_set','metal_clear')),
-    metal                              text CHECK (metal IS NULL OR metal IN ('ni','co','li','mn','cu','al','fe')),
+    metal                              text REFERENCES public.substances (code),
     old_payable_pct                    numeric,   -- RESTRICTED
     new_payable_pct                    numeric,   -- RESTRICTED
     old_name                           text,

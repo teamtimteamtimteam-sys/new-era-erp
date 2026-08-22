@@ -30,3 +30,4 @@
 2026-08-22T00:58:48+0800	2026-08-22-proc2-intake-condition-axes.sql	e03e724
 2026-08-22T02:10:55+0800	2026-08-22-proc2c-capture-at-creation-and-one-atomic-write.sql	ed56c9e
 2026-08-22T21:47:11+0800	2026-08-22-proc3-what-may-be-fed.sql	854e0bd
+2026-08-22T22:52:29+0800	2026-08-22-proc4-the-metal-list-becomes-a-dictionary.sql	70d055f

@@ -1,7 +1,9 @@
 // app/metal-prices/metalPricesQuery.ts
 // 金属价格列表的查询逻辑(金属筛选 / 排序 / 软删除过滤 / 分页)集中在这里。
 // 端口自 inboundQuery,但刻意精简:单表、无外键、无搜索、无导出 —— 这是一张 7 金属参考表。
-import { METAL_VALUES } from './options'
+// PROC-4:这一支是【纯参数解析】,没有 supabase 也不该有 —— 所以合法集合
+// 由调用方(页面)读好字典传进来。这样它仍然是一个可测的纯函数,
+// 而"哪些物质合法"这件事只有一个真源。
 
 // 允许排序的列白名单(只含本表列)。
 export const METAL_PRICES_SORTABLE = [
@@ -31,9 +33,9 @@ export function parseMetalPricesListParams(sp: {
     metal?: string
     sort?: string
     dir?: string
-}): MetalPricesListParams {
-    // 只接受 7 金属规范值;其它按"不筛选"处理
-    const metal = sp.metal && METAL_VALUES.includes(sp.metal) ? sp.metal : ''
+}, allowedMetals: readonly string[]): MetalPricesListParams {
+    // 只接受字典里的码;其它按"不筛选"处理(PROC-4:七个写死的值没了)
+    const metal = sp.metal && allowedMetals.includes(sp.metal) ? sp.metal : ''
     const sort: MetalPricesSortCol = (METAL_PRICES_SORTABLE as readonly string[]).includes(
         sp.sort ?? ''
     )

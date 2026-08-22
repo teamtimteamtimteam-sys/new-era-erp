@@ -6,6 +6,7 @@ import DeleteButton from './DeleteButton'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { requireEditPermission } from '@/app/components/moduleGuard'
 import { getMetalPriceIndices } from '../../indexQuery'
+import { loadSubstances, toOptions } from '../../substanceQuery'
 
 export default async function EditMetalPricePage({
     params,
@@ -34,6 +35,8 @@ export default async function EditMetalPricePage({
 
     const { id } = await params
     const supabase = await createClient()
+    // PROC-4:物质清单从 substances 那张字典读(清单与顺序都由它定)。
+    const substanceOptions = toOptions(await loadSubstances(supabase))
     const t = await getTranslations()
     // METAL-2:指数选项从表里现读;locale 决定下拉里显示中文名还是英文名
     const indices = await getMetalPriceIndices()
@@ -66,7 +69,7 @@ export default async function EditMetalPricePage({
                 <DeleteButton id={row.id} />
             </div>
 
-            <EditMetalPriceForm indices={indices} locale={locale} row={row} />
+            <EditMetalPriceForm substanceOptions={substanceOptions} indices={indices} locale={locale} row={row} />
         </div>
     )
 }

@@ -9,7 +9,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { parseIndexField } from '@/app/metal-prices/indexOptions'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { METAL_VALUES } from '../../metal-prices/options'
+import { loadSubstances } from '../../metal-prices/substanceQuery'
 
 export type FormulaState = {
     error?: string
@@ -80,13 +80,18 @@ async function parseForm(formData: FormData): Promise<{ parsed?: Parsed; fieldEr
     }
 
     // 计价比例:并列数组 payable_metal[] / payable_pct[]
+    // PROC-4:认哪些物质【现读字典】—— 加一行之后这里立刻认它,不必改代码。
+    // (外键仍然是权威;这里只是不让一个不认识的值悄悄走完后面的循环。)
+    const allowedMetals = new Set(
+        (await loadSubstances(await createClient())).map((r) => r.code)
+    )
     const pMetals = formData.getAll('payable_metal').map(String)
     const pPcts = formData.getAll('payable_pct').map(String)
     const payables: { metal: string; payable_pct: number }[] = []
     const clears: string[] = []
     for (let i = 0; i < pMetals.length; i++) {
         const metal = pMetals[i]
-        if (!METAL_VALUES.includes(metal)) continue
+        if (!allowedMetals.has(metal)) continue
         const raw = (pPcts[i] ?? '').trim()
         if (raw === '') {
             clears.push(metal) // 留空 = 不计价 → 删掉可能存在的旧行

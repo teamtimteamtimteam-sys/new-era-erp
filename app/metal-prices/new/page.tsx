@@ -1,9 +1,13 @@
 // app/metal-prices/new/page.tsx
-// 新增金属价格:无需下拉数据(金属集合是常量),直接渲染客户端表单。
+// 新增金属价格。
+// 【PROC-4 之前这里写着「金属集合是常量」 —— 那句话不再成立】
+// 物质清单现在是 substances 那张字典的内容,和指数一样从表里现读。
 import NewMetalPriceForm from './NewMetalPriceForm'
 import { requireEditPermission } from '@/app/components/moduleGuard'
 import { getMetalPriceIndices } from '../indexQuery'
 import { getLocale } from '@/lib/i18n/server'
+import { createClient } from '@/lib/supabase/server'
+import { loadSubstances, toOptions } from '../substanceQuery'
 
 export default async function NewMetalPricePage() {
     // 【本页把关用 module.pricing.edit,不是 module.pricing.view。这是那条规矩的「写」那一半】
@@ -29,6 +33,8 @@ export default async function NewMetalPricePage() {
     // METAL-2:指数选项从表里现读(加一个指数是加一行,不是改代码)
     const indices = await getMetalPriceIndices()
     const locale = await getLocale()
+    // PROC-4:物质清单从字典读 —— 加一种物质是加一行,这一页不必改。
+    const substanceOptions = toOptions(await loadSubstances(await createClient()))
 
-    return <NewMetalPriceForm indices={indices} locale={locale} />
+    return <NewMetalPriceForm substanceOptions={substanceOptions} indices={indices} locale={locale} />
 }

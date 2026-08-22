@@ -9,7 +9,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { saveBulkPrices, type BulkPricesState } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import DecimalInput from '@/app/components/forms/DecimalInput'
-import { METAL_OPTIONS } from '../options'
+import type { MetalOption } from '../options'
 import AnomalyWarning from '../AnomalyWarning'
 import SourcePicker from '../SourcePicker'
 import { INDEX_UNSTATED, type MetalPriceIndex } from '../indexOptions'
@@ -27,12 +27,15 @@ export type MetalRowData = {
 }
 
 export default function BulkPricesForm({
+    substanceOptions,
     priceDate,
     priceIndex,
     indices,
     locale,
     rows,
 }: {
+    // PROC-4:物质清单由页面从字典读好传进来(清单与顺序都由它定)。
+    substanceOptions: MetalOption[]
     priceDate: string
     priceIndex: string | null
     indices: MetalPriceIndex[]
@@ -110,7 +113,7 @@ export default function BulkPricesForm({
                     </tr>
                 </thead>
                 <tbody>
-                    {METAL_OPTIONS.map((opt) => {
+                    {substanceOptions.filter((s) => s.isActive).map((opt) => {
                         const row = rows.find((r) => r.metal === opt.value)
                         return (
                             <tr key={opt.value}>

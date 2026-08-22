@@ -125,6 +125,8 @@ RUNTIME_CONFIG_TABLES = [
     # PROC-1:物料种类字典 —— 加一种物料种类是加一行(与 certificate_types 同一条)。
     # 引导播五行;Tim 在界面上加一种,线上就与本文件不同,那是系统在正常工作。
     "material_kinds",
+    # PROC-4:我们测量并核算的元素与物质(七个金属起步;氟/氯/石墨/塑料是排着队的)
+    "substances",
     # PROC-2:五条进料状态轴,五张字典 —— 同一条。轴在 PROC-2 定死,取值可以后到,
     # 而"后到"的代价正是一行数据,这就是把它们做成字典换来的东西。
     "material_forms", "material_sources", "material_size_formats",

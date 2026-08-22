@@ -14,14 +14,19 @@
 // 意思是"这种物料永远不出现在那里"。不说这句话,勾选框就只是七个没有后果的方框。
 import { useActionState, useState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
-import { METAL_OPTIONS } from '@/app/metal-prices/options'
+import type { MetalOption } from '@/app/metal-prices/options'
 import { saveRequiredMetals, type RequiredMetalsState } from './requiredMetalsActions'
 
 export default function RequiredMetalsPanel({
+    substanceOptions,
     materialId,
     initial,
     canEdit,
 }: {
+    // PROC-4:物质清单由页面从 substances 那张字典读好传进来。
+    // 【表单不再自己拿着一份清单】那份清单曾经是这份名单的第五个副本,
+    // 而它与库里的顺序【实测已经对不上】(它按重要性,库里的视图按字母序)。
+    substanceOptions: MetalOption[]
     materialId: string
     /** 当前已声明的金属 code(可能是空数组 —— 那【是】一个状态,不是缺数据) */
     initial: string[]
@@ -63,7 +68,7 @@ export default function RequiredMetalsPanel({
 
             <form action={formAction}>
                 <div className="flex flex-wrap gap-x-5 gap-y-2 mb-3">
-                    {METAL_OPTIONS.map((o) => (
+                    {substanceOptions.filter((s) => s.isActive).map((o) => (
                         <label
                             key={o.value}
                             className={

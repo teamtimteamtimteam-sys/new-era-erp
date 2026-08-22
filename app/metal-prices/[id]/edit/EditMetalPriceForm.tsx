@@ -4,7 +4,7 @@ import { useActionState } from 'react'
 import { sourceLabelKey } from '../../sourceOptions'
 import Link from 'next/link'
 import { updateMetalPrice, type UpdateMetalPriceState } from './actions'
-import { METAL_OPTIONS } from '../../options'
+import type { MetalOption } from '../../options'
 import { useTranslations } from '@/lib/i18n/client'
 import AnomalyWarning from '../../AnomalyWarning'
 import IndexPicker from '../../IndexPicker'
@@ -24,10 +24,13 @@ type MetalPrice = {
 }
 
 export default function EditMetalPriceForm({
+    substanceOptions,
     row,
     indices,
     locale,
 }: {
+    // PROC-4:物质清单由页面从字典读好传进来(清单与顺序都由它定)。
+    substanceOptions: MetalOption[]
     row: MetalPrice
     indices: MetalPriceIndex[]
     locale: string
@@ -57,7 +60,7 @@ export default function EditMetalPriceForm({
                         className="w-full border border-gray-300 px-3 py-2 rounded"
                     >
                         <option value="" disabled>{t('metalPrices.form.selectMetal')}</option>
-                        {METAL_OPTIONS.map((o) => (
+                        {substanceOptions.filter((s) => s.isActive).map((o) => (
                             <option key={o.value} value={o.value}>
                                 {t(o.labelKey)}
                             </option>

@@ -21,6 +21,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { loadSubstanceLabels, toOptions } from '@/app/metal-prices/substanceQuery'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type MovementFetchRow = {
@@ -54,6 +55,10 @@ export default async function EditOutputPage({
     const canSeeCredit = await can('module.customers.view')
     const t = await getTranslations()
     const locale = await getLocale()
+
+    // PROC-4:物质清单从 substances 那张字典读 —— 【连停用的一起读】,
+    // 因为这一页要把历史含量行里的码翻成名字,而停用不该让历史数据变成光秃秃的 code。
+    const substanceOptions = toOptions(await loadSubstanceLabels(supabase))
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
     const [batchRes, materialsRes, customersRes, metalsRes, movementsRes, stocktakeRes] = await Promise.all([
@@ -283,6 +288,7 @@ export default async function EditOutputPage({
             />
 
             <MetalContentPanel
+                options={substanceOptions}
                 rows={metalRows}
                 saveAction={saveOutputMetal.bind(null, id)}
                 deleteAction={deleteOutputMetal.bind(null, id)}

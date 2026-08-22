@@ -10,7 +10,7 @@ import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import DecimalInput from '@/app/components/forms/DecimalInput'
-import { METAL_OPTIONS } from '@/app/metal-prices/options'
+import type { MetalOption } from '@/app/metal-prices/options'
 import { submitOutputAssay, type SubmitOutputAssayState } from '../actions'
 
 const initialState: SubmitOutputAssayState = {}
@@ -21,10 +21,15 @@ function todayIsoLocal(): string {
 }
 
 export default function OutputAssayForm({
+    substanceOptions,
     batchId,
     currentMetals,
     impact,
 }: {
+    // PROC-4:物质清单由页面从 substances 那张字典读好传进来。
+    // 【表单不再自己拿着一份清单】那份清单曾经是这份名单的第五个副本,
+    // 而它与库里的顺序【实测已经对不上】(它按重要性,库里的视图按字母序)。
+    substanceOptions: MetalOption[]
     batchId: string
     currentMetals: Record<string, string>
     // 服务端问库得来的应用后果;null = 试算失败(不挡记录,后果标注"未知")
@@ -116,7 +121,7 @@ export default function OutputAssayForm({
                         </tr>
                     </thead>
                     <tbody>
-                        {METAL_OPTIONS.map((opt) => (
+                        {substanceOptions.filter((s) => s.isActive).map((opt) => (
                             <tr key={opt.value}>
                                 <td className="border border-gray-300 px-4 py-2">
                                     {t(opt.labelKey)}

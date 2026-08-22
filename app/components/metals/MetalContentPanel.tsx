@@ -7,18 +7,21 @@ import { useTranslations } from '@/lib/i18n/client'
 import DecimalInput from '../forms/DecimalInput'
 import {
     type MetalContentRow,
-    METAL_OPTIONS,
-    metalLabelKey,
+    type MetalOption,
 } from './metalContentTypes'
 
 export default function MetalContentPanel({
     rows,
+    options,
     saveAction,
     deleteAction,
     priceHref,
     note,
 }: {
     rows: MetalContentRow[]
+    // PROC-4:物质清单由页面从 substances 那张字典读好传进来(值 + 已翻好的名字)。
+    // 面板【不再】自己拿着一份清单 —— 那份清单曾经是第五个副本。
+    options: MetalOption[]
     saveAction: (metal: string, contentPct: number) => Promise<{ error?: string }>
     deleteAction: (metal: string) => Promise<{ error?: string }>
     // 带着本批次数量与化验结果跳计价器(新标签页);页面在有化验行时才传。
@@ -34,9 +37,12 @@ export default function MetalContentPanel({
     const [selectedMetal, setSelectedMetal] = useState('')
     const [pctInput, setPctInput] = useState('')
 
+    // 【翻名字时【不】过滤 isActive】一条记着停用物质的历史行,必须照样显示它的名字。
+    // 过滤了就会变成一个光秃秃的 code —— 那看起来像数据坏了,而不是像"不再可选"。
+    const keyOf = new Map(options.map((o) => [o.value, o.labelKey]))
     const metalLabel = (value: string) => {
-        const key = metalLabelKey(value)
-        return key ? t(key) : value
+        const k = keyOf.get(value)
+        return k ? t(k) : value
     }
 
     // 已录入的金属集合:录入下拉里给它们加 "(已录)" 后缀提示;仍可选中 —— 选中并保存即覆盖(update)。
@@ -189,7 +195,9 @@ export default function MetalContentPanel({
                     className="border border-gray-300 px-3 py-2 rounded"
                 >
                     <option value="" disabled>{t('metalContent.selectMetal')}</option>
-                    {METAL_OPTIONS.map((o) => (
+                    {/* 【选单只列还能新选的】—— 停用的物质不出现在这里,
+                        但上面那张表里它照样有名字。两个动词,两处不同的判断。 */}
+                    {options.filter((o) => o.isActive).map((o) => (
                         <option key={o.value} value={o.value}>
                             {t(o.labelKey)}
                             {existing.has(o.value) ? t('metalContent.alreadySet') : ''}

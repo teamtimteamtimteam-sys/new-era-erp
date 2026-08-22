@@ -25,6 +25,7 @@ import { mustRows, mustOne } from '@/lib/db-helpers'
 import { loadMaterialAxes } from '@/app/inbound/intakeConditionQuery'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { loadSubstanceLabels, toOptions } from '@/app/metal-prices/substanceQuery'
 import DiscrepancyKinds, {
     type DiscrepancyRow as GrnRow,
     type ReceivingThresholds as GrnThresholds,
@@ -57,6 +58,10 @@ export default async function EditInboundPage({
     const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
     const locale = await getLocale()
+
+    // PROC-4:物质清单从 substances 那张字典读 —— 【连停用的一起读】,
+    // 因为这一页要把历史含量行里的码翻成名字,而停用不该让历史数据变成光秃秃的 code。
+    const substanceOptions = toOptions(await loadSubstanceLabels(supabase))
 
     // ── PROC-2b:到货状态的两条轴 ────────────────────────────────────────────
     // 【读之前先对遮蔽清单】(S2):
@@ -520,6 +525,7 @@ export default async function EditInboundPage({
             />
 
             <MetalContentPanel
+                options={substanceOptions}
                 rows={metalRows}
                 saveAction={saveInboundMetal.bind(null, id)}
                 deleteAction={deleteInboundMetal.bind(null, id)}

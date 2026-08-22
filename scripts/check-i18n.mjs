@@ -177,6 +177,22 @@ function sqlEnum(file, col) {
     if (!m) throw new Error(`${file} 里找不到 CHECK (${col} IN (...))`)
     return [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1])
 }
+// PROC-4:字典型清单的真源【不再是 CHECK】,是那张字典的引导 INSERT。
+// sqlEnum 读的是 `CHECK (col IN (...))`;而 substances 落地之后那八条 CHECK 没了,
+// 它会抛"找不到 CHECK" —— **那次失败是这套机制在正常工作**(解析不出来 ≠ 空集合),
+// 但判据得跟着真源走。这一支读 `INSERT INTO public.<table> (code, ...) VALUES` 里
+// 每一行的第一个字面量,也就是 code。
+// 【为什么仍然要求 metals.<code> 有翻译】名字留在 i18n 里,而这条判据保证
+// "加了一行字典却没配名字"会在 npm run build 当场被点名 —— 一份【被检查的】镜像,
+// 与 lib/database.types.ts 之于 schema 是同一个形状。
+function sqlSeedCodes(file, table) {
+    const src = readFileSync(join(ROOT, file), 'utf8')
+    const m = src.match(new RegExp(String.raw`INSERT INTO public\.${table}[^;]*?VALUES([\s\S]*?);`, 'm'))
+    if (!m) throw new Error(`${file} 里找不到 INSERT INTO public.${table} ... VALUES`)
+    const codes = [...m[1].matchAll(/\(\s*'([^']+)'/g)].map((x) => x[1])
+    if (codes.length === 0) throw new Error(`${file} 的引导 INSERT 解析出 0 个 code —— 解析不出来不是空集合`)
+    return codes
+}
 function sqlLiteralAs(file, alias) {
     const src = readFileSync(join(ROOT, file), 'utf8')
     return [...new Set([...src.matchAll(new RegExp(String.raw`'(\w+)'::text AS ${alias}`, 'g'))].map((x) => x[1]))]
@@ -378,7 +394,7 @@ const MANIFEST = {
     // stock_status 的 CHECK 里加一个值,这条检查自动跟着变宽(第四个桶落地
     // 那天,漏了译文会当场红,而不是在屏幕上印出 movements.bucket.xxx)。
     'movements.bucket.':    { kind: 'enum', values: () => sqlEnum('db/tables/inventory_movements.sql', 'stock_status') },
-    'metals.':              { kind: 'enum', values: () => sqlEnum('db/tables/assay_result_metals.sql', 'metal') },
+    'metals.':              { kind: 'enum', values: () => sqlSeedCodes('db/tables/substances.sql', 'substances') },
     'pricing.direction.':   { kind: 'enum', values: () => sqlEnum('db/tables/pricing_formulas.sql', 'direction') },
     'assay.pricingStatus.': { kind: 'enum', values: () => sqlEnum('db/tables/inbound_batches.sql', 'pricing_status') },
     'inbound.pricing.errors.': { kind: 'enum', values: () => tsSet('app/inbound/[id]/edit/pricingActions.ts', 'PRICING_ERROR_CODES') },

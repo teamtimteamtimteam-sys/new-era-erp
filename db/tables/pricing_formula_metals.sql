@@ -12,7 +12,7 @@
 
 CREATE TABLE public.pricing_formula_metals (
     formula_id  uuid NOT NULL REFERENCES public.pricing_formulas (id) ON DELETE CASCADE,
-    metal       text NOT NULL CHECK (metal IN ('ni','co','li','mn','cu','al','fe')),
+    metal       text NOT NULL REFERENCES public.substances (code),
     payable_pct numeric NOT NULL CHECK (payable_pct >= 0 AND payable_pct <= 100),
     created_at  timestamptz NOT NULL DEFAULT now(),
     created_by  uuid DEFAULT auth.uid(),

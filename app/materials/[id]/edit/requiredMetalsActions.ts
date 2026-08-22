@@ -12,7 +12,7 @@
 // 哪怕它是空的 —— 少传一次就是让"取消全部要求"这个动作静默失败。
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { METAL_VALUES } from '@/app/metal-prices/options'
+import { loadSubstances } from '@/app/metal-prices/substanceQuery'
 import { localizeMaterialPolicyError } from '../../materialPolicyErrorCodes'
 
 export type RequiredMetalsState = { error?: string; ok?: boolean }
@@ -23,15 +23,19 @@ export async function saveRequiredMetals(
     formData: FormData
 ): Promise<RequiredMetalsState> {
     // 【客户端先过一遍,数据库仍然兜底】这里挡的是"表单里混进了不认识的值",
-    // 而 METAL_UNKNOWN 那条具名拒绝在函数里,两侧不是一份实现的两份拷贝:
-    // 这一侧只做集合成员判断,判据本身仍然是 METAL_VALUES 那一份。
+    // 而 METAL_UNKNOWN 那条具名拒绝在函数里。
+// PROC-4:合法值不再来自一份写死的清单,而是来自 substances 那张字典。
+// 【为什么这一侧还留着校验】外键才是权威(它对每一个写入者都成立,包括直连 psql);
+// 这里做的是把"表单里混进了不认识的值"翻成一句人话,而不是第二份规则。
+// **判据现读** —— 加一行字典之后,这里立刻认它,不必改代码。
     const picked = formData.getAll('metal').map((v) => String(v))
-    const unknown = picked.filter((m) => !METAL_VALUES.includes(m))
+
+    const supabase = await createClient()
+    const allowed = new Set((await loadSubstances(supabase)).map((r) => r.code))
+    const unknown = picked.filter((m) => !allowed.has(m))
     if (unknown.length > 0) {
         return { error: await localizeMaterialPolicyError(`METAL_UNKNOWN|${unknown[0]}`) }
     }
-
-    const supabase = await createClient()
     const { error } = await supabase.rpc('set_material_required_metals', {
         p_material_id: materialId,
         // 空数组照样传 —— 见抬头。

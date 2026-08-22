@@ -14,6 +14,7 @@ import OutputAssayForm from './OutputAssayForm'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { loadSubstances, toOptions } from '@/app/metal-prices/substanceQuery'
 
 export default async function NewOutputAssayPage({
     params,
@@ -27,6 +28,8 @@ export default async function NewOutputAssayPage({
 
     const { id } = await params
     const supabase = await createClient()
+    // PROC-4:物质清单从 substances 那张字典读(清单与顺序都由它定)。
+    const substanceOptions = toOptions(await loadSubstances(supabase))
     const t = await getTranslations()
 
     const { data: batch, error } = await supabase
@@ -90,6 +93,7 @@ export default async function NewOutputAssayPage({
             </p>
 
             <OutputAssayForm
+                substanceOptions={substanceOptions}
                 batchId={batch.id}
                 currentMetals={currentMetals}
                 impact={impact}

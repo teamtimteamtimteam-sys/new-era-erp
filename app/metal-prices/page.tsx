@@ -20,6 +20,7 @@ import { can } from '@/lib/permissions'
 import { mustOne } from '@/lib/db-helpers'
 import ThresholdPanel from './ThresholdPanel'
 import type { AnomalyVerdict } from './anomaly'
+import { loadSubstances, toOptions } from './substanceQuery'
 
 type MetalPriceRow = {
     id: string
@@ -66,9 +67,15 @@ export default async function MetalPricesPage({
 
     const sp = await searchParams
     const supabase = await createClient()
+    // PROC-4:物质清单从 substances 那张字典读(清单与顺序都由它定)。
+    const substanceOptions = toOptions(await loadSubstances(supabase))
     const t = await getTranslations()
 
-    const { metal, sort, dir } = parseMetalPricesListParams(sp)
+    // PROC-4:URL 里的 ?metal= 认哪些值,由字典说了算(而不是一份写死的七元素)。
+    const { metal, sort, dir } = parseMetalPricesListParams(
+        sp,
+        substanceOptions.map((o) => o.value)
+    )
     const requestedPage = parseMetalPricesPage(sp.page)
     const filterParams = { metal, sort, dir }
 
@@ -189,7 +196,8 @@ export default async function MetalPricesPage({
 
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
-                <MetalPricesToolbar />
+                <MetalPricesToolbar
+                substanceOptions={substanceOptions} />
             </Suspense>
 
             <p className="text-sm text-gray-600 mb-4">

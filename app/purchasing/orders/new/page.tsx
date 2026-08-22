@@ -19,6 +19,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { loadSubstances, toOptions } from '@/app/metal-prices/substanceQuery'
 
 export default async function NewOrderPage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -27,6 +28,8 @@ export default async function NewOrderPage() {
     if (denied) return denied
 
     const supabase = await createClient()
+    // PROC-4:物质清单从 substances 那张字典读(清单与顺序都由它定)。
+    const substanceOptions = toOptions(await loadSubstances(supabase))
     const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
 
@@ -152,6 +155,7 @@ export default async function NewOrderPage() {
             <h1 className="text-2xl font-bold mb-4">{t('purchasing.newOrder')}</h1>
             <Subnav />
             <NewOrderForm
+                substanceOptions={substanceOptions}
                 baseCurrency={baseCurrency}
                 suppliers={suppliers}
                 materials={materials}

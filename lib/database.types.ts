@@ -163,6 +163,13 @@ export type Database = {
             referencedRelation: "assay_results"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "assay_result_metals_metal_fkey"
+            columns: ["metal"]
+            isOneToOne: false
+            referencedRelation: "substances"
+            referencedColumns: ["code"]
+          },
         ]
       }
       assay_results: {
@@ -3252,6 +3259,13 @@ export type Database = {
             referencedColumns: ["inbound_batch_id"]
           },
           {
+            foreignKeyName: "inbound_batch_metals_metal_fkey"
+            columns: ["metal"]
+            isOneToOne: false
+            referencedRelation: "substances"
+            referencedColumns: ["code"]
+          },
+          {
             foreignKeyName: "inbound_batch_metals_source_assay_id_fkey"
             columns: ["source_assay_id"]
             isOneToOne: false
@@ -4995,6 +5009,13 @@ export type Database = {
             referencedRelation: "stock_snapshot"
             referencedColumns: ["material_id"]
           },
+          {
+            foreignKeyName: "material_required_metals_metal_fkey"
+            columns: ["metal"]
+            isOneToOne: false
+            referencedRelation: "substances"
+            referencedColumns: ["code"]
+          },
         ]
       }
       material_size_formats: {
@@ -5390,6 +5411,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "metal_prices_metal_fkey"
+            columns: ["metal"]
+            isOneToOne: false
+            referencedRelation: "substances"
+            referencedColumns: ["code"]
+          },
+          {
             foreignKeyName: "metal_prices_price_index_fkey"
             columns: ["price_index"]
             isOneToOne: false
@@ -5495,6 +5523,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "output_batch_metals_metal_fkey"
+            columns: ["metal"]
+            isOneToOne: false
+            referencedRelation: "substances"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "output_batch_metals_output_batch_id_fkey"
             columns: ["output_batch_id"]
@@ -7087,6 +7122,13 @@ export type Database = {
             referencedRelation: "pricing_formulas_masked"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pricing_formula_history_metal_fkey"
+            columns: ["metal"]
+            isOneToOne: false
+            referencedRelation: "substances"
+            referencedColumns: ["code"]
+          },
         ]
       }
       pricing_formula_metals: {
@@ -7131,6 +7173,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pricing_formulas_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_formula_metals_metal_fkey"
+            columns: ["metal"]
+            isOneToOne: false
+            referencedRelation: "substances"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -7301,6 +7350,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pricing_term_commitments_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_term_commitment_metals_metal_fkey"
+            columns: ["metal"]
+            isOneToOne: false
+            referencedRelation: "substances"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -10104,6 +10160,36 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           zone?: string | null
+        }
+        Relationships: []
+      }
+      substances: {
+        Row: {
+          code: string
+          is_active: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          sort_order: number
+          symbol: string | null
+        }
+        Insert: {
+          code: string
+          is_active?: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          sort_order?: number
+          symbol?: string | null
+        }
+        Update: {
+          code?: string
+          is_active?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          sort_order?: number
+          symbol?: string | null
         }
         Relationships: []
       }
@@ -14542,6 +14628,13 @@ export type Database = {
             referencedRelation: "pricing_formulas_masked"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pricing_formula_history_metal_fkey"
+            columns: ["metal"]
+            isOneToOne: false
+            referencedRelation: "substances"
+            referencedColumns: ["code"]
+          },
         ]
       }
       pricing_formula_metals_masked: {
@@ -14586,6 +14679,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pricing_formulas_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_formula_metals_metal_fkey"
+            columns: ["metal"]
+            isOneToOne: false
+            referencedRelation: "substances"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -14718,6 +14818,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pricing_term_commitments_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_term_commitment_metals_metal_fkey"
+            columns: ["metal"]
+            isOneToOne: false
+            referencedRelation: "substances"
+            referencedColumns: ["code"]
           },
         ]
       }

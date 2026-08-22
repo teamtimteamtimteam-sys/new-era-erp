@@ -25,7 +25,7 @@
 -- 1. Table
 CREATE TABLE public.inbound_batch_metals (
     inbound_batch_id uuid    NOT NULL REFERENCES public.inbound_batches (id) ON DELETE CASCADE,
-    metal            text    NOT NULL CHECK (metal IN ('ni','co','li','mn','cu','al','fe')),
+    metal            text    NOT NULL REFERENCES public.substances (code),
     content_pct      numeric NOT NULL CHECK (content_pct >= 0 AND content_pct <= 100),
     created_at  timestamptz NOT NULL DEFAULT now(),
     created_by  uuid,

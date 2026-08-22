@@ -13,6 +13,7 @@ import type { Tables } from '@/lib/database.types'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { loadSubstances, toOptions } from '../../../../metal-prices/substanceQuery'
 
 export default async function EditFormulaPage({
     params,
@@ -26,6 +27,8 @@ export default async function EditFormulaPage({
 
     const { id } = await params
     const supabase = await createClient()
+    // PROC-4:物质清单从 substances 那张字典读(清单与顺序都由它定)。
+    const substanceOptions = toOptions(await loadSubstances(supabase))
     const t = await getTranslations()
 
     const { data: formulaRaw, error } = await supabase
@@ -98,6 +101,7 @@ export default async function EditFormulaPage({
             </div>
             <Subnav />
             <FormulaForm
+                substanceOptions={substanceOptions}
             indices={indices}
             locale={locale}
                 action={updateWithId}

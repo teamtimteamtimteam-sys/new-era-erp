@@ -6,12 +6,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { getTranslations } from '@/lib/i18n/server'
-import { METAL_VALUES } from '@/app/metal-prices/options'
+import { loadSubstances, loadSubstanceLabels } from '@/app/metal-prices/substanceQuery'
 
-// 纯校验(不涉及 supabase 类型):金属 ∈ 7 集合,0 ≤ pct ≤ 100。
-function metalInvalid(metal: string, contentPct: number): boolean {
+// 纯校验:物质 ∈ 字典,0 ≤ pct ≤ 100。
+// PROC-4:合法集合【由调用方现读字典传进来】,不再是一份写死的七元素清单 ——
+// 那份清单曾经是这份名单的第五个副本。外键仍然是权威,这里只把话说成人话。
+function metalInvalid(allowed: Set<string>, metal: string, contentPct: number): boolean {
     return (
-        !METAL_VALUES.includes(metal) ||
+        !allowed.has(metal) ||
         Number.isNaN(contentPct) ||
         contentPct < 0 ||
         contentPct > 100
@@ -20,9 +22,9 @@ function metalInvalid(metal: string, contentPct: number): boolean {
 
 export async function saveInboundMetal(batchId: string, metal: string, contentPct: number) {
     const t = await getTranslations()
-    if (metalInvalid(metal, contentPct)) return { error: t('metalContent.errInvalid') }
-
     const supabase = await createClient()
+    const allowed = new Set((await loadSubstances(supabase)).map((r) => r.code))
+    if (metalInvalid(allowed, metal, contentPct)) return { error: t('metalContent.errInvalid') }
 
     // 父批次必须存在且未软删除
     const { data: parent } = await supabase
@@ -59,9 +61,12 @@ export async function saveInboundMetal(batchId: string, metal: string, contentPc
 
 export async function deleteInboundMetal(batchId: string, metal: string) {
     const t = await getTranslations()
-    if (!METAL_VALUES.includes(metal)) return { error: t('metalContent.errInvalid') }
-
     const supabase = await createClient()
+    // 【删除这一侧也现读字典】—— 一种已经【停用】的物质,它的历史行仍然要删得掉。
+    // loadSubstances 只给在用的,所以这里读【全部】:D5 的两个动词,停用管的是
+    // "不能新选",不是"既有的行从此动不了"。
+    const known = new Set((await loadSubstanceLabels(supabase)).map((r) => r.code))
+    if (!known.has(metal)) return { error: t('metalContent.errInvalid') }
 
     const { data: parent } = await supabase
         .from('inbound_batches')
@@ -84,9 +89,9 @@ export async function deleteInboundMetal(batchId: string, metal: string) {
 
 export async function saveOutputMetal(batchId: string, metal: string, contentPct: number) {
     const t = await getTranslations()
-    if (metalInvalid(metal, contentPct)) return { error: t('metalContent.errInvalid') }
-
     const supabase = await createClient()
+    const allowed = new Set((await loadSubstances(supabase)).map((r) => r.code))
+    if (metalInvalid(allowed, metal, contentPct)) return { error: t('metalContent.errInvalid') }
 
     const { data: parent } = await supabase
         .from('output_batches')
@@ -120,9 +125,12 @@ export async function saveOutputMetal(batchId: string, metal: string, contentPct
 
 export async function deleteOutputMetal(batchId: string, metal: string) {
     const t = await getTranslations()
-    if (!METAL_VALUES.includes(metal)) return { error: t('metalContent.errInvalid') }
-
     const supabase = await createClient()
+    // 【删除这一侧也现读字典】—— 一种已经【停用】的物质,它的历史行仍然要删得掉。
+    // loadSubstances 只给在用的,所以这里读【全部】:D5 的两个动词,停用管的是
+    // "不能新选",不是"既有的行从此动不了"。
+    const known = new Set((await loadSubstanceLabels(supabase)).map((r) => r.code))
+    if (!known.has(metal)) return { error: t('metalContent.errInvalid') }
 
     const { data: parent } = await supabase
         .from('output_batches')

@@ -5,7 +5,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { METAL_OPTIONS } from '../options'
+import { loadSubstances, toOptions } from '../substanceQuery'
 import BulkPricesForm, { type MetalRowData } from './BulkPricesForm'
 import { requireEditPermission } from '@/app/components/moduleGuard'
 import { getMetalPriceIndices } from '../indexQuery'
@@ -43,6 +43,8 @@ export default async function BulkPricesPage({
 
     const sp = await searchParams
     const supabase = await createClient()
+    // PROC-4:物质清单从 substances 那张字典读(清单与顺序都由它定)。
+    const substanceOptions = toOptions(await loadSubstances(supabase))
     const t = await getTranslations()
 
     const raw = (sp.date ?? '').trim()
@@ -75,7 +77,7 @@ export default async function BulkPricesPage({
         .order('metal')
         .order('price_date', { ascending: false })
 
-    const rows: MetalRowData[] = METAL_OPTIONS.map((opt) => {
+    const rows: MetalRowData[] = substanceOptions.map((opt) => {
         const forMetal = (history ?? []).filter((h) => h.metal === opt.value)
         const exact = forMetal.find((h) => h.price_date === priceDate)
         // 参照价:排除当日那条(否则"上次"就是自己),取更早的最近一条
@@ -99,6 +101,7 @@ export default async function BulkPricesPage({
             <h1 className="text-2xl font-bold mb-4">{t('metalPrices.bulk.title')}</h1>
 
             <BulkPricesForm
+                substanceOptions={substanceOptions}
                 priceDate={priceDate}
                 priceIndex={priceIndex}
                 indices={indices}

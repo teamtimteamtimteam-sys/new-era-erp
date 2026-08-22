@@ -16,7 +16,7 @@
 -- 1. Table
 CREATE TABLE public.metal_prices (
     id                  uuid    PRIMARY KEY DEFAULT gen_random_uuid(),
-    metal               text    NOT NULL CHECK (metal IN ('ni','co','li','mn','cu','al','fe')),
+    metal               text    NOT NULL REFERENCES public.substances (code),
     price_usd_per_tonne numeric NOT NULL CHECK (price_usd_per_tonne > 0),
     price_date          date    NOT NULL,
     -- LME-1a:这个数【是哪一种来源】。四取一,**没有默认值** ——

@@ -18,5 +18,6 @@ export type MetalContentRow = {
     source_href?: string | null
 }
 
-// 金属清单 / 校验集合 / 反查:复用 metal-prices 模块的定义,不在这里重复金属列表。
-export { METAL_OPTIONS, METAL_VALUES, metalLabelKey } from '@/app/metal-prices/options'
+// PROC-4:这里曾经转出 METAL_OPTIONS / METAL_VALUES / metalLabelKey ——
+// 那份清单没了,值与名字都来自 substances 那张字典,由页面读好按 props 传进面板。
+export type { MetalOption } from '@/app/metal-prices/options'

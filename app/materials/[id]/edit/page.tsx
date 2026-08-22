@@ -13,6 +13,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { canEnterModule } from '@/lib/moduleAccess'
 import { mustRows } from '@/lib/db-helpers'
 import { MOD } from '@/lib/modules'
+import { loadSubstances, toOptions } from '@/app/metal-prices/substanceQuery'
 
 export default async function EditMaterialPage({
     params,
@@ -26,6 +27,8 @@ export default async function EditMaterialPage({
 
     const { id } = await params
     const supabase = await createClient()
+    // PROC-4:物质清单从 substances 那张字典读(清单与顺序都由它定)。
+    const substanceOptions = toOptions(await loadSubstances(supabase))
     const t = await getTranslations()
     const locale = await getLocale()
     // MAT-1:分类选项从表里现读
@@ -99,6 +102,7 @@ export default async function EditMaterialPage({
             <EditMaterialForm material={material} wasteClasses={wasteClasses} kinds={kinds}
                 forms={axes.forms} sources={axes.sources} sizeFormats={axes.sizeFormats} locale={locale} />
             <RequiredMetalsPanel
+                substanceOptions={substanceOptions}
                 materialId={material.id}
                 initial={requiredMetals}
                 canEdit={canEditMaterials}

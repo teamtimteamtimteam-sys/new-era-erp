@@ -5,9 +5,14 @@
 // 改动只写进 URL searchParams,真正的过滤在服务端 page.tsx 完成。
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
-import { METAL_OPTIONS } from './options'
+import type { MetalOption } from './options'
 
-export default function MetalPricesToolbar() {
+export default function MetalPricesToolbar({
+    substanceOptions,
+}: {
+    // PROC-4:物质清单由页面从字典读好传进来(清单与顺序都由它定)。
+    substanceOptions: MetalOption[]
+}) {
     const t = useTranslations()
     const router = useRouter()
     const pathname = usePathname()
@@ -39,7 +44,7 @@ export default function MetalPricesToolbar() {
                 className="rounded border border-gray-300 bg-white px-3 py-2"
             >
                 <option value="">{t('metalPrices.allMetals')}</option>
-                {METAL_OPTIONS.map((o) => (
+                {substanceOptions.filter((s) => s.isActive).map((o) => (
                     <option key={o.value} value={o.value}>
                         {t(o.labelKey)}
                     </option>

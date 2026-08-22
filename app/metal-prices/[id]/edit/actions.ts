@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { METAL_VALUES } from '../../options'
+import { loadSubstances } from '../../substanceQuery'
 import { ACK_FIELD, ackSignature, outsideOnly, type AnomalyVerdict } from '../../anomaly'
 import { parseIndexField } from '../../indexOptions'
 
@@ -31,7 +31,11 @@ export async function updateMetalPrice(
 
     // 2. 校验(与 create 一致)
     const fieldErrors: Record<string, string> = {}
-    if (!METAL_VALUES.includes(metal)) fieldErrors.metal = t('metalPrices.form.errMetal')
+// PROC-4:合法值现读 substances 那张字典(外键才是权威;这里只把话说成人话)。
+    const allowedMetals = new Set(
+        (await loadSubstances(await createClient())).map((r) => r.code)
+    )
+    if (!allowedMetals.has(metal)) fieldErrors.metal = t('metalPrices.form.errMetal')
 
     let price: number | null = null
     if (!price_raw) {

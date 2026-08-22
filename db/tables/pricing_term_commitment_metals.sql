@@ -22,7 +22,7 @@
 
 CREATE TABLE public.pricing_term_commitment_metals (
     commitment_id uuid NOT NULL REFERENCES public.pricing_term_commitments (id),
-    metal         text NOT NULL CHECK (metal IN ('ni','co','li','mn','cu','al','fe')),
+    metal         text NOT NULL REFERENCES public.substances (code),
     payable_pct   numeric NOT NULL CHECK (payable_pct >= 0 AND payable_pct <= 100),  -- RESTRICTED
     PRIMARY KEY (commitment_id, metal)
 );

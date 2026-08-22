@@ -11,7 +11,7 @@
 
 CREATE TABLE public.assay_result_metals (
     assay_result_id uuid NOT NULL REFERENCES public.assay_results (id) ON DELETE CASCADE,
-    metal           text NOT NULL CHECK (metal IN ('ni','co','li','mn','cu','al','fe')),
+    metal           text NOT NULL REFERENCES public.substances (code),
     content_pct     numeric NOT NULL CHECK (content_pct >= 0 AND content_pct <= 100),
     created_at      timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (assay_result_id, metal)

@@ -32,7 +32,7 @@
 
 CREATE TABLE public.material_required_metals (
     material_id uuid NOT NULL REFERENCES public.materials (id) ON DELETE CASCADE,
-    metal       text NOT NULL CHECK (metal IN ('ni','co','li','mn','cu','al','fe')),
+    metal       text NOT NULL REFERENCES public.substances (code),
     created_at  timestamptz NOT NULL DEFAULT now(),
     created_by  uuid DEFAULT auth.uid(),
     PRIMARY KEY (material_id, metal)

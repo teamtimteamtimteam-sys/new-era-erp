@@ -6,9 +6,9 @@ import { mustRows } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../Subnav'
 import CalculatorForm, { type FormulaOption } from './CalculatorForm'
-import { METAL_OPTIONS } from '../../metal-prices/options'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { loadSubstances, toOptions } from '@/app/metal-prices/substanceQuery'
 
 function todayIso(): string {
     return new Date().toISOString().slice(0, 10)
@@ -26,6 +26,8 @@ export default async function CalculatorPage({
 
     const sp = await searchParams
     const supabase = await createClient()
+    // PROC-4:物质清单从 substances 那张字典读(清单与顺序都由它定)。
+    const substanceOptions = toOptions(await loadSubstances(supabase))
     const t = await getTranslations()
 
     const res = await supabase
@@ -52,7 +54,7 @@ export default async function CalculatorPage({
     // 预填:?formula= 只在确实存在于清单里时才采纳;每个金属一个同名查询参数
     const wanted = (sp.formula ?? '').trim()
     const assay: Record<string, string> = {}
-    for (const opt of METAL_OPTIONS) {
+    for (const opt of substanceOptions) {
         const v = (sp[opt.value] ?? '').trim()
         if (v) assay[opt.value] = v
     }
@@ -69,7 +71,8 @@ export default async function CalculatorPage({
         <div className="p-8 max-w-5xl">
             <h1 className="text-2xl font-bold mb-4">{t('pricing.calcTitle')}</h1>
             <Subnav />
-            <CalculatorForm formulas={formulas} prefill={prefill} />
+            <CalculatorForm
+                substanceOptions={substanceOptions} formulas={formulas} prefill={prefill} />
         </div>
     )
 }
