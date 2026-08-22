@@ -1,34 +1,25 @@
--- db/tables/processing_inputs.sql
--- 加工投料腿:一行 = 某次加工从某个进料批次消耗了多少。remaining_qty 的扣减由
--- commit_processing_run() 完成(本表无触发器)。ON DELETE RESTRICT:加工只能整体
--- 冲销,不允许顺手硬删投料史。
+-- PROC-3:什么东西可以投料 —— 把 PROC-1/PROC-2 记下来的事实变成一条前置条件
 --
--- NOTE: 本表早于"迁移 + 镜像"约定(建库初期直接在 Supabase SQL Editor 建的),
--- 一直没有镜像文件;2026-07-31 镜像漂移审计后【按线上目录重建】了本文件。
--- First-run script (plain CREATEs). Run in the Supabase SQL Editor.
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【这一刀【收窄】行为,不去掉任何东西】
+--
+-- PROC-1 记下了"这一种物料可不可以投料",PROC-2 记下了"这一批货到货时是什么
+-- 状态",PROC-2c 让门口就能记。**三刀都只记事实,一个人都没拦。**
+-- 本刀读它们。一批昨天投得进去的货,今天可能被拒 —— 所以拒绝必须是一句人话,
+-- 而句子与守卫在【同一次提交】里落地(AGENTS.md:破窗那一节)。
+--
+-- 【加在 guard_processing_input 上,因为那个守卫本来就是"什么可以当投料"】
+-- 它今天的拒绝顺序是:
+--   ① PROCESSING_INPUT_DIRECT_INSERT  裸插(不走 commit,库存流水就对不上)
+--   ② PROCESSING_INPUT_SELF_CONSUME   一张单吃自己的产出
+--   ③ MATERIAL_NOT_PROCESSABLE        PROC-1:这一【种】物料不许投料
+-- 本刀接在 ③ 之后,问的是下一个问题:这一【批】货现在是什么状态。
+-- 顺序是刻意的:种类答不上来就不必问批次,而"这种料根本不能加工"是一个
+-- 比"这批货没放电"更靠前、也更便宜的答复。
+-- ════════════════════════════════════════════════════════════════════════════
 
-CREATE TABLE public.processing_inputs (
-    id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    run_id            uuid NOT NULL REFERENCES public.processing_runs (id) ON DELETE RESTRICT,
-    inbound_batch_id  uuid REFERENCES public.inbound_batches (id),
-    quantity_consumed numeric NOT NULL,
-    created_at        timestamptz NOT NULL DEFAULT now(),
-    -- ── FIN-25 追加(ALTER 加的列排在末尾)──────────────────────────────────
-    -- 再加工投料:消耗的上游产出批。与 inbound_batch_id 恰一非空(XOR)。
-    -- 估值用上游 processing_outputs.unit_cost_base,解除 1220 而非 1200。
-    output_batch_id   uuid REFERENCES public.output_batches (id),
-    CONSTRAINT processing_inputs_one_parent
-        CHECK (num_nonnulls(inbound_batch_id, output_batch_id) = 1)
-);
+BEGIN;
 
-CREATE INDEX idx_processing_inputs_output ON public.processing_inputs (output_batch_id);
-
-COMMENT ON COLUMN public.processing_inputs.output_batch_id IS
-    '再加工投料:消耗的上游产出批(FIN-25)。与 inbound_batch_id 恰一非空。估值用上游 processing_outputs.unit_cost_base,解除的是 1220 而非 1200。';
-
--- 自吞守卫(FIN-25):一张单不能消耗自己的产出;且【两种边】的直插一律拒 ——
--- 裸 INSERT 不扣 remaining_qty,账实即分道(进料边的这个洞早已存在)。
--- 【别因为"只有再加工用它"而删】:它守的是两侧。
 CREATE OR REPLACE FUNCTION public.guard_processing_input()
 RETURNS trigger LANGUAGE plpgsql AS $fn$
 DECLARE
@@ -184,27 +175,32 @@ END;
 $fn$;
 REVOKE EXECUTE ON FUNCTION public.guard_processing_input() FROM PUBLIC, anon;
 
-CREATE TRIGGER trg_processing_inputs_guard
-    BEFORE INSERT ON public.processing_inputs
-    FOR EACH ROW EXECUTE FUNCTION public.guard_processing_input();
+-- ════════════════════════════════════════════════════════════════════════════
+-- D4:把【两个动词】写在字典自己身上,而不是只写在守卫里
+-- ════════════════════════════════════════════════════════════════════════════
+COMMENT ON COLUMN public.inbound_safety_states.may_be_fed IS
+'PROC-2 记的规则,PROC-3 起【真的拦人】:guard_processing_input 读它。
 
-ALTER TABLE public.processing_inputs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "processing_inputs select by permission"
-    ON public.processing_inputs
-    AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.processing.view'::text));
+【合取】一批货身上的每一条安全状态都必须 may_be_fed = true 才投得进去。
+一批已放电的货【同时也进过水】,那它就是进过水的 —— 放电不能把水抵消掉。
 
-CREATE POLICY "processing_inputs insert by permission"
-    ON public.processing_inputs
-    AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.processing.edit'::text));
+【两个动词,谁也替不了谁】
+  * 要撤回一条【规则】(我们把规则定错了,想全局收回)—— 改 **may_be_fed**。
+    一行字典,立刻生效,而且【事实还留着】:那批货进过水这件事没有被抹掉。
+  * 要让一个值【不再被新选】—— 改 **is_active**。它管的是选单,不管已记的事实。
+【守卫【不读】is_active】所以停用一个值【不会】让已经贴着它的货变成可投料。
+这是刻意的:停用一行字典是一个看起来很轻的动作,而它若能解锁一批货,
+那就成了一条无痕迹、且一次性对所有批次生效的释放路径。';
 
-CREATE POLICY "processing_inputs update by permission"
-    ON public.processing_inputs
-    AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.processing.edit'::text)) WITH CHECK (has_permission('module.processing.edit'::text));
+COMMENT ON COLUMN public.inbound_chemistry_certainties.may_be_fed IS
+'PROC-2 记的规则,PROC-3 起【真的拦人】:guard_processing_input 读它。
 
-CREATE POLICY "processing_inputs delete by permission"
-    ON public.processing_inputs
-    AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.processing.edit'::text));
+【与安全状态那一条【故意】不对称:确定度【没记】是放行的】
+安全状态防起火,所以"没人看过"与"不安全"同罪;确定度防的是数字算错,
+而那个数字由后面的化验回答,不靠停线回答。理由完整写在 guard_processing_input
+里那一段注释上 —— 看见不一致想抹平之前先读它,抹平的方向选错会停产线。
+
+【两个动词】与 inbound_safety_states.may_be_fed 同一条:may_be_fed 撤规则,
+is_active 停选单,守卫只读前者。';
+
+COMMIT;

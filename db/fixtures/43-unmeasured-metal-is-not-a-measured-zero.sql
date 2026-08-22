@@ -57,6 +57,21 @@ BEGIN
     -- ══════════ A. 投入【测出来是零】而产出有量 → 0(不是"未测"),且是真异常 ═══
     -- 【产出含量是提交【之后】才录的】—— 函数自己建产出批,人再回头补含量。
     -- 这正是元素守恒当不成提交时硬闸的第二条结构性理由,fixture 照着真实次序走。
+    -- PROC-3:这一支要投料,所以它的电池料批次得带一条【可投料】的安全状态。
+    -- 【为什么是一条带 JOIN 的 SELECT,而不是逐个批次写死】本支里哪些批次【吃】
+    -- 状态轴,由 material_kinds 回答 —— 实测 ewaste 可加工却【没有】状态轴,
+    -- 所以"可加工"并不蕴含"有状态轴"。而没有状态轴的批次插安全状态会被
+    -- PROC-2c 的适用性守卫按名拒,所以这个过滤不是优化,是正确性。
+    -- 【它出现在每一次投料之前,而不是只在开头一次】批次是各臂【边跑边造】的,
+    -- 开头那一次覆盖不到后面才出生的批次。NOT EXISTS 让它重复执行也不撞主键。
+    INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
+    SELECT ib.id, 'discharged_verified'
+      FROM inbound_batches ib
+      JOIN materials m       ON m.id   = ib.material_id
+      JOIN material_kinds mk ON mk.code = m.kind_code
+     WHERE mk.has_condition_axes
+       AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
+                        WHERE s.inbound_batch_id = ib.id);
     run_zero := commit_processing_run(CURRENT_DATE, 'fixture 43 zero-input', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', ib_zero, 'quantity_consumed', 100)),
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 50)), 'weight');
@@ -80,6 +95,15 @@ BEGIN
     END IF;
 
     -- ══════════ B. 投入【根本没测】→ NULL,且【不】报守恒 ═══════════════════════
+    -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
+    INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
+    SELECT ib.id, 'discharged_verified'
+      FROM inbound_batches ib
+      JOIN materials m       ON m.id   = ib.material_id
+      JOIN material_kinds mk ON mk.code = m.kind_code
+     WHERE mk.has_condition_axes
+       AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
+                        WHERE s.inbound_batch_id = ib.id);
     run_none := commit_processing_run(CURRENT_DATE, 'fixture 43 unassayed input', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', ib_none, 'quantity_consumed', 100)),
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 50)), 'weight');
@@ -101,6 +125,15 @@ BEGIN
 
     -- ══════════ C. 两侧都测过、产出 > 投入 → 守恒提示亮 ═══════════════════════
     -- 投入 100 kg × 20% = 20 kg co;产出 50 kg × 60% = 30 kg co → 多出来 10 kg
+    -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
+    INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
+    SELECT ib.id, 'discharged_verified'
+      FROM inbound_batches ib
+      JOIN materials m       ON m.id   = ib.material_id
+      JOIN material_kinds mk ON mk.code = m.kind_code
+     WHERE mk.has_condition_axes
+       AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
+                        WHERE s.inbound_batch_id = ib.id);
     run_cons := commit_processing_run(CURRENT_DATE, 'fixture 43 conservation', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', ib_rich, 'quantity_consumed', 100)),
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 50)), 'weight');
@@ -152,6 +185,15 @@ BEGIN
         VALUES ('ZZFIX43-IB-E', v_mat, v_sup, 100, 100, CURRENT_DATE) RETURNING id INTO ib_rich;
         INSERT INTO inbound_batch_metals (inbound_batch_id, metal, content_pct, content_source) VALUES (ib_rich, 'ni', 30, 'manual');
         -- 产出批照常建出来,但【一个金属都不录】—— 线上 13 个产出批只有 4 个录了
+        -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
+        INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
+        SELECT ib.id, 'discharged_verified'
+          FROM inbound_batches ib
+          JOIN materials m       ON m.id   = ib.material_id
+          JOIN material_kinds mk ON mk.code = m.kind_code
+         WHERE mk.has_condition_axes
+           AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
+                            WHERE s.inbound_batch_id = ib.id);
         run_e := commit_processing_run(CURRENT_DATE, 'fixture 43 output unmeasured', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', ib_rich, 'quantity_consumed', 100)),
             jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 40)), 'weight');

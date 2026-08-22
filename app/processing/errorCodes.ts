@@ -1,5 +1,6 @@
 import { getTranslations } from '@/lib/i18n/server'
 import { STATE_OPTIONS } from '@/app/inbound/options'
+import { localizeMaterialError } from '@/app/materials/materialErrorCodes'
 
 // commit_processing_run / rollback_processing_run 这两个 DB 函数 RAISE 出来的 13 个错误码。
 // 不在此集合内的,是真正的(未编码的)DB/约束错误,原样返回。
@@ -27,6 +28,14 @@ const PROCESSING_ERROR_CODES = new Set([
     'WO_AMEND_REASON_REQUIRED', 'WO_AMEND_NO_CHANGES',
     'WO_LINE_NOT_FOUND', 'WO_LINE_BELOW_CONSUMED', 'WO_EXPECTED_NOT_FOUND',
 
+    // ── PROC-3:什么东西可以投料。guard_processing_input 抛的三条 ──────────
+    // 【三条而不是一条,因为下一步动作不同】(D1)
+    //   没记过 → 去把它记下来 · 记了是坏的 → 去处理那批货 · 确定度坏 → 等化验。
+    // 一条共用的码会把这个区别藏起来,而屏幕正是这个区别唯一到得了人的地方。
+    'INPUT_SAFETY_STATE_NOT_RECORDED',
+    'INPUT_SAFETY_STATE_NOT_FEEDABLE',
+    'INPUT_CHEMISTRY_NOT_FEEDABLE',
+
     'ROLLBACK_REASON_REQUIRED',   // AUDEL-1b
     'DELETE_REASON_REQUIRED',   // AUDEL-1b
     'SOFT_DELETE_NO_DIRECT_UPDATE',   // AUDEL-1b
@@ -41,6 +50,16 @@ export async function localizeProcessingError(message: string): Promise<string> 
     const match = raw.match(CODE_RE)
 
     if (!match || !PROCESSING_ERROR_CODES.has(match[1])) {
+        // ── PROC-3:先问一句物料那一支,再判定"这是一条没编码的错" ──────────
+        // **guard_processing_input 抛的不全是加工模块的码。** PROC-1 的
+        // MATERIAL_NOT_PROCESSABLE 就是它抛的,句子写在 materials.errors.* 里,
+        // 而这里从来没问过它 —— 于是【从 PROC-1 落地那天起,加工屏幕上那条拒绝
+        // 一直是一串机器码】。实测确认,不是推测。
+        // 【为什么是链而不是把码抄过来】抄一份就是第二处要跟着字典长的清单,
+        // 而 materials.errors.* 已经收着五条轴的全部拒绝(外键、主键、适用性)。
+        // localizeMaterialError 认不出时原样返回,所以这一链是安全的。
+        const viaMaterial = await localizeMaterialError(raw)
+        if (viaMaterial !== raw) return viaMaterial
         return raw // genuine non-coded DB error → surface verbatim
     }
 

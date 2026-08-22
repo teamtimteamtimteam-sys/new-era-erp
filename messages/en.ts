@@ -1586,6 +1586,9 @@ const en = {
             confirmDelete: 'Confirm Delete',
         },
         errors: {
+            INPUT_SAFETY_STATE_NOT_RECORDED: 'Batch {0} has NO recorded safety state. That means NOBODY HAS RECORDED ONE — it does not mean the load is safe. Record it at Inbound → open that batch → "Condition on arrival", then commit the run again.',
+            INPUT_SAFETY_STATE_NOT_FEEDABLE: 'Batch {0} carries safety states that may not be fed: {2}. Every one of them has to be cleared — a load that is discharged AND water-exposed is still water-exposed, and discharge does not cancel water. Change them at Inbound → open that batch → "Condition on arrival".',
+            INPUT_CHEMISTRY_NOT_FEEDABLE: 'Batch {0} has its chemistry certainty recorded as "{2}", which may not be fed. Either change it at Inbound → open that batch → "Condition on arrival", or wait for the assay that settles what this load actually is.',
             DELETE_REASON_REQUIRED: 'A reason is required to delete {1} — the rollback soft-deletes it. (Table: {0})',
             SOFT_DELETE_NO_DIRECT_UPDATE: 'That record can only be deleted through the deletion function, which records who and why. {1} ({0}) was not.',
             ROLLBACK_REASON_REQUIRED: 'A reason is required to roll back processing run {0} — it soft-deletes the output batches and reverses the ledger.',

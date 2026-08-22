@@ -8,12 +8,20 @@
 --   F4 has_condition_axes 驱动"要不要说出形态与来源" —— 【两个方向】。
 --   F5 implies_dismantling 驱动"要不要说出规格尺寸" —— 【两个方向,而且两头都拦】:
 --      该说没说要拒,不适用却说了也要拒。
---   F6 **另外两条规则列今天【没有闸】,而这一条必须被断言,不能靠人记得。**
+--   F6 **另外两条规则列现在【真的拦人】** —— PROC-3 建了那道闸,这一臂被【翻过来】了。
 --
--- 【为什么 F6 是一条断言而不是一句注释】may_be_fed(安全状态与化学体系确定度各一)
--- 记的是事实,而读它的那道闸在 PROC-3(D4 明写)。**一个没有被断言的"还没建"
--- 与一个"建了但坏了"在这里长得一模一样** —— 所以正面钉住:带着不可投料状态的
--- 一批货,今天【投得进去】。哪天 PROC-3 落地,这一臂会红,而那正是它该红的时候。
+-- 【F6 的来历,留在这里是因为它本身就是一条方法】
+-- 写这一臂的时候闸【还不存在】。当时它断言的是一个"还没建":带着不可投料状态的
+-- 一批货【投得进去】。理由是 **一个没有被断言的"还没建",与一个"建了但坏了",
+-- 在这里长得一模一样** —— 而且那一臂在文件里写明了 PROC-3 落地那天要
+-- 【把它翻过来,不要把它删掉】。
+--
+-- PROC-3(2026-08-22)落地,于是照那句话翻了过来:现在它断言那一炉【被按名拒】。
+-- **一条被删掉的臂与一条从来没写过的臂长得一模一样**,而这份文件现在同时留着
+-- 两件事:闸保证了什么,以及在它存在之前这里断言过什么。
+-- 【F6 现在保证的】has_condition_axes 的种类,带着 may_be_fed = false 的安全状态时,
+-- guard_processing_input 按 INPUT_SAFETY_STATE_NOT_FEEDABLE 拒,并把【那一条状态的
+-- 名字】写进消息里(而不是只说"不可投料")。
 BEGIN;
 DO $$
 DECLARE
@@ -214,27 +222,37 @@ BEGIN
     END IF;
     DELETE FROM materials WHERE code = 'ZZ113-BM';
 
-    -- ══════════ F6 另外两条规则列【还没有闸】—— 正面钉住 ════════════════════
-    -- 【这一臂断言的是一个"还没建"】它会在 PROC-3 落地那天变红,而那正是它该红的时候。
+    -- ══════════ F6 那两条规则列【现在真的拦人】—— 这一臂是被翻过来的 ══════════
+    -- 【它原本断言的是"还没有闸"】原文与它留给下一个人的那句话都在文件抬头,
+    -- 照抄在这里没有意义 —— 但【它是被翻过来而不是被删掉的】这件事有意义,
+    -- 所以写在这里,而不是只写在提交信息里(提交信息改不了,文件读得到)。
     SELECT may_be_fed INTO v_b FROM inbound_safety_states WHERE code = 'charged_not_discharged';
     IF v_b IS NOT FALSE THEN
         RAISE EXCEPTION 'FIXTURE 113F6 失败:进入 F6 —— 带电未放电的引导默认应当是"不许投料"(may_be_fed = false),实得 %', v_b;
     END IF;
-    -- 给那一批料贴上"带电未放电",然后【照样投】—— 今天投得进去。
+    -- 给那一批料贴上"带电未放电",然后投 —— **现在应当被按名拒**。
     DELETE FROM inbound_batch_safety_states WHERE inbound_batch_id = v_ib;
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
     VALUES (v_ib, 'charged_not_discharged');
     UPDATE inbound_batches SET chemistry_certainty_code = 'unknown_pending' WHERE id = v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, 'SGD', NULL, 'f113 price');
-    v_run := commit_processing_run(v_process, 'f113 gate does not exist yet', 0,
-        jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight');
-    IF v_run IS NULL THEN
-        RAISE EXCEPTION 'FIXTURE 113F6 失败:进入 F6 —— 本刀【不建闸】(D4),所以今天这一炉应当照样跑得起来';
+    v_denied := false; v_msg := NULL;
+    BEGIN
+        v_run := commit_processing_run(v_process, 'f113 gate exists now', 0,
+            jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
+            jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight');
+    EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
+    IF NOT v_denied OR v_msg NOT LIKE '%INPUT_SAFETY_STATE_NOT_FEEDABLE%' THEN
+        RAISE EXCEPTION 'FIXTURE 113F6 失败:进入 F6 —— PROC-3 之后,带着「带电未放电」的一批货必须按 INPUT_SAFETY_STATE_NOT_FEEDABLE 拒,实得 denied=%、msg=「%」。**这一臂是从"还没有闸"翻过来的**(见文件抬头),它绿的意思是那道闸真的在读 may_be_fed', v_denied, COALESCE(v_msg,'(通过了)');
     END IF;
-    -- 【这一句是给下一个人的】
-    -- PROC-3 落地之后这一臂会红。**那时不要把它删掉,把它翻过来** ——
-    -- 断言那一炉【被按名拒了】(带电未放电 + 化学体系待识别,两个理由都成立)。
-    -- 一条被删掉的臂与一条从来没写过的臂长得一模一样。
+    -- 【消息里要有那一条状态的【名字】,不是只说"不可投料"】
+    -- 只报一个码,人得自己去翻是哪一条;而这一批身上可以同时挂着好几条。
+    IF v_msg NOT LIKE '%带电未放电%' THEN
+        RAISE EXCEPTION 'FIXTURE 113F6 失败:进入 F6 —— 拒绝消息里要点名那一条安全状态(「带电未放电」),否则人得自己去翻是哪一条。实得「%」', v_msg;
+    END IF;
+    -- 【这一批【同时】还带着一个不可投料的确定度(待识别),而它没有被报出来】
+    -- 那不是漏报:安全状态那一条【先】拒,而两条拒绝是分开的两个码(D1)——
+    -- 它们的下一步动作不同,所以不合并。清掉安全状态之后才轮得到确定度那一条,
+    -- fixture 115 的 F2 正面走那条路。
 END $$;
 ROLLBACK;

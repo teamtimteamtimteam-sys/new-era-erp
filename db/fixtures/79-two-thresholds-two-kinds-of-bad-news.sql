@@ -68,6 +68,21 @@ BEGIN
         NULL, d, 'f79 open');
     woOpen := (v_res->>'work_order_id')::uuid;
     PERFORM release_work_order(woOpen);
+    -- PROC-3:这一支要投料,所以它的电池料批次得带一条【可投料】的安全状态。
+    -- 【为什么是一条带 JOIN 的 SELECT,而不是逐个批次写死】本支里哪些批次【吃】
+    -- 状态轴,由 material_kinds 回答 —— 实测 ewaste 可加工却【没有】状态轴,
+    -- 所以"可加工"并不蕴含"有状态轴"。而没有状态轴的批次插安全状态会被
+    -- PROC-2c 的适用性守卫按名拒,所以这个过滤不是优化,是正确性。
+    -- 【它出现在每一次投料之前,而不是只在开头一次】批次是各臂【边跑边造】的,
+    -- 开头那一次覆盖不到后面才出生的批次。NOT EXISTS 让它重复执行也不撞主键。
+    INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
+    SELECT ib.id, 'discharged_verified'
+      FROM inbound_batches ib
+      JOIN materials m       ON m.id   = ib.material_id
+      JOIN material_kinds mk ON mk.code = m.kind_code
+     WHERE mk.has_condition_axes
+       AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
+                        WHERE s.inbound_batch_id = ib.id);
     PERFORM commit_processing_run(d, 'f79 exactly at the line', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 110)),
         jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight', woOpen);
@@ -78,6 +93,15 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 79A 失败:吃到【恰好等于】阈值(110 = 100 × 1.10)不该报,实得 % 行 —— 判据是 > 不是 >=', v_n;
     END IF;
 
+    -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
+    INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
+    SELECT ib.id, 'discharged_verified'
+      FROM inbound_batches ib
+      JOIN materials m       ON m.id   = ib.material_id
+      JOIN material_kinds mk ON mk.code = m.kind_code
+     WHERE mk.has_condition_axes
+       AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
+                        WHERE s.inbound_batch_id = ib.id);
     PERFORM commit_processing_run(d, 'f79 one over the line', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 1)),
         jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 1)), 'weight', woOpen);
@@ -110,6 +134,15 @@ BEGIN
     woClosed := (v_res->>'work_order_id')::uuid;
     PERFORM release_work_order(woClosed);
     -- 吃 100(不超耗),产出 80(短交 20% > 10%)
+    -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
+    INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
+    SELECT ib.id, 'discharged_verified'
+      FROM inbound_batches ib
+      JOIN materials m       ON m.id   = ib.material_id
+      JOIN material_kinds mk ON mk.code = m.kind_code
+     WHERE mk.has_condition_axes
+       AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
+                        WHERE s.inbound_batch_id = ib.id);
     PERFORM commit_processing_run(d, 'f79 shortfall', 20,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 100)),
         jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 80)), 'weight', woClosed);
@@ -135,6 +168,15 @@ BEGIN
         NULL, d, 'f79 no expectation');
     woNoExp := (v_res->>'work_order_id')::uuid;
     PERFORM release_work_order(woNoExp);
+    -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
+    INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
+    SELECT ib.id, 'discharged_verified'
+      FROM inbound_batches ib
+      JOIN materials m       ON m.id   = ib.material_id
+      JOIN material_kinds mk ON mk.code = m.kind_code
+     WHERE mk.has_condition_axes
+       AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
+                        WHERE s.inbound_batch_id = ib.id);
     PERFORM commit_processing_run(d, 'f79 noexp', 9,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 10)),
         jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 1)), 'weight', woNoExp);
@@ -152,6 +194,15 @@ BEGIN
         NULL, d, 'f79 reversed');
     woRev := (v_res->>'work_order_id')::uuid;
     PERFORM release_work_order(woRev);
+    -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
+    INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
+    SELECT ib.id, 'discharged_verified'
+      FROM inbound_batches ib
+      JOIN materials m       ON m.id   = ib.material_id
+      JOIN material_kinds mk ON mk.code = m.kind_code
+     WHERE mk.has_condition_axes
+       AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
+                        WHERE s.inbound_batch_id = ib.id);
     v_run := commit_processing_run(d, 'f79 to be reversed', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 200)),
         jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 180)), 'weight', woRev);

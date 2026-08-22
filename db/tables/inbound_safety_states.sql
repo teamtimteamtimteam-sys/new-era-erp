@@ -47,10 +47,18 @@ RUNTIME CONFIG,加一种是加一行。
 同一条:Tim 在界面上改一行,线上就与本文件不同,那是系统在正常工作。';
 
 COMMENT ON COLUMN public.inbound_safety_states.may_be_fed IS
-'PROC-2:带着这个状态的料能不能被投料。**这一列只是【记录事实】,它自己不拦任何人** ——
-读它的那道闸是 PROC-3(见 D4:那道前置条件加在 commit_processing_run 上,
-它已经有三条同形的生命周期前置:WO_NOT_RELEASED / EQUIPMENT_NOT_ACQUIRED /
-EQUIPMENT_DISPOSED)。**本刀只记事实,不建闸** —— 它的缺席是排期,不是遗漏。';
+'PROC-2 记的规则,PROC-3 起【真的拦人】:guard_processing_input 读它。
+
+【合取】一批货身上的每一条安全状态都必须 may_be_fed = true 才投得进去。
+一批已放电的货【同时也进过水】,那它就是进过水的 —— 放电不能把水抵消掉。
+
+【两个动词,谁也替不了谁】
+  * 要撤回一条【规则】(我们把规则定错了,想全局收回)—— 改 **may_be_fed**。
+    一行字典,立刻生效,而且【事实还留着】:那批货进过水这件事没有被抹掉。
+  * 要让一个值【不再被新选】—— 改 **is_active**。它管的是选单,不管已记的事实。
+【守卫【不读】is_active】所以停用一个值【不会】让已经贴着它的货变成可投料。
+这是刻意的:停用一行字典是一个看起来很轻的动作,而它若能解锁一批货,
+那就成了一条无痕迹、且一次性对所有批次生效的释放路径。';
 
 INSERT INTO public.inbound_safety_states (code, name_en, name_zh, may_be_fed, sort_order, notes) VALUES
     ('charged_not_discharged', 'Charged, not yet discharged', '带电未放电', false, 1,

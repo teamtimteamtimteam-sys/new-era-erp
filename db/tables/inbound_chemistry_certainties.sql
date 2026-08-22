@@ -65,3 +65,14 @@ CREATE POLICY "inbound_chemistry_certainties update by permission"
     ON public.inbound_chemistry_certainties AS PERMISSIVE FOR UPDATE TO authenticated
     USING (has_permission('module.materials.edit'::text))
     WITH CHECK (has_permission('module.materials.edit'::text));
+
+COMMENT ON COLUMN public.inbound_chemistry_certainties.may_be_fed IS
+'PROC-2 记的规则,PROC-3 起【真的拦人】:guard_processing_input 读它。
+
+【与安全状态那一条【故意】不对称:确定度【没记】是放行的】
+安全状态防起火,所以"没人看过"与"不安全"同罪;确定度防的是数字算错,
+而那个数字由后面的化验回答,不靠停线回答。理由完整写在 guard_processing_input
+里那一段注释上 —— 看见不一致想抹平之前先读它,抹平的方向选错会停产线。
+
+【两个动词】与 inbound_safety_states.may_be_fed 同一条:may_be_fed 撤规则,
+is_active 停选单,守卫只读前者。';

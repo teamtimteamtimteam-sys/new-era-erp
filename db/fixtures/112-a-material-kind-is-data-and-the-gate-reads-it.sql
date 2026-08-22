@@ -108,6 +108,21 @@ BEGIN
     PERFORM reprice_inbound_batch(v_ib, 1, 'SGD', NULL, 'f112 price');
     v_denied := false; v_msg := NULL;
     BEGIN
+        -- PROC-3:这一支要投料,所以它的电池料批次得带一条【可投料】的安全状态。
+        -- 【为什么是一条带 JOIN 的 SELECT,而不是逐个批次写死】本支里哪些批次【吃】
+        -- 状态轴,由 material_kinds 回答 —— 实测 ewaste 可加工却【没有】状态轴,
+        -- 所以"可加工"并不蕴含"有状态轴"。而没有状态轴的批次插安全状态会被
+        -- PROC-2c 的适用性守卫按名拒,所以这个过滤不是优化,是正确性。
+        -- 【它出现在每一次投料之前,而不是只在开头一次】批次是各臂【边跑边造】的,
+        -- 开头那一次覆盖不到后面才出生的批次。NOT EXISTS 让它重复执行也不撞主键。
+        INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
+        SELECT ib.id, 'discharged_verified'
+          FROM inbound_batches ib
+          JOIN materials m       ON m.id   = ib.material_id
+          JOIN material_kinds mk ON mk.code = m.kind_code
+         WHERE mk.has_condition_axes
+           AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
+                            WHERE s.inbound_batch_id = ib.id);
         v_run := commit_processing_run(v_process, 'f112 must refuse', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
             jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight');
@@ -120,6 +135,15 @@ BEGIN
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
     VALUES ('ZZ112-IBOK', v_mat, v_sup, 100, 100, 'kg', v_process - 1) RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, 'SGD', NULL, 'f112 price');
+    -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
+    INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
+    SELECT ib.id, 'discharged_verified'
+      FROM inbound_batches ib
+      JOIN materials m       ON m.id   = ib.material_id
+      JOIN material_kinds mk ON mk.code = m.kind_code
+     WHERE mk.has_condition_axes
+       AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
+                        WHERE s.inbound_batch_id = ib.id);
     v_run := commit_processing_run(v_process, 'f112 must pass', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
         jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight');
@@ -144,6 +168,15 @@ BEGIN
     PERFORM reprice_inbound_batch(v_ib, 1, 'SGD', NULL, 'f112 price');
     v_denied := false; v_msg := NULL;
     BEGIN
+        -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
+        INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
+        SELECT ib.id, 'discharged_verified'
+          FROM inbound_batches ib
+          JOIN materials m       ON m.id   = ib.material_id
+          JOIN material_kinds mk ON mk.code = m.kind_code
+         WHERE mk.has_condition_axes
+           AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
+                            WHERE s.inbound_batch_id = ib.id);
         v_run := commit_processing_run(v_process, 'f112 undecided must refuse', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
             jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight');

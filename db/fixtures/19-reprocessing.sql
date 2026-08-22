@@ -52,6 +52,21 @@ BEGIN
     VALUES ('FIXT-IB19A', v_mat, v_sup, 100, 100, 'kg', v_today) RETURNING id INTO v_ib1;
     INSERT INTO inbound_batch_metals (inbound_batch_id, metal, content_pct, content_source) VALUES (v_ib1, 'ni', 40, 'manual');
     PERFORM reprice_inbound_batch(v_ib1, 1, 'SGD', NULL, 'fixture 19 stage1 price');
+    -- PROC-3:这一支要投料,所以它的电池料批次得带一条【可投料】的安全状态。
+    -- 【为什么是一条带 JOIN 的 SELECT,而不是逐个批次写死】本支里哪些批次【吃】
+    -- 状态轴,由 material_kinds 回答 —— 实测 ewaste 可加工却【没有】状态轴,
+    -- 所以"可加工"并不蕴含"有状态轴"。而没有状态轴的批次插安全状态会被
+    -- PROC-2c 的适用性守卫按名拒,所以这个过滤不是优化,是正确性。
+    -- 【它出现在每一次投料之前,而不是只在开头一次】批次是各臂【边跑边造】的,
+    -- 开头那一次覆盖不到后面才出生的批次。NOT EXISTS 让它重复执行也不撞主键。
+    INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
+    SELECT ib.id, 'discharged_verified'
+      FROM inbound_batches ib
+      JOIN materials m       ON m.id   = ib.material_id
+      JOIN material_kinds mk ON mk.code = m.kind_code
+     WHERE mk.has_condition_axes
+       AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
+                        WHERE s.inbound_batch_id = ib.id);
     v_run1 := commit_processing_run(v_today, 'fixture 19 stage1', 20,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib1, 'quantity_consumed', 100)),
         jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 80)), 'metal_value');
@@ -65,6 +80,15 @@ BEGIN
     VALUES ('FIXT-IB19B', v_mat, v_sup, 50, 50, 'kg', v_today) RETURNING id INTO v_ib2;
     INSERT INTO inbound_batch_metals (inbound_batch_id, metal, content_pct, content_source) VALUES (v_ib2, 'ni', 20, 'manual');
     PERFORM reprice_inbound_batch(v_ib2, 2, 'SGD', NULL, 'fixture 19 stage2 price');
+    -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
+    INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
+    SELECT ib.id, 'discharged_verified'
+      FROM inbound_batches ib
+      JOIN materials m       ON m.id   = ib.material_id
+      JOIN material_kinds mk ON mk.code = m.kind_code
+     WHERE mk.has_condition_axes
+       AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
+                        WHERE s.inbound_batch_id = ib.id);
     v_run2 := commit_processing_run(v_today, 'fixture 19 stage2', 40,
         jsonb_build_array(
             jsonb_build_object('output_batch_id', v_o1, 'quantity_consumed', 50),
@@ -120,10 +144,28 @@ BEGIN
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
     VALUES ('FIXT-IB19D', v_mat, v_sup, 30, 30, 'kg', v_today) RETURNING id INTO v_ib1;
     -- 不计价、不分摊 stage1' —— 直接投进 stage2'
+    -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
+    INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
+    SELECT ib.id, 'discharged_verified'
+      FROM inbound_batches ib
+      JOIN materials m       ON m.id   = ib.material_id
+      JOIN material_kinds mk ON mk.code = m.kind_code
+     WHERE mk.has_condition_axes
+       AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
+                        WHERE s.inbound_batch_id = ib.id);
     v_run1 := commit_processing_run(v_today, 'fixture 19 stage1-unpriced', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib1, 'quantity_consumed', 30)),
         jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 30)), 'metal_value');
     SELECT po.output_batch_id INTO v_o1 FROM processing_outputs po WHERE po.run_id = v_run1;
+    -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
+    INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
+    SELECT ib.id, 'discharged_verified'
+      FROM inbound_batches ib
+      JOIN materials m       ON m.id   = ib.material_id
+      JOIN material_kinds mk ON mk.code = m.kind_code
+     WHERE mk.has_condition_axes
+       AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
+                        WHERE s.inbound_batch_id = ib.id);
     v_run2 := commit_processing_run(v_today, 'fixture 19 stage2-unpriced', 0,
         jsonb_build_array(jsonb_build_object('output_batch_id', v_o1, 'quantity_consumed', 30)),
         jsonb_build_array(jsonb_build_object('material_id', v_matC, 'quantity', 30)), 'metal_value');
@@ -161,6 +203,15 @@ BEGIN
     -- ════════ F. 自吞守卫:裸 INSERT 拒;函数上下文内同单自吞边也拒 ═══════════
     v_ok := false; v_msg := NULL;
     BEGIN
+        -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
+        INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
+        SELECT ib.id, 'discharged_verified'
+          FROM inbound_batches ib
+          JOIN materials m       ON m.id   = ib.material_id
+          JOIN material_kinds mk ON mk.code = m.kind_code
+         WHERE mk.has_condition_axes
+           AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
+                            WHERE s.inbound_batch_id = ib.id);
         INSERT INTO processing_inputs (run_id, inbound_batch_id, quantity_consumed)
         VALUES (v_run2, v_ib1, 1);
     EXCEPTION WHEN OTHERS THEN
@@ -173,6 +224,15 @@ BEGIN
     v_ok := false; v_msg := NULL;
     BEGIN
         PERFORM set_config('evoltrya.movement_ctx', 'processing:' || v_run2::text, true);
+        -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
+        INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
+        SELECT ib.id, 'discharged_verified'
+          FROM inbound_batches ib
+          JOIN materials m       ON m.id   = ib.material_id
+          JOIN material_kinds mk ON mk.code = m.kind_code
+         WHERE mk.has_condition_axes
+           AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
+                            WHERE s.inbound_batch_id = ib.id);
         INSERT INTO processing_inputs (run_id, output_batch_id, quantity_consumed)
         SELECT v_run2, po.output_batch_id, 1 FROM processing_outputs po WHERE po.run_id = v_run2;
         PERFORM set_config('evoltrya.movement_ctx', '', true);
