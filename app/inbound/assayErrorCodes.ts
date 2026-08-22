@@ -15,6 +15,8 @@ const ASSAY_ERROR_CODES = new Set([
     'PRICE_NOT_POSITIVE', 'REFERENCE_DATE_REQUIRED',
     // PROC-1:化验有两种父(进料/产出),记录共享、应用拆开
     'ASSAY_ONE_PARENT', 'OUTPUT_NOT_FOUND', 'ASSAY_IS_OUTPUT', 'ASSAY_IS_INBOUND',
+    // PROC-6:基准与出具方。两条都【没有默认值】,所以两条都到得了屏幕。
+    'ASSAY_BASIS_REQUIRED', 'ASSAY_RESULT_PARTY_REQUIRED',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..."(同 localizeFinanceError)。

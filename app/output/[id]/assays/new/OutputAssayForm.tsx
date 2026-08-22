@@ -80,6 +80,46 @@ export default function OutputAssayForm({
                         className="border border-gray-300 px-3 py-2 rounded"
                     />
                 </div>
+                    {/* PROC-6:重量基准 —— 必填,【没有默认选中项】。
+                        一份没说明基准的含量数字事后还原不出来:干基 30% 与湿基 30%
+                        是两个数,差多少取决于水分。 */}
+                    <div>
+                        <label className="block text-sm font-medium mb-1">
+                            {t('assay.weightBasis')} <span className="text-red-600">*</span>
+                        </label>
+                        <select name="weight_basis" defaultValue="" required
+                                className="w-full border border-gray-300 px-3 py-2 rounded">
+                            <option value="" disabled>{t('assay.weightBasisPick')}</option>
+                            <option value="as_received">{t('assay.basisAsReceived')}</option>
+                            <option value="dry">{t('assay.basisDry')}</option>
+                        </select>
+                    </div>
+
+                    {/* PROC-6:出具方 —— 必填,【刻意没有默认值】。
+                        默认成"我们"会让一个忘了改的字段变成"这是我们测的"这句话。 */}
+                    <div>
+                        <label className="block text-sm font-medium mb-1">
+                            {t('assay.resultParty')} <span className="text-red-600">*</span>
+                        </label>
+                        <select name="result_party" defaultValue="" required
+                                className="w-full border border-gray-300 px-3 py-2 rounded">
+                            <option value="" disabled>{t('assay.resultPartyPick')}</option>
+                            <option value="ours">{t('assay.partyOurs')}</option>
+                            <option value="counterparty">{t('assay.partyCounterparty')}</option>
+                            <option value="umpire">{t('assay.partyUmpire')}</option>
+                        </select>
+                    </div>
+
+                    {/* PROC-6:水分 —— 【可空,而空不是零】。没测就留空;
+                        库里落 NULL,屏幕上显示成「没测过」。填 0 是一次测量。 */}
+                    <div>
+                        <label className="block text-sm font-medium mb-1">{t('assay.moisture')}</label>
+                        <input type="number" name="moisture_pct" step="any" min="0" max="100"
+                               placeholder={t('assay.moisturePlaceholder')}
+                               className="w-full border border-gray-300 px-3 py-2 rounded" />
+                        <p className="text-xs text-gray-500 mt-1">{t('assay.moistureHint')}</p>
+                    </div>
+
                 <div className="flex-1 min-w-[12rem]">
                     <label className="block text-sm font-medium mb-1">{t('assay.labName')}</label>
                     {/* PROC-5:实验室 —— 字典下拉,不再是自由文本框。

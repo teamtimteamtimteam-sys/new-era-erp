@@ -193,6 +193,18 @@ function sqlSeedCodes(file, table) {
     if (codes.length === 0) throw new Error(`${file} 的引导 INSERT 解析出 0 个 code —— 解析不出来不是空集合`)
     return codes
 }
+// PROC-6:sqlEnum 要求 `CHECK (col IN (...))` 紧挨着写。而 weight_basis 那条是
+// `CHECK (weight_basis IS NULL OR weight_basis IN (...))` —— 因为"没记过"要合法。
+// 这一支在整份文件里找 `col IN ('a','b')`,两种写法都认。
+// 解析出 0 个仍然抛错(解析不出来【不是】空集合)。
+function sqlEnumAnywhere(file, col) {
+    const src = readFileSync(join(ROOT, file), 'utf8')
+    const m = src.match(new RegExp(String.raw`\b${col} IN\s*\(([^)]+)\)`))
+    if (!m) throw new Error(`${file} 里找不到 ${col} IN (...)`)
+    const vals = [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1])
+    if (vals.length === 0) throw new Error(`${file} 的 ${col} IN (...) 解析出 0 个取值`)
+    return vals
+}
 function sqlLiteralAs(file, alias) {
     const src = readFileSync(join(ROOT, file), 'utf8')
     return [...new Set([...src.matchAll(new RegExp(String.raw`'(\w+)'::text AS ${alias}`, 'g'))].map((x) => x[1]))]
@@ -395,6 +407,8 @@ const MANIFEST = {
     // 那天,漏了译文会当场红,而不是在屏幕上印出 movements.bucket.xxx)。
     'movements.bucket.':    { kind: 'enum', values: () => sqlEnum('db/tables/inventory_movements.sql', 'stock_status') },
     'metals.':              { kind: 'enum', values: () => sqlSeedCodes('db/tables/substances.sql', 'substances') },
+    'assay.basis_':         { kind: 'enum', values: () => sqlEnumAnywhere('db/tables/assay_results.sql', 'weight_basis') },
+    'assay.party_':         { kind: 'enum', values: () => sqlEnumAnywhere('db/tables/assay_results.sql', 'result_party') },
     'pricing.direction.':   { kind: 'enum', values: () => sqlEnum('db/tables/pricing_formulas.sql', 'direction') },
     'assay.pricingStatus.': { kind: 'enum', values: () => sqlEnum('db/tables/inbound_batches.sql', 'pricing_status') },
     'inbound.pricing.errors.': { kind: 'enum', values: () => tsSet('app/inbound/[id]/edit/pricingActions.ts', 'PRICING_ERROR_CODES') },

@@ -169,6 +169,20 @@ export async function submitAssay(
     const payload = metalsPayload(metals)
     if (payload.length === 0) return { error: t('assay.errors.NO_METALS') }
 
+    // PROC-6:三个新字段。基准与出具方必填(服务端也独立拒一次);
+    // 水分可空 —— 空的意思是【没测过】,不是 0。
+    const weightBasis = String(formData.get('weight_basis') ?? '').trim()
+    const resultParty = String(formData.get('result_party') ?? '').trim()
+    const moistureRaw = String(formData.get('moisture_pct') ?? '').trim()
+    let moisturePct: number | null = null
+    if (moistureRaw !== '') {
+        const n = Number(moistureRaw)
+        if (Number.isNaN(n) || n < 0 || n > 100) return { error: t('assay.errMoisture') }
+        moisturePct = n
+    }
+    if (!weightBasis) return { error: t('assay.errors.ASSAY_BASIS_REQUIRED') }
+    if (!resultParty) return { error: t('assay.errors.ASSAY_RESULT_PARTY_REQUIRED') }
+
     const supabase = await createClient()
     const { data, error } = await supabase.rpc('record_assay_result', {
         p_inbound_batch_id: batchId,
@@ -179,6 +193,14 @@ export async function submitAssay(
         p_sample_ref: sampleRef || undefined,
         p_is_final: isFinal,
         p_notes: notes || undefined,
+        // PROC-6:基准与出具方【都没有默认值】—— 表单必须明说。
+        // 基准:一份没说明基准的含量数字事后还原不出来(干基 30% 与湿基 30% 是两个数)。
+        // 出具方:默认成 'ours' 会让"忘了改"变成"这是我们测的"。
+        // 水分【可空】:没测就不传,库里落 NULL —— **绝不要传 0**,
+        // 那是一次测量,而一个乘数的单位元是看不见的。
+        p_weight_basis: weightBasis,
+        p_result_party: resultParty,
+        ...(moisturePct === null ? {} : { p_moisture_pct: moisturePct }),
     })
     if (error) {
         return { error: await localizeAssayError(error.message) }

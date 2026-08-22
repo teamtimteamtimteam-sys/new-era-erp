@@ -186,12 +186,15 @@ export type Database = {
           inbound_batch_id: string | null
           is_final: boolean
           lab_name: string | null
+          moisture_pct: number | null
           notes: string | null
           output_batch_id: string | null
+          result_party: string
           sample_ref: string | null
           superseded_by: string | null
           updated_at: string
           updated_by: string | null
+          weight_basis: string | null
         }
         Insert: {
           applied_at?: string | null
@@ -206,12 +209,15 @@ export type Database = {
           inbound_batch_id?: string | null
           is_final?: boolean
           lab_name?: string | null
+          moisture_pct?: number | null
           notes?: string | null
           output_batch_id?: string | null
+          result_party: string
           sample_ref?: string | null
           superseded_by?: string | null
           updated_at?: string
           updated_by?: string | null
+          weight_basis?: string | null
         }
         Update: {
           applied_at?: string | null
@@ -226,12 +232,15 @@ export type Database = {
           inbound_batch_id?: string | null
           is_final?: boolean
           lab_name?: string | null
+          moisture_pct?: number | null
           notes?: string | null
           output_batch_id?: string | null
+          result_party?: string
           sample_ref?: string | null
           superseded_by?: string | null
           updated_at?: string
           updated_by?: string | null
+          weight_basis?: string | null
         }
         Relationships: [
           {
@@ -17461,9 +17470,12 @@ export type Database = {
           p_is_final?: boolean
           p_lab_name?: string
           p_metals: Json
+          p_moisture_pct?: number
           p_notes?: string
           p_output_batch_id?: string
+          p_result_party?: string
           p_sample_ref?: string
+          p_weight_basis?: string
         }
         Returns: Json
       }

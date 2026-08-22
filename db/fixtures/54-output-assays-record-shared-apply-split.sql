@@ -27,11 +27,6 @@
 --     在应用会拒的地方【同码】拒;它说"会过期"的地方 D1 断言视图真的过期,
 --     说"不会"的地方(weight)D2 断言它真的不动 —— 谓词与第六过期源钉在一起。
 --
-    -- PROC-5:实验室现在是一张字典(laboratories),lab_name 指向它。
-    -- 【自带数据的另一面:自带字典行】本支要用一个自己的实验室名,
-    -- 那就自己加那一行 —— 而"加一行就能用"正是把它做成字典换来的东西。
-    INSERT INTO laboratories (code, name_en, name_zh, sort_order)
-    VALUES ('fixture 54 lab', 'fixture 54 lab', 'fixture 54 lab', 99);
 -- 化验日期用 CURRENT_DATE(record_assay_result 拒未来日期);编号断言只断
 -- 【连续】与【同前缀】,不断绝对值 —— 序列起点取决于库里已有的化验数。
 -- 其余日期同样落在 CURRENT_DATE,锁与 system_start 显式自设(README 第 4/5 条)。
@@ -56,6 +51,11 @@ DECLARE
     v_denied boolean; v_msg text;
     v_row record;
 BEGIN
+    -- PROC-5:实验室现在是一张字典(laboratories),lab_name 指向它。
+    -- 【自带数据的另一面:自带字典行】本支要用一个自己的实验室名,
+    -- 那就自己加那一行 —— 而"加一行就能用"正是把它做成字典换来的东西。
+    INSERT INTO laboratories (code, name_en, name_zh, sort_order)
+    VALUES ('fixture 54 lab', 'fixture 54 lab', 'fixture 54 lab', 99);
     UPDATE finance_settings SET locked_before = NULL, system_start_date = '2020-01-01';
 
     INSERT INTO roles (code, name_en, name_zh, is_active)
@@ -153,13 +153,13 @@ BEGIN
     -- ══════════ A. 记录与编号共享;双父 XOR;权限跟着父走 ═══════════════════
     a1 := record_assay_result(p_assay_date => CURRENT_DATE,
         p_metals => jsonb_build_array(jsonb_build_object('metal', 'ni', 'content_pct', 50)),
-        p_lab_name => 'fixture 54 lab', p_inbound_batch_id => ib1);
+        p_lab_name => 'fixture 54 lab', p_inbound_batch_id => ib1, p_weight_basis => 'as_received', p_result_party => 'ours');
     a1_id := (a1->>'assay_result_id')::uuid;
     a2 := record_assay_result(p_assay_date => CURRENT_DATE,
         p_metals => jsonb_build_array(
             jsonb_build_object('metal', 'ni', 'content_pct', 75),
             jsonb_build_object('metal', 'co', 'content_pct', 5)),
-        p_lab_name => 'fixture 54 lab', p_output_batch_id => ob_a);
+        p_lab_name => 'fixture 54 lab', p_output_batch_id => ob_a, p_weight_basis => 'as_received', p_result_party => 'ours');
     a2_id := (a2->>'assay_result_id')::uuid;
 
     -- 同一条序列:紧随其后、同一个 'ASY-YYYY' 前缀。绝对值不断(取决于库里已有几份)。
@@ -175,7 +175,7 @@ BEGIN
     BEGIN
         PERFORM record_assay_result(p_assay_date => CURRENT_DATE,
             p_metals => jsonb_build_array(jsonb_build_object('metal', 'ni', 'content_pct', 1)),
-            p_inbound_batch_id => ib1, p_output_batch_id => ob_a);
+            p_inbound_batch_id => ib1, p_output_batch_id => ob_a, p_weight_basis => 'as_received', p_result_party => 'ours');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied OR v_msg <> 'ASSAY_ONE_PARENT' THEN
         RAISE EXCEPTION 'FIXTURE 54A 失败:两个父都挂的化验该被点名拒(ASSAY_ONE_PARENT),实际:%',
@@ -184,7 +184,7 @@ BEGIN
     v_denied := false;
     BEGIN
         PERFORM record_assay_result(p_assay_date => CURRENT_DATE,
-            p_metals => jsonb_build_array(jsonb_build_object('metal', 'ni', 'content_pct', 1)));
+            p_metals => jsonb_build_array(jsonb_build_object('metal', 'ni', 'content_pct', 1)), p_weight_basis => 'as_received', p_result_party => 'ours');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied OR v_msg <> 'ASSAY_ONE_PARENT' THEN
         RAISE EXCEPTION 'FIXTURE 54A 失败:一个父都不挂的化验该被点名拒(ASSAY_ONE_PARENT),实际:%',
@@ -199,7 +199,7 @@ BEGIN
     BEGIN
         PERFORM record_assay_result(p_assay_date => CURRENT_DATE,
             p_metals => jsonb_build_array(jsonb_build_object('metal', 'ni', 'content_pct', 1)),
-            p_output_batch_id => ob_a);
+            p_output_batch_id => ob_a, p_weight_basis => 'as_received', p_result_party => 'ours');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied OR v_msg <> 'PERMISSION_DENIED|module.output.edit' THEN
         RAISE EXCEPTION 'FIXTURE 54A 失败:只有 inbound 权限的人记产出化验,该按 module.output.edit 拒,实际:%',
@@ -325,7 +325,7 @@ BEGIN
     -- 【测量】:拒绝落账等于替实验室改数,压掉的正是"有什么不对"的证据。
     a3 := record_assay_result(p_assay_date => CURRENT_DATE,
         p_metals => jsonb_build_array(jsonb_build_object('metal', 'ni', 'content_pct', 80)),
-        p_lab_name => 'fixture 54 lab', p_output_batch_id => ob_c);
+        p_lab_name => 'fixture 54 lab', p_output_batch_id => ob_c, p_weight_basis => 'as_received', p_result_party => 'ours');
     a3_id := (a3->>'assay_result_id')::uuid;
     -- I(其三):weight 的单,试算说"不会过期" —— 与 D2 是同一条谓词的两个观察点
     v_prev := preview_apply_output_assay(ob_c, a3_id);
@@ -370,7 +370,7 @@ BEGIN
 
     a4 := record_assay_result(p_assay_date => CURRENT_DATE,
         p_metals => jsonb_build_array(jsonb_build_object('metal', 'ni', 'content_pct', 70)),
-        p_lab_name => 'fixture 54 lab', p_output_batch_id => ob_a);
+        p_lab_name => 'fixture 54 lab', p_output_batch_id => ob_a, p_weight_basis => 'as_received', p_result_party => 'ours');
     a4_id := (a4->>'assay_result_id')::uuid;
     PERFORM apply_output_assay(a4_id);
 

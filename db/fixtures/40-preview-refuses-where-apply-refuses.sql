@@ -52,8 +52,8 @@ BEGIN
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
                                  arrival_date, unit_price, pricing_formula_id)
     VALUES ('ZZFIX40-IB', v_mat, v_sup, 100, 100, CURRENT_DATE, 5, v_f) RETURNING id INTO v_b;
-    INSERT INTO assay_results (code, inbound_batch_id, assay_date, is_final)
-    VALUES ('ZZFIX40-AR', v_b, CURRENT_DATE, true) RETURNING id INTO v_assay;
+    INSERT INTO assay_results (code, inbound_batch_id, assay_date, is_final, weight_basis, result_party)
+    VALUES ('ZZFIX40-AR', v_b, CURRENT_DATE, true, 'as_received', 'ours') RETURNING id INTO v_assay;
     INSERT INTO assay_result_metals (assay_result_id, metal, content_pct)
     VALUES (v_assay, 'ni', 50);
 
@@ -160,8 +160,8 @@ BEGIN
                                      arrival_date, unit_price, pricing_formula_id)
         VALUES ('ZZFIX40-IB2', v_mat, v_sup, 100, 100, CURRENT_DATE, 5, v_f) RETURNING id INTO v_b2;
         PERFORM commit_pricing_terms(v_f, NULL, v_b2);
-        INSERT INTO assay_results (code, inbound_batch_id, assay_date, is_final)
-        VALUES ('ZZFIX40-AR2', v_b2, CURRENT_DATE, true) RETURNING id INTO v_a2;
+        INSERT INTO assay_results (code, inbound_batch_id, assay_date, is_final, weight_basis, result_party)
+        VALUES ('ZZFIX40-AR2', v_b2, CURRENT_DATE, true, 'as_received', 'ours') RETURNING id INTO v_a2;
         -- co 没有任何行情:该金属被跳过
         INSERT INTO assay_result_metals (assay_result_id, metal, content_pct) VALUES (v_a2, 'co', 40);
 

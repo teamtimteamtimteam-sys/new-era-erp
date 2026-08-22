@@ -110,16 +110,16 @@ BEGIN
     -- arrival_date 必填:FIN-32 的台账行 business_date 有 CHECK,空着整个 INSERT 被拒
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
     VALUES ('ZZFIX47-IB1', v_mat, v_sup, 10, 10, CURRENT_DATE - 5) RETURNING id INTO v_ib1;
-    INSERT INTO assay_results (code, inbound_batch_id, assay_date)
-    VALUES ('ZZFIX47-AR1', v_ib1, CURRENT_DATE - 4);                 -- assay_unapplied
+    INSERT INTO assay_results (code, inbound_batch_id, assay_date, weight_basis, result_party)
+    VALUES ('ZZFIX47-AR1', v_ib1, CURRENT_DATE - 4, 'as_received', 'ours');                 -- assay_unapplied
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
     VALUES ('ZZFIX47-IB2', v_mat_asy, v_sup, 10, 10, CURRENT_DATE - 5) RETURNING id INTO v_ib2;
                                                     -- awaiting_assay(要求 cu,零化验,还有料)
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
         arrival_date, pricing_status)
     VALUES ('ZZFIX47-IB3', v_mat, v_sup, 10, 10, CURRENT_DATE - 5, 'unpriced') RETURNING id INTO v_ib3;
-    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at)
-    VALUES ('ZZFIX47-AR3', v_ib3, CURRENT_DATE - 4, now());           -- batch_unpriced(化验已执行)
+    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at, weight_basis, result_party)
+    VALUES ('ZZFIX47-AR3', v_ib3, CURRENT_DATE - 4, now(), 'as_received', 'ours');           -- batch_unpriced(化验已执行)
 
     -- ── allocation_stale:分摊早于成本变动 ──────────────────────────────────
     INSERT INTO processing_runs (code, status, allocated_at, allocation_basis)
@@ -176,8 +176,8 @@ BEGIN
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
         arrival_date, unit_price)
     VALUES ('ZZFIX47-IB4', v_mat, v_sup, 10, 10, CURRENT_DATE - 200, 100) RETURNING id INTO v_ib4;
-    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at)
-    VALUES ('ZZFIX47-AR4', v_ib4, CURRENT_DATE - 200, now());
+    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at, weight_basis, result_party)
+    VALUES ('ZZFIX47-AR4', v_ib4, CURRENT_DATE - 200, now(), 'as_received', 'ours');
     -- 二:挂账开支单(unpaid 必须有供应商且不能有银行科目 —— expenses_payment_shape)
     INSERT INTO expenses (code, expense_date, account_code, amount_ccy, currency, fx_rate,
         amount_base, payment_status, supplier_id)

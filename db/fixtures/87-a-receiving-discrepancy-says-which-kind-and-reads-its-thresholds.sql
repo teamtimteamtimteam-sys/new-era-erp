@@ -402,8 +402,8 @@ BEGIN
     VALUES ('FX87-HNOEXP', mat_a, sup, 1000, 'kg', 1000, '2026-05-02', po_assay, l_noexp) RETURNING id INTO b_noexp;
     -- 【化验这一侧是齐的】—— 缺的只有预期。少了这一句,这一臂会因为"两侧都没有"
     -- 而空转通过,证明不了"缺预期时不下断言"。
-    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at)
-    VALUES ('FX87-AS-NOEXP', b_noexp, '2026-05-03', now()) RETURNING id INTO a;
+    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at, weight_basis, result_party)
+    VALUES ('FX87-AS-NOEXP', b_noexp, '2026-05-03', now(), 'as_received', 'ours') RETURNING id INTO a;
     INSERT INTO assay_result_metals (assay_result_id, metal, content_pct) VALUES (a, 'ni', 15);
 
     SELECT assay_beyond_tolerance, assay_metals_compared, kinds
@@ -426,8 +426,8 @@ BEGIN
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty,
                                  arrival_date, purchase_order_id, purchase_order_line_id)
     VALUES ('FX87-HUNAP', mat_a, sup, 1000, 'kg', 1000, '2026-05-02', po_assay, l_unap) RETURNING id INTO b_unap;
-    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at)
-    VALUES ('FX87-AS-UNAP', b_unap, '2026-05-03', NULL) RETURNING id INTO a;
+    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at, weight_basis, result_party)
+    VALUES ('FX87-AS-UNAP', b_unap, '2026-05-03', NULL, 'as_received', 'ours') RETURNING id INTO a;
     INSERT INTO assay_result_metals (assay_result_id, metal, content_pct) VALUES (a, 'ni', 50);
     SELECT assay_beyond_tolerance INTO v_bool FROM grn_discrepancies WHERE batch_id = b_unap;
     IF v_bool IS NOT NULL THEN
@@ -465,17 +465,17 @@ BEGIN
                                  arrival_date, purchase_order_id, purchase_order_line_id)
     VALUES ('FX87-ILO', mat_a, sup, 1000, 'kg', 1000, '2026-05-02', po_assay, l_as_loin) RETURNING id INTO b_as_loin;
 
-    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at)
-    VALUES ('FX87-AS-EQ', b_as_eq, '2026-05-03', now()) RETURNING id INTO a;
+    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at, weight_basis, result_party)
+    VALUES ('FX87-AS-EQ', b_as_eq, '2026-05-03', now(), 'as_received', 'ours') RETURNING id INTO a;
     INSERT INTO assay_result_metals (assay_result_id, metal, content_pct) VALUES (a, 'ni', 11);
-    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at)
-    VALUES ('FX87-AS-HI', b_as_hi, '2026-05-03', now()) RETURNING id INTO a;
+    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at, weight_basis, result_party)
+    VALUES ('FX87-AS-HI', b_as_hi, '2026-05-03', now(), 'as_received', 'ours') RETURNING id INTO a;
     INSERT INTO assay_result_metals (assay_result_id, metal, content_pct) VALUES (a, 'ni', 11.1);
-    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at)
-    VALUES ('FX87-AS-LOEQ', b_as_lo, '2026-05-03', now()) RETURNING id INTO a;
+    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at, weight_basis, result_party)
+    VALUES ('FX87-AS-LOEQ', b_as_lo, '2026-05-03', now(), 'as_received', 'ours') RETURNING id INTO a;
     INSERT INTO assay_result_metals (assay_result_id, metal, content_pct) VALUES (a, 'ni', 9);
-    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at)
-    VALUES ('FX87-AS-LO', b_as_loin, '2026-05-03', now()) RETURNING id INTO a;
+    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at, weight_basis, result_party)
+    VALUES ('FX87-AS-LO', b_as_loin, '2026-05-03', now(), 'as_received', 'ours') RETURNING id INTO a;
     INSERT INTO assay_result_metals (assay_result_id, metal, content_pct) VALUES (a, 'ni', 8.9);
 
     SELECT assay_beyond_tolerance, assay_metals_compared INTO v_bool, v_int

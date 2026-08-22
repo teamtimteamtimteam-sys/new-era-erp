@@ -1,8 +1,26 @@
-CREATE OR REPLACE FUNCTION public.record_assay_result(p_assay_date date, p_metals jsonb, p_lab_name text DEFAULT NULL::text, p_certificate_ref text DEFAULT NULL::text, p_sample_ref text DEFAULT NULL::text, p_is_final boolean DEFAULT true, p_notes text DEFAULT NULL::text, p_inbound_batch_id uuid DEFAULT NULL::uuid, p_output_batch_id uuid DEFAULT NULL::uuid)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
+CREATE OR REPLACE FUNCTION public.record_assay_result(
+    p_assay_date date,
+    p_metals jsonb,
+    p_lab_name text DEFAULT NULL::text,
+    p_certificate_ref text DEFAULT NULL::text,
+    p_sample_ref text DEFAULT NULL::text,
+    p_is_final boolean DEFAULT true,
+    p_notes text DEFAULT NULL::text,
+    p_inbound_batch_id uuid DEFAULT NULL::uuid,
+    p_output_batch_id uuid DEFAULT NULL::uuid,
+    -- ── PROC-6 追加(尾部,带默认,与 PROC-2c 的做法一致)────────────────────
+    -- 【两个都默认 NULL,而"必填"由别处执行】
+    --   weight_basis  → 触发器(旧行补不出来,所以只管新行)
+    --   result_party  → 本函数里具名拒绝 + 列上 NOT NULL 兜底
+    -- 这里【不】给业务默认值:默认会让"忘了填"静静变成一个可以拿去算钱的答案。
+    p_weight_basis text DEFAULT NULL::text,
+    p_moisture_pct numeric DEFAULT NULL::numeric,
+    p_result_party text DEFAULT NULL::text
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_user  uuid := auth.uid();
@@ -41,16 +59,34 @@ BEGIN
         RAISE EXCEPTION 'NO_METALS';
     END IF;
 
+    -- PROC-6:出具方必须明说。**在这里具名拒绝,而不是等列上的 NOT NULL 抛机器话** ——
+    -- 一个具名码翻得成人话,一个 null-value violation 翻不成。
+    IF p_result_party IS NULL THEN
+        RAISE EXCEPTION 'ASSAY_RESULT_PARTY_REQUIRED'
+          USING HINT = '这一份结果是我们出的、对手方出的、还是仲裁实验室出的?没有默认值 —— 默认会让"忘了改"变成"这是我们测的"。';
+    END IF;
+
     v_code := next_assay_code(p_assay_date);
     INSERT INTO assay_results (id, code, inbound_batch_id, output_batch_id, assay_date, lab_name,
-                               certificate_ref, sample_ref, is_final, notes, created_by, updated_by)
+                               certificate_ref, sample_ref, is_final, notes,
+                               weight_basis, moisture_pct, result_party,
+                               created_by, updated_by)
     VALUES (v_id, v_code, p_inbound_batch_id, p_output_batch_id, p_assay_date, p_lab_name,
-            p_certificate_ref, p_sample_ref, p_is_final, p_notes, v_user, v_user);
+            p_certificate_ref, p_sample_ref, p_is_final, p_notes,
+            p_weight_basis, p_moisture_pct, p_result_party,
+            v_user, v_user);
 
     FOR v_el IN SELECT * FROM jsonb_array_elements(p_metals)
     LOOP
         v_metal := v_el->>'metal';
-        IF v_metal IS NULL OR v_metal NOT IN ('ni','co','li','mn','cu','al','fe') THEN
+        -- 【PROC-6 顺手修的一处 PROC-4 漏网】这里原本写着
+        --     v_metal NOT IN ('ni','co','li','mn','cu','al','fe')
+        -- —— **那是那份金属清单的第九个副本**,而 PROC-4 声称已经清干净了。
+        -- 它没有:PROC-4 的 S1 只查了 pg_constraint,【没有查函数体】。
+        -- 线上实测函数体里还有四份(见 docs/known-issues.md),本刀只修它正在
+        -- 重建的这一支 —— 另外三支按名排期,不在这一刀里顺手动。
+        -- 现在它读字典,于是"加一种物质"真的只要一行。
+        IF v_metal IS NULL OR NOT EXISTS (SELECT 1 FROM substances WHERE code = v_metal) THEN
             RAISE EXCEPTION 'METAL_INVALID|%', COALESCE(v_metal, '?');
         END IF;
         IF v_metal = ANY (v_seen) THEN
@@ -73,4 +109,5 @@ BEGIN
     );
 END;
 $function$
+
 ;

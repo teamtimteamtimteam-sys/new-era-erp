@@ -96,8 +96,8 @@ BEGIN
     -- assay_result_id 的 not-null,断言当场红了 —— **红的是断言,不是系统**。
     -- 要证明"是 metal 那条外键拒的",这一行除了 metal 之外必须【处处合法】。
     -- assay_results 有一条 one_parent:进料批与产出批【恰一非空】。
-    INSERT INTO assay_results (code, assay_date, inbound_batch_id)
-    VALUES ('ZZ116-AR', DATE '2027-03-01', v_ib) RETURNING id INTO v_assay;
+    INSERT INTO assay_results (code, assay_date, inbound_batch_id, weight_basis, result_party)
+    VALUES ('ZZ116-AR', DATE '2027-03-01', v_ib, 'as_received', 'ours') RETURNING id INTO v_assay;
     -- output_batches 上的触发器会写一条 receipt 流水,而 FIN-32 要求它带业务日期
     -- —— 那个日期取自 output_date,所以这里必须给。
     INSERT INTO output_batches (code, material_id, quantity, remaining_qty, output_date)

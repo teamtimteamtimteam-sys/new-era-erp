@@ -111,7 +111,7 @@ BEGIN
     -- 那就自己加那一行 —— 而"加一行就能用"正是把它做成字典换来的东西。
     INSERT INTO laboratories (code, name_en, name_zh, sort_order)
     VALUES ('Fixture Lab', 'Fixture Lab', 'Fixture Lab', 99);
-    v_assay := record_assay_result(p_assay_date => v_today, p_metals => v_metals, p_lab_name => 'Fixture Lab', p_inbound_batch_id => v_batch);
+    v_assay := record_assay_result(p_assay_date => v_today, p_metals => v_metals, p_lab_name => 'Fixture Lab', p_inbound_batch_id => v_batch, p_weight_basis => 'as_received', p_result_party => 'ours');
     PERFORM apply_assay_result((v_assay->>'assay_result_id')::uuid);
 
     SELECT unit_price INTO v_price FROM inbound_batches WHERE id = v_batch;
@@ -164,7 +164,7 @@ BEGIN
     VALUES (v_mat, v_sup, 100, 100, 'kg', v_today,
             (v_po->>'purchase_order_id')::uuid, v_line2)
     RETURNING id INTO v_batch2;
-    v_assay := record_assay_result(p_assay_date => v_today, p_metals => v_metals, p_lab_name => 'Fixture Lab', p_inbound_batch_id => v_batch2);
+    v_assay := record_assay_result(p_assay_date => v_today, p_metals => v_metals, p_lab_name => 'Fixture Lab', p_inbound_batch_id => v_batch2, p_weight_basis => 'as_received', p_result_party => 'ours');
     PERFORM apply_assay_result((v_assay->>'assay_result_id')::uuid);
 
     SELECT unit_price INTO v_price FROM inbound_batches WHERE id = v_batch2;
@@ -179,7 +179,7 @@ BEGIN
                                  arrival_date, pricing_formula_id)
     VALUES (v_mat, v_sup, 100, 100, 'kg', v_today, v_formula)
     RETURNING id INTO v_batch3;
-    v_assay := record_assay_result(p_assay_date => v_today, p_metals => v_metals, p_lab_name => 'Fixture Lab', p_inbound_batch_id => v_batch3);
+    v_assay := record_assay_result(p_assay_date => v_today, p_metals => v_metals, p_lab_name => 'Fixture Lab', p_inbound_batch_id => v_batch3, p_weight_basis => 'as_received', p_result_party => 'ours');
 
     v_ok := false; v_msg := NULL;
     BEGIN

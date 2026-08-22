@@ -102,8 +102,8 @@ BEGIN
     -- business_date,而新台账行的 business_date 有 CHECK(空着整个 INSERT 被拒)。
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
     VALUES ('ZZFIX30-IB', v_mat, v_sup, 10, 10, '2027-01-08') RETURNING id INTO v_ib;
-    INSERT INTO assay_results (code, inbound_batch_id, assay_date)
-    VALUES ('ZZFIX30-AR', v_ib, '2027-01-10') RETURNING id INTO v_ar;
+    INSERT INTO assay_results (code, inbound_batch_id, assay_date, weight_basis, result_party)
+    VALUES ('ZZFIX30-AR', v_ib, '2027-01-10', 'as_received', 'ours') RETURNING id INTO v_ar;
 
     -- 2 allocation_stale:分摊时点(2027-01-01)早于成本变动时点(2027-02-01)
     -- FIN-36:allocation_basis 不再有 schema 默认值 —— 直插就得自己选。
@@ -173,15 +173,15 @@ BEGIN
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
         arrival_date, pricing_status)
     VALUES ('ZZFIX30-IB3', v_mat, v_sup, 10, 10, '2027-01-11', 'unpriced') RETURNING id INTO v_ib3;
-    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at)
-    VALUES ('ZZFIX30-AR3', v_ib3, '2027-01-12', now()) RETURNING id INTO v_ar3;
+    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at, weight_basis, result_party)
+    VALUES ('ZZFIX30-AR3', v_ib3, '2027-01-12', now(), 'as_received', 'ours') RETURNING id INTO v_ar3;
 
     -- 12 ap_over_90:有单价的进料单,到货 200 天前(化验已执行,不污染进料三支)
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
         arrival_date, unit_price)
     VALUES ('ZZFIX30-IB4', v_mat, v_sup, 10, 10, CURRENT_DATE - 200, 100) RETURNING id INTO v_ib4;
-    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at)
-    VALUES ('ZZFIX30-AR4', v_ib4, CURRENT_DATE - 200, now());
+    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at, weight_basis, result_party)
+    VALUES ('ZZFIX30-AR4', v_ib4, CURRENT_DATE - 200, now(), 'as_received', 'ours');
 
     -- 13 ar_over_90 + 14 invoice_overdue:一笔 200 天前的销售,未收款;
     -- 发票引用同一条销售记录 —— 两支同源不同粒度(单据 vs 销售事实),都该亮。
@@ -298,8 +298,8 @@ BEGIN
     -- 实测教训:第一版没有这几行,gate 报 23 行而不是 21,多出来的正是
     -- allocation_stale 与 awaiting_assay —— **自带数据的意思不只是"自己造",
     -- 还包括"造出来的东西不要点亮别人的灯"。**
-    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at)
-    VALUES ('ZZFIX30-ARWO', v_ibw, CURRENT_DATE, now());
+    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at, weight_basis, result_party)
+    VALUES ('ZZFIX30-ARWO', v_ibw, CURRENT_DATE, now(), 'as_received', 'ours');
     UPDATE inbound_batches SET pricing_status = 'final' WHERE id = v_ibw;
     v_res_wo := create_work_order(
         jsonb_build_array(jsonb_build_object('material_id', v_mat2, 'planned_qty', 100)),
@@ -426,8 +426,8 @@ BEGIN
     -- ASY-P1:解除的条件不再是"有一份化验",而是【要求的那种金属被覆盖了】——
     -- 所以这份化验必须真的带着 cu 那一行,否则它解除不了(这正是新那一支的重点:
     -- 一份不含所需金属的化验,不算把那件事做完)。
-    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at)
-    VALUES ('ZZFIX30-AR2', v_ib2, '2027-01-20', now()) RETURNING id INTO v_ar;
+    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at, weight_basis, result_party)
+    VALUES ('ZZFIX30-AR2', v_ib2, '2027-01-20', now(), 'as_received', 'ours') RETURNING id INTO v_ar;
     INSERT INTO assay_result_metals (assay_result_id, metal, content_pct)
     VALUES (v_ar, 'cu', 10);                                          -- awaiting_assay 解除
     UPDATE inbound_batches SET pricing_status = 'final' WHERE id = v_ib3;   -- batch_unpriced

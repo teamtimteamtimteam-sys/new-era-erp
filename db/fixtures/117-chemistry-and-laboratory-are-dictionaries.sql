@@ -55,8 +55,8 @@ BEGIN
     -- 化验单带实验室 —— 用引导里那一家(FRL),它是线上唯一真实存在的一家。
     v_denied := false; v_msg := NULL;
     BEGIN
-        INSERT INTO assay_results (code, assay_date, inbound_batch_id, lab_name)
-        VALUES ('ZZ117-AR', DATE '2027-04-01', v_ib, 'FRL') RETURNING id INTO v_assay;
+        INSERT INTO assay_results (code, assay_date, inbound_batch_id, lab_name, weight_basis, result_party)
+        VALUES ('ZZ117-AR', DATE '2027-04-01', v_ib, 'FRL', 'as_received', 'ours') RETURNING id INTO v_assay;
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF v_denied THEN
         RAISE EXCEPTION 'FIXTURE 117F1 失败:进入 F1 —— 线上唯一在用的实验室(FRL)必须照旧记得下。实得「%」', v_msg;
@@ -81,8 +81,8 @@ BEGIN
 
     v_denied := false; v_msg := NULL; v_con := NULL;
     BEGIN
-        INSERT INTO assay_results (code, assay_date, inbound_batch_id, lab_name)
-        VALUES ('ZZ117-ARBAD', DATE '2027-04-01', v_ib, 'ZZ117-NOLAB');
+        INSERT INTO assay_results (code, assay_date, inbound_batch_id, lab_name, weight_basis, result_party)
+        VALUES ('ZZ117-ARBAD', DATE '2027-04-01', v_ib, 'ZZ117-NOLAB', 'as_received', 'ours');
     EXCEPTION
         WHEN foreign_key_violation THEN v_denied := true; GET STACKED DIAGNOSTICS v_con = CONSTRAINT_NAME;
         WHEN OTHERS THEN v_msg := SQLERRM;
@@ -109,8 +109,8 @@ BEGIN
     BEGIN
         INSERT INTO laboratories (code, name_en, name_zh, sort_order)
         VALUES ('ZZ117_LAB', 'Umpire Lab (fixture)', '仲裁实验室(fixture)', 98);
-        INSERT INTO assay_results (code, assay_date, inbound_batch_id, lab_name)
-        VALUES ('ZZ117-AR2', DATE '2027-04-02', v_ib, 'ZZ117_LAB');
+        INSERT INTO assay_results (code, assay_date, inbound_batch_id, lab_name, weight_basis, result_party)
+        VALUES ('ZZ117-AR2', DATE '2027-04-02', v_ib, 'ZZ117_LAB', 'as_received', 'ours');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF v_denied THEN
         RAISE EXCEPTION 'FIXTURE 117F3 失败:进入 F3 —— 加一家实验室也必须是加一行就能用。**这一半是这张字典今天唯一的实测理由**:线上只有一家实验室,所以它防的是"第二家出现那天"。实得「%」', v_msg;
@@ -204,8 +204,8 @@ BEGIN
     -- (d) 实验室那一侧同样:留空合法(没有人记过是哪家出的)
     v_denied := false; v_msg := NULL;
     BEGIN
-        INSERT INTO assay_results (code, assay_date, inbound_batch_id)
-        VALUES ('ZZ117-ARNULL', DATE '2027-04-03', v_ib);
+        INSERT INTO assay_results (code, assay_date, inbound_batch_id, weight_basis, result_party)
+        VALUES ('ZZ117-ARNULL', DATE '2027-04-03', v_ib, 'as_received', 'ours');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF v_denied THEN
         RAISE EXCEPTION 'FIXTURE 117F6 失败:进入 F6 —— 不填实验室必须仍然合法(线上 3 行就是这样)。实得「%」', v_msg;

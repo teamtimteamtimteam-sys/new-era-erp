@@ -50,7 +50,7 @@ export default async function AssayDetailPage({
 
     const { data: assay, error } = await supabase
         .from('assay_results')
-        .select('id, code, inbound_batch_id, assay_date, lab_name, certificate_ref, sample_ref, is_final, notes, applied_at, superseded_by, created_at')
+        .select('id, code, inbound_batch_id, assay_date, lab_name, weight_basis, moisture_pct, result_party, certificate_ref, sample_ref, is_final, notes, applied_at, superseded_by, created_at')
         .eq('id', assayId)
         .is('deleted_at', null)
         .single()
@@ -201,6 +201,28 @@ export default async function AssayDetailPage({
                 <div>
                     <span className="text-gray-600 mr-1">{t('assay.colDate')}:</span>
                     <span>{assay.assay_date}</span>
+                </div>
+                {/* PROC-6:基准与出具方【总是显示】—— 它们是解读这些数字的前提,
+                    不是可有可无的补充。历史化验单没有基准,那就照直说「没有记过」,
+                    而不是让那一栏消失(消失读起来像"这件事不重要")。 */}
+                <div>
+                    <span className="text-gray-600 mr-1">{t('assay.weightBasis')}:</span>
+                    <span>{assay.weight_basis
+                        ? t('assay.basis_' + assay.weight_basis)
+                        : <span className="text-amber-700">{t('assay.basisNotRecorded')}</span>}</span>
+                </div>
+                <div>
+                    <span className="text-gray-600 mr-1">{t('assay.resultParty')}:</span>
+                    <span>{t('assay.party_' + assay.result_party)}</span>
+                </div>
+                {/* 【水分:没测过就写「没测过」,绝不写 0】
+                    一个乘数的单位元是看不见的 —— 把没测过显示成 0,
+                    读的人会拿它去推干重,而那个数看起来完全合理。 */}
+                <div>
+                    <span className="text-gray-600 mr-1">{t('assay.moisture')}:</span>
+                    <span>{assay.moisture_pct === null || assay.moisture_pct === undefined
+                        ? <span className="text-amber-700">{t('assay.moistureNotMeasured')}</span>
+                        : <span className="font-mono">{assay.moisture_pct}%</span>}</span>
                 </div>
                 {assay.lab_name && (
                     <div>

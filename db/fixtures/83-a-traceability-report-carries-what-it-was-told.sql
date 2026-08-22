@@ -67,8 +67,8 @@ BEGIN
     -- 【出处逐值断言的对象之一】投入侧写 'assay'。
     -- content_source='assay' 由 CHECK 强制 source_assay_id 非空 —— 出处是【记录】的,
     -- 指不出那份单据就不能自称实验室结论(PROC-1)。所以这里真的建一份。
-    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at)
-    VALUES ('FX83-ASY-IN', ib, '2026-05-01', now()) RETURNING id INTO asy_in;
+    INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at, weight_basis, result_party)
+    VALUES ('FX83-ASY-IN', ib, '2026-05-01', now(), 'as_received', 'ours') RETURNING id INTO asy_in;
     INSERT INTO assay_result_metals (assay_result_id, metal, content_pct) VALUES (asy_in, 'cu', 20);
     INSERT INTO inbound_batch_metals (inbound_batch_id, metal, content_pct, content_source, source_assay_id)
     VALUES (ib, 'cu', 20, 'assay', asy_in);
@@ -129,8 +129,8 @@ BEGIN
     --   cu:投入测了、产出没测  → recovery_blocked_by = 'output_not_measured'
     --   li:投入没测、产出测了  → recovery_blocked_by = 'input_not_measured'
     -- C 臂钉的就是这两个具名原因。
-    INSERT INTO assay_results (code, output_batch_id, assay_date, applied_at)
-    VALUES ('FX83-ASY-OUT', ob2, '2026-05-03', now()) RETURNING id INTO asy_out;
+    INSERT INTO assay_results (code, output_batch_id, assay_date, applied_at, weight_basis, result_party)
+    VALUES ('FX83-ASY-OUT', ob2, '2026-05-03', now(), 'as_received', 'ours') RETURNING id INTO asy_out;
     INSERT INTO assay_result_metals (assay_result_id, metal, content_pct) VALUES (asy_out, 'li', 5);
     INSERT INTO output_batch_metals (output_batch_id, metal, content_pct, content_source, source_assay_id)
     VALUES (ob2, 'li', 5, 'assay', asy_out);

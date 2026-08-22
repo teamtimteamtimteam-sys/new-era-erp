@@ -53,7 +53,7 @@ BEGIN
     BEGIN
         PERFORM record_assay_result(p_assay_date => v_sg_today,
             p_metals => jsonb_build_array(jsonb_build_object('metal', 'ni', 'content_pct', 10)),
-            p_inbound_batch_id => v_batch);
+            p_inbound_batch_id => v_batch, p_weight_basis => 'as_received', p_result_party => 'ours');
     EXCEPTION WHEN OTHERS THEN
         GET STACKED DIAGNOSTICS v_msg = MESSAGE_TEXT;
     END;

@@ -87,7 +87,7 @@ BEGIN
     -- 这个动作到底写了什么,只有那个函数说了算。
     v_rec := record_assay_result('2026-05-02'::date,
                 jsonb_build_array(jsonb_build_object('metal','cu','content_pct',12.5)),
-                NULL, NULL, NULL, true, NULL, b_partial, NULL);
+                NULL, NULL, NULL, true, NULL, b_partial, NULL, p_weight_basis => 'as_received', p_result_party => 'ours');
     asy := (v_rec->>'assay_result_id')::uuid;
     PERFORM apply_assay_result(asy);
 
@@ -147,7 +147,7 @@ BEGIN
     -- 【同一个事务里】—— 不靠"下次刷新就好了"。
     v_rec := record_assay_result('2026-05-03'::date,
                 jsonb_build_array(jsonb_build_object('metal','li','content_pct',3.25)),
-                NULL, NULL, NULL, true, NULL, b_partial, NULL);
+                NULL, NULL, NULL, true, NULL, b_partial, NULL, p_weight_basis => 'as_received', p_result_party => 'ours');
     PERFORM apply_assay_result((v_rec->>'assay_result_id')::uuid);
 
     IF EXISTS (SELECT 1 FROM batch_required_assay_gaps g WHERE g.inbound_batch_id = b_partial) THEN
