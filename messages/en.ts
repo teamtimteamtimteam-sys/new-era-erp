@@ -961,18 +961,11 @@ const en = {
             SAFETY_STATES_BATCH_REQUIRED: 'Which batch? Recording safety states needs a batch to record them against.',
             INBOUND_NOT_FOUND: 'Inbound batch {0} does not exist.',
         },
-        chemistry: {
-            nmc: 'NMC',
-            nca: 'NCA',
-            lfp: 'LFP',
-            lco: 'LCO',
-            lmo: 'LMO',
-            lto: 'LTO',
-            sodiumIon: 'Sodium-ion',
-            mixed: 'Mixed',
-            na: 'N/A',
-            other: 'Other',
-        },
+        // 【PROC-5:materials.chemistry.* 已退役】名字现在在 battery_chemistries
+        // 那张字典自己的 name_en / name_zh 上 —— 加一种化学体系 = 加一行,
+        // 连翻译都不用配。(金属那边仍然留在 i18n 里,理由见
+        // app/components/dictionaries/dictionaryQuery.ts 的抬头:那边有 11 处
+        // 嵌在客户端深处的显示点,而这里只有 3 处。)
         attachments: {
             sectionTitle: 'Attachments',
             empty: 'No attachments yet',
@@ -2837,6 +2830,7 @@ const en = {
         colContent: 'Content %',
         colPricingStatus: 'Pricing',
         assayDate: 'Assay date',
+        labUnknown: '- not recorded -',
         labName: 'Laboratory',
         certificateRef: 'Certificate reference',
         sampleRef: 'Sample reference',

@@ -1,16 +1,14 @@
 'use client'
 
+import type { DictOption } from '@/app/components/dictionaries/dictionaryQuery'
 import { useActionState } from 'react'
 import Link from 'next/link'
 import { updateMaterial, type UpdateMaterialState } from './actions'
 import MaterialAxesPicker from '../../MaterialAxesPicker'
 import type { MaterialKind } from '../../materialKindOptions'
 import type { MaterialForm, MaterialSource, MaterialSizeFormat } from '../../materialAxesOptions'
-import CustomSelect from '../../CustomSelect'
 import {
-    CHEMISTRY_OPTIONS,
     UNIT_OPTIONS,
-    CUSTOM_VALUE,
 } from '../../options'
 import { useTranslations } from '@/lib/i18n/client'
 import WasteClassPicker from '../../WasteClassPicker'
@@ -35,6 +33,7 @@ type Material = {
 }
 
 export default function EditMaterialForm({
+    chemistryOptions,
     material,
     wasteClasses,
     kinds,
@@ -43,6 +42,8 @@ export default function EditMaterialForm({
     sizeFormats,
     locale,
 }: {
+    // PROC-5:化学体系字典(值 + 已翻好的名字),由页面读好传进来
+    chemistryOptions: DictOption[]
     material: Material
     wasteClasses: WasteClass[]
     kinds: MaterialKind[]
@@ -58,10 +59,6 @@ export default function EditMaterialForm({
         initialState
     )
 
-    const chemistryOptions = CHEMISTRY_OPTIONS.map((o) => ({
-        value: o.value,
-        label: t(o.labelKey),
-    }))
 
     return (
         <>
@@ -114,19 +111,29 @@ export default function EditMaterialForm({
 
                 {/* 化学体系(可选,可自定义)*/}
                 <div>
-                    <CustomSelect
+                    {/* PROC-5:化学体系 —— 字典下拉,【没有自由文本口了】。
+                        从前这里是 CustomSelect,选中「其他」会打开一个文本框;
+                        那个口就是 F7 点名的病本身(线上已经从它进来过一个占位串)。
+                        加一种化学体系现在 = 往字典里加一行。
+                        【留空仍然合法】它的意思是"没有人记过",不是"不适用"
+                        —— 后者由物料种类回答。 */}
+                    <label className="block text-sm font-medium mb-1">
+                        {t('materials.form.chemistry')}
+                    </label>
+                    <select
                         name="chemistry"
-                        label={t('materials.form.chemistry')}
-                        placeholder={t('materials.form.selectPlaceholder', {
+                        defaultValue={material.chemistry ?? ''}
+                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                    >
+                        <option value="">{t('materials.form.selectPlaceholder', {
                             label: t('materials.form.chemistry'),
-                        })}
-                        options={chemistryOptions}
-                        customValue={CUSTOM_VALUE}
-                        customInputPlaceholder={t('materials.form.customPlaceholder', {
-                            label: t('materials.form.chemistry'),
-                        })}
-                        defaultValue={material.chemistry ?? undefined}
-                    />
+                        })}</option>
+                        {/* 选单只列还能【新选】的;而上面那个 defaultValue 即使指向
+                            一个已停用的取值,也照样显示 —— 两个动词,两处判断。 */}
+                        {chemistryOptions.filter((o) => o.isActive || o.value === material.chemistry).map((o) => (
+                            <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                    </select>
                 </div>
 
                 {/* MAT-1:受控废物分类。改回【未分类】是正当的动作(录错了要能撤回),

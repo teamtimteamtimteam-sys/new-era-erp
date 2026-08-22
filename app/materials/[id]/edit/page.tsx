@@ -14,6 +14,7 @@ import { canEnterModule } from '@/lib/moduleAccess'
 import { mustRows } from '@/lib/db-helpers'
 import { MOD } from '@/lib/modules'
 import { loadSubstances, toOptions } from '@/app/metal-prices/substanceQuery'
+import { loadBatteryChemistries, toDictOptions } from '@/app/components/dictionaries/dictionaryQuery'
 
 export default async function EditMaterialPage({
     params,
@@ -31,6 +32,8 @@ export default async function EditMaterialPage({
     const substanceOptions = toOptions(await loadSubstances(supabase))
     const t = await getTranslations()
     const locale = await getLocale()
+    // PROC-5:化学体系字典
+    const chemistryOptions = toDictOptions(await loadBatteryChemistries(supabase), locale)
     // MAT-1:分类选项从表里现读
     const wasteClasses = await getWasteClassifications()
     const kinds = await getMaterialKinds()
@@ -99,7 +102,8 @@ export default async function EditMaterialPage({
                 </span>
             </p>
 
-            <EditMaterialForm material={material} wasteClasses={wasteClasses} kinds={kinds}
+            <EditMaterialForm
+                chemistryOptions={chemistryOptions} material={material} wasteClasses={wasteClasses} kinds={kinds}
                 forms={axes.forms} sources={axes.sources} sizeFormats={axes.sizeFormats} locale={locale} />
             <RequiredMetalsPanel
                 substanceOptions={substanceOptions}

@@ -24,7 +24,7 @@ CREATE TABLE public.materials (
     id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     code       text NOT NULL UNIQUE,  -- 'MAT-YYYY-NNNN',触发器取号
     name       text NOT NULL,
-    chemistry  text,
+    chemistry  text REFERENCES public.battery_chemistries (code),
     unit       text NOT NULL DEFAULT 'kg',
     spec       text,
     notes      text,
@@ -310,3 +310,18 @@ CREATE TRIGGER trg_materials_condition_axes
     BEFORE INSERT OR UPDATE ON public.materials
     FOR EACH ROW EXECUTE FUNCTION public.guard_material_condition_axes();
 
+COMMENT ON COLUMN public.materials.chemistry IS
+'PROC-5:指向 battery_chemistries 那张字典(外键 materials_chemistry_fkey,已验证)。
+
+【留空 = 没有人记过】它【不是】"不适用" —— 后者由 material_kinds.has_condition_axes
+回答(一箱吨袋没有化学体系可言)。PROC-2 的 G18 把这个区别记了下来,
+PROC-5 据此把「不适用」这个取值退役了:同一个问题有两个答案,两个答案会不一致。
+
+【本刀把一行占位串置成了 NULL,而那不是丢信息】
+MAT-2026-0002 原本存着「Special Chemistry Structure」—— 一个从旧自由文本口进来的
+占位串。它不是化学体系信息;置空之后,"**没有人说过这批料到底是什么**"
+变成一件读得出来的事。原值记在迁移文件里,复原只要一行 UPDATE ——
+但复原之前得先有人说出它是什么。
+
+【自由文本口关上了】从前这一列会静静收下任何字符串(线上就长出过一个)。
+现在加一种化学体系 = 往字典里加一行,门槛是 module.materials.edit。';

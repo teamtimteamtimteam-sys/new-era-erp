@@ -27,6 +27,11 @@
 --     在应用会拒的地方【同码】拒;它说"会过期"的地方 D1 断言视图真的过期,
 --     说"不会"的地方(weight)D2 断言它真的不动 —— 谓词与第六过期源钉在一起。
 --
+    -- PROC-5:实验室现在是一张字典(laboratories),lab_name 指向它。
+    -- 【自带数据的另一面:自带字典行】本支要用一个自己的实验室名,
+    -- 那就自己加那一行 —— 而"加一行就能用"正是把它做成字典换来的东西。
+    INSERT INTO laboratories (code, name_en, name_zh, sort_order)
+    VALUES ('fixture 54 lab', 'fixture 54 lab', 'fixture 54 lab', 99);
 -- 化验日期用 CURRENT_DATE(record_assay_result 拒未来日期);编号断言只断
 -- 【连续】与【同前缀】,不断绝对值 —— 序列起点取决于库里已有的化验数。
 -- 其余日期同样落在 CURRENT_DATE,锁与 system_start 显式自设(README 第 4/5 条)。

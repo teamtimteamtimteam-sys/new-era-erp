@@ -29,7 +29,7 @@ CREATE TABLE public.assay_results (
     code             text NOT NULL UNIQUE,  -- gapless 'ASY-YYYY-NNNN'
     inbound_batch_id uuid REFERENCES public.inbound_batches (id),
     assay_date       date NOT NULL,
-    lab_name         text,
+    lab_name         text REFERENCES public.laboratories (code),
     certificate_ref  text,
     sample_ref       text,
     is_final         boolean NOT NULL DEFAULT true,
@@ -85,3 +85,12 @@ CREATE POLICY "assay_results delete by permission"
     AS PERMISSIVE FOR DELETE TO authenticated
     USING ((inbound_batch_id IS NOT NULL AND has_permission('module.inbound.edit'::text))
         OR (output_batch_id IS NOT NULL AND has_permission('module.output.edit'::text)));
+
+COMMENT ON COLUMN public.assay_results.lab_name IS
+'PROC-5:指向 laboratories 那张字典(外键 assay_results_lab_name_fkey)。
+
+【留空 = 没有人记过是哪家出的】那不是"我们自己做的" —— 若将来"自检"要成为一个
+可记录的事实,它是字典里的一行,不是一个空值的含义。
+
+【列名仍然叫 lab_name,而它现在存的是 code】与 PROC-4 留下的 metal → substance_code
+同一族的名不副实。改名的代价见 docs/known-issues.md;它不挡路,所以不在本刀里付。';

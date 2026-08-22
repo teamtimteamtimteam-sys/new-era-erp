@@ -106,6 +106,11 @@ BEGIN
             (v_po->>'purchase_order_id')::uuid, v_line)
     RETURNING id INTO v_batch;
 
+    -- PROC-5:实验室现在是一张字典(laboratories),lab_name 指向它。
+    -- 【自带数据的另一面:自带字典行】本支要用一个自己的实验室名,
+    -- 那就自己加那一行 —— 而"加一行就能用"正是把它做成字典换来的东西。
+    INSERT INTO laboratories (code, name_en, name_zh, sort_order)
+    VALUES ('Fixture Lab', 'Fixture Lab', 'Fixture Lab', 99);
     v_assay := record_assay_result(p_assay_date => v_today, p_metals => v_metals, p_lab_name => 'Fixture Lab', p_inbound_batch_id => v_batch);
     PERFORM apply_assay_result((v_assay->>'assay_result_id')::uuid);
 

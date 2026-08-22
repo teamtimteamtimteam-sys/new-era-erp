@@ -17,6 +17,8 @@ import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { loadSubstances, toOptions } from '@/app/metal-prices/substanceQuery'
+import { getLocale } from '@/lib/i18n/server'
+import { loadLaboratories, toDictOptions } from '@/app/components/dictionaries/dictionaryQuery'
 
 export default async function NewAssayPage({
     params,
@@ -32,6 +34,8 @@ export default async function NewAssayPage({
     const supabase = await createClient()
     // PROC-4:物质清单从 substances 那张字典读(清单与顺序都由它定)。
     const substanceOptions = toOptions(await loadSubstances(supabase))
+    // PROC-5:实验室字典
+    const labOptions = toDictOptions(await loadLaboratories(supabase), await getLocale())
     const t = await getTranslations()
     // ASY-3:本位币来自数据(currencies.is_base),不是常量 —— 影响块要说出
     // 自己是哪种货币,而面板上半截是行情口径的 USD。
@@ -101,6 +105,7 @@ export default async function NewAssayPage({
             </p>
 
             <AssayForm
+                labOptions={labOptions}
                 substanceOptions={substanceOptions}
                 batch={{
                     id: batch.id,

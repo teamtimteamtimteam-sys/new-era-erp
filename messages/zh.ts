@@ -963,18 +963,11 @@ const zh = {
             SAFETY_STATES_BATCH_REQUIRED: '记给哪一批?记安全状态得有一个批次可记。',
             INBOUND_NOT_FOUND: '进料批次 {0} 不存在。',
         },
-        chemistry: {
-            nmc: 'NMC',
-            nca: 'NCA',
-            lfp: 'LFP',
-            lco: 'LCO',
-            lmo: 'LMO',
-            lto: 'LTO',
-            sodiumIon: '钠离子',
-            mixed: '混合',
-            na: '不适用',
-            other: '其他',
-        },
+        // 【PROC-5:materials.chemistry.* 已退役】名字现在在 battery_chemistries
+        // 那张字典自己的 name_en / name_zh 上 —— 加一种化学体系 = 加一行,
+        // 连翻译都不用配。(金属那边仍然留在 i18n 里,理由见
+        // app/components/dictionaries/dictionaryQuery.ts 的抬头:那边有 11 处
+        // 嵌在客户端深处的显示点,而这里只有 3 处。)
         attachments: {
             sectionTitle: '附件',
             empty: '暂无附件',
@@ -2832,6 +2825,7 @@ const zh = {
         colContent: '含量 %',
         colPricingStatus: '定价状态',
         assayDate: '化验日期',
+        labUnknown: '— 没有记过 —',
         labName: '化验机构',
         certificateRef: '证书编号',
         sampleRef: '样品编号',

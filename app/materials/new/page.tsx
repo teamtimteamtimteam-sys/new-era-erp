@@ -8,6 +8,8 @@ import { getWasteClassifications } from '../wasteClassQuery'
 import { getMaterialKinds } from '../materialKindQuery'
 import { getMaterialAxes } from '../materialAxesQuery'
 import { getLocale } from '@/lib/i18n/server'
+import { loadBatteryChemistries, toDictOptions } from '@/app/components/dictionaries/dictionaryQuery'
+import { createClient } from '@/lib/supabase/server'
 
 export default async function NewMaterialPage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -23,6 +25,9 @@ export default async function NewMaterialPage() {
     const axes = await getMaterialAxes()
     const locale = await getLocale()
 
-    return <NewMaterialForm wasteClasses={wasteClasses} kinds={kinds}
+    // PROC-5:化学体系字典 —— 加一种是加一行,这一页不必改
+    const chemistryOptions = toDictOptions(await loadBatteryChemistries(await createClient()), await getLocale())
+    return <NewMaterialForm
+                chemistryOptions={chemistryOptions} wasteClasses={wasteClasses} kinds={kinds}
         forms={axes.forms} sources={axes.sources} sizeFormats={axes.sizeFormats} locale={locale} />
 }

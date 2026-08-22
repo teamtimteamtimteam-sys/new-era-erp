@@ -15,6 +15,8 @@ import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { loadSubstances, toOptions } from '@/app/metal-prices/substanceQuery'
+import { getLocale } from '@/lib/i18n/server'
+import { loadLaboratories, toDictOptions } from '@/app/components/dictionaries/dictionaryQuery'
 
 export default async function NewOutputAssayPage({
     params,
@@ -30,6 +32,8 @@ export default async function NewOutputAssayPage({
     const supabase = await createClient()
     // PROC-4:物质清单从 substances 那张字典读(清单与顺序都由它定)。
     const substanceOptions = toOptions(await loadSubstances(supabase))
+    // PROC-5:实验室字典
+    const labOptions = toDictOptions(await loadLaboratories(supabase), await getLocale())
     const t = await getTranslations()
 
     const { data: batch, error } = await supabase
@@ -93,6 +97,7 @@ export default async function NewOutputAssayPage({
             </p>
 
             <OutputAssayForm
+                labOptions={labOptions}
                 substanceOptions={substanceOptions}
                 batchId={batch.id}
                 currentMetals={currentMetals}

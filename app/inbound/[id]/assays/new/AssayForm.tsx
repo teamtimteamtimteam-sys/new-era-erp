@@ -10,6 +10,7 @@
 // 两个提交按钮:仅记录 / 记录并应用。后者失败时【记录仍然保留】(见 actions.ts)。
 import { useActionState, useEffect, useState } from 'react'
 import Link from 'next/link'
+import type { DictOption } from '@/app/components/dictionaries/dictionaryQuery'
 import { useTranslations } from '@/lib/i18n/client'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import type { MetalOption } from '@/app/metal-prices/options'
@@ -29,12 +30,15 @@ function todayIsoLocal(): string {
 }
 
 export default function AssayForm({
+    labOptions,
     substanceOptions,
     batch,
     formula,
     currentMetals,
     baseCurrency,
 }: {
+    // PROC-5:实验室字典(值 + 已翻好的名字),由页面读好传进来
+    labOptions: DictOption[]
     // PROC-4:物质清单由页面从 substances 那张字典读好传进来。
     // 【表单不再自己拿着一份清单】那份清单曾经是这份名单的第五个副本,
     // 而它与库里的顺序【实测已经对不上】(它按重要性,库里的视图按字母序)。
@@ -126,7 +130,17 @@ export default function AssayForm({
                 </div>
                 <div className="flex-1 min-w-[12rem]">
                     <label className="block text-sm font-medium mb-1">{t('assay.labName')}</label>
-                    <input type="text" name="lab_name" className="w-full border border-gray-300 px-3 py-2 rounded" />
+                    {/* PROC-5:实验室 —— 字典下拉,不再是自由文本框。
+                        【留空仍然合法】那是"没有人记过是哪家出的"(线上 3 行就是这样),
+                        而不是"我们自己做的" —— 后者若要成为一个可记录的事实,
+                        它是字典里的一行,不是一个空值的含义。 */}
+                    <select name="lab_name" defaultValue=""
+                            className="w-full border border-gray-300 px-3 py-2 rounded">
+                        <option value="">{t('assay.labUnknown')}</option>
+                        {labOptions.filter((o) => o.isActive).map((o) => (
+                            <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                    </select>
                 </div>
                 <div className="flex-1 min-w-[12rem]">
                     <label className="block text-sm font-medium mb-1">{t('assay.certificateRef')}</label>

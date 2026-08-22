@@ -277,6 +277,13 @@ export type Database = {
             referencedColumns: ["inbound_batch_id"]
           },
           {
+            foreignKeyName: "assay_results_lab_name_fkey"
+            columns: ["lab_name"]
+            isOneToOne: false
+            referencedRelation: "laboratories"
+            referencedColumns: ["code"]
+          },
+          {
             foreignKeyName: "assay_results_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
@@ -584,6 +591,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      battery_chemistries: {
+        Row: {
+          code: string
+          is_active: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          is_active?: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          is_active?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Relationships: []
       }
       certificate_types: {
         Row: {
@@ -4214,6 +4248,33 @@ export type Database = {
           },
         ]
       }
+      laboratories: {
+        Row: {
+          code: string
+          is_active: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          is_active?: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          is_active?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Relationships: []
+      }
       lane_document_requirements: {
         Row: {
           created_at: string
@@ -5143,6 +5204,13 @@ export type Database = {
           waste_classification_code?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "materials_chemistry_fkey"
+            columns: ["chemistry"]
+            isOneToOne: false
+            referencedRelation: "battery_chemistries"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "materials_form_code_fkey"
             columns: ["form_code"]

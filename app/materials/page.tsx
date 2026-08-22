@@ -9,8 +9,8 @@ import Link from 'next/link'
 import DeleteButton from './DeleteButton'
 import MaterialToolbar from './MaterialToolbar'
 import { getMaterialKinds } from './materialKindQuery'
+import { loadBatteryChemistries, toDictOptions, dictLabeller } from '@/app/components/dictionaries/dictionaryQuery'
 import {
-    CHEMISTRY_OPTIONS,
     UNIT_OPTIONS,
     labelKeyForValue,
     type MaterialSelectOption,
@@ -47,6 +47,9 @@ export default async function MaterialsPage({
     const supabase = await createClient()
     const t = await getTranslations()
     const locale = await getLocale()
+    // PROC-5:化学体系显示名来自字典。**连停用的一起读** —— 一条记着已停用
+    // 取值的历史行必须照样显示得出名字,否则看起来像数据坏了。
+    const chemistryLabel = dictLabeller(toDictOptions(await loadBatteryChemistries(supabase), locale))
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
     // 把存储值反查成本地化文案;自定义自由文本(无 key)原样显示
@@ -228,7 +231,7 @@ export default async function MaterialsPage({
                                     : <span className="text-amber-700">{t('materials.kindUndecided')}</span>}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">
-                                {m.chemistry ? display(CHEMISTRY_OPTIONS, m.chemistry) : '—'}
+                                {m.chemistry ? chemistryLabel(m.chemistry) : '—'}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-sm">
                                 {/* MAT-1:【未分类要说出来,不能画成空白】—— 空白读起来像

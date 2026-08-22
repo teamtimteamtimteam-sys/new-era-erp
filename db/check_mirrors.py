@@ -127,6 +127,8 @@ RUNTIME_CONFIG_TABLES = [
     "material_kinds",
     # PROC-4:我们测量并核算的元素与物质(七个金属起步;氟/氯/石墨/塑料是排着队的)
     "substances",
+    # PROC-5:F7 点名的最后两处自由文本分类
+    "battery_chemistries", "laboratories",
     # PROC-2:五条进料状态轴,五张字典 —— 同一条。轴在 PROC-2 定死,取值可以后到,
     # 而"后到"的代价正是一行数据,这就是把它们做成字典换来的东西。
     "material_forms", "material_sources", "material_size_formats",
