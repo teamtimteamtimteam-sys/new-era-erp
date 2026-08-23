@@ -6,7 +6,8 @@ import { getTranslations } from '@/lib/i18n/server'
 import LanguageSwitcher from './LanguageSwitcher'
 import NotificationBell from './NotificationBell'
 import NavLinks from './NavLinks'
-import { canManagePermissions } from '@/lib/permissions'
+import { canManagePermissions, can } from '@/lib/permissions'
+import { DICT_PERMISSIONS } from '@/app/settings/dictionaries/registry'
 import { getVisibleModules } from '@/lib/moduleAccess'
 
 export default async function TopNav() {
@@ -21,6 +22,12 @@ export default async function TopNav() {
 
     const t = await getTranslations()
     const canManage = await canManagePermissions()
+    // DICT-ADMIN:能编辑【任一张】字典的人都要看得见那一项。
+    // 判据取自 registry 的 DICT_PERMISSIONS —— 不在这里抄第二份权限清单
+    // (加一张新字典时,这里自动跟着变)。
+    const canEditDictionaries = (
+        await Promise.all(DICT_PERMISSIONS.map((code) => can(code)))
+    ).some(Boolean)
     // OPS-15:按权限过滤后的模块清单 —— 与首页卡片同一份 lib/modules.ts
     const modules = await getVisibleModules()
 
@@ -48,7 +55,8 @@ export default async function TopNav() {
                     </form>
                 </div>
             </div>
-            <NavLinks modules={modules} canManagePermissions={canManage} />
+            <NavLinks modules={modules} canManagePermissions={canManage}
+                canEditDictionaries={canEditDictionaries} />
         </header>
     )
 }

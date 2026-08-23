@@ -13,10 +13,13 @@ import type { ModuleEntry } from '@/lib/modules'
 export default function NavLinks({
     modules,
     canManagePermissions = false,
+    canEditDictionaries = false,
 }: {
     /** 已按权限过滤 —— 过滤在服务端做,这里只渲染 */
     modules: ModuleEntry[]
     canManagePermissions?: boolean
+    // DICT-ADMIN:能编辑【任一张】字典就看得见那一项 —— 与 manage_permissions 无关。
+    canEditDictionaries?: boolean
 }) {
     const pathname = usePathname()
     const t = useTranslations()
@@ -44,9 +47,16 @@ export default function NavLinks({
         { href: '/me', key: 'nav.me' },
     ]
     const moduleItems = modules.map((m) => ({ href: m.href, key: m.navKey }))
-    const items = canManagePermissions
-        ? [...moduleItems, ...SELF_ITEMS, { href: '/settings/permissions', key: 'nav.settings' }]
-        : [...moduleItems, ...SELF_ITEMS]
+    // DICT-ADMIN:字典维护【另起一项】,不挂在「设置」那一项上。
+    // 那一项的判据是 action.manage_permissions,而五张字典把门的是
+    // module.materials.edit / module.inbound.edit —— 沿用它会造出一个
+    // **物料编辑员永远看不见的页**,而"没有入口的页"这个仓库付过四次账。
+    const items = [
+        ...moduleItems,
+        ...SELF_ITEMS,
+        ...(canEditDictionaries ? [{ href: '/settings/dictionaries', key: 'nav.dictionaries' }] : []),
+        ...(canManagePermissions ? [{ href: '/settings/permissions', key: 'nav.settings' }] : []),
+    ]
 
     return (
         <nav className="flex gap-1 overflow-x-auto px-6 pb-2">
