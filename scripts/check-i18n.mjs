@@ -318,6 +318,9 @@ const MANIFEST = {
     // 加一条 CHECK 就要来那个 Set 里加一个名字,于是这道检查立刻要求两个语言
     // 都补上句子 —— 与 logistics.milestoneLabel 接表上那条 CHECK 是同一种接法。
     'equipment.errors.': { kind: 'enum', values: () => tsSet('app/finance/assets/equipmentErrorCodes.ts', 'EQUIPMENT_ERROR_CODES') },
+    // IMPORT-1:加一条导入拒绝而不配句子,这里当场红。
+    'import.errors.': { kind: 'enum', values: () => tsSet('app/settings/import/importErrorCodes.ts', 'IMPORT_ERROR_CODES') },
+    'import.table.':  { kind: 'enum', values: () => tsArray('lib/importTables.ts', 'IMPORT_TABLES') },
     // EQP-2d:活的种类。**真源是 equipment_maintenance 表上那条 CHECK** ——
     // 往库里加一种活(EQP-2c 的 known-issue 里那条 service_type 就会),
     // 这道检查立刻要求两个语言都补上标签。写死一份清单只会烂在这里。

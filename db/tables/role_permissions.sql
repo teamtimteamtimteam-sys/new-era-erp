@@ -56,10 +56,10 @@ CREATE POLICY "role_permissions delete by permission"
 -- 【自己验一遍】—— 一份连自己的规则都不满足的起点,比没有起点更糟。
 -- ═══════════════════════════════════════════════════════════════════════════
 
--- admin(33):全部 —— 定义上如此,不然它就不是管理员。
+-- admin(34):全部 —— 定义上如此,不然它就不是管理员。
 INSERT INTO public.role_permissions (role_id, permission_code)
 SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
-        'action.manage_permissions', 'data.view_banking', 'data.view_identity', 'data.view_pay',
+        'action.bulk_import', 'action.manage_permissions', 'data.view_banking', 'data.view_identity', 'data.view_pay',
         'data.view_prices', 'data.view_reviews', 'data.view_sales', 'module.customers.edit',
         'module.customers.view', 'module.finance.edit', 'module.finance.view', 'module.hr.edit',
         'module.hr.view', 'module.inbound.edit', 'module.inbound.view', 'module.inventory.edit',

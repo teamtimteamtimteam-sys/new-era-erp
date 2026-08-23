@@ -235,6 +235,11 @@ const SPECIAL_ID_ROUTES = new Set([
     // 于是这次冒烟就没有走过任何一行明细 —— 与"预期会 SKIP 的路由跑起来了"
     // 互为镜像的一种假绿。所以从 journal_lines 反查一个【确实有行】的科目。
     '/finance/ledger/[account]',
+    // IMPORT-1:导入模板。段里放的是**表名**(六个字面量之一),不是任何一行的 id ——
+    // ID_SOURCES 一律 `select=id`,所以它走不了那条路,与上面科目号那条同理。
+    // 取值直接用 IMPORT_TABLES 的第一个:模板【不读任何业务数据】,
+    // 所以"取到哪一张表"不影响这条路由证明得了什么(它证明的是模板生成得出来)。
+    '/settings/import/template/[table]',
 ])
 
 const EXPECTED_SKIPS = new Set([
@@ -771,6 +776,10 @@ async function main() {
                 if (!code) { skipped.add(route); console.log(`  SKIP ${route}  (no data in journal_lines)`); continue }
                 // 资产负债表口径(累计、含年结)—— 与它的入口链接同形
                 url = `${route.replace('[account]', encodeURIComponent(code))}?mode=bs`
+            }
+            // IMPORT-1:模板路由 —— 段是表名,不是 id。用一个固定的、一定存在的表。
+            if (route === '/settings/import/template/[table]') {
+                url = route.replace('[table]', 'suppliers')
             }
             // 状态门路由:取同一行的 id 和 status,预期值算出来、精确断言
             let exact = null

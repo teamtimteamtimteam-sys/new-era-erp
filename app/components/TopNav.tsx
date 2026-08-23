@@ -61,6 +61,7 @@ export default async function TopNav() {
     }
 
     const canManage = await canManagePermissions()
+    const canBulkImport = await can('action.bulk_import')
     // DICT-ADMIN:能编辑【任一张】字典的人都要看得见那一项。
     // 判据取自 registry 的 DICT_PERMISSIONS —— 不在这里抄第二份权限清单
     // (加一张新字典时,这里自动跟着变)。
@@ -94,7 +95,7 @@ export default async function TopNav() {
                     </form>
                 </div>
             </div>
-            <NavLinks modules={modules} canManagePermissions={canManage}
+            <NavLinks modules={modules} canManagePermissions={canManage} canBulkImport={canBulkImport}
                 canEditDictionaries={canEditDictionaries} />
         </header>
     )

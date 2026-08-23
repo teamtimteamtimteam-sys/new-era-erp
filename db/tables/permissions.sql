@@ -88,4 +88,8 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
     ('data.view_banking', 'data', 'View company bank details', '查看公司银行明细', 'Company bank account name, number, SWIFT and bank address as printed on invoices', '开在发票上的公司银行户名、账号、SWIFT 与开户行地址', 230),
     ('data.view_sales', 'data', 'View sales records', '查看销售记录', 'Quantity, unit price, amount, customer and date of sales made from output batches', '产出批次的销售数量、单价、金额、客户与日期', 240),
     ('data.view_reviews', 'data', 'View performance review content', '查看绩效评估正文', 'Ratings, written conclusions, self-assessments and goal results in performance reviews', '绩效评估中的评级、书面结论、自评与目标结果', 250),
-    ('action.manage_permissions', 'action', 'Manage roles & permissions', '管理角色与权限', 'Create roles and change who holds what', '新建角色、调整授权', 300);
+    ('action.manage_permissions', 'action', 'Manage roles & permissions', '管理角色与权限', 'Create roles and change who holds what', '新建角色、调整授权', 300),
+    -- IMPORT-1:批量导入自己一个码。**不复用 action.manage_permissions** ——
+    -- 那会重演 DICT-ADMIN 之前的缺陷(一个物料编辑员永远够不到物料那张屏),
+    -- 而它也不等于"能编辑一家供应商":它是唯一一个一次能插入数百行的动作。
+    ('action.bulk_import', 'action', 'Bulk import master data', '批量导入主数据', 'Load materials, counterparties, employees, departments and storage locations from a CSV file. This is the only action that can insert hundreds of rows at once.', '从 CSV 文件批量装入物料、往来户、员工、部门与库位。这是唯一一个一次能插入数百行的动作。', 910);

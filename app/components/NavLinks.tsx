@@ -14,12 +14,16 @@ export default function NavLinks({
     modules,
     canManagePermissions = false,
     canEditDictionaries = false,
+    canBulkImport = false,
 }: {
     /** 已按权限过滤 —— 过滤在服务端做,这里只渲染 */
     modules: ModuleEntry[]
     canManagePermissions?: boolean
     // DICT-ADMIN:能编辑【任一张】字典就看得见那一项 —— 与 manage_permissions 无关。
     canEditDictionaries?: boolean
+    // IMPORT-1:批量导入自己一个权限码 —— 与「设置」那一项的判据无关,
+    // 理由与上面字典那一条逐字相同(沿用 manage_permissions 会造出一个够不到的页)。
+    canBulkImport?: boolean
 }) {
     const pathname = usePathname()
     const t = useTranslations()
@@ -55,6 +59,7 @@ export default function NavLinks({
         ...moduleItems,
         ...SELF_ITEMS,
         ...(canEditDictionaries ? [{ href: '/settings/dictionaries', key: 'nav.dictionaries' }] : []),
+        ...(canBulkImport ? [{ href: '/settings/import', key: 'nav.import' }] : []),
         ...(canManagePermissions ? [{ href: '/settings/permissions', key: 'nav.settings' }] : []),
     ]
 

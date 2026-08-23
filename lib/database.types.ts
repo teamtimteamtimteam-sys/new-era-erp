@@ -3227,6 +3227,39 @@ export type Database = {
         }
         Relationships: []
       }
+      import_batches: {
+        Row: {
+          code_first: string
+          code_last: string
+          file_name: string
+          id: string
+          imported_at: string
+          imported_by: string | null
+          row_count: number
+          target_table: string
+        }
+        Insert: {
+          code_first: string
+          code_last: string
+          file_name: string
+          id?: string
+          imported_at?: string
+          imported_by?: string | null
+          row_count: number
+          target_table: string
+        }
+        Update: {
+          code_first?: string
+          code_last?: string
+          file_name?: string
+          id?: string
+          imported_at?: string
+          imported_by?: string | null
+          row_count?: number
+          target_table?: string
+        }
+        Relationships: []
+      }
       inbound_batch_metals: {
         Row: {
           content_pct: number
@@ -17252,6 +17285,16 @@ export type Database = {
         Args: { p_sales_order_line_id: string }
         Returns: number
       }
+      master_import_apply: {
+        Args: {
+          p_dry_run?: boolean
+          p_file_name?: string
+          p_rows: Json
+          p_table: string
+        }
+        Returns: Json
+      }
+      master_import_forbidden_columns: { Args: never; Returns: string[] }
       match_bank_line: {
         Args: { p_journal_line_ids: string[]; p_statement_line_id: string }
         Returns: Json
