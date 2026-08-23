@@ -168,3 +168,24 @@ export async function deleteServiceInterval(assetId: string, intervalId: string)
     refresh(assetId)
     return { success: true }
 }
+
+// ── FIX-1(B-D1):记一个【计划】投用日 ────────────────────────────────────────
+// 【为什么必须有这扇门】新守卫会拒掉一个未来的 in_service_date,并告诉人
+// "那是计划投用日"。**如果没有地方填计划,那句话就是一条死路** ——
+// 而 D6 要求拒绝说出【去哪儿】。这扇门就是那个"哪儿"。
+//
+// 【它不走 set_asset_in_service】那支函数管的是【事件】(而且会拒未来的日期)。
+// 计划是另一件事:直连表 + RLS,不碰任何锁,也不驱动任何规则。
+export async function setPlannedInService(input: {
+    assetId: string; plannedDate: string
+}): Promise<ActState> {
+    const supabase = await createClient()
+    // 【空 = 撤掉这个计划】那是一个正当的动作(计划会变),不是一个要被拦的状态。
+    const value = input.plannedDate.trim() === '' ? null : input.plannedDate.trim()
+    const { error } = await supabase.from('fixed_assets')
+        .update({ planned_in_service_date: value } as never)
+        .eq('id', input.assetId)
+    if (error) return { error: await localizeEquipmentError(error.message) }
+    refresh(input.assetId)
+    return { success: true }
+}

@@ -16,19 +16,21 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { disposeAsset, commissionAsset } from '../month-end/actions'
+import { setPlannedInService } from './[id]/actions'
 
 export default function AssetActions({
-    assetId, code, status, inServiceDate, acquisitionDate, canEdit, bankAccounts,
+    assetId, code, status, inServiceDate, plannedInServiceDate, acquisitionDate, canEdit, bankAccounts,
 }: {
     assetId: string; code: string; status: string
-    inServiceDate: string | null; acquisitionDate: string
+    inServiceDate: string | null; plannedInServiceDate: string | null; acquisitionDate: string
     canEdit: boolean; bankAccounts: string[]
 }) {
     const t = useTranslations()
     const router = useRouter()
     const [pending, start] = useTransition()
     const [error, setError] = useState<string | null>(null)
-    const [open, setOpen] = useState<'' | 'commission' | 'dispose'>('')
+    const [open, setOpen] = useState<'' | 'commission' | 'dispose' | 'plan'>('')
+    const [plan, setPlan] = useState(plannedInServiceDate ?? '')
     const [inSvc, setInSvc] = useState('')
     const [dispDate, setDispDate] = useState('')
     const [proceeds, setProceeds] = useState('0')
@@ -68,6 +70,14 @@ export default function AssetActions({
                         className="border border-gray-400 px-2 py-1 rounded text-xs hover:bg-gray-50 disabled:opacity-50">
                     {t('assets.actions.dispose')}
                 </button>
+                {/* FIX-1:记一个【计划】投用日。
+                    没有这扇门,"那是计划投用日"那句拒绝就是一条死路(D6:拒绝要说去哪儿)。
+                    它【永远可点】—— 计划与在不在役无关,已投用的机器也可能有下一次计划。 */}
+                <button type="button" disabled={pending || !canEdit}
+                        onClick={() => setOpen(open === 'plan' ? '' : 'plan')}
+                        className="border border-gray-400 px-2 py-1 rounded text-xs hover:bg-gray-50 disabled:opacity-50">
+                    {t('assets.actions.plan')}
+                </button>
             </div>
             {/* 【禁用了就说为什么】两个动作各说各的 */}
             {commissionWhy && <p className="text-xs text-amber-700 mt-1">{commissionWhy}</p>}
@@ -89,6 +99,21 @@ export default function AssetActions({
                     {inSvc.trim() === '' && (
                         <p className="text-xs text-amber-700">{t('assets.actions.inServiceRequired')}</p>
                     )}
+                </div>
+            )}
+
+            {open === 'plan' && (
+                <div className="mt-2 border border-gray-300 rounded p-2 space-y-1">
+                    <p className="text-xs text-gray-500">{t('assets.plannedHint')}</p>
+                    <input type="date" value={plan} onChange={(e) => setPlan(e.target.value)}
+                           className="border border-gray-300 px-2 py-1 rounded text-xs" />
+                    <button type="button" disabled={pending}
+                            onClick={() => run(() => setPlannedInService({ assetId, plannedDate: plan }))}
+                            className="ml-2 bg-gray-900 text-white px-2 py-1 rounded text-xs disabled:opacity-50">
+                        {pending ? t('common.saving') : t('common.save')}
+                    </button>
+                    {/* 【留空 = 撤掉这个计划】计划会变,撤回它是正当的动作 */}
+                    <p className="text-xs text-gray-500">{t('assets.actions.planClear')}</p>
                 </div>
             )}
 

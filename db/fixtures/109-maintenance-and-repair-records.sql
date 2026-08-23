@@ -60,7 +60,7 @@ BEGIN
     RAISE NOTICE 'fixture 109 · 进入 F1';
     -- (a) 一炉加工照旧
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZFIX109-IB', v_mat, v_sup, 100, 100, 'kg', DATE '2027-06-01') RETURNING id INTO v_ib;
+    VALUES ('ZZFIX109-IB', v_mat, v_sup, 100, 100, 'kg', DATE '2026-06-01') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, v_ccy, NULL, 'fixture 109 price');
     -- PROC-3:这一支要投料,所以它的电池料批次得带一条【可投料】的安全状态。
     -- 【为什么是一条带 JOIN 的 SELECT,而不是逐个批次写死】本支里哪些批次【吃】
@@ -77,7 +77,7 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    v_run := commit_processing_run(DATE '2027-06-01', 'fixture 109 run', 20,
+    v_run := commit_processing_run(DATE '2026-06-01', 'fixture 109 run', 20,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
         jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 80)), 'metal_value');
     SELECT count(*) INTO v_n FROM processing_runs WHERE id = v_run AND status = 'committed';
@@ -86,9 +86,9 @@ BEGIN
     END IF;
 
     -- (b) 一台机器 + 一笔挂在它身上的支出照旧
-    v_res := create_fixed_asset('fixture 109 press', 120, DATE '2027-01-01');
+    v_res := create_fixed_asset('fixture 109 press', 120, DATE '2026-01-01');
     v_asset := (v_res->>'asset_id')::uuid;
-    v_res := record_expense(DATE '2027-01-05', '1500', 100000, v_ccy, NULL, 'unpaid', NULL,
+    v_res := record_expense(DATE '2026-01-05', '1500', 100000, v_ccy, NULL, 'unpaid', NULL,
         v_sup, NULL, 'fixture 109 machine invoice', jsonb_build_object('asset_id', v_asset), NULL);
     SELECT cost_base INTO v_pct FROM fixed_assets WHERE id = v_asset;
     IF v_pct <> 100000 THEN
@@ -97,7 +97,7 @@ BEGIN
 
     -- (c) 一段停机照旧
     INSERT INTO equipment_downtime (equipment_id, started_at, ended_at, reason)
-    VALUES (v_asset, TIMESTAMPTZ '2027-06-10 08:00+08', TIMESTAMPTZ '2027-06-10 16:00+08', 'fixture 109 planned stop')
+    VALUES (v_asset, TIMESTAMPTZ '2026-06-10 08:00+08', TIMESTAMPTZ '2026-06-10 16:00+08', 'fixture 109 planned stop')
     RETURNING id INTO v_dt;
     SELECT count(*) INTO v_n FROM equipment_downtime WHERE id = v_dt AND duration = INTERVAL '8 hours';
     IF v_n <> 1 THEN
@@ -108,11 +108,11 @@ BEGIN
     RAISE NOTICE 'fixture 109 · 进入 F2';
     INSERT INTO equipment_maintenance
         (equipment_id, performed_on, kind, description, performed_by_employee_id, downtime_id)
-    VALUES (v_asset, DATE '2027-06-10', 'service', 'fixture 109 routine service', v_emp, v_dt)
+    VALUES (v_asset, DATE '2026-06-10', 'service', 'fixture 109 routine service', v_emp, v_dt)
     RETURNING id INTO v_m1;
     INSERT INTO equipment_maintenance
         (equipment_id, performed_on, kind, description, performed_by_supplier_id)
-    VALUES (v_asset, DATE '2027-07-02', 'repair', 'fixture 109 bearing replacement', v_sup)
+    VALUES (v_asset, DATE '2026-07-02', 'repair', 'fixture 109 bearing replacement', v_sup)
     RETURNING id INTO v_m2;
 
     SELECT count(*) INTO v_n FROM equipment_maintenance WHERE equipment_id = v_asset;
@@ -131,7 +131,7 @@ BEGIN
     BEGIN
         INSERT INTO equipment_maintenance
             (equipment_id, performed_on, kind, description, performed_by_employee_id, performed_by_supplier_id)
-        VALUES (v_asset, DATE '2027-07-03', 'repair', 'fixture 109 both performers', v_emp, v_sup);
+        VALUES (v_asset, DATE '2026-07-03', 'repair', 'fixture 109 both performers', v_emp, v_sup);
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
     IF NOT v_denied OR position('equipment_maintenance_performer_shape' in v_msg) = 0 THEN
@@ -142,7 +142,7 @@ BEGIN
     v_denied := false; v_msg := NULL;
     BEGIN
         INSERT INTO equipment_maintenance (equipment_id, performed_on, kind, description)
-        VALUES (v_asset, DATE '2027-07-04', 'repair', 'fixture 109 nobody');
+        VALUES (v_asset, DATE '2026-07-04', 'repair', 'fixture 109 nobody');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
     IF NOT v_denied OR position('equipment_maintenance_performer_shape' in v_msg) = 0 THEN
@@ -159,7 +159,7 @@ BEGIN
     END IF;
     -- (b) 一段停机没有任何保养记录
     INSERT INTO equipment_downtime (equipment_id, started_at, reason)
-    VALUES (v_asset, TIMESTAMPTZ '2027-08-01 09:00+08', 'fixture 109 breakdown, nobody dispatched yet')
+    VALUES (v_asset, TIMESTAMPTZ '2026-08-01 09:00+08', 'fixture 109 breakdown, nobody dispatched yet')
     RETURNING id INTO v_dt;
     SELECT count(*) INTO v_n FROM equipment_downtime d
      WHERE d.id = v_dt AND NOT EXISTS (SELECT 1 FROM equipment_maintenance m WHERE m.downtime_id = d.id);
@@ -173,7 +173,7 @@ BEGIN
     BEGIN
         INSERT INTO equipment_maintenance
             (equipment_id, performed_on, kind, description, performed_by_supplier_id, capitalised)
-        VALUES (v_asset, DATE '2027-07-05', 'repair', 'fixture 109 overhaul', v_sup, true);
+        VALUES (v_asset, DATE '2026-07-05', 'repair', 'fixture 109 overhaul', v_sup, true);
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
     IF NOT v_denied OR position('equipment_maintenance_capitalisation_reason' in v_msg) = 0 THEN
@@ -183,7 +183,7 @@ BEGIN
     -- 给了理由就进得去(证明它是一道铰链,不是一堵墙)
     INSERT INTO equipment_maintenance
         (equipment_id, performed_on, kind, description, performed_by_supplier_id, capitalised, capitalisation_reason)
-    VALUES (v_asset, DATE '2027-07-05', 'repair', 'fixture 109 overhaul', v_sup, true,
+    VALUES (v_asset, DATE '2026-07-05', 'repair', 'fixture 109 overhaul', v_sup, true,
             'fixture 109: rebuilt the drive, adds an estimated three years of life');
 
     -- ══════════ F5 · 阈值【现读】,并且边界钉死 ════════════════════════════
@@ -192,7 +192,7 @@ BEGIN
     UPDATE maintenance_settings SET capitalise_pct_of_cost = 10, capitalise_floor_base = 1000;
     -- 机器记录成本 100,000 → 10% 边界正好是 10,000。
     -- 【正好等于阈值 → 达标】(判据是 >=,这一条把边界本身钉死)
-    v_res := record_expense(DATE '2027-07-05', '6100', 10000, v_ccy, NULL, 'unpaid', NULL,
+    v_res := record_expense(DATE '2026-07-05', '6100', 10000, v_ccy, NULL, 'unpaid', NULL,
         v_sup, NULL, 'fixture 109 repair invoice at the boundary', NULL, NULL);
     v_exp := (v_res->>'expense_id')::uuid;
     UPDATE equipment_maintenance SET expense_id = v_exp WHERE id = v_m2;
@@ -204,7 +204,7 @@ BEGIN
     END IF;
 
     -- 【差一分 → 不达标】同一条记录换一张 9,999.99 的单
-    v_res := record_expense(DATE '2027-07-06', '6100', 9999.99, v_ccy, NULL, 'unpaid', NULL,
+    v_res := record_expense(DATE '2026-07-06', '6100', 9999.99, v_ccy, NULL, 'unpaid', NULL,
         v_sup, NULL, 'fixture 109 repair invoice one cent below', NULL, NULL);
     v_exp2 := (v_res->>'expense_id')::uuid;
     UPDATE equipment_maintenance SET expense_id = v_exp2 WHERE id = v_m2;

@@ -99,3 +99,12 @@ CREATE POLICY "equipment_downtime update by permission"
     AS PERMISSIVE FOR UPDATE TO authenticated
     USING (has_permission('module.processing.edit'::text))
     WITH CHECK (has_permission('module.processing.edit'::text));
+
+-- FIX-1:一段停机不许在未来,也不许与同一台机器的另一段重叠。
+-- 【为什么是触发器不是 CHECK / 排他约束】重叠要看别的行(CHECK 看不见);
+-- 而拒绝的句子要带上【挡路那一段的起止】(约束消息带不了参数);
+-- 排他约束还需要 btree_gist,而线上没装。理由全文在迁移抬头。
+-- 【也管 UPDATE】关闭一段停机就是一次 UPDATE,那一刻同样要过这三条。
+CREATE TRIGGER trg_equipment_downtime_period
+    BEFORE INSERT OR UPDATE ON public.equipment_downtime
+    FOR EACH ROW EXECUTE FUNCTION public.guard_downtime_period();

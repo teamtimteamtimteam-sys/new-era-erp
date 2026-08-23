@@ -33,6 +33,7 @@ import MaintenancePanel from './MaintenancePanel'
 import DowntimePanel, { type DowntimeRow } from './DowntimePanel'
 import ServiceIntervalPanel, { type IntervalRow } from './ServiceIntervalPanel'
 import { getLocale } from '@/lib/i18n/server'
+import { inServiceState } from '../inServiceState'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 
@@ -62,7 +63,7 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
     const locale = await getLocale()
 
     const assetRes = await supabase.from('fixed_assets')
-        .select('id, code, description, category, acquisition_date, in_service_date, cost_ccy, currency, fx_rate, cost_base, useful_life_months, residual_base, status, expense_id, notes')
+        .select('id, code, description, category, acquisition_date, in_service_date, planned_in_service_date, cost_ccy, currency, fx_rate, cost_base, useful_life_months, residual_base, status, expense_id, notes')
         .eq('id', id).maybeSingle()
     const asset = assetRes.data
     if (!asset) notFound()
@@ -254,8 +255,13 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                     value={Number(asset.cost_base) === 0
                         ? t('assets.detail.noCostYet')
                         : formatAmount(nbv, baseCurrency)} />
+                {/* FIX-1(B-D5):三个具名状态,判断只有一份(inServiceState)。
+                    **绝不用过去时的标签配一个未来的日期** —— 那读起来是真的,而它不是。 */}
                 <Stat label={t('assets.detail.inService')}
-                    value={asset.in_service_date ?? t('assets.detail.notInServiceYet')} />
+                    value={(() => {
+                        const st = inServiceState(asset)
+                        return st.params ? t(st.key, st.params) : t(st.key)
+                    })()} />
             </div>
 
             {/* ── 成本从哪几张单据来 ──────────────────────────────────────── */}
@@ -342,7 +348,8 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                 </ul>
             )}
             <AssetActions assetId={asset.id} code={asset.code} status={asset.status}
-                inServiceDate={asset.in_service_date} acquisitionDate={asset.acquisition_date}
+                inServiceDate={asset.in_service_date} plannedInServiceDate={asset.planned_in_service_date}
+                acquisitionDate={asset.acquisition_date}
                 canEdit={canEdit} bankAccounts={['1000', '1010']} />
 
             {/* ══ EQP-2d:投用【之后】的一生 ═══════════════════════════════════

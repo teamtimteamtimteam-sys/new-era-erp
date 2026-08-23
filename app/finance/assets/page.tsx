@@ -16,6 +16,7 @@ import Subnav from '../Subnav'
 import DepreciateButton from './DepreciateButton'
 import { can } from '@/lib/permissions'
 import AssetActions from './AssetActions'
+import { inServiceState } from './inServiceState'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 
@@ -26,6 +27,7 @@ type AssetRow = {
     category: string
     acquisition_date: string
     in_service_date: string | null
+    planned_in_service_date: string | null
     cost_ccy: number
     currency: string
     fx_rate: number
@@ -155,7 +157,14 @@ export default async function AssetsPage({
                                 <td className="border border-gray-300 px-3 py-2 text-sm">{t('assets.category.' + a.category)}</td>
                                 <td className="border border-gray-300 px-3 py-2">{a.acquisition_date}</td>
                                 <td className="border border-gray-300 px-3 py-2">
-                                    {a.in_service_date ?? <span className="text-amber-700 text-xs">{t('assets.notInService')}</span>}
+                                    {(() => {
+                                        // FIX-1(B-D5):与详情页同一份判断。
+                                        const st = inServiceState(a)
+                                        const txt = st.params ? t(st.key, st.params) : t(st.key)
+                                        return a.in_service_date
+                                            ? txt
+                                            : <span className="text-amber-700 text-xs">{txt}</span>
+                                    })()}
                                 </td>
                                 {/* 原币成本:购置日汇率定格(非货币)—— 与本位币两列并排,各带各的币种 */}
                                 <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
@@ -186,6 +195,7 @@ export default async function AssetsPage({
                                     <AssetActions
                                         assetId={a.id} code={a.code} status={a.status}
                                         inServiceDate={a.in_service_date}
+                                        plannedInServiceDate={a.planned_in_service_date}
                                         acquisitionDate={a.acquisition_date}
                                         canEdit={canEdit} bankAccounts={bankAccounts} />
                                 </td>

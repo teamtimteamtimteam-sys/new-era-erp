@@ -52,7 +52,10 @@ CREATE TABLE public.fixed_assets (
     expense_id                uuid REFERENCES public.expenses (id),
     notes                     text,
     created_at                timestamptz NOT NULL DEFAULT now(),
-    created_by                uuid
+    created_by                uuid,
+    -- ── FIX-1 追加(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────────
+    -- 一个【计划】。可以在未来,不锁任何东西,**没有一条规则读它**(见列注)。
+    planned_in_service_date   date
 );
 
 COMMENT ON TABLE public.fixed_assets IS
@@ -91,3 +94,43 @@ ALTER TABLE public.fixed_assets ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "fixed_assets select by permission" ON public.fixed_assets
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.finance.view'::text));
+
+COMMENT ON COLUMN public.fixed_assets.planned_in_service_date IS
+'FIX-1:【计划】投用日 —— 打算什么时候把它投产。
+
+**它可以在未来。它不锁任何东西,不驱动任何规则,【没有一条规则读它】。**
+
+【为什么要有这一列】Tim 在 in_service_date 上填了 2027-01-01,想记的是
+"这条线明年投产"。**那一列装不下这个意思**:每一条规则测的都是
+`in_service_date IS NOT NULL`,从不测"是不是已经到了那天"。于是那台机器被当成
+【已投用】锁了起来 —— 追加成本被拒、冲销被拒、保养基线从一个负的天数起算 ——
+而折旧要等到 2027 才会跑。**每一把锁都锁上了,一分钱折旧都没提。**
+
+【给下一个人的一句话:不要让任何规则读这一列】
+它一旦被某条规则读了,就又变回了 in_service_date 那个问题 ——
+一个"打算"开始产生"已经发生"才该有的后果。要判断在不在役,读 in_service_date。';
+
+COMMENT ON COLUMN public.fixed_assets.in_service_date IS
+'投用日 —— 这台机器【真的开始服役】的那一天。折旧从这一天起算,不从购置日。
+
+**它不可以在未来**(FIX-1,由 guard_asset_in_service_not_future 执行)。
+投用是一件【发生过的事】;"打算什么时候投用"是 planned_in_service_date。
+
+【为什么必须分开:FIX-1 之前它们挤在一列里,后果是实测到的】
+线上 FA-2026-0001 的这一列曾是 2027-01-01。每一条规则测的都是
+`IS NOT NULL`(而不是"到了没有"),于是:
+  * record_expense 拒绝再追加成本(资产已"投用");
+  * reverse_expense 拒绝冲销;
+  * set_asset_in_service 拒绝再设;
+  * 而 preview_depreciate_fixed_assets 【是】比日期的,所以折旧要等到 2027。
+**锁全上,折旧全无** —— 40 万就那么冻着。
+
+【留空 = 还没投用】那不是"不知道",是一个明确的状态:这台机器还没开始服役。';
+
+-- FIX-1:投用日不许在未来 —— 与停机那一条是同一句话(投用是一件发生过的事)。
+-- 【为什么是触发器】fixed_assets 的行会被 UPDATE(状态、成本、投用日),
+-- 而 NOT VALID 会把不合规的行冻住(PROC-5 实测,八行物料至今改不动)。
+-- 【只看 in_service_date】planned_in_service_date 可以在未来,那是它的全部理由。
+CREATE TRIGGER trg_fixed_assets_in_service_not_future
+    BEFORE INSERT OR UPDATE ON public.fixed_assets
+    FOR EACH ROW EXECUTE FUNCTION public.guard_asset_in_service_not_future();

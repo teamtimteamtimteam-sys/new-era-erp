@@ -24,7 +24,7 @@ BEGIN;
 DO $$
 DECLARE
     v_user uuid := gen_random_uuid();
-    r_all uuid; v_ccy text; v_today date := DATE '2027-05-10';
+    r_all uuid; v_ccy text; v_today date := DATE '2026-05-10';
     v_sup uuid; v_mat uuid; v_matB uuid;
     v_ib uuid; v_run uuid; v_run2 uuid;
     v_asset uuid; v_asset2 uuid; v_res jsonb;
@@ -84,12 +84,12 @@ BEGIN
 
     -- ══════════ F2 · 归给一台已投用的机器,用量算得进去 ══════════════════════
     RAISE NOTICE 'fixture 108 · 进入 F2';
-    v_res := create_fixed_asset('fixture 108 furnace', 120, DATE '2027-01-01');
+    v_res := create_fixed_asset('fixture 108 furnace', 120, DATE '2026-01-01');
     v_asset := (v_res->>'asset_id')::uuid;
     -- 给它一点成本再投用(零成本卡投不了用 —— EQP-1c-a 的 ASSET_HAS_NO_COST)
-    PERFORM record_expense(DATE '2027-01-05', '1500', 50000, v_ccy, NULL, 'unpaid', NULL,
+    PERFORM record_expense(DATE '2026-01-05', '1500', 50000, v_ccy, NULL, 'unpaid', NULL,
         v_sup, NULL, 'fixture 108 machine invoice', jsonb_build_object('asset_id', v_asset), NULL);
-    PERFORM set_asset_in_service(v_asset, DATE '2027-02-01');
+    PERFORM set_asset_in_service(v_asset, DATE '2026-02-01');
 
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
     VALUES ('ZZFIX108-IB2', v_mat, v_sup, 60, 60, 'kg', v_today) RETURNING id INTO v_ib;
@@ -121,7 +121,7 @@ BEGIN
     RAISE NOTICE 'fixture 108 · 进入 F3';
     -- (a) 加工日早于取得日 → 拒
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZFIX108-IB3', v_mat, v_sup, 10, 10, 'kg', DATE '2026-12-01') RETURNING id INTO v_ib;
+    VALUES ('ZZFIX108-IB3', v_mat, v_sup, 10, 10, 'kg', DATE '2025-12-01') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, v_ccy, NULL, 'fixture 108 price 3');
     v_denied := false; v_msg := NULL;
     BEGIN
@@ -134,7 +134,7 @@ BEGIN
          WHERE mk.has_condition_axes
            AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                             WHERE s.inbound_batch_id = ib.id);
-        PERFORM commit_processing_run(DATE '2026-12-01', 'fixture 108 before acquisition', 0,
+        PERFORM commit_processing_run(DATE '2025-12-01', 'fixture 108 before acquisition', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 10)),
             jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 10)), 'metal_value',
             NULL, v_asset);
@@ -147,10 +147,10 @@ BEGIN
 
     -- (b) 【取得了、但还没投用 → 允许】这是本刀对原设计改动最大的一处:
     --     试车是这盘生意里一件有名有姓的事,而它正好证明投用日。
-    v_res := create_fixed_asset('fixture 108 commissioning rig', 60, DATE '2027-03-01');
+    v_res := create_fixed_asset('fixture 108 commissioning rig', 60, DATE '2026-03-01');
     v_asset2 := (v_res->>'asset_id')::uuid;
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZFIX108-IB4', v_mat, v_sup, 30, 30, 'kg', DATE '2027-03-15') RETURNING id INTO v_ib;
+    VALUES ('ZZFIX108-IB4', v_mat, v_sup, 30, 30, 'kg', DATE '2026-03-15') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, v_ccy, NULL, 'fixture 108 price 4');
     -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
@@ -161,7 +161,7 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    v_run2 := commit_processing_run(DATE '2027-03-15', 'fixture 108 trial run', 0,
+    v_run2 := commit_processing_run(DATE '2026-03-15', 'fixture 108 trial run', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 30)),
         jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 30)), 'metal_value',
         NULL, v_asset2);
@@ -177,12 +177,12 @@ BEGIN
 
     -- (c) 已处置之后 → 拒
     -- 先给它成本再投用、再处置(零成本卡投不了用也处置不了 —— EQP-1c-a)。
-    PERFORM record_expense(DATE '2027-03-02', '1500', 9000, v_ccy, NULL, 'unpaid', NULL,
+    PERFORM record_expense(DATE '2026-03-02', '1500', 9000, v_ccy, NULL, 'unpaid', NULL,
         v_sup, NULL, 'fixture 108 rig invoice', jsonb_build_object('asset_id', v_asset2), NULL);
-    PERFORM set_asset_in_service(v_asset2, DATE '2027-03-20');
-    PERFORM dispose_fixed_asset(v_asset2, DATE '2027-04-01', 0, NULL, 'fixture 108 scrap');
+    PERFORM set_asset_in_service(v_asset2, DATE '2026-03-20');
+    PERFORM dispose_fixed_asset(v_asset2, DATE '2026-04-01', 0, NULL, 'fixture 108 scrap');
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZFIX108-IB5', v_mat, v_sup, 10, 10, 'kg', DATE '2027-04-15') RETURNING id INTO v_ib;
+    VALUES ('ZZFIX108-IB5', v_mat, v_sup, 10, 10, 'kg', DATE '2026-04-15') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, v_ccy, NULL, 'fixture 108 price 5');
     v_denied := false; v_msg := NULL;
     BEGIN
@@ -195,7 +195,7 @@ BEGIN
          WHERE mk.has_condition_axes
            AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                             WHERE s.inbound_batch_id = ib.id);
-        PERFORM commit_processing_run(DATE '2027-04-15', 'fixture 108 after disposal', 0,
+        PERFORM commit_processing_run(DATE '2026-04-15', 'fixture 108 after disposal', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 10)),
             jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 10)), 'metal_value',
             NULL, v_asset2);
@@ -229,7 +229,7 @@ BEGIN
     RAISE NOTICE 'fixture 108 · 进入 F5';
     -- 开口的一段:表示得出来,也读得回来
     INSERT INTO equipment_downtime (equipment_id, started_at, reason)
-    VALUES (v_asset, TIMESTAMPTZ '2027-05-01 09:00+08', 'fixture 108 bearing failure')
+    VALUES (v_asset, TIMESTAMPTZ '2026-05-01 09:00+08', 'fixture 108 bearing failure')
     RETURNING id INTO v_dt;
     SELECT ended_at, duration INTO v_today, v_dur FROM equipment_downtime WHERE id = v_dt;
     IF v_today IS NOT NULL OR v_dur IS NOT NULL THEN
@@ -240,16 +240,25 @@ BEGIN
     v_denied := false; v_msg := NULL;
     BEGIN
         INSERT INTO equipment_downtime (equipment_id, started_at, reason)
-        VALUES (v_asset, TIMESTAMPTZ '2027-05-02 09:00+08', 'fixture 108 second open');
+        VALUES (v_asset, TIMESTAMPTZ '2026-05-02 09:00+08', 'fixture 108 second open');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
-    IF NOT v_denied OR position('uq_equipment_downtime_open' in v_msg) = 0 THEN
-        RAISE EXCEPTION 'FIXTURE 108F5 失败:同一台机器不该有第二段【没结束】的停机,应撞上 uq_equipment_downtime_open,实得 denied=% msg=%',
+    -- 【FIX-1 之后拦它的是【重叠守卫】,而 uq_equipment_downtime_open 仍然在 —— 两者都要】
+    -- 一段开着的停机上界当成 infinity,所以第二段开口与它重叠,BEFORE 触发器
+    -- 先于唯一索引跑,于是人看见的是 DOWNTIME_OVERLAPS(它还点名了挡路那一段的起止,
+    -- 比一句 "duplicate key" 有用得多)。
+    -- **那条唯一索引【不能因此拿掉】**:BEFORE 触发器里的 SELECT 不是并发安全的,
+    -- 两个并发插入可以都查不到对方;唯一索引是声明式的,race 不掉。
+    -- 一个给人看的句子,一个给并发兜底 —— 两者不是重复。
+    IF NOT v_denied
+       OR (position('DOWNTIME_OVERLAPS' in v_msg) = 0
+           AND position('uq_equipment_downtime_open' in v_msg) = 0) THEN
+        RAISE EXCEPTION 'FIXTURE 108F5 失败:同一台机器不该有第二段【没结束】的停机 —— 应被 DOWNTIME_OVERLAPS(FIX-1 的守卫,先跑)或 uq_equipment_downtime_open(并发兜底)拒,实得 denied=% msg=%',
             v_denied, COALESCE(v_msg,'(收下了)');
     END IF;
 
     -- 闭合它:长度自己算出来
-    UPDATE equipment_downtime SET ended_at = TIMESTAMPTZ '2027-05-01 17:30+08' WHERE id = v_dt;
+    UPDATE equipment_downtime SET ended_at = TIMESTAMPTZ '2026-05-01 17:30+08' WHERE id = v_dt;
     SELECT duration INTO v_dur FROM equipment_downtime WHERE id = v_dt;
     IF v_dur <> INTERVAL '8 hours 30 minutes' THEN
         RAISE EXCEPTION 'FIXTURE 108F5 失败:闭合之后长度应当是 8:30(09:00 → 17:30),实得 % —— 它是两个记下来的事实之差,不需要任何判断(而可用率需要一个没人选过的分母,所以本刀不算)', v_dur;
@@ -259,7 +268,7 @@ BEGIN
     v_denied := false; v_msg := NULL;
     BEGIN
         INSERT INTO equipment_downtime (equipment_id, started_at, ended_at, reason)
-        VALUES (v_asset, TIMESTAMPTZ '2027-05-03 12:00+08', TIMESTAMPTZ '2027-05-03 08:00+08', 'fixture 108 backwards');
+        VALUES (v_asset, TIMESTAMPTZ '2026-05-03 12:00+08', TIMESTAMPTZ '2026-05-03 08:00+08', 'fixture 108 backwards');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
     IF NOT v_denied OR position('equipment_downtime_period_order' in v_msg) = 0 THEN

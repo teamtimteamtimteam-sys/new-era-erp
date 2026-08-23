@@ -3,6 +3,7 @@
 // 月结各步的服务端动作(FIN-7)。守卫全在 DB;这里只翻错误、刷页面。
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { localizeEquipmentError } from '@/app/finance/assets/equipmentErrorCodes'
 import { localizePaymentError } from '../paymentErrorCodes'
 import { localizeHrError } from '@/app/hr/hrErrorCodes'
 import { localizeProcessingError } from '@/app/processing/errorCodes'
@@ -137,6 +138,13 @@ export async function commissionAsset(assetId: string, inServiceDate: string): P
     const { error, data } = await supabase.rpc('set_asset_in_service', {
         p_asset_id: assetId, p_date: inServiceDate,
     } as never)
-    if (error) return { error: await localizePaymentError(error.message) }
+    if (error) {
+        // FIX-1:投用日在未来的那条拒绝(ASSET_IN_SERVICE_IN_FUTURE)住在【设备】
+        // 那一支的码表里,而这里一直只问 localizePaymentError —— 不接上它,
+        // 新拒绝到屏幕上就是一串机器话。认不出时两支都原样返回,所以链是安全的。
+        const viaEquipment = await localizeEquipmentError(error.message)
+        if (viaEquipment !== error.message.trim()) return { error: viaEquipment }
+        return { error: await localizePaymentError(error.message) }
+    }
     refresh(); revalidatePath('/finance/assets'); return { success: true, result: JSON.stringify(data) }
 }

@@ -4791,6 +4791,8 @@ const en = {
         colActions: 'Actions',
         needsFinanceEdit: 'requires Finance (edit)',
         actions: {
+            plan: 'Planned date',
+            planClear: 'Leave empty and save to withdraw the plan.',
             commission: 'Commission',
             dispose: 'Dispose',
             commissionWhy: 'Commissioning starts depreciation from the date you give and FREEZES the cost — no further cost can be added to this asset afterwards. The first month is pro-rated by day.',

@@ -54,7 +54,7 @@ BEGIN
 
     -- ══════════ F1 · 新建模式照旧(前提)═══════════════════════════════════
     RAISE NOTICE 'fixture 107 · 进入 F1';
-    v_res := record_expense(DATE '2027-01-05', '1500', 40000, v_ccy, NULL, 'unpaid', NULL,
+    v_res := record_expense(DATE '2026-01-05', '1500', 40000, v_ccy, NULL, 'unpaid', NULL,
         v_sup, NULL, 'fixture 107 outright machine',
         jsonb_build_object('description', 'fixture 107 outright', 'useful_life_months', 60), NULL);
     v_exp := (v_res->>'expense_id')::uuid;
@@ -71,7 +71,7 @@ BEGIN
 
     -- ══════════ F2 · 整条顺序:卡 → 设备行 → 定金 → 发票 → 成本 ═════════════
     RAISE NOTICE 'fixture 107 · 进入 F2';
-    v_res := create_fixed_asset('fixture 107 press', 120, DATE '2027-01-06');
+    v_res := create_fixed_asset('fixture 107 press', 120, DATE '2026-01-06');
     v_a2 := (v_res->>'asset_id')::uuid;
     v_code2 := v_res->>'code';
 
@@ -88,13 +88,17 @@ BEGIN
 
     -- 【两扇门,一个号段】F1 与 F2 的卡同年建出,号必须是连续的两个。
     -- 两份各自实现的取号逻辑今天一致、明天未必 —— 这一条就是在钉那件事。
-    IF v_code2 <> 'FA-2027-' || LPAD((split_part(v_code1,'-',3)::integer + 1)::text, 4, '0') THEN
+    -- 【年份从第一张卡自己身上取,不写死】此处原本写死 'FA-2027-' —— 那是一个
+    -- 与取号年份耦合的字面量,而取号年份来自购置日。FIX-1 把这一支的日期整体
+    -- 平移进过去之后它当场就错了,**而它本来就是一颗定时炸弹**:换一年建卡就红。
+    IF v_code2 <> split_part(v_code1,'-',1) || '-' || split_part(v_code1,'-',2) || '-'
+                  || LPAD((split_part(v_code1,'-',3)::integer + 1)::text, 4, '0') THEN
         RAISE EXCEPTION 'FIXTURE 107F2 失败:两扇门必须共用一个号段 —— 第一张 %,第二张应当是它的下一号,实得 %',
             v_code1, v_code2;
     END IF;
 
     -- 卡 → 设备采购单行(EQP-1a:行引用一张【已存在】的卡)
-    v_res := create_purchase_order(v_sup, DATE '2027-01-10', DATE '2027-04-01', v_ccy, NULL,
+    v_res := create_purchase_order(v_sup, DATE '2026-01-10', DATE '2026-04-01', v_ccy, NULL,
         NULL, NULL, 'fixture 107 equipment PO',
         jsonb_build_array(jsonb_build_object('asset_id', v_a2, 'quantity', 1,
                                              'estimated_unit_price', 100000)));
@@ -105,20 +109,20 @@ BEGIN
     END IF;
 
     -- 定金 30,000(进 1300 预付款项)
-    PERFORM record_payment('out', v_sup, 30000, v_ccy, NULL, NULL, DATE '2027-01-15',
+    PERFORM record_payment('out', v_sup, 30000, v_ccy, NULL, NULL, DATE '2026-01-15',
         'fixture 107 deposit',
         jsonb_build_array(jsonb_build_object('purchase_order_id', v_po, 'amount_doc', 30000)),
         'supplier');
 
     -- 发票 100,000,挂在【那条设备行】上,追加模式落到【那张卡】上
-    v_res := record_expense(DATE '2027-03-01', '1500', 100000, v_ccy, NULL, 'unpaid', NULL,
+    v_res := record_expense(DATE '2026-03-01', '1500', 100000, v_ccy, NULL, 'unpaid', NULL,
         v_sup, NULL, 'fixture 107 machine invoice',
         jsonb_build_object('asset_id', v_a2), NULL, v_line);
     v_exp := (v_res->>'expense_id')::uuid;
 
     -- 定金冲抵到那张发票上
     -- EQP-1c-b(X1):冲抵日现在【必填】—— 它决定这笔分录落在哪个期间。
-    PERFORM apply_prepayment(v_po, NULL, 30000, 'fixture 107 release', v_exp, DATE '2027-03-05');
+    PERFORM apply_prepayment(v_po, NULL, 30000, 'fixture 107 release', v_exp, DATE '2026-03-05');
 
     SELECT purchase_order_line_id INTO v_link FROM expenses WHERE id = v_exp;
     IF v_link IS DISTINCT FROM v_line THEN
@@ -141,11 +145,11 @@ BEGIN
     -- ══════════ F3 · 铰链:零成本投不了用,有成本就投得了 ════════════════════
     RAISE NOTICE 'fixture 107 · 进入 F3';
     -- (a) 自己建一张零成本卡 —— 不借 F2 那张(它已经有成本了)
-    v_res := create_fixed_asset('fixture 107 not yet paid', 60, DATE '2027-02-01');
+    v_res := create_fixed_asset('fixture 107 not yet paid', 60, DATE '2026-02-01');
     v_a3 := (v_res->>'asset_id')::uuid;
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM set_asset_in_service(v_a3, DATE '2027-02-10');
+        PERFORM set_asset_in_service(v_a3, DATE '2026-02-10');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
     IF NOT v_denied OR position('ASSET_HAS_NO_COST' in v_msg) = 0 THEN
@@ -154,21 +158,21 @@ BEGIN
     END IF;
 
     -- (b) 成本落上来之后,同一张卡投得了用
-    PERFORM record_expense(DATE '2027-02-05', '1500', 7000, v_ccy, NULL, 'unpaid', NULL,
+    PERFORM record_expense(DATE '2026-02-05', '1500', 7000, v_ccy, NULL, 'unpaid', NULL,
         v_sup, NULL, 'fixture 107 late invoice',
         jsonb_build_object('asset_id', v_a3), NULL);
-    PERFORM set_asset_in_service(v_a3, DATE '2027-02-10');
+    PERFORM set_asset_in_service(v_a3, DATE '2026-02-10');
     SELECT in_service_date INTO v_ins FROM fixed_assets WHERE id = v_a3;
-    IF v_ins <> DATE '2027-02-10' THEN
+    IF v_ins <> DATE '2026-02-10' THEN
         RAISE EXCEPTION 'FIXTURE 107F3b 失败:成本落上来之后应当投得了用,实得 % —— 少了这一半,上一条就只证明了"这张卡什么都干不了"', COALESCE(v_ins::text,'(null)');
     END IF;
 
     -- ══════════ F3b · 同一条规矩:零成本卡处置不了 ══════════════════════════
     RAISE NOTICE 'fixture 107 · 进入 F3b';
-    v_res := create_fixed_asset('fixture 107 never arrived', 60, DATE '2027-02-01');
+    v_res := create_fixed_asset('fixture 107 never arrived', 60, DATE '2026-02-01');
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM dispose_fixed_asset((v_res->>'asset_id')::uuid, DATE '2027-02-20', 0, NULL, 'fixture 107');
+        PERFORM dispose_fixed_asset((v_res->>'asset_id')::uuid, DATE '2026-02-20', 0, NULL, 'fixture 107');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
     IF NOT v_denied OR position('ASSET_HAS_NO_COST' in v_msg) = 0 THEN
@@ -179,14 +183,14 @@ BEGIN
     -- ══════════ F4 · create_fixed_asset 的每一条拒绝,逐条按名 ═══════════════
     RAISE NOTICE 'fixture 107 · 进入 F4';
     v_denied := false; v_msg := NULL;
-    BEGIN PERFORM create_fixed_asset('   ', 60, DATE '2027-01-01');
+    BEGIN PERFORM create_fixed_asset('   ', 60, DATE '2026-01-01');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR position('ASSET_DESCRIPTION_REQUIRED' in v_msg) = 0 THEN
         RAISE EXCEPTION 'FIXTURE 107F4 失败:只有空白的描述应被 ASSET_DESCRIPTION_REQUIRED 拒(btrim 之后为空),实得 denied=% msg=%', v_denied, COALESCE(v_msg,'(收下了)');
     END IF;
 
     v_denied := false; v_msg := NULL;
-    BEGIN PERFORM create_fixed_asset('fixture 107 bad life', 0, DATE '2027-01-01');
+    BEGIN PERFORM create_fixed_asset('fixture 107 bad life', 0, DATE '2026-01-01');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR position('ASSET_LIFE_INVALID' in v_msg) = 0 THEN
         RAISE EXCEPTION 'FIXTURE 107F4 失败:年限 0 应被 ASSET_LIFE_INVALID 拒,实得 denied=% msg=%', v_denied, COALESCE(v_msg,'(收下了)');
@@ -200,7 +204,7 @@ BEGIN
     END IF;
 
     v_denied := false; v_msg := NULL;
-    BEGIN PERFORM create_fixed_asset('fixture 107 bad cat', 60, DATE '2027-01-01', 'spaceship');
+    BEGIN PERFORM create_fixed_asset('fixture 107 bad cat', 60, DATE '2026-01-01', 'spaceship');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR position('ASSET_CATEGORY_INVALID' in v_msg) = 0 THEN
         RAISE EXCEPTION 'FIXTURE 107F4 失败:不存在的分类应被 ASSET_CATEGORY_INVALID 按名拒(表上那条 CHECK 也拦得住,但它只给得出约束名),实得 denied=% msg=%', v_denied, COALESCE(v_msg,'(收下了)');

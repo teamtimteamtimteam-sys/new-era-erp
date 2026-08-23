@@ -60,12 +60,12 @@ BEGIN
     -- (FX_RATE_NOT_ACCEPTED)—— 那正是 FX 规矩:一处实现,页面不自己算。
     -- 两笔 USD 支出各在自己那天取牌价,所以两天都要有行。
     INSERT INTO fx_rates (rate_date, currency, rate_type, rate_sgd_per_unit)
-    VALUES ('2028-03-02', 'USD', 'tt_sell', 1.30), ('2028-03-02', 'USD', 'mid', 1.30),
-           ('2028-03-12', 'USD', 'tt_sell', 1.30), ('2028-03-12', 'USD', 'mid', 1.30)
+    VALUES ('2026-03-02', 'USD', 'tt_sell', 1.30), ('2026-03-02', 'USD', 'mid', 1.30),
+           ('2026-03-12', 'USD', 'tt_sell', 1.30), ('2026-03-12', 'USD', 'mid', 1.30)
     ON CONFLICT DO NOTHING;
 
     -- ══════════ A. 买机器:一笔,一台,明细里有一行 ═══════════════════════════
-    v_r := record_expense('2028-03-02', '1500', 10000, 'USD', NULL, 'unpaid', NULL, v_sup, NULL, NULL,
+    v_r := record_expense('2026-03-02', '1500', 10000, 'USD', NULL, 'unpaid', NULL, v_sup, NULL, NULL,
         jsonb_build_object('description', 'Fixture line 77', 'useful_life_months', 100));
     v_asset := (v_r->>'asset_id')::uuid;
     IF v_asset IS NULL THEN
@@ -84,14 +84,14 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 77A 失败:成本应为 10000 USD × 1.30 = 13000,实得 %', v_cost;
     END IF;
     -- 【还没投用 → 一分不提】FA-0 验过的那个 NULL 行为,这里正面钉住
-    v_r := depreciate_fixed_assets('2028-03-31');
+    v_r := depreciate_fixed_assets('2026-03-31');
     IF (v_r->>'total_posted')::numeric <> 0 THEN
         RAISE EXCEPTION 'FIXTURE 77A 失败:未投用的资产不该提折旧,实得 %', v_r->>'total_posted';
     END IF;
 
     -- ══════════ B. 追加两笔:不同币种、不同汇率,合计对得上 ═══════════════════
     -- 本地运费 650 SGD(汇率 1)
-    v_r := record_expense('2028-03-10', '1500', 650, 'SGD', NULL, 'unpaid', NULL, v_sup, NULL, NULL,
+    v_r := record_expense('2026-03-10', '1500', 650, 'SGD', NULL, 'unpaid', NULL, v_sup, NULL, NULL,
         jsonb_build_object('asset_id', v_asset));
     IF (v_r->>'asset_mode') <> 'append' THEN
         RAISE EXCEPTION 'FIXTURE 77B 失败:带 asset_id 应当走追加模式,实得 %', v_r::text;
@@ -100,7 +100,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 77B 失败:追加不该造出第二台资产';
     END IF;
     -- 安装调试 1000 USD @ 1.30 = 1300
-    PERFORM record_expense('2028-03-12', '1500', 1000, 'USD', NULL, 'unpaid', NULL, v_sup, NULL, NULL,
+    PERFORM record_expense('2026-03-12', '1500', 1000, 'USD', NULL, 'unpaid', NULL, v_sup, NULL, NULL,
         jsonb_build_object('asset_id', v_asset));
 
     IF (SELECT count(*) FROM fixed_assets) <> 1 THEN
@@ -132,7 +132,7 @@ BEGIN
 
     -- ══════════ C. 追加的三条拒绝,各自只差它自己那一件 ═══════════════════════
     v_denied := false; v_msg := NULL;
-    BEGIN PERFORM record_expense('2028-03-13', '1500', 1, 'SGD', NULL, 'unpaid', NULL, v_sup, NULL, NULL,
+    BEGIN PERFORM record_expense('2026-03-13', '1500', 1, 'SGD', NULL, 'unpaid', NULL, v_sup, NULL, NULL,
         jsonb_build_object('asset_id', gen_random_uuid()));
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied OR v_msg NOT LIKE 'ASSET_NOT_FOUND|%' THEN
@@ -141,7 +141,7 @@ BEGIN
 
     -- 【1500 ↔ p_asset 的互相要求一字未改 —— 追加模式没有削弱它】
     v_denied := false; v_msg := NULL;
-    BEGIN PERFORM record_expense('2028-03-13', '6300', 1, 'SGD', NULL, 'unpaid', NULL, v_sup, NULL, NULL,
+    BEGIN PERFORM record_expense('2026-03-13', '6300', 1, 'SGD', NULL, 'unpaid', NULL, v_sup, NULL, NULL,
         jsonb_build_object('asset_id', v_asset));
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied OR v_msg NOT LIKE 'ASSET_REQUIRES_CAPITAL_ACCOUNT|%' THEN
@@ -151,14 +151,14 @@ BEGIN
 
     -- ══════════ D. 投用:冻结成本,折旧从那一天起算 ═══════════════════════════
     -- 投用日 3/16,三月 31 天 → 首月按天:14950/100 × 16/31 = 77.16…
-    v_r := set_asset_in_service(v_asset, '2028-03-16');
-    IF (v_r->>'in_service_date') <> '2028-03-16' THEN
+    v_r := set_asset_in_service(v_asset, '2026-03-16');
+    IF (v_r->>'in_service_date') <> '2026-03-16' THEN
         RAISE EXCEPTION 'FIXTURE 77D 失败:投用日应当写进去,实得 %', v_r::text;
     END IF;
 
     -- 投用之后不许再追加 —— 这一条是本刀的第三个决定
     v_denied := false; v_msg := NULL;
-    BEGIN PERFORM record_expense('2028-03-20', '1500', 500, 'SGD', NULL, 'unpaid', NULL, v_sup, NULL, NULL,
+    BEGIN PERFORM record_expense('2026-03-20', '1500', 500, 'SGD', NULL, 'unpaid', NULL, v_sup, NULL, NULL,
         jsonb_build_object('asset_id', v_asset));
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied OR v_msg NOT LIKE 'ASSET_ALREADY_IN_SERVICE|%' THEN
@@ -170,25 +170,25 @@ BEGIN
     END IF;
     -- 投用只发生一次
     v_denied := false; v_msg := NULL;
-    BEGIN PERFORM set_asset_in_service(v_asset, '2028-03-20');
+    BEGIN PERFORM set_asset_in_service(v_asset, '2026-03-20');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied OR v_msg NOT LIKE 'ASSET_ALREADY_IN_SERVICE|%' THEN
         RAISE EXCEPTION 'FIXTURE 77D 失败:投用日不该改第二次(改它等于推翻已提的折旧),实得 %',
             COALESCE(v_msg,'(改了)');
     END IF;
     -- 早于购置日按名拒(表上那条 CHECK 也拦得住,但它给的是约束名)
-    v_r := record_expense('2028-04-02', '1500', 100, 'SGD', NULL, 'unpaid', NULL, v_sup, NULL, NULL,
+    v_r := record_expense('2026-04-02', '1500', 100, 'SGD', NULL, 'unpaid', NULL, v_sup, NULL, NULL,
         jsonb_build_object('description', 'Fixture spare 77', 'useful_life_months', 50));
     v_asset2 := (v_r->>'asset_id')::uuid;
     v_denied := false; v_msg := NULL;
-    BEGIN PERFORM set_asset_in_service(v_asset2, '2028-04-01');
+    BEGIN PERFORM set_asset_in_service(v_asset2, '2026-04-01');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied OR v_msg NOT LIKE 'IN_SERVICE_BEFORE_ACQUISITION|%' THEN
         RAISE EXCEPTION 'FIXTURE 77D 失败:投用日早于购置日应当按名拒,实得 %', COALESCE(v_msg,'(设进去了)');
     END IF;
 
     -- 折旧:从【投用日】起算,首月按天(FIN-22 的约定,fixture 16 也钉着)
-    v_r := depreciate_fixed_assets('2028-03-31');
+    v_r := depreciate_fixed_assets('2026-03-31');
     SELECT COALESCE(SUM(amount_base), 0) INTO v_dep FROM fixed_asset_depreciation WHERE asset_id = v_asset;
     IF v_dep <> round(14950::numeric / 100 * 16 / 31, 2) THEN
         RAISE EXCEPTION 'FIXTURE 77D 失败:首月应提 = 14950/100 × 16/31 = %,实得 %(从购置日起算会是 149.50 —— 两种实现差得开)',
@@ -198,17 +198,17 @@ BEGIN
     -- ══════════ E. 锁的那道闸:三态 ═════════════════════════════════════════
     -- ① 欠着 → 点名拒,并说出金额(4 月还没提)
     v_denied := false; v_msg := NULL;
-    BEGIN PERFORM close_period('2028-04-30', 'fixture 77');
+    BEGIN PERFORM close_period('2026-04-30', 'fixture 77');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
-    IF NOT v_denied OR v_msg NOT LIKE 'DEPRECIATION_OUTSTANDING|2028-04-30|%' THEN
+    IF NOT v_denied OR v_msg NOT LIKE 'DEPRECIATION_OUTSTANDING|2026-04-30|%' THEN
         RAISE EXCEPTION 'FIXTURE 77E 失败:折旧还欠着时不该锁得进去 —— 锁上之后 PERIOD_LOCKED 会让它补都补不回来。实得 %',
             COALESCE(v_msg,'(锁进去了)');
     END IF;
 
     -- ② 提完了(差额 0)→ 放行
-    PERFORM depreciate_fixed_assets('2028-04-30');
-    v_r := close_period('2028-04-30', 'fixture 77');
-    IF (v_r->>'locked_before') <> '2028-05-01' THEN
+    PERFORM depreciate_fixed_assets('2026-04-30');
+    v_r := close_period('2026-04-30', 'fixture 77');
+    IF (v_r->>'locked_before') <> '2026-05-01' THEN
         RAISE EXCEPTION 'FIXTURE 77E 失败:折旧提完之后应当锁得进去,实得 %', v_r::text;
     END IF;
 
@@ -217,8 +217,8 @@ BEGIN
     DELETE FROM fixed_asset_depreciation;
     DELETE FROM fixed_asset_cost_entries;
     DELETE FROM fixed_assets;
-    v_r := close_period('2028-05-31', 'fixture 77 no assets');
-    IF (v_r->>'locked_before') <> '2028-06-01' THEN
+    v_r := close_period('2026-05-31', 'fixture 77 no assets');
+    IF (v_r->>'locked_before') <> '2026-06-01' THEN
         RAISE EXCEPTION 'FIXTURE 77E 失败:一台资产都没有时,这道闸不该拦,实得 %', v_r::text;
     END IF;
     UPDATE finance_settings SET locked_before = NULL;
@@ -227,11 +227,11 @@ BEGIN
     -- 【这道闸没有第二层】表上没有任何东西阻止一个欠着折旧的月份被锁进去 ——
     -- 它漏了就是真的锁得进去,而那正是 FA-0 之前的状态。
     -- 重造一台欠着折旧的资产,注入之后 close_period 必须【成功】。
-    v_r := record_expense('2028-06-01', '1500', 1200, 'SGD', NULL, 'unpaid', NULL, v_sup, NULL, NULL,
+    v_r := record_expense('2026-06-01', '1500', 1200, 'SGD', NULL, 'unpaid', NULL, v_sup, NULL, NULL,
         jsonb_build_object('description', 'Fixture inj 77', 'useful_life_months', 12,
-                           'in_service_date', '2028-06-01'));
+                           'in_service_date', '2026-06-01'));
     v_asset2 := (v_r->>'asset_id')::uuid;
-    IF (preview_depreciate_fixed_assets('2028-06-30')->>'total_delta')::numeric <= 0 THEN
+    IF (preview_depreciate_fixed_assets('2026-06-30')->>'total_delta')::numeric <= 0 THEN
         RAISE EXCEPTION 'FIXTURE 77 注入1 前提不成立:要的是一个【折旧还欠着】的月份';
     END IF;
 
@@ -242,8 +242,8 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 77 注入1 失败:在 close_period 里没找到那道闸的原文 —— 这个注入什么也没删,下面那句"应当锁得进去"会变成空转';
     END IF;
     EXECUTE v_inj;
-    v_r := close_period('2028-06-30', 'fixture 77 injection');
-    IF (v_r->>'locked_before') <> '2028-07-01' THEN
+    v_r := close_period('2026-06-30', 'fixture 77 injection');
+    IF (v_r->>'locked_before') <> '2026-07-01' THEN
         RAISE EXCEPTION 'FIXTURE 77 注入1 失败:摘掉那道闸之后,欠着折旧的月份应当【锁得进去】—— 说明 E 臂①拒它的不是那道闸';
     END IF;
     UPDATE finance_settings SET locked_before = NULL;
@@ -258,7 +258,7 @@ BEGIN
     END IF;
     EXECUTE v_inj;
     SELECT cost_base INTO v_cost FROM fixed_assets WHERE id = v_asset2;
-    PERFORM record_expense('2028-06-20', '1500', 300, 'SGD', NULL, 'unpaid', NULL, v_sup, NULL, NULL,
+    PERFORM record_expense('2026-06-20', '1500', 300, 'SGD', NULL, 'unpaid', NULL, v_sup, NULL, NULL,
         jsonb_build_object('asset_id', v_asset2));
     IF (SELECT cost_base FROM fixed_assets WHERE id = v_asset2) <> v_cost + 300 THEN
         RAISE EXCEPTION 'FIXTURE 77 注入2 失败:摘掉那道门之后,投用后的追加应当【真的加进去】—— 说明 D 臂拒它的不是那道门';

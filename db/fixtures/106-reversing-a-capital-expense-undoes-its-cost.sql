@@ -59,7 +59,7 @@ BEGIN
 
     -- ══════════ F1 · 普通支出的冲销,逐字照旧 ══════════════════════════════
     RAISE NOTICE 'fixture 106 · 进入 F1';
-    v_res := record_expense(DATE '2027-01-05', v_exp_acct, 1234, v_ccy, NULL, 'unpaid',
+    v_res := record_expense(DATE '2026-01-05', v_exp_acct, 1234, v_ccy, NULL, 'unpaid',
         NULL, v_sup, NULL, 'fixture 106 ordinary expense', NULL, NULL);
     v_exp := (v_res->>'expense_id')::uuid;
 
@@ -86,7 +86,7 @@ BEGIN
     -- ══════════ F2 · 冲销一笔追加,成本退回去 ══════════════════════════════
     RAISE NOTICE 'fixture 106 · 进入 F2';
     -- 建卡 100,000(新建模式)
-    v_res := record_expense(DATE '2027-01-05', '1500', 100000, v_ccy, NULL, 'unpaid', NULL,
+    v_res := record_expense(DATE '2026-01-05', '1500', 100000, v_ccy, NULL, 'unpaid', NULL,
         v_sup, NULL, 'fixture 106 machine',
         jsonb_build_object('description', 'fixture 106 press', 'useful_life_months', 120), NULL);
     SELECT id INTO v_asset FROM fixed_assets WHERE expense_id = (v_res->>'expense_id')::uuid;
@@ -94,7 +94,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 106F2 前提失败:资本支出没有生成资产卡';
     END IF;
     -- 追加 70,000
-    v_res := record_expense(DATE '2027-02-05', '1500', 70000, v_ccy, NULL, 'unpaid', NULL,
+    v_res := record_expense(DATE '2026-02-05', '1500', 70000, v_ccy, NULL, 'unpaid', NULL,
         v_sup, NULL, 'fixture 106 installation',
         jsonb_build_object('asset_id', v_asset), NULL);
     v_exp := (v_res->>'expense_id')::uuid;
@@ -139,11 +139,11 @@ BEGIN
     -- 它存在的意义正是排除"(b) 之所以被拒,是因为冲销根本就没用过" ——
     -- 一个阴性对照的价值恰恰来自它与被测项共用机制。写在这里,免得下一个人
     -- 把它当成一条独立的证明,或者反过来把它当成冗余删掉。
-    v_res := record_expense(DATE '2027-03-05', '1500', 20000, v_ccy, NULL, 'unpaid', NULL,
+    v_res := record_expense(DATE '2026-03-05', '1500', 20000, v_ccy, NULL, 'unpaid', NULL,
         v_sup, NULL, 'fixture 106 machine A',
         jsonb_build_object('description', 'fixture 106 machine A', 'useful_life_months', 60), NULL);
     SELECT id INTO v_asset FROM fixed_assets WHERE expense_id = (v_res->>'expense_id')::uuid;
-    v_res := record_expense(DATE '2027-03-06', '1500', 5000, v_ccy, NULL, 'unpaid', NULL,
+    v_res := record_expense(DATE '2026-03-06', '1500', 5000, v_ccy, NULL, 'unpaid', NULL,
         v_sup, NULL, 'fixture 106 machine A freight',
         jsonb_build_object('asset_id', v_asset), NULL);
     PERFORM reverse_expense((v_res->>'expense_id')::uuid, 'fixture 106 F4a');
@@ -153,17 +153,17 @@ BEGIN
     END IF;
 
     -- (b) 已投用 —— 按名拒。另建一台,免得 (a) 的处置影响它。
-    v_res := record_expense(DATE '2027-03-05', '1500', 20000, v_ccy, NULL, 'unpaid', NULL,
+    v_res := record_expense(DATE '2026-03-05', '1500', 20000, v_ccy, NULL, 'unpaid', NULL,
         v_sup, NULL, 'fixture 106 machine B',
         jsonb_build_object('description', 'fixture 106 machine B', 'useful_life_months', 60), NULL);
     SELECT id INTO v_asset2 FROM fixed_assets WHERE expense_id = (v_res->>'expense_id')::uuid;
-    v_res := record_expense(DATE '2027-03-06', '1500', 5000, v_ccy, NULL, 'unpaid', NULL,
+    v_res := record_expense(DATE '2026-03-06', '1500', 5000, v_ccy, NULL, 'unpaid', NULL,
         v_sup, NULL, 'fixture 106 machine B commissioning',
         jsonb_build_object('asset_id', v_asset2), NULL);
     v_exp := (v_res->>'expense_id')::uuid;
     -- 【顺序要紧】record_expense 的追加支对已投用资产是按名拒的,
     -- 所以必须先追加、再投用,才走得到冲销那一步。
-    PERFORM set_asset_in_service(v_asset2, DATE '2027-03-10');
+    PERFORM set_asset_in_service(v_asset2, DATE '2026-03-10');
 
     v_denied := false; v_msg := NULL;
     BEGIN
@@ -187,7 +187,7 @@ BEGIN
     VALUES ('ZZFIX106-E', 'fixture 106 employee', 'full_time', 'office', CURRENT_DATE - 400, 'active')
     RETURNING id INTO v_emp;
 
-    v_res := record_expense(DATE '2027-04-05', v_exp_acct, 88, v_ccy, NULL, 'unpaid',
+    v_res := record_expense(DATE '2026-04-05', v_exp_acct, 88, v_ccy, NULL, 'unpaid',
         NULL, NULL, NULL, 'fixture 106 staff reimbursement', NULL, v_emp);
     v_exp := (v_res->>'expense_id')::uuid;
 

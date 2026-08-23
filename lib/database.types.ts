@@ -2680,6 +2680,7 @@ export type Database = {
           id: string
           in_service_date: string | null
           notes: string | null
+          planned_in_service_date: string | null
           residual_base: number
           status: string
           useful_life_months: number
@@ -2703,6 +2704,7 @@ export type Database = {
           id?: string
           in_service_date?: string | null
           notes?: string | null
+          planned_in_service_date?: string | null
           residual_base?: number
           status?: string
           useful_life_months: number
@@ -2726,6 +2728,7 @@ export type Database = {
           id?: string
           in_service_date?: string | null
           notes?: string | null
+          planned_in_service_date?: string | null
           residual_base?: number
           status?: string
           useful_life_months?: number

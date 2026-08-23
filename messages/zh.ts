@@ -4768,6 +4768,8 @@ const zh = {
         colActions: '动作',
         needsFinanceEdit: '需要财务(编辑)权限',
         actions: {
+            plan: '计划投用日',
+            planClear: '留空再保存 = 撤掉这个计划。',
             commission: '投用',
             dispose: '处置',
             commissionWhy: '投用会从你给的那一天起开始折旧,并把成本【冻住】—— 此后不能再往这台资产上追加成本。首月按天折算。',
