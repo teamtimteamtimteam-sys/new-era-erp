@@ -1,0 +1,521 @@
+# Evoltrya OS — Accounting Policy Memorandum
+
+**Entity:** Evoltrya (Singapore). **Functional and presentation currency:** Singapore Dollar (SGD).
+**Prepared:** 2026-08-23. **Status:** current as at the date above.
+
+## What this document is
+
+This is a statement of the company's accounting policies. It is written for someone who has not seen
+the accounting system — an external auditor, a new finance hire, or an adviser being asked whether a
+treatment is appropriate.
+
+The system is **evidence that a policy is followed**, not the subject of the policy. Every statement
+below therefore carries an **enforcement point**: the specific database function, constraint or
+automated test that makes the policy hold in practice. That column exists for two readers — an auditor
+who wants to know whether a control is a rule or a habit, and an engineer who changes one of those
+objects and needs to know a policy statement depends on it.
+
+The memorandum is written in English, which is the reading language for statutory and audit purposes
+in Singapore and the language of the company's founding design documents. Where the team's working
+vocabulary is Chinese, the Chinese term appears in parentheses at first use.
+
+## How to read the marks
+
+Each statement carries one of three marks. **The marks are the most important feature of this
+document**, because they distinguish what the company has decided from what the software happens to
+do.
+
+| Mark | Meaning |
+|---|---|
+| **SETTLED** | Someone decided this, and the decision is recorded. The entry names where. |
+| **AS-BUILT** | The system behaves this way and **no one has ruled on it**. It is described here so it can be ruled on — not because it is endorsed. |
+| **DIVERGES** | A founding design document records a decision, and the system does something else. The entry quotes the document, states what the system does, and stops. |
+
+Two lists at the end collect these: **Needs a ruling** (every AS-BUILT) and **Needs reconciling**
+(every DIVERGES). Nothing in this memorandum decides an AS-BUILT or a DIVERGES item.
+
+---
+
+# 1 · Currency
+
+### 1.1 The functional and presentation currency is the Singapore Dollar. — **SETTLED**
+
+Changed from US Dollar to Singapore Dollar on **2026-08-04**. Comparative figures presented before
+that date were denominated in USD.
+
+The base currency is held as **data, not as a constant in the code** — exactly one currency row is
+flagged as base — so the currency cannot be changed in one place and missed in another.
+
+> *Enforcement:* `currencies.is_base` (a single row carries `true`); migration
+> `2026-08-04-fin0-sgd-base-and-fx-policy.sql`; `scripts/check-currency-literals.mjs` fails the build
+> if a currency code is hard-coded in a comparison, branch, default or on-screen label; fixture 15.
+
+### 1.2 A transaction in a foreign currency is translated at the rate for the transaction's own date. Where no rate exists, the system refuses to post and asks for one. — **SETTLED**
+
+There is no fallback rate, no assumed parity and no substitution of today's date. This is deliberate:
+a fabricated rate and a fabricated date produce a plausible figure with no error, which is materially
+worse than a refusal.
+
+> *Enforcement:* `fx_rate_for` / `fx_rate_asof` raise `FX_RATE_MISSING` naming the currency and date;
+> eleven posting functions raise a named `*_DATE_REQUIRED` error rather than defaulting to the current
+> date; fixture 09.
+
+### 1.3 The side of the rate follows the purpose of the translation. — **SETTLED**
+
+| Purpose | Rate side |
+|---|---|
+| Receipts from customers | `tt_buy` |
+| Payments to suppliers | `tt_sell` |
+| Market metal quotes converted to their USD basis | `mid` |
+| Period-end revaluation of monetary balances | `mid` |
+
+A market quote is a reference price rather than a dealt one, so a bank's spread has no place inside it.
+
+> *Enforcement:* `record_payment` selects the side from the payment direction; `metal_quote_to_usd`;
+> `revalue_foreign_balances`; `fx_rates.rate_type` admits exactly `mid` / `tt_buy` / `tt_sell`.
+
+### 1.4 Where a bank actually converted, the rate used is the rate the bank dealt at. — **SETTLED**
+
+Cross-currency settlement takes the **actual dealt rate** from the bank advice. The system refuses to
+look up a board rate for these, because the money moved at a real price.
+
+> *Enforcement:* `record_payment` requires the dealt rate on a cross-currency allocation; fixture 14, 18.
+
+### 1.5 A rate may be carried back only across days on which no rate was published, and by no more than four calendar days. — **SETTLED**
+
+A Saturday transaction properly uses Friday's rate, because the market did not publish on Saturday. **A
+business day with no rate on file is refused.** The four-day cap is a backstop against a mis-maintained
+holiday calendar. Where a carried-back rate is used, the screen shows the date the rate came from.
+
+The published holiday calendar available to the system is Singapore's, while metal quotes follow London
+and Chinese market days. The approximation is deliberate and its failure direction is a **refusal**,
+never a silently wrong rate.
+
+> *Enforcement:* `fx_rate_asof`, which returns the rate and the date it came from; `is_business_day`;
+> fixture 09.
+
+### 1.6 Exchange differences are split between realised and unrealised, and the two never share an account. — **SETTLED**
+
+Realised differences post to 7100; unrealised revaluation differences post to 7110.
+
+> *Enforcement:* `revalue_foreign_balances`; fixtures 02 and 06.
+
+### 1.7 Deposits paid or received are carried at the weighted-average rate of the deposits outstanding. — **SETTLED**
+
+When a deposit is applied against a payable, the deposit leg is translated at the weighted average
+rate of the deposit pool rather than at the rate of any single deposit. Deposits are consumed
+proportionally, so the average of the unapplied portion is arithmetically identical to the average of
+the whole — which is why no consumption ledger is required. First-in-first-out was considered and
+rejected on that basis.
+
+> *Enforcement:* `apply_prepayment`; migration `2026-08-21-eqp1bi-the-release-learns-its-currency.sql`
+> records the reasoning.
+
+---
+
+# 2 · Inventory and cost of sales
+
+### 2.1 Stock is valued by specific identification at batch level (批次). — **SETTLED — 2026-08-23, ruled by Tim; reverses a decision in the founding documents**
+
+**The policy.** Each inbound batch and each output batch carries its own cost. Cost of sales is the
+cost of the specific batch sold. No average is struck across batches, and no cost flows from one batch
+to another.
+
+**The accounting reason.** Weighted-average costing is appropriate to inventories of items that are
+**ordinarily interchangeable**. Battery scrap batches are not interchangeable: each carries its own
+assay (化验) — its own metal content, moisture and impurity profile — and is bought and sold on the
+strength of that assay. Two ten-tonne batches of black mass with different cobalt and nickel content
+are different goods at different prices. Averaging cost across them severs the link between a lot's
+cost and its metal content, and that link is the figure on which this business is priced and managed.
+Accounting standards call for specific identification precisely where items are not ordinarily
+interchangeable, and that is the case here.
+
+**This reverses a recorded decision, and the reversal is deliberate.** Doc 1 put the question as an
+explicit design decision — *"[DESIGN DECISION] Stock-valuation method? — Weighted average / FIFO /
+Moving weighted average"* — and the tick was placed on **Moving weighted average**, annotated
+*"Directly bears on the inventory value in financial statements; must align with accounting
+standards."* Doc 3 then restated it as settled: *"Metal-content-based valuation. Stock valued on a
+moving weighted-average basis"*, and *"Moving weighted-average valuation feeds finance (Phase 3)."*
+
+On **2026-08-23** Tim ruled that **the system's treatment is the correct one** and that the founding
+documents are the artefacts now out of date. The founding documents are not edited — they are the
+record of what was planned and when — so the reversal is recorded in the divergence register instead.
+
+> *Enforcement:* `record_output_sale` takes cost of sales from the sold output batch's own unit cost
+> (`unit_cost_base` on the processing output leg); `output_batches` carries no average-cost column and
+> no such column has ever existed; fixtures 18, 24 and 31.
+> *Recorded at:* `docs/as-built-divergences.md` entry 6 — resolved in favour of the code.
+
+### 2.2 A batch's cost is purchase price, plus inbound freight and handling, plus its allocated share of processing cost. — **SETTLED**
+
+> *Enforcement:* `allocate_processing_costs`; `reprice_inbound_batch`; fixtures 18, 19, 24.
+
+### 2.3 Inbound freight is capitalised into the batch it carried; the credit is recorded against the freight forwarder, not the material supplier. — **SETTLED**
+
+The two halves matter equally. A posting that capitalises the cost but credits the material supplier
+balances perfectly and puts the liability on the wrong counterparty.
+
+> *Enforcement:* `record_freight_document`; fixture 51 asserts both the forwarder's payable and that
+> the material supplier's payable is untouched.
+
+### 2.4 Export freight is an expense of the period and never enters inventory, batch cost or gross margin. — **SETTLED**
+
+Freight incurred to deliver goods to a customer is a cost of selling, not a cost of the goods.
+
+> *Enforcement:* `record_export_freight_document` posts to 6300; fixture 101 asserts the *absence* of
+> any capitalising entry, which is the arm that catches an implementation posting to 1200 as well.
+
+### 2.5 The basis on which processing cost is allocated across output batches is chosen for each run and recorded on it. — **SETTLED**
+
+Two bases exist: **weight** and **metal value**. The basis is recorded on the run, never inferred, and
+the two give materially different answers — which is the point.
+
+> *Enforcement:* `processing_runs.allocation_basis` constrained to `weight` / `metal_value`;
+> fixture 34; fixture 18's metal-value arm separates the two numerically (62.50 against 27.50).
+
+### 2.6 Re-allocating a run's costs posts the difference per output batch, routed by what has since happened to that batch. — **SETTLED**
+
+The in-stock share adjusts inventory (1220), the sold share adjusts cost of sales (5000), and the
+written-off share adjusts 5200.
+
+> *Enforcement:* `allocate_processing_costs`; fixture 24.
+
+### 2.7 Repricing an input batch flags every processing run that consumed it as stale; the money moves only when someone re-runs the allocation. — **SETTLED**
+
+Staleness is surfaced rather than silently corrected, because a re-allocation is a posting and a
+posting is a decision.
+
+> *Enforcement:* `reprice_inbound_batch`; fixture 19, 24.
+
+### 2.8 Where an output batch is sold before its cost is known, revenue is recognised at the sale and cost of sales is posted later, when the allocation runs. — **AS-BUILT**
+
+The sale posts revenue immediately. If the output leg has no unit cost yet, **no cost of sales entry is
+created at that time**; it is posted when `allocate_processing_costs` subsequently runs and catches up.
+Between those two events the period carries revenue without its matching cost.
+
+Nobody has ruled on this. It is stated here because it is a departure from matching that an auditor
+would ask about, and because the length of the gap is not bounded by anything in the system.
+
+> *Enforcement / evidence:* `record_output_sale` posts the cost-of-sales entry only where
+> `unit_cost_base` is present; the catch-up path is in `allocate_processing_costs`.
+
+### 2.9 A stocktake difference is posted as an inventory adjustment when the count is committed. — **AS-BUILT**
+
+No materiality threshold, approval level or write-off policy is defined for count differences.
+
+> *Enforcement / evidence:* `post_stocktake`; fixture 56.
+
+---
+
+# 3 · Revenue
+
+### 3.1 Revenue on an order is recognised when the goods are shipped. — **SETTLED**
+
+Amounts invoiced or received before shipment are carried as a contract liability (2500) and released
+to revenue (4000) on shipment, together with the matching cost of sales. Receivables are created once
+and only once along that chain.
+
+> *Enforcement:* `ship_order`; `create_order_invoice`; fixture 68 asserts the contract liability
+> reaches exactly zero on a non-unity exchange rate, and fixture 69 that a line remembers what it has
+> already shipped.
+
+### 3.2 A direct sale of an output batch recognises revenue at the point the sale is recorded. — **AS-BUILT**
+
+The system carries two selling paths — the order-and-shipment cycle in 3.1, and a direct sale of an
+output batch. The direct path recognises revenue when the sale is recorded, without a shipment event.
+Whether the two paths should recognise revenue at the same moment has not been ruled on.
+
+> *Enforcement / evidence:* `record_output_sale` posts Dr 1100 / Cr 4000 at the point of record.
+
+### 3.3 A sale may be recorded without a customer, and the customer may be attached afterwards. — **SETTLED**
+
+An ownerless sale is legitimate and is deliberately allowed; attaching the customer later is a logged,
+one-way event that moves credit exposure at that point.
+
+> *Enforcement:* `attribute_sale_customer`; fixtures 39 and 44.
+
+### 3.4 A credit note reduces what is owed and nothing else. — **SETTLED**
+
+> *Enforcement:* `create_credit_note`; fixture 71.
+
+---
+
+# 4 · Property, plant and equipment
+
+### 4.1 Depreciation is straight-line, charged monthly from the date the asset is brought into service. — **SETTLED**
+
+Not from the acquisition date. An asset bought in March and commissioned in July is not depreciated for
+those four months.
+
+**This is accounting depreciation. It is not a tax computation, and no tax depreciation is maintained
+anywhere in the system.**
+
+> *Enforcement:* `depreciate_fixed_assets`, idempotent by arithmetic (charge = target accumulated less
+> accumulated to date) rather than by a flag; fixture 16.
+
+### 4.2 Depreciation stops at cost less residual value. — **SETTLED**
+
+> *Enforcement:* `depreciate_fixed_assets`; fixture 16.
+
+### 4.3 An asset accumulates cost until it is commissioned; at commissioning the cost is frozen and depreciation begins. — **SETTLED**
+
+Freight, duty and installation on the same machine are additions to that asset, entered through the
+same door as the machine itself, each translated at its own date's rate.
+
+> *Enforcement:* `record_expense`'s capital branch requires an asset reference; fixtures 77, 105, 107.
+
+### 4.4 Fixed assets are non-monetary and are never revalued. — **SETTLED**
+
+They are invisible to period-end foreign currency revaluation, and there is no revaluation model.
+
+> *Enforcement:* `fixed_assets` carries no revaluation column; `revalue_foreign_balances` covers
+> monetary balances only; fixture 16.
+
+### 4.5 On disposal, cost and accumulated depreciation are cleared and the gain or loss is recognised. — **SETTLED**
+
+> *Enforcement:* `dispose_fixed_asset` clears 1500/1510 exactly; fixture 16.
+
+### 4.6 Useful life is set per asset when the asset is created. — **AS-BUILT**
+
+There is no table of standard useful lives by asset category, and no rule about what life a given class
+of plant should carry. Each asset's life is whatever was typed on it.
+
+> *Enforcement / evidence:* `fixed_assets.useful_life_months`.
+
+---
+
+# 5 · Purchases, pricing and commitments
+
+### 5.1 Pricing terms are copied onto the record that commits them, and settlement is computed from the copy. — **SETTLED**
+
+A pricing formula is a template that can be edited. A purchase order line's reference to it is a
+promise about how that deal will settle. The terms are therefore **copied at commitment**; a later edit
+to the formula does not reach back into a deal already struck, and a deal struck after the edit uses
+the new terms. A commitment with no copy is refused by name rather than falling back to the live
+formula.
+
+> *Enforcement:* `commit_pricing_terms`; settlement reads the committed copy; fixtures 21 and 27,
+> which compute the live-formula figure alongside and assert the two differ, so the test cannot pass by
+> both answers agreeing.
+
+### 5.2 A change to a pricing formula is recorded with its before and after, including the metals sub-table. — **SETTLED**
+
+Removing a metal from a formula is expressed as deleting a row, which is the most drastic edit
+available; a header-only history would be silent about exactly that.
+
+> *Enforcement:* `pricing_formula_history`; fixture 27.
+
+### 5.3 A metal quote is priced against a declared index, and an index whose currency has not been declared is refused. — **SETTLED**
+
+The system does not assume a quote is in US dollars because most are.
+
+> *Enforcement:* `calculate_metal_price` raises `INDEX_CURRENCY_NOT_STATED`; `metal_price_indices`.
+
+### 5.4 A payment-term template carries its own currency, and it cannot be applied to an order in a different currency. — **SETTLED**
+
+A payment term is a negotiated commitment, not a computed quantity, so it is refused rather than
+converted. Percentage-only templates need no currency and are not required to invent one.
+
+> *Enforcement:* `apply_payment_term_template`; guard triggers on both parent and child; fixture 22.
+
+### 5.5 Every assay must state the weight basis it was measured on — as-received (湿基) or dry (干基). — **SETTLED**
+
+The two are different numbers for the same material and cannot be reconstructed after the fact. A blank
+basis means *nobody stated it* and is never defaulted.
+
+> *Enforcement:* `guard_assay_basis_stated`; `assay_results.weight_basis`.
+
+### 5.6 There is no company-wide rule fixing the weight basis on which purchases settle, or the basis on which sales settle. — **AS-BUILT**
+
+The basis is recorded per assay (5.5), but **no pricing or settlement function branches on it** — only
+the guard that requires it to be stated and the function that records it refer to the column at all.
+In practice the basis is whatever each contract says and each assay records; the system neither
+enforces nor reports a house convention, and a purchase settled on a dry basis and a sale settled on an
+as-received basis would both post without comment.
+
+This is the answer to "what is the purchase weight basis and what is the sale weight basis": **the
+system records the question and does not answer it.**
+
+> *Enforcement / evidence:* only `guard_assay_basis_stated` and `record_assay_result` reference
+> `weight_basis`; no pricing path does.
+
+---
+
+# 6 · Period control and corrections
+
+### 6.1 A closed accounting period cannot be posted into, and a closed financial year cannot be posted into. — **SETTLED**
+
+The two locks are independent. A month may be reopened by a logged action, and reopening a month
+**does not** unlock a year that has been closed. Where a date offends both, the year is reported,
+because the year is the stronger fact.
+
+**There is exactly one exception:** the year-end closing entry and its reversal, which must by their
+nature be written into the year they close. The exception requires both that the entry declares itself
+a year-close entry and that the year-close process is executing; neither alone opens it.
+
+> *Enforcement:* `assert_posting_allowed`, raising `PERIOD_LOCKED` and `YEAR_CLOSED`; enforced both in
+> the posting function and, since 2026-08-23, by triggers on the journal tables themselves, so a direct
+> write cannot bypass it; fixture 122.
+
+### 6.2 Corrections are made by reversal. A posted entry is never edited and never deleted. — **SETTLED**
+
+> *Enforcement:* triggers reject any update or delete of a journal entry or journal line;
+> `reverse_journal_entry`, `reverse_payment`, `reverse_expense`, `reverse_freight_document`,
+> `reverse_bank_transfer`; fixture 32.
+
+### 6.3 A reversal of a processing run takes the original run's business date, not the date of the correction. — **SETTLED**
+
+A rollback corrects a mis-recording; it is not a physical event. Dating it to the original day makes
+the error and its correction cancel on the same day, rather than showing stock absent for the days in
+between. A write-off, by contrast, **is** a physical event and takes its own date.
+
+> *Enforcement:* `inventory_movements.business_date`; fixture 25; FIN-32.
+
+### 6.4 Closing the year moves profit or loss to retained earnings, derived from the account's type rather than from a range of account codes. — **SETTLED**
+
+Reopening a closed year reverses the closing entry, records a reason, and restores the trial balance.
+
+> *Enforcement:* `close_financial_year` / `reopen_financial_year`; fixture 17.
+
+### 6.5 The date from which the books are complete is declared, not inferred. — **SETTLED**
+
+Entitlements computed per period — leave accrual, medical limits — are bounded by that date, so a
+rebuilt database does not grant a full year's entitlement for a year it did not cover.
+
+> *Enforcement:* `finance_settings.system_start_date`; fixtures 11, 12, 24.
+
+---
+
+# 7 · Payroll
+
+### 7.1 Payroll is prepared by an external provider. The system records and posts it; it does not compute pay or statutory contributions. — **SETTLED**
+
+> *Enforcement:* `post_payroll_period`; `db/tables/payroll_periods.sql`.
+
+### 7.2 Central Provident Fund contributions for a month are remitted in the following month, and the document carries both dates. — **SETTLED**
+
+The period the contribution settles and the date it is paid are different months by design. **CPF is
+not exempt from the period lock** and never has been; the payment date is subject to it like any other.
+
+> *Enforcement:* `pay_payroll_cpf` posts through the ordinary posting path;
+> `payroll_periods.cpf_paid_at`; fixture 122 asserts that no source type other than the year-close
+> exception escapes the lock.
+
+### 7.3 A payroll period that has already remitted CPF or deductions cannot be unposted until that remittance is reversed. — **SETTLED**
+
+> *Enforcement:* `unpost_payroll_period` raises `PAYROLL_CPF_PAID`.
+
+---
+
+# 8 · What is deliberately not here
+
+An auditor discovering these by surprise is worse served than one who reads them.
+
+### 8.1 There is no tax accounting of any kind, and the company is not registered for GST.
+
+GST registration is recorded as **not registered**, the rate is **0**, and there is no registration
+number. The two GST accounts exist in the chart of accounts and **have never carried a single posting**
+(nil movement, nil balance). All seven invoices raised to date carry a nil tax rate and nil tax.
+
+No tax computation, tax report, or deferred tax exists. Tax depreciation is not maintained (4.1).
+
+> *Evidence:* `finance_settings.gst_registered = false`, `gst_rate_pct = 0`; accounts 1400 and 2100
+> carry zero journal lines.
+
+### 8.2 There is no multi-entity structure and no consolidation. — **DIVERGES**
+
+> **Doc 3, Phase 3 definition of done:** *"the three statements and a multi-entity consolidation can be
+> produced"*; **Doc 3, Phase 3:** finance *"performs multi-entity consolidation"*; **Doc 1:** *"Chart of
+> accounts (two sets for SG/EU?)"*.
+
+**As built:** there is one chart of accounts, one base currency and one set of books. No business table
+is partitioned by entity. Consolidation is not a report that has yet to be written — it is a schema
+change that would have to be made first.
+
+This entry states both sides and stops.
+
+> *Recorded at:* `docs/as-built-divergences.md` entry 1.
+
+### 8.3 Fixed assets are never revalued. See 4.4.
+
+### 8.4 Metal recovery rate is a management estimate, not an auditable measure.
+
+The mechanism to record an output assay exists, and every metal content figure carries its source
+(measured or entered by hand). What does **not** exist is a rule about **which metals must be measured
+for an output assay to be considered complete** — that question is blank in the founding documents and
+has not been decided. Until it is, a recovery percentage is a useful estimate whose denominator and
+numerator may rest on different kinds of evidence, and it should not be presented to a third party as
+a measured KPI.
+
+The recovery view reports the provenance of each side separately, and a conservation warning is a
+prompt, never a block — a measurement that contradicts expectation is evidence, and refusing to record
+it would suppress exactly the evidence one wants.
+
+> *Evidence:* `processing_metal_recovery` with per-side `content_source`;
+> `docs/as-built-divergences.md`, the recovery-rate section.
+
+### 8.5 There is no standard costing and no variance analysis.
+
+Doc 3 lists *"Standard cost vs actual"* within Phase 3. Nothing of the kind is built: there is no
+standard cost anywhere in the schema. All costs are actual. This is a planned feature not yet built
+rather than a contradicted decision, so it is listed here as an absence rather than as a divergence.
+
+### 8.6 Approval chains are largely not implemented.
+
+Approval exists for purchase orders and for a small number of specific actions. The general
+multi-level approval chain described in the founding documents is deferred by plan, not dropped.
+
+> *Recorded at:* `docs/as-built-divergences.md` entry 3.
+
+---
+
+# 9 · Needs a ruling
+
+**The five AS-BUILT statements above, collected — plus one open question that sits inside a policy
+which is otherwise settled (1.5). These are not policies. They are what the software does in the
+absence of one, and each is a question for Tim and, where marked, for the auditor.**
+
+| # | Question |
+|---|---|
+| 2.8 | Where an output batch is sold before its cost is known, revenue is recognised now and cost of sales later. Is that acceptable, and should the gap be bounded or disclosed? |
+| 2.9 | Stocktake differences post without a materiality threshold, approval level or write-off policy. What should each be? |
+| 3.2 | The direct-sale path recognises revenue at the point of record; the order path recognises on shipment. Should both recognise at the same event? |
+| 4.6 | Useful lives are set per asset with no standard lives by category. What are the standard lives, by class? |
+| 5.6 | No house convention fixes the weight basis for purchase settlement or for sale settlement. Should there be one, and what is it? |
+| 1.5 | *(Open question, recorded but never put to anyone.)* Should a **reference** rate be allowed to reach back further than a **settlement** rate? They carry different risks: a stale settlement rate mis-states money that actually moved; a stale reference rate mis-states a quote that was already an approximation. |
+
+# 10 · Needs reconciling
+
+**Where a founding document records a decision and the system does something else, and the difference
+is still open.**
+
+| # | Difference |
+|---|---|
+| 8.2 | Doc 3 makes multi-entity consolidation part of Phase 3's definition of done. There is one chart of accounts, one base currency, one set of books, and no entity partition on any business table. See register entry 1. |
+
+**Resolved, and recorded so it is not re-opened:** stock valuation (2.1). Doc 1 balloted *Moving
+weighted average* and Doc 3 restated it; Tim ruled on 2026-08-23 that batch-level specific
+identification is correct and the founding documents are out of date. See register entry 6.
+
+---
+
+# 11 · Maintaining this memorandum
+
+> **This document is updated in the same commit that changes a policy it states.**
+
+That rule is the whole of its reliability. A policy memorandum that outlives its subject is the most
+repeated failure in this project's history, and this one is aimed at a reader **outside** the company
+who has no way to check whether it is current.
+
+Two practical consequences:
+
+1. **Every statement above names an enforcement point.** If you are changing one of those functions,
+   constraints or fixtures, search this file for its name before you commit. If the change alters what
+   the company's policy *is* — not merely how it is implemented — this file changes in the same commit.
+2. **A new policy decision adds a statement here**, with its mark, its reason and its enforcement
+   point. A decision that resolves an AS-BUILT item moves it out of §9 and into the body as SETTLED,
+   with the date and who ruled.
+
+Divergences from the founding design documents are recorded in `docs/as-built-divergences.md`. The
+founding documents themselves are never edited: they are the record of what was planned and when, and
+rewriting them would destroy the only account of the plan.

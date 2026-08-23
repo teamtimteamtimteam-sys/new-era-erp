@@ -16,6 +16,7 @@ and was retired in `currency-literals-audit.md`, not edited) and the FIN-23 comm
 | **DOCUMENT AHEAD** | the plan describes something not built yet — a gap, scheduled or not |
 | **DOCUMENT WRONG** | the plan states as already-true something that is not, and never was |
 | **DOCUMENT BEHIND** | the code went further than the plan, deliberately, for a stated reason |
+| **RESOLVED IN FAVOUR OF THE CODE** | the plan recorded a decision, the code does otherwise, and **the difference has since been ruled on**: the code stands and the document is the artefact now out of date. Kept rather than deleted — a reader arriving at the document would otherwise conclude the decision was never noticed. Entry 6 is the first of these |
 
 Add an entry when a cut discovers a difference. Remove one when the difference closes, and say in
 the commit which side moved.
@@ -410,3 +411,43 @@ Doc 2 的运营审计原则点名要 "**who approved the work order**"。WO-1b �
 `false`;关着的时候放行照走,只是留下一条 `auto_approved` 的痕,写着"审批流未启用
 —— 系统直接盖章,没有人做过这个决定"(与 `create_purchase_order` 逐字同一句)。
 **结构有了,而没有强加流程** —— 什么时候打开是运营的决定,不是这一刀的。
+
+---
+
+## 6 · Stock valuation: the documents say moving weighted-average, the system does batch-level specific identification — **RESOLVED IN FAVOUR OF THE CODE (2026-08-23)**
+
+> **Doc 1, inventory module, marked as a decision to be made:** "`[DESIGN DECISION] Stock-valuation
+> method? — € Weighted average — € FIFO — V Moving weighted average`", annotated "*(Directly bears on
+> the inventory value in financial statements; must align with accounting standards.)*" **The tick is
+> on Moving weighted average.**
+>
+> **Doc 3, Phase 2, stated as settled:** "*Metal-content-based valuation. **Stock valued on a moving
+> weighted-average basis**, with valuation linked to assay results, metal percentage, moisture, and
+> impurity*"; and, under the same phase's connections: "***Moving weighted-average valuation feeds
+> finance (Phase 3).***"
+
+**As built: specific identification at batch level.** Each inbound and output batch carries its own
+cost; cost of sales is the cost of the specific batch sold. `record_output_sale` takes COGS from the
+sold output batch's own `unit_cost_base`; `output_batches` has never carried an average-cost column;
+`allocate_processing_costs` allocates per output batch and re-allocation posts per-batch deltas
+(FIN-24). There is no average struck across batches anywhere in the schema or the functions.
+
+**Resolution — Tim, 2026-08-23: the code is right; the founding documents are the artefacts now out of
+date.**
+
+The accounting reason, which is the part that matters to an auditor: weighted-average costing suits
+inventories of items that are **ordinarily interchangeable**. Battery scrap batches are not — each
+carries its own assay, and is bought and sold on the strength of it. Averaging cost across batches
+severs the link between a lot's cost and its metal content, which is the figure the business is priced
+and managed on. The standards call for specific identification where items are not ordinarily
+interchangeable, which is the case here.
+
+**Why this entry exists even though the difference is closed.** Doc 1 put the question to a vote and
+Doc 3 built two phases of narrative on the answer. Without this entry, a reader arriving at either
+document would find a stated method the books do not follow, and would reasonably conclude the ballot
+was never noticed. **It was noticed and it was reversed.** Per this file's opening rule the documents
+are not edited; the reversal is recorded here.
+
+Stated as policy, with its enforcement points, in `docs/accounting-policies.md` §2.1.
+
+**This entry is not an open difference.** It requires no action.
