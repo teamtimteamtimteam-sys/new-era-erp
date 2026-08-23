@@ -387,6 +387,10 @@ const en = {
         dataClassDeniedHint: 'Your role can enter this module, but it has not been granted price visibility (data.view_prices). This is a permission answer, not an empty result — ask an administrator.',
         backHome: '← Back to home',
         fxBoardRateHint: 'Foreign-currency amounts are valued at that date\u2019s DBS board rate. If the day\u2019s rate is not on file, this will be refused — enter it under Finance → FX.',
+        // SESSION-1:同一条道理的第三层 —— 认证这一层。一条【空着的】导航条与
+        // "这个系统没有你能用的东西"在屏幕上长得一模一样,所以判断不出的时候要说出来。
+        navUnavailable: 'Navigation unavailable',
+        navUnavailableHint: 'Your sign-in could not be confirmed just now, so the menu is not being shown. This does NOT mean you were signed out, and it does NOT mean you have no access — reload in a moment.',
     },
     leave: {
         errYearInvalid: 'Enter a four-digit leave year. A non-numeric year silently carries forward nobody while reporting success.',
@@ -463,6 +467,21 @@ const en = {
         errAlreadyPaid: 'An expense ({0}) has already been raised for this claim.',
         errExceedsLimit: 'That exceeds the remaining entitlement: {0} left, {1} claimed.',
         errFxMissing: 'No SGD exchange rate on or before {0}. Add one in Finance → FX rates.',
+    },
+    login: {
+        title: 'Sign in to Evoltrya OS',
+        subtitle: 'Lithium battery recycling ERP',
+        email: 'Email',
+        password: 'Password',
+        submit: 'Sign in',
+        errInvalid: 'Wrong email or password',
+        // SESSION-1:一张【什么都不说】的登录表单,与一次崩溃在屏幕上长得一模一样。
+        // 走到这一句的否定是【确立的】—— 中间件只在它真的问到了答案时才带 reason=ended
+        // 过来;问不到答案的那一种走 503 那一页,根本到不了这里。
+        sessionEnded: 'Your session has ended',
+        sessionEndedHint: 'Sign in again to continue. Anything you had typed on the previous page was not saved.',
+        returnTo: 'You will be taken back to {0}.',
+        noAccount: 'No account yet? Contact an administrator',
     },
     setPassword: {
         title: 'Set your password',

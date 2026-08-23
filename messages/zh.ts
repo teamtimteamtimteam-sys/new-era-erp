@@ -390,6 +390,10 @@ const zh = {
         dataClassDeniedHint: '你的角色进得来这个模块,但没有被授予价格可见性(data.view_prices)。这是一个【权限答复】,不是"查出来是空的" —— 请联系管理员。',
         backHome: '← 返回首页',
         fxBoardRateHint: '外币金额按【交易日当天】的 DBS 牌价估值;当天牌价未录入会被直接拒绝 —— 在 财务 → 汇率 里补录当日牌价。',
+        // SESSION-1:同一条道理的第三层 —— 认证这一层。一条【空着的】导航条与
+        // "这个系统没有你能用的东西"在屏幕上长得一模一样,所以判断不出的时候要说出来。
+        navUnavailable: '导航暂时显示不出来',
+        navUnavailableHint: '刚才没能确认你的登录状态,所以菜单没有显示。这【不是】说你被登出了,也【不是】说你没有权限 —— 过一会儿刷新一下。',
     },
     leave: {
         errYearInvalid: '请填一个四位数的假期年度。非数字的年份会一个人都不结转,却报成功。',
@@ -466,6 +470,21 @@ const zh = {
         errAlreadyPaid: '本报销已经生成过费用单({0})。',
         errExceedsLimit: '超出剩余额度:剩余 {0},本次 {1}。',
         errFxMissing: '{0} 或之前没有新元汇率。请先到「财务 → 汇率」录入。',
+    },
+    login: {
+        title: '登录 Evoltrya OS',
+        subtitle: '锂电池回收 ERP 系统',
+        email: '邮箱',
+        password: '密码',
+        submit: '登录',
+        errInvalid: '邮箱或密码错误',
+        // SESSION-1:一张【什么都不说】的登录表单,与一次崩溃在屏幕上长得一模一样。
+        // 走到这一句的否定是【确立的】—— 中间件只在它真的问到了答案时才带 reason=ended
+        // 过来;问不到答案的那一种走 503 那一页,根本到不了这里。
+        sessionEnded: '你的登录已经结束',
+        sessionEndedHint: '重新登录即可继续。上一页里打过的内容没有被保存。',
+        returnTo: '登录后会回到 {0}。',
+        noAccount: '还没有账号?联系管理员',
     },
     setPassword: {
         title: '设置密码',

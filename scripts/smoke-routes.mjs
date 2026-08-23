@@ -725,6 +725,9 @@ async function main() {
 
     const failures = []
     let ok = 0
+    // SESSION-1:认证够不着时【每一条】路由都会 503,于是失败清单会有一百多行,
+    // 而它们说的是同一件事。总结那里要把它讲成一句,不是一百句。
+    let sawAuthIndeterminate = false
     const skipped = new Set()
     const serverStack = async (before) => {
         await new Promise((r) => setTimeout(r, 500))
@@ -810,10 +813,21 @@ async function main() {
                 console.log(`  FAIL ${route} → 200 但内容缺失:${contentMiss}`)
             }
             else {
-                PROGRESS.failed.push(`${route} → ${res.status}${exact ? ` (expected ${exact[0]})` : ''}`)
-                failures.push({ route, url, status: res.status,
+                // 【一次正确的红,也可能把人送去找错东西】(SESSION-1,2026-08-23)
+                // 中间件在【判断不出会话】时回 503 + data-auth-indeterminate(它拒绝
+                // 把"问不到答案"说成"你没登录",见 lib/supabase/middleware.ts)。
+                // 那个 503 让本脚本变红,而那是【对的】—— 那时确实有东西坏了。
+                // 但屏幕上它与"这一页崩了"长得一模一样,于是读的人会去查这一刀改了什么。
+                // **一次把人送去打猎的正确的红,花掉的时间与一次错误的红一样多。**
+                // 所以这一行当场点名:坏的是认证,不是这一页。
+                const authDown = res.status === 503
+                    && (await res.clone().text()).includes('data-auth-indeterminate')
+                const tag = authDown ? '  ←【认证够不着,不是这一页坏了】' : ''
+                if (authDown) sawAuthIndeterminate = true
+                PROGRESS.failed.push(`${route} → ${res.status}${exact ? ` (expected ${exact[0]})` : ''}${tag}`)
+                failures.push({ route, url, status: res.status, authDown,
                     expected: exact?.[0], stack: await serverStack(before) })
-                console.log(`  FAIL ${route} → ${res.status}${exact ? ` (expected ${exact[0]})` : ''}`)
+                console.log(`  FAIL ${route} → ${res.status}${exact ? ` (expected ${exact[0]})` : ''}${tag}`)
             }
         }
 
@@ -882,6 +896,15 @@ async function main() {
     }
 
     console.log(`\n== ${routes.length} routes + 1 reviewer-view check: ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
+    // SESSION-1:这一行排在所有失败之前,因为它改变【怎么读】下面那一百行。
+    if (sawAuthIndeterminate) {
+        const n = failures.filter((f) => f.authDown).length
+        console.log('')
+        console.log(`   ⚠ 其中 ${n} 条是 503 + data-auth-indeterminate ——`)
+        console.log('     **认证服务够不着,不是这些页面坏了。** 中间件拒绝把"问不到答案"')
+        console.log('     说成"你没登录"(lib/supabase/middleware.ts),所以它回 503,而本脚本')
+        console.log('     断言 2xx,于是变红 —— 这次红是对的。先查认证,不要查这一刀改了什么。')
+    }
     // 【被跳过的内容判据要说出来】一条静默跳过的断言与一条不存在的断言,
     // 在输出里长得一模一样 —— 而这套东西刚刚为这件事付过两次代价。
     if (contentSkips.length) {

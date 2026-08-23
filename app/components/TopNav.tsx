@@ -12,15 +12,54 @@ import { getVisibleModules } from '@/lib/moduleAccess'
 
 export default async function TopNav() {
     const supabase = await createClient()
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
+    // 【error 必须接住 —— 一条空着的导航条是同一句谎的另一件衣服】(SESSION-1,2026-08-23)
+    //
+    // 此前这里是 `const { data: { user } } = await getUser()` 然后 `if (!user) return null`。
+    // `getUser()` 失败时 user 也是 null,于是**认证够不着的那一刻,整条导航条凭空消失**,
+    // 而页面主体照常渲染 —— 屏幕上"这个系统没有你能用的东西"与"刚才没问到答案"
+    // 长得一模一样。同一条规矩的两处先例都在仓库里:lib/permissions.ts(查询失败
+    // ≠ 没有权限)与 moduleGuard.tsx(进不去的空 ≠ 真的空)。
+    //
+    // 判据与 lib/supabase/middleware.ts 逐字同源(那里有实测的七情形表):
+    // `AuthRetryableFetchError` = 判断不出;其余 = 确立的否定。
+    let user = null
+    let authError: unknown = null
+    try {
+        const res = await supabase.auth.getUser()
+        user = res.data.user
+        authError = res.error
+    } catch (e) {
+        authError = e
+    }
 
+    const t = await getTranslations()
+
+    // 【判断不出】—— 画一条【说话的】导航条,不是不画。
+    // 正常情况下走不到这里(中间件在更前面就用 503 挡住了),它接的是那个窄缝:
+    // 中间件那一次问到了答案,而这一次没问到。缝窄不等于不存在,而它一旦发生,
+    // 消失的导航条是这一页上唯一的线索。
+    if (!user && (authError as { name?: string } | null)?.name === 'AuthRetryableFetchError') {
+        return (
+            <header className="border-b border-gray-200 bg-white" data-auth-indeterminate="1">
+                <div className="px-6 py-3 flex items-center gap-4">
+                    <Link href="/" className="font-bold text-lg">
+                        Evoltrya OS
+                    </Link>
+                    <span className="text-sm bg-amber-50 border border-amber-300 text-amber-900 px-2 py-1 rounded">
+                        <span className="font-medium">{t('common.navUnavailable')}</span>{' '}
+                        <span className="hidden sm:inline">{t('common.navUnavailableHint')}</span>
+                    </span>
+                </div>
+            </header>
+        )
+    }
+
+    // 【确立的否定】—— 不画导航条。这一支是对的:登录页本来就没有导航,
+    // 而其余路径中间件早就重定向掉了。
     if (!user) {
         return null
     }
 
-    const t = await getTranslations()
     const canManage = await canManagePermissions()
     // DICT-ADMIN:能编辑【任一张】字典的人都要看得见那一项。
     // 判据取自 registry 的 DICT_PERMISSIONS —— 不在这里抄第二份权限清单
