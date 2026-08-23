@@ -48,6 +48,7 @@
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
 import { spawn, execSync } from 'node:child_process'
 import { join } from 'node:path'
+import { acquireOrExit } from './liveLock.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3199
@@ -638,6 +639,10 @@ function preflightIdSources(routes) {
 }
 
 async function main() {
+    // FIX-3:整段冒烟期间持有 live-lock —— 它与 gate 共用同一把,
+    // 于是"gate 在跑就别单独跑 check_mirrors"从一条要记住的规矩变成一道门。
+    // 释放接在正常退出、异常与 SIGINT/SIGTERM 上(见 scripts/liveLock.mjs)。
+    acquireOrExit('scripts/smoke-routes.mjs')
     const reachFailures = []
     // 【最先跑,而且在 sweepStalePort / next dev 之前】—— 见 preflightIdSources 抬头:
     // 这是一个静态问题,不该等到起了服务器、建了会话、扫过临时行之后才回答。

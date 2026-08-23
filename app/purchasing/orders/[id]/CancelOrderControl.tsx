@@ -21,8 +21,11 @@ export default function CancelOrderControl({ poId, blockedWhy }: {
     const t = useTranslations()
     const router = useRouter()
     if (blockedWhy) {
+        // FIX-3(B):`items-start` —— 列方向 flex 的 align-items 默认是 stretch,
+        // 于是按钮被下面那句长理由撑到同宽,读起来像个输入框而不是按钮。
+        // 加上它,按钮保持自然宽度,理由自己占一行。
         return (
-            <div className="inline-flex flex-col">
+            <div className="inline-flex flex-col items-start">
                 <button type="button" disabled
                         className="border border-gray-300 text-gray-400 px-3 py-1.5 rounded text-sm cursor-not-allowed">
                     {t('purchasing.cancelOrder')}

@@ -52,3 +52,4 @@ supabase/.branches
 
 # types:gen 的中转文件 —— 生成失败时不该把 schema 的另一份镜像清空(见 package.json)
 lib/database.types.ts.tmp
+.live-lock

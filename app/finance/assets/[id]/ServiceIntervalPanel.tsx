@@ -128,13 +128,31 @@ export default function ServiceIntervalPanel({
     // r 可以为空(未监控):那时没有窗口,只有"取得日之前那个洞"这一支。
     // **同一个函数、同一批 i18n 键** —— 不写第二份那句话。
     function honesty(r: IntervalRow | null): { tone: string; text: string } {
-        if ((r?.unattributed_runs_in_window ?? 0) > 0) {
+        // 【FIX-3(A):这里曾经写 `(r?.unattributed_runs_in_window ?? 0) > 0`,
+        //  而那个 `?? 0` 是这段代码唯一的缺陷 —— 它把【没测过】读成了【测过,是零】。】
+        //  视图里这一列是 `CASE WHEN i.id IS NULL THEN NULL::bigint ELSE …`:
+        //  **没有保养间隔行 = 没有窗口 = 这件事从来没有被量过**,那时它是 NULL。
+        //  `?? 0` 之后 NULL 变成 0,于是往下掉到最后那句 honestyComplete,
+        //  对着一台【谁都没在监控】的机器说"这个读数对那段时间是完整的" ——
+        //  而那段时间根本不存在,更没有人数过它有几炉没归属。
+        //
+        //  **这正是本项目花了很多刀在拔的那一类句子:听起来诚实,而它说的比它知道的多。**
+        //  同一族的前科:no_reference 不是"比过没问题"、「无检查记录」不是"检查通过"、
+        //  price_index IS NULL 不是"来自 LME"、未化验的金属不是"含量为零"(fixture 43)。
+        //  下一个想在这块屏幕上写一句宽慰话的人,请先回答:**这句话里的每一个字,
+        //  是不是都有一个真的被量过的数撑着?** 撑不住的那部分,要说出来自己不知道。
+        const measured = r === null ? null : r.unattributed_runs_in_window
+        if (measured !== null && measured > 0) {
             return { tone: 'amber', text: t('equipment.intervals.honestyInWindow',
-                { n: String(r!.unattributed_runs_in_window) }) }
+                { n: String(measured) }) }
         }
         if ((r === null || r.never_serviced) && runsBeforeAcquisition > 0) {
             return { tone: 'amber', text: t('equipment.intervals.honestyNeverAttributable',
                 { n: String(runsBeforeAcquisition), date: acquisitionDate }) }
+        }
+        if (measured === null) {
+            // 【第四种状态:没量过】—— 既不能说完整,也没有一个数可以报。
+            return { tone: 'amber', text: t('equipment.intervals.honestyNotMeasured') }
         }
         return { tone: 'gray', text: t('equipment.intervals.honestyComplete',
             { date: r?.baseline_date ?? acquisitionDate }) }

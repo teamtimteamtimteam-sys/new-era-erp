@@ -637,6 +637,14 @@ def main() -> int:
     ap.add_argument("--dsn", default=None, help="覆盖连接串(默认走 CHECK_MIRRORS_DSN 或内置值)")
     args = ap.parse_args()
 
+    # ── FIX-3:gate 或冒烟在跑的时候,这里【当场拒绝】而不是排队等 ──────────
+    # 单独跑本脚本会把 ~14,000 行重放推过连接池;与 gate/冒烟撞上就超时,
+    # 而 pkill 掉本机进程【不会】结束它在线上开着的那笔事务(GO-4:613 秒的
+    # idle in transaction,最后用 pg_terminate_backend 收的尾)。
+    # 【gate 内部会调用本模块的函数,不走这条命令行入口】,所以不会自己挡自己。
+    import live_lock
+    live_lock.refuse_if_held("check_mirrors.py")
+
     import os
     dsn = args.dsn or os.environ.get("CHECK_MIRRORS_DSN") or DEFAULT_DSN
 

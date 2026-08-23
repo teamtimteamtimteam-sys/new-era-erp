@@ -32,7 +32,8 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import check_mirrors as cm  # SEED_TABLES / RUNTIME_CONFIG / definer 扫描 / DEFAULT_DSN
+import check_mirrors as cm
+import live_lock  # FIX-3:一次只有一个东西对着线上库跑  # SEED_TABLES / RUNTIME_CONFIG / definer 扫描 / DEFAULT_DSN
 
 
 def psql(dsn: str, sql: str) -> str:
@@ -547,4 +548,7 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # FIX-3:整个 gate 期间持有 live-lock,退出必释放(异常与 SIGINT/SIGTERM 也释放)。
+    # 见 db/live_lock.py 抬头:这条规矩被破过两次,所以它不再是文档。
+    with live_lock.Held("db/gate.py"):
+        sys.exit(main())

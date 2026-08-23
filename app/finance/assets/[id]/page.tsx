@@ -238,6 +238,18 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
             <div className="flex items-baseline gap-3 mb-1">
                 <h1 className="text-2xl font-semibold font-mono">{asset.code}</h1>
                 <span className="text-lg">{asset.description}</span>
+                {/* 【FIX-3(C):这一行是【搬过来的】,不是新加的 —— 同一个 inServiceState、
+                    同一批 i18n 键、一个字没改。FIX-1(B-D5) 早就把它建好了,它此前是
+                    那一排【钱】的第四格(成本 → 累计折旧 → 净值),而**状态不是钱**:
+                    那三个数是一个刻意的序列,把一个状态排在它们后面是归错了类,
+                    与谁有没有看到它无关。徽章位是眼睛找状态时会去的地方。
+                    C2 查过了:此处原本【没有】任何状态行,所以这是搬家,不是第二份。】 */}
+                <span className="text-sm border border-gray-300 rounded px-2 py-0.5 text-gray-700">
+                    {(() => {
+                        const st = inServiceState(asset)
+                        return st.params ? t(st.key, st.params) : t(st.key)
+                    })()}
+                </span>
             </div>
             <p className="text-sm text-gray-600 mb-6">
                 {t('assets.category.' + asset.category)} · {t('assets.detail.acquired')} {asset.acquisition_date}
@@ -247,8 +259,10 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                     : <span className="text-gray-500">{t('assets.detail.bornAsMasterData')}</span>}
             </p>
 
-            {/* ── 四个数,每一个都带着它缺席时的说法 ─────────────────────────── */}
-            <div className="grid grid-cols-4 gap-4 mb-8">
+            {/* ── 三个【数】,每一个都带着它缺席时的说法 ────────────────────────
+                FIX-3(C):第四格原本是【投用状态】,已搬到标题旁的徽章位 ——
+                成本 → 累计折旧 → 净值 是一个刻意的序列,而状态不是钱。 */}
+            <div className="grid grid-cols-3 gap-4 mb-8">
                 <Stat label={t('assets.detail.costSoFar')}
                     value={Number(asset.cost_base) === 0
                         ? t('assets.detail.noCostYet')
@@ -261,13 +275,6 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                     value={Number(asset.cost_base) === 0
                         ? t('assets.detail.noCostYet')
                         : formatAmount(nbv, baseCurrency)} />
-                {/* FIX-1(B-D5):三个具名状态,判断只有一份(inServiceState)。
-                    **绝不用过去时的标签配一个未来的日期** —— 那读起来是真的,而它不是。 */}
-                <Stat label={t('assets.detail.inService')}
-                    value={(() => {
-                        const st = inServiceState(asset)
-                        return st.params ? t(st.key, st.params) : t(st.key)
-                    })()} />
             </div>
 
             {/* ── 成本从哪几张单据来 ──────────────────────────────────────── */}

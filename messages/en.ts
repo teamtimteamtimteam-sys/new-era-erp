@@ -5089,6 +5089,7 @@ const en = {
             honestyInWindow: 'Reading may be incomplete: {n} processing run(s) in this period were not attributed to ANY machine. A low figure here may mean little wear, or wear we cannot see \u2014 those are not the same thing.',
             honestyNeverAttributable: 'This reading starts from zero, and zero here does NOT mean little wear. All {n} processing run(s) on record happened before this machine was acquired on {date}, and a run can only be attributed to a machine when it is committed \u2014 there is no way to attribute a past run afterwards. So the wear from those runs is wear we cannot see.',
             honestyComplete: 'Every processing run since {date} is attributed to a machine, so this reading is complete for that period. It says nothing about anything before {date}.',
+            honestyNotMeasured: 'No service interval is being monitored for this machine, so nothing has been measured about which processing runs in any period were attributed to a machine. This figure is therefore not a statement about completeness \u2014 a low number here may mean little wear, or wear nobody counted.',
             kind: 'Kind of work',
             disposition: 'When it falls due',
             dispWarn: 'Show it on the dashboard',
