@@ -54,6 +54,13 @@ const EQUIPMENT_ERROR_CODES = new Set([
     'equipment_service_intervals_interval_kg_check',
     'equipment_service_intervals_interval_days_check',
     'equipment_service_intervals_disposition_check',
+    // ── FIX-1:一件【发生过】的事不可能在明天发生 ──────────────────────────
+    // 这四条是【具名码】,不是约束名 —— 因为它们要把冲突本身写进句子里
+    // (撞上的是哪一段停机、你填的是哪一天),而一条 CHECK 的消息带不了这些。
+    'DOWNTIME_START_IN_FUTURE',
+    'DOWNTIME_END_IN_FUTURE',
+    'DOWNTIME_OVERLAPS',
+    'ASSET_IN_SERVICE_IN_FUTURE',
     // ── 服务端动作自己抛的具名码 ────────────────────────────────────────────
     // 【日期与描述由动作独立拒空,不只靠表上的 NOT NULL】
     // NOT NULL 违反的消息里【没有约束名】(只有列名),按名认不出来;而这条规矩
