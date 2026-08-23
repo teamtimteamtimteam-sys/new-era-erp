@@ -72,6 +72,10 @@ CREATE CONSTRAINT TRIGGER trg_journal_lines_balance
     DEFERRABLE INITIALLY DEFERRED
     FOR EACH ROW EXECUTE FUNCTION public.check_journal_balance();
 
+CREATE TRIGGER trg_journal_lines_period
+    BEFORE INSERT ON public.journal_lines
+    FOR EACH ROW EXECUTE FUNCTION public.guard_journal_line_period();
+
 ALTER TABLE public.journal_lines ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "journal_lines select by permission"
     ON public.journal_lines

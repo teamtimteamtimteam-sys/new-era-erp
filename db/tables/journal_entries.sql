@@ -81,6 +81,10 @@ CREATE TRIGGER trg_journal_entries_immutable
 -- 要问好几次,做期间对比再翻一倍。此前这张表上只有 pkey 与 code 的唯一索引。
 CREATE INDEX idx_journal_entries_entry_date ON public.journal_entries (entry_date);
 
+CREATE TRIGGER trg_journal_entries_period
+    BEFORE INSERT ON public.journal_entries
+    FOR EACH ROW EXECUTE FUNCTION public.guard_journal_entry_period();
+
 ALTER TABLE public.journal_entries ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "journal_entries select by permission"
     ON public.journal_entries
