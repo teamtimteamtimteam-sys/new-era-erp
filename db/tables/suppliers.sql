@@ -131,6 +131,15 @@ CREATE TRIGGER trg_suppliers_updated_at
     BEFORE UPDATE ON public.suppliers
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
+CREATE UNIQUE INDEX suppliers_tax_id_unique ON public.suppliers (tax_id) WHERE tax_id IS NOT NULL AND deleted_at IS NULL;
+
+CREATE TRIGGER trg_suppliers_normalise_identity
+    BEFORE INSERT OR UPDATE ON public.suppliers
+    FOR EACH ROW EXECUTE FUNCTION public.normalise_counterparty_identity();
+
+COMMENT ON COLUMN public.suppliers.tax_id IS
+    '登记号/税号(新加坡 UEN、中国统一社会信用代码)。**这是这一行的身份**,不是名字 —— GO-4。写入时去空白并大写;非空且未软删的行上唯一。【不是必填】:18 行里只有 2 行有值,而为了满足约束去编造值是禁止的;必填这一步留给【批量导入那一刀】,因为那是真实主数据到场、而补做成本开始上升的时刻。';
+
 ALTER TABLE public.suppliers ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "suppliers select by permission"
     ON public.suppliers

@@ -59,6 +59,15 @@ CREATE TRIGGER trg_generate_customer_code
     BEFORE INSERT ON public.customers
     FOR EACH ROW EXECUTE FUNCTION generate_customer_code();
 
+CREATE UNIQUE INDEX customers_tax_id_unique ON public.customers (tax_id) WHERE tax_id IS NOT NULL AND deleted_at IS NULL;
+
+CREATE TRIGGER trg_customers_normalise_identity
+    BEFORE INSERT OR UPDATE ON public.customers
+    FOR EACH ROW EXECUTE FUNCTION public.normalise_counterparty_identity();
+
+COMMENT ON COLUMN public.customers.tax_id IS
+    '登记号/税号(新加坡 UEN、中国统一社会信用代码)。**这是这一行的身份**,不是名字 —— GO-4。写入时去空白并大写;非空且未软删的行上唯一。【不是必填】,理由同 suppliers.tax_id,必填留给批量导入那一刀。';
+
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "customers select by permission"
     ON public.customers

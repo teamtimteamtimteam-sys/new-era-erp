@@ -11,6 +11,7 @@
 // 而一个只对没人用过的值有效的删除按钮,会让人对着真正想删的那个反复点。
 // **所以不建删除。**
 import { createClient } from '@/lib/supabase/server'
+import { normaliseIdentityText, findNearDuplicate } from '@/lib/nearDuplicate'
 import { getTranslations } from '@/lib/i18n/server'
 import { revalidatePath } from 'next/cache'
 import { DICTIONARIES } from './registry'
@@ -32,9 +33,9 @@ function spec(table: string) {
  *   ② 与既有 code【不分大小写】比一遍,近重复当场按名拒;
  *   ③ **建好之后 code 不可改** —— 改它就是改外键指向,那是一次数据迁移,不是一次编辑。
  */
-function normaliseCode(raw: string) {
-    return raw.trim().replace(/\s+/g, ' ')
-}
+// GO-4:规范化与比较搬进 lib/nearDuplicate.ts,与 suppliers / customers 共用一份。
+// **处置留在这里,而且刻意与那边相反** —— 见下方 ② 的注释。
+const normaliseCode = normaliseIdentityText
 
 export async function addDictValue(input: {
     table: string; code: string; nameEn: string; nameZh: string
@@ -56,10 +57,12 @@ export async function addDictValue(input: {
     if (existing.error || !existing.data) {
         return { error: await dictError(existing.error?.message ?? 'dictionary read failed') }
     }
-    const clash = existing.data.find(
-        (r: { code: string }) => r.code.toLowerCase() === code.toLowerCase()
-    )
-    if (clash) return { error: t('dict.errNearDuplicate', { 0: clash.code }) }
+    // 【这里【拒绝】,而 suppliers / customers 那边只【警告】—— 差别是有理由的】
+    // code 是外键指着的那个东西:同一个东西长出第二种拼法,就是把一部分行挂到了
+    // 一个新的、意义相同的键上。这里没有"两个都对"的情形,所以拦。
+    // 公司名相反 —— 两家真正不同的公司可以同名,见 lib/nearDuplicate.ts 的抬头。
+    const clash = findNearDuplicate(code, existing.data, (r: { code: string }) => r.code)
+    if (clash) return { error: t('dict.errNearDuplicate', { 0: clash }) }
 
     const row: Record<string, unknown> = {
         code, name_en: input.nameEn.trim(), name_zh: input.nameZh.trim(),

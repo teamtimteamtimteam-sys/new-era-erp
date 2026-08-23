@@ -4,13 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/check-currency-literals.mjs && node scripts/check-error-swallowing.mjs && node scripts/check-i18n.mjs && node scripts/check-masked-reads.mjs && next build",
+    "build": "node scripts/check-currency-literals.mjs && node scripts/check-error-swallowing.mjs && node scripts/check-i18n.mjs && node scripts/check-masked-reads.mjs && node scripts/check-near-duplicate.mjs && next build",
     "check:i18n": "node scripts/check-i18n.mjs",
     "start": "next start",
     "lint": "eslint",
     "types:gen": "supabase gen types typescript --project-id wvywpohbwkiinmipmuku > lib/database.types.ts.tmp && mv lib/database.types.ts.tmp lib/database.types.ts || (rm -f lib/database.types.ts.tmp; exit 1)",
     "check:scratch": "node scripts/check-scratch-rows.mjs",
-    "check:masked": "node scripts/check-masked-reads.mjs"
+    "check:masked": "node scripts/check-masked-reads.mjs",
+    "check:neardup": "node scripts/check-near-duplicate.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

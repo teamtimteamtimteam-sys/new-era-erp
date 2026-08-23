@@ -46,7 +46,20 @@ export default function NewCustomerForm() {
                 </div>
             )}
 
+            {/* GO-4:名字近重复的【提醒】—— 黄色不是红色,而且它【放行】。
+                一个人推翻不了的警告,只是换了个友好颜色的拦截。
+                再按一次提交就带上 ack_near_duplicate,服务端据此放行。 */}
+            {state.nearDuplicateName && (
+                <div className="bg-amber-50 border border-amber-400 text-amber-900 px-4 py-3 rounded mb-4">
+                    {t('customers.form.errNearDuplicateName', { 0: state.nearDuplicateName })}
+                </div>
+            )}
+
             <form action={formAction} className="space-y-4">
+                {/* 提醒出现过之后才带上:带着它提交 = 已经读过并坚持要建 */}
+                {state.nearDuplicateName && (
+                    <input type="hidden" name="ack_near_duplicate" value="1" />
+                )}
                 {/* 法人名(必填) */}
                 <div>
                     <label className="block text-sm font-medium mb-1">
