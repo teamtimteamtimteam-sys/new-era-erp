@@ -1982,3 +1982,122 @@ FIX-1 那两行是靠迁移动手删的,而**那不是一条可以让操作员�
    FIX-2 在那四处写的是"还没有这个页面",现在换成了真链接。
 
 逐条要看什么在 `docs/manual-walk-list.md` §12。
+
+## MASKED-READS · app 里 71 处直连遮蔽表的读取(GO-1,2026-08-23 实测)
+
+`scripts/check-masked-reads.mjs` 落地时的在册清单。**它们今天【全部是好的】**——
+本条记的是一笔债与它会怎么到期,不是一份故障清单。
+
+### 它们今天为什么不炸,以及【什么事会让它们炸】
+
+遮蔽表是 `REVOKE SELECT` + 列清单授权(`perm2b`)。**列清单授权是冻住的**:
+`ALTER TABLE ADD COLUMN` 加出来的列不在里面,于是任何**选到它、或仅仅按它过滤/排序**
+的查询当场 `42501`(AGENTS.md「往遮蔽表加一列」那一节)。
+
+**实测下来这 71 处的到期条件比预想的窄一档,值得照直写出来:**
+
+| | 处数 | 什么事会让它炸 |
+|---|---|---|
+| `select('*')` | **0** | (会在**加任何一列**的当天就炸 —— 一处也没有) |
+| 明列列名 | **71** | 只有当有人**把新加的那一列写进这条查询**时才炸 |
+
+也就是说:**单是往表上加一列,今天【不会】弄坏这 71 处中的任何一处。**
+危险的是下一步 —— 有人为了用上新列去改这条查询,而这条查询直连的是表。
+那时 42501 会被页面上的 `?? []` 吞成一张空表:**门全绿,页面全空**,
+正是 FIN-6 那 42 分钟的形状,也正是 `processing_cost_variance` 从上线起就没工作过的形状。
+
+**为什么不在 GO-1 里一次改完(D6 的决定):** 71 处要一处处重新判断
+——`_masked` 视图按权限把被扣下的列呈现为 `null`,而调用点对 `null` 的处置
+(显示「受限」、跳过、还是当成 0)是**一处一个判断**,不是一次批量替换。
+`lib/permissions.ts` 存在的全部理由就是 `null` 已经另有含义。
+把 71 处判断塞进一把新检查的同一刀里,正是「匆忙写出来的检查」的由来。
+
+### 检查怎么拦住【新的】
+
+判词是**增量**的:`scripts/masked-reads-baseline.json` 记着每个〈文件 · 表〉今天有几处,
+**多一处就红**(退 1),少了只提示可以收紧基线。跑在 `npm run build` 里,**约 70 毫秒**。
+四个分支都做过故障注入(新增 / 同处变多 / 基线文件不见 / 改好了)。
+
+**改好一处的做法:** 把 `.from('<表>')` 换成 `.from('<表>_masked')`,
+处理好被扣下的列在该处呈现为 `null` 这件事,然后
+`node scripts/check-masked-reads.mjs --update-baseline` 把基线收紧。
+**不要为了让门变绿而直接刷新基线** —— 那是把债划掉,不是还债。
+
+### 在册清单
+
+总计 **71 处**,分布在 **13 张**遮蔽表上(生成自 `scripts/masked-reads-baseline.json`):
+
+* **`employees`** → 应读 `employees_masked`(25 处)
+  * `app/components/ActorName.tsx` ×2
+  * `app/finance/payroll-payments/page.tsx`
+  * `app/hr/claims/new/page.tsx`
+  * `app/hr/claims/page.tsx`
+  * `app/hr/departments/actions.ts`
+  * `app/hr/departments/page.tsx`
+  * `app/hr/employees/[id]/edit/page.tsx`
+  * `app/hr/employees/[id]/page.tsx`
+  * `app/hr/employees/actions.ts` ×3
+  * `app/hr/employees/new/page.tsx`
+  * `app/hr/leave/[id]/page.tsx`
+  * `app/hr/leave/balances/page.tsx`
+  * `app/hr/leave/new/page.tsx`
+  * `app/hr/leave/page.tsx`
+  * `app/hr/payroll/loadGridData.ts`
+  * `app/hr/reviews/[id]/page.tsx`
+  * `app/hr/reviews/cycles/page.tsx`
+  * `app/hr/reviews/page.tsx`
+  * `app/hr/training/[id]/edit/page.tsx`
+  * `app/hr/training/new/page.tsx`
+  * `app/processing/[id]/page.tsx`
+  * `app/settings/permissions/page.tsx`
+* **`inbound_batches`** → 应读 `inbound_batches_masked`(15 处)
+  * `app/components/metals/metalContentActions.ts` ×2
+  * `app/finance/payments/[id]/page.tsx`
+  * `app/finance/sourceLinks.ts`
+  * `app/inbound/[id]/label/route.ts`
+  * `app/inbound/page.tsx` ×4
+  * `app/inbound/receive/done/[id]/page.tsx`
+  * `app/processing/new/page.tsx`
+  * `app/purchasing/orders/[id]/amend/page.tsx`
+  * `app/stocktakes/[id]/page.tsx`
+  * `app/stocktakes/[id]/review/page.tsx`
+  * `app/stocktakes/actions.ts`
+* **`processing_runs`** → 应读 `processing_runs_masked`(6 处)
+  * `app/finance/processing-costs/page.tsx`
+  * `app/inventory/page.tsx`
+  * `app/processing/[id]/costActions.ts`
+  * `app/processing/orders/[id]/page.tsx`
+  * `app/processing/page.tsx` ×2
+* **`purchase_order_lines`** → 应读 `purchase_order_lines_masked`(4 处)
+  * `app/finance/expenses/[id]/page.tsx`
+  * `app/inbound/[id]/assays/new/page.tsx`
+  * `app/inbound/[id]/edit/page.tsx` ×2
+* **`pricing_formulas`** → 应读 `pricing_formulas_masked`(4 处)
+  * `app/inbound/[id]/assays/new/page.tsx`
+  * `app/pricing/calculator/page.tsx`
+  * `app/purchasing/orders/[id]/page.tsx`
+  * `app/purchasing/orders/new/page.tsx`
+* **`purchase_orders`** → 应读 `purchase_orders_masked`(3 处)
+  * `app/finance/payments/[id]/page.tsx`
+  * `app/inbound/[id]/edit/page.tsx`
+  * `app/purchasing/orders/page.tsx`
+* **`processing_cost_entries`** → 应读 `processing_cost_entries_masked`(3 处)
+  * `app/finance/sourceLinks.ts`
+  * `app/processing/[id]/costActions.ts` ×2
+* **`invoice_lines`** → 应读 `invoice_lines_masked`(2 处)
+  * `app/finance/invoices/new/page.tsx`
+  * `app/finance/receivables/[saleId]/page.tsx`
+* **`payroll_lines`** → 应读 `payroll_lines_masked`(2 处)
+  * `app/finance/month-end/page.tsx`
+  * `app/hr/payroll/page.tsx`
+* **`sales_records`** → 应读 `sales_records_masked`(2 处)
+  * `app/finance/payments/[id]/page.tsx`
+  * `app/finance/sourceLinks.ts`
+* **`employment_history`** → 应读 `employment_history_masked`(2 处)
+  * `app/hr/employees/[id]/page.tsx`
+  * `app/me/page.tsx`
+* **`pricing_term_commitments`** → 应读 `pricing_term_commitments_masked`(2 处)
+  * `app/inbound/[id]/edit/page.tsx`
+  * `app/purchasing/orders/[id]/page.tsx`
+* **`invoices`** → 应读 `invoices_masked`(1 处)
+  * `app/finance/invoices/page.tsx`
