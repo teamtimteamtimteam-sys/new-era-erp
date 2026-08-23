@@ -9,7 +9,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { can } from '@/lib/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { mustRows } from '@/lib/db-helpers'
-import { IMPORT_TABLES } from '@/lib/importTables'
+import { IMPORT_TABLES, type TemplateColumn } from '@/lib/importTables'
 import ImportForm from './ImportForm'
 
 export default async function ImportPage() {
@@ -31,6 +31,19 @@ export default async function ImportPage() {
     }
 
     const supabase = await createClient()
+
+    // 【列指南与模板同一个来源】—— 一份 RPC,两处渲染(文件里第三行 / 屏幕上这一块)。
+    // 不在这里抄第二份取值清单:那正是本刀在拆的东西。
+    // 【"拿不到"不是"这张表没有受限列"】—— 两者必须在屏幕上分得开。
+    // 上一版在 error 时返回空数组,于是指南整块消失,读起来像"这张表没什么可说的"。
+    // 那正是 lib/permissions.ts 存在的全部理由,换了一块屏幕而已。
+    const guideEntries = await Promise.all(IMPORT_TABLES.map(async (tbl) => {
+        const res = await supabase.rpc('master_import_template_columns', { p_table: tbl })
+        if (res.error) return [tbl, { status: 'unavailable' as const, cols: [] }] as const
+        return [tbl, { status: 'ok' as const, cols: (res.data ?? []) as TemplateColumn[] }] as const
+    }))
+    const guide = Object.fromEntries(guideEntries)
+
     // 【失败不是空集】—— mustRows,不是 ?? []。
     const batches = mustRows(
         await supabase
@@ -46,7 +59,7 @@ export default async function ImportPage() {
             <h1 className="text-2xl font-semibold mb-1">{t('import.title')}</h1>
             <p className="text-sm text-gray-600 mb-6">{t('import.intro')}</p>
 
-            <ImportForm tables={[...IMPORT_TABLES]} />
+            <ImportForm tables={[...IMPORT_TABLES]} guide={guide} />
 
             <h2 className="text-lg font-semibold mt-10 mb-2">{t('import.history')}</h2>
             {batches.length === 0 ? (

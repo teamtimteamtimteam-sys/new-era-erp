@@ -1,3 +1,105 @@
+-- 2026-08-24-import2-a-file-the-importer-will-accept.sql
+-- IMPORT-2:模板生成出来的文件,导入必须收得下 —— 今天它不收。
+--
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【走查发现:照着模板填的文件被拒了】而报出来的是 PostgreSQL 的原话
+-- (`cannot insert a non-DEFAULT value into column …`)。走查只碰到两列,
+-- **实测是九列、六张表全中**:
+--
+--   ✗ 模板发出了【数据库拒收】的列(GENERATED ALWAYS):
+--       suppliers.supplies_goods · employees.monthly_salary_set     ← 2 列
+--   ⚠ NOT NULL 但【有默认值】的列,空格子被我转成了 NULL,于是撞 NOT NULL:
+--       materials.unit · suppliers.supplier_types · customers.credit_hold ·
+--       departments.is_active · employees.employment_status ·
+--       employees.review_exempt · storage_locations.is_active      ← 7 列
+--
+-- 【第二类的根因是【一行】代码,而它是我上一刀写的】
+-- 上一刀把"空字符串折成 NULL"当成了体贴 —— 理由写着「CSV 里没有 NULL 这个概念」。
+-- **那句话是对的,而由它推出的做法是反的**:CSV 里既然写不出 NULL,
+-- 一个空格子的意思就只能是【没有填】,而不是【填了 NULL】。
+-- 正确的做法是**把那个键整个拿掉**,让列的默认值生效。
+--
+-- **一次错误的转换制造了九处里的七处。** 而按最初的诊断("把 supplier_types 标成必填")
+-- 去修,会让操作员在每一行里手打一个 `{}` 来绕过一个 bug。
+--
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【为什么模板的来源要换 —— 不是它解析得不好,是那些事实【不在那里】】
+-- 模板此前从 `lib/database.types.ts` 的 Insert 块推列。实测那份类型里:
+--     supplies_goods?: boolean | null      ← 一个 GENERATED 列,与任何普通可选列【一模一样】
+--     counterparty_type: string            ← 一个 CHECK 闭集,只是 string
+-- **它表达不了「数据库会拒收这一列」,也表达不了「只接受这几个值」。**
+-- 所以模板改从**线上目录**取(本文件新建的那支函数):那是唯一同时拥有三件事实的地方。
+-- 这【不是】推翻"不要在构建时查库"那条裁定 —— 那条的理由是"库够不着时构建会失败",
+-- 而这是**请求时**,而且模板路由本来就为权限判断打了一次往返。
+-- ════════════════════════════════════════════════════════════════════════════
+
+BEGIN;
+
+-- ── 一、模板的唯一来源 ────────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION master_import_template_columns(p_table text)
+RETURNS TABLE (column_name text, is_required boolean, accepted_values text[])
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $fn$
+BEGIN
+    PERFORM require_permission('action.bulk_import');
+    IF p_table NOT IN ('materials','suppliers','customers',
+                       'employees','departments','storage_locations') THEN
+        RAISE EXCEPTION 'IMPORT_TABLE_NOT_IMPORTABLE|%', p_table;
+    END IF;
+
+    RETURN QUERY
+    WITH cols AS (
+        SELECT a.attname::text AS nm,
+               a.attnotnull     AS notnull,
+               (ad.adbin IS NOT NULL) AS has_default,
+               (a.attgenerated <> '') AS generated
+          FROM pg_attribute a
+          JOIN pg_class c ON c.oid = a.attrelid
+          JOIN pg_namespace n ON n.oid = c.relnamespace
+          LEFT JOIN pg_attrdef ad ON ad.adrelid = a.attrelid AND ad.adnum = a.attnum
+         WHERE n.nspname = 'public' AND c.relname = p_table
+           AND a.attnum > 0 AND NOT a.attisdropped
+    ),
+    -- 单列 CHECK 里的闭集,以及真正的 enum 类型 —— 两种都要
+    sets AS (
+        SELECT a.attname::text AS nm,
+               array_agg(DISTINCT m[1] ORDER BY m[1]) AS vals
+          FROM pg_constraint con
+          JOIN pg_class rel ON rel.oid = con.conrelid
+          JOIN pg_namespace n ON n.oid = rel.relnamespace
+          JOIN unnest(con.conkey) k(num) ON true
+          JOIN pg_attribute a ON a.attrelid = con.conrelid AND a.attnum = k.num,
+               LATERAL regexp_matches(pg_get_constraintdef(con.oid), '''([^'']+)''::text', 'g') m
+         WHERE con.contype = 'c' AND n.nspname='public' AND rel.relname = p_table
+           AND array_length(con.conkey,1) = 1
+         GROUP BY a.attname
+    )
+    SELECT cols.nm,
+           -- 【必填 = NOT NULL 且【没有】默认值】。有默认值的 NOT NULL 列**不是**必填:
+           -- 留空是合法的,导入会把那个键整个省掉,让默认值生效。
+           (cols.notnull AND NOT cols.has_default),
+           sets.vals
+      FROM cols LEFT JOIN sets ON sets.nm = cols.nm
+     WHERE NOT (cols.nm = ANY (master_import_forbidden_columns()))
+       -- 【GENERATED 列【根本不出现在模板里】】数据库会拒收一个供给的值,
+       -- 而一个"发出来又被拒"的列正是本刀要消灭的东西。
+       AND NOT cols.generated
+     ORDER BY cols.nm;
+END;
+$fn$;
+
+COMMENT ON FUNCTION master_import_template_columns(text) IS
+'模板的【唯一来源】。它同时给出三件事实,而这三件只有线上目录同时拥有:
+① 这一列接不接受供给的值(GENERATED 的【不出现】);
+② 它必不必填(NOT NULL 且无默认值 —— 有默认值的 NOT NULL【不是】必填,留空即用默认);
+③ 它接不接受任意值(单列 CHECK 的闭集)。
+
+`lib/database.types.ts` 表达不了 ① 和 ③:一个 GENERATED 列在那里长得与任何可选列
+一模一样(`supplies_goods?: boolean | null`),而一个 CHECK 闭集只是 `string`。
+所以模板不再从那份类型推 —— 不是它解析得不好,是那些事实不在那里。';
+
+
+-- ── 二、导入引擎:空格子 = 没填 · GENERATED 进禁列 · 拒绝按 SQLSTATE 分族 ──
+
 CREATE OR REPLACE FUNCTION public.master_import_apply(p_table text, p_rows jsonb, p_file_name text DEFAULT NULL::text, p_dry_run boolean DEFAULT true)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -300,3 +402,6 @@ BEGIN
                               'sequence_bumped_to', v_maxnum);
 END;
 $function$
+;
+
+COMMIT;

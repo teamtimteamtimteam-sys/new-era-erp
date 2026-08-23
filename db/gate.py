@@ -306,6 +306,76 @@ def check_xmodule_views(dsn: str) -> tuple:
     return psql(dsn, XMODULE_SQL), n_invoker, n_deps
 
 
+# ── IMPORT-2:模板发出去的文件,导入必须收得下 ─────────────────────────────────
+# 【为什么这条检查在 gate 而不在 build】它要问【线上目录】三件事(GENERATED、
+# NOT NULL 有没有默认值、CHECK 闭集),而那三件只有数据库知道。
+# 这正是 check-masked-reads 只进 build 的镜像:那一条只需要仓库里的文件。
+#
+# 【它断言的不是"模板等于目录"】那会是一句同义反复(模板就是从目录来的)。
+# 它断言的是 2.3 那条【规矩】仍然成立,而规矩是可以被一次"顺手"改坏的:
+#   ① 模板【不许】发出数据库会拒收的列(GENERATED);
+#   ② 数据库要求的列(NOT NULL 且无默认值)【必须】发出来【而且标成必填】;
+#   ③ 取值受限的列【必须】带着它的取值集合。
+# 六张表全查,不抽查 —— 走查只碰到 suppliers,而实测六张全中。
+IMPORT_TEMPLATE_SQL = r"""
+WITH t(tbl) AS (VALUES ('materials'),('suppliers'),('customers'),
+                       ('departments'),('employees'),('storage_locations')),
+tpl AS (
+    SELECT t.tbl, x.column_name, x.is_required, x.accepted_values
+      FROM t, LATERAL master_import_template_columns(t.tbl) x
+),
+live AS (
+    SELECT c.relname::text tbl, a.attname::text nm,
+           a.attnotnull AND ad.adbin IS NULL AS must_supply,
+           a.attgenerated <> '' AS generated
+      FROM pg_attribute a
+      JOIN pg_class c ON c.oid=a.attrelid
+      JOIN pg_namespace n ON n.oid=c.relnamespace
+      LEFT JOIN pg_attrdef ad ON ad.adrelid=a.attrelid AND ad.adnum=a.attnum
+     WHERE n.nspname='public' AND c.relname IN (SELECT tbl FROM t)
+       AND a.attnum>0 AND NOT a.attisdropped
+),
+sets AS (
+    SELECT rel.relname::text tbl, a.attname::text nm
+      FROM pg_constraint con
+      JOIN pg_class rel ON rel.oid=con.conrelid
+      JOIN pg_namespace n ON n.oid=rel.relnamespace
+      JOIN unnest(con.conkey) k(num) ON true
+      JOIN pg_attribute a ON a.attrelid=con.conrelid AND a.attnum=k.num
+     WHERE con.contype='c' AND n.nspname='public'
+       AND rel.relname IN (SELECT tbl FROM t) AND array_length(con.conkey,1)=1
+       AND pg_get_constraintdef(con.oid) LIKE '%''%'
+     GROUP BY 1,2
+)
+SELECT string_agg(msg, '; ') FROM (
+    -- ① 发出了数据库拒收的列
+    SELECT tpl.tbl||'.'||tpl.column_name||' is GENERATED but emitted' AS msg
+      FROM tpl JOIN live ON live.tbl=tpl.tbl AND live.nm=tpl.column_name
+     WHERE live.generated
+    UNION ALL
+    -- ② 数据库要求它,而模板没发
+    SELECT live.tbl||'.'||live.nm||' is required but NOT emitted'
+      FROM live LEFT JOIN tpl ON tpl.tbl=live.tbl AND tpl.column_name=live.nm
+     WHERE live.must_supply AND NOT live.generated AND tpl.column_name IS NULL
+       AND NOT (live.nm = ANY (master_import_forbidden_columns()))
+    UNION ALL
+    -- ②b 发了,却没标成必填
+    SELECT tpl.tbl||'.'||tpl.column_name||' is required but NOT marked'
+      FROM tpl JOIN live ON live.tbl=tpl.tbl AND live.nm=tpl.column_name
+     WHERE live.must_supply AND NOT tpl.is_required
+    UNION ALL
+    -- ③ 取值受限,却没有带上取值
+    SELECT tpl.tbl||'.'||tpl.column_name||' has a CHECK set but no accepted_values'
+      FROM tpl JOIN sets ON sets.tbl=tpl.tbl AND sets.nm=tpl.column_name
+     WHERE tpl.accepted_values IS NULL OR cardinality(tpl.accepted_values)=0
+) q
+"""
+
+
+def check_import_template(dsn: str) -> str:
+    return psql(dsn, IMPORT_TEMPLATE_SQL)
+
+
 def check_grant_gaps(dsn: str) -> str:
     return psql(dsn, GRANT_GAP_SQL)
 
@@ -514,6 +584,13 @@ def main() -> int:
               f"  ({len(cm.DEFINER_NO_CHECK_ALLOWED)} allowlisted)")
         if unchecked:
             problems.append(f"definer: {unchecked}")
+
+        # IMPORT-2:模板与线上目录的三条规矩(见 IMPORT_TEMPLATE_SQL 抬头)
+        for label, d in (("live", args.live), ("rebuild", dsn)):
+            tmpl_gap = check_import_template(d)
+            print(f"   import-template  {label:8} {'✓ 模板与目录一致' if not tmpl_gap else '✗ ' + tmpl_gap}")
+            if tmpl_gap:
+                problems.append(f"import template ({label}): {tmpl_gap}")
 
         # ── 两个判词,分开说 ────────────────────────────────────────────────
         elapsed = time.time() - t0

@@ -14,7 +14,7 @@
 import Papa from 'papaparse'
 import { createClient } from '@/lib/supabase/server'
 import { findNearDuplicate, foldForCompare } from '@/lib/nearDuplicate'
-import { isImportTable } from '@/lib/importTables'
+import { isImportTable, TEMPLATE_COMMENT_PREFIX } from '@/lib/importTables'
 import { parseImportError } from './importErrorCodes'
 import type { ImportIssue, NearDuplicateWarning, PreviewResult } from './types'
 
@@ -46,22 +46,50 @@ export async function previewImport(_prev: unknown, formData: FormData): Promise
 
     const parsed = Papa.parse<Record<string, string>>(text, {
         header: true,
+        // 【分隔符写死成逗号 —— 不让 papaparse 猜】(IMPORT-2,写往返测试时撞到的)
+        // papaparse 默认会**自动探测**分隔符,它取前几行打分。employees 的模板
+        // 第三行(取值说明)里有一大把 `|`,于是它把 `|` 猜成了分隔符 ——
+        // 整份文件当场被读错,而**它不报错**:表头对不上,行被当成数据留了下来。
+        // 一个我们自己生成的 CSV 永远是逗号分隔的,没有任何理由让它去猜。
+        delimiter: ',',
         skipEmptyLines: 'greedy',
         transformHeader: (h) => h.trim(),
     })
-    if (parsed.errors.length > 0) {
-        const e = parsed.errors[0]
+    // ── 【哪些解析错误算数】────────────────────────────────────────────────
+    // 【一份原样传回来的模板必须走得通】—— 而它【一定】会带一条 FieldMismatch:
+    // 模板第三行(取值说明)只有一个字段,而表头有十几个,papaparse 于是报
+    // `TooFewFields`。**那不是一个坏文件,那是我们自己发出去的那一行。**
+    // 上一版把任何 parse error 都当成致命,于是"下载一份模板、原样传回来"
+    // 会被自己拒掉 —— 一个系统把自己发的文件退回来,正是这一刀在拆的东西。
+    //
+    // 所以:**字段数对不上的那一族,留给下面按行的跳过与校验去处理**
+    //(短的行会被认出是标记行/说明行;真的短了一列的数据行,缺的那一列会由
+    // NOT NULL 或"必填"按名报出来,而且**带着行号**——那比一句解析错误有用得多)。
+    // 其余的(引号没闭合、探测不到分隔符)仍然是致命的:那时整份文件的切分就是错的。
+    const fatal = parsed.errors.filter((e) => e.type !== 'FieldMismatch')
+    if (fatal.length > 0) {
+        const e = fatal[0]
         return fail(table, fileName, 'IMPORT_CSV_UNPARSEABLE',
             `${e.type}: ${e.message}${e.row != null ? ` (行 ${e.row + 1})` : ''}`)
     }
 
-    // 模板的第二行是 required 标记行,不是数据。它只有 'required' 与空 —— 认出来就丢掉。
-    let rows = parsed.data
-    if (rows.length > 0) {
-        const first = rows[0]
-        const vals = Object.values(first).map((v) => (v ?? '').trim())
-        if (vals.every((v) => v === '' || v === 'required')) rows = rows.slice(1)
+    // ── 模板自己那两行不是数据 ────────────────────────────────────────────
+    // 【判据:一份【一个字没改】的模板重新传上来,必须走得通】
+    // 一个把自己发出去的文件又拒掉的系统,正是这一刀要消灭的东西。
+    // 第二行是 required 标记(只有 'required' 与空);第三行是取值说明(以 # 开头)。
+    // 两行都跳过,而且**只按形状认**,不按行号 —— 操作员可能删掉其中一行。
+    // 【String(...) 不是防御性写法 —— papaparse 真的会给出非字符串】
+    // 一行的字段比表头【多】的时候,papaparse 把多出来的塞进 `__parsed_extra`,
+    // 而那是一个**数组**。直接 .trim() 会抛 TypeError —— 于是操作员拿到的是一个
+    // 500,而不是一句"这个文件读不成 CSV"。这一条是写往返测试时被真的撞到的。
+    const cell = (v: unknown) => (typeof v === 'string' ? v : v == null ? '' : String(v)).trim()
+    const isMarkerRow = (r: Record<string, unknown>) => {
+        const vals = Object.values(r).map(cell)
+        return vals.length > 0 && vals.every((v) => v === '' || v === 'required')
     }
+    const isCommentRow = (r: Record<string, unknown>) =>
+        cell(Object.values(r)[0]).startsWith(TEMPLATE_COMMENT_PREFIX)
+    let rows = parsed.data.filter((r) => !isMarkerRow(r) && !isCommentRow(r))
     if (rows.length === 0) return fail(table, fileName, 'IMPORT_FILE_EMPTY')
 
     const supabase = await createClient()

@@ -7,11 +7,10 @@ const nextConfig: NextConfig = {
   // PDF 路由就会在运行时炸。在这里显式声明,免得哪天加了 standalone 才发现。
   outputFileTracingIncludes: {
     "/finance/invoices/[id]/pdf": ["./assets/fonts/*.subset.ttf"],
-    // IMPORT-1:导入模板的列是【请求时】从 lib/database.types.ts 读出来的
-    // (见 lib/importTables.ts 的抬头:为什么是它、为什么不在构建时查库)。
-    // 那是一次 fs 读源文件,打包器的静态分析同样看不见 —— 与上面字体那条
-    // 一模一样的坑,而且后果一样:本地全绿,线上这条路由炸。
-    "/settings/import/template/[table]": ["./lib/database.types.ts"],
+    // 【IMPORT-1 在这里加过一条,IMPORT-2 把它拿掉了 —— 记一句免得有人以为是漏删】
+    // 那条 trace 是为了让模板路由在运行时用 fs 读得到 lib/database.types.ts。
+    // IMPORT-2 之后模板改从【线上目录】取(那份类型表达不了 GENERATED 与 CHECK 闭集),
+    // 这条路由**不再读任何源文件**,所以那条 trace 没有对象了。
   },
 };
 

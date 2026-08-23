@@ -17295,6 +17295,14 @@ export type Database = {
         Returns: Json
       }
       master_import_forbidden_columns: { Args: never; Returns: string[] }
+      master_import_template_columns: {
+        Args: { p_table: string }
+        Returns: {
+          accepted_values: string[]
+          column_name: string
+          is_required: boolean
+        }[]
+      }
       match_bank_line: {
         Args: { p_journal_line_ids: string[]; p_statement_line_id: string }
         Returns: Json

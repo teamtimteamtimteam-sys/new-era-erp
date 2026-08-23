@@ -37,6 +37,20 @@ const ROOT = new URL('..', import.meta.url).pathname
 // 不是记在谁脑子里的。【只放误伤,不放"还没修"】。
 const ALLOWLIST = [
     {
+        path: 'app/settings/import/page.tsx', match: 'res.data ?? []',
+        reason: 'IMPORT-2:上一行就是 `if (res.error) return { status: "unavailable" }` —— '
+            + '**失败有自己的一种状态,而且屏幕上说得出来**(guideUnavailable:"拿不到"'
+            + '不等于"这张表没有受限列")。走到这一句就是成功返回,空数组是【真的零列】。'
+            + '这正是本检查要的那个区别,只是它看不见上一行。',
+    },
+    {
+        path: 'app/settings/import/template/[table]/route.ts', match: 'data ?? []',
+        reason: 'IMPORT-2:上面几行已经显式 `if (error) return 503/403` 了 —— 走到这一句'
+            + '就是 RPC 成功返回。而且紧接着还有一条 `cols.length === 0 → 503`:'
+            + '**零列不是"这张表没有列",是模板来源坏了**,它按名报出来而不是发一张空表头。'
+            + '也就是说这里的 ?? [] 之后【没有】任何一条路把空当成正常。',
+    },
+    {
         path: 'lib/db-helpers.ts', match: 'res.data ?? []',
         reason: '这就是 mustRows 本身 —— 它在上一行 `if (res.error) fail(...)` 抛过了,'
             + '这里的 ?? [] 是【成功但零行】的合法回退。政策的实现处不该被政策拦下。',

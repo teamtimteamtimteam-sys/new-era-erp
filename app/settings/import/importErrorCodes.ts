@@ -24,6 +24,20 @@ export const IMPORT_ERROR_CODES = new Set([
     'IMPORT_COLUMN_UNKNOWN',
     'IMPORT_ROW_EMPTY',
     'IMPORT_ROW_REFUSED',
+    // ── IMPORT-2:数据库拒绝按 SQLSTATE 分【族】,不按消息文本 ────────────────
+    // 消息文本随版本与语言变;SQLSTATE 稳定,而且它覆盖一族而不是走查恰好撞到的两条。
+    'IMPORT_ROW_NOT_NULL',        // 23502
+    'IMPORT_ROW_CHECK',           // 23514
+    'IMPORT_ROW_FK',              // 23503
+    'IMPORT_ROW_UNIQUE',          // 23505
+    'IMPORT_ROW_BAD_SYNTAX',      // 22P02
+    'IMPORT_ROW_GENERATED',       // 428C9
+    'IMPORT_ROW_TOO_LONG',        // 22001
+    'IMPORT_ROW_NUMERIC_RANGE',   // 22003
+    // 模板那一侧
+    'IMPORT_TEMPLATE_UNAVAILABLE',
+    'IMPORT_TEMPLATE_EMPTY',
+    'IMPORT_NOT_PERMITTED',
     // ── app 侧(文件还没到数据库就被拦下的) ──────────────────────────────
     'IMPORT_NO_FILE',
     'IMPORT_NOT_CSV',
