@@ -1924,3 +1924,43 @@ FIX-1 那两行是靠迁移动手删的,而**那不是一条可以让操作员�
 
 新守卫让这件事更要紧一点:一段填错了时刻的停机现在会挡住后面每一段(重叠),
 而挡住它的人没有门可以去修。**按名排期**,与"停机可用率/利用率"那一刀无关。
+
+## 五张字典【一张维护页面都没有】(FIX-2 的 G1,2026-08-23)
+
+**G1 逐个查过,答案是一样的:**
+
+| 字典 | app 里的写入路径 | 库里的 INSERT 策略 |
+|---|---|---|
+| `laboratories` | **0** | 有(`module.inbound.edit`) |
+| `battery_chemistries` | **0** | 有(`module.materials.edit`) |
+| `substances` | **0** | 有(`module.materials.edit`) |
+| `material_kinds` | **0** | 有 |
+| `inbound_safety_states` | **0** | 有 |
+
+`app/settings/` 底下只有 `permissions` 一页。全 app 搜 `.insert(`/`.upsert(` 命中这五张表的:
+**零处**(唯一的近似命中是 `chemistry_certainty_code`,那是往【批次】上写,不是往字典里加行)。
+
+> **也就是说:门是【被允许的】,只是【没人建】。**
+
+**FIX-2 不建它**(G3 明令),只在两个 picker 下面写上真话:
+今天加一个新值要有数据库访问权。**一张没人加得进去的清单就是冻着的,
+而诚实的做法是说它冻着,不是暗示一扇不存在的门。**
+
+**排期:字典维护页(五张字典共用一个形状)。** 它要回答的不止"加一行" ——
+还有改名、停用(而 PROC-3/4/5 已经把 `is_active` 与 `may_be_fed` 两个动词分清楚了),
+以及"停用一个正在使用的取值"该不该拦(PROC-4 的 N40 当时实测零使用,留给了这一刀)。
+
+## `--reach` 的补课范围:FIX-2 改了七页(2026-08-23)
+
+**没有新路由,没有动导航。** 逐条点名:
+
+| 页面 | 改了什么 |
+|---|---|
+| `/finance/assets/[id]` | A(未监控块补读数+诚实话)· D(投用理由去重)· D1(标签中性)· F(停机禁用说明) |
+| `/finance/assets` | D1 的三态、`hasCost` prop |
+| `/purchasing/orders/[id]` | B1/B2/B3(取消、修改、关单、重开) |
+| `/inbound/[id]/assays/new` · `/output/[id]/assays/new` | G3 的那一句 |
+| `/materials/new` · `/materials/[id]/edit` | G3 的那一句 |
+
+**所以不欠一次 `--reach`**:没有页面从"够不到"变成"够得到"。
+逐页要看什么写在 `docs/manual-walk-list.md` §11。

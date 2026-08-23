@@ -247,7 +247,18 @@ export default async function PurchaseOrderDetailPage({
     // OPS-14:【没有财务模块就无从判断第二个条件】—— 读到的 NULL 不是 0。
     // 此时按"挡住"处理:服务端照样会拒,而摆一个注定被拒的按钮是本仓库明写的反面
     // (AGENTS.md《页面与服务端不一致》)。
-    const cancelBlocked = receipts.length > 0 || appliedUsd > 0 || !canFinance
+    // FIX-2(B2):**报【触发的那一条】,不报它当初写出来的那个析取式。**
+    // 此前这里是 `receipts > 0 || applied > 0 || !canFinance`,而屏幕上那句话写的是
+    // "已收货或已抵扣预付" —— 三个分支里只提了两个,**而且漏掉的那个是【权限】**:
+    // 一个没有财务编辑权的人会看见一句业务理由,去查两件根本不存在的事。
+    // 设备采购单更糟:它【永远不可能收货】,那句话等于让人去查一件不可能的事。
+    const cancelWhy = !canFinance
+        ? t('purchasing.cancelNeedsFinance')
+        : receipts.length > 0
+        ? t('purchasing.cancelHasReceipts', { n: String(receipts.length) })
+        : appliedUsd > 0
+        ? t('purchasing.cancelHasPrepayments')
+        : ''
 
     const assayInline = (assay: unknown): string => {
         if (!Array.isArray(assay) || assay.length === 0) return ''
@@ -320,20 +331,29 @@ export default async function PurchaseOrderDetailPage({
                         不摆一个注定失败的按钮;要改就先 reopen,让状态变化成为
                         一次有记录的动作,而不是修改的副作用。
                         (动态路由的入口按 AGENTS.md 的规矩由人确认:走查不断言它。) */}
-                    {po.status !== 'closed' && !isCancelled && (
+                    {/* FIX-2(B3):【已结束】时改成禁用 + 一句话,不再藏起来。
+                        "这张单还能不能改"是一个适用的问题 —— 答案是"先重开"。
+                        藏起来会让人以为这个系统不支持改单。
+                        【已作废仍然藏】那才是"不适用":一张作废的单没有可改的东西。 */}
+                    {!isCancelled && (po.status !== 'closed' ? (
                         <Link href={`/purchasing/orders/${po.id}/amend`}
                             className="border border-gray-300 px-3 py-1.5 rounded text-sm hover:bg-gray-50">
                             {t('purchasing.amend.link')}
                         </Link>
-                    )}
+                    ) : (
+                        <span className="inline-flex flex-col">
+                            <button type="button" disabled
+                                    className="border border-gray-300 text-gray-400 px-3 py-1.5 rounded text-sm cursor-not-allowed">
+                                {t('purchasing.amend.link')}
+                            </button>
+                            <span className="text-xs text-amber-700 mt-1">{t('purchasing.amendClosedWhy')}</span>
+                        </span>
+                    ))}
                     {po.status === 'closed' && <ReopenOrderControl poId={po.id} />}
-                    {!isCancelled &&
-                        po.status !== 'closed' &&
-                        (cancelBlocked ? (
-                            <p className="text-sm text-gray-400">{t('purchasing.cancelBlocked')}</p>
-                        ) : (
-                            <CancelOrderControl poId={po.id} />
-                        ))}
+                    {/* FIX-2(B1):挡住时也把控件画出来 —— 变灰 + 一句话,不是消失。 */}
+                    {!isCancelled && po.status !== 'closed' && (
+                        <CancelOrderControl poId={po.id} blockedWhy={cancelWhy} />
+                    )}
                 </div>
             </div>
 

@@ -196,6 +196,7 @@ export default async function AssetsPage({
                                         assetId={a.id} code={a.code} status={a.status}
                                         inServiceDate={a.in_service_date}
                                         plannedInServiceDate={a.planned_in_service_date}
+                                        hasCost={Number(a.cost_base) > 0}
                                         acquisitionDate={a.acquisition_date}
                                         canEdit={canEdit} bankAccounts={bankAccounts} />
                                 </td>

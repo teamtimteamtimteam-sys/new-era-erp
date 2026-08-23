@@ -46,6 +46,9 @@ export default function DowntimePanel({
     const [endAt, setEndAt] = useState('')
 
     const openRow = rows.find((r) => r.ended_at === null) ?? null
+    // FIX-2(F):结束早于开始 —— 这正是 Tim 撞上的那一条,而屏幕此前一个字都没说。
+    // (datetime-local 给的是本地时间串;与开始时刻同口径比较即可。)
+    const endBeforeStart = !!(openRow && endAt && new Date(endAt) < new Date(openRow.started_at))
     const fmt = (iso: string) => new Date(iso).toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-GB',
         { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 
@@ -90,12 +93,21 @@ export default function DowntimePanel({
                                 <input type="datetime-local" value={endAt} onChange={(e) => setEndAt(e.target.value)}
                                        className="border border-gray-400 rounded px-2 py-1 text-sm" />
                             </label>
-                            <button type="button" disabled={pending || !endAt}
+                            <button type="button" disabled={pending || !endAt || endBeforeStart}
                                     onClick={() => run(() => closeDowntime({ assetId, downtimeId: openRow.id, endedAt: endAt }))}
                                     className="border border-gray-600 bg-gray-800 text-white px-3 py-1 rounded text-xs disabled:opacity-50">
                                 {t('equipment.down.close')}
                             </button>
+                            {/* FIX-2(F):【禁用了就说为什么 —— 每一个条件各一句】
+                                此前只有"没填"那一句。**填了一个早于开始的时刻时,
+                                按钮是【能点】的**,人点下去才换来一次数据库拒绝 ——
+                                屏幕全程没说过那件事。现在当场说,并且不让它点。 */}
                             {!endAt && <span className="text-xs text-gray-600">{t('equipment.down.needEnd')}</span>}
+                            {endAt && endBeforeStart && (
+                                <span className="text-xs text-amber-700">
+                                    {t('equipment.down.endBeforeStart', { start: fmt(openRow.started_at) })}
+                                </span>
+                            )}
                         </div>
                     )}
                     {/* 【为什么这里没有"再开一段"的按钮】说出来,不要让人以为按钮坏了。 */}
@@ -152,6 +164,11 @@ export default function DowntimePanel({
                                 className="border border-gray-600 bg-gray-800 text-white px-3 py-1 rounded text-xs disabled:opacity-50">
                             {t('common.save')}
                         </button>
+                        {/* FIX-2(F2):这一块的每一个禁用条件也各配一句。 */}
+                        {!f.startedAt && <span className="text-xs text-amber-700">{t('equipment.down.needStart')}</span>}
+                        {f.startedAt && !f.reason.trim() && (
+                            <span className="text-xs text-amber-700">{t('equipment.down.needReason')}</span>
+                        )}
                         <button type="button" disabled={pending} onClick={() => { setOpen(false); setError(null) }}
                                 className="border border-gray-400 px-3 py-1 rounded text-xs hover:bg-gray-50 disabled:opacity-50">
                             {t('common.cancel')}

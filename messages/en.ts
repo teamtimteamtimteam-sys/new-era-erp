@@ -901,6 +901,7 @@ const en = {
         newTitle: 'Add Material',
         editTitle: 'Edit Material',
         form: {
+            chemistryFrozen: 'Adding a new chemistry needs database access today - there is no screen for it yet.',
             name: 'Name',
             namePlaceholder: 'e.g. NMC cathode / ternary black mass / copper',
             chemistry: 'Chemistry',
@@ -2669,7 +2670,7 @@ const en = {
         errors: {
             PAYROLL_POSTED: 'Payroll period {0} is already posted — unpost it before making changes',
             EXPENSE_DATE_REQUIRED: 'An expense date is required — it decides which accounting period the payment posts to.',
-            SYSTEM_START_NOT_SET: 'The system start date is not set. Enter it under Finance -> Settings before running year-end carry-forward — carrying forward from an unknown baseline is how balances get invented.',
+            SYSTEM_START_NOT_SET: 'The system start date has not been set, so the first financial year cannot be worked out. Set it under Settings → Finance.',
             CARRY_FORWARD_BEFORE_SYSTEM_START: 'Leave year {0} ended before this database started operating ({1}). Those months are not recorded here, so carrying them forward would invent a balance. Enter historical balances as leave grants instead.',
             CLAIM_YEAR_BEFORE_SYSTEM_START: 'Claim year {0} ended before this database began holding a complete record ({1}). Claims from that year are not recorded here, so any remaining allowance shown would be invented.',
             PAYROLL_NOT_FOUND: 'Payroll period not found',
@@ -2806,6 +2807,7 @@ const en = {
         },
     },
     assay: {
+        labFrozen: 'Adding a second laboratory needs database access today - there is no screen for it yet.',
         // ASY-P2:这个批次的化验要求现状,三种状态各说各的话
         policy: {
             noRequirement:
@@ -2949,6 +2951,12 @@ const en = {
         },
     },
     purchasing: {
+        amendClosedWhy: 'This order is closed. Reopen it first - so the change is a recorded action, not a side effect.',
+        cancelHasPrepayments: 'Cannot cancel: prepayment has already been applied to this order.',
+        cancelHasReceipts: 'Cannot cancel: {n} inbound batch(es) are already linked to this order.',
+        cancelNeedsFinance: 'Cancelling an order needs finance edit rights.',
+        reopenNeedsReason: 'A reason is required.',
+        closeNeedsNotes: 'Write a note first - this order is being closed with prepayment still unapplied.',
             equipmentOrderNote: 'This is an equipment order. A machine arriving is not a goods receipt — it creates no batch, has no assay and does not enter a location, so there is no “receive” action here. Record what the machine cost as an expense against its order line; its arrival and commissioning live on its asset card under Finance → Assets.',
             colMachine: 'Machine',
             releaseDate: 'Release date',
@@ -3065,7 +3073,7 @@ const en = {
         daysOffsetHint: 'Days after the order date',
         pctUnder: 'Instalments total {total}% — the remainder is not scheduled.',
         approvalOn: 'Approval status:',
-        approvalOff: 'Approvals are NOT in force. This order was confirmed without an approval step — the workflow is switched off in Finance settings, not skipped. See docs/fresh-install-checklist.md for what turning it on requires.',
+        approvalOff: 'Approvals are NOT in force. This order was confirmed without an approval step — the workflow is switched off in Finance settings, not skipped. Turn it on under Settings → Finance, and note that switching it on affects orders raised from then on, not this one.',
         approvalState: { pending: 'Awaiting approval', approved: 'Approved', rejected: 'Rejected' },
         // PUR-2:采购单修改
         amend: {
@@ -4109,7 +4117,7 @@ const en = {
             REVERSAL_DATE_REQUIRED: 'A reversal date is required — it decides which period the reversing entry lands in. It is never defaulted to today: a defaulted date can never hit PERIOD_LOCKED, so the correct closed-period date would fail loudly while a blank one glided into the open month.',
             ASSET_NOT_FOUND: 'Asset {0} does not exist.',
             ASSET_ALREADY_DISPOSED: 'Asset {0} has already been disposed.',
-            ASSET_ALREADY_IN_SERVICE: 'Asset {0} has been in service since {1}. Its cost is frozen and its depreciation has started — changing either is a correction made by manual journal, not an edit (see docs/fixed-asset-procedures.md).',
+            ASSET_ALREADY_IN_SERVICE: 'Asset {0} has been in service since {1}. Its cost is frozen and its depreciation has started — changing either is a correction, made by posting a manual journal entry under Finance → Journal, not by editing this card.',
             ASSET_DISPOSED: 'Asset {0} has been disposed — no further cost can be added to it.',
             ASSET_HAS_NO_COST: 'Asset {0} has no cost yet. A card is created when we commit to acquiring a machine; its cost arrives with the invoice. Record the invoice against this card first.',
             ASSET_ACQUISITION_DATE_REQUIRED: 'An acquisition date is required — it is the earliest date the machine may be put into service.',
@@ -4765,7 +4773,7 @@ const en = {
             accumDepr: 'Accumulated depreciation',
             notInServiceYet: 'Not yet commissioned',
             nbv: 'Net book value',
-            inService: 'In service since',
+            inService: 'Commissioning',
             costEntries: 'Where the cost came from',
             noCostEntries: 'No cost has been recorded against this machine yet. Record the supplier invoice as an expense against its purchase order line.',
             colExpense: 'Expense',
@@ -4806,9 +4814,10 @@ const en = {
             bankRequired: 'Proceeds above zero need a receiving account.',
         },
         blocked: {
+            commissionNoCost: 'No cost has landed on this machine yet. Commissioning it would depreciate nothing.',
             alreadyDisposed: 'Already disposed — nothing further can be done to this asset.',
             commissionDisposed: 'Already disposed — it can no longer be commissioned.',
-            alreadyInService: 'In service since {date}. Changing that date would overturn depreciation already posted, so it is a correction made by manual journal — see docs/fixed-asset-procedures.md.',
+            alreadyInService: 'In service since {date}. Changing that date would overturn depreciation already posted, so it is a correction — post a manual journal entry under Finance → Journal.',
         },
         title: 'Fixed Assets',
         colDescription: 'Description',
@@ -4998,12 +5007,15 @@ const en = {
             repair: 'Repair',
         },
         intervals: {
+            daysLineNoInterval: '{since} days since the baseline - no day interval is set, so nothing is measured against it.',
+            kgLineNoInterval: '{since} kg since the baseline - no kilogram interval is set, so nothing is measured against it.',
             title: 'Service intervals',
             add: 'Add an interval',
             edit: 'Edit',
             stop: 'Stop monitoring',
             stopConfirm: 'Stop monitoring this kind of work on this machine? The readings below disappear and the machine goes back to NOT MONITORED. If you only want to silence the dashboard, set the interval to "track quietly" instead \u2014 that keeps the reading.',
             notMonitored: 'Not monitored',
+            sinceAcquisition: '{kg} kg processed since this machine was acquired on {date}.',
             notMonitoredWhy: 'No service interval has been set for this machine, so nothing is being measured against it. This is NOT the same as "not due" \u2014 nobody has decided to watch this machine yet, and a blank reading must never be read as a clean one.',
             stateDue: 'Due',
             stateApproaching: 'Approaching',
@@ -5070,6 +5082,9 @@ const en = {
             employeesRestricted: 'The employee option is not offered because you do not have access to the HR module \u2014 that is a permission answer, not an absence of employees. Record the person by typing their name instead.',
         },
         down: {
+            needReason: 'Say why it went down.',
+            needStart: 'Enter when it went down.',
+            endBeforeStart: 'That end time is before this period started ({start}). A machine cannot come back before it went down.',
             title: 'Downtime',
             add: 'Start a downtime period',
             none: 'No downtime has been recorded for this machine.',

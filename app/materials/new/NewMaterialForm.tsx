@@ -125,6 +125,9 @@ export default function NewMaterialForm({
                             <option key={o.value} value={o.value}>{o.label}</option>
                         ))}
                     </select>
+                    {/* FIX-2(G3):同上 —— 化学体系这张字典今天也没有维护页面。
+                        加一种新的要有数据库访问权;**说出来,而不是暗示一扇不存在的门。** */}
+                    <p className="text-xs text-gray-500 mt-1">{t('materials.form.chemistryFrozen')}</p>
                 </div>
 
 

@@ -68,7 +68,7 @@ const num = (n: number | null) =>
     n === null || n === undefined ? '—' : Number(n).toLocaleString('en-US')
 
 export default function ServiceIntervalPanel({
-    assetId, rows, acquisitionDate, runsBeforeAcquisition, canEdit,
+    assetId, rows, acquisitionDate, runsBeforeAcquisition, kgSinceAcquisition, canEdit,
 }: {
     assetId: string
     rows: IntervalRow[]
@@ -76,6 +76,8 @@ export default function ServiceIntervalPanel({
     // 【窗口【左边】那个洞的大小】—— 取得日之前、谁都没归属的在册加工炉数。
     // 视图量不到它(它只量窗口之内),所以页面另查一次。见抬头。
     runsBeforeAcquisition: number
+    // FIX-2(A):取得日以来这台机器吃进去多少公斤 —— 未监控时也要说得出来。
+    kgSinceAcquisition: number
     canEdit: boolean
 }) {
     const t = useTranslations()
@@ -120,17 +122,22 @@ export default function ServiceIntervalPanel({
     // ── 一行读数的【诚实那一句】—— 三选一,而且【总有一句】 ──────────────────
     // 「什么都不说」是这块屏幕最不该有的状态:一个没有注解的 0,读起来就是
     // "查过了,没磨损"。
-    function honesty(r: IntervalRow): { tone: string; text: string } {
-        if ((r.unattributed_runs_in_window ?? 0) > 0) {
+    // 【FIX-2(A):这一句跟着【机器】,不跟着间隔行】
+    // 它此前只在有间隔行时才画得出来 —— 而**没人监控的时候正是它最要紧的时候**:
+    // 那一刻屏幕上说着"没有人在看这台机器",却对"已经看不见的磨损"一个字不提。
+    // r 可以为空(未监控):那时没有窗口,只有"取得日之前那个洞"这一支。
+    // **同一个函数、同一批 i18n 键** —— 不写第二份那句话。
+    function honesty(r: IntervalRow | null): { tone: string; text: string } {
+        if ((r?.unattributed_runs_in_window ?? 0) > 0) {
             return { tone: 'amber', text: t('equipment.intervals.honestyInWindow',
-                { n: String(r.unattributed_runs_in_window) }) }
+                { n: String(r!.unattributed_runs_in_window) }) }
         }
-        if (r.never_serviced && runsBeforeAcquisition > 0) {
+        if ((r === null || r.never_serviced) && runsBeforeAcquisition > 0) {
             return { tone: 'amber', text: t('equipment.intervals.honestyNeverAttributable',
                 { n: String(runsBeforeAcquisition), date: acquisitionDate }) }
         }
         return { tone: 'gray', text: t('equipment.intervals.honestyComplete',
-            { date: r.baseline_date ?? acquisitionDate }) }
+            { date: r?.baseline_date ?? acquisitionDate }) }
     }
 
     return (
@@ -155,6 +162,20 @@ export default function ServiceIntervalPanel({
                 <div className="border border-gray-300 rounded p-3 mb-2 bg-gray-50">
                     <p className="text-sm font-medium">{t('equipment.intervals.notMonitored')}</p>
                     <p className="text-xs text-gray-600 mt-1">{t('equipment.intervals.notMonitoredWhy')}</p>
+                    {/* FIX-2(A):**读数与那句诚实话属于【机器】,不属于间隔行。**
+                        没人监控的时候正是它们最要紧的时候 —— 否则这块屏幕
+                        一边说"没有人在看这台机器",一边对已经看不见的磨损闭口不谈。
+                        取得日以来的公斤数来自 equipment_usage(加工炉只能从取得日起
+                        归属给机器,所以它就是"取得日以来"),句子来自同一个 honesty()。 */}
+                    <p className="text-xs text-gray-700 mt-2">
+                        {t('equipment.intervals.sinceAcquisition',
+                           { kg: num(kgSinceAcquisition), date: acquisitionDate })}
+                    </p>
+                    {(() => {
+                        const h = honesty(null)
+                        return <p className={'text-xs mt-1 ' +
+                            (h.tone === 'amber' ? 'text-amber-700' : 'text-gray-500')}>{h.text}</p>
+                    })()}
                 </div>
             ) : (
                 <div className="space-y-3 mb-2">
@@ -197,14 +218,20 @@ export default function ServiceIntervalPanel({
 
                                 {/* ── 两个量度:走了多少 / 每多少一轮 ───────────────── */}
                                 <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm mb-2">
-                                    <p>{t('equipment.intervals.kgLine', {
-                                        since: num(r.kg_since),
-                                        every: r.interval_kg === null ? t('equipment.intervals.notStated') : num(r.interval_kg),
-                                    })}</p>
-                                    <p>{t('equipment.intervals.daysLine', {
-                                        since: num(r.days_since),
-                                        every: r.interval_days === null ? t('equipment.intervals.notStated') : num(r.interval_days),
-                                    })}</p>
+                                    {/* FIX-2(E):**不把"未填"塞进数值槽。**
+                                        此前 every 槽会被填进「未填」,于是屏幕上出现
+                                        "0 kg since the baseline · every not stated" ——
+                                        一个状态词被当成数字念。而【只填天数不填公斤】
+                                        是完全合法的,所以这句话天天都会出现。
+                                        改成【换一句话】,不是换一个词。 */}
+                                    <p>{r.interval_kg === null
+                                        ? t('equipment.intervals.kgLineNoInterval', { since: num(r.kg_since) })
+                                        : t('equipment.intervals.kgLine', {
+                                            since: num(r.kg_since), every: num(r.interval_kg) })}</p>
+                                    <p>{r.interval_days === null
+                                        ? t('equipment.intervals.daysLineNoInterval', { since: num(r.days_since) })
+                                        : t('equipment.intervals.daysLine', {
+                                            since: num(r.days_since), every: num(r.interval_days) })}</p>
                                 </div>
 
                                 {/* ── 基线:从哪一天算起,以及为什么是那一天 ────────── */}

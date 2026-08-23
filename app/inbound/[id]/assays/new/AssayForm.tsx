@@ -181,6 +181,15 @@ export default function AssayForm({
                             <option key={o.value} value={o.value}>{o.label}</option>
                         ))}
                     </select>
+                    {/* FIX-2(G3):**这张清单今天没有门。**
+                        G1 实测:laboratories / battery_chemistries / substances /
+                        material_kinds / inbound_safety_states —— 五张字典,
+                        **app 里一条写入路径都没有**;/settings 底下只有权限一页。
+                        库里 INSERT 策略【是有的】(module.inbound.edit 之类),
+                        也就是说门被允许、但没人建。
+                        所以这里写【真话】,不写一个指向不存在页面的指引 ——
+                        一张没人加得进去的清单就是冻着的,而诚实的做法是说它冻着。 */}
+                    <p className="text-xs text-gray-500 mt-1">{t('assay.labFrozen')}</p>
                 </div>
                 <div className="flex-1 min-w-[12rem]">
                     <label className="block text-sm font-medium mb-1">{t('assay.certificateRef')}</label>

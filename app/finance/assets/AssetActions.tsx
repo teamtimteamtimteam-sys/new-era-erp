@@ -19,10 +19,13 @@ import { disposeAsset, commissionAsset } from '../month-end/actions'
 import { setPlannedInService } from './[id]/actions'
 
 export default function AssetActions({
-    assetId, code, status, inServiceDate, plannedInServiceDate, acquisitionDate, canEdit, bankAccounts,
+    assetId, code, status, inServiceDate, plannedInServiceDate, acquisitionDate, hasCost, canEdit, bankAccounts,
 }: {
     assetId: string; code: string; status: string
     inServiceDate: string | null; plannedInServiceDate: string | null; acquisitionDate: string
+    // FIX-2(D):「还没有成本」此前只说在页面那份清单里，而清单已经去掉了 ——
+    // 三条理由从此在【按钮旁边】一处说完。
+    hasCost: boolean
     canEdit: boolean; bankAccounts: string[]
 }) {
     const t = useTranslations()
@@ -38,9 +41,11 @@ export default function AssetActions({
 
     const disposed = status === 'disposed'
     // 每个动作:能不能做,以及【为什么不能】—— 两者一起算,免得有分支只画了禁用
+    // FIX-2(D):三条理由一处说完,顺序 = 先权限、再终态、再业务前提。
     const commissionWhy = !canEdit ? t('assets.needsFinanceEdit')
         : disposed ? t('assets.blocked.commissionDisposed')
         : inServiceDate ? t('assets.blocked.alreadyInService', { date: inServiceDate })
+        : !hasCost ? t('assets.blocked.commissionNoCost')
         : ''
     const disposeWhy = !canEdit ? t('assets.needsFinanceEdit')
         : disposed ? t('assets.blocked.alreadyDisposed')

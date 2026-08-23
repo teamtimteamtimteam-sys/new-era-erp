@@ -25,7 +25,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getBaseCurrency } from '@/lib/currency'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatAmount } from '@/lib/format'
-import { mustRows, mustCount } from '@/lib/db-helpers'
+import { mustRows, mustCount, mustOne } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
 import Subnav from '../../Subnav'
 import AssetActions from '../AssetActions'
@@ -156,18 +156,27 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
     // FA-2026-0001 恰恰全部落在左边(取得日 8-21,十三炉全在 6-10…8-16),
     // 于是那一列读 0 而盲区最大 —— **只看那一列,这台机器会一句诚实提示都没有。**
     // 所以这里另查一次:取得日之前、谁都没归属的在册加工有几炉。
-    // 【只在有间隔行时才查】没有间隔行的机器根本不显示读数,这个数也就没有用处。
-    const anyMonitored = statusRows.some((r) => r.monitored)
-    let runsBeforeAcquisition = 0
-    if (anyMonitored) {
-        const priorRes = await supabase.from('processing_runs_masked')
-            .select('id', { count: 'exact', head: true })
-            .is('equipment_id', null).is('deleted_at', null)
-            .eq('status', 'committed').lt('process_date', asset.acquisition_date)
-        // 【失败不是空集】—— 查不到与"没有"在屏幕上一模一样,而这个数正是用来
-        // 说"这个读数不完整"的;它自己静默失败会让那句话消失(mustCount 的理由)。
-        runsBeforeAcquisition = mustCount(priorRes, 'processing_runs_masked prior runs')
-    }
+    // 【FIX-2(A):这个条件没了 —— 它此前写着"没有间隔行的机器根本不显示读数,
+    //  这个数也就没有用处"。**那句话把缺陷写成了意图。**
+    //  没人监控的机器【才是】最需要这个数的:那一刻屏幕上说着"没有人在看这台机器",
+    //  却对"已经看不见的磨损"一个字不提。所以无条件查。】
+    const priorRes = await supabase.from('processing_runs_masked')
+        .select('id', { count: 'exact', head: true })
+        .is('equipment_id', null).is('deleted_at', null)
+        .eq('status', 'committed').lt('process_date', asset.acquisition_date)
+    // 【失败不是空集】—— 查不到与"没有"在屏幕上一模一样,而这个数正是用来
+    // 说"这个读数不完整"的;它自己静默失败会让那句话消失(mustCount 的理由)。
+    const runsBeforeAcquisition = mustCount(priorRes, 'processing_runs_masked prior runs')
+
+    // FIX-2(A):取得日以来这台机器吃进去多少公斤。
+    // 【为什么 equipment_usage 就是"取得日以来"】加工炉只能在提交时归属给机器,
+    // 而归属的下界就是取得日(EQP-2a 划的那条界)—— 所以它汇总的每一炉都在取得日之后。
+    // 取得日【之前】那些归属不上的炉子,由 runsBeforeAcquisition 单独说。
+    const usageRes = await supabase.from('equipment_usage')
+        .select('input_kg').eq('equipment_id', id).maybeSingle()
+    const kgSinceAcquisition = Number(
+        (mustOne(usageRes, 'equipment_usage') as { input_kg: number | null } | null)?.input_kg ?? 0
+    )
 
     // 三个选择器。【员工那一支挂在 HR 的门上】—— 见上面 canSeeEmployees 的注释。
     const [empRes, supRes, expRes] = await Promise.all([
@@ -219,13 +228,10 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
     const live = entries.filter((e) => (e.expenses as { status?: string } | null)?.status !== 'reversed')
     const nbv = Math.round((Number(asset.cost_base) - accum) * 100) / 100
 
-    // 【要投用还差什么】—— 逐条判,逐条说。set_asset_in_service 的三道拒绝是
-    // ASSET_HAS_NO_COST / ASSET_ALREADY_IN_SERVICE / ASSET_DISPOSED,这里一一对应。
-    const blockers: string[] = []
-    if (Number(asset.cost_base) === 0) blockers.push(t('assets.detail.blockerNoCost'))
-    if (asset.in_service_date) blockers.push(t('assets.detail.blockerAlreadyInService', { 0: asset.in_service_date }))
-    if (asset.status !== 'active') blockers.push(t('assets.detail.blockerDisposed'))
-
+    // 【FIX-2(D):这份 blockers 清单没了 —— 同一句话此前说了两遍,措辞还不一样】
+    // 上面一份(这里)与下面 AssetActions 里那一句都在回答"为什么投用不了",
+    // 而人先看的是【按钮】。所以理由跟着按钮走,由 AssetActions 一处说完;
+    // 那三条(没成本 / 已投用 / 已处置)全部搬了过去。
     return (
         <div className="p-6">
             <Subnav />
@@ -340,14 +346,8 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
 
             {/* ── 要投用还差什么 ─────────────────────────────────────────── */}
             <h2 className="text-lg font-medium mb-2">{t('assets.detail.commissioning')}</h2>
-            {blockers.length === 0 ? (
-                <p className="text-sm text-green-700 mb-3">{t('assets.detail.readyToCommission')}</p>
-            ) : (
-                <ul className="text-sm text-gray-700 mb-3 list-disc pl-5">
-                    {blockers.map((b) => <li key={b}>{b}</li>)}
-                </ul>
-            )}
             <AssetActions assetId={asset.id} code={asset.code} status={asset.status}
+                hasCost={Number(asset.cost_base) > 0}
                 inServiceDate={asset.in_service_date} plannedInServiceDate={asset.planned_in_service_date}
                 acquisitionDate={asset.acquisition_date}
                 canEdit={canEdit} bankAccounts={['1000', '1010']} />
@@ -362,6 +362,7 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                     rows={statusRows as unknown as IntervalRow[]}
                     acquisitionDate={asset.acquisition_date}
                     runsBeforeAcquisition={runsBeforeAcquisition}
+                    kgSinceAcquisition={kgSinceAcquisition}
                     canEdit={canRecordEquipment} />
                 <MaintenancePanel
                     assetId={asset.id}

@@ -45,6 +45,7 @@ DECLARE
     r_fin uuid; r_prc uuid; r_oth uuid;
     u_fin uuid := gen_random_uuid(); u_prc uuid := gen_random_uuid(); u_oth uuid := gen_random_uuid();
     v_types text[]; v_n int; v_n2 int; v_num numeric; v_big bigint;
+    v_noint uuid; v_kg numeric;   -- FIX-2 的 A3 半臂
     v_b boolean; v_b2 boolean; v_b3 boolean; v_d date; v_d2 date; v_txt text;
     v_expected text[] := ARRAY['allocation_stale','ap_over_90','ar_over_90',
         'assay_unapplied','awaiting_assay','bank_unmatched','batch_unpriced',
@@ -371,6 +372,47 @@ BEGIN
     RESET ROLE;
     IF v_n <> 0 THEN
         RAISE EXCEPTION 'FIXTURE 111G 失败:进入 G —— 两个码都没有的读者一行都不许看见(缺席,不是零),实得 %。放宽写宽了这一条会红', v_n;
+    END IF;
+
+    -- ══════════ F6(FIX-2 的 A3 半臂)· 没有间隔行时,那两个数【也在】 ══════════
+    -- 【这一臂只能钉住数据那一半,渲染那一半进手走清单 —— 理由写在这里】
+    -- FIX-2(A)把"取得日以来多少公斤"与那句诚实话搬到了【机器】身上:
+    -- 没有间隔行时也要显示。**fixture 到不了渲染层**,但它到得了那两个数的来源 ——
+    -- 而此前页面【根本不查】它们(那段代码写着"没有间隔行的机器根本不显示读数,
+    -- 这个数也就没有用处"—— 把缺陷写成了意图)。
+    -- 所以这里钉:一台【没有任何间隔行】的机器,
+    --   ① equipment_service_status 一行都没有(所以旧写法什么都画不出来);
+    --   ② 而 equipment_usage 仍然给得出公斤数 —— 那正是新写法的取数处。
+    -- 【先把身份换回全权那个用户】上一臂结束时会话停在一个只有 module.hr.view
+    -- 的用户上(那是它自己要测的东西)。equipment_usage 带
+    -- `has_permission(finance.view) OR has_permission(processing.view)` 的谓词,
+    -- 不换回来的话这里读到的是【没权限】,而不是【没有数】—— 两者在结果上
+    -- 长得一模一样,而它们是两回事(README 第 6 条正是这一课)。
+    PERFORM set_config('request.jwt.claims',
+        format('{"sub":"%s","role":"authenticated"}', v_user), true);
+
+    INSERT INTO fixed_assets (code, description, category, acquisition_date,
+                              cost_base, currency, cost_ccy, fx_rate, status,
+                              useful_life_months, residual_base)
+    VALUES ('ZZ111-NOINT', 'f111 unmonitored machine', 'equipment', CURRENT_DATE - 300,
+            0, v_ccy, 0, 1, 'active', 100, 0)
+    RETURNING id INTO v_noint;
+
+    -- 【实测更正:这张视图【会】给一行,只是 monitored = false】
+    -- 我先断言的是"一行都没有",跑起来红了 —— 红的是断言不是系统。
+    -- 屏幕那一侧的判据本来就是 rows.filter(r => r.monitored).length === 0,
+    -- 所以这里钉的应当是【没有一行是 monitored】,那才是"未监控"那一块的前提。
+    IF EXISTS (SELECT 1 FROM equipment_service_status
+                WHERE equipment_id = v_noint AND monitored) THEN
+        RAISE EXCEPTION 'FIXTURE 111F6 失败:没有间隔行的机器不该有任何 monitored = true 的行 —— 那正是"未监控"那一块的触发条件';
+    END IF;
+
+    SELECT input_kg INTO v_kg FROM equipment_usage WHERE equipment_id = v_noint;
+    IF v_kg IS NULL THEN
+        RAISE EXCEPTION 'FIXTURE 111F6 失败:**没有间隔行的机器,公斤数仍然要取得到** —— 那是 FIX-2(A)那块屏幕的取数处。取不到,未监控那一块就又只剩两句空话了(实得 NULL,而它应当是 0 或更多)';
+    END IF;
+    IF v_kg <> 0 THEN
+        RAISE EXCEPTION 'FIXTURE 111F6 失败:这台新机器还没跑过任何一炉,公斤数应当是 0(而【0 是一次测量】,不是"没有数")—— 实得 %', v_kg;
     END IF;
 END $$;
 ROLLBACK;

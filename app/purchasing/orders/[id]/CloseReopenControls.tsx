@@ -85,6 +85,14 @@ export function CloseOrderControl({
                 >
                     {t('purchasing.close')}
                 </button>
+                {/* FIX-2(B3/F):【禁用了就说为什么】此前这个按钮会变灰而一言不发 ——
+                    上面那条琥珀色提示解释的是"还有多少预付没抵扣",
+                    而【为什么点不动】另有其因:需要一句说明。 */}
+                {!canSubmit && !isPending && (
+                    <span className="self-center text-xs text-amber-700">
+                        {t('purchasing.closeNeedsNotes')}
+                    </span>
+                )}
                 <button
                     type="button"
                     onClick={() => setOpen(false)}
@@ -130,6 +138,10 @@ export function ReopenOrderControl({ poId }: { poId: string }) {
             >
                 {t('purchasing.reopen')}
             </button>
+            {/* FIX-2(B3/F):同上 —— 空理由时变灰,那就说出来。 */}
+            {reason.trim() === '' && !isPending && (
+                <span className="text-xs text-amber-700">{t('purchasing.reopenNeedsReason')}</span>
+            )}
             {error && <span className="text-sm text-red-600">{error}</span>}
         </div>
     )

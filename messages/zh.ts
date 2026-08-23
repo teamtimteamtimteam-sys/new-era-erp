@@ -903,6 +903,7 @@ const zh = {
         newTitle: '新增物料',
         editTitle: '编辑物料',
         form: {
+            chemistryFrozen: '今天要加一种新的化学体系,得有数据库访问权 —— 还没有这个页面。',
             name: '名称',
             namePlaceholder: '例如:NMC极片 / 三元黑粉 / 铜',
             chemistry: '化学体系',
@@ -2664,7 +2665,7 @@ const zh = {
         errors: {
             PAYROLL_POSTED: '薪资期间 {0} 已过账 —— 如需修改请先撤销过账',
             EXPENSE_DATE_REQUIRED: '费用日期必填 —— 它决定这笔支付进哪个会计期间。',
-            SYSTEM_START_NOT_SET: '尚未设定系统启用日期。请先到 财务 → 设置 填上,再跑年末结转 —— 从一个不知道的基线往前结转,正是余额被凭空造出来的方式。',
+            SYSTEM_START_NOT_SET: '系统启用日还没有设置,所以推不出首个财年。到【设置 → 财务】里把它设上。',
             CARRY_FORWARD_BEFORE_SYSTEM_START: '{0} 假期年在本库启用({1})之前就结束了。那几个月的数据不在这里,结转会凭空造出余额。历史余额请改用手工发放(leave grants)录入。',
             CLAIM_YEAR_BEFORE_SYSTEM_START: '{0} 年在本库开始持有完整记录({1})之前就结束了。那一年的报销不在这里,给出的剩余额度会是凭空的。',
             PAYROLL_NOT_FOUND: '薪资期间不存在',
@@ -2801,6 +2802,7 @@ const zh = {
         },
     },
     assay: {
+        labFrozen: '今天要加第二家实验室,得有数据库访问权 —— 还没有这个页面。',
         // ASY-P2:这个批次的化验要求现状,三种状态各说各的话
         policy: {
             noRequirement:
@@ -2937,6 +2939,12 @@ const zh = {
         },
     },
     purchasing: {
+        amendClosedWhy: '这张单已结束。要改就先重开 —— 让状态变化成为一次有记录的动作,而不是修改的副作用。',
+        cancelHasPrepayments: '不能取消:这张单已经抵扣过预付款。',
+        cancelHasReceipts: '不能取消:已经有 {n} 张进料批次挂在这张单上。',
+        cancelNeedsFinance: '取消采购单需要财务编辑权限。',
+        reopenNeedsReason: '要填理由。',
+        closeNeedsNotes: '先写一句说明 —— 这张单还有预付没抵扣就要关掉。',
             equipmentOrderNote: '这是一张设备采购单。机器到厂【不是一次收货】—— 它不产生批次、没有化验、不进库位,所以这里没有「收货」这个动作。机器的花费记成一笔挂在这条订单行上的开支;它的到厂与投用记在【财务 → 固定资产】的资产卡上。',
             colMachine: '机器',
             releaseDate: '冲抵日',
@@ -3051,7 +3059,7 @@ const zh = {
         daysOffsetHint: '自下单日起的天数',
         pctUnder: '各期合计 {total}%,余下部分未列入计划。',
         approvalOn: '审批状态:',
-        approvalOff: '审批流【未生效】。本单未经审批直接确认 —— 这是在财务设置里关着的,不是被跳过了。启用它的前置条件见 docs/fresh-install-checklist.md。',
+        approvalOff: '审批流【未生效】。本单未经审批直接确认 —— 这是在财务设置里关着的,不是被跳过了。要开启它,去【设置 → 财务】;注意开启只对此后新建的单生效,不影响这一张。',
         approvalState: { pending: '待审批', approved: '已批准', rejected: '已驳回' },
         // PUR-2:采购单修改
         amend: {
@@ -4089,7 +4097,7 @@ const zh = {
             REVERSAL_DATE_REQUIRED: '冲销日必填 —— 它决定冲销分录落在哪个期间。它【永不默认成今天】:一个补出来的今天永远撞不上期间锁,于是填对的封闭期日期会响亮地失败,而留空的那次反倒溜进了开着的月份。',
             ASSET_NOT_FOUND: '资产 {0} 不存在。',
             ASSET_ALREADY_DISPOSED: '资产 {0} 已经处置过了。',
-            ASSET_ALREADY_IN_SERVICE: '资产 {0} 自 {1} 起已投用:成本已冻结、折旧已开始 —— 改动其中任何一个都是一次更正,走人工分录,不是一次编辑(见 docs/fixed-asset-procedures.md)。',
+            ASSET_ALREADY_IN_SERVICE: '资产 {0} 自 {1} 起已投用:成本已冻结、折旧已开始 —— 改动其中任何一个都是一次【更正】,要到【财务 → 日记账】做一笔人工分录,而不是在这张卡上编辑。',
             ASSET_DISPOSED: '资产 {0} 已处置 —— 不能再往它上面追加成本。',
             ASSET_HAS_NO_COST: '资产 {0} 还没有任何成本。资产卡是在【决定要买】这台机器时建的,成本随发票到来 —— 请先把发票记到这张卡上。',
             ASSET_ACQUISITION_DATE_REQUIRED: '取得日必填 —— 它是这台机器可以投用的最早日期。',
@@ -4742,7 +4750,7 @@ const zh = {
             accumDepr: '累计折旧',
             notInServiceYet: '尚未投用',
             nbv: '净值',
-            inService: '投用日',
+            inService: '投用状态',
             costEntries: '成本从哪来',
             noCostEntries: '这台机器还没有记过任何成本。请把供应商发票作为开支,记到它那条采购单行上。',
             colExpense: '开支单',
@@ -4783,9 +4791,10 @@ const zh = {
             bankRequired: '价款大于零时要指定收款账户。',
         },
         blocked: {
+            commissionNoCost: '这台机器还没有落上任何成本。投用它不会提出任何折旧。',
             alreadyDisposed: '已处置 —— 这台资产上不再有任何动作。',
             commissionDisposed: '已处置 —— 不能再投用。',
-            alreadyInService: '{date} 起已投用。改这个日期等于推翻已经提过的折旧,那是一次更正,走人工分录 —— 见 docs/fixed-asset-procedures.md。',
+            alreadyInService: '{date} 起已投用。改这个日期等于推翻已经提过的折旧,所以那是一次【更正】—— 到【财务 → 日记账】做一笔人工分录。',
         },
         title: '固定资产',
         colDescription: '描述',
@@ -4975,12 +4984,15 @@ const zh = {
             repair: '维修',
         },
         intervals: {
+            daysLineNoInterval: '自基线起 {since} 天 —— 没有设天数间隔,所以这一项不作衡量。',
+            kgLineNoInterval: '自基线起 {since} 公斤 —— 没有设公斤间隔,所以这一项不作衡量。',
             title: '保养间隔',
             add: '加一条间隔',
             edit: '修改',
             stop: '不再监控',
             stopConfirm: '不再监控这台机器的这一种活?下面的读数会消失,这台机器回到【未监控】。如果你只是不想让它上看板,请把这条间隔改成「只记录,不上看板」 \u2014\u2014 那样读数还在。',
             notMonitored: '未监控',
+            sinceAcquisition: '自 {date} 取得这台机器以来,共投料 {kg} 公斤。',
             notMonitoredWhy: '这台机器还没有设过保养间隔,所以没有任何东西在按它衡量。**这与「未到期」不是一回事** \u2014\u2014 是还没有人决定要盯它,而一个空的读数永远不许被读成一个干净的读数。',
             stateDue: '已到期',
             stateApproaching: '将到期',
@@ -5047,6 +5059,9 @@ const zh = {
             employeesRestricted: '**「我们的员工」这个选项没有出现,是因为你没有 HR 模块的权限** \u2014\u2014 这是一个权限的答复,不是「没有员工」。可以直接写名字来记这个人。',
         },
         down: {
+            needReason: '说一下它为什么停。',
+            needStart: '填一下它是什么时候停的。',
+            endBeforeStart: '这个结束时刻早于本段的开始({start})。机器不可能在停机之前就回来。',
             title: '停机',
             add: '开一段停机',
             none: '这台机器还没有任何停机记录。',
