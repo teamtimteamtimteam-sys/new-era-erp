@@ -20,6 +20,7 @@
 // `admin@swm-os.test`,那是一个真实标识,不能改。
 import { login } from './actions'
 import { getTranslations } from '@/lib/i18n/server'
+import ClearRestrictedDrafts from './ClearRestrictedDrafts'
 
 export default async function LoginPage({
     searchParams,
@@ -38,6 +39,8 @@ export default async function LoginPage({
 
     return (
         <main className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+            {/* IDLE-DRAFT:受限表单的草稿不活过一次登出 —— 见组件抬头 */}
+            <ClearRestrictedDrafts />
             <div className="w-full max-w-md bg-white border border-gray-300 rounded-lg p-8 shadow-sm">
                 <div className="mb-6 text-center">
                     <h1 className="text-2xl font-bold">{t('login.title')}</h1>

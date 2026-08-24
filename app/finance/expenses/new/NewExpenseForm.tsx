@@ -7,6 +7,9 @@ import { CounterpartyOptions } from '@/app/components/finance/counterpartyOption
 // unpaid → 供应商(必选,后续核销要用)。底部实时 USD 预览 + 将要生成的分录说明。
 // 提交走 createExpense(rpc record_expense)。
 import { useActionState, useState } from 'react'
+import { useRef } from 'react'
+import { useFormDraft } from '@/lib/useFormDraft'
+import DraftBanner from '@/app/components/DraftBanner'
 import { bankAccountFor, currencyOfBank } from '@/lib/currencyMap'
 import Link from 'next/link'
 import { createExpense, type CreateExpenseState } from './actions'
@@ -66,6 +69,11 @@ export default function NewExpenseForm({
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(createExpense, initialState)
 
+    // IDLE-DRAFT:草稿留存。受限与否由 lib/maskedTables.ts 推出来,
+    // 不在这里声明 —— 见 lib/useFormDraft.ts 抬头。
+    const formRef = useRef<HTMLFormElement>(null)
+    const draft = useFormDraft({ formKey: 'finance/expenses/new', table: 'expenses', subject: null, formRef })
+
     const [accountCode, setAccountCode] = useState('')
     const [amount, setAmount] = useState('')
     const [currency, setCurrency] = useState('SGD') // 本地开销默认新币(销售面板默认 USD,刻意不同)
@@ -120,7 +128,8 @@ export default function NewExpenseForm({
         (l) => supplierId === null || l.supplierId === supplierId)
 
     return (
-        <form action={formAction} className="space-y-4">
+        <form ref={formRef} action={formAction} className="space-y-4">
+                <DraftBanner draft={draft} />
             {state.error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                     {state.error}

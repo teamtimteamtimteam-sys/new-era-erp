@@ -3,6 +3,9 @@
 // 新建供应商表单(原 page.tsx 的客户端内容;cut 4b 补:默认付款条款模板需要
 // 服务端取数,页面改成 server shell + 客户端表单的通行结构)。
 import { useActionState } from 'react'
+import { useRef } from 'react'
+import { useFormDraft } from '@/lib/useFormDraft'
+import DraftBanner from '@/app/components/DraftBanner'
 import Link from 'next/link'
 import { createSupplier, type CreateSupplierState } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
@@ -18,6 +21,11 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
         createSupplier,
         initialState
     )
+
+    // IDLE-DRAFT:草稿留存。受限与否由 lib/maskedTables.ts 推出来,
+    // 不在这里声明 —— 见 lib/useFormDraft.ts 抬头。
+    const formRef = useRef<HTMLFormElement>(null)
+    const draft = useFormDraft({ formKey: 'suppliers/new', table: 'suppliers', subject: null, formRef })
 
     return (
         <>
@@ -37,7 +45,8 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
                 </div>
             )}
 
-            <form action={formAction} className="space-y-4">
+            <form ref={formRef} action={formAction} className="space-y-4">
+                <DraftBanner draft={draft} />
                 {/* 提醒出现过之后才带上:带着它提交 = 已经读过并坚持要建 */}
                 {state.nearDuplicateName && (
                     <input type="hidden" name="ack_near_duplicate" value="1" />

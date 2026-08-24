@@ -11,6 +11,9 @@
 // 类型与到期日为必填 —— DB 的 employees_work_pass_shape 是后墙。
 // 离职组只在状态为"已离职"时出现。
 import { useActionState, useState } from 'react'
+import { useRef } from 'react'
+import { useFormDraft } from '@/lib/useFormDraft'
+import DraftBanner from '@/app/components/DraftBanner'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import DecimalInput from '@/app/components/forms/DecimalInput'
@@ -92,6 +95,11 @@ export default function EmployeeForm({
     const action = employee ? updateEmployee.bind(null, employee.id) : createEmployee
     const [state, formAction, isPending] = useActionState(action, initialState)
 
+    // IDLE-DRAFT:草稿留存。受限与否由 lib/maskedTables.ts 推出来,
+    // 不在这里声明 —— 见 lib/useFormDraft.ts 抬头。
+    const formRef = useRef<HTMLFormElement>(null)
+    const draft = useFormDraft({ formKey: 'hr/employees/form', table: 'employees', subject: null, formRef })
+
     const [status, setStatus] = useState(employee?.employment_status ?? 'probation')
     const [residency, setResidency] = useState(employee?.residency_status ?? '')
     const [workCategory, setWorkCategory] = useState(employee?.work_category ?? 'office')
@@ -100,7 +108,8 @@ export default function EmployeeForm({
     const field = 'w-full border border-gray-300 px-3 py-2 rounded'
 
     return (
-        <form action={formAction} className="space-y-6 max-w-4xl">
+        <form ref={formRef} action={formAction} className="space-y-6 max-w-4xl">
+                <DraftBanner draft={draft} />
             {state.error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                     {state.error}

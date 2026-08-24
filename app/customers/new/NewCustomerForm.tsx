@@ -6,6 +6,9 @@
 // 客户端图,整个构建失败;而且客户端组件不能是 async。
 // 所以守卫回到 page.tsx 那层服务端壳里,与 app/metal-prices/new 早就在用的形状一致。
 import { useActionState } from 'react'
+import { useRef } from 'react'
+import { useFormDraft } from '@/lib/useFormDraft'
+import DraftBanner from '@/app/components/DraftBanner'
 import Link from 'next/link'
 import { createCustomer, type CreateCustomerState } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
@@ -25,6 +28,11 @@ export default function NewCustomerForm() {
         createCustomer,
         initialState
     )
+
+    // IDLE-DRAFT:草稿留存。受限与否由 lib/maskedTables.ts 推出来,
+    // 不在这里声明 —— 见 lib/useFormDraft.ts 抬头。
+    const formRef = useRef<HTMLFormElement>(null)
+    const draft = useFormDraft({ formKey: 'customers/new', table: 'customers', subject: null, formRef })
 
     return (
         <div className="p-8 max-w-2xl">
@@ -55,7 +63,8 @@ export default function NewCustomerForm() {
                 </div>
             )}
 
-            <form action={formAction} className="space-y-4">
+            <form ref={formRef} action={formAction} className="space-y-4">
+                <DraftBanner draft={draft} />
                 {/* 提醒出现过之后才带上:带着它提交 = 已经读过并坚持要建 */}
                 {state.nearDuplicateName && (
                     <input type="hidden" name="ack_near_duplicate" value="1" />

@@ -4,6 +4,9 @@
 // 适用对象三选一,选中哪个才出现对应下拉。
 // 下方计价比例表:七个金属各一行,【留空 = 该金属不计价】(保存时删除旧行)。
 import { useActionState, useState } from 'react'
+import { useRef } from 'react'
+import { useFormDraft } from '@/lib/useFormDraft'
+import DraftBanner from '@/app/components/DraftBanner'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import IndexPicker from '@/app/metal-prices/IndexPicker'
@@ -75,6 +78,11 @@ export default function FormulaForm({
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(action, initialState)
 
+    // IDLE-DRAFT:草稿留存。受限与否由 lib/maskedTables.ts 推出来,
+    // 不在这里声明 —— 见 lib/useFormDraft.ts 抬头。
+    const formRef = useRef<HTMLFormElement>(null)
+    const draft = useFormDraft({ formKey: 'pricing/formulas/form', table: 'pricing_formulas', subject: null, formRef })
+
     const [basis, setBasis] = useState(defaults.price_basis)
     const [mode, setMode] = useState<'generic' | 'supplier' | 'customer'>(
         defaults.supplier_id ? 'supplier' : defaults.customer_id ? 'customer' : 'generic'
@@ -101,7 +109,8 @@ export default function FormulaForm({
     const err = (k: string) => state.fieldErrors?.[k]
 
     return (
-        <form action={formAction} className="space-y-5 max-w-3xl">
+        <form ref={formRef} action={formAction} className="space-y-5 max-w-3xl">
+                <DraftBanner draft={draft} />
             {state.error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                     {state.error}

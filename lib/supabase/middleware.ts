@@ -61,6 +61,7 @@
 import { createServerClient } from '@supabase/ssr'
 import type { Database } from '@/lib/database.types'
 import { NextResponse, type NextRequest } from 'next/server'
+import { ACTIVITY_COOKIE, isIdleExpired } from '@/lib/session'
 
 const PUBLIC_PATHS = ['/login']
 
@@ -184,13 +185,47 @@ export async function updateSession(request: NextRequest) {
         (p) => pathname === p || pathname.startsWith(p + '/')
     )
 
+    // ════════════════════════════════════════════════════════════════════════
+    // 【空闲超时:这里【只读】那个 cookie,永远不写它】(IDLE-DRAFT,2026-08-24)
+    //
+    // ★ 这一段是整个空闲超时的承重墙,而它承重的方式是【一件没有做的事】。★
+    //
+    // 中间件跑在【每一个请求】上 —— 包括 Next.js 的 RSC 预取、后台重新校验、
+    // 以及任何轮询。**如果这里顺手把 last-activity 刷新一下**(那看起来非常自然,
+    // "既然有请求进来,人当然还在"),那么一台无人看管的平板只要开着这一页,
+    // 它自己的预取就会把会话永远续下去 —— **超时从此永远不会触发,而屏幕上
+    // 一切正常。** 那不是一个失效的功能,那是一个演出来的功能。
+    //
+    // 所以分工是死的:
+    //   · **浏览器决定什么算活动**(真的按键、真的指针、真的换页),它写这个 cookie;
+    //   · **中间件只负责执行**,它读,并且只读。
+    //
+    // 【下一个人最可能"顺手修好"的就是这里】如果你看到这一段觉得"少写了一句
+    // 刷新",请先读上面这三段。加上那一句,这套东西会安静地全部失效。
+    //
+    // 【cookie 不在 = 不算过期,这也是刻意的】刚上线时没有人带着这个 cookie;
+    // 把"没有标记"读成"已经空闲很久",会在部署的那一刻把所有人踢下线 ——
+    // 那正是本仓库反复说的「空集不是一个答案」。第一次真实活动会把它种上。
+    // ════════════════════════════════════════════════════════════════════════
+    const rawActivity = request.cookies.get(ACTIVITY_COOKIE)?.value
+    const lastActivity = rawActivity ? Number(rawActivity) : null
+    const idleExpired = isIdleExpired(lastActivity)
+
     // 【判断不出】—— 挡住,并说出来。放在 `!user` 之前,因为这两种情形的 user 都是 null。
     // 公开路径放行:登录页本来就不需要会话,而认证不通时登录本身会各自报它的错。
     if (cannotDetermine(authError) && !isPublic) {
         return cannotDetermineResponse(request)
     }
 
-    if (!user && !isPublic) {
+    // 【走【同一条】分支,不另起一条】(IDLE-DRAFT 3.3)
+    // SESSION-1c 已经在这里建好了那个区别:只有【请求里真的带着认证 cookie】时
+    // 才说"你的登录已经结束"。空闲超时必须借这条路走,而不是自己再造一条 ——
+    // 造第二条就等于把那个已经修好的谎重新实现一遍。
+    // 空闲超时发生时,认证 cookie 必然还在(会话本来是好的,是我们让它结束的),
+    // 所以下面那个 hadSession 判据自然为真,人会看到"你的登录已经结束"。
+    // 而一个【从来没登录过】的人不可能触发 idleExpired 之外的这条路:他没有
+    // 认证 cookie,hadSession 为假,于是什么都不说 —— 那个区别原样保住。
+    if ((!user || idleExpired) && !isPublic) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
         // 【说出【为什么】在这里】—— 走到这一步的否定是【确立的】(A/G),
@@ -207,7 +242,17 @@ export async function updateSession(request: NextRequest) {
             .some((c) => /^sb-.+-auth-token(\.\d+)?$/.test(c.name))
         if (hadSession) url.searchParams.set('reason', 'ended')
         url.searchParams.set('next', pathname + request.nextUrl.search)
-        return NextResponse.redirect(url)
+        const redirect = NextResponse.redirect(url)
+        // 【空闲超时要真的把会话结束掉】否则人一刷新就又进来了 —— 那就不是超时,
+        // 是一次跳转。清掉认证 cookie 与活动标记本身(留着它,下一次请求会
+        // 再判一次过期,人会被反复弹回登录页)。
+        if (idleExpired) {
+            for (const c of request.cookies.getAll()) {
+                if (/^sb-.+-auth-token(\.\d+)?$/.test(c.name)) redirect.cookies.delete(c.name)
+            }
+            redirect.cookies.delete(ACTIVITY_COOKIE)
+        }
+        return redirect
     }
 
     // IMPORTANT: must return supabaseResponse as-is so cookies flow through

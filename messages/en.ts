@@ -1,4 +1,23 @@
 const en = {
+    session: {
+        idle: {
+            title: 'You will be signed out shortly',
+            body: 'There has been no activity for a while. This session ends in {time} unless you continue.',
+            reassure: 'Nothing on this page has been lost. Continuing keeps you exactly where you are — the form you are filling in is not reloaded.',
+            stay: 'Continue working',
+        },
+    },
+    draft: {
+        found: 'A draft of this form was saved at {when}. It has NOT been filled in — restoring it is your choice.',
+        restore: 'Restore the draft',
+        discard: 'Discard the draft',
+        discardRestored: 'Discard and start again',
+        restoredNotice: 'These fields came from a saved draft, not from the record. Check them before saving.',
+        staleFound: 'A draft from {when} was found, but this record has changed since it was saved, so it will NOT be restored — restoring it would write values that are already out of date.',
+        restrictedNotice: 'This form holds restricted data, so a draft is kept only until you sign out — it will not survive a sign-out or an idle timeout. Elsewhere, drafts are kept for 72 hours.',
+        whereDevice: 'The draft is stored in this browser on this device only. It will not follow you to another device, and it expires after 72 hours.',
+        whereSession: 'The draft is stored in this browser tab only and is cleared when you sign out.',
+    },
     dict: {
         title: 'Dictionaries',
         intro: 'The closed lists the rest of the system points at. Adding a value here makes it choosable everywhere that reads this list.',

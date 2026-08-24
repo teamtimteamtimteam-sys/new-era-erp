@@ -17,6 +17,9 @@
 // 的原始输出,【行情口径,恒为 USD】(见 check-currency-literals 的 ALLOWLIST 理由),
 // 那块自己每行都写着 USD,所以留裸数字并指着它。
 import { useActionState, useState } from 'react'
+import { useRef } from 'react'
+import { useFormDraft } from '@/lib/useFormDraft'
+import DraftBanner from '@/app/components/DraftBanner'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
@@ -139,6 +142,11 @@ export default function NewOrderForm({
 }) {
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(createOrder, initialState)
+
+    // IDLE-DRAFT:草稿留存。受限与否由 lib/maskedTables.ts 推出来,
+    // 不在这里声明 —— 见 lib/useFormDraft.ts 抬头。
+    const formRef = useRef<HTMLFormElement>(null)
+    const draft = useFormDraft({ formKey: 'purchasing/orders/new', table: 'purchase_orders', subject: null, formRef })
 
     const [supplierId, setSupplierId] = useState('')
     const [orderDate, setOrderDate] = useState(todayIsoLocal())
@@ -270,7 +278,8 @@ export default function NewOrderForm({
         Object.values(l.assay).filter((v) => parseDecimal(v) !== null).length
 
     return (
-        <form action={formAction} className="space-y-6">
+        <form ref={formRef} action={formAction} className="space-y-6">
+                <DraftBanner draft={draft} />
             {state.error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                     {state.error}

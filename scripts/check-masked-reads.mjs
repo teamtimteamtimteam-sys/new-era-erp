@@ -82,6 +82,30 @@ function walk(dir, out = []) {
 }
 
 const MASKED = maskedTables()
+
+// ── IDLE-DRAFT:lib/maskedTables.ts 必须与这里算出来的同一份集合一致 ──
+// 那个生成文件是【草稿留存】判断"这张表带不带受限数据"的依据。它一旦落后,
+// 线上新加的遮蔽表就会安静地开始留存草稿 —— 也就是把薪资/身份写进浏览器存储。
+// 本检查已经把这份集合算出来了,所以顺手比一次,不另起一个检查器。
+{
+    const genPath = join(ROOT, 'lib/maskedTables.ts')
+    let gen = ''
+    try { gen = readFileSync(genPath, 'utf8') } catch { gen = '' }
+    const inGen = new Set([...gen.matchAll(/^ {4}'([a-z_]+)',$/gm)].map((m) => m[1]))
+    const expected = new Set(MASKED.keys())
+    const missing = [...expected].filter((t) => !inGen.has(t))
+    const extra = [...inGen].filter((t) => !expected.has(t))
+    if (missing.length || extra.length) {
+        console.error('✗ lib/maskedTables.ts 与 lib/database.types.ts 不同步。')
+        if (missing.length) console.error('   缺少:', missing.join(', '))
+        if (extra.length) console.error('   多出:', extra.join(', '))
+        console.error('   【怎么改】node scripts/gen-masked-tables.mjs,然后提交。')
+        console.error('   【为什么它要红】草稿留存据此决定不为哪些表留草稿;')
+        console.error('   它落后一张表,就意味着那张表的受限数据开始被写进浏览器存储。')
+        process.exit(1)
+    }
+    console.log(`   lib/maskedTables.ts 与遮蔽表集合一致(${expected.size} 张)`)
+}
 const files = SCAN_DIRS.flatMap((d) => walk(join(ROOT, d)))
 const hits = []
 
