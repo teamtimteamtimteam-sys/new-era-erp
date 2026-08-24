@@ -4,8 +4,22 @@
 -- 范围、待决项与那条法律问题见 docs/pdpa.md。
 --
 -- 【四条按名拒绝】PDPA_RETENTION_PERIOD_NOT_SET(最要紧的一条:保留期是法律问题,
--- 这支函数不用默认值替人回答)· PDPA_EMPLOYEE_NOT_SEPARATED · PDPA_RETENTION_NOT_ELAPSED
--- · PDPA_ALREADY_ANONYMISED。证据在 db/fixtures/126。
+-- 这支函数不用默认值替人回答;而 2026-08-24 的裁定让它成为【今天唯一走得到】的
+-- 那一条 —— 其余三条在这条裁定之下永远到不了)· PDPA_EMPLOYEE_NOT_SEPARATED
+-- · PDPA_RETENTION_NOT_ELAPSED · PDPA_ALREADY_ANONYMISED。证据在 db/fixtures/126。
+--
+-- ★★ 【这支函数将不会被使用 —— 而这是一个决定,不是一件没做完的活】(Tim,2026-08-24)★★
+-- 本函数存在、正确、有 fixture 覆盖,而在 Tim 2026-08-24 的裁定之下【将不会被使用】:
+--   **员工个人数据无限期保留。没有保留期,而且不会有。**
+-- 它因 hr_settings.personal_data_retention_months 为 NULL 而按名拒绝
+-- (PDPA_RETENTION_PERIOD_NOT_SET),而在这条裁定之下那一列【保持 NULL】。
+-- 它是一件【建好了、刻意休眠】的机制,不是没做完的活。
+--
+-- 【不要删掉它,不要放宽这条拒绝,不要设一个期限。】那句拒绝正是这次休眠诚实的地方 ——
+-- 路是关着的,而且它说得出自己为什么关着。裁定哪天改口,把那一列设上就是全部的改动。
+-- 裁定本身、它没有 settle 掉的东西(保留限制仍是 PDPA 的义务,无限期保留是公司
+-- 采取的立场,不是本系统给出的豁免)、以及待决清单里它从 OPEN 变成 DECIDED 的那一行,
+-- 都在 docs/pdpa.md 第二节与第五节。
 --
 -- 【它动两张表】employees 的身份列,与 employment_history 的薪资两列 + 备注。
 -- 后者是【不可变】的表 —— 匿名化是它唯一的 UPDATE 例外,而那条例外由行的形状定义

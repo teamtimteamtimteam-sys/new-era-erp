@@ -668,3 +668,220 @@ the system will look:
    stops.
 3. Then set all four values together — the three policy columns and the flag — in one change.
    Setting the flag without the policy is the "on, unset" state, which refuses.
+
+---
+
+# APR-3 — 上线前的勘察(2026-08-24)。**只勘察,没有建任何东西 —— 停闸拦下了这一刀**
+
+**为什么这一节存在。** `docs/forward-queue.md` 阶段 3 的第 3 件写着「审批开关与职责分离」,
+第 4 件写着「部门数据范围」,两件被合成一刀。**勘察之后这一刀没有开工**:第 4 件量出来
+是一次【跨全库的迁移】,而本刀的停闸规定,那种形状不许与「把审批打开」装进同一刀。
+两份勘察都在这里与 `docs/department-scope-survey.md`,排期归 Tim。
+
+**本节的每一个数字都是 2026-08-24 在【线上】量的,不是从上面几节抄的。**
+上面几节写于 2026-08-09,而地面已经动过 —— 尤其是员工↔登录的关联。
+
+## 一 · 审批:**引擎【已经建好了】,缺的是【操作员那一面】**
+
+**这是本次勘察最要紧的一句,而它与队列里那条目的措辞不一致:**
+
+> **「审批开关」不是一件待建的东西 —— APR-1 与 APR-2 已经把它整支建完了。
+> 今天缺的是【一个人能不能用它】:批准与驳回这两支函数在 `app/` 里
+> 【一个调用方都没有】。**
+
+### 已经在库里的(逐个点名,读的是函数体与 `pg_policy`,不是记忆)
+
+| | |
+|---|---|
+| `finance_settings` 四列 | `approvals_enabled`(NOT NULL,**默认 false,今天是 false**)· `approval_level1_role_code`(**NULL**)· `approval_threshold_base`(**NULL**)· `approval_level2_user_id`(**NULL**) |
+| `approval_log` | 追加型,`(subject_type, subject_id)` 主体对,金额四列冻结在决定那一刻,`seq` 排序。**线上 8 行** |
+| `approvals_enabled()` | 读那一列,`COALESCE(..., false)` |
+| `approval_level_for(amount_base)` | 阈值未设 → `APPROVAL_THRESHOLD_NOT_SET`;金额为空 → `APPROVAL_AMOUNT_REQUIRED`;`>= 阈值` 归 2 级 |
+| `require_approver_for(level)` | 1 级查配置的角色码(未设 → `APPROVAL_LEVEL1_ROLE_NOT_SET`;不持 → `APPROVAL_NOT_AUTHORISED\|1\|<role>`);2 级查具名 user_id(未设 → `APPROVAL_LEVEL2_USER_NOT_SET`;不是本人 → `APPROVAL_NOT_AUTHORISED\|2\|<uuid>`);其余 → `APPROVAL_LEVEL_INVALID` |
+| `create_purchase_order` | **开关是它的一个分支**:开 → `status='draft'` / `approval_status='pending'`,日志记 `submitted`;关 → `confirmed`/`approved`,日志记 **`auto_approved`** 并写明「系统直接盖章,没有人做过这个决定」 |
+| `approve_purchase_order` | 关着时 `APPROVALS_NOT_ENABLED` · 非 pending `PO_NOT_PENDING` · **四眼 `SELF_APPROVAL_FORBIDDEN`** · 按单据自存汇率折本位币定级 · 走 `require_approver_for` · 推 draft→confirmed · 写日志 |
+| `reject_purchase_order` | 同上 + `REJECT_REASON_REQUIRED`,驳回也要走同一道授权 |
+| `void_approval_on_amount_increase` | 金额涨过档 → 原审批作废、重新路由,日志记 `approval_voided`;**只在升级时作废**;关着时早退(否则阈值未设会让「改金额」在一个审批没开的库里失败) |
+| `guard_po_amendable` | **`status` 与 `approval_status` 不走"修改"这条路** —— 除非 `evoltrya.po_status_ctx='1'`。这就是"一个能把 approval_status 设成 approved 的编辑表单 = 一条不经审批的审批路径"那条规矩的执行处 |
+| 三道闸(APR-2 的 A4 + 后来多的一道) | **收货** `guard_inbound_po_receivable` → `PO_NOT_APPROVED`;**预付/付款** `apply_prepayment` / `record_payment` 的 PO 分支;**签发给供应商** `record_po_issue`(APR-2 当时写的是"这个动作不存在",**现在它存在了**,并且已经按名拒未获批的单) |
+
+### 缺的那一面,三件,每一件都点名
+
+1. **【没有批准/驳回的屏幕】—— 这是最硬的一条。**
+   `grep -rl approve_purchase_order app/` 与 `reject_purchase_order` 的结果都是**空**。
+   `app/purchasing/orders/[id]/page.tsx` 只调 `approvals_enabled()`,渲染一条
+   「审批已生效 / 未生效」的状态条,**没有任何控件**。
+   **后果说白:今天把开关打开,每一张新单都会停在 `draft/pending`,
+   而屏幕上没有任何东西能把它推走** —— 它收不了货(`PO_NOT_APPROVED`)、
+   收不了预付、签发不出去。**采购当场停摆。**
+   这正是本仓库为「没有入口的页」付过四次账的那个形状,只是这一次
+   连页都还没有。
+2. **【十一条拒绝没有句子】。** `app/purchasing/purchasingErrorCodes.ts` 里有
+   `PO_NOT_APPROVED`,**没有**:`APPROVALS_NOT_ENABLED` · `PO_NOT_PENDING` ·
+   `SELF_APPROVAL_FORBIDDEN` · `REJECT_REASON_REQUIRED` ·
+   `APPROVAL_THRESHOLD_NOT_SET` · `APPROVAL_AMOUNT_REQUIRED` ·
+   `APPROVAL_LEVEL1_ROLE_NOT_SET` · `APPROVAL_LEVEL2_USER_NOT_SET` ·
+   `APPROVAL_NOT_AUTHORISED` · `APPROVAL_LEVEL_INVALID` ·
+   `APPROVAL_SUBJECT_TYPE_UNKNOWN` / `APPROVAL_SUBJECT_NOT_FOUND`。
+   `messages/{en,zh}.ts` 里与审批有关的只有一条 `SELF_APPROVAL_FORBIDDEN`,
+   **而它属于 `hr.reviews`,不是采购**。开关一开,操作员看到的是裸管道串。
+   (这些码是从函数体里一条条数出来的,不是从撞到过的那几条数的。)
+3. **【仪表盘那一格还是三态里的第一态】。** `docs/dashboard-arm-inventory.md`
+   第 324 行那一节记着:开关关着时「待批 0」这个 0 的意思是**审批不在生效中**,
+   不是"没有人在等" —— 这已经是"受限不是零"的第四件衣服。那一格**还没有建**,
+   而它要的是三态,不是两态。
+
+## 二 · 把开关打开会发生什么(**报告,不执行 —— 本刀没有打开它**)
+
+**今天的实测状态:`approvals_enabled = false`,另外三列全是 NULL,
+线上 7 张采购单,`approval_status='pending'` 的有 0 张,`approval_log` 8 行。**
+
+**只把 `approvals_enabled` 设成 true 而不设那三列**,是文档里写的「on, policy unset」
+那一态,而它的实际行为量出来是这样:
+
+* 新建采购单**成功**,落成 `draft/pending`(`create_purchase_order` 不查阈值);
+* **随后一切与它有关的动作全部失败**:批准/驳回会走到 `approval_level_for`,
+  阈值为 NULL → `APPROVAL_THRESHOLD_NOT_SET`;
+* 那张单**收不了货、收不了预付、签发不出去**(三道闸都要 `approved`);
+* 而且**没有屏幕能批它**(见上面第 1 条)。
+* **改一张已批单的金额也会失败** —— `void_approval_on_amount_increase` 会早退,
+  这一条是安全的;但它早退的判据是 `approvals_enabled()`,一旦开了就不再早退,
+  于是阈值未设时「改金额」也开始抛 `APPROVAL_THRESHOLD_NOT_SET`。
+
+**四个值一起设(`docs/fresh-install-checklist.md` 第 8 条写的那一段)之后**:
+
+* 1 级路由到 `finance`。**线上持 `finance` 的真人账号只有一个:`chef1949@126.com`,
+  而它 `last_sign_in_at` 是 NULL —— 从来没有登录过。**
+* 2 级路由到 `approval_level2_user_id` 那个具名的人(Tim)。
+* **四眼会当场咬人:** `finance` 这个角色同时持 `module.purchasing.edit`,
+  也就是说持 `finance` 的人**自己也能开单**;他开的单他自己批不了
+  (`SELF_APPROVAL_FORBIDDEN`),而今天**没有第二个持 `finance` 的人**。
+* `admin` 同时持采购与财务的编辑权,所以 Tim 用 admin 开的单,
+  1 级也只能由 `finance` 批 —— 而那个人没登录过。
+
+> **结论一句话:今天打开开关,采购会停摆,而停摆的第一因不是策略没配好,
+> 是【没有那块屏幕】。** 先补屏幕与句子,再谈配置;配置本身还等着
+> `docs/approvals-scoping.md` 上面那一节列的两个前置(第二个真人账号、
+> 一个持 `finance` 而不开单的人)。
+
+## 三 · 在飞的单据:**今天没有,而这正是现在动手最便宜的原因**
+
+`approval_status='pending'` 的采购单 **0 张**。线上 7 张单全部是 `approved`
+(其中 3 张由 APR-1 补记成 `auto_approved / is_reconstructed`)。
+**所以"打开开关会不会把在飞的单据晾在半路"这个问题,今天的答案是不会** ——
+没有在飞的。**这是一个会随时间变坏的答案**:同事账号一发、开始有人开单,
+每一张新单都是一个潜在的在飞单据。
+
+**反方向也要说清(文档已有的一句,勘察复核成立):关掉开关【不会】追认任何东西。**
+开着的时候提的单仍然 `pending`、仍然收不了货。**要让它们走完,只有把开关再打开、
+把策略配好、由人一张张批** —— 所以"先开一下试试再关掉"不是一次可回退的试验。
+
+## 四 · 职责分离:**它【不是】审批开关的一个侧面,而是四件独立的事**
+
+队列把两件写成一条「审批开关与职责分离」。勘察结论是**这条合并把后者说小了**:
+审批引擎只答了下面第 1 行,其余三行**与审批引擎完全无关**,各自要各自的机制。
+
+**测法:两个动作各自要哪一条权限码,以及【今天哪些角色同时持有它们】。**
+角色→权限量自 `role_permissions`;人数量自 `user_roles`(真人账号 2 个:
+`admin@swm-os.test` = admin,`chef1949@126.com` = finance;其余 70 个 admin
+是冒烟/走查留下的一次性账号)。
+
+| # | 一个人能不能从头做到尾 | 两端各要什么 | **今天同时持有的角色** | 判词 |
+|---|---|---|---|---|
+| 1 | **开单 → 批单** | `module.purchasing.edit` → 配置的 1 级角色 | admin · finance · gm · procurement 都持 `module.purchasing.edit` | **开关关着时:能,而且是【一个动作】** —— `create_purchase_order` 自己盖章。**开关开着时:不能** —— `SELF_APPROVAL_FORBIDDEN` + `require_approver_for`,而且 `guard_po_amendable` 堵死了绕过函数直接改 `approval_status` 的路 |
+| 2 | **建供应商 → 付钱给他** | `module.suppliers.edit` → `module.finance.edit` | **admin · finance · gm** | **能,端到端,没有任何东西拦。** 而 `finance` 正是被裁定的 1 级审批角色 —— 也就是说未来那位审批人自己就能造一个收款人并付款 |
+| 3 | **过账 → 关账** | `module.finance.edit` → `module.finance.edit`(`close_period` / `close_financial_year` 同一条码) | **admin · finance · gm** | **能。两端是同一条权限码**,`close_period` 除了「借贷平」「折旧已跑」之外没有任何"谁"的判据 |
+| 4 | **工资过账 → 发工资** | `post_payroll_period` = `module.hr.edit` → `pay_payroll_lines` = `module.finance.edit` **OR** `module.hr.edit` | **hr 一个角色就够**(admin · gm 也够) | **能,而且只要一条 hr 权限。** 那个 `OR` 是这一行的全部原因 |
+| 5 | **(附)提假条/报销 → 自己批** | `module.hr.edit` 两端 | **hr · admin · gm** | **能。** 三条 HR 链里只有绩效评估有四眼(`SELF_APPROVAL_FORBIDDEN`),请假与医疗报销没有 —— 这是 APR-1 就点过名、一直留到"下一刀"的那一条 |
+
+### 这四件在【数据库里】拦得住吗 —— 逐条量过,答案是能,而且材料已经在
+
+5.2 要求「不能只在屏幕上拦」,理由是 GO-2 实测过 `authenticated` 手里握着表权限,
+一条直连的写入绕得过 server action。**本次复核了那句话,它仍然成立,而且更具体:**
+
+```
+authenticated 对这些表的表权限(information_schema.role_table_grants):
+  purchase_orders   INSERT UPDATE DELETE        payments  INSERT UPDATE DELETE SELECT
+  suppliers         INSERT UPDATE DELETE SELECT journal_lines / journal_entries 同上
+  finance_settings  INSERT UPDATE DELETE SELECT approval_log INSERT UPDATE DELETE
+```
+
+**唯一挡在前面的是 RLS 与触发器,不是 server action。** 逐条查过 `pg_policy`:
+
+* `purchase_orders` 有 UPDATE 策略 `has_permission('module.purchasing.edit')` ——
+  **也就是说开单的人本来可以直连把 `approval_status` 改成 approved**;
+  **拦住它的是 `guard_po_amendable`**,不是策略。这条已经建好了,复核通过。
+* `approval_log` **没有 INSERT 策略**(RLS 默认拒),UPDATE/DELETE 由
+  `guard_approval_log_append_only` 拒 —— 直连伪造一条审批记录走不通。**已经关上。**
+* `payments` **没有 UPDATE/DELETE 策略** —— 已经关上。
+* `finance_settings` 的四条策略全是 `module.finance.edit`。
+  **所以持 `module.finance.edit` 的人可以直连把 `approvals_enabled` 改掉** ——
+  包括把它关掉。**这是一处开着的口子,而且它开在这次要动的那个开关上。**
+  它没有被本刀关上,因为关它要先裁一件事:**审批开关归谁改?**
+  `action.manage_permissions`(今天只有 admin)是最像的答案,但那是一条
+  【新规矩】,而不是一次补漏 —— 与 `JE-APPEND` 那一条不在 GO-2 里做是同一个理由。
+
+**做第 2–5 行需要的"谁做的"那一列,库里【已经有了】**,所以它们不是数据结构问题:
+`suppliers.created_by` · `payments.created_by` · `journal_entries.created_by` ·
+`period_closes.closed_by` · `payroll_periods.created_by` ·
+`leave_requests.created_by/decided_by` · `medical_claims.created_by/decided_by` ·
+`purchase_orders.created_by/approved_by`。**每一条都在。**
+
+### 但有一件必须先裁,否则第 2–5 行【建出来就是坏的】
+
+> **今天只有两个真人账号。** 任何"A 做的事 B 才能做"的规矩,在两个人的系统里
+> 都会立刻把某条路堵死 —— 这正是 `approvals_enabled` 这个开关当初被造出来的理由
+> (「四眼在一个人的系统里没法运转」)。
+>
+> **所以第 2–5 行要么各自带一个开关,要么与审批共用同一个开关,要么等到
+> 十三位同事的账号发下去之后再上。这是一个排期决定,归 Tim。**
+
+## 五 · 十三位同事这件事,对本项【什么必须先成立、什么可以等】
+
+| 必须在账号发出去【之前】 | 可以等 |
+|---|---|
+| **十一条拒绝的中英句子** —— 账号一发就有人会撞上采购的拒绝路径,而今天撞上就是裸管道串 | 委托(delegation):`approval_level2_user_id` 还是 NULL,2 级今天对所有人都拒,**没有"Tim 在飞机上"这个故障可以发生** |
+| **批准/驳回那块屏幕** —— 只要开关有可能被打开,没有屏幕就是采购停摆 | 仪表盘那一格的三态 —— 它是可见性,不是可用性 |
+| **决定审批开关归谁改**(见上,`finance_settings` 那处口子) | 第 2–5 行的职责分离机制本身,**只要它们的开关状态是被写下来的** |
+| **HR 三链的四眼**?—— **不必须**:今天 hr 角色 0 人;它变成必须的那一刻,是第一个持 `module.hr.edit` 的同事拿到账号 | 部门数据范围(见另一份勘察,而且它被停闸拦下了) |
+
+## 五之二 · 直连写入的探针 —— **实测,全部回滚(2026-08-24)**
+
+上面第四节那张表里的判词,凡是与"绕过 server action 直连写"有关的,都不是从
+`pg_policy` 推的,是**以一个真实的 `authenticated` 会话跑出来的**
+(`SET LOCAL ROLE authenticated` + `chef1949@126.com` 的 `sub`,整支在一笔
+必然回滚的事务里,`RAISE EXCEPTION 'PROBE_REPORT …'`)。
+
+| 探针 | 结果 |
+|---|---|
+| **P1 · 直连把 `approvals_enabled` 从 false 改成 true** | **ALLOWED** —— 事务内读回 `true`。持 `module.finance.edit` 的人可以自己把审批打开,**也可以把它关掉** |
+| **P2 · 直连把一张 `pending` 的采购单改成 `approved`** | **REFUSED** —— `PO_STATUS_NOT_AMENDABLE\|approval_status\|pending\|approved`。`guard_po_amendable` 顶住了 |
+| **P2b · 直连改 `status`** | **REFUSED** —— `PO_STATUS_NOT_AMENDABLE\|status\|closed\|confirmed` |
+| **P3 · 直连往 `approval_log` 插一条伪造的"已批准"** | **REFUSED** —— `new row violates row-level security policy for table "approval_log"`(没有 INSERT 策略 = 默认拒) |
+| **P4 · 以 `finance` 建一个收款人** | **ALLOWED**,并且同一个会话读出 `module.suppliers.edit=true` · `module.finance.edit=true` · `module.purchasing.edit=true` · `module.hr.edit=false` |
+
+> ### P2 第一次跑出来是【ALLOWED】,而那是一次问错了问题
+>
+> 第一版探针挑的是「最早的那张采购单」,而**它本来就已经是 `approved`** ——
+> 于是 `NEW.approval_status IS DISTINCT FROM OLD.approval_status` 恒为假,
+> 守卫**正确地**放行了一次什么都没改的更新,而探针把那个"放行"读成了"绕得过去"。
+> **一个绿灯的判据,答的不是它标签上写的那个问题** —— 这与本仓库记过的
+> `! pgrep`、`?sha=` 缩写、启动器的退出码是同一族。
+> 第二版先把那张单**造成 `pending`** 再打,才问到了标签上写的那句话。
+> **写下来是因为它差一点就变成一条"守卫形同虚设"的假结论。**
+
+**P4 顺带撞出一件必须点名的事:被裁定为 1 级审批角色的 `finance`,
+自己就持 `module.purchasing.edit`。** `docs/fresh-install-checklist.md` 第 8 条的
+前置 2 说的是「持 `finance` 的人不能是开单的那个人」—— 那是一句关于**人**的话;
+而**角色本身**有开单的权限,所以那条前置只能靠人事安排守住,守不住的时候
+`SELF_APPROVAL_FORBIDDEN` 会替它挡下同一个人开又批的那一种,**但挡不住
+「持 finance 的甲开单、持 finance 的乙批」这种同一职能内部的互批**。
+这是不是可接受,是一个业务判断,**没有裁**。
+
+## 六 · 本节【没有】做的事,以及为什么
+
+**一行代码、一条迁移都没有写。** 停闸(本刀简报第 4 步)规定:第 4 件若量出来是
+跨全库的迁移,就**两份勘察都报上来、都不动手**,由 Tim 定顺序。
+它量出来就是(`docs/department-scope-survey.md`)。
+**所以这一节是勘察,不是交付**,`docs/forward-queue.md` 阶段 3 的第 3、4 两件
+**都没有划掉**。

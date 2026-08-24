@@ -2538,3 +2538,191 @@ FIX-3 在保养间隔那块屏幕上修掉一处 `?? 0`:视图里
 > **写 `?? 0` 之前问一句:这个 NULL 的意思是【零】,还是【没有人量过】?**
 > 前者写 `?? 0` 是对的;后者写 `?? 0` 就是把"不知道"变成了一个具体的数,
 > 而屏幕上没有任何东西会再提起这件事。
+
+## ACCOUNTS-STALE · 线上有五个 `test.local` 的 **admin** 账号,和 66 条**认不到人**的授权(APPROVALS-SOD 实测,2026-08-24)
+
+> **这一条是【内部验收轮的前置条件】,与"第二个账号"并列。**
+> 十三位同事即将拿到账号,而他们要进的这套系统里,今天有五个走查/冒烟留下的账号
+> **持着 `admin`**。**记在这里,撤销由紧接着的一小刀做** —— 那是一次线上数据变更,
+> 不带迁移、身后没有闸,不该搭在一次同时改变强制力的切次里。
+
+### 一 · 五个 `test.local` 账号,持 `admin`,而且其中两个**登录过**
+
+| 邮箱 | 角色 | 建于 | 最后登录 |
+|---|---|---|---|
+| `walk-qt-1786805272946@test.local` | **admin** | 2026-08-15 | **2026-08-15** |
+| `l2bl-1787185137325@test.local` | **admin** | 2026-08-20 | **2026-08-20** |
+| `l2bl-1787185184530@test.local` | **admin** | 2026-08-20 | **2026-08-20** |
+| `l2bl-1787185288817@test.local` | **admin** | 2026-08-20 | **2026-08-20** |
+| `l2bl-1787185158806@test.local` | **admin** | 2026-08-20 | 从未 |
+
+**它们在 `auth.users` 里是【真的】账号** —— 有登录凭据,不是孤儿授权。
+`admin` 是唯一持 `action.manage_permissions` 与 `action.bulk_import` 的角色,
+也就是说这五个账号中的任何一个都能**改权限**、**批量导入数据**。
+四个在 2026-08-20 那天真的登录过,所以"它们登录不了"这句话是错的 —— 已经验过了。
+
+**为什么它们还在:** 冒烟与走查会建一次性账号,而
+`scripts/check-scratch-rows.mjs` 那条规矩是**报告,不清扫**(归属与年龄是清扫无法
+安全知道的东西)。它报告得对;**没有人去读那份报告并动手**,这才是缺口。
+`user_roles.user_id` 没有指向 `auth.users` 的外键,所以删掉 auth 账号也不会带走授权 ——
+见下一节。
+
+### 二 · 66 条 `user_roles`,它的 `user_id` 在 `auth.users` 里**根本不存在**
+
+```
+user_roles 里 DISTINCT user_id ............ 73
+其中 auth.users 里找得到的 ................  7
+其中 auth.users 里【找不到】的 ............ 66
+```
+
+**这 66 条不是可以登录的账号** —— 没有 auth 行就没有登录路径,所以它**不是一处暴露**。
+它是两种真实的坏处:
+
+* **任何"谁持有这个角色"的清单都是错的。** 十三个人进来之后,
+  权限屏上「admin 有 70 人」这种数字既吓人又没有意义,而**一份没人信的清单
+  与一份没有的清单一样有用**。
+* **它让"第二个人存在了吗"这个问题答不了。** 审批开关的前置条件之一正是
+  "存在第二个真人账号"(见 `docs/approvals-scoping.md` 结尾),而
+  `count(*) FROM user_roles` 今天回答的是 73,真相是 **2**
+  (`admin@swm-os.test` 与 `chef1949@126.com`)。
+
+> **它【不】影响 `require_approver_for`。** 那支函数问的是
+> `ur.user_id = auth.uid()` —— 一个登录不了的 uuid 永远不会成为 `auth.uid()`。
+> 所以引擎是对的,**错的是任何按角色去数人头的读法**。这个区别值得写下来,
+> 免得下一个人以为审批授权也被污染了。
+
+### 三 · 返回条件
+
+**紧接 APPROVALS-SOD 的一小刀**:撤销那五个 `test.local` 账号的角色(或删账号),
+清掉 66 条认不到人的授权。**在十三位同事拿到账号【之前】完成** ——
+与 `docs/forward-queue.md`【内部验收】那一节里"第二个账号"是同一批前置条件。
+**删除这一条的时机:那一刀落地时。**
+
+---
+
+## APPROVALS-NO-SURFACE · 审批引擎【建好了却没有屏幕】—— 打开开关等于让采购停摆(APR-3 勘察,2026-08-24,未修)
+
+**这不是"审批没建"。引擎整支在库里**(APR-1 的日志 + APR-2 的两级路由、四眼、
+金额上档作废、三道闸)。**缺的是操作员那一面,而缺法是最坏的一种:能进不能出。**
+
+### 实测
+
+```
+grep -rl 'approve_purchase_order' app/   →  (空)
+grep -rl 'reject_purchase_order'  app/   →  (空)
+```
+
+`app/purchasing/orders/[id]/page.tsx` 只调 `approvals_enabled()` 渲染一条状态条
+(「审批已生效 / 未生效」),**没有任何控件**。
+
+`create_purchase_order` 在开关打开时写 `status='draft'` / `approval_status='pending'`。
+三道闸(收货 `guard_inbound_po_receivable` · 预付/付款 · 签发 `record_po_issue`)
+全部要求 `approved`。
+
+> **所以今天把 `finance_settings.approvals_enabled` 设成 true,
+> 每一张新采购单都会停在 pending:收不了货、收不了预付、签发不出去,
+> 而屏幕上没有任何东西能把它推走。采购当场停摆。**
+
+**而且这不是一次可回退的试验:**把开关再关掉**不会**追认那些单据 ——
+它们仍然 `pending`、仍然不可收货(文档写在 `docs/approvals-scoping.md`
+「Turning it off does not retroactively approve anything」,本次勘察复核成立)。
+
+### 为什么今天还没有咬人
+
+`approvals_enabled = false`,三条策略列全是 NULL,线上 7 张采购单
+**0 张 pending**。**这是一个会随时间变坏的答案** —— 十三位同事的账号一发,
+每一张新单都是一个潜在的在飞单据。
+
+### 删除条件
+
+**那块屏幕存在**:批准 / 驳回两个控件,带着未获批时的禁用理由,
+入口由人确认过(`[id]` 页,`--reach` 结构性看不见 —— 见 `AGENTS.md` 那条规矩)。
+连带:十一条拒绝的中英句子(见下一条)、仪表盘那一格的三态。
+
+---
+
+## APPROVALS-NO-SENTENCES · 十一条审批拒绝【没有句子】,开关一开就是裸管道串(APR-3 清点,2026-08-24,未修)
+
+**从函数体里一条条数出来的,不是从撞到过的那几条数的。**
+
+`app/purchasing/purchasingErrorCodes.ts` 里有 `PO_NOT_APPROVED`,**没有**这十一条:
+
+```
+APPROVALS_NOT_ENABLED   PO_NOT_PENDING          SELF_APPROVAL_FORBIDDEN
+REJECT_REASON_REQUIRED  APPROVAL_THRESHOLD_NOT_SET   APPROVAL_AMOUNT_REQUIRED
+APPROVAL_LEVEL1_ROLE_NOT_SET   APPROVAL_LEVEL2_USER_NOT_SET
+APPROVAL_NOT_AUTHORISED APPROVAL_LEVEL_INVALID
+APPROVAL_SUBJECT_TYPE_UNKNOWN / APPROVAL_SUBJECT_NOT_FOUND
+```
+
+`messages/{en,zh}.ts` 里与审批有关的句子只有一条 `SELF_APPROVAL_FORBIDDEN`,
+**而它挂在 `hr.reviews` 下面,不是采购** —— 采购这条路上抛同名码时不会用到它。
+
+**删除条件:**十一条各有中英一句,`node scripts/check-i18n.mjs` 绿,
+并且走一遍手走清单(拒绝的句子只有人眼看得见)。
+
+---
+
+## APPROVALS-SWITCH-UNGUARDED · **持 `module.finance.edit` 的人可以直连把审批开关打开或关掉**(APR-3 实测,2026-08-24,未修 —— 要先裁一件事)
+
+### 实测(一笔回滚的事务,`SET LOCAL ROLE authenticated` + finance 账号的 sub)
+
+```
+UPDATE finance_settings SET approvals_enabled = true;   →  ALLOWED
+(事务内读回 true;before = false)
+```
+
+`finance_settings` 的四条 RLS 策略全部是 `has_permission('module.finance.edit')`,
+表上**只有一个 `updated_at` 触发器**,没有任何守卫。
+`authenticated` 对这张表持 `INSERT/UPDATE/DELETE/SELECT` 表权限。
+
+**代价说具体:审批是一道内控,而这道内控的【开关】与它所管的那些日常财务设置
+共用同一把钥匙。** 一个能记付款的人,也能把"付款要不要经过审批"这件事自己改掉,
+而且 `finance` 正是被裁定的 1 级审批角色。
+
+### 为什么不在本刀里关上
+
+**关它是一条【新规矩】,不是一次补漏** —— 与 `JE-APPEND` 不在 GO-2 里做同一个理由。
+要先裁:**审批开关归谁改?** 最像的答案是 `action.manage_permissions`
+(今天只有 admin 持有),但那会把「改财务设置」这件事**劈成两半**
+(锁定日期、汇率来源这些仍然归 `module.finance.edit`),
+而那一半怎么劈是一个业务判断。**本刀是勘察刀,停闸已经生效,不在这里现写新规矩。**
+
+### 删除条件
+
+审批那四列(`approvals_enabled` + 三条策略列)有自己的写入判据,
+并且被一次故障注入证明过拒得住直连写。
+
+---
+
+## SOD-ONE-PERSON · 四组动作【今天可以由一个人从头做到尾】(APR-3 勘察,2026-08-24,未修)
+
+**证据是权限码:两端各自 `require_permission` 的那一条,以及 `role_permissions`
+里同时持有它们的角色。** 第 2 组另外跑了一次直连探针(建收款人 = ALLOWED)。
+
+| 组 | 两端 | 同时持有的角色 | 判词 |
+|---|---|---|---|
+| 1 · 开单 → 批单 | `module.purchasing.edit` → 配置的 1 级角色 | admin · finance · gm · procurement | **开关关着时能**(`create_purchase_order` 自己盖章);**开着时不能**(四眼 + `require_approver_for`,且 `guard_po_amendable` 堵死直连改 `approval_status` —— **实测 REFUSED**) |
+| 2 · 建供应商 → 付钱给他 | `module.suppliers.edit` → `module.finance.edit` | **admin · finance · gm** | **能,端到端,没有任何东西拦**(实测:finance 建收款人 ALLOWED) |
+| 3 · 过账 → 关账 | `module.finance.edit` → `module.finance.edit` | **admin · finance · gm** | **能。两端是同一条码。** `close_period` 只查"借贷平""折旧已跑",不查"谁" |
+| 4 · 工资过账 → 发工资 | `module.hr.edit` → `module.finance.edit` **OR** `module.hr.edit` | **hr 一个角色就够**(admin · gm 也够) | **能,只要一条 hr 权限**。那个 `OR` 是全部原因 |
+| (附)5 · 提假条/报销 → 自己批 | `module.hr.edit` 两端 | hr · admin · gm | **能。** 三条 HR 链里只有绩效评估有四眼 —— APR-1 就点过名 |
+
+**做这几条需要的"谁做的"那一列,库里都已经有了**:`suppliers.created_by` ·
+`payments.created_by` · `journal_entries.created_by` · `period_closes.closed_by` ·
+`payroll_periods.created_by` · `leave_requests.created_by/decided_by` ·
+`medical_claims.created_by/decided_by`。**所以这不是数据结构问题。**
+
+### 为什么不在本刀里做,以及做之前必须先裁的那一件
+
+**今天只有两个真人账号**(`admin@swm-os.test` = admin;`chef1949@126.com` = finance,
+从未登录)。**任何"A 做过的事 B 才能做"的规矩,在两个人的系统里都会当场堵死一条路**
+—— 这正是 `approvals_enabled` 这个开关当初被造出来的理由。
+
+> **要裁的:第 2–5 组各自带一个开关、与审批共用同一个开关,还是等十三位同事的
+> 账号发下去之后再上?** 归 Tim。
+
+### 删除条件
+
+四组各自有一条**在数据库里**的拒绝(不是只在屏幕上 —— GO-2 实测过直连写绕得过
+server action),每一条有中英句子,每一条有一支故障注入过的 fixture。

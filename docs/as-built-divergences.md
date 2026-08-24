@@ -42,7 +42,12 @@ the commit which side moved.
 * `department_id` appears **only on HR tables** (`employees`, `employment_history` and their views).
   It is an org-chart field consumed by HR and by review routing — it is not an ownership scope, and no
   RLS policy anywhere filters on it.
-* `entity` appears on **exactly one table — `tasks`**. No business table is partitioned by entity.
+* `entity` appears on **no table at all**. It was on `tasks` until **TASK-1c-a (2026-08-19)** retired
+  it along with four other columns (`visibility`, `shared_with`, `editors`, `assigned_to`); measured
+  again on **2026-08-24**, the count of columns named `entity` anywhere in `public` is **0**.
+  **This bullet used to say "exactly one table — `tasks`", and that sentence outlived the column by
+  five days** — corrected here rather than annotated, because a register that describes a column
+  which no longer exists misleads exactly the reader who came to it for the current state.
 * There is **one** chart of accounts, **one** base currency (`currencies.is_base`, singular), and one
   set of books.
 
@@ -51,6 +56,26 @@ is written on top of it — "Data filtered by the department/function ownership 
 has carried, and by entity (SG/EU), **activated through the RLS hooks already in place**." There are no
 hooks to activate. When that phase is planned, the first task is a migration across every business
 table, not the activation of something dormant.
+
+> **The claim is now a MEASUREMENT rather than a reading (APPROVALS-SOD, 2026-08-24).** Against the
+> live catalog: **0 of 447** RLS policies reference a department in `USING` or `WITH CHECK`; **1 of
+> 40** soft-deletable business tables carries `department_id` (it is `employees`, and it is an
+> org-chart field); `departments` holds **1 row**; **1 of 6** employees points at it; and columns
+> named `entity` number **0**. **"There are no hooks" was true when it was written and it is now a
+> number somebody can re-run.**
+>
+> **The sizing lives in `docs/department-scope-survey.md`** — the four costs, the named list of 40
+> tables, the question that has to be answered before any schema can be designed (what a row's
+> department *means* when the row is not a person), and the order the measurement implies. **It is a
+> phase, not a cut**, and the forward queue carries it as a sized item for that reason.
+> This entry states the divergence; that file states the size. Neither restates the other.
+>
+> **What the size then did:** it fired the APPROVALS-SCOPE cut's stop-gate on 2026-08-24, so that
+> cut surveyed both of its items and **built neither** — no migration, no schema change, and the
+> approvals switch left off. Also measured that day and worth carrying here because it changes what
+> "activate the hooks" would have to touch: **362 of the 447 policies are `has_permission(...)`
+> predicates**, and **98 tables carry `created_by`** — the only ownership-shaped column that exists
+> today, and not the same thing as a department.
 
 It also reaches Doc 3 Phase 3, which specifies "Chart of accounts (**two sets, SG/EU**)" and
 "multi-entity consolidated statements (the two independent P&L entities pulled together)". With one
@@ -189,9 +214,12 @@ PDPA 的保留限制说:**目的结束之后,不再保留个人数据。**
 > 那些行不再指向一个可识别的自然人。**这条推理是"为什么只动两张表"的全部理由**
 > (`employees` 与 `employment_history`;后者的薪资额与备注本身是个人数据)。
 >
-> **它今天是关着的。** 保留期(`hr_settings.personal_data_retention_months`)
-> 没有默认值也没有设,函数按名拒绝 `PDPA_RETENTION_PERIOD_NOT_SET`。
-> 范围、待决项与那四条按名拒绝见 `docs/pdpa.md`,**本条不复述**。
+> **它是关着的,而且在今天的裁定之下【将一直关着】。** 保留期
+> (`hr_settings.personal_data_retention_months`)没有默认值也没有设,函数按名拒绝
+> `PDPA_RETENTION_PERIOD_NOT_SET`。**Tim 于 2026-08-24 裁定:员工个人数据无限期保留**,
+> 所以那一列保持 NULL,而这支函数是一件**建好了、刻意休眠**的机制,不是没做完的活。
+> 裁定全文、范围、待决项与那四条按名拒绝见 `docs/pdpa.md`,**本条不复述**。
+> **本条的判词不因此改变**:这次调和仍然成立,只是它今天没有被行使。
 
 **同一个碰撞在 `employment_history` 上更硬一档,而处置是同一个(PDPA-1-fu)。**
 那张表不只是软删的,它是**不可变的** —— `trg_employment_history_immutable` 对
@@ -221,11 +249,32 @@ NULL、**其余每一列逐个断言一字不动**;DELETE 永远拒绝。一个
 > requester raises the request and the supervisor approves; above a threshold (e.g. 10k) it escalates to
 > CFO approval."
 
-**As built:** approval chains exist **only in HR** — leave requests, medical claims, performance reviews
-(`submit_leave_request`, `submit_medical_claim`, `submit_review` / `approve_review`, with a four-eyes
-rule on reviews). On the finance and purchasing side there are none: `create_purchase_order` writes
-`approval_status = 'approved'` unconditionally, and payments, price changes and stock issue have no
-approval step at all.
+**As built when this entry was written:** approval chains existed **only in HR** — leave requests,
+medical claims, performance reviews (`submit_leave_request`, `submit_medical_claim`, `submit_review` /
+`approve_review`, with a four-eyes rule on reviews). On the finance and purchasing side there were
+none: `create_purchase_order` wrote `approval_status = 'approved'` unconditionally, and payments,
+price changes and stock issue had no approval step at all.
+
+> **UPDATED 2026-08-24 (APR-3 survey) — the second sentence is no longer true, and leaving it would
+> make this entry lie in the direction that costs most: it would read as "nothing is built".**
+>
+> **APR-1 and APR-2 built the purchase-order chain in full**: `approval_log` (append-only, subject
+> pair, amount frozen at the decision), `approvals_enabled()` / `approval_level_for()` /
+> `require_approver_for()`, `approve_purchase_order` / `reject_purchase_order` (four-eyes
+> `SELF_APPROVAL_FORBIDDEN`, base-currency routing on the document's own rate),
+> `void_approval_on_amount_increase`, `guard_po_amendable` (so a direct write cannot set
+> `approval_status`), and three enforcement points — receiving, prepayment/payment, and **issuing
+> to the supplier** (`record_po_issue`, which did not exist when APR-2 wrote "there is nothing to
+> gate"). `create_purchase_order` is now **conditional**: `draft`/`pending` when the flag is on,
+> `confirmed`/`approved` + a log row saying `auto_approved` when it is off.
+>
+> **What is still DOCUMENT AHEAD, stated precisely so the gap is not read as bigger or smaller than
+> it is:** the flag `finance_settings.approvals_enabled` is **false**, the three policy columns are
+> **NULL**, **`approve_purchase_order` and `reject_purchase_order` have no caller anywhere in
+> `app/`** (so there is no screen to approve on), eleven refusal codes have no bilingual sentence,
+> and payments, price changes and stock issue still have no approval step. **Doc 2 Principle 6 names
+> five actions; one of them now has an engine that is switched off and has no operator surface.**
+> Measured in full in `docs/approvals-scoping.md` §APR-3.
 
 **This is deferred by plan, not dropped.** Doc 3's Final Phase lists "Approval workflows activated —
 the value-bearing-action approvals designed into procurement, sales, and finance are bound to the role
