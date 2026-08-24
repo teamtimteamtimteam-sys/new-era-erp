@@ -257,10 +257,17 @@ anywhere in the system.**
 
 > *Enforcement:* `depreciate_fixed_assets`; fixture 16.
 
-### 4.3 An asset accumulates cost until it is commissioned; at commissioning the cost is frozen and depreciation begins. — **SETTLED**
+### 4.3 An asset accumulates cost until it is commissioned; at commissioning the cost is frozen and depreciation begins. — **SETTLED, and since 2026-08-24 QUALIFIED by 4.7**
 
 Freight, duty and installation on the same machine are additions to that asset, entered through the
 same door as the machine itself, each translated at its own date's rate.
+
+> **The word "frozen" is now narrower than it reads.** Until 2026-08-24 it meant *no cost may ever be
+> added after commissioning*, and `record_expense` enforced exactly that by refusing
+> (`ASSET_ALREADY_IN_SERVICE`). **4.7 rules that subsequent expenditure IS permitted**, spread
+> prospectively. So 4.3 now means: **the cost that the depreciation charged so far was based on is
+> frozen** — history is never rewritten — not that the asset can never take another dollar.
+> **The refusal is still in force and stays in force until the 4.7 cut lands.**
 
 > *Enforcement:* `record_expense`'s capital branch requires an asset reference; fixtures 77, 105, 107.
 
@@ -281,6 +288,45 @@ There is no table of standard useful lives by asset category, and no rule about 
 of plant should carry. Each asset's life is whatever was typed on it.
 
 > *Enforcement / evidence:* `fixed_assets.useful_life_months`.
+
+### 4.7 Subsequent expenditure on an asset already in service is spread, together with the remaining un-depreciated cost, over the remaining useful life. Depreciation already posted is not touched. — **SETTLED — 2026-08-24, ruled by Tim**
+
+**The rule.** When cost is capitalised onto an asset that is already in service, the addition and the
+**remaining un-depreciated cost** are spread **together, in the same proportion, over the remaining
+useful life**. Depreciation already posted is **neither reversed nor recomputed**.
+
+**The reasoning that decides the shape:** an addition to a machine already running is a **new event**,
+not the correction of an error. Nothing about the depreciation already charged was wrong when it was
+charged — it was right for the cost the asset then had. A rule that recomputed history would be
+asserting the opposite.
+
+> **What this rules out, and why that is the point.** The existing monthly routine computes a
+> **cumulative** target from the current cost base:
+>
+> ```
+> target = LEAST(cost_base − residual, (cost_base − residual) / useful_life_months × months_in_service)
+> delta  = target − everything ever posted
+> ```
+>
+> Raise `cost_base` mid-life under that arithmetic and the target rises for **every month already
+> elapsed**, so the whole catch-up lands in the current period — measured and recorded in
+> `docs/phase4-survey.md` §6. **4.7 forbids exactly that back-charge.** The implementing cut must
+> therefore stop re-deriving past months from a raised cost base and anchor the computation at the
+> addition instead: from that month on, charge
+> `(cost + addition − residual − accumulated) / remaining_months`.
+> **This is a specification, not a question** — the cut is queued, not built here.
+
+> **The asymmetry this inherits, stated so nobody reads the routine as symmetric.** The same routine
+> floors a negative delta at zero (`IF v_delta < 0 THEN v_delta := 0`), so a **downward** cost
+> revision is silently ignored by the monthly run and left to a manual correcting entry. **4.7
+> imitates that same side:** the monthly routine never reaches backwards, in either direction.
+> An upward change goes forward from now; a downward change is still a correction and still belongs
+> in a manual entry. The two halves now agree, where before only one of them had been ruled on.
+
+> *Enforcement:* **not yet built.** The refusal `ASSET_ALREADY_IN_SERVICE` in `record_expense` remains
+> in force until the queued cut lands. When it lands, five message keys asserting that commissioning
+> freezes the cost, and `docs/manual-walk-list.md` §9's step that checks for them, retire in the same
+> commit — see `docs/phase4-survey.md` §6b.
 
 ---
 

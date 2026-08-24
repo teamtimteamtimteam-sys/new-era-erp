@@ -3206,6 +3206,100 @@ export type Database = {
           },
         ]
       }
+      gst_periods: {
+        Row: {
+          code: string
+          corrects_period_id: string | null
+          created_at: string
+          created_by: string | null
+          filed_at: string | null
+          filed_by: string | null
+          filed_on: string | null
+          filed_reference: string | null
+          id: string
+          notes: string | null
+          period_end: string
+          period_start: string
+          status: string
+        }
+        Insert: {
+          code: string
+          corrects_period_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          filed_at?: string | null
+          filed_by?: string | null
+          filed_on?: string | null
+          filed_reference?: string | null
+          id?: string
+          notes?: string | null
+          period_end: string
+          period_start: string
+          status?: string
+        }
+        Update: {
+          code?: string
+          corrects_period_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          filed_at?: string | null
+          filed_by?: string | null
+          filed_on?: string | null
+          filed_reference?: string | null
+          id?: string
+          notes?: string | null
+          period_end?: string
+          period_start?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gst_periods_corrects_period_id_fkey"
+            columns: ["corrects_period_id"]
+            isOneToOne: false
+            referencedRelation: "gst_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gst_return_boxes: {
+        Row: {
+          box: string
+          created_at: string
+          id: string
+          label_en: string
+          label_zh: string
+          period_id: string
+          value_base: number
+        }
+        Insert: {
+          box: string
+          created_at?: string
+          id?: string
+          label_en: string
+          label_zh: string
+          period_id: string
+          value_base: number
+        }
+        Update: {
+          box?: string
+          created_at?: string
+          id?: string
+          label_en?: string
+          label_zh?: string
+          period_id?: string
+          value_base?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gst_return_boxes_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "gst_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_settings: {
         Row: {
           carry_forward_months: number
@@ -4247,6 +4341,7 @@ export type Database = {
           fx_rate_date: string | null
           id: string
           line_memo: string | null
+          tax_code: string | null
         }
         Insert: {
           account_id: string
@@ -4260,6 +4355,7 @@ export type Database = {
           fx_rate_date?: string | null
           id?: string
           line_memo?: string | null
+          tax_code?: string | null
         }
         Update: {
           account_id?: string
@@ -4273,6 +4369,7 @@ export type Database = {
           fx_rate_date?: string | null
           id?: string
           line_memo?: string | null
+          tax_code?: string | null
         }
         Relationships: [
           {
@@ -4302,6 +4399,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "journal_entries"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_lines_tax_code_fkey"
+            columns: ["tax_code"]
+            isOneToOne: false
+            referencedRelation: "tax_codes"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -11380,6 +11484,89 @@ export type Database = {
           },
         ]
       }
+      tax_codes: {
+        Row: {
+          code: string
+          description_en: string | null
+          description_zh: string | null
+          f5_purchase_box: string | null
+          f5_supply_box: string | null
+          f5_tax_box: string | null
+          is_active: boolean
+          is_claimable: boolean
+          name_en: string
+          name_zh: string
+          side: string
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          description_en?: string | null
+          description_zh?: string | null
+          f5_purchase_box?: string | null
+          f5_supply_box?: string | null
+          f5_tax_box?: string | null
+          is_active?: boolean
+          is_claimable?: boolean
+          name_en: string
+          name_zh: string
+          side: string
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          description_en?: string | null
+          description_zh?: string | null
+          f5_purchase_box?: string | null
+          f5_supply_box?: string | null
+          f5_tax_box?: string | null
+          is_active?: boolean
+          is_claimable?: boolean
+          name_en?: string
+          name_zh?: string
+          side?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      tax_rates: {
+        Row: {
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          id: string
+          note: string | null
+          rate_pct: number
+          tax_code: string
+        }
+        Insert: {
+          created_at?: string
+          effective_from: string
+          effective_to?: string | null
+          id?: string
+          note?: string | null
+          rate_pct: number
+          tax_code: string
+        }
+        Update: {
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          note?: string | null
+          rate_pct?: number
+          tax_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tax_rates_tax_code_fkey"
+            columns: ["tax_code"]
+            isOneToOne: false
+            referencedRelation: "tax_codes"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       traceability_report_issues: {
         Row: {
           code: string
@@ -17000,6 +17187,10 @@ export type Database = {
         Args: { p_order_date: string; p_quote_id: string }
         Returns: Json
       }
+      correct_gst_return: {
+        Args: { p_original_period_id: string; p_reason: string }
+        Returns: Json
+      }
       correct_task_type: { Args: { p_task_id: string }; Returns: undefined }
       create_container: {
         Args: {
@@ -17206,6 +17397,27 @@ export type Database = {
         Returns: string
       }
       export_my_personal_data: { Args: never; Returns: Json }
+      f5_box_detail: {
+        Args: { p_box: string; p_period_end: string; p_period_start: string }
+        Returns: {
+          amount_base: number
+          entry_code: string
+          entry_date: string
+          entry_id: string
+          memo: string
+          source_id: string
+          source_type: string
+          tax_code: string
+        }[]
+      }
+      f5_return: {
+        Args: { p_period_end: string; p_period_start: string }
+        Returns: Json
+      }
+      file_gst_return: {
+        Args: { p_filed_on?: string; p_period_id: string; p_reference?: string }
+        Returns: Json
+      }
       fin_cost_account: { Args: { p_cost_type: string }; Returns: string }
       fin_cost_lines: {
         Args: { p_amount: number; p_cost_type: string; p_reverse: boolean }
@@ -17226,6 +17438,7 @@ export type Database = {
         Args: { p_currency: string; p_date: string; p_rate_type: string }
         Returns: number
       }
+      gst_registered: { Args: never; Returns: boolean }
       has_any_permission: { Args: { p_codes: string[] }; Returns: boolean }
       has_permission: { Args: { p_code: string }; Returns: boolean }
       hold_stock: {
@@ -17405,6 +17618,10 @@ export type Database = {
         Returns: undefined
       }
       open_for_self_assessment: { Args: { p_review_id: string }; Returns: Json }
+      open_gst_period: {
+        Args: { p_period_end: string; p_period_start: string }
+        Returns: Json
+      }
       open_review_cycle: { Args: { p_cycle_id: string }; Returns: Json }
       pay_medical_claim: {
         Args: {
@@ -17945,6 +18162,10 @@ export type Database = {
         Returns: Json
       }
       submit_review: { Args: { p_review_id: string }; Returns: Json }
+      tax_rate_for: {
+        Args: { p_code: string; p_date: string }
+        Returns: number
+      }
       traceability_report_data: {
         Args: { p_output_batch_id: string }
         Returns: Json

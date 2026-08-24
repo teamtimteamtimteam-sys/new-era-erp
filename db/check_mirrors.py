@@ -97,7 +97,17 @@ SEED_TABLES = {
                           "COALESCE(description_en,'') AS description_en, "
                           "COALESCE(description_zh,'') AS description_zh, sort_order"),
     "currencies":  (None, "code, name, is_base"),
-    # accounts 是【混合表】:引擎点名的 22 行跟踪线上,其余是建账的人的地盘。
+    # GST-1:税码与税率是【法定事实】,不是操作员的地盘 —— 仓库与线上不一致
+    # 正是必须被抓住的那件事。加一个税码只有在有代码认它、且它进哪一格被写下来
+    # 之后才有意义,所以它与 permissions 同一类:扩充目录天生是迁移级动作。
+    "tax_codes":   (None, "code, side, name_en, name_zh, "
+                          "COALESCE(f5_supply_box,'') AS f5_supply_box, "
+                          "COALESCE(f5_purchase_box,'') AS f5_purchase_box, "
+                          "COALESCE(f5_tax_box,'') AS f5_tax_box, is_claimable, sort_order"),
+    # 税率史更硬:一行写错,一张历史单据就会拿到一个当时并不适用的税率。
+    "tax_rates":   (None, "tax_code, rate_pct, effective_from, "
+                          "COALESCE(effective_to, DATE '9999-12-31') AS effective_to"),
+    # accounts 是【混合表】:引擎点名的 34 行跟踪线上,其余是建账的人的地盘。
     # FIN-30:is_cash / cash_flow_section 也纳入比对 —— 它们决定现金流量表取哪些
     # 科目、归哪一段;线上被人翻了标记而无人察觉,报表会安静地算错一整类活动。
     "accounts":    ("is_system", "code, name_en, name_zh, account_type, is_system, "
@@ -216,6 +226,17 @@ DEFINER_NO_CHECK_ALLOWED = {
     "assert_segregated": "EXECUTE revoked from PUBLIC/authenticated/anon (SOD-1-fu3)",
     "sod_manual_posters_in": "EXECUTE revoked from PUBLIC/authenticated/anon (SOD-1-fu3)",
     "sod_supplier_creator": "EXECUTE revoked from PUBLIC/authenticated/anon (SOD-1-fu3)",
+    # GST-1(2026-08-24):两支查表函数,理由与上面三支【不是同一条】,所以分开写。
+    # 【tax_rate_for 是真的越权读】它绕过 tax_rates 的 RLS —— 虽然读到的是 IRAS
+    #   公开的法定税率,但"读到的东西不敏感"不是留着 EXECUTE 的理由(B2 的教训);
+    #   没有任何调用方需要它,那就不该够得着。
+    # 【gst_registered 同样绕过 finance_settings 的 RLS】它答的是"这家公司注册了
+    #   GST 没有"—— 界面要这个答案时读的是那张表的【列】,走该表自己的 RLS,
+    #   从来不调这个函数。
+    # 两支都只从 f5_return 与 post_journal_entry 的函数体内被调用(属主身份),
+    # 收回之后照常工作。加 require_permission 反而会坏:属主没有 claims。
+    "tax_rate_for": "EXECUTE revoked from PUBLIC/authenticated/anon (GST-1-fu)",
+    "gst_registered": "EXECUTE revoked from PUBLIC/authenticated/anon (GST-1-fu)",
     # FIN-27 的内层算子:条款解析、计价算术、承诺写入。同上,靠"调不到"而非"查调用者"
     "pricing_terms_of_formula": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "pricing_terms_of_commitment": "EXECUTE revoked from PUBLIC/authenticated/anon",

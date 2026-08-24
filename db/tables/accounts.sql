@@ -4,7 +4,7 @@
 --
 -- ════════════════════════════════════════════════════════════════════════════
 -- 【混合表:一半是安装种子,一半是记账员的地盘】(OPS-1 定的规矩)
---   is_system = true  的 22 行 = 自动记账引擎【按 code 点名依赖】的科目。
+--   is_system = true  的 34 行 = 自动记账引擎【按 code 点名依赖】的科目。
 --     它们与代码版本绑定,本文件【逐行跟踪线上】,check_mirrors.py 逐行比对,
 --     任何缺失 / 多余 / 内容不符都判失败。名单不靠人工维护 —— check_mirrors 会
 --     扫描 db/functions、db/views、db/tables 里的四位科目字面量,发现某个被点名
@@ -12,7 +12,7 @@
 --   其余科目(GST、权益、租金、水电……)是【正常可扩展的会计科目表】,由建账的人
 --     按需增删,线上与本文件不一致是【正常的】,不比对。
 --
--- 【为什么 22 行删不得】见 guard_system_account:删除 / 改 code / 停用 / 摘标记
+-- 【为什么这 34 行删不得】见 guard_system_account:删除 / 改 code / 停用 / 摘标记
 --   四件事都拦下。任何一件都会让过账在运行时失败,而且错误离原因很远
 --   (例如少了 5190,finance_journal_triggers 的 ELSE 兜底就没有落点,
 --    所有未知成本类型的加工单一律过不了账)。名字与备注照旧可改。
@@ -115,10 +115,11 @@ CREATE POLICY "accounts delete by permission"
     USING (has_permission('module.finance.edit'::text));
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 【安装种子:22 个引擎依赖科目】。逐行跟踪线上,check_mirrors 逐行比对。
+-- 【安装种子:34 个引擎依赖科目】。逐行跟踪线上,check_mirrors 逐行比对。
 -- 括号里是点名它的对象 —— 这份名单是有据可查的,不是分类学。
--- 其余 12 个科目(1210/1400/2100/3000/4100/4900/6000/6200/
--- 6400/6500/6600/6900)【故意不在这里】:它们是建账的人的地盘。
+-- 其余 10 个科目(1210/3000/4100/4900/6000/6200/6400/6500/6600/6900)
+-- 【故意不在这里】:它们是建账的人的地盘。
+-- 【1400/2100 于 GST-1 离开那一段】,理由与 1500/1510/3100/6700/6300 相同:函数写死引用。
 -- 【6300 于 LOG-4a fu1 离开那一段】,理由与 1500/1510/3100/6700 相同:函数写死引用。
 -- ─────────────────────────────────────────────────────────────────────────────
 INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system, is_monetary) VALUES
@@ -156,7 +157,13 @@ INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system, is
     ('7100', 'FX Gain/Loss — Realised', '汇兑损益(已实现)', 'expense', true, false),      -- record_payment
     ('7110', 'FX Gain/Loss — Unrealised', '汇兑损益(未实现)', 'expense', true, false),
     ('7200', 'Gain/Loss on Asset Disposal', '资产处置损益', 'expense', true, false),   -- dispose_fixed_asset(FIN-22,与 7100/7110 同形:两个方向都过)
-    ('6300', 'Transport & Logistics', '运输物流费', 'expense', true, false);          -- record_export_freight_document 借方(LOG-4a fu1 升 system:函数写死引用)
+    ('6300', 'Transport & Logistics', '运输物流费', 'expense', true, false),          -- record_export_freight_document 借方(LOG-4a fu1 升 system:函数写死引用)
+    -- GST-1:这两个科目【终于有了写它们的人】。建 GST 之前它们在科目表里躺着,
+    -- 没有任何函数往里过账 —— 发票上的税额从来没进过总账。现在 f5_return 的 box6
+    -- 【按 code 点名】读 2100,post_journal_entry 认它们做税科目,于是它们与
+    -- 1500/1510/3100/6700/6300 同形:被写死引用的科目不能由建账的人删改停用。
+    ('1400', 'GST Input Tax', 'GST 进项税', 'asset', true, true),          -- f5_return / 进项:对 IRAS 的定额债权,货币性
+    ('2100', 'GST Output Tax', 'GST 销项税', 'liability', true, true);     -- f5_return box6 按 code 点名读它;对 IRAS 的定额义务,货币性
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 【引导默认值 / BOOTSTRAP DEFAULT —— 非 is_system 行】(FIN-3-fu2)
 -- 全新安装该有的完整科目表:权益、GST、固定资产、在制品、常规收入与费用。
@@ -168,8 +175,6 @@ INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system, is
 -- ═══════════════════════════════════════════════════════════════════════════
 INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system, is_monetary) VALUES
     ('1210', 'Inventory – Work in Progress', '存货-在制品', 'asset', false, false),
-    ('1400', 'GST Input Tax', 'GST 进项税', 'asset', false, true),        -- 对 IRAS 的定额债权:货币性
-    ('2100', 'GST Output Tax', 'GST 销项税', 'liability', false, true),   -- 对 IRAS 的定额义务:货币性
     ('3000', 'Share Capital', '实收资本', 'equity', false, false),
     ('4100', 'Disposal Service Income', '处置服务收入', 'revenue', false, false),
     ('4900', 'Other Income', '其他收入', 'revenue', false, false),

@@ -46,6 +46,19 @@ REVOKE EXECUTE ON FUNCTION public.reverse_journal_entry_internal(uuid, date, tex
 -- (approvals_readiness 不在此列:它【要】被页面调用,所以走的是另一半保证 ——
 --  fu2 给它加了 require_permission('module.finance.view')。)
 REVOKE EXECUTE ON FUNCTION public.assert_segregated(text, uuid[], text) FROM authenticated;
+
+-- GST-1(2026-08-24):两支查表函数。**gate 的 definer 判词点了它们的名**。
+-- 它们都是 SECURITY DEFINER 且没有调用者检查:tax_rate_for 绕过 tax_rates 的 RLS,
+-- gst_registered 绕过 finance_settings 的 RLS。
+-- 实测 app / lib 里没有任何一处调它们 —— 界面调的是 f5_return / f5_box_detail
+-- (两者都带 require_permission),以及 finance_settings.gst_registered 这一【列】
+-- (走该表自己的 RLS)。库内只有 f5_return 与 post_journal_entry 调它们,
+-- 两个都是 SECURITY DEFINER,以属主身份执行,收回之后照常工作。
+-- 【为什么不给它们加 require_permission】它们被属主(postgres)在 definer 内部调用,
+-- 而 postgres 没有 claims —— 加了门反而会在过账与出表的路上抛权限错。
+-- 与上面三支同形:够不着的东西不需要门,需要的是【真的够不着】。
+REVOKE EXECUTE ON FUNCTION public.gst_registered() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.tax_rate_for(text, date) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.sod_manual_posters_in(date, date) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.sod_supplier_creator(uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.pricing_terms_of_formula(uuid) FROM authenticated;

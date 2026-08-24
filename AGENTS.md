@@ -450,14 +450,15 @@ GitHub 对这两个 SHA 的部署记录数都是 0**。也就是说,那个 2400 
 
 ```
 node scripts/smoke-routes.mjs            # ~2-4 min: renders all ~135 routes as admin
-node scripts/smoke-routes.mjs --reach    # + per-role reachability (~1 hour measured, OPT-IN)
+node scripts/smoke-routes.mjs --reach    # + per-role reachability (2h+ measured 2026-08-24, OPT-IN)
 ```
 
 **The `--reach` half is opt-in on purpose.** It walks from `/` as `admin`,
 `operations` and `finance`, following only the links each role's pages actually
 render, and asserts the set each role can *open* but cannot *reach* — the check
-that would name a page with no entry point. **It costs about an hour — 65m 44s
-measured on 2026-08-11 across 139 routes and 1,018 page fetches.** This file said
+that would name a page with no entry point. **It costs upwards of two hours — 65m 44s measured on 2026-08-11 across 139
+routes, but OVER 2 HOURS on 2026-08-24 across 189 routes with the tunnel degraded
+(`select 1` at 7.05 / 4.61 / 5.91s against 3.1–4.1s earlier the same day).** This file said
 "ten to fifteen minutes" until then: that figure was an early estimate nobody went
 back and measured, and it was off by four to five times. The number matters because
 it is what someone deciding whether this cut needs `--reach` actually reads — at
@@ -1642,6 +1643,60 @@ run where the order matters is the run where you have already lost.
 > **别去"修"那条检查然后以为完事**:一个"体积比上一份少 3%"式的判据会在库缩小的
 > 那天(生产全新重建之后)天天误报,而误报的闸最后一定被绕过。
 > 今天成立的结论是更窄也更硬的那一条:**备份跑完的证据只有脚本自己那一行。**
+
+#### 到点之后,那支活可能【活过了监督它的人】(GST-1 / FIN4-1,2026-08-24)
+
+**这是同一族的第五次,而方向【反过来了】。** 上一条(死 socket)是
+**死掉的孩子看起来还活着**;这一条是**活着的孩子熬死了它的监督者**。
+
+**机制(实测,不是推理)。** `db/run_detached.sh` 到点之后跑的是:
+
+```
+kill "$CHILD"          # 第 87 行
+... exit 3             # 判词【未知】,这一半是对的
+```
+
+而 `$CHILD` 是那个**子壳**,不是真正在干活的进程。子壳长这样:
+
+```
+( "$@" >> "$LOG" 2>&1; echo "${MARK}$?" >> "$LOG" )
+```
+
+于是 SIGTERM 打在子壳上,屏幕上留下
+`db/run_detached.sh: line 93: 24884 Terminated: 15`,
+而 `node scripts/smoke-routes.mjs --reach`(24886)**没有死,它认了 init 当父亲**
+—— `ps` 里 ppid 从 24884 变成 **1**,日志继续在长。
+
+**后果比一次普通超时更坏,而且坏在一个不显眼的地方:**
+**被杀掉的那个子壳,正是【将来要写 `echo "${MARK}$?"` 那一行的人】。**
+判词那一行的作者死了,活还在干 —— 于是这一跑**永远不会有 `SMOKE_EXIT=`**,
+不是"还没打",是"再也不会打"。而活本身跑完了、结论也打进了日志,
+只是没有那一行机器读得懂的判词。
+
+**发生时要查的两件事(答得出来才知道自己在等谁):**
+1. **日志还在长吗?** 长 = 活还在干,只是没人监督了。
+   (静止**不**等于死 —— 它可能卡在一次慢渲染上;要连采几次。)
+2. **那支 node 的父进程是不是 1 了?** 是 = 它已经孤儿化,
+   没有任何 `run_detached` 还在等它。用 `ps -p <pid> -o ppid=` 直接问。
+
+**这一次的处置:让它跑完,判词从日志里那行【总结】读**
+(`== N routes …: N ok, N skipped, N FAILED`),
+**并在报告与提交信息里写明判词是从哪儿来的。**
+一个来路不明的判词才是问题;这一个来路是清楚的,写下来就不算不明。
+
+**不要在踩到它的这一刀里顺手修 `run_detached.sh`。** 那正是本仓库记过的
+**"匆忙的检查者"** 形状:一个刚被自己绊倒的人去改那根绊索,改出来的东西
+没有人验过。修法已经按名进了队列(见 `docs/forward-queue.md`:
+**「run_detached 到点要杀的是进程组,不是子壳」**),它自己需要一次故障注入
+—— 注入的方向是:让被等的命令忽略 SIGTERM,断言等待器仍然收得干净。
+
+> **顺带记下那一跑的真实代价,因为【写错的成本正是这个仓库反复付账的那个缺陷】。**
+> `--reach` 那一跑实测 **2 小时以上**(139 条路由时代量到的是 65m44s),
+> 而当天隧道是**退化**的:`select 1` 三次量到 **7.05s / 4.61s / 5.91s**,
+> 对比同一天早些时候的 3.1–4.1s。`--reach` 的每一步都是一次真的服务端渲染、
+> 每一次渲染都打远端库,所以隧道一退化,这一跑的时长就跟着乘上去。
+> **决定"这一刀要不要跑 --reach"的人读的就是这个数** —— 它必须是量过的,
+> 而且必须连着当天的链路状况一起读。
 
 ## A cut is not done at the commit — it is done at the DEPLOY
 

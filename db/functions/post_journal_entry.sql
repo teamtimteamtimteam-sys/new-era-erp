@@ -10,6 +10,16 @@
 --    只读试算(preview_reprice_inbound_batch)走同一份,免得预览放行一笔提交会拒的
 --    分录。闸的语义没有变,变的是它现在有两个调用方。
 
+-- ── GST-1 追加的一段 ────────────────────────────────────────────────────────
+-- 每一行可以带一个税码,过账时原样落进 journal_lines.tax_code —— F5 的每一格
+-- 都从那里推导。两条拒绝【都是必要的】,而且都有名字:
+--   · 未注册却带税码 → GST_NOT_REGISTERED:关掉 GST 时的行为必须与建 GST 之前
+--     一模一样,而"一模一样"要靠拦住写入来保证,不能靠没人去写。
+--   · 税码那天没有生效税率 → 由 tax_rate_for 抛 TAX_RATE_NOT_FOUND(不回退)。
+--     在过账时就问一次,是为了让它在【写进总账之前】炸,而不是等到出 F5 那天
+--     才发现某一季的某几张单据算不出税。
+
+
 CREATE OR REPLACE FUNCTION public.post_journal_entry(p_entry_date date, p_memo text, p_source_type text, p_source_id uuid, p_lines jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -31,6 +41,7 @@ DECLARE
     v_seq          integer;
     v_code         text;
     v_entry_id     uuid;
+    v_tax_code     text;
 BEGIN
     SELECT c.code INTO v_base FROM currencies c WHERE c.is_base;
     IF p_entry_date IS NULL THEN
@@ -74,6 +85,21 @@ BEGIN
         END IF;
 
         v_side := v_line->>'side';
+        -- GST-1:这一行在 GST 上算什么。**绝大多数行没有税码,那是对的。**
+        v_tax_code := NULLIF(v_line->>'tax_code', '');
+        IF v_tax_code IS NOT NULL THEN
+            -- 【没注册就不许盖税码】这一句把"开关关着 = 与今天一模一样"从一句
+            -- 断言变成一条【写不进去】的规矩:未注册时根本产生不了带税码的行。
+            IF NOT gst_registered() THEN
+                RAISE EXCEPTION 'GST_NOT_REGISTERED|%', v_tax_code;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM tax_codes WHERE code = v_tax_code AND is_active) THEN
+                RAISE EXCEPTION 'TAX_CODE_UNKNOWN|%', v_tax_code;
+            END IF;
+            -- 【解析一次税率,只为了让"那一天没有税率"当场被拒】
+            -- 不存下来:税额本身由分录行自己表达,存第二份就是两处陈述同一件事。
+            PERFORM tax_rate_for(v_tax_code, p_entry_date);
+        END IF;
         IF v_side IS NULL OR v_side NOT IN ('debit', 'credit') THEN
             RAISE EXCEPTION 'JE_LINE_INVALID|side';
         END IF;
@@ -104,7 +130,7 @@ BEGIN
 
         v_usd := round(v_amount * v_fx, 2);
 
-        INSERT INTO journal_lines (entry_id, account_id, debit, credit, currency, amount_ccy, fx_rate, fx_rate_date, line_memo)
+        INSERT INTO journal_lines (entry_id, account_id, debit, credit, currency, amount_ccy, fx_rate, fx_rate_date, line_memo, tax_code)
         VALUES (
             v_entry_id,
             v_account.id,
@@ -114,7 +140,8 @@ BEGIN
             v_amount,
             v_fx,
             v_fx_date,
-            v_line->>'line_memo'
+            v_line->>'line_memo',
+            v_tax_code
         );
 
         IF v_side = 'debit' THEN

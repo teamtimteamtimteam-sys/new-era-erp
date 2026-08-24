@@ -25,7 +25,16 @@ CREATE TABLE public.journal_lines (
     -- ── FIN-13 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
     -- 该行汇率取自牌价表的哪一天(可能早于分录日 —— 周末取上一个发布日)。
     -- NULL = 非牌价来源:本位币行,或跨币种结算里水单上的实际成交价。
-    fx_rate_date date
+    fx_rate_date date,
+    -- ── GST-1 追加的列 ────────────────────────────────────────────────────
+    -- 【这一行在 GST 上算什么】。**大多数行为 NULL,那是对的** —— 只有
+    -- 供应额 / 采购额那几行带码;税额那一行【不带码】,它由科目认出来
+    -- (2100 销项 / 1400 进项)。给税额行也打上码,box6 会把税额当成供应额
+    -- 再算一次税。F5 的每一格都从这一列推导 —— 建 GST 之前发票上的税额
+    -- 【根本没进过总账】,1400/2100 躺在科目表里从没有人往里写。
+    -- 未注册时 post_journal_entry 拒绝带税码的行(GST_NOT_REGISTERED),
+    -- 于是"没有任何一行带税码"是一件做不到的事,不是碰巧没发生的事。
+    tax_code text REFERENCES public.tax_codes (code)
 );
 
 CREATE INDEX idx_journal_lines_entry ON public.journal_lines (entry_id);
@@ -86,6 +95,9 @@ CREATE POLICY "journal_lines insert by permission"
     ON public.journal_lines
     AS PERMISSIVE FOR INSERT TO authenticated
     WITH CHECK (has_permission('module.finance.edit'::text));
+
+COMMENT ON COLUMN public.journal_lines.tax_code IS
+    'GST-1:这一行在 GST 上算什么。**大多数行为 NULL,那是对的** —— 只有供应额/采购额那几行带码。税额本身不带码,它由科目(2100 销项 / 1400 进项)认出来。F5 的每一格据此从总账推导,并据此能钻回原始单据。';
 
 COMMENT ON COLUMN public.journal_lines.fx_rate_date IS
     '该行汇率取自牌价表的哪一天(可能早于分录日:周末取上一个发布日)。NULL = 非牌价来源(本位币,或实际成交价)。';

@@ -283,7 +283,16 @@ The twelve, in the order the measured dependencies support. **Merged by default;
 | **10** | **Monthly management report pack (item 7)** | **Last of the reporting group by construction** — it consumes ageing, cash, bank reconciliation and the forecast. Building it earlier means building it twice. |
 | **11** | **Capitalising subsequent expenditure (the known-issues item)** | **BLOCKED on an accounting decision**, not on engineering. See §8. |
 
-### On Tim's proposal that item 1 goes first — the measurement argues otherwise
+### On item 1's position — Tim REORDERED IT on this evidence (2026-08-24)
+
+> **Recorded so no later reader mistakes this for drift.** Tim originally proposed the thirteen-week
+> forecast first. **On the measurement below he moved it**, and the reordering is his decision taken
+> on that evidence — not a survey quietly overriding a stated preference.
+>
+> **Bank reconciliation also moved out of this cut** and is the next one: it shares nothing with
+> GST, and GST at full scope is a module rather than an item.
+
+### The measurement that produced that reordering
 
 **The forecast's inputs do not exist as dates today** (§2): no due date on AP or AR, no derivable
 one (terms 0% filled), payment plans anchored to events, no recurring-cost table. Built first, a
@@ -313,11 +322,35 @@ posted when cost is added mid-life — ① new basis prospectively, ② recomput
 periods and different vouchers**, so the shape cannot be chosen without the answer. Its recorded
 return condition is the first real overhaul, which supplies the amount, the machine and the period.
 
-**② The thirteen-week forecast's event→date bridge.** `on_shipment`, `on_arrival` and
-`post_assay` are the business's real commitments. To place them in a week, someone must say what
-an expected date for each is and **who owns that estimate** — procurement, logistics, or finance.
-This is not a schema question: the column is easy, the ownership is the decision, and an estimate
-with no owner becomes a number nobody maintains.
+**② ~~The thirteen-week forecast's event→date bridge.~~ — ANSWERED (Tim, 2026-08-24).**
+
+~~To place them in a week, someone must say what an expected date for each is and **who owns that
+estimate**.~~ **The owners are named:**
+
+| trigger event | who owns the expected date |
+|---|---|
+| `on_shipment` | **Sandra Yap** |
+| `on_arrival` | **Fu Sheng Wong** |
+| `post_assay` | **Fu Sheng Wong** |
+
+**This is recorded against the forecast item, and the column is NOT built here** — FIN4-1 builds
+GST. The point of recording it now is that the forecast cut inherits an owner per event instead of
+re-opening the question.
+
+> **A PROPOSAL on `post_assay`, awaiting Tim — recorded as a proposal, not a decision.**
+> Default the `post_assay` date by **adding a fixed number of days to the expected arrival date**,
+> and let it be **overridden per consignment**. **The number of days is unset** — that is the part
+> still needing an answer.
+>
+> **The reason for a default-plus-override rather than either extreme:** a purely manual date goes
+> stale — somebody types it once and nobody revisits it, and a forecast built on stale dates is
+> worse than one that admits it is estimating. A purely automatic date is wrong the first time a
+> third-party lab takes a month, and there is no way for the person who knows that to correct it.
+> **The override is what keeps the automatic default honest**, and the default is what stops the
+> manual date from rotting.
+>
+> This repo has ruled the same shape before: a value that is computed but visible and changeable is
+> a choice; one that is computed and silent is a wrong answer.
 
 **Explicitly none** for: bank reconciliation, the as-at spine and export, statements, collection
 records, expense claims and petty cash, management pack, GL export, GST survey, withholding tax,
