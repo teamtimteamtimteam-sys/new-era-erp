@@ -321,6 +321,22 @@ than in the server actions — GO-2 measured that `authenticated` holds table pr
 **Tim accepted the operational cost**: the single `finance` account can no longer do both halves, and
 the refusal names the route out rather than presenting a wall.
 
+> **⚠ THE CONTROL ASSUMES A SECOND PAIR OF HANDS, AND TODAY THERE ISN'T ONE
+> (measured 2026-08-24, ACCOUNTS-CLEAN).** Both refusals say *"ask another holder of
+> Finance (edit) to do it"*. There is exactly **one** account holding `finance`:
+> `chef1949@126.com` — Choo Er Teh, EMP-2026-0001, an active employee — and it has
+> **never signed in and its email has never been confirmed**, so it cannot be used at all.
+> The only account that can currently sign in is `admin@swm-os.test` (Tim).
+>
+> **So the route the refusal names does not exist yet.** The control is correct and it
+> bites correctly; what is missing is the person it sends you to. **This is load-bearing
+> rather than cosmetic:** the first time either rule fires, the operator will be told to
+> ask a colleague who cannot log in.
+>
+> It is an unfinished onboarding, not a defect, so it is tracked as a checklist item with
+> an owner — `docs/forward-queue.md` § 内部验收 item (e) ②. **The disposition is to finish
+> that onboarding before the thirteen accounts go out, not to soften the rule.**
+
 **What is NOT closed, so this does not read as finished:** payroll posting and the HR self-approval
 paths still have no such rule (they wait on the approvals engine and on a level-2 approver existing),
 and **who may change the approvals switch is still the same key as who may change the lock date**.

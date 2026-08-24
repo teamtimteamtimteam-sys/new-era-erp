@@ -147,7 +147,29 @@ Standing up a new Evoltrya OS project from this repository.
    The values and the reasoning behind them are in `docs/approvals-scoping.md`; they are
    **decisions already made**, not defaults to re-derive.
 
-9. **Enter the company's own licences** into `company_compliance` (suppliers → the compliance
+9. **The administrator account — and what to do if it is lost.**
+
+   **There is exactly one account that can administer this system**, and after
+   ACCOUNTS-CLEAN (2026-08-24) that is deliberate: five leftover walk-through accounts that
+   also held `admin` were revoked and banned, and 64 ghost `admin` grants — rows in
+   `user_roles` whose `user_id` has no `auth.users` row — were deleted.
+
+   > **⚠ IF THE SOLE ADMIN ACCOUNT IS LOST, THERE IS NO WAY BACK IN THROUGH THE APP.**
+   > `action.manage_permissions` is what grants roles, and only the `admin` role carries it.
+   > With no one able to sign in as `admin`, nothing inside the application can grant it to
+   > anybody. **The only recovery path is direct database access** — connect with the pooler
+   > credential in `~/.pgpass` and insert a `user_roles` row joining the intended user to the
+   > `admin` role by hand.
+   >
+   > **This is written here because it is a fact somebody will need in a bad hour**, and a
+   > bad hour is not when to re-derive it. It is also why a second **real** administrator
+   > should be granted deliberately during the internal UAT round — to a named person, not a
+   > spare credential nobody tracks. See `docs/forward-queue.md` § 内部验收 item (e).
+
+   **Do not create a "break-glass" admin as a substitute.** An extra credentialed account
+   that nobody is watching is precisely what ACCOUNTS-CLEAN removed.
+
+10. **Enter the company's own licences** into `company_compliance` (suppliers → the compliance
    machinery is shared). The registry ships EMPTY and stays silent — for a company not yet
    operating, silence is correct, so there is deliberately no "empty registry" alert. That also
    means nothing will remind you: entering the hazardous-waste storage licence, NEA classes and
@@ -155,7 +177,7 @@ Standing up a new Evoltrya OS project from this repository.
    receiving) are DATA in `certificate_types` — edit rows, not code. Defaults: the five legal
    preconditions (Basel / Article 18 / TFS / NEA / GWDF) block; ISO warns.
 
-10. **Update Vercel environment variables** — `NEXT_PUBLIC_SUPABASE_URL`
+11. **Update Vercel environment variables** — `NEXT_PUBLIC_SUPABASE_URL`
    (`https://<ref>.supabase.co`), `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and
    `SUPABASE_SERVICE_ROLE_KEY`. These are the only three the application reads.
    Redeploy afterwards: Vercel does not rebuild on an environment-variable change.
