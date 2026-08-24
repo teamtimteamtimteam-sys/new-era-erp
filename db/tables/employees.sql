@@ -81,6 +81,11 @@ CREATE TABLE public.employees (
     monthly_salary_set   boolean GENERATED ALWAYS AS (monthly_salary IS NOT NULL) STORED,
     -- 免于年度评估(组织架构顶端)。open_review_cycle 整个跳过 —— 不建评估,也不报"无评估人"。
     review_exempt        boolean NOT NULL DEFAULT false,
+    -- ── PDPA-1 追加的两列 ────────────────────────────────────────────────────
+    -- 就地匿名化在【行上】留痕。为什么留在行上而不是另立日志表:要证明
+    -- "这一行已经不再保有个人数据"的正是这一行自己。两列都不敏感、都已授权。
+    anonymised_at        timestamptz,
+    anonymised_by        uuid,
     -- 持工作准证的必须有准证类型与到期日 —— 否则到期提醒无从谈起
     CONSTRAINT employees_work_pass_shape CHECK (
         residency_status IS DISTINCT FROM 'work_pass'
@@ -178,7 +183,10 @@ REVOKE SELECT ON public.employees FROM authenticated, anon;
 -- HR-3a:confirmation_date 授回(不敏感);monthly_salary【故意不授】,
 -- 直读原始列在 PostgREST 上是 42501,只能经 employees_masked 读。
 -- HR-3b:monthly_salary_set 与 review_exempt 同样授回 —— 都不是敏感数据。
-GRANT SELECT (id, code, legal_name, preferred_name, department_id, job_title, manager_id, employment_type, work_category, hire_date, probation_end_date, employment_status, separation_date, separation_type, separation_notes, residency_status, work_pass_type, work_pass_issue_date, work_pass_expiry_date, user_id, notes, deleted_at, created_at, created_by, updated_at, updated_by, confirmation_date, monthly_salary_set, review_exempt)
+-- PDPA-1:anonymised_at / anonymised_by 同样授回。**列清单式 SELECT 授权不随
+-- ADD COLUMN 自动延伸**,所以每一次给这张表加列都必须回到这一行(gate 的 colgrant
+-- 判据会点名漏掉的列;见 AGENTS.md「Adding a column to a masked table」)。
+GRANT SELECT (id, code, legal_name, preferred_name, department_id, job_title, manager_id, employment_type, work_category, hire_date, probation_end_date, employment_status, separation_date, separation_type, separation_notes, residency_status, work_pass_type, work_pass_issue_date, work_pass_expiry_date, user_id, notes, deleted_at, created_at, created_by, updated_at, updated_by, confirmation_date, monthly_salary_set, review_exempt, anonymised_at, anonymised_by)
     ON public.employees TO authenticated;
 
 -- cut 4 员工自助:【追加】一条 PERMISSIVE 策略,与既有模块策略【或】起来。
@@ -214,6 +222,10 @@ COMMENT ON COLUMN public.employees.monthly_salary_set IS
     '派生列:monthly_salary 是否已录入。【金额敏感,有无不敏感】—— hr_alerts(SECURITY INVOKER)与列表页要能问"谁还没录",但不该因此拿到金额本身。';
 COMMENT ON COLUMN public.employees.review_exempt IS
     '免于年度评估(组织架构顶端)。open_review_cycle 【整个跳过】这些人:不建评估,也不报"没有评估人"。这与"暂时没定评估人"是两回事 —— 后者是待办,前者是决定。';
+
+COMMENT ON COLUMN public.employees.anonymised_at IS
+    '这一行的身份列被覆盖掉的时刻。NULL = 从来没有匿名化过 —— **不是"刚好没有数据"**。
+留在行上而不是另立一张日志表:要证明"已经不再保留"的正是这一行自己。';
 
 COMMENT ON COLUMN public.employees.user_id IS
     '这名员工的登录账号(auth.users.id)。EXEC-2 起有外键:敲错一个 uuid 会当场被拒,而不是静默入库 —— 这一列的读者(签发人姓名、绩效评估的分派路径)遇到一个指向空气的 id 时只会【查不到人】,而"查不到人"与"这个人没有账号"在屏幕上一模一样。ON DELETE SET NULL:账号被回收时,员工档案原样留着,只是那根线断了 —— 员工是 HR 的记录,它的存在与这个人有没有系统账号无关。可空是常态:不是每个员工都需要账号。';

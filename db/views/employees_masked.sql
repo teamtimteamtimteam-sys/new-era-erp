@@ -10,6 +10,9 @@
 --
 -- NOTE: introduced by db/migrations/2026-08-06-hr2c-monthly-accrual.sql;
 --       annual-rate form by db/migrations/2026-08-07-hr2c-fu1-annual-rate-and-immutable-rates.sql.
+--       PDPA-1 追加 anonymised_at / anonymised_by —— **排在末尾**,因为
+--       CREATE OR REPLACE VIEW 只许追加,不许改动既有列的次序。两列都不遮蔽:
+--       "这一行已经不再保有个人数据"这件事本身不是个人数据,而且必须看得见。
 
 CREATE VIEW public.employees_masked WITH (security_invoker = off) AS
  SELECT id,
@@ -72,6 +75,8 @@ CREATE VIEW public.employees_masked WITH (security_invoker = off) AS
         CASE
             WHEN deleted_at IS NULL THEN (leave_balance_internal(id, 'annual'::text) ->> 'available'::text)::numeric
             ELSE NULL::numeric
-        END AS annual_leave_available_days
+        END AS annual_leave_available_days,
+    anonymised_at,
+    anonymised_by
    FROM employees
   WHERE has_permission('module.hr.view'::text) OR id = current_user_employee();

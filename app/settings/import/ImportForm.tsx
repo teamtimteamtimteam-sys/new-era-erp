@@ -11,9 +11,53 @@ const EMPTY: PreviewResult = {
     ok: false, table: '', rowCount: 0, issues: [], nearDuplicates: [], rows: [], fileName: '',
 }
 
-export default function ImportForm({
-    tables, guide,
+// ════════════════════════════════════════════════════════════════════════════
+// 【这一页的每一个控件,在每一种状态下是什么样 —— 一张表,而不是散落的条件】(FIX-4)
+//
+// 走查的最后一条:**提交成功之后那个按钮不见了,刷新一下又回来。**
+// 机制不是"按钮坏了",是下面这个三元:`{done !== null ? 成功框 : 提交钮}` ——
+// 它把按钮【换掉】了。而真正的毛病比这大一圈:**提交之后这一页没有回到一个
+// 自洽的状态** —— `preview` 还攥着旧的行,于是那句绿色的「N 行可以装进…」还在,
+// 而它现在是假的(那些行已经进去了);文件框还挂着那个文件;近重复的勾还勾着。
+//
+// **为什么这比看起来重了一档:** 一个提交完看不见按钮的人,会认为提交没发生,
+// **于是他再传一次**。而导入【没有撤回的路】—— 那一次误读的代价是第二批真行。
+//
+//   状态                     选择器  模板链接  文件框  预览钮  提交钮            重来钮
+//   ─────────────────────────────────────────────────────────────────────────────
+//   1 没选表                  可改    灰(不可点) 禁用   禁用    禁用 + 说明        —
+//   2 选了表、没预览           可改    可点      启用   启用    禁用 + 说明        —
+//   3 预览被拒                可改*   可点      启用   启用    禁用 + 说明(去改文件) —
+//   4 预览通过、无近重复       可改*   可点      启用   启用    **启用**           —
+//   5 预览通过、有近重复未勾    可改*   可点      启用   启用    禁用 + 说明(去勾)  —
+//   6 预览通过、有近重复已勾    可改*   可点      启用   启用    **启用**           —
+//   7 提交进行中              禁用    可点      禁用   禁用    禁用(进行中)      —
+//   8 提交被拒                可改*   可点      启用   启用    **启用**(可重试)   —
+//   9 提交成功                禁用    可点      禁用   禁用    **禁用 + "已经导过了"** **在**
+//
+//   * 改选择器会【清掉预览】—— 见下面 IMPORT-2 那一段的更正。
+//
+// 【第 9 行是这次修的重点,而且刻意不自动重置】自动重置会把"成功了"那句话一起抹掉,
+// 而那句话正是防止他再传一次的东西。所以:成功框留着、提交钮**留在原地但禁用并说明
+// 为什么**、重来是一次【明确的点击】。**一个消失的控件与一个禁用并说明的控件,
+// 在屏幕上必须分得开** —— 那是这一节的规矩。
+export default function ImportForm(props: {
+    tables: string[]
+    guide: Record<string, {
+        status: 'ok' | 'unavailable'
+        cols: { column_name: string; is_required: boolean; accepted_values: string[] | null }[]
+    }>
+}) {
+    // 【重来 = 把整个向导重新挂载】useActionState 没有 reset,而"清干净"要连
+    // 文件框一起清 —— key 变了就是一次干净的重新开始,不用手写六个 setState。
+    const [epoch, setEpoch] = useState(0)
+    return <ImportWizard key={epoch} {...props} onReset={() => setEpoch((e) => e + 1)} />
+}
+
+function ImportWizard({
+    tables, guide, onReset,
 }: {
+    onReset: () => void
     tables: string[]
     /** 每张表的列指南 —— 与模板同一个 RPC,一份来源两处渲染。 */
     guide: Record<string, {
@@ -31,16 +75,52 @@ export default function ImportForm({
     //
     // 这不是一个显示 bug,是"一个事实两处陈述"—— 本仓库反复付账的那个形状。
     // 现在只有一个值:预览存在时以服务端的 `preview.table` 为准,否则是人选的那个。
+    // 【IMPORT-2 的更正:那次修法造出了一个【不听人话】的控件】(FIX-4)
+    // IMPORT-2 把两个变量合成一个,写的是 `preview.table || picked` ——
+    // **于是只要预览跑过一次,选择器就再也改不动了**:服务端那个值永远赢。
+    // 把"一个事实两处陈述"修成"其中一处永远压过另一处",换来的是一个
+    // **无视操作员**的控件。一个事实一个变量是对的,而那个变量必须听人的。
+    // 现在:`picked` 是唯一的那个值;**改它就清掉预览**(预览属于上一张表,
+    // 留着它就又出现两个事实了)。
     const [picked, setPicked] = useState('')
     const [preview, formAction] = useActionState(previewImport, EMPTY)
-    const table = preview.table || picked
+    const [staleTable, setStaleTable] = useState(false)
+    const table = picked
+
+    // ══════ 【staleTable 必须【会被放下】,否则这一页永远提交不了】══════════════
+    // 这一条是 FIX-4 自己的缺陷,记下来因为它的形状值得记:**一个只会被【置上】、
+    // 从来不被【放下】的标志位。** 改选择器时 setStaleTable(true),而没有任何一处
+    // 把它设回 false —— 于是 `previewLive` 在第一次选表之后【永久】为假,
+    // 提交钮永久禁用,**整个导入页交付即是死的**。
+    //
+    // **它比原来那个"按钮不见了"更坏**:按钮不见了的人会刷新一下再试,
+    // 而一个永远灰着并说着"先预览一个文件"的按钮,会让他以为是自己的文件不对 ——
+    // 他会去改文件,而问题不在文件里。
+    //
+    // 【为什么在 render 里调整而不是 useEffect】这是 React 官方那条
+    // "prop 变了就调整 state" 的写法:新预览一到就把标志放下,同一次渲染里收敛,
+    // 不多一帧闪烁。useEffect 会先画一帧【拿着新预览却仍然作废】的画面。
+    const [seenPreview, setSeenPreview] = useState(preview)
+    if (preview !== seenPreview) {
+        setSeenPreview(preview)
+        setStaleTable(false)
+    }
+
+    // 预览属于哪一张表,与选择器现在指着哪一张 —— 不一致时不猜,把预览作废。
+    // 【两道判据各管一件事,都需要】
+    //   * `preview.table === picked` 管【预览属于别的表】—— 也管"预览在飞的时候
+    //     人又改了选择器"那一种;
+    //   * `!staleTable` 管【改走又改回来】—— A 预览过、切到 B、再切回 A:
+    //     表名又对上了,而那份预览属于上一个文件。没有它,一份旧预览会诈尸。
+    const previewLive = preview.table !== '' && preview.table === picked && !staleTable
     const [ack, setAck] = useState(false)
     const [done, setDone] = useState<number | null>(null)
     const [commitIssues, setCommitIssues] = useState<ImportIssue[]>([])
     const [pending, start] = useTransition()
 
-    const hadNear = preview.nearDuplicates.length > 0
-    const canCommit = preview.ok && preview.rows.length > 0 && (!hadNear || ack) && done === null
+    const hadNear = previewLive && preview.nearDuplicates.length > 0
+    const previewOk = previewLive && preview.ok
+    const canCommit = previewOk && preview.rows.length > 0 && (!hadNear || ack) && done === null && !pending
 
     function onCommit() {
         setCommitIssues([])
@@ -59,8 +139,9 @@ export default function ImportForm({
             <form action={formAction} className="space-y-4 border border-gray-300 rounded p-4">
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('import.pickTable')}</label>
-                    <select name="table" value={table} onChange={(e) => setPicked(e.target.value)}
-                            className="border border-gray-300 rounded px-3 py-2">
+                    <select name="table" value={table} disabled={done !== null || pending}
+                            onChange={(e) => { setPicked(e.target.value); setStaleTable(true); setAck(false) }}
+                            className="border border-gray-300 rounded px-3 py-2 disabled:bg-gray-100">
                         {/* 【不预选】一个预选好的值不是一次选择 —— 本仓库成文的规矩。
                             而且导错表是【不可撤销】的:把供应商导进客户,只要列名恰好
                             对得上就会成功。一次必须点的选择花一下,弄错要花一次清库。 */}
@@ -103,7 +184,8 @@ export default function ImportForm({
                     <label className="block text-sm font-medium mb-1">{t('import.pickFile')}</label>
                     {/* 4.2:一个裸 file input 在屏幕上读起来像一行说明文字,不像一个控件。
                         给它边框与内边距,并且**在选表之前禁用** —— 见上面 4.1 那一段。 */}
-                    <input type="file" name="file" accept=".csv,text/csv" disabled={!table}
+                    <input type="file" name="file" accept=".csv,text/csv"
+                           disabled={!table || done !== null || pending}
                            className="text-sm block w-full max-w-md border border-gray-300 rounded px-3 py-2
                                       bg-white disabled:bg-gray-100 disabled:text-gray-400
                                       file:mr-3 file:rounded file:border-0 file:bg-gray-800 file:px-3
@@ -112,13 +194,13 @@ export default function ImportForm({
                         {table ? t('import.oneFilePerTable') : t('import.pickTableFirst')}
                     </p>
                 </div>
-                <button type="submit" disabled={!table}
+                <button type="submit" disabled={!table || done !== null || pending}
                         className="bg-gray-800 text-white px-4 py-2 rounded text-sm disabled:bg-gray-300">
                     {t('import.preview')}
                 </button>
             </form>
 
-            {preview.issues.length > 0 && (
+            {previewLive && preview.issues.length > 0 && (
                 <div className="border border-red-300 bg-red-50 rounded p-4">
                     <p className="font-medium text-red-800 mb-2">
                         {t('import.refused', { n: preview.issues.length })}
@@ -131,7 +213,7 @@ export default function ImportForm({
                 </div>
             )}
 
-            {preview.ok && (
+            {previewOk && done === null && (
                 <div className="border border-green-300 bg-green-50 rounded p-4">
                     <p className="font-medium text-green-900">
                         {t('import.previewOk', { n: preview.rowCount, table: t(`import.table.${preview.table}`) })}
@@ -169,21 +251,36 @@ export default function ImportForm({
                 </div>
             )}
 
-            {done !== null ? (
+            {done !== null && (
                 <div className="border border-green-400 bg-green-50 rounded p-4">
                     <p className="font-medium text-green-900">{t('import.committed', { n: done })}</p>
                     <p className="text-xs text-green-800 mt-1">{t('import.committedSequence')}</p>
                 </div>
-            ) : (
-                <button type="button" disabled={!canCommit || pending} onClick={onCommit}
+            )}
+
+            {/* 【提交钮【永远在原地】,只是会被禁用并说出原因】——
+                它此前在成功之后被整个换掉,而一个消失的按钮读起来是"我没点成"。 */}
+            <div className="flex items-center gap-3">
+                <button type="button" disabled={!canCommit} onClick={onCommit}
                         className="bg-blue-600 text-white px-4 py-2 rounded text-sm disabled:bg-gray-300">
                     {t('import.commit')}
                 </button>
-            )}
-            {!canCommit && done === null && preview.rowCount > 0 && (
-                /* 【一个按不下去的按钮必须说出为什么】 */
+                {done !== null && (
+                    <button type="button" onClick={onReset}
+                            className="border border-gray-400 px-4 py-2 rounded text-sm">
+                        {t('import.another')}
+                    </button>
+                )}
+            </div>
+            {/* 【禁用必须说出为什么 —— 每一种禁用各有各的话】 */}
+            {!canCommit && (
                 <p className="text-xs text-gray-600">
-                    {hadNear && !ack ? t('import.blockedByAck') : t('import.blockedByIssues')}
+                    {done !== null ? t('import.blockedAlreadyImported')
+                     : pending ? t('import.blockedWorking')
+                     : !table ? t('import.blockedNoTable')
+                     : !previewLive ? t('import.blockedNoPreview')
+                     : hadNear && !ack ? t('import.blockedByAck')
+                     : t('import.blockedByIssues')}
                 </p>
             )}
         </div>

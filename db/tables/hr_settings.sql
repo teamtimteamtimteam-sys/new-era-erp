@@ -23,7 +23,14 @@ CREATE TABLE public.hr_settings (
     -- 结转的年假在授予年度之后多少个月失效
     carry_forward_months   integer NOT NULL DEFAULT 12,
     updated_at             timestamptz NOT NULL DEFAULT now(),
-    updated_by             uuid DEFAULT auth.uid()
+    updated_by             uuid DEFAULT auth.uid(),
+    -- ── PDPA-1 追加 ──────────────────────────────────────────────────────────
+    -- 【可空,而且刻意没有 DEFAULT】离职之后个人数据还留多少个月 —— 这是一个
+    -- 【法律问题】(《雇佣法》与 CPF 各有最短保留年限),这套系统不替人回答。
+    -- anonymise_employee() 在它为空时按名拒绝 PDPA_RETENTION_PERIOD_NOT_SET。
+    -- **一个默认值在这里等于让一个数字替人做出法律表态。** 见 docs/pdpa.md 第二节。
+    personal_data_retention_months integer
+        CHECK (personal_data_retention_months IS NULL OR personal_data_retention_months > 0)
 );
 
 CREATE TRIGGER trg_hr_settings_updated_at
@@ -38,5 +45,13 @@ CREATE POLICY "hr_settings update by permission"
     USING (has_permission('module.hr.edit')) WITH CHECK (has_permission('module.hr.edit'));
 
 INSERT INTO public.hr_settings (id) VALUES (true);
+
+COMMENT ON COLUMN public.hr_settings.personal_data_retention_months IS
+    '离职之后,员工个人数据还保留多少个月 —— 到期即可匿名化(PDPA 的"目的结束后不再保留")。
+
+**可空,而且【没有默认值】,这是刻意的。** 这是一个法律问题:新加坡《雇佣法》与
+公积金各有各的最短保留年限,而这套系统不该替人回答。`anonymise_employee` 在它为空时
+**按名拒绝运行** —— 一个默认值在这里等于让一个数字替人做出法律表态。
+Tim 正在拿这个答案;拿到之前这条路是关着的,而它关着的事实是看得见的。';
 
 -- ============================================================================

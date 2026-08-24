@@ -37,9 +37,17 @@ CREATE TABLE public.employment_history (
     -- ── HR-2c 追加 ───────────────────────────────────────────────────────────
     -- 这次变动之后的工种类别。按月累积要按【那个月当时的类别】取费率,所以类别变更必须留痕。
     work_category      text CHECK (work_category IN ('office','shopfloor')),
+    -- ── PDPA-1-fu 追加 ───────────────────────────────────────────────────────
+    -- 这一行的薪资两列与备注被覆盖掉的时刻。**它有两个身份**:既是留痕,也是
+    -- 下面那条 salary_shape 与不可变守卫【认得出匿名化】的凭据。
+    anonymised_at      timestamptz,
     -- 调薪行必须说得出新数字(old 可为 NULL:首次录入合同月薪时本来就没有旧值)
+    -- 【PDPA-1-fu 多了一个析取项】已匿名化的行**有权不说** —— 它的新薪资被
+    -- 依法覆盖掉了。原样保留"调薪行必须说得出新数字",只给匿名化一条有名字的出口。
     CONSTRAINT employment_history_salary_shape CHECK (
-        change_type <> 'salary_change' OR new_monthly_salary IS NOT NULL
+        change_type <> 'salary_change'
+        OR new_monthly_salary IS NOT NULL
+        OR anonymised_at IS NOT NULL
     ),
     CONSTRAINT employment_history_category_shape CHECK (
         change_type <> 'category_change' OR work_category IS NOT NULL
@@ -48,9 +56,42 @@ CREATE TABLE public.employment_history (
 
 CREATE INDEX idx_employment_history_employee ON public.employment_history (employee_id);
 
+-- 【PDPA-1-fu:一条例外,由【形状】定义,不由开关定义】
+-- 匿名化必须动得了这张表(薪资与备注是个人数据),而"不可变"不能因此变成"可改"。
+-- 于是唯一放过的 UPDATE 是匿名化那一个形状:留痕列从 NULL 变成非 NULL、三个个人
+-- 数据列全部变 NULL、**其余每一列逐个断言一字不动**。DELETE 永远拒绝。
+-- 刻意【不】用会话标志(那会让任何人在声称自己在匿名化时改历史);也刻意写成
+-- 白名单(否则将来加一列,新列会默认落在"允许改"的一侧)。证据在 fixture 126 的 I 臂。
 CREATE OR REPLACE FUNCTION public.reject_employment_history_mutation()
 RETURNS trigger LANGUAGE plpgsql AS $fn$
 BEGIN
+    -- 【DELETE 永远拒绝】匿名化不删行 —— 原则 7 的可审计靠的正是那些行还在。
+    IF TG_OP = 'DELETE' THEN
+        RAISE EXCEPTION 'EMPLOYMENT_HISTORY_IMMUTABLE';
+    END IF;
+
+    -- 【唯一允许的 UPDATE:匿名化的那个形状】
+    -- 白名单式:每一个不该动的列都逐一断言没动过。刻意【不】写成"只要没动这几列
+    -- 就放过" —— 那样将来加一列,新列会默认落在允许改的一侧。
+    IF  OLD.anonymised_at IS NULL AND NEW.anonymised_at IS NOT NULL
+        AND NEW.old_monthly_salary IS NULL
+        AND NEW.new_monthly_salary IS NULL
+        AND NEW.notes             IS NULL
+        AND NEW.id                = OLD.id
+        AND NEW.employee_id       = OLD.employee_id
+        AND NEW.effective_date    = OLD.effective_date
+        AND NEW.change_type       = OLD.change_type
+        AND NEW.created_at        = OLD.created_at
+        AND NEW.job_title         IS NOT DISTINCT FROM OLD.job_title
+        AND NEW.department_id     IS NOT DISTINCT FROM OLD.department_id
+        AND NEW.employment_type   IS NOT DISTINCT FROM OLD.employment_type
+        AND NEW.employment_status IS NOT DISTINCT FROM OLD.employment_status
+        AND NEW.work_category     IS NOT DISTINCT FROM OLD.work_category
+        AND NEW.created_by        IS NOT DISTINCT FROM OLD.created_by
+    THEN
+        RETURN NEW;
+    END IF;
+
     RAISE EXCEPTION 'EMPLOYMENT_HISTORY_IMMUTABLE';
 END;
 $fn$;
@@ -80,8 +121,16 @@ CREATE POLICY "employment_history select own rows"
 -- 逐列授回。调薪两列只能经 employment_history_masked 读取。
 -- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
 REVOKE SELECT ON public.employment_history FROM authenticated, anon;
+-- PDPA-1-fu:anonymised_at 授回 —— 它不是薪资,是"这一行还保不保有薪资"。
 GRANT SELECT (id, employee_id, effective_date, change_type, job_title, department_id,
-              employment_type, employment_status, notes, created_at, created_by, work_category)
+              employment_type, employment_status, notes, created_at, created_by, work_category,
+              anonymised_at)
     ON public.employment_history TO authenticated;
+COMMENT ON COLUMN public.employment_history.anonymised_at IS
+    '这一行的薪资与备注被覆盖掉的时刻。NULL = 从来没有匿名化过。
+
+**它有两个身份,这是刻意的:**既是留痕,也是 `employment_history_salary_shape`
+与不可变守卫【认得出匿名化】的凭据 —— 一条 salary_change 行在匿名化之后
+说不出新薪资,而它有权不说,因为这一列在。';
 COMMENT ON COLUMN public.employment_history.work_category IS
     '这次变动之后的工种类别(office/shopfloor)。按月累积要按【那个月当时的类别】取费率,所以类别的变更必须留痕。历史行没填时,解析器回落到最早一条有值的记录,再回落到 employees 当前值。';

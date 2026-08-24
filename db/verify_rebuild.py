@@ -335,6 +335,16 @@ DEFINER_UNCHECKED_EXEC_ALLOWED: dict = {
     # 说出来,悄悄放行才是缺陷。吐露的只有这一个布尔量,而它本来就该印在屏幕上。
     "approvals_enabled":
         "one boolean the UI is required to display, on screens outside finance",
+    # PDPA-1:当事人查阅。**它与上面四个同类而不同源** —— 上面那些是"检查本身",
+    # 这一个是【没有可要求的权限】:它没有参数,唯一的主语是 auth.uid(),
+    # 而一名员工对自己个人数据的法定查阅权不由本系统的权限模型授予,也不该被它否决。
+    # 挂 module.hr.view 会把这条路只留给 HR —— 那恰好是反的。
+    # 对 anon 它同样是空的:auth.uid() 为 NULL → 查不到员工行 → PDPA_NO_EMPLOYEE_RECORD。
+    # DEFINER 只用来越过 employees 的列级遮蔽,不用来放宽主语。
+    # 两处 allowlist 必须一致(db/check_mirrors.py 的 DEFINER_NO_CHECK_ALLOWED 同改)。
+    "export_my_personal_data":
+        "no requirable permission exists: the subject IS the caller (auth.uid()), no arguments; "
+        "returns PDPA_NO_EMPLOYEE_RECORD for anon; DEFINER only bypasses column masking (PDPA-1)",
 }
 
 # AUD-1(2026-08-17):加 has_any_permission —— 它是 has_permission 的析取,

@@ -43,3 +43,5 @@
 2026-08-24T02:38:00+0800	2026-08-24-import2-a-file-the-importer-will-accept.sql	9846bd5
 2026-08-24T02:47:40+0800	2026-08-24-import2-fu-template-columns-are-schema-metadata.sql	9846bd5
 2026-08-24T03:05:19+0800	2026-08-24-import2-fu2-template-columns-are-invoker.sql	9846bd5
+2026-08-24T13:50:54+0800	2026-08-24-pdpa1-anonymise-and-subject-access.sql	039bb71
+2026-08-24T13:59:24+0800	2026-08-24-pdpa1-fu-the-immutable-log-gets-one-named-exception.sql	039bb71

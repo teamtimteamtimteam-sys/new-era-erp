@@ -154,6 +154,64 @@ the reversing journal, skipped the history row, and let the allocation staleness
 Before that it was blocked only incidentally, by a foreign key from the audit table. Principle 7 endorses
 that fix independently — it is the principle the code was quietly violating.
 
+### PDPA 与原则 7 正面相撞,而【就地匿名化】同时满足两边(PDPA-1,2026-08-24)
+
+**这不是上面那五条"物理删除"里的第六条 —— 它一行都不删,而它看起来像是在删。**
+
+原则 7 说:**软删,永不硬删,系统不做任何物理删除。**
+PDPA 的保留限制说:**目的结束之后,不再保留个人数据。**
+而**一行软删掉的员工仍然带着他的身份证号** —— `deleted_at` 置上了,
+`identity_no` 一个字节都没动。**于是这两条不可能同时按字面满足。**
+
+**调和的办法:`anonymise_employee()` 做【就地匿名化】—— 把身份列覆盖掉,行留着。**
+
+理由是**原则 7 的目的是【可审计】,不是"名字的那几个字节"**:
+
+| 原则 7 真正要的 | 匿名化之后 |
+|---|---|
+| 外键不断 | **不断** —— 行还在,`employee_id` 的每一个引用都还指得到 |
+| 每一笔过账都还在 | **都还在** —— 总账、工资行、假期、报销一行未动 |
+| 历史读得回来 | **读得回来** —— 编号、雇佣类型、工种、入离职日、部门全部保留 |
+| 可恢复 | **不可恢复,而这正是 PDPA 要的** —— 见下面那一行 |
+
+**四项里前三项完整成立,第四项【故意不成立】。** 那一格就是这次调和的全部代价:
+原则 7 承诺"可恢复并留档以备审计",而匿名化**不可逆** —— 覆盖掉的身份列
+没有任何一条路把它们取回来。**这不是实现上的缺憾,是 PDPA 的要求本身**:
+一份还能恢复的个人数据,并没有"不再保留"。
+
+**所以本条的判词是:原则 7 在【可审计】这个目的上被完整遵守,
+在【可恢复】这个措辞上被刻意突破一次,而突破的授权来自一条法律义务。**
+读的人不需要每次重新推导这个碰撞 —— 它就在这里。
+
+> **它保留的那些列【不指向一个人】**:编号、雇佣类型、工种、入离职日、部门。
+> 这是"化名化"(pseudonymisation)与"匿名化"的分界线所在:身份列一旦从
+> `employees` 这一行拿掉,**其余每一张表都只按 `employee_id` 引用他** ——
+> 那些行不再指向一个可识别的自然人。**这条推理是"为什么只动两张表"的全部理由**
+> (`employees` 与 `employment_history`;后者的薪资额与备注本身是个人数据)。
+>
+> **它今天是关着的。** 保留期(`hr_settings.personal_data_retention_months`)
+> 没有默认值也没有设,函数按名拒绝 `PDPA_RETENTION_PERIOD_NOT_SET`。
+> 范围、待决项与那四条按名拒绝见 `docs/pdpa.md`,**本条不复述**。
+
+**同一个碰撞在 `employment_history` 上更硬一档,而处置是同一个(PDPA-1-fu)。**
+那张表不只是软删的,它是**不可变的** —— `trg_employment_history_immutable` 对
+UPDATE 与 DELETE 一律 `RAISE`。而薪资两列与备注是个人数据,匿名化必须动得了它们。
+
+**PDPA-1 的第一版没有看见这一点,于是它在真实数据上的成功率是【零】** ——
+每个员工入职就有一条履历行,而函数里那句 `UPDATE employment_history` 撞上守卫
+必然抛 `EMPLOYMENT_HISTORY_IMMUTABLE`。**三道门(预检、`colgrant`、库上应用)
+一道都没有看见它:它们检查结构,而这是一条只在运行时才存在的路。**
+抓到它的是 `db/fixtures/126` 的 E 臂 —— 它刻意造了一个**涨过薪的离职者**,
+也就是最可能走到保留期满的那种人。
+
+**处置:不可变【不是】不可匿名化,而那条例外由【形状】定义,不由开关定义。**
+唯一放过的 UPDATE 是:`anonymised_at` 从 NULL 变成非 NULL、三个个人数据列全部变
+NULL、**其余每一列逐个断言一字不动**;DELETE 永远拒绝。一个
+`set_config('anonymising','on')` 式的旁路会让任何人在声称自己在匿名化的时候改历史;
+一个形状检查不会。`employment_history_salary_shape` 同时多了一个析取项 ——
+**已匿名化的调薪行有权说不出新薪资。** 例外有多窄,由 fixture 126 的 I 臂证明
+(普通 UPDATE、DELETE、以及**披着匿名化外衣却顺手改了别的列**的那一种,全部仍被拒)。
+
 ---
 
 ## 3 · Principle 6's approval chains — DOCUMENT AHEAD, and deferred by plan, not dropped

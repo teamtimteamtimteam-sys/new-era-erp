@@ -1507,6 +1507,8 @@ export type Database = {
       }
       employees: {
         Row: {
+          anonymised_at: string | null
+          anonymised_by: string | null
           code: string
           confirmation_date: string | null
           created_at: string
@@ -1543,6 +1545,8 @@ export type Database = {
           work_phone: string | null
         }
         Insert: {
+          anonymised_at?: string | null
+          anonymised_by?: string | null
           code: string
           confirmation_date?: string | null
           created_at?: string
@@ -1579,6 +1583,8 @@ export type Database = {
           work_phone?: string | null
         }
         Update: {
+          anonymised_at?: string | null
+          anonymised_by?: string | null
           code?: string
           confirmation_date?: string | null
           created_at?: string
@@ -1689,6 +1695,7 @@ export type Database = {
       }
       employment_history: {
         Row: {
+          anonymised_at: string | null
           change_type: string
           created_at: string
           created_by: string | null
@@ -1705,6 +1712,7 @@ export type Database = {
           work_category: string | null
         }
         Insert: {
+          anonymised_at?: string | null
           change_type: string
           created_at?: string
           created_by?: string | null
@@ -1721,6 +1729,7 @@ export type Database = {
           work_category?: string | null
         }
         Update: {
+          anonymised_at?: string | null
           change_type?: string
           created_at?: string
           created_by?: string | null
@@ -3203,6 +3212,7 @@ export type Database = {
           id: boolean
           medical_annual_limit_sgd: number
           medical_pro_rate_for_joiners: boolean
+          personal_data_retention_months: number | null
           updated_at: string
           updated_by: string | null
           working_days_per_week: number
@@ -3212,6 +3222,7 @@ export type Database = {
           id?: boolean
           medical_annual_limit_sgd?: number
           medical_pro_rate_for_joiners?: boolean
+          personal_data_retention_months?: number | null
           updated_at?: string
           updated_by?: string | null
           working_days_per_week?: number
@@ -3221,6 +3232,7 @@ export type Database = {
           id?: boolean
           medical_annual_limit_sgd?: number
           medical_pro_rate_for_joiners?: boolean
+          personal_data_retention_months?: number | null
           updated_at?: string
           updated_by?: string | null
           working_days_per_week?: number
@@ -12417,6 +12429,8 @@ export type Database = {
           annual_leave_accrued_days: number | null
           annual_leave_available_days: number | null
           annual_leave_rate_days: number | null
+          anonymised_at: string | null
+          anonymised_by: string | null
           code: string | null
           confirmation_date: string | null
           created_at: string | null
@@ -12456,6 +12470,8 @@ export type Database = {
           annual_leave_accrued_days?: never
           annual_leave_available_days?: never
           annual_leave_rate_days?: never
+          anonymised_at?: string | null
+          anonymised_by?: string | null
           code?: string | null
           confirmation_date?: string | null
           created_at?: string | null
@@ -12495,6 +12511,8 @@ export type Database = {
           annual_leave_accrued_days?: never
           annual_leave_available_days?: never
           annual_leave_rate_days?: never
+          anonymised_at?: string | null
+          anonymised_by?: string | null
           code?: string | null
           confirmation_date?: string | null
           created_at?: string | null
@@ -12605,6 +12623,7 @@ export type Database = {
       }
       employment_history_masked: {
         Row: {
+          anonymised_at: string | null
           change_type: string | null
           created_at: string | null
           created_by: string | null
@@ -12621,6 +12640,7 @@ export type Database = {
           work_category: string | null
         }
         Insert: {
+          anonymised_at?: string | null
           change_type?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -12637,6 +12657,7 @@ export type Database = {
           work_category?: string | null
         }
         Update: {
+          anonymised_at?: string | null
           change_type?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -16784,6 +16805,10 @@ export type Database = {
         Args: { p_as_of?: string; p_employee_id: string }
         Returns: number
       }
+      anonymise_employee: {
+        Args: { p_employee_id: string; p_reason: string }
+        Returns: Json
+      }
       apply_assay_result: {
         Args: {
           p_assay_result_id: string
@@ -17175,6 +17200,7 @@ export type Database = {
         Args: { p_actor?: string; p_owner_emp: string; p_task_id: string }
         Returns: string
       }
+      export_my_personal_data: { Args: never; Returns: Json }
       fin_cost_account: { Args: { p_cost_type: string }; Returns: string }
       fin_cost_lines: {
         Args: { p_amount: number; p_cost_type: string; p_reverse: boolean }

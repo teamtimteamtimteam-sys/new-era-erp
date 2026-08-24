@@ -234,6 +234,15 @@ DEFINER_NO_CHECK_ALLOWED = {
     # "审批未生效"说出来(悄悄放行才是缺陷)。吐露的只有一个布尔量,而这个
     # 布尔量本来就该印在屏幕上,所以没有可检查的调用者,也没有要保护的东西。
     "approvals_enabled": "discloses one boolean the UI is required to display",
+    # PDPA-1:当事人查阅。**这一条与上面每一条都不同 —— 它没有可要求的权限,
+    # 而不是"有一个但绕过了"。** 它没有参数,唯一的主语是 auth.uid():
+    # 一名员工对【自己的】个人数据有法定查阅权,那项权利不由本系统的权限模型授予,
+    # 也不该被它否决。给它挂 module.hr.view 会把这条路只留给 HR —— 那恰好是反的
+    # (查阅权的主体正是被查阅的那个人);挂任何别的码都是同一个错的不同写法。
+    # DEFINER 在这里只用来越过 employees 的列级遮蔽,**不用来放宽主语** ——
+    # 遮蔽保护的是"别人看不到",不是"他自己看不到"。范围与待决项见 docs/pdpa.md;
+    # "只导出调用者自己"这件事由 db/fixtures/126 的 G 臂断言(含 pronargs = 0)。
+    "export_my_personal_data": "no requirable permission exists: the subject IS the caller (auth.uid()), no arguments; DEFINER only bypasses column masking (PDPA-1)",
 }
 
 CHECK_PATTERNS = ("require_permission(", "has_permission(", "current_user_employee(",
