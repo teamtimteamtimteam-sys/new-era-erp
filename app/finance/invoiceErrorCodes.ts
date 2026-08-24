@@ -18,7 +18,12 @@ const INVOICE_ERROR_CODES = new Set([
     'SO_INVOICE_LINE_INVALID',
     'SO_LINE_ALREADY_INVOICED',
     'INVOICE_DATE_REQUIRED',
-    'INVOICE_ORDER_GST_UNSUPPORTED',
+    // GST-2:发票从此携带税,这一族拒绝跟着上来。
+    // 【INVOICE_ORDER_GST_UNSUPPORTED 在这一刀退休了】它等的那个问题
+    // (预收发票的销项税时点与科目)被 Tim 2026-08-25 的裁定回答了 ——
+    // 税点是开票,科目是 2100。一条等到了答案的拒绝要退休,不是留在原地继续拒。
+    'GST_NOT_REGISTERED', 'TAX_CODE_REQUIRED', 'TAX_CODE_UNKNOWN',
+    'TAX_CODE_INACTIVE', 'TAX_CODE_WRONG_SIDE', 'TAX_RATE_NOT_FOUND',
     'INVOICE_LINE_KIND_MISMATCH',
     'CREDIT_HOLD',
     'CREDIT_LIMIT_EXCEEDED',

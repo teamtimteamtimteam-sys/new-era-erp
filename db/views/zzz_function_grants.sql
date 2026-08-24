@@ -148,3 +148,13 @@ REVOKE EXECUTE ON FUNCTION public.next_quote_code(date) FROM authenticated;
 -- require_permission('module.finance.edit'),以属主身份执行。给了 authenticated
 -- 就等于任何登录用户都能凭空烧掉一个 FA 号,而"无缝"的意思正是号码之间没有洞。
 REVOKE EXECUTE ON FUNCTION public.next_fixed_asset_code(date) FROM authenticated;
+
+-- GST-2(2026-08-25):税码解析器。与上面 GST-1 那两支【逐字同一条理由】——
+-- SECURITY DEFINER、没有调用者检查、绕过 tax_codes 的 RLS 读出整本税码字典。
+-- 界面从不调它:屏幕上的税码下拉读的是 tax_codes 这张表本身(走它自己的 RLS,
+-- 谓词是 has_permission('module.finance.view'))。库内只有 create_invoice /
+-- create_order_invoice / record_expense 调它,三支都是 SECURITY DEFINER、
+-- 以属主身份执行,收回之后照常工作。
+-- 【为什么不给它加 require_permission】它被属主(postgres)在 definer 内部调用,
+-- 而 postgres 没有 claims —— 加了门反而会在开票与记费用的路上抛权限错。
+REVOKE EXECUTE ON FUNCTION public.resolve_tax_code(text, text, text, text) FROM authenticated;

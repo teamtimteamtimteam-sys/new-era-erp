@@ -84,6 +84,11 @@ export async function createExpense(
         }
     }
 
+    // GST-2:进项税码。未注册时表单不渲染这一格,所以这里是空串 → 送 undefined,
+    // 让数据库走"未注册"的分支(那一支与建 GST 之前逐字一样)。
+    // **不在这里替人挑一个** —— TX、ZP、EP、BL、OP 在申报表上的行为各不相同。
+    const taxCode = String(formData.get('tax_code') ?? '').trim()
+
     const supabase = await createClient()
     const { data, error } = await supabase.rpc('record_expense', {
         p_expense_date: expenseDate,
@@ -106,6 +111,7 @@ export async function createExpense(
         // 新建模式那一笔【不可能】带它(行上的 asset_id 是外键,资产得先存在),
         // 而 record_expense 对那种组合按名拒(EXPENSE_CREATES_ASSET)。
         ...(isAppend && poLineIdRaw ? { p_purchase_order_line: poLineIdRaw } : {}),
+        p_tax_code: taxCode || undefined,
     })
 
     if (error) {

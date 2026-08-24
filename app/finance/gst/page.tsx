@@ -15,21 +15,25 @@ export default async function GstPage() {
     const supabase = await createClient()
     const t = await getTranslations()
 
-    const [settingsRes, codesRes, ratesRes, periodsRes, codedRes] = await Promise.all([
+    const [settingsRes, codesRes, ratesRes, periodsRes, codedInvRes, codedExpRes] = await Promise.all([
         supabase.from('finance_settings').select('gst_registered, gst_registration_no').eq('id', true).single(),
         supabase.from('tax_codes').select('code, side, name_en, name_zh, f5_supply_box, f5_purchase_box, f5_tax_box, is_claimable, sort_order').order('sort_order'),
         supabase.from('tax_rates').select('tax_code, rate_pct, effective_from, effective_to').order('tax_code').order('effective_from'),
         supabase.from('gst_periods').select('id, code, period_start, period_end, status, filed_on, filed_reference, corrects_period_id').order('period_start', { ascending: false }),
-        // 【总账里到底有没有带税码的行】—— 这是一个测量,不是一个假设。
-        // 没有它,一份全零的 F5 读起来会像"这一季没有生意"。
-        supabase.from('journal_lines').select('id', { count: 'exact', head: true }).not('tax_code', 'is', null),
+        // ★【GST-2:测量的对象【变了】,因为 F5 的来源变了】★
+        // GST-1 时代九格全部从总账推导,所以"总账里有没有带税码的行"就是
+        // "F5 会不会全零"。**GST-2 之后销项侧从【单据】推导** —— 一张带税码的
+        // 发票根本不经过总账就能让 box1 不为零。所以这里量的是【单据】:
+        // 发票行 + 费用单。仍然是一个测量,不是一个假设。
+        supabase.from('invoice_lines_masked').select('id', { count: 'exact', head: true }).not('tax_code', 'is', null),
+        supabase.from('expenses').select('id', { count: 'exact', head: true }).not('tax_code', 'is', null),
     ])
     const settings = mustOne(settingsRes)
     const codes = mustRows(codesRes)
     const rates = mustRows(ratesRes)
     const periods = mustRows(periodsRes)
     const registered = settings?.gst_registered ?? false
-    const codedLines = mustCount(codedRes)
+    const codedDocs = mustCount(codedInvRes) + mustCount(codedExpRes)
 
     return (
         <div className="p-8 max-w-5xl">
@@ -45,11 +49,14 @@ export default async function GstPage() {
                     : t('gst.registeredNo')}
             </p>
 
-            {/* ★【具名的缺席,不是空白】★ 单据还没有往 F5 里喂料 —— 说出来,
-                因为一份全零的申报表读起来会像"这一季没有生意"。 */}
-            {codedLines === 0 && (
+            {/* ★【具名的缺席,不是空白】★ 一份全零的申报表读起来会像"这一季没有
+                生意",所以"为什么是零"要说出来。**GST-2 之后这句话变了**:
+                单据【已经接上了】,所以零的原因不再是"机器建好了但没接线",
+                而是"还没有开出过任何带税码的单据"。前一句在这一刀之后是假的,
+                留着它会让下一个读的人以为接线这件事还没做。 */}
+            {registered && codedDocs === 0 && (
                 <p className="text-sm mb-6 bg-amber-50 border border-amber-300 text-amber-900 px-3 py-2 rounded">
-                    {t('gst.noCodedLines')}
+                    {t('gst.noCodedDocuments')}
                 </p>
             )}
 

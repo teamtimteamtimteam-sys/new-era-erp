@@ -48,6 +48,16 @@ CREATE TABLE public.expenses (
     -- ALTER TABLE 补上 —— 线上的约束名 expenses_purchase_order_line_id_fkey
     -- 原样保留,两边是同一个目录事实。
     purchase_order_line_id uuid,
+    -- ── GST-2 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
+    -- 【amount_ccy 始终是【不含税净额】】供应商账单上的总额 = 净额 + 税。
+    -- GST 关着时两者相等,所以这条口径对既有行为是恒等的。
+    -- 【可抵与不可抵是两条路】TX/ZP 的税借 1400 进项税(进 box7,要得回来);
+    -- BL 的税【借开支科目本身且那条腿不带税码】—— 采购净额仍进 box5,税不进
+    -- box7。"有税但要不回来"与"没有税"不是一回事,而税率分不开它们。
+    -- 【资本支出上那笔不可抵的税进资产成本】它和买价一样是为取得资产付出去的钱。
+    tax_code            text REFERENCES public.tax_codes (code),
+    tax_rate_pct        numeric,
+    tax_base            numeric NOT NULL DEFAULT 0,
     -- PAYEE-1a:往来对象【二选一】。两句话,刻意分开写:
     --   * 【从不两个】任何状态下都不许同时挂供应商与员工 —— 一笔钱不可能
     --     同时欠着两个人,悄悄挑一个会让另一个人的账凭空消失;
@@ -62,7 +72,11 @@ CREATE TABLE public.expenses (
                 AND num_nonnulls(supplier_id, employee_id) = 1
                 AND bank_account_code IS NULL)
         )
-    )
+    ),
+    -- 【三列是一件事,不是三件】
+    CONSTRAINT expenses_tax_shape CHECK (
+        (tax_code IS NULL     AND tax_rate_pct IS NULL     AND tax_base = 0)
+     OR (tax_code IS NOT NULL AND tax_rate_pct IS NOT NULL AND tax_base >= 0))
 );
 
 COMMENT ON COLUMN public.expenses.employee_id IS 'PAYEE-1a:这笔费用欠的是【员工】(报销)。与 supplier_id 恰一非空 —— 一笔钱不可能同时欠着供应商和员工。
@@ -227,3 +241,11 @@ CREATE POLICY "expenses insert by permission"
 
 -- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)
 COMMENT ON COLUMN public.expenses.amount_base IS '本位币金额(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 amount_usd)。';
+
+-- GST-2:未注册时写不进税码(与 invoice_lines / credit_note_lines 同一道闸)。
+CREATE TRIGGER trg_expenses_tax_code_registered
+    BEFORE INSERT OR UPDATE OF tax_code ON public.expenses
+    FOR EACH ROW EXECUTE FUNCTION public.guard_document_tax_code();
+
+COMMENT ON COLUMN public.expenses.tax_base IS
+    'GST-2:本单的进项税,以【本位币】计。**amount_ccy 始终是不含税的净额** —— 供应商账单上的总额 = 净额 + 税。可抵的(TX/ZP)那一笔税借 1400 进项税;不可抵的(BL)【有税但要不回来】,那笔税借进费用科目本身、且【不带税码】,好让 box5 报的仍然是采购净额。';

@@ -1,25 +1,32 @@
--- db/functions/f5_return.sql
--- GST-2(2026-08-25):**销项侧改从【发票】推导,进项侧仍走总账。**
--- 税点是【开票与收款孰早】,而这里实现的是开票那一半(Tim 的裁定,选项 A)。
+-- GST-2 fu2:F5 【不能】按 journal_entries.status 过滤 —— 那会把一对冲销算成 -原件
 --
--- 【逐格的来源】box1/2/3/6 ← 发票行 减 贷项凭证行(按【单据自己的日期】落期间);
---   box5/box7/box13 ← 总账;box4/box8 ← 别的格加出来的;box9 ← 结构性为零。
---   每一格在返回里【自报】它的来源(source),屏幕上照着印。
+-- 【这是 GST-1 从第一天就带着的缺陷,由 GST-2 的 fixture 撞出来】
+-- 本仓库的冲销做法是:把原分录标成 'reversed',再过一张【新的】'posted' 冲销分录。
+-- 于是 `WHERE je.status = 'posted'` 会**丢掉原件、留下冲销件** ——
+-- 一对本该抵为 0 的分录被算成 **-原件**。
 --
--- 【为什么销项侧换了、进项侧没换】销项的税点是开票日,而这套账在【销售】那一刻
---   确认收入 —— 两者跨季会分开,所以供应额必须离开总账、回到发票上;
---   进项的税点是供应商税务发票的日期,而 expense_date 记的正是那一天 ——
---   总账口径与法定口径在进项侧本来就重合,没有要修的东西。
+-- 【这个仓库为同一件事付过一次账,而那次的话就写在代码里】
+-- `db/functions/cash_flow_statement.sql` 第 23-24 行:
+--     "期初:【资产负债表口径】—— 全部分录,不按 status 过滤。
+--      OPS-17:此前这里有 e.status='posted',丢原分录留冲销分录,错成 -原分录。"
+-- **同一个错误,换了一个函数,又出现了一次。** 这一次它被 fixture 129 的 I 臂
+-- 当场抓住:作废一张带税发票之后,2100 科目上量到 **-90.00** 而不是 0 ——
+-- 也就是说,一张【已经作废的】发票会让那一季的销项税变成负的。
 --
--- ★【勾稽:三处说法,两条比较,两条都成立才算勾稽上】★
---   销项税这一个数有三处各自说得出来的说法:① 冻在发票行上的、
---   ② 按开票那天的法定税率当场重算的、③ 过进 2100 科目的。
---   只比两处,第三处就没有人看着。①vs② 抓税率错或数被人改过;
---   ①vs③ 抓某张票没过账、作废没冲销、或有人手工动过 2100。
---   fixture 129 的 C1 / C2 臂各自把两条弄分开过 —— 它们会响。
+-- 【为什么它一直没被发现】GST-1 时代总账里【一行带税码的都没有】,
+-- 而两个税科目从未收过任何一笔分录 —— 所有格子恒为零,一个恒零的报表
+-- 不会暴露它的过滤条件错在哪里。**接上料才照得出来。**
 --
--- 【box9 标 derived=false】我们不在 MES 之类的计划里 ——
--- "没有参加"与"算出来是零"不是一回事,屏幕上也照这个区别显示。
+-- 【影响面:F5 的每一格,不只是一格】box5 / box7 / box13 与勾稽的总账那一路
+-- 全部读同一个过滤条件。任何一笔被冲销过的分录都会以【负数】进它所属的格。
+--
+-- 【为什么"不过滤"是对的,而不是"改成 IN ('posted','reversed')"】
+-- 两者结果相同,但前者说得出理由:**总账是全体分录,冲销是一笔新分录而不是
+-- 一次删除。** 一份按状态挑分录的报表,是在把"这条记录还算不算数"重新定义一遍,
+-- 而那件事已经由冲销分录本身表达过了。cash_flow_statement 的处置逐字相同。
+
+BEGIN;
+
 CREATE OR REPLACE FUNCTION public.f5_return(p_period_start date, p_period_end date)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -164,5 +171,73 @@ BEGIN
         'wired_zh','销项侧:发票(sale 与 order 两种)与贷项凭证,按单据自己的日期落期间 —— 新加坡的供应时点是【开票与收款孰早】,这里实现的是开票那一半。进项侧:带进项税码的分录行,其过账日就是供应商税务发票的日期。**没有覆盖的**:先于任何发票收到的客户款 —— 它被按名拒绝(GST_UNALLOCATED_RECEIPT_UNSUPPORTED),而不是无声地当成没有税。'
       ));
 END;
-$function$
-;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.f5_box_detail(p_period_start date, p_period_end date, p_box text)
+ RETURNS TABLE(doc_kind text, doc_id uuid, doc_code text, doc_date date, memo text, tax_code text, amount_base numeric)
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+BEGIN
+    PERFORM require_permission('module.finance.view');
+    -- 【OPS-17:这里【不能】按 journal_entries.status 过滤】冲销的做法是把原分录
+    -- 标成 'reversed' 再过一张【新的】'posted' 冲销分录,所以 status='posted'
+    -- 会丢掉原件、留下冲销件,把一对本该抵为 0 的分录算成 -原件。
+    -- cash_flow_statement 为同一件事付过账;fixture 129 的 I 臂在这里撞到它。
+
+    IF p_box IS NULL THEN RAISE EXCEPTION 'GST_BOX_REQUIRED'; END IF;
+    IF p_box NOT IN ('box1','box2','box3','box5','box6','box7') THEN
+        -- 【合计格与结构性零格【钻不进去】,而这要说出来,不能返回空集】
+        -- box4 与 box8 是别的格加出来的,box9 是"我们不参加",box13 是收入总额。
+        RAISE EXCEPTION 'GST_BOX_NOT_DRILLABLE|%', p_box;
+    END IF;
+
+    IF p_box IN ('box1','box2','box3','box6') THEN
+        -- ── 销项侧:发票行 + 贷项凭证行(后者是负数)────────────────────────
+        RETURN QUERY
+        SELECT 'invoice'::text, i.id, i.code, i.issue_date,
+               il.description, il.tax_code,
+               CASE WHEN p_box = 'box6' THEN round(il.tax_base, 2)
+                    ELSE round(il.amount_base, 2) END
+          FROM invoice_lines il
+          JOIN invoices i ON i.id = il.invoice_id
+         WHERE i.issue_date BETWEEN p_period_start AND p_period_end
+           AND i.status <> 'void'
+           AND il.tax_code IS NOT NULL
+           AND (   (p_box = 'box1' AND il.tax_code = 'SR')
+                OR (p_box = 'box2' AND il.tax_code = 'ZR')
+                OR (p_box = 'box3' AND il.tax_code = 'ES')
+                OR (p_box = 'box6' AND il.tax_base <> 0))
+        UNION ALL
+        SELECT 'credit_note'::text, cn.id, cn.code, cn.note_date,
+               'CN ' || cn.reason, cnl.tax_code,
+               CASE WHEN p_box = 'box6' THEN -round(cnl.tax_base, 2)
+                    ELSE -round(cnl.amount * cn.fx_rate, 2) END
+          FROM credit_note_lines cnl
+          JOIN credit_notes cn ON cn.id = cnl.credit_note_id
+         WHERE cn.note_date BETWEEN p_period_start AND p_period_end
+           AND cnl.tax_code IS NOT NULL
+           AND (   (p_box = 'box1' AND cnl.tax_code = 'SR')
+                OR (p_box = 'box2' AND cnl.tax_code = 'ZR')
+                OR (p_box = 'box3' AND cnl.tax_code = 'ES')
+                OR (p_box = 'box6' AND cnl.tax_base <> 0))
+         ORDER BY 4, 3;
+    ELSE
+        -- ── 进项侧:仍然是分录 ──────────────────────────────────────────────
+        RETURN QUERY
+        SELECT 'journal_entry'::text, je.id, je.code, je.entry_date,
+               COALESCE(jl.line_memo, je.memo), jl.tax_code,
+               round(jl.debit - jl.credit, 2)
+          FROM journal_lines jl
+          JOIN journal_entries je ON je.id = jl.entry_id
+          LEFT JOIN accounts a ON a.id = jl.account_id
+         WHERE je.entry_date BETWEEN p_period_start AND p_period_end
+           AND (   (p_box = 'box5' AND jl.tax_code IN ('TX','ZP','BL'))
+                OR (p_box = 'box7' AND a.code = '1400'))
+         ORDER BY je.entry_date, je.code;
+    END IF;
+END;
+$function$;
+
+COMMIT;

@@ -54,6 +54,10 @@ export async function updateSupplier(
     const { error } = await supabase
         .from('suppliers')
         .update({
+            // GST-2:默认进项税码。留空是合法的,而且它不是"没有税" ——
+            // 它是"没有人回答过",于是记费用时按名拒(TAX_CODE_REQUIRED|supplier)。
+            default_tax_code:
+                ((formData.get('default_tax_code') as string)?.trim() ?? '') || null,
             legal_name,
             short_name,
             country,

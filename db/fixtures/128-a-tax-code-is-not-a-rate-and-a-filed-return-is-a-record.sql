@@ -4,7 +4,10 @@
 --   (P) 税率按【生效期间】解析,历史单据拿得到当时那一个;没有就【拒绝】,不回退;
 --   (S) 开关【关着】的时候,行为与今天一模一样 —— 而"一模一样"要用不变量说出来,
 --       不能靠一句断言:没有任何分录行带税码,没有任何一行碰 1400 / 2100;
---   (F) F5 的每一格从总账推导,合计格自洽,而【勾稽两边真的会分开】;
+--   (F) 【GST-2 2026-08-25 改写了这一条】F5 的**进项侧**从总账推导,而
+--       **销项侧从单据推导** —— 所以这里守的是反向的一半:**一笔没有发票
+--       撑着的手工分录变不出一笔供应**。销项侧的正向断言在 fixture 129。
+--       勾稽从"两处比一次"变成"三处比两次"(单据 / 法令 / 总账),两条都会响;
 --   (G) GST 期间与会计锁的关系:那一季没关完账就不许申报;
 --       报出去的那一份【不动】;更正是新的一行,不是一次编辑。
 --
@@ -142,21 +145,49 @@ BEGIN
     v_p := f5_return(v_q_start, v_q_end);
     v_boxes := v_p->'boxes';
 
+    -- ════════════════════════════════════════════════════════════════════
+    -- ★【GST-2(2026-08-25)把这一臂的答案【改了】,而改的是【对的那一半】】★
+    --
+    -- 这一臂原本断言:上面那三笔【手工分录】会让 box1=1000 / box2=500 / box6=90。
+    -- 那在 GST-1 的形状下是对的 —— 那时 F5 九格【全部】从总账推导。
+    -- Tim 2026-08-25 裁定供应报在【开票】那一期(新加坡的供应时点是开票与收款
+    -- 孰早),于是 F5 的**销项侧改从发票推导**。这三笔手工分录背后【没有发票】,
+    -- 所以它们【不再】进 box1/box2/box6 —— 而这正是新形状要的行为。
+    --
+    -- 【所以这一臂改成断言它的【后继不变量】,不是删掉它】
+    -- 新不变量比旧的更值钱:**一笔手工分录变不出一笔供应。** 谁都可以往总账里
+    -- 记一行带 'SR' 的贷方,而在 GST-2 之后那一行【报不进 F5 的销项格】——
+    -- 报进去的东西必须有一张开给某个客户的发票在后面撑着。
+    -- 销项侧从单据推导的正向断言在 **fixture 129**(它开真发票),这里守的是
+    -- 反向的那一半:没有单据就没有供应额。
+    -- ════════════════════════════════════════════════════════════════════
     SELECT (b->>'value')::numeric INTO v_v FROM jsonb_array_elements(v_boxes) b WHERE b->>'box'='box1';
-    IF v_v <> 1000 THEN RAISE EXCEPTION 'F1 失败:box1(标准税率供应)应当是 1000,实得 %', v_v; END IF;
+    IF v_v <> 0 THEN
+        RAISE EXCEPTION 'F1 失败:没有发票撑着的手工分录【不该】进 box1(GST-2 起销项侧从发票推导),实得 % —— 若它是 1000,说明销项侧还在读总账',
+            v_v;
+    END IF;
     SELECT (b->>'value')::numeric INTO v_v FROM jsonb_array_elements(v_boxes) b WHERE b->>'box'='box2';
-    IF v_v <> 500 THEN RAISE EXCEPTION 'F1 失败:box2(零税率)应当是 500,实得 %', v_v; END IF;
+    IF v_v <> 0 THEN
+        RAISE EXCEPTION 'F1 失败:手工分录不该进 box2,实得 %', v_v;
+    END IF;
+    SELECT (b->>'value')::numeric INTO v_v FROM jsonb_array_elements(v_boxes) b WHERE b->>'box'='box4';
+    IF v_v <> 0 THEN
+        RAISE EXCEPTION 'F1 失败:box4 是 1+2+3 的合计,三格皆零时它也应当是 0,实得 %', v_v;
+    END IF;
+
+    -- 【进项侧【没有变】,而它必须继续被钉住】进项的税点是供应商税务发票的日期,
+    -- 而分录的过账日记的就是那一天 —— 总账口径与法定口径在这一侧本来就重合。
+    -- 这两格仍然从总账推导,所以上面那笔 TX 采购照旧要出现。
     SELECT (b->>'value')::numeric INTO v_v FROM jsonb_array_elements(v_boxes) b WHERE b->>'box'='box5';
-    IF v_v <> 200 THEN RAISE EXCEPTION 'F1 失败:box5(应税采购)应当是 200,实得 %', v_v; END IF;
-    SELECT (b->>'value')::numeric INTO v_v FROM jsonb_array_elements(v_boxes) b WHERE b->>'box'='box6';
-    IF v_v <> 90 THEN RAISE EXCEPTION 'F1 失败:box6(销项税)应当是 90,实得 %', v_v; END IF;
+    IF v_v <> 200 THEN RAISE EXCEPTION 'F1 失败:box5(应税采购)应当是 200 —— 进项侧仍从总账推导,实得 %', v_v; END IF;
     SELECT (b->>'value')::numeric INTO v_v FROM jsonb_array_elements(v_boxes) b WHERE b->>'box'='box7';
     IF v_v <> 18 THEN RAISE EXCEPTION 'F1 失败:box7(进项税)应当是 18,实得 %', v_v; END IF;
+    -- box8 = box6 − box7,而 box6 现在是 0(没有发票)⇒ 0 − 18 = −18(应退)
     SELECT (b->>'value')::numeric INTO v_v FROM jsonb_array_elements(v_boxes) b WHERE b->>'box'='box8';
-    IF v_v <> 72 THEN RAISE EXCEPTION 'F1 失败:box8(净额)应当是 90-18=72,实得 %', v_v; END IF;
-    SELECT (b->>'value')::numeric INTO v_v FROM jsonb_array_elements(v_boxes) b WHERE b->>'box'='box4';
-    IF v_v <> 1500 THEN RAISE EXCEPTION 'F1 失败:box4 应当是 1000+500+0=1500,实得 %', v_v; END IF;
-    rep := rep || jsonb_build_object('F1_boxes_derive_and_separate', true);
+    IF v_v <> -18 THEN
+        RAISE EXCEPTION 'F1 失败:box8 应当是 box6−box7 = 0−18 = −18(这一季只有进项),实得 %', v_v;
+    END IF;
+    rep := rep || jsonb_build_object('F1_input_side_from_ledger_output_side_needs_documents', true);
 
     -- 【零税率与豁免必须分得开 —— 税率分不开它们,税码分得开】
     IF (SELECT (b->>'value')::numeric FROM jsonb_array_elements(v_boxes) b WHERE b->>'box'='box3') <> 0 THEN
@@ -164,52 +195,53 @@ BEGIN
     END IF;
 
     -- ══════════ F2 · 勾稽的两边【真的会分开】 ══════════
-    IF NOT (v_p->'ties'->>'agrees')::boolean THEN
-        RAISE EXCEPTION 'F2 前提失败:此刻两条路应当一致,实得 % vs %',
-            v_p->'ties'->>'box6_from_tax_account', v_p->'ties'->>'box6_recomputed_from_supplies';
+    -- 【GST-2:勾稽从"两处比一次"变成"三处比两次"】—— 单据 / 法令 / 总账。
+    -- 此刻单据侧是 0(没有发票),法令侧也是 0(它也读发票),而总账侧【不是 0】:
+    -- 上面那笔手工分录往 2100 上贷了 90。**所以这一臂现在断言的是它会响** ——
+    -- 而这恰恰是"单据 vs 总账"那一条存在的理由:有人手工动过税科目。
+    IF (v_p->'ties'->>'agrees_documents_vs_statute')::boolean IS NOT TRUE THEN
+        RAISE EXCEPTION 'F2 失败:单据侧与法令侧都读发票,此刻都应当是 0 而一致,实得 % vs %',
+            v_p->'ties'->>'box6_from_documents', v_p->'ties'->>'box6_recomputed_from_statute';
     END IF;
-    rep := rep || jsonb_build_object('F2_tie_agrees_when_correct', true);
-
-    -- ══════════ F2b · ★勾稽的两边【真的分得开】★ ══════════
-    -- **一个永远为真的勾稽是装饰,不是检查**(OPS-17 那一条)。这里造一笔
-    -- 【税算错了】的分录:标准税率供应 100,而销项税只过了 5(应当是 9)。
-    -- 一条路从税科目读(+5),另一条路按供应额 × 法定税率重算(+9)—— 两者分开。
-    v_e := (post_journal_entry(v_mid, 'fixture 128 税算错了', 'manual', NULL, jsonb_build_array(
-        jsonb_build_object('account_code',c_cash,'side','debit','amount_ccy',105,'currency',v_base,'fx_rate',1),
-        jsonb_build_object('account_code',c_rev,'side','credit','amount_ccy',100,'currency',v_base,'fx_rate',1,'tax_code','SR'),
-        jsonb_build_object('account_code','2100','side','credit','amount_ccy',5,'currency',v_base,'fx_rate',1)
-    ))->>'entry_id')::uuid;
-    v_p := f5_return(v_q_start, v_q_end);
+    IF (v_p->'ties'->>'agrees_documents_vs_ledger')::boolean THEN
+        RAISE EXCEPTION 'F2 失败:2100 上有一笔 90 而单据侧没有,"单据 vs 总账"必须报分开 —— 它却说一致(% vs %)',
+            v_p->'ties'->>'box6_from_documents', v_p->'ties'->>'box6_from_tax_account';
+    END IF;
     IF (v_p->'ties'->>'agrees')::boolean THEN
-        RAISE EXCEPTION 'F2b 失败:税过错了,勾稽却仍然说一致 —— 那说明两边不是独立的(实得 % vs %)',
-            v_p->'ties'->>'box6_from_tax_account', v_p->'ties'->>'box6_recomputed_from_supplies';
+        RAISE EXCEPTION 'F2 失败:两条比较有一条不成立时,总判词 agrees 必须是 false';
     END IF;
     rep := rep || jsonb_build_object('F2b_tie_can_actually_break',
-        (v_p->'ties'->>'box6_from_tax_account') || ' vs ' || (v_p->'ties'->>'box6_recomputed_from_supplies'));
+        (v_p->'ties'->>'box6_from_documents') || ' vs ' || (v_p->'ties'->>'box6_from_tax_account'));
 
-    -- 把那笔错的冲掉,后面的格子回到干净的数字
-    PERFORM post_journal_entry(v_mid, 'fixture 128 冲掉那笔错的', 'manual', NULL, jsonb_build_array(
-        jsonb_build_object('account_code',c_rev,'side','debit','amount_ccy',100,'currency',v_base,'fx_rate',1,'tax_code','SR'),
-        jsonb_build_object('account_code','2100','side','debit','amount_ccy',5,'currency',v_base,'fx_rate',1),
-        jsonb_build_object('account_code',c_cash,'side','credit','amount_ccy',105,'currency',v_base,'fx_rate',1)
+    -- 【把那笔手工的税冲掉,勾稽回到一致】—— 收尾与原来同形:一个只会变红、
+    -- 再也回不了绿的检查,与一个永远为真的检查一样没有判别力。
+    PERFORM post_journal_entry(v_mid, 'fixture 128 冲掉手工那笔税', 'manual', NULL, jsonb_build_array(
+        jsonb_build_object('account_code','2100','side','debit','amount_ccy',90,'currency',v_base,'fx_rate',1),
+        jsonb_build_object('account_code',c_cash,'side','credit','amount_ccy',90,'currency',v_base,'fx_rate',1)
     ));
     v_p := f5_return(v_q_start, v_q_end);
+    v_boxes := v_p->'boxes';
     IF NOT (v_p->'ties'->>'agrees')::boolean THEN
-        RAISE EXCEPTION 'F2b 收尾失败:冲掉之后勾稽应当回到一致';
+        RAISE EXCEPTION 'F2 收尾失败:冲掉之后勾稽应当回到一致,实得 单据=% 法令=% 总账=%',
+            v_p->'ties'->>'box6_from_documents', v_p->'ties'->>'box6_recomputed_from_statute',
+            v_p->'ties'->>'box6_from_tax_account';
     END IF;
 
     -- ══════════ F3 · 钻取:能钻的钻得进去,不能钻的【说出来】 ══════════
     -- 【判据是"钻出来的加起来 = 那一格"】—— 那才是"钻得进去"的意思。
     -- 只数行数证明不了完整性:漏掉一条,行数照样是一个说得通的数字。
-    SELECT (b->>'value')::numeric INTO v_v FROM jsonb_array_elements(v_p->'boxes') b WHERE b->>'box'='box1';
-    SELECT COALESCE(round(sum(amount_base),2),0) INTO v_n FROM f5_box_detail(v_q_start, v_q_end, 'box1');
+    -- 【GST-2:这里钻的是【进项】两格】销项两格在这一份 fixture 里是空的
+    -- (它没有开过发票),而"空格钻出来是 0"证明不了钻取完整 —— 一个坏掉的
+    -- 钻取器对空格也返回 0。销项侧钻取的正向断言在 fixture 129,那里有真发票。
+    SELECT (b->>'value')::numeric INTO v_v FROM jsonb_array_elements(v_p->'boxes') b WHERE b->>'box'='box5';
+    SELECT COALESCE(round(sum(d.amount_base),2),0) INTO v_n FROM f5_box_detail(v_q_start, v_q_end, 'box5') d;
     IF v_n <> v_v THEN
-        RAISE EXCEPTION 'F3 失败:box1 钻出来的合计(%)与那一格的数字(%)对不上 —— 钻取不完整', v_n, v_v;
+        RAISE EXCEPTION 'F3 失败:box5 钻出来的合计(%)与那一格的数字(%)对不上 —— 钻取不完整', v_n, v_v;
     END IF;
-    SELECT (b->>'value')::numeric INTO v_v FROM jsonb_array_elements(v_p->'boxes') b WHERE b->>'box'='box6';
-    SELECT COALESCE(round(sum(amount_base),2),0) INTO v_n FROM f5_box_detail(v_q_start, v_q_end, 'box6');
+    SELECT (b->>'value')::numeric INTO v_v FROM jsonb_array_elements(v_p->'boxes') b WHERE b->>'box'='box7';
+    SELECT COALESCE(round(sum(d.amount_base),2),0) INTO v_n FROM f5_box_detail(v_q_start, v_q_end, 'box7') d;
     IF v_n <> v_v THEN
-        RAISE EXCEPTION 'F3 失败:box6 钻出来的合计(%)与那一格的数字(%)对不上', v_n, v_v;
+        RAISE EXCEPTION 'F3 失败:box7 钻出来的合计(%)与那一格的数字(%)对不上', v_n, v_v;
     END IF;
     v_denied := false;
     BEGIN PERFORM count(*) FROM f5_box_detail(v_q_start, v_q_end, 'box4');
@@ -251,8 +283,15 @@ BEGIN
     v_r := file_gst_return(v_pid, v_q_end + 30, 'ACK-TEST-1');
     SELECT count(*) INTO v_n FROM gst_return_boxes WHERE period_id = v_pid;
     IF v_n < 8 THEN RAISE EXCEPTION 'G3 失败:申报应当把每一格都抄下来,实得 % 格', v_n; END IF;
+    -- 【GST-2:这里改抄【进项】那一格,而这不是退让】抄下来的必须是一个
+    -- **非零**的数,否则这一臂对一个"把每一格都写 0"的坏快照照样全绿。
+    -- box6 在这一份 fixture 里是 0(它没有开过发票,而销项侧从发票推导),
+    -- 所以判别力挪到 box7 —— 那一格是 18,而且它仍然是从总账推导的。
+    -- **两个方向都钉住**:该是 18 的抄成 18,该是 0 的抄成 0。
+    SELECT value_base INTO v_v FROM gst_return_boxes WHERE period_id=v_pid AND box='box7';
+    IF v_v <> 18 THEN RAISE EXCEPTION 'G3 失败:抄下来的 box7 应当是 18,实得 % —— 一份把每一格都写成 0 的快照会在这里变红', v_v; END IF;
     SELECT value_base INTO v_v FROM gst_return_boxes WHERE period_id=v_pid AND box='box6';
-    IF v_v <> 90 THEN RAISE EXCEPTION 'G3 失败:抄下来的 box6 应当是 90,实得 %', v_v; END IF;
+    IF v_v <> 0 THEN RAISE EXCEPTION 'G3 失败:这一季没有发票,抄下来的 box6 应当是 0,实得 %', v_v; END IF;
     rep := rep || jsonb_build_object('G3_filing_snapshots_the_boxes', true);
 
     -- ══════════ G4 · 报出去的那一份【不动】 ══════════

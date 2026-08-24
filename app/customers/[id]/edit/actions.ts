@@ -32,6 +32,12 @@ export async function updateCustomer(
     // SAL-B:【空串 → NULL(没设限,放行);'0' → 0(现款现货,拒任何赊销)】——
     // 二者相反。`|| null` 会把 '0' 吞成 null,恰好把现款现货客户放成不设限,
     // 所以这里显式区分空串与数值。
+    // GST-2:这个客户的默认销项税码。**留空是合法的,而且它不是"没有税"** ——
+    // 它是"没有人回答过",于是已注册时开票会按名拒(TAX_CODE_REQUIRED|customer)。
+    // 侧别由表上的触发器把关(销项码才挂得上客户)。
+    const dtc_raw = (formData.get('default_tax_code') as string)?.trim() ?? ''
+    const default_tax_code = dtc_raw === '' ? null : dtc_raw
+
     const limit_raw = (formData.get('credit_limit_base') as string)?.trim() ?? ''
     const credit_limit_base = limit_raw === '' ? null : Number(limit_raw)
     if (credit_limit_base !== null && (!Number.isFinite(credit_limit_base) || credit_limit_base < 0)) {
@@ -76,6 +82,7 @@ export async function updateCustomer(
             credit_rating,
             credit_limit_base,
             credit_hold,
+            default_tax_code,
             notes,
             updated_by: user?.id ?? null,
         })

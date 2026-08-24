@@ -356,7 +356,27 @@ re-opening the question.
 records, expense claims and petty cash, management pack, GL export, GST survey, withholding tax,
 attendance.
 
-### GST readiness stays a survey
+### ~~GST readiness stays a survey~~ — **OVERRULED TWICE, AND THIS SECTION WAS WRONG**
+
+> **Left standing, struck through, because being wrong in a recorded way is the point of this file.**
+> GST-1 (2026-08-24) built the machinery; GST-2 (2026-08-25) wired the documents into it. Tim
+> overruled this recommendation both times, and the reasoning below is where it went wrong:
+>
+> * *"Building GST machinery before registration means carrying untested tax code through every cut
+>   that touches money"* — **this assumed the code would be live.** It is not: while
+>   `gst_registered = false`, a row carrying a tax code **cannot be written at all**. The cost of
+>   carrying it is therefore near zero, and the survey priced it as if it were a live feature.
+> * *"the switch exists"* — the switch existed and **did nothing**, which is worse than no switch:
+>   `gst_rate_pct` was a **scalar**, and a scalar cannot express a rate history (2022 is 7%, 2023 is
+>   8%, 2024 is 9%) or tell zero-rated from exempt from out-of-scope. Reading the switch's existence
+>   as readiness was the actual error.
+> * The one thing the survey got right is the trigger: it arrives at the **busiest moment**. That was
+>   offered as a reason to *defer*; Tim read the same fact as the reason to **build now**, and that
+>   reading is the better one.
+>
+> **What was genuinely still open was never the code — it was a statutory ruling** (is a supply
+> reported in the invoice period or the sale period), and no amount of surveying would have produced
+> it. See `docs/forward-queue.md` phase 4 and `docs/accounting-policies.md` 8.1.
 
 The queue says 「只测量改造量,什么都不建」and this survey endorses it without qualification.
 The company is **not registered**; the trigger is a turnover threshold. Building GST machinery

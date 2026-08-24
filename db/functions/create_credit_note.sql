@@ -25,6 +25,12 @@ DECLARE
     v_je       jsonb;
     v_jlines   jsonb;
     v_n        int;
+    -- ── GST-2 ────────────────────────────────────────────────────────────
+    v_tax_total numeric := 0;   -- 本凭证退回的销项税,单据币种
+    v_tax_base_total numeric := 0;   -- 同上,本位币 —— 逐行取整再相加(= F5 读的那个数)
+    v_ln_code  text;            -- 被冲那一行【冻住的】税码
+    v_ln_rate  numeric;         -- 同上,冻住的税率
+    v_ln_tax   numeric;
 BEGIN
     -- 【为什么是 module.finance.edit】它直接改总账与应收 —— 与
     -- create_order_invoice(开票)同一道门。开票认下债,这张把债减回去。
@@ -90,17 +96,32 @@ BEGIN
         IF v_amount IS NULL OR v_amount <= 0 THEN
             RAISE EXCEPTION 'CN_LINE_INVALID|%|%', COALESCE(v_el->>'line_no', '?'), 'amount';
         END IF;
-        IF NOT EXISTS (SELECT 1 FROM invoice_lines WHERE id = v_line_id AND invoice_id = p_invoice_id) THEN
+        SELECT tax_code, tax_rate_pct INTO v_ln_code, v_ln_rate
+          FROM invoice_lines WHERE id = v_line_id AND invoice_id = p_invoice_id;
+        IF NOT FOUND THEN
             RAISE EXCEPTION 'CN_LINE_WRONG_INVOICE|%', v_line_id;
         END IF;
+
+        -- 【GST-2:税码与税率【从被冲的那一行抄来】,不重新解析】
+        -- 冲的是哪一笔供应,就退哪一笔供应的税 —— 连它当时那个税率一起,
+        -- 即便法定税率此后变过。按 note_date 重新解析会用今天的税率去退
+        -- 一笔按去年税率收过的税,差额无声地留在 2100 里。
+        v_ln_tax := CASE WHEN v_ln_code IS NULL THEN 0
+                         ELSE round(v_amount * v_ln_rate / 100.0, 2) END;
+        v_tax_total := v_tax_total + v_ln_tax;
+        -- 【本位币侧逐行取整再相加】F5 的 box6 读的就是 credit_note_lines.tax_base,
+        -- 而那一列存的正是这个逐行 round 的值 —— 两处必须同式,否则勾稽会误报。
+        v_tax_base_total := v_tax_base_total + round(v_ln_tax * v_inv.fx_rate, 2);
 
         v_total := v_total + v_amount;
         IF v_kind = 'unshipped_cancel' THEN v_a_total := v_a_total + v_amount;
         ELSE                                v_b_total := v_b_total + v_amount; END IF;
     END LOOP;
 
-    IF round(v_total, 2) > round(v_open, 2) THEN
-        RAISE EXCEPTION 'CN_EXCEEDS_OPEN|%|%', round(v_total, 2), round(v_open, 2);
+    -- 【与开放余额比的是【含税】总额】开票额从 GST-2 起是净额 + 销项税,
+    -- 而这张凭证退的也是净额 + 税。只拿净额去比,天花板会松掉一截税。
+    IF round(v_total + v_tax_total, 2) > round(v_open, 2) THEN
+        RAISE EXCEPTION 'CN_EXCEEDS_OPEN|%|%', round(v_total + v_tax_total, 2), round(v_open, 2);
     END IF;
 
     -- ── 天花板 ② / ③:逐【发票行 × 类型】────────────────────────────────────
@@ -168,8 +189,28 @@ BEGIN
             'currency', v_inv.currency, 'amount_ccy', round(v_b_total, 2), 'fx_rate', v_inv.fx_rate,
             'line_memo', 'revenue reduction');
     END IF;
+    -- 【GST-2:退回去的税借 2100】—— 一张贷项凭证在 F5 上是一笔【负的供应】,
+    -- 它的税也要从销项税里减回去。1100 那条腿因此贷【含税】总额:
+    -- 客户少欠的钱就是净额 + 那笔税。
+    IF round(v_tax_total, 2) > 0 THEN
+        -- 【fx 用 v_tax_base_total / v_tax_total —— 与 create_order_invoice 同一手】
+        -- 逐行取整的合计与 round(合计 × 汇率) 在外币下可以差一分,而 F5 读的是
+        -- 前者、总账记的是后者 —— 差那一分,勾稽就会在一张正确的凭证上报 false。
+        v_jlines := v_jlines || jsonb_build_object('account_code', '2100', 'side', 'debit',
+            'currency', v_inv.currency, 'amount_ccy', round(v_tax_total, 2),
+            'fx_rate', round(v_tax_base_total, 2) / round(v_tax_total, 2),
+            'line_memo', 'output tax reversed');
+    END IF;
+    -- 【净额与税分成两条贷方腿】逐行 round(原币 × 汇率) 之下,一条合并腿会与
+    -- 借方两条差一分钱 —— 与 record_expense / create_order_invoice 同一条理由。
     v_jlines := v_jlines || jsonb_build_object('account_code', '1100', 'side', 'credit',
         'currency', v_inv.currency, 'amount_ccy', round(v_total, 2), 'fx_rate', v_inv.fx_rate);
+    IF round(v_tax_total, 2) > 0 THEN
+        v_jlines := v_jlines || jsonb_build_object('account_code', '1100', 'side', 'credit',
+            'currency', v_inv.currency, 'amount_ccy', round(v_tax_total, 2),
+            'fx_rate', round(v_tax_base_total, 2) / round(v_tax_total, 2),
+            'line_memo', 'GST on ' || v_code);
+    END IF;
 
     v_je := post_journal_entry(
         p_note_date,
@@ -186,12 +227,20 @@ BEGIN
 
     FOR v_el IN SELECT * FROM jsonb_array_elements(p_lines)
     LOOP
-        INSERT INTO credit_note_lines (credit_note_id, invoice_line_id, kind, qty, amount)
+        SELECT tax_code, tax_rate_pct INTO v_ln_code, v_ln_rate
+          FROM invoice_lines WHERE id = (v_el->>'invoice_line_id')::uuid;
+        INSERT INTO credit_note_lines (credit_note_id, invoice_line_id, kind, qty, amount,
+                                       tax_code, tax_rate_pct, tax_base)
         VALUES (v_cn_id,
                 (v_el->>'invoice_line_id')::uuid,
                 v_el->>'kind',
                 NULLIF(v_el->>'qty', '')::numeric,
-                (v_el->>'amount')::numeric);
+                (v_el->>'amount')::numeric,
+                v_ln_code,
+                v_ln_rate,
+                CASE WHEN v_ln_code IS NULL THEN 0
+                     ELSE round(round((v_el->>'amount')::numeric * v_ln_rate / 100.0, 2)
+                                * v_inv.fx_rate, 2) END);
     END LOOP;
 
     -- 【断言,不是假设】行的条数必须等于递进来的条数。将来有人给上面那个循环
@@ -227,5 +276,4 @@ BEGIN
         'journal_code', v_je->>'code');
 END;
 $function$
-
 ;

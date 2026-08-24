@@ -203,6 +203,14 @@ DEFINER_NO_CHECK_ALLOWED = {
     "notify_landing_warnings": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "notify_class_violations": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "reverse_journal_entry_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    # GST-2:税码解析器。**它什么权限码都挑不出来** —— 它服务的是三个单据族
+    # (开票 finance.edit、订单开票 finance.edit、记费用 finance.edit),而它自己
+    # 只做一件事:把"往来对象默认 + 本单指定"归结成一个码,或者按名拒。
+    # 越权面是 tax_codes 这张字典(它的 RLS 谓词是 module.finance.view)——
+    # 留着 authenticated 的 EXECUTE 就等于让任何登录用户读出整本税码字典。
+    # 走"调不到"这条路,REVOKE 写在 db/views/zzz_function_grants.sql 里
+    # (GST-1 学到的那一条:迁移里写 REVOKE 是没有用的,它会被函数授权兜底撤销)。
+    "resolve_tax_code": "EXECUTE revoked from PUBLIC/authenticated/anon (GST-2)",
     # SOD-1:职责分离的三支内层函数。**它们不是同一个理由,写成两段。**
     #
     # 【前两支:真的越权读 —— 收权限【就是】那道控制】

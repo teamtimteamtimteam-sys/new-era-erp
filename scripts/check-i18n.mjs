@@ -278,6 +278,14 @@ const MANIFEST = {
     'expense.form.capitalModeHint.': { kind: 'enum', values: () => tsRegex(
                                   'app/finance/expenses/new/NewExpenseForm.tsx',
                                   /const CAPITAL_MODES = \['(\w+)', '(\w+)'\] as const/g) },
+    // GST-2:F5 钻回去的那一行是【什么单据】。后缀集合【就是】f5_box_detail
+    // 里那三个字面量('invoice' / 'credit_note' / 'journal_entry')——
+    // 从函数镜像现读,将来销项侧多接一种单据族,这道检查自动要求两个语言补句子。
+    // 【为什么是这个真源而不是一份写死的清单】那三个字符串是函数【返回给屏幕】的
+    // 值本身;写死一份清单,加一种单据时它只会烂在这里,而屏幕上会印出一个
+    // 原始的机器串 —— docs/machine-text-reaching-humans.md 记的正是这一类。
+    'gst.docKind.': { kind: 'enum', values: () => tsRegex('db/functions/f5_box_detail.sql',
+                                  /SELECT '(\w+)'::text/g) },
     // ── 看板 ─────────────────────────────────────────────────────────────────
     // OPS-18:后缀集合就是 operations_now 的支列表 —— 从视图镜像现读,加一支自动变宽。
     // (镜像里每一支都显式写了 AS item_type;pg_get_viewdef 只保留【显式】别名,

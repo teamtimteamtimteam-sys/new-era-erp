@@ -17,6 +17,7 @@ type Supplier = {
     address: string | null
     supplier_types: string[] | null
     counterparty_type: string | null
+    default_tax_code: string | null
     payment_terms: string | null
     incoterm: string | null
     credit_rating: string | null
@@ -26,12 +27,18 @@ type Supplier = {
 
 export type TemplateOption = { id: string; name: string }
 
+export type TaxCodeOption = { code: string; name_en: string; name_zh: string }
+
 export default function EditSupplierForm({
     supplier,
     templates,
+    gstRegistered,
+    taxCodes,
 }: {
     supplier: Supplier
     templates: TemplateOption[]
+    gstRegistered: boolean
+    taxCodes: TaxCodeOption[]
 }) {
     const t = useTranslations()
     const updateWithId = updateSupplier.bind(null, supplier.id)
@@ -155,6 +162,26 @@ export default function EditSupplierForm({
                         {t('suppliers.counterpartyTypeHint')}
                     </p>
                 </div>
+
+                {/* ★【GST-2:这家供应商的默认进项税码 —— 只在已注册时出现】★ */}
+                {gstRegistered && (
+                    <div>
+                        <label className="block text-sm font-medium mb-1">{t('suppliers.form.defaultTaxCode')}</label>
+                        <select
+                            name="default_tax_code"
+                            defaultValue={supplier.default_tax_code ?? ''}
+                            className="w-full border border-gray-300 px-3 py-2 rounded"
+                        >
+                            <option value="">{t('suppliers.form.defaultTaxCodeNone')}</option>
+                            {taxCodes.map((c) => (
+                                <option key={c.code} value={c.code}>
+                                    {c.code} · {c.name_zh} / {c.name_en}
+                                </option>
+                            ))}
+                        </select>
+                        <p className="text-xs text-gray-500 mt-1 max-w-2xl">{t('suppliers.form.defaultTaxCodeHint')}</p>
+                    </div>
+                )}
 
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('suppliers.form.paymentTerms')}</label>

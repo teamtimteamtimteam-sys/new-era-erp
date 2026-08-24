@@ -34,7 +34,14 @@ export type PoLineOption = {
 const initialState: CreateExpenseState = {}
 
 export type AccountOption = { code: string; name: string }
-export type SupplierOption = { id: string; name: string }
+// GST-2:供应商带上它的默认进项税码。**null 不是默认值,是一个没人回答过的问题。**
+export type SupplierOption = { id: string; name: string; default_tax_code?: string | null }
+export type TaxCodeOption = {
+    code: string; name_en: string; name_zh: string
+    // 【可抵与不可抵要在屏幕上分得开】BL 有税、税率 9%,但那笔税要不回来 ——
+    // 它进采购成本、不进 box7。一个只印百分数的下拉说不出这件事。
+    is_claimable: boolean
+}
 
 // 本地日期(YYYY-MM-DD),用作费用日期默认值(避免 UTC 偏移)。
 function todayIsoLocal(): string {
@@ -56,6 +63,8 @@ export default function NewExpenseForm({
     poLines,
     canSeePurchasing,
     capitalAccountLabel,
+    gstRegistered,
+    taxCodes,
 }: {
     accounts: AccountOption[]
     suppliers: SupplierOption[]
@@ -65,6 +74,8 @@ export default function NewExpenseForm({
     poLines: PoLineOption[]
     canSeePurchasing: boolean
     capitalAccountLabel: string
+    gstRegistered: boolean
+    taxCodes: TaxCodeOption[]
 }) {
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(createExpense, initialState)
@@ -75,6 +86,10 @@ export default function NewExpenseForm({
     const draft = useFormDraft({ formKey: 'finance/expenses/new', table: 'expenses', subject: null, formRef })
 
     const [accountCode, setAccountCode] = useState('')
+    // GST-2:进项税码。跟随所选供应商的默认(未手改过时),否则空 ——
+    // 空 + 已注册 = 数据库按名拒(TAX_CODE_REQUIRED|supplier),不猜。
+    const [taxCode, setTaxCode] = useState('')
+    const [taxCodeTouched, setTaxCodeTouched] = useState(false)
     const [amount, setAmount] = useState('')
     const [currency, setCurrency] = useState('SGD') // 本地开销默认新币(销售面板默认 USD,刻意不同)
     const [paymentStatus, setPaymentStatus] = useState<'paid' | 'unpaid'>('unpaid')
@@ -119,6 +134,13 @@ export default function NewExpenseForm({
     // 选的是员工时 supplierId 为 null,于是不按供应商过滤(而服务端会按名拒:
     // 挂在采购单行上的支出必须说出开票的供应商)。
     const supplierId = counterparty.startsWith('supplier:') ? counterparty.slice('supplier:'.length) : null
+
+    // GST-2:所选供应商的默认进项税码 —— 一个【建议】,不是一个悄悄的替代。
+    // 【已付的费用单合法地没有供应商】(线上就有两笔),那种单据没有可继承的
+    // 对象,于是这里是空的,人必须自己选一个;数据库那边按名拒,不猜。
+    const supplierDefaultTaxCode =
+        suppliers.find((sp) => sp.id === supplierId)?.default_tax_code ?? null
+    const effTaxCode = taxCodeTouched ? taxCode : (supplierDefaultTaxCode ?? '')
     // 【已报销的行【留在列表里但禁用】,不是藏起来】—— 本仓库的判据是:
     // 问题【不适用】才隐藏,问题适用但此刻【被挡住】就禁用并把理由摆在旁边。
     // 一条属于这台机器的采购行,"能不能报销它"是一个成立的问题,只是答案是"已经报过了" ——
@@ -188,6 +210,43 @@ export default function NewExpenseForm({
                     </p>
                 )}
             </div>
+
+            {/* ★【GST-2:进项税码 —— 只在已注册时出现】★
+                未注册时这张表单与建 GST 之前一模一样,连这一格都不长出来。
+                【p_amount 始终是不含税净额】税另算,所以这里要把话说清楚,
+                否则人会把供应商账单上的总额填进金额栏。 */}
+            {gstRegistered && (
+                <div className="flex flex-wrap gap-4">
+                    <div className="flex-1 min-w-[16rem]">
+                        <label className="block text-sm font-medium mb-1">
+                            {t('expense.form.taxCode')} <span className="text-red-600">*</span>
+                        </label>
+                        <select
+                            name="tax_code"
+                            value={effTaxCode}
+                            onChange={(e) => { setTaxCodeTouched(true); setTaxCode(e.target.value) }}
+                            className="w-full border border-gray-300 px-3 py-2 rounded"
+                        >
+                            <option value="">{t('expense.form.taxCodePick')}</option>
+                            {taxCodes.map((c) => (
+                                <option key={c.code} value={c.code}>
+                                    {c.code} · {c.name_zh} / {c.name_en}
+                                    {c.is_claimable ? '' : ` — ${t('expense.form.taxCodeBlocked')}`}
+                                </option>
+                            ))}
+                        </select>
+                        <p className="text-xs text-gray-500 mt-1">{t('expense.form.taxCodeNetHint')}</p>
+                        {!taxCodeTouched && supplierDefaultTaxCode && (
+                            <p className="text-xs text-gray-500 mt-1">
+                                {t('expense.form.taxCodeFromSupplier', { code: supplierDefaultTaxCode })}
+                            </p>
+                        )}
+                        {!effTaxCode && (
+                            <p className="text-xs text-amber-700 mt-1">{t('expense.form.taxCodeNoDefault')}</p>
+                        )}
+                    </div>
+                </div>
+            )}
 
             <div className="flex flex-wrap gap-4">
                 {/* 金额(必填,原币)*/}

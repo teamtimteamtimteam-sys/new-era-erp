@@ -1,7 +1,10 @@
 'use server'
 
 // 开票:勾选的销售 id 数组 → rpc create_invoice(校验、无缝编号、抬头快照一个事务)。
-// 【不过任何分录】—— 收入与应收在销售当刻已确认,发票只是归拢成一份可寄出的文件。
+// 【GST-2:它现在【会过一张分录】—— 只过税】收入与应收在销售当刻已确认,
+// 所以发票不再认一次收入;但税从来没有人过过,而 total_base 一直写着
+// subtotal + tax。那张 借 1100 / 贷 2100 就是第一次兑现这句话。
+// 零税率 / 豁免的票税额为 0,仍然一张分录都不过。
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
@@ -22,6 +25,10 @@ export async function createInvoice(
     const notes = String(formData.get('notes') ?? '').trim()
     const termsText = String(formData.get('terms_text') ?? '').trim()
     const saleIds = formData.getAll('sale_id').map(String).filter(Boolean)
+    // GST-2:税码。未注册时这一格根本不渲染,所以这里是空串 —— 送 undefined,
+    // 让数据库那边走"未注册"的分支。**不在这里替人挑一个** —— 猜一个税码
+    // 与猜一个汇率是同一种谎。
+    const taxCode = String(formData.get('tax_code') ?? '').trim()
 
     if (!customerId) {
         return { error: t('invoice.errors.CUSTOMER_NOT_FOUND', { 0: '?' }) }
@@ -45,6 +52,7 @@ export async function createInvoice(
         p_payment_terms_days: termsDays ?? undefined,
         p_notes: notes || undefined,
         p_terms_text: termsText || undefined,
+        p_tax_code: taxCode || undefined,
     })
 
     if (error) {

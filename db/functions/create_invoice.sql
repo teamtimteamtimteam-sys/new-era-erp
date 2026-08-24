@@ -1,4 +1,13 @@
-CREATE OR REPLACE FUNCTION public.create_invoice(p_customer_id uuid, p_sales_record_ids uuid[], p_issue_date date DEFAULT NULL::date, p_payment_terms_days integer DEFAULT NULL::integer, p_notes text DEFAULT NULL::text, p_terms_text text DEFAULT NULL::text)
+-- db/functions/create_invoice.sql
+-- GST-2(2026-08-25):发票开始【携带税】,并过一张【只有税】的分录。
+-- 此前它读 finance_settings.gst_rate_pct 这个标量算税、且一张分录都不过。
+-- 标量表达不了税率史(2022 年那张票永远是 7%),也表达不了零税率 / 豁免 /
+-- 不在范围内这三件税率都为零、进的格子却完全不同的事。
+-- 【分录只过税】收入在【销售】那一刻已经认过(借 1100 / 贷 4000);
+-- 开票再认一次就是把同一笔生意记两遍。而税从来没有人过过 ——
+-- invoices.total_base 一直写着 subtotal + tax,这张分录是第一次在总账里兑现它。
+-- 【税码与税率冻在行上】已开出的发票永不按今天的设置重算它的税。
+CREATE OR REPLACE FUNCTION public.create_invoice(p_customer_id uuid, p_sales_record_ids uuid[], p_issue_date date DEFAULT NULL::date, p_payment_terms_days integer DEFAULT NULL::integer, p_notes text DEFAULT NULL::text, p_terms_text text DEFAULT NULL::text, p_tax_code text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -19,15 +28,19 @@ DECLARE
     v_currency    text;
     v_no          integer := 0;
     v_subtotal    numeric := 0;
-    v_gst_on      boolean;
-    v_gst_rate    numeric;
+    v_tax_code    text;
     v_tax_rate    numeric := 0;
     v_tax         numeric := 0;
+    v_line_tax    numeric;
     v_existing    text;
+    v_base        text;
+    v_je          jsonb;
+    v_entry_id    uuid;
     v_lines       jsonb := '[]'::jsonb;  -- 第一趟收集,第二趟落库
     v_line        jsonb;
 BEGIN
     PERFORM require_permission('module.finance.edit');
+    SELECT c.code INTO v_base FROM currencies c WHERE c.is_base;
     -- 1. 客户
     SELECT * INTO v_cust FROM customers
     WHERE id = p_customer_id AND deleted_at IS NULL;
@@ -46,7 +59,25 @@ BEGIN
     END IF;
     v_due := v_issue + v_terms;
 
-    -- 3. 无缝编号(按 issue_date 的年份),咨询锁串行化;回滚即释放号码
+    -- ════════════════════════════════════════════════════════════════════════
+    -- 3. 【税点在这里】GST-2:税码经"往来对象默认 + 本单改写"解析,
+    --    税率按【这张发票自己的开票日】解析 —— 两者一起冻在行上。
+    -- ════════════════════════════════════════════════════════════════════════
+    IF gst_registered() THEN
+        v_tax_code := resolve_tax_code(p_tax_code, v_cust.default_tax_code, 'output', 'customer');
+        v_tax_rate := tax_rate_for(v_tax_code, v_issue);
+    ELSE
+        -- 【未注册:与建 GST 之前一模一样】不解析、不盖码、不过分录。
+        -- 【但传了码要按名拒,不能悄悄忽略】悄悄忽略会让一个以为自己在计税的人
+        -- 以为计了 —— 而屏幕上一切正常。
+        IF NULLIF(btrim(COALESCE(p_tax_code, '')), '') IS NOT NULL THEN
+            RAISE EXCEPTION 'GST_NOT_REGISTERED|%', p_tax_code;
+        END IF;
+        v_tax_code := NULL;
+        v_tax_rate := 0;
+    END IF;
+
+    -- 4. 无缝编号(按 issue_date 的年份),咨询锁串行化;回滚即释放号码
     v_year := EXTRACT(YEAR FROM v_issue)::integer;
     PERFORM pg_advisory_xact_lock(hashtext('invoice_code_' || v_year::text)::bigint);
     SELECT COALESCE(MAX(split_part(code, '-', 3)::integer), 0) + 1
@@ -55,7 +86,7 @@ BEGIN
     WHERE code LIKE 'INV-' || v_year::text || '-%';
     v_code := 'INV-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
 
-    -- 4. 第一趟:逐张销售校验(存在 → 归属 → 未被占用 → 币种一致)并累计金额。
+    -- 5. 第一趟:逐张销售校验(存在 → 归属 → 未被占用 → 币种一致)并累计金额。
     FOREACH v_sale_id IN ARRAY p_sales_record_ids
     LOOP
         IF v_sale_id = ANY (v_seen) THEN
@@ -79,11 +110,8 @@ BEGIN
 
         -- sales_records.customer_id 可空 —— 批次可能在客户还没登记时就卖了。
         -- SAL-C:【但无主的销售不能开给客户】。开票是对外声称"这个人欠这笔钱";
-        -- 声称之前,销售自己得先记下这件事。此前这里只在销售【有客户】时才校验
-        -- 一致性,于是 INV-2026-0005 把一笔无主销售开给了 CUS-2026-0003:发票说
-        -- 客户欠钱,而销售没有记录,敞口也因此看不见这 1,397(信用管控隐形)。
-        -- 出路是先补挂(attribute_sale_customer),不是在这里默认它属于收票人 ——
-        -- 那等于让开票动作替人做归属判断。
+        -- 声称之前,销售自己得先记下这件事。出路是先补挂
+        -- (attribute_sale_customer),不是在这里默认它属于收票人。
         IF v_sale.customer_id IS NULL THEN
             RAISE EXCEPTION 'SALE_NOT_ATTRIBUTED|%', v_sale.batch_code;
         END IF;
@@ -106,6 +134,12 @@ BEGIN
             RAISE EXCEPTION 'MIXED_CURRENCY|%|%', v_currency, v_sale.currency;
         END IF;
 
+        -- 【逐行算税、逐行取整,行加起来就是表头】口径与行金额一致:
+        -- 表头的税 = Σ 行税,不是 round(Σ 行净额 × 税率) —— 两种算法差几分,
+        -- 而客户手里那张纸上印的是行。
+        v_line_tax := CASE WHEN v_tax_code IS NULL THEN 0
+                           ELSE round(v_sale.amount_base * v_tax_rate / 100.0, 2) END;
+
         v_no := v_no + 1;
         v_lines := v_lines || jsonb_build_object(
             'sales_record_id', v_sale_id,
@@ -114,25 +148,42 @@ BEGIN
             'quantity', v_sale.quantity,
             'unit', v_sale.unit,
             'unit_price', v_sale.unit_price,
-            'amount_base', v_sale.amount_base);
+            'amount_base', v_sale.amount_base,
+            'tax_base', v_line_tax);
 
         v_subtotal := v_subtotal + v_sale.amount_base;
+        v_tax := v_tax + v_line_tax;
     END LOOP;
 
-    -- 5. 税:未做 GST 登记时一律 0。【不过任何税金分录】—— 正确确认时点是销售,不是开票。
-    SELECT gst_registered, gst_rate_pct INTO v_gst_on, v_gst_rate
-    FROM finance_settings LIMIT 1;
-    IF COALESCE(v_gst_on, false) THEN
-        v_tax_rate := COALESCE(v_gst_rate, 0);
-        v_tax := round(v_subtotal * v_tax_rate / 100.0, 2);
+    v_subtotal := round(v_subtotal, 2);
+    v_tax := round(v_tax, 2);
+
+    -- ════════════════════════════════════════════════════════════════════════
+    -- 6. 【只过税的那张分录】借 1100 应收 / 贷 2100 销项税。
+    --    零税率 / 豁免 / 不在范围内(税额为 0)不过分录 —— 一条 0 的腿在分录上
+    --    读起来像"这一段发生了但金额为零",而且 post_journal_entry 会拒。
+    --    供应额本身【不在这张分录里】,它在发票行上;F5 的 box1 从那里推导。
+    --    期间锁与年结闸由 post_journal_entry 对 v_issue 统一执行。
+    -- ════════════════════════════════════════════════════════════════════════
+    IF v_tax <> 0 THEN
+        v_je := post_journal_entry(
+            v_issue,
+            'Invoice ' || v_code || ' GST',
+            'invoice', v_invoice_id,
+            jsonb_build_array(
+                jsonb_build_object('account_code', '1100', 'side', 'debit',
+                    'currency', v_base, 'amount_ccy', v_tax,
+                    'line_memo', 'output tax ' || v_tax_code),
+                jsonb_build_object('account_code', '2100', 'side', 'credit',
+                    'currency', v_base, 'amount_ccy', v_tax,
+                    'line_memo', 'output tax ' || v_tax_code)));
+        v_entry_id := (v_je->>'entry_id')::uuid;
     END IF;
 
-    v_subtotal := round(v_subtotal, 2);
-
-    -- 6. 第二趟:金额已定,一次写对发票头,再落明细行。
+    -- 7. 第二趟:金额已定,一次写对发票头,再落明细行。
     INSERT INTO invoices (id, code, customer_id, issue_date, due_date, payment_terms_days,
                           currency, subtotal_base, tax_rate_pct, tax_base, total_base,
-                          notes, terms_text, bill_to_snapshot)
+                          notes, terms_text, bill_to_snapshot, entry_id)
     VALUES (v_invoice_id, v_code, p_customer_id, v_issue, v_due, v_terms,
             v_currency, v_subtotal, v_tax_rate, v_tax, round(v_subtotal + v_tax, 2),
             p_notes, p_terms_text,
@@ -145,15 +196,16 @@ BEGIN
                 'address', v_cust.address,
                 'payment_terms', v_cust.payment_terms,
                 'incoterm', v_cust.incoterm,
-                -- cut 2b 新增
                 'contact_person', v_cust.contact_person,
                 'email', v_cust.email,
-                'phone', v_cust.phone));
+                'phone', v_cust.phone),
+            v_entry_id);
 
     FOR v_line IN SELECT * FROM jsonb_array_elements(v_lines)
     LOOP
         INSERT INTO invoice_lines (invoice_id, sales_record_id, line_no, description,
-                                   quantity, unit, unit_price, amount_base)
+                                   quantity, unit, unit_price, amount_base,
+                                   tax_code, tax_rate_pct, tax_base)
         VALUES (v_invoice_id,
                 (v_line->>'sales_record_id')::uuid,
                 (v_line->>'line_no')::integer,
@@ -161,7 +213,10 @@ BEGIN
                 (v_line->>'quantity')::numeric,
                 v_line->>'unit',
                 (v_line->>'unit_price')::numeric,
-                (v_line->>'amount_base')::numeric);
+                (v_line->>'amount_base')::numeric,
+                v_tax_code,
+                CASE WHEN v_tax_code IS NULL THEN NULL ELSE v_tax_rate END,
+                (v_line->>'tax_base')::numeric);
     END LOOP;
 
     RETURN jsonb_build_object(
@@ -170,10 +225,14 @@ BEGIN
         'issue_date', v_issue,
         'due_date', v_due,
         'subtotal_base', v_subtotal,
+        'tax_code', v_tax_code,
+        'tax_rate_pct', v_tax_rate,
         'tax_base', v_tax,
         'total_base', round(v_subtotal + v_tax, 2),
         'line_count', v_no,
-        'currency', v_currency
+        'currency', v_currency,
+        'journal_code', v_je->>'code'
     );
 END;
-$function$;
+$function$
+;

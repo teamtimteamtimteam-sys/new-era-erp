@@ -2,7 +2,7 @@
 // 一个 GST 期间的 F5:每一格、每一格从哪来、以及【钻进去】。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { getTranslations } from '@/lib/i18n/server'
+import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { mustOne, mustRows } from '@/lib/db-helpers'
@@ -20,6 +20,7 @@ export default async function GstPeriodPage({ params, searchParams }: {
     const { box } = await searchParams
     const supabase = await createClient()
     const t = await getTranslations()
+    const locale = await getLocale()
 
     const periodRes = await supabase.from('gst_periods')
         .select('id, code, period_start, period_end, status, filed_on, filed_reference, notes, corrects_period_id')
@@ -109,22 +110,45 @@ export default async function GstPeriodPage({ params, searchParams }: {
                 </tbody>
             </table>
 
-            {/* 【勾稽:两条独立的路,而且它说得出自己怎么算的】 */}
-            {live?.ties != null && (
-                <p className={'text-xs mb-6 px-3 py-2 rounded border ' +
-                    ((live.ties as { agrees?: boolean }).agrees
-                        ? 'bg-green-50 border-green-300 text-green-900'
-                        : 'bg-red-50 border-red-400 text-red-800')}>
-                    {(live.ties as { agrees?: boolean }).agrees ? t('gst.tiesOk') : t('gst.tiesBroken')}
-                    {' '}
-                    <span className="font-mono">
-                        {String((live.ties as { box6_from_tax_account?: number }).box6_from_tax_account)}
-                        {' vs '}
-                        {String((live.ties as { box6_recomputed_from_supplies?: number }).box6_recomputed_from_supplies)}
-                    </span>
-                    <span className="block mt-1">{String((live.ties as { how_zh?: string }).how_zh ?? '')}</span>
-                </p>
-            )}
+            {/* 【GST-2:勾稽是【三处说法、两条比较】,而两条都要看得见】
+                只印一个"对上了/没对上"会把【哪一条】没对上藏起来,而两条指向
+                的修法完全不同:单据 vs 法令是税率或数字错了;单据 vs 总账是
+                某张票没过账、作废没冲销、或有人手工动过 2100。 */}
+            {live?.ties != null && (() => {
+                const ties = live.ties as {
+                    agrees?: boolean
+                    agrees_documents_vs_statute?: boolean
+                    agrees_documents_vs_ledger?: boolean
+                    box6_from_documents?: number
+                    box6_recomputed_from_statute?: number
+                    box6_from_tax_account?: number
+                    how_zh?: string
+                    how_en?: string
+                }
+                return (
+                    <div className={'text-xs mb-6 px-3 py-2 rounded border ' +
+                        (ties.agrees
+                            ? 'bg-green-50 border-green-300 text-green-900'
+                            : 'bg-red-50 border-red-400 text-red-800')}>
+                        <p className="font-medium">{ties.agrees ? t('gst.tiesOk') : t('gst.tiesBroken')}</p>
+                        <p className="mt-1">
+                            {ties.agrees_documents_vs_statute ? '✓' : '✗'}{' '}
+                            {t('gst.tieDocsVsStatute')}{' '}
+                            <span className="font-mono">
+                                {String(ties.box6_from_documents)} vs {String(ties.box6_recomputed_from_statute)}
+                            </span>
+                        </p>
+                        <p>
+                            {ties.agrees_documents_vs_ledger ? '✓' : '✗'}{' '}
+                            {t('gst.tieDocsVsLedger')}{' '}
+                            <span className="font-mono">
+                                {String(ties.box6_from_documents)} vs {String(ties.box6_from_tax_account)}
+                            </span>
+                        </p>
+                        <p className="mt-1">{String(locale === 'zh' ? (ties.how_zh ?? '') : (ties.how_en ?? ''))}</p>
+                    </div>
+                )
+            })()}
 
             {box && (
                 <>
@@ -135,7 +159,7 @@ export default async function GstPeriodPage({ params, searchParams }: {
                         <table className="w-full border-collapse border border-gray-300 mb-6 text-sm">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="border border-gray-300 px-2 py-1 text-left">{t('gst.entry')}</th>
+                                    <th className="border border-gray-300 px-2 py-1 text-left">{t('gst.document')}</th>
                                     <th className="border border-gray-300 px-2 py-1 text-left">{t('gst.date')}</th>
                                     <th className="border border-gray-300 px-2 py-1 text-left">{t('gst.memo')}</th>
                                     <th className="border border-gray-300 px-2 py-1 text-left">{t('gst.source')}</th>
@@ -143,12 +167,18 @@ export default async function GstPeriodPage({ params, searchParams }: {
                                 </tr>
                             </thead>
                             <tbody>
-                                {(detailRes!.data as { entry_id: string; entry_code: string; entry_date: string; memo: string; source_type: string; tax_code: string | null; amount_base: number }[]).map((d) => (
-                                    <tr key={d.entry_id + d.entry_code}>
-                                        <td className="border border-gray-300 px-2 py-1 font-mono text-xs">{d.entry_code}</td>
-                                        <td className="border border-gray-300 px-2 py-1 font-mono text-xs">{d.entry_date}</td>
+                                {/* 【GST-2:列是【单据中性】的】销项侧钻回的是发票与贷项凭证,
+                                    它们不是分录 —— 把一个发票编号印在"分录"那一列下面,
+                                    正是"机器文字到了人面前"那一类的错。doc_kind 说这是什么。 */}
+                                {(detailRes!.data as { doc_kind: string; doc_id: string; doc_code: string; doc_date: string; memo: string; tax_code: string | null; amount_base: number }[]).map((d, i) => (
+                                    <tr key={d.doc_id + d.doc_code + i}>
+                                        <td className="border border-gray-300 px-2 py-1 font-mono text-xs">{d.doc_code}</td>
+                                        <td className="border border-gray-300 px-2 py-1 font-mono text-xs">{d.doc_date}</td>
                                         <td className="border border-gray-300 px-2 py-1">{d.memo}</td>
-                                        <td className="border border-gray-300 px-2 py-1 text-xs">{d.source_type}{d.tax_code ? ` · ${d.tax_code}` : ''}</td>
+                                        <td className="border border-gray-300 px-2 py-1 text-xs">
+                                            {t('gst.docKind.' + d.doc_kind)}{d.tax_code ? ` · ${d.tax_code}` : ''}
+                                        </td>
+                                        {/* 贷项凭证是负数 —— 它是一笔【负的供应】,照直印 */}
                                         <td className="border border-gray-300 px-2 py-1 text-right font-mono">{Number(d.amount_base).toFixed(2)}</td>
                                     </tr>
                                 ))}

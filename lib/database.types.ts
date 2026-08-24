@@ -1037,6 +1037,9 @@ export type Database = {
           invoice_line_id: string
           kind: string
           qty: number | null
+          tax_base: number
+          tax_code: string | null
+          tax_rate_pct: number | null
         }
         Insert: {
           amount: number
@@ -1046,6 +1049,9 @@ export type Database = {
           invoice_line_id: string
           kind: string
           qty?: number | null
+          tax_base?: number
+          tax_code?: string | null
+          tax_rate_pct?: number | null
         }
         Update: {
           amount?: number
@@ -1055,6 +1061,9 @@ export type Database = {
           invoice_line_id?: string
           kind?: string
           qty?: number | null
+          tax_base?: number
+          tax_code?: string | null
+          tax_rate_pct?: number | null
         }
         Relationships: [
           {
@@ -1077,6 +1086,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "invoice_lines_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_note_lines_tax_code_fkey"
+            columns: ["tax_code"]
+            isOneToOne: false
+            referencedRelation: "tax_codes"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -1324,6 +1340,7 @@ export type Database = {
           credit_limit_base: number | null
           credit_rating: string | null
           customer_types: string[] | null
+          default_tax_code: string | null
           deleted_at: string | null
           email: string | null
           id: string
@@ -1350,6 +1367,7 @@ export type Database = {
           credit_limit_base?: number | null
           credit_rating?: string | null
           customer_types?: string[] | null
+          default_tax_code?: string | null
           deleted_at?: string | null
           email?: string | null
           id?: string
@@ -1376,6 +1394,7 @@ export type Database = {
           credit_limit_base?: number | null
           credit_rating?: string | null
           customer_types?: string[] | null
+          default_tax_code?: string | null
           deleted_at?: string | null
           email?: string | null
           id?: string
@@ -1391,7 +1410,15 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "customers_default_tax_code_fkey"
+            columns: ["default_tax_code"]
+            isOneToOne: false
+            referencedRelation: "tax_codes"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       departments: {
         Row: {
@@ -2143,6 +2170,9 @@ export type Database = {
           reversed_by_expense: string | null
           status: string
           supplier_id: string | null
+          tax_base: number
+          tax_code: string | null
+          tax_rate_pct: number | null
         }
         Insert: {
           account_code: string
@@ -2165,6 +2195,9 @@ export type Database = {
           reversed_by_expense?: string | null
           status?: string
           supplier_id?: string | null
+          tax_base?: number
+          tax_code?: string | null
+          tax_rate_pct?: number | null
         }
         Update: {
           account_code?: string
@@ -2187,6 +2220,9 @@ export type Database = {
           reversed_by_expense?: string | null
           status?: string
           supplier_id?: string | null
+          tax_base?: number
+          tax_code?: string | null
+          tax_rate_pct?: number | null
         }
         Relationships: [
           {
@@ -2328,6 +2364,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_tax_code_fkey"
+            columns: ["tax_code"]
+            isOneToOne: false
+            referencedRelation: "tax_codes"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -4044,6 +4087,9 @@ export type Database = {
           quantity: number
           sales_order_line_id: string | null
           sales_record_id: string | null
+          tax_base: number
+          tax_code: string | null
+          tax_rate_pct: number | null
           unit: string
           unit_price: number
         }
@@ -4059,6 +4105,9 @@ export type Database = {
           quantity: number
           sales_order_line_id?: string | null
           sales_record_id?: string | null
+          tax_base?: number
+          tax_code?: string | null
+          tax_rate_pct?: number | null
           unit: string
           unit_price: number
         }
@@ -4074,6 +4123,9 @@ export type Database = {
           quantity?: number
           sales_order_line_id?: string | null
           sales_record_id?: string | null
+          tax_base?: number
+          tax_code?: string | null
+          tax_rate_pct?: number | null
           unit?: string
           unit_price?: number
         }
@@ -4147,6 +4199,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sales_records_visible"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_tax_code_fkey"
+            columns: ["tax_code"]
+            isOneToOne: false
+            referencedRelation: "tax_codes"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -10596,6 +10655,7 @@ export type Database = {
           created_by: string | null
           credit_rating: string | null
           default_payment_term_template_id: string | null
+          default_tax_code: string | null
           deleted_at: string | null
           id: string
           incoterm: string | null
@@ -10620,6 +10680,7 @@ export type Database = {
           created_by?: string | null
           credit_rating?: string | null
           default_payment_term_template_id?: string | null
+          default_tax_code?: string | null
           deleted_at?: string | null
           id?: string
           incoterm?: string | null
@@ -10644,6 +10705,7 @@ export type Database = {
           created_by?: string | null
           credit_rating?: string | null
           default_payment_term_template_id?: string | null
+          default_tax_code?: string | null
           deleted_at?: string | null
           id?: string
           incoterm?: string | null
@@ -10673,6 +10735,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payment_term_templates"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suppliers_default_tax_code_fkey"
+            columns: ["default_tax_code"]
+            isOneToOne: false
+            referencedRelation: "tax_codes"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "suppliers_owner_id_fkey"
@@ -13375,6 +13444,9 @@ export type Database = {
           quantity: number | null
           sales_order_line_id: string | null
           sales_record_id: string | null
+          tax_base: number | null
+          tax_code: string | null
+          tax_rate_pct: number | null
           unit: string | null
           unit_price: number | null
         }
@@ -13390,6 +13462,9 @@ export type Database = {
           quantity?: number | null
           sales_order_line_id?: string | null
           sales_record_id?: string | null
+          tax_base?: never
+          tax_code?: string | null
+          tax_rate_pct?: number | null
           unit?: string | null
           unit_price?: never
         }
@@ -13405,6 +13480,9 @@ export type Database = {
           quantity?: number | null
           sales_order_line_id?: string | null
           sales_record_id?: string | null
+          tax_base?: never
+          tax_code?: string | null
+          tax_rate_pct?: number | null
           unit?: string | null
           unit_price?: never
         }
@@ -13478,6 +13556,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sales_records_visible"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_tax_code_fkey"
+            columns: ["tax_code"]
+            isOneToOne: false
+            referencedRelation: "tax_codes"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -17251,6 +17336,7 @@ export type Database = {
           p_notes?: string
           p_payment_terms_days?: number
           p_sales_record_ids: string[]
+          p_tax_code?: string
           p_terms_text?: string
         }
         Returns: Json
@@ -17262,6 +17348,7 @@ export type Database = {
           p_notes?: string
           p_payment_terms_days?: number
           p_sales_order_id: string
+          p_tax_code?: string
           p_terms_text?: string
         }
         Returns: Json
@@ -17401,12 +17488,11 @@ export type Database = {
         Args: { p_box: string; p_period_end: string; p_period_start: string }
         Returns: {
           amount_base: number
-          entry_code: string
-          entry_date: string
-          entry_id: string
+          doc_code: string
+          doc_date: string
+          doc_id: string
+          doc_kind: string
           memo: string
-          source_id: string
-          source_type: string
           tax_code: string
         }[]
       }
@@ -17816,6 +17902,7 @@ export type Database = {
           p_payment_status?: string
           p_purchase_order_line?: string
           p_supplier_id?: string
+          p_tax_code?: string
         }
         Returns: Json
       }
@@ -18002,6 +18089,15 @@ export type Database = {
       }
       resolve_receipt_location: {
         Args: { p_location_id: string }
+        Returns: string
+      }
+      resolve_tax_code: {
+        Args: {
+          p_default: string
+          p_override: string
+          p_side: string
+          p_subject: string
+        }
         Returns: string
       }
       revalue_foreign_balances: {

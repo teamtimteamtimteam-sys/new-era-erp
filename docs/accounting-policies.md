@@ -457,16 +457,43 @@ not exempt from the period lock** and never has been; the payment date is subjec
 
 An auditor discovering these by surprise is worse served than one who reads them.
 
-### 8.1 There is no tax accounting of any kind, and the company is not registered for GST.
+### 8.1 The company is not registered for GST, and while it is unregistered nothing about tax accounting is reachable. — **REWRITTEN 2026-08-25 (GST-2)**
 
-GST registration is recorded as **not registered**, the rate is **0**, and there is no registration
-number. The two GST accounts exist in the chart of accounts and **have never carried a single posting**
-(nil movement, nil balance). All seven invoices raised to date carry a nil tax rate and nil tax.
+GST registration is recorded as **not registered**. The two GST accounts exist in the chart of accounts
+and **have never carried a single posting** (nil movement, nil balance).
 
-No tax computation, tax report, or deferred tax exists. Tax depreciation is not maintained (4.1).
+**What changed on 2026-08-25.** The sentence this section used to open with — *"there is no tax
+accounting of any kind"* — is no longer true of the software, only of the company. GST-1 built the
+machinery (tax codes, a statutory rate history, the F5, filing periods) and GST-2 wired the documents
+into it: an invoice resolves its code and rate at issue, freezes both on the line, and posts the tax;
+an expense does the same on the input side; the F5's output side derives from those invoices.
 
-> *Evidence:* `finance_settings.gst_registered = false`, `gst_rate_pct = 0`; accounts 1400 and 2100
-> carry zero journal lines.
+**The unregistered behaviour is unchanged, and that is not an assertion.** While
+`gst_registered = false`, a row carrying a tax code **cannot be written at all** — refused on the
+journal (`post_journal_entry`) and on each of the three document tables (`invoice_lines`, `expenses`,
+`credit_note_lines`). So "no tax has been recorded" is a thing the database makes impossible, not a
+thing that happens to be true.
+
+**Tax depreciation is still not maintained (4.1), and there is still no deferred tax.**
+
+> *Evidence:* `finance_settings.gst_registered = false`; accounts 1400 and 2100 carry zero journal
+> lines; `guard_document_tax_code` on the three document tables; fixture 129 arm F1.
+
+### 8.1a The seven invoices raised to date carry no tax code, and they are not backfilled. — **SETTLED — 2026-08-25**
+
+All seven carry a nil tax rate and nil tax **because the company was not registered when they were
+raised**. That is not a gap in the data; it is the data telling the truth. Backfilling a tax code onto
+them would assert that a supply was standard-rated at a time when the company could not charge GST at
+all — it would be manufacturing a tax point that never existed, and it would put figures into a return
+that no customer was ever invoiced for.
+
+They are therefore left exactly as they are, and this entry exists so that a later reader does not
+read the absence as an oversight and "fix" it.
+
+> *Enforcement:* nothing enforces this — it is a decision, and the only thing protecting it is this
+> paragraph. The structural guard above prevents a tax code being written **while unregistered**; once
+> the switch is on, nothing would stop someone updating those seven rows by hand. That is the correct
+> shape: a rule about history cannot be a runtime check.
 
 ### 8.2 There is no multi-entity structure and no consolidation. — **DIVERGES**
 

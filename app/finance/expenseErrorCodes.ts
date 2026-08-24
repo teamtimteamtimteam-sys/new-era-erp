@@ -43,6 +43,9 @@ const EXPENSE_ERROR_CODES = new Set([
     'ASSET_NOT_FOUND', 'ASSET_ALREADY_IN_SERVICE', 'ASSET_DISPOSED',
     // 顺带补上一个既有的缺口:币种非法在普通路径上也抛得出来。
     'CURRENCY_INVALID',
+    // GST-2:费用单从此携带进项税码。
+    'GST_NOT_REGISTERED', 'TAX_CODE_REQUIRED', 'TAX_CODE_UNKNOWN',
+    'TAX_CODE_INACTIVE', 'TAX_CODE_WRONG_SIDE', 'TAX_RATE_NOT_FOUND',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..."(同 localizeFinanceError)。

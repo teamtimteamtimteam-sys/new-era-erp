@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.record_expense(p_expense_date date, p_account_code text, p_amount numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_payment_status text DEFAULT 'paid'::text, p_bank_account text DEFAULT NULL::text, p_supplier_id uuid DEFAULT NULL::uuid, p_payee_name text DEFAULT NULL::text, p_notes text DEFAULT NULL::text, p_asset jsonb DEFAULT NULL::jsonb, p_employee_id uuid DEFAULT NULL::uuid, p_purchase_order_line uuid DEFAULT NULL::uuid)
+CREATE OR REPLACE FUNCTION public.record_expense(p_expense_date date, p_account_code text, p_amount numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_payment_status text DEFAULT 'paid'::text, p_bank_account text DEFAULT NULL::text, p_supplier_id uuid DEFAULT NULL::uuid, p_payee_name text DEFAULT NULL::text, p_notes text DEFAULT NULL::text, p_asset jsonb DEFAULT NULL::jsonb, p_employee_id uuid DEFAULT NULL::uuid, p_purchase_order_line uuid DEFAULT NULL::uuid, p_tax_code text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -25,6 +25,16 @@ DECLARE
     v_poline     record;   -- EQP-1b-ii:这笔支出付的那一条采购单行
     v_poline_po  record;   -- 那一行所属的采购单
     v_billed     text;     -- 该行上已有的、【未冲销的】支出编号
+    -- ── GST-2 ────────────────────────────────────────────────────────────
+    v_tax_code   text;      -- 解析出来的进项税码(未注册时恒 NULL)
+    v_tax_rate   numeric := 0;
+    v_tax_ccy    numeric := 0;   -- 本单进项税,【单据币种】
+    v_tax_base   numeric := 0;   -- 同上,本位币 —— 落库的那一个
+    v_claimable  boolean := false;
+    v_sup_default text;
+    v_jlines     jsonb;
+    v_cost_ccy   numeric;   -- 资本化口径:净额 + 【不可抵】的那笔税
+    v_cost_base  numeric;
 BEGIN
     PERFORM require_permission('module.finance.edit');
     -- 1. 科目:必须存在、启用,且是 expense 类型(只有 6xxx 是合法开支落点)
@@ -210,8 +220,42 @@ BEGIN
         v_bank := NULL;
     END IF;
 
-    -- 4. USD 金额
+    -- 4. USD 金额。**p_amount 始终是【不含税净额】** —— 供应商账单上的总额
+    --    是净额 + 税,而这一列记的是开支本身的价值。GST 关着时两者相等,
+    --    所以这条口径对既有行为是恒等的。
     v_amount_base := round(p_amount * v_fx, 2);
+
+    -- ════════════════════════════════════════════════════════════════════════
+    -- 4b. GST-2:进项税码 —— 【供应商默认 + 本单改写】,税率按【费用日】解析。
+    -- 【为什么费用日就是税点】进项侧的税点是供应商那张税务发票的日期,
+    -- 而 record_expense 的 p_expense_date 记的正是那一天。总账口径与法定口径
+    -- 在进项侧本来就重合 —— 所以 F5 的进项侧仍然从总账推导,那不是妥协。
+    -- ════════════════════════════════════════════════════════════════════════
+    IF gst_registered() THEN
+        SELECT default_tax_code INTO v_sup_default FROM suppliers WHERE id = p_supplier_id;
+        -- 【没有供应商的 paid 单据必须自己带码】那是合法的一种单据
+        -- (线上就有两笔),而它没有可以继承默认的对象 —— 于是要么本单指定,
+        -- 要么按名拒。不猜。
+        v_tax_code := resolve_tax_code(p_tax_code, v_sup_default, 'input', 'supplier');
+        v_tax_rate := tax_rate_for(v_tax_code, p_expense_date);
+        v_tax_ccy  := round(p_amount * v_tax_rate / 100.0, 2);
+        v_tax_base := round(v_tax_ccy * v_fx, 2);
+        SELECT is_claimable INTO v_claimable FROM tax_codes WHERE code = v_tax_code;
+    ELSE
+        -- 【未注册:与建 GST 之前一模一样】传了码要按名拒,不能悄悄忽略。
+        IF NULLIF(btrim(COALESCE(p_tax_code, '')), '') IS NOT NULL THEN
+            RAISE EXCEPTION 'GST_NOT_REGISTERED|%', p_tax_code;
+        END IF;
+    END IF;
+
+    -- 【资本化口径:不可抵的进项税【是】资产成本的一部分】
+    -- 可抵的税要得回来,它从来不是成本;不可抵的税(BL —— 私家车是最典型的
+    -- 那一类)要不回来,于是它和买价一样是为了取得这台资产付出去的钱。
+    -- 【为什么不在这里按名拒掉 BL + 资本】那会把一个【有确定答案的】会计问题
+    -- 说成一个待裁决的问题。ASSET_ALREADY_IN_SERVICE 那条拒绝之所以成立,
+    -- 是因为"投用后的追加是资本化改良还是当期费用"真的需要人来判;这一条不需要。
+    v_cost_ccy  := round(p_amount    + CASE WHEN v_claimable THEN 0 ELSE v_tax_ccy  END, 2);
+    v_cost_base := round(v_amount_base + CASE WHEN v_claimable THEN 0 ELSE v_tax_base END, 2);
 
     -- 5. 无缝编号:咨询锁串行化"取当年最大号+1"(同 JE/收付款编号手法);失败回滚会释放号码。
     v_year := EXTRACT(YEAR FROM p_expense_date)::integer;
@@ -224,27 +268,64 @@ BEGIN
 
     -- 6. 先过分录(source_id = 预生成的 expense id,无需回填),期间锁在此生效。
     --    paid → 贷银行;unpaid → 贷 2000 应付。行走原币。
+    -- ── GST-2:分录的形状 ────────────────────────────────────────────────
+    -- 【净额那条腿带税码】F5 的 box5 = Σ(借−贷) FILTER (tax_code IN (TX,ZP,BL)),
+    -- 所以它报的是【采购净额】,这正是 IRAS 要的"应税采购总额"。
+    v_jlines := jsonb_build_array(
+        jsonb_build_object('account_code', p_account_code, 'side', 'debit',
+                           'currency', p_currency, 'amount_ccy', p_amount, 'fx_rate', v_fx,
+                           'tax_code', v_tax_code));
+    IF v_tax_ccy > 0 THEN
+        IF v_claimable THEN
+            -- 可抵:税借 1400 进项税 —— box7 就是从这个科目推导的。
+            v_jlines := v_jlines || jsonb_build_object('account_code', '1400', 'side', 'debit',
+                'currency', p_currency, 'amount_ccy', v_tax_ccy, 'fx_rate', v_fx,
+                'line_memo', 'input tax ' || v_tax_code);
+        ELSE
+            -- 【不可抵(BL)不是"没有税",是"有税但要不回来"】那笔税进【开支本身】。
+            -- 【这条腿【不带】税码】带上它,box5 报的就成了含税额,而 IRAS 要的是
+            -- 采购价值 —— 税码存在的全部理由正是"税率分不开可抵与不可抵"。
+            v_jlines := v_jlines || jsonb_build_object('account_code', p_account_code, 'side', 'debit',
+                'currency', p_currency, 'amount_ccy', v_tax_ccy, 'fx_rate', v_fx,
+                'line_memo', 'blocked input tax ' || v_tax_code);
+        END IF;
+    END IF;
+    -- 【贷方拆成两条腿,而不是一条总额腿】供应商收的是净额 + 税,但
+    -- post_journal_entry 是【逐行】round(原币 × 汇率) 的:一条 round((净+税)×fx)
+    -- 的腿与两条 round(净×fx) + round(税×fx) 的借方腿会差一分钱,而那一分钱
+    -- 会撞上提交时的借贷平衡触发器。两条腿按构造精确对冲,不靠运气。
+    v_jlines := v_jlines || jsonb_build_object(
+        'account_code', CASE WHEN p_payment_status = 'paid' THEN v_bank ELSE '2000' END,
+        'side', 'credit',
+        'currency', p_currency, 'amount_ccy', p_amount, 'fx_rate', v_fx);
+    IF v_tax_ccy > 0 THEN
+        v_jlines := v_jlines || jsonb_build_object(
+            'account_code', CASE WHEN p_payment_status = 'paid' THEN v_bank ELSE '2000' END,
+            'side', 'credit',
+            'currency', p_currency, 'amount_ccy', v_tax_ccy, 'fx_rate', v_fx,
+            'line_memo', 'GST on ' || v_code);
+    END IF;
+
     v_je := post_journal_entry(
         p_expense_date,
         'Expense ' || v_code || ' ' || p_account_code,
         'expense', v_expense_id,
-        jsonb_build_array(
-            jsonb_build_object('account_code', p_account_code, 'side', 'debit',
-                               'currency', p_currency, 'amount_ccy', p_amount, 'fx_rate', v_fx),
-            jsonb_build_object('account_code', CASE WHEN p_payment_status = 'paid' THEN v_bank ELSE '2000' END,
-                               'side', 'credit',
-                               'currency', p_currency, 'amount_ccy', p_amount, 'fx_rate', v_fx))
+        v_jlines
     );
 
     -- 7. 插入开支单(带着分录链接一次到位;不可变表无后续 UPDATE)
     INSERT INTO expenses (id, code, expense_date, account_code, amount_ccy, currency, fx_rate,
                           amount_base, payment_status, bank_account_code, supplier_id, employee_id,
                           payee_name, notes, journal_entry_id, created_by,
-                          purchase_order_line_id)
+                          purchase_order_line_id,
+                          tax_code, tax_rate_pct, tax_base)
     VALUES (v_expense_id, v_code, p_expense_date, p_account_code, p_amount, p_currency, v_fx,
             v_amount_base, p_payment_status, v_bank, p_supplier_id, p_employee_id,
             p_payee_name, p_notes, (v_je->>'entry_id')::uuid, v_user,
-            p_purchase_order_line);
+            p_purchase_order_line,
+            v_tax_code,
+            CASE WHEN v_tax_code IS NULL THEN NULL ELSE v_tax_rate END,
+            v_tax_base);
 
     -- FIN-22:资本行 → 同一事务生成台账。成本 = 本单金额;汇率 = 上面按
     -- 【费用日 = 购置日】取的 tt_sell 牌价 —— 资产是非货币项目,这个汇率
@@ -280,10 +361,10 @@ BEGIN
             -- cost_base 一个数,而各笔的原币可以不同(进口机器 USD、本地运费 SGD)。
             INSERT INTO fixed_asset_cost_entries
                 (asset_id, expense_id, amount_ccy, currency, fx_rate, amount_base, created_by)
-            VALUES (v_append_id, v_expense_id, p_amount, p_currency, v_fx, v_amount_base, v_user);
+            VALUES (v_append_id, v_expense_id, v_cost_ccy, p_currency, v_fx, v_cost_base, v_user);
 
             UPDATE fixed_assets
-               SET cost_base = cost_base + v_amount_base
+               SET cost_base = cost_base + v_cost_base
              WHERE id = v_append_id;
 
             RETURN jsonb_build_object(
@@ -314,8 +395,8 @@ BEGIN
             RAISE EXCEPTION 'ASSET_LIFE_INVALID|%', COALESCE(p_asset->>'useful_life_months', '?');
         END IF;
         v_residual := COALESCE((p_asset->>'residual_base')::numeric, 0);
-        IF v_residual < 0 OR v_residual >= v_amount_base THEN
-            RAISE EXCEPTION 'ASSET_RESIDUAL_INVALID|%|%', v_residual, v_amount_base;
+        IF v_residual < 0 OR v_residual >= v_cost_base THEN
+            RAISE EXCEPTION 'ASSET_RESIDUAL_INVALID|%|%', v_residual, v_cost_base;
         END IF;
         v_in_service := (p_asset->>'in_service_date')::date;
         IF v_in_service IS NOT NULL AND v_in_service < p_expense_date THEN
@@ -335,7 +416,7 @@ BEGIN
         VALUES (v_asset_id, v_asset_code, p_asset->>'description',
                 COALESCE(p_asset->>'category', 'equipment'),
                 p_expense_date, v_in_service,
-                p_amount, p_currency, v_fx, v_amount_base, v_life,
+                v_cost_ccy, p_currency, v_fx, v_cost_base, v_life,
                 v_residual, COALESCE(p_asset->>'depreciation_account_code', '6700'),
                 v_expense_id, p_asset->>'notes', v_user);
 
@@ -343,7 +424,7 @@ BEGIN
         -- expenses、对后续几笔要查明细表 —— 两处读法,迟早各说各话。
         INSERT INTO fixed_asset_cost_entries
             (asset_id, expense_id, amount_ccy, currency, fx_rate, amount_base, created_by)
-        VALUES (v_asset_id, v_expense_id, p_amount, p_currency, v_fx, v_amount_base, v_user);
+        VALUES (v_asset_id, v_expense_id, v_cost_ccy, p_currency, v_fx, v_cost_base, v_user);
     END IF;
 
     RETURN jsonb_build_object(
@@ -355,4 +436,5 @@ BEGIN
         'payment_status', p_payment_status
     );
 END;
-$function$;
+$function$
+;

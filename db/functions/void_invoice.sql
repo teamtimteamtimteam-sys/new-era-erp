@@ -51,8 +51,21 @@ BEGIN
             RAISE EXCEPTION 'INVOICE_SHIPPED_NOT_VOIDABLE|%', v_inv.code;
         END IF;
         v_rev := reverse_journal_entry_internal(v_inv.entry_id, p_reversal_date, 'Void ' || v_inv.code);
+    ELSIF v_inv.entry_id IS NOT NULL THEN
+        -- ════════════════════════════════════════════════════════════════════
+        -- 【GST-2:带税的 sale 型发票【有一张分录】—— 那张只过税的分录】
+        -- GST-2 之前 sale 型什么都不过账,所以这一支从来不需要冲销。现在它需要:
+        -- 不冲掉那张 借 1100 / 贷 2100,一张作废的发票会把销项税永远留在
+        -- 2100 里,而 F5 的文档侧已经把这张票排除掉了 —— 于是勾稽的两边
+        -- 会分开,而分开的原因是【作废没做完】,不是过账算错了税。
+        -- 【日期必填,与 order 支逐字同一条理由】它决定冲销落进哪个期间。
+        -- ════════════════════════════════════════════════════════════════════
+        IF p_reversal_date IS NULL THEN
+            RAISE EXCEPTION 'REVERSAL_DATE_REQUIRED';
+        END IF;
+        v_rev := reverse_journal_entry_internal(v_inv.entry_id, p_reversal_date, 'Void ' || v_inv.code);
     ELSE
-        -- sale 头没有分录可冲 —— 收下一个日期再忽略它,是在骗调用方
+        -- 不带税的 sale 头没有分录可冲 —— 收下一个日期再忽略它,是在骗调用方
         -- (record_output_sale 拒 p_fx_rate 的同一条)。
         IF p_reversal_date IS NOT NULL THEN
             RAISE EXCEPTION 'REVERSAL_DATE_NOT_ACCEPTED|%', v_inv.code;
@@ -81,5 +94,4 @@ BEGIN
         'reversal_code', v_rev->>'code');
 END;
 $function$
-
 ;

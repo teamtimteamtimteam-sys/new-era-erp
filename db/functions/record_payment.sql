@@ -473,6 +473,22 @@ BEGIN
     -- —— 同币种时相等,不同币种时就是两种货币相减,与 ALLOC_EXCEEDS_PAYMENT 同一个错。
     v_unalloc_ccy  := round(p_amount - v_alloc_pay_total, 2);
     v_unalloc_base := round(v_unalloc_ccy * v_fx, 2);
+
+    -- ════════════════════════════════════════════════════════════════════════
+    -- 【GST-2:"孰早"那条规矩的【另一半】,按名拦住而不是沉默地放过】
+    -- 新加坡的供应时点是【开票与收款孰早】。GST-2 实现的是开票那一半;
+    -- 收款那一半 —— 一笔【先于任何发票】收到的客户款 —— 同样触发供应,
+    -- 而这套系统实现不了它:收款那一刻没有任何东西说得出这笔钱对应哪一项供应,
+    -- 于是税码、税率、进哪一格三者都无从解析。
+    -- **一条有两半的规矩,不许只做一半就当做完了。** 处置因此是按名拒绝:
+    -- 已注册时,一笔挂不上任何单据的客户收款走不下去 —— 先开票,再收款核销。
+    -- 【为什么不是"照收,记进 known-issues 就算了"】那样账上会留下一笔
+    -- 【已经触发了供应却没有报税】的钱,而它看起来与一笔正常的挂账收款一模一样。
+    -- 返回条件写在 docs/known-issues.md。
+    IF p_direction = 'in' AND v_unalloc_ccy > 0 AND gst_registered() THEN
+        RAISE EXCEPTION 'GST_UNALLOCATED_RECEIPT_UNSUPPORTED|%|%', v_unalloc_ccy, p_currency
+          USING HINT = '已注册 GST 时,客户款必须核销到单据上:先开票,再收款';
+    END IF;
     -- 预付部分占用的付款额(付款币种)→ 基准。原式 v_po_usd × v_fx 把单据币种的
     -- 数乘了付款汇率,跨币种时不成立;改为按各币种累加出来的基准额直接求和。
     SELECT COALESCE(SUM((value->>'base')::numeric), 0) INTO v_po_pay_base
@@ -625,4 +641,5 @@ BEGIN
                              FROM jsonb_each(v_pre))
     );
 END;
-$function$;
+$function$
+;

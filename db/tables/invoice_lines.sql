@@ -46,8 +46,21 @@ CREATE TABLE public.invoice_lines (
     -- ── SO-3a 追加(ALTER 加的列排在末尾)──────────────────────────────────
     -- 订单流发票的行指向【订单行】—— 开票时销售记录还不存在(发货才产生它)。
     sales_order_line_id uuid REFERENCES public.sales_order_lines (id),
+    -- ── GST-2 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
+    -- 【税码与税率在开票那一刻【冻在行上】】一张已开出的发票永远不按今天的设置
+    -- 重算它的税 —— 与已承诺的价格条款同一条规矩。2022 年那张票永远是 7%。
+    -- F5 的 box1/box2/box3 从 tax_code 推导、box6 从 tax_base 推导,
+    -- 而【期间由 invoices.issue_date 决定】:新加坡的税点是开票日,不是销售日。
+    tax_code        text REFERENCES public.tax_codes (code),
+    tax_rate_pct    numeric,
+    tax_base        numeric NOT NULL DEFAULT 0,
     UNIQUE (invoice_id, line_no),
-    CONSTRAINT invoice_lines_one_source CHECK (num_nonnulls(sales_record_id, sales_order_line_id) = 1)
+    CONSTRAINT invoice_lines_one_source CHECK (num_nonnulls(sales_record_id, sales_order_line_id) = 1),
+    -- 【三列是一件事,不是三件】要么整套有,要么整套没有 —— 一个有税码却没有
+    -- 税率的行,报得出格却算不出税。
+    CONSTRAINT invoice_lines_tax_shape CHECK (
+        (tax_code IS NULL     AND tax_rate_pct IS NULL     AND tax_base = 0)
+     OR (tax_code IS NOT NULL AND tax_rate_pct IS NOT NULL AND tax_base >= 0))
 );
 
 CREATE INDEX idx_invoice_lines_invoice ON public.invoice_lines (invoice_id);
@@ -134,3 +147,17 @@ GRANT SELECT (sales_order_line_id)
 -- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)
 COMMENT ON COLUMN public.invoice_lines.amount_base IS '本位币金额(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 amount_usd)。';
 COMMENT ON COLUMN public.invoice_lines.amount_ccy IS '行金额,【单据币种】(INV-1)。= round(quantity × unit_price, 2),不经汇率,所以与 unit_price 天然同币种。客户账单上那一列印的就是它;amount_base 是同一行的【本位币】金额,给账用 —— 两者只在汇率为 1 时相等,把后者标成前者正是 INV-1 修掉的错。';
+
+-- ★【GST-2:开关关着时,这张表上写不进税码】★
+-- GST-1 把这条保证放在 post_journal_entry 上,那时 F5 九格全部从总账推导。
+-- **GST-2 之后那句不再成立**:box1 改从本表推导,一个盖在这里的税码
+-- 【根本不经过总账】就能让 F5 不为零 —— 一道只守旧路径的闸,
+-- 在新路径开通的那一刻就不再是闸了。所以保证跟着搬过来。
+CREATE TRIGGER trg_invoice_lines_tax_code_registered
+    BEFORE INSERT OR UPDATE OF tax_code ON public.invoice_lines
+    FOR EACH ROW EXECUTE FUNCTION public.guard_document_tax_code();
+
+COMMENT ON COLUMN public.invoice_lines.tax_code IS
+    'GST-2:这一行在 GST 上是什么性质,【开票那一刻冻在行上】。F5 的 box1/box2/box3 从这一列推导 —— 税点是开票日,所以供应额的期间由 invoices.issue_date 决定,不由销售日决定。';
+COMMENT ON COLUMN public.invoice_lines.tax_rate_pct IS
+    'GST-2:开票日经 tax_rate_for(code, invoices.issue_date) 解析出来的税率,【抄下来冻住】。一张已开出的发票永远不按今天的设置重算它的税 —— 与已承诺的价格条款同一条规矩。2022 年那张票永远是 7%。';

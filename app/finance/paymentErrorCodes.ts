@@ -32,6 +32,11 @@ const PAYMENT_ERROR_CODES = new Set([
     'ASSET_DESCRIPTION_REQUIRED', 'ASSET_LIFE_INVALID',
     // FA-1a:折旧还欠着就锁不进去 —— 这一条会在月结的关账按钮上冒出来
     'DEPRECIATION_OUTSTANDING',
+    // GST-2:新加坡的供应时点是【开票与收款孰早】。开票那一半实现了;
+    // 收款那一半 —— 一笔先于任何发票收到的客户款 —— 实现不了(那一刻没有
+    // 任何东西说得出它对应哪一项供应),所以它被【按名拦住】而不是无声放过。
+    // 文案在 finance.errors 下,与这个本地化器的其余码同一处。
+    'GST_UNALLOCATED_RECEIPT_UNSUPPORTED',
 ])
 
 // cut 4b:record_payment 的 PO 预付分支抛的码,文案住在 purchasing.errors 下

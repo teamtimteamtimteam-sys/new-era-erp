@@ -20,7 +20,19 @@ CREATE TABLE public.credit_note_lines (
     -- 硬要一个数量就得编一个。金额才是这张单据的主语,所以只有它 NOT NULL。
     qty            numeric CHECK (qty IS NULL OR qty > 0),
     amount         numeric NOT NULL CHECK (amount > 0),
-    created_at     timestamptz NOT NULL DEFAULT now()
+    created_at     timestamptz NOT NULL DEFAULT now(),
+    -- ── GST-2 追加的列(ALTER 加的列排在末尾)────────────────────────────────
+    -- 【从被冲的那一张发票行【抄】来,不重新解析】冲的是哪一笔供应,就退哪一笔
+    -- 供应的税,连它当时那个税率一起 —— 即便法定税率此后变过。按凭证日重算,
+    -- 会用今天的税率去退一笔按去年税率收过的税,差额无声地留在 2100 里。
+    -- 与"币种与汇率抄发票的"逐字同一条理由(见本文件抬头与 CN-1 迁移抬头)。
+    -- 一张贷项凭证在 F5 上是一笔【负的供应】:它减 box1,也减 box6。
+    tax_code       text REFERENCES public.tax_codes (code),
+    tax_rate_pct   numeric,
+    tax_base       numeric NOT NULL DEFAULT 0,
+    CONSTRAINT credit_note_lines_tax_shape CHECK (
+        (tax_code IS NULL     AND tax_rate_pct IS NULL     AND tax_base = 0)
+     OR (tax_code IS NOT NULL AND tax_rate_pct IS NOT NULL AND tax_base >= 0))
 );
 
 COMMENT ON TABLE public.credit_note_lines IS
@@ -46,3 +58,11 @@ ALTER TABLE public.credit_note_lines ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "credit_note_lines select by permission" ON public.credit_note_lines
     AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.finance.view'::text));
+
+-- GST-2:未注册时写不进税码(与 invoice_lines / expenses 同一道闸)。
+CREATE TRIGGER trg_credit_note_lines_tax_code_registered
+    BEFORE INSERT OR UPDATE OF tax_code ON public.credit_note_lines
+    FOR EACH ROW EXECUTE FUNCTION public.guard_document_tax_code();
+
+COMMENT ON COLUMN public.credit_note_lines.tax_code IS
+    'GST-2:贷项凭证行的税码,【从它冲的那一张发票行抄来】—— 不重新解析。冲的是哪一笔供应,就退哪一笔供应的税,连税率一起,即便法定税率此后变过。一张贷项凭证在 F5 上是一笔【负的供应】。';

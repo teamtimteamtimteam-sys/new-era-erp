@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { formatTimestamp } from '@/lib/format'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { mustOne } from '@/lib/db-helpers'
+import { mustOne, mustRows } from '@/lib/db-helpers'
 import EditSupplierForm from './EditSupplierForm'
 import StatusPanel from './StatusPanel'
 import CompliancePanel from './CompliancePanel'
@@ -11,7 +11,6 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
-import { mustRows } from '@/lib/db-helpers'
 import ReceiptPatternPanel, {
     type PatternRow, type ContributingReceipt,
 } from './ReceiptPatternPanel'
@@ -38,6 +37,13 @@ export default async function EditSupplierPage({
         .eq('id', id)
         .is('deleted_at', null)
         .single()
+
+    // GST-2:进项税码字典 + 开关(只在已注册时渲染那一格)。
+    const [gstSettingsRes, gstCodesRes] = await Promise.all([
+        supabase.from('finance_settings').select('gst_registered').limit(1).single(),
+        supabase.from('tax_codes').select('code, name_en, name_zh')
+            .eq('side', 'input').eq('is_active', true).order('sort_order'),
+    ])
 
     if (error || !supplier) {
         notFound()
@@ -162,7 +168,11 @@ export default async function EditSupplierPage({
                 row={patternRow}
                 receipts={contributing}
                 canSee={canSeePattern} />
-            <EditSupplierForm supplier={supplier} templates={templates} />
+            <EditSupplierForm supplier={supplier} templates={templates}
+                gstRegistered={gstSettingsRes.data?.gst_registered ?? false}
+                taxCodes={mustRows(gstCodesRes).map((c) => ({
+                    code: c.code, name_en: c.name_en, name_zh: c.name_zh,
+                }))} />
             <CompliancePanel
                 supplierId={supplier.id}
                 rows={complianceRows ?? []}

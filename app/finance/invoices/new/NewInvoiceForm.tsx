@@ -21,6 +21,28 @@ export type CustomerOption = {
     id: string
     name: string
     payment_terms_days: number | null
+    // GST-2:这个客户的默认销项税码。**null 不是一个默认值,是一个没有人
+    // 回答过的问题** —— 已注册时开票会按名拒(TAX_CODE_REQUIRED)。
+    default_tax_code: string | null
+}
+
+export type TaxCodeOption = { code: string; name_en: string; name_zh: string }
+
+export type TaxRateRow = {
+    tax_code: string
+    rate_pct: number
+    effective_from: string
+    effective_to: string | null
+}
+
+// 【与 tax_rate_for(code, date) 逐字同一条判据】按【生效期间】解析,不回退、
+// 不取最近的一条。找不到就返回 null,而屏幕上说"这一天没有在册税率" ——
+// 前端预览必须与数据库的答案一致,否则人看到一个数、存下来的是一次拒绝。
+function rateFor(rates: TaxRateRow[], code: string, date: string): number | null {
+    const hit = rates.find(
+        (r) => r.tax_code === code && date >= r.effective_from &&
+               (r.effective_to === null || date <= r.effective_to))
+    return hit ? hit.rate_pct : null
 }
 
 export type SaleOption = {
@@ -54,12 +76,14 @@ export default function NewInvoiceForm({
     customers,
     sales,
     gstRegistered,
-    gstRatePct,
+    taxCodes,
+    taxRates,
 }: {
     customers: CustomerOption[]
     sales: SaleOption[]
     gstRegistered: boolean
-    gstRatePct: number
+    taxCodes: TaxCodeOption[]
+    taxRates: TaxRateRow[]
 }) {
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(createInvoice, initialState)
@@ -71,6 +95,10 @@ export default function NewInvoiceForm({
     const [termsText, setTermsText] = useState('')
     const [termsTextTouched, setTermsTextTouched] = useState(false)
     const [checked, setChecked] = useState<Record<string, boolean>>({})
+    // 【税码:客户的默认是一个【建议】,不是一个悄悄的替代】它显示在框里、
+    // 可以当场改;而客户没设默认时这里是空的,提交会撞上具名拒绝而不是一个猜测。
+    const [taxCode, setTaxCode] = useState('')
+    const [taxCodeTouched, setTaxCodeTouched] = useState(false)
 
     const customer = customers.find((c) => c.id === customerId)
 
@@ -97,17 +125,32 @@ export default function NewInvoiceForm({
     function onCustomerChange(id: string) {
         setCustomerId(id)
         setChecked({}) // 换客户清空勾选,避免把别人的销售带过去
+        setTaxCodeTouched(false) // 税码回到新客户的默认(没设就是空)
     }
 
     const selected = visible.filter((s) => checked[s.sales_record_id])
     const subtotal = round2(selected.reduce((sum, s) => sum + s.amount_base, 0))
     const currencies = Array.from(new Set(selected.map((s) => s.currency)))
     const mixedCurrency = currencies.length > 1
-    const taxRate = gstRegistered ? gstRatePct : 0
-    const tax = gstRegistered ? round2((subtotal * taxRate) / 100) : 0
+    // 【税码:未手改过就跟随客户的默认】
+    const effTaxCode = taxCodeTouched ? taxCode : (customer?.default_tax_code ?? '')
+    // 【税率按【开票日】解析,不是按今天】开票日在这张表单上可以改,
+    // 而 2022 年那张票永远是 7% —— 预览必须跟着日期走。
+    const resolvedRate = gstRegistered && effTaxCode
+        ? rateFor(taxRates, effTaxCode, issueDate)
+        : null
+    const rateMissing = gstRegistered && !!effTaxCode && resolvedRate === null
+    const taxRate = resolvedRate ?? 0
+    // 【逐行取整再相加 —— 与 create_invoice 同一口径】表头 = Σ 行税。
+    const tax = gstRegistered && resolvedRate !== null
+        ? round2(selected.reduce((sum, s) => sum + round2((s.amount_base * taxRate) / 100), 0))
+        : 0
     const total = round2(subtotal + tax)
 
     const canSubmit = !!customerId && selected.length > 0 && !mixedCurrency && !isPending
+        // 【已注册就必须有一个税码,而且那一天必须有在册税率】两者都在数据库上
+        // 有具名拒绝;这里提前禁用,是为了不把人骗去撞一次拒绝(CMP-2)。
+        && !(gstRegistered && (!effTaxCode || rateMissing))
 
     return (
         <form action={formAction} className="space-y-5">
@@ -171,6 +214,42 @@ export default function NewInvoiceForm({
                         </p>
                     )}
                 </div>
+                {/* ★【GST-2:税码 —— 只在已注册时出现】★ 未注册时这张表单与
+                    建 GST 之前一模一样,连这一格都不该长出来。 */}
+                {gstRegistered && (
+                    <div>
+                        <label className="block text-sm font-medium mb-1">
+                            {t('invoice.form.taxCode')} <span className="text-red-600">*</span>
+                        </label>
+                        <select
+                            name="tax_code"
+                            value={effTaxCode}
+                            onChange={(e) => { setTaxCodeTouched(true); setTaxCode(e.target.value) }}
+                            className="border border-gray-300 px-3 py-2 rounded"
+                        >
+                            <option value="">{t('invoice.form.taxCodePick')}</option>
+                            {taxCodes.map((c) => (
+                                <option key={c.code} value={c.code}>
+                                    {c.code} · {c.name_zh} / {c.name_en}
+                                </option>
+                            ))}
+                        </select>
+                        {/* 【说出这个码是【从哪儿来的】,不让它看起来像凭空出现的】 */}
+                        {!taxCodeTouched && customer?.default_tax_code && (
+                            <p className="text-xs text-gray-500 mt-1">
+                                {t('invoice.form.taxCodeFromCustomer', { code: customer.default_tax_code })}
+                            </p>
+                        )}
+                        {!!customerId && !customer?.default_tax_code && !effTaxCode && (
+                            <p className="text-xs text-amber-700 mt-1">{t('invoice.form.taxCodeNoDefault')}</p>
+                        )}
+                        {rateMissing && (
+                            <p className="text-xs text-red-600 mt-1">
+                                {t('invoice.form.taxRateMissing', { code: effTaxCode, date: issueDate })}
+                            </p>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* 待开票销售 */}
@@ -271,8 +350,16 @@ export default function NewInvoiceForm({
                 {/* 税行只在已做 GST 登记时出现 */}
                 {gstRegistered && (
                     <div className="flex justify-between">
-                        <span className="text-gray-600">{t('invoice.tax', { rate: taxRate })}</span>
-                        <span className="font-mono">{formatAmount(tax, currencies[0] ?? null)}</span>
+                        {/* 【印的是【解析出来的】税率,连它是哪个码一起说】—— 一个
+                            光秃秃的百分数说不出 0% 是零税率、豁免还是不在范围内。 */}
+                        <span className="text-gray-600">
+                            {effTaxCode && !rateMissing
+                                ? t('invoice.taxWithCode', { code: effTaxCode, rate: taxRate })
+                                : t('invoice.taxUnresolved')}
+                        </span>
+                        <span className="font-mono">
+                            {effTaxCode && !rateMissing ? formatAmount(tax, currencies[0] ?? null) : '—'}
+                        </span>
                     </div>
                 )}
                 <div className="flex justify-between border-t pt-1 font-bold">

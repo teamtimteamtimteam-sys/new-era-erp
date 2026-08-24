@@ -55,8 +55,16 @@ CREATE TABLE public.invoices (
     -- 负债都要用的那一个数;开屏现查行情会让同一张发票在不同日子值不同的钱。
     fx_rate            numeric,
     sales_order_id     uuid REFERENCES public.sales_orders (id),
+    -- ── GST-2 改写 ──────────────────────────────────────────────────────────
+    -- 【sale 型从此【可能】有一张分录 —— 那张分录只过税】收入在【销售】那一刻
+    -- 已经认过(借 1100 / 贷 4000),开票再认一次就是把同一笔生意记两遍;
+    -- 而税从来没有人过过 —— total_base 一直写着 subtotal + tax,那句话到 GST-2
+    -- 才第一次在总账里兑现(借 1100 / 贷 2100)。
+    -- 【判据是"恰好对应",比原来的"一律为空"更紧】带税就有分录,不带税就没有:
+    -- 两列被钉成同一件事,而不是各说各话。零税率/豁免的票税额为 0,因此没有分录。
     CONSTRAINT invoices_kind_consistency CHECK (
-        (kind = 'sale'  AND sales_order_id IS NULL     AND entry_id IS NULL     AND fx_rate IS NULL)
+        (kind = 'sale'  AND sales_order_id IS NULL AND fx_rate IS NULL
+                        AND (entry_id IS NOT NULL) = (tax_base <> 0))
      OR (kind = 'order' AND sales_order_id IS NOT NULL AND entry_id IS NOT NULL AND fx_rate IS NOT NULL AND fx_rate > 0))
 );
 

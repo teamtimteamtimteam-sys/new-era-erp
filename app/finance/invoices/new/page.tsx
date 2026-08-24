@@ -36,20 +36,27 @@ export default async function NewInvoicePage() {
     const supabase = await createClient()
     const t = await getTranslations()
 
-    const [customersRes, salesRes, settingsRes] = await Promise.all([
+    const [customersRes, salesRes, settingsRes, codesRes, ratesRes] = await Promise.all([
         supabase
             .from('customers')
-            .select('id, legal_name, payment_terms_days')
+            .select('id, legal_name, payment_terms_days, default_tax_code')
             .is('deleted_at', null)
             .order('legal_name'),
         supabase
             .from('sales_records_masked')
             .select('id, customer_id, quantity, unit_price, currency, amount_base, sale_date, output_batches(code, unit, materials(name))')
             .order('sale_date', { ascending: false }),
-        supabase.from('finance_settings').select('gst_registered, gst_rate_pct').limit(1).single(),
+        supabase.from('finance_settings').select('gst_registered').limit(1).single(),
+        // GST-2:销项税码与【按生效期间挂着的】税率史。
+        // 【为什么把整段税率史送到前端,而不是送一个数】税率按【开票日】解析,
+        // 而开票日在这张表单上是可以改的 —— 送一个数就等于把预览钉死在某一天,
+        // 而那正是 finance_settings.gst_rate_pct 那个标量犯的错。
+        supabase.from('tax_codes').select('code, name_en, name_zh, side, is_active')
+            .eq('side', 'output').eq('is_active', true).order('sort_order'),
+        supabase.from('tax_rates').select('tax_code, rate_pct, effective_from, effective_to'),
     ])
 
-    const error = customersRes.error ?? salesRes.error
+    const error = customersRes.error ?? salesRes.error ?? codesRes.error ?? ratesRes.error
     if (error) {
         return (
             <div className="p-8">
@@ -75,6 +82,7 @@ export default async function NewInvoicePage() {
         id: c.id,
         name: c.legal_name,
         payment_terms_days: c.payment_terms_days,
+        default_tax_code: c.default_tax_code,
     }))
 
     const sales: SaleOption[] = ((salesRes.data as unknown as SaleFetchRow[] | null) ?? [])
@@ -100,7 +108,15 @@ export default async function NewInvoicePage() {
                 customers={customers}
                 sales={sales}
                 gstRegistered={settingsRes.data?.gst_registered ?? false}
-                gstRatePct={Number(settingsRes.data?.gst_rate_pct ?? 0)}
+                taxCodes={mustRows(codesRes).map((c) => ({
+                    code: c.code, name_en: c.name_en, name_zh: c.name_zh,
+                }))}
+                taxRates={mustRows(ratesRes).map((r) => ({
+                    tax_code: r.tax_code,
+                    rate_pct: Number(r.rate_pct),
+                    effective_from: r.effective_from,
+                    effective_to: r.effective_to,
+                }))}
             />
         </div>
     )

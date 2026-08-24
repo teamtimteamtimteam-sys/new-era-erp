@@ -52,7 +52,12 @@ CREATE TABLE public.suppliers (
     -- 因为本刀把原来那个普通列 DROP 之后重新 ADD 成了生成列
     -- (PostgreSQL 不能把普通列原地改成生成列)。
     supplies_goods                   boolean
-                                     GENERATED ALWAYS AS (counterparty_type = 'goods_supplier') STORED
+                                     GENERATED ALWAYS AS (counterparty_type = 'goods_supplier') STORED,
+    -- ── GST-2 追加的列(ALTER 加的列排在末尾)────────────────────────────────
+    -- 这家供应商的账单默认用哪个【进项】税码。初值 NULL;已注册时记费用按名拒
+    -- (TAX_CODE_REQUIRED|supplier)。与 customers.default_tax_code 逐字同一条理由。
+    -- 侧别由 trg_suppliers_default_tax_code_side 钉住。
+    default_tax_code                 text REFERENCES public.tax_codes (code)
 );
 
 COMMENT ON COLUMN public.suppliers.counterparty_type IS
@@ -174,3 +179,11 @@ CREATE POLICY "suppliers delete by permission"
 
 COMMENT ON COLUMN public.suppliers.created_by IS
     'SOD-1:建这一行的人。【职责分离控制②的主语】—— sod_supplier_creator() 读它,建供应商的人不得对该供应商付款。此前无默认值且 app 的 INSERT 不传它,所以线上 8 行全为 NULL;那 8 行不回填(FIN-26:捏造的来历比空白更坏),控制②对它们不适用,见 docs/known-issues.md 的 SOD-1-BLIND 条。今起由 trg_supplier_creator 落笔,而它只在 auth.uid() 确实是一个 auth.users 账号时落笔 —— 那正是本列外键会接受的条件。';
+
+-- GST-2:默认税码的【侧别】—— 进项码才挂得上供应商。
+CREATE TRIGGER trg_suppliers_default_tax_code_side
+    BEFORE INSERT OR UPDATE OF default_tax_code ON public.suppliers
+    FOR EACH ROW EXECUTE FUNCTION public.guard_default_tax_code_side();
+
+COMMENT ON COLUMN public.suppliers.default_tax_code IS
+    'GST-2:这家供应商的账单默认用哪个进项税码。初值 NULL,已注册时记费用会按名拒(TAX_CODE_REQUIRED|supplier)。与 customers.default_tax_code 逐字同一条理由。';

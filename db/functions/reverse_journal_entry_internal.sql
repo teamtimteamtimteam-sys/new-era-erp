@@ -10,7 +10,6 @@
 -- 的权限,而不是这件事在账上留下的痕迹所属模块的权限(cut 2a B4(b) 的规矩)。
 --
 -- NOTE: introduced by db/migrations/2026-08-02-perm3b-reversal-boundary.sql.
-
 CREATE OR REPLACE FUNCTION public.reverse_journal_entry_internal(p_entry_id uuid, p_reversal_date date, p_memo text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -32,6 +31,7 @@ BEGIN
     END IF;
 
     -- 行全部翻边(debit↔credit),原币金额/汇率原样 → USD 侧必然精确对冲。
+    -- 【GST-2:tax_code 一起翻过去】不抄它,一笔冲销掉的采购会永远留在 box5。
     SELECT jsonb_agg(
         jsonb_build_object(
             'account_code', a.code,
@@ -39,7 +39,8 @@ BEGIN
             'currency', l.currency,
             'amount_ccy', l.amount_ccy,
             'fx_rate', l.fx_rate,
-            'line_memo', l.line_memo
+            'line_memo', l.line_memo,
+            'tax_code', l.tax_code
         ) ORDER BY l.created_at, l.id
     ) INTO v_lines
     FROM journal_lines l
@@ -65,4 +66,5 @@ BEGIN
         'code', v_result->>'code'
     );
 END;
-$function$;
+$function$
+;

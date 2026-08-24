@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.create_order_invoice(p_sales_order_id uuid, p_issue_date date, p_payment_terms_days integer DEFAULT NULL::integer, p_notes text DEFAULT NULL::text, p_terms_text text DEFAULT NULL::text, p_line_ids uuid[] DEFAULT NULL::uuid[])
+CREATE OR REPLACE FUNCTION public.create_order_invoice(p_sales_order_id uuid, p_issue_date date, p_payment_terms_days integer DEFAULT NULL::integer, p_notes text DEFAULT NULL::text, p_terms_text text DEFAULT NULL::text, p_line_ids uuid[] DEFAULT NULL::uuid[], p_tax_code text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -17,10 +17,11 @@ DECLARE
     v_no       integer := 0;
     v_sub_ccy  numeric := 0;
     v_sub_base numeric;
-    v_gst_on   boolean;
-    v_gst_rate numeric;
+    v_tax_code text;
     v_tax_rate numeric := 0;
-    v_tax      numeric := 0;
+    v_tax      numeric := 0;      -- 单据币种
+    v_tax_base numeric := 0;      -- 本位币
+    v_line_tax numeric;
     v_existing text;
     v_exposure numeric;
     v_lines    jsonb := '[]'::jsonb;
@@ -116,15 +117,41 @@ BEGIN
         RAISE EXCEPTION 'SO_INVOICE_NOTHING_TO_BILL|%', v_order.code;
     END IF;
 
-    -- 【GST:明确不支持,不是悄悄算错】预收发票的销项税时点与科目没人回答过;
-    -- 公司未登记(税率恒 0),这条今天不可达 —— 但"不可达"不是"不用拒"。
-    SELECT gst_registered, gst_rate_pct INTO v_gst_on, v_gst_rate FROM finance_settings LIMIT 1;
-    IF COALESCE(v_gst_on, false) THEN
-        v_tax_rate := COALESCE(v_gst_rate, 0);
-        v_tax := round(v_sub_ccy * v_tax_rate / 100.0, 2);
+    -- ════════════════════════════════════════════════════════════════════════
+    -- 【GST-2:那条"明确不支持"的拒绝在这里退休 —— 因为它等的那个答案到了】
+    -- 原话是"预收发票的销项税时点与科目没人回答过"。Tim 2026-08-25 的裁定
+    -- 就是那个答案:税点是【开票】。而订单流发票【正是】一张先于发货开出的
+    -- 税务发票 —— 也就是新加坡税点规则最典型的那一种。把它继续拒下去,
+    -- 等于在开关打开的那一天关掉整条订单开票路。
+    -- 【科目也随之确定】销项税贷 2100,与 sale 型逐字同一个落点。
+    -- ════════════════════════════════════════════════════════════════════════
+    IF gst_registered() THEN
+        v_tax_code := resolve_tax_code(p_tax_code, v_cust.default_tax_code, 'output', 'customer');
+        v_tax_rate := tax_rate_for(v_tax_code, p_issue_date);
+    ELSE
+        IF NULLIF(btrim(COALESCE(p_tax_code, '')), '') IS NOT NULL THEN
+            RAISE EXCEPTION 'GST_NOT_REGISTERED|%', p_tax_code;
+        END IF;
+        v_tax_code := NULL;
+        v_tax_rate := 0;
     END IF;
-    IF v_tax <> 0 THEN
-        RAISE EXCEPTION 'INVOICE_ORDER_GST_UNSUPPORTED|%', v_order.code;
+
+    -- 【逐行算税、逐行取整】表头的税 = Σ 行税,不是 round(Σ 行净额 × 税率):
+    -- 两种算法差几分,而客户手里那张纸上印的是行。与 create_invoice 同一口径。
+    IF v_tax_code IS NOT NULL THEN
+        DECLARE v_acc jsonb := '[]'::jsonb; v_e jsonb;
+        BEGIN
+            FOR v_e IN SELECT * FROM jsonb_array_elements(v_lines)
+            LOOP
+                v_line_tax := round((v_e->>'amount_ccy')::numeric * v_tax_rate / 100.0, 2);
+                v_tax      := v_tax + v_line_tax;
+                v_tax_base := v_tax_base + round(v_line_tax * v_order.fx_rate, 2);
+                v_acc := v_acc || (v_e || jsonb_build_object('tax_ccy', v_line_tax));
+            END LOOP;
+            v_lines := v_acc;
+        END;
+        v_tax      := round(v_tax, 2);
+        v_tax_base := round(v_tax_base, 2);
     END IF;
 
     v_sub_ccy := round(v_sub_ccy, 2);
@@ -141,9 +168,11 @@ BEGIN
     END IF;
     IF v_cust.credit_limit_base IS NOT NULL THEN
         v_exposure := customer_ar_exposure_base(v_cust.id);
-        IF v_exposure + v_sub_base > v_cust.credit_limit_base THEN
+        -- 【敞口按客户真正欠的钱算 —— 含税】开票即应收,而应收是净额 + 销项税。
+        -- 只按净额判额度,会让每一张票都少占用一截额度。
+        IF v_exposure + v_sub_base + v_tax_base > v_cust.credit_limit_base THEN
             RAISE EXCEPTION 'CREDIT_LIMIT_EXCEEDED|%|%|%|%',
-                v_cust.code, v_cust.credit_limit_base, v_exposure, v_sub_base;
+                v_cust.code, v_cust.credit_limit_base, v_exposure, v_sub_base + v_tax_base;
         END IF;
     END IF;
 
@@ -161,18 +190,42 @@ BEGIN
         p_issue_date,
         'Invoice ' || v_code || ' · ' || v_order.code,
         'invoice', v_invoice_id,
+        CASE WHEN v_tax = 0 THEN
         jsonb_build_array(
             jsonb_build_object('account_code', '1100', 'side', 'debit',
                 'currency', v_order.currency, 'amount_ccy', v_sub_ccy, 'fx_rate', v_order.fx_rate),
             jsonb_build_object('account_code', '2500', 'side', 'credit',
-                'currency', v_order.currency, 'amount_ccy', v_sub_ccy, 'fx_rate', v_order.fx_rate)));
+                'currency', v_order.currency, 'amount_ccy', v_sub_ccy, 'fx_rate', v_order.fx_rate))
+        ELSE
+        -- 【税是【第三、四条腿】,不是把 1100 那条腿加粗】两条独立取整的腿
+        -- 精确对冲;把净额与税合成一条 round((净+税)×fx) 会与 2500/2100 两边
+        -- 差一分钱,而那一分钱撞的是提交时的借贷平衡触发器。
+        jsonb_build_array(
+            jsonb_build_object('account_code', '1100', 'side', 'debit',
+                'currency', v_order.currency, 'amount_ccy', v_sub_ccy, 'fx_rate', v_order.fx_rate),
+            jsonb_build_object('account_code', '2500', 'side', 'credit',
+                'currency', v_order.currency, 'amount_ccy', v_sub_ccy, 'fx_rate', v_order.fx_rate),
+            -- 【税那两条腿的 fx 用 v_tax_base / v_tax,不是订单汇率本身】
+            -- 【为什么】F5 的 box6(单据侧)是 Σ 行税额(逐行 round(原币税 × fx)),
+            -- 而这两条腿若按订单汇率过,过的是 round(Σ原币税 × fx) —— 外币下
+            -- 两者可以差一分钱,于是"单据 vs 总账"那条勾稽会在一张【完全正确的】
+            -- 发票上报 false。一条会因为取整而误报的勾稽,一个季度之后就没人看了。
+            -- 【这个写法是仓库里现成的】record_payment 的解除行逐字同一手:
+            -- "行 fx = 目标基准额 ÷ 原币额(除后反乘取整恰好还原)"。
+            jsonb_build_object('account_code', '1100', 'side', 'debit',
+                'currency', v_order.currency, 'amount_ccy', v_tax, 'fx_rate', v_tax_base / v_tax,
+                'line_memo', 'output tax ' || v_tax_code),
+            jsonb_build_object('account_code', '2100', 'side', 'credit',
+                'currency', v_order.currency, 'amount_ccy', v_tax, 'fx_rate', v_tax_base / v_tax,
+                'line_memo', 'output tax ' || v_tax_code))
+        END);
 
     INSERT INTO invoices (id, code, customer_id, issue_date, due_date, payment_terms_days,
                           currency, subtotal_base, tax_rate_pct, tax_base, total_base,
                           notes, terms_text, bill_to_snapshot,
                           kind, sales_order_id, entry_id, fx_rate)
     VALUES (v_invoice_id, v_code, v_cust.id, p_issue_date, v_due, v_terms,
-            v_order.currency, v_sub_base, v_tax_rate, 0, v_sub_base,
+            v_order.currency, v_sub_base, v_tax_rate, v_tax_base, v_sub_base + v_tax_base,
             p_notes, p_terms_text,
             jsonb_build_object(
                 'code', v_cust.code,
@@ -191,7 +244,8 @@ BEGIN
     FOR v_l IN SELECT * FROM jsonb_array_elements(v_lines)
     LOOP
         INSERT INTO invoice_lines (invoice_id, sales_order_line_id, line_no, description,
-                                   quantity, unit, unit_price, amount_base)
+                                   quantity, unit, unit_price, amount_base,
+                                   tax_code, tax_rate_pct, tax_base)
         VALUES (v_invoice_id,
                 (v_l->>'sales_order_line_id')::uuid,
                 (v_l->>'line_no')::integer,
@@ -199,7 +253,11 @@ BEGIN
                 (v_l->>'quantity')::numeric,
                 v_l->>'unit',
                 (v_l->>'unit_price')::numeric,
-                round((v_l->>'amount_ccy')::numeric * v_order.fx_rate, 2));
+                round((v_l->>'amount_ccy')::numeric * v_order.fx_rate, 2),
+                v_tax_code,
+                CASE WHEN v_tax_code IS NULL THEN NULL ELSE v_tax_rate END,
+                CASE WHEN v_tax_code IS NULL THEN 0
+                     ELSE round((v_l->>'tax_ccy')::numeric * v_order.fx_rate, 2) END);
     END LOOP;
 
     -- 开票进订单的历史 —— 订单流先开票后发货,"开过没有"是看订单的人的问题。
@@ -214,10 +272,12 @@ BEGIN
         'currency', v_order.currency,
         'fx_rate', v_order.fx_rate,
         'subtotal_ccy', v_sub_ccy,
-        'total_base', v_sub_base,
+        'tax_code', v_tax_code,
+        'tax_ccy', v_tax,
+        'tax_base', v_tax_base,
+        'total_base', v_sub_base + v_tax_base,
         'line_count', v_no,
         'journal_code', v_je->>'code');
 END;
 $function$
-
 ;

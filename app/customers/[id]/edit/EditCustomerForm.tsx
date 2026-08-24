@@ -29,11 +29,18 @@ type Customer = {
     incoterm: string | null
     credit_rating: string | null
     credit_limit_base: number | null
+    default_tax_code: string | null
     credit_hold: boolean | null
     notes: string | null
 }
 
-export default function EditCustomerForm({ customer }: { customer: Customer }) {
+export type TaxCodeOption = { code: string; name_en: string; name_zh: string }
+
+export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: {
+    customer: Customer
+    gstRegistered: boolean
+    taxCodes: TaxCodeOption[]
+}) {
     const t = useTranslations()
     const updateWithId = updateCustomer.bind(null, customer.id)
     const [state, formAction, isPending] = useActionState(
@@ -228,6 +235,28 @@ export default function EditCustomerForm({ customer }: { customer: Customer }) {
                     </label>
                     <p className="text-xs text-gray-500 mt-1">{t('customers.form.creditHoldHint')}</p>
                 </div>
+
+                {/* ★【GST-2:这个客户的默认销项税码 —— 只在已注册时出现】★
+                    未注册时这一格根本不长出来:那时税码写不进任何地方,
+                    留一个设得了却毫无作用的框,是在承诺一件做不到的事。 */}
+                {gstRegistered && (
+                    <div>
+                        <label className="block text-sm font-medium mb-1">{t('customers.form.defaultTaxCode')}</label>
+                        <select
+                            name="default_tax_code"
+                            defaultValue={customer.default_tax_code ?? ''}
+                            className="w-full border border-gray-300 px-3 py-2 rounded"
+                        >
+                            <option value="">{t('customers.form.defaultTaxCodeNone')}</option>
+                            {taxCodes.map((c) => (
+                                <option key={c.code} value={c.code}>
+                                    {c.code} · {c.name_zh} / {c.name_en}
+                                </option>
+                            ))}
+                        </select>
+                        <p className="text-xs text-gray-500 mt-1">{t('customers.form.defaultTaxCodeHint')}</p>
+                    </div>
+                )}
 
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('customers.form.notes')}</label>
