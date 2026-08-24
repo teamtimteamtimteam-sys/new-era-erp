@@ -3112,6 +3112,16 @@ const en = {
             equipmentOrderNote: 'This is an equipment order. A machine arriving is not a goods receipt — it creates no batch, has no assay and does not enter a location, so there is no “receive” action here. Record what the machine cost as an expense against its order line; its arrival and commissioning live on its asset card under Finance → Assets.',
             colMachine: 'Machine',
             releaseDate: 'Release date',
+        approvalPanelTitle: 'This order is waiting for approval',
+        approvalPanelWhat:
+            'Approving moves the order to confirmed — from that point goods can be received against it and a deposit can be released. Rejecting leaves it as a draft and records why.',
+        approveOrder: 'Approve order',
+        approveConfirm: 'Approve this purchase order?',
+        rejectOrder: 'Reject order',
+        rejectConfirm: 'Reject this purchase order?',
+        rejectConsequence:
+            'The order stays a draft and cannot receive goods. Who rejected it and why are both recorded, and the record is append-only.',
+        rejectReason: 'Why is it being rejected?',
         cancelConsequence: 'The order is closed for good — it cannot be reopened. Who cancelled it and why are both recorded.',
         terms: {
             committed: 'terms committed {code} · {on}',
@@ -3353,6 +3363,24 @@ const en = {
             PO_NOT_APPROVED: 'Purchase order {0} is not approved yet (approval status: {1}) — goods cannot be received against it',
             SUPPLIER_QUALIFICATION_EXPIRED: 'Receiving from supplier {0} is blocked: certificate {1} expired on {2}. Renew it under Suppliers → Compliance',
             PO_ALREADY_CLOSED: 'Purchase order {0} is already closed',
+            APPROVALS_NOT_ENABLED:
+                'Approvals are not in force, so there is nothing to approve — this order was stamped by the system when it was raised; nobody decided it.',
+            PO_NOT_PENDING: 'Purchase order {0} is not awaiting approval (approval status: {1})',
+            SELF_APPROVAL_FORBIDDEN:
+                'Segregation of duties: the person who raised a purchase order cannot approve it. Ask another holder of the approver role.',
+            REJECT_REASON_REQUIRED: 'A reason is required to reject an order',
+            APPROVAL_NOT_AUTHORISED: 'You are not the level-{0} approver ({1})',
+            APPROVAL_LEVEL1_ROLE_NOT_SET:
+                'The level-1 approver role is not set, so this order cannot be routed. Set it in Finance → Settings.',
+            APPROVAL_LEVEL2_USER_NOT_SET:
+                'The level-2 approver is not set, so an above-threshold order cannot be routed. Set it in Finance → Settings.',
+            APPROVAL_THRESHOLD_NOT_SET:
+                'The approval threshold is not set, so this order cannot be routed to a level. Set it in Finance → Settings.',
+            APPROVAL_AMOUNT_REQUIRED:
+                'This document has no base-currency amount, so it cannot be routed by value',
+            APPROVAL_LEVEL_INVALID: 'Approval level {0} does not exist in this system',
+            APPROVAL_SUBJECT_NOT_FOUND: 'No {0} exists with id {1} — nothing to record a decision against',
+            APPROVAL_SUBJECT_TYPE_UNKNOWN: '"{0}" is not a kind of thing this system records approvals for',
             PO_NOT_CLOSED: 'Purchase order {0} is not closed',
             CLOSE_NOTES_REQUIRED:
                 'This order has {0} of unapplied prepayment — a note explaining how it is resolved is required to close',
@@ -4263,6 +4291,37 @@ const en = {
         reopenConfirm: 'Reopen this period? Its entries become editable again.',
         closeHistoryEmpty: 'No closes yet',
         useClosePage: 'Month-end close is the normal way to lock periods — use the Close page.',
+        approvals: {
+            title: 'Approvals',
+            on: 'Approvals are IN FORCE — purchase orders are raised as drafts and must be approved before goods can be received against them.',
+            off: 'Approvals are NOT in force. Orders are stamped approved by the system when they are raised; nobody decides them. This is a state the system says out loud, not a silent permissiveness.',
+            notDecided: 'Nobody has decided',
+            readError:
+                'The approvals status could not be read. This is NOT a statement that approvals are off — it means the status is unknown. Do not act on this page until it loads.',
+            noEligibleApprover:
+                'Nobody holding "{role}" is structurally incapable of raising a purchase order — the role itself carries Purchasing (edit). Same-person approval is still blocked, but the only shape available is one holder of this role approving another. Either level 1 stops being this role, or this role stops carrying Purchasing (edit), or intra-role approval is accepted deliberately.',
+            level1: 'Level-1 approver role',
+            level1Unset: 'unset means undecided, NOT "no approval needed"',
+            threshold: 'Threshold (base currency)',
+            thresholdUnset: 'unset means undecided — without it no order can be routed to a level',
+            level2: 'Level-2 approver (a named person)',
+            level2Unset: 'unset means undecided — an above-threshold order would have nowhere to go',
+            whatFlipDoes: 'What flipping the switch would do:',
+            flipOn: 'Turning it ON: existing orders keep the approval status they already have and stay receivable — nothing is stranded. New orders are raised as draft/pending and must be approved before goods can be received or a deposit released. The database refuses to turn it on unless all three values above are set and point at real accounts, so "on but unconfigured" is a state that cannot be reached.',
+            flipOff: 'Turning it OFF: orders raised while approvals were in force keep their status — turning off never retroactively approves anything. The database refuses to turn it off while any order is still awaiting approval ({n} right now), because those orders could otherwise never be approved and never receive goods.',
+            canEnable: 'Policy is complete: approvals could be switched on.',
+            cannotEnable: 'Approvals cannot be switched on yet — still unset or unusable: {what}',
+            howToTurnOn:
+                'Whether approvals are in force is a business decision. Turning them on is a deliberate database change that sets all three policy values and the flag together; this page reports the state, it does not flip it.',
+        },
+        sod: {
+            cannotCheck:
+                'Segregation of duties could not be checked right now — the sign-in service could not be reached. That means "cannot tell", not "no conflict": the database still enforces the rule, so the action may still be refused.',
+            lockNotice:
+                'Segregation of duties: you posted manual journal entries dated {dates}. If the lock date you set covers any of them, closing will be refused — someone else holding Finance (edit) has to close that period.',
+            payeeNotice:
+                'Segregation of duties: you created this supplier, so you cannot record a payment to it. Another holder of Finance (edit) has to do it.',
+        },
         errors: {
             PAYMENT_NOT_FOUND: 'Payment {0} does not exist.',
             PAYMENT_ALREADY_REVERSED: 'Payment {0} has already been reversed — a reversal reverses the original once, and reversing it twice would restore the amount it removed.',
@@ -4318,6 +4377,20 @@ const en = {
             TRIAL_BALANCE_UNBALANCED: 'Trial balance does not balance ({0} vs {1})',
             CLOSE_NOT_FOUND: 'No close found for this period',
             ALREADY_REOPENED: 'This period has already been reopened',
+            SOD_POST_AND_CLOSE:
+                'Segregation of duties: you posted a manual journal entry in the period ending {0}, so you cannot be the one to close it. Ask another holder of Finance (edit) to close this period.',
+            SOD_PAYEE_AND_PAY:
+                'Segregation of duties: you created supplier {0}, so you cannot be the one to pay it. Ask another holder of Finance (edit) to record this payment.',
+            APPROVALS_POLICY_INCOMPLETE:
+                'Approvals cannot be switched on until the policy is complete — still unset: {0}. Set the level-1 role, the threshold and the level-2 approver in one change, then switch it on.',
+            APPROVALS_LEVEL1_ROLE_UNHELD:
+                'No real login account holds the level-1 approver role "{0}", so every request would queue with nobody able to approve it. Grant that role to someone first.',
+            APPROVALS_LEVEL2_USER_UNKNOWN:
+                'The level-2 approver ({0}) is not a real login account. Choose someone who can actually sign in.',
+            APPROVALS_CANNOT_DISABLE_WITH_PENDING:
+                'Approvals cannot be switched off while {0} purchase order(s) still await approval: {1}. Switching off would strand them — they could never be approved, and goods could never be received against them. Approve or reject them first.',
+            APPROVALS_POLICY_LOCKED_WHILE_ON:
+                '{0} cannot be cleared while approvals are in force — an enabled control with no policy refuses every request. Switch approvals off first, then change the policy.',
             REASON_REQUIRED: 'A reopen reason is required',
         },
         fxPage: {

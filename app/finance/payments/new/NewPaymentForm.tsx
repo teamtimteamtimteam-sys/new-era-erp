@@ -16,7 +16,9 @@ import DecimalInput from '@/app/components/forms/DecimalInput'
 
 const initialState: CreatePaymentState = {}
 
-export type PartyOption = { id: string; name: string }
+// SOD-1:createdByMe —— 这一家收款人是不是【当前登录的人】建的。
+// 只在供应商上有意义;undefined / false 都表示"这条规矩此刻不适用"。
+export type PartyOption = { id: string; name: string; createdByMe?: boolean }
 
 export type OpenItem = {
     doc_id: string // in → sales_record_id 或 invoice_id / out → inbound_batch_id / expense id / freight_document_id(按 doc_kind)
@@ -54,6 +56,7 @@ const round2 = (n: number) => Math.round(n * 100) / 100
 export default function NewPaymentForm({
     customers,
     suppliers,
+    sodUnknown,
     employees,
     arItems,
     apItems,
@@ -64,6 +67,8 @@ export default function NewPaymentForm({
 }: {
     customers: PartyOption[]
     suppliers: PartyOption[]
+    // SOD-1:认证够不着时为 true —— 此时【不能】说"你没有冲突",要说"查不了"。
+    sodUnknown?: boolean
     employees: PartyOption[]
     arItems: OpenItem[]
     apItems: OpenItem[]
@@ -147,6 +152,14 @@ export default function NewPaymentForm({
     // 过滤核销候选用的仍是【裸 uuid】,所以这里把两者分开拿。
     const selectedParty = parseCounterparty(partyValue)
     const partyId = selectedParty?.id ?? ''
+    // SOD-1:【在人动手之前就说出来】—— 「建收款人的人不得付款给它」这条闸在
+    // payments 表上,撞了就是一次拒绝,而那时金额、日期、核销行都已经填完了。
+    // 所以选中收款人的那一刻就说。**这里不禁用提交按钮**:规矩不适用时
+    // (created_by 没有记下来)它完全合法,而按钮的禁用条件必须是一个
+    // 页面自己答得准的问题 —— 这一个不是,真正的判定在服务端。
+    const payeeIsMine =
+        direction === 'out' &&
+        (suppliers.find((x) => x.id === partyId)?.createdByMe ?? false)
     // ════════════════════════════════════════════════════════════════════════
     // 【这里曾经按币种过滤过 —— 那是修错了层】
     // 当时看到"页面列出了服务端会拒的选项",就让页面去迎合服务端。可那条服务端
@@ -461,6 +474,18 @@ export default function NewPaymentForm({
                     />
                 </div>
             </div>
+
+            {sodUnknown && (
+                <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+                    {t('finance.sod.cannotCheck')}
+                </p>
+            )}
+
+            {payeeIsMine && (
+                <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+                    {t('finance.sod.payeeNotice')}
+                </p>
+            )}
 
             {/* 预付款(采购单):付款方向、选定供应商后,列其可预付的采购单 ——
                 排在 AP 单据之上;alloc_kind 'purchase_order' 由 action 映射为

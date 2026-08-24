@@ -118,18 +118,28 @@ orders. **Whether that is required at fifteen people is Tim's judgement, not a m
 
 ---
 
-## 4b · The stop-gate fired (2026-08-24) — **so nothing was built, in EITHER item**
+## 4b · The stop-gate fired (2026-08-24) — **and it stopped THIS item only**
 
 The APPROVALS-SCOPE cut carried an explicit gate: *if department scope measures as a cross-table
 migration rather than a contained change, stop and report both surveys before building either;
 do not start a migration across every business table inside a cut that also turns approvals on.*
 
 **It measures as a cross-table migration** — §1 and §2 are the evidence — **so the gate fired.**
-Consequences, stated so no one reads this file as a plan that was executed:
 
-* **No migration was written and no migration was applied.** No backup was taken, because there was
-  nothing to take one before; the cut touched documentation and one function-mirror header comment.
-* **`docs/forward-queue.md` Phase 3 items 3 and 4 are NOT struck.** Striking an item that was only
+> **What the gate stopped, corrected 2026-08-24 (REVISION 1).** This section first read "so nothing
+> was built, in EITHER item". **Tim ruled that the hazard the gate names is the COMBINATION** — "do
+> not start a migration across every business table *inside a cut that also turns approvals on*" —
+> **not either half on its own.** So: **department scope stops here, at the survey. Approvals and
+> segregation of duties were built** (SOD-1, 2026-08-24), and they touch no department predicate.
+> The sentence is corrected rather than annotated, because this is the file a reader trusts on the
+> sequencing.
+
+Consequences for **this** item, stated so no one reads this file as a plan that was executed:
+
+* **No migration toward a department dimension was written or applied.** SOD-1's migrations exist and
+  are unrelated to it: they add a segregation-of-duties predicate and two guards on the approvals
+  switch, and not one of them references a department.
+* **`docs/forward-queue.md` Phase 3 item 4 is NOT struck** (item 3 *is* — SOD-1 built it). Striking an item that was only
   surveyed would be the "a strike-through hiding a live item" defect the queue's own rules name.
 * **The approvals switch was NOT flipped.** `finance_settings.approvals_enabled` is still `false`
   and the three policy columns are still NULL.

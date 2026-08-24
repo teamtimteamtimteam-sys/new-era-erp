@@ -25,12 +25,21 @@ BEGIN
         (r_fin, 'module.finance.view'), (r_fin, 'module.purchasing.view'),
         (r_fin, 'module.purchasing.edit'), (r_fin, 'module.inbound.view');
     INSERT INTO user_roles (user_id, role_id) VALUES (u_fin, r_fin);
-    PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_fin), true);
-
+    -- 【SOD-1:这两家是【布景】,不是某个人做的一次受控动作】
+    -- 建供应商现在会被 trg_supplier_creator 盖上 created_by,而本 fixture 后面
+    -- 由 u_fin 付款给 FX97-FWD —— 同一个人建户又付款,正是 SOD_PAYEE_AND_PAY
+    -- 要拦的那件事(实测拦住了,这几行就是那次拒绝的处置)。
+    -- 布景【没有主语】:claims 留空时 auth.uid() 为 NULL,触发器不落笔,
+    -- created_by 保持 NULL —— 那与线上 8 家既有供应商是同一个状态,
+    -- 而在那个状态下这条规矩【不适用】(见 docs/known-issues.md 的 SOD-1-BLIND 条)。
+    -- 本 fixture 测的是"货代在账上就是一家供应商",不是职责分离;
+    -- 职责分离由 db/fixtures/127 自己测,那里 B1 臂走的正是这条路。
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
     VALUES ('FX97-GOODS', 'fixture 97 goods supplier', 'SG', 'goods_supplier') RETURNING id INTO s_goods;
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
     VALUES ('FX97-FWD', 'fixture 97 forwarder', 'SG', 'forwarder') RETURNING id INTO s_fwd;
+
+    PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_fin), true);
 
     -- ══════════ A. 派生列双向跟随,且不可直写 ═══════════════════════════════
     SELECT supplies_goods INTO v_bool FROM suppliers WHERE id = s_goods;

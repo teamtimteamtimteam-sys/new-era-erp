@@ -32,6 +32,13 @@
 -- 那一臂就变成空转。fixture 26 的 A/C 臂正是这样空转过。
 --
 -- 自带数据(README 第 2 条)。不继承 locked_before —— 自己设(README 第 4 条)。
+--
+-- 【SOD-1(2026-08-24)之后,设锁这件事本身有了一道闸】
+-- SOD_POST_AND_CLOSE:在某个期间里记过【手工凭证】的人,不许把那个期间锁上。
+-- 本 fixture 大量地"记一笔手工凭证、然后把锁搬来搬去",而那些搬锁【是布景】,
+-- 不是某个人在关账 —— 所以每一处设锁前把 claims 清空(auth.uid() = NULL,
+-- 规矩没有主语可比),设完再把 claims 放回去给真正被测的动作用。
+-- 职责分离本身由 db/fixtures/127 测,不在这里。
 BEGIN;
 DO $$
 DECLARE
@@ -73,7 +80,11 @@ BEGIN
     -- ══════════ F1 · 前提:期间【开着】的时候,这些路径确实过得了账 ═════════
     -- 【前提臂不能省】一份只断言"被拒"的 fixture,在一个【什么都拒】的实现上
     -- 全绿 —— 那正是 D2 说的"为了对的理由失败"的另一半。
+    -- SOD-1:设锁是【布景】,没有主语 —— 见本文件抬头。
+    PERFORM set_config('request.jwt.claims', '', true);
     UPDATE finance_settings SET locked_before = NULL;
+    PERFORM set_config('request.jwt.claims',
+        format('{"sub":"%s","role":"authenticated"}', v_user), true);
 
     BEGIN
         je := post_journal_entry(v_open, 'fixture 122 前提', 'manual', NULL, L);
@@ -103,7 +114,11 @@ BEGIN
     END IF;
 
     -- ══════════ F2 · 月锁:正门与后门【都】必须按码拒绝 ══════════════════════
+    -- SOD-1:设锁是【布景】,没有主语 —— 见本文件抬头。
+    PERFORM set_config('request.jwt.claims', '', true);
     UPDATE finance_settings SET locked_before = v_lock;
+    PERFORM set_config('request.jwt.claims',
+        format('{"sub":"%s","role":"authenticated"}', v_user), true);
 
     -- F2a 正门
     v_denied := false;
@@ -136,14 +151,22 @@ BEGIN
 
     -- F2c 后门:往一张【开着的期间里已存在的】分录追加明细,但父分录在锁定期
     --      —— 先造一张锁定期内的分录(借 postgres 之手绕过闸),再以真实用户追加
+    -- SOD-1:设锁是【布景】,没有主语 —— 见本文件抬头。
+    PERFORM set_config('request.jwt.claims', '', true);
     UPDATE finance_settings SET locked_before = NULL;
+    PERFORM set_config('request.jwt.claims',
+        format('{"sub":"%s","role":"authenticated"}', v_user), true);
     INSERT INTO journal_entries (code,entry_date,memo,source_type)
     VALUES ('ZZFIX122-OLD', v_shut, 'fixture 122 锁定期内的旧分录', 'manual') RETURNING id INTO e;
     INSERT INTO journal_lines (entry_id,account_id,debit,credit,currency,fx_rate,amount_ccy)
     VALUES (e,a1,100,0,base_currency_code(),1,100),(e,a2,0,100,base_currency_code(),1,100);
     SET CONSTRAINTS ALL IMMEDIATE; SET CONSTRAINTS ALL DEFERRED;
     SELECT COALESCE(SUM(debit),0) INTO v_before FROM journal_lines WHERE entry_id=e;
+    -- SOD-1:设锁是【布景】,没有主语 —— 见本文件抬头。
+    PERFORM set_config('request.jwt.claims', '', true);
     UPDATE finance_settings SET locked_before = v_lock;
+    PERFORM set_config('request.jwt.claims',
+        format('{"sub":"%s","role":"authenticated"}', v_user), true);
 
     v_denied := false;
     EXECUTE 'SET LOCAL ROLE authenticated';
@@ -167,7 +190,11 @@ BEGIN
     -- ══════════ F3 · 年结闸:与月锁【各自独立】的第二道 ═══════════════════════
     -- 【为什么单独一臂】FIN-23 记着:年闸不跟着月锁退。一个只认月锁的实现能
     -- 通过 F2 的每一条,而每年年结之后开一次口子 —— 一年只开一次的洞最难发现。
-    UPDATE finance_settings SET locked_before = NULL;   -- 月锁【完全撤掉】
+    -- SOD-1:设锁是【布景】,没有主语 —— 见本文件抬头。
+    PERFORM set_config('request.jwt.claims', '', true);
+    UPDATE finance_settings SET locked_before = NULL;
+    PERFORM set_config('request.jwt.claims',
+        format('{"sub":"%s","role":"authenticated"}', v_user), true);   -- 月锁【完全撤掉】
     je := post_journal_entry(v_open, 'fixture 122 年结壳', 'manual', NULL, L);
     INSERT INTO year_closes (year_end, closing_journal_id, net_result, closed_by)
     VALUES (v_ye, (je->>'entry_id')::uuid, 0, v_user);
@@ -221,7 +248,11 @@ BEGIN
     -- ══════════ F4 · CPF 不是例外 ════════════════════════════════════════════
     -- docs/forward-queue.md 曾把 CPF 写成"已知的、刻意的例外"。它不是。
     -- 这一臂钉住这件事:【将来谁想给 CPF 开口子,先会踩红这里】。
+    -- SOD-1:设锁是【布景】,没有主语 —— 见本文件抬头。
+    PERFORM set_config('request.jwt.claims', '', true);
     UPDATE finance_settings SET locked_before = v_lock;
+    PERFORM set_config('request.jwt.claims',
+        format('{"sub":"%s","role":"authenticated"}', v_user), true);
     v_denied := false;
     BEGIN
         PERFORM pay_payroll_cpf(gen_random_uuid(), v_shut, 'fixture 122 CPF');
@@ -256,7 +287,11 @@ BEGIN
     -- 闸对了、接线断了,同样是洞。这几臂走真的业务函数,而不是直接叫 post_journal_entry。
     -- 【前提先行】每一条都先在开着的期间跑通,再在锁上之后断言按码拒绝 ——
     -- 一个"什么都拒"的实现会在前提这一半上当场红。
+    -- SOD-1:设锁是【布景】,没有主语 —— 见本文件抬头。
+    PERFORM set_config('request.jwt.claims', '', true);
     UPDATE finance_settings SET locked_before = NULL;
+    PERFORM set_config('request.jwt.claims',
+        format('{"sub":"%s","role":"authenticated"}', v_user), true);
     SELECT code INTO v_exp FROM accounts WHERE account_type='expense' AND is_active ORDER BY code LIMIT 1;
     SELECT code INTO v_b1 FROM accounts WHERE is_cash AND is_active ORDER BY code LIMIT 1;
     SELECT code INTO v_b2 FROM accounts WHERE is_cash AND is_active AND code<>v_b1 ORDER BY code LIMIT 1;
@@ -272,7 +307,11 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 122 F6a 前提失败:期间开着时 record_expense 应当过得了账';
     END IF;
     -- 锁上 → 按码拒
+    -- SOD-1:设锁是【布景】,没有主语 —— 见本文件抬头。
+    PERFORM set_config('request.jwt.claims', '', true);
     UPDATE finance_settings SET locked_before = v_lock;
+    PERFORM set_config('request.jwt.claims',
+        format('{"sub":"%s","role":"authenticated"}', v_user), true);
     v_denied := false;
     BEGIN
         PERFORM record_expense(v_shut, v_exp, 25, base_currency_code(),
@@ -284,14 +323,22 @@ BEGIN
     END IF;
 
     -- F6b 银行转账:同样两个方向
+    -- SOD-1:设锁是【布景】,没有主语 —— 见本文件抬头。
+    PERFORM set_config('request.jwt.claims', '', true);
     UPDATE finance_settings SET locked_before = NULL;
+    PERFORM set_config('request.jwt.claims',
+        format('{"sub":"%s","role":"authenticated"}', v_user), true);
     IF v_b2 IS NOT NULL THEN
         BEGIN
             PERFORM record_bank_transfer(v_open, v_b1, v_b2, 5, 5, 'fixture 122', NULL);
         EXCEPTION WHEN OTHERS THEN
             RAISE EXCEPTION 'FIXTURE 122 F6b 前提失败:期间开着时 record_bank_transfer 本应过得了账,实际被拒:%', SQLERRM;
         END;
+        -- SOD-1:设锁是【布景】,没有主语 —— 见本文件抬头。
+        PERFORM set_config('request.jwt.claims', '', true);
         UPDATE finance_settings SET locked_before = v_lock;
+        PERFORM set_config('request.jwt.claims',
+            format('{"sub":"%s","role":"authenticated"}', v_user), true);
         v_denied := false;
         BEGIN
             PERFORM record_bank_transfer(v_shut, v_b1, v_b2, 5, 5, 'fixture 122', NULL);

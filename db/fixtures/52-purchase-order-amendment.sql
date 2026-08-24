@@ -40,6 +40,9 @@ BEGIN
     INSERT INTO role_permissions (role_id, permission_code)
     SELECT r_all, unnest(ARRAY['module.purchasing.view','module.purchasing.edit',
         'module.inbound.view','module.inbound.edit','module.finance.view','data.view_prices']);
+    -- 【SOD-1:一级审批角色必须有【真的登录得了的】持有人】trg_approvals_switch
+    -- 数的是 user_roles ⋈ auth.users —— 只由幽灵持有的角色是一个没有人来批的队列。
+    INSERT INTO auth.users (id) VALUES (v_user), (v_approver);
     INSERT INTO user_roles (user_id, role_id) VALUES (v_user, r_all), (v_approver, r_all);
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_user), true);
@@ -158,6 +161,8 @@ BEGIN
     -- ══════════ D+H. 审批重新路由 + 【总额与明细同语句】═══════════════════════
     -- 【先把审批打开,否则这一臂什么也没断言】approvals_enabled() 默认 false,
     -- 而作废触发器第一句就是"没开就早退"。
+    -- 【SOD-1:开关与三个策略值必须【一起】设】trg_approvals_switch 拒绝
+    -- "开着但没配"(那一态会搁死单据),所以下面这一句是一条语句,不能拆。
     UPDATE finance_settings SET approvals_enabled = true,
         approval_level1_role_code = 'fixture-52',
         approval_threshold_base = 10000,

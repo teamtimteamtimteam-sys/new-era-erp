@@ -137,6 +137,16 @@ CREATE TRIGGER trg_suppliers_normalise_identity
     BEFORE INSERT OR UPDATE ON public.suppliers
     FOR EACH ROW EXECUTE FUNCTION public.normalise_counterparty_identity();
 
+-- SOD-1:让 created_by 真的落下来 —— 它是职责分离控制②的【主语】。
+-- 此前这一列无默认值、app 的 INSERT 也不传它,于是线上 8 行全为 NULL,
+-- 而一条挂在恒为 NULL 的列上的规矩永远不会触发。
+-- 【不是 DEFAULT auth.uid()】本列有 FK -> auth.users(id),而 89 份既有 fixture
+-- 会把 claims 设成一个不在 auth.users 里的随机 uuid —— 加 DEFAULT 会让它们整片
+-- 撞 FK 违反。判据因此取自外键自己的条件,见 db/functions/stamp_supplier_creator.sql。
+CREATE TRIGGER trg_supplier_creator
+    BEFORE INSERT ON public.suppliers
+    FOR EACH ROW EXECUTE FUNCTION public.stamp_supplier_creator();
+
 COMMENT ON COLUMN public.suppliers.tax_id IS
     '登记号/税号(新加坡 UEN、中国统一社会信用代码)。**这是这一行的身份**,不是名字 —— GO-4。写入时去空白并大写;非空且未软删的行上唯一。【不是必填】:18 行里只有 2 行有值,而为了满足约束去编造值是禁止的;必填这一步留给【批量导入那一刀】,因为那是真实主数据到场、而补做成本开始上升的时刻。';
 
@@ -160,3 +170,7 @@ CREATE POLICY "suppliers delete by permission"
     ON public.suppliers
     AS PERMISSIVE FOR DELETE TO authenticated
     USING (has_permission('module.suppliers.edit'::text));
+
+
+COMMENT ON COLUMN public.suppliers.created_by IS
+    'SOD-1:建这一行的人。【职责分离控制②的主语】—— sod_supplier_creator() 读它,建供应商的人不得对该供应商付款。此前无默认值且 app 的 INSERT 不传它,所以线上 8 行全为 NULL;那 8 行不回填(FIN-26:捏造的来历比空白更坏),控制②对它们不适用,见 docs/known-issues.md 的 SOD-1-BLIND 条。今起由 trg_supplier_creator 落笔,而它只在 auth.uid() 确实是一个 auth.users 账号时落笔 —— 那正是本列外键会接受的条件。';

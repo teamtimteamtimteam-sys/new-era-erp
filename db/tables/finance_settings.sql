@@ -63,6 +63,22 @@ CREATE TRIGGER trg_finance_settings_updated_at
     BEFORE UPDATE ON public.finance_settings
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
+-- SOD-1:两道闸。本表在此之前【只有】上面那个 updated_at 触发器,
+-- 所以这两个是它的第一道真正的守卫 —— 两个方向都做过故障注入(fixture 127)。
+--
+-- ① 职责分离:记过手工凭证的人,不得把那个期间锁上。
+--    /finance/settings 的"手动锁"是一条【直连 UPDATE】,不经过 close_period,
+--    而 authenticated 对本表持表级 UPDATE 授权。只管前进的锁;往回搬不受管。
+CREATE TRIGGER trg_finance_settings_sod
+    BEFORE UPDATE ON public.finance_settings
+    FOR EACH ROW EXECUTE FUNCTION public.guard_finance_settings_sod();
+
+-- ② 审批开关:开之前策略必须配齐且指向真的人(于是"开着但没配"【到不了】);
+--    关之前在途的 pending 单必须清空(否则它们会永远停在 pending)。
+CREATE TRIGGER trg_approvals_switch
+    BEFORE UPDATE ON public.finance_settings
+    FOR EACH ROW EXECUTE FUNCTION public.guard_approvals_switch();
+
 ALTER TABLE public.finance_settings ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "finance_settings select by permission"
     ON public.finance_settings

@@ -45,3 +45,7 @@
 2026-08-24T03:05:19+0800	2026-08-24-import2-fu2-template-columns-are-invoker.sql	9846bd5
 2026-08-24T13:50:54+0800	2026-08-24-pdpa1-anonymise-and-subject-access.sql	039bb71
 2026-08-24T13:59:24+0800	2026-08-24-pdpa1-fu-the-immutable-log-gets-one-named-exception.sql	039bb71
+2026-08-24T15:49:41+0800	2026-08-24-sod1-one-rule-two-questions.sql	84aa8ca
+2026-08-24T15:55:19+0800	2026-08-24-sod1-fu-an-untyped-literal-is-not-a-text-element.sql	84aa8ca
+2026-08-24T16:30:07+0800	2026-08-24-sod1-fu2-a-control-needs-somebody-to-run-it.sql	84aa8ca
+2026-08-24T16:31:25+0800	2026-08-24-sod1-fu3-three-inner-functions-are-not-for-callers.sql	84aa8ca

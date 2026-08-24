@@ -113,8 +113,30 @@ Standing up a new Evoltrya OS project from this repository.
    - someone holds **`finance`** who is **not** the person raising purchase orders (`procurement`
      raises; one human holding both makes `SELF_APPROVAL_FORBIDDEN` fire on every order).
 
-   Then set all four in **one** change — the flag alone gives the "enabled but no policy" state,
-   which refuses to route by design:
+   **SOD-1 (2026-08-24) made two of these mechanical rather than remembered:**
+   - the **"enabled but no policy" state is now unreachable**. `trg_approvals_switch` refuses the
+     flip unless all three policy values are set *and* point at real accounts — the level-1 role
+     must have at least one holder that exists in `auth.users`, and the level-2 user must too
+     (`APPROVALS_POLICY_INCOMPLETE` / `APPROVALS_LEVEL1_ROLE_UNHELD` /
+     `APPROVALS_LEVEL2_USER_UNKNOWN`);
+   - **turning it back OFF is now guarded too**, because that is the direction that strands
+     documents: with orders still `pending`, switching off would leave them permanently
+     unapprovable and unreceivable. It refuses and **names the orders**
+     (`APPROVALS_CANNOT_DISABLE_WITH_PENDING`). Approve or reject them first.
+
+   **What the database still cannot check for you, so it stays on this list:** the **first**
+   precondition above — that a second *human* account exists. The system cannot tell a colleague's
+   account from a walk-through account, and today there are **five `*@test.local` accounts holding
+   `admin`** that would satisfy any count-based test for the wrong reason (see
+   `docs/known-issues.md` § `ACCOUNTS-STALE` — they must be revoked before colleagues get accounts).
+   **A check that passes because of leftover test accounts is worse than no check**, so this one is
+   deliberately left to a person.
+
+   `/finance/settings` shows the current state, what each unset value means, and what flipping the
+   switch would do in **both** directions. It deliberately has **no flip button**: turning approvals
+   on is the four-value change below, and a button whose only outcome is a refusal buys nothing.
+
+   Then set all four in **one** change:
    ```sql
    UPDATE finance_settings SET
        approval_level1_role_code = 'finance',      -- decided: the party that pays approves

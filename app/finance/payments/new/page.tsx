@@ -52,6 +52,14 @@ export default async function NewPaymentPage({
 
     const sp = await searchParams
     const supabase = await createClient()
+    // SOD-1:事前告知要知道"我是谁"。
+    // 【error 必须接住】丢掉它,「认证够不着」与「这个人没登录」就走同一条分支 ——
+    // 而这里那条分支的后果是【告知悄悄消失】,读起来正好是"没有冲突",
+    // 也就是把"我不知道"显示成了一个具体的答案。所以分三类:
+    // 够不着 → 说"查不了";没登录 → 本来就到不了这一页;正常 → 比对。
+    const { data: { user: sodUser }, error: sodUserErr } = await supabase.auth.getUser()
+    const sodUnknown = !!sodUserErr
+    const me = sodUnknown ? null : (sodUser?.id ?? null)
     const t = await getTranslations()
     const baseCurrency = await getBaseCurrency()
 
@@ -66,8 +74,11 @@ export default async function NewPaymentPage({
             .is('deleted_at', null)
             .order('legal_name'),
         supabase
+            // SOD-1:多取一列 created_by —— 事前告知要用它。
+            // 「建收款人的人不得付款给它」这条闸在【表上】,撞了就是一次拒绝;
+            // 而人已经把金额、日期、核销行都填完了。所以选中收款人的那一刻就说。
             .from('suppliers')
-            .select('id, legal_name')
+            .select('id, legal_name, created_by')
             .is('deleted_at', null)
             // ════════════════════════════════════════════════════════════════
             // PAY-FRT:这里【不】排除货代 —— LOG-1b 在 11 个点位加了
@@ -124,9 +135,14 @@ export default async function NewPaymentPage({
         id: c.id,
         name: c.legal_name,
     }))
+    // 查不了的时候【说出来】,不要让告知无声消失。
     const suppliers: PartyOption[] = (mustRows(suppliersRes)).map((s) => ({
         id: s.id,
         name: s.legal_name,
+        // SOD-1:这一家是不是【我】建的。null = 没有记下建户人(线上 8 家既有
+        // 供应商就是这样),那时规矩【不适用】—— 不是"查过了没问题"。
+        createdByMe: (s as { created_by?: string | null }).created_by != null
+            && (s as { created_by?: string | null }).created_by === me,
     }))
     const employees: PartyOption[] = (mustRows(employeesRes) as { id: string; legal_name: string }[])
         .map((e) => ({ id: e.id, name: e.legal_name }))
@@ -175,6 +191,7 @@ export default async function NewPaymentPage({
             <NewPaymentForm
                 customers={customers}
                 suppliers={suppliers}
+                sodUnknown={sodUnknown}
                 employees={employees}
                 arItems={arItems}
                 apItems={apItems}

@@ -16,6 +16,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { formatAmount, formatMoneyBare, formatUnitCost } from '@/lib/format'
 import Subnav from '../../Subnav'
 import CancelOrderControl from './CancelOrderControl'
+import ApprovalControls from './ApprovalControls'
 import ActorName, { loadActorNames } from '@/app/components/ActorName'
 import { CloseOrderControl, ReopenOrderControl } from './CloseReopenControls'
 import { can, canViewPrices } from '@/lib/permissions'
@@ -456,6 +457,15 @@ export default async function PurchaseOrderDetailPage({
                 <p className="text-xs mb-4 text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1 inline-block">
                     {t('purchasing.approvalOff')}
                 </p>
+            )}
+
+            {/* SOD-1:审批生效 + 这张单在等审批 → 【这里必须有批得了它的地方】。
+                此前 approve_purchase_order / reject_purchase_order 在 app/ 里
+                一个调用方都没有:开关一打开,每一张新单都会停在 pending 且收不了货。
+                关着的时候不渲染 —— 那不是"被挡住",是这个问题【不适用】
+                (没有人做过决定,也就没有决定可改)。 */}
+            {approvalsOn && po.approval_status === 'pending' && !isCancelled && (
+                <ApprovalControls poId={po.id} />
             )}
 
             {/* PUR-1:采购单单据(规格:docs/purchase-order-document.md)。

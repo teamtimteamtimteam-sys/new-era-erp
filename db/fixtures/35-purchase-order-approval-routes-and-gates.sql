@@ -30,9 +30,12 @@ BEGIN
     SELECT code INTO v_base FROM currencies WHERE is_base;
     SELECT code INTO v_fgn  FROM currencies WHERE NOT is_base LIMIT 1;
     -- APR-2c:审批默认【不生效】(三态见迁移文件头)。本 fixture 测的是生效之后的
-    -- 引擎,所以先打开它 —— 关着的那一态由下面的 F 臂单独测。
-    UPDATE finance_settings SET locked_before = NULL, system_start_date = '2027-01-01',
-                                approvals_enabled = true;
+    -- 引擎,所以要打开它 —— 关着的那一态由下面的 F 臂单独测。
+    -- 【SOD-1 改了打开的【时机】,不是这一臂的意思】此前这里先打开、稍后再配策略,
+    -- 那正是"开着但没配"那一态,而 SOD-1 的 trg_approvals_switch 把它变成了
+    -- 【到不了】的状态(理由:那一态会照常生成 pending 的单,而那些单批不了也
+    -- 收不了货 —— 搁死单据)。所以这里只做与审批无关的设置,开关留到 E 臂。
+    UPDATE finance_settings SET locked_before = NULL, system_start_date = '2027-01-01';
 
     -- 角色:提单人与一级审批人【不同角色】—— procurement 提单,所以它不能是审批角色
     INSERT INTO roles (code, name_en, name_zh, is_active)
@@ -44,6 +47,11 @@ BEGIN
     VALUES ('fixture-35-approver', 'f', 'f', true) RETURNING id INTO r_l1;
     INSERT INTO role_permissions (role_id, permission_code)
     SELECT r_l1, unnest(ARRAY['module.purchasing.view','module.purchasing.edit']);
+    -- 【SOD-1:一级审批角色必须有【真的登录得了的】持有人】
+    -- trg_approvals_switch 数的是 user_roles ⋈ auth.users —— 一个只由幽灵持有的
+    -- 角色是一个永远不会有人来批的队列(线上有 66 条认不到人的授权,
+    -- 见 docs/known-issues.md 的 ACCOUNTS-STALE 条)。所以这三个人要是真账号。
+    INSERT INTO auth.users (id) VALUES (u_req), (u_l1), (u_l2);
     INSERT INTO user_roles (user_id, role_id) VALUES (u_req, r_req), (u_l1, r_l1), (u_l2, r_l1);
 
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
@@ -57,7 +65,32 @@ BEGIN
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', u_req), true);
 
-    -- ══════════ E. 没配策略 → 拒绝路由(先测,因为配置一旦写下就回不去了)═══════
+    -- ══════════ E. 【SOD-1 之后这一臂问的是另一个问题,而那是刻意的】════════
+    -- 此前:先打开开关、不配策略,然后断言 approve 会以 APPROVAL_THRESHOLD_NOT_SET
+    -- 拒绝路由。**那一态现在到不了** —— trg_approvals_switch 拒绝在策略没配齐时
+    -- 打开开关,而开着的时候也不许把策略抽走。于是同一条保护挪到了【更早】的时刻:
+    -- 不是"路由的时候拒绝",而是"根本开不起来"。
+    -- 引擎里那几条 *_NOT_SET 的拒绝【没有删】,它们成了纵深防御(调用方直接调
+    -- approval_level_for 仍然会撞上),只是不再能由这个开关造出来。
+    -- 【所以这一臂改成断言那道更早的闸】,而不是断言一个再也不会发生的状态。
+    v_denied := false;
+    BEGIN
+        UPDATE finance_settings SET approvals_enabled = true;
+    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
+    END;
+    IF NOT v_denied OR v_msg NOT LIKE 'APPROVALS_POLICY_INCOMPLETE|%' THEN
+        RAISE EXCEPTION 'FIXTURE 35E 失败:策略没配齐时开关不该开得起来,实得 denied=% msg=%',
+            v_denied, COALESCE(v_msg,'(没有报错)');
+    END IF;
+
+    -- 配齐,然后打开 —— 三个策略值与开关【一起】设(fresh-install-checklist 的规矩)
+    UPDATE finance_settings
+    SET approval_threshold_base = 10000,
+        approval_level1_role_code = 'fixture-35-approver',
+        approval_level2_user_id = u_l2,
+        approvals_enabled = true;
+
+    -- ══════════ E(续). 生效之后,单据生为 draft/pending 且留下 submitted ═══════
     v_lines := jsonb_build_array(jsonb_build_object(
         'line_no', 1, 'material_id', v_mat, 'quantity', 10, 'estimated_unit_price', 100));
     po_small := (create_purchase_order(v_sup, '2027-03-03'::date, NULL, v_base, NULL,
@@ -78,25 +111,15 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 35E 失败:生效时提单应留一行 submitted,实得 % 行', v_n;
     END IF;
 
-    PERFORM set_config('request.jwt.claims',
-        format('{"sub":"%s","role":"authenticated"}', u_l1), true);
-    v_denied := false;
-    BEGIN
-        PERFORM approve_purchase_order(po_small, NULL);
-    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
-    END;
-    IF NOT v_denied OR v_msg <> 'APPROVAL_THRESHOLD_NOT_SET' THEN
-        RAISE EXCEPTION 'FIXTURE 35E 失败:阈值没配就应当 APPROVAL_THRESHOLD_NOT_SET 拒绝路由,实得 denied=% msg=% —— 猜一个级别等于把审批变成装饰',
-            v_denied, v_msg;
-    END IF;
 
-    -- 现在配上策略:阈值 10,000 本位币,一级角色 = 审批角色,二级 = 具名的 u_l2
-    UPDATE finance_settings
-    SET approval_threshold_base = 10000,
-        approval_level1_role_code = 'fixture-35-approver',
-        approval_level2_user_id = u_l2;
 
     -- ══════════ A. 分级边界在【本位币】那一侧 ═══════════════════════════════
+    -- 【换成一级审批人来批】此前这一句在被删掉的那段阈值断言里,顺带把 claims
+    -- 切到了 u_l1;E 臂重写之后那一段没了,于是这里会以【提单人】u_req 的身份去批,
+    -- 撞上 SELF_APPROVAL_FORBIDDEN。**实测撞到了** —— 记在这里,因为它正说明
+    -- 四眼规则是活的:换个人就过,不换就不过。
+    PERFORM set_config('request.jwt.claims',
+        format('{"sub":"%s","role":"authenticated"}', u_l1), true);
     -- 本位币 1,000 的单 → 一级
     v_res := approve_purchase_order(po_small, 'fixture 35 level 1');
     IF (v_res->>'level')::int <> 1 THEN

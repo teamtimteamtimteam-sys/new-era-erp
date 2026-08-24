@@ -2600,7 +2600,15 @@ user_roles 里 DISTINCT user_id ............ 73
 
 ---
 
-## APPROVALS-NO-SURFACE · 审批引擎【建好了却没有屏幕】—— 打开开关等于让采购停摆(APR-3 勘察,2026-08-24,未修)
+## ~~APPROVALS-NO-SURFACE~~ · 审批引擎【建好了却没有屏幕】—— **已修(SOD-1,2026-08-24)**
+
+> **SOD-1 接上了那一面。** `app/purchasing/orders/[id]/ApprovalControls.tsx` +
+> `actions.ts` 的 `approveOrder` / `rejectOrder`,在【审批生效且这张单在 pending】时
+> 渲染。关着的时候【不渲染】—— 那不是"被挡住",是这个问题不适用。
+> 驳回理由必填(空着提交钮就是灰的),拒绝就地显示、不整页跳走。
+> **本条留着不删,因为下面那句勘察记录仍然是这条缺口存在过的唯一证据。**
+
+（以下为 APR-3 当时的勘察原文。）
 
 **这不是"审批没建"。引擎整支在库里**(APR-1 的日志 + APR-2 的两级路由、四眼、
 金额上档作废、三道闸)。**缺的是操作员那一面,而缺法是最坏的一种:能进不能出。**
@@ -2641,7 +2649,21 @@ grep -rl 'reject_purchase_order'  app/   →  (空)
 
 ---
 
-## APPROVALS-NO-SENTENCES · 十一条审批拒绝【没有句子】,开关一开就是裸管道串(APR-3 清点,2026-08-24,未修)
+## ~~APPROVALS-NO-SENTENCES~~ · 审批拒绝没有句子 —— **已修(SOD-1,2026-08-24)**
+
+> **SOD-1 补了十九条,不是十一条。** APR-3 数出十一条;SOD-1 重新【从函数体】
+> 枚举了一遍,`purchasing.errors.*` 补 **12** 条(APR-3 的十一条,外加
+> `APPROVAL_SUBJECT_NOT_FOUND` / `APPROVAL_SUBJECT_TYPE_UNKNOWN` —— 它们从
+> `record_approval_decision` 抛出,而那支函数【每一条审批链都调】,所以它们能
+> 从 HR 的三条链上冒出来,不只是采购),`finance.errors.*` 补 **7** 条
+> (职责分离 2 + 开关闸 5)。中英各一句,每一句都说【出路】,不只说"不行"。
+>
+> **差额本身值得记一笔:两次都是"从函数体枚举",而结果差了两条。**
+> 差别在于 APR-3 枚举的是【审批那几支函数】,SOD-1 连它们调用的
+> `record_approval_decision` 一起枚举了 —— **一条拒绝的出处可以比调用它的那支
+> 函数更深一层。**
+
+（以下为 APR-3 当时的清点原文。）
 
 **从函数体里一条条数出来的,不是从撞到过的那几条数的。**
 
@@ -2663,7 +2685,43 @@ APPROVAL_SUBJECT_TYPE_UNKNOWN / APPROVAL_SUBJECT_NOT_FOUND
 
 ---
 
-## APPROVALS-SWITCH-UNGUARDED · **持 `module.finance.edit` 的人可以直连把审批开关打开或关掉**(APR-3 实测,2026-08-24,未修 —— 要先裁一件事)
+## APPROVALS-SWITCH-UNGUARDED · 持 `module.finance.edit` 的人可以直连改审批开关(APR-3 实测,2026-08-24)—— **SOD-1 关掉了一半,另一半仍然开着**
+
+> **⚠ 这一条【没有】被 SOD-1 关掉,只是变窄了。把它读成"已修"会读错。**
+>
+> **SOD-1 关掉的那一半:哪些【状态】到得了。** `guard_approvals_switch`
+> (`db/tables/finance_settings.sql` 上的 `trg_approvals_switch`)现在拒绝:
+> 三个策略值没配齐就打开(`APPROVALS_POLICY_INCOMPLETE`)、一级角色没有真人持有
+> (`APPROVALS_LEVEL1_ROLE_UNHELD`)、二级审批人不是真账号
+> (`APPROVALS_LEVEL2_USER_UNKNOWN`)、**还有单在等审批时关掉它**
+> (`APPROVALS_CANNOT_DISABLE_WITH_PENDING` —— 那是真正会搁死单据的方向)、
+> 以及开着的时候抽走策略值(`APPROVALS_POLICY_LOCKED_WHILE_ON`)。
+> 五条都有中英句子;`trg_approvals_switch` 与规矩本身都做过故障注入
+> (fixture 127 的 C1–C8 与 F4)。**于是"开着但没配"是一个【到不了】的状态。**
+>
+> **仍然开着的那一半:【谁】可以改。** 本条抬头那句话原样成立 ——
+> 任何持 `module.finance.edit` 的人(包括被裁定为 1 级审批角色的 `finance`)
+> 仍然可以在配齐的前提下自己把开关打开或关掉。**SOD-1 管的是状态,不是主语。**
+> 原因也原样成立:那需要先裁「审批开关归谁改」,而把「改财务设置」劈成两半
+> 是一个业务判断,不是一次补漏。**这一刀不在勘察之后现写新规矩。**
+
+> **顺带一条,免得报告把话说满(独立复测发现,2026-08-24):
+> 那五条开关拒绝【有句子,但今天没有任何屏幕能让人撞上它们】。**
+> `grep -rn "approvals_enabled" app/` 只有一处命中,而且是**读**
+> (`app/purchasing/orders/[id]/page.tsx` 的 `rpc('approvals_enabled')`)——
+> **app 里没有任何地方【写】这个开关**,它今天只由 SQL 翻。
+> 所以 `APPROVALS_POLICY_INCOMPLETE` 等五条的中英句子,是为
+> ①【将来有翻转界面的那一天】与 ② 今天在 psql 前面的那个人准备的。
+> **这不是缺陷**(SOD-1 刻意没有建翻转按钮:打开审批是一次四值同改的
+> 刻意改动,而一个按下去只会被拒的按钮只多一次失败);
+> **但"这些拒绝是给操作员看的"这句话今天不成立**,写在这里免得被读成成立。
+> 它与 `APPROVALS-NO-SURFACE` 是同一个形状,隔了一张表。
+
+### 删除条件(**已改写** —— 原来那条已被 SOD-1 满足,而它不该让整条消失)
+
+~~审批那四列有自己的写入判据,并且被一次故障注入证明过拒得住直连写。~~
+**上面那句 SOD-1 做到了。剩下的删除条件是:审批开关的四列有一条【关于主语】的
+写入判据** —— 即"谁可以改它"与"谁可以改锁定日"不再是同一把钥匙。
 
 ### 实测(一笔回滚的事务,`SET LOCAL ROLE authenticated` + finance 账号的 sub)
 
@@ -2695,7 +2753,26 @@ UPDATE finance_settings SET approvals_enabled = true;   →  ALLOWED
 
 ---
 
-## SOD-ONE-PERSON · 四组动作【今天可以由一个人从头做到尾】(APR-3 勘察,2026-08-24,未修)
+## SOD-ONE-PERSON · 四组动作可以由一个人从头做到尾(APR-3 勘察,2026-08-24)—— **SOD-1 关掉了第 2、3 组;第 4、5 组仍然开着**
+
+> **状态(SOD-1,2026-08-24):**
+>
+> | 组 | 现状 |
+> |---|---|
+> | 1 · 开单 → 批单 | **不变**:开关关着时仍然是系统自己盖章。开着时由四眼 + `require_approver_for` 拦住 —— 而 SOD-1 补上了那个此前【没有屏幕】的批准动作(见 APPROVALS-NO-SURFACE) |
+> | 2 · 建供应商 → 付钱给他 | **已关(SOD-1)**:`trg_payment_sod` → `assert_segregated`,拒绝码 `SOD_PAYEE_AND_PAY`,中英各一句、说出出路。**闸在表上**,直连 INSERT 一样撞得上(fixture 127 的 B1 走的正是直连)。**但见下面的 SOD-1-BLIND 条:线上 8 家既有供应商的 `created_by` 是 NULL,规矩对它们【不适用】** |
+> | 3 · 过账 → 关账 | **已关(SOD-1)**:`trg_finance_settings_sod` → 同一个 `assert_segregated`,拒绝码 `SOD_POST_AND_CLOSE`。**范围是【手工凭证】** —— 把所有 source_type 都算进来会让唯一的财务永远关不了账,那不是控制,是锁死。范围的理由写在 `db/functions/sod_manual_posters_in.sql`,而它是【载重的】:fixture 127 的 F6 注入把范围放宽,A4 臂当场变红 |
+> | 4 · 工资过账 → 发工资 | **仍然开着**,按 REVISION 1 的 A2 —— 等审批引擎,不在这一刀 |
+> | 5 · 提假条/报销 → 自己批 | **仍然开着**。它需要"HR 自己的假条往哪里去",而那是二级审批人那条路(`docs/approvals-scoping.md` APR-2 Part C) |
+>
+> **一处对下面那张表的更正,而它是载重的:** 下面写着"做这几条需要的『谁做的』
+> 那一列,库里都已经有了",并把 `suppliers.created_by` 列在其中。
+> **那一列在册 8 行【全部为 NULL】,而且这一列当时没有默认值、
+> `app/suppliers/new/actions.ts` 的 INSERT 也不传它 —— 所以它不只是"空的",
+> 它是【永远不会被填上的】。** 一条挂在恒为 NULL 的列上的规矩永远不会触发。
+> SOD-1 因此同刀补了 `trg_supplier_creator`。**"列在那里"与"列里有东西"是两句话。**
+
+（以下为 APR-3 当时的勘察原文,第 2、3 组的"未修"判词已由上表取代。）
 
 **证据是权限码:两端各自 `require_permission` 的那一条,以及 `role_permissions`
 里同时持有它们的角色。** 第 2 组另外跑了一次直连探针(建收款人 = ALLOWED)。
@@ -2726,3 +2803,39 @@ UPDATE finance_settings SET approvals_enabled = true;   →  ALLOWED
 
 四组各自有一条**在数据库里**的拒绝(不是只在屏幕上 —— GO-2 实测过直连写绕得过
 server action),每一条有中英句子,每一条有一支故障注入过的 fixture。
+
+
+## SOD-1-BLIND · 职责分离控制②【对线上 8 家既有供应商不适用】(SOD-1,2026-08-24 实测)
+
+> **这不是缺陷,是一条规矩【主语缺席】时的诚实处置 —— 但它必须被读到,
+> 不能藏在"控制已上线"后面。**
+
+`SOD_PAYEE_AND_PAY` 问的是"这家供应商是谁建的",答案取自 `suppliers.created_by`。
+实测(2026-08-24):**线上 8 家在册供应商,`created_by` 全部为 NULL**,
+因为这一列此前**没有默认值**,而 `app/suppliers/new/actions.ts` 的 INSERT
+**不传这一列**。
+
+**SOD-1 补上了 `trg_supplier_creator`,所以【从今天起】新建的供应商都会留下建户人。
+那 8 行【不回填】** —— FIN-26 的规矩:一份捏造的来历记录比一片空白更坏。
+我们并不知道当初是谁建的,写一个进去就是发明一个事实。
+
+**于是:**
+
+* 对这 8 家供应商,`sod_supplier_creator()` 返回空集,`assert_segregated()`
+  **直接返回** —— 规矩【不适用】;
+* **「不适用」与「查过了,没问题」不是一回事。** 前者是这条规矩没有可比的对象,
+  后者是比过了。fixture 127 的 **B4 臂**把这个答案【断言下来】,而不是让它成为
+  守卫那句 `IF` 碰巧的行为(AGENTS.md:一份 fixture 可以把规矩测得很透,
+  却对【规矩的主语根本不存在】那一格视而不见)。
+
+**为什么不给这一列加 `DEFAULT auth.uid()`(那样连老行的将来写入也会有主语)**:
+`suppliers.created_by` 有一条 **FK → auth.users(id)**,而 `db/fixtures` 里有
+**89 份**会插 suppliers/customers 并把 claims 设成一个不在 `auth.users` 里的随机
+uuid。加 DEFAULT 会让那 89 份整片撞 FK 违反 —— 与职责分离毫无关系。
+触发器的判据因此取自**外键自己的条件**:`auth.uid()` 是不是一个真的账号。
+
+### 删除条件
+
+那 8 家供应商各自以某种**有依据的**方式取得了 `created_by`(例如从审计留痕、
+或从它们第一张采购单的 `created_by` 推得,并**在那一刻写明这是推得的**),
+或者它们全部被停用而不再可能成为付款对象。**不接受直接回填一个人名。**

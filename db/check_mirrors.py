@@ -193,6 +193,29 @@ DEFINER_NO_CHECK_ALLOWED = {
     "notify_landing_warnings": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "notify_class_violations": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "reverse_journal_entry_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    # SOD-1:职责分离的三支内层函数。**它们不是同一个理由,写成两段。**
+    #
+    # 【前两支:真的越权读 —— 收权限【就是】那道控制】
+    # sod_manual_posters_in 读 journal_entries,sod_supplier_creator 读 suppliers。
+    # 都是 SECURITY DEFINER,留着 authenticated 的 EXECUTE 就等于让任何登录用户
+    # 绕过 RLS 读出"谁记过手工凭证"与"谁建了这家供应商"。
+    # 【为什么不给它们加 require_permission】它们没有一个自己的权限码可挑:
+    # 关账走 module.finance.edit,建供应商走 module.suppliers.edit,而这两支服务的是
+    # 【同一条规矩的两侧】—— 挑任何一个都会比另一侧松。所以走"调不到"这条路。
+    #
+    # 【第三支 assert_segregated:它【什么表都不读】—— 收权限是纵深防御,不是控制】
+    # 函数体只有 auth.uid()、一次 cardinality 检查、与调用方传进来的数组比一次、
+    # 一句 RAISE。**没有可泄露的东西**,所以它没有调用者检查的理由不是"挑不出权限码",
+    # 而是"没有要保护的东西"。两个理由分开写,免得下一个读的人以为它也在读表。
+    # (这条区分由第二个会话的 prosrc 实测指出,2026-08-24。)
+    #
+    # 三支都只从 guard_payment_sod / guard_finance_settings_sod 的函数体内被调用,
+    # 那两个是属主身份跑的触发器,所以收回之后照常工作(fixture 127 全绿即证,
+    # 另有 R1–R4 四次独立复测确认"收回之后闸仍然咬合")。
+    # REVOKE 写在 db/views/zzz_function_grants.sql 里(否则活不过一次重建)。
+    "assert_segregated": "EXECUTE revoked from PUBLIC/authenticated/anon (SOD-1-fu3)",
+    "sod_manual_posters_in": "EXECUTE revoked from PUBLIC/authenticated/anon (SOD-1-fu3)",
+    "sod_supplier_creator": "EXECUTE revoked from PUBLIC/authenticated/anon (SOD-1-fu3)",
     # FIN-27 的内层算子:条款解析、计价算术、承诺写入。同上,靠"调不到"而非"查调用者"
     "pricing_terms_of_formula": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "pricing_terms_of_commitment": "EXECUTE revoked from PUBLIC/authenticated/anon",

@@ -37,6 +37,17 @@ REVOKE EXECUTE ON FUNCTION public.reverse_journal_entry_internal(uuid, date, tex
 -- FIN-27:条款解析与承诺写入的内层算子。同上 —— 没有调用者检查,靠的就是调不到;
 -- 它们只从 calculate_metal_price_internal / apply_assay_result /
 -- reprice_from_committed_terms / create_purchase_order 的函数体内被调用(属主身份)。
+-- SOD-1(2026-08-24):职责分离的三支内层函数。**gate 的 B2 抓到它们**,
+-- 而其中两支是真的越权读:sod_manual_posters_in / sod_supplier_creator 是
+-- SECURITY DEFINER 且没有调用者检查,留着 authenticated 的 EXECUTE,任何登录用户
+-- 都能绕过 RLS 读出"谁记过手工凭证"与"谁建了这家供应商"。
+-- 三支都只从 guard_payment_sod / guard_finance_settings_sod 的函数体内被调用,
+-- 而那两个是属主身份跑的触发器 —— 所以收回之后照常工作,靠的就是调不到。
+-- (approvals_readiness 不在此列:它【要】被页面调用,所以走的是另一半保证 ——
+--  fu2 给它加了 require_permission('module.finance.view')。)
+REVOKE EXECUTE ON FUNCTION public.assert_segregated(text, uuid[], text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.sod_manual_posters_in(date, date) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.sod_supplier_creator(uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.pricing_terms_of_formula(uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.pricing_terms_of_commitment(uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.calculate_metal_price_from_terms(jsonb, jsonb, numeric, date) FROM authenticated;

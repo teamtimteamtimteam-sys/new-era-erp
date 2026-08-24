@@ -16835,6 +16835,7 @@ export type Database = {
       }
       approval_level_for: { Args: { p_amount_base: number }; Returns: number }
       approvals_enabled: { Args: never; Returns: boolean }
+      approvals_readiness: { Args: never; Returns: Json }
       approve_purchase_order: {
         Args: { p_note?: string; p_po_id: string }
         Returns: Json
@@ -16844,6 +16845,10 @@ export type Database = {
       arm_permission_widen: { Args: { p_item_type: string }; Returns: string[] }
       assert_posting_allowed: {
         Args: { p_entry_date: string; p_source_type: string }
+        Returns: undefined
+      }
+      assert_segregated: {
+        Args: { p_code: string; p_first_actors: string[]; p_subject: string }
         Returns: undefined
       }
       attach_shipment_to_container: {
@@ -17892,6 +17897,14 @@ export type Database = {
       ship_order: {
         Args: { p_lines: Json; p_sales_order_id: string; p_ship_date: string }
         Returns: Json
+      }
+      sod_manual_posters_in: {
+        Args: { p_from: string; p_to: string }
+        Returns: string[]
+      }
+      sod_supplier_creator: {
+        Args: { p_supplier_id: string }
+        Returns: string[]
       }
       soft_delete_container: {
         Args: { p_container_id: string; p_reason: string }

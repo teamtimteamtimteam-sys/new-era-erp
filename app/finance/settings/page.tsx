@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../Subnav'
 import LockForm from './LockForm'
+import ApprovalsPanel from './ApprovalsPanel'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 
@@ -24,6 +25,10 @@ export default async function FinanceSettingsPage() {
         .eq('id', true)
         .single()
 
+    // SOD-1:审批开关的状态,以及"能不能开"。屏幕与闸读【同一份判据】——
+    // 一个屏幕上说"可以开"、闸却拒绝的系统,比两者都拒绝更坏(fixture 127 C8)。
+    const readinessRes = await supabase.rpc('approvals_readiness')
+
     if (error) {
         return (
             <div className="p-8">
@@ -37,6 +42,29 @@ export default async function FinanceSettingsPage() {
     }
 
     const lockedBefore = data?.locked_before ?? null
+
+    // SOD-1:【在人动手之前就说出来】—— 这一页的手动锁是一条直连 UPDATE,
+    // 会撞上 trg_finance_settings_sod。撞了再说,人已经填完日期、按过按钮了。
+    // 所以先问一句:这个人在【还开着的期间里】记过手工凭证吗?
+    // 判据与守卫同源(source_type='manual' + created_by = 我),但这里只【报告】,
+    // 不判定 —— 真正的判定要等他选了哪一天,而那是服务端的事。
+    // 【error 必须接住】丢掉它,「认证够不着」与「这个人没登录」共用一条分支,
+    // 而这里的后果是告知【悄悄消失】—— 读起来正好是"你没有冲突"。
+    const { data: { user }, error: userErr } = await supabase.auth.getUser()
+    const sodUnknown = !!userErr
+    let myManualDates: string[] = []
+    if (user && !sodUnknown) {
+        const q = supabase
+            .from('journal_entries')
+            .select('entry_date')
+            .eq('source_type', 'manual')
+            .eq('created_by', user.id)
+            .order('entry_date')
+        const { data: mine } = lockedBefore
+            ? await q.gte('entry_date', lockedBefore)
+            : await q
+        myManualDates = [...new Set((mine ?? []).map((e) => e.entry_date as string))]
+    }
 
     return (
         <div className="p-8 max-w-2xl">
@@ -52,6 +80,34 @@ export default async function FinanceSettingsPage() {
                     <span className="text-gray-400">{t('finance.notSet')}</span>
                 )}
             </div>
+
+            {/* 【读失败不许读成"没有面板"】一块悄悄消失的面板,与一块说"审批未生效"
+                的面板在屏幕上长得一模一样 —— 而后者是一句关于内控的断言。
+                所以失败就【说出来】,不静默省略(与 mustRows 那条规矩同源)。 */}
+            {readinessRes.error ? (
+                <p className="text-sm text-red-700 bg-red-50 border border-red-300 rounded px-3 py-2 mb-6">
+                    {t('finance.approvals.readError')}
+                </p>
+            ) : (
+                <ApprovalsPanel r={readinessRes.data as never} />
+            )}
+
+            {/* SOD-1:职责分离的【事前】告知。控件不禁用 —— 会不会被拒,取决于
+                他填哪一天,而那要服务端才知道。禁用一个可能完全合法的动作,
+                与放一个注定失败的按钮是同一种错,只是方向相反。 */}
+            {sodUnknown && (
+                <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2 mb-3">
+                    {t('finance.sod.cannotCheck')}
+                </p>
+            )}
+
+            {myManualDates.length > 0 && (
+                <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2 mb-3">
+                    {t('finance.sod.lockNotice', {
+                        dates: myManualDates.join('、'),
+                    })}
+                </p>
+            )}
 
             <LockForm lockedBefore={lockedBefore} />
 

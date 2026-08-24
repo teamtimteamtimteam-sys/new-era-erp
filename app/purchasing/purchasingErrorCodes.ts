@@ -50,6 +50,14 @@ const PURCHASING_ERROR_CODES = new Set([
     'PO_PLAN_FIXED_MISMATCH', 'PO_HAS_APPLIED_PREPAYMENTS',
     // EQP-1c-b(X1):冲抵日必填
     'RELEASE_DATE_REQUIRED',
+    // SOD-1(S3 的产出):审批引擎【整支】都没有句子 —— APR-1/APR-2 建了引擎、
+    // 建了拒绝,却一条都没接到消息文件上。这十二条是从【函数体】里逐条枚举出来的,
+    // 不是从"我碰巧撞到过哪几条"。审批一旦打开,操作员撞见的就是这些码本身。
+    'APPROVALS_NOT_ENABLED', 'PO_NOT_PENDING', 'SELF_APPROVAL_FORBIDDEN',
+    'REJECT_REASON_REQUIRED', 'APPROVAL_NOT_AUTHORISED',
+    'APPROVAL_LEVEL1_ROLE_NOT_SET', 'APPROVAL_LEVEL2_USER_NOT_SET',
+    'APPROVAL_THRESHOLD_NOT_SET', 'APPROVAL_AMOUNT_REQUIRED', 'APPROVAL_LEVEL_INVALID',
+    'APPROVAL_SUBJECT_NOT_FOUND', 'APPROVAL_SUBJECT_TYPE_UNKNOWN',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..."(同 localizeFinanceError)。

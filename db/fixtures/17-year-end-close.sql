@@ -30,8 +30,12 @@ BEGIN
     VALUES ('fixture-17', 'fixture', 'fixture', true) RETURNING id INTO v_role;
     INSERT INTO role_permissions (role_id, permission_code) SELECT v_role, code FROM permissions;
     INSERT INTO user_roles (user_id, role_id) VALUES (v_uid, v_role);
-    PERFORM set_config('request.jwt.claims',
-        format('{"sub":"%s","role":"authenticated"}', v_uid), true);
+    -- 【SOD-1:2026 年的账是【布景】,不是某个人做的一次自由裁量的调整】
+    -- 年结会把锁推到 2027-01-01,而 SOD_POST_AND_CLOSE 拦的正是"在这个期间里
+    -- 记过手工凭证的人来关它"。下面这三笔是这一年的账本身,不是谁的调整 ——
+    -- 所以它们【没有主语】:claims 留空时 auth.uid() 为 NULL,created_by 落 NULL,
+    -- 规矩没有可比的对象。claims 在布景搭完之后才设上,给真正被测的那些动作用。
+    -- 本 fixture 测的是年结,不是职责分离;后者由 db/fixtures/127 自己测。
 
     -- 前提全部显式:财年 12/31、首年不 override、完整记录自 2026-01-01、锁清空
     UPDATE finance_settings SET locked_before = NULL, fy_end_month = 12, fy_end_day = 31,
@@ -49,6 +53,10 @@ BEGIN
     PERFORM post_journal_entry('2026-07-10', 'fixture rent', 'manual', NULL, jsonb_build_array(
         jsonb_build_object('account_code','6000','side','debit','currency','SGD','amount_ccy',1000,'fx_rate',1),
         jsonb_build_object('account_code','1000','side','credit','currency','SGD','amount_ccy',1000,'fx_rate',1)));
+
+    -- 布景搭完 —— 从这里起,动作有主语了。
+    PERFORM set_config('request.jwt.claims',
+        format('{"sub":"%s","role":"authenticated"}', v_uid), true);
 
     -- 硬前置自证:把重估与折旧【跑平】(对线上跑本 fixture 时它们可能欠着;
     -- 空库上是 no-op)。缺 12/31 中间价会让重估预览拒 —— 自插。

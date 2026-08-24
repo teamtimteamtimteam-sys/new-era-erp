@@ -289,6 +289,44 @@ cannot occur (`AGENTS.md` §"a note describing a hazard that no longer exists").
 copy now says auto-approved for now, two-level approval with the Final Phase. The permissions cut
 delivered module access, which is a different thing from who approves an order.
 
+### Segregation of duties — where the `action.*` reservation actually lives, and the one measured path SOD-1 closed (2026-08-24)
+
+**The citation correction first, because a wrong pointer costs the next reader a search.** The
+reservation of the `action.*` permission category for *posting, month-end close and payroll posting*
+is **not** recorded in this file. It lives in the header comment of
+**`db/tables/permissions.sql`** (line 14): *"'action' 留给过账、关账、薪资过账这类动作级权限 ——
+到时候【只是加行】"*. This entry is where a reader looking for it will arrive, so the pointer is
+recorded here; the sentence itself is not copied, because the same fact stated in two places drifts.
+
+**As built, that category holds exactly two codes** — `action.manage_permissions` and
+`action.bulk_import` (IMPORT-1). **None of the three reserved action-level permissions was ever
+built**, so posting, month-end close and payroll posting are gated by `module.finance.edit` and
+`module.hr.edit` alone.
+
+**The measured consequence, and it is the reason the control exists rather than a separate defect.**
+Probed against `role_permissions` on 2026-08-24:
+
+> **The `finance` role holds `module.suppliers.edit` AND `module.finance.edit`.** One person in that
+> role could create a payee and pay it, end to end, with nothing in the database refusing. Not a
+> hypothetical shape — a row in the live role matrix. `admin` and `gm` hold both as well.
+
+The same measurement found `post_journal_entry` and `close_period` gated by the *same single code*,
+so one person could post a discretionary adjustment and then lock the period that would have exposed
+it.
+
+**SOD-1 (2026-08-24) closed those two paths in the database**, with one shared rule
+(`assert_segregated`) asked two different questions, and the guards on the **base tables** rather
+than in the server actions — GO-2 measured that `authenticated` holds table privileges and that
+`/finance/settings`' manual lock is a direct `UPDATE` that never passes through `close_period`.
+**Tim accepted the operational cost**: the single `finance` account can no longer do both halves, and
+the refusal names the route out rather than presenting a wall.
+
+**What is NOT closed, so this does not read as finished:** payroll posting and the HR self-approval
+paths still have no such rule (they wait on the approvals engine and on a level-2 approver existing),
+and **who may change the approvals switch is still the same key as who may change the lock date**.
+Both are in `docs/known-issues.md` — `SOD-ONE-PERSON` and `APPROVALS-SWITCH-UNGUARDED` — with the
+measurements. **This entry states the divergence from Doc 2's Principle 6; it does not restate them.**
+
 ---
 
 ## 4 · Principle 8 — DOCUMENT BEHIND: the code went further, on purpose

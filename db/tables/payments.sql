@@ -84,6 +84,13 @@ CREATE TRIGGER trg_payments_immutable
     BEFORE UPDATE OR DELETE ON public.payments
     FOR EACH ROW EXECUTE FUNCTION public.guard_payment_mutation();
 
+-- SOD-1:后门② —— 建收款人的人不得对该收款人付款。
+-- authenticated 对本表持【表级 INSERT 授权】,所以只在 record_payment 里判是不够的
+-- (GO-2 量到的同一个洞)。范围与冲销的放行理由见 db/functions/guard_payment_sod.sql。
+CREATE TRIGGER trg_payment_sod
+    BEFORE INSERT ON public.payments
+    FOR EACH ROW EXECUTE FUNCTION public.guard_payment_sod();
+
 COMMENT ON COLUMN public.payments.employee_id IS 'PAYEE-1a:这笔出款付给的是【员工】(报销)。direction=''out'' 时与 supplier_id 恰一非空;direction=''in'' 时必须为空 —— 收款不会收自员工(那是另一回事,不在本刀范围)。';
 
 ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;

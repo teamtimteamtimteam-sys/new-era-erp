@@ -12,6 +12,9 @@ const PAYMENT_ERROR_CODES = new Set([
     'FX_RATE_REQUIRED', 'BANK_INVALID',
     'ALLOC_WRONG_SIDE', 'ALLOC_WRONG_PARTY', 'ALLOC_UNPRICED',
     'ALLOC_EXCEEDS', 'ALLOC_EXCEEDS_PAYMENT', 'PERIOD_LOCKED',
+    // SOD-1:建收款人的人不得对该收款人付款。由 payments 上的触发器抛出,
+    // 所以 record_payment 与任何直连写入都会撞上它。解析到 finance.errors.*。
+    'SOD_PAYEE_AND_PAY',
     // PAY-1:冲销那条路上的三个码。此前它们【不在集合里】,于是 localize 把原文
     // 原样返回 —— 屏幕上就是 PAYMENT_ALREADY_REVERSED 这样一串机器串。
     // REVERSAL_DATE_REQUIRED 的文案 FIN-10 就写好了(finance.errors 下),

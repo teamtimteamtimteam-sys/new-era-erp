@@ -3100,6 +3100,16 @@ const zh = {
             equipmentOrderNote: '这是一张设备采购单。机器到厂【不是一次收货】—— 它不产生批次、没有化验、不进库位,所以这里没有「收货」这个动作。机器的花费记成一笔挂在这条订单行上的开支;它的到厂与投用记在【财务 → 固定资产】的资产卡上。',
             colMachine: '机器',
             releaseDate: '冲抵日',
+        approvalPanelTitle: '这张单正在等审批',
+        approvalPanelWhat:
+            '批准会把单据推到【已确认】—— 从那一刻起它收得了货、也放得了预付。驳回则让它留在草稿状态,并把原因记下来。',
+        approveOrder: '批准这张单',
+        approveConfirm: '确定批准这张采购单?',
+        rejectOrder: '驳回这张单',
+        rejectConfirm: '确定驳回这张采购单?',
+        rejectConsequence:
+            '单据留在草稿状态,收不了货。谁驳回的、为什么驳回,两样都会记下来,而且这条记录只增不改。',
+        rejectReason: '为什么驳回?',
         cancelConsequence: '这张单据就此结束,不能再打开。谁取消的、为什么取消,两样都会记下来。',
         terms: {
             committed: '条款已承诺 {code} · {on}',
@@ -3338,6 +3348,23 @@ const zh = {
             PO_NOT_APPROVED: '采购单 {0} 尚未获批（审批状态：{1}），不能按此单收货',
             SUPPLIER_QUALIFICATION_EXPIRED: '供应商 {0} 的收货已被拦截：证书 {1} 已于 {2} 过期 —— 请在 供应商 → 合规 里续期',
             PO_ALREADY_CLOSED: '采购单 {0} 已经结束',
+            APPROVALS_NOT_ENABLED:
+                '审批流未启用,所以没有什么可批的 —— 这张单是提单时由系统直接盖的章,没有人做过这个决定。',
+            PO_NOT_PENDING: '采购单 {0} 不在等待审批(审批状态:{1})',
+            SELF_APPROVAL_FORBIDDEN:
+                '职责分离:提单的人不能自己批。请另一位持审批角色的同事来批。',
+            REJECT_REASON_REQUIRED: '驳回必须填写原因',
+            APPROVAL_NOT_AUTHORISED: '你不是第 {0} 级的审批人({1})',
+            APPROVAL_LEVEL1_ROLE_NOT_SET:
+                '一级审批角色没有设,这张单无从路由。请在【财务 → 设置】里设好。',
+            APPROVAL_LEVEL2_USER_NOT_SET:
+                '二级审批人没有设,超过门槛的单据无从路由。请在【财务 → 设置】里设好。',
+            APPROVAL_THRESHOLD_NOT_SET:
+                '审批金额门槛没有设,这张单无从判定级别。请在【财务 → 设置】里设好。',
+            APPROVAL_AMOUNT_REQUIRED: '这张单据没有本位币金额,无法按金额路由',
+            APPROVAL_LEVEL_INVALID: '本系统没有第 {0} 级审批',
+            APPROVAL_SUBJECT_NOT_FOUND: '找不到 id 为 {1} 的{0},没有可以记录决定的对象',
+            APPROVAL_SUBJECT_TYPE_UNKNOWN: '「{0}」不是本系统会记录审批的对象类型',
             PO_NOT_CLOSED: '采购单 {0} 不是已结束状态',
             CLOSE_NOTES_REQUIRED: '该采购单还有 {0} 预付款未抵扣 —— 结束前必须写明处理方式',
             REASON_REQUIRED: '必须填写原因',
@@ -4243,6 +4270,37 @@ const zh = {
         reopenConfirm: '重开该期间?其分录将恢复可改。',
         closeHistoryEmpty: '暂无关账记录',
         useClosePage: '正常关账请走月结页面;此处为手动覆盖。',
+        approvals: {
+            title: '审批',
+            on: '审批【正在生效】—— 采购单提出来是草稿,必须获批之后才收得了货。',
+            off: '审批【未生效】。单据一提出来就由系统盖上"已批准",没有人做过这个决定。这是系统【明说出来】的一个状态,不是悄悄放行。',
+            notDecided: '没有人决定过',
+            readError:
+                '读不到审批状态。【这不等于「审批未生效」】—— 它的意思是【不知道】。这一页读出来之前,不要据它做判断。',
+            noEligibleApprover:
+                '持有「{role}」的人里,没有一个是【结构上提不了采购单】的 —— 这个角色本身就带着采购(编辑)。同一个人提了又批仍然被拦住,但唯一可用的形状是【同角色内 A 提 B 批】。三选一:一级审批不再是这个角色、这个角色不再持采购(编辑)、或者明确接受同角色互批。',
+            level1: '一级审批角色',
+            level1Unset: '空着的意思是【还没有人决定】,不是"不需要审批"',
+            threshold: '金额门槛(本位币)',
+            thresholdUnset: '空着的意思是还没有人决定 —— 没有它,任何单据都判不出级别',
+            level2: '二级审批人(一个有名有姓的人)',
+            level2Unset: '空着的意思是还没有人决定 —— 超过门槛的单据将无处可去',
+            whatFlipDoes: '把这个开关翻过去会发生什么:',
+            flipOn: '【打开】:既有单据保持它们已有的审批状态,照常收得了货 —— 一张都不会被搁死。新单提出来是 draft/pending,必须获批之后才收得了货、放得了预付。数据库会拒绝在三个策略值没配齐、或者它们指不到真实账号时打开 —— 所以「开着却没配」是一个【到不了】的状态。',
+            flipOff: '【关闭】:审批生效期间提的单保持原状 —— 关掉【永远不会】追认任何一张单。只要还有单在等审批(此刻 {n} 张),数据库就拒绝关闭,因为那些单从此既批不了,也收不了货。',
+            canEnable: '策略已配齐:审批开得起来。',
+            cannotEnable: '审批还开不起来 —— 尚未设好或不可用:{what}',
+            howToTurnOn:
+                '审批是否生效是一个业务决定。打开它是一次刻意的数据库改动,把三个策略值与开关【一起】设上;这一页只报告状态,不负责翻这个开关。',
+        },
+        sod: {
+            cannotCheck:
+                '此刻查不了职责分离 —— 认证服务够不着。这句话的意思是【判断不出】,不是【没有冲突】:规矩仍然由数据库执行,动作照样可能被拒。',
+            lockNotice:
+                '职责分离:你在 {dates} 记过手工凭证。如果你设的锁定日覆盖了其中任何一天,关账会被拒绝 —— 那要由另一位持【财务(编辑)】权限的同事来做。',
+            payeeNotice:
+                '职责分离:这家供应商是你建的,所以这笔付款不能由你来记。请另一位持【财务(编辑)】权限的同事来做。',
+        },
         errors: {
             PAYMENT_NOT_FOUND: '付款单 {0} 不存在。',
             PAYMENT_ALREADY_REVERSED: '付款单 {0} 已经冲销过了 —— 冲销只冲一次,再冲一次等于把它冲掉的那笔钱又加回来。',
@@ -4298,6 +4356,20 @@ const zh = {
             TRIAL_BALANCE_UNBALANCED: '试算不平({0} vs {1})',
             CLOSE_NOT_FOUND: '该期间没有关账记录',
             ALREADY_REOPENED: '该期间已重开',
+            SOD_POST_AND_CLOSE:
+                '职责分离:结束于 {0} 的这个期间里有你自己记的手工凭证,所以关账不能由你来做。请另一位持【财务(编辑)】权限的同事来关这个期间。',
+            SOD_PAYEE_AND_PAY:
+                '职责分离:供应商 {0} 是你自己建的,所以付款不能由你来做。请另一位持【财务(编辑)】权限的同事来记这笔付款。',
+            APPROVALS_POLICY_INCOMPLETE:
+                '审批策略没有配齐,开关开不起来 —— 还缺:{0}。请把一级审批角色、金额门槛、二级审批人在同一次改动里配齐,再打开开关。',
+            APPROVALS_LEVEL1_ROLE_UNHELD:
+                '没有任何一个真实登录账号持有一级审批角色「{0}」,于是每一张单都会排进一个没有人能批的队列。请先把这个角色授给某个人。',
+            APPROVALS_LEVEL2_USER_UNKNOWN:
+                '二级审批人({0})不是一个真实的登录账号。请选一个真的登得进来的人。',
+            APPROVALS_CANNOT_DISABLE_WITH_PENDING:
+                '还有 {0} 张采购单在等审批({1}),此时关掉开关会把它们【搁死】—— 既批不了,也不能按它们收货。请先把它们批掉或驳回,再关开关。',
+            APPROVALS_POLICY_LOCKED_WHILE_ON:
+                '审批正在生效期间,不能把 {0} 清空 —— 一个开着却没有策略的管控会拒绝每一张单。请先关掉审批开关,再改策略。',
             REASON_REQUIRED: '必须填写重开原因',
         },
         fxPage: {
