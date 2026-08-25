@@ -476,8 +476,22 @@ thing that happens to be true.
 
 **Tax depreciation is still not maintained (4.1), and there is still no deferred tax.**
 
+**Who may turn it on, and what stops it (GST-3, 2026-08-26).** Until GST-3 the switch had **no
+control anywhere in the application** — it could only be flipped by direct SQL, which meant the whole
+of GST-1 and GST-2 was unreachable by a person. It now has a panel on `/finance/settings`, governed by
+the same permission that governs the period lock (`module.finance.edit`), with a guard on the table in
+both directions:
+
+* **On** requires a GST registration number to be on file. IRAS requires it on a tax invoice, and the
+  invoice PDF prints that line only when the number exists — so without this a registered company
+  could send a customer an invoice charging 9% with no registration number on it.
+* **Off** is refused while coded expenses exist (they would become impossible to reverse) or while
+  live taxed invoices exist (the return would report supplies for a quarter the company says it was
+  not registered for). Each refusal names the documents in the way.
+
 > *Evidence:* `finance_settings.gst_registered = false`; accounts 1400 and 2100 carry zero journal
-> lines; `guard_document_tax_code` on the three document tables; fixture 129 arm F1.
+> lines; `guard_document_tax_code` on the three document tables; `guard_gst_switch` on
+> `finance_settings`; fixture 129 arm F1 and fixture 130.
 
 ### 8.1a The seven invoices raised to date carry no tax code, and they are not backfilled. — **SETTLED — 2026-08-25**
 

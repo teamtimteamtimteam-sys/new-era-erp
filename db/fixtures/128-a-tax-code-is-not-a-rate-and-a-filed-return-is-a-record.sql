@@ -120,7 +120,11 @@ BEGIN
     -- ══════════ F1 · 打开开关,按税码过账,F5 逐格分得开 ══════════
     -- 【这一臂同时是 S 臂的正对照】没有它,一个"永远不给任何行盖税码"的实现
     -- 会让 S 臂全绿 —— 那正是为了错的理由通过。
-    UPDATE finance_settings SET gst_registered = true;
+    -- 【GST-3 起,打开开关必须同时带上登记号】trg_gst_switch 拒绝
+    -- 没有登记号的注册(GST_REGISTRATION_NO_REQUIRED)—— IRAS 要求税务发票
+    -- 印它,而发票 PDF 在号码为空时那一行整条消失。这一行因此多了一个字段;
+    -- **这份 fixture 在 GST-3 那一刀里当场变红过,而那正是新闸在起作用。**
+    UPDATE finance_settings SET gst_registered = true, gst_registration_no = 'M9-FIX128-8';
 
     -- 标准税率销售 1000 + 9% 税 90
     v_e := (post_journal_entry(v_mid, 'fixture 128 SR 销售', 'manual', NULL, jsonb_build_array(

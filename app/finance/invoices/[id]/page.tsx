@@ -265,7 +265,7 @@ export default async function InvoiceDetailPage({
                             {t('invoice.pdfNeedsBanking')}
                         </span>
                     )}
-                    {!isVoid && <VoidInvoiceControl invoiceId={inv.id} kind={inv.kind} />}
+                    {!isVoid && <VoidInvoiceControl invoiceId={inv.id} hasEntry={inv.entry_id !== null} />}
                 </div>
             </div>
 

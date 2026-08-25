@@ -1,12 +1,17 @@
 // app/finance/settings/page.tsx
-// 财务设置:期间锁(locked_before)。早于锁定日的分录会被拒绝 —— 会产生
-// 此类分录的业务操作(计价/销售/过账盘点等)也会被一并阻止。
+// 财务设置:期间锁(locked_before)+ GST 注册开关(GST-3)。
+// 早于锁定日的分录会被拒绝 —— 会产生此类分录的业务操作(计价/销售/过账盘点等)
+// 也会被一并阻止。
+//
+// 【GST-3:这一页此前【只读 locked_before 一列】】所以 Tim 来这里找 GST 开关
+// 时,它不是藏在别处 —— 它根本不在 app 里的任何地方。见 GstPanel。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../Subnav'
 import LockForm from './LockForm'
 import ApprovalsPanel from './ApprovalsPanel'
+import GstPanel from './GstPanel'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 
@@ -21,7 +26,7 @@ export default async function FinanceSettingsPage() {
 
     const { data, error } = await supabase
         .from('finance_settings')
-        .select('locked_before')
+        .select('locked_before, gst_registered, gst_registration_no')
         .eq('id', true)
         .single()
 
@@ -118,7 +123,14 @@ export default async function FinanceSettingsPage() {
                 </Link>
             </p>
 
-            <p className="text-sm text-gray-500 mt-6">{t('finance.lockExplainer')}</p>
+            <p className="text-sm text-gray-500 mt-6 mb-8">{t('finance.lockExplainer')}</p>
+
+            {/* GST-3:注册开关。**这一页此前完全没有它** —— 而 GST-1/GST-2 建的
+                每一样东西都挂在它后面,于是两刀的成果一个人也碰不到。 */}
+            <GstPanel
+                registered={data?.gst_registered ?? false}
+                registrationNo={data?.gst_registration_no ?? null}
+            />
         </div>
     )
 }

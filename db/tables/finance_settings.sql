@@ -79,6 +79,19 @@ CREATE TRIGGER trg_approvals_switch
     BEFORE UPDATE ON public.finance_settings
     FOR EACH ROW EXECUTE FUNCTION public.guard_approvals_switch();
 
+-- ③ GST-3:注册开关的两个方向。
+--    开 → 登记号必须在册(IRAS 要求税务发票印它,而发票 PDF 在号码为空时
+--         那一行【整条消失】—— 不是拒绝出票,是安静地不印)。
+--    关 → 两条拒绝、两个【不同】的理由:带税码的费用单关掉之后冲销不了
+--         (机械事实);在册的带税发票冲销得了,但会留下"账上报着供应额、
+--         公司却说那一季未注册"的矛盾状态(判断)。
+--    【为什么闸在库上而不是在 server action 上】开关今天就是由 SQL 翻的,
+--    而 module.finance.edit 经 RLS 直接授予 UPDATE —— 只住在 action 里的闸
+--    恰好挡不住会用它的那批人。与上面 ② 同一个落点、同一个理由。
+CREATE TRIGGER trg_gst_switch
+    BEFORE UPDATE OF gst_registered, gst_registration_no ON public.finance_settings
+    FOR EACH ROW EXECUTE FUNCTION public.guard_gst_switch();
+
 ALTER TABLE public.finance_settings ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "finance_settings select by permission"
     ON public.finance_settings
@@ -124,3 +137,6 @@ COMMENT ON COLUMN public.finance_settings.approval_level2_user_id IS
 
 COMMENT ON COLUMN public.finance_settings.approvals_enabled IS
     '审批流是否生效(APR-2c)。【默认 false,这是有意的】:四眼规则在只有一个人类账号的系统里无法运转,而"没配就拒绝"会把采购整个停掉 —— 空配置与不能用的系统是同一个结果。三种状态:off = 审批有意不生效,采购单直接建成 confirmed/approved 且【界面明说】;on 但策略为空 = 拒绝路由(启用却无策略是配置错误);on 且策略齐备 = 引擎照常跑。打开它的前置条件写在 docs/fresh-install-checklist.md:至少两个人类账号,且持 finance 的人不是提单人。';
+
+COMMENT ON COLUMN public.finance_settings.gst_rate_pct IS
+    'GST-2 起【已死】,GST-3 标注:**没有任何代码再读这一列**(db/ 与 app/ 各 0 处引用)。税率不再是一个标量 —— 它按生效期间挂在 tax_rates 上,由 tax_rate_for(code, date) 按【单据自己那一天】解析,因为一张 2022 年的发票永远是 7%,而一个标量表达不了这件事(那正是 GST-1 点名的原始错误)。**改这一列不会改变任何一张单据的税。** 留着它而不 DROP,是因为删它要动表镜像、生成类型与一圈 fixture,而那属于另一刀;这句注释是替代品,不是借口。';
