@@ -250,15 +250,42 @@ const SPECIAL_ID_ROUTES = new Set([
 
 // ════════════════════════════════════════════════════════════════════════════
 // 带查询串的探针 —— 定义在模块作用域,好让【总结行也数得到它们】。
-// 混进 routes 的计数里,等于让"这一类到底测没测"重新变得看不见,
-// 而它们存在的全部理由正是那件事。
+//
+// ★【GST-FIX-2:这条探针的第一版是【空断言】,而它当场骗过了我自己】★
+// 第一版只断言"钻取那一段在不在",而它第一次跑的时候,线上每一个可钻的格
+// 都是 0.00 —— 于是它对着一个【空集】变绿,并被当成"这条路已经有覆盖了"。
+// **一个因为集合为空而通过的断言什么都没证明** —— 这是本仓库自己的规矩
+// (fixture 的"因为错的理由通过"),而它在我新加的检查上第一次跑就应验了。
+//
+// 现在的口径:**必须对着一个【非空】的格断言,而"非空"由数据说了算,不由断言者说了算。**
+// 探针自己去找那张【在册的、带 SR 税码的、落在该期间里的】发票,
+// 然后要求页面上出现【那张发票的编号】。找不到这样的发票就【判失败】——
+// 一个在空期间上悄悄变绿的探针,比没有这条探针更坏。
 // ════════════════════════════════════════════════════════════════════════════
 const QUERY_PROBES = [
-    { route: '/finance/gst/[periodId]', seg: '[periodId]', table: 'gst_periods',
-      query: '?box=box1',
-      must: 'data-box-detail="box1"',
-      mustNot: 'data-box-detail-error',
-      why: 'F5 的钻取只在 ?box= 之后才存在' },
+    {
+        name: 'F5 钻取(box1)',
+        why: 'F5 的钻取只在 ?box= 之后才存在,而本脚本此前从不发查询串',
+        // 找一个【有内容的】期间与它里面的那张发票 —— 两者都找得到才谈得上断言。
+        async resolve() {
+            const periods = await restRows('/rest/v1/gst_periods?select=id,period_start,period_end&order=period_start.desc',
+                'query-probe ← gst_periods')
+            for (const p of periods) {
+                const rows = await restRows(
+                    `/rest/v1/invoice_lines?select=tax_code,invoices!inner(code,issue_date,status)` +
+                    `&tax_code=eq.SR&invoices.status=neq.void` +
+                    `&invoices.issue_date=gte.${p.period_start}&invoices.issue_date=lte.${p.period_end}&limit=1`,
+                    'query-probe ← invoice_lines(SR, live, in period)')
+                if (rows[0]?.invoices?.code) {
+                    return { url: `/finance/gst/${p.id}?box=box1`, invoiceCode: rows[0].invoices.code }
+                }
+            }
+            return null
+        },
+        // 断言的是【那张发票的编号出现在钻取里】—— 不是"那一段在不在"。
+        // 前者要求集合非空;后者对空集也成立,而那正是第一版的毛病。
+        mustNot: 'data-box-detail-error',
+    },
 ]
 
 const EXPECTED_SKIPS = new Set([
@@ -889,33 +916,34 @@ async function main() {
         // 专门给这里留的机器标记;data-box-detail-error 出现则说明 RPC 炸了。
         // ════════════════════════════════════════════════════════════════
         for (const probe of QUERY_PROBES) {
-            const id = await firstId(probe.table, probe.route)
-            if (!id) {
-                // 【没数据不是"通过"】说出来,并且【算一次失败】——
-                // 一个悄悄跳过的探针,与没有这个探针是同一件事。
-                PROGRESS.failed.push(`${probe.route}${probe.query} → ${probe.table} 无数据,探针跑不了`)
-                failures.push({ route: probe.route + probe.query, url: '-', status: 0,
-                    stack: `${probe.table} 里没有行,带查询串的探针无法执行 —— 这不是通过` })
-                console.log(`  FAIL ${probe.route}${probe.query}  (${probe.table} 无数据,探针跑不了)`)
+            const target = await probe.resolve()
+            if (!target) {
+                // 【找不到可断言的数据 = 失败,不是跳过】这一条是 GST-FIX-2 的全部教训:
+                // 第一版在这里会安静地变绿,而它证明的只是"空集里没有东西"。
+                PROGRESS.failed.push(`${probe.name} → 找不到【非空】的格可断言`)
+                failures.push({ route: probe.name, url: '-', status: 0,
+                    stack: '找不到一张【在册的、带 SR 税码、落在某个 GST 期间里】的发票 —— '
+                         + '于是这条探针没有可断言的非空对象。**这不是通过。** '
+                         + '一个对着空集变绿的断言什么都没证明(GST-FIX-2)。' })
+                console.log(`  FAIL ${probe.name}  (找不到非空的格 —— 这不是通过)`)
                 continue
             }
-            const purl = probe.route.replace(probe.seg, id) + probe.query
             const before = logChunks.length
-            const res = await fetch(`http://localhost:${PORT}${purl}`, { headers: { cookie }, redirect: 'manual' })
+            const res = await fetch(`http://localhost:${PORT}${target.url}`, { headers: { cookie }, redirect: 'manual' })
             const body = res.status >= 200 && res.status < 300 ? await res.text() : ''
-            const hasMust = body.includes(probe.must)
-            const hasBad = probe.mustNot && body.includes(probe.mustNot)
-            if (res.status >= 200 && res.status < 300 && hasMust && !hasBad) {
+            const hasCode = body.includes(target.invoiceCode)
+            const hasBad = body.includes(probe.mustNot)
+            if (res.status >= 200 && res.status < 300 && hasCode && !hasBad) {
                 ok++
-                console.log(`  ok   ${probe.route}${probe.query}  (${probe.why})`)
+                console.log(`  ok   ${target.url}  (钻取列出了 ${target.invoiceCode})`)
             } else {
                 const why = res.status < 200 || res.status >= 300 ? `HTTP ${res.status}`
                     : hasBad ? `钻取报错(${probe.mustNot})`
-                    : `响应里没有 ${probe.must}`
-                PROGRESS.failed.push(`${probe.route}${probe.query} → ${why}`)
-                failures.push({ route: probe.route + probe.query, url: purl, status: res.status,
+                    : `钻取里没有 ${target.invoiceCode} —— 而那一格【不是空的】`
+                PROGRESS.failed.push(`${probe.name} → ${why}`)
+                failures.push({ route: probe.name, url: target.url, status: res.status,
                     stack: `带查询串的探针未通过:${why}\n${await serverStack(before)}` })
-                console.log(`  FAIL ${probe.route}${probe.query} → ${why}`)
+                console.log(`  FAIL ${target.url} → ${why}`)
             }
         }
 
