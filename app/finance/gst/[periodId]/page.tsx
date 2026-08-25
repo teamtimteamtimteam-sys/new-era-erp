@@ -48,6 +48,14 @@ export default async function GstPeriodPage({ params, searchParams }: {
         })
         : null
 
+    // 【被打开的那一格的数字】—— 钻取那一段要把它重复出来,好让"空"读起来
+    // 是一个答案而不是一次失败。已申报读快照,未申报读现算的那一份,与上面同源。
+    const openBoxValue = box
+        ? (filed
+            ? Number(snap.find((r) => r.box === box)?.value_base ?? 0)
+            : Number((live?.boxes ?? []).find((b) => b.box === box)?.value ?? 0))
+        : null
+
     // 申报被挡住时的【具体】理由,而不是一个析取式
     const blockedWhy =
         filed ? t('gst.blockedAlreadyFiled', { on: period.filed_on ?? '' })
@@ -102,7 +110,10 @@ export default async function GstPeriodPage({ params, searchParams }: {
                             <td className="border border-gray-300 px-2 py-1 text-right font-mono">{Number(b.value).toFixed(2)}</td>
                             <td className="border border-gray-300 px-2 py-1">
                                 {['box1','box2','box3','box5','box6','box7'].includes(b.box)
-                                    ? <Link href={`/finance/gst/${periodId}?box=${b.box}`} className="text-blue-600 hover:underline text-xs">{t('gst.openBox')}</Link>
+                                    // 【#box-detail:让链接跳到它打开的那一段】GST-FIX-1 实测:
+                                    // 钻取确实渲染了,但它落在文档 28% 处 —— 从表格顶上点一下,
+                                    // 视口一动不动。**一个看起来什么都没做的控件,比一个明确拒绝的更坏。**
+                                    ? <Link href={`/finance/gst/${periodId}?box=${b.box}#box-detail`} className="text-blue-600 hover:underline text-xs">{t('gst.openBox')}</Link>
                                     : <span className="text-xs text-gray-500">{t('gst.notDrillable')}</span>}
                             </td>
                         </tr>
@@ -150,11 +161,29 @@ export default async function GstPeriodPage({ params, searchParams }: {
                 )
             })()}
 
+            {/* ★【钻取那一段:锚点 + 看得见的边框】★ GST-FIX-1
+                实测发现的不是"钻取坏了"—— 它是对的,而且与 F5 逐格一致。
+                坏的是【反馈】:点一下之后,变化是一行淡蓝底色加上 28% 处的一段文字,
+                而人的视口在原地。所以这里做三件事:给它一个 id 让链接跳得过来、
+                给它一个边框让它在页面上是一块【东西】、并且把这一格的数字重复一遍,
+                好让"空"读起来是一个答案而不是一次失败。
+                data-box-detail 是给冒烟用的机器标记 —— 本仓库此前从不发查询串,
+                于是整条钻取路径没有任何自动检查看得见(见 docs/known-issues.md)。 */}
             {box && (
-                <>
-                    <h2 className="font-semibold mb-2">{t('gst.boxDetail', { box: box.replace('box', '') })}</h2>
+                <section id="box-detail" data-box-detail={box}
+                         className="border-2 border-blue-300 bg-blue-50/40 rounded p-4 mb-6 scroll-mt-4">
+                    <h2 className="font-semibold mb-1">{t('gst.boxDetail', { box: box.replace('box', '') })}</h2>
+                    {/* 【把这一格的数字放在这里】没有它,"这一格里没有东西"读起来像查询失败;
+                        有了它,读者立刻知道:这一格【本来就是】这个数。 */}
+                    <p className="text-xs text-gray-600 mb-3">
+                        {t('gst.boxDetailFor', {
+                            box: box.replace('box', ''),
+                            value: (openBoxValue ?? 0).toFixed(2),
+                            currency: String((live as { currency?: string } | null)?.currency ?? ''),
+                        })}
+                    </p>
                     {detailRes?.error ? (
-                        <p className="text-sm text-red-700 mb-6">{detailRes.error.message}</p>
+                        <p data-box-detail-error className="text-sm text-red-700">{detailRes.error.message}</p>
                     ) : (detailRes?.data as unknown[] | null)?.length ? (
                         <table className="w-full border-collapse border border-gray-300 mb-6 text-sm">
                             <thead className="bg-gray-50">
@@ -185,9 +214,16 @@ export default async function GstPeriodPage({ params, searchParams }: {
                             </tbody>
                         </table>
                     ) : (
-                        <p className="text-sm text-gray-600 mb-6">{t('gst.boxEmpty')}</p>
+                        /* 【空要说出【为什么】空】"这一格里没有东西"与"查询失败了"
+                           在屏幕上长得一模一样。数字是 0 的时候就直说是 0;
+                           数字不是 0 却钻不出行,那才是真的不对劲,单独说。 */
+                        <p className="text-sm text-gray-700">
+                            {(openBoxValue ?? 0) === 0
+                                ? t('gst.boxEmptyBecauseZero')
+                                : t('gst.boxEmptyButNonZero', { value: (openBoxValue ?? 0).toFixed(2) })}
+                        </p>
                     )}
-                </>
+                </section>
             )}
 
             <h2 className="font-semibold mb-2">{t('gst.recordFiling')}</h2>

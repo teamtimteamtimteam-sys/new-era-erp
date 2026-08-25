@@ -248,6 +248,19 @@ const SPECIAL_ID_ROUTES = new Set([
     '/settings/import/template/[table]',
 ])
 
+// ════════════════════════════════════════════════════════════════════════════
+// 带查询串的探针 —— 定义在模块作用域,好让【总结行也数得到它们】。
+// 混进 routes 的计数里,等于让"这一类到底测没测"重新变得看不见,
+// 而它们存在的全部理由正是那件事。
+// ════════════════════════════════════════════════════════════════════════════
+const QUERY_PROBES = [
+    { route: '/finance/gst/[periodId]', seg: '[periodId]', table: 'gst_periods',
+      query: '?box=box1',
+      must: 'data-box-detail="box1"',
+      mustNot: 'data-box-detail-error',
+      why: 'F5 的钻取只在 ?box= 之后才存在' },
+]
+
 const EXPECTED_SKIPS = new Set([
     // (EQP-1c-b 曾在这里挂过 '/finance/assets/[id]' —— 线上 fixed_assets 零行。
     //  2026-08-21 Tim 的走查登记了第一台真机器 FA-2026-0001
@@ -255,11 +268,11 @@ const EXPECTED_SKIPS = new Set([
     //  「预期会 SKIP 的路由跑起来了 —— 数据到位了」,正如它自己的注释所承诺的。
     //  这一行因此被删掉。留这句话是为了记下:它只跳过了一次跑就到期了,
     //  而那正是"跳过是记录,不是默许"的意思。)
-    // GST-1:线上 gst_periods 零行 —— 期间是【人开出来的】,不是自动产生的,
-    // 而且开第一个季度之前得先决定注册与否。开出第一期的那天,这条断言会报
-    // 「预期会 SKIP 的路由跑起来了」,逼人把这两行删掉。跳过是记录,不是默许。
-    '/finance/gst/[periodId]',
-    '/finance/gst/[periodId]/export',
+    // 【GST-1 那两行已经删掉了 —— 它自己逼出来的(GST-FIX-1,2026-08-26)】
+    // 原文写着:"开出第一期的那天,这条断言会报「预期会 SKIP 的路由跑起来了」,
+    // 逼人把这两行删掉。跳过是记录,不是默许。"
+    // 那一天到了:Tim 在 2026-08-26 走 §17 时开出了 GST-2026-Q3,于是
+    // /finance/gst/[periodId] 与它的 export 从此有数据可跑。两行照约定删除。
     '/hr/claims/[id]',    // medical_claims 空 —— 正常运营会产生;有数据那天此断言逼人收编
     '/hr/leave/[id]',     // leave_requests 空
     // 【FRT-1 的那条跳过已经删掉了 —— 它自己逼出来的(FRT-FIX,2026-08-20)】
@@ -860,6 +873,52 @@ async function main() {
             }
         }
 
+        // ════════════════════════════════════════════════════════════════
+        // ★【带查询串的探针 —— 本脚本此前【从不发查询串】】★(GST-FIX-1,2026-08-26)
+        //
+        // 上面那个主循环只 GET 光秃秃的路由路径。于是**任何住在查询参数后面的
+        // 行为,对每一次跑(过去的和将来的)都是结构性不可见的** —— 不是没测到,
+        // 是这台机器没有那个器官。
+        //
+        // 【它藏住了什么】F5 的钻取整个住在 ?box= 后面。GST-2 把它从"钻回分录"
+        // 改成"钻回单据"(换了返回类型、换了列名、换了整段渲染),而那一改
+        // 【没有任何自动检查看得见】—— 同一页又恰好因为线上没有 gst_periods 行
+        // 而一直被跳过。两个盲区叠在一起,一直到人手走查才被发现。
+        //
+        // 【断言的是"那一段在不在",不是"好不好看"】data-box-detail 是页面上
+        // 专门给这里留的机器标记;data-box-detail-error 出现则说明 RPC 炸了。
+        // ════════════════════════════════════════════════════════════════
+        for (const probe of QUERY_PROBES) {
+            const id = await firstId(probe.table, probe.route)
+            if (!id) {
+                // 【没数据不是"通过"】说出来,并且【算一次失败】——
+                // 一个悄悄跳过的探针,与没有这个探针是同一件事。
+                PROGRESS.failed.push(`${probe.route}${probe.query} → ${probe.table} 无数据,探针跑不了`)
+                failures.push({ route: probe.route + probe.query, url: '-', status: 0,
+                    stack: `${probe.table} 里没有行,带查询串的探针无法执行 —— 这不是通过` })
+                console.log(`  FAIL ${probe.route}${probe.query}  (${probe.table} 无数据,探针跑不了)`)
+                continue
+            }
+            const purl = probe.route.replace(probe.seg, id) + probe.query
+            const before = logChunks.length
+            const res = await fetch(`http://localhost:${PORT}${purl}`, { headers: { cookie }, redirect: 'manual' })
+            const body = res.status >= 200 && res.status < 300 ? await res.text() : ''
+            const hasMust = body.includes(probe.must)
+            const hasBad = probe.mustNot && body.includes(probe.mustNot)
+            if (res.status >= 200 && res.status < 300 && hasMust && !hasBad) {
+                ok++
+                console.log(`  ok   ${probe.route}${probe.query}  (${probe.why})`)
+            } else {
+                const why = res.status < 200 || res.status >= 300 ? `HTTP ${res.status}`
+                    : hasBad ? `钻取报错(${probe.mustNot})`
+                    : `响应里没有 ${probe.must}`
+                PROGRESS.failed.push(`${probe.route}${probe.query} → ${why}`)
+                failures.push({ route: probe.route + probe.query, url: purl, status: res.status,
+                    stack: `带查询串的探针未通过:${why}\n${await serverStack(before)}` })
+                console.log(`  FAIL ${probe.route}${probe.query} → ${why}`)
+            }
+        }
+
         // ── 评估人视角:以真正的评估人会话请求 /my-reviews/[id],精确 200 ——
         // 404 意味着守卫误伤、RLS 收紧过头或会话装配坏了,而 admin 那一遍看不见
         {
@@ -924,7 +983,9 @@ async function main() {
         await rest(`/auth/v1/admin/users/${cu.id}`, { method: 'DELETE' })
     }
 
-    console.log(`\n== ${routes.length} routes + 1 reviewer-view check: ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
+    // 【总结行把带查询串的探针【单独数出来】】把它们混进 routes 的计数里,
+    // 等于让"这一类到底测没测"重新变得看不见 —— 而它们存在的理由正是那件事。
+    console.log(`\n== ${routes.length} routes + 1 reviewer-view check + ${QUERY_PROBES.length} query-string probe(s): ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
     // SESSION-1:这一行排在所有失败之前,因为它改变【怎么读】下面那一百行。
     if (sawAuthIndeterminate) {
         const n = failures.filter((f) => f.authDown).length
