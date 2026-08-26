@@ -76,3 +76,48 @@ COMMENT ON COLUMN public.fx_rates.rate_type IS
     'tt_buy = 银行买入外币(收入/应收);tt_sell = 银行卖出外币(支出/应付);mid = 中间价(重估值)。';
 COMMENT ON COLUMN public.fx_rates.source IS
     '牌价出处,暂定 DBS。MAS 存档的日中间价可补漏与核对,不作首选源。';
+
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- FX-RATES-1(2026-08-27):**改与删必须经函数,留痕。**
+-- 改一条牌价 → record_fx_rate(带理由,写一行 'corrected' 史,连旧值一起记);
+-- 撤销一条   → withdraw_fx_rate(软删 + 必填理由 + 一行 'withdrawn' 史)。
+--
+-- 【拦【改】与【删】,放行【建】—— 照抄 guard_inbound_price_change 的先例】
+-- 那个守卫的抬头写着「INSERT 带价仍允许 —— 建单定价是正常路径」。同理:
+-- 毁掉审计线索的是【改】与【删】,不是【建】—— 新建的那一行自己就是记录。
+-- 而且拦 INSERT 会当场拦错东西:26 份 fixture 直接 INSERT 播种牌价,
+-- 其中 09-fx-reach-back-bounded 播的是一个【未来】日期(用来测有界回溯),
+-- 而 record_fx_rate 正确地拒绝未来日期。
+--
+-- 【UPDATE 只在【金额真的变了】时才拦】与先例逐字同形。改 deleted_at、
+-- 改 notes、改 source 都不是"把一个数悄悄换掉",不该被这条闸挡住。
+-- 【DELETE 一律要 ctx】硬删是这张表上唯一真正不可追的操作;触发器对超级用户
+-- 同样生效,所以这扇门从此关上。
+-- ════════════════════════════════════════════════════════════════════════════
+
+CREATE OR REPLACE FUNCTION public.guard_fx_rate_write()
+RETURNS trigger LANGUAGE plpgsql AS $fn$
+BEGIN
+    -- 【硬删:一律经函数】硬删不留任何痕迹,是这张表上唯一真正不可追的操作。
+    IF TG_OP = 'DELETE' THEN
+        IF NULLIF(current_setting('evoltrya.fx_ctx', true), '') IS NULL THEN
+            RAISE EXCEPTION 'FX_RATE_VIA_FUNCTION|DELETE';
+        END IF;
+        RETURN OLD;
+    END IF;
+    -- 【UPDATE:只拦【金额被改】那一种】—— 与 guard_inbound_price_change 逐字同形
+    -- (它也只在 unit_price 真的变了时才拦)。改 deleted_at(撤销)、改 notes、
+    -- 改 source 都不是"把一个数悄悄换掉",不该被这条闸挡住。
+    IF NEW.rate_sgd_per_unit IS DISTINCT FROM OLD.rate_sgd_per_unit
+       AND NULLIF(current_setting('evoltrya.fx_ctx', true), '') IS NULL THEN
+        RAISE EXCEPTION 'FX_RATE_VIA_FUNCTION|UPDATE';
+    END IF;
+    RETURN NEW;
+END;
+$fn$;
+
+-- INSERT 不在此列 —— 理由见上(price_ctx 先例:建是正常路径,改与删才毁线索)。
+CREATE TRIGGER trg_fx_rates_write_guard
+    BEFORE UPDATE OR DELETE ON public.fx_rates
+    FOR EACH ROW EXECUTE FUNCTION public.guard_fx_rate_write();

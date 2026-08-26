@@ -60,7 +60,7 @@ BEGIN
 
     -- 硬前置自证:把重估与折旧【跑平】(对线上跑本 fixture 时它们可能欠着;
     -- 空库上是 no-op)。缺 12/31 中间价会让重估预览拒 —— 自插。
-    DELETE FROM fx_rates WHERE rate_date = '2026-12-31';
+    UPDATE fx_rates SET deleted_at = now() WHERE rate_date = '2026-12-31';
     INSERT INTO fx_rates (currency, rate_date, rate_type, rate_sgd_per_unit)
     VALUES ('USD','2026-12-31','mid',1.30),('USD','2026-12-31','tt_buy',1.30),('USD','2026-12-31','tt_sell',1.30);
     PERFORM depreciate_fixed_assets('2026-12-31');

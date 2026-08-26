@@ -3324,6 +3324,62 @@ export type Database = {
           },
         ]
       }
+      fx_rate_history: {
+        Row: {
+          action: string
+          changed_at: string
+          changed_by: string | null
+          currency: string
+          fx_rate_id: string
+          id: string
+          notes: string | null
+          prev_rate: number | null
+          rate_date: string
+          rate_sgd_per_unit: number
+          rate_type: string
+          reason: string | null
+          source: string | null
+        }
+        Insert: {
+          action: string
+          changed_at?: string
+          changed_by?: string | null
+          currency: string
+          fx_rate_id: string
+          id?: string
+          notes?: string | null
+          prev_rate?: number | null
+          rate_date: string
+          rate_sgd_per_unit: number
+          rate_type: string
+          reason?: string | null
+          source?: string | null
+        }
+        Update: {
+          action?: string
+          changed_at?: string
+          changed_by?: string | null
+          currency?: string
+          fx_rate_id?: string
+          id?: string
+          notes?: string | null
+          prev_rate?: number | null
+          rate_date?: string
+          rate_sgd_per_unit?: number
+          rate_type?: string
+          reason?: string | null
+          source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fx_rate_history_fx_rate_id_fkey"
+            columns: ["fx_rate_id"]
+            isOneToOne: false
+            referencedRelation: "fx_rates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fx_rates: {
         Row: {
           created_at: string
@@ -13250,6 +13306,26 @@ export type Database = {
         }
         Relationships: []
       }
+      fx_month_end_readiness: {
+        Row: {
+          blocks_close: boolean | null
+          currency: string | null
+          has_mid: boolean | null
+          mid_rate: number | null
+          mid_rate_as_of: string | null
+          month_end: string | null
+          revalued: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_lines_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       fx_rate_gaps: {
         Row: {
           currency: string | null
@@ -18106,6 +18182,19 @@ export type Database = {
         }
         Returns: Json
       }
+      record_fx_rate: {
+        Args: {
+          p_currency: string
+          p_notes?: string
+          p_rate: number
+          p_rate_date: string
+          p_rate_type: string
+          p_reason?: string
+          p_source?: string
+        }
+        Returns: Json
+      }
+      record_fx_rates_bulk: { Args: { p_rows: Json }; Returns: Json }
       record_invoice_issue: {
         Args: { p_file_path: string; p_invoice_id: string; p_sha256: string }
         Returns: Json
@@ -18501,6 +18590,10 @@ export type Database = {
       void_review: {
         Args: { p_reason: string; p_review_id: string }
         Returns: Json
+      }
+      withdraw_fx_rate: {
+        Args: { p_id: string; p_reason: string }
+        Returns: undefined
       }
     }
     Enums: {

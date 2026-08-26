@@ -33,7 +33,7 @@ BEGIN
         format('{"sub":"%s","role":"authenticated"}', v_uid), true);
     -- 前提显式设定(README 第 5 条)
     UPDATE finance_settings SET locked_before = NULL;
-    DELETE FROM fx_rates WHERE currency = 'USD' AND rate_date = v_today AND rate_type = 'tt_sell';
+    UPDATE fx_rates SET deleted_at = now() WHERE currency = 'USD' AND rate_date = v_today AND rate_type = 'tt_sell';
     INSERT INTO fx_rates (currency, rate_date, rate_type, rate_sgd_per_unit)
     VALUES ('USD', v_today, 'tt_sell', 1.26);
 

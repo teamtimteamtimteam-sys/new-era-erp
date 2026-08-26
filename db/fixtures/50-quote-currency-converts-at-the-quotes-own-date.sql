@@ -41,7 +41,7 @@ BEGIN
     UPDATE pricing_settings SET metal_price_change_warn_pct = 500 WHERE id;  -- 本 fixture 不测异常提示
     UPDATE metal_prices SET deleted_at = now() WHERE deleted_at IS NULL;
     -- 前提显式设定:本 fixture 自己摆汇率,不继承线上任何一天
-    DELETE FROM fx_rates WHERE rate_date BETWEEN '2027-06-01' AND '2027-06-30';
+    UPDATE fx_rates SET deleted_at = now() WHERE rate_date BETWEEN '2027-06-01' AND '2027-06-30';
 
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-50', 'f', 'f', true) RETURNING id INTO r_all;

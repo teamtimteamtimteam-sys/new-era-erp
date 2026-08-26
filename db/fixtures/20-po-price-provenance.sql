@@ -32,7 +32,7 @@ BEGIN
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code) VALUES ('FIXT-M20', 'Fixture Material 20', 'battery_material', true, 'black_mass', 'end_of_life')
         RETURNING id INTO v_mat;
     -- 下单日牌价(单据 SGD:分子 fx(USD)=1.26,分母 fx(SGD)=1 → factor 1.26)
-    DELETE FROM fx_rates WHERE currency = 'USD' AND rate_date = v_today AND rate_type = 'tt_sell';
+    UPDATE fx_rates SET deleted_at = now() WHERE currency = 'USD' AND rate_date = v_today AND rate_type = 'tt_sell';
     INSERT INTO fx_rates (currency, rate_date, rate_type, rate_sgd_per_unit)
     VALUES ('USD', v_today, 'tt_sell', v_fx);
     SELECT id INTO v_formula FROM pricing_formulas WHERE deleted_at IS NULL AND is_active LIMIT 1;

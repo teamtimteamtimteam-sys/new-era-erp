@@ -4,8 +4,8 @@
 // source 默认 'DBS'。唯一约束 (currency, rate_date, rate_type) 冲突 → 友好的字段错误。
 import { createClient } from '@/lib/supabase/server'
 import { getBaseCurrency } from '@/lib/currency'
-import type { InsertRow } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
+import { localizeFxError } from '../../fxErrorCodes'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
@@ -52,27 +52,23 @@ export async function createFxRate(
     }
 
     const supabase = await createClient()
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
 
-    const { error } = await supabase.from('fx_rates').insert({
-        currency,
-        rate_type,
-        rate_sgd_per_unit: rate,
-        rate_date,
-        source,
-        notes,
-        created_by: user?.id ?? null,
-        updated_by: user?.id ?? null,
-    } as InsertRow<'fx_rates'>)
+    // FX-RATES-1:【只有一个写入口】—— 不再直接 INSERT。表单与批量表格调的是
+    // 同一个 record_fx_rate,所以表格【不可能】比表单校验得松:没有第二个地方
+    // 可以放松。校验、留痕、未来日期的拒绝,全在函数里,两条路共用。
+    const { error } = await supabase.rpc('record_fx_rate', {
+        p_currency: currency,
+        p_rate_date: rate_date,
+        p_rate_type: rate_type,
+        // rate 在上面的字段校验里已经确定非空(否则早已 return fieldErrors)
+        p_rate: rate as number,
+        p_source: source,
+        p_notes: notes ?? undefined,
+        p_reason: undefined,
+    })
 
     if (error) {
-        // 唯一约束 (currency, rate_date, rate_type):同一币种同一天同一侧已有牌价
-        if (error.code === '23505') {
-            return { fieldErrors: { rate_date: t('finance.fxPage.errors.duplicate') } }
-        }
-        return { error: t('finance.fxPage.form.saveError', { message: error.message }) }
+        return { error: await localizeFxError(error.message) }
     }
 
     revalidatePath('/finance/fx')

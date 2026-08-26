@@ -440,6 +440,8 @@ const MANIFEST = {
                                   () => tsSet('app/finance/financeErrorCodes.ts', 'FINANCE_ERROR_CODES'),
                                   () => tsSet('app/finance/paymentErrorCodes.ts', 'PAYMENT_ERROR_CODES')) },
     'bank.errors.':         { kind: 'enum', values: () => tsSet('app/finance/bankErrorCodes.ts', 'BANK_ERROR_CODES') },
+    // FX-RATES-1:牌价写入口抛的码。真源是那份 Set —— 加一条码,检查自动跟着变宽。
+    'finance.fxPage.errors.': { kind: 'enum', values: () => tsSet('app/finance/fxErrorCodes.ts', 'FX_ERROR_CODES') },
     'invoice.errors.':      { kind: 'enum', values: () => tsSet('app/finance/invoiceErrorCodes.ts', 'INVOICE_ERROR_CODES') },
     'expense.errors.':      { kind: 'enum', values: () => tsSet('app/finance/expenseErrorCodes.ts', 'EXPENSE_ERROR_CODES') },
     'pricing.errors.':      { kind: 'enum', values: () => tsSet('app/pricing/pricingErrorCodes.ts', 'PRICING_ERROR_CODES') },

@@ -39,7 +39,7 @@ BEGIN
     -- 行情与牌价:ni 20,000 USD/吨;USD tt_sell 1.30(【今天】—— 提交按定价日折算)
     INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source)
     VALUES ('ni', 20000, CURRENT_DATE, 'broker_quote');
-    DELETE FROM fx_rates WHERE currency = 'USD' AND rate_date = CURRENT_DATE AND rate_type = 'tt_sell';
+    UPDATE fx_rates SET deleted_at = now() WHERE currency = 'USD' AND rate_date = CURRENT_DATE AND rate_type = 'tt_sell';
     INSERT INTO fx_rates (currency, rate_date, rate_type, rate_sgd_per_unit)
     VALUES ('USD', CURRENT_DATE, 'tt_sell', 1.30);
 
@@ -83,7 +83,7 @@ BEGIN
     PERFORM commit_pricing_terms(v_f, NULL, v_b);
 
     -- ══════════ B. 缺汇率:试算拒 ⇔ 提交拒(ASY-1 之前试算一声不吭)═══════════
-    DELETE FROM fx_rates WHERE currency = 'USD' AND rate_type = 'tt_sell'
+    UPDATE fx_rates SET deleted_at = now() WHERE currency = 'USD' AND rate_type = 'tt_sell'
       AND rate_date > CURRENT_DATE - 10;
     v_prev_err := NULL; v_apply_err := NULL;
     BEGIN

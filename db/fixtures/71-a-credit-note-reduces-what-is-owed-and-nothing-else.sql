@@ -57,7 +57,7 @@ BEGIN
 
     -- 【牌价自己插】收款那一步要 tt_buy(record_payment:收款 tt_buy / 付款 tt_sell)。
     -- 不指望引导数据里有 —— README 第 4/5 条。
-    DELETE FROM fx_rates WHERE currency = 'USD' AND rate_date = d;
+    UPDATE fx_rates SET deleted_at = now() WHERE currency = 'USD' AND rate_date = d;
     INSERT INTO fx_rates (currency, rate_date, rate_type, rate_sgd_per_unit)
     VALUES ('USD', d, 'tt_buy', FX), ('USD', d, 'tt_sell', FX), ('USD', d, 'mid', FX);
 

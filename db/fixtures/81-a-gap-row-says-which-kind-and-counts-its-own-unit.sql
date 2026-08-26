@@ -65,7 +65,7 @@ BEGIN
         format('{"sub":"%s","role":"authenticated"}', v_user), true);
 
     -- 【前提显式设定】这三天(含回溯缓冲)不许有 CNY / USD 牌价,否则缺口根本不出现
-    DELETE FROM fx_rates
+    UPDATE fx_rates SET deleted_at = now()
      WHERE currency IN ('CNY', 'USD')
        AND rate_date BETWEEN d_quote - 10 AND d_mixed + 10;
 

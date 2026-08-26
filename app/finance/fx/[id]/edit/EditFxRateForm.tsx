@@ -53,6 +53,41 @@ export default function EditFxRateForm({
                 />
 
                 <div className="flex items-center gap-3 pt-4">
+                    {/* FX-RATES-1:改一条已在册的牌价必须说明理由 —— 它会连同【改之前是什么】
+
+                         一起进 fx_rate_history。这不是礼貌,是"我们那天用的哪个数"的唯一答案。*/}
+
+                    <div className="mb-4">
+
+                        <label htmlFor="reason" className="block text-sm font-medium mb-1">
+
+                            {t('finance.fxPage.form.reason')}
+
+                        </label>
+
+                        <input
+
+                            id="reason"
+
+                            name="reason"
+
+                            type="text"
+
+                            required
+
+                            placeholder={t('finance.fxPage.form.reasonPlaceholder')}
+
+                            className="border border-gray-300 rounded px-2 py-1 w-full text-sm"
+
+                        />
+
+                        {state.fieldErrors?.reason && (
+
+                            <p className="text-sm text-red-600 mt-1">{state.fieldErrors.reason}</p>
+
+                        )}
+
+                    </div>
                     <button
                         type="submit"
                         disabled={isPending}

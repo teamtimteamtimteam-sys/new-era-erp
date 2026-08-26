@@ -61,3 +61,6 @@
 2026-08-26T13:32:44+0800	2026-08-26-bankrec-balance-agreement-and-the-explained-difference.sql	a9c2ec3
 2026-08-26T23:12:58+0800	2026-08-26-bankrec-fu1-the-criterion-lives-where-the-next-query-gets-written.sql	cc75dab
 2026-08-27T00:33:02+0800	2026-08-27-fxrev1-revaluation-counts-both-sides-of-a-reversal.sql	7312fb4
+2026-08-27T01:39:14+0800	2026-08-27-fxrates1-one-write-path-history-and-month-end-readiness.sql	247838c
+2026-08-27T01:40:51+0800	2026-08-27-fxrates1-fu1-found-belongs-to-the-last-statement.sql	247838c
+2026-08-27T01:44:27+0800	2026-08-27-fxrates1-fu2-a-bulk-wrapper-that-loops-the-one-function.sql	247838c

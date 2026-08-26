@@ -51,7 +51,7 @@ BEGIN
                                 gst_registered = false, gst_registration_no = NULL;
 
     -- 【牌价自己插】README 第 4 条:绝不依赖会过期的引导数据
-    DELETE FROM fx_rates WHERE currency='USD' AND rate_type='mid' AND rate_date IN (d1-1, d1, d2);
+    UPDATE fx_rates SET deleted_at = now() WHERE currency='USD' AND rate_type='mid' AND rate_date IN (d1-1, d1, d2);
     INSERT INTO fx_rates (currency, rate_date, rate_type, rate_sgd_per_unit, source)
     VALUES ('USD', d1-1, 'mid', r0, 'fixture-133'),
            ('USD', d1,   'mid', r1, 'fixture-133'),

@@ -81,7 +81,7 @@ BEGIN
     --    期末 6/30(周二)中间价 1.40(自插)—— 若有人把 1500 加进重估,
     --    这里会顶出 2000 × (1.40 − 1.25) = 300 的调整。断言:预览行里没有 1500/1510。
     -- ════════════════════════════════════════════════════════════════════════
-    DELETE FROM fx_rates WHERE currency = 'USD' AND rate_date BETWEEN '2026-06-13' AND '2026-06-30';
+    UPDATE fx_rates SET deleted_at = now() WHERE currency = 'USD' AND rate_date BETWEEN '2026-06-13' AND '2026-06-30';
     DELETE FROM public_holidays WHERE holiday_date BETWEEN '2026-06-13' AND '2026-06-30';
     INSERT INTO fx_rates (currency, rate_date, rate_type, rate_sgd_per_unit)
     VALUES ('USD', '2026-06-15', 'tt_sell', 1.25), ('USD', '2026-06-30', 'mid', 1.40),

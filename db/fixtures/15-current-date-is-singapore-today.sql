@@ -67,7 +67,7 @@ BEGIN
     --    走查里 reprice 就是在这里静默用了前一天:窗口内 CURRENT_DATE=昨天,
     --    昨天的牌价存在,精确命中,没人说一个字。这里只插【SG 今天】的牌价:
     --    UTC 库在窗口内会拿 CURRENT_DATE=昨天去查 → 查无此价被拒,as_of 断言兜底。
-    DELETE FROM fx_rates WHERE currency = 'USD'
+    UPDATE fx_rates SET deleted_at = now() WHERE currency = 'USD'
       AND rate_date BETWEEN v_sg_today - 6 AND v_sg_today;
     INSERT INTO fx_rates (currency, rate_date, rate_type, rate_sgd_per_unit)
     VALUES ('USD', v_sg_today, 'tt_sell', 1.27);

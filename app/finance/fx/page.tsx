@@ -98,6 +98,37 @@ export default async function FxRatesPage({
         gap_source: string
     }[]
 
+    // ── FX-RATES-1:月末就绪 ────────────────────────────────────────────────
+    // 【fx_rate_gaps 看不见月末】它的日期只来自过账日与报价日,而一个没有过账、
+    // 没有报价的月末对它是【结构性不可见】的 —— 偏偏月末重估非要那天的中间价不可。
+    // 这张视图就是为那个盲区建的。两张各说各的,不要合并(理由写在两个视图头上)。
+    const readyRes = await supabase
+        .from('fx_month_end_readiness')
+        .select('month_end, currency, has_mid, revalued, blocks_close')
+        .order('month_end', { ascending: false })
+    const readiness = mustRows(readyRes, 'fx_month_end_readiness') as unknown as {
+        month_end: string
+        currency: string
+        has_mid: boolean
+        revalued: boolean
+        blocks_close: boolean
+    }[]
+    const blocking = readiness.filter((r) => r.blocks_close)
+
+    // ── FX-RATES-1:一次性的提醒,【条件消失它就消失】 ──────────────────────
+    // JE-2026-0070 是一张更正分录。载入第一个八月或更晚的中间价之后,
+    // 下一次重估要么尊重它、要么把它翻倍 —— 取决于承载额有没有把它算进去。
+    // 算得进去(它的 source_type 是 'revaluation'),而 fixture 133 的 C 臂盯着这件事。
+    // 【自退休】只要还没有 2026-08-01 之后的中间价就显示;有了就再也不出现,
+    // 于是它不会变成家具。
+    const laterMid = await supabase
+        .from('fx_rates')
+        .select('id', { count: 'exact', head: true })
+        .eq('rate_type', 'mid')
+        .gte('rate_date', '2026-08-01')
+        .is('deleted_at', null)
+    const showCorrectionNotice = (laterMid.count ?? 0) === 0
+
     // 【这一行是哪一种缺口 —— 事实,由 gap_source 直说】
     // 三个分支都是【字面量】t() 调用,不是把 gap_source 拼进键里:静态那一半就
     // 盖得住它们,不必往 check-i18n 的 MANIFEST 里加一条动态前缀。能静态就别动态。
@@ -167,11 +198,42 @@ export default async function FxRatesPage({
                 >
                     {t('finance.fxPage.addButton')}
                 </Link>
+                <Link
+                    href="/finance/fx/bulk"
+                    className="ml-3 border border-gray-400 px-3 py-1.5 rounded text-sm hover:bg-gray-100"
+                >
+                    {t('finance.fxPage.bulk.entryLink')}
+                </Link>
             </div>
 
             <Subnav />
 
             {/* 缺牌价 = 有外币交易的那天没录当日牌价 —— 点名到日、到币、到缺哪侧 */}
+            {/* 月末就绪 —— 【挡住月结的那一天】,fx_rate_gaps 报不出来的那一类 */}
+            {blocking.length > 0 && (
+                <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-4 text-sm">
+                    <p className="font-medium mb-1">{t('finance.fxPage.readyTitle', { n: blocking.length })}</p>
+                    <ul className="space-y-0.5">
+                        {blocking.map((r) => (
+                            <li key={`${r.month_end}-${r.currency}`}>
+                                <span className="font-mono">{r.month_end}</span> · {r.currency} ·{' '}
+                                {t('finance.fxPage.readyMissingMid')}
+                            </li>
+                        ))}
+                    </ul>
+                    <p className="text-xs mt-2 opacity-80">{t('finance.fxPage.readyWhy')}</p>
+                </div>
+            )}
+
+            {/* 一次性提醒,条件消失它就消失 */}
+            {showCorrectionNotice && (
+                <div className="bg-blue-50 border border-blue-300 text-blue-900 px-4 py-3 rounded mb-4 text-sm">
+                    <p className="font-medium mb-1">{t('finance.fxPage.je70Title')}</p>
+                    <p>{t('finance.fxPage.je70Body')}</p>
+                    <p className="text-xs mt-1 opacity-80">{t('finance.fxPage.je70Assured')}</p>
+                </div>
+            )}
+
             {gaps.length > 0 && (
                 <div className="mb-4 rounded border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900">
                     <p className="font-medium mb-1">{t('finance.fxPage.gapsTitle', { n: gaps.length })}</p>

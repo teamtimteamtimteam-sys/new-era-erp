@@ -49,7 +49,7 @@ BEGIN
         RETURNING id INTO v_sup;
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code) VALUES ('FIXT-M21', 'Fixture Material 21', 'battery_material', true, 'black_mass', 'end_of_life')
         RETURNING id INTO v_mat;
-    DELETE FROM fx_rates WHERE currency = 'USD' AND rate_date = v_today AND rate_type = 'tt_sell';
+    UPDATE fx_rates SET deleted_at = now() WHERE currency = 'USD' AND rate_date = v_today AND rate_type = 'tt_sell';
     INSERT INTO fx_rates (currency, rate_date, rate_type, rate_sgd_per_unit)
     VALUES ('USD', v_today, 'tt_sell', v_fx);
     DELETE FROM metal_prices WHERE metal = 'ni' AND price_date = v_today;

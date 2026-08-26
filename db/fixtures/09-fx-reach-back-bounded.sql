@@ -34,7 +34,7 @@ BEGIN
     --         06-08 周一、06-09 周二都是工作日。
     -- 【前提显式化】窗口内的牌价与假日都自己说了算(README 第 5 条)。
     -- ════════════════════════════════════════════════════════════════════════
-    DELETE FROM fx_rates WHERE currency = 'USD'
+    UPDATE fx_rates SET deleted_at = now() WHERE currency = 'USD'
       AND rate_date BETWEEN '2026-06-01' AND '2026-06-12';
     DELETE FROM public_holidays WHERE holiday_date BETWEEN '2026-06-01' AND '2026-06-12';
     INSERT INTO public_holidays (holiday_date, name_en, name_zh, country, is_active)
@@ -79,7 +79,7 @@ BEGIN
     -- ── D. 相邻两天,两天都是普通工作日 → 必须拒绝 ─────────────────────────
     --    【这是 FIN-19 的核心用例】:中间一天都没有,老实现的区间为空 → 放行。
     --    走查里 8/5→8/6 就是这个形状。用一段没有任何假日的纯工作日窗口来测。
-    DELETE FROM fx_rates WHERE currency = 'USD'
+    UPDATE fx_rates SET deleted_at = now() WHERE currency = 'USD'
       AND rate_date BETWEEN '2026-06-15' AND '2026-06-19';
     DELETE FROM public_holidays WHERE holiday_date BETWEEN '2026-06-15' AND '2026-06-19';
     INSERT INTO fx_rates (currency, rate_date, rate_type, rate_sgd_per_unit)
@@ -106,7 +106,7 @@ BEGIN
     -- ── F. 四天的顺延假:周五有价,周六/周日/周一/周二连成非发布日 ──────────
     --    形状取自新加坡"顺延假"(4 天上限就是为它定的):交易日周二【自己是假日】,
     --    所以够得着周五。再往后的周三是工作日,必须拒绝 —— 上限与规则各挡一边。
-    DELETE FROM fx_rates WHERE currency = 'USD'
+    UPDATE fx_rates SET deleted_at = now() WHERE currency = 'USD'
       AND rate_date BETWEEN '2026-09-01' AND '2026-09-12';
     DELETE FROM public_holidays WHERE holiday_date BETWEEN '2026-09-01' AND '2026-09-12';
     INSERT INTO public_holidays (holiday_date, name_en, name_zh, country, is_active) VALUES
