@@ -12,6 +12,7 @@ import DeleteStatementButton from './DeleteStatementButton'
 import UnreconcileControl from './UnreconcileControl'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { mustRows } from '@/lib/db-helpers'
 
 type MatchRow = {
     statement_line_id: string
@@ -58,6 +59,36 @@ export default async function BankStatementDetailPage({
         .order('line_no', { ascending: true })
 
     const rows = lines ?? []
+
+    // ── BANK-REC:对账记录(冻结的那一份)+ 今天重算 ───────────────────────────
+    // 【两个数字并排,谁也不替换谁】"我们当时是照着什么对上的"与"今天重算是多少"
+    // 是两个问题。两者不一致【本身就是要给人看的信息】—— 与 GST 已申报的那一份
+    // 同一条规矩。book_balance_now / book_balance_drift 由视图现算。
+    const recordsRes = await supabase
+        .from('bank_reconciliation_record')
+        .select('reconciliation_id, currency, bank_closing_balance, book_balance, difference, matched_lines, ignored_lines, reconciled_at, superseded_at, superseded_reason, is_current, book_balance_now, book_balance_drift, variance_item_count, period_end')
+        .eq('statement_id', id)
+        .order('reconciled_at', { ascending: false })
+    const records = mustRows(recordsRes)
+
+    const varianceRes = records.length
+        ? await supabase
+              .from('bank_reconciliation_variance_items')
+              .select('reconciliation_id, item_no, item_kind, amount, note')
+              .in('reconciliation_id', records.map((r) => r.reconciliation_id))
+              .order('item_no', { ascending: true })
+        : { data: [], error: null }
+    const varianceItems = mustRows(varianceRes)
+
+    const itemsByRecon = new Map<string, typeof varianceItems>()
+    for (const v of varianceItems) {
+        const list = itemsByRecon.get(v.reconciliation_id) ?? []
+        list.push(v)
+        itemsByRecon.set(v.reconciliation_id, list)
+    }
+
+    const currentRecord = records.find((r) => r.is_current) ?? null
+    const supersededRecords = records.filter((r) => !r.is_current)
 
     // 已匹配行配到的分录(页级一次 .in),供"匹配到"列展示链接
     const matchedLineIds = rows.filter((r) => r.match_status === 'matched').map((r) => r.id)
@@ -116,6 +147,117 @@ export default async function BankStatementDetailPage({
                         })}
                     </span>
                     <UnreconcileControl statementId={stmt.id} />
+                </div>
+            )}
+
+            {/* ── BANK-REC:对账记录 —— 每月的银行余额 / 账面余额 / 差额 / 说明 ──
+                【事后读得到】,不是只在对账那一刻断言过一次。 */}
+            {/* 【具名的缺席,不是空白】没有对过账的报表要【说】它没有对过账,
+                而不是让这一块整个消失 —— 消失与"读不出来"在屏幕上长得一模一样。 */}
+            <div className="border border-gray-300 rounded p-4 mb-4">
+                <h2 className="font-semibold mb-3">{t('bank.record.title')}</h2>
+                {!currentRecord && <p className="text-sm text-gray-600">{t('bank.record.none')}</p>}
+                {currentRecord && (
+                <>
+                    <p className="text-sm text-gray-700 mb-1">
+                        {t('bank.record.frozenTitle', {
+                            when: formatTimestamp(currentRecord.reconciled_at, dateLocale),
+                        })}
+                    </p>
+                    <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm mb-3">
+                        <span>
+                            <span className="text-gray-600 mr-1">{t('bank.balancePanel.bankClosing')}:</span>
+                            <span className="font-mono">
+                                {formatAmount(currentRecord.bank_closing_balance, currentRecord.currency)}
+                            </span>
+                        </span>
+                        <span>
+                            <span className="text-gray-600 mr-1">{t('bank.balancePanel.bookBalance')}:</span>
+                            <span className="font-mono">
+                                {formatAmount(currentRecord.book_balance, currentRecord.currency)}
+                            </span>
+                        </span>
+                        <span>
+                            <span className="text-gray-600 mr-1">{t('bank.balancePanel.difference')}:</span>
+                            <span className="font-mono font-semibold">
+                                {formatAmount(currentRecord.difference, currentRecord.currency)}
+                            </span>
+                        </span>
+                    </div>
+
+                    {/* 今天重算 —— 与上面那一组【并排】,不替换它 */}
+                    <div className="bg-gray-50 rounded p-3 mb-3">
+                        <p className="text-sm text-gray-700 mb-1">{t('bank.record.recomputedTitle')}</p>
+                        <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
+                            <span>
+                                <span className="text-gray-600 mr-1">{t('bank.record.bookNow')}:</span>
+                                <span className="font-mono">
+                                    {formatAmount(currentRecord.book_balance_now, currentRecord.currency)}
+                                </span>
+                            </span>
+                            {currentRecord.book_balance_drift === 0 ? (
+                                <span className="text-green-800">{t('bank.record.noDrift')}</span>
+                            ) : (
+                                <span className="text-amber-900 font-medium">
+                                    {t('bank.record.drift', {
+                                        amount: formatAmount(currentRecord.book_balance_drift, currentRecord.currency),
+                                    })}
+                                </span>
+                            )}
+                        </div>
+                        {currentRecord.book_balance_drift !== 0 && (
+                            <p className="text-xs text-gray-600 mt-1">
+                                {t('bank.record.driftNote', { date: currentRecord.period_end })}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* 写明的差额 */}
+                    <h3 className="text-sm font-semibold mb-1">{t('bank.record.explanation')}</h3>
+                    {(itemsByRecon.get(currentRecord.reconciliation_id) ?? []).length === 0 ? (
+                        <p className="text-sm text-gray-600">{t('bank.record.noItems')}</p>
+                    ) : (
+                        <ul className="text-sm space-y-1">
+                            {(itemsByRecon.get(currentRecord.reconciliation_id) ?? []).map((v) => (
+                                <li key={v.item_no} className="flex flex-wrap gap-x-3">
+                                    <span className="font-mono w-32 text-right">
+                                        {formatAmount(v.amount, currentRecord.currency)}
+                                    </span>
+                                    <span className="text-gray-700">{t('bank.varianceKind.' + v.item_kind)}</span>
+                                    <span className="text-gray-600">— {v.note}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </>
+                )}
+            </div>
+
+            {supersededRecords.length > 0 && (
+                <div className="border border-gray-200 rounded p-4 mb-4 text-sm">
+                    <h2 className="font-semibold mb-1">{t('bank.record.history')}</h2>
+                    <p className="text-xs text-gray-600 mb-2">{t('bank.record.supersededNote')}</p>
+                    <ul className="space-y-2">
+                        {supersededRecords.map((r) => (
+                            <li key={r.reconciliation_id}>
+                                <div className="flex flex-wrap gap-x-6">
+                                    <span className="font-mono">
+                                        {formatAmount(r.bank_closing_balance, r.currency)} /{' '}
+                                        {formatAmount(r.book_balance, r.currency)} /{' '}
+                                        {formatAmount(r.difference, r.currency)}
+                                    </span>
+                                    <span className="text-gray-600">
+                                        {t('bank.record.superseded', {
+                                            when: r.superseded_at
+                                                ? formatTimestamp(r.superseded_at, dateLocale)
+                                                : '—',
+                                            reason: r.superseded_reason ?? '—',
+                                        })}
+                                    </span>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
                 </div>
             )}
 

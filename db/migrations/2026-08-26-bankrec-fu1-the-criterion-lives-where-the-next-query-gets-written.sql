@@ -1,3 +1,16 @@
+-- BANK-REC 后续:把【求和 vs 判活】那条判据写在 journal_activity_lines 的函数体里。
+-- NOTE: apply with ./db/apply_migration.sh
+--
+-- 【为什么这要一次迁移,而不是改一下仓库里的注释就完事】
+-- db/functions/*.sql 是 pg_get_functiondef 的【逐字镜像】,而函数体里的注释
+-- 就是函数体的一部分。只改仓库那一份,check_mirrors 当场报漂移 ——
+-- 那正是它该报的。判据要住在【下一个写这句过滤的人打开的那个文件】里,
+-- 所以它必须真的进到库里那份定义中去。
+--
+-- 【只动注释,一个字节的逻辑都没改】SQL 部分与 BANK-REC 之前逐字相同。
+
+BEGIN;
+
 CREATE OR REPLACE FUNCTION public.journal_activity_lines(p_from date, p_to date, p_include_year_close boolean)
  RETURNS TABLE(entry_id uuid, entry_code text, entry_date date, entry_memo text, source_type text, source_id uuid, entry_status text, line_id uuid, line_memo text, account_id uuid, account_code text, account_name_en text, account_name_zh text, account_type text, debit numeric, credit numeric, signed_base numeric)
  LANGUAGE sql
@@ -83,3 +96,6 @@ AS $function$
     -- 分录的报表不会报错,只会小一点。
       AND (p_include_year_close OR e.source_type IS DISTINCT FROM 'year_close');
 $function$;
+
+
+COMMIT;

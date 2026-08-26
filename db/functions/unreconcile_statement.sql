@@ -21,6 +21,10 @@ BEGIN
         RAISE EXCEPTION 'REASON_REQUIRED';
     END IF;
 
+    UPDATE bank_reconciliations
+    SET superseded_at = now(), superseded_reason = btrim(p_reason)
+    WHERE statement_id = p_statement_id AND superseded_at IS NULL;
+
     UPDATE bank_statements
     SET status = 'open',
         reconciled_at = NULL,

@@ -5097,6 +5097,67 @@ const en = {
             STATEMENT_NOT_RECONCILED: 'Statement {0} is not reconciled',
             STATEMENT_NOT_FOUND: 'Statement not found',
             REASON_REQUIRED: 'A reason is required',
+            BALANCE_DISAGREES:
+                'The bank and your books do not agree. Bank closing balance {0}, book balance {1} — a difference of {2}. Either finish correcting the books, or record what the difference is made of below and reconcile with it stated.',
+            VARIANCE_UNEXPLAINED:
+                'The difference is {0} but the items you listed come to {1}. Every item is kept — what is missing is {0} minus {1}. List the rest, or correct an amount.',
+            VARIANCE_NOT_APPLICABLE:
+                'The bank and your books already agree, so there is no difference to explain. Remove the items.',
+            VARIANCE_AMOUNT_INVALID: 'Item {0}: the amount must be a number and cannot be zero',
+            VARIANCE_NOTE_REQUIRED: 'Item {0}: say what this item is',
+            VARIANCE_KIND_INVALID: 'Item type "{0}" is not one this system knows',
+            VARIANCE_ITEMS_INVALID: 'The variance items were not sent as a list',
+            RECONCILIATION_IMMUTABLE:
+                'A reconciliation record cannot be edited or deleted. Reopen the statement and reconcile again — that writes a new record and keeps the old one.',
+            VARIANCE_ITEM_IMMUTABLE:
+                'A recorded explanation cannot be edited or deleted. Reopen the statement and reconcile again.',
+        },
+        varianceKind: {
+            unpresented_cheque: 'Cheque not yet presented',
+            deposit_in_transit: 'Deposit in transit',
+            bank_charge: 'Bank charge not yet booked',
+            bank_interest: 'Bank interest not yet booked',
+            timing: 'Other timing difference',
+            error_to_correct: 'Error — correction still to post',
+        },
+        balancePanel: {
+            title: 'Bank versus books',
+            asOf: 'as at {date}',
+            bankClosing: 'Bank closing balance',
+            bookBalance: 'Book balance',
+            difference: 'Difference',
+            agrees: 'The two agree. Nothing to explain.',
+            disagrees:
+                'These two do not agree. You can correct the books, or record what the difference is made of — the statement then reconciles with the difference stated, not hidden.',
+            explainTitle: 'What the difference is made of',
+            explainHint:
+                'Amounts are signed the way they move the book balance: a cheque you have written but the bank has not paid makes your books LOWER than the bank, so it is negative.',
+            addItem: 'Add an item',
+            removeItem: 'Remove',
+            kind: 'Type',
+            amount: 'Amount',
+            note: 'What it is',
+            notePlaceholder: 'e.g. cheque 004312 to Sim Metals, written 28 Feb',
+            explained: 'Explained',
+            unexplained: 'Still unexplained',
+            balanced: 'The items account for the whole difference.',
+            loadError: 'The balance comparison could not be loaded, so this statement cannot be reconciled from here.',
+        },
+        record: {
+            title: 'Reconciliation record',
+            none: 'This statement has not been reconciled.',
+            frozenTitle: 'Reconciled on {when} — the figures as signed off',
+            recomputedTitle: 'Recomputed today',
+            bookNow: 'Book balance now',
+            drift: 'Moved by {amount} since it was reconciled',
+            noDrift: 'Unchanged since it was reconciled.',
+            driftNote:
+                'The signed-off figures are kept as written and are not replaced by the recomputed ones. A difference between the two means journal entries dated on or before {date} have changed since.',
+            explanation: 'Stated difference',
+            noItems: 'No items — the two figures agreed exactly.',
+            superseded: 'Superseded on {when}: {reason}',
+            supersededNote: 'This record was replaced when the statement was reopened. It is kept as written.',
+            history: 'Earlier reconciliations of this statement',
         },
     },
     assets: {

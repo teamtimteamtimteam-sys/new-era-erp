@@ -51,16 +51,44 @@ type Statement = {
     closing_balance: number
 }
 
+// BANK-REC:银行 vs 账面的比较,由 preview_reconcile_statement 算,页面只显示。
+export type BalanceComparison = {
+    statement_id: string
+    code: string
+    currency: string
+    as_of: string
+    bank_closing_balance: number
+    book_balance: number
+    difference: number
+    outstanding_lines: number
+}
+
+// 差额说明的六种类型。**顺序与取值来自
+// bank_reconciliation_variance_items 的 CHECK 约束** —— 那张表是源头,
+// check-i18n 也从同一处读 bank.varianceKind.* 的后缀集。
+const VARIANCE_KINDS = [
+    'unpresented_cheque',
+    'deposit_in_transit',
+    'bank_charge',
+    'bank_interest',
+    'timing',
+    'error_to_correct',
+] as const
+
+type VarianceDraft = { id: number; kind: string; amount: string; note: string }
+
 const round2 = (n: number) => Math.round(n * 100) / 100
 
 export default function ReconcileWorkspace({
     statement,
     lines,
     candidates,
+    comparison,
 }: {
     statement: Statement
     lines: StatementLine[]
     candidates: Candidate[]
+    comparison: BalanceComparison
 }) {
     const t = useTranslations()
     const [isPending, startTransition] = useTransition()
@@ -69,6 +97,8 @@ export default function ReconcileWorkspace({
     const [checked, setChecked] = useState<Record<string, boolean>>({})
     const [ignoringId, setIgnoringId] = useState<string | null>(null)
     const [ignoreReason, setIgnoreReason] = useState('')
+    const [variance, setVariance] = useState<VarianceDraft[]>([])
+    const [nextDraftId, setNextDraftId] = useState(1)
 
     const ccy = statement.currency
 
@@ -137,9 +167,42 @@ export default function ReconcileWorkspace({
         })
     }
 
+    // ── BANK-REC:差额与它的说明 ──────────────────────────────────────────────
+    // 【这三个数字一直显示,差额为 0 时也显示】一个只在出事时才出现的面板,
+    // 会教人把"它没出现"读成"没查过"。0.00 是一个值得看见的事实。
+    const difference = round2(comparison.difference)
+    const explained = round2(
+        variance.reduce((sum, v) => {
+            const n = Number(v.amount)
+            return sum + (Number.isFinite(n) ? n : 0)
+        }, 0)
+    )
+    const unexplained = round2(difference - explained)
+
+    function addVarianceItem() {
+        setVariance((v) => [...v, { id: nextDraftId, kind: VARIANCE_KINDS[0], amount: '', note: '' }])
+        setNextDraftId((n) => n + 1)
+    }
+
+    function updateVarianceItem(id: number, patch: Partial<VarianceDraft>) {
+        setVariance((v) => v.map((item) => (item.id === id ? { ...item, ...patch } : item)))
+    }
+
+    function removeVarianceItem(id: number) {
+        setVariance((v) => v.filter((item) => item.id !== id))
+    }
+
     function handleComplete() {
         if (!window.confirm(t('bank.reconcileConfirm', { code: statement.code }))) return
-        run(() => completeReconciliation(statement.id))
+        // 【按钮不因差额而变灰】灰掉的按钮等于把规则在页面上再实现一遍,
+        // 而两份实现会漂开;何况一个没有相邻理由的死控件,人会靠猜去绕。
+        // 服务端始终是权威 —— 这里只把人填的东西原样递过去。
+        run(() =>
+            completeReconciliation(
+                statement.id,
+                variance.map((v) => ({ kind: v.kind, amount: v.amount.trim(), note: v.note }))
+            )
+        )
     }
 
     const lineRowClass = (line: StatementLine) =>
@@ -287,6 +350,118 @@ export default function ReconcileWorkspace({
                         {t('bank.progress', { handled, total })}
                     </span>
                 </div>
+            </div>
+
+            {/* BANK-REC:银行 vs 账面 —— 【在按下按钮之前】就看得见,不是被拒之后才知道 */}
+            <div
+                className={
+                    'rounded p-4 mb-4 border ' +
+                    (difference === 0
+                        ? 'bg-green-50 border-green-300'
+                        : 'bg-amber-50 border-amber-300')
+                }
+            >
+                <div className="flex flex-wrap items-baseline gap-x-3 mb-2">
+                    <h2 className="font-semibold">{t('bank.balancePanel.title')}</h2>
+                    <span className="text-xs text-gray-600">
+                        {t('bank.balancePanel.asOf', { date: statement.period_end })}
+                    </span>
+                </div>
+                <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm mb-2">
+                    <span>
+                        <span className="text-gray-600 mr-1">{t('bank.balancePanel.bankClosing')}:</span>
+                        <span className="font-mono">{formatAmount(comparison.bank_closing_balance, ccy)}</span>
+                    </span>
+                    <span>
+                        <span className="text-gray-600 mr-1">{t('bank.balancePanel.bookBalance')}:</span>
+                        <span className="font-mono">{formatAmount(comparison.book_balance, ccy)}</span>
+                    </span>
+                    <span>
+                        <span className="text-gray-600 mr-1">{t('bank.balancePanel.difference')}:</span>
+                        <span
+                            className={
+                                'font-mono font-semibold ' +
+                                (difference === 0 ? 'text-green-800' : 'text-amber-900')
+                            }
+                        >
+                            {formatAmount(difference, ccy)}
+                        </span>
+                    </span>
+                </div>
+
+                {difference === 0 ? (
+                    <p className="text-sm text-green-800">{t('bank.balancePanel.agrees')}</p>
+                ) : (
+                    <div>
+                        <p className="text-sm text-amber-900 mb-3">{t('bank.balancePanel.disagrees')}</p>
+
+                        <h3 className="text-sm font-semibold mb-1">{t('bank.balancePanel.explainTitle')}</h3>
+                        <p className="text-xs text-gray-600 mb-2">{t('bank.balancePanel.explainHint')}</p>
+
+                        {variance.map((item) => (
+                            <div key={item.id} className="flex flex-wrap items-center gap-2 mb-2">
+                                <select
+                                    value={item.kind}
+                                    onChange={(e) => updateVarianceItem(item.id, { kind: e.target.value })}
+                                    className="border border-gray-300 rounded px-2 py-1 text-sm"
+                                    aria-label={t('bank.balancePanel.kind')}
+                                >
+                                    {VARIANCE_KINDS.map((k) => (
+                                        <option key={k} value={k}>
+                                            {t('bank.varianceKind.' + k)}
+                                        </option>
+                                    ))}
+                                </select>
+                                <input
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={item.amount}
+                                    onChange={(e) => updateVarianceItem(item.id, { amount: e.target.value })}
+                                    placeholder={t('bank.balancePanel.amount')}
+                                    aria-label={t('bank.balancePanel.amount')}
+                                    className="border border-gray-300 rounded px-2 py-1 text-sm font-mono w-32"
+                                />
+                                <input
+                                    type="text"
+                                    value={item.note}
+                                    onChange={(e) => updateVarianceItem(item.id, { note: e.target.value })}
+                                    placeholder={t('bank.balancePanel.notePlaceholder')}
+                                    aria-label={t('bank.balancePanel.note')}
+                                    className="border border-gray-300 rounded px-2 py-1 text-sm flex-1 min-w-[16rem]"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => removeVarianceItem(item.id)}
+                                    className="text-sm text-red-700 hover:underline"
+                                >
+                                    {t('bank.balancePanel.removeItem')}
+                                </button>
+                            </div>
+                        ))}
+
+                        <div className="flex flex-wrap items-center gap-4 mt-2">
+                            <button
+                                type="button"
+                                onClick={addVarianceItem}
+                                className="bg-white border border-gray-400 px-3 py-1 rounded text-sm hover:bg-gray-100"
+                            >
+                                {t('bank.balancePanel.addItem')}
+                            </button>
+                            <span className="text-sm">
+                                <span className="text-gray-600 mr-1">{t('bank.balancePanel.explained')}:</span>
+                                <span className="font-mono">{formatAmount(explained, ccy)}</span>
+                            </span>
+                            {unexplained === 0 ? (
+                                <span className="text-sm text-green-800">{t('bank.balancePanel.balanced')}</span>
+                            ) : (
+                                <span className="text-sm text-amber-900">
+                                    <span className="mr-1">{t('bank.balancePanel.unexplained')}:</span>
+                                    <span className="font-mono font-semibold">{formatAmount(unexplained, ccy)}</span>
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
 
             {error && (

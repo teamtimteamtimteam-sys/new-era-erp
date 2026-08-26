@@ -10,6 +10,7 @@ import { mustRows } from '@/lib/db-helpers'
 import ReconcileWorkspace, {
     type StatementLine,
     type Candidate,
+    type BalanceComparison,
 } from './ReconcileWorkspace'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -66,6 +67,31 @@ export default async function ReconcilePage({
             .eq('currency', stmt.currency)
             .order('entry_date', { ascending: true }),
     ])
+
+    // BANK-REC:差额必须在人按下按钮【之前】就看得见(销售单信用提示的先例),
+    // 而屏幕【不自己算】—— 它问数据库(AGENTS.md「预览一笔过账的屏幕要问数据库」)。
+    // preview_reconcile_statement 与 reconcile_statement 共用
+    // bank_book_balance_asof,所以这里显示的账面余额与拒绝时用的那个不可能各错各的。
+    const previewRes = await supabase.rpc('preview_reconcile_statement', {
+        p_statement_id: id,
+    })
+
+    // 读不出来就【说出来】。渲染成"没有差额"是把一次失败显示成一个答案 ——
+    // 同 mustRows / restRows 那一条:一次失败不是一个空集。
+    if (previewRes.error) {
+        return (
+            <div className="p-8 max-w-[110rem]">
+                <h1 className="text-2xl font-bold mb-4">{t('bank.title')}</h1>
+                <Subnav />
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                    <p className="font-bold">{t('bank.balancePanel.loadError')}</p>
+                    <pre className="text-xs mt-2">{JSON.stringify(previewRes.error, null, 2)}</pre>
+                </div>
+            </div>
+        )
+    }
+
+    const comparison = previewRes.data as unknown as BalanceComparison
 
     const rawLines = mustRows(linesRes)
 
@@ -127,6 +153,7 @@ export default async function ReconcilePage({
                 }}
                 lines={lines}
                 candidates={candidates}
+                comparison={comparison}
             />
         </div>
     )

@@ -1181,6 +1181,51 @@ invariant failure printed a violation and still exited 0. Fixed in the same
 change that added verdict 4 — which is rule 3 applied to a check that predates
 the rule.
 
+## Filtering journal entries to `status='posted'`: wrong when SUMMING, right when testing ONE entry
+
+**The rule, one line:** filtering journal entries to `status='posted'` is almost
+always **wrong when you are AGGREGATING**, and almost always **right when you are
+testing whether ONE entry is still live.**
+
+**Why the aggregate case breaks.** Reversal in this system is: the original entry
+flips to `status='reversed'`, and a **new, equal-and-opposite `posted` entry** is
+issued (`reverse_journal_entry_internal.sql`). So `WHERE e.status='posted'`
+**drops the original and keeps the reversal**, and the sum comes out to exactly
+**−(the original)**. Nothing errors. The report is simply smaller — or larger —
+by one entry. `journal_activity_lines` exists to forbid precisely this, and the
+three reports that matter (`balance_sheet`, `pnl_statement`, `account_ledger`)
+all read the rows through it rather than selecting their own.
+
+**Why the single-entry case is fine.** "Is this one entry still live?" is a real
+question with a real answer, and `posted` is the right test for it.
+`guard_gst_switch` asking whether a taxed entry is still standing, and
+`processing_run_allocation_status` asking whether a capitalisation entry still
+holds, are both correct. So is `bank_unmatched_journal_lines`: it is the
+match workbench's **candidate list**, and `match_bank_line` refuses a line whose
+entry is reversed (`JL_ENTRY_REVERSED`) — the view filtering to `posted` is that
+same eligibility rule, asked earlier.
+
+**Four occurrences of the aggregate mistake so far, and it keeps coming back:**
+
+| | where | found | state |
+|---|---|---|---|
+| ① | `cash_flow_statement` | OPS-17 | fixed |
+| ② | `f5_return` / `f5_box_detail` | GST-2 | fixed, with the reasoning left in the function body |
+| ③ | `bank_reconciliation_status.ledger_balance` | BANK-REC (2026-08-26) | fixed — **and it had been wrong on the live bank page the whole time** |
+| ④ | `preview_revalue_foreign_balances` | BANK-REC, while fixing ③ | **still live**, queued — and it **posts entries** |
+
+**③ was measured, not inferred (2026-08-26):** account `1010` carries 2 reversed
+journal lines, so the bank page was showing **−31,338.70 where the ledger actually
+says −29,753.70 — out by USD 1,585.00 in production.** `1000` happened to have no
+reversals and was correct by luck, which is why nobody saw it.
+
+**The lesson that outlives the four:** a defect found while building something
+else is still a defect that shipped. ③ was not on anyone's list — it turned up
+because BANK-REC needed to reuse that number and looked at how it was computed.
+**Before reusing a number, read how it is derived.** Reusing it unread would have
+built a refusal on top of a wrong figure, and the refusal would have blocked
+honest reconciliations with a phantom difference.
+
 ## THE FX RULE — one rule, of which the rest are instances
 
 > **Any amount not in the base currency converts at the rate. If no rate

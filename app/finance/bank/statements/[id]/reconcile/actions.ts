@@ -94,11 +94,22 @@ export async function unignoreLine(
     return {}
 }
 
-export async function completeReconciliation(statementId: string): Promise<BankActionState> {
+// BANK-REC:差额的逐项说明【与对账在同一次调用里】。
+// 「一次对账,它的说明没存上」必须不是一个到得了的状态,所以说明不是先写下来
+// 再对账,而是这一次调用的参数 —— 数据库在同一笔事务里写事件与说明。
+export type VarianceItemInput = { kind: string; amount: string; note: string }
+
+export async function completeReconciliation(
+    statementId: string,
+    varianceItems: VarianceItemInput[] = []
+): Promise<BankActionState> {
     const supabase = await createClient()
 
+    // 空数组与 null 在 DB 侧是同一支(「没有给说明」),这里统一传 null,
+    // 免得"[] 与 null 哪个是哪个"变成第二处要记住的约定。
     const { error } = await supabase.rpc('reconcile_statement', {
         p_statement_id: statementId,
+        p_variance_items: varianceItems.length ? varianceItems : null,
     })
 
     if (error) {

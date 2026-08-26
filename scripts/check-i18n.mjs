@@ -505,6 +505,9 @@ const MANIFEST = {
                                   /paymentState = [^\n]*?'(\w+)'[^\n]*?'(\w+)'[^\n]*?'(\w+)'/g) },
     'bank.status.':         { kind: 'enum', values: () => sqlEnum('db/tables/bank_statements.sql', 'status') },
     'bank.lineStatus.':     { kind: 'enum', values: () => sqlEnum('db/tables/bank_statement_lines.sql', 'match_status') },
+    // BANK-REC:差额说明的类型。真源是表上那条 CHECK —— 加一个种类,
+    // 检查的射程自动跟着变宽,不需要同时改这里。
+    'bank.varianceKind.':   { kind: 'enum', values: () => sqlEnum('db/tables/bank_reconciliation_variance_items.sql', 'item_kind') },
     'bank.parseError.':     { kind: 'enum', values: () => tsRegex('lib/bankCsv.ts', /reason: '(\w+)'/g) },
     'finance.attachments.cat.': { kind: 'enum', values: () => tsArray('app/components/finance/financeAttachmentTypes.ts', 'FINANCE_DOC_TYPES') },
     'finAttach.docTypes.':  { kind: 'enum', values: () => tsArray('app/components/finance/financeAttachmentTypes.ts', 'FINANCE_DOC_TYPES') },
