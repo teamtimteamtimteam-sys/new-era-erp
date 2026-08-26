@@ -13,7 +13,7 @@ import DraftBanner from '@/app/components/DraftBanner'
 import { bankAccountFor, currencyOfBank } from '@/lib/currencyMap'
 import Link from 'next/link'
 import { createExpense, type CreateExpenseState } from './actions'
-import { useTranslations } from '@/lib/i18n/client'
+import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { formatMoneyBare } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 
@@ -78,6 +78,7 @@ export default function NewExpenseForm({
     taxCodes: TaxCodeOption[]
 }) {
     const t = useTranslations()
+    const locale = useLocale()
     const [state, formAction, isPending] = useActionState(createExpense, initialState)
 
     // IDLE-DRAFT:草稿留存。受限与否由 lib/maskedTables.ts 推出来,
@@ -230,7 +231,9 @@ export default function NewExpenseForm({
                             <option value="">{t('expense.form.taxCodePick')}</option>
                             {taxCodes.map((c) => (
                                 <option key={c.code} value={c.code}>
-                                    {c.code} · {c.name_zh} / {c.name_en}
+                                    {/* 【按界面语言选一个,不是把两个拼起来】与仓库里另外 105 处同一个写法。
+                                        拼接在中文界面下勉强能读,在英文界面下就是把中文推给一个读不懂它的人。 */}
+                                    {c.code} · {locale === 'zh' ? c.name_zh : c.name_en}
                                     {c.is_claimable ? '' : ` — ${t('expense.form.taxCodeBlocked')}`}
                                 </option>
                             ))}

@@ -101,7 +101,14 @@ export default async function GstPeriodPage({ params, searchParams }: {
                         <tr key={b.box} className={box === b.box ? 'bg-blue-50' : ''}>
                             <td className="border border-gray-300 px-2 py-1 font-mono">{b.box.replace('box', '')}</td>
                             <td className="border border-gray-300 px-2 py-1">
-                                {b.label_zh} / {b.label_en}
+                                {/* 【F5 的格名跟随界面语言 —— 裁定,不是顺手】
+                                    它是 IRAS 自己的措辞,而报出去的那一份是英文的,所以"总是印英文"
+                                    也说得通。裁定是【跟随语言】,理由:**格【号】才是标识**,
+                                    而它就在左边自己一列;标签是确认用的说明文字,中文读者读中文更好。
+                                    需要 IRAS 逐字措辞的场合是【把数字敲进 myTax Portal】,
+                                    而那一步用的是 CSV 导出 —— 那里 Label (EN) 与 Label (ZH)
+                                    是【两列】,不是拼在一起,所以逐字措辞一直都在。 */}
+                                {locale === 'zh' ? b.label_zh : b.label_en}
                                 {/* 【结构性为零要说出来,不能只显示 0】 */}
                                 {'derived' in b && !b.derived && (
                                     <span className="block text-xs text-gray-600">{t('gst.notDerived')}</span>

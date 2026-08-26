@@ -1388,6 +1388,30 @@ currency), unless the string is genuinely about one currency by decision —
 metal prices are quoted `USD/t` by market convention, and account names
 like `Bank – SGD` are proper nouns. Those stay.
 
+### 双语的列要【选一个】,不是拼起来 —— 而 check-i18n 看不见这一类(GST-FIX-3,2026-08-26)
+
+数据库里成对的 `*_zh` / `*_en`(`tax_codes.name_*`、`gst_return_boxes.label_*` 之类)
+必须**按界面语言选一个**:服务端 `await getLocale()`、客户端 `useLocale()`,
+仓库里有一百多处是这么写的。
+
+**`check-i18n` 结构上看不见这一类** —— 它查的是【文案文件里的键】(`t('...')`),
+而这些字符串一次也不经过 `t()`。那不是它的疏漏,是它的射程之外。
+
+**它咬过一次,而且是被人眼咬出来的:** GST-1/2/3 三刀里同一个写法漏了**六处**
+(税码下拉 ×4、GST 首页税码表、F5 每一格说明)。构建绿、闸绿、冒烟 188 条全过 ——
+Tim 把界面切成英文,一眼看见「中文 / English」。
+**六处同一个惯用法被漏掉,正是棘轮存在的理由**,所以 GST-FIX-3 加了
+`scripts/check-bilingual-concat.mjs`,进【构建】(它只读仓库文件,够不着库,
+不该占 gate 那 300 秒),基线 **0**。
+
+> **判据写得很窄,而窄正是它不误报的全部依据:** 两个插值、**同一个主语**、
+> 中间只隔着不含 `( ) , < >` 的字面文本。于是
+> `csvCell(r.label_en), csvCell(r.label_zh)`(F5 的 CSV 导出,**两列**,是对的)
+> 不会被抓,而 `{c.name_zh} / {c.name_en}` 会。
+> 真要同时印两种语言,在那一行写 `i18n-both: <理由>` ——
+> **行内注释,不是中心基线**:一次刻意的双语打印是【那一行的性质】,
+> 理由要待在下一个读它的人眼前,而一份中心基线会与代码漂开、还能被整体刷新以变绿。
+
 ## Making the page agree with the server is only right when the server is right
 
 A page that offers something the server will reject is **a question about the

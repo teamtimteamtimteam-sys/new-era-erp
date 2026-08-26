@@ -5,7 +5,7 @@
 import { useActionState, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { createInvoice, type CreateInvoiceState } from './actions'
-import { useTranslations } from '@/lib/i18n/client'
+import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 
@@ -86,6 +86,7 @@ export default function NewInvoiceForm({
     taxRates: TaxRateRow[]
 }) {
     const t = useTranslations()
+    const locale = useLocale()
     const [state, formAction, isPending] = useActionState(createInvoice, initialState)
 
     const [customerId, setCustomerId] = useState('')
@@ -230,7 +231,9 @@ export default function NewInvoiceForm({
                             <option value="">{t('invoice.form.taxCodePick')}</option>
                             {taxCodes.map((c) => (
                                 <option key={c.code} value={c.code}>
-                                    {c.code} · {c.name_zh} / {c.name_en}
+                                    {/* 【按界面语言选一个,不是把两个拼起来】与仓库里另外 105 处同一个写法。
+                                        拼接在中文界面下勉强能读,在英文界面下就是把中文推给一个读不懂它的人。 */}
+                                    {c.code} · {locale === 'zh' ? c.name_zh : c.name_en}
                                 </option>
                             ))}
                         </select>

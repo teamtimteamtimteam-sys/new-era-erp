@@ -2,7 +2,7 @@
 // GST:注册状态、税码与它们的生效税率、申报期间。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { getTranslations } from '@/lib/i18n/server'
+import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { mustRows, mustOne, mustCount } from '@/lib/db-helpers'
@@ -14,6 +14,7 @@ export default async function GstPage() {
     if (denied) return denied
     const supabase = await createClient()
     const t = await getTranslations()
+    const locale = await getLocale()
 
     const [settingsRes, codesRes, ratesRes, periodsRes, codedInvRes, codedExpRes] = await Promise.all([
         supabase.from('finance_settings').select('gst_registered, gst_registration_no').eq('id', true).single(),
@@ -80,7 +81,9 @@ export default async function GstPage() {
                             <tr key={c.code}>
                                 <td className="border border-gray-300 px-2 py-1 font-mono">{c.code}</td>
                                 <td className="border border-gray-300 px-2 py-1">{c.side === 'output' ? t('gst.sideOutput') : t('gst.sideInput')}</td>
-                                <td className="border border-gray-300 px-2 py-1">{c.name_zh} / {c.name_en}</td>
+                                {/* 【按界面语言选一个,不是把两个拼起来】与仓库里另外 105 处同一个写法。
+                                    拼接在中文界面下勉强能读,在英文界面下就是把中文推给一个读不懂它的人。 */}
+                                <td className="border border-gray-300 px-2 py-1">{locale === 'zh' ? c.name_zh : c.name_en}</td>
                                 {/* 【不进任何一格也要说出来,不能留白】 */}
                                 <td className="border border-gray-300 px-2 py-1">
                                     {boxes || <span className="text-gray-500">{t('gst.noBox')}</span>}

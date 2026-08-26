@@ -3,7 +3,7 @@
 import { useActionState } from 'react'
 import Link from 'next/link'
 import { updateCustomer, type UpdateCustomerState } from './actions'
-import { useTranslations } from '@/lib/i18n/client'
+import { useTranslations, useLocale } from '@/lib/i18n/client'
 
 const CUSTOMER_TYPE_OPTIONS = [
     { value: 'cathode_maker', labelKey: 'customers.types.cathodeMaker' },
@@ -42,6 +42,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
     taxCodes: TaxCodeOption[]
 }) {
     const t = useTranslations()
+    const locale = useLocale()
     const updateWithId = updateCustomer.bind(null, customer.id)
     const [state, formAction, isPending] = useActionState(
         updateWithId,
@@ -250,7 +251,9 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                             <option value="">{t('customers.form.defaultTaxCodeNone')}</option>
                             {taxCodes.map((c) => (
                                 <option key={c.code} value={c.code}>
-                                    {c.code} · {c.name_zh} / {c.name_en}
+                                    {/* 【按界面语言选一个,不是把两个拼起来】与仓库里另外 105 处同一个写法。
+                                        拼接在中文界面下勉强能读,在英文界面下就是把中文推给一个读不懂它的人。 */}
+                                    {c.code} · {locale === 'zh' ? c.name_zh : c.name_en}
                                 </option>
                             ))}
                         </select>
