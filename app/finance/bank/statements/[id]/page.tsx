@@ -64,12 +64,34 @@ export default async function BankStatementDetailPage({
     // 【两个数字并排,谁也不替换谁】"我们当时是照着什么对上的"与"今天重算是多少"
     // 是两个问题。两者不一致【本身就是要给人看的信息】—— 与 GST 已申报的那一份
     // 同一条规矩。book_balance_now / book_balance_drift 由视图现算。
+    //
+    // 【视图的列在生成类型里【全是可空的】,而这里一次性收窄】
+    // Postgres 表达不出"这个视图的这一列不会为空",于是 lib/database.types.ts
+    // 把每一列都放宽成 nullable。底表上 reconciliation_id、三个余额、
+    // reconciled_at 都是 NOT NULL(见 db/tables/bank_reconciliations.sql),
+    // 所以收窄在这里做一次 —— **而不是在每个使用点上撒 `?? 0`**:
+    // 那会把"读出来是空的"伪装成"这个数就是 0",正是 mustRows 那条规矩
+    // (一次失败不是一个空集)要禁止的伪装。真正可空的只有 superseded_* 两列。
+    type ReconRecord = {
+        reconciliation_id: string
+        currency: string
+        bank_closing_balance: number
+        book_balance: number
+        difference: number
+        reconciled_at: string
+        superseded_at: string | null
+        superseded_reason: string | null
+        is_current: boolean
+        book_balance_now: number
+        book_balance_drift: number
+        period_end: string
+    }
     const recordsRes = await supabase
         .from('bank_reconciliation_record')
-        .select('reconciliation_id, currency, bank_closing_balance, book_balance, difference, matched_lines, ignored_lines, reconciled_at, superseded_at, superseded_reason, is_current, book_balance_now, book_balance_drift, variance_item_count, period_end')
+        .select('reconciliation_id, currency, bank_closing_balance, book_balance, difference, reconciled_at, superseded_at, superseded_reason, is_current, book_balance_now, book_balance_drift, period_end')
         .eq('statement_id', id)
         .order('reconciled_at', { ascending: false })
-    const records = mustRows(recordsRes)
+    const records = mustRows(recordsRes) as unknown as ReconRecord[]
 
     const varianceRes = records.length
         ? await supabase

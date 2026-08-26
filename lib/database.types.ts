@@ -400,6 +400,127 @@ export type Database = {
           },
         ]
       }
+      bank_reconciliation_variance_items: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          item_kind: string
+          item_no: number
+          note: string
+          reconciliation_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_kind: string
+          item_no: number
+          note: string
+          reconciliation_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_kind?: string
+          item_no?: number
+          note?: string
+          reconciliation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_reconciliation_variance_items_reconciliation_id_fkey"
+            columns: ["reconciliation_id"]
+            isOneToOne: false
+            referencedRelation: "bank_reconciliation_record"
+            referencedColumns: ["reconciliation_id"]
+          },
+          {
+            foreignKeyName: "bank_reconciliation_variance_items_reconciliation_id_fkey"
+            columns: ["reconciliation_id"]
+            isOneToOne: false
+            referencedRelation: "bank_reconciliations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_reconciliations: {
+        Row: {
+          as_of: string
+          bank_closing_balance: number
+          book_balance: number
+          created_at: string
+          currency: string
+          difference: number
+          id: string
+          ignored_lines: number
+          matched_lines: number
+          reconciled_at: string
+          reconciled_by: string | null
+          statement_id: string
+          superseded_at: string | null
+          superseded_reason: string | null
+        }
+        Insert: {
+          as_of: string
+          bank_closing_balance: number
+          book_balance: number
+          created_at?: string
+          currency: string
+          difference: number
+          id?: string
+          ignored_lines: number
+          matched_lines: number
+          reconciled_at?: string
+          reconciled_by?: string | null
+          statement_id: string
+          superseded_at?: string | null
+          superseded_reason?: string | null
+        }
+        Update: {
+          as_of?: string
+          bank_closing_balance?: number
+          book_balance?: number
+          created_at?: string
+          currency?: string
+          difference?: number
+          id?: string
+          ignored_lines?: number
+          matched_lines?: number
+          reconciled_at?: string
+          reconciled_by?: string | null
+          statement_id?: string
+          superseded_at?: string | null
+          superseded_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_reconciliations_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "bank_reconciliations_statement_id_fkey"
+            columns: ["statement_id"]
+            isOneToOne: false
+            referencedRelation: "bank_reconciliation_record"
+            referencedColumns: ["statement_id"]
+          },
+          {
+            foreignKeyName: "bank_reconciliations_statement_id_fkey"
+            columns: ["statement_id"]
+            isOneToOne: false
+            referencedRelation: "bank_statements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bank_statement_lines: {
         Row: {
           amount: number
@@ -441,6 +562,13 @@ export type Database = {
           statement_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "bank_statement_lines_statement_id_fkey"
+            columns: ["statement_id"]
+            isOneToOne: false
+            referencedRelation: "bank_reconciliation_record"
+            referencedColumns: ["statement_id"]
+          },
           {
             foreignKeyName: "bank_statement_lines_statement_id_fkey"
             columns: ["statement_id"]
@@ -12216,6 +12344,39 @@ export type Database = {
         }
         Relationships: []
       }
+      bank_reconciliation_record: {
+        Row: {
+          bank_account_code: string | null
+          bank_closing_balance: number | null
+          book_balance: number | null
+          book_balance_drift: number | null
+          book_balance_now: number | null
+          currency: string | null
+          difference: number | null
+          ignored_lines: number | null
+          is_current: boolean | null
+          matched_lines: number | null
+          period_end: string | null
+          period_start: string | null
+          reconciled_at: string | null
+          reconciled_by: string | null
+          reconciliation_id: string | null
+          statement_code: string | null
+          statement_id: string | null
+          superseded_at: string | null
+          superseded_reason: string | null
+          variance_item_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_reconciliations_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       bank_reconciliation_status: {
         Row: {
           account_code: string | null
@@ -17144,6 +17305,10 @@ export type Database = {
         Args: { p_currency: string }
         Returns: string
       }
+      bank_book_balance_asof: {
+        Args: { p_account_code: string; p_as_of: string }
+        Returns: number
+      }
       bank_native_currency: {
         Args: { p_account_code: string }
         Returns: string
@@ -17783,6 +17948,10 @@ export type Database = {
         Args: { p_price_date: string; p_price_index?: string; p_prices: Json }
         Returns: Json
       }
+      preview_reconcile_statement: {
+        Args: { p_statement_id: string }
+        Returns: Json
+      }
       preview_reprice_from_committed_terms: {
         Args: { p_inbound_batch_id: string; p_reference_date?: string }
         Returns: Json
@@ -17839,7 +18008,10 @@ export type Database = {
         }
         Returns: Json
       }
-      reconcile_statement: { Args: { p_statement_id: string }; Returns: Json }
+      reconcile_statement: {
+        Args: { p_statement_id: string; p_variance_items?: Json }
+        Returns: Json
+      }
       record_approval_decision: {
         Args: {
           p_decision: string

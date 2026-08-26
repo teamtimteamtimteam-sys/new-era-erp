@@ -128,6 +128,110 @@ BEGIN
     END IF;
     rep := rep || jsonb_build_object('D_refuses_when_items_do_not_sum', v_msg);
 
+    -- ══════════ J · 逐项校验的三条,每条【单独】被它自己那条接住 ══════════
+    -- 【为什么这三条需要常设的臂】它们此前只被一次性的线上探针验过,而探针不进仓库 ——
+    -- 也就是说这三条拒绝当时【没有任何东西在看着】。一条没有臂的拒绝,
+    -- 与一条不存在的拒绝,在下一次重构面前是同一个东西。
+    --
+    -- ★【三条注入各自的方向,以及它们为什么不会被前面的臂截胡】★
+    --   共同前提:差额 = −120(非 0)且【给了说明】—— 于是
+    --   BALANCE_DISAGREES(走"没有说明"那一支)与 VARIANCE_NOT_APPLICABLE
+    --   (走"差额为 0"那一支)两条都够不着这三臂。
+    --   J1/J3 的金额【故意凑够 −120】,于是连 VARIANCE_UNEXPLAINED 也够不着 ——
+    --   能接住它们的只剩下被测的那一条本身。
+    --   若哪天那一条被删掉,J1/J3 会掉进 INSERT 的 CHECK 约束、
+    --   J2 会掉进一次 numeric 转换错 —— 三者都【不是】按名的拒绝,
+    --   所以这三臂会红,而不是安静地换一条路通过。
+
+    -- J1 · 类型不在枚举里(金额正确、说明正确 —— 唯一的毛病就是类型)
+    v_denied := false; v_msg := NULL;
+    BEGIN PERFORM reconcile_statement(v_s1_id, jsonb_build_array(
+            jsonb_build_object('kind','not_a_real_kind','amount','-120','note','类型是编的,其余都对')));
+    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM;
+        v_denied := (SQLERRM LIKE 'VARIANCE_KIND_INVALID|%'); END;
+    IF NOT v_denied THEN
+        RAISE EXCEPTION 'FIXTURE 131 J1 失败:不认得的差额类型必须【按名】拒(VARIANCE_KIND_INVALID),实得 % —— 掉进表上的 CHECK 约束不算,那是一句机器话',
+            COALESCE(v_msg,'(收下了)');
+    END IF;
+    IF split_part(v_msg,'|',2) <> 'not_a_real_kind' THEN
+        RAISE EXCEPTION 'FIXTURE 131 J1 失败:拒绝要说出【是哪个】类型不认得,实得 %', v_msg;
+    END IF;
+
+    -- J2 · 金额不是数字(类型正确、说明正确)
+    v_denied := false; v_msg := NULL;
+    BEGIN PERFORM reconcile_statement(v_s1_id, jsonb_build_array(
+            jsonb_build_object('kind','bank_interest','amount','abc','note','金额栏填了字母')));
+    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM;
+        v_denied := (SQLERRM LIKE 'VARIANCE_AMOUNT_INVALID|%'); END;
+    IF NOT v_denied THEN
+        RAISE EXCEPTION 'FIXTURE 131 J2 失败:非数字的金额必须【按名】拒(VARIANCE_AMOUNT_INVALID),实得 % —— 一次 numeric 转换错不算',
+            COALESCE(v_msg,'(收下了)');
+    END IF;
+    IF (split_part(v_msg,'|',2))::integer <> 1 THEN
+        RAISE EXCEPTION 'FIXTURE 131 J2 失败:拒绝要说出【第几项】填错了,实得 %', v_msg;
+    END IF;
+
+    -- J2b · 金额为 0 也不行 —— 0 是一个"填了但什么都没说"的金额
+    v_denied := false; v_msg := NULL;
+    BEGIN PERFORM reconcile_statement(v_s1_id, jsonb_build_array(
+            jsonb_build_object('kind','timing','amount','0','note','零金额的说明解释不了任何东西')));
+    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM;
+        v_denied := (SQLERRM LIKE 'VARIANCE_AMOUNT_INVALID|%'); END;
+    IF NOT v_denied THEN
+        RAISE EXCEPTION 'FIXTURE 131 J2b 失败:金额为 0 的说明项必须按名拒,实得 %', COALESCE(v_msg,'(收下了)');
+    END IF;
+
+    -- J3 · 说明只有空白(类型正确、金额正确且凑够 −120)
+    -- 【空白与 NULL 同罪】数据库里"有值",在人眼里什么都没说 —— 与 GST 登记号那一条同源。
+    v_denied := false; v_msg := NULL;
+    BEGIN PERFORM reconcile_statement(v_s1_id, jsonb_build_array(
+            jsonb_build_object('kind','bank_interest','amount','-120','note','    ')));
+    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM;
+        v_denied := (SQLERRM LIKE 'VARIANCE_NOTE_REQUIRED|%'); END;
+    IF NOT v_denied THEN
+        RAISE EXCEPTION 'FIXTURE 131 J3 失败:说明为空白时必须【按名】拒(VARIANCE_NOTE_REQUIRED),实得 % —— 一个金额对得上、却没说是什么的"说明",正是这条规矩要挡的东西',
+            COALESCE(v_msg,'(收下了)');
+    END IF;
+    IF (split_part(v_msg,'|',2))::integer <> 1 THEN
+        RAISE EXCEPTION 'FIXTURE 131 J3 失败:拒绝要说出【第几项】没写说明,实得 %', v_msg;
+    END IF;
+
+    -- J4 · 传进来的根本不是一个数组 —— 此前【一次都没有验过】
+    v_denied := false; v_msg := NULL;
+    BEGIN PERFORM reconcile_statement(v_s1_id,
+            jsonb_build_object('kind','timing','amount','-120','note','这是一个对象,不是数组'));
+    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM;
+        v_denied := (SQLERRM LIKE 'VARIANCE_ITEMS_INVALID%'); END;
+    IF NOT v_denied THEN
+        RAISE EXCEPTION 'FIXTURE 131 J4 失败:说明不是数组时必须按名拒(VARIANCE_ITEMS_INVALID),实得 %',
+            COALESCE(v_msg,'(收下了 —— 那意味着 jsonb_array_length 会在后面某处抛一句机器话)');
+    END IF;
+
+    -- 【三条拒绝都验过之后,报表必须还是 open】一次被拒的对账不许留下任何痕迹。
+    IF (SELECT status FROM bank_statements WHERE id=v_s1_id) <> 'open' THEN
+        RAISE EXCEPTION 'FIXTURE 131 J 失败:被拒之后报表必须仍是 open —— 一次失败的对账不该改变任何状态';
+    END IF;
+    IF (SELECT count(*) FROM bank_reconciliations WHERE statement_id=v_s1_id) <> 0 THEN
+        RAISE EXCEPTION 'FIXTURE 131 J 失败:被拒之后不许留下对账记录行';
+    END IF;
+    rep := rep || jsonb_build_object('J_per_item_refusals_each_by_name', true);
+
+    -- ══════════ K · 旧签名的单参数调用仍然【解析得到】 ══════════
+    -- 【为什么这要一条常设的臂】迁移里先 DROP 了 reconcile_statement(uuid) 再建带
+    -- DEFAULT 的两参数版。窗口期里还没换掉的那一版页面打的就是单参数调用,
+    -- 它必须拿到【一句话】,不是 "function does not exist"(FIN-10 的先例;
+    -- 设备那一刀 X1 正是因为这个在窗口期里打断过一个线上按钮)。
+    -- 将来若有人"整理"签名、把 DEFAULT 去掉或加个重载,这一臂会当场红。
+    v_denied := false; v_msg := NULL;
+    BEGIN PERFORM reconcile_statement(p_statement_id => v_s1_id);
+    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM;
+        v_denied := (SQLERRM LIKE 'BALANCE_DISAGREES|%'); END;
+    IF NOT v_denied THEN
+        RAISE EXCEPTION 'FIXTURE 131 K 失败:单参数调用必须仍然解析得到本函数并拿到一句话,实得 % —— 若它是 "function does not exist",那么一次部署窗口就会打断线上的对账按钮',
+            COALESCE(v_msg,'(对账成功了)');
+    END IF;
+    rep := rep || jsonb_build_object('K_old_arity_call_still_resolves', true);
+
     -- ══════════ C · 说明【恰好】等于差额 → 带着差额对上 ══════════
     v_res := reconcile_statement(v_s1_id, jsonb_build_array(
         jsonb_build_object('kind','bank_interest','amount','-120','note','银行利息 120,本期账上还没记')));

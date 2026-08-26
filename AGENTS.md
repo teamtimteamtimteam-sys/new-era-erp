@@ -449,9 +449,18 @@ GitHub 对这两个 SHA 的部署记录数都是 0**。也就是说,那个 2400 
 ## Route smoke test — run on demand, whenever the render layer changed
 
 ```
-node scripts/smoke-routes.mjs            # ~2-4 min: renders all ~135 routes as admin
+node scripts/smoke-routes.mjs            # 16m47s measured 2026-08-26 across 192 routes (was "~2-4 min" at ~135 routes)
 node scripts/smoke-routes.mjs --reach    # + per-role reachability (2h+ measured 2026-08-24, OPT-IN)
 ```
+
+> **快的那一半也重新量过(BANK-REC,2026-08-26):16m47s,192 条路由**
+> (23:25:37 → 23:42:24,判词 `SMOKE_EXIT=0`,191 ok / 3 skipped / 0 FAILED;
+> 同时段隧道 `select 1` 为 2.97 / 6.11 / 3.67s)。
+> 上面那句「~2-4 min」写的是 **~135 条路由**那个时代,而路由数长了四成、
+> 隧道也没那么快了 —— **它不是写错了,是写下来那天是对的,后来没人再量。**
+> 与 `--reach` 那句"十到十五分钟"同一种过期,只是幅度小些。
+> 记在这里是因为**决定"这一刀要不要等冒烟跑完"的人读的就是这个数**:
+> 在两分钟它是顺手一跑,在十七分钟它要排进节奏里。
 
 **The `--reach` half is opt-in on purpose.** It walks from `/` as `admin`,
 `operations` and `finance`, following only the links each role's pages actually
