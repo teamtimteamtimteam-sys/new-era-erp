@@ -1,30 +1,44 @@
--- db/functions/preview_revalue_foreign_balances.sql
--- 期末重估的【只读预览】—— 与 revalue_foreign_balances 共用同一份算术:
--- 过账函数调用本函数,再据返回的逐行明细发分录。界面只负责画,不负责算。
+-- FXREV-1(2026-08-27):期末重估的取数改走 journal_activity_lines —— 两处,不是一处。
+-- NOTE: apply with ./db/apply_migration.sh
 --
--- 【为什么必须只有一份】/finance/revaluation 原先用 TypeScript 又算了一遍,两份
--- 实现已经漂开(既往重估行并入承载额的口径不同),而屏幕上的数字会被人当作
--- 过账将要发生什么的承诺。同病此前两次:验配影响预览、GrantRunner 假期公式。
--- 先例:preview_reprice_inbound_batch 与 reprice_inbound_batch 共用 reprice_split。
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【这是同一个机制在本仓库的第四处,而它是唯一一处【会过账】的】
+-- 前三处:cash_flow_statement(OPS-17)、f5_return/f5_box_detail(GST-2)、
+-- bank_reconciliation_status(BANK-REC)—— 都只是屏幕上的错数字。
+-- 这一处不同:revalue_foreign_balances 直接拿 preview 的结果去发分录,
+-- 于是错的基数会【真的进总账】。
 --
--- 缺当日中间价【不抛】,该行 rate/adjustment 返回 null 并记进 missing_rates ——
--- 页面要能把缺牌价画出来。过账那一侧仍然拒绝(D2 语义不变)。
+-- ★【它已经咬了,而且量得出来】★ 线上唯一一张已过账的重估分录
+-- JE-2026-0024(期末 2026-07-31)算错了 **SGD 56,532.48**(未实现汇兑损失多记)。
+-- 三张原分录(JE-2026-0001/0003/0006)在跑那次重估【之前】就已经是 reversed,
+-- 所以这不是"事后改了历史",是当时就算错了。完整的复现证据与逐科目数字
+-- 记在 docs/fx-revaluation-misstatement-2026-07.md。
 --
--- NOTE: introduced by db/migrations/2026-08-05-fin9-revaluation-single-implementation.sql.
--- FIN-19b(2026-08-06):多返回 rate_as_of ——【中间价取自哪一天】。期末常落在周末,
--- 用周五的中间价是对的,但必须说出来(FIN-13 接受回溯的条件)。改问 fx_rate_asof
--- (缺牌价返回空行,不抛),写入侧仍再调一次 fx_rate_for 抛 FX_RATE_MISSING。
+-- 【两处过滤,不是一处 —— 而它们坏的方向不同】
+--   ① 主聚合(原第 50 行):e.status='posted' 污染 native 与 carry_fx,
+--      也就是外币净额与它的本位币承载额;
+--   ② 承载额子查询(原第 62 行):e2.status='posted' 污染【既往重估调整】那一项。
+--   一份只注入普通分录的 fixture 会漏掉 ②:它要靠一张【被冲销的重估分录】才踩得到。
+--   db/fixtures/133 因此有三条臂,②那条单独一条。
+--
+-- 【source_type='revaluation' 这个过滤【保留】—— 它不是同一类东西】
+-- 它问的是"这一行是不是既往的重估调整",是一个【语义】选择,不是"分录还活着吗"。
+-- 坏的只有 status 那一半。
+--
+-- 【复用,不是再实现一遍】行的取舍(不过滤 status、日期上界、年结开关)
+-- 整个交给 journal_activity_lines —— 与 balance_sheet / account_ledger /
+-- bank_book_balance_asof 同一份。本函数只保留它自己的投影:
+-- 外币原币净额(amount_ccy)与本位币承载额(debit-credit)。
+-- (NULL, p_period_end, true) 逐字是 balance_sheet 的调用:重估是一个【截至日】
+-- 的资产负债表式计算,年结开关与那张表一致 —— 一个科目的"截至 X 日余额"
+-- 在系统里只能有一个意思。年结分录本来也不落在外币货币性科目上,
+-- 传 true 同时保住了改动前的行为。
+--
+-- 【只动取数,不动任何算术】target = round(native × rate, 2)、
+-- adjustment = target − carry、缺牌价不抛只记 missing_rates —— 一个字节都没改。
+-- ════════════════════════════════════════════════════════════════════════════
 
--- FXREV-1(2026-08-27):取数改走 journal_activity_lines —— **两处**,不是一处。
--- 原来主聚合与承载额子查询各带一句 e.status='posted',而冲销的形状是
--- 「原分录翻成 reversed + 另发一张等额反向的 posted 冲销分录」——
--- 只留 posted 就是丢原分录、留冲销分录,净额错成 −原分录。
--- **这一处是同族四处里唯一【会过账】的**:revalue_foreign_balances 拿本函数的
--- 结果去发分录,于是错的基数会真的进总账。它已经咬过一次 ——
--- JE-2026-0024(期末 2026-07-31)因此多记了 SGD 56,532.48 的未实现汇兑损失,
--- 完整证据与更正记录在 docs/fx-revaluation-misstatement-2026-07.md。
--- source_type='revaluation' 那个过滤【保留】:它问的是"这是不是既往重估调整",
--- 是语义选择,不是"分录还活着吗"。坏的只有 status 那一半。
+BEGIN;
 
 CREATE OR REPLACE FUNCTION public.preview_revalue_foreign_balances(p_period_end date)
  RETURNS jsonb
@@ -110,3 +124,5 @@ BEGIN
         'missing_rates', v_missing);
 END;
 $function$;
+
+COMMIT;

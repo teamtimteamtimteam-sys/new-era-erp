@@ -1221,12 +1221,32 @@ same eligibility rule, asked earlier.
 | ① | `cash_flow_statement` | OPS-17 | fixed |
 | ② | `f5_return` / `f5_box_detail` | GST-2 | fixed, with the reasoning left in the function body |
 | ③ | `bank_reconciliation_status.ledger_balance` | BANK-REC (2026-08-26) | fixed — **and it had been wrong on the live bank page the whole time** |
-| ④ | `preview_revalue_foreign_balances` | BANK-REC, while fixing ③ | **still live**, queued — and it **posts entries** |
+| ④ | `preview_revalue_foreign_balances` (**two** filters, not one) | BANK-REC, while fixing ③ | fixed by FXREV-1 (2026-08-27) — **and it had already posted a wrong entry: SGD 56,532.48** |
 
 **③ was measured, not inferred (2026-08-26):** account `1010` carries 2 reversed
 journal lines, so the bank page was showing **−31,338.70 where the ledger actually
 says −29,753.70 — out by USD 1,585.00 in production.** `1000` happened to have no
 reversals and was correct by luck, which is why nobody saw it.
+
+**④ is the one that reached the ledger, and it is worth knowing how far.** The
+misstatement was **SGD 56,532.48** on `JE-2026-0024` (FX revaluation as at
+2026-07-31) — an overstated unrealised FX loss, posted because two reversed
+originals on `2000` were dropped while their reversals were kept. It was
+corrected forward by `JE-2026-0070` on 2026-08-27; July itself stays as it was.
+Full record: `docs/fx-revaluation-misstatement-2026-07.md`.
+
+**Two things FXREV-1 added to the rule itself:**
+
+* **Count the filters, don't assume there is one.** This function had *two* —
+  the main aggregate and a carry-forward subquery — and they fail in different
+  directions, so a fixture that injects only an ordinary reversed entry passes
+  while the second one is still broken. `db/fixtures/133` therefore has a
+  separate arm whose injection is a **reversed revaluation entry**, which is the
+  only thing that reaches the second filter.
+* **`source_type = 'revaluation'` in that subquery is NOT the same kind of
+  filter and must stay.** It asks "is this row a prior revaluation adjustment" —
+  a semantic selection. Only the `status` half was wrong. When fixing one of
+  these, separate the two questions before deleting anything.
 
 **The lesson that outlives the four:** a defect found while building something
 else is still a defect that shipped. ③ was not on anyone's list — it turned up
