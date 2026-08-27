@@ -306,6 +306,16 @@ const MANIFEST = {
     'chases.channel_':      { kind: 'enum', values: () => sqlCheckIn('db/tables/collection_chases.sql', 'channel') },
     'chases.outcome_':      { kind: 'enum', values: () => sqlCheckIn('db/tables/collection_promises.sql', 'outcome') },
     'chases.subject_':      { kind: 'enum', values: () => sqlCheckIn('db/tables/collection_chase_documents.sql', 'subject_type') },
+    // CASHFLOW-1:四个前缀,四个真源都在库那一侧 —— 加一种频率/来源/理由,
+    // 键检查【自动跟着变宽】,而不是等着谁记得来补一行。
+    'cashForecast.errors.':  { kind: 'enum', values: () => tsSet('app/finance/cashForecastErrorCodes.ts', 'CASH_FORECAST_ERROR_CODES') },
+    'cashForecast.cadence_': { kind: 'enum', values: () => sqlCheckIn('db/tables/cash_forecast_lines.sql', 'cadence') },
+    'cashForecast.undated_': { kind: 'enum', values: () => tsRegex('db/functions/cash_forecast_data.sql',
+                                   /'(no_date|before_window)'/g) },
+    'cashForecast.conf_':    { kind: 'enum', values: () => tsRegex('db/functions/cash_forecast_data.sql',
+                                   /'(committed|estimated|manual)'::text/g) },
+    'cashForecast.source_':  { kind: 'enum', values: () => tsRegex('db/functions/cash_forecast_data.sql',
+                                   /'(ar|ap|po_instalment|payroll|manual)'(?:::text)?(?: AS source)?,/g) },
     // OPS-20:批次毛利算不出来时的两种原因 + ok。后缀集合就是 batch_margin 里那个
     // CASE 的分支 —— 从视图镜像现读,加一种原因这道检查自动跟着变宽。
     'margin.status.':       { kind: 'enum', values: () => tsRegex('db/views/batch_margin.sql',

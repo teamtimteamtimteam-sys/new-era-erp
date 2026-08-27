@@ -70,3 +70,5 @@
 2026-08-27T23:52:28+0800	2026-08-27-chase1-collection-records.sql	5ab4c0d
 2026-08-28T00:06:15+0800	2026-08-28-chase1-fu1-next-chase-code-invoker.sql	5ab4c0d
 2026-08-28T00:54:03+0800	2026-08-28-chase1-fu2-overdue-on-the-promised-date.sql	70f8b16
+2026-08-28T02:13:52+0800	2026-08-28-cashflow1-expected-dates-and-13-week-forecast.sql	48d6a1f
+2026-08-28T02:16:28+0800	2026-08-28-cashflow1-fu1-expected-date-default-null.sql	48d6a1f

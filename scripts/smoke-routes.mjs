@@ -416,6 +416,17 @@ const MSG_CHASE_SECTION = (() => {
     if (!m) throw new Error('messages/en.ts 里找不到 chases.sectionTitle')
     return m[1]
 })()
+// CASHFLOW-1：现金预测页的入口断言要找的那句话，同样【从文案文件现读】。
+// 【它是一张新页面，而这个仓库为「页面上线却走不到」付过两次账】——
+// 一条内容断言比一次两小时的走查便宜得多，而且它每一跑都在。
+const MSG_FORECAST_TITLE = (() => {
+    const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
+    const blk = src.match(/\n    cashForecast: \{[\s\S]*?\n    \},/)
+    if (!blk) throw new Error('messages/en.ts 里找不到 cashForecast 这一段 —— 入口断言无从下手')
+    const m = blk[0].match(/\n\s*title: '([^']+)'/)
+    if (!m) throw new Error('messages/en.ts 里找不到 cashForecast.title')
+    return m[1]
+})()
 const SCRATCH_NAME = '【SMOKE 冒烟脚本临时行 · 勿动 · 随时可删】'
 
 async function rest(path, opts = {}) {
@@ -1153,6 +1164,44 @@ async function main() {
             }
         }
 
+        // ── CASHFLOW-1：现金预测页【真的画出来了】，而且它的标题在 ──────────
+        // 【为什么值得一条内容断言】这是一张新页面，而路由冒烟只断言 2xx ——
+        // 一张渲染成功但内容没画出来的页面照样 200。这一页的内容全部来自一支
+        // 新函数（cash_forecast_data）：它抛错，页面 500（冒烟抓得住）；
+        // 它返回一个形状不对的东西，页面渲染成一片空白而仍然 200（只有这条抓得住）。
+        {
+            const target = '/finance/cash-forecast'
+            const before = logChunks.length
+            const res = await fetch(`http://localhost:${PORT}${target}`, {
+                headers: { cookie }, redirect: 'manual' })
+            const html = res.status === 200 ? await res.text() : ''
+            // ★【可达性：直接问那一页的 HTML 里有没有这条链接】★
+            // --reach 会回答同一个问题，但它要两小时以上（本机隧道退化时实测），
+            // 而且它是 opt-in 的 —— 一条每一跑都在的断言，比一次偶尔跑的走查更能
+            // 守住「页面上线却走不到」这件事（这个仓库为它付过两次账）。
+            const navRes = await fetch(`http://localhost:${PORT}/finance`, {
+                headers: { cookie }, redirect: 'manual' })
+            const navHtml = navRes.status === 200 ? await navRes.text() : ''
+            if (!navHtml.includes('/finance/cash-forecast')) {
+                failures.push({ route: '/finance (子导航里没有现金预测)', url: '/finance',
+                    status: navRes.status, expected: 200,
+                    stack: '财务子导航的 HTML 里找不到 /finance/cash-forecast —— '
+                         + '这一页打得开却走不到,而这正是本仓库上过两次当的那件事。'
+                         + 'Subnav.tsx 里有【两份】清单(ITEMS 与 ordered),两份都要有。' })
+                console.log('  FAIL /finance 子导航里没有现金预测的入口')
+            } else { ok++ }
+
+            if (res.status === 200 && html.includes(MSG_FORECAST_TITLE)) { ok++ }
+            else {
+                const why = res.status !== 200
+                    ? `HTTP ${res.status}`
+                    : `页面 200，但找不到「${MSG_FORECAST_TITLE}」—— 预测没画出来，而 200 看不出这件事`
+                failures.push({ route: '/finance/cash-forecast (内容)', url: target,
+                    status: res.status, expected: 200, stack: `${why}\n${await serverStack(before)}` })
+                console.log(`  FAIL /finance/cash-forecast 内容 → ${why}`)
+            }
+        }
+
         // ── 按角色的可达性(REACH-1)────────────────────────────────────────
         // admin 一遍是对照(他什么都有);operations 与 finance 是 /margin 那道题的
         // 两边 —— 一个只有加工、一个只有财务,而没有任何 live 角色同时持有两者。
@@ -1212,7 +1261,7 @@ async function main() {
     // 等于让"这一类到底测没测"重新变得看不见 —— 而它们存在的理由正是那件事。
     // PROBATION-1:总结这一行要把【每一个计进 ok 的探针】都点出来,否则
     // 标签念的是一件事、数字数的是另一件 —— 本仓库对这个形状记过好几次账。
-    console.log(`\n== ${routes.length} routes + 1 reviewer-view check + ${QUERY_PROBES.length} query-string probe(s) + 2 probation-entry probes + 2 customer-page entry probes: ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
+    console.log(`\n== ${routes.length} routes + 1 reviewer-view check + ${QUERY_PROBES.length} query-string probe(s) + 2 probation-entry probes + 2 customer-page entry probes + 2 cash-forecast probes (nav + content): ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
     // SESSION-1:这一行排在所有失败之前,因为它改变【怎么读】下面那一百行。
     if (sawAuthIndeterminate) {
         const n = failures.filter((f) => f.authDown).length

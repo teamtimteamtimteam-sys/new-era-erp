@@ -34,7 +34,13 @@ CREATE TABLE public.purchase_order_payment_terms (
     ),
     notes             text,
     created_at        timestamptz NOT NULL DEFAULT now(),
-    UNIQUE (purchase_order_id, seq)
+    UNIQUE (purchase_order_id, seq),
+    -- CASHFLOW-1（ALTER 加的列留在末尾，按镜像惯例）：这一期【预计】什么时候付。
+    -- 它是一个估计，永远不写进 due_date —— due_date 在这张表上的含义是
+    -- 「合同约定的日子」（下面那条 CHECK 要求 fixed_date 必须有它）。
+    expected_date        date,
+    expected_date_set_by uuid,
+    expected_date_set_at timestamptz
 );
 
 COMMENT ON COLUMN public.purchase_order_payment_terms.fixed_amount_ccy IS
@@ -66,6 +72,14 @@ CREATE POLICY "purchase_order_payment_terms delete by permission"
 -- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 purchase_order_payment_terms_masked 读取。
 -- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
+-- CASHFLOW-1：列注释也要在镜像里 —— 一次重建缺了它，gate 的结构比对会红，
+-- 而更要紧的是：下一个读镜像的人会少掉「为什么它不写进 due_date」这句话。
+COMMENT ON COLUMN public.purchase_order_payment_terms.expected_date IS
+    'CASHFLOW-1:这一期【预计】什么时候付 —— 一个估计,不是一个事实。★【为什么不写进 due_date】★ due_date 在这张表上的含义是"合同约定的日子"(表上那条 CHECK 要求 fixed_date 那一种必须有它);把估计写进去,会让一个猜测长得和一条合同条款一模一样。三种事件才需要它:on_shipment / on_arrival / post_assay —— 另外两种不需要,因为 fixed_date 已经有真日期,而 on_order 的日子是 purchase_orders.order_date 这个事实。谁设的、何时设的在旁边两列;按事件类型的保管人在 payment_event_owners。到了预测那一层它的 confidence 是 estimated,与 committed 【不同的渲染】。';
+
 REVOKE SELECT ON public.purchase_order_payment_terms FROM authenticated, anon;
-GRANT SELECT (id, purchase_order_id, seq, label, percentage, trigger_event, due_date, notes, created_at)
+-- CASHFLOW-1：三列新加的非敏感列一并授回 —— 列级 SELECT 授权【不会】自动
+-- 延伸到后加的列，漏授的后果是「写得进、读不出」，连 WHERE 过滤都 42501。
+GRANT SELECT (id, purchase_order_id, seq, label, percentage, trigger_event, due_date, notes, created_at,
+              expected_date, expected_date_set_by, expected_date_set_at)
     ON public.purchase_order_payment_terms TO authenticated;

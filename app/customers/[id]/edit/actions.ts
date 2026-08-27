@@ -27,6 +27,10 @@ export async function updateCustomer(
     const email = (formData.get('email') as string)?.trim() || null
     const phone = (formData.get('phone') as string)?.trim() || null
     const payment_terms = (formData.get('payment_terms') as string)?.trim() || null
+    // CASHFLOW-1：数字账期。空字符串必须变成 null，不能变成 0 ——
+    // 0 天账期与「没说」是两件事，而开票表单读到 null 才会退回它自己的默认。
+    const ptdRaw = (formData.get('payment_terms_days') as string)?.trim()
+    const payment_terms_days = ptdRaw ? Number(ptdRaw) : null
     const incoterm = (formData.get('incoterm') as string)?.trim() || null
     const credit_rating = (formData.get('credit_rating') as string)?.trim() || null
     // SAL-B:【空串 → NULL(没设限,放行);'0' → 0(现款现货,拒任何赊销)】——
@@ -78,6 +82,7 @@ export async function updateCustomer(
             phone,
             customer_types,
             payment_terms,
+            payment_terms_days,
             incoterm,
             credit_rating,
             credit_limit_base,

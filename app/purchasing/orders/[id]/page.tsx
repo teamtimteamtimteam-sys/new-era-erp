@@ -25,6 +25,7 @@ import { maskedExcept, maskedRows } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
 import IssuePanel from '@/app/components/IssuePanel'
 import { mustRows, mustOne } from '@/lib/db-helpers'
+import ExpectedDateControl from './ExpectedDateControl'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import DiscrepancyKinds, {
@@ -159,6 +160,15 @@ export default async function PurchaseOrderDetailPage({
     // 遮蔽的是估价列;material_id / pricing_formula_id 等恢复基表类型。
     const lines = maskedRows<Tables<'purchase_order_lines'>, 'estimated_unit_price' | 'estimated_amount_ccy'>(mustRows(linesRes))
     const terms = maskedRows<Tables<'purchase_order_payment_terms'>, 'fixed_amount_ccy'>(mustRows(termsRes))
+    // CASHFLOW-1：按事件类型的保管人。【无权时不去查，而不是查了拿零行】——
+    // 零行会让每一期都显示成「不需要估计」，那是一句假话。
+    const eventOwners = Object.fromEntries(
+        (mustRows(
+            await supabase.from('payment_event_owners').select('trigger_event, owner_name')
+        ) as unknown as { trigger_event: string; owner_name: string }[])
+            .map((o) => [o.trigger_event, o.owner_name])
+    ) as Record<string, string>
+    const canEditPurchasing = await can('module.purchasing.edit')
     const poStatus = statusRes.data
     const receipts = maskedRows<Tables<'inbound_batches'>, 'unit_price'>(mustRows(receiptsRes))
 
@@ -670,6 +680,9 @@ export default async function PurchaseOrderDetailPage({
                                     <th className="border border-gray-300 px-3 py-2 text-right">{t('purchasing.colAmount')}</th>
                                     <th className="border border-gray-300 px-3 py-2 text-left">{t('purchasing.colTrigger')}</th>
                                     <th className="border border-gray-300 px-3 py-2 text-left">{t('purchasing.colDueDate')}</th>
+                                    {/* CASHFLOW-1：【预计日期】与【到期日】分成两列，
+                                        因为它们是两种东西：一个是估计，一个是合同约定的日子。 */}
+                                    <th className="border border-gray-300 px-3 py-2 text-left">{t('cashForecast.expectedDate')}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -689,6 +702,16 @@ export default async function PurchaseOrderDetailPage({
                                             {t('purchasing.trigger.' + l.trigger_event)}
                                         </td>
                                         <td className="border border-gray-300 px-3 py-2 text-sm">{l.due_date ?? '—'}</td>
+                                        <td className="border border-gray-300 px-3 py-2">
+                                            <ExpectedDateControl
+                                                termId={l.id}
+                                                purchaseOrderId={po.id}
+                                                triggerEvent={l.trigger_event}
+                                                expectedDate={l.expected_date ?? null}
+                                                ownerName={eventOwners[l.trigger_event] ?? null}
+                                                canEdit={canEditPurchasing}
+                                            />
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

@@ -756,6 +756,137 @@ export type Database = {
         }
         Relationships: []
       }
+      cash_forecast_lines: {
+        Row: {
+          amount_ccy: number
+          cadence: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          direction: string
+          end_date: string | null
+          id: string
+          is_active: boolean
+          label: string
+          notes: string | null
+          start_date: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          amount_ccy: number
+          cadence: string
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          direction: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          notes?: string | null
+          start_date: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          amount_ccy?: number
+          cadence?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          direction?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          notes?: string | null
+          start_date?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_forecast_lines_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      cash_forecasts: {
+        Row: {
+          base_currency: string
+          buckets: Json
+          buffer: Json
+          code: string
+          frozen_at: string
+          frozen_by: string | null
+          horizon_weeks: number
+          id: string
+          lines: Json
+          opening: Json
+          promises_memo: Json
+          superseded_at: string | null
+          superseded_by: string | null
+          superseded_reason: string | null
+          undated: Json
+          week_start: string
+        }
+        Insert: {
+          base_currency: string
+          buckets: Json
+          buffer: Json
+          code: string
+          frozen_at?: string
+          frozen_by?: string | null
+          horizon_weeks?: number
+          id?: string
+          lines: Json
+          opening: Json
+          promises_memo: Json
+          superseded_at?: string | null
+          superseded_by?: string | null
+          superseded_reason?: string | null
+          undated: Json
+          week_start: string
+        }
+        Update: {
+          base_currency?: string
+          buckets?: Json
+          buffer?: Json
+          code?: string
+          frozen_at?: string
+          frozen_by?: string | null
+          horizon_weeks?: number
+          id?: string
+          lines?: Json
+          opening?: Json
+          promises_memo?: Json
+          superseded_at?: string | null
+          superseded_by?: string | null
+          superseded_reason?: string | null
+          undated?: Json
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_forecasts_base_currency_fkey"
+            columns: ["base_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "cash_forecasts_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "cash_forecasts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       certificate_types: {
         Row: {
           code: string
@@ -6653,6 +6784,30 @@ export type Database = {
           },
         ]
       }
+      payment_event_owners: {
+        Row: {
+          note: string | null
+          owner_name: string
+          trigger_event: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          note?: string | null
+          owner_name: string
+          trigger_event: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          note?: string | null
+          owner_name?: string
+          trigger_event?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       payment_term_template_lines: {
         Row: {
           created_at: string
@@ -9210,6 +9365,9 @@ export type Database = {
         Row: {
           created_at: string
           due_date: string | null
+          expected_date: string | null
+          expected_date_set_at: string | null
+          expected_date_set_by: string | null
           fixed_amount_ccy: number | null
           id: string
           label: string
@@ -9222,6 +9380,9 @@ export type Database = {
         Insert: {
           created_at?: string
           due_date?: string | null
+          expected_date?: string | null
+          expected_date_set_at?: string | null
+          expected_date_set_by?: string | null
           fixed_amount_ccy?: number | null
           id?: string
           label: string
@@ -9234,6 +9395,9 @@ export type Database = {
         Update: {
           created_at?: string
           due_date?: string | null
+          expected_date?: string | null
+          expected_date_set_at?: string | null
+          expected_date_set_by?: string | null
           fixed_amount_ccy?: number | null
           id?: string
           label?: string
@@ -16656,6 +16820,9 @@ export type Database = {
         Row: {
           created_at: string | null
           due_date: string | null
+          expected_date: string | null
+          expected_date_set_at: string | null
+          expected_date_set_by: string | null
           fixed_amount_ccy: number | null
           id: string | null
           label: string | null
@@ -16668,6 +16835,9 @@ export type Database = {
         Insert: {
           created_at?: string | null
           due_date?: string | null
+          expected_date?: string | null
+          expected_date_set_at?: string | null
+          expected_date_set_by?: string | null
           fixed_amount_ccy?: never
           id?: string | null
           label?: string | null
@@ -16680,6 +16850,9 @@ export type Database = {
         Update: {
           created_at?: string | null
           due_date?: string | null
+          expected_date?: string | null
+          expected_date_set_at?: string | null
+          expected_date_set_by?: string | null
           fixed_amount_ccy?: never
           id?: string | null
           label?: string | null
@@ -17854,6 +18027,7 @@ export type Database = {
         Args: { p_from: string; p_to: string }
         Returns: Json
       }
+      cash_forecast_data: { Args: { p_week_start?: string }; Returns: Json }
       check_location_class: {
         Args: { p_location_id: string; p_material_id: string }
         Returns: string[]
@@ -18160,6 +18334,10 @@ export type Database = {
         Args: { p_date: string; p_prefix: string }
         Returns: string
       }
+      freeze_cash_forecast: {
+        Args: { p_supersede_reason?: string; p_week_start?: string }
+        Returns: Json
+      }
       fx_rate_asof: {
         Args: { p_currency: string; p_date: string; p_rate_type: string }
         Returns: {
@@ -18339,6 +18517,7 @@ export type Database = {
       next_credit_note_code: { Args: { p_date?: string }; Returns: string }
       next_employee_code: { Args: { p_date?: string }; Returns: string }
       next_fixed_asset_code: { Args: { p_on: string }; Returns: string }
+      next_forecast_code: { Args: { p_date?: string }; Returns: string }
       next_leave_request_code: { Args: { p_date?: string }; Returns: string }
       next_medical_claim_code: { Args: { p_date?: string }; Returns: string }
       next_payroll_code: { Args: { p_date?: string }; Returns: string }
@@ -18887,6 +19066,10 @@ export type Database = {
       }
       set_material_required_metals: {
         Args: { p_material_id: string; p_metals: string[] }
+        Returns: Json
+      }
+      set_payment_term_expected_date: {
+        Args: { p_expected_date?: string; p_term_id: string }
         Returns: Json
       }
       set_review_conclusion: {

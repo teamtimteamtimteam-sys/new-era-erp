@@ -13,6 +13,10 @@ const ITEMS = [
     { href: '/finance/pnl', key: 'finance.subnav.pnl' },
     { href: '/finance/balance-sheet', key: 'finance.subnav.balanceSheet' },
     { href: '/finance/cashflow', key: 'finance.subnav.cashflow' },
+    // CASHFLOW-1:预测紧挨着现金流量表 —— 一个是已经发生的钱、一个是还没发生的。
+    // 【这个文件里有两份清单,必须一起加】ITEMS 决定活动态的最长前缀匹配,
+    // ordered 决定实际画出来的顺序;只加一份,要么链接不出现、要么高亮不对。
+    { href: '/finance/cash-forecast', key: 'finance.subnav.cashForecast' },
     { href: '/finance/receivables', key: 'finance.subnav.receivables' },
     { href: '/finance/invoices', key: 'finance.subnav.invoices' },
     { href: '/finance/credit-notes', key: 'finance.subnav.creditNotes' },
@@ -50,6 +54,7 @@ export default function Subnav() {
         { href: '/finance/pnl', key: 'finance.subnav.pnl' },
         { href: '/finance/balance-sheet', key: 'finance.subnav.balanceSheet' },
     { href: '/finance/cashflow', key: 'finance.subnav.cashflow' },
+        { href: '/finance/cash-forecast', key: 'finance.subnav.cashForecast' },
         { href: '/finance/journal', key: 'finance.subnav.journal' },
         { href: '/finance/journal/new', key: 'finance.subnav.newEntry' },
         { href: '/finance/receivables', key: 'finance.subnav.receivables' },

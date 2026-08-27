@@ -26,6 +26,7 @@ type Customer = {
     phone: string | null
     customer_types: string[] | null
     payment_terms: string | null
+    payment_terms_days: number | null
     incoterm: string | null
     credit_rating: string | null
     credit_limit_base: number | null
@@ -192,6 +193,23 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                         className="w-full border border-gray-300 px-3 py-2 rounded"
                     />
                 </div>
+                <div>
+                    <label className="block text-sm font-medium mb-1">{t('customers.form.paymentTermsDays')}</label>
+                    <input
+                        type="number"
+                        min="0"
+                        name="payment_terms_days"
+                        defaultValue={customer.payment_terms_days ?? ''}
+                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                    />
+                    {/* CASHFLOW-1:这一列【已经被读了】—— 开票表单拿它当默认账期,
+                        读不到就悄悄用 30 天。而在此之前【没有任何地方设得了它】,
+                        于是一个 60 天账期的客户一直在拿 30 天的发票。
+                        这里补的是那扇缺掉的门,不是第二扇:自由文本的 payment_terms
+                        本来就在上面那一格里。 */}
+                    <p className="text-xs text-gray-500 mt-1">{t('customers.form.paymentTermsDaysHint')}</p>
+                </div>
+
 
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('customers.form.incoterm')}</label>
