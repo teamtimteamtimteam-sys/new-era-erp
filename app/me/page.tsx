@@ -11,6 +11,7 @@ import { getBaseCurrency } from '@/lib/currency'
 import { formatAmount } from '@/lib/format'
 import MyLeavePanel from './MyLeavePanel'
 import MyClaimsPanel from './MyClaimsPanel'
+import MyExpenseClaimsPanel from './MyExpenseClaimsPanel'
 import MySelfAssessmentPanel, {
     type SelfAssessment,
     type SelfAssessmentGoal,
@@ -71,7 +72,7 @@ export default async function MePage() {
     ])
 
     // 自助的假期与报销:全部靠 cut 4 的行级策略 + HR-2a 的函数,不需要任何模块权限
-    const [balRes, myLeaveRes, typeRes, claimRes, claimBalRes] = await Promise.all([
+    const [balRes, myLeaveRes, typeRes, claimRes, claimBalRes, expenseClaimRes] = await Promise.all([
         supabase.rpc('leave_balance', { p_employee_id: employeeId, p_leave_type_code: 'annual' }),
         supabase.from('leave_requests')
             .select('id, code, leave_type_code, start_date, end_date, days, status, created_at')
@@ -85,6 +86,10 @@ export default async function MePage() {
         supabase.rpc('medical_claim_balance', {
             p_employee_id: employeeId, p_year: new Date().getFullYear(),
         }),
+        // CLAIM-1：一般费用报销。与医疗那一块【并排】而不是合并 ——
+        // 医疗唯一属于医疗的东西是年度限额，而这一种要科目、币种、税码。
+        supabase.from('expense_claim_status').select('*')
+            .eq('employee_id', employeeId).order('spend_date', { ascending: false }).limit(50),
     ])
 
     // 绩效评估的自助两段(HR-3d):
@@ -361,6 +366,12 @@ export default async function MePage() {
                 employeeId={employeeId}
                 claims={(mustRows(claimRes)) as never}
                 balance={claimBalRes.data as never}
+            />
+
+            <MyExpenseClaimsPanel
+                employeeId={employeeId}
+                rows={(mustRows(expenseClaimRes)) as never}
+                baseCurrency={baseCurrency}
             />
 
             <p className="text-sm text-gray-400 italic">{t('me.comingSoon')}</p>

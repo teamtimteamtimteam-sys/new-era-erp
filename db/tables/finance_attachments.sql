@@ -24,8 +24,10 @@ CREATE TABLE public.finance_attachments (
     inbound_batch_id uuid REFERENCES public.inbound_batches (id),
     payment_id       uuid REFERENCES public.payments (id),
     -- expense_id 在列序末尾(s2a 用 ALTER ADD COLUMN 追加;镜像按线上 attnum 排)
+    -- CLAIM-1：claim_id 并入这条「恰好一个父亲」的不变量。加列而不改它，
+    -- 结果是新列写得进表结构、写不进一行数据 —— 干跑当场撞出来的。
     CONSTRAINT finance_attachments_one_parent
-        CHECK (num_nonnulls(sales_record_id, inbound_batch_id, payment_id, expense_id) = 1),
+        CHECK (num_nonnulls(sales_record_id, inbound_batch_id, payment_id, expense_id, claim_id) = 1),
     -- Original filename as uploaded, for display.
     file_name        text NOT NULL,
     -- Path/key inside the finance-attachments bucket, e.g. "{parent_id}/{uuid}-{filename}".
@@ -40,7 +42,9 @@ CREATE TABLE public.finance_attachments (
     created_by       uuid DEFAULT auth.uid(),
     updated_at       timestamptz NOT NULL DEFAULT now(),
     updated_by       uuid,
-    expense_id       uuid REFERENCES public.expenses (id)
+    expense_id       uuid REFERENCES public.expenses (id),
+    -- CLAIM-1（ALTER 加的列留在末尾，按镜像惯例）：这份附件属于哪一笔报销申请。
+    claim_id         uuid REFERENCES public.expense_claims (id)
 );
 
 -- 2. BEFORE UPDATE trigger -> reuse the existing shared update_updated_at() (do NOT redefine it)
@@ -77,3 +81,8 @@ CREATE INDEX idx_finance_attachments_sale ON public.finance_attachments (sales_r
 CREATE INDEX idx_finance_attachments_inbound ON public.finance_attachments (inbound_batch_id);
 CREATE INDEX idx_finance_attachments_payment ON public.finance_attachments (payment_id);
 CREATE INDEX idx_finance_attachments_expense ON public.finance_attachments (expense_id);
+CREATE INDEX idx_finance_attachments_claim ON public.finance_attachments (claim_id)
+    WHERE claim_id IS NOT NULL;
+
+COMMENT ON COLUMN public.finance_attachments.claim_id IS
+    'CLAIM-1:这份附件属于哪一笔报销申请。沿用本表既有的【每种主体一列可空外键】写法(sales_record_id / inbound_batch_id / payment_id / expense_id),不另起 (subject_type, subject_id) —— 一张表里两种写法比任何一种单独用都坏。';

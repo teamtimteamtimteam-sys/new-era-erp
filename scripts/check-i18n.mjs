@@ -309,6 +309,11 @@ const MANIFEST = {
     // CASHFLOW-1:四个前缀,四个真源都在库那一侧 —— 加一种频率/来源/理由,
     // 键检查【自动跟着变宽】,而不是等着谁记得来补一行。
     'cashForecast.errors.':  { kind: 'enum', values: () => tsSet('app/finance/cashForecastErrorCodes.ts', 'CASH_FORECAST_ERROR_CODES') },
+    // CLAIM-1:两个前缀,两个真源都在别处 —— 加一个状态或一个错误码,
+    // 键检查【自动跟着变宽】。★ 注意前缀是 expenseClaims.*,不是 claims.* ——
+    // 后者是【医疗报销】已经占着的命名空间,而两块面板并排出现在 /me 上。
+    'expenseClaims.errors.': { kind: 'enum', values: () => tsSet('app/finance/claims/claimErrorCodes.ts', 'EXPENSE_CLAIM_ERROR_CODES') },
+    'expenseClaims.status_': { kind: 'enum', values: () => sqlCheckIn('db/tables/expense_claims.sql', 'status') },
     'cashForecast.cadence_': { kind: 'enum', values: () => sqlCheckIn('db/tables/cash_forecast_lines.sql', 'cadence') },
     'cashForecast.undated_': { kind: 'enum', values: () => tsRegex('db/functions/cash_forecast_data.sql',
                                    /'(no_date|before_window)'/g) },

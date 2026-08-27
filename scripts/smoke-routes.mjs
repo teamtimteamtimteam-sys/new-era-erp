@@ -427,6 +427,24 @@ const MSG_FORECAST_TITLE = (() => {
     if (!m) throw new Error('messages/en.ts 里找不到 cashForecast.title')
     return m[1]
 })()
+// CLAIM-1：报销那两块面板的入口断言要找的话，同样【从文案文件现读】。
+// ★ 前缀是 expenseClaims.*，不是 claims.* —— 后者是【医疗报销】占着的
+//   命名空间，而两块面板并排出现在 /me 上。写错前缀的断言会去守另一块面板。
+const MSG_MY_CLAIMS = (() => {
+    const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
+    const blk = src.match(/\n    expenseClaims: \{[\s\S]*?\n    \},/)
+    if (!blk) throw new Error('messages/en.ts 里找不到 expenseClaims 这一段 —— 入口断言无从下手')
+    const m = blk[0].match(/\n\s*myTitle: '([^']+)'/)
+    if (!m) throw new Error('messages/en.ts 里找不到 expenseClaims.myTitle')
+    return m[1]
+})()
+const MSG_CLAIMS_TITLE = (() => {
+    const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
+    const blk = src.match(/\n    expenseClaims: \{[\s\S]*?\n    \},/)
+    const m = blk[0].match(/\n\s*title: '([^']+)'/)
+    if (!m) throw new Error('messages/en.ts 里找不到 expenseClaims.title')
+    return m[1]
+})()
 const SCRATCH_NAME = '【SMOKE 冒烟脚本临时行 · 勿动 · 随时可删】'
 
 async function rest(path, opts = {}) {
@@ -1202,6 +1220,52 @@ async function main() {
             }
         }
 
+        // ── CLAIM-1：两个听众，两条内容断言，外加一条可达性断言 ──────────
+        // 【为什么不只断言 2xx】审批页与自助面板的内容都来自新对象；
+        // 它们抛错页面 500（冒烟抓得住），返回形状不对则渲染成一片空白
+        // 而仍然 200（只有内容断言抓得住）。
+        {
+            // ★【/me 必须用【绑了员工】的那个会话去问】★
+            // /me 在会话用户没有员工档案时【提前返回】一句"还没关联到员工"的提示，
+            // 于是那一页上的面板【一个都不渲染】—— 包括本来就有的医疗报销那一块。
+            // 冒烟那个一次性 admin 没有员工档案，所以用它去断言自助面板，
+            // 问的是一个那个会话【答不出来】的问题（第一版就是这么红的，
+            // 而红得对：它告诉我断言站错了人）。评估人会话(cookie2)绑着一名
+            // 临时员工，正是这条断言需要的主语。
+            const targets = [
+                ['/finance/claims', MSG_CLAIMS_TITLE, '审批页',   cookie],
+                ['/me',             MSG_MY_CLAIMS,    '自助面板', cookie2],
+            ]
+            for (const [target, needle, what, ck] of targets) {
+                const before = logChunks.length
+                const res = await fetch(`http://localhost:${PORT}${target}`, {
+                    headers: { cookie: ck }, redirect: 'manual' })
+                const html = res.status === 200 ? await res.text() : ''
+                if (res.status === 200 && html.includes(needle)) { ok++ }
+                else {
+                    const why = res.status !== 200
+                        ? `HTTP ${res.status}`
+                        : `页面 200，但找不到「${needle}」—— ${what}没画出来，而 200 看不出这件事`
+                    failures.push({ route: `${target} (CLAIM-1 ${what})`, url: target,
+                        status: res.status, expected: 200, stack: `${why}\n${await serverStack(before)}` })
+                    console.log(`  FAIL ${target} CLAIM-1 ${what} → ${why}`)
+                }
+            }
+            // 【可达性：直接问财务页的 HTML 里有没有这条链接】
+            // --reach 回答同一个问题，但它要两小时以上且是 opt-in 的；
+            // 一条每一跑都在的断言更能守住「页面上线却走不到」（本仓库栽过两次）。
+            const navRes = await fetch(`http://localhost:${PORT}/finance`, {
+                headers: { cookie }, redirect: 'manual' })
+            const navHtml = navRes.status === 200 ? await navRes.text() : ''
+            if (!navHtml.includes('/finance/claims')) {
+                failures.push({ route: '/finance (子导航里没有报销)', url: '/finance',
+                    status: navRes.status, expected: 200,
+                    stack: '财务子导航的 HTML 里找不到 /finance/claims —— 这一页打得开却走不到。'
+                         + 'Subnav.tsx 里有【两份】清单(ITEMS 与 ordered),两份都要有。' })
+                console.log('  FAIL /finance 子导航里没有报销的入口')
+            } else { ok++ }
+        }
+
         // ── 按角色的可达性(REACH-1)────────────────────────────────────────
         // admin 一遍是对照(他什么都有);operations 与 finance 是 /margin 那道题的
         // 两边 —— 一个只有加工、一个只有财务,而没有任何 live 角色同时持有两者。
@@ -1261,7 +1325,7 @@ async function main() {
     // 等于让"这一类到底测没测"重新变得看不见 —— 而它们存在的理由正是那件事。
     // PROBATION-1:总结这一行要把【每一个计进 ok 的探针】都点出来,否则
     // 标签念的是一件事、数字数的是另一件 —— 本仓库对这个形状记过好几次账。
-    console.log(`\n== ${routes.length} routes + 1 reviewer-view check + ${QUERY_PROBES.length} query-string probe(s) + 2 probation-entry probes + 2 customer-page entry probes + 2 cash-forecast probes (nav + content): ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
+    console.log(`\n== ${routes.length} routes + 1 reviewer-view check + ${QUERY_PROBES.length} query-string probe(s) + 2 probation-entry probes + 2 customer-page entry probes + 2 cash-forecast probes (nav + content) + 3 claim probes (2 content + nav): ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
     // SESSION-1:这一行排在所有失败之前,因为它改变【怎么读】下面那一百行。
     if (sawAuthIndeterminate) {
         const n = failures.filter((f) => f.authDown).length

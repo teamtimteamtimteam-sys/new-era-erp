@@ -2719,6 +2719,167 @@ export type Database = {
           },
         ]
       }
+      expense_claims: {
+        Row: {
+          account_code: string | null
+          amount_ccy: number
+          code: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          description: string
+          employee_id: string
+          expense_id: string | null
+          id: string
+          no_receipt_reason: string | null
+          posting_date: string | null
+          spend_date: string
+          status: string
+          submitted_at: string
+          tax_code: string | null
+          withdrawn_at: string | null
+        }
+        Insert: {
+          account_code?: string | null
+          amount_ccy: number
+          code: string
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          description: string
+          employee_id: string
+          expense_id?: string | null
+          id?: string
+          no_receipt_reason?: string | null
+          posting_date?: string | null
+          spend_date: string
+          status?: string
+          submitted_at?: string
+          tax_code?: string | null
+          withdrawn_at?: string | null
+        }
+        Update: {
+          account_code?: string | null
+          amount_ccy?: number
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          description?: string
+          employee_id?: string
+          expense_id?: string | null
+          id?: string
+          no_receipt_reason?: string | null
+          posting_date?: string | null
+          spend_date?: string
+          status?: string
+          submitted_at?: string
+          tax_code?: string | null
+          withdrawn_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_claims_account_code_fkey"
+            columns: ["account_code"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "expense_claims_account_code_fkey"
+            columns: ["account_code"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "expense_claims_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "expense_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "expense_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "expense_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "expense_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "expense_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "expense_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "expense_claims_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_claims_tax_code_fkey"
+            columns: ["tax_code"]
+            isOneToOne: false
+            referencedRelation: "tax_codes"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       expenses: {
         Row: {
           account_code: string
@@ -2947,6 +3108,7 @@ export type Database = {
       }
       finance_attachments: {
         Row: {
+          claim_id: string | null
           created_at: string
           created_by: string | null
           deleted_at: string | null
@@ -2965,6 +3127,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          claim_id?: string | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -2983,6 +3146,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          claim_id?: string | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
@@ -3001,6 +3165,20 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "finance_attachments_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "expense_claim_status"
+            referencedColumns: ["claim_id"]
+          },
+          {
+            foreignKeyName: "finance_attachments_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "expense_claims"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "finance_attachments_expense_id_fkey"
             columns: ["expense_id"]
@@ -13865,6 +14043,127 @@ export type Database = {
         }
         Relationships: []
       }
+      expense_claim_status: {
+        Row: {
+          account_code: string | null
+          amount_ccy: number | null
+          claim_id: string | null
+          code: string | null
+          currency: string | null
+          decided_at: string | null
+          decision_notes: string | null
+          description: string | null
+          employee_code: string | null
+          employee_id: string | null
+          employee_name: string | null
+          expense_id: string | null
+          expense_reversed: boolean | null
+          has_receipt: boolean | null
+          is_owing: boolean | null
+          is_paid: boolean | null
+          no_receipt_reason: string | null
+          payment_status: string | null
+          posting_date: string | null
+          settled_ccy: number | null
+          spend_date: string | null
+          status: string | null
+          submitted_at: string | null
+          tax_code: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_claims_account_code_fkey"
+            columns: ["account_code"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "expense_claims_account_code_fkey"
+            columns: ["account_code"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["account_code"]
+          },
+          {
+            foreignKeyName: "expense_claims_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "expense_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "expense_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "expense_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "expense_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "expense_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "expense_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "expense_claims_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_claims_tax_code_fkey"
+            columns: ["tax_code"]
+            isOneToOne: false
+            referencedRelation: "tax_codes"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       fx_month_end_readiness: {
         Row: {
           blocks_close: boolean | null
@@ -18246,6 +18545,17 @@ export type Database = {
         Args: { p_customer_id: string; p_from: string; p_to: string }
         Returns: Json
       }
+      decide_expense_claim: {
+        Args: {
+          p_account_code?: string
+          p_approve: boolean
+          p_claim_id: string
+          p_notes?: string
+          p_posting_date?: string
+          p_tax_code?: string
+        }
+        Returns: Json
+      }
       decide_leave_request: {
         Args: { p_approve: boolean; p_notes?: string; p_request_id: string }
         Returns: Json
@@ -18516,6 +18826,7 @@ export type Database = {
       next_container_code: { Args: { p_date: string }; Returns: string }
       next_credit_note_code: { Args: { p_date?: string }; Returns: string }
       next_employee_code: { Args: { p_date?: string }; Returns: string }
+      next_expense_claim_code: { Args: { p_date?: string }; Returns: string }
       next_fixed_asset_code: { Args: { p_on: string }; Returns: string }
       next_forecast_code: { Args: { p_date?: string }; Returns: string }
       next_leave_request_code: { Args: { p_date?: string }; Returns: string }
@@ -19124,6 +19435,17 @@ export type Database = {
         Args: { p_batch_id: string; p_reason: string }
         Returns: Json
       }
+      submit_expense_claim: {
+        Args: {
+          p_amount: number
+          p_currency: string
+          p_description: string
+          p_employee_id: string
+          p_no_receipt_reason?: string
+          p_spend_date: string
+        }
+        Returns: Json
+      }
       submit_leave_request: {
         Args: {
           p_certificate_ref?: string
@@ -19223,6 +19545,7 @@ export type Database = {
         Args: { p_reason: string; p_review_id: string }
         Returns: Json
       }
+      withdraw_expense_claim: { Args: { p_claim_id: string }; Returns: Json }
       withdraw_fx_rate: {
         Args: { p_id: string; p_reason: string }
         Returns: undefined

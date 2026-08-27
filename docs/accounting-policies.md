@@ -453,6 +453,34 @@ not exempt from the period lock** and never has been; the payment date is subjec
 
 ---
 
+### 7.4 An employee expense claim recognises both the cost and the debt to the employee at the moment it is approved, dated the day the money was spent. — **SETTLED — 2026-08-28, ruled by Tim (CLAIM-1)**
+
+Approval is the moment the company accepts the obligation, so it is the moment both sides are
+recognised — there is no state in which a claim is approved and the books show nothing. The
+expense is booked as **unpaid**, which makes it a payable to that named employee and puts it in
+`ap_open_items` under their own name; the cash moves later through the ordinary payment path.
+
+**The posting date is the day the money was spent**, because that is the period the cost belongs
+to. Where that period is closed the approval **refuses by name** (`PERIOD_LOCKED`) and the
+approver must supply a posting date deliberately. There is no automatic fall-back to the open
+month: that is the shape FIN-10 removed everywhere else, where filling the date in correctly
+raises an error while leaving it blank glides into the current period.
+
+**Two consequences worth stating, because they are decisions rather than omissions:**
+
+* **There is no petty cash float, by decision** (Tim, 2026-08-27). Expense claims and petty cash
+  are two solutions to one problem and only one is built: everything is reimbursed after the
+  fact, against what was actually spent. Nothing is advanced, no float balance is reconciled, and
+  nothing has to be recovered when someone leaves. At six people, after-the-fact reimbursement is
+  sufficient — and it carries an approval step by construction, where a float hands money over
+  before anyone has seen a receipt.
+* **The claimant cannot approve their own claim** (`EXPENSE_CLAIM_SELF_APPROVAL`, via
+  `assert_segregated`). Note that `guard_payment_sod` deliberately exempts payments to employees,
+  reasoning that HR creates the record and finance pays it — two modules, not one person end to
+  end. CLAIM-1 opens a path where **the employee originates it themselves**, so that reasoning no
+  longer covers the whole question and the control moved upstream to the decision. The payment-side
+  exemption is unchanged and still correct for the HR-originated path.
+
 # 8 · What is deliberately not here
 
 An auditor discovering these by surprise is worse served than one who reads them.
