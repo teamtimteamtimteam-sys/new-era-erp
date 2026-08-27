@@ -13,6 +13,10 @@
 --       reviewer resolution and review_exempt added by
 --       db/migrations/2026-08-04-hr3b-salary-basis-and-review-visibility.sql.
 
+-- PROBATION-1(2026-08-27):评估人那段三级解析抽成了 resolve_review_reviewer(),
+-- 本函数改为调用它 —— 行为一字未变,只是"谁评估这个人"从此在库里只有一处定义。
+-- 第二个调用方是 open_probation_review;db/fixtures/136 的 H 臂钉住两边都在调。
+
 CREATE OR REPLACE FUNCTION public.open_review_cycle(p_cycle_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -47,10 +51,8 @@ BEGIN
                -- 【E2 三级解析】部门经理 → 本人就是部门经理时取【上级部门】的经理
                -- → 再不行留 NULL(E3 的提醒会把它顶出来,不会悄悄躺着)。
                -- 每一级都排除"解析到本人",因为自己不能评自己(表上的 check 也会拦)。
-               COALESCE(
-                   NULLIF(d.manager_employee_id, e.id),
-                   NULLIF(pd.manager_employee_id, e.id)
-               ),
+               -- PROBATION-1:这一段抽成了 resolve_review_reviewer(),两个入口共读。
+               resolve_review_reviewer(e.id),
                'draft'
         FROM employees e
         LEFT JOIN departments d  ON d.id = e.department_id
@@ -84,5 +86,4 @@ BEGIN
         'without_reviewer', v_noreviewer,
         'skipped_review_exempt', v_exempt);
 END;
-$function$
-;
+$function$;

@@ -245,6 +245,24 @@ export async function createCycle(cycle: {
     return { success: true }
 }
 
+// ── PROBATION-1:发起一份试用期评估 ─────────────────────────────────────────
+// 【这是这条路【唯一】的入口】在它之前,performance_reviews 的唯一写入者是
+// open_review_cycle,而那支只造 annual 且排除试用期员工 —— 所以整条转正流程
+// 的下游全部建好了,却没有任何东西造得出那一行(冒烟得直接 POST 到 REST 才测得了)。
+// 期间、评估人都由函数从员工档案解析,这里【一个参数都不多传】:
+// 多一个参数,就多一处可以与档案对不上的地方。
+export async function raiseProbationReview(employeeId: string): Promise<ReviewState & { reviewId?: string }> {
+    const supabase = await createClient()
+    const { data, error } = await supabase.rpc('open_probation_review', {
+        p_employee_id: employeeId,
+    })
+    if (error) return { error: await localizeReviewError(error.message) }
+    revalidatePath(`/hr/employees/${employeeId}`)
+    revalidatePath('/hr')
+    revalidateReviewPaths()
+    return { success: true, reviewId: (data as { review_id?: string } | null)?.review_id }
+}
+
 export async function openCycle(cycleId: string): Promise<ReviewState> {
     const supabase = await createClient()
     const { error } = await supabase.rpc('open_review_cycle', { p_cycle_id: cycleId })

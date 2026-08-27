@@ -17,6 +17,11 @@ const REVIEW_ERROR_CODES = new Set([
     'CYCLE_NOT_FOUND', 'CYCLE_CLOSED',
     'SALARY_EFFECTIVE_IN_POSTED_PERIOD',
     'EMPLOYEE_SEPARATED', 'EMPLOYEE_NOT_FOUND', 'REASON_REQUIRED',
+    // PROBATION-1:发起一份试用期评估那扇门的五条按名拒绝。
+    // 【逐条从函数体枚举出来的】,不是从"撞到过哪几条"数的 ——
+    // 它们全部来自 open_probation_review,而那支函数是这条路唯一的入口。
+    'EMPLOYEE_NOT_ON_PROBATION', 'PROBATION_END_DATE_NOT_SET',
+    'PROBATION_PERIOD_INVALID', 'PROBATION_REVIEW_EXISTS',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..."(同 localizeHrError)。

@@ -8,7 +8,9 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatAmount } from '@/lib/format'
 import Subnav from '../../Subnav'
 import { statusPillClass } from '../../reviews/reviewShared'
+import RaiseProbationReview from '../RaiseProbationReview'
 import { mustRows } from '@/lib/db-helpers'
+import { can } from '@/lib/permissions'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 
@@ -70,13 +72,16 @@ export default async function EmployeeDetailPage({
 
     // 绩效评估(HR-3d):没有 module.hr.view + data.view_reviews 的读者在这里是零行,
     // 整节隐去 —— 一个空表头对读不到内容的人只是噪音。
-    const [empReviewsRes, ratingScaleRes] = await Promise.all([
+    // PROBATION-1:发起转正评估的门要 module.hr.edit —— 读得到不等于写得了。
+    // 与 /hr/reviews/[id] 同一个惯用法(can() 来自 lib/permissions)。
+    const [empReviewsRes, ratingScaleRes, canHrEdit] = await Promise.all([
         supabase
             .from('performance_reviews_masked')
             .select('id, review_type, cycle_id, period_start, period_end, status, rating_code')
             .eq('employee_id', id)
             .order('period_end', { ascending: false }),
         supabase.from('review_rating_scale').select('code, name_en, name_zh'),
+        can('module.hr.edit'),
     ])
     type EmpReview = {
         id: string
@@ -320,10 +325,27 @@ export default async function EmployeeDetailPage({
                 </table>
             )}
 
-            {/* 绩效评估:零行(无权限或确实没有)时整节不渲染 */}
-            {empReviews.length > 0 && (
+            {/* ── 绩效评估 ─────────────────────────────────────────────────────
+                【PROBATION-1:标题与门从 length > 0 里拆出来了】
+                原来整节写着 `{empReviews.length > 0 && ...}` —— 一份评估都没有时
+                什么都不显示。而"一份都没有"恰恰是唯一需要那扇门的时候,
+                **那个 length > 0 本身就是这扇门缺席的一部分**。
+                现在:表格仍按有无渲染(空表头对读不到内容的人只是噪音),
+                而【发起转正评估】按这个人在不在试用期渲染。
+                canHrEdit 那一半保持原样 —— 读得到不等于写得了。 */}
+            {(empReviews.length > 0 || (canHrEdit && emp.employment_status === 'probation')) && (
                 <>
                     <h2 className="text-xl font-bold mb-3">{t('reviews.sectionTitle')}</h2>
+                </>
+            )}
+            {canHrEdit && emp.employment_status === 'probation' && (
+                <RaiseProbationReview
+                    employeeId={id}
+                    probationEndDate={emp.probation_end_date as string | null}
+                />
+            )}
+            {empReviews.length > 0 && (
+                <>
                     <table className="w-full border-collapse border border-gray-300 mb-6 text-sm">
                         <thead className="bg-gray-100">
                             <tr>

@@ -370,6 +370,20 @@ function printProgress() {
 }
 
 const SCRATCH_EMP_PREFIX = 'ZZ-SMOKE-'
+// PROBATION-1:入口断言要找的那句话。【从文案文件现读,不写死】——
+// 写死一份副本,改了按钮文字这条断言就会安静地失效,而它守的正是"按钮不见了"。
+const MSG_RAISE_PROBATION = (() => {
+    const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
+    const m = src.match(/\n\s*raiseProbation: '([^']+)'/)
+    if (!m) throw new Error('messages/en.ts 里找不到 reviews.raiseProbation —— 入口断言无从下手')
+    return m[1]
+})()
+const MSG_RAISE_BLOCKED = (() => {
+    const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
+    const m = src.match(/\n\s*raiseProbationBlockedTitle: '([^']+)'/)
+    if (!m) throw new Error('messages/en.ts 里找不到 reviews.raiseProbationBlockedTitle')
+    return m[1]
+})()
 const SCRATCH_NAME = '【SMOKE 冒烟脚本临时行 · 勿动 · 随时可删】'
 
 async function rest(path, opts = {}) {
@@ -440,11 +454,31 @@ async function restOk(path, opts, ctx) {
     return r
 }
 async function signIn(email, password) {
+    return (await signInSession(email, password)).cookie
+}
+// PROBATION-1:同一次登录,既给页面用的 cookie,也给【调 RPC 用的 access_token】。
+// 【为什么需要后者】restOk 走的是 SERVICE_ROLE key,而 service_role 下
+// auth.uid() 是 NULL → current_user_permissions() 空 → require_permission 直接拒。
+// 也就是说:拿 service key 调 open_probation_review 【测不到那条产品路径】,
+// 只会测到一句 PERMISSION_DENIED。要走产品的路,就得是一个真的、有权限的人。
+async function signInSession(email, password) {
     const sess = await (await fetch(URL_ + '/auth/v1/token?grant_type=password', { method: 'POST',
         headers: { apikey: ANON, 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }) })).json()
-    return 'sb-' + URL_.split('//')[1].split('.')[0] + '-auth-token=base64-'
-        + Buffer.from(JSON.stringify(sess)).toString('base64url')
+    if (!sess?.access_token) {
+        throw new Error(`登录失败(${email}):${JSON.stringify(sess).slice(0, 200)}`)
+    }
+    return {
+        token: sess.access_token,
+        cookie: 'sb-' + URL_.split('//')[1].split('.')[0] + '-auth-token=base64-'
+            + Buffer.from(JSON.stringify(sess)).toString('base64url'),
+    }
+}
+// 以【某个人】的身份调 RPC —— 与 rest() 的差别只有一处:Bearer 换成他的 token。
+async function rpcAs(token, fn, body) {
+    return fetch(URL_ + '/rest/v1/rpc/' + fn, { method: 'POST',
+        headers: { apikey: ANON, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body) })
 }
 // 【同一条理由的第二半:端口】kill 留下来的不只是库里的临时行,还有一个
 // 还占着 3199 的 dev server —— finally 同样挡不住它。缺了这一扫,下一次跑在
@@ -736,7 +770,8 @@ async function main() {
     const roleRows = await restRows('/rest/v1/roles?select=id&code=eq.admin', 'roles ← admin')
     await restOk('/rest/v1/user_roles', { method: 'POST',
         body: JSON.stringify({ user_id: cu.id, role_id: roleRows[0].id }) }, '授 admin 角色')
-    const cookie = await signIn(email, 'smoke-pass-1')
+    const adminSession = await signInSession(email, 'smoke-pass-1')
+    const cookie = adminSession.cookie
 
     // ── 第二个一次性会话:评估人视角 ─────────────────────────────────────────
     // /my-reviews/[id] 对 admin 是 404 契约,等于那页从未真正渲染 —— 而它正是
@@ -751,13 +786,58 @@ async function main() {
         body: JSON.stringify({ code: `${SCRATCH_EMP_PREFIX}${n}`, legal_name: `${SCRATCH_NAME} ${n}`,
             employment_type: 'full_time', work_category: 'office', hire_date: '2026-01-01', ...extra }) },
         `建临时员工 ${n}`)).json())[0]
-    const reviewee = await mkEmp(1, {})
+    // ★【PROBATION-1:这里【曾经】直接 POST 到 REST 造那一行评估】★
+    // 那不是图省事 —— 当时【产品里没有任何一条路造得出一份试用期评估】:
+    // open_review_cycle 只造 annual 且排除试用期员工,cycle_shape 让它结构上
+    // 也造不出,app 里一处 INSERT performance_reviews 都没有。
+    // **测试绕过产品,正是"产品没有那条路"最尖锐的证据** —— 而一个绕过产品的
+    // 测试,产品坏掉时它不会知道。
+    //
+    // 现在它走 `open_probation_review`,也就是【屏幕上那个按钮按下去的同一支函数】。
+    // 于是这一段从"造一行数据"变成了【一次真的端到端断言】:门在不在、
+    // 期间取的是不是员工档案上的两个日期、评估人解不解析得出来。
+    const reviewee = await mkEmp(1, {
+        employment_status: 'probation',
+        // 到期日必须填 —— 不填 open_probation_review 会按名拒(那是它的本分)。
+        // 入职日在 mkEmp 里是 2026-01-01,而 employees_probation_cap 要求
+        // 到期日 ≤ 入职 + 3 个月,所以取 03-31。
+        probation_end_date: '2026-03-31',
+    })
     const reviewer = await mkEmp(2, { user_id: cu2.id })
-    const review = (await (await restOk('/rest/v1/performance_reviews', { method: 'POST',
-        headers: { Prefer: 'return=representation' },
-        body: JSON.stringify({ employee_id: reviewee.id, reviewer_employee_id: reviewer.id,
-            review_type: 'probation', period_start: '2026-01-01', period_end: '2026-06-30',
-            notes: SCRATCH_NAME }) }, '建临时评估行')).json())[0]
+
+    // 【负臂先跑】一个没有到期日的人必须被【按名】拒。
+    // 只跑正臂的话,一个"从不拒绝、缺日期就拿今天顶上"的实现照样全绿 ——
+    // 而那正是这扇门最要防的那件事(替人编一个试用期终点)。
+    const noDate = await mkEmp(3, { employment_status: 'probation' })
+    const refused = await rpcAs(adminSession.token, 'open_probation_review', { p_employee_id: noDate.id })
+    const refusedBody = await refused.text()
+    if (refused.ok || !refusedBody.includes('PROBATION_END_DATE_NOT_SET')) {
+        throw new Error(`open_probation_review 没有按名拒绝【缺到期日】的员工:`
+            + `HTTP ${refused.status} ${refusedBody.slice(0, 200)}`)
+    }
+
+    // 【正臂】走产品自己的路造出那份评估
+    const raisedRes = await rpcAs(adminSession.token, 'open_probation_review', { p_employee_id: reviewee.id })
+    if (!raisedRes.ok) {
+        throw new Error(`发起试用期评估失败:HTTP ${raisedRes.status} ${(await raisedRes.text()).slice(0, 300)}`)
+    }
+    const raised = await raisedRes.json()
+    if (!raised?.review_id) {
+        throw new Error(`open_probation_review 没有返回 review_id:${JSON.stringify(raised).slice(0, 200)}`)
+    }
+    if (raised.period_start !== '2026-01-01' || raised.period_end !== '2026-03-31') {
+        throw new Error(`试用期评估的期间应当取自员工档案(2026-01-01 → 2026-03-31),`
+            + `实得 ${raised.period_start} → ${raised.period_end}`)
+    }
+    // 评估人由函数从部门解析;这套临时员工没有部门,所以解析不出来是【预期】的,
+    // 而 /my-reviews/[id] 那一页要的正是"这个人是评估人"。所以显式指派一次 ——
+    // 走的仍是产品自己的那支函数(set_review_reviewer),不是直连改表。
+    const assigned = await rpcAs(adminSession.token, 'set_review_reviewer',
+        { p_review_id: raised.review_id, p_reviewer_employee_id: reviewer.id })
+    if (!assigned.ok) {
+        throw new Error(`指派评估人失败:HTTP ${assigned.status} ${(await assigned.text()).slice(0, 300)}`)
+    }
+    const review = { id: raised.review_id }
     const cookie2 = await signIn(email2, 'smoke-pass-2')
 
     // ── dev server ───────────────────────────────────────────────────────────
@@ -962,6 +1042,42 @@ async function main() {
             }
         }
 
+        // ── PROBATION-1:那扇门【真的画在屏幕上】,不只是路由 200 ────────────
+        // 【为什么这条断言值得存在】这一刀的全部内容就是"一条路没有入口"。
+        // 而路由冒烟只断言 2xx —— 一张【渲染成功但按钮没画出来】的页面照样 200。
+        // 员工页那一节原本包在 `{empReviews.length > 0 && ...}` 里,
+        // 也就是说【一份评估都没有时整节不渲染】,而那正是唯一需要这扇门的时候:
+        // **那个 length > 0 本身就是这扇门缺席的一部分。**
+        // 所以这里请求一个【在试用期、有到期日、且此刻已经有一份评估】的员工页,
+        // 以及一个【在试用期、没有任何评估】的员工页,两边都必须看得见那个按钮。
+        // 这就是 AGENTS.md 说的「[id] 页要人手确认入口」那一条,做成了机制。
+        {
+            // 两个分支各断言一次:
+            //   · 有到期日 → 那个【按钮】必须在;
+            //   · 没有到期日 → 必须是一句【说得出为什么】的话,而不是一个变灰的按钮,
+            //     也不是一片空白(命名的缺席,不是空白)。
+            const cases = [
+                ['有到期日 → 按钮在', reviewee.id, MSG_RAISE_PROBATION],
+                ['无到期日 → 说得出为什么', noDate.id, MSG_RAISE_BLOCKED],
+            ]
+            for (const [who, empId, needle] of cases) {
+                const target = `/hr/employees/${empId}`
+                const before = logChunks.length
+                const res = await fetch(`http://localhost:${PORT}${target}`, {
+                    headers: { cookie }, redirect: 'manual' })
+                const html = res.status === 200 ? await res.text() : ''
+                if (res.status === 200 && html.includes(needle)) { ok++ }
+                else {
+                    const why = res.status !== 200
+                        ? `HTTP ${res.status}`
+                        : `页面 200,但找不到「${needle}」—— 入口又没了,而 200 看不出这件事`
+                    failures.push({ route: `/hr/employees/[id] (试用期入口 · ${who})`, url: target,
+                        status: res.status, expected: 200, stack: `${why}\n${await serverStack(before)}` })
+                    console.log(`  FAIL /hr/employees/[id] 试用期入口(${who}) → ${why}`)
+                }
+            }
+        }
+
         // ── 按角色的可达性(REACH-1)────────────────────────────────────────
         // admin 一遍是对照(他什么都有);operations 与 finance 是 /margin 那道题的
         // 两边 —— 一个只有加工、一个只有财务,而没有任何 live 角色同时持有两者。
@@ -1013,7 +1129,9 @@ async function main() {
 
     // 【总结行把带查询串的探针【单独数出来】】把它们混进 routes 的计数里,
     // 等于让"这一类到底测没测"重新变得看不见 —— 而它们存在的理由正是那件事。
-    console.log(`\n== ${routes.length} routes + 1 reviewer-view check + ${QUERY_PROBES.length} query-string probe(s): ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
+    // PROBATION-1:总结这一行要把【每一个计进 ok 的探针】都点出来,否则
+    // 标签念的是一件事、数字数的是另一件 —— 本仓库对这个形状记过好几次账。
+    console.log(`\n== ${routes.length} routes + 1 reviewer-view check + ${QUERY_PROBES.length} query-string probe(s) + 2 probation-entry probes: ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
     // SESSION-1:这一行排在所有失败之前,因为它改变【怎么读】下面那一百行。
     if (sawAuthIndeterminate) {
         const n = failures.filter((f) => f.authDown).length

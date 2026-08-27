@@ -17956,6 +17956,7 @@ export type Database = {
         Args: { p_period_end: string; p_period_start: string }
         Returns: Json
       }
+      open_probation_review: { Args: { p_employee_id: string }; Returns: Json }
       open_review_cycle: { Args: { p_cycle_id: string }; Returns: Json }
       pay_medical_claim: {
         Args: {
@@ -18357,6 +18358,10 @@ export type Database = {
       }
       resolve_receipt_location: {
         Args: { p_location_id: string }
+        Returns: string
+      }
+      resolve_review_reviewer: {
+        Args: { p_employee_id: string }
         Returns: string
       }
       resolve_tax_code: {
