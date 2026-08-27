@@ -25,6 +25,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { getBaseCurrency } from '@/lib/currency'
 import { formatAmount } from '@/lib/format'
 import { can } from '@/lib/permissions'
+import StatementPanel from '../StatementPanel'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -89,6 +90,23 @@ export default async function CustomerStatusPage({
                   .order('sale_date')
           ) as OpenItem[])
         : []
+
+    // STATEMENT-1:这个客户【已经出过】的对账单。与明细同一道门(module.finance.view)——
+    // 看得见限额不等于看得见账,而对账单就是账寄出去的样子。
+    // 【无权时不去查,而不是查了拿零行】—— 零行读起来是"还没出过",那是一句假话。
+    const issuedStatements = canFinance
+        ? (mustRows(
+              await supabase
+                  .from('customer_statements')
+                  .select('id, code, period_start, period_end, closing_base, issued_at, superseded_at')
+                  .eq('customer_id', id)
+                  .order('period_end', { ascending: false })
+          ) as unknown as {
+              id: string; code: string; period_start: string; period_end: string
+              closing_base: number; issued_at: string; superseded_at: string | null
+          }[])
+        : []
+    const canIssueStatement = await can('module.finance.edit')
 
     const row = (label: string, value: React.ReactNode) => (
         <div className="flex justify-between py-1">
@@ -210,6 +228,19 @@ export default async function CustomerStatusPage({
                     </div>
                 )}
             </section>
+
+            {/* ── STATEMENT-1:对账单 ────────────────────────────────────────
+                【为什么整段挂在 canFinance 上】对账单就是这个客户的账寄出去的样子;
+                读不到明细的人也不该读到它。无权时【整段不渲染】——
+                与上面那一段同一条:一张空表对读不到内容的人只是噪音,
+                而"受限"要说出来,不能长得像"还没有出过"。 */}
+            {canFinance && (
+                <StatementPanel
+                    customerId={id}
+                    issued={issuedStatements}
+                    canIssue={canIssueStatement}
+                />
+            )}
         </div>
     )
 }

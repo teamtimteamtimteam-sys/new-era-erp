@@ -110,6 +110,12 @@ const ID_SOURCES = {
         // CN-1:贷项凭证。线上零行(机制与屏幕先于第一张真凭证落地),
         // 所以同时列在 EXPECTED_SKIPS 里 —— 开出第一张的那天,那条断言会响。
         '/finance/credit-notes': 'credit_notes',
+        // STATEMENT-1:客户对账单。**它必须在这里**,否则
+        // /finance/statements/[id]/pdf 会落到 '/finance' 这个更短的前缀上
+        // (或者干脆没有前缀命中),而预检承诺过的正是这件事。
+        // 线上 customer_statements 今天零行(机制与屏幕先于第一份真对账单落地),
+        // 故 pdf 那条路由同时列在 EXPECTED_SKIPS 里。
+        '/finance/statements': 'customer_statements',
         // TASK-1b:任务详情。**取的 id 必须是一张【团队】任务** —— 见 ID_FILTERS。
         '/tasks': 'tasks',
         '/settings/permissions/roles': 'roles', '/stocktakes': 'stocktakes',
@@ -310,6 +316,12 @@ const EXPECTED_SKIPS = new Set([
     // PROC-1b:线上还没有一份产出化验(机制与屏幕先于第一张真单据落地)。
     // 录第一张的那天,这条断言会逼人把它从这里删掉。
     '/output/[id]/assays/[assayId]',
+    // STATEMENT-1:线上还没有一份【已签发】的对账单 —— customer_statements 只由
+    // issue_customer_statement 写入,而这一刀是机制与屏幕先于第一份真对账单落地。
+    // 签发第一份的那天,这条断言会报「预期会 SKIP 的路由跑起来了」,逼人把它删掉。
+    // 【注意它跳过的是 PDF 那条路由,不是入口】入口在 /customers/[id] 上,
+    // 那一页有数据、每一跑都真的渲染,并且下面有一条【内容】断言钉着它。
+    '/finance/statements/[id]/pdf',
     // (WO-1c 曾在这里挂过 '/processing/orders/[id]' —— 线上零张工单。
     //  2026-08-16 的手走开出了第一张真工单 WO-2026-0001(放行、并挂上
     //  PROC-2026-0225),于是这一行【在同一刀之内】被删掉,正如它自己的注释所
@@ -382,6 +394,17 @@ const MSG_RAISE_BLOCKED = (() => {
     const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
     const m = src.match(/\n\s*raiseProbationBlockedTitle: '([^']+)'/)
     if (!m) throw new Error('messages/en.ts 里找不到 reviews.raiseProbationBlockedTitle')
+    return m[1]
+})()
+// STATEMENT-1:对账单入口断言要找的那句话,同样【从文案文件现读】。
+// 先切出 statements: { … } 那一段再取键 —— 'sectionTitle' 这个名字别处也有,
+// 全文件正则会抓到别人家的那一条,而那条断言从此守着一件无关的事。
+const MSG_STATEMENT_SECTION = (() => {
+    const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
+    const blk = src.match(/\n    statements: \{[\s\S]*?\n    \},/)
+    if (!blk) throw new Error('messages/en.ts 里找不到 statements 这一段 —— 入口断言无从下手')
+    const m = blk[0].match(/\n\s*sectionTitle: '([^']+)'/)
+    if (!m) throw new Error('messages/en.ts 里找不到 statements.sectionTitle')
     return m[1]
 })()
 const SCRATCH_NAME = '【SMOKE 冒烟脚本临时行 · 勿动 · 随时可删】'
@@ -1078,6 +1101,40 @@ async function main() {
             }
         }
 
+        // ── STATEMENT-1:对账单那扇门【真的画在客户档案页上】────────────────
+        // 【为什么这条断言值得存在,逐字同 PROBATION-1 那一条】
+        // 这一刀的正文是一个【区间的计算结果】,它不挂在任何一条既有单据上 ——
+        // 也就是说这条路的入口是【发明出来的】,而不是从哪里长出来的。
+        // 路由冒烟只断言 2xx,一张【渲染成功但那一节没画出来】的客户页照样 200;
+        // 而 --reach 那一半对 [id] 页结构性地失明(AGENTS.md 已经为此记过一次账:
+        // SAL-B6 的客户页当初就是【一个入口都没有】地上了线,检查报的是绿)。
+        // 所以这里请求一个【真的客户】的档案页,断言那一段的标题印在 HTML 里。
+        {
+            const rows = await restRows(
+                '/rest/v1/customers?select=id&deleted_at=is.null&order=created_at.asc&limit=1',
+                'customers ← 对账单入口')
+            // 【空集不是"还没到"】没有客户 = 这条断言【问不出来】,不是它通过了。
+            if (rows.length === 0) {
+                throw new Error('线上一个未删除的客户都没有 —— 对账单入口这条断言无从下手。'
+                    + '这不是"没数据所以跳过":这条断言的主语不见了,而它守的正是那一页。')
+            }
+            const custId = rows[0].id
+            const target = `/customers/${custId}`
+            const before = logChunks.length
+            const res = await fetch(`http://localhost:${PORT}${target}`, {
+                headers: { cookie }, redirect: 'manual' })
+            const html = res.status === 200 ? await res.text() : ''
+            if (res.status === 200 && html.includes(MSG_STATEMENT_SECTION)) { ok++ }
+            else {
+                const why = res.status !== 200
+                    ? `HTTP ${res.status}`
+                    : `页面 200,但找不到「${MSG_STATEMENT_SECTION}」—— 入口没了,而 200 看不出这件事`
+                failures.push({ route: '/customers/[id] (对账单入口)', url: target,
+                    status: res.status, expected: 200, stack: `${why}\n${await serverStack(before)}` })
+                console.log(`  FAIL /customers/[id] 对账单入口 → ${why}`)
+            }
+        }
+
         // ── 按角色的可达性(REACH-1)────────────────────────────────────────
         // admin 一遍是对照(他什么都有);operations 与 finance 是 /margin 那道题的
         // 两边 —— 一个只有加工、一个只有财务,而没有任何 live 角色同时持有两者。
@@ -1121,7 +1178,13 @@ async function main() {
     } finally {
         dev.kill('SIGTERM')
         await rest(`/rest/v1/performance_reviews?id=eq.${review.id}`, { method: 'DELETE' })
-        await rest(`/rest/v1/employees?id=in.(${reviewee.id},${reviewer.id})`, { method: 'DELETE' })
+        // ★ PROBATION-1 的清理【漏了 noDate】★ 那一刀新造了第三名临时员工
+        // (ZZ-SMOKE-3,负臂用的"没有到期日的人"),却没有把它加进这一行,
+        // 于是每一跑都在 HR 屏幕上多留一名幽灵试用期员工。STATEMENT-1 补上。
+        // 记在这里而不是默默改掉:**新造一行临时数据,和删掉它,是同一件事的两半**,
+        // 而漏掉的那一半不会报错 —— 它只是慢慢堆起来。
+        await rest(`/rest/v1/employees?id=in.(${reviewee.id},${reviewer.id},${noDate.id})`,
+            { method: 'DELETE' })
         await rest(`/auth/v1/admin/users/${cu2.id}`, { method: 'DELETE' })
         await rest(`/rest/v1/user_roles?user_id=eq.${cu.id}`, { method: 'DELETE' })
         await rest(`/auth/v1/admin/users/${cu.id}`, { method: 'DELETE' })
@@ -1131,7 +1194,7 @@ async function main() {
     // 等于让"这一类到底测没测"重新变得看不见 —— 而它们存在的理由正是那件事。
     // PROBATION-1:总结这一行要把【每一个计进 ok 的探针】都点出来,否则
     // 标签念的是一件事、数字数的是另一件 —— 本仓库对这个形状记过好几次账。
-    console.log(`\n== ${routes.length} routes + 1 reviewer-view check + ${QUERY_PROBES.length} query-string probe(s) + 2 probation-entry probes: ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
+    console.log(`\n== ${routes.length} routes + 1 reviewer-view check + ${QUERY_PROBES.length} query-string probe(s) + 2 probation-entry probes + 1 statement-entry probe: ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
     // SESSION-1:这一行排在所有失败之前,因为它改变【怎么读】下面那一百行。
     if (sawAuthIndeterminate) {
         const n = failures.filter((f) => f.authDown).length

@@ -12,7 +12,7 @@
 import React from 'react'
 import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer'
 import { INVOICE_FONT_FAMILY, type CompanyProfile } from '@/app/finance/invoices/[id]/pdf/InvoiceDocument'
-import { countryIfDistinct } from '@/lib/companyAddress'
+import CompanyLetterhead from '@/app/components/CompanyLetterhead'
 
 export type PoCommittedTerms = {
     source_formula_code: string
@@ -173,23 +173,21 @@ export default function PurchaseOrderDocument({
     // 值那一半仍然共用 po_document_data —— 机器的名字早就 COALESCE 过资产描述。
     isEquipment?: boolean
 }) {
-    // EQP-1c-b-fu2:国家与城市相同就不再印一遍(新加坡是城邦)。
-    // 【规则住在 lib/companyAddress.ts,两份单据共用一个实现】—— 版式没动。
-    const addr = [company.address_lines, company.city, company.postal_code,
-                  countryIfDistinct(company)]
-        .filter(Boolean)
-        .join(', ')
+    // STATEMENT-1:抬头改用共用组件 CompanyLetterhead(variant='inline')。
+    // 【版式一个像素没动】样式对象仍由本文件传进去(companyName / muted),
+    // 组件只负责"由哪些部分组成、国家印不印" —— 那一份规则从此只有一处,
+    // 而对账单是它的第三个调用方(见组件抬头与 known-issues 的 EQP-1c-b-fu2)。
     return (
         <Document title={`Purchase Order ${data.code}`}>
             <Page size="A4" style={styles.page}>
                 <View style={styles.headerRow}>
                     <View>
                         {logo ? <Image src={logo} style={styles.logo} /> : null}
-                        <Text style={styles.companyName}>{company.legal_name}</Text>
-                        {company.registration_no ? (
-                            <Text style={styles.muted}>Reg. No. {company.registration_no}</Text>
-                        ) : null}
-                        {addr ? <Text style={styles.muted}>{addr}</Text> : null}
+                        <CompanyLetterhead
+                            company={company}
+                            styles={{ name: styles.companyName, line: styles.muted }}
+                            variant="inline"
+                        />
                         {company.phone ? <Text style={styles.muted}>{company.phone}</Text> : null}
                         {company.email ? <Text style={styles.muted}>{company.email}</Text> : null}
                     </View>

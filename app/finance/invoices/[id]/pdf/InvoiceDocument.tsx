@@ -6,7 +6,7 @@
 // 这里出现的 'INVOICE'、'Bill To'、'Subtotal' 等都是【单据正文】,不是界面标签。
 //
 // 只在服务端渲染(route handler 里 renderToBuffer),不进浏览器包。
-import { countryIfDistinct } from '@/lib/companyAddress'
+import CompanyLetterhead from '@/app/components/CompanyLetterhead'
 import React from 'react'
 import path from 'node:path'
 import fs from 'node:fs'
@@ -234,7 +234,6 @@ export default function InvoiceDocument({
     logo: string | null // data URI,服务端下载后内嵌
 }) {
     const b = invoice.bill_to ?? {}
-    const cityLine = [company.city, company.postal_code].filter(Boolean).join(' ')
     const isVoid = invoice.status === 'void'
 
     const hasBank =
@@ -251,33 +250,16 @@ export default function InvoiceDocument({
                 <View style={styles.header} fixed>
                     <View>{logo ? <Image src={logo} style={styles.logo} /> : null}</View>
                     <View style={styles.companyBlock}>
-                        <Text style={styles.companyName}>{company.legal_name}</Text>
-                        {company.address_lines
-                            ? company.address_lines
-                                  .split('\n')
-                                  .filter((l) => l.trim())
-                                  .map((l, i) => (
-                                      <Text key={i} style={styles.small}>
-                                          {l}
-                                      </Text>
-                                  ))
-                            : null}
-                        {cityLine ? <Text style={styles.small}>{cityLine}</Text> : null}
-                        {/* EQP-1c-b-fu2:国家与城市相同就不再印一遍(新加坡是城邦)。
-                            此前这里印的是 "Singapore 189218" 之后【再来一行】"Singapore"。
-                            错的是模板不是数据 —— company_profile 每一列装的都对。
-                            规则住在 lib/companyAddress.ts,与采购单共用一个实现。 */}
-                        {countryIfDistinct(company)
-                            ? <Text style={styles.small}>{countryIfDistinct(company)}</Text> : null}
-                        {company.registration_no ? (
-                            <Text style={styles.small}>Co. Reg. No: {company.registration_no}</Text>
-                        ) : null}
-                        {gstRegistrationNo ? (
-                            <Text style={styles.small}>GST Reg. No: {gstRegistrationNo}</Text>
-                        ) : null}
-                        {company.phone ? <Text style={styles.small}>Tel: {company.phone}</Text> : null}
-                        {company.email ? <Text style={styles.small}>{company.email}</Text> : null}
-                        {company.website ? <Text style={styles.small}>{company.website}</Text> : null}
+                        {/* STATEMENT-1:抬头改用共用组件(variant='stacked')。
+                            样式仍由本文件传进去(companyName / small),版式一个像素没动;
+                            共用的是"由哪些部分组成、城市邮编怎么拼、国家印不印"那一份规则。
+                            对账单是它的第三个调用方 —— 而三份副本正是 EQP-1c-b-fu2 警告的那件事。 */}
+                        <CompanyLetterhead
+                            company={company}
+                            styles={{ name: styles.companyName, line: styles.small }}
+                            variant="stacked"
+                            gstRegistrationNo={gstRegistrationNo}
+                        />
                     </View>
                 </View>
 

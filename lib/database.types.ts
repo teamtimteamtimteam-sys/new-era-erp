@@ -1456,6 +1456,104 @@ export type Database = {
           },
         ]
       }
+      customer_statements: {
+        Row: {
+          base_currency: string
+          buckets: Json
+          by_currency: Json
+          charges_base: number
+          closing_base: number
+          code: string
+          created_at: string
+          credits_base: number
+          customer_id: string
+          id: string
+          issued_at: string
+          issued_by: string | null
+          lines: Json
+          opening_base: number
+          period_end: string
+          period_start: string
+          receipts_base: number
+          superseded_at: string | null
+          superseded_by: string | null
+          superseded_reason: string | null
+        }
+        Insert: {
+          base_currency: string
+          buckets: Json
+          by_currency: Json
+          charges_base: number
+          closing_base: number
+          code: string
+          created_at?: string
+          credits_base: number
+          customer_id: string
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          lines: Json
+          opening_base: number
+          period_end: string
+          period_start: string
+          receipts_base: number
+          superseded_at?: string | null
+          superseded_by?: string | null
+          superseded_reason?: string | null
+        }
+        Update: {
+          base_currency?: string
+          buckets?: Json
+          by_currency?: Json
+          charges_base?: number
+          closing_base?: number
+          code?: string
+          created_at?: string
+          credits_base?: number
+          customer_id?: string
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          lines?: Json
+          opening_base?: number
+          period_end?: string
+          period_start?: string
+          receipts_base?: number
+          superseded_at?: string | null
+          superseded_by?: string | null
+          superseded_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_statements_base_currency_fkey"
+            columns: ["base_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "customer_statements_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_credit_status"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "customer_statements_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_statements_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "customer_statements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address: string | null
@@ -10400,6 +10498,44 @@ export type Database = {
           },
         ]
       }
+      statement_issues: {
+        Row: {
+          file_path: string
+          id: string
+          issued_at: string
+          issued_by: string | null
+          sha256: string
+          statement_id: string
+          version: number
+        }
+        Insert: {
+          file_path: string
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          sha256: string
+          statement_id: string
+          version: number
+        }
+        Update: {
+          file_path?: string
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          sha256?: string
+          statement_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "statement_issues_statement_id_fkey"
+            columns: ["statement_id"]
+            isOneToOne: false
+            referencedRelation: "customer_statements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stocktake_lines: {
         Row: {
           book_qty: number
@@ -17669,6 +17805,10 @@ export type Database = {
         Args: { p_customer_id: string }
         Returns: number
       }
+      customer_statement_data: {
+        Args: { p_customer_id: string; p_from: string; p_to: string }
+        Returns: Json
+      }
       decide_leave_request: {
         Args: { p_approve: boolean; p_notes?: string; p_request_id: string }
         Returns: Json
@@ -17813,6 +17953,15 @@ export type Database = {
         Args: { p_reviewer_employee_id: string }
         Returns: boolean
       }
+      issue_customer_statement: {
+        Args: {
+          p_customer_id: string
+          p_from: string
+          p_supersede_reason?: string
+          p_to: string
+        }
+        Returns: Json
+      }
       journal_activity_lines: {
         Args: { p_from: string; p_include_year_close: boolean; p_to: string }
         Returns: {
@@ -17934,6 +18083,7 @@ export type Database = {
       next_quote_code: { Args: { p_date?: string }; Returns: string }
       next_sales_order_code: { Args: { p_date?: string }; Returns: string }
       next_shipment_code: { Args: { p_date: string }; Returns: string }
+      next_statement_code: { Args: { p_date?: string }; Returns: string }
       next_traceability_report_code: {
         Args: { p_date?: string }
         Returns: string
@@ -18251,6 +18401,10 @@ export type Database = {
       }
       record_so_issue: {
         Args: { p_file_path: string; p_order_id: string; p_sha256: string }
+        Returns: Json
+      }
+      record_statement_issue: {
+        Args: { p_file_path: string; p_sha256: string; p_statement_id: string }
         Returns: Json
       }
       record_traceability_report_issue: {

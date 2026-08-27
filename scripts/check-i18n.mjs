@@ -476,6 +476,8 @@ const MANIFEST = {
     // 这条检查自动跟着变宽);错误码接那个 Set —— 与 sales.errors. 同一种读法。
     'cn.kind.':             { kind: 'enum', values: () => sqlEnum('db/tables/credit_note_lines.sql', 'kind') },
     'cn.errors.':           { kind: 'enum', values: () => tsSet('app/finance/creditNoteErrorCodes.ts', 'CREDIT_NOTE_ERROR_CODES') },
+    // STATEMENT-1:对账单一族的错误码,真源是那支 Set(逐条从函数体枚举出来的)。
+    'statements.errors.':   { kind: 'enum', values: () => tsSet('app/finance/statements/statementErrorCodes.ts', 'STATEMENT_ERROR_CODES') },
     'processing.errors.':   { kind: 'enum', values: () => tsSet('app/processing/errorCodes.ts', 'PROCESSING_ERROR_CODES') },
     // WO-1c:工单。状态与留痕类型都接真源的 CHECK —— 数据库里加一个状态 /
     // 一种改动类型,这条检查自动跟着变宽,而不是等屏幕上出现一个键名才有人发现。
