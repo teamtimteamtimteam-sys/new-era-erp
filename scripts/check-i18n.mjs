@@ -286,6 +286,13 @@ const MANIFEST = {
     // 原始的机器串 —— docs/machine-text-reaching-humans.md 记的正是这一类。
     'gst.docKind.': { kind: 'enum', values: () => tsRegex('db/functions/f5_box_detail.sql',
                                   /SELECT '(\w+)'::text/g) },
+    // AGING-1:账龄的【金额口径】。后缀集合就是 app/finance/agingAsOf.ts 里那个
+    // AMOUNT_BASES 数组 —— TypeScript 的类型也从同一行派生,所以类型与这道检查
+    // 读的是同一处;而【库那侧真的吐哪两个令牌】由 db/fixtures/135 钉住,
+    // 三者合起来才关得住:改了令牌名,构建或闸会红,而不是屏幕上冒出一个机器串。
+    'finance.agingAsOf.basis.': { kind: 'enum', values: () => tsRegex(
+                                  'app/finance/agingAsOf.ts',
+                                  /const AMOUNT_BASES = \['(\w+)', '(\w+)'\] as const/g) },
     // ── 看板 ─────────────────────────────────────────────────────────────────
     // OPS-18:后缀集合就是 operations_now 的支列表 —— 从视图镜像现读,加一支自动变宽。
     // (镜像里每一支都显式写了 AS item_type;pg_get_viewdef 只保留【显式】别名,

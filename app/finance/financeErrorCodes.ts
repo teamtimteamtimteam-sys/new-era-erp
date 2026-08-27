@@ -37,6 +37,9 @@ const FINANCE_ERROR_CODES = new Set([
     'GST_FILED_DATE_REQUIRED', 'GST_PERIOD_NOT_LOCKED',
     'GST_BOX_REQUIRED', 'GST_BOX_NOT_DRILLABLE', 'GST_RETURN_IMMUTABLE',
     'GST_CORRECTION_REASON_REQUIRED', 'GST_CANNOT_CORRECT_UNFILED',
+    // AGING-1:账龄的截至日不许落在未来。两侧函数各自独立地抛它 ——
+    // 界面上 max=今天 是第一道,这一条是绕开界面也过不去的那一道。
+    'AGING_AS_OF_FUTURE',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..." —— 即使 PostgREST 在前面包了前缀,

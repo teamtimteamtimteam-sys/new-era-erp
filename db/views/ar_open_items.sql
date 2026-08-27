@@ -50,6 +50,18 @@
 -- 静默地什么都没做,视图体是对的、解释却一直缺席。与本仓库反复修的
 -- "失败不是空集"同一个形状,只是长在工具脚本里。
 -- ═══════════════════════════════════════════════════════════════════════════
+
+-- AGING-1(2026-08-27):四条档位边界改为调用 aging_bucket() —— 全库唯一一处定义。
+-- 【列集一字未动】,所以迁移走 CREATE OR REPLACE,operations_now 一类的依赖不必 DROP。
+-- 【WITH (security_invoker = off) 是手写补回去的】pg_get_viewdef 不吐 reloptions
+-- (PAYEE-1a 为此记过一次账),照它重建会把属主权限悄悄丢掉 —— 行为不变,
+-- 但下一个读镜像的人会据此判断这张视图是不是刻意声明过。
+--
+-- 【本页不再读它了,而它留着】/finance/receivables 改读 ar_aging_asof(as_of):
+-- 一个 as-at 报表与一张"今天"的视图若各写一份档位边界,就是两份会漂开的实现。
+-- 这张视图仍有别的消费方(看板 ar_over_90 等),所以留着;
+-- db/fixtures/135 的 A 臂断言函数【截至今天】与它逐行逐列相同,两个方向差集都为空。
+
 CREATE VIEW public.ar_open_items WITH (security_invoker = off) AS
  SELECT sr.id AS sales_record_id,
     ob.code AS doc_code,
@@ -63,12 +75,7 @@ CREATE VIEW public.ar_open_items WITH (security_invoker = off) AS
     round(sr.quantity * sr.unit_price - COALESCE(s.settled, 0::numeric), 2) AS open_ccy,
     round((sr.quantity * sr.unit_price - COALESCE(s.settled, 0::numeric)) * sr.fx_rate, 2) AS open_base,
     CURRENT_DATE - sr.sale_date AS days_outstanding,
-        CASE
-            WHEN (CURRENT_DATE - sr.sale_date) <= 30 THEN 'b0_30'::text
-            WHEN (CURRENT_DATE - sr.sale_date) <= 60 THEN 'b31_60'::text
-            WHEN (CURRENT_DATE - sr.sale_date) <= 90 THEN 'b61_90'::text
-            ELSE 'b90_plus'::text
-        END AS bucket,
+    aging_bucket(CURRENT_DATE - sr.sale_date) AS bucket,
     inv.invoice_id,
     inv.invoice_code,
     'sale'::text AS doc_kind,
@@ -102,12 +109,7 @@ UNION ALL
     o.open_ccy,
     o.open_base,
     CURRENT_DATE - o.issue_date AS days_outstanding,
-        CASE
-            WHEN (CURRENT_DATE - o.issue_date) <= 30 THEN 'b0_30'::text
-            WHEN (CURRENT_DATE - o.issue_date) <= 60 THEN 'b31_60'::text
-            WHEN (CURRENT_DATE - o.issue_date) <= 90 THEN 'b61_90'::text
-            ELSE 'b90_plus'::text
-        END AS bucket,
+    aging_bucket(CURRENT_DATE - o.issue_date) AS bucket,
     o.invoice_id,
     o.code AS invoice_code,
     'invoice'::text AS doc_kind,
@@ -117,4 +119,3 @@ UNION ALL
    FROM order_invoice_open_all o
      LEFT JOIN customers c ON c.id = o.customer_id
   WHERE has_permission('module.finance.view'::text) AND has_permission('data.view_prices'::text);
-

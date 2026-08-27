@@ -50,6 +50,17 @@
 -- security_invoker=off,所以财务读者不会因为没有 HR 权限而丢掉员工行
 -- (OPS-14 的解法 a)。只借 legal_name 一个显示标签(AGENTS.md 第三条决定)。
 
+-- AGING-1(2026-08-27):四条档位边界改为调用 aging_bucket() —— 全库唯一一处定义。
+-- 【列集一字未动】,所以迁移走 CREATE OR REPLACE,operations_now 一类的依赖不必 DROP。
+-- 【WITH (security_invoker = off) 是手写补回去的】pg_get_viewdef 不吐 reloptions
+-- (PAYEE-1a 为此记过一次账),照它重建会把属主权限悄悄丢掉 —— 行为不变,
+-- 但下一个读镜像的人会据此判断这张视图是不是刻意声明过。
+--
+-- 【本页不再读它了,而它留着】/finance/payables 改读 ap_aging_asof(as_of):
+-- 一个 as-at 报表与一张"今天"的视图若各写一份档位边界,就是两份会漂开的实现。
+-- 这张视图仍有别的消费方(看板 ap_over_90 等),所以留着;
+-- db/fixtures/135 的 A 臂断言函数【截至今天】与它逐行逐列相同,两个方向差集都为空。
+
 CREATE VIEW public.ap_open_items WITH (security_invoker = off) AS
  SELECT doc_kind,
     doc_id,
@@ -64,12 +75,7 @@ CREATE VIEW public.ap_open_items WITH (security_invoker = off) AS
     currency,
     open_ccy,
     CURRENT_DATE - doc_date AS days_outstanding,
-        CASE
-            WHEN (CURRENT_DATE - doc_date) <= 30 THEN 'b0_30'::text
-            WHEN (CURRENT_DATE - doc_date) <= 60 THEN 'b31_60'::text
-            WHEN (CURRENT_DATE - doc_date) <= 90 THEN 'b61_90'::text
-            ELSE 'b90_plus'::text
-        END AS bucket,
+    aging_bucket(CURRENT_DATE - doc_date) AS bucket,
     counterparty_kind,
     counterparty_id,
     counterparty_name

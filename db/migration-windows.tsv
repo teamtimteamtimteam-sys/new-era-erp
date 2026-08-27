@@ -64,3 +64,4 @@
 2026-08-27T01:39:14+0800	2026-08-27-fxrates1-one-write-path-history-and-month-end-readiness.sql	247838c
 2026-08-27T01:40:51+0800	2026-08-27-fxrates1-fu1-found-belongs-to-the-last-statement.sql	247838c
 2026-08-27T01:44:27+0800	2026-08-27-fxrates1-fu2-a-bulk-wrapper-that-loops-the-one-function.sql	247838c
+2026-08-27T16:13:48+0800	2026-08-27-aging1-as-at-a-date.sql	79341a7

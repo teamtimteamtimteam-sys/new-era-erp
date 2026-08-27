@@ -17271,6 +17271,7 @@ export type Database = {
         }
         Returns: Json
       }
+      aging_bucket: { Args: { p_days: number }; Returns: string }
       allocate_processing_costs: {
         Args: { p_basis?: string; p_run_id: string }
         Returns: Json
@@ -17318,6 +17319,7 @@ export type Database = {
         Args: { p_employee_id: string; p_reason: string }
         Returns: Json
       }
+      ap_aging_asof: { Args: { p_as_of?: string }; Returns: Json }
       apply_assay_result: {
         Args: {
           p_assay_result_id: string
@@ -17350,6 +17352,7 @@ export type Database = {
         Returns: Json
       }
       approve_review: { Args: { p_review_id: string }; Returns: Json }
+      ar_aging_asof: { Args: { p_as_of?: string }; Returns: Json }
       arm_permission_any: { Args: { p_item_type: string }; Returns: string[] }
       arm_permission_widen: { Args: { p_item_type: string }; Returns: string[] }
       assert_posting_allowed: {
@@ -17793,6 +17796,10 @@ export type Database = {
           p_period_start: string
         }
         Returns: Json
+      }
+      inbound_unit_price_asof: {
+        Args: { p_as_of: string; p_batch_id: string }
+        Returns: number
       }
       instantiate_container_documents: {
         Args: { p_container_id: string }
