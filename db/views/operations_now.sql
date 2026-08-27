@@ -590,7 +590,9 @@ CREATE VIEW public.operations_now AS
 -- ★【CHASE-1:到期没兑现的承诺】★ 一个记下来却没有人被提醒的承诺,
 -- 就是表里的一条备注。【它清得掉】谓词含 outcome IS NULL —— record_promise_outcome
 -- 一记结局这一行就消失;一个清不掉的告警会教会人忽略告警(hr_alerts 那次)。
--- 【逾期从承诺日的第二天起】今天到期的承诺今天还没有被辜负。
+-- 【逾期就在承诺日【当天】】(Tim 2026-08-28 裁定,fu2 改的)——
+-- 这门生意的货款通常在【下午中段】到账,所以承诺日当天来看这张单子的人,
+-- 面对的已经是那天要处理的那件事;推到第二天等于让单子在它最有用的那一天沉默。
          SELECT 'promise_overdue'::text AS item_type,
             'module.finance.view'::text AS permission,
             ps.promise_id AS item_id,

@@ -29,10 +29,11 @@ DECLARE
     v_cust   uuid; v_cust0 uuid; v_mat uuid; v_ob uuid; v_sale uuid;
     v_inv    uuid;
     v_res    jsonb; v_ctx jsonb;
-    v_chase  uuid; v_chase2 uuid; v_promise uuid; v_promise2 uuid;
+    v_chase  uuid; v_chase2 uuid; v_promise uuid; v_promise2 uuid; v_promise3 uuid;
     d_chase  date := CURRENT_DATE - 20;
     d_due    date := CURRENT_DATE - 5;    -- 已经过期的承诺日
-    d_today  date := CURRENT_DATE;        -- 今天到期 —— 【不】算逾期
+    d_today  date := CURRENT_DATE;        -- 今天到期 —— fu2 之后【算】逾期
+    d_future date := CURRENT_DATE + 1;    -- 明天到期 —— 边界的另一侧,仍然不算
     v_frozen numeric; v_recomputed numeric; v_owed numeric;
     v_n int; v_n2 int; v_msg text; v_txt text;
     v_rate   numeric;
@@ -206,8 +207,16 @@ BEGIN
     END;
 
     -- ══════════════════════════════════════════════════════════════════════
-    -- D 臂 · 逾期从承诺日的【第二天】起 —— 今天到期的今天【不】逾期
+    -- D 臂 · ★【逾期就在承诺日【当天】】★(Tim 2026-08-28 裁定,fu2 改的)
     -- ══════════════════════════════════════════════════════════════════════
+    -- 【为什么是当天】这门生意的货款通常在**下午中段**到账,所以承诺日当天
+    -- 有人来看这张单子时,一笔还没到的款已经是那天要处理的那件事;推到第二天
+    -- 等于让这张单子恰好在它最有用的那一天保持沉默。
+    --
+    -- ★【这一臂需要【三个】承诺,而这正是改口径时最容易漏掉的地方】★
+    -- 旧口径下两个就够了(过去的=逾期、今天的=不逾期)。改成 `<=` 之后
+    -- 那两个【都】逾期 —— 只留两个的话,一个"什么都算逾期"的实现照样全绿。
+    -- 所以补第三个:**承诺日在明天的那一笔仍然不逾期**,边界还在,只是挪了一天。
     v_res := record_collection_chase(
         p_customer_id => v_cust, p_chased_on => CURRENT_DATE, p_channel => 'whatsapp',
         p_reached => true, p_summary => '今天到期的那一笔,他说今天会打',
@@ -215,15 +224,56 @@ BEGIN
                                         'promised_date', d_today::text));
     v_promise2 := (v_res->>'promise_id')::uuid;
 
-    -- ★ 自证非空:两个承诺都要在,而且一个过期一个今天到期
-    IF v_promise IS NULL OR v_promise2 IS NULL THEN
-        RAISE EXCEPTION 'FIXTURE 138D 失败(空转):两个承诺没有都建出来';
+    v_res := record_collection_chase(
+        p_customer_id => v_cust, p_chased_on => CURRENT_DATE, p_channel => 'phone',
+        p_reached => true, p_summary => '另一笔,他说明天',
+        p_promise => jsonb_build_object('amount', 700, 'currency', v_ccy,
+                                        'promised_date', d_future::text));
+    v_promise3 := (v_res->>'promise_id')::uuid;
+
+    -- ★ 自证非空:三个承诺都要在。【尤其是今天到期的那一个】——
+    --   它缺席的话,这一臂就再也测不到这次口径改动本身,而它会安静地照绿。
+    IF v_promise IS NULL OR v_promise2 IS NULL OR v_promise3 IS NULL THEN
+        RAISE EXCEPTION 'FIXTURE 138D 失败(空转):三个承诺没有都建出来(过去 % / 今天 % / 明天 %)',
+            v_promise, v_promise2, v_promise3;
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM collection_promise_status
+                    WHERE promise_id = v_promise2 AND promised_date = CURRENT_DATE) THEN
+        RAISE EXCEPTION 'FIXTURE 138D 失败(空转):那个【今天到期】的承诺不在,或者它的承诺日不是今天 —— 而它正是这条口径要测的那一个';
+    END IF;
+
+    -- 过去的:逾期
     IF NOT (SELECT is_overdue FROM collection_promise_status WHERE promise_id = v_promise) THEN
         RAISE EXCEPTION 'FIXTURE 138D 失败:承诺日 %(已过)应当算逾期', d_due;
     END IF;
-    IF (SELECT is_overdue FROM collection_promise_status WHERE promise_id = v_promise2) THEN
-        RAISE EXCEPTION 'FIXTURE 138D 失败:承诺日是【今天】的那一笔被算成了逾期 —— 今天到期的承诺今天还没有被辜负';
+    -- ★ 今天到期的:【也】逾期 —— 这一条就是这次裁定本身
+    IF NOT (SELECT is_overdue FROM collection_promise_status WHERE promise_id = v_promise2) THEN
+        RAISE EXCEPTION 'FIXTURE 138D 失败:承诺日是【今天】(%)的那一笔没有被算成逾期 —— 而货款下午中段才到,那张单子恰恰要在今天就说话', d_today;
+    END IF;
+    -- 明天到期的:不逾期 —— 边界还在
+    IF (SELECT is_overdue FROM collection_promise_status WHERE promise_id = v_promise3) THEN
+        RAISE EXCEPTION 'FIXTURE 138D 失败:承诺日在【明天】(%)的那一笔被算成了逾期 —— 那不是"当天起算",那是"什么都算逾期"', d_future;
+    END IF;
+
+    -- 【客户页那一份读的是【同一条】边界,不是自己又算了一遍】(fu2)
+    -- customer_collection_context 原先把同样的比较写了第二遍;fu2 把它改成读视图。
+    -- ★ 断言的是【两边相等】,不是"两边都为真" ★ —— 这两句话不一样,而写错的
+    --   那一版正是本仓库记过的病:一条声称在查 X、实际在查 Y 的断言。
+    --   把边界退回 `<` 做注入时,两边会【一起】变成 false —— 它们仍然一致,
+    --   所以这一条【不该】响;该响的是上面那条"今天到期必须逾期"。
+    --   而如果哪天有人在客户页那一支里重新写一遍比较,这一条就会响。
+    IF (SELECT (e->>'is_overdue')::boolean
+          FROM jsonb_array_elements(
+                 (customer_collection_context(v_cust, CURRENT_DATE))->'promises_open') e
+         WHERE (e->>'promise_id') = v_promise2::text)
+       IS DISTINCT FROM
+       (SELECT is_overdue FROM collection_promise_status WHERE promise_id = v_promise2) THEN
+        RAISE EXCEPTION 'FIXTURE 138D 失败:同一个承诺,视图说逾期=%,客户页那一份说逾期=% —— 同一条边界又被写成了两份实现',
+            (SELECT is_overdue FROM collection_promise_status WHERE promise_id = v_promise2),
+            (SELECT (e->>'is_overdue')::boolean
+               FROM jsonb_array_elements(
+                      (customer_collection_context(v_cust, CURRENT_DATE))->'promises_open') e
+              WHERE (e->>'promise_id') = v_promise2::text);
     END IF;
 
     -- ══════════════════════════════════════════════════════════════════════

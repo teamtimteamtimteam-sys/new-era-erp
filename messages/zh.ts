@@ -3004,7 +3004,6 @@ const zh = {
         promiseNone: '没有给出承诺',
         promisesOpen: '还没了结的承诺',
         promiseOverdue: '已逾期',
-        promiseDueToday: '今天到期',
         appliedSince: '这次承诺之后已核销',
         appliedSinceHint: '通话之后这个客户身上【真的核销掉】了多少。这是给你做判断的证据 —— 系统不替你了结承诺,因为一笔无关的付款会把一个没兑现的承诺悄悄标成兑现。',
         recordOutcome: '记下结局',

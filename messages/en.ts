@@ -3009,7 +3009,6 @@ const en = {
         promiseNone: 'No promise made',
         promisesOpen: 'Promises not yet settled',
         promiseOverdue: 'Overdue',
-        promiseDueToday: 'Due today',
         appliedSince: 'Applied since this promise',
         appliedSinceHint: 'What has actually been settled against this customer since the call. Evidence for your decision \u2014 the system does not close a promise on your behalf, because an unrelated payment would silently mark a broken promise kept.',
         recordOutcome: 'Record outcome',
