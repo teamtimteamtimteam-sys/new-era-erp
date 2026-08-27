@@ -67,3 +67,5 @@
 2026-08-27T16:13:48+0800	2026-08-27-aging1-as-at-a-date.sql	79341a7
 2026-08-27T19:02:31+0800	2026-08-27-probation1-a-door-for-the-probation-review.sql	8acc7b9
 2026-08-27T21:07:25+0800	2026-08-27-statement1-customer-statements-of-account.sql	67b7ab9
+2026-08-27T23:52:28+0800	2026-08-27-chase1-collection-records.sql	5ab4c0d
+2026-08-28T00:06:15+0800	2026-08-28-chase1-fu1-next-chase-code-invoker.sql	5ab4c0d

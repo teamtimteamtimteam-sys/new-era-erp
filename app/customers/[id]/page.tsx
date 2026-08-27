@@ -26,7 +26,9 @@ import { getBaseCurrency } from '@/lib/currency'
 import { formatAmount } from '@/lib/format'
 import { can } from '@/lib/permissions'
 import StatementPanel from '../StatementPanel'
+import ChasePanel from '../ChasePanel'
 import { mustRows } from '@/lib/db-helpers'
+import { collectionContext } from '../chaseActions'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 
@@ -39,6 +41,30 @@ type CreditRow = {
     exposure_base: number | null
     headroom_base: number | null
     sales_blocked: boolean
+}
+
+// CHASE-1:催收那一段的两组行。
+// 【承诺是数组,但它最多一个】UNIQUE(chase_id) —— 摊平时取 [0] 是在陈述那条约束。
+type ChaseRow = {
+    id: string; code: string; chased_on: string; channel: string
+    reached: boolean; contacted_person: string | null; summary: string
+    owed_base: number; superseded_at: string | null
+    promise: { promised_amount_ccy: number; currency: string
+               promised_date: string; outcome: string | null } | null
+    documents: { subject_type: string; subject_code: string | null }[]
+}
+type OpenPromiseRow = {
+    promise_id: string; chase_id: string; chase_code: string; chased_on: string
+    promised_amount_ccy: number; currency: string; promised_amount_base: number
+    promised_date: string; is_overdue: boolean; applied_since_base: number
+}
+
+// 催收上下文要一个【今天】—— 而这是唯一一处默认成今天是【对】的地方:
+// 它读的是"现在欠多少"(与冻结的那个数并排显示),不是在记录一件发生过的事。
+// 记录那一侧(chased_on)刻意没有默认值,两者不是同一个问题。
+function todayISO(): string {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 type OpenItem = {
@@ -107,6 +133,40 @@ export default async function CustomerStatusPage({
           }[])
         : []
     const canIssueStatement = await can('module.finance.edit')
+
+    // CHASE-1:催收记录 + 还没了结的承诺。与明细、对账单同一道门。
+    // 【无权时不去查,而不是查了拿零行】—— 零行读起来是"从没催过",那是一句假话。
+    const chases = canFinance
+        ? (mustRows(
+              await supabase
+                  .from('collection_chases')
+                  .select('id, code, chased_on, channel, reached, contacted_person, summary, '
+                        + 'owed_base, superseded_at, '
+                        + 'collection_promises(promised_amount_ccy, currency, promised_date, outcome), '
+                        + 'collection_chase_documents(subject_type, subject_code)')
+                  .eq('customer_id', id)
+                  .order('chased_on', { ascending: false })
+          ) as unknown as (Omit<ChaseRow, 'promise' | 'documents'> & {
+              collection_promises: ChaseRow['promise'][]
+              collection_chase_documents: ChaseRow['documents']
+          })[])
+        : []
+    // 【嵌进来的一对多在这里摊平】—— 一次对话一个承诺(UNIQUE chase_id),
+    // 所以那个数组要么空要么一个;取 [0] 是在陈述那条约束,不是在赌。
+    const chaseRows: ChaseRow[] = chases.map((c) => ({
+        ...c,
+        promise: c.collection_promises?.[0] ?? null,
+        documents: c.collection_chase_documents ?? [],
+    }))
+
+    // 还没了结的承诺,每一个带着它自己的【证据】—— 由 DB 那支函数算,
+    // 因为它要读 customer_statement_data,而那个数不许在这里再算一遍。
+    const collectionCtx = canFinance
+        ? ((await collectionContext(id, todayISO())).data as {
+              owed_base: number; base_currency: string
+              promises_open: OpenPromiseRow[]
+          } | undefined)
+        : undefined
 
     const row = (label: string, value: React.ReactNode) => (
         <div className="flex justify-between py-1">
@@ -239,6 +299,21 @@ export default async function CustomerStatusPage({
                     customerId={id}
                     issued={issuedStatements}
                     canIssue={canIssueStatement}
+                />
+            )}
+
+            {/* ── CHASE-1:催收记录 ──────────────────────────────────────────
+                【为什么紧挨着对账单】对账单是寄出去的那张纸,催收是【那张纸之后
+                发生的那场对话】—— 勘察把两件事并成一刀正是这个理由。
+                无权时【整段不渲染】,与上面两段同一条。 */}
+            {canFinance && (
+                <ChasePanel
+                    customerId={id}
+                    chases={chaseRows}
+                    openPromises={collectionCtx?.promises_open ?? []}
+                    owedToday={collectionCtx?.owed_base ?? 0}
+                    baseCurrency={baseCurrency}
+                    canEdit={canIssueStatement}
                 />
             )}
         </div>

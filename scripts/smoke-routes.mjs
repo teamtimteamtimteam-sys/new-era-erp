@@ -407,6 +407,15 @@ const MSG_STATEMENT_SECTION = (() => {
     if (!m) throw new Error('messages/en.ts 里找不到 statements.sectionTitle')
     return m[1]
 })()
+// CHASE-1:催收那一段的入口断言要找的那句话,同样【从文案文件现读】。
+const MSG_CHASE_SECTION = (() => {
+    const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
+    const blk = src.match(/\n    chases: \{[\s\S]*?\n    \},/)
+    if (!blk) throw new Error('messages/en.ts 里找不到 chases 这一段 —— 入口断言无从下手')
+    const m = blk[0].match(/\n\s*sectionTitle: '([^']+)'/)
+    if (!m) throw new Error('messages/en.ts 里找不到 chases.sectionTitle')
+    return m[1]
+})()
 const SCRATCH_NAME = '【SMOKE 冒烟脚本临时行 · 勿动 · 随时可删】'
 
 async function rest(path, opts = {}) {
@@ -1124,14 +1133,23 @@ async function main() {
             const res = await fetch(`http://localhost:${PORT}${target}`, {
                 headers: { cookie }, redirect: 'manual' })
             const html = res.status === 200 ? await res.text() : ''
-            if (res.status === 200 && html.includes(MSG_STATEMENT_SECTION)) { ok++ }
-            else {
-                const why = res.status !== 200
-                    ? `HTTP ${res.status}`
-                    : `页面 200,但找不到「${MSG_STATEMENT_SECTION}」—— 入口没了,而 200 看不出这件事`
-                failures.push({ route: '/customers/[id] (对账单入口)', url: target,
-                    status: res.status, expected: 200, stack: `${why}\n${await serverStack(before)}` })
-                console.log(`  FAIL /customers/[id] 对账单入口 → ${why}`)
+            // CHASE-1:同一次渲染回答【两个】入口问题 —— 对账单那一段与催收那一段。
+            // 分两次请求要多付一次服务端渲染,而它们问的是同一页上的同一件事:
+            // 这一页上该有的门,还在不在。
+            const needles = [
+                ['对账单入口', MSG_STATEMENT_SECTION],
+                ['催收入口',   MSG_CHASE_SECTION],
+            ]
+            for (const [what, needle] of needles) {
+                if (res.status === 200 && html.includes(needle)) { ok++ }
+                else {
+                    const why = res.status !== 200
+                        ? `HTTP ${res.status}`
+                        : `页面 200,但找不到「${needle}」—— 入口没了,而 200 看不出这件事`
+                    failures.push({ route: `/customers/[id] (${what})`, url: target,
+                        status: res.status, expected: 200, stack: `${why}\n${await serverStack(before)}` })
+                    console.log(`  FAIL /customers/[id] ${what} → ${why}`)
+                }
             }
         }
 
@@ -1194,7 +1212,7 @@ async function main() {
     // 等于让"这一类到底测没测"重新变得看不见 —— 而它们存在的理由正是那件事。
     // PROBATION-1:总结这一行要把【每一个计进 ok 的探针】都点出来,否则
     // 标签念的是一件事、数字数的是另一件 —— 本仓库对这个形状记过好几次账。
-    console.log(`\n== ${routes.length} routes + 1 reviewer-view check + ${QUERY_PROBES.length} query-string probe(s) + 2 probation-entry probes + 1 statement-entry probe: ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
+    console.log(`\n== ${routes.length} routes + 1 reviewer-view check + ${QUERY_PROBES.length} query-string probe(s) + 2 probation-entry probes + 2 customer-page entry probes: ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
     // SESSION-1:这一行排在所有失败之前,因为它改变【怎么读】下面那一百行。
     if (sawAuthIndeterminate) {
         const n = failures.filter((f) => f.authDown).length

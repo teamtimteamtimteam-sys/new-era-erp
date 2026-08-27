@@ -586,6 +586,20 @@ CREATE VIEW public.operations_now AS
             ess_1.baseline_date AS item_date
            FROM equipment_service_status ess_1
           WHERE ess_1.monitored AND ess_1.disposition = 'warn'::text AND ess_1.equipment_status <> 'disposed'::text AND ess_1.is_approaching
+        UNION ALL
+-- ★【CHASE-1:到期没兑现的承诺】★ 一个记下来却没有人被提醒的承诺,
+-- 就是表里的一条备注。【它清得掉】谓词含 outcome IS NULL —— record_promise_outcome
+-- 一记结局这一行就消失;一个清不掉的告警会教会人忽略告警(hr_alerts 那次)。
+-- 【逾期从承诺日的第二天起】今天到期的承诺今天还没有被辜负。
+         SELECT 'promise_overdue'::text AS item_type,
+            'module.finance.view'::text AS permission,
+            ps.promise_id AS item_id,
+            NULL::text AS doc_kind,
+            ps.chase_code AS item_code,
+            ps.customer_name AS subject,
+            ps.promised_date AS item_date
+           FROM collection_promise_status ps
+          WHERE ps.is_overdue
 ) a
   WHERE (has_permission(permission) OR has_any_permission(arm_permission_widen(item_type)))
     AND (arm_permission_any(item_type) IS NULL OR has_any_permission(arm_permission_any(item_type)));

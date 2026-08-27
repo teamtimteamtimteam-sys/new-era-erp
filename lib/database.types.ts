@@ -827,6 +827,220 @@ export type Database = {
           },
         ]
       }
+      collection_chase_documents: {
+        Row: {
+          chase_id: string
+          created_at: string
+          id: string
+          subject_code: string | null
+          subject_id: string
+          subject_type: string
+        }
+        Insert: {
+          chase_id: string
+          created_at?: string
+          id?: string
+          subject_code?: string | null
+          subject_id: string
+          subject_type: string
+        }
+        Update: {
+          chase_id?: string
+          created_at?: string
+          id?: string
+          subject_code?: string | null
+          subject_id?: string
+          subject_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_chase_documents_chase_id_fkey"
+            columns: ["chase_id"]
+            isOneToOne: false
+            referencedRelation: "collection_chases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_chase_documents_chase_id_fkey"
+            columns: ["chase_id"]
+            isOneToOne: false
+            referencedRelation: "collection_promise_status"
+            referencedColumns: ["chase_id"]
+          },
+        ]
+      }
+      collection_chases: {
+        Row: {
+          base_currency: string
+          channel: string
+          chased_by: string | null
+          chased_on: string
+          code: string
+          contacted_person: string | null
+          created_at: string
+          customer_id: string
+          id: string
+          net_due_base: number
+          on_account_base: number
+          owed_base: number
+          owed_buckets: Json
+          owed_by_currency: Json
+          reached: boolean
+          summary: string
+          superseded_at: string | null
+          superseded_by: string | null
+          superseded_reason: string | null
+        }
+        Insert: {
+          base_currency: string
+          channel: string
+          chased_by?: string | null
+          chased_on: string
+          code: string
+          contacted_person?: string | null
+          created_at?: string
+          customer_id: string
+          id?: string
+          net_due_base: number
+          on_account_base: number
+          owed_base: number
+          owed_buckets: Json
+          owed_by_currency: Json
+          reached: boolean
+          summary: string
+          superseded_at?: string | null
+          superseded_by?: string | null
+          superseded_reason?: string | null
+        }
+        Update: {
+          base_currency?: string
+          channel?: string
+          chased_by?: string | null
+          chased_on?: string
+          code?: string
+          contacted_person?: string | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          net_due_base?: number
+          on_account_base?: number
+          owed_base?: number
+          owed_buckets?: Json
+          owed_by_currency?: Json
+          reached?: boolean
+          summary?: string
+          superseded_at?: string | null
+          superseded_by?: string | null
+          superseded_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_chases_base_currency_fkey"
+            columns: ["base_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "collection_chases_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_credit_status"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "collection_chases_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_chases_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "collection_chases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_chases_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "collection_promise_status"
+            referencedColumns: ["chase_id"]
+          },
+        ]
+      }
+      collection_promises: {
+        Row: {
+          chase_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          fx_rate: number
+          id: string
+          outcome: string | null
+          outcome_note: string | null
+          outcome_recorded_at: string | null
+          outcome_recorded_by: string | null
+          promised_amount_base: number
+          promised_amount_ccy: number
+          promised_date: string
+        }
+        Insert: {
+          chase_id: string
+          created_at?: string
+          created_by?: string | null
+          currency: string
+          fx_rate: number
+          id?: string
+          outcome?: string | null
+          outcome_note?: string | null
+          outcome_recorded_at?: string | null
+          outcome_recorded_by?: string | null
+          promised_amount_base: number
+          promised_amount_ccy: number
+          promised_date: string
+        }
+        Update: {
+          chase_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          fx_rate?: number
+          id?: string
+          outcome?: string | null
+          outcome_note?: string | null
+          outcome_recorded_at?: string | null
+          outcome_recorded_by?: string | null
+          promised_amount_base?: number
+          promised_amount_ccy?: number
+          promised_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_promises_chase_id_fkey"
+            columns: ["chase_id"]
+            isOneToOne: true
+            referencedRelation: "collection_chases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_promises_chase_id_fkey"
+            columns: ["chase_id"]
+            isOneToOne: true
+            referencedRelation: "collection_promise_status"
+            referencedColumns: ["chase_id"]
+          },
+          {
+            foreignKeyName: "collection_promises_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       company_compliance: {
         Row: {
           cert_no: string | null
@@ -12774,6 +12988,51 @@ export type Database = {
           },
         ]
       }
+      collection_promise_status: {
+        Row: {
+          channel: string | null
+          chase_code: string | null
+          chase_id: string | null
+          chase_superseded: boolean | null
+          chased_on: string | null
+          currency: string | null
+          customer_code: string | null
+          customer_id: string | null
+          customer_name: string | null
+          is_open: boolean | null
+          is_overdue: boolean | null
+          outcome: string | null
+          outcome_recorded_at: string | null
+          promise_id: string | null
+          promised_amount_base: number | null
+          promised_amount_ccy: number | null
+          promised_date: string | null
+          superseded_reason: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_chases_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_credit_status"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "collection_chases_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_promises_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       company_profile_masked: {
         Row: {
           address_lines: string | null
@@ -17805,6 +18064,10 @@ export type Database = {
         Args: { p_customer_id: string }
         Returns: number
       }
+      customer_collection_context: {
+        Args: { p_as_of?: string; p_customer_id: string }
+        Returns: Json
+      }
       customer_statement_data: {
         Args: { p_customer_id: string; p_from: string; p_to: string }
         Returns: Json
@@ -18071,6 +18334,7 @@ export type Database = {
         Returns: undefined
       }
       next_assay_code: { Args: { p_date?: string }; Returns: string }
+      next_chase_code: { Args: { p_date?: string }; Returns: string }
       next_container_code: { Args: { p_date: string }; Returns: string }
       next_credit_note_code: { Args: { p_date?: string }; Returns: string }
       next_employee_code: { Args: { p_date?: string }; Returns: string }
@@ -18293,6 +18557,21 @@ export type Database = {
         }
         Returns: Json
       }
+      record_collection_chase: {
+        Args: {
+          p_channel: string
+          p_chased_on: string
+          p_contacted_person?: string
+          p_customer_id: string
+          p_documents?: Json
+          p_promise?: Json
+          p_reached: boolean
+          p_summary: string
+          p_supersede_reason?: string
+          p_supersedes?: string
+        }
+        Returns: Json
+      }
       record_expense: {
         Args: {
           p_account_code: string
@@ -18389,6 +18668,10 @@ export type Database = {
       }
       record_po_issue: {
         Args: { p_file_path: string; p_po_id: string; p_sha256: string }
+        Returns: Json
+      }
+      record_promise_outcome: {
+        Args: { p_note?: string; p_outcome: string; p_promise_id: string }
         Returns: Json
       }
       record_qt_issue: {

@@ -57,6 +57,7 @@ module's own page.
 | 26 | `container_documents_late` | 有 `pending` 单据,且开航已 **7 天** | `module.purchasing.view` | `container_documents` | 排除软删箱子。**从没实例化过清单的箱子沉默**(pending 数为 0)—— 屏幕上由 LOG-5b 的第六句话点名 |
 | 27 | `equipment_service_due` | 一台机器的一条保养间隔【到了】—— 距上一次那一种保养的公斤数或天数,**任一个**达到它自己的间隔 | `module.processing.view` **+ `module.finance.view` via `arm_permission_widen`** —— 机器卡在财务、干活的人在加工,而底下每一张表/视图的读者本来就是这两个码的 OR | `equipment_service_status`(读 `equipment_service_intervals` × `equipment_maintenance` × `processing_runs`) | **间隔是自愿配的**,所以扫描量跟着【间隔行数】走,不跟机器数走 —— 未监控的机器不触发那两个 LATERAL。与 `safety_stock_below` / `credit_over_limit` 同一条 opt-in 的界。`disposition = 'ignore'` 与已处置的机器都不上牌 |
 | 28 | `equipment_service_approaching` | 同一条间隔【快到了】—— 达到 `interval − lead`,但**还没**到期 | 同上 | 同上 | 同上。**与第 27 支互斥**:`is_approaching` 自带 `AND NOT is_due`,所以一台到期的机器不会同时出现在两支里(同一件事数两遍,正是 fixture 30 那句话要抓的东西) |
+| 29 | `promise_overdue` | 一个客户【答应过】的付款，过了他自己说的那个日子还没有被了结 | `module.finance.view` | `collection_promise_status` | **谓词含 `outcome IS NULL AND NOT chase_superseded AND promised_date < CURRENT_DATE`**。三件事各自要紧：① `outcome IS NULL` 是它【清得掉】的全部依据 —— `record_promise_outcome` 一记结局这一行就消失；② `promised_date < CURRENT_DATE` 而不是 `<=`，**今天到期的承诺今天还没有被辜负**，不设宽限期（一个没人调的旋钮会让「逾期」在不同时候意思不同）；③ 被取代的催收上的承诺不再成立，所以它不响。**它是全站唯一一支主语是【一句话】而不是一张单据的臂** —— 而这正是它值得存在的理由：一个记下来却没有人被提醒的承诺，就是表里的一条备注 |
 
 
 
@@ -268,6 +269,7 @@ because a valid uuid pointed at the wrong table opens someone else's document wi
 | `review_submitted` | `/hr/reviews/[id]` | the approval. `item_code` is the employee's |
 | `invoice_overdue` | `/finance/invoices/[id]` | the invoice |
 | `ar_over_90` | `/finance/receivables/[saleId]` | the AR document — whose number *is* the output batch code, by design |
+| `promise_overdue` | `/customers/[id]` | **the customer, not the promise** —— 承诺没有自己的页面，而它也不该有：了结一个承诺要看的是这个客户的整个仓位（欠多少、催过几次、这次答应之后到底核销了多少），而那一屏就是客户档案页。`item_code` 是那条催收的编号 |
 | `ap_over_90` | `/finance/payables/[id]` or `/finance/expenses/[id]` | by `doc_kind`; unknown kind → no link |
 | `fx_rate_gap` | `/finance/fx?currency=<ccy>` | **no row exists** — the subject is a missing rate. An honestly-filtered list, which is not the same thing as a code search |
 | `bank_unmatched` | `/finance/bank/statements/[id]/reconcile` | where matching happens |
