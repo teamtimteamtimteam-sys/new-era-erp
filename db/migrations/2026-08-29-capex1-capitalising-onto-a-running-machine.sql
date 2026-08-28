@@ -1,3 +1,329 @@
+-- db/migrations/2026-08-29-capex1-capitalising-onto-a-running-machine.sql
+-- ════════════════════════════════════════════════════════════════════════════
+-- CAPEX-1:给一台【在跑的】机器资本化后续支出,折旧【向前】摊。
+-- 阶段 4 的最后一件。政策已由 Tim 裁定(accounting-policies.md 4.7,2026-08-24)——
+-- 本刀只负责建它,不重新推导它。
+--
+-- ★★【这一刀改的是【对着已过账分录跑】的算术,而本仓库为这一族付过
+--     SGD 56,532.48】★★(docs/fx-revaluation-misstatement-2026-07.md)
+--   那一次的形状是:一个"从头重算"的聚合,在输入变了之后,悄悄产出了一个
+--   【错的、已经过账的】数字。这里的输入就是 cost_base,而重算就是
+--   累计目标算法 —— 完全同一族。所以:
+--     · 未锚定那一支【一个字没改】;
+--     · 锚定那一支把"过去"换成一个【存下来的常数】,新成本乘不到它身上;
+--     · fixture 144 照那份记录的方法办 ——【先把错的那一版精确复现出来】
+--       (未锚定算术下的回溯补提),再断言实际过账的是向前摊的那个数。
+--
+-- 【建了什么】
+--   · fixed_asset_depreciation_anchors —— 折旧锚点,只可追加,按业务日期排;
+--   · depreciation_months_elapsed —— 在役月数的【纯提取】(原本内联,现在两个起点);
+--   · preview_depreciate_fixed_assets —— 分两支,未锚定那支原样;
+--   · record_expense —— 那条一律拒换成一条【窄】的:经维修记录资本化,
+--     并落一个锚点、回填 capitalised_expense_id(1.5 找到的缺口在此闭合)。
+--
+-- NOTE: 本文件是变更记录;安装路径完全走镜像。
+-- ════════════════════════════════════════════════════════════════════════════
+
+BEGIN;
+
+
+-- db/tables/fixed_asset_depreciation_anchors.sql
+-- CAPEX-1:**折旧的锚点 —— 一次「会计估计变更」从哪个月起、按什么摊。**
+--
+-- ★★【这张表存在的全部理由:让【过去的月份】变成一个存下来的常数】★★
+--   月度例程的算术是【累计目标 − 已提】:
+--       target = LEAST(成本−残值, (成本−残值)/年限月数 × 在役月数)
+--       delta  = target − Σ 已提
+--   于是【把 cost_base 抬高一分钱,每一个已经过去的月份的目标都跟着抬高】,
+--   整笔补提当场落在本期 —— 而那正是 4.7 明令禁止的回溯补charge。
+--
+--   本表把那段过去【冻成一个数】:`pre_anchor_target_base`。锚定之后,
+--   目标 = 那个常数 + 只从锚点往后算的那一段。**过去的月份不再被任何算术
+--   重新推导** —— 它们已经是一个存下来的标量,而不是一个可以被新成本重算的表达式。
+--   这是本刀防住回溯补提的【结构性】做法,不是一句约束。
+--
+-- ★【为什么是【自己一张表】,而不是 fixed_assets 上的三个列】★
+--   一次资本化是一次【会计估计变更】,而估计变更天然是一串,不是一个当前值。
+--   写在资产表上就得覆盖,于是这串历史没了 —— 而审计要看的正是这串。
+--
+-- ★【为什么【不】挂在 fixed_asset_cost_entries 上】★
+--   那张表已经记着每一笔成本追加,挂上去看似免费。但"哪一个锚点对本期有效"
+--   会变成一次【取最新那一行】,而它只能按 created_at 排 —— 那是【事务时刻】,
+--   同一笔事务里的两行完全相同,破平局只剩随机 uuid。
+--   **那正是 AGING-1 栽过的那个坑**(同一份数据两次运行两个答案),
+--   而 AGENTS.md 为它写着一条明规矩:先问这张表排不排得出先后。
+--   所以本表用【业务日期】排:effective_from,并且 (asset_id, effective_from) 唯一。
+--   「本期适用哪个锚点」= effective_from ≤ 期末 里最大的那一个 —— 由业务选的日子
+--   决定,不由写入时刻决定。
+--
+-- 【只可追加】一次估计变更是一件发生过的事。写错了就再加一个锚点,不改旧行。
+-- 写入只走 record_expense 的资本化分支(SECURITY DEFINER);这里只开 SELECT。
+--
+-- NOTE: introduced by db/migrations/2026-08-29-capex1-capitalising-onto-a-running-machine.sql.
+-- First-run script (plain CREATEs). Run in the Supabase SQL Editor.
+
+CREATE TABLE public.fixed_asset_depreciation_anchors (
+    id                     uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    asset_id               uuid NOT NULL REFERENCES public.fixed_assets (id) ON DELETE RESTRICT,
+    -- 【本锚点从哪个月起生效】—— 恒为某个月的 1 号。资本化落在哪个月,
+    -- 就从那个月起按新费率摊(月度例程只在月末被调用,所以"从这个月起"
+    -- 就是"这个月末那一次开始用新算术")。
+    effective_from         date NOT NULL,
+    -- ★【锚点之前那一段的累计目标 —— 一个【存下来的常数】】★
+    --   它【不是】"当时已经提了多少",而是"按锚点【之前】那套算术,
+    --   到锚点前一天为止【应当】累计多少"。两者的区别在欠提时显形:
+    --   欠着的那几期仍然要按【旧费率】补上(delta = target − 已提 会自动做到),
+    --   而不该被卷进新费率里摊掉。
+    pre_anchor_target_base numeric NOT NULL CHECK (pre_anchor_target_base >= 0),
+    -- 【从本锚点起还要摊几个月】按天折算,所以是 numeric 不是 integer。
+    remaining_months       numeric NOT NULL CHECK (remaining_months > 0),
+    -- 触发它的那一笔资本化(以及那条维修记录)。两者都可空是【刻意的】:
+    -- 将来的「使用年限重估」也会落一个锚点,而那一次没有钱经手。
+    expense_id             uuid REFERENCES public.expenses (id),
+    maintenance_id         uuid REFERENCES public.equipment_maintenance (id),
+    -- 为什么变。资本化那一路的理由抄自维修记录(那里有一条 CHECK 逼它非空)。
+    reason                 text NOT NULL CHECK (btrim(reason) <> ''),
+    created_at             timestamptz NOT NULL DEFAULT now(),
+    created_by             uuid DEFAULT auth.uid(),
+    CONSTRAINT fixed_asset_depreciation_anchors_month_is_first
+        CHECK (effective_from = date_trunc('month', effective_from)::date),
+    -- 一个资产在同一个生效月只能有一个锚点 —— 否则"本期适用哪一个"又回到
+    -- 按写入时刻破平局,而那正是本表刻意躲开的那件事。
+    CONSTRAINT fixed_asset_depreciation_anchors_one_per_month
+        UNIQUE (asset_id, effective_from)
+);
+
+CREATE INDEX idx_fa_depr_anchors_asset ON public.fixed_asset_depreciation_anchors (asset_id, effective_from DESC);
+
+-- 只可追加:一次估计变更是一件发生过的事,改它等于改写历史。
+CREATE OR REPLACE FUNCTION public.guard_depreciation_anchor_append_only()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    RAISE EXCEPTION 'DEPRECIATION_ANCHOR_IMMUTABLE|%',
+        COALESCE(OLD.id::text, NEW.id::text);
+END;
+$function$;
+
+CREATE TRIGGER trg_fa_depr_anchors_append_only
+    BEFORE UPDATE OR DELETE ON public.fixed_asset_depreciation_anchors
+    FOR EACH ROW EXECUTE FUNCTION public.guard_depreciation_anchor_append_only();
+
+ALTER TABLE public.fixed_asset_depreciation_anchors ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "fa depreciation anchors select by permission"
+    ON public.fixed_asset_depreciation_anchors
+    AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.finance.view'::text));
+
+COMMENT ON TABLE public.fixed_asset_depreciation_anchors IS
+    'CAPEX-1:折旧的锚点 —— 一次会计估计变更从哪个月起、按什么摊。**它把"过去的月份"冻成一个存下来的常数(pre_anchor_target_base)**,于是抬高成本不再能把过去每一个月的目标一起抬高(4.7 明令禁止的回溯补提)。【自己一张表而不是资产上的三个列】:估计变更天然是一串;【不挂在 fixed_asset_cost_entries 上】:那样"哪个锚点有效"会变成按 created_at 的取最新一行,而那是事务时刻 + 随机 uuid 破平局 —— AGING-1 栽过的坑。这里按业务日期 effective_from 排,(asset_id, effective_from) 唯一。';
+
+COMMENT ON COLUMN public.fixed_asset_depreciation_anchors.pre_anchor_target_base IS
+    'CAPEX-1:按锚点【之前】那套算术,到锚点前一天为止【应当】累计的折旧。**不是"当时已经提了多少"** —— 两者在欠提时不同:欠着的那几期要按旧费率补上(delta = target − 已提 自动做到),不该被卷进新费率里摊掉。它是一个【常数】,而这正是过去的月份不再被重新推导的原因。';
+
+
+-- db/functions/depreciation_months_elapsed.sql
+-- CAPEX-1:直线折旧的【在役月数】—— 首月与末月按天折算。
+--
+-- ★【它是一次【纯提取】,不是一次改写】★
+--   这段算术原本内联在 preview_depreciate_fixed_assets 里,只有一个调用方。
+--   CAPEX-1 之后有两个:未锚定的那一支从【投用日】起算,锚定的那一支从
+--   【锚点生效日】起算 —— 同一段算术,两个起点。
+--   把它复制一份就是两份实现,而这段(首/末月按天折算)恰恰是最容易写错、
+--   又最不容易被看出来的那一段。所以提取,而不是复制。
+--
+-- ★★【而"纯提取"这句话本身要被证明,不是被相信】★★
+--   本仓库为「以为行为不变的改动」付过 SGD 56,532.48
+--   (docs/fx-revaluation-misstatement-2026-07.md)。所以 fixture 144 的 A 臂
+--   在别的臂跑之前,先拿几个【手算出来的】已知值断言这支函数 ——
+--   把"这次重构是干净的"从一句信任变成一次测量。
+--
+-- 【口径,逐字保留自原实现】
+--   · 起点晚于期末 → 0;
+--   · 同一个月内 → (期末 − 起点 + 1) / 当月天数;
+--   · 跨月 → 首月剩余天数占比 + 中间整月数 + 末月已过天数占比。
+--   末月那一项用 EXTRACT(day FROM p_period_end),也就是【期末那一天的日号】——
+--   月末日传进来时它就是整月。这一点看着别扭却是对的:这支例程只在月末被调用。
+
+CREATE OR REPLACE FUNCTION public.depreciation_months_elapsed(p_start date, p_period_end date)
+ RETURNS numeric
+ LANGUAGE plpgsql
+ IMMUTABLE
+AS $function$
+DECLARE
+    v_m0 date;
+    v_mn date;
+BEGIN
+    IF p_start IS NULL OR p_period_end IS NULL OR p_period_end < p_start THEN
+        RETURN 0;
+    END IF;
+    v_m0 := date_trunc('month', p_start)::date;
+    v_mn := date_trunc('month', p_period_end)::date;
+    IF v_m0 = v_mn THEN
+        RETURN (p_period_end - p_start + 1)::numeric
+               / EXTRACT(day FROM (v_m0 + interval '1 month - 1 day'))::numeric;
+    END IF;
+    RETURN ((v_m0 + interval '1 month - 1 day')::date - p_start + 1)::numeric
+               / EXTRACT(day FROM (v_m0 + interval '1 month - 1 day'))::numeric
+           + (EXTRACT(year FROM age(v_mn, v_m0 + interval '1 month'))::numeric * 12
+              + EXTRACT(month FROM age(v_mn, v_m0 + interval '1 month'))::numeric)
+           + EXTRACT(day FROM p_period_end)::numeric
+               / EXTRACT(day FROM (v_mn + interval '1 month - 1 day'))::numeric;
+END;
+$function$;
+
+COMMENT ON FUNCTION public.depreciation_months_elapsed(date, date) IS
+'CAPEX-1:直线折旧的在役月数,首/末月按天折算。**一次纯提取** —— 算术逐字取自
+preview_depreciate_fixed_assets 的内联版本,提取是因为 CAPEX-1 之后有两个起点
+(投用日 / 锚点生效日),而复制一份就是两份实现。
+「纯提取」这句话由 fixture 144 的 A 臂用手算已知值证明,不靠相信 ——
+本仓库为「以为行为不变的改动」付过 SGD 56,532.48。';
+
+
+-- db/functions/preview_depreciate_fixed_assets.sql
+-- 折旧算术的【唯一来源】(FIN-22)。writer(depreciate_fixed_assets)问它,界面也问它 ——
+-- 屏幕预览和真正过账共用同一份算术(ask-the-database 规矩,重估的同款结构)。
+-- 应提 = 目标 − Σ 已提(recorded)。
+-- 负差额报 0:残值/年限被改动导致的下修是【更正】,走人工分录,不由月度例程悄悄回冲。
+--
+-- ════════════════════════════════════════════════════════════════════════════
+-- ★★【CAPEX-1:目标怎么算,现在有两支 —— 而第二支存在的全部理由是
+--     【不许把过去的月份重新推导一遍】】★★
+--
+--   **未锚定(原样,一个字没改):**
+--       target = LEAST(成本−残值, (成本−残值)/年限月数 × 在役月数(投用日→期末))
+--
+--   **已锚定(CAPEX-1 新增):**
+--       target = 锚点前的常数
+--              + LEAST(成本−残值−常数,
+--                      (成本−残值−常数)/锚点剩余月数 × 在役月数(锚点生效日→期末))
+--     整体再封顶在 成本−残值。
+--
+--   【为什么这就防住了回溯补提】原算术里,"过去那一段"是一个【表达式】——
+--   (成本−残值)/年限 × 已过月数 —— 于是抬高成本,过去每一个月的目标一起抬高,
+--   整笔补提落在本期。锚定之后,"过去那一段"是 `pre_anchor_target_base`,
+--   一个【锚定那一刻存下来的标量】。**新成本乘不到它身上,因为它已经不是一个
+--   乘法了。** 这是结构性的,不是一句约束:没有任何路径能让新的 cost_base
+--   参与到锚点之前那一段的计算里。
+--
+--   【4.7 的公式与这里的对应】4.7 写的是
+--   `(cost + addition − residual − accumulated) / remaining_months`。
+--   分子就是 `成本−残值−常数`(成本此时已含追加),分母就是锚点上那个
+--   `remaining_months` —— 逐项对得上,只是这里把它写成累计目标的形式,
+--   好让【幂等靠算术】那条(同期第二次跑差额为 0)原样继续成立。
+--
+--   【在役月数只有一份实现】两支都调 depreciation_months_elapsed(起点, 期末),
+--   只是起点不同。那段首/末月按天折算的算术最容易写错,所以不许有第二份;
+--   而"提取是干净的"由 fixture 144 的 A 臂用手算值证明,不靠相信。
+-- ════════════════════════════════════════════════════════════════════════════
+
+CREATE OR REPLACE FUNCTION public.preview_depreciate_fixed_assets(p_period_end date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+    v_rows   jsonb := '[]'::jsonb;
+    v_total  numeric := 0;
+    v_a      record;
+    v_anchor record;
+    v_months numeric;
+    v_cap    numeric;
+    v_target numeric;
+    v_posted numeric;
+    v_delta  numeric;
+BEGIN
+    PERFORM require_permission('module.finance.view');
+    IF p_period_end IS NULL THEN
+        RAISE EXCEPTION 'DATE_REQUIRED';
+    END IF;
+
+    FOR v_a IN
+        SELECT fa.id, fa.code, fa.description, fa.in_service_date, fa.cost_base,
+               fa.residual_base, fa.useful_life_months, fa.depreciation_account_code
+        FROM fixed_assets fa
+        WHERE fa.status = 'active'
+        ORDER BY fa.code
+    LOOP
+        -- 【每一轮先清空】PL/pgSQL 的 SELECT ... INTO 在无行时会把 record 置空,
+        -- 所以这一句今天是多余的 —— 写出来是因为它防的是【下一次重构】:
+        -- 一个跨迭代残留的锚点会让上一台资产的锚点漏给下一台,
+        -- 而那是一个算得出数、不报错的错误(WHT-1 在 record_payment 里踩过同形)。
+        v_anchor := NULL;
+        -- 【本期适用哪个锚点】= 生效日不晚于期末的那些里,最晚的一个。
+        -- 排序键是【业务日期】effective_from,不是写入时刻 —— 见那张表的表注:
+        -- 按 created_at 取最新是 AGING-1 栽过的坑。
+        SELECT * INTO v_anchor
+        FROM fixed_asset_depreciation_anchors an
+        WHERE an.asset_id = v_a.id AND an.effective_from <= p_period_end
+        ORDER BY an.effective_from DESC
+        LIMIT 1;
+
+        v_cap := round(v_a.cost_base - v_a.residual_base, 2);
+
+        IF NOT FOUND THEN
+            -- ── 未锚定:原样的那一支,逐字保留 ────────────────────────────
+            -- 【未投用 → 0】由 depreciation_months_elapsed 自己处理(起点为 NULL 返回 0),
+            -- 所以这里不再重复那个判断 —— 两处判 NULL 就是两份实现的小号版本。
+            v_months := depreciation_months_elapsed(v_a.in_service_date, p_period_end);
+            v_target := LEAST(v_cap,
+                              round((v_a.cost_base - v_a.residual_base)
+                                    / v_a.useful_life_months * v_months, 2));
+        ELSE
+            -- ── 已锚定:过去那一段是【常数】,只往前算 ────────────────────
+            v_months := depreciation_months_elapsed(v_anchor.effective_from, p_period_end);
+            v_target := v_anchor.pre_anchor_target_base
+                      + LEAST(round(v_cap - v_anchor.pre_anchor_target_base, 2),
+                              round((v_cap - v_anchor.pre_anchor_target_base)
+                                    / v_anchor.remaining_months * v_months, 2));
+            -- 整体封顶:任何情况下都不许提过 成本−残值。
+            v_target := LEAST(v_cap, round(v_target, 2));
+        END IF;
+
+        SELECT COALESCE(SUM(d.amount_base), 0) INTO v_posted
+        FROM fixed_asset_depreciation d WHERE d.asset_id = v_a.id;
+        v_delta := round(v_target - v_posted, 2);
+        -- 负差额不冲回:残值/年限被改动导致的目标下修是【更正】,走人工分录,
+        -- 不由月度例程悄悄回冲。这里报 0。
+        -- 【4.7 刻意模仿了这一侧】月度例程两个方向都不往回够:向上的变化从此刻起
+        -- 往前摊(锚点),向下的变化仍然是一次更正、仍然走人工分录。
+        IF v_delta < 0 THEN v_delta := 0; END IF;
+        v_total := v_total + v_delta;
+
+        v_rows := v_rows || jsonb_build_object(
+            'asset_id', v_a.id, 'code', v_a.code, 'description', v_a.description,
+            'account', v_a.depreciation_account_code,
+            'target_base', v_target, 'posted_base', v_posted, 'delta_base', v_delta,
+            -- 【本期这一行是按哪套算术算的,说出来】屏幕与导出都读得到它;
+            -- 一个数字旁边写着它的来路,比事后去猜便宜得多。
+            'anchored', (v_anchor.id IS NOT NULL),
+            'anchor_from', v_anchor.effective_from,
+            'pre_anchor_target_base', v_anchor.pre_anchor_target_base,
+            'anchor_remaining_months', v_anchor.remaining_months);
+    END LOOP;
+
+    RETURN jsonb_build_object('period_end', p_period_end, 'rows', v_rows,
+                              'total_delta', round(v_total, 2));
+END;
+$function$;
+
+COMMENT ON FUNCTION public.preview_depreciate_fixed_assets(date) IS
+'折旧算术的唯一来源(FIN-22),CAPEX-1 起分两支。**未锚定那一支一个字没改。**
+已锚定那一支把"锚点之前"换成一个存下来的常数 pre_anchor_target_base,只从锚点
+往后算 —— 于是抬高 cost_base 再也乘不到过去的月份上,4.7 禁止的回溯补提在
+【结构上】不可能发生,不是靠一句约束拦着。两支共用 depreciation_months_elapsed,
+所以首/末月按天折算只有一份实现。';
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- record_expense:先 DROP 旧签名 —— 加参数就是换签名,而 CREATE OR REPLACE 会
+-- 留下一个旧重载(db/preflight_migration.py 对此按名拒,理由是旧签名会作为镜像
+-- 看不见的漂移活下来,FIN-21)。GST-2 与 WHT-1 走的都是这一步。
+-- ─────────────────────────────────────────────────────────────────────────────
+DROP FUNCTION IF EXISTS public.record_expense(date, text, numeric, text, numeric, text, text, uuid, text, text, jsonb, uuid, uuid, text, text, numeric, text);
+
 CREATE OR REPLACE FUNCTION public.record_expense(p_expense_date date, p_account_code text, p_amount numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_payment_status text DEFAULT 'paid'::text, p_bank_account text DEFAULT NULL::text, p_supplier_id uuid DEFAULT NULL::uuid, p_payee_name text DEFAULT NULL::text, p_notes text DEFAULT NULL::text, p_asset jsonb DEFAULT NULL::jsonb, p_employee_id uuid DEFAULT NULL::uuid, p_purchase_order_line uuid DEFAULT NULL::uuid, p_tax_code text DEFAULT NULL::text, p_wht_nature text DEFAULT NULL::text, p_wht_rate_pct numeric DEFAULT NULL::numeric, p_wht_treaty_ref text DEFAULT NULL::text, p_maintenance_id uuid DEFAULT NULL::uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -715,3 +1041,6 @@ BEGIN
 END;
 $function$
 ;
+
+
+COMMIT;

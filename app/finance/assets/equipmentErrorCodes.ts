@@ -80,6 +80,17 @@ const EQUIPMENT_ERROR_CODES = new Set([
     // 的 2027-01-01 今天就拦得住)。那一刀在队列里;在它落地之前,这两句是
     // 这条路上唯一的人话。
     'ASSET_ALREADY_IN_SERVICE',
+    // ── CAPEX-1:给一台在跑的机器资本化后续支出 ─────────────────────────────
+    // 【逐条从函数体数出来的】重数一遍(把 CODES 换成下面那几个码的交替式):
+    //   grep -rhoE "RAISE EXCEPTION .(CODES)" db/functions/*.sql db/tables/*.sql
+    // 【为什么不把那个正则原样写在这里】check-i18n 从这个 Set 的字面量里
+    // 数键,而它按【单引号配对】切 —— 注释里一个落单的单引号就会让它把
+    // 半条注释读成一个键(实测:构建当场报一串 expense.errors. 的空后缀)。
+    // 所以这条命令写成不含引号的形状,而不是删掉它:它是这张表怎么来的唯一出处。
+    'ASSET_IN_SERVICE_NEEDS_MAINTENANCE', 'MAINTENANCE_NOT_FOUND',
+    'MAINTENANCE_ASSET_MISMATCH', 'MAINTENANCE_NOT_CAPITALISED',
+    'MAINTENANCE_ALREADY_CAPITALISED', 'MAINTENANCE_NOT_APPLICABLE',
+    'ASSET_LIFE_EXHAUSTED', 'DEPRECIATION_ANCHOR_IMMUTABLE',
     'ASSET_DISPOSED',
 ])
 

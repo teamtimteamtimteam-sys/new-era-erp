@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -3641,6 +3641,88 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "journal_entries"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      fixed_asset_depreciation_anchors: {
+        Row: {
+          asset_id: string
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          expense_id: string | null
+          id: string
+          maintenance_id: string | null
+          pre_anchor_target_base: number
+          reason: string
+          remaining_months: number
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          created_by?: string | null
+          effective_from: string
+          expense_id?: string | null
+          id?: string
+          maintenance_id?: string | null
+          pre_anchor_target_base: number
+          reason: string
+          remaining_months: number
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          expense_id?: string | null
+          id?: string
+          maintenance_id?: string | null
+          pre_anchor_target_base?: number
+          reason?: string
+          remaining_months?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fixed_asset_depreciation_anchors_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_service_status"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "fixed_asset_depreciation_anchors_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_usage"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "fixed_asset_depreciation_anchors_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fixed_asset_depreciation_anchors_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fixed_asset_depreciation_anchors_maintenance_id_fkey"
+            columns: ["maintenance_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_maintenance"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fixed_asset_depreciation_anchors_maintenance_id_fkey"
+            columns: ["maintenance_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_maintenance_advice"
+            referencedColumns: ["maintenance_id"]
           },
         ]
       }
@@ -18991,6 +19073,10 @@ export type Database = {
         Returns: Json
       }
       depreciate_fixed_assets: { Args: { p_period_end: string }; Returns: Json }
+      depreciation_months_elapsed: {
+        Args: { p_period_end: string; p_start: string }
+        Returns: number
+      }
       derived_stock_qty: {
         Args: {
           p_inbound_batch_id: string
@@ -19518,6 +19604,7 @@ export type Database = {
           p_employee_id?: string
           p_expense_date: string
           p_fx_rate?: number
+          p_maintenance_id?: string
           p_notes?: string
           p_payee_name?: string
           p_payment_status?: string

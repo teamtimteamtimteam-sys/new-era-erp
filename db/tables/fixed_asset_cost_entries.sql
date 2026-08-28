@@ -4,10 +4,17 @@
 -- NOTE: introduced by db/migrations/2026-08-16-fa1a-commissioning-and-the-lock-gate.sql.
 -- First-run script (plain CREATEs).
 --
--- 【投用即冻结】in_service_date 一旦有值,record_expense 就拒绝再往这台资产上追加
--- (ASSET_ALREADY_IN_SERVICE)—— 折旧从投用日起按当时的 cost_base 算,事后加钱
--- 会让已经提过的各期全错,而它们可能已经锁进期间。投用后的支出是一次会计判断
--- (资本化改良 vs 当期费用),不由这条路顺手做。
+-- 【投用【不再】冻结成本 —— CAPEX-1,2026-08-29,原文写的是"投用即冻结"】
+-- 旧规矩:in_service_date 一有值,record_expense 就一律拒绝追加
+-- (ASSET_ALREADY_IN_SERVICE)。它护住的两件事仍然成立,只是护法换了:
+--   ① 已提各期会全错 —— 现在由【折旧锚点】结构性地防住
+--      (fixed_asset_depreciation_anchors:锚点之前那一段是一个存下来的常数,
+--       新成本乘不到它身上),而不是靠"不许加钱";
+--   ② 投用后的支出是一次会计判断 —— 这一条【原样保留】,只是判断现在有地方写了:
+--      必须先有一条标了资本化并写明理由的 equipment_maintenance 记录
+--      (政策 4.7)。没有它,record_expense 仍然按名拒
+--      (ASSET_IN_SERVICE_NEEDS_MAINTENANCE),并且指路。
+-- 于是本表在【投用之后】也会长出行来,来源列 expense_id 指着那笔资本化支出。
 -- 写入只经 record_expense 的资本分支;本表【没有 INSERT/UPDATE 策略】。
 
 CREATE TABLE public.fixed_asset_cost_entries (

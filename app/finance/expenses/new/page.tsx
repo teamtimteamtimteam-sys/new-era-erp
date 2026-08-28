@@ -51,8 +51,11 @@ export default async function NewExpensePage() {
             .order('legal_name'),
         // ── EQP-1c-c:【已登记、还能加成本】的机器 ────────────────────────────
         // 判据照抄 record_expense 追加支自己那两条拒绝(见它的函数体):
-        //   ASSET_ALREADY_IN_SERVICE → in_service_date 必须为空
-        //   ASSET_DISPOSED           → status 必须是 active
+        //   ASSET_IN_SERVICE_NEEDS_MAINTENANCE → 这条路上 in_service_date 必须为空
+        //   ASSET_DISPOSED                     → status 必须是 active
+        // 【CAPEX-1 改的是第一条的名字与含义,不是这个过滤】投用之后成本加得上去了,
+        // 但【只能经由那台机器的维修记录】(政策 4.7)—— 这张表单不是那条路,
+        // 所以它照样只列未投用的,并由 expense.form.existingAssetHint 点名该去哪儿。
         // 【为什么照抄而不是自己想一套】列表若比函数宽,人会挑到一台注定被拒的机器;
         // 若比函数窄,人会以为某台机器加不了成本 —— 而两种都不是这张表单该做的判断。
         supabase.from('fixed_assets')

@@ -519,6 +519,28 @@ point at all** — the list linked only to `/edit` — and the check reported cl
 correctly, because the page is dynamic. **When you add an `[id]` page, confirm its
 entry point by hand.**
 
+**A third blind spot, and it bounds what a CONTENT assertion can ever check
+(CAPEX-1, 2026-08-29): the fast half is `fetch`, not a browser — so anything
+behind a client-side toggle is invisible to it.**
+
+CAPEX-1 rewrote six message keys that had said "commissioning freezes the cost",
+and the check it most wanted was *did those sentences actually leave the screen* —
+「一条记录活得比它的主语久」being this repo's most repeated defect, whose failure
+mode is that **nothing errors**. Two content assertions were written for exactly
+that, and **both went red against clean 200s**: `expense.form.existingAssetHint`
+renders only after `isAppend`, `purchasing.form.assetLineHint` only after
+`isEquipment`, `assets.actions.commissionWhy` only once the panel is expanded.
+None of the three is in the server-rendered HTML, nor in the next-intl payload.
+
+**The red was the JUDGEMENT, not the page** — the same family as the `&` that the
+server escapes to `&amp;`, and as `name="supplier_id"`: **a criterion that can
+never be satisfied is a bad criterion, and it reports as "the feature is
+broken".** So before adding a `MUST_CONTAIN` needle, ask: **is this string in the
+DEFAULT render, or does a person have to click something first?** If a click is
+required, this harness cannot see it, and the honest disposition is to say so
+where the assertion would have gone rather than delete the idea silently — which
+is what `scripts/smoke-routes.mjs` now does above `MUST_CONTAIN`.
+
 **A second blind spot, same shape, found by a human clicking (FIX-1,
 2026-08-18): a link hidden by CSS is reachable to the walker and invisible to
 the person.** The inbound list carried both of its entry points as plain `<a>`

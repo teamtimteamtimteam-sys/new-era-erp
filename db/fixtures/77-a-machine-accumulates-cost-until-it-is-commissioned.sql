@@ -1,4 +1,4 @@
--- 77 固定资产:投用之前一直在攒成本,投用那一刻冻住并开始折旧;
+-- 77 固定资产:投用之前一直在攒成本,投用那一刻开始折旧(**CAPEX-1 之后成本不再"冻住"** —— 见 ③);
 --    而折旧还欠着的月份【锁不进去】(FA-1a)
 --
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -10,9 +10,13 @@
 --   ② 【每一笔带自己的汇率】进口机器按购置日折算、本地运费按运费日折算。
 --      合计只有 cost_base 一个数,而各笔的原币可以不同 —— 所以明细表存在,
 --      "这个数怎么来的"才答得出来。B 臂用两个不同币种、不同汇率的追加钉住它。
---   ③ 【投用即冻结】投用之后再追加成本 → 按名拒。理由不是洁癖:投用那一刻起
---      折旧按当时的成本算,事后加钱会让已经提过的那几期全错,而它们可能已经
---      锁进期间。C 臂。
+--   ③ 【投用之后【裸】追加 → 按名拒并指路】—— **CAPEX-1 把这一条改窄了(2026-08-29)。**
+--      原文写的是"投用即冻结":投用之后一律不许再加成本。**那句话不再成立** ——
+--      投用之后加得上去,但**必须经一条标了资本化并写明理由的维修记录**(政策 4.7)。
+--      本 fixture 钉的是那条【窄】拒:没有维修记录、或指着一条不存在的记录 → 按名拒。
+--      **它守的是"这是一次会计判断"那一半**;FIN-22 原本一并守着的另一半
+--      ("已提各期会全错")现在由【折旧锚点】结构性地防住 —— 那一半由 fixture 144 证明,
+--      不由这一份。D 臂。
 --   ④ 【折旧还欠着就锁不进去】月结链条的注释一直写着"锁进去的月份都要包含它",
 --      而 FA-0 实测 lock 只看重估。E 臂三态:欠着 → 点名拒并说出金额;
 --      提完了(差额 0)→ 放行;根本没有资产 → 放行。
@@ -46,14 +50,15 @@ BEGIN
     -- EQP-1b-ii:又多了 p_purchase_order_line(这笔支出付的那一条采购单行),再跟着改。
     -- GST-2:再多一个 p_tax_code(进项税码),第三次跟着改 —— 见下面那段话。
     -- WHT-1:再多三个(p_wht_nature / p_wht_rate_pct / p_wht_treaty_ref),第四次跟着改。
-    -- **这一次它又红了,而它红得对** —— 下面那句"一定会在这里红一次"是四刀前
-    -- 写下来的预言,四次全中。改签名的人读到这里就知道自己要确认什么。
+    -- CAPEX-1:再多一个 p_maintenance_id(那条【标了资本化】的维修记录),第五次跟着改。
+    -- **这一次它又红了,而它红得对** —— 下面那句"一定会在这里红一次"是五刀前
+    -- 写下来的预言,五次全中。改签名的人读到这里就知道自己要确认什么。
     --【它把签名钉死是对的】—— 注入要替换的就是这一个具体的函数。
     -- 【所以改 record_expense 的签名,一定会在这里红一次,而那是【对的】】
-    -- 四次都是这样(PAYEE-1a、EQP-1b-ii、GST-2、WHT-1),所以它是规律不是意外:regprocedure 找不到
+    -- 五次都是这样(PAYEE-1a、EQP-1b-ii、GST-2、WHT-1、CAPEX-1),所以它是规律不是意外:regprocedure 找不到
     -- 那个签名就当场报错,于是"签名动了"永远不会静悄悄地过去。改签名的人在这里
     -- 补一个类型,顺带确认自己知道这份 fixture 在注入什么。
-    'public.record_expense(date,text,numeric,text,numeric,text,text,uuid,text,text,jsonb,uuid,uuid,text,text,numeric,text)'::regprocedure);
+    'public.record_expense(date,text,numeric,text,numeric,text,text,uuid,text,text,jsonb,uuid,uuid,text,text,numeric,text,uuid)'::regprocedure);
     def_close := pg_get_functiondef('public.close_period(date,text)'::regprocedure);
     def_sis   := pg_get_functiondef('public.set_asset_in_service(uuid,date)'::regprocedure);
 
@@ -153,20 +158,36 @@ BEGIN
             COALESCE(v_msg,'(记进去了)');
     END IF;
 
-    -- ══════════ D. 投用:冻结成本,折旧从那一天起算 ═══════════════════════════
+    -- ══════════ D. 投用:折旧从那一天起算;裸追加按名拒并指路 ═══════════════════
     -- 投用日 3/16,三月 31 天 → 首月按天:14950/100 × 16/31 = 77.16…
     v_r := set_asset_in_service(v_asset, '2026-03-16');
     IF (v_r->>'in_service_date') <> '2026-03-16' THEN
         RAISE EXCEPTION 'FIXTURE 77D 失败:投用日应当写进去,实得 %', v_r::text;
     END IF;
 
-    -- 投用之后不许再追加 —— 这一条是本刀的第三个决定
+    -- ★【CAPEX-1 改写(2026-08-29):这里断言的曾经是一条【一律拒】,现在是一条【窄拒】】★
+    --   原文:投用之后一律不许追加(ASSET_ALREADY_IN_SERVICE)。
+    --   现在:投用之后【可以】追加,但**必须经一条标了资本化并写明理由的维修记录**
+    --   (政策 4.7)。**没有那条记录,这条路照样走不通,而且是按名拒并指路的。**
+    --   本臂断言的正是那条【窄】拒 —— 它守住的是"这是一次会计判断"那一半;
+    --   而"已提各期会全错"那一半改由折旧锚点结构性地防住,由 fixture 144 证明。
     v_denied := false; v_msg := NULL;
     BEGIN PERFORM record_expense('2026-03-20', '1500', 500, 'SGD', NULL, 'unpaid', NULL, v_sup, NULL, NULL,
         jsonb_build_object('asset_id', v_asset));
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
-    IF NOT v_denied OR v_msg NOT LIKE 'ASSET_ALREADY_IN_SERVICE|%' THEN
-        RAISE EXCEPTION 'FIXTURE 77D 失败:投用之后不该再追加成本(那会让已提的各期全错),实得 %',
+    IF NOT v_denied OR v_msg NOT LIKE 'ASSET_IN_SERVICE_NEEDS_MAINTENANCE|%' THEN
+        RAISE EXCEPTION 'FIXTURE 77D 失败:投用之后【裸】追加成本要按名拒并指路(要走维修记录),实得 %',
+            COALESCE(v_msg,'(加进去了)');
+    END IF;
+    -- 【递一条不存在的维修记录也不行】—— 否则那条"必须经维修记录"只是一个参数名,
+    -- 而不是一道门。这一句让"传了 p_maintenance_id 就放行"的实现过不去。
+    v_denied := false; v_msg := NULL;
+    BEGIN PERFORM record_expense('2026-03-20', '1500', 500, 'SGD', NULL, 'unpaid', NULL, v_sup, NULL, NULL,
+        jsonb_build_object('asset_id', v_asset), NULL, NULL, NULL, NULL, NULL, NULL,
+        '00000000-0000-0000-0000-000000000000'::uuid);
+    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
+    IF NOT v_denied OR v_msg NOT LIKE 'MAINTENANCE_NOT_FOUND|%' THEN
+        RAISE EXCEPTION 'FIXTURE 77D 失败:指着一条不存在的维修记录应当按名拒,实得 %',
             COALESCE(v_msg,'(加进去了)');
     END IF;
     IF (SELECT cost_base FROM fixed_assets WHERE id = v_asset) <> 14950 THEN
@@ -252,13 +273,23 @@ BEGIN
     END IF;
     UPDATE finance_settings SET locked_before = NULL;
 
-    -- ══════════ 注入 2:摘掉"投用之后不许追加"那道门 ═════════════════════════
+    -- ══════════ 注入 2:摘掉"投用之后必须经维修记录"那道门 ═══════════════════
+    -- 【CAPEX-1 改写】原来注入的是那条【一律拒】的原文(ASSET_ALREADY_IN_SERVICE),
+    -- 而那段字节已经不在函数里了 —— 照抄旧原文,这个注入会【什么也删不掉】,
+    -- 而它自己的守卫(v_inj = def_rec)正是为了让那一刻响亮地失败,不是悄悄变绿。
+    -- 现在注入的是那条【窄】拒:摘掉它,一次裸追加就该真的加进去。
     -- 同样没有第二层:表上没有任何约束阻止 cost_base 在投用之后变大。
-    v_inj := regexp_replace(def_rec,
-        'IF v_target\.in_service_date IS NOT NULL THEN\s*RAISE EXCEPTION ''ASSET_ALREADY_IN_SERVICE\|%\|%'', v_target\.code, v_target\.in_service_date;\s*END IF;',
-        '');
+    -- 【注入点选的是那个【判据】,不是那句 RAISE】—— 判据只有一行,
+    -- 而 RAISE 那一句跨三行还带一段 HINT,拿它做正则会在下一次改文案时静默失配
+    -- (**这一次就是这么红的**:第一版正则假设 RAISE 在一行里,gate 当场
+    -- 报「这个注入什么也没删」—— 而那正是那句守卫存在的理由,它没有静悄悄地过去)。
+    -- 两处 in_service_date 判据一起摘掉是【对的】:第一处是那道门,第二处是落锚点,
+    -- 两个都关掉之后,函数就是 CAPEX-1 之前那副样子 —— 裸追加直接改成本、不落锚点。
+    v_inj := replace(def_rec,
+        'IF v_target.in_service_date IS NOT NULL THEN',
+        'IF false THEN');
     IF v_inj = def_rec THEN
-        RAISE EXCEPTION 'FIXTURE 77 注入2 失败:在 record_expense 里没找到【投用即冻结】那道门的原文 —— 这个注入什么也没删';
+        RAISE EXCEPTION 'FIXTURE 77 注入2 失败:在 record_expense 里没找到【投用后必须经维修记录】那道门的原文 —— 这个注入什么也没删';
     END IF;
     EXECUTE v_inj;
     SELECT cost_base INTO v_cost FROM fixed_assets WHERE id = v_asset2;

@@ -76,6 +76,42 @@ export async function recordMaintenance(input: {
     return { success: true }
 }
 
+// ── CAPEX-1:对着一条【已标资本化】的维修记录,把钱加到这台在跑的机器上 ──────
+// ★【为什么入口在这里,不在费用表单上】★ Tim 2026-08-29 裁定:资本化的判断与
+//   它的理由只住在一个地方 —— equipment_maintenance。费用表单没有那条记录的上下文,
+//   在那里加一个自由文本的理由,就是把同一个判断放进两张表、而且两处之间没有链接。
+//   所以这条路从维修记录出发,而 record_expense 对没有维修记录的那条路【按名拒】
+//   并指路(ASSET_IN_SERVICE_NEEDS_MAINTENANCE)。
+// 【一行算术都不在这里】金额、锚点、剩余月数全部由 record_expense 决定 ——
+//   屏幕不许重新实现一条过账规则。
+export async function capitaliseMaintenance(input: {
+    assetId: string; maintenanceId: string; expenseDate: string
+    amount: string; currency: string; supplierId: string; taxCode: string
+}): Promise<ActState> {
+    const amount = Number(input.amount)
+    if (!input.expenseDate) return { error: await localizeEquipmentError('DATE_REQUIRED') }
+    if (!input.amount || Number.isNaN(amount) || amount <= 0) {
+        return { error: await localizeEquipmentError('AMOUNT_INVALID') }
+    }
+    const supabase = await createClient()
+    const { error } = await supabase.rpc('record_expense', {
+        p_expense_date: input.expenseDate,
+        // 【资本支出的借方就是 1500】record_expense 把它定死了,而 1500 ↔ p_asset
+        // 是那条路上唯一的不变量 —— 照抄,不另想一套。
+        p_account_code: '1500',
+        p_amount: amount,
+        p_currency: input.currency,
+        p_payment_status: 'unpaid',
+        p_supplier_id: input.supplierId || undefined,
+        p_asset: { asset_id: input.assetId },
+        p_maintenance_id: input.maintenanceId,
+        ...(input.taxCode ? { p_tax_code: input.taxCode } : {}),
+    })
+    if (error) return { error: await localizeEquipmentError(error.message) }
+    refresh(input.assetId)
+    return { success: true }
+}
+
 // ── P3:开一段停机 ─────────────────────────────────────────────────────────
 export async function openDowntime(input: {
     assetId: string; startedAt: string; reason: string; notes: string

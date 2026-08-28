@@ -77,8 +77,13 @@ export default async function NewOrderPage() {
             .from('payment_term_template_lines_masked')
             .select('template_id, seq, label, percentage, fixed_amount_ccy, trigger_event, days_offset')
             .order('seq'),
-        // 可挑的机器:在册(active)、【还没投用】的卡。投用之后成本就冻住了
-        // (record_expense 按名拒追加),再给它开一张采购单没有意义。
+        // 可挑的机器:在册(active)、【还没投用】的卡。
+        // 【CAPEX-1 之后这个过滤仍然对,但理由变了】投用之后成本【不再冻住】——
+        // 加得上去,只是那条路必须经过那台机器的【维修记录】(政策 4.7),
+        // 而不是一张采购单。所以这里照样只列未投用的:服务端对已投用的资产
+        // 按名拒(ASSET_IN_SERVICE_NEEDS_MAINTENANCE),不该 offer 一个注定被拒的选项。
+        // 【缺席要具名】这一点由表单上那句 hint 说出来,它点名了该去哪儿 ——
+        // 一个静默消失的选项与一条刻意的限制长得一模一样(FIN-16 那一课)。
         canSeeAssets
             ? supabase.from('fixed_assets')
                 .select('id, code, description, cost_base')

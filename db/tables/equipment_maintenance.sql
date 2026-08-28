@@ -84,12 +84,17 @@ Tim 的规矩有两半:延长寿命或提高产能(人的判断),【并且】花
 以及 maintenance_settings 的表注。本表存的是那个【判断】和它的【理由】:
 capitalised = true 而没有 capitalisation_reason 的行,表上那条 CHECK 直接拒。
 
-【capitalised_expense_id 今天对一台【在跑的】机器建不出来 —— 这不是本表的毛病】
-record_expense 的追加支在资产已投用时按名拒(ASSET_ALREADY_IN_SERVICE),
-理由是 FIN-22 明写的:投用后的追加是一次会计判断,交还给人。而一台需要大修的
-机器几乎按定义就是已投用的。所以这一列对【投用之前】的工作是对的、也是将来那条路
-落地时的落点,但今天它在大修这条常见路径上【填不了】。
-记在 docs/known-issues.md,带返回条件。**不要把它读成一条走得通的路。**
+【capitalised_expense_id 现在填得了了 —— CAPEX-1,2026-08-29】
+原文说的是"这一列对一台在跑的机器建不出来",理由是 record_expense 一律按名拒
+(ASSET_ALREADY_IN_SERVICE)。**那条一律拒已经换成一条窄的**:资产已投用时,
+追加成本必须【经由本表的一行】—— 标了 capitalised、写了理由、且还没有资本化过。
+条件不满足时按名拒并指路(ASSET_IN_SERVICE_NEEDS_MAINTENANCE /
+MAINTENANCE_NOT_CAPITALISED / MAINTENANCE_ALREADY_CAPITALISED 等)。
+★【为什么偏偏是这张表】★(Tim 2026-08-24)判断与理由只住在这里,
+而"钱要不要进成本"就是那个判断。让支出表单也能独立地做这件事,
+等于【两个源头 + 一条优先级规则】—— 一份第二定义披着破平局的外衣。
+所以只留一个源头,另一条路按名拒。
+写它的是 record_expense 的资本化分支(SECURITY DEFINER);本表没有 UPDATE 策略。
 
 【更正的形状:可改 + 留痕,没有历史表 —— 与 equipment_downtime 一致】
 成对旧/新的强类型历史(purchase_order_history)是给【会被改单并重新签发给对方的

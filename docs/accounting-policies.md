@@ -257,17 +257,24 @@ anywhere in the system.**
 
 > *Enforcement:* `depreciate_fixed_assets`; fixture 16.
 
-### 4.3 An asset accumulates cost until it is commissioned; at commissioning the cost is frozen and depreciation begins. — **SETTLED, and since 2026-08-24 QUALIFIED by 4.7**
+### 4.3 An asset accumulates cost until it is commissioned; at commissioning depreciation begins, and the cost the charges so far were based on is frozen. — **SETTLED, QUALIFIED by 4.7 (2026-08-24), and BUILT (CAPEX-1, 2026-08-29)**
 
 Freight, duty and installation on the same machine are additions to that asset, entered through the
 same door as the machine itself, each translated at its own date's rate.
 
-> **The word "frozen" is now narrower than it reads.** Until 2026-08-24 it meant *no cost may ever be
-> added after commissioning*, and `record_expense` enforced exactly that by refusing
-> (`ASSET_ALREADY_IN_SERVICE`). **4.7 rules that subsequent expenditure IS permitted**, spread
-> prospectively. So 4.3 now means: **the cost that the depreciation charged so far was based on is
-> frozen** — history is never rewritten — not that the asset can never take another dollar.
-> **The refusal is still in force and stays in force until the 4.7 cut lands.**
+> **The word "frozen" is narrower than it used to read, and as of CAPEX-1 the code agrees with the
+> narrower reading.** Until 2026-08-24 it meant *no cost may ever be added after commissioning*, and
+> `record_expense` enforced exactly that with a blanket refusal (`ASSET_ALREADY_IN_SERVICE`).
+> **4.7 ruled that subsequent expenditure IS permitted**, spread prospectively, and **CAPEX-1 built
+> it (2026-08-29)**. So 4.3 means, and now only means: **the cost that the depreciation charged so
+> far was based on is frozen** — history is never rewritten — not that the asset can never take
+> another dollar.
+>
+> **The blanket refusal is gone; a narrower one took its place.** An in-service asset may take cost
+> only through a maintenance record flagged as capitalised and carrying a reason; without one,
+> `record_expense` refuses by name (`ASSET_IN_SERVICE_NEEDS_MAINTENANCE`) and says where to go.
+> The judgement FIN-22 protected is still handed to a human — it just has somewhere to be written
+> down now, instead of only somewhere to be turned away.
 
 > *Enforcement:* `record_expense`'s capital branch requires an asset reference; fixtures 77, 105, 107.
 
@@ -323,10 +330,38 @@ asserting the opposite.
 > An upward change goes forward from now; a downward change is still a correction and still belongs
 > in a manual entry. The two halves now agree, where before only one of them had been ruled on.
 
-> *Enforcement:* **not yet built.** The refusal `ASSET_ALREADY_IN_SERVICE` in `record_expense` remains
-> in force until the queued cut lands. When it lands, five message keys asserting that commissioning
-> freezes the cost, and `docs/manual-walk-list.md` §9's step that checks for them, retire in the same
-> commit — see `docs/phase4-survey.md` §6b.
+> *Enforcement:* **BUILT — CAPEX-1, 2026-08-29.** `fixed_asset_depreciation_anchors` +
+> `preview_depreciate_fixed_assets`'s anchored branch + `record_expense`'s narrowed refusal;
+> fixtures 77 and 144.
+>
+> **How the back-charge is prevented, in one sentence, because "a rule says not to" is not a
+> mechanism:** the anchor stores the pre-anchor cumulative target as a **scalar**
+> (`pre_anchor_target_base`), so the months before the addition are no longer *derived* from
+> `cost_base` at all — **a raised cost base has nothing to multiply against them.** The old
+> arithmetic could not have been made safe by a check; it had to stop being a multiplication.
+>
+> **The retirement that came with it** — the frozen-cost copy: **six** message keys, not the five
+> `docs/phase4-survey.md` §6b counted (and two of those five were filed under the wrong namespace),
+> plus `docs/manual-walk-list.md` §9's step that checks for them, plus the table comments on
+> `fixed_asset_cost_entries` and `equipment_maintenance`, the asset-picker comments on the expense
+> and purchase-order forms, `docs/fixed-asset-procedures.md` §四, and `docs/known-issues.md`'s entry
+> for the unfillable `capitalised_expense_id`. All in this commit.
+>
+> ★ **What CAPEX-1 did NOT do, and it changes what an operator gets** ★ — **the useful life is not
+> revised.** An overhaul is spread over the **OLD remaining months**, because that is what 4.7's
+> formula says and 4.7 is the ruled policy. So a machine everyone agrees will now run five years
+> longer **still finishes depreciating on its old schedule**, with a larger charge per month rather
+> than the same charge over a longer life. That is a known, named limitation, not an oversight; the
+> queued item and its trigger are in `docs/forward-queue.md` (**trigger: the first capitalisation
+> whose justification is a life extension**). The right end state is a life revision that lands its
+> own anchor with a new `remaining_months` — the anchor table was built to take one, which is why it
+> allows `expense_id` and `maintenance_id` to be NULL.
+>
+> **Reversal after commissioning stays refused, for its OWN reason.** `reverse_expense`'s
+> `ASSET_IN_SERVICE_COST_LOCKED` is untouched. **The two are not symmetric and must not be
+> collapsed:** an addition is a new event and goes forward; a reversal asserts the original entry
+> should never have existed, which is retrospective, and 4.7 authorises nothing retrospective. The
+> same asymmetry the negative-delta floor already expresses.
 
 ---
 

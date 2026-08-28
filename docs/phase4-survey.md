@@ -242,15 +242,24 @@ not symmetric**, and any design for this item must say which of the two it is im
 
 ### 6b · The commissioning copy — half of the brief's premise is FALSE
 
-**"The sentence is still there" — confirmed, and there are FIVE of them, not one**, en/zh at parity:
+**"The sentence is still there" — confirmed. This section said FIVE; ~~FIVE~~ **there are SIX**, and
+two of the five were filed under the wrong namespace.** Corrected 2026-08-29 by CAPEX-1, which
+resolved each key to its namespace before retiring it — en/zh at parity throughout:
 
-| key | says |
-|---|---|
-| `assets.readyToCommission` | "commissioning FREEZES the cost — nothing can be added afterwards" |
-| `assets.commissionWhy` | "…FREEZES the cost — no further cost can be added to this asset afterwards" |
-| `equipment.…existingAssetHint` | "Once a machine is commissioned its cost is frozen" |
-| `finance.errors.ASSET_ALREADY_IN_SERVICE` | 成本已冻结、折旧已开始 |
-| `equipment.errors.ASSET_ALREADY_IN_SERVICE` | 从那天起它的成本就冻住了 |
+| key | says | note |
+|---|---|---|
+| `assets.readyToCommission` | "commissioning FREEZES the cost — nothing can be added afterwards" | |
+| `assets.commissionWhy` | "…FREEZES the cost — no further cost can be added to this asset afterwards" | |
+| `expense.form.existingAssetHint` | "Once a machine is commissioned its cost is frozen" | ~~`equipment.…existingAssetHint`~~ — **it is an `expense.*` key** |
+| `finance.errors.ASSET_ALREADY_IN_SERVICE` | 成本已冻结、折旧已开始 | |
+| `expense.errors.ASSET_ALREADY_IN_SERVICE` | 从那天起它的成本就冻住了 | **MISSED by the original count** — the refusal has three copies, one per namespace, and this survey listed two |
+| `equipment.errors.ASSET_ALREADY_IN_SERVICE` | 从那天起它的成本就冻住了 | |
+
+> **Why the miscount is worth recording rather than quietly fixing:** a retirement list is only as
+> good as the enumeration behind it, and this one was assembled by grepping for the *sentence* rather
+> than resolving each hit to its *key*. Two hits collapsed onto one line and one namespace was
+> guessed from the surrounding screen. **Grep found the strings; only resolving each one to its key
+> found how many there were.**
 
 **"It is flagged for retirement in the same commit that closes this gap" — NOT TRUE. Nothing
 flags it anywhere.** Grepped across `docs/`: the known-issues entry cautions about the *column*
@@ -260,8 +269,18 @@ strings must be retired when the path opens**. `docs/manual-walk-list.md` §9 go
 a sentence that has become false.
 
 > **This is the "a note describing a hazard that no longer exists" defect, pre-loaded.** It is
-> recorded here now so the closing commit inherits it: **five message keys and one walk-list step
-> retire together with the refusal.**
+> recorded here now so the closing commit inherits it: **~~five~~ six message keys and one walk-list
+> step retire together with the refusal.**
+>
+> **Discharged 2026-08-29 by CAPEX-1**, and the list it actually retired was longer than this
+> section's: the six keys, `docs/manual-walk-list.md` §9's step, the table comments on
+> `fixed_asset_cost_entries` and `equipment_maintenance`, the asset-picker comments on the expense
+> and purchase-order forms plus the PO form's own hint (which named no reason at all — a silently
+> shorter list reads as a deliberate restriction, the FIN-16 lesson), the `MaintenancePanel` header
+> comment and its two in-form hints, `docs/fixed-asset-procedures.md` §四,
+> `docs/known-issues.md`'s entry, `docs/forward-queue.md`'s EQP-2b line, and fixture 77's three
+> arms. **Fourteen sites for a survey that had enumerated six** — the gap is not a criticism of the
+> survey, it is the measurement of how far a single false sentence travels.
 
 ---
 
@@ -281,7 +300,7 @@ The twelve, in the order the measured dependencies support. **Merged by default;
 | **8** | **Withholding tax on non-resident payments (item 10)** | Event-triggered: the first non-resident service payment. Independent. Build when that event is in sight. |
 | **9** | **GL / journal export (item 8)** | The queue already says fold it into the queued year-end export. **Merged there, not a cut of its own.** |
 | **10** | **Monthly management report pack (item 7)** | **Last of the reporting group by construction** — it consumes ageing, cash, bank reconciliation and the forecast. Building it earlier means building it twice. |
-| **11** | **Capitalising subsequent expenditure (the known-issues item)** | **BLOCKED on an accounting decision**, not on engineering. See §8. |
+| ~~**11**~~ | ~~**Capitalising subsequent expenditure (the known-issues item)**~~ **BUILT — CAPEX-1, 2026-08-29** | ~~**BLOCKED on an accounting decision**, not on engineering. See §8.~~ **Unblocked by Tim's 4.7 ruling (2026-08-24); built as the LAST item of Phase 4.** The engineering was never the hard part — the hard part was that the existing arithmetic derives past months from the current cost base, so raising the base back-charges every elapsed month into the current period. `fixed_asset_depreciation_anchors` makes the pre-anchor portion a **stored scalar**, so there is nothing for a raised cost base to multiply against. **Not done: life revision** — see `docs/forward-queue.md` for the queued item and its trigger. |
 
 ### On item 1's position — Tim REORDERED IT on this evidence (2026-08-24)
 

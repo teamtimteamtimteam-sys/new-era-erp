@@ -124,12 +124,12 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
     //   * **employees 是遮蔽表** → 读 employees_masked,而它自带 HR 的门(见上);
     //   * suppliers / expenses —— 实测都没有 _masked 伴生视图,直读。
     // ══════════════════════════════════════════════════════════════════════
-    const [statusRes, maintRes, adviceRes, downRes, settingsRes] = await Promise.all([
+    const [statusRes, maintRes, adviceRes, downRes, settingsRes, currencyRes] = await Promise.all([
         supabase.from('equipment_service_status')
             .select('interval_id, monitored, service_kind, disposition, interval_kg, lead_kg, interval_days, lead_days, last_service_date, never_serviced, baseline_date, kg_since, days_since, unattributed_runs_in_window, is_due, due_reason, is_approaching, approaching_reason')
             .eq('equipment_id', id),
         supabase.from('equipment_maintenance')
-            .select('id, performed_on, kind, description, capitalised, capitalisation_reason, performed_by_employee_id, performed_by_supplier_id, performed_by_name, expense_id')
+            .select('id, performed_on, kind, description, capitalised, capitalisation_reason, performed_by_employee_id, performed_by_supplier_id, performed_by_name, expense_id, capitalised_expense_id')
             .eq('equipment_id', id).order('performed_on', { ascending: false }),
         supabase.from('equipment_maintenance_advice')
             .select('maintenance_id, work_cost_base, pct_of_equipment_cost, meets_threshold')
@@ -139,10 +139,15 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
             .eq('equipment_id', id).order('started_at', { ascending: false }),
         supabase.from('maintenance_settings')
             .select('capitalise_pct_of_cost, capitalise_floor_base').maybeSingle(),
+        // CAPEX-1:资本化那个控件的币种清单。**汇率不在表单上** —— record_expense
+        // 自己去 fx_rates 取(递汇率进去会被 FX_RATE_NOT_ACCEPTED 拒),
+        // 所以这里只需要币种本身。
+        supabase.from('currencies').select('code').order('code'),
     ])
     const statusRows = mustRows(statusRes, 'equipment_service_status')
     const maintRaw = mustRows(maintRes, 'equipment_maintenance')
     const downRows = mustRows(downRes, 'equipment_downtime')
+    const currencyCodes = (mustRows(currencyRes, 'currencies') as { code: string }[]).map((c) => c.code)
     const adviceById = new Map<string, { work_cost_base: number | null; pct_of_equipment_cost: number | null; meets_threshold: boolean | null }>()
     for (const a of mustRows(adviceRes, 'equipment_maintenance_advice') as {
             maintenance_id: string; work_cost_base: number | null
@@ -206,11 +211,13 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
         id: string; performed_on: string; kind: string; description: string
         capitalised: boolean; capitalisation_reason: string | null
         performed_by_employee_id: string | null; performed_by_supplier_id: string | null
-        performed_by_name: string | null; expense_id: string | null }[]).map((m) => {
+        performed_by_name: string | null; expense_id: string | null
+        capitalised_expense_id: string | null }[]).map((m) => {
         const adv = adviceById.get(m.id)
         return {
             id: m.id, performed_on: m.performed_on, kind: m.kind, description: m.description,
             capitalised: m.capitalised, capitalisation_reason: m.capitalisation_reason,
+            capitalised_expense_id: m.capitalised_expense_id,
             // 【谁做的:三种来源,认不出的那一种要说出来,不要留白】
             // 员工那一支在没有 HR 权限时解析不到 —— 那是「受限」,不是「没填」。
             performer: m.performed_by_employee_id
@@ -382,7 +389,8 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                     capitalisePct={Number(settingsRes.data?.capitalise_pct_of_cost ?? 0)}
                     capitaliseFloor={Number(settingsRes.data?.capitalise_floor_base ?? 0)}
                     equipmentCostBase={Number(asset.cost_base)}
-                    baseCurrency={baseCurrency} />
+                    baseCurrency={baseCurrency}
+                    currencies={currencyCodes} />
                 <DowntimePanel
                     assetId={asset.id}
                     rows={downRows as unknown as DowntimeRow[]}

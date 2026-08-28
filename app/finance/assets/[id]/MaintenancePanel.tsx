@@ -26,18 +26,18 @@
 // 所以:**表单上摆的是那两个【阈值】与机器的记录成本(那笔算术的输入),
 // 判词本身画在存下来之后的那一行上**,由视图算。一份实现,两个读者。
 //
-// 【P2 · 资本化那条路今天走不到底,而这件事写在表单上,不藏起来】
-// capitalised_expense_id 要指着一笔【追加】的资本支出,而 record_expense 的追加支
-// 在资产已投用时按名拒(ASSET_ALREADY_IN_SERVICE)。它的判据是
-// `in_service_date IS NOT NULL` —— **一个【未来】的投用日照样拦**,
-// FA-2026-0001 的 2027-01-01 今天就拦得住。所以这张表单【不画那个选择器】,
-// 而是把这句话说出来,并点名那一刀。判断与理由照记 —— 它们是这张表要保存的东西,
-// 而"钱走哪条路"是另一件事。
+// 【P2 · 那条路【现在走得通了】—— CAPEX-1,2026-08-29】
+// 原文写着"资本化那条路今天走不到底",理由是 record_expense 的追加支在资产已投用时
+// 一律按名拒(ASSET_ALREADY_IN_SERVICE)。**那条一律拒已经换成一条窄的**:
+// 经一条【标了资本化并写明理由】的维修记录,就加得上去(政策 4.7,Tim 2026-08-24)。
+// 于是 capitalised_expense_id 这一列终于有人写了 —— 就是下面那个按钮写的。
+// 【判断仍然在前,钱在后】先标资本化 + 写理由(表上那条 CHECK 逼着),
+// 才谈得上资本化那笔钱;按钮只对【已标资本化、且还没有资本化过】的行出现。
 // ════════════════════════════════════════════════════════════════════════════
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
-import { recordMaintenance } from './actions'
+import { recordMaintenance, capitaliseMaintenance } from './actions'
 
 export type MaintRow = {
     id: string
@@ -48,6 +48,8 @@ export type MaintRow = {
     capitalisation_reason: string | null
     performer: string
     expense_code: string | null
+    // CAPEX-1:这条记录资本化过没有 —— 决定那个按钮出不出现
+    capitalised_expense_id: string | null
     // equipment_maintenance_advice 算出来的那三样(视图是唯一实现)
     work_cost_base: number | null
     pct_of_equipment_cost: number | null
@@ -56,7 +58,7 @@ export type MaintRow = {
 
 export default function MaintenancePanel({
     assetId, rows, employees, suppliers, expenses, canEdit,
-    inServiceDate, capitalisePct, capitaliseFloor, equipmentCostBase, baseCurrency,
+    inServiceDate, capitalisePct, capitaliseFloor, equipmentCostBase, baseCurrency, currencies,
 }: {
     assetId: string
     rows: MaintRow[]
@@ -69,6 +71,7 @@ export default function MaintenancePanel({
     capitaliseFloor: number
     equipmentCostBase: number
     baseCurrency: string
+    currencies: string[]
 }) {
     const t = useTranslations()
     const router = useRouter()
@@ -159,6 +162,27 @@ export default function MaintenancePanel({
                                                 floor: String(capitaliseFloor),
                                               })}
                                     </p>
+                                </td>
+                                {/* ★【CAPEX-1 的入口】★ 只对【已标资本化、还没资本化过、
+                                    且机器已投用】的行出现 —— 三个条件缺一个,这个按钮
+                                    对应的服务端调用都会被按名拒,而一个点下去只会得到
+                                    错误的按钮是本仓库记过的那条"不要 offer 服务端一定会拒的动作"。
+                                    未投用的机器不走这条路(成本直接加得上去)。 */}
+                                <td className="border border-gray-300 px-3 py-2 text-sm">
+                                    {r.capitalised && !r.capitalised_expense_id && inServiceDate && canEdit ? (
+                                        <CapitaliseControl assetId={assetId} maintenanceId={r.id}
+                                                           performedOn={r.performed_on}
+                                                           suppliers={suppliers} baseCurrency={baseCurrency}
+                                                           currencies={currencies} />
+                                    ) : r.capitalised_expense_id ? (
+                                        <span className="text-xs text-green-800">{t('equipment.maint.capitalised')}</span>
+                                    ) : (
+                                        /* 【具名的缺席,不是空白】为什么这里没有按钮,说出来 */
+                                        <span className="text-xs text-gray-500">
+                                            {!inServiceDate ? t('equipment.maint.capNotInService')
+                                             : !r.capitalised ? t('equipment.maint.capNeedsFlag') : ''}
+                                        </span>
+                                    )}
                                 </td>
                             </tr>
                         ))}
@@ -273,7 +297,11 @@ export default function MaintenancePanel({
                             </label>
                         )}
                         {f.capitalised && (
-                            /* 【今天走不到底,说出来,不藏起来】见本文件抬头。 */
+                            /* 【钱是第二步,说出来,不藏起来】见本文件抬头 ——
+                               CAPEX-1 之后这条路走得通了,而它仍然是【两步】:
+                               先存判断与理由,再在上面那张表的这一行上资本化。
+                               两句文案按【投没投用】分,因为两种情形下钱的走法
+                               确实不同(投用前直接进成本,投用后落一个折旧锚点)。 */
                             <p className="text-xs text-amber-700 mt-2">
                                 {inServiceDate
                                     ? t('equipment.maint.capitalInServiceBlocked', { date: inServiceDate })
@@ -297,6 +325,112 @@ export default function MaintenancePanel({
                     </div>
                 </div>
             )}
+        </div>
+    )
+}
+
+// ── CAPEX-1:把一条【已标资本化】的维修记录变成一笔加在机器上的成本 ──────────
+// 【为什么它长在这张表上,而不是长在支出表单里】(Tim 2026-08-24,A4)
+//   一笔"给在跑的机器花的钱"要不要进成本,是一个【关于这台机器的判断】,
+//   而那个判断连同它的理由只住在 equipment_maintenance 上。让支出表单也能
+//   独立地做这件事,就是【两个源头配一条优先级规则】—— 一份第二定义披着
+//   破平局的外衣。所以支出那条路对已投用的资产【按名拒】,并指到这里来。
+//
+// 【汇率不在这张表单上】record_expense 自己去 fx_rates 取(它对递进来的汇率
+//   直接 FX_RATE_NOT_ACCEPTED)。牌价属于 fx_rates,不属于表单 —— 这是全库同一条。
+// 【税码也不在】留空 = 走供应商的默认进项税码(resolve_tax_code),
+//   与普通支出表单同一份实现,不在这里另开一套。
+function CapitaliseControl({ assetId, maintenanceId, performedOn, suppliers, baseCurrency, currencies }: {
+    assetId: string
+    maintenanceId: string
+    performedOn: string
+    suppliers: { id: string; label: string }[]
+    baseCurrency: string
+    currencies: string[]
+}) {
+    const t = useTranslations()
+    const router = useRouter()
+    const [pending, start] = useTransition()
+    const [open, setOpen] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+    // 【日期默认取这次活干的那天,而它【不是】一个服务端默认值】
+    //   FIN-10 禁的是【服务端】拿 CURRENT_DATE 顶上来 —— 那会让空着比填对更好走。
+    //   这里预填的是一个【已经存在的业务事实】(这条维修记录自己的 performed_on),
+    //   人看得见、改得动,而且空掉照样被服务端按名拒。两者不是同一件事。
+    const [f, setF] = useState({ expenseDate: performedOn, amount: '', currency: baseCurrency, supplierId: '' })
+
+    // 【按不下去的时候把理由摆在旁边】—— AssetActions 立的规矩。
+    const why = !f.expenseDate ? t('equipment.maint.capNeedDate')
+              : !f.amount || !(Number(f.amount) > 0) ? t('equipment.maint.capNeedAmount')
+              : ''
+
+    function submit() {
+        setError(null)
+        start(async () => {
+            const r = await capitaliseMaintenance({
+                assetId, maintenanceId, expenseDate: f.expenseDate,
+                amount: f.amount, currency: f.currency, supplierId: f.supplierId, taxCode: '',
+            })
+            if (r.error) { setError(r.error); return }
+            setOpen(false)
+            router.refresh()
+        })
+    }
+
+    if (!open) {
+        return (
+            <button type="button" onClick={() => { setOpen(true); setError(null) }}
+                    className="border border-gray-600 px-2 py-1 rounded text-xs hover:bg-gray-50">
+                {t('equipment.maint.capitaliseAction')}
+            </button>
+        )
+    }
+
+    return (
+        <div className="border border-gray-400 rounded p-2 bg-amber-50 min-w-[18rem]">
+            {/* ★【它会做什么,写在按下去【之前】】★ 这一步会动折旧的摊法,
+                而一个改了算术却不预告的按钮,正是本仓库付过 56,532.48 的那一族。 */}
+            <p className="text-xs text-gray-800 mb-2">{t('equipment.maint.capitaliseWhatHappens')}</p>
+            {error && <p className="text-xs text-red-700 mb-2">{error}</p>}
+            <div className="grid grid-cols-2 gap-2">
+                <label className="text-xs">
+                    {t('equipment.maint.capDate')}
+                    <input type="date" value={f.expenseDate} onChange={(e) => setF({ ...f, expenseDate: e.target.value })}
+                           className="block w-full border border-gray-300 rounded px-2 py-1 text-xs" />
+                </label>
+                <label className="text-xs">
+                    {t('equipment.maint.capAmount')}
+                    <input type="number" step="0.01" min="0" value={f.amount}
+                           onChange={(e) => setF({ ...f, amount: e.target.value })}
+                           className="block w-full border border-gray-300 rounded px-2 py-1 text-xs" />
+                </label>
+                <label className="text-xs">
+                    {t('equipment.maint.capCurrency')}
+                    <select value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value })}
+                            className="block w-full border border-gray-300 rounded px-2 py-1 text-xs">
+                        {currencies.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                </label>
+                <label className="text-xs">
+                    {t('equipment.maint.capSupplier')}
+                    <select value={f.supplierId} onChange={(e) => setF({ ...f, supplierId: e.target.value })}
+                            className="block w-full border border-gray-300 rounded px-2 py-1 text-xs">
+                        <option value="">{t('equipment.maint.capNoSupplier')}</option>
+                        {suppliers.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+                    </select>
+                </label>
+            </div>
+            <div className="flex gap-2 items-center mt-2">
+                <button type="button" disabled={pending || why !== ''} onClick={submit}
+                        className="border border-gray-600 bg-gray-800 text-white px-2 py-1 rounded text-xs disabled:opacity-50">
+                    {t('equipment.maint.capitaliseAction')}
+                </button>
+                <button type="button" disabled={pending} onClick={() => { setOpen(false); setError(null) }}
+                        className="border border-gray-400 px-2 py-1 rounded text-xs hover:bg-gray-50 disabled:opacity-50">
+                    {t('common.cancel')}
+                </button>
+                {why && <span className="text-xs text-gray-600">{why}</span>}
+            </div>
         </div>
     )
 }
