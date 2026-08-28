@@ -315,6 +315,167 @@ export type Database = {
           },
         ]
       }
+      attendance_lines: {
+        Row: {
+          active_from: string | null
+          active_to: string | null
+          employee_id: string
+          frozen_at: string | null
+          id: string
+          note: string | null
+          ot_normal_hours: number
+          ot_public_holiday_hours: number
+          ot_rest_day_hours: number
+          period_id: string
+          recorded_at: string | null
+          recorded_by: string | null
+          unpaid_days: number | null
+        }
+        Insert: {
+          active_from?: string | null
+          active_to?: string | null
+          employee_id: string
+          frozen_at?: string | null
+          id?: string
+          note?: string | null
+          ot_normal_hours?: number
+          ot_public_holiday_hours?: number
+          ot_rest_day_hours?: number
+          period_id: string
+          recorded_at?: string | null
+          recorded_by?: string | null
+          unpaid_days?: number | null
+        }
+        Update: {
+          active_from?: string | null
+          active_to?: string | null
+          employee_id?: string
+          frozen_at?: string | null
+          id?: string
+          note?: string | null
+          ot_normal_hours?: number
+          ot_public_holiday_hours?: number
+          ot_rest_day_hours?: number
+          period_id?: string
+          recorded_at?: string | null
+          recorded_by?: string | null
+          unpaid_days?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "attendance_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "attendance_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "attendance_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "attendance_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "attendance_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "attendance_lines_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_period_status"
+            referencedColumns: ["period_id"]
+          },
+          {
+            foreignKeyName: "attendance_lines_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance_periods: {
+        Row: {
+          code: string
+          completed_at: string | null
+          completed_by: string | null
+          id: string
+          opened_at: string
+          opened_by: string | null
+          period_month: string
+          reopen_reason: string | null
+          reopened_at: string | null
+          reopened_by: string | null
+          status: string
+        }
+        Insert: {
+          code: string
+          completed_at?: string | null
+          completed_by?: string | null
+          id?: string
+          opened_at?: string
+          opened_by?: string | null
+          period_month: string
+          reopen_reason?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
+          status?: string
+        }
+        Update: {
+          code?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          id?: string
+          opened_at?: string
+          opened_by?: string | null
+          period_month?: string
+          reopen_reason?: string | null
+          reopened_at?: string | null
+          reopened_by?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       bank_import_profiles: {
         Row: {
           bank_account_code: string
@@ -13092,6 +13253,26 @@ export type Database = {
         }
         Relationships: []
       }
+      attendance_period_status: {
+        Row: {
+          code: string | null
+          completed_at: string | null
+          line_count: number | null
+          opened_at: string | null
+          ot_normal_hours: number | null
+          ot_public_holiday_hours: number | null
+          ot_rest_day_hours: number | null
+          payroll_posted: boolean | null
+          period_id: string | null
+          period_month: string | null
+          reopen_reason: string | null
+          reopened_at: string | null
+          status: string | null
+          unpaid_days: number | null
+          unrecorded_count: number | null
+        }
+        Relationships: []
+      }
       bank_reconciliation_record: {
         Row: {
           bank_account_code: string | null
@@ -18234,6 +18415,10 @@ export type Database = {
         Args: { p_container_id: string; p_shipment_id: string }
         Returns: Json
       }
+      attendance_unpaid_days: {
+        Args: { p_employee_id: string; p_month: string }
+        Returns: number
+      }
       attribute_sale_customer: {
         Args: {
           p_customer_id: string
@@ -18370,6 +18555,10 @@ export type Database = {
       }
       committed_terms_price: {
         Args: { p_inbound_batch_id: string; p_reference_date: string }
+        Returns: Json
+      }
+      complete_attendance_period: {
+        Args: { p_period_id: string }
         Returns: Json
       }
       compute_leave_encashment: {
@@ -18855,6 +19044,10 @@ export type Database = {
         Args: { p_location_id: string; p_material_id: string; p_warn: string[] }
         Returns: undefined
       }
+      open_attendance_period: {
+        Args: { p_period_month: string }
+        Returns: Json
+      }
       open_for_self_assessment: { Args: { p_review_id: string }; Returns: Json }
       open_gst_period: {
         Args: { p_period_end: string; p_period_start: string }
@@ -19024,6 +19217,16 @@ export type Database = {
           p_result_party?: string
           p_sample_ref?: string
           p_weight_basis?: string
+        }
+        Returns: Json
+      }
+      record_attendance: {
+        Args: {
+          p_holiday?: number
+          p_line_id: string
+          p_normal?: number
+          p_note?: string
+          p_rest_day?: number
         }
         Returns: Json
       }
@@ -19229,6 +19432,10 @@ export type Database = {
         Returns: Json
       }
       remove_review_goal: { Args: { p_goal_id: string }; Returns: Json }
+      reopen_attendance_period: {
+        Args: { p_period_id: string; p_reason: string }
+        Returns: Json
+      }
       reopen_financial_year: {
         Args: { p_reason: string; p_year_end: string }
         Returns: Json
@@ -19473,6 +19680,7 @@ export type Database = {
         Returns: Json
       }
       submit_review: { Args: { p_review_id: string }; Returns: Json }
+      sync_attendance_period: { Args: { p_period_id: string }; Returns: Json }
       tax_rate_for: {
         Args: { p_code: string; p_date: string }
         Returns: number

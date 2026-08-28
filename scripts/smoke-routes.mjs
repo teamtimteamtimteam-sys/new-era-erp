@@ -85,6 +85,9 @@ const ID_SOURCES = {
         '/finance/payments': 'payments', '/hr/claims': 'medical_claims',
         '/hr/departments': 'departments', '/hr/employees': 'employees',
         '/hr/leave': 'leave_requests', '/hr/payroll': 'payroll_periods',
+        // ATTEND-1:考勤底稿。前缀取最长匹配,所以它不会被 '/hr/' 底下别的条目吃掉。
+        // 线上零行(机制与屏幕先于第一份真底稿落地),故同时列在 EXPECTED_SKIPS 里。
+        '/hr/attendance': 'attendance_periods',
         '/hr/reviews': 'performance_reviews', '/hr/training': 'training_records',
         '/inbound/receive/done': 'inbound_batches', '/inbound': 'inbound_batches',
         // LOC-1:库位。前缀取最长匹配,所以这一条不会被别的 /inventory 前缀吃掉
@@ -308,6 +311,12 @@ const EXPECTED_SKIPS = new Set([
     // /finance/gst/[periodId] 与它的 export 从此有数据可跑。两行照约定删除。
     '/hr/claims/[id]',    // medical_claims 空 —— 正常运营会产生;有数据那天此断言逼人收编
     '/hr/leave/[id]',     // leave_requests 空
+    // ATTEND-1:线上还没有一份考勤底稿 —— attendance_periods 只由
+    // open_attendance_period 写入,而这一刀是机制与屏幕先于第一份真底稿落地。
+    // 开出第一个月的那天,这条断言会报「预期会 SKIP 的路由跑起来了」,逼人把它删掉。
+    // 【注意它跳过的是明细页,不是列表页】/hr/attendance 每一跑都真的渲染,
+    // 而且下面有一条【内容】断言与一条【可达性】断言钉着它。
+    '/hr/attendance/[id]',
     // 【FRT-1 的那条跳过已经删掉了 —— 它自己逼出来的(FRT-FIX,2026-08-20)】
     // 原文写着"录第一张的那天,这条断言会逼人把它从这里删掉"。LOG-4b 的端到端
     // 验证在线上留下了三张(已冲销的)运费单,于是那一天到了:这一跑报的是
@@ -445,6 +454,25 @@ const MSG_CLAIMS_TITLE = (() => {
     if (!m) throw new Error('messages/en.ts 里找不到 expenseClaims.title')
     return m[1]
 })()
+// ATTEND-1：考勤两块面板的入口断言，同样【从文案文件现读】。
+// 【断言用的是 subtitle 而不是 title】"Attendance" 这个词在子导航里也出现，
+// 于是拿 title 去断言，会在【页面本身没渲染出来、只有导航条在】时照样通过 ——
+// 一条对自己没走过的地面报绿的断言。subtitle 只有这一页画得出来。
+const MSG_ATTENDANCE_SUB = (() => {
+    const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
+    const blk = src.match(/\n    attendance: \{[\s\S]*?\n    \},/)
+    if (!blk) throw new Error('messages/en.ts 里找不到 attendance 这一段 —— 入口断言无从下手')
+    const m = blk[0].match(/\n\s*subtitle: '([^']+)'/)
+    if (!m) throw new Error('messages/en.ts 里找不到 attendance.subtitle')
+    return m[1]
+})()
+const MSG_MY_ATTENDANCE = (() => {
+    const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
+    const blk = src.match(/\n    attendance: \{[\s\S]*?\n    \},/)
+    const m = blk[0].match(/\n\s*myTitle: '([^']+)'/)
+    if (!m) throw new Error('messages/en.ts 里找不到 attendance.myTitle')
+    return m[1]
+})()
 const SCRATCH_NAME = '【SMOKE 冒烟脚本临时行 · 勿动 · 随时可删】'
 
 async function rest(path, opts = {}) {
@@ -500,12 +528,23 @@ const ID_FILTERS = {
 // 顺序随更新而变。tasks 那一次是软删撞上它,但病根是排序:同一条断言今天绿、
 // 明天红,而"时好时坏的冒烟比一直红更坏"(ID_FILTERS 上面那段注释)。
 // 取【最新的在册那一行】,并以 id 收尾破平局 —— 同一批种子数据的 created_at 常常
-// 一模一样,只按时间排序仍然是不确定的。ID_SOURCES 用到的 36 张表全部有 created_at
-// (实测,不是假设),所以这里可以统一。
-const ORDER = '&order=created_at.desc,id.desc'
+// 一模一样,只按时间排序仍然是不确定的。
+//
+// ★【"全部有 created_at"这句话在 2026-08-28 到期了 —— ATTEND-1】★
+// 原文写的是「ID_SOURCES 用到的 36 张表全部有 created_at(实测,不是假设)」。
+// 那句话在写下那天是真的,但它是一句【当时的实测】,不是一条不变量:
+// 全库 166 张表里有 52 张没有 created_at,而 attendance_periods 是新的一张 ——
+// 它的"建出来那一刻"叫 opened_at,再加一个 created_at 就是同一件事的两个名字。
+// 处置:排序键【按表可覆盖】,而不是为了迁就一句排序去改表的形状。
+const ORDER_OVERRIDES = {
+    // 一个月一份底稿,period_month 是 UNIQUE 的 —— 它本身就是稳定序。
+    attendance_periods: '&order=period_month.desc,id.desc',
+}
+const ORDER_DEFAULT = '&order=created_at.desc,id.desc'
 async function firstId(table, route) {
     const del = SOFT_DELETED.has(table) ? '&deleted_at=is.null' : ''
     const filter = ID_FILTERS[route] ?? ID_FILTERS[table] ?? ''
+    const ORDER = ORDER_OVERRIDES[table] ?? ORDER_DEFAULT
     const rows = await restRows(`/rest/v1/${table}?select=id&limit=1${del}${filter}${ORDER}`, `${route} ← ${table}`)
     return rows[0]?.id ?? null
 }
@@ -1266,6 +1305,46 @@ async function main() {
             } else { ok++ }
         }
 
+        // ── ATTEND-1：两个听众，两条内容断言，外加一条可达性断言 ──────────
+        // 【它跑在零行数据上，而这是被承认的一半】线上一个考勤期间都没有，
+        // 所以这里守住的是「两页画得出来、走得到」，**不是**「表格里的数字对」——
+        // 后者由 fixture 141 的十二条臂与 14 格故障注入守。
+        // 【/hr/attendance/[id] 这一跑够不着】没有期间就没有 id，而冒烟不会
+        //  在线上建一个。AGENTS.md 已经为「--reach 对 [id] 页结构性失明」记过账，
+        //  这里是同一个洞的同一侧，照直写出来而不是假装覆盖到了。
+        {
+            const targets = [
+                ['/hr/attendance', MSG_ATTENDANCE_SUB,  '考勤底稿页', cookie],
+                ['/me',            MSG_MY_ATTENDANCE,   '自助面板',   cookie2],
+            ]
+            for (const [target, needle, what, ck] of targets) {
+                const before = logChunks.length
+                const res = await fetch(`http://localhost:${PORT}${target}`, {
+                    headers: { cookie: ck }, redirect: 'manual' })
+                const html = res.status === 200 ? await res.text() : ''
+                if (res.status === 200 && html.includes(needle)) { ok++ }
+                else {
+                    const why = res.status !== 200
+                        ? `HTTP ${res.status}`
+                        : `页面 200，但找不到「${needle}」—— ${what}没画出来，而 200 看不出这件事`
+                    failures.push({ route: `${target} (ATTEND-1 ${what})`, url: target,
+                        status: res.status, expected: 200, stack: `${why}\n${await serverStack(before)}` })
+                    console.log(`  FAIL ${target} ATTEND-1 ${what} → ${why}`)
+                }
+            }
+            // 【可达性：直接问 HR 页的 HTML 里有没有这条链接】
+            const navRes = await fetch(`http://localhost:${PORT}/hr`, {
+                headers: { cookie }, redirect: 'manual' })
+            const navHtml = navRes.status === 200 ? await navRes.text() : ''
+            if (!navHtml.includes('/hr/attendance')) {
+                failures.push({ route: '/hr (子导航里没有考勤)', url: '/hr',
+                    status: navRes.status, expected: 200,
+                    stack: 'HR 子导航的 HTML 里找不到 /hr/attendance —— 这一页打得开却走不到,'
+                         + '而这正是本仓库上过两次当的那件事。' })
+                console.log('  FAIL /hr 子导航里没有考勤的入口')
+            } else { ok++ }
+        }
+
         // ── 按角色的可达性(REACH-1)────────────────────────────────────────
         // admin 一遍是对照(他什么都有);operations 与 finance 是 /margin 那道题的
         // 两边 —— 一个只有加工、一个只有财务,而没有任何 live 角色同时持有两者。
@@ -1325,7 +1404,7 @@ async function main() {
     // 等于让"这一类到底测没测"重新变得看不见 —— 而它们存在的理由正是那件事。
     // PROBATION-1:总结这一行要把【每一个计进 ok 的探针】都点出来,否则
     // 标签念的是一件事、数字数的是另一件 —— 本仓库对这个形状记过好几次账。
-    console.log(`\n== ${routes.length} routes + 1 reviewer-view check + ${QUERY_PROBES.length} query-string probe(s) + 2 probation-entry probes + 2 customer-page entry probes + 2 cash-forecast probes (nav + content) + 3 claim probes (2 content + nav): ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
+    console.log(`\n== ${routes.length} routes + 1 reviewer-view check + ${QUERY_PROBES.length} query-string probe(s) + 2 probation-entry probes + 2 customer-page entry probes + 2 cash-forecast probes (nav + content) + 3 claim probes (2 content + nav) + 3 attendance probes (2 content + nav): ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
     // SESSION-1:这一行排在所有失败之前,因为它改变【怎么读】下面那一百行。
     if (sawAuthIndeterminate) {
         const n = failures.filter((f) => f.authDown).length

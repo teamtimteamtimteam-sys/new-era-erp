@@ -26,6 +26,26 @@ BEGIN
         RAISE EXCEPTION 'NO_LINES';
     END IF;
 
+    -- ══ ATTEND-1:★【过账要有依据,而依据是一句【人的断言】】★ ═════════════
+    -- 【为什么拒在这里,而不是 upsert】记录服务商送回来的数字只是【捕获一个
+    -- 已经发生的事实】,拦住它只会把那些数字推到系统外面去保管。
+    -- 过账才是公司认下这些数字的那一刻,依据必须在这一刻存在。
+    -- 【它并不检查"考勤对不对"】系统无从知道;它检查的是【有没有人说过
+    -- 这个月的底稿齐全了】—— 与 finance_settings.system_start_date 是
+    -- 【声明】而不是【推断】同一条。
+    -- 【为什么必须是拒绝,而不是警告】一次静静地把"缺勤未知"当成"全勤"的
+    -- 工资过账,是这里所有选项里最坏的一个;而一句没有牙齿的警告,
+    -- 在一个月一次的收尾动作上会被直接点过去 —— 这个仓库为"学会忽略警报"
+    -- 付过账。
+    IF NOT EXISTS (
+        SELECT 1 FROM attendance_periods ap
+         WHERE ap.status = 'complete'
+           AND ap.period_month = date_trunc('month', v_p.period_month)::date
+    ) THEN
+        RAISE EXCEPTION 'PAYROLL_ATTENDANCE_NOT_COMPLETE|%|%',
+            v_p.code, to_char(v_p.period_month, 'YYYY-MM');
+    END IF;
+
     -- FIN-4:过账【不碰银行】—— 钱还没出去。净额挂 2300 应付净薪,
     -- 逐人付款(pay_payroll_lines)时才贷银行,一人一条,各自对账。
     -- OPS-8:"支持哪些币种"就是 currencies 表本身,不是这里另抄一份码表
@@ -90,4 +110,6 @@ BEGIN
         'net_pay_total', v_p.net_pay_total
     );
 END;
-$function$;
+$function$
+
+;

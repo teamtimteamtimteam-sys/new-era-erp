@@ -413,6 +413,8 @@ const MANIFEST = {
     'hr.trainingCategory.': { kind: 'enum', values: () => sqlEnum('db/tables/training_records.sql', 'category') },
     'hr.payrollStatus.':    { kind: 'enum', values: () => sqlEnum('db/tables/payroll_periods.sql', 'status') },
     'hr.errors.':           { kind: 'enum', values: () => tsSet('app/hr/hrErrorCodes.ts', 'HR_ERROR_CODES') },
+    // ATTEND-1:考勤期间状态。真源是 attendance_periods 的 CHECK,不是这里抄一份。
+    'attendance.status.':   { kind: 'enum', values: () => sqlCheckIn('db/tables/attendance_periods.sql', 'status') },
     'leave.status_':        { kind: 'enum', values: () => sqlEnum('db/tables/leave_requests.sql', 'status') },
     'leave.finalState_':    { kind: 'enum', values: () => tsRegex('app/hr/leave/[id]/DecideControls.tsx',
                                   /status === '(\w+)' \|\| status === '(\w+)'/g) },

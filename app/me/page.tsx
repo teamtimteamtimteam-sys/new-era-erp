@@ -12,6 +12,7 @@ import { formatAmount } from '@/lib/format'
 import MyLeavePanel from './MyLeavePanel'
 import MyClaimsPanel from './MyClaimsPanel'
 import MyExpenseClaimsPanel from './MyExpenseClaimsPanel'
+import MyAttendancePanel from './MyAttendancePanel'
 import MySelfAssessmentPanel, {
     type SelfAssessment,
     type SelfAssessmentGoal,
@@ -91,6 +92,36 @@ export default async function MePage() {
         supabase.from('expense_claim_status').select('*')
             .eq('employee_id', employeeId).order('spend_date', { ascending: false }).limit(50),
     ])
+
+    // ATTEND-1:自己那几行考勤。行级策略放行 employee_id = current_user_employee(),
+    // 所以这里【不加】模块权限 —— 与这一页其余部分同一条路。期间的 code/月份要
+    // 另取:attendance_lines 上没有,而 attendance_periods 的读策略也放行本人。
+    const myLinesRes = await supabase
+        .from('attendance_lines')
+        .select('id, period_id, ot_normal_hours, ot_rest_day_hours, ot_public_holiday_hours, note, recorded_at, unpaid_days')
+        .eq('employee_id', employeeId)
+    const myLines = mustRows(myLinesRes)
+    const myPeriodIds = [...new Set(myLines.map((l) => l.period_id))]
+    const myPeriods = myPeriodIds.length
+        ? mustRows(await supabase.from('attendance_periods')
+            .select('id, code, period_month, status').in('id', myPeriodIds))
+        : []
+    // 【不叫 periodById】这一页下面已经有一个同名的 —— 那是【薪资】期间。
+    // tsc 抓到了这次重名;两个都留着各自的全名,读的人就不必猜是哪一种期间。
+    const attPeriodById = new Map(myPeriods.map((x) => [x.id, x]))
+    const myAttendance = myLines
+        .map((l) => ({
+            code: attPeriodById.get(l.period_id)?.code ?? '—',
+            periodMonth: attPeriodById.get(l.period_id)?.period_month ?? '',
+            status: attPeriodById.get(l.period_id)?.status ?? '',
+            normal: Number(l.ot_normal_hours ?? 0),
+            restDay: Number(l.ot_rest_day_hours ?? 0),
+            holiday: Number(l.ot_public_holiday_hours ?? 0),
+            note: l.note,
+            recorded: l.recorded_at !== null,
+            unpaidDays: l.unpaid_days === null ? null : Number(l.unpaid_days),
+        }))
+        .sort((a, b) => b.periodMonth.localeCompare(a.periodMonth))
 
     // 绩效评估的自助两段(HR-3d):
     // 自评 —— 两个窄视图,只在 status='self_review' 时有行;
@@ -373,6 +404,8 @@ export default async function MePage() {
                 rows={(mustRows(expenseClaimRes)) as never}
                 baseCurrency={baseCurrency}
             />
+
+            <MyAttendancePanel rows={myAttendance} />
 
             <p className="text-sm text-gray-400 italic">{t('me.comingSoon')}</p>
         </div>

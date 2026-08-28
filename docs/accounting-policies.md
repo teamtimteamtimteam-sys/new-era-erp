@@ -481,6 +481,44 @@ raises an error while leaving it blank glides into the current period.
   longer covers the whole question and the control moved upstream to the decision. The payment-side
   exemption is unchanged and still correct for the HR-originated path.
 
+### 7.5 A payroll period cannot be posted until somebody has stated that the month's attendance sheet is complete. — **SETTLED — 2026-08-28 (ATTEND-1)**
+
+Because 7.1 holds — the system computes no pay — attendance is **not an input to a calculation**.
+It is the record of *what the company told the provider*: overtime hours by when they fell, unpaid
+leave, and who was on the books for part of the month. Before ATTEND-1 those numbers left no
+trace at all, so no one could reconstruct why a payslip said what it said.
+
+The sheet's status is **an assertion by a person, not an inference by the system**. The system
+cannot know whether a month's attendance is complete; it can only know whether anybody has said so
+— the same shape as `finance_settings.system_start_date` being a *declaration* rather than a
+*derivation*. Posting is the moment the company commits to the provider's numbers, so that is
+where the basis is required to exist. It is a refusal and not a warning: posting a month whose
+absence is unknown silently treats it as full attendance, and a toothless warning on a
+once-a-month closing action gets clicked past — this repository has already paid for teaching
+people to ignore alerts.
+
+**Two boundaries worth stating, because they are decisions rather than omissions:**
+
+* **Overtime is recorded by *when it fell* (normal day / rest day / public holiday) and carries no
+  multiplier column.** When it fell is a fact; what it multiplies by is an open question under the
+  Employment Act, and no handbook or rate schedule exists in any document this repository can read.
+  All six people on the books are `office` / `full_time`. Recording the fact without inventing the
+  rate leaves the multiplier to be settled once, by Tim, rather than guessed here — **that question
+  is still open and is recorded, not answered.**
+* **Unpaid-leave days are derived, never re-entered** — from approved `unpaid` leave requests via
+  `calculate_leave_days`, which already understands working days and public holidays. At the moment
+  the sheet is completed the derived values are **frozen onto the line**, so that a leave request
+  cancelled afterwards cannot change what the sheet says we reported.
+
+Once that month's payroll is posted, the sheet can no longer be reopened
+(`ATTENDANCE_PERIOD_LOCKED_BY_PAYROLL`): a posted payslip cannot have its basis changed underneath
+it. The way through is to unpost first, which carries its own guard under 7.3.
+
+> *Enforcement:* `post_payroll_period` (`PAYROLL_ATTENDANCE_NOT_COMPLETE`);
+> `complete_attendance_period` (`ATTENDANCE_PERIOD_INCOMPLETE` — a sheet that tolerates blanks is a
+> checkbox, not a statement); `reopen_attendance_period`; `attendance_lines.recorded_at` is what
+> separates *recorded as zero* from *nobody looked*; fixture 141 (twelve arms, 14/14 fault-injection).
+
 # 8 · What is deliberately not here
 
 An auditor discovering these by surprise is worse served than one who reads them.

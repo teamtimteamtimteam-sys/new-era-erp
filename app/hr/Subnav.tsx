@@ -1,7 +1,8 @@
 'use client'
 
 // app/hr/Subnav.tsx
-// 人力资源模块子导航(概览 / 员工 / 部门 / 薪资 / 培训),样式端口自 finance/Subnav。
+// 人力资源模块子导航(概览 / 员工 / 部门 / 考勤 / 薪资 / 培训),样式端口自 finance/Subnav。
+// 【考勤排在薪资【前面】】—— 它是薪资的输入,而过账那道拒绝正压在它上面。
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -10,6 +11,7 @@ const ITEMS = [
     { href: '/hr', key: 'hr.subnav.overview' },
     { href: '/hr/employees', key: 'hr.subnav.employees' },
     { href: '/hr/departments', key: 'hr.subnav.departments' },
+    { href: '/hr/attendance', key: 'hr.subnav.attendance' },
     { href: '/hr/payroll', key: 'hr.subnav.payroll' },
     { href: '/hr/leave', key: 'hr.subnav.leave' },
     { href: '/hr/claims', key: 'hr.subnav.claims' },

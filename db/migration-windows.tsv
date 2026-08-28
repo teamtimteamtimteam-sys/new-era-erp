@@ -73,3 +73,5 @@
 2026-08-28T02:13:52+0800	2026-08-28-cashflow1-expected-dates-and-13-week-forecast.sql	48d6a1f
 2026-08-28T02:16:28+0800	2026-08-28-cashflow1-fu1-expected-date-default-null.sql	48d6a1f
 2026-08-28T03:36:43+0800	2026-08-28-claim1-employee-expense-claims.sql	c9aac03
+2026-08-28T13:58:59+0800	2026-08-28-attend1-attendance-as-payroll-input.sql	3afde1d
+2026-08-28T14:20:28+0800	2026-08-28-attend1-fu1-unpaid-days-is-invoker.sql	3afde1d
