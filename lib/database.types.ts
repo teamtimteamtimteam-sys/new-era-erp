@@ -6104,6 +6104,72 @@ export type Database = {
         }
         Relationships: []
       }
+      management_packs: {
+        Row: {
+          base_currency: string
+          code: string
+          id: string
+          locked_before_at_production: string
+          notes: string | null
+          payload: Json
+          period_end: string
+          period_month: string
+          period_start: string
+          produced_at: string
+          produced_by: string | null
+          superseded_at: string | null
+          superseded_by: string | null
+          superseded_reason: string | null
+        }
+        Insert: {
+          base_currency: string
+          code: string
+          id?: string
+          locked_before_at_production: string
+          notes?: string | null
+          payload: Json
+          period_end: string
+          period_month: string
+          period_start: string
+          produced_at?: string
+          produced_by?: string | null
+          superseded_at?: string | null
+          superseded_by?: string | null
+          superseded_reason?: string | null
+        }
+        Update: {
+          base_currency?: string
+          code?: string
+          id?: string
+          locked_before_at_production?: string
+          notes?: string | null
+          payload?: Json
+          period_end?: string
+          period_month?: string
+          period_start?: string
+          produced_at?: string
+          produced_by?: string | null
+          superseded_at?: string | null
+          superseded_by?: string | null
+          superseded_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "management_packs_base_currency_fkey"
+            columns: ["base_currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "management_packs_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "management_packs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       material_attachments: {
         Row: {
           created_at: string
@@ -19004,6 +19070,14 @@ export type Database = {
         Args: { p_supersede_reason?: string; p_week_start?: string }
         Returns: Json
       }
+      freeze_management_pack: {
+        Args: {
+          p_notes?: string
+          p_period_month: string
+          p_supersede_reason?: string
+        }
+        Returns: Json
+      }
       fx_rate_asof: {
         Args: { p_currency: string; p_date: string; p_rate_type: string }
         Returns: {
@@ -19015,6 +19089,7 @@ export type Database = {
         Args: { p_currency: string; p_date: string; p_rate_type: string }
         Returns: number
       }
+      gl_control_reconciliation: { Args: { p_as_of: string }; Returns: Json }
       gst_registered: { Args: never; Returns: boolean }
       has_any_permission: { Args: { p_codes: string[] }; Returns: boolean }
       has_permission: { Args: { p_code: string }; Returns: boolean }
@@ -19119,6 +19194,7 @@ export type Database = {
         Args: { p_sales_order_line_id: string }
         Returns: number
       }
+      management_pack_data: { Args: { p_period_month: string }; Returns: Json }
       master_import_apply: {
         Args: {
           p_dry_run?: boolean

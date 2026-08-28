@@ -1020,6 +1020,51 @@ go false**. It did, on all three probed periods.
 | `preview_close_financial_year.revaluation_level` / `.depreciation_level` | n/a — **not comparisons**: readiness flags read off one derivation | n/a |
 | `revalue_foreign_balances`, `close_financial_year`, `depreciate_fixed_assets` calling their previews | n/a — **one implementation, two callers**, which is the intended pattern | n/a — there is no second derivation to drift |
 
+#### 一个带【兜底桶】的分项分解,会把余额逼成零 —— 同一个病的第三种穿法(GLEXPORT-1,2026-08-28)
+
+**上面两种是「两边其实是一边」与「不变量在上游已经被保证」。第三种长这样:
+把一个差额拆成几个分项,再留一个"其他"兜底桶接住剩下的 —— 于是
+各分项之和【恒等于】那个差额,而"未解释余额"永远是 0。**
+
+它比前两种更容易写出来,因为兜底桶看起来像是【稳健】:不管来源表将来长出什么
+新值,分类都不会漏。而那恰恰是它的害处 —— **它把"我没想到的那一类"变成了
+"没有那一类"**。
+
+GLEXPORT-1 的控制科目勾稽差点就是这样。修法是把兜底桶**去掉**:
+只声明式地扣掉三类(起单 / 结算 / 重估),任何**没有被分类的来源**
+(`manual`、`year_close`、`writeoff`、以及将来新增的任何 `source_type`)
+原样留在余额里。于是它动得开,而且动的方向正是要紧的那个 ——
+**一笔直接打进控制科目的手工分录,正是现实中把明细账与总账弄散的头号原因。**
+
+> **判据一句话:把你的分项加起来,能不能【按构造】等于那个差额?
+> 能,就说明余额是装饰。** 让它等不了 —— 留一类东西是分类不认识的。
+
+#### `source_id` 在【冲销件】上指的是【原分录】,不是原单据(GLEXPORT-1,2026-08-28)
+
+**`reverse_journal_entry_internal` 建冲销件时,`source_type` 照抄原件,而
+`source_id` 填的是 `v_orig.id` —— 那张【原分录】的 id,不是原单据的 id。**
+
+于是任何"按单据归集总账"的写法:
+
+```sql
+WHERE e.source_id = <单据 id>          -- ← 只命中原件,漏掉它的冲销件
+```
+
+**只会命中原件、漏掉冲销件**,而它算得出数、不报错。实测(2026-08-28):
+`IN-2026-0001` 的计价分录被冲销过,按上面这句归集得到 **−247,296**,
+而它在总账上的真实净额是 **0**。差了一整笔,方向还是反的。
+
+**处置有两条,选哪条取决于你要的是什么:**
+* 要【按单据】看:得走两跳 ——
+  `source_id IN (SELECT id FROM journal_entries WHERE source_id = <单据>)`
+  把冲销件也捞进来(它们的 source_id 指着原件);
+* 要【按类别】看:改用 `source_type` 分类,不碰 source_id。
+  GLEXPORT-1 的控制科目勾稽走的是这一条 —— 它要的本来就是分类,不是逐单据。
+
+**为什么记在这里而不是记在那支函数上:** 读到这条陷阱的人不会是正在改
+`reverse_journal_entry_internal` 的人,而是正在写一句 `WHERE source_id = …`
+的人 —— 而那句话遍布全库。
+
 Note the second and third rows are a **different** failure from the first, and worth
 naming separately: they are not self-comparisons, they are **guaranteed-true** — the
 invariant they assert is already enforced upstream. That is not a defect (they cost

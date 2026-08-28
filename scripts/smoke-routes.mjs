@@ -82,6 +82,9 @@ const ID_SOURCES = {
         // 线上 fixed_assets 今天零行,故同时列在 EXPECTED_SKIPS 里。
         '/finance/assets': 'fixed_assets',
         '/finance/invoices': 'invoices', '/finance/journal': 'journal_entries',
+        // GLEXPORT-1:已存档的包。线上今天零行(开放月份不落库,而唯一已关账的
+        // 月份还没有人存过),故同时列在 EXPECTED_SKIPS 里。
+        '/finance/packs': 'management_packs',
         '/finance/payments': 'payments', '/hr/claims': 'medical_claims',
         '/hr/departments': 'departments', '/hr/employees': 'employees',
         '/hr/leave': 'leave_requests', '/hr/payroll': 'payroll_periods',
@@ -227,6 +230,12 @@ const EXPECTED = {
     '/logout': [307, 303],          // 登出即重定向
     '/my-reviews/[id]': [404],      // admin 不是评估人 —— notFound 是契约;评估人视角在主循环后精确单测
     '/purchasing': [307],           // 索引页重定向到 /purchasing/orders
+    // GLEXPORT-1:总账导出【必须】有期间 —— 不带 from/to 就是 400,而那是契约:
+    // 一份说不出自己覆盖哪一段的总账导出,日后没有人对得起来。
+    // 【只声明这个 400 是不够的】那样这条路由就只有「拒绝」那一半被走过,
+    // 而「它真的导得出东西吗」从来没有被问过 —— 所以 QUERY_PROBES 里
+    // 配了一条带期间的探针,两条合起来才算走过这条路由。
+    '/finance/journal/export': [400],
 }
 // 三条状态门路由:预期值从被选中的那一行【算出来】,精确断言 ——
 // [200,307] 那种"两个都行"会静默放过一个开始乱重定向的守卫。
@@ -295,6 +304,26 @@ const QUERY_PROBES = [
         // 前者要求集合非空;后者对空集也成立,而那正是第一版的毛病。
         mustNot: 'data-box-detail-error',
     },
+    {
+        name: 'GL 导出(带期间)',
+        why: '总账导出不带 from/to 时按契约返回 400,所以主循环只走过它的「拒绝」那一半;'
+           + '这条探针走另一半 —— 它真的导得出这一段里的分录吗',
+        // 找一张【真实存在的】分录,用它自己的日期当区间 —— 于是这一段必然非空。
+        async resolve() {
+            const rows = await restRows(
+                '/rest/v1/journal_entries?select=code,entry_date&order=entry_date.desc&limit=1',
+                'query-probe ← journal_entries')
+            if (!rows[0]?.code) return null
+            const d = rows[0].entry_date
+            return { url: `/finance/journal/export?from=${d}&to=${d}`, invoiceCode: rows[0].code }
+        },
+        // 【断言那张分录的编号出现在导出里】—— 不是「文件非空」。
+        // 前者要求集合非空;后者对一份只有抬头的 CSV 也成立,而那正是
+        // GST-FIX-2 那一课:一条对空集也成立的断言什么都没证明。
+        // mustNot 取路由自己失败时会吐的那句话 —— 于是 200 + 有编号 + 没有它,
+        // 三条一起才算过。
+        mustNot: 'Export failed',
+    },
 ]
 
 const EXPECTED_SKIPS = new Set([
@@ -317,6 +346,14 @@ const EXPECTED_SKIPS = new Set([
     // 【注意它跳过的是明细页,不是列表页】/hr/attendance 每一跑都真的渲染,
     // 而且下面有一条【内容】断言与一条【可达性】断言钉着它。
     '/hr/attendance/[id]',
+    // GLEXPORT-1:线上还没有一份【存档】的包。management_packs 只由
+    // freeze_management_pack 写入,而它只受理【已关账】的月份;唯一符合条件的
+    // 2026-07 至今没有人存过。存下第一份的那天,这条断言会报「预期会 SKIP 的
+    // 路由跑起来了」,逼人把这两行删掉 —— 跳过是记录,不是默许。
+    // 【注意跳过的是明细页与它的导出,不是列表页】/finance/packs 每一跑都真的
+    // 渲染(它有实时预览),而且下面有两条【内容】断言与一条【可达性】断言钉着它。
+    '/finance/packs/[id]',
+    '/finance/packs/[id]/export',
     // 【FRT-1 的那条跳过已经删掉了 —— 它自己逼出来的(FRT-FIX,2026-08-20)】
     // 原文写着"录第一张的那天,这条断言会逼人把它从这里删掉"。LOG-4b 的端到端
     // 验证在线上留下了三张(已冲销的)运费单,于是那一天到了:这一跑报的是
@@ -501,6 +538,29 @@ const MSG_MY_ATTENDANCE = (() => {
     if (!m) throw new Error('messages/en.ts 里找不到 attendance.myTitle')
     return m[1]
 })()
+// GLEXPORT-1：报表包页的入口断言，同样【从文案文件现读】。
+// 【断言 subtitle 而不是 title】"Monthly pack" 这个词在财务子导航里也出现，
+// 拿 title 去断言，会在【页面本身没渲染出来、只有导航条在】时照样通过。
+// 这是同一个坑的第三次(ATTEND-1、WHT-1，现在是它)，所以这里不再重新踩。
+const MSG_PACK_SUB = (() => {
+    const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
+    const blk = src.match(/\n    pack: \{[\s\S]*?\n    \},/)
+    if (!blk) throw new Error('messages/en.ts 里找不到 pack 这一段 —— 入口断言无从下手')
+    const m = blk[0].match(/\n\s*subtitle: '([^']+)'/)
+    if (!m) throw new Error('messages/en.ts 里找不到 pack.subtitle')
+    return m[1]
+})()
+// ★【这一条断的是【这一刀的裁定本身】】★ 「一份存下来的包意味着它产出时那个月
+// 已经关账了」—— 那句话必须出现在读者遇到存档包的那一屏上。它不是装饰:
+// 整个 freeze 只受理已关账月份的设计，全靠这句话让读者知道自己手上拿的是什么。
+// 把它钉住，是因为一句会被下一次改版悄悄删掉的解释，等于这条规矩没有被说出来。
+const MSG_PACK_STORED_MEANS = (() => {
+    const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
+    const blk = src.match(/\n    pack: \{[\s\S]*?\n    \},/)
+    const m = blk[0].match(/\n\s*storedMeans: '([^']+)'/)
+    if (!m) throw new Error('messages/en.ts 里找不到 pack.storedMeans')
+    return m[1]
+})()
 const SCRATCH_NAME = '【SMOKE 冒烟脚本临时行 · 勿动 · 随时可删】'
 
 async function rest(path, opts = {}) {
@@ -567,6 +627,11 @@ const ID_FILTERS = {
 const ORDER_OVERRIDES = {
     // 一个月一份底稿,period_month 是 UNIQUE 的 —— 它本身就是稳定序。
     attendance_periods: '&order=period_month.desc,id.desc',
+    // GLEXPORT-1:一份包"产出来那一刻"叫 produced_at —— 再加一个 created_at
+    // 就是同一件事的两个名字(与 attendance_periods 的 opened_at 逐字同一条)。
+    // 【为什么不是按 period_month】同一个月可以有多份(重出),period_month
+    // 不唯一;produced_at + id 才排得出先后。
+    management_packs: '&order=produced_at.desc,id.desc',
 }
 const ORDER_DEFAULT = '&order=created_at.desc,id.desc'
 async function firstId(table, route) {
@@ -1408,6 +1473,64 @@ async function main() {
                 console.log('  FAIL /finance 子导航里没有预提税的入口')
             } else { ok++ }
         }
+
+        // ── GLEXPORT-1：报表包两条内容断言 + 两条可达性断言 ──────────────────
+        // 【为什么两条内容】第一条问「这一页画出来了吗」，第二条问「它有没有说出
+        //  存档的含义」—— 后者是这一刀的裁定,而一个没有把裁定说出来的页面,
+        //  会让人以为存下来的包和预览是同一种东西。
+        {
+            const before = logChunks.length
+            const res = await fetch(`http://localhost:${PORT}/finance/packs`, {
+                headers: { cookie }, redirect: 'manual' })
+            const html = res.status === 200 ? await res.text() : ''
+            for (const [needle, what] of [
+                [MSG_PACK_SUB,           '报表包页'],
+                [MSG_PACK_STORED_MEANS,  '「一份存档的包意味着那个月当时已经关账」那句裁定'],
+            ]) {
+                if (res.status === 200 && html.includes(needle)) { ok++ }
+                else {
+                    const why = res.status !== 200
+                        ? `HTTP ${res.status}`
+                        : `页面 200，但找不到「${needle}」—— ${what}没画出来，而 200 看不出这件事`
+                    failures.push({ route: `/finance/packs (GLEXPORT-1 ${what})`, url: '/finance/packs',
+                        status: res.status, expected: 200, stack: `${why}\n${await serverStack(before)}` })
+                    console.log(`  FAIL /finance/packs GLEXPORT-1 ${what} → ${why}`)
+                }
+            }
+            // 【可达性①：财务子导航里有没有报表包】
+            const navRes = await fetch(`http://localhost:${PORT}/finance`, {
+                headers: { cookie }, redirect: 'manual' })
+            const navHtml = navRes.status === 200 ? await navRes.text() : ''
+            if (!navHtml.includes('/finance/packs')) {
+                failures.push({ route: '/finance (子导航里没有报表包)', url: '/finance',
+                    status: navRes.status, expected: 200,
+                    stack: '财务子导航的 HTML 里找不到 /finance/packs —— 这一页打得开却走不到。'
+                         + 'Subnav.tsx 里有【两份】清单(ITEMS 与 ordered),两份都要有。' })
+                console.log('  FAIL /finance 子导航里没有报表包的入口')
+            } else { ok++ }
+            // ★【可达性②：总账导出的入口】★ 导出是一条 Route Handler,
+            //   它【永远】不会出现在路由冒烟的 2xx 名单里以外的任何地方 ——
+            //   一条没有入口的导出路由,冒烟照样绿。所以这里直接问分录页的 HTML:
+            //   带着日期区间时,那个链接在不在。
+            //   (不带区间时页面故意不给链接、而是说出为什么,所以这里必须带上区间。)
+            const jRes = await fetch(
+                `http://localhost:${PORT}/finance/journal?date_from=2026-07-01&date_to=2026-07-31`,
+                { headers: { cookie }, redirect: 'manual' })
+            const jHtml = jRes.status === 200 ? await jRes.text() : ''
+            // ★【判据在 & 之前收尾 —— 服务端渲染把 & 转义成 &amp;】★
+            //   第一版写的是完整 URL(...from=2026-07-01&to=2026-07-31),
+            //   而 HTML 属性里它是 ...from=2026-07-01&amp;to=2026-07-31 ——
+            //   于是这条断言【永远不可能成立】,红的是判据不是页面。
+            //   一个永远满足不了的判据是坏判据(smoke 自己为 name="supplier_id"
+            //   那次记过同一条)。收尾在 & 之前,既够唯一又与转义无关。
+            if (!jHtml.includes('/finance/journal/export?from=2026-07-01')) {
+                failures.push({ route: '/finance/journal (没有总账导出的入口)', url: '/finance/journal',
+                    status: jRes.status, expected: 200,
+                    stack: '分录页筛了日期区间,而 HTML 里找不到那条导出链接 —— '
+                         + '导出路由因此无门可走,而路由冒烟对这种情况是绿的(SAL-B6 / FRT-FIX 的形状)。' })
+                console.log('  FAIL /finance/journal 没有总账导出的入口')
+            } else { ok++ }
+        }
         }
 
         // ── 按角色的可达性(REACH-1)────────────────────────────────────────
@@ -1469,7 +1592,7 @@ async function main() {
     // 等于让"这一类到底测没测"重新变得看不见 —— 而它们存在的理由正是那件事。
     // PROBATION-1:总结这一行要把【每一个计进 ok 的探针】都点出来,否则
     // 标签念的是一件事、数字数的是另一件 —— 本仓库对这个形状记过好几次账。
-    console.log(`\n== ${routes.length} routes + 1 reviewer-view check + ${QUERY_PROBES.length} query-string probe(s) + 2 probation-entry probes + 2 customer-page entry probes + 2 cash-forecast probes (nav + content) + 3 claim probes (2 content + nav) + 3 attendance probes (2 content + nav) + 3 WHT probes (2 content + nav): ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
+    console.log(`\n== ${routes.length} routes + 1 reviewer-view check + ${QUERY_PROBES.length} query-string probe(s) + 2 probation-entry probes + 2 customer-page entry probes + 2 cash-forecast probes (nav + content) + 3 claim probes (2 content + nav) + 3 attendance probes (2 content + nav) + 3 WHT probes (2 content + nav) + 4 pack/GL-export probes (2 content + 2 nav): ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
     // SESSION-1:这一行排在所有失败之前,因为它改变【怎么读】下面那一百行。
     if (sawAuthIndeterminate) {
         const n = failures.filter((f) => f.authDown).length

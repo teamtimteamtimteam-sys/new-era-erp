@@ -121,9 +121,25 @@ export default async function JournalListPage({
                 <JournalToolbar />
             </Suspense>
 
-            <p className="text-sm text-gray-600 mb-4">
-                {t('finance.recordCount', { count: total })}
-            </p>
+            <div className="flex flex-wrap items-center gap-4 mb-4">
+                <p className="text-sm text-gray-600">
+                    {t('finance.recordCount', { count: total })}
+                </p>
+                {/* ★【总账导出的入口】★ 一个没有入口的导出路由,路由冒烟照样 200 ——
+                    而这个仓库为「无门上线」付过两次账(SAL-B6 的客户页、
+                    FRT-FIX 的货代下拉)。期间沿用工具栏此刻筛的那一段:
+                    导出必须有期间,而让人再填一遍就是同一个问题问两次。
+                    【筛选为空时不给链接,而是说出为什么】—— 一份"默认全部"的
+                    总账导出说不出自己覆盖到哪天。 */}
+                {dateFrom && dateTo ? (
+                    <a href={`/finance/journal/export?from=${dateFrom}&to=${dateTo}`}
+                       className="text-sm text-blue-600 hover:underline">
+                        {t('glExport.button')}
+                    </a>
+                ) : (
+                    <span className="text-sm text-amber-700">{t('glExport.needPeriod')}</span>
+                )}
+            </div>
 
             <table className="w-full border-collapse border border-gray-300">
                 <thead className="bg-gray-100">

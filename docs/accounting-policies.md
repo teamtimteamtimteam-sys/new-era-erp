@@ -432,6 +432,50 @@ rebuilt database does not grant a full year's entitlement for a year it did not 
 
 ---
 
+### 6.6 A monthly management pack is stored only for a month that is already closed. — **SETTLED — 2026-08-28, ruled by Tim (GLEXPORT-1)**
+
+An open month can be previewed on screen and exported, but it is **not** stored. The reason is that
+freezing, in this system, has always followed *something leaving the building* rather than someone
+pressing "compute": a GST return freezes when it is **filed**, a customer statement when it is
+**issued**, a bank reconciliation records an **event that happened**. A pack for a month that can
+still be posted into has committed to nothing. Storing one would create a permanent, immutable
+record of a figure everyone already knew was provisional.
+
+So a stored pack means exactly one thing, and the system guarantees it rather than labelling it: the
+month was closed when it was produced. `management_packs.locked_before_at_production` records the
+lock as it stood at that moment, and a table CHECK requires it to be strictly later than the period
+end. Re-producing a pack for the same month is a **new document** — the previous one is superseded,
+with a reason — never an edit.
+
+> *Enforcement:* `freeze_management_pack` (`PACK_MONTH_NOT_LOCKED`, `PACK_SUPERSEDE_REASON_REQUIRED`);
+> `management_packs_month_was_locked`; `idx_management_packs_live_month`;
+> `guard_management_pack_mutation` (`PACK_IMMUTABLE`); fixture 143 arms A, B and I.
+
+### 6.7 The pack reconciles each control account to its subsidiary ledger, and reports the part of the difference nobody has accounted for. — **SETTLED — 2026-08-28 (GLEXPORT-1)**
+
+Receivables (1100) and payables (2000) are each compared against the documents behind them
+(`ar_aging_asof` / `ap_aging_asof`). **These are the only two figures in the pack whose sides are
+independently derived** — one from the general ledger, the other from the documents. Profit and loss
+against the balance sheet is *not* such a check: both read the same derivation with two switches, and
+this memorandum's own §11 discipline plus the engineering record already mark the balance sheet's
+`balanced` flag as structurally guaranteed.
+
+A difference is normal and is not an error: FX revaluation moves the ledger and not the documents,
+money received on account clears the ledger and no document, and documents raised before the system
+started may never have been posted at all. Three named components account for those. **What is left
+over is reported as unexplained**, and that figure is a finding rather than a decoration — the most
+common cause is a manual journal posted straight to a control account.
+
+> **Measured at 2026-08-28**, both sides reconcile with **nothing unexplained**: receivables differ by
+> 14,440.88 (origination 20,247.13 + settlement 250.00 − revaluation 6,056.25) and payables by
+> 57,587.58 (origination 62,175.68 + settlement 0.96 − revaluation 4,589.06). The largest single
+> component is pre-cutover test data — one sale and five inbound batches that carry a value in the
+> sub-ledger and no surviving posting in the ledger.
+
+> *Enforcement:* `gl_control_reconciliation`; the pack prints both figures and the difference rather
+> than asserting agreement (the disposition `reconcile_statement` established); fixture 143 arm D
+> injects a manual journal into the control account and asserts the unexplained figure moves.
+
 # 7 · Payroll
 
 ### 7.1 Payroll is prepared by an external provider. The system records and posts it; it does not compute pay or statutory contributions. — **SETTLED**
