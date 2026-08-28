@@ -1,3 +1,227 @@
+-- db/migrations/2026-08-28-wht1-fu1-the-liability-view-must-ask-who-is-reading.sql
+-- ════════════════════════════════════════════════════════════════════════════
+-- WHT-1 fu1:`wht_liability_by_month` 是**属主权限**视图,却【没有问过读者是谁】。
+--
+-- ★【它错在哪】★ 属主权限(security_invoker = off)让视图用【视图属主】的权限
+--   去读它引用的东西 —— 那正是本刀选它的理由:这张视图跨总账与 wht_remittances
+--   两处,invoker 语义会让无权读总账的人【静默少算】一笔要汇的税,
+--   而少算与 OPS-14 找到的那五处「行悄悄消失」是同一个病。
+--
+--   **但属主权限只解决"读得到吗",它不回答"谁可以读"。**
+--   本视图带着 `GRANT SELECT ... TO authenticated`,于是任何一个登录用户
+--   都能经 PostgREST 直接读到公司欠 IRAS 多少 —— 页面上那道
+--   `requireModule(MOD.finance)` 拦的是【页面】,拦不住【表】。
+--
+-- ★【为什么闸没有抓住它】★ 逐条对过 db/gate.py 的判词:
+--   · `colreader` 与 `xmodule` 都只看 **security_invoker** 视图 —— 属主视图
+--     被它们【刻意】排除在外(那正是遮蔽视图的工作方式);
+--   · `colgrant` 问的是列有没有被授权,不问谁在读;
+--   · B1/B2 管的是函数的 anon 可执行性,不是视图。
+--   **也就是说:一张属主权限、带 GRANT、又没有 has_permission 谓词的视图,
+--   今天没有任何一条自动检查会问它一句话。** 这一条记在下面。
+--
+-- ★【修法就是 AGENTS.md 已经写好的那一条(OPS-14 的补救 (a))】★
+--   「属主权限,并把【读者自己的模块谓词】写回视图体里」。
+--   `db/views/customer_credit_status.sql` 是同一形状的先例:属主权限
+--   + `has_permission('module.customers.view')` 写在体内。
+--
+-- 【实测过才动手,而不是"顺手加一道更严的"】(2026-08-28):
+--   持有 module.finance.edit 的角色有三个(admin / gm / finance),
+--   而**没有任何一个角色持有 edit 却不持有 view** —— 所以给视图加上 view 谓词,
+--   不会让 remit_wht(它要 edit)读不到自己要的数。
+--   remit_wht 同时显式要求 view,把这条依赖【说出来】而不是靠巧合成立:
+--   它读的那张视图现在按 view 把关,那么它就该说它需要 view。
+--
+-- NOTE: 本文件是变更记录;安装路径完全走镜像。
+-- ════════════════════════════════════════════════════════════════════════════
+
+BEGIN;
+
+CREATE OR REPLACE VIEW public.wht_liability_by_month
+WITH (security_invoker = off) AS
+WITH withheld AS (
+    SELECT date_trunc('month', l.entry_date)::date AS period_month,
+           SUM(l.credit - l.debit)                 AS withheld_base
+      FROM journal_activity_lines('1900-01-01'::date, '2999-12-31'::date, true) l
+     WHERE l.account_code = '2150'
+       AND l.source_type IS DISTINCT FROM 'wht_remittance'
+     GROUP BY 1
+), remitted AS (
+    SELECT r.period_month,
+           SUM(r.amount_base) AS remitted_base
+      FROM wht_remittances r
+      JOIN journal_entries e ON e.id = r.journal_entry_id
+     WHERE e.status = 'posted'
+     GROUP BY 1
+)
+SELECT m.period_month,
+       COALESCE(w.withheld_base, 0)                                   AS withheld_base,
+       COALESCE(r.remitted_base, 0)                                   AS remitted_base,
+       COALESCE(w.withheld_base, 0) - COALESCE(r.remitted_base, 0)    AS unremitted_base,
+       (m.period_month + INTERVAL '1 month 14 days')::date            AS due_date,
+       ((m.period_month + INTERVAL '1 month 14 days')::date < CURRENT_DATE
+        AND COALESCE(w.withheld_base, 0) - COALESCE(r.remitted_base, 0) > 0) AS is_overdue
+  FROM (SELECT period_month FROM withheld
+        UNION
+        SELECT period_month FROM remitted) m
+  LEFT JOIN withheld w ON w.period_month = m.period_month
+  LEFT JOIN remitted r ON r.period_month = m.period_month
+ -- ★ fu1:**读者自己的模块谓词** —— 属主权限解决"读得到",这一句解决"谁可以读"。
+ --   has_permission() 是 SECURITY DEFINER 且按 auth.uid() 解析,所以它答的是
+ --   【调用者】,与这张视图归谁所有无关(AGENTS.md 在 OPS-14 那节写明了这一点)。
+ WHERE has_permission('module.finance.view'::text);
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- remit_wht 也显式要求 view —— 把它对那张视图的依赖【说出来】
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 少了这一句,一个持 edit 而不持 view 的角色会读到一张空视图,然后撞上
+-- WHT_NOTHING_TO_REMIT —— 一句【说错了原因】的拒绝(它会说"这个月没有欠款",
+-- 而真相是"你看不见它")。这个仓库对「一条答的不是它标签上那个问题的判词」
+-- 已经记过五次账,这里不制造第六次。
+-- db/functions/remit_wht.sql
+-- WHT-1:把一个代扣月的预提税汇给 IRAS。
+--
+-- ★【它与 pay_payroll_cpf 是同一个形状,而那不是巧合 —— 是同一件事】★
+--   两者都是【从别人的钱里扣下来、替他交给一个法定机构】:CPF 扣自员工的薪,
+--   预提税扣自非居民收款人的款。所以两者的分录逐字同形(借那笔负债 / 贷银行)、
+--   都在次月到期、都不豁免期间锁,而且【告警清除的条件都是钱真的动了】。
+--   两个到期日不同(CPF 次月 14 日、预提税次月 15 日),各自来自各自的法令 ——
+--   **不要"顺手统一"**:一个凑整过的法定期限,是一个会让公司逾期的数字。
+--
+-- ★【为什么不需要"先打开一期"】★ gst_periods 要先 open_gst_period 才能申报;
+--   这里没有那个动作,因为【欠多少是推导出来的】(wht_liability_by_month 从总账
+--   读代扣),不需要谁先声明这个月存在。于是"没有人开这一期,于是这个月的税
+--   悄悄没人管"这种失败模式,在结构上不存在。
+--
+-- FIN-10:日期没有 CURRENT_DATE 默认值 —— 缺了就抛具名错误。默认成今天
+-- 永远撞不上 PERIOD_LOCKED,于是留空反而比填对更容易过关。
+
+CREATE OR REPLACE FUNCTION public.remit_wht(p_period_month date, p_remitted_on date DEFAULT NULL::date, p_filed_reference text DEFAULT NULL::text, p_bank_account text DEFAULT NULL::text, p_notes text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+    v_month   date;
+    v_amount  numeric;
+    v_bank    text;
+    v_base    text;
+    v_ref     text;
+    v_seq     integer;
+    v_code    text;
+    v_je      jsonb;
+    v_id      uuid := gen_random_uuid();
+BEGIN
+    -- 【SECURITY DEFINER 必须自己问调用者是谁】一支不问的 definer 函数就是一条
+    -- 绕过 RLS 的路。这个形状在本仓库【上线过两次、被闸抓住两次】——
+    -- 写在这里是因为下一支新函数最容易漏的就是这一行。
+    PERFORM require_permission('module.finance.edit');
+    -- fu1:**也要求 view,而这条依赖是说出来的、不是碰巧成立的。**
+    -- 本函数从 wht_liability_by_month 读欠款,而 fu1 起那张视图按
+    -- module.finance.view 把关。不写这一句,一个持 edit 而不持 view 的角色
+    -- 会读到一张空视图,然后撞上 WHT_NOTHING_TO_REMIT —— 一句【说错了原因】的
+    -- 拒绝:它会说"这个月没有欠款",而真相是"你看不见它"。
+    -- (实测 2026-08-28:线上三个持 edit 的角色 admin/gm/finance 都持 view,
+    --  所以这一句今天不改变任何人的结果 —— 它防的是下一次配角色的人。)
+    PERFORM require_permission('module.finance.view');
+
+    IF p_period_month IS NULL THEN
+        RAISE EXCEPTION 'WHT_PERIOD_REQUIRED';
+    END IF;
+    v_month := date_trunc('month', p_period_month)::date;
+
+    IF p_remitted_on IS NULL THEN
+        RAISE EXCEPTION 'WHT_REMIT_DATE_REQUIRED|%', v_month;
+    END IF;
+    IF p_remitted_on < v_month THEN
+        -- 还没发生的代扣汇不出去。
+        RAISE EXCEPTION 'WHT_REMIT_DATE_BEFORE_PERIOD|%|%', p_remitted_on, v_month;
+    END IF;
+
+    -- 【参考号必填,而 gst_periods 那一条允许空 —— 两者不是同一件事】
+    -- GST 那边"申报"与"缴款"是两个动作,回执可能晚到;这里是【一次缴款】,
+    -- 而一笔说不出参考号的缴款,日后对着 IRAS 无从交代。
+    v_ref := NULLIF(btrim(COALESCE(p_filed_reference, '')), '');
+    IF v_ref IS NULL THEN
+        RAISE EXCEPTION 'WHT_FILED_REFERENCE_REQUIRED|%', v_month
+          USING HINT = '填 IRAS S45 申报的回执/参考号 —— 一笔交代不出出处的缴款,日后无从对账';
+    END IF;
+
+    SELECT code INTO v_base FROM currencies WHERE is_base;
+
+    -- 【银行必须是本位币户,而这一条【故意】比 pay_payroll_cpf 严】
+    -- IRAS 只收新元。pay_payroll_cpf 允许 1010 却把两条腿都按本位币记 ——
+    -- 那意味着一笔从美元户走的钱会被记成等额新元离开,而实际离开的是美元。
+    -- 那一支不在本刀范围内(不顺手改别人的函数),但这一支不复制它。
+    v_bank := COALESCE(p_bank_account, '1000');
+    IF v_bank NOT IN ('1000','1010') THEN
+        RAISE EXCEPTION 'BANK_INVALID|%', v_bank;
+    END IF;
+    IF bank_native_currency(v_bank) <> v_base THEN
+        RAISE EXCEPTION 'WHT_REMIT_BANK_NOT_BASE|%|%', v_bank, bank_native_currency(v_bank)
+          USING HINT = 'IRAS 只收本位币 —— 从外币户汇出去要先兑换,而那笔兑换是它自己的一笔交易';
+    END IF;
+
+    -- 【欠多少从那张视图读,不在这里再算一遍】视图是唯一的实现,而它对
+    -- 冲销的处理(经 journal_activity_lines)是这条链上最容易写错的一段。
+    -- 在这里重算 = 第二份实现,而两份会在写下来那天一致、之后悄悄分开。
+    SELECT unremitted_base INTO v_amount
+    FROM wht_liability_by_month WHERE period_month = v_month;
+
+    IF COALESCE(v_amount, 0) <= 0 THEN
+        RAISE EXCEPTION 'WHT_NOTHING_TO_REMIT|%|%', v_month, COALESCE(v_amount, 0)
+          USING HINT = '这个月没有未汇的代扣税 —— 也可能是已经汇过了(补汇是新的一行,不是改旧的那一行)';
+    END IF;
+
+    -- 分录走【普通过账路径】,所以期间锁照常生效 —— 与 CPF 同一条:
+    -- 一笔汇款不因为它是法定义务就可以进一个已经关掉的月份。
+    v_je := post_journal_entry(
+        p_remitted_on,
+        'Withholding tax remittance ' || to_char(v_month, 'YYYY-MM'),
+        'wht_remittance', v_id,
+        jsonb_build_array(
+            jsonb_build_object('account_code', '2150', 'side', 'debit',
+                'currency', v_base, 'amount_ccy', v_amount,
+                'line_memo', 'WHT for ' || to_char(v_month, 'YYYY-MM')),
+            jsonb_build_object('account_code', v_bank, 'side', 'credit',
+                'currency', v_base, 'amount_ccy', v_amount,
+                'line_memo', 'IRAS ' || v_ref)));
+
+    -- 编号:同一个月可以有多笔(补汇),第二笔起带序号。
+    -- 咨询锁串行化,与 EXP/JE/收付款的取号手法一致。
+    PERFORM pg_advisory_xact_lock(hashtext('wht_remit_' || to_char(v_month, 'YYYY-MM'))::bigint);
+    SELECT COUNT(*) + 1 INTO v_seq FROM wht_remittances WHERE period_month = v_month;
+    v_code := 'WHT-' || to_char(v_month, 'YYYY-MM') ||
+              CASE WHEN v_seq > 1 THEN '-' || v_seq::text ELSE '' END;
+
+    INSERT INTO wht_remittances (id, code, period_month, remitted_on, amount_base,
+                                 filed_reference, journal_entry_id, notes, created_by)
+    VALUES (v_id, v_code, v_month, p_remitted_on, v_amount,
+            v_ref, (v_je->>'entry_id')::uuid, p_notes, auth.uid());
+
+    RETURN jsonb_build_object(
+        'remittance_id', v_id,
+        'code', v_code,
+        'period_month', v_month,
+        'remitted_on', p_remitted_on,
+        'amount_base', v_amount,
+        'currency', v_base,
+        'filed_reference', v_ref,
+        'journal_code', v_je->>'code');
+END;
+$function$
+;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- record_payment:2150 的贷方 ≡ 各行 withheld_base 之和(按构造,不是靠巧合)
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 【自查时发现的一分钱】原实现对【合计】取一次整(round(Σ withheld_pay × fx)),
+-- 而落进 payment_allocations 的是【逐行】取整的值。两者在同币种下相同,
+-- 跨币种时可以差一分钱 —— 而那一分钱恰好落在【表头与它的明细之间】:
+-- 2150 的贷方 vs 各行 withheld_base 之和。本仓库为这件事专门有一份 fixture
+-- (80「一个数字背后的那些行加起来等于那个数字」)。
+-- 改成在循环里逐行累加同一个已取整的数,于是两者【按构造】相等,不靠运气。
 CREATE OR REPLACE FUNCTION public.record_payment(p_direction text, p_counterparty_id uuid, p_amount numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_bank_account text DEFAULT NULL::text, p_payment_date date DEFAULT NULL::date, p_notes text DEFAULT NULL::text, p_allocations jsonb DEFAULT '[]'::jsonb, p_counterparty_kind text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -794,3 +1018,5 @@ BEGIN
 END;
 $function$
 ;
+
+COMMIT;

@@ -1,3 +1,39 @@
+-- db/migrations/2026-08-28-wht1-fu2-not-subject-to-withholding-is-not-a-reason-to-refuse.sql
+-- ════════════════════════════════════════════════════════════════════════════
+-- WHT-1 fu2:**「不适用代扣」不是拒绝一张 paid 费用单的理由。**
+--
+-- ★【原实现造了一堵墙,而它自己看起来像一道闸】★
+--   A2 那道拒绝(paid + 要代扣 → 按名拒,并指路"先记未付再付款")是对的。
+--   但它被放在【解析税率之前】,谓词只看"有没有给性质"。于是对一个
+--   **非居民收款人当场付清一笔不适用代扣的款**,两条路同时被堵死:
+--     · 不回答性质      → WHT_NATURE_REQUIRED(非居民必须回答);
+--     · 回答「不适用」  → WHT_ON_PAID_EXPENSE_UNSUPPORTED(paid 一律拒)。
+--   **一个两边都堵死的问题不是一道闸,是一堵墙** —— 而墙的下场是有人去改数据
+--   绕开它(把供应商的居民身份改回 NULL),那恰好会把这套东西整个关掉。
+--
+-- ★【判据改成【真的要扣钱吗】】★ 税率先解析,再按 `v_wht_rate > 0` 判。
+--   没有钱要被扣下来的时候,paid 那一支没有任何东西需要劈,也就没有理由拦它。
+--   条约减免到 0% 的那种情形也自然落在放行一侧,而那是对的。
+--
+-- 【界面本来就写对了,错的是服务端】NewExpenseForm 的提示条件一直是
+--   `whtNature !== 'none' && paymentStatus === 'paid'`。两边不一致时
+--   **先问哪一边错了**(AGENTS.md:「让页面同意服务端,只在服务端是对的时候才对」)
+--   —— 这一次错的是服务端,所以改服务端,不是把界面改成一样严。
+--
+-- 【它是自查发现的,不是被闸抓到的】fixture 142 的 E 臂原本只枚举【拒绝】,
+--   而这条路的正确行为是【放行】—— 一份只断言"该拒的都拒了"的 fixture,
+--   对"不该拒的也被拒了"完全失明。E8 臂因此是【正着断言】的,并配一条
+--   反向的自证非空转。这与 fixture 39 那条教训同族:一套只围绕
+--   「规则适用时算得对吗」的测试,看不见「规则根本不该适用」。
+--
+-- NOTE: 本文件是变更记录;安装路径完全走镜像。
+-- 【备份】本刀无数据变更、无结构变更 —— 只是一支函数体的 CREATE OR REPLACE。
+--   覆盖它的备份是 2026-08-28-1729(BACKUP_EXIT=0,pg_restore --list 已验),
+--   而回退这一支只需要 git 上一版 + 重放。理由写在这里而不是省略不提。
+-- ════════════════════════════════════════════════════════════════════════════
+
+BEGIN;
+
 CREATE OR REPLACE FUNCTION public.record_expense(p_expense_date date, p_account_code text, p_amount numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_payment_status text DEFAULT 'paid'::text, p_bank_account text DEFAULT NULL::text, p_supplier_id uuid DEFAULT NULL::uuid, p_payee_name text DEFAULT NULL::text, p_notes text DEFAULT NULL::text, p_asset jsonb DEFAULT NULL::jsonb, p_employee_id uuid DEFAULT NULL::uuid, p_purchase_order_line uuid DEFAULT NULL::uuid, p_tax_code text DEFAULT NULL::text, p_wht_nature text DEFAULT NULL::text, p_wht_rate_pct numeric DEFAULT NULL::numeric, p_wht_treaty_ref text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -581,3 +617,5 @@ BEGIN
 END;
 $function$
 ;
+
+COMMIT;

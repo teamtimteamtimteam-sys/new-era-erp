@@ -249,3 +249,70 @@ CREATE TRIGGER trg_expenses_tax_code_registered
 
 COMMENT ON COLUMN public.expenses.tax_base IS
     'GST-2:本单的进项税,以【本位币】计。**amount_ccy 始终是不含税的净额** —— 供应商账单上的总额 = 净额 + 税。可抵的(TX/ZP)那一笔税借 1400 进项税;不可抵的(BL)【有税但要不回来】,那笔税借进费用科目本身、且【不带税码】,好让 box5 报的仍然是采购净额。';
+
+-- ── WHT-1:预提税裁定冻在债务上(ALTER 加的列排在末尾,与 attnum 顺序一致)──
+ALTER TABLE public.expenses
+    ADD COLUMN wht_payee_residence text
+        CHECK (wht_payee_residence IS NULL OR wht_payee_residence IN ('resident', 'non_resident')),
+    ADD COLUMN wht_nature       text REFERENCES public.wht_natures (code),
+    ADD COLUMN wht_rate_pct     numeric,
+    ADD COLUMN wht_amount_ccy   numeric NOT NULL DEFAULT 0,
+    ADD COLUMN wht_treaty_ref   text;
+
+-- 【四列是一件事,不是四件】—— 逐字照着上面 expenses_tax_shape 那条写。
+-- 最后那个合取项是承重的:一次代扣裁定只能存在于【当时收款人是非居民】的债务上。
+-- 少了它,一张写着 resident 却带着税率的费用单在库里是合法的,而它算得出数。
+ALTER TABLE public.expenses
+    ADD CONSTRAINT expenses_wht_shape CHECK (
+        (wht_nature IS NULL     AND wht_rate_pct IS NULL     AND wht_amount_ccy = 0)
+     OR (wht_nature IS NOT NULL AND wht_rate_pct IS NOT NULL AND wht_amount_ccy >= 0
+         AND wht_payee_residence = 'non_resident'));
+
+COMMENT ON COLUMN public.expenses.wht_payee_residence IS
+'WHT-1:**这笔债务产生的那一刻,收款人的税务居民身份**。它是从
+suppliers.tax_residence 【抄】过来并冻住的一份,不是一个指向那张表的引用。
+
+【为什么抄而不是查】与 FIN-27 把计价条款抄到承诺记录上、与 GST-2 把税率冻在
+发票行上,是同一条:供应商日后改了居民身份(他确实可能改 —— 管理与控制迁走了),
+不能倒过来改变一张已经记下的债务该不该代扣。查一次现在的身份,等于让历史随
+主数据漂移,而且没有任何东西会说它变了。
+
+【它是 3.1 那条裁定的物证】居民身份是【收款人】的前置条件,代扣与否是【债务】的
+属性 —— 这一列就是前者变成后者的那一步。';
+
+COMMENT ON COLUMN public.expenses.wht_nature IS
+'WHT-1:这笔款在预提税上【是什么】(wht_natures.code)。NULL = 这张单不代扣。
+【NULL 有两种来路,而它们在这一列上分不开,这是刻意的】① 收款人是居民,问题不成立;
+② 收款人是非居民而记账人显式回答了"这一笔不代扣"。两者在账上的后果完全相同
+(不扣),而把它们分成两个值会逼每一张居民供应商的费用单去回答一个不适用的问题。
+真正不许发生的是【第三种】:非居民 + 没有人回答过 —— 而那一种到不了这里,
+record_expense 在写之前就按名拒了(WHT_NATURE_REQUIRED)。';
+
+COMMENT ON COLUMN public.expenses.wht_rate_pct IS
+'WHT-1:适用税率,按【这张单自己的日期】从 wht_rate_for 解析出来并冻住。
+条约减免时这里存的是【减免后】的税率,而 wht_treaty_ref 存那份居民证明书的编号 ——
+两者要么都有、要么都没有(record_expense 里的 WHT_TREATY_REF_REQUIRED)。
+【为什么不存法定税率再存一个减免值】读的人要的是"这张单扣多少",而两个数字
+必须相减才得到答案的设计,会在某一天被人减错方向。法定那一个查得回来:
+wht_rate_for(wht_nature, expense_date)。';
+
+COMMENT ON COLUMN public.expenses.wht_amount_ccy IS
+'WHT-1:**这张单【全额结清】时会代扣的总额**,单据币种。它是一个【预期值】,
+不是账上的数 —— 真正的代扣发生在付款那一刻,按【实付的那一部分】乘税率算
+(record_payment),因为法定义务是"就你付出去的那部分代扣"。
+于是部分付款只扣部分,而全额付清时 Σ 各次代扣【恰好】等于这一列 ——
+fixture 142 的 D 臂钉的就是这条等式。
+【为什么还要存它】屏幕要在付款【之前】说得出"这张单会扣多少",而一个要靠
+页面自己乘一遍才知道的数,就是第二份实现(AGENTS.md 的预览规则,已犯四次)。';
+
+COMMENT ON COLUMN public.expenses.wht_treaty_ref IS
+'WHT-1:主张税收协定(DTA)减免时,那份【居民证明书】(Certificate of Residence)的
+编号。非空 ⇔ wht_rate_pct 低于当天的法定税率。
+
+★【为什么减免是一个【要出示证据的覆盖值】,不是一张可以查的表】★
+协定税率取决于:对方是不是缔约国居民、这笔款在协定里落在哪一条、以及他能不能
+出具居民证明书。前两件在法条里,第三件【在对方手上】—— 没有证明书,IRAS 按
+法定税率征,协定写什么都不作数。所以这不是一个"按国别 + 性质"查得出来的标量,
+而是一次逐笔的判断,必须留下它凭什么成立的痕迹。
+**这个仓库不判断协定适不适用**,它只保证:低于法定就必须说出凭据,而且
+永远不许高于法定(WHT_TREATY_RATE_ABOVE_STATUTORY)。判断是人的。';

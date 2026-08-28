@@ -89,6 +89,15 @@ export async function createExpense(
     // **不在这里替人挑一个** —— TX、ZP、EP、BL、OP 在申报表上的行为各不相同。
     const taxCode = String(formData.get('tax_code') ?? '').trim()
 
+    // WHT-1:代扣裁定的三个部件。**空一律送 undefined,不替人填** ——
+    // 对一个非居民收款人,record_expense 按名拒(WHT_NATURE_REQUIRED),
+    // 而"不适用"是一个显式的值('none'),不是一个空格子。
+    // 【不在这里做前置校验】三条协定规矩(要么都给、不得高于法定、低于法定要凭据)
+    // 全部住在函数体里;在这里再写一遍就是同一条规矩的第二处实现。
+    const whtNature = String(formData.get('wht_nature') ?? '').trim()
+    const whtTreatyRateRaw = String(formData.get('wht_treaty_rate_pct') ?? '').trim()
+    const whtTreatyRef = String(formData.get('wht_treaty_ref') ?? '').trim()
+
     const supabase = await createClient()
     const { data, error } = await supabase.rpc('record_expense', {
         p_expense_date: expenseDate,
@@ -112,6 +121,9 @@ export async function createExpense(
         // 而 record_expense 对那种组合按名拒(EXPENSE_CREATES_ASSET)。
         ...(isAppend && poLineIdRaw ? { p_purchase_order_line: poLineIdRaw } : {}),
         p_tax_code: taxCode || undefined,
+        p_wht_nature: whtNature || undefined,
+        p_wht_rate_pct: whtTreatyRateRaw ? Number(whtTreatyRateRaw) : undefined,
+        p_wht_treaty_ref: whtTreatyRef || undefined,
     })
 
     if (error) {

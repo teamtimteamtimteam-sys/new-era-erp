@@ -24,6 +24,12 @@
 --   都不碰,而 cash_flow_statement 只看碰了现金的分录,所以它进不了那张表、
 --   连归类分支都走不到。真正的现金在收款那一步,走既有的 ELSE 'operating')。
 -- source_type 'invoice' added by db/migrations/2026-08-14-so3a-order-flow-billing.sql
+-- source_type 'wht_remittance' added by
+--   db/migrations/2026-08-28-wht1-withholding-tax-on-non-resident-payments.sql
+--   【为什么新增一种而不是记成 'payment'】'payment' 是收付供应商/客户那一族,而
+--   ap_open_items、银行对账、现金流量表都按 source_type 分辨一笔钱在干什么。
+--   一笔给 IRAS 的汇款混进 'payment',会在那三处各自变成一件它不是的事。
+--   wht_liability_by_month 也靠它把【代扣】与【汇款】两侧分开。
 -- (订单流发票的过账:借 1100 / 贷 2500。现金流量表侧【想过】:这类分录不碰
 --  is_cash 科目,进不了那张表;对着它收的款走 ELSE 'operating' —— 正确,
 --  见 accounts 镜像 2500 那一行的注释)。
@@ -37,7 +43,7 @@ CREATE TABLE public.journal_entries (
     code        text NOT NULL UNIQUE,
     entry_date  date NOT NULL,
     memo        text,
-    source_type text CHECK (source_type IN ('manual','purchase','sale','processing_cost','allocation','stocktake','writeoff','payment','fx','expense','prepayment','payroll','transfer','revaluation','depreciation','asset_disposal','year_close','freight','invoice','shipment','credit_note')),
+    source_type text CHECK (source_type IN ('manual','purchase','sale','processing_cost','allocation','stocktake','writeoff','payment','fx','expense','prepayment','payroll','transfer','revaluation','depreciation','asset_disposal','year_close','freight','invoice','shipment','credit_note','wht_remittance')),
     source_id   uuid,
     status      text NOT NULL DEFAULT 'posted' CHECK (status IN ('posted','reversed')),
     reversed_by uuid REFERENCES public.journal_entries (id),

@@ -15,7 +15,9 @@
 --   从镜像里拿掉,必须还原成拼之前那份文件的每一个字节(见本刀报告 S2)。
 --   **一份 SQL fixture 做不到这件事** —— 它手上没有"拼之前"那份文本,而把五百行
 --   viewdef 抄成一个常量只会造出第三份会漂开的副本。
--- * 【行为那一半】在这里:支的清单是【恰好】那三十支(多、少、改名都按名报红),
+-- * 【行为那一半】在这里:支的清单是【恰好】那三十二支(多、少、改名都按名报红),
+--   (这个数此前写着「三十」,而数组里当时已经是 31 —— 过期的说明与错的断言
+--    让下一个读的人付一样的代价,所以 WHT-1 顺手改正,并把这句话留在这里。)
 --   而且本 fixture 立起一台【到期的】机器之后,除了新的那两支,其余每一支仍然是
 --   **0 行**。少了这一半,一支新臂完全可能顺手把别人的行也吐出来。
 --
@@ -56,7 +58,7 @@ DECLARE
         'orders_unfulfilled','output_unsold_aging','po_awaiting_receipt',
         'promise_overdue',
         'qualification_expiring','qualification_missing','review_submitted',
-        'safety_stock_below','stocktake_open','work_order_overdue',
+        'safety_stock_below','stocktake_open','wht_due','work_order_overdue',
         'work_order_variance_beyond'];
 BEGIN
     SELECT code INTO v_ccy FROM currencies WHERE is_base;
@@ -298,7 +300,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 解析器一支都没解出来。**这是"解析器坏了",不是"没有支"** —— 空集不许被读成答案(check-i18n 后缀解析、mustRows、restRows 是同一条规矩)';
     END IF;
     IF v_types <> v_expected THEN
-        RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 支的清单应当【恰好】是这三十一支 %,实得 %。多一支 = 有人加了臂而没有加规格行(docs/dashboard-arm-inventory.md 的规矩);少一支或改了名 = 本刀的拼接动了不该动的地方;而 dashboard.item.* 的 i18n 键集合【现读同一份清单】,所以两边必须一起动', v_expected::text, v_types::text;
+        RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 支的清单应当【恰好】是这三十二支 %,实得 %。多一支 = 有人加了臂而没有加规格行(docs/dashboard-arm-inventory.md 的规矩);少一支或改了名 = 本刀的拼接动了不该动的地方;而 dashboard.item.* 的 i18n 键集合【现读同一份清单】,所以两边必须一起动', v_expected::text, v_types::text;
     END IF;
 
     -- ② 隔离:本 fixture 立起来的数据只该点亮【新的那两支】。

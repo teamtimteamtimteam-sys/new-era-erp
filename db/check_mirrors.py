@@ -107,6 +107,15 @@ SEED_TABLES = {
     # 税率史更硬:一行写错,一张历史单据就会拿到一个当时并不适用的税率。
     "tax_rates":   (None, "tax_code, rate_pct, effective_from, "
                           "COALESCE(effective_to, DATE '9999-12-31') AS effective_to"),
+    # WHT-1:预提税的性质字典与税率史 —— 与 tax_codes / tax_rates 【逐字同一条理由】,
+    # 而且更硬一层:这张税率表的内容**还没有被会计师核对过**(见
+    # db/tables/wht_rates.sql 的表注释与 accounting-policies.md §8.3)。
+    # 一张"内容待核对"的表如果连【仓库与线上是否一致】都没人比,
+    # 那么核对过的那一版与线上跑着的那一版可以安静地分开 —— 而它算得出数、
+    # 报得出表、一条错误都不会有。所以它必须逐行比对。
+    "wht_natures": (None, "code, name_en, name_zh, statute_ref, is_active, sort_order"),
+    "wht_rates":   (None, "nature, rate_pct, effective_from, "
+                          "COALESCE(effective_to, DATE '9999-12-31') AS effective_to"),
     # accounts 是【混合表】:引擎点名的 34 行跟踪线上,其余是建账的人的地盘。
     # FIN-30:is_cash / cash_flow_section 也纳入比对 —— 它们决定现金流量表取哪些
     # 科目、归哪一段;线上被人翻了标记而无人察觉,报表会安静地算错一整类活动。

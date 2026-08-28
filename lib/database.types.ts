@@ -3066,6 +3066,11 @@ export type Database = {
           tax_base: number
           tax_code: string | null
           tax_rate_pct: number | null
+          wht_amount_ccy: number
+          wht_nature: string | null
+          wht_payee_residence: string | null
+          wht_rate_pct: number | null
+          wht_treaty_ref: string | null
         }
         Insert: {
           account_code: string
@@ -3091,6 +3096,11 @@ export type Database = {
           tax_base?: number
           tax_code?: string | null
           tax_rate_pct?: number | null
+          wht_amount_ccy?: number
+          wht_nature?: string | null
+          wht_payee_residence?: string | null
+          wht_rate_pct?: number | null
+          wht_treaty_ref?: string | null
         }
         Update: {
           account_code?: string
@@ -3116,6 +3126,11 @@ export type Database = {
           tax_base?: number
           tax_code?: string | null
           tax_rate_pct?: number | null
+          wht_amount_ccy?: number
+          wht_nature?: string | null
+          wht_payee_residence?: string | null
+          wht_rate_pct?: number | null
+          wht_treaty_ref?: string | null
         }
         Relationships: [
           {
@@ -3263,6 +3278,13 @@ export type Database = {
             columns: ["tax_code"]
             isOneToOne: false
             referencedRelation: "tax_codes"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "expenses_wht_nature_fkey"
+            columns: ["wht_nature"]
+            isOneToOne: false
+            referencedRelation: "wht_natures"
             referencedColumns: ["code"]
           },
         ]
@@ -6923,6 +6945,8 @@ export type Database = {
           payment_id: string
           purchase_order_id: string | null
           sales_record_id: string | null
+          withheld_base: number
+          withheld_pay: number
         }
         Insert: {
           allocated_base: number
@@ -6937,6 +6961,8 @@ export type Database = {
           payment_id: string
           purchase_order_id?: string | null
           sales_record_id?: string | null
+          withheld_base?: number
+          withheld_pay?: number
         }
         Update: {
           allocated_base?: number
@@ -6951,6 +6977,8 @@ export type Database = {
           payment_id?: string
           purchase_order_id?: string | null
           sales_record_id?: string | null
+          withheld_base?: number
+          withheld_pay?: number
         }
         Relationships: [
           {
@@ -11705,6 +11733,7 @@ export type Database = {
           supplier_types: string[]
           supplies_goods: boolean | null
           tax_id: string | null
+          tax_residence: string | null
           updated_at: string
           updated_by: string | null
         }
@@ -11730,6 +11759,7 @@ export type Database = {
           supplier_types?: string[]
           supplies_goods?: boolean | null
           tax_id?: string | null
+          tax_residence?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -11755,6 +11785,7 @@ export type Database = {
           supplier_types?: string[]
           supplies_goods?: boolean | null
           tax_id?: string | null
+          tax_residence?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -12908,6 +12939,131 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      wht_natures: {
+        Row: {
+          code: string
+          description_en: string | null
+          description_zh: string | null
+          is_active: boolean
+          name_en: string
+          name_zh: string
+          sort_order: number
+          statute_ref: string
+        }
+        Insert: {
+          code: string
+          description_en?: string | null
+          description_zh?: string | null
+          is_active?: boolean
+          name_en: string
+          name_zh: string
+          sort_order?: number
+          statute_ref: string
+        }
+        Update: {
+          code?: string
+          description_en?: string | null
+          description_zh?: string | null
+          is_active?: boolean
+          name_en?: string
+          name_zh?: string
+          sort_order?: number
+          statute_ref?: string
+        }
+        Relationships: []
+      }
+      wht_rates: {
+        Row: {
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          id: string
+          nature: string
+          note: string
+          rate_pct: number
+        }
+        Insert: {
+          created_at?: string
+          effective_from: string
+          effective_to?: string | null
+          id?: string
+          nature: string
+          note: string
+          rate_pct: number
+        }
+        Update: {
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          nature?: string
+          note?: string
+          rate_pct?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wht_rates_nature_fkey"
+            columns: ["nature"]
+            isOneToOne: false
+            referencedRelation: "wht_natures"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      wht_remittances: {
+        Row: {
+          amount_base: number
+          code: string
+          created_at: string
+          created_by: string | null
+          filed_reference: string
+          id: string
+          journal_entry_id: string
+          notes: string | null
+          period_month: string
+          remitted_on: string
+        }
+        Insert: {
+          amount_base: number
+          code: string
+          created_at?: string
+          created_by?: string | null
+          filed_reference: string
+          id?: string
+          journal_entry_id: string
+          notes?: string | null
+          period_month: string
+          remitted_on: string
+        }
+        Update: {
+          amount_base?: number
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          filed_reference?: string
+          id?: string
+          journal_entry_id?: string
+          notes?: string | null
+          period_month?: string
+          remitted_on?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wht_remittances_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "wht_remittances_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       work_order_expected_outputs: {
         Row: {
@@ -18273,6 +18429,17 @@ export type Database = {
         }
         Relationships: []
       }
+      wht_liability_by_month: {
+        Row: {
+          due_date: string | null
+          is_overdue: boolean | null
+          period_month: string | null
+          remitted_base: number | null
+          unremitted_base: number | null
+          withheld_base: number | null
+        }
+        Relationships: []
+      }
       work_order_fulfilment: {
         Row: {
           actual_qty: number | null
@@ -19281,6 +19448,9 @@ export type Database = {
           p_purchase_order_line?: string
           p_supplier_id?: string
           p_tax_code?: string
+          p_wht_nature?: string
+          p_wht_rate_pct?: number
+          p_wht_treaty_ref?: string
         }
         Returns: Json
       }
@@ -19428,6 +19598,16 @@ export type Database = {
           p_bank_account?: string
           p_entry_ids: string[]
           p_payment_date?: string
+        }
+        Returns: Json
+      }
+      remit_wht: {
+        Args: {
+          p_bank_account?: string
+          p_filed_reference?: string
+          p_notes?: string
+          p_period_month: string
+          p_remitted_on?: string
         }
         Returns: Json
       }
@@ -19752,6 +19932,10 @@ export type Database = {
       void_review: {
         Args: { p_reason: string; p_review_id: string }
         Returns: Json
+      }
+      wht_rate_for: {
+        Args: { p_date: string; p_nature: string }
+        Returns: number
       }
       withdraw_expense_claim: { Args: { p_claim_id: string }; Returns: Json }
       withdraw_fx_rate: {

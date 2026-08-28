@@ -58,6 +58,7 @@ module's own page.
 | 27 | `equipment_service_due` | 一台机器的一条保养间隔【到了】—— 距上一次那一种保养的公斤数或天数,**任一个**达到它自己的间隔 | `module.processing.view` **+ `module.finance.view` via `arm_permission_widen`** —— 机器卡在财务、干活的人在加工,而底下每一张表/视图的读者本来就是这两个码的 OR | `equipment_service_status`(读 `equipment_service_intervals` × `equipment_maintenance` × `processing_runs`) | **间隔是自愿配的**,所以扫描量跟着【间隔行数】走,不跟机器数走 —— 未监控的机器不触发那两个 LATERAL。与 `safety_stock_below` / `credit_over_limit` 同一条 opt-in 的界。`disposition = 'ignore'` 与已处置的机器都不上牌 |
 | 28 | `equipment_service_approaching` | 同一条间隔【快到了】—— 达到 `interval − lead`,但**还没**到期 | 同上 | 同上 | 同上。**与第 27 支互斥**:`is_approaching` 自带 `AND NOT is_due`,所以一台到期的机器不会同时出现在两支里(同一件事数两遍,正是 fixture 30 那句话要抓的东西) |
 | 29 | `promise_overdue` | 一个客户【答应过】的付款，过了他自己说的那个日子还没有被了结 | `module.finance.view` | `collection_promise_status` | **谓词含 `outcome IS NULL AND NOT chase_superseded AND promised_date <= CURRENT_DATE`**。三件事各自要紧：① `outcome IS NULL` 是它【清得掉】的全部依据 —— `record_promise_outcome` 一记结局这一行就消失；② **`promised_date <= CURRENT_DATE` —— 逾期就在承诺日【当天】**（Tim 2026-08-28 裁定，CHASE-1-FU 改的；CHASE-1 落地时是 `<`，那是一次**被决定改掉的边界，不是漂移**）。理由是一件关于这门生意的事实而不是偏好：**货款通常在下午中段到账**，所以承诺日当天有人来看这张单子时，一笔还没到的款已经是那天要处理的那件事；推到第二天，这张单子恰好在它最有用的那一天保持沉默。仍然**不设宽限期**（一个没人调的旋钮会让「逾期」在不同时候意思不同）；③ 被取代的催收上的承诺不再成立，所以它不响。**它是全站唯一一支主语是【一句话】而不是一张单据的臂** —— 而这正是它值得存在的理由：一个记下来却没有人被提醒的承诺，就是表里的一条备注 |
+| 30 | `wht_due` | 某个代扣月的预提税还没有汇给 IRAS，而法定期限(**次月 15 日**)在七天内或已经过去 | `module.finance.view` | `wht_liability_by_month` | **谓词是 `unremitted_base > 0 AND (due_date - CURRENT_DATE) <= 7`**。三件事各自要紧：① **它清得掉,而清除【只能由钱完成】** —— `unremitted_base` 是从总账推导的,只有 `remit_wht` 过了一张真的分录把 2150 借掉之后才会下降。**没有「知道了」按钮**,与 CPF 的 `cpf_paid_at`、与 CHASE-1 的 `outcome IS NULL` 同一条:一个点一下就消失的告警,清除的是人的注意力而不是那件事;② **次月 15 日与 CPF 的次月 14 日不共用常量** —— 两个数各自来自各自的法令,一个凑整过的法定期限是一个会让公司逾期的数字;③ **代扣为零的月份一支都不响**(`unremitted_base > 0`)—— 而那不是「还没到」,是「这个月没有代扣过任何税」,一个正当且常见的状态。**它今天在线上恒为空**:一家非居民服务商都没有(实测 2026-08-28),所以这一支的【有数据分支没有任何东西在走它】,见 `docs/known-issues.md` 的 WHT-1 条 |
 
 
 
@@ -270,6 +271,7 @@ because a valid uuid pointed at the wrong table opens someone else's document wi
 | `invoice_overdue` | `/finance/invoices/[id]` | the invoice |
 | `ar_over_90` | `/finance/receivables/[saleId]` | the AR document — whose number *is* the output batch code, by design |
 | `promise_overdue` | `/customers/[id]` | **the customer, not the promise** —— 承诺没有自己的页面，而它也不该有：了结一个承诺要看的是这个客户的整个仓位（欠多少、催过几次、这次答应之后到底核销了多少），而那一屏就是客户档案页。`item_code` 是那条催收的编号 |
+| `wht_due` | `/finance/wht` | **the month, and the month has no page of its own** —— 要处理一个到期的代扣月,看的是那一页上的负债表加汇缴表单,而不是某一笔付款。`item_code` 是那个代扣月(`YYYY-MM`),`item_id` 为 NULL —— 与 `fx_rate_gap` 同形 |
 | `ap_over_90` | `/finance/payables/[id]` or `/finance/expenses/[id]` | by `doc_kind`; unknown kind → no link |
 | `fx_rate_gap` | `/finance/fx?currency=<ccy>` | **no row exists** — the subject is a missing rate. An honestly-filtered list, which is not the same thing as a code search |
 | `bank_unmatched` | `/finance/bank/statements/[id]/reconcile` | where matching happens |

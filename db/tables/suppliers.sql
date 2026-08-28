@@ -57,7 +57,12 @@ CREATE TABLE public.suppliers (
     -- 这家供应商的账单默认用哪个【进项】税码。初值 NULL;已注册时记费用按名拒
     -- (TAX_CODE_REQUIRED|supplier)。与 customers.default_tax_code 逐字同一条理由。
     -- 侧别由 trg_suppliers_default_tax_code_side 钉住。
-    default_tax_code                 text REFERENCES public.tax_codes (code)
+    default_tax_code                 text REFERENCES public.tax_codes (code),
+    -- ── WHT-1 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)────────────
+    -- 这一家在【新加坡所得税】上是不是居民。三态,NULL = 没有人回答过。
+    -- **它不是 country** —— 详见列注释,那是本列存在的全部理由。
+    tax_residence                    text
+                                     CHECK (tax_residence IS NULL OR tax_residence IN ('resident', 'non_resident'))
 );
 
 COMMENT ON COLUMN public.suppliers.counterparty_type IS
@@ -187,3 +192,41 @@ CREATE TRIGGER trg_suppliers_default_tax_code_side
 
 COMMENT ON COLUMN public.suppliers.default_tax_code IS
     'GST-2:这家供应商的账单默认用哪个进项税码。初值 NULL,已注册时记费用会按名拒(TAX_CODE_REQUIRED|supplier)。与 customers.default_tax_code 逐字同一条理由。';
+
+-- WHT-1:税务居民身份 —— 声明的,不是从国别推出来的。
+COMMENT ON COLUMN public.suppliers.tax_residence IS
+'WHT-1:这一家在【新加坡所得税】上是不是居民。三态,而中间那个是重点:
+  · ''resident''      —— 新加坡税务居民,付给他的款不触发预提税;
+  · ''non_resident''  —— 非居民,付给他的服务/利息/特许权使用费要代扣;
+  · NULL              —— **没有人回答过这个问题**,不是"默认居民"。
+
+★【它【不是】country,而这一条是本列存在的全部理由】★
+country 是账单地址;税务居民身份取决于【管理与控制在哪里行使】。
+一家在新加坡注册的外国公司分支可以是非居民,一家在境外注册、由新加坡管理的
+公司可以是居民。**按国别推居民身份,等于把一个证据问题答成一个地址问题** ——
+与 customers.default_tax_code 上那句「尤其不按国别自动推 ZR」逐字同一条理由:
+出口零税率取决于出口证据,居民身份取决于居民证明,两者都不取决于地址。
+线上实测:唯一一家外国供应商(SUP-2026-0003,CN)是【货物】供应商,
+买货从来不触发预提税 —— 也就是说按国别推,第一条推论就会是错的。
+
+★【NULL 【不】按名拒,而这是一个量过成本之后的决定,不是一次退让】★
+本列既有 8 行全部为 NULL,不回填 —— 捏造一个居民身份比空白坏(FIN-26)。
+真正的问题是:一张【身份未申报】的供应商单据要不要拒?实测代价:
+**16 份 fixture 调用 record_expense**,每一份都自建供应商,于是任何形式的
+「必须申报」(表上的 NOT VALID CHECK、或函数里的按名拒)都会同时改写 16 个
+本刀没写过的文件 —— 而它防的那个场景在线上【一个实例都没有】
+(0 家 service_vendor,唯一的外国供应商是买货的)。
+
+所以规矩是【非对称】的,按"这个答案会不会改变结果"来划:
+  · tax_residence = ''non_resident''  → 记费用时【必须】回答代扣问题
+    (WHT_NATURE_REQUIRED;答"不适用"用 wht_natures 的 ''none'' 那一行,
+     它是一个【显式的否】,不是一个空白);
+  · tax_residence IS NULL             → 不问,照记 —— 而这个缺口
+    **被数出来摆在脸上**:/finance/wht 那一页印着"N 家供应商没有申报税务居民
+    身份",N 由页面现查。它是 4.2「具名缺席,不是空白」的一次真用。
+  · 显式传了代扣性质、而供应商身份是 NULL → 按名拒
+    (WHT_RESIDENCE_NOT_STATED):你在断言要代扣,而收款人根本没被分类过。
+
+【残留的风险,照直写】一家【未申报身份】的非居民服务商,今天可以被记费用、
+被付款,而系统一分钱都不会代扣。这是上面那个取舍买来的,不是没想到 ——
+按名记在 docs/known-issues.md,返回条件是第一家真实的非居民服务商到场。';

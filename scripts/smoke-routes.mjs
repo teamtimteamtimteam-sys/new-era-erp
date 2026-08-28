@@ -466,6 +466,34 @@ const MSG_ATTENDANCE_SUB = (() => {
     if (!m) throw new Error('messages/en.ts 里找不到 attendance.subtitle')
     return m[1]
 })()
+// WHT-1：预提税页的入口断言，同样【从文案文件现读】。
+// 【断言 subtitle 而不是 title】"Withholding tax" 这个词在财务子导航里也出现，
+// 拿 title 去断言，会在【页面本身没渲染出来、只有导航条在】时照样通过 ——
+// 一条对自己没走过的地面报绿的断言(ATTEND-1 的原话，这里是它的第二次)。
+const MSG_WHT_SUB = (() => {
+    const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
+    const blk = src.match(/\n    wht: \{[\s\S]*?\n    \},/)
+    if (!blk) throw new Error('messages/en.ts 里找不到 wht 这一段 —— 入口断言无从下手')
+    const m = blk[0].match(/\n\s*subtitle: '([^']+)'/)
+    if (!m) throw new Error('messages/en.ts 里找不到 wht.subtitle')
+    return m[1]
+})()
+// ★【这一条断的是【具名的缺席】，而它红的那一天就是它要说的话】★
+// 线上一个非居民服务商都没有(实测 0 家 service_vendor)，所以这一页今天
+// 渲染的永远是空状态那一半，**有数据的那一半没有任何东西在走它** ——
+// fixture 142 走的是函数，不是页面。先例俱在:/finance/freight/new 的货代
+// 下拉自建成起就是空的，冒烟一路绿了好几周(FRT-FIX)。
+// 所以这条断言【故意】钉着空状态那句话:第一笔真实的代扣发生时它会变红，
+// 而那正是「该有人去走一遍有数据的那条路」的时刻。**它是一个会自己响的返回条件，
+// 不是一句没人读的注释。** 红了以后的正确处置不是删掉它，是换成对表格的断言，
+// 并在那一刀里把有数据的分支走一遍。
+const MSG_WHT_NONE = (() => {
+    const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
+    const blk = src.match(/\n    wht: \{[\s\S]*?\n    \},/)
+    const m = blk[0].match(/\n\s*noneTitle: '([^']+)'/)
+    if (!m) throw new Error('messages/en.ts 里找不到 wht.noneTitle')
+    return m[1]
+})()
 const MSG_MY_ATTENDANCE = (() => {
     const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
     const blk = src.match(/\n    attendance: \{[\s\S]*?\n    \},/)
@@ -1343,6 +1371,43 @@ async function main() {
                          + '而这正是本仓库上过两次当的那件事。' })
                 console.log('  FAIL /hr 子导航里没有考勤的入口')
             } else { ok++ }
+
+        // ── WHT-1：预提税页的两条内容断言 + 一条可达性断言 ──────────────────
+        // 【为什么是两条】第一条问「这一页画出来了吗」，第二条问「它说的是
+        //  那句具名的缺席，还是一张空表」。第二条是 4.2 的执行者:一张什么都
+        //  不说的空表与一张坏掉的页面在屏幕上是同一样东西。
+        {
+            const before = logChunks.length
+            const res = await fetch(`http://localhost:${PORT}/finance/wht`, {
+                headers: { cookie }, redirect: 'manual' })
+            const html = res.status === 200 ? await res.text() : ''
+            for (const [needle, what] of [
+                [MSG_WHT_SUB,  '预提税页'],
+                [MSG_WHT_NONE, '「还没有代扣过任何税」那句具名的缺席'],
+            ]) {
+                if (res.status === 200 && html.includes(needle)) { ok++ }
+                else {
+                    const why = res.status !== 200
+                        ? `HTTP ${res.status}`
+                        : `页面 200，但找不到「${needle}」—— ${what}没画出来，而 200 看不出这件事`
+                    failures.push({ route: `/finance/wht (WHT-1 ${what})`, url: '/finance/wht',
+                        status: res.status, expected: 200, stack: `${why}\n${await serverStack(before)}` })
+                    console.log(`  FAIL /finance/wht WHT-1 ${what} → ${why}`)
+                }
+            }
+            // 【可达性：财务子导航的 HTML 里有没有这条链接】
+            // 一个没有入口的页面，路由冒烟照样 200(SAL-B6 的客户页就是这么无门上线的)。
+            const navRes = await fetch(`http://localhost:${PORT}/finance`, {
+                headers: { cookie }, redirect: 'manual' })
+            const navHtml = navRes.status === 200 ? await navRes.text() : ''
+            if (!navHtml.includes('/finance/wht')) {
+                failures.push({ route: '/finance (子导航里没有预提税)', url: '/finance',
+                    status: navRes.status, expected: 200,
+                    stack: '财务子导航的 HTML 里找不到 /finance/wht —— 这一页打得开却走不到。'
+                         + 'Subnav.tsx 里有【两份】清单(ITEMS 与 ordered),两份都要有。' })
+                console.log('  FAIL /finance 子导航里没有预提税的入口')
+            } else { ok++ }
+        }
         }
 
         // ── 按角色的可达性(REACH-1)────────────────────────────────────────
@@ -1404,7 +1469,7 @@ async function main() {
     // 等于让"这一类到底测没测"重新变得看不见 —— 而它们存在的理由正是那件事。
     // PROBATION-1:总结这一行要把【每一个计进 ok 的探针】都点出来,否则
     // 标签念的是一件事、数字数的是另一件 —— 本仓库对这个形状记过好几次账。
-    console.log(`\n== ${routes.length} routes + 1 reviewer-view check + ${QUERY_PROBES.length} query-string probe(s) + 2 probation-entry probes + 2 customer-page entry probes + 2 cash-forecast probes (nav + content) + 3 claim probes (2 content + nav) + 3 attendance probes (2 content + nav): ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
+    console.log(`\n== ${routes.length} routes + 1 reviewer-view check + ${QUERY_PROBES.length} query-string probe(s) + 2 probation-entry probes + 2 customer-page entry probes + 2 cash-forecast probes (nav + content) + 3 claim probes (2 content + nav) + 3 attendance probes (2 content + nav) + 3 WHT probes (2 content + nav): ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
     // SESSION-1:这一行排在所有失败之前,因为它改变【怎么读】下面那一百行。
     if (sawAuthIndeterminate) {
         const n = failures.filter((f) => f.authDown).length

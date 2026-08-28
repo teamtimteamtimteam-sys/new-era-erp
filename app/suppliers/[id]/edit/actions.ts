@@ -58,6 +58,12 @@ export async function updateSupplier(
             // 它是"没有人回答过",于是记费用时按名拒(TAX_CODE_REQUIRED|supplier)。
             default_tax_code:
                 ((formData.get('default_tax_code') as string)?.trim() ?? '') || null,
+            // WHT-1:税务居民身份。留空是合法的,而且它【不是】"居民" ——
+            // 它是"没有人回答过"。两者的后果不同:未申报时不追问代扣(一个
+            // 量过成本的取舍,见 db/tables/suppliers.sql),申报为居民时
+            // 明确不代扣(record_expense 的 WHT_PAYEE_IS_RESIDENT)。
+            tax_residence:
+                ((formData.get('tax_residence') as string)?.trim() ?? '') || null,
             legal_name,
             short_name,
             country,

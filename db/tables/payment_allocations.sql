@@ -95,3 +95,30 @@ COMMENT ON COLUMN public.payment_allocations.invoice_id IS
 
 COMMENT ON COLUMN public.payment_allocations.freight_document_id IS
     'FRT-1:这笔核销冲的是一张运费单(对手方是货代)。与 sales_record_id / inbound_batch_id / expense_id / purchase_order_id 同级 —— 五者恰一非空。';
+
+-- ── WHT-1:这一条核销里【没有付出去】的部分 ─────────────────────────────
+ALTER TABLE public.payment_allocations
+    ADD COLUMN withheld_pay  numeric NOT NULL DEFAULT 0 CHECK (withheld_pay >= 0),
+    ADD COLUMN withheld_base numeric NOT NULL DEFAULT 0 CHECK (withheld_base >= 0);
+
+COMMENT ON COLUMN public.payment_allocations.withheld_pay IS
+'WHT-1:这一条核销里【代扣下来、没有付出去】的部分,以【付款币种】计。
+
+★【它是这一整刀的结构核心,而它【不改】allocated_pay 的含义】★
+FIN-18 给 allocated_pay 定的意思是"本条核销消耗掉多少付款币种",并且明写了
+挂账余额 = payments.amount_ccy − Σ allocated_pay。代扣把那条等式变成:
+    挂账余额 = payments.amount_ccy − Σ (allocated_pay − withheld_pay)
+**改的是等式,不是 allocated_pay 的定义** —— 因为供应商的债确实按全额解除了,
+allocated_pay 说的正是那个全额。把它偷偷改成净额,会让 FIN-18 那段注释
+从此说谎,而且已实现汇兑(7100)会跟着错。
+
+【为什么是每条核销一个数,不是每笔付款一个数】一笔付款可以同时结掉一张要代扣的
+咨询发票和一张不代扣的货款发票。挂在付款上就只能给出一个答案 —— 那正是 3.1
+裁定里"付款层是结构性地错的"那句话,在列上的样子。';
+
+COMMENT ON COLUMN public.payment_allocations.withheld_base IS
+'WHT-1:同一笔代扣,折成本位币 —— 按【付款当日】的汇率,不是单据入账汇率。
+理由与预付(1300)那一条相同:代扣是【今天新产生的一笔对 IRAS 的负债】,
+不是在解除一笔旧的,所以它按今天的口径入账。两者之差正是已实现汇兑,
+而这一列站在哪一边,决定了 7100 算得对不对。
+IRAS 只收新元,所以这一列才是【要汇出去的那个数】;withheld_pay 只是现金算术。';

@@ -602,6 +602,31 @@ CREATE VIEW public.operations_now AS
             ps.promised_date AS item_date
            FROM collection_promise_status ps
           WHERE ps.is_overdue
+        UNION ALL
+-- ★【WHT-1:到期没汇给 IRAS 的预提税】★ 当月代扣的税,**次月 15 日**前申报并缴纳。
+-- 【这个日期与 CPF 的次月 14 日不是同一个数】各自来自各自的法令 —— 一个凑整过的
+-- 法定期限,是一个会让公司逾期的数字,所以两处各写各的,不共用常量。
+-- 【它清得掉,而清除【只能】由钱来完成】谓词读的是 wht_liability_by_month
+-- 的 unremitted_base,而那个数只有在 remit_wht 过了一张真的分录、把 2150 借掉
+-- 之后才会下降。**没有"知道了"按钮** —— 与 CPF 的 cpf_paid_at、与 CHASE-1 的
+-- outcome IS NULL 是同一条:一个点一下就消失的告警,清除的是人的注意力,
+-- 不是那件事;而一个清不掉的告警会教会人忽略告警(hr_alerts 那次)。
+-- 【七天窗口取自 cpf_due 那一支】到期前七天开始响,逾期后继续响(差值为负)。
+-- 【代扣为零的月份一支都不响】unremitted_base > 0 —— 而那不是"还没到",
+-- 是"这个月没有代扣过任何税",一个正当且常见的状态。
+         SELECT 'wht_due'::text AS item_type,
+            'module.finance.view'::text AS permission,
+            NULL::uuid AS item_id,
+            NULL::text AS doc_kind,
+            to_char(w.period_month::timestamp, 'YYYY-MM'::text) AS item_code,
+            -- 【币种是数据,不是字面量】本位币从 currencies.is_base 读 —— 这条
+            -- 规矩有一支专门的检查(check-currency-literals),而它也看得见 SQL。
+            (to_char(w.unremitted_base, 'FM999G999G990D00'::text) || ' '::text)
+                || (SELECT c.code FROM currencies c WHERE c.is_base) AS subject,
+            w.due_date AS item_date
+           FROM wht_liability_by_month w
+          WHERE w.unremitted_base > 0::numeric
+            AND (w.due_date - CURRENT_DATE) <= 7
 ) a
   WHERE (has_permission(permission) OR has_any_permission(arm_permission_widen(item_type)))
     AND (arm_permission_any(item_type) IS NULL OR has_any_permission(arm_permission_any(item_type)));

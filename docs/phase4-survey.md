@@ -376,7 +376,7 @@ attendance.
 >
 > **What was genuinely still open was never the code — it was a statutory ruling** (is a supply
 > reported in the invoice period or the sale period), and no amount of surveying would have produced
-> it. See `docs/forward-queue.md` phase 4 and `docs/accounting-policies.md` 8.1.
+> it. See `docs/forward-queue.md` phase 4 and `docs/accounting-policies.md` 9.1.
 
 The queue says 「只测量改造量,什么都不建」and this survey endorses it without qualification.
 The company is **not registered**; the trigger is a turnover threshold. Building GST machinery

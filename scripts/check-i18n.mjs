@@ -313,6 +313,9 @@ const MANIFEST = {
     // 键检查【自动跟着变宽】。★ 注意前缀是 expenseClaims.*,不是 claims.* ——
     // 后者是【医疗报销】已经占着的命名空间,而两块面板并排出现在 /me 上。
     'expenseClaims.errors.': { kind: 'enum', values: () => tsSet('app/finance/claims/claimErrorCodes.ts', 'EXPENSE_CLAIM_ERROR_CODES') },
+    // WHT-1:预提税那一族的拒绝。后缀集合【现读】whtErrorCodes.ts 的那个 Set ——
+    // 加一条拒绝、忘了写文案,构建当场红(与上面几族逐字同一个接法)。
+    'wht.errors.':          { kind: 'enum', values: () => tsSet('app/finance/whtErrorCodes.ts', 'WHT_ERROR_CODES') },
     'expenseClaims.status_': { kind: 'enum', values: () => sqlCheckIn('db/tables/expense_claims.sql', 'status') },
     'cashForecast.cadence_': { kind: 'enum', values: () => sqlCheckIn('db/tables/cash_forecast_lines.sql', 'cadence') },
     'cashForecast.undated_': { kind: 'enum', values: () => tsRegex('db/functions/cash_forecast_data.sql',

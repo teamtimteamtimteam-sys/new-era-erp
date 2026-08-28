@@ -76,3 +76,6 @@
 2026-08-28T13:58:59+0800	2026-08-28-attend1-attendance-as-payroll-input.sql	3afde1d
 2026-08-28T14:20:28+0800	2026-08-28-attend1-fu1-unpaid-days-is-invoker.sql	3afde1d
 2026-08-28T15:18:48+0800	2026-08-28-attend1-fu2-headcount-was-counting-scratch-rows.sql	8556ded
+2026-08-28T16:42:19+0800	2026-08-28-wht1-withholding-tax-on-non-resident-payments.sql	8ed2b4a
+2026-08-28T17:47:28+0800	2026-08-28-wht1-fu1-the-liability-view-must-ask-who-is-reading.sql	8ed2b4a
+2026-08-28T18:14:00+0800	2026-08-28-wht1-fu2-not-subject-to-withholding-is-not-a-reason-to-refuse.sql	8ed2b4a

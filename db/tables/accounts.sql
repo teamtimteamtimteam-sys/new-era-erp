@@ -197,6 +197,21 @@ INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system, is
 INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system, is_monetary) VALUES
     ('2500', 'Contract Liability', '预收合同负债', 'liability', true, false);
     -- revalue_foreign_balances
+-- WHT-1:代扣未缴的预提税 —— 对 IRAS 的负债。
+-- ★【它不是公司的成本,这是这一整刀的会计要点】★ 付给非居民 10,000 的债,
+-- 只有 8,500 离开银行,差额 1,500 落在这里:那 1,500 【从来没有】进过公司的损益,
+-- 它是收款人的钱,由公司代收代付。把它当成费用,会让利润表凭空多出一笔成本,
+-- 而资产负债表少一笔负债 —— 两个方向同时错。
+-- 【is_system = true】record_payment 与 remit_wht 都按 code 点名引用它。
+-- 【is_monetary = true】它就是货币性项目(一笔固定金额的负债)。它【不带汇率
+-- 敞口】:代扣额一律按付款当日汇率折成本位币入账(IRAS 只收新元),所以重估
+-- 对它恒为零 —— 标 true 是因为它是什么,不是因为重估会动它。
+-- 【is_cash = false / cash_flow_section 不填】汇款分录是 2150 对银行,现金流量表
+-- 走 ELSE 'operating' —— 缴税是经营活动,正确(判据同 2500 那一段)。
+INSERT INTO public.accounts (code, name_en, name_zh, account_type, is_system, is_monetary) VALUES
+    ('2150', 'Withholding Tax Payable', '预提税应付', 'liability', true, true);
+    -- record_payment(代扣贷方)/ remit_wht(汇款借方)/ wht_liability_by_month
+
 -- ── FIN-30:现金流量表的两处声明 ────────────────────────────────────────────
 -- 集中在这里,而不是散进上面几十行 VALUES —— "哪些科目是现金 / 哪些算投资筹资"
 -- 是【六行数据】,读的人该一眼看全,而不是在三十行里逐行找 true/false。

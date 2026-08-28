@@ -523,11 +523,137 @@ it. The way through is to unpost first, which carries its own guard under 7.3.
 > checkbox, not a statement); `reopen_attendance_period`; `attendance_lines.recorded_at` is what
 > separates *recorded as zero* from *nobody looked*; fixture 141 (twelve arms, 14/14 fault-injection).
 
-# 8 · What is deliberately not here
+# 8 · Withholding tax on payments to non-residents
+
+**This is not GST, and the difference is the whole of this section.** GST is tax the company charges
+and reclaims on its own account. Withholding tax is tax the company **holds back from somebody
+else's money**: where the company owes a non-resident 10,000, it pays out 8,500 and remits 1,500 to
+IRAS on that payee's behalf. The 1,500 never enters the company's profit or loss — it is the payee's
+money, in the company's hands, on its way to the tax authority.
+
+### 8.1 Whether a payment attracts withholding tax is a property of the OBLIGATION — not of the payee, and not of the cash payment. — **SETTLED — 2026-08-28, ruled by Tim (WHT-1)**
+
+Three facts have to be true at once before any tax is withheld, and they live in three places:
+
+* the **residence of the payee** — a property of the supplier, evidenced by a certificate of residence;
+* the **nature of the payment** — interest, royalty, management fee, technical service fee — which in
+  this system is a property of the document that records what was bought;
+* the **act of withholding** — which happens at the payment, the only point at which the money splits.
+
+The obligation is the level at which the first two are simultaneously known **and the amount is
+known**, and it is the level IRAS's own tax point sits at: the earlier of the date the payment is due
+and payable and the date it is actually paid. So the decision is recorded on the obligation, the
+payee's residence is **copied onto it and frozen** at that moment, and the payment executes what the
+obligation already decided and can never re-decide it.
+
+**The two rejected levels are recorded with their reasons, because a later reader should meet the
+reasoning rather than only the choice:**
+
+* **Per payment is structurally wrong.** One payment can settle a consultancy invoice and a goods
+  invoice together; a single flag on the payment can only give one answer for both.
+* **Per payee is wrong in the other direction.** The same non-resident can sell goods in January
+  (no withholding) and consultancy in February (withholding). An answer attached to the payee is
+  wrong in one of those two months.
+
+> *Enforcement:* `expenses.wht_payee_residence` / `wht_nature` / `wht_rate_pct` / `wht_amount_ccy`
+> under one `expenses_wht_shape` CHECK; `record_expense`; `record_payment` reads the frozen rate and
+> never re-resolves it; fixture 142 arm C, which changes the supplier's residence after the document
+> is recorded and asserts the withholding still happens.
+
+### 8.2 The payable is settled in full; the bank moves by the net; the difference is a liability to IRAS. — **SETTLED — 2026-08-28 (WHT-1)**
+
+Withholding is **not a discount**. The supplier's account is discharged by the gross amount, so the
+payable closes to exactly zero; the bank is credited with the net; the difference is credited to
+**2150 Withholding Tax Payable**. That account is a liability, never a cost — treating it as an
+expense would overstate cost and understate liabilities at the same time.
+
+> *Enforcement:* `record_payment` (the 2150 leg, and `ALLOC_EXCEEDS_PAYMENT` now compares the amount
+> that must actually leave the bank rather than the amount allocated); account 2150 is `is_system`;
+> fixture 142 arm A asserts all three figures and first asserts they are pairwise different, so an
+> implementation that pays gross and one that withholds nothing both fail.
+
+### 8.3 A withholding rate is a statutory fact with a date. Where none is on file for that date, the system refuses. — **SETTLED — 2026-08-28 (WHT-1)**
+
+Rates hang on effective-dated rows, exactly as GST rates do, and `wht_rate_for` refuses by name
+rather than reaching for the nearest one. A treaty may **reduce** a rate but never increase it, and
+claiming a reduced rate requires a certificate of residence to be recorded — without one IRAS
+charges the statutory rate whatever the treaty says, and the shortfall becomes the company's own
+cost.
+
+> **★ The content of the rate table has NOT been verified by an accountant. ★** The shape of it is
+> an engineering decision and it is finished. The six figures in it are not: they were seeded from
+> the statutory references recorded against each row, and each carries a **baseline** start date
+> rather than a researched commencement date. **Every row must be confirmed before the first real
+> payment to a non-resident.** Until then the machine will compute, report and reconcile perfectly
+> while being wrong, which is exactly the risk worth naming.
+
+> *Enforcement:* `wht_rates`, `wht_rate_for` (`WHT_RATE_NOT_FOUND`);
+> `WHT_TREATY_RATE_ABOVE_STATUTORY` and `WHT_TREATY_REF_REQUIRED` in `record_expense`;
+> fixture 142 arm B straddles a rate boundary, so a nearest-match implementation fails it.
+
+### 8.4 Tax withheld in a month is remitted to IRAS by the fifteenth of the following month, and the system reports the deadline rather than merely recording the payment. — **SETTLED — 2026-08-28 (WHT-1)**
+
+What is owed is **derived** from the withholdings in the ledger; what has been remitted is
+**recorded**. There is no "open the period" step, so a month cannot be missed because nobody opened
+it. The dashboard raises `wht_due` from seven days before the deadline and keeps raising it after
+it passes, and **the only thing that clears it is the money actually moving** — the alert reads the
+outstanding balance, which falls only when `remit_wht` posts a real entry debiting 2150. There is no
+dismiss button. This is the same disposition as the CPF alert, and the two deadlines are
+deliberately **not** unified: CPF is the fourteenth, withholding tax the fifteenth, each from its own
+statute.
+
+> *Enforcement:* `wht_liability_by_month`; `wht_remittances` (append-only — a top-up is a second
+> remittance, not an edit); `remit_wht`; `operations_now`'s `wht_due` arm; fixture 142 arm G, which
+> remits, asserts the balance clears, then reverses the remittance entry and asserts it comes back.
+
+### 8.5 Only supplier expense documents are in scope. Freight and prepayments to non-residents are refused by name, and two categories of payee are out of reach. — **AS-BUILT**
+
+Goods purchases never attract withholding tax, so inbound batches are excluded structurally.
+Two other paths **refuse by name** rather than passing silently, because each is waiting on a
+judgement nobody has made:
+
+* **Freight** — whether a payment to a non-resident carrier is exempt turns on whether the payee is a
+  shipping or air line (exempt) or a forwarder providing agency services. The system cannot tell
+  those apart from the document.
+* **Prepayments** — a deposit to a non-resident consultant is itself a withholding event, and it
+  happens before any expense document exists. This cut hangs the decision on the obligation, and on
+  that path there is no obligation yet to hang it on.
+
+**Two real categories of withholding are not modelled at all**, and they are named here rather than
+left to be discovered: **non-resident directors' remuneration** and **non-resident professionals**.
+Both are payments to *people*, and the payee in this design is a supplier — `employees` carries no
+tax residence and payroll does not pass through this path at all. Seeding those natures into the
+dictionary would put a category into the system that the system structurally cannot reach.
+
+**Finally, one gap is deliberate and was measured before it was accepted.** A supplier whose tax
+residence has never been stated is **not** asked the withholding question, and a payment to them
+withholds nothing — including one that should have. Requiring the answer would have rewritten
+sixteen fixtures for a risk with zero live instances (measured 2026-08-28: no service vendors and no
+non-resident payees exist). The gap is therefore **counted on screen** — `/finance/wht` prints how
+many suppliers have no residence on file — rather than hidden.
+
+> *Enforcement:* `WHT_FREIGHT_NOT_SUPPORTED` / `WHT_PREPAYMENT_NOT_SUPPORTED` /
+> `WHT_UNALLOCATED_PAYMENT_UNSUPPORTED` in `record_payment`;
+> `WHT_ON_PAID_EXPENSE_UNSUPPORTED` in `record_expense`; `docs/known-issues.md`.
+
+### 8.6 An expense that attracts withholding cannot be recorded as already paid. — **SETTLED — 2026-08-28, ruled by Tim (WHT-1)**
+
+`record_expense` can post an expense straight against the bank, and that is its **default**. That
+path creates no payable and no payment record, so it never reaches the one piece of code that knows
+how to split a payment. Rather than teach it to split as well — two implementations of the same
+arithmetic, which this project has paid for four times — the combination is refused by name, and the
+refusal **states the route**: record it unpaid, then pay it. The cost is one extra step on a rare
+transaction, bought deliberately.
+
+> *Enforcement:* `record_expense` (`WHT_ON_PAID_EXPENSE_UNSUPPORTED`); fixture 142 arm E3.
+
+---
+
+# 9 · What is deliberately not here
 
 An auditor discovering these by surprise is worse served than one who reads them.
 
-### 8.1 The company is not registered for GST, and while it is unregistered nothing about tax accounting is reachable. — **REWRITTEN 2026-08-25 (GST-2)**
+### 9.1 The company is not registered for GST, and while it is unregistered nothing about tax accounting is reachable. — **REWRITTEN 2026-08-25 (GST-2)**
 
 GST registration is recorded as **not registered**. The two GST accounts exist in the chart of accounts
 and **have never carried a single posting** (nil movement, nil balance).
@@ -563,7 +689,7 @@ both directions:
 > lines; `guard_document_tax_code` on the three document tables; `guard_gst_switch` on
 > `finance_settings`; fixture 129 arm F1 and fixture 130.
 
-### 8.1a The seven invoices raised to date carry no tax code, and they are not backfilled. — **SETTLED — 2026-08-25**
+### 9.1a The seven invoices raised to date carry no tax code, and they are not backfilled. — **SETTLED — 2026-08-25**
 
 All seven carry a nil tax rate and nil tax **because the company was not registered when they were
 raised**. That is not a gap in the data; it is the data telling the truth. Backfilling a tax code onto
@@ -579,7 +705,7 @@ read the absence as an oversight and "fix" it.
 > the switch is on, nothing would stop someone updating those seven rows by hand. That is the correct
 > shape: a rule about history cannot be a runtime check.
 
-### 8.2 There is no multi-entity structure and no consolidation. — **DIVERGES**
+### 9.2 There is no multi-entity structure and no consolidation. — **DIVERGES**
 
 > **Doc 3, Phase 3 definition of done:** *"the three statements and a multi-entity consolidation can be
 > produced"*; **Doc 3, Phase 3:** finance *"performs multi-entity consolidation"*; **Doc 1:** *"Chart of
@@ -593,9 +719,9 @@ This entry states both sides and stops.
 
 > *Recorded at:* `docs/as-built-divergences.md` entry 1.
 
-### 8.3 Fixed assets are never revalued. See 4.4.
+### 9.3 Fixed assets are never revalued. See 4.4.
 
-### 8.4 Metal recovery rate is a management estimate, not an auditable measure.
+### 9.4 Metal recovery rate is a management estimate, not an auditable measure.
 
 The mechanism to record an output assay exists, and every metal content figure carries its source
 (measured or entered by hand). What does **not** exist is a rule about **which metals must be measured
@@ -611,13 +737,13 @@ it would suppress exactly the evidence one wants.
 > *Evidence:* `processing_metal_recovery` with per-side `content_source`;
 > `docs/as-built-divergences.md`, the recovery-rate section.
 
-### 8.5 There is no standard costing and no variance analysis.
+### 9.5 There is no standard costing and no variance analysis.
 
 Doc 3 lists *"Standard cost vs actual"* within Phase 3. Nothing of the kind is built: there is no
 standard cost anywhere in the schema. All costs are actual. This is a planned feature not yet built
 rather than a contradicted decision, so it is listed here as an absence rather than as a divergence.
 
-### 8.6 Approval chains are largely not implemented.
+### 9.6 Approval chains are largely not implemented.
 
 Approval exists for purchase orders and for a small number of specific actions. The general
 multi-level approval chain described in the founding documents is deferred by plan, not dropped.
@@ -626,10 +752,10 @@ multi-level approval chain described in the founding documents is deferred by pl
 
 ---
 
-# 9 · Needs a ruling
+# 10 · Needs a ruling
 
-**The five AS-BUILT statements above, collected — plus one open question that sits inside a policy
-which is otherwise settled (1.5). These are not policies. They are what the software does in the
+**The six AS-BUILT statements above, collected — plus two open questions that sit inside policies
+which are otherwise settled (1.5 and 8.3). These are not policies. They are what the software does in the
 absence of one, and each is a question for Tim and, where marked, for the auditor.**
 
 | # | Question |
@@ -639,16 +765,20 @@ absence of one, and each is a question for Tim and, where marked, for the audito
 | 3.2 | The direct-sale path recognises revenue at the point of record; the order path recognises on shipment. Should both recognise at the same event? |
 | 4.6 | Useful lives are set per asset with no standard lives by category. What are the standard lives, by class? |
 | 5.6 | No house convention fixes the weight basis for purchase settlement or for sale settlement. Should there be one, and what is it? |
+| 8.5 | Withholding is scoped to supplier expense documents. Freight to a non-resident carrier and prepayments to a non-resident both refuse by name, each waiting on a judgement: is the freight payee a shipping/air line (exempt) or a forwarder providing agency services? And a deposit to a non-resident consultant is a withholding event before any invoice exists — how should it be recorded? |
+| 8.5b | Non-resident **directors' remuneration** and **non-resident professionals** are real withholding categories that this system cannot reach, because their payee is a person and the design's payee is a supplier. Should they be brought in, and through which document? |
+| 8.5c | A supplier whose tax residence has never been stated is not asked the withholding question, so a payment to them withholds nothing. Accepted deliberately and counted on screen. Should it become a refusal once real non-resident vendors exist? |
+| 8.3 | *(Open question, and the most consequential one in this table.)* **The six statutory withholding rates have not been confirmed by an accountant.** They were seeded from the statutory references recorded against each row, with baseline rather than researched start dates. Confirm every row before the first real payment to a non-resident — until then the machine computes and reconciles perfectly while possibly being wrong. |
 | 1.5 | *(Open question, recorded but never put to anyone.)* Should a **reference** rate be allowed to reach back further than a **settlement** rate? They carry different risks: a stale settlement rate mis-states money that actually moved; a stale reference rate mis-states a quote that was already an approximation. |
 
-# 10 · Needs reconciling
+# 11 · Needs reconciling
 
 **Where a founding document records a decision and the system does something else, and the difference
 is still open.**
 
 | # | Difference |
 |---|---|
-| 8.2 | Doc 3 makes multi-entity consolidation part of Phase 3's definition of done. There is one chart of accounts, one base currency, one set of books, and no entity partition on any business table. See register entry 1. |
+| 9.2 | Doc 3 makes multi-entity consolidation part of Phase 3's definition of done. There is one chart of accounts, one base currency, one set of books, and no entity partition on any business table. See register entry 1. |
 
 **Resolved, and recorded so it is not re-opened:** stock valuation (2.1). Doc 1 balloted *Moving
 weighted average* and Doc 3 restated it; Tim ruled on 2026-08-23 that batch-level specific
@@ -656,7 +786,7 @@ identification is correct and the founding documents are out of date. See regist
 
 ---
 
-# 11 · Maintaining this memorandum
+# 12 · Maintaining this memorandum
 
 > **This document is updated in the same commit that changes a policy it states.**
 

@@ -24,7 +24,7 @@ export default async function NewExpensePage() {
     const t = await getTranslations()
     const locale = await getLocale()
 
-    const [accountsRes, suppliersRes, employeesRes, assetsRes, poLinesRes, poHeadsRes, lineExpensesRes, capAccountRes, settingsRes, taxCodesRes] = await Promise.all([
+    const [accountsRes, suppliersRes, employeesRes, assetsRes, poLinesRes, poHeadsRes, lineExpensesRes, capAccountRes, settingsRes, whtNaturesRes, taxCodesRes] = await Promise.all([
         supabase
             .from('accounts')
             .select('code, name_en, name_zh')
@@ -33,7 +33,7 @@ export default async function NewExpensePage() {
             .order('code'),
         supabase
             .from('suppliers')
-            .select('id, legal_name, default_tax_code')
+            .select('id, legal_name, default_tax_code, tax_residence')
             .is('deleted_at', null)
             // LOG-1b:货代不进供应商名单(他们保留 supplier id 只为账上那条链)
             // 【服务商(房东/水电)要留下】—— 只排货代,不是只留供货商
@@ -86,11 +86,13 @@ export default async function NewExpensePage() {
         // GST-2:进项税码字典。【只取进项侧】—— 销项码挂到费用单上会被
         // resolve_tax_code 按名拒(TAX_CODE_WRONG_SIDE),而一个能选到拒绝的
         // 下拉是在把人骗去撞墙。
+        supabase.from('wht_natures').select('code, name_en, name_zh, sort_order')
+            .eq('is_active', true).order('sort_order'),
         supabase.from('tax_codes').select('code, name_en, name_zh, is_claimable')
             .eq('side', 'input').eq('is_active', true).order('sort_order'),
     ])
 
-    const error = accountsRes.error ?? suppliersRes.error ?? employeesRes.error ?? assetsRes.error ?? poLinesRes.error ?? poHeadsRes.error ?? lineExpensesRes.error ?? taxCodesRes.error
+    const error = accountsRes.error ?? suppliersRes.error ?? employeesRes.error ?? assetsRes.error ?? poLinesRes.error ?? poHeadsRes.error ?? lineExpensesRes.error ?? whtNaturesRes.error ?? taxCodesRes.error
     if (error) {
         return (
             <div className="p-8">
@@ -158,6 +160,9 @@ export default async function NewExpensePage() {
         id: s.id,
         name: s.legal_name,
         default_tax_code: s.default_tax_code,
+        // WHT-1:居民身份跟着供应商一起过来 —— 表单据此决定要不要【追问】代扣。
+        // 【它只驱动追问,不驱动金额】扣多少一律由 record_expense 解析并冻在单上。
+        tax_residence: s.tax_residence,
     }))
     const employees: SupplierOption[] = (mustRows(employeesRes) as { id: string; legal_name: string }[])
         .map((e) => ({ id: e.id, name: e.legal_name }))
@@ -171,6 +176,10 @@ export default async function NewExpensePage() {
                 employees={employees} assets={assets} poLines={poLines}
                 canSeePurchasing={canSeePurchasing} capitalAccountLabel={capitalAccountLabel}
                 gstRegistered={settingsRes.data?.gst_registered ?? false}
+                whtNatures={mustRows(whtNaturesRes).map((n) => ({
+                    code: n.code as string,
+                    name: locale === 'zh' ? (n.name_zh as string) : (n.name_en as string),
+                }))}
                 taxCodes={mustRows(taxCodesRes).map((c) => ({
                     code: c.code, name_en: c.name_en, name_zh: c.name_zh,
                     is_claimable: c.is_claimable,

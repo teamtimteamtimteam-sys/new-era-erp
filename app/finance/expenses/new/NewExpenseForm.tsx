@@ -35,7 +35,11 @@ const initialState: CreateExpenseState = {}
 
 export type AccountOption = { code: string; name: string }
 // GST-2:供应商带上它的默认进项税码。**null 不是默认值,是一个没人回答过的问题。**
-export type SupplierOption = { id: string; name: string; default_tax_code?: string | null }
+export type SupplierOption = { id: string; name: string; default_tax_code?: string | null
+    // WHT-1:这家在新加坡所得税上是不是居民。**三态,NULL = 没有人回答过。**
+    // 它只驱动【要不要追问代扣】,不驱动金额 —— 扣多少由 record_expense 解析并冻在单上。
+    tax_residence?: string | null }
+export type WhtNatureOption = { code: string; name: string }
 export type TaxCodeOption = {
     code: string; name_en: string; name_zh: string
     // 【可抵与不可抵要在屏幕上分得开】BL 有税、税率 9%,但那笔税要不回来 ——
@@ -65,6 +69,7 @@ export default function NewExpenseForm({
     capitalAccountLabel,
     gstRegistered,
     taxCodes,
+    whtNatures,
 }: {
     accounts: AccountOption[]
     suppliers: SupplierOption[]
@@ -76,6 +81,7 @@ export default function NewExpenseForm({
     capitalAccountLabel: string
     gstRegistered: boolean
     taxCodes: TaxCodeOption[]
+    whtNatures: WhtNatureOption[]
 }) {
     const t = useTranslations()
     const locale = useLocale()
@@ -91,6 +97,11 @@ export default function NewExpenseForm({
     // 空 + 已注册 = 数据库按名拒(TAX_CODE_REQUIRED|supplier),不猜。
     const [taxCode, setTaxCode] = useState('')
     const [taxCodeTouched, setTaxCodeTouched] = useState(false)
+    // WHT-1:代扣裁定的三个部件。【没有默认值】 —— 空是"没有人回答过",
+    // 而对一个非居民收款人,record_expense 会按名拒(WHT_NATURE_REQUIRED)。
+    const [whtNature, setWhtNature] = useState('')
+    const [whtTreatyRate, setWhtTreatyRate] = useState('')
+    const [whtTreatyRef, setWhtTreatyRef] = useState('')
     const [amount, setAmount] = useState('')
     const [currency, setCurrency] = useState('SGD') // 本地开销默认新币(销售面板默认 USD,刻意不同)
     const [paymentStatus, setPaymentStatus] = useState<'paid' | 'unpaid'>('unpaid')
@@ -142,6 +153,16 @@ export default function NewExpenseForm({
     const supplierDefaultTaxCode =
         suppliers.find((sp) => sp.id === supplierId)?.default_tax_code ?? null
     const effTaxCode = taxCodeTouched ? taxCode : (supplierDefaultTaxCode ?? '')
+
+    // ── WHT-1:要不要追问代扣 ────────────────────────────────────────────────
+    // ★【判据是【申报过是非居民】,不是"外国供应商"】★ 居民身份是声明的,
+    //   country 不是它的代名词 —— 而一个前端条件【代指】某条服务端规矩,
+    //   会在数据库那边一改就悄悄错掉(GST-3 的 kind === 'order' 那一课)。
+    //   这里问的与 record_expense 问的是【同一个字段】。
+    const payeeResidence =
+        suppliers.find((sp) => sp.id === supplierId)?.tax_residence ?? null
+    const askWht = payeeResidence === 'non_resident'
+
     // 【已报销的行【留在列表里但禁用】,不是藏起来】—— 本仓库的判据是:
     // 问题【不适用】才隐藏,问题适用但此刻【被挡住】就禁用并把理由摆在旁边。
     // 一条属于这台机器的采购行,"能不能报销它"是一个成立的问题,只是答案是"已经报过了" ——
@@ -248,6 +269,70 @@ export default function NewExpenseForm({
                             <p className="text-xs text-amber-700 mt-1">{t('expense.form.taxCodeNoDefault')}</p>
                         )}
                     </div>
+                </div>
+            )}
+
+            {/* ★★【WHT-1:预提税 —— 只在收款人【申报为非居民】时出现】★★
+                这是 4.1 的前半句:**代扣在哪里裁定**。它在这里,而不是在付款屏幕上,
+                因为代扣是【债务】的属性(3.1 的裁定):这一刻是收款人身份、款项性质
+                与金额三者【同时已知】的唯一一刻,而 IRAS 的纳税时点是「应付」与
+                「实付」孰早 —— 那是这张单的日期,不是现金的日期。
+                【留空不是"不代扣"】对非居民收款人,服务端按名拒;要表达"不适用",
+                选那个显式的「不适用代扣」。 */}
+            {askWht && (
+                <div className="border border-amber-300 bg-amber-50 rounded p-4">
+                    <p className="text-sm font-medium mb-1">{t('expense.form.whtHeading')}</p>
+                    <p className="text-xs text-gray-700 mb-3">{t('expense.form.whtWhy')}</p>
+                    <div className="flex flex-wrap gap-4">
+                        <div className="flex-1 min-w-[16rem]">
+                            <label className="block text-sm font-medium mb-1">
+                                {t('expense.form.whtNature')} <span className="text-red-600">*</span>
+                            </label>
+                            <select
+                                name="wht_nature"
+                                value={whtNature}
+                                onChange={(e) => setWhtNature(e.target.value)}
+                                className="w-full border border-gray-300 px-3 py-2 rounded"
+                            >
+                                <option value="">{t('expense.form.whtNaturePick')}</option>
+                                {whtNatures.map((n) => (
+                                    <option key={n.code} value={n.code}>{n.name}</option>
+                                ))}
+                            </select>
+                            {!whtNature && (
+                                <p className="text-xs text-amber-700 mt-1">{t('expense.form.whtNatureRequired')}</p>
+                            )}
+                        </div>
+                        {/* 【协定减免:两个格子要么都填、要么都不填】服务端按名拒
+                            (WHT_TREATY_REF_WITHOUT_RATE / WHT_TREATY_REF_REQUIRED),
+                            页面不重复判一遍 —— 那就是同一条规矩的第二处实现。 */}
+                        <div>
+                            <label className="block text-sm font-medium mb-1">{t('expense.form.whtTreatyRate')}</label>
+                            <input
+                                name="wht_treaty_rate_pct" type="number" step="0.001" min="0"
+                                value={whtTreatyRate}
+                                onChange={(e) => setWhtTreatyRate(e.target.value)}
+                                className="border border-gray-300 px-3 py-2 rounded w-28"
+                            />
+                        </div>
+                        <div className="flex-1 min-w-[14rem]">
+                            <label className="block text-sm font-medium mb-1">{t('expense.form.whtTreatyRef')}</label>
+                            <input
+                                name="wht_treaty_ref"
+                                value={whtTreatyRef}
+                                onChange={(e) => setWhtTreatyRef(e.target.value)}
+                                className="w-full border border-gray-300 px-3 py-2 rounded"
+                            />
+                        </div>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-2">{t('expense.form.whtTreatyHint')}</p>
+                    {/* 【已付那一支在这里就说出来,不等服务端】它是 record_expense
+                        默认参数值那条路,而一条在默认路径上才现身的拒绝最该被提前说明。
+                        这【不是】重复实现规则:服务端仍然拒(那是把关的那一道),
+                        这里只是把"该怎么走"说在人按下按钮之前。 */}
+                    {whtNature && whtNature !== 'none' && paymentStatus === 'paid' && (
+                        <p className="text-xs text-red-700 mt-2">{t('expense.form.whtPaidBlocked')}</p>
+                    )}
                 </div>
             )}
 

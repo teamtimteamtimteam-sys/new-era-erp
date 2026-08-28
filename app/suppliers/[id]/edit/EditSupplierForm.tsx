@@ -18,6 +18,7 @@ type Supplier = {
     supplier_types: string[] | null
     counterparty_type: string | null
     default_tax_code: string | null
+    tax_residence: string | null
     payment_terms: string | null
     incoterm: string | null
     credit_rating: string | null
@@ -162,6 +163,28 @@ export default function EditSupplierForm({
                     <p className="text-xs text-gray-500 mt-1 max-w-2xl">
                         {t('suppliers.counterpartyTypeHint')}
                     </p>
+                </div>
+
+                {/* ★【WHT-1:税务居民身份 —— 它【不是】上面那个 country】★
+                    这一栏是整条预提税链的【前置条件】:没有它,付给这一家的款
+                    永远不会被追问代扣。所以它必须有一个入口 —— 一个没有入口的
+                    字段等于这个功能不存在(SAL-B6 的客户页就是这么无门上线的)。
+                    【三态,而 NULL 不是"居民"】留空 = 没有人回答过,
+                    与"申报为居民"在账上的后果完全不同:前者不追问、后者明确不代扣。 */}
+                <div>
+                    <label className="block text-sm font-medium mb-1">
+                        {t('suppliers.form.taxResidence')}
+                    </label>
+                    <select
+                        name="tax_residence"
+                        defaultValue={supplier.tax_residence ?? ''}
+                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                    >
+                        <option value="">{t('suppliers.form.taxResidenceUnstated')}</option>
+                        <option value="resident">{t('suppliers.form.taxResidenceResident')}</option>
+                        <option value="non_resident">{t('suppliers.form.taxResidenceNonResident')}</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1 max-w-2xl">{t('suppliers.form.taxResidenceHint')}</p>
                 </div>
 
                 {/* ★【GST-2:这家供应商的默认进项税码 —— 只在已注册时出现】★ */}
