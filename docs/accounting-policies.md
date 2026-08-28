@@ -502,7 +502,11 @@ people to ignore alerts.
 * **Overtime is recorded by *when it fell* (normal day / rest day / public holiday) and carries no
   multiplier column.** When it fell is a fact; what it multiplies by is an open question under the
   Employment Act, and no handbook or rate schedule exists in any document this repository can read.
-  All six people on the books are `office` / `full_time`. Recording the fact without inventing the
+  **No covered shopfloor worker exists yet:** measured 2026-08-28, `employees` holds 6 undeleted
+  rows but only **2** carry a real `EMP-` code — 2/2 `office`, 2/2 `full_time`, 0 `shopfloor`;
+  the other 4 are `ZZ-*` scratch rows the smoke run leaves behind. (A first draft of this section
+  said "all six people on the books" — it counted the scratch rows as colleagues. The headcount
+  matters here because *who* falls under Part IV is exactly the open question.) Recording the fact without inventing the
   rate leaves the multiplier to be settled once, by Tim, rather than guessed here — **that question
   is still open and is recorded, not answered.**
 * **Unpaid-leave days are derived, never re-entered** — from approved `unpaid` leave requests via

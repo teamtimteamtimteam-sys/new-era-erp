@@ -34,7 +34,7 @@ CREATE TABLE public.attendance_lines (
 );
 
 COMMENT ON TABLE public.attendance_lines IS
-    'ATTEND-1:每月每人一行的工资申报底稿。★【唯一【打字】进来的只有加班工时与一句备注】★ —— 无薪假天数【推导】自已批准的请假单(请假是一个完整的 15 支函数模块,含 unpaid 假别与半天精度,calculate_leave_days 本身就懂工作日与公共假期),月中入离职推导自 employees.hire_date / separation_date。重打一遍就会有两个答案,而它们会在请假单事后被取消那一刻分家。★【「没记」不是「零」】★ 三列工时 NOT NULL DEFAULT 0,而【有没有人记过】由 recorded_at 单独说:NULL = 没人记过,非空 = 记过(哪怕三个数都是 0)。把前者折叠成后者,就是让一次工资过账把「缺勤未知」当成「全勤」—— 这一刀最要防的正是这件事。【加班没有倍率列】何时发生是事实,乘以多少是《雇佣法令》下开着的问题,而本仓库读得到的文档里没有任何关于它的记录,在册六人也全是 office/full_time。';
+    'ATTEND-1:每月每人一行的工资申报底稿。★【唯一【打字】进来的只有加班工时与一句备注】★ —— 无薪假天数【推导】自已批准的请假单(请假是一个完整的 15 支函数模块,含 unpaid 假别与半天精度,calculate_leave_days 本身就懂工作日与公共假期),月中入离职推导自 employees.hire_date / separation_date。重打一遍就会有两个答案,而它们会在请假单事后被取消那一刻分家。★【「没记」不是「零」】★ 三列工时 NOT NULL DEFAULT 0,而【有没有人记过】由 recorded_at 单独说:NULL = 没人记过,非空 = 记过(哪怕三个数都是 0)。把前者折叠成后者,就是让一次工资过账把「缺勤未知」当成「全勤」—— 这一刀最要防的正是这件事。【加班没有倍率列】何时发生是事实,乘以多少是《雇佣法令》下开着的问题,而本仓库读得到的文档里没有任何关于它的记录;实测(2026-08-28,fu2 更正)employees 未软删 6 行、其中带真工号(EMP-)的只有 2 行 —— 2/2 office、2/2 full_time、0 shopfloor,另外 4 行是冒烟留下的 ZZ-* 临时行。头一版把那 4 行当成了同事,写成「在册六人」;数得对不对,决定的是「谁落在《雇佣法令》第四部分之内」这个还开着的问题。';
 
 CREATE INDEX idx_attendance_lines_period ON public.attendance_lines (period_id);
 CREATE INDEX idx_attendance_lines_employee ON public.attendance_lines (employee_id);
