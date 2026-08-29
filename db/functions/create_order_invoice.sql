@@ -7,6 +7,8 @@ AS $function$
 DECLARE
     v_order    sales_orders%ROWTYPE;
     v_cust     customers%ROWTYPE;
+    -- PARTY-1:开票快照里的联系人 —— 取本客户的【主联系人】那一行
+    v_contact     counterparty_contacts%ROWTYPE;
     v_terms    integer;
     v_due      date;
     v_invoice_id uuid := gen_random_uuid();
@@ -60,7 +62,20 @@ BEGIN
         RAISE EXCEPTION 'CUSTOMER_NOT_FOUND|%', v_order.customer_id;
     END IF;
 
-    v_terms := COALESCE(p_payment_terms_days, v_cust.payment_terms_days, 30);
+    -- PARTY-1:主联系人。**没有也不拒绝** —— 一张开给没填联系人的客户的发票
+    -- 一直都是合法的,本刀不顺手把它变成一道新闸(那会是一次没人裁定过的收紧)。
+    -- 没有时 v_contact 的三个字段是 NULL,快照里那三个键就是 NULL。
+    SELECT * INTO v_contact FROM counterparty_contacts
+     WHERE customer_id = v_cust.id AND is_primary AND deleted_at IS NULL;
+
+    -- ★【账期不再兜底 30 天 —— 见 create_invoice 同一处的长注释】★
+    --   两扇门必须同时改:只改一扇,那个编出来的到期日会从另一扇原样走出来,
+    --   而两扇门都通向同一张 invoices 表(「闸要拦在今天所有的入口上」)。
+    v_terms := COALESCE(p_payment_terms_days, v_cust.payment_terms_days);
+    IF v_terms IS NULL THEN
+        RAISE EXCEPTION 'CUSTOMER_PAYMENT_TERMS_NOT_SET|%|%', v_cust.code, v_cust.legal_name
+          USING HINT = '这张发票的到期日没有来路:客户主数据里没有付款账期,这次调用也没有给一个。去【客户 → 编辑】把「付款账期(天)」填上,或者在开票时明确指定一个 —— 系统不再替你假设 30 天。';
+    END IF;
     IF v_terms < 0 THEN
         RAISE EXCEPTION 'TERMS_INVALID|%', v_terms;
     END IF;
@@ -236,9 +251,14 @@ BEGIN
                 'address', v_cust.address,
                 'payment_terms', v_cust.payment_terms,
                 'incoterm', v_cust.incoterm,
-                'contact_person', v_cust.contact_person,
-                'email', v_cust.email,
-                'phone', v_cust.phone),
+                -- ★【联系人从 counterparty_contacts 的【主联系人】取,不再从客户那三列取】★
+                --   PARTY-1 把那三列搬进了子表并删掉。**已经存下来的快照不受影响**:
+                --   它们是自成一体的 jsonb,记的是开票那一刻的事实 —— 变的只是
+                --   【下一张】发票从哪儿取。没有主联系人时这三个键是 NULL,
+                --   与本刀之前"客户没填联系人"的效果逐字一致。
+                'contact_person', v_contact.name,
+                'email', v_contact.email,
+                'phone', v_contact.phone),
             'order', p_sales_order_id, (v_je->>'entry_id')::uuid, v_order.fx_rate);
 
     FOR v_l IN SELECT * FROM jsonb_array_elements(v_lines)

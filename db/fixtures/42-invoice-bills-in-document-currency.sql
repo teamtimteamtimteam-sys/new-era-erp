@@ -42,8 +42,12 @@ BEGIN
 
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
     VALUES ('ZZFIX42-M', 'fixture 42 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
-    INSERT INTO customers (code, legal_name, country)
-    VALUES ('ZZFIX42-C', 'fixture 42 customer', 'SG') RETURNING id INTO v_cust;
+    -- 【PARTY-1(2026-08-29):账期从此【必须自己设】,不再有 30 天兜底】
+    -- 本 fixture 此前靠 create_invoice 里那句 COALESCE(..., 30) ——
+    -- 也就是【继承了一个编出来的默认值】,而 README 第 4 条说的正是
+    -- 「Set what you need; do not inherit it」。这一句就是那条规矩的兑现。
+    INSERT INTO customers (code, legal_name, country, payment_terms_days)
+    VALUES ('ZZFIX42-C', 'fixture 42 customer', 'SG', 30) RETURNING id INTO v_cust;
     INSERT INTO output_batches (code, material_id, quantity, remaining_qty, output_date)
     VALUES ('ZZFIX42-OB', v_mat, 1000, 1000, '2027-09-01') RETURNING id INTO ob;
 

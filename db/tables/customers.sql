@@ -8,7 +8,8 @@
 -- NOTE: 本表早于"迁移 + 镜像"约定(建库初期直接在 Supabase SQL Editor 建的),
 -- 一直没有镜像文件;2026-07-31 镜像漂移审计后【按线上目录重建】了本文件。
 -- payment_terms_days 为 db/migrations/2026-07-31-phase4-cut2a-invoices.sql 追加;
--- email / phone / contact_person 为 db/migrations/2026-07-31-phase4-cut2b-customer-contacts.sql
+-- email / phone / contact_person 曾由 db/migrations/2026-07-31-phase4-cut2b-customer-contacts.sql 加上,
+-- 已于 PARTY-1(2026-08-29)搬进 counterparty_contacts 并从本表删除
 -- 追加(列序按线上 attnum,追加列在末尾,勿按语义位置重排 —— 镜像审计按序比对)。
 -- First-run script (plain CREATEs). Run in the Supabase SQL Editor.
 
@@ -34,9 +35,10 @@ CREATE TABLE public.customers (
     updated_at         timestamptz NOT NULL DEFAULT now(),
     updated_by         uuid,
     payment_terms_days integer CHECK (payment_terms_days IS NULL OR (payment_terms_days >= 0 AND payment_terms_days <= 365)),
-    email              text,
-    phone              text,
-    contact_person     text,
+    -- 【PARTY-1(2026-08-29)把 email / phone / contact_person 三列搬走并删掉】
+    -- 它们现在住在 counterparty_contacts 里(一个客户可以有好几个联系人,
+    -- 而单列只装得下一个)。**这里不留影子列** —— 同一个事实两个地方,
+    -- 正是本仓库为「两份实现写下来那天一致、之后悄悄分家」付过四次账的形状。
     -- ── SAL-B 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
     -- 【NULL = 没设限额(放行);0 = 现款现货(任何赊销都拒)—— 相反,不是相近】。
     -- 全部既有客户为 NULL:管控按客户逐个启用,首日什么都不拦。变动由触发器留痕。

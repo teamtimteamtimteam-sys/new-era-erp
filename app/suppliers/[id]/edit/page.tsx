@@ -11,6 +11,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
+import ContactsPanel, { type ContactRow } from '@/app/customers/ContactsPanel'
 import ReceiptPatternPanel, {
     type PatternRow, type ContributingReceipt,
 } from './ReceiptPatternPanel'
@@ -30,6 +31,15 @@ export default async function EditSupplierPage({
     const t = await getTranslations()
     const locale = await getLocale()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
+
+    // PARTY-1:这家供应商的联系人们(软删的不列)
+    const canEditSupplier = await can('module.suppliers.edit')
+    const supplierContacts = mustRows(
+        await supabase.from('counterparty_contacts')
+            .select('id, name, name_inferred, role, email, phone, is_primary, notes')
+            .eq('supplier_id', id).is('deleted_at', null)
+            .order('is_primary', { ascending: false }).order('name'),
+        'counterparty_contacts') as ContactRow[]
 
     const { data: supplier, error } = await supabase
         .from('suppliers')
@@ -181,6 +191,19 @@ export default async function EditSupplierPage({
                 locale={locale}
             />
             <AttachmentsPanel supplierId={supplier.id} rows={attachments} />
+
+            {/* ── PARTY-1:供应商的联系人 ──────────────────────────────────
+                ★【供应商此前【一列联系方式都没有】】★ 客户那三列是 2026-07-31 加的,
+                供应商侧从来没有过 —— 所以这里不是一次迁移,是一个【缺口】。
+                【为什么挂在编辑页上】今天没有供应商详情页(只有列表 / 新建 / 编辑),
+                而供应商就是在这一页被维护的。有了详情页再搬。
+                【抬头在服务端渲染】理由与客户那一页同一条:藏在客户端开关后面的
+                针,fetch 冒烟看不见。 */}
+            <section className="mt-6">
+                <h2 className="text-lg font-semibold mb-1">{t('contacts.sectionTitle')}</h2>
+                <p className="text-xs text-gray-600 mb-2 max-w-3xl">{t('contacts.sectionWhat')}</p>
+                <ContactsPanel supplierId={supplier.id} rows={supplierContacts} canEdit={canEditSupplier} />
+            </section>
         </div>
     )
 }

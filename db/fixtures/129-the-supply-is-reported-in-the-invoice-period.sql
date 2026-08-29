@@ -76,10 +76,14 @@ BEGIN
     VALUES ('ZZFIX129-OB2', v_mat, 10000, 10000, v_q1s) RETURNING id INTO ob2;
 
     -- 【客户带默认税码,另一个【不带】】E 臂要用后者。
-    INSERT INTO customers (code,legal_name,country,default_tax_code)
-    VALUES ('ZZFIX129-C','fixture 129 customer','SG','SR') RETURNING id INTO v_cust;
-    INSERT INTO customers (code,legal_name,country)
-    VALUES ('ZZFIX129-C2','fixture 129 customer no default','SG') RETURNING id INTO v_cust2;
+    -- 【PARTY-1(2026-08-29):账期从此【必须自己设】,不再有 30 天兜底】
+    -- 本 fixture 此前靠 create_invoice 里那句 COALESCE(..., 30) ——
+    -- 也就是【继承了一个编出来的默认值】,而 README 第 4 条说的正是
+    -- 「Set what you need; do not inherit it」。这一句就是那条规矩的兑现。
+    INSERT INTO customers (code,legal_name,country,default_tax_code, payment_terms_days)
+    VALUES ('ZZFIX129-C','fixture 129 customer','SG','SR', 30) RETURNING id INTO v_cust;
+    INSERT INTO customers (code,legal_name,country, payment_terms_days)
+    VALUES ('ZZFIX129-C2','fixture 129 customer no default','SG', 30) RETURNING id INTO v_cust2;
     INSERT INTO suppliers (code,legal_name,country,counterparty_type,default_tax_code)
     VALUES ('ZZFIX129-S','fixture 129 supplier','SG','service_vendor','TX') RETURNING id INTO v_sup;
 

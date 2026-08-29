@@ -479,6 +479,8 @@ const MANIFEST = {
     // FX-RATES-1:牌价写入口抛的码。真源是那份 Set —— 加一条码,检查自动跟着变宽。
     'finance.fxPage.errors.': { kind: 'enum', values: () => tsSet('app/finance/fxErrorCodes.ts', 'FX_ERROR_CODES') },
     'invoice.errors.':      { kind: 'enum', values: () => tsSet('app/finance/invoiceErrorCodes.ts', 'INVOICE_ERROR_CODES') },
+    // PARTY-1:联系人那条路上的具名拒绝 —— 后缀从那张 Set 现读(加一个码就自动加宽)
+    'contacts.errors.':     { kind: 'enum', values: () => tsSet('app/customers/contactErrorCodes.ts', 'CONTACT_ERROR_CODES') },
     'expense.errors.':      { kind: 'enum', values: () => tsSet('app/finance/expenseErrorCodes.ts', 'EXPENSE_ERROR_CODES') },
     'pricing.errors.':      { kind: 'enum', values: () => tsSet('app/pricing/pricingErrorCodes.ts', 'PRICING_ERROR_CODES') },
     'assay.errors.':        { kind: 'enum', values: () => tsSet('app/inbound/assayErrorCodes.ts', 'ASSAY_ERROR_CODES') },

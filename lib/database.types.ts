@@ -1662,6 +1662,89 @@ export type Database = {
           },
         ]
       }
+      counterparty_contacts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          deleted_at: string | null
+          email: string | null
+          id: string
+          is_primary: boolean
+          name: string
+          name_inferred: boolean
+          notes: string | null
+          phone: string | null
+          role: string | null
+          supplier_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          id?: string
+          is_primary?: boolean
+          name: string
+          name_inferred?: boolean
+          notes?: string | null
+          phone?: string | null
+          role?: string | null
+          supplier_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          id?: string
+          is_primary?: boolean
+          name?: string
+          name_inferred?: boolean
+          notes?: string | null
+          phone?: string | null
+          role?: string | null
+          supplier_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "counterparty_contacts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_credit_status"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "counterparty_contacts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "counterparty_contacts_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "counterparty_contacts_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_note_lines: {
         Row: {
           amount: number
@@ -2064,7 +2147,6 @@ export type Database = {
         Row: {
           address: string | null
           code: string
-          contact_person: string | null
           country: string
           created_at: string
           created_by: string | null
@@ -2074,14 +2156,12 @@ export type Database = {
           customer_types: string[] | null
           default_tax_code: string | null
           deleted_at: string | null
-          email: string | null
           id: string
           incoterm: string | null
           legal_name: string
           notes: string | null
           payment_terms: string | null
           payment_terms_days: number | null
-          phone: string | null
           short_name: string | null
           status: string
           tax_id: string | null
@@ -2091,7 +2171,6 @@ export type Database = {
         Insert: {
           address?: string | null
           code: string
-          contact_person?: string | null
           country: string
           created_at?: string
           created_by?: string | null
@@ -2101,14 +2180,12 @@ export type Database = {
           customer_types?: string[] | null
           default_tax_code?: string | null
           deleted_at?: string | null
-          email?: string | null
           id?: string
           incoterm?: string | null
           legal_name: string
           notes?: string | null
           payment_terms?: string | null
           payment_terms_days?: number | null
-          phone?: string | null
           short_name?: string | null
           status?: string
           tax_id?: string | null
@@ -2118,7 +2195,6 @@ export type Database = {
         Update: {
           address?: string | null
           code?: string
-          contact_person?: string | null
           country?: string
           created_at?: string
           created_by?: string | null
@@ -2128,14 +2204,12 @@ export type Database = {
           customer_types?: string[] | null
           default_tax_code?: string | null
           deleted_at?: string | null
-          email?: string | null
           id?: string
           incoterm?: string | null
           legal_name?: string
           notes?: string | null
           payment_terms?: string | null
           payment_terms_days?: number | null
-          phone?: string | null
           short_name?: string | null
           status?: string
           tax_id?: string | null
@@ -18893,6 +18967,7 @@ export type Database = {
         Returns: Json
       }
       correct_task_type: { Args: { p_task_id: string }; Returns: undefined }
+      counterparty_overlap_report: { Args: never; Returns: Json }
       create_container: {
         Args: {
           p_bl_number?: string
@@ -19890,6 +19965,20 @@ export type Database = {
         Args: { p_sales_order_id: string }
         Returns: string
       }
+      save_counterparty_contact: {
+        Args: {
+          p_contact_id?: string
+          p_customer_id?: string
+          p_email?: string
+          p_is_primary?: boolean
+          p_name?: string
+          p_notes?: string
+          p_phone?: string
+          p_role?: string
+          p_supplier_id?: string
+        }
+        Returns: Json
+      }
       save_self_assessment: {
         Args: {
           p_final?: boolean
@@ -19975,6 +20064,10 @@ export type Database = {
       }
       soft_delete_container: {
         Args: { p_container_id: string; p_reason: string }
+        Returns: Json
+      }
+      soft_delete_counterparty_contact: {
+        Args: { p_contact_id: string }
         Returns: Json
       }
       soft_delete_inbound_batch: {

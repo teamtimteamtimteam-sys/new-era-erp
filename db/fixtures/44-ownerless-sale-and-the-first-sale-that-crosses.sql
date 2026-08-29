@@ -39,10 +39,14 @@ BEGIN
     VALUES ('ZZFIX44-OB', v_mat, 10000, 10000, '2027-10-01') RETURNING id INTO ob;
 
     -- 全新客户:限额 1,000,【敞口为零】—— A 臂的判别力全在"零"上
-    INSERT INTO customers (code, legal_name, country, credit_limit_base)
-    VALUES ('ZZFIX44-C1', 'fresh, nothing owed', 'SG', 1000) RETURNING id INTO c_fresh;
-    INSERT INTO customers (code, legal_name, country, credit_limit_base)
-    VALUES ('ZZFIX44-C2', 'attribution target', 'SG', 1000) RETURNING id INTO c_own;
+    -- 【PARTY-1(2026-08-29):账期从此【必须自己设】,不再有 30 天兜底】
+    -- 本 fixture 此前靠 create_invoice 里那句 COALESCE(..., 30) ——
+    -- 也就是【继承了一个编出来的默认值】,而 README 第 4 条说的正是
+    -- 「Set what you need; do not inherit it」。这一句就是那条规矩的兑现。
+    INSERT INTO customers (code, legal_name, country, credit_limit_base, payment_terms_days)
+    VALUES ('ZZFIX44-C1', 'fresh, nothing owed', 'SG', 1000, 30) RETURNING id INTO c_fresh;
+    INSERT INTO customers (code, legal_name, country, credit_limit_base, payment_terms_days)
+    VALUES ('ZZFIX44-C2', 'attribution target', 'SG', 1000, 30) RETURNING id INTO c_own;
 
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', u), true);

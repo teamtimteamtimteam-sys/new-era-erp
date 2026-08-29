@@ -23,9 +23,6 @@ export async function updateCustomer(
     const country = (formData.get('country') as string)?.trim().toUpperCase()
     const tax_id = (formData.get('tax_id') as string)?.trim() || null
     const address = (formData.get('address') as string)?.trim() || null
-    const contact_person = (formData.get('contact_person') as string)?.trim() || null
-    const email = (formData.get('email') as string)?.trim() || null
-    const phone = (formData.get('phone') as string)?.trim() || null
     const payment_terms = (formData.get('payment_terms') as string)?.trim() || null
     // CASHFLOW-1：数字账期。空字符串必须变成 null，不能变成 0 ——
     // 0 天账期与「没说」是两件事，而开票表单读到 null 才会退回它自己的默认。
@@ -77,9 +74,6 @@ export async function updateCustomer(
             country,
             tax_id,
             address,
-            contact_person,
-            email,
-            phone,
             customer_types,
             payment_terms,
             payment_terms_days,

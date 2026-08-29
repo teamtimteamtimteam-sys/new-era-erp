@@ -21,9 +21,6 @@ type Customer = {
     country: string
     tax_id: string | null
     address: string | null
-    contact_person: string | null
-    email: string | null
-    phone: string | null
     customer_types: string[] | null
     payment_terms: string | null
     payment_terms_days: number | null
@@ -128,40 +125,13 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                     />
                 </div>
 
-                {/* 联系方式(开票抬头会用到)*/}
+                {/* 【PARTY-1:这里【不再】编辑联系人,而缺席要具名】
+                    一个对手方可以有好几个联系人,而这张表单一次只装得下一个 ——
+                    "编辑那个联系人"在有三个联系人的时候是一句没有意义的话。
+                    联系人在客户页上维护(增删改、指定主联系人)。 */}
                 <fieldset className="border border-gray-200 rounded p-4">
                     <legend className="text-sm font-medium px-1">{t('customers.form.contactGroup')}</legend>
-                    <div className="space-y-3">
-                        <div>
-                            <label className="block text-sm font-medium mb-1">{t('customers.form.contactPerson')}</label>
-                            <input
-                                type="text"
-                                name="contact_person"
-                                defaultValue={customer.contact_person ?? ''}
-                                className="w-full border border-gray-300 px-3 py-2 rounded"
-                            />
-                        </div>
-                        <div className="flex flex-wrap gap-3">
-                            <div className="flex-1 min-w-[14rem]">
-                                <label className="block text-sm font-medium mb-1">{t('customers.form.email')}</label>
-                                <input
-                                    type="text"
-                                    name="email"
-                                    defaultValue={customer.email ?? ''}
-                                    className="w-full border border-gray-300 px-3 py-2 rounded"
-                                />
-                            </div>
-                            <div className="flex-1 min-w-[12rem]">
-                                <label className="block text-sm font-medium mb-1">{t('customers.form.phone')}</label>
-                                <input
-                                    type="text"
-                                    name="phone"
-                                    defaultValue={customer.phone ?? ''}
-                                    className="w-full border border-gray-300 px-3 py-2 rounded"
-                                />
-                            </div>
-                        </div>
-                    </div>
+                    <p className="text-xs text-gray-600">{t('customers.form.contactsMovedHint')}</p>
                 </fieldset>
 
                 <div>

@@ -57,13 +57,17 @@ BEGIN
 
     UPDATE finance_settings SET locked_before = NULL;
 
-    INSERT INTO customers (code, legal_name, country)
-    VALUES ('ZZ70-C1', 'fixture 70 customer', 'SG') RETURNING id INTO v_cust;
+    -- 【PARTY-1(2026-08-29):账期从此【必须自己设】,不再有 30 天兜底】
+    -- 本 fixture 此前靠 create_invoice 里那句 COALESCE(..., 30) ——
+    -- 也就是【继承了一个编出来的默认值】,而 README 第 4 条说的正是
+    -- 「Set what you need; do not inherit it」。这一句就是那条规矩的兑现。
+    INSERT INTO customers (code, legal_name, country, payment_terms_days)
+    VALUES ('ZZ70-C1', 'fixture 70 customer', 'SG', 30) RETURNING id INTO v_cust;
     -- 【第二个客户是有意的】D 臂要试"把客户换成【另一个真实存在的】客户"。
     -- 拿一个随机 uuid 去试,外键会先一步拒绝 —— 那样即使守卫被拿掉这一臂也照样红,
     -- 于是它测的是外键,不是守卫(fixture 52 C 臂踩过、写过这一段)。
-    INSERT INTO customers (code, legal_name, country)
-    VALUES ('ZZ70-C2', 'fixture 70 other customer', 'SG') RETURNING id INTO v_cust2;
+    INSERT INTO customers (code, legal_name, country, payment_terms_days)
+    VALUES ('ZZ70-C2', 'fixture 70 other customer', 'SG', 30) RETURNING id INTO v_cust2;
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, unit)
     VALUES ('ZZFIX70-M', 'f70 material', 'battery_material', true, 'black_mass', 'end_of_life', 'kg') RETURNING id INTO v_mat;
 

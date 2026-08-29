@@ -9,6 +9,8 @@ const INVOICE_ERROR_CODES = new Set([
     'ALREADY_INVOICED', 'DUPLICATE_SALE', 'MIXED_CURRENCY',
     'INVOICE_NOT_FOUND', 'INVOICE_ALREADY_VOID', 'REASON_REQUIRED',
     'INVOICE_IMMUTABLE', 'TERMS_INVALID',
+    // PARTY-1:账期不再兜底 30 天 —— 客户没设、调用也没给,就按名拒。
+    'CUSTOMER_PAYMENT_TERMS_NOT_SET',
     // SO-3a:订单流开票(create_order_invoice / void_invoice 的 order 分支)。
     // CREDIT_* 在销售那一族也有同名码 —— 各族各配各的文案,判据仍是"抛错的函数
     // 属于哪一族",不是码长得像谁。

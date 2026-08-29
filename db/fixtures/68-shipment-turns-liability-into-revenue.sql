@@ -71,11 +71,15 @@ BEGIN
     INSERT INTO fx_rates (currency, rate_date, rate_type, rate_sgd_per_unit)
     VALUES ('USD', d, 'tt_buy', BANK_FX);
 
-    INSERT INTO customers (code, legal_name, country)
-    VALUES ('ZZ68-C1', 'fixture 68 customer', 'SG') RETURNING id INTO v_cust;
+    -- 【PARTY-1(2026-08-29):账期从此【必须自己设】,不再有 30 天兜底】
+    -- 本 fixture 此前靠 create_invoice 里那句 COALESCE(..., 30) ——
+    -- 也就是【继承了一个编出来的默认值】,而 README 第 4 条说的正是
+    -- 「Set what you need; do not inherit it」。这一句就是那条规矩的兑现。
+    INSERT INTO customers (code, legal_name, country, payment_terms_days)
+    VALUES ('ZZ68-C1', 'fixture 68 customer', 'SG', 30) RETURNING id INTO v_cust;
     -- 限额客户:限额 1,已经没有余地 —— 用来证明【发货不查信用】
-    INSERT INTO customers (code, legal_name, country, credit_limit_base)
-    VALUES ('ZZ68-C2', 'fixture 68 limited', 'SG', 1) RETURNING id INTO v_lim;
+    INSERT INTO customers (code, legal_name, country, credit_limit_base, payment_terms_days)
+    VALUES ('ZZ68-C2', 'fixture 68 limited', 'SG', 1, 30) RETURNING id INTO v_lim;
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, unit)
     VALUES ('ZZFIX68-M', 'f68 material', 'battery_material', true, 'black_mass', 'end_of_life', 'kg') RETURNING id INTO v_mat;
 

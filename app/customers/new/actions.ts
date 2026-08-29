@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { findNearDuplicate } from '@/lib/nearDuplicate'
 import type { InsertRow } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
+import { localizeContactError } from '@/app/customers/contactErrorCodes'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
@@ -85,15 +86,12 @@ export async function createCustomer(
         data: { user },
     } = await supabase.auth.getUser()
 
-    const { error } = await supabase.from('customers').insert({
+    const { data: inserted, error } = await supabase.from('customers').insert({
         legal_name,
         short_name,
         country,
         tax_id,
         address,
-        contact_person,
-        email,
-        phone,
         customer_types,
         payment_terms,
         payment_terms_days,
@@ -104,10 +102,33 @@ export async function createCustomer(
         updated_by: user?.id ?? null,
         // status 不传,用数据库默认值 'draft'
         // code 不传,用触发器自动生成
-    } as InsertRow<'customers'>)
+    } as InsertRow<'customers'>).select('id').single()
 
     if (error) {
         return { error: t('customers.form.saveError', { message: error.message }) }
+    }
+
+    // ── PARTY-1:第一个联系人写进 counterparty_contacts,不再写进 customers ──
+    // 【联系人是【第二次】写入,而客户已经建好了 —— 这句话要说清楚】
+    //   两次写入不在同一笔事务里(PostgREST 没有多语句事务)。所以联系人失败时
+    //   客户【已经存在】,而正确的处置是把这件事【说出来并指路】,
+    //   不是假装没发生、也不是回滚一个已经拿到编号的客户。
+    // 【只有填了才写】三个框全空 = 没有联系人,那是合法的,不该造一行空记录。
+    if (contact_person || email || phone) {
+        const { error: cErr } = await supabase.rpc('save_counterparty_contact', {
+            p_customer_id: inserted.id,
+            // 【?? undefined 而不是 null】生成的类型对可选参数只接受 undefined;
+            // 而"省略"与"传 NULL"在 PL/pgSQL 那侧是同一件事(默认值就是 NULL)。
+            p_name: contact_person ?? undefined,
+            p_email: email ?? undefined,
+            p_phone: phone ?? undefined,
+            p_is_primary: true,
+        })
+        if (cErr) {
+            revalidatePath('/customers')
+            return { error: t('customers.form.contactSavedPartly', {
+                message: await localizeContactError(cErr.message) }) }
+        }
     }
 
     // 4. 让 /customers 列表页重新读取数据(否则会显示缓存的旧数据)

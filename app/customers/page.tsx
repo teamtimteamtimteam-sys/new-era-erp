@@ -17,6 +17,7 @@ import {
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { mustRows } from '@/lib/db-helpers'
 
 export default async function CustomersPage({
     searchParams,
@@ -60,12 +61,25 @@ export default async function CustomersPage({
     // 2) 取当前页的行:过滤 + 排序后再 .range(from, to)
     const baseQuery = supabase
         .from('customers')
-        .select('id, code, legal_name, country, contact_person, email, customer_types, status, created_at')
+        .select('id, code, legal_name, country, customer_types, status, created_at')
 
     const { data: customers, error } = await applyCustomerFilters(
         baseQuery,
         filterParams
     ).range(from, to)
+
+    // PARTY-1:联系人搬进了 counterparty_contacts,一个客户可以有好几个 ——
+    // 列表这一栏画的是【主联系人】那一行。分开一次查询是因为 PostgREST 的
+    // 嵌套过滤在这里要不到"只要 is_primary 的那一行",而在 TS 里再筛一遍
+    // 就是把一条筛选写两遍。
+    const contactRows = mustRows(
+        await supabase.from('counterparty_contacts')
+            .select('customer_id, name, email, name_inferred')
+            .in('customer_id', (customers ?? []).map((c) => c.id).length
+                ? (customers ?? []).map((c) => c.id) : ['00000000-0000-0000-0000-000000000000'])
+            .is('deleted_at', null).eq('is_primary', true),
+        'counterparty_contacts') as { customer_id: string; name: string; email: string | null; name_inferred: boolean }[]
+    const primaryByCustomer = new Map(contactRows.map((r) => [r.customer_id, r]))
 
     // 表头排序链接:点当前列翻转方向,点其它列默认升序;保留 q。不带 page —— 改排序回到第 1 页。
     function sortHref(col: CustomerSortCol) {
@@ -115,12 +129,23 @@ export default async function CustomersPage({
         <div className="p-8">
             <div className="flex items-center justify-between mb-4">
                 <h1 className="text-2xl font-bold">{t('customers.listTitle')}</h1>
-                <Link
-                    href="/customers/new"
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
-                    {t('customers.addButton')}
-                </Link>
+                <div className="flex items-center gap-3">
+                    {/* ★【PARTY-1:重叠报告的入口 —— 这一页新建时【没有任何入口】★
+                        本仓库为这件事付过两次账(SAL-B6 的客户详情页、FIX-1 的入库收货),
+                        而 --reach 【查得到】静态路由,只是它要跑两小时。
+                        所以这条链接是在写完那一页的同一次里补上的,不是等走查来发现。
+                        入口放在客户列表上,因为"这家客户是不是也是我们的供应商"
+                        正是在看客户名单的时候才会冒出来的问题。 */}
+                    <Link href="/customers/overlap" className="text-sm text-blue-600 hover:underline">
+                        {t('overlap.entryLink')}
+                    </Link>
+                    <Link
+                        href="/customers/new"
+                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    >
+                        {t('customers.addButton')}
+                    </Link>
+                </div>
             </div>
 
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
@@ -178,12 +203,24 @@ export default async function CustomersPage({
                             </td>
                             <td className="border border-gray-300 px-4 py-2">{c.legal_name}</td>
                             <td className="border border-gray-300 px-4 py-2">{c.country}</td>
-                            {/* 电话不上列表(列已经够多);联系人 + 邮箱是找人时最常看的两项 */}
+                            {/* 电话不上列表(列已经够多);主联系人 + 邮箱是找人时最常看的两项。
+                                PARTY-1 起它们来自 counterparty_contacts 的 is_primary 那一行。
+                                【没有主联系人不是空白,是一句话】—— 见下面那个具名缺席。 */}
                             <td className="border border-gray-300 px-4 py-2 text-sm">
-                                {c.contact_person ?? '—'}
+                                {primaryByCustomer.get(c.id)
+                                    ? (<>
+                                        {primaryByCustomer.get(c.id)!.name}
+                                        {primaryByCustomer.get(c.id)!.name_inferred && (
+                                            <span className="ml-1 text-xs text-amber-700"
+                                                  title={t('contacts.inferredWhy')}>
+                                                {t('contacts.inferredTag')}
+                                            </span>
+                                        )}
+                                      </>)
+                                    : <span className="text-xs text-gray-500">{t('contacts.noPrimary')}</span>}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-sm break-all">
-                                {c.email ?? '—'}
+                                {primaryByCustomer.get(c.id)?.email ?? '—'}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-sm">
                                 {c.customer_types?.join(', ')}

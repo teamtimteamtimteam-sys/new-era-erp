@@ -139,9 +139,14 @@ export default function NewCustomerForm() {
                     />
                 </div>
 
-                {/* 联系方式(开票抬头会用到)*/}
+                {/* 【PARTY-1】这三个框写的是 counterparty_contacts 的【第一个联系人】,
+                    不再是 customers 上的三列(它们已被搬走并删除)。
+                    留在新建表单上是刻意的:建客户的时候手边就有这个人,
+                    而"存完再去另一页加联系人"是一次没必要的往返。
+                    【更多联系人在客户页上加】—— 那里才是一个对手方的联系人【们】。 */}
                 <fieldset className="border border-gray-200 rounded p-4">
                     <legend className="text-sm font-medium px-1">{t('customers.form.contactGroup')}</legend>
+                    <p className="text-xs text-gray-600 mb-3">{t('customers.form.contactGroupHint')}</p>
                     <div className="space-y-3">
                         <div>
                             <label className="block text-sm font-medium mb-1">{t('customers.form.contactPerson')}</label>

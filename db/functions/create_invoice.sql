@@ -15,6 +15,8 @@ CREATE OR REPLACE FUNCTION public.create_invoice(p_customer_id uuid, p_sales_rec
 AS $function$
 DECLARE
     v_cust        customers%ROWTYPE;
+    -- PARTY-1:开票快照里的联系人 —— 取本客户的【主联系人】那一行
+    v_contact     counterparty_contacts%ROWTYPE;
     v_issue       date := COALESCE(p_issue_date, CURRENT_DATE);
     v_terms       integer;
     v_due         date;
@@ -48,12 +50,32 @@ BEGIN
         RAISE EXCEPTION 'CUSTOMER_NOT_FOUND|%', COALESCE(p_customer_id::text, '?');
     END IF;
 
+    -- PARTY-1:主联系人。**没有也不拒绝** —— 一张开给没填联系人的客户的发票
+    -- 一直都是合法的,本刀不顺手把它变成一道新闸(那会是一次没人裁定过的收紧)。
+    -- 没有时 v_contact 的三个字段是 NULL,快照里那三个键就是 NULL。
+    SELECT * INTO v_contact FROM counterparty_contacts
+     WHERE customer_id = v_cust.id AND is_primary AND deleted_at IS NULL;
+
     IF p_sales_record_ids IS NULL OR array_length(p_sales_record_ids, 1) IS NULL THEN
         RAISE EXCEPTION 'NO_LINES';
     END IF;
 
-    -- 2. 账期:显式 > 客户设定 > 30 天
-    v_terms := COALESCE(p_payment_terms_days, v_cust.payment_terms_days, 30);
+    -- ★★【2. 账期:显式 > 客户设定 > 【按名拒】—— 原来这里兜底 30 天】★★
+    --   **PARTY-1(2026-08-29)把那个 30 拿掉了,而它不是一个装饰性的默认值。**
+    --   实测:线上三个客户 payment_terms_days 全是 NULL,于是【九张发票无一例外】
+    --   带着一个编出来的 30 天账期 —— 而 due_date 喂着 ar_aging_asof、
+    --   customer_statement_data(对账单【与】催收,催收还把它冻起来)与
+    --   cash_forecast_data。**一个编出来的到期日于是同时进了四个看起来权威的地方。**
+    --   这是 FIN-10 那条规矩换了身衣服:那条说"决定期间的【日期】不许有默认值",
+    --   这里是"决定到期日的【账期】不许有默认值"。
+    --   【为什么不回填】把 30 写进客户主数据,就是把我的猜测变成一条永久的、
+    --   而且再也标不出来的事实。已经开出去的九张单【保留】它们的 30 ——
+    --   那是当时发出去的东西,历史不改写。
+    v_terms := COALESCE(p_payment_terms_days, v_cust.payment_terms_days);
+    IF v_terms IS NULL THEN
+        RAISE EXCEPTION 'CUSTOMER_PAYMENT_TERMS_NOT_SET|%|%', v_cust.code, v_cust.legal_name
+          USING HINT = '这张发票的到期日没有来路:客户主数据里没有付款账期,这次调用也没有给一个。去【客户 → 编辑】把「付款账期(天)」填上,或者在开票时明确指定一个 —— 系统不再替你假设 30 天。';
+    END IF;
     IF v_terms < 0 THEN
         RAISE EXCEPTION 'TERMS_INVALID|%', v_terms;
     END IF;
@@ -196,9 +218,14 @@ BEGIN
                 'address', v_cust.address,
                 'payment_terms', v_cust.payment_terms,
                 'incoterm', v_cust.incoterm,
-                'contact_person', v_cust.contact_person,
-                'email', v_cust.email,
-                'phone', v_cust.phone),
+                -- ★【联系人从 counterparty_contacts 的【主联系人】取,不再从客户那三列取】★
+                --   PARTY-1 把那三列搬进了子表并删掉。**已经存下来的快照不受影响**:
+                --   它们是自成一体的 jsonb,记的是开票那一刻的事实 —— 变的只是
+                --   【下一张】发票从哪儿取。没有主联系人时这三个键是 NULL,
+                --   与本刀之前"客户没填联系人"的效果逐字一致。
+                'contact_person', v_contact.name,
+                'email', v_contact.email,
+                'phone', v_contact.phone),
             v_entry_id);
 
     FOR v_line IN SELECT * FROM jsonb_array_elements(v_lines)

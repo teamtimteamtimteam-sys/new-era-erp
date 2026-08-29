@@ -27,6 +27,7 @@ import { formatAmount } from '@/lib/format'
 import { can } from '@/lib/permissions'
 import StatementPanel from '../StatementPanel'
 import ChasePanel from '../ChasePanel'
+import ContactsPanel, { type ContactRow } from '../ContactsPanel'
 import { mustRows } from '@/lib/db-helpers'
 import { collectionContext } from '../chaseActions'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -89,7 +90,18 @@ export default async function CustomerStatusPage({
     const supabase = await createClient()
     const t = await getTranslations()
     const baseCurrency = await getBaseCurrency()
+
+    // PARTY-1:这个客户的联系人们(软删的不列)。
+    // 主联系人排在最前,其余按名字 —— 屏幕上最要紧的那一行不该要人去找。
+    const contacts = mustRows(
+        await supabase.from('counterparty_contacts')
+            .select('id, name, name_inferred, role, email, phone, is_primary, notes')
+            .eq('customer_id', id).is('deleted_at', null)
+            .order('is_primary', { ascending: false }).order('name'),
+        'counterparty_contacts') as ContactRow[]
     const canFinance = await can('module.finance.view')
+    // PARTY-1:联系人的编辑权按【归属那一侧】—— 与 save_counterparty_contact 里那句同源
+    const canEditCustomer = await can('module.customers.edit')
 
     const { data: cust, error } = await supabase
         .from('customers')
@@ -316,6 +328,19 @@ export default async function CustomerStatusPage({
                     canEdit={canIssueStatement}
                 />
             )}
+
+            {/* ── PARTY-1:联系人 ────────────────────────────────────────────
+                ★【标题与那句说明【在服务端渲染】,不藏在客户端开关后面】★
+                昨天记下的第三条冒烟盲区:一条藏在客户端开关后面的针,
+                这支 fetch 冒烟【永远】看不见 —— 那样的断言不是覆盖,是自欺。
+                所以这一段的抬头与"它不是一方两身"那句话就画在页面上。
+                【为什么不挂在 canFinance 上】联系人属于客户主数据,
+                读得到这个客户的人就读得到他的联系人 —— 与对账单那一段不同。 */}
+            <section className="mt-6">
+                <h2 className="text-lg font-semibold mb-1">{t('contacts.sectionTitle')}</h2>
+                <p className="text-xs text-gray-600 mb-2 max-w-3xl">{t('contacts.sectionWhat')}</p>
+                <ContactsPanel customerId={id} rows={contacts} canEdit={canEditCustomer} />
+            </section>
         </div>
     )
 }

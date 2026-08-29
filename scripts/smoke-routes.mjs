@@ -183,6 +183,37 @@ const ID_SOURCES = {
 //   要把它变成机制,需要一个会点开关的走查器 —— 那是另一件事,
 //   不该在一次刚被它绊倒的切次里现写(「匆忙的检查者」那条规矩)。
 
+// PARTY-1:两条内容断言,而它们【都是服务端渲染的】—— 这一点是刻意挑的。
+//   昨天(OPS-TIMEOUT 那一刀)刚把第三条冒烟盲区写进 AGENTS.md:
+//   **藏在客户端开关后面的针,这支 fetch 冒烟永远看不见。**
+//   所以这一次的两句话都画在页面本体上(不在面板的展开态里):
+//   客户页那一段联系人的抬头说明,以及重叠页那句"两个敞口不相加"。
+//   针从 messages/en.ts 【现读】,并在任何会被 HTML 转义的字符之前收尾
+//   (GLEXPORT-1 为一条 `&` → `&amp;` 的针付过一次账)。
+const MSG_CONTACTS_SECTION = (() => {
+    const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
+    const blk = src.match(/\n    contacts: \{[\s\S]*?\n    \},/)
+    if (!blk) throw new Error('messages/en.ts 里找不到 contacts 这一段 —— 入口断言无从下手')
+    const m = blk[0].match(/\n\s*sectionWhat: '([^']+)'/)
+    if (!m) throw new Error('messages/en.ts 里找不到 contacts.sectionWhat')
+    // 【在文案文件里,破折号是【转义序列】\\u2014 那六个字符,不是那个字符本身】
+    // 按真正的破折号切会切不动,于是整句都成了针 —— 而整句里有引号,
+    // 服务端渲染会把它转义成 &quot;,那条断言就【永远不可能成立】。
+    // 这一条实测踩过一次,写下来是因为下一个人会照抄这个写法。
+    return m[1].split('\\u2014')[0].trim()
+})()
+// ★【这一句是本刀最要紧的一句话,所以它有一条断言看着】★
+//   「轧差是一次法律行为,不是一次算术」—— 它必须待在数字旁边。
+//   它要是从屏幕上消失了,下一个读这一页的人就会自己把两个数加起来。
+const MSG_OVERLAP_NOT_NETTED = (() => {
+    const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
+    const blk = src.match(/\n    overlap: \{[\s\S]*?\n    \},/)
+    if (!blk) throw new Error('messages/en.ts 里找不到 overlap 这一段')
+    const m = blk[0].match(/\n\s*notNettedTitle: '([^']+)'/)
+    if (!m) throw new Error('messages/en.ts 里找不到 overlap.notNettedTitle')
+    return m[1]
+})()
+
 const MUST_CONTAIN = {
     // ── 静态判据:下拉在,就说明名单非空 ────────────────────────────────────
     // 这九个下拉是【同一个形状】:名单非空时渲染 <select name="supplier_id">,
@@ -224,6 +255,16 @@ const MUST_CONTAIN = {
     // name="counterparty" 永远在,不具判别力。PAY-FRT 那次的病是
     // "货代被排除在付款对象之外,于是未付运费永远付不掉",要验的就是那一条:
     // 拿一家在册货代的 id,断言它确实到了客户端。
+    // ── PARTY-1:联系人那一段与"不相加"那一句,真的在屏幕上吗 ──────────────
+    '/customers/[id]': [
+        { needle: MSG_CONTACTS_SECTION,
+          why: '客户页上的联系人那一段不见了 —— 而联系人搬进子表之后,那是维护它们的唯一入口' },
+    ],
+    '/customers/overlap': [
+        { needle: MSG_OVERLAP_NOT_NETTED,
+          why: '★「两个敞口不相加」那句话从重叠页上消失了 —— 下一个读它的人会自己把两个数加起来,而轧差是一次法律行为' },
+    ],
+
     '/finance/payments/new': [
         { probe: '/rest/v1/suppliers?select=id&limit=1&deleted_at=is.null&counterparty_type=eq.forwarder',
           why: '货代不在付款对象名单里 —— 未付运费就永远付不掉(PAY-FRT 的回归)' },
@@ -1381,6 +1422,29 @@ async function main() {
             }
         }
 
+        // ── PARTY-1:重叠报告【走得到吗】────────────────────────────────
+        // ★【这一条是把"我记得加了链接"换成一条机制】★
+        //   `/customers/overlap` 是一条【静态】路由,`--reach` 查得到它 ——
+        //   但 --reach 要跑两个多小时,而这件事本仓库已经付过两次账
+        //   (SAL-B6 的客户详情页、FIX-1 的入库收货,两次都是人点出来的)。
+        //   实测:这一页写完时【一个入口都没有】,是收尾时按名查出来的。
+        //   一条每一跑都在的断言,比一次偶尔跑的走查更守得住这件事。
+        {
+            const before = logChunks.length
+            const listRes = await fetch(`http://localhost:${PORT}/customers`, {
+                headers: { cookie }, redirect: 'manual' })
+            const listHtml = listRes.status === 200 ? await listRes.text() : ''
+            if (listHtml.includes('/customers/overlap')) { ok++ }
+            else {
+                failures.push({ route: '/customers (没有重叠报告的入口)', url: '/customers',
+                    status: listRes.status, expected: 200,
+                    stack: '客户列表的 HTML 里找不到 /customers/overlap —— '
+                         + '那一页打得开却走不到,而这正是本仓库上过两次当的那件事。\n'
+                         + await serverStack(before) })
+                console.log('  FAIL /customers 上没有重叠报告的入口')
+            }
+        }
+
         // ── CLAIM-1：两个听众，两条内容断言，外加一条可达性断言 ──────────
         // 【为什么不只断言 2xx】审批页与自助面板的内容都来自新对象；
         // 它们抛错页面 500（冒烟抓得住），返回形状不对则渲染成一片空白
@@ -1621,7 +1685,7 @@ async function main() {
     // 等于让"这一类到底测没测"重新变得看不见 —— 而它们存在的理由正是那件事。
     // PROBATION-1:总结这一行要把【每一个计进 ok 的探针】都点出来,否则
     // 标签念的是一件事、数字数的是另一件 —— 本仓库对这个形状记过好几次账。
-    console.log(`\n== ${routes.length} routes + 1 reviewer-view check + ${QUERY_PROBES.length} query-string probe(s) + 2 probation-entry probes + 2 customer-page entry probes + 2 cash-forecast probes (nav + content) + 3 claim probes (2 content + nav) + 3 attendance probes (2 content + nav) + 3 WHT probes (2 content + nav) + 4 pack/GL-export probes (2 content + 2 nav): ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
+    console.log(`\n== ${routes.length} routes + 1 reviewer-view check + ${QUERY_PROBES.length} query-string probe(s) + 2 probation-entry probes + 2 customer-page entry probes + 2 cash-forecast probes (nav + content) + 3 claim probes (2 content + nav) + 3 attendance probes (2 content + nav) + 3 WHT probes (2 content + nav) + 4 pack/GL-export probes (2 content + 2 nav) + 1 overlap-entry probe: ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
     // SESSION-1:这一行排在所有失败之前,因为它改变【怎么读】下面那一百行。
     if (sawAuthIndeterminate) {
         const n = failures.filter((f) => f.authDown).length
