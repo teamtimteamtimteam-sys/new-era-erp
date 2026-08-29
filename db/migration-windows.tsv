@@ -88,3 +88,5 @@
 2026-08-29T17:29:01+0800	2026-08-29-kpi1-fu2-grant-position-id.sql	284e96e
 2026-08-29T18:26:56+0800	2026-08-29-kpi1-fu3-functions-that-still-read-job-title.sql	284e96e
 2026-08-29T18:53:46+0800	2026-08-29-kpi1-fu4-import-takes-a-position-code.sql	284e96e
+2026-08-30T00:11:20+0800	2026-08-30-contract1-the-contract-register.sql	fd0ece4
+2026-08-30T00:24:31+0800	2026-08-30-contract1-fu1-null-material-needs-its-own-unique.sql	fd0ece4

@@ -240,6 +240,37 @@ const MSG_KPI_STAFFING_GAP = (() => {
     return m[1].split(/[&<>"']/)[0].trim()
 })()
 
+// CONTRACT-1:两条内容断言,两条都是【服务端渲染】的 —— 与 PARTY-1 / KPI-1 同一条理由。
+// 针从 messages/en.ts 【现读】,并在任何会被 HTML 转义的字符之前收尾
+// (GLEXPORT-1 与 PARTY-1 各为一条 `&`/引号的针付过一次账)。
+//
+// ★ 第一条守的是本刀最要紧的一句话 ★「没有合同被违反」也可能只是「没有人挂过东西」。
+//   它必须贴着覆盖率那几个数字 —— 那一段是【无条件渲染】的,所以这条针是死的。
+const MSG_CONTRACT_COVERAGE_WHY = (() => {
+    const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
+    const blk = src.match(/\n    contracts: \{[\s\S]*?\n    \},/)
+    if (!blk) throw new Error('messages/en.ts 里找不到 contracts 这一段 —— 入口断言无从下手')
+    const m = blk[0].match(/\n\s*coverageWhy: '([^']+)'/)
+    if (!m) throw new Error('messages/en.ts 里找不到 contracts.coverageWhy')
+    return m[1].split('\\u2014')[0].split(/[&<>"']/)[0].trim()
+})()
+// ★ 第二条守的是那句【具名的缺席】★ 而它有一个坑,写下来免得下一个人踩:
+//   breachNothingComparable 只在 documents_with_grade_specs === 0 时渲染,
+//   有了第一份带规格的挂接之后它会翻成 breachNone —— 把它写成一条死针,
+//   等于给未来安一次【必然的误报】,而误报和真失败长得一模一样(喊狼来了)。
+//   所以这里断言的是**两句里至少有一句在**:那个位置【永远有一句具名的话】,
+//   绝不会静悄悄地什么都不说。分支走哪一条由真实数据决定,不由这条断言决定。
+const MSG_CONTRACT_BREACH_NAMED_ABSENCE = (() => {
+    const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
+    const blk = src.match(/\n    contracts: \{[\s\S]*?\n    \},/)
+    const cut = (k) => {
+        const m = blk[0].match(new RegExp(`\\n\\s*${k}: '([^']+)'`))
+        if (!m) throw new Error(`messages/en.ts 里找不到 contracts.${k}`)
+        return m[1].split('\\u2014')[0].split(/[&<>"']/)[0].split('{')[0].trim()
+    }
+    return [cut('breachNothingComparable'), cut('breachNone')]
+})()
+
 const MUST_CONTAIN = {
     // ── 静态判据:下拉在,就说明名单非空 ────────────────────────────────────
     // 这九个下拉是【同一个形状】:名单非空时渲染 <select name="supplier_id">,
@@ -299,6 +330,22 @@ const MUST_CONTAIN = {
           why: '「六个职位里只有几个有人」那句具名缺席不见了 —— 一张只显示两人、什么都不说的 roll-up 看起来像是全部' },
     ],
 
+    // ── CONTRACT-1:覆盖率那句话、那句具名的缺席,以及【走得到吗】 ──────────
+    '/contracts': [
+        { needle: MSG_CONTRACT_COVERAGE_WHY,
+          why: '★「没挂合同不是缺陷、而"没有违反"可能只是"没有人挂过东西"」那句话从合同页上消失了 —— 下面那句"没有违反"就会撒谎' },
+        { oneOf: MSG_CONTRACT_BREACH_NAMED_ABSENCE,
+          why: '★ 违反那一段的空状态【一句话都没说】—— "没有违反"与"没有可比的东西"必须分得开,而不是留一片空白' },
+    ],
+    // ★【这条不是内容断言,是【可达性】断言】★ /contracts 建好那天没有任何入口,
+    //   而本仓库为「页面上线却走不到」付过两次账(SAL-B6、FIX-1)。
+    //   --reach 查得到静态路由,只是它要跑两小时 —— 于是那条链接与这条针在同一刀里落地,
+    //   把"我记得加了链接"换成机制。链接删了,这里当场红。
+    '/suppliers': [
+        { needle: 'href="/contracts"',
+          why: '★ 供应商列表页上通往合同登记簿的入口不见了 —— /contracts 会变成一个上了线却走不到的页面' },
+    ],
+
     '/finance/payments/new': [
         { probe: '/rest/v1/suppliers?select=id&limit=1&deleted_at=is.null&counterparty_type=eq.forwarder',
           why: '货代不在付款对象名单里 —— 未付运费就永远付不掉(PAY-FRT 的回归)' },
@@ -313,6 +360,13 @@ async function contentMisses(route, html) {
     for (const a of MUST_CONTAIN[route] ?? []) {
         if (a.needle) {
             if (!html.includes(a.needle)) misses.push(`${a.needle} —— ${a.why}`)
+            continue
+        }
+        // oneOf:那个位置【至少要有一句话】,走哪一句由真实数据决定。
+        // 用在互斥的具名空状态上 —— 写死其中一句会变成一次必然的误报。
+        if (a.oneOf) {
+            if (!a.oneOf.some((s) => html.includes(s)))
+                misses.push(`${a.oneOf.join(' | ')} —— ${a.why}`)
             continue
         }
         const rows = await restRows(a.probe, `${route} ← 内容探针`)

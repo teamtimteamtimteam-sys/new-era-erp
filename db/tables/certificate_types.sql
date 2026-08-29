@@ -49,4 +49,13 @@ INSERT INTO public.certificate_types (code, name_en, name_zh, disposition, warn_
     ('nea_import', 'NEA Import Permit', 'NEA 进口许可',      'block', 90, 4, '默认 block:新加坡国家环境局进口许可,缺了不能收'),
     ('gwdf',       'GWDF Licence',      'GWDF 执照',         'block', 90, 5, '默认 block:一般废物处置设施执照'),
     ('iso',        'ISO Certification', 'ISO 认证',          'warn',  60, 6, '默认 warn:管理体系认证是商业保证,过期是瑕疵不是违法'),
-    ('other',      'Other',             '其他',              'warn',  30, 7, '默认 warn:未归类的证书先提醒,归了类再定处置');
+    ('other',      'Other',             '其他',              'warn',  30, 7, '默认 warn:未归类的证书先提醒,归了类再定处置'),
+    -- ★ CONTRACT-1(2026-08-30):保险【就是一种证书】,不是第二套到期机制 ★
+    --   保单有签发方、有号码、有有效期、过期要提醒 —— 这四件事这张机制已经在做,
+    --   而且已经有两个消费方(operations_now 的看板臂、supplier_receiving_blocked
+    --   的收货闸)。给保险再造一套,就是把那两样又写一遍。
+    --   **默认 warn 而不是 block**:一份过期的保单是一个必须立刻处理的问题,
+    --   但"挡住收货"是一个【经营决定】—— 谁来决定停不停工,不是本刀能替人裁的。
+    --   而 disposition 是 RUNTIME CONFIG:真要改成 block,在界面上改一行就行,
+    --   不用跑迁移。**这一行是【默认值】,不是【决定】。**
+    ('insurance',  'Insurance Policy',  '保险单',            'warn',  60, 8, '默认 warn 是【默认值】不是决定:过期保单要立刻处理,但"停不停收货"是经营决定,disposition 在界面上改得动');

@@ -164,6 +164,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "assay_result_metals_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["assay_result_id"]
+          },
+          {
             foreignKeyName: "assay_result_metals_metal_fkey"
             columns: ["metal"]
             isOneToOne: false
@@ -261,6 +268,13 @@ export type Database = {
             foreignKeyName: "assay_results_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_results_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["batch_id"]
           },
@@ -312,6 +326,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "assay_results"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_results_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["assay_result_id"]
           },
         ]
       }
@@ -1672,6 +1693,435 @@ export type Database = {
             columns: ["lane_id"]
             isOneToOne: false
             referencedRelation: "lanes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_document_terms: {
+        Row: {
+          contract_code: string
+          contract_id: string
+          contract_title: string | null
+          currency: string | null
+          grade_specs: Json
+          id: string
+          incoterm: string | null
+          linked_at: string
+          linked_by: string | null
+          payment_terms_days: number | null
+          purchase_order_id: string | null
+          sales_order_id: string | null
+        }
+        Insert: {
+          contract_code: string
+          contract_id: string
+          contract_title?: string | null
+          currency?: string | null
+          grade_specs?: Json
+          id?: string
+          incoterm?: string | null
+          linked_at?: string
+          linked_by?: string | null
+          payment_terms_days?: number | null
+          purchase_order_id?: string | null
+          sales_order_id?: string | null
+        }
+        Update: {
+          contract_code?: string
+          contract_id?: string
+          contract_title?: string | null
+          currency?: string | null
+          grade_specs?: Json
+          id?: string
+          incoterm?: string | null
+          linked_at?: string
+          linked_by?: string | null
+          payment_terms_days?: number | null
+          purchase_order_id?: string | null
+          sales_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_document_terms_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_document_terms_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: true
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["purchase_order_id"]
+          },
+          {
+            foreignKeyName: "contract_document_terms_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: true
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "contract_document_terms_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: true
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["purchase_order_id"]
+          },
+          {
+            foreignKeyName: "contract_document_terms_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: true
+            referencedRelation: "po_receivable_lines"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "contract_document_terms_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: true
+            referencedRelation: "purchase_order_status"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "contract_document_terms_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: true
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_document_terms_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: true
+            referencedRelation: "purchase_orders_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_document_terms_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: true
+            referencedRelation: "sales_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_grade_specs: {
+        Row: {
+          contract_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          material_id: string | null
+          max_pct: number | null
+          metal: string
+          min_pct: number | null
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          material_id?: string | null
+          max_pct?: number | null
+          metal: string
+          min_pct?: number | null
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          material_id?: string | null
+          max_pct?: number | null
+          metal?: string
+          min_pct?: number | null
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_grade_specs_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_grade_specs_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "material_stock_available"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "contract_grade_specs_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_grade_specs_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stock_snapshot"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "contract_grade_specs_metal_fkey"
+            columns: ["metal"]
+            isOneToOne: false
+            referencedRelation: "substances"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      contract_insurance_obligations: {
+        Row: {
+          contract_id: string
+          cover_type: string
+          created_at: string
+          created_by: string | null
+          currency: string | null
+          id: string
+          insured_by: string
+          min_amount: number | null
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          contract_id: string
+          cover_type: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          id?: string
+          insured_by: string
+          min_amount?: number | null
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          contract_id?: string
+          cover_type?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          id?: string
+          insured_by?: string
+          min_amount?: number | null
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_insurance_obligations_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_insurance_obligations_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      contract_volume_commitments: {
+        Row: {
+          committed_by_party: string
+          contract_id: string
+          created_at: string
+          created_by: string | null
+          direction: string
+          id: string
+          material_id: string | null
+          notes: string | null
+          period: string
+          quantity: number
+          unit: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          committed_by_party: string
+          contract_id: string
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          id?: string
+          material_id?: string | null
+          notes?: string | null
+          period: string
+          quantity: number
+          unit: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          committed_by_party?: string
+          contract_id?: string
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          id?: string
+          material_id?: string | null
+          notes?: string | null
+          period?: string
+          quantity?: number
+          unit?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_volume_commitments_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_volume_commitments_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "material_stock_available"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "contract_volume_commitments_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_volume_commitments_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stock_snapshot"
+            referencedColumns: ["material_id"]
+          },
+        ]
+      }
+      contracts: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          currency: string | null
+          customer_id: string | null
+          deleted_at: string | null
+          document_ref: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          incoterm: string | null
+          kind: string
+          notes: string | null
+          payment_terms_days: number | null
+          side: string | null
+          signed_on: string | null
+          status: string
+          supplier_id: string | null
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          customer_id?: string | null
+          deleted_at?: string | null
+          document_ref?: string | null
+          effective_from: string
+          effective_to?: string | null
+          id?: string
+          incoterm?: string | null
+          kind: string
+          notes?: string | null
+          payment_terms_days?: number | null
+          side?: string | null
+          signed_on?: string | null
+          status?: string
+          supplier_id?: string | null
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          customer_id?: string | null
+          deleted_at?: string | null
+          document_ref?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          incoterm?: string | null
+          kind?: string
+          notes?: string | null
+          payment_terms_days?: number | null
+          side?: string | null
+          signed_on?: string | null
+          status?: string
+          supplier_id?: string | null
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "contracts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_credit_status"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "contracts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "contracts_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -3566,6 +4016,13 @@ export type Database = {
             foreignKeyName: "finance_attachments_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "finance_attachments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["batch_id"]
           },
@@ -4215,6 +4672,13 @@ export type Database = {
             foreignKeyName: "freight_allocations_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "freight_allocations_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["batch_id"]
           },
@@ -4711,6 +5175,13 @@ export type Database = {
             foreignKeyName: "inbound_batch_metals_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_metals_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["batch_id"]
           },
@@ -4749,6 +5220,13 @@ export type Database = {
             referencedRelation: "assay_results"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "inbound_batch_metals_source_assay_id_fkey"
+            columns: ["source_assay_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["assay_result_id"]
+          },
         ]
       }
       inbound_batch_safety_states: {
@@ -4783,6 +5261,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -4946,6 +5431,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pricing_formulas_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["purchase_order_id"]
           },
           {
             foreignKeyName: "inbound_batches_purchase_order_id_fkey"
@@ -5155,6 +5647,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -7574,6 +8073,13 @@ export type Database = {
             referencedRelation: "assay_results"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "output_batch_metals_source_assay_id_fkey"
+            columns: ["source_assay_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["assay_result_id"]
+          },
         ]
       }
       output_batches: {
@@ -7760,6 +8266,13 @@ export type Database = {
             foreignKeyName: "payment_allocations_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["batch_id"]
           },
@@ -7832,6 +8345,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payments"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["purchase_order_id"]
           },
           {
             foreignKeyName: "payment_allocations_purchase_order_id_fkey"
@@ -8830,6 +9350,13 @@ export type Database = {
             foreignKeyName: "po_issues_purchase_order_id_fkey"
             columns: ["purchase_order_id"]
             isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["purchase_order_id"]
+          },
+          {
+            foreignKeyName: "po_issues_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["po_id"]
           },
@@ -9015,6 +9542,13 @@ export type Database = {
             foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["batch_id"]
           },
@@ -9052,6 +9586,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "journal_entries"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["purchase_order_id"]
           },
           {
             foreignKeyName: "prepayment_applications_purchase_order_id_fkey"
@@ -9153,6 +9694,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "price_history_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -9576,6 +10124,13 @@ export type Database = {
             foreignKeyName: "pricing_term_commitments_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: true
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "pricing_term_commitments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: true
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["batch_id"]
           },
@@ -9895,6 +10450,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "processing_inputs_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -10377,6 +10939,13 @@ export type Database = {
             foreignKeyName: "purchase_order_history_purchase_order_id_fkey"
             columns: ["purchase_order_id"]
             isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["purchase_order_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_history_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["po_id"]
           },
@@ -10533,6 +11102,13 @@ export type Database = {
             foreignKeyName: "purchase_order_lines_purchase_order_id_fkey"
             columns: ["purchase_order_id"]
             isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["purchase_order_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["po_id"]
           },
@@ -10624,6 +11200,13 @@ export type Database = {
             foreignKeyName: "purchase_order_payment_terms_purchase_order_id_fkey"
             columns: ["purchase_order_id"]
             isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["purchase_order_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_payment_terms_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["po_id"]
           },
@@ -10674,6 +11257,7 @@ export type Database = {
           cancelled_by: string | null
           closed_at: string | null
           code: string
+          contract_id: string | null
           created_at: string
           created_by: string | null
           currency: string
@@ -10702,6 +11286,7 @@ export type Database = {
           cancelled_by?: string | null
           closed_at?: string | null
           code: string
+          contract_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -10730,6 +11315,7 @@ export type Database = {
           cancelled_by?: string | null
           closed_at?: string | null
           code?: string
+          contract_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -10750,6 +11336,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "purchase_orders_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "purchase_orders_currency_fkey"
             columns: ["currency"]
@@ -11609,6 +12202,7 @@ export type Database = {
           closed_at: string | null
           code: string
           confirmed_at: string | null
+          contract_id: string | null
           created_at: string
           created_by: string | null
           currency: string
@@ -11631,6 +12225,7 @@ export type Database = {
           closed_at?: string | null
           code: string
           confirmed_at?: string | null
+          contract_id?: string | null
           created_at?: string
           created_by?: string | null
           currency: string
@@ -11653,6 +12248,7 @@ export type Database = {
           closed_at?: string | null
           code?: string
           confirmed_at?: string | null
+          contract_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -11670,6 +12266,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "sales_orders_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sales_orders_currency_fkey"
             columns: ["currency"]
@@ -12173,6 +12776,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "stocktake_lines_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -14527,6 +15137,13 @@ export type Database = {
             foreignKeyName: "inbound_batches_purchase_order_id_fkey"
             columns: ["purchase_order_id"]
             isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["purchase_order_id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["po_id"]
           },
@@ -14809,6 +15426,53 @@ export type Database = {
             columns: ["lane_id"]
             isOneToOne: false
             referencedRelation: "lanes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_coverage: {
+        Row: {
+          contracts_active: number | null
+          contracts_buy_side: number | null
+          contracts_sell_side: number | null
+          contracts_total: number | null
+          documents_with_grade_specs: number | null
+          purchase_orders_total: number | null
+          purchase_orders_under_contract: number | null
+          sales_orders_total: number | null
+          sales_orders_under_contract: number | null
+        }
+        Relationships: []
+      }
+      contract_grade_breaches: {
+        Row: {
+          assay_date: string | null
+          assay_result_id: string | null
+          breach_side: string | null
+          content_pct: number | null
+          contract_code: string | null
+          contract_id: string | null
+          inbound_batch_code: string | null
+          inbound_batch_id: string | null
+          max_pct: number | null
+          metal: string | null
+          min_pct: number | null
+          purchase_order_code: string | null
+          purchase_order_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assay_result_metals_metal_fkey"
+            columns: ["metal"]
+            isOneToOne: false
+            referencedRelation: "substances"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "contract_document_terms_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
             referencedColumns: ["id"]
           },
         ]
@@ -15809,6 +16473,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pricing_formulas_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["purchase_order_id"]
           },
           {
             foreignKeyName: "inbound_batches_purchase_order_id_fkey"
@@ -17452,6 +18123,13 @@ export type Database = {
             foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["batch_id"]
           },
@@ -17489,6 +18167,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "journal_entries"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["purchase_order_id"]
           },
           {
             foreignKeyName: "prepayment_applications_purchase_order_id_fkey"
@@ -17590,6 +18275,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "price_history_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -17969,6 +18661,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: true
             referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "pricing_term_commitments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: true
+            referencedRelation: "contract_grade_breaches"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -18656,6 +19355,13 @@ export type Database = {
             foreignKeyName: "purchase_order_lines_purchase_order_id_fkey"
             columns: ["purchase_order_id"]
             isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["purchase_order_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["po_id"]
           },
@@ -18743,6 +19449,13 @@ export type Database = {
           trigger_event?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "purchase_order_payment_terms_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["purchase_order_id"]
+          },
           {
             foreignKeyName: "purchase_order_payment_terms_purchase_order_id_fkey"
             columns: ["purchase_order_id"]
@@ -18840,6 +19553,7 @@ export type Database = {
           cancelled_by: string | null
           closed_at: string | null
           code: string | null
+          contract_id: string | null
           created_at: string | null
           created_by: string | null
           currency: string | null
@@ -18868,6 +19582,7 @@ export type Database = {
           cancelled_by?: string | null
           closed_at?: string | null
           code?: string | null
+          contract_id?: string | null
           created_at?: string | null
           created_by?: string | null
           currency?: string | null
@@ -18896,6 +19611,7 @@ export type Database = {
           cancelled_by?: string | null
           closed_at?: string | null
           code?: string | null
+          contract_id?: string | null
           created_at?: string | null
           created_by?: string | null
           currency?: string | null
@@ -18916,6 +19632,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "purchase_orders_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "purchase_orders_currency_fkey"
             columns: ["currency"]
@@ -19187,6 +19910,13 @@ export type Database = {
             columns: ["inbound_batch_id"]
             isOneToOne: false
             referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
             referencedColumns: ["inbound_batch_id"]
           },
           {
@@ -20436,6 +21166,14 @@ export type Database = {
       line_spoken_for: {
         Args: { p_sales_order_line_id: string }
         Returns: number
+      }
+      link_document_to_contract: {
+        Args: {
+          p_contract_id: string
+          p_document_id: string
+          p_document_kind: string
+        }
+        Returns: Json
       }
       management_pack_data: { Args: { p_period_month: string }; Returns: Json }
       master_import_apply: {

@@ -122,12 +122,25 @@ export default async function SuppliersPage({
         <div className="p-8">
             <div className="flex items-center justify-between mb-4">
                 <h1 className="text-2xl font-bold">{t('suppliers.listTitle')}</h1>
-                <Link
-                    href="/suppliers/new"
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
-                    {t('suppliers.addButton')}
-                </Link>
+                <div className="flex items-center gap-3">
+                    {/* ★【CONTRACT-1:合同登记簿的入口 —— 那一页建好时【没有任何入口】★
+                        照 PARTY-1 的做法办,理由也一样:本仓库为「页面上线却走不到」
+                        付过两次账(SAL-B6、FIX-1),而 --reach 查得到静态路由,
+                        只是它要跑两小时。所以这条链接与那一页在同一刀里补上,
+                        并配一条冒烟可达性探针(scripts/smoke-routes.mjs 里在
+                        /suppliers 的 HTML 里找 /contracts)—— 把"我记得加了链接"
+                        换成机制。入口放在供应商名单上,因为"这家的货是不是背靠
+                        一份长期协议"正是在看供应商名单时才会冒出来的问题。 */}
+                    <Link href="/contracts" className="text-sm text-blue-600 hover:underline">
+                        {t('contracts.entryLink')}
+                    </Link>
+                    <Link
+                        href="/suppliers/new"
+                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    >
+                        {t('suppliers.addButton')}
+                    </Link>
+                </div>
             </div>
 
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}

@@ -53,8 +53,18 @@ CREATE TABLE public.purchase_orders (
     -- ── AUDEL-1b 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────
     deleted_by    uuid,
     delete_reason text,
-    cancelled_by  uuid
+    cancelled_by  uuid,
+    -- ── CONTRACT-1 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)────────
+    -- 这张单据挂在哪一份合同之下。**可空** —— 现货采购本来就没有合同,
+    -- 而强制它必填会假设"每一次买卖都在一份协议之下",那不是真的。
+    -- ★【它是【导航】,不是条款的来源】★ 条款读 contract_document_terms 那份
+    --   【挂上去那一刻抄下来的】副本 —— 顺着这一列回查合同"现在"的条款,
+    --   就是把抄退化成引用,而退化是静悄悄的。
+    contract_id   uuid REFERENCES public.contracts (id) ON DELETE RESTRICT
 );
+
+COMMENT ON COLUMN public.purchase_orders.contract_id IS
+    'CONTRACT-1:这张单据挂在哪一份合同之下。**可空** —— 现货采购本来就没有合同。★**它是导航,不是条款的来源**★:条款读 contract_document_terms 那份【挂上去那一刻抄下来的】副本,顺着这一列回查合同"现在"的条款就是把抄退化成引用。';
 
 COMMENT ON COLUMN public.purchase_orders.fx_rate IS
     '本单据成立时的折本位币汇率(create_purchase_order 按 order_date 的 tt_sell 取,缺牌价即拒)。【没有默认值,这是有意的 —— FIN-35】:汇率的默认值只能是一个假设,而假设出来的 1:1 在非本位币单据上永远是错的,还看起来完全正常。NOT NULL 是兜底,带名字的拒绝在 fx_rate_for。';
@@ -94,7 +104,7 @@ CREATE POLICY "purchase_orders delete by permission"
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 purchase_orders_masked 读取。
 -- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
 REVOKE SELECT ON public.purchase_orders FROM authenticated, anon;
-GRANT SELECT (id, code, supplier_id, order_date, expected_delivery_date, currency, status, approval_status, approved_at, approved_by, incoterm, terms_text, notes, closed_at, cancelled_at, cancel_reason, deleted_at, created_at, created_by, updated_at, updated_by, deleted_by, delete_reason, cancelled_by)
+GRANT SELECT (id, code, supplier_id, order_date, expected_delivery_date, currency, status, approval_status, approved_at, approved_by, incoterm, terms_text, notes, closed_at, cancelled_at, cancel_reason, deleted_at, created_at, created_by, updated_at, updated_by, deleted_by, delete_reason, cancelled_by, contract_id)
     ON public.purchase_orders TO authenticated;
 
 -- APR-2 决定 4:金额被改到需要更高一级审批时,原审批作废并重新路由。

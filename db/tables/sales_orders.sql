@@ -45,8 +45,18 @@ CREATE TABLE public.sales_orders (
         CHECK (status <> 'cancelled' OR cancel_reason IS NOT NULL),
     -- ── AUDEL-1b 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────
     deleted_by    uuid,
-    delete_reason text
+    delete_reason text,
+    -- ── CONTRACT-1 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)────────
+    -- 这张单据挂在哪一份合同之下。**可空** —— 现货销售本来就没有合同,
+    -- 而强制它必填会假设"每一次买卖都在一份协议之下",那不是真的。
+    -- ★【它是【导航】,不是条款的来源】★ 条款读 contract_document_terms 那份
+    --   【挂上去那一刻抄下来的】副本 —— 顺着这一列回查合同"现在"的条款,
+    --   就是把抄退化成引用,而退化是静悄悄的。
+    contract_id   uuid REFERENCES public.contracts (id) ON DELETE RESTRICT
 );
+
+COMMENT ON COLUMN public.sales_orders.contract_id IS
+    'CONTRACT-1:这张单据挂在哪一份合同之下。**可空** —— 现货销售本来就没有合同。★**它是导航,不是条款的来源**★:条款读 contract_document_terms 那份副本。';
 
 COMMENT ON TABLE public.sales_orders IS
     'SO-1:销售订单单据头。【与 sales_records 是两件事】:订单是"答应卖给某人",销售记录是"已经卖了"(record_output_sale 同事务扣库存、记收入与 COGS)。customer_id NOT NULL —— 订单的主语就是那个客户;无客户的销售仍走直接销售那条路(SAL-C 的事后归属只对销售记录成立)。状态机今天只有 draft/confirmed/closed/cancelled:【履约/发货那几个状态归发货那一刀】,加在这里之前先读那一刀的注释。确认即冻结商业字段(guard_sales_order_confirmed_immutable),改单归 SO-1b。';

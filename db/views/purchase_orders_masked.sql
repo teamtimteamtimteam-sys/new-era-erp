@@ -43,6 +43,13 @@ CREATE VIEW public.purchase_orders_masked WITH (security_invoker = off) AS
     updated_by,
     deleted_by,
     delete_reason,
-    cancelled_by
+    cancelled_by,
+    -- CONTRACT-1:这张单据挂在哪一份合同之下。**新列加在末尾** ——
+    -- CREATE OR REPLACE VIEW 只许末尾追加,中间插一列要 DROP + 重建。
+    -- 【它必须出现在这张视图里】purchase_orders 是遮蔽表,而 colgrant 那道闸要求
+    -- 它的每一列要么被列授权、要么在 _masked 里(WO-1a 那一课:ADD/GRANT/_masked
+    -- 三件事要在同一次迁移里做完 —— KPI-1 为漏掉后两件付过一次账)。
+    -- 【条款不从这一列读】它只是导航;条款读 contract_document_terms 那份副本。
+    contract_id
    FROM purchase_orders
   WHERE has_permission('module.purchasing.view'::text);

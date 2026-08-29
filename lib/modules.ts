@@ -51,8 +51,16 @@ export type ModuleEntry = {
 //   * 产出批次页上的【本批毛利数字本身】(MAR-1)—— 问题产生的地方就给答案
 //   * 首页 margin_cost_not_allocated 支(MAR-1)—— 支级谓词表达得了这个 OR
 export const MODULES: ModuleEntry[] = [
+    // CONTRACT-1:/contracts 归在供应商模块之下,而这是一个【判断】不是一次偷懒。
+    //   一份合同跨买卖两侧,而本仓库的权限是按模块分的 —— 没有"合同"这个模块,
+    //   新造一个就要新造一个权限码,那超出本刀。
+    //   **行一级的可见性已经由 RLS 管对了**:买方合同要 suppliers.view,
+    //   卖方合同要 customers.view —— 所以一个只有客户权限的人在这一页上
+    //   看得到他该看的那些行。挂在 suppliers 之下,是因为**第一批真合同是供货协议**,
+    //   而 suppliers.view 正是它们的那道门。
     { href: '/suppliers', navKey: 'nav.suppliers', titleKey: 'home.suppliersTitle', descKey: 'home.suppliersDesc',
-      permission: 'module.suppliers.view', section: 'masterData' },
+      permission: 'module.suppliers.view', section: 'masterData',
+      alsoCovers: ['/contracts'] },
     // 采购在收货之前 —— 流程顺序:下单 → 收货 → 加工
     { href: '/purchasing', navKey: 'nav.purchasing', titleKey: 'home.purchasingTitle', descKey: 'home.purchasingDesc',
       permission: 'module.purchasing.view', section: 'operations' },

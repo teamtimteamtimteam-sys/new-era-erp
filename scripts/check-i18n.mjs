@@ -405,6 +405,16 @@ const MANIFEST = {
     'traceability.errors.': { kind: 'enum', values: () => tsSet('app/output/traceabilityErrorCodes.ts', 'TRACEABILITY_ERROR_CODES') },
     // APR-2c:采购单审批状态。后缀集合就是 purchase_orders 的 CHECK —— 真源现读。
     'purchasing.approvalState.': { kind: 'enum', values: () => sqlEnum('db/tables/purchase_orders.sql', 'approval_status') },
+    // ── CONTRACT-1:合同的两个枚举,两个都接【库那侧的真源】────────────────
+    // status:后缀集合就是 contracts 的 CHECK —— 加一个状态,这道检查自动要求
+    //   两个语言各补一句,而不是让屏幕上冒出一个原始机器串
+    //   (docs/machine-text-reaching-humans.md 记的正是这一类)。
+    'contracts.status.': { kind: 'enum', values: () => sqlEnum('db/tables/contracts.sql', 'status') },
+    // side:它【没有 CHECK】—— 是一列 GENERATED ALWAYS AS 的派生列,
+    //   所以真源就是那个 CASE 表达式本身。从它现读,而不是另写一份 ['buy','sell']:
+    //   写死一份清单,改了派生规则时它只会烂在这里(与 gst.docKind. 同一条理由)。
+    'contracts.side.': { kind: 'enum', values: () => tsRegex('db/tables/contracts.sql',
+                              /GENERATED ALWAYS AS\s*\n?\s*\(CASE WHEN customer_id IS NOT NULL THEN '(\w+)' ELSE '(\w+)' END\)/g) },
     // ── HR ──────────────────────────────────────────────────────────────────
     'hr.alertType.':        { kind: 'enum', values: () => sqlLiteralAs('db/views/hr_alerts.sql', 'alert_type') },
     'hr.severity.':         { kind: 'enum', values: union(
