@@ -85,7 +85,11 @@ BEGIN
         monthly_salary       = NULL,
         notes                = NULL,
         separation_notes     = NULL,
-        job_title            = NULL,
+        -- KPI-1:employees.job_title 已删,清的是【职位指针】。
+        -- 【为什么职位也要清】职位本身是主数据、不是个人数据,但"这一行的人
+        -- 曾经担任 CFO"仍然是一条关于那个人的事实 —— 匿名化要断掉的正是这种关联。
+        -- **employment_history 上那一行不动**(那是不可变的履历,见 fixture 126)。
+        position_id          = NULL,
         user_id              = NULL,          -- 与登录账号解绑
         anonymised_at        = now(),
         anonymised_by        = auth.uid()

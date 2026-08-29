@@ -10,7 +10,10 @@ CREATE VIEW public.my_profile WITH (security_invoker = off) AS
     e.code,
     e.legal_name,
     e.preferred_name,
-    e.job_title,
+    -- KPI-1:employees.job_title 已删,头衔改从【职位】来。
+    -- 列名保持 job_title,是为了让 /me 那一格与它的历史记录读起来仍然是同一件事
+    -- (employment_history.job_title 是那一天的文本快照,这里是"今天的")。
+    pos.title AS job_title,
     e.employment_type,
     e.work_category,
     e.employment_status,
@@ -33,8 +36,12 @@ CREATE VIEW public.my_profile WITH (security_invoker = off) AS
     mgr.code AS manager_code,
     COALESCE(tr.cnt, 0::bigint) AS training_count,
     pp.code AS latest_payroll_code,
-    pp.period_month AS latest_payroll_month
+    pp.period_month AS latest_payroll_month,
+    -- KPI-1:【新列加在末尾】—— CREATE OR REPLACE VIEW 只允许在末尾追加列,
+    -- 中间插一列要 DROP + 重建,而这张视图有下游读者。
+    pos.code AS position_code
    FROM employees e
+     LEFT JOIN positions pos ON pos.id = e.position_id
      LEFT JOIN departments d ON d.id = e.department_id
      LEFT JOIN employees mgr ON mgr.id = e.manager_id
      LEFT JOIN LATERAL ( SELECT count(*) AS cnt

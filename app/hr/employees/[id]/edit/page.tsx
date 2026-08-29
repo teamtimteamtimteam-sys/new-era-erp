@@ -96,6 +96,12 @@ export default async function EditEmployeePage({
         .filter((e) => !excluded.has(e.id) && e.employment_status !== 'separated')
         .map((e) => ({ id: e.id, label: `${e.code} — ${e.legal_name}` }))
 
+    // KPI-1:职位候选。只列在册的,按 sort_order —— 与规格 §8.2 那六行同序。
+    const positions = mustRows(
+        await supabase.from('positions').select('id, code, title')
+            .eq('is_active', true).order('sort_order'),
+        'positions') as { id: string; code: string; title: string }[]
+
     return (
         <div className="p-8">
             <div className="mb-6">
@@ -109,6 +115,7 @@ export default async function EditEmployeePage({
             </h1>
             <Subnav />
             <EmployeeForm
+                positions={positions}
                 employee={empRes.data as EmployeeRecord}
                 departments={departments}
                 managers={managers}

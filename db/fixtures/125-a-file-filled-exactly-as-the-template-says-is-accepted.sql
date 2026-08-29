@@ -108,13 +108,22 @@ BEGIN
     PERFORM master_import_apply('employees', jsonb_build_array(jsonb_build_object(
         'code','ZZFIX125-EMP-1','legal_name','ZZFIX125 Person',
         'employment_type','full_time','work_category','office','hire_date','2026-01-01',
-        'department_code','ZZFIX125-DEP-1','job_title','','notes','')), 'f125.csv', false);
+        -- KPI-1:job_title 已从 employees 上删除。模板列是【从目录推导】的,
+        -- 所以它自己变成了 position_id;而引用按【编号】给(position_code),
+        -- 与 department_code 同一条 —— 操作员不可能手打 uuid。
+        'department_code','ZZFIX125-DEP-1','position_code','CFO','notes','')), 'f125.csv', false);
     IF (SELECT employment_status FROM employees WHERE code='ZZFIX125-EMP-1') <> 'probation' THEN
         RAISE EXCEPTION 'FIXTURE 125D 失败:employees.employment_status 的默认值没有生效';
     END IF;
     IF (SELECT d.code FROM employees e JOIN departments d ON d.id=e.department_id
          WHERE e.code='ZZFIX125-EMP-1') <> 'ZZFIX125-DEP-1' THEN
         RAISE EXCEPTION 'FIXTURE 125D 失败:department_code 没有被换成 department_id';
+    END IF;
+    -- KPI-1:position_code → position_id 那条新映射也要被断言,
+    -- 否则上面那一格只证明了"没报错",没证明它换对了。
+    IF (SELECT p.code FROM employees e JOIN positions p ON p.id=e.position_id
+         WHERE e.code='ZZFIX125-EMP-1') <> 'CFO' THEN
+        RAISE EXCEPTION 'FIXTURE 125D 失败:position_code 没有被换成 position_id';
     END IF;
 
     PERFORM master_import_apply('storage_locations', jsonb_build_array(jsonb_build_object(

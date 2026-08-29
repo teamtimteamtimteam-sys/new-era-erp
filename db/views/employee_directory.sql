@@ -14,6 +14,8 @@ CREATE VIEW public.employee_directory WITH (security_invoker = on) AS
     e.department_id,
     d.name_en AS department_name_en,
     d.name_zh AS department_name_zh,
+    -- KPI-1:这里的 e 是 employees_masked,不是 employees ——
+    -- 那张视图已经把 job_title 换成从职位来了,所以这一行【原样不动】。
     e.job_title,
     e.manager_id,
     mgr.code AS manager_code,

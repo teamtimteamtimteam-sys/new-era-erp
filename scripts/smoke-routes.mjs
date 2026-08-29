@@ -214,6 +214,32 @@ const MSG_OVERLAP_NOT_NETTED = (() => {
     return m[1]
 })()
 
+// KPI-1:两条内容断言,都是【服务端渲染】的 —— 那是刻意挑的,
+//   因为藏在客户端开关后面的针这支 fetch 冒烟永远看不见(记在 AGENTS.md)。
+// ★ 第一条守的是本刀最要紧的一句话 ★ 原表原文:
+//   「矩阵是一份覆盖度的管理视图,不是对组织记分卡的重新加权」。
+//   它必须贴着那六行数字 —— 那些数字长得像权重(整数、按 O1–O5 分列),
+//   没有这句话在旁边,第一个读的人会把「CCO 在 O4 上有 5 条」读成「权重是 5」。
+const MSG_KPI_MATRIX_NOTE = (() => {
+    const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
+    const blk = src.match(/\n    kpi: \{[\s\S]*?\n    \},/)
+    if (!blk) throw new Error('messages/en.ts 里找不到 kpi 这一段 —— 入口断言无从下手')
+    const m = blk[0].match(/\n\s*matrixNotWeights: '([^']+)'/)
+    if (!m) throw new Error('messages/en.ts 里找不到 kpi.matrixNotWeights')
+    // 【在会被 HTML 转义的字符之前收尾】原句里有撇号/引号时会变成实体,
+    // 那样的针永远不可能成立(GLEXPORT-1 与 PARTY-1 各为此付过一次账)。
+    return m[1].split(/[&<>"']/)[0].trim()
+})()
+// ★ 第二条守的是那句具名缺席 ★ 六个职位里只有两个有人,而一张只显示两人、
+//   什么都不说的 roll-up 看起来像是全部。
+const MSG_KPI_STAFFING_GAP = (() => {
+    const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
+    const blk = src.match(/\n    kpi: \{[\s\S]*?\n    \},/)
+    const m = blk[0].match(/\n\s*staffingGap: '([^']+)'/)
+    if (!m) throw new Error('messages/en.ts 里找不到 kpi.staffingGap')
+    return m[1].split(/[&<>"']/)[0].trim()
+})()
+
 const MUST_CONTAIN = {
     // ── 静态判据:下拉在,就说明名单非空 ────────────────────────────────────
     // 这九个下拉是【同一个形状】:名单非空时渲染 <select name="supplier_id">,
@@ -263,6 +289,14 @@ const MUST_CONTAIN = {
     '/customers/overlap': [
         { needle: MSG_OVERLAP_NOT_NETTED,
           why: '★「两个敞口不相加」那句话从重叠页上消失了 —— 下一个读它的人会自己把两个数加起来,而轧差是一次法律行为' },
+    ],
+
+    // ── KPI-1:那句"矩阵不是权重"与那句具名缺席,真的在屏幕上吗 ────────────
+    '/hr/kpi': [
+        { needle: MSG_KPI_MATRIX_NOTE,
+          why: '★「矩阵是覆盖度、不是重新加权」那句话从 KPI 页上消失了 —— 那六行数字长得像权重,没有它就会被读成权重' },
+        { needle: MSG_KPI_STAFFING_GAP,
+          why: '「六个职位里只有几个有人」那句具名缺席不见了 —— 一张只显示两人、什么都不说的 roll-up 看起来像是全部' },
     ],
 
     '/finance/payments/new': [

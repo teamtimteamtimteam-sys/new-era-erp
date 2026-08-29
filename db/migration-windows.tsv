@@ -83,3 +83,8 @@
 2026-08-28T22:24:48+0800	2026-08-28-glexport1-fu1-the-supersede-order-needs-a-deferred-key.sql	2b0606b
 2026-08-29T01:24:39+0800	2026-08-29-capex1-capitalising-onto-a-running-machine.sql	376ebd8
 2026-08-29T07:03:26+0800	2026-08-29-party1-counterparty-contacts-and-the-overlap-report.sql	301777f
+2026-08-29T15:13:18+0800	2026-08-29-kpi1-positions-and-the-kpi-framework.sql	284e96e
+2026-08-29T16:21:28+0800	2026-08-29-kpi1-fu1-employees-masked-needs-position-id.sql	284e96e
+2026-08-29T17:29:01+0800	2026-08-29-kpi1-fu2-grant-position-id.sql	284e96e
+2026-08-29T18:26:56+0800	2026-08-29-kpi1-fu3-functions-that-still-read-job-title.sql	284e96e
+2026-08-29T18:53:46+0800	2026-08-29-kpi1-fu4-import-takes-a-position-code.sql	284e96e

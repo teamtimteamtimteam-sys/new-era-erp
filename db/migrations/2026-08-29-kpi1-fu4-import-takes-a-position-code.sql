@@ -1,3 +1,10 @@
+-- KPI-1 fu4:导入时职位按【编号】给,不按 uuid。
+-- 【为什么这是一个缺口而不是一个优化】master_import_apply 自己那段注释写着
+-- 「一个操作员不可能手打 uuid」,并为此把 *_code 换成 *_id。KPI-1 给 employees
+-- 加了 position_id 之后,模板里多出一个 uuid 列而【没有对应的 code 映射】——
+-- 也就是说"带职位的员工导入"从此做不了,而模板看起来是完整的。
+-- fixture 125 现在同时断言那条映射真的换对了(不只是没报错)。
+BEGIN;
 CREATE OR REPLACE FUNCTION public.master_import_apply(p_table text, p_rows jsonb, p_file_name text DEFAULT NULL::text, p_dry_run boolean DEFAULT true)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -304,4 +311,5 @@ BEGIN
     RETURN jsonb_build_object('table', p_table, 'rows', v_n, 'batch_id', v_batch,
                               'sequence_bumped_to', v_maxnum);
 END;
-$function$
+$function$;
+COMMIT;

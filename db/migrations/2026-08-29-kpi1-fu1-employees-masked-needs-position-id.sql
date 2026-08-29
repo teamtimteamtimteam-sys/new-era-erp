@@ -1,3 +1,9 @@
+-- KPI-1 fu1:employees_masked 补上 position_id。
+-- 【为什么必须补】employees 是遮蔽表,而 gate 的 colgrant 那一条要求它的每一列
+-- 要么被列授权、要么出现在 _masked 视图里 —— WO-1a 记过这一课:
+-- ADD COLUMN、GRANT、_masked 三件事要在【同一次迁移】里做完,而我漏了第三件。
+-- 顺带:编辑员工那张表单读的就是这张视图,没有这一列它取不到当前职位。
+BEGIN;
 -- db/views/employees_masked.sql
 -- 员工档案的遮蔽伴生视图。身份/联系方式要 data.view_identity,月固定工资要 data.view_pay,
 -- 两者都【对本人让路】。
@@ -14,7 +20,7 @@
 --       CREATE OR REPLACE VIEW 只许追加,不许改动既有列的次序。两列都不遮蔽:
 --       "这一行已经不再保有个人数据"这件事本身不是个人数据,而且必须看得见。
 
-CREATE VIEW public.employees_masked WITH (security_invoker = off) AS
+CREATE OR REPLACE VIEW public.employees_masked WITH (security_invoker = off) AS
  SELECT id,
     code,
     legal_name,
@@ -87,3 +93,4 @@ CREATE VIEW public.employees_masked WITH (security_invoker = off) AS
     position_id
    FROM employees
   WHERE has_permission('module.hr.view'::text) OR id = current_user_employee();
+COMMIT;

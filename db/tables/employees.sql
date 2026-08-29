@@ -46,7 +46,10 @@ CREATE TABLE public.employees (
     legal_name           text NOT NULL,
     preferred_name       text,
     department_id        uuid REFERENCES public.departments (id),
-    job_title            text,
+    -- 【KPI-1(2026-08-29)把 job_title 从本表删掉了】职位改由 position_id 回答
+    -- (见末尾那一列)。两个都能填就是同一个事实有两个写入口(规格 §12.1)。
+    -- **employment_history.job_title 保留** —— 那是一条不可变的履历快照,
+    -- 记的是"那一天头衔写的是什么",与 bill_to_snapshot 同一族。
     manager_id           uuid REFERENCES public.employees (id),
     employment_type      text NOT NULL
                          CHECK (employment_type IN ('full_time','part_time','internship','contract')),
@@ -86,6 +89,9 @@ CREATE TABLE public.employees (
     -- "这一行已经不再保有个人数据"的正是这一行自己。两列都不敏感、都已授权。
     anonymised_at        timestamptz,
     anonymised_by        uuid,
+    -- ── KPI-1 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
+    -- 这个人今天在哪个职位上。**KPI 绑在职位上,不绑在人上**(规格 §8.1)。
+    position_id          uuid REFERENCES public.positions (id) ON DELETE RESTRICT,
     -- 持工作准证的必须有准证类型与到期日 —— 否则到期提醒无从谈起
     CONSTRAINT employees_work_pass_shape CHECK (
         residency_status IS DISTINCT FROM 'work_pass'
@@ -186,7 +192,7 @@ REVOKE SELECT ON public.employees FROM authenticated, anon;
 -- PDPA-1:anonymised_at / anonymised_by 同样授回。**列清单式 SELECT 授权不随
 -- ADD COLUMN 自动延伸**,所以每一次给这张表加列都必须回到这一行(gate 的 colgrant
 -- 判据会点名漏掉的列;见 AGENTS.md「Adding a column to a masked table」)。
-GRANT SELECT (id, code, legal_name, preferred_name, department_id, job_title, manager_id, employment_type, work_category, hire_date, probation_end_date, employment_status, separation_date, separation_type, separation_notes, residency_status, work_pass_type, work_pass_issue_date, work_pass_expiry_date, user_id, notes, deleted_at, created_at, created_by, updated_at, updated_by, confirmation_date, monthly_salary_set, review_exempt, anonymised_at, anonymised_by)
+GRANT SELECT (id, code, legal_name, preferred_name, department_id, position_id, manager_id, employment_type, work_category, hire_date, probation_end_date, employment_status, separation_date, separation_type, separation_notes, residency_status, work_pass_type, work_pass_issue_date, work_pass_expiry_date, user_id, notes, deleted_at, created_at, created_by, updated_at, updated_by, confirmation_date, monthly_salary_set, review_exempt, anonymised_at, anonymised_by)
     ON public.employees TO authenticated;
 
 -- cut 4 员工自助:【追加】一条 PERMISSIVE 策略,与既有模块策略【或】起来。
@@ -229,3 +235,6 @@ COMMENT ON COLUMN public.employees.anonymised_at IS
 
 COMMENT ON COLUMN public.employees.user_id IS
     '这名员工的登录账号(auth.users.id)。EXEC-2 起有外键:敲错一个 uuid 会当场被拒,而不是静默入库 —— 这一列的读者(签发人姓名、绩效评估的分派路径)遇到一个指向空气的 id 时只会【查不到人】,而"查不到人"与"这个人没有账号"在屏幕上一模一样。ON DELETE SET NULL:账号被回收时,员工档案原样留着,只是那根线断了 —— 员工是 HR 的记录,它的存在与这个人有没有系统账号无关。可空是常态:不是每个员工都需要账号。';
+
+COMMENT ON COLUMN public.employees.position_id IS
+    'KPI-1:这个人今天在哪个职位上。**KPI 绑在职位上,不绑在人上**(规格 §8.1)—— 那是 exec-views-plan 开篇「答案取自职责,不取自职级」的第二次落地。它取代了本表上原来那个自由文本的 job_title(已删):两个都能填就是同一个事实有两个写入口(§12.1)。**employment_history.job_title 保留**,那是一条不可变的履历快照,记的是"那一天头衔写的是什么"。';

@@ -37,7 +37,7 @@ BEGIN
                 'issued', v_emp.work_pass_issue_date, 'expires', v_emp.work_pass_expiry_date),
             'employment', jsonb_build_object('type', v_emp.employment_type,
                 'category', v_emp.work_category, 'status', v_emp.employment_status,
-                'job_title', v_emp.job_title, 'hire_date', v_emp.hire_date,
+                'job_title', (SELECT p.title FROM positions p WHERE p.id = v_emp.position_id), 'hire_date', v_emp.hire_date,
                 'confirmation_date', v_emp.confirmation_date,
                 'separation_date', v_emp.separation_date, 'separation_type', v_emp.separation_type),
             'monthly_salary', v_emp.monthly_salary),

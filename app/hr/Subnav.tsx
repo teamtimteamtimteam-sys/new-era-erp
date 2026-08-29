@@ -17,6 +17,11 @@ const ITEMS = [
     { href: '/hr/claims', key: 'hr.subnav.claims' },
     { href: '/hr/training', key: 'hr.subnav.training' },
     { href: '/hr/reviews', key: 'hr.subnav.reviews' },
+    // KPI-1:KPI 排在【考核】后面 —— 两者并存但不是同一件事
+    // (考核是四档具名 + 一段书面结论;KPI 是 0–5 乘权重)。
+    // ★ 这一行就是那一页的入口 ★ 少了它,那一页打得开却走不到,
+    //   而本仓库为「页面上线却走不到」付过两次账(SAL-B6、FIX-1)。
+    { href: '/hr/kpi', key: 'hr.subnav.kpi' },
 ]
 
 export default function Subnav() {

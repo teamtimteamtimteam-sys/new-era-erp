@@ -8,12 +8,22 @@
 //
 // 规则:
 //   * 新建 → 一行 'hired',effective_date = 入职日;
-//   * 编辑 → 当 job_title / department_id / employment_type / employment_status
+//   * 编辑 → 当 position_id / department_id / employment_type / employment_status
 //     其中【至少一项】变了,补【一行】(不是每个字段一行 —— 一次保存就是一次事件);
 //   * change_type 按下面的优先级推断(几项同时变时只能落一个标签,取"最能说明
 //     这次变动是什么事"的那个);完整的字段变化写进 notes,所以即便标签只有一个,
 //     具体改了什么也不会丢。
 //   * effective_date 取表单给的生效日,没给就用今天。
+//
+// ★★【KPI-1:头衔从自由文本换成了【职位】,而履历那一列仍然写【文本】】★★
+//   employees.job_title 已经删掉,职位由 employees.position_id 回答。
+//   **但 employment_history.job_title 保留,而且这里必须继续写它** ——
+//   那是一条不可变的履历快照,记的是「那一天这个人的头衔写的是什么」。
+//   快照不该变成指针:否则删掉一个职位,就改写了一段发生过的履历
+//   (与 collection_chases.contacted_person、invoices.bill_to_snapshot 同一族)。
+//   所以下面把【当时那个职位的 title 文本】抄进履历行。
+//   **换职位仍然算一次实质变动**,照写一行履历 —— 少了这一半,
+//   一次实质变动会在一条今天还工作着的审计轨迹里无声消失,那是回归不是省略。
 // ════════════════════════════════════════════════════════════════════════════
 import { createClient } from '@/lib/supabase/server'
 import type { InsertRow } from '@/lib/db-helpers'
@@ -24,8 +34,20 @@ import { localizeHrError } from '../hrErrorCodes'
 
 export type EmployeeFormState = { error?: string }
 
+// KPI-1:把 position_id 解析成【当时那个职位的 title 文本】。
+// 履历行要存的是文本快照,不是指针 —— 见本文件抬头。
+// 【解析不到就存 null,而不是存 id】一个 uuid 出现在履历的"头衔"栏里,
+// 读的人看到的是一串机器码,而那比空着更坏。
+async function positionTitleById(
+    supabase: Awaited<ReturnType<typeof createClient>>, id: string | null,
+): Promise<string | null> {
+    if (!id) return null
+    const { data } = await supabase.from('positions').select('title').eq('id', id).maybeSingle()
+    return data?.title ?? null
+}
+
 type MaterialFields = {
-    job_title: string | null
+    position_id: string | null
     department_id: string | null
     employment_type: string
     employment_status: string
@@ -42,7 +64,7 @@ type MaterialFields = {
 function inferChangeType(before: MaterialFields, after: MaterialFields): string | null {
     const statusChanged = before.employment_status !== after.employment_status
     const deptChanged = before.department_id !== after.department_id
-    const titleChanged = (before.job_title ?? '') !== (after.job_title ?? '')
+    const titleChanged = (before.position_id ?? '') !== (after.position_id ?? '')
     const typeChanged = before.employment_type !== after.employment_type
 
     if (!statusChanged && !deptChanged && !titleChanged && !typeChanged) return null
@@ -58,7 +80,9 @@ function inferChangeType(before: MaterialFields, after: MaterialFields): string 
 }
 
 // 变化摘要写进 notes —— change_type 只能是一个标签,但改了什么必须一条不落
-function describeChanges(before: MaterialFields, after: MaterialFields, deptName: (id: string | null) => string): string {
+function describeChanges(before: MaterialFields, after: MaterialFields,
+                         deptName: (id: string | null) => string,
+                         posName: (id: string | null) => string): string {
     const parts: string[] = []
     if (before.employment_status !== after.employment_status) {
         parts.push(`status: ${before.employment_status} → ${after.employment_status}`)
@@ -66,8 +90,8 @@ function describeChanges(before: MaterialFields, after: MaterialFields, deptName
     if (before.department_id !== after.department_id) {
         parts.push(`department: ${deptName(before.department_id)} → ${deptName(after.department_id)}`)
     }
-    if ((before.job_title ?? '') !== (after.job_title ?? '')) {
-        parts.push(`job title: ${before.job_title || '—'} → ${after.job_title || '—'}`)
+    if ((before.position_id ?? '') !== (after.position_id ?? '')) {
+        parts.push(`position: ${posName(before.position_id)} → ${posName(after.position_id)}`)
     }
     if (before.employment_type !== after.employment_type) {
         parts.push(`employment type: ${before.employment_type} → ${after.employment_type}`)
@@ -83,7 +107,7 @@ function readForm(formData: FormData) {
         legal_name: s('legal_name'),
         preferred_name: s('preferred_name') || null,
         department_id: s('department_id') || null,
-        job_title: s('job_title') || null,
+        position_id: s('position_id') || null,
         manager_id: s('manager_id') || null,
         employment_type: s('employment_type'),
         work_category: s('work_category'),
@@ -218,7 +242,8 @@ export async function createEmployee(
         employee_id: data.id,
         effective_date: f.hire_date,
         change_type: 'hired',
-        job_title: f.job_title,
+        // KPI-1:履历里存的是【那一刻职位的 title 文本】,不是 position_id
+        job_title: await positionTitleById(supabase, f.position_id),
         department_id: f.department_id,
         employment_type: f.employment_type,
         employment_status: f.employment_status,
@@ -253,7 +278,7 @@ export async function updateEmployee(
     // 改之前先取"实质字段"的旧值 —— 履历要写的是"从什么变成了什么"
     const { data: before } = await supabase
         .from('employees')
-        .select('job_title, department_id, employment_type, employment_status, user_id')
+        .select('position_id, department_id, employment_type, employment_status, user_id')
         .eq('id', employeeId)
         .is('deleted_at', null)
         .single()
@@ -276,7 +301,7 @@ export async function updateEmployee(
     }
 
     const after: MaterialFields = {
-        job_title: f.job_title,
+        position_id: f.position_id,
         department_id: f.department_id,
         employment_type: f.employment_type,
         employment_status: f.employment_status,
@@ -291,15 +316,24 @@ export async function updateEmployee(
         const codeById = new Map((depts ?? []).map((d) => [d.id, d.code]))
         const deptName = (id: string | null) => (id ? (codeById.get(id) ?? '?') : '—')
 
+        // KPI-1:职位名两侧都要,摘要里写「从哪个职位到哪个职位」
+        const posIds = [before.position_id, f.position_id].filter(Boolean) as string[]
+        const { data: poss } = posIds.length
+            ? await supabase.from('positions').select('id, code, title').in('id', posIds)
+            : { data: [] as { id: string; code: string; title: string }[] }
+        const posById = new Map((poss ?? []).map((x) => [x.id, x]))
+        const posName = (id: string | null) => (id ? (posById.get(id)?.code ?? '?') : '—')
+
         await supabase.from('employment_history').insert({
             employee_id: employeeId,
             effective_date: effective_date || new Date().toISOString().slice(0, 10),
             change_type: changeType,
-            job_title: f.job_title,
+            // 履历存文本快照(见抬头);解析不到就 null,不存 uuid
+            job_title: f.position_id ? (posById.get(f.position_id)?.title ?? null) : null,
             department_id: f.department_id,
             employment_type: f.employment_type,
             employment_status: f.employment_status,
-            notes: describeChanges(before as MaterialFields, after, deptName) || null,
+            notes: describeChanges(before as MaterialFields, after, deptName, posName) || null,
         })
     }
 

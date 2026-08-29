@@ -13,7 +13,10 @@ CREATE VIEW public.my_review_subjects WITH (security_invoker = off) AS
     e.id AS employee_id,
     e.code AS employee_code,
     e.legal_name AS employee_name,
-    e.job_title,
+    -- KPI-1:employees.job_title 已删,头衔改从【职位】来。
+    -- **列名保持 job_title**,是为了不惊动这张视图的下游读者 ——
+    -- 它回答的仍然是同一个问题(这个人的头衔是什么),只是真源换了。
+    (SELECT p.title FROM positions p WHERE p.id = e.position_id) AS job_title,
     d.name_en AS department_name_en,
     d.name_zh AS department_name_zh,
     c.name AS cycle_name

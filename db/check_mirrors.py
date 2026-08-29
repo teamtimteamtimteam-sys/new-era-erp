@@ -116,6 +116,28 @@ SEED_TABLES = {
     "wht_natures": (None, "code, name_en, name_zh, statute_ref, is_active, sort_order"),
     "wht_rates":   (None, "nature, rate_pct, effective_from, "
                           "COALESCE(effective_to, DATE '9999-12-31') AS effective_to"),
+    # ★ KPI-1:职位与 KPI 框架 —— 与 tax_codes / wht_rates 【同一条理由,而且更硬】。
+    #   规格 docs/kpi-framework.md 第一至七章是**不可改的逐格转录**,而那三十条目标
+    #   句子是【机器从 xlsx 抄出来的】,不是人打的 ——「由人重打一遍就是三十次漏字
+    #   的机会」。**如果这几张表不逐行比对,一条悄悄漂掉的目标与一条对的目标
+    #   长得一模一样**,而系统照样算得出加权分、报得出 roll-up、一条错误都没有。
+    #   操作员在界面上【改不动】它们(没有 INSERT/UPDATE 策略,写入只经迁移),
+    #   所以按本文件抬头那句判据,它们是 INSTALL SEED 而不是 RUNTIME CONFIG。
+    #   **代价说清楚:调一条目标从此是迁移级动作** —— 而规格 §9.2 说的正是
+    #   "目标应随排期/产能/商务条款变化而调整",不是"谁都可以在表单里重打一遍"。
+    "positions": (None, "code, title, COALESCE(source_incumbent_name,'') AS source_incumbent_name, "
+                        "is_active, sort_order"),
+    "kpi_organisation": (None, "code, title, weight_pct, definition, month3_target, month6_target, "
+                               "measurement_evidence, criticality_note, is_provisional, "
+                               "COALESCE(provisional_note,'') AS provisional_note, sort_order"),
+    "kpi_position_templates": (None,
+        "(SELECT p.code FROM public.positions p WHERE p.id = position_id) AS position_code, "
+        "kpi_ref, title, weight_pct, target_text, "
+        "COALESCE(evidence_source,'') AS evidence_source, is_provisional, "
+        "COALESCE(provisional_note,'') AS provisional_note, version, sort_order"),
+    "kpi_template_org_links": (None,
+        "(SELECT p.code || '/' || t.kpi_ref FROM public.kpi_position_templates t "
+        " JOIN public.positions p ON p.id = t.position_id WHERE t.id = template_id) AS tpl, org_code"),
     # accounts 是【混合表】:引擎点名的 34 行跟踪线上,其余是建账的人的地盘。
     # FIN-30:is_cash / cash_flow_section 也纳入比对 —— 它们决定现金流量表取哪些
     # 科目、归哪一段;线上被人翻了标记而无人察觉,报表会安静地算错一整类活动。

@@ -56,7 +56,10 @@ BEGIN
         INSERT INTO employment_history
             (employee_id, effective_date, change_type, job_title, department_id,
              employment_type, employment_status, notes)
-        VALUES (v_emp.id, v_conf, 'confirmed', v_emp.job_title, v_emp.department_id,
+        VALUES (v_emp.id, v_conf, 'confirmed',
+                -- KPI-1:履历存的是【当时那个职位的名称文本】,不是指针
+                (SELECT p.title FROM positions p WHERE p.id = v_emp.position_id),
+                v_emp.department_id,
                 v_emp.employment_type, 'active',
                 format('Probation confirmed by performance review %s', p_review_id));
 
@@ -96,7 +99,8 @@ BEGIN
         INSERT INTO employment_history
             (employee_id, effective_date, change_type, job_title, department_id,
              employment_type, employment_status, old_monthly_salary, new_monthly_salary, notes)
-        SELECT e.id, v_r.salary_effective_date, 'salary_change', e.job_title, e.department_id,
+        SELECT e.id, v_r.salary_effective_date, 'salary_change',
+               (SELECT p.title FROM positions p WHERE p.id = e.position_id), e.department_id,
                e.employment_type, e.employment_status, v_old_sal, v_r.new_monthly_salary,
                format('Salary change approved with performance review %s', p_review_id)
         FROM employees e WHERE e.id = v_emp.id;

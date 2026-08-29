@@ -34,7 +34,7 @@ export type EmployeeRecord = {
     legal_name: string
     preferred_name: string | null
     department_id: string | null
-    job_title: string | null
+    position_id: string | null
     manager_id: string | null
     employment_type: string
     work_category: string
@@ -80,9 +80,13 @@ export default function EmployeeForm({
     accounts,
     canLinkAccount,
     linkedAccountLabel,
+    positions,
 }: {
     employee?: EmployeeRecord
     departments: PickOption[]
+    // KPI-1:可选的职位。一张【空的】职位表意味着这个下拉只有"未指定"一项 ——
+    // 那不该长得像"这个人没有职位",所以下面那句 positionWhat 会说清楚。
+    positions: { id: string; code: string; title: string }[]
     // 上级候选:服务端已剔除自己与自己的下属
     managers: PickOption[]
     // 可选的登录账号:服务端只给【还没有关联任何员工】的,外加这名员工当前关联的那个
@@ -244,14 +248,20 @@ export default function EmployeeForm({
                             ))}
                         </select>
                     </div>
+                    {/* ★【KPI-1:头衔从自由文本换成【职位】】★
+                        KPI 绑在职位上不绑在人上(规格 §8.1),而自由文本里
+                        「CFO」「Chief Financial Officer」「财务总监」是三个不同的值 ——
+                        没有一个挂得上模板。**换职位仍然会写一行任职履历**,
+                        而履历里存的是【当时那个职位的名称文本】,不是指针。 */}
                     <div className="flex-1 min-w-[14rem]">
-                        <label className={label}>{t('hr.colJobTitle')}</label>
-                        <input
-                            type="text"
-                            name="job_title"
-                            defaultValue={employee?.job_title ?? ''}
-                            className={field}
-                        />
+                        <label className={label}>{t('hr.colPosition')}</label>
+                        <select name="position_id" defaultValue={employee?.position_id ?? ''} className={field}>
+                            <option value="">{t('hr.positionNone')}</option>
+                            {positions.map((p) => (
+                                <option key={p.id} value={p.id}>{p.code} · {p.title}</option>
+                            ))}
+                        </select>
+                        <p className="text-xs text-gray-600 mt-1">{t('hr.positionWhat')}</p>
                     </div>
                     <div className="flex-1 min-w-[14rem]">
                         <label className={label}>{t('hr.colManager')}</label>

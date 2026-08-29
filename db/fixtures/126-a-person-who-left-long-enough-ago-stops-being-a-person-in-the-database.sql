@@ -39,14 +39,16 @@ BEGIN
     -- 甲:离职很久、涨过薪、带着一整套身份数据的人
     INSERT INTO employees (code, legal_name, preferred_name, employment_type, work_category,
                            hire_date, employment_status, separation_date, separation_type,
-                           separation_notes, job_title, work_email, work_phone, identity_no,
+                           separation_notes, position_id, work_email, work_phone, identity_no,
                            residency_status, work_pass_type, work_pass_no,
                            work_pass_issue_date, work_pass_expiry_date,
                            monthly_salary, notes, user_id)
       VALUES ('ZZFIX126-EMP-1','ZZFIX126 Departed Person','Depa','full_time','office',
               CURRENT_DATE - interval '6 years', 'separated',
               (CURRENT_DATE - interval '25 months')::date, 'resignation',
-              'ZZFIX126 离职备注 —— 个人数据', 'Storeman',
+              'ZZFIX126 离职备注 —— 个人数据',
+              -- KPI-1:这一格从自由文本头衔换成了【职位】
+              (SELECT id FROM positions WHERE code = 'LEAD-WH'),
               'zzfix126.one@example.com','+65 90000126','SZZFIX126A',
               'work_pass','Work Permit','WPZZFIX126',
               (CURRENT_DATE - interval '5 years')::date, (CURRENT_DATE + interval '1 year')::date,
@@ -146,7 +148,7 @@ BEGIN
        OR v_row.work_pass_issue_date IS NOT NULL OR v_row.work_pass_expiry_date IS NOT NULL
        OR v_row.residency_status IS NOT NULL OR v_row.monthly_salary IS NOT NULL
        OR v_row.notes IS NOT NULL OR v_row.separation_notes IS NOT NULL
-       OR v_row.job_title IS NOT NULL OR v_row.user_id IS NOT NULL THEN
+       OR v_row.position_id IS NOT NULL OR v_row.user_id IS NOT NULL THEN
         RAISE EXCEPTION 'FIXTURE 126E 失败:还有身份列没有被覆盖 —— 个人数据仍然在那里';
     END IF;
     IF v_row.anonymised_at IS NULL THEN

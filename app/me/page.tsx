@@ -22,6 +22,18 @@ import { REVIEW_COLUMNS, type GoalRow, type ReviewRow } from '@/app/hr/reviews/r
 import type { RatingOption } from '@/app/hr/reviews/ConclusionForm'
 import { mustRows } from '@/lib/db-helpers'
 
+type MyKpiRow = {
+    id: string; cycle_name: string; cycle_status: string; gate: string | null
+    position_code: string; position_title: string
+    kpi_ref: string; title: string; weight_pct: number; target_text: string
+    evidence_source: string | null
+    is_provisional: boolean; provisional_note: string | null
+    org_codes: string[]; source_template_version: number
+    score_visible: boolean; score: number | null; score_kind: string | null
+    computed_basis: string | null; evidence_note: string | null
+    override_cap: number | null; override_reason: string | null
+}
+
 export default async function MePage() {
     const supabase = await createClient()
     const t = await getTranslations()
@@ -35,6 +47,12 @@ export default async function MePage() {
         v ? new Date(v).toLocaleDateString(dateLocale) : '—'
 
     const { data: profileRows } = await supabase.from('my_profile').select('*').limit(1)
+
+    // KPI-1:自己这个周期被考核的那五条。**条目与目标始终可见**(期初就该知道),
+    // **而分数只在周期关掉之后才可见** —— 两者的区别写在 my_kpi_entries 的视图注里。
+    const myKpi = mustRows(
+        await supabase.from('my_kpi_entries').select('*').order('kpi_ref'),
+        'my_kpi_entries') as unknown as MyKpiRow[]
     const p = profileRows?.[0]
 
     if (!p) {
@@ -404,6 +422,81 @@ export default async function MePage() {
                 rows={(mustRows(expenseClaimRes)) as never}
                 baseCurrency={baseCurrency}
             />
+
+            {/* ── KPI-1:我这个周期被考核的那五条 ────────────────────────────
+                ★【整段服务端渲染,没有客户端开关】★ 抬头与说明都在初次 HTML 里,
+                  否则 fetch 冒烟看不见它(昨天记下的第三条盲区)。
+                【为什么没有条目时也要说话】一个人没有 KPI,可能是"还没挂职位"、
+                  也可能是"挂了职位但这个周期还没生成" —— 两句话的下一步不同,
+                  而一片空白两句都说不出来。 */}
+            <section className="mb-8">
+                <h2 className="text-lg font-semibold mb-1">{t('kpi.myTitle')}</h2>
+                <p className="text-xs text-gray-600 mb-3 max-w-3xl">{t('kpi.myWhat')}</p>
+                {myKpi.length === 0 ? (
+                    <p className="text-sm text-gray-600">
+                        {p?.position_code ? t('kpi.myNoneThisCycle') : t('kpi.myNoPosition')}
+                    </p>
+                ) : (
+                    <div className="space-y-3">
+                        {myKpi.map((k) => (
+                            <div key={k.id} className="border border-gray-300 rounded p-3">
+                                <div className="flex flex-wrap items-baseline gap-2">
+                                    <span className="font-mono text-xs text-gray-500">{k.kpi_ref}</span>
+                                    <span className="font-medium">{k.title}</span>
+                                    <span className="text-sm text-gray-700">— {k.weight_pct}%</span>
+                                    <span className="text-xs text-gray-500">{k.org_codes.join(' / ')}</span>
+                                    {k.is_provisional && (
+                                        <span className="text-xs bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded">
+                                            {t('kpi.provisionalTag')}
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-sm text-gray-800 mt-1">{k.target_text}</p>
+                                {/* 【证据来源:原表三十格全空 —— 具名的缺席,不是留白】 */}
+                                <p className="text-xs text-gray-500 mt-1">
+                                    {k.evidence_source ?? t('kpi.noEvidenceSource')}
+                                </p>
+                                {k.is_provisional && k.provisional_note && (
+                                    <p className="mt-2 text-xs text-amber-900 bg-amber-50 border-l-4 border-amber-400 p-2">
+                                        {k.provisional_note}
+                                    </p>
+                                )}
+                                {/* ★ 分数:没到时候就说【为什么没有】,不是留白 ★ */}
+                                <div className="mt-2 text-sm">
+                                    {!k.score_visible ? (
+                                        <span className="text-gray-500 text-xs">{t('kpi.scoreHiddenUntilClosed')}</span>
+                                    ) : k.score === null ? (
+                                        <span className="text-gray-500 text-xs">{t('kpi.scoreNotGiven')}</span>
+                                    ) : (
+                                        <>
+                                            {/* ★★ 4.3:算出来的分与人判的分【长得不一样】★★ */}
+                                            {k.score_kind === 'computed' ? (
+                                                <span className="inline-flex items-center gap-1 font-mono bg-slate-800 text-white px-2 py-0.5 rounded">
+                                                    {k.score}/5
+                                                    <span className="text-[10px] font-sans">{t('kpi.computedTag')}</span>
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1 italic border border-dashed border-gray-500 px-2 py-0.5 rounded">
+                                                    {k.score}/5
+                                                    <span className="text-[10px] not-italic">{t('kpi.judgedTag')}</span>
+                                                </span>
+                                            )}
+                                            {k.score_kind === 'computed' && k.computed_basis && (
+                                                <span className="ml-2 text-xs text-gray-600">{k.computed_basis}</span>
+                                            )}
+                                            {k.override_cap !== null && (
+                                                <span className="ml-2 text-xs text-red-800">
+                                                    {t('kpi.cappedAt', { cap: String(k.override_cap) })} — {k.override_reason}
+                                                </span>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </section>
 
             <MyAttendancePanel rows={myAttendance} />
 
