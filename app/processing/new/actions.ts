@@ -32,6 +32,11 @@ export type CommitProcessingPayload = {
     /** WO-1c:照哪一张工单做的。【可选】—— 临时起意的加工是合法的,
      *  必填换不来纪律,换来一堆事后补的假工单(见 commit_processing_run 的函数头)。*/
     work_order_id?: string | null
+    /** PROC-WIRE-1B-i:这一炉跑的是【哪一道工序】。
+     *  界面必填;**数据库【不】拦** —— 线上 13 张历史单没有工序,而它们是测试残留,
+     *  一条 NOT NULL 会把它们就地冻住。那个缺口是具名的,见
+     *  docs/proc-operations-wired.md,不要在这里发明一条约束把它补上。 */
+    operation_type_code?: string | null
 }
 
 export type CommitProcessingState = { error?: string }
@@ -56,6 +61,9 @@ export async function commitProcessingRun(
         // WO-1c:空就是空 —— 服务端那一支只在给了值的时候才存在,
         // 而它的两条拒绝(WO_NOT_FOUND / WO_NOT_RELEASED)仍然是权威。
         p_work_order_id: payload.work_order_id || null,
+        // PROC-WIRE-1B-i:工序决定这一炉【吃不吃料、产不产批】,以及那道
+        // 【起火】闸受理哪些安全状态。空 = 今天的行为(may_be_fed)。
+        p_operation_type_code: payload.operation_type_code || null,
     } as Database['public']['Functions']['commit_processing_run']['Args'])
 
     if (error) {

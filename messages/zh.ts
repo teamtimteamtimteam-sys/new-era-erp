@@ -2263,6 +2263,10 @@ const zh = {
             noInboundHelper: '没有可加工的进料批次(剩余量>0),请先 ',
             noInboundLink: '创建进料',
             noInboundHelperPost: '',
+            operationLabel: '工序',
+            operationPlaceholder: '选一道工序 —— 它决定这台机器收什么料',
+            operationAccepts: '这道工序收:{forms}',
+            operationNoOutputs: '这道工序【不产新批次】—— 同一批进、同一批出,只改状态(比如深度放电把"未放电"改成"已放电并核实")。所以下面没有产出区,而这一炉也不会消耗库存。',
             outputsSectionHeader: '产出(生成成品)',
             addOutputButton: '+ 添加产出',
             selectOutputMaterial: '请选择产出物料',
@@ -2323,6 +2327,12 @@ const zh = {
         },
         errors: {
             INPUT_SAFETY_STATE_NOT_RECORDED: '批次 {0} 【没有记过任何安全状态】。那的意思是**没有人记过**,不是"这批货是安全的"。到【进料 → 打开这一批 → 到货状态】那一块记上,再提交这一炉。',
+            // PROC-WIRE-1B-i
+            OPERATION_TYPE_UNKNOWN: '未知或已停用的工序【{0}】。停用的意思是"以后别再选它",不是"把历史改掉"。',
+            INPUT_SAFETY_STATE_NOT_ACCEPTED: '【{1}】不受理批次 {0} 身上的这些安全状态:{2}。**这与"不可投料"是两句话** —— 换一道受理它的工序也许就行:没放过电的料要先走【深度放电】,放不了电的整包走【整电池粉料线】。',
+            OPERATION_PRODUCES_NO_OUTPUTS: '【{0}】按定义不产新批次(同一批进、同一批出,只改状态),所以这一炉不能带着产出提交。要么选错了工序,要么选错了单。',
+            STATE_CHANGE_LOSS_NOT_ZERO: '【{0}】不带走质量,所以它的损耗只能是 0,而这里填的是 {1}。要么选错了工序,要么这一炉其实是转化型的。',
+            STATE_CHANGE_OUTPUT_INPUT_UNSUPPORTED: '【{0}】目前只收进料批。安全状态今天只有进料批记得下,产出批那张表还不存在,所以在产出批上"把状态改掉"无处可写 —— 放它过去会得到一炉什么都没改的加工。',
             INPUT_SAFETY_STATE_NOT_FEEDABLE: '批次 {0} 身上带着不可投料的安全状态:{1}。**每一条都要清掉** —— 一批已放电的货如果同时也进过水,那它就是进过水的,放电不能把水抵消掉。改在【进料 → 打开这一批 → 到货状态】那一块。',
             INPUT_CHEMISTRY_NOT_FEEDABLE: '批次 {0} 的化学体系确定度记的是「{1}」,那个值不许投料。到【进料 → 打开这一批 → 到货状态】那一块改,或者等化验把这批货到底是什么定下来。',
             DELETE_REASON_REQUIRED: '删除 {1} 必须填写理由 —— 回滚会把它软删掉。(表:{0})',

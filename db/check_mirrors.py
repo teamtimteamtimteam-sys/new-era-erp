@@ -138,6 +138,11 @@ SEED_TABLES = {
     "kpi_template_org_links": (None,
         "(SELECT p.code || '/' || t.kpi_ref FROM public.kpi_position_templates t "
         " JOIN public.positions p ON p.id = t.position_id WHERE t.id = template_id) AS tpl, org_code"),
+    # PROC-WIRE-1B-i:工序的【种类】—— INSTALL SEED。判据与下面那条同源:
+    # 加一种工序种类【不是加一行数据】,运行时要先懂得它意味着什么
+    # (consumes_input / produces_outputs 驱动 commit_processing_run 的分支)。
+    # 操作员改不动它(没有写策略),所以线上多一行就是真漂移。
+    "operation_kinds": (None, "code, name_en, name_zh, consumes_input, produces_outputs, is_active, sort_order"),
     # PROC-WIRE-1A:产出批次的【销售状态】字典 —— INSTALL SEED,不是 RUNTIME CONFIG。
     # 判据与 KPI-1 那条逐字相同:操作员在界面上改不动它(没有 INSERT/UPDATE 策略,
     # 写入只经迁移)。而且更硬一层 —— **加一个销售状态没有意义,因为没有任何东西
@@ -183,6 +188,14 @@ RUNTIME_CONFIG_TABLES = [
     # GRN-1a:收货差异的三个阈值 —— 与 processing_settings 的两个工单阈值同一条。
     # 5/5/10 是引导默认值,不是决定;运营改一次线上就与本文件不同,那是对的。
     "receiving_settings",
+    # PROC-WIRE-1B-i:工序字典与它的三张 N×M 受理表 —— 加一道工序(= 加一台机器)
+    # 是加一行,与 certificate_types 同一条。三张表【同形】,那是刻意的:
+    # "这道工序受理什么"只有一个定义方式,不是形态一套、安全状态另一套。
+    "operation_types", "operation_type_input_forms", "operation_type_output_forms",
+    # 【这一张是那道【起火】闸的受理清单】它是 RUNTIME CONFIG,于是【线上悄悄多一行
+    # 不会被镜像抓到】—— 具名缺口,记在 docs/proc-operations-wired.md。
+    # 护着它的是 fixture 的那条不变式(只许收紧),不是逐行比对。
+    "operation_type_safety_states",
     # PROC-WIRE-1A:产出批次【用途】—— 与 certificate_types 同一条:加一种是加一行。
     # 第四条拒绝(SALE_BATCH_EARMARKED)读的是 is_saleable_stock 那一列,不是写死的
     # 码,所以多一种不可售用途【不需要改代码】。它与同刀的 output_batch_states

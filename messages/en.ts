@@ -2284,6 +2284,10 @@ const en = {
             noInboundHelper: 'No processable inbound batches (remaining > 0) — ',
             noInboundLink: 'create an inbound batch',
             noInboundHelperPost: ' first',
+            operationLabel: 'Operation',
+            operationPlaceholder: 'Pick an operation — it decides what this machine accepts',
+            operationAccepts: 'This operation accepts: {forms}',
+            operationNoOutputs: 'This operation produces NO new batch — same batch in, same batch out, state changed (deep discharge turns "charged" into "discharged and verified"). So there is no outputs section below, and this run consumes no stock.',
             outputsSectionHeader: 'Outputs (produced goods)',
             addOutputButton: '+ Add Output',
             selectOutputMaterial: 'Select output material',
@@ -2344,6 +2348,12 @@ const en = {
         },
         errors: {
             INPUT_SAFETY_STATE_NOT_RECORDED: 'Batch {0} has NO recorded safety state. That means NOBODY HAS RECORDED ONE — it does not mean the load is safe. Record it at Inbound → open that batch → "Condition on arrival", then commit the run again.',
+            // PROC-WIRE-1B-i
+            OPERATION_TYPE_UNKNOWN: 'Unknown or inactive operation "{0}". Inactive means "do not pick it again", not "rewrite history".',
+            INPUT_SAFETY_STATE_NOT_ACCEPTED: '{1} does not accept the safety states batch {0} is carrying: {3}. This is NOT the same sentence as "may not be fed" — another operation may well accept it: charged material goes through Deep discharge first, and packs that cannot be discharged go to the Battery powder line.',
+            OPERATION_PRODUCES_NO_OUTPUTS: '{0} produces no new batch by definition (same batch in, same batch out, state changed), so this run cannot be committed with outputs. Either the wrong operation was picked, or the wrong run.',
+            STATE_CHANGE_LOSS_NOT_ZERO: '{0} removes no mass, so its loss can only be 0, but {1} was entered. Either the wrong operation was picked, or this run is really a transforming one.',
+            STATE_CHANGE_OUTPUT_INPUT_UNSUPPORTED: '{0} currently accepts inbound batches only. Safety states are recorded for inbound batches alone — the output-side table does not exist yet — so "change the state" has nowhere to be written on an output batch, and letting it through would produce a run that changed nothing.',
             INPUT_SAFETY_STATE_NOT_FEEDABLE: 'Batch {0} carries safety states that may not be fed: {2}. Every one of them has to be cleared — a load that is discharged AND water-exposed is still water-exposed, and discharge does not cancel water. Change them at Inbound → open that batch → "Condition on arrival".',
             INPUT_CHEMISTRY_NOT_FEEDABLE: 'Batch {0} has its chemistry certainty recorded as "{2}", which may not be fed. Either change it at Inbound → open that batch → "Condition on arrival", or wait for the assay that settles what this load actually is.',
             DELETE_REASON_REQUIRED: 'A reason is required to delete {1} — the rollback soft-deletes it. (Table: {0})',

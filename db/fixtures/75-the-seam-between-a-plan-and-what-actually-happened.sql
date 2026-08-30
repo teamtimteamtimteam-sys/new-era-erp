@@ -91,7 +91,11 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    def_commit := pg_get_functiondef('public.commit_processing_run(date,text,numeric,jsonb,jsonb,text,uuid,uuid)'::regprocedure);
+    -- PROC-WIRE-1B-i:签名多了一个 p_operation_type_code。**这里必须跟着改** ——
+    -- 它按签名取函数体做故障注入,而签名一变,旧的 regprocedure 就解析不出来。
+    -- (那正是本行存在的意义:它把"这份 fixture 注入的是哪一支函数"钉死,
+    --  不让它悄悄注入到别的重载上。)
+    def_commit := pg_get_functiondef('public.commit_processing_run(date,text,numeric,jsonb,jsonb,text,uuid,uuid,text)'::regprocedure);
     def_cancel := pg_get_functiondef('public.cancel_work_order(uuid,text)'::regprocedure);
 
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)

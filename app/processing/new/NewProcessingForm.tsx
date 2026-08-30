@@ -7,7 +7,7 @@ import {
     type CommitProcessingPayload,
 } from './actions'
 import { UNIT_OPTIONS } from '../../materials/options'
-import { useTranslations } from '@/lib/i18n/client'
+import { useTranslations, useLocale } from '@/lib/i18n/client'
 import DecimalInput from '../../components/forms/DecimalInput'
 
 export type InboundBatchOption = {
@@ -22,6 +22,15 @@ export type InboundBatchOption = {
 
 // FIN-25:再加工 —— 可投料的产出批(同形;value 前缀区分来源)
 export type OutputBatchOption = InboundBatchOption
+
+// PROC-WIRE-1B-i:一道工序,连同它【收什么形态】与【产不产批】。
+export type OperationOption = {
+    code: string
+    name_en: string
+    name_zh: string
+    produces_outputs: boolean
+    input_forms: { code: string; name_en: string; name_zh: string }[]
+}
 
 type MaterialOption = {
     id: string
@@ -58,6 +67,7 @@ export default function NewProcessingForm({
     materials,
     defaultAllocationBasis,
     workOrders,
+    operations,
 }: {
     inboundBatches: InboundBatchOption[]
     outputBatches: OutputBatchOption[]
@@ -66,8 +76,13 @@ export default function NewProcessingForm({
     defaultAllocationBasis: string
     /** WO-1c:【只有已放行的】—— 服务端也拒(WO_NOT_RELEASED),这里不画必然被拒的选项 */
     workOrders: { id: string; code: string; scheduled_date: string | null }[]
+    /** PROC-WIRE-1B-i:五道工序(R2),带它收什么形态、产不产批。
+     *  **accepts / produces 都是从字典读来的**,不是在这里写死的 —— 加一道工序
+     *  或者改它收什么,是加一行数据,这一屏不必改。 */
+    operations: OperationOption[]
 }) {
     const t = useTranslations()
+    const locale = useLocale()
     // FIN-36:成本分摊基准是【选出来的】。预选自公司配置,但屏幕上看得见、改得动 ——
     // 与它取代的那个 schema 默认值的区别全在这里。选中的值会显式送给
     // commit_processing_run(那边必填),所以"这一单用了什么方法"是记录,不是推断。
@@ -75,6 +90,11 @@ export default function NewProcessingForm({
     // WO-1c:照哪张工单做的。【默认不选】—— 临时起意的加工是合法的,而
     // 预选一张工单等于替人做了一个"这次是照计划做的"的判断。
     const [workOrderId, setWorkOrderId] = useState('')
+    // PROC-WIRE-1B-i:【默认不选】—— 预选一道工序等于替人断言这一炉在跑哪台机器。
+    const [operationCode, setOperationCode] = useState('')
+    const operation = operations.find((o) => o.code === operationCode) ?? null
+    // 【产不产批由字典说了算】不是"是不是深度放电"这种写死的判断。
+    const producesOutputs = operation ? operation.produces_outputs : true
     const keyCounter = useRef(0)
     const nextKey = () => keyCounter.current++
 
@@ -221,6 +241,7 @@ export default function NewProcessingForm({
             outputs: validOutputs,
             allocation_basis: allocationBasis,
             work_order_id: workOrderId || null,
+            operation_type_code: operationCode || null,
         }
 
         startTransition(async () => {
@@ -307,6 +328,41 @@ export default function NewProcessingForm({
                         onBlur={(e) => setProcessDate(e.target.value)}
                         className="w-full border border-gray-300 px-3 py-2 rounded"
                     />
+                </div>
+
+                {/* PROC-WIRE-1B-i:这一炉跑哪一道工序 —— 它决定收什么料、产不产批,
+                    以及那道【起火】闸受理哪些安全状态。 */}
+                <div>
+                    <label className="block text-sm font-medium mb-1">
+                        {t('processing.form.operationLabel')} <span className="text-red-600">*</span>
+                    </label>
+                    <select
+                        value={operationCode}
+                        onChange={(e) => setOperationCode(e.target.value)}
+                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                    >
+                        <option value="">{t('processing.form.operationPlaceholder')}</option>
+                        {operations.map((o) => (
+                            <option key={o.code} value={o.code}>
+                                {locale === 'zh' ? o.name_zh : o.name_en}
+                            </option>
+                        ))}
+                    </select>
+                    {/* 【收什么形态,照字典画出来】操作员不必去猜这台机器吃不吃这批料。 */}
+                    {operation && (
+                        <p className="text-xs text-gray-600 mt-1">
+                            {t('processing.form.operationAccepts', {
+                                forms: operation.input_forms
+                                    .map((f) => (locale === 'zh' ? f.name_zh : f.name_en))
+                                    .join(locale === 'zh' ? '、' : ', '),
+                            })}
+                        </p>
+                    )}
+                    {operation && !producesOutputs && (
+                        <p className="text-xs text-amber-700 mt-1">
+                            {t('processing.form.operationNoOutputs')}
+                        </p>
+                    )}
                 </div>
 
                 {/* 投入 */}
@@ -408,6 +464,9 @@ export default function NewProcessingForm({
                 </section>
 
                 {/* 产出 */}
+                {/* PROC-WIRE-1B-i:不产出的工序【连产出区都不画】——
+                    画一个"填了就会被拒"的区域,是在制造一个必然的错误。 */}
+                {producesOutputs && (
                 <section className="border border-gray-200 rounded p-4 space-y-3">
                     <div className="flex items-center justify-between">
                         <h2 className="font-semibold">{t('processing.form.outputsSectionHeader')}</h2>
@@ -475,6 +534,7 @@ export default function NewProcessingForm({
                         </div>
                     ))}
                 </section>
+                )}
 
                 {/* 合计 + 损耗 */}
                 <div className="bg-gray-50 rounded p-4 space-y-2">

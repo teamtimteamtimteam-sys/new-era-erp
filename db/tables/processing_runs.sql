@@ -57,8 +57,23 @@ CREATE TABLE public.processing_runs (
     delete_reason text,
     -- ── EQP-2a 追加的列(同上,attnum 27)────────────────────────────────
     -- 这一炉是哪台机器跑的。可空,而"空"是一个【具名类别】(未归属),不是零。
-    equipment_id  uuid REFERENCES public.fixed_assets (id)
+    equipment_id  uuid REFERENCES public.fixed_assets (id),
+    -- ── PROC-WIRE-1B-i 追加的列 ──────────────────────────────────────────
+    -- 这一炉跑的是【哪一道工序】。可空:线上 13 张是测试残留,不给它们猜工序。
+    operation_type_code text REFERENCES public.operation_types (code)
 );
+
+COMMENT ON COLUMN public.processing_runs.operation_type_code IS
+'PROC-WIRE-1B-i:这张加工单跑的是【哪一道工序】。
+
+【可空】线上 13 张是测试残留,不给它们猜工序。
+【什么拦得住真单不填?今天没有东西】—— 界面必填,数据库不拦。
+一条 NOT VALID 的 CHECK 可以只管新行,但那要一次"从今天起必须填"的裁定,
+属于产线跑起来那天。**记为具名缺口,不发明约束。**
+
+【命名】仓库里每一张字典都以 text code 为主键(form_code / purpose_code /
+loss_category_code / chemistry_certainty_code),所以这一列叫 _code 而不是 _id。
+brief 写的是 operation_type_id,那个名字假设了 uuid 主键 —— 照抄它才是漂移。';
 
 COMMENT ON COLUMN public.processing_runs.delete_reason IS
     'AUDEL-1b:为什么回滚这张加工单。加工单的"删除"就是它的冲销(status=reversed + deleted_at),所以理由记在这里 —— rollback_processing_run() 必填。';
@@ -125,7 +140,7 @@ REVOKE SELECT ON public.processing_runs FROM authenticated, anon;
 -- EQP-2a:equipment_id 也在列清单里 —— 它不是钱,是一台机器的引用。
 -- 【而它同时也必须进 processing_runs_masked】:一旦一张表有了 _masked 伴生,
 -- 每一列都得在那张视图里,授没授权都一样(colgrant 的第二个分支,WO-1a-fu1 红过)。
-GRANT SELECT (id, code, process_date, total_input, total_output, loss_qty, notes, status, deleted_at, created_at, created_by, updated_at, updated_by, allocation_basis, allocation_snapshot, allocated_at, allocated_by, capitalization_entry_id, allocation_basis_changed_at, work_order_id, deleted_by, delete_reason, equipment_id)
+GRANT SELECT (id, code, process_date, total_input, total_output, loss_qty, notes, status, deleted_at, created_at, created_by, updated_at, updated_by, allocation_basis, allocation_snapshot, allocated_at, allocated_by, capitalization_entry_id, allocation_basis_changed_at, work_order_id, deleted_by, delete_reason, equipment_id, operation_type_code)
     ON public.processing_runs TO authenticated;
 
 -- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)

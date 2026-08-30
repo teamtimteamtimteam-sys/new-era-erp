@@ -70,6 +70,13 @@ BEGIN
         RAISE EXCEPTION 'RUN_NOT_COMMITTED|%', v_run.status;
     END IF;
 
+    -- PROC-WIRE-1B-i:状态改变型工序没有产出腿,分摊无处可落。
+    -- **按名拒绝,而不是静默地什么都不分摊** —— 按重量基准时 v_total_basis = 0,
+    -- 除法得 NULL、没有腿可更新,于是它会报告成功却一分钱都没挂上。
+    -- Tim 已裁定成本应资本化回投料批;那条路被【应付之锚】挡住(见守卫的 HINT
+    -- 与 docs/proc-operations-wired.md),所以这里先把静默堵上。
+    PERFORM public.guard_allocation_not_state_changing(p_run_id);
+
     -- 2. Resolve + validate basis.
     v_basis := COALESCE(p_basis, v_run.allocation_basis);
     IF v_basis NOT IN ('weight','metal_value') THEN
@@ -571,4 +578,4 @@ BEGIN
         'outputs', COALESCE(v_outputs, '[]'::jsonb)
     );
 END;
-$function$;
+$function$

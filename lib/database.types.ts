@@ -8477,6 +8477,189 @@ export type Database = {
         }
         Relationships: []
       }
+      operation_kinds: {
+        Row: {
+          code: string
+          consumes_input: boolean
+          is_active: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          produces_outputs: boolean
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          consumes_input: boolean
+          is_active?: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          produces_outputs: boolean
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          consumes_input?: boolean
+          is_active?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          produces_outputs?: boolean
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      operation_type_input_forms: {
+        Row: {
+          form_code: string
+          notes: string | null
+          operation_type_code: string
+        }
+        Insert: {
+          form_code: string
+          notes?: string | null
+          operation_type_code: string
+        }
+        Update: {
+          form_code?: string
+          notes?: string | null
+          operation_type_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operation_type_input_forms_form_code_fkey"
+            columns: ["form_code"]
+            isOneToOne: false
+            referencedRelation: "material_forms"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "operation_type_input_forms_operation_type_code_fkey"
+            columns: ["operation_type_code"]
+            isOneToOne: false
+            referencedRelation: "operation_types"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      operation_type_output_forms: {
+        Row: {
+          form_code: string
+          notes: string | null
+          operation_type_code: string
+        }
+        Insert: {
+          form_code: string
+          notes?: string | null
+          operation_type_code: string
+        }
+        Update: {
+          form_code?: string
+          notes?: string | null
+          operation_type_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operation_type_output_forms_form_code_fkey"
+            columns: ["form_code"]
+            isOneToOne: false
+            referencedRelation: "material_forms"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "operation_type_output_forms_operation_type_code_fkey"
+            columns: ["operation_type_code"]
+            isOneToOne: false
+            referencedRelation: "operation_types"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      operation_type_safety_states: {
+        Row: {
+          notes: string | null
+          operation_type_code: string
+          resolves: boolean
+          safety_state_code: string
+        }
+        Insert: {
+          notes?: string | null
+          operation_type_code: string
+          resolves?: boolean
+          safety_state_code: string
+        }
+        Update: {
+          notes?: string | null
+          operation_type_code?: string
+          resolves?: boolean
+          safety_state_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operation_type_safety_states_operation_type_code_fkey"
+            columns: ["operation_type_code"]
+            isOneToOne: false
+            referencedRelation: "operation_types"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "operation_type_safety_states_safety_state_code_fkey"
+            columns: ["safety_state_code"]
+            isOneToOne: false
+            referencedRelation: "inbound_safety_states"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      operation_types: {
+        Row: {
+          code: string
+          is_active: boolean
+          kind_code: string
+          name_en: string
+          name_zh: string
+          notes: string | null
+          resulting_safety_state_code: string | null
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          is_active?: boolean
+          kind_code: string
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          resulting_safety_state_code?: string | null
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          is_active?: boolean
+          kind_code?: string
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          resulting_safety_state_code?: string | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operation_types_kind_code_fkey"
+            columns: ["kind_code"]
+            isOneToOne: false
+            referencedRelation: "operation_kinds"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "operation_types_resulting_safety_state_code_fkey"
+            columns: ["resulting_safety_state_code"]
+            isOneToOne: false
+            referencedRelation: "inbound_safety_states"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       output_batch_metals: {
         Row: {
           content_pct: number
@@ -11308,6 +11491,7 @@ export type Database = {
           loss_qty: number | null
           material_cost_base: number | null
           notes: string | null
+          operation_type_code: string | null
           process_cost_base: number | null
           process_date: string | null
           status: string
@@ -11337,6 +11521,7 @@ export type Database = {
           loss_qty?: number | null
           material_cost_base?: number | null
           notes?: string | null
+          operation_type_code?: string | null
           process_cost_base?: number | null
           process_date?: string | null
           status: string
@@ -11366,6 +11551,7 @@ export type Database = {
           loss_qty?: number | null
           material_cost_base?: number | null
           notes?: string | null
+          operation_type_code?: string | null
           process_cost_base?: number | null
           process_date?: string | null
           status?: string
@@ -11411,6 +11597,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fixed_assets"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_runs_operation_type_code_fkey"
+            columns: ["operation_type_code"]
+            isOneToOne: false
+            referencedRelation: "operation_types"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "processing_runs_work_order_id_fkey"
@@ -19936,6 +20129,7 @@ export type Database = {
           loss_qty: number | null
           material_cost_base: number | null
           notes: string | null
+          operation_type_code: string | null
           process_cost_base: number | null
           process_date: string | null
           status: string | null
@@ -19965,6 +20159,7 @@ export type Database = {
           loss_qty?: number | null
           material_cost_base?: never
           notes?: string | null
+          operation_type_code?: string | null
           process_cost_base?: never
           process_date?: string | null
           status?: string | null
@@ -19994,6 +20189,7 @@ export type Database = {
           loss_qty?: number | null
           material_cost_base?: never
           notes?: string | null
+          operation_type_code?: string | null
           process_cost_base?: never
           process_date?: string | null
           status?: string | null
@@ -20039,6 +20235,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fixed_assets"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_runs_operation_type_code_fkey"
+            columns: ["operation_type_code"]
+            isOneToOne: false
+            referencedRelation: "operation_types"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "processing_runs_work_order_id_fkey"
@@ -21566,6 +21769,7 @@ export type Database = {
           p_inputs: Json
           p_loss_qty: number
           p_notes: string
+          p_operation_type_code?: string
           p_outputs: Json
           p_process_date: string
           p_work_order_id?: string
@@ -21882,6 +22086,10 @@ export type Database = {
       }
       gl_control_reconciliation: { Args: { p_as_of: string }; Returns: Json }
       gst_registered: { Args: never; Returns: boolean }
+      guard_allocation_not_state_changing: {
+        Args: { p_run_id: string }
+        Returns: undefined
+      }
       has_any_permission: { Args: { p_codes: string[] }; Returns: boolean }
       has_permission: { Args: { p_code: string }; Returns: boolean }
       hazardous_qty_on_hand_tonnes: { Args: never; Returns: number }

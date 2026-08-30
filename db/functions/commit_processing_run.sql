@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.commit_processing_run(p_process_date date, p_notes text, p_loss_qty numeric, p_inputs jsonb, p_outputs jsonb, p_allocation_basis text, p_work_order_id uuid DEFAULT NULL::uuid, p_equipment_id uuid DEFAULT NULL::uuid)
+CREATE OR REPLACE FUNCTION public.commit_processing_run(p_process_date date, p_notes text, p_loss_qty numeric, p_inputs jsonb, p_outputs jsonb, p_allocation_basis text, p_work_order_id uuid DEFAULT NULL::uuid, p_equipment_id uuid DEFAULT NULL::uuid, p_operation_type_code text DEFAULT NULL::text)
  RETURNS uuid
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -26,6 +26,12 @@ DECLARE
     v_new_output_id uuid;
     v_wo           work_orders%ROWTYPE;   -- WO-1b
     v_eq           fixed_assets%ROWTYPE;  -- EQP-2a:这一炉归给哪台机器
+    -- PROC-WIRE-1B-i:这一炉跑的是哪道工序,以及那道工序【吃不吃料、产不产批】。
+    -- 【分支读的是字典那两列,不是一个写死的字符串,也不是调用方传的旗标】
+    v_op           text;
+    v_consumes     boolean := true;   -- 没有工序类型时:今天的行为
+    v_produces     boolean := true;
+    v_result_state text;
 BEGIN
     PERFORM require_permission('module.processing.edit');
     IF p_process_date IS NULL THEN
@@ -37,6 +43,24 @@ BEGIN
     -- (预选自 finance_settings.default_allocation_basis),所以必填没有代价。
     IF p_allocation_basis IS NULL THEN
         RAISE EXCEPTION 'ALLOCATION_BASIS_REQUIRED';
+    END IF;
+
+    -- ════════════════════════════════════════════════════════════════════════
+    -- PROC-WIRE-1B-i:解析工序类型。**分支由【工序】决定,不由调用方传旗标决定** ——
+    -- 一个 p_is_state_changing 参数会让"这一炉算不算直通"变成调用方的意见,
+    -- 而它是那道工序的事实。两者的区别在第一次有人传错的时候才显形,那太晚了。
+    -- 【没有工序类型 → v_consumes / v_produces 都是 true,今天的行为一个字不变。】
+    -- ════════════════════════════════════════════════════════════════════════
+    IF p_operation_type_code IS NOT NULL THEN
+        SELECT ot.code, k.consumes_input, k.produces_outputs, ot.resulting_safety_state_code
+          INTO v_op, v_consumes, v_produces, v_result_state
+          FROM operation_types ot
+          JOIN operation_kinds k ON k.code = ot.kind_code
+         WHERE ot.code = p_operation_type_code AND ot.is_active;
+        IF NOT FOUND THEN
+            RAISE EXCEPTION 'OPERATION_TYPE_UNKNOWN|%', p_operation_type_code
+              USING HINT = '未知或已停用的工序。停用的意思是"以后别再选它",不是"把历史改掉"。';
+        END IF;
     END IF;
     IF p_allocation_basis NOT IN ('weight','metal_value') THEN
         RAISE EXCEPTION 'INVALID_BASIS|%', p_allocation_basis;
@@ -97,8 +121,21 @@ BEGIN
     IF p_inputs IS NULL OR jsonb_array_length(p_inputs) = 0 THEN
         RAISE EXCEPTION 'NO_INPUTS';
     END IF;
-    IF p_outputs IS NULL OR jsonb_array_length(p_outputs) = 0 THEN
-        RAISE EXCEPTION 'NO_OUTPUTS';
+    -- ════════════════════════════════════════════════════════════════════════
+    -- PROC-WIRE-1B-i:产出的有无,由【工序】说了算
+    --   * 会产出的工序(转化型)少了产出 → 照旧 NO_OUTPUTS,一个字没松;
+    --   * 不产出的工序(状态改变型,R3)带着产出来 → 【也是拒】,而且是另一条码。
+    -- 后者容易被漏掉:只放松一侧会让一张"放电还产出了黑粉"的单悄悄成立。
+    -- ════════════════════════════════════════════════════════════════════════
+    IF v_produces THEN
+        IF p_outputs IS NULL OR jsonb_array_length(p_outputs) = 0 THEN
+            RAISE EXCEPTION 'NO_OUTPUTS';
+        END IF;
+    ELSE
+        IF p_outputs IS NOT NULL AND jsonb_array_length(p_outputs) > 0 THEN
+            RAISE EXCEPTION 'OPERATION_PRODUCES_NO_OUTPUTS|%', v_op
+              USING HINT = '这道工序【按定义】不产新批次(R3:同一批进、同一批出,只改状态)。带着产出提交它,说明选错了工序或者选错了单。';
+        END IF;
     END IF;
     IF p_loss_qty IS NOT NULL AND p_loss_qty < 0 THEN
         RAISE EXCEPTION 'LOSS_NEGATIVE';
@@ -183,15 +220,34 @@ BEGIN
         RAISE EXCEPTION 'OUTPUT_EXCEEDS_INPUT|%|%', v_total_output, v_total_input;
     END IF;
 
+    -- ════════════════════════════════════════════════════════════════════════
+    -- PROC-WIRE-1B-i:直通式的质量账
+    -- **料【穿过】工序,没有被吃掉** —— 所以投入 = 产出 = 通过量,损耗【真的是 0】
+    -- (放电不带走任何质量;这不是"没量过所以填 0",是 R3 说的同一批进同一批出)。
+    -- 不这么写的话:total_output = 0 会让质量平衡读成"投了 100 出来 0",
+    -- 而 loss_qty = COALESCE(p_loss_qty, 100 - 0) 会凭空记下一笔【等于全部投入】
+    -- 的损耗 —— 一张放电单会报告它把碰过的东西全毁了。
+    -- ════════════════════════════════════════════════════════════════════════
+    IF NOT v_produces THEN
+        v_total_output := v_total_input;
+        IF COALESCE(p_loss_qty, 0) <> 0 THEN
+            RAISE EXCEPTION 'STATE_CHANGE_LOSS_NOT_ZERO|%|%', v_op, p_loss_qty
+              USING HINT = '状态改变型工序不带走质量,所以它的损耗只能是 0。填了别的数,要么选错了工序,要么这一炉其实是转化型。';
+        END IF;
+    END IF;
+
     -- 4. 建加工单表头(code 由触发器生成)
     INSERT INTO processing_runs (
         process_date, total_input, total_output, loss_qty, notes, status,
-        allocation_basis, work_order_id, created_by, updated_by, equipment_id
+        allocation_basis, work_order_id, created_by, updated_by, equipment_id,
+        operation_type_code
     ) VALUES (
         v_process_date, v_total_input, v_total_output,
-        COALESCE(p_loss_qty, v_total_input - v_total_output),
+        CASE WHEN v_produces THEN COALESCE(p_loss_qty, v_total_input - v_total_output)
+             ELSE 0 END,
         p_notes, 'committed', p_allocation_basis, p_work_order_id, v_user_id, v_user_id,
-        p_equipment_id
+        p_equipment_id,
+        v_op
     )
     RETURNING id INTO v_run_id;
 
@@ -206,26 +262,66 @@ BEGIN
         v_consumed   := (v_input->>'quantity_consumed')::numeric;
 
         IF v_inbound_id IS NOT NULL THEN
-            SELECT remaining_qty INTO v_remaining
-            FROM inbound_batches WHERE id = v_inbound_id;
-            v_new_remaining := v_remaining - v_consumed;
+            -- ════════════════════════════════════════════════════════════
+            -- PROC-WIRE-1B-i:【直通式不扣库存】
+            -- 一炉深度放电结束之后,那批货还在院子里,还是那么多克。
+            -- 扣掉它 = 账上把一批还存在的货销掉,而这是那个"只放松 NO_OUTPUTS"
+            -- 的实现最先造成的破坏(它会把 remaining_qty 扣到 0)。
+            -- **投入腿照记** —— 那是【通过量】,记的是"这批料走过这道工序",
+            -- 不是"这批料被吃掉了"。设备用量与工时因此仍然读得到它。
+            -- ════════════════════════════════════════════════════════════
+            IF v_consumes THEN
+                SELECT remaining_qty INTO v_remaining
+                FROM inbound_batches WHERE id = v_inbound_id;
+                v_new_remaining := v_remaining - v_consumed;
 
-            UPDATE inbound_batches
-            SET remaining_qty = v_new_remaining,
-                stage = CASE WHEN v_new_remaining <= 0 THEN '已加工完' ELSE '加工中' END,
-                updated_by = v_user_id,
-                updated_at = now()
-            WHERE id = v_inbound_id;
+                UPDATE inbound_batches
+                SET remaining_qty = v_new_remaining,
+                    stage = CASE WHEN v_new_remaining <= 0 THEN '已加工完' ELSE '加工中' END,
+                    updated_by = v_user_id,
+                    updated_at = now()
+                WHERE id = v_inbound_id;
 
-            -- IOD-1:投料走 drain_stock —— 可能跨几个库位桶,于是写出多行(规则见其函数头)
-            PERFORM drain_stock(
-                p_qty => v_consumed, p_movement_type => 'processing_consume',
-                p_business_date => v_process_date, p_inbound_batch_id => v_inbound_id,
-                p_statuses => ARRAY['available'], p_run_id => v_run_id, p_created_by => v_user_id);
+                -- IOD-1:投料走 drain_stock —— 可能跨几个库位桶,于是写出多行(规则见其函数头)
+                PERFORM drain_stock(
+                    p_qty => v_consumed, p_movement_type => 'processing_consume',
+                    p_business_date => v_process_date, p_inbound_batch_id => v_inbound_id,
+                    p_statuses => ARRAY['available'], p_run_id => v_run_id, p_created_by => v_user_id);
+            END IF;
 
             INSERT INTO processing_inputs (run_id, inbound_batch_id, quantity_consumed)
             VALUES (v_run_id, v_inbound_id, v_consumed);
+
+            -- ════════════════════════════════════════════════════════════
+            -- PROC-WIRE-1B-i:**R3 的"改状态"就落在这里**
+            -- 被这道工序【解决掉】的状态从批次上删掉,再写上结果状态。
+            -- 不删的话,一批放完电的货会永远带着"未放电",于是下一道工序
+            -- 仍然拒绝它 —— 那正是本刀要解的那个死锁,只是换了个位置复发。
+            -- ════════════════════════════════════════════════════════════
+            IF NOT v_produces AND v_result_state IS NOT NULL THEN
+                DELETE FROM inbound_batch_safety_states s
+                 WHERE s.inbound_batch_id = v_inbound_id
+                   AND s.safety_state_code IN (
+                       SELECT a.safety_state_code FROM operation_type_safety_states a
+                        WHERE a.operation_type_code = v_op AND a.resolves);
+
+                INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
+                VALUES (v_inbound_id, v_result_state)
+                ON CONFLICT (inbound_batch_id, safety_state_code) DO NOTHING;
+            END IF;
         ELSE
+            -- ════════════════════════════════════════════════════════════
+            -- PROC-WIRE-1B-i:【状态改变型工序暂时收不了产出批】,按名拒。
+            -- 理由是结构性的,不是策略性的:安全状态今天【只有进料批有】,
+            -- 没有 output_batch_safety_states 这张表,所以"把状态改成已放电"
+            -- 这件事在产出批上【无处可写】。放它过去会得到一炉什么都没改的
+            -- 放电 —— 一次静默的无操作,比拒绝坏得多。
+            -- **这张表是 1B-ii 的第一件事(M4 同一张表)。**
+            -- ════════════════════════════════════════════════════════════
+            IF NOT v_produces THEN
+                RAISE EXCEPTION 'STATE_CHANGE_OUTPUT_INPUT_UNSUPPORTED|%', v_op
+                  USING HINT = '安全状态目前只有进料批记得下(没有产出批的那张表),所以状态改变型工序暂时只收进料批。这一条等 1B-ii 的 output_batch_safety_states。';
+            END IF;
             -- FIN-25:产出批投料。state 是【销售状态】(表注),消耗不碰它 ——
             -- 只扣 remaining_qty,流水挂 output_batch_id(XOR 的另一侧)。
             SELECT remaining_qty INTO v_remaining
@@ -278,5 +374,3 @@ BEGIN
     RETURN v_run_id;
 END;
 $function$
-
-;

@@ -1,7 +1,7 @@
 // app/processing/new/page.tsx
 // 服务端组件:抓取可选投料批次 + 物料列表,渲染客户端表单
 import { createClient } from '@/lib/supabase/server'
-import NewProcessingForm, { type InboundBatchOption } from './NewProcessingForm'
+import NewProcessingForm, { type InboundBatchOption, type OperationOption } from './NewProcessingForm'
 import { getTranslations } from '@/lib/i18n/server'
 import { mustOne, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -75,6 +75,30 @@ export default async function NewProcessingPage() {
         const k = r.inbound_batch_id ?? r.output_batch_id
         if (k) availByBatch.set(k, (availByBatch.get(k) ?? 0) + Number(r.qty))
     }
+    // PROC-WIRE-1B-i:五道工序,连同它们【收什么形态】与【产不产批】。
+    // 【嵌进来读,不在这里写死】加一道工序或者改它收什么,是加一行数据。
+    const operationsRes = await supabase
+        .from('operation_types')
+        .select('code, name_en, name_zh, operation_kinds ( produces_outputs ), ' +
+                'operation_type_input_forms ( material_forms ( code, name_en, name_zh ) )')
+        .eq('is_active', true)
+        .order('sort_order')
+    const operations: OperationOption[] = (mustRows(operationsRes, 'operation_types') as unknown as {
+        code: string; name_en: string; name_zh: string
+        operation_kinds: { produces_outputs: boolean } | null
+        operation_type_input_forms: { material_forms: { code: string; name_en: string; name_zh: string } | null }[]
+    }[]).map((o) => ({
+        code: o.code,
+        name_en: o.name_en,
+        name_zh: o.name_zh,
+        // 【读不到种类就当它产出】与服务端的默认方向一致(没有工序类型 = 今天的行为),
+        // 而真正的权威是 commit_processing_run,不是这一屏。
+        produces_outputs: o.operation_kinds?.produces_outputs ?? true,
+        input_forms: o.operation_type_input_forms
+            .map((r) => r.material_forms)
+            .filter((f): f is { code: string; name_en: string; name_zh: string } => f !== null),
+    }))
+
     const withAvailable = (rows: InboundBatchOption[] | null) =>
         (rows ?? []).map((b) => ({ ...b, available_qty: availByBatch.get(b.id) ?? 0 }))
 
@@ -88,6 +112,7 @@ export default async function NewProcessingPage() {
             }
             workOrders={mustRows(workOrdersRes, 'work_orders') as unknown as
                 { id: string; code: string; scheduled_date: string | null }[]}
+            operations={operations}
         />
     )
 }
