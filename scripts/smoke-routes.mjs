@@ -126,6 +126,9 @@ const ID_SOURCES = {
         '/tasks': 'tasks',
         '/settings/permissions/roles': 'roles', '/stocktakes': 'stocktakes',
         '/suppliers': 'suppliers',
+        // COMM-1:佣金协议的编辑页。线上零行(机制与屏幕先于第一份真协议落地),
+        // 所以同时列在 EXPECTED_SKIPS 里 —— 签下第一份的那天,那条断言会响。
+        '/commissions': 'commission_agreements',
         // FRT-FIX(2026-08-20):这两条【自建成起就没登记过】,于是 preflightIdSources
         // 每一次都在 3 毫秒内中止整轮冒烟 —— 也就是说 LOG-1b / LOG-2b 之后,
         // 这套路由检查【一次都没跑起来过】。那是这次回归能悄悄上线的一半原因。
@@ -351,6 +354,41 @@ if (MSG_SETTLE_PARTY_USED === MSG_SETTLE_PARTY_NAMED) {
     throw new Error('contracts.settlement 的两句"用了谁的结果"读起来一模一样 —— 「那一方没有化验」与「那一方的结果没被用」必须分得开')
 }
 
+// COMM-1:两块新屏,内容断言全部【服务端渲染】——
+// 与 CONTRACT-1 / PRICE-1 / SETTLE-1 同一条理由,而且用【同一个】取针守卫
+// (longestLiteral:空针/短针当场抛),不另抄一份判据。
+// 【这两个块是顶层的,缩进 4 格】,所以不能用 contractsSubMsg(它匹配的是 8 格的子段)。
+const topMsg = (block, key) => {
+    const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
+    const blk = src.match(new RegExp(`\\n    ${block}: \\{[\\s\\S]*?\\n    \\},`))
+    if (!blk) throw new Error(`messages/en.ts 里找不到 ${block} 这一段 —— 断言无从下手`)
+    const m = blk[0].match(new RegExp(`\\n\\s*${key}: '([^']+)'`))
+    if (!m) throw new Error(`messages/en.ts 里找不到 ${block}.${key}`)
+    return longestLiteral(m[1], `${block}.${key}`)
+}
+// ★ 佣金那两句【无条件渲染】的话 —— 它们与有没有数据无关,所以这两条针是死的。
+//   「它不过账」被读丢的代价:有人以为总账里已经有这笔支出。
+const MSG_COMM_NOT_POSTED = topMsg('commissions', 'notPosted')
+//   「计提那一半没建」被读丢的代价:有人以为系统会自己算出欠多少。
+const MSG_COMM_NO_ACCRUAL = topMsg('commissions', 'noAccrual')
+// ★★ 敞口报表最要紧的两句,同样无条件渲染 ★★
+const MSG_EXPO_CANNOT_SEE = topMsg('priceExposure', 'cannotSee')
+//   ★ 采购侧那句【关于表结构】的话 —— 它印成 0 吨就是一次撒谎。
+const MSG_EXPO_PURCHASE = topMsg('priceExposure', 'purchaseNotModelled')
+// 两处会随真实数据翻的分支,用 oneOf:写死其中一句等于给未来安一次必然的误报
+// (CONTRACT-1 / PRICE-1 都为这条留过同样的处置)。
+const MSG_EXPO_SELL = [topMsg('priceExposure', 'sellNoContracts'),
+                       topMsg('priceExposure', 'sellNoTerms')]
+const MSG_EXPO_CALENDAR = [topMsg('priceExposure', 'calendarNone'),
+                           topMsg('priceExposure', 'calendarLoaded')]
+// ★【那两句"具名的零"必须【彼此不同】,而且在【取针的时候】就钉住】★
+//   「一份合同都没有」与「有合同但没写条款」是两种不同的零;屏幕上长得一样的话,
+//   读的人会以为只有一件事要修。今天线上一份合同都没有,所以第二句还没机会出现 ——
+//   一个只在有数据时才成立的保证,等于没有保证(SETTLE-1 立的规矩)。
+if (MSG_EXPO_SELL[0] === MSG_EXPO_SELL[1]) {
+    throw new Error('priceExposure 的两句"具名的零"读起来一模一样 —— 「没有合同」与「有合同没条款」必须分得开')
+}
+
 const MUST_CONTAIN = {
     // ── 静态判据:下拉在,就说明名单非空 ────────────────────────────────────
     // 这九个下拉是【同一个形状】:名单非空时渲染 <select name="supplier_id">,
@@ -440,6 +478,39 @@ const MUST_CONTAIN = {
     '/suppliers': [
         { needle: 'href="/contracts"',
           why: '★ 供应商列表页上通往合同登记簿的入口不见了 —— /contracts 会变成一个上了线却走不到的页面' },
+        // ★【COMM-1:同一条可达性断言,同一个理由】★ /commissions 也是建好那天没有入口的。
+        { needle: 'href="/commissions"',
+          why: '★ 供应商列表页上通往佣金协议的入口不见了 —— /commissions 会变成一个上了线却走不到的页面(而 --reach 要跑两小时)' },
+    ],
+
+    // ── COMM-1:佣金那两句无条件渲染的话,真的在屏幕上吗 ──────────────────
+    '/commissions': [
+        { needle: MSG_COMM_NOT_POSTED,
+          why: '★★「它只记条款、【不过账】」那句话从佣金页上消失了 —— 把"佣金上线了"读成"佣金会进总账",代价是有人以为账上已经有这笔支出 ★★' },
+        { needle: MSG_COMM_NO_ACCRUAL,
+          why: '★「算出某一笔欠多少那一半没有建(COMM-ACCRUAL-1)」不见了 —— 没有它,下一个人会以为系统会自己算,而金额今天是由人算的' },
+    ],
+
+    // ★【COMM-1:敞口报表的入口断言】★ /finance/price-exposure 唯一的入口是财务子导航,
+    //   而子导航那个文件里有【两份清单】(ITEMS 管高亮、ordered 管画出来),只加一份
+    //   就会出现"链接不出现"或"高亮不对"。这条针钉的是【画出来的那一份】。
+    //   Subnav 是 'use client',但它无条件渲染这些 <Link>,所以它在初次 HTML 里 ——
+    //   与 AGENTS.md 那条"针必须在默认渲染里、不能藏在点击后面"是相容的。
+    '/finance': [
+        { needle: 'href="/finance/price-exposure"',
+          why: '★ 财务子导航里通往价格敞口的入口不见了 —— 那一页会变成一个上了线却走不到的报表(而它唯一的入口就是这里)' },
+    ],
+
+    // ── COMM-1:敞口报表 —— 它的全部价值就是这几句话 ──────────────────────
+    '/finance/price-exposure': [
+        { needle: MSG_EXPO_CANNOT_SEE,
+          why: '★「这一页上的 0 与『没有记录』是两个不同的答案」那句话不见了 —— 没有它,一页零会被读成一个头寸' },
+        { needle: MSG_EXPO_PURCHASE,
+          why: '★★【采购侧没有被建模】那句话从敞口报表上消失了 —— 它一旦变成一个 0 吨,就是在说"我们没有浮动价买进过",而真相是这套系统还不记这件事 ★★' },
+        { oneOf: MSG_EXPO_SELL,
+          why: '卖方向那一段【一句话都没说】—— 「一份合同都没有」与「有合同但没写条款」是两种不同的零,那个位置永远要有一句具名的话' },
+        { oneOf: MSG_EXPO_CALENDAR,
+          why: '开市日历那一段【一句话都没说】—— 它是均价算不出来的【另一个】原因,与"没有合同"不能长得一样' },
     ],
 
     '/finance/payments/new': [
@@ -616,6 +687,12 @@ const EXPECTED_SKIPS = new Set([
     // 【注意它跳过的是 PDF 那条路由,不是入口】入口在 /customers/[id] 上,
     // 那一页有数据、每一跑都真的渲染,并且下面有一条【内容】断言钉着它。
     '/finance/statements/[id]/pdf',
+    // COMM-1:线上还没有一份佣金协议(机制与屏幕先于第一份真协议落地)——
+    // 与上面几条同一种情形。【注意它跳过的是编辑页,不是入口】:
+    // /commissions 列表页每一跑都真的渲染,而且下面两条【内容】断言钉着它那两句
+    // 无条件渲染的话。签下第一份真协议的那天,这条断言会报「预期会 SKIP 的路由
+    // 跑起来了」,逼人把它从这里删掉。
+    '/commissions/[id]/edit',
     // (WO-1c 曾在这里挂过 '/processing/orders/[id]' —— 线上零张工单。
     //  2026-08-16 的手走开出了第一张真工单 WO-2026-0001(放行、并挂上
     //  PROC-2026-0225),于是这一行【在同一刀之内】被删掉,正如它自己的注释所

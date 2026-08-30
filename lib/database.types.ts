@@ -1368,6 +1368,85 @@ export type Database = {
           },
         ]
       }
+      commission_agreements: {
+        Row: {
+          agent_supplier_id: string
+          amount_ccy: number | null
+          basis: string
+          created_at: string
+          created_by: string | null
+          currency: string | null
+          deleted_at: string | null
+          id: string
+          rate_pct: number | null
+          recognition_trigger: string
+          remarks: string | null
+          side: string
+          updated_at: string
+          updated_by: string | null
+          valid_from: string
+          valid_to: string
+        }
+        Insert: {
+          agent_supplier_id: string
+          amount_ccy?: number | null
+          basis: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          deleted_at?: string | null
+          id?: string
+          rate_pct?: number | null
+          recognition_trigger: string
+          remarks?: string | null
+          side: string
+          updated_at?: string
+          updated_by?: string | null
+          valid_from: string
+          valid_to: string
+        }
+        Update: {
+          agent_supplier_id?: string
+          amount_ccy?: number | null
+          basis?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          deleted_at?: string | null
+          id?: string
+          rate_pct?: number | null
+          recognition_trigger?: string
+          remarks?: string | null
+          side?: string
+          updated_at?: string
+          updated_by?: string | null
+          valid_from?: string
+          valid_to?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_agreements_agent_supplier_id_fkey"
+            columns: ["agent_supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "commission_agreements_agent_supplier_id_fkey"
+            columns: ["agent_supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_agreements_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       company_compliance: {
         Row: {
           cert_no: string | null
@@ -21766,6 +21845,7 @@ export type Database = {
         Args: { p_period_end: string }
         Returns: Json
       }
+      price_exposure_report: { Args: never; Returns: Json }
       price_output_sale: {
         Args: {
           p_currency: string

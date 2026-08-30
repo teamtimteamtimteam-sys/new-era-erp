@@ -302,6 +302,12 @@ const MANIFEST = {
     'dashboard.item.':      { kind: 'enum', values: () => sqlLiteralAs('db/views/operations_now.sql', 'item_type') },
     // CHASE-1:四个前缀,四个真源都在库那一侧 —— 加一种联系方式/结局/单据种类,
     // 键检查【自动跟着变宽】,而不是等着谁记得来补一行。
+    // COMM-1:佣金那四个动态前缀,四条【都接真源】—— 三条读表上的 CHECK,
+    // 一条读那张错误码 Set。于是往 CHECK 里加一个新值,这个检查会自动跟着变宽。
+    'commissions.side.':    { kind: 'enum', values: () => sqlCheckIn('db/tables/commission_agreements.sql', 'side') },
+    'commissions.basis.':   { kind: 'enum', values: () => sqlCheckIn('db/tables/commission_agreements.sql', 'basis') },
+    'commissions.trigger.': { kind: 'enum', values: () => sqlCheckIn('db/tables/commission_agreements.sql', 'recognition_trigger') },
+    'commissions.errors.':  { kind: 'enum', values: () => tsSet('app/commissions/commissionErrorCodes.ts', 'COMMISSION_ERROR_CODES') },
     'chases.errors.':       { kind: 'enum', values: () => tsSet('app/finance/collections/chaseErrorCodes.ts', 'CHASE_ERROR_CODES') },
     'chases.channel_':      { kind: 'enum', values: () => sqlCheckIn('db/tables/collection_chases.sql', 'channel') },
     'chases.outcome_':      { kind: 'enum', values: () => sqlCheckIn('db/tables/collection_promises.sql', 'outcome') },

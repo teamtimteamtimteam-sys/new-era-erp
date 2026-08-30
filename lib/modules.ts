@@ -59,8 +59,12 @@ export const MODULES: ModuleEntry[] = [
     //   看得到他该看的那些行。挂在 suppliers 之下,是因为**第一批真合同是供货协议**,
     //   而 suppliers.view 正是它们的那道门。
     { href: '/suppliers', navKey: 'nav.suppliers', titleKey: 'home.suppliersTitle', descKey: 'home.suppliersDesc',
+    //   COMM-1:/commissions 同一条判断,同一个理由 —— 一份佣金协议的【主语是代理人】,
+    //   而代理人是一个 supplier(counterparty_type = service_vendor)。每一行都有代理人,
+    //   无论它挂采购侧、销售侧还是独立,所以 suppliers.view 是那道对的门;
+    //   按 side 分会让 free_standing 那一档无家可归。
       permission: 'module.suppliers.view', section: 'masterData',
-      alsoCovers: ['/contracts'] },
+      alsoCovers: ['/contracts', '/commissions'] },
     // 采购在收货之前 —— 流程顺序:下单 → 收货 → 加工
     { href: '/purchasing', navKey: 'nav.purchasing', titleKey: 'home.purchasingTitle', descKey: 'home.purchasingDesc',
       permission: 'module.purchasing.view', section: 'operations' },

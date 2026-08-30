@@ -31,6 +31,9 @@ const ITEMS = [
     { href: '/finance/processing-costs', key: 'finance.subnav.costSettle' },
     { href: '/finance/revaluation', key: 'finance.subnav.reval' },
     { href: '/finance/cost-variance', key: 'finance.subnav.variance' },
+    // COMM-1:价格敞口。【这个文件里有两份清单,必须一起加】—— 见上面 cash-forecast
+    // 那条注释:ITEMS 决定活动态的最长前缀匹配,ordered 决定实际画出来的顺序。
+    { href: '/finance/price-exposure', key: 'priceExposure.entryLink' },
     { href: '/margin', key: 'finance.subnav.margin' },
     { href: '/finance/close', key: 'finance.subnav.close' },
     { href: '/finance/gst', key: 'finance.subnav.gst' },
@@ -74,6 +77,7 @@ export default function Subnav() {
         { href: '/finance/processing-costs', key: 'finance.subnav.costSettle' },
         { href: '/finance/revaluation', key: 'finance.subnav.reval' },
         { href: '/finance/cost-variance', key: 'finance.subnav.variance' },
+        { href: '/finance/price-exposure', key: 'priceExposure.entryLink' },
         { href: '/margin', key: 'finance.subnav.margin' },
         { href: '/finance/close', key: 'finance.subnav.close' },
     { href: '/finance/gst', key: 'finance.subnav.gst' },

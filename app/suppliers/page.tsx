@@ -134,6 +134,13 @@ export default async function SuppliersPage({
                     <Link href="/contracts" className="text-sm text-blue-600 hover:underline">
                         {t('contracts.entryLink')}
                     </Link>
+                    {/* ★【COMM-1:佣金协议的入口 —— 与上面那条逐字同一个理由】★
+                        /commissions 建好那天同样没有任何入口,而它归在供应商模块之下
+                        (代理人就是一个 service_vendor 供应商)。同样配一条冒烟可达性
+                        探针,链接删了当场红。 */}
+                    <Link href="/commissions" className="text-sm text-blue-600 hover:underline">
+                        {t('commissions.entryLink')}
+                    </Link>
                     <Link
                         href="/suppliers/new"
                         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
