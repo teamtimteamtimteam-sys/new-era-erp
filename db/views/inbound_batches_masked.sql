@@ -18,6 +18,13 @@
 --
 -- NOTE: introduced by db/migrations/2026-08-01-perm2b-field-masking.sql.
 
+-- CMPL-1(2026-08-30)追加四列(imported / import_permit_ref /
+-- import_permit_verified_by / import_permit_verified_at)。
+-- 【它们是【不敏感】的,所以走列清单 GRANT + 出现在本视图里,不做遮蔽】——
+-- 真正敏感的仍然只有 unit_price,按 data.view_prices 透出。
+-- 【给遮蔽表加列是三件事一起做】ADD COLUMN + 列清单 GRANT + 本视图;
+-- 少任何一件,应用都会"写得进、读不出"(FIN-6 的原样重演),而 gate 的
+-- colgrant 判词会在 live 与 rebuild 两侧同时点名。
 CREATE VIEW public.inbound_batches_masked WITH (security_invoker = off) AS
  SELECT id,
     code,
@@ -46,6 +53,12 @@ CREATE VIEW public.inbound_batches_masked WITH (security_invoker = off) AS
     deleted_by,
     delete_reason,
     declared_qty,
-    chemistry_certainty_code
+    chemistry_certainty_code,
+    imported,
+    import_permit_ref,
+    import_permit_verified_by,
+    import_permit_verified_at
    FROM inbound_batches
-  WHERE has_permission('module.inbound.view'::text);
+  WHERE has_permission('module.inbound.view'::text);;
+
+GRANT SELECT ON public.inbound_batches_masked TO authenticated;

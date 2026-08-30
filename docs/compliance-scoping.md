@@ -161,3 +161,158 @@ grant, not a build.
 5. The gate at whichever chokepoint(s) A3 names, refusing by name
    (`SUPPLIER_QUALIFICATION_EXPIRED|supplier|cert_type|valid_until`), with the fixture asserting
    both directions and the disposition distinction (a warn-type expiry must NOT block).
+
+---
+
+# CMPL-1 (2026-08-30) — own-licence limits, import due diligence, and three named deferrals
+
+## The specimen, and what it was allowed to be
+
+Tim supplied **two NEA licences belonging to another company (Se-cure Waste Management Pte Ltd)**
+as a **specimen of what fields a licence carries**. They are **not Evoltrya's licences**.
+
+> ★ **The specimen supplied FIELDS ONLY. Not one specimen VALUE was entered anywhere** — not as a
+> default, not as an example row, not as a placeholder, not as an "e.g." in a comment, and not in a
+> fixture. The fixture uses obviously-scratch values (`ZZ-FIX152`, limits of 4/10/100) that could not
+> be mistaken for real licence data.
+
+**Evoltrya holds no licence yet, and `company_compliance` is 0 rows on live.** ★ **Empty is the
+EXPECTED state, not missing data** ★ — that was already the position in that table's own comment
+("空着是预期状态 —— 公司尚未运营"), and this cut did not change it. The screen says so in words
+rather than rendering a silent blank.
+
+## What was NOT built, and why — read this before looking for it
+
+**1 · No new licence register.** `company_compliance` (CMP-1) already *is* one: `cert_type_code` →
+`certificate_types` (so the licence **kind was already a dictionary row**), plus number, issuing
+body, validity and document. Its own comment already said the first real licence would need **no
+schema change**. Building a second table would have been a second answer to "where do our licences
+live". This cut is a **narrow extension**: `issue_date`, `status`, and the storage limit.
+
+**2 · No quality hold.** ★ **It was found already working** ★ — and the objects are named here so a
+later reader can tell this from an oversight:
+
+| what | object |
+|---|---|
+| placing a hold, with a **required** reason | `hold_stock()` — refuses `STK_REASON_REQUIRED`, `STK_HOLD_EXCEEDS_AVAILABLE` |
+| releasing it | `release_stock()` |
+| processing **blocked**, refusing by name | `commit_processing_run` → `IOD_CONSUME_EXCEEDS_AVAILABLE\|consumed\|available\|held` |
+| sale **blocked**, refusing by name | `record_output_sale`, naming available/held/committed |
+| the status axis | `inventory_movements.stock_status ∈ (available, on_hold, committed)` |
+
+So the brief's "every blocked path must refuse by name" was **already true**. The residual gap is the
+one `proc-reality.md` item H already named: the existing mechanism is an **inventory action**
+(a quantity moved to `on_hold`), not a **quality conclusion** (a judgement about the batch). That is
+queued, **not built**, because there are **zero assay records on output batches** — there is nothing
+to conclude quality *from*, and a `quarantine` state nobody can populate would be worse than none.
+
+**3 · No hazardous-quantity-on-hand derivation.** See the deferral below — it is the most important
+thing in this section.
+
+## The three named deferrals
+
+| # | deferred | trigger | why not now |
+|---|---|---|---|
+| **D1** | **Design capacity (tonnes/day)** on the licence | **the Phase 7 operation model** | It needs reliable *daily throughput*, which Phase 7 has not built. Modelling it now would mean inventing the denominator. (R3) |
+| **D2** | **Hazardous quantity on hand** — the derivation | **the classification dictionary can express NEA's approved waste-type categories** | See below. This is the input the storage-limit check is missing. |
+| **D3** | **Quality conclusion** at batch level (distinct from the inventory hold) | **the first real assay on an output batch** | Nothing to conclude quality from today. |
+
+### D2 in full, because a later reader will otherwise assume the dictionary is wired up
+
+To judge "are we over the approved storage limit" you need **how many tonnes of hazardous material
+are on site**. That number **cannot be computed today**, and the reason is not effort:
+
+* `waste_classifications` holds **two rows on live: `focused` and `non_focused`**;
+* its `is_controlled` column has **ZERO consumers** — it is read by no view and no function anywhere
+  in the repository;
+* neither row corresponds to NEA's *approved waste type* vocabulary.
+
+Mapping `is_controlled` onto NEA categories would be **invention, not modelling**. So
+`hazardous_qty_on_hand_tonnes()` exists and **returns NULL**, and ★ **NULL means "cannot be
+computed", not "zero tonnes"** ★. An implementation that read it as 0 would let every limit check
+pass — which is exactly the manufactured confidence R2 forbids.
+
+## R2 in practice: the check refuses, and the three "missings" never collapse
+
+`licence_storage_within_limit()` **raises** rather than returning a convenient answer — the same
+shape as the PDPA retention period (`anonymise_employee` raising `PDPA_RETENTION_PERIOD_NOT_SET`
+when `hr_settings.personal_data_retention_months` is unset), which is the precedent R2 cites.
+
+★ **Three different missing states, three different codes — deliberately never merged:**
+
+| state | code |
+|---|---|
+| tonnage computable, **no limit recorded** | `LICENCE_STORAGE_LIMIT_NOT_SET` |
+| limit recorded, **tonnage not computable** | `HAZARDOUS_QTY_NOT_COMPUTABLE` |
+| **both missing** — *this is today's live state* | `LICENCE_STORAGE_INPUTS_BOTH_MISSING` |
+
+Merging them would repeat the defect CHAIN-BUILD-1 had just fixed: two different "zeroes" rendering
+alike, sending the operator to fix the wrong one. Here it would send them to record a limit when the
+thing actually missing is a derivation that does not exist. Pinned by `db/fixtures/152` (arms A1–A3,
+a succeeding control in **both** directions, and a fault injection that merges the branches and
+asserts the arm goes blind).
+
+**A note on `scope`, and why it was demoted in the same change.** The storage limit used to live
+inside that free-text column — its old comment modelled a tonnage *inside a sentence*. Now that the
+figure has a real column, `scope` is **explicitly demoted to prose that no check reads**, which is
+recorded in its column comment. Leaving both readable would have created two sources for one fact —
+the LOG-5a lesson (`free_time_terms` free text vs `free_days` integer) applied again.
+
+## Import due diligence: what the licence text actually requires
+
+Both specimen licences state that the licensee shall not receive hazardous or other waste **imported
+into Singapore** except from a person who, **at the point of import**, held an import permit under
+the Hazardous Waste (Control of Export, Import and Transit) Act 1997.
+
+**Modelled as a recorded human verification on the batch** — `imported`, `import_permit_ref`,
+`import_permit_verified_by`, `import_permit_verified_at` — with two constraints: verification fields
+are only permitted when `imported IS TRUE`, and verifier and timestamp live and die together.
+
+★ **Four states that must never render alike**, and `NULL` is the one most easily lost:
+
+| state | meaning |
+|---|---|
+| `imported IS NULL` | **nobody has said yet** — ★ this is NOT "not imported" ★ |
+| `imported = false` | recorded as not imported; the condition does not apply |
+| `true`, no verification | imported, **permit not yet verified** — raises the dashboard arm |
+| `true`, verified | imported, verified, by whom and when |
+
+### Why this WARNS and does not REFUSE
+
+The repo's standard is: **decidable now may refuse; not-yet-knowable may only warn.**
+
+* **The decidable half already refuses, and this cut did not touch it.** `certificate_types` already
+  carries `nea_import` ("NEA Import Permit") with `disposition = 'block'`, and an expired one already
+  blocks receiving through `supplier_receiving_blocked` → `trg_inbound_batches_po_receivable`.
+  Adding a second refusal beside it would have been a second definition of the same gate.
+* **This half is not decidable by the system.** "Did the deliverer hold a permit *at the point of
+  import*" is a fact about the **past**, about a **specific consignment**. The system holds no record
+  of that moment — only a person's assertion that they checked.
+
+**Both directions of being wrong, stated:** a wrongly refused truck at the gate costs more than that
+truck — it **creates pressure to bypass the guard**, and a guard that gets routed around is worse
+than no guard. A wrongly accepted import breaches our own licence condition — but the decidable half
+already blocks that, and this half leaves an auditable record of who verified what and when.
+
+## Unqueued: due-diligence items with no source document
+
+**These are NOT queued, and that is deliberate.** The licence text supports the import-permit duty
+and nothing further. Each of the following would need a **Tim ruling with a source document**, and
+inventing them from a specimen licence that says nothing about them would be modelling imagination:
+
+* **sanctions / restricted-party screening** — no source document yet;
+* **financial standing checks on counterparties** — no source document yet;
+* **supplier site audits** (frequency, scope, who signs off) — no source document yet.
+
+## 2c — should the 60-day unsold arm point at a licence-derived limit instead? Not in this cut.
+
+`output_unsold_aging` fires on finished output sitting **≥ 60 days**, and the arm inventory records
+that 60 was chosen **to discriminate** (2 of 7 batches), is explicitly "a proposal", and that
+changing it is a one-line migration.
+
+**It cannot be pointed at a licence-derived limit today, and the blocker is D2, not the arm.** The
+two measure different things: the arm measures **age of unsold finished goods**; a licence storage
+limit measures **tonnes of hazardous material on site**. Repointing it would need (a) the hazardous
+tonnage derivation (D2) and (b) a ruling that finished output counts toward the licensed storage
+limit at all — which is a question about our licence's wording that nobody has answered. **Later
+cut, gated on D2.**

@@ -48,6 +48,12 @@ INSERT INTO public.certificate_types (code, name_en, name_zh, disposition, warn_
     ('tfs',        'TFS Document',      'TFS 文件',          'block', 90, 3, '默认 block:跨境废物运输文件'),
     ('nea_import', 'NEA Import Permit', 'NEA 进口许可',      'block', 90, 4, '默认 block:新加坡国家环境局进口许可,缺了不能收'),
     ('gwdf',       'GWDF Licence',      'GWDF 执照',         'block', 90, 5, '默认 block:一般废物处置设施执照'),
+    -- CMPL-1(2026-08-30):样本显示 NEA 还有一类【一般废物收集商执照】。
+    -- ★加一类就是加一行★ —— 这正是本表作为 RUNTIME CONFIG 的意义,不加列、不动 schema。
+    -- disposition 取 block,与 gwdf/basel/tfs/nea_import 同档(过期了就不该再收货);
+    -- 到期提醒因此【自动继承】warn_lead_days,不需要另写一支臂。
+    -- 【这是一个【类别】,不是样本上的任何一个【值】】—— 执照号码、设施、限额一个都没有进来。
+    ('gwc',        'GWC Licence',       '一般废物收集商执照',   'block', 90, 6, '默认 block:一般废物收集商执照'),
     ('iso',        'ISO Certification', 'ISO 认证',          'warn',  60, 6, '默认 warn:管理体系认证是商业保证,过期是瑕疵不是违法'),
     ('other',      'Other',             '其他',              'warn',  30, 7, '默认 warn:未归类的证书先提醒,归了类再定处置'),
     -- ★ CONTRACT-1(2026-08-30):保险【就是一种证书】,不是第二套到期机制 ★

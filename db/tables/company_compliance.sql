@@ -24,7 +24,16 @@ CREATE TABLE public.company_compliance (
     created_at     timestamptz NOT NULL DEFAULT now(),
     created_by     uuid,
     updated_at     timestamptz NOT NULL DEFAULT now(),
-    updated_by     uuid
+    updated_by     uuid,
+    -- ── CMPL-1 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────────
+    issue_date     date,
+    -- 【没有多余的 IS NULL OR】CHECK 在表达式求值为 NULL 时放行,而
+    -- NULL IN (...) 就是 NULL —— 所以这一句已经允许 NULL。多写一遍不但冗余,
+    -- 还会让 check-i18n 的 sqlCheckIn 认不出这个枚举(fu 迁移改回来的)。
+    status         text CHECK (status IN ('active', 'suspended', 'revoked')),
+    -- ★ 把一个【数字】从散文里挪出来的那一格 ★ 见列注与 licence_storage_within_limit()
+    approved_storage_limit_tonnes numeric
+                   CHECK (approved_storage_limit_tonnes IS NULL OR approved_storage_limit_tonnes > 0)
 );
 
 CREATE INDEX idx_company_compliance_valid_until
@@ -51,3 +60,15 @@ CREATE POLICY "company_compliance update by permission"
     AS PERMISSIVE FOR UPDATE TO authenticated
     USING (has_permission('module.suppliers.edit'::text))
     WITH CHECK (has_permission('module.suppliers.edit'::text));
+
+COMMENT ON COLUMN public.company_compliance.issue_date IS
+    'CMPL-1:执照的【签发日】—— 与 valid_from 是两件事。样本上两者可以不同(签发在前、生效在后),所以分两列;把它们合成一列会让"什么时候发的"不可恢复。NULL = 没录。';
+
+COMMENT ON COLUMN public.company_compliance.status IS
+    'CMPL-1:执照的【当下标准】。三个值,而且【故意不包含 expired】—— 是否过期由 valid_until 推得出来,再存一个 expired 就是同一个事实的第二份,而两份必然漂开(LOG-5a 那一课)。NULL = 没说。三值取的是【推导不出来】的那几种:active / suspended / revoked(监管方可以中止或吊销一张仍在有效期内的执照)。';
+
+COMMENT ON COLUMN public.company_compliance.approved_storage_limit_tonnes IS
+    'CMPL-1:执照批准的【贮存上限】,吨。★这是本刀把一个数字从散文里挪出来的那一格★ —— 此前它只能写在自由文本 scope 里,而**一句话不是一个可以判的值**(与 LOG-5a 把 free_time_terms 换成 free_days 逐字同一件事)。**NULL 不表示"没有上限",表示"没有人录过上限"**,而按 R2,读到 NULL 的判据必须【拒绝作判断】,绝不能放行 —— 见 licence_storage_within_limit()。';
+
+COMMENT ON COLUMN public.company_compliance.scope IS
+    '执照的适用范围与条件正文 —— **散文,给人读的**。★【没有任何判据读这一列】★(CMPL-1,2026-08-30):机器要判的那几格已经搬成了真列(目前是 approved_storage_limit_tonnes)。**不要把新的限额写进这句话里**,也不要写解析它的代码 —— 一句话不是一个可以判的值。执照正文里那些【机器判不了】的条件(车辆、人员培训、收运时段、记录保存)正是这一列该装的东西。';

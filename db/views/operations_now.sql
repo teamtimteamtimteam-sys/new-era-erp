@@ -123,6 +123,15 @@
 -- (那两条"低读数有两种意思"的事实)整段写在 equipment_service_status 的视图注释里。
 -- 【放宽】两支都走 arm_permission_widen(processing OR finance)—— 机器卡在财务、
 -- 干活的人在加工,而它们底下每一张表/视图的读者都是这两个码的 OR。
+-- CMPL-1(2026-08-30)追加两支:
+--   · company_licence_expiring —— **形状逐字取自 qualification_expiring**,只是把
+--     supplier_compliance 换成 company_compliance(少一跳供应商)。它读的仍是
+--     certificate_types 自带的 warn_lead_days 与 disposition,所以 gwc 加进字典那天
+--     它的到期提醒【自动就有】。**没有另起一套到期机制。**
+--   · import_permit_unverified —— 是进口货、而那张进口准证还没有人核过。
+--     **它不拦任何东西**:拦的那一半由 nea_import 的 block 处置在收货上做
+--     (supplier_receiving_blocked → trg_inbound_batches_po_receivable),
+--     这一支说的是"这一票还欠一次人工核对"。理由见 db/tables/inbound_batches.sql 的列注。
 CREATE VIEW public.operations_now AS
  SELECT item_type,
     permission,
@@ -372,15 +381,8 @@ CREATE VIEW public.operations_now AS
             so.status AS subject,
             so.order_date AS item_date
            FROM sales_orders so
-          WHERE so.deleted_at IS NULL AND (so.status = ANY (ARRAY['confirmed'::text, 'partially_shipped'::text]))        UNION ALL
--- ── EXEC-3a:工单逾期 ──────────────────────────────────────────────────────
--- 【排产日为空【永远不是】逾期】—— 空的意思是"没排期",而不是"排在过去"。
--- 一个 COALESCE(scheduled_date, CURRENT_DATE) 会把没排期的全部报成今天到期,
--- COALESCE(..., 'infinity') 会把它们全部漏掉 —— 两个方向都错,所以这里
--- 显式 IS NOT NULL(WO-1c 记在 arm inventory 里的那条)。
---
--- 【"放行了三个月、从没排过期"该不该有别的支管】—— 仍然是一个【开着的问题】,
--- 记在 arm inventory 里。这一支不假装回答它:它只报"排了期而且过了期"的。
+          WHERE so.deleted_at IS NULL AND (so.status = ANY (ARRAY['confirmed'::text, 'partially_shipped'::text]))
+        UNION ALL
          SELECT 'work_order_overdue'::text AS item_type,
             'module.processing.view'::text AS permission,
             w.id AS item_id,
@@ -389,84 +391,32 @@ CREATE VIEW public.operations_now AS
             w.scheduled_date::text AS subject,
             w.scheduled_date AS item_date
            FROM work_orders w
-          WHERE w.status = 'released'::text
-            AND w.scheduled_date IS NOT NULL
-            AND w.scheduled_date < CURRENT_DATE
+          WHERE w.status = 'released'::text AND w.scheduled_date IS NOT NULL AND w.scheduled_date < CURRENT_DATE
         UNION ALL
--- ── EXEC-3a:工单差异超阈 ──────────────────────────────────────────────────
--- 【两种坏消息,两个阈值,两种触发时机】—— WO-1c 在 arm inventory 里留的那个
--- 问题("投入超耗与产出短交是否用同一个阈值")的答案是【不是】,所以
--- processing_settings 有两列,而这一支有两条腿:
---
---   * 投入超耗:吃掉的比计划多出 t_in% 以上。**开着的单和收了工的单都报** ——
---     超耗在它发生的那一刻就是可处理的事(料已经下去了,要么改计划、要么查为什么)。
---   * 产出短交:产出比预期少 t_out% 以上。**只报收了工的单** —— 在收工之前,
---     "少"只是"还没做完",把它报出来等于每天提醒一件正在进行的事。
---
--- 【没记录预期的行永远不报】has_plan = false 意味着没人估过,而不是估了零。
--- 一个把它当零的实现会让每一次产出都成为"短交 100%"—— 这正是 WO-1a 让
--- 预期产出行可选、WO-1b 让视图返回 NULL 的全部理由,在这里必须一路守住。
---
--- 阈值现读 processing_settings,不写死(与 metal_quote_stale 同一条)。
          SELECT 'work_order_variance_beyond'::text AS item_type,
             'module.processing.view'::text AS permission,
             f.work_order_id AS item_id,
             NULL::text AS doc_kind,
             f.work_order_code AS item_code,
-            CASE WHEN f.side = 'input'::text
-                 THEN 'input overrun · ' || COALESCE(f.material_code, '?') || ' · '
-                      || trim_scale(f.actual_qty)::text || ' / ' || trim_scale(f.planned_or_expected_qty)::text
-                 ELSE 'output shortfall · ' || COALESCE(f.material_code, '?') || ' · '
-                      || trim_scale(f.actual_qty)::text || ' / ' || trim_scale(f.planned_or_expected_qty)::text
-            END AS subject,
+                CASE
+                    WHEN f.side = 'input'::text THEN (((('input overrun · '::text || COALESCE(f.material_code, '?'::text)) || ' · '::text) || trim_scale(f.actual_qty)::text) || ' / '::text) || trim_scale(f.planned_or_expected_qty)::text
+                    ELSE (((('output shortfall · '::text || COALESCE(f.material_code, '?'::text)) || ' · '::text) || trim_scale(f.actual_qty)::text) || ' / '::text) || trim_scale(f.planned_or_expected_qty)::text
+                END AS subject,
             COALESCE(w2.scheduled_date, w2.created_at::date) AS item_date
            FROM work_order_fulfilment f
              JOIN work_orders w2 ON w2.id = f.work_order_id
-          WHERE f.has_plan
-            AND f.planned_or_expected_qty > 0::numeric
-            AND (
-                 (f.side = 'input'::text
-                  AND w2.status = ANY (ARRAY['released'::text, 'closed'::text])
-                  AND f.actual_qty > f.planned_or_expected_qty
-                      * (1::numeric + (SELECT ps.wo_input_overrun_pct FROM processing_settings ps LIMIT 1) / 100::numeric))
-              OR (f.side = 'output'::text
-                  AND w2.status = 'closed'::text
-                  AND f.actual_qty < f.planned_or_expected_qty
-                      * (1::numeric - (SELECT ps.wo_output_shortfall_pct FROM processing_settings ps LIMIT 1) / 100::numeric))
-            )
+          WHERE f.has_plan AND f.planned_or_expected_qty > 0::numeric AND (f.side = 'input'::text AND (w2.status = ANY (ARRAY['released'::text, 'closed'::text])) AND f.actual_qty > (f.planned_or_expected_qty * (1::numeric + (( SELECT ps.wo_input_overrun_pct
+                   FROM processing_settings ps
+                 LIMIT 1)) / 100::numeric)) OR f.side = 'output'::text AND w2.status = 'closed'::text AND f.actual_qty < (f.planned_or_expected_qty * (1::numeric - (( SELECT ps.wo_output_shortfall_pct
+                   FROM processing_settings ps
+                 LIMIT 1)) / 100::numeric)))
         UNION ALL
--- ═══ LOG-5a:物流的四支 ═══════════════════════════════════════════════════
--- 【四支全部排除已软删的箱子】(c.deleted_at IS NULL,逐支各写一次)。
--- 【三个阈值 2 / 14 / 7 都是写死的(v1,Tim 定)】。要把它们变成可调的那一天,
--- 现成的先例是 certificate_types.warn_lead_days —— 一张 RUNTIME CONFIG 表,
--- 每一类自带提前期【和】后果(block/warn/ignore),"加一种是编辑一行,不是跑一次迁移"。
--- 在那之前,写死的数字至少是【看得见】的:它就在这里,不在某个配置项里。
-
--- ── 1 · 免柜期将尽 / 已超 ────────────────────────────────────────────────
--- 【锚点是"最后被【录入】的那条 arrived"】(LOG-5d 改)—— ORDER BY
--- recorded_at DESC, id DESC。**此前是 event_date DESC,那是错的**:
--- 里程碑只增不改,更正的写法是再记一条;而一条把日期改【早】的更正,
--- 在 event_date 排序下【永远排不到前面】,于是它一次都不会生效。
--- (线上实例 CTR-2026-0009:先录 arrived 08-16,再录一条更正 08-14 ——
---  所有读者仍然锚在 08-16。改晚的更正碰巧生效,改早的永远不生效。)
--- 【屏幕那一侧算的是同一件事,必须同刀改】页面为了显示剩余天数自己算了一遍
--- (app/logistics/containers/[id]/ContainerFreightPanel.tsx),口径一旦与这里分岔,
--- 屏幕写着"剩余 1 天"而看板一声不吭,且没有任何东西会报错。两处注释互相点名。
--- 【id DESC 是破平局的】recorded_at 默认 now() = 事务时刻,同一事务里插两条会一样;
--- uuid 比大小没有"更晚"的含义,但它是【确定的】—— 不确定比排错更坏。
--- 【这条规则只管"同一种里程碑里哪一条算数"】。跨类型的"现在走到哪一步"是另一个
--- 问题,仍按 event_date 排(container_overview.latest_milestone)—— 那里若改成
--- recorded_at,今天补录一条 booked 就会让箱子"退回"已订舱。
--- 【报价里 free_days 为 NULL 的箱子一支都不响】NULL = "这份报价没有写免柜期",
--- 与 0 =「零个免费天」是两件不同的事,而把前者当成后者会让每一个到港的箱子
--- 从第一天起就报警 —— 那是喊狼来了,而喊狼来了的告警等于没有告警。
          SELECT 'free_time_expiring'::text AS item_type,
             'module.purchasing.view'::text AS permission,
             c.id AS item_id,
             NULL::text AS doc_kind,
             c.code AS item_code,
-            ((q.free_days - (CURRENT_DATE - arr.event_date))::text || ' left of '::text
-              || q.free_days::text) || COALESCE(' — '::text || f.legal_name, ''::text) AS subject,
+            ((((q.free_days - (CURRENT_DATE - arr.event_date))::text) || ' left of '::text) || q.free_days::text) || COALESCE(' — '::text || f.legal_name, ''::text) AS subject,
             arr.event_date AS item_date
            FROM containers c
              LEFT JOIN suppliers f ON f.id = c.forwarder_id
@@ -475,19 +425,9 @@ CREATE VIEW public.operations_now AS
                   WHERE m.container_id = c.id AND m.milestone = 'arrived'::text
                   ORDER BY m.recorded_at DESC, m.id DESC
                  LIMIT 1) arr ON true
-             JOIN forwarder_rate_quotes q
-               ON q.supplier_id = c.forwarder_id AND q.lane_id = c.lane_id
-              AND q.deleted_at IS NULL
-              AND c.departure_date >= q.valid_from AND c.departure_date <= q.valid_to
-          WHERE c.deleted_at IS NULL
-            AND q.free_days IS NOT NULL
-            AND (q.free_days - (CURRENT_DATE - arr.event_date)) <= 2
+             JOIN forwarder_rate_quotes q ON q.supplier_id = c.forwarder_id AND q.lane_id = c.lane_id AND q.deleted_at IS NULL AND c.departure_date >= q.valid_from AND c.departure_date <= q.valid_to
+          WHERE c.deleted_at IS NULL AND q.free_days IS NOT NULL AND (q.free_days - (CURRENT_DATE - arr.event_date)) <= 2
         UNION ALL
--- ── 2 · 走了很久,没人说到了 ─────────────────────────────────────────────
--- 【这一支是上一支的保命companion】免柜期那一支只在【有 arrived】时才可能响;
--- 一个没人录到港的箱子,在那一支里【永远安静】,而安静与"没问题"在屏幕上
--- 长得一模一样(METAL-1 的 no_reference 那一课)。所以这一支专门说:
--- 开走 14 天了,而没有任何人说过它到了。
          SELECT 'container_no_arrival'::text AS item_type,
             'module.purchasing.view'::text AS permission,
             c.id AS item_id,
@@ -501,17 +441,10 @@ CREATE VIEW public.operations_now AS
                   WHERE m.container_id = c.id AND m.milestone = 'departed'::text
                   ORDER BY m.recorded_at DESC, m.id DESC
                  LIMIT 1) dep ON true
-          WHERE c.deleted_at IS NULL
-            AND (CURRENT_DATE - dep.event_date) >= 14
-            AND NOT (EXISTS ( SELECT 1 FROM container_milestones m2
-                               WHERE m2.container_id = c.id AND m2.milestone = 'arrived'::text))
+          WHERE c.deleted_at IS NULL AND (CURRENT_DATE - dep.event_date) >= 14 AND NOT (EXISTS ( SELECT 1
+                   FROM container_milestones m2
+                  WHERE m2.container_id = c.id AND m2.milestone = 'arrived'::text))
         UNION ALL
--- ── 3 · 说好的到港日过了,而它还没到 ─────────────────────────────────────
--- 【expected_arrival_date 为 NULL 时这一支不响】,而那是一条【已知的局限】,
--- 不是一个疏漏:与 work_order_overdue 逐字同形(它也只报"排了期而且过了期"的,
--- 并在视图里明写"放行了三个月、从没排过期该不该有别的支管"仍是开着的问题)。
--- 同一个问题在这里原样成立:一个从来没人填过 ETA 的箱子,是"没问题",
--- 还是最该被问的那一个?这一支不假装回答它。
          SELECT 'container_eta_overdue'::text AS item_type,
             'module.purchasing.view'::text AS permission,
             c.id AS item_id,
@@ -520,19 +453,10 @@ CREATE VIEW public.operations_now AS
             c.expected_arrival_date::text AS subject,
             c.expected_arrival_date AS item_date
            FROM containers c
-          WHERE c.deleted_at IS NULL
-            AND c.expected_arrival_date IS NOT NULL
-            AND c.expected_arrival_date < CURRENT_DATE
-            AND NOT (EXISTS ( SELECT 1 FROM container_milestones m3
-                               WHERE m3.container_id = c.id AND m3.milestone = 'arrived'::text))
+          WHERE c.deleted_at IS NULL AND c.expected_arrival_date IS NOT NULL AND c.expected_arrival_date < CURRENT_DATE AND NOT (EXISTS ( SELECT 1
+                   FROM container_milestones m3
+                  WHERE m3.container_id = c.id AND m3.milestone = 'arrived'::text))
         UNION ALL
--- ── 4 · 开走了,单据还欠着 ───────────────────────────────────────────────
--- 【锚在 departure_date】—— 它是箱子上唯一 NOT NULL 的世界侧日期,所以一定算得出来。
--- 【代价照直写】:有些单据(订舱确认、装箱单)本该在开航【之前】就到,
--- 以开航日为零点会让它们永远不迟。这一支因此不是"所有该到的单据"的告警,
--- 是"开航之后还欠着"的告警 —— 名字与它测的东西一致。
--- 【从没实例化过清单的箱子一支都不响】:pending 数为 0,这里就没有行。
--- 那种"空"与"都收齐了"在库里长得一样,而把它们分开是 5b 的事(屏幕上说清哪一种空)。
          SELECT 'container_documents_late'::text AS item_type,
             'module.purchasing.view'::text AS permission,
             c.id AS item_id,
@@ -544,29 +468,8 @@ CREATE VIEW public.operations_now AS
              JOIN LATERAL ( SELECT count(*) AS n
                    FROM container_documents d
                   WHERE d.container_id = c.id AND d.status = 'pending'::text) p ON true
-          WHERE c.deleted_at IS NULL
-            AND p.n > 0
-            AND (CURRENT_DATE - c.departure_date) >= 7
+          WHERE c.deleted_at IS NULL AND p.n > 0 AND (CURRENT_DATE - c.departure_date) >= 7
         UNION ALL
--- ── EQP-2c · 保养到期,以及【将到期】——【两支,不是一支带等级】────────────
--- operations_now 的列契约里没有"严重程度"这一列,所以唯一在结构上分得开的
--- 办法就是两个 item_type。与 qualification_expiring / qualification_missing、
--- container_no_arrival / container_eta_overdue 同形。
--- 【两支互斥】已到期的不再出现在"将到期"里(is_approaching 自己带 NOT is_due)
--- —— 否则同一件事被数两遍,那正是 fixture 30 那句话要抓的东西。
--- 【提前量是【数据】】lead_kg / lead_days 在 equipment_service_intervals 的行上,
--- 视图现读;fixture 111 F6 在同一笔事务里两个方向都验过。
--- 【item_id 是机器,不是间隔行】判据是 LINKS-1 那一条:门牌指向【承载补救动作】
--- 的那张页面所对应的行。补救动作是"给这台机器记一次保养",而它发生在机器那一页
--- (/finance/assets/[id],EQP-1c-b 建的)—— 间隔行今天没有自己的页面。
--- 与 bank_unmatched / margin_cost_not_allocated 取父行是同一条规矩。
--- 【item_date 是基线日】= 上一次那一种保养,没有就是取得日。于是
--- days_waiting 读出来就是"距上一次保养多少天",【正好就是两个量度里的天数那一个】,
--- 不是第三个数。
--- 【未监控的机器一支都不响,而那是一个具名状态不是零】判据 s.monitored ——
--- 理由整段写在 equipment_service_status 的视图注释里,这里不复述。
--- 【已处置的机器不收】一件"去保养它"的待办,对一台已经不在的机器没有意义。
--- 【牌子在 EQP-2d】本刀落的是这两支的【行】;首页那两块牌子在 2d。
          SELECT 'equipment_service_due'::text AS item_type,
             'module.processing.view'::text AS permission,
             ess.equipment_id AS item_id,
@@ -587,12 +490,6 @@ CREATE VIEW public.operations_now AS
            FROM equipment_service_status ess_1
           WHERE ess_1.monitored AND ess_1.disposition = 'warn'::text AND ess_1.equipment_status <> 'disposed'::text AND ess_1.is_approaching
         UNION ALL
--- ★【CHASE-1:到期没兑现的承诺】★ 一个记下来却没有人被提醒的承诺,
--- 就是表里的一条备注。【它清得掉】谓词含 outcome IS NULL —— record_promise_outcome
--- 一记结局这一行就消失;一个清不掉的告警会教会人忽略告警(hr_alerts 那次)。
--- 【逾期就在承诺日【当天】】(Tim 2026-08-28 裁定,fu2 改的)——
--- 这门生意的货款通常在【下午中段】到账,所以承诺日当天来看这张单子的人,
--- 面对的已经是那天要处理的那件事;推到第二天等于让单子在它最有用的那一天沉默。
          SELECT 'promise_overdue'::text AS item_type,
             'module.finance.view'::text AS permission,
             ps.promise_id AS item_id,
@@ -603,32 +500,39 @@ CREATE VIEW public.operations_now AS
            FROM collection_promise_status ps
           WHERE ps.is_overdue
         UNION ALL
--- ★【WHT-1:到期没汇给 IRAS 的预提税】★ 当月代扣的税,**次月 15 日**前申报并缴纳。
--- 【这个日期与 CPF 的次月 14 日不是同一个数】各自来自各自的法令 —— 一个凑整过的
--- 法定期限,是一个会让公司逾期的数字,所以两处各写各的,不共用常量。
--- 【它清得掉,而清除【只能】由钱来完成】谓词读的是 wht_liability_by_month
--- 的 unremitted_base,而那个数只有在 remit_wht 过了一张真的分录、把 2150 借掉
--- 之后才会下降。**没有"知道了"按钮** —— 与 CPF 的 cpf_paid_at、与 CHASE-1 的
--- outcome IS NULL 是同一条:一个点一下就消失的告警,清除的是人的注意力,
--- 不是那件事;而一个清不掉的告警会教会人忽略告警(hr_alerts 那次)。
--- 【七天窗口取自 cpf_due 那一支】到期前七天开始响,逾期后继续响(差值为负)。
--- 【代扣为零的月份一支都不响】unremitted_base > 0 —— 而那不是"还没到",
--- 是"这个月没有代扣过任何税",一个正当且常见的状态。
          SELECT 'wht_due'::text AS item_type,
             'module.finance.view'::text AS permission,
             NULL::uuid AS item_id,
             NULL::text AS doc_kind,
-            to_char(w.period_month::timestamp, 'YYYY-MM'::text) AS item_code,
-            -- 【币种是数据,不是字面量】本位币从 currencies.is_base 读 —— 这条
-            -- 规矩有一支专门的检查(check-currency-literals),而它也看得见 SQL。
-            (to_char(w.unremitted_base, 'FM999G999G990D00'::text) || ' '::text)
-                || (SELECT c.code FROM currencies c WHERE c.is_base) AS subject,
+            to_char(w.period_month::timestamp without time zone, 'YYYY-MM'::text) AS item_code,
+            (to_char(w.unremitted_base, 'FM999G999G990D00'::text) || ' '::text) || (( SELECT c.code
+                   FROM currencies c
+                  WHERE c.is_base)) AS subject,
             w.due_date AS item_date
            FROM wht_liability_by_month w
-          WHERE w.unremitted_base > 0::numeric
-            AND (w.due_date - CURRENT_DATE) <= 7
-) a
-  WHERE (has_permission(permission) OR has_any_permission(arm_permission_widen(item_type)))
-    AND (arm_permission_any(item_type) IS NULL OR has_any_permission(arm_permission_any(item_type)));
+          WHERE w.unremitted_base > 0::numeric AND (w.due_date - CURRENT_DATE) <= 7
+        UNION ALL
+         SELECT 'company_licence_expiring'::text AS item_type,
+            'module.suppliers.view'::text AS permission,
+            cc.id AS item_id,
+            NULL::text AS doc_kind,
+            COALESCE(cc.cert_no, ct.code) AS item_code,
+            ct.name_en AS subject,
+            cc.valid_until AS item_date
+           FROM company_compliance cc
+             JOIN certificate_types ct ON ct.code = cc.cert_type_code
+          WHERE cc.deleted_at IS NULL AND ct.disposition <> 'ignore'::text AND cc.valid_until IS NOT NULL AND cc.valid_until <= (CURRENT_DATE + ct.warn_lead_days)
+        UNION ALL
+         SELECT 'import_permit_unverified'::text AS item_type,
+            'module.inbound.view'::text AS permission,
+            ib.id AS item_id,
+            NULL::text AS doc_kind,
+            ib.code AS item_code,
+            s.legal_name AS subject,
+            ib.arrival_date AS item_date
+           FROM inbound_batches ib
+             JOIN suppliers s ON s.id = ib.supplier_id
+          WHERE ib.deleted_at IS NULL AND ib.imported IS TRUE AND ib.import_permit_verified_at IS NULL) a
+  WHERE (has_permission(permission) OR has_any_permission(arm_permission_widen(item_type))) AND (arm_permission_any(item_type) IS NULL OR has_any_permission(arm_permission_any(item_type)));;
 
 GRANT SELECT ON public.operations_now TO authenticated;

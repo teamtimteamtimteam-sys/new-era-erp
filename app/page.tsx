@@ -59,6 +59,15 @@ const TILES = [
       itemHref: (r: OpsRow) => `/suppliers/${r.item_id}/edit` },
     { itemType: 'qualification_missing', permission: 'module.suppliers.view', href: '/suppliers',
       itemHref: (r: OpsRow) => `/suppliers/${r.item_id}/edit` },
+    // CMPL-1:公司【自家】执照将到期 —— 与上面两支供应商资质臂同形、同权限码,
+    // 读的也是同一份 certificate_types.warn_lead_days。界在 /finance/company,
+    // 因为那一页才是能【续期】的地方(与 qualification_* 界在供应商页同一条理由)。
+    { itemType: 'company_licence_expiring', permission: 'module.suppliers.view', href: '/finance/company',
+      itemHref: () => '/finance/company' },
+    // CMPL-1:是进口货、而进口准证还没有人核过。**它不拦任何东西** ——
+    // 拦的那一半由 nea_import 的 block 处置在收货上做;这一支说的是"还欠一次人工核对"。
+    { itemType: 'import_permit_unverified', permission: 'module.inbound.view', href: '/inbound',
+      itemHref: (r: OpsRow) => `/inbound/${r.item_id}/edit` },
     { itemType: 'po_awaiting_receipt', permission: 'module.purchasing.view', href: '/purchasing/orders',
       itemHref: (r: OpsRow) => `/purchasing/orders/${r.item_id}` },
     { itemType: 'stocktake_open', permission: 'module.stocktakes.view', href: '/stocktakes',

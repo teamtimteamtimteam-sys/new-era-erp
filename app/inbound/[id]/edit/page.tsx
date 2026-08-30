@@ -18,6 +18,7 @@ import type { MovementRow } from '@/app/components/inventory/movementTypes'
 import StocktakeQuickCount from '@/app/stocktakes/StocktakeQuickCount'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import IntakeConditionPanel from './IntakeConditionPanel'
+import ImportDiligencePanel from './ImportDiligencePanel'
 import { can, canViewPrices } from '@/lib/permissions'
 import { maskedRows, maskedExcept } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
@@ -587,6 +588,17 @@ export default async function EditInboundPage({
                     </div>
                 </div>
             )}
+
+            {/* CMPL-1:进口尽调 —— 执照正文要求交货方在【进口当时】持有进口准证。
+                它【只记录 + 只告警】,不加拒绝:判得了的那一半(交货方当下有没有一张
+                在效的 nea_import 准证)已经由 certificate_types 的 block 处置拦在收货上,
+                而"当时有没有"是一件系统确立不了的过去的事实。理由写在
+                importDiligenceActions.ts 的抬头,也写在面板上给人看。 */}
+            <ImportDiligencePanel batchId={id}
+                imported={batch.imported ?? null}
+                permitRef={batch.import_permit_ref ?? null}
+                verifiedAt={batch.import_permit_verified_at ?? null}
+                canEdit={canEditInbound} />
 
             <StockStatusPanel inboundBatchId={id} unit={batch.unit} />
 

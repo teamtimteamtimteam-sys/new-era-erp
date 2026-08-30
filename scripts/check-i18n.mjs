@@ -304,6 +304,11 @@ const MANIFEST = {
     // 键检查【自动跟着变宽】,而不是等着谁记得来补一行。
     // COMM-1:佣金那四个动态前缀,四条【都接真源】—— 三条读表上的 CHECK,
     // 一条读那张错误码 Set。于是往 CHECK 里加一个新值,这个检查会自动跟着变宽。
+    // CMPL-1:公司执照那两个动态前缀,两条都【接真源】——
+    // 标准读表上的 CHECK,错误码读那张 Set。于是 CHECK 里加一个值、
+    // Set 里加一个码,这个检查自动跟着变宽。
+    'company.licence.status.': { kind: 'enum', values: () => sqlCheckIn('db/tables/company_compliance.sql', 'status') },
+    'company.licence.errors.': { kind: 'enum', values: () => tsSet('app/finance/company/licenceErrorCodes.ts', 'LICENCE_ERROR_CODES') },
     'commissions.side.':    { kind: 'enum', values: () => sqlCheckIn('db/tables/commission_agreements.sql', 'side') },
     'commissions.basis.':   { kind: 'enum', values: () => sqlCheckIn('db/tables/commission_agreements.sql', 'basis') },
     'commissions.trigger.': { kind: 'enum', values: () => sqlCheckIn('db/tables/commission_agreements.sql', 'recognition_trigger') },

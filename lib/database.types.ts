@@ -1449,6 +1449,7 @@ export type Database = {
       }
       company_compliance: {
         Row: {
+          approved_storage_limit_tonnes: number | null
           cert_no: string | null
           cert_type_code: string
           created_at: string
@@ -1456,15 +1457,18 @@ export type Database = {
           deleted_at: string | null
           document_path: string | null
           id: string
+          issue_date: string | null
           issuing_body: string | null
           notes: string | null
           scope: string | null
+          status: string | null
           updated_at: string
           updated_by: string | null
           valid_from: string | null
           valid_until: string | null
         }
         Insert: {
+          approved_storage_limit_tonnes?: number | null
           cert_no?: string | null
           cert_type_code: string
           created_at?: string
@@ -1472,15 +1476,18 @@ export type Database = {
           deleted_at?: string | null
           document_path?: string | null
           id?: string
+          issue_date?: string | null
           issuing_body?: string | null
           notes?: string | null
           scope?: string | null
+          status?: string | null
           updated_at?: string
           updated_by?: string | null
           valid_from?: string | null
           valid_until?: string | null
         }
         Update: {
+          approved_storage_limit_tonnes?: number | null
           cert_no?: string | null
           cert_type_code?: string
           created_at?: string
@@ -1488,9 +1495,11 @@ export type Database = {
           deleted_at?: string | null
           document_path?: string | null
           id?: string
+          issue_date?: string | null
           issuing_body?: string | null
           notes?: string | null
           scope?: string | null
+          status?: string | null
           updated_at?: string
           updated_by?: string | null
           valid_from?: string | null
@@ -5642,6 +5651,10 @@ export type Database = {
           deleted_at: string | null
           deleted_by: string | null
           id: string
+          import_permit_ref: string | null
+          import_permit_verified_at: string | null
+          import_permit_verified_by: string | null
+          imported: boolean | null
           material_id: string
           notes: string | null
           pricing_formula_id: string | null
@@ -5669,6 +5682,10 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           id?: string
+          import_permit_ref?: string | null
+          import_permit_verified_at?: string | null
+          import_permit_verified_by?: string | null
+          imported?: boolean | null
           material_id: string
           notes?: string | null
           pricing_formula_id?: string | null
@@ -5696,6 +5713,10 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           id?: string
+          import_permit_ref?: string | null
+          import_permit_verified_at?: string | null
+          import_permit_verified_by?: string | null
+          imported?: boolean | null
           material_id?: string
           notes?: string | null
           pricing_formula_id?: string | null
@@ -5719,6 +5740,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "inbound_chemistry_certainties"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "inbound_batches_import_permit_verified_by_fkey"
+            columns: ["import_permit_verified_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "inbound_batches_material_id_fkey"
@@ -16831,6 +16859,10 @@ export type Database = {
           deleted_at: string | null
           deleted_by: string | null
           id: string | null
+          import_permit_ref: string | null
+          import_permit_verified_at: string | null
+          import_permit_verified_by: string | null
+          imported: boolean | null
           material_id: string | null
           notes: string | null
           pricing_formula_id: string | null
@@ -16858,6 +16890,10 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           id?: string | null
+          import_permit_ref?: string | null
+          import_permit_verified_at?: string | null
+          import_permit_verified_by?: string | null
+          imported?: boolean | null
           material_id?: string | null
           notes?: string | null
           pricing_formula_id?: string | null
@@ -16885,6 +16921,10 @@ export type Database = {
           deleted_at?: string | null
           deleted_by?: string | null
           id?: string | null
+          import_permit_ref?: string | null
+          import_permit_verified_at?: string | null
+          import_permit_verified_by?: string | null
+          imported?: boolean | null
           material_id?: string | null
           notes?: string | null
           pricing_formula_id?: string | null
@@ -16908,6 +16948,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "inbound_chemistry_certainties"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "inbound_batches_import_permit_verified_by_fkey"
+            columns: ["import_permit_verified_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "inbound_batches_material_id_fkey"
@@ -21536,6 +21583,7 @@ export type Database = {
       gst_registered: { Args: never; Returns: boolean }
       has_any_permission: { Args: { p_codes: string[] }; Returns: boolean }
       has_permission: { Args: { p_code: string }; Returns: boolean }
+      hazardous_qty_on_hand_tonnes: { Args: never; Returns: number }
       hold_stock: {
         Args: {
           p_inbound_batch_id?: string
@@ -21642,6 +21690,7 @@ export type Database = {
         }
         Returns: Json
       }
+      licence_storage_within_limit: { Args: never; Returns: boolean }
       line_spoken_for: {
         Args: { p_sales_order_line_id: string }
         Returns: number

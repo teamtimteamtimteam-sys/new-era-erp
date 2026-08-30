@@ -49,11 +49,16 @@ DECLARE
     v_types text[]; v_n int; v_n2 int; v_num numeric; v_big bigint;
     v_noint uuid; v_kg numeric;   -- FIX-2 的 A3 半臂
     v_b boolean; v_b2 boolean; v_b3 boolean; v_d date; v_d2 date; v_txt text;
+    -- CMPL-1(2026-08-30)加了两支:company_licence_expiring / import_permit_unverified。
+    -- 这条断言【正是为此存在的】—— 它当场把它们报了出来,逼人来改这份清单,
+    -- 而 dashboard.item.* 的 i18n 键集合读的是同一份真源,所以两边一起动了。
     v_expected text[] := ARRAY['allocation_stale','ap_over_90','ar_over_90',
         'assay_unapplied','awaiting_assay','bank_unmatched','batch_unpriced',
-        'claim_pending','container_documents_late','container_eta_overdue',
+        'claim_pending','company_licence_expiring',
+        'container_documents_late','container_eta_overdue',
         'container_no_arrival','credit_over_limit','equipment_service_approaching',
-        'equipment_service_due','free_time_expiring','fx_rate_gap','invoice_overdue',
+        'equipment_service_due','free_time_expiring','fx_rate_gap',
+        'import_permit_unverified','invoice_overdue',
         'leave_pending','margin_cost_not_allocated','metal_quote_stale',
         'orders_unfulfilled','output_unsold_aging','po_awaiting_receipt',
         'promise_overdue',
@@ -300,7 +305,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 解析器一支都没解出来。**这是"解析器坏了",不是"没有支"** —— 空集不许被读成答案(check-i18n 后缀解析、mustRows、restRows 是同一条规矩)';
     END IF;
     IF v_types <> v_expected THEN
-        RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 支的清单应当【恰好】是这三十二支 %,实得 %。多一支 = 有人加了臂而没有加规格行(docs/dashboard-arm-inventory.md 的规矩);少一支或改了名 = 本刀的拼接动了不该动的地方;而 dashboard.item.* 的 i18n 键集合【现读同一份清单】,所以两边必须一起动', v_expected::text, v_types::text;
+        RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 支的清单应当【恰好】是这三十四支 %,实得 %。多一支 = 有人加了臂而没有加规格行(docs/dashboard-arm-inventory.md 的规矩);少一支或改了名 = 本刀的拼接动了不该动的地方;而 dashboard.item.* 的 i18n 键集合【现读同一份清单】,所以两边必须一起动', v_expected::text, v_types::text;
     END IF;
 
     -- ② 隔离:本 fixture 立起来的数据只该点亮【新的那两支】。

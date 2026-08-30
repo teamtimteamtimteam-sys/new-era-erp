@@ -65,7 +65,24 @@ CREATE TABLE public.inbound_batches (
     declared_qty  numeric,
     -- ── PROC-2 追加(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────────
     -- 【遮蔽表加一列 = 三件事一支迁移】列 + 列级授权 + _masked 视图,缺一 gate 红。
-    chemistry_certainty_code text REFERENCES public.inbound_chemistry_certainties (code)
+    chemistry_certainty_code text REFERENCES public.inbound_chemistry_certainties (code),
+    -- ── CMPL-1 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────────
+    -- 【进口尽调】执照正文要求:不得接收已进口至新加坡的废物,除非交货方在
+    -- 【进口当时】持有进口准证。那是一件关于【过去】、关于【某一票货】的事实,
+    -- 系统确立不了 —— 所以这里【记录一次人的核对】,不加拒绝。见列注。
+    imported                  boolean,
+    import_permit_ref         text,
+    import_permit_verified_by uuid REFERENCES auth.users (id),
+    import_permit_verified_at timestamptz,
+    -- 核验只有在"是进口货"时才说得通;不是进口货却填着核验人,那一行自相矛盾。
+    CONSTRAINT inbound_import_verification_only_when_imported
+        CHECK (imported IS TRUE
+               OR (import_permit_ref IS NULL
+                   AND import_permit_verified_by IS NULL
+                   AND import_permit_verified_at IS NULL)),
+    -- 核验人与核验时刻【同生同灭】:只有其中一个,说不出"谁核的"或"什么时候核的"。
+    CONSTRAINT inbound_import_verified_pair
+        CHECK ((import_permit_verified_by IS NULL) = (import_permit_verified_at IS NULL))
 );
 
 COMMENT ON COLUMN public.inbound_batches.delete_reason IS
@@ -247,7 +264,10 @@ CREATE POLICY "inbound_batches delete by permission"
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 inbound_batches_masked 读取。
 -- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
 REVOKE SELECT ON public.inbound_batches FROM authenticated, anon;
-GRANT SELECT (id, code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, stage, notes, status, deleted_at, created_at, created_by, updated_at, updated_by, purchase_order_id, purchase_order_line_id, pricing_formula_id, pricing_status, deleted_by, delete_reason, declared_qty, chemistry_certainty_code)
+GRANT SELECT (id, code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, stage, notes, status, deleted_at, created_at, created_by, updated_at, updated_by, purchase_order_id, purchase_order_line_id, pricing_formula_id, pricing_status, deleted_by, delete_reason, declared_qty, chemistry_certainty_code,
+    -- CMPL-1:进口尽调那四列。【不敏感】,所以进列清单授权 —— 给遮蔽表加列
+    -- 必须同时做三件事(ADD COLUMN + 本授权 + _masked 视图),少一件就"写得进、读不出"。
+    imported, import_permit_ref, import_permit_verified_by, import_permit_verified_at)
     ON public.inbound_batches TO authenticated;
 
 -- AUDEL-1a:硬删按名拒(BATCH_NO_HARD_DELETE|批号),【与动没动过无关】。
@@ -278,3 +298,9 @@ CREATE TRIGGER trg_inbound_batches_condition_applicable
     BEFORE INSERT OR UPDATE ON public.inbound_batches
     FOR EACH ROW EXECUTE FUNCTION public.guard_inbound_condition_applicable();
 
+
+COMMENT ON COLUMN public.inbound_batches.imported IS
+    'CMPL-1:这批料是不是【进口进新加坡】的。★三个状态必须分得开,而 NULL 是第四个★:NULL = **还没有人说**(绝不等于"不是进口货" —— 一个空白读成"不是进口"正是本仓库反复付账的那种沉默);false = 明确不是进口;true = 是进口,于是执照条件要求交货方在【进口当时】持有进口准证,核验记录见同表另外三列。';
+
+COMMENT ON COLUMN public.inbound_batches.import_permit_verified_at IS
+    'CMPL-1:【谁在什么时候核过】那张进口准证。★它记录的是一次【人的核对】,不是系统的判断★ —— 「交货方在进口当时是否持证」是关于过去、关于某一票货的事实,系统确立不了,所以本刀**只记录、只告警,不加拒绝**。判得了的那一半(交货方【当下】有没有一张在效的 nea_import 准证)**已经由 certificate_types 的 block 处置在收货上拦着了**,本刀不重复它。';
