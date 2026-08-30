@@ -28,6 +28,8 @@ const QUOTE_ERROR_CODES = new Set([
     'SO_CREATE_LINE_INVALID',
     'SO_CREATE_LINES_LOST',
     'CURRENCY_INVALID',
+    // PROC-BUILD-1(R5):可售性。三条句子,三种下一步动作 —— 见 saleErrorCodes.ts 的同一段。
+    'SALE_FORM_NOT_SALEABLE', 'SALE_FORM_NOT_SET',
 ])
 
 const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/

@@ -54,3 +54,9 @@ CREATE POLICY "quote_lines update by permission" ON public.quote_lines
     USING (has_permission('module.sales.edit'::text)) WITH CHECK (has_permission('module.sales.edit'::text));
 CREATE POLICY "quote_lines delete by permission" ON public.quote_lines
     AS PERMISSIVE FOR DELETE TO authenticated USING (has_permission('module.sales.edit'::text));
+
+-- PROC-BUILD-1(R5):报价行也拦 —— 一份卖不了的东西的报价,是一个太晚才会被
+-- 发现的承诺(客户手上已经有一份签了字的单据)。
+CREATE TRIGGER trg_quote_lines_form_saleable
+    BEFORE INSERT OR UPDATE OF material_id ON public.quote_lines
+    FOR EACH ROW EXECUTE FUNCTION public.guard_line_form_saleable();

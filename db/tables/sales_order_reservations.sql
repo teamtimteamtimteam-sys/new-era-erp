@@ -92,3 +92,8 @@ ALTER TABLE public.sales_order_reservations ENABLE ROW LEVEL SECURITY;
 -- 【没有 INSERT / UPDATE 策略,这是前提而不是遗漏】见文件抬头。
 CREATE POLICY "sales_order_reservations select by permission" ON public.sales_order_reservations
     AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.sales.view'::text));
+
+-- PROC-BUILD-1(R5):占用也拦 —— 圈定一批货就是准备发它。
+CREATE TRIGGER trg_so_reservations_form_saleable
+    BEFORE INSERT ON public.sales_order_reservations
+    FOR EACH ROW EXECUTE FUNCTION public.guard_batch_form_saleable();

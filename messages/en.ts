@@ -1630,6 +1630,8 @@ const en = {
             formAxis: 'Form',
             formUnchosen: '- choose a form -',
             formHint: 'What physical shape the goods arrive in. This decides which chain they enter.',
+            formNotSaleable:
+                'The form "{form}" may not be sold under the law (R5) — once set, stock of this material is refused on all four paths: quoting, ordering, reserving and shipping. This notice only says so; the block itself lives in the database, so another route in cannot get around it.',
             sourceAxis: 'Source',
             sourceUnchosen: '- choose a source -',
             sourceHint: 'Where this material comes from. It decides the waste code, and whether discharge is even a question - plant scrap was never charged.',
@@ -2019,6 +2021,10 @@ const en = {
                 OUTPUT_DELETED: 'Batch has been deleted',
                 SALE_QTY_INVALID: 'Invalid sale quantity',
                 SALE_EXCEEDS_REMAINING: 'Quantity ({0}) exceeds remaining stock ({1})',
+                SALE_FORM_NOT_SALEABLE:
+                    'The form "{2}" may not be sold under the law — this is not a stock problem and not an approval problem, and there is no exception path around it (R5). To sell it, process it into a saleable form first.',
+                SALE_FORM_NOT_SET:
+                    'Batch {0} came out of processing and its material has no form set, so whether it may be sold cannot be determined — this is NOT a statement that it may not be sold. Set the form under Materials → open that material, then come back.',
                 FX_RATE_MISSING: 'No {0} board rate on file for {1} ({2}) — enter the day\u2019s rate under Finance \u2192 FX first.',
                 FX_RATE_NOT_ACCEPTED: 'A manual rate is not accepted here \u2014 foreign amounts are valued at the day\u2019s board rate automatically.',
                 SALE_PRICE_INVALID: 'Unit price must be greater than 0',
@@ -2081,6 +2087,27 @@ const en = {
         },
     },
     processing: {
+        loss: {
+            title: 'Loss breakdown',
+            intro: 'Loss is not one number. Water and volatiles leave but the METAL STAYS; dust and spillage take the metal WITH them; residue sent for disposal is NOT A LOSS AT ALL. Collapsed into one number, recovery can never be right. What is recorded here is the part of that number whose destination we can state — the run\u2019s own loss total is left untouched.',
+            total: 'Loss total',
+            categorised: 'Categorised',
+            unexplained: 'Not yet explained',
+            unexplainedUnknown: '— (no loss total was ever recorded, so the question does not arise)',
+            empty: 'Nothing categorised yet. A run commits either way — the categorised amounts need not equal the total, but they may not exceed it.',
+            pick: 'Pick one…',
+            colCategory: 'Category',
+            colMetalFate: 'Metal',
+            colQty: 'Quantity',
+            colNotes: 'Notes',
+            notTrueLoss: '(not a loss: an output with negative value, parked here for now)',
+            metalFate: { stays: 'Metal stays behind', leaves: 'Metal leaves', unknown: 'Not yet known' },
+            errInvalid: 'Quantity must be greater than 0 and a category must be chosen — a zero loss cannot be told apart from “no such category”.',
+            errors: {
+                LOSS_CATEGORIES_EXCEED_LOSS_QTY:
+                    'Run {0} has categorised losses totalling {1}, which exceeds its loss total of {2}. The two need NOT be equal (leaving part unexplained is normal), but the categories may not exceed the total.',
+            },
+        },
         subnav: {
             workOrders: 'Work orders',
             runs: 'Processing runs',
@@ -2831,6 +2858,10 @@ const en = {
             SO_RESERVE_OUTPUT_ONLY: 'Only an output batch can be reserved, and {0} is not one (or has been written off). Sales draw from output batches; incoming material has to be processed first.',
             SO_RESERVE_MATERIAL_MISMATCH: 'Batch {0} is {1}, but this order line is for {2}. Pick a batch of the line\u2019s own material.',
             SO_RESERVE_EXCEEDS_AVAILABLE: 'Cannot reserve {0} — only {1} is available in that batch and location. Reserving does not create stock; it only sets aside what is already there.',
+            SALE_FORM_NOT_SALEABLE:
+                'The form "{2}" may not be sold under the law — not a stock problem, not an approval problem, and there is no exception path (R5).',
+            SALE_FORM_NOT_SET:
+                'Batch {0} came out of processing and its material has no form set, so saleability cannot be determined — this is NOT a statement that it may not be sold. Set the form under Materials first.',
             SO_RESERVE_EXCEEDS_LINE: 'Cannot reserve {0} — this line is for {1} and {2} is already spoken for (shipped plus reserved). Reserving more would promise the same line twice.',
             SO_RESERVATION_NOT_FOUND: 'That reservation no longer exists. Reload the order and try again.',
             SO_RESERVATION_ALREADY_RELEASED: 'That reservation has already been released — nothing more to give back.',
@@ -3030,6 +3061,10 @@ const en = {
             consequence: 'Records that the customer said no. The quotation stays on file with the reason; it can no longer be converted.',
         },
         errors: {
+            SALE_FORM_NOT_SALEABLE:
+                'The form "{2}" may not be sold under the law, so it cannot be quoted — a quote for something that can never lawfully be sold is a promise discovered too late (R5).',
+            SALE_FORM_NOT_SET:
+                'This batch came out of processing and its material has no form set, so saleability cannot be determined — this is NOT a statement that it may not be sold. Set the form under Materials first.',
             QT_NOT_FOUND: 'That quotation no longer exists. Reload the list and try again.',
             QT_NOT_ISSUED: 'Quotation {0} is a {1} — only an issued quotation can be converted or declined. Issue it first.',
             QT_EXPIRED: 'Quotation {0} expired on {1}, so it cannot be converted. Change the validity date and issue a new version — the customer should be looking at a price that is still on offer.',

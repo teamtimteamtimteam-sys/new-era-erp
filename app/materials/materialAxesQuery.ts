@@ -13,7 +13,7 @@ export async function getMaterialAxes(): Promise<{
     const supabase = await createClient()
     const [f, s, z] = await Promise.all([
         supabase.from('material_forms')
-            .select('code, name_en, name_zh, implies_dismantling').eq('is_active', true).order('sort_order'),
+            .select('code, name_en, name_zh, implies_dismantling, may_be_sold').eq('is_active', true).order('sort_order'),
         supabase.from('material_sources')
             .select('code, name_en, name_zh, implies_never_charged').eq('is_active', true).order('sort_order'),
         supabase.from('material_size_formats')

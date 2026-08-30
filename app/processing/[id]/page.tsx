@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import DeleteButton from './DeleteButton'
 import CostPanel from './CostPanel'
+import LossPanel, { type LossCategory, type LossRow } from './LossPanel'
 import AllocateButton from './AllocateButton'
 import { type CostEntryRow } from './costTypes'
 import { processingStatusLabelKey } from '../status'
@@ -11,7 +12,7 @@ import { formatAmount, formatMoneyBare, formatUnitCost, formatTimestamp } from '
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { maskedRows, maskedExcept } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
-import { canViewPrices } from '@/lib/permissions'
+import { canViewPrices, can } from '@/lib/permissions'
 import { MaskedValue } from '@/app/components/MaskedValue'
 import { mustOne, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -161,6 +162,18 @@ export default async function ProcessingDetailPage({
 
     // 成本条目行:服务端预格式化 created_at
     const showPrices = await canViewPrices()
+    // PROC-BUILD-1:损耗分类。字典【现读】—— 加一种损耗是往 loss_categories 加一行,
+    // 屏幕不该是第二份权威(materials 那五条轴立的同一条先例)。
+    const canEditRun = await can('module.processing.edit')
+    const [lossCatRes, lossRowRes] = await Promise.all([
+        supabase.from('loss_categories')
+            .select('code, name_en, name_zh, metal_fate, is_true_loss')
+            .eq('is_active', true).order('sort_order'),
+        supabase.from('processing_run_losses')
+            .select('loss_category_code, quantity, notes').eq('run_id', id).order('loss_category_code'),
+    ])
+    const lossCategories = mustRows(lossCatRes, 'loss_categories') as LossCategory[]
+    const lossRows = mustRows(lossRowRes, 'processing_run_losses') as LossRow[]
 
     const rawCosts = maskedRows<Tables<'processing_cost_entries'>, 'amount_base'>(mustRows(costsRes))
     // 改过条目的操作人姓名(一次取回,不逐行查)
@@ -417,6 +430,19 @@ export default async function ProcessingDetailPage({
 
                 {/* 成本条目(仅已提交单) */}
                 {isCommitted && <CostPanel runId={run.id} entries={costRows} canViewPrices={showPrices} />}
+
+                {/* PROC-BUILD-1:损耗分类 —— 就记在损耗被记下来的这一页。
+                    只在【已提交】单上;reversed 单是历史,不可改(与 CostPanel 同一条)。 */}
+                {isCommitted && (
+                    <LossPanel
+                        runId={run.id}
+                        categories={lossCategories}
+                        rows={lossRows}
+                        lossQty={run.loss_qty ?? null}
+                        canEdit={canEditRun}
+                        locale={locale}
+                    />
+                )}
 
                 {/* FIN-25:血缘 —— 深度 >1 才值得占版面(一段加工的直接投入上面已经列了)*/}
                 {lineage.some((l) => l.depth > 1) && (

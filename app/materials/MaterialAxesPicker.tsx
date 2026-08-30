@@ -133,6 +133,14 @@ export default function MaterialAxesPicker({
                     <label className="block text-sm font-medium mb-1">{t('materials.form.formAxis')}</label>
                     {dropdown('form_code', form, setForm, forms, 'materials.form.formUnchosen')}
                     <p className="text-xs text-gray-600 mt-1">{t('materials.form.formHint')}</p>
+                    {/* PROC-BUILD-1(R5):可售性【看得见】,而不是只在按下"记录销售"时才出现。
+                        它跟着【形态】走,所以它属于选形态的这一格 —— 说一次,每一种物料继承。
+                        **这里只是说出来;拦在数据库那四个触发器上**,因为屏幕拦不住第二条路。 */}
+                    {chosenForm && !chosenForm.may_be_sold && (
+                        <p className="text-sm text-red-700 border border-red-200 rounded px-3 py-2 bg-red-50 mt-2">
+                            {t('materials.form.formNotSaleable', { form: label(chosenForm) })}
+                        </p>
+                    )}
                 </div>
             )}
 

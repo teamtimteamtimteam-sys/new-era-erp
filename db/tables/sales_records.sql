@@ -128,3 +128,10 @@ COMMENT ON COLUMN public.sales_records.price_provenance IS
 
 COMMENT ON COLUMN public.sales_records.sales_order_line_id IS
     'SO-3b:这一行是不是【订单流发货】产生的。非空 = 是,并指向它满足的那条订单行。后果就在本刀落地:这样的行【不产生应收】—— 那笔债在开票当刻已经记过(借 1100 / 贷 2500),发货只是把负债释放进收入。ar_open_items 的第一支与 customer_ar_exposure_base 的第一项都显式排除它,于是同一笔债不会被数两遍(选项 C 的核心不变量:应收只创建一次)。由 ship_order 在 INSERT 当刻写好,之后不可改(SALE_IMMUTABLE)。';
+
+-- PROC-BUILD-1(R5):**record_output_sale 与 ship_order 共用的那一个门。**
+-- output_batch_id 是 NOT NULL,所以货真的离场的每一条路都经过这里 ——
+-- 拦一条放一条比不拦更糟,因为它制造信心。
+CREATE TRIGGER trg_sales_records_form_saleable
+    BEFORE INSERT ON public.sales_records
+    FOR EACH ROW EXECUTE FUNCTION public.guard_batch_form_saleable();

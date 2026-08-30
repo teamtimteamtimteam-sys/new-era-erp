@@ -76,6 +76,8 @@ const SALES_ORDER_ERROR_CODES = new Set([
     // 结构性:正常路径撞不到(表单只按 id 删、只递这张单上的行),撞上时说人话
     'SO_LINE_NOT_FOUND',
     'SO_LINE_REMOVE_NEEDS_ID',
+    // PROC-BUILD-1(R5):可售性。三条句子,三种下一步动作 —— 见 saleErrorCodes.ts 的同一段。
+    'SALE_FORM_NOT_SALEABLE', 'SALE_FORM_NOT_SET',
 ])
 
 const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/

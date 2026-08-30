@@ -309,6 +309,11 @@ const MANIFEST = {
     // Set 里加一个码,这个检查自动跟着变宽。
     'company.licence.status.': { kind: 'enum', values: () => sqlCheckIn('db/tables/company_compliance.sql', 'status') },
     'company.licence.errors.': { kind: 'enum', values: () => tsSet('app/finance/company/licenceErrorCodes.ts', 'LICENCE_ERROR_CODES') },
+    // PROC-BUILD-1:损耗分类那两个动态前缀,两条都【接真源】——
+    // 金属去向读 loss_metal_fates 的种子行(那张字典没有 CHECK,种子【就是】取值),
+    // 拒绝码读那张 Set。于是加一种金属去向、加一条拒绝,这道检查自动跟着变宽。
+    'processing.loss.metalFate.': { kind: 'enum', values: () => sqlSeedCodes('db/tables/loss_metal_fates.sql', 'loss_metal_fates') },
+    'processing.loss.errors.':    { kind: 'enum', values: () => tsSet('app/processing/[id]/lossErrorCodes.ts', 'LOSS_ERROR_CODES') },
     'commissions.side.':    { kind: 'enum', values: () => sqlCheckIn('db/tables/commission_agreements.sql', 'side') },
     'commissions.basis.':   { kind: 'enum', values: () => sqlCheckIn('db/tables/commission_agreements.sql', 'basis') },
     'commissions.trigger.': { kind: 'enum', values: () => sqlCheckIn('db/tables/commission_agreements.sql', 'recognition_trigger') },

@@ -7,6 +7,10 @@ export type MaterialForm = {
     code: string; name_en: string; name_zh: string
     // 【适用条件之一】这个形态要不要拆解 —— 规格尺寸那条轴只在它为真时成立。
     implies_dismantling: boolean
+    // PROC-BUILD-1(R5):法律上允许不允许卖这个形态。**屏幕上只用来【说出来】** ——
+    // 拦是数据库那四个触发器的事,这里不拦。一个只在屏幕上拦的规则,
+    // 换一条路进来就绕过去了。
+    may_be_sold: boolean
 }
 export type MaterialSource = {
     code: string; name_en: string; name_zh: string

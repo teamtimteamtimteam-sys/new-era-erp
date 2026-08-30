@@ -40,8 +40,12 @@ BEGIN
 
     -- ══════════ F1 前提:既有读法照旧 ═══════════════════════════════════════
     -- 五张字典各自播了几行 —— 数目本身是断言:少一行说明引导被动过。
+    -- PROC-BUILD-1(2026-08-30):**6 → 13**。加的七行是 Tim 的工艺路线点名的形态
+    -- (已开壳电芯 / 正极片 / 负极片 / 隔膜 / 壳体 / 结构件 / 电解液)。
+    -- **这个数改了不是把断言放松,是引导真的多了七行** —— 这一行的用途没变:
+    -- 数目本身是断言,少一行说明引导被动过。
     SELECT count(*) INTO v_n FROM material_forms;
-    IF v_n <> 6 THEN RAISE EXCEPTION 'FIXTURE 113F1 失败:进入 F1 —— 形态应当播 6 行,实得 %', v_n; END IF;
+    IF v_n <> 13 THEN RAISE EXCEPTION 'FIXTURE 113F1 失败:进入 F1 —— 形态应当播 13 行,实得 %', v_n; END IF;
     SELECT count(*) INTO v_n FROM material_sources;
     IF v_n <> 3 THEN RAISE EXCEPTION 'FIXTURE 113F1 失败:进入 F1 —— 来源应当播 3 行,实得 %', v_n; END IF;
     SELECT count(*) INTO v_n FROM material_size_formats;

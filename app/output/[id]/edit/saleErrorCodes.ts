@@ -21,6 +21,11 @@ const SALE_ERROR_CODES = new Set([
     // METAL-2:按报价币种未声明的指数计价会被拦下(SMM 今天就是这样)。
     // 这条拒绝要出现在【报价按钮】旁边,否则人只会看到一串机器码。
     'INDEX_CURRENCY_NOT_STATED', 'PRICE_INDEX_UNKNOWN',
+    // PROC-BUILD-1(R5):可售性。**三条句子,三种下一步动作,一条都不许长得像另一条** ——
+    // SALE_FORM_NOT_SALEABLE 是"法律不许卖"(没有旁路);SALE_FORM_NOT_SET 是
+    // "这一批的形态没设,所以判断不了",**它不是在说这个东西不许卖**;
+    // 而库存类拒绝是第三种。把它们接成同一句话,操作员就不知道下一步该做什么。
+    'SALE_FORM_NOT_SALEABLE', 'SALE_FORM_NOT_SET',
 ])
 
 const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/
