@@ -13,6 +13,7 @@ import MovementTimeline from '@/app/components/inventory/MovementTimeline'
 import StockStatusPanel from '@/app/components/inventory/StockStatusPanel'
 import type { MovementRow } from '@/app/components/inventory/movementTypes'
 import SalePanel, { type CreditRow } from './SalePanel'
+import PurposePanel, { type BatchPurpose } from './PurposePanel'
 import OutputAssaySection from './OutputAssaySection'
 import TraceabilitySection, { type IssueRow } from './TraceabilitySection'
 import { fetchTraceability } from '@/app/output/traceabilityShared'
@@ -53,6 +54,9 @@ export default async function EditOutputPage({
     // module.customers.view 后面 —— 无权时拿不到行,面板渲染「受限」而不是 0
     // (0 在信用面板上读作"没有限额、余额充足",是这个管控最危险的失败)。
     const canSeeCredit = await can('module.customers.view')
+    // PROC-WIRE-1A:设定/释放【工序投料】指定要的是【工序】权限,不是销售权限 ——
+    // 把一批货许给产线是一个工序决定。门里那条 require_permission 与这里同一个码。
+    const canSetPurpose = await can('module.processing.edit')
     const t = await getTranslations()
     const locale = await getLocale()
 
@@ -110,6 +114,13 @@ export default async function EditOutputPage({
     const creditRes = await supabase
         .from('customer_credit_status')
         .select('customer_id, code, credit_limit_base, credit_hold, exposure_base, headroom_base, sales_blocked')
+
+    // PROC-WIRE-1A:用途字典 —— 只取在用的,停用的不该再被指派上去(与门里同一条)。
+    const purposesRes = await supabase
+        .from('output_batch_purposes')
+        .select('code, name_en, name_zh, is_saleable_stock')
+        .eq('is_active', true)
+        .order('sort_order')
 
     const marginRes = await supabase
         .from('batch_margin')
@@ -369,6 +380,16 @@ export default async function EditOutputPage({
                     </div>
                 )}
             </section>
+
+            {/* PROC-WIRE-1A:【这批是干什么用的】摆在销售面板正上方 ——
+                拦住这笔销售的开关,必须与那个按钮在同一屏上。 */}
+            <PurposePanel
+                batchId={batch.id}
+                purposes={mustRows(purposesRes) as BatchPurpose[]}
+                current={batch.purpose_code}
+                canEdit={canSetPurpose}
+                locale={locale}
+            />
 
             {batch.remaining_qty > 0 ? (
                 <SalePanel

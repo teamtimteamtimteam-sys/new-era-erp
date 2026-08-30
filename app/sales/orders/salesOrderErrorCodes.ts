@@ -78,6 +78,10 @@ const SALES_ORDER_ERROR_CODES = new Set([
     'SO_LINE_REMOVE_NEEDS_ID',
     // PROC-BUILD-1(R5):可售性。三条句子,三种下一步动作 —— 见 saleErrorCodes.ts 的同一段。
     'SALE_FORM_NOT_SALEABLE', 'SALE_FORM_NOT_SET',
+    // PROC-WIRE-1A:预留与发货这两层【拿的是批次】,所以第四条拒绝走得到这里。
+    // (报价行与订单行拿的是【物料】,批次级的指定在那两层结构上就看不见 ——
+    //  所以 quoteErrorCodes 里【故意】没有这一条,那不是漏写。)
+    'SALE_BATCH_EARMARKED',
 ])
 
 const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/

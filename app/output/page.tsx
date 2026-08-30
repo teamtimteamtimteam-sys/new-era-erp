@@ -37,6 +37,9 @@ type OutputRow = {
     created_at: string
     materials: { name: string } | null
     customers: { legal_name: string } | null
+    // PROC-WIRE-1A:【另一条轴】—— 这批是干什么用的。是否可售【由字典那一列回答】,
+    // 不由把码写死在这里回答,否则多一种不可售用途就要改代码。
+    output_batch_purposes: { name_en: string; name_zh: string; is_saleable_stock: boolean } | null
 }
 
 export default async function OutputPage({
@@ -105,7 +108,8 @@ export default async function OutputPage({
     const baseQuery = supabase.from('output_batches').select(`
         id, code, quantity, unit, remaining_qty, output_date, state, status, created_at,
         materials ( name ),
-        customers ( legal_name )
+        customers ( legal_name ),
+        output_batch_purposes ( name_en, name_zh, is_saleable_stock )
     `)
 
     // ── 这里【故意】没有"有未应用化验"的角标(PROC-1c 记,2026-08-12)──────────
@@ -273,6 +277,17 @@ export default async function OutputPage({
                                 <span className="px-2 py-1 bg-gray-200 rounded text-xs">
                                     {stateLabel(b.state)}
                                 </span>
+                                {/* PROC-WIRE-1A:被指定为下游工序投料的批次【不是可售库存】。
+                                    它与销售状态是两条轴,所以是【另一个】角标,不是同一个角标的
+                                    第四种颜色 —— 一批货可以既"库存中"又"已许给产线"。 */}
+                                {b.output_batch_purposes &&
+                                    !b.output_batch_purposes.is_saleable_stock && (
+                                    <span className="ml-1 px-2 py-1 bg-amber-100 text-amber-800 border border-amber-300 rounded text-xs">
+                                        {locale === 'zh'
+                                            ? b.output_batch_purposes.name_zh
+                                            : b.output_batch_purposes.name_en}
+                                    </span>
+                                )}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">
                                 <span className="px-2 py-1 bg-gray-200 rounded text-xs">

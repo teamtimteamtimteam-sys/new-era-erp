@@ -8,9 +8,12 @@ DECLARE
     v_form     text;
     v_from_run boolean;
     v_axes     boolean;
+    v_purpose  text;
+    v_p_zh     text;
+    v_p_en     text;
 BEGIN
-    SELECT ob.material_id, ob.code, m.form_code
-      INTO v_material, v_code, v_form
+    SELECT ob.material_id, ob.code, m.form_code, ob.purpose_code
+      INTO v_material, v_code, v_form, v_purpose
       FROM public.output_batches ob
       JOIN public.materials m ON m.id = ob.material_id
      WHERE ob.id = p_output_batch_id;
@@ -53,6 +56,27 @@ BEGIN
                   USING HINT = '这一批是加工产出的,而它的物料没有设形态,所以【判断不了】它可不可售。这【不是】说它不许卖。到【物料 → 打开这一种物料】把形态设上。';
             END IF;
         END IF;
+    END IF;
+
+    -- ② PROC-WIRE-1A:这一批已被指定为下游工序的投料 —— 于是它不是可售库存。
+    --
+    -- 【它必须是【第四句】,而不是前三句里任何一句的变体】
+    --   SALE_FORM_NOT_SALEABLE = 这个东西法律上不许卖(没有旁路);
+    --   SALE_FORM_NOT_SET      = 形态没设,所以【判断不了】(去把形态设上);
+    --   库存类               = 数量不够(少卖点或换一批);
+    --   本条                 = 这一批【许给了下游工序】(释放指定,或换一批)。
+    -- 四句话四种下一步动作。**并成一句,操作员就不知道该做什么。**
+    --
+    -- 【措辞的红线】它【不许】说"这个东西不许卖" —— 对正极片那是假话
+    -- (may_be_sold = true),而说假话的拒绝会教人去改一个根本没错的地方。
+    SELECT p.name_zh, p.name_en INTO v_p_zh, v_p_en
+      FROM public.output_batch_purposes p
+     WHERE p.code = v_purpose
+       AND p.is_saleable_stock IS FALSE;
+
+    IF FOUND THEN
+        RAISE EXCEPTION 'SALE_BATCH_EARMARKED|%|%|%', v_code, v_p_zh, v_p_en
+          USING HINT = '这一批已被指定为下游工序的投料,所以它不算可售库存。这【不是】说这个东西不许卖 —— 要卖它,先到产出批次页把这个指定释放掉,或者改用另一批。';
     END IF;
 END;
 $function$

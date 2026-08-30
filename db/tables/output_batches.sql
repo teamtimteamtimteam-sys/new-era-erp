@@ -3,6 +3,9 @@
 -- remaining_qty 由触发器维护、quantity 禁改、恒等式由 DEFERRABLE 约束触发器
 -- 提交时校验(函数都在 db/functions/inventory_ledger_triggers.sql,挂载在本文件)。
 -- state 是【销售状态】(库存中/部分售出/已售罄,中文取值),status 才是单据状态。
+-- PROC-WIRE-1A:state 的取值改由字典表 output_batch_states 定义(CHECK → 外键),
+-- **取值集合一个字没变**;并新增 purpose_code —— 【另一条轴】,答"这批是干什么用的"。
+-- 两条轴不许合并:一批被工序吃光的投料 remaining_qty 归零而【不是】已售罄。
 -- customer_id 可空:预售指定客户时才填。code 'OUT-YYYY-NNNN' 触发器取号(非无缝)。
 -- 无 updated_at 触发器(建表早期漏挂)—— 镜像忠实于线上。
 --
@@ -22,7 +25,7 @@ CREATE TABLE public.output_batches (
     CONSTRAINT output_batches_remaining_qty_nonneg CHECK (remaining_qty >= 0),
     output_date   date,
     state         text NOT NULL DEFAULT '库存中'
-                  CHECK (state IN ('库存中','部分售出','已售罄')),
+                  REFERENCES public.output_batch_states (code),
     customer_id   uuid REFERENCES public.customers (id),
     purity        text,
     notes         text,
@@ -34,8 +37,25 @@ CREATE TABLE public.output_batches (
     updated_by    uuid,
     -- ── AUDEL-1b 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────
     deleted_by    uuid,
-    delete_reason text
+    delete_reason text,
+    -- ── PROC-WIRE-1A 追加的列 ────────────────────────────────────────────
+    -- 这一批是干什么用的。**与 state 是两条轴**:state 答"卖掉了多少"。
+    -- 【给默认值,而 PROC-BUILD-1 的 may_be_sold 不给】—— 两者的空意思不同:
+    -- may_be_sold 不给默认是因为"加一个形态"是一次裁定时刻(法律许不许卖,
+    -- 给了默认就等于替法律作答);而这一列的默认是【现状】—— 线上每一批今天
+    -- 都是可售库存,既有的两条建批次路建的也都是可售库存。
+    purpose_code  text NOT NULL DEFAULT 'saleable_stock'
+                  REFERENCES public.output_batch_purposes (code)
 );
+
+COMMENT ON COLUMN public.output_batches.purpose_code IS
+'PROC-WIRE-1A:这一批是干什么用的 —— 可售库存,还是下游工序的投料。
+**与 state 是两条轴**:state 答"卖掉了多少",本列答"这批是干什么的"。
+**线上既有行全部落在 saleable_stock**,那不是一次数据迁移,那就是它们今天的样子
+(Tim 裁定线上 20 批产出全是测试残留,本刀不动它们中的任何一批)。
+"这批投料用完了没有"【不需要】本轴表示 —— remaining_qty = 0 已经把它说清楚了,
+而且消耗路(commit_processing_run)本来就只扣 remaining_qty。';
+
 
 CREATE OR REPLACE FUNCTION public.generate_output_code()
 RETURNS trigger LANGUAGE plpgsql AS $function$

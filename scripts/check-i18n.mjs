@@ -314,6 +314,9 @@ const MANIFEST = {
     // 拒绝码读那张 Set。于是加一种金属去向、加一条拒绝,这道检查自动跟着变宽。
     'processing.loss.metalFate.': { kind: 'enum', values: () => sqlSeedCodes('db/tables/loss_metal_fates.sql', 'loss_metal_fates') },
     'processing.loss.errors.':    { kind: 'enum', values: () => tsSet('app/processing/[id]/lossErrorCodes.ts', 'LOSS_ERROR_CODES') },
+    // PROC-WIRE-1A:产出批次【用途】(工序投料指定)那一族的拒绝 —— 与上一行同一条:
+    // 后缀集合【就是】那个 Set,加一条拒绝而忘了写文案,这里当场红。
+    'output.purpose.errors.': { kind: 'enum', values: () => tsSet('app/output/[id]/edit/purposeErrorCodes.ts', 'PURPOSE_ERROR_CODES') },
     'commissions.side.':    { kind: 'enum', values: () => sqlCheckIn('db/tables/commission_agreements.sql', 'side') },
     'commissions.basis.':   { kind: 'enum', values: () => sqlCheckIn('db/tables/commission_agreements.sql', 'basis') },
     'commissions.trigger.': { kind: 'enum', values: () => sqlCheckIn('db/tables/commission_agreements.sql', 'recognition_trigger') },

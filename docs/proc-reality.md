@@ -1015,7 +1015,7 @@ WHERE mp.price_date <= v_ref  ORDER BY mp.price_date DESC LIMIT 1
 | **G26** | **远期计价期(M+1/M+3)** | spot/average **严格向后看**,而且**不报错** | N23。已在 forward-queue 阶段 5;与 G20/G21 共用函数与冻结表 |
 | **G27** | **仲裁费与条件付款方** | 无 | N25 |
 | **G28** | **来料加工:料不是我们的** | 收货**无条件**建存货 + 应付 | F。**EXPENSIVE:要动应付之锚** |
-| **G29** | **质量暂扣 / 不合格状态** | `output_batches.state` 三值,全是**销售**状态 | H。**小事:state 变字典** |
+| **G29** | **质量暂扣 / 不合格状态** | `output_batches.state` 三值,全是**销售**状态 | H。**小事:state 变字典** —— ★【那句实现注解已由 PROC-WIRE-1A 兑现(2026-08-31):`state` 变成了 `output_batch_states` 字典。**但 G29 本身【仍然开着】** —— 它记的是【质量暂扣】,而那件事一行都没建。工序投料指定(`purpose_code`)是【另一条轴】,不是它。三条轴可以同时为真,永远不许并进一列;详见 `docs/proc-batch-purpose-and-state-dictionary.md` 第三节】★ |
 | **G30** | **放电状态作为投料前置** | 前置条件的**形状已经有**(18 条具名拒绝);缺的是**记录放没放过电的地方** | A。**依赖 G2**(状态轴) |
 | **G31** | **`materials.kind` 用字典表而非 CHECK** | —— | **对 N5 的自我更正。它把 G2 从 EXPENSIVE 变成 CHEAP** |
 

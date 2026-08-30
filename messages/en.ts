@@ -1979,6 +1979,20 @@ const en = {
             quantityLockedHint: 'Quantity is fixed after creation — stock changes go through the movement ledger',
             stateLockedHint: 'State is set automatically by sales and processing',
         },
+        // PROC-WIRE-1A: what this batch is FOR — a SECOND axis, not a fourth sales state.
+        purpose: {
+            title: 'Purpose',
+            why: 'Whether this batch is saleable stock, or is already earmarked as feed for a downstream operation. This is a separate axis from the sales state: a batch can be both "in stock" and already promised to the plant.',
+            earmarkedNote: 'This batch is earmarked as feed for a downstream operation, so it does not count as saleable stock — selling, reserving and shipping will all be refused. This is NOT a statement that the thing may not be sold (that is the form axis); release it back to saleable stock and it sells.',
+            switchTo: 'Change to {name}',
+            noPermission: 'You do not have processing edit rights, so this cannot be changed — promising a batch to the plant is a processing decision.',
+            errors: {
+                BATCH_PURPOSE_UNKNOWN: 'Unknown or inactive purpose "{0}". Inactive means "do not pick it again", not "rewrite history".',
+                OUTPUT_NOT_FOUND: 'Output batch not found.',
+                OUTPUT_DELETED: 'Batch {0} has been deleted; its purpose cannot be changed.',
+                PERMISSION_DENIED: 'Missing permission "{0}" — setting and releasing a processing earmark needs PROCESSING edit rights, not sales rights.',
+            },
+        },
         sale: {
         pricing: {
             mode: 'Pricing',
@@ -2025,6 +2039,8 @@ const en = {
                     'The form "{2}" may not be sold under the law — this is not a stock problem and not an approval problem, and there is no exception path around it (R5). To sell it, process it into a saleable form first.',
                 SALE_FORM_NOT_SET:
                     'Batch {0} came out of processing and its material has no form set, so whether it may be sold cannot be determined — this is NOT a statement that it may not be sold. Set the form under Materials → open that material, then come back.',
+                SALE_BATCH_EARMARKED:
+                    'Batch {0} is earmarked as {2}, so it is not saleable stock — this is NOT a statement that the thing may not be sold. To sell it, release the earmark back to saleable stock above, or use a different batch.',
                 FX_RATE_MISSING: 'No {0} board rate on file for {1} ({2}) — enter the day\u2019s rate under Finance \u2192 FX first.',
                 FX_RATE_NOT_ACCEPTED: 'A manual rate is not accepted here \u2014 foreign amounts are valued at the day\u2019s board rate automatically.',
                 SALE_PRICE_INVALID: 'Unit price must be greater than 0',
@@ -2862,6 +2878,8 @@ const en = {
                 'The form "{2}" may not be sold under the law — not a stock problem, not an approval problem, and there is no exception path (R5).',
             SALE_FORM_NOT_SET:
                 'Batch {0} came out of processing and its material has no form set, so saleability cannot be determined — this is NOT a statement that it may not be sold. Set the form under Materials first.',
+            SALE_BATCH_EARMARKED:
+                'Batch {0} is earmarked as {2}, so it is not saleable stock and can be neither reserved nor shipped — this is NOT a statement that the thing may not be sold. Release the earmark on the output batch page, or use a different batch.',
             SO_RESERVE_EXCEEDS_LINE: 'Cannot reserve {0} — this line is for {1} and {2} is already spoken for (shipped plus reserved). Reserving more would promise the same line twice.',
             SO_RESERVATION_NOT_FOUND: 'That reservation no longer exists. Reload the order and try again.',
             SO_RESERVATION_ALREADY_RELEASED: 'That reservation has already been released — nothing more to give back.',

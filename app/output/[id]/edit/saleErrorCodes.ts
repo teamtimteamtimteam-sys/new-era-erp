@@ -26,6 +26,14 @@ const SALE_ERROR_CODES = new Set([
     // "这一批的形态没设,所以判断不了",**它不是在说这个东西不许卖**;
     // 而库存类拒绝是第三种。把它们接成同一句话,操作员就不知道下一步该做什么。
     'SALE_FORM_NOT_SALEABLE', 'SALE_FORM_NOT_SET',
+    // PROC-WIRE-1A(R5 的另一条轴):**第四句话,而不是前三句里任何一句的变体**。
+    //   SALE_FORM_NOT_SALEABLE = 这个东西法律上不许卖 —— 没有旁路;
+    //   SALE_FORM_NOT_SET      = 形态没设,所以【判断不了】 —— 去把形态设上;
+    //   库存类               = 数量不够 —— 少卖点,或换一批;
+    //   SALE_BATCH_EARMARKED   = 这一批【许给了下游工序】 —— 释放指定,或换一批。
+    // 四句话四种下一步动作。**它尤其不许长得像第一句**:对正极片来说
+    // "这个东西不许卖"是【假话】(may_be_sold = true),它只是这一批已经许出去了。
+    'SALE_BATCH_EARMARKED',
 ])
 
 const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/

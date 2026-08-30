@@ -8549,6 +8549,63 @@ export type Database = {
           },
         ]
       }
+      output_batch_purposes: {
+        Row: {
+          code: string
+          is_active: boolean
+          is_saleable_stock: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          is_active?: boolean
+          is_saleable_stock: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          is_active?: boolean
+          is_saleable_stock?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      output_batch_states: {
+        Row: {
+          code: string
+          is_active: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          is_active?: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          is_active?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Relationships: []
+      }
       output_batches: {
         Row: {
           code: string
@@ -8563,6 +8620,7 @@ export type Database = {
           notes: string | null
           output_date: string | null
           purity: string | null
+          purpose_code: string
           quantity: number
           remaining_qty: number
           state: string
@@ -8584,6 +8642,7 @@ export type Database = {
           notes?: string | null
           output_date?: string | null
           purity?: string | null
+          purpose_code?: string
           quantity: number
           remaining_qty: number
           state?: string
@@ -8605,6 +8664,7 @@ export type Database = {
           notes?: string | null
           output_date?: string | null
           purity?: string | null
+          purpose_code?: string
           quantity?: number
           remaining_qty?: number
           state?: string
@@ -8648,6 +8708,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "stock_snapshot"
             referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "output_batches_purpose_code_fkey"
+            columns: ["purpose_code"]
+            isOneToOne: false
+            referencedRelation: "output_batch_purposes"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "output_batches_state_fkey"
+            columns: ["state"]
+            isOneToOne: false
+            referencedRelation: "output_batch_states"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -22634,6 +22708,10 @@ export type Database = {
       }
       set_material_required_metals: {
         Args: { p_material_id: string; p_metals: string[] }
+        Returns: Json
+      }
+      set_output_batch_purpose: {
+        Args: { p_output_batch_id: string; p_purpose_code: string }
         Returns: Json
       }
       set_payment_term_expected_date: {

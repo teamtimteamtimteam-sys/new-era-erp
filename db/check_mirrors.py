@@ -138,6 +138,12 @@ SEED_TABLES = {
     "kpi_template_org_links": (None,
         "(SELECT p.code || '/' || t.kpi_ref FROM public.kpi_position_templates t "
         " JOIN public.positions p ON p.id = t.position_id WHERE t.id = template_id) AS tpl, org_code"),
+    # PROC-WIRE-1A:产出批次的【销售状态】字典 —— INSTALL SEED,不是 RUNTIME CONFIG。
+    # 判据与 KPI-1 那条逐字相同:操作员在界面上改不动它(没有 INSERT/UPDATE 策略,
+    # 写入只经迁移)。而且更硬一层 —— **加一个销售状态没有意义,因为没有任何东西
+    # 会写它**:那三个取值是 record_output_sale / ship_order 里同一句 CASE WHEN
+    # 算出来的,多一行只会得到一个永远零行的状态。所以线上多出一行【就是】真漂移。
+    "output_batch_states": (None, "code, name_en, name_zh, is_active, sort_order"),
     # accounts 是【混合表】:引擎点名的 34 行跟踪线上,其余是建账的人的地盘。
     # FIN-30:is_cash / cash_flow_section 也纳入比对 —— 它们决定现金流量表取哪些
     # 科目、归哪一段;线上被人翻了标记而无人察觉,报表会安静地算错一整类活动。
@@ -177,6 +183,11 @@ RUNTIME_CONFIG_TABLES = [
     # GRN-1a:收货差异的三个阈值 —— 与 processing_settings 的两个工单阈值同一条。
     # 5/5/10 是引导默认值,不是决定;运营改一次线上就与本文件不同,那是对的。
     "receiving_settings",
+    # PROC-WIRE-1A:产出批次【用途】—— 与 certificate_types 同一条:加一种是加一行。
+    # 第四条拒绝(SALE_BATCH_EARMARKED)读的是 is_saleable_stock 那一列,不是写死的
+    # 码,所以多一种不可售用途【不需要改代码】。它与同刀的 output_batch_states
+    # 分属两类,那不是随手放的:那一张操作员改不动,这一张改得动。
+    "output_batch_purposes",
     # EQP-2b:资本化阈值(百分比 + 绝对下限)—— 同上。10 / 1000 是引导默认值,
     # 而它是一条【会计政策】,Tim 改一次线上就与本文件不同,那是系统在正常工作。
     "maintenance_settings",
