@@ -1712,6 +1712,7 @@ export type Database = {
           pricing_terms: Json
           purchase_order_id: string | null
           sales_order_id: string | null
+          settlement_terms: Json
         }
         Insert: {
           contract_code: string
@@ -1727,6 +1728,7 @@ export type Database = {
           pricing_terms?: Json
           purchase_order_id?: string | null
           sales_order_id?: string | null
+          settlement_terms?: Json
         }
         Update: {
           contract_code?: string
@@ -1742,6 +1744,7 @@ export type Database = {
           pricing_terms?: Json
           purchase_order_id?: string | null
           sales_order_id?: string | null
+          settlement_terms?: Json
         }
         Relationships: [
           {
@@ -1944,6 +1947,60 @@ export type Database = {
           },
         ]
       }
+      contract_penalty_elements: {
+        Row: {
+          contract_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          substance: string
+          threshold_pct: number
+          updated_at: string
+          updated_by: string | null
+          usd_per_tonne_per_pct_over: number
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          substance: string
+          threshold_pct: number
+          updated_at?: string
+          updated_by?: string | null
+          usd_per_tonne_per_pct_over: number
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          substance?: string
+          threshold_pct?: number
+          updated_at?: string
+          updated_by?: string | null
+          usd_per_tonne_per_pct_over?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_penalty_elements_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_penalty_elements_substance_fkey"
+            columns: ["substance"]
+            isOneToOne: false
+            referencedRelation: "substances"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       contract_pricing_terms: {
         Row: {
           base_event: string
@@ -2008,6 +2065,116 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "substances"
             referencedColumns: ["code"]
+          },
+        ]
+      }
+      contract_refining_charges: {
+        Row: {
+          contract_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          metal: string
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+          usd_per_tonne_of_metal: number
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          metal: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          usd_per_tonne_of_metal: number
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          metal?: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          usd_per_tonne_of_metal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_refining_charges_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_refining_charges_metal_fkey"
+            columns: ["metal"]
+            isOneToOne: false
+            referencedRelation: "substances"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      contract_settlement_terms: {
+        Row: {
+          contract_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          penalty_basis: string
+          refining_charge_basis: string
+          sale_weight_basis: string
+          sample_retention_days: number | null
+          sample_retention_required: boolean
+          settling_party: string
+          splitting_limit_pct: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          penalty_basis: string
+          refining_charge_basis: string
+          sale_weight_basis: string
+          sample_retention_days?: number | null
+          sample_retention_required: boolean
+          settling_party: string
+          splitting_limit_pct?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          penalty_basis?: string
+          refining_charge_basis?: string
+          sale_weight_basis?: string
+          sample_retention_days?: number | null
+          sample_retention_required?: boolean
+          settling_party?: string
+          splitting_limit_pct?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_settlement_terms_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: true
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -12571,6 +12738,112 @@ export type Database = {
           },
         ]
       }
+      sales_settlements: {
+        Row: {
+          amount_usd: number
+          assay_result_id: string
+          breakdown: Json
+          computed_at: string
+          computed_by: string | null
+          gross_weight_kg: number
+          id: string
+          metal_value_usd: number
+          moisture_pct: number | null
+          output_batch_id: string
+          penalty_usd: number
+          refining_charge_usd: number
+          sales_order_id: string
+          settlement_weight_kg: number
+          settling_party_used: string
+          superseded_by: string | null
+          terms_snapshot: Json
+          weight_basis_used: string
+        }
+        Insert: {
+          amount_usd: number
+          assay_result_id: string
+          breakdown: Json
+          computed_at?: string
+          computed_by?: string | null
+          gross_weight_kg: number
+          id?: string
+          metal_value_usd: number
+          moisture_pct?: number | null
+          output_batch_id: string
+          penalty_usd: number
+          refining_charge_usd: number
+          sales_order_id: string
+          settlement_weight_kg: number
+          settling_party_used: string
+          superseded_by?: string | null
+          terms_snapshot: Json
+          weight_basis_used: string
+        }
+        Update: {
+          amount_usd?: number
+          assay_result_id?: string
+          breakdown?: Json
+          computed_at?: string
+          computed_by?: string | null
+          gross_weight_kg?: number
+          id?: string
+          metal_value_usd?: number
+          moisture_pct?: number | null
+          output_batch_id?: string
+          penalty_usd?: number
+          refining_charge_usd?: number
+          sales_order_id?: string
+          settlement_weight_kg?: number
+          settling_party_used?: string
+          superseded_by?: string | null
+          terms_snapshot?: Json
+          weight_basis_used?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_settlements_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "assay_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_settlements_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["assay_result_id"]
+          },
+          {
+            foreignKeyName: "sales_settlements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "sales_settlements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_settlements_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_settlements_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "sales_settlements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shipment_issues: {
         Row: {
           file_path: string
@@ -21726,6 +21999,14 @@ export type Database = {
         Args: { p_file_path: string; p_quote_id: string; p_sha256: string }
         Returns: Json
       }
+      record_sale_settlement: {
+        Args: {
+          p_assay_result_id: string
+          p_output_batch_id: string
+          p_sales_order_id: string
+        }
+        Returns: Json
+      }
       record_shipment_issue: {
         Args: { p_file_path: string; p_sha256: string; p_shipment_id: string }
         Returns: Json
@@ -21907,6 +22188,14 @@ export type Database = {
       rollback_processing_run: {
         Args: { p_reason: string; p_run_id: string }
         Returns: undefined
+      }
+      sale_settlement_compute: {
+        Args: {
+          p_assay_result_id: string
+          p_output_batch_id: string
+          p_sales_order_id: string
+        }
+        Returns: Json
       }
       sales_order_fulfilment_status: {
         Args: { p_sales_order_id: string }

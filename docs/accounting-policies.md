@@ -406,7 +406,7 @@ basis means *nobody stated it* and is never defaulted.
 
 > *Enforcement:* `guard_assay_basis_stated`; `assay_results.weight_basis`.
 
-### 5.6 There is no company-wide rule fixing the weight basis on which purchases settle, or the basis on which sales settle. — **AS-BUILT**
+### 5.6 There is no company-wide rule fixing the weight basis on which purchases settle, or the basis on which sales settle. — **AS-BUILT — the SALES half is superseded by 5.8 (2026-08-30); the PURCHASE half stands**
 
 The basis is recorded per assay (5.5), but **no pricing or settlement function branches on it** — only
 the guard that requires it to be stated and the function that records it refer to the column at all.
@@ -417,8 +417,22 @@ as-received basis would both post without comment.
 This is the answer to "what is the purchase weight basis and what is the sale weight basis": **the
 system records the question and does not answer it.**
 
-> *Enforcement / evidence:* only `guard_assay_basis_stated` and `record_assay_result` reference
-> `weight_basis`; no pricing path does.
+> *Enforcement / evidence (as measured when this was written):* only `guard_assay_basis_stated` and
+> `record_assay_result` reference `weight_basis`; no pricing path does.
+
+> **★ Half of this is no longer true, and saying so here is the point — a policy that has quietly
+> stopped being true is worse than one that was never written. ★**
+>
+> **The SALES half is superseded by 5.8 (SETTLE-1, 2026-08-30).** A sale now settles on the basis
+> its contract states, `sale_settlement_compute` branches on it, and an unstated basis is refused by
+> name. The sentence "a sale settled on an as-received basis would post without comment" **no longer
+> holds**.
+>
+> **The PURCHASE half stands unchanged.** Nothing on the buy side branches on the basis, and
+> SETTLE-1 deliberately did not touch it: `index-pricing-spec` §9 reserves the purchase-side question
+> for Tim, and answering it by extending the buy-side tables would have been an implied ruling.
+> So a purchase settled on a dry basis still posts without comment — **that is now a one-sided gap
+> rather than a general one**, and it is recorded in `docs/known-issues.md` under SETTLE-1.
 
 ---
 
@@ -459,6 +473,35 @@ re-derive it.
 > *Enforcement:* none yet — there is no posting path. When there is, it belongs beside
 > `record_output_sale`'s revenue posting, and a fixture must assert the corrected revenue equals
 > the final price rather than the sum of two unrelated lines.
+
+### 5.8 A sale settles on the weight basis its contract states, and an unstated basis is refused rather than assumed. — **SETTLED — 2026-08-30, ruled by Tim, and BUILT (SETTLE-1)**
+
+A consignment can be weighed wet (as received) or dry (water removed), and an assay reports its
+percentages against one of those two. Which basis a sale settles on is **a term of that contract**,
+negotiated per deal — there is no house rule and no default.
+
+The measurement matters because it moves money in two directions at once. **Contained metal is
+invariant**: convert the content correctly and a wet-basis settlement and a dry-basis settlement
+agree on how many kilograms of nickel are in the load, so the metal value and the refining charge
+(which is levied per contained tonne) are the same either way. **Charges levied per tonne of
+material are not invariant** — penalties are charged on the settlement weight, and water is part of
+that weight. So the same consignment settles to a different amount on wet than on dry, and the
+difference is real rather than an artefact.
+
+**An assay that does not state its basis is refused by name.** A blank basis means nobody recorded
+one; it is not permission to assume dry. Applying a dry-basis certificate to a wet weight overstates
+contained metal, produces a plausible invoice, and raises nothing anywhere — which is why this is
+recorded as an accounting policy rather than left to the assay screen.
+
+> *Enforcement:* `contract_settlement_terms.sale_weight_basis` (NOT NULL, no default);
+> `sale_settlement_compute` raises `ASSAY_WEIGHT_BASIS_NOT_STATED` and
+> `SETTLEMENT_MOISTURE_NOT_STATED`; fixture 149 arm A computes the wet and the dry figure, asserts
+> **contained metal is identical** (proving the conversion) and **the amount differs** (proving the
+> basis reaches the money), so the arm cannot pass by the two agreeing.
+
+> *Not covered:* the purchase side. `index-pricing-spec` §9 reserves for Tim whether purchases settle
+> on an index at all, and SETTLE-1 deliberately did not extend the buy-side commitment tables —
+> an implied ruling is worse than an open question.
 
 # 6 · Period control and corrections
 

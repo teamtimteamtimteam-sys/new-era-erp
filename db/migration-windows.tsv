@@ -93,3 +93,5 @@
 2026-08-30T13:07:28+0800	2026-08-30-price1-index-linked-pricing.sql	9159fc6
 2026-08-30T13:18:50+0800	2026-08-30-price1-fu1-average-refuses-by-name-on-permission.sql	9159fc6
 2026-08-30T13:43:41+0800	2026-08-30-price1-fu2-drop-an-unreachable-refusal.sql	9159fc6
+2026-08-30T14:53:22+0800	2026-08-30-settle1-the-settlement-basis.sql	69d5ca1
+2026-08-30T15:13:32+0800	2026-08-30-settle1-fu1-align-the-column-comment.sql	69d5ca1

@@ -34,6 +34,7 @@ DECLARE
     v_doc_code text;
     v_specs    jsonb;
     v_pricing  jsonb;
+    v_settle   jsonb;
 BEGIN
     IF p_document_kind IS NULL OR p_document_kind NOT IN ('purchase_order','sales_order') THEN
         RAISE EXCEPTION 'CONTRACT_DOCUMENT_KIND_INVALID|%', COALESCE(p_document_kind, 'null')
@@ -113,16 +114,37 @@ BEGIN
       INTO v_pricing
       FROM contract_pricing_terms t WHERE t.contract_id = v_con.id;
 
+    -- SETTLE-1:结算口径连同它两张子表,**一起**抄下来。
+    -- 【三样一起冻】结算要靠它们一起算钱;分开冻,"我按哪一份算的"就变成三个时刻。
+    SELECT COALESCE(to_jsonb(x) - 'id' - 'contract_id' - 'created_at' - 'created_by'
+                    - 'updated_at' - 'updated_by'
+                    || jsonb_build_object(
+                         'refining_charges', COALESCE((
+                             SELECT jsonb_agg(jsonb_build_object(
+                                 'metal', r.metal,
+                                 'usd_per_tonne_of_metal', r.usd_per_tonne_of_metal) ORDER BY r.metal)
+                               FROM contract_refining_charges r WHERE r.contract_id = v_con.id), '[]'::jsonb),
+                         'penalty_elements', COALESCE((
+                             SELECT jsonb_agg(jsonb_build_object(
+                                 'substance', pe.substance,
+                                 'threshold_pct', pe.threshold_pct,
+                                 'usd_per_tonne_per_pct_over', pe.usd_per_tonne_per_pct_over) ORDER BY pe.substance)
+                               FROM contract_penalty_elements pe WHERE pe.contract_id = v_con.id), '[]'::jsonb)),
+                    '{}'::jsonb)
+      INTO v_settle
+      FROM contract_settlement_terms x WHERE x.contract_id = v_con.id;
+    v_settle := COALESCE(v_settle, '{}'::jsonb);
+
     INSERT INTO contract_document_terms (
         purchase_order_id, sales_order_id, contract_id,
         contract_code, contract_title, incoterm, currency, payment_terms_days,
-        grade_specs, pricing_terms, linked_by)
+        grade_specs, pricing_terms, settlement_terms, linked_by)
     VALUES (
         CASE WHEN p_document_kind = 'purchase_order' THEN p_document_id END,
         CASE WHEN p_document_kind = 'sales_order'    THEN p_document_id END,
         v_con.id,
         v_con.code, v_con.title, v_con.incoterm, v_con.currency, v_con.payment_terms_days,
-        v_specs, v_pricing, auth.uid());
+        v_specs, v_pricing, v_settle, auth.uid());
 
     -- 单据那一行也记下它挂在哪 —— 这一列是【导航】,条款仍然读上面那份副本。
     IF p_document_kind = 'purchase_order' THEN
@@ -136,6 +158,7 @@ BEGIN
         'contract_code', v_con.code,
         'grade_specs_copied', jsonb_array_length(v_specs),
         'pricing_terms_copied', jsonb_array_length(v_pricing),
+        'settlement_terms_copied', (v_settle <> '{}'::jsonb),
         -- ★【PRICE-1:把"你冻的是哪一份"当场说出来,不要让人事后才发现】★
         --   回填挂接是**正当的**(CONTRACT-1 裁过,不改),而它的后果是:
         --   冻下来的是【挂接此刻】在效的条款,不是下单那天的。

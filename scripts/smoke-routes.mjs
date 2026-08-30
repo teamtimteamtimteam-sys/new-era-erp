@@ -273,6 +273,28 @@ const MSG_CONTRACT_BREACH_NAMED_ABSENCE = (() => {
 
 // PRICE-1:三条内容断言,全部【服务端渲染】—— 与 CONTRACT-1 / PARTY-1 / KPI-1 同一条理由。
 // 针从 messages/en.ts 现读,并在会被 HTML 转义的字符与 {占位符} 之前收尾。
+// SETTLE-1:把"挑一段够长的字面量"这一步抽出来 —— PRICE-1 那次空针的教训
+// 是**结构性**的,所以下一段文案必须用**同一个**守卫,而不是另抄一份判据。
+const longestLiteral = (raw, what) => {
+    const literals = raw
+        .split(/\{[^}]*\}/)
+        .map((x) => x.split('\\u2014')[0].split(/[&<>"']/)[0].trim())
+        .filter((x) => x.length > 0)
+    const best = literals.sort((a, b) => b.length - a.length)[0] ?? ''
+    if (best.length < 12) {
+        throw new Error(`${what} 抽不出一条够长的针(最长字面量 ${best.length} 字符)—— 空针/短针是永远通过的断言`)
+    }
+    return best
+}
+const contractsSubMsg = (section, key) => {
+    const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
+    const blk = src.match(new RegExp(`\\n        ${section}: \\{[\\s\\S]*?\\n        \\},`))
+    if (!blk) throw new Error(`messages/en.ts 里找不到 contracts.${section} 这一段 —— 断言无从下手`)
+    const m = blk[0].match(new RegExp(`\\n\\s*${key}: '([^']+)'`))
+    if (!m) throw new Error(`messages/en.ts 里找不到 contracts.${section}.${key}`)
+    return longestLiteral(m[1], `contracts.${section}.${key}`)
+}
+const settleMsg = (key) => contractsSubMsg('settlement', key)
 const pricingMsg = (key) => {
     const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
     const blk = src.match(/\n        pricing: \{[\s\S]*?\n        \},/)
@@ -307,6 +329,27 @@ const MSG_PRICE_CANNOT_DO = pricingMsg('cannotDo')
 //   写死其中一句等于给未来安一次必然的误报(CONTRACT-1 为这条留过同样的处置)。
 const MSG_PRICE_CALENDAR = [pricingMsg('calendarNone'), pricingMsg('calendarLoaded')]
 const MSG_PRICE_QUOTES   = [pricingMsg('quotesNone'),   pricingMsg('quotesSome')]
+
+// SETTLE-1:四条内容断言,全部服务端渲染。
+// ★ 守的是本刀最要紧的一句:**它【记】结算,它【不过账】**。
+const MSG_SETTLE_CANNOT_DO = settleMsg('cannotDo')
+// ★ 留样那个【说出来的】未满足前提 —— 第三方复检要有一个罐子,而系统说不出罐子在不在。
+const MSG_SETTLE_RETENTION = settleMsg('retentionWhy')
+// ★「没有声明容差时系统不替你选」—— 那句话必须贴着条款表,否则下一个人会以为它会选。
+const MSG_SETTLE_SPLITTING = settleMsg('splittingWhy')
+// 两处具名的缺席,各自会随真实数据翻,所以都用 oneOf。
+const MSG_SETTLE_TERMS = [settleMsg('termsNone'), settleMsg('colSettlingParty')]
+const MSG_SETTLE_LIST  = [settleMsg('settlementsNone'), settleMsg('notPostedNote')]
+// ★★【4.2 的那一条,做成机制而不是一句承诺】★★
+//   「没有那一方的化验」与「那一方的结果没被用」**不许长得一样**。
+//   今天线上一条结算都没有,所以那两句在页面上都还没机会出现 ——
+//   于是这里在**取针的时候**就把它钉住:两句必须存在、够长、而且**彼此不同**。
+//   一个只在有数据时才成立的保证,等于没有保证。
+const MSG_SETTLE_PARTY_USED = settleMsg('partyResultNotUsed')
+const MSG_SETTLE_PARTY_NAMED = settleMsg('partyResultAsNamed')
+if (MSG_SETTLE_PARTY_USED === MSG_SETTLE_PARTY_NAMED) {
+    throw new Error('contracts.settlement 的两句"用了谁的结果"读起来一模一样 —— 「那一方没有化验」与「那一方的结果没被用」必须分得开')
+}
 
 const MUST_CONTAIN = {
     // ── 静态判据:下拉在,就说明名单非空 ────────────────────────────────────
@@ -379,6 +422,16 @@ const MUST_CONTAIN = {
           why: '开市日历那一段【一句话都没说】—— "一天日历都没加载"是均价算不出来的第一个原因,它必须被说出来,而不是留白' },
         { oneOf: MSG_PRICE_QUOTES,
           why: '标了指数的报价那一段【一句话都没说】—— 它是均价算不出来的【另一个】原因,与缺日历不是同一件事,两者不能长得一样' },
+        { needle: MSG_SETTLE_CANNOT_DO,
+          why: '★★「它【记】结算、【不过账】」那句话从合同页上消失了 —— 把"结算上线了"读成"结算会过账",代价是有人以为总账里已经有这笔钱 ★★' },
+        { needle: MSG_SETTLE_RETENTION,
+          why: '★ 留样那个【说出来的】未满足前提不见了 —— 第三方复检要有一个罐子,而这套系统说不出罐子在不在;不说,它就是一个沉默的前提' },
+        { needle: MSG_SETTLE_SPLITTING,
+          why: '「没有声明容差时系统不替你选」那句话不见了 —— 下一个人会以为系统会选,而替人选就等于决定谁的数字是钱' },
+        { oneOf: MSG_SETTLE_TERMS,
+          why: '结算口径那一段【一句话都没说】—— "还没有合同写明口径"必须被说出来,而不是留一片空白' },
+        { oneOf: MSG_SETTLE_LIST,
+          why: '已记录的结算那一段【一句话都没说】—— "还没有结算过"与"结算不可用"是两件事' },
     ],
     // ★【这条不是内容断言,是【可达性】断言】★ /contracts 建好那天没有任何入口,
     //   而本仓库为「页面上线却走不到」付过两次账(SAL-B6、FIX-1)。

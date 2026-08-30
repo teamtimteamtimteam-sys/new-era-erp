@@ -36,12 +36,32 @@ import check_mirrors as cm
 import live_lock  # FIX-3:一次只有一个东西对着线上库跑  # SEED_TABLES / RUNTIME_CONFIG / definer 扫描 / DEFAULT_DSN
 
 
-def psql(dsn: str, sql: str) -> str:
+def psql(dsn: str, sql: str, statement_timeout=None) -> str:
+    # ★【提高 statement_timeout 必须走一条【SET 语句】,不能走 PGOPTIONS】★
+    #   第一版用了 `PGOPTIONS=-c statement_timeout=…`,而它**一点用都没有** ——
+    #   这条连接走的是 Supabase 的连接池,**启动参数在那一层就被丢掉了**
+    #   (实测:PGOPTIONS 版本照旧在同一处超时;而把 SET 作为一条语句发过去,
+    #    同一句查询 136 秒跑完)。
+    #   代价是 psql 会把 `SET` 这个命令标签也打到 stdout 上,而调用方读的是整个
+    #   stdout —— 所以下面把它**按名剥掉**,而不是让它混进结果里冒充一处缺口。
+    if statement_timeout:
+        sql = f"SET statement_timeout = '{statement_timeout}';\n" + sql
     p = subprocess.run(["psql", dsn, "-X", "-At", "-v", "ON_ERROR_STOP=1", "-c", sql],
                        capture_output=True, text=True)
     if p.returncode != 0:
         raise RuntimeError(p.stderr.strip()[:500])
-    return p.stdout.strip()
+    out = p.stdout.strip()
+    if statement_timeout:
+        lines = out.split("\n")
+        # 【只剥掉开头那一个 SET,而且只在它确实是 SET 的时候】
+        # 无条件剥第一行会在查询结果的第一行上撒谎。
+        if lines and lines[0].strip() == "SET":
+            out = "\n".join(lines[1:]).strip()
+        else:
+            raise RuntimeError(
+                "psql:抬高 statement_timeout 之后,stdout 的第一行不是 SET —— "
+                "拒绝猜哪一行是结果(前 200 字符:%s)" % out[:200])
+    return out
 
 
 # ── fixture 泄漏检查(PROC-CLEANUP)────────────────────────────────────────────
@@ -377,7 +397,19 @@ def check_import_template(dsn: str) -> str:
 
 
 def check_grant_gaps(dsn: str) -> str:
-    return psql(dsn, GRANT_GAP_SQL)
+    # ★【这一条要比服务端默认的 statement_timeout 更长,而那是【量出来的】,不是猜的】★
+    #   GRANT_GAP_SQL 走 information_schema.column_privileges,而那个视图会把 ACL
+    #   在**每一列**上展开 —— 它一直是这套门里最贵的一句。
+    #   2026-08-30 实测:**136 秒**,而这个角色的服务端默认上限是 **2min = 120 秒**。
+    #   也就是说它此前一直贴着线跑,而 SETTLE-1 新增四张表把它推过了线 ——
+    #   连着两次 `canceling statement due to statement timeout`,**同一处、可复现**,
+    #   不是网络抖动(同时段 select 1 是 2.4–3.1 秒,库里没有锁等待、没有残留事务)。
+    #
+    #   **这里【只】把上限抬高,不重写那句 SQL。** 真正的修法是改用 pg_catalog +
+    #   aclexplode(information_schema 的权限视图慢是众所周知的),而**在一次刚被它
+    #   绊倒的切次里现写一个新查询,正是本仓库点名过的「匆忙的检查者」** ——
+    #   那条已排进 docs/known-issues.md,带着这次的实测数字。
+    return psql(dsn, GRANT_GAP_SQL, statement_timeout="600s")
 
 
 def main() -> int:

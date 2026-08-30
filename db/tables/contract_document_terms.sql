@@ -56,12 +56,21 @@ CREATE TABLE public.contract_document_terms (
     -- ★【它【没有】暂定价】★ 暂定价是逐笔谈的(§6.2),不是条款,所以它不在合同上,
     --   也就不在这份合同条款的副本里。见 contract_pricing_terms 的表注。
     pricing_terms      jsonb NOT NULL DEFAULT '[]'::jsonb,
+    -- SETTLE-1:结算口径的快照 —— **一个对象**(不是数组),因为一份合同一套口径。
+    -- 里面装的是 contract_settlement_terms 那一行的值,**外加**它两张子表的行
+    -- (refining_charges / penalty_elements)—— 三样一起冻,因为结算要靠它们算钱,
+    -- 而分开冻会让"我按哪一份算的"变成三个不同的时刻。
+    -- **空对象 {} 合法**(合同可以没有结算口径),而 NULL 不合法 ——
+    -- "没有口径"与"没抄"必须分得开,与 grade_specs / pricing_terms 同一条。
+    settlement_terms   jsonb NOT NULL DEFAULT '{}'::jsonb,
     CONSTRAINT contract_document_terms_exactly_one_document
         CHECK (num_nonnulls(purchase_order_id, sales_order_id) = 1),
     CONSTRAINT contract_document_terms_grade_specs_is_array
         CHECK (jsonb_typeof(grade_specs) = 'array'),
     CONSTRAINT contract_document_terms_pricing_terms_is_array
-        CHECK (jsonb_typeof(pricing_terms) = 'array')
+        CHECK (jsonb_typeof(pricing_terms) = 'array'),
+    CONSTRAINT contract_document_terms_settlement_terms_is_object
+        CHECK (jsonb_typeof(settlement_terms) = 'object')
 );
 
 CREATE INDEX idx_contract_document_terms_contract
@@ -86,3 +95,6 @@ COMMENT ON COLUMN public.contract_document_terms.grade_specs IS
 
 COMMENT ON COLUMN public.contract_document_terms.pricing_terms IS
     'PRICE-1:挂上去那一刻抄下来的**计价条款**快照 —— 与 grade_specs 同一形状、同一理由(抄不是引用)。★★**冻结的时刻是【挂接】,不是【下单】**★★:CONTRACT-1 刻意允许**回填挂接**(单据日期落在合同期外不拒,因为回填是正当操作),所以一次事后补挂会把**挂接当时**在效的条款冻上去,而不是下单当天的。**对品位规格这条边不算锋利,对钱锋利** —— 所以 link_document_to_contract 的返回里带 terms_frozen_as_of 与 TERMS_FROZEN_AT_LINK_TIME,/contracts 页也把它印出来,好让挂接的人**当场看见自己冻的是哪一份**。**不要去"修"回填权限** —— 那是 CONTRACT-1 裁过的,它站得住。★**它没有暂定价**★:暂定价逐笔谈(§6.2),不是条款。';
+
+COMMENT ON COLUMN public.contract_document_terms.settlement_terms IS
+    'SETTLE-1:挂上去那一刻抄下来的**结算口径**快照 —— 一个**对象**(一份合同一套口径),里面装 contract_settlement_terms 那一行的值,**外加**它两张子表的行(精炼费 / 惩罚元素)。**三样一起冻**,因为结算靠它们一起算钱,而分开冻会让「我按哪一份算的」变成三个不同的时刻。**空对象 {} 合法**(合同可以没有结算口径),NULL 不合法 —— **「没有口径」与「没抄」必须分得开**。冻结的时刻与品位规格、计价条款相同:**挂接那一刻**,不是下单那一刻(回填挂接是正当的,见 pricing_terms 那条注释)。';

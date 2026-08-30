@@ -405,6 +405,14 @@ const MANIFEST = {
     'traceability.errors.': { kind: 'enum', values: () => tsSet('app/output/traceabilityErrorCodes.ts', 'TRACEABILITY_ERROR_CODES') },
     // APR-2c:采购单审批状态。后缀集合就是 purchase_orders 的 CHECK —— 真源现读。
     'purchasing.approvalState.': { kind: 'enum', values: () => sqlEnum('db/tables/purchase_orders.sql', 'approval_status') },
+    // ── SETTLE-1:结算按哪种重量 ── 后缀集合就是 contract_settlement_terms 的 CHECK。
+    'contracts.settlement.basis.': { kind: 'enum', values: () => sqlEnum('db/tables/contract_settlement_terms.sql', 'sale_weight_basis') },
+    // ── SETTLE-1:哪一方 ── 接的是 **assay_results.result_party** 那条 CHECK,而不是
+    //   contract_settlement_terms.settling_party。理由是两处用的集合不一样:
+    //   合同只写得下 ours/counterparty(仲裁不是常设约定),而**屏幕上印得出来的**
+    //   还包括 umpire(sales_settlements.settling_party_used 记得下它)。
+    //   **接更宽的那一个**,否则仲裁结算那一行会印出一个原始机器串。
+    'contracts.settlement.party.': { kind: 'enum', values: () => sqlEnum('db/tables/assay_results.sql', 'result_party') },
     // ── PRICE-1:基准月取自哪个事件 ── 后缀集合就是 contract_pricing_terms 的 CHECK。
     //   接真源,而不是另写一份 ['shipment','arrival','assay_complete']:
     //   合同里将来多一种基准事件(比如"卸货完成"),这道检查自动要求两个语言补句子,
@@ -669,6 +677,9 @@ for (const u of [...staticUses]) {
 const SQL_REFUSAL_SOURCES = [
     'db/functions/index_period_average.sql',
     'db/functions/link_document_to_contract.sql',
+    'db/functions/sale_settlement_compute.sql',
+    'db/functions/record_sale_settlement.sql',
+    'db/functions/guard_sales_settlement_immutable.sql',
 ]
 // 【判据是"这条码在【某处】有双语句子",不是"它在某个固定前缀下"】
 // 第一版把前缀写死成 contracts.errors.,而它当场要求给 PRICE_INDEX_UNKNOWN 与

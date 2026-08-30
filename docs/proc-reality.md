@@ -694,7 +694,7 @@ unit_cost_base = round(f.allocated / f.quantity_produced, 4)
 | **A** 放电 / 荷电状态 | **半死 —— 而活下来的一半修法很小** | **【码】"运行前置条件"这个形状【已经在了】:** `commit_processing_run` 有 **18 条具名拒绝**,其中三条正是生命周期前置:`WO_NOT_RELEASED`、`EQUIPMENT_NOT_ACQUIRED`、`EQUIPMENT_DISPOSED`。**所以"未放电不许投料"是同一个形状,不是一个新机制。** 活着的一半:**没有任何地方记录一批料放没放过电** —— 放电只作为固定资产 FA-2026-0001 存在 |
 | **B** 化学体系隔离 | **完全存活** | **【码】`materials.chemistry` 是自由文本**(app 侧 `CHEMISTRY_OPTIONS` 有 10 个值,但**数据库不认**;线上实测两个值,其中一个是 `Special Chemistry Structure` 这种占位符)。**`commit_processing_run` 里 `chemistry` 零命中** —— **一炉里混几种化学体系,没有任何东西拦、也没有任何东西记下来** |
 | **C** 黑粉怎么定价 | **半死 —— 骨架在,惩罚项全缺** | 见下方专节 |
-| **D** 取样、留样、仲裁化验 | **完全存活** | **【码】`umpire|counterparty_assay|split_sample|buyer_assay|仲裁` 全仓库零命中。** 有的是:`lab_name`(自由文本)、`certificate_ref`、`sample_ref`、`superseded_by`(复验链)。**没有的是:这份化验是【谁】的、留样、仲裁样、以及两家实验室不一致时算谁的** |
+| ~~**D** 取样、留样、仲裁化验~~ **部分已建 —— 这一行的"零命中"是【旧的测量】** | ~~**完全存活**~~ **见下** | **【码】`umpire|counterparty_assay|split_sample|buyer_assay|仲裁` 全仓库零命中。** 有的是:`lab_name`(自由文本)、`certificate_ref`、`sample_ref`、`superseded_by`(复验链)。~~**没有的是:这份化验是【谁】的、留样、仲裁样、以及两家实验室不一致时算谁的**~~ —— **2026-08-30 重测,这一格已经不准了**:`result_party`(ours/counterparty/umpire)由 **PROC-6** 建成、`lab_name` 由 **G17** 变成了 `laboratories(code)` 外键;**SETTLE-1** 又补上了「谁说了算」(`contract_settlement_terms.settling_party`)、容差(`splitting_limit_pct`)与「哪一份真的结算了」(`sales_settlements.assay_result_id`)。**仍然没有的只剩【留样这件实物】** —— 合同**要不要求**留样记下来了,**罐子在不在**没有,那属于实验室工作流(N26) |
 | **E** 销售侧的最终结算 | **完全存活,但机制可复用** | **【码】`apply_assay_result` 里 `sales_record` 零命中;没有 `reprice_output_sale`。** 而销售记录本身是**改不动的**(`guard_sales_record_movements_append_only`,`quantity`/`unit_price` 都在守卫里)。有的是 `price_source ∈ (computed, manual)` + `price_provenance`(**这笔价是怎么来的,已经记着**)。**采购侧那套 `pricing_status` + `price_history` + `price_delta_usd` 可以照搬,不必另造** |
 | **F** 来料加工(tolling) | **完全存活** | **【码】`inbound_batches` 上没有任何"所有权"列**(`own\|toll\|consign` 零命中)。**收一批货就是把它记成我们的存货、并同时开出一笔应付** —— 应付之锚 `quantity × unit_price` 是无条件的。**"这批料不是我们的"在今天说不出口** |
 | **G** 在制品(WIP) | **完全存活(而它是 G7 的后果)** | **【码】`processing_runs` 只有 `committed`/`reversed` 两态,没有"进行中"**;一次加工是原子的。**只要工序还没有类型(G7),"半路的料"就不存在也不需要存在** —— 两道工序之间的东西今天必须被记成一个产出批,或者干脆不记 |
@@ -865,6 +865,21 @@ WHERE mp.price_date <= v_ref  ORDER BY mp.price_date DESC LIMIT 1
 > **把对方的化验记成一次 supersession,等于用他们的数【静默覆盖】我们的数**
 > —— 而覆盖之后,"我们当时测的是多少"就再也拿不回来了。
 > **所以 party 这条轴【模拟不了】,它必须是一个真的字段。**
+>
+> ---
+>
+> **★【SETTLE-1(2026-08-30)在这里加一条【边界】,否则两段读起来会互相矛盾】★**
+>
+> `sales_settlements` **也有一列 `superseded_by`**,而它**不违反上面这条警告**。
+> 差别在**主语**:
+> * F6 警告的是拿 supersession 去表示**另一方的**结果 —— 用他们的数覆盖我们的数。
+>   `result_party` 轴(PROC-6 建的)**让那件事不再必要**:三方各占一行,谁都不覆盖谁。
+>   fixture 149 D 臂正面钉住这一条:同一批货**三行化验**,而
+>   `superseded_by` **一处都没有用**。
+> * `sales_settlements.superseded_by` 纠正的是**我们自己的那一句陈述**
+>   (算错了、选错了那份化验),**它不夹带任何别人的结果**。
+>
+> **一句话:supersession 不能用来表示【别人说了什么】,可以用来更正【我们说过什么】。**
 
 ### N24 · 【已判】分歧就是钱,而机器**可以复用**
 
@@ -985,18 +1000,18 @@ WHERE mp.price_date <= v_ref  ORDER BY mp.price_date DESC LIMIT 1
 
 | # | 缺口 | 今天是什么 | 依赖 / 代价 |
 |---|---|---|---|
-| **G14** | **化验含量的【基准】声明** | 三张表的 `content_pct` 都不说基准;实验室按惯例报干基,而系统把它乘在**湿重**上 | **W1/F4。EXPENSIVE 且会变成不可能** —— 每天都在多几行基准不可知的化验 |
+| ~~**G14**~~ **已闭(PROC-6 建列 + SETTLE-1 让它管钱)** | ~~**化验含量的【基准】声明**~~ | 三张表的 `content_pct` 都不说基准;实验室按惯例报干基,而系统把它乘在**湿重**上 | **W1/F4。EXPENSIVE 且会变成不可能** —— 每天都在多几行基准不可知的化验 |
 | **G15** | **进料化验上的【水分】** | 全仓库零处 | 为**金属账**,不为钱(采购按湿重结算,U2 已关)。搭 `price_history` 已有的重算路(N15) |
-| **G16** | **化验的 party 轴**(我方 / 对方 / 仲裁) | 只有 `lab_name` 自由文本;`superseded_by` 是"我们复验了" | **【Tim:无论合同怎么说都建】。** F6:拿 supersession 冒充会**销毁我们自己的数** |
+| ~~**G16**~~ **已建(PROC-6);而「谁说了算」由 SETTLE-1 补上** | ~~**化验的 party 轴**(我方 / 对方 / 仲裁)~~ | 只有 `lab_name` 自由文本;`superseded_by` 是"我们复验了" | **【Tim:无论合同怎么说都建】。** F6:拿 supersession 冒充会**销毁我们自己的数** |
 | **G17** | **`assay_results.lab_name` 变字典** | 自由文本 | **F7 那条规律的实例。EXPENSIVE 拖延,今天成本≈0** |
 | **G18** | **`materials.chemistry` 变字典** | 自由文本;app 侧已有十值现成种子 | 同上。**并且它是 G19 的前置** |
 | **G19** | **化学体系隔离的判据** | `commit_processing_run` 里 `chemistry` 零命中 —— **混投没有任何东西拦或记** | 依赖 G18。**可能比目标品位(G11)更要紧** |
-| **G20** | **精炼费(RC)** | 只有按 gross 走的 `flat_discount_pct` | **U11 取值未知;存在性高概率。依赖 G12** |
-| **G21** | **有害元素惩罚(阈值 + 费率)** | 无 | **双重缺失:氟氯不在七金属 CHECK 里。依赖 G12** |
+| ~~**G20**~~ **轴已建(SETTLE-1,2026-08-30);值仍未知** | ~~**精炼费(RC)**~~ `contract_refining_charges`,**按【含金属】吨数**收 | ~~只有按 gross 走的 `flat_discount_pct`~~ —— 那一列**一个字都没动**(它有活着的使用者,FIN-27 的已承诺副本必须保持原义) | **U11 取值仍未知:Tim 没有给条款清单,所以表是空的。** 而「空」不许被读成「没有精炼费」—— 那由 `contract_settlement_terms.refining_charge_basis` 声明;**声明了有却没填 → 结算按名拒** |
+| ~~**G21**~~ **轴已建(SETTLE-1);值仍未知,而且【氟氯仍然不在字典里】** | ~~**有害元素惩罚(阈值 + 费率)**~~ `contract_penalty_elements`(物质 + 阈值 + 费率),按**结算重量**吨数收 | ~~无~~ 外键指向 `substances` | **双重缺失只闭了一半**:表建好了,而 `substances` 今天仍然只有 7 条(al/co/cu/fe/li/mn/ni)—— **一条氟或氯的惩罚条款【今天填不进来】**,那不是表的缺陷,是字典还缺两行 |
 | **G22** | **拒收权(规格上限)** | 收货只拦供应商证书,**与货的质量无关** | N22。`certificate_types.disposition` 的形状 |
-| **G23** | **销售侧的最终结算** | `apply_assay_result` 碰 sales 零次;销售记录不可改 | E。**机器齐全,照抄** |
+| ~~**G23**~~ **已建,但【只记不过账】(SETTLE-1)** | ~~**销售侧的最终结算**~~ `sales_settlements` + `sale_settlement_compute`(一处实现,两个调用者) | ~~`apply_assay_result` 碰 sales 零次~~ | **它记下决定,一分钱不进总账**:会计政策 5.7 自己标着 NOT BUILT,而 PRICE-1 的断点意味着两阶段开票还不存在 —— **没有开票就没有东西喂给过账路**。★ 另外:**线上产出批次上一份化验都没有**,所以这条路今天**只被 fixture 走过** |
 | **G24** | **冻结机制扩到销售侧** | `pricing_term_commitments` 两个父都是采购单据 | **N20:不补它,同一笔生意两端会引用同一份公式的不同版本,而只有一端说得出自己引的是哪一版** |
-| **G25** | **销售重量基准作为条款** | 无 | U3。与 G24 同一张表 |
+| ~~**G25**~~ **已建(SETTLE-1)** | ~~**销售重量基准作为条款**~~ `contract_settlement_terms.sale_weight_basis`,**NOT NULL,永远不给默认值** | ~~无~~ | **GO-3 那个钱的错误【闭上了】**:此前全库只有 guard 与 record 函数提到 weight_basis,**没有任何结算函数按它分支**;现在结算按它分支,而**留空 → 按名拒** |
 | **G26** | **远期计价期(M+1/M+3)** | spot/average **严格向后看**,而且**不报错** | N23。已在 forward-queue 阶段 5;与 G20/G21 共用函数与冻结表 |
 | **G27** | **仲裁费与条件付款方** | 无 | N25 |
 | **G28** | **来料加工:料不是我们的** | 收货**无条件**建存货 + 应付 | F。**EXPENSIVE:要动应付之锚** |

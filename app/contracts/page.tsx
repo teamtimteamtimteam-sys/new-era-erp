@@ -32,6 +32,15 @@ type PricingTerm = {
     qp_months: number; index_code: string; payable_pct: number
 }
 type CalRow = { index_code: string; calendar_date: string; is_trading_day: boolean }
+type SettleTerm = {
+    contract_id: string; sale_weight_basis: string; settling_party: string
+    splitting_limit_pct: number | null; sample_retention_required: boolean
+    refining_charge_basis: string; penalty_basis: string
+}
+type Settlement = {
+    id: string; sales_order_id: string; settling_party_used: string
+    weight_basis_used: string; amount_usd: number
+}
 type Breach = {
     purchase_order_code: string; contract_code: string; inbound_batch_code: string
     metal: string; content_pct: number
@@ -76,6 +85,40 @@ export default async function ContractsPage() {
         const list = calByIndex.get(c.index_code) ?? []
         list.push(c); calByIndex.set(c.index_code, list)
     }
+    // SETTLE-1:结算口径、它两张子表的条数、以及已记录的结算。
+    const settleTerms = mustRows(
+        await supabase.from('contract_settlement_terms')
+            .select('contract_id, sale_weight_basis, settling_party, splitting_limit_pct, sample_retention_required, refining_charge_basis, penalty_basis'),
+        'contract_settlement_terms') as SettleTerm[]
+    const rcRows = mustRows(
+        await supabase.from('contract_refining_charges').select('contract_id'),
+        'contract_refining_charges') as { contract_id: string }[]
+    const penRows = mustRows(
+        await supabase.from('contract_penalty_elements').select('contract_id'),
+        'contract_penalty_elements') as { contract_id: string }[]
+    const settlements = mustRows(
+        await supabase.from('sales_settlements')
+            .select('id, sales_order_id, settling_party_used, weight_basis_used, amount_usd')
+            .is('superseded_by', null),
+        'sales_settlements') as Settlement[]
+    const rcCount = new Map<string, number>()
+    for (const r of rcRows) rcCount.set(r.contract_id, (rcCount.get(r.contract_id) ?? 0) + 1)
+    const penCount = new Map<string, number>()
+    for (const r of penRows) penCount.set(r.contract_id, (penCount.get(r.contract_id) ?? 0) + 1)
+    const settleByContract = new Map<string, SettleTerm>()
+    for (const t2 of settleTerms) settleByContract.set(t2.contract_id, t2)
+    // 【结算行要能说出"合同点名的是谁"】所以按销售单反查它挂在哪份合同上。
+    const orderToContract = new Map<string, string>()
+    for (const c of contracts) { /* 下面用 contract_document_terms 补 */ void c }
+    const docTerms = mustRows(
+        await supabase.from('contract_document_terms')
+            .select('sales_order_id, contract_id, contract_code')
+            .not('sales_order_id', 'is', null),
+        'contract_document_terms') as { sales_order_id: string; contract_id: string; contract_code: string }[]
+    const orderMeta = new Map<string, { contract_id: string; contract_code: string }>()
+    for (const d of docTerms) orderMeta.set(d.sales_order_id, { contract_id: d.contract_id, contract_code: d.contract_code })
+    void orderToContract
+
     const termsByContract = new Map<string, PricingTerm[]>()
     for (const t2 of pricingTerms) {
         const list = termsByContract.get(t2.contract_id) ?? []
@@ -271,6 +314,114 @@ export default async function ContractsPage() {
                         )))}
                     </tbody>
                 </table>
+            )}
+
+            {/* ════ SETTLE-1:结算口径 ══════════════════════════════════════════ */}
+            <h2 className="text-lg font-semibold mb-1 mt-8">{t('contracts.settlement.title')}</h2>
+            <p className="text-sm text-gray-700 max-w-4xl mb-3">{t('contracts.settlement.what')}</p>
+
+            {/* ★★【本刀【记】不【过账】—— 写在读者会遇见它的地方】★★ */}
+            <div className="border border-amber-300 bg-amber-50 rounded p-4 mb-6 max-w-4xl">
+                <h3 className="font-medium mb-1">{t('contracts.settlement.builtTitle')}</h3>
+                <p className="text-sm text-gray-800">{t('contracts.settlement.canDo')}</p>
+                <p className="text-sm text-amber-900 mt-2 font-medium">{t('contracts.settlement.cannotDo')}</p>
+            </div>
+
+            {/* ── 写明了结算口径的合同 ───────────────────────────────────── */}
+            <h3 className="font-medium mb-1">{t('contracts.settlement.termsTitle')}</h3>
+            {settleTerms.length === 0 ? (
+                /* ★ 具名的缺席 ★ 「还没有合同写明口径」与「口径写了但值没填」
+                   是两件不同的事,下面表格里那两列说的是后者。 */
+                <p className="text-sm text-amber-800 mb-4 max-w-4xl">{t('contracts.settlement.termsNone')}</p>
+            ) : (
+                <table className="w-full border-collapse mb-2 max-w-5xl">
+                    <thead>
+                        <tr className="bg-gray-100">
+                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.colCode')}</th>
+                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.settlement.colBasis')}</th>
+                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.settlement.colSettlingParty')}</th>
+                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.settlement.colSplitting')}</th>
+                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.settlement.colRefining')}</th>
+                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.settlement.colPenalty')}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {contracts.filter((c) => settleByContract.has(c.id)).map((c) => {
+                            const st = settleByContract.get(c.id)!
+                            const rc = rcCount.get(c.id) ?? 0
+                            const pe = penCount.get(c.id) ?? 0
+                            /* 【声明了有 / 声明了没有 / 声明了有却没填】三态,各有各的话 */
+                            const basisLabel = (declared: string, filed: number) =>
+                                declared.startsWith('none') ? t('contracts.settlement.basisNoneAgreed')
+                                    : filed === 0 ? t('contracts.settlement.basisStatedButEmpty')
+                                    : t('contracts.settlement.basisFiled', { n: String(filed) })
+                            return (
+                                <tr key={c.id}>
+                                    <td className="border border-gray-300 px-3 py-2 font-mono text-sm">{c.code}</td>
+                                    <td className="border border-gray-300 px-3 py-2 text-sm">{t(`contracts.settlement.basis.${st.sale_weight_basis}`)}</td>
+                                    <td className="border border-gray-300 px-3 py-2 text-sm">{t(`contracts.settlement.party.${st.settling_party}`)}</td>
+                                    <td className="border border-gray-300 px-3 py-2 text-sm">
+                                        {st.splitting_limit_pct == null
+                                            ? <span className="text-gray-500">{t('contracts.settlement.splittingNotStated')}</span>
+                                            : `${st.splitting_limit_pct}%`}
+                                    </td>
+                                    <td className="border border-gray-300 px-3 py-2 text-sm">{basisLabel(st.refining_charge_basis, rc)}</td>
+                                    <td className="border border-gray-300 px-3 py-2 text-sm">{basisLabel(st.penalty_basis, pe)}</td>
+                                </tr>
+                            )
+                        })}
+                    </tbody>
+                </table>
+            )}
+            <p className="text-xs text-gray-600 mb-4 max-w-4xl">{t('contracts.settlement.splittingWhy')}</p>
+
+            {/* ── 留样:一个【说出来的】未满足前提 ────────────────────────── */}
+            <h3 className="font-medium mb-1">{t('contracts.settlement.retentionTitle')}</h3>
+            <p className="text-sm text-gray-800 mb-4 max-w-4xl">{t('contracts.settlement.retentionWhy')}</p>
+
+            {/* ── 已记录的结算 ──────────────────────────────────────────── */}
+            <h3 className="font-medium mb-1">{t('contracts.settlement.settlementsTitle')}</h3>
+            {settlements.length === 0 ? (
+                <p className="text-sm text-gray-600 mb-4 max-w-4xl">{t('contracts.settlement.settlementsNone')}</p>
+            ) : (
+                <>
+                    <table className="w-full border-collapse mb-2 max-w-5xl">
+                        <thead>
+                            <tr className="bg-gray-100">
+                                <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.settlement.colOrder')}</th>
+                                <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.settlement.colBasis')}</th>
+                                <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.settlement.colUsedParty')}</th>
+                                <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.settlement.colAmount')}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {settlements.map((s2) => {
+                                const meta = orderMeta.get(s2.sales_order_id)
+                                const named = meta ? settleByContract.get(meta.contract_id)?.settling_party : undefined
+                                return (
+                                    <tr key={s2.id}>
+                                        <td className="border border-gray-300 px-3 py-2 font-mono text-sm">{meta?.contract_code ?? '—'}</td>
+                                        <td className="border border-gray-300 px-3 py-2 text-sm">{t(`contracts.settlement.basis.${s2.weight_basis_used}`)}</td>
+                                        <td className="border border-gray-300 px-3 py-2 text-sm">
+                                            {t(`contracts.settlement.party.${s2.settling_party_used}`)}
+                                            {/* ★【"没有那一方的化验"与"那一方的结果没被用"必须【不一样】】★
+                                                这里说的是后者:结果在,只是最后算数的不是它。 */}
+                                            <span className="block text-xs mt-1 text-amber-800">
+                                                {named && named !== s2.settling_party_used
+                                                    ? t('contracts.settlement.partyResultNotUsed', {
+                                                        expected: t(`contracts.settlement.party.${named}`),
+                                                        actual: t(`contracts.settlement.party.${s2.settling_party_used}`) })
+                                                    : t('contracts.settlement.partyResultAsNamed')}
+                                            </span>
+                                        </td>
+                                        <td className="border border-gray-300 px-3 py-2 text-sm">{s2.amount_usd}</td>
+                                    </tr>
+                                )
+                            })}
+                        </tbody>
+                    </table>
+                    <p className="text-xs text-amber-800 mb-4 max-w-4xl">{t('contracts.settlement.notPostedNote')}</p>
+                </>
             )}
 
             <p className="text-xs text-gray-500 mt-8 max-w-4xl">{t('contracts.pricingComesLater')}</p>
