@@ -189,6 +189,38 @@ BEGIN
        OR (v_rdy->>'level1_real_holders')::int <> 1 THEN
         RAISE EXCEPTION 'FIXTURE 151 失败:就绪面板与闸对不上 —— %', v_rdy; END IF;
 
+    -- ══════════ T ★ 门槛的【边界】—— "达到或超过"必须是 >= ,不是 > ★ ══════════
+    -- 【为什么边界值得一条臂】CHAIN-CONFIG-1 把门槛配成 SGD 1,000,而 Doc 1 的原话是
+    --   "10k and above" —— 一个写成 > 的实现在【恰好等于门槛】那一笔上会悄悄降一级,
+    --   而那正是最容易被写错、也最难被看出来的一个数:它只在恰好等于时错。
+    -- 【这一臂自己设门槛】重建出来的库里 finance_settings 是没配的,
+    --   所以不能依赖线上的值 —— 依赖它,这一臂在重建库上就是一句空话。
+    UPDATE finance_settings SET approval_threshold_base = 1000;
+    IF approval_level_for(999.99::numeric)  <> 1 THEN
+        RAISE EXCEPTION 'FIXTURE 151T 失败:999.99 在门槛【之下】,应走一级,实得 %', approval_level_for(999.99::numeric); END IF;
+    IF approval_level_for(1000.00::numeric) <> 2 THEN
+        RAISE EXCEPTION 'FIXTURE 151T 失败:★ 1000.00 【恰好等于】门槛,"达到或超过"意味着它走二级 ★ 实得 % —— 写成 > 的实现正是在这一个数上出错', approval_level_for(1000.00::numeric); END IF;
+    IF approval_level_for(1000.01::numeric) <> 2 THEN
+        RAISE EXCEPTION 'FIXTURE 151T 失败:1000.01 在门槛之上,应走二级,实得 %', approval_level_for(1000.01::numeric); END IF;
+
+    -- ══════════ 注入④ 把 >= 改成 > ,断言【恰好等于】那一笔当场降级 ══════════
+    -- 【为什么这个注入是必需的】上面三条断言里,只有【恰好等于】那一条能分辨
+    --   >= 与 > ;另外两条对两种实现都成立。不注入的话,这一臂看起来测了三个数,
+    --   实际上只有一个数在干活 —— 而注入把这件事证出来。
+    v_def := pg_get_functiondef('public.approval_level_for(numeric)'::regprocedure);
+    v_inj := replace(v_def, 'p_amount_base >= v_threshold', 'p_amount_base > v_threshold');
+    IF v_inj = v_def THEN
+        RAISE EXCEPTION 'FIXTURE 151 注入④ 失败:没找到 >= 那一句 —— 这个注入什么也没删'; END IF;
+    EXECUTE v_inj;
+    IF approval_level_for(1000.00::numeric) <> 1 THEN
+        RAISE EXCEPTION 'FIXTURE 151 注入④ 失败:改成 > 之后,恰好等于门槛的那一笔应当降到一级,实得 % —— 说明 T 臂断的不是这个比较号', approval_level_for(1000.00::numeric); END IF;
+    -- 而【严格大于】那一笔不该受影响 —— 证明注入只动了边界,没把整支函数弄坏
+    IF approval_level_for(1000.01::numeric) <> 2 THEN
+        RAISE EXCEPTION 'FIXTURE 151 注入④ 失败:注入只该改边界,1000.01 仍应走二级'; END IF;
+    EXECUTE v_def;
+    IF approval_level_for(1000.00::numeric) <> 2 THEN
+        RAISE EXCEPTION 'FIXTURE 151 注入④ 失败:恢复定义之后,恰好等于门槛的那一笔应当又走二级'; END IF;
+
     -- ══════════ 注入① 撤销那一条判据(证明 A 臂有管辖权)══════════
     UPDATE finance_settings SET approvals_enabled=false, approval_level1_role_code=NULL,
         approval_threshold_base=NULL, approval_level2_role_code=NULL;

@@ -12,6 +12,67 @@ Mechanism and history: `docs/approvals-scoping.md` (note its §3 and decision ro
 
 ---
 
+## 0 · THE CONFIGURED CHAIN — set 2026-08-30 (CHAIN-CONFIG-1)
+
+| | level 1 | level 2 |
+|---|---|---|
+| **role** | `finance` | `cfo` |
+| **applies to** | amounts **below** the threshold | amounts **at or above** it |
+| **threshold** | **SGD 1,000** — `finance_settings.approval_threshold_base = 1000` | |
+
+**The threshold is in BASE currency, and the base currency is SGD** (`currencies.is_base`,
+measured 2026-08-30). `approval_level_for(p_amount_base)` compares `p_amount_base >= v_threshold`,
+so **"at or above" is exact**: 999.99 → level 1, **1000.00 → level 2**, 1000.01 → level 2. Pinned by
+`db/fixtures/151` arm T, with a fault injection that flips `>=` to `>` and asserts the
+exactly-at-threshold case degrades — because that single value is the only one of the three that can
+tell the two implementations apart.
+
+**`cfo` was created holding exactly two permission codes** — `module.purchasing.view` and
+`data.view_prices` — which is the measured minimum to approve a purchase order (`approve_purchase_order`
+checks both; the document page needs the first). **It deliberately does NOT hold
+`module.purchasing.edit`:** an approver who can raise the document he approves is not a control.
+
+**`finance` was accepted as level 1 as-is** — no third role was built for two people, and
+`module.purchasing.edit` was **not** removed from it. The consequence is visible on the settings
+panel as `level1_holders_who_cannot_raise = 0` and is reported, not enforced (SOD-1 fu2's standing
+decision).
+
+> **A present-state limitation, recorded rather than designed around.** Tim holds **`admin` and
+> `cfo`**, and permissions are the **union** of a user's roles — `admin` carries
+> `module.purchasing.edit`. So excluding that code from `cfo` **buys nothing today**. Its value is
+> that the chain no longer names a person: the control becomes real the day someone other than Tim
+> holds `cfo`. **Expiry condition: a second person holds `cfo`.**
+
+---
+
+## 0b · NEITHER LEVEL MAY BE POINTED AT `admin` — a decision, deliberately NOT machine-blocked
+
+**Ruled 2026-08-30. This is the tempting wrong answer, so it is written down rather than left to
+judgement.**
+
+CHAIN-BUILD-1 measured that **`admin` is the only role that passes every readiness check today** —
+it is the sole role with an account that can actually sign in. That makes it the obvious way to get
+the switch to flip, and it is **rejected on principle**:
+
+> **`admin` is *system administration* — it is the only holder of `action.manage_permissions`.
+> Making it an approval level conflates "can configure the system" with "can commit the company's
+> money".** The person who can grant themselves any permission must not also be the person who
+> approves the spending.
+
+This was already the position in `docs/approvals-scoping.md` §3, and **that part of §3 is not
+superseded** — only the rows about *who* level 2 is were.
+
+**It is deliberately not enforced in code.** A rule forbidding one role code would be a second,
+narrower definition of who may approve, sitting beside `real_role_holders()` — and this repository
+has paid repeatedly for two definitions of the same thing. It would also be trivially sidestepped by
+granting `admin`'s codes to another role. **The protection is that it is written here**, not that
+the database refuses it.
+
+**Do not** point either level at `admin`, **do not** propose it as a temporary measure to make the
+switch flippable, and **do not** build a rule forbidding it.
+
+---
+
 ## 1 · There is deliberately NO DEPUTY and NO ESCALATION
 
 **Ruled 2026-08-30. Implemented in CHAIN-BUILD-1.**
@@ -67,6 +128,34 @@ is not a gate.
 ---
 
 ## 3 · TODAY, APPROVALS CANNOT BE SWITCHED ON — and that is the control working
+
+> **Updated 2026-08-30 (CHAIN-CONFIG-1): the chain is now CONFIGURED, and it still cannot be
+> enabled — for a sharper reason than before.** The blocker is no longer "nothing is set"; it is
+> that **level 1's only holder cannot sign in**. Measured on the configured chain:
+>
+> | level | role | holders_total | real_holders | state |
+> |---|---|---|---|---|
+> | 1 | `finance` | **1** | **0** | ★ **a holder exists but cannot sign in** ★ |
+> | 2 | `cfo` | 1 | 1 | a working holder |
+>
+> `blocking = ["approval_level1_holder_cannot_sign_in"]`, `can_enable = false`.
+> Attempting to enable refuses, verbatim:
+>
+> ```
+> APPROVALS_LEVEL1_HOLDER_CANNOT_SIGN_IN|finance|1
+> ```
+>
+> **Note which of the three states this is.** It is *not* "nobody holds `finance`" — somebody does
+> (Choo Er Teh). Granting the role to somebody again **would change nothing**; the account needs to
+> become able to sign in. That distinction is the whole reason the two counts exist.
+>
+> **Expiry condition: a second account can actually sign in** — in practice, `chef1949@126.com`
+> confirming her email. That is an open item owned by Tim and is deliberately not touched by any
+> cut. When it happens, `finance` gains a real holder and the chain becomes enableable with no code
+> change.
+
+**The original note below is kept — it is why the refusal is honest rather than a bug.**
+
 
 **Present state, measured 2026-08-30. EXPECTED. Do not "fix" it by loosening the predicate.**
 
@@ -136,8 +225,12 @@ Roles that would fail the enable-time check today: `employee`, `hr`, `operations
 
 ---
 
-## 6 · What this cut did NOT do
+## 6 · What CHAIN-BUILD-1 did NOT do — and what CHAIN-CONFIG-1 then did
 
-It **configured nothing**. Approvals are **OFF**, and the chain is **UNCONFIGURED**: no level-1 role,
-no level-2 role, no threshold. CHAIN-BUILD-1 made the chain *configurable by role at both levels*;
-choosing the roles is a separate, business decision.
+**CHAIN-BUILD-1 configured nothing.** It made the chain *configurable by role at both levels* and
+left every value NULL; choosing the roles was a separate, business decision.
+
+**CHAIN-CONFIG-1 (2026-08-30) made that choice** — see §0 for the configured chain. It changed **no
+schema and no code**: it created a role, granted two permission codes, set three settings values and
+granted a role to one account. **Approvals remain OFF**, and enabling them still refuses, for the
+reason in §3.
