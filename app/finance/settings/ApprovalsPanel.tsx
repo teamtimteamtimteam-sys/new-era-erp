@@ -16,19 +16,53 @@ import { getTranslations } from '@/lib/i18n/server'
 type Readiness = {
     enabled: boolean
     level1_role_code: string | null
+    level1_holders_total: number
     level1_real_holders: number
+    level1_can_see_amounts: boolean
     level1_holders_who_cannot_raise: number
     threshold_base: string | number | null
-    level2_user_id: string | null
-    level2_user_is_real: boolean
+    // CHAIN-BUILD-1(R1):二级从【具名的人】改成【角色】,与一级同形。
+    level2_role_code: string | null
+    level2_holders_total: number
+    level2_real_holders: number
+    level2_can_see_amounts: boolean
     pending_purchase_orders: number
     blocking: string[]
     can_enable: boolean
     can_disable: boolean
+    no_deputy_by_decision: boolean
 }
 
 export default async function ApprovalsPanel({ r }: { r: Readiness }) {
     const t = await getTranslations()
+
+    // ★【三种状态,三句不同的话 —— 这是本刀在屏幕上的全部要点】★
+    const HolderState = ({ role, total, real, sees }: {
+        role: string; total: number; real: number; sees: boolean
+    }) => (
+        <div className="ml-4 mb-1 space-y-1">
+            {real > 0 ? (
+                <p className="text-xs text-green-800">
+                    {t('finance.approvals.holdersOk', { n: String(real), role })}
+                </p>
+            ) : total > 0 ? (
+                /* ★ 中间态:有人持有,但他登录不了。**不是"没有人"** ★ */
+                <p className="text-xs text-red-800 bg-red-50 border border-red-200 rounded px-2 py-1">
+                    {t('finance.approvals.holdersCannotSignIn', { n: String(total), role })}
+                </p>
+            ) : (
+                <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                    {t('finance.approvals.holdersNone', { role })}
+                </p>
+            )}
+            {!sees && (
+                /* R4:看不见金额的角色批的是自己看不见的数字 */
+                <p className="text-xs text-red-800 bg-red-50 border border-red-200 rounded px-2 py-1">
+                    {t('finance.approvals.cannotSeeAmounts', { role })}
+                </p>
+            )}
+        </div>
+    )
 
     const Row = ({ label, value, unsetNote }: {
         label: string; value: string | null; unsetNote: string
@@ -63,11 +97,26 @@ export default async function ApprovalsPanel({ r }: { r: Readiness }) {
                 {r.enabled ? t('finance.approvals.on') : t('finance.approvals.off')}
             </p>
 
+            {/* ★★【每一级三样都要说出来:哪个角色、几个人、看不看得见金额】★★
+                （CHAIN-BUILD-1）而"几个人"不是一个数,是【两个】数的关系:
+                  · total = 0            → 没有人持有这个角色
+                  · total > 0, real = 0  → ★有人持有,但那个人登录不了★
+                  · real > 0             → 有能干活的人
+                中间那一种若报成"没有持有人",操作的人会去【再授一次权】,
+                而那个角色已经授过了 —— 再授一次不会改变任何事。 */}
             <Row
                 label={t('finance.approvals.level1')}
                 value={r.level1_role_code}
                 unsetNote={t('finance.approvals.level1Unset')}
             />
+            {r.level1_role_code && (
+                <HolderState
+                    role={r.level1_role_code}
+                    total={r.level1_holders_total}
+                    real={r.level1_real_holders}
+                    sees={r.level1_can_see_amounts}
+                />
+            )}
             <Row
                 label={t('finance.approvals.threshold')}
                 value={r.threshold_base === null ? null : String(r.threshold_base)}
@@ -75,9 +124,17 @@ export default async function ApprovalsPanel({ r }: { r: Readiness }) {
             />
             <Row
                 label={t('finance.approvals.level2')}
-                value={r.level2_user_id}
+                value={r.level2_role_code}
                 unsetNote={t('finance.approvals.level2Unset')}
             />
+            {r.level2_role_code && (
+                <HolderState
+                    role={r.level2_role_code}
+                    total={r.level2_holders_total}
+                    real={r.level2_real_holders}
+                    sees={r.level2_can_see_amounts}
+                />
+            )}
 
             {/* 【一个忠告,不是一道闸】被裁定的一级角色 `finance` 自己就持有
                 module.purchasing.edit,于是「结构上提不了单」的审批人可能是 0 个。
@@ -110,6 +167,13 @@ export default async function ApprovalsPanel({ r }: { r: Readiness }) {
                     )}
                 </p>
             )}
+
+            {/* ★【没有代理人、没有升级 —— 一条裁定,不是一处遗漏】★(R2)
+                无条件渲染:它与有没有配置无关,而一个只在出事时才出现的说明
+                等于没有说明。语气与"匿名化函数永久拒绝"那一条相同。 */}
+            <p className="mt-3 text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded px-2 py-1">
+                {t('finance.approvals.noDeputy')}
+            </p>
 
             <p className="mt-3 text-xs text-gray-500">{t('finance.approvals.howToTurnOn')}</p>
         </div>

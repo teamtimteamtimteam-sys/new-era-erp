@@ -50,11 +50,14 @@ CREATE TABLE public.finance_settings (
     approval_level1_role_code text REFERENCES public.roles (code),
     approval_threshold_base   numeric CHECK (approval_threshold_base IS NULL
                                              OR approval_threshold_base > 0),
-    approval_level2_user_id   uuid,
     -- APR-2c:审批流是否生效。【默认 false 是有意的】—— 四眼规则在只有一个人类
     -- 账号的系统里无法运转,而"没配就拒绝"会把采购整个停掉;空配置与不能用的
     -- 系统是同一个结果。三态见 db/migrations/2026-08-09-apr2c-*.sql 的文件头。
-    approvals_enabled boolean NOT NULL DEFAULT false
+    approvals_enabled boolean NOT NULL DEFAULT false,
+    -- ── CHAIN-BUILD-1 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────
+    -- 【二级从此也指向一个【角色】】它取代了 approval_level2_user_id(已退役)。
+    -- 形状与一级【逐字相同】—— 两级不同形,下一个读的人就得先分辨它们哪里不同。
+    approval_level2_role_code text REFERENCES public.roles (code)
 );
 
 INSERT INTO public.finance_settings (id, locked_before) VALUES (true, NULL);
@@ -127,13 +130,13 @@ COMMENT ON COLUMN public.finance_settings.default_allocation_basis IS
     '新建加工单时表单【预选】的分摊基准(FIN-36)。这是一个 RUNTIME CONFIG:操作员在设置页上看得见、改得动 —— 与 processing_runs 上那个已被删掉的 schema 默认值的区别就在这里,后者谁也看不见。真正记录"这一单用了什么"的仍然是 processing_runs.allocation_basis,由表单显式送上来。';
 
 COMMENT ON COLUMN public.finance_settings.approval_level1_role_code IS
-    '一级审批人的角色码(APR-2 决定 1:按角色路由)。【空 = 未配置,引擎拒绝路由】而不是退回某个默认角色 —— 候选与各自的含义见 docs/approvals-scoping.md §A1,那是 Tim 的决定。注意 procurement 是【提单】的角色,不能同时当审批人。';
+    '一级审批【角色】码。★【没有代理人、没有升级、没有破窗 —— 这是一条裁定,不是一处遗漏】★(R2,CHAIN-BUILD-1 2026-08-30):某一级的持有人不在,这一级的单据就【停着】,而且系统会把这件事【说出来】(就绪面板的三种状态),但**绝不绕过去**。互为代理被考虑过并否决了 —— 两个互为代理的人会让金额门槛失去意义。加第二个审批人是【分工】,不是【互为代理】。理由与写法见 docs/approvals.md。';
 
 COMMENT ON COLUMN public.finance_settings.approval_threshold_base IS
     '二级审批的门槛,以【本位币】计(_base 后缀是本仓库表达币种的既定写法,同 amount_base/total_base)。达到或超过它就要具名审批人批。【空 = 未配置,引擎拒绝路由】—— 与 SYSTEM_START_NOT_SET 同一条规矩:没设好的管控不等于可以跳过管控。取值的证据(线上采购与进料的实际金额分布对 10k/25k/50k 的命中率)见 docs/approvals-scoping.md §A2。';
 
-COMMENT ON COLUMN public.finance_settings.approval_level2_user_id IS
-    '阈值以上的审批人 —— 【一个具体的人】,不是角色(APR-2 决定 2:一个只有一名成员的角色是在权限矩阵里放一个虚构的席位)。正因为它是人,委托(delegation)才成为必需而不是可选 —— 见 docs/approvals-scoping.md §8。空 = 未配置,需要二级时拒绝路由。';
+COMMENT ON COLUMN public.finance_settings.approval_level2_role_code IS
+    'CHAIN-BUILD-1(R1):二级审批【角色】码。★它取代了 approval_level2_user_id★ —— 两列各能指定一个审批人,就是"谁可以批"的两份定义,而那是本仓库最老的漂移形状。旧列在线上是 NULL,所以本刀直接退役它,不留兼容期。**没有代理人、没有升级**(R2):这一级的人不在,这一级的单据就停着,那是裁定过的,不是漏掉的。';
 
 COMMENT ON COLUMN public.finance_settings.approvals_enabled IS
     '审批流是否生效(APR-2c)。【默认 false,这是有意的】:四眼规则在只有一个人类账号的系统里无法运转,而"没配就拒绝"会把采购整个停掉 —— 空配置与不能用的系统是同一个结果。三种状态:off = 审批有意不生效,采购单直接建成 confirmed/approved 且【界面明说】;on 但策略为空 = 拒绝路由(启用却无策略是配置错误);on 且策略齐备 = 引擎照常跑。打开它的前置条件写在 docs/fresh-install-checklist.md:至少两个人类账号,且持 finance 的人不是提单人。';

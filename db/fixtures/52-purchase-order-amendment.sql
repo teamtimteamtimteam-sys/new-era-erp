@@ -42,7 +42,9 @@ BEGIN
         'module.inbound.view','module.inbound.edit','module.finance.view','data.view_prices']);
     -- 【SOD-1:一级审批角色必须有【真的登录得了的】持有人】trg_approvals_switch
     -- 数的是 user_roles ⋈ auth.users —— 只由幽灵持有的角色是一个没有人来批的队列。
-    INSERT INTO auth.users (id) VALUES (v_user), (v_approver);
+    -- CHAIN-BUILD-1(R3):持有人要【真的登录得了】—— confirmed_at 是生成列,
+    -- 所以这里设的是 email_confirmed_at。不设就没有真持有人,开关开不起来。
+    INSERT INTO auth.users (id, email_confirmed_at) VALUES (v_user, now()), (v_approver, now());
     INSERT INTO user_roles (user_id, role_id) VALUES (v_user, r_all), (v_approver, r_all);
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_user), true);
@@ -166,7 +168,9 @@ BEGIN
     UPDATE finance_settings SET approvals_enabled = true,
         approval_level1_role_code = 'fixture-52',
         approval_threshold_base = 10000,
-        approval_level2_user_id = v_approver;
+        -- CHAIN-BUILD-1(R1):二级也按【角色】。本支测的是改单,不是分工,
+        -- 所以两级指向同一个角色 —— 分工那一条由 fixture 35 与 151 钉。
+        approval_level2_role_code = 'fixture-52';
 
     v_po := (create_purchase_order(v_sup, DATE '2027-04-01', NULL, v_ccy, NULL, NULL, NULL, NULL,
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100, 'estimated_unit_price', 50)), NULL)->>'purchase_order_id')::uuid;

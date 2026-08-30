@@ -20,11 +20,14 @@ CREATE OR REPLACE FUNCTION public.guard_approvals_switch()
 AS $function$
 DECLARE
     v_missing text[] := '{}';
-    v_holders integer;
     v_pending integer;
     v_codes   text;
+    v_lvl     integer;
+    v_role    text;
+    v_total   integer;
+    v_real    integer;
 BEGIN
-    -- ── 开:三个策略值必须齐,而且必须【指向真的人】 ──
+    -- ── 开:策略必须齐,两级都必须【有人批】而且【看得见金额】 ──
     IF NEW.approvals_enabled AND NOT OLD.approvals_enabled THEN
         IF NEW.approval_level1_role_code IS NULL THEN
             v_missing := v_missing || 'approval_level1_role_code'::text;
@@ -32,27 +35,44 @@ BEGIN
         IF NEW.approval_threshold_base IS NULL THEN
             v_missing := v_missing || 'approval_threshold_base'::text;
         END IF;
-        IF NEW.approval_level2_user_id IS NULL THEN
-            v_missing := v_missing || 'approval_level2_user_id'::text;
+        IF NEW.approval_level2_role_code IS NULL THEN
+            v_missing := v_missing || 'approval_level2_role_code'::text;
         END IF;
         IF cardinality(v_missing) > 0 THEN
             RAISE EXCEPTION 'APPROVALS_POLICY_INCOMPLETE|%', array_to_string(v_missing, ', ');
         END IF;
 
-        SELECT count(*) INTO v_holders
-          FROM user_roles ur JOIN roles r ON r.id = ur.role_id
-          JOIN auth.users u ON u.id = ur.user_id
-         WHERE r.code = NEW.approval_level1_role_code AND r.is_active;
-        IF v_holders = 0 THEN
-            RAISE EXCEPTION 'APPROVALS_LEVEL1_ROLE_UNHELD|%', NEW.approval_level1_role_code;
-        END IF;
+        -- 两级走【同一段】判断 —— 两级不同形正是上一版留下的问题。
+        FOR v_lvl IN 1..2 LOOP
+            v_role := CASE v_lvl WHEN 1 THEN NEW.approval_level1_role_code
+                                 ELSE NEW.approval_level2_role_code END;
 
-        IF NOT EXISTS (SELECT 1 FROM auth.users u WHERE u.id = NEW.approval_level2_user_id) THEN
-            RAISE EXCEPTION 'APPROVALS_LEVEL2_USER_UNKNOWN|%', NEW.approval_level2_user_id;
-        END IF;
+            SELECT count(*) INTO v_real FROM real_role_holders(v_role);
+
+            IF v_real = 0 THEN
+                -- 【分辨两种零】总数是从 user_roles 上数的(未撤销的授权),
+                -- 与 real 的差,正好就是"有人持有,但他登录不了"。
+                SELECT count(*) INTO v_total
+                  FROM user_roles ur JOIN roles r ON r.id = ur.role_id
+                 WHERE r.code = v_role AND r.is_active AND ur.revoked_at IS NULL;
+
+                IF v_total > 0 THEN
+                    -- ★ 3c 的中间态:角色【有人】,但那个人【登录不了】。
+                    --   报成"没有持有人"会把人送去再授一次权,而那不会改变任何事。
+                    RAISE EXCEPTION 'APPROVALS_LEVEL%_HOLDER_CANNOT_SIGN_IN|%|%', v_lvl, v_role, v_total;
+                ELSE
+                    RAISE EXCEPTION 'APPROVALS_LEVEL%_ROLE_UNHELD|%', v_lvl, v_role;
+                END IF;
+            END IF;
+
+            -- R4/4b:看不见金额的角色批不了它该批的东西 —— 同一时刻、同一理由。
+            IF NOT role_can_see_amounts(v_role) THEN
+                RAISE EXCEPTION 'APPROVALS_LEVEL%_ROLE_CANNOT_SEE_AMOUNTS|%', v_lvl, v_role;
+            END IF;
+        END LOOP;
     END IF;
 
-    -- ── 关:在途的 pending 单会被永远搁死,所以先点名 ──
+    -- ── 关:在途的 pending 单会被永远搁死,所以先点名(原样保留)──
     IF OLD.approvals_enabled AND NOT NEW.approvals_enabled THEN
         SELECT count(*), string_agg(code, ', ' ORDER BY code)
           INTO v_pending, v_codes
@@ -70,8 +90,8 @@ BEGIN
         IF NEW.approval_threshold_base IS NULL AND OLD.approval_threshold_base IS NOT NULL THEN
             RAISE EXCEPTION 'APPROVALS_POLICY_LOCKED_WHILE_ON|approval_threshold_base';
         END IF;
-        IF NEW.approval_level2_user_id IS NULL AND OLD.approval_level2_user_id IS NOT NULL THEN
-            RAISE EXCEPTION 'APPROVALS_POLICY_LOCKED_WHILE_ON|approval_level2_user_id';
+        IF NEW.approval_level2_role_code IS NULL AND OLD.approval_level2_role_code IS NOT NULL THEN
+            RAISE EXCEPTION 'APPROVALS_POLICY_LOCKED_WHILE_ON|approval_level2_role_code';
         END IF;
     END IF;
 

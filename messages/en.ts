@@ -5246,8 +5246,8 @@ const en = {
             level1Unset: 'unset means undecided, NOT "no approval needed"',
             threshold: 'Threshold (base currency)',
             thresholdUnset: 'unset means undecided — without it no order can be routed to a level',
-            level2: 'Level-2 approver (a named person)',
-            level2Unset: 'unset means undecided — an above-threshold order would have nowhere to go',
+            level2: 'Level 2 approver role (at or above the threshold)',
+            level2Unset: 'nobody has decided which role approves at or above the threshold',
             whatFlipDoes: 'What flipping the switch would do:',
             flipOn: 'Turning it ON: existing orders keep the approval status they already have and stay receivable — nothing is stranded. New orders are raised as draft/pending and must be approved before goods can be received or a deposit released. The database refuses to turn it on unless all three values above are set and point at real accounts, so "on but unconfigured" is a state that cannot be reached.',
             flipOff: 'Turning it OFF: orders raised while approvals were in force keep their status — turning off never retroactively approves anything. The database refuses to turn it off while any order is still awaiting approval ({n} right now), because those orders could otherwise never be approved and never receive goods.',
@@ -5255,6 +5255,11 @@ const en = {
             cannotEnable: 'Approvals cannot be switched on yet — still unset or unusable: {what}',
             howToTurnOn:
                 'Whether approvals are in force is a business decision. Turning them on is a deliberate database change that sets all three policy values and the flag together; this page reports the state, it does not flip it.',
+            holdersOk: '{n} person/people currently hold {role} and can sign in.',
+            holdersCannotSignIn: '\u2605 {role} IS held by {n} account(s), but none of them can sign in \u2014 so nobody can actually approve at this level. Granting the role again will change nothing; the account needs to be able to sign in. Approvals cannot be switched on while this is true.',
+            holdersNone: 'Nobody holds {role}, so there is no approver at this level. Approvals cannot be switched on while this is true.',
+            cannotSeeAmounts: '\u2605 {role} cannot see amounts (it lacks price visibility). Approval routes by amount, so a holder of this role would be approving a figure they cannot read. Approvals cannot be switched on while this is true.',
+            noDeputy: 'There is deliberately NO deputy and NO escalation. Each level stands alone: if the holder of a level is unavailable, documents at that level wait, and nothing routes around them. This was ruled on, not overlooked \u2014 mutual deputising was considered and rejected, because two mutual deputies would make the amount threshold meaningless.',
         },
         sod: {
             cannotCheck:

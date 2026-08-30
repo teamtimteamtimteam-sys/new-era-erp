@@ -158,3 +158,17 @@ REVOKE EXECUTE ON FUNCTION public.next_fixed_asset_code(date) FROM authenticated
 -- 【为什么不给它加 require_permission】它被属主(postgres)在 definer 内部调用,
 -- 而 postgres 没有 claims —— 加了门反而会在开票与记费用的路上抛权限错。
 REVOKE EXECUTE ON FUNCTION public.resolve_tax_code(text, text, text, text) FROM authenticated;
+
+-- CHAIN-BUILD-1(2026-08-30):审批链的两支内层判据。
+-- 【为什么收回】两支都是 SECURITY DEFINER 且【没有调用者检查】,而 gate 的 B2
+-- 正是查这个。它们【不需要】门,需要的是【真的够不着】——
+-- real_role_holders 读 auth.users(账号是否确认/封禁/删除)与 user_roles,
+-- 给了 authenticated 就等于任何登录用户都能把整个账号目录的登录状态问出来;
+-- role_can_see_amounts 读 role_permissions,同理会把权限矩阵问出来。
+-- 【唯一的调用方,逐个点名】三支都是 SECURITY DEFINER、以属主身份执行,
+-- 而且三支各自已经把过关(readiness 有 require_permission;另两支是闸自己):
+--   · real_role_holders   ← guard_approvals_switch / approvals_readiness / require_approver_for
+--   · role_can_see_amounts ← guard_approvals_switch / approvals_readiness
+-- 收回之后照常工作,靠的就是调不到 —— 与上面 SOD-1 那三支逐字同一条理由。
+REVOKE EXECUTE ON FUNCTION public.real_role_holders(text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.role_can_see_amounts(text) FROM authenticated;

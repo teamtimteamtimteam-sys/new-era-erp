@@ -213,6 +213,14 @@ DEFINER_NO_CHECK_ALLOWED = {
     # —— 由返回类型自动排除,不需要列在这里。
     # 已收回 EXECUTE 的内层函数(ACL 里没有 PUBLIC 项)
     "calculate_metal_price_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    # CHAIN-BUILD-1:审批链的两支内层判据。同 calculate_metal_price_internal ——
+    # EXECUTE 已从 authenticated 收回(db/views/zzz_function_grants.sql),靠的就是
+    # 【调不到】,所以 gate 的 B2(definer-unchecked-and-CALLABLE)是 0。
+    # 它们【不能】自己查权限:三个调用方里 guard_approvals_switch 是触发器、
+    # require_approver_for 是授权判据本身,两者都以属主身份跑而属主没有 claims ——
+    # 加一道门反而会在开关与审批的路上抛权限错(与 GST-1 那两支逐字同一条理由)。
+    "real_role_holders": "EXECUTE revoked from authenticated; callers guard_approvals_switch / approvals_readiness / require_approver_for are all definer and each checks its own caller",
+    "role_can_see_amounts": "EXECUTE revoked from authenticated; callers guard_approvals_switch / approvals_readiness are both definer and each checks its own caller",
     # TASK-1c-a:两扇门(创建门与升级门)共用的那一个写入者。没有调用者检查,
     # 靠的就是调不到 —— fu1 已把 authenticated 的 EXECUTE 收回(gate 的 B2 抓过一次:
     # 留着它等于给每个登录用户一把针对全部团队任务的写权限)。

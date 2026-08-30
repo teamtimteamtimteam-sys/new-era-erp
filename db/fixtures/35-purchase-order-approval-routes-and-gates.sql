@@ -19,8 +19,8 @@ DO $$
 DECLARE
     u_req  uuid := gen_random_uuid();   -- 提单人(procurement)
     u_l1   uuid := gen_random_uuid();   -- 一级审批人
-    u_l2   uuid := gen_random_uuid();   -- 二级审批人(具名)
-    r_req uuid; r_l1 uuid;
+    u_l2   uuid := gen_random_uuid();   -- 二级审批人(CHAIN-BUILD-1 起:按【角色】,不再具名)
+    r_req uuid; r_l1 uuid; r_l2 uuid;
     v_sup uuid; v_mat uuid; v_base text; v_fgn text;
     v_lines jsonb;
     po_small uuid; po_big uuid; po_fx uuid;
@@ -45,14 +45,27 @@ BEGIN
                                'module.inbound.edit','module.inbound.view','module.finance.edit']);
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-35-approver', 'f', 'f', true) RETURNING id INTO r_l1;
+    -- CHAIN-BUILD-1(R4):审批角色必须【看得见金额】—— approve_purchase_order 现在
+    -- 要 data.view_prices,而开关那道闸也会为看不见金额的角色按名拒。
     INSERT INTO role_permissions (role_id, permission_code)
-    SELECT r_l1, unnest(ARRAY['module.purchasing.view','module.purchasing.edit']);
+    SELECT r_l1, unnest(ARRAY['module.purchasing.view','module.purchasing.edit','data.view_prices']);
+    -- CHAIN-BUILD-1(R1):二级也是一个【角色】。**它与一级是两个不同的角色** ——
+    -- R2 说得很死:加第二个审批人是【分工】,不是【互为代理】。
+    INSERT INTO roles (code, name_en, name_zh, is_active)
+    VALUES ('fixture-35-l2', 'f', 'f', true) RETURNING id INTO r_l2;
+    INSERT INTO role_permissions (role_id, permission_code)
+    SELECT r_l2, unnest(ARRAY['module.purchasing.view','data.view_prices']);
     -- 【SOD-1:一级审批角色必须有【真的登录得了的】持有人】
     -- trg_approvals_switch 数的是 user_roles ⋈ auth.users —— 一个只由幽灵持有的
     -- 角色是一个永远不会有人来批的队列(线上有 66 条认不到人的授权,
     -- 见 docs/known-issues.md 的 ACCOUNTS-STALE 条)。所以这三个人要是真账号。
-    INSERT INTO auth.users (id) VALUES (u_req), (u_l1), (u_l2);
-    INSERT INTO user_roles (user_id, role_id) VALUES (u_req, r_req), (u_l1, r_l1), (u_l2, r_l1);
+    -- ★【CHAIN-BUILD-1(R3):持有人判据从「有一行账号记录」改成「真的登录得了」】★
+    --   所以这几个账号必须【已确认】。confirmed_at 是生成列(LEAST(email,phone)),
+    --   写不进去 —— 要设的是 email_confirmed_at。不设的话,这几个角色在新判据下
+    --   都是 0 个真持有人,开关根本开不起来,而这一支 fixture 测的正是开起来之后。
+    INSERT INTO auth.users (id, email_confirmed_at)
+    VALUES (u_req, now()), (u_l1, now()), (u_l2, now());
+    INSERT INTO user_roles (user_id, role_id) VALUES (u_req, r_req), (u_l1, r_l1), (u_l2, r_l2);
 
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
     VALUES ('ZZFIX35-S', 'fixture 35 supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
@@ -87,7 +100,7 @@ BEGIN
     UPDATE finance_settings
     SET approval_threshold_base = 10000,
         approval_level1_role_code = 'fixture-35-approver',
-        approval_level2_user_id = u_l2,
+        approval_level2_role_code = 'fixture-35-l2',
         approvals_enabled = true;
 
     -- ══════════ E(续). 生效之后,单据生为 draft/pending 且留下 submitted ═══════
@@ -150,7 +163,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 35A 失败:应报"这是二级、你不是那个人",实得「%」', v_msg;
     END IF;
 
-    -- 具名的二级审批人来批 → 成功,且级别是 2
+    -- 二级【角色】的持有人来批 → 成功,且级别是 2(CHAIN-BUILD-1:不再是那一个具名的人)
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', u_l2), true);
     v_res := approve_purchase_order(po_fx, 'fixture 35 level 2');

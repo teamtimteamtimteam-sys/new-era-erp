@@ -103,7 +103,28 @@ human is named for the above-threshold step. It needs no org chart.
 
 ---
 
-## 3 · Who is "CFO"? — **DECISION**
+## 3 · Who is "CFO"? — **DECISION** — ⚠️ **SUPERSEDED 2026-08-30 (CHAIN-BUILD-1)**
+
+> ⚠️ **SUPERSEDED — 2026-08-30, by Tim's ruling, implemented in CHAIN-BUILD-1.**
+> **The ruling: BOTH approval levels point at a ROLE. Level 2 takes a role code
+> (`finance_settings.approval_level2_role_code`); the `approval_level2_user_id`
+> column has been RETIRED.** A `cfo` role is therefore expected, not avoided.
+>
+> **Why this section's argument no longer holds.** Its case against a `cfo` role
+> rested on two legs, and **both are gone**:
+> * *"a one-member role puts a fiction in the permission matrix"* — outweighed by
+>   the ruling that the chain must never name a person, so that the chain survives
+>   the person leaving;
+> * *"naming a person is what **forces delegation to exist**"* — **this reason is
+>   void**: delegation was considered and **deliberately ruled out** (no deputy, no
+>   escalation, no break-glass). A justification whose whole force was "it makes us
+>   build delegation" cannot survive the decision not to build delegation.
+>
+> **The original text below is kept, not deleted** — it is the record of what was
+> decided on 2026-08-09 and why. Read it as history, not as instruction.
+> The consequence that replaces it (approvals stall by design when a level has no
+> able holder) is written in `docs/approvals.md`.
+
 
 No such role exists. The ten are: `admin`, `gm`, `finance`, `procurement`, `sales`, `operations`,
 `warehouse`, `hr`, `auditor`, `employee`.
@@ -297,8 +318,8 @@ project (§2) — which becomes cut 0 if and only if §2 chooses org-chart routi
 
 | # | question | **decision** |
 |---|---|---|
-| 1 | who is "the supervisor"? | **level 1 routes by ROLE.** Not the org chart — see §2: it does not exist yet, and building it is a prerequisite project, not a design choice |
-| 2 | who is "CFO"? | **level 2 routes to a NAMED PERSON, configured as a `user_id`.** Not a new `cfo` role: a one-member role puts a fiction in the permission matrix. Naming a person is also what **forces delegation to exist** rather than leaving it optional |
+| 1 | who is "the supervisor"? | ⚠️ **SUPERSEDED 2026-08-30 (CHAIN-BUILD-1)** — the mechanism (**routes by ROLE**) stands and is unchanged; what changed is that it is now **both** levels, not just this one. Original text: *"level 1 routes by ROLE. Not the org chart — see §2: it does not exist yet, and building it is a prerequisite project, not a design choice"* |
+| 2 | who is "CFO"? | ⚠️ **SUPERSEDED 2026-08-30 (CHAIN-BUILD-1) — REVERSED.** **Level 2 now routes by ROLE**, via `approval_level2_role_code`; `approval_level2_user_id` is **retired**. Its stated reason is **void**: naming a person was justified by "it forces delegation to exist", and **delegation has since been deliberately ruled out** (no deputy, no escalation — see `docs/approvals.md`). Original text: *"level 2 routes to a NAMED PERSON, configured as a `user_id`. Not a new `cfo` role: a one-member role puts a fiction in the permission matrix. Naming a person is also what forces delegation to exist rather than leaving it optional"* |
 | 3 | the threshold | lives in **`finance_settings`**, compared in **BASE currency** using **the document's OWN stored rate**. **Its value is still open** — the mechanism is decided, the number is not |
 | 4 | an amendment that raises the amount past the threshold | **voids the approval and re-routes.** (Answers §5's open question: approval is a decision about a specific value, not about the document in general) |
 | 5 | do the HR chains fold in? | **no — they keep their own engines, but they WRITE TO THIS LOG.** One trail, several engines |

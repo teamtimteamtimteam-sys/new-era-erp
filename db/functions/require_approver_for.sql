@@ -6,29 +6,25 @@ CREATE OR REPLACE FUNCTION public.require_approver_for(p_level smallint)
 AS $function$
 DECLARE
     v_role text;
-    v_user uuid;
 BEGIN
     IF p_level = 1 THEN
         SELECT approval_level1_role_code INTO v_role FROM finance_settings LIMIT 1;
         IF v_role IS NULL THEN
             RAISE EXCEPTION 'APPROVAL_LEVEL1_ROLE_NOT_SET';
         END IF;
-        IF NOT EXISTS (
-            SELECT 1 FROM user_roles ur JOIN roles r ON r.id = ur.role_id
-            WHERE ur.user_id = auth.uid() AND r.code = v_role AND r.is_active
-        ) THEN
-            RAISE EXCEPTION 'APPROVAL_NOT_AUTHORISED|1|%', v_role;
-        END IF;
     ELSIF p_level = 2 THEN
-        SELECT approval_level2_user_id INTO v_user FROM finance_settings LIMIT 1;
-        IF v_user IS NULL THEN
-            RAISE EXCEPTION 'APPROVAL_LEVEL2_USER_NOT_SET';
-        END IF;
-        IF auth.uid() IS DISTINCT FROM v_user THEN
-            RAISE EXCEPTION 'APPROVAL_NOT_AUTHORISED|2|%', v_user;
+        SELECT approval_level2_role_code INTO v_role FROM finance_settings LIMIT 1;
+        IF v_role IS NULL THEN
+            RAISE EXCEPTION 'APPROVAL_LEVEL2_ROLE_NOT_SET';
         END IF;
     ELSE
         RAISE EXCEPTION 'APPROVAL_LEVEL_INVALID|%', p_level;
+    END IF;
+
+    -- ★ 与"有几个持有人"读同一份定义 —— 于是【一份撤销掉的授权批不了单】,
+    --   而这一条此前是漏的(见本文件抬头的缺陷段)。
+    IF NOT EXISTS (SELECT 1 FROM real_role_holders(v_role) h WHERE h.user_id = auth.uid()) THEN
+        RAISE EXCEPTION 'APPROVAL_NOT_AUTHORISED|%|%', p_level, v_role;
     END IF;
 END;
 $function$;

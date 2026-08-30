@@ -10,6 +10,22 @@ DECLARE
     v_level smallint;
 BEGIN
     PERFORM require_permission('module.purchasing.view');
+    -- ★★【R4:批的人必须看得见他批的那个数】★★(CHAIN-BUILD-1,2026-08-30)
+    --   本函数按【金额】选级别(approval_level_for),而金额在 purchase_orders_masked /
+    --   purchase_order_lines_masked 上是遮蔽列,门是 data.view_prices。
+    --   于是一个只持 module.purchasing.view 的人可以【打开单据、按下批准】,
+    --   而屏幕上那一格写着「受限」—— 他批的是一个自己看不见的数字。
+    --
+    --   【为什么是"要这个权限",不是"在审批路径上解遮蔽"】(4a 的两条路,选了前者)
+    --   解遮蔽会开出【第二条看价格的路】,绕过 _masked 那一套 —— 而那一套自己带着
+    --   gate 的 colgrant / colreader 两条判词。多一条路 = 多一份定义,正是本仓库
+    --   反复付账的那个形状。这里不发明新权限码,只是要求一个【已经存在】的。
+    --
+    --   【它与开关那道闸不重复,两者问的不是同一件事】
+    --     · 开关时问:这个【角色】看得见金额吗(策略层面,可全知,后果是全体)
+    --     · 批准时问:这个【人】看得见金额吗(个体层面,权限是多角色的并集)
+    --   与 AGENTS.md「决定期间的值:控件禁用 + 服务端独立拒绝」是同一个两道闸的形状。
+    PERFORM require_permission('data.view_prices');
     -- APR-2c:审批未生效时,"批准"是一个没有意义的动作 —— 单据本来就已经是 approved。
     -- 点名拒绝,而不是默默成功:后者会让人以为审批流在跑。
     IF NOT approvals_enabled() THEN

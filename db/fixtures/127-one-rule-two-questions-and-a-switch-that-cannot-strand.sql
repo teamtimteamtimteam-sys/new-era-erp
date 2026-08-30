@@ -36,14 +36,19 @@ DECLARE
     r jsonb := '{}'::jsonb;
 BEGIN
     -- ══════════════════════ 布景 ══════════════════════
-    INSERT INTO auth.users (id) VALUES (v_a), (v_b);      -- 【真的】账号(FK 与闸都要它)
+    -- CHAIN-BUILD-1(R3):【真的】账号现在的意思是【登录得了】—— confirmed_at 是
+    -- 生成列,所以设 email_confirmed_at。不设的话 C4 那条会通过的臂会开不起来。
+    INSERT INTO auth.users (id, email_confirmed_at) VALUES (v_a, now()), (v_b, now());
 
     INSERT INTO roles (code,name_en,name_zh,is_active)
       VALUES ('fixture-127','f','f',true) RETURNING id INTO r_ok;
     INSERT INTO role_permissions (role_id,permission_code)
       SELECT r_ok, unnest(ARRAY['module.finance.view','module.finance.edit',
                                 'module.suppliers.view','module.suppliers.edit',
-                                'module.purchasing.view','module.purchasing.edit']);
+                                'module.purchasing.view','module.purchasing.edit',
+                                -- CHAIN-BUILD-1(R4):审批角色必须看得见金额,
+                                -- 否则开关会以 ..._CANNOT_SEE_AMOUNTS 按名拒。
+                                'data.view_prices']);
     INSERT INTO user_roles (user_id,role_id) VALUES (v_a,r_ok),(v_b,r_ok);
 
     -- 一个【没有任何真人持有】的角色 —— C2 用它
@@ -252,7 +257,7 @@ BEGIN
     BEGIN
         UPDATE finance_settings
            SET approval_level1_role_code='fixture-127-empty',
-               approval_threshold_base=25000, approval_level2_user_id=v_b,
+               approval_threshold_base=25000, approval_level2_role_code='fixture-127',
                approvals_enabled=true;
     EXCEPTION WHEN OTHERS THEN
         v_msg := SQLERRM; v_denied := (SQLERRM LIKE 'APPROVALS_LEVEL1_ROLE_UNHELD|%');
@@ -262,26 +267,29 @@ BEGIN
     END IF;
     r := r || jsonb_build_object('C2_unheld_level1_refused', v_msg);
 
-    -- ═════════ C3 · 二级审批人不是一个真的账号 ═════════
+    -- ═════════ C3 · 【二级】角色没有真人持有 —— CHAIN-BUILD-1 改写 ═════════
+    -- 【原来这一臂问的是"二级那个 user_id 是不是一个真账号"】。二级从此指向【角色】,
+    -- 所以那个问题不存在了,取而代之的是与一级【同形】的那一个:
+    -- 二级角色有没有真的持有人。两级同等对待,正是本刀要的。
     v_denied := false;
     BEGIN
         UPDATE finance_settings
            SET approval_level1_role_code='fixture-127',
-               approval_threshold_base=25000, approval_level2_user_id=v_ghost,
+               approval_threshold_base=25000, approval_level2_role_code='fixture-127-empty',
                approvals_enabled=true;
     EXCEPTION WHEN OTHERS THEN
-        v_msg := SQLERRM; v_denied := (SQLERRM LIKE 'APPROVALS_LEVEL2_USER_UNKNOWN|%');
+        v_msg := SQLERRM; v_denied := (SQLERRM LIKE 'APPROVALS_LEVEL2_ROLE_UNHELD|%');
     END;
     IF NOT v_denied THEN
-        RAISE EXCEPTION 'C3 失败:不存在的二级审批人不该让开关开起来(msg=%)', COALESCE(v_msg,'(没有报错)');
+        RAISE EXCEPTION 'C3 失败:无人持有的二级角色不该让开关开起来(msg=%)', COALESCE(v_msg,'(没有报错)');
     END IF;
-    r := r || jsonb_build_object('C3_ghost_level2_refused', v_msg);
+    r := r || jsonb_build_object('C3_unheld_level2_refused', v_msg);
 
     -- ═════════ C4 · 【会通过】的那一臂:三样都对,开得起来 ═════════
     -- 少了它,一个"永远不许开"的实现能让 C1/C2/C3 全绿。
     UPDATE finance_settings
        SET approval_level1_role_code='fixture-127',
-           approval_threshold_base=25000, approval_level2_user_id=v_b,
+           approval_threshold_base=25000, approval_level2_role_code='fixture-127',
            approvals_enabled=true;
     IF NOT (SELECT approvals_enabled FROM finance_settings) THEN
         RAISE EXCEPTION 'C4 失败:配齐之后开关应当开得起来';
@@ -336,7 +344,7 @@ BEGIN
     -- ═════════ C8 · readiness 与闸【读的是同一件事】 ═════════
     -- 一个屏幕上说"可以开"、闸却拒绝的系统,比两者都拒绝更坏。
     UPDATE finance_settings SET approval_level1_role_code=NULL,
-        approval_threshold_base=NULL, approval_level2_user_id=NULL;
+        approval_threshold_base=NULL, approval_level2_role_code=NULL;
     IF (approvals_readiness()->>'can_enable')::boolean THEN
         RAISE EXCEPTION 'C8 失败:三个策略值都为 NULL 时 readiness 不该说可以开';
     END IF;

@@ -4396,7 +4396,7 @@ export type Database = {
       finance_settings: {
         Row: {
           approval_level1_role_code: string | null
-          approval_level2_user_id: string | null
+          approval_level2_role_code: string | null
           approval_threshold_base: number | null
           approvals_enabled: boolean
           default_allocation_basis: string
@@ -4414,7 +4414,7 @@ export type Database = {
         }
         Insert: {
           approval_level1_role_code?: string | null
-          approval_level2_user_id?: string | null
+          approval_level2_role_code?: string | null
           approval_threshold_base?: number | null
           approvals_enabled?: boolean
           default_allocation_basis?: string
@@ -4432,7 +4432,7 @@ export type Database = {
         }
         Update: {
           approval_level1_role_code?: string | null
-          approval_level2_user_id?: string | null
+          approval_level2_role_code?: string | null
           approval_threshold_base?: number | null
           approvals_enabled?: boolean
           default_allocation_basis?: string
@@ -4452,6 +4452,13 @@ export type Database = {
           {
             foreignKeyName: "finance_settings_approval_level1_role_code_fkey"
             columns: ["approval_level1_role_code"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "finance_settings_approval_level2_role_code_fkey"
+            columns: ["approval_level2_role_code"]
             isOneToOne: false
             referencedRelation: "roles"
             referencedColumns: ["code"]
@@ -21873,6 +21880,12 @@ export type Database = {
         }[]
       }
       quote_is_expired: { Args: { p_valid_until: string }; Returns: boolean }
+      real_role_holders: {
+        Args: { p_role_code: string }
+        Returns: {
+          user_id: string
+        }[]
+      }
       rebalance_task_nodes: {
         Args: { p_parent_id: string; p_task_id: string }
         Returns: number
@@ -22265,6 +22278,7 @@ export type Database = {
         Args: { p_memo?: string; p_payment_id: string }
         Returns: Json
       }
+      role_can_see_amounts: { Args: { p_role_code: string }; Returns: boolean }
       rollback_processing_run: {
         Args: { p_reason: string; p_run_id: string }
         Returns: undefined

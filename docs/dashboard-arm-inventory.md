@@ -361,6 +361,29 @@ discriminate — the standard `db/fixtures/34` established for a third allocatio
 in the cut that turns approvals on, alongside the delegation and HR four-eyes work, all three of
 which are gated on the same decision.
 
+> ### ★ The scope of this standard, written down because CHAIN-BUILD-1 had to ask (2026-08-30) ★
+>
+> **This standard forbids shipping a SCREEN ELEMENT that cannot be shown to discriminate.
+> It does NOT forbid a REFUSAL that a fixture can construct, trigger and fault-inject.**
+>
+> The difference is what the harness can reach. A tile whose only observable state is "not in
+> force" cannot be made to discriminate *in any harness* — there is no way to show it doing its
+> job. A **refusal** is different: a fixture can build the exact state, trigger the refusal, and
+> then fault-inject to prove the assertion has authority over what it claims. `db/fixtures/127`
+> has been doing precisely that for the switch guards the entire time approvals have been off,
+> and `db/fixtures/151` now does it for the level-2 and cannot-sign-in refusals.
+>
+> So: an unreachable-through-the-UI **refusal** may ship, proven by fixture. An
+> undemonstrable **arm** may not. When in doubt, ask which one you have — the question is
+> "can anything at all observe this discriminating?", not "can a person click to it today?".
+>
+> **The deferred arm this cut did NOT build, and its trigger.** CHAIN-BUILD-1 was asked for an
+> advisory when a level's role loses its last able holder while approvals are ON. With the flag
+> off, that state is unreachable, so **no arm was added** — per this very standard. The advisory
+> ships instead on the settings panel (`ApprovalsPanel`), which is reachable today and is where a
+> person would actually act. **Trigger for the arm: the cut that turns approvals on** — the same
+> trigger this section already names.
+
 
 ---
 

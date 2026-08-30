@@ -32,44 +32,46 @@ AS $function$
 DECLARE
     v_s          record;
     v_blocking   text[] := '{}';
-    v_l1_real    integer := 0;
+    v_l1_total   integer := 0;  v_l1_real integer := 0;
+    v_l2_total   integer := 0;  v_l2_real integer := 0;
     v_l1_norais  integer := 0;
-    v_l2_real    boolean := false;
+    v_l1_sees    boolean := false;
+    v_l2_sees    boolean := false;
     v_pending    integer := 0;
 BEGIN
     PERFORM require_permission('module.finance.view');
 
     SELECT approvals_enabled, approval_level1_role_code, approval_threshold_base,
-           approval_level2_user_id
+           approval_level2_role_code
       INTO v_s FROM finance_settings LIMIT 1;
 
+    -- ── 一级 ──
     IF v_s.approval_level1_role_code IS NULL THEN
         v_blocking := v_blocking || 'approval_level1_role_code'::text;
     ELSE
-        SELECT count(*) INTO v_l1_real
-          FROM user_roles ur
-          JOIN roles r ON r.id = ur.role_id
-          JOIN auth.users u ON u.id = ur.user_id
-         WHERE r.code = v_s.approval_level1_role_code AND r.is_active;
-        IF v_l1_real = 0 THEN
+        SELECT count(*) INTO v_l1_real FROM real_role_holders(v_s.approval_level1_role_code);
+        SELECT count(*) INTO v_l1_total
+          FROM user_roles ur JOIN roles r ON r.id = ur.role_id
+         WHERE r.code = v_s.approval_level1_role_code AND r.is_active AND ur.revoked_at IS NULL;
+        v_l1_sees := role_can_see_amounts(v_s.approval_level1_role_code);
+
+        IF v_l1_real = 0 AND v_l1_total > 0 THEN
+            v_blocking := v_blocking || 'approval_level1_holder_cannot_sign_in'::text;
+        ELSIF v_l1_real = 0 THEN
             v_blocking := v_blocking || 'approval_level1_role_has_no_real_holder'::text;
         END IF;
+        IF NOT v_l1_sees THEN
+            v_blocking := v_blocking || 'approval_level1_role_cannot_see_amounts'::text;
+        END IF;
 
-        -- 【报告,不拦】这个角色的持有人里,有几个是【提不了采购单】的。
-        -- 0 意味着这道控制没有一个结构上合格的审批人 —— 见本迁移抬头。
+        -- 【报告,不拦】这个角色的持有人里,有几个是【提不了采购单】的(SOD-1 fu2)。
         SELECT count(*) INTO v_l1_norais
-          FROM (
-            SELECT DISTINCT ur.user_id
-              FROM user_roles ur
-              JOIN roles r ON r.id = ur.role_id
-              JOIN auth.users u ON u.id = ur.user_id
-             WHERE r.code = v_s.approval_level1_role_code AND r.is_active
-          ) h
+          FROM real_role_holders(v_s.approval_level1_role_code) h
          WHERE NOT EXISTS (
             SELECT 1 FROM user_roles ur2
               JOIN roles r2 ON r2.id = ur2.role_id
               JOIN role_permissions rp ON rp.role_id = r2.id
-             WHERE ur2.user_id = h.user_id AND r2.is_active
+             WHERE ur2.user_id = h.user_id AND r2.is_active AND ur2.revoked_at IS NULL
                AND rp.permission_code = 'module.purchasing.edit');
     END IF;
 
@@ -77,13 +79,23 @@ BEGIN
         v_blocking := v_blocking || 'approval_threshold_base'::text;
     END IF;
 
-    IF v_s.approval_level2_user_id IS NULL THEN
-        v_blocking := v_blocking || 'approval_level2_user_id'::text;
+    -- ── 二级:与一级【同等对待】,这正是本刀要的 ──
+    IF v_s.approval_level2_role_code IS NULL THEN
+        v_blocking := v_blocking || 'approval_level2_role_code'::text;
     ELSE
-        SELECT EXISTS (SELECT 1 FROM auth.users u WHERE u.id = v_s.approval_level2_user_id)
-          INTO v_l2_real;
-        IF NOT v_l2_real THEN
-            v_blocking := v_blocking || 'approval_level2_user_is_not_a_real_account'::text;
+        SELECT count(*) INTO v_l2_real FROM real_role_holders(v_s.approval_level2_role_code);
+        SELECT count(*) INTO v_l2_total
+          FROM user_roles ur JOIN roles r ON r.id = ur.role_id
+         WHERE r.code = v_s.approval_level2_role_code AND r.is_active AND ur.revoked_at IS NULL;
+        v_l2_sees := role_can_see_amounts(v_s.approval_level2_role_code);
+
+        IF v_l2_real = 0 AND v_l2_total > 0 THEN
+            v_blocking := v_blocking || 'approval_level2_holder_cannot_sign_in'::text;
+        ELSIF v_l2_real = 0 THEN
+            v_blocking := v_blocking || 'approval_level2_role_has_no_real_holder'::text;
+        END IF;
+        IF NOT v_l2_sees THEN
+            v_blocking := v_blocking || 'approval_level2_role_cannot_see_amounts'::text;
         END IF;
     END IF;
 
@@ -93,16 +105,23 @@ BEGIN
     RETURN jsonb_build_object(
         'enabled',                 v_s.approvals_enabled,
         'level1_role_code',        v_s.approval_level1_role_code,
+        'level1_holders_total',    v_l1_total,
         'level1_real_holders',     v_l1_real,
-        -- 【非阻塞的忠告】0 = 这个角色里没有人是"提不了单"的
+        'level1_can_see_amounts',  v_l1_sees,
         'level1_holders_who_cannot_raise', v_l1_norais,
         'threshold_base',          v_s.approval_threshold_base,
-        'level2_user_id',          v_s.approval_level2_user_id,
-        'level2_user_is_real',     v_l2_real,
+        'level2_role_code',        v_s.approval_level2_role_code,
+        'level2_holders_total',    v_l2_total,
+        'level2_real_holders',     v_l2_real,
+        'level2_can_see_amounts',  v_l2_sees,
         'pending_purchase_orders', v_pending,
         'blocking',                to_jsonb(v_blocking),
         'can_enable',              (NOT v_s.approvals_enabled AND cardinality(v_blocking) = 0),
-        'can_disable',             (v_s.approvals_enabled AND v_pending = 0)
-    );
+        'can_disable',             (v_s.approvals_enabled AND v_pending = 0),
+        -- 跟着数字走的那句话,不只躺在文档里(与 PARTY-1 的处置同形)
+        'no_deputy_by_decision',   true);
 END;
 $function$;
+
+COMMENT ON FUNCTION public.approvals_readiness() IS
+'SOD-1,CHAIN-BUILD-1 改写(2026-08-30):审批开关能不能开,以及开不了缺哪几样 —— 屏幕与闸读同一份判据。★两级【同等对待】★:各返回 holders_total(未撤销的授权数)与 real_holders(真的登录得了的),**两个数而不是一个数加一个布尔**,因为要分开的是三种状态:没人持有 / 有人持有但登录不了 / 有能干活的人 —— 中间那一种若报成"没有持有人",操作的人会去再授一次权,而那个角色已经授过了。持有人判据只有一处定义(real_role_holders)。另报每一级的 can_see_amounts(R4)。**没有代理人、没有升级**:某一级没人就停在那一级,这是裁定,不是遗漏(no_deputy_by_decision 跟着返回值走)。';

@@ -51,7 +51,22 @@ CREATE TABLE IF NOT EXISTS auth.users (
     id                uuid PRIMARY KEY,
     email             character varying,
     created_at        timestamptz,
-    last_sign_in_at   timestamptz
+    last_sign_in_at   timestamptz,
+    -- ── CHAIN-BUILD-1(2026-08-30)之后这四列成了【必需的】────────────────────
+    -- 【为什么它们在这里】R3 把"谁算一个审批人"从"有一行账号记录"改成
+    -- 【真的登录得了】,而那个判据(db/functions/real_role_holders.sql)读的正是
+    -- 这几列。少了它们,重建出来的库跑 fixture 会报
+    -- 「column "email_confirmed_at" of relation "users" does not exist」——
+    -- **实测报过,本刀就是这么发现这份清单又长了一截的**。
+    -- 本文件的职责就是记下"镜像对平台的期待",而这次期待确实变大了。
+    --
+    -- 形状照抄真实的 Supabase:confirmed_at 是【生成列】,
+    -- 取邮箱与手机确认时刻里【较早】的那一个 —— 所以判据读它就同时覆盖两种确认方式。
+    email_confirmed_at timestamptz,
+    phone_confirmed_at timestamptz,
+    confirmed_at      timestamptz GENERATED ALWAYS AS (LEAST(email_confirmed_at, phone_confirmed_at)) STORED,
+    banned_until      timestamptz,
+    deleted_at        timestamptz
 );
 
 CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$
