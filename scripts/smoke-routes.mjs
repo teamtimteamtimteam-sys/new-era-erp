@@ -271,6 +271,43 @@ const MSG_CONTRACT_BREACH_NAMED_ABSENCE = (() => {
     return [cut('breachNothingComparable'), cut('breachNone')]
 })()
 
+// PRICE-1:三条内容断言,全部【服务端渲染】—— 与 CONTRACT-1 / PARTY-1 / KPI-1 同一条理由。
+// 针从 messages/en.ts 现读,并在会被 HTML 转义的字符与 {占位符} 之前收尾。
+const pricingMsg = (key) => {
+    const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
+    const blk = src.match(/\n        pricing: \{[\s\S]*?\n        \},/)
+    if (!blk) throw new Error('messages/en.ts 里找不到 contracts.pricing 这一段 —— 断言无从下手')
+    const m = blk[0].match(new RegExp(`\\n\\s*${key}: '([^']+)'`))
+    if (!m) throw new Error(`messages/en.ts 里找不到 contracts.pricing.${key}`)
+    // ★★【取【占位符之间最长的那一段字面量】,而不是"第一个 { 之前的东西"】★★
+    //   第一版就是后者,而它对 '{index}: {days} day(s) loaded…' 这种以占位符开头的
+    //   句子求出**空串** —— 而 `html.includes('')` **永远为真**。
+    //   一条空针是一条【永远通过】的断言,也就是本仓库反复点名的那种假绿。
+    //   这一处是写的时候当场量出来的(两条针都是空的),不是事后想到的。
+    const literals = m[1]
+        .split(/\{[^}]*\}/)                        // 占位符切开
+        .map((x) => x.split('\\u2014')[0].split(/[&<>"']/)[0].trim())
+        .filter((x) => x.length > 0)
+    const best = literals.sort((a, b) => b.length - a.length)[0] ?? ''
+    // 【短针也是坏针】一段太短的字面量会在别处偶然命中,那种"通过"什么都不证明。
+    // 抛,而不是返回一个凑合的值 —— 一个说不出话的检查必须说"我不知道"。
+    if (best.length < 12) {
+        throw new Error(`contracts.pricing.${key} 抽不出一条够长的针(最长字面量 ${best.length} 字符)—— 空针/短针是永远通过的断言`)
+    }
+    return best
+}
+// ★ 第一条守的是本刀最要紧的一句话 ★「它【不能】按指数开票」——
+//   把「指数定价上线了」读成「我们能按指数开票了」,代价是有人去等一张
+//   永远不会自动出现的发票。这一段是无条件渲染的,所以这条针是死的。
+const MSG_PRICE_CANNOT_DO = pricingMsg('cannotDo')
+// ★ 第二、三条守的是那两句【具名的缺席】,而它们【必须不一样】★
+//   「一天开市日历都没加载」与「没有一条报价标了指数」是**两个不同的原因**,
+//   而屏幕上它们长得一样的话,读的人会以为只有一件事要修。
+//   两条都用 oneOf:分支会随真实数据翻(加载了日历 / 标了指数),
+//   写死其中一句等于给未来安一次必然的误报(CONTRACT-1 为这条留过同样的处置)。
+const MSG_PRICE_CALENDAR = [pricingMsg('calendarNone'), pricingMsg('calendarLoaded')]
+const MSG_PRICE_QUOTES   = [pricingMsg('quotesNone'),   pricingMsg('quotesSome')]
+
 const MUST_CONTAIN = {
     // ── 静态判据:下拉在,就说明名单非空 ────────────────────────────────────
     // 这九个下拉是【同一个形状】:名单非空时渲染 <select name="supplier_id">,
@@ -336,6 +373,12 @@ const MUST_CONTAIN = {
           why: '★「没挂合同不是缺陷、而"没有违反"可能只是"没有人挂过东西"」那句话从合同页上消失了 —— 下面那句"没有违反"就会撒谎' },
         { oneOf: MSG_CONTRACT_BREACH_NAMED_ABSENCE,
           why: '★ 违反那一段的空状态【一句话都没说】—— "没有违反"与"没有可比的东西"必须分得开,而不是留一片空白' },
+        { needle: MSG_PRICE_CANNOT_DO,
+          why: '★★「它【不能】按指数开票」那句话从合同页上消失了 —— 把"指数定价上线了"读成"我们能按指数开票了",代价是有人去等一张永远不会自动出现的发票 ★★' },
+        { oneOf: MSG_PRICE_CALENDAR,
+          why: '开市日历那一段【一句话都没说】—— "一天日历都没加载"是均价算不出来的第一个原因,它必须被说出来,而不是留白' },
+        { oneOf: MSG_PRICE_QUOTES,
+          why: '标了指数的报价那一段【一句话都没说】—— 它是均价算不出来的【另一个】原因,与缺日历不是同一件事,两者不能长得一样' },
     ],
     // ★【这条不是内容断言,是【可达性】断言】★ /contracts 建好那天没有任何入口,
     //   而本仓库为「页面上线却走不到」付过两次账(SAL-B6、FIX-1)。

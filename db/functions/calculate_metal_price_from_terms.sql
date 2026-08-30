@@ -109,6 +109,23 @@ BEGIN
         END IF;
 
         -- 5. 行情:spot 取参考日之前最近一条;average 取窗口内均值(窗口内无行 → NULL)。
+        --
+        -- ★★★【PRICE-1:本支的 'average' 与 index_period_average() 是【两条不同的
+        --       规矩】,不是同一条规矩的两份实现 —— 不要"顺手"把它们合并】★★★
+        --   本支:窗口是 `ref-(avg_days-1) … ref`,一段**回看的滚动窗口**;
+        --   **不看任何日历**;把窗口里**碰巧有的那些行**取平均;一行都没有时
+        --   把该金属记进 skipped_metals 而**不**中止。
+        --   **这样做是对的**,而且是 AGENTS.md 明文维护的裁定:
+        --   allocate_processing_costs 走的是**生产**那条路,
+        --   「缺一条行情不该让生产停下来」。
+        --   index_period_average:窗口是**合同约定的那个自然月**(M+n);
+        --   **必须**看 index_market_calendar;要求**每一个交易日都有报价**,
+        --   缺一天就 QP_QUOTE_MISSING。
+        --   **主语不同**:本支的产出是一个【物理事实的成本摊派】,
+        --   那一支的产出是一张【要钱的单据】。生产不能因为缺一条行情而停,
+        --   而结算不能带着缺一条行情往下走。
+        --   (这段话在 index_period_average.sql 里也有一份,位置对称 ——
+        --    会来合并它们的人可能从任何一侧进来。)
         v_price := NULL; v_price_date := NULL; v_from := NULL; v_to := NULL; v_legs := NULL;
         IF v_basis = 'spot' THEN
             -- METAL-3:【读的时候换算,按报价自己那一天】。报价按发布原样存

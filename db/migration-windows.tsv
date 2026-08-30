@@ -90,3 +90,6 @@
 2026-08-29T18:53:46+0800	2026-08-29-kpi1-fu4-import-takes-a-position-code.sql	284e96e
 2026-08-30T00:11:20+0800	2026-08-30-contract1-the-contract-register.sql	fd0ece4
 2026-08-30T00:24:31+0800	2026-08-30-contract1-fu1-null-material-needs-its-own-unique.sql	fd0ece4
+2026-08-30T13:07:28+0800	2026-08-30-price1-index-linked-pricing.sql	9159fc6
+2026-08-30T13:18:50+0800	2026-08-30-price1-fu1-average-refuses-by-name-on-permission.sql	9159fc6
+2026-08-30T13:43:41+0800	2026-08-30-price1-fu2-drop-an-unreachable-refusal.sql	9159fc6

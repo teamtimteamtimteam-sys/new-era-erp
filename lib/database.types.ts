@@ -1709,6 +1709,7 @@ export type Database = {
           linked_at: string
           linked_by: string | null
           payment_terms_days: number | null
+          pricing_terms: Json
           purchase_order_id: string | null
           sales_order_id: string | null
         }
@@ -1723,6 +1724,7 @@ export type Database = {
           linked_at?: string
           linked_by?: string | null
           payment_terms_days?: number | null
+          pricing_terms?: Json
           purchase_order_id?: string | null
           sales_order_id?: string | null
         }
@@ -1737,6 +1739,7 @@ export type Database = {
           linked_at?: string
           linked_by?: string | null
           payment_terms_days?: number | null
+          pricing_terms?: Json
           purchase_order_id?: string | null
           sales_order_id?: string | null
         }
@@ -1937,6 +1940,73 @@ export type Database = {
             columns: ["currency"]
             isOneToOne: false
             referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      contract_pricing_terms: {
+        Row: {
+          base_event: string
+          contract_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          index_code: string
+          metal: string
+          notes: string | null
+          payable_pct: number
+          qp_months: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          base_event: string
+          contract_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          index_code: string
+          metal: string
+          notes?: string | null
+          payable_pct: number
+          qp_months: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          base_event?: string
+          contract_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          index_code?: string
+          metal?: string
+          notes?: string | null
+          payable_pct?: number
+          qp_months?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_pricing_terms_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_pricing_terms_index_code_fkey"
+            columns: ["index_code"]
+            isOneToOne: false
+            referencedRelation: "metal_price_indices"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "contract_pricing_terms_metal_fkey"
+            columns: ["metal"]
+            isOneToOne: false
+            referencedRelation: "substances"
             referencedColumns: ["code"]
           },
         ]
@@ -5584,6 +5654,47 @@ export type Database = {
           sort_order?: number
         }
         Relationships: []
+      }
+      index_market_calendar: {
+        Row: {
+          calendar_date: string
+          created_at: string
+          created_by: string | null
+          index_code: string
+          is_trading_day: boolean
+          note: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          calendar_date: string
+          created_at?: string
+          created_by?: string | null
+          index_code: string
+          is_trading_day: boolean
+          note?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          calendar_date?: string
+          created_at?: string
+          created_by?: string | null
+          index_code?: string
+          is_trading_day?: boolean
+          note?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "index_market_calendar_index_code_fkey"
+            columns: ["index_code"]
+            isOneToOne: false
+            referencedRelation: "metal_price_indices"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       inventory_movements: {
         Row: {
@@ -21096,6 +21207,15 @@ export type Database = {
         Args: { p_as_of: string; p_batch_id: string }
         Returns: number
       }
+      index_period_average: {
+        Args: {
+          p_from: string
+          p_index_code: string
+          p_metal: string
+          p_to: string
+        }
+        Returns: Json
+      }
       instantiate_container_documents: {
         Args: { p_container_id: string }
         Returns: Json
@@ -21392,6 +21512,13 @@ export type Database = {
         Returns: Json
       }
       promote_task_to_team: { Args: { p_task_id: string }; Returns: undefined }
+      quotational_period: {
+        Args: { p_base_date: string; p_qp_months: number }
+        Returns: {
+          qp_from: string
+          qp_to: string
+        }[]
+      }
       quote_is_expired: { Args: { p_valid_until: string }; Returns: boolean }
       rebalance_task_nodes: {
         Args: { p_parent_id: string; p_task_id: string }

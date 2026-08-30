@@ -50,10 +50,18 @@ CREATE TABLE public.contract_document_terms (
     grade_specs        jsonb NOT NULL DEFAULT '[]'::jsonb,
     linked_at          timestamptz NOT NULL DEFAULT now(),
     linked_by          uuid DEFAULT auth.uid(),
+    -- PRICE-1:计价条款的快照:[{metal, base_event, qp_months, index_code, payable_pct}, …]
+    -- 【与 grade_specs 同一形状、同一理由】**空数组合法**(合同可以不约指数定价),
+    -- 而 NULL 不合法 —— "没有计价条款"与"没抄"必须分得开。
+    -- ★【它【没有】暂定价】★ 暂定价是逐笔谈的(§6.2),不是条款,所以它不在合同上,
+    --   也就不在这份合同条款的副本里。见 contract_pricing_terms 的表注。
+    pricing_terms      jsonb NOT NULL DEFAULT '[]'::jsonb,
     CONSTRAINT contract_document_terms_exactly_one_document
         CHECK (num_nonnulls(purchase_order_id, sales_order_id) = 1),
     CONSTRAINT contract_document_terms_grade_specs_is_array
-        CHECK (jsonb_typeof(grade_specs) = 'array')
+        CHECK (jsonb_typeof(grade_specs) = 'array'),
+    CONSTRAINT contract_document_terms_pricing_terms_is_array
+        CHECK (jsonb_typeof(pricing_terms) = 'array')
 );
 
 CREATE INDEX idx_contract_document_terms_contract
@@ -75,3 +83,6 @@ COMMENT ON TABLE public.contract_document_terms IS
 
 COMMENT ON COLUMN public.contract_document_terms.grade_specs IS
     'CONTRACT-1:抄下来的品位规格快照。**空数组合法,NULL 不合法** —— 一份合同可以不规定品位,而"没有规格"与"没抄下来"必须分得开:后者意味着这条记录是坏的,而一个 NULL 会把两者读成同一件事(与 lib/permissions.ts 让 null 与 0 分得开是同一条)。';
+
+COMMENT ON COLUMN public.contract_document_terms.pricing_terms IS
+    'PRICE-1:挂上去那一刻抄下来的**计价条款**快照 —— 与 grade_specs 同一形状、同一理由(抄不是引用)。★★**冻结的时刻是【挂接】,不是【下单】**★★:CONTRACT-1 刻意允许**回填挂接**(单据日期落在合同期外不拒,因为回填是正当操作),所以一次事后补挂会把**挂接当时**在效的条款冻上去,而不是下单当天的。**对品位规格这条边不算锋利,对钱锋利** —— 所以 link_document_to_contract 的返回里带 terms_frozen_as_of 与 TERMS_FROZEN_AT_LINK_TIME,/contracts 页也把它印出来,好让挂接的人**当场看见自己冻的是哪一份**。**不要去"修"回填权限** —— 那是 CONTRACT-1 裁过的,它站得住。★**它没有暂定价**★:暂定价逐笔谈(§6.2),不是条款。';

@@ -422,6 +422,44 @@ system records the question and does not answer it.**
 
 ---
 
+### 5.7 The difference between a provisional price and the final index-linked settlement is a revenue adjustment against the original revenue account. — **SETTLED — 2026-08-30, ruled by Tim. NOT BUILT.**
+
+Where a sale is priced against a published index, the money is invoiced twice: once at a
+**provisional** price when the goods move, and once at the **final** price when the quotational
+period closes and the index average is known. The difference between the two is posted **to the
+same revenue account the original sale was posted to** — not to a separate gain or loss line.
+
+The reason is what the difference *is*. A provisional price is an **estimate of the price of that
+same sale**; it is not a second transaction, and nothing happened between the two invoices except
+that a number nobody could know on the day became knowable. Booking the correction as a gain or
+loss would say the opposite — that the business made or lost money on a financing or trading
+position — and it would leave the revenue figure for that sale permanently wrong.
+
+> **Why §1.6 does not apply here, stated so a later reader does not think the precedent was
+> overlooked.** §1.6 keeps realised and unrealised exchange differences in separate accounts, and
+> the temptation is to read it as a general rule that "corrections get their own account". It is
+> not. That rule is about **exchange** differences, where the two halves have genuinely different
+> natures — one is money that moved, the other is a translation at a reporting date — and merging
+> them would hide which is which. An index settlement difference has no such split: it is one
+> sale, at one price, discovered late. The distinction is *cause*, not *timing*.
+
+**Not built.** PRICE-1 (2026-08-30) stopped at the spec's own named breakpoint — it records the
+quotational period as a contract term, copies it onto a document at linking, and computes the
+period average. It does **not** issue provisional invoices, does not remind anyone when a
+quotational period closes, and posts no difference. This policy is therefore decided in advance of
+its implementation, which is the same shape as §4.7 (settled 2026-08-24, built 2026-08-29 by
+CAPEX-1) — the decision is recorded when it is made so the cut that builds it does not have to
+re-derive it.
+
+> *Trigger:* the cut that builds two-stage invoicing and final settlement. Its GST treatment is
+> already decided (`docs/index-pricing-spec.md` §6.7: the provisional invoice is taxed on the
+> provisional amount, and the difference is taxed on the actual at final settlement) — GST is
+> currently switched on, so that treatment is live the day the settlement is built.
+
+> *Enforcement:* none yet — there is no posting path. When there is, it belongs beside
+> `record_output_sale`'s revenue posting, and a fixture must assert the corrected revenue equals
+> the final price rather than the sum of two unrelated lines.
+
 # 6 · Period control and corrections
 
 ### 6.1 A closed accounting period cannot be posted into, and a closed financial year cannot be posted into. — **SETTLED**

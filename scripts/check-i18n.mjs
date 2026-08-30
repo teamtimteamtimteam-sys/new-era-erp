@@ -405,6 +405,11 @@ const MANIFEST = {
     'traceability.errors.': { kind: 'enum', values: () => tsSet('app/output/traceabilityErrorCodes.ts', 'TRACEABILITY_ERROR_CODES') },
     // APR-2c:采购单审批状态。后缀集合就是 purchase_orders 的 CHECK —— 真源现读。
     'purchasing.approvalState.': { kind: 'enum', values: () => sqlEnum('db/tables/purchase_orders.sql', 'approval_status') },
+    // ── PRICE-1:基准月取自哪个事件 ── 后缀集合就是 contract_pricing_terms 的 CHECK。
+    //   接真源,而不是另写一份 ['shipment','arrival','assay_complete']:
+    //   合同里将来多一种基准事件(比如"卸货完成"),这道检查自动要求两个语言补句子,
+    //   而不是让屏幕上冒出一个原始机器串。
+    'contracts.pricing.baseEvent.': { kind: 'enum', values: () => sqlEnum('db/tables/contract_pricing_terms.sql', 'base_event') },
     // ── CONTRACT-1:合同的两个枚举,两个都接【库那侧的真源】────────────────
     // status:后缀集合就是 contracts 的 CHECK —— 加一个状态,这道检查自动要求
     //   两个语言各补一句,而不是让屏幕上冒出一个原始机器串
@@ -648,6 +653,53 @@ for (const u of [...staticUses]) {
             why: `文案要 {${need.join('} {')}},调用点没传 {${missing.join('} {')}} —— 屏幕上会原样印出它` })
     }
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// PRICE-1:**SQL 里 RAISE 出来的具名拒绝,两个语言都要有句子。**
+//
+// 【为什么这是一道检查,而不是一条"记得补文案"】本文件已经保证了「代码引用的键
+// 两边都在」,而一条 `RAISE EXCEPTION 'QP_QUOTE_MISSING|…'` **不是一次键引用** ——
+// 它是一个字符串,静态扫描看不见它,于是一条新拒绝可以带着一个只有英文、
+// 甚至两边都没有的文案上线,而屏幕上印出来的就是那个原始机器串
+// (docs/machine-text-reaching-humans.md 记的正是这一类)。
+// 所以这里【从函数体里把它们枚举出来】,与 MANIFEST 接真源是同一条路子。
+//
+// 【它只管这几支】不是全库 —— 全库扫会把大量历史代码一次性拖红,而那种检查
+// 最后会被整体关掉。名单在这里,加一支就多守一支。
+const SQL_REFUSAL_SOURCES = [
+    'db/functions/index_period_average.sql',
+    'db/functions/link_document_to_contract.sql',
+]
+// 【判据是"这条码在【某处】有双语句子",不是"它在某个固定前缀下"】
+// 第一版把前缀写死成 contracts.errors.,而它当场要求给 PRICE_INDEX_UNKNOWN 与
+// INDEX_CURRENCY_NOT_STATED **再抄一份**文案 —— 那两条在 pricing 与 inbound 两个
+// 命名空间下【早就有】双语句子了。**一条拒绝抄成三份,就是三份会各自漂开的文案**,
+// 而这正是本仓库反复清理的东西。所以这里问的是那个真正要紧的问题:
+// **屏幕上会不会印出一个原始机器串?** 只要它在任何一处有句子,答案就是不会。
+const enSuffixes = new Set([...EN.keys()].map((k) => k.slice(k.lastIndexOf('.') + 1)))
+const zhSuffixes = new Set([...ZH.keys()].map((k) => k.slice(k.lastIndexOf('.') + 1)))
+let sqlCodesChecked = 0
+for (const file of SQL_REFUSAL_SOURCES) {
+    let body
+    try { body = readFileSync(join(ROOT, file), 'utf8') }
+    catch { failures.push({ key: file, file, line: 1, why: 'SQL 拒绝真源读不到 —— 一个读不到的真源不是一个空集' }); continue }
+    const codes = [...new Set([...body.matchAll(/RAISE EXCEPTION '([A-Z][A-Z0-9_]{3,})[|']/g)].map((m) => m[1]))]
+    // 【0 条是解析器坏了,不是这支函数没有拒绝】与 MANIFEST 那条逐字相同的规矩
+    if (codes.length === 0) {
+        failures.push({ key: file, file, line: 1,
+            why: '从函数体里解析出 0 条具名拒绝 —— 解析器坏了,不是这支函数没有拒绝' })
+        continue
+    }
+    for (const code of codes) {
+        sqlCodesChecked++
+        const miss = []
+        if (!enSuffixes.has(code)) miss.push('messages/en.ts')
+        if (!zhSuffixes.has(code)) miss.push('messages/zh.ts')
+        if (miss.length) failures.push({ key: code, file, line: 1,
+            why: `SQL 里 RAISE 了这条拒绝,而【任何命名空间下】都没有它的句子,缺于 ${miss.join(' 与 ')} —— 屏幕上会印出原始机器串` })
+    }
+}
+console.log(`-- SQL 具名拒绝:${SQL_REFUSAL_SOURCES.length} 支函数,共查 ${sqlCodesChecked} 条,两个语言都要有句子 --`)
 
 for (const k of EN.keys()) if (!ZH.has(k)) failures.push({ key: k, file: 'messages/zh.ts', line: 1, why: 'en 有、zh 没有' })
 for (const k of ZH.keys()) if (!EN.has(k)) failures.push({ key: k, file: 'messages/en.ts', line: 1, why: 'zh 有、en 没有' })

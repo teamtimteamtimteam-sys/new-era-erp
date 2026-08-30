@@ -33,6 +33,7 @@ DECLARE
     v_doc_cp   uuid;
     v_doc_code text;
     v_specs    jsonb;
+    v_pricing  jsonb;
 BEGIN
     IF p_document_kind IS NULL OR p_document_kind NOT IN ('purchase_order','sales_order') THEN
         RAISE EXCEPTION 'CONTRACT_DOCUMENT_KIND_INVALID|%', COALESCE(p_document_kind, 'null')
@@ -103,16 +104,25 @@ BEGIN
       INTO v_specs
       FROM contract_grade_specs g WHERE g.contract_id = v_con.id;
 
+    -- PRICE-1:计价条款一并抄下来。**同一笔事务、同一个抄写动作** ——
+    -- 分成两步就会有一道缝,而一份刚被改过的合同可以从那道缝里把条款抄出去。
+    SELECT COALESCE(jsonb_agg(jsonb_build_object(
+               'metal', t.metal, 'base_event', t.base_event,
+               'qp_months', t.qp_months, 'index_code', t.index_code,
+               'payable_pct', t.payable_pct) ORDER BY t.metal), '[]'::jsonb)
+      INTO v_pricing
+      FROM contract_pricing_terms t WHERE t.contract_id = v_con.id;
+
     INSERT INTO contract_document_terms (
         purchase_order_id, sales_order_id, contract_id,
         contract_code, contract_title, incoterm, currency, payment_terms_days,
-        grade_specs, linked_by)
+        grade_specs, pricing_terms, linked_by)
     VALUES (
         CASE WHEN p_document_kind = 'purchase_order' THEN p_document_id END,
         CASE WHEN p_document_kind = 'sales_order'    THEN p_document_id END,
         v_con.id,
         v_con.code, v_con.title, v_con.incoterm, v_con.currency, v_con.payment_terms_days,
-        v_specs, auth.uid());
+        v_specs, v_pricing, auth.uid());
 
     -- 单据那一行也记下它挂在哪 —— 这一列是【导航】,条款仍然读上面那份副本。
     IF p_document_kind = 'purchase_order' THEN
@@ -124,7 +134,15 @@ BEGIN
     RETURN jsonb_build_object(
         'document_kind', p_document_kind, 'document_code', v_doc_code,
         'contract_code', v_con.code,
-        'grade_specs_copied', jsonb_array_length(v_specs));
+        'grade_specs_copied', jsonb_array_length(v_specs),
+        'pricing_terms_copied', jsonb_array_length(v_pricing),
+        -- ★【PRICE-1:把"你冻的是哪一份"当场说出来,不要让人事后才发现】★
+        --   回填挂接是**正当的**(CONTRACT-1 裁过,不改),而它的后果是:
+        --   冻下来的是【挂接此刻】在效的条款,不是下单那天的。
+        --   **对品位规格这条边不算锋利,对钱锋利** —— 所以判词跟着返回值走,
+        --   而不是只躺在一句代码注释里。文案在 messages/*.ts,双语,按 locale 选。
+        'terms_frozen_as_of', now(),
+        'terms_frozen_note_code', 'TERMS_FROZEN_AT_LINK_TIME');
 END;
 $function$;
 
