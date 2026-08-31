@@ -1791,6 +1791,18 @@ const en = {
         },
     },
     inbound: {
+        // PROC-COST-1:落地成本拆解。三个组件各自是一笔【欠给不同人】的钱 ——
+        // 采购价欠材料供应商,运费欠货代,加工成本不欠任何人(我们自己烧的电)。
+        landedCost: {
+            title: 'Landed cost',
+            blurb: 'What this batch has cost so far. The purchase price is what we owe the supplier; freight and processing cost are capitalised onto the batch separately and never change the purchase price.',
+            purchase: 'Purchase price',
+            freight: 'Freight',
+            processing: 'Processing cost',
+            processingHint: 'capitalised by processing runs',
+            total: 'Landed cost',
+            notPriced: 'This batch has no unit price yet, so the landed cost cannot be totalled.',
+        },
         deleteConsequence: 'This keeps the record and writes a write-off movement for the remaining quantity — it does not erase the batch. Who deleted it and why are both recorded.',
         deleteReasonPlaceholder: 'e.g. keyed against the wrong supplier',
         listTitle: 'Inbound',

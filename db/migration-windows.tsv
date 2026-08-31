@@ -105,3 +105,7 @@
 2026-08-31T01:10:59+0800	2026-08-31-procwire1a-state-dictionary-and-the-processing-earmark.sql	cbf58f9
 2026-08-31T02:19:18+0800	2026-08-31-procwire1bi-operations-wired-and-the-discharge-deadlock.sql	6700288
 2026-08-31T02:25:39+0800	2026-08-31-procwire1bi-fu1-a-masked-table-needs-three-changes.sql	6700288
+2026-08-31T11:03:32+0800	2026-08-31-proccost1-processing-cost-capitalises-onto-the-input-batch.sql	608a308
+2026-08-31T11:09:56+0800	2026-08-31-proccost1-fu1-a-carrier-row-must-name-an-input-of-its-own-run.sql	608a308
+2026-08-31T11:48:48+0800	2026-08-31-proccost1-fu2-the-cost-reader-must-not-lose-rows-to-rls.sql	608a308
+2026-08-31T11:50:09+0800	2026-08-31-proccost1-fu3-a-zero-cost-discharge-writes-no-carrier-row.sql	608a308

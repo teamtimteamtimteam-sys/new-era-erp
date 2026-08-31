@@ -1772,6 +1772,18 @@ const zh = {
         },
     },
     inbound: {
+        // PROC-COST-1:落地成本拆解。三个组件各自是一笔【欠给不同人】的钱 ——
+        // 采购价欠材料供应商,运费欠货代,加工成本不欠任何人(我们自己烧的电)。
+        landedCost: {
+            title: '落地成本',
+            blurb: '这批货到目前为止花了多少。采购价是我们欠供应商的钱;运费与加工成本各自单独资本化进这批货,永远不会改动采购价。',
+            purchase: '采购价',
+            freight: '运费',
+            processing: '加工成本',
+            processingHint: '由加工单资本化',
+            total: '落地成本合计',
+            notPriced: '这批货还没有定价,所以落地成本合计给不出来。',
+        },
         deleteConsequence: '这会保留记录,并按剩余数量写一条注销流水 —— 它不会抹掉这个批次。谁删的、为什么删,两样都会记下来。',
         deleteReasonPlaceholder: '例如:录错了供应商',
         listTitle: '进料批次',

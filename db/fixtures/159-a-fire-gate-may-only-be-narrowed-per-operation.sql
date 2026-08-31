@@ -17,8 +17,13 @@
 -- F4 转化型 + 零产出 → 仍然 NO_OUTPUTS(一个字没松)。
 -- F5 状态改变型 + 带产出 → 另一条拒绝(只放松一侧会让"放电还产出黑粉"悄悄成立)。
 -- F6 状态改变型 + 非零损耗 → 拒(它不带走质量)。
--- F7 状态改变型的分摊 → 按名拒,而【不是】静默地什么都不分摊。
+-- F7 状态改变型的分摊 → 【落到投料批上】,而不是静默地什么都不分摊。
+--    (PROC-COST-1 改写:原先钉的是那条占位的拒绝,现在钉真正的去处。)
 -- F8 受理清单读的是【那张表】,不是写死的码 —— 加一行,拒绝就消失。
+--
+-- 【PROC-COST-1(R4)之后,F3 仍然是这份 fixture 最要紧的一臂】鼓包漏液现在
+-- 【有】路线了(整电池粉料线),而深度放电【仍然拒绝它】。加一行受理是逐工序的
+-- 明写放宽 —— F2/F3 两臂正是用来证明它没有变成一条默认放宽。
 --
 -- 日期:自带。
 BEGIN;
@@ -28,7 +33,7 @@ DECLARE
     r_all uuid; v_ccy text; v_sup uuid; v_mat uuid;
     v_ib uuid; v_ib2 uuid; v_ib3 uuid; v_run uuid;
     v_d date := DATE '2027-09-06';
-    v_msg text; v_denied boolean;
+    v_msg text; v_denied boolean; v_num numeric;
 BEGIN
     SELECT code INTO v_ccy FROM currencies WHERE is_base;
     UPDATE finance_settings SET locked_before = NULL;
@@ -161,16 +166,27 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 159F6 失败:状态改变型不带走质量,损耗只能是 0。实得「%」', COALESCE(v_msg, '(通过了)');
     END IF;
 
-    -- ══════════ F7 · 分摊按名拒,而不是静默无操作 ══════════
+    -- ══════════ F7 · 分摊【落到投料批上】,而不是静默无操作 ══════════
+    -- 【PROC-COST-1 改写了这一臂,原因写在这里】此前它钉的是
+    -- ALLOCATION_STATE_CHANGING_UNRESOLVED —— 一条【占位的拒绝】:成本该资本化回
+    -- 投料批(Tim 已裁定),但那条路被【应付之锚】挡着,所以先把静默堵上。
+    -- 现在去处建好了,这一臂钉的就换成【真正的去处】。
+    -- **它要防的那种实现一个字没变**:一个"什么都没做、还返回成功"的分摊。
+    -- 所以这里不只断言"没有抛错",而是断言【那笔钱确实落在了那批料身上】。
     RAISE NOTICE 'fixture 159 · 进入 F7';
     v_run := commit_processing_run(v_d, 'f159 sc ok', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 10)),
         '[]'::jsonb, 'weight', NULL, NULL, 'deep_discharge');
-    v_denied := false; v_msg := NULL;
-    BEGIN PERFORM allocate_processing_costs(v_run, 'weight');
-    EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
-    IF NOT v_denied OR v_msg NOT LIKE 'ALLOCATION_STATE_CHANGING_UNRESOLVED|%' THEN
-        RAISE EXCEPTION 'FIXTURE 159F7 失败:状态改变型没有产出腿,按【重量】基准分摊会得到"什么都没做、还返回成功" —— 那是一个假绿灯。它必须【按名拒绝】,把那个开着的会计问题说出来。实得「%」', COALESCE(v_msg, '(通过了)');
+    INSERT INTO processing_cost_entries (run_id, cost_type, amount_base)
+    VALUES (v_run, 'electricity', 300);
+    -- 【先证明起点不是零】—— 0 = 0 对任何实现都成立(fixture 101 B 臂的同一条)。
+    IF batch_processing_cost_base(v_ib2) <> 0 THEN
+        RAISE EXCEPTION 'FIXTURE 159F7 前置失败:分摊之前这批料身上不该有已资本化的加工成本,实得 %', batch_processing_cost_base(v_ib2);
+    END IF;
+    PERFORM allocate_processing_costs(v_run, 'weight');
+    v_num := batch_processing_cost_base(v_ib2);
+    IF v_num <> 300 THEN
+        RAISE EXCEPTION 'FIXTURE 159F7 失败:状态改变型没有产出腿 —— 成本必须【资本化回投料批】。一个"什么都没做、还返回成功"的分摊在这里红(那正是本臂一直在防的东西,只是它现在有了真正的去处,不再是一条占位的拒绝)。应得 300,实得 %', v_num;
     END IF;
 
     -- ══════════ F8 · 规则读的是【那张表】,不是写死的码 ══════════

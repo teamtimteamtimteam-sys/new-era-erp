@@ -13,6 +13,8 @@ DECLARE
     v_old_remaining numeric;
     v_new_remaining numeric;
     v_quantity numeric;
+    v_sc_cap uuid;          -- PROC-COST-1:状态改变型的资本化分录
+    v_sc_kind boolean;
 BEGIN
     PERFORM require_permission('module.processing.edit');
     -- AUDEL-1b:【理由必填】回滚一张加工单是一次很大的操作动作 —— 它软删产出批、
@@ -155,6 +157,34 @@ BEGIN
     WHERE id = p_run_id;
     PERFORM set_config('evoltrya.soft_delete_ctx', '', true);   -- 用毕即清(同 movement_ctx)
 
+    -- ════════════════════════════════════════════════════════════════════════
+    -- PROC-COST-1:【状态改变型 —— 解除资本化,台账与分录在同一个地方一起解除】
+    -- 台账行由 batch_processing_cost_base 按本单的 deleted_at 自动排除(形状免费
+    -- 提供的那一半),分录必须显式冲销 —— 两半都在这里发生,所以它们【永远不会
+    -- 各说各话】。少做任何一半:要么成本留在 1200 上而单已经没了(账挂在一张不
+    -- 存在的单上),要么台账清了而 1200 虚高。
+    -- 【只管状态改变型】转化型的资本化分录在回滚时的处置是【本刀之前就有的行为】,
+    -- 本刀不碰它 —— 那是另一条独立的判断,记在 docs/proc-cost-capitalisation.md。
+    -- ════════════════════════════════════════════════════════════════════════
+    SELECT NOT k.produces_outputs INTO v_sc_kind
+      FROM processing_runs pr
+      JOIN operation_types ot ON ot.code = pr.operation_type_code
+      JOIN operation_kinds k ON k.code = ot.kind_code
+     WHERE pr.id = p_run_id;
+
+    IF COALESCE(v_sc_kind, false) THEN
+        SELECT capitalization_entry_id INTO v_sc_cap FROM processing_runs WHERE id = p_run_id;
+        IF v_sc_cap IS NOT NULL
+           AND (SELECT status FROM journal_entries WHERE id = v_sc_cap) = 'posted' THEN
+            PERFORM reverse_journal_entry_internal(v_sc_cap, CURRENT_DATE,
+                'Rollback ' || COALESCE((SELECT code FROM processing_runs WHERE id = p_run_id), '?'));
+        END IF;
+        UPDATE processing_runs
+           SET capitalization_entry_id = NULL, capitalized_cost_base = 0
+         WHERE id = p_run_id;
+    END IF;
+
+
     PERFORM set_config('evoltrya.movement_ctx', '', true);   -- 用毕即清(同 commit)
 END;
-$function$;
+$function$

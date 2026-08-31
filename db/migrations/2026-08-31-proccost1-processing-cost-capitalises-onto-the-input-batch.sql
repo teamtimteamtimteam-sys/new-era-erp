@@ -1,3 +1,196 @@
+-- PROC-COST-1(2026-08-31):加工成本【资本化回投料批】+ 鼓包漏液的去处
+--
+-- 两件事,一次迁移。它们同属一刀,是因为两者都在回答同一个问题:
+-- **深度放电这道工序跑完之后,留下了什么。** 一是成本,二是那批料现在能去哪。
+--
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【R1 · 成本资本化进批次,而没有产出腿时收件人是【投料批】】
+-- 这条原则不是新的:每一道工序的运营成本最后都落进产品成本。转化型工序把它
+-- 落进产出批(借 1220),状态改变型没有产出批 —— 于是收件人是那批【还在那里的】
+-- 原料本身。深度放电不产出任何新东西:料进去、料出来,只是不带电了。
+--
+-- 【R3 · unit_price 一个字节都不许动 —— 这是上一刀停下来的理由,原样记下】
+-- inbound_batches.unit_price 是【应付之锚】:ap_open_items 按 quantity × unit_price
+-- 实时算我们欠供应商多少钱。把我们自己烧的电并进去,就是【凭空捏造供应商债务】;
+-- 走 reprice_inbound_batch 则会把一次加工记成一次【重新议价】,还留下一串假的
+-- 过期标记。所以成本载体与 unit_price 【分开】,估值读"采购价 + 已资本化加工成本"。
+--
+-- 【A1 · 本刀刻意复用 FRT-1 的形状 —— 一个模式用两次,不是两个碰巧相像的模式】
+-- 运费早已解决过同一个问题,理由与措辞都在 db/migrations/2026-08-11-frt1-*.sql:
+-- "第二个成本组件,绝不并进 unit_price"。它的形状是
+--   【一张对批次记成本事件的台账】+【一个把它求和的派生函数】
+-- 而不是批次上的一列。本刀照抄那个形状,于是两件要紧的语义【免费得到】:
+--   * 累加:一批货被放电两次 = 两行,SUM 天然累加,永不覆盖;
+--   * 冲销即解除:基函数只认【活着的、已提交的】加工单,回滚把单软删,那一行
+--     就自动不计 —— 与 batch_freight_base 只认 status='posted' 的运费单同构。
+-- 【为什么【不】并进 freight_allocations(A1 的决定性理由)】每一张运费单都指名
+-- 一个【货代】,是我们欠钱的对手方,未付即成为一张 ap_open_items。我们自己烧的
+-- 电【不欠任何人】—— 它早已付过或已计提。把一个非应付项塞进一个整体形状都假设
+-- 有对手方的结构里,迟早会有人按那个假设去读它。
+--
+-- 【A2 · 科目映射:不新建任何科目】
+--   * Tim 说的【生产成本】就是本仓库已有的 5100–5190「加工成本-*」family。
+--     它今天就在承载这些成本:fin_journal_cost_entry 在成本条目录入的那一刻
+--     借 5xxx / 贷 2200。Tim 的裁定命名的是一个【概念】,而那个概念已经实现了。
+--   * 资本化的【去处】,对进料批而言是 1200「存货-原料」,不是 1220「存货-成品」。
+--     深度放电不产出任何新东西,那批料【仍然是原料】,成本就该落在原料所在的地方。
+--     1220 是转化型工序的去处,因为它们的收件人是产出批。
+--   * 【1210「存货-在制品」一个字都不碰】:is_system = false、全库无人引用,
+--     那是建账的人的地盘(accounts.sql 的引导段已经写死这条界线)。
+--
+-- 【A3 · 这【不是】一笔新成本进账,而是一次【重分类】——出销售成本、进存货】
+-- 电费早在录入那一刻就已经进了总账(借 5110 / 贷 2200)。所以资本化这一步不新增
+-- 任何金额,它把已经在 COGS 里的那笔钱【拨进存货】:
+--       借 1200  /  贷 5xxx（逐 cost_type）
+-- 这正是既有 借 1220 / 贷 5xxx 的镜像,只是收件人不同。
+-- 【冲销必须同时解除台账行与分录,而且在同一个地方做,这样它们永远不会各说各话】
+-- 台账行由基函数按加工单的 deleted_at 自动排除;分录由 rollback_processing_run
+-- 显式冲销 —— 两者都在回滚那一个函数里发生。
+--
+-- 【为什么状态改变型的重分摊可以【全额冲销重挂】,而 FIN-24 对转化型禁止这么做】
+-- 这不是抄一条惯例,是一条【只在这里成立】的论证:FIN-24 的问题在于成本已经顺着
+-- 产出批流向了已售份额,而已过账的 COGS 从不重述 —— 卖得越多错得越多。
+-- 状态改变型【没有产出批】:它的成本停在 1200 上一批仍然是原料的货上,没有任何
+-- 下游把它当成本消费掉。若那批料后来被一张转化型加工单吃掉,那张单会因为
+-- 第七过期源而【过期】,重跑即修正。所以这里冲旧挂新是安全的,且比差额法诚实。
+--
+-- 【A4 · 一条被测量推翻的前提,原样记下 —— 它比结论更容易被后来的人误解】
+-- 本刀的委托书里写着"估值读采购价加已资本化加工成本",这句话【假设存在一个估值口】。
+-- 实测:**不存在**。batch_freight_base 全仓库只有【一个】生产消费者 ——
+-- allocate_processing_costs 的材料成本表达式(本文件下方那一行)。
+-- stock_snapshot 只有数量没有金额;inbound_batches_masked 只透 unit_price;
+-- batch_margin 读的是 processing_outputs.unit_cost_base,那只有产出批才有。
+-- 于是:**进料批上的资本化成本,只有一条路能走到损益表 —— 那批料后来被一张
+-- 转化型加工单吃掉。** 一批放完电就再没被加工过的货,它身上的成本【没有任何
+-- 报表看得见】。这与 FRT-1 为运费写下并接受的敞口是同一个,现在是【知情地】
+-- 再接受一次,不是漏掉。一张计值存货报表是另一刀,不是本刀留下的缺口。
+-- 本刀因此在批次页上建了【落地成本拆解】(采购价 / 运费 / 加工成本 / 合计),
+-- 顺带把运费那份同样的隐身也一起解决了。
+--
+-- 【A5 · 第七过期源,不可省 —— FRT-1 亲口把漏掉它叫做"本刀的头号缺陷"】
+-- 一张迟到的放电成本,改变的是【可能已经被下游吃掉的】批次的成本。它若不是
+-- 过期源,吃过那批货的加工单永远不标过期,batch_margin 就停在放电之前那个数,
+-- 而放电那张分录本身完全正确 —— 这是本仓库最坏的失败形状:每一笔都对,总数错。
+-- 【排除自己】(bpca.run_id <> r.id):否则放电单会在分摊完成的那一刻把自己标成过期。
+--
+-- 【2e · 换掉那条"无处可落"的拒绝之后,还有哪些情形仍然拒绝 —— 一一点名】
+--   1. ALLOCATION_STATE_CHANGING_BASIS —— 金属价值基准。它按【产出批的金属含量】
+--      拆分,而状态改变型没有产出批:那不是"算出来是零",是那个基准在这里
+--      根本没有可读的数。
+--   2. ALLOCATION_STATE_CHANGING_OUTPUT_INPUT —— 投料里有【自产产出批】。
+--      成本载体按 inbound_batch_id 记,产出批不在它的地址空间里。要建这条路,
+--      得先决定产出批的资本化载体是什么;在那之前【按名拒绝,不许悄悄丢掉成本】。
+--   3. ALLOCATION_STATE_CHANGING_NO_INPUT —— 没有投料批,资本化没有收件人。
+--   4. ALLOCATION_LEDGER_DIVERGED —— 资本化分录被人工冲销(与既有路径同一条)。
+-- 【转化型少了产出仍然是 NO_OUTPUTS,一个字没松】—— 那道闸在 commit 上,本刀不碰。
+--
+-- 【2d · 质量不动】in = out = throughput、损耗恒 0,由 commit 那一侧的
+-- STATE_CHANGE_LOSS_NOT_ZERO 与 OPERATION_PRODUCES_NO_OUTPUTS 守着,本刀一个字不改。
+-- **成本移动,质量不动。**
+--
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【R4 · 鼓包漏液走整电池粉料线,与损坏料同一处置】
+-- operation_type_safety_states 的表注里写着这句话,等的就是今天这条裁定:
+--   "为什么 swollen_leaking 一道工序都没有受理 …… 于是这种料今天没有路线,
+--    那是刻意的,它等 Tim 的一句裁定,不等一个猜测。"
+-- Tim 裁定:鼓包与漏液【同一处置】,不拆成两个安全状态,走整电池粉料线,
+-- 与 damaged_deformed 完全同形 —— 粉料线把料粉碎掉,不解决那个状态(resolves = false)。
+--
+-- 【不变式一个字没松:只许逐工序放宽,不许默认放宽】加一行受理是【逐工序的、
+-- 明写的数据】,那正是这张表存在的方式;"设了工序就放行"或"按 kind 旁路"的实现
+-- 在 fixture 159 F2/F3 里【仍然是红的】—— 本刀没有碰那两臂。
+-- 【深度放电仍然拒绝鼓包漏液】(F3),因为放电机解决不了起火风险。
+-- ════════════════════════════════════════════════════════════════════════════
+
+BEGIN;
+
+-- ── 1 · 成本载体:一张对批次记成本事件的台账(FRT-1 的形状,第二次使用)───────
+CREATE TABLE public.batch_processing_cost_allocations (
+    id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    -- 【成本事件的来源】加工单。冲销即解除靠它:基函数只认活着且已提交的单。
+    run_id           uuid NOT NULL REFERENCES public.processing_runs (id) ON DELETE RESTRICT,
+    -- 【收件人】进料批。产出批不在这个地址空间里 —— 见上面 2e 的第 2 条拒绝。
+    inbound_batch_id uuid NOT NULL REFERENCES public.inbound_batches (id),
+    -- 【刻意【没有】>= 0 的约束,而 freight_allocations 有】运费永远为正(总是欠货代
+    -- 一笔钱),而 processing_cost_entries 明写"Deliberately no sign check:
+    -- by-product / disposal offsets may be negative"。照抄那条约束会让一笔副产品
+    -- 冲抵在这里撞墙,而它在源表里是合法的。**形状照抄,理由不成立的约束不照抄。**
+    amount_base      numeric NOT NULL,
+    -- 【可审计与"碰巧算对了"的分界】这一份是从什么数算出来的:该批的投料量,
+    -- 以及全单的投料总量。分摊要能被重新导出,不是被相信(与 freight_allocations
+    -- 的 basis_qty 同一条论证)。
+    basis_qty        numeric NOT NULL,
+    basis_total_qty  numeric NOT NULL,
+    created_at       timestamptz NOT NULL DEFAULT now(),
+    created_by       uuid DEFAULT auth.uid(),
+    -- 一张单对一批货只出一行;重分摊先删后插,所以这条约束也是幂等性的保证。
+    UNIQUE (run_id, inbound_batch_id)
+);
+
+COMMENT ON TABLE public.batch_processing_cost_allocations IS
+'PROC-COST-1:加工成本【资本化进批次】的载体 —— 第二个成本组件,不是更高的单价。
+
+【它与 unit_price 的关系,一句话说清】unit_price 是【应付之锚】(ap_open_items 按
+quantity × unit_price 算欠供应商多少钱)。把我们自己烧的电并进去 = 凭空捏造供应商债务。
+所以成本【另起一张台账】,估值读"采购价 + batch_freight_base + batch_processing_cost_base"。
+
+【形状来自 FRT-1,那是刻意的】一张对批次记成本事件的台账 + 一个求和的派生函数,
+不是批次上的一列。累加(SUM)与冲销即解除(只认活着且已提交的加工单)都由形状免费提供。
+一列做不到这两样:它得读-改-写,而两次放电会互相覆盖。
+
+【为什么不并进 freight_allocations】运费单指名一个【货代】,是我们欠钱的对手方,
+未付即成为 ap_open_items 的一行。我们自己烧的电不欠任何人。';
+
+COMMENT ON COLUMN public.batch_processing_cost_allocations.amount_base IS
+    'PROC-COST-1:本位币金额。【刻意没有 >= 0 约束】—— 源表 processing_cost_entries 明写允许负数(副产品/处置冲抵),照抄 freight_allocations 的正数约束会让一笔在源表里合法的冲抵在这里撞墙。';
+COMMENT ON COLUMN public.batch_processing_cost_allocations.basis_qty IS
+    'PROC-COST-1:这一份是【从什么数算出来的】—— 该批在本单的投料量(basis_total_qty 是全单投料总量)。分摊要能被重新导出,不是被相信(与 freight_allocations.basis_qty、FIN-26 的 price_source、METAL-3 的 fx_legs 同源)。';
+COMMENT ON COLUMN public.batch_processing_cost_allocations.run_id IS
+    'PROC-COST-1:成本事件的来源加工单。【冲销即解除靠这一列】batch_processing_cost_base 只认 deleted_at IS NULL AND status = ''committed'' 的单 —— 回滚把单软删,这一行就自动不计,与 batch_freight_base 只认 status=''posted'' 的运费单同构。';
+
+ALTER TABLE public.batch_processing_cost_allocations ENABLE ROW LEVEL SECURITY;
+-- 读:进料侧与财务侧都要看得见(批次页的落地成本拆解在进料侧)。与 freight_allocations 同形。
+CREATE POLICY "batch_processing_cost_allocations select by permission"
+    ON public.batch_processing_cost_allocations AS PERMISSIVE FOR SELECT TO authenticated
+    USING (has_permission('module.inbound.view') OR has_permission('module.finance.view')
+           OR has_permission('module.processing.view'));
+-- 写:只由 allocate_processing_costs(SECURITY DEFINER)产生。这条策略是给人挡的门,
+-- 不是给函数开的门 —— 函数以属主身份跑,绕过 RLS。
+CREATE POLICY "batch_processing_cost_allocations write by permission"
+    ON public.batch_processing_cost_allocations AS PERMISSIVE FOR ALL TO authenticated
+    USING (has_permission('module.processing.edit'))
+    WITH CHECK (has_permission('module.processing.edit'));
+
+CREATE INDEX idx_bpca_batch ON public.batch_processing_cost_allocations (inbound_batch_id);
+CREATE INDEX idx_bpca_run   ON public.batch_processing_cost_allocations (run_id);
+
+-- ── 2 · 每批的加工成本合计:一处实现,派生而非冗余列 ──────────────────────────
+CREATE OR REPLACE FUNCTION public.batch_processing_cost_base(p_inbound_batch_id uuid)
+RETURNS numeric
+LANGUAGE sql
+STABLE
+SET search_path TO 'public', 'pg_temp'
+AS $function$
+    -- 【派生,不存冗余列】落地成本 = quantity × unit_price
+    --                              + batch_freight_base + 本函数。
+    -- 【冲销即解除】回滚把加工单软删(deleted_at)并置 status,这里就不再计它 ——
+    -- 与 batch_freight_base 只认 status = 'posted' 的运费单是同一条。
+    SELECT COALESCE(SUM(a.amount_base), 0)
+    FROM batch_processing_cost_allocations a
+    JOIN processing_runs r ON r.id = a.run_id
+    WHERE a.inbound_batch_id = p_inbound_batch_id
+      AND r.deleted_at IS NULL AND r.status = 'committed';
+$function$;
+
+COMMENT ON FUNCTION public.batch_processing_cost_base(uuid) IS
+    'PROC-COST-1:一批进料身上已资本化的加工成本合计。【SECURITY INVOKER】与 batch_freight_base 同形(FRT-1 fu2 把它从 DEFINER 改回来过:一个金额读取器不该替调用者绕过 RLS)。';
+
+-- ── 3 · 分摊学会状态改变型:那条"无处可落"的拒绝换成真正的去处 ────────────────
+-- 【本函数的三处改动】
+--   (a) 材料成本表达式多了第三个组件 batch_processing_cost_base —— 这是进料批上
+--       的资本化成本【唯一】能走到损益表的那条路(见文件头 A4 段);
+--   (b) guard_allocation_not_state_changing 的调用点删掉,换成第 6 步之后的分支;
+--   (c) 分支里逐一按名点出仍然拒绝的四种情形(2e 段)。
 CREATE OR REPLACE FUNCTION public.allocate_processing_costs(p_run_id uuid, p_basis text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -214,15 +407,8 @@ BEGIN
         END IF;
 
         -- ── 台账:先删后插(幂等)。按投料量拆,最大份额吸收进位余数 ────────────
-        -- 【零成本不写行 —— 一面为零而举的旗,等于喊狼来了】fu3:载体行是
-        -- 第七过期源。一张【一分钱成本都没有】的放电单若也写下载体行,
-        -- 它会把吃过那批料的下游单标成过期 —— 而那张单要重跑出来的数
-        -- 与它现在的数【一模一样】。本仓库对无条件举旗已有成文处置
-        -- (fixture 54:含量没变就不举旗,"没人看的旗和没有旗是同一样东西")。
-        -- 【先删仍然无条件执行】:300 → 0 的重分摊必须真的把那一行拿掉。
         DELETE FROM batch_processing_cost_allocations WHERE run_id = p_run_id;
 
-        IF round(v_process, 2) <> 0 THEN
         WITH legs AS (
             SELECT pi.inbound_batch_id AS ib, SUM(pi.quantity_consumed) AS q
               FROM processing_inputs pi
@@ -242,7 +428,6 @@ BEGIN
             (run_id, inbound_batch_id, amount_base, basis_qty, basis_total_qty)
         SELECT p_run_id, ib, raw + CASE WHEN rn = 1 THEN rem ELSE 0 END, q, v_sc_basis_total
           FROM adj;
-        END IF;
 
         SELECT jsonb_agg(jsonb_build_object(
                    'inbound_batch_id', a.inbound_batch_id,
@@ -771,4 +956,304 @@ BEGIN
         'outputs', COALESCE(v_outputs, '[]'::jsonb)
     );
 END;
-$function$
+$function$;
+
+-- ── 4 · 第七过期源(A5:不可省)────────────────────────────────────────────────
+-- 【CREATE OR REPLACE,不是 DROP + CREATE】public.operations_now 依赖这张视图,
+-- DROP 会连它一起要求 CASCADE,而 CASCADE 会把那张视图悄悄重建成【本迁移没有
+-- 写过的样子】。列清单一个字没变,所以 REPLACE 是可行的,也是唯一安全的那条路。
+CREATE OR REPLACE VIEW public.processing_run_allocation_status WITH (security_invoker = off) AS
+ SELECT r.id AS run_id,
+    r.code,
+    r.allocated_at,
+    c.last_cost_change,
+    r.allocated_at IS NOT NULL AND c.last_cost_change IS NOT NULL AND c.last_cost_change > r.allocated_at AS is_stale,
+    COALESCE(g.cogs_posted, 0::bigint) AS cogs_posted,
+    r.capitalization_entry_id IS NULL OR je.status = 'posted'::text AS safe_to_reallocate
+   FROM processing_runs r
+     LEFT JOIN journal_entries je ON je.id = r.capitalization_entry_id
+     LEFT JOIN LATERAL ( SELECT max(x.ts) AS last_cost_change
+           FROM ( SELECT GREATEST(e.created_at, e.updated_at) AS ts
+                   FROM processing_cost_entries e
+                  WHERE e.run_id = r.id
+                UNION ALL
+                 SELECT fa.created_at
+                   FROM freight_allocations fa
+                     JOIN freight_documents fd ON fd.id = fa.freight_document_id
+                     JOIN processing_inputs pif ON pif.inbound_batch_id = fa.inbound_batch_id
+                  WHERE pif.run_id = r.id AND fd.deleted_at IS NULL AND fd.status = 'posted'::text
+                UNION ALL
+                 SELECT ph.created_at
+                   FROM price_history ph
+                     JOIN processing_inputs pi ON pi.inbound_batch_id = ph.inbound_batch_id
+                  WHERE pi.run_id = r.id
+                UNION ALL
+                 SELECT r2.allocated_at
+                   FROM processing_inputs pi2
+                     JOIN processing_outputs po2 ON po2.output_batch_id = pi2.output_batch_id
+                     JOIN processing_runs r2 ON r2.id = po2.run_id
+                  WHERE pi2.run_id = r.id AND r2.allocated_at IS NOT NULL
+                UNION ALL
+                 SELECT GREATEST(obm.created_at, obm.updated_at) AS ts
+                   FROM processing_outputs po6
+                     JOIN output_batch_metals obm ON obm.output_batch_id = po6.output_batch_id
+                  WHERE po6.run_id = r.id AND r.allocation_basis = 'metal_value'::text
+                UNION ALL
+                -- PROC-COST-1:【第七过期源 —— 迟到的加工成本资本化】
+                -- 一张状态改变型加工单(放电)把成本挂到某批进料上,而那批料
+                -- 【可能已经被这张单吃掉了】。不在这里的话,吃过它的单永远不标过期,
+                -- batch_margin 停在放电之前那个数,而放电那张分录本身完全正确 ——
+                -- 这是本仓库最坏的失败形状:每一笔都对,总数错。
+                -- FRT-1 把漏掉同构的那一臂称作"本刀的头号缺陷";这里不重犯。
+                -- 【排除自己】bpca.run_id <> r.id:否则放电单会在分摊完成的那一刻
+                -- 把自己标成过期,而它刚刚才算完 —— 一面永远举着的旗等于没有旗。
+                 SELECT bpca.created_at
+                   FROM batch_processing_cost_allocations bpca
+                     JOIN processing_runs rsrc ON rsrc.id = bpca.run_id
+                     JOIN processing_inputs pif7 ON pif7.inbound_batch_id = bpca.inbound_batch_id
+                  WHERE pif7.run_id = r.id
+                    AND bpca.run_id <> r.id
+                    AND rsrc.deleted_at IS NULL AND rsrc.status = 'committed'::text
+                UNION ALL
+                 SELECT r.allocation_basis_changed_at AS ts) x) c ON true
+     LEFT JOIN LATERAL ( SELECT count(*) AS cogs_posted
+           FROM sales_records sr
+             JOIN processing_outputs po ON po.output_batch_id = sr.output_batch_id AND po.run_id = r.id
+          WHERE sr.cogs_entry_id IS NOT NULL) g ON true
+  WHERE r.deleted_at IS NULL AND has_permission('module.processing.view'::text);
+GRANT SELECT ON public.processing_run_allocation_status TO authenticated;
+
+-- ── 5 · 回滚解除资本化(A3:台账与分录在同一个地方一起解除)────────────────────
+CREATE OR REPLACE FUNCTION public.rollback_processing_run(p_run_id uuid, p_reason text)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+    v_user_id uuid := auth.uid();
+    v_run_deleted_at timestamptz;
+    v_process_date date;     -- FIN-32:还原流水的业务日 = 原加工单的加工日
+    v_bad_output record;
+    v_input record;
+    v_old_remaining numeric;
+    v_new_remaining numeric;
+    v_quantity numeric;
+    v_sc_cap uuid;          -- PROC-COST-1:状态改变型的资本化分录
+    v_sc_kind boolean;
+BEGIN
+    PERFORM require_permission('module.processing.edit');
+    -- AUDEL-1b:【理由必填】回滚一张加工单是一次很大的操作动作 —— 它软删产出批、
+    -- 还原投入、写一整串冲销流水 —— 而此前它【一个 why 都不记】。
+    -- 校验放在任何写之前:被拒 = 什么都没发生。
+    IF p_reason IS NULL OR btrim(p_reason) = '' THEN
+        RAISE EXCEPTION 'ROLLBACK_REASON_REQUIRED|%',
+            COALESCE((SELECT code FROM processing_runs WHERE id = p_run_id), '?');
+    END IF;
+    -- 1. 锁定加工单，校验存在且未删除
+    SELECT process_date INTO v_process_date FROM processing_runs WHERE id = p_run_id;
+    SELECT deleted_at INTO v_run_deleted_at
+    FROM processing_runs
+    WHERE id = p_run_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'RUN_NOT_FOUND|%', p_run_id;
+    END IF;
+
+    IF v_run_deleted_at IS NOT NULL THEN
+        RAISE EXCEPTION 'RUN_ALREADY_DELETED';
+    END IF;
+
+    -- 标记本次为回滚上下文,供产出批次软删触发器发出 reversal_void。
+    PERFORM set_config('evoltrya.movement_ctx', 'reversal:' || p_run_id::text, true);
+
+    -- 2. 安全检查：任何一个产出批次动过就拒绝
+    SELECT ob.code, ob.state, ob.quantity, ob.remaining_qty
+    INTO v_bad_output
+    FROM processing_outputs po
+    JOIN output_batches ob ON ob.id = po.output_batch_id
+    WHERE po.run_id = p_run_id
+      AND ob.deleted_at IS NULL
+      AND (ob.state <> '库存中' OR ob.remaining_qty <> ob.quantity)
+    LIMIT 1;
+
+    IF FOUND THEN
+        RAISE EXCEPTION 'OUTPUT_CONSUMED|%|%|%|%',
+            v_bad_output.code, v_bad_output.state, v_bad_output.remaining_qty, v_bad_output.quantity;
+    END IF;
+
+    -- 3. 还原进料：加回 remaining_qty，重判 stage，记 reversal_restore 流水。
+    --    FIN-25:产出批投料同样还原(不碰 state —— 那是销售状态)。
+    FOR v_input IN
+        SELECT pi.inbound_batch_id, pi.output_batch_id, pi.quantity_consumed
+        FROM processing_inputs pi
+        WHERE pi.run_id = p_run_id
+    LOOP
+        IF v_input.inbound_batch_id IS NOT NULL THEN
+            SELECT quantity, remaining_qty INTO v_quantity, v_old_remaining
+            FROM inbound_batches
+            WHERE id = v_input.inbound_batch_id
+            FOR UPDATE;
+
+            IF NOT FOUND THEN
+                CONTINUE;  -- 进料批次已被删，跳过
+            END IF;
+
+            v_new_remaining := LEAST(
+                COALESCE(v_old_remaining, 0) + v_input.quantity_consumed,
+                v_quantity
+            );
+
+            UPDATE inbound_batches
+            SET remaining_qty = v_new_remaining,
+                stage = CASE WHEN v_new_remaining >= v_quantity THEN '待加工' ELSE '加工中' END,
+                updated_by = v_user_id,
+                updated_at = now()
+            WHERE id = v_input.inbound_batch_id;
+
+            IF v_new_remaining - COALESCE(v_old_remaining, 0) > 0 THEN
+                -- FIN-32:还原不是物理事件,是在更正一次记错的加工单 —— 业务日取
+                -- 【原加工单的 process_date】,于是消耗与还原在同一天对消,
+                -- 中间那几天的库存历史不会凭空少掉一批实际还在的货。
+                --
+                -- 【IOD-1:逐行镜像原始流水,不按规则重新分配】投料现在可能跨几个
+                -- 库位桶写出多行;还原必须把货放回【它原来所在的那些桶】,而不是
+                -- 按 drain 的顺序倒着来一遍 —— 那两者在一般情形下并不相等,
+                -- 差额会安静地把库存挪到别的库位上。所以这里读原始的
+                -- processing_consume 行,逐行取反。
+                PERFORM mirror_consume_restore(p_run_id, v_input.inbound_batch_id, NULL,
+                                                 v_new_remaining - COALESCE(v_old_remaining, 0),
+                                                 v_process_date, v_user_id);
+            END IF;
+        ELSE
+            SELECT quantity, remaining_qty INTO v_quantity, v_old_remaining
+            FROM output_batches
+            WHERE id = v_input.output_batch_id AND deleted_at IS NULL
+            FOR UPDATE;
+
+            IF NOT FOUND THEN
+                CONTINUE;  -- 上游产出批已被删（如其自身加工单已冲销），跳过
+            END IF;
+
+            v_new_remaining := LEAST(
+                COALESCE(v_old_remaining, 0) + v_input.quantity_consumed,
+                v_quantity
+            );
+
+            UPDATE output_batches
+            SET remaining_qty = v_new_remaining,
+                updated_by = v_user_id,
+                updated_at = now()
+            WHERE id = v_input.output_batch_id;
+
+            IF v_new_remaining - COALESCE(v_old_remaining, 0) > 0 THEN
+                -- FIN-32:同上 —— 产出批投料的还原(FIN-25 那条边)业务日一样取原加工日
+                PERFORM mirror_consume_restore(p_run_id, NULL, v_input.output_batch_id,
+                                                 v_new_remaining - COALESCE(v_old_remaining, 0),
+                                                 v_process_date, v_user_id);
+            END IF;
+        END IF;
+    END LOOP;
+
+    -- 4. 软删这张单生成的产出批次(void 流水 + 归零由 BEFORE UPDATE 触发器处理)
+    -- AUDEL-1b:软删要走门 —— 标记 + deleted_by + delete_reason,否则
+    -- guard_soft_delete_provenance 会按名拒。产出批的删除理由【就是这次回滚的
+    -- 理由】:它们不是被单独注销的,是被这次回滚带走的。
+    PERFORM set_config('evoltrya.soft_delete_ctx', '1', true);
+    UPDATE output_batches
+    SET deleted_at = now(),
+        deleted_by = v_user_id,
+        delete_reason = btrim(p_reason),
+        updated_by = v_user_id,
+        updated_at = now()
+    WHERE id IN (
+        SELECT output_batch_id FROM processing_outputs WHERE run_id = p_run_id
+    )
+    AND deleted_at IS NULL;
+
+    -- 5. 软删加工单本身（腿表保留作审计）
+    UPDATE processing_runs
+    SET status = 'reversed',
+        deleted_at = now(),
+        deleted_by = v_user_id,
+        delete_reason = btrim(p_reason),
+        updated_by = v_user_id,
+        updated_at = now()
+    WHERE id = p_run_id;
+    PERFORM set_config('evoltrya.soft_delete_ctx', '', true);   -- 用毕即清(同 movement_ctx)
+
+    -- ════════════════════════════════════════════════════════════════════════
+    -- PROC-COST-1:【状态改变型 —— 解除资本化,台账与分录在同一个地方一起解除】
+    -- 台账行由 batch_processing_cost_base 按本单的 deleted_at 自动排除(形状免费
+    -- 提供的那一半),分录必须显式冲销 —— 两半都在这里发生,所以它们【永远不会
+    -- 各说各话】。少做任何一半:要么成本留在 1200 上而单已经没了(账挂在一张不
+    -- 存在的单上),要么台账清了而 1200 虚高。
+    -- 【只管状态改变型】转化型的资本化分录在回滚时的处置是【本刀之前就有的行为】,
+    -- 本刀不碰它 —— 那是另一条独立的判断,记在 docs/proc-cost-capitalisation.md。
+    -- ════════════════════════════════════════════════════════════════════════
+    SELECT NOT k.produces_outputs INTO v_sc_kind
+      FROM processing_runs pr
+      JOIN operation_types ot ON ot.code = pr.operation_type_code
+      JOIN operation_kinds k ON k.code = ot.kind_code
+     WHERE pr.id = p_run_id;
+
+    IF COALESCE(v_sc_kind, false) THEN
+        SELECT capitalization_entry_id INTO v_sc_cap FROM processing_runs WHERE id = p_run_id;
+        IF v_sc_cap IS NOT NULL
+           AND (SELECT status FROM journal_entries WHERE id = v_sc_cap) = 'posted' THEN
+            PERFORM reverse_journal_entry_internal(v_sc_cap, CURRENT_DATE,
+                'Rollback ' || COALESCE((SELECT code FROM processing_runs WHERE id = p_run_id), '?'));
+        END IF;
+        UPDATE processing_runs
+           SET capitalization_entry_id = NULL, capitalized_cost_base = 0
+         WHERE id = p_run_id;
+    END IF;
+
+
+    PERFORM set_config('evoltrya.movement_ctx', '', true);   -- 用毕即清(同 commit)
+END;
+$function$;
+
+-- ── 5b · 那道守卫功成身退 ────────────────────────────────────────────────────
+-- guard_allocation_not_state_changing 的全部内容就是"这条路还没有去处,所以按名
+-- 拒绝"。去处建好了,它就没有可守的东西了。【留着比删掉更坏】:一个永远不被调用
+-- 的守卫,读起来像是还有一道闸在那里。
+DROP FUNCTION IF EXISTS public.guard_allocation_not_state_changing(uuid);
+
+-- ── 6 · R4:鼓包漏液走整电池粉料线,与损坏料同一处置 ──────────────────────────
+-- 【这一行就是那张表的表注在等的裁定】它写着:"于是这种料今天没有路线,那是刻意的,
+-- 它等 Tim 的一句裁定,不等一个猜测。" 裁定到了。
+-- 【与 damaged_deformed 完全同形】resolves = false:粉料线把料【粉碎掉】,
+-- 不是把鼓包治好 —— 状态不是被解决的,是那批料不再作为整包存在了。
+-- 【鼓包与漏液不拆成两个状态】Tim 已定:同一处置,一个取值。
+INSERT INTO public.operation_type_safety_states (operation_type_code, safety_state_code, resolves, notes) VALUES
+    ('battery_powder_line', 'swollen_leaking', false,
+     '【R4,PROC-COST-1】Tim 裁定:鼓包与漏液同一处置,走整电池粉料线,与 damaged_deformed 同形。不解决 —— 料被粉碎掉了,不是被治好了。【深度放电仍然不受理它】:放电机解决不了起火风险(fixture 159 F3 钉着那一条)。');
+
+-- 表注更新:它原本写着"为什么 swollen_leaking 一道工序都没有受理"。裁定到了,
+-- 那一段必须跟着改 —— 一份说着已经不成立的话的文档,比没有文档更坏。
+COMMENT ON TABLE public.operation_type_safety_states IS
+'PROC-WIRE-1B-i:这道工序【受理】哪些安全状态。**这张表是那个死锁的解。**
+
+【它与 may_be_fed 的关系,一句话说清】may_be_fed 是【没有工序类型时】的答案,
+也就是今天的行为;一旦加工单说出了自己是哪道工序,答案就换成这张表。
+
+【不变式:只许收紧,不许默认放宽】
+  * 没有工序类型 → may_be_fed,行为一个字不变;
+  * 有工序类型 → **只有这张表里明写的才受理,没写的一律拒**,
+    哪怕它 may_be_fed = true。
+声明一道工序只会把闸收紧;任何放宽都必须是这里的一行【明写的数据】。
+**"设了工序就放行"的实现,在 fixture 里是红的。**
+
+【PROC-COST-1(R4):鼓包漏液已经有路线了】此前这里写着"swollen_leaking 一道工序
+都没有受理……它等 Tim 的一句裁定"。裁定到了:**鼓包与漏液同一处置,走整电池粉料线**,
+与 damaged_deformed 同形(resolves = false —— 料被粉碎掉,不是被治好)。
+**深度放电仍然不受理它**:放电机解决不了起火风险。
+加这一行是【逐工序的、明写的放宽】,那正是不变式允许的唯一放宽方式;
+"按 kind 放行"的实现在 fixture 159 F2/F3 里仍然是红的。
+
+【今天仍然一道工序都不受理的是 water_exposed(进过水)】那不是遗漏,是同一条
+处置:它可能在干燥后可投,而那是一个判断,等一次裁定,不等一个猜测。';
+
+COMMIT;

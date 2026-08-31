@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import EditInboundForm from './EditInboundForm'
 import PricingPanel, { type PriceHistoryRow } from './PricingPanel'
+import LandedCostPanel from './LandedCostPanel'
 import PrepaymentPanel, { type PrepaymentApplicationRow } from './PrepaymentPanel'
 import AssaySection, { type AssayRow } from './AssaySection'
 import RepriceFromContentPanel from './RepriceFromContentPanel'
@@ -151,6 +152,25 @@ export default async function EditInboundPage({
     // cut 2b:改读遮蔽视图(select('*') 会碰到被收回的 unit_price)。
     // 只有 unit_price 会被遮蔽,其余列恢复基表类型。
     const batch = maskedExcept<Tables<'inbound_batches'>, 'unit_price'>(batchRes.data)
+
+    // ── PROC-COST-1:落地成本的两个【非采购价】组件 ──────────────────────────
+    // 【页面不重算任何一条】两个数都由数据库那一份实现给出,与
+    // allocate_processing_costs 的材料成本表达式读的是同一个函数 ——
+    // 一份实现、两个调用者(AGENTS.md 反复付过账的那条)。
+    // 【mustOne,不是 ?? 0】读不出来必须【报错】:一个读失败被吞成 0 的落地成本,
+    // 在屏幕上与"这批货没花过运费和加工成本"一模一样。
+    const [freightRes, procCostRes] = await Promise.all([
+        supabase.rpc('batch_freight_base', { p_inbound_batch_id: id }),
+        supabase.rpc('batch_processing_cost_base', { p_inbound_batch_id: id }),
+    ])
+    const freightBase = mustOne(freightRes as never, 'batch_freight_base') as number | null
+    const processingBase = mustOne(procCostRes as never, 'batch_processing_cost_base') as number | null
+    // 采购价 = quantity × unit_price —— 与 ap_open_items 同一个算式。
+    // 【没定过价是 null,不是 0】"还没定价"与"定价为零"是两件事。
+    const purchaseBase =
+        batch.unit_price === null || batch.unit_price === undefined
+            ? null
+            : Number(batch.quantity) * Number(batch.unit_price)
 
     // 【PROC-2c:这批货的种类说不说得上这两条轴】PROC-2b 把这一块无条件摆了出来,
     // 而 PROC-2c 之后库里有了 guard_inbound_condition_applicable —— 于是一箱吨袋的
@@ -541,6 +561,16 @@ export default async function EditInboundPage({
                 missingMetals={assayGap?.missing_metals ?? []}
                 hasRequirement={hasAssayRequirement}
                 sampleable={assayGap?.sampleable ?? true}
+            />
+
+            {/* PROC-COST-1:落地成本拆解 —— 摆在计价面板【之前】,因为看批次成本的人
+                先问"这批货一共花了多少",再去看"采购价是怎么定的"。 */}
+            <LandedCostPanel
+                purchaseBase={purchaseBase}
+                freightBase={freightBase}
+                processingBase={processingBase}
+                baseCurrency={baseCurrency}
+                canViewPrices={showPrices}
             />
 
             <PricingPanel

@@ -925,6 +925,138 @@ export type Database = {
           },
         ]
       }
+      batch_processing_cost_allocations: {
+        Row: {
+          amount_base: number
+          basis_qty: number
+          basis_total_qty: number
+          created_at: string
+          created_by: string | null
+          id: string
+          inbound_batch_id: string
+          run_id: string
+        }
+        Insert: {
+          amount_base: number
+          basis_qty: number
+          basis_total_qty: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inbound_batch_id: string
+          run_id: string
+        }
+        Update: {
+          amount_base?: number
+          basis_qty?: number
+          basis_total_qty?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          inbound_batch_id?: string
+          run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batch_processing_cost_allocations_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "batch_processing_cost_allocations_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "batch_processing_cost_allocations_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "batch_processing_cost_allocations_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "batch_processing_cost_allocations_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "batch_processing_cost_allocations_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "batch_processing_cost_allocations_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "batch_processing_cost_allocations_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "batch_processing_cost_allocations_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "batch_processing_cost_allocations_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "batch_processing_cost_allocations_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "batch_processing_cost_allocations_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "batch_processing_cost_allocations_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "batch_processing_cost_allocations_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       battery_chemistries: {
         Row: {
           code: string
@@ -21671,6 +21803,10 @@ export type Database = {
         Args: { p_inbound_batch_id: string }
         Returns: number
       }
+      batch_processing_cost_base: {
+        Args: { p_inbound_batch_id: string }
+        Returns: number
+      }
       calculate_leave_days: {
         Args: {
           p_end: string
@@ -22086,10 +22222,6 @@ export type Database = {
       }
       gl_control_reconciliation: { Args: { p_as_of: string }; Returns: Json }
       gst_registered: { Args: never; Returns: boolean }
-      guard_allocation_not_state_changing: {
-        Args: { p_run_id: string }
-        Returns: undefined
-      }
       has_any_permission: { Args: { p_codes: string[] }; Returns: boolean }
       has_permission: { Args: { p_code: string }; Returns: boolean }
       hazardous_qty_on_hand_tonnes: { Args: never; Returns: number }

@@ -3,6 +3,38 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
+## PROC-COST-1:转化型加工单回滚时,它的【资本化分录】不被冲销(2026-08-31)
+
+`rollback_processing_run` 从来不碰 `capitalization_entry_id`。也就是说:一张
+**已分摊**的转化型加工单被回滚之后,它的 `借 1220 / 贷 5xxx` 仍然是 `posted`,
+而它的产出批已经软删。**这是本刀之前就有的行为,不是本刀造成的。**
+
+**本刀只为【状态改变型】加了冲销** —— A3 要求"台账与分录在同一个地方一起解除",
+而那条要求是对本刀新建的那条路说的。转化型那一侧是**一条独立的判断**:
+产出批被软删时 `inventory_ledger_triggers` 到底做了什么(它的注释说
+"reversal_void 不入账 —— 加工产出从未入过 1220",而**已分摊**的产出批显然入过),
+要单独查清楚再动。
+
+**为什么不在这一刀里顺手做:** 在一个刚碰到它的切次里现写一个会计修正,
+正是本仓库记过的**"匆忙的检查者"**形状。可达性:`rollback_processing_run` 只在
+所有产出批都未被动过时才放行,所以"已分摊 + 未动过 + 回滚"是可达的。
+
+## PROC-COST-1:`batch_freight_base` 对一个只有 `module.processing.view` 的读者读到 0(2026-08-31)
+
+与 `docs/proc-cost-capitalisation.md` 第八节**同构**的既有缺陷。
+`batch_freight_base` 是 `SECURITY INVOKER`,函数体 `JOIN freight_documents`,
+而那张表的 SELECT 策略是 `module.inbound.view OR module.finance.view` ——
+**没有 processing**。于是一个只有 `module.processing.view` 的读者调它,
+行被丢掉、安静地得到 0。
+
+本刀把**自己那一支**(`batch_processing_cost_base`)改成了属主权限 + 体内判据
+(fu2),**没有改运费那一支** —— 它不在本刀的射程里,而顺手改一支别的模块的
+读取器不该混在这一刀里。记在这里,是因为下一个读第八节的人会问"那运费那支呢"。
+
+**今天的实际影响很小但不是零:** 线上 `freight_allocations` 只有 1 行,
+且它所属的运费单不是 `posted`,所以每一批的 `batch_freight_base` 今天都是 0 ——
+**对所有读者都是 0**,分不出对错。它会在第一张真的运费单落地那天显形。
+
 ## AGING-1:账龄那两张视图【收未来到货的批次】,而 as-at 函数不收(2026-08-27)
 
 `ap_open_items` 的进料支**没有任何日期过滤** —— 它的条件是"在册 + 已计价 +

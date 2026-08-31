@@ -28,11 +28,15 @@ COMMENT ON TABLE public.operation_type_safety_states IS
 声明一道工序只会把闸收紧;任何放宽都必须是这里的一行【明写的数据】。
 **"设了工序就放行"的实现,在 fixture 里是红的。**
 
-【为什么 swollen_leaking 一道工序都没有受理】R2 点名整电池粉料线收
-"放不了电的整包/模组/3C/损坏电池",没有点名【鼓包漏液】。
-漏液是与"变形"不同的一种危害,而这是全系统唯一一道失败后果是【起火】的闸 ——
-不确定时站在拒绝那一侧。**于是这种料今天没有路线,那是刻意的**,
-它等 Tim 的一句裁定,不等一个猜测。';
+【PROC-COST-1(R4):鼓包漏液已经有路线了】此前这里写着"swollen_leaking 一道工序
+都没有受理……它等 Tim 的一句裁定"。裁定到了:**鼓包与漏液同一处置,走整电池粉料线**,
+与 damaged_deformed 同形(resolves = false —— 料被粉碎掉,不是被治好)。
+**深度放电仍然不受理它**:放电机解决不了起火风险。
+加这一行是【逐工序的、明写的放宽】,那正是不变式允许的唯一放宽方式;
+"按 kind 放行"的实现在 fixture 159 F2/F3 里仍然是红的。
+
+【今天仍然一道工序都不受理的是 water_exposed(进过水)】那不是遗漏,是同一条
+处置:它可能在干燥后可投,而那是一个判断,等一次裁定,不等一个猜测。';
 
 -- 投料形态(R1:每道工序自己声明)
 
@@ -55,7 +59,10 @@ INSERT INTO public.operation_type_safety_states (operation_type_code, safety_sta
     ('battery_powder_line', 'charged_not_discharged', false,
      '【R2】它专收【放不了电】的料 —— 那种料按定义就是没放过电的。它不【解决】这个状态:料在这里被粉碎掉了,不是被放电了。'),
     ('battery_powder_line', 'damaged_deformed', false,
-     '【R2】"损坏电池"。同上,不解决 —— 料被粉碎掉了。');
+     '【R2】"损坏电池"。同上,不解决 —— 料被粉碎掉了。'),
+    -- 【PROC-COST-1 / R4】这一行就是上面那段表注在等的裁定。
+    ('battery_powder_line', 'swollen_leaking', false,
+     '【R4,PROC-COST-1】Tim 裁定:鼓包与漏液同一处置,走整电池粉料线,与 damaged_deformed 同形。不解决 —— 料被粉碎掉了,不是被治好了。【深度放电仍然不受理它】:放电机解决不了起火风险(fixture 159 F3 钉着那一条)。');
 
 ALTER TABLE public.operation_type_safety_states ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "operation_type_safety_states select all" ON public.operation_type_safety_states

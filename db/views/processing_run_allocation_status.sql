@@ -25,6 +25,17 @@
 -- 成本,不在这里的话,吃过那批货的单永远不标过期,而 batch_margin 会一直停在
 -- 运费之前的那个数(运费那张分录本身完全正确)。
 
+-- PROC-COST-1(2026-08-31):【第七过期源 —— 迟到的加工成本资本化】。一张状态改变型
+-- 加工单(放电)把成本挂到某批进料上,而那批料可能【已经被这张单吃掉了】。不在这里
+-- 的话,吃过它的单永远不标过期,batch_margin 停在放电之前那个数,而放电那张分录本身
+-- 完全正确 —— 每一笔都对、总数错,本仓库最坏的失败形状。FRT-1 把漏掉同构的那一臂
+-- 称作"本刀的头号缺陷"。fixture 160 F5 钉住这一臂:注入前不过期、注入后过期。
+-- 【排除自己】(run_id <> r.id)是【防御性】的,而这一点要说准:allocate 在同一笔
+-- 事务里写下载体行与 allocated_at,`now()` 是事务时刻,两者恒等,`>` 恒假 ——
+-- 所以今天【漏掉它也不会有人变红】。它挡的是将来有人把载体行的写入挪出这笔事务
+-- (或换成 clock_timestamp())之后,放电单永远举着一面自己造的旗。
+-- fixture 160 F5 对这半句只作陈述,不声称能鉴别它。
+
 -- PROC-1(2026-08-12):第六过期源 —— 产出金属含量(第五源是 FIN-36 的
 -- allocation_basis_changed_at,一直在最后一条 UNION 臂上,没进这份编号)。
 -- metal_value 基准按产出金属含量拆成本(allocate_processing_costs 直接读
@@ -70,6 +81,22 @@ CREATE VIEW public.processing_run_allocation_status WITH (security_invoker = off
                    FROM processing_outputs po6
                      JOIN output_batch_metals obm ON obm.output_batch_id = po6.output_batch_id
                   WHERE po6.run_id = r.id AND r.allocation_basis = 'metal_value'::text
+                UNION ALL
+                -- PROC-COST-1:【第七过期源 —— 迟到的加工成本资本化】
+                -- 一张状态改变型加工单(放电)把成本挂到某批进料上,而那批料
+                -- 【可能已经被这张单吃掉了】。不在这里的话,吃过它的单永远不标过期,
+                -- batch_margin 停在放电之前那个数,而放电那张分录本身完全正确 ——
+                -- 这是本仓库最坏的失败形状:每一笔都对,总数错。
+                -- FRT-1 把漏掉同构的那一臂称作"本刀的头号缺陷";这里不重犯。
+                -- 【排除自己】bpca.run_id <> r.id:否则放电单会在分摊完成的那一刻
+                -- 把自己标成过期,而它刚刚才算完 —— 一面永远举着的旗等于没有旗。
+                 SELECT bpca.created_at
+                   FROM batch_processing_cost_allocations bpca
+                     JOIN processing_runs rsrc ON rsrc.id = bpca.run_id
+                     JOIN processing_inputs pif7 ON pif7.inbound_batch_id = bpca.inbound_batch_id
+                  WHERE pif7.run_id = r.id
+                    AND bpca.run_id <> r.id
+                    AND rsrc.deleted_at IS NULL AND rsrc.status = 'committed'::text
                 UNION ALL
                  SELECT r.allocation_basis_changed_at AS ts) x) c ON true
      LEFT JOIN LATERAL ( SELECT count(*) AS cogs_posted
