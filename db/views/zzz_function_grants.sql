@@ -58,6 +58,18 @@ REVOKE EXECUTE ON FUNCTION public.assert_segregated(text, uuid[], text) FROM aut
 -- 而 postgres 没有 claims —— 加了门反而会在过账与出表的路上抛权限错。
 -- 与上面三支同形:够不着的东西不需要门,需要的是【真的够不着】。
 REVOKE EXECUTE ON FUNCTION public.gst_registered() FROM authenticated;
+
+-- EQP-PAY-1(2026-09-01):一张采购单是设备单还是材料单。**gate 的 B2 点了它的名。**
+-- 它是 SECURITY DEFINER 且没有调用者检查 —— 而那是【故意的】:它是给守卫触发器
+-- 认主语用的。若它受 RLS 约束,一个看不见行的调用者会拿到 NULL,而守卫会因此
+-- 【静默放行】—— 正是本仓库记过的"守卫对主语缺席这一格是瞎的"那条病。
+--
+-- 【为什么不给它加 require_permission,而是收回 EXECUTE】它唯一的库内调用者
+-- guard_payment_term_applicable 是【属主身份跑的触发器】,而属主(postgres)没有
+-- claims —— 加一道门反而会在每一次写付款计划的路上抛权限错。与上面
+-- gst_registered / tax_rate_for 同形:**够不着的东西不需要门,需要的是【真的够不着】。**
+-- app / lib 里没有任何一处调它(实测);报表里要用它,以 postgres 身份跑。
+REVOKE EXECUTE ON FUNCTION public.purchase_order_kind(uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.tax_rate_for(text, date) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.sod_manual_posters_in(date, date) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.sod_supplier_creator(uuid) FROM authenticated;

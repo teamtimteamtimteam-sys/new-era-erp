@@ -16,16 +16,17 @@
 // 下拉当不了"币种写在这儿了"的凭据。而"按化验估算"摊开的那块是 calculate_metal_price
 // 的原始输出,【行情口径,恒为 USD】(见 check-currency-literals 的 ALLOWLIST 理由),
 // 那块自己每行都写着 USD,所以留裸数字并指着它。
-import { useActionState, useState } from 'react'
+import { useActionState, useMemo, useState } from 'react'
 import { useRef } from 'react'
 import { useFormDraft } from '@/lib/useFormDraft'
 import DraftBanner from '@/app/components/DraftBanner'
 import Link from 'next/link'
-import { useTranslations } from '@/lib/i18n/client'
+import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
 import DecimalInput, { parseDecimal } from '@/app/components/forms/DecimalInput'
 import type { MetalOption } from '@/app/metal-prices/options'
 import type { CalcResult } from '@/app/pricing/calculator/actions'
+import { applicableTriggers, triggerLabel, type PaymentTriggerEvent } from '@/lib/paymentTriggers'
 import {
     createOrder,
     computeLineEstimate,
@@ -57,7 +58,12 @@ type LineRow = OrderLineInput & { assayOpen: boolean; calc: CalcResult | null; c
     // 出处是记录不是推断:提交时 computed 行带全套重导出依据(calc + fx)。
     priceComputed: boolean }
 
-const TRIGGER_OPTIONS = ['on_order', 'on_shipment', 'on_arrival', 'post_assay', 'fixed_date'] as const
+// EQP-PAY-1:那个硬编码的数组退役了。可挑的里程碑由 payment_trigger_events
+// 这张字典表决定,并且【按这张单的种类过滤】—— 一台机器永远不会被化验,
+// 所以设备单上不出现 after assay。
+// ★ 而屏幕上的过滤【不是控制】★:服务端另有一道独立的拒绝(create_purchase_order
+//   按名拒 + purchase_order_payment_terms 上的触发器)。一个禁用掉的下拉挡不住
+//   直连 PostgREST 的那条路。
 
 // EQP-1c-b(P2):可挑的资产卡。
 // 【空列表有两种,而它们的下一步完全不同】——「一台都还没登记」要去登记;
@@ -99,6 +105,11 @@ function emptyLine(kind: 'material' | 'equipment' = 'material'): LineRow {
     return {
         material_id: '',
         asset_id: '',
+        // EQP-PAY-1:默认【不勾】—— 有的设备有质保金,有的没有,而默认值不该替人做决定。
+        // 默认月数 12(Tim 的裁定),但它只有在勾上之后才有意义。
+        retention_on: false,
+        retention_pct: '',
+        retention_months: '12',
         quantity: equip ? '1' : '',
         unit: equip ? 'unit' : 'kg',
         formula_id: '',
@@ -127,6 +138,7 @@ export default function NewOrderForm({
     baseCurrency,
     assets,
     canSeeAssets,
+    triggerEvents,
 }: {
     // PROC-4:物质清单由页面从 substances 那张字典读好传进来。
     // 【表单不再自己拿着一份清单】那份清单曾经是这份名单的第五个副本,
@@ -139,8 +151,11 @@ export default function NewOrderForm({
     baseCurrency: string
     assets: AssetOption[]
     canSeeAssets: boolean
+    // EQP-PAY-1:整份字典;按 orderKind 现算可选项(见下面 triggerOptions)。
+    triggerEvents: PaymentTriggerEvent[]
 }) {
     const t = useTranslations()
+    const locale = useLocale()
     const [state, formAction, isPending] = useActionState(createOrder, initialState)
 
     // IDLE-DRAFT:草稿留存。受限与否由 lib/maskedTables.ts 推出来,
@@ -160,7 +175,31 @@ export default function NewOrderForm({
     // 做成模式,那条规矩就在【动手之前】说清了,而不是之后。
     const [orderKind, setOrderKind] = useState<'material' | 'equipment'>('material')
     const isEquipment = orderKind === 'equipment'
+    // EQP-PAY-1:这张单的种类下,可挑的里程碑。字典是真源,过滤在这里现算。
+    const triggerOptions = useMemo(
+        () => applicableTriggers(triggerEvents, orderKind),
+        [triggerEvents, orderKind]
+    )
     const [terms, setTerms] = useState<OrderTermInput[]>([])
+    // 切换种类时,已经选好的里程碑可能【不再适用】(材料 → 设备时的 after assay)。
+    // 【不许留在那儿等服务端拒】那正是上面那段注释反对的"打完字之后才到来的拒绝";
+    // 也【不许悄悄换掉】—— 所以换掉之后当场说出来。
+    const [triggersReset, setTriggersReset] = useState(0)
+    function switchOrderKind(next: 'material' | 'equipment') {
+        setOrderKind(next)
+        const ok = new Set(applicableTriggers(triggerEvents, next).map((e) => e.code))
+        const fallback = applicableTriggers(triggerEvents, next)[0]?.code ?? ''
+        setTerms((ts) => {
+            let n = 0
+            const out = ts.map((l) => {
+                if (ok.has(l.trigger_event)) return l
+                n++
+                return { ...l, trigger_event: fallback, due_date: '' }
+            })
+            setTriggersReset(n)
+            return out
+        })
+    }
     // 计划区一经手动编辑(含手选模板),换供应商不再自动覆盖 —— 用户的输入优先
     const [termsEdited, setTermsEdited] = useState(false)
     const [templateSel, setTemplateSel] = useState('')
@@ -399,7 +438,9 @@ export default function NewOrderForm({
                                 onChange={() => {
                                     // 换模式就把行重置 —— 留着上一模式填了一半的行,
                                     // 等于把那条不混装的规矩又推回提交那一刻。
-                                    setOrderKind(k)
+                                    // EQP-PAY-1:换模式连【付款里程碑】一起校正 ——
+                                    // 材料那一套里的 after assay 在设备单上用不上。
+                                    switchOrderKind(k)
                                     setLines([emptyLine(k)])
                                 }}
                             />
@@ -447,6 +488,47 @@ export default function NewOrderForm({
                                         <p className="mt-1 text-xs text-gray-600">
                                             {t('purchasing.form.assetLineHint')}
                                         </p>
+                                        {/* ── EQP-PAY-1(R6):质保金 ────────────────────────────
+                                            ★【它是可选的,而"没有"就是【没有】】★ 不勾的时候,
+                                            提交的负载里【连 retention 这一键都不出现】,库里也就
+                                            没有那一行。系统里不存在"0% 的质保金"—— 表上那条
+                                            CHECK 是 percentage > 0。"没有质保金"与"0% 质保金"
+                                            是两个不同的事实,永远不许渲染成同一个样子。 */}
+                                        <div className="mt-2 border-t border-gray-200 pt-2">
+                                            <label className="flex items-center gap-2 text-sm">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={Boolean(l.retention_on)}
+                                                    onChange={(e) =>
+                                                        patchLine(i, {
+                                                            retention_on: e.target.checked,
+                                                            ...(e.target.checked ? {} : { retention_pct: '' }),
+                                                        })
+                                                    }
+                                                />
+                                                {t('purchasing.form.retentionHas')}
+                                            </label>
+                                            {l.retention_on ? (
+                                                <div className="mt-2 flex items-center gap-2 text-sm">
+                                                    <DecimalInput
+                                                        value={l.retention_pct ?? ''}
+                                                        onChange={(v) => patchLine(i, { retention_pct: v })}
+                                                        className="w-16 border border-gray-300 px-2 py-1 rounded"
+                                                    />
+                                                    <span>%</span>
+                                                    <span className="ml-2">{t('purchasing.form.retentionMonths')}</span>
+                                                    <input
+                                                        type="number" min={1}
+                                                        value={l.retention_months ?? '12'}
+                                                        onChange={(e) => patchLine(i, { retention_months: e.target.value })}
+                                                        className="w-16 border border-gray-300 px-2 py-1 rounded"
+                                                    />
+                                                </div>
+                                            ) : null}
+                                            <p className="mt-1 text-xs text-gray-600">
+                                                {t('purchasing.form.retentionHint')}
+                                            </p>
+                                        </div>
                                     </>
                                 ) : (
                                     <select
@@ -687,6 +769,13 @@ export default function NewOrderForm({
                     ))}
                 </select>
             </div>
+            {/* EQP-PAY-1:换了单据种类之后,用不上的里程碑被换掉了 —— 【说出来】,
+                不要悄悄改掉一个人已经选好的东西。 */}
+            {triggersReset > 0 && (
+                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+                    {t('purchasing.form.triggersResetNotice', { 0: triggersReset })}
+                </p>
+            )}
             {terms.length > 0 && (
                 <table className="w-full border-collapse border border-gray-300">
                     <thead className="bg-gray-100">
@@ -753,9 +842,9 @@ export default function NewOrderForm({
                                         onChange={(e) => patchTerm(i, { trigger_event: e.target.value })}
                                         className="border border-gray-300 px-2 py-1 rounded"
                                     >
-                                        {TRIGGER_OPTIONS.map((ev) => (
-                                            <option key={ev} value={ev}>
-                                                {t('purchasing.trigger.' + ev)}
+                                        {triggerOptions.map((ev) => (
+                                            <option key={ev.code} value={ev.code}>
+                                                {triggerLabel(ev, locale)}
                                             </option>
                                         ))}
                                     </select>

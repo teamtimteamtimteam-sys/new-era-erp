@@ -7,13 +7,21 @@
 // >100 拦下不让交。行序即期次,提交时按行序重排 seq。
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
-import { useTranslations } from '@/lib/i18n/client'
+import { useTranslations, useLocale } from '@/lib/i18n/client'
+import { triggerLabel, type PaymentTriggerEvent } from '@/lib/paymentTriggers'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { saveTemplate, type TemplateFormState, type TemplateLineInput } from './actions'
 
 const initialState: TemplateFormState = {}
 
-export const TRIGGER_OPTIONS = ['on_order', 'on_shipment', 'on_arrival', 'post_assay', 'fixed_date'] as const
+// EQP-PAY-1:那个硬编码的数组退役了 —— 里程碑的真源是 payment_trigger_events。
+//
+// ★【模板【不】按种类过滤,这是刻意的】★ 一份模板【不属于任何一张采购单】
+// (它的抬头就是这么写的:"存在的唯一理由是省去重复录入"),所以它没有种类可言。
+// 判据落在【套用的那一刻】:apply_payment_term_template 往
+// purchase_order_payment_terms 里插行,而那张表上的 guard_payment_term_applicable
+// 会按目标单据的种类按名拒。把一个用不上的组合拦在套用处,而不是拦在模板处,
+// 是因为同一份模板可能对材料单成立、对设备单不成立 —— 那不是模板的错。
 
 export function emptyTermLine(): TemplateLineInput {
     return { label: '', mode: 'percentage', percentage: '', fixed_amount: '', trigger_event: 'on_order', days_offset: '' }
@@ -22,6 +30,7 @@ export function emptyTermLine(): TemplateLineInput {
 export default function TemplateForm({
     template,
     currencies,
+    triggerEvents,
 }: {
     template?: {
         id: string
@@ -32,8 +41,11 @@ export default function TemplateForm({
         lines: TemplateLineInput[]
     }
     currencies: { code: string }[]
+    // EQP-PAY-1:整份字典(模板不按种类过滤 —— 理由见文件顶部)。
+    triggerEvents: PaymentTriggerEvent[]
 }) {
     const t = useTranslations()
+    const locale = useLocale()
     const [state, formAction, isPending] = useActionState(saveTemplate, initialState)
 
     const [lines, setLines] = useState<TemplateLineInput[]>(
@@ -193,9 +205,9 @@ export default function TemplateForm({
                                     onChange={(e) => patchLine(i, { trigger_event: e.target.value })}
                                     className="border border-gray-300 px-2 py-1 rounded"
                                 >
-                                    {TRIGGER_OPTIONS.map((ev) => (
-                                        <option key={ev} value={ev}>
-                                            {t('purchasing.trigger.' + ev)}
+                                    {triggerEvents.map((ev) => (
+                                        <option key={ev.code} value={ev.code}>
+                                            {triggerLabel(ev, locale)}
                                         </option>
                                     ))}
                                 </select>

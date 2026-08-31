@@ -377,6 +377,27 @@ const MSG_EXPO_CANNOT_SEE = topMsg('priceExposure', 'cannotSee')
 const MSG_EXPO_PURCHASE = topMsg('priceExposure', 'purchaseNotModelled')
 // 两处会随真实数据翻的分支,用 oneOf:写死其中一句等于给未来安一次必然的误报
 // (CONTRACT-1 / PRICE-1 都为这条留过同样的处置)。
+// EQP-PAY-1:「这张单没有质保金条款」那一句。★ 它是本刀最要紧的一条【区别】的
+// 屏幕那一半:「没有质保金」与「0% 质保金」是两个不同的事实,永远不许长得一样。
+// 库里那一半是结构性的(percentage 的 CHECK 是 > 0,0% 那一行存不进去);
+// 而屏幕这一半【只有一句话】,**没有任何别的检查看得见一句话在不在**。
+const MSG_RETENTION_NONE = (() => {
+    const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
+    const blk = src.match(/\n        retention: \{[\s\S]*?\n        \},/)
+    if (!blk) throw new Error('messages/en.ts 里找不到 purchasing.retention 这一段 —— 质保金的入口断言无从下手')
+    const m = blk[0].match(/\n\s*none: '([^']+)'/)
+    if (!m) throw new Error('messages/en.ts 里找不到 purchasing.retention.none')
+    return m[1]
+})()
+
+const MSG_RETENTION_TITLE = (() => {
+    const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
+    const blk = src.match(/\n        retention: \{[\s\S]*?\n        \},/)
+    const m = blk && blk[0].match(/\n\s*title: '([^']+)'/)
+    if (!m) throw new Error('messages/en.ts 里找不到 purchasing.retention.title')
+    return m[1]
+})()
+
 const MSG_EXPO_SELL = [topMsg('priceExposure', 'sellNoContracts'),
                        topMsg('priceExposure', 'sellNoTerms')]
 const MSG_EXPO_CALENDAR = [topMsg('priceExposure', 'calendarNone'),
@@ -1721,6 +1742,54 @@ async function main() {
             }
         }
 
+        // ── EQP-PAY-1:设备单上,质保金那一栏【说了话】────────────────────
+        // ★【为什么这条断言值得存在】★ 「没有质保金」与「0% 质保金」是两个不同的
+        //   事实。库里那一半已经是结构性的(0% 存不进去);而屏幕这一半是**一句话**,
+        //   而一句话消失了【不会有任何东西变红】—— 页面照样 200,只是那一栏变成空白,
+        //   而空白读起来像"还没填"。这正是本仓库反复付账的那种缺陷。
+        //
+        // 【为什么不写进 MUST_CONTAIN】那张表按【路由】给针,而 /purchasing/orders/[id]
+        //   的 id 是从库里随手挑的一张单 —— 挑到材料单时这一栏【正当地】不出现。
+        //   所以这里自己按条件挑:那张【带设备行】的单。
+        // 【零行也要具名】线上没有设备单时跳过而不是变绿 —— 一个没有主语的断言
+        //   恒真,而恒真的断言与不存在的断言一样(README 那条"空集不是通过")。
+        {
+            const eqpLines = await restRows(
+                '/rest/v1/purchase_order_lines?select=purchase_order_id&asset_id=not.is.null&limit=1',
+                'EQP-PAY-1 设备单')
+            if (eqpLines.length === 0) {
+                console.log('  SKIP 质保金栏内容断言(线上没有任何设备采购单)')
+                skipped.add('/purchasing/orders/[id] (retention)')
+            } else {
+                const poId = eqpLines[0].purchase_order_id
+                // 这张单今天有没有质保金 —— 断言要跟着事实走,不是跟着今天的样子写死。
+                const rets = await restRows(
+                    `/rest/v1/purchase_order_line_retentions?select=id&purchase_order_line_id=in.(${
+                        (await restRows(`/rest/v1/purchase_order_lines?select=id&purchase_order_id=eq.${poId}`,
+                            'EQP-PAY-1 设备单的行')).map((r) => r.id).join(',')})`,
+                    'EQP-PAY-1 质保金行')
+                const target = `/purchasing/orders/${poId}`
+                const before = logChunks.length
+                const res = await fetch(`http://localhost:${PORT}${target}`, {
+                    headers: { cookie }, redirect: 'manual' })
+                const html = res.status === 200 ? await res.text() : ''
+                // 没有质保金 → 必须印那一句明说的话;有质保金 → 必须印标题。
+                const needle = rets.length === 0 ? MSG_RETENTION_NONE : MSG_RETENTION_TITLE
+                if (res.status === 200 && html.includes(needle)) { ok++ }
+                else {
+                    const why = res.status !== 200
+                        ? `HTTP ${res.status}`
+                        : `页面 200,但找不到「${needle}」—— 质保金那一栏没有说话。`
+                          + (rets.length === 0
+                             ? '一片空白读起来是"还没填",而事实是"这张单没有质保金条款"'
+                             : '这张单有质保金,而那一栏没画出来')
+                    failures.push({ route: '/purchasing/orders/[id] (质保金栏)', url: target,
+                        status: res.status, expected: 200, stack: `${why}\n${await serverStack(before)}` })
+                    console.log(`  FAIL 质保金栏内容 → ${why}`)
+                }
+            }
+        }
+
         // ── PARTY-1:重叠报告【走得到吗】────────────────────────────────
         // ★【这一条是把"我记得加了链接"换成一条机制】★
         //   `/customers/overlap` 是一条【静态】路由,`--reach` 查得到它 ——
@@ -1989,7 +2058,7 @@ async function main() {
     // 等于让"这一类到底测没测"重新变得看不见 —— 而它们存在的理由正是那件事。
     // PROBATION-1:总结这一行要把【每一个计进 ok 的探针】都点出来,否则
     // 标签念的是一件事、数字数的是另一件 —— 本仓库对这个形状记过好几次账。
-    console.log(`\n== ${routes.length} routes + 1 reviewer-view check + ${QUERY_PROBES.length} query-string probe(s) + 2 probation-entry probes + 2 customer-page entry probes + 2 cash-forecast probes (nav + content) + 3 claim probes (2 content + nav) + 3 attendance probes (2 content + nav) + 3 WHT probes (2 content + nav) + 4 pack/GL-export probes (2 content + 2 nav) + 1 overlap-entry probe: ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
+    console.log(`\n== ${routes.length} routes + 1 reviewer-view check + ${QUERY_PROBES.length} query-string probe(s) + 2 probation-entry probes + 2 customer-page entry probes + 2 cash-forecast probes (nav + content) + 3 claim probes (2 content + nav) + 3 attendance probes (2 content + nav) + 3 WHT probes (2 content + nav) + 4 pack/GL-export probes (2 content + 2 nav) + 1 overlap-entry probe + 1 retention-panel probe: ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
     // SESSION-1:这一行排在所有失败之前,因为它改变【怎么读】下面那一百行。
     if (sawAuthIndeterminate) {
         const n = failures.filter((f) => f.authDown).length

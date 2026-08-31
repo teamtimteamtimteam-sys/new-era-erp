@@ -9,6 +9,7 @@
 // calculate_metal_price(与计价器同一 DB 函数,客户端不做任何计算),
 // 返回完整明细供面板摊开;填入的是 unit_price_usd_per_kg。
 import { createClient } from '@/lib/supabase/server'
+import { applicableTriggers, loadPaymentTriggerEvents, type OrderKind } from '@/lib/paymentTriggers'
 import { getBaseCurrency } from '@/lib/currency'
 import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
@@ -32,6 +33,13 @@ export type OrderLineInput = {
     // FIN-26:价格出处(记录,不推断)。computed 必带重导出依据。
     price_source?: 'computed' | 'manual'
     price_provenance?: Record<string, unknown>
+    // EQP-PAY-1(R6):质保金 —— 【只对设备行,而且是可选的】。
+    // ★ retention_on 为 false 时,负载里【连 retention 这一键都不出现】★:
+    //   "没有质保金"是结构性的缺席,不是一个 0。表上那条 CHECK 是 percentage > 0,
+    //   所以系统里根本不存在"0% 的质保金"这种东西。
+    retention_on?: boolean
+    retention_pct?: string
+    retention_months?: string
 }
 
 export type OrderTermInput = {
@@ -43,7 +51,13 @@ export type OrderTermInput = {
     due_date: string
 }
 
-const TRIGGERS = new Set(['on_order', 'on_shipment', 'on_arrival', 'post_assay', 'fixed_date'])
+// EQP-PAY-1:那个硬编码的集合退役了 —— 合法的里程碑是 payment_trigger_events
+// 里的行,而【用不用得上】还要看这张单是材料单还是设备单。
+//
+// ★【这一层不是"控制",下面还有两道】★
+//   ① create_purchase_order 里的具名拒绝(PO_TERM_EVENT_NOT_APPLICABLE);
+//   ② purchase_order_payment_terms 上的触发器 —— 直连 PostgREST 也逃不掉。
+// 这一层的作用只是【把话说得早一点、好听一点】,不是把关。
 
 export async function createOrder(
     _prevState: CreateOrderState,
@@ -96,6 +110,15 @@ export async function createOrder(
             // FIN-26:出处随行进 DB;配对(computed ↔ provenance)由函数与 CHECK 双重把关
             ...(l.price_source ? { price_source: l.price_source } : {}),
             ...(l.price_provenance ? { price_provenance: l.price_provenance } : {}),
+            // EQP-PAY-1:没勾就【不带这一键】—— 缺席即"没有质保金"。
+            ...(isEquipment && l.retention_on && l.retention_pct?.trim()
+                ? {
+                      retention: {
+                          percentage: Number(l.retention_pct),
+                          retention_months: Number(l.retention_months || '12'),
+                      },
+                  }
+                : {}),
         }
     })
 
@@ -106,11 +129,20 @@ export async function createOrder(
     } catch {
         termInputs = []
     }
+    // EQP-PAY-1:这张单的种类由它的【行】决定(asset_id XOR material_id,EQP-1a),
+    // 因为 purchase_orders 上没有任何类型列。混装单本来就被拒(PO_LINES_MIXED_KINDS),
+    // 所以这两种情形互斥。
+    const orderKind: OrderKind = lines.some((l) => 'asset_id' in l) ? 'equipment' : 'material'
+    const supabaseForDict = await createClient()
+    const applicableCodes = new Set(
+        applicableTriggers(await loadPaymentTriggerEvents(supabaseForDict), orderKind).map((e) => e.code)
+    )
+
     const terms = []
     for (let i = 0; i < termInputs.length; i++) {
         const l = termInputs[i]
         const label = (l.label ?? '').trim()
-        if (!label || !TRIGGERS.has(l.trigger_event)) {
+        if (!label || !applicableCodes.has(l.trigger_event)) {
             return { error: t('purchasing.errTermLine', { 0: i + 1 }) }
         }
         if (l.trigger_event === 'fixed_date' && !l.due_date) {

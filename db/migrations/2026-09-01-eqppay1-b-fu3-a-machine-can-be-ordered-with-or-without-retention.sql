@@ -1,3 +1,16 @@
+-- db/migrations/2026-09-01-eqppay1-b-fu3-a-machine-can-be-ordered-with-or-without-retention.sql
+-- EQP-PAY-1 fu3:质保金随【下单】一起落地,而"没有质保金"仍然是【没有那一行】。
+--
+-- 【为什么不做成建完单之后再补一刀】质保金是付款条款的一部分。分成两次调用,
+-- 第二次失败就会留下一张【条款不全】的采购单 —— 而它在屏幕上看起来完全正常。
+-- 放进同一支函数,它与单据同生共死。
+--
+-- ★【可选性是结构性的,这一支没有把它变软】★ 负载里没有 retention 这一键就不建行;
+-- 而表上那条 CHECK 是 percentage > 0,所以一行 0% 【存不进去】。
+-- "没有质保金"与"0% 质保金"连长得一样的机会都没有(db/fixtures/175 的 A 臂断言这一条)。
+
+BEGIN;
+
 CREATE OR REPLACE FUNCTION public.create_purchase_order(p_supplier_id uuid, p_order_date date, p_expected_delivery date, p_currency text, p_fx_rate numeric, p_incoterm text, p_terms_text text, p_notes text, p_lines jsonb, p_payment_terms jsonb DEFAULT '[]'::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -300,4 +313,6 @@ BEGIN
         'order_kind', v_kind
     );
 END;
-$function$
+$function$;
+
+COMMIT;

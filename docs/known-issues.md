@@ -80,7 +80,35 @@
 根治要么给那支函数加权限判断,要么把它降级成 `SECURITY INVOKER` ——
 两条都会牵动注销与盘点两条既有调用路,所以单列。
 
-## CFO-NO-FINANCE-VIEW —— `cfo` 角色打不开财务勾稽
+## PO-2026-0007-POST-ASSAY —— 一份真实单据带着一个用不上的付款里程碑
+
+**发现于 EQP-PAY-1(2026-09-01)。它【就是】Tim 用系统时撞见的那个缺陷的实体。**
+
+`PO-2026-0007`(SGD 400,000,一条设备行 → `FA-2026-0001` Bosch 深放电机)的
+**第 3 期**是 `30% "Within 14 Days" post_assay` —— 而**一台机器永远不会被化验**。
+
+**本刀【没有改它】,这是一个决定。** 那一期的标签是"Within 14 Days":合同上到底
+写的是"验收后 14 天"、"培训完成后 14 天",还是一个固定日期,**只有 Tim 知道**,
+系统里没有任何东西能回答。**改一份真实单据的条款要有人知道合同上写的是什么;
+猜一个,是把一次编造伪装成一次修复。**
+
+**不阻塞任何东西**:外键指向 `code`(值仍在字典里),而适用性是触发器,只在 INSERT
+与**改动 `trigger_event`** 时触发 —— 这一行照旧读得出、印得出。
+**而下一次有人碰它时,系统会强迫他改对。**
+
+**怎么关掉这一条:** 打开 PO-2026-0007,把第 3 期按合同改成 `acceptance_complete` /
+`training_complete` / `installation_complete`,或 `fixed_date` 加上合同上的日子。
+查全部这类行的 SQL、以及三个选项各自的代价,见
+[equipment-payment-milestones-and-retention.md](equipment-payment-milestones-and-retention.md) §5。
+
+## ~~CFO-NO-FINANCE-VIEW~~ —— **已修(EQP-PAY-1,2026-09-01)**
+
+`cfo` 拿到了 `module.finance.view` 与 `data.view_pay`(Tim 裁定:CFO 复核薪酬支出)。
+**以只持 cfo 的会话实测**:`gl_control_reconciliation('2026-08-31')` 与
+`management_pack_data('2026-08-01')` 都 **OK**;`payroll_lines_masked` 读得到 1 行,
+`gross_pay` 可见(不是被遮蔽的 NULL)。授权的**书面理由**在
+[approvals.md](approvals.md) §0 —— 薪酬是个人敏感数据,谁能看必须答得出来。
+下面是原文,保留以便追溯。
 
 **发现于 INV-VAL-1(2026-08-31),早于本刀,已知、本刀不修。**
 

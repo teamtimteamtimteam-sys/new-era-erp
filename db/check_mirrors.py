@@ -292,6 +292,16 @@ DEFINER_NO_CHECK_ALLOWED = {
     # 它们【不能】自己查权限:三个调用方里 guard_approvals_switch 是触发器、
     # require_approver_for 是授权判据本身,两者都以属主身份跑而属主没有 claims ——
     # 加一道门反而会在开关与审批的路上抛权限错(与 GST-1 那两支逐字同一条理由)。
+    # EQP-PAY-1:一张采购单是设备单还是材料单。EXECUTE 已从 authenticated/anon/PUBLIC
+    # 收回(db/views/zzz_function_grants.sql),所以 gate 的 B2
+    # (definer-unchecked-and-CALLABLE)是 0 —— 靠的就是【调不到】。
+    # 【它不能自己查权限】唯一的库内调用者 guard_payment_term_applicable 是
+    # 【属主身份跑的触发器】,属主(postgres)没有 claims,加一道门会在每一次写
+    # 付款计划的路上抛权限错(与 gst_registered / real_role_holders 逐字同一条理由)。
+    # 【它为什么必须是 DEFINER】守卫靠它认主语。受 RLS 约束的话,一个看不见行的
+    # 调用者会拿到 NULL,而守卫会因此【静默放行】—— 正是"守卫对主语缺席这一格
+    # 是瞎的"那条病。
+    "purchase_order_kind": "EXECUTE revoked from PUBLIC/authenticated/anon; its only caller is the owner-run trigger guard_payment_term_applicable, and postgres has no claims so a permission check would raise on every payment-terms write",
     "real_role_holders": "EXECUTE revoked from authenticated; callers guard_approvals_switch / approvals_readiness / require_approver_for are all definer and each checks its own caller",
     "role_can_see_amounts": "EXECUTE revoked from authenticated; callers guard_approvals_switch / approvals_readiness are both definer and each checks its own caller",
     # TASK-1c-a:两扇门(创建门与升级门)共用的那一个写入者。没有调用者检查,

@@ -111,6 +111,16 @@ BEGIN
     INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate,
                                  estimated_total_ccy, status)
     VALUES ('ZZ-F139-PO', v_sup, v_ws - 20, v_base, 1, 100000, 'confirmed') RETURNING id INTO v_po;
+    -- EQP-PAY-1:这张单要有【一条明细行】,否则判不出它是材料单还是设备单,
+    -- 而 guard_payment_term_applicable 会按名拒(PO_TERM_KIND_UNKNOWN)——
+    -- 判不出种类就判不出下面那几期里程碑用不用得上。
+    -- 【这不是为了迁就一条新规矩而改测试】一张【没有明细行的采购单】本来就不是
+    -- 一份真实单据:create_purchase_order 自己就拒(NO_LINES)。这一行补的是
+    -- 本来就该有的东西,而下面四期(含 post_assay)在材料单上照旧全部适用,
+    -- 所以本 fixture 的每一条断言都不受影响。
+    INSERT INTO purchase_order_lines (purchase_order_id, line_no, material_id, quantity, unit,
+                                      estimated_unit_price, estimated_amount_ccy)
+    VALUES (v_po, 1, v_mat, 1000, 'kg', 100, 100000);
     INSERT INTO purchase_order_payment_terms (purchase_order_id, seq, label, percentage, trigger_event)
     VALUES (v_po, 1, 'shipment', 30, 'on_shipment') RETURNING id INTO v_t_ship;
     INSERT INTO purchase_order_payment_terms (purchase_order_id, seq, label, percentage, trigger_event)

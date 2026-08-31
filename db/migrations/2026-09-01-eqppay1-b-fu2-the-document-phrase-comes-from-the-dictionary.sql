@@ -1,3 +1,8 @@
+BEGIN;
+-- EQP-PAY-1:单据上那句介词短语也来自字典(phrase_en)。
+-- 【为什么不留在 PDF 模板里】那份模板此前自己 replace('_',' ') 再补一个 "on",
+-- 印出过 "on on shipment";TRIGGER_PHRASE 那张手写映射是那次修复留下的,
+-- 而它是这份清单的第九个副本。介词属于数据,不属于模板。
 CREATE OR REPLACE FUNCTION public.po_document_data(p_po_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -101,4 +106,6 @@ BEGIN
         'payment_terms', v_terms
     );
 END;
-$function$
+$function$;
+
+COMMIT;

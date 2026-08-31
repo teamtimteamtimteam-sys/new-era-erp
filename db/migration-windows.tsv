@@ -125,3 +125,8 @@
 2026-08-31T22:36:26+0800	2026-08-31-cleanupa-a-restricted-reader-gets-a-name-not-a-smaller-number.sql	7e4e9e1
 2026-08-31T23:35:31+0800	2026-08-31-cleanupa-fu1-a-posting-primitive-must-not-ask-who-pressed-the-button.sql	7e4e9e1
 2026-09-01T00:07:39+0800	2026-09-01-cleanupa-fu2-the-line-changed-and-the-sentence-beside-it-did-not.sql	7e4e9e1
+2026-09-01T01:12:23+0800	2026-09-01-eqppay1-a-the-cfo-grant.sql	69eb439
+2026-09-01T01:14:20+0800	2026-09-01-eqppay1-b-equipment-milestones-and-retention.sql	69eb439
+2026-09-01T01:18:48+0800	2026-09-01-eqppay1-b-fu1-the-mixed-order-guard-already-existed.sql	69eb439
+2026-09-01T01:45:01+0800	2026-09-01-eqppay1-b-fu2-the-document-phrase-comes-from-the-dictionary.sql	69eb439
+2026-09-01T01:50:25+0800	2026-09-01-eqppay1-b-fu3-a-machine-can-be-ordered-with-or-without-retention.sql	69eb439

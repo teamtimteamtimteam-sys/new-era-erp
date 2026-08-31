@@ -270,6 +270,11 @@ const MANIFEST = {
     'purchasing.form.kind.': { kind: 'enum', values: () => tsRegex(
                                   'app/purchasing/orders/new/NewOrderForm.tsx',
                                   /const ORDER_KINDS = \['(\w+)', '(\w+)'\] as const/g) },
+    // EQP-PAY-1:质保金的四个状态。后缀集合【就是】RetentionPanel 里那个
+    // RETENTION_STATES 数组,而它自己的注释指着真源(视图里的 CASE)。
+    'purchasing.retention.state.': { kind: 'enum', values: () => tsRegex(
+                                  'app/purchasing/orders/[id]/RetentionPanel.tsx',
+                                  /const RETENTION_STATES = \['(\w+)', '(\w+)', '(\w+)', '(\w+)'\] as const/g) },
     // EQP-1c-c:资本支出的两扇门(新建一台机器 / 给已登记的机器加成本)。
     // 后缀集合【就是】开支表单里那个 CAPITAL_MODES 数组 —— 从组件现读。
     'expense.form.capitalMode.': { kind: 'enum', values: () => tsRegex(
@@ -517,7 +522,13 @@ const MANIFEST = {
     'processing.allocation.basis.': { kind: 'enum', values: () => sqlEnum('db/tables/processing_runs.sql', 'allocation_basis') },
     // ── purchasing ──────────────────────────────────────────────────────────
     'purchasing.status.':   { kind: 'enum', values: () => sqlEnum('db/tables/purchase_orders.sql', 'status') },
-    'purchasing.trigger.':  { kind: 'enum', values: () => sqlEnum('db/tables/payment_term_template_lines.sql', 'trigger_event') },
+    // EQP-PAY-1:'purchasing.trigger.' 这一族【退役了】,不是漏删。
+    // 里程碑的标签现在住在 payment_trigger_events 的 name_en / name_zh 两列上,
+    // 由 lib/paymentTriggers.ts 的 triggerLabel 按界面语言选一个 —— 与 tax_codes
+    // 同一个惯用法。【为什么标签也要搬】R4b 说"第七种里程碑必须是一行数据",
+    // 而标签留在 messages/ 里的话,加一种里程碑就仍然要改代码。
+    // 它此前读的那条 CHECK 也一起退役了(换成了指向字典的外键),所以留着这一行
+    // 会让解析器解出 0 个后缀 —— 而"解出 0 个"在本脚本里【是失败】,不是空集。
     // 同一前缀两处喂:purchasingErrorCodes 自家的族 + paymentErrorCodes 的采购侧码
     'purchasing.errors.':   { kind: 'enum', values: union(
                                   () => tsSet('app/purchasing/purchasingErrorCodes.ts', 'PURCHASING_ERROR_CODES'),

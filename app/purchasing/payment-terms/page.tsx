@@ -3,11 +3,12 @@
 // 模板只为省去回头客的重复录入 —— 不是标准条款,系统也不预置任何模板。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { getTranslations } from '@/lib/i18n/server'
+import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatAmount } from '@/lib/format'
 import Subnav from '../Subnav'
 import DeleteTemplateButton from './DeleteTemplateButton'
 import { mustRows } from '@/lib/db-helpers'
+import { loadPaymentTriggerEvents, triggerLabel } from '@/lib/paymentTriggers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 
@@ -50,6 +51,13 @@ export default async function PaymentTermTemplatesPage() {
         linesByTpl.set(l.template_id, arr)
     }
 
+    // EQP-PAY-1:里程碑的名字来自字典(按界面语言选一个,不拼接)——
+    // 加第七种里程碑是一行数据,包括它叫什么。
+    const locale = await getLocale()
+    const triggerNames = new Map(
+        (await loadPaymentTriggerEvents(supabase)).map((e) => [e.code, triggerLabel(e, locale)])
+    )
+
     // 各期摘要:"60% 下单时 · 30% 到货时 · 10% 化验后"(定额期显示金额)
     // 定额腿的币种由【模板头】payment_term_templates.currency 声明(FIN-29)——
     // 这里带着它一起画。原先写死的 " USD" 是 FIN-29 之前的遗留:同一个模板
@@ -59,7 +67,7 @@ export default async function PaymentTermTemplatesPage() {
             .map((l) => {
                 const share =
                     l.percentage !== null ? `${l.percentage}%` : formatAmount(l.fixed_amount_ccy, tplCurrency)
-                const trigger = t('purchasing.trigger.' + l.trigger_event)
+                const trigger = triggerNames.get(l.trigger_event) ?? l.trigger_event
                 const offset =
                     l.trigger_event === 'fixed_date' && l.days_offset !== null
                         ? ` +${l.days_offset}d`

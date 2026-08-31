@@ -26,8 +26,9 @@ CREATE TABLE public.purchase_order_payment_terms (
     percentage        numeric CHECK (percentage IS NULL OR (percentage > 0 AND percentage <= 100)),
     fixed_amount_ccy  numeric CHECK (fixed_amount_ccy IS NULL OR fixed_amount_ccy > 0),
     CONSTRAINT po_payment_terms_pct_xor_fixed CHECK (num_nonnulls(percentage, fixed_amount_ccy) = 1),
-    trigger_event     text NOT NULL
-                      CHECK (trigger_event IN ('on_order','on_shipment','on_arrival','post_assay','fixed_date')),
+    -- EQP-PAY-1:那条 CHECK 退役,换成指向【字典】的外键。加宽 CHECK 只是把同一份
+    -- 清单抄第三遍;外键之后,"有哪些里程碑"只有一个答案的所在地。
+    trigger_event     text NOT NULL REFERENCES public.payment_trigger_events (code),
     due_date          date,
     CONSTRAINT po_payment_terms_fixed_date_needs_due CHECK (
         trigger_event <> 'fixed_date' OR due_date IS NOT NULL
@@ -76,6 +77,20 @@ CREATE POLICY "purchase_order_payment_terms delete by permission"
 -- 而更要紧的是：下一个读镜像的人会少掉「为什么它不写进 due_date」这句话。
 COMMENT ON COLUMN public.purchase_order_payment_terms.expected_date IS
     'CASHFLOW-1:这一期【预计】什么时候付 —— 一个估计,不是一个事实。★【为什么不写进 due_date】★ due_date 在这张表上的含义是"合同约定的日子"(表上那条 CHECK 要求 fixed_date 那一种必须有它);把估计写进去,会让一个猜测长得和一条合同条款一模一样。三种事件才需要它:on_shipment / on_arrival / post_assay —— 另外两种不需要,因为 fixed_date 已经有真日期,而 on_order 的日子是 purchase_orders.order_date 这个事实。谁设的、何时设的在旁边两列;按事件类型的保管人在 payment_event_owners。到了预测那一层它的 confidence 是 estimated,与 committed 【不同的渲染】。';
+
+-- EQP-PAY-1(R5):这一期的里程碑,在这一类采购单上用得上吗。
+-- 【两道闸的表那一道】门上那一道在 create_purchase_order 里 —— 一个禁用掉的下拉
+-- 选项不是控制,而只写在函数里的校验挡不住直连 PostgREST。
+-- 函数体在 db/functions/guard_payment_term_applicable.sql。
+--
+-- 【为什么 UPDATE 那一侧只挂在 trigger_event 上】线上 PO-2026-0007 第 3 期带着一个
+-- 在设备单上用不上的 post_assay(见 docs/equipment-payment-milestones-and-retention.md,
+-- 本刀【不改它】—— 那是一份真实单据的条款)。若把闸挂在整行 UPDATE 上,那一行就
+-- 连别的列都改不动了:CASHFLOW-1 的 expected_date 恰好要落在 post_assay 这类期次上,
+-- 于是给它填一个预计付款日会被拒 —— 一个与本刀无关的功能会因为一条历史数据坏掉。
+CREATE TRIGGER trg_po_payment_terms_event_applicable
+    BEFORE INSERT OR UPDATE OF trigger_event ON public.purchase_order_payment_terms
+    FOR EACH ROW EXECUTE FUNCTION public.guard_payment_term_applicable();
 
 REVOKE SELECT ON public.purchase_order_payment_terms FROM authenticated, anon;
 -- CASHFLOW-1：三列新加的非敏感列一并授回 —— 列级 SELECT 授权【不会】自动

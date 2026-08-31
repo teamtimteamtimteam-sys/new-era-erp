@@ -55,6 +55,7 @@ export type PoDocData = {
         percentage: number | null
         fixed_amount_ccy: number | null
         trigger_event: string | null
+        trigger_phrase: string | null
         due_date: string | null
         notes: string | null
     }[]
@@ -64,20 +65,22 @@ export type PoDocData = {
 // 再在前面补一个 "on"。
 // 【走查看到的是 "on on shipment"】,而第三行印的是 "on post assay" —— 一个 on。
 // 【错的只有模板这一半,数据那一半不存在】on_shipment 作为一个枚举键完全正确,
-// 而屏幕那一侧【早就】把它映射成了 "On shipment"(t('purchasing.trigger.' + …));
+// 而屏幕那一侧【早就】把它映射成了 "On shipment"(当时走的是那族 i18n 标签键);
 // 只有这份 PDF 从来没用过那份映射:它 replace('_',' ') 之后自己补了一个介词。
 // 所以修的是这一处,一个地方,而且【不动任何已播下的触发值】。
 // 【未知的值不补介词】—— 将来加一种触发条件时,最坏的结果是印出它的原文,
 // 而不是再长出一个 "on on"。
-const TRIGGER_PHRASE: Record<string, string> = {
-    on_order: 'on order',
-    on_shipment: 'on shipment',
-    on_arrival: 'on arrival',
-    post_assay: 'after assay',
-    fixed_date: 'on the fixed date',
-}
-function triggerPhrase(ev: string): string {
-    return TRIGGER_PHRASE[ev] ?? ev.replace(/_/g, ' ')
+// EQP-PAY-1:那张手写映射退役了 —— 介词短语来自字典(payment_trigger_events.phrase_en),
+// 由 po_document_data 随每一期一起送过来。
+//
+// 【为什么它曾经在这里】这份 PDF 从来没用过屏幕那一侧的那族 i18n 标签映射:
+// 它自己 replace('_',' ') 之后补一个 "on",于是印出过 "on on shipment"。
+// 那次修复加了这张映射,而它成了同一份清单的第九个副本 —— 加一种里程碑要改九处。
+//
+// 【拿不到短语时印原文,不补介词】与那次修复的处置逐字相同:最坏的结果是印出
+// 一个码,而不是再长出一个 "on on"。
+function triggerPhrase(ev: string, phrase: string | null | undefined): string {
+    return phrase ?? ev.replace(/_/g, ' ')
 }
 
 const num = (n: number, dp = 2) =>
@@ -269,7 +272,7 @@ export default function PurchaseOrderDocument({
                                 {t.percentage !== null
                                     ? `${num(t.percentage, 1)}%`
                                     : `${num(t.fixed_amount_ccy ?? 0)} ${data.currency}`}
-                                {t.trigger_event ? ` — ${triggerPhrase(t.trigger_event)}` : ''}
+                                {t.trigger_event ? ` — ${triggerPhrase(t.trigger_event, t.trigger_phrase)}` : ''}
                                 {t.due_date ? ` — due ${t.due_date}` : ''}
                                 {t.notes ? ` (${t.notes})` : ''}
                             </Text>

@@ -2,6 +2,7 @@
 // 新建采购单(服务端壳):在册供应商(含默认付款条款模板)/ 在册物料 / 启用的采购向
 // 计价公式 / 启用的付款条款模板(带行,供客户端套用与供应商默认自动带出)。
 import Link from 'next/link'
+import { type PaymentTriggerEvent } from '@/lib/paymentTriggers'
 import { getBaseCurrency } from '@/lib/currency'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
@@ -38,7 +39,7 @@ export default async function NewOrderPage() {
     // 人读它会得到零行。把这个事实取出来,空状态才说得出是"还没登记"还是"你看不到"。
     const canSeeAssets = await can('module.finance.view')
 
-    const [suppliersRes, materialsRes, formulasRes, templatesRes, tplLinesRes, assetsRes, onOrderRes] = await Promise.all([
+    const [suppliersRes, materialsRes, formulasRes, templatesRes, tplLinesRes, triggersRes, assetsRes, onOrderRes] = await Promise.all([
         supabase
             // SUP-TYPE-1b:【只列供货的供应商】——【但这里的理由与收货那两张不同,
             // 不要照抄】实测:purchase_orders 上【没有任何守卫】看 supplies_goods,
@@ -77,6 +78,14 @@ export default async function NewOrderPage() {
             .from('payment_term_template_lines_masked')
             .select('template_id, seq, label, percentage, fixed_amount_ccy, trigger_event, days_offset')
             .order('seq'),
+        // EQP-PAY-1:付款里程碑的【单一真源】。屏幕上能挑什么,由这张表决定 ——
+        // 加第七种里程碑是一行数据,不是一次改码(lib/paymentTriggers.ts 的抬头
+        // 列着它此前散落的那六处)。
+        supabase
+            .from('payment_trigger_events')
+            .select('code, name_en, name_zh, phrase_en, applies_to_material, applies_to_equipment, can_anchor_retention, sort_order')
+            .eq('is_active', true)
+            .order('sort_order'),
         // 可挑的机器:在册(active)、【还没投用】的卡。
         // 【CAPEX-1 之后这个过滤仍然对,但理由变了】投用之后成本【不再冻住】——
         // 加得上去,只是那条路必须经过那台机器的【维修记录】(政策 4.7),
@@ -144,6 +153,11 @@ export default async function NewOrderPage() {
         })
         linesByTpl.set(l.template_id, arr)
     }
+    // EQP-PAY-1:字典整份传下去(两种适用性都在行上),由表单按【这张单的种类】过滤。
+    // 传全份而不是传过滤后的一份,是因为种类在表单上是可以来回切的 —— 切一次就要
+    // 重新取一次数据的话,那个"重新取"迟早会漏掉一次。
+    const triggerEvents: PaymentTriggerEvent[] = mustRows(triggersRes)
+
     const templates: TemplateOption[] = (mustRows(templatesRes)).map((tpl) => ({
         id: tpl.id,
         name: tpl.name,
@@ -168,6 +182,7 @@ export default async function NewOrderPage() {
                 canSeeAssets={canSeeAssets}
                 formulas={formulas}
                 templates={templates}
+                triggerEvents={triggerEvents}
             />
         </div>
     )

@@ -6,6 +6,7 @@
 // 行以 JSON 字段(lines_json)整体提交 —— 行里嵌着模式/触发事件/偏移天数,
 // 并列数组会散架。
 import { createClient } from '@/lib/supabase/server'
+import { loadPaymentTriggerEvents } from '@/lib/paymentTriggers'
 import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
@@ -22,10 +23,16 @@ export type TemplateLineInput = {
     days_offset: string
 }
 
-const TRIGGERS = new Set(['on_order', 'on_shipment', 'on_arrival', 'post_assay', 'fixed_date'])
+// EQP-PAY-1:那个硬编码的集合退役了 —— 合法的里程碑是 payment_trigger_events
+// 里的行。它作为参数传进 parseLines,而不是在模块顶层算一次:一个模块级的
+// 常量在部署之后就冻住了,而这份清单现在是【数据】,加一行不该要一次部署。
+//
+// 【模板不按种类过滤】一份模板不属于任何一张采购单,所以这里只校验"这个码存在",
+// 不校验"它对哪种单适用"。适用性在【套用的那一刻】由
+// purchase_order_payment_terms 上的 guard_payment_term_applicable 判。
 
 // 表单行 → 可插入的行(seq 按行序重排);非法处返回错误键(由调用方翻译)
-function parseLines(raw: string):
+function parseLines(raw: string, validTriggers: Set<string>):
     | { error: string; params?: Record<string, string | number> }
     | {
           rows: {
@@ -52,7 +59,7 @@ function parseLines(raw: string):
     for (let i = 0; i < parsed.length; i++) {
         const l = parsed[i]
         const label = (l.label ?? '').trim()
-        if (!label || !TRIGGERS.has(l.trigger_event)) {
+        if (!label || !validTriggers.has(l.trigger_event)) {
             return { error: 'purchasing.errTermLine', params: { 0: i + 1 } }
         }
         let percentage: number | null = null
@@ -106,7 +113,12 @@ export async function saveTemplate(
 
     if (!name) return { error: t('purchasing.errNameRequired') }
 
-    const parsed = parseLines(String(formData.get('lines_json') ?? '[]'))
+    // EQP-PAY-1:合法的里程碑从字典读,不从一个模块级常量读。
+    const supabaseForDict = await createClient()
+    const validTriggers = new Set(
+        (await loadPaymentTriggerEvents(supabaseForDict)).map((e) => e.code)
+    )
+    const parsed = parseLines(String(formData.get('lines_json') ?? '[]'), validTriggers)
     if ('error' in parsed) return { error: t(parsed.error, parsed.params) }
 
     // FIN-29:有定额腿就必须声明币种 —— 模板不属于任何单据,不声明就没有币种可言。

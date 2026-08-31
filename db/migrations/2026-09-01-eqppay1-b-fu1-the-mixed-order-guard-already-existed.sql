@@ -1,3 +1,47 @@
+-- db/migrations/2026-09-01-eqppay1-b-fu1-the-mixed-order-guard-already-existed.sql
+-- EQP-PAY-1 fu1:撤掉我自己刚加的那道重复的闸,并把门上那句话改成【同一个错误码】。
+--
+-- ═══════════════════════════════════════════════════════════════════════════
+-- ★【我在设计问答里说错了一句话,而那句话是这一支存在的全部原因】★
+--
+-- 我对 A2 的论证里写着:「今天没有任何东西禁止一张单同时带一条材料行与一条设备行」。
+-- **那句话是错的,而且它是可以量出来的** —— EQP-1a 早就建过这道闸:
+--
+--     trg_po_lines_single_kind(延迟约束触发器)→ guard_po_lines_single_kind()
+--     → RAISE 'PO_LINES_MIXED_KINDS|单号|材料行数|设备行数'
+--
+-- 而且 db/fixtures/103 的 F4 臂【已经在两个方向上断言它】(材料单上加设备行、
+-- 设备单上加材料行),`PO_LINES_MIXED_KINDS` 也早就在 purchasingErrorCodes.ts 里
+-- 有自己的文案。我没有量就写下了"没有",于是 -b 那一支加了第二道同义的闸。
+--
+-- 【为什么这不是"多一道闸更保险",而必须撤掉】本仓库为"两份实现在写下来那天一致、
+-- 之后悄悄分开"已经付过四次账(见 AGENTS.md 的预览规则)。两道判同一件事的闸
+-- 是同一个病:改了一条规矩的人只会改到其中一道,而另一道会继续按旧规矩拒绝或放行,
+-- 谁都不会发现 —— 因为它们平时给出同一个答案。
+--
+-- 【留哪一道:留既有的那一道】理由不是它先来,是【它有断言】——
+-- fixture 103 F4 两个方向都钉着它;撤掉它等于把一份现成的行为断言变成空转。
+--
+-- 【门上那一句留下,但改成同一个码】按名拒是本仓库的成文写法
+-- (「与表上那条 CHECK 同一句话,在这里【先】说一遍,好让走门的人拿到一个具名拒绝
+-- 而不是一条约束原文」—— create_purchase_order 里 PO_LINE_KIND_INVALID 就是这么写的),
+-- 所以门上那一句【不是】重复实现,它是同一条规矩的更早、更好说话的那一次陈述。
+-- 但它必须喊【同一个码】:-b 那一支喊的是 PO_LINES_MIXED_KIND(单数),
+-- 而全库既有的是 PO_LINES_MIXED_KINDS(复数,已有文案)。
+-- **一条规矩两个错误码,屏幕上就会有一半的拒绝印出裸码。**
+-- 参数形状也对齐成 |单号|材料行数|设备行数,与既有那道逐字相同。
+-- ═══════════════════════════════════════════════════════════════════════════
+
+BEGIN;
+
+DROP TRIGGER IF EXISTS trg_po_lines_not_mixed ON public.purchase_order_lines;
+DROP FUNCTION IF EXISTS public.guard_po_lines_not_mixed();
+
+-- 门上那一句:改用既有的码与既有的参数形状。
+-- 【为什么仍然值得留着】既有那道是 DEFERRABLE INITIALLY DEFERRED —— 它在 COMMIT
+-- 时才炸。走 create_purchase_order 的人因此会先把整张单建完、再在提交那一刻拿到
+-- 拒绝;而这里在插入第二种行的【那一刻】就拒,并且说得出"请开两张单"。
+-- 同一条规矩,更早的一次陈述,不是第二份实现。
 CREATE OR REPLACE FUNCTION public.create_purchase_order(p_supplier_id uuid, p_order_date date, p_expected_delivery date, p_currency text, p_fx_rate numeric, p_incoterm text, p_terms_text text, p_notes text, p_lines jsonb, p_payment_terms jsonb DEFAULT '[]'::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -32,7 +76,6 @@ DECLARE
     v_expect     integer := 0;
     v_pct_total  numeric := 0;
     v_term_count integer := 0;
-    v_retentions integer := 0;
     -- ── EQP-PAY-1 ──────────────────────────────────────────────────────────
     -- A2:混装单在门上【先】拒一次。计数而不是布尔,好让参数形状与既有那道
     -- guard_po_lines_single_kind 逐字相同(|单号|材料行数|设备行数)。
@@ -40,7 +83,6 @@ DECLARE
     v_n_asset    integer := 0;
     v_kind       text;              -- 'equipment' / 'material'
     v_applicable boolean;           -- R5:这一期的里程碑用不用得上
-    v_ret        jsonb;              -- R6:这条设备行的质保金(可选 —— 没有就【没有这一行】)
 BEGIN
     PERFORM require_permission('module.purchasing.edit');
     IF p_order_date IS NULL THEN
@@ -196,32 +238,6 @@ BEGIN
             PERFORM commit_pricing_terms(v_formula, v_line_id, NULL);
             v_committed := v_committed + 1;
         END IF;
-
-        -- ── EQP-PAY-1(R6):这条设备行的质保金 ────────────────────────────────
-        -- ★【可选,而"没有"是【结构性】的】★ 负载里没有 retention 这一键,就【不建行】。
-        -- 系统里因此不存在"0% 的质保金"这种东西 —— 表上那条 CHECK 是 percentage > 0,
-        -- 一行 0% 存不进去。"没有质保金"与"0% 质保金"是两个不同的事实,
-        -- 而这里保证它们连长得一样的机会都没有。
-        --
-        -- 【为什么在这支函数里,而不是建完单之后再补一刀】质保金是条款的一部分。
-        -- 分成两次调用,第二次失败就会留下一张【条款不全】的单,而它看起来完全正常。
-        v_ret := v_line->'retention';
-        IF v_ret IS NOT NULL AND jsonb_typeof(v_ret) = 'object' THEN
-            IF v_asset IS NULL THEN
-                RAISE EXCEPTION 'RETENTION_NOT_AN_EQUIPMENT_LINE|%', v_line_no
-                  USING HINT = '质保金是设备的事 —— 一条材料行没有验收,也就没有可以起算的锚';
-            END IF;
-            INSERT INTO purchase_order_line_retentions
-                (purchase_order_line_id, percentage, fixed_amount_ccy, retention_months,
-                 anchor_event, notes)
-            VALUES (v_line_id,
-                    (v_ret->>'percentage')::numeric,
-                    (v_ret->>'fixed_amount_ccy')::numeric,
-                    COALESCE((v_ret->>'retention_months')::integer, 12),
-                    COALESCE(v_ret->>'anchor_event', 'acceptance_complete'),
-                    v_ret->>'notes');
-            v_retentions := v_retentions + 1;
-        END IF;
     END LOOP;
 
     UPDATE purchase_orders SET estimated_total_ccy = v_total, updated_by = v_user
@@ -296,8 +312,9 @@ BEGIN
         'line_count', v_count,
         'committed_line_count', v_committed,
         'term_count', v_term_count,
-        'retention_count', v_retentions,
         'order_kind', v_kind
     );
 END;
-$function$
+$function$;
+
+COMMIT;

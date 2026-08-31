@@ -28,6 +28,7 @@ export const MASKED_TABLES: ReadonlySet<string> = new Set([
     'processing_cost_entry_history',
     'processing_outputs',
     'processing_runs',
+    'purchase_order_line_retentions',
     'purchase_order_lines',
     'purchase_order_payment_terms',
     'purchase_orders',

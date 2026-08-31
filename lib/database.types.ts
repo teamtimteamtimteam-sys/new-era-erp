@@ -3692,6 +3692,13 @@ export type Database = {
             referencedRelation: "fixed_assets"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "equipment_downtime_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_retention_status"
+            referencedColumns: ["asset_id"]
+          },
         ]
       }
       equipment_maintenance: {
@@ -3790,6 +3797,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fixed_assets"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_maintenance_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_retention_status"
+            referencedColumns: ["asset_id"]
           },
           {
             foreignKeyName: "equipment_maintenance_expense_id_fkey"
@@ -3951,6 +3965,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fixed_assets"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_service_intervals_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_retention_status"
+            referencedColumns: ["asset_id"]
           },
         ]
       }
@@ -4679,6 +4700,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fixed_asset_cost_entries_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_retention_status"
+            referencedColumns: ["asset_id"]
+          },
+          {
             foreignKeyName: "fixed_asset_cost_entries_currency_fkey"
             columns: ["currency"]
             isOneToOne: false
@@ -4743,6 +4771,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fixed_assets"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fixed_asset_depreciation_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_retention_status"
+            referencedColumns: ["asset_id"]
           },
           {
             foreignKeyName: "fixed_asset_depreciation_journal_entry_id_fkey"
@@ -4820,6 +4855,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fixed_asset_depreciation_anchors_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_retention_status"
+            referencedColumns: ["asset_id"]
+          },
+          {
             foreignKeyName: "fixed_asset_depreciation_anchors_expense_id_fkey"
             columns: ["expense_id"]
             isOneToOne: false
@@ -4844,6 +4886,7 @@ export type Database = {
       }
       fixed_assets: {
         Row: {
+          acceptance_date: string | null
           acquisition_date: string
           category: string
           code: string
@@ -4868,6 +4911,7 @@ export type Database = {
           useful_life_months: number
         }
         Insert: {
+          acceptance_date?: string | null
           acquisition_date: string
           category?: string
           code: string
@@ -4892,6 +4936,7 @@ export type Database = {
           useful_life_months: number
         }
         Update: {
+          acceptance_date?: string | null
           acquisition_date?: string
           category?: string
           code?: string
@@ -9464,6 +9509,13 @@ export type Database = {
             referencedRelation: "payment_term_templates"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "payment_term_template_lines_trigger_event_fkey"
+            columns: ["trigger_event"]
+            isOneToOne: false
+            referencedRelation: "payment_trigger_events"
+            referencedColumns: ["code"]
+          },
         ]
       }
       payment_term_templates: {
@@ -9512,6 +9564,45 @@ export type Database = {
             referencedColumns: ["code"]
           },
         ]
+      }
+      payment_trigger_events: {
+        Row: {
+          applies_to_equipment: boolean
+          applies_to_material: boolean
+          can_anchor_retention: boolean
+          code: string
+          created_at: string
+          is_active: boolean
+          name_en: string
+          name_zh: string
+          phrase_en: string
+          sort_order: number
+        }
+        Insert: {
+          applies_to_equipment: boolean
+          applies_to_material: boolean
+          can_anchor_retention?: boolean
+          code: string
+          created_at?: string
+          is_active?: boolean
+          name_en: string
+          name_zh: string
+          phrase_en: string
+          sort_order: number
+        }
+        Update: {
+          applies_to_equipment?: boolean
+          applies_to_material?: boolean
+          can_anchor_retention?: boolean
+          code?: string
+          created_at?: string
+          is_active?: boolean
+          name_en?: string
+          name_zh?: string
+          phrase_en?: string
+          sort_order?: number
+        }
+        Relationships: []
       }
       payments: {
         Row: {
@@ -11880,6 +11971,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "processing_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_retention_status"
+            referencedColumns: ["asset_id"]
+          },
+          {
             foreignKeyName: "processing_runs_operation_type_code_fkey"
             columns: ["operation_type_code"]
             isOneToOne: false
@@ -12113,6 +12211,93 @@ export type Database = {
           },
         ]
       }
+      purchase_order_line_retentions: {
+        Row: {
+          anchor_event: string
+          created_at: string
+          created_by: string | null
+          fixed_amount_ccy: number | null
+          id: string
+          notes: string | null
+          percentage: number | null
+          purchase_order_line_id: string
+          released_amount_ccy: number | null
+          released_at: string | null
+          released_by: string | null
+          retention_months: number
+          withheld_amount_ccy: number | null
+          withholding_reason: string | null
+        }
+        Insert: {
+          anchor_event?: string
+          created_at?: string
+          created_by?: string | null
+          fixed_amount_ccy?: number | null
+          id?: string
+          notes?: string | null
+          percentage?: number | null
+          purchase_order_line_id: string
+          released_amount_ccy?: number | null
+          released_at?: string | null
+          released_by?: string | null
+          retention_months?: number
+          withheld_amount_ccy?: number | null
+          withholding_reason?: string | null
+        }
+        Update: {
+          anchor_event?: string
+          created_at?: string
+          created_by?: string | null
+          fixed_amount_ccy?: number | null
+          id?: string
+          notes?: string | null
+          percentage?: number | null
+          purchase_order_line_id?: string
+          released_amount_ccy?: number | null
+          released_at?: string | null
+          released_by?: string | null
+          retention_months?: number
+          withheld_amount_ccy?: number | null
+          withholding_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_line_retentions_anchor_event_fkey"
+            columns: ["anchor_event"]
+            isOneToOne: false
+            referencedRelation: "payment_trigger_events"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "purchase_order_line_retentions_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: true
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["line_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_line_retentions_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: true
+            referencedRelation: "po_receivable_lines"
+            referencedColumns: ["line_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_line_retentions_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: true
+            referencedRelation: "purchase_order_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_line_retentions_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: true
+            referencedRelation: "purchase_order_lines_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       purchase_order_lines: {
         Row: {
           asset_id: string | null
@@ -12192,6 +12377,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fixed_assets"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_retention_status"
+            referencedColumns: ["asset_id"]
           },
           {
             foreignKeyName: "purchase_order_lines_deep_discharge_judgement_code_fkey"
@@ -12381,6 +12573,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "purchase_orders_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_payment_terms_trigger_event_fkey"
+            columns: ["trigger_event"]
+            isOneToOne: false
+            referencedRelation: "payment_trigger_events"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -17345,6 +17544,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "equipment_maintenance_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_retention_status"
+            referencedColumns: ["asset_id"]
+          },
+          {
             foreignKeyName: "equipment_maintenance_expense_id_fkey"
             columns: ["expense_id"]
             isOneToOne: false
@@ -18994,6 +19200,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "payment_term_templates"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_term_template_lines_trigger_event_fkey"
+            columns: ["trigger_event"]
+            isOneToOne: false
+            referencedRelation: "payment_trigger_events"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -20711,6 +20924,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "processing_runs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_retention_status"
+            referencedColumns: ["asset_id"]
+          },
+          {
             foreignKeyName: "processing_runs_operation_type_code_fkey"
             columns: ["operation_type_code"]
             isOneToOne: false
@@ -20777,6 +20997,93 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "output_batch_purposes"
             referencedColumns: ["code"]
+          },
+        ]
+      }
+      purchase_order_line_retentions_masked: {
+        Row: {
+          anchor_event: string | null
+          created_at: string | null
+          created_by: string | null
+          fixed_amount_ccy: number | null
+          id: string | null
+          notes: string | null
+          percentage: number | null
+          purchase_order_line_id: string | null
+          released_amount_ccy: number | null
+          released_at: string | null
+          released_by: string | null
+          retention_months: number | null
+          withheld_amount_ccy: number | null
+          withholding_reason: string | null
+        }
+        Insert: {
+          anchor_event?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          fixed_amount_ccy?: never
+          id?: string | null
+          notes?: string | null
+          percentage?: number | null
+          purchase_order_line_id?: string | null
+          released_amount_ccy?: never
+          released_at?: string | null
+          released_by?: string | null
+          retention_months?: number | null
+          withheld_amount_ccy?: never
+          withholding_reason?: string | null
+        }
+        Update: {
+          anchor_event?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          fixed_amount_ccy?: never
+          id?: string | null
+          notes?: string | null
+          percentage?: number | null
+          purchase_order_line_id?: string | null
+          released_amount_ccy?: never
+          released_at?: string | null
+          released_by?: string | null
+          retention_months?: number | null
+          withheld_amount_ccy?: never
+          withholding_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_line_retentions_anchor_event_fkey"
+            columns: ["anchor_event"]
+            isOneToOne: false
+            referencedRelation: "payment_trigger_events"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "purchase_order_line_retentions_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: true
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["line_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_line_retentions_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: true
+            referencedRelation: "po_receivable_lines"
+            referencedColumns: ["line_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_line_retentions_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: true
+            referencedRelation: "purchase_order_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_line_retentions_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: true
+            referencedRelation: "purchase_order_lines_masked"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -20859,6 +21166,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fixed_assets"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_retention_status"
+            referencedColumns: ["asset_id"]
           },
           {
             foreignKeyName: "purchase_order_lines_deep_discharge_judgement_code_fkey"
@@ -21048,6 +21362,132 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "purchase_orders_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_payment_terms_trigger_event_fkey"
+            columns: ["trigger_event"]
+            isOneToOne: false
+            referencedRelation: "payment_trigger_events"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      purchase_order_retention_status: {
+        Row: {
+          acceptance_date: string | null
+          anchor_event: string | null
+          asset_code: string | null
+          asset_description: string | null
+          asset_id: string | null
+          currency: string | null
+          fixed_amount_ccy: number | null
+          line_no: number | null
+          maturity_date: string | null
+          percentage: number | null
+          purchase_order_code: string | null
+          purchase_order_id: string | null
+          purchase_order_line_id: string | null
+          released_amount_ccy: number | null
+          released_at: string | null
+          released_by: string | null
+          retention_amount_ccy: number | null
+          retention_id: string | null
+          retention_months: number | null
+          retention_state: string | null
+          withheld_amount_ccy: number | null
+          withholding_reason: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_line_retentions_anchor_event_fkey"
+            columns: ["anchor_event"]
+            isOneToOne: false
+            referencedRelation: "payment_trigger_events"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "purchase_order_line_retentions_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: true
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["line_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_line_retentions_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: true
+            referencedRelation: "po_receivable_lines"
+            referencedColumns: ["line_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_line_retentions_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: true
+            referencedRelation: "purchase_order_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_line_retentions_purchase_order_line_id_fkey"
+            columns: ["purchase_order_line_id"]
+            isOneToOne: true
+            referencedRelation: "purchase_order_lines_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["purchase_order_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["purchase_order_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "po_receivable_lines"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_status"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -23118,6 +23558,10 @@ export type Database = {
         Returns: Json
       }
       promote_task_to_team: { Args: { p_task_id: string }; Returns: undefined }
+      purchase_order_kind: {
+        Args: { p_purchase_order_id: string }
+        Returns: string
+      }
       quotational_period: {
         Args: { p_base_date: string; p_qp_months: number }
         Returns: {
@@ -23370,6 +23814,15 @@ export type Database = {
         Args: { p_po_id: string; p_reason: string }
         Returns: Json
       }
+      release_purchase_order_retention: {
+        Args: {
+          p_released_amount_ccy: number
+          p_retention_id: string
+          p_withheld_amount_ccy: number
+          p_withholding_reason?: string
+        }
+        Returns: Json
+      }
       release_reservation: {
         Args: { p_qty?: number; p_reason?: string; p_reservation_id: string }
         Returns: Json
@@ -23574,6 +24027,10 @@ export type Database = {
           p_score: number
           p_score_kind?: string
         }
+        Returns: Json
+      }
+      set_asset_acceptance: {
+        Args: { p_acceptance_date: string; p_asset_id: string }
         Returns: Json
       }
       set_asset_in_service: {

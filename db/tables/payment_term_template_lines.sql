@@ -17,8 +17,10 @@ CREATE TABLE public.payment_term_template_lines (
     percentage       numeric CHECK (percentage IS NULL OR (percentage > 0 AND percentage <= 100)),
     fixed_amount_ccy numeric CHECK (fixed_amount_ccy IS NULL OR fixed_amount_ccy > 0),
     CONSTRAINT ptt_lines_pct_xor_fixed CHECK (num_nonnulls(percentage, fixed_amount_ccy) = 1),
-    trigger_event    text NOT NULL
-                     CHECK (trigger_event IN ('on_order','on_shipment','on_arrival','post_assay','fixed_date')),
+    -- EQP-PAY-1:那条 CHECK 退役,换成指向【字典】的外键(同 purchase_order_payment_terms)。
+    -- 这里是那份清单被抄的第二遍所在地 —— 两条 CHECK 一模一样,而没有任何东西
+    -- 保证它们一起改。
+    trigger_event    text NOT NULL REFERENCES public.payment_trigger_events (code),
     days_offset      integer,
     notes            text,
     created_at       timestamptz NOT NULL DEFAULT now(),

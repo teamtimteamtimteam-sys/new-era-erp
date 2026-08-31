@@ -25,6 +25,8 @@ import { maskedExcept, maskedRows } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
 import IssuePanel from '@/app/components/IssuePanel'
 import { mustRows, mustOne } from '@/lib/db-helpers'
+import { loadPaymentTriggerEvents, triggerLabel } from '@/lib/paymentTriggers'
+import RetentionPanel, { type RetentionRow } from './RetentionPanel'
 import ExpectedDateControl from './ExpectedDateControl'
 import DeepDischargeJudgementControl from './DeepDischargeJudgementControl'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -175,6 +177,12 @@ export default async function PurchaseOrderDetailPage({
     const ddOptions = (mustRows(ddRes, 'deep_discharge_judgements') as
         { code: string; name_en: string; name_zh: string }[])
         .map((r) => ({ code: r.code, label: ddLocale === 'zh' ? r.name_zh : r.name_en }))
+    // EQP-PAY-1:里程碑的名字来自字典 —— 与 ddOptions 同一个惯用法(按语言选一个),
+    // 而【读不出来就按名喊】的理由也同一条:一张读不到的字典会让每一期的里程碑
+    // 悄悄变成一个裸码,而那看起来像数据坏了,不像字典没读到。
+    const triggerNames = new Map(
+        (await loadPaymentTriggerEvents(supabase)).map((e) => [e.code, triggerLabel(e, ddLocale)])
+    )
     const terms = maskedRows<Tables<'purchase_order_payment_terms'>, 'fixed_amount_ccy'>(mustRows(termsRes))
     // CASHFLOW-1：按事件类型的保管人。【无权时不去查，而不是查了拿零行】——
     // 零行会让每一期都显示成「不需要估计」，那是一句假话。
@@ -213,6 +221,26 @@ export default async function PurchaseOrderDetailPage({
     // 这一个布尔量决定了下面【一整批】只对材料成立的东西出不出现 ——
     // 走查看到的是"按此单收货"那一个按钮,而按钮只是其中一项(见本刀的分类表)。
     const isEquipmentOrder = lines.some((l) => l.asset_id !== null)
+
+    // ── EQP-PAY-1(R6):这张单上的质保金 ────────────────────────────────────
+    // 【读的是 purchase_order_retention_status,不是基表】那张视图是【属主权限】的:
+    // 它体内 JOIN 了 fixed_assets(module.finance.view),而本页的门是采购 ——
+    // 直接 JOIN 会让一个只有采购权限的人读到【零行】,于是"这台机器有没有质保金"
+    // 悄悄变成"没有"。这正是本文件上面那段 EQP-1c-b-fu2 注释记下的同一条
+    // (OPS-14:跨模块的行会无声消失),所以这里走同一条补救。
+    //
+    // 【零行有两种,而这里它们是同一种】设备单读到零行 = 这张单【没有质保金条款】——
+    // 不是"读不到"(视图不会因为权限少给行,它按 has_permission 整张给或整张不给,
+    // 而本页已经过了采购那道门)。RetentionPanel 因此把零行画成一句明说的话。
+    const retentionRes = isEquipmentOrder
+        ? await supabase
+              .from('purchase_order_retention_status')
+              .select('retention_id, line_no, asset_code, asset_description, acceptance_date, retention_months, maturity_date, retention_state, percentage, retention_amount_ccy, released_at, released_amount_ccy, withheld_amount_ccy, withholding_reason')
+              .eq('purchase_order_id', id)
+              .order('line_no')
+        : { data: [] as RetentionRow[], error: null }
+    const retentions = mustRows(retentionRes) as RetentionRow[]
+    const canSeePrices = await canViewPrices()
 
     const materialById = new Map((mustRows(materialsRes)).map((m) => [m.id, `${m.code} — ${m.name}`]))
 
@@ -727,7 +755,7 @@ export default async function PurchaseOrderDetailPage({
                                             {formatMoneyBare(termAmount(l), '头卡「币种」—— 付款计划按估算总额折算,同为单据币种')}
                                         </td>
                                         <td className="border border-gray-300 px-3 py-2 text-sm">
-                                            {t('purchasing.trigger.' + l.trigger_event)}
+                                            {triggerNames.get(l.trigger_event) ?? l.trigger_event}
                                         </td>
                                         <td className="border border-gray-300 px-3 py-2 text-sm">{l.due_date ?? '—'}</td>
                                         <td className="border border-gray-300 px-3 py-2">
@@ -747,6 +775,22 @@ export default async function PurchaseOrderDetailPage({
                     ) : (
                         <p className="text-sm text-gray-500">—</p>
                     )}
+
+                    {/* EQP-PAY-1(R6):质保金。★ 它【紧挨着付款计划】,因为它就是
+                        付款条款的一部分 —— 只是形状不同:别的期次是"某件事发生的时候",
+                        它是"某件事发生【之后 N 个月】"。
+                        ★【有与没有必须看得出来】★ 没有质保金的单在这里印一句明说的话,
+                        不是留白、更不是一个 0%。 */}
+                    <div className="mt-6">
+                        <RetentionPanel
+                            poId={po.id}
+                            rows={retentions}
+                            isEquipmentOrder={isEquipmentOrder}
+                            canEdit={canEditPurchasing}
+                            currency={po.currency}
+                            canSeePrices={canSeePrices}
+                        />
+                    </div>
                 </div>
 
                 {poStatus && (

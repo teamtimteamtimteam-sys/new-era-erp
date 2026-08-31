@@ -32,6 +32,49 @@ tell the two implementations apart.
 checks both; the document page needs the first). **It deliberately does NOT hold
 `module.purchasing.edit`:** an approver who can raise the document he approves is not a control.
 
+> ### ★ EQP-PAY-1 (2026-09-01): `cfo` now holds FOUR codes — and the two added ones need a WRITTEN reason
+>
+> Tim's ruling, verbatim: **"the CFO reviews payroll expenditure."** Granted:
+> **`module.finance.view`** and **`data.view_pay`**. Measured before and after with a
+> real-role probe (a session holding `cfo` and nothing else):
+>
+> | | before | after |
+> |---|---|---|
+> | `module.purchasing.view` | ✓ | ✓ |
+> | `data.view_prices` | ✓ | ✓ |
+> | `module.finance.view` | — | **✓** |
+> | `data.view_pay` | — | **✓** |
+> | total | 2 | **4** — the migration's own self-check refuses any other number |
+>
+> **Why the CFO sees INDIVIDUAL pay figures and not an aggregate staff-cost line.**
+> Reviewing payroll expenditure means being able to answer *"why is this month twenty
+> thousand higher?"* — and that answer is always one person's one item: a raise, a bonus,
+> a mid-month joiner. **An aggregate shows the question and hides the cause, and a review
+> that can see a problem but cannot reach its cause is not a review.**
+>
+> **Why this is written down rather than left in the grants table.** Employee remuneration
+> is personal sensitive data. **Who may see it has to be answerable in words, not inferred
+> from a join table** — a grants table can say *who can look*, never *on what grounds*.
+> The same sentence is in the migration header (`2026-09-01-eqppay1-a-the-cfo-grant.sql`);
+> both copies are deliberate, because the two readers arrive from different directions.
+>
+> **What was NOT granted:** nothing else. Probed and confirmed absent for a cfo-only
+> session: `module.finance.edit`, `module.hr.view`, `action.manage_permissions`.
+> The CFO can **read** payroll detail; it cannot edit finance, cannot open HR, and
+> cannot grant itself anything.
+>
+> **It closes a known issue.** `docs/known-issues.md` CFO-NO-FINANCE-VIEW —
+> `gl_control_reconciliation` and `management_pack_data` refused `cfo` outright.
+> Both probed as a cfo-only session after the grant: **OK**.
+>
+> **A gap this does NOT close, recorded rather than fixed:** the `cfo` role is **absent
+> from the bootstrap** (`db/tables/roles.sql` seeds nine roles and `cfo` is not among them;
+> `role_permissions.sql` therefore grants it nothing). It was created live by CHAIN-CONFIG-1.
+> So **a rebuilt database has no `cfo` at all**, and this ruling would not survive a fresh
+> install. That predates this cut and fixing it means seeding a role *and* its grants —
+> deliberately out of scope here (the cut's own rule was "grant nothing not named"),
+> but it is a real divergence and someone should rule on it.
+
 **`finance` was accepted as level 1 as-is** — no third role was built for two people, and
 `module.purchasing.edit` was **not** removed from it. The consequence is visible on the settings
 panel as `level1_holders_who_cannot_raise = 0` and is reported, not enforced (SOD-1 fu2's standing

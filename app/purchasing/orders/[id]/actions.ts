@@ -135,3 +135,40 @@ export async function setDeepDischargeJudgement(
     revalidatePath('/purchasing/discrepancies')
     return {}
 }
+
+// ═══ EQP-PAY-1(R6):质保金放款【确认】═══════════════════════════════════════
+//
+// ★【到期不付款,到期【提示】】★ 这支 action 是那句"由人确认"的落点。库里没有
+// 任何一条到期自动结算的路径 —— 质保金的意义就在于它扣得下来,自动放款等于把它废掉。
+//
+// 【为什么放多少、扣多少都要人填,而不给默认值】给一个"全额放款"的默认值,
+// 等于把"这台机器没出过毛病"这个判断替人做了 —— 而那正是这次确认要问的唯一问题。
+// 服务端两条都按名拒:不填(RETENTION_RELEASE_AMOUNTS_REQUIRED)、
+// 加起来对不上总额(RETENTION_RELEASE_DOES_NOT_BALANCE)。
+export async function releaseRetention(
+    poId: string,
+    retentionId: string,
+    releasedAmount: string,
+    withheldAmount: string,
+    reason: string,
+): Promise<{ error?: string }> {
+    const supabase = await createClient()
+    const { error } = await supabase.rpc('release_purchase_order_retention', {
+        p_retention_id: retentionId,
+        // 空串照传成 null —— 由 DB 按名拒"两个金额都要明说",
+        // 而不是在这里悄悄补一个 0(那会把"没填"变成"扣了 0")。
+        // 【空串照传成 null,由 DB 按名拒】不要在这里补一个 0 ——
+        // 那会把"没填"变成"扣了 0",而那是两个不同的事实。
+        // 类型上用 as never 越过生成类型里的 NOT NULL 形状:PostgREST 的类型
+        // 说的是【参数的类型】,不是【必须给值】;拒绝的判据在函数体里,
+        // 而那正是本仓库要的位置(屏幕不替服务端做判断)。
+        p_released_amount_ccy: (releasedAmount.trim() === '' ? null : Number(releasedAmount)) as never,
+        p_withheld_amount_ccy: (withheldAmount.trim() === '' ? null : Number(withheldAmount)) as never,
+        p_withholding_reason: (reason.trim() === '' ? null : reason.trim()) as never,
+    })
+    if (error) {
+        return { error: await localizePurchasingError(error.message) }
+    }
+    revalidatePath(`/purchasing/orders/${poId}`)
+    return {}
+}

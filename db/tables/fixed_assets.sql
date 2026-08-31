@@ -55,7 +55,12 @@ CREATE TABLE public.fixed_assets (
     created_by                uuid,
     -- ── FIX-1 追加(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────────
     -- 一个【计划】。可以在未来,不锁任何东西,**没有一条规则读它**(见列注)。
-    planned_in_service_date   date
+    planned_in_service_date   date,
+    -- ── EQP-PAY-1 追加(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
+    -- 验收合格日。质保金的期限从这一天起算。**它不是 in_service_date** —— 见列注释。
+    acceptance_date           date,
+    CONSTRAINT fixed_assets_acceptance_after_acquisition
+        CHECK (acceptance_date IS NULL OR acceptance_date >= acquisition_date)
 );
 
 COMMENT ON TABLE public.fixed_assets IS
@@ -134,3 +139,34 @@ COMMENT ON COLUMN public.fixed_assets.in_service_date IS
 CREATE TRIGGER trg_fixed_assets_in_service_not_future
     BEFORE INSERT OR UPDATE ON public.fixed_assets
     FOR EACH ROW EXECUTE FUNCTION public.guard_asset_in_service_not_future();
+
+-- EQP-PAY-1:验收是一件【发生过的事】,所以不许在未来 —— 与 in_service_date 同一句话
+-- (FIX-1),但【另立一支】:那支触发器的名字说的是投用日,把验收塞进去会让名字开始撒谎。
+-- 函数体在 db/functions/guard_asset_acceptance_not_future.sql。
+CREATE TRIGGER trg_fixed_assets_acceptance_not_future
+    BEFORE INSERT OR UPDATE ON public.fixed_assets
+    FOR EACH ROW EXECUTE FUNCTION public.guard_asset_acceptance_not_future();
+
+COMMENT ON COLUMN public.fixed_assets.acceptance_date IS
+'验收合格日(EQP-PAY-1)—— 这台机器【被验收通过】的那一天。质保金的期限从这一天起算。
+
+**它不是 in_service_date,而这两者不能互相顶替。** 验收合格是一件【商务/合同】上的事
+(买方确认机器达到约定标准);投用是一件【会计】上的事(折旧从那天起算)。
+实测的证据就在本库里:FA-2026-0001 的 acquisition_date = 2026-08-21、
+planned_in_service_date = 2027-01-01、in_service_date 为 NULL(厂子没开工)。
+若 2026 年 9 月验收合格,质保金应当 2027 年 9 月到期;拿投用日当锚会算成
+**2028 年 1 月** —— 差一整年,在一笔真实的应付上,而且不出声。
+
+★【为什么它不会变成第二个 planned_in_service_date】★ 那一列的病根写在它自己的
+注释里:**没有一条规则读它**,所以没填也没有任何后果,于是它烂掉。这一列相反 ——
+  * 一条规则读它:质保金到期日 = 本列 + retention_months(现算,不存);
+  * 一笔钱等着它:没有它,质保金停在 clock_not_started,放不了款;
+  * 交易对方会来催:供应商等着那笔尾款,他会盯着这个日子。
+**一个空着就会有人来问的字段不会烂。**
+
+【留空 = 质保期未起算】那不是缺数据,也不是零,更不是错误 ——
+purchase_order_retention_status 把它画成 clock_not_started,这句话今天对两台机器都为真。
+
+【永不默认】不从 in_service_date、不从 acquisition_date、不从任何东西推出来。
+它只能由人明确填写(set_asset_acceptance)。一个被默认出来的验收日,
+是在替一个没发生过的验收签字。';
