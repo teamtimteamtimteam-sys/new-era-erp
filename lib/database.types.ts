@@ -471,13 +471,6 @@ export type Database = {
             foreignKeyName: "attendance_lines_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
-            referencedRelation: "attendance_period_status"
-            referencedColumns: ["period_id"]
-          },
-          {
-            foreignKeyName: "attendance_lines_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
             referencedRelation: "attendance_periods"
             referencedColumns: ["id"]
           },
@@ -646,13 +639,6 @@ export type Database = {
             foreignKeyName: "bank_reconciliation_variance_items_reconciliation_id_fkey"
             columns: ["reconciliation_id"]
             isOneToOne: false
-            referencedRelation: "bank_reconciliation_record"
-            referencedColumns: ["reconciliation_id"]
-          },
-          {
-            foreignKeyName: "bank_reconciliation_variance_items_reconciliation_id_fkey"
-            columns: ["reconciliation_id"]
-            isOneToOne: false
             referencedRelation: "bank_reconciliations"
             referencedColumns: ["id"]
           },
@@ -719,13 +705,6 @@ export type Database = {
             foreignKeyName: "bank_reconciliations_statement_id_fkey"
             columns: ["statement_id"]
             isOneToOne: false
-            referencedRelation: "bank_reconciliation_record"
-            referencedColumns: ["statement_id"]
-          },
-          {
-            foreignKeyName: "bank_reconciliations_statement_id_fkey"
-            columns: ["statement_id"]
-            isOneToOne: false
             referencedRelation: "bank_statements"
             referencedColumns: ["id"]
           },
@@ -772,13 +751,6 @@ export type Database = {
           statement_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "bank_statement_lines_statement_id_fkey"
-            columns: ["statement_id"]
-            isOneToOne: false
-            referencedRelation: "bank_reconciliation_record"
-            referencedColumns: ["statement_id"]
-          },
           {
             foreignKeyName: "bank_statement_lines_statement_id_fkey"
             columns: ["statement_id"]
@@ -16402,15 +16374,7 @@ export type Database = {
           superseded_reason: string | null
           variance_item_count: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "bank_reconciliations_currency_fkey"
-            columns: ["currency"]
-            isOneToOne: false
-            referencedRelation: "currencies"
-            referencedColumns: ["code"]
-          },
-        ]
+        Relationships: []
       }
       bank_reconciliation_status: {
         Row: {
@@ -22253,6 +22217,26 @@ export type Database = {
         Args: { p_container_id: string; p_shipment_id: string }
         Returns: Json
       }
+      attendance_period_status_rows: {
+        Args: never
+        Returns: {
+          code: string
+          completed_at: string
+          line_count: number
+          opened_at: string
+          ot_normal_hours: number
+          ot_public_holiday_hours: number
+          ot_rest_day_hours: number
+          payroll_posted: boolean
+          period_id: string
+          period_month: string
+          reopen_reason: string
+          reopened_at: string
+          status: string
+          unpaid_days: number
+          unrecorded_count: number
+        }[]
+      }
       attendance_unpaid_days: {
         Args: { p_employee_id: string; p_month: string }
         Returns: number
@@ -22281,6 +22265,47 @@ export type Database = {
       bank_native_currency: {
         Args: { p_account_code: string }
         Returns: string
+      }
+      bank_reconciliation_record_rows: {
+        Args: never
+        Returns: {
+          bank_account_code: string
+          bank_closing_balance: number
+          book_balance: number
+          book_balance_drift: number
+          book_balance_now: number
+          currency: string
+          difference: number
+          ignored_lines: number
+          is_current: boolean
+          matched_lines: number
+          period_end: string
+          period_start: string
+          reconciled_at: string
+          reconciled_by: string
+          reconciliation_id: string
+          statement_code: string
+          statement_id: string
+          superseded_at: string
+          superseded_reason: string
+          variance_item_count: number
+        }[]
+      }
+      bank_reconciliation_rows: {
+        Args: never
+        Returns: {
+          account_code: string
+          currency: string
+          difference: number
+          ignored_statement_lines: number
+          latest_closing_balance: number
+          latest_statement_code: string
+          latest_statement_period_end: string
+          ledger_balance: number
+          unmatched_journal_amount: number
+          unmatched_journal_lines: number
+          unmatched_statement_lines: number
+        }[]
       }
       base_currency_code: { Args: never; Returns: string }
       batch_freight_base: {
@@ -22743,7 +22768,15 @@ export type Database = {
         }
         Returns: Json
       }
+      inbound_batch_has_landed_cost: {
+        Args: { p_inbound_batch_id: string }
+        Returns: boolean
+      }
       inbound_batch_landed_unit_cost: {
+        Args: { p_inbound_batch_id: string }
+        Returns: number
+      }
+      inbound_batch_landed_unit_cost_all: {
         Args: { p_inbound_batch_id: string }
         Returns: number
       }

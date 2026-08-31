@@ -890,6 +890,51 @@ is the whole of remedy (b), and it is why a page reading these views must check 
 permission code rather than `?? 0` — see `lib/permissions.ts`, whose entire reason
 for existing is that `null` already means something else.
 
+### 拒绝要用哪个值表示 —— 判据是【NULL 有没有主】,不是返回类型(CLEANUP-A,2026-08-31)
+
+这一族的解法被**写错过一次**,而且错得看起来对。一份委托书把判据写成
+**返回类型**:「有返回值的返回 `NULL`,`RETURNS void` 的改成 `RAISE`」。
+照它做,六个对象里有三个会把缺陷原样装回去 —— 而那一刀里**一个 `void` 都没有**。
+
+> ### ★ 正确的判据:**这支函数的 `NULL` 是不是【已经有主】了?**
+>
+> 「已经有主」= `NULL` 已经在表达一个**合法状态**,而且**有人在读它**。
+> 若是,那么让"无权限"也返回 `NULL`,就是**把拒绝伪装成一个合法答案**:
+> 它会渲染成那个合法状态,于是没有任何人、任何时候会看见它。
+> **这与"返回 0"是同一个缺陷,只是换了一件衣服。这一类必须 `RAISE`。**
+
+实测出来的三个「NULL 已经有主」:
+
+| 对象 | 它的 `NULL` 本来是什么意思 | 谁在读那个意思 |
+|---|---|---|
+| `inbound_batch_landed_unit_cost` | 「这批货真的没有金额」 | `inbound_batch_valuation.unpriced` **就定义为**它 `IS NULL` |
+| `resolve_review_reviewer` | 「解析不出评估人」 | `hr_alerts` 的 `review_no_reviewer` 一支专门等它 |
+| `previewLeaveDays`(前端) | 「两头日期还没填全」 | `LeaveForm` 把它印成 `—` |
+
+「NULL 没有主」的那一类,`NULL` 才是可用的"受限"信号 —— `bank_book_balance_asof`
+与 `attendance_unpaid_days` 都 `COALESCE(…, 0)`,今天**根本产生不出 `NULL`**,
+所以那个值是空着的,可以拿来用。
+
+`RETURNS void` 仍然必须 `RAISE`,但那只是本判据的一个**推论**,不是判据本身:
+一支 void 函数的"沉默"与"成功"是同一个字节,所以它的 `NULL` 永远有主。
+按推论去套,遇到上表这种"有返回值、但 NULL 已经有主"的形状就会套错。
+
+**返回集合的函数同理**:`RETURNS TABLE` 的"受限"若表示成**零行**,与"本来就没有数据"
+分不开;而**视图连 `RAISE` 都做不到**,所以视图这一层的解法是
+**壳 + `SECURITY DEFINER` 取数体**(先例:`INV-VAL-1-fu6` 的
+`inbound_batch_valuation_rows`,CLEANUP-A 的 `bank_reconciliation_rows` /
+`bank_reconciliation_record_rows` / `attendance_period_status_rows`)。
+
+**改这一族之前,先问三个问题,并且【量】出答案,不要推:**
+1. 这支函数的 `NULL` 今天产生得出来吗?产生得出来的话,谁在读它、读成什么意思?
+2. 谁对它的结果做**算术**?`sum()` 会**跳过 `NULL`**,于是一个 `NULL` 不会变成
+   `NULL`,而是让那一项**从合计里消失** —— 报表只是"小一点"(PROC-COST-2 量到
+   750.00 → 0.00;CLEANUP-A 在 `attendance_period_status` 上遇到同一个形状)。
+3. 加了判据之后,**有没有一条合法的路被新打断**?这是反方向的失败,必须实测:
+   `attendance_unpaid_days` 的白名单里那句 `OR p_employee_id = current_user_employee()`
+   就是量出来的 —— `leave_requests` 有一条 `select own rows` 策略,一个**零权限的员工
+   今天正确地读到自己的 2.00 天**,只写 `module.hr.view` 会把它打断。
+
 **Owner rights do not widen the module boundary here.** The `_masked` companions
 these views read are themselves owner-rights views gated by `has_permission()`, and
 `has_permission()` is `SECURITY DEFINER` resolving `auth.uid()` — it answers about

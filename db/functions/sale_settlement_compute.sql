@@ -1,3 +1,8 @@
+-- db/functions/sale_settlement_compute.sql
+-- SETTLE-1:一次销售最终结算的算法。CLEANUP-A 加了第二道闸(module.output.view)——
+-- 闸问的和身体读的从前不是同一条权限。它【今天拦不到任何人】,而那正是它的理由:
+-- 角色改一次就会无声地重新打开它。
+
 CREATE OR REPLACE FUNCTION public.sale_settlement_compute(p_sales_order_id uuid, p_output_batch_id uuid, p_assay_result_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -85,6 +90,28 @@ BEGIN
     IF NOT has_permission('module.customers.view'::text) THEN
         RAISE EXCEPTION 'SETTLEMENT_PERMISSION_DENIED|%', 'module.customers.view'
           USING HINT = '看得见销售结算要有客户模块的查看权限 —— 这不是数据缺失,是权限';
+    END IF;
+    -- ★【第二道闸(CLEANUP-A)—— 它今天【拦不到任何人】,而那正是它的理由】★
+    -- 上面那道闸问的是 module.customers.view,而本支接下来要读的是
+    -- output_batches / assay_results / assay_result_metals —— 这三张的 RLS
+    -- 策略问的都是 module.output.view。**闸问的和身体读的不是同一条权限。**
+    -- 本支是 SECURITY INVOKER,所以一个只有 customers.view 的读者会走过第一道闸,
+    -- 然后【读到零行化验金属】,而金属循环一次都不执行 → metal_value = 0、
+    -- refining_charge = 0 → **amount_usd 结算成 0.00,附一张空的 breakdown**。
+    -- 那是一个不报错的、可以被当成"这批货不值钱"的数字。
+    --
+    -- 【实测:今天线上没有任何角色能走到那一步,而这不是不修的理由】
+    -- 持 customers.view 的五个角色(admin/auditor/finance/gm/sales)【全部】
+    -- 也持 output.view,所以今天这条路复现不了;线上 contract_document_terms
+    -- 还是零行,4 张化验单全在进料侧,函数在金属循环之前就按名拒了。
+    -- **但这道闸关的不是"现在错着",是"角色改一次就会无声地重新打开它"** ——
+    -- 而重新打开的那一天,没有任何东西会响。所以它现在就该在这里。
+    -- 【fixture 会构造一个只有 customers.view 的读者来钉住它;那不是线上缺陷的证据。】
+    IF NOT has_permission('module.output.view'::text) THEN
+        RAISE EXCEPTION 'SETTLEMENT_PERMISSION_DENIED|%', 'module.output.view'
+          USING HINT = '结算要读产出批次与它的化验结果 —— 那要产出模块的查看权限。'
+                       '没有它,化验金属会读成零行,而结算金额会算成 0.00:'
+                       '一个不报错、看起来像"这批货不值钱"的数字。';
     END IF;
 
     -- ── 冻结的条款副本(【抄】,不回查合同现在怎么写)────────────────────────

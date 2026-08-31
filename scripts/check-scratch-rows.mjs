@@ -96,11 +96,63 @@ async function main() {
     }
 
     const accounts = await (await rest('/auth/v1/admin/users?per_page=1000')).json()
-    for (const u of (accounts?.users ?? [])) {
+    const authUsers = accounts?.users ?? []
+    for (const u of authUsers) {
         if (!(u.email ?? '').startsWith('smoke-') || !(u.email ?? '').endsWith('@test.local')) continue
         const age = now - new Date(u.created_at).getTime()
         const rec = { table: 'auth.users', code: u.email, id: u.id, ageH: (age / 3600000).toFixed(1), refs: [] }
         ;(age < STRANDED_AFTER_MS ? recent : stranded).push(rec)
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // 【幽灵授权:user_roles 里 user_id 在 auth.users 中根本不存在的行】
+    //
+    // ★ CLEANUP-A(2026-08-31)为什么加这一段 ★
+    //   上面那一圈按【命名】认残骸,而幽灵授权指向的是【真的 admin 角色】,
+    //   名字上没有任何可疑之处。ACCOUNTS-CLEAN 在 2026-08-24 手工删掉 66 条,
+    //   **一周后又长回 21 条(8 条 08-26 + 13 条 08-31)** —— 而这段时间里
+    //   没有任何一支检查看得见它们:
+    //     · 冒烟自己的 sweepScratch 是【列出账号再清理】,账号一旦被删,
+    //       那行授权此后【永远】不在它的视野里;
+    //     · 本文件从前只扫 roles 的 fixture-% / probe-%,而这些指向真 admin。
+    //   于是第三次清扫只能靠人偶然去数一遍 —— 那不是机制。
+    //
+    // 【为什么不加外键了事】fixtures 用 gen_random_uuid() 造 user_roles 行(约二十支),
+    //   一条指向 auth.users 的外键会当场把它们全部打死。结构上绑定这条路是关着的,
+    //   所以检测就是可走的那条。
+    //
+    // 【判据是"auth 行不存在",不是"这个人登不进来"】两者是完全不同的事实。
+    //   Choo Er Teh(chef1949@126.com)的 auth 行【在】,只是邮箱从未验证 ——
+    //   她的授权是真的,按这条判据不可能被点名。**登不进来 ≠ 认不到人。**
+    const roleRows = await rows('/rest/v1/roles?select=id,code', '角色码')
+    const roleCode = new Map(roleRows.map((r) => [r.id, r.code]))
+    const grants = await rows(
+        '/rest/v1/user_roles?select=id,user_id,role_id,granted_at,revoked_at', '授权')
+    const authIds = new Set(authUsers.map((u) => u.id))
+    // 【账号列表分页截断了就不要下判断】per_page=1000 若刚好取满,说明可能还有下一页,
+    // 而"没在这一页里"就不再等于"不存在" —— 那会把真人的授权错报成幽灵。
+    // 报告说错了人多看一眼,但这一条错得【方向不对】:它会诱人去删一条真的授权。
+    if (authUsers.length >= 1000) {
+        console.log('\n⚠ auth 账号可能不止一页(取到 1000 条),本轮【跳过】幽灵授权检查 —— ' +
+            '"没在这一页里"不等于"不存在"。')
+    } else {
+        for (const g of grants) {
+            if (authIds.has(g.user_id)) continue
+            if (g.revoked_at) continue          // 已撤销的不再是一处暴露
+            const age = now - new Date(g.granted_at).getTime()
+            const rec = {
+                table: 'user_roles', code: `${roleCode.get(g.role_id) ?? '?'} ← ${g.user_id}`,
+                id: g.id, ageH: (age / 3600000).toFixed(1),
+                refs: [],
+                // 【与"仍被引用"相反的处置】那一类的忠告是"不要直接删"(删了会让真单据
+                // 指向已删的行);幽灵授权【正好相反】—— 它背后没有人,而它让
+                // "这个角色有几个持有人"这个会被人据以行动的数字说假话。
+                note: '【认不到人】auth.users 里没有这个 user_id —— '
+                    + '这一条与上面"仍被引用"的处置相反:它应当删掉。'
+                    + '判据是 auth 行不存在,不是"这个人登不进来"(后者是真人,不要动)。',
+            }
+            ;(age < STRANDED_AFTER_MS ? recent : stranded).push(rec)
+        }
     }
 
     if (recent.length) {
@@ -116,9 +168,11 @@ async function main() {
 
     console.log(`\n⚠ 滞留的临时行 ${stranded.length} 条（超过 ${(STRANDED_AFTER_MS / 3600000)} 小时，没有哪一次运行还应当持有它们）:`)
     for (const r of stranded) {
-        const tail = r.refs.length
-            ? `  ← 【仍被引用:${r.refs.join('、')}】不要直接删`
-            : '  (无人引用)'
+        const tail = r.note
+            ? `\n      ← ${r.note}`
+            : r.refs.length
+                ? `  ← 【仍被引用:${r.refs.join('、')}】不要直接删`
+                : '  (无人引用)'
         console.log(`  · ${r.table.padEnd(18)} ${r.code}  (${r.ageH}h)${tail}`)
     }
     console.log('\n【本检查只报告,不删除】归属与年龄正是一次清扫无法安全知道、而报告可以')

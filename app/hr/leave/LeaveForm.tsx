@@ -51,6 +51,9 @@ export default function LeaveForm({
     const [exDays, setExDays] = useState('')
     const [exReason, setExReason] = useState('')
     const [days, setDays] = useState<number | null>(null)
+    // 【第三个状态,不是第二个】days 为 null 的意思是「两头日期还没填全」;
+    // 算不出来是另一件事,所以它有自己的格子。合成一个格子正是 CLEANUP-A 修掉的那件事。
+    const [daysError, setDaysError] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [ok, setOk] = useState<string | null>(null)
     const [pending, startTransition] = useTransition()
@@ -59,13 +62,25 @@ export default function LeaveForm({
 
     // 实时天数:两头日期都有就去服务端算一次
     useEffect(() => {
-        if (!start || !end || end < start) { setDays(null); return }
+        if (!start || !end || end < start) { setDays(null); setDaysError(null); return }
         let cancelled = false
-        previewLeaveDays(start, end, startHalf, endHalf).then((d) => {
-            if (!cancelled) setDays(d)
-        })
+        previewLeaveDays(start, end, startHalf, endHalf)
+            .then((r) => {
+                if (cancelled) return
+                // 【算不出来时把旧天数一起清掉】只挂一条红字、把上一次的天数留在屏幕上,
+                // 会让人按着一个【不再对应当前日期】的数字做决定 —— 那比不显示更坏。
+                if ('error' in r) { setDays(null); setDaysError(r.error) }
+                else { setDays(r.days); setDaysError(null) }
+            })
+            // 【网络/传输层抛出来的那一支也要说话】catch 里只把加载状态关掉,
+            // 屏幕上就只剩一个「—」,与"还没填完"一模一样。
+            .catch((e) => {
+                if (cancelled) return
+                console.error('leave day preview failed', e)
+                setDays(null); setDaysError(t('leave.errDaysPreviewFailed'))
+            })
         return () => { cancelled = true }
-    }, [start, end, startHalf, endHalf])
+    }, [start, end, startHalf, endHalf, t])
 
     function submit() {
         setError(null); setOk(null)
@@ -158,7 +173,10 @@ export default function LeaveForm({
                         {isException ? (exDays === '' ? '—' : exDays) : (days ?? '—')}
                     </span>
                     {isException && <span className="ml-2 text-xs text-purple-800">{t('leave.exceptionManual')}</span>}
-                    {!isException && <span className="ml-2 text-xs text-gray-500">{t('leave.computedHint')}</span>}
+                    {!isException && !daysError && <span className="ml-2 text-xs text-gray-500">{t('leave.computedHint')}</span>}
+                    {!isException && daysError && (
+                        <span className="ml-2 text-xs font-medium text-red-700">{daysError}</span>
+                    )}
                 </div>
 
                 <label className="text-sm sm:col-span-2">

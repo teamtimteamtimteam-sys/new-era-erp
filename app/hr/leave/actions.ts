@@ -137,12 +137,27 @@ export async function cancelLeave(requestId: string, reason: string | null): Pro
 
 // 服务端算天数,供表单实时显示 —— 【与提交时用的是同一个 DB 函数】,
 // 所以"预览说几天"和"实际记几天"不可能不一致。
+//
+// ════════════════════════════════════════════════════════════════════════════
+// ★【CLEANUP-A:它从前 `if (error) return null`,而 null 【已经有主】】★
+//   调用它的 LeaveForm 里,null 的意思是「两头日期还没填全」——
+//   effect 开头就写着 `if (!start || !end || end < start) { setDays(null); return }`,
+//   而屏幕上它渲染成一个「—」。于是一次 RPC 失败会渲染成【和还没填完全一样】的样子:
+//   操作员看到的不是"算不出来",是"你还没填好",而他明明填好了。
+//   **把拒绝伪装成一个合法状态,就没有人会看见它。**
+//
+//   所以返回类型改成一个可判别的两支,而不是 number | null:
+//   「算出来了几天」与「没算成,原因是这句话」是两件事,类型上就分开。
+//   (返回类型不是判据 —— 判据是"null 有没有主"。见 AGENTS.md 那一条。)
+// ════════════════════════════════════════════════════════════════════════════
+export type LeaveDaysPreview = { days: number } | { error: string }
+
 export async function previewLeaveDays(
     start: string,
     end: string,
     startHalf: boolean,
     endHalf: boolean
-): Promise<number | null> {
+): Promise<LeaveDaysPreview> {
     const supabase = await createClient()
     const { data, error } = await supabase.rpc('calculate_leave_days', {
         p_start: start,
@@ -150,8 +165,8 @@ export async function previewLeaveDays(
         p_start_half: startHalf,
         p_end_half: endHalf,
     })
-    if (error) return null
-    return data as number
+    if (error) return { error: await localizeLeaveError(error.message) }
+    return { days: data as number }
 }
 
 // grant_annual_leave 已随 HR-2c 删除:年假按月累积、读时派生,没有"整年发放"这个动作了。年末结转仍在下面,那是另一个来源。

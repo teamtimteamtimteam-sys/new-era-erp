@@ -971,6 +971,41 @@ async function restOk(path, opts, ctx) {
     if (!r.ok) throw new Error(`${ctx}: HTTP ${r.status} ${(await r.text()).slice(0, 300)}`)
     return r
 }
+// ════════════════════════════════════════════════════════════════════════════
+// 【清理动作专用:失败必须【说话】,但【不能中断】后面的清理】
+//
+// ★ CLEANUP-A(2026-08-31)为什么加它 ★
+//   清理一个一次性账号是【两半】:删掉它的 user_roles,再删掉 auth 账号。
+//   这两半从前写成两次【各自可失败】的调用,而**删权限那一半用的是 rest()
+//   —— 返回码根本没人看**,删账号那一半却用 restOk()。于是"权限没删掉"
+//   可以静默失败,"账号删掉了"却一定成功。留下的正是
+//   **一条权限还在、而账号已经没了的授权** —— 一个谁也解析不出来的幽灵 admin。
+//   `user_roles.user_id` 【没有】指向 auth.users 的外键(employees.user_id 有),
+//   所以数据库不会替我们把这两半绑在一起;而账号一旦删掉,
+//   任何按"列出账号再清理"写的清扫都【再也看不见】那行授权。
+//   ACCOUNTS-CLEAN 在 2026-08-24 删掉 66 条,一周后又长回 21 条(8 + 13)。
+//
+// 【为什么不是直接换成 restOk】restOk 会抛,而这些调用大多在 finally 里 ——
+//   在 finally 里抛出去会把它【后面几步清理一起吃掉】,那是换一个缺陷,不是修。
+//   所以:照常往下清,但每一次失败都记账、都印出来、并且让冒烟【变红】。
+//   一条没删掉的 admin 授权是一次失败,不是一条日志。
+// ════════════════════════════════════════════════════════════════════════════
+const cleanupFailures = []
+async function restCleanup(path, opts, ctx) {
+    try {
+        const r = await rest(path, opts)
+        if (!r.ok) {
+            const body = (await r.text()).slice(0, 200)
+            cleanupFailures.push(`${ctx}: HTTP ${r.status} ${body}`)
+            console.error(`  ✗ 清理失败(继续清,但记账):${ctx} → HTTP ${r.status} ${body}`)
+        }
+        return r
+    } catch (e) {
+        cleanupFailures.push(`${ctx}: ${e.message}`)
+        console.error(`  ✗ 清理失败(继续清,但记账):${ctx} → ${e.message}`)
+        return null
+    }
+}
 async function signIn(email, password) {
     return (await signInSession(email, password)).cookie
 }
@@ -1049,7 +1084,10 @@ async function sweepScratch() {
     const stale = (page?.users ?? []).filter((u) =>
         (u.email ?? '').startsWith('smoke-') && (u.email ?? '').endsWith('@test.local'))
     for (const u of stale) {
-        await rest(`/rest/v1/user_roles?user_id=eq.${u.id}`, { method: 'DELETE' })
+        // 【顺序要紧:先收权限,再删账号】反过来做,一旦第二步之前挂掉,
+        // 剩下的就是一条【认不到人】的授权,而且此后没有任何清扫看得见它。
+        await restCleanup(`/rest/v1/user_roles?user_id=eq.${u.id}`, { method: 'DELETE' },
+            `清扫授权 ${u.email}`)
         await restOk(`/auth/v1/admin/users/${u.id}`, { method: 'DELETE' }, `清扫账号 ${u.email}`)
     }
     if (emps.length || stale.length)
@@ -1924,8 +1962,10 @@ async function main() {
             }
         }
         for (const id of reachUsers) {
-            await rest(`/rest/v1/user_roles?user_id=eq.${id}`, { method: 'DELETE' })
-            await rest(`/auth/v1/admin/users/${id}`, { method: 'DELETE' })
+            await restCleanup(`/rest/v1/user_roles?user_id=eq.${id}`, { method: 'DELETE' },
+                `reach:收回角色授权 ${id}`)
+            await restCleanup(`/auth/v1/admin/users/${id}`, { method: 'DELETE' },
+                `reach:删账号 ${id}`)
         }
     } finally {
         dev.kill('SIGTERM')
@@ -1937,9 +1977,12 @@ async function main() {
         // 而漏掉的那一半不会报错 —— 它只是慢慢堆起来。
         await rest(`/rest/v1/employees?id=in.(${reviewee.id},${reviewer.id},${noDate.id})`,
             { method: 'DELETE' })
-        await rest(`/auth/v1/admin/users/${cu2.id}`, { method: 'DELETE' })
-        await rest(`/rest/v1/user_roles?user_id=eq.${cu.id}`, { method: 'DELETE' })
-        await rest(`/auth/v1/admin/users/${cu.id}`, { method: 'DELETE' })
+        // cu2(评估人)【没有被授任何角色】,所以它只有账号那一半要删。
+        await restCleanup(`/auth/v1/admin/users/${cu2.id}`, { method: 'DELETE' }, '收尾:删评估人账号')
+        // cu 持【真的 admin 角色】—— 这两行的顺序与成败就是幽灵授权的来源。
+        await restCleanup(`/rest/v1/user_roles?user_id=eq.${cu.id}`, { method: 'DELETE' },
+            '收尾:收回一次性 admin 授权')
+        await restCleanup(`/auth/v1/admin/users/${cu.id}`, { method: 'DELETE' }, '收尾:删一次性 admin 账号')
     }
 
     // 【总结行把带查询串的探针【单独数出来】】把它们混进 routes 的计数里,
@@ -1976,7 +2019,18 @@ async function main() {
         console.log(`\n✗ 可达性 ${reachFailures.length} 处 —— "打得开却走不到"就是一个没有入口的页面:`)
         for (const r of reachFailures) console.log('   ' + r)
     }
-    process.exit(failures.length || extraSkips.length || goneSkips.length || reachFailures.length ? 1 : 0)
+    // ★【清理失败是一次失败,不是一条日志】★ 没删掉的那一半可能是一条
+    //   【认不到人的 admin 授权】—— 它不会让任何一条路由变红,而它会一直躺在库里,
+    //   让"admin 有几个持有人"这个会被人据以行动的数字说假话(ACCOUNTS-CLEAN:66 条;
+    //   一周后又 21 条)。一个报告了却不拦的判词不是闸。
+    if (cleanupFailures.length) {
+        console.log(`\n✗ 一次性账号/授权没有清理干净 ${cleanupFailures.length} 处 —— ` +
+            `其中任何一条如果是 user_roles,留下的就是一条认不到人的授权:`)
+        for (const c of cleanupFailures) console.log('   ' + c)
+        console.log('   处置:node scripts/check-scratch-rows.mjs 会把幽灵授权按名报出来。')
+    }
+    process.exit(failures.length || extraSkips.length || goneSkips.length
+        || reachFailures.length || cleanupFailures.length ? 1 : 0)
 }
 main().catch((e) => {
     console.error(`\n✗ 冒烟中止(脚本自身的查询炸了,不是路由失败):\n${e.message ?? e}`)

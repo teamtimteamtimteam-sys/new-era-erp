@@ -12,6 +12,8 @@
 --
 -- NOTE: introduced by db/migrations/2026-08-31-invval1-the-valuation-report-the-close-gate-and-the-fields-already-mandatory.sql,
 --       amended by …-fu2(与数量表数出同样的量)、…-fu3、…-fu4。
+-- CLEANUP-A fu1:落地成本改读 inbound_batch_landed_unit_cost_all(无判据的过账原语)——
+-- 计值不许取决于谁按的按钮。
 
 CREATE OR REPLACE FUNCTION public.inventory_valuation_snapshot(p_as_of date DEFAULT NULL::date)
  RETURNS jsonb
@@ -62,7 +64,7 @@ BEGIN
     -- 那张表(RPT-1 的数量表)把【进料与产出一起】按流水分组;本节若只数进料,
     -- 同一个页面上会出现两张对同一个库位给出不同数量的表 —— 而读的人无从知道
     -- 哪一张漏了什么。所以这里 union 两侧,并用 batch_kind 区分成本口径:
-    --   进料腿 → inbound_batch_landed_unit_cost(到岸成本)
+    --   进料腿 → inbound_batch_landed_unit_cost_all(到岸成本)
     --   产出腿 → processing_outputs.unit_cost_base(分摊出来的单位成本)
     -- 【两个口径,一张表,而它们各自说得出自己是谁】—— 不是把两种钱悄悄相加。
     SELECT COALESCE(jsonb_agg(x ORDER BY x->>'location_code' NULLS LAST,
@@ -82,12 +84,12 @@ BEGIN
                  -- 【读不到价 → NULL,不是 0】
                  'value_base', CASE WHEN v_prices THEN
                      round(COALESCE(SUM(mv.qty_delta * COALESCE(
-                         inbound_batch_landed_unit_cost(ib.id), po.unit_cost_base)), 0), 2)
+                         inbound_batch_landed_unit_cost_all(ib.id), po.unit_cost_base)), 0), 2)
                      ELSE NULL END,
                  -- 【没有成本口径的量单独报】进料侧是"没有价",产出侧是"从未分摊";
                  -- 两者都【不是】"值 0 的货",所以不进 value,单独出现在这里。
                  'uncosted_qty', SUM(CASE WHEN COALESCE(
-                         inbound_batch_landed_unit_cost(ib.id), po.unit_cost_base) IS NULL
+                         inbound_batch_landed_unit_cost_all(ib.id), po.unit_cost_base) IS NULL
                                           THEN mv.qty_delta ELSE 0 END)
                ) AS x
           FROM inventory_movements mv
@@ -112,7 +114,7 @@ BEGIN
                  'batches', count(*),
                  'qty',     SUM(ib.remaining_qty),
                  'value_base', CASE WHEN v_prices THEN
-                     round(COALESCE(SUM(ib.remaining_qty * inbound_batch_landed_unit_cost(ib.id)), 0), 2)
+                     round(COALESCE(SUM(ib.remaining_qty * inbound_batch_landed_unit_cost_all(ib.id)), 0), 2)
                      ELSE NULL END
                ) AS x
           FROM inbound_batches ib
@@ -140,7 +142,7 @@ BEGIN
       INTO v_unpriced_qty, v_unpriced_n
       FROM inbound_batches ib
      WHERE ib.deleted_at IS NULL AND ib.remaining_qty > 0
-       AND inbound_batch_landed_unit_cost(ib.id) IS NULL;
+       AND inbound_batch_landed_unit_cost_all(ib.id) IS NULL;
     SELECT COALESCE(SUM(ob.remaining_qty),0), count(*)
       INTO v_nocost_qty, v_nocost_n
       FROM output_batches ob
@@ -178,5 +180,7 @@ BEGIN
                                   'stocktake_gain_over_relief (M5)',
                                   'relief_without_capitalisation (M7)')));
 END;
-$function$
-;
+$function$;
+
+COMMENT ON FUNCTION public.inventory_valuation_snapshot(p_as_of date) IS
+    'INV-VAL-1:RPT-1 快照的金额与库龄两节(物料 × 库位 × 状态 + 库龄档 + 产出三态)。口径是 inbound_batch_landed_unit_cost,与注销/盘点/勾稽同一份定义。★读不到 data.view_prices 的人拿到 value_base = NULL 加一条具名 restriction,【不是一个更小的合计】—— operations 与 warehouse 实测就是这一类,而本仓库有三次"读不到就返回 0"的前科。数量照给:数量不是价格。库龄档取 aging_bucket(AGING-1 的唯一定义),缺到货日进 no_date 档并被渲染出来,不是零、不是 90 天以上。任意历史 as-at 具名拒绝(AS_OF_NOT_RECONSTRUCTABLE):business_date 在 2026-07-03 之前不存在,照答会给出一个自信的 0.00。';

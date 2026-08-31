@@ -122,3 +122,6 @@
 2026-08-31T18:23:24+0800	2026-08-31-invval1-fu5-restore-the-comments-i-retyped-away.sql	06431a4
 2026-08-31T19:33:45+0800	2026-08-31-invval1-fu6-a-view-owner-does-not-lend-you-execute.sql	1fd59b5
 2026-08-31T19:46:18+0800	2026-08-31-invval1-fu6-a-view-owner-does-not-lend-you-execute.sql	1fd59b5
+2026-08-31T22:36:26+0800	2026-08-31-cleanupa-a-restricted-reader-gets-a-name-not-a-smaller-number.sql	7e4e9e1
+2026-08-31T23:35:31+0800	2026-08-31-cleanupa-fu1-a-posting-primitive-must-not-ask-who-pressed-the-button.sql	7e4e9e1
+2026-09-01T00:07:39+0800	2026-09-01-cleanupa-fu2-the-line-changed-and-the-sentence-beside-it-did-not.sql	7e4e9e1

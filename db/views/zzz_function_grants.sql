@@ -191,7 +191,14 @@ REVOKE EXECUTE ON FUNCTION public.role_can_see_amounts(text) FROM authenticated;
 --                                       inbound_batch_landed_unit_cost(definer)
 --   · batch_processing_cost_base_all  ← batch_processing_cost_base(definer,带判据)
 --                                       inbound_batch_landed_unit_cost(definer)
---   · inbound_batch_landed_unit_cost  ← emit_batch_writeoff_movement(触发器,definer)
+--   · inbound_batch_landed_unit_cost_all ← emit_batch_writeoff_movement(触发器,definer)
+--                                       post_stocktake(definer)
+--                                       inventory_control_reconciliation(definer)
+--                                       inventory_valuation_snapshot(definer)
+--     【CLEANUP-A fu1】它是【过账】原语,刻意没有判据 —— 账上的金额不许取决于
+--     按按钮的人有什么读权限。所以它必须靠"调不到"活着,与上面那一对同一条规矩。
+--   · inbound_batch_landed_unit_cost  ← inbound_batch_valuation_rows(definer)
+--     【它自己带判据(CLEANUP-A / R3)】,收权是第二层,不是唯一那层。
 --                                       post_stocktake(definer,module.stocktakes.edit)
 -- 给了 authenticated 就等于把【绕过 RLS 的运费与加工成本读取】敞开给任何登录
 -- 用户 —— 那正是带判据的那一对存在的全部理由,而这三支会把它一句话作废。
@@ -199,3 +206,5 @@ REVOKE EXECUTE ON FUNCTION public.role_can_see_amounts(text) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.batch_freight_base_all(uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.batch_processing_cost_base_all(uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.inbound_batch_landed_unit_cost(uuid) FROM authenticated;
+-- CLEANUP-A fu1:过账原语,无判据,必须靠"调不到"活着。
+REVOKE EXECUTE ON FUNCTION public.inbound_batch_landed_unit_cost_all(uuid) FROM authenticated;

@@ -83,15 +83,31 @@ export default function AssayForm({
                         setPreviewing(false)
                     }
                 })
-                .catch(() => {
-                    if (!cancelled) setPreviewing(false)
+                // ════════════════════════════════════════════════════════
+                // ★【CLEANUP-A:这里从前只把转圈关掉,而那比"什么都不说"更坏】★
+                //   previewAssayPrice 自己已经把 RPC 的【拒绝】变成 { error },
+                //   红横幅也画得出来。会掉进这个 catch 的是【抛出来】的那一支
+                //   (网络断、server action 传输失败、动作里意外抛错)。
+                //   从前的写法只 setPreviewing(false),于是 preview 保持【上一次的值】——
+                //   如果上一次成功,屏幕上继续摆着一个**过期的价格**,而
+                //   applyBlocked = !!preview.error 仍然是 false,
+                //   **"记录并应用"照样是主按钮**。操作员于是可能按着一个
+                //   悄悄没刷新的试算把化验应用下去。
+                //   所以:① 说出来;② 【把过期的结果一起清掉】——
+                //   只挂横幅而把那个数字留在屏幕上,危险的东西还在原地。
+                // ════════════════════════════════════════════════════════
+                .catch((e) => {
+                    if (cancelled) return
+                    console.error('assay pricing preview failed', e)
+                    setPreviewing(false)
+                    setPreview({ error: t('assay.errPreviewFailed') })
                 })
         }, 400)
         return () => {
             cancelled = true
             clearTimeout(timer)
         }
-    }, [batch.id, formula, metalsKey, assayDate])
+    }, [batch.id, formula, metalsKey, assayDate, t])
 
     const res = preview.result
     const impact = preview.impact

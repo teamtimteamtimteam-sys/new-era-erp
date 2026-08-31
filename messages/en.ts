@@ -644,6 +644,7 @@ const en = {
         from: 'From', to: 'To', filter: 'Filter', noRequests: 'No leave requests.',
         recordLeave: 'Record leave', submit: 'Submit', submitted: 'Submitted as {0}.',
         computedDays: 'Days counted', computedHint: 'Weekends and public holidays excluded, computed by the database.',
+        errDaysPreviewFailed: 'Could not work out the days — this is a failure, not an unfinished form. Check the dates and try again; if it persists, the leave calendar could not be read.',
         standardDays: 'Standard entitlement: {0} days per year.',
         certificateHint: 'Required once more than {0} days of this type have been taken in the calendar year.',
         exception: 'exception', exceptionToggle: 'Enter the days by hand (exception)',
@@ -4134,6 +4135,7 @@ const en = {
         saveOnly: 'Record only',
         saveAndApply: 'Record and apply',
         impactPreview: 'If applied',
+        errPreviewFailed: 'The pricing preview did not run — the figures below have been cleared rather than left stale. This is a failure, not a price of zero; try again before recording.',
         noFormula:
             'No pricing formula is set for this batch — the assay can still be recorded, but the price will not change.',
         negativeValue:

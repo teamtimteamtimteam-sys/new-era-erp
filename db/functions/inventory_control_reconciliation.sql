@@ -12,6 +12,8 @@
 --   在体内调用。但它自己仍然 require_permission —— **授权不是控制**。
 --
 -- NOTE: introduced by db/migrations/2026-08-31-invval1-the-valuation-report-the-close-gate-and-the-fields-already-mandatory.sql.
+-- CLEANUP-A fu1:落地成本改读 inbound_batch_landed_unit_cost_all(无判据的过账原语)——
+-- 计值不许取决于谁按的按钮。
 
 CREATE OR REPLACE FUNCTION public.inventory_control_reconciliation(p_as_of date)
  RETURNS jsonb
@@ -116,11 +118,11 @@ BEGIN
            AND EXISTS (SELECT 1 FROM inbound_batches b WHERE b.id = e.sid)
         UNION ALL
         SELECT pi.inbound_batch_id,
-               e.amt * (pi.quantity_consumed * COALESCE(inbound_batch_landed_unit_cost(pi.inbound_batch_id),0))
+               e.amt * (pi.quantity_consumed * COALESCE(inbound_batch_landed_unit_cost_all(pi.inbound_batch_id),0))
                      / NULLIF(w.tot,0), e.st
           FROM eff e
           JOIN processing_inputs pi ON pi.run_id = e.sid
-          JOIN LATERAL (SELECT SUM(p2.quantity_consumed * COALESCE(inbound_batch_landed_unit_cost(p2.inbound_batch_id),0)) AS tot
+          JOIN LATERAL (SELECT SUM(p2.quantity_consumed * COALESCE(inbound_batch_landed_unit_cost_all(p2.inbound_batch_id),0)) AS tot
                           FROM processing_inputs p2
                          WHERE p2.run_id = e.sid AND p2.inbound_batch_id IS NOT NULL) w ON true
          WHERE e.st = 'allocation' AND pi.inbound_batch_id IS NOT NULL
@@ -143,7 +145,7 @@ BEGIN
     ),
     b AS (
         SELECT ib.id,
-               round(COALESCE(ib.remaining_qty * inbound_batch_landed_unit_cost(ib.id),0),2) AS batch_side,
+               round(COALESCE(ib.remaining_qty * inbound_batch_landed_unit_cost_all(ib.id),0),2) AS batch_side,
                round(COALESCE((SELECT SUM(a.amt) FROM attr a WHERE a.batch_id = ib.id),0),2) AS ledger_net,
                COALESCE((SELECT count(*) FROM attr a WHERE a.batch_id = ib.id AND a.st='purchase'),0) AS purch_n,
                round(COALESCE((SELECT SUM(a.amt) FROM attr a WHERE a.batch_id = ib.id AND a.st='purchase'),0),2) AS purch_net,
@@ -251,5 +253,7 @@ BEGIN
 
     RETURN v_sides;
 END;
-$function$
-;
+$function$;
+
+COMMENT ON FUNCTION public.inventory_control_reconciliation(p_as_of date) IS
+    'INV-VAL-1:存货明细账 ↔ 控制科目(1200 原料 / 1220 产成品)的两条腿,供 gl_control_reconciliation 拼接。四条具名成因 + 两条机制项,【没有兜底桶】,判据是 unexplained = 0。归因必须【原分录优先】走回批次 —— 冲销分录的 source_id 指向原分录,取错顺序会让 4 行归因失败、unexplained 当场不为零。as-at 早于今天时先证明重建算得出来(business_date 无空缺、无迟到的资本化),证不出来就【具名拒绝】,数字为 NULL、reconciled 为 NULL —— 答不上来不是对不上。';

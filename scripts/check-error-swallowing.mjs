@@ -109,22 +109,23 @@ const ALLOWLIST = [
 //
 // 【为什么不在这一刀修】CHECK-1 是一刀【只动工具】的切次(R1)。这两处的修法各自
 // 要判断"失败时这个屏幕该说什么",那是权限与错误处理那一刀的活。
-// 【去处:cleanup A】—— 那一刀的主题就是权限与错误处理。
-const QUEUED = [
-    {
-        path: 'app/hr/leave/actions.ts', match: 'if (error) return null',
-        why: 'previewLeaveDays 把 RPC 失败读成 null。调用方拿到 null 会当成"算不出来",'
-            + '而它与"这段请假是 0 天"在屏幕上分不开 —— 与 lib/permissions.ts 里'
-            + '「受限 ≠ 没有」是同一条。修法要先定"失败时那一栏显示什么"。',
-        to: 'cleanup A(权限与错误处理)',
-    },
-    {
-        path: 'app/inbound/[id]/assays/new/AssayForm.tsx', match: '.catch(() => {',
-        why: '计价预览失败时只把 setPreviewing(false) 关掉转圈,屏幕上不留任何痕迹 ——'
-            + '于是"这条配方算不出价"与"还没开始算"长得一样。',
-        to: 'cleanup A(权限与错误处理)',
-    },
-]
+// 【在册清单:CLEANUP-A 之后是【空的】—— 而它是被【做完】清空的,不是被改小的】
+//
+// CHECK-1 在这里立了两条,去处都写着「cleanup A」。CLEANUP-A(2026-08-31)把两条
+// 都修掉了,于是它们从这张表里【删除】,而不是改判成 ALLOWLIST 或放宽判据:
+//   · app/hr/leave/actions.ts —— previewLeaveDays 从前 `if (error) return null`,
+//     而 null 在 LeaveForm 里【已经有主】(「两头日期还没填全」,渲染成「—」)。
+//     现在它返回一个可判别的两支 { days } | { error },失败在屏幕上有自己的红字。
+//   · app/inbound/[id]/assays/new/AssayForm.tsx —— 那个 .catch 从前只关转圈。
+//     实测它比在册说的还坏一层:preview 保持【上一次的值】,于是过期的价格留在
+//     屏幕上,而 applyBlocked = !!preview.error 仍是 false,"记录并应用"照样是主按钮。
+//     现在它说话【并且】把过期结果清掉。
+//
+// 两处的 .catch 现在都带参数并且真的用了它(console.error + 面向用户的文案),
+// 所以本检查按它自己写明的规矩不再判它们 —— 「空手接住」才是它要抓的东西,
+// 而这两处不再是空手。**没有为它们加任何 ALLOWLIST 条目**:
+// 加一条豁免等于让下一个读的人以为有人核过了,而事实是它们被修好了。
+const QUEUED = []
 
 const allowed = (h) => ALLOWLIST.some((a) =>
     h.rel.startsWith(a.path) && (!a.match || h.full.includes(a.match)))

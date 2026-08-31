@@ -53,7 +53,7 @@ BEGIN
             -- 【FOR UPDATE 之后单独取】把函数调用留在 FOR UPDATE 的目标列表里
             -- 会让人以为它也被锁保护;它不是,它是一次独立的读。分两行写。
             -- ════════════════════════════════════════════════════════════════
-            v_value := inbound_batch_landed_unit_cost(v_line.inbound_batch_id);
+            v_value := inbound_batch_landed_unit_cost_all(v_line.inbound_batch_id);
             v_inv_acct := '1200';
         ELSE
             SELECT ob.code, ob.remaining_qty, ob.deleted_at, po.unit_cost_base

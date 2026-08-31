@@ -419,13 +419,23 @@ DEFINER_NO_CHECK_ALLOWED = {
     # 三支的 EXECUTE 都已从 authenticated 收回(db/views/zzz_function_grants.sql),
     # 靠的就是调不到 —— gate 的 B2(definer-unchecked-and-CALLABLE)因此是 0。
     # 调用方逐个点名,全部以属主身份执行:
-    #   batch_freight_base_all         ← batch_freight_base / inbound_batch_landed_unit_cost
-    #   batch_processing_cost_base_all ← batch_processing_cost_base / inbound_batch_landed_unit_cost
-    #   inbound_batch_landed_unit_cost ← emit_batch_writeoff_movement(触发器)/ post_stocktake
+    #   batch_freight_base_all         ← batch_freight_base / inbound_batch_landed_unit_cost_all
+    #   batch_processing_cost_base_all ← batch_processing_cost_base / inbound_batch_landed_unit_cost_all
+    #   inbound_batch_landed_unit_cost_all ← emit_batch_writeoff_movement(触发器)/ post_stocktake
+    #                                      / inventory_control_reconciliation / inventory_valuation_snapshot
     # 理由全文见 docs/landed-cost-relief.md 第四节。
+    #
+    # ★【CLEANUP-A fu1(2026-08-31):这个名单里少了一层,而上面那段话早就写着它】★
+    #   上面写的是「算术与受众分成两层」,但当时【单位落地成本只有一个名字】——
+    #   它同时充当两层。CLEANUP-A 给它加了 R3 要的判据,当场把过账那一层打断了:
+    #   gate 退 4、db/fixtures/172 红,而注销触发器的抬头自己写着"计值不许取决于
+    #   谁按的按钮"。fu1 于是把它拆成这一族早就有的形状:
+    #     · inbound_batch_landed_unit_cost_all —— 算术层,无判据,靠"调不到"活着;
+    #     · inbound_batch_landed_unit_cost     —— 受众层,自带判据,【因此不再在本名单里】。
+    #   受众层从这张表里【删掉】,不是改判词:它现在真的有调用者检查了。
     "batch_freight_base_all": "EXECUTE revoked from PUBLIC/authenticated/anon; a VALUATION reader must not depend on who pressed the button (PROC-COST-2)",
     "batch_processing_cost_base_all": "EXECUTE revoked from PUBLIC/authenticated/anon; a VALUATION reader must not depend on who pressed the button (PROC-COST-2)",
-    "inbound_batch_landed_unit_cost": "EXECUTE revoked from PUBLIC/authenticated/anon; called only by the write-off trigger and post_stocktake, both definer and each guarding its own caller (PROC-COST-2)",
+    "inbound_batch_landed_unit_cost_all": "EXECUTE revoked from PUBLIC/authenticated/anon; the POSTING primitive - the amount that reaches the ledger must not depend on who pressed the button (PROC-COST-2 / CLEANUP-A fu1)",
 }
 
 CHECK_PATTERNS = ("require_permission(", "has_permission(", "current_user_employee(",
