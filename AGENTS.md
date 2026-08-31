@@ -186,6 +186,25 @@ The verdicts stay separate because they are different failures with different
 fixes. `check_mirrors.py` and `verify_rebuild.py` remain as the engine (gate.py
 imports/spawns them); run verify_rebuild alone when you only need one side.
 
+### 种子比对表达式里的表名一律写 `{S}.` —— **不许写 `public.`**(CHECK-1,2026-08-31)
+
+`check_mirrors.py` 把镜像建进**同一个库的另一个 schema**(`mir`);`db/gate.py` 把它
+建进**另一个库**的 `public`。于是 `SEED_TABLES` 里同一句列表达式在两个工具里含义不同,
+而**写死 `public.` 在 gate 里碰巧是对的、在 check_mirrors 里是跨 schema 比对**。
+
+实测症状:`kpi_position_templates.position_code` 在 live 侧是 `'CFO'`、mirror 侧是
+`NULL`,于是整张表每一行都"漂移" —— **镜像其实一个字都没错**,错的是比对表达式
+(相关子查询拿 `mir` 的 `position_id` 去 `public.positions` 里找)。
+**两个检查一红一绿,只可能有一个对,而这次对的是 gate。**
+
+本地两 schema 复现:写死 `public.` → drift 2;各自解析到自己那一侧 → drift 0;
+把 mirror 的 title 改一个字 → drift 2 回来(**它没有变瞎,只是不再撒谎**)。
+
+修法不是把那两行改对 —— 那只让今天的两行对。表名改成占位符 `{S}.`,调用方各自替换
+(`check_mirrors` → `mir` / `public`,`gate` → 两边都 `public`),
+并加一条**导入即断言**:任何人再写一次 `public.`,两个工具在导入的那一瞬间就起不来。
+**一个在种子上喊狼来了的检查,与一个被人关掉的检查是同一种坏。**
+
 ### 杀掉 `check_mirrors.py` 【不会】结束它在库上那笔事务(EQP-1c-a,2026-08-21)
 
 > **`pkill -f check_mirrors.py` 杀的是本机那个 Python 进程。它在【线上】开着的那笔
@@ -705,15 +724,70 @@ has a `_masked` companion, every column must be in that view, grant or no grant.
 `fu2` closed it.
 
 The documentation above was already there and already clear; what was missing was
-a check that fires at the right *time*. **`db/preflight_migration.py` does not yet
-warn on a partial one** — it reads the migration file before execution and could
-see "this file adds a column to a table that has a `_masked` companion, and does
-not also touch the grant and the view", which is exactly the shape it already
-handles for account codes and overloaded signatures. `colgrant` catches it, but
-only *after* the migration has been applied to live. **QUEUED: add that pre-flight
-scan the next time `apply_migration.sh` / `preflight_migration.py` is touched.**
-Not built in WO-1a — writing a new checker inside a cut that just tripped over the
-gap is how a hurried checker gets written.
+a check that fires at the right *time*. **That pre-flight scan now exists (CHECK-1,
+2026-08-31) — the QUEUED note that stood here is retired.**
+
+`db/preflight_migration.py` prints a **`masked`** line and **refuses (exit 2)** when
+a migration `ADD COLUMN`s onto a table that has a `_masked` companion on live without
+putting the column into that view in the same migration. Historical replay, run before
+trusting it: the two defective main-cut migrations
+(`procwire1bi`, `proc1biii`) are refused and all three columns named, while both `fu1`
+migrations pass. Sweeping all 33 migrations dated 2026-08-30/31 refuses **three** and
+passes the other 30 — and the third is a **fourth occurrence nobody had counted**:
+`cmpl1` added four columns to `inbound_batches` and `cmpl1-fu2` cleaned up after it.
+So the tally in this section is **four in three days, not three**.
+
+**Two corrections to how this gap was described, because believing either of them
+produces the wrong check:**
+
+* **`colgrant` was never blind to this.** It catches all four, on both live and
+  rebuild. The defect is **earliness**, not coverage — it fires after the DDL is
+  already on live, which is why each occurrence cost a follow-up migration and a
+  window where the column was writable and unreadable.
+* **"Missing from the grant" is NOT the failure.** A masked price column is
+  ungranted *on purpose* and shows through a `has_permission` CASE in the view.
+  The rule is the one `colgrant` already states —
+  `(granted OR in_view) AND (has_view → in_view)` — which for a masked table
+  collapses to **the column must be in the view**, grant or no grant. A pre-flight
+  stricter than the gate would refuse migrations the gate would pass, and people
+  would learn to run `PREFLIGHT=0`; **a check people switch off is worse than no
+  check.**
+
+**A third checker covers the half neither of those can see:**
+`scripts/check-masked-columns.mjs` (in `npm run build`, no database, sub-second)
+compares `db/tables/*.sql` against `db/views/*_masked.sql` — it catches a grant that
+landed on live but was never written back into the mirror, which would ship a fresh
+install with the defect built in. It walks from the **table** side (files carrying
+`REVOKE SELECT`), not the view side: the first draft iterated the view files, and
+deleting a `_masked.sql` merely shrank the comparison and still reported clean.
+Current state: **27 masked tables, 412 columns, zero violations** — 24 with a
+`_masked` companion (every column must be in the view) and 3 masked by column list
+only (`approval_log`, `notifications`, `po_issues` — every column must be in the
+GRANT, the same formula with `in_view` false).
+
+**Name them apart, and keep them apart:** `colgrant` (live, late) ·
+`masked` (migration, early, refuses) · `masked-columns` (repo, fast).
+
+### `check-masked-reads` 此前看不见 select 串里的【内嵌】(CHECK-1,2026-08-31)
+
+`scripts/check-masked-reads.mjs` 认的是 `.from('<表>')` 字面量。而 PostgREST 还有
+另一条读同一张表的路 —— 把表名写进 select 串当内嵌关系:
+
+```ts
+.select('id, code, processing_outputs ( unit_cost_base )')   // ← 一个字都不经过 .from()
+```
+
+**那条路整个是隐形的**,而它的代价是实测的:`/inventory/output/[materialId]` 内嵌
+`processing_outputs` 基表,于是整条查询**对每一个真实用户返回 42501**,页面上的
+`?? []` 把它吞成空列表 —— **屏幕上平静地写着「没有库存」,而库里有 6 批。门全绿。**
+
+现在两条路都认,判词相同(**改读 `<表>_masked`**),并且改法可行不是理论:
+FX-DISPLAY-1 实测换成 `processing_outputs_masked ( … )` 之后同一条查询 200。
+落地时在册 **10 处**,进基线(键带 `:: embed` 后缀,与直连分开计数 —— 合成一个数
+会让"改好一处直连、同时新增一处内嵌"互相抵消)。**这 10 处是债,不是覆盖**,
+逐条列在 `docs/known-issues.md` 的 CHECK-1-EMBED,去处 cleanup A。
+**注意扫描前要剥掉整行注释**:`.select(` 与字符串之间可以夹着注释,
+第一版没剥,于是**恰好漏掉了被拿来当例子的那个文件**。
 
 ### `colgrant` asked half the question — `colreader` asks the other half (OPS-13)
 
@@ -1580,12 +1654,44 @@ constants left behind broke four screens over four separate sweeps —
 lines. Two full manual sweeps each missed a site. The check found 32 in one
 run, including one I had just written myself.
 
-**Message files too.** `check-i18n` validates that a key exists, never what
-it says, so `'Amount (SGD)'` is invisible to it. A label that names a
-currency must take it as a `{ccy}` parameter from the row (or the base
-currency), unless the string is genuinely about one currency by decision —
-metal prices are quoted `USD/t` by market convention, and account names
-like `Bank – SGD` are proper nouns. Those stay.
+**Message files too — and until CHECK-1 (2026-08-31) nothing scanned them.**
+`check-i18n` validates that a key exists, never what it says, so `'Amount (SGD)'`
+is invisible to it; and `check-currency-literals` named this as one of its three
+originating causes while scanning only `app / lib / db`. **FX-DISPLAY-1's
+"a USD number wearing an SGD name" lived in `messages/en.ts`, out of its reach.**
+It now scans `messages/` as a fourth class (`message-text`). A label that names a
+currency must take it as a `{ccy}` parameter from the row (or the base currency),
+unless the string is genuinely about one currency by decision — metal prices are
+quoted `USD/t` by market convention, and account names like `Bank – SGD` are proper
+nouns. Those stay.
+
+**76 instances were already there** (en 40, zh 36), so it is a **ratchet, not a
+wall**: `scripts/currency-messages-baseline.json` holds today's count per
+⟨file · key⟩ and the 77th turns it red — the same medicine `check-masked-reads`
+took for its 71, and for the same reason (a check that reddens 76 lines on day one
+teaches people to skip the gate). The report groups them **by shape** so a later
+reader can tell the disease from the truth without re-deriving it: **36 `label`**
+(currency baked into a column header — the FIN-0 disease), **20 `unit`**
+(`USD/t`, `USD/kg`, `USD/吨` — genuinely dollars), **16 `prose`**, **4
+`account-name`**. Full list in `docs/known-issues.md` under CHECK-1-MSG.
+
+> ★ **CCY-VERIFY — a permanent limitation, not a to-do.** This check verifies that
+> a currency is **stated**. It does **not** verify that the number really is in
+> that currency, and it never will.
+>
+> **A green build does not mean currencies are verified; it means every currency
+> shown is stated somewhere.**
+>
+> This was measured rather than assumed: tracing
+> `colMarketValue: 'Market Value (USD)'` to its number ends at
+> `metal_prices.price_usd_per_tonne`, and **`metal_prices` has no currency column
+> at all** — the unit is baked into the column name. **There is no fact in the
+> schema to compare a label against**, so any mechanisation would be an
+> approximation, and this repo has twice been burned by a checker that claimed
+> more than it did (the scanner that read PostgREST embed names as column names;
+> this check's own "scans SQL" claim, empty from the day it was written until
+> OPS-8). **A check that overstates itself is worse than a missing one — it spends
+> someone's suspicion for them.**
 
 ### 双语的列要【选一个】,不是拼起来 —— 而 check-i18n 看不见这一类(GST-FIX-3,2026-08-26)
 
@@ -1702,12 +1808,31 @@ that this was the **house style**, not 320 individual slips: sweeping without a
 check buys a clean count and nothing else, and the 321st gets written the same way.
 
 **Be clear about what it cannot see**, so a green line is not read as "no
-swallowing anywhere". It catches the dominant shape — `data ?? []` / `?? 0` /
-`?? null` on a query result. It cannot catch `if (error) return []`,
-`.catch(() => [])`, or a query whose error is never destructured at all and whose
-`data?.map(...)` quietly yields zero rows. That residue is a review question —
-*what does this page do when this query fails?* — and it is stated here rather
-than disguised as covered.
+swallowing anywhere". **CHECK-1 (2026-08-31) measured the three shapes this
+paragraph used to list and closed two of them:**
+
+* `if (error) return []` / `null` / `0` — **now caught** (`swallow-return`, single
+  and two-line forms). One instance repo-wide: `app/hr/leave/actions.ts:153`.
+* `.catch(() => …)` — **now caught** (`swallow-catch`, empty-handed catches only;
+  `.catch(e => …)` is not judged, because using the error may be legitimate
+  handling and the difference is not decidable from text). One instance:
+  `app/inbound/[id]/assays/new/AssayForm.tsx:86`.
+* a query whose error is never destructured, whose `data?.map(...)` yields zero
+  rows — **deliberately NOT mechanised, and it will not be.** Zero instances
+  today, but that is not the reason. Deciding whether a given `data` is an
+  unchecked query result means following the variable — **type/dataflow analysis,
+  not text matching** — and an approximation would redden hundreds of correct
+  optional chains until someone turned the check off. **It is a written
+  convention instead:** *a query result must have had its `error` looked at before
+  anything optional-chains it.*
+
+**The two live instances are on the books, and the shape of that record matters.**
+They are in the script's `QUEUED` list, **not** its `ALLOWLIST`, and the two mean
+opposite things: `ALLOWLIST` asserts *this is not a defect*; `QUEUED` asserts
+*this is a defect, just not fixed in this cut* and must name where it goes.
+**Recording something uncertified as allowlisted is how the next reader comes to
+believe someone checked it.** Queued entries print on every run with their reason
+and destination (cleanup A — permissions and error handling).
 
 ## Test data that reads wrong on purpose
 
@@ -1786,9 +1911,37 @@ run where the order matters is the run where you have already lost.
 > ~/evoltrya-backups/backup.sh || { echo "备份失败 —— 不要动库"; exit 1; }
 > ```
 > `backup.sh` 已改成三道检查、失败一律 `exit 1`:pg_dump 的退出码(失败时删掉残骸)、
-> 体积下限(取自实测历史,见脚本抬头)、以及 `pg_restore --list` 读不读得出来
-> (这一条才抓得住【截断】—— 自定义格式的目录区在文件尾部,断在中间的文件可能很大
-> 却读不出来;而这一步是本地的,不花网络代价)。三道都做过故障注入。
+> 体积下限(取自实测历史,见脚本抬头)、以及 `pg_restore --list` 读不读得出来。
+> 三道都做过故障注入。
+>
+> ★★【CHECK-1(2026-08-31):那三道检查都是对的,而它们【跑不到】】★★
+> 它们全都写在 pg_dump **返回之后**,于是共享一个前提:**这个脚本还活着。**
+> 而实测的事故打碎的正是这个前提 —— **备份被一次工具超时连进程一起杀掉,
+> 那几行一行都没执行**,磁盘上留下一个 0 字节、顶着完全正常名字的 dump。
+> **顺序错了,不是检查错了:** 旧写法是「用好名字落盘 → 再验证」,
+> 于是从 pg_dump 开始写的那一刻起,磁盘上就躺着一个**名字合格、内容未经检验**的文件。
+>
+> **现在是隔离名优先:** pg_dump 写的是 `<好名字>.INCOMPLETE`(它**不**匹配
+> `evoltrya-backup-*.dump`),四道检查全过之后才 `mv` 成好名字。`mv` 在同一文件系统上
+> 是原子的,所以**"叫 evoltrya-backup-*.dump" 与 "验证过" 从此是同一件事**,
+> 任何一刻被 `kill -9` 都只留下一个不可能被误认的 `.INCOMPLETE`。
+>
+> **实测对照(CHECK-1,用真的 dump 做桩,写到一半 `kill -9`):**
+>
+> | | 磁盘上留下 | `ls -t evoltrya-backup-*.dump \| head -1` 给出 |
+> |---|---|---|
+> | 旧顺序 | `…-2058.dump`,**550,000 字节** | **那个残骸**(顶着好名字) |
+> | 新顺序 | `…-2059.dump.INCOMPLETE` | 上一份**好的**备份,3,947,752 字节 |
+>
+> **第四道检查:TOC 条目数 vs 上一份成功备份**,跌超 10% 即拒。加它是因为
+> **本文件下面那段说"目录区在文件尾部"是错的** —— 自定义格式的 TOC 写在**文件头**
+> (2026-08-24 那份残骸头里印着 `Archive created at 10:51:17`,正是开跑那一刻),
+> 所以 `pg_restore --list` 抓的是**头部损坏**,不是截断。阈值 10% 是量出来的:
+> 实测 14 份连续备份的条目数增量全部为正(+6 … +63,最大约 1.3%),
+> 所以它不可能对正常备份误报。**六个分支都做了故障注入**
+> (正常 / pg_dump 失败 / 体积过小 / 随机垃圾 / **真的那份 08-24 残缺 dump**
+>  4018 vs 5071 当场拒 / 写到一半被 kill -9)。
+> **它仍然不是"备份一定是好的"** —— 唯一完整的证据仍是那一行 `BACKUP_EXIT=0`。
 >
 > **`backup.sh` 住在仓库【外面】(`~/evoltrya-backups/`),所以这几行字是本仓库对它
 > 唯一的把手。** 换一台机器、或者有人重装了那个脚本,这里写的东西就是要重新做一遍的

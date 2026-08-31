@@ -91,8 +91,30 @@ SEED_MARKER = "<<<SEED_REPORT>>>"
 #   能   → RUNTIME CONFIG:线上理应与文件不同,那是系统在正常工作。不比对。
 # 判据要有证据(哪个页面 / RPC / 脚本在写),不靠直觉。证据见各镜像文件的抬头。
 # ═══════════════════════════════════════════════════════════════════════════
+# ── ★【比对表达式里的表名一律写 {S}. —— 不许写 public.】★ ────────────────────
+# 【CHECK-1(2026-08-31):这一条是被一个实测的假阳性买来的】
+# 本文件把镜像重建进【同一个库的另一个 schema】(mir),而 gate.py 把镜像建进
+# 【另一个库】的 public。于是同一句 cols 在两个工具里含义不同:
+#   * gate:两侧都是 public,各在自己的库里 —— public. 写死【碰巧】是对的;
+#   * 本文件:live 侧是 public、mirror 侧是 mir —— public. 写死就是【跨 schema】,
+#     相关子查询拿 mir 的 position_id 去 public.positions 里找,当然找不到。
+#
+# 症状:kpi_position_templates 的 position_code 在 live 侧是 'CFO'、mirror 侧是
+# NULL,于是每一行都"漂移"。**镜像其实一个字都没错** —— 错的是比对表达式。
+# 本地两 schema 复现(CHECK-1 实测):写死 public. → drift 2;改成各自的 schema
+# → drift 0;而把 mirror 的 title 改一个字 → drift 2 回来。**它没有变瞎,只是不再撒谎。**
+#
+# 【为什么这不是"两个检查测的东西不同"】gate 的 colgrant/seed 与本文件问的是
+# 同一个问题。一个报红一个报绿,只可能有一个是对的,而这次对的是 gate。
+# 一个在种子上喊狼来了的检查,与一个被人关掉的检查是同一种坏 —— 都是让人
+# 学会不看它。所以这里不是把两个名字分开,是【把错的那个修好】。
+#
+# 【为什么是占位符而不是把那两行改对】改对两行,只是让今天的两行对;
+# 下一个写相关子查询的人会原样再写一遍 public.。占位符 + 下面那条断言,
+# 让"写死 public."这件事【做不到】,而不是"记得别做"。
+# ────────────────────────────────────────────────────────────────────────────
 SEED_TABLES = {
-    # table: (WHERE 子句 or None, 比对的列)
+    # table: (WHERE 子句 or None, 比对的列 —— 表名一律 {S}.,见上)
     "permissions": (None, "code, category, name_en, name_zh, "
                           "COALESCE(description_en,'') AS description_en, "
                           "COALESCE(description_zh,'') AS description_zh, sort_order"),
@@ -131,13 +153,13 @@ SEED_TABLES = {
                                "measurement_evidence, criticality_note, is_provisional, "
                                "COALESCE(provisional_note,'') AS provisional_note, sort_order"),
     "kpi_position_templates": (None,
-        "(SELECT p.code FROM public.positions p WHERE p.id = position_id) AS position_code, "
+        "(SELECT p.code FROM {S}.positions p WHERE p.id = position_id) AS position_code, "
         "kpi_ref, title, weight_pct, target_text, "
         "COALESCE(evidence_source,'') AS evidence_source, is_provisional, "
         "COALESCE(provisional_note,'') AS provisional_note, version, sort_order"),
     "kpi_template_org_links": (None,
-        "(SELECT p.code || '/' || t.kpi_ref FROM public.kpi_position_templates t "
-        " JOIN public.positions p ON p.id = t.position_id WHERE t.id = template_id) AS tpl, org_code"),
+        "(SELECT p.code || '/' || t.kpi_ref FROM {S}.kpi_position_templates t "
+        " JOIN {S}.positions p ON p.id = t.position_id WHERE t.id = template_id) AS tpl, org_code"),
     # PROC-WIRE-1B-i:工序的【种类】—— INSTALL SEED。判据与下面那条同源:
     # 加一种工序种类【不是加一行数据】,运行时要先懂得它意味着什么
     # (consumes_input / produces_outputs 驱动 commit_processing_run 的分支)。
@@ -155,6 +177,26 @@ SEED_TABLES = {
     "accounts":    ("is_system", "code, name_en, name_zh, account_type, is_system, "
                                  "is_cash, COALESCE(cash_flow_section,'') AS cash_flow_section"),
 }
+
+
+def _assert_seed_cols_schema_neutral() -> None:
+    """比对表达式里不许出现写死的 public. —— 见 SEED_TABLES 抬头。
+
+    【为什么是断言而不是注释】上面那段注释在被违反的那一刻【什么也不会发生】。
+    这一条会:任何人再写一次 public.,两个工具在【导入的那一瞬间】就起不来,
+    而不是安静地报一整张表的假漂移。零必须是测量,红也必须是真的。
+    """
+    bad = [f"{t}: {cols}" for t, (_w, cols) in SEED_TABLES.items()
+           if re.search(r"\bpublic\.", cols)]
+    if bad:
+        raise SystemExit(
+            "✗ check_mirrors:SEED_TABLES 的比对表达式里写死了 public. —— "
+            "两个工具把镜像放在不同地方(mir schema / 另一个库),写死就是跨 schema 比对。\n"
+            "  【怎么改】把表名写成 {S}.<表>,调用方会各自替换成 public / mir。\n"
+            "  违反的项:\n    " + "\n    ".join(bad))
+
+
+_assert_seed_cols_schema_neutral()
 
 RUNTIME_CONFIG_TABLES = [
     "roles", "role_permissions", "leave_types", "public_holidays",
@@ -745,10 +787,15 @@ def seed_sql() -> str:
     blocks = []
     for tbl, (where, cols) in SEED_TABLES.items():
         w = f" WHERE {where}" if where else ""
+        # ★【每一侧的表名解析到【它自己那一侧】】★ 见 SEED_TABLES 抬头:
+        #   live 侧是 public,mirror 侧是 mir。相关子查询里的表名同样要跟着换 ——
+        #   不换就是拿 mir 的外键去 public 里找,永远找不到,于是整张表"漂移"。
+        cols_live = cols.replace("{S}", "public")
+        cols_mirror = cols.replace("{S}", SCHEMA)
         blocks.append(f"""
     '{tbl}', (
-      WITH l AS (SELECT to_jsonb(x) j FROM (SELECT {cols} FROM public.{tbl}{w}) x),
-           m AS (SELECT to_jsonb(x) j FROM (SELECT {cols} FROM {SCHEMA}.{tbl}{w}) x)
+      WITH l AS (SELECT to_jsonb(x) j FROM (SELECT {cols_live} FROM public.{tbl}{w}) x),
+           m AS (SELECT to_jsonb(x) j FROM (SELECT {cols_mirror} FROM {SCHEMA}.{tbl}{w}) x)
       SELECT jsonb_build_object(
         'live_rows',   (SELECT count(*) FROM l),
         'mirror_rows', (SELECT count(*) FROM m),

@@ -6,6 +6,10 @@
 //     改成 SGD 之后,这句就把"本位币付款"判成了无效,金额显示 0.00(FIN-12);
 //   * 同一句的另一半让 USD 付款按 1:1 折算,1,000 USD 显示成 1,000.00 基准;
 //   * messages 里 "Amount (SGD)" 之类的标签把本位币烤进了译文。
+//     ★【CHECK-1(2026-08-31):而这道检查从来没有扫过 messages/】★
+//       抬头从第一天起就把它列为三个成因之一,scan 目录却只有 app / lib / db。
+//       FX-DISPLAY-1 那个「一个 USD 数字顶着 SGD 的名字」正是住在 messages/en.ts
+//       的 colMarketValue 里 —— **在这道检查够不着的地方**。现在扫了(message-text 类)。
 // 两轮人工扫已经各漏一处。人扫会漏第三处、第四处,所以改成【每次都跑】。
 //
 // 判据【两类】:
@@ -54,7 +58,7 @@
 // 扫描、check-i18n 的后缀清单同一个做法:名单是列出来的,不是记在谁脑子里的。
 //
 // 用法:node scripts/check-currency-literals.mjs   (退出码 0 = 干净)
-import { readdirSync, statSync, readFileSync } from 'node:fs'
+import { readdirSync, statSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const ROOT = new URL('..', import.meta.url).pathname
@@ -355,13 +359,149 @@ for (const dir of ['app', 'lib', 'db']) {
     }
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// ── 第四类:messages/ 里的币种(CHECK-1)────────────────────────────────────
+// 【为什么单独一类、单独一条棘轮】前三类今天都是 0,可以一律拒。messages/ 不是:
+// 实测【76 处】在册(en 40 / zh 36)。把 76 处一次判红,只会让人学会跳过这道门
+// —— 与 check-masked-reads 落地时那 71 处是同一个局面,所以用同一种药:
+// **基线在册,多一处就红。**
+//
+// 【它判什么】messages/*.ts 的非注释行里出现 USD / SGD。
+// 【它【不】判什么 —— 这一条是本次切次最要紧的一句】
+//   它**判断不了这个币种是不是真的**。见文件末尾那段 KNOWN LIMITATION。
+const MSG_DIR = join(ROOT, 'messages')
+const MSG_BASELINE = join(ROOT, 'scripts/currency-messages-baseline.json')
+
+// 报告时按【形状】分组 —— Tim 的要求:后来的读者要能一眼分出
+// "这是 FIN-0 那个病" 与 "这个币种是真的",而不必自己重新推一遍。
+function messageShape(text) {
+    // 【中文的单位也要认】第一版只认 t / kg / tonne,于是「价格 (USD/吨)」被
+    // 归进了 label —— 也就是把一个【真的就是美元】的计量单位,报成了 FIN-0 那个病。
+    // 分组报告的全部用处就是让人不必自己重推一遍,分错了它就没有用处。
+    if (/(USD|SGD)\s*\/\s*(t\b|kg\b|tonne|吨|公斤|克)|USD per tonne/i.test(text)) return 'unit'
+    if (/(Bank|银行)\s*[–—-]\s*(USD|SGD)/i.test(text)) return 'account-name'
+    if (/[((]\s*(USD|SGD)[^))]*[))]/.test(text)) return 'label'
+    return 'prose'
+}
+const SHAPE_NOTE = {
+    label: '把币种烤进列头/标签 —— **FIN-0 那个病**。本位币一改,这些字就成了谎话。',
+    unit: '计量单位(USD/t、USD/kg)—— 金属行情按市场惯例就是美元报价,**这些是真的**。',
+    'account-name': '科目名 / 银行账户名 —— 专有名词,**这些是真的**。',
+    prose: '正文句子里提到币种 —— 要逐句读,机器分不出真假。',
+}
+
+const msgHits = []
+for (const name of readdirSync(MSG_DIR)) {
+    if (!/\.ts$/.test(name)) continue
+    const rel = `messages/${name}`
+    blankBlockComments(readFileSync(join(MSG_DIR, name), 'utf8')).split('\n')
+        .forEach((line, i) => {
+            const t = line.trim()
+            if (t.startsWith('//') || t.startsWith('*')) return
+            if (!CODES.some((c) => line.includes(c))) return
+            const km = /^([A-Za-z_$][\w$]*)\s*:/.exec(t) || /^'([^']+)'\s*:/.exec(t)
+            msgHits.push({
+                rel, line: i + 1, key: km ? km[1] : `<line ${i + 1}>`,
+                text: t.slice(0, 120), shape: messageShape(t),
+            })
+        })
+}
+
+// 【解析出 0 个不是"messages 里没有币种"】—— 与本仓库对"零必须是测量"的一贯口径。
+if (readdirSync(MSG_DIR).filter((n) => /\.ts$/.test(n)).length === 0) {
+    console.error('✗ check-currency-literals:messages/ 下一个 .ts 都没有 —— 解析器坏了,不是没有文案。')
+    process.exit(2)
+}
+
+const msgCounts = new Map()
+for (const h of msgHits) {
+    const k = `${h.rel} :: ${h.key}`
+    msgCounts.set(k, (msgCounts.get(k) ?? 0) + 1)
+}
+
+if (process.argv.includes('--update-messages-baseline')) {
+    writeFileSync(MSG_BASELINE,
+        JSON.stringify(Object.fromEntries([...msgCounts].sort((a, b) => a[0].localeCompare(b[0]))), null, 2) + '\n')
+    console.log(`✓ messages 基线已刷新:${msgCounts.size} 个〈文件 · 键〉,共 ${msgHits.length} 处。`)
+    process.exit(0)
+}
+
+let msgBase
+try {
+    msgBase = JSON.parse(readFileSync(MSG_BASELINE, 'utf8'))
+} catch {
+    console.error('✗ check-currency-literals:读不到 scripts/currency-messages-baseline.json。')
+    console.error('  读不到【不是】空基线 —— 那会把 76 处历史债当成 76 处新债。')
+    console.error('  头一次生成:node scripts/check-currency-literals.mjs --update-messages-baseline')
+    process.exit(2)
+}
+
+const msgAdded = []
+for (const [k, n] of msgCounts) {
+    const was = msgBase[k] ?? 0
+    if (n > was) msgAdded.push({ k, was, now: n })
+}
+const msgGone = Object.keys(msgBase).filter((k) => (msgCounts.get(k) ?? 0) < msgBase[k])
+
+const shapeCounts = {}
+for (const h of msgHits) shapeCounts[h.shape] = (shapeCounts[h.shape] ?? 0) + 1
+
 const bad = hits.filter((h) => !allowed(h))
 for (const h of bad) console.log(`  [${h.kind}] ${h.rel}:${h.line}  ${h.text}`)
 const allowedCount = hits.length - bad.length
 console.log(`\ncurrency literals: ${bad.length} unallowed, ${allowedCount} allowlisted`)
-if (bad.length) {
-    console.log('币种不能写死在判断里 —— 从数据行取,或问 currencies.is_base。')
-    console.log('确有例外就加进 ALLOWLIST 并写明理由。')
+
+// ── messages/ 那一类的判词 ─────────────────────────────────────────────────
+console.log(`messages/:${msgHits.length} 处在册`
+    + `(${Object.entries(shapeCounts).map(([k, v]) => `${k} ${v}`).join(' · ')})`)
+if (msgGone.length) {
+    console.log('· messages 少了几处 —— 有人改好了。基线可以收紧:')
+    for (const k of msgGone) console.log(`     ${k}   ${msgBase[k]} → ${msgCounts.get(k) ?? 0}`)
+    console.log('  刷新:node scripts/check-currency-literals.mjs --update-messages-baseline')
+}
+if (msgAdded.length) {
+    console.log('')
+    console.log('✗ messages/ 里【新增】了写死的币种:')
+    for (const a of msgAdded) {
+        const [rel, key] = a.k.split(' :: ')
+        console.log(`     ${a.k}   (在册 ${a.was} 处,现在 ${a.now} 处)`)
+        for (const h of msgHits.filter((x) => `${x.rel} :: ${x.key}` === a.k)) {
+            console.log(`       第 ${h.line} 行 [${h.shape}]: ${h.text}`)
+            console.log(`       ${SHAPE_NOTE[h.shape]}`)
+        }
+    }
+    console.log('')
+    console.log('【怎么改】把币种做成参数:`\'Amount ({ccy})\'`,由行上的币种或 currencies.is_base 填。')
+    console.log('【确实就是那个币种】(计量单位、科目名)—— 那也要过一遍眼再进基线,')
+    console.log('然后 node scripts/check-currency-literals.mjs --update-messages-baseline。')
+    console.log('**不要**为了让门变绿而直接刷新基线。')
+}
+
+if (bad.length || msgAdded.length) {
+    if (bad.length) {
+        console.log('币种不能写死在判断里 —— 从数据行取,或问 currencies.is_base。')
+        console.log('确有例外就加进 ALLOWLIST 并写明理由。')
+    }
     process.exit(1)
 }
-console.log('✓ 没有把币种当常量用的判断')
+console.log('✓ 没有把币种当常量用的判断,messages/ 也没有【新增】写死的币种')
+// ════════════════════════════════════════════════════════════════════════════
+// ★★【KNOWN LIMITATION —— 这道检查【永远】不会验证一个币种是不是真的】★★
+//
+// 它验证的是:**一个币种被【说出来了】**。它【没有】、也【不会】验证
+// 那个数字真的是那个币种。
+//
+// **一次绿的构建【不】意味着币种被核过了;它意味着屏幕上每一个币种都有人写了出来。**
+//
+// 【为什么不做】CHECK-1 量过:要判断 colMarketValue: 'Market Value (USD)' 是不是
+// 真的,得从这个键一路追到渲染它的组件、追到 marketValuePerKg()、追到
+// metal_prices.price_usd_per_tonne —— 而 **metal_prices 根本没有币种列**:
+// 单位烤在【列名】里。也就是说 schema 里【不存在一个事实】可以拿来与标签比对。
+// 做一个近似出来,就是本仓库已经被咬过两次的那种【夸大自己的检查】
+// (EQP-1c-c-fu 那个把嵌入名当列名的扫描器;check-currency-literals 自己
+//  那句"扫 SQL"从加上到 OPS-8 一直是空的)。**一个声称得比实际多的检查,
+// 比一个缺失的检查更坏** —— 它替人省掉了怀疑。
+//
+// 【那这件事靠什么】靠人读,靠 FX-DISPLAY-1 那种「去亲眼看一眼」。
+// 记在 docs/known-issues.md 的 CCY-VERIFY 条。
+// ════════════════════════════════════════════════════════════════════════════

@@ -15,15 +15,35 @@
 // `?? null`。政策与助手在 lib/db-helpers.ts:mustRows / mustOne / mustCount。
 //
 // ════════════════════════════════════════════════════════════════════════════
-// 【它看不见什么 —— 写在这里,免得"✓ 通过"被当成"没有吞错"】
-// 这一类【不能完全机械化】,下面三种形状本检查抓不到:
-//   * `if (error) return []` / `.catch(() => [])` —— 同样的吞,不同的句法;
-//   * 压根不解构 error,直接 `data?.map(...)` —— 失败时 data 为 null,
-//     可选链把它变成"零行",没有 `??` 可抓;
-//   * 把查询结果传进一个自己会兜底的辅助函数。
-// 抓得到的是【最常见的那一种】,也就是那 320 处的主流形状。
-// 剩下的只能靠评审时问一句"这个查询失败会怎样" —— 这句话没法自动化,
-// 所以它就明写在这里,而不是伪装成检查已经覆盖了。
+// 【CHECK-1(2026-08-31):此前抬头点名的三个盲区,两个补上了,一个补不了】
+//
+// 抬头原本写着三种抓不到的形状。CHECK-1 逐个量了一遍:
+//
+//   ① `if (error) return []` / `return null` / `return 0` —— **补上了**(swallow-return)。
+//      全仓实测【1 处】:app/hr/leave/actions.ts:153,`previewLeaveDays` 把
+//      RPC 失败读成 null。
+//   ② `.catch(() => …)` —— **补上了**(swallow-catch)。全仓实测【1 处】:
+//      app/inbound/[id]/assays/new/AssayForm.tsx:86,计价预览失败只是把转圈停掉。
+//   ③ 压根不解构 error、直接 `data?.map(...)` —— **没补,而且不打算补**。
+//      全仓实测【0 处】,但那不是不补的理由。不补的理由是:`?.` 在这个仓库里
+//      绝大多数用在【已经取到的行】上的可空字段,而那是完全正确的写法。
+//      要把"这个 `data` 是不是一个没检查过的查询结果"判出来,需要跟着变量走 ——
+//      **那是类型/数据流分析,不是文本匹配**。硬做出来的近似会把成百上千处
+//      正确的可选链判红,于是这道检查会被关掉。
+//      **所以它是一条【写下来的约定】,不是一条检查**(Step 1 的最后一条)。
+//      约定:*一个查询结果在被 `?.` 之前,必须先有人看过它的 error。*
+//   ④ 把查询结果传进一个自己会兜底的辅助函数 —— 同 ③,同一个理由,同样不补。
+//
+// 【它看得见什么 —— 三类,各有各的判据】
+//   swallow-coalesce  `data ?? []` / `?? 0` / `?? null`(原有的那一类)
+//   swallow-return    `if (…error…) return []/null/0/{}`(单行与跨行都认)
+//   swallow-catch     `.catch(() => …)` —— 【空手接住】,不重抛、不报错
+//
+// 【它仍然看不见什么 —— 点名,免得"✓ 通过"被当成"没有吞错"】
+//   ✗ 上面的 ③ 与 ④,理由如上,是约定不是检查;
+//   ✗ `.catch(err => { … })` 里【用了】err 的:那可能是正当的错误处理,
+//     也可能是"打个 console.log 就算了"。判不出来,所以不判 —— 只抓空手接住的;
+//   ✗ 跨函数的兜底(A 查、B 兜)。
 // ════════════════════════════════════════════════════════════════════════════
 //
 // 用法:node scripts/check-error-swallowing.mjs   (退出码 0 = 干净)
@@ -76,11 +96,52 @@ const ALLOWLIST = [
     },
 ]
 
+// ── QUEUED:【真缺陷,在册,不是豁免】────────────────────────────────────────
+// ★ 这张表与上面的 ALLOWLIST 【意思相反,不要混】★
+//   ALLOWLIST = "这不是缺陷"(上一行已经把 error 处理掉了,这里的 ?? 到不了)。
+//   QUEUED    = "**这是缺陷**,只是不在这一刀里修" —— 它每一次都会被打印出来,
+//               并且必须写明【去处】。
+//
+// 【为什么不放进 ALLOWLIST】放进去就等于断言它们是对的,而我不相信那句话:
+// 一个静默返回 null 的请假天数预览,正是这个仓库已经付过账的那个形状
+// (FIN-6:页面读不到数据却回 200)。**把一个没被认定为正确的东西记成"已豁免",
+// 是让下一个读的人以为有人核过了。**
+//
+// 【为什么不在这一刀修】CHECK-1 是一刀【只动工具】的切次(R1)。这两处的修法各自
+// 要判断"失败时这个屏幕该说什么",那是权限与错误处理那一刀的活。
+// 【去处:cleanup A】—— 那一刀的主题就是权限与错误处理。
+const QUEUED = [
+    {
+        path: 'app/hr/leave/actions.ts', match: 'if (error) return null',
+        why: 'previewLeaveDays 把 RPC 失败读成 null。调用方拿到 null 会当成"算不出来",'
+            + '而它与"这段请假是 0 天"在屏幕上分不开 —— 与 lib/permissions.ts 里'
+            + '「受限 ≠ 没有」是同一条。修法要先定"失败时那一栏显示什么"。',
+        to: 'cleanup A(权限与错误处理)',
+    },
+    {
+        path: 'app/inbound/[id]/assays/new/AssayForm.tsx', match: '.catch(() => {',
+        why: '计价预览失败时只把 setPreviewing(false) 关掉转圈,屏幕上不留任何痕迹 ——'
+            + '于是"这条配方算不出价"与"还没开始算"长得一样。',
+        to: 'cleanup A(权限与错误处理)',
+    },
+]
+
 const allowed = (h) => ALLOWLIST.some((a) =>
     h.rel.startsWith(a.path) && (!a.match || h.full.includes(a.match)))
+const queued = (h) => QUEUED.find((a) =>
+    h.rel.startsWith(a.path) && (!a.match || h.full.includes(a.match)))
 
-// `xxxRes.data ?? []` / `.data ?? 0` / 解构出来的 `data ?? null`
+// ① `xxxRes.data ?? []` / `.data ?? 0` / 解构出来的 `data ?? null`
 const PATTERN = /(\w*(?:Res|res|result)?\??\.data|\bdata)\s*\?\?\s*(\[\]|0\b|null)/
+
+// ② `if (…error…) return []/null/0/{}` —— 同一个吞,不同的句法。
+//    【只认 return 一个空值的】:`if (error) return { ok:false, msg }` 是在【报告】失败,
+//    不是在吞它 —— 那正是本检查希望人写的东西,判它红就是在惩罚正确的写法。
+const RETURN_PATTERN = /\bif\s*\([^)]*\b[eE]rror\b[^)]*\)\s*\{?\s*return\s*(\[\]|null|0|\{\})\s*[;\n}]/
+
+// ③ `.catch(() => …)` —— 【空手接住】。带参数的(`.catch(e => …)`)不判:
+//    它可能在正当地处理,判不出来就不判(抬头点名过)。
+const CATCH_PATTERN = /\.catch\(\s*(?:async\s*)?\(\s*\)\s*=>/
 
 function* walk(dir) {
     for (const name of readdirSync(dir)) {
@@ -96,23 +157,67 @@ for (const dir of ['app', 'lib']) {
     for (const file of walk(join(ROOT, dir))) {
         const rel = file.slice(ROOT.length)
         if (rel.includes('database.types')) continue
-        readFileSync(file, 'utf8').split('\n').forEach((line, i) => {
+        const lines = readFileSync(file, 'utf8').split('\n')
+        lines.forEach((line, i) => {
             const t = line.trim()
             if (t.startsWith('//') || t.startsWith('*')) return
-            if (PATTERN.test(line)) {
-                hits.push({ rel, line: i + 1, text: t.slice(0, 110), full: line })
+            // 【跨行也要认】`if (error) {` 换行再 `return null` 是同一个吞。
+            // 取两行的窗口而不是一行 —— 实测本仓库今天 0 处,而"今天没有"
+            // 不是"抓不到也没关系"的理由:第 321 处正是这么写出来的。
+            const window = line + '\n' + (lines[i + 1] ?? '')
+            let kind = null
+            if (PATTERN.test(line)) kind = 'coalesce'
+            else if (RETURN_PATTERN.test(window)) kind = 'return'
+            else if (CATCH_PATTERN.test(line)) kind = 'catch'
+            if (kind) {
+                hits.push({ rel, line: i + 1, text: t.slice(0, 110), full: line, kind })
             }
         })
     }
 }
 
-const bad = hits.filter((h) => !allowed(h))
-for (const h of bad) console.log(`  ${h.rel}:${h.line}  ${h.text}`)
-console.log(`\nswallowed query errors: ${bad.length} unallowed, ${hits.length - bad.length} allowlisted`)
+const KIND_LABEL = {
+    coalesce: '?? 空值',
+    return: 'if (error) return 空值',
+    catch: '.catch(() => …) 空手接住',
+}
+
+const bad = [], onQueue = []
+for (const h of hits) {
+    if (allowed(h)) continue
+    const q = queued(h)
+    if (q) onQueue.push({ ...h, q })
+    else bad.push(h)
+}
+
+for (const h of bad) console.log(`  ${h.rel}:${h.line}  [${KIND_LABEL[h.kind]}]  ${h.text}`)
+
+// ── 在册的真缺陷:每一次都打印出来,而且说得出去处 ─────────────────────────
+// 【为什么不是安静地跳过】R3:一个被压下去的违规,与一个不存在的违规,
+// 在输出上长得一模一样。在册不等于消失。
+if (onQueue.length) {
+    console.log('')
+    console.log(`· 在册的吞错 ${onQueue.length} 处 —— **这些是真缺陷,不是豁免**:`)
+    for (const h of onQueue) {
+        console.log(`     ${h.rel}:${h.line}  [${KIND_LABEL[h.kind]}]`)
+        console.log(`       ${h.q.why}`)
+        console.log(`       去处:${h.q.to}`)
+    }
+}
+
+const nAllow = hits.filter(allowed).length
+console.log(`\nswallowed query errors: ${bad.length} unallowed, `
+    + `${onQueue.length} queued(真缺陷,在册), ${nAllow} allowlisted(不是缺陷)`)
+console.log(`   按类别:` + Object.entries(KIND_LABEL)
+    .map(([k, v]) => `${v} ${hits.filter((h) => h.kind === k).length}`).join(' · '))
+
 if (bad.length) {
     console.log('查询失败必须【失败】—— 用 lib/db-helpers.ts 的 mustRows / mustOne / mustCount。')
     console.log('`?? []` 只对【不是查询结果】的东西成立(已取到的行上的嵌套字段、Map.get、客户端状态)。')
-    console.log('确有例外就加进 ALLOWLIST 并写明理由。')
+    console.log('【两张表,意思相反,别放错】')
+    console.log('  · 确认它【不是缺陷】(上一行已经处理了 error)→ ALLOWLIST,写明理由;')
+    console.log('  · 它【是缺陷】但不在这一刀修 → QUEUED,写明理由【和去处】。')
+    console.log('  放错的代价不对称:错记成 ALLOWLIST,下一个读的人会以为有人核过了。')
     process.exit(1)
 }
-console.log('✓ 没有把查询失败读成空集的地方(本检查看得见的那一类)')
+console.log('✓ 没有【新增】把查询失败读成空集的地方(本检查看得见的那三类)')

@@ -191,6 +191,167 @@ def _dropped_before(dropped_fn, schema, name, si, sigs, sql):
     return False
 
 
+
+# ── CHECK-1:遮蔽表加列 —— 【与 gate 同一条规矩,只是把钟拨早】 ─────────────────
+# 【为什么这一条在预检,而 gate 明明已经有了】
+# db/gate.py 的 colgrant(GRANT_GAP_SQL)一直看得见这件事,而且【线上与重建两侧
+# 都问】。三次事故(PROC-COST-1 fu2 / PROC-WIRE-1B-i fu1 / PROC-1B-iii fu1)
+# **没有一次是它漏了** —— 它每一次都会红。问题是它红得【太晚】:gate 是收尾的门,
+# 那时 DDL 已经在线上了,于是每一次都要再写一支 fu 迁移去补,中间是一段
+# 「列存在、每个用户都读不到」的窗口。而那个症状会伪装 —— 读出来是"未记录",
+# 而"未记录"往往是一个合法状态,所以没有人会去查。
+#
+# 所以本条不是新判据,是【同一条判据、更早的钟】:apply_migration.sh 在动库
+# 【之前】读这支迁移,不合规就【拒绝】,DDL 根本不落地。
+#
+# 【判据必须与 gate 逐字相同,这一条是决定性的】
+#   (granted OR in_view) AND (has_view → in_view)
+# 一支比 gate 更严的预检,会拒掉 gate 本来会放行的迁移 —— 而人学到的不是
+# "写对",是 `PREFLIGHT=0`。**一个被人关掉的检查比没有检查更坏。**
+# 由于这里 has_view 恒为真(不是遮蔽表就不查),它收敛成一句:
+#   **这一列必须出现在 <表>_masked 里** —— 授不授权都一样。
+#   授权是【第二个问题】:授了 = 原样透出,没授 = 视图里用 has_permission CASE
+#   遮起来。**没授权不是缺陷** —— 一列价格本来就该是没授权的。
+#   (委托书原本要求"缺授权即失败";那会把每一列刻意遮蔽的价格列都判红。)
+#
+# 【它看得见什么】ALTER TABLE <表> ADD COLUMN <列>,而 <表> 在线上有 _masked 伴生
+#   (或本迁移自己建了那张伴生视图)。
+# 【它看不见什么 —— 点名】
+#   ✗ 动态 DDL(EXECUTE format(...) 拼出来的 ALTER)—— 文本里没有 ADD COLUMN;
+#   ✗ 【本迁移新建】一张遮蔽表:那是 CREATE TABLE,不走 ADD COLUMN 这条路;
+#   ✗ 列【在视图里但没被 has_permission 包住】—— 那是反过来的病(该遮的没遮),
+#     gate 也不看,本条不冒充看得见;
+#   ✗ 视图输出列靠文本识别(`AS <列>` 或独占一行的列名)。视图体若不是
+#     pg_get_viewdef 那种一列一行的排版,可能【放过】一处 —— 宁可漏,不可误拒。
+def _added_columns(sql: str) -> list:
+    """(表名, 列名) —— 本迁移 ALTER TABLE ... ADD COLUMN 加的列。"""
+    out = []
+    for m in re.finditer(r"\bALTER\s+TABLE\s+(?:ONLY\s+)?(?:public\s*\.\s*)?"
+                         r"([a-zA-Z_][\w$]*)([^;]*);", noncomment(sql), re.I):
+        tbl, body = m.group(1).lower(), m.group(2)
+        for c in re.finditer(r"\bADD\s+COLUMN\s+(?:IF\s+NOT\s+EXISTS\s+)?"
+                             r"([a-zA-Z_][\w$]*)", body, re.I):
+            out.append((tbl, c.group(1).lower()))
+    return out
+
+
+def _granted_columns(sql: str) -> set:
+    """(表名, 列名) —— 本迁移 GRANT SELECT (…) ON <表> 授出去的列。"""
+    out = set()
+    for m in re.finditer(r"\bGRANT\s+SELECT\s*\(([^)]*)\)\s*ON\s+(?:TABLE\s+)?"
+                         r"(?:public\s*\.\s*)?([a-zA-Z_][\w$]*)", noncomment(sql), re.I):
+        tbl = m.group(2).lower()
+        for c in m.group(1).split(","):
+            c = c.strip().lower()
+            if c:
+                out.add((tbl, c))
+    return out
+
+
+def _masked_view_bodies(sql: str) -> dict:
+    """<表> → 本迁移里 <表>_masked 的视图体(CREATE [OR REPLACE] VIEW ... ;)。"""
+    out = {}
+    for m in re.finditer(r"\bCREATE\s+(?:OR\s+REPLACE\s+)?VIEW\s+"
+                         r"(?:public\s*\.\s*)?([a-zA-Z_][\w$]*)_masked\b([^;]*);",
+                         noncomment(sql), re.I):
+        out[m.group(1).lower()] = m.group(2)
+    return out
+
+
+def _view_output_columns(body: str) -> set:
+    """视图体里【输出列】的名字 —— 按顶层逗号切 SELECT 列表,而不是按行。
+
+    【为什么不能按行切】第一版是"独占一行的标识符算一列"。它在本仓库大多数
+    _masked 视图上碰巧对(pg_get_viewdef 一列一行),而 CHECK-1 的红/绿演示里
+    **一行写两列就当场误拒了一支完全正确的迁移**。误拒比漏报坏得多:
+    漏报只是没抓到,误拒会让人去关掉这道预检。所以改成真的切列表。
+    """
+    m = re.search(r"\bSELECT\b", body, re.I)
+    if not m:
+        return set()
+    items, depth, cur, k, n = [], 0, [], m.end(), len(body)
+    while k < n:
+        ch = body[k]
+        if ch == "'":                      # 跳过字符串字面量
+            cur.append(ch); k += 1
+            while k < n and body[k] != "'":
+                cur.append(body[k]); k += 1
+            if k < n:
+                cur.append(body[k]); k += 1
+            continue
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+        elif depth == 0:
+            if ch == ",":
+                items.append("".join(cur)); cur = []; k += 1; continue
+            # 顶层 FROM 结束选择列表
+            if ch.upper() == "F" and re.match(r"FROM\b", body[k:k + 5], re.I) \
+                    and (k == 0 or not (body[k - 1].isalnum() or body[k - 1] == "_")):
+                break
+        cur.append(ch); k += 1
+    items.append("".join(cur))
+
+    cols = set()
+    for it in items:
+        it = re.sub(r"--[^\n]*", " ", it).strip()
+        if not it:
+            continue
+        a = re.search(r"\bAS\s+([a-zA-Z_][\w$]*)\s*$", it, re.I | re.S)
+        if a:
+            cols.add(a.group(1).lower()); continue
+        # 没有别名:输出名就是最后一个标识符(处理 x、t.x、schema.t.x)
+        idents = re.findall(r"[a-zA-Z_][\w$]*", it)
+        if idents:
+            cols.add(idents[-1].lower())
+    return cols
+
+
+def check_masked_columns(sql: str, dsn: str) -> tuple:
+    """返回 (状态行, refusals)。见上方抬头:与 gate 的 colgrant 同一条判据。"""
+    added = _added_columns(sql)
+    if not added:
+        return "masked     本迁移不加列", []
+
+    tables = sorted({t for t, _ in added})
+    rows = psql(dsn, "SELECT t, (EXISTS (SELECT 1 FROM information_schema.tables v "
+                     "WHERE v.table_schema='public' AND v.table_name = t || '_masked'))::text "
+                     f"FROM unnest(ARRAY[{','.join(q(t) for t in tables)}]::text[]) t ORDER BY t;")
+    # 【解析出零行不是"没有表"】—— 与本仓库对"零必须是测量"的一贯口径一致。
+    if len(rows) != len(tables):
+        raise SystemExit(f"✗ 预检:问了 {len(tables)} 张表的遮蔽状态,只回来 {len(rows)} 行 —— "
+                         "查不了不等于没问题,不放行")
+    in_migration_views = _masked_view_bodies(sql)
+    masked = {t for t, has in rows if has == "true"} | set(in_migration_views)
+
+    granted = _granted_columns(sql)
+    view_cols = {t: _view_output_columns(b) for t, b in in_migration_views.items()}
+
+    refusals, checked = [], 0
+    for tbl, col in added:
+        if tbl not in masked:
+            continue
+        checked += 1
+        in_view = col in view_cols.get(tbl, set())
+        if in_view:
+            continue
+        how = "已在本迁移里授权" if (tbl, col) in granted else "本迁移没有授权它"
+        refusals.append(
+            f"{tbl}.{col}:{tbl} 是【遮蔽表】(有 {tbl}_masked 伴生),而这一列不在 "
+            f"{tbl}_masked 里({how})。\n"
+            f"      一张表一旦有了 _masked 伴生,**每一列都必须在那张视图里** —— "
+            f"授权与否是第二个问题(授了=原样透出,没授=视图里用 has_permission CASE 遮住)。\n"
+            f"      不补上的后果:这一列写得进、【每一个登录用户都读不出】,"
+            f"而屏幕上它长得和「未填写」一模一样 —— 一个字的报错都不会有。\n"
+            f"      【怎么改】在同一支迁移里 CREATE OR REPLACE VIEW public.{tbl}_masked,"
+            f"把 {col} 加进去(CREATE OR REPLACE 只允许在末尾追加列,而 ALTER 加的列"
+            f"本来就排在末尾,顺序天然对得上)。")
+    line = (f"masked     加了 {len(added)} 列,其中 {checked} 列落在遮蔽表上"
+            + ("" if not refusals else f",{len(refusals)} 列不在 _masked 视图里 ✗"))
+    return line, refusals
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("migration")
@@ -333,13 +494,18 @@ def main() -> int:
                         f"照常继续;若你以为文件里有新版本,它不在(组装漏了半截,"
                         f"SAL-A 那次线上函数缺了几分钟)")
 
+    # ── 4. 遮蔽表加列(CHECK-1)—— 与 gate 的 colgrant 同一条判据,只是更早 ────
+    masked_line, masked_refusals = check_masked_columns(sql, args.dsn)
+    print(masked_line)
+    refusals.extend(masked_refusals)
+
     for w in warnings:
         print(f"  ⚠ {w}")
     for r in refusals:
         print(f"  ✗ {r}")
 
     if refusals:
-        print("✗ 预检拒绝:重载会在线上留下两个版本的同名函数,而镜像只记得一个", file=sys.stderr)
+        print("✗ 预检拒绝 —— 见上面的 ✗ 条目(重载 / 遮蔽表缺列)", file=sys.stderr)
         return 2
     print("✓ 预检通过" + (f"(带 {len(warnings)} 条警告,已放行)" if warnings else ""))
     return 0

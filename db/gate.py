@@ -93,6 +93,12 @@ def _leak_digest(dsn: str) -> str:
 
 def rows_json(dsn: str, table: str, where, cols: str) -> list:
     w = f" WHERE {where}" if where else ""
+    # 【{S} 一律替成 public,而这里【两侧都对】】本工具把镜像建进【另一个库】,
+    # 两个库各有自己的 public —— 与 check_mirrors 把镜像放进同一个库的 mir schema
+    # 不同。占位符的存在正是为了让这个差别显式:那边替成 mir,这边替成 public。
+    # (CHECK-1:此前 SEED_TABLES 里写死 public.,让 check_mirrors 报了一整张
+    #  kpi_position_templates 的假漂移,而本工具因为"碰巧对"一直是绿的。)
+    cols = cols.replace("{S}", "public")
     out = psql(dsn, f"SELECT COALESCE(json_agg(to_jsonb(x) ORDER BY to_jsonb(x)::text), '[]'::json) "
                     f"FROM (SELECT {cols} FROM public.{table}{w}) x;")
     return json.loads(out)

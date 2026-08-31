@@ -3900,3 +3900,129 @@ Tim **没有给条款清单**,所以两张子表**出厂是空的**。本仓库�
 
 **返回条件:下一次有人碰 `db/gate.py`,或者这一句再次逼近 600 秒。**
 它会随表数继续变慢,所以这不是"如果",是"什么时候"。
+
+---
+
+## CHECK-1(2026-08-31):六件工具活的结果,以及**两条委托书自己写错的前提**
+
+本刀**不建任何产品功能**,只让工具抓住它一直漏掉的东西。所有数字都是本刀实测的。
+
+### ★ 先纠正委托书,因为照它做会做出一个错的检查 ★
+
+**(i) 「gate 对遮蔽列的规矩是瞎的」—— 假的。** `db/gate.py` 的 `colgrant`
+(`GRANT_GAP_SQL`)一直看得见这条规矩,而且**线上与重建两侧都问**。本刀把三次
+(实为**四次**)事故的原始迁移逐支喂给判据重放,**每一支都会红**。
+**它从来没有漏过;它红得太晚** —— gate 是收尾的门,那时 DDL 已经在线上了,
+于是每次都要再补一支 fu 迁移,中间是一段「列存在、每个用户都读不到」的窗口。
+**缺陷是【时机】,不是【覆盖】。**
+
+**(ii) 「列不在列级授权里就该失败」—— 照做会把每一列刻意遮蔽的价格列判红。**
+一列价格**本来就该是没授权的**,它靠 `<表>_masked` 里的 `has_permission` CASE 呈现。
+真正的判据是 gate 那一条:`(granted OR in_view) AND (has_view → in_view)`。
+授权与否是**第二个问题**(授了=原样透出,没授=视图里 CASE 遮住),两者都合规;
+不合规的只有一种:**这一列压根不在视图里。**
+
+### 三个同族判词,**名字必须分得开**
+
+| 判词 | 住在哪 | 问什么 | 什么时候 |
+|---|---|---|---|
+| `colgrant` | `db/gate.py` | 线上目录 + 本地重建 | 收尾,**DDL 已在线上** |
+| `masked` | `db/preflight_migration.py` | **这一支还没执行的迁移** | 动库【之前】,**拒绝**(退 2) |
+| `masked-columns` | `scripts/check-masked-columns.mjs` | 仓库的 `db/tables` ↔ `db/views` | `npm run build`,秒级,不连库 |
+
+**① 线上,晚;② 迁移,早,拒;③ 仓库,快。谁也不能当成谁。**
+三者判据**逐字相同** —— 一支比 gate 更严的预检会拒掉 gate 本来会放行的迁移,
+于是人学到的不是"写对",是 `PREFLIGHT=0`。**一个被人关掉的检查比没有检查更坏。**
+
+### 逐项结果(R3:数字先于决定)
+
+| 项 | 在册违规 | 处置 |
+|---|---|---|
+| ① 遮蔽表加列 | 仓库侧 **0**(27 张遮蔽表 / 412 列,全干净) | 建了 ②③ 两支新判词 |
+| ② `check-masked-reads` 看不见内嵌 | **10** 处 | **进基线,不修**(见下) |
+| ③ `check-error-swallowing` 射程 | **2** 处 | **进 QUEUED,不豁免,不修**(见下) |
+| ④ 两个镜像检查打架 | 假阳性 **2** 张表 | **修了 `check_mirrors`**,gate 是对的 |
+| ⑤ 备份可能留下残骸 | — | 改成**隔离名优先** |
+| ⑥ 币种检查够不着 `messages/` | **76** 处 | **进基线,不修**(见下) |
+
+### CHECK-1-EMBED · 10 处内嵌读取遮蔽表(在册,**不是覆盖**)
+
+`.select('… <遮蔽表> ( … ) …')` 这条路一个字都不经过 `.from()`,所以此前整个隐形。
+实测代价:`/inventory/output/[materialId]` 内嵌 `processing_outputs` 基表,
+**对每一个真实用户 42501**,被 `?? []` 吞成「没有库存」—— 而库里有 6 批。
+
+```
+app/finance/expenses/[id]/page.tsx          :: purchase_orders
+app/finance/freight/[id]/page.tsx           :: inbound_batches
+app/finance/receivables/[saleId]/page.tsx   :: invoices
+app/hr/payroll/[id]/page.tsx                :: employees
+app/hr/training/page.tsx                    :: employees
+app/inbound/[id]/edit/page.tsx              :: processing_runs
+app/inventory/output/[materialId]/page.tsx  :: processing_runs
+app/inventory/reports/ledger/ledgerQuery.ts :: inbound_batches
+app/output/[id]/edit/page.tsx               :: processing_runs
+app/processing/[id]/page.tsx                :: inbound_batches
+```
+
+**为什么不在本刀改:** 与 GO-1 那 71 处同一条理由 —— 每一处都要重新判断
+"这条关系上内嵌遮蔽视图行不行、被扣下的列在这里该怎么呈现",那是一处一个判断。
+**这 10 处是【债】,不是【已覆盖】。** 改法可行不是理论:FX-DISPLAY-1 实测
+换成 `processing_outputs_masked ( … )` 之后同一条查询 200。
+
+### CHECK-1-SWALLOW · 2 处真吞错(**在册,而且刻意不记成豁免**)
+
+| 处 | 形状 | 为什么它是缺陷 |
+|---|---|---|
+| `app/hr/leave/actions.ts:153` | `if (error) return null` | `previewLeaveDays` 把 RPC 失败读成 null,而它与「这段请假是 0 天」在屏幕上分不开 |
+| `app/inbound/[id]/assays/new/AssayForm.tsx:86` | `.catch(() => …)` | 计价预览失败只把转圈关掉,屏幕上不留痕迹 |
+
+**它们进的是 `QUEUED` 而不是 `ALLOWLIST`,这个区别是本条的全部要点:**
+`ALLOWLIST` 的意思是"**这不是缺陷**"(上一行已经把 error 处理掉了);
+`QUEUED` 的意思是"**这是缺陷,只是不在这一刀修**"。
+**把一个没被认定为正确的东西记成已豁免,是让下一个读的人以为有人核过了。**
+两处每一次跑都会被打印出来,并带着去处。**去处:cleanup A(权限与错误处理)。**
+
+### CHECK-1-MSG · messages/ 里 76 处写死的币种(**按形状分开,别混着读**)
+
+`check-currency-literals` 的抬头从第一天就把「messages 里 Amount (SGD)」列为三个
+成因之一,而它的扫描目录只有 `app / lib / db` —— **从来没扫过 `messages/`**。
+FX-DISPLAY-1 那个「一个 USD 数字顶着 SGD 的名字」正住在 `messages/en.ts` 里。
+
+| 形状 | 处数 | 读法 |
+|---|---|---|
+| `label` | **36** | 把币种烤进列头 —— **FIN-0 那个病**。本位币一改就成谎话 |
+| `unit` | **20** | `USD/t`、`USD/kg`、`USD/吨` —— 金属按市场惯例就是美元报价,**这些是真的** |
+| `prose` | **16** | 正文句子里提到币种,要逐句读 |
+| `account-name` | **4** | `Bank – SGD` / `银行-USD` —— 专有名词,**这些是真的** |
+
+76 处一次判红正是 R3 禁止的事,所以用与 `check-masked-reads` 同一种药:
+**基线在册(`scripts/currency-messages-baseline.json`),第 77 处就红。**
+
+### ★★ CCY-VERIFY · **一次绿的构建【不】意味着币种被核过了** ★★
+
+**这是一条【永久的】限制,不是一条待办。** `check-currency-literals` 验证的是
+**一个币种被【说出来了】**;它**没有、也不会**验证那个数字真的是那个币种。
+
+> **一次绿的构建不意味着币种是对的。它意味着屏幕上每一个币种都有人写了出来。**
+
+**为什么不做,而不是"以后做"(本刀实测的证据):** 要判断
+`colMarketValue: 'Market Value (USD)'` 是不是真的,得从这个键追到组件、
+追到 `marketValuePerKg()`、追到 `metal_prices.price_usd_per_tonne` ——
+而 **`metal_prices` 根本没有币种列,单位烤在列名里**。
+也就是说 **schema 里不存在一个事实,可以拿来与那个标签比对。**
+做一个近似出来,就是本仓库已经被咬过两次的那种**夸大自己的检查**
+(EQP-1c-c-fu 那个把嵌入名当列名的扫描器;以及这支检查自己那句
+"扫 SQL"从写下到 OPS-8 一直是空的)。**一个声称得比实际多的检查比缺失的检查更坏 ——
+它替人省掉了怀疑。** 这件事靠人读,靠 FX-DISPLAY-1 那种「去亲眼看一眼」。
+
+### 每支检查【看得见 / 看不见】—— 一行一支
+
+| 检查 | 看得见 | **看不见** |
+|---|---|---|
+| `check-masked-columns`(新) | 仓库里 27 张遮蔽表的每一列在不在 `_masked` / GRANT 里 | **线上**;一列该不该遮;视图里 CASE 用的哪个权限码 |
+| `preflight` 的 `masked`(新) | 这一支迁移 `ADD COLUMN` 的列进没进同一支里的 `_masked` | 动态 DDL;`CREATE TABLE` 新建的遮蔽表;视图排版异常时可能漏认一列(宁漏不误拒) |
+| `check-masked-reads`(widened) | `.from('<表>')` **与** `.select()` 里的内嵌 | 拼出来的 select 串;嵌入名与列名分不开;这条查询会不会真的 42501 |
+| `check-error-swallowing`(widened) | `?? 空值` · `if (error) return 空值` · `.catch(() => …)` | 不解构 error 直接 `data?.map()`(**约定,不是检查**);`.catch(e => …)` 用了 e 的;跨函数兜底 |
+| `check-currency-literals`(widened) | 判断 / JSX 正文 / 模板串 / **messages 文案** 里的币种**代码** | **那个币种是不是真的**(见 CCY-VERIFY);`db/migrations/` 历史 |
+| `check_mirrors` 的种子比对(fixed) | 线上 vs 镜像逐行 | 一如既往:RUNTIME CONFIG 表不比 |
+| `backup.sh`(fixed) | pg_dump 退出码 · 体积下限 · TOC 可读 · **TOC 条目数 vs 上一份** | 一次**小幅**截断(按字节 3.8% 那种);唯一完整证据仍是 `BACKUP_EXIT=0` |

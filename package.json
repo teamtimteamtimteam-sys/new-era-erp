@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/check-currency-literals.mjs && node scripts/check-error-swallowing.mjs && node scripts/check-i18n.mjs && node scripts/check-bilingual-concat.mjs && node scripts/check-masked-reads.mjs && node scripts/check-auth-error-swallowing.mjs && node scripts/check-near-duplicate.mjs && next build",
+    "build": "node scripts/check-currency-literals.mjs && node scripts/check-error-swallowing.mjs && node scripts/check-i18n.mjs && node scripts/check-bilingual-concat.mjs && node scripts/check-masked-reads.mjs && node scripts/check-masked-columns.mjs && node scripts/check-auth-error-swallowing.mjs && node scripts/check-near-duplicate.mjs && next build",
     "check:i18n": "node scripts/check-i18n.mjs",
     "start": "next start",
     "lint": "eslint",
@@ -12,7 +12,8 @@
     "check:scratch": "node scripts/check-scratch-rows.mjs",
     "check:masked": "node scripts/check-masked-reads.mjs",
     "check:neardup": "node scripts/check-near-duplicate.mjs",
-    "check:auth": "node scripts/check-auth-error-swallowing.mjs"
+    "check:auth": "node scripts/check-auth-error-swallowing.mjs",
+    "check:maskedcols": "node scripts/check-masked-columns.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
