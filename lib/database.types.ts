@@ -21803,7 +21803,15 @@ export type Database = {
         Args: { p_inbound_batch_id: string }
         Returns: number
       }
+      batch_freight_base_all: {
+        Args: { p_inbound_batch_id: string }
+        Returns: number
+      }
       batch_processing_cost_base: {
+        Args: { p_inbound_batch_id: string }
+        Returns: number
+      }
+      batch_processing_cost_base_all: {
         Args: { p_inbound_batch_id: string }
         Returns: number
       }
@@ -22250,6 +22258,10 @@ export type Database = {
           p_period_start: string
         }
         Returns: Json
+      }
+      inbound_batch_landed_unit_cost: {
+        Args: { p_inbound_batch_id: string }
+        Returns: number
       }
       inbound_unit_price_asof: {
         Args: { p_as_of: string; p_batch_id: string }

@@ -358,6 +358,25 @@ DEFINER_NO_CHECK_ALLOWED = {
     # 遮蔽保护的是"别人看不到",不是"他自己看不到"。范围与待决项见 docs/pdpa.md;
     # "只导出调用者自己"这件事由 db/fixtures/126 的 G 臂断言(含 pronargs = 0)。
     "export_my_personal_data": "no requirable permission exists: the subject IS the caller (auth.uid()), no arguments; DEFINER only bypasses column masking (PDPA-1)",
+    # PROC-COST-2(2026-08-31):两支【计值读取器】与它们共用的单位落地成本。
+    # **它们【必须】没有调用者检查,而这一条与上面每一条的理由都不同 ——
+    # 不是"加了门会在属主身份下抛错",是【加了门就是缺陷本身】。**
+    # 带判据的那一对(batch_freight_base / batch_processing_cost_base)对无权读者
+    # 返回 NULL,那是给【屏幕】的:「受限」与 0.00 不是同一件事。而注销与盘点要
+    # 过账的那个金额【不许取决于谁按的按钮】:一个只有 module.inbound.edit 的仓管
+    # 按下注销时,若计值读的是带判据的那一支,COALESCE(NULL, 0) 会让它安静地退回
+    # 按 unit_price 计值 —— 也就是 PROC-COST-2 正在修的那个缺陷原样复发,
+    # 而且再没有人看得见。所以【算术】与【受众】分成两层,这三支是算术那一层。
+    # 三支的 EXECUTE 都已从 authenticated 收回(db/views/zzz_function_grants.sql),
+    # 靠的就是调不到 —— gate 的 B2(definer-unchecked-and-CALLABLE)因此是 0。
+    # 调用方逐个点名,全部以属主身份执行:
+    #   batch_freight_base_all         ← batch_freight_base / inbound_batch_landed_unit_cost
+    #   batch_processing_cost_base_all ← batch_processing_cost_base / inbound_batch_landed_unit_cost
+    #   inbound_batch_landed_unit_cost ← emit_batch_writeoff_movement(触发器)/ post_stocktake
+    # 理由全文见 docs/landed-cost-relief.md 第四节。
+    "batch_freight_base_all": "EXECUTE revoked from PUBLIC/authenticated/anon; a VALUATION reader must not depend on who pressed the button (PROC-COST-2)",
+    "batch_processing_cost_base_all": "EXECUTE revoked from PUBLIC/authenticated/anon; a VALUATION reader must not depend on who pressed the button (PROC-COST-2)",
+    "inbound_batch_landed_unit_cost": "EXECUTE revoked from PUBLIC/authenticated/anon; called only by the write-off trigger and post_stocktake, both definer and each guarding its own caller (PROC-COST-2)",
 }
 
 CHECK_PATTERNS = ("require_permission(", "has_permission(", "current_user_employee(",

@@ -13,8 +13,9 @@ DECLARE
     v_old_remaining numeric;
     v_new_remaining numeric;
     v_quantity numeric;
-    v_sc_cap uuid;          -- PROC-COST-1:状态改变型的资本化分录
-    v_sc_kind boolean;
+    v_cap uuid;             -- 首挂的资本化分录
+    v_delta_id uuid;        -- PROC-COST-2:重分摊的差额分录,逐张
+    v_code text;
 BEGIN
     PERFORM require_permission('module.processing.edit');
     -- AUDEL-1b:【理由必填】回滚一张加工单是一次很大的操作动作 —— 它软删产出批、
@@ -158,33 +159,62 @@ BEGIN
     PERFORM set_config('evoltrya.soft_delete_ctx', '', true);   -- 用毕即清(同 movement_ctx)
 
     -- ════════════════════════════════════════════════════════════════════════
-    -- PROC-COST-1:【状态改变型 —— 解除资本化,台账与分录在同一个地方一起解除】
-    -- 台账行由 batch_processing_cost_base 按本单的 deleted_at 自动排除(形状免费
-    -- 提供的那一半),分录必须显式冲销 —— 两半都在这里发生,所以它们【永远不会
-    -- 各说各话】。少做任何一半:要么成本留在 1200 上而单已经没了(账挂在一张不
-    -- 存在的单上),要么台账清了而 1200 虚高。
-    -- 【只管状态改变型】转化型的资本化分录在回滚时的处置是【本刀之前就有的行为】,
-    -- 本刀不碰它 —— 那是另一条独立的判断,记在 docs/proc-cost-capitalisation.md。
+    -- 【解除资本化 —— 台账与分录在同一个地方一起解除】(PROC-COST-1 立,
+    --   PROC-COST-2 把工序种类的判断【拿掉】)
+    --
+    -- 台账那一半由基函数按本单的 deleted_at 自动排除(形状免费提供的);
+    -- 分录那一半必须显式冲销 —— 两半都在这里发生,所以它们永远不会各说各话。
+    -- 少做任何一半:要么成本留在存货上而单已经没了(账挂在一张不存在的单上),
+    -- 要么台账清了而存货虚高。
+    --
+    -- ★【PROC-COST-2:这里原来有一句 `IF v_sc_kind`,只管状态改变型】★
+    -- 于是**转化型加工单回滚之后,它的资本化分录(借 1220 / 贷 1200 / 贷 5xxx)
+    -- 原样立着** —— 产出批已经被软删,1220 上却还挂着它的成本。
+    -- 那个判断本刀【拿掉】:两种工序共用同一段代码,不是照着它再写一份。
+    --   * 状态改变型:冲销 借 1200 / 贷 5xxx,成本从原料批上退回费用;
+    --   * 转化型:    冲销 借 1220 / 贷 1200 / 贷 5xxx —— 1220 上的产出成本
+    --     被拿掉,而投料的 1200 同时被还回来,与第 3 步还原 remaining_qty 同向。
+    --
+    -- 【产出批软删【不再】另外入账,这两件事必须一起读】注销触发器在
+    -- reversal 上下文里不写分录 —— 因为解除 1220 的是这里冲销的这张分录。
+    -- 两处都做就是重复计数。
+    --
+    -- ★【差额分录也要冲 —— 只补首挂的话,一张被重分摊过的单仍然错】★
+    -- 转化型重分摊走的是差额路径:capitalization_entry_id 仍指首挂,新的差额
+    -- 分录记在 allocation_snapshot->'delta_entry_ids' 里。只冲首挂,差额留在
+    -- 1220 上,而这张单看起来已经修好了 —— 那是最坏的一种半修。
+    -- (状态改变型不会有差额分录:它走的是冲旧挂新,capitalization_entry_id
+    --  永远指着唯一活着的那一张。这个循环对它自然空转,不需要分支。)
+    --
+    -- 【第四个候选:sales_records 上的 COGS 分录 —— 不需要任何处置】
+    -- 第 2 步的 OUTPUT_CONSUMED 闸在任何产出动过之后就拒绝回滚,而一次销售
+    -- 必然动 remaining_qty。**够不到的东西不需要修,但需要被点名**,
+    -- 否则下一个读到这里的人会把这条推理重做一遍。
     -- ════════════════════════════════════════════════════════════════════════
-    SELECT NOT k.produces_outputs INTO v_sc_kind
-      FROM processing_runs pr
-      JOIN operation_types ot ON ot.code = pr.operation_type_code
-      JOIN operation_kinds k ON k.code = ot.kind_code
-     WHERE pr.id = p_run_id;
+    SELECT code, capitalization_entry_id INTO v_code, v_cap
+      FROM processing_runs WHERE id = p_run_id;
 
-    IF COALESCE(v_sc_kind, false) THEN
-        SELECT capitalization_entry_id INTO v_sc_cap FROM processing_runs WHERE id = p_run_id;
-        IF v_sc_cap IS NOT NULL
-           AND (SELECT status FROM journal_entries WHERE id = v_sc_cap) = 'posted' THEN
-            PERFORM reverse_journal_entry_internal(v_sc_cap, CURRENT_DATE,
-                'Rollback ' || COALESCE((SELECT code FROM processing_runs WHERE id = p_run_id), '?'));
-        END IF;
-        UPDATE processing_runs
-           SET capitalization_entry_id = NULL, capitalized_cost_base = 0
-         WHERE id = p_run_id;
+    IF v_cap IS NOT NULL
+       AND (SELECT status FROM journal_entries WHERE id = v_cap) = 'posted' THEN
+        PERFORM reverse_journal_entry_internal(v_cap, CURRENT_DATE,
+            'Rollback ' || COALESCE(v_code, '?'));
     END IF;
 
+    FOR v_delta_id IN
+        SELECT (jsonb_array_elements_text(
+                    COALESCE(pr.allocation_snapshot->'delta_entry_ids', '[]'::jsonb)))::uuid
+          FROM processing_runs pr WHERE pr.id = p_run_id
+    LOOP
+        IF (SELECT status FROM journal_entries WHERE id = v_delta_id) = 'posted' THEN
+            PERFORM reverse_journal_entry_internal(v_delta_id, CURRENT_DATE,
+                'Rollback ' || COALESCE(v_code, '?'));
+        END IF;
+    END LOOP;
+
+    UPDATE processing_runs
+       SET capitalization_entry_id = NULL, capitalized_cost_base = 0
+     WHERE id = p_run_id;
 
     PERFORM set_config('evoltrya.movement_ctx', '', true);   -- 用毕即清(同 commit)
 END;
-$function$
+$function$;

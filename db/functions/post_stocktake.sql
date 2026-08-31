@@ -35,8 +35,25 @@ BEGIN
         v_lines_total := v_lines_total + 1;
 
         IF v_line.inbound_batch_id IS NOT NULL THEN
-            SELECT code, remaining_qty, deleted_at, unit_price INTO v_code, v_current, v_deleted, v_value
+            SELECT code, remaining_qty, deleted_at INTO v_code, v_current, v_deleted
             FROM inbound_batches WHERE id = v_line.inbound_batch_id FOR UPDATE;
+            -- ════════════════════════════════════════════════════════════════
+            -- PROC-COST-2 · R1:【盘点计值 = 落地成本,与注销同一支函数】
+            -- 改之前这里取的是 unit_price(上一行的 SELECT 列表里),于是一批
+            -- 落地 900 的货盘成 0 只解除 500,**400 留在 1200 上**(线上实测)。
+            --
+            -- ★【两个方向都改,而这是让修复安全的那一半】★
+            -- 下面 v_value 同时喂给盘盈(借库存)与盘亏(贷库存)两支。只改盘亏
+            -- 的实现会让一次"点少了、再点回来"**永久销毁**运费与加工成本 ——
+            -- 那批料一克都没离开过厂房。**一次修复造出来的新缺陷,比被修的更坏。**
+            -- fixture 的 D 臂钉的就是这一条:100 → 50 → 100,1200 必须回到起点。
+            --
+            -- 【读的是 landed_unit_cost,不是带判据的读取器】计值不许取决于
+            -- 谁按的按钮 —— 见本刀迁移抬头第四节。
+            -- 【FOR UPDATE 之后单独取】把函数调用留在 FOR UPDATE 的目标列表里
+            -- 会让人以为它也被锁保护;它不是,它是一次独立的读。分两行写。
+            -- ════════════════════════════════════════════════════════════════
+            v_value := inbound_batch_landed_unit_cost(v_line.inbound_batch_id);
             v_inv_acct := '1200';
         ELSE
             SELECT ob.code, ob.remaining_qty, ob.deleted_at, po.unit_cost_base
@@ -87,6 +104,7 @@ BEGIN
 
             -- cut 2a:有单值的差异行,成对累积分录行(盘盈:借库存 贷 5200;盘亏反向)。
             -- 无值(未计价进料 / 无成本产出)只调量不入账。
+            -- PROC-COST-2:v_value 现在是【单位落地成本】,两支共用它 —— 见上。
             IF v_value IS NOT NULL THEN
                 v_amt := round(abs(v_delta) * v_value, 2);
                 IF v_amt <> 0 THEN

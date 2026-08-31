@@ -175,11 +175,27 @@ BEGIN
         END IF;
 
         -- cut 2a:注销即入账(仅已计值批次,借 5200 / 贷 1200|1220)。
-        -- processing 回滚(reversal_void)不入账:本 cut 不记加工产出/消耗分录,
-        -- void 的产出从未入过 1220,无可冲销。未计值批次只出量不入账。
+        -- 【PROC-COST-2:reversal_void 仍然不入账,但理由换了 —— 这两件事必须一起读】
+        -- 原来的理由是「void 的产出从未入过 1220,无可冲销」。**有了分摊之后那句话
+        -- 不再成立**:已分摊的产出批确实入过 1220。结论仍然成立,只是理由变了 ——
+        -- 解除 1220 的是 rollback_processing_run 冲销的那张资本化分录。
+        -- **两处都做就是重复计数。** 未计值批次只出量不入账。
         IF v_ctx IS NULL OR split_part(v_ctx, ':', 1) <> 'reversal' THEN
             IF TG_TABLE_NAME = 'inbound_batches' THEN
-                v_value := OLD.unit_price;
+                -- ════════════════════════════════════════════════════════════
+                -- PROC-COST-2 · R1:【注销解除的是全部落地成本,不是采购价】
+                -- 改之前这里是 `v_value := OLD.unit_price`,于是一批落地 900 的货
+                -- 注销只解除 500,**400 留在 1200 上,而那批货已经不存在了**
+                -- (线上实测:docs/landed-cost-relief.md 第一节)。
+                -- 【一份实现,两个调用者】post_stocktake 读的是同一支函数 ——
+                -- R1 要求两者一起改,正是因为它们必须永远给出同一个答案。
+                -- 【比例免费】下面 v_amt = remaining_qty × v_value,单位费率乘剩余量,
+                -- 半批注销天然解除一半落地成本,不需要第二套算术。
+                -- 【读的是不带判据的那一支(经 inbound_batch_landed_unit_cost)】
+                -- 计值不许取决于谁按的按钮 —— 一个只有 inbound.edit 的仓管按下注销时,
+                -- 带判据的读取器会返回 NULL,COALESCE 成 0 就等于本缺陷静默复发。
+                -- ════════════════════════════════════════════════════════════
+                v_value := inbound_batch_landed_unit_cost(OLD.id);
                 v_acct := '1200';
             ELSE
                 SELECT po.unit_cost_base INTO v_value

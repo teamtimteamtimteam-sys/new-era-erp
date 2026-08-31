@@ -135,8 +135,8 @@ disposal offsets may be negative"*。照抄那条约束,会让一笔在源表里
 | `stock_snapshot` | 不适用 | 只有数量,不带金额 |
 | 月末:`revalue_foreign_balances` | 不适用 | 存货科目 `is_monetary = false`,重估不碰它 |
 | 月末:`close_financial_year` | 不适用 | 只结转损益类科目 |
-| **注销(`inventory_ledger_triggers`)** | **★ 否 —— 按 `unit_price` 计值** | **实测:落地 900,只解除 500,400 留在 1200** |
-| **盘点(`post_stocktake`)** | **★ 否 —— 同上,取 `unit_price`** | 代码第 38 行;与注销同一条 |
+| **注销(`inventory_ledger_triggers`)** | ~~★ 否~~ → **是(PROC-COST-2 已修)** | 当时实测:落地 900,只解除 500,**400 留在 1200**。现按【单位落地成本】解除,整批注销后 1200 归零 —— `docs/landed-cost-relief.md` |
+| **盘点(`post_stocktake`)** | ~~★ 否~~ → **是(PROC-COST-2 已修,两个方向)** | 与注销共用 `inbound_batch_landed_unit_cost` 一支;盘盈也按落地成本 —— 否则一次「点少了再点回来」会凭空销毁运费与加工成本 |
 
 **最后两行是这一刀交出去的一个真发现**,详情与那次实测的三个数记在
 `docs/known-issues.md`。形状上它是既有缺陷(运费一模一样),
@@ -270,5 +270,5 @@ FIN-24 禁止转化型这么做,是因为成本已顺着产出批流向**已售�
 | **回收视图对一张放电单报"产出未计量"** | 真相是"不适用"。推迟到 1B-ii |
 | **客户预留 vs 加工earmark** | Tim 已裁定**客户预留优先**,但 `set_output_batch_purpose` 今天仍然不看预留。**属于后一刀** |
 | **G29 的质量暂扣那一半** | 仍然停着 |
-| **转化型加工单回滚时,它的资本化分录不被冲销** | **本刀实测发现的既有行为**,不是本刀造成的。`rollback_processing_run` 从来不碰 `capitalization_entry_id`;本刀只为**状态改变型**加了冲销(A3 要求台账与分录一起解除)。转化型那一侧是一条独立的判断 —— 它的产出批被软删时 `inventory_ledger_triggers` 做了什么,要单独查清楚再动。**没有在这一刀里顺手做**:在一个刚碰到它的切次里现写一个会计修正,正是本仓库记过的"匆忙的检查者"形状 |
-| **`batch_freight_base` 对一个只有 `module.processing.view` 的读者会读到 0** | 与第八节同构的既有缺陷(`freight_documents` 的策略是 `inbound.view OR finance.view`)。**本刀没有改它** —— 它不在本刀的射程里,而顺手改一支别的模块的读取器不该混在这一刀里。记在这里,是因为下一个读第八节的人会问"那运费那支呢" |
+| ~~**转化型加工单回滚时,它的资本化分录不被冲销**~~ | **✅ 已关闭(PROC-COST-2,2026-08-31)。** 而查清楚之后是**三处**不对称,不是一处:首挂分录、重分摊的差额分录、以及没有清空的 `capitalization_entry_id`。修法是把工序种类那个判断**拿掉**,让两种工序共用同一段代码 —— 不是给转化型另写一条。`docs/landed-cost-relief.md` 第五节 |
+| ~~**`batch_freight_base` 对一个只有 `module.processing.view` 的读者会读到 0**~~ | **✅ 已关闭(PROC-COST-2,2026-08-31)。** 属主权限 + 体内判据,无权返回 NULL。**而白名单里 `module.processing.edit` 那一格是承重墙**:少了它,材料成本表达式里一个 NULL 加数会让 `SUM` 跳过整条投料腿(实测 750.00 → **0.00**,连采购价一起)。`docs/landed-cost-relief.md` 第六节 |

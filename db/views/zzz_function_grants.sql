@@ -172,3 +172,30 @@ REVOKE EXECUTE ON FUNCTION public.resolve_tax_code(text, text, text, text) FROM 
 -- 收回之后照常工作,靠的就是调不到 —— 与上面 SOD-1 那三支逐字同一条理由。
 REVOKE EXECUTE ON FUNCTION public.real_role_holders(text) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.role_can_see_amounts(text) FROM authenticated;
+
+-- PROC-COST-2(2026-08-31):【计值读取器】与【单位落地成本】三支内层函数。
+-- 三支都是 SECURITY DEFINER 且【没有调用者检查】,而 gate 的 B2 正是查这个。
+-- 它们【不该】有门,需要的是【真的够不着】—— 理由与上面那一族逐字同源,
+-- 但这里的"为什么不加门"有它自己的一条,值得写清楚:
+--
+-- 【为什么这两支【必须】没有判据】batch_freight_base / batch_processing_cost_base
+-- 是【屏幕读取器】,无权返回 NULL(受限)——「受限」与 0.00 不是同一件事。
+-- 而注销与盘点要过账的那个金额【不许取决于谁按的按钮】:一个只有
+-- module.inbound.edit 的仓管按下注销时,若计值读的是带判据的那一支,
+-- COALESCE(NULL, 0) 会让它安静地退回按 unit_price 计值 —— 也就是 PROC-COST-2
+-- 正在修的那个缺陷原样复发,而且再没有人看得见。所以算术与受众拆成两层:
+-- 算术在 _all 这一对里(只有一份定义),受众在带判据的那一对里。
+--
+-- 【唯一的调用方,逐个点名】三支都只从属主身份执行的地方被调用:
+--   · batch_freight_base_all          ← batch_freight_base(definer,带判据)
+--                                       inbound_batch_landed_unit_cost(definer)
+--   · batch_processing_cost_base_all  ← batch_processing_cost_base(definer,带判据)
+--                                       inbound_batch_landed_unit_cost(definer)
+--   · inbound_batch_landed_unit_cost  ← emit_batch_writeoff_movement(触发器,definer)
+--                                       post_stocktake(definer,module.stocktakes.edit)
+-- 给了 authenticated 就等于把【绕过 RLS 的运费与加工成本读取】敞开给任何登录
+-- 用户 —— 那正是带判据的那一对存在的全部理由,而这三支会把它一句话作废。
+-- 收回之后照常工作,靠的就是调不到。
+REVOKE EXECUTE ON FUNCTION public.batch_freight_base_all(uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.batch_processing_cost_base_all(uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.inbound_batch_landed_unit_cost(uuid) FROM authenticated;

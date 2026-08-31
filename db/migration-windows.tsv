@@ -109,3 +109,4 @@
 2026-08-31T11:09:56+0800	2026-08-31-proccost1-fu1-a-carrier-row-must-name-an-input-of-its-own-run.sql	608a308
 2026-08-31T11:48:48+0800	2026-08-31-proccost1-fu2-the-cost-reader-must-not-lose-rows-to-rls.sql	608a308
 2026-08-31T11:50:09+0800	2026-08-31-proccost1-fu3-a-zero-cost-discharge-writes-no-carrier-row.sql	608a308
+2026-08-31T13:17:07+0800	2026-08-31-proccost2-write-off-at-landed-cost-and-two-reversal-asymmetries.sql	7af4b94

@@ -1,14 +1,20 @@
 CREATE OR REPLACE FUNCTION public.batch_freight_base(p_inbound_batch_id uuid)
  RETURNS numeric
  LANGUAGE sql
- STABLE
+ STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-    -- 【派生,不存冗余列】落地成本 = quantity × unit_price + 本函数。
-    -- 冲销掉的运费单不计(status = 'reversed')。
-    SELECT COALESCE(SUM(fa.amount_base), 0)
-    FROM freight_allocations fa
-    JOIN freight_documents fd ON fd.id = fa.freight_document_id
-    WHERE fa.inbound_batch_id = p_inbound_batch_id
-      AND fd.deleted_at IS NULL AND fd.status = 'posted';
+    -- 【屏幕读取器】0.00 与「受限」不是同一件事:第一个是谎话。
+    -- 白名单与 batch_processing_cost_base 逐字相同,理由也逐字相同 ——
+    -- 【edit 也在列】allocate_processing_costs 的调用者必然持有它,于是
+    -- 材料成本表达式里这一支【按构造】不可能是 NULL。一个 NULL 加数会让
+    -- SUM 跳过整条投料腿(连 unit_price 一起),那比读到 0 更坏。
+    SELECT CASE
+        WHEN has_permission('module.inbound.view')
+          OR has_permission('module.finance.view')
+          OR has_permission('module.processing.view')
+          OR has_permission('module.processing.edit')
+        THEN batch_freight_base_all(p_inbound_batch_id)
+        ELSE NULL
+    END;
 $function$;

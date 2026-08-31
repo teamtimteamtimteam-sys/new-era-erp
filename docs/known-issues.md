@@ -3,62 +3,96 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
-## ★ PROC-COST-1:注销与盘点按 `unit_price` 计值,把【资本化的那部分】留在 1200 里(2026-08-31)
+## ★★ SALE-BLIND:`assert_output_batch_saleable` 看不见自己的主语时【静默放行】(PROC-COST-2 实测,2026-08-31)
 
-**实测(全程回滚的探针,不是读代码推理):**
+**严重性:这是本文件里唯一一条失败后果是【卖掉一件不该卖的东西】的读者缺陷。**
+它单独一条,不与下面那一组并列 —— 一条**安全断言**因为看不见主语而放行,
+与一个数字读小了不是同一个量级。
 
-| | |
+`assert_output_batch_saleable` 是 `SECURITY INVOKER`,函数体第一句
+`JOIN public.materials`(策略 `module.materials.view`),主语来自
+`public.output_batches`(策略 `module.output.view`)。查不到就
+
+```sql
+IF NOT FOUND THEN
+    RETURN;   -- 批次不存在不是本函数的题
+END IF;
+```
+
+**"批次不存在"与"我看不见这个批次"在这里是同一格,而它们是两件事。**
+
+**实测(真角色,`SET LOCAL ROLE authenticated`,全程回滚):**
+
+| 读者 | 同一批【已指定为下游投料】的产出批 |
 |---|---|
-| 一批 100kg @ 5,资本化了 400 的加工成本 | **落地成本 = 900** |
-| 整批注销,分录从 `1200` 解除 | **500**(= `quantity × unit_price`) |
-| **留在 1200 里、无人认领** | **400** |
+| 持全部权限 | `SALE_BATCH_EARMARKED\|OUT-2026-0002\|下游工序投料\|Feed for a downstream operation` |
+| 只有 `module.processing.view` | **没有抛任何异常 —— 断言通过** |
 
-`inventory_ledger_triggers` 的注销支取 `OLD.unit_price`(第 182 行),
-`post_stocktake` 取的也是 `unit_price`(第 38 行)。两处都**不读**
-`batch_freight_base` / `batch_processing_cost_base`。于是一批带着资本化成本的货
-被注销或盘亏之后,存货科目上留下一个**没有对应实物**的余额。
+**可达性:它的唯一调用方 `guard_batch_form_saleable` 是一个【不带 SECURITY
+DEFINER】的触发器函数**,也就是说它以**调用者身份**运行,RLS 对它生效。
+所以这不是一条"够不到"的缺陷。
 
-**这在形状上是既有缺陷 —— FRT-1 的运费有完全相同的问题**(注销一批带运费的货,
-运费那部分同样留在 1200)。**但它今天之所以是零,只是因为线上没有一张已过账的
-运费单**(见下面那一条)。**PROC-COST-1 让它第一次带着真金额可达。**
+**为什么本刀不修:** PROC-COST-2 的射程是 `batch_freight_base` 一支,
+而这是**销售侧的安全闸**,改它要先裁定"看不见主语时该拒还是该放"——
+本刀已经为"照抄一个先例之前先问它成立的条件"付过一次账(见
+`docs/landed-cost-relief.md` 第六节),不在这里重犯。
+**它有自己的队列条目**,不埋在下面那一组里。
 
-**为什么不在这一刀里修:** 它需要一次会计裁定 —— 注销一批货时,已资本化的加工
-成本该借 `5200`(存货调整损益,与主体同科目)还是别的地方?盘亏呢?
-而且要**同时**改注销与盘点两条路,否则两者会给出不同的答案 ——
-本仓库对"在刚绊倒自己的一刀里现写一个修正"有成文的处置(匆忙的检查者)。
-**记在这里,并且带着那个 900 / 500 / 400 的实测数,下一刀不必重新量。**
+## INVOKER-JOIN-5:五支【属主权限之外】的读取器,读不到就悄悄给一个数(PROC-COST-2 普查,2026-08-31)
 
-## PROC-COST-1:转化型加工单回滚时,它的【资本化分录】不被冲销(2026-08-31)
+**这一族的定义(OPS-14 的 `xmodule` 那一支):** 一支 `SECURITY INVOKER` 的函数
+JOIN 了一张读者可能看不见的表。`colreader` 问的是【列】—— 读不到就 42501,响亮;
+这一族问的是【行】—— 读不到就**无声消失**,而函数照样算出一个数。
+**`0.00` 与「受限」不是同一件事:第一个是谎话。**
 
-`rollback_processing_run` 从来不碰 `capitalization_entry_id`。也就是说:一张
-**已分摊**的转化型加工单被回滚之后,它的 `借 1220 / 贷 5xxx` 仍然是 `posted`,
-而它的产出批已经软删。**这是本刀之前就有的行为,不是本刀造成的。**
+**PROC-COST-2 修的是 `batch_freight_base` 一支,下面五支【一支都没有动】。**
+每一条都带**实测数字**,不是读策略推理出来的 —— 都用真角色跑过
+(`SET LOCAL ROLE authenticated` + 各自的 `request.jwt.claims`,全程回滚)。
 
-**本刀只为【状态改变型】加了冲销** —— A3 要求"台账与分录在同一个地方一起解除",
-而那条要求是对本刀新建的那条路说的。转化型那一侧是**一条独立的判断**:
-产出批被软删时 `inventory_ledger_triggers` 到底做了什么(它的注释说
-"reversal_void 不入账 —— 加工产出从未入过 1220",而**已分摊**的产出批显然入过),
-要单独查清楚再动。
+| 函数 | 有权读者 | 无权读者 | 症状 |
+|---|---|---|---|
+| `bank_book_balance_asof('1010')` | **−29,753.70** | **0.00** | 银行账面余额读成零,而不是「受限」 |
+| `attendance_unpaid_days(emp, 2027-12)` | **3.00** 天 | **0** 天 | 少算的无薪天数 = **多发的工资** |
+| `resolve_review_reviewer(emp)` | `4737faa9-…` | **NULL** | 静默的"没有评审人";`hr_alerts` 会把它当成真的没有 |
+| `sale_settlement_compute` 读的 `assay_results` | **4 行** | **0 行** | 结算读到一份空化验(端到端金额未测,只测了行消失这一机制) |
+| `journal_activity_lines(NULL,NULL,true)` | **166 行** | **0 行** | 见下面那段 —— **它本身大概率不是缺陷** |
 
-**为什么不在这一刀里顺手做:** 在一个刚碰到它的切次里现写一个会计修正,
-正是本仓库记过的**"匆忙的检查者"**形状。可达性:`rollback_processing_run` 只在
-所有产出批都未被动过时才放行,所以"已分摊 + 未动过 + 回滚"是可达的。
+**`journal_activity_lines` 要单独说,否则下一个人会去"修"一件对的事。**
+它的函数头明写自己是 invoker、并且论证过这是**刻意的**:直接调它的登录用户
+走 `journal_lines` 自己的 RLS,拿不到比 PostgREST 直查更多的东西;三个 definer
+调用方各自先 `require_permission`。**空集对一个"分录行清单"是正确答案。**
+真正的缺陷在**它上面那一层**:`bank_book_balance_asof` 把这个空集 `SUM` 成
+**0.00** 并当作余额返回 —— 那一层才是要修的地方。
 
-## PROC-COST-1:`batch_freight_base` 对一个只有 `module.processing.view` 的读者读到 0(2026-08-31)
+**★ 一支查过之后【不是】缺陷的:`index_period_average`。** 结构上完全同族
+(invoker + `JOIN index_market_calendar`,策略 `module.pricing.view`),
+但 PRICE-1 fu1 已经在函数体里加了按名拒绝。实测:无 `module.pricing.view` 的
+读者得到 **`PRICING_PERMISSION_DENIED|module.pricing.view`**,不是一个数。
+**它被列在这里,是因为"我查过了,它是好的"与"我没查"在下一份普查里长得一模一样。**
 
-与 `docs/proc-cost-capitalisation.md` 第八节**同构**的既有缺陷。
-`batch_freight_base` 是 `SECURITY INVOKER`,函数体 `JOIN freight_documents`,
-而那张表的 SELECT 策略是 `module.inbound.view OR module.finance.view` ——
-**没有 processing**。于是一个只有 `module.processing.view` 的读者调它,
-行被丢掉、安静地得到 0。
+**删除条件:** 每一支各自改成"属主权限 + 体内判据,无权返回 NULL 或按名拒"
+(OPS-14 处置表的 (a) 支,`batch_freight_base` / `batch_processing_cost_base`
+是两个现成的样板),并各自补一条真角色的 fixture 臂。
 
-本刀把**自己那一支**(`batch_processing_cost_base`)改成了属主权限 + 体内判据
-(fu2),**没有改运费那一支** —— 它不在本刀的射程里,而顺手改一支别的模块的
-读取器不该混在这一刀里。记在这里,是因为下一个读第八节的人会问"那运费那支呢"。
+## LANDED-DENOM:成本资本化到一批【已被消耗过一部分】的料上时,注销少解除一点(PROC-COST-2 记录,2026-08-31)
 
-**今天的实际影响很小但不是零:** 线上 `freight_allocations` 只有 1 行,
-且它所属的运费单不是 `posted`,所以每一批的 `batch_freight_base` 今天都是 0 ——
-**对所有读者都是 0**,分不出对错。它会在第一张真的运费单落地那天显形。
+单位落地成本的分母是 `inbound_batches.quantity`(整批原始数量),
+与 `allocate_processing_costs` 材料成本表达式**已经在用**的分母逐字相同。
+这让"消耗"与"注销"两条路恰好互补,而**一批未动过的货整批注销之后 1200 上
+一分不剩**(fixture 161 A 臂钉的就是这个)。
+
+**残差:** 若一批 100kg 已经被下游吃掉 40kg,此后一张放电单把 500 资本化上去,
+那 500 是挂在**剩下的 60kg** 身上的;而 `÷ quantity` 的费率是 500/100,
+于是把 60kg 全部注销只解除 300,**200 搁浅**。
+
+**这个不精确是【继承来的】,不是 PROC-COST-2 造成的** —— 消耗那条路用同一个
+分母,同样少解除。**为什么不换成载体行自己的 `basis_qty`:** 那会在相反方向上
+更坏 —— 一张只处理了 100kg 中 30kg 的单,费率 500/30,整批注销解除 1,666.67
+而 1200 上只有 500,**把 1200 打成负数**;而且它要把 `allocate_processing_costs`
+一起拖进来改,为了一个更坏的答案。
+
+**真正的修法需要【子批身份】**(这批 100kg 里的哪 30kg 被放过电),而载体表
+按 `inbound_batch_id` 记地址,表达不了它。**那是一个功能,不是一次更正。**
 
 ## AGING-1:账龄那两张视图【收未来到货的批次】,而 as-at 函数不收(2026-08-27)
 
