@@ -1,36 +1,35 @@
 // lib/valuation.ts
 // 库存估值 + 库龄的共享助手(纯模块,服务端/客户端皆可用)。
 //
-// 库龄阈值目前是写死的常量(30/90 天),只做提示性上色;
-// 危废贮存的合规期限(及告警)是 Phase 5 的事,届时再抽成可配置。
+// ★【库龄档位的定义【不在这里】—— INV-VAL-1 把第二份定义删掉了】★
+// 曾经这里有一份 AGING_BANDS(30 / 90 两档半),而库里另有一份 aging_bucket
+// (0-30 / 31-60 / 61-90 / 90+,AGING-1 明写它被抽出来正是因为边界写了三遍)。
+// 两份的边界【本来就不一样】:75 天的一批货在 DB 里是 b61_90,在这里是 warn。
+// 没人报过这个 bug,因为这一份只用来上色 —— 而那正是第二份定义最能活得久的形态。
+// 现在档位由 inbound_batch_valuation / output_batch_valuation 带出来(视图里调
+// aging_bucket),本模块只把【档位映射成颜色】。映射是表现,不是边界:
+// 改颜色改这里,改边界改 aging_bucket,两件事再也不会互相冒充。
 //
 // 市价口径:金属价为 USD/吨,批次量按 kg 记(与 allocate_processing_costs 的假设一致),
 // 故每公斤市价 = Σ(含量%/100 × 价格/1000)。
 
 export type AgingTone = 'ok' | 'warn' | 'alert'
 
-export const AGING_BANDS: { maxDays: number; tone: AgingTone }[] = [
-    { maxDays: 30, tone: 'ok' },
-    { maxDays: 90, tone: 'warn' },
-    { maxDays: Infinity, tone: 'alert' },
-]
+// 【agingDays 也删了】INV-VAL-1:天数改由视图给(CURRENT_DATE - 基准日,
+// 在库里算一次),于是这支 TS 实现没有调用方。**留着不调用的第二实现,
+// 下一个人一定会调用它** —— 那正是上面那段说的 AGING_BANDS 的下场。
 
-// 库龄天数:baseDate(YYYY-MM-DD)到今天,UTC 日期差(避免时区把同一天算成 ±1)。
-export function agingDays(baseDate: string | null): number | null {
-    if (!baseDate) return null
-    const base = Date.parse(baseDate) // 'YYYY-MM-DD' 按 UTC 午夜解析
-    if (Number.isNaN(base)) return null
-    const now = new Date()
-    const todayUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-    return Math.round((todayUtc - base) / 86_400_000)
-}
-
-export function agingTone(days: number | null): AgingTone | null {
-    if (days === null) return null
-    for (const band of AGING_BANDS) {
-        if (days <= band.maxDays) return band.tone
+// 档位 → 颜色。【只做映射,不划边界】边界的唯一定义是 DB 的 aging_bucket。
+// 档位算不出来(没有基准日期)时返回 null —— 调用方据此渲染 '—',
+// 而不是一个"0 天"或"90 天以上"。两者都是假话,后者尤其是。
+export function toneForBucket(bucket: string | null): AgingTone | null {
+    switch (bucket) {
+        case 'b0_30':    return 'ok'
+        case 'b31_60':   return 'warn'
+        case 'b61_90':   return 'warn'
+        case 'b90_plus': return 'alert'
+        default:         return null
     }
-    return null // unreachable(最后一档 maxDays 为 Infinity)
 }
 
 // 库龄 pill 的上色(两个钻取页共用,免得类名漂移)

@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import { STAGE_OPTIONS, labelKeyForValue } from '@/app/inbound/options'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatMoneyBare } from '@/lib/format'
-import { agingDays, agingTone, AGING_TONE_CLASSES } from '@/lib/valuation'
+import { toneForBucket, AGING_TONE_CLASSES } from '@/lib/valuation'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 
@@ -19,8 +19,18 @@ type Row = {
     unit: string
     stage: string
     arrival_date: string | null
-    unit_price: number | null
     suppliers: { legal_name: string } | null
+}
+
+// INV-VAL-1:估值视图的一行。landed_* 在没有 data.view_prices 时是 null
+// (受限),而 unpriced 说的是"这批货有没有价" —— 两个判据,不许合并。
+type Val = {
+    id: string
+    landed_unit_cost: number | null
+    landed_value_base: number | null
+    unpriced: boolean
+    aging_days: number | null
+    aging_bucket: string | null
 }
 
 export default async function InboundDrillPage({
@@ -37,15 +47,23 @@ export default async function InboundDrillPage({
     const supabase = await createClient()
     const t = await getTranslations()
 
-    const [matRes, batchesRes] = await Promise.all([
+    // INV-VAL-1:行数据仍从遮蔽表取(供应商要内嵌,而视图没有外键),
+    // 【钱与库龄档从估值视图取】—— 口径与注销/盘点/勾稽同一份,
+    // 档位是 aging_bucket 的结果,屏幕不再自己划边界。
+    const [matRes, batchesRes, valRes] = await Promise.all([
         supabase.from('materials').select('name').eq('id', materialId).single(),
         supabase
             .from('inbound_batches_masked')
-            .select('id, code, quantity, remaining_qty, unit, stage, arrival_date, unit_price, suppliers ( legal_name )')
+            .select('id, code, quantity, remaining_qty, unit, stage, arrival_date, suppliers ( legal_name )')
             .eq('material_id', materialId)
             .is('deleted_at', null)
             .gt('remaining_qty', 0)
             .order('remaining_qty', { ascending: false }),
+        supabase
+            .from('inbound_batch_valuation')
+            .select('id, landed_unit_cost, landed_value_base, unpriced, aging_days, aging_bucket')
+            .eq('material_id', materialId)
+            .gt('remaining_qty', 0),
     ])
 
     if (matRes.error || !matRes.data) {
@@ -53,13 +71,17 @@ export default async function InboundDrillPage({
     }
 
     const rows = (batchesRes.data as unknown as Row[] | null) ?? []
+    const valById = new Map<string, Val>()
+    for (const v of (valRes.data as unknown as Val[] | null) ?? []) valById.set(v.id, v)
     const total = rows.reduce((s, r) => s + r.remaining_qty, 0)
-    // 估值汇总:只累计有单价的批次;未计价的单独计数提示
+    // 估值汇总:只累计【拿得到到岸成本】的批次;未计价的单独计数提示。
     const totalValue = rows.reduce(
-        (s, r) => s + (r.unit_price !== null ? r.remaining_qty * r.unit_price : 0),
+        (s, r) => s + (valById.get(r.id)?.landed_value_base ?? 0),
         0
     )
-    const unpricedCount = rows.filter((r) => r.unit_price === null).length
+    // 【判据是 unpriced,不是"金额取不到"】受限读者的 landed_* 全是 null,
+    // 拿它当未计价,这个徽标会对 operations 报出"全部未计价"—— 一句假话。
+    const unpricedCount = rows.filter((r) => valById.get(r.id)?.unpriced === true).length
 
     const stageLabel = (v: string) => {
         const k = labelKeyForValue(STAGE_OPTIONS, v)
@@ -108,8 +130,9 @@ export default async function InboundDrillPage({
                 </thead>
                 <tbody>
                     {rows.map((r) => {
-                        const days = agingDays(r.arrival_date)
-                        const tone = agingTone(days)
+                        const v = valById.get(r.id)
+                        const days = v?.aging_days ?? null
+                        const tone = toneForBucket(v?.aging_bucket ?? null)
                         return (
                             <tr key={r.id}>
                                 <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
@@ -125,14 +148,18 @@ export default async function InboundDrillPage({
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">{r.arrival_date ?? '—'}</td>
                                 <td className="border border-gray-300 px-4 py-2">
-                                    {r.unit_price !== null ? (
-                                        formatMoneyBare(r.unit_price, '列头「单价 (SGD)」')
+                                    {v?.landed_unit_cost != null ? (
+                                        formatMoneyBare(v.landed_unit_cost, '列头「到岸单位成本 (SGD)」')
                                     ) : (
-                                        <span className="text-gray-400">{t('valuation.unpriced')}</span>
+                                        <span className="text-gray-400">
+                                            {v?.unpriced ? t('valuation.unpriced') : t('valuation.priceRestricted')}
+                                        </span>
                                     )}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
-                                    {r.unit_price !== null ? formatMoneyBare(r.remaining_qty * r.unit_price, '列头「批次价值 (SGD)」') : '—'}
+                                    {v?.landed_value_base != null
+                                        ? formatMoneyBare(v.landed_value_base, '列头「批次价值 (SGD)」')
+                                        : '—'}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
                                     {days !== null && tone !== null ? (

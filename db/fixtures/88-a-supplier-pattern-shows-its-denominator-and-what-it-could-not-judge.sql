@@ -181,17 +181,39 @@ BEGIN
     -- 是另一张表上的约束。一条断言对了结果、说错了原因的注释,下一个人会照着它
     -- 去找一条并不存在的约束。
     --
-    -- D1:带货的无日期收货【被拒】,而且拒它的是流水那条约束。
+    -- ★【INV-VAL-1(2026-08-31)改了拒它的【是谁】,而且改对了】★
+    --   从前拦截是【间接】的:收货触发器把 arrival_date 抄成流水的 business_date,
+    --   于是【带货的】无日期收货撞上流水那条 NOT VALID 约束。
+    --   **那个拦截是个巧合,而且漏了一半** —— remaining_qty = 0 的收货不产生流水
+    --   (emit_batch_receipt_movement 提前返回),于是它畅通无阻。
+    --   D2 造的正是这一半;**线上那 7 张历史无日期行也正是这么来的**。
+    --
+    --   R9 把"到货日必填"变成一条【直接的、具名的】规矩:
+    --   guard_arrival_date_not_cleared 在 BEFORE INSERT 上拒,不管带不带货。
+    --   于是这里的判据从"拒绝来自 business_date"改成"拒绝是 ARRIVAL_DATE_REQUIRED"
+    --   —— 它是 raise_exception,不再是 check_violation,所以异常分支也跟着改。
     v_msg := NULL;
     BEGIN
         INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date)
         VALUES ('FX88-NODATE', mat, sup_1of5, 10, 'kg', 10, NULL);
-        RAISE EXCEPTION 'FIXTURE 88D1 带货的无日期收货本应被拒(流水的 business_date 必填),却插进去了';
-    EXCEPTION WHEN check_violation THEN
+        RAISE EXCEPTION 'FIXTURE 88D1 无日期收货本应被 ARRIVAL_DATE_REQUIRED 拒,却插进去了';
+    EXCEPTION WHEN raise_exception THEN
         v_msg := SQLERRM;
     END;
-    IF v_msg IS NULL OR position('business_date' in v_msg) = 0 THEN
-        RAISE EXCEPTION 'FIXTURE 88D1 拒绝应当来自 business_date 那条约束,实得:%', COALESCE(v_msg, '(没有拒绝)');
+    IF v_msg IS NULL OR position('ARRIVAL_DATE_REQUIRED' in v_msg) = 0 THEN
+        RAISE EXCEPTION 'FIXTURE 88D1 拒绝应当是 ARRIVAL_DATE_REQUIRED(R9 的直接守卫),实得:%', COALESCE(v_msg, '(没有拒绝)');
+    END IF;
+    -- 【零货的那一半现在也拒】—— 这一条是新的,从前它是漏的。
+    v_msg := NULL;
+    BEGIN
+        INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date)
+        VALUES ('FX88-NODATE0', mat, sup_1of5, 10, 'kg', 0, NULL);
+        RAISE EXCEPTION 'FIXTURE 88D1 零货的无日期收货【也】应被拒 —— 从前它靠"不产生流水"绕过去,那正是历史无日期行的来源';
+    EXCEPTION WHEN raise_exception THEN
+        v_msg := SQLERRM;
+    END;
+    IF v_msg IS NULL OR position('ARRIVAL_DATE_REQUIRED' in v_msg) = 0 THEN
+        RAISE EXCEPTION 'FIXTURE 88D1 零货那一条的拒绝也应当是 ARRIVAL_DATE_REQUIRED,实得:%', COALESCE(v_msg, '(没有拒绝)');
     END IF;
 
     -- D2:【自带数据】造两条无日期收货(remaining_qty = 0,所以不产生流水),
@@ -204,12 +226,22 @@ BEGIN
     UPDATE purchase_orders SET status = 'receiving' WHERE id = po_1;
     PERFORM set_config('evoltrya.po_status_ctx', '', true);
     -- 无日期 + 挂采购行 + 只收到 100/1000(短 90%)→ 它【带着差异】
+    -- ★【这两行是【历史行】,而 R9 之后只能这么造出来】★
+    --   到货日现在是【建的时候必填】(ARRIVAL_DATE_REQUIRED,见 D1),所以
+    --   一条【新的】无日期收货再也进不来。但线上有 7 张这样的历史行(全部早于
+    --   IOD-2-fu1),而 R9 明写【不许回填】—— 它们会一直在。
+    --   supplier_receipt_pattern 因此仍然必须把它们分类对,这一臂测的就是那件事。
+    --   造法:关掉那条守卫插进去 —— 模拟"这一行比这条规矩还老"。
+    --   (守卫只拦【建】与【由有变无】,不拦已经是 NULL 的行继续存在。)
+    SET CONSTRAINTS ALL IMMEDIATE;
+    ALTER TABLE inbound_batches DISABLE TRIGGER guard_arrival_date_not_cleared;
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty,
                                  arrival_date, purchase_order_id, purchase_order_line_id)
     VALUES ('FX88-UND1', mat, sup_1of5, 100, 'kg', 0, NULL, po_1, l);
     -- 无日期 + 不挂采购行 → 它没有差异可言
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date)
     VALUES ('FX88-UND2', mat, sup_1of5, 50, 'kg', 0, NULL);
+    ALTER TABLE inbound_batches ENABLE TRIGGER guard_arrival_date_not_cleared;
     PERFORM set_config('evoltrya.po_status_ctx', '1', true);
     UPDATE purchase_orders SET status = 'closed' WHERE id = po_1;
     PERFORM set_config('evoltrya.po_status_ctx', '', true);
@@ -229,7 +261,7 @@ BEGIN
     IF rec.undated_with_discrepancy <> 1 THEN
         RAISE EXCEPTION 'FIXTURE 88D2 两条无日期里只有一条带差异,undated_with_discrepancy 应为 1,实得 %。这个数回答的是"把日期补上会不会改变结论"。', rec.undated_with_discrepancy;
     END IF;
-    RAISE NOTICE '88D 带货的无日期收货被 business_date 拒;零货的两条进 undated(不进分母、不算 excluded),其中 1 条带差异 ✓';
+    RAISE NOTICE '88D 无日期收货被 ARRIVAL_DATE_REQUIRED 拒(带货与零货【两半都拒】,R9);历史的两条进 undated(不进分母、不算 excluded),其中 1 条带差异 ✓';
 
     -- ══════════════════════════════════════════════════════════════════════════
     -- E. 窗口边界:两边各钉一天,【边界当天必须在内】(谓词是 >=)

@@ -9,8 +9,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { formatMoneyBare, formatUnitCost } from '@/lib/format'
 import { mustOne, mustRows } from '@/lib/db-helpers'
 import {
-    agingDays,
-    agingTone,
+    toneForBucket,
     AGING_TONE_CLASSES,
     latestPriceByMetal,
     marketValuePerKg,
@@ -50,7 +49,7 @@ export default async function OutputDrillPage({
 
     const todayYmd = new Date().toISOString().slice(0, 10)
 
-    const [matRes, batchesRes, settingsRes, pricesRes] = await Promise.all([
+    const [matRes, batchesRes, settingsRes, pricesRes, ageRes] = await Promise.all([
         supabase.from('materials').select('name').eq('id', materialId).single(),
         supabase
             .from('output_batches')
@@ -69,6 +68,13 @@ export default async function OutputDrillPage({
             .select('metal, price_usd_per_tonne, price_date, price_index')
             .is('deleted_at', null)
             .lte('price_date', todayYmd),
+        // INV-VAL-1(R4):库龄档【从 DB 取】—— aging_bucket 是唯一一处边界定义,
+        // 屏幕不再自己划 30/90。天数一并带出来,免得两边各算一次。
+        supabase
+            .from('output_batch_valuation')
+            .select('id, aging_days, aging_bucket')
+            .eq('material_id', materialId)
+            .gt('remaining_qty', 0),
     ])
 
     if (matRes.error || !matRes.data) {
@@ -94,6 +100,11 @@ export default async function OutputDrillPage({
         woRows.forEach((w) => woCode.set(w.id, w.code))
     }
 
+    const ageById = new Map<string, { aging_days: number | null; aging_bucket: string | null }>()
+    for (const a of (ageRes.data as unknown as { id: string; aging_days: number | null; aging_bucket: string | null }[] | null) ?? []) {
+        ageById.set(a.id, a)
+    }
+
     const valued = rows.map((r) => {
         const unitCost = r.processing_outputs[0]?.unit_cost_base ?? null
         const perKg = marketValuePerKg(r.output_batch_metals, priceByMetal)
@@ -102,7 +113,8 @@ export default async function OutputDrillPage({
             unitCost,
             costValue: unitCost !== null ? r.remaining_qty * unitCost : null,
             marketValue: perKg !== null ? r.remaining_qty * perKg : null,
-            ageDays: agingDays(r.output_date),
+            ageDays: ageById.get(r.id)?.aging_days ?? null,
+            ageBucket: ageById.get(r.id)?.aging_bucket ?? null,
         }
     })
 
@@ -171,7 +183,7 @@ export default async function OutputDrillPage({
                 </thead>
                 <tbody>
                     {valued.map((r) => {
-                        const tone = agingTone(r.ageDays)
+                        const tone = toneForBucket(r.ageBucket)
                         return (
                             <tr key={r.id}>
                                 <td className="border border-gray-300 px-4 py-2 font-mono text-sm">

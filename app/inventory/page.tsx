@@ -1,6 +1,13 @@
 // app/inventory/page.tsx
 // 库存与物料平衡(只读,JS 聚合)
-// cut 5:估值 —— 原料按 unit_price(加权均价 + 库存价值),成品按产出腿成本 + 金属市价。
+// INV-VAL-1(R1):原料估值口径由 unit_price 改为【到岸成本】
+//   inbound_batch_landed_unit_cost = 采购价 + 运费 + 已资本化加工成本,
+//   经 inbound_batch_valuation 视图读取(那支函数绕过价格遮蔽,不能直接授出去)。
+//   与注销、盘点、gl_control_reconciliation 同一份定义 —— INV-VAL-0 的 M2
+//   ("两个估值基准并存")就此关掉,而它今天为零、明天不为零:
+//   第一张不被冲销的运费单过账的那一刻,旧口径会静默地与总账分开。
+//   【实测:线上 16 张批次两个口径逐批相等,本次改动不改变任何一个现有数字。】
+// 成品按产出腿成本 + 金属市价。
 // 快照页,不做日期筛选(既定约定)。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
@@ -24,8 +31,10 @@ type InboundStockRow = {
     material_id: string
     remaining_qty: number
     unit: string
-    unit_price: number | null
-    materials: MaterialEmbed
+    // INV-VAL-1:到岸成本。没有 data.view_prices 时视图把它遮蔽成 null,
+    // 而 unpriced 【不】遮蔽 —— "有没有价"是事实,不是价。
+    landed_unit_cost: number | null
+    unpriced: boolean
 }
 
 type OutputStockRow = {
@@ -67,11 +76,12 @@ export default async function InventoryPage() {
 
     const todayYmd = new Date().toISOString().slice(0, 10)
 
-    const [inboundRes, outputRes, runsRes, legsRes, metalsRes, settingsRes, pricesRes, unpricedRes] = await Promise.all([
+    const [inboundRes, outputRes, runsRes, legsRes, metalsRes, settingsRes, pricesRes, unpricedRes, materialsRes] = await Promise.all([
+        // INV-VAL-1:估值读取器。【视图没有外键,所以物料名不能内嵌】——
+        // 单独取一份 materials 再在 JS 里对起来,而不是为了内嵌退回旧口径。
         supabase
-            .from('inbound_batches_masked')
-            .select('material_id, remaining_qty, unit, unit_price, materials ( name, material_kinds ( name_en, name_zh ) )')
-            .is('deleted_at', null)
+            .from('inbound_batch_valuation')
+            .select('material_id, remaining_qty, unit, landed_unit_cost, unpriced')
             .gt('remaining_qty', 0),
         supabase
             .from('output_batches')
@@ -99,17 +109,23 @@ export default async function InventoryPage() {
             .is('deleted_at', null)
             .lte('price_date', todayYmd),
         // 未计价的在册进料批次数(与进料列表页同口径的提示徽标)
+        // INV-VAL-1:未计价的判据跟着口径一起换 —— 一张没有采购价、
+        // 却挂着已资本化加工成本的批次【不是】未计价的。
         supabase
-            .from('inbound_batches_masked')
+            .from('inbound_batch_valuation')
             .select('id', { count: 'exact', head: true })
-            .is('deleted_at', null)
-            .is('unit_price', null),
+            .eq('unpriced', true),
+        // INV-VAL-1:物料名与种类 —— 估值视图没有外键,内嵌不了,单独取。
+        supabase
+            .from('materials')
+            .select('id, name, material_kinds ( name_en, name_zh )')
+            .is('deleted_at', null),
     ])
 
-    if (inboundRes.error || outputRes.error || runsRes.error || legsRes.error || metalsRes.error || pricesRes.error) {
+    if (inboundRes.error || outputRes.error || runsRes.error || legsRes.error || metalsRes.error || pricesRes.error || materialsRes.error) {
         const err =
             inboundRes.error ?? outputRes.error ?? runsRes.error ??
-            legsRes.error ?? metalsRes.error ?? pricesRes.error
+            legsRes.error ?? metalsRes.error ?? pricesRes.error ?? materialsRes.error
         return (
             <div className="p-8">
                 <h1 className="text-2xl font-bold mb-4">{t('inventory.listTitle')}</h1>
@@ -122,6 +138,11 @@ export default async function InventoryPage() {
     }
 
     const inbound = (inboundRes.data as unknown as InboundStockRow[] | null) ?? []
+    // 物料 id → 名称/种类。进料侧改读估值视图之后,内嵌没了,这张表补上。
+    const materialById = new Map<string, MaterialEmbed>()
+    for (const m of (materialsRes.data as unknown as ({ id: string } & NonNullable<MaterialEmbed>)[] | null) ?? []) {
+        materialById.set(m.id, { name: m.name, material_kinds: m.material_kinds })
+    }
     const output = (outputRes.data as unknown as OutputStockRow[] | null) ?? []
     const runs = mustRows(runsRes)
 
@@ -176,11 +197,15 @@ export default async function InventoryPage() {
     }
 
     for (const b of inbound) {
-        const row = ensureRow(b.material_id, b.materials, b.unit)
+        const row = ensureRow(b.material_id, materialById.get(b.material_id) ?? null, b.unit)
         row.inboundStock += b.remaining_qty
-        if (b.unit_price !== null) {
-            row.pricedQty += b.remaining_qty
-            row.stockValue = (row.stockValue ?? 0) + b.remaining_qty * b.unit_price
+        // 【计价与否用 unpriced,金额用 landed_unit_cost】两者【不是同一个判据】:
+        // 没有 data.view_prices 的读者拿到 landed_unit_cost = null 而 unpriced = false,
+        // 那是"你看不到",不是"这批货没有价"。把它们混成一个判据,
+        // 受限读者会看到一个少算了的合计 —— 本仓库为这个形状付过三次账。
+        if (!b.unpriced) row.pricedQty += b.remaining_qty
+        if (b.landed_unit_cost !== null) {
+            row.stockValue = (row.stockValue ?? 0) + b.remaining_qty * b.landed_unit_cost
         }
     }
     for (const b of output) {
@@ -201,6 +226,19 @@ export default async function InventoryPage() {
     rows.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '', 'zh-CN'))
 
     // 估值合计(三个口径分开:原料按单价、成品按成本、成品按市价)
+    // ★★【读不到价的人必须拿到【具名受限】,不是一个自信的 SGD 0.00】★★
+    // 【这是本刀顺手修掉的一个【线上正在错】的渲染,不是新功能】
+    //   operations 与 warehouse 有 module.inventory.view、没有 data.view_prices,
+    //   于是每一行的 stockValue 都是 null,而 `?? 0` 把整条合计条变成
+    //   "原料库存价值 SGD 0.00" —— 一个会被抄进决策的数字,而真相是
+    //   "这个数没有对你显示"。INV-VAL-1 在 RPT-1 上按裁定渲染具名受限,
+    //   同一批用户在这张姊妹屏上却看到 0.00,那正是这条裁定要消灭的不一致。
+    // 【判据是【有货、有价、但读不到】,不是"合计为零"】—— 一个真的空仓库
+    //   应当照常显示 0.00,那是一句真话。
+    // 判据:存在一张【有价】的批次(unpriced = false),而它的到岸成本读出来是 null
+    // —— 那只可能是遮蔽。两个字段被同一条权限管着(data.view_prices),
+    // 所以这一个信号同时说明了产成品那两列也读不到。
+    const pricesRestricted = inbound.some((b) => !b.unpriced && b.landed_unit_cost === null)
     const totalInboundValue = rows.reduce((s, r) => s + (r.stockValue ?? 0), 0)
     const totalCostValue = rows.reduce((s, r) => s + (r.costValue ?? 0), 0)
     const totalMarketValue = rows.reduce((s, r) => s + (r.marketValue ?? 0), 0)
@@ -277,11 +315,19 @@ export default async function InventoryPage() {
                 <div className="bg-gray-50 rounded p-4 flex flex-wrap gap-8 text-sm mb-3">
                     <div>
                         <span className="text-gray-600">{t('valuation.totalInboundValue')}:</span>{' '}
-                        <span className="font-medium font-mono">{formatAmount(totalInboundValue, baseCurrency)}</span>
+                        <span className="font-medium font-mono">
+                            {pricesRestricted
+                                ? <span className="text-gray-400">{t('valuation.priceRestricted')}</span>
+                                : formatAmount(totalInboundValue, baseCurrency)}
+                        </span>
                     </div>
                     <div>
                         <span className="text-gray-600">{t('valuation.totalCostValue')}:</span>{' '}
-                        <span className="font-medium font-mono">{formatAmount(totalCostValue, baseCurrency)}</span>
+                        <span className="font-medium font-mono">
+                            {pricesRestricted
+                                ? <span className="text-gray-400">{t('valuation.priceRestricted')}</span>
+                                : formatAmount(totalCostValue, baseCurrency)}
+                        </span>
                     </div>
                     <div>
                         <span className="text-gray-600">{t('valuation.totalMarketValue')}:</span>{' '}

@@ -11,27 +11,40 @@ DECLARE
     v_credits  numeric;
     v_new_lock date;
     v_dep      numeric;
+    v_run_n    integer;
+    v_runs     text;
 BEGIN
     PERFORM require_permission('module.finance.edit');
-    -- 必须是月末日
     IF p_period_end IS NULL
        OR p_period_end <> (date_trunc('month', p_period_end) + interval '1 month - 1 day')::date THEN
         RAISE EXCEPTION 'NOT_MONTH_END|%', COALESCE(p_period_end::text, '?');
     END IF;
 
-    -- 串行化 + 不可重关已锁期间
     SELECT locked_before INTO v_locked FROM finance_settings WHERE id FOR UPDATE;
     IF v_locked IS NOT NULL AND p_period_end < v_locked THEN
         RAISE EXCEPTION 'ALREADY_CLOSED|%', v_locked;
     END IF;
 
-    -- FA-1a:折旧还欠着就不许锁 —— 判据取自 preview,不另算一份。
     v_dep := (preview_depreciate_fixed_assets(p_period_end)->>'total_delta')::numeric;
     IF COALESCE(v_dep, 0) > 0 THEN
         RAISE EXCEPTION 'DEPRECIATION_OUTSTANDING|%|%', p_period_end, v_dep;
     END IF;
 
-    -- 截至 period_end 的全部分录:张数 + Σ借/Σ贷(关账即校验点)
+    -- ★ INV-VAL-1 R8:第五条 —— 已提交但从未分摊成本的加工单挡住关账。
+    -- 与折旧那一条同形(都是"这个月还欠着一件必须做完的事"),所以紧挨着它。
+    SELECT count(*), string_agg(r.code, ', ' ORDER BY r.process_date, r.code)
+      INTO v_run_n, v_runs
+      FROM processing_runs r
+     WHERE r.deleted_at IS NULL
+       AND r.status = 'committed'
+       AND r.allocated_at IS NULL
+       AND r.process_date <= p_period_end;
+    IF COALESCE(v_run_n, 0) > 0 THEN
+        RAISE EXCEPTION 'PROCESSING_COSTS_UNALLOCATED|%|%|%', p_period_end, v_run_n, v_runs
+          USING HINT = '这些加工单已提交但从未分摊成本 —— 料已经动了,而 1200 还没有被解除。'
+                    || '在关账之前把它们分摊掉,或者冲销掉不该存在的那些。';
+    END IF;
+
     SELECT COUNT(DISTINCT jl.entry_id),
            round(COALESCE(SUM(jl.debit), 0), 2),
            round(COALESCE(SUM(jl.credit), 0), 2)
@@ -62,5 +75,4 @@ BEGIN
     );
 END;
 $function$
-
 ;

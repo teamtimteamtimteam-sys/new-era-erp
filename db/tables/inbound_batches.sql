@@ -337,3 +337,15 @@ deep_discharge_judgement_code)不因为这里记了一个值就被改写,反之�
   两条轴必须能同时说话。
 
 【NULL = 这一行比这条轴还老】不回填。要记"看过了但说不上来",用 not_assessed。';
+
+-- INV-VAL-1 R9:到货日【不许由有改回空】。建批那一刻的必填由
+-- create_inbound_batch 与 receive_inbound_batch_against_po 各自拒
+-- (ARRIVAL_DATE_REQUIRED,IOD-2-fu1);本触发器补的是它们拦不住的那一半 ——
+-- app/inbound/[id]/edit/actions.ts 直接 UPDATE 本表,空串写成 NULL,
+-- 而 RLS 的 UPDATE 策略只问 module.inbound.edit。
+-- ★【不是 NOT NULL】★ 线上 7 张进料批没有到货日,全部早于 IOD-2-fu1,
+-- 而 R9 明写不许回填 —— NOT NULL 会把那 7 张行锁死。只拒【由有变无】,
+-- 让 NULL 保持 NULL 的更新照过。fixture 172 E 臂同时钉这两件事。
+CREATE TRIGGER guard_arrival_date_not_cleared
+    BEFORE INSERT OR UPDATE ON public.inbound_batches
+    FOR EACH ROW EXECUTE FUNCTION public.guard_receipt_date_not_cleared();

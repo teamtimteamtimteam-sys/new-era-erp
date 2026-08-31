@@ -3,6 +3,39 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
+## LANDED-DEFINER —— 一支不判权限、且绕过价格遮蔽的 `SECURITY DEFINER`
+
+**发现于 INV-VAL-1(2026-08-31),已知、本刀不修。**
+
+`inbound_batch_landed_unit_cost` 是 `SECURITY DEFINER`,**直接读基表的 `unit_price`**
+—— 绕过 `inbound_batches_masked` 的 `data.view_prices` 遮蔽 —— 而且**它自己不做任何
+权限判断**。
+
+**它今天安全,只靠一件事:没有授给 `authenticated`**(实测 `proacl` =
+`postgres, service_role`)。也就是说,**授权是它唯一的控制**,而授权是一个会被下一个
+人改掉的配置。任何人把它授出去(或在它之上加一支授了权的 definer 读取器),
+采购单价就会发给每一个 `authenticated` 用户 —— 包括 `operations` 与 `warehouse`,
+**实测正是没有 `data.view_prices` 的那两个角色**。
+
+处置:INV-VAL-1 建的两支读取器(`inventory_valuation_snapshot`、
+`inventory_control_reconciliation`)与两张视图(`inbound_batch_valuation`、
+`output_batch_valuation`)**各自 require_permission / 各自遮蔽价格**,不靠那条授权。
+这件事写在它们的函数抬头里,**不只写在文档里**。
+根治要么给那支函数加权限判断,要么把它降级成 `SECURITY INVOKER` ——
+两条都会牵动注销与盘点两条既有调用路,所以单列。
+
+## CFO-NO-FINANCE-VIEW —— `cfo` 角色打不开财务勾稽
+
+**发现于 INV-VAL-1(2026-08-31),早于本刀,已知、本刀不修。**
+
+`cfo` 没有 `module.finance.view`(实测),于是 `gl_control_reconciliation` 与
+`management_pack_data` 对它一律 `PERMISSION_DENIED`。
+
+**今天看不见**,因为这个角色是给同时持有 `admin` 的 Tim 建的 ——
+`admin` 把它盖住了。**换一个人拿 cfo 的那天它就会现形**,而那一天多半是有人
+第一次要看月末包的那一天。排进开账前的权限清理,不在存货这一刀里改
+(动它会牵动整张权限表的血缘)。
+
 ## ~~SALE-BLIND~~ —— **已修(PROC-WIRE-1B-ii,2026-08-31)**
 
 `assert_output_batch_saleable` 看不见自己的主语时【静默放行】。**已关闭**,

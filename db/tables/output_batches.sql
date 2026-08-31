@@ -169,3 +169,13 @@ CREATE TRIGGER trg_output_batches_not_promised
 CREATE TRIGGER trg_output_batches_soft_delete_provenance
     BEFORE UPDATE ON public.output_batches
     FOR EACH ROW EXECUTE FUNCTION public.guard_soft_delete_provenance();
+
+-- INV-VAL-1 R9:产出日【不许由有改回空】。建批那一刻的必填由
+-- create_output_batch(OUTPUT_DATE_REQUIRED)与 commit_processing_run
+-- (PROCESS_DATE_REQUIRED,产出日取它)各自拒;本触发器补的是它们拦不住的
+-- 那一半 —— 直接 UPDATE 把已有的日期清掉。
+-- 【不是 NOT NULL】:历史上没有产出日的行必须留得住(R9 不许回填),
+-- 而 NOT NULL 会把它们锁到连备注都改不了。只拒【由有变无】。
+CREATE TRIGGER guard_output_date_not_cleared
+    BEFORE INSERT OR UPDATE ON public.output_batches
+    FOR EACH ROW EXECUTE FUNCTION public.guard_receipt_date_not_cleared();

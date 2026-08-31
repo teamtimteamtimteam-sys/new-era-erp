@@ -127,6 +127,16 @@
   `equipment_downtime`,一行一段,开口的一段表示得出来;与保养记录的那条外键
   刻意留给 EQP-2b(留一个指向不存在的表的空列,读起来像"忘了填")。
 
+* ★ **市价列的币种标错了 —— `MKT-CCY-1`,紧接 INV-VAL-1 的下一刀。**
+  `marketValuePerKg()` 返回 **USD/kg**(`metal_prices.price_usd_per_tonne`,全程无折算),
+  而 `/inventory` 用 `formatAmount(…, baseCurrency)` 标成 **SGD**,
+  `/inventory/output/[materialId]` 的列头直接写着「市价价值 (SGD)」——
+  **并且它就摆在两个真 SGD 合计的旁边**。按 1.28 少报约 22%。
+  **它是【线上正在错】的一个数,不是一个缺失的特性。**
+  INV-VAL-1 刻意没有折进它(那是一次更正,不是估值建设),而且
+  **没有让新的估值面去消费它** —— 成本报表按裁定不放市价(A0)。
+  所以这一刀是干净的:只动 `lib/valuation.ts` 与那两个消费方。
+
 ## 阶段 1 · 把设备模块做完
 
 | 切次 | |

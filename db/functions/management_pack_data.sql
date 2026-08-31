@@ -29,6 +29,20 @@
 -- 【为什么 balance_sheet 用 end 而账龄用 LEAST(end, today)】资产负债表是纯总账
 --   推导,对未来日期没有意见;账龄要读单据的"那一天是什么状态",而未来那一天
 --   还没有发生。两者不同,所以两个日期,而不是把其中一个悄悄改成另一个。
+--
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 【INV-VAL-1(2026-08-31):存货那一节是【自动】冻进来的】
+--   本函数早就在调 gl_control_reconciliation 并把【整个返回值】存进
+--   'control_reconciliation'。勾稽长出两条存货腿之后,管理包因此自动冻住了
+--   存货的账面、明细、每一条具名差异与 unexplained —— 一行都没为它改。
+--
+--   本刀只补 caveats 里确实缺的两件:
+--     · control_unexplained_sides —— 四条腿之后,"有一条没解释干净"必须说得出
+--       【是哪一条】;
+--     · inventory_section_refused / _refusal —— SUM 会跳过 NULL,于是一条
+--       【被拒绝、根本没评估过】的腿会让 control_unexplained 显示 false,
+--       那是一句假话。拒绝单独记一条。
+-- ═══════════════════════════════════════════════════════════════════════════
 
 CREATE OR REPLACE FUNCTION public.management_pack_data(p_period_month date)
  RETURNS jsonb
@@ -48,6 +62,11 @@ DECLARE
     v_fx      jsonb; v_bank jsonb; v_forecast jsonb;
     v_split   jsonb;
     v_unexp   numeric;
+    -- INV-VAL-1:冻下来的记录必须说出【是哪一条腿】没解释干净,
+    -- 而不只是「有一条腿」。四条腿之后,一个布尔量已经不够用了。
+    v_unexp_sides jsonb;
+    v_inv_refused boolean;
+    v_inv_refusal text;
 BEGIN
     PERFORM require_permission('module.finance.view');
     IF p_period_month IS NULL THEN
@@ -140,6 +159,21 @@ BEGIN
     SELECT COALESCE(SUM((s->>'unexplained_base')::numeric), 0) INTO v_unexp
       FROM jsonb_array_elements(v_recon->'sides') s;
 
+    -- ★ INV-VAL-1:【是哪一条腿】。SUM 会把 NULL 跳过去,于是一条【被拒绝、
+    -- 根本没评估过】的腿会让 control_unexplained 显示 false —— 那是一句假话。
+    -- 所以拒绝单独记一条,不混进"解释干净了"里。
+    SELECT COALESCE(jsonb_agg(s->>'side' ORDER BY s->>'side'), '[]'::jsonb)
+      INTO v_unexp_sides
+      FROM jsonb_array_elements(v_recon->'sides') s
+     WHERE (s->>'unexplained_base') IS NOT NULL
+       AND (s->>'unexplained_base')::numeric <> 0;
+
+    SELECT bool_or(s->>'subledger_basis' = 'refused'),
+           max(s->>'refusal')
+      INTO v_inv_refused, v_inv_refusal
+      FROM jsonb_array_elements(v_recon->'sides') s
+     WHERE s->>'side' LIKE 'inventory%';
+
     RETURN jsonb_build_object(
         'period_month',  v_start,
         'period_start',  v_start,
@@ -171,6 +205,14 @@ BEGIN
                                                 WHERE (f->>'revalued')::boolean IS NOT TRUE),
             'control_unexplained',     (v_unexp <> 0),
             'control_unexplained_base', v_unexp,
+            -- ★ INV-VAL-1(R3/4b):冻结的记录自己说出是哪一条腿没解释干净。
+            'control_unexplained_sides', v_unexp_sides,
+            -- ★【存货这一节被拒绝了,而拒绝【不是】零】(R3/4c)
+            -- 已关账的月份 aging_as_of = 月末(过去),存货明细侧重建不出来,
+            -- 于是这一节是一句【具名的拒绝】。它必须与"存货为零"长得完全不一样:
+            -- 一个读到 0.00 的人会把它抄进底稿,读到拒绝的人会去问为什么。
+            'inventory_section_refused', COALESCE(v_inv_refused, false),
+            'inventory_section_refusal', v_inv_refusal,
             'split_reversal_pairs_n',  jsonb_array_length(v_split),
             'no_bank_reconciliation',  (jsonb_array_length(v_bank) = 0),
             'no_cash_forecast',        (jsonb_array_length(v_forecast) = 0)));

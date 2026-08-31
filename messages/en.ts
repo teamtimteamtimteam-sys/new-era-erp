@@ -2650,6 +2650,22 @@ const en = {
         colAvailable: 'Available',
         colThreshold: 'Threshold',
         colShortfall: 'Shortfall',
+        // INV-VAL-1
+        colBatchKind: 'Leg',
+        colValue: 'Value (SGD)',
+        colUncostedQty: 'Uncosted qty',
+        colAgeingBand: 'Ageing band',
+        colBatches: 'Batches',
+        kindInbound: 'Inbound',
+        kindOutput: 'Output',
+        ageing: {
+            b0_30: '0-30 days',
+            b31_60: '31-60 days',
+            b61_90: '61-90 days',
+            b90_plus: 'Over 90 days',
+            // A rendered band, not a hidden one: 4 on-hand batches have no arrival date.
+            noDate: 'No arrival date',
+        },
         statusAvailable: 'Available',
         statusOnHold: 'On hold',
         statusCommitted: 'Committed',
@@ -2667,6 +2683,17 @@ const en = {
             desc: 'What is on hand, by material, location and status.',
             derivedNote: 'Derived from the movement ledger, never stored. Unspecified location is shown as its own group.',
             empty: 'No stock on hand.',
+            basisNote: 'Value basis: landed cost (purchase price + freight + capitalised processing cost) — the same definition used by write-off, stocktake and the GL reconciliation. Output legs use their allocated unit cost.',
+            priceRestrictedNote: 'You do not hold the view-prices permission (data.view_prices), so value columns read "Restricted". That is not zero — quantities are complete; only the money is withheld from you. Ask an administrator for the permission if you need the figures.',
+            totalValue: 'Total value',
+            uncostedQty: 'Uncosted qty',
+            ageingTitle: 'Ageing',
+            ageingNote: 'Measured from arrival date, banded by the single definition in the database (aging_bucket). Batches with no arrival date fall into "No arrival date" — a rendered band, not a zero and not over-90.',
+            producedTitle: 'Produced side',
+            producedNote: 'Of {total} kg on hand, {qty} kg ({n} batches) has never been cost-allocated. That is not applicable, not worth zero — so it renders as an em dash and is excluded from the total.',
+            producedCosted: 'Cost-allocated value',
+            producedNeverCosted: 'Never costed (qty)',
+            cannotSeeTitle: 'What this report cannot see',
         },
         violations: {
             title: 'Class violations',
@@ -3296,6 +3323,11 @@ const en = {
         colAvgPrice: 'Avg Price (SGD)',
         colStockValue: 'Stock Value (SGD)',
         unpriced: 'Unpriced',
+        // INV-VAL-1: 'restricted' and 'unpriced' are different statements —
+        // the first means you may not see the number, the second means the
+        // batch has no price. Merging them would tell a reader without
+        // data.view_prices that the whole warehouse is unpriced.
+        priceRestricted: 'Restricted',
         unpricedCount: '{n} unpriced',
         noCostCount: '{n} without cost',
         noMarketCount: '{n} without market value',
