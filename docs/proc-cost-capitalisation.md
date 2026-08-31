@@ -121,6 +121,28 @@ disposal offsets may be negative"*。照抄那条约束,会让一笔在源表里
 
 ---
 
+## 四 bis · 2c 的完整答案:单位成本的每一个消费者,逐个实测
+
+委托书要求"点名每一个读单位成本的地方,并**实测**每一个都读到了新数字"。
+逐个走完之后,答案是一张短得出人意料的表 —— 那本身就是第四节那条被推翻的前提。
+
+| 消费者 | 读到涨上去的数了吗 | 怎么确认的 |
+|---|---|---|
+| `allocate_processing_costs` 材料成本表达式 | **是** | 本刀加了第三个组件;fixture 160 F1/F5 + 线上演示 |
+| `processing_outputs.unit_cost_base` → `batch_margin` | **是(传递地)** | 进料批的成本经上一行进入产出批 |
+| 批次页(落地成本拆解) | **是** | 本刀新建;权限三问实测(见第八节) |
+| `ap_open_items`(供应商应付) | **刻意【否】** | 那是整刀的要点;fixture 160 F2 后半断言它没动 |
+| `stock_snapshot` | 不适用 | 只有数量,不带金额 |
+| 月末:`revalue_foreign_balances` | 不适用 | 存货科目 `is_monetary = false`,重估不碰它 |
+| 月末:`close_financial_year` | 不适用 | 只结转损益类科目 |
+| **注销(`inventory_ledger_triggers`)** | **★ 否 —— 按 `unit_price` 计值** | **实测:落地 900,只解除 500,400 留在 1200** |
+| **盘点(`post_stocktake`)** | **★ 否 —— 同上,取 `unit_price`** | 代码第 38 行;与注销同一条 |
+
+**最后两行是这一刀交出去的一个真发现**,详情与那次实测的三个数记在
+`docs/known-issues.md`。形状上它是既有缺陷(运费一模一样),
+**而 PROC-COST-1 让它第一次带着真金额可达** —— 所以它记在这里,
+不记成"运费早就这样了"。
+
 ## 五 · 第七过期源:不可省
 
 `processing_run_allocation_status.last_cost_change` 现在看**七**个来源。第七个是
