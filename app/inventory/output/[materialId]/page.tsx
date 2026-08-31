@@ -28,7 +28,9 @@ type Row = {
     customers: { legal_name: string } | null
     // 反向 FK 嵌入是数组:一个批次至多一条产出腿;金属含量 0..n 条
     // WO-1c:一条产出腿指向它的加工单,加工单可能挂着一张工单 —— 出处那一行读的就是它
-    processing_outputs: { unit_cost_base: number | null
+    // ★【FX-DISPLAY-1:读的是【遮蔽视图】,不是 processing_outputs 基表】★
+    //   基表没有授给 authenticated,内嵌它会让【整条查询】42501 —— 见下面取数处。
+    processing_outputs_masked: { unit_cost_base: number | null
         processing_runs: { id: string; work_order_id: string | null } | null }[]
     output_batch_metals: { metal: string; content_pct: number }[]
 }
@@ -54,7 +56,17 @@ export default async function OutputDrillPage({
         supabase
             .from('output_batches')
             .select(
-                'id, code, quantity, remaining_qty, unit, state, output_date, customers ( legal_name ), processing_outputs ( unit_cost_base, processing_runs ( id, work_order_id ) ), output_batch_metals ( metal, content_pct )'
+                // ★★【这一页此前对每一个用户都渲染成「没有库存」—— 而库里有 6 批】★★
+                //   内嵌的是 processing_outputs 【基表】,它是遮蔽表、没有授给
+                //   authenticated:整条查询对真实用户返回 403 / 42501
+                //   「permission denied for table processing_outputs」。
+                //   而下面取数写的是 `?? []` —— 于是错误被吞成空列表,
+                //   页面平静地印出「没有库存」。**一个报了却不拦的判词不是闸**,
+                //   这里连报都没报。实测:换成遮蔽视图后同一条查询 200,
+                //   OUT-2026-0007 / OUT-2026-0187 的 unit_cost_base 正常带回。
+                //   (它躲过了 check-masked-reads:那支检查认的是
+                //    `.from('<表>')` 字面量,【看不见 select 串里的内嵌关系】。)
+                'id, code, quantity, remaining_qty, unit, state, output_date, customers ( legal_name ), processing_outputs_masked ( unit_cost_base, processing_runs ( id, work_order_id ) ), output_batch_metals ( metal, content_pct )'
             )
             .eq('material_id', materialId)
             .is('deleted_at', null)
@@ -81,7 +93,13 @@ export default async function OutputDrillPage({
         notFound()
     }
 
-    const rows = (batchesRes.data as unknown as Row[] | null) ?? []
+    // ★【`?? []` 是这次整页失效【没被任何人看见】的原因,所以它也一起改掉】★
+    //   查询 403 时它把错误读成空集,页面平静地印出「没有库存」——
+    //   AGENTS.md 的规矩是「查询失败必须失败」。mustRows 会抛,
+    //   于是同样的故障下次是一个红框,不是一句安静的假话。
+    //   (它也躲过了 check-error-swallowing —— 那支检查自己的结语写着
+    //    「本检查看得见的那一类」,而 `as unknown as` 这层转换它看不见。)
+    const rows = mustRows(batchesRes) as unknown as Row[]
     const priceByMetal = latestPriceByMetal(
         mustRows(pricesRes),
         mustOne(settingsRes, 'pricing_settings')?.default_metal_index ?? null
@@ -90,7 +108,7 @@ export default async function OutputDrillPage({
     // 每行估值:成本 = 剩余 × 产出腿单位成本;市价 = 剩余 × 每公斤金属市价
     // WO-1c:这一页上出现的工单编号一次取回 —— 逐行去查会是 N+1。
     const woIds = Array.from(new Set(rows
-        .map((r) => r.processing_outputs?.[0]?.processing_runs?.work_order_id)
+        .map((r) => r.processing_outputs_masked?.[0]?.processing_runs?.work_order_id)
         .filter(Boolean))) as string[]
     const woCode = new Map<string, string>()
     if (woIds.length > 0) {
@@ -106,7 +124,7 @@ export default async function OutputDrillPage({
     }
 
     const valued = rows.map((r) => {
-        const unitCost = r.processing_outputs[0]?.unit_cost_base ?? null
+        const unitCost = r.processing_outputs_masked[0]?.unit_cost_base ?? null
         const perKg = marketValuePerKg(r.output_batch_metals, priceByMetal)
         return {
             ...r,
@@ -150,7 +168,9 @@ export default async function OutputDrillPage({
                 <span className="font-mono">{formatMoneyBare(totalCostValue, '紧挨着的行标签「成本价值 (SGD)」')}</span>
                 <span className="mx-2 text-gray-300">·</span>
                 <span className="text-gray-600 mr-1">{t('valuation.colMarketValue')}:</span>
-                <span className="font-mono">{formatMoneyBare(totalMarketValue, '紧挨着的行标签「市价价值 (SGD)」')}</span>
+                {/* FX-DISPLAY-1:同一个缺陷的第二个消费方 —— 列头与这条合计行共用
+                    valuation.colMarketValue,那个键现在写 (USD)。这个数从来就是 USD。 */}
+                <span className="font-mono">{formatMoneyBare(totalMarketValue, '紧挨着的行标签「市价价值 (USD)」')}</span>
                 {noCostCount > 0 && (
                     <span className="ml-2 text-gray-400">
                         {t('valuation.noCostCount', { n: noCostCount })}
@@ -205,7 +225,7 @@ export default async function OutputDrillPage({
                                     {r.costValue !== null ? formatMoneyBare(r.costValue, '列头「成本价值 (SGD)」') : '—'}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
-                                    {r.marketValue !== null ? formatMoneyBare(r.marketValue, '列头「市价价值 (SGD)」') : '—'}
+                                    {r.marketValue !== null ? formatMoneyBare(r.marketValue, '列头「市价价值 (USD)」') : '—'}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
                                     {r.ageDays !== null && tone !== null ? (
@@ -219,7 +239,7 @@ export default async function OutputDrillPage({
                                 {/* WO-1c:出处 —— 有工单就点得进去,没有就【说出来】 */}
                                 <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
                                     {(() => {
-                                        const woId = r.processing_outputs?.[0]?.processing_runs?.work_order_id ?? null
+                                        const woId = r.processing_outputs_masked?.[0]?.processing_runs?.work_order_id ?? null
                                         return woId
                                             ? <Link href={`/processing/orders/${woId}`}
                                                     className="text-blue-600 hover:underline">

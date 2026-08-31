@@ -10,8 +10,14 @@
 // aging_bucket),本模块只把【档位映射成颜色】。映射是表现,不是边界:
 // 改颜色改这里,改边界改 aging_bucket,两件事再也不会互相冒充。
 //
-// 市价口径:金属价为 USD/吨,批次量按 kg 记(与 allocate_processing_costs 的假设一致),
-// 故每公斤市价 = Σ(含量%/100 × 价格/1000)。
+// ★【市价口径:USD,而且【今天折不成 SGD】—— 这不是遗漏,是实测】★
+// 金属价为 USD/吨(metal_prices.price_usd_per_tonne —— 该表【没有币种列】,
+// 币种烤在列名里,所以它不可能逐行不同),批次量按 kg 记,
+// 故每公斤市价 = Σ(含量%/100 × 价格/1000),单位是 **USD/kg**。
+// 【为什么不折算】线上唯一一条 USD 中间价是 2026-07-31,而 fx_rate_asof 的回溯
+// 上限是 4 个自然日 —— 实测 fx_rate_asof('USD', 今天, 'mid') 返回【零行】。
+// 折不出来就【不折,并且照实标 USD】;拿一条过期汇率编一个 SGD 数出来更坏。
+// 要让它真的变成 SGD,缺的只有一样:一条在上限之内的 USD 中间价。
 
 export type AgingTone = 'ok' | 'warn' | 'alert'
 
@@ -42,8 +48,14 @@ export const AGING_TONE_CLASSES: Record<AgingTone, string> = {
 // ---- 钻取行的估值字段 ----
 
 // 进料批次:单价直接来自 inbound_batches.unit_price
+// ★【FX-DISPLAY-1:下面这行注释从前写着 USD/kg,而它是 SGD/kg】★
+//   reprice_inbound_batch 存的是 original_price × fx_rate,也就是【本位币】——
+//   线上 IN-2026-0181 是 6.34 USD × 1.28 = 8.1152,存下来就是 8.1152。
+//   屏幕一直是对的(列头写「单价 (SGD)」);**只有注释在撒谎**,
+//   而下一个照它写代码的人会把一个 SGD 数字当成 USD 去折算。
+//   INV-VAL-0 §1.1 记过这一条,§6 第 7 项排的就是它。
 export type InboundValuation = {
-    unitPrice: number | null // USD/kg;null = 未计价
+    unitPrice: number | null // SGD/kg(本位币);null = 未计价
     batchValue: number | null // remaining × unitPrice;未计价为 null
     ageDays: number | null // 距 arrival_date;无日期为 null
 }
@@ -51,9 +63,13 @@ export type InboundValuation = {
 // 产出批次:成本来自产出它的加工腿(processing_outputs.unit_cost_base,至多一条),
 // 市价来自 assay 金属含量 × 最新金属价
 export type OutputValuation = {
-    unitCost: number | null // USD/kg;null = 从未分摊
-    costValue: number | null // remaining × unitCost;无成本为 null
-    marketValue: number | null // remaining × 每公斤市价;无已计价金属为 null
+    unitCost: number | null // SGD/kg(processing_outputs.unit_cost_base,_base = 本位币);null = 从未分摊
+    costValue: number | null // remaining × unitCost;SGD;无成本为 null
+    // ★【这一个是 USD,而它旁边那两个是 SGD —— 同一个类型里两种币】★
+    //   FX-DISPLAY-1:金属报价是 USD/吨(metal_prices.price_usd_per_tonne),
+    //   全程没有折算。把它和 costValue 相加、或者贴上同一个币种标签,
+    //   正是这一刀修掉的那个缺陷。
+    marketValue: number | null // USD;remaining × 每公斤市价;无已计价金属为 null
     ageDays: number | null // 距 output_date;无日期为 null
 }
 

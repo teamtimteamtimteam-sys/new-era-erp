@@ -120,3 +120,5 @@
 2026-08-31T17:56:10+0800	2026-08-31-invval1-fu3-the-database-owns-the-word-today.sql	06431a4
 2026-08-31T17:59:15+0800	2026-08-31-invval1-fu4-the-default-belongs-in-the-signature.sql	06431a4
 2026-08-31T18:23:24+0800	2026-08-31-invval1-fu5-restore-the-comments-i-retyped-away.sql	06431a4
+2026-08-31T19:33:45+0800	2026-08-31-invval1-fu6-a-view-owner-does-not-lend-you-execute.sql	1fd59b5
+2026-08-31T19:46:18+0800	2026-08-31-invval1-fu6-a-view-owner-does-not-lend-you-execute.sql	1fd59b5

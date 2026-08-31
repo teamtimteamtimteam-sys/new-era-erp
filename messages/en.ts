@@ -3318,7 +3318,8 @@ const en = {
         colBatchValue: 'Batch Value (SGD)',
         colUnitCost: 'Unit Cost (SGD/kg)',
         colCostValue: 'Cost Value (SGD)',
-        colMarketValue: 'Market Value (SGD)',
+        // FX-DISPLAY-1: this said (SGD) and the number is USD. See the zh note.
+        colMarketValue: 'Market Value (USD)',
         colAge: 'Age (days)',
         colAvgPrice: 'Avg Price (SGD)',
         colStockValue: 'Stock Value (SGD)',
@@ -3333,7 +3334,8 @@ const en = {
         noMarketCount: '{n} without market value',
         totalInboundValue: 'Raw stock value',
         totalCostValue: 'Finished cost value',
-        totalMarketValue: 'Finished market value',
+        totalMarketValue: 'Finished market value (USD)',
+        marketValueNote: 'Unrealised market indication, taken directly from USD metal quotes — not converted to SGD. The two figures on the left are booked amounts in SGD; this one is neither the same currency nor the same kind of number.',
     },
     // ATTEND-1:考勤 —— 【它不算工资】(政策 7.1:计算在服务商那边)。
     // 这一整块的措辞都绕着同一件事转:三个 0 是一句真话,空白是另一句。

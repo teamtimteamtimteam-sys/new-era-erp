@@ -329,9 +329,26 @@ export default async function InventoryPage() {
                                 : formatAmount(totalCostValue, baseCurrency)}
                         </span>
                     </div>
-                    <div>
+                    {/* ════════════════════════════════════════════════════════════
+                        ★【币种分界 —— 这一格与左边两格【不是同一个币种,也不是同一类数】】★
+                        FX-DISPLAY-1(2026-08-31)修的就是这里。从前它写的是
+                        `formatAmount(totalMarketValue, baseCurrency)` —— 把一个
+                        **USD** 数字贴上 **SGD**,而且是【运行时从 currencies.is_base
+                        取出来贴上去的】,所以它读起来比一个写死的标签更像是权威结论。
+                        实测:线上这个数是 1,870.00 USD,当时印成 "1,870.00 SGD"。
+                        它就摆在两个【真 SGD】合计旁边,三个数看起来可以相加 —— 不能。
+                        现在:币种写进标签(valuation.totalMarketValue 带 (USD)),
+                        数字用 formatMoneyBare 裸印,并用一条竖线把它与账面数分开。
+                        【不折算】线上唯一的 USD 中间价是 2026-07-31,超出 4 天回溯上限,
+                        fx_rate_asof('USD', 今天, 'mid') 返回零行 —— 折不出来就不折,
+                        而不是拿一个过期的汇率编一个 SGD 数出来。
+                        ════════════════════════════════════════════════════════════ */}
+                    <div className="border-l border-gray-300 pl-8">
                         <span className="text-gray-600">{t('valuation.totalMarketValue')}:</span>{' '}
-                        <span className="font-medium font-mono">{formatAmount(totalMarketValue, baseCurrency)}</span>
+                        <span className="font-medium font-mono">
+                            {formatMoneyBare(totalMarketValue, '同一格的标签「成品市价价值 (USD)」')}
+                        </span>
+                        <p className="text-xs text-gray-500 mt-1 max-w-md">{t('valuation.marketValueNote')}</p>
                     </div>
                     {(mustCount(unpricedRes)) > 0 && (
                         <div className="text-gray-400">
@@ -395,7 +412,7 @@ export default async function InventoryPage() {
                                     {r.costValue !== null ? formatMoneyBare(r.costValue, '列头「成本价值 (SGD)」') : '—'}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
-                                    {r.marketValue !== null ? formatMoneyBare(r.marketValue, '列头「市价价值 (SGD)」') : '—'}
+                                    {r.marketValue !== null ? formatMoneyBare(r.marketValue, '列头「市价价值 (USD)」') : '—'}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">{unitLabel(r.unit)}</td>
                             </tr>

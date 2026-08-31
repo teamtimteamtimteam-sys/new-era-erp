@@ -282,13 +282,6 @@ export type Database = {
             foreignKeyName: "assay_results_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
-            referencedRelation: "inbound_batch_valuation"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "assay_results_inbound_batch_id_fkey"
-            columns: ["inbound_batch_id"]
-            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -1005,13 +998,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["batch_id"]
-          },
-          {
-            foreignKeyName: "batch_processing_cost_allocations_inbound_batch_id_fkey"
-            columns: ["inbound_batch_id"]
-            isOneToOne: false
-            referencedRelation: "inbound_batch_valuation"
-            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "batch_processing_cost_allocations_inbound_batch_id_fkey"
@@ -4545,13 +4531,6 @@ export type Database = {
             foreignKeyName: "finance_attachments_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
-            referencedRelation: "inbound_batch_valuation"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_attachments_inbound_batch_id_fkey"
-            columns: ["inbound_batch_id"]
-            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -5215,13 +5194,6 @@ export type Database = {
             foreignKeyName: "freight_allocations_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
-            referencedRelation: "inbound_batch_valuation"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "freight_allocations_inbound_batch_id_fkey"
-            columns: ["inbound_batch_id"]
-            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -5725,13 +5697,6 @@ export type Database = {
             foreignKeyName: "inbound_batch_metals_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
-            referencedRelation: "inbound_batch_valuation"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "inbound_batch_metals_inbound_batch_id_fkey"
-            columns: ["inbound_batch_id"]
-            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -5819,13 +5784,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["batch_id"]
-          },
-          {
-            foreignKeyName: "inbound_batch_safety_states_inbound_batch_id_fkey"
-            columns: ["inbound_batch_id"]
-            isOneToOne: false
-            referencedRelation: "inbound_batch_valuation"
-            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "inbound_batch_safety_states_inbound_batch_id_fkey"
@@ -6282,13 +6240,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["batch_id"]
-          },
-          {
-            foreignKeyName: "inventory_movements_inbound_batch_id_fkey"
-            columns: ["inbound_batch_id"]
-            isOneToOne: false
-            referencedRelation: "inbound_batch_valuation"
-            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "inventory_movements_inbound_batch_id_fkey"
@@ -9334,13 +9285,6 @@ export type Database = {
             foreignKeyName: "payment_allocations_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
-            referencedRelation: "inbound_batch_valuation"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payment_allocations_inbound_batch_id_fkey"
-            columns: ["inbound_batch_id"]
-            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -10617,13 +10561,6 @@ export type Database = {
             foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
-            referencedRelation: "inbound_batch_valuation"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
-            columns: ["inbound_batch_id"]
-            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -10777,13 +10714,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["batch_id"]
-          },
-          {
-            foreignKeyName: "price_history_inbound_batch_id_fkey"
-            columns: ["inbound_batch_id"]
-            isOneToOne: false
-            referencedRelation: "inbound_batch_valuation"
-            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "price_history_inbound_batch_id_fkey"
@@ -11213,13 +11143,6 @@ export type Database = {
             foreignKeyName: "pricing_term_commitments_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: true
-            referencedRelation: "inbound_batch_valuation"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pricing_term_commitments_inbound_batch_id_fkey"
-            columns: ["inbound_batch_id"]
-            isOneToOne: true
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -11561,13 +11484,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["batch_id"]
-          },
-          {
-            foreignKeyName: "processing_inputs_inbound_batch_id_fkey"
-            columns: ["inbound_batch_id"]
-            isOneToOne: false
-            referencedRelation: "inbound_batch_valuation"
-            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "processing_inputs_inbound_batch_id_fkey"
@@ -14202,13 +14118,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["batch_id"]
-          },
-          {
-            foreignKeyName: "stocktake_lines_inbound_batch_id_fkey"
-            columns: ["inbound_batch_id"]
-            isOneToOne: false
-            referencedRelation: "inbound_batch_valuation"
-            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "stocktake_lines_inbound_batch_id_fkey"
@@ -17829,75 +17738,7 @@ export type Database = {
           unit: string | null
           unpriced: boolean | null
         }
-        Insert: {
-          aging_bucket?: never
-          aging_days?: never
-          arrival_date?: string | null
-          code?: string | null
-          id?: string | null
-          landed_unit_cost?: never
-          landed_value_base?: never
-          material_id?: string | null
-          quantity?: number | null
-          remaining_qty?: number | null
-          stage?: string | null
-          supplier_id?: string | null
-          unit?: string | null
-          unpriced?: never
-        }
-        Update: {
-          aging_bucket?: never
-          aging_days?: never
-          arrival_date?: string | null
-          code?: string | null
-          id?: string | null
-          landed_unit_cost?: never
-          landed_value_base?: never
-          material_id?: string | null
-          quantity?: number | null
-          remaining_qty?: number | null
-          stage?: string | null
-          supplier_id?: string | null
-          unit?: string | null
-          unpriced?: never
-        }
-        Relationships: [
-          {
-            foreignKeyName: "inbound_batches_material_id_fkey"
-            columns: ["material_id"]
-            isOneToOne: false
-            referencedRelation: "material_stock_available"
-            referencedColumns: ["material_id"]
-          },
-          {
-            foreignKeyName: "inbound_batches_material_id_fkey"
-            columns: ["material_id"]
-            isOneToOne: false
-            referencedRelation: "materials"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "inbound_batches_material_id_fkey"
-            columns: ["material_id"]
-            isOneToOne: false
-            referencedRelation: "stock_snapshot"
-            referencedColumns: ["material_id"]
-          },
-          {
-            foreignKeyName: "inbound_batches_supplier_id_fkey"
-            columns: ["supplier_id"]
-            isOneToOne: false
-            referencedRelation: "supplier_receipt_pattern"
-            referencedColumns: ["supplier_id"]
-          },
-          {
-            foreignKeyName: "inbound_batches_supplier_id_fkey"
-            columns: ["supplier_id"]
-            isOneToOne: false
-            referencedRelation: "suppliers"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       inbound_batches_masked: {
         Row: {
@@ -19763,13 +19604,6 @@ export type Database = {
             foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
-            referencedRelation: "inbound_batch_valuation"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
-            columns: ["inbound_batch_id"]
-            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -19923,13 +19757,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["batch_id"]
-          },
-          {
-            foreignKeyName: "price_history_inbound_batch_id_fkey"
-            columns: ["inbound_batch_id"]
-            isOneToOne: false
-            referencedRelation: "inbound_batch_valuation"
-            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "price_history_inbound_batch_id_fkey"
@@ -20316,13 +20143,6 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["batch_id"]
-          },
-          {
-            foreignKeyName: "pricing_term_commitments_inbound_batch_id_fkey"
-            columns: ["inbound_batch_id"]
-            isOneToOne: true
-            referencedRelation: "inbound_batch_valuation"
-            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pricing_term_commitments_inbound_batch_id_fkey"
@@ -21725,13 +21545,6 @@ export type Database = {
             foreignKeyName: "inventory_movements_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
-            referencedRelation: "inbound_batch_valuation"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "inventory_movements_inbound_batch_id_fkey"
-            columns: ["inbound_batch_id"]
-            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -22933,6 +22746,25 @@ export type Database = {
       inbound_batch_landed_unit_cost: {
         Args: { p_inbound_batch_id: string }
         Returns: number
+      }
+      inbound_batch_valuation_rows: {
+        Args: never
+        Returns: {
+          aging_bucket: string
+          aging_days: number
+          arrival_date: string
+          code: string
+          id: string
+          landed_unit_cost: number
+          landed_value_base: number
+          material_id: string
+          quantity: number
+          remaining_qty: number
+          stage: string
+          supplier_id: string
+          unit: string
+          unpriced: boolean
+        }[]
       }
       inbound_unit_price_asof: {
         Args: { p_as_of: string; p_batch_id: string }

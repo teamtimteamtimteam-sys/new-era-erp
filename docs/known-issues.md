@@ -3,6 +3,62 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
+## ★ CHECKER-BLIND-SPOTS —— **绿的门不等于验过了**(FX-DISPLAY-1,2026-08-31)
+
+**这是本刀活得最久的一条发现。** 一次修 label 的小刀,连着撞上**三支检查各自的盲区**,
+而三支都报绿。写在这里,是因为下一个人会把"门是绿的"读成"这一类问题不存在"。
+
+### ① `check-currency-literals` 判的是「**有没有写**币种」,不是「写得**对不对**」
+
+它的三条判据(`branch` / `jsx-text` / `template-text`)全部围绕
+**"不许把币种当常量用"**。**它没有任何办法知道一个数字实际是什么币种** ——
+那要追溯数值的来路,不是扫字面量。所以:
+
+> **一个把 USD 数字标成 SGD 的屏幕,可以永远通过这道门。** 实测就是如此。
+
+**更具体、也更难堪的一层:** 它扫的目录是 `app` / `lib` / `db` ——
+**`messages/` 不在其中**。而这次那句 `(SGD)` 恰恰就住在 `messages/*.ts` 里。
+该文件自己的抬头把「`messages` 里 "Amount (SGD)" 之类的标签把本位币烤进了译文」
+列为**过去栽过的三次之一** —— 而它的扫描范围**够不到那个目录**。
+也就是说:**它点名的那个失败模式,它自己结构上看不见。**
+
+### ② `check-masked-reads` 认的是 `.from('<表>')` 字面量,**看不见 select 串里的内嵌关系**
+
+`/inventory/output/[materialId]` 内嵌读的是 `processing_outputs`(遮蔽表基表,
+未授权给 authenticated)。它不写在 `.from()` 里,而是写在
+`.select('… processing_outputs ( … ) …')` 里 —— **不在基线里,也不报**。
+后果见下面 OUTPUT-DRILL-BLANK。
+
+### ③ `check-error-swallowing` 的结语自己写着「本检查看得见的那一类」
+
+`const rows = (batchesRes.data as unknown as Row[] | null) ?? []` ——
+中间那层 `as unknown as` 让它看不见。于是一次 **403 整条查询失败**被读成空集。
+
+### 三者叠起来的后果
+
+**冒烟也照不到**:那一页把错误画成红框 / 或干脆渲染成"没有库存",**HTTP 都是 200**,
+而冒烟的判据是 2xx —— `scripts/smoke-routes.mjs` 的抬头把这个盲区写得一字不差,
+而它又中了一次。
+
+**处置:三支检查本刀都【没有】扩写**(R2:这是一刀显示修复)。
+扩写它们各自是一件真活;`check-currency-literals` 要做的更是**溯源**而非扫串。
+但这条记下来的意义是:**验证币种、遮蔽读、吞错误这三件事,今天靠的是人去看,
+不是靠门。**
+
+## OUTPUT-DRILL-BLANK —— **产出钻取页对每一个真实用户都印「没有库存」**(已修,FX-DISPLAY-1)
+
+发现于 FX-DISPLAY-1 的"亲眼看一遍渲染出来的页面"这一步。**早于本刀,不是任何一刀引入的。**
+
+`/inventory/output/[materialId]` 的取数内嵌了 `processing_outputs` **基表**,
+而它是遮蔽表、没有授给 `authenticated`:**整条查询对真实用户返回
+403 / 42501「permission denied for table processing_outputs」**,
+而取数处写的是 `?? []` —— 错误被吞成空列表,页面平静地印出「没有库存」。
+线上实测:该物料有 **6 批**在库产出。
+
+**修法两处**(都在同一页):内嵌换成 `processing_outputs_masked`(实测同一条查询
+以真实用户 token 返回 200,`unit_cost_base` 2.6667 / 2.2477 正常带回);
+`?? []` 换成 `mustRows` —— **同样的故障下次是一个红框,不是一句安静的假话。**
+
 ## LANDED-DEFINER —— 一支不判权限、且绕过价格遮蔽的 `SECURITY DEFINER`
 
 **发现于 INV-VAL-1(2026-08-31),已知、本刀不修。**

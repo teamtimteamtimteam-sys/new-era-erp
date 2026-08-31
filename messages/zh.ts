@@ -3293,7 +3293,12 @@ const zh = {
         colBatchValue: '批次价值 (SGD)',
         colUnitCost: '单位成本 (SGD/kg)',
         colCostValue: '成本价值 (SGD)',
-        colMarketValue: '市价价值 (SGD)',
+        // ★【FX-DISPLAY-1(2026-08-31):这里从前写着 (SGD),而这个数是 USD】★
+        // marketValuePerKg() 读 metal_prices.price_usd_per_tonne —— 全程没有折算。
+        // 【为什么不折算成 SGD】线上唯一一条 USD 中间价是 2026-07-31,
+        // 而 fx_rate_asof 的回溯上限是 4 个自然日:实测 fx_rate_asof('USD', 今天,
+        // 'mid') 返回【零行】。折不了就不折,但绝不能顶着 SGD 的名字印出来。
+        colMarketValue: '市价价值 (USD)',
         colAge: '库龄 (天)',
         colAvgPrice: '加权均价 (SGD)',
         colStockValue: '库存价值 (SGD)',
@@ -3307,7 +3312,13 @@ const zh = {
         noMarketCount: '{n} 批无市价',
         totalInboundValue: '原料库存价值',
         totalCostValue: '成品成本价值',
-        totalMarketValue: '成品市价价值',
+        // 【币种写在标签上】合计条里另外两个是账面金额,币种由 currencies.is_base
+        // 带出来跟在数字后面;这一个不是本位币,所以币种写进标签,
+        // 由 formatMoneyBare 把数字裸印 —— 那正是 formatMoneyBare 的既定契约。
+        totalMarketValue: '成品市价价值 (USD)',
+        // ★ 币种分界 + 【它不是同一类数】—— 两句话都要说,只说一句会让人
+        // 以为把币种折过来就能和左边两个相加。
+        marketValueNote: '未实现的市价指示,直接取自 USD 金属报价 ——【没有折算成 SGD】。左边两个是账面金额(SGD);这一个既不是同一个币种,也不是同一类数。',
     },
     // ATTEND-1:考勤 —— 【它不算工资】(政策 7.1:计算在服务商那边)。
     attendance: {

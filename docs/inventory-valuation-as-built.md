@@ -296,3 +296,63 @@ fixture 172 D 臂**显式断言拒绝文本里不含那个名字**。
   `by_location` 每一行 `value_base` **IS NULL**,**而数量照常给全**。
 * **金额表与数量表数出同样的量**:`by_location` 合计 = `stock_snapshot` 合计
   = **119,304**(fu2 之前只数进料腿,两张表会在同一页上互相矛盾)。
+
+---
+
+## 11 · ★ 一处回归:INV-VAL-1 让 /inventory 整页报错约两小时(fu6,2026-08-31)
+
+**由紧接的下一刀(FX-DISPLAY-1)"亲眼看一遍渲染出来的页面"这一步抓到,不是被任何一道门抓到。**
+
+症状:任意 `authenticated` 用户打开 `/inventory` 或 `/inventory/inbound/[materialId]`,
+整页渲染成红框:`42501 permission denied for function inbound_batch_landed_unit_cost`。
+**HTTP 状态 200。**
+
+### 成因 —— 而这条规矩仓库里早就写着,我读过还是踩了
+
+`inbound_batch_valuation` 是 `security_invoker = off` 的视图,体内调那支
+**刻意未授权给 `authenticated`** 的成本函数。而
+`db/functions/aging_bucket.sql` 的抬头写得清清楚楚:
+
+> 属主权限替得了**表**,替不了**函数的 EXECUTE** —— 那仍按当前用户判。
+> 收掉它,两页会当场 42501。
+
+**视图的属主权限不改变 `current_user`;`SECURITY DEFINER` 才改变。**
+这正是为什么同样调那支函数的 `inventory_valuation_snapshot`(definer + 已授权)
+一直好好的 —— 那也是修法的来源。
+
+### 为什么三道判据同时没看见
+
+| 判据 | 为什么绿 |
+|---|---|
+| 我在 INV-VAL-1 的探针 | 写的是 `SELECT count(*)` —— **计划器把用不到的列剪掉了**,那次函数根本没被调用。实测对照:`WHERE remaining_qty > 0` 的 `count(*)` **通过**,而一旦 SELECT 到 `landed_unit_cost` 或按 `unpriced` 过滤就 42501 |
+| gate 的 fixture | 以 `postgres` 身份跑,postgres 有 EXECUTE —— 照不到这条 |
+| 冒烟 | 判据是 2xx,而那一页把错误画成红框,**HTTP 200** |
+
+### 修法:一层**已授权的 definer 包装**,而不是给那支函数授权
+
+委托书明令那支成本函数排在开账前的权限清理里、**本刀不许给它授任何东西**
+(授了它,采购单价就发给每一个 `authenticated` 用户,而
+`operations` / `warehouse` 实测正是没有 `data.view_prices` 的两个角色)。
+所以新开 `inbound_batch_valuation_rows()`:`SECURITY DEFINER`、授给 `authenticated`、
+**自己 `require_permission` + 自己按 `data.view_prices` 遮蔽**;
+体内以属主身份调那支未授权函数 —— `current_user` 变了,EXECUTE 就过得去。
+视图改成读它,**列名列序授权全不变,应用一个字没改**。
+
+### 判据补上了
+
+`db/fixtures/173` **以真实用户身份**(`SET LOCAL ROLE authenticated`)钉四件事,
+并且:
+
+* **明确 SELECT 那几个计算列,不用 `count(*)`** —— 写成 `count(*)` 的话,
+  这份 fixture 在缺陷仍然存在时也会通过(实测如此);
+* **注入**:收掉包装函数的 EXECUTE → 视图当场变红,再授回来 → 恢复。
+  不做这一步,绿灯可能只是"碰巧没人拦";
+* **钉住那条禁令**:`has_function_privilege('authenticated', …landed_unit_cost…)`
+  必须为假 —— 因为**给它授权同样能让前一臂变绿**,而那是错的修法。
+
+### 顺带一处:`CREATE OR REPLACE VIEW` 会悄悄丢掉 reloptions
+
+fu6 第一版没写 `WITH (security_invoker = off)`,live 上那一句就**没了**
+(姊妹视图 `output_batch_valuation` 还留着,两张同族视图从此长得不一样)。
+行为没变(属主权限本来就是默认),红的是镜像文本与"下一个人看不看得出这是刻意声明过的"。
+AGENTS.md 记着 PAYEE-1a 为同一件事付过一次账。已在提交前补回。

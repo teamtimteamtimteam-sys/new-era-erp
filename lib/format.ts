@@ -38,7 +38,13 @@ export function formatAmount(n: number | null | undefined, ccy: string | null | 
     return ccy ? `${num} ${ccy}` : num
 }
 
-// formatUnitCost:单位成本(USD/kg),4 位小数(与 DB 存储精度一致);null/undefined 返回空串。
+// formatUnitCost:单位成本,4 位小数(与 DB 存储精度一致);null/undefined 返回空串。
+// ★【FX-DISPLAY-1:这行注释从前写着「(USD/kg)」,而它【不知道】币种】★
+//   它和 formatMoneyBare 一样,只管数字形状 —— 八个调用点传进来的
+//   unit_price / unit_cost_base 都是【本位币】(SGD),
+//   estimated_unit_price 则跟着采购单自己的币种。
+//   一个宣称币种的格式化函数,会让调用点省掉"这是什么币"这个问题,
+//   而那正是本刀在 /inventory 上修的那个缺陷的成因。币种由调用点写在列头/行标签上。
 // 展示端自行补 " /kg" 后缀,null 时展示 "—"。
 export function formatUnitCost(n: number | null | undefined): string {
     if (n === null || n === undefined) return ''
