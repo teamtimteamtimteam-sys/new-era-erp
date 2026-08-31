@@ -185,6 +185,13 @@ RUNTIME_CONFIG_TABLES = [
     # 而"后到"的代价正是一行数据,这就是把它们做成字典换来的东西。
     "material_forms", "material_sources", "material_size_formats",
     "inbound_safety_states", "inbound_chemistry_certainties",
+    # PROC-1B-iii:【能不能深度放电】这个采购时的判断 —— RUNTIME CONFIG,
+    # 判据与 inbound_safety_states / output_batch_purposes 同源:操作员改得动它
+    # (有写策略,module.materials.edit),所以线上与文件不同是系统在正常工作。
+    # 【它有一条载荷列 is_a_claim】grn_discrepancies 现读它来决定"这一侧算不算
+    # 一次主张" —— 与 inbound_safety_states.may_be_fed 同形(那一张也是 RUNTIME
+    # CONFIG 且带一条载荷列)。于是加第四个取值真的只是加一行。
+    "deep_discharge_judgements",
     # GRN-1a:收货差异的三个阈值 —— 与 processing_settings 的两个工单阈值同一条。
     # 5/5/10 是引导默认值,不是决定;运营改一次线上就与本文件不同,那是对的。
     "receiving_settings",

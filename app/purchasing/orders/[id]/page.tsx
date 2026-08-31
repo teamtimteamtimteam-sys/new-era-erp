@@ -12,7 +12,7 @@ import Link from 'next/link'
 import { getBaseCurrency } from '@/lib/currency'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getTranslations } from '@/lib/i18n/server'
+import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatAmount, formatMoneyBare, formatUnitCost } from '@/lib/format'
 import Subnav from '../../Subnav'
 import CancelOrderControl from './CancelOrderControl'
@@ -26,6 +26,7 @@ import type { Tables } from '@/lib/database.types'
 import IssuePanel from '@/app/components/IssuePanel'
 import { mustRows, mustOne } from '@/lib/db-helpers'
 import ExpectedDateControl from './ExpectedDateControl'
+import DeepDischargeJudgementControl from './DeepDischargeJudgementControl'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import DiscrepancyKinds, {
@@ -69,13 +70,18 @@ export default async function PurchaseOrderDetailPage({
     // OPS-14:预付三列与 ap_open_items 现在都挂 module.finance.view —— 没有它读到的是
     // NULL / 0 行,【那是"看不见",不是"没有"】。取一次权限码,才能把两者分开渲染。
     const canFinance = await can('module.finance.view')
+    // PROC-1B-iii(R1):深度放电判断的字典。【只读 is_active 的】—— 停用是
+    // "以后别再选它",而历史行照旧显示(下面的 label 回落到码本身,不画空白)。
+    // 这张字典没有 _masked 伴生,表级 SELECT 授权给 authenticated,直读。
+    const ddRes = await supabase.from('deep_discharge_judgements')
+        .select('code, name_en, name_zh').eq('is_active', true).order('sort_order')
     const po = maskedExcept<Tables<'purchase_orders'>, 'fx_rate' | 'estimated_total_ccy'>(poRaw)
 
     const [supplierRes, linesRes, termsRes, statusRes, receiptsRes, apprRes, issuesRes, historyRes] = await Promise.all([
         supabase.from('suppliers').select('id, legal_name').eq('id', po.supplier_id).single(),
         supabase
             .from('purchase_order_lines_masked')
-            .select('id, line_no, material_id, asset_id, quantity, unit, pricing_formula_id, estimated_unit_price, estimated_amount_ccy, expected_assay, notes, price_source, price_provenance')
+            .select('id, line_no, material_id, asset_id, quantity, unit, pricing_formula_id, estimated_unit_price, estimated_amount_ccy, expected_assay, notes, price_source, price_provenance, deep_discharge_judgement_code')
             .eq('purchase_order_id', id)
             .order('line_no'),
         supabase
@@ -115,7 +121,10 @@ export default async function PurchaseOrderDetailPage({
                     'ordered_material_code, received_material_code, ordered_qty, ordered_unit, ' +
                     'received_qty, received_unit, declared_qty, line_received_qty, ' +
                     'line_receipt_count, line_delta_qty, line_delta_pct, declared_delta_qty, ' +
-                    'assay_beyond_tolerance, assay_metals_compared, kinds')
+                    'assay_beyond_tolerance, assay_metals_compared, ' +
+                    // PROC-1B-iii:两侧的【原始码】都要取 —— 只取那个布尔的话,
+                    // 「没设」与「未评估」在屏幕上就并成一句了(两者的布尔都是 NULL)。
+                    'deep_discharge_judged, deep_discharge_actual, deep_discharge_contradicted, kinds')
             .eq('po_id', id)
             .order('line_no'),
         supabase
@@ -159,6 +168,13 @@ export default async function PurchaseOrderDetailPage({
 
     // 遮蔽的是估价列;material_id / pricing_formula_id 等恢复基表类型。
     const lines = maskedRows<Tables<'purchase_order_lines'>, 'estimated_unit_price' | 'estimated_amount_ccy'>(mustRows(linesRes))
+    // PROC-1B-iii:字典翻成本地语言。**读不出来就【按名喊出来】,不画空白** ——
+    // mustRows 在这里的作用正是这个:一张读不到的字典会让每一行的判断悄悄
+    // 变成"未填写",而那与"这一行真的没填"在屏幕上一模一样。
+    const ddLocale = await getLocale()
+    const ddOptions = (mustRows(ddRes, 'deep_discharge_judgements') as
+        { code: string; name_en: string; name_zh: string }[])
+        .map((r) => ({ code: r.code, label: ddLocale === 'zh' ? r.name_zh : r.name_en }))
     const terms = maskedRows<Tables<'purchase_order_payment_terms'>, 'fixed_amount_ccy'>(mustRows(termsRes))
     // CASHFLOW-1：按事件类型的保管人。【无权时不去查，而不是查了拿零行】——
     // 零行会让每一期都显示成「不需要估计」，那是一句假话。
@@ -603,6 +619,18 @@ export default async function PurchaseOrderDetailPage({
                                     <span className="block text-xs text-gray-500 mt-0.5">
                                         {t('purchasing.form.expectedAssay')}: {assayInline(l.expected_assay)}
                                     </span>
+                                )}
+                                {/* PROC-1B-iii(R1):【能不能深度放电】—— 这个判断在
+                                    买的时候做出,在货到之前,所以它的入口在这里。
+                                    【设备行没有这条轴】它订的是一台机器,不是料。 */}
+                                {l.material_id && (
+                                    <DeepDischargeJudgementControl
+                                        poId={id}
+                                        lineId={l.id}
+                                        current={l.deep_discharge_judgement_code ?? null}
+                                        options={ddOptions}
+                                        canEdit={canEditPurchasing}
+                                    />
                                 )}
                             </td>
                             <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">

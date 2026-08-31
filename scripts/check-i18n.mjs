@@ -411,6 +411,15 @@ const MANIFEST = {
     // 应用层一个字都没重复它,所以也没有第二份可接 —— 那正是这一刀想要的样子。
     'grn.kind.': { kind: 'enum', values: () => tsRegex('db/views/grn_discrepancies.sql',
                                   /ARRAY\['(\w+)'::text\]/g) },
+    // PROC-1B-iii:深度放电判断的三个取值。真源是【字典表自己的引导行】——
+    // db/tables/deep_discharge_judgements.sql 的那支 INSERT,加一个取值就自动被查到。
+    // 【为什么接引导行而不是接线上】那张表是 RUNTIME CONFIG:线上多一行是系统在
+    // 正常工作,而这份检查跑在仓库上、跑在 CI 里,够不着线上。所以这里查的是
+    // 【一个全新安装会有的那几个值】,而线上后加的值由 t() 的 miss 行为兜住 ——
+    // 它会把整个 key 原样印出来(lib/i18n/*.ts 的"方便发现漏翻"),
+    // 是一个难看但【看得见】的结果,而不是一片空白。
+    'grn.deepDischarge.': { kind: 'enum', values: () => tsRegex('db/tables/deep_discharge_judgements.sql',
+                                  /^\s*\('(\w+)', '[^']*', '[^']*', (?:true|false),/gm) },
     // ── AUD-2:客户审计报告 ──────────────────────────────────────────────
     // 【回收率算不出的原因】与 processing.recovery.blocked. 同一个真源
     // (基视图里的那个 CASE),外加一个【本地兜底键】unspecified:

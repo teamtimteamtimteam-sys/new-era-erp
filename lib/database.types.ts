@@ -3154,6 +3154,36 @@ export type Database = {
           },
         ]
       }
+      deep_discharge_judgements: {
+        Row: {
+          code: string
+          is_a_claim: boolean
+          is_active: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          is_a_claim: boolean
+          is_active?: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          is_a_claim?: boolean
+          is_active?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Relationships: []
+      }
       departments: {
         Row: {
           code: string
@@ -5786,6 +5816,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           declared_qty: number | null
+          deep_discharge_actual_code: string | null
           delete_reason: string | null
           deleted_at: string | null
           deleted_by: string | null
@@ -5817,6 +5848,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           declared_qty?: number | null
+          deep_discharge_actual_code?: string | null
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
@@ -5848,6 +5880,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           declared_qty?: number | null
+          deep_discharge_actual_code?: string | null
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
@@ -5878,6 +5911,13 @@ export type Database = {
             columns: ["chemistry_certainty_code"]
             isOneToOne: false
             referencedRelation: "inbound_chemistry_certainties"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "inbound_batches_deep_discharge_actual_code_fkey"
+            columns: ["deep_discharge_actual_code"]
+            isOneToOne: false
+            referencedRelation: "deep_discharge_judgements"
             referencedColumns: ["code"]
           },
           {
@@ -12064,6 +12104,7 @@ export type Database = {
           asset_id: string | null
           created_at: string
           created_by: string | null
+          deep_discharge_judgement_code: string | null
           estimated_amount_ccy: number
           estimated_unit_price: number | null
           expected_assay: Json | null
@@ -12082,6 +12123,7 @@ export type Database = {
           asset_id?: string | null
           created_at?: string
           created_by?: string | null
+          deep_discharge_judgement_code?: string | null
           estimated_amount_ccy?: number
           estimated_unit_price?: number | null
           expected_assay?: Json | null
@@ -12100,6 +12142,7 @@ export type Database = {
           asset_id?: string | null
           created_at?: string
           created_by?: string | null
+          deep_discharge_judgement_code?: string | null
           estimated_amount_ccy?: number
           estimated_unit_price?: number | null
           expected_assay?: Json | null
@@ -12135,6 +12178,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fixed_assets"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_deep_discharge_judgement_code_fkey"
+            columns: ["deep_discharge_judgement_code"]
+            isOneToOne: false
+            referencedRelation: "deep_discharge_judgements"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "purchase_order_lines_material_id_fkey"
@@ -17477,6 +17527,9 @@ export type Database = {
           batch_id: string | null
           declared_delta_qty: number | null
           declared_qty: number | null
+          deep_discharge_actual: string | null
+          deep_discharge_contradicted: boolean | null
+          deep_discharge_judged: string | null
           kinds: string[] | null
           line_delta_pct: number | null
           line_delta_qty: number | null
@@ -17499,6 +17552,13 @@ export type Database = {
           supplier_name: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "inbound_batches_deep_discharge_actual_code_fkey"
+            columns: ["deep_discharge_actual"]
+            isOneToOne: false
+            referencedRelation: "deep_discharge_judgements"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "inbound_batches_material_id_fkey"
             columns: ["received_material_id"]
@@ -17533,6 +17593,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_deep_discharge_judgement_code_fkey"
+            columns: ["deep_discharge_judged"]
+            isOneToOne: false
+            referencedRelation: "deep_discharge_judgements"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "purchase_order_lines_material_id_fkey"
@@ -17578,6 +17645,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           declared_qty: number | null
+          deep_discharge_actual_code: string | null
           delete_reason: string | null
           deleted_at: string | null
           deleted_by: string | null
@@ -17609,6 +17677,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           declared_qty?: number | null
+          deep_discharge_actual_code?: string | null
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
@@ -17640,6 +17709,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           declared_qty?: number | null
+          deep_discharge_actual_code?: string | null
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
@@ -17670,6 +17740,13 @@ export type Database = {
             columns: ["chemistry_certainty_code"]
             isOneToOne: false
             referencedRelation: "inbound_chemistry_certainties"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "inbound_batches_deep_discharge_actual_code_fkey"
+            columns: ["deep_discharge_actual_code"]
+            isOneToOne: false
+            referencedRelation: "deep_discharge_judgements"
             referencedColumns: ["code"]
           },
           {
@@ -20587,6 +20664,7 @@ export type Database = {
           asset_id: string | null
           created_at: string | null
           created_by: string | null
+          deep_discharge_judgement_code: string | null
           estimated_amount_ccy: number | null
           estimated_unit_price: number | null
           expected_assay: Json | null
@@ -20605,6 +20683,7 @@ export type Database = {
           asset_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          deep_discharge_judgement_code?: string | null
           estimated_amount_ccy?: never
           estimated_unit_price?: never
           expected_assay?: Json | null
@@ -20623,6 +20702,7 @@ export type Database = {
           asset_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          deep_discharge_judgement_code?: string | null
           estimated_amount_ccy?: never
           estimated_unit_price?: never
           expected_assay?: Json | null
@@ -20658,6 +20738,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "fixed_assets"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_deep_discharge_judgement_code_fkey"
+            columns: ["deep_discharge_judgement_code"]
+            isOneToOne: false
+            referencedRelation: "deep_discharge_judgements"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "purchase_order_lines_material_id_fkey"

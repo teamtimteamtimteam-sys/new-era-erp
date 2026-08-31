@@ -42,7 +42,11 @@ CREATE TABLE public.purchase_order_lines (
     CONSTRAINT purchase_order_lines_equipment_qty_one
         CHECK (asset_id IS NULL OR quantity = 1),
     CONSTRAINT purchase_order_lines_equipment_unit
-        CHECK (asset_id IS NULL OR unit = 'unit')
+        CHECK (asset_id IS NULL OR unit = 'unit'),
+    -- ── PROC-1B-iii 追加(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
+    -- R1:【能不能深度放电】这个判断在【采购时】做出,在货到之前 —— 那一刻
+    -- 进料批还不存在。放在这里不是图方便,是放在它真正发生的地方。
+    deep_discharge_judgement_code text REFERENCES public.deep_discharge_judgements (code)
 );
 
 COMMENT ON CONSTRAINT purchase_order_lines_equipment_qty_one ON public.purchase_order_lines IS
@@ -63,6 +67,22 @@ COMMENT ON COLUMN public.purchase_order_lines.price_provenance IS
 
 COMMENT ON COLUMN public.purchase_order_lines.estimated_amount_ccy IS
     '行估算金额 = round(quantity × estimated_unit_price, 2),以【所属单据自己的币种】计 —— 不换算。FIN-28 前列名 estimated_amount_usd。';
+
+COMMENT ON COLUMN public.purchase_order_lines.deep_discharge_judgement_code IS
+'PROC-1B-iii(R1):【采购时】做出的那个判断 —— 这批料能不能深度放电。
+
+★【为什么在采购行上,而不是在进料批上】★ 因为**这个判断是在买的时候做出的,
+在货到之前** —— 那一刻【进料批还不存在】。这不是把它放在方便的地方,
+是放在它真正发生的地方。仓库里已有同一个理由的先例:work_order_lines
+按【物料】排产而不按批次,写的也是"排产的时候那个批次常常还不存在"。
+
+【NULL = 这一行比这条轴还老】不回填,不拦人。**要记"看过了但没下判断",
+用字典里的 not_assessed —— 那是一个 positive 的事实,不是一个空值。**
+★ 一个没设的判断【永远不许被读成"不能"】★。
+
+【R3:它【不拦】收货】这个判断影响的是【怎么路由】,不是【收不收货】——
+它不是在门口拒收的理由。receive_inbound_batch_against_po 一个字都没为它改过,
+而 fixture 168 把这件事钉住了:一张收货,实际与判断【矛盾】,仍然成功。';
 
 CREATE INDEX idx_purchase_order_lines_po ON public.purchase_order_lines (purchase_order_id);
 
@@ -91,7 +111,11 @@ CREATE POLICY "purchase_order_lines delete by permission"
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 purchase_order_lines_masked 读取。
 -- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
 REVOKE SELECT ON public.purchase_order_lines FROM authenticated, anon;
-GRANT SELECT (id, purchase_order_id, line_no, material_id, quantity, unit, pricing_formula_id, expected_assay, notes, created_at, created_by, price_source, asset_id)
+GRANT SELECT (id, purchase_order_id, line_no, material_id, quantity, unit, pricing_formula_id, expected_assay, notes, created_at, created_by, price_source, asset_id,
+    -- PROC-1B-iii:采购时的那个判断。【不敏感】,进列清单授权 —— 给遮蔽表加列
+    -- 必须同时做三件事(ADD COLUMN + 本授权 + _masked 视图),少一件就"写得进、读不出",
+    -- 而且【一个字的报错都不会有】。本刀的主迁移漏了后两件,由 fu1 补上。
+    deep_discharge_judgement_code)
     ON public.purchase_order_lines TO authenticated;
 
 -- ── PUR-2:已收下限与留痕 ────────────────────────────────────────────────────

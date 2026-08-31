@@ -74,6 +74,12 @@ CREATE TABLE public.inbound_batches (
     import_permit_ref         text,
     import_permit_verified_by uuid REFERENCES auth.users (id),
     import_permit_verified_at timestamptz,
+    -- ── PROC-1B-iii 追加(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
+    -- R2:**实际到的货**能不能深度放电。与采购行上的判断【两个值都活着】,
+    -- 谁也不覆盖谁;不一致由 grn_discrepancies 报出来。
+    -- ★ 它【不是】inbound_batch_safety_states 那条轴上的东西 —— 那条答"现在
+    --   放没放电"(状态,起火闸读它),本列答"压根能不能放电"(能力)。见列注释。
+    deep_discharge_actual_code text REFERENCES public.deep_discharge_judgements (code),
     -- 核验只有在"是进口货"时才说得通;不是进口货却填着核验人,那一行自相矛盾。
     CONSTRAINT inbound_import_verification_only_when_imported
         CHECK (imported IS TRUE
@@ -267,7 +273,11 @@ REVOKE SELECT ON public.inbound_batches FROM authenticated, anon;
 GRANT SELECT (id, code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, stage, notes, status, deleted_at, created_at, created_by, updated_at, updated_by, purchase_order_id, purchase_order_line_id, pricing_formula_id, pricing_status, deleted_by, delete_reason, declared_qty, chemistry_certainty_code,
     -- CMPL-1:进口尽调那四列。【不敏感】,所以进列清单授权 —— 给遮蔽表加列
     -- 必须同时做三件事(ADD COLUMN + 本授权 + _masked 视图),少一件就"写得进、读不出"。
-    imported, import_permit_ref, import_permit_verified_by, import_permit_verified_at)
+    imported, import_permit_ref, import_permit_verified_by, import_permit_verified_at,
+    -- PROC-1B-iii:实际到的货能不能深度放电。同上,三件事一件都不能少 ——
+    -- 而这一列漏掉的后果特别隐蔽:"读不到"会显示成"未记录",
+    -- 与本刀刻意设计的"缺一侧就是 NULL"长得一模一样。
+    deep_discharge_actual_code)
     ON public.inbound_batches TO authenticated;
 
 -- AUDEL-1a:硬删按名拒(BATCH_NO_HARD_DELETE|批号),【与动没动过无关】。
@@ -304,3 +314,26 @@ COMMENT ON COLUMN public.inbound_batches.imported IS
 
 COMMENT ON COLUMN public.inbound_batches.import_permit_verified_at IS
     'CMPL-1:【谁在什么时候核过】那张进口准证。★它记录的是一次【人的核对】,不是系统的判断★ —— 「交货方在进口当时是否持证」是关于过去、关于某一票货的事实,系统确立不了,所以本刀**只记录、只告警,不加拒绝**。判得了的那一半(交货方【当下】有没有一张在效的 nea_import 准证)**已经由 certificate_types 的 block 处置在收货上拦着了**,本刀不重复它。';
+
+COMMENT ON COLUMN public.inbound_batches.deep_discharge_actual_code IS
+'PROC-1B-iii(R2):**实际到的货**能不能深度放电 —— 到货后看过之后记下的。
+
+★【两个值都活着,谁也不覆盖谁】★ 采购行上的判断(purchase_order_lines.
+deep_discharge_judgement_code)不因为这里记了一个值就被改写,反之亦然。
+**两者不一致必须看得见** —— 那正是 Tim 拿去跟供应商谈的东西。
+差异由 grn_discrepancies 报(kinds 里的 deep_discharge_contradicted),
+【不另起一套机制】:expected_assay vs 实际化验、declared_qty vs quantity,
+仓库里这个"预期 vs 实际"的形状已经有两份了,本条跟其中一份走。
+
+★★【它【不是】安全状态那条轴上的东西 —— 两半理由都写在这里】★★
+  ① **同一本字典**(deep_discharge_judgements)让采购侧与到货侧【可比】——
+     两侧取值集合不同,那个比较就没有意义。
+  ② **不同的表**让【能力轴】离【起火闸】远远的。inbound_batch_safety_states
+     答的是"这批料现在放没放电"(状态),guard_processing_input 读它;
+     本列答的是"这批料压根能不能放电"(能力)。把本列做成 safety_states 的一行,
+     就等于给同一件事造了第二种说法 —— 而那是这个仓库反复付账的那一类缺陷。
+  证据:整电池粉料线【受理 charged_not_discharged 却不解决它】,因为它专收
+  【放不了电】的料。带电+能放电 → 放电线;带电+放不了电 → 电池粉料线。
+  两条轴必须能同时说话。
+
+【NULL = 这一行比这条轴还老】不回填。要记"看过了但说不上来",用 not_assessed。';

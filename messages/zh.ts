@@ -1716,6 +1716,12 @@ const zh = {
             declared_vs_actual: '申报与实收不符',
             material_mismatch: '收到的不是订的料',
             assay_beyond_tolerance: '化验超出容差',
+            deep_discharge_contradicted: '深度放电判断与实际不符',
+        },
+        deepDischarge: {
+            can: '可深度放电',
+            cannot: '不可深度放电',
+            not_assessed: '未评估',
         },
         detail: {
             short: '这条采购行订 {ordered} {unit},{receipts} 次收货累计 {received} {unit} —— 少了 {delta} {unit}({pct}%)。因为短交幅度超过 {threshold}% 的阈值、且采购单已关闭或取消,所以在这里报出来。',
@@ -1726,6 +1732,8 @@ const zh = {
             assay: '化验与采购行的预期含量逐金属比过 {metals} 种,至少一种的相对偏差超出 {threshold}% 的容差。容差是【相对偏差】,不是百分点。',
             assayWhichMetal: '是哪一种金属、差了多少,在化验记录里 —— 这一行只说得出"至少有一种超了"。',
             assayLink: '打开该批次',
+            deepDischarge: '买的时候判的是【{judged}】,实际到的货是【{actual}】。**两个值都留着,谁也不覆盖谁** —— 而这个差距正是拿去跟供应商谈的东西。',
+            deepDischargeAccepted: '这批货【已经收下、已经入账】—— 这是一条提示,不是一次拒绝。这个判断决定的是【走哪条产线】,它从来不是在门口拒收的理由。',
         },
         batch: {
             heading: '与采购单的对照',
@@ -1908,6 +1916,20 @@ const zh = {
             processed: '已加工完',
         },
         // CMPL-1:进口尽调 —— 记录 + 告警,不拒绝(理由在面板与 action 抬头)。
+        deepDischarge: {
+            title: '这批料能不能深度放电?',
+            help: '这是一条【能力】,不是一条【状态】。"放没放电"是上面那块到货状态的事,而起火闸读的是那一条。这里问的是【压根能不能放电】—— 带电而【能】放电的走深度放电线,带电而【放不了】电的走整电池粉料线。它只影响【走哪条线】,从不拦收货。',
+            judged: '买的时候判的',
+            judgedNone: '采购行上没填',
+            judgedNoLine: '这批货没有挂采购行 —— "买的时候判的"这件事不存在',
+            judgedHidden: '你的权限看不到采购那一侧,所以这【不是】"没填" —— 请去要采购模块的查看权限。',
+            actual: '实际到的货',
+            unset: '- 未记录 -',
+            contradicted: '这与买的时候下的判断【不一致】。两个值都留着,谁也不覆盖谁。收货不受影响;这个差距正是拿去跟供应商谈的东西,它也会出现在收货差异里。',
+            errors: {
+                NOT_PERMITTED: '你没有编辑这一批的权限。',
+            },
+        },
         importDiligence: {
             title: '进口尽调',
             what: '我们的执照禁止接收已进口至新加坡的废物,除非交货方【在进口当时】持有进口准证。那是一件关于过去的事实,所以这里记录的是一次【人的核对】。',
@@ -4116,6 +4138,10 @@ const zh = {
             '单据留在草稿状态,收不了货。谁驳回的、为什么驳回,两样都会记下来,而且这条记录只增不改。',
         rejectReason: '为什么驳回?',
         cancelConsequence: '这张单据就此结束,不能再打开。谁取消的、为什么取消,两样都会记下来。',
+        deepDischarge: {
+            label: '能否深度放电',
+            unset: '- 未填写 -',
+        },
         terms: {
             committed: '条款已承诺 {code} · {on}',
             notCommitted: '条款未承诺(FIN-27 之前的行)—— 结算会被拒',

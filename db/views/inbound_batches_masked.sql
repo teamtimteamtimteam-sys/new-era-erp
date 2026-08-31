@@ -57,7 +57,10 @@ CREATE VIEW public.inbound_batches_masked WITH (security_invoker = off) AS
     imported,
     import_permit_ref,
     import_permit_verified_by,
-    import_permit_verified_at
+    import_permit_verified_at,
+    -- PROC-1B-iii fu1:遮蔽表加一列 = 三件事(列 + 列级授权 + 本视图)。
+    -- 【不遮蔽,原样透出】它是工艺路由要用的事实,不是钱、不是个人信息。
+    deep_discharge_actual_code
    FROM inbound_batches
   WHERE has_permission('module.inbound.view'::text);;
 

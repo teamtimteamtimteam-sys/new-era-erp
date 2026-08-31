@@ -50,7 +50,10 @@ export default async function ReceivingDiscrepanciesPage() {
                     'line_id, line_no, ordered_material_code, received_material_code, ' +
                     'ordered_qty, ordered_unit, received_qty, received_unit, declared_qty, ' +
                     'line_received_qty, line_receipt_count, line_delta_qty, line_delta_pct, ' +
-                    'declared_delta_qty, assay_beyond_tolerance, assay_metals_compared, kinds')
+                    'declared_delta_qty, assay_beyond_tolerance, assay_metals_compared, ' +
+                    // PROC-1B-iii:两侧的【原始码】都要取 —— 只取那个布尔的话,
+                    // 「没设」与「未评估」在屏幕上就并成一句了(两者的布尔都是 NULL)。
+                    'deep_discharge_judged, deep_discharge_actual, deep_discharge_contradicted, kinds')
             .order('arrival_date', { ascending: false }),
         supabase
             .from('receiving_settings')

@@ -150,6 +150,20 @@ CREATE TRIGGER trg_output_batches_awaiting_operation
     BEFORE INSERT OR UPDATE ON public.output_batches
     FOR EACH ROW EXECUTE FUNCTION public.guard_output_batch_awaiting_operation();
 
+-- ★ PROC-1B-iii(R4):**已经许给客户的货,不许被指定成下游工序的投料。** ★
+-- 【为什么在表上,而不只在 set_output_batch_purpose 里】本表有一条敞开的
+-- UPDATE 策略(module.output.edit),直插的 UPDATE 会整个绕开那个函数;
+-- 而 CHECK 约束读不了另一张表。镜像那一侧(先指定、后预留)本来就是触发器
+-- (sales_order_reservations 上的 trg_so_reservations_form_saleable)——
+-- 把一条规则的两半用两种强度执行,正是它被绕过去的方式。
+-- 【只挂 UPDATE,且只在 purpose_code 真的变了时】预留有外键指向本表,
+-- 建批那一刻不可能有预留指着它;WHEN 让无关的 UPDATE 不必付这次查询。
+CREATE TRIGGER trg_output_batches_not_promised
+    BEFORE UPDATE OF purpose_code ON public.output_batches
+    FOR EACH ROW
+    WHEN (NEW.purpose_code IS DISTINCT FROM OLD.purpose_code)
+    EXECUTE FUNCTION public.guard_output_batch_not_promised();
+
 -- AUDEL-1b:置 deleted_at 必须走【门】(函数),且 deleted_by / delete_reason 必须填好。
 -- 光加两列挡不住任何事 —— 软删本来就是一次直连 UPDATE。
 CREATE TRIGGER trg_output_batches_soft_delete_provenance

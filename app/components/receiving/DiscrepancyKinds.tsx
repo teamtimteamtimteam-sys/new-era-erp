@@ -49,6 +49,11 @@ export type DiscrepancyRow = {
     declared_delta_qty: number | null
     assay_beyond_tolerance: boolean | null
     assay_metals_compared: number | null
+    // PROC-1B-iii:两侧的【原始码】。**它们不是装饰** —— 「没设」(null)与
+    // 「未评估」(not_assessed)的 contradicted 都是 NULL,分辨力只在这两列上。
+    deep_discharge_judged: string | null
+    deep_discharge_actual: string | null
+    deep_discharge_contradicted: boolean | null
     kinds: string[]
 }
 
@@ -66,6 +71,10 @@ const TONE: Record<string, string> = {
     // 收错料用【蓝】而不是红:红在这套界面里意味着"被拒了",而它恰恰没有被拒。
     material_mismatch: 'border-blue-300 bg-blue-50 text-blue-900',
     assay_beyond_tolerance: 'border-amber-300 bg-amber-50 text-amber-900',
+    // PROC-1B-iii:与 material_mismatch 同一套【蓝】—— 红在这套界面里意味着
+    // "被拒了",而 R3 明令这一条【不拦收货】。用红会让操作员去找一个
+    // 并不存在的放行按钮。
+    deep_discharge_contradicted: 'border-blue-300 bg-blue-50 text-blue-900',
 }
 
 /**
@@ -116,6 +125,28 @@ export default async function DiscrepancyKinds({
                             })}
                             {/* 【最要紧的一句:这批货已经入账了】 */}
                             <span className="block mt-1 font-medium">{t('grn.detail.materialAccepted')}</span>
+                        </>
+                    )}
+                    {kind === 'deep_discharge_contradicted' && (
+                        <>
+                            {/* 【两个值都印出来 —— 这一条差异的全部内容就是那两个值不一样】
+                                印成人话而不是码:字典的名字由页面翻不了(组件拿不到字典),
+                                所以走 i18n 的 grn.deepDischarge.<code>。字典是 RUNTIME
+                                CONFIG,线上后加的取值这里没有键 —— 那时 t() 会把整个
+                                key 原样印出来(lib/i18n 的"方便发现漏翻"),难看但
+                                【看得见】;而一片空白会被读成"没有值"。 */}
+                            {t('grn.detail.deepDischarge', {
+                                judged: row.deep_discharge_judged
+                                    ? t('grn.deepDischarge.' + row.deep_discharge_judged)
+                                    : '—',
+                                actual: row.deep_discharge_actual
+                                    ? t('grn.deepDischarge.' + row.deep_discharge_actual)
+                                    : '—',
+                            })}
+                            {/* 【与收错料同一句最要紧的话:这批货已经入账了】 */}
+                            <span className="block mt-1 font-medium">
+                                {t('grn.detail.deepDischargeAccepted')}
+                            </span>
                         </>
                     )}
                     {kind === 'assay_beyond_tolerance' && (

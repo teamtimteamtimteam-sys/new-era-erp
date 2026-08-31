@@ -1735,6 +1735,12 @@ const en = {
             declared_vs_actual: 'Declared vs weighed',
             material_mismatch: 'Different material',
             assay_beyond_tolerance: 'Assay outside tolerance',
+            deep_discharge_contradicted: 'Deep-discharge judgement contradicted',
+        },
+        deepDischarge: {
+            can: 'Can be deep-discharged',
+            cannot: 'Cannot be deep-discharged',
+            not_assessed: 'Not assessed',
         },
         detail: {
             short: 'This PO line ordered {ordered} {unit}; {receipts} receipt(s) total {received} {unit} — {delta} {unit} short ({pct}%). Reported because the shortfall exceeds the {threshold}% threshold and the order is closed or cancelled.',
@@ -1745,6 +1751,8 @@ const en = {
             assay: 'Assay compared {metals} metal(s) against the PO line\'s expected assay; at least one is outside the {threshold}% tolerance. The tolerance is a RELATIVE deviation, not percentage points.',
             assayWhichMetal: 'Which metal, and by how much, is on the assay record — this line only reports that at least one exceeded.',
             assayLink: 'open the batch',
+            deepDischarge: 'At purchase this material was judged "{judged}"; what actually turned up was "{actual}". Both values stand — neither overwrites the other, and the gap between them is what you take to the supplier.',
+            deepDischargeAccepted: 'The receipt was accepted and the stock is on the books — this is a warning, not a rejection. The judgement decides which line the material is routed to; it is never a reason to refuse goods at the gate.',
         },
         batch: {
             heading: 'Against the purchase order',
@@ -1927,6 +1935,20 @@ const en = {
             processed: 'Processed',
         },
         // CMPL-1:进口尽调 —— 记录 + 告警,不拒绝(理由在面板与 action 抬头)。
+        deepDischarge: {
+            title: 'Can this material be deep-discharged?',
+            help: 'A capability, not a state. "Is it discharged?" is the intake-condition axis above, and the fire gate reads that one. This asks whether the material can be discharged at all — charged material that CAN be discharged goes to the discharge line; charged material that CANNOT goes to the battery powder line. It affects routing only; it never blocks a receipt.',
+            judged: 'Judged at purchase',
+            judgedNone: 'not filled in on the purchase order line',
+            judgedNoLine: 'no purchase order line — nothing was judged at purchase',
+            judgedHidden: 'Your permissions cannot see the purchasing side, so this is NOT "not filled in" — ask for purchasing view access.',
+            actual: 'What actually turned up',
+            unset: '- not recorded -',
+            contradicted: 'This contradicts the judgement made at purchase. Both values stand — neither overwrites the other. The receipt is unaffected; the gap is what you take to the supplier, and it is listed under receiving discrepancies.',
+            errors: {
+                NOT_PERMITTED: 'You do not have permission to edit this batch.',
+            },
+        },
         importDiligence: {
             title: 'Import due diligence',
             what: 'Our licence forbids receiving waste imported into Singapore unless the deliverer held an import permit AT THE POINT OF IMPORT. That is a fact about the past, so it is recorded here as a human verification.',
@@ -4150,6 +4172,10 @@ const en = {
             'The order stays a draft and cannot receive goods. Who rejected it and why are both recorded, and the record is append-only.',
         rejectReason: 'Why is it being rejected?',
         cancelConsequence: 'The order is closed for good — it cannot be reopened. Who cancelled it and why are both recorded.',
+        deepDischarge: {
+            label: 'Deep-discharge',
+            unset: '- not filled in -',
+        },
         terms: {
             committed: 'terms committed {code} · {on}',
             notCommitted: 'terms not committed (pre-FIN-27 line) — settlement will refuse',

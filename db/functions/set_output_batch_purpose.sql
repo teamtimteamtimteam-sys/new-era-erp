@@ -11,6 +11,8 @@ DECLARE
     v_old     text;
     v_saleable boolean;
     v_await   text;
+    v_res_qty numeric;
+    v_res_ord text;
 BEGIN
     PERFORM public.require_permission('module.processing.edit');
 
@@ -30,6 +32,34 @@ BEGIN
      WHERE code = p_purpose_code AND is_active;
     IF NOT FOUND THEN
         RAISE EXCEPTION 'BATCH_PURPOSE_UNKNOWN|%', COALESCE(p_purpose_code, '(null)');
+    END IF;
+
+    -- ★★【PROC-1B-iii(R4):这一批许给客户了吗】★★
+    -- 【按名拒,而且这个名字与那五条销售拒绝【都不一样】】
+    --   assert_output_batch_saleable 的五条讲的都是"这一批能不能【卖】";
+    --   本条讲的是反方向的一句话:"这一批能不能被【拿去投料】"。
+    --   共用一个错误码会让操作员读到一句与他正在做的事无关的话。
+    -- 【它排在权限与字典之后、UPDATE 之前】——"你没权限"和"没有这个用途"
+    --   是更早的问题;把本条排到它们前面,会让一个手滑打错用途码的人
+    --   收到一句关于客户承诺的话。
+    IF v_saleable IS FALSE THEN
+        SELECT sum(r.qty),
+               string_agg(DISTINCT so.code, ', ' ORDER BY so.code)
+          INTO v_res_qty, v_res_ord
+          FROM public.sales_order_reservations r
+          JOIN public.sales_order_lines sol ON sol.id = r.sales_order_line_id
+          JOIN public.sales_orders so ON so.id = sol.sales_order_id
+         WHERE r.output_batch_id = p_output_batch_id
+           AND r.released_at IS NULL
+           AND r.consumed_at IS NULL;
+
+        IF v_res_qty IS NOT NULL AND v_res_qty > 0 THEN
+            RAISE EXCEPTION 'BATCH_PROMISED_TO_CUSTOMER|%|%|%', v_code, v_res_qty, v_res_ord
+              USING HINT = '这一批已经许给了客户(见上面的订单号),所以它不能被指定成下游工序的投料。'
+                        || '【部分预留也是整批拒】:指定是【整批】的事,没有"只指定没许出去的那部分"这种做法 —— '
+                        || '那会把已经许出去的货一起翻成非可售,发货那天就成了毁约。'
+                        || '要拿这一批去投料,先到销售订单上把预留释放掉,或者换一批。';
+        END IF;
     END IF;
 
     -- 【释放指定就把"在等哪一道"一并清掉】留着它会造出一个自相矛盾行,

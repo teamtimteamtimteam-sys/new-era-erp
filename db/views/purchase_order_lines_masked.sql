@@ -38,7 +38,10 @@ CREATE VIEW public.purchase_order_lines_masked WITH (security_invoker = off) AS
             WHEN has_permission('data.view_prices'::text) THEN price_provenance
             ELSE NULL::jsonb
         END AS price_provenance,
-    asset_id
+    asset_id,
+    -- PROC-1B-iii fu1:遮蔽表加一列 = 三件事(列 + 列级授权 + 本视图)。
+    -- 【不遮蔽,原样透出】它是工艺路由要用的事实,不是钱、不是个人信息。
+    deep_discharge_judgement_code
    FROM purchase_order_lines
   WHERE has_permission('module.purchasing.view'::text);
 

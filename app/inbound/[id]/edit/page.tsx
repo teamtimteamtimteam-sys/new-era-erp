@@ -19,6 +19,7 @@ import type { MovementRow } from '@/app/components/inventory/movementTypes'
 import StocktakeQuickCount from '@/app/stocktakes/StocktakeQuickCount'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import IntakeConditionPanel from './IntakeConditionPanel'
+import DeepDischargePanel from './DeepDischargePanel'
 import ImportDiligencePanel from './ImportDiligencePanel'
 import { can, canViewPrices } from '@/lib/permissions'
 import { maskedRows, maskedExcept } from '@/lib/maskedRows'
@@ -71,19 +72,32 @@ export default async function EditInboundPage({
     //     所以 chemistry_certainty_code 直接从它上面取,不另查表;
     //   * inbound_batch_safety_states 实测【没有】_masked 伴生,表级 SELECT 授权,直读;
     //   * 两张字典同样没有伴生视图,表级授权,直读。
-    const [statesRes, certRes, pickedRes] = await Promise.all([
+    // PROC-1B-iii:第三张字典 —— 【能不能深度放电】。它同样没有 _masked 伴生,
+    // 表级 SELECT 授权,直读。**它与上面两条轴【不是同一条】**:那两条讲
+    // "这批料现在是什么状态"(起火闸读它),本条讲"这批料压根能不能放电"。
+    const [statesRes, certRes, pickedRes, ddRes] = await Promise.all([
         supabase.from('inbound_safety_states')
             .select('code, name_en, name_zh, may_be_fed').eq('is_active', true).order('sort_order'),
         supabase.from('inbound_chemistry_certainties')
             .select('code, name_en, name_zh, may_be_fed').eq('is_active', true).order('sort_order'),
         supabase.from('inbound_batch_safety_states')
             .select('safety_state_code').eq('inbound_batch_id', id),
+        supabase.from('deep_discharge_judgements')
+            .select('code, name_en, name_zh').eq('is_active', true).order('sort_order'),
     ])
     const safetyStates = mustRows(statesRes, 'inbound_safety_states')
     const certainties = mustRows(certRes, 'inbound_chemistry_certainties')
     const pickedStates = (mustRows(pickedRes, 'inbound_batch_safety_states') as { safety_state_code: string }[])
         .map((r) => r.safety_state_code)
+    const ddOptions = (mustRows(ddRes, 'deep_discharge_judgements') as
+        { code: string; name_en: string; name_zh: string }[])
+        .map((r) => ({ code: r.code, label: locale === 'zh' ? r.name_zh : r.name_en }))
     const canEditInbound = await can('module.inbound.edit')
+    // ★【跨模块:采购行躲在 module.purchasing.view 后面(OPS-14 的 xmodule)】★
+    // 一个只有进料权限的人读 purchase_order_lines 会被 RLS 静默丢行,
+    // 而"丢了行"与"那一列是空的"读出来一模一样。取一次权限码,把两者分开渲染 ——
+    // 与本页上面 canFinance 那一处同源。
+    const canViewPurchasing = await can('module.purchasing.view')
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
     const [batchRes, materialsRes, suppliersRes, metalsRes, movementsRes, stocktakeRes, priceHistoryRes] = await Promise.all([
@@ -152,6 +166,22 @@ export default async function EditInboundPage({
     // cut 2b:改读遮蔽视图(select('*') 会碰到被收回的 unit_price)。
     // 只有 unit_price 会被遮蔽,其余列恢复基表类型。
     const batch = maskedExcept<Tables<'inbound_batches'>, 'unit_price'>(batchRes.data)
+
+    // PROC-1B-iii:采购行上买的时候下的那个判断,摆到实际值旁边。
+    // 【只在【看得见】的时候去读】—— 没有权限时不发这次查询,并让面板
+    // 按名说"你看不到采购侧",而不是印一个会骗人的"未填写"。
+    let judgedDeepDischarge: string | null = null
+    if (canViewPurchasing && batch.purchase_order_line_id) {
+        const { data: polRow } = await supabase
+            // 【读遮蔽视图,不直连表】(S2)purchase_order_lines 是遮蔽表 ——
+            // 直连会让一个部分权限的读者整条查询 42501,而 _masked 只把被扣下的
+            // 列呈现成 null。本处只取判断那一列,它不在被扣之列。
+            .from('purchase_order_lines_masked')
+            .select('deep_discharge_judgement_code')
+            .eq('id', batch.purchase_order_line_id)
+            .maybeSingle()
+        judgedDeepDischarge = polRow?.deep_discharge_judgement_code ?? null
+    }
 
     // ── PROC-COST-1:落地成本的两个【非采购价】组件 ──────────────────────────
     // 【页面不重算任何一条】两个数都由数据库那一份实现给出,与
@@ -340,7 +370,10 @@ export default async function EditInboundPage({
                     'ordered_material_code, received_material_code, ordered_qty, ordered_unit, ' +
                     'received_qty, received_unit, declared_qty, line_received_qty, ' +
                     'line_receipt_count, line_delta_qty, line_delta_pct, declared_delta_qty, ' +
-                    'assay_beyond_tolerance, assay_metals_compared, kinds')
+                    'assay_beyond_tolerance, assay_metals_compared, ' +
+                    // PROC-1B-iii:两侧的【原始码】都要取 —— 只取那个布尔的话,
+                    // 「没设」与「未评估」在屏幕上就并成一句了(两者的布尔都是 NULL)。
+                    'deep_discharge_judged, deep_discharge_actual, deep_discharge_contradicted, kinds')
             .eq('batch_id', id)
             .maybeSingle(),
         supabase
@@ -618,6 +651,21 @@ export default async function EditInboundPage({
                     </div>
                 </div>
             )}
+
+            {/* ★ PROC-1B-iii(R2):【实际到的货】能不能深度放电 —— 自己一块。 ★
+                摆在"到货状态"之后、进口尽调之前,因为它与到货状态是相邻的两个问题
+                (那一条问"现在是什么状态",这一条问"压根能不能放电"),
+                但它们【不是同一条轴】:那一条是起火闸读的,这一条只影响路由。
+                【它对所有进料批都适用】—— 不像到货状态那样受 conditionApplicable
+                约束:能不能放电是买这批料时就要回答的问题,与料的种类有没有
+                "状态轴"是两回事。 */}
+            <DeepDischargePanel batchId={id}
+                current={batch.deep_discharge_actual_code ?? null}
+                judged={judgedDeepDischarge}
+                judgedVisible={canViewPurchasing}
+                hasPoLine={batch.purchase_order_line_id !== null}
+                options={ddOptions}
+                canEdit={canEditInbound} />
 
             {/* CMPL-1:进口尽调 —— 执照正文要求交货方在【进口当时】持有进口准证。
                 它【只记录 + 只告警】,不加拒绝:判得了的那一半(交货方当下有没有一张
