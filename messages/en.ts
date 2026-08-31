@@ -2003,6 +2003,24 @@ const en = {
                 OUTPUT_NOT_FOUND: 'Output batch not found.',
                 OUTPUT_DELETED: 'Batch {0} has been deleted; its purpose cannot be changed.',
                 PERMISSION_DENIED: 'Missing permission "{0}" — setting and releasing a processing earmark needs PROCESSING edit rights, not sales rights.',
+                WIP_OPERATION_UNKNOWN: 'There is no operation "{0}", or it has been deactivated. Check Settings → Operations.',
+                WIP_AWAITING_ON_SALEABLE_BATCH: 'Batch {0} is currently SALEABLE STOCK ({1}), and saleable stock is not waiting for any operation. To make it wait for one, first change its purpose to feed for a downstream operation.',
+            },
+            awaitingWhy: 'Which operation this batch is waiting for. Empty does NOT mean "not applicable" — a batch with no operation assigned yet is still work in progress; it just has not been routed to a machine.',
+            awaitingNow: 'Waiting for:',
+            awaitingUnset: 'Not yet assigned',
+            awaitingClear: 'Clear (not yet decided)',
+        },
+        safety: {
+            title: 'Safety state',
+            why: 'The safety states recorded against this SELF-PRODUCED batch. Self-produced material faces the same fire gate as bought material — somebody must have looked at it before it can be fed.',
+            noneRecorded: '★ No safety state has been recorded. That means NOBODY HAS LOOKED, not that the batch is safe — this batch cannot be fed into any operation until someone records one here.',
+            notFeedable: 'not feedable',
+            add: 'Record {name}',
+            remove: 'Remove {name}',
+            noPermission: 'You do not have output-batch edit rights, so you cannot change this.',
+            errors: {
+                writeFailed: 'Write failed: {msg}',
             },
         },
         sale: {
@@ -2139,6 +2157,20 @@ const en = {
         subnav: {
             workOrders: 'Work orders',
             runs: 'Processing runs',
+            wip: 'Work in progress',
+        },
+        wip: {
+            title: 'Work in progress',
+            note: 'Output batches earmarked as feed for a downstream operation and still holding quantity — what is waiting, how much, and for which operation. This is not a new table: a WIP row IS the output-batch row; storing it twice would count the same material twice.',
+            colBatch: 'Batch',
+            colMaterial: 'Material',
+            colQty: 'Remaining',
+            colAwaiting: 'Awaiting operation',
+            colSafety: 'Safety state',
+            notScheduled: 'Not yet assigned',
+            noSafetyState: 'None recorded — cannot be fed',
+            safetyRecorded: '{n} recorded',
+            empty: 'No output batch is waiting for an operation.',
         },
         colWorkOrder: 'Work order',
         noWorkOrder: 'unplanned',
@@ -2481,6 +2513,8 @@ const en = {
             blocked: {
                 input_not_measured: 'Cannot be computed — the input was never assayed for this metal. Nothing can fix this run retrospectively; assay batches before they are processed (the dashboard\u2019s "awaiting assay" list is where that is prevented).',
                 output_not_measured: 'Cannot be computed — no metal content has been recorded on the output batches yet. Enter it on the output batch to complete this figure.',
+                // PROC-WIRE-1B-ii: "not applicable" and "not measured" are two different sentences with two different next actions.
+                output_not_applicable: 'Not applicable — this is a STATE-CHANGING operation (same batch in, same batch out, only the state changes) and by definition it has no output leg. There is nothing here to measure; an assay is not missing.',
                 input_measured_zero: 'Cannot be computed — the input was measured and contains none of this metal, so there is nothing to recover against.',
             },
             anomalyTitle: 'Output exceeds input',
@@ -4547,6 +4581,7 @@ const en = {
         blocked: {
             input_not_measured: 'cannot be computed \u2014 input never assayed for this metal',
             output_not_measured: 'cannot be computed \u2014 output not yet assayed for this metal',
+            output_not_applicable: 'not applicable \u2014 a state-changing operation has no output leg, so there is nothing to measure',
             input_measured_zero: 'cannot be computed \u2014 measured input is zero',
             unspecified: 'cannot be computed',
         },

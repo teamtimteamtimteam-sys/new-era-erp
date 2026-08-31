@@ -3,40 +3,27 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
-## ★★ SALE-BLIND:`assert_output_batch_saleable` 看不见自己的主语时【静默放行】(PROC-COST-2 实测,2026-08-31)
+## ~~SALE-BLIND~~ —— **已修(PROC-WIRE-1B-ii,2026-08-31)**
 
-**严重性:这是本文件里唯一一条失败后果是【卖掉一件不该卖的东西】的读者缺陷。**
-它单独一条,不与下面那一组并列 —— 一条**安全断言**因为看不见主语而放行,
-与一个数字读小了不是同一个量级。
+`assert_output_batch_saleable` 看不见自己的主语时【静默放行】。**已关闭**,
+处置与实测见 [proc-wire-1b-ii.md](proc-wire-1b-ii.md)。三点值得记在这里:
 
-`assert_output_batch_saleable` 是 `SECURITY INVOKER`,函数体第一句
-`JOIN public.materials`(策略 `module.materials.view`),主语来自
-`public.output_batches`(策略 `module.output.view`)。查不到就
-
-```sql
-IF NOT FOUND THEN
-    RETURN;   -- 批次不存在不是本函数的题
-END IF;
-```
-
-**"批次不存在"与"我看不见这个批次"在这里是同一格,而它们是两件事。**
-
-**实测(真角色,`SET LOCAL ROLE authenticated`,全程回滚):**
-
-| 读者 | 同一批【已指定为下游投料】的产出批 |
-|---|---|
-| 持全部权限 | `SALE_BATCH_EARMARKED\|OUT-2026-0002\|下游工序投料\|Feed for a downstream operation` |
-| 只有 `module.processing.view` | **没有抛任何异常 —— 断言通过** |
-
-**可达性:它的唯一调用方 `guard_batch_form_saleable` 是一个【不带 SECURITY
-DEFINER】的触发器函数**,也就是说它以**调用者身份**运行,RLS 对它生效。
-所以这不是一条"够不到"的缺陷。
-
-**为什么本刀不修:** PROC-COST-2 的射程是 `batch_freight_base` 一支,
-而这是**销售侧的安全闸**,改它要先裁定"看不见主语时该拒还是该放"——
-本刀已经为"照抄一个先例之前先问它成立的条件"付过一次账(见
-`docs/landed-cost-relief.md` 第六节),不在这里重犯。
-**它有自己的队列条目**,不埋在下面那一组里。
+1. **它不是一处,是三处** —— 体内三个依赖各有各的 RLS
+   (`output_batches` / `materials` / `processing_outputs`)。其中 `materials`
+   那一处住在**另一支函数** `assert_material_form_saleable`(**不在** 下面
+   INVOKER-JOIN 那一组的名单里,是这一刀新发现的),而它扛的是【法律】那条拒绝。
+   **两支一起修**,fixture 164 两帧分别立臂。
+2. ★ **本条目原先记的可达路径是错的。** `record_output_sale` 与 `ship_order`
+   **都是 SECURITY DEFINER**,一个 INVOKER 触发器在 DEFINER 体内取的是属主身份 ——
+   所以那两扇前门上 RLS 不生效。真正可达的是 `sales_records` 那条面向客户端的
+   INSERT 策略,**钥匙是 `module.finance.edit`,不是 sales**。
+   结论(洞真实且可达)不变,但按原描述去设闸会设错地方。
+3. ★ **"无权返回 NULL"这条药方对它是毒药。** 它 `RETURNS void` ——
+   void 的"返回 NULL"拼出来就是"不抛异常地返回",那正是这个 bug 本身。
+   正确的药方是**属主权限 + 体内受众判据 + RAISE**(第五条拒绝
+   `SALE_CANNOT_ESTABLISH_SALEABILITY`)。
+   **下一个遇到这一族的人,脑子里会装着 PROC-COST-1 fu2 / PROC-COST-2 两次成功的
+   先例 —— 判断标准是:问这支函数"无权时它拿什么表示无权"。**
 
 ## INVOKER-JOIN-5:五支【属主权限之外】的读取器,读不到就悄悄给一个数(PROC-COST-2 普查,2026-08-31)
 
@@ -46,6 +33,8 @@ JOIN 了一张读者可能看不见的表。`colreader` 问的是【列】——
 **`0.00` 与「受限」不是同一件事:第一个是谎话。**
 
 **PROC-COST-2 修的是 `batch_freight_base` 一支,下面五支【一支都没有动】。**
+（PROC-WIRE-1B-ii 修的是 SALE-BLIND 那一族的两支断言，**下面这五支仍然一支都没动** ——
+它们排在开账号之前的那次清理里。）
 每一条都带**实测数字**,不是读策略推理出来的 —— 都用真角色跑过
 (`SET LOCAL ROLE authenticated` + 各自的 `request.jwt.claims`,全程回滚)。
 

@@ -257,8 +257,13 @@ has_column_privilege('authenticated','processing_runs','operation_type_code','SE
   一行,在台账里出现一次,已经被第四条拒绝挡在可售库存之外。
   **建一张 WIP 表会造出 4c 警告的那个重复计数** —— 它已经是那一行了。
   真正缺的是两件:**它在等哪一道工序**(一个指向本刀新建字典的可空指针)、
-  以及**一张看得见的屏幕**。两件都归 1B-ii。
-* **M4** —— 见第一节。归 1B-ii,理由是它需要一张还不存在的表。
+  以及**一张看得见的屏幕**。两件都归 1B-ii —— **已做**:一个可空指针
+  (`output_batches.awaiting_operation_type_code`)+ 视图 `processing_wip`
+  + 屏幕 `/processing/wip`,**没有建 WIP 表**(在制品那一行就是产出批那一行)。
+* ~~**M4**~~ —— **已做(PROC-WIRE-1B-ii)**:`output_batch_safety_states` 建好了,
+  那道闸两侧都问了,而 `commit_processing_run` 里那条占位的
+  `STATE_CHANGE_OUTPUT_INPUT_UNSUPPORTED` 也一并拆掉了(fu1)。
+  见 [proc-wire-1b-ii.md](proc-wire-1b-ii.md)。
 * **R6** —— 归 1B-iii,扩 `grn_discrepancies` 而不是建第二套。
 * **heel(R7)** —— **本刀不需要它,一行都没建。**
   Tim 的裁定是"heel 是存货",那是一条会计口径;而**有多少 heel** 要等产线。
@@ -282,4 +287,6 @@ has_column_privilege('authenticated','processing_runs','operation_type_code','SE
 * **成本资本化** —— 第五节,等 Tim 对成本载体的裁定。
 * **鼓包漏液没有任何路线** —— 第二节,等 Tim 的裁定。
 * **一张真加工单不填工序,数据库不拦** —— 第四节,等"从今天起必须填"的裁定。
-* **回收率视图对放电单说"产出没测量"而不是"不适用"** —— 第三节,归 1B-ii。
+* ~~**回收率视图对放电单说"产出没测量"而不是"不适用"**~~ —— **已做
+  (PROC-WIRE-1B-ii)**:`recovery_blocked_by` 多了 `output_not_applicable`;
+  没有工序类型的单仍然报 `output_not_measured`(说不出"不适用"的时候不许猜它)。

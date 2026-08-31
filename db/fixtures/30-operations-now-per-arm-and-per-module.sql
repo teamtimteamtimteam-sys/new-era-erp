@@ -83,6 +83,14 @@ BEGIN
     INSERT INTO role_permissions (role_id, permission_code) VALUES (r_inb, 'module.inbound.view');
     INSERT INTO user_roles (user_id, role_id) VALUES (v_all, r_all), (v_inb, r_inb);
 
+    -- 【PROC-WIRE-1B-ii:建数据这一段也要有身份】sales_records 的可售性断言
+    -- 现在【看不见就按名拒】(SALE_CANNOT_ESTABLISH_SALEABILITY)。此前这一段
+    -- 以 postgres、且【一个 claim 都没设】跑,于是 has_permission 一律为假。
+    -- **各臂随后仍然各自 set_config,这一句只管建数据那一段。**
+    -- (r_all 持 module.sales.edit —— 白名单三把钥匙之一。)
+    PERFORM set_config('request.jwt.claims',
+        format('{"sub":"%s","role":"authenticated"}', v_all), true);
+
     -- ── 九支的数据,每支一个等待中的条件 ─────────────────────────────────────
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
     VALUES ('ZZFIX30-S', 'fixture 30 supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;

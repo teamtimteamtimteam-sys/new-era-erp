@@ -27,6 +27,9 @@ COMMENT ON COLUMN public.processing_inputs.output_batch_id IS
     '再加工投料:消耗的上游产出批(FIN-25)。与 inbound_batch_id 恰一非空。估值用上游 processing_outputs.unit_cost_base,解除的是 1220 而非 1200。';
 
 -- 自吞守卫(FIN-25):一张单不能消耗自己的产出;且【两种边】的直插一律拒 ——
+-- PROC-WIRE-1B-ii:安全闸【两侧都问了】(R1 / M4)。此前 PROC-3 那一段只问进料批,
+-- 而理由是"问不了"—— 安全状态那时只有进料批有。output_batch_safety_states 建好之后,
+-- 那个理由不成立了:闸问的是【这批料和它的状态】,不是【这批料从哪来】。
 -- 裸 INSERT 不扣 remaining_qty,账实即分道(进料边的这个洞早已存在)。
 -- 【别因为"只有再加工用它"而删】:它守的是两侧。
 CREATE OR REPLACE FUNCTION public.guard_processing_input()
@@ -76,9 +79,11 @@ BEGIN
     -- ════════════════════════════════════════════════════════════════════════
     -- PROC-3:这一【批】货现在是什么状态
     --
-    -- 【只问进料批次,不问产出批次】—— **M4,仍然没修,归 1B-ii。**
-    -- 理由不是"产出批不需要问",而是【问不了】:安全状态今天只有进料批有,
-    -- 根本没有 output_batch_safety_states 这张表。那是 1B-ii 的第一件事。
+    -- ★【PROC-WIRE-1B-ii(R1 / M4):两侧都问了】★
+    -- 此前这里只问进料批,而原注释写的理由是【问不了】—— 安全状态那时只有
+    -- 进料批有。现在产出批也有(output_batch_safety_states),于是
+    -- **这道闸的问题从"这批料从哪来"变成了"这批料和它的状态是什么"**。
+    -- Tim 的 R1:抬高产出这一侧,绝不放低进料那一侧 —— 下面进料那一段一个字没动。
     -- ════════════════════════════════════════════════════════════════════════
     IF NEW.inbound_batch_id IS NOT NULL THEN
         SELECT mk.has_condition_axes INTO v_axes
@@ -171,9 +176,84 @@ BEGIN
         END IF;
     END IF;
 
+    -- ════════════════════════════════════════════════════════════════════════
+    -- ★★【产出批那一侧:M4 的修法】★★
+    --
+    -- ★【与进料侧【刻意的分歧】:这里【不】看 has_condition_axes】★
+    -- **这是一处有意的不同,不是照抄时漏掉的一行。**
+    -- 进料侧那道闸包在 `IF FOUND AND v_axes IS TRUE` 里;产出侧不能照抄,
+    -- 理由是一次测量:**线上 20 批产出,它们的物料 kind_code 全是 NULL**,
+    -- 于是 has_condition_axes 全是 NULL —— 照抄那一行,这道闸会对【零】批货
+    -- 生效,而那份证明它生效的 fixture 会对着空气变绿。
+    -- ★ 对产出料,"种类没人分过"的意思是**没有人分过类**,而那【不是许可】。
+    --   **这是一道火闸:未知的安全状态不是许可。**
+    -- (进料侧那个相反的取舍是刻意的、有记录的,本刀不动:那边的空意思是
+    --  "这条轴比这行料还年轻",拦掉它等于停掉线上每一笔收货。)
+    --
+    -- 【三条拒绝与进料侧【同形但不同名】】下一步动作差在【去哪块屏幕记】:
+    -- 进料侧是"进料 → 打开这一批 → 到货状态",产出侧是"产出批次页"。
+    -- 同一句话配两个去处,操作员会走错门 —— 所以分名,不合并。
+    -- ════════════════════════════════════════════════════════════════════════
+    IF NEW.output_batch_id IS NOT NULL THEN
+        SELECT ob.code INTO v_batch_code
+          FROM output_batches ob WHERE ob.id = NEW.output_batch_id;
+
+        -- 【缺席 = 没有人记过,不是"安全"】与进料侧 D1 同一个意思。
+        SELECT count(*) INTO v_n
+          FROM output_batch_safety_states s
+         WHERE s.output_batch_id = NEW.output_batch_id;
+        IF v_n = 0 THEN
+            RAISE EXCEPTION 'PRODUCED_SAFETY_STATE_NOT_RECORDED|%', v_batch_code
+              USING HINT = '这一批是【自己产出】的料,而它一条安全状态都没有 —— 那的意思是【没有人记过】,不是"它安全"。自产的料与买进来的料在这道火闸面前是同一个问题。到【产出 → 打开这一批 → 安全状态】那一块把它记上。';
+        END IF;
+
+        -- 【收紧不变式:与进料侧逐字同一条】没有工序类型 → may_be_fed;
+        -- 有工序类型 → 只受理 operation_type_safety_states 里明写的那些。
+        -- **声明一道工序只会把闸收紧**,产出侧不给任何按 kind 的旁路。
+        SELECT pr.operation_type_code INTO v_op
+          FROM processing_runs pr WHERE pr.id = NEW.run_id;
+
+        IF v_op IS NULL THEN
+            SELECT string_agg(d.name_zh, '、' ORDER BY d.sort_order)
+                     FILTER (WHERE d.may_be_fed IS NOT TRUE),
+                   string_agg(d.name_en, ', ' ORDER BY d.sort_order)
+                     FILTER (WHERE d.may_be_fed IS NOT TRUE)
+              INTO v_bad_zh, v_bad_en
+              FROM output_batch_safety_states s
+              JOIN inbound_safety_states d ON d.code = s.safety_state_code
+             WHERE s.output_batch_id = NEW.output_batch_id;
+
+            IF v_bad_zh IS NOT NULL THEN
+                RAISE EXCEPTION 'PRODUCED_SAFETY_STATE_NOT_FEEDABLE|%|%|%',
+                    v_batch_code, v_bad_zh, v_bad_en
+                  USING HINT = '这一批自产的料带着不可投料的安全状态(全部列在消息里,一次清完)。到【产出 → 打开这一批 → 安全状态】那一块改。';
+            END IF;
+        ELSE
+            SELECT ot.name_zh INTO v_op_zh FROM operation_types ot WHERE ot.code = v_op;
+
+            SELECT string_agg(d.name_zh, '、' ORDER BY d.sort_order),
+                   string_agg(d.name_en, ', ' ORDER BY d.sort_order)
+              INTO v_bad_zh, v_bad_en
+              FROM output_batch_safety_states s
+              JOIN inbound_safety_states d ON d.code = s.safety_state_code
+             WHERE s.output_batch_id = NEW.output_batch_id
+               AND NOT EXISTS (
+                   SELECT 1 FROM operation_type_safety_states a
+                    WHERE a.operation_type_code = v_op
+                      AND a.safety_state_code = s.safety_state_code);
+
+            IF v_bad_zh IS NOT NULL THEN
+                RAISE EXCEPTION 'PRODUCED_SAFETY_STATE_NOT_ACCEPTED|%|%|%|%',
+                    v_batch_code, COALESCE(v_op_zh, v_op), v_bad_zh, v_bad_en
+                  USING HINT = '这道工序【不受理】这一批自产料身上的某些安全状态(全部列在消息里)。这与"不可投料"是两句话:换一道受理它的工序也许就行。';
+            END IF;
+        END IF;
+    END IF;
+
     RETURN NEW;
 END;
-$function$;
+$function$
+;
 REVOKE EXECUTE ON FUNCTION public.guard_processing_input() FROM PUBLIC, anon;
 
 CREATE TRIGGER trg_processing_inputs_guard

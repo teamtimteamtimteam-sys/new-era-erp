@@ -13,7 +13,8 @@ import MovementTimeline from '@/app/components/inventory/MovementTimeline'
 import StockStatusPanel from '@/app/components/inventory/StockStatusPanel'
 import type { MovementRow } from '@/app/components/inventory/movementTypes'
 import SalePanel, { type CreditRow } from './SalePanel'
-import PurposePanel, { type BatchPurpose } from './PurposePanel'
+import PurposePanel, { type BatchPurpose, type OperationType } from './PurposePanel'
+import SafetyStatePanel, { type SafetyState } from './SafetyStatePanel'
 import OutputAssaySection from './OutputAssaySection'
 import TraceabilitySection, { type IssueRow } from './TraceabilitySection'
 import { fetchTraceability } from '@/app/output/traceabilityShared'
@@ -57,6 +58,10 @@ export default async function EditOutputPage({
     // PROC-WIRE-1A:设定/释放【工序投料】指定要的是【工序】权限,不是销售权限 ——
     // 把一批货许给产线是一个工序决定。门里那条 require_permission 与这里同一个码。
     const canSetPurpose = await can('module.processing.edit')
+    // PROC-WIRE-1B-ii(R1 / M4):记安全状态是【产出/收货的人看见了什么】,
+    // 所以它挂 module.output.edit —— 与 output_batch_safety_states 的写策略同一个码,
+    // 而【不是】工序权限:把一批货许给产线是工序决定,看见它鼓包了不是。
+    const canEditSafety = await can('module.output.edit')
     const t = await getTranslations()
     const locale = await getLocale()
 
@@ -121,6 +126,25 @@ export default async function EditOutputPage({
         .select('code, name_en, name_zh, is_saleable_stock')
         .eq('is_active', true)
         .order('sort_order')
+
+    // PROC-WIRE-1B-ii(R3):可选的工序 —— "它在等哪一道"。只取在用的(与门里同一条)。
+    const operationsRes = await supabase
+        .from('operation_types')
+        .select('code, name_en, name_zh')
+        .eq('is_active', true)
+        .order('sort_order')
+
+    // PROC-WIRE-1B-ii(R1 / M4):安全状态字典 + 这一批身上已经记了哪些。
+    // 【字典取全部,不只取在用的】守卫【不读】is_active —— 已经记下来的事实不因
+    // 字典停用而改变(inbound_safety_states 的列注),所以已挂上的那些必须画得出来。
+    const safetyDictRes = await supabase
+        .from('inbound_safety_states')
+        .select('code, name_en, name_zh, may_be_fed')
+        .order('sort_order')
+    const safetyHeldRes = await supabase
+        .from('output_batch_safety_states')
+        .select('safety_state_code')
+        .eq('output_batch_id', id)
 
     const marginRes = await supabase
         .from('batch_margin')
@@ -388,6 +412,20 @@ export default async function EditOutputPage({
                 purposes={mustRows(purposesRes) as BatchPurpose[]}
                 current={batch.purpose_code}
                 canEdit={canSetPurpose}
+                locale={locale}
+                operations={mustRows(operationsRes) as OperationType[]}
+                awaiting={batch.awaiting_operation_type_code ?? null}
+            />
+
+            {/* ★ PROC-WIRE-1B-ii(R1 / M4):自产的料要回答与买来的料同一个安全问题。
+                【这块屏必须存在】那道火闸的 HINT 写着"到【产出 → 打开这一批 →
+                安全状态】那一块把它记上" —— 没有这块屏,那句提示就是一句假话。 */}
+            <SafetyStatePanel
+                batchId={batch.id}
+                dictionary={mustRows(safetyDictRes) as SafetyState[]}
+                current={(mustRows(safetyHeldRes) as { safety_state_code: string }[])
+                    .map((r) => r.safety_state_code)}
+                canEdit={canEditSafety}
                 locale={locale}
             />
 

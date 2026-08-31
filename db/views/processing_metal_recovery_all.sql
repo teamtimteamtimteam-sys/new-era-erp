@@ -6,6 +6,10 @@
 -- 语义与拆分前逐字不变:判据是每次调用的常量,挪到外层不影响这里那个
 -- 按 run 分区的窗口函数(run_recovery_computable)。
 --
+-- PROC-WIRE-1B-ii:recovery_blocked_by 多一个取值 output_not_applicable ——
+-- 状态改变型工序按定义没有产出腿,说它"产出没测过"会教人去补一份根本不存在的化验。
+-- 没有工序类型的单仍然报 output_not_measured(说不出"不适用"的时候不许猜它)。
+--
 -- NOTE: introduced by db/migrations/2026-08-17-aud1-traceability-report.sql
 -- (body lifted verbatim from processing_metal_recovery: REC-1 / PROC-1 / FIN-25 /
 --  OPS-14 的全部要点都在那一份的抬头,不在这里重抄一遍).
@@ -58,6 +62,9 @@ CREATE VIEW public.processing_metal_recovery_all AS
         END AS recovery_pct,
         CASE
             WHEN i.metal IS NULL THEN 'input_not_measured'::text
+            -- ★ PROC-WIRE-1B-ii:【不适用】与【没测】是两句话,两种下一步动作。
+            --   状态改变型工序没有产出腿 —— 没有东西可测,不是"忘了测"。
+            WHEN o.metal IS NULL AND k.produces_outputs IS FALSE THEN 'output_not_applicable'::text
             WHEN o.metal IS NULL THEN 'output_not_measured'::text
             WHEN i.input_metal_kg = 0::numeric THEN 'input_measured_zero'::text
             ELSE NULL::text
@@ -69,7 +76,11 @@ CREATE VIEW public.processing_metal_recovery_all AS
    FROM ins i
      FULL JOIN outs o ON o.run_id = i.run_id AND o.metal = i.metal
      JOIN processing_runs r ON r.id = COALESCE(i.run_id, o.run_id)
+     -- 【两条都 LEFT JOIN】没有工序类型的单(线上 13 张)必须原样走到
+     -- output_not_measured —— 说不出"不适用"的时候不许猜它。
+     LEFT JOIN operation_types ot ON ot.code = r.operation_type_code
+     LEFT JOIN operation_kinds k ON k.code = ot.kind_code
   WHERE r.status = 'committed'::text AND r.deleted_at IS NULL;
 
 COMMENT ON VIEW public.processing_metal_recovery_all IS
-    'AUD-1:processing_metal_recovery 的【无判据基视图】,理由与 batch_lineage_all 逐字相同。【不授权给任何人】;对外读 processing_metal_recovery。';
+    'AUD-1:processing_metal_recovery 的【无判据基视图】,理由与 batch_lineage_all 逐字相同。【不授权给任何人】;对外读 processing_metal_recovery。PROC-WIRE-1B-ii:recovery_blocked_by 多一个取值 output_not_applicable —— 状态改变型工序按定义没有产出腿,说它"产出没测过"会教人去补一份根本不存在的化验。没有工序类型的单仍然报 output_not_measured(说不出"不适用"的时候不许猜它)。';

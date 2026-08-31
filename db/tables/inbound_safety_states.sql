@@ -23,8 +23,17 @@ CREATE TABLE public.inbound_safety_states (
 
 COMMENT ON TABLE public.inbound_safety_states IS
 'PROC-2:这一【批】料的安全状态。**多值** —— 一批料可以同时是"进过水"与"破损"。
-挂在进料批上而不是物料上,因为它逐批不同,而且只有收货的人看得见。
 RUNTIME CONFIG,加一种是加一行。
+
+★【PROC-WIRE-1B-ii:它讲的是【物料状态】,不是"只属于进料批"】★
+**表名里的 inbound 是历史,不是范围。** 自本刀起它由三张表共用:
+inbound_batch_safety_states(进料批)、**output_batch_safety_states(产出批)**、
+以及 operation_type_safety_states(哪道工序受理哪个状态)。
+【为什么不改名】改名要 churn 掉每一份 fixture 与 operation_type_safety_states 的
+外键,买到的只是一个更好看的名字 —— 而这句话把范围说清楚了,代价是零。
+★【为什么产出侧【不】另起一本字典】那会让同一个码有两种意思,
+并且 operation_type_safety_states 的表注已经明令"受理"只能有一个定义方式。
+**必须不许分叉的是这本字典;那张联结表分不分叉,是另一件事(答案是分,见下)。**
 
 【它决定什么】**能不能投料(may_be_fed),以及怎么存放。**
 存放那一半今天【没有落点】—— 系统里没有任何"存放要求"的机制。

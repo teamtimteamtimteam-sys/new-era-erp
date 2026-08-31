@@ -16,15 +16,19 @@ import { setOutputBatchPurpose } from './purposeActions'
 export type BatchPurpose = {
     code: string; name_en: string; name_zh: string; is_saleable_stock: boolean
 }
+// PROC-WIRE-1B-ii(R3):可选的工序,给"它在等哪一道"用。
+export type OperationType = { code: string; name_en: string; name_zh: string }
 
 export default function PurposePanel({
-    batchId, purposes, current, canEdit, locale,
+    batchId, purposes, current, canEdit, locale, operations, awaiting,
 }: {
     batchId: string
     purposes: BatchPurpose[]
     current: string
     canEdit: boolean
     locale: string
+    operations: OperationType[]
+    awaiting: string | null
 }) {
     const t = useTranslations()
     const [error, setError] = useState<string | null>(null)
@@ -38,7 +42,19 @@ export default function PurposePanel({
         if (code === current) return
         setError(null)
         startTransition(async () => {
-            const r = await setOutputBatchPurpose(batchId, code)
+            // 【切到可售库存时不带工序】门自己也会清,这里不多传一个会被忽略的值。
+            const target = purposes.find((p) => p.code === code)
+            const keep = target && !target.is_saleable_stock ? awaiting : null
+            const r = await setOutputBatchPurpose(batchId, code, keep)
+            if (r.error) setError(r.error)
+        })
+    }
+
+    // PROC-WIRE-1B-ii(R3):只改"在等哪一道",用途不动。
+    function changeAwaiting(code: string | null) {
+        setError(null)
+        startTransition(async () => {
+            const r = await setOutputBatchPurpose(batchId, current, code)
             if (r.error) setError(r.error)
         })
     }
@@ -67,6 +83,50 @@ export default function PurposePanel({
                     </p>
                 )}
             </div>
+
+            {/* ★ PROC-WIRE-1B-ii(R3):在等哪一道工序 —— 只有被指定的批次才有这个问题。
+                【空【不是】"不适用"】:还没排到具体工序的料仍然是在制品,
+                所以这里写"还没决定",不写"—"。 */}
+            {earmarked && (
+                <div className="mb-3 border-t pt-3">
+                    <p className="text-xs text-gray-600 mb-2">{t('output.purpose.awaitingWhy')}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm">
+                            {t('output.purpose.awaitingNow')}{' '}
+                            {awaiting
+                                ? <b>{(() => {
+                                      const op = operations.find((o) => o.code === awaiting)
+                                      return op ? (locale === 'zh' ? op.name_zh : op.name_en) : awaiting
+                                  })()}</b>
+                                : <span className="text-gray-500 italic">{t('output.purpose.awaitingUnset')}</span>}
+                        </span>
+                    </div>
+                    {canEdit && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                            {operations.map((o) => (
+                                <button key={o.code} type="button"
+                                        disabled={isPending || o.code === awaiting}
+                                        onClick={() => changeAwaiting(o.code)}
+                                        className={
+                                            'px-3 py-1.5 text-sm rounded border disabled:opacity-50 ' +
+                                            (o.code === awaiting
+                                                ? 'bg-gray-200 border-gray-300'
+                                                : 'bg-white border-gray-300 hover:bg-gray-50')
+                                        }>
+                                    {locale === 'zh' ? o.name_zh : o.name_en}
+                                </button>
+                            ))}
+                            {awaiting && (
+                                <button type="button" disabled={isPending}
+                                        onClick={() => changeAwaiting(null)}
+                                        className="px-3 py-1.5 text-sm rounded border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50">
+                                    {t('output.purpose.awaitingClear')}
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
 
             {canEdit ? (
                 <div className="flex flex-wrap gap-2">

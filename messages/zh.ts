@@ -1984,6 +1984,24 @@ const zh = {
                 OUTPUT_NOT_FOUND: '产出批次不存在。',
                 OUTPUT_DELETED: '批次【{0}】已被删除,改不了它的用途。',
                 PERMISSION_DENIED: '缺权限【{0}】—— 设定与释放工序投料指定要的是【工序】编辑权,不是销售权。',
+                WIP_OPERATION_UNKNOWN: '没有【{0}】这一道工序,或者它已经停用了。到【设置 → 工序】看一眼有哪些。',
+                WIP_AWAITING_ON_SALEABLE_BATCH: '批次【{0}】现在是【可售库存】({1}),而可售库存不会在等任何工序。要让它等一道工序,先把用途改成【下游工序投料】。',
+            },
+            awaitingWhy: '这一批在等哪一道工序。【空不是"不适用"】—— 还没排到具体工序的料仍然是在制品,它只是还没决定走哪一台。',
+            awaitingNow: '在等:',
+            awaitingUnset: '还没决定等哪道',
+            awaitingClear: '清掉(还没决定)',
+        },
+        safety: {
+            title: '安全状态',
+            why: '这一批【自产料】身上的安全状态。自产的料与买进来的料在那道火闸面前是同一个问题 —— 投料之前必须有人看过它。',
+            noneRecorded: '★ 一条安全状态都没有记。这的意思是【没有人记过】,不是"它安全" —— 这一批现在【投不进任何工序】,直到有人在这里记上。',
+            notFeedable: '不可投料',
+            add: '记上{name}',
+            remove: '撤掉{name}',
+            noPermission: '你没有产出批次编辑权限,改不了这一项。',
+            errors: {
+                writeFailed: '写入失败:{msg}',
             },
         },
         sale: {
@@ -2118,6 +2136,20 @@ const zh = {
         subnav: {
             workOrders: '工单',
             runs: '加工单',
+            wip: '在制品',
+        },
+        wip: {
+            title: '在制品',
+            note: '已被指定为下游工序投料、且还有余量的产出批 —— 什么在等、多少、等哪一道。【它不是一张新表】:在制品那一行就是产出批次那一行,再存一份就会把同一批料数两遍。',
+            colBatch: '批次',
+            colMaterial: '物料',
+            colQty: '余量',
+            colAwaiting: '在等工序',
+            colSafety: '安全状态',
+            notScheduled: '还没决定等哪道',
+            noSafetyState: '一条都没记 —— 投不进去',
+            safetyRecorded: '已记 {n} 条',
+            empty: '没有在等工序的产出批。',
         },
         colWorkOrder: '工单',
         noWorkOrder: '无计划',
@@ -2460,6 +2492,8 @@ const zh = {
             blocked: {
                 input_not_measured: '算不出 —— 投入侧从未化验这个金属。这一单事后无法补救;办法是在投产【之前】把批次化验掉(看板的"待化验"支就是拦这件事的地方)。',
                 output_not_measured: '算不出 —— 产出批上还没有录入金属含量。在产出批上录入后,这个数就完整了。',
+                // PROC-WIRE-1B-ii:【不适用】与【没测】是两句话,两种下一步动作。
+                output_not_applicable: '不适用 —— 这是一道【状态改变型】工序(同一批进、同一批出,只改状态),它按定义没有产出腿。这里【没有东西可测】,不是漏了一份化验。',
                 input_measured_zero: '算不出 —— 投入已化验且不含这个金属,没有可供回收的基数。',
             },
             anomalyTitle: '产出超过投入',
@@ -4507,6 +4541,7 @@ const zh = {
         blocked: {
             input_not_measured: '算不出 —— 投入侧从未化验过这种金属',
             output_not_measured: '算不出 —— 产出侧尚未化验这种金属',
+            output_not_applicable: '不适用 —— 状态改变型工序没有产出腿,没有东西可测',
             input_measured_zero: '算不出 —— 测得的投入为零',
             unspecified: '算不出',
         },

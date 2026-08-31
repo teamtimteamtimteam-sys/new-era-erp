@@ -110,3 +110,5 @@
 2026-08-31T11:48:48+0800	2026-08-31-proccost1-fu2-the-cost-reader-must-not-lose-rows-to-rls.sql	608a308
 2026-08-31T11:50:09+0800	2026-08-31-proccost1-fu3-a-zero-cost-discharge-writes-no-carrier-row.sql	608a308
 2026-08-31T13:17:07+0800	2026-08-31-proccost2-write-off-at-landed-cost-and-two-reversal-asymmetries.sql	7af4b94
+2026-08-31T14:15:52+0800	2026-08-31-procwire1bii-an-assertion-that-cannot-see-must-refuse-by-name.sql	528454b
+2026-08-31T14:22:45+0800	2026-08-31-procwire1bii-fu1-a-state-changing-operation-may-now-take-produced-material.sql	528454b

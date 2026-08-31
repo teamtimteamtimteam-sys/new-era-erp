@@ -77,6 +77,13 @@ BEGIN
         'module.inventory.view','data.view_prices']);
     INSERT INTO user_roles (user_id, role_id) VALUES (v_user, r_all);
 
+    -- 【PROC-WIRE-1B-ii:建数据这一段也要有身份】sales_records 的可售性断言现在
+    -- 【看不见就按名拒】。此前这一段以 postgres、且一个 claim 都没设跑,于是
+    -- has_permission 一律为假。**各臂随后仍然各自 set_config,这一句只管建数据。**
+    -- (r_all 持 module.output.view —— 白名单三把钥匙之一。)
+    PERFORM set_config('request.jwt.claims',
+        format('{"sub":"%s","role":"authenticated"}', v_user), true);
+
     -- ── 主数据 ──────────────────────────────────────────────────────────────
     -- SS-1:阈值设在这份 fixture 的库存够不着的地方 —— 这一支因此必然在场。
     -- 【A 臂断言二十支全在】,少一支就意味着它那条门牌断言空转,而空转的断言

@@ -123,6 +123,15 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 156E 前置失败:这一批本应是「库存中」/ 200,实得「%」/ %', v_state, v_rem;
     END IF;
 
+    -- 【PROC-WIRE-1B-ii:自产的料要先记安全状态,才投得进去】
+    -- 这不是本臂要测的东西,而是那道火闸【新拦下来的一件事】:产出批与进料批
+    -- 现在被问同一个安全问题(R1 / M4)。一条状态都没有的意思是【没有人记过】,
+    -- 不是"它安全" —— 于是这里必须像上面给进料批那样,明写一行。
+    -- **这正是那条"不回填"的决定在测试里落下来的样子**:没有人替这一批
+    -- 编造过一次核验,所以要用它,就得有人先记。
+    INSERT INTO output_batch_safety_states (output_batch_id, safety_state_code)
+    VALUES (v_ob2, 'discharged_verified');
+
     -- 整批吃光它。
     v_run := commit_processing_run(v_d, 'f156 run 2', 0,
         jsonb_build_array(jsonb_build_object('output_batch_id', v_ob2, 'quantity_consumed', 200)),

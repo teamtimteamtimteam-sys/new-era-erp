@@ -1,3 +1,32 @@
+-- PROC-WIRE-1B-ii fu1(2026-08-31):那条占位的拒绝,理由没了,拒绝也必须跟着走
+--
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【为什么是 fu,而不是并进主刀】主刀应用之后才读到这一段:
+-- commit_processing_run 里有一条**自己写明了在等本刀**的占位拒绝 ——
+--     STATE_CHANGE_OUTPUT_INPUT_UNSUPPORTED
+--     「安全状态目前只有进料批记得下(没有产出批的那张表),所以状态改变型
+--       工序暂时只收进料批。**这一条等 1B-ii 的 output_batch_safety_states。**」
+-- 主刀把那张表建出来了,于是那条拒绝的**全部理由**都不成立了。
+-- 仓库的成例是 fu 文件(proccost1-fu1/fu2/fu3、procwire1bi-fu1),
+-- 而不是回头改一份已经应用过的迁移 —— 历史要说真话。
+--
+-- ★【为什么它必须在这一刀里拆掉,而不是留给下一刀】★
+-- 【它正是 M4 那处不对称本身】R1 说的是:闸问的应该是【这批料和它的状态】,
+-- 而不是【这批料从哪来】。一道工序因为料是"自己产的"就拒绝它 —— 那就是
+-- 那处不对称,只是穿了一件"暂不支持"的外衣。
+-- 【留着它比拆掉更坏】表建好了、拒绝还在,下一个人读到的是"这条路仍然没通",
+-- 而任何钉着那条拒绝的 fixture 会**对着一条早该消失的拒绝变绿** ——
+-- 一份制造信心的 fixture,比没有 fixture 更坏。
+--
+-- 【同时补上"改状态"在产出批这一侧的落点】与进料侧逐字同形:
+-- 被这道工序【解决掉】的状态删掉,再写上 resulting_safety_state_code。
+-- ★ 不补这一段,一批放完电的【自产】料会永远带着"未放电",
+--   下一道工序仍然拒绝它 —— **那就是 1B-i 解掉的那个死锁,原样搬到产出批上复发。**
+--   而这一次它会更难看见:料在产线里转了一圈,状态却一个字没变。
+-- ════════════════════════════════════════════════════════════════════════════
+
+BEGIN;
+
 CREATE OR REPLACE FUNCTION public.commit_processing_run(p_process_date date, p_notes text, p_loss_qty numeric, p_inputs jsonb, p_outputs jsonb, p_allocation_basis text, p_work_order_id uuid DEFAULT NULL::uuid, p_equipment_id uuid DEFAULT NULL::uuid, p_operation_type_code text DEFAULT NULL::text)
  RETURNS uuid
  LANGUAGE plpgsql
@@ -391,4 +420,6 @@ BEGIN
 
     RETURN v_run_id;
 END;
-$function$
+$function$;
+
+COMMIT;

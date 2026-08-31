@@ -45,8 +45,26 @@ CREATE TABLE public.output_batches (
     -- 给了默认就等于替法律作答);而这一列的默认是【现状】—— 线上每一批今天
     -- 都是可售库存,既有的两条建批次路建的也都是可售库存。
     purpose_code  text NOT NULL DEFAULT 'saleable_stock'
-                  REFERENCES public.output_batch_purposes (code)
+                  REFERENCES public.output_batch_purposes (code),
+    -- ── PROC-WIRE-1B-ii 追加的列 ─────────────────────────────────────────
+    -- 【在制品:这一批在等哪一道工序】可空。**不建 WIP 表** —— 在制品那一行
+    -- 就是本表这一行(PROC-WIRE-1A 立的),再存一份就会把同一批料数两遍。
+    awaiting_operation_type_code text
+                  REFERENCES public.operation_types (code)
 );
+
+COMMENT ON COLUMN public.output_batches.awaiting_operation_type_code IS
+'PROC-WIRE-1B-ii(R3):这一批在等【哪一道】工序。**可空。**
+
+【空是什么意思:"还没决定等哪道",【不是】"不适用"】—— 一批已被指定为工序投料
+(purpose_code 那条轴)但还没排到具体工序的料,仍然是在制品。
+**是不是在制品由 purpose_code 回答,等哪一道由本列回答 —— 两个问题,不许合并。**
+
+【它【不是】第三条轴,只是第二条轴的一个细节】purpose_code 说"这批是干什么用的",
+本列说"那件事具体是哪一道"。所以守卫把话说死:**可售库存的批次上本列必须为空**
+(guard_output_batch_awaiting_operation)—— 否则会长出一个"既是可售库存、
+又在等粉料线"的自相矛盾行,而那正是 material_sources.implies_never_charged
+那条列注说的"迟早会跟它的孪生兄弟打架的那一列"。';
 
 COMMENT ON COLUMN public.output_batches.purpose_code IS
 'PROC-WIRE-1A:这一批是干什么用的 —— 可售库存,还是下游工序的投料。
@@ -126,6 +144,11 @@ CREATE POLICY "output_batches delete by permission"
 CREATE TRIGGER trg_output_batches_no_hard_delete
     BEFORE DELETE ON public.output_batches
     FOR EACH ROW EXECUTE FUNCTION public.guard_batch_no_hard_delete();
+
+-- PROC-WIRE-1B-ii:让"在等哪一道"这一列的空与非空各自只有一个意思。
+CREATE TRIGGER trg_output_batches_awaiting_operation
+    BEFORE INSERT OR UPDATE ON public.output_batches
+    FOR EACH ROW EXECUTE FUNCTION public.guard_output_batch_awaiting_operation();
 
 -- AUDEL-1b:置 deleted_at 必须走【门】(函数),且 deleted_by / delete_reason 必须填好。
 -- 光加两列挡不住任何事 —— 软删本来就是一次直连 UPDATE。

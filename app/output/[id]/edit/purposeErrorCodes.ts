@@ -12,4 +12,7 @@ export const PURPOSE_ERROR_CODES = new Set([
     // (注意:本集合里【不要】写别的带引号的串 —— check-i18n 从这个 Set 现读
     //  后缀,连注释里的引号串都会被当成一个后缀。实测撞过一次。)
     'PERMISSION_DENIED',
+    // PROC-WIRE-1B-ii(R3):在制品那个指针的两条拒绝。
+    'WIP_OPERATION_UNKNOWN',
+    'WIP_AWAITING_ON_SALEABLE_BATCH',
 ])

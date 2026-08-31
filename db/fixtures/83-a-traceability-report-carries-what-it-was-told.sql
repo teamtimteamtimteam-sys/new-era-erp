@@ -121,6 +121,12 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
+    -- 【PROC-WIRE-1B-ii:自产的料要先记安全状态,才投得进去】(R1 / M4)
+    -- 这一段直插 processing_inputs(本 fixture 造的是一条【历史】链路),而那道
+    -- 火闸现在两侧都问。一条状态都没有 = 没有人记过,不是"它安全"。
+    -- **不回填是一个决定**,所以这里明写一行,而不是让闸放行。
+    INSERT INTO output_batch_safety_states (output_batch_id, safety_state_code)
+    VALUES (ob1, 'discharged_verified');
     INSERT INTO processing_inputs (run_id, output_batch_id, quantity_consumed)
     VALUES (run2, ob1, q_c2);
     INSERT INTO processing_outputs (run_id, output_batch_id, quantity_produced)

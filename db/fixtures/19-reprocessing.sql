@@ -72,6 +72,14 @@ BEGIN
         jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 80)), 'metal_value');
     SELECT po.output_batch_id INTO v_o1 FROM processing_outputs po WHERE po.run_id = v_run1;
     INSERT INTO output_batch_metals (output_batch_id, metal, content_pct, content_source) VALUES (v_o1, 'ni', 45, 'manual');
+
+    -- 【PROC-WIRE-1B-ii:自产的料要先记安全状态,才投得进去】(R1 / M4)
+    -- 再加工把上游【产出批】当投料,而产出批现在与进料批被问同一个安全问题。
+    -- 一条状态都没有 = 没有人记过,不是"它安全"。**不回填是一个决定** ——
+    -- 没有人替这一批编造过一次核验,所以要用它,就得有人先记。
+    INSERT INTO output_batch_safety_states (output_batch_id, safety_state_code)
+    VALUES (v_o1, 'discharged_verified');
+
     PERFORM allocate_processing_costs(v_run1, 'weight');   -- O1: 100 → unit 1.25
 
     -- ── stage2:耗 O1 50kg【产出边】+ 进料2 50kg @2(20% = 10kg)【进料边】,
@@ -157,6 +165,13 @@ BEGIN
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib1, 'quantity_consumed', 30)),
         jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 30)), 'metal_value');
     SELECT po.output_batch_id INTO v_o1 FROM processing_outputs po WHERE po.run_id = v_run1;
+
+    -- 【PROC-WIRE-1B-ii:自产的料要先记安全状态,才投得进去】(R1 / M4)
+    -- 再加工把上游【产出批】当投料,而产出批现在与进料批被问同一个安全问题。
+    -- 一条状态都没有 = 没有人记过,不是"它安全"。**不回填是一个决定** ——
+    -- 没有人替这一批编造过一次核验,所以要用它,就得有人先记。
+    INSERT INTO output_batch_safety_states (output_batch_id, safety_state_code)
+    VALUES (v_o1, 'discharged_verified');
     -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
     SELECT ib.id, 'discharged_verified'

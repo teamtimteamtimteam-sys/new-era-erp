@@ -1,6 +1,8 @@
 CREATE OR REPLACE FUNCTION public.assert_output_batch_saleable(p_output_batch_id uuid)
  RETURNS void
  LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
     v_material uuid;
@@ -12,6 +14,8 @@ DECLARE
     v_p_zh     text;
     v_p_en     text;
 BEGIN
+    -- 【属主权限:先看得见】三个依赖各自的 RLS 都会让一个部分权限的读者
+    -- 静默地丢行(output_batches / materials / processing_outputs),见抬头【错 2】。
     SELECT ob.material_id, ob.code, m.form_code, ob.purpose_code
       INTO v_material, v_code, v_form, v_purpose
       FROM public.output_batches ob
@@ -22,7 +26,22 @@ BEGIN
         RETURN;   -- 批次不存在不是本函数的题;既有的 OUTPUT_NOT_FOUND 管它。
     END IF;
 
+    -- ★★【第五条拒绝:调用者【没有资格判断】这件事】★★
+    -- 【一个断言绝不许因为看不见而通过】—— 改这一支之前实测:一个只有
+    -- processing.view 的读者对着一批【已被指定为工序投料】的货,得到的是
+    -- 【一条拒绝都没有】,而同一批货对 admin 抛 SALE_BATCH_EARMARKED。
+    -- 【它是第五句话,不是前四句的变体】前四句各自对应一个明确的下一步;
+    -- 本条对应的下一步是【去要权限】。并成一句,操作员就不知道该做什么。
+    IF NOT (has_permission('module.sales.edit')
+         OR has_permission('module.finance.edit')
+         OR has_permission('module.output.view')) THEN
+        RAISE EXCEPTION 'SALE_CANNOT_ESTABLISH_SALEABILITY|%|output_batch', v_code
+          USING HINT = '你的权限看不到这一批产出货,所以【判断不了】它可不可售 —— 而一个判断不了的断言【不许】放行。这【不是】说这一批不许卖。请让管理员给你销售或财务的编辑权限,或产出批次的查看权限。';
+    END IF;
+
     -- ① 形态已知且不可售 —— 与物料级同一条判据,同一个错误码。
+    --   【它自己也是属主权限 + 同一条受众判据】见 2a:两帧分别设闸,
+    --   于是将来把其中一帧重新捅漏的改动,躲不到另一帧还绿的后面。
     PERFORM public.assert_material_form_saleable(v_material);
 
     IF v_form IS NULL THEN
@@ -66,6 +85,7 @@ BEGIN
     --   库存类               = 数量不够(少卖点或换一批);
     --   本条                 = 这一批【许给了下游工序】(释放指定,或换一批)。
     -- 四句话四种下一步动作。**并成一句,操作员就不知道该做什么。**
+    -- 【PROC-WIRE-1B-ii 之后是五句】第五句是"你没资格判断",见上面那一段。
     --
     -- 【措辞的红线】它【不许】说"这个东西不许卖" —— 对正极片那是假话
     -- (may_be_sold = true),而说假话的拒绝会教人去改一个根本没错的地方。

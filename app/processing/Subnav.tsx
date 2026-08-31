@@ -20,6 +20,8 @@ import { useTranslations } from '@/lib/i18n/client'
 const ITEMS = [
     { href: '/processing/orders', key: 'processing.subnav.workOrders' },
     { href: '/processing', key: 'processing.subnav.runs' },
+    // PROC-WIRE-1B-ii(R3):在制品 —— 什么在等哪一道工序。
+    { href: '/processing/wip', key: 'processing.subnav.wip' },
 ]
 
 export default function Subnav() {
@@ -31,7 +33,9 @@ export default function Subnav() {
                 // 【/processing 是另一项的前缀,所以它要精确匹配】否则站在
                 // /processing/orders 上两项会同时亮。
                 const active = item.href === '/processing'
-                    ? pathname === '/processing' || pathname.startsWith('/processing/') && !pathname.startsWith('/processing/orders')
+                    ? pathname === '/processing' || pathname.startsWith('/processing/')
+                        && !pathname.startsWith('/processing/orders')
+                        && !pathname.startsWith('/processing/wip')
                     : pathname === item.href || pathname.startsWith(item.href + '/')
                 return (
                     <Link key={item.href} href={item.href}

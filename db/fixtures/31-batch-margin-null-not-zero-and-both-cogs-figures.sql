@@ -18,6 +18,7 @@
 BEGIN;
 DO $$
 DECLARE
+    r_setup uuid; u_setup uuid := gen_random_uuid();
     u_fin  uuid := gen_random_uuid();   -- 只有 module.finance.view + data.view_prices
     u_proc uuid := gen_random_uuid();   -- 只有 module.processing.view + data.view_prices
     u_np   uuid := gen_random_uuid();   -- 两个模块都有,但【没有】data.view_prices
@@ -48,7 +49,18 @@ BEGIN
     VALUES ('fixture-31-noprice', 'f', 'f', true) RETURNING id INTO r_np;
     INSERT INTO role_permissions (role_id, permission_code)
     VALUES (r_np, 'module.finance.view'), (r_np, 'module.processing.view');
+    -- 【PROC-WIRE-1B-ii:建数据要一个能看见批次的身份】上面三个角色都是只读的
+    -- .view 角色,一把白名单钥匙都没有 —— 而 sales_records 的可售性断言现在
+    -- 【看不见就按名拒】。**被测的三个读者一个字没动**,这里只是给"建数据"
+    -- 那一段一个能看见产出批的身份(module.output.view)。
+    INSERT INTO roles (code, name_en, name_zh, is_active)
+    VALUES ('fixture-31-setup', 'f', 'f', true) RETURNING id INTO r_setup;
+    INSERT INTO role_permissions (role_id, permission_code)
+    VALUES (r_setup, 'module.output.view');
+    INSERT INTO user_roles (user_id, role_id) VALUES (u_setup, r_setup);
     INSERT INTO user_roles (user_id, role_id) VALUES (u_fin, r_fin), (u_proc, r_proc), (u_np, r_np);
+    PERFORM set_config('request.jwt.claims',
+        format('{"sub":"%s","role":"authenticated"}', u_setup), true);
 
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
     VALUES ('ZZFIX31-M', 'fixture 31 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
