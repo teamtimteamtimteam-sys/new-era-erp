@@ -74,7 +74,7 @@ BEGIN
                         WHERE s.inbound_batch_id = ib.id);
     run_zero := commit_processing_run(CURRENT_DATE, 'fixture 43 zero-input', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', ib_zero, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 50)), 'weight');
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 50)), 'weight', NULL, NULL, 'manual_disassembly');
     SELECT po.output_batch_id INTO ob_a FROM processing_outputs po WHERE po.run_id = run_zero;
     INSERT INTO output_batch_metals (output_batch_id, metal, content_pct, content_source) VALUES (ob_a, 'co', 10, 'manual');
 
@@ -106,7 +106,7 @@ BEGIN
                         WHERE s.inbound_batch_id = ib.id);
     run_none := commit_processing_run(CURRENT_DATE, 'fixture 43 unassayed input', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', ib_none, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 50)), 'weight');
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 50)), 'weight', NULL, NULL, 'manual_disassembly');
     SELECT po.output_batch_id INTO ob_b FROM processing_outputs po WHERE po.run_id = run_none;
     INSERT INTO output_batch_metals (output_batch_id, metal, content_pct, content_source) VALUES (ob_b, 'co', 10, 'manual');
 
@@ -136,7 +136,7 @@ BEGIN
                         WHERE s.inbound_batch_id = ib.id);
     run_cons := commit_processing_run(CURRENT_DATE, 'fixture 43 conservation', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', ib_rich, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 50)), 'weight');
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 50)), 'weight', NULL, NULL, 'manual_disassembly');
     SELECT po.output_batch_id INTO ob_bare FROM processing_outputs po WHERE po.run_id = run_cons;
     INSERT INTO output_batch_metals (output_batch_id, metal, content_pct, content_source) VALUES (ob_bare, 'co', 60, 'manual');
 
@@ -196,7 +196,7 @@ BEGIN
                             WHERE s.inbound_batch_id = ib.id);
         run_e := commit_processing_run(CURRENT_DATE, 'fixture 43 output unmeasured', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', ib_rich, 'quantity_consumed', 100)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 40)), 'weight');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 40)), 'weight', NULL, NULL, 'manual_disassembly');
         SELECT po.output_batch_id INTO ob_empty FROM processing_outputs po WHERE po.run_id = run_e;
         SELECT * INTO v_row FROM processing_metal_recovery WHERE run_id = run_e AND metal = 'ni';
         IF v_row.output_measured OR v_row.output_metal_kg IS NOT NULL THEN

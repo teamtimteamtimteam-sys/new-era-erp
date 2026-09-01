@@ -61,7 +61,15 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 158 前置失败:本份 fixture 的整个意义在于【未放电 = 不可投料】。那一行若变了,这个死锁就不存在了,而这一份要跟着重写,不是删掉';
     END IF;
 
-    -- ══════════ A · 死锁复现(也是"今天的行为没变"的证据)══════════
+    -- ══════════ A · ★ 没有工序的单,在提交那一刻就被按名拒 ★ ══════════
+    -- 【这一臂在 PROC-SUPPORT-1 换了主语,而它换得对】
+    -- 原本它钉的是"没有工序类型时,行为与 PROC-WIRE-1B-i 之前一个字不差"——
+    -- 一批未放电的料仍然撞 INPUT_SAFETY_STATE_NOT_FEEDABLE。
+    -- **工序在提交时必填之后,那个世界不存在了**:这张单连投入腿都走不到,
+    -- 在 commit_processing_run 的必填检查那里就停住了。
+    -- 照原样留着这一臂,它会【断言一个已经不可能发生的世界】—— 那不是测试,
+    -- 是给下一个人看的一张过期地图。**新的拒绝站在旧的拒绝原来站的位置上**,
+    -- 所以这一臂保住了它的主语:一张说不出工序的单,进不了这道门。
     RAISE NOTICE 'fixture 158 · 进入 A';
     v_denied := false; v_msg := NULL;
     BEGIN
@@ -69,8 +77,8 @@ BEGIN
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
             jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100)), 'weight');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
-    IF NOT v_denied OR v_msg NOT LIKE 'INPUT_SAFETY_STATE_NOT_FEEDABLE|%' THEN
-        RAISE EXCEPTION 'FIXTURE 158A 失败:**没有工序类型时,行为必须与本刀之前一个字不差** —— 一批未放电的料仍然不可投料。实得「%」。这一臂同时是那条"只许收紧、不许默认放宽"不变式的一半', COALESCE(v_msg, '(通过了)');
+    IF NOT v_denied OR v_msg NOT LIKE 'OPERATION_TYPE_REQUIRED%' THEN
+        RAISE EXCEPTION 'FIXTURE 158A 失败(PROC-SUPPORT-1):**一张没有说出工序的加工单,必须在提交那一刻被按名拒**,而且是它【自己那一条码】—— 不是 NO_INPUTS、不是安全状态那几条。合并进任何一条既有拒绝,屏幕上就会有一句话对应两个去处。实得「%」', COALESCE(v_msg, '(通过了)');
     END IF;
 
     -- ══════════ B · 转化型工序拒它,但【是另一条码】 ══════════

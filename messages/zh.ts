@@ -2160,6 +2160,33 @@ const zh = {
             workOrders: '工单',
             runs: '加工单',
             wip: '在制品',
+            handovers: '交接班',
+        },
+        // ── PROC-SUPPORT-1(R4/R5/R6):交接班 ──────────────────────────────
+        handover: {
+            title: '交接班',
+            newTitle: '新建交接班',
+            new: '新建交接班',
+            submit: '提交交接班',
+            colDate: '日期', colShift: '班次', colFrom: '交班人', colTo: '接班人', colAck: '签收',
+            notes: '备注',
+            itemsTitle: '交接内容',
+            acknowledge: '签收',
+            acknowledgedBy: '{who} 于 {when} 签收',
+            // ★ 未签收是一个【具名的状态】,不是一个空格 ★
+            pending: '待接班人签收',
+            unacknowledgedCount: '有 {n} 张交接班还没有人签收。**未签收的意思是【下一个班的人还没说他看过这些话】**,不是"这一栏空着"。',
+            // 【时刻没人说过,就说没人说过 —— 不要显示成 00:00】
+            hoursUnstated: '起止时刻还没有人说过',
+            // ★ 这一屏答不出什么,自己说出来 ★
+            cannotAnswerYet: '★ 这里【不记】"这个班处理了什么、多少" ★ —— 加工单只有日期、没有时刻(全库在本刀之前没有任何时刻维度),所以一张加工单归不到某一个班次上。那是阶段 7 的 G8。手写一个数会与加工单算出来的数打架,而人们读到的那一份会是错的那一份 —— 所以这一栏是【缺的】,而不是让人猜。',
+            incidentsElsewhere: '★ 事故【不记在这里】★ —— 它属于工伤与未遂事件登记簿(尚未建,触发条件是第一个技师上岗)。NEA 的"立即通报、两个工作日内书面报告"只能有一个载体;在这里再记一遍,两份记录迟早会不一致。',
+            equipmentTitle: '设备状态',
+            equipmentReference: '这里勾的是【已经记在设备停机里】的那几段 —— 交接班【指向】它们,不再抄一遍。同一件事记两遍,迟早会有一份是错的,而那一份恰好会是被人读到的。',
+            downtimeOngoing: '还没结束',
+            noDowntime: '没有记录在案的设备停机。',
+            // 【空态说出在等什么,不说"暂无数据"】
+            emptyNoStaff: '还没有交接班记录 —— 而这是意料之中的:今天在册的车间人员是 0 人,没有人交班,也没有人接班。这一块承载它的形状已经建好了,内容要等第一位技师上岗。',
         },
         wip: {
             title: '在制品',
@@ -2204,6 +2231,17 @@ const zh = {
             colPlanned: '计划',
             colConsumed: '已耗',
             colExpected: '预期',
+            // PROC-SUPPORT-1(R3):出处 —— 播种的猜测与校准过的数字必须在屏幕上分得开。
+            colBasis: '出处',
+            colBasisReference: '凭据',
+            basisReferencePlaceholder: '哪份报告 / 哪次校准 / 谁估的',
+            basis: {
+                // ★ 空的那一格写的是【还没有人说过】,不是一个空白格 ★
+                unstated: '还没有人说过',
+                planner_estimate: '排计划的人估的',
+                seeded_industry: '照行业经验播的(低置信)',
+                calibrated: '对着真实生产校准过',
+            },
             colProduced: '实产',
             colVariance: '差异',
             noSchedule: '未排期',
@@ -2270,6 +2308,8 @@ const zh = {
                 lines: '计划投料',
                 linesWhy: '按【物料】,不按批次 —— 排计划的时候批次往往还不存在,挑批次是开工那天的决定。一种物料一行。',
                 expected: '预期产出(可选)',
+                // PROC-SUPPORT-1(R3):出处这一栏为什么在这里。
+                basisWhy: '每一行都要说出这个数【是怎么来的】。六个月之后,你必须分得出哪些数字被真实生产验证过、哪些还是当初那个猜测 —— 而那件事只有现在记下来才记得住。没有默认值:漏填是一次失败,不是悄悄补上一个看起来像答案的值。',
                 expectedWhy: '没有人估过产出,就整段留空。这个数是【排计划那个人的估计】,不是一条标准:这个系统里没有 BOM,投料侧也没有化验来源可以推出它。没有行 = 没记录过预期 —— 那与"预期为零"是两件事。',
                 notes: '备注',
                 selectMaterial: '选择物料…',
@@ -2395,6 +2435,7 @@ const zh = {
         errors: {
             INPUT_SAFETY_STATE_NOT_RECORDED: '批次 {0} 【没有记过任何安全状态】。那的意思是**没有人记过**,不是"这批货是安全的"。到【进料 → 打开这一批 → 到货状态】那一块记上,再提交这一炉。',
             // PROC-WIRE-1B-i
+            OPERATION_TYPE_REQUIRED: '这张加工单还没有说出它跑的是哪一道工序。【为什么不能空着】产出有没有、状态改变型的损耗能不能非零、这批料这道工序收不收、工序本身在不在册 —— 四道闸全都读这一栏。',
             OPERATION_TYPE_UNKNOWN: '未知或已停用的工序【{0}】。停用的意思是"以后别再选它",不是"把历史改掉"。',
             INPUT_SAFETY_STATE_NOT_ACCEPTED: '【{1}】不受理批次 {0} 身上的这些安全状态:{2}。**这与"不可投料"是两句话** —— 换一道受理它的工序也许就行:没放过电的料要先走【深度放电】,放不了电的整包走【整电池粉料线】。',
             OPERATION_PRODUCES_NO_OUTPUTS: '【{0}】按定义不产新批次(同一批进、同一批出,只改状态),所以这一炉不能带着产出提交。要么选错了工序,要么选错了单。',
@@ -2417,6 +2458,20 @@ const zh = {
             WO_MATERIAL_NOT_FOUND: '物料 {0} 不存在。',
             WO_DUPLICATE_MATERIAL: '物料 {0} 出现了两次。一种物料一行 —— 否则"计划 5 吨、实际吃了 3 吨和 2.5 吨"就没有唯一读法。',
             WO_EXPECTED_QTY_INVALID: '预期产量要大于零。没有预期就【整行不填】—— 那与"预期为零"是两件事。',
+            WO_EXPECTED_BASIS_REQUIRED: '每一条预期产出都要说出它【是怎么来的】:排计划的人估的、照行业经验播的、还是对着真实生产校准过的。没有默认值 —— 漏填是一次失败,不是悄悄补上一个看起来像答案的值。',
+            HANDOVER_DATE_REQUIRED: '交接班要说出它发生在哪一天。',
+            HANDOVER_SHIFT_REQUIRED: '交接班要说出它是哪一个班。',
+            HANDOVER_SHIFT_UNKNOWN: '未知或已停用的班次【{0}】。',
+            HANDOVER_PEOPLE_REQUIRED: '交班的人与接班的人都要点名 —— 一次说不出是谁交给谁的交接班,没有传递任何责任。',
+            HANDOVER_SAME_PERSON: '交班人与接班人是同一个人 —— 那样的"交接"没有把任何东西传给任何人。',
+            HANDOVER_EMPLOYEE_NOT_FOUND: '点名的员工不在册。',
+            HANDOVER_ITEM_TYPE_UNKNOWN: '未知或已停用的交接内容类别【{0}】。',
+            HANDOVER_ITEM_BODY_REQUIRED: '一条内容为空的交接条目,与没有这一条是同一件事,而它会在计数里冒充"填过了"。',
+            HANDOVER_REQUIRED_ITEM_MISSING: '【{0}】这一类内容是必填的,这次交接班里一条都没有。',
+            HANDOVER_NOT_FOUND: '找不到这张交接班。',
+            HANDOVER_ALREADY_ACKNOWLEDGED: '这张交接班已经在 {0} 被签收过了。签收不是一个可以重来的动作 —— 覆盖它会把第一次签收的人与时刻抹掉。',
+            HANDOVER_ACK_NO_EMPLOYEE: '签收要落到一个【员工】身上,而这个登录账号没有对应的员工档案。签收是一个人做的事,不是一个账号做的事。',
+            HANDOVER_ACK_NOT_INCOMING: '只有这张交接班点名的那位【接班人】能签收它。别人代签,这一栏就只是一个时间戳,而它本来要回答的是"下一个班的人真的看过这些话了吗"。接班的人换了,就先把交接班改成他。',
             WO_EXPECTED_MATERIAL_NOT_FOUND: '预期产出的物料 {0} 不存在。',
             WO_DUPLICATE_EXPECTED: '物料 {0} 有两条预期产出行。一种物料一条。',
             WO_CLOSE_REASON_REQUIRED: '收工 {0} 要填理由 —— 短交是合法的,而理由正是让那个差异日后读得懂的东西。',

@@ -68,7 +68,7 @@ BEGIN
     BEGIN
         v_run := commit_processing_run(v_process, 'f115 feedable run', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight', NULL, NULL, 'manual_disassembly');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF v_denied OR v_run IS NULL THEN
         RAISE EXCEPTION 'FIXTURE 115F1 失败:进入 F1 —— 一批可投料的货必须照旧提交。**这一臂是整份 fixture 的铰链**:只测拒绝的话,一个把所有人都拦住的实现会全绿。实得「%」', COALESCE(v_msg, '(提交返回了 NULL)');
@@ -105,7 +105,7 @@ BEGIN
     BEGIN
         v_run := commit_processing_run(v_process, 'f115 order', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 50)),
-            jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 50)), 'weight');
+            jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 50)), 'weight', NULL, NULL, 'manual_disassembly');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE '%MATERIAL_NOT_PROCESSABLE%' THEN
         RAISE EXCEPTION 'FIXTURE 115F1 失败:进入 F1 —— 这一批【两个理由都成立】(种类不许投料 + 一条安全状态都没记),而必须报靠前的那一条 MATERIAL_NOT_PROCESSABLE。实得 denied=%、msg=「%」', v_denied, COALESCE(v_msg,'(通过了)');
@@ -122,13 +122,15 @@ BEGIN
     BEGIN
         v_run := commit_processing_run(v_process, 'f115 no state', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-            jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight');
+            jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight', NULL, NULL, 'manual_disassembly');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE '%INPUT_SAFETY_STATE_NOT_RECORDED%' THEN
         RAISE EXCEPTION 'FIXTURE 115F2a 失败:进入 F2(a)—— 一条安全状态都没记的货必须按 INPUT_SAFETY_STATE_NOT_RECORDED 拒。**缺席与坏值是两条不同的拒绝**(D1):这一条的下一步是"去把它记下来",另一条是"去处理那批货"。实得 denied=%、msg=「%」', v_denied, COALESCE(v_msg,'(通过了)');
     END IF;
     -- 【它【不能】报成坏值那一条】—— 合并两个码正是这一臂在防的事。
-    IF v_msg LIKE '%INPUT_SAFETY_STATE_NOT_FEEDABLE%' THEN
+    -- 【PROC-SUPPORT-1:坏值那一条码现在叫 _NOT_ACCEPTED】工序必填之后,
+    -- 受理由 operation_type_safety_states 回答,_NOT_FEEDABLE 那一支到不了了。
+    IF v_msg LIKE '%INPUT_SAFETY_STATE_NOT_ACCEPTED%' THEN
         RAISE EXCEPTION 'FIXTURE 115F2a 失败:进入 F2(a)—— 缺席被报成了【坏值】那一条码。两者共用一个码,屏幕上就分不出"没人记过"与"记过、是坏的",而它们的下一步动作不同';
     END IF;
 
@@ -139,10 +141,10 @@ BEGIN
     BEGIN
         v_run := commit_processing_run(v_process, 'f115 bad state', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-            jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight');
+            jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight', NULL, NULL, 'manual_disassembly');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
-    IF NOT v_denied OR v_msg NOT LIKE '%INPUT_SAFETY_STATE_NOT_FEEDABLE%' THEN
-        RAISE EXCEPTION 'FIXTURE 115F2b 失败:进入 F2(b)—— 带着不可投料状态的货必须按 INPUT_SAFETY_STATE_NOT_FEEDABLE 拒,实得 denied=%、msg=「%」', v_denied, COALESCE(v_msg,'(通过了)');
+    IF NOT v_denied OR v_msg NOT LIKE '%INPUT_SAFETY_STATE_NOT_ACCEPTED%' THEN
+        RAISE EXCEPTION 'FIXTURE 115F2b 失败:进入 F2(b)—— 带着不可投料状态的货必须按名拒。【PROC-SUPPORT-1 之后这条码从 _NOT_FEEDABLE 变成了 _NOT_ACCEPTED,而这一臂的【主语没变】】:工序在提交时已经必填,于是"这一批能不能投"的权威从 inbound_safety_states.may_be_fed(能不能投给【任何】工序)换成了 operation_type_safety_states(【这一道】工序受不受理)。人工拆解不受理"进过水"。实得 denied=%、msg=「%」', v_denied, COALESCE(v_msg,'(通过了)');
     END IF;
     -- 【D6/N36:消息里要有那一条状态的【名字】,两种语言都要】
     -- 只报一个码,人得自己去翻是哪一条;而这一批身上可以同时挂着好几条。
@@ -159,7 +161,7 @@ BEGIN
     BEGIN
         v_run := commit_processing_run(v_process, 'f115 bad certainty', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-            jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight');
+            jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight', NULL, NULL, 'manual_disassembly');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE '%INPUT_CHEMISTRY_NOT_FEEDABLE%' THEN
         RAISE EXCEPTION 'FIXTURE 115F2c 失败:进入 F2(c)—— 确定度记成「待识别」的货必须按 INPUT_CHEMISTRY_NOT_FEEDABLE 拒,实得 denied=%、msg=「%」', v_denied, COALESCE(v_msg,'(通过了)');
@@ -174,7 +176,7 @@ BEGIN
     BEGIN
         v_run := commit_processing_run(v_process, 'f115 no certainty is fine', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight', NULL, NULL, 'manual_disassembly');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF v_denied OR v_run IS NULL THEN
         RAISE EXCEPTION 'FIXTURE 115F2c 失败:进入 F2(c)—— 【没有记过确定度】的货必须照样投得进去。这与"安全状态缺席要拒"是【刻意的不对称】:安全状态防起火,确定度防算错,而算错由后面的化验回答,不靠停线回答。实得「%」', COALESCE(v_msg, '(提交返回了 NULL)');
@@ -192,10 +194,10 @@ BEGIN
     BEGIN
         v_run := commit_processing_run(v_process, 'f115 conjunctive', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-            jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight');
+            jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight', NULL, NULL, 'manual_disassembly');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
-    IF NOT v_denied OR v_msg NOT LIKE '%INPUT_SAFETY_STATE_NOT_FEEDABLE%' THEN
-        RAISE EXCEPTION 'FIXTURE 115F3 失败:进入 F3 —— 【合取】:一批已放电的货【同时也进过水】,那它就是进过水的,放电不能把水抵消掉。一个"只要有一条可投料就放行"的实现在这里会通过。实得 denied=%、msg=「%」', v_denied, COALESCE(v_msg,'(通过了)');
+    IF NOT v_denied OR v_msg NOT LIKE '%INPUT_SAFETY_STATE_NOT_ACCEPTED%' THEN
+        RAISE EXCEPTION 'FIXTURE 115F3 失败:进入 F3 —— 【合取】:一批已放电的货【同时也进过水】,那它就是进过水的,放电不能把水抵消掉。一个"只要有一条被受理就放行"的实现在这里会通过。【PROC-SUPPORT-1:码从 _NOT_FEEDABLE 变成 _NOT_ACCEPTED,而合取这条不变式一个字没松】—— 它现在由 operation_type_safety_states 那一支保证,而那一支同样是"有一条不被受理就拒,并且一次点完"。实得 denied=%、msg=「%」', v_denied, COALESCE(v_msg,'(通过了)');
     END IF;
     -- 【两条坏的【都】要点名 —— 否则人得跑第二趟】
     -- 清掉"进过水"再来,又撞上"鼓包漏液",而第二次本来可以在第一次就知道。
@@ -209,7 +211,7 @@ BEGIN
     BEGIN
         v_run := commit_processing_run(v_process, 'f115 all feedable', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight', NULL, NULL, 'manual_disassembly');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF v_denied OR v_run IS NULL THEN
         RAISE EXCEPTION 'FIXTURE 115F3 失败:进入 F3 —— 全部可投料的那一批必须走得通(合取的另一半)。实得「%」', COALESCE(v_msg, '(提交返回了 NULL)');
@@ -228,30 +230,42 @@ BEGIN
     BEGIN
         v_run := commit_processing_run(v_process, 'f115 deactivated still blocks', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-            jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight');
+            jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight', NULL, NULL, 'manual_disassembly');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
-    IF NOT v_denied OR v_msg NOT LIKE '%INPUT_SAFETY_STATE_NOT_FEEDABLE%' THEN
+    IF NOT v_denied OR v_msg NOT LIKE '%INPUT_SAFETY_STATE_NOT_ACCEPTED%' THEN
         RAISE EXCEPTION 'FIXTURE 115F4 失败:进入 F4 —— 【停用一个取值不等于撤回一条规则】。那批货进过水这件事,不会因为字典行被停用而改变。一个顺手 `AND d.is_active` 的实现在这里会放行,而那就是一条【无痕迹、且一次性对所有批次生效】的释放路径。实得 denied=%、msg=「%」', v_denied, COALESCE(v_msg,'(通过了)');
     END IF;
-    -- 【真正该用的那个动词:改 may_be_fed —— 撤规则,留事实】
-    -- 这一半是 D4 的另一面,而且它证明规则是【现读】的:同一笔事务里改一行字典,
+    -- ════════════════════════════════════════════════════════════════════════
+    -- 【真正该用的那个动词 —— ★ PROC-SUPPORT-1 之后它【换了一张表】★】
+    -- 【这一半是 D4 的另一面,而且它证明规则是【现读】的】同一笔事务里改一行字典,
     -- 结论当场就动。少了它,"守卫不读 is_active" 会被读成"守卫什么都不读"。
-    UPDATE inbound_safety_states SET is_active = true, may_be_fed = true WHERE code = 'water_exposed';
+    --
+    -- ★【为什么不再是 UPDATE inbound_safety_states SET may_be_fed = true】★
+    -- 工序在提交时已经必填,于是 guard_processing_input 里 `v_op IS NULL` 那一支
+    -- **再也到不了** —— may_be_fed 在 PROC-SUPPORT-1 失去了它最后一个消费者。
+    -- 照原样留着这一句,这一臂会【对着一条不再生效的规则变绿】,
+    -- 而那正是本仓库反复付账的那一种 fixture。
+    -- **撤规则的动词现在是:给这道工序补一行受理。** 事实(那批货进过水)照样不动。
+    -- ════════════════════════════════════════════════════════════════════════
+    UPDATE inbound_safety_states SET is_active = true WHERE code = 'water_exposed';
+    INSERT INTO operation_type_safety_states (operation_type_code, safety_state_code, resolves, notes)
+    VALUES ('manual_disassembly', 'water_exposed', false, 'fixture 115 F4:撤规则,留事实');
     v_denied := false; v_msg := NULL;
     BEGIN
         v_run := commit_processing_run(v_process, 'f115 rule withdrawn by may_be_fed', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight', NULL, NULL, 'manual_disassembly');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF v_denied OR v_run IS NULL THEN
-        RAISE EXCEPTION 'FIXTURE 115F4 失败:进入 F4 —— 把 may_be_fed 改成 true 之后那一批必须投得进去。**两个动词,谁也替不了谁**:may_be_fed 撤规则(事实还留着,那一行 water_exposed 一个字没动),is_active 停选单。实得「%」', COALESCE(v_msg, '(提交返回了 NULL)');
+        RAISE EXCEPTION 'FIXTURE 115F4 失败:进入 F4 —— 给这道工序补上一行受理之后,那一批必须投得进去。**两个动词,谁也替不了谁**:补一行 operation_type_safety_states 是【撤规则】(事实还留着,那一行 water_exposed 一个字没动),is_active 是【停选单】。实得「%」', COALESCE(v_msg, '(提交返回了 NULL)');
     END IF;
     -- 那条状态行【还在】—— 撤的是规则,不是事实。
     IF NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states
                     WHERE inbound_batch_id = v_ib AND safety_state_code = 'water_exposed') THEN
         RAISE EXCEPTION 'FIXTURE 115F4 失败:进入 F4 —— 撤回规则不该抹掉事实:那批货"进过水"这一行必须还在';
     END IF;
-    UPDATE inbound_safety_states SET may_be_fed = false WHERE code = 'water_exposed';
+    DELETE FROM operation_type_safety_states
+     WHERE operation_type_code = 'manual_disassembly' AND safety_state_code = 'water_exposed';
 
     -- ══════════ F5 · D5:可加工、但没有状态轴的种类,照样投得进去 ════════════
     RAISE NOTICE 'fixture 115 · 进入 F5';
@@ -270,7 +284,7 @@ BEGIN
     BEGIN
         v_run := commit_processing_run(v_process, 'f115 no axes no problem', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight', NULL, NULL, 'manual_disassembly');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF v_denied OR v_run IS NULL THEN
         RAISE EXCEPTION 'FIXTURE 115F5 失败:进入 F5 —— 一个【可加工、但没有状态轴】的种类,不带任何安全状态也必须投得进去。**绝不能因为"它没有安全状态"而被拦住** —— 它身上根本没有这回事。实得「%」', COALESCE(v_msg, '(提交返回了 NULL)');

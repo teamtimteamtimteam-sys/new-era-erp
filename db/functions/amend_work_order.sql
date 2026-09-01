@@ -10,6 +10,8 @@ DECLARE
     v_elem     jsonb;
     v_line     work_order_lines%ROWTYPE;
     v_exp      work_order_expected_outputs%ROWTYPE;
+    v_basis    text;   -- PROC-SUPPORT-1(R3):这一条预期产出的出处
+    v_ref      text;   -- 同上,凭据(自由文本)
     v_mat      uuid;
     v_qty      numeric;
     v_consumed numeric;
@@ -133,6 +135,16 @@ BEGIN
                 RAISE EXCEPTION 'WO_EXPECTED_MATERIAL_NOT_FOUND|%', COALESCE(v_mat::text, '?');
             END IF;
             v_qty := (v_elem->>'expected_qty')::numeric;
+            -- PROC-SUPPORT-1(R3):出处。**改一行预期产出时它是可选的** ——
+            -- 不给就是"这一次不改出处",给了就必须是三个取值之一。
+            -- 【新增一行时它是必填的】,那一条在下面的 add 分支里。
+            v_basis := NULLIF(btrim(COALESCE(v_elem->>'basis','')), '');
+            v_ref   := NULLIF(btrim(COALESCE(v_elem->>'basis_reference','')), '');
+            IF v_basis IS NOT NULL
+               AND v_basis NOT IN ('planner_estimate','seeded_industry','calibrated') THEN
+                RAISE EXCEPTION 'WO_EXPECTED_BASIS_REQUIRED'
+                  USING HINT = '出处只有三个取值:planner_estimate / seeded_industry / calibrated。';
+            END IF;
             SELECT * INTO v_exp FROM work_order_expected_outputs
              WHERE work_order_id = p_work_order_id AND material_id = v_mat;
 
@@ -149,19 +161,43 @@ BEGIN
             ELSIF v_qty <= 0 THEN
                 RAISE EXCEPTION 'WO_EXPECTED_QTY_INVALID';
             ELSIF NOT FOUND THEN
-                INSERT INTO work_order_expected_outputs (work_order_id, material_id, expected_qty)
-                VALUES (p_work_order_id, v_mat, v_qty) RETURNING * INTO v_exp;
+                -- PROC-SUPPORT-1(R3):**新增一行必须说出出处。**
+                IF v_basis IS NULL THEN
+                    RAISE EXCEPTION 'WO_EXPECTED_BASIS_REQUIRED'
+                      USING HINT = '新增一条预期产出要说出它是怎么来的:排计划的人估的、照行业经验播的、还是对着真实生产校准过的。';
+                END IF;
+                INSERT INTO work_order_expected_outputs (work_order_id, material_id, expected_qty, basis, basis_reference)
+                VALUES (p_work_order_id, v_mat, v_qty, v_basis, v_ref) RETURNING * INTO v_exp;
                 INSERT INTO work_order_history (work_order_id, change_type, work_order_expected_id,
                             material_id, old_qty, new_qty, amend_reason, changed_by)
                 VALUES (p_work_order_id, 'expected_add', v_exp.id, v_mat, NULL, v_qty,
                         btrim(p_reason), v_user);
                 v_changes := v_changes + 1;
-            ELSIF v_qty IS DISTINCT FROM v_exp.expected_qty THEN
+            ELSIF v_qty IS DISTINCT FROM v_exp.expected_qty
+                  OR (v_basis IS NOT NULL AND v_basis IS DISTINCT FROM v_exp.basis)
+                  OR (jsonb_exists(v_elem, 'basis_reference')
+                      AND v_ref IS DISTINCT FROM v_exp.basis_reference) THEN
+                -- ════════════════════════════════════════════════════════════
+                -- PROC-SUPPORT-1(R3):**改出处也算一次改动,而且要留痕。**
+                -- 一个数从 seeded_industry 变成 calibrated,是这张表上
+                -- 【最重要】的一次变化 —— 那是"猜的"变成"验证过的"那一刻。
+                -- 让它悄悄发生,六个月后就没有人说得出它是什么时候变的。
+                -- 【出处的新旧值写进 detail】—— old_qty/new_qty 那一对是给数字的,
+                -- 借用它去装文本会让那一对的含义在第二种用法上就开始漂。
+                -- ════════════════════════════════════════════════════════════
                 INSERT INTO work_order_history (work_order_id, change_type, work_order_expected_id,
-                            material_id, old_qty, new_qty, amend_reason, changed_by)
+                            material_id, old_qty, new_qty, amend_reason, changed_by, detail)
                 VALUES (p_work_order_id, 'expected_update', v_exp.id, v_mat,
-                        v_exp.expected_qty, v_qty, btrim(p_reason), v_user);
-                UPDATE work_order_expected_outputs SET expected_qty = v_qty WHERE id = v_exp.id;
+                        v_exp.expected_qty, v_qty, btrim(p_reason), v_user,
+                        CASE WHEN v_basis IS NOT NULL AND v_basis IS DISTINCT FROM v_exp.basis
+                             THEN format('basis: %s -> %s', COALESCE(v_exp.basis, '(none stated)'), v_basis)
+                        END);
+                UPDATE work_order_expected_outputs
+                   SET expected_qty    = v_qty,
+                       basis           = COALESCE(v_basis, basis),
+                       basis_reference = CASE WHEN jsonb_exists(v_elem, 'basis_reference')
+                                              THEN v_ref ELSE basis_reference END
+                 WHERE id = v_exp.id;
                 v_changes := v_changes + 1;
             END IF;
         END LOOP;
@@ -177,4 +213,3 @@ BEGIN
 END;
 $function$
 
-;

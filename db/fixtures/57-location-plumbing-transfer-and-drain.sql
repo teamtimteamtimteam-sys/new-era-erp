@@ -206,7 +206,7 @@ BEGIN
         CURRENT_DATE, 'fixture 57 H', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', ib, 'quantity_consumed', 70)),
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 70)),
-        'weight') INTO run1;
+        'weight', NULL, NULL, 'manual_disassembly') INTO run1;
 
     SELECT count(*) INTO v_n FROM inventory_movements
      WHERE run_id = run1 AND movement_type = 'processing_consume';

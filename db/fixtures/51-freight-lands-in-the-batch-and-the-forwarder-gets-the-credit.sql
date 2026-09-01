@@ -200,7 +200,7 @@ BEGIN
                         WHERE s.inbound_batch_id = ib.id);
     v_run := commit_processing_run(DATE '2027-09-02', 'fixture 51 run', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_b4, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 80)), 'weight');
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 80)), 'weight', NULL, NULL, 'manual_disassembly');
     SELECT po.output_batch_id INTO v_ob FROM processing_outputs po WHERE po.run_id = v_run;
     PERFORM allocate_processing_costs(v_run);
 

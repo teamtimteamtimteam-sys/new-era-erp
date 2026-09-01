@@ -85,7 +85,7 @@ BEGIN
                         WHERE s.inbound_batch_id = ib.id);
     PERFORM commit_processing_run(d, 'f79 exactly at the line', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 110)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight', woOpen);
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight', woOpen, NULL, 'manual_disassembly');
 
     SELECT count(*) INTO v_n FROM operations_now
      WHERE item_type = 'work_order_variance_beyond' AND item_id = woOpen;
@@ -104,7 +104,7 @@ BEGIN
                         WHERE s.inbound_batch_id = ib.id);
     PERFORM commit_processing_run(d, 'f79 one over the line', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 1)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 1)), 'weight', woOpen);
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 1)), 'weight', woOpen, NULL, 'manual_disassembly');
     SELECT count(*) INTO v_n FROM operations_now
      WHERE item_type = 'work_order_variance_beyond' AND item_id = woOpen;
     IF v_n <> 1 THEN
@@ -129,7 +129,7 @@ BEGIN
     PERFORM reprice_inbound_batch(v_ib2, 1, 'SGD', NULL, 'f79 price');
     v_res := create_work_order(
         jsonb_build_array(jsonb_build_object('material_id', v_matA, 'planned_qty', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'expected_qty', 100)),
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'expected_qty', 100, 'basis', 'planner_estimate')),
         d, 'f79 closed');
     woClosed := (v_res->>'work_order_id')::uuid;
     PERFORM release_work_order(woClosed);
@@ -145,7 +145,7 @@ BEGIN
                         WHERE s.inbound_batch_id = ib.id);
     PERFORM commit_processing_run(d, 'f79 shortfall', 20,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 80)), 'weight', woClosed);
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 80)), 'weight', woClosed, NULL, 'manual_disassembly');
 
     -- 【收工之前:不报】"少"在这时只是"还没做完"
     SELECT count(*) INTO v_n FROM operations_now
@@ -179,7 +179,7 @@ BEGIN
                         WHERE s.inbound_batch_id = ib.id);
     PERFORM commit_processing_run(d, 'f79 noexp', 9,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 10)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 1)), 'weight', woNoExp);
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 1)), 'weight', woNoExp, NULL, 'manual_disassembly');
     PERFORM close_work_order(woNoExp, 'f79:收工(没估过产出)');
     -- 产出 1、没有预期 —— 一个把"没估过"当零的实现会说它短交 100%
     IF EXISTS (SELECT 1 FROM operations_now
@@ -205,7 +205,7 @@ BEGIN
                         WHERE s.inbound_batch_id = ib.id);
     v_run := commit_processing_run(d, 'f79 to be reversed', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 200)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 180)), 'weight', woRev);
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 180)), 'weight', woRev, NULL, 'manual_disassembly');
     IF NOT EXISTS (SELECT 1 FROM operations_now
                     WHERE item_type = 'work_order_variance_beyond' AND item_id = woRev) THEN
         RAISE EXCEPTION 'FIXTURE 79E 前提不成立:吃掉 200 / 计划 100 应当先报出来';

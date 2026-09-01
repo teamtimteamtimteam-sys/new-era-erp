@@ -422,6 +422,13 @@ export type Database = {
             foreignKeyName: "attendance_lines_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -3235,6 +3242,13 @@ export type Database = {
             foreignKeyName: "departments_manager_employee_id_fkey"
             columns: ["manager_employee_id"]
             isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "departments_manager_employee_id_fkey"
+            columns: ["manager_employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -3437,6 +3451,13 @@ export type Database = {
             foreignKeyName: "employees_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -3577,6 +3598,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
             referencedColumns: ["id"]
           },
           {
@@ -3837,6 +3865,13 @@ export type Database = {
             foreignKeyName: "equipment_maintenance_performed_by_employee_id_fkey"
             columns: ["performed_by_employee_id"]
             isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_maintenance_performed_by_employee_id_fkey"
+            columns: ["performed_by_employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -4089,6 +4124,13 @@ export type Database = {
             foreignKeyName: "expense_claims_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -4282,6 +4324,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
             referencedColumns: ["id"]
           },
           {
@@ -5580,6 +5629,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      handover_item_types: {
+        Row: {
+          code: string
+          is_active: boolean
+          is_required: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          is_active?: boolean
+          is_required?: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          is_active?: boolean
+          is_required?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          sort_order?: number
+        }
+        Relationships: []
       }
       hr_settings: {
         Row: {
@@ -6998,6 +7077,13 @@ export type Database = {
             foreignKeyName: "kpi_entries_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kpi_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -7382,6 +7468,13 @@ export type Database = {
             foreignKeyName: "leave_accrual_rates_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_accrual_rates_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -7565,6 +7658,13 @@ export type Database = {
             foreignKeyName: "leave_grants_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_grants_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -7726,6 +7826,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
             referencedColumns: ["id"]
           },
           {
@@ -8453,6 +8560,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
             referencedColumns: ["id"]
           },
           {
@@ -9715,6 +9829,13 @@ export type Database = {
             foreignKeyName: "payments_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -9860,6 +9981,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
             referencedColumns: ["id"]
           },
           {
@@ -10189,6 +10317,13 @@ export type Database = {
             foreignKeyName: "performance_reviews_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -10260,6 +10395,13 @@ export type Database = {
             columns: ["reviewer_employee_id"]
             isOneToOne: false
             referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_reviewer_employee_id_fkey"
+            columns: ["reviewer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
             referencedColumns: ["id"]
           },
           {
@@ -13944,6 +14086,416 @@ export type Database = {
           },
         ]
       }
+      shift_handover_equipment_refs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          downtime_id: string
+          handover_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          downtime_id: string
+          handover_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          downtime_id?: string
+          handover_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_handover_equipment_refs_downtime_id_fkey"
+            columns: ["downtime_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_downtime"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_handover_equipment_refs_handover_id_fkey"
+            columns: ["handover_id"]
+            isOneToOne: false
+            referencedRelation: "shift_handovers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shift_handover_items: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          handover_id: string
+          id: string
+          item_type_code: string
+          sort_order: number
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          handover_id: string
+          id?: string
+          item_type_code: string
+          sort_order?: number
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          handover_id?: string
+          id?: string
+          item_type_code?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_handover_items_handover_id_fkey"
+            columns: ["handover_id"]
+            isOneToOne: false
+            referencedRelation: "shift_handovers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_handover_items_item_type_code_fkey"
+            columns: ["item_type_code"]
+            isOneToOne: false
+            referencedRelation: "handover_item_types"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      shift_handovers: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          created_at: string
+          created_by: string | null
+          handover_date: string
+          id: string
+          incoming_employee_id: string
+          notes: string | null
+          outgoing_employee_id: string
+          shift_code: string
+          submitted_at: string
+          submitted_by: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          handover_date: string
+          id?: string
+          incoming_employee_id: string
+          notes?: string | null
+          outgoing_employee_id: string
+          shift_code: string
+          submitted_at?: string
+          submitted_by?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          handover_date?: string
+          id?: string
+          incoming_employee_id?: string
+          notes?: string | null
+          outgoing_employee_id?: string
+          shift_code?: string
+          submitted_at?: string
+          submitted_by?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_handovers_acknowledged_by_fkey"
+            columns: ["acknowledged_by"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_acknowledged_by_fkey"
+            columns: ["acknowledged_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_acknowledged_by_fkey"
+            columns: ["acknowledged_by"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_acknowledged_by_fkey"
+            columns: ["acknowledged_by"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_acknowledged_by_fkey"
+            columns: ["acknowledged_by"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_linkage_matrix"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_acknowledged_by_fkey"
+            columns: ["acknowledged_by"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_rollup"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_acknowledged_by_fkey"
+            columns: ["acknowledged_by"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_acknowledged_by_fkey"
+            columns: ["acknowledged_by"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_acknowledged_by_fkey"
+            columns: ["acknowledged_by"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_acknowledged_by_fkey"
+            columns: ["acknowledged_by"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_acknowledged_by_fkey"
+            columns: ["acknowledged_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_incoming_employee_id_fkey"
+            columns: ["incoming_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_incoming_employee_id_fkey"
+            columns: ["incoming_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_incoming_employee_id_fkey"
+            columns: ["incoming_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_incoming_employee_id_fkey"
+            columns: ["incoming_employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_incoming_employee_id_fkey"
+            columns: ["incoming_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_linkage_matrix"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_incoming_employee_id_fkey"
+            columns: ["incoming_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_rollup"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_incoming_employee_id_fkey"
+            columns: ["incoming_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_incoming_employee_id_fkey"
+            columns: ["incoming_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_incoming_employee_id_fkey"
+            columns: ["incoming_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_incoming_employee_id_fkey"
+            columns: ["incoming_employee_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_incoming_employee_id_fkey"
+            columns: ["incoming_employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_outgoing_employee_id_fkey"
+            columns: ["outgoing_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_outgoing_employee_id_fkey"
+            columns: ["outgoing_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_outgoing_employee_id_fkey"
+            columns: ["outgoing_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_outgoing_employee_id_fkey"
+            columns: ["outgoing_employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_outgoing_employee_id_fkey"
+            columns: ["outgoing_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_linkage_matrix"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_outgoing_employee_id_fkey"
+            columns: ["outgoing_employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_rollup"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_outgoing_employee_id_fkey"
+            columns: ["outgoing_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_outgoing_employee_id_fkey"
+            columns: ["outgoing_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_outgoing_employee_id_fkey"
+            columns: ["outgoing_employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_outgoing_employee_id_fkey"
+            columns: ["outgoing_employee_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_outgoing_employee_id_fkey"
+            columns: ["outgoing_employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_shift_code_fkey"
+            columns: ["shift_code"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      shifts: {
+        Row: {
+          code: string
+          created_at: string
+          ends_at: string | null
+          is_active: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          sort_order: number
+          starts_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          ends_at?: string | null
+          is_active?: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          sort_order?: number
+          starts_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          ends_at?: string | null
+          is_active?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          sort_order?: number
+          starts_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       shipment_issues: {
         Row: {
           file_path: string
@@ -14914,6 +15466,13 @@ export type Database = {
             foreignKeyName: "task_history_changed_by_fkey"
             columns: ["changed_by"]
             isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -14978,6 +15537,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
             referencedColumns: ["id"]
           },
           {
@@ -15123,6 +15689,13 @@ export type Database = {
             foreignKeyName: "task_nodes_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_nodes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -15187,6 +15760,13 @@ export type Database = {
             columns: ["done_by"]
             isOneToOne: false
             referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_nodes_done_by_fkey"
+            columns: ["done_by"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
             referencedColumns: ["id"]
           },
           {
@@ -15278,6 +15858,13 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_nodes_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
             referencedColumns: ["id"]
           },
           {
@@ -15385,6 +15972,13 @@ export type Database = {
             foreignKeyName: "task_participants_added_by_fkey"
             columns: ["added_by"]
             isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_participants_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -15455,6 +16049,13 @@ export type Database = {
             foreignKeyName: "task_participants_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_participants_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -15519,6 +16120,13 @@ export type Database = {
             columns: ["removed_by"]
             isOneToOne: false
             referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_participants_removed_by_fkey"
+            columns: ["removed_by"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
             referencedColumns: ["id"]
           },
           {
@@ -15661,6 +16269,13 @@ export type Database = {
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
             referencedColumns: ["id"]
           },
           {
@@ -15934,6 +16549,13 @@ export type Database = {
             foreignKeyName: "training_records_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -16188,6 +16810,8 @@ export type Database = {
       }
       work_order_expected_outputs: {
         Row: {
+          basis: string | null
+          basis_reference: string | null
           created_at: string
           expected_qty: number
           id: string
@@ -16195,6 +16819,8 @@ export type Database = {
           work_order_id: string
         }
         Insert: {
+          basis?: string | null
+          basis_reference?: string | null
           created_at?: string
           expected_qty: number
           id?: string
@@ -16202,6 +16828,8 @@ export type Database = {
           work_order_id: string
         }
         Update: {
+          basis?: string | null
+          basis_reference?: string | null
           created_at?: string
           expected_qty?: number
           id?: string
@@ -17105,6 +17733,13 @@ export type Database = {
             foreignKeyName: "employees_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -17312,6 +17947,13 @@ export type Database = {
             foreignKeyName: "employees_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -17452,6 +18094,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
             referencedColumns: ["id"]
           },
           {
@@ -17680,6 +18329,13 @@ export type Database = {
             foreignKeyName: "expense_claims_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -17877,6 +18533,27 @@ export type Database = {
             referencedColumns: ["material_id"]
           },
         ]
+      }
+      handover_people: {
+        Row: {
+          code: string | null
+          id: string | null
+          preferred_name: string | null
+          work_category: string | null
+        }
+        Insert: {
+          code?: string | null
+          id?: string | null
+          preferred_name?: string | null
+          work_category?: string | null
+        }
+        Update: {
+          code?: string | null
+          id?: string | null
+          preferred_name?: string | null
+          work_category?: string | null
+        }
+        Relationships: []
       }
       hr_alerts: {
         Row: {
@@ -18606,6 +19283,13 @@ export type Database = {
             foreignKeyName: "leave_requests_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -18720,6 +19404,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
             referencedColumns: ["id"]
           },
           {
@@ -18920,6 +19611,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
             referencedColumns: ["id"]
           },
           {
@@ -19279,6 +19977,13 @@ export type Database = {
             foreignKeyName: "payroll_lines_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -19471,6 +20176,13 @@ export type Database = {
             foreignKeyName: "performance_reviews_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -19542,6 +20254,13 @@ export type Database = {
             columns: ["reviewer_employee_id"]
             isOneToOne: false
             referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_reviewer_employee_id_fkey"
+            columns: ["reviewer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
             referencedColumns: ["id"]
           },
           {
@@ -22192,6 +22911,13 @@ export type Database = {
             foreignKeyName: "tasks_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -22278,6 +23004,13 @@ export type Database = {
             foreignKeyName: "task_participants_added_by_fkey"
             columns: ["added_by"]
             isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_participants_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -22348,6 +23081,13 @@ export type Database = {
             foreignKeyName: "task_participants_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_participants_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "kpi_employee_linkage_matrix"
             referencedColumns: ["employee_id"]
           },
@@ -22412,6 +23152,13 @@ export type Database = {
             columns: ["removed_by"]
             isOneToOne: false
             referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_participants_removed_by_fkey"
+            columns: ["removed_by"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
             referencedColumns: ["id"]
           },
           {
@@ -22540,6 +23287,10 @@ export type Database = {
         Returns: Json
       }
       acknowledge_review: { Args: { p_review_id: string }; Returns: Json }
+      acknowledge_shift_handover: {
+        Args: { p_handover_id: string }
+        Returns: string
+      }
       add_review_goal: {
         Args: {
           p_objective_text: string
@@ -24169,6 +24920,18 @@ export type Database = {
         Returns: Json
       }
       submit_review: { Args: { p_review_id: string }; Returns: Json }
+      submit_shift_handover: {
+        Args: {
+          p_downtime_ids?: string[]
+          p_handover_date: string
+          p_incoming_employee_id: string
+          p_items?: Json
+          p_notes?: string
+          p_outgoing_employee_id: string
+          p_shift_code: string
+        }
+        Returns: string
+      }
       sync_attendance_period: { Args: { p_period_id: string }; Returns: Json }
       tax_rate_for: {
         Args: { p_code: string; p_date: string }

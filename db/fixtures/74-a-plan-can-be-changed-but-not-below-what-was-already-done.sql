@@ -90,7 +90,7 @@ BEGIN
     -- ══════════ A. 新建:出生即 draft,行都在,预期产出可选 ═══════════════════
     v_res := create_work_order(
         jsonb_build_array(jsonb_build_object('material_id', v_matA, 'planned_qty', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'expected_qty', 80)),
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'expected_qty', 80, 'basis', 'planner_estimate')),
         d + 3, 'fixture 74 A');
     woA := (v_res->>'work_order_id')::uuid;
     IF (v_res->>'status') <> 'draft' THEN
@@ -161,7 +161,7 @@ BEGIN
     v_denied := false; v_msg := NULL;
     BEGIN PERFORM create_work_order(
         jsonb_build_array(jsonb_build_object('material_id', v_matA, 'planned_qty', 1)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'expected_qty', -1)), NULL, NULL);
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'expected_qty', -1, 'basis', 'planner_estimate')), NULL, NULL);
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied OR v_msg <> 'WO_EXPECTED_QTY_INVALID' THEN
         RAISE EXCEPTION 'FIXTURE 74B 失败:负预期应当报 WO_EXPECTED_QTY_INVALID,实得 %', COALESCE(v_msg,'(建成了)');
@@ -170,7 +170,7 @@ BEGIN
     v_denied := false; v_msg := NULL;
     BEGIN PERFORM create_work_order(
         jsonb_build_array(jsonb_build_object('material_id', v_matA, 'planned_qty', 1)),
-        jsonb_build_array(jsonb_build_object('material_id', gen_random_uuid(), 'expected_qty', 1)), NULL, NULL);
+        jsonb_build_array(jsonb_build_object('material_id', gen_random_uuid(), 'expected_qty', 1, 'basis', 'planner_estimate')), NULL, NULL);
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied OR v_msg NOT LIKE 'WO_EXPECTED_MATERIAL_NOT_FOUND|%' THEN
         RAISE EXCEPTION 'FIXTURE 74B 失败:预期产出指向不存在的物料应当按名拒,实得 %', COALESCE(v_msg,'(建成了)');
@@ -179,8 +179,8 @@ BEGIN
     v_denied := false; v_msg := NULL;
     BEGIN PERFORM create_work_order(
         jsonb_build_array(jsonb_build_object('material_id', v_matA, 'planned_qty', 1)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'expected_qty', 1),
-                          jsonb_build_object('material_id', v_matB, 'expected_qty', 2)), NULL, NULL);
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'expected_qty', 1, 'basis', 'planner_estimate'),
+                          jsonb_build_object('material_id', v_matB, 'expected_qty', 2, 'basis', 'planner_estimate')), NULL, NULL);
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied OR v_msg NOT LIKE 'WO_DUPLICATE_EXPECTED|%' THEN
         RAISE EXCEPTION 'FIXTURE 74B 失败:同一物料两条预期应当报 WO_DUPLICATE_EXPECTED,实得 %',
@@ -288,7 +288,7 @@ BEGIN
     v_run := commit_processing_run(d, 'fixture 74 run', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 60)),
         jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 55)), 'weight',
-        woC);   -- ← WO-1b:真实路径,不再直改
+        woC, NULL, 'manual_disassembly');   -- ← WO-1b:真实路径,不再直改
     IF (SELECT work_order_id FROM processing_runs WHERE id = v_run) IS DISTINCT FROM woC THEN
         RAISE EXCEPTION 'FIXTURE 74D 失败:加工单应当认下它照的那张工单';
     END IF;
@@ -348,7 +348,7 @@ BEGIN
     -- 【预期产出【没有】地板 —— 那是一个决定,所以正面断言它】
     -- 它是一句估计,不是已经发生的事实;改小它不与任何发生过的事矛盾。
     PERFORM amend_work_order(woC, '预期调低', NULL, false, NULL, false, NULL,
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'expected_qty', 1)));
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'expected_qty', 1, 'basis', 'planner_estimate')));
     IF (SELECT expected_qty FROM work_order_expected_outputs
          WHERE work_order_id = woC AND material_id = v_matB) <> 1 THEN
         RAISE EXCEPTION 'FIXTURE 74D 失败:预期产出应当改得动(它没有地板,与计划投料行刻意不同)';
@@ -485,7 +485,7 @@ BEGIN
     v_run := commit_processing_run(d, 'fixture 74 run 2', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 60)),
         jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 55)), 'weight',
-        woE);
+        woE, NULL, 'manual_disassembly');
     IF (SELECT status FROM work_orders WHERE id = woE) <> 'released'
        OR (SELECT count(*) FROM processing_runs WHERE work_order_id = woE AND status='committed') <> 1 THEN
         RAISE EXCEPTION 'FIXTURE 74 注入1 前提不成立:要的是【released、且挂着一条已提交加工单】的工单';

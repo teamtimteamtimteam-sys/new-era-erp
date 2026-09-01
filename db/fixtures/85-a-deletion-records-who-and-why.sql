@@ -157,8 +157,8 @@ BEGIN
     -- 还给一个已删的批次是另一件事。这一臂要测的是"理由记下来了没有"。
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date)
     VALUES ('FX85-IN2', mat, sup, 10, 'kg', 9, '2026-05-01') RETURNING id INTO ib2;
-    INSERT INTO processing_runs (code, status, process_date, allocation_basis)
-    VALUES ('FX85-RUN', 'committed', '2026-05-02', 'weight') RETURNING id INTO run;
+    INSERT INTO processing_runs (code, status, process_date, allocation_basis, operation_type_code)
+    VALUES ('FX85-RUN', 'committed', '2026-05-02', 'weight', 'manual_disassembly') RETURNING id INTO run;
     -- 台账要配套:收 10、被这张单耗掉 1 —— 否则回滚还料时对不上(IOD_RESTORE_MISMATCH)
     INSERT INTO inventory_movements (inbound_batch_id, movement_type, qty_delta, business_date, run_id)
     VALUES (ib2, 'receipt', 10, '2026-05-01', NULL),

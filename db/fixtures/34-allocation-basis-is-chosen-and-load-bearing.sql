@@ -90,7 +90,7 @@ BEGIN
          WHERE mk.has_condition_axes
            AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                             WHERE s.inbound_batch_id = ib.id);
-        PERFORM commit_processing_run('2027-02-01'::date, NULL, NULL, v_inputs, v_outputs, NULL);
+        PERFORM commit_processing_run('2027-02-01'::date, NULL, NULL, v_inputs, v_outputs, NULL, NULL, NULL, 'manual_disassembly');
     EXCEPTION WHEN OTHERS THEN
         v_msg := SQLERRM; v_denied := true;
     END;
@@ -111,7 +111,7 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    v_run := commit_processing_run('2027-02-01'::date, NULL, NULL, v_inputs, v_outputs, 'metal_value');
+    v_run := commit_processing_run('2027-02-01'::date, NULL, NULL, v_inputs, v_outputs, 'metal_value', NULL, NULL, 'manual_disassembly');
     IF (SELECT allocation_basis FROM processing_runs WHERE id = v_run) <> 'metal_value' THEN
         RAISE EXCEPTION 'FIXTURE 34B 失败:选了 metal_value,单据上记的却不是 —— 选择没有被记录下来';
     END IF;

@@ -129,8 +129,12 @@ BEGIN
     VALUES ('ZZFIX47-AR3', v_ib3, CURRENT_DATE - 4, now(), 'as_received', 'ours');           -- batch_unpriced(化验已执行)
 
     -- ── allocation_stale:分摊早于成本变动 ──────────────────────────────────
-    INSERT INTO processing_runs (code, status, allocated_at, allocation_basis)
-    VALUES ('ZZFIX47-RUN', 'committed', now() - interval '10 days', 'metal_value') RETURNING id INTO v_run;
+    -- 【PROC-SUPPORT-1:工序必填,于是【直插】的加工单也要说出工序】
+    -- 表上那条 NOT VALID 的 CHECK 对【任何写入者】都成立,包括这一句。
+    -- 选 manual_disassembly 是因为它是转化型:本臂测的是分摊与看板臂,
+    -- 换一道状态改变型工序会顺带改变这张单的语义。
+    INSERT INTO processing_runs (code, status, allocated_at, allocation_basis, operation_type_code)
+    VALUES ('ZZFIX47-RUN', 'committed', now() - interval '10 days', 'metal_value', 'manual_disassembly') RETURNING id INTO v_run;
     INSERT INTO processing_cost_entries (run_id, cost_type, amount_base, created_at, updated_at)
     VALUES (v_run, 'electricity', 100, now(), now());
 
@@ -233,7 +237,7 @@ BEGIN
                         WHERE s.inbound_batch_id = ib.id);
     v_run_margin := commit_processing_run(CURRENT_DATE, 'fixture 47', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib_run, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 80)), 'weight');
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 80)), 'weight', NULL, NULL, 'manual_disassembly');
     SELECT po.output_batch_id INTO v_ob_margin
       FROM processing_outputs po WHERE po.run_id = v_run_margin;
     IF v_ob_margin IS NULL THEN

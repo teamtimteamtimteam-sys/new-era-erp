@@ -398,7 +398,7 @@ BEGIN
                         WHERE s.inbound_batch_id = ib.id);
     v_run := commit_processing_run(d, 'fixture 68 K run', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 50)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matK, 'quantity', 50)), 'weight');
+        jsonb_build_array(jsonb_build_object('material_id', v_matK, 'quantity', 50)), 'weight', NULL, NULL, 'manual_disassembly');
     SELECT po.output_batch_id INTO obK FROM processing_outputs po WHERE po.run_id = v_run LIMIT 1;
 
     -- 【故意先发货、后分摊】—— 补挂存在的全部理由就是这个顺序:发货当刻

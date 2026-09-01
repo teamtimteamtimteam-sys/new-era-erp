@@ -79,7 +79,7 @@ BEGIN
                         WHERE s.inbound_batch_id = ib.id);
     v_run := commit_processing_run(DATE '2026-06-01', 'fixture 109 run', 20,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 80)), 'metal_value');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 80)), 'metal_value', NULL, NULL, 'manual_disassembly');
     SELECT count(*) INTO v_n FROM processing_runs WHERE id = v_run AND status = 'committed';
     IF v_n <> 1 THEN
         RAISE EXCEPTION 'FIXTURE 109F1a 失败:一炉加工应当照旧提交 —— 本刀只新建对象,若这里红了说明改到了不该动的东西';

@@ -10,7 +10,15 @@ import { localizeProcessingError } from '../errorCodes'
 export type WoState = { error?: string }
 
 export type PlannedLine = { material_id: string; planned_qty: number }
-export type ExpectedLine = { material_id: string; expected_qty: number }
+// PROC-SUPPORT-1(R3):出处随每一行走。**basis 允许是空串** —— 客户端不拦,
+// 服务端按名拒(WO_EXPECTED_BASIS_REQUIRED)。在这里拦会让"没人说过"变成一次
+// 静默的客户端失败,而屏幕上唯一说得清这件事的地方是那条具名拒绝。
+export type ExpectedLine = {
+    material_id: string
+    expected_qty: number
+    basis: string
+    basis_reference?: string
+}
 
 export async function createWorkOrder(payload: {
     lines: PlannedLine[]
@@ -65,7 +73,14 @@ export async function amendWorkOrder(payload: {
     id: string
     reason: string
     lines?: { material_id: string; planned_qty: number | null }[]
-    expected?: { material_id: string; expected_qty: number | null }[]
+    // 改单这一侧:basis 是【可选】的 —— 不给就是"这一次不改出处"。
+    // 新增一行时服务端仍然必填(amend_work_order 的 add 分支)。
+    expected?: {
+        material_id: string
+        expected_qty: number | null
+        basis?: string
+        basis_reference?: string
+    }[]
     scheduled_date?: string | null
     set_scheduled?: boolean
 }): Promise<WoState> {

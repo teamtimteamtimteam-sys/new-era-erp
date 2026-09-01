@@ -93,7 +93,7 @@ BEGIN
     BEGIN
         PERFORM commit_processing_run(v_d, 'f161 ok', 0,
             jsonb_build_array(jsonb_build_object('output_batch_id', v_ob, 'quantity_consumed', 10)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 9)), 'weight');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 9)), 'weight', NULL, NULL, 'manual_disassembly');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF v_denied THEN
         RAISE EXCEPTION 'FIXTURE 165K1 失败:**这是整份 fixture 的铰链** —— 一批记了【可投料】状态的自产料必须投得进去。没有它,一个"把自产料全拦住"的实现会全绿,而那不是抬高产出侧,是把产线停掉。实得「%」', v_msg;
@@ -111,7 +111,7 @@ BEGIN
     BEGIN
         PERFORM commit_processing_run(v_d, 'f161 none', 0,
             jsonb_build_array(jsonb_build_object('output_batch_id', v_ob2, 'quantity_consumed', 10)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 9)), 'weight');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 9)), 'weight', NULL, NULL, 'manual_disassembly');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE 'PRODUCED_SAFETY_STATE_NOT_RECORDED|%' THEN
         RAISE EXCEPTION 'FIXTURE 165K2 失败:**一条安全状态都没有的意思是【没有人记过】,不是"它安全"。** 这与进料侧 INPUT_SAFETY_STATE_NOT_RECORDED 必须是同一个意思 —— 同一种"空"在两张表里若有相反的意思,就是本仓库反复付账的那一族。实得「%」', COALESCE(v_msg, '(通过了)');
@@ -132,8 +132,9 @@ BEGIN
             jsonb_build_array(jsonb_build_object('output_batch_id', v_ob3, 'quantity_consumed', 10)),
             jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 9)), 'weight');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
-    IF NOT v_denied OR v_msg NOT LIKE 'PRODUCED_SAFETY_STATE_NOT_FEEDABLE|%' THEN
-        RAISE EXCEPTION 'FIXTURE 165K3 失败:自产的料带着【不可投料】的状态,必须按名拒 —— 与 K1 合起来,这道闸两个方向都测到了。实得「%」', COALESCE(v_msg, '(通过了)');
+    IF NOT v_denied OR v_msg NOT LIKE 'OPERATION_TYPE_REQUIRED%' THEN
+        RAISE EXCEPTION 'FIXTURE 165K3 失败(PROC-SUPPORT-1):这一臂原本钉 PRODUCED_SAFETY_STATE_NOT_FEEDABLE,也就是产出侧【没有工序时】那条 may_be_fed 规则。工序必填之后那一支到不了了,于是这一臂改钉站在它原位上的那条拒绝:**产出侧的单同样必须说出工序**。
+【为什么不是随手把它换成 _NOT_ACCEPTED】那会与 K4 变成同一臂(K4 已经钉了"有工序 → 没写进清单的一律拒",而且就在产出侧)。**两臂钉同一件事,等于少了一臂。** 产出侧"带着坏状态被拒"这件事由 K4 保着;这一臂保的是"连工序都没说的单进不来"。实得「%」', COALESCE(v_msg, '(通过了)');
     END IF;
 
     -- ══════════ K4 · ★ 收紧不变式在产出侧同样成立 ★ ══════════
@@ -162,7 +163,7 @@ BEGIN
     BEGIN
         PERFORM commit_processing_run(v_d, 'f161 nokind', 0,
             jsonb_build_array(jsonb_build_object('output_batch_id', v_ob_nk, 'quantity_consumed', 10)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 9)), 'weight');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 9)), 'weight', NULL, NULL, 'manual_disassembly');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE 'PRODUCED_SAFETY_STATE_NOT_RECORDED|%' THEN
         RAISE EXCEPTION 'FIXTURE 165K5 失败:**这一臂是本 fixture 的解药。** 物料的种类明说【没有状态轴】时,产出侧【照样问】—— 一个照抄进料侧 has_condition_axes 那一行的实现在这里绿。而线上 20 批产出的物料 kind_code 全是 NULL(同样落进那一行的否定分支),于是整道闸会对【零】批货生效,别的臂全都对着空气变绿。对产出料,种类没分过 / 说了没有状态轴,意思都是**没有人回答过这个问题**,而那不是许可 —— 这是一道火闸。实得「%」', COALESCE(v_msg, '(通过了)');
@@ -218,7 +219,7 @@ BEGIN
     BEGIN
         PERFORM commit_processing_run(v_d, 'f161 inbound', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 10)),
-            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 9)), 'weight');
+            jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 9)), 'weight', NULL, NULL, 'manual_disassembly');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE 'INPUT_SAFETY_STATE_NOT_RECORDED|%' THEN
         RAISE EXCEPTION 'FIXTURE 165K8 失败:**R1:抬高产出这一侧,绝不放低进料那一侧。** 进料侧那条拒绝必须一个字没变。实得「%」', COALESCE(v_msg, '(通过了)');

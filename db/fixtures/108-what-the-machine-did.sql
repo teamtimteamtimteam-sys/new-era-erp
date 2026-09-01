@@ -69,7 +69,7 @@ BEGIN
                         WHERE s.inbound_batch_id = ib.id);
     v_run := commit_processing_run(v_today, 'fixture 108 unattributed', 20,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 80)), 'metal_value');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 80)), 'metal_value', NULL, NULL, 'manual_disassembly');
 
     SELECT equipment_id INTO v_eq FROM processing_runs WHERE id = v_run;
     IF v_eq IS NOT NULL THEN
@@ -106,7 +106,7 @@ BEGIN
     v_run := commit_processing_run(v_today, 'fixture 108 attributed', 10,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 60)),
         jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 50)), 'metal_value',
-        NULL, v_asset);
+        NULL, v_asset, 'manual_disassembly');
 
     SELECT equipment_id INTO v_eq FROM processing_runs WHERE id = v_run;
     IF v_eq IS DISTINCT FROM v_asset THEN
@@ -137,7 +137,7 @@ BEGIN
         PERFORM commit_processing_run(DATE '2025-12-01', 'fixture 108 before acquisition', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 10)),
             jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 10)), 'metal_value',
-            NULL, v_asset);
+            NULL, v_asset, 'manual_disassembly');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
     IF NOT v_denied OR position('EQUIPMENT_NOT_ACQUIRED' in v_msg) = 0 THEN
@@ -164,7 +164,7 @@ BEGIN
     v_run2 := commit_processing_run(DATE '2026-03-15', 'fixture 108 trial run', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 30)),
         jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 30)), 'metal_value',
-        NULL, v_asset2);
+        NULL, v_asset2, 'manual_disassembly');
     SELECT in_service_date INTO v_today FROM fixed_assets WHERE id = v_asset2;
     IF v_today IS NOT NULL THEN
         RAISE EXCEPTION 'FIXTURE 108F3b 前提失败:这台机器本该【还没投用】,实得投用日 %', v_today;
@@ -198,7 +198,7 @@ BEGIN
         PERFORM commit_processing_run(DATE '2026-04-15', 'fixture 108 after disposal', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 10)),
             jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 10)), 'metal_value',
-            NULL, v_asset2);
+            NULL, v_asset2, 'manual_disassembly');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
     IF NOT v_denied OR position('EQUIPMENT_DISPOSED' in v_msg) = 0 THEN

@@ -26,8 +26,13 @@ export default function NewWorkOrderForm({ materials }: { materials: Material[] 
     const [scheduled, setScheduled] = useState('')
     const [lines, setLines] = useState(
         Array.from({ length: LINE_SLOTS }, () => ({ material_id: '', planned_qty: '' })))
+    // PROC-SUPPORT-1(R3):每一行预期产出都要说出它的【出处】。
+    // 【没有预选值 —— 抄 metal_prices.source 那条"没有默认值"】一个预选的
+    // planner_estimate 会让"没人想过这个问题"看起来像"有人回答过了",
+    // 而这一栏存在的全部理由就是六个月后分得出这两者。
     const [expected, setExpected] = useState(
-        Array.from({ length: EXPECTED_SLOTS }, () => ({ material_id: '', expected_qty: '' })))
+        Array.from({ length: EXPECTED_SLOTS },
+            () => ({ material_id: '', expected_qty: '', basis: '', basis_reference: '' })))
     const [notes, setNotes] = useState('')
 
     const filledLines = lines.filter((l) => l.material_id && l.planned_qty.trim() !== '')
@@ -44,7 +49,15 @@ export default function NewWorkOrderForm({ materials }: { materials: Material[] 
                 })),
                 expected: expected
                     .filter((e) => e.material_id && e.expected_qty.trim() !== '')
-                    .map((e) => ({ material_id: e.material_id, expected_qty: Number(e.expected_qty) })),
+                    .map((e) => ({
+                        material_id: e.material_id,
+                        expected_qty: Number(e.expected_qty),
+                        // 空串原样送上去 —— 服务端按名拒 WO_EXPECTED_BASIS_REQUIRED。
+                        // 【不在这里拦】与 process_date / allocation_basis 同一条:
+                        // 界面是第一道,函数是权威的那一道。
+                        basis: e.basis,
+                        basis_reference: e.basis_reference.trim(),
+                    })),
                 scheduled_date: scheduled.trim() === '' ? null : scheduled,
                 notes: notes.trim() === '' ? null : notes,
             })
@@ -114,11 +127,16 @@ export default function NewWorkOrderForm({ materials }: { materials: Material[] 
                     <h2 className="font-medium mb-1">{t('processing.wo.form.expected')}</h2>
                     {/* 【这一段留空是一个正当答案 —— 说出来,而不是让人猜】 */}
                     <p className="text-xs text-gray-500 mb-2">{t('processing.wo.form.expectedWhy')}</p>
+                    {/* PROC-SUPPORT-1(R3):播种的猜测与校准过的数字必须在【屏幕上】分得开,
+                        不只是在数据里分得开 —— 六个月后打开这一页的人读的是屏幕。 */}
+                    <p className="text-xs text-gray-500 mb-2">{t('processing.wo.form.basisWhy')}</p>
                     <table className="w-full border-collapse border border-gray-300 text-sm">
                         <thead className="bg-gray-100">
                             <tr>
                                 <th className="border border-gray-300 px-2 py-2 text-left">{t('processing.wo.colMaterial')}</th>
                                 <th className="border border-gray-300 px-2 py-2 text-right">{t('processing.wo.colExpected')}</th>
+                                <th className="border border-gray-300 px-2 py-2 text-left">{t('processing.wo.colBasis')}</th>
+                                <th className="border border-gray-300 px-2 py-2 text-left">{t('processing.wo.colBasisReference')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -139,6 +157,26 @@ export default function NewWorkOrderForm({ materials }: { materials: Material[] 
                                                className="w-32 border border-gray-300 px-2 py-1 rounded text-right"
                                                onChange={(ev) => setExpected(expected.map((x, j) =>
                                                    j === i ? { ...x, expected_qty: ev.target.value } : x))} />
+                                    </td>
+                                    {/* ★【出处:没有预选值】★ 空白项的文案是【"还没有人说过"】,
+                                        不是一个空格 —— 一个空格读起来像"这一栏不重要",而这一栏
+                                        正是六个月后唯一能回答"这个数可不可信"的东西。 */}
+                                    <td className="border border-gray-300 px-2 py-2">
+                                        <select value={e.basis} className="w-full border border-gray-300 px-2 py-1 rounded"
+                                                onChange={(ev) => setExpected(expected.map((x, j) =>
+                                                    j === i ? { ...x, basis: ev.target.value } : x))}>
+                                            <option value="">{t('processing.wo.basis.unstated')}</option>
+                                            <option value="planner_estimate">{t('processing.wo.basis.planner_estimate')}</option>
+                                            <option value="seeded_industry">{t('processing.wo.basis.seeded_industry')}</option>
+                                            <option value="calibrated">{t('processing.wo.basis.calibrated')}</option>
+                                        </select>
+                                    </td>
+                                    <td className="border border-gray-300 px-2 py-2">
+                                        <input type="text" value={e.basis_reference}
+                                               placeholder={t('processing.wo.basisReferencePlaceholder')}
+                                               className="w-full border border-gray-300 px-2 py-1 rounded"
+                                               onChange={(ev) => setExpected(expected.map((x, j) =>
+                                                   j === i ? { ...x, basis_reference: ev.target.value } : x))} />
                                     </td>
                                 </tr>
                             ))}

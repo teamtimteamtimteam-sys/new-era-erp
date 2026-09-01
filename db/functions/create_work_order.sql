@@ -80,8 +80,32 @@ BEGIN
 
     IF p_expected IS NOT NULL AND jsonb_typeof(p_expected) = 'array'
        AND jsonb_array_length(p_expected) > 0 THEN
-        INSERT INTO work_order_expected_outputs (work_order_id, material_id, expected_qty)
-        SELECT v_id, (elem->>'material_id')::uuid, (elem->>'expected_qty')::numeric
+        -- ════════════════════════════════════════════════════════════════
+        -- PROC-SUPPORT-1(R3):每一条预期产出必须说出它的【出处】。
+        -- 【自己一条码,不与 WO_EXPECTED_QTY_INVALID 合并】下一步动作不同:
+        --   · 数量非法 → 回去改那个数;
+        --   · 出处没说 → 回去说这个数【是怎么来的】。
+        -- 后者不是一次数据校验,是这一列存在的全部理由 —— 六个月后要分得出
+        -- "被真实生产验证过的"与"当初那个猜测"。
+        -- 【空字符串与缺席一样被拒】—— 一个空串在数据库里不是 NULL,却和
+        -- "没人说过"是同一件事,而它会绕过 NOT NULL 类的检查。
+        -- ════════════════════════════════════════════════════════════════
+        -- 【一条谓词同时管住"没说"与"说错了"】btrim 之后的空串落不进那三个
+        -- 取值里,所以缺席、空串、错值走的是同一条拒绝 —— 它们对操作员是同一件事:
+        -- 【这一栏还没有一个正当的答案】。
+        IF EXISTS (
+            SELECT 1 FROM jsonb_array_elements(p_expected) elem
+             WHERE btrim(COALESCE(elem->>'basis',''))
+                   NOT IN ('planner_estimate','seeded_industry','calibrated')
+        ) THEN
+            RAISE EXCEPTION 'WO_EXPECTED_BASIS_REQUIRED'
+              USING HINT = '每一条预期产出都要说出它是怎么来的:排计划的人估的、照行业经验播的、还是对着真实生产校准过的。没有默认值 —— 漏填是一次失败,不是悄悄补上一个看起来像答案的值。';
+        END IF;
+
+        INSERT INTO work_order_expected_outputs (work_order_id, material_id, expected_qty, basis, basis_reference)
+        SELECT v_id, (elem->>'material_id')::uuid, (elem->>'expected_qty')::numeric,
+               btrim(elem->>'basis'),
+               NULLIF(btrim(COALESCE(elem->>'basis_reference','')), '')
           FROM jsonb_array_elements(p_expected) elem;
     END IF;
 
@@ -92,4 +116,3 @@ BEGIN
 END;
 $function$
 
-;

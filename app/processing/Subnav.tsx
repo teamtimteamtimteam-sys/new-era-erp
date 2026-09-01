@@ -22,6 +22,9 @@ const ITEMS = [
     { href: '/processing', key: 'processing.subnav.runs' },
     // PROC-WIRE-1B-ii(R3):在制品 —— 什么在等哪一道工序。
     { href: '/processing/wip', key: 'processing.subnav.wip' },
+    // PROC-SUPPORT-1(R4):交接班。挂在 module.processing.view 上,与上面三项同一个
+    // 权限码 —— 所以上面那条"不逐项过滤"的前提仍然成立。
+    { href: '/processing/handovers', key: 'processing.subnav.handovers' },
 ]
 
 export default function Subnav() {
@@ -36,6 +39,7 @@ export default function Subnav() {
                     ? pathname === '/processing' || pathname.startsWith('/processing/')
                         && !pathname.startsWith('/processing/orders')
                         && !pathname.startsWith('/processing/wip')
+                        && !pathname.startsWith('/processing/handovers')
                     : pathname === item.href || pathname.startsWith(item.href + '/')
                 return (
                     <Link key={item.href} href={item.href}

@@ -28,9 +28,12 @@ DECLARE
     v_eq           fixed_assets%ROWTYPE;  -- EQP-2a:这一炉归给哪台机器
     -- PROC-WIRE-1B-i:这一炉跑的是哪道工序,以及那道工序【吃不吃料、产不产批】。
     -- 【分支读的是字典那两列,不是一个写死的字符串,也不是调用方传的旗标】
+    -- 【PROC-SUPPORT-1】v_consumes / v_produces 不再有"没有工序时"的默认值 ——
+    -- 到得了这里就一定有工序,两个值都由字典填。留着 := true 会是一句谎:
+    -- 它读起来像"还有一条没有工序的路",而那条路已经在上面被拒掉了。
     v_op           text;
-    v_consumes     boolean := true;   -- 没有工序类型时:今天的行为
-    v_produces     boolean := true;
+    v_consumes     boolean;
+    v_produces     boolean;
     v_result_state text;
 BEGIN
     PERFORM require_permission('module.processing.edit');
@@ -46,21 +49,42 @@ BEGIN
     END IF;
 
     -- ════════════════════════════════════════════════════════════════════════
+    -- ★【PROC-SUPPORT-1:工序【必填】,而且【自己一条码】】★
+    --
+    -- 【为什么它必须与下面那四条拒绝分开,绝不合并】
+    -- 下一步动作完全不同:
+    --   · OPERATION_TYPE_REQUIRED        → 【你还没选工序】,回去选一个;
+    --   · OPERATION_TYPE_UNKNOWN         → 选了,但那个码不存在或已停用;
+    --   · OPERATION_PRODUCES_NO_OUTPUTS  → 选对了码,但这一单的形状与它矛盾;
+    --   · STATE_CHANGE_LOSS_NOT_ZERO     → 同上,矛盾在损耗那一栏;
+    --   · INPUT_SAFETY_STATE_NOT_ACCEPTED→ 码没错,是这一批料这道工序不收。
+    -- 合并任何两条,屏幕上就会有一句话对应两个去处,而操作员会走错门。
+    -- (与 PROC-3 那三条"听起来绝不一样"的拒绝同一条理由,fixture 154 钉着。)
+    --
+    -- 【位置为什么在这里】紧跟 PROCESS_DATE_REQUIRED / ALLOCATION_BASIS_REQUIRED,
+    -- 也就是【所有必填项一起,在任何业务判断之前】。放到下面去,一张没选工序的
+    -- 单会先撞上 NO_INPUTS 之类的话,而那句话是【真的,但没用】。
+    -- ════════════════════════════════════════════════════════════════════════
+    IF p_operation_type_code IS NULL THEN
+        RAISE EXCEPTION 'OPERATION_TYPE_REQUIRED'
+          USING HINT = '从今天起每一张加工单必须说出它跑的是哪一道工序。产出有无、状态改变型的损耗守恒、逐工序安全状态受理、工序本身是否存在 —— 四道闸全都读这一列,而它为空时前三道要么关掉、要么降级成一条更弱的规则。历史上那 14 张没有工序的单是测试残留,刻意不回填,报表把它们显示成【未归属】。';
+    END IF;
+
+    -- ════════════════════════════════════════════════════════════════════════
     -- PROC-WIRE-1B-i:解析工序类型。**分支由【工序】决定,不由调用方传旗标决定** ——
     -- 一个 p_is_state_changing 参数会让"这一炉算不算直通"变成调用方的意见,
     -- 而它是那道工序的事实。两者的区别在第一次有人传错的时候才显形,那太晚了。
-    -- 【没有工序类型 → v_consumes / v_produces 都是 true,今天的行为一个字不变。】
+    -- 【PROC-SUPPORT-1:这一段不再被 IF ... IS NOT NULL 包着】—— 上面那条拒绝
+    -- 已经保证到得了这里就有工序。留着那个 IF 会读起来像"还有一条没有工序的路"。
     -- ════════════════════════════════════════════════════════════════════════
-    IF p_operation_type_code IS NOT NULL THEN
-        SELECT ot.code, k.consumes_input, k.produces_outputs, ot.resulting_safety_state_code
-          INTO v_op, v_consumes, v_produces, v_result_state
-          FROM operation_types ot
-          JOIN operation_kinds k ON k.code = ot.kind_code
-         WHERE ot.code = p_operation_type_code AND ot.is_active;
-        IF NOT FOUND THEN
-            RAISE EXCEPTION 'OPERATION_TYPE_UNKNOWN|%', p_operation_type_code
-              USING HINT = '未知或已停用的工序。停用的意思是"以后别再选它",不是"把历史改掉"。';
-        END IF;
+    SELECT ot.code, k.consumes_input, k.produces_outputs, ot.resulting_safety_state_code
+      INTO v_op, v_consumes, v_produces, v_result_state
+      FROM operation_types ot
+      JOIN operation_kinds k ON k.code = ot.kind_code
+     WHERE ot.code = p_operation_type_code AND ot.is_active;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'OPERATION_TYPE_UNKNOWN|%', p_operation_type_code
+          USING HINT = '未知或已停用的工序。停用的意思是"以后别再选它",不是"把历史改掉"。';
     END IF;
     IF p_allocation_basis NOT IN ('weight','metal_value') THEN
         RAISE EXCEPTION 'INVALID_BASIS|%', p_allocation_basis;
@@ -86,8 +110,32 @@ BEGIN
     END IF;
 
     -- ── EQP-2a:机器这一支【也只在给了参数的时候才存在】────────────────────
-    -- 位置跟着 WO-1b 那一支放。【为什么可空】线上十三炉一台机器都没有归属,
-    -- 而临时起意的加工是合法的 —— "未归属"必须是一个【具名类别】,不是一个零。
+    -- ════════════════════════════════════════════════════════════════════════
+    -- ★★【PROC-SUPPORT-1 / R2:equipment_id 【不】跟着 operation_type_code
+    --      一起变成必填。这不是一次对称性偏好,是一次【字典完整性】判断。】★★
+    --
+    -- 【量出来的,不是想出来的】线上 fixed_assets 只有 2 行,而且两行【都是
+    --  深度放电机】(FA-2026-0001 Bosch Deep Discharging Machine、
+    --  FA-2026-0002 Mobile Discharging Solution),两行的 in_service_date 都是 NULL。
+    -- 于是"一台机器一道工序"这个假设在线上【两个方向都是假的】:
+    --   · deep_discharge ↔ 两台机器 → 工序【推不出】机器,不能"顺手带出来";
+    --   · manual_disassembly / electrode_line / electrode_powder_line /
+    --     battery_powder_line —— 五道工序里的【四道】,一台在册机器都没有。
+    --     一旦 equipment_id 必填,这四道工序的加工单【一张都提交不了】。
+    --
+    -- 所以两列的区别是:
+    --   · operation_type_code 的字典【完整】—— 5 道工序全部已播种,任何一张单
+    --     都答得出来,于是必填的代价是零;
+    --   · equipment_id 的字典【残缺】—— 5 道里 4 道无资产可指,于是必填的代价
+    --     是让四道工序停摆。
+    --
+    -- ★【给后来人:不要"修"掉这处不对称】★ 它看起来像是漏了一半,不是。
+    -- 要让 equipment_id 也必填,前置条件是【可以查询的】,不是一次感觉:
+    --   (1) 每一道启用的工序至少有一台在册、在役的资产;
+    --   (2) 而那需要一条【工序 ↔ 资产】的关联,**今天这个库里根本没有这条关联**
+    --       —— 那才是真正的前置缺口,记在 docs/processing-support-as-built.md。
+    -- 在那之前,空【是一个具名类别(未归属)】,不是零。
+    -- ════════════════════════════════════════════════════════════════════════
     IF p_equipment_id IS NOT NULL THEN
         SELECT * INTO v_eq FROM fixed_assets WHERE id = p_equipment_id;
         IF NOT FOUND THEN
@@ -107,7 +155,7 @@ BEGIN
                 v_eq.code, v_eq.disposal_date, p_process_date
               USING HINT = '这一炉的日期晚于这台机器的处置日 —— 那时它已经不在了';
         END IF;
-        -- 【投用之前【不】拒 —— 这是本刀对原设计改动最大的一处】
+        -- 【投用之前【不】拒 —— 这是 EQP-2a 对原设计改动最大的一处】
         -- 原设计要拒"加工日那天机器不在役",而 in_service_date 是【投用】日。
         -- 投用之前的试车是这盘生意里一件有名有姓的事:
         -- docs/equipment-survey.md 的资本化边界那一节把"试车料"与安装、调试并列。
@@ -126,6 +174,8 @@ BEGIN
     --   * 会产出的工序(转化型)少了产出 → 照旧 NO_OUTPUTS,一个字没松;
     --   * 不产出的工序(状态改变型,R3)带着产出来 → 【也是拒】,而且是另一条码。
     -- 后者容易被漏掉:只放松一侧会让一张"放电还产出了黑粉"的单悄悄成立。
+    -- 【PROC-SUPPORT-1:这道闸现在【总是】有一个工序可读】—— 此前 v_produces
+    -- 在无工序时默认 true,于是这条 IF 走的是"照旧"那一支,闸等于不存在。
     -- ════════════════════════════════════════════════════════════════════════
     IF v_produces THEN
         IF p_outputs IS NULL OR jsonb_array_length(p_outputs) = 0 THEN
@@ -227,6 +277,8 @@ BEGIN
     -- 不这么写的话:total_output = 0 会让质量平衡读成"投了 100 出来 0",
     -- 而 loss_qty = COALESCE(p_loss_qty, 100 - 0) 会凭空记下一笔【等于全部投入】
     -- 的损耗 —— 一张放电单会报告它把碰过的东西全毁了。
+    -- 【PROC-SUPPORT-1 实测:无工序时这一整段【从不执行】】—— v_produces 默认
+    -- true,于是 NOT v_produces 永远为假。线上量到的那 3 公斤损耗就是这么来的。
     -- ════════════════════════════════════════════════════════════════════════
     IF NOT v_produces THEN
         v_total_output := v_total_input;
@@ -315,7 +367,7 @@ BEGIN
             -- 此前这里按名拒 STATE_CHANGE_OUTPUT_INPUT_UNSUPPORTED,理由是
             -- 结构性的:安全状态只有进料批有,"把状态改成已放电"这件事在
             -- 产出批上【无处可写】,放过去会得到一炉什么都没改的放电。
-            -- **本刀建了 output_batch_safety_states,那个理由不复存在** ——
+            -- **PROC-WIRE-1B-ii 建了 output_batch_safety_states,那个理由不复存在** ——
             -- 于是拒绝也必须跟着走。R1 说得很清楚:闸问的是【这批料和它的
             -- 状态】,不是【这批料从哪来】;一道工序因为料是自己产的就拒绝它,
             -- 正是那处不对称本身。
@@ -392,3 +444,4 @@ BEGIN
     RETURN v_run_id;
 END;
 $function$
+

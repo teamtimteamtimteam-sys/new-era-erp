@@ -146,7 +146,7 @@ BEGIN
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib;
     v_run := commit_processing_run(v_process, 'f154 run', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 500)),
-        jsonb_build_array(jsonb_build_object('material_id', v_mat_noform, 'quantity', 500)), 'weight');
+        jsonb_build_array(jsonb_build_object('material_id', v_mat_noform, 'quantity', 500)), 'weight', NULL, NULL, 'manual_disassembly');
     SELECT po.output_batch_id INTO v_ob_noform FROM processing_outputs po WHERE po.run_id = v_run;
     -- 【注入确实改变了东西】这一批确实是加工出来的,而它的物料确实没有形态。
     IF NOT EXISTS (SELECT 1 FROM processing_outputs WHERE output_batch_id = v_ob_noform) THEN
@@ -203,7 +203,7 @@ BEGIN
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib;
     v_run := commit_processing_run(v_process, 'f154 ewaste run', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matx, 'quantity', 100)), 'weight');
+        jsonb_build_array(jsonb_build_object('material_id', v_matx, 'quantity', 100)), 'weight', NULL, NULL, 'manual_disassembly');
     SELECT po.output_batch_id INTO v_ob_anode FROM processing_outputs po WHERE po.run_id = v_run;
     v_sale := record_output_sale(v_ob_anode, 10, 5, v_ccy, NULL, v_cust, v_process, 'f154 ewaste sells', NULL, NULL);
     IF v_sale IS NULL THEN

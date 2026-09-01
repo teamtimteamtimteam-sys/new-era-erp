@@ -69,7 +69,7 @@ BEGIN
                         WHERE s.inbound_batch_id = ib.id);
     v_run1 := commit_processing_run(v_today, 'fixture 19 stage1', 20,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib1, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 80)), 'metal_value');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 80)), 'metal_value', NULL, NULL, 'manual_disassembly');
     SELECT po.output_batch_id INTO v_o1 FROM processing_outputs po WHERE po.run_id = v_run1;
     INSERT INTO output_batch_metals (output_batch_id, metal, content_pct, content_source) VALUES (v_o1, 'ni', 45, 'manual');
 
@@ -101,7 +101,7 @@ BEGIN
         jsonb_build_array(
             jsonb_build_object('output_batch_id', v_o1, 'quantity_consumed', 50),
             jsonb_build_object('inbound_batch_id', v_ib2, 'quantity_consumed', 50)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matC, 'quantity', 60)), 'metal_value');
+        jsonb_build_array(jsonb_build_object('material_id', v_matC, 'quantity', 60)), 'metal_value', NULL, NULL, 'manual_disassembly');
     SELECT po.output_batch_id INTO v_o2 FROM processing_outputs po WHERE po.run_id = v_run2;
     INSERT INTO output_batch_metals (output_batch_id, metal, content_pct, content_source) VALUES (v_o2, 'ni', 50, 'manual');
 
@@ -163,7 +163,7 @@ BEGIN
                         WHERE s.inbound_batch_id = ib.id);
     v_run1 := commit_processing_run(v_today, 'fixture 19 stage1-unpriced', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib1, 'quantity_consumed', 30)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 30)), 'metal_value');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 30)), 'metal_value', NULL, NULL, 'manual_disassembly');
     SELECT po.output_batch_id INTO v_o1 FROM processing_outputs po WHERE po.run_id = v_run1;
 
     -- 【PROC-WIRE-1B-ii:自产的料要先记安全状态,才投得进去】(R1 / M4)
@@ -183,7 +183,7 @@ BEGIN
                         WHERE s.inbound_batch_id = ib.id);
     v_run2 := commit_processing_run(v_today, 'fixture 19 stage2-unpriced', 0,
         jsonb_build_array(jsonb_build_object('output_batch_id', v_o1, 'quantity_consumed', 30)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matC, 'quantity', 30)), 'metal_value');
+        jsonb_build_array(jsonb_build_object('material_id', v_matC, 'quantity', 30)), 'metal_value', NULL, NULL, 'manual_disassembly');
     PERFORM allocate_processing_costs(v_run2, 'weight');   -- 上游 unit_cost NULL → 计 0,不拒
     SELECT bool_or(cost_incomplete) INTO v_flag FROM processing_outputs WHERE run_id = v_run2;
     IF NOT COALESCE(v_flag, false) THEN

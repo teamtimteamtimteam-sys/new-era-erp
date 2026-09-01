@@ -74,8 +74,8 @@ BEGIN
     VALUES (ib, 'cu', 20, 'assay', asy_in);
 
     -- ── 第一段:run1 耗进料批 → ob1 ─────────────────────────────────────────
-    INSERT INTO processing_runs (code, status, process_date, allocation_basis)
-    VALUES ('FX83-RUN1', 'committed', '2026-05-02', 'weight') RETURNING id INTO run1;
+    INSERT INTO processing_runs (code, status, process_date, allocation_basis, operation_type_code)
+    VALUES ('FX83-RUN1', 'committed', '2026-05-02', 'weight', 'manual_disassembly') RETURNING id INTO run1;
     INSERT INTO output_batches (code, material_id, quantity, unit, remaining_qty, output_date)
     VALUES ('FX83-OUT1', v_mat, q_o1, 'kg', q_o1 - q_c2, '2026-05-02') RETURNING id INTO ob1;
     INSERT INTO inventory_movements (output_batch_id, movement_type, qty_delta, business_date)
@@ -106,8 +106,8 @@ BEGIN
     VALUES (ob1, 'cu', 25, 'manual');
 
     -- ── 第二段:run2 耗 ob1 → ob2(这就是那第二段)──────────────────────────
-    INSERT INTO processing_runs (code, status, process_date, allocation_basis)
-    VALUES ('FX83-RUN2', 'committed', '2026-05-03', 'weight') RETURNING id INTO run2;
+    INSERT INTO processing_runs (code, status, process_date, allocation_basis, operation_type_code)
+    VALUES ('FX83-RUN2', 'committed', '2026-05-03', 'weight', 'manual_disassembly') RETURNING id INTO run2;
     INSERT INTO output_batches (code, material_id, quantity, unit, remaining_qty, output_date)
     VALUES ('FX83-OUT2', v_mat, q_o2, 'kg', q_o2, '2026-05-03') RETURNING id INTO ob2;
     INSERT INTO inventory_movements (output_batch_id, movement_type, qty_delta, business_date)

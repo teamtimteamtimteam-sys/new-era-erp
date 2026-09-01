@@ -80,8 +80,8 @@ BEGIN
     -- 收入 2000,成本 100 × 4 = 400 → 毛利 1600,毛利率 80.0%
     -- FIN-36:allocation_basis 不再有 schema 默认值 —— 直插就得自己选。
     -- 'metal_value' 是这些 fixture 在 FIN-36 之前拿到的那个值,语义不变。
-    INSERT INTO processing_runs (code, status, allocated_at, allocation_basis)
-    VALUES ('ZZFIX31-RUN-OK', 'committed', '2027-03-01', 'metal_value') RETURNING id INTO run_costed;
+    INSERT INTO processing_runs (code, status, allocated_at, allocation_basis, operation_type_code)
+    VALUES ('ZZFIX31-RUN-OK', 'committed', '2027-03-01', 'metal_value', 'manual_disassembly') RETURNING id INTO run_costed;
     INSERT INTO output_batches (code, material_id, quantity, remaining_qty, output_date)
     VALUES ('ZZFIX31-OB-OK', v_mat, 100, 100, '2027-03-01') RETURNING id INTO ob_costed;
     INSERT INTO processing_outputs (run_id, output_batch_id, quantity_produced,
@@ -92,8 +92,8 @@ BEGIN
     VALUES (ob_costed, v_cust, 100, 20, v_ccy, 1, 2000, '2027-03-10') RETURNING id INTO sr_costed;
 
     -- ── 批次 3:有单位成本,但分摊【之后】成本又动了 → is_stale ────────────────
-    INSERT INTO processing_runs (code, status, allocated_at, allocation_basis)
-    VALUES ('ZZFIX31-RUN-STALE', 'committed', '2027-04-01', 'metal_value') RETURNING id INTO run_stale;
+    INSERT INTO processing_runs (code, status, allocated_at, allocation_basis, operation_type_code)
+    VALUES ('ZZFIX31-RUN-STALE', 'committed', '2027-04-01', 'metal_value', 'manual_disassembly') RETURNING id INTO run_stale;
     INSERT INTO output_batches (code, material_id, quantity, remaining_qty, output_date)
     VALUES ('ZZFIX31-OB-STALE', v_mat, 50, 50, '2027-04-01') RETURNING id INTO ob_stale;
     INSERT INTO processing_outputs (run_id, output_batch_id, quantity_produced,

@@ -65,8 +65,10 @@ BEGIN
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 10)),
             jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 10)), 'weight');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
-    IF NOT v_denied OR v_msg NOT LIKE 'INPUT_SAFETY_STATE_NOT_FEEDABLE|%' THEN
-        RAISE EXCEPTION 'FIXTURE 159F1 失败:【没有工序类型 → may_be_fed 仍然是答案】。这是那条不变式的一半,也是"本刀没有动今天的行为"的证据。实得「%」', COALESCE(v_msg, '(通过了)');
+    IF NOT v_denied OR v_msg NOT LIKE 'OPERATION_TYPE_REQUIRED%' THEN
+        RAISE EXCEPTION 'FIXTURE 159F1 失败(PROC-SUPPORT-1):**"没有工序类型"这个世界已经不存在了。**
+原本这一臂钉的是【没有工序类型 → may_be_fed 仍然是答案】;工序必填之后,那一支再也到不了,而 may_be_fed 也因此失去了它最后一个消费者(见 inbound_safety_states.may_be_fed 的列注)。
+**这一臂因此改钉那条【站在它原来位置上】的拒绝**:一张说不出工序的单,在提交那一刻就被 OPERATION_TYPE_REQUIRED 拦住。F2 起的那几臂仍然钉着"有工序 → 只受理明写的那些",不变式的另一半一个字没松。实得「%」', COALESCE(v_msg, '(通过了)');
     END IF;
 
     -- ══════════ F2 · ★ 有工序类型 → 没写进清单的一律拒 ★ ══════════

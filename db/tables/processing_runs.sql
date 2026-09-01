@@ -59,17 +59,33 @@ CREATE TABLE public.processing_runs (
     -- 这一炉是哪台机器跑的。可空,而"空"是一个【具名类别】(未归属),不是零。
     equipment_id  uuid REFERENCES public.fixed_assets (id),
     -- ── PROC-WIRE-1B-i 追加的列 ──────────────────────────────────────────
-    -- 这一炉跑的是【哪一道工序】。可空:线上 13 张是测试残留,不给它们猜工序。
+    -- 这一炉跑的是【哪一道工序】。列本身仍然可空 —— 那 13 张测试残留要留在原地;
+    -- 【新行由下面那条 NOT VALID 的 CHECK 必填】(PROC-SUPPORT-1)。
     operation_type_code text REFERENCES public.operation_types (code)
 );
 
 COMMENT ON COLUMN public.processing_runs.operation_type_code IS
 'PROC-WIRE-1B-i:这张加工单跑的是【哪一道工序】。
 
-【可空】线上 13 张是测试残留,不给它们猜工序。
-【什么拦得住真单不填?今天没有东西】—— 界面必填,数据库不拦。
-一条 NOT VALID 的 CHECK 可以只管新行,但那要一次"从今天起必须填"的裁定,
-属于产线跑起来那天。**记为具名缺口,不发明约束。**
+【列本身可空,而【新行】是必填的 —— 两句话都要说】线上 14 张里有 13 张没有工序,
+它们是测试残留,**刻意不回填**(猜出来的工序与真的工序长得一模一样)。
+所以列保持可空,由 processing_runs_operation_type_required 这条 **NOT VALID**
+的 CHECK 只管新行。★ 永远不要 VALIDATE 它 ★ —— 见那条约束自己的注释。
+
+★【PROC-SUPPORT-1(2026-09-01):上面那条"记为具名缺口"的话已经过期,而这里
+  把它改掉而不是留着】★ 它当时写的是:
+    「什么拦得住真单不填?今天没有东西 —— 界面必填,数据库不拦。
+      一条 NOT VALID 的 CHECK 要一次「从今天起必须填」的裁定,属于产线跑起来那天。」
+  **那次裁定已经下了,而且提前到了产线跑起来【之前】,理由比原来那条更强:**
+  在产线跑起来【之后】立规矩,意味着第一批真实炉次正是没被规矩管住的那些。
+  实测:真实炉次为 0、界面早已必填、工序字典 5/5 完整 ——
+  **现在立规矩的迁移成本是零,晚立的成本不可回收。强制力应当先于流量到场。**
+  今天拦得住真单不填的有两样:commit_processing_run 里的 OPERATION_TYPE_REQUIRED
+  (给操作员一句可本地化的话),以及上面那条 CHECK(对任何写入者都成立 ——
+  本表有一条 insert by permission 的 RLS 策略,函数不是唯一的门)。
+
+【为什么这一列必填而 equipment_id 不必填】那是一次【字典完整性】判断,不是
+对称性判断 —— 理由写在 equipment_id 的列注释上,请连着读。
 
 【命名】仓库里每一张字典都以 text code 为主键(form_code / purpose_code /
 loss_category_code / chemistry_certainty_code),所以这一列叫 _code 而不是 _id。
@@ -107,6 +123,17 @@ CREATE TRIGGER trg_processing_runs_basis_changed
 CREATE TRIGGER trg_generate_processing_code
     BEFORE INSERT ON public.processing_runs
     FOR EACH ROW EXECUTE FUNCTION generate_processing_code();
+
+-- ── PROC-SUPPORT-1:一张加工单必须说出它跑的是哪一道工序 ──────────────────
+ALTER TABLE public.processing_runs
+    ADD CONSTRAINT processing_runs_operation_type_required
+    CHECK (operation_type_code IS NOT NULL) NOT VALID;
+
+COMMENT ON CONSTRAINT processing_runs_operation_type_required ON public.processing_runs IS
+    'PROC-SUPPORT-1:一张加工单必须说出它跑的是哪一道工序。
+【NOT VALID 是刻意的,而且永远不要 VALIDATE 它】线上 14 张(10 张未软删)没有工序的加工单是【测试残留】,不是待修的破损。VALIDATE 会去检查它们,于是唯一能让约束通过的办法是【给它们猜一个工序】—— 而猜出来的工序与真的工序长得一模一样,会流进设备用量、回收率、工单实绩,并且会让那四道闸【看起来对这些单生效过】,而它们从未生效过。这正是本刀存在的理由。
+【它与函数里那条拒绝不是重复】函数那条给操作员一句可本地化的话;这一条对【任何写入者】都成立 —— processing_runs 有一条 "insert by permission" 的 RLS 策略,任何拿到 module.processing.edit 的人都可以直接 INSERT 一张加工单绕开函数。(投入腿那一侧拦得住裸插:PROCESSING_INPUT_DIRECT_INSERT 要求函数上下文;但一张没有投入腿的空单仍然造得出来,而它会永远落在"未归属"那一组里。)
+【报表怎么显示那 10 张】显示成【未归属】,不是丢掉、也不是归零 —— 抄 EQP-2c 的 unattributed_runs_in_window。';
 
 ALTER TABLE public.processing_runs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "processing_runs select by permission"
@@ -164,16 +191,9 @@ CREATE TRIGGER trg_processing_runs_soft_delete_provenance
     BEFORE UPDATE ON public.processing_runs
     FOR EACH ROW EXECUTE FUNCTION public.guard_soft_delete_provenance();
 
-COMMENT ON COLUMN public.processing_runs.equipment_id IS 'EQP-2a:这一炉是【哪台机器】跑的。可空。
-【为什么可空,而且"空"必须是一个有名字的类别】线上十三炉一台机器都没有归属
-(而且当时全库连一张资产卡都没有);临时起意、或者当时没人记下来,都是常态。
-把它做成必填,得到的不是纪律,是一堆事后补的假归属。**所以任何按机器汇总的
-读法都必须把 equipment_id 为空的那些显示成【未归属】这一个具名类别,
-而不是让它们悄悄消失、更不是把它们算成零** —— 与 WO-1b 给 work_order_id
-立的规矩逐字相同(那边叫【计划外】)。
-【它归的是机器,不是产线也不是工位】fixed_assets 一张卡就是一台机器
-(EQP-1a-TAIL:一条设备采购行订一台,四台是四行)。
-【谁能写它】commit_processing_run,并且只在两种情形之外:加工日早于该卡的
-取得日(EQUIPMENT_NOT_ACQUIRED)、或晚于它的处置日(EQUIPMENT_DISPOSED)。
-**投用之前的试车是【允许】归属的** —— 那是这盘生意里真实存在的一段,
-而且正是它证明了投用日(见 docs/equipment-survey.md 的资本化边界一节)。';
+COMMENT ON COLUMN public.processing_runs.equipment_id IS
+    'EQP-2a:这一炉是哪台机器跑的。可空,而"空"是一个【具名类别】(未归属),不是零。
+★【PROC-SUPPORT-1 / R2:这一列【不】跟着 operation_type_code 一起变成必填 —— 不要"修"掉这处不对称】★
+理由是一次【测量】,不是一次对称性偏好:线上 fixed_assets 只有 2 行,两行都是深度放电机(FA-2026-0001 / FA-2026-0002,in_service_date 均为 NULL)。于是 deep_discharge 对应【两台】机器(工序推不出机器,不可派生),而另外【四道】工序 —— manual_disassembly、electrode_line、electrode_powder_line、battery_powder_line —— 【一台在册机器都没有】。一旦这一列必填,这四道工序的加工单一张都提交不了。
+所以:operation_type_code 的字典【完整】(5/5 已播种)→ 必填代价为零;equipment_id 的字典【残缺】(5 道里 4 道无资产可指)→ 必填代价是让四道工序停摆。**这是字典完整性判断,不是对称性判断。**
+【真正的前置条件,可查询而不是凭感觉】(1) 每一道启用的工序至少有一台在册在役资产;(2) 而那需要一条【工序 ↔ 资产】的关联 —— **今天这个库里没有这条关联**,那才是缺口本身。记在 docs/processing-support-as-built.md。';

@@ -123,34 +123,34 @@ BEGIN
         (a_day_under, CURRENT_DATE - 1,   'repair',  'f111 wrong-kind decoy', 'ZZ-F111');
 
     -- ── 加工:公斤那一半 ────────────────────────────────────────────────────
-    INSERT INTO processing_runs (code, process_date, total_input, status, allocation_basis, equipment_id)
+    INSERT INTO processing_runs (code, process_date, total_input, status, allocation_basis, equipment_id, operation_type_code)
     VALUES
         -- F2 恰好到线:600 + 400 = 1000
-        ('ZZF111-R01', CURRENT_DATE - 90, 600, 'committed', 'weight', a_kg_due),
-        ('ZZF111-R02', CURRENT_DATE - 80, 400, 'committed', 'weight', a_kg_due),
+        ('ZZF111-R01', CURRENT_DATE - 90, 600, 'committed', 'weight', a_kg_due, 'manual_disassembly'),
+        ('ZZF111-R02', CURRENT_DATE - 80, 400, 'committed', 'weight', a_kg_due, 'manual_disassembly'),
         -- F2 差一个单位:600 + 399 = 999
-        ('ZZF111-R03', CURRENT_DATE - 90, 600, 'committed', 'weight', a_kg_under),
-        ('ZZF111-R04', CURRENT_DATE - 80, 399, 'committed', 'weight', a_kg_under),
+        ('ZZF111-R03', CURRENT_DATE - 90, 600, 'committed', 'weight', a_kg_under, 'manual_disassembly'),
+        ('ZZF111-R04', CURRENT_DATE - 80, 399, 'committed', 'weight', a_kg_under, 'manual_disassembly'),
         -- F6 提前量:850
-        ('ZZF111-R05', CURRENT_DATE - 90, 850, 'committed', 'weight', a_lead),
+        ('ZZF111-R05', CURRENT_DATE - 90, 850, 'committed', 'weight', a_lead, 'manual_disassembly'),
         -- F5 基线:取得日【之后】的两炉 = 750
-        ('ZZF111-R06', CURRENT_DATE - 100, 300, 'committed', 'weight', a_fresh),
-        ('ZZF111-R07', CURRENT_DATE - 80,  450, 'committed', 'weight', a_fresh),
+        ('ZZF111-R06', CURRENT_DATE - 100, 300, 'committed', 'weight', a_fresh, 'manual_disassembly'),
+        ('ZZF111-R07', CURRENT_DATE - 80,  450, 'committed', 'weight', a_fresh, 'manual_disassembly'),
         -- F5 取得日【之前】的一炉,7777 公斤,而且【归给了这台机器】。
         -- 【这一行经由那扇门是造不出来的】commit_processing_run 会按名拒
         -- (EQUIPMENT_NOT_ACQUIRED)。这里直插,为的是正面钉住【窗口的下沿】:
         -- 少了 process_date >= baseline_date 那一句,kg_since 会读成 8527。
-        ('ZZF111-R08', CURRENT_DATE - 500, 7777, 'committed', 'weight', a_fresh),
+        ('ZZF111-R08', CURRENT_DATE - 500, 7777, 'committed', 'weight', a_fresh, 'manual_disassembly'),
         -- F5「看不见的磨损」:窗口【之内】、谁都没归属的一炉
-        ('ZZF111-R09', CURRENT_DATE - 50, 999, 'committed', 'weight', NULL);
+        ('ZZF111-R09', CURRENT_DATE - 50, 999, 'committed', 'weight', NULL, 'manual_disassembly');
     -- 已冲销的一炉【不算数】(EQP-2a 那条"status 与 deleted_at 两标记同源"),
     -- 归给 a_kg_under —— 算进去它就从 999 变成 1999,当场越过 F2 的下沿。
     -- 【直接带着 deleted_at 插】软删守卫只管 UPDATE 那一刻(从在册变成已删),
     -- 而本 fixture 要的是一行"生来就是已冲销"的状态,不是走一遍删除流程。
     INSERT INTO processing_runs (code, process_date, total_input, status, allocation_basis,
-        equipment_id, deleted_at, deleted_by, delete_reason)
+        equipment_id, deleted_at, deleted_by, delete_reason, operation_type_code)
     VALUES ('ZZF111-R10', CURRENT_DATE - 70, 1000, 'reversed', 'weight',
-            a_kg_under, now(), v_user, 'f111 reversed run must not count');
+            a_kg_under, now(), v_user, 'f111 reversed run must not count', 'manual_disassembly');
 
     -- ══════════ 读回一律切角色(README 第 6 条)══════════════════════════════
     PERFORM set_config('request.jwt.claims',

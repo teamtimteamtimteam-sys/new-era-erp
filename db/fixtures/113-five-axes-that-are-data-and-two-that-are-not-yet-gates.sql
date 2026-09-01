@@ -20,7 +20,8 @@
 -- **一条被删掉的臂与一条从来没写过的臂长得一模一样**,而这份文件现在同时留着
 -- 两件事:闸保证了什么,以及在它存在之前这里断言过什么。
 -- 【F6 现在保证的】has_condition_axes 的种类,带着 may_be_fed = false 的安全状态时,
--- guard_processing_input 按 INPUT_SAFETY_STATE_NOT_FEEDABLE 拒,并把【那一条状态的
+-- guard_processing_input 按名拒(PROC-SUPPORT-1 起是 INPUT_SAFETY_STATE_NOT_ACCEPTED,
+-- 此前是 _NOT_FEEDABLE —— 换的是回答受理问题的那张表,不是这一臂的主语),并把【那一条状态的
 -- 名字】写进消息里(而不是只说"不可投料")。
 BEGIN;
 DO $$
@@ -244,10 +245,12 @@ BEGIN
     BEGIN
         v_run := commit_processing_run(v_process, 'f113 gate exists now', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-            jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight');
+            jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight', NULL, NULL, 'manual_disassembly');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
-    IF NOT v_denied OR v_msg NOT LIKE '%INPUT_SAFETY_STATE_NOT_FEEDABLE%' THEN
-        RAISE EXCEPTION 'FIXTURE 113F6 失败:进入 F6 —— PROC-3 之后,带着「带电未放电」的一批货必须按 INPUT_SAFETY_STATE_NOT_FEEDABLE 拒,实得 denied=%、msg=「%」。**这一臂是从"还没有闸"翻过来的**(见文件抬头),它绿的意思是那道闸真的在读 may_be_fed', v_denied, COALESCE(v_msg,'(通过了)');
+    IF NOT v_denied OR v_msg NOT LIKE '%INPUT_SAFETY_STATE_NOT_ACCEPTED%' THEN
+        RAISE EXCEPTION 'FIXTURE 113F6 失败:进入 F6 —— 带着「带电未放电」的一批货必须被按名拒,实得 denied=%、msg=「%」。
+【PROC-SUPPORT-1:这条码从 _NOT_FEEDABLE 换成了 _NOT_ACCEPTED,而这一臂的主语没变】工序在提交时已经必填,于是受理由 operation_type_safety_states(【这一道】工序收不收它)回答,不再由 inbound_safety_states.may_be_fed(能不能投给【任何】工序)回答。人工拆解不受理"带电未放电" —— 那正是深度放电存在的理由。
+**这一臂仍然是从"还没有闸"翻过来的那一臂**(见文件抬头):它绿的意思是那道闸真的在读字典,而不是放行一切。', v_denied, COALESCE(v_msg,'(通过了)');
     END IF;
     -- 【消息里要有那一条状态的【名字】,不是只说"不可投料"】
     -- 只报一个码,人得自己去翻是哪一条;而这一批身上可以同时挂着好几条。

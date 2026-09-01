@@ -77,6 +77,18 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
             change_type: string; detail: string | null; amend_reason: string | null
             old_qty: number | null; new_qty: number | null; changed_at: string }[]
 
+    // ── PROC-SUPPORT-1(R3):每一行预期产出的【出处】────────────────────────
+    // 【为什么单独读一次,而不是往 work_order_fulfilment 里加一列】那张视图回答的是
+    // "计划与实绩差了多少",而出处回答的是"那个计划数可不可信" —— 两个问题。
+    // 把它塞进差异视图,下一个改差异口径的人会连着出处一起改。
+    const expectedBasis = mustRows(
+        await supabase.from('work_order_expected_outputs')
+            .select('material_id, basis, basis_reference')
+            .eq('work_order_id', id),
+        'work_order_expected_outputs') as {
+            material_id: string; basis: string | null; basis_reference: string | null }[]
+    const basisOf = new Map(expectedBasis.map((r) => [r.material_id, r]))
+
     const canEdit = await can('module.processing.edit')
     const inputRows = fulfil.filter((r) => r.side === 'input')
     const outputRows = fulfil.filter((r) => r.side === 'output')
@@ -169,6 +181,33 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
                                 <td className="border border-gray-300 px-3 py-2 text-right font-mono">
                                     {r.planned_or_expected_qty ?? <span className="text-gray-400">—</span>}
                                 </td>
+                                {/* ★【出处必须在屏幕上分得开,不只是在数据里分得开】★
+                                    播种的猜测标成琥珀色并带一个"低置信"的字样,校准过的标成绿色;
+                                    **没人说过的那一格写着"还没有人说过",不是一个空白格** ——
+                                    空白格读起来像"这一栏不重要",而这一栏正是六个月后
+                                    唯一能回答"这个数可不可信"的东西。 */}
+                                <td className="border border-gray-300 px-3 py-2 text-xs">
+                                    {(() => {
+                                        const b = basisOf.get(r.material_id)
+                                        if (!r.has_plan) return <span className="text-gray-400">—</span>
+                                        if (!b?.basis) return (
+                                            <span className="text-gray-500 italic">
+                                                {t('processing.wo.basis.unstated')}
+                                            </span>)
+                                        const tone = b.basis === 'calibrated' ? 'bg-green-100 text-green-800'
+                                            : b.basis === 'seeded_industry' ? 'bg-amber-100 text-amber-800'
+                                            : 'bg-gray-100 text-gray-700'
+                                        return (
+                                            <>
+                                                <span className={`inline-block px-2 py-0.5 rounded ${tone}`}>
+                                                    {t('processing.wo.basis.' + b.basis)}
+                                                </span>
+                                                {b.basis_reference && (
+                                                    <span className="block text-gray-500 mt-1">{b.basis_reference}</span>
+                                                )}
+                                            </>)
+                                    })()}
+                                </td>
                                 <td className="border border-gray-300 px-3 py-2 text-right font-mono">{r.actual_qty}</td>
                                 <td className="border border-gray-300 px-3 py-2 text-right font-mono">
                                     {/* 【差异为空就留空 —— 绝不写 0】没有被减数,差就说不出来 */}
@@ -202,6 +241,7 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
                         <tr>
                             <th className="border border-gray-300 px-3 py-2 text-left">{t('processing.wo.colMaterial')}</th>
                             <th className="border border-gray-300 px-3 py-2 text-right">{t('processing.wo.colExpected')}</th>
+                            <th className="border border-gray-300 px-3 py-2 text-left">{t('processing.wo.colBasis')}</th>
                             <th className="border border-gray-300 px-3 py-2 text-right">{t('processing.wo.colProduced')}</th>
                             <th className="border border-gray-300 px-3 py-2 text-right">{t('processing.wo.colVariance')}</th>
                         </tr>
@@ -229,7 +269,7 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
                             </tr>
                         ))}
                         {outputRows.length === 0 && (
-                            <tr><td colSpan={4} className="border border-gray-300 px-3 py-4 text-center text-gray-500">
+                            <tr><td colSpan={5} className="border border-gray-300 px-3 py-4 text-center text-gray-500">
                                 {t('processing.wo.noOutputsYet')}
                             </td></tr>
                         )}

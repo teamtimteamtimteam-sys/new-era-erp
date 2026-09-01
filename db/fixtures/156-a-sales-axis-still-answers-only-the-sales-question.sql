@@ -114,7 +114,7 @@ BEGIN
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib;
     v_run := commit_processing_run(v_d, 'f156 run 1', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 200)),
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 200)), 'weight');
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 200)), 'weight', NULL, NULL, 'manual_disassembly');
     SELECT po.output_batch_id INTO v_ob2 FROM processing_outputs po WHERE po.run_id = v_run;
 
     -- 【先证明注入确实改变了东西】吃之前它是「库存中」且有余量。
@@ -135,7 +135,7 @@ BEGIN
     -- 整批吃光它。
     v_run := commit_processing_run(v_d, 'f156 run 2', 0,
         jsonb_build_array(jsonb_build_object('output_batch_id', v_ob2, 'quantity_consumed', 200)),
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 200)), 'weight');
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 200)), 'weight', NULL, NULL, 'manual_disassembly');
 
     SELECT state, remaining_qty INTO v_state, v_rem FROM output_batches WHERE id = v_ob2;
     IF v_rem <> 0 THEN

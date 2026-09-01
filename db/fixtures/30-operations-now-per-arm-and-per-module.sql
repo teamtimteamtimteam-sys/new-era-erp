@@ -116,8 +116,12 @@ BEGIN
     -- 2 allocation_stale:分摊时点(2027-01-01)早于成本变动时点(2027-02-01)
     -- FIN-36:allocation_basis 不再有 schema 默认值 —— 直插就得自己选。
     -- 'metal_value' 是这些 fixture 在 FIN-36 之前拿到的那个值,语义不变。
-    INSERT INTO processing_runs (code, status, allocated_at, allocation_basis)
-    VALUES ('ZZFIX30-RUN', 'committed', '2027-01-01', 'metal_value') RETURNING id INTO v_run;
+    -- 【PROC-SUPPORT-1:工序必填,于是【直插】的加工单也要说出工序】
+    -- 表上那条 NOT VALID 的 CHECK 对【任何写入者】都成立,包括这一句。
+    -- 选 manual_disassembly 是因为它是转化型:本臂测的是分摊与看板臂,
+    -- 换一道状态改变型工序会顺带改变这张单的语义。
+    INSERT INTO processing_runs (code, status, allocated_at, allocation_basis, operation_type_code)
+    VALUES ('ZZFIX30-RUN', 'committed', '2027-01-01', 'metal_value', 'manual_disassembly') RETURNING id INTO v_run;
     INSERT INTO processing_cost_entries (run_id, cost_type, amount_base, created_at, updated_at)
     VALUES (v_run, 'electricity', 100, '2027-02-01', '2027-02-01');
 
@@ -331,7 +335,7 @@ BEGIN
                         WHERE s.inbound_batch_id = ib.id);
     v_runwo := commit_processing_run(CURRENT_DATE, 'f30 overrun', 20,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ibw, 'quantity_consumed', 200)),
-        jsonb_build_array(jsonb_build_object('material_id', v_mat2, 'quantity', 180)), 'weight', v_wo2);
+        jsonb_build_array(jsonb_build_object('material_id', v_mat2, 'quantity', 180)), 'weight', v_wo2, NULL, 'manual_disassembly');
     -- 同一条理由:一张【从没分摊过】的加工单会点亮 allocation_stale。
     -- 这一支要测的是工单差异,不是分摊欠账 —— 所以把分摊时点盖上,让那盏灯归位。
     UPDATE processing_runs SET allocated_at = now() WHERE id = v_runwo;

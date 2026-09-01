@@ -130,3 +130,5 @@
 2026-09-01T01:18:48+0800	2026-09-01-eqppay1-b-fu1-the-mixed-order-guard-already-existed.sql	69eb439
 2026-09-01T01:45:01+0800	2026-09-01-eqppay1-b-fu2-the-document-phrase-comes-from-the-dictionary.sql	69eb439
 2026-09-01T01:50:25+0800	2026-09-01-eqppay1-b-fu3-a-machine-can-be-ordered-with-or-without-retention.sql	69eb439
+2026-09-01T10:04:33+0800	2026-09-01-procsupport1-a-an-operation-is-not-optional.sql	8ccbd0c
+2026-09-01T11:12:19+0800	2026-09-01-procsupport1-fu1-the-ruling-was-made-so-the-sentence-beside-it-must-change.sql	8ccbd0c

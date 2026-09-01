@@ -125,7 +125,7 @@ BEGIN
                             WHERE s.inbound_batch_id = ib.id);
         v_run := commit_processing_run(v_process, 'f112 must refuse', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-            jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight');
+            jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight', NULL, NULL, 'manual_disassembly');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE '%MATERIAL_NOT_PROCESSABLE%' THEN
         RAISE EXCEPTION 'FIXTURE 112F4 失败:进入 F4 —— 一批【声明了不投料】的物料不许进加工,而且要按码拒(MATERIAL_NOT_PROCESSABLE),实得 denied=%、msg=「%」。**没有这道闸,may_be_processed 就是一个没有门的库**(D8 亲口说的那个缺陷)', v_denied, COALESCE(v_msg,'(通过了)');
@@ -146,7 +146,7 @@ BEGIN
                         WHERE s.inbound_batch_id = ib.id);
     v_run := commit_processing_run(v_process, 'f112 must pass', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight');
+        jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight', NULL, NULL, 'manual_disassembly');
     IF v_run IS NULL THEN
         RAISE EXCEPTION 'FIXTURE 112F4 失败:进入 F4 —— 可投料的那一个必须走得通。**这一半是那个铰链**:只测拒绝,一个把所有人都拦住的实现会全绿';
     END IF;
@@ -179,7 +179,7 @@ BEGIN
                             WHERE s.inbound_batch_id = ib.id);
         v_run := commit_processing_run(v_process, 'f112 undecided must refuse', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 100)),
-            jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight');
+            jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 100)), 'weight', NULL, NULL, 'manual_disassembly');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE '%MATERIAL_NOT_PROCESSABLE%' THEN
         RAISE EXCEPTION 'FIXTURE 112F4 失败:进入 F4 —— 【没有人决定过】的物料同样不许进加工。把空读成"可以",正是本仓库反复付账的那个错(METAL-1 的 no_reference、SS-1 的阈值为 NULL)。实得 denied=%、msg=「%」', v_denied, COALESCE(v_msg,'(通过了)');

@@ -105,11 +105,29 @@ BEGIN
     VALUES (v_ib3, 'discharged_verified');
     INSERT INTO inbound_batch_metals (inbound_batch_id, metal, content_pct, content_source)
     VALUES (v_ib3, 'co', 10, 'manual');
+    -- ════════════════════════════════════════════════════════════════════════
+    -- ★【PROC-SUPPORT-1:这一臂要的那种单,现在【造不出来了】—— 所以它改用
+    --   历史当初的造法,而不是被删掉】★
+    -- 工序在提交时已经必填(OPERATION_TYPE_REQUIRED),于是没有任何一条正当
+    -- 路径能产出一张 operation_type_code 为空的加工单。
+    -- **但那 14 张历史单仍然在线上,而且刻意不回填** —— 于是
+    -- processing_metal_recovery_all 仍然要正确地回答它们。
+    -- 这一臂钉的正是那件事,所以它必须留着;留着的办法是【重放历史的形状】:
+    -- 正常提交一张单,再把工序抹成空(约束是 NOT VALID 的,先摘掉再原样加回)。
+    -- 【为什么不改成"断言历史单"就算了】重建库里没有那 14 张单(它们是线上
+    -- 数据,不是种子),README 第 2 条:每个用例自带数据,无处可借。
+    -- ════════════════════════════════════════════════════════════════════════
     v_run_no := commit_processing_run(v_d, 'f163 no op', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib3, 'quantity_consumed', 10)),
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 9)), 'weight');
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 9)), 'weight', NULL, NULL, 'manual_disassembly');
+    ALTER TABLE processing_runs DROP CONSTRAINT processing_runs_operation_type_required;
+    UPDATE processing_runs SET operation_type_code = NULL WHERE id = v_run_no;
+    ALTER TABLE processing_runs
+        ADD CONSTRAINT processing_runs_operation_type_required
+        CHECK (operation_type_code IS NOT NULL) NOT VALID;
+    -- 【先证明注入确实改变了东西】这一臂要的是一张【没有工序类型】的单。
     IF (SELECT operation_type_code FROM processing_runs WHERE id = v_run_no) IS NOT NULL THEN
-        RAISE EXCEPTION 'FIXTURE 167N3 前置失败:这一臂要的是一张【没有工序类型】的单 —— 线上 13 张都是这样';
+        RAISE EXCEPTION 'FIXTURE 167N3 前置失败:这一臂要的是一张【没有工序类型】的单 —— 线上那 13 张都是这样,而它们刻意不被回填';
     END IF;
     SELECT recovery_blocked_by INTO v_no FROM processing_metal_recovery_all
      WHERE run_id = v_run_no AND metal = 'co';

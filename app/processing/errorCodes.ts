@@ -2,7 +2,8 @@ import { getTranslations } from '@/lib/i18n/server'
 import { STATE_OPTIONS } from '@/app/inbound/options'
 import { localizeMaterialError } from '@/app/materials/materialErrorCodes'
 
-// commit_processing_run / rollback_processing_run 这两个 DB 函数 RAISE 出来的 13 个错误码。
+// commit_processing_run / rollback_processing_run 这两个 DB 函数 RAISE 出来的错误码,
+// 外加工单族与(PROC-SUPPORT-1 起)交接班族的具名拒绝。
 // 不在此集合内的,是真正的(未编码的)DB/约束错误,原样返回。
 const PROCESSING_ERROR_CODES = new Set([
     'PROCESS_DATE_REQUIRED',
@@ -14,6 +15,14 @@ const PROCESSING_ERROR_CODES = new Set([
     // 前者说"这道工序不收它,换一道也许就行"(没放电的料先走深度放电);
     // 后者说"没有工序类型时,这批料本身不可投料"。合并它们会把
     // "去走放电"这条唯一的出路藏起来,而那正是本刀解掉的那个死锁。
+    // ── PROC-SUPPORT-1:工序在提交时【必填】,而且自己一条码 ─────────────────
+    // **它绝不与下面那几条合并。** 下一步动作全不一样:
+    //   OPERATION_TYPE_REQUIRED         → 你还没选工序,回去选一个;
+    //   OPERATION_TYPE_UNKNOWN          → 选了,但那个码不存在或已停用;
+    //   OPERATION_PRODUCES_NO_OUTPUTS   → 码对了,是这一单的形状与它矛盾;
+    //   INPUT_SAFETY_STATE_NOT_ACCEPTED → 码对了,是这一批料这道工序不收。
+    // 合并任何两条,屏幕上就有一句话对应两个去处,而操作员会走错门。
+    'OPERATION_TYPE_REQUIRED',
     'OPERATION_TYPE_UNKNOWN',
     'INPUT_SAFETY_STATE_NOT_ACCEPTED',
     'OPERATION_PRODUCES_NO_OUTPUTS',
@@ -34,6 +43,16 @@ const PROCESSING_ERROR_CODES = new Set([
     'WO_NO_LINES', 'WO_LINE_QTY_INVALID', 'WO_MATERIAL_NOT_FOUND',
     'WO_DUPLICATE_MATERIAL', 'WO_EXPECTED_QTY_INVALID',
     'WO_EXPECTED_MATERIAL_NOT_FOUND', 'WO_DUPLICATE_EXPECTED',
+    // PROC-SUPPORT-1(R3):预期产出必须说出【出处】。
+    'WO_EXPECTED_BASIS_REQUIRED',
+    // ── PROC-SUPPORT-1(R4):交接班 ────────────────────────────────────────
+    // 【签收那三条分开,因为下一步动作不同】已经签过 → 别覆盖;没有员工档案 →
+    // 去补档案;不是点名的接班人 → 先改交接班。一条共用的码会把这个区别藏起来。
+    'HANDOVER_DATE_REQUIRED', 'HANDOVER_SHIFT_REQUIRED', 'HANDOVER_SHIFT_UNKNOWN',
+    'HANDOVER_PEOPLE_REQUIRED', 'HANDOVER_SAME_PERSON', 'HANDOVER_EMPLOYEE_NOT_FOUND',
+    'HANDOVER_ITEM_TYPE_UNKNOWN', 'HANDOVER_ITEM_BODY_REQUIRED',
+    'HANDOVER_REQUIRED_ITEM_MISSING', 'HANDOVER_NOT_FOUND',
+    'HANDOVER_ALREADY_ACKNOWLEDGED', 'HANDOVER_ACK_NO_EMPLOYEE', 'HANDOVER_ACK_NOT_INCOMING',
     'WO_CLOSE_REASON_REQUIRED', 'WO_CANCEL_REASON_REQUIRED',
     'WO_AMEND_REASON_REQUIRED', 'WO_AMEND_NO_CHANGES',
     'WO_LINE_NOT_FOUND', 'WO_LINE_BELOW_CONSUMED', 'WO_EXPECTED_NOT_FOUND',

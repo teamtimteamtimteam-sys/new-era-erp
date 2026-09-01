@@ -62,7 +62,13 @@ export async function commitProcessingRun(
         // 而它的两条拒绝(WO_NOT_FOUND / WO_NOT_RELEASED)仍然是权威。
         p_work_order_id: payload.work_order_id || null,
         // PROC-WIRE-1B-i:工序决定这一炉【吃不吃料、产不产批】,以及那道
-        // 【起火】闸受理哪些安全状态。空 = 今天的行为(may_be_fed)。
+        // 【起火】闸受理哪些安全状态。
+        // ★【PROC-SUPPORT-1:它现在是【必填】的,上面那句"空 = 今天的行为
+        //   (may_be_fed)"已经不成立,所以那句话被删掉而不是留着】★
+        //   —— 空会被 commit_processing_run 按名拒(OPERATION_TYPE_REQUIRED)。
+        //   界面早就必填(下拉不预选),这里仍然把它原样送上去而【不】在客户端
+        //   拦截:与 process_date / allocation_basis 同一条 —— 界面是第一道,
+        //   函数是权威的那一道,绕过界面也进不去。
         p_operation_type_code: payload.operation_type_code || null,
     } as Database['public']['Functions']['commit_processing_run']['Args'])
 

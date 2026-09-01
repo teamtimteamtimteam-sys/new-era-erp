@@ -322,6 +322,17 @@ const MANIFEST = {
     // PROC-WIRE-1A:产出批次【用途】(工序投料指定)那一族的拒绝 —— 与上一行同一条:
     // 后缀集合【就是】那个 Set,加一条拒绝而忘了写文案,这里当场红。
     'output.purpose.errors.': { kind: 'enum', values: () => tsSet('app/output/[id]/edit/purposeErrorCodes.ts', 'PURPOSE_ERROR_CODES') },
+    // PROC-SUPPORT-1(R3):预期产出的【出处】。后缀集合【就是】那张表上
+    // work_order_expected_basis_required 这条 CHECK 的取值 —— 从镜像现读,
+    // 将来多一个来源(比如 BOM 算出来的)这道检查自动要求两个语言补句子。
+    // 【为什么用 sqlEnumAnywhere 而不是 sqlCheckIn】那条约束写成
+    // `CHECK (basis IS NOT NULL AND basis IN (...))` —— 必填与值域是【同一条】,
+    // 因为分成两条的话,只满足其中一条的行会以两种不同的方式变得合法。
+    // 【unstated 不在这里,而且不该在】它是"没人说过"那一格的文案,不是一个
+    // 存得进库的取值 —— 把它混进这个集合,就等于承认库里可以存一个叫
+    // "还没有人说过"的出处,而那正是 NOT NULL 在防的事。
+    'processing.wo.basis.': { kind: 'enum', values: () => sqlEnumAnywhere(
+                                  'db/tables/work_order_expected_outputs.sql', 'basis') },
     'commissions.side.':    { kind: 'enum', values: () => sqlCheckIn('db/tables/commission_agreements.sql', 'side') },
     'commissions.basis.':   { kind: 'enum', values: () => sqlCheckIn('db/tables/commission_agreements.sql', 'basis') },
     'commissions.trigger.': { kind: 'enum', values: () => sqlCheckIn('db/tables/commission_agreements.sql', 'recognition_trigger') },

@@ -56,18 +56,12 @@ inbound_batch_safety_states(进料批)、**output_batch_safety_states(产出批)
 同一条:Tim 在界面上改一行,线上就与本文件不同,那是系统在正常工作。';
 
 COMMENT ON COLUMN public.inbound_safety_states.may_be_fed IS
-'PROC-2 记的规则,PROC-3 起【真的拦人】:guard_processing_input 读它。
-
-【合取】一批货身上的每一条安全状态都必须 may_be_fed = true 才投得进去。
-一批已放电的货【同时也进过水】,那它就是进过水的 —— 放电不能把水抵消掉。
-
-【两个动词,谁也替不了谁】
-  * 要撤回一条【规则】(我们把规则定错了,想全局收回)—— 改 **may_be_fed**。
-    一行字典,立刻生效,而且【事实还留着】:那批货进过水这件事没有被抹掉。
-  * 要让一个值【不再被新选】—— 改 **is_active**。它管的是选单,不管已记的事实。
-【守卫【不读】is_active】所以停用一个值【不会】让已经贴着它的货变成可投料。
-这是刻意的:停用一行字典是一个看起来很轻的动作,而它若能解锁一批货,
-那就成了一条无痕迹、且一次性对所有批次生效的释放路径。';
+    'PROC-2:这个状态的料可不可以投料 —— 【引导默认值】,不是决定;Tim 改一行即可。
+★★【2026-09-01 · PROC-SUPPORT-1:这一列在本刀失去了它【最后一个消费者】】★★
+它此前唯一的读者是 guard_processing_input 里 `v_op IS NULL` 那一支 —— 也就是"这张加工单没说工序时,拿什么回答受理问题"。本刀让 operation_type_code 在提交时【必填】,于是那一支【再也到不了】,受理问题从今往后一律由 operation_type_safety_states 回答。
+【为什么不顺手做成"两条规则取交集"】那会【故意】弄坏 battery_powder_line:Tim 的closed ruling 让它受理 charged_not_discharged,而那一行的 may_be_fed = false。一个看起来更安全、却与一条已下裁定相抵触的改法,并不更安全。
+【为什么不就这么留着】一列没人读的数据,读起来仍然像一条还在生效的规则 —— 下一个人会照着它做决定。waste_classifications.is_controlled 已经是这个病的一例,本仓库把它记成了债。**把死的东西宣告为死的**,所以这句话在这里,而不只是在某份文档里。
+【排队】要么给它找一个真正的消费者(例如:新增 operation_type_safety_states 行时用它做引导默认),要么删掉它。见 docs/processing-support-as-built.md。';
 
 INSERT INTO public.inbound_safety_states (code, name_en, name_zh, may_be_fed, sort_order, notes) VALUES
     ('charged_not_discharged', 'Charged, not yet discharged', '带电未放电', false, 1,
