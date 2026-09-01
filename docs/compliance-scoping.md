@@ -169,14 +169,14 @@ grant, not a build.
 ## The specimen, and what it was allowed to be
 
 Tim supplied **two NEA licences belonging to another company (Se-cure Waste Management Pte Ltd)**
-as a **specimen of what fields a licence carries**. They are **not Evoltrya's licences**.
+as a **specimen of what fields a licence carries**. They are **not EVoltrya's licences**.
 
 > ★ **The specimen supplied FIELDS ONLY. Not one specimen VALUE was entered anywhere** — not as a
 > default, not as an example row, not as a placeholder, not as an "e.g." in a comment, and not in a
 > fixture. The fixture uses obviously-scratch values (`ZZ-FIX152`, limits of 4/10/100) that could not
 > be mistaken for real licence data.
 
-**Evoltrya holds no licence yet, and `company_compliance` is 0 rows on live.** ★ **Empty is the
+**EVoltrya holds no licence yet, and `company_compliance` is 0 rows on live.** ★ **Empty is the
 EXPECTED state, not missing data** ★ — that was already the position in that table's own comment
 ("空着是预期状态 —— 公司尚未运营"), and this cut did not change it. The screen says so in words
 rather than rendering a silent blank.

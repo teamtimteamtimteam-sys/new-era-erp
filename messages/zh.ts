@@ -775,7 +775,7 @@ const zh = {
         },
     },
     login: {
-        title: '登录 Evoltrya OS',
+        title: '登录 EVoltrya OS',
         subtitle: '锂电池回收 ERP 系统',
         email: '邮箱',
         password: '密码',

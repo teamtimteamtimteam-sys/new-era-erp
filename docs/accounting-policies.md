@@ -1,6 +1,6 @@
-# Evoltrya OS — Accounting Policy Memorandum
+# EVoltrya OS — Accounting Policy Memorandum
 
-**Entity:** Evoltrya (Singapore). **Functional and presentation currency:** Singapore Dollar (SGD).
+**Entity:** EVoltrya (Singapore). **Functional and presentation currency:** Singapore Dollar (SGD).
 **Prepared:** 2026-08-23. **Status:** current as at the date above.
 
 ## What this document is

@@ -43,7 +43,7 @@ export default async function TopNav() {
             <header className="border-b border-gray-200 bg-white" data-auth-indeterminate="1">
                 <div className="px-6 py-3 flex items-center gap-4">
                     <Link href="/" className="font-bold text-lg">
-                        Evoltrya OS
+                        EVoltrya OS
                     </Link>
                     <span className="text-sm bg-amber-50 border border-amber-300 text-amber-900 px-2 py-1 rounded">
                         <span className="font-medium">{t('common.navUnavailable')}</span>{' '}
@@ -75,7 +75,7 @@ export default async function TopNav() {
         <header className="border-b border-gray-200 bg-white">
             <div className="px-6 py-3 flex items-center justify-between">
                 <Link href="/" className="font-bold text-lg">
-                    Evoltrya OS
+                    EVoltrya OS
                 </Link>
                 <div className="flex items-center gap-4">
                     <span className="text-sm text-gray-500 hidden sm:inline">

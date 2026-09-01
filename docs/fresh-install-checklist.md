@@ -1,6 +1,6 @@
 # Fresh install checklist
 
-Standing up a new Evoltrya OS project from this repository.
+Standing up a new EVoltrya OS project from this repository.
 
 > This file records the agreed order so it is not carried around in someone's head.
 > Step 2 is verified by `python3 db/verify_rebuild.py`; step 4 is deliberately manual

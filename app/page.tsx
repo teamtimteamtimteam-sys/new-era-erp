@@ -395,7 +395,7 @@ export default async function Home() {
 
     return (
         <div className="p-8 max-w-5xl">
-            <h1 className="text-2xl font-bold mb-2">Evoltrya OS</h1>
+            <h1 className="text-2xl font-bold mb-2">EVoltrya OS</h1>
             <p className="text-gray-600 mb-8">{t('home.subtitle')}</p>
 
             {/* 零模块权限时说出来(OPS-15)—— 否则满屏「受限」与"系统坏了"分不开 */}

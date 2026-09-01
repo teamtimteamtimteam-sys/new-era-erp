@@ -786,7 +786,7 @@ const en = {
         },
     },
     login: {
-        title: 'Sign in to Evoltrya OS',
+        title: 'Sign in to EVoltrya OS',
         subtitle: 'Lithium battery recycling ERP',
         email: 'Email',
         password: 'Password',

@@ -1,4 +1,4 @@
-# Evoltrya OS
+# EVoltrya OS
 
 An ERP for a lithium-battery recycling business, built around one axiom: **a conventional ERP starts
 from accounting documents; this one starts from physical materials.** Financial results are produced by

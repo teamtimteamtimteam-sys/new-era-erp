@@ -10,7 +10,7 @@
 //
 // ★【样本值一个都没有】★ Tim 给的两张 NEA 执照属于另一家公司,只提供【字段】。
 //   本文件没有默认值、示例值、占位符,也没有在注释里写「例如」。
-//   Evoltrya 至今没有任何执照 —— **空登记簿就是正确状态**。
+//   EVoltrya 至今没有任何执照 —— **空登记簿就是正确状态**。
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'

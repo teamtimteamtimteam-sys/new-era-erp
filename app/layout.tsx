@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Evoltrya OS",
+  title: "EVoltrya OS",
   description: "Lithium battery recycling ERP",
 };
 
