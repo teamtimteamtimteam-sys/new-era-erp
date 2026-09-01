@@ -12,12 +12,19 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* DARK-FIX-1(2026-09-01):这里【曾经】有一个 create-next-app 默认带来的
+   `@media (prefers-color-scheme: dark)` 块,它翻转上面这两个变量。
+   它被删掉了,而且是【刻意】删的,不是清理时顺手带走的:
+   本仓库【没有深色模式】—— 全仓库 `dark:` 变体 0 处,而 `bg-white` 有 125 处、
+   分布在 59 个文件里。于是那个块只翻转 body 一层,浅色底的卡片、表头与顶栏
+   原样留着,里面没有显式指定颜色的文字就变成【白底白字】。
+   实测(CDP 模拟 prefers-color-scheme: dark,读 getComputedStyle):
+     /login 的 <h1>            #ededed on #ffffff  对比度 1.17:1
+     /finance/invoices 的 thead #ededed on #f3f4f6  对比度 1.06:1
+     顶栏 nav(每一页都有)      #ededed on #ffffff  对比度 1.17:1
+   【不要因为看着像疏漏就把它加回来。】要做主题是 Phase 8 的决定,
+   而那个决定要对着【还不存在的】品牌 token 去做 —— 半个主题比没有更坏。
+   见 docs/frontend-scoping.md。 */
 
 body {
   background: var(--background);
