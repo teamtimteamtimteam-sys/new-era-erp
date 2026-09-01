@@ -38,6 +38,9 @@ export async function createFieldReceipt(
     // 关联采购单(cut 4c,可选;成对出现)
     const purchase_order_id = (formData.get('purchase_order_id') as string) || null
     const purchase_order_line_id = (formData.get('purchase_order_line_id') as string) || null
+    // RECV-SOURCE-1(R1):没挂采购行就必须给理由(服务端独立拒;库里触发器是第三道)
+    const source_reason_code = (formData.get('source_reason_code') as string)?.trim() || null
+    const source_reason_note = (formData.get('source_reason_note') as string)?.trim() || null
     // GRN-1b:申报量【可选】。空 = 没记录过,【不是 0】—— 所以空的时候
     // 整个 p_declared_qty 参数都不传(下面用展开),让库里落 NULL。
     // 传 0 会让"供应商申报了零"成为一条记录,而那是一句没人说过的话。
@@ -76,6 +79,10 @@ export async function createFieldReceipt(
     }
 
     if (!arrival_date) fieldErrors.arrival_date = t('receive.errArrivalDate')
+    // R1:两者皆无 → 在字段上拒(与库里 RECEIPT_SOURCE_REQUIRED 同一条规矩)
+    if (!purchase_order_line_id && !source_reason_code) {
+        fieldErrors.source_reason_code = t('inbound.form.errSourceReason')
+    }
     if (Object.keys(fieldErrors).length > 0) {
         return { fieldErrors }
     }
@@ -106,6 +113,9 @@ export async function createFieldReceipt(
             // 或者反过来,都不可能发生(RPC 是一个事务)。
             ...(safety_states.length === 0 ? {} : { p_safety_states: safety_states }),
             ...(chemistry_certainty === null ? {} : { p_chemistry_certainty: chemistry_certainty }),
+            // RECV-SOURCE-1:理由与说明 —— 没填就不传,库里落 NULL(挂了采购行时合法)
+            ...(source_reason_code === null ? {} : { p_source_reason_code: source_reason_code }),
+            ...(source_reason_note === null ? {} : { p_source_reason_note: source_reason_note }),
         })
 
     if (error || !data) {
@@ -120,7 +130,7 @@ export async function createFieldReceipt(
 
         }
         // 收货触发器的编码错误本地化;其余仍走原样的 saveError
-        if (error && /PO_NOT_RECEIVABLE|PO_LINE_MISMATCH|PO_NOT_APPROVED|SUPPLIER_QUALIFICATION_EXPIRED/.test(error.message)) {
+        if (error && /PO_NOT_RECEIVABLE|PO_LINE_MISMATCH|PO_NOT_APPROVED|SUPPLIER_QUALIFICATION_EXPIRED|RECEIPT_SOURCE_REQUIRED|SOURCE_REASON_EXPLANATION_REQUIRED|PO_HEADER_WITHOUT_LINE/.test(error.message)) {
             return { error: await localizePurchasingError(error.message) }
         }
         // PROC-2c:状态轴那几条具名拒绝翻成人话(判据来自 MATERIAL_ERROR_CODES)。

@@ -77,8 +77,8 @@ BEGIN
     -- ══════════ B. 三处既有判据仍然开火(先证前提) ═══════════════════════════
     -- 【前提】同一行,typed 成 goods_supplier 时收货是【被接受】的。
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code) VALUES ('FX97-MAT', 'fixture 97 material', 'battery_material', true, 'black_mass', 'end_of_life');
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    SELECT 'FX97-IB1', m.id, s_goods, 100, 100, 'kg', CURRENT_DATE FROM materials m WHERE m.code = 'FX97-MAT';
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    SELECT 'FX97-IB1', m.id, s_goods, 100, 100, 'kg', CURRENT_DATE, 'other', 'fixture 97 自带数据' FROM materials m WHERE m.code = 'FX97-MAT';
     SELECT count(*) INTO v_n FROM inbound_batches WHERE code = 'FX97-IB1';
     IF v_n <> 1 THEN
         RAISE EXCEPTION 'FIXTURE 97B 前提不成立:供货商名下收货就该成功,实得 % 行 —— 后面那句拒绝证明不了任何事', v_n;
@@ -88,8 +88,8 @@ BEGIN
     UPDATE suppliers SET counterparty_type = 'forwarder' WHERE id = s_goods;
     v_denied := false; v_msg := NULL;
     BEGIN
-        INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-        SELECT 'FX97-IB2', m.id, s_goods, 100, 100, 'kg', CURRENT_DATE FROM materials m WHERE m.code = 'FX97-MAT';
+        INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+        SELECT 'FX97-IB2', m.id, s_goods, 100, 100, 'kg', CURRENT_DATE, 'other', 'fixture 97 自带数据' FROM materials m WHERE m.code = 'FX97-MAT';
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
     IF NOT v_denied OR position('RECEIPT_AGAINST_NON_GOODS_VENDOR' in v_msg) = 0 THEN

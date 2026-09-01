@@ -260,8 +260,8 @@ BEGIN
     -- ══════════ D. 地板:计划改不到【已经吃掉的量】下面 ═══════════════════════
     -- 【WO-1b:桥拆了】这一臂需要一条真的挂在工单上的加工单,而现在它由
     -- commit_processing_run 的第七个参数直接挂上 —— 不再直改 work_order_id。
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ74-IB', v_matA, v_sup, 100, 100, 'kg', d) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ74-IB', v_matA, v_sup, 100, 100, 'kg', d, 'other', 'fixture 74 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, 'SGD', NULL, 'fixture 74 price');
 
     v_res := create_work_order(
@@ -470,8 +470,8 @@ BEGIN
     woE := (v_res->>'work_order_id')::uuid;
     PERFORM release_work_order(woE);
     -- 【这里也不再直改】另起一次真加工,照 woE 做 —— 走的同样是那第七个参数。
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ74-IB2', v_matA, v_sup, 100, 100, 'kg', d) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ74-IB2', v_matA, v_sup, 100, 100, 'kg', d, 'other', 'fixture 74 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, 'SGD', NULL, 'fixture 74 price 2');
     -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)

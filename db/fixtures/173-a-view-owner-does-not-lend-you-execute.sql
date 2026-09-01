@@ -66,7 +66,7 @@ BEGIN
 
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_user), true);
-    v_res := create_inbound_batch(v_mat, v_sup, 100, 'kg', d_arr, '待加工');
+    v_res := create_inbound_batch(v_mat, v_sup, 100, 'kg', d_arr, '待加工', p_source_reason_code => 'other', p_source_reason_note => 'fixture 173 自带数据');
     v_ib  := (v_res->>'batch_id')::uuid;
     PERFORM set_inbound_unit_price(v_ib, 50, (SELECT code FROM currencies WHERE is_base));
 

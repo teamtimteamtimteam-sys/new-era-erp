@@ -73,8 +73,8 @@ BEGIN
     VALUES ('ZZ163-O','f163 powder','battery_material',true,'black_mass','end_of_life',NULL) RETURNING id INTO v_matout;
 
     -- 200kg @ 5,运费 500 → 单位运费 2.50
-    INSERT INTO inbound_batches (code,material_id,supplier_id,quantity,remaining_qty,unit,arrival_date)
-    VALUES ('ZZ163-A',v_mat,v_sup,200,200,'kg',v_d-1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code,material_id,supplier_id,quantity,remaining_qty,unit,arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ163-A',v_mat,v_sup,200,200,'kg',v_d-1, 'other', 'fixture 163 自带数据') RETURNING id INTO v_ib;
     UPDATE inbound_batches SET chemistry_certainty_code='single_known' WHERE id=v_ib;
     INSERT INTO inbound_batch_safety_states (inbound_batch_id,safety_state_code) VALUES (v_ib,'discharged_verified');
     PERFORM reprice_inbound_batch(v_ib,5,v_ccy,NULL,'f163');

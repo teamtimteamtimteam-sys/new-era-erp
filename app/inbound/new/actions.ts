@@ -55,6 +55,10 @@ export async function createInbound(
     const certainty_raw = String(formData.get(FIELD_CERTAINTY) ?? '').trim()
     const chemistry_certainty =
         certainty_raw === '' || certainty_raw === CERTAINTY_UNCHOSEN ? null : certainty_raw
+    // RECV-SOURCE-1(R1):没挂采购行就必须给理由 —— 服务端【独立】拒空,
+    // 表单那道 required 可以被绕过,这一道不能;库里的触发器是第三道(R5)。
+    const source_reason_code = (formData.get('source_reason_code') as string)?.trim() || null
+    const source_reason_note = (formData.get('source_reason_note') as string)?.trim() || null
 
     // 2. 校验
     const fieldErrors: Record<string, string> = {}
@@ -92,6 +96,10 @@ export async function createInbound(
     }
 
     if (!arrival_date) fieldErrors.arrival_date = t('inbound.form.errArrivalDate')
+    // R1:两者皆无 → 在字段上拒(与库里 RECEIPT_SOURCE_REQUIRED 同一条规矩)
+    if (!purchase_order_line_id && !source_reason_code) {
+        fieldErrors.source_reason_code = t('inbound.form.errSourceReason')
+    }
     if (Object.keys(fieldErrors).length > 0) {
         return { fieldErrors }
     }
@@ -126,6 +134,9 @@ export async function createInbound(
         // 或者反过来,都不可能发生(RPC 是一个事务)。
         ...(safety_states.length === 0 ? {} : { p_safety_states: safety_states }),
         ...(chemistry_certainty === null ? {} : { p_chemistry_certainty: chemistry_certainty }),
+        // RECV-SOURCE-1:理由与说明 —— 没填就不传,库里落 NULL(挂了采购行时这是合法的)
+        ...(source_reason_code === null ? {} : { p_source_reason_code: source_reason_code }),
+        ...(source_reason_note === null ? {} : { p_source_reason_note: source_reason_note }),
     })
 
     if (error) {
@@ -140,7 +151,7 @@ export async function createInbound(
 
         }
         // 收货触发器的编码错误本地化;其余仍走原样的 saveError
-        if (/PO_NOT_RECEIVABLE|PO_LINE_MISMATCH|PO_NOT_APPROVED|SUPPLIER_QUALIFICATION_EXPIRED/.test(error.message)) {
+        if (/PO_NOT_RECEIVABLE|PO_LINE_MISMATCH|PO_NOT_APPROVED|SUPPLIER_QUALIFICATION_EXPIRED|RECEIPT_SOURCE_REQUIRED|SOURCE_REASON_EXPLANATION_REQUIRED|PO_HEADER_WITHOUT_LINE/.test(error.message)) {
             return { error: await localizePurchasingError(error.message) }
         }
         // PROC-2c:状态轴那几条具名拒绝(适用性守卫、字典外键、"记了两次"的主键)

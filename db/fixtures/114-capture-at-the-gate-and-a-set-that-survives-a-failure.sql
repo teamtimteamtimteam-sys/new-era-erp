@@ -39,7 +39,7 @@ BEGIN
     -- 一个先建了行再拒绝的实现,回滚之后看不出区别,但错误的语义已经变了。
     v_denied := false; v_msg := NULL;
     BEGIN
-        v_res := create_inbound_batch(v_mat, v_sup, 100);   -- 到货日缺省 NULL
+        v_res := create_inbound_batch(v_mat, v_sup, 100, p_source_reason_code => 'other', p_source_reason_note => 'fixture 114 自带数据');   -- 到货日缺省 NULL
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE '%ARRIVAL_DATE_REQUIRED%' THEN
         RAISE EXCEPTION 'FIXTURE 114F1 失败:进入 F1 —— 不带新参数时,到货日为空仍应按名拒(ARRIVAL_DATE_REQUIRED),实得 denied=%、msg=「%」。**尾部加默认参数【不许】改变任何既有调用的行为**', v_denied, COALESCE(v_msg,'(通过了)');
@@ -50,7 +50,7 @@ BEGIN
     END IF;
 
     -- 老调用点的形状:12 个位置参数,一个不多。它必须原样跑通。
-    v_res := create_inbound_batch(v_mat, v_sup, 100, 'kg', v_arr, '待加工', NULL, 'f114 legacy call', NULL, NULL, NULL, NULL);
+    v_res := create_inbound_batch(v_mat, v_sup, 100, 'kg', v_arr, '待加工', NULL, 'f114 legacy call', NULL, NULL, NULL, NULL, p_source_reason_code => 'other', p_source_reason_note => 'fixture 114 自带数据');
     v_ib := (v_res->>'batch_id')::uuid;
     IF v_ib IS NULL THEN
         RAISE EXCEPTION 'FIXTURE 114F1 失败:进入 F1 —— 既有的 12 参调用必须原样跑通';
@@ -65,7 +65,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 114F1 失败:进入 F1 —— 没提确定度的调用,那一列必须留空';
     END IF;
     -- 第二条路同样
-    v_res := receive_inbound_batch_against_po(v_mat, v_sup, 50, v_arr, 'f114 legacy receive');
+    v_res := receive_inbound_batch_against_po(v_mat, v_sup, 50, v_arr, 'f114 legacy receive', p_source_reason_code => 'other', p_source_reason_note => 'fixture 114 自带数据');
     IF (v_res->>'batch_id') IS NULL THEN
         RAISE EXCEPTION 'FIXTURE 114F1 失败:进入 F1 —— 收货那条路的既有调用必须原样跑通';
     END IF;
@@ -73,7 +73,7 @@ BEGIN
     -- ══════════ F2 带上两条轴建批次 ═══════════════════════════════════════
     v_res := create_inbound_batch(v_mat, v_sup, 100, 'kg', v_arr, '待加工', NULL, 'f114 with axes',
                                   NULL, NULL, NULL, NULL,
-                                  ARRAY['water_exposed','damaged_deformed'], 'unknown_pending');
+                                  ARRAY['water_exposed','damaged_deformed'], 'unknown_pending', p_source_reason_code => 'other', p_source_reason_note => 'fixture 114 自带数据');
     v_ib2 := (v_res->>'batch_id')::uuid;
     SELECT array_agg(safety_state_code ORDER BY safety_state_code) INTO v_codes
       FROM inbound_batch_safety_states WHERE inbound_batch_id = v_ib2;
@@ -127,7 +127,7 @@ BEGIN
 
     -- ══════════ F4 适用性两个方向(D4 / D3)═══════════════════════════════
     -- 方向一:不吃状态轴的种类上填一个值 → 按名拒
-    v_res := create_inbound_batch(v_pkg, v_sup, 10, 'kg', v_arr, '待加工', NULL, 'f114 pkg', NULL, NULL, NULL, NULL);
+    v_res := create_inbound_batch(v_pkg, v_sup, 10, 'kg', v_arr, '待加工', NULL, 'f114 pkg', NULL, NULL, NULL, NULL, p_source_reason_code => 'other', p_source_reason_note => 'fixture 114 自带数据');
     v_pkgib := (v_res->>'batch_id')::uuid;
     v_denied := false; v_msg := NULL;
     BEGIN
@@ -151,7 +151,7 @@ BEGIN
     v_denied := false; v_msg := NULL;
     BEGIN
         v_res := create_inbound_batch(v_pkg, v_sup, 10, 'kg', v_arr, '待加工', NULL, 'f114 pkg gate',
-                                      NULL, NULL, NULL, NULL, NULL, 'single_known');
+                                      NULL, NULL, NULL, NULL, NULL, 'single_known', p_source_reason_code => 'other', p_source_reason_note => 'fixture 114 自带数据');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE '%INBOUND_CONDITION_NOT_APPLICABLE%' THEN
         RAISE EXCEPTION 'FIXTURE 114F4 失败:进入 F4 —— 在【建批次】那条路上给一箱吨袋填确定度,同样要按名拒,实得 denied=%、msg=「%」。**守卫在 INSERT 与 UPDATE 两条路上都要有效** —— 第一版只在 UPDATE 上有效,而只测一头就永远看不见', v_denied, COALESCE(v_msg,'(通过了)');

@@ -12,6 +12,9 @@
 -- cut 2a 的 SELECT 策略恰好就是这同一个布尔量(与行内容无关,整表要么全可见要么
 -- 全不可见),所以这与调用者的 RLS 逐行等价 —— 视图【不放宽任何行访问】。
 --
+-- RECV-SOURCE-1(2026-09-01)追加四列(source_reason_code / _note /
+-- _recorded_by / _recorded_at),不遮蔽 —— 同 CMPL-1 那四列的处置。
+--
 -- GRN-1a:declared_qty 追加在末尾。它【不遮蔽】—— 它是一个量,不是价;而它必须
 -- 出现在本视图里,因为 colgrant 的规矩是"一张表有了 _masked,它的每一列都得在里面"
 -- (WO-1a)。
@@ -60,7 +63,13 @@ CREATE VIEW public.inbound_batches_masked WITH (security_invoker = off) AS
     import_permit_verified_at,
     -- PROC-1B-iii fu1:遮蔽表加一列 = 三件事(列 + 列级授权 + 本视图)。
     -- 【不遮蔽,原样透出】它是工艺路由要用的事实,不是钱、不是个人信息。
-    deep_discharge_actual_code
+    deep_discharge_actual_code,
+    -- RECV-SOURCE-1:来源理由四列。【不遮蔽,原样透出】—— 审计轨迹的第一环,
+    -- 不是钱、不是个人信息;colgrant 的规矩是"有 _masked 伴生,每一列都得在里面"。
+    source_reason_code,
+    source_reason_note,
+    source_reason_recorded_by,
+    source_reason_recorded_at
    FROM inbound_batches
   WHERE has_permission('module.inbound.view'::text);;
 

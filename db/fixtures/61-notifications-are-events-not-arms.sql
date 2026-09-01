@@ -65,7 +65,7 @@ BEGIN
     END IF;
 
     -- ══════════ B. 落地告警 → 事件落库 ═══════════════════════════════════════
-    PERFORM create_inbound_batch(m_foc, v_sup, 10, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_un);
+    PERFORM create_inbound_batch(m_foc, v_sup, 10, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_un, p_source_reason_code => 'other', p_source_reason_note => 'fixture 61 自带数据');
     SELECT count(*) INTO v_n FROM notifications
      WHERE event_type = 'iod_class_unconfigured_location' AND subject_id = loc_un;
     IF v_n <> 1 THEN
@@ -83,7 +83,7 @@ BEGIN
     END IF;
 
     -- 未分类物料落进已配置库位 → 主体是【物料】
-    PERFORM create_inbound_batch(m_null, v_sup, 7, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_foc);
+    PERFORM create_inbound_batch(m_null, v_sup, 7, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_foc, p_source_reason_code => 'other', p_source_reason_note => 'fixture 61 自带数据');
     SELECT count(*) INTO v_n FROM notifications
      WHERE event_type = 'iod_material_unclassified' AND subject_id = m_null AND subject_type = 'material';
     IF v_n <> 1 THEN
@@ -92,7 +92,7 @@ BEGIN
 
     -- ══════════ C. 配了且允许 → 一条都不写(沉默是断言)══════════════════════
     SELECT count(*) INTO v_n FROM notifications;
-    PERFORM create_inbound_batch(m_foc, v_sup, 5, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_foc);
+    PERFORM create_inbound_batch(m_foc, v_sup, 5, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_foc, p_source_reason_code => 'other', p_source_reason_note => 'fixture 61 自带数据');
     IF (SELECT count(*) FROM notifications) <> v_n THEN
         RAISE EXCEPTION 'FIXTURE 61C 失败:配了且允许的那一次收货【不该】写任何通知 —— 否则收件箱会被每一次正常收货填满';
     END IF;

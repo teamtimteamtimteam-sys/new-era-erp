@@ -42,6 +42,11 @@ const PURCHASING_ERROR_CODES = new Set([
     // CMP-2:这两个码一直会从收货触发器抛出,却不在这张表里 —— 打到操作员脸上的
     // 是裸管道串。拒绝要点名(供应商、证书、过期日 / 采购单、审批状态),用人话。
     'SUPPLIER_QUALIFICATION_EXPIRED', 'PO_NOT_APPROVED',
+    // RECV-SOURCE-1:一张收货必须说得出它从哪来 —— 与上两条同族:收货触发器
+    // 抛出、操作员会撞见。SOURCE_PROVENANCE_* 走事后补说明那条路(edit 面板)。
+    'RECEIPT_SOURCE_REQUIRED', 'SOURCE_REASON_EXPLANATION_REQUIRED',
+    'SOURCE_PROVENANCE_REQUIRED', 'SOURCE_PROVENANCE_NOT_AT_INTAKE',
+    'PO_HEADER_WITHOUT_LINE',
 
     'PO_CANCEL_REASON_REQUIRED',   // AUDEL-1b
     // EQP-1b-ii:报销过的采购单行删不得。设备行【没有收货】,所以既有的

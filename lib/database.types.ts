@@ -5936,6 +5936,10 @@ export type Database = {
           purchase_order_line_id: string | null
           quantity: number
           remaining_qty: number
+          source_reason_code: string | null
+          source_reason_note: string | null
+          source_reason_recorded_at: string | null
+          source_reason_recorded_by: string | null
           stage: string
           status: string
           supplier_id: string
@@ -5968,6 +5972,10 @@ export type Database = {
           purchase_order_line_id?: string | null
           quantity: number
           remaining_qty: number
+          source_reason_code?: string | null
+          source_reason_note?: string | null
+          source_reason_recorded_at?: string | null
+          source_reason_recorded_by?: string | null
           stage?: string
           status?: string
           supplier_id: string
@@ -6000,6 +6008,10 @@ export type Database = {
           purchase_order_line_id?: string | null
           quantity?: number
           remaining_qty?: number
+          source_reason_code?: string | null
+          source_reason_note?: string | null
+          source_reason_recorded_at?: string | null
+          source_reason_recorded_by?: string | null
           stage?: string
           status?: string
           supplier_id?: string
@@ -6143,6 +6155,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "inbound_batches_source_reason_code_fkey"
+            columns: ["source_reason_code"]
+            isOneToOne: false
+            referencedRelation: "inbound_source_reasons"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "inbound_batches_source_reason_recorded_by_fkey"
+            columns: ["source_reason_recorded_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "inbound_batches_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
@@ -6214,6 +6240,36 @@ export type Database = {
           name_en?: string
           name_zh?: string
           notes?: string | null
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      inbound_source_reasons: {
+        Row: {
+          code: string
+          is_active: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          requires_explanation: boolean
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          is_active?: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          requires_explanation: boolean
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          is_active?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          requires_explanation?: boolean
           sort_order?: number
         }
         Relationships: []
@@ -18651,6 +18707,10 @@ export type Database = {
           purchase_order_line_id: string | null
           quantity: number | null
           remaining_qty: number | null
+          source_reason_code: string | null
+          source_reason_note: string | null
+          source_reason_recorded_at: string | null
+          source_reason_recorded_by: string | null
           stage: string | null
           status: string | null
           supplier_id: string | null
@@ -18683,6 +18743,10 @@ export type Database = {
           purchase_order_line_id?: string | null
           quantity?: number | null
           remaining_qty?: number | null
+          source_reason_code?: string | null
+          source_reason_note?: string | null
+          source_reason_recorded_at?: string | null
+          source_reason_recorded_by?: string | null
           stage?: string | null
           status?: string | null
           supplier_id?: string | null
@@ -18715,6 +18779,10 @@ export type Database = {
           purchase_order_line_id?: string | null
           quantity?: number | null
           remaining_qty?: number | null
+          source_reason_code?: string | null
+          source_reason_note?: string | null
+          source_reason_recorded_at?: string | null
+          source_reason_recorded_by?: string | null
           stage?: string | null
           status?: string | null
           supplier_id?: string | null
@@ -18856,6 +18924,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "purchase_order_lines_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_source_reason_code_fkey"
+            columns: ["source_reason_code"]
+            isOneToOne: false
+            referencedRelation: "inbound_source_reasons"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "inbound_batches_source_reason_recorded_by_fkey"
+            columns: ["source_reason_recorded_by"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "inbound_batches_supplier_id_fkey"
@@ -23730,6 +23812,8 @@ export type Database = {
           p_purchase_order_line_id?: string
           p_quantity: number
           p_safety_states?: string[]
+          p_source_reason_code?: string
+          p_source_reason_note?: string
           p_stage?: string
           p_supplier_id: string
           p_unit?: string
@@ -23913,6 +23997,10 @@ export type Database = {
       ensure_task_owner_participant: {
         Args: { p_actor?: string; p_owner_emp: string; p_task_id: string }
         Returns: string
+      }
+      explain_inbound_source: {
+        Args: { p_batch_id: string; p_note?: string; p_reason_code: string }
+        Returns: undefined
       }
       export_my_personal_data: { Args: never; Returns: Json }
       f5_box_detail: {
@@ -24382,6 +24470,8 @@ export type Database = {
           p_purchase_order_line_id?: string
           p_quantity: number
           p_safety_states?: string[]
+          p_source_reason_code?: string
+          p_source_reason_note?: string
           p_supplier_id: string
         }
         Returns: Json

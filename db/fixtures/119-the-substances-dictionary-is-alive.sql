@@ -46,8 +46,8 @@ BEGIN
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, chemistry)
     VALUES ('ZZ119-M', 'f119 feed', 'battery_material', true, 'black_mass', 'end_of_life', 'NMC')
     RETURNING id INTO v_mat;
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ119-IB', v_mat, v_sup, 1000, 1000, 'kg', v_day) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ119-IB', v_mat, v_sup, 1000, 1000, 'kg', v_day, 'other', 'fixture 119 自带数据') RETURNING id INTO v_ib;
     INSERT INTO output_batches (code, material_id, quantity, remaining_qty, output_date)
     VALUES ('ZZ119-OB', v_mat, 10, 10, v_day) RETURNING id INTO v_ob;
     INSERT INTO pricing_formulas (code, name) VALUES ('ZZ119-PF', 'f119 formula')

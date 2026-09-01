@@ -3,11 +3,12 @@
 // 再渲染客户端表单。?po= 预选采购单(采购单详情"按此单收货"入口)。
 import { createClient } from '@/lib/supabase/server'
 import NewInboundForm, { type PoLineOption, type BlockedSupplier } from './NewInboundForm'
-import { getTranslations } from '@/lib/i18n/server'
+import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { loadIntakeConditionOptions, loadMaterialAxes } from '../intakeConditionQuery'
+import { loadSourceReasons } from '@/app/inbound/sourceReasonQuery'
 
 export default async function NewInboundPage({
     searchParams,
@@ -22,6 +23,7 @@ export default async function NewInboundPage({
     const sp = await searchParams
     const supabase = await createClient()
     const t = await getTranslations()
+    const locale = await getLocale()
 
     const [materialsRes, suppliersRes, poLinesRes, blockedRes] = await Promise.all([
         supabase
@@ -76,13 +78,16 @@ export default async function NewInboundPage({
 
     // PROC-2c:门口就问的两条轴。字典与"哪些物料说得上它们"都由共用的一支取,
     // 三个页面(批次页 + 建批次两条路)读的是同一份实现。
-    const [condition, materialAxes] = await Promise.all([
+    const [condition, materialAxes, sourceReasons] = await Promise.all([
         loadIntakeConditionOptions(supabase),
         loadMaterialAxes(supabase),
+        // RECV-SOURCE-1:无单收货的理由字典
+        loadSourceReasons(supabase, locale),
     ])
 
     return (
         <NewInboundForm
+            sourceReasons={sourceReasons}
             safetyStates={condition.states}
             certainties={condition.certainties}
             materialAxes={materialAxes}

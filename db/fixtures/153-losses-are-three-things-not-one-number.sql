@@ -49,8 +49,8 @@ BEGIN
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
     VALUES ('ZZ153-MB', 'f153 out', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_matB;
 
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ153-IB1', v_mat, v_sup, 1000, 1000, 'kg', v_process - 1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ153-IB1', v_mat, v_sup, 1000, 1000, 'kg', v_process - 1, 'other', 'fixture 153 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, v_ccy, NULL, 'f153 price');
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
     VALUES (v_ib, 'discharged_verified');
@@ -139,8 +139,8 @@ BEGIN
 
     -- ══════════ F6 · loss_qty 为 NULL 时【不拦】 ══════════
     RAISE NOTICE 'fixture 153 · 进入 F6';
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ153-IB2', v_mat, v_sup, 500, 500, 'kg', v_process - 1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ153-IB2', v_mat, v_sup, 500, 500, 'kg', v_process - 1, 'other', 'fixture 153 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, v_ccy, NULL, 'f153 price 2');
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
     VALUES (v_ib, 'discharged_verified');

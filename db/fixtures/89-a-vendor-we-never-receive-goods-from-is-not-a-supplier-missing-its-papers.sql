@@ -91,7 +91,7 @@ BEGIN
     v_denied := false; v_msg := NULL;
     BEGIN
         PERFORM create_inbound_batch(p_material_id => mat, p_supplier_id => sup_vendor,
-                                     p_quantity => 1, p_arrival_date => CURRENT_DATE);
+                                     p_quantity => 1, p_arrival_date => CURRENT_DATE, p_source_reason_code => 'other', p_source_reason_note => 'fixture 89 自带数据');
     EXCEPTION WHEN OTHERS THEN
         v_denied := true; v_msg := SQLERRM;
     END;
@@ -117,8 +117,8 @@ BEGIN
     v_denied := false; v_msg := NULL;
     BEGIN
         INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit,
-                                     remaining_qty, arrival_date)
-        VALUES ('FX89-BARE', mat, sup_vendor, 1, 'kg', 0, CURRENT_DATE);
+                                     remaining_qty, arrival_date, source_reason_code, source_reason_note)
+        VALUES ('FX89-BARE', mat, sup_vendor, 1, 'kg', 0, CURRENT_DATE, 'other', 'fixture 89 自带数据');
     EXCEPTION WHEN OTHERS THEN
         v_denied := true; v_msg := SQLERRM;
     END;
@@ -131,7 +131,7 @@ BEGIN
     -- E. 供货的供应商收得进去 —— 守卫不许误伤
     -- ══════════════════════════════════════════════════════════════════════════
     SELECT (create_inbound_batch(p_material_id => mat, p_supplier_id => sup_goods,
-                                 p_quantity => 100, p_arrival_date => CURRENT_DATE - 1)
+                                 p_quantity => 100, p_arrival_date => CURRENT_DATE - 1, p_source_reason_code => 'other', p_source_reason_note => 'fixture 89 自带数据')
             ->> 'batch_id')::uuid INTO b;
     IF b IS NULL THEN
         RAISE EXCEPTION 'FIXTURE 89E 供货的供应商必须收得进去';

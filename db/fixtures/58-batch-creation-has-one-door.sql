@@ -54,14 +54,14 @@ BEGIN
     END IF;
 
     -- ══════════ B. 三个 RPC 各自带库位 ═══════════════════════════════════════
-    b := (create_inbound_batch(v_mat, v_sup, 100, 'kg', d, '待加工', NULL, NULL, NULL, NULL, v_loc) ->> 'batch_id')::uuid;
+    b := (create_inbound_batch(v_mat, v_sup, 100, 'kg', d, '待加工', NULL, NULL, NULL, NULL, v_loc, p_source_reason_code => 'other', p_source_reason_note => 'fixture 58 自带数据') ->> 'batch_id')::uuid;
     SELECT location_id INTO v_got FROM inventory_movements
      WHERE inbound_batch_id = b AND movement_type = 'receipt';
     IF v_got IS DISTINCT FROM v_loc THEN
         RAISE EXCEPTION 'FIXTURE 58B 失败:create_inbound_batch 的库位没有落到收货流水上(得到 %)', COALESCE(v_got::text,'NULL');
     END IF;
 
-    b := (receive_inbound_batch_against_po(v_mat, v_sup, 60, d, NULL, NULL, NULL, v_loc) ->> 'batch_id')::uuid;
+    b := (receive_inbound_batch_against_po(v_mat, v_sup, 60, d, NULL, NULL, NULL, v_loc, p_source_reason_code => 'other', p_source_reason_note => 'fixture 58 自带数据') ->> 'batch_id')::uuid;
     SELECT location_id INTO v_got FROM inventory_movements
      WHERE inbound_batch_id = b AND movement_type = 'receipt';
     IF v_got IS DISTINCT FROM v_loc THEN
@@ -76,7 +76,7 @@ BEGIN
     END IF;
 
     -- ══════════ C. 不给库位 → 未指定桶 ═══════════════════════════════════════
-    b := (create_inbound_batch(v_mat, v_sup, 25, 'kg', d) ->> 'batch_id')::uuid;
+    b := (create_inbound_batch(v_mat, v_sup, 25, 'kg', d, p_source_reason_code => 'other', p_source_reason_note => 'fixture 58 自带数据') ->> 'batch_id')::uuid;
     SELECT location_id INTO v_got FROM inventory_movements
      WHERE inbound_batch_id = b AND movement_type = 'receipt';
     IF v_got IS NOT NULL THEN
@@ -92,7 +92,7 @@ BEGIN
     -- ══════════ D. commit_processing_run 不受影响(验证,不是假定)═══════════
     -- 撤掉客户端 INSERT 策略之后,它仍然建得出产出批 —— 它是 DEFINER,
     -- 以属主身份写入,面向 authenticated 的 RLS 策略对它本就不适用。
-    b := (create_inbound_batch(v_mat, v_sup, 80, 'kg', d) ->> 'batch_id')::uuid;
+    b := (create_inbound_batch(v_mat, v_sup, 80, 'kg', d, p_source_reason_code => 'other', p_source_reason_note => 'fixture 58 自带数据') ->> 'batch_id')::uuid;
     -- PROC-3:这一支要投料,所以它的电池料批次得带一条【可投料】的安全状态。
     -- 【为什么是一条带 JOIN 的 SELECT,而不是逐个批次写死】本支里哪些批次【吃】
     -- 状态轴,由 material_kinds 回答 —— 实测 ewaste 可加工却【没有】状态轴,
@@ -119,7 +119,7 @@ BEGIN
 
     -- ══════════ E. 停用 / 不存在的库位,各自按名拒绝 ═════════════════════════
     v_denied := false; v_msg := NULL;
-    BEGIN PERFORM create_inbound_batch(v_mat, v_sup, 10, 'kg', d, NULL, NULL, NULL, NULL, NULL, v_loc2);
+    BEGIN PERFORM create_inbound_batch(v_mat, v_sup, 10, 'kg', d, NULL, NULL, NULL, NULL, NULL, v_loc2, p_source_reason_code => 'other', p_source_reason_note => 'fixture 58 自带数据');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied OR v_msg <> 'IOD_RECEIPT_LOCATION_INACTIVE|ZZ58-OFF' THEN
         RAISE EXCEPTION 'FIXTURE 58E 失败:收货进【停用】库位应当按名拒绝(IOD_RECEIPT_LOCATION_INACTIVE|ZZ58-OFF),实际:%',
@@ -141,8 +141,8 @@ BEGIN
     v_denied := false; v_msg := NULL;
     BEGIN
         EXECUTE 'SET LOCAL ROLE authenticated';
-        INSERT INTO inbound_batches (material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-        VALUES (v_mat, v_sup, 5, 5, 'kg', d);
+        INSERT INTO inbound_batches (material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+        VALUES (v_mat, v_sup, 5, 5, 'kg', d, 'other', 'fixture 58 自带数据');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     RESET ROLE;
     IF NOT v_denied THEN
@@ -161,7 +161,7 @@ BEGIN
     END IF;
 
     -- 而【经由 RPC】的同一件事必须仍然做得到(拒的是侧门,不是这件事本身)
-    b := (create_inbound_batch(v_mat, v_sup, 5, 'kg', d) ->> 'batch_id')::uuid;
+    b := (create_inbound_batch(v_mat, v_sup, 5, 'kg', d, p_source_reason_code => 'other', p_source_reason_note => 'fixture 58 自带数据') ->> 'batch_id')::uuid;
     IF b IS NULL THEN
         RAISE EXCEPTION 'FIXTURE 58F 失败:关掉侧门之后,正门也走不通了';
     END IF;

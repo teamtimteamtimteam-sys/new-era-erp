@@ -60,8 +60,8 @@ BEGIN
     VALUES ('FX83-M', 'fixture 83 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
 
     -- ── 进料批:只测过 cu(li 从来没测过 —— C 臂靠它)───────────────────────
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date)
-    VALUES ('FX83-IN', v_mat, v_sup, q_in, 'kg', q_in - q_c1, '2026-05-01') RETURNING id INTO ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('FX83-IN', v_mat, v_sup, q_in, 'kg', q_in - q_c1, '2026-05-01', 'other', 'fixture 83 自带数据') RETURNING id INTO ib;
     INSERT INTO inventory_movements (inbound_batch_id, movement_type, qty_delta, business_date)
     VALUES (ib, 'receipt', q_in, '2026-05-01'), (ib, 'processing_consume', -q_c1, '2026-05-01');
     -- 【出处逐值断言的对象之一】投入侧写 'assay'。

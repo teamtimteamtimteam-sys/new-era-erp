@@ -263,6 +263,10 @@ RUNTIME_CONFIG_TABLES = [
     # 要么是【引用】(设备状态)、要么阻塞在 G8(这个班处理了什么)、要么属于尚未建的
     # WSH 登记簿(事故)。一行不是"建少了",是每一项都放回它该在的地方之后剩下的那一项。
     "handover_item_types",
+    # RECV-SOURCE-1(R2):无单收货的理由字典 —— 第五个理由必须是一行,不是一次改码。
+    # requires_explanation 是规则列(R3:other 必须带书面说明),触发器读它,
+    # 所以"第五个也要说明的理由"同样只是一行。与 certificate_types 同一条。
+    "inbound_source_reasons",
 ]
 
 # 【引导默认值一行都不许是空的】RUNTIME CONFIG 的种子不与线上比对(那是对的:界面改得动),

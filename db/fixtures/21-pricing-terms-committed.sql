@@ -176,8 +176,8 @@ BEGIN
     -- ════════ C. 有公式引用、没有副本(FIN-27 之前的行)→ 点名拒 ═══════════
     -- 存量形状:批次上直接挂着公式,没有承诺记录 —— 正是升级前那些行的样子。
     INSERT INTO inbound_batches (material_id, supplier_id, quantity, remaining_qty, unit,
-                                 arrival_date, pricing_formula_id)
-    VALUES (v_mat, v_sup, 100, 100, 'kg', v_today, v_formula)
+                                 arrival_date, pricing_formula_id, source_reason_code, source_reason_note)
+    VALUES (v_mat, v_sup, 100, 100, 'kg', v_today, v_formula, 'other', 'fixture 21 自带数据')
     RETURNING id INTO v_batch3;
     v_assay := record_assay_result(p_assay_date => v_today, p_metals => v_metals, p_lab_name => 'Fixture Lab', p_inbound_batch_id => v_batch3, p_weight_basis => 'as_received', p_result_party => 'ours');
 

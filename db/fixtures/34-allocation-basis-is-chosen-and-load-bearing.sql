@@ -48,8 +48,8 @@ BEGIN
 
     -- 一批有价的投料:100 kg,单价 10 → 材料成本 1000
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-        arrival_date, unit_price, pricing_status)
-    VALUES ('ZZFIX34-IB', v_mat, v_sup, 100, 100, '2027-01-05', 10, 'final')
+        arrival_date, unit_price, pricing_status, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX34-IB', v_mat, v_sup, 100, 100, '2027-01-05', 10, 'final', 'other', 'fixture 34 自带数据')
     RETURNING id INTO ib1;
 
     -- metal_value 基准要拿金属行情算价值比 —— 没有行情它会 NO_METAL_VALUE。

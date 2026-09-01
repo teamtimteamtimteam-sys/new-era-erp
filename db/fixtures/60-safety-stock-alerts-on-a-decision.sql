@@ -62,7 +62,7 @@ BEGIN
     END IF;
 
     -- ══════════ B. 可用低于阈值 → 上臂,且报得出差额 ══════════════════════════
-    b1 := (create_inbound_batch(m_watch, v_sup, 10, 'kg', d) ->> 'batch_id')::uuid;
+    b1 := (create_inbound_batch(m_watch, v_sup, 10, 'kg', d, p_source_reason_code => 'other', p_source_reason_note => 'fixture 60 自带数据') ->> 'batch_id')::uuid;
 
     SELECT count(*), max(subject) INTO v_n, v_subject
       FROM operations_now WHERE item_type = 'safety_stock_below' AND item_id = m_watch;
@@ -79,7 +79,7 @@ BEGIN
     END IF;
 
     -- ══════════ C. 补到阈值之上 → 离臂 ══════════════════════════════════════
-    b2 := (create_inbound_batch(m_watch, v_sup, 100, 'kg', d) ->> 'batch_id')::uuid;
+    b2 := (create_inbound_batch(m_watch, v_sup, 100, 'kg', d, p_source_reason_code => 'other', p_source_reason_note => 'fixture 60 自带数据') ->> 'batch_id')::uuid;
     SELECT count(*) INTO v_n FROM operations_now
      WHERE item_type = 'safety_stock_below' AND item_id = m_watch;
     IF v_n <> 0 THEN

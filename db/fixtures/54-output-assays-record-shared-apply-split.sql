@@ -79,12 +79,12 @@ BEGIN
     VALUES ('ZZFIX54-M', 'fixture 54 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
 
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-        arrival_date, unit_price, pricing_status)
-    VALUES ('ZZFIX54-IB1', v_mat, v_sup, 100, 100, CURRENT_DATE, 10, 'final')
+        arrival_date, unit_price, pricing_status, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX54-IB1', v_mat, v_sup, 100, 100, CURRENT_DATE, 10, 'final', 'other', 'fixture 54 自带数据')
     RETURNING id INTO ib1;
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-        arrival_date, unit_price, pricing_status)
-    VALUES ('ZZFIX54-IB2', v_mat, v_sup, 100, 100, CURRENT_DATE, 10, 'final')
+        arrival_date, unit_price, pricing_status, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX54-IB2', v_mat, v_sup, 100, 100, CURRENT_DATE, 10, 'final', 'other', 'fixture 54 自带数据')
     RETURNING id INTO ib2;
 
     -- metal_value 基准要金属行情;插得足够早,spot 的"就近向前取"覆盖任何参考日

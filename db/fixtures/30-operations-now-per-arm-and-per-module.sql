@@ -108,8 +108,8 @@ BEGIN
     -- 1 assay_unapplied:化验已录、applied_at 为空
     -- arrival_date 必填不是本支的条件,是 FIN-32:进料触发器把它抄成收货台账行的
     -- business_date,而新台账行的 business_date 有 CHECK(空着整个 INSERT 被拒)。
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
-    VALUES ('ZZFIX30-IB', v_mat, v_sup, 10, 10, '2027-01-08') RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX30-IB', v_mat, v_sup, 10, 10, '2027-01-08', 'other', 'fixture 30 自带数据') RETURNING id INTO v_ib;
     INSERT INTO assay_results (code, inbound_batch_id, assay_date, weight_basis, result_party)
     VALUES ('ZZFIX30-AR', v_ib, '2027-01-10', 'as_received', 'ours') RETURNING id INTO v_ar;
 
@@ -178,20 +178,20 @@ BEGIN
     -- 10 awaiting_assay:物料要求 cu、而这个批次一份化验都没有(与 assay_unapplied 互斥)
     -- ASY-P1 起用的是【声明了要求的那个物料】v_mat_asy;remaining_qty > 0,
     -- 否则它取不到样、按设计退出这一支。
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
-    VALUES ('ZZFIX30-IB2', v_mat_asy, v_sup, 10, 10, '2027-01-09') RETURNING id INTO v_ib2;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX30-IB2', v_mat_asy, v_sup, 10, 10, '2027-01-09', 'other', 'fixture 30 自带数据') RETURNING id INTO v_ib2;
 
     -- 11 batch_unpriced:未计价,且化验【已执行】—— 于是只落进 batch_unpriced 这一支
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-        arrival_date, pricing_status)
-    VALUES ('ZZFIX30-IB3', v_mat, v_sup, 10, 10, '2027-01-11', 'unpriced') RETURNING id INTO v_ib3;
+        arrival_date, pricing_status, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX30-IB3', v_mat, v_sup, 10, 10, '2027-01-11', 'unpriced', 'other', 'fixture 30 自带数据') RETURNING id INTO v_ib3;
     INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at, weight_basis, result_party)
     VALUES ('ZZFIX30-AR3', v_ib3, '2027-01-12', now(), 'as_received', 'ours') RETURNING id INTO v_ar3;
 
     -- 12 ap_over_90:有单价的进料单,到货 200 天前(化验已执行,不污染进料三支)
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-        arrival_date, unit_price)
-    VALUES ('ZZFIX30-IB4', v_mat, v_sup, 10, 10, CURRENT_DATE - 200, 100) RETURNING id INTO v_ib4;
+        arrival_date, unit_price, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX30-IB4', v_mat, v_sup, 10, 10, CURRENT_DATE - 200, 100, 'other', 'fixture 30 自带数据') RETURNING id INTO v_ib4;
     INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at, weight_basis, result_party)
     VALUES ('ZZFIX30-AR4', v_ib4, CURRENT_DATE - 200, now(), 'as_received', 'ours');
 
@@ -301,8 +301,8 @@ BEGIN
     VALUES ('FIXT-S30C', 'fixture 30 wo supplier', 'SG', 'active', 'goods_supplier') RETURNING id INTO v_sup3;
     INSERT INTO supplier_compliance (supplier_id, cert_type_code, cert_no, valid_from, valid_until)
     VALUES (v_sup3, 'basel', 'F30-C', CURRENT_DATE - 10, CURRENT_DATE + 300);
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('FIXT-IB30WO', v_mat2, v_sup3, 500, 500, 'kg', CURRENT_DATE) RETURNING id INTO v_ibw;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('FIXT-IB30WO', v_mat2, v_sup3, 500, 500, 'kg', CURRENT_DATE, 'other', 'fixture 30 自带数据') RETURNING id INTO v_ibw;
     PERFORM reprice_inbound_batch(v_ibw, 1, 'SGD', NULL, 'f30 price');
     -- 【这一批要把别人的支让开】本 fixture 的契约是"每支恰好一件",而一张新的
     -- 进料批天然会点亮 awaiting_assay(没有化验)。所以给它一份【已应用】的化验:

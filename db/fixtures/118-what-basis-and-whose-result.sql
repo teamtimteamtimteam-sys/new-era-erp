@@ -36,8 +36,8 @@ BEGIN
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, chemistry)
     VALUES ('ZZ118-M', 'f118 feed', 'battery_material', true, 'black_mass', 'end_of_life', 'NMC')
     RETURNING id INTO v_mat;
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ118-IB', v_mat, v_sup, 1000, 1000, 'kg', v_day) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ118-IB', v_mat, v_sup, 1000, 1000, 'kg', v_day, 'other', 'fixture 118 自带数据') RETURNING id INTO v_ib;
 
     -- ══════════ F1 · 前提:既有那条路一个值都没变 ═══════════════════════════
     RAISE NOTICE 'fixture 118 · 进入 F1';

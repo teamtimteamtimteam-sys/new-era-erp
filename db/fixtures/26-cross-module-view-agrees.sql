@@ -67,8 +67,8 @@ BEGIN
 
     INSERT INTO suppliers (legal_name, country, status, counterparty_type) VALUES ('ZZ-FIX26 Supplier','SG','active', 'goods_supplier') RETURNING id INTO v_sup;
     INSERT INTO materials (name, kind_code, may_be_processed, form_code, source_code, unit, status) VALUES ('ZZ-FIX26 Material', 'battery_material', true, 'black_mass', 'end_of_life','kg','active') RETURNING id INTO v_mat;
-    INSERT INTO inbound_batches (material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, unit_price, pricing_status, status)
-        VALUES (v_mat, v_sup, 100, 'kg', 100, DATE '2026-03-02', 5, 'final', 'active') RETURNING id INTO v_batch;
+    INSERT INTO inbound_batches (material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, unit_price, pricing_status, status, source_reason_code, source_reason_note)
+        VALUES (v_mat, v_sup, 100, 'kg', 100, DATE '2026-03-02', 5, 'final', 'active', 'other', 'fixture 26 自带数据') RETURNING id INTO v_batch;
 
     -- 一张已过账的分录,给加工单当资本化分录用(真值 safe_to_reallocate = true)
     v_je := post_journal_entry(DATE '2026-03-02', 'ZZ-FIX26 capitalization', 'manual', NULL,

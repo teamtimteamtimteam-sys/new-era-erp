@@ -489,13 +489,13 @@ BEGIN
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, size_format_code)
     VALUES ('FIX174-M','fixture 174 pack','battery_material', true,'whole_pack','end_of_life','ev_traction')
     RETURNING id INTO v_mat;
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, unit_price)
-    VALUES ('FIX174-PRICED', v_mat, v_sup, 100, 100, 'kg', '2026-08-01', 7)
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, unit_price, source_reason_code, source_reason_note)
+    VALUES ('FIX174-PRICED', v_mat, v_sup, 100, 100, 'kg', '2026-08-01', 7, 'other', 'fixture 174 自带数据')
     RETURNING id INTO b_priced;
     -- 一批【真的没有金额】的货 —— 它的 landed cost 合法地是 NULL,而 unpriced 为真。
     -- 这就是"本支的 NULL 已经有主"的那个主。
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, unit_price)
-    VALUES ('FIX174-UNPRICED', v_mat, v_sup, 100, 100, 'kg', '2026-08-01', NULL)
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, unit_price, source_reason_code, source_reason_note)
+    VALUES ('FIX174-UNPRICED', v_mat, v_sup, 100, 100, 'kg', '2026-08-01', NULL, 'other', 'fixture 174 自带数据')
     RETURNING id INTO b_unpriced;
 
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_all), true);

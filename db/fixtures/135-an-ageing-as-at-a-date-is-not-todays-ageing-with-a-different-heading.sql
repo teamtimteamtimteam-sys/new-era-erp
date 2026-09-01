@@ -92,11 +92,11 @@ BEGIN
 
     -- 【一张到货即【无价】的批次】—— ④ 那条理由的舞台。
     INSERT INTO inbound_batches (material_id, supplier_id, quantity, unit, remaining_qty,
-                                 arrival_date, unit_price, pricing_status, status)
+                                 arrival_date, unit_price, pricing_status, status, source_reason_code, source_reason_note)
     -- 现价直接落在 INSERT 上:改 unit_price 这件事被 trg_inbound_batches_price_guard
     -- 锁死在 set_inbound_unit_price 那一条路上(PRICE_VIA_FUNCTION),
     -- 而那条路会把 created_at 记成此刻 —— 正是本段下面要说的那件事。
-    VALUES (v_mat, v_sup, QTY, 'kg', QTY, d0, P2, 'final', 'active')
+    VALUES (v_mat, v_sup, QTY, 'kg', QTY, d0, P2, 'final', 'active', 'other', 'fixture 135 自带数据')
     RETURNING id INTO v_ib;
 
     -- 计价与改价各一次 —— 而它【演不出来】,所以布景拆成两半。
@@ -122,8 +122,8 @@ BEGIN
 
     -- ② 真写入者的形状,拿一张一次性批次问出来
     INSERT INTO inbound_batches (material_id, supplier_id, quantity, unit, remaining_qty,
-                                 arrival_date, unit_price, pricing_status, status)
-    VALUES (v_mat, v_sup, 1, 'kg', 1, d0, NULL, 'unpriced', 'active')
+                                 arrival_date, unit_price, pricing_status, status, source_reason_code, source_reason_note)
+    VALUES (v_mat, v_sup, 1, 'kg', 1, d0, NULL, 'unpriced', 'active', 'other', 'fixture 135 自带数据')
     RETURNING id INTO v_ib2;
     PERFORM reprice_inbound_batch(v_ib2, P1, v_ccy, NULL, 'fixture 135 形状探针 1');
     PERFORM reprice_inbound_batch(v_ib2, P2, v_ccy, NULL, 'fixture 135 形状探针 2');
@@ -435,8 +435,8 @@ BEGIN
     -- 过滤,所以它收。两边【不一样】是对的,而这一臂让它成为被断言的行为。
     -- ══════════════════════════════════════════════════════════════════════
     INSERT INTO inbound_batches (material_id, supplier_id, quantity, unit, remaining_qty,
-                                 arrival_date, unit_price, pricing_status, status)
-    VALUES (v_mat, v_sup, 10, 'kg', 10, CURRENT_DATE + 30, 99, 'final', 'active')
+                                 arrival_date, unit_price, pricing_status, status, source_reason_code, source_reason_note)
+    VALUES (v_mat, v_sup, 10, 'kg', 10, CURRENT_DATE + 30, 99, 'final', 'active', 'other', 'fixture 135 自带数据')
     RETURNING id INTO v_ib_future;
 
     SELECT count(*) INTO v_n

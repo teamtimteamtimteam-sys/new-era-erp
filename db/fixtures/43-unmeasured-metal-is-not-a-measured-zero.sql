@@ -37,17 +37,17 @@ BEGIN
     VALUES ('ZZFIX43-S', 'fixture 43 supplier', 'SG', 'active', 'goods_supplier') RETURNING id INTO v_sup;
 
     -- 三个投入批:① 化验【测了 co,含量 0】 ② 一个金属都没测 ③ co 20%(守恒臂用)
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
-    VALUES ('ZZFIX43-IB-ZERO', v_mat, v_sup, 100, 100, CURRENT_DATE) RETURNING id INTO ib_zero;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX43-IB-ZERO', v_mat, v_sup, 100, 100, CURRENT_DATE, 'other', 'fixture 43 自带数据') RETURNING id INTO ib_zero;
     INSERT INTO inbound_batch_metals (inbound_batch_id, metal, content_pct, content_source)
     VALUES (ib_zero, 'co', 0, 'manual');          -- 【测出来是零】—— 一行真实存在的化验行
 
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
-    VALUES ('ZZFIX43-IB-NONE', v_mat, v_sup, 100, 100, CURRENT_DATE) RETURNING id INTO ib_none;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX43-IB-NONE', v_mat, v_sup, 100, 100, CURRENT_DATE, 'other', 'fixture 43 自带数据') RETURNING id INTO ib_none;
     -- 【根本没测】—— 故意不插任何 inbound_batch_metals 行
 
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
-    VALUES ('ZZFIX43-IB-RICH', v_mat, v_sup, 100, 100, CURRENT_DATE) RETURNING id INTO ib_rich;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX43-IB-RICH', v_mat, v_sup, 100, 100, CURRENT_DATE, 'other', 'fixture 43 自带数据') RETURNING id INTO ib_rich;
     INSERT INTO inbound_batch_metals (inbound_batch_id, metal, content_pct, content_source)
     VALUES (ib_rich, 'co', 20, 'manual');         -- 20 kg co 投入
 
@@ -181,8 +181,8 @@ BEGIN
     -- 造一单:投入测了、产出批一个金属都没录
     DECLARE ob_empty uuid; run_e uuid;
     BEGIN
-        INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
-        VALUES ('ZZFIX43-IB-E', v_mat, v_sup, 100, 100, CURRENT_DATE) RETURNING id INTO ib_rich;
+        INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+        VALUES ('ZZFIX43-IB-E', v_mat, v_sup, 100, 100, CURRENT_DATE, 'other', 'fixture 43 自带数据') RETURNING id INTO ib_rich;
         INSERT INTO inbound_batch_metals (inbound_batch_id, metal, content_pct, content_source) VALUES (ib_rich, 'ni', 30, 'manual');
         -- 产出批照常建出来,但【一个金属都不录】—— 线上 13 个产出批只有 4 个录了
         -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。

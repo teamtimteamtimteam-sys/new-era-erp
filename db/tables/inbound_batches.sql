@@ -80,6 +80,23 @@ CREATE TABLE public.inbound_batches (
     -- ★ 它【不是】inbound_batch_safety_states 那条轴上的东西 —— 那条答"现在
     --   放没放电"(状态,起火闸读它),本列答"压根能不能放电"(能力)。见列注释。
     deep_discharge_actual_code text REFERENCES public.deep_discharge_judgements (code),
+    -- ── RECV-SOURCE-1 追加(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
+    -- 没有采购行时,这张收货【为什么】没有(R1:采购行或理由,永远不许两者皆无)。
+    -- 8 张早于本刀的无单收货四列全 NULL = 【没人说明过】,按 R4 不回填;
+    -- 新行由 trg_inbound_batches_source_stated 按名拒。见各列 COMMENT。
+    source_reason_code        text REFERENCES public.inbound_source_reasons (code),
+    source_reason_note        text,
+    source_reason_recorded_by uuid REFERENCES auth.users (id),
+    source_reason_recorded_at timestamptz,
+    -- 记录人与记录时刻【同生同灭】—— 与 inbound_import_verified_pair 同形。
+    CONSTRAINT inbound_source_recorded_pair
+        CHECK ((source_reason_recorded_by IS NULL) = (source_reason_recorded_at IS NULL)),
+    -- 没有理由,就不该有说明、也不该有记录人 —— 那三列都是理由的从属。
+    CONSTRAINT inbound_source_fields_only_with_reason
+        CHECK (source_reason_code IS NOT NULL
+               OR (source_reason_note IS NULL
+                   AND source_reason_recorded_by IS NULL
+                   AND source_reason_recorded_at IS NULL)),
     -- 核验只有在"是进口货"时才说得通;不是进口货却填着核验人,那一行自相矛盾。
     CONSTRAINT inbound_import_verification_only_when_imported
         CHECK (imported IS TRUE
@@ -277,7 +294,11 @@ GRANT SELECT (id, code, material_id, supplier_id, quantity, unit, remaining_qty,
     -- PROC-1B-iii:实际到的货能不能深度放电。同上,三件事一件都不能少 ——
     -- 而这一列漏掉的后果特别隐蔽:"读不到"会显示成"未记录",
     -- 与本刀刻意设计的"缺一侧就是 NULL"长得一模一样。
-    deep_discharge_actual_code)
+    deep_discharge_actual_code,
+    -- RECV-SOURCE-1:来源理由四列。不敏感(审计轨迹第一环,不是钱),
+    -- 进列清单授权 —— 三件事(列 + 本授权 + _masked 视图)同一支迁移。
+    source_reason_code, source_reason_note,
+    source_reason_recorded_by, source_reason_recorded_at)
     ON public.inbound_batches TO authenticated;
 
 -- AUDEL-1a:硬删按名拒(BATCH_NO_HARD_DELETE|批号),【与动没动过无关】。
@@ -349,3 +370,32 @@ deep_discharge_judgement_code)不因为这里记了一个值就被改写,反之�
 CREATE TRIGGER guard_arrival_date_not_cleared
     BEFORE INSERT OR UPDATE ON public.inbound_batches
     FOR EACH ROW EXECUTE FUNCTION public.guard_receipt_date_not_cleared();
+
+-- RECV-SOURCE-1 R1/R3/3e:一张收货必须说得出它从哪来 —— 采购行或字典理由,
+-- 永远不许两者皆无。函数抬头记着完整的论证,这里只记结论:
+-- ★【只拒 INSERT + 拒【由有变无】,绝不是 CHECK … NOT VALID】★
+-- NOT VALID 对 UPDATE 也强制,而本表有七个函数会 UPDATE 它 —— 8 张历史无单
+-- 收货(R4:不回填)会因此加工不了、化验不了、改价不了、注销不了。
+-- materials_kind_stated 至今冻着 7 行,是这笔账已经付过的凭证。
+-- 形状照抄两条约束之外的 guard_arrival_date_not_cleared。
+CREATE TRIGGER trg_inbound_batches_source_stated
+    BEFORE INSERT OR UPDATE ON public.inbound_batches
+    FOR EACH ROW EXECUTE FUNCTION public.guard_receipt_source_stated();
+
+COMMENT ON COLUMN public.inbound_batches.source_reason_code IS
+'RECV-SOURCE-1 R1:没有采购行时,这张收货【为什么】没有 —— 字典理由(inbound_source_reasons)。
+【至少其一,不互斥】有采购行时本列可以同时成立(对着采购单又附送样品是现实)。
+【NULL 的含义取决于行的年纪】8 张早于本刀的无单收货本列为 NULL = 【没人说明过】,
+按 R4 不回填、屏幕上读作"未说明"(琥珀色),永远不是空白格、不是默认理由。
+新行不可能两者皆无 —— guard_receipt_source_stated 按名拒(RECEIPT_SOURCE_REQUIRED)。';
+
+COMMENT ON COLUMN public.inbound_batches.source_reason_note IS
+'RECV-SOURCE-1 R3:理由的书面说明。requires_explanation 的理由(播种时只有 other)
+缺了它按名拒(SOURCE_REASON_EXPLANATION_REQUIRED)—— 由触发器读字典执行,不是写死的 if。';
+
+COMMENT ON COLUMN public.inbound_batches.source_reason_recorded_at IS
+'RECV-SOURCE-1(3e):【事后】补说明的人与时刻 —— 对过去的一个新断言必须带自己的出处。
+★收货当场给的理由这两列为 NULL(出处就是 created_by/created_at)★ —— 于是
+recorded_at 非空 = 事后补的,NULL = 收货当场说的,R4 要的"看得出区别"在 8 张被
+补完之后仍然成立。同生同灭由 inbound_source_recorded_pair 钉住;
+收货当场想冒充事后记录,SOURCE_PROVENANCE_NOT_AT_INTAKE 按名拒。';

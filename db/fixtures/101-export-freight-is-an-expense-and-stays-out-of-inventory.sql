@@ -89,8 +89,8 @@ BEGIN
 
     -- ── 进料批 + 一张【进货】运费单 → batch_freight_base 非零 ────────────────
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-        arrival_date, unit_price)
-    VALUES ('ZZFIX101-IB', v_mat, v_sup, 100, 100, DATE '2027-05-01', 10) RETURNING id INTO v_ib;
+        arrival_date, unit_price, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX101-IB', v_mat, v_sup, 100, 100, DATE '2027-05-01', 10, 'other', 'fixture 101 自带数据') RETURNING id INTO v_ib;
     v_res := record_freight_document(DATE '2027-05-05', v_fwd, 700, v_ccy, 'weight',
         'unpaid', NULL, jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib)),
         'fixture 101 inbound leg', NULL);

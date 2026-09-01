@@ -48,8 +48,8 @@ BEGIN
 
     -- ══════════ F1 · 不给机器 id 的加工,逐字照旧 ═══════════════════════════
     RAISE NOTICE 'fixture 108 · 进入 F1';
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZFIX108-IB1', v_mat, v_sup, 100, 100, 'kg', v_today) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX108-IB1', v_mat, v_sup, 100, 100, 'kg', v_today, 'other', 'fixture 108 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, v_ccy, NULL, 'fixture 108 price');
 
     -- PROC-3:这一支要投料,所以它的电池料批次得带一条【可投料】的安全状态。
@@ -91,8 +91,8 @@ BEGIN
         v_sup, NULL, 'fixture 108 machine invoice', jsonb_build_object('asset_id', v_asset), NULL);
     PERFORM set_asset_in_service(v_asset, DATE '2026-02-01');
 
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZFIX108-IB2', v_mat, v_sup, 60, 60, 'kg', v_today) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX108-IB2', v_mat, v_sup, 60, 60, 'kg', v_today, 'other', 'fixture 108 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, v_ccy, NULL, 'fixture 108 price 2');
     -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
@@ -120,8 +120,8 @@ BEGIN
     -- ══════════ F3 · 边界:取得日,而不是投用日 ═══════════════════════════════
     RAISE NOTICE 'fixture 108 · 进入 F3';
     -- (a) 加工日早于取得日 → 拒
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZFIX108-IB3', v_mat, v_sup, 10, 10, 'kg', DATE '2025-12-01') RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX108-IB3', v_mat, v_sup, 10, 10, 'kg', DATE '2025-12-01', 'other', 'fixture 108 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, v_ccy, NULL, 'fixture 108 price 3');
     v_denied := false; v_msg := NULL;
     BEGIN
@@ -149,8 +149,8 @@ BEGIN
     --     试车是这盘生意里一件有名有姓的事,而它正好证明投用日。
     v_res := create_fixed_asset('fixture 108 commissioning rig', 60, DATE '2026-03-01');
     v_asset2 := (v_res->>'asset_id')::uuid;
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZFIX108-IB4', v_mat, v_sup, 30, 30, 'kg', DATE '2026-03-15') RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX108-IB4', v_mat, v_sup, 30, 30, 'kg', DATE '2026-03-15', 'other', 'fixture 108 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, v_ccy, NULL, 'fixture 108 price 4');
     -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
@@ -181,8 +181,8 @@ BEGIN
         v_sup, NULL, 'fixture 108 rig invoice', jsonb_build_object('asset_id', v_asset2), NULL);
     PERFORM set_asset_in_service(v_asset2, DATE '2026-03-20');
     PERFORM dispose_fixed_asset(v_asset2, DATE '2026-04-01', 0, NULL, 'fixture 108 scrap');
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZFIX108-IB5', v_mat, v_sup, 10, 10, 'kg', DATE '2026-04-15') RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX108-IB5', v_mat, v_sup, 10, 10, 'kg', DATE '2026-04-15', 'other', 'fixture 108 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, v_ccy, NULL, 'fixture 108 price 5');
     v_denied := false; v_msg := NULL;
     BEGIN

@@ -374,7 +374,7 @@ BEGIN
     -- ══════════════════════════════════════════════════════════════════════════
     SELECT (create_inbound_batch(
                 p_material_id => mat_a, p_supplier_id => sup, p_quantity => 5000,
-                p_arrival_date => '2026-05-02') ->> 'batch_id')::uuid
+                p_arrival_date => '2026-05-02', p_source_reason_code => 'other', p_source_reason_note => 'fixture 87 自带数据') ->> 'batch_id')::uuid
       INTO b_nopo;
     -- 前提自证:这一批确实【存在、有量、且真的没挂采购行】——
     -- 否则"视图里没有它"可能只是因为它根本没被建出来。

@@ -377,8 +377,8 @@ BEGIN
     VALUES ('ZZ68-S1', 'fixture 68 supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, unit)
     VALUES ('ZZFIX68-K', 'f68 processed', 'battery_material', true, 'black_mass', 'end_of_life', 'kg') RETURNING id INTO v_matK;
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ68-IB', v_mat, v_sup, 50, 50, 'kg', d) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ68-IB', v_mat, v_sup, 50, 50, 'kg', d, 'other', 'fixture 68 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 2, v_ccy, NULL, 'fixture 68 K price');
     -- 全部投进一炉,产出 50kg —— 单位成本 = 100 / 50 = 2/kg
     -- PROC-3:这一支要投料,所以它的电池料批次得带一条【可投料】的安全状态。

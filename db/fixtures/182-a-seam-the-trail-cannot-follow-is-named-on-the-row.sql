@@ -40,8 +40,8 @@ BEGIN
 
     -- 甲:【不带】采购单行的批次(线上那一半)
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-        arrival_date, unit_price)
-    VALUES ('ZZFIX182-IB', v_mat, v_sup, 100, 100, DATE '2027-02-01', 10) RETURNING id INTO v_ib;
+        arrival_date, unit_price, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX182-IB', v_mat, v_sup, 100, 100, DATE '2027-02-01', 10, 'other', 'fixture 182 自带数据') RETURNING id INTO v_ib;
 
     -- ══════════ A. no_purchase_order 标在收货那一行上 ══════════════════════
     EXECUTE 'SET LOCAL ROLE authenticated';

@@ -59,8 +59,8 @@ BEGIN
     -- ══════════ F1 · 既有的三样一个字没变 ══════════════════════════════════
     RAISE NOTICE 'fixture 109 · 进入 F1';
     -- (a) 一炉加工照旧
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZFIX109-IB', v_mat, v_sup, 100, 100, 'kg', DATE '2026-06-01') RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX109-IB', v_mat, v_sup, 100, 100, 'kg', DATE '2026-06-01', 'other', 'fixture 109 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, v_ccy, NULL, 'fixture 109 price');
     -- PROC-3:这一支要投料,所以它的电池料批次得带一条【可投料】的安全状态。
     -- 【为什么是一条带 JOIN 的 SELECT,而不是逐个批次写死】本支里哪些批次【吃】

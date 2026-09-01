@@ -226,8 +226,9 @@ BEGIN
 
     -- ══════════ E. ★ 违反是【报告】,而且比的是【副本】 ★ ═══════════════════
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-                                 arrival_date, unit_price, purchase_order_id)
-    VALUES ('ZZ147-IB1', v_mat, v_sup, 100, 100, DATE '2026-06-10', 10, v_po)
+                                 arrival_date, unit_price, purchase_order_id, purchase_order_line_id)
+    VALUES ('ZZ147-IB1', v_mat, v_sup, 100, 100, DATE '2026-06-10', 10, v_po,
+            (SELECT id FROM purchase_order_lines WHERE purchase_order_id = v_po LIMIT 1))
     RETURNING id INTO v_ib;
     -- 【重量基准必填,而那道闸是对的】一份没说明湿基/干基的化验单,
     -- 事后没有任何办法还原它按的是哪一种 —— 与本刀"具名而不留白"是同一条。

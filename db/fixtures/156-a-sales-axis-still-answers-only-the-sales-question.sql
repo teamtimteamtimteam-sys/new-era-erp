@@ -106,8 +106,8 @@ BEGIN
     -- ══════════ E · 消耗【不是】卖光 ★ 本刀的设计判据 ══════════
     RAISE NOTICE 'fixture 156 · 进入 E';
     -- 造一批产出批,再让它整批被下一道工序吃掉(FIN-25 的回炉路)。
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ156-IB', v_mat, v_sup, 200, 200, 'kg', v_d - 1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ156-IB', v_mat, v_sup, 200, 200, 'kg', v_d - 1, 'other', 'fixture 156 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, v_ccy, NULL, 'f156 price');
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
     VALUES (v_ib, 'discharged_verified');

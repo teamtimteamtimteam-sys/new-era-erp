@@ -135,3 +135,4 @@
 2026-09-01T12:35:41+0800	2026-09-01-tidy1-three-english-labels-were-the-wrong-industry-terms.sql	2c6c761
 2026-09-01T14:15:40+0800	2026-09-01-audit1-batch-audit-trail.sql	e2b28bf
 2026-09-01T14:29:05+0800	2026-09-01-audit1-revoke-inner-view.sql	e2b28bf
+2026-09-01T16:08:53+0800	2026-09-01-recvsource1-a-receipt-must-say-where-it-came-from.sql	102eaa9

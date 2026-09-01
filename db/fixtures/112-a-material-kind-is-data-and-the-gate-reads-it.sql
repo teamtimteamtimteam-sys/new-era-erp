@@ -103,8 +103,8 @@ BEGIN
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
     VALUES ('ZZ112-OUT','f112 output','battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_matB;
 
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ112-IBNO', v_bad, v_sup, 100, 100, 'kg', v_process - 1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ112-IBNO', v_bad, v_sup, 100, 100, 'kg', v_process - 1, 'other', 'fixture 112 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, 'SGD', NULL, 'f112 price');
     v_denied := false; v_msg := NULL;
     BEGIN
@@ -132,8 +132,8 @@ BEGIN
     END IF;
 
     -- 【反面:可投料的那一个必须【成功】】少了这一半,一个"永远拒绝"的实现照样全绿。
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ112-IBOK', v_mat, v_sup, 100, 100, 'kg', v_process - 1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ112-IBOK', v_mat, v_sup, 100, 100, 'kg', v_process - 1, 'other', 'fixture 112 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, 'SGD', NULL, 'f112 price');
     -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
@@ -163,8 +163,8 @@ BEGIN
     VALUES ('ZZ112-UND','f112 nobody decided','battery_material', NULL, 'black_mass', 'end_of_life') RETURNING id INTO v_bad;
     ALTER TABLE public.materials ADD CONSTRAINT materials_kind_stated
         CHECK (kind_code IS NOT NULL AND may_be_processed IS NOT NULL) NOT VALID;
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ112-IBUND', v_bad, v_sup, 100, 100, 'kg', v_process - 1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ112-IBUND', v_bad, v_sup, 100, 100, 'kg', v_process - 1, 'other', 'fixture 112 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, 'SGD', NULL, 'f112 price');
     v_denied := false; v_msg := NULL;
     BEGIN

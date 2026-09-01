@@ -73,8 +73,8 @@ BEGIN
     -- ══════════ A. 贷方记在货代名下,且材料供应商的应付分毫未动 ══════════════
     -- 全新未动的一批:ratio = 1
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-        arrival_date, unit_price)
-    VALUES ('ZZFIX51-IB1', v_mat, v_sup, 100, 100, DATE '2027-07-01', 10) RETURNING id INTO v_b1;
+        arrival_date, unit_price, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX51-IB1', v_mat, v_sup, 100, 100, DATE '2027-07-01', 10, 'other', 'fixture 51 自带数据') RETURNING id INTO v_b1;
 
     v_res := record_freight_document(DATE '2027-07-05', v_fwd, 500, v_ccy, 'weight', 'unpaid', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_b1)), 'fixture 51', NULL);
@@ -109,8 +109,8 @@ BEGIN
 
     -- ══════════ B. 迟到的运费:部分已耗 → 拆 1200 / 5000 ═════════════════════
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-        arrival_date, unit_price)
-    VALUES ('ZZFIX51-IB2', v_mat, v_sup, 100, 40, DATE '2027-07-01', 10) RETURNING id INTO v_b2;
+        arrival_date, unit_price, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX51-IB2', v_mat, v_sup, 100, 40, DATE '2027-07-01', 10, 'other', 'fixture 51 自带数据') RETURNING id INTO v_b2;
     v_res := record_freight_document(DATE '2027-07-20', v_fwd, 1000, v_ccy, 'weight', 'paid', '1000',
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_b2)), 'fixture 51 late', NULL);
     -- 在库 40% → 400 进 1200,600 进 5000
@@ -127,11 +127,11 @@ BEGIN
     -- ══════════ C. 口径承重:同一船货,按重量与按货值给出不同的数 ═════════════
     -- 【判别力】轻而贵 vs 重而便宜
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-        arrival_date, unit_price)
-    VALUES ('ZZFIX51-LIGHT', v_mat, v_sup, 10, 10, DATE '2027-08-01', 100) RETURNING id INTO v_b3;
+        arrival_date, unit_price, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX51-LIGHT', v_mat, v_sup, 10, 10, DATE '2027-08-01', 100, 'other', 'fixture 51 自带数据') RETURNING id INTO v_b3;
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-        arrival_date, unit_price)
-    VALUES ('ZZFIX51-HEAVY', v_mat, v_sup, 90, 90, DATE '2027-08-01', 1) RETURNING id INTO v_bl;
+        arrival_date, unit_price, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX51-HEAVY', v_mat, v_sup, 90, 90, DATE '2027-08-01', 1, 'other', 'fixture 51 自带数据') RETURNING id INTO v_bl;
 
     v_res := record_freight_document(DATE '2027-08-05', v_fwd, 1000, v_ccy, 'weight', 'paid', '1000',
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_b3),
@@ -163,8 +163,8 @@ BEGIN
 
     -- ══════════ D. value 口径遇未计价批次:点名拒绝 ══════════════════════════
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-        arrival_date, pricing_status)
-    VALUES ('ZZFIX51-NOPRICE', v_mat, v_sup, 50, 50, DATE '2027-08-01', 'unpriced')
+        arrival_date, pricing_status, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX51-NOPRICE', v_mat, v_sup, 50, 50, DATE '2027-08-01', 'unpriced', 'other', 'fixture 51 自带数据')
     RETURNING id INTO v_bnp;
     v_denied := false;
     BEGIN
@@ -181,8 +181,8 @@ BEGIN
     -- ══════════ E. 迟到的运费必须让吃过那批货的加工单【过期】═════════════════
     -- 【本 fixture 的头号断言】一个过账全对、只是忘了标过期的实现,能通过上面每一条。
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-        arrival_date, unit_price)
-    VALUES ('ZZFIX51-IB4', v_mat, v_sup, 100, 100, DATE '2027-09-01', 10) RETURNING id INTO v_b4;
+        arrival_date, unit_price, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX51-IB4', v_mat, v_sup, 100, 100, DATE '2027-09-01', 10, 'other', 'fixture 51 自带数据') RETURNING id INTO v_b4;
     -- PROC-3:这一支要投料,所以它的电池料批次得带一条【可投料】的安全状态。
     -- 【为什么是一条带 JOIN 的 SELECT,而不是逐个批次写死】本支里哪些批次【吃】
     -- 状态轴,由 material_kinds 回答 —— 实测 ewaste 可加工却【没有】状态轴,

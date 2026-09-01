@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.create_inbound_batch(p_material_id uuid, p_supplier_id uuid, p_quantity numeric, p_unit text DEFAULT 'kg'::text, p_arrival_date date DEFAULT NULL::date, p_stage text DEFAULT '待加工'::text, p_unit_price numeric DEFAULT NULL::numeric, p_notes text DEFAULT NULL::text, p_purchase_order_id uuid DEFAULT NULL::uuid, p_purchase_order_line_id uuid DEFAULT NULL::uuid, p_location_id uuid DEFAULT NULL::uuid, p_declared_qty numeric DEFAULT NULL::numeric, p_safety_states text[] DEFAULT NULL::text[], p_chemistry_certainty text DEFAULT NULL::text)
+CREATE OR REPLACE FUNCTION public.create_inbound_batch(p_material_id uuid, p_supplier_id uuid, p_quantity numeric, p_unit text DEFAULT 'kg'::text, p_arrival_date date DEFAULT NULL::date, p_stage text DEFAULT '待加工'::text, p_unit_price numeric DEFAULT NULL::numeric, p_notes text DEFAULT NULL::text, p_purchase_order_id uuid DEFAULT NULL::uuid, p_purchase_order_line_id uuid DEFAULT NULL::uuid, p_location_id uuid DEFAULT NULL::uuid, p_declared_qty numeric DEFAULT NULL::numeric, p_safety_states text[] DEFAULT NULL::text[], p_chemistry_certainty text DEFAULT NULL::text, p_source_reason_code text DEFAULT NULL::text, p_source_reason_note text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -30,14 +30,20 @@ BEGIN
     -- GRN-1a:p_declared_qty 原样落库,【不拒绝任何差异】,也【绝不从采购行推断】。
     -- PROC-2c:确定度随表头一起落 —— 适用性由 trg_inbound_batches_condition_applicable
     -- 判(它在库里,所以这条路、批次页面、直连 SQL 三条一起盖住)。
+    -- RECV-SOURCE-1:理由原样落库,拒绝(RECEIPT_SOURCE_REQUIRED /
+    -- SOURCE_REASON_EXPLANATION_REQUIRED)由 guard_receipt_source_stated 抛 ——
+    -- 本函数一个字都不重复它们,重复一遍就是第二份会漂开的判断。
     INSERT INTO inbound_batches (
         material_id, supplier_id, quantity, unit, remaining_qty, arrival_date,
         stage, unit_price, notes, purchase_order_id, purchase_order_line_id,
-        declared_qty, chemistry_certainty_code, created_by, updated_by)
+        declared_qty, chemistry_certainty_code, source_reason_code, source_reason_note,
+        created_by, updated_by)
     VALUES (
         p_material_id, p_supplier_id, p_quantity, COALESCE(p_unit,'kg'), p_quantity, p_arrival_date,
         COALESCE(p_stage,'待加工'), p_unit_price, p_notes, p_purchase_order_id, p_purchase_order_line_id,
-        p_declared_qty, p_chemistry_certainty, v_user, v_user)
+        p_declared_qty, p_chemistry_certainty, p_source_reason_code,
+        NULLIF(btrim(COALESCE(p_source_reason_note, '')), ''),
+        v_user, v_user)
     RETURNING id INTO v_id;
 
     -- PROC-2c:安全状态【只在给了参数时才碰】。

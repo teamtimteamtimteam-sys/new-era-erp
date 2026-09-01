@@ -54,8 +54,8 @@ BEGIN
     -- ══════════ A. block 过期 → 收货点名拒;warn 过期 → 照收 ═════════════════
     v_denied := false;
     BEGIN
-        INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
-        VALUES ('ZZFIX37-IB1', v_mat, sup_block, 1, 1, CURRENT_DATE);
+        INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+        VALUES ('ZZFIX37-IB1', v_mat, sup_block, 1, 1, CURRENT_DATE, 'other', 'fixture 37 自带数据');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
     END;
     IF NOT v_denied THEN
@@ -66,24 +66,24 @@ BEGIN
     END IF;
 
     -- warn 类型过期【不挡】—— 商业保证的过期是瑕疵,不是违法
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
-    VALUES ('ZZFIX37-IB2', v_mat, sup_warn, 1, 1, CURRENT_DATE);
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX37-IB2', v_mat, sup_warn, 1, 1, CURRENT_DATE, 'other', 'fixture 37 自带数据');
     -- 没有证书也不挡:挡的是【过期】,不是【没有】(A3 的答复只到这里)
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
-    VALUES ('ZZFIX37-IB3', v_mat, sup_none, 1, 1, CURRENT_DATE);
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX37-IB3', v_mat, sup_none, 1, 1, CURRENT_DATE, 'other', 'fixture 37 自带数据');
 
     -- ══════════ B. 改一行数据就改行为(本 fixture 的全部意义)═══════════════
     -- basel 从 block 改成 warn —— 同一个供应商、同一张过期证,现在收得进
     UPDATE certificate_types SET disposition = 'warn' WHERE code = 'basel';
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
-    VALUES ('ZZFIX37-IB4', v_mat, sup_block, 1, 1, CURRENT_DATE);
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX37-IB4', v_mat, sup_block, 1, 1, CURRENT_DATE, 'other', 'fixture 37 自带数据');
 
     -- iso 从 warn 改成 block —— 反向也成立,排除"守卫只认 basel 这个码"的实现
     UPDATE certificate_types SET disposition = 'block' WHERE code = 'iso';
     v_denied := false;
     BEGIN
-        INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
-        VALUES ('ZZFIX37-IB5', v_mat, sup_warn, 1, 1, CURRENT_DATE);
+        INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+        VALUES ('ZZFIX37-IB5', v_mat, sup_warn, 1, 1, CURRENT_DATE, 'other', 'fixture 37 自带数据');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
     END;
     IF NOT v_denied OR v_msg NOT LIKE 'SUPPLIER_QUALIFICATION_EXPIRED|ZZFIX37-S2|iso|%' THEN
@@ -133,8 +133,8 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 37C 失败:续期之后应落牌,实得 % 行 —— 清不掉的告警就是 OPS-14 那盏常亮灯', v_n;
     END IF;
     -- 续期之后收货也通了(拦的是过期,证续上了就没有过期)
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
-    VALUES ('ZZFIX37-IB6', v_mat, sup_block, 1, 1, CURRENT_DATE);
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX37-IB6', v_mat, sup_block, 1, 1, CURRENT_DATE, 'other', 'fixture 37 自带数据');
 
     -- ══════════ D. 缺席臂:一张证都没有的供应商上 missing 牌;补一张即落 ══════
     EXECUTE 'SET LOCAL ROLE authenticated';
@@ -192,8 +192,8 @@ BEGIN
         -- 触发器拒绝的三个数【就是】视图行的三个数 —— 两份谓词漂了,这里对不齐
         v_denied := false;
         BEGIN
-            INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
-            VALUES ('ZZFIX37-IB7', v_mat, sup_block, 1, 1, CURRENT_DATE);
+            INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+            VALUES ('ZZFIX37-IB7', v_mat, sup_block, 1, 1, CURRENT_DATE, 'other', 'fixture 37 自带数据');
         EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
         END;
         IF NOT v_denied OR v_msg <> format('SUPPLIER_QUALIFICATION_EXPIRED|%s|%s|%s',
@@ -201,16 +201,16 @@ BEGIN
             RAISE EXCEPTION 'FIXTURE 37F 失败:拒绝消息应与视图行逐字段一致,实得 denied=% msg=%', v_denied, v_msg;
         END IF;
         -- warn 过期的 S2:视图不上(前断言),收货也真的收得进 —— 同一个答案的另一半
-        INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
-        VALUES ('ZZFIX37-IB8', v_mat, sup_warn, 1, 1, CURRENT_DATE);
+        INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+        VALUES ('ZZFIX37-IB8', v_mat, sup_warn, 1, 1, CURRENT_DATE, 'other', 'fixture 37 自带数据');
 
         -- 边界:今天到期【还没过期】—— 视图无行,收货照收(两边同用 < CURRENT_DATE)
         UPDATE supplier_compliance SET valid_until = CURRENT_DATE WHERE id = v_cert;
         EXECUTE 'SET LOCAL ROLE authenticated';
         SELECT count(*) INTO v_n FROM supplier_receiving_blocked WHERE supplier_code = 'ZZFIX37-S1';
         RESET ROLE;
-        INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
-        VALUES ('ZZFIX37-IB9', v_mat, sup_block, 1, 1, CURRENT_DATE);
+        INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+        VALUES ('ZZFIX37-IB9', v_mat, sup_block, 1, 1, CURRENT_DATE, 'other', 'fixture 37 自带数据');
         IF v_n <> 0 THEN
             RAISE EXCEPTION 'FIXTURE 37F 失败:今天才到期的证不算过期(< 不是 <=),视图应无行,实得 % 行 —— 收货刚刚都成功了,视图却说被拦:钮和触发器在边界日互相矛盾', v_n;
         END IF;

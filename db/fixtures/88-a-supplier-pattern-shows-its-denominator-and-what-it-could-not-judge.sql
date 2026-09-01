@@ -147,8 +147,8 @@ BEGIN
     -- ══════════════════════════════════════════════════════════════════════════
     -- C. 没挂采购行的收货【被排除,并且被数出来】—— 绝不折进分母当合规
     -- ══════════════════════════════════════════════════════════════════════════
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date)
-    VALUES ('FX88-AEXCL', mat, sup_1of5, 9999, 'kg', 9999, CURRENT_DATE - 1) RETURNING id INTO b;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('FX88-AEXCL', mat, sup_1of5, 9999, 'kg', 9999, CURRENT_DATE - 1, 'other', 'fixture 88 自带数据') RETURNING id INTO b;
 
     SELECT * INTO rec FROM supplier_receipt_pattern WHERE supplier_id = sup_1of5;
     IF rec.excluded_receipts <> 1 THEN
@@ -194,8 +194,8 @@ BEGIN
     --   —— 它是 raise_exception,不再是 check_violation,所以异常分支也跟着改。
     v_msg := NULL;
     BEGIN
-        INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date)
-        VALUES ('FX88-NODATE', mat, sup_1of5, 10, 'kg', 10, NULL);
+        INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+        VALUES ('FX88-NODATE', mat, sup_1of5, 10, 'kg', 10, NULL, 'other', 'fixture 88 自带数据');
         RAISE EXCEPTION 'FIXTURE 88D1 无日期收货本应被 ARRIVAL_DATE_REQUIRED 拒,却插进去了';
     EXCEPTION WHEN raise_exception THEN
         v_msg := SQLERRM;
@@ -206,8 +206,8 @@ BEGIN
     -- 【零货的那一半现在也拒】—— 这一条是新的,从前它是漏的。
     v_msg := NULL;
     BEGIN
-        INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date)
-        VALUES ('FX88-NODATE0', mat, sup_1of5, 10, 'kg', 0, NULL);
+        INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+        VALUES ('FX88-NODATE0', mat, sup_1of5, 10, 'kg', 0, NULL, 'other', 'fixture 88 自带数据');
         RAISE EXCEPTION 'FIXTURE 88D1 零货的无日期收货【也】应被拒 —— 从前它靠"不产生流水"绕过去,那正是历史无日期行的来源';
     EXCEPTION WHEN raise_exception THEN
         v_msg := SQLERRM;
@@ -239,8 +239,8 @@ BEGIN
                                  arrival_date, purchase_order_id, purchase_order_line_id)
     VALUES ('FX88-UND1', mat, sup_1of5, 100, 'kg', 0, NULL, po_1, l);
     -- 无日期 + 不挂采购行 → 它没有差异可言
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date)
-    VALUES ('FX88-UND2', mat, sup_1of5, 50, 'kg', 0, NULL);
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('FX88-UND2', mat, sup_1of5, 50, 'kg', 0, NULL, 'other', 'fixture 88 自带数据');
     ALTER TABLE inbound_batches ENABLE TRIGGER guard_arrival_date_not_cleared;
     PERFORM set_config('evoltrya.po_status_ctx', '1', true);
     UPDATE purchase_orders SET status = 'closed' WHERE id = po_1;
@@ -426,8 +426,8 @@ BEGIN
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
     VALUES ('FX88-SX', 'fixture 88 supplier uncheckable', 'SG', 'goods_supplier') RETURNING id INTO sup_x;
     -- 唯一一条收货:有日期、在窗口内、【没挂采购行】
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date)
-    VALUES ('FX88-XONLY', mat, sup_x, 500, 'kg', 500, CURRENT_DATE - 1);
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('FX88-XONLY', mat, sup_x, 500, 'kg', 500, CURRENT_DATE - 1, 'other', 'fixture 88 自带数据');
 
     SELECT count(*) INTO n FROM supplier_receipt_pattern WHERE supplier_id = sup_x;
     IF n <> 1 THEN

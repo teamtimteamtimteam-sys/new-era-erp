@@ -160,7 +160,7 @@ BEGIN
     VALUES ('ZZFIX152-M','fixture 152 material','battery_material',true,'black_mass','end_of_life') RETURNING id INTO v_mat;
 
     -- 状态一:【还没有人说】—— imported 是 NULL。**这不等于"不是进口货"。**
-    v_ib := (create_inbound_batch(v_mat, v_sup, 100, 'kg', DATE '2027-05-01')->>'batch_id')::uuid;
+    v_ib := (create_inbound_batch(v_mat, v_sup, 100, 'kg', DATE '2027-05-01', p_source_reason_code => 'other', p_source_reason_note => 'fixture 152 自带数据')->>'batch_id')::uuid;
     IF (SELECT imported FROM inbound_batches WHERE id=v_ib) IS NOT NULL THEN
         RAISE EXCEPTION 'FIXTURE 152D 失败:新收的批次 imported 应当是 NULL(还没有人说),而不是被默认成 false —— 一个空白读成"不是进口"正是本仓库反复付账的那种沉默'; END IF;
 
@@ -184,7 +184,7 @@ BEGIN
 
     -- 【而"不是进口货"的那一张从来不上牌】—— 与"已核"是两回事,但结果同为不上牌;
     -- 分得开靠的是 imported 这一列本身,而 D 臂已经钉了 NULL ≠ false。
-    v_ib2 := (create_inbound_batch(v_mat, v_sup, 50, 'kg', DATE '2027-05-02')->>'batch_id')::uuid;
+    v_ib2 := (create_inbound_batch(v_mat, v_sup, 50, 'kg', DATE '2027-05-02', p_source_reason_code => 'other', p_source_reason_note => 'fixture 152 自带数据')->>'batch_id')::uuid;
     UPDATE inbound_batches SET imported = false WHERE id = v_ib2;
     SELECT count(*) INTO v_n FROM operations_now
      WHERE item_type='import_permit_unverified' AND item_id = v_ib2;

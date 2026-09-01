@@ -37,8 +37,8 @@ BEGIN
     VALUES ('ZZFIX181-M','fixture 181 material','battery_material',true,'black_mass','end_of_life')
     RETURNING id INTO v_mat;
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-        arrival_date, unit_price)
-    VALUES ('ZZFIX181-IB', v_mat, v_sup, 100, 100, DATE '2027-01-05', 10) RETURNING id INTO v_ib;
+        arrival_date, unit_price, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX181-IB', v_mat, v_sup, 100, 100, DATE '2027-01-05', 10, 'other', 'fixture 181 自带数据') RETURNING id INTO v_ib;
 
     -- 复刻线上那一对的【形状】:过账挂批次,冲销挂【那笔过账】。
     -- 【顺序是被 guard_journal_entry_mutation 逼出来的】journal_entries 是不可变的

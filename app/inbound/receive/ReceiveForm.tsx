@@ -7,6 +7,8 @@ import Link from 'next/link'
 import { useActionState, useState } from 'react'
 import { createFieldReceipt, type ReceiveState } from './actions'
 import { useLocale, useTranslations } from '@/lib/i18n/client'
+import SourceReasonFields from '../SourceReasonFields'
+import type { SourceReasonOption } from '../sourceReasonQuery'
 import LocationPicker, { type LocationChoice } from '@/app/components/inventory/LocationPicker'
 import IntakeConditionFormSection, { type MaterialAxis } from '../IntakeConditionFormSection'
 import type { SafetyState, Certainty } from '../IntakeConditionFields'
@@ -62,6 +64,7 @@ export default function ReceiveForm({
     safetyStates,
     certainties,
     materialAxes,
+    sourceReasons,
 }: {
     // IOD-1b:收货库位的可选清单(在用库位),由页面取好传进来
     locations: LocationChoice[]
@@ -73,6 +76,8 @@ export default function ReceiveForm({
     safetyStates: SafetyState[]
     certainties: Certainty[]
     materialAxes: Record<string, MaterialAxis>
+    // RECV-SOURCE-1:无单收货的理由字典(R1:采购行或理由,永不两者皆无)
+    sourceReasons: SourceReasonOption[]
 }) {
     const t = useTranslations()
     const locale = useLocale()
@@ -206,6 +211,14 @@ export default function ReceiveForm({
                     )}
                 </div>
             )}
+
+            {/* RECV-SOURCE-1:来源 —— 没挂采购行时理由必填(R1);other 要说明(R3)。
+                库里的 guard_receipt_source_stated 是真正的闸,这里只是提前说出答案。 */}
+            <SourceReasonFields
+                reasons={sourceReasons}
+                hasPoLine={Boolean(poId && lineId)}
+                fieldError={state.fieldErrors?.source_reason_code}
+            />
 
             {/* 物料 */}
             <div>

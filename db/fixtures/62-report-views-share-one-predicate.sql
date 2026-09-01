@@ -72,14 +72,14 @@ BEGIN
     END IF;
 
     -- ══════════ B. 未配置库位上的存量:不是违规 ═══════════════════════════════
-    PERFORM create_inbound_batch(m_foc, v_sup, 10, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_un);
+    PERFORM create_inbound_batch(m_foc, v_sup, 10, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_un, p_source_reason_code => 'other', p_source_reason_note => 'fixture 62 自带数据');
     SELECT count(*) INTO v_n FROM stock_class_violations WHERE location_id = loc_un;
     IF v_n <> 0 THEN
         RAISE EXCEPTION 'FIXTURE 62B 失败:【未配置】的库位上有货不是违规(没人做过决定),实得 % 行', v_n;
     END IF;
 
     -- ══════════ C. 未分类物料:不是违规,即使在已配置库位上 ════════════════════
-    PERFORM create_inbound_batch(m_null, v_sup, 7, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_foc);
+    PERFORM create_inbound_batch(m_null, v_sup, 7, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_foc, p_source_reason_code => 'other', p_source_reason_note => 'fixture 62 自带数据');
     SELECT count(*) INTO v_n FROM stock_class_violations WHERE material_id = m_null;
     IF v_n <> 0 THEN
         RAISE EXCEPTION 'FIXTURE 62C 失败:【未分类】物料不是违规 —— 未分类是没人分过类,不是被排除;实得 % 行', v_n;
@@ -89,7 +89,7 @@ BEGIN
     -- non_focused 的货【不能】经 IOD-2 的门收进 loc_foc(那会被拒),所以先收进
     -- 未配置的 loc_un,再把 loc_un 配成只允许 non_focused —— 与真实世界一致:
     -- 违规是【配置后来改了】造出来的,不是收货收出来的。
-    PERFORM create_inbound_batch(m_non, v_sup, 25, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_un);
+    PERFORM create_inbound_batch(m_non, v_sup, 25, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_un, p_source_reason_code => 'other', p_source_reason_note => 'fixture 62 自带数据');
     INSERT INTO storage_location_allowed_classes (location_id, classification_code)
     VALUES (loc_un, 'focused');   -- 只允许 focused ⇒ 那 25kg non_focused 违规,10kg focused 不违规
 
@@ -104,7 +104,7 @@ BEGIN
 
     -- ══════════ E. 快照:未指定库位是一行普通的行 ════════════════════════════
     -- 不指定库位收一批 —— 它必须在快照里【有自己的一格】,而不是消失。
-    PERFORM create_inbound_batch(m_foc, v_sup, 40, 'kg', d);
+    PERFORM create_inbound_batch(m_foc, v_sup, 40, 'kg', d, p_source_reason_code => 'other', p_source_reason_note => 'fixture 62 自带数据');
     SELECT count(*), max(qty) INTO v_n, v_qty
       FROM stock_snapshot
      WHERE material_id = m_foc AND location_id IS NULL AND stock_status = 'available';

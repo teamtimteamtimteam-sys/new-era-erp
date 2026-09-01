@@ -28,7 +28,7 @@ export type TableName = keyof Database['public']['Tables']
  *  编译器据此知道 .select('code') 是成立的;写成全表联合就什么都推不出来了。 */
 export type DictTable =
     | 'substances' | 'battery_chemistries' | 'material_kinds'
-    | 'inbound_safety_states' | 'laboratories'
+    | 'inbound_safety_states' | 'laboratories' | 'inbound_source_reasons'
 
 /** 额外字段的声明。boolean 的 hint 是【必填的】—— 一个没有句子的规则开关比没有开关更坏。 */
 export type ExtraField = {
@@ -106,6 +106,19 @@ export const DICTIONARIES: DictSpec[] = [
         permission: 'module.inbound.edit',
         extras: [],
         referencedBy: [{ table: 'assay_results', column: 'lab_name' }],
+    },
+    {
+        // RECV-SOURCE-1(R2):无单收货的理由 —— 第五个理由必须是【这里的一行】,
+        // 不是一次改码。material_sources / loss_categories 当年没有登进本表,
+        // 那是那两刀的缺口,不是先例(docs/receipt-source.md 记着这一句)。
+        table: 'inbound_source_reasons',
+        titleKey: 'dict.inbound_source_reasons',
+        permission: 'module.inbound.edit',
+        extras: [
+            { column: 'requires_explanation', kind: 'boolean', required: true,
+              labelKey: 'dict.f.requires_explanation', hintKey: 'dict.h.requires_explanation' },
+        ],
+        referencedBy: [{ table: 'inbound_batches', column: 'source_reason_code' }],
     },
 ]
 

@@ -50,8 +50,8 @@ BEGIN
 
     -- ══════════ N1 · ★ 状态改变型 → 不适用 ══════════
     RAISE NOTICE 'fixture 167 · 进入 N1';
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ167-A', v_mat, v_sup, 100, 100, 'kg', v_d - 1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ167-A', v_mat, v_sup, 100, 100, 'kg', v_d - 1, 'other', 'fixture 167 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, v_ccy, NULL, 'f');
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib;
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
@@ -77,8 +77,8 @@ BEGIN
 
     -- ══════════ N2 · 对照:转化型 + 产出真的没测 → 仍然 output_not_measured ══════════
     RAISE NOTICE 'fixture 167 · 进入 N2';
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ167-B', v_mat, v_sup, 100, 100, 'kg', v_d - 1) RETURNING id INTO v_ib2;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ167-B', v_mat, v_sup, 100, 100, 'kg', v_d - 1, 'other', 'fixture 167 自带数据') RETURNING id INTO v_ib2;
     PERFORM reprice_inbound_batch(v_ib2, 1, v_ccy, NULL, 'f');
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib2;
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
@@ -97,8 +97,8 @@ BEGIN
 
     -- ══════════ N3 · ★ 没有工序类型 → 不许猜"不适用" ══════════
     RAISE NOTICE 'fixture 167 · 进入 N3';
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ167-C', v_mat, v_sup, 100, 100, 'kg', v_d - 1) RETURNING id INTO v_ib3;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ167-C', v_mat, v_sup, 100, 100, 'kg', v_d - 1, 'other', 'fixture 167 自带数据') RETURNING id INTO v_ib3;
     PERFORM reprice_inbound_batch(v_ib3, 1, v_ccy, NULL, 'f');
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib3;
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)

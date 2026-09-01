@@ -64,8 +64,8 @@ BEGIN
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
     VALUES ('ZZ121-M', 'f121 feed', 'battery_material', true, 'black_mass', 'end_of_life')
     RETURNING id INTO v_mat;
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ121-IB', v_mat, v_sup, 100, 100, 'kg', CURRENT_DATE - 1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ121-IB', v_mat, v_sup, 100, 100, 'kg', CURRENT_DATE - 1, 'other', 'fixture 121 自带数据') RETURNING id INTO v_ib;
 
     v_denied := false; v_msg := NULL;
     BEGIN

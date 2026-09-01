@@ -51,8 +51,8 @@ BEGIN
     -- ── 全部【没有子行】:外键在这里不会拦,拒绝只可能来自守卫 ────────────────
     -- 批次:remaining_qty = 0 且【零条台账行】—— 恒等式成立(0 = Σ∅),
     -- 而这正是 AUDEL-0 实测删得掉的那个形状。
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date)
-    VALUES ('FX84-IN', mat, sup, 5, 'kg', 0, '2026-05-01') RETURNING id INTO ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('FX84-IN', mat, sup, 5, 'kg', 0, '2026-05-01', 'other', 'fixture 84 自带数据') RETURNING id INTO ib;
     INSERT INTO output_batches (code, material_id, quantity, unit, remaining_qty, output_date)
     VALUES ('FX84-OUT', mat, 3, 'kg', 0, '2026-05-01') RETURNING id INTO ob;
     -- 采购单:【零明细】—— AUDEL-0 实测正是这一形状删得掉(1 行)
@@ -63,8 +63,8 @@ BEGIN
     -- OLD.remaining_qty —— 零数量的流水行会撞上 qty_delta <> 0 那条 CHECK,
     -- 所以触发器【正确地】不写。空批次注销没有可注销的东西,那不是缺陷。
     -- (第一版这一臂就是栽在这里:断言"软删必然写 writeoff",而它对空批次不成立。)
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date)
-    VALUES ('FX84-IN-STOCKED', mat, sup, 10, 'kg', 10, '2026-05-01') RETURNING id INTO ib_stocked;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('FX84-IN-STOCKED', mat, sup, 10, 'kg', 10, '2026-05-01', 'other', 'fixture 84 自带数据') RETURNING id INTO ib_stocked;
     INSERT INTO inventory_movements (inbound_batch_id, movement_type, qty_delta, business_date)
     VALUES (ib_stocked, 'receipt', 10, '2026-05-01');
 

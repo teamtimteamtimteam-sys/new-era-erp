@@ -42,8 +42,8 @@ BEGIN
     VALUES ('FX86-M', 'fixture 86 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO mat;
 
     -- ── ① 走门删掉的批次:人与理由都在 ─────────────────────────────────────
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date)
-    VALUES ('FX86-IN-NEW', mat, sup, 10, 'kg', 10, '2026-05-01') RETURNING id INTO ib_new;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('FX86-IN-NEW', mat, sup, 10, 'kg', 10, '2026-05-01', 'other', 'fixture 86 自带数据') RETURNING id INTO ib_new;
     INSERT INTO inventory_movements (inbound_batch_id, movement_type, qty_delta, business_date)
     VALUES (ib_new, 'receipt', 10, '2026-05-01');
     PERFORM soft_delete_inbound_batch(ib_new, '料受潮,整批报废');
@@ -58,13 +58,13 @@ BEGIN
     --  改用 SET CONSTRAINTS ALL IMMEDIATE 去结清又把库存恒等式提前引爆了。
     --  两条弯路都不必走 —— 直接插一行已删的就行。)
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit,
-                                 remaining_qty, arrival_date, deleted_at)
-    VALUES ('FX86-IN-OLD', mat, sup, 5, 'kg', 0, '2026-04-01', now())
+                                 remaining_qty, arrival_date, deleted_at, source_reason_code, source_reason_note)
+    VALUES ('FX86-IN-OLD', mat, sup, 5, 'kg', 0, '2026-04-01', now(), 'other', 'fixture 86 自带数据')
     RETURNING id INTO ib_old;
 
     -- ── 一条【没有被删】的批次:C 臂靠它 ───────────────────────────────────
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date)
-    VALUES ('FX86-IN-LIVE', mat, sup, 7, 'kg', 7, '2026-05-02') RETURNING id INTO ib_live;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('FX86-IN-LIVE', mat, sup, 7, 'kg', 7, '2026-05-02', 'other', 'fixture 86 自带数据') RETURNING id INTO ib_live;
     INSERT INTO inventory_movements (inbound_batch_id, movement_type, qty_delta, business_date)
     VALUES (ib_live, 'receipt', 7, '2026-05-02');
 

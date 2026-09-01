@@ -60,8 +60,8 @@ BEGIN
 
     -- ══════════ A · 整批注销 → 1200 上一分不剩 ══════════
     RAISE NOTICE 'fixture 161 · 进入 A';
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ161-A', v_mat, v_sup, 100, 100, 'kg', v_d - 1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ161-A', v_mat, v_sup, 100, 100, 'kg', v_d - 1, 'other', 'fixture 161 自带数据') RETURNING id INTO v_ib;
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib;
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
     VALUES (v_ib, 'discharged_verified');
@@ -108,8 +108,8 @@ BEGIN
 
     -- ══════════ B · 部分:半批解除一半,剩一半;再注销才归零 ══════════
     RAISE NOTICE 'fixture 161 · 进入 B';
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ161-B', v_mat, v_sup, 100, 100, 'kg', v_d - 1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ161-B', v_mat, v_sup, 100, 100, 'kg', v_d - 1, 'other', 'fixture 161 自带数据') RETURNING id INTO v_ib;
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib;
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
     VALUES (v_ib, 'discharged_verified');
@@ -159,8 +159,8 @@ BEGIN
 
     -- ══════════ C · ★ 先减后加,1200 必须回到起点 ★ ══════════
     RAISE NOTICE 'fixture 161 · 进入 C';
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ161-C', v_mat, v_sup, 100, 100, 'kg', v_d - 1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ161-C', v_mat, v_sup, 100, 100, 'kg', v_d - 1, 'other', 'fixture 161 自带数据') RETURNING id INTO v_ib;
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib;
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
     VALUES (v_ib, 'discharged_verified');
@@ -196,8 +196,8 @@ BEGIN
 
     -- ══════════ E · 冲销即解除,而载体行【仍然在】══════════
     RAISE NOTICE 'fixture 161 · 进入 E';
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ161-E', v_mat, v_sup, 100, 100, 'kg', v_d - 1) RETURNING id INTO v_ib2;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ161-E', v_mat, v_sup, 100, 100, 'kg', v_d - 1, 'other', 'fixture 161 自带数据') RETURNING id INTO v_ib2;
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib2;
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
     VALUES (v_ib2, 'discharged_verified');

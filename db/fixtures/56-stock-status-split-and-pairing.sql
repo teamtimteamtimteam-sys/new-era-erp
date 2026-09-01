@@ -49,8 +49,8 @@ BEGIN
     -- receipt(这一点本身就值得断言:A 臂数的就是它)。而它【不显式给 stock_status】,
     -- 靠列默认值落到 available:B 臂要证明的正是这条既有写入路径今天仍然成立,
     -- 没有被这一刀改掉语义。
-    INSERT INTO inbound_batches (material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES (v_mat, v_sup, 100, 100, 'kg', CURRENT_DATE) RETURNING id INTO v_batch;
+    INSERT INTO inbound_batches (material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES (v_mat, v_sup, 100, 100, 'kg', CURRENT_DATE, 'other', 'fixture 56 自带数据') RETURNING id INTO v_batch;
 
     -- ══════════ A. 前提 ═══════════════════════════════════════════════════
     -- 【先断前提,再断派生】下面每一条都建立在"这批货真的有 100 kg 流水"之上;

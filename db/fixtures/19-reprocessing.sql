@@ -48,8 +48,8 @@ BEGIN
         RETURNING id INTO v_matC;
 
     -- ── stage1:进料 100kg @1(40% 镍 = 40kg),产出 O1 80kg(45% = 36kg)──────
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('FIXT-IB19A', v_mat, v_sup, 100, 100, 'kg', v_today) RETURNING id INTO v_ib1;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('FIXT-IB19A', v_mat, v_sup, 100, 100, 'kg', v_today, 'other', 'fixture 19 自带数据') RETURNING id INTO v_ib1;
     INSERT INTO inbound_batch_metals (inbound_batch_id, metal, content_pct, content_source) VALUES (v_ib1, 'ni', 40, 'manual');
     PERFORM reprice_inbound_batch(v_ib1, 1, 'SGD', NULL, 'fixture 19 stage1 price');
     -- PROC-3:这一支要投料,所以它的电池料批次得带一条【可投料】的安全状态。
@@ -84,8 +84,8 @@ BEGIN
 
     -- ── stage2:耗 O1 50kg【产出边】+ 进料2 50kg @2(20% = 10kg)【进料边】,
     --    产出 O2 60kg(50% = 30kg)────────────────────────────────────────────
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('FIXT-IB19B', v_mat, v_sup, 50, 50, 'kg', v_today) RETURNING id INTO v_ib2;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('FIXT-IB19B', v_mat, v_sup, 50, 50, 'kg', v_today, 'other', 'fixture 19 自带数据') RETURNING id INTO v_ib2;
     INSERT INTO inbound_batch_metals (inbound_batch_id, metal, content_pct, content_source) VALUES (v_ib2, 'ni', 20, 'manual');
     PERFORM reprice_inbound_batch(v_ib2, 2, 'SGD', NULL, 'fixture 19 stage2 price');
     -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
@@ -149,8 +149,8 @@ BEGIN
     END IF;
 
     -- ════════ D. 无价上游:允许、打标、传染、补齐后清 ═══════════════════════
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('FIXT-IB19D', v_mat, v_sup, 30, 30, 'kg', v_today) RETURNING id INTO v_ib1;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('FIXT-IB19D', v_mat, v_sup, 30, 30, 'kg', v_today, 'other', 'fixture 19 自带数据') RETURNING id INTO v_ib1;
     -- 不计价、不分摊 stage1' —— 直接投进 stage2'
     -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)

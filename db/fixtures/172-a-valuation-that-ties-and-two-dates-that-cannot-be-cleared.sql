@@ -85,7 +85,7 @@ BEGIN
 
     -- 一张有价的进料批:它同时进明细侧(remaining × 到岸成本)与总账 1200,
     -- 于是勾稽两边都非空 —— 躲开陷阱①的前提。
-    v_res := create_inbound_batch(v_mat, v_sup, 100, 'kg', d_arr, '待加工');
+    v_res := create_inbound_batch(v_mat, v_sup, 100, 'kg', d_arr, '待加工', p_source_reason_code => 'other', p_source_reason_note => 'fixture 172 自带数据');
     v_ib  := (v_res->>'batch_id')::uuid;
     -- 基准币不接受汇率(FX_RATE_NOT_ACCEPTED)—— 不传它。
     PERFORM set_inbound_unit_price(v_ib, 50, v_base);
@@ -272,8 +272,8 @@ BEGIN
     --   这里绕开 RPC 直接建一张没有到货日的历史行(触发器只拦【由有变无】,
     --   所以要先插一张有日期的、再用 NOT NULL 之外的手段造出历史态)。
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit,
-                                 remaining_qty, arrival_date, stage, status)
-    VALUES ('ZZ172-HIST', v_mat, v_sup, 10, 'kg', 10, d_arr, '待加工', 'active')
+                                 remaining_qty, arrival_date, stage, status, source_reason_code, source_reason_note)
+    VALUES ('ZZ172-HIST', v_mat, v_sup, 10, 'kg', 10, d_arr, '待加工', 'active', 'other', 'fixture 172 自带数据')
     RETURNING id INTO v_ib2;
     -- 用触发器【看不见】的路径把它变成历史态:直接改列会被拦,所以
     -- 关掉本表的触发器一次 —— 这模拟的是"这一行是 IOD-2-fu1 之前留下来的"。

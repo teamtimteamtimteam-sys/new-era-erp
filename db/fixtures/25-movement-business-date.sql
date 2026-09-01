@@ -44,8 +44,8 @@ BEGIN
         RETURNING id INTO v_matB;
 
     -- ════════ A. receipt:抄批次自己的到货日,不是今天 ═══════════════════════
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('FIXT-IB25', v_mat, v_sup, 100, 100, 'kg', v_arrival) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('FIXT-IB25', v_mat, v_sup, 100, 100, 'kg', v_arrival, 'other', 'fixture 25 自带数据') RETURNING id INTO v_ib;
     SELECT business_date INTO v_bd FROM inventory_movements
     WHERE inbound_batch_id = v_ib AND movement_type = 'receipt';
     IF v_bd IS DISTINCT FROM v_arrival THEN
@@ -97,8 +97,8 @@ BEGIN
 
     -- ════════ D. writeoff:注销那天(deleted_at 的日期)══════════════════════
     -- 【真实物理事件】货报废在那一天,而那一天就写在行上 —— 读记录,不是当场编。
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('FIXT-IB25W', v_mat, v_sup, 50, 50, 'kg', v_arrival) RETURNING id INTO v_ib2;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('FIXT-IB25W', v_mat, v_sup, 50, 50, 'kg', v_arrival, 'other', 'fixture 25 自带数据') RETURNING id INTO v_ib2;
     -- AUDEL-1b:软删只能走门
     PERFORM soft_delete_inbound_batch(v_ib2, 'fixture:AUDEL-1b 之后理由必填');
     SELECT business_date INTO v_bd FROM inventory_movements
@@ -130,8 +130,8 @@ BEGIN
     -- 【本臂自带一炉】前面那一炉的产出已经卖掉一部分、又被盘点调过,
     -- rollback 会按 OUTPUT_CONSUMED 拒绝 —— 那是它该拒的。回滚要测的是日期,
     -- 不是那道守卫,所以另起一炉、一样的加工日、不碰它的产出。
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('FIXT-IB25R', v_mat, v_sup, 40, 40, 'kg', v_arrival) RETURNING id INTO v_ib3;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('FIXT-IB25R', v_mat, v_sup, 40, 40, 'kg', v_arrival, 'other', 'fixture 25 自带数据') RETURNING id INTO v_ib3;
     PERFORM reprice_inbound_batch(v_ib3, 1, 'SGD', NULL, 'fixture 25 rollback price');
     -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
@@ -190,7 +190,7 @@ BEGIN
     -- "拦住之后说的是不是人话" —— 两件事,两个臂。
     v_ok := false; v_msg := NULL;
     BEGIN
-        PERFORM create_inbound_batch(v_mat, v_sup, 1, 'kg');   -- 不传 p_arrival_date
+        PERFORM create_inbound_batch(v_mat, v_sup, 1, 'kg', p_source_reason_code => 'other', p_source_reason_note => 'fixture 25 自带数据');   -- 不传 p_arrival_date
     EXCEPTION WHEN OTHERS THEN
         GET STACKED DIAGNOSTICS v_msg = MESSAGE_TEXT;
         v_ok := v_msg = 'ARRIVAL_DATE_REQUIRED';
@@ -202,7 +202,7 @@ BEGIN
 
     v_ok := false; v_msg := NULL;
     BEGIN
-        PERFORM receive_inbound_batch_against_po(v_mat, v_sup, 1);
+        PERFORM receive_inbound_batch_against_po(v_mat, v_sup, 1, p_source_reason_code => 'other', p_source_reason_note => 'fixture 25 自带数据');
     EXCEPTION WHEN OTHERS THEN
         GET STACKED DIAGNOSTICS v_msg = MESSAGE_TEXT;
         v_ok := v_msg = 'ARRIVAL_DATE_REQUIRED';

@@ -64,19 +64,19 @@ BEGIN
     -- m_free 【刻意不调用】—— 没有行就是没有要求,那正是被测的默认。
 
     -- ── 三个批次 + 配套台账行 ───────────────────────────────────────────────
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date)
-    VALUES ('FX82-IN-PARTIAL', m_req, sup, v_qty, 'kg', v_qty, '2026-05-01') RETURNING id INTO b_partial;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('FX82-IN-PARTIAL', m_req, sup, v_qty, 'kg', v_qty, '2026-05-01', 'other', 'fixture 82 自带数据') RETURNING id INTO b_partial;
     INSERT INTO inventory_movements (inbound_batch_id, movement_type, qty_delta, business_date)
     VALUES (b_partial, 'receipt', v_qty, '2026-05-01');
 
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date)
-    VALUES ('FX82-IN-FREE', m_free, sup, v_qty, 'kg', v_qty, '2026-05-01') RETURNING id INTO b_free;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('FX82-IN-FREE', m_free, sup, v_qty, 'kg', v_qty, '2026-05-01', 'other', 'fixture 82 自带数据') RETURNING id INTO b_free;
     INSERT INTO inventory_movements (inbound_batch_id, movement_type, qty_delta, business_date)
     VALUES (b_free, 'receipt', v_qty, '2026-05-01');
 
     -- 耗尽的那个:收进来再全部耗掉,恒等式因此成立(remaining_qty = 0 = +q −q)
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date)
-    VALUES ('FX82-IN-SPENT', m_req, sup, v_qty, 'kg', 0, '2026-05-01') RETURNING id INTO b_spent;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('FX82-IN-SPENT', m_req, sup, v_qty, 'kg', 0, '2026-05-01', 'other', 'fixture 82 自带数据') RETURNING id INTO b_spent;
     INSERT INTO inventory_movements (inbound_batch_id, movement_type, qty_delta, business_date)
     VALUES (b_spent, 'receipt', v_qty, '2026-05-01'),
            (b_spent, 'processing_consume', -v_qty, '2026-05-01');

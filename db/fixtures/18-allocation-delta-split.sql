@@ -63,8 +63,8 @@ BEGIN
     WHERE a.code IN ('1220','5000','1200');
 
     -- 进料 100kg,计价 @1(SGD:本位币,免牌价);全部耗进一炉,产出 100kg,未售。
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('FIXT-IB18', v_mat, v_sup, 100, 100, 'kg', v_today) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('FIXT-IB18', v_mat, v_sup, 100, 100, 'kg', v_today, 'other', 'fixture 18 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, 'SGD', NULL, 'fixture initial price');
 
     -- PROC-3:这一支要投料,所以它的电池料批次得带一条【可投料】的安全状态。
@@ -143,8 +143,8 @@ BEGIN
     -- 不是断言疏忽。分得开的是【metal_value 基准】(份额≠重量比)。但金属价
     -- fixture 化成本高;这里改为断言【结构】:差额分录的 5000 腿恰等于
     -- Σ(各批差额 × 各批已挂COGS比),用两批不同卖出比的数据算给它看。
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('FIXT-IB18C', v_mat, v_sup, 400, 400, 'kg', v_today) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('FIXT-IB18C', v_mat, v_sup, 400, 400, 'kg', v_today, 'other', 'fixture 18 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, 'SGD', NULL, 'fixture C price');
     -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
@@ -239,8 +239,8 @@ BEGIN
     -- METAL-2:唯一键现在是 (metal, price_date, price_index)(NULLS NOT DISTINCT)。
     -- 本 fixture 录的是【未标注指数】的行情,与分摊的房屋约定(默认亦未声明)对得上。
     ON CONFLICT (metal, price_date, price_index) DO NOTHING;
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('FIXT-IB18H', v_mat, v_sup, 400, 400, 'kg', v_today) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('FIXT-IB18H', v_mat, v_sup, 400, 400, 'kg', v_today, 'other', 'fixture 18 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, 'SGD', NULL, 'fixture H price');
     -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)

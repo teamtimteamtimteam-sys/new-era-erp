@@ -50,8 +50,8 @@ BEGIN
     VALUES ('ZZFIX183-M','fixture 183 material','battery_material',true,'black_mass','end_of_life')
     RETURNING id INTO v_mat;
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-        arrival_date, unit_price)
-    VALUES ('ZZFIX183-IB', v_mat, v_sup, 100, 100, DATE '2027-03-01', 10) RETURNING id INTO v_ib;
+        arrival_date, unit_price, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX183-IB', v_mat, v_sup, 100, 100, DATE '2027-03-01', 10, 'other', 'fixture 183 自带数据') RETURNING id INTO v_ib;
     INSERT INTO inventory_movements (inbound_batch_id, movement_type, qty_delta, business_date, stock_status)
     VALUES (v_ib, 'receipt', 100, DATE '2027-03-01', 'available');
     INSERT INTO journal_entries (code, entry_date, memo, source_type, source_id, status)

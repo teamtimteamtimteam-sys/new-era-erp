@@ -85,7 +85,7 @@ BEGIN
     END IF;
 
     -- ══════════ B1. 未配置的库位 → 告警,放行 ════════════════════════════════
-    v_res := create_inbound_batch(m_foc, v_sup, 10, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_un);
+    v_res := create_inbound_batch(m_foc, v_sup, 10, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_un, p_source_reason_code => 'other', p_source_reason_note => 'fixture 59 自带数据');
     v_warn := v_res -> 'warnings';
     IF NOT (v_warn @> to_jsonb(ARRAY['IOD_CLASS_UNCONFIGURED_LOCATION|ZZ59-UN'])) THEN
         RAISE EXCEPTION 'FIXTURE 59B1 失败:未配置库位应当告警 IOD_CLASS_UNCONFIGURED_LOCATION,实际 %', v_warn::text;
@@ -95,7 +95,7 @@ BEGIN
     END IF;
 
     -- ══════════ B2. 配了、且含这一类 → 静默 ══════════════════════════════════
-    v_res := create_inbound_batch(m_foc, v_sup, 10, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_foc);
+    v_res := create_inbound_batch(m_foc, v_sup, 10, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_foc, p_source_reason_code => 'other', p_source_reason_note => 'fixture 59 自带数据');
     IF jsonb_array_length(v_res -> 'warnings') <> 0 THEN
         RAISE EXCEPTION 'FIXTURE 59B2 失败:配了且含这一类应当【一个字都不说】,实际 %', (v_res -> 'warnings')::text;
     END IF;
@@ -108,7 +108,7 @@ BEGIN
     -- 放进去。可判定 ⇒ 可以拒绝。
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM create_inbound_batch(m_non, v_sup, 10, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_foc);
+        PERFORM create_inbound_batch(m_non, v_sup, 10, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_foc, p_source_reason_code => 'other', p_source_reason_note => 'fixture 59 自带数据');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied THEN
         RAISE EXCEPTION 'FIXTURE 59B3 失败:配了且不含这一类应当被拒 —— 闸没落下来';
@@ -124,7 +124,7 @@ BEGIN
 
     -- ══════════ C. 【钉死】未分类 + 已配置库位 → 告警,并且【写入成功】════════
     -- 天真谓词在这里判拒。任何人把它写回去,这一臂先红。
-    v_res := create_inbound_batch(m_null, v_sup, 10, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_foc);
+    v_res := create_inbound_batch(m_null, v_sup, 10, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_foc, p_source_reason_code => 'other', p_source_reason_note => 'fixture 59 自带数据');
     v_warn := v_res -> 'warnings';
     IF NOT (v_warn @> to_jsonb(ARRAY['IOD_MATERIAL_UNCLASSIFIED|ZZFIX59-U'])) THEN
         RAISE EXCEPTION 'FIXTURE 59C 失败:未分类物料应当告警 IOD_MATERIAL_UNCLASSIFIED,实际 %', v_warn::text;
@@ -139,7 +139,7 @@ BEGIN
     END IF;
 
     -- 两个缺失的决定【同时】发生时,两条都要说 —— 压成一条会让人只去补一件
-    v_res := create_inbound_batch(m_null, v_sup, 10, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_un);
+    v_res := create_inbound_batch(m_null, v_sup, 10, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_un, p_source_reason_code => 'other', p_source_reason_note => 'fixture 59 自带数据');
     v_warn := v_res -> 'warnings';
     IF jsonb_array_length(v_warn) <> 2 THEN
         RAISE EXCEPTION 'FIXTURE 59C 失败:未配置库位 + 未分类物料应当给出【两条】告警,实际 %', v_warn::text;
@@ -151,7 +151,7 @@ BEGIN
     -- 两格合起来才说明闸装在了对的地方,而不是装了一个总是关着的门。
     v_denied := false;
     BEGIN
-        PERFORM create_inbound_batch(m_non, v_sup, 10, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_un);
+        PERFORM create_inbound_batch(m_non, v_sup, 10, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_un, p_source_reason_code => 'other', p_source_reason_note => 'fixture 59 自带数据');
     EXCEPTION WHEN OTHERS THEN v_denied := true; END;
     IF v_denied THEN
         RAISE EXCEPTION 'FIXTURE 59D 失败:non_focused 落在【未配置】库位上不该被拒 —— 门总是关着的';
@@ -160,7 +160,7 @@ BEGIN
     -- ══════════ E. 另外两个建批次 RPC:同一判词,同样回得来 ═══════════════════
     -- 【断言"成功"不是断言"告警到达了"】—— 所以这里逐个查 payload,而不是
     -- 只看调用有没有抛。IOD-1b 的教训:数据库那侧一直是对的,人却看不到。
-    v_res := receive_inbound_batch_against_po(m_foc, v_sup, 10, d, NULL, NULL, NULL, loc_un);
+    v_res := receive_inbound_batch_against_po(m_foc, v_sup, 10, d, NULL, NULL, NULL, loc_un, p_source_reason_code => 'other', p_source_reason_note => 'fixture 59 自带数据');
     IF NOT ((v_res -> 'warnings') @> to_jsonb(ARRAY['IOD_CLASS_UNCONFIGURED_LOCATION|ZZ59-UN'])) THEN
         RAISE EXCEPTION 'FIXTURE 59E 失败:receive_inbound_batch_against_po 的告警没回到 payload,实际 %', v_res::text;
     END IF;
@@ -197,7 +197,7 @@ BEGIN
     END IF;
 
     -- F2 进料批次:同一条判词必须从另一边也够得到 material_id
-    v_res := create_inbound_batch(m_non, v_sup, 50, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_un);
+    v_res := create_inbound_batch(m_non, v_sup, 50, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_un, p_source_reason_code => 'other', p_source_reason_note => 'fixture 59 自带数据');
     ib2 := (v_res ->> 'batch_id')::uuid;
     v_denied := false; v_msg := NULL;
     BEGIN
@@ -210,7 +210,7 @@ BEGIN
 
     -- F3 入腿的告警也要回到 payload(转移这一侧不重定向,靠返回值)。
     -- 【不指定库位建批】→ 货落在 NULL 桶,再从 NULL 搬进未配置的库位。
-    v_res := create_inbound_batch(m_foc, v_sup, 50, 'kg', d);
+    v_res := create_inbound_batch(m_foc, v_sup, 50, 'kg', d, p_source_reason_code => 'other', p_source_reason_note => 'fixture 59 自带数据');
     ib3 := (v_res ->> 'batch_id')::uuid;
     v_res := create_stock_transfer(p_qty => 10, p_to_location_id => loc_un,
                                    p_inbound_batch_id => ib3, p_from_location_id => NULL);
@@ -225,7 +225,7 @@ BEGIN
     -- 没有任何东西会发现它(归告警那一刀)。
     -- 而把它【搬走】必须成功:拦住它离开,只会把它焊死在错的地方。
     INSERT INTO storage_locations (code, name) VALUES ('ZZ59-LATE', 'configured later') RETURNING id INTO loc_late;
-    v_res := create_inbound_batch(m_non, v_sup, 30, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_late);
+    v_res := create_inbound_batch(m_non, v_sup, 30, 'kg', d, '待加工', NULL, NULL, NULL, NULL, loc_late, p_source_reason_code => 'other', p_source_reason_note => 'fixture 59 自带数据');
     ib4 := (v_res ->> 'batch_id')::uuid;
     IF ib4 IS NULL THEN
         RAISE EXCEPTION 'FIXTURE 59F4 失败:未配置的库位当时不该拒绝这次收货';
@@ -246,7 +246,7 @@ BEGIN
 
     -- ══════════ G. 未指定库位:一次都不查 ════════════════════════════════════
     -- 没有货落进任何"那里",也就没有任何关于"那里"的断言需要成立。
-    v_res := create_inbound_batch(m_null, v_sup, 10, 'kg', d);
+    v_res := create_inbound_batch(m_null, v_sup, 10, 'kg', d, p_source_reason_code => 'other', p_source_reason_note => 'fixture 59 自带数据');
     IF jsonb_array_length(v_res -> 'warnings') <> 0 THEN
         RAISE EXCEPTION 'FIXTURE 59G 失败:未指定库位应当【一个字都不说】(未分类也不说),实际 %', (v_res -> 'warnings')::text;
     END IF;

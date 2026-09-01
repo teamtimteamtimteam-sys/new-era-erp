@@ -59,8 +59,8 @@ BEGIN
     VALUES ('ZZ162-O', 'f162 powder', 'battery_material', true, 'black_mass', 'end_of_life', NULL)
     RETURNING id INTO v_matout;
 
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ162-A', v_mat, v_sup, 100, 100, 'kg', v_d - 1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ162-A', v_mat, v_sup, 100, 100, 'kg', v_d - 1, 'other', 'fixture 162 自带数据') RETURNING id INTO v_ib;
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib;
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
     VALUES (v_ib, 'discharged_verified');
@@ -126,8 +126,8 @@ BEGIN
 
     -- ══════════ E · 状态改变型走【同一段代码】,行为一个字没变 ══════════
     RAISE NOTICE 'fixture 162 · 进入 E(状态改变型仍然同样解除)';
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ162-E', v_mat, v_sup, 100, 100, 'kg', v_d - 1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ162-E', v_mat, v_sup, 100, 100, 'kg', v_d - 1, 'other', 'fixture 162 自带数据') RETURNING id INTO v_ib;
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib;
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
     VALUES (v_ib, 'discharged_verified');

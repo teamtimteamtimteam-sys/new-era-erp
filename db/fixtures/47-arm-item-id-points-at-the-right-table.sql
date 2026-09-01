@@ -115,16 +115,16 @@ BEGIN
 
     -- ── 进料三支 ────────────────────────────────────────────────────────────
     -- arrival_date 必填:FIN-32 的台账行 business_date 有 CHECK,空着整个 INSERT 被拒
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
-    VALUES ('ZZFIX47-IB1', v_mat, v_sup, 10, 10, CURRENT_DATE - 5) RETURNING id INTO v_ib1;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX47-IB1', v_mat, v_sup, 10, 10, CURRENT_DATE - 5, 'other', 'fixture 47 自带数据') RETURNING id INTO v_ib1;
     INSERT INTO assay_results (code, inbound_batch_id, assay_date, weight_basis, result_party)
     VALUES ('ZZFIX47-AR1', v_ib1, CURRENT_DATE - 4, 'as_received', 'ours');                 -- assay_unapplied
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date)
-    VALUES ('ZZFIX47-IB2', v_mat_asy, v_sup, 10, 10, CURRENT_DATE - 5) RETURNING id INTO v_ib2;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX47-IB2', v_mat_asy, v_sup, 10, 10, CURRENT_DATE - 5, 'other', 'fixture 47 自带数据') RETURNING id INTO v_ib2;
                                                     -- awaiting_assay(要求 cu,零化验,还有料)
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-        arrival_date, pricing_status)
-    VALUES ('ZZFIX47-IB3', v_mat, v_sup, 10, 10, CURRENT_DATE - 5, 'unpriced') RETURNING id INTO v_ib3;
+        arrival_date, pricing_status, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX47-IB3', v_mat, v_sup, 10, 10, CURRENT_DATE - 5, 'unpriced', 'other', 'fixture 47 自带数据') RETURNING id INTO v_ib3;
     INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at, weight_basis, result_party)
     VALUES ('ZZFIX47-AR3', v_ib3, CURRENT_DATE - 4, now(), 'as_received', 'ours');           -- batch_unpriced(化验已执行)
 
@@ -185,8 +185,8 @@ BEGIN
     -- ── ap_over_90 的【两种单据】─────────────────────────────────────────────
     -- 一:进料批次(已计价,到货 200 天前;化验已执行,免得污染进料三支)
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-        arrival_date, unit_price)
-    VALUES ('ZZFIX47-IB4', v_mat, v_sup, 10, 10, CURRENT_DATE - 200, 100) RETURNING id INTO v_ib4;
+        arrival_date, unit_price, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX47-IB4', v_mat, v_sup, 10, 10, CURRENT_DATE - 200, 100, 'other', 'fixture 47 自带数据') RETURNING id INTO v_ib4;
     INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at, weight_basis, result_party)
     VALUES ('ZZFIX47-AR4', v_ib4, CURRENT_DATE - 200, now(), 'as_received', 'ours');
     -- 二:挂账开支单(unpaid 必须有供应商且不能有银行科目 —— expenses_payment_shape)
@@ -216,8 +216,8 @@ BEGIN
     -- ── margin_cost_not_allocated:有加工单、已售、成本【未分摊】───────────────
     -- 走 RPC 而不是直插:这一支要的是 processing_outputs 的真实形状(fixture 45 同款)
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-        arrival_date, unit_price)
-    VALUES ('ZZFIX47-IB-RUN', v_mat, v_sup, 100, 100, CURRENT_DATE, 5) RETURNING id INTO v_ib_run;
+        arrival_date, unit_price, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX47-IB-RUN', v_mat, v_sup, 100, 100, CURRENT_DATE, 5, 'other', 'fixture 47 自带数据') RETURNING id INTO v_ib_run;
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_user), true);
     -- PROC-3:这一支要投料,所以它的电池料批次得带一条【可投料】的安全状态。

@@ -57,8 +57,8 @@ BEGIN
         RETURNING id INTO v_matA;
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code) VALUES ('ZZ79-MB','f79 fine', 'battery_material', true, 'black_mass', 'end_of_life')
         RETURNING id INTO v_matB;
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ79-IB', v_matA, v_sup, 1000, 1000, 'kg', d) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ79-IB', v_matA, v_sup, 1000, 1000, 'kg', d, 'other', 'fixture 79 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, 'SGD', NULL, 'f79 price');
 
     -- ══════════ A. 边界:恰好等于阈值【不报】,多一点【报】═══════════════════
@@ -124,8 +124,8 @@ BEGIN
     END IF;
 
     -- ══════════ C. 【产出短交只在收工后报】═════════════════════════════════
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ79-IB2', v_matA, v_sup, 1000, 1000, 'kg', d) RETURNING id INTO v_ib2;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ79-IB2', v_matA, v_sup, 1000, 1000, 'kg', d, 'other', 'fixture 79 自带数据') RETURNING id INTO v_ib2;
     PERFORM reprice_inbound_batch(v_ib2, 1, 'SGD', NULL, 'f79 price');
     v_res := create_work_order(
         jsonb_build_array(jsonb_build_object('material_id', v_matA, 'planned_qty', 100)),

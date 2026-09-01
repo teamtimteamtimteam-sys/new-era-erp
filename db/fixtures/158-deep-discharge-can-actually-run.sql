@@ -49,8 +49,8 @@ BEGIN
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, size_format_code)
     VALUES ('ZZ158-M', 'f158 pack', 'battery_material', true, 'whole_pack', 'end_of_life', 'ev_traction')
     RETURNING id INTO v_mat;
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ158-IB', v_mat, v_sup, 100, 100, 'kg', v_d - 1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ158-IB', v_mat, v_sup, 100, 100, 'kg', v_d - 1, 'other', 'fixture 158 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, v_ccy, NULL, 'f158');
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib;
 

@@ -45,8 +45,8 @@ BEGIN
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code) VALUES ('ZZFIX45-M','f', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
     INSERT INTO suppliers (code, legal_name, country, status, counterparty_type) VALUES ('ZZFIX45-S','f','SG','active', 'goods_supplier') RETURNING id INTO v_sup;
     INSERT INTO customers (code, legal_name, country) VALUES ('ZZFIX45-C','f','SG') RETURNING id INTO v_cust;
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date, unit_price)
-    VALUES ('ZZFIX45-IB', v_mat, v_sup, 100, 100, CURRENT_DATE, 5) RETURNING id INTO ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date, unit_price, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX45-IB', v_mat, v_sup, 100, 100, CURRENT_DATE, 5, 'other', 'fixture 45 自带数据') RETURNING id INTO ib;
 
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_proc), true);
     -- PROC-3:这一支要投料,所以它的电池料批次得带一条【可投料】的安全状态。

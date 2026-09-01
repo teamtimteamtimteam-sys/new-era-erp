@@ -138,8 +138,8 @@ BEGIN
 
     -- ══════════ F3 · 加工产出 + 形态没设 → 【另一条】拒绝 ══════════
     RAISE NOTICE 'fixture 154 · 进入 F3';
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ154-IB', v_mat_cat, v_sup, 500, 500, 'kg', v_process - 1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ154-IB', v_mat_cat, v_sup, 500, 500, 'kg', v_process - 1, 'other', 'fixture 154 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, v_ccy, NULL, 'f154 price');
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
     VALUES (v_ib, 'discharged_verified');
@@ -195,8 +195,8 @@ BEGIN
     IF (SELECT form_code FROM materials WHERE id = v_matx) IS NOT NULL THEN
         RAISE EXCEPTION 'FIXTURE 154F4b 前置失败:这一类物料的形态本应【必须为空】';
     END IF;
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ154-IBE', v_mat_cat, v_sup, 100, 100, 'kg', v_process - 1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ154-IBE', v_mat_cat, v_sup, 100, 100, 'kg', v_process - 1, 'other', 'fixture 154 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, v_ccy, NULL, 'f154 ew');
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
     VALUES (v_ib, 'discharged_verified');

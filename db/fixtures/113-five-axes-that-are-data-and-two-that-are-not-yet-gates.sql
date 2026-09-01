@@ -112,8 +112,8 @@ BEGIN
     VALUES ('ZZ113-M','f113 feed','battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
     VALUES ('ZZ113-MB','f113 output','battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_matB;
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ113-IB', v_mat, v_sup, 100, 100, 'kg', v_process - 1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ113-IB', v_mat, v_sup, 100, 100, 'kg', v_process - 1, 'other', 'fixture 113 自带数据') RETURNING id INTO v_ib;
 
     v_denied := false;
     BEGIN

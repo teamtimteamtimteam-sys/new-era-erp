@@ -53,8 +53,8 @@ BEGIN
 
     -- ══════════ F1 · 没有工序类型 → 今天的行为 ══════════
     RAISE NOTICE 'fixture 159 · 进入 F1';
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ159-A', v_mat, v_sup, 100, 100, 'kg', v_d - 1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ159-A', v_mat, v_sup, 100, 100, 'kg', v_d - 1, 'other', 'fixture 159 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, v_ccy, NULL, 'f');
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib;
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
@@ -81,8 +81,8 @@ BEGIN
     END IF;
     -- 而且它必须是【不可投料】以外的理由才有说服力 —— 这里换一个思路:
     -- 用 discharged_verified(may_be_fed = true)去撞一道【没有列它】的工序。
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ159-B', v_mat, v_sup, 100, 100, 'kg', v_d - 1) RETURNING id INTO v_ib2;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ159-B', v_mat, v_sup, 100, 100, 'kg', v_d - 1, 'other', 'fixture 159 自带数据') RETURNING id INTO v_ib2;
     PERFORM reprice_inbound_batch(v_ib2, 1, v_ccy, NULL, 'f');
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib2;
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
@@ -108,8 +108,8 @@ BEGIN
 
     -- ══════════ F3 · ★ 深度放电不受理损坏状态 ★ ══════════
     RAISE NOTICE 'fixture 159 · 进入 F3';
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ159-C', v_mat, v_sup, 100, 100, 'kg', v_d - 1) RETURNING id INTO v_ib3;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ159-C', v_mat, v_sup, 100, 100, 'kg', v_d - 1, 'other', 'fixture 159 自带数据') RETURNING id INTO v_ib3;
     PERFORM reprice_inbound_batch(v_ib3, 1, v_ccy, NULL, 'f');
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib3;
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)

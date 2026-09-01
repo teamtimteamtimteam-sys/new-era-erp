@@ -70,8 +70,8 @@ BEGIN
     -- 每一臂自带批次与运费单(README 第 2 条:用例之间不共享可变状态 ——
     -- 共享一张运费单的第二个用例会因为第一个把额度用光而"被拒",与被测规则无关)。
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-        arrival_date, unit_price)
-    VALUES ('ZZFIX100-IB1', v_mat, v_sup, 100, 100, DATE '2027-03-01', 10) RETURNING id INTO v_b1;
+        arrival_date, unit_price, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX100-IB1', v_mat, v_sup, 100, 100, DATE '2027-03-01', 10, 'other', 'fixture 100 自带数据') RETURNING id INTO v_b1;
 
     v_res := record_freight_document(DATE '2027-03-05', v_fwd, 1000, v_ccy, 'weight',
         'unpaid', NULL, jsonb_build_array(jsonb_build_object('inbound_batch_id', v_b1)),
@@ -150,8 +150,8 @@ BEGIN
     -- ══════════ B. 不能被核销的三种状态,全部按名拒 ═════════════════════════
     -- B1 已冲销(status = 'reversed')
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-        arrival_date, unit_price)
-    VALUES ('ZZFIX100-IB2', v_mat, v_sup, 100, 100, DATE '2027-04-01', 10) RETURNING id INTO v_b2;
+        arrival_date, unit_price, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX100-IB2', v_mat, v_sup, 100, 100, DATE '2027-04-01', 10, 'other', 'fixture 100 自带数据') RETURNING id INTO v_b2;
     v_res := record_freight_document(DATE '2027-04-05', v_fwd, 500, v_ccy, 'weight',
         'unpaid', NULL, jsonb_build_array(jsonb_build_object('inbound_batch_id', v_b2)),
         'fixture 100 B1', NULL);
@@ -178,8 +178,8 @@ BEGIN
 
     -- B2 已付(payment_status = 'paid')—— 它从来没有进过应付,再付一次是凭空多一笔
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-        arrival_date, unit_price)
-    VALUES ('ZZFIX100-IB3', v_mat, v_sup, 100, 100, DATE '2027-04-01', 10) RETURNING id INTO v_b3;
+        arrival_date, unit_price, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX100-IB3', v_mat, v_sup, 100, 100, DATE '2027-04-01', 10, 'other', 'fixture 100 自带数据') RETURNING id INTO v_b3;
     v_res := record_freight_document(DATE '2027-04-06', v_fwd, 500, v_ccy, 'weight',
         'paid', v_bank, jsonb_build_array(jsonb_build_object('inbound_batch_id', v_b3)),
         'fixture 100 B2', NULL);
@@ -201,8 +201,8 @@ BEGIN
 
     -- B3 已软删 —— 与 ap_open_items 的运费支第三个条件对上
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-        arrival_date, unit_price)
-    VALUES ('ZZFIX100-IB4', v_mat, v_sup, 100, 100, DATE '2027-04-01', 10) RETURNING id INTO v_b4;
+        arrival_date, unit_price, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX100-IB4', v_mat, v_sup, 100, 100, DATE '2027-04-01', 10, 'other', 'fixture 100 自带数据') RETURNING id INTO v_b4;
     v_res := record_freight_document(DATE '2027-04-07', v_fwd, 500, v_ccy, 'weight',
         'unpaid', NULL, jsonb_build_array(jsonb_build_object('inbound_batch_id', v_b4)),
         'fixture 100 B3', NULL);
@@ -226,8 +226,8 @@ BEGIN
     -- ══════════ C. 门【移动】了,不是【拓宽】了 ═════════════════════════════
     -- 同一张单,依次走两条路。
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-        arrival_date, unit_price)
-    VALUES ('ZZFIX100-IB5', v_mat, v_sup, 100, 100, DATE '2027-05-01', 10) RETURNING id INTO v_b5;
+        arrival_date, unit_price, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX100-IB5', v_mat, v_sup, 100, 100, DATE '2027-05-01', 10, 'other', 'fixture 100 自带数据') RETURNING id INTO v_b5;
     v_res := record_freight_document(DATE '2027-05-05', v_fwd, 800, v_ccy, 'weight',
         'unpaid', NULL, jsonb_build_array(jsonb_build_object('inbound_batch_id', v_b5)),
         'fixture 100 C', NULL);

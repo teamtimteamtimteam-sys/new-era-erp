@@ -34,8 +34,8 @@ BEGIN
     VALUES ('FX85-SUP', 'fixture 85 supplier', 'SG', 'goods_supplier') RETURNING id INTO sup;
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
     VALUES ('FX85-M', 'fixture 85 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO mat;
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date)
-    VALUES ('FX85-IN', mat, sup, 10, 'kg', 10, '2026-05-01') RETURNING id INTO ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('FX85-IN', mat, sup, 10, 'kg', 10, '2026-05-01', 'other', 'fixture 85 自带数据') RETURNING id INTO ib;
     INSERT INTO inventory_movements (inbound_batch_id, movement_type, qty_delta, business_date)
     VALUES (ib, 'receipt', 10, '2026-05-01');
     INSERT INTO output_batches (code, material_id, quantity, unit, remaining_qty, output_date)
@@ -155,8 +155,8 @@ BEGIN
     -- ══════════ G. 加工单回滚:理由必填,且理由随产出批一起落下 ═══════════════
     -- 【自己的投入批】不能复用 ib —— 它在 B 臂已经被软删了,而回滚要把料还回去,
     -- 还给一个已删的批次是另一件事。这一臂要测的是"理由记下来了没有"。
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date)
-    VALUES ('FX85-IN2', mat, sup, 10, 'kg', 9, '2026-05-01') RETURNING id INTO ib2;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, unit, remaining_qty, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('FX85-IN2', mat, sup, 10, 'kg', 9, '2026-05-01', 'other', 'fixture 85 自带数据') RETURNING id INTO ib2;
     INSERT INTO processing_runs (code, status, process_date, allocation_basis, operation_type_code)
     VALUES ('FX85-RUN', 'committed', '2026-05-02', 'weight', 'manual_disassembly') RETURNING id INTO run;
     -- 台账要配套:收 10、被这张单耗掉 1 —— 否则回滚还料时对不上(IOD_RESTORE_MISMATCH)

@@ -3,11 +3,12 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import ReceiveForm, { type PoLineOption, type BlockedSupplier } from './ReceiveForm'
-import { getTranslations } from '@/lib/i18n/server'
+import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { loadIntakeConditionOptions, loadMaterialAxes } from '../intakeConditionQuery'
+import { loadSourceReasons } from '@/app/inbound/sourceReasonQuery'
 
 export default async function ReceivePage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -17,6 +18,7 @@ export default async function ReceivePage() {
 
     const supabase = await createClient()
     const t = await getTranslations()
+    const locale = await getLocale()
 
     const [suppliersRes, materialsRes, poLinesRes, blockedRes] = await Promise.all([
         supabase
@@ -57,9 +59,11 @@ export default async function ReceivePage() {
     ) as unknown as { id: string; code: string; name: string }[]
 
     // PROC-2c:门口就问的两条轴 —— 与 /inbound/new 读同一支(见 intakeConditionQuery)。
-    const [condition, materialAxes] = await Promise.all([
+    const [condition, materialAxes, sourceReasons] = await Promise.all([
         loadIntakeConditionOptions(supabase),
         loadMaterialAxes(supabase),
+        // RECV-SOURCE-1:无单收货的理由字典
+        loadSourceReasons(supabase, locale),
     ])
 
     return (
@@ -73,6 +77,7 @@ export default async function ReceivePage() {
             <h1 className="text-2xl font-bold mb-6">{t('receive.title')}</h1>
 
             <ReceiveForm
+            sourceReasons={sourceReasons}
             safetyStates={condition.states}
             certainties={condition.certainties}
             materialAxes={materialAxes}

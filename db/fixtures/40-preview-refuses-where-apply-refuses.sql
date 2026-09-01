@@ -50,8 +50,8 @@ BEGIN
 
     -- 批次:100 kg,当前单价 5(本位币),挂【活公式】但【无承诺副本】
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-                                 arrival_date, unit_price, pricing_formula_id)
-    VALUES ('ZZFIX40-IB', v_mat, v_sup, 100, 100, CURRENT_DATE, 5, v_f) RETURNING id INTO v_b;
+                                 arrival_date, unit_price, pricing_formula_id, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX40-IB', v_mat, v_sup, 100, 100, CURRENT_DATE, 5, v_f, 'other', 'fixture 40 自带数据') RETURNING id INTO v_b;
     INSERT INTO assay_results (code, inbound_batch_id, assay_date, is_final, weight_basis, result_party)
     VALUES ('ZZFIX40-AR', v_b, CURRENT_DATE, true, 'as_received', 'ours') RETURNING id INTO v_assay;
     INSERT INTO assay_result_metals (assay_result_id, metal, content_pct)
@@ -157,8 +157,8 @@ BEGIN
         DELETE FROM metal_prices WHERE metal = 'co';
 
         INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-                                     arrival_date, unit_price, pricing_formula_id)
-        VALUES ('ZZFIX40-IB2', v_mat, v_sup, 100, 100, CURRENT_DATE, 5, v_f) RETURNING id INTO v_b2;
+                                     arrival_date, unit_price, pricing_formula_id, source_reason_code, source_reason_note)
+        VALUES ('ZZFIX40-IB2', v_mat, v_sup, 100, 100, CURRENT_DATE, 5, v_f, 'other', 'fixture 40 自带数据') RETURNING id INTO v_b2;
         PERFORM commit_pricing_terms(v_f, NULL, v_b2);
         INSERT INTO assay_results (code, inbound_batch_id, assay_date, is_final, weight_basis, result_party)
         VALUES ('ZZFIX40-AR2', v_b2, CURRENT_DATE, true, 'as_received', 'ours') RETURNING id INTO v_a2;

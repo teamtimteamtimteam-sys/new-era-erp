@@ -43,8 +43,8 @@ BEGIN
     VALUES ('ZZ116-S', 'fixture 116 supplier', 'SG', 'active', 'goods_supplier') RETURNING id INTO v_sup;
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
     VALUES ('ZZ116-M', 'f116 feed', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ116-IB', v_mat, v_sup, 1000, 1000, 'kg', DATE '2027-03-01') RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ116-IB', v_mat, v_sup, 1000, 1000, 'kg', DATE '2027-03-01', 'other', 'fixture 116 自带数据') RETURNING id INTO v_ib;
 
     -- ══════════ F1 · 前提:既有的数一个都没变 ═══════════════════════════════
     RAISE NOTICE 'fixture 116 · 进入 F1';

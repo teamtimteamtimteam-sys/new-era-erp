@@ -57,8 +57,8 @@ BEGIN
 
     -- ══════════ F1 · 前提:可投料的照旧,而闸【之前】的拒绝顺序没变 ══════════
     RAISE NOTICE 'fixture 115 · 进入 F1';
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ115-IB1', v_mat, v_sup, 100, 100, 'kg', v_process - 1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ115-IB1', v_mat, v_sup, 100, 100, 'kg', v_process - 1, 'other', 'fixture 115 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, v_ccy, NULL, 'f115 price');
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
     VALUES (v_ib, 'discharged_verified');
@@ -98,8 +98,8 @@ BEGIN
     -- 这一批货【既】是不许投料的种类,【又】一条安全状态都没记 —— 两个理由都成立。
     -- 必须报 MATERIAL_NOT_PROCESSABLE:种类答不上来就不必问批次,而"这种料根本
     -- 不能加工"是一个更靠前、也更便宜的答复。**把新检查插到它前面,这一臂会红。**
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ115-IBNO', v_matNo, v_sup, 50, 50, 'kg', v_process - 1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ115-IBNO', v_matNo, v_sup, 50, 50, 'kg', v_process - 1, 'other', 'fixture 115 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, v_ccy, NULL, 'f115 price');
     v_denied := false; v_msg := NULL;
     BEGIN
@@ -115,8 +115,8 @@ BEGIN
     RAISE NOTICE 'fixture 115 · 进入 F2';
 
     -- (a) 一条安全状态都没记 —— 【缺席】
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ115-IB2A', v_mat, v_sup, 100, 100, 'kg', v_process - 1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ115-IB2A', v_mat, v_sup, 100, 100, 'kg', v_process - 1, 'other', 'fixture 115 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, v_ccy, NULL, 'f115 price');
     v_denied := false; v_msg := NULL;
     BEGIN
@@ -184,8 +184,8 @@ BEGIN
 
     -- ══════════ F3 · D2 合取,两个方向 ══════════════════════════════════════
     RAISE NOTICE 'fixture 115 · 进入 F3';
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ115-IB3', v_mat, v_sup, 100, 100, 'kg', v_process - 1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ115-IB3', v_mat, v_sup, 100, 100, 'kg', v_process - 1, 'other', 'fixture 115 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, v_ccy, NULL, 'f115 price');
     -- 一条【可投料】+ 两条【不可投料】。合取:一条坏的就拒。
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
@@ -219,8 +219,8 @@ BEGIN
 
     -- ══════════ F4 · D4:字典行被【停用】,已贴着它的货照样被拒 ══════════════
     RAISE NOTICE 'fixture 115 · 进入 F4';
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ115-IB4', v_mat, v_sup, 100, 100, 'kg', v_process - 1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ115-IB4', v_mat, v_sup, 100, 100, 'kg', v_process - 1, 'other', 'fixture 115 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, v_ccy, NULL, 'f115 price');
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
     VALUES (v_ib, 'water_exposed');
@@ -276,8 +276,8 @@ BEGIN
        OR (SELECT may_ever_be_processed FROM material_kinds WHERE code = 'ewaste') IS NOT TRUE THEN
         RAISE EXCEPTION 'FIXTURE 115F5 前置失败:本臂要的是一个【可加工、但没有状态轴】的种类。ewaste 本应如此(may_ever_be_processed=true, has_condition_axes=false)—— 若这一行变了,换一个符合条件的种类,不要把这一臂删掉:它挡的是"把适用性写反"';
     END IF;
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ115-IB5', v_matEw, v_sup, 100, 100, 'kg', v_process - 1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ115-IB5', v_matEw, v_sup, 100, 100, 'kg', v_process - 1, 'other', 'fixture 115 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, v_ccy, NULL, 'f115 price');
     -- 【一条安全状态都不给】—— 它身上根本没有这回事。
     v_denied := false; v_msg := NULL;

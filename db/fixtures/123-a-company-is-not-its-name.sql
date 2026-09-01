@@ -69,8 +69,8 @@ BEGIN
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
     VALUES ('ZZFIX123-MAT', 'fixture 123 material', 'battery_material', true, 'black_mass', 'end_of_life')
     RETURNING id INTO v_mat;
-    INSERT INTO inbound_batches (code, supplier_id, material_id, quantity, remaining_qty, unit, arrival_date, status)
-    VALUES ('ZZFIX123-IB', v_id, v_mat, 1, 1, 'kg', CURRENT_DATE, 'draft');
+    INSERT INTO inbound_batches (code, supplier_id, material_id, quantity, remaining_qty, unit, arrival_date, status, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX123-IB', v_id, v_mat, 1, 1, 'kg', CURRENT_DATE, 'draft', 'other', 'fixture 123 自带数据');
     SELECT count(*) INTO v_n
       FROM inbound_batches b JOIN suppliers s ON s.id = b.supplier_id
      WHERE b.code = 'ZZFIX123-IB' AND s.legal_name = 'ZZFIX123 Robert Bosch (South East Asia) Pte. Ltd.';

@@ -62,8 +62,8 @@ BEGIN
     RETURNING id INTO v_mat;
 
     -- 一批 100kg @ 5,已放电并核验(深度放电受理它,而且不解决什么)
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ160-A', v_mat, v_sup, 100, 100, 'kg', v_d - 1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ160-A', v_mat, v_sup, 100, 100, 'kg', v_d - 1, 'other', 'fixture 160 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 5, v_ccy, NULL, 'f');
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib;
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
@@ -138,8 +138,8 @@ BEGIN
     -- 走 allocate_processing_costs 天然不会,但这张表对 authenticated 可写 ——
     -- "走那条路不会"与"不可能"是两件事。
     RAISE NOTICE 'fixture 160 · 进入 F4';
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ160-B', v_mat, v_sup, 50, 50, 'kg', v_d - 1) RETURNING id INTO v_ib_other;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ160-B', v_mat, v_sup, 50, 50, 'kg', v_d - 1, 'other', 'fixture 160 自带数据') RETURNING id INTO v_ib_other;
     PERFORM reprice_inbound_batch(v_ib_other, 5, v_ccy, NULL, 'f');
     -- 【先证明这批料确实不是那张单的投料】
     IF EXISTS (SELECT 1 FROM processing_inputs WHERE run_id = v_run1 AND inbound_batch_id = v_ib_other) THEN
@@ -163,8 +163,8 @@ BEGIN
     -- 放电把成本挂到一批【已经被下游转化单吃掉的】料上 —— 那张下游单必须过期,
     -- 否则它的 batch_margin 永远停在放电之前那个数,而放电那张分录完全正确。
     RAISE NOTICE 'fixture 160 · 进入 F5';
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ160-C', v_mat, v_sup, 100, 100, 'kg', v_d - 1) RETURNING id INTO v_ib_dn;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ160-C', v_mat, v_sup, 100, 100, 'kg', v_d - 1, 'other', 'fixture 160 自带数据') RETURNING id INTO v_ib_dn;
     PERFORM reprice_inbound_batch(v_ib_dn, 5, v_ccy, NULL, 'f');
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib_dn;
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
@@ -283,8 +283,8 @@ BEGIN
     -- 它会把吃过那批料的下游单标成过期 —— 而那张单重跑出来的数与现在【一模一样】。
     -- 本仓库对无条件举旗有成文处置(fixture 54:"没人看的旗和没有旗是同一样东西")。
     RAISE NOTICE 'fixture 160 · 进入 F9';
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ160-D', v_mat, v_sup, 100, 100, 'kg', v_d - 1) RETURNING id INTO v_ib_z;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ160-D', v_mat, v_sup, 100, 100, 'kg', v_d - 1, 'other', 'fixture 160 自带数据') RETURNING id INTO v_ib_z;
     PERFORM reprice_inbound_batch(v_ib_z, 5, v_ccy, NULL, 'f');
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib_z;
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)

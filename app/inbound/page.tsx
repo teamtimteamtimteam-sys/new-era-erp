@@ -21,6 +21,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import StockWarningBanner from '@/app/components/inventory/StockWarningBanner'
 import { mustCount, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
+import { can } from '@/lib/permissions'
 import { MOD } from '@/lib/modules'
 
 // FK 嵌入运行时是对象;TS 默认猜数组(无生成 DB 类型),用显式类型 + cast 锁住。
@@ -35,6 +36,10 @@ type InboundRow = {
     status: string
     pricing_status: string
     created_at: string
+    // RECV-SOURCE-1:来源三态(采购行 / 理由 / 未说明)—— 列表列要用
+    purchase_order_id: string | null
+    purchase_order_line_id: string | null
+    source_reason_code: string | null
     materials: { name: string } | null
     suppliers: { legal_name: string } | null
 }
@@ -128,6 +133,7 @@ export default async function InboundPage({
     // 2) 取当前页的行:带嵌入的 select(materials/suppliers 名字用于展示)+ 过滤 + 排序 + .range
     const baseQuery = supabase.from('inbound_batches').select(`
         id, code, quantity, unit, remaining_qty, arrival_date, stage, status, pricing_status, created_at,
+        purchase_order_id, purchase_order_line_id, source_reason_code,
         materials ( name ),
         suppliers ( legal_name )
     `)
@@ -152,6 +158,30 @@ export default async function InboundPage({
         (assayStatusRows ?? [])
             .filter((r) => r.has_unapplied_assay)
             .map((r) => r.inbound_batch_id ?? '')
+    )
+
+    // ── RECV-SOURCE-1:来源列的三态 ─────────────────────────────────────────────
+    // 【未说明永远不是空白格】8 张早于本刀的无单收货按 R4 不回填,在这里必须
+    // 读作【未说明】(琥珀),与"对着采购行"(蓝)与"有理由"(灰)看得出区别。
+    // 理由标签从字典读、按语言选一个(GST-FIX-3);采购单号躲在
+    // module.purchasing.view 后面(OPS-14),没有权限时给一句通用的"对着采购单",
+    // 不让 RLS 丢行把"有单"渲染成别的东西。
+    const canViewPurchasing = await can('module.purchasing.view')
+    const poIds = [...new Set((batches ?? [])
+        .filter((b) => b.purchase_order_line_id && b.purchase_order_id)
+        .map((b) => b.purchase_order_id as string))]
+    const poCodeById = new Map<string, string>()
+    if (canViewPurchasing && poIds.length) {
+        const poRes = await supabase.from('purchase_orders_masked').select('id, code').in('id', poIds)
+        for (const r of mustRows(poRes, 'purchase_orders_masked')) {
+            if (r.id && r.code) poCodeById.set(r.id, r.code)
+        }
+    }
+    const reasonRes = await supabase
+        .from('inbound_source_reasons').select('code, name_en, name_zh')
+    const reasonLabelByCode = new Map(
+        mustRows(reasonRes, 'inbound_source_reasons')
+            .map((r) => [r.code, locale === 'zh' ? r.name_zh : r.name_en])
     )
 
     // 下拉选项:供应商按 legal_name、物料按 name 作为显示标签
@@ -289,6 +319,9 @@ export default async function InboundPage({
                         <th className="border border-gray-300 px-4 py-2 text-left">
                             {t('inbound.colSupplier')}
                         </th>
+                        <th className="border border-gray-300 px-4 py-2 text-left">
+                            {t('inbound.colSource')}
+                        </th>
                         {sortableTh('quantity', t('inbound.colQuantity'))}
                         {sortableTh('remaining_qty', t('inbound.colRemaining'))}
                         {sortableTh('arrival_date', t('inbound.colArrivalDate'))}
@@ -323,6 +356,22 @@ export default async function InboundPage({
                             </td>
                             <td className="border border-gray-300 px-4 py-2">{b.materials?.name ?? '—'}</td>
                             <td className="border border-gray-300 px-4 py-2">{b.suppliers?.legal_name ?? '—'}</td>
+                            <td className="border border-gray-300 px-4 py-2 whitespace-nowrap">
+                                {b.purchase_order_line_id ? (
+                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
+                                        {poCodeById.get(b.purchase_order_id ?? '') ?? t('inbound.source.fromPo')}
+                                    </span>
+                                ) : b.source_reason_code ? (
+                                    <span className="px-2 py-1 bg-gray-200 rounded text-xs">
+                                        {reasonLabelByCode.get(b.source_reason_code) ?? b.source_reason_code}
+                                    </span>
+                                ) : (
+                                    /* R4:未说明 —— 永远不是空白格,不是默认理由 */
+                                    <span className="px-2 py-1 bg-amber-100 text-amber-900 border border-amber-300 rounded text-xs">
+                                        {t('inbound.source.unexplained')}
+                                    </span>
+                                )}
+                            </td>
                             <td className="border border-gray-300 px-4 py-2">{b.quantity} {b.unit}</td>
                             <td className="border border-gray-300 px-4 py-2">{b.remaining_qty} {b.unit}</td>
                             <td className="border border-gray-300 px-4 py-2">{b.arrival_date ?? '—'}</td>

@@ -105,14 +105,14 @@ BEGIN
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code) VALUES ('ZZ75-MB','f75 fine', 'battery_material', true, 'black_mass', 'end_of_life')
         RETURNING id INTO v_matB;
 
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ75-IB1', v_matA, v_sup, 200, 200, 'kg', d) RETURNING id INTO v_ib1;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ75-IB1', v_matA, v_sup, 200, 200, 'kg', d, 'other', 'fixture 75 自带数据') RETURNING id INTO v_ib1;
     PERFORM reprice_inbound_batch(v_ib1, 1, 'SGD', NULL, 'f75 price');
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ75-IB2', v_matA, v_sup, 200, 200, 'kg', d) RETURNING id INTO v_ib2;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ75-IB2', v_matA, v_sup, 200, 200, 'kg', d, 'other', 'fixture 75 自带数据') RETURNING id INTO v_ib2;
     PERFORM reprice_inbound_batch(v_ib2, 1, 'SGD', NULL, 'f75 price');
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ75-IB3', v_matA, v_sup, 200, 200, 'kg', d) RETURNING id INTO v_ib3;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ75-IB3', v_matA, v_sup, 200, 200, 'kg', d, 'other', 'fixture 75 自带数据') RETURNING id INTO v_ib3;
     PERFORM reprice_inbound_batch(v_ib3, 1, 'SGD', NULL, 'f75 price');
 
     -- ══════════ A. 挂上工单:链接写进去了,库存效果一字不变 ═══════════════════
@@ -323,8 +323,8 @@ BEGIN
         jsonb_build_array(jsonb_build_object('material_id', v_matA, 'planned_qty', 100)), NULL, d, 'f75 rev');
     woRev := (v_res->>'work_order_id')::uuid;
     PERFORM release_work_order(woRev);
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ75-IB4', v_matA, v_sup, 100, 100, 'kg', d) RETURNING id INTO v_ib3;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ75-IB4', v_matA, v_sup, 100, 100, 'kg', d, 'other', 'fixture 75 自带数据') RETURNING id INTO v_ib3;
     PERFORM reprice_inbound_batch(v_ib3, 1, 'SGD', NULL, 'f75 price');
     -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
@@ -522,8 +522,8 @@ $g$, '');
             jsonb_build_array(jsonb_build_object('material_id', v_matA, 'planned_qty', 30)), NULL, d, 'f75 rev2');
         woRev2 := (v_res->>'work_order_id')::uuid;
         PERFORM release_work_order(woRev2);
-        INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-        VALUES ('ZZ75-IB5', v_matA, v_sup, 50, 50, 'kg', d) RETURNING id INTO v_ibx;
+        INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+        VALUES ('ZZ75-IB5', v_matA, v_sup, 50, 50, 'kg', d, 'other', 'fixture 75 自带数据') RETURNING id INTO v_ibx;
         PERFORM reprice_inbound_batch(v_ibx, 1, 'SGD', NULL, 'f75 price');
         -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
         INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)

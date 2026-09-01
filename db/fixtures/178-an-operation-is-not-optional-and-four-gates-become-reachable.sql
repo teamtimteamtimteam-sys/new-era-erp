@@ -55,8 +55,8 @@ BEGIN
 
     -- ══════════ A · ★ 没有工序 → 按名拒,而且是自己那一条码 ★ ══════════
     RAISE NOTICE 'fixture 178 · 进入 A';
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ178-A', v_mat, v_sup, 100, 100, 'kg', v_d - 1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ178-A', v_mat, v_sup, 100, 100, 'kg', v_d - 1, 'other', 'fixture 178 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, v_ccy, NULL, 'f');
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib;
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
@@ -142,8 +142,8 @@ BEGIN
 
     -- ══════════ D1 · 闸①:产出有无由工序说了算 ══════════
     RAISE NOTICE 'fixture 178 · 进入 D1';
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ178-B', v_mat, v_sup, 100, 100, 'kg', v_d - 1) RETURNING id INTO v_ib2;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ178-B', v_mat, v_sup, 100, 100, 'kg', v_d - 1, 'other', 'fixture 178 自带数据') RETURNING id INTO v_ib2;
     PERFORM reprice_inbound_batch(v_ib2, 1, v_ccy, NULL, 'f');
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib2;
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
@@ -209,8 +209,8 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 178D3 提示:字典里出现了一个【一般可投、但某道启用的工序不受理】的安全状态。这不是缺陷,是本臂上面那一整段说的那件事发生了:两条规则不再重合。请重读那一段,再决定这一行断言该改成什么 —— **不要直接删掉它**。';
     END IF;
 
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ178-C', v_mat, v_sup, 100, 100, 'kg', v_d - 1) RETURNING id INTO v_ib3;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ178-C', v_mat, v_sup, 100, 100, 'kg', v_d - 1, 'other', 'fixture 178 自带数据') RETURNING id INTO v_ib3;
     PERFORM reprice_inbound_batch(v_ib3, 1, v_ccy, NULL, 'f');
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib3;
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
@@ -244,8 +244,8 @@ BEGIN
 
     -- ══════════ D4 · 闸④:工序必须存在且启用 ══════════
     RAISE NOTICE 'fixture 178 · 进入 D4';
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ178-D', v_mat, v_sup, 100, 100, 'kg', v_d - 1) RETURNING id INTO v_ib4;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ178-D', v_mat, v_sup, 100, 100, 'kg', v_d - 1, 'other', 'fixture 178 自带数据') RETURNING id INTO v_ib4;
     PERFORM reprice_inbound_batch(v_ib4, 1, v_ccy, NULL, 'f');
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib4;
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)

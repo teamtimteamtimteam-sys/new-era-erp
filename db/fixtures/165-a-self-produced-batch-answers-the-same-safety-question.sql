@@ -211,8 +211,8 @@ BEGIN
 
     -- ══════════ K8 · 进料侧一个字没动(R1) ══════════
     RAISE NOTICE 'fixture 165 · 进入 K8';
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ165-IB', v_mat, v_sup, 100, 100, 'kg', v_d - 1) RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ165-IB', v_mat, v_sup, 100, 100, 'kg', v_d - 1, 'other', 'fixture 165 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, v_ccy, NULL, 'f');
     UPDATE inbound_batches SET chemistry_certainty_code = 'single_known' WHERE id = v_ib;
     v_denied := false; v_msg := NULL;

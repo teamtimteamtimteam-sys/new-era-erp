@@ -94,7 +94,7 @@ BEGIN
         jsonb_build_array(jsonb_build_object('purchase_order_id', po1, 'amount_doc', 1000)),
         'supplier');
     v_res := create_inbound_batch(v_mat, v_sup, 100, 'kg', DATE '2027-02-05', '待加工',
-        20, 'fixture 104 A batch', NULL, NULL, NULL, NULL);
+        20, 'fixture 104 A batch', NULL, NULL, NULL, NULL, p_source_reason_code => 'other', p_source_reason_note => 'fixture 104 自带数据');
     b1 := (v_res->>'batch_id')::uuid;
 
     v_res := apply_prepayment(po1, b1, 1000, NULL, NULL, DATE '2027-03-01');
@@ -211,7 +211,7 @@ BEGIN
         jsonb_build_array(jsonb_build_object('purchase_order_id', po3, 'amount_doc', 10000)),
         'supplier');
     v_res := create_inbound_batch(v_mat, v_sup, 1300, 'kg', DATE '2027-02-10', '待加工',
-        10, 'fixture 104 D batch', NULL, NULL, NULL, NULL);
+        10, 'fixture 104 D batch', NULL, NULL, NULL, NULL, p_source_reason_code => 'other', p_source_reason_note => 'fixture 104 自带数据');
     b3 := (v_res->>'batch_id')::uuid;
 
     v_res := apply_prepayment(po3, b3, 13000, NULL, NULL, DATE '2027-03-01');
@@ -319,7 +319,7 @@ BEGIN
         jsonb_build_array(jsonb_build_object('purchase_order_id', po5, 'amount_doc', 5000)),
         'supplier');
     v_res := create_inbound_batch(v_mat, v_sup, 1000, 'kg', DATE '2027-02-10', '待加工',
-        10, 'fixture 104 H batch', NULL, NULL, NULL, NULL);
+        10, 'fixture 104 H batch', NULL, NULL, NULL, NULL, p_source_reason_code => 'other', p_source_reason_note => 'fixture 104 自带数据');
     b5 := (v_res->>'batch_id')::uuid;
 
     -- 定金 5,000 USD @1.30 = 本位币 6,500,全数已被这条【历史形状】的行冲掉

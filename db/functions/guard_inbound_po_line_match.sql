@@ -8,6 +8,12 @@ DECLARE
     v_line_po uuid;
     v_asset   uuid;
 BEGIN
+    -- RECV-SOURCE-1(A3):只挂单头不挂明细行,说不出这批货对着【哪一行】——
+    -- 对"从哪来"这个问题它不是一个答案。线上实测 0 行:今天免费,以后不可能。
+    IF NEW.purchase_order_id IS NOT NULL AND NEW.purchase_order_line_id IS NULL THEN
+        RAISE EXCEPTION 'PO_HEADER_WITHOUT_LINE|%', NEW.code
+          USING HINT = '挂采购单必须挂到明细行 —— 单头说不出这批货对着哪一行订的什么。';
+    END IF;
     IF NEW.purchase_order_line_id IS NULL THEN
         RETURN NEW;
     END IF;
@@ -26,3 +32,4 @@ BEGIN
 END;
 $function$
 
+;

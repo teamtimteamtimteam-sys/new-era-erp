@@ -23,6 +23,8 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import IntakeConditionPanel from './IntakeConditionPanel'
 import DeepDischargePanel from './DeepDischargePanel'
 import ImportDiligencePanel from './ImportDiligencePanel'
+import SourceReasonPanel from './SourceReasonPanel'
+import { loadSourceReasons } from '@/app/inbound/sourceReasonQuery'
 import { can, canViewPrices } from '@/lib/permissions'
 import { maskedRows, maskedExcept } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
@@ -94,6 +96,8 @@ export default async function EditInboundPage({
     const ddOptions = (mustRows(ddRes, 'deep_discharge_judgements') as
         { code: string; name_en: string; name_zh: string }[])
         .map((r) => ({ code: r.code, label: locale === 'zh' ? r.name_zh : r.name_en }))
+    // RECV-SOURCE-1:理由字典(来源面板要用;字典不敏感,直读)
+    const sourceReasons = await loadSourceReasons(supabase, locale)
     const canEditInbound = await can('module.inbound.edit')
     // ★【跨模块:采购行躲在 module.purchasing.view 后面(OPS-14 的 xmodule)】★
     // 一个只有进料权限的人读 purchase_order_lines 会被 RLS 静默丢行,
@@ -682,6 +686,17 @@ export default async function EditInboundPage({
                 imported={batch.imported ?? null}
                 permitRef={batch.import_permit_ref ?? null}
                 verifiedAt={batch.import_permit_verified_at ?? null}
+                canEdit={canEditInbound} />
+
+            {/* RECV-SOURCE-1:这张收货从哪来 —— 未说明(琥珀)/ 采购行 / 理由,
+                以及事后补说明的门(3e:门会记下谁、什么时候)。 */}
+            <SourceReasonPanel batchId={id}
+                hasPoLine={batch.purchase_order_line_id !== null}
+                poLabel={poHeader?.po_code ?? null}
+                reasonCode={batch.source_reason_code ?? null}
+                reasonNote={batch.source_reason_note ?? null}
+                recordedAt={batch.source_reason_recorded_at ?? null}
+                reasons={sourceReasons}
                 canEdit={canEditInbound} />
 
             <StockStatusPanel inboundBatchId={id} unit={batch.unit} />

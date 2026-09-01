@@ -183,8 +183,8 @@ BEGIN
     -- ══════════ H. 冲销【逐行镜像】原始投料行 ═══════════════════════════════
     -- 一张进料批分散在 NULL 与 A 两个桶,投料跨两桶 → 两行 consume;
     -- 回滚必须把货放回【原来那两个桶】,而不是按 drain 顺序倒推一遍。
-    INSERT INTO inbound_batches (material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES (v_mat, v_sup, 100, 100, 'kg', CURRENT_DATE) RETURNING id INTO ib;
+    INSERT INTO inbound_batches (material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES (v_mat, v_sup, 100, 100, 'kg', CURRENT_DATE, 'other', 'fixture 57 自带数据') RETURNING id INTO ib;
     PERFORM create_stock_transfer(p_qty => 60, p_to_location_id => locA, p_inbound_batch_id => ib);
     -- 此刻:NULL 40、A 60。投 70 → NULL 40 + A 30
     -- PROC-3:这一支要投料,所以它的电池料批次得带一条【可投料】的安全状态。

@@ -196,8 +196,9 @@ BEGIN
     v_denied := false;
     BEGIN
         INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-                                     arrival_date, purchase_order_id)
-        VALUES ('ZZFIX35-IB', v_mat, v_sup, 1, 1, '2027-03-10', po_big);
+                                     arrival_date, purchase_order_id, purchase_order_line_id)
+        VALUES ('ZZFIX35-IB', v_mat, v_sup, 1, 1, '2027-03-10', po_big,
+                (SELECT id FROM purchase_order_lines WHERE purchase_order_id = po_big LIMIT 1));
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
     END;
     IF NOT v_denied THEN
@@ -214,8 +215,10 @@ BEGIN
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', u_req), true);
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-                                 arrival_date, purchase_order_id)
-    VALUES ('ZZFIX35-IB', v_mat, v_sup, 1, 1, '2027-03-10', po_big) RETURNING id INTO v_ib;
+                                 arrival_date, purchase_order_id, purchase_order_line_id)
+    VALUES ('ZZFIX35-IB', v_mat, v_sup, 1, 1, '2027-03-10', po_big,
+            (SELECT id FROM purchase_order_lines WHERE purchase_order_id = po_big LIMIT 1))
+    RETURNING id INTO v_ib;
     IF v_ib IS NULL THEN
         RAISE EXCEPTION 'FIXTURE 35C 失败:批准之后仍然收不了货 —— 本臂无法区分"审批在把关"与"这单本来就收不了"';
     END IF;
@@ -289,8 +292,9 @@ BEGIN
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', u_req), true);
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-                                 arrival_date, purchase_order_id)
-    VALUES ('ZZFIX35-IB2', v_mat, v_sup, 1, 1, '2027-03-11', po_small);
+                                 arrival_date, purchase_order_id, purchase_order_line_id)
+    VALUES ('ZZFIX35-IB2', v_mat, v_sup, 1, 1, '2027-03-11', po_small,
+            (SELECT id FROM purchase_order_lines WHERE purchase_order_id = po_small LIMIT 1));
 
     -- 改金额也不该炸:作废触发器在未生效时必须早退,否则会撞 APPROVAL_THRESHOLD_NOT_SET
     UPDATE purchase_orders SET estimated_total_ccy = 999999 WHERE id = po_small;

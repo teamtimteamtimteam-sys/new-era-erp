@@ -50,8 +50,8 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 117F1 失败:进入 F1 —— 化学体系应当原样读得回来(NMC),实得「%」', (SELECT chemistry FROM materials WHERE id = v_mat);
     END IF;
 
-    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date)
-    VALUES ('ZZ117-IB', v_mat, v_sup, 100, 100, 'kg', DATE '2027-04-01') RETURNING id INTO v_ib;
+    INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZ117-IB', v_mat, v_sup, 100, 100, 'kg', DATE '2027-04-01', 'other', 'fixture 117 自带数据') RETURNING id INTO v_ib;
     -- 化验单带实验室 —— 用引导里那一家(FRL),它是线上唯一真实存在的一家。
     v_denied := false; v_msg := NULL;
     BEGIN
