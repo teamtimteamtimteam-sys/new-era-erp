@@ -19,9 +19,9 @@
 // 就算这里漏了一页,那一页也只会是空的、改不动任何东西 —— 与 settings/permissions/guard.ts
 // 同样的定位,本文件是它的通用化。
 import Link from 'next/link'
-import { canEnterModule } from '@/lib/moduleAccess'
+import { canEnter } from '@/lib/moduleAccess'
 import { getTranslations } from '@/lib/i18n/server'
-import type { ModuleEntry } from '@/lib/modules'
+import type { ModuleEntry, FunctionEntry } from '@/lib/modules'
 
 /** 两种拒绝共用的那一块屏 —— 措辞不同,形状必须相同。 */
 async function refusal(titleKey: string, deniedKey: string, hintKey: string) {
@@ -50,45 +50,61 @@ async function refusal(titleKey: string, deniedKey: string, hintKey: string) {
  * 放在【任何查询之前】—— 拒绝要来自权限判断,不能是从空结果倒推出来的。
  */
 export async function requireModule(mod: ModuleEntry) {
-    if (await canEnterModule(mod.permission)) return null
+    if (await canEnter(mod.permission)) return null
     return refusal(mod.navKey, 'common.moduleDenied', 'common.moduleDeniedHint')
 }
 
 /**
- * 【有些页面属于两个模块,不是一个】
- *     const denied = await requireAnyModule([MOD.finance, MOD.processing])
+ * 【有些页面属于几个模块,不是一个】—— NAV-REG-1
+ *     const denied = await requireFunction(FN.margin)
  *     if (denied) return denied
  *
- * requireModule 问的是【那一个】模块;本函数问【任意一个】。它存在的理由与
- * db/views/batch_margin.sql 的谓词是同一条:收入在财务、分摊成本在加工,而
- * 【没有任何 live 角色同时持有两个模块】—— 用单模块把关,这一页就会对它该服务的
- * 两拨人各挡掉一拨。OR 就是要点(AGENTS.md 常设决定 2)。
+ * requireModule 问的是【那一个】模块;本函数问【这个功能的那一份判据】,而那份判据
+ * 住在 lib/modules.ts 的 FUNCTIONS 里,与渲染入口用的是【同一个表达式】。
  *
- * 【拒绝时报第一个模块的名字】—— 标题只是标题;真正的说明在 moduleDenied 那两句。
+ * 【哪一份是权威的:注册表】。页面守卫不自己写判据,它把注册表条目【整个】接过来
+ * (requireFunction(FN.margin)),于是"谁看得见这个入口"与"谁进得去这一页"不可能
+ * 各错一次 —— 这是 Tim 的 3d:两者不得是两份定义。页面这一侧靠【不表达】来服从。
+ *
+ * 【两句拒绝,一个谓词】谓词的两半各自对应一句话:
+ *   any 那一半(模块)不满足   → 你没有进入该模块的权限
+ *   all 那一半(数据类)不满足 → 这个数字属于价格信息
+ * 迁移前 /margin 上是 requireAnyModule 后接 requireDataClass 两次调用,顺序与措辞
+ * 与这里【逐字相同】;区别只是判据不再写在页面里。
+ *
+ * 【requireDataClass 去哪了】它此前只有一个调用者,就是 /margin ——
+ * 而 /margin 的两道守卫正是本函数取代的那两道。于是本刀之后它【零调用者】,
+ * 所以删掉。它表达的那个区别(模块拒绝 ≠ 数据类拒绝)一个字都没有丢:
+ * 它就在下面那两句 refusal 里,由谓词的两半决定用哪一句。
+ * 【为什么不留着"以后可能有人要用"】这一刀刚刚因为同一条理由删掉了
+ * moduleForPath 与 alsoCovers —— 一个没有调用者的导出,是下一个人据以断定
+ * "这里已经接好了"的东西。要用的时候再加回来,那是一行的事。
+ *
+ * 【标题报功能自己的名字】。从前 requireAnyModule 报的是"第一个模块"的名字 ——
+ * 那是它没有更好东西可报时的将就(它的旧注释自己写着"标题只是标题")。
+ * 一个功能现在有自己的身份,所以它报自己的名字。
  */
-export async function requireAnyModule(mods: ModuleEntry[]) {
-    for (const m of mods) {
-        if (await canEnterModule(m.permission)) return null
+export async function requireFunction(fn: FunctionEntry) {
+    const spec = fn.permission
+    if (await canEnter(spec)) return null
+    if (typeof spec === 'string') {
+        const isDataClass = spec.startsWith('data.')
+        return refusal(
+            fn.navKey,
+            isDataClass ? 'common.dataClassDenied' : 'common.moduleDenied',
+            isDataClass ? 'common.dataClassDeniedHint' : 'common.moduleDeniedHint',
+        )
     }
-    return refusal(mods[0].navKey, 'common.moduleDenied', 'common.moduleDeniedHint')
-}
-
-/**
- * 【模块之外,还有数据类】
- *     const denied = await requireDataClass('data.view_prices', 'margin.title')
- *     if (denied) return denied
- *
- * 模块回答"你进得来这一片吗",数据类回答"你看得见这一类数字吗"(perm2b 的
- * data.view_prices / data.view_pay / data.view_identity)。两者【互相不蕴含】。
- *
- * 【为什么必须单独把关,而不是等视图返回空】OPS-20 实测:live 的 operations 持
- * module.processing.view 却【没有】data.view_prices,于是它过得了模块守卫、从
- * batch_margin 读到零行,屏幕上是一张【空表】—— "没有可算毛利的批次"与"你看不见
- * 价格"长得一模一样。这正是 moduleGuard 抬头那条病,换到了数据类这一层。
- */
-export async function requireDataClass(permission: string, titleKey: string) {
-    if (await canEnterModule(permission)) return null
-    return refusal(titleKey, 'common.dataClassDenied', 'common.dataClassDeniedHint')
+    // 模块那一半先答 —— 缺模块是更根本的一次缺席(与迁移前的调用顺序同序)。
+    const moduleHalfOk = spec.any === undefined || (await canEnter({ all: [], any: spec.any }))
+    if (!moduleHalfOk) return refusal(fn.navKey, 'common.moduleDenied', 'common.moduleDeniedHint')
+    // 走到这里是 all 那一半没过。【措辞看它是哪一类码】,不假定它一定是数据类:
+    // 今天 FUNCTIONS 里 all 那一半确实只有 data.*,但把这个巧合写成假设,
+    // 下一条 all 里放模块码的功能就会对着人说"这个数字属于价格信息"。
+    const allIsDataClass = spec.all.length > 0 && spec.all.every((c) => c.startsWith('data.'))
+    return allIsDataClass
+        ? refusal(fn.navKey, 'common.dataClassDenied', 'common.dataClassDeniedHint')
+        : refusal(fn.navKey, 'common.moduleDenied', 'common.moduleDeniedHint')
 }
 
 /**
@@ -108,6 +124,6 @@ export async function requireDataClass(permission: string, titleKey: string) {
  * 的动作渲染提交控件")。
  */
 export async function requireEditPermission(permission: string, titleKey: string) {
-    if (await canEnterModule(permission)) return null
+    if (await canEnter(permission)) return null
     return refusal(titleKey, 'common.editDenied', 'common.editDeniedHint')
 }

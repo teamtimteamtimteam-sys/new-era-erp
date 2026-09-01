@@ -47,7 +47,7 @@ CREATE TRIGGER trg_forwarder_rate_quotes_guard
 
 ALTER TABLE public.forwarder_rate_quotes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "forwarder_rate_quotes select" ON public.forwarder_rate_quotes
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.purchasing.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.logistics.view'::text));
 CREATE POLICY "forwarder_rate_quotes write" ON public.forwarder_rate_quotes
     AS PERMISSIVE FOR ALL TO authenticated
     USING (has_permission('module.purchasing.edit'::text))

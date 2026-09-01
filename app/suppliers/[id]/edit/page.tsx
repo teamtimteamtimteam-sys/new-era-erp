@@ -10,6 +10,7 @@ import AttachmentsPanel from './AttachmentsPanel'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { canEnter } from '@/lib/moduleAccess'
 import { can } from '@/lib/permissions'
 import ContactsPanel, { type ContactRow } from '@/app/customers/ContactsPanel'
 import ReceiptPatternPanel, {
@@ -86,7 +87,9 @@ export default async function EditSupplierPage({
     // 一个没有采购权限的读者会看到一块空面板 —— 而空面板读起来是"记录干净"。
     // 【先问权限,再决定查不查】不查询就没有"0 行"可以被误读成"没有差异",
     // 这比查完再解释 null 更不容易出错(GRN-1b 在批次详情上栽的正是那一处)。
-    const canSeePattern = await can(MOD.purchasing.permission)
+    // NAV-REG-1:判据仍然【取自注册表】(不抄字符串),只是注册表的 permission
+    // 现在是一个谓词,所以走 canEnter —— 求值仍在 lib/modules.ts 的 allows() 一处。
+    const canSeePattern = await canEnter(MOD.purchasing.permission)
     let patternRow: PatternRow | null = null
     let contributing: ContributingReceipt[] = []
     if (canSeePattern) {

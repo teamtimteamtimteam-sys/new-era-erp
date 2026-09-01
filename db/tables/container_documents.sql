@@ -35,7 +35,7 @@ CREATE TRIGGER trg_container_documents_updated_at
 
 ALTER TABLE public.container_documents ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "container_documents select" ON public.container_documents
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.purchasing.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.logistics.view'::text));
 CREATE POLICY "container_documents write" ON public.container_documents
     AS PERMISSIVE FOR ALL TO authenticated
     USING (has_permission('module.purchasing.edit'::text))

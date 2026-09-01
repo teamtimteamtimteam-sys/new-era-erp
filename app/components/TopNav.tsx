@@ -8,7 +8,8 @@ import NotificationBell from './NotificationBell'
 import NavLinks from './NavLinks'
 import { canManagePermissions, can } from '@/lib/permissions'
 import { DICT_PERMISSIONS } from '@/app/settings/dictionaries/registry'
-import { getVisibleModules } from '@/lib/moduleAccess'
+import { getModuleAccess, canEnter } from '@/lib/moduleAccess'
+import { FN } from '@/lib/modules'
 
 export default async function TopNav() {
     const supabase = await createClient()
@@ -68,8 +69,18 @@ export default async function TopNav() {
     const canEditDictionaries = (
         await Promise.all(DICT_PERMISSIONS.map((code) => can(code)))
     ).some(Boolean)
-    // OPS-15:按权限过滤后的模块清单 —— 与首页卡片同一份 lib/modules.ts
-    const modules = await getVisibleModules()
+    // OPS-15 → NAV-REG-1:模块清单来自同一份 lib/modules.ts。
+    // 【这里不再过滤】(R4):拿到的是【全部】模块 + 每个的 allowed,
+    // 进不去的由 NavLinks 画成「受限」而不是消失。
+    const moduleAccess = await getModuleAccess()
+    const modules = moduleAccess.map(({ module, allowed }) => ({
+        href: module.href,
+        key: module.navKey,
+        allowed,
+    }))
+    // AUDEL-3 的 /deleted 同样【由注册表判】—— 判据是 FN.deleted.permission
+    // (六个模块码的并集,取自视图每一行自带的 permission),不是这里写的谓词。
+    const deletedAllowed = await canEnter(FN.deleted.permission)
 
     return (
         <header className="border-b border-gray-200 bg-white">
@@ -95,7 +106,8 @@ export default async function TopNav() {
                     </form>
                 </div>
             </div>
-            <NavLinks modules={modules} canManagePermissions={canManage} canBulkImport={canBulkImport}
+            <NavLinks modules={modules} deletedAllowed={deletedAllowed}
+                canManagePermissions={canManage} canBulkImport={canBulkImport}
                 canEditDictionaries={canEditDictionaries} />
         </header>
     )

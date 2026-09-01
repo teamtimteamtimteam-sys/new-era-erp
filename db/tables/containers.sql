@@ -76,7 +76,7 @@ ALTER TABLE public.containers
 
 ALTER TABLE public.containers ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "containers select" ON public.containers
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.purchasing.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.logistics.view'::text));
 CREATE POLICY "containers write" ON public.containers
     AS PERMISSIVE FOR ALL TO authenticated
     USING (has_permission('module.purchasing.edit'::text))

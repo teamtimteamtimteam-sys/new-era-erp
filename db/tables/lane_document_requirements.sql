@@ -26,7 +26,7 @@ COMMENT ON COLUMN public.lane_document_requirements.regime IS
 
 ALTER TABLE public.lane_document_requirements ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "lane_document_requirements select" ON public.lane_document_requirements
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.purchasing.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.logistics.view'::text));
 CREATE POLICY "lane_document_requirements write" ON public.lane_document_requirements
     AS PERMISSIVE FOR ALL TO authenticated
     USING (has_permission('module.purchasing.edit'::text))

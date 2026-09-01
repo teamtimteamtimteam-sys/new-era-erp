@@ -451,53 +451,22 @@ const zh = {
         deleted: '已删除记录',
         logout: '登出',
     },
+    // OPS-18 之后首页【不再渲染模块卡片】(它换成了运营看板),所以模块的
+    // 卡片标题与说明整批不再有读者 —— NAV-REG-1 随 lib/modules.ts 的
+    // titleKey / descKey / section / SECTIONS 一并删除。
+    // 这里从前还留着一句注释说"任务板 section: null,键仍需存在" —— 那个字段
+    // 已经不存在了,而一句描述死字段的注释比死字段本身更能骗到下一个人。
+    // 【留下的这几条都有活的读者】subtitle / noModules* 是首页自己的,
+    // sectionSelf 与 me* / myReviews* 是 app/page.tsx 的 SELF_CARDS。
     home: {
-        logisticsTitle: '物流',
-        logisticsDesc: '货代、航段、报价,以及每条航段需要哪些单据。',
-        salesTitle: '销售订单',
-        salesDesc: '客户订单 —— 那份承诺,发生在发货与开票之前。',
         subtitle: '锂电池回收 ERP 系统',
         noModules: '你还没有任何模块的权限。',
         noModulesHint: '账号已登录,但尚未被授予任何模块 —— 请联系管理员为你分配角色。',
-        sectionMasterData: '主数据',
-        sectionOperations: '业务操作',
-        sectionReports: '报表',
-        // 「我的」分组:不受模块权限管辖,人人可见(app/page.tsx 里无条件渲染)。
         sectionSelf: '我的',
         meTitle: '我的档案',
         meDesc: '本人档案、假期余额与报销',
         myReviewsTitle: '我评的评估',
         myReviewsDesc: '由我担任评估人的绩效评估',
-        suppliersTitle: '供应商',
-        suppliersDesc: '供应商主数据管理',
-        customersTitle: '客户',
-        customersDesc: '客户主数据管理',
-        materialsTitle: '物料',
-        materialsDesc: '物料字典',
-        pricingTitle: '定价',
-        pricingDesc: '定价公式、计价器与金属行情',
-        metalPricesTitle: '金属价格',
-        metalPricesDesc: '金属价格参考(USD/吨)',
-        inboundTitle: '进料批次',
-        inboundDesc: '进料批次台账',
-        outputTitle: '产出批次',
-        outputDesc: '产出批次台账',
-        processingTitle: '加工追溯',
-        processingDesc: '加工单与追溯链',
-        stocktakesTitle: '盘点',
-        stocktakesDesc: '实物盘点与库存调整',
-        inventoryTitle: '库存与物料平衡',
-        inventoryDesc: '库存汇总与物料平衡',
-        financeTitle: '财务',
-        financeDesc: '试算平衡、分录与期间管理',
-        hrTitle: '人力资源',
-        hrDesc: '员工、薪资、培训与到期提醒',
-        purchasingTitle: '采购',
-        purchasingDesc: '采购单、付款计划与预付款',
-        // 任务板只进导航、不出首页卡片(lib/modules.ts 里 section: null)。键仍需存在:
-        // check-i18n 扫描 titleKey/descKey 这类字面量,不看它最终有没有被渲染。
-        tasksTitle: '任务',
-        tasksDesc: '个人任务板',
     },
     // OPS-18:运营看板。dashboard.item.* 的后缀集合 = db/views/operations_now.sql 里
     // item_type 的字面量集合(check-i18n MANIFEST 现读那个文件,加一支自动变宽)。
@@ -5152,7 +5121,6 @@ const zh = {
             close: '月结',
             monthEnd: '月结',
             payrollPay: '发薪付款',
-            margin: '批次毛利',
             costSettle: '成本结算',
             reval: '期末重估',
             variance: '成本差异',

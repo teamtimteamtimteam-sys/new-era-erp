@@ -28,7 +28,7 @@
 BEGIN;
 DO $$
 DECLARE
-    v_log   uuid := gen_random_uuid();   -- 只有 module.purchasing.*(暂借的物流码)
+    v_log   uuid := gen_random_uuid();   -- 物流读 + 采购写(NAV-REG-1 之后的真实形状)
     v_fin   uuid := gen_random_uuid();   -- 只有 module.finance.view
     r_log uuid; r_fin uuid;
     v_fwd uuid;
@@ -44,15 +44,19 @@ DECLARE
 BEGIN
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-102-log', 'f', 'f', true) RETURNING id INTO r_log;
+    -- NAV-REG-1:【读】换成了 module.logistics.view,【写】仍然是 module.purchasing.edit。
+    -- 在这之前这一行只有 module.purchasing.*,注释还写着"暂借的物流码" ——
+    -- 那把借来的钥匙已经不开这道门了(fixture 185 的 B 臂就在钉这件事)。
+    -- 两个码都要:四支要读物流,而建数据要 create_container(它查 purchasing.edit)。
     INSERT INTO role_permissions (role_id, permission_code)
-    VALUES (r_log, 'module.purchasing.view'), (r_log, 'module.purchasing.edit');
+    VALUES (r_log, 'module.logistics.view'), (r_log, 'module.purchasing.edit');
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-102-fin', 'f', 'f', true) RETURNING id INTO r_fin;
     INSERT INTO role_permissions (role_id, permission_code)
     VALUES (r_fin, 'module.finance.view');
     INSERT INTO user_roles (user_id, role_id) VALUES (v_log, r_log), (v_fin, r_fin);
 
-    -- 建数据以物流身份做(create_container 要 module.purchasing.edit)
+    -- 建数据以物流身份做(create_container 要 module.purchasing.edit —— 写没有跟着搬家)
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_log), true);
 
@@ -378,7 +382,7 @@ BEGIN
      WHERE item_type IN ('free_time_expiring','container_no_arrival',
                          'container_eta_overdue','container_documents_late');
     IF v_n <> 4 THEN
-        RAISE EXCEPTION 'FIXTURE 102G 失败:持 module.purchasing.view 的读者应当看得见四支,实得 % 支', v_n;
+        RAISE EXCEPTION 'FIXTURE 102G 失败:持 module.logistics.view 的读者应当看得见四支,实得 % 支', v_n;
     END IF;
 
     -- 【财务身份:只见免柜期那一支】

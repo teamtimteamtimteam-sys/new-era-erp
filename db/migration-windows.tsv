@@ -136,3 +136,4 @@
 2026-09-01T14:15:40+0800	2026-09-01-audit1-batch-audit-trail.sql	e2b28bf
 2026-09-01T14:29:05+0800	2026-09-01-audit1-revoke-inner-view.sql	e2b28bf
 2026-09-01T16:08:53+0800	2026-09-01-recvsource1-a-receipt-must-say-where-it-came-from.sql	102eaa9
+2026-09-01T19:58:59+0800	2026-09-01-navreg1-logistics-gets-its-own-code.sql	bbbe455

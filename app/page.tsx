@@ -2,7 +2,8 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { getMyPermissions } from '@/lib/permissions'
-import { getVisibleModules } from '@/lib/moduleAccess'
+import { getModuleAccess } from '@/lib/moduleAccess'
+import { allows, type PermissionSpec } from '@/lib/modules'
 import { mustCount, mustRows } from '@/lib/db-helpers'
 import { metalLabelKey } from '@/app/metal-prices/options'
 
@@ -160,14 +161,17 @@ const TILES = [
     // 【放宽:免柜期这一支库里就放给了财务(LOG-5a 的 arm_permission_widen)】——
     // 见下面 permissionWiden 那一段:此前这里只写主码,于是一个只持财务的读者
     // 【拿得到行、屏幕上却写着「受限」】。EQP-2d 补上。
-    { itemType: 'free_time_expiring', permission: 'module.purchasing.view',
-      permissionWiden: ['module.purchasing.view', 'module.finance.view'], href: '/logistics/containers',
+    // 【NAV-REG-1:四支的码从采购换成物流】与视图、与八张表的 RLS 同码。
+    // 只换表不换支的话,一个持 module.logistics.view 的读者读得到那几张表,
+    // 而这四块牌子对他写着「受限」—— 正是 EQP-2d 实测到的那个方向的谎。
+    { itemType: 'free_time_expiring', permission: 'module.logistics.view',
+      permissionWiden: ['module.logistics.view', 'module.finance.view'], href: '/logistics/containers',
       itemHref: (r: OpsRow) => `/logistics/containers/${r.item_id}` },
-    { itemType: 'container_no_arrival', permission: 'module.purchasing.view', href: '/logistics/containers',
+    { itemType: 'container_no_arrival', permission: 'module.logistics.view', href: '/logistics/containers',
       itemHref: (r: OpsRow) => `/logistics/containers/${r.item_id}` },
-    { itemType: 'container_eta_overdue', permission: 'module.purchasing.view', href: '/logistics/containers',
+    { itemType: 'container_eta_overdue', permission: 'module.logistics.view', href: '/logistics/containers',
       itemHref: (r: OpsRow) => `/logistics/containers/${r.item_id}` },
-    { itemType: 'container_documents_late', permission: 'module.purchasing.view', href: '/logistics/containers',
+    { itemType: 'container_documents_late', permission: 'module.logistics.view', href: '/logistics/containers',
       itemHref: (r: OpsRow) => `/logistics/containers/${r.item_id}` },
     // ── EQP-2d:保养那两支(第 27–28)。【门牌指机器那一页】—— 补救是"给这台
     // 机器记一次保养",而那张表单 EQP-2d 就建在 /finance/assets/[id] 上。
@@ -212,7 +216,7 @@ export default async function Home() {
     const t = await getTranslations()
     const supabase = await createClient()
     const perms = await getMyPermissions()
-    const visible = await getVisibleModules()
+    const moduleAccess = await getModuleAccess()
 
     // 一次读回全部可见支;无权的支缺席,可见支的零是真的零(权限已单独查过)
     const rows = mustRows(
@@ -293,7 +297,9 @@ export default async function Home() {
     }
 
     // HR 待办牌(hr_alerts 是它唯一的门)—— 受限时【不开门】,不是"查了当没查"
-    const canHr = perms.includes('module.hr.view')
+    // NAV-REG-1:单码判断也走同一个求值器 —— 在它之外留一个
+    // perms.includes,就等于给【第二份实现】留一个合法的落脚点。
+    const canHr = allows('module.hr.view', perms)
     let hrAlertCount: number | null = null
     if (canHr) {
         hrAlertCount = mustCount(
@@ -399,7 +405,7 @@ export default async function Home() {
             <p className="text-gray-600 mb-8">{t('home.subtitle')}</p>
 
             {/* 零模块权限时说出来(OPS-15)—— 否则满屏「受限」与"系统坏了"分不开 */}
-            {visible.length === 0 && (
+            {moduleAccess.every((m) => !m.allowed) && (
                 <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded max-w-2xl mb-8">
                     <p className="font-medium">{t('home.noModules')}</p>
                     <p className="text-sm mt-1">{t('home.noModulesHint')}</p>
@@ -423,11 +429,19 @@ export default async function Home() {
                     // 而这块牌子照旧显示「受限」—— 也就是把"你看得见"说成
                     // "你看不见"。看板那条规矩(缺席 ≠ 零)防的是另一个方向,
                     // 这一个此前没人防。EQP-2c 放宽保养两支时撞上同一处,所以一并补。
-                    const anyCodes = 'permissionAny' in tile ? (tile.permissionAny as readonly string[]) : null
-                    const widenCodes = 'permissionWiden' in tile ? (tile.permissionWiden as readonly string[]) : null
-                    const allowed = (perms.includes(tile.permission)
-                            || (widenCodes !== null && widenCodes.some((c) => perms.includes(c))))
-                        && (anyCodes === null || anyCodes.some((c) => perms.includes(c)))
+                    //
+                    // 【NAV-REG-1:这里不再自己求值】上面那段推理为什么成立,原样保留 ——
+                    // 但那三行判断已经【搬进 lib/modules.ts 的 allows()】,全站唯一一处。
+                    // 这一段的历史本身就是理由:库里与首页各写了一份同样的规则,
+                    // 库里加了放宽而首页没加,于是屏幕对着一个拿得到行的人说「受限」。
+                    // 两份实现迟早各错一次 —— 所以现在只有一份,牌子与注册表共用它。
+                    // 下面三行只是把牌子的字段【摆成】谓词的形状,不是第二次求值。
+                    const spec: PermissionSpec = {
+                        all: [tile.permission],
+                        any: 'permissionAny' in tile ? (tile.permissionAny as readonly string[]) : undefined,
+                        widen: 'permissionWiden' in tile ? (tile.permissionWiden as readonly string[]) : undefined,
+                    }
+                    const allowed = allows(spec, perms)
                     const mine = byType.get(tile.itemType) ?? []
                     const oldest = mine.length
                         ? mine.reduce((a, r) => (r.item_date < a ? r.item_date : a), mine[0].item_date)
@@ -459,7 +473,7 @@ export default async function Home() {
 
             {/* 月结枢纽入口:纯链接、不复制信号(信号归 /finance/month-end 自己)。
                 没有数字可遮,所以无权时按 OPS-15 的方式【不渲染】而不是画「受限」。 */}
-            {perms.includes('module.finance.view') && (
+            {allows('module.finance.view', perms) && (
                 <div className="mb-8">
                     <Link
                         href="/finance/month-end"

@@ -82,6 +82,12 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
     -- 财务拥有的是事后那条链(sales_records / invoices / AR)。
     ('module.sales.view', 'module', 'Sales orders (view)', '销售订单(查看)', 'Sales orders — read only', '销售订单 —— 只读', 132),
     ('module.sales.edit', 'module', 'Sales orders (edit)', '销售订单(编辑)', 'Sales orders — create, confirm, cancel, issue', '销售订单 —— 新建、确认、作废、签发', 133),
+    -- NAV-REG-1 / R2:物流终于有自己的码。在这之前它借 module.purchasing.view,
+    -- 而实测的受害者是 operations / warehouse / sales —— 搬货的人看不见物流。
+    -- 【没有配套的 .edit】八张物流表的写策略仍然是 module.purchasing.edit,
+    -- 而持有它的四个角色全都被授予了本码,所以不存在"改得动、读不回"的倒挂;
+    -- 铸一个没有任何策略引用的码,就是铸一个死码。
+    ('module.logistics.view', 'module', 'Logistics (view)', '物流(查看)', 'Forwarders, lanes, rate quotes, containers and shipping documents — read only', '货代、航段、报价、集装箱与随船单据 —— 只读', 140),
     ('data.view_prices', 'data', 'View prices & costs', '查看价格与成本', 'Unit prices, pricing formulas, costs and margins', '单价、计价公式、成本与利润', 200),
     ('data.view_pay', 'data', 'View pay', '查看薪酬', 'Salary, CPF and payroll figures', '工资、公积金与薪资明细', 210),
     ('data.view_identity', 'data', 'View identity data', '查看身份信息', 'Identity numbers and work pass numbers', '身份证件号与工作准证号', 220),

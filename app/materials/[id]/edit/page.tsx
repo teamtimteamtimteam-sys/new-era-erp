@@ -10,7 +10,7 @@ import AttachmentsPanel from './AttachmentsPanel'
 import RequiredMetalsPanel from './RequiredMetalsPanel'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
-import { canEnterModule } from '@/lib/moduleAccess'
+import { canEnter } from '@/lib/moduleAccess'
 import { mustRows } from '@/lib/db-helpers'
 import { MOD } from '@/lib/modules'
 import { loadSubstances, toOptions } from '@/app/metal-prices/substanceQuery'
@@ -69,7 +69,7 @@ export default async function EditMaterialPage({
     const requiredMetals = mustRows(requiredRes, 'material_required_metals').map((r) => r.metal)
     // 改这件事要 module.materials.edit(与 ASY-P1 的函数同一个码)——
     // 没有就渲染成只读,而不是摆一个必然被拒的保存钮。
-    const canEditMaterials = await canEnterModule('module.materials.edit')
+    const canEditMaterials = await canEnter('module.materials.edit')
 
     // 在服务端按当前语言格式化时间,再传给客户端面板 —— 避免客户端 toLocaleString 引发水合不一致
     const attachments = (attachmentRows ?? []).map((a) => ({

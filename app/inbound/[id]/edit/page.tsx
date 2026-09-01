@@ -32,6 +32,7 @@ import { mustRows, mustOne } from '@/lib/db-helpers'
 import { loadMaterialAxes } from '@/app/inbound/intakeConditionQuery'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { canEnter } from '@/lib/moduleAccess'
 import { loadSubstanceLabels, toOptions } from '@/app/metal-prices/substanceQuery'
 import DiscrepancyKinds, {
     type DiscrepancyRow as GrnRow,
@@ -395,7 +396,8 @@ export default async function EditInboundPage({
     // 这一页、却从视图读到 0 行。少了这个判据,上面那句 notInView(「这不该发生」)
     // 会【对着两个真实角色天天说一句吓人的假话】—— 而真相只是"订量在另一道门后面"。
     // 这正是 lib/permissions.ts 存在的全部理由:null 已经有别的意思了。
-    const canSeeOrderedQty = await can(MOD.purchasing.permission)
+    // NAV-REG-1:同上 —— 判据取自注册表,求值走唯一的 allows()。
+    const canSeeOrderedQty = await canEnter(MOD.purchasing.permission)
 
     // 本批在进行中盘点里的已录实点数(有则预填横幅)
     const openStocktake = stocktakeRes.data?.[0] ?? null

@@ -10,8 +10,17 @@
 // 视图 deleted_records 每支自带 permission 列,外层 has_permission 按调用者裁决,
 // 于是【无权的那一类整类缺席】—— 不是显示成零。这是 /margin 那一课:
 // 为跨模块页面合成一个新权限码,会是"谁能看什么"的第二份定义。
-// 本页因此【不做 requireModule】:它不属于任何一个模块,它属于所有模块的交集,
-// 而那个交集由每一行自己回答。一个模块都没有的人看到的是那句具名的空状态。
+// 本页因此【不做 requireModule】:它不属于任何一个模块,它属于【好几个】模块。
+//
+// 【NAV-REG-1:那句"好几个"现在写得下来了】lib/modules.ts 的 FN.deleted 声明了
+// 六个属主模块与一个谓词(六个码任一),而那六个码正是视图每一行自带的那个
+// permission —— 这里【不新造码】,只是把并集写成一个表达式。
+// 【为什么现在要把关,而从前不把】从前不把关的理由是"藏错的代价比露错的大":
+// 加一道守卫就意味着一个模块都没有的人【看不见这个入口】。R4 之后那个代价没有了 ——
+// 导航条把进不去的项画成「受限」而不是藏起来。于是剩下的只有好处:一个模块都没有的
+// 人看到的不再是一张空表(与"没人删过东西"分不清),而是一句权限答复。
+// 【行一级的过滤一字未动】进来之后看得见哪几类,仍然由每一行自己的 has_permission
+// 决定 —— 本守卫只回答"这一页对你有没有意义",不回答"你看得见哪几行"。
 //
 // 【永不提供恢复】撤销删除是一个没有人做过的决定 —— 台账上已经有一条注销流水、
 // 回滚的投入已经还回去了。这里放一个按钮等于替所有人默默把那个决定做了。
@@ -23,6 +32,8 @@ import { mustRows } from '@/lib/db-helpers'
 import { formatTimestamp } from '@/lib/format'
 import { isYmd } from '@/lib/dateFilter'
 import ActorName, { loadActorNames } from '@/app/components/ActorName'
+import { requireFunction } from '@/app/components/moduleGuard'
+import { FN } from '@/lib/modules'
 
 type Row = {
     record_kind: string
@@ -55,6 +66,9 @@ export default async function DeletedRecordsPage({
 }: {
     searchParams: Promise<{ kind?: string; from?: string; to?: string }>
 }) {
+    const denied = await requireFunction(FN.deleted)
+    if (denied) return denied
+
     const sp = await searchParams
     const supabase = await createClient()
     const t = await getTranslations()

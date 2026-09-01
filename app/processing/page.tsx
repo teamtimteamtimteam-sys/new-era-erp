@@ -15,6 +15,7 @@ import {
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { getFunctionAccess } from '@/lib/moduleAccess'
 import Subnav from './Subnav'
 
 export default async function ProcessingPage({
@@ -109,12 +110,27 @@ export default async function ProcessingPage({
             <div className="flex items-center justify-between mb-4">
                 <h1 className="text-2xl font-bold">{t('processing.listTitle')}</h1>
                 <div className="flex items-center gap-3">
-                    {/* 批次毛利跨两个模块(收入在财务、分摊成本在加工),所以它不在任何
-                        模块的子导航里,而是两边各给一个入口 —— 加工这侧没有子导航,
-                        入口就放在这里。页面自己用 requireAnyModule 把关。 */}
-                    <Link href="/margin" className="text-sm text-blue-600 hover:underline">
-                        {t('margin.title')}
-                    </Link>
+                    {/* 【加工模块名下的跨模块功能】NAV-REG-1:这里从前是一个手写的
+                        <Link href="/margin">,与权限之间没有任何东西保证同步。
+                        现在整条来自注册表 —— 地址、标签、以及"这个人进不进得去"
+                        都是 FN.margin 那一条,而 /margin 自己的守卫读的是同一条。
+                        加工这侧没有子导航,所以入口仍然放在页头(位置一字未动)。 */}
+                    {(await getFunctionAccess('/processing')).map(({ fn, allowed }) =>
+                        allowed ? (
+                            <Link key={fn.href} href={fn.href} className="text-sm text-blue-600 hover:underline">
+                                {t(fn.navKey)}
+                            </Link>
+                        ) : (
+                            <span
+                                key={fn.href}
+                                data-module-restricted="1"
+                                title={t('dashboard.restrictedHint')}
+                                className="text-sm text-gray-400 cursor-default"
+                            >
+                                {t(fn.navKey)} · {t('common.restricted')}
+                            </span>
+                        ),
+                    )}
                     <Link
                         href="/processing/new"
                         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"

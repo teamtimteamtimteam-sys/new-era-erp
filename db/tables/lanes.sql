@@ -24,7 +24,7 @@ COMMENT ON COLUMN public.lanes.checklist_reviewed_at IS
 
 ALTER TABLE public.lanes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "lanes select" ON public.lanes
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.purchasing.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.logistics.view'::text));
 CREATE POLICY "lanes write" ON public.lanes
     AS PERMISSIVE FOR ALL TO authenticated
     USING (has_permission('module.purchasing.edit'::text))

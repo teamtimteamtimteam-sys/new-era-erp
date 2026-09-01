@@ -5,9 +5,13 @@
 // 【为什么在 /margin 而不是 /finance/... 或 /processing/...】它【跨两个模块】:收入在
 // 财务,分摊成本在加工,而没有任何 live 角色同时持有两个模块。挂进任一模块的路由树,
 // 就会被那个模块的 requireModule 挡掉另一半读者 —— 于是它在两边各有一个入口(财务
-// 子导航、加工列表页页头),页面自己用 requireAnyModule 把关,与
-// db/views/batch_margin.sql 的 OR 谓词同形。moduleForPath 对本路由返回 null:
-// 它【不受模块目录管辖】,与 /me、/my-reviews 同一类。
+// 子导航、加工列表页页头)。
+//
+// 【NAV-REG-1:这两个入口不再是手写的】本页现在在 lib/modules.ts 的 FUNCTIONS 里
+// 声明自己【同属 /finance 与 /processing 两个模块】,两处入口都由那份声明派生,
+// 把关也用同一个谓词(与 db/views/batch_margin.sql 的 OR 同形)。
+// 从前这里写着"moduleForPath 对本路由返回 null" —— 那个函数【一个调用者都没有】,
+// 已随本刀删除。
 //
 // 【本页不算账】数字全部来自 db 的 batch_margin。三个限定词【跟着每一行走】,
 // 不是页脚的一句说明:
@@ -27,8 +31,8 @@ import { getBaseCurrency } from '@/lib/currency'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatMoneyBare } from '@/lib/format'
 import { mustRows } from '@/lib/db-helpers'
-import { requireAnyModule, requireDataClass } from '@/app/components/moduleGuard'
-import { MOD } from '@/lib/modules'
+import { requireFunction } from '@/app/components/moduleGuard'
+import { FN } from '@/lib/modules'
 
 type MarginRow = {
     output_batch_id: string
@@ -49,15 +53,14 @@ type MarginRow = {
 }
 
 export default async function MarginPage() {
-    // 【任一模块】—— 单模块把关会对它该服务的两拨人各挡掉一拨。见文件头。
-    const denied = await requireAnyModule([MOD.finance, MOD.processing])
+    // 【一次把关,判据在注册表里】NAV-REG-1:本页从前在这里写两道守卫
+    //   requireAnyModule([MOD.finance, MOD.processing]) + requireDataClass('data.view_prices')
+    // —— 也就是把 data.view_prices AND (finance OR processing) 这个谓词【抄了一遍】。
+    // 现在那份判据只有一处:lib/modules.ts 的 FN.margin.permission,财务子导航与加工
+    // 页头的入口用的是同一个表达式。两句拒绝的措辞与先后【一字未改】,它们现在由
+    // 谓词的两半推出来(见 requireFunction)。
+    const denied = await requireFunction(FN.margin)
     if (denied) return denied
-
-    // 【模块之后还有数据类】视图的谓词是 data.view_prices AND (finance OR processing);
-    // 只查模块的话,持 processing 而无 view_prices 的读者会过关然后读到零行 ——
-    // 屏幕上是一张空表,与"没有可算毛利的批次"分不开。live 的 operations 正是这个处境。
-    const priceDenied = await requireDataClass('data.view_prices', 'margin.title')
-    if (priceDenied) return priceDenied
 
     const supabase = await createClient()
     const baseCurrency = await getBaseCurrency()

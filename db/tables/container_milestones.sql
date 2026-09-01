@@ -37,7 +37,7 @@ CREATE TRIGGER trg_container_milestones_append_only
 
 ALTER TABLE public.container_milestones ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "container_milestones select" ON public.container_milestones
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.purchasing.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.logistics.view'::text));
 CREATE POLICY "container_milestones insert" ON public.container_milestones
     AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK (has_permission('module.purchasing.edit'::text));
 

@@ -69,7 +69,8 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'module.purchasing.edit', 'module.purchasing.view', 'module.stocktakes.edit',
         'module.stocktakes.view', 'module.suppliers.edit', 'module.suppliers.view',
         'module.tasks.edit', 'module.tasks.view',
-        'module.sales.edit', 'module.sales.view') WHERE r.code = 'admin';
+        'module.sales.edit', 'module.sales.view',
+        'module.logistics.view') WHERE r.code = 'admin';
 
 -- gm(30):看得见整个生意,包括成本与利润;【但不能改权限】—— 没有 action.manage_permissions。
 INSERT INTO public.role_permissions (role_id, permission_code)
@@ -84,7 +85,8 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'module.purchasing.view', 'module.stocktakes.edit', 'module.stocktakes.view',
         'module.suppliers.edit', 'module.suppliers.view', 'module.tasks.edit',
         'module.tasks.view',
-        'module.sales.edit', 'module.sales.view') WHERE r.code = 'gm';
+        'module.sales.edit', 'module.sales.view',
+        'module.logistics.view') WHERE r.code = 'gm';
 
 -- finance(23):总账、应付应收、开票收付款 + 全部成本可见。【不含 HR】—— 薪酬与员工档案不是财务的工作对象。
 INSERT INTO public.role_permissions (role_id, permission_code)
@@ -96,7 +98,7 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'module.output.edit', 'module.output.view', 'module.pricing.edit',
         'module.pricing.view', 'module.purchasing.edit', 'module.purchasing.view',
         'module.suppliers.edit', 'module.suppliers.view', 'module.tasks.edit',
-        'module.tasks.view'
+        'module.tasks.view', 'module.logistics.view'
 ) WHERE r.code = 'finance';
 
 -- procurement(14):议价、下采购单,看得见价格。【完全没有 finance】—— 定价的人不能同时把钱付出去(不相容职务分离)。
@@ -106,7 +108,7 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'module.inventory.view', 'module.materials.edit', 'module.materials.view',
         'module.pricing.edit', 'module.pricing.view', 'module.purchasing.edit',
         'module.purchasing.view', 'module.suppliers.edit', 'module.suppliers.view',
-        'module.tasks.edit', 'module.tasks.view'
+        'module.tasks.edit', 'module.tasks.view', 'module.logistics.view'
 ) WHERE r.code = 'procurement';
 
 -- sales(13):客户、产出批次与销售。【开票归财务】,所以没有 finance。
@@ -116,7 +118,8 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'module.inventory.edit', 'module.inventory.view', 'module.materials.view',
         'module.output.edit', 'module.output.view', 'module.pricing.edit',
         'module.pricing.view', 'module.tasks.edit', 'module.tasks.view',
-        'module.sales.edit', 'module.sales.view') WHERE r.code = 'sales';
+        'module.sales.edit', 'module.sales.view',
+        'module.logistics.view') WHERE r.code = 'sales';
 
 -- operations(14):加工、库存、盘点:管数量、产出与回收率。【不给 data.view_prices】—— 少一个人看得见成本就少一处泄露。
 INSERT INTO public.role_permissions (role_id, permission_code)
@@ -125,7 +128,7 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'module.inventory.view', 'module.materials.edit', 'module.materials.view',
         'module.output.edit', 'module.output.view', 'module.processing.edit',
         'module.processing.view', 'module.stocktakes.edit', 'module.stocktakes.view',
-        'module.tasks.edit', 'module.tasks.view'
+        'module.tasks.edit', 'module.tasks.view', 'module.logistics.view'
 ) WHERE r.code = 'operations';
 
 -- warehouse(10):现场收货、产出、盘点。【不给任何数据类权限】—— 过磅的人不需要看见价格,也不需要看见别人的身份信息。
@@ -134,7 +137,7 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'module.inbound.edit', 'module.inbound.view', 'module.inventory.edit',
         'module.inventory.view', 'module.output.edit', 'module.output.view',
         'module.stocktakes.edit', 'module.stocktakes.view', 'module.tasks.edit',
-        'module.tasks.view'
+        'module.tasks.view', 'module.logistics.view'
 ) WHERE r.code = 'warehouse';
 
 -- hr(7):人力资源 + 薪酬 + 身份信息 + 绩效正文。这四类正是 HR 的工作对象,也正是别人不该看见的。
@@ -152,7 +155,19 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'module.materials.view', 'module.output.view', 'module.pricing.view',
         'module.processing.view', 'module.purchasing.view', 'module.stocktakes.view',
         'module.suppliers.view', 'module.tasks.view',
-        'module.sales.view') WHERE r.code = 'auditor';
+        'module.sales.view',
+        'module.logistics.view') WHERE r.code = 'auditor';
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- NAV-REG-1 / R2:module.logistics.view 授给了上面 8 个角色中的每一个。
+-- 【本文件里【没有】cfo 这个角色,而线上有(且它有一个真实用户)】—— 这份文件
+-- 自称是"全新安装的起点",不是线上的快照,而这正是那句话的证据。线上的授予由
+-- db/migrations/2026-09-01-navreg1-logistics-gets-its-own-code.sql 做,那一刀授了
+-- 9 个角色(这里的 8 个 + cfo),并在事务里断言了 9 这个数。
+-- 【判据:今天进得去物流的人,明天也要进得去】授予名单 = 今天持
+-- module.purchasing.view 的每一个角色(借来的那道门)+ Tim 点名的
+-- operations / warehouse / sales。对三个角色是扩大,对任何人都不是缩小。
+-- ═══════════════════════════════════════════════════════════════════════════
 
 -- employee:【一个模块权限都不给】—— 员工自助是行级的,靠 current_user_employee()
 -- 限定到本人相关的行。给模块权限反而会把整张表打开。

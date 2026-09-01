@@ -24,7 +24,7 @@ import StocktakeQuickCount from '@/app/stocktakes/StocktakeQuickCount'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
-import { MOD } from '@/lib/modules'
+import { MOD, FN } from '@/lib/modules'
 import { loadSubstanceLabels, toOptions } from '@/app/metal-prices/substanceQuery'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
@@ -403,7 +403,16 @@ export default async function EditOutputPage({
                             </p>
                         )}
                         <p className="text-xs text-gray-500 pt-1">
-                            <Link href="/margin" className="text-blue-600 hover:underline">
+                            {/* 【地址来自注册表】NAV-REG-1:这一条是【上下文交叉引用】,
+                                不是产出模块名下的入口 —— 措辞("查看全部批次毛利")
+                                是这一处的话,所以标签不从注册表取。
+                                【可见性已经是同一个谓词】本块只在 marginRow 存在时渲染,
+                                而 batch_margin 自己的 SQL 谓词就是 FN.margin.permission
+                                (data.view_prices AND (finance OR processing))——
+                                也就是说这个链接出现的条件与注册表判据同源,只是由
+                                数据库那一侧执行。写死的 /margin 换成 FN.margin.href,
+                                地址就再也不会与注册表分家。 */}
+                            <Link href={FN.margin.href} className="text-blue-600 hover:underline">
                                 {t('output.margin.allBatches')}
                             </Link>
                         </p>

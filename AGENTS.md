@@ -1025,7 +1025,7 @@ the subject can be absent and later become known, and its fixture arms cover *bo
 > which is precisely why the two arms that used it worked and the two that needed RLS
 > did not. Same shape as FIN-30's vacuous third arm.
 
-## Three standing decisions about what the permission model actually protects
+## Four standing decisions about what the permission model actually protects
 
 Tim's calls, recorded here rather than re-argued each time a screen needs a number.
 
@@ -1058,6 +1058,27 @@ Revenue lives behind finance, allocated cost behind processing, and **no live ro
 holds both** — probed: the `finance` role sees 4 revenue rows and **zero** cost rows,
 so the number Doc 2 calls the one the business most needs is invisible to the role
 whose job it is. The `OR` is the point.
+
+### 4 · 「谁能看见什么」只有【一个求值器】,而进不去要【说出来】(NAV-REG-1,2026-09-01)
+
+Tim 的 R1 与 D5,落在 `lib/modules.ts`。细节见 `docs/nav-registry.md`;这里只留必须
+先知道的三条:
+
+* **求值只在 `lib/modules.ts` 的 `allows(spec, perms)` 里。** 任何别的地方拿权限码去
+  比对一份权限清单,`npm run build` 会红(`scripts/check-permission-predicate.mjs`)。
+  单码判断走 `lib/permissions.ts` 的 `can()`,它是 `allows()` 字符串分支的同义写法。
+  **理由是实测的**:EQP-2d 之前库里与首页各有一份判断,库里加了放宽而首页没跟上,
+  于是一个【拿得到行】的读者在屏幕上看见「受限」。一条规则两个实现,迟早各错一次。
+* **谓词的形状不许再造第四种方言**:`(all 全有 OR widen 任一) AND (any 未声明 OR any 任一)`
+  —— 与库里的 `arm_permission_any` / `arm_permission_widen` 逐字同形。
+  `any` 收窄、`widen` 放宽,两个名字很像而方向相反。
+* **一个功能可以属于好几个模块**:在 `FUNCTIONS` 里声明 `modules: [...]` 与【一份】
+  `permission`,属主模块的界面用 `getFunctionAccess(模块 href)` 画入口,页面用
+  `requireFunction(FN.x)` 把关 —— **注册表是权威的,页面靠不表达来服从**。
+  在每个属主模块的页面里手写一个 `<Link>`,正是本条要排除的东西。
+* **进不去的模块渲染成「受限」,不是消失。** `getModuleAccess()` 返回【全部】模块 +
+  `allowed`,不过滤。措辞固定用 `common.restricted` + `dashboard.restrictedHint`。
+  下一个读到这里的人:**不要把过滤加回来** —— 返回全部不是遗漏,是这条决定本身。
 
 ### 3 · A master-data display LABEL follows the document, not the module
 

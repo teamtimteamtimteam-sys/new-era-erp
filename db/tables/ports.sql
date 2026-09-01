@@ -17,7 +17,7 @@ country 与 suppliers.country 一样是【自由文本】:本仓库没有国家�
 
 ALTER TABLE public.ports ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "ports select" ON public.ports
-    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.purchasing.view'::text));
+    AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.logistics.view'::text));
 CREATE POLICY "ports write" ON public.ports
     AS PERMISSIVE FOR ALL TO authenticated
     USING (has_permission('module.purchasing.edit'::text))

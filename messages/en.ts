@@ -463,53 +463,22 @@ const en = {
         deleted: 'Deleted records',
         logout: 'Log out',
     },
+    // OPS-18 之后首页【不再渲染模块卡片】(它换成了运营看板),所以模块的
+    // 卡片标题与说明整批不再有读者 —— NAV-REG-1 随 lib/modules.ts 的
+    // titleKey / descKey / section / SECTIONS 一并删除。
+    // 这里从前还留着一句注释说"任务板 section: null,键仍需存在" —— 那个字段
+    // 已经不存在了,而一句描述死字段的注释比死字段本身更能骗到下一个人。
+    // 【留下的这几条都有活的读者】subtitle / noModules* 是首页自己的,
+    // sectionSelf 与 me* / myReviews* 是 app/page.tsx 的 SELF_CARDS。
     home: {
-        logisticsTitle: 'Logistics',
-        logisticsDesc: 'Forwarders, lanes, rate quotes and the document checklist each lane needs.',
-        salesTitle: 'Sales orders',
-        salesDesc: 'Customer orders — the commitment, before anything ships or is invoiced.',
         subtitle: 'Lithium Battery Recycling ERP',
         noModules: 'You do not yet have access to any module.',
         noModulesHint: 'Your account is signed in but no module has been granted to it. Ask an administrator to assign you a role.',
-        sectionMasterData: 'Master Data',
-        sectionOperations: 'Operations',
-        sectionReports: 'Reports',
-        // 「我的」分组:不受模块权限管辖,人人可见(app/page.tsx 里无条件渲染)。
         sectionSelf: 'Mine',
         meTitle: 'My Profile',
         meDesc: 'Your own record, leave balance and claims',
         myReviewsTitle: 'My Reviews',
         myReviewsDesc: 'Performance reviews where you are the reviewer',
-        suppliersTitle: 'Suppliers',
-        suppliersDesc: 'Supplier master data',
-        customersTitle: 'Customers',
-        customersDesc: 'Customer master data',
-        materialsTitle: 'Materials',
-        materialsDesc: 'Material dictionary',
-        pricingTitle: 'Pricing',
-        pricingDesc: 'Formulas, calculator and metal prices',
-        metalPricesTitle: 'Metal Prices',
-        metalPricesDesc: 'Metal price reference (USD/t)',
-        inboundTitle: 'Inbound Batches',
-        inboundDesc: 'Inbound batch ledger',
-        outputTitle: 'Output Batches',
-        outputDesc: 'Output batch ledger',
-        processingTitle: 'Processing',
-        processingDesc: 'Processing runs & traceability',
-        stocktakesTitle: 'Stocktakes',
-        stocktakesDesc: 'Physical counting & stock reconciliation',
-        inventoryTitle: 'Inventory & Balance',
-        inventoryDesc: 'Inventory summary & material balance',
-        financeTitle: 'Finance',
-        financeDesc: 'Trial balance, journal & period control',
-        hrTitle: 'HR',
-        hrDesc: 'Employees, payroll, training and expiry alerts',
-        purchasingTitle: 'Purchasing',
-        purchasingDesc: 'Purchase orders, payment schedules & prepayments',
-        // 任务板只进导航、不出首页卡片(lib/modules.ts 里 section: null)。键仍需存在:
-        // check-i18n 扫描 titleKey/descKey 这类字面量,不看它最终有没有被渲染。
-        tasksTitle: 'Tasks',
-        tasksDesc: 'Personal task board',
     },
     // OPS-18:运营看板。dashboard.item.* 的后缀集合 = db/views/operations_now.sql 里
     // item_type 的字面量集合(check-i18n MANIFEST 现读那个文件,加一支自动变宽)。
@@ -5184,7 +5153,6 @@ const en = {
             close: 'Close',
             monthEnd: 'Month-end',
             payrollPay: 'Salary payments',
-            margin: 'Batch Margin',
             costSettle: 'Cost settlement',
             reval: 'Revaluation',
             variance: 'Cost variance',
