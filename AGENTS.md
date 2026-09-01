@@ -165,6 +165,15 @@ python3 db/gate.py        # ~4 min measured, no large payloads over the network
 > The range still reads two to six minutes with a fat tail; nobody should
 > "optimise" this gate.
 >
+> **Re-measured (AUDIT-1, 2026-09-01): 181 fixtures in 461s.** Twice the fixture
+> count of the FIX-1 line above and 3.5× its wall clock — but read it against the
+> *same-era* runs, not against August: the GRN-1a/GRN-1b pair proved 3× swings at
+> an identical fixture count on this machine. 461s sits just under the 483s record
+> and inside the fat tail, so **the honest reading is still "two to six minutes,
+> occasionally worse", now measured at roughly double the fixtures.** One
+> measurement, dated, not averaged. What would change the reading is a run of slow
+> measurements at this count, not this one.
+>
 > **Re-measured (FIX-1, 2026-08-18): 91 fixtures — four more than the pair
 > above — in 133s.** That is the **fastest run yet recorded at the highest
 > fixture count yet**: +4 fixtures against GRN-1b's 87, and 22s *faster*. It is

@@ -17330,6 +17330,45 @@ export type Database = {
           },
         ]
       }
+      batch_audit_trail: {
+        Row: {
+          actor_id: string | null
+          actor_space: string | null
+          batch_id: string | null
+          batch_kind: string | null
+          business_date: string | null
+          detail: Json | null
+          event_kind: string | null
+          href: string | null
+          may_view: boolean | null
+          module_code: string | null
+          occurred_at: string | null
+          seams: string[] | null
+          source_code: string | null
+          source_id: string | null
+          source_table: string | null
+        }
+        Relationships: []
+      }
+      batch_audit_trail_all: {
+        Row: {
+          actor_id: string | null
+          actor_space: string | null
+          batch_id: string | null
+          batch_kind: string | null
+          business_date: string | null
+          detail: Json | null
+          event_kind: string | null
+          href: string | null
+          module_code: string | null
+          occurred_at: string | null
+          seams: string[] | null
+          source_code: string | null
+          source_id: string | null
+          source_table: string | null
+        }
+        Relationships: []
+      }
       batch_lineage: {
         Row: {
           depth: number | null

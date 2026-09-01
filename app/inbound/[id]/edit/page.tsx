@@ -14,6 +14,8 @@ import { priceBatchHref } from '@/app/components/metals/priceBatchHref'
 import type { MetalContentRow } from '@/app/components/metals/metalContentTypes'
 import { saveInboundMetal, deleteInboundMetal } from '@/app/components/metals/metalContentActions'
 import MovementTimeline from '@/app/components/inventory/MovementTimeline'
+import BatchAuditTrail from '@/app/components/audit/BatchAuditTrail'
+import { loadBatchAuditTrail } from '@/app/components/audit/auditTrailQuery'
 import StockStatusPanel from '@/app/components/inventory/StockStatusPanel'
 import type { MovementRow } from '@/app/components/inventory/movementTypes'
 import StocktakeQuickCount from '@/app/stocktakes/StocktakeQuickCount'
@@ -465,6 +467,10 @@ export default async function EditInboundPage({
         run: m.processing_runs,
     }))
 
+    // AUDIT-1:跨模块审计轨迹。读【外层】视图 batch_audit_trail ——
+    // 判据在那一层,内层 batch_audit_trail_all 不授权给任何人(AUD-1 的拆法)。
+    const auditRows = await loadBatchAuditTrail('inbound', id)
+
     return (
         <div className="p-4 sm:p-8 max-w-2xl">
             <div className="mb-6">
@@ -681,6 +687,11 @@ export default async function EditInboundPage({
             <StockStatusPanel inboundBatchId={id} unit={batch.unit} />
 
             <MovementTimeline rows={movementRows} unit={batch.unit} />
+
+            {/* AUDIT-1:跨模块审计轨迹。它与上面的流水不是一件事 ——
+                流水只答库存那一段,这一条把收货、加工、成本、销售、分录
+                串成【一条】时间线,并把跟不动的每一跳画在行里。 */}
+            <BatchAuditTrail rows={auditRows} />
         </div>
     )
 }

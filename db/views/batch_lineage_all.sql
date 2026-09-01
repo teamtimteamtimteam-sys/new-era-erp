@@ -59,3 +59,16 @@ CREATE VIEW public.batch_lineage_all AS
 
 COMMENT ON VIEW public.batch_lineage_all IS
     'AUD-1:batch_lineage 的【无判据基视图】。属主权限替得了表的权限,替不了体内 has_permission(它按调用者解析)—— 所以要让一个只持 module.sales.view 的读者经由 traceability_report_data 读到血缘,判据必须挪到外层,内层留这一张(先例 stock_class_violations_all)。【不授权给任何人】,靠够不着把关;对外读 batch_lineage。';
+
+-- ★【AUDIT-1(2026-09-01)补上的一句,而它此前是【只在迁移里】的】★
+-- `2026-08-17-aud1-traceability-report.sql` 里有
+--     REVOKE ALL ON public.batch_lineage_all FROM authenticated, anon;
+-- 但那一句【没有跟进镜像】。重建走的是镜像,而 Supabase 在 public 上的
+-- DEFAULT PRIVILEGES 会给每一张新建关系自动带上 anon/authenticated 的全部权限。
+-- 于是:**线上收着,重建出来的库开着** —— 抬头那句「不授权给任何人」在重建里是假的。
+--
+-- 【为什么一直没人发现】check_mirrors.py 自己写着(第 59 行):**「不比 GRANT」**。
+-- 所以这类漂移【没有任何检查会说话】—— 它不是被漏看,是没有人在看。
+-- 由 AUDIT-1 的 fixture 183G 在自己身上撞到同一件事之后,顺手查出来的。
+-- 本行只改镜像(让重建与线上一致),线上权限一个字没动。
+REVOKE ALL ON public.batch_lineage_all FROM authenticated, anon;

@@ -516,6 +516,17 @@ const MANIFEST = {
     'materials.attachments.cat.': { kind: 'enum', values: () => tsArray('app/materials/[id]/edit/AttachmentsPanel.tsx', 'DOC_CATEGORIES') },
     // ── inventory / pricing / inbound / output / processing ─────────────────
     'movements.type.':      { kind: 'enum', values: () => sqlEnum('db/tables/inventory_movements.sql', 'movement_type') },
+    // AUDIT-1:审计轨迹的【事件种类】与【接缝】。真源是那两张视图的镜像本身,
+    // 不是任何一张需要有人记得更新的清单 —— 加一支臂或加一种接缝,本检查自动
+    // 跟着变宽,漏了译文当场红,而不是在屏幕上印出 auditTrail.kind.xxx。
+    // 【接缝要读两张】:九种标在内层基视图里,而 amount_restricted 与
+    // actor_unresolvable 是【外层】按调用者权限现算的,只出现在外层那一张。
+    // 只读内层会漏掉恰恰是权限相关的那两种。
+    'auditTrail.kind.':     { kind: 'enum', values: () => sqlLiteralAs('db/views/batch_audit_trail_all.sql', 'event_kind') },
+    'auditTrail.seam.':     { kind: 'enum', values: () => [...new Set([
+                                  ...tsRegex('db/views/batch_audit_trail_all.sql', /ARRAY\['(\w+)'::text\]/g),
+                                  ...tsRegex('db/views/batch_audit_trail.sql', /ARRAY\['(\w+)'::text\]/g),
+                              ])] },
     // SO-2:流水的【桶】。与 movements.type. 同一张表、同一种读法 —— 往
     // stock_status 的 CHECK 里加一个值,这条检查自动跟着变宽(第四个桶落地
     // 那天,漏了译文会当场红,而不是在屏幕上印出 movements.bucket.xxx)。
