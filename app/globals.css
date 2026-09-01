@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* BRAND-1(2026-09-02):品牌 token。【只新增 --brand-* 名字,不动下面任何一行】——
+   理由与三条硬规矩写在那个文件的抬头里。 */
+@import "./brand-tokens.css";
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

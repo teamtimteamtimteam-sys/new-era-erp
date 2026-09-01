@@ -62,8 +62,19 @@ const ANON = env.match(/NEXT_PUBLIC_SUPABASE_ANON_KEY=(\S+)/)[1]
 const SERVICE = env.match(/SUPABASE_SERVICE_ROLE_KEY=(\S+)/)[1]
 
 // ── 路由枚举 ────────────────────────────────────────────────────────────────
+// 【BRAND-1(2026-09-02):一条【具名】排除,不是 EXPECTED_SKIPS】
+// app/brand-sampler/ 是给 Tim 挑样式的临时页:不在导航里、不连数据库、
+// 用完即删。它不该进冒烟的路由清单。
+// 【为什么不写进 EXPECTED_SKIPS】那一栏的含义是「这条路由的表里今天没有数据」,
+// 而且它的漂移断言会在有数据的那天响,逼人把它删掉。用在这里是【一句假话】:
+// sampler 不是没有数据,它是根本不属于这套系统。把一件"故意不测"的事
+// 记成一件"暂时没数据"的事,下一个读清单的人会得到一个错的印象。
+// 【删除 sampler 时,把这三行一起删掉。】
+const SMOKE_EXCLUDED_DIRS = new Set(['brand-sampler'])
+
 function* walk(dir) {
     for (const name of readdirSync(dir)) {
+        if (SMOKE_EXCLUDED_DIRS.has(name)) continue
         const p = join(dir, name)
         if (statSync(p).isDirectory()) yield* walk(p)
         else if (name === 'page.tsx' || name === 'route.ts') yield p

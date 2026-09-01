@@ -1,0 +1,170 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   BRAND-1(2026-09-02)· EVoltrya 品牌 token
+   来源:官方 mini brand guide《EVoltrya-MiniBrandGuide-260818.pdf》
+
+   ★ 这个文件里的每一个值分两类,【标注得清清楚楚】★
+     【指南】= 品牌指南白纸黑字给的值,一个字节都没动;
+     【推导】= 指南【没有给】、而组件又非要不可的值(边框灰、hover、禁用、
+              危险红)。每一条都写明【从哪个指南值、用什么算法推出来的】。
+   这正是本仓库对数据的那条老规矩 —— 【实说的】与【推断的】必须分得开 ——
+   套用到颜色上。不许有第三类:凭感觉挑的十六进制。
+
+   ★★ 这个文件【不改变任何已上线页面的样子】,而且这一点是【构造上成立】的 ★★
+   BRAND-1 之前量过:全仓库组件里 `var(--` 出现 **0 次**。
+   也就是说【没有任何一处代码读这些自定义属性】,于是往 :root 上新增一个属性
+   在渲染上必然是【惰性的】—— 没人读的东西不可能改变任何东西的外观。
+   由此本文件遵守三条硬规矩,后来改它的人也必须遵守:
+     ① 只新增 `--brand-*` 前缀的名字;
+     ② `--background` / `--foreground` 两个老名字【逐字节不动】(它们在
+        globals.css 里,归 body 用,是 DARK-FIX-1 留下的);
+     ③ 【不写任何 `*` / `body` / `html` 选择器】。
+   ③ 是最要紧的一条:`shadcn init` 恰恰会写 `* { @apply border-border
+   outline-ring/50 }`,那一行会同时改掉全站的默认边框色与【焦点框颜色】,
+   而 FE-0 明确记着「浏览器默认焦点框完好」是这个前端为数不多的可及性资产。
+   详见 docs/brand-tokens.md「为什么不能跑 shadcn init」。
+
+   【没有深色模式,不要加】见 app/globals.css 里 DARK-FIX-1 那段注释与 R5。
+   本文件不生成任何深色变体。
+   ════════════════════════════════════════════════════════════════════════════ */
+
+:root {
+    /* ── 一、【指南】五个值 —— 逐字抄自 mini brand guide,不许近似 ──────────
+       Tim 提供的矢量图(public/brand/*.svg)已按这五个值做过色彩校正;
+       BRAND-1 抽样渲染后逐像素比对过,渲染出来的确实就是这些值。 */
+    --brand-ocean: #008EBC; /* 【指南】Pantone Hawaiian Ocean · 主色 */
+    --brand-forest: #6B8D54; /* 【指南】Pantone Forest Green   · 主色 */
+    --brand-bg: #F1F9FE; /* 【指南】BACKGROUND */
+    --brand-accent: #E1F5FF; /* 【指南】ACCENT */
+    --brand-text: #182B4B; /* 【指南】TEXT */
+
+    /* ── 二、【推导】填充色 —— 因为【指南的主色扛不动白字】 ────────────────
+       实测(WCAG 相对亮度):
+         白字 on #008EBC = 3.75:1     白字 on #6B8D54 = 3.77:1
+       正文级文字要 4.5:1。也就是说【直接拿指南主色当按钮底、上面印白字,
+       达不到 AA】。这不是我算错了,是品牌本身的性质,照直记在这里。
+       处置:主色本身【一个字节不动】,另推一档【专门用来当填充底】的值 ——
+       在 OKLCH 里保持色相 H 与彩度 C 不变,【只把明度 L 往下压到刚好够 4.5:1】
+       (二分到 0.0005 精度,压多少是算出来的,不是挑出来的)。
+       于是:文字/图标/描边用 --brand-ocean(指南值),按钮底用 --brand-ocean-fill。 */
+    --brand-ocean-fill: #007FAD; /* 【推导】ocean 压 L 0.606→0.558;白字 4.53:1 */
+    --brand-ocean-fill-hover: #00709D; /* 【推导】fill 再压 L 0.05 */
+    --brand-ocean-fill-active: #00618E; /* 【推导】fill 再压 L 0.10 */
+    --brand-forest-fill: #5E8047; /* 【推导】forest 压 L 0.603→0.559;白字 4.51:1 */
+    --brand-forest-fill-hover: #507139; /* 【推导】fill 再压 L 0.05 */
+    --brand-forest-fill-active: #42632B; /* 【推导】fill 再压 L 0.10 */
+
+    /* ── 三、【推导】危险色 —— 指南【没有给红色】 ──────────────────────────
+       不从别处借一个 Tailwind 红:那会是这套配色里唯一一个不属于它的颜色。
+       做法:取 --brand-ocean 的 OKLCH,【明度 L 与彩度 C 原样保留,只把色相 H
+       转到 27°(红)】。于是这个红与主色【视觉分量相等】—— 它是警告,不是
+       比品牌本身还响的东西。填充档同样压到白字 4.5:1。 */
+    --brand-destructive: #C0635A; /* 【推导】ocean 的 L/C + H=27°;文字/描边用 */
+    --brand-destructive-fill: #B75B53; /* 【推导】压到白字 4.53:1;按钮底用 */
+    --brand-destructive-fill-hover: #A64C45; /* 【推导】再压 L 0.05 */
+
+    /* ── 四、【推导】中性档 —— 指南只给了背景,没给卡片面、边框、次级文字 ──
+       全部由【指南的 TEXT 与 BACKGROUND 在 OKLab 里按比例插值】得出,
+       所以这几个灰【带着品牌的蓝底子】,不是 Tailwind 的中性灰。
+       比例写在每一行末尾,照着就能复算。 */
+    --brand-surface: #FFFFFF; /* 【推导】卡片面:指南给的是页面底 #F1F9FE,
+                                             浮在它上面的面用纯白,靠明度差分层 */
+    --brand-border: #CAD5E0; /* 【推导】mix(bg → text, 16%) */
+    --brand-border-strong: #AEBAC9; /* 【推导】mix(bg → text, 28%) */
+    --brand-muted: #E5EEF4; /* 【推导】mix(bg → text,  5%) 表头/条纹底 */
+    --brand-muted-text: #62738C; /* 【推导】mix(text → bg, 38%);on bg = 4.53:1 AA ✓ */
+
+    /* ── 五、【推导】禁用态 ────────────────────────────────────────────────
+       禁用文字 on bg = 2.35:1,【达不到 AA,而这是对的】:WCAG 1.4.3 明文把
+       「失效的界面组件」排除在对比度要求之外。写在这里是为了让下一个人知道
+       这是【一次明写的判断】,不是漏检。 */
+    --brand-disabled-bg: #DDE7EF; /* 【推导】mix(bg → text,  8%) */
+    --brand-disabled-text: #97A5B7; /* 【推导】mix(text → bg, 62%) */
+
+    /* ── 六、【推导】焦点环 ────────────────────────────────────────────────
+       用指南主色本身。【注意:这里只是【定义一个名字】,没有把它套到任何
+       元素上】—— 全站的浏览器默认焦点框仍然原样保留(FE-0 记着那是资产)。 */
+    --brand-ring: #008EBC; /* 【推导】= --brand-ocean */
+
+    /* ── 七、字体 ──────────────────────────────────────────────────────────
+       R2:产品字体是 Google Sans(指南里的 Arial 是给内部 Word 文档的)。
+       【本刀不把它套到 body 上】—— 那会一次改掉 187 个页面,违反 R3。
+       字体在 sampler 里按 next/font 局部加载并使用;这里只留一个名字,
+       等 Tim 在 sampler 里看过之后,再由【一次单独的、看得见的决定】切换全站。
+       中文不在 Google Sans 的 subset 里(25 个 subset,没有 chinese-simplified),
+       所以中文落到系统字体 —— 【今天本来就是这样】(body 现在是 Arial),
+       不是本刀造成的退化。详见 docs/brand-tokens.md「中文用什么字渲染」。 */
+    --brand-font-fallback: ui-sans-serif, system-ui, -apple-system, "PingFang SC",
+        "Microsoft YaHei", "Noto Sans SC", sans-serif;
+
+    /* ── 八、圆角 ──────────────────────────────────────────────────────────
+       指南【没有讲圆角】。这是一个产品决定,不是品牌事实,所以标【选定】
+       而不是【推导】—— 它没有可复算的出处,是 sampler 要让 Tim 挑的东西之一。 */
+    --brand-radius: 0.375rem; /* 【选定】6px;sampler 的三个变体会各自演示 */
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   BRAND-1 · shadcn/ui 接线层
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ★★★ 这一行【不是深色模式,恰恰相反:它是用来【拆掉】深色模式的】★★★
+   【删掉它,DARK-FIX-1 修好的那个 bug 会当场原地复活。】
+
+   为什么:vendored 进来的 9 个 shadcn 组件里带着 19 条 `dark:` 工具类
+   (dark:bg-input/30、dark:border-input、dark:bg-destructive/20 …)。
+   而 **Tailwind v4 的 `dark:` 默认是【媒体查询】** —— 实测(BRAND-1 在
+   probe2 里编译过、grep 过编译产物):不写这一行时,编译出来的是
+       @media (prefers-color-scheme:dark){ .dark\:border-input{…} }
+   也就是说【任何一台系统开着深色模式的机器】上,这些组件会自己变半套深色 ——
+   正是 DARK-FIX-1 花力气删掉的那个「半个主题比没有更坏」。
+   Tim 在手机上用这个系统,而手机默认开深色的比例远高于桌面。
+
+   这一行把 `dark:` 从【媒体查询】改绑到【一个 class】上,而全仓库
+   `.dark` 这个 class 出现 **0 次**、也没有任何东西会去加它 ——
+   于是那 19 条规则编译出来就是【死代码】。实测:加上这一行之后
+   编译产物里 `prefers-color-scheme` 出现 **0 次**。
+
+   它【没有】定义任何深色 token 值,所以 R5 的两条都守住了:
+   没有重新引入深色模式,也没有生成 token 的深色变体。 */
+@custom-variant dark (&:is(.dark *));
+
+/* shadcn 组件用的是【语义名】(bg-primary / border-input / text-muted-foreground…),
+   这里把那些语义名接到上面的品牌值上。
+   【为什么这是安全的】BRAND-1 数过:shadcn 用到的 12 个语义名
+   (background/foreground/card/popover/primary/secondary/muted/accent/
+    destructive/border/input/ring),在 app/ 下【每一个都出现 0 次】。
+   所以新增这些 @theme 名字生成出来的工具类,【没有任何已上线页面在用】——
+   与 --brand-* 同一个道理:惰性的。
+   【不要动 --color-background / --color-foreground】它们在 globals.css 里,
+   归 body 用,是 DARK-FIX-1 留下的。 */
+@theme inline {
+    --color-primary: var(--brand-ocean-fill);
+    --color-primary-foreground: #FFFFFF;
+    --color-secondary: var(--brand-muted);
+    --color-secondary-foreground: var(--brand-text);
+    --color-muted: var(--brand-muted);
+    --color-muted-foreground: var(--brand-muted-text);
+    --color-accent: var(--brand-accent);
+    --color-accent-foreground: var(--brand-text);
+    --color-destructive: var(--brand-destructive-fill);
+    --color-border: var(--brand-border);
+    --color-input: var(--brand-border-strong);
+    --color-ring: var(--brand-ring);
+    --color-card: var(--brand-surface);
+    --color-card-foreground: var(--brand-text);
+    --color-popover: var(--brand-surface);
+    --color-popover-foreground: var(--brand-text);
+    /* ★【这里【不许】写 --radius】★
+       BRAND-1 写过一次 `--radius: var(--brand-radius);`,而它【当场违反了 R3】:
+       Tailwind v4 里 `--radius` 就是【裸 `rounded` 那个工具类】的值,于是
+       `.rounded` 从 `.25rem` 变成了 `.375rem` —— 而 `rounded` 在 app/ 下
+       用了 **1,719 次、横跨 335 个文件**。也就是说那一行会把几乎每一页的
+       圆角都改掉,而它看起来只是"接一个 token"。
+       【它是怎么被抓到的,值得写下来】第一版比对脚本用手写的花括号切分,
+       @layer 嵌套把选择器错配到了别的块上,于是它报的是一串【解析假象】,
+       而把这条【真的】改动淹没在里面。换成 postcss 真解析器之后,
+       934 条声明里精确地剩下这 2 条 —— 就是它。
+       9 个组件一个都不需要裸 `var(--radius)`:它们用 rounded-lg / rounded-md /
+       rounded-xl / rounded-4xl 与 `var(--radius-md)`,全部走 Tailwind 默认值。
+       --brand-radius 仍然是一个 token,但它要【显式】用(sampler 就是这么用的),
+       不能挂到 @theme 上去顶掉一个默认工具类。 */
+}
