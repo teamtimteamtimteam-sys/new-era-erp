@@ -40,8 +40,12 @@
 // 规律与另外两次(check_mirrors 离开连接池、--reach 改成显式开启)见 AGENTS.md
 // §"一条正确的检查放错了相位,就是一条慢检查"。
 //
-// 用法:node scripts/smoke-routes.mjs            路由状态那一半(快,2-4 分钟)
-//       node scripts/smoke-routes.mjs --reach    另加按角色的可达性(【约一小时】,见下)
+// 用法:node scripts/smoke-routes.mjs                  路由状态那一半(快,2-4 分钟)
+//       node scripts/smoke-routes.mjs --reach=finance  【常用】只跑一个角色的可达性
+//       node scripts/smoke-routes.mjs --reach          三个角色全跑(约 100 分钟,推送前)
+// 【一个角色一跑】GUARD-FIX-1:三个角色一起跑已经装不下(admin 一个人 ~63 分钟,
+// 路由前沿爬到一半从 475 涨到 563,finance 被半路杀掉)。角色名拼错会响亮退出 2,
+// 不会当成"零个角色"悄悄绿。可选:admin / operations / finance。
 // 退出码 0 = 全通;1 = 有失败 / 跳过清单漂移(EXPECTED_SKIPS)/ 脚本自身查询炸了
 // 【不进 db/gate.py】整跑约 2-4 分钟且要起 dev server —— 慢门会被跳过,
 // check_mirrors 的教训。按需跑:每次改了页面渲染层,或 Tim 又用手找到一只虫之后。
@@ -1186,8 +1190,59 @@ async function sweepScratch() {
 //
 // 【什么时候不必跑】只动了数据库、文案、单个页面内部的渲染 —— 那些由主循环
 // (每条路由渲染一遍)与 db/gate.py 覆盖,可达性不会因此改变。
-const RUN_REACH = process.argv.includes('--reach') || process.env.SMOKE_REACH === '1'
-const REACH_ROLES = ['admin', 'operations', 'finance']
+// ── 【一个角色一跑】GUARD-FIX-1(2026-09-01)────────────────────────────────
+//   node scripts/smoke-routes.mjs --reach=finance    ← 常用:只跑你动过的那个角色
+//   node scripts/smoke-routes.mjs --reach            ← 三个角色全跑(推送前的整轮)
+//
+// 【为什么要能只跑一个角色】上一跑(NAV-REG-1)admin 一个人就吃掉 90 分钟里的 ~63
+// 分钟,而路由前沿在爬的中途从 475 涨到 563 —— 这一跑【已经装不下了】,finance 是
+// 被半路杀掉的那个。而三小时的检查等于没有检查:GUARD-FIX-1 那两处丢掉的守卫活了
+// 四天,恰恰因为唯一看得见那类缺陷的就是本检查,而那四天里没有人跑得起它。
+// 一个角色一跑,每跑都在能忍的时间里结束,于是它会被真的跑;并且改了某一个角色的
+// 权限之后,可以【只】验那一个角色。
+// 【每角色的成本:先估错了一次,所以这里写的是量过的那个】
+// GUARD-FIX-1 头一跑按 2026-08-11 的抓取比例(admin 337 / operations 115 /
+// finance 281)推出"finance ~20-25 分",据此把上限设成 3600s —— **推错了**:
+// 实测爬的速率是 **10 页/分钟**(90 秒 15 页),而 finance 的前沿一路涨到 277+,
+// 光爬就要 ~30 分,加上逐条试开 ~15 分,再加前面路由那一半 ~17 分 ≈ **65 分**。
+// 于是那一跑会在干完前被 3600s 砍掉 —— 正是 GST-2 那次误杀的同一个形状:
+// **上限是从"估的成本"推的,不是从"量的成本"推的**。第二跑上限 9000s。
+// 【finance 的真数(本刀量的,2026-09-02)】`--reach=finance` 整跑
+// **59 分 47 秒**(3587s;判词 REACHFIN2_EXIT=0),含前面路由那一半。
+// 分解:路由 215 条 → 231 ok / 8 skipped / 0 FAILED;finance 走到 **457** 页、
+// 试开 **145** 条静态路由、打得开 88 条、其中走不到 3(= EXPECTED_UNREACHABLE)。
+// **前沿在爬的过程中从 191 一路涨到 457** —— 这正是 admin 那一跑撑爆 90 分钟的同一件事。
+// 【所以:比例外推 ≠ 实测】admin 63 分、operations 17 分是 2026-08-11 量的,
+// finance 59分47秒 是本刀量的。第四个角色要跑,去量它,别拿比例推。
+//
+// 【为什么不按阶段切(先全爬、再全试开)】那样切出来的两跑【谁都判不了】——
+// 判据是 unreachable = openable − seen,而这两个集合必须来自【同一个角色的同一跑】。
+// 按阶段切会得到两个永远不会红的半跑,那比不跑更坏。谁想"优化"成阶段切,先读这一段。
+const ALL_REACH_ROLES = ['admin', 'operations', 'finance']
+const reachFlag = process.argv.find((a) => a === '--reach' || a.startsWith('--reach='))
+const reachRaw = reachFlag?.includes('=')
+    ? reachFlag.slice('--reach='.length)
+    : (reachFlag ? '1' : (process.env.SMOKE_REACH ?? ''))
+// 【`--reach=` 后面空着是打错了,不是"不跑"】沉默地跳过一条你明明要求了的检查,
+// 正是本文件反复记账的那种空过。而 SMOKE_REACH 的旧约定是 '1' 开、其余关 ——
+// 保留它:0/false/空 一律当关,别让 SMOKE_REACH=0 变成"三个角色全跑"。
+if (reachFlag?.includes('=') && reachRaw.trim() === '') {
+    console.error('✗ --reach= 后面是空的 —— 要么写一个角色名(admin / operations / finance),'
+        + '要么用不带 = 的 --reach 跑三个。空着不会被当成"不跑"。')
+    process.exit(2)
+}
+const RUN_REACH = !['', '0', 'false', 'no'].includes(reachRaw.trim().toLowerCase())
+// 【拼错的角色名必须响亮地死】否则它会跑零个角色然后打印一行绿 ——
+// 那是本仓库反复付账的那种【空过】:检查什么都没验,判词却说通过了。
+const REACH_ROLES = !RUN_REACH ? []
+    : (reachRaw === '1' ? ALL_REACH_ROLES : reachRaw.split(',').map((s) => s.trim()).filter(Boolean))
+for (const r of REACH_ROLES) {
+    if (!ALL_REACH_ROLES.includes(r)) {
+        console.error(`✗ --reach=${r}:不认识这个角色。可选:${ALL_REACH_ROLES.join(' / ')}`
+            + '(不带 = 则三个全跑)。拼错的名字不会被当成"没有角色要跑"悄悄放过。')
+        process.exit(2)
+    }
+}
 
 // 打得开却走不到、而且【是有意如此】的静态路由。drift 两个方向都失败:
 // 多出来的要么是真漏了入口,要么是这里该添一行并写明理由。
@@ -1201,6 +1256,16 @@ const EXPECTED_UNREACHABLE = {
         // 不是这个检查。
         '/metal-prices']),
     finance: new Set(['/login', '/set-password', '/welcome']),
+}
+
+// 每个要跑的角色都必须有一条 EXPECTED_UNREACHABLE —— 缺了会在读 .has() 时
+// 抛 undefined,而那是在【爬完几十分钟之后】才炸。能在开跑前回答的问题就在开跑前
+// 回答(文件上方那条规矩,ID_SOURCES 预检付过一次账)。
+for (const r of REACH_ROLES) {
+    if (!EXPECTED_UNREACHABLE[r]) {
+        console.error(`✗ --reach=${r}:EXPECTED_UNREACHABLE 里没有这个角色的条目 —— 先补一条再跑。`)
+        process.exit(2)
+    }
 }
 
 // 拒绝页认【机器标记】不认文案:refusal() 与 requireManagePermissions() 的外层 div
@@ -1998,7 +2063,7 @@ async function main() {
         // admin 一遍是对照(他什么都有);operations 与 finance 是 /margin 那道题的
         // 两边 —— 一个只有加工、一个只有财务,而没有任何 live 角色同时持有两者。
         const reachUsers = []
-        if (RUN_REACH) console.log('\n== 按角色的可达性(打得开却走不到)==')
+        if (RUN_REACH) console.log(`\n== 按角色的可达性(打得开却走不到)· 本跑 ${REACH_ROLES.length} 个角色:${REACH_ROLES.join('、')} ==`)
         const mkSession = async (roleCode) => {
             const em = `smoke-${stamp}-${roleCode}@test.local`
             const u = await (await restOk('/auth/v1/admin/users', { method: 'POST',
@@ -2013,7 +2078,8 @@ async function main() {
         }
         if (!RUN_REACH) {
             console.log('\n== 按角色的可达性:【跳过】(默认关闭)——'
-                + ' 改了导航/守卫/新增页面之后,或推送前,用 --reach 跑一次')
+                + ' 改了导航/守卫/新增页面之后,跑你动过的那个角色:--reach=finance'
+                + '(三个全跑用 --reach,约 100 分钟,留给推送前的整轮)')
         }
         for (const roleCode of RUN_REACH ? REACH_ROLES : []) {
             const r = await reachabilityForRole(roleCode, `http://localhost:${PORT}`, mkSession)

@@ -20,7 +20,8 @@ import ForecastGrid, { type ForecastData } from './ForecastGrid'
 import RecurringLines from './RecurringLines'
 
 export default async function CashForecastPage() {
-    await requireModule(MOD.finance)
+    const denied = await requireModule(MOD.finance)
+    if (denied) return denied
     const t = await getTranslations()
     const supabase = await createClient()
     const baseCurrency = await getBaseCurrency()

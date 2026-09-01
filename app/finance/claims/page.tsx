@@ -15,7 +15,8 @@ import Subnav from '../Subnav'
 import ClaimDecisionPanel, { type ClaimRow } from './ClaimDecisionPanel'
 
 export default async function ClaimsPage() {
-    await requireModule(MOD.finance)
+    const denied = await requireModule(MOD.finance)
+    if (denied) return denied
     const t = await getTranslations()
     const supabase = await createClient()
     const baseCurrency = await getBaseCurrency()

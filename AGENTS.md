@@ -501,9 +501,51 @@ GitHub 对这两个 SHA 的部署记录数都是 0**。也就是说,那个 2400 
 ## Route smoke test — run on demand, whenever the render layer changed
 
 ```
-node scripts/smoke-routes.mjs            # 16m47s measured 2026-08-26 across 192 routes (was "~2-4 min" at ~135 routes)
-node scripts/smoke-routes.mjs --reach    # + per-role reachability (2h+ measured 2026-08-24, OPT-IN)
+node scripts/smoke-routes.mjs                  # 16m47s measured 2026-08-26 across 192 routes (was "~2-4 min" at ~135 routes)
+node scripts/smoke-routes.mjs --reach=finance  # ONE role's reachability — the form to reach for
+node scripts/smoke-routes.mjs --reach         # all three roles (~100 min; a deliberate pre-push sweep)
 ```
+
+### `--reach` takes a role now (GUARD-FIX-1, 2026-09-01)
+
+**One role, one run.** Copy-paste form, one role at a time:
+
+```
+node scripts/smoke-routes.mjs --reach=finance      # admin | operations | finance
+```
+
+Duration per role, all measured: **admin ~63 min** and **operations ~17 min**
+(2026-08-11, 1,018 fetches); **finance 59m47s** (2026-09-02, this cut — 3587s,
+verdict `REACHFIN2_EXIT=0`; walked 457 pages, tried 145 static routes, 88
+openable, 3 unreachable = the expected set). **Do NOT extrapolate a role's cost
+from fetch ratios — that is how this cut got it wrong the first time.** Extrapolating from the 2026-08-11 ratios gave "~20–25 min",
+a 3600s limit was set from it, and the run was on course to be killed at ~65 min
+of real work — the GST-2 false-kill shape again, a limit derived from an
+*estimated* cost rather than a *measured* one. Measured crawl rate: **10
+pages/min**. A misspelt role **exits 2 loudly** rather than running
+zero roles and printing a green line — a check that verifies nothing while
+claiming to pass is the failure mode this repo keeps paying for.
+
+**Why it was split, rather than given a longer timeout.** The all-roles run no
+longer fits: admin alone ate ~63 of the 90 minutes and the route frontier grew
+475 → 563 mid-crawl, so `finance` was killed part-way. **A three-hour check is a
+check nobody runs** — and GUARD-FIX-1's two discarded guards survived four days
+for exactly that reason, because `--reach` is the only thing that sees them and
+nobody could afford to run it. Splitting also means a cut that changes one role's
+access can exercise just that role.
+
+**Do not "optimise" this into a crawl phase and a try-open phase.** That split
+yields two runs *neither of which can fail*: the verdict is
+`unreachable = openable − seen`, and both sets must come from the same role in
+the same run. Splitting by role is the only split that still produces a verdict.
+
+> **`--reach` is the ONLY check that catches an openable-but-unreachable page —
+> and the only one that catches a page whose guard was discarded.** The ordinary
+> smoke asserts 2xx, and by its own documented blind spot a page rendering an
+> error box is still 200. `check-permission-predicate` ④ catches the *spelling*
+> of a discarded guard at build time; it cannot tell you whether a page actually
+> refuses. Run `--reach=<role>` after touching navigation, `lib/modules.ts`, a
+> permission guard, or that role's grants — and after adding a page.
 
 > **快的那一半也重新量过(BANK-REC,2026-08-26):16m47s,192 条路由**
 > (23:25:37 → 23:42:24,判词 `SMOKE_EXIT=0`,191 ok / 3 skipped / 0 FAILED;

@@ -4104,8 +4104,51 @@ FX-DISPLAY-1 那个「一个 USD 数字顶着 SGD 的名字」正住在 `message
 | `check-masked-reads`(widened) | `.from('<表>')` **与** `.select()` 里的内嵌 | 拼出来的 select 串;嵌入名与列名分不开;这条查询会不会真的 42501 |
 | `check-error-swallowing`(widened) | `?? 空值` · `if (error) return 空值` · `.catch(() => …)` | 不解构 error 直接 `data?.map()`(**约定,不是检查**);`.catch(e => …)` 用了 e 的;跨函数兜底 |
 | `check-currency-literals`(widened) | 判断 / JSX 正文 / 模板串 / **messages 文案** 里的币种**代码** | **那个币种是不是真的**(见 CCY-VERIFY);`db/migrations/` 历史 |
+| `check-permission-predicate` ④(新) | 守卫当成语句调用(`await requireX(…)` 独占一行);接住了却全文再没提起 | **别名与间接调用**(`const g = requireModule`);把守卫结果传进别的函数;跨文件包装;守卫接对了但**判据本身是错的** |
 | `check_mirrors` 的种子比对(fixed) | 线上 vs 镜像逐行 | 一如既往:RUNTIME CONFIG 表不比 |
 | `backup.sh`(fixed) | pg_dump 退出码 · 体积下限 · TOC 可读 · **TOC 条目数 vs 上一份** | 一次**小幅**截断(按字节 3.8% 那种);唯一完整证据仍是 `BACKUP_EXIT=0` |
+
+## GUARD-DISCARD-BLIND · **一次绿的构建【不】意味着守卫接对了**(GUARD-FIX-1,2026-09-01)
+
+**这是一条盲区登记,与 CCY-VERIFY 同一个 register。**
+`check-permission-predicate` 的第 ④ 条验证的是**守卫的返回值没有被【明显地】丢掉**;
+它**没有**验证那一页真的进不去。
+
+> **一次绿的构建不意味着每一页都挡住了该挡的人。
+> 它意味着没有人用那两种写法丢掉一屏拒绝。**
+
+**它看得见的两种写法**(两种都能让构建变红,已实测):
+
+1. `await requireModule(MOD.finance)` 独占一行 —— 拒绝被算出来又扔掉;
+2. `const denied = await requireModule(…)` 之后全文再没提起 `denied` ——
+   **这一种比第一种更坏,因为它【看起来是对的】。**
+
+**它看不见的三种**(今天仓库里一个都没有,但检查确实盲):
+别名与间接调用(`const g = requireModule; await g(…)`)、
+把守卫结果传进另一个函数由那边决定返不返回、跨文件的包装。
+第 ④ 条的第二半还**故意保守**:变量名在全文再出现一次就算用了,
+不追它是不是真的被 `return` —— **宁可漏报也不误报**,
+因为一条会冤枉人的检查最后会被人加白名单绕开(本仓库为夸大自己的检查付过两次账)。
+
+**唯一真的验"进不进得去"的东西是 `--reach`**,而它按需跑;
+GUARD-FIX-1 那两处正是这样活了四天的。两者的分工要记住:
+④ 在构建期挡住**写法**,`--reach` 在跑动时验**结果**,谁都替不了谁。
+
+### 这条缺陷本身(已修)
+
+| 站点 | 落地 | 一个没有 `module.finance.view` 的人看到什么(修前实测,稳定别名) |
+|---|---|---|
+| `app/finance/claims/page.tsx:18` | 3afde1d CLAIM-1,2026-08-28 | **200,整页渲染**,h1 "Expense claims",23,493 字节;有权限的人 23,696 字节 —— **两块屏差 203 字节** |
+| `app/finance/cash-forecast/page.tsx:23` | c9aac03 CASHFLOW-1,2026-08-28 | **HTTP 500**(RPC 拒绝 → 页面 `if (error) throw`) |
+
+两个都不是"你不能进"。**没有数据泄漏**(RLS 照常挡住,两页 `<tr>` 都是 0),
+坏的是那句话本身:**"你不能进"渲染成了"这里没有东西"**。
+当时的实况是没有任何活账号落在那六个无权角色上
+(线上 16 个账号全在 admin/cfo/finance),所以**暴露是潜伏的**——
+它会在开始发账号的那天变成真的。
+
+**修法就是那份合同**:`const denied = await requireModule(…)` 后接 `if (denied) return denied`。
+全仓 176 处调用,修前 174 处是对的,2 处丢掉,**0 处属于"接住了没读"**(这个 0 是**找过**的)。
 
 ## RUNTIME-CONFIG-UNVERIFIED · **runtime-config 表的【内容】没有任何自动检查在看**(TIDY-1,2026-09-01)
 
