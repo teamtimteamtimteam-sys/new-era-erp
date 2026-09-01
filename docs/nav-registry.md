@@ -196,6 +196,74 @@ export type FunctionEntry = {
 | `/margin` | **11 个角色逐一比对,全部不变** —— 谓词与迁移前逐字同形 |
 | `/deleted` | 9 个角色不变;**hr 与 employee 从"一张空表"变成"一句具名拒绝"**(两种情况下都是零行 —— 变的是它有没有把原因说出来,那正是 R4) |
 
+### 稳定别名上的实测(不是每次部署那个 URL)
+
+**验证陷阱**:`wait-for-deploy.sh` 印的是【每次部署】的 URL,它在 Vercel Deployment
+Protection 后面 —— 实测 `curl` 它得到 **302 → `vercel.com/sso-api`**,于是任何针对它的
+内容断言都会【空过】。所以以下全部取自稳定别名 `https://new-era-erp.vercel.app`
+(docs/day-2-setup-notes.md:91)。
+
+做法:用 service key 铸一个短命账号、授一个角色、登录拿 cookie、带着 cookie 取首页,
+**读完就删,并且验证删干净了**(user_roles 残留 0 行 · auth 账号查不到 ✓)。
+
+**operations(本刀让它看得见物流的那个角色)—— HTTP 200,导航条逐项:**
+
+```
+受限项  「Suppliers」    链接  「Materials」     链接  「Inventory」
+受限项  「Purchasing」   链接  「Inbound」       链接  「Stocktakes」
+受限项  「Customers」    链接  「Output」        链接  「Tasks」
+受限项  「Pricing」      链接  「Processing」    链接  「Logistics」   ← R2
+受限项  「Sales」        受限项「Finance」       链接  「Deleted records」
+受限项  「HR」
+```
+
+物流那一项的原始 HTML —— 它是一条**可点的链接**,不是受限项:
+
+```html
+<a class="whitespace-nowrap rounded px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+   href="/logistics/forwarders">Logistics</a>
+```
+
+**employee(一个模块权限都没有)—— HTTP 200,16 个 `data-module-restricted` 标记:**
+
+> Suppliers · Restricted ｜ Purchasing · Restricted ｜ Customers · Restricted ｜
+> Materials · Restricted ｜ Pricing · Restricted ｜ Inbound · Restricted ｜
+> Output · Restricted ｜ Processing · Restricted ｜ Inventory · Restricted ｜
+> Stocktakes · Restricted ｜ Sales · Restricted ｜ Finance · Restricted ｜
+> Tasks · Restricted ｜ HR · Restricted ｜ Logistics · Restricted ｜
+> **Deleted records · Restricted**
+
+**这一行就是 R4 的全部意思**:在这之前,一个零模块权限的人看见的是一条**空导航**
+(与"系统坏了"分不开);现在他看见 15 个模块**各自的名字**,以及每一个都对他关着。
+第 16 项是 `/deleted` —— 它由 `FN.deleted` 判,与模块用的是同一个求值器。
+
+> 【为什么引文是英文】探针账号没有语言偏好,渲染走了 en。键是同一个
+> `common.restricted`,zh 的值是「受限」(见上一节逐角色表)。
+
+### 冒烟
+
+| 跑法 | 判词 | 说明 |
+|---|---|---|
+| `--reach`(按角色可达性) | **`SMOKE_EXIT=124`** | **超时被杀,不是通过。** admin 与 operations 两个角色的【走】与【试开】两阶段都跑完了,finance 死在【走 5/50】。90 分钟上限。 |
+| 普通冒烟(第一次) | `SMOKE_EXIT=1` | 1 条失败:`/hr/employees/[id]` 试用期入口 HTTP 503,原因是 `ECONNRESET` —— 网络层瞬时故障 |
+| 普通冒烟(重跑) | **`SMOKE_EXIT=0`** | **231 ok · 8 skipped(无数据)· 0 FAILED** |
+
+`--reach` 那一跑虽然没跑完,但它给出了 R2 最直接的证据:**operations 通过产品自己的
+链接走到了 6 条 `/logistics/*` 路由** —— 本刀之前那个数是 0,因为那一项在它的导航条上
+根本不存在。
+
+> **它还抓到一条与本刀无关的真缺陷,记在这里而不是修在这一刀里:**
+> `app/finance/claims/page.tsx:18` 与 `app/finance/cash-forecast/page.tsx:23`
+> 都写着 `await requireModule(MOD.finance)` 而**没有接住返回值** ——
+> 正确写法是 `const denied = await requireModule(…); if (denied) return denied`。
+> 拒绝页被算出来又被丢掉,于是**谁都打得开这两页**。
+> 两处分别来自 `3afde1d`(CLAIM-1)与 `c9aac03`(CASHFLOW-1),都是 2026-08-28,
+> **早于本刀四天**,本刀一个字都没碰过这两个文件。
+> 数据没有泄露(RLS 仍然挡着,无权的人看到的是空的),但"你进不来"被渲染成了
+> "这里没有东西" —— 那正是 moduleGuard 存在的全部理由。
+> **修它要一把自己的刀**:两行改动,外加在 `check-permission-predicate.mjs` 里加一条
+> 不变量,让"丢掉守卫返回值"过不了 build。
+
 ---
 
 ## 五、删掉的死代码
