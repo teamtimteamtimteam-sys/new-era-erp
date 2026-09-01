@@ -61,12 +61,15 @@ INSERT INTO public.operation_types (code, name_en, name_zh, kind_code, resulting
      '【R3】同一批进、同一批出,只把状态从"未放电"改成"已放电并核实"。**它不产任何新批次。** 它是唯一一道受理 charged_not_discharged 的工序 —— 那正是它存在的理由,也正是本刀发现的那个死锁的解。'),
     ('manual_disassembly', 'Manual disassembly', '人工拆解', 'transforming', NULL, 2,
      '【R2】整包/模组 → 电芯,**同时**产出壳体与结构件(R2 明写"ALSO yielding")。人工台。'),
-    ('electrode_line', 'Automatic electrode line', '自动极片线', 'transforming', NULL, 3,
-     '【R2】电芯 → 壳体 / 正极片 / 负极片 / 隔膜。**开壳与极片分离是【一道】工序**(R2 明写),不是两道。【R4:电解液在这里挥发】—— 它不是产出形态,它是一个损耗类别(loss_categories.electrolyte_evaporation),所以它【不在】本工序的产出形态里。'),
-    ('electrode_powder_line', 'Electrode powder line', '极片粉料线', 'transforming', NULL, 4,
-     '【R2】极片 → 黑粉。'),
-    ('battery_powder_line', 'Battery powder line', '整电池粉料线', 'transforming', NULL, 5,
-     '【R2】**不同的设备**,专收放不了电的整包/模组/3C 电池/损坏电池。它与极片粉料线是两道工序,理由就是"一台机器一道工序"。');
+    ('electrode_line', 'Automatic foil separating line', '自动极片线', 'transforming', NULL, 3,
+     '【R2】电芯 → 壳体 / 正极片 / 负极片 / 隔膜。**开壳与极片分离是【一道】工序**(R2 明写),不是两道。【R4:电解液在这里挥发】—— 它不是产出形态,它是一个损耗类别(loss_categories.electrolyte_evaporation),所以它【不在】本工序的产出形态里。
+【TIDY-1(2026-09-01):code 与英文名【故意】对不上】英文名按行业叫法从 “Automatic electrode line” 改成 “Automatic foil separating line”,而 code 仍是 electrode_line。**Tim 的裁定:改 code 会波及每一处引用,改一个显示标签不该波及任何东西。**所以这个错位是一次【决定】,不是没人来得及改。中文名(自动极片线)一直是对的,未动。'),
+    ('electrode_powder_line', 'Foil processing line', '极片粉料线', 'transforming', NULL, 4,
+     '【R2】极片 → 黑粉。
+【TIDY-1(2026-09-01):code 与英文名【故意】对不上】英文名按行业叫法从 “Electrode powder line” 改成 “Foil processing line”,而 code 仍是 electrode_powder_line。**Tim 的裁定:改 code 会波及每一处引用,改一个显示标签不该波及任何东西。**所以这个错位是一次【决定】,不是没人来得及改。中文名(极片粉料线)一直是对的,未动。'),
+    ('battery_powder_line', 'Battery processing line', '整电池粉料线', 'transforming', NULL, 5,
+     '【R2】**不同的设备**,专收放不了电的整包/模组/3C 电池/损坏电池。它与极片粉料线是两道工序,理由就是"一台机器一道工序"。
+【TIDY-1(2026-09-01):code 与英文名【故意】对不上】英文名按行业叫法从 “Battery powder line” 改成 “Battery processing line”,而 code 仍是 battery_powder_line。**Tim 的裁定:改 code 会波及每一处引用,改一个显示标签不该波及任何东西。**所以这个错位是一次【决定】,不是没人来得及改。中文名(整电池粉料线)一直是对的,未动。');
 
 ALTER TABLE public.operation_types ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "operation_types select all" ON public.operation_types

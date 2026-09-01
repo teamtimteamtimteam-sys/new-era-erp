@@ -4106,3 +4106,49 @@ FX-DISPLAY-1 那个「一个 USD 数字顶着 SGD 的名字」正住在 `message
 | `check-currency-literals`(widened) | 判断 / JSX 正文 / 模板串 / **messages 文案** 里的币种**代码** | **那个币种是不是真的**(见 CCY-VERIFY);`db/migrations/` 历史 |
 | `check_mirrors` 的种子比对(fixed) | 线上 vs 镜像逐行 | 一如既往:RUNTIME CONFIG 表不比 |
 | `backup.sh`(fixed) | pg_dump 退出码 · 体积下限 · TOC 可读 · **TOC 条目数 vs 上一份** | 一次**小幅**截断(按字节 3.8% 那种);唯一完整证据仍是 `BACKUP_EXIT=0` |
+
+## RUNTIME-CONFIG-UNVERIFIED · **runtime-config 表的【内容】没有任何自动检查在看**(TIDY-1,2026-09-01)
+
+**这不是一条待办,是一类盲区的登记。** 它与 CCY-VERIFY 是同一种东西:
+一句"绿了【不】等于什么"的话,写下来免得下一个人把绿当成证据。
+
+`db/check_mirrors.py` 把种子表分成两类(见该文件抬头 43-45 行):
+
+| 类 | 判据 | 例 |
+|---|---|---|
+| INSTALL SEED | **逐行比对线上** —— 一个字不一样就红 | `permissions` · `tax_codes` · `tax_rates` · `currencies` |
+| **RUNTIME CONFIG** | **只断言"重放之后行数 > 0"**(268-272 行) | `operation_types` · `operation_type_input_forms` / `_output_forms` / `_safety_states` · `inbound_safety_states` · 那五张字典 |
+
+**RUNTIME CONFIG 那一栏的判据里没有"内容"这个词。** 它问的是"空不空",
+不是"对不对"。理由是【正当】的,而且写在 check_mirrors.py 第 91 行上:
+操作员在界面上改得动这些行,所以**线上与文件理应不同 —— 那是系统在正常工作**,
+拿它报红就是拿正常工作报警。
+
+**代价是这一句:**
+
+> **对任何一张 RUNTIME CONFIG 表,镜像与线上可以彻底分家,而 gate 是绿的。**
+> 行数对得上就够了 —— 名字、标签、注解、布尔开关的值,一个都没人比。
+
+**本刀就撞在这上面。** TIDY-1 改三道工序的英文名,是三条 `UPDATE`。
+如果只改了 `db/tables/operation_types.sql` 而忘了跑迁移(或者反过来),
+**gate 绿、构建绿、冒烟绿,而 Tim 下一次打开 /processing/new 会看见旧的字。**
+所以这一刀的判据是【应用后对线上的一次 SELECT 重读】,不是那三面绿旗 ——
+证据引在 TIDY-1 的提交信息里。
+
+**为什么本刀不去修它。** 修法不止一种,而每一种都要一次裁定,不该顺手做掉:
+
+1. **给 RUNTIME CONFIG 表加"引导默认值"逐行比对** —— 会立刻误报:
+   线上那五张字典本就被人改过,`inbound_safety_states` 的 `may_be_fed`
+   与文件不一致是**事实**,不是漂移;
+2. **分出第三类"INSTALL SEED,但操作员改得动"** —— 需要逐表判断哪些行是
+   代码认得的(`operation_types` 的五个 code 被 `commit_processing_run`
+   四道闸读着,**它们其实更像 INSTALL SEED**),这是一次建模,不是一次加检查;
+3. **只比对被代码引用过的那些 code** —— 最接近正确,也最要工程量。
+
+**这三条里选哪一条是 Tim 的裁定。** 在他裁定之前,这一条**保持打开**,
+而它的即时作用就是上面那句黑体字:**对这一族表,绿旗不是证据,SELECT 才是。**
+
+**它与已在册的三条盲区并列**,同一个形状(检查声称的比它实际验证的少):
+`CCY-VERIFY`(币种被说出来了 ≠ 币种是对的)、
+`check-masked-reads` 分不开嵌入名与列名、
+`check-error-swallowing` 看不见"不解构 error 直接 `data?.map()`"。

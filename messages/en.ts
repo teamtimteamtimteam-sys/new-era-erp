@@ -1938,7 +1938,7 @@ const en = {
         // CMPL-1:进口尽调 —— 记录 + 告警,不拒绝(理由在面板与 action 抬头)。
         deepDischarge: {
             title: 'Can this material be deep-discharged?',
-            help: 'A capability, not a state. "Is it discharged?" is the intake-condition axis above, and the fire gate reads that one. This asks whether the material can be discharged at all — charged material that CAN be discharged goes to the discharge line; charged material that CANNOT goes to the battery powder line. It affects routing only; it never blocks a receipt.',
+            help: 'A capability, not a state. "Is it discharged?" is the intake-condition axis above, and the fire gate reads that one. This asks whether the material can be discharged at all — charged material that CAN be discharged goes to the discharge line; charged material that CANNOT goes to the battery processing line. It affects routing only; it never blocks a receipt.',
             judged: 'Judged at purchase',
             judgedNone: 'not filled in on the purchase order line',
             judgedNoLine: 'no purchase order line — nothing was judged at purchase',
@@ -2456,7 +2456,7 @@ const en = {
             // PROC-WIRE-1B-i
             OPERATION_TYPE_REQUIRED: 'This run has not said which operation it ran. It cannot be left blank: whether there are outputs, whether a state-changing loss may be non-zero, whether this operation accepts this batch, and whether the operation exists at all — four gates all read this field.',
             OPERATION_TYPE_UNKNOWN: 'Unknown or inactive operation "{0}". Inactive means "do not pick it again", not "rewrite history".',
-            INPUT_SAFETY_STATE_NOT_ACCEPTED: '{1} does not accept the safety states batch {0} is carrying: {3}. This is NOT the same sentence as "may not be fed" — another operation may well accept it: charged material goes through Deep discharge first, and packs that cannot be discharged go to the Battery powder line.',
+            INPUT_SAFETY_STATE_NOT_ACCEPTED: '{1} does not accept the safety states batch {0} is carrying: {3}. This is NOT the same sentence as "may not be fed" — another operation may well accept it: charged material goes through Deep discharge first, and packs that cannot be discharged go to the Battery processing line.',
             OPERATION_PRODUCES_NO_OUTPUTS: '{0} produces no new batch by definition (same batch in, same batch out, state changed), so this run cannot be committed with outputs. Either the wrong operation was picked, or the wrong run.',
             STATE_CHANGE_LOSS_NOT_ZERO: '{0} removes no mass, so its loss can only be 0, but {1} was entered. Either the wrong operation was picked, or this run is really a transforming one.',
             STATE_CHANGE_OUTPUT_INPUT_UNSUPPORTED: '{0} currently accepts inbound batches only. Safety states are recorded for inbound batches alone — the output-side table does not exist yet — so "change the state" has nowhere to be written on an output batch, and letting it through would produce a run that changed nothing.',
