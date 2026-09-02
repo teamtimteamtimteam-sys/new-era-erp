@@ -35,6 +35,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 import { Google_Sans } from 'next/font/google'
 import { login } from './actions'
+import { safeInternalPath } from '@/lib/loginRoute'
 import { getTranslations } from '@/lib/i18n/server'
 import ClearRestrictedDrafts from './ClearRestrictedDrafts'
 import BrandField from './BrandField'
@@ -73,11 +74,11 @@ export default async function LoginPage({
     const t = await getTranslations()
     const refusal = isRefusal(params.error) ? params.error : null
     const sessionEnded = params.reason === 'ended'
-    // 【只接内部路径】—— `//host` 与绝对 URL 一律丢掉,否则这个参数就是一个开放重定向。
-    const next =
-        params.next && params.next.startsWith('/') && !params.next.startsWith('//')
-            ? params.next
-            : null
+    // 【只接内部路径】判据【只有一处定义】,见 lib/loginRoute.ts ——
+    // 这里、登录动作、以及中间件那条「已登录就送进应用」用的是同一个函数。
+    // (它此前在本文件与 actions.ts 里各写了一遍,注释还说「两处逐字相同」;
+    //  逐字相同要靠人守,而那正是它迟早会不同的原因。)
+    const next = safeInternalPath(params.next)
 
     // 【aria-invalid 只给 invalid 那一种】未确认与限流时,人【打进去的值是对的】——
     // 把框标成 invalid 会是同一句谎话换了一层壳:读屏软件会念「无效」,

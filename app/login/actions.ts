@@ -3,19 +3,17 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { safeInternalPath } from '@/lib/loginRoute'
 
 export async function login(formData: FormData) {
     const email = formData.get('email') as string
     const password = formData.get('password') as string
     // SESSION-1:中间件把人踢出来时保住了原路径(`?next=`),登录页把它带了回来。
     // 保住一条路径却不用它,等于没保住 —— 人还是得自己走回去。
-    const nextRaw = formData.get('next')
-    // 【只接内部路径】—— `//host` 与绝对 URL 一律丢掉,否则这个参数是一个开放重定向。
-    // 判据与 app/login/page.tsx 里那一句逐字相同,两处都会被人读到。
-    const next =
-        typeof nextRaw === 'string' && nextRaw.startsWith('/') && !nextRaw.startsWith('//')
-            ? nextRaw
-            : null
+    // 【只接内部路径】判据只有一处定义(lib/loginRoute.ts)。
+    // 此前这里与 app/login/page.tsx 各有一份"逐字相同"的拷贝 —— 现在是同一个函数,
+    // 而且那一份还漏掉了 `/\evil.com`(浏览器把反斜杠当斜杠),一并堵上了。
+    const next = safeInternalPath(formData.get('next'))
 
     const supabase = await createClient()
 

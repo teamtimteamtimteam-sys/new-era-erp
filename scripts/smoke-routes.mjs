@@ -585,6 +585,16 @@ const EXPECTED = {
     '/logout': [307, 303],          // 登出即重定向
     '/my-reviews/[id]': [404],      // admin 不是评估人 —— notFound 是契约;评估人视角在主循环后精确单测
     '/purchasing': [307],           // 索引页重定向到 /purchasing/orders
+    // ── LOGIN-1-fu1(2026-09-02):登录着的人打开 /login 必然被送进应用 ──────
+    // 本冒烟【全程带着 admin 会话】走路由,所以这一条对它永远是 307。
+    // 【精确写 307,不写 [200,307]】—— 本文件上面那句话就是理由:两个都行会
+    // 静默放过一个开始乱重定向(或者干脆不再重定向)的守卫。这里 200 就是缺陷:
+    // 那意味着一个登录着的人又被要求登录一次(Tim 在截图里逮到的正是这个)。
+    //
+    // 【而「没有会话时它还画不画表单」这一半,状态门在这里【看不见】】
+    // 所以主循环后面加了一条【不带 cookie】的探针,专门守那一半 ——
+    // 否则这条 EXPECTED 会把登录页彻底坏掉的情形一起放过去。
+    '/login': [307],
     // GLEXPORT-1:总账导出【必须】有期间 —— 不带 from/to 就是 400,而那是契约:
     // 一份说不出自己覆盖哪一段的总账导出,日后没有人对得起来。
     // 【只声明这个 400 是不够的】那样这条路由就只有「拒绝」那一半被走过,
@@ -1701,6 +1711,37 @@ async function main() {
             }
         }
 
+        // ── LOGIN-1-fu1:【没有会话】时登录页仍然画得出表单,而且没有应用外壳 ──
+        // 【为什么这条必须存在】上面 EXPECTED 把 /login 钉成了 307,而那是【带会话】
+        // 的答案。登录页真正的观众是【没有会话】的人,那一半状态门一个字都说不上。
+        // 少了这条探针,一个彻底坏掉的登录页(500、空白、或者把所有人都重定向走)
+        // 照样能让整轮冒烟绿着 —— 而它是十三个账号见到的第一屏。
+        //
+        // 三件事一起断言,因为它们分别对应三种坏法:
+        //   ① 200 + 有 password 输入框 —— 页面还在,表单还在;
+        //   ② 【没有】 <header> —— 应用外壳不该套在"还没进系统"那一屏上;
+        //   ③ 干净来访【什么都不说】—— SESSION-1 那条刻意的沉默没有被弄丢。
+        {
+            const before = logChunks.length
+            const res = await fetch(`http://localhost:${PORT}/login`, { redirect: 'manual' })
+            const html = res.status === 200 ? await res.text() : ''
+            const hasForm = /name="password"/.test(html)
+            const hasChrome = /<header/.test(html)
+            const silent = html.includes('data-login-state="clean"') && !/role="alert"/.test(html)
+            if (res.status === 200 && hasForm && !hasChrome && silent) { ok++ }
+            else {
+                const why = res.status !== 200 ? `HTTP ${res.status}(无会话时应当是 200)`
+                    : !hasForm ? '页面里没有密码输入框 —— 登录表单没画出来'
+                    : hasChrome ? '登录页上出现了应用外壳(<header>)'
+                    : '干净来访不再是"什么都不说"(SESSION-1 的沉默丢了)'
+                PROGRESS.failed.push(`/login (no session) → ${why}`)
+                failures.push({ route: '/login (no session)', url: '/login',
+                    status: res.status, expected: 200,
+                    stack: `无会话登录页探针未通过:${why}\n${await serverStack(before)}` })
+                console.log(`  FAIL /login (no session) → ${why}`)
+            }
+        }
+
         // ── PROBATION-1:那扇门【真的画在屏幕上】,不只是路由 200 ────────────
         // 【为什么这条断言值得存在】这一刀的全部内容就是"一条路没有入口"。
         // 而路由冒烟只断言 2xx —— 一张【渲染成功但按钮没画出来】的页面照样 200。
@@ -2135,7 +2176,7 @@ async function main() {
     // 等于让"这一类到底测没测"重新变得看不见 —— 而它们存在的理由正是那件事。
     // PROBATION-1:总结这一行要把【每一个计进 ok 的探针】都点出来,否则
     // 标签念的是一件事、数字数的是另一件 —— 本仓库对这个形状记过好几次账。
-    console.log(`\n== ${routes.length} routes + 1 reviewer-view check + ${QUERY_PROBES.length} query-string probe(s) + 2 probation-entry probes + 2 customer-page entry probes + 2 cash-forecast probes (nav + content) + 3 claim probes (2 content + nav) + 3 attendance probes (2 content + nav) + 3 WHT probes (2 content + nav) + 4 pack/GL-export probes (2 content + 2 nav) + 1 overlap-entry probe + 1 retention-panel probe: ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
+    console.log(`\n== ${routes.length} routes + 1 reviewer-view check + ${QUERY_PROBES.length} query-string probe(s) + 2 probation-entry probes + 2 customer-page entry probes + 2 cash-forecast probes (nav + content) + 3 claim probes (2 content + nav) + 3 attendance probes (2 content + nav) + 3 WHT probes (2 content + nav) + 4 pack/GL-export probes (2 content + 2 nav) + 1 overlap-entry probe + 1 retention-panel probe + 1 signed-out /login probe: ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
     // SESSION-1:这一行排在所有失败之前,因为它改变【怎么读】下面那一百行。
     if (sawAuthIndeterminate) {
         const n = failures.filter((f) => f.authDown).length

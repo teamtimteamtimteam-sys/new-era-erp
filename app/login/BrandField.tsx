@@ -5,12 +5,16 @@
 //
 // ★★★ 换图只改下面那一个常量 PHOTO,别的一行都不用动。★★★
 //
-// 【今天它是渐变,不是照片 —— 这是【明写的未达成】,不是设计意图】
-// R3 要的是「一张处理过的照片,字标压在上面」。本刀落地时仓库里【没有】那张照片:
-// Tim 会另外提供授权原件(landing page PDF 里那一份被压缩过两次、且带预览水印,
-// 不能用)。所以这里先画一块【同构的】渐变场 —— 同样的构图、同样的品牌蓝与绿、
-// 同样的 veil 与视差 —— 好让照片到位那天是【换一个常量】,不是重做一页。
-// **不要把这块渐变读成最终设计。** 见 docs/login-page.md §2。
+// 【它现在是 Tim 的授权原件,不再是占位渐变】(LOGIN-1-fu1,2026-09-02)
+// R3 因此【达成】,不再是「明写的未达成」。原件由 Tim 提供,落地前逐项确认过:
+//   · 尺寸 2279×1279、625 KB、md5 与 landing page PDF 里那份【不同】;
+//   · 底边逐像素看过:**没有 Shutterstock 水印条,也没有对角平铺水印** ——
+//     那份 comp 的底边是一条深色条(IMAGE ID 1725657385),这一份是树冠。
+//   · **PDF 里那份一个字节都没有被用过。**
+//
+// 处理只有【裁剪】一件事,并且它是测量驱动的 —— 见 docs/login-page.md §2:
+// 裁到原图上 950 行,是为了把字标带整个落在天空上,并把海与林都留在遮罩【下面】。
+// 【没有降对比、没有去饱和、没有模糊】:字标的 3:1 全部由 .veil 那一层给。
 //
 // 【为什么整层是 client】视差要一个 pointermove 监听。除此之外这一层没有任何状态,
 // 也不取任何数据 —— 它进客户端包的代价就是这几十行本身。
@@ -20,17 +24,20 @@ import { useEffect, useRef } from 'react'
 import styles from './login.module.css'
 
 /**
- * ★ 授权照片到位后:把 null 换成 { src, ... }。
+ * 底图的来源。**换图仍然只改这一处。**
  *
- * 【怎么准备那个文件】用 sharp 离线烤好再放进 public/brand/,**不要**丢原图进来:
- * LOGIN-1 实测过,把对比度压下去之后 JPEG 的熵也跟着塌了 —— 1280px 宽的处理版
- * 是 2–5 KB(AVIF),而同尺寸的未处理版是 186 KB。**处理这一步是省流量的,不是费流量的。**
- * 具体参数与实测数字在 docs/login-page.md §2。
+ * 两档尺寸,用 media 显式指定,【不用 srcset+sizes】:这一层是 object-fit:cover
+ * 的满幅底图,在竖屏手机上会被放大到视口高度的 2.4 倍宽 —— 浏览器按 `sizes`
+ * 估出来的宽度和真正渲染的宽度差了一个数量级,选出来必然偏小。media 是确定的。
  *
- * .photo 上那条 CSS filter 是兜底,不是替代:就算有人直接把未处理的原图丢进来,
- * veil 加 filter 也能保住对比度地板 —— 但文件还是 186 KB,而那是每一次登录都要付的。
+ * 每次登录只会下载【其中一个】。实测字节数在 docs/login-page.md §10。
  */
-const PHOTO: { src: string; alt: '' } | null = null
+const PHOTO = {
+    small: { avif: '/brand/login-field-1280.avif', webp: '/brand/login-field-1280.webp' },
+    large: { avif: '/brand/login-field-1920.avif', webp: '/brand/login-field-1920.webp' },
+    /** 连 WebP 都不认的浏览器兜底到它 */
+    fallback: '/brand/login-field-1280.webp',
+} as const
 
 export default function BrandField() {
     const ref = useRef<HTMLDivElement>(null)
@@ -94,15 +101,20 @@ export default function BrandField() {
     return (
         // aria-hidden:整层是装饰。读屏软件不该念一块底色。
         <div ref={ref} className={styles.field} aria-hidden="true">
-            {PHOTO ? (
-                // 静态本地图:next/image 在这里只多一层 loader,而这张图是
-                // 离线烤好的定尺寸文件(见 docs/login-page.md §2)。
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={PHOTO.src} alt="" className={`${styles.layer} ${styles.photo}`} style={{ ['--d' as string]: '14px' }} />
-            ) : (
-                <div className={`${styles.layer} ${styles.wash}`} />
-            )}
-            <div className={`${styles.layer} ${styles.glow}`} />
+            <picture>
+                <source type="image/avif" media="(max-width: 900px)" srcSet={PHOTO.small.avif} />
+                <source type="image/avif" srcSet={PHOTO.large.avif} />
+                <source type="image/webp" media="(max-width: 900px)" srcSet={PHOTO.small.webp} />
+                <source type="image/webp" srcSet={PHOTO.large.webp} />
+                {/* 静态本地图,尺寸是离线烤好的定值;next/image 在这里只多一层 loader,
+                    而且它不认 <picture> 的 media 分档。
+                    (no-img-element 对 <picture> 里的 <img> 不报 —— 这正是它认可的写法。) */}
+                <img
+                    src={PHOTO.fallback}
+                    alt=""
+                    className={`${styles.layer} ${styles.photo}`}
+                />
+            </picture>
             {/* veil 【不带 .layer】—— 它不动,见 login.module.css 抬头那段 ★ */}
             <div className={styles.veil} />
         </div>

@@ -62,8 +62,8 @@ import { createServerClient } from '@supabase/ssr'
 import type { Database } from '@/lib/database.types'
 import { NextResponse, type NextRequest } from 'next/server'
 import { ACTIVITY_COOKIE, isIdleExpired } from '@/lib/session'
-
-const PUBLIC_PATHS = ['/login']
+// 【一处定义】公开路径与 ?next= 的判据都在这里 —— 根布局与登录页读的是同一份。
+import { isPublicPath, safeInternalPath } from '@/lib/loginRoute'
 
 /**
  * 【判断不出】的判据,只有一处定义。
@@ -143,7 +143,23 @@ function cannotDetermineResponse(request: NextRequest) {
 }
 
 export async function updateSession(request: NextRequest) {
-    let supabaseResponse = NextResponse.next({ request })
+    // ════════════════════════════════════════════════════════════════════════
+    // 【把 pathname 放进请求头,给根布局用】(LOGIN-1-fu1,2026-09-02)
+    //
+    // 服务端组件【拿不到当前路径】—— React Server Component 里没有这个 API。
+    // 而根布局必须知道自己在哪一页,才能决定【不画】顶栏与空闲监视器:
+    // /login 是「人还没进系统」的那一屏,它不该有导航、通知、登出、模块清单。
+    //
+    // 【为什么不用路由组(route group)】那才是 Next 的标准做法,但它要求把
+    // 200 多个路由目录整个搬进 `(chrome)/` 里 —— 一次巨大的、与本刀无关的改动,
+    // 而收益完全一样。这里用一个请求头,四行,作用域清清楚楚。
+    // 【为什么不在客户端判】客户端组件返回 null 只是不挂载,TopNav 的服务端
+    // 取数(getUser、权限查询)照样会跑,导航数据照样进 RSC 负载 —— 那不叫「没有外壳」。
+    // ════════════════════════════════════════════════════════════════════════
+    const requestHeaders = new Headers(request.headers)
+    requestHeaders.set('x-pathname', request.nextUrl.pathname)
+
+    let supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } })
 
     const supabase = createServerClient<Database>(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -157,7 +173,7 @@ export async function updateSession(request: NextRequest) {
                     cookiesToSet.forEach(({ name, value }) =>
                         request.cookies.set(name, value)
                     )
-                    supabaseResponse = NextResponse.next({ request })
+                    supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } })
                     cookiesToSet.forEach(({ name, value, options }) =>
                         supabaseResponse.cookies.set(name, value, options)
                     )
@@ -181,9 +197,7 @@ export async function updateSession(request: NextRequest) {
     }
 
     const pathname = request.nextUrl.pathname
-    const isPublic = PUBLIC_PATHS.some(
-        (p) => pathname === p || pathname.startsWith(p + '/')
-    )
+    const isPublic = isPublicPath(pathname)
 
     // ════════════════════════════════════════════════════════════════════════
     // 【空闲超时:这里【只读】那个 cookie,永远不写它】(IDLE-DRAFT,2026-08-24)
@@ -215,6 +229,42 @@ export async function updateSession(request: NextRequest) {
     // 公开路径放行:登录页本来就不需要会话,而认证不通时登录本身会各自报它的错。
     if (cannotDetermine(authError) && !isPublic) {
         return cannotDetermineResponse(request)
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // 【已经登录的人,不该被再问一次「请登录」】(LOGIN-1-fu1,2026-09-02)
+    //
+    // 实测的缺陷:带着有效会话打开 /login,顶栏画着 admin@swm-os.test 和一个
+    // 「登出」按钮,而页面正中要【同一个人】登录。屏幕上两句话互相矛盾,
+    // 而其中一句必然是假的。
+    //
+    // 【为什么判据放在中间件,而不是登录页里】
+    //   ① 中间件【已经】问过 auth 了(上面那个 getUser)。放在页面里就是同一个
+    //      请求里问【第二次】—— 而实测有效会话那一次要 2.3 秒(见抬头七情形表)。
+    //      为了一句判断把每一次登录页访问都加上一趟往返,不划算。
+    //   ② 「登录着 / 确立地没登录 / 判断不出」这个三分【只在这里成立过一次】。
+    //      在页面里重做一遍,就是把那张七情形表重新实现一遍 —— 而它一旦实现得
+    //      不一样(比如把 AuthRetryableFetchError 当成「没登录」),
+    //      一次瞬时的认证故障就会变成「把人送进应用」或「把人挡在门外」。
+    //   ③ 重定向发生在渲染之前:登录页的 HTML 一个字节都不会被生成,
+    //      顶栏那半个缺陷也就【顺带】没有了 —— 但那不是本条的主要修法,
+    //      外壳由根布局按 x-pathname 结构性地排除(见本文件抬头)。两道都要有。
+    //
+    // 【条件为什么带 !idleExpired】空闲超时的人 user 仍然非空(cookie 还在)。
+    // 把他送进应用,下一跳又会被判过期弹回 /login —— 两跳之后才停,而且中间
+    // 那一跳毫无意义。让他留在登录页重新登录,才是他真正要做的事。
+    //
+    // 【SESSION-1 那条刻意的沉默原样保住】没有登录的人干净地打开 /login,
+    // 走不到这里(user 为 null),页面照旧【什么都不说】。
+    if (user && !idleExpired && pathname === '/login') {
+        // ?next= 的判据【不在这里重写】—— 与登录页、登录动作用的是同一个函数。
+        const target = safeInternalPath(request.nextUrl.searchParams.get('next')) ?? '/suppliers'
+        const dest = new URL(target, request.nextUrl.origin)
+        const redirect = NextResponse.redirect(dest)
+        // 【把刷新过的会话 cookie 带上】getUser() 可能刚刚续了令牌;
+        // 丢掉它们等于把这次刷新白做一遍,下一跳还得再刷一次。
+        for (const c of supabaseResponse.cookies.getAll()) redirect.cookies.set(c)
+        return redirect
     }
 
     // 【走【同一条】分支,不另起一条】(IDLE-DRAFT 3.3)
