@@ -93,8 +93,16 @@ export default async function LoginPage({
     }
 
     // 输入框:h-11 够得着,焦点环实心品牌色(见抬头 ③)。
+    // ★【输入框边框:本来就不合格,fu2 顺手补上】★
+    // shadcn 的 `border-input` 接的是 --brand-border-strong #AEBAC9,
+    // 实测在【不透明白底】上只有 1.97:1 —— 也就是说【这一条在磨砂之前就破着】,
+    // 而 WCAG 1.4.11 对「识别输入框所必需的视觉信息」要求 3:1。
+    // 磨砂把它又压到 1.93:1,所以这一刀不能装作没看见。
+    // 取 color-mix(text 55%, bg) = #7A889C,在玻璃卡面上实测 3.54:1 ✓
+    // (直接用 --brand-muted-text 是 4.72:1,对一条边框来说太重了。)
     const fieldCls =
-        'h-11 text-base focus-visible:ring-2 focus-visible:ring-[color:var(--brand-ocean)] ' +
+        'h-11 text-base border-[color:color-mix(in_srgb,var(--brand-text)_55%,var(--brand-bg))] ' +
+        'focus-visible:ring-2 focus-visible:ring-[color:var(--brand-ocean)] ' +
         'focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--brand-surface)]'
 
     return (
@@ -113,26 +121,37 @@ export default async function LoginPage({
 
             <div className={styles.stage}>
                 {/* R2 · 【完整字标】,球体只作为其中的「O」出现。
-                    alt="" 是刻意的:紧接着的 <h1> 已经把这个名字说了一遍,
-                    再给字标一个 alt 会让读屏软件念成「EVoltrya 登录 EVoltrya OS」。 */}
+                    ★【fu2 把 alt 从 "" 改回了 "EVoltrya"】★
+                    此前 <h1> 是「登录 EVoltrya OS」,名字已经被念过一遍,所以字标
+                    是装饰。**现在 <h1> 换成了品牌语,整页文字里再没有出现过公司名** ——
+                    字标若仍是装饰,读屏用户就【不知道这是哪个系统的登录页】。
+                    换标题必须连着换这个 alt,两者是一件事。 */}
                 {/* eslint-disable-next-line @next/next/no-img-element -- 矢量字标,next/image 无从优化 */}
                 <img
                     src="/brand/evoltrya-wordmark.svg"
-                    alt=""
-                    aria-hidden="true"
+                    alt="EVoltrya"
                     className={styles.wordmark}
                 />
 
-                <Card className={`${styles.card} border-[color:var(--brand-border)] shadow-lg`}>
+                {/* 背景色走 inline style:shadcn 的 Card 自带 `bg-card`(不透明白),
+                    两个单类选择器谁赢取决于样式表顺序 —— 那不是可以依赖的东西。
+                    值本身仍然是 CSS 里那个 token,不是就地挑的数。 */}
+                <Card
+                    className={`${styles.card} border-[color:var(--brand-border)] shadow-lg`}
+                    style={{ backgroundColor: 'var(--login-card-glass)' }}
+                >
                     <CardContent className="px-6 py-7 sm:px-7">
-                        <div className="mb-6">
-                            <h1 className="text-2xl font-bold text-[color:var(--brand-text)]">
-                                {t('login.title')}
-                            </h1>
-                            <p className="mt-1.5 text-[15px]" style={{ color: 'var(--brand-muted-text)' }}>
-                                {t('login.subtitle')}
-                            </p>
-                        </div>
+                        {/* ★ 卡片的标题就是公司标语 ★(LOGIN-1-fu2)
+                            此前这里是「登录 EVoltrya OS」+「锂电池回收 ERP 系统」,
+                            而【字标就在正上方,已经说了这是哪个系统】—— 标题在重复它。
+                            两行的排版规则(写死的断行、左/右对齐、共用右边缘)
+                            全部写在 login.module.css 的 .slogan 抬头,那里有实测的字宽。
+                            {' '} 是【给读屏软件的】:两个 span 之间没有空格的话,
+                            可及名字会念成 “Powering tomorrow,recovering today.”。 */}
+                        <h1 className={styles.slogan}>
+                            <span className={styles.sloganLine1}>{t('login.sloganLine1')}</span>{' '}
+                            <span className={styles.sloganLine2}>{t('login.sloganLine2')}</span>
+                        </h1>
 
                         {/* 会话结束的说明排在拒绝【之前】:一个人可能先被踢出来、
                             再打错一次密码,那时两句话都该在,而"你为什么在这里"是

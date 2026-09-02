@@ -5,16 +5,19 @@
 //
 // ★★★ 换图只改下面那一个常量 PHOTO,别的一行都不用动。★★★
 //
-// 【它现在是 Tim 的授权原件,不再是占位渐变】(LOGIN-1-fu1,2026-09-02)
-// R3 因此【达成】,不再是「明写的未达成」。原件由 Tim 提供,落地前逐项确认过:
-//   · 尺寸 2279×1279、625 KB、md5 与 landing page PDF 里那份【不同】;
-//   · 底边逐像素看过:**没有 Shutterstock 水印条,也没有对角平铺水印** ——
-//     那份 comp 的底边是一条深色条(IMAGE ID 1725657385),这一份是树冠。
-//   · **PDF 里那份一个字节都没有被用过。**
+// 【底图是【品牌渐变】,而这是一个【已经做出的决定】,不是等照片回来的临时状态】
+// (LOGIN-1-fu2,2026-09-02)
 //
-// 处理只有【裁剪】一件事,并且它是测量驱动的 —— 见 docs/login-page.md §2:
-// 裁到原图上 950 行,是为了把字标带整个落在天空上,并把海与林都留在遮罩【下面】。
-// 【没有降对比、没有去饱和、没有模糊】:字标的 3:1 全部由 .veil 那一层给。
+// ★★★ 不要「把照片补回来」把这一页「做完」—— 照片是【被否掉的】,不是【欠着的】。★★★
+// fu1 曾经用过一张授权的森林与海航拍。Tim 看过真页面之后撤掉了它,两条理由:
+//   ① **颜色打架** —— 照片压倒性地绿,而卡片与主按钮是 Hawaiian Ocean 蓝,
+//      两个主色都不肯让步;
+//   ② **它没有铺满** —— 上下露出浅色带(那是一个真的缺陷,根因写在 login.module.css
+//      的 .layer 抬头:给过扫层写了 width/height,`right`/`bottom` 因此被忽略)。
+// 加上渐变【更快】:照片实测桌面 +101 KB、手机 +52 KB,渐变 0 字节。
+//
+// 【可替换的那层结构留着】—— 它仍然有用:底图是什么,只由这一个文件决定。
+// 但它现在的内容就是渐变,**后面没有一张待办的照片**。
 //
 // 【为什么整层是 client】视差要一个 pointermove 监听。除此之外这一层没有任何状态,
 // 也不取任何数据 —— 它进客户端包的代价就是这几十行本身。
@@ -23,21 +26,12 @@
 import { useEffect, useRef } from 'react'
 import styles from './login.module.css'
 
-/**
- * 底图的来源。**换图仍然只改这一处。**
- *
- * 两档尺寸,用 media 显式指定,【不用 srcset+sizes】:这一层是 object-fit:cover
- * 的满幅底图,在竖屏手机上会被放大到视口高度的 2.4 倍宽 —— 浏览器按 `sizes`
- * 估出来的宽度和真正渲染的宽度差了一个数量级,选出来必然偏小。media 是确定的。
- *
- * 每次登录只会下载【其中一个】。实测字节数在 docs/login-page.md §10。
+/*
+ * 【这里曾经有一个 PHOTO 常量】fu2 把它删了,而不是设成 null ——
+ * 一个 `const PHOTO = null` 读起来像「等着被填」,而这正是本刀要排除的误解。
+ * 底图现在由 login.module.css 里的 .wash / .glow / .veil 三层给,
+ * 换底图 = 改那三条渐变,仍然只动这一处附近的东西。
  */
-const PHOTO = {
-    small: { avif: '/brand/login-field-1280.avif', webp: '/brand/login-field-1280.webp' },
-    large: { avif: '/brand/login-field-1920.avif', webp: '/brand/login-field-1920.webp' },
-    /** 连 WebP 都不认的浏览器兜底到它 */
-    fallback: '/brand/login-field-1280.webp',
-} as const
 
 export default function BrandField() {
     const ref = useRef<HTMLDivElement>(null)
@@ -101,20 +95,11 @@ export default function BrandField() {
     return (
         // aria-hidden:整层是装饰。读屏软件不该念一块底色。
         <div ref={ref} className={styles.field} aria-hidden="true">
-            <picture>
-                <source type="image/avif" media="(max-width: 900px)" srcSet={PHOTO.small.avif} />
-                <source type="image/avif" srcSet={PHOTO.large.avif} />
-                <source type="image/webp" media="(max-width: 900px)" srcSet={PHOTO.small.webp} />
-                <source type="image/webp" srcSet={PHOTO.large.webp} />
-                {/* 静态本地图,尺寸是离线烤好的定值;next/image 在这里只多一层 loader,
-                    而且它不认 <picture> 的 media 分档。
-                    (no-img-element 对 <picture> 里的 <img> 不报 —— 这正是它认可的写法。) */}
-                <img
-                    src={PHOTO.fallback}
-                    alt=""
-                    className={`${styles.layer} ${styles.photo}`}
-                />
-            </picture>
+            {/* 两层会动的渐变 + 一层不动的 veil。
+                ★【不许给这两层写 width/height】★ 见 login.module.css 的 .layer 抬头:
+                那正是 fu1 露出浅色带的原因。过扫靠 inset:-10% 给,盒子自己算。 */}
+            <div className={`${styles.layer} ${styles.wash}`} />
+            <div className={`${styles.layer} ${styles.glow}`} />
             {/* veil 【不带 .layer】—— 它不动,见 login.module.css 抬头那段 ★ */}
             <div className={styles.veil} />
         </div>

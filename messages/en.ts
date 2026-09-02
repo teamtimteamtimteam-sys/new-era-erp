@@ -758,8 +758,11 @@ const en = {
         },
     },
     login: {
-        title: 'Sign in to EVoltrya OS',
-        subtitle: 'Lithium battery recycling ERP',
+        // ★【Brand line — same English in both locales, do NOT translate】★
+        // 完整说明见 zh.ts 同一处:为什么放在语言包里、为什么是两个键、
+        // 以及 title / subtitle 为什么被删掉。
+        sloganLine1: 'Powering tomorrow,',
+        sloganLine2: 'recovering today.',
         email: 'Email',
         password: 'Password',
         submit: 'Sign in',
