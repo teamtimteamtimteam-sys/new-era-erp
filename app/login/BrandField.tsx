@@ -1,9 +1,7 @@
-'use client'
-
 // ════════════════════════════════════════════════════════════════════════════
 // LOGIN-1 · 【底图 —— 一个可以整块换掉的层】(2026-09-02)
 //
-// ★★★ 换图只改下面那一个常量 PHOTO,别的一行都不用动。★★★
+// ★★★ 换底图只改 login.module.css 里 .wash / .glow / .veil 三条渐变。★★★
 //
 // 【底图是【品牌渐变】,而这是一个【已经做出的决定】,不是等照片回来的临时状态】
 // (LOGIN-1-fu2,2026-09-02)
@@ -16,91 +14,57 @@
 //      的 .layer 抬头:给过扫层写了 width/height,`right`/`bottom` 因此被忽略)。
 // 加上渐变【更快】:照片实测桌面 +101 KB、手机 +52 KB,渐变 0 字节。
 //
-// 【可替换的那层结构留着】—— 它仍然有用:底图是什么,只由这一个文件决定。
+// 【可替换的那层结构留着】—— 它仍然有用:底图是什么,只由这一处决定。
 // 但它现在的内容就是渐变,**后面没有一张待办的照片**。
 //
-// 【为什么整层是 client】视差要一个 pointermove 监听。除此之外这一层没有任何状态,
-// 也不取任何数据 —— 它进客户端包的代价就是这几十行本身。
+// 【为什么这一层【不再】是 client】它此前挂 'use client',唯一的理由是视差要一个
+// pointermove 监听。视差已被撤掉(理由见下面那段 ★),于是这一层没有状态、
+// 不取数据、不监听任何东西 —— 它是纯静态标记,不该再进客户端包。
 // ════════════════════════════════════════════════════════════════════════════
 
-import { useEffect, useRef } from 'react'
 import styles from './login.module.css'
 
 /*
  * 【这里曾经有一个 PHOTO 常量】fu2 把它删了,而不是设成 null ——
  * 一个 `const PHOTO = null` 读起来像「等着被填」,而这正是本刀要排除的误解。
- * 底图现在由 login.module.css 里的 .wash / .glow / .veil 三层给,
- * 换底图 = 改那三条渐变,仍然只动这一处附近的东西。
+ * 底图现在由 login.module.css 里的 .wash / .glow / .veil 三层给。
  */
 
+/* ★★★【这里曾经有一个视差】—— 它被【量掉】了,不要再建一次 ★★★
+   ────────────────────────────────────────────────────────────────────────
+   PDF-1(2026-09-02)撤除。此处原有一个经 rAF 节流的 pointermove 监听,
+   把鼠标位置写成 --px / --py(-1…1),.wash 与 .glow 各带一个 --d(14px / 26px),
+   两层因此以不同速度平移,速度差即「深度」。代码是对的,它确实在动。
+
+   ★ 撤除的理由是【实测它看不见】,不是它不好写 ★
+   两层的实际行程分别是 28px 与 52px(2 × --d),而在【整块画面的任意一点上】,
+   视差前后的最大色差 **ΔE76 = 1.049** —— 恰好压在「勉强能察觉」的门槛
+   (ΔE ≈ 1)上或之下。也就是说:层在动,颜色几乎没变,于是人看不出有东西在动。
+
+   【根因是机制本身在这块底图上不成立,不是参数没调够】视差之所以读得出来,
+   靠的是【近处的细节相对远处移位】。而这一层是三条平滑的径向渐变 ——
+   **它没有细节可供揭示**:把一片连续的渐变平移 28px,盖住的还是几乎同一个颜色。
+   (同一个原因也解释了卡片那条 backdrop-blur:实测模糊前后 ΔE76 仅 0.0495。)
+
+   【两条「救活它」的路都被否了,别再走一遍】
+     ① 把位移放大到肉眼可见(需要三倍以上)—— 会吃穿 .layer 的 inset:-10% 过扫,
+        手机窄视口上先露边,那正是 fu1 那个「浅色带」缺陷的样子;
+     ② 把渐变改成硬边色块以制造可位移的细节 —— 直接违反 R2「柔和浮现」。
+   于是:留着一段看不见的动效 + 一个客户端包 + 一个 pointermove 监听,
+   换来的是 ΔE 1.049。**删掉。**
+
+   ★ 下一个盯着这块渐变想加视差的人:先量 ΔE,再写代码。★                     */
+
 export default function BrandField() {
-    const ref = useRef<HTMLDivElement>(null)
-
-    useEffect(() => {
-        const el = ref.current
-        if (!el) return
-        // .page 是写 --px/--py 的那个元素(field 的父节点)。
-        const page = el.parentElement
-        if (!page) return
-
-        // 【两道闸,含义不同,都要】
-        //   fine  —— 没有精确指针就【根本没有鼠标位置这回事】。手机上不是「视差很小」,
-        //            是这个交互不存在;连监听都不该挂。
-        //   calm  —— 人明说了要少动效。R7 的硬要求。
-        const fine = window.matchMedia('(hover: hover) and (pointer: fine)')
-        const calm = window.matchMedia('(prefers-reduced-motion: reduce)')
-
-        let raf = 0
-        const onMove = (e: PointerEvent) => {
-            // 【节流:一帧最多算一次】pointermove 在高刷屏上一秒能来 120+ 次,
-            // 而屏幕一帧只画一次 —— 多算的那些是纯浪费。
-            if (raf) return
-            raf = requestAnimationFrame(() => {
-                raf = 0
-                const x = (e.clientX / window.innerWidth - 0.5) * 2  // -1 … 1
-                const y = (e.clientY / window.innerHeight - 0.5) * 2
-                page.style.setProperty('--px', x.toFixed(3))
-                page.style.setProperty('--py', y.toFixed(3))
-            })
-        }
-
-        let attached = false
-        const sync = () => {
-            const want = fine.matches && !calm.matches
-            if (want === attached) return
-            if (want) {
-                window.addEventListener('pointermove', onMove, { passive: true })
-            } else {
-                window.removeEventListener('pointermove', onMove)
-                // 【停下来时要归零】否则会停在最后一次鼠标位置上 —— 那是一个
-                // 「冻住的偏移」,比不动更奇怪。人中途打开减少动效,画面要回到正中。
-                if (raf) { cancelAnimationFrame(raf); raf = 0 }
-                page.style.setProperty('--px', '0')
-                page.style.setProperty('--py', '0')
-            }
-            attached = want
-        }
-
-        sync()
-        fine.addEventListener('change', sync)
-        calm.addEventListener('change', sync)
-        return () => {
-            fine.removeEventListener('change', sync)
-            calm.removeEventListener('change', sync)
-            window.removeEventListener('pointermove', onMove)
-            if (raf) cancelAnimationFrame(raf)
-        }
-    }, [])
-
     return (
         // aria-hidden:整层是装饰。读屏软件不该念一块底色。
-        <div ref={ref} className={styles.field} aria-hidden="true">
-            {/* 两层会动的渐变 + 一层不动的 veil。
-                ★【不许给这两层写 width/height】★ 见 login.module.css 的 .layer 抬头:
+        <div className={styles.field} aria-hidden="true">
+            {/* 三层渐变,全部静止。
+                ★【不许给这些层写 width/height】★ 见 login.module.css 的 .layer 抬头:
                 那正是 fu1 露出浅色带的原因。过扫靠 inset:-10% 给,盒子自己算。 */}
             <div className={`${styles.layer} ${styles.wash}`} />
             <div className={`${styles.layer} ${styles.glow}`} />
-            {/* veil 【不带 .layer】—— 它不动,见 login.module.css 抬头那段 ★ */}
+            {/* veil 【不带 .layer】—— 它 inset:0 不过扫,铺在上面守对比度地板 */}
             <div className={styles.veil} />
         </div>
     )

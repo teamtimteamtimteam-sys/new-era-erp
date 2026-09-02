@@ -10,32 +10,43 @@
 // 而他此刻的界面语言就是他读得懂的那一种。把一张内部报表强行印成英文,
 // 是把一条对外单据的规矩套到一件内部的事情上。所以这里跟随请求方的界面语言。
 // 【前提】Noto Sans SC 的裁剪范围覆盖 GB2312(6763 汉字)+ 拉丁 + 标点;
-// 超出范围的字由 lib/invoiceFontCoverage 在渲染前【大声报错】,不会静默印空白。
+// 超出范围的字由 lib/pdfFontCoverage 在渲染前【大声报错】,不会静默印空白。
+// ── PDF-1(2026-09-02):这一份版式服务【两种受众】,而现在它说得出是哪一种 ───
+// ★ 判据只有一条:**这份东西离不离开这栋楼。** ★
+//   * 四张库存报表(snapshot / ledger / safety / violations)只给【打开这个系统
+//     的这个人】看 —— 内部。不印抬头:自己给自己看的东西不需要自我介绍。
+//   * 可追溯报告【交到客户与审计师手里】—— 对外。必须印字标与法定名称,
+//     否则那张纸上没有任何东西说明它是谁出的,审计师无从溯源。
+// 传 `company` = 对外(画抬头);不传 = 内部。**下一个加报表的人:先问它去哪儿。**
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
-import { INVOICE_FONT_FAMILY } from '@/app/finance/invoices/[id]/pdf/InvoiceDocument'
+import { DOC_FONT_STACK } from '@/app/components/pdf/fonts'
+import { BRAND } from '@/app/components/pdf/theme'
+import { DocumentLetterhead } from '@/app/components/pdf/DocumentChrome'
+import type { DocumentCompany } from '@/app/components/pdf/company'
 
 const styles = StyleSheet.create({
-    page: { fontFamily: INVOICE_FONT_FAMILY, fontSize: 8, padding: 28, color: '#111827' },
-    title: { fontSize: 14, fontWeight: 'bold', marginBottom: 6 },
+    page: { fontFamily: DOC_FONT_STACK, fontSize: 8, padding: 28, color: BRAND.text },
+    title: { fontSize: 14, fontWeight: 'bold', marginBottom: 6, color: BRAND.ocean },
     metaRow: { flexDirection: 'row', marginBottom: 1 },
-    metaLabel: { width: 70, color: '#6b7280' },
+    metaLabel: { width: 70, color: BRAND.muted },
     metaValue: { flex: 1 },
-    metaBlock: { marginBottom: 10, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#111827' },
+    metaBlock: { marginBottom: 10, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: BRAND.ocean },
     tableHeader: {
         flexDirection: 'row',
+        backgroundColor: BRAND.accent,
         borderBottomWidth: 1,
-        borderBottomColor: '#111827',
-        paddingBottom: 3,
+        borderBottomColor: BRAND.ocean,
+        paddingVertical: 3,
         marginBottom: 2,
         fontWeight: 'bold',
     },
-    row: { flexDirection: 'row', paddingVertical: 3, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb' },
+    row: { flexDirection: 'row', paddingVertical: 3, borderBottomWidth: 0.5, borderBottomColor: BRAND.hairline },
     cell: { paddingRight: 6 },
-    empty: { marginTop: 12, color: '#6b7280' },
+    empty: { marginTop: 12, color: BRAND.muted },
     // AUD-2:第二张(及以后)表格的小标题,以及正文说明段
     sectionHeading: { fontSize: 10, fontWeight: 'bold', marginTop: 14, marginBottom: 4 },
-    note: { marginTop: 14, paddingTop: 8, borderTopWidth: 0.5, borderTopColor: '#9ca3af', color: '#374151' },
-    footer: { position: 'absolute', bottom: 14, left: 28, right: 28, fontSize: 7, color: '#9ca3af' },
+    note: { marginTop: 14, paddingTop: 8, borderTopWidth: 0.5, borderTopColor: BRAND.muted, color: BRAND.muted },
+    footer: { position: 'absolute', bottom: 14, left: 28, right: 28, fontSize: 7, color: BRAND.muted },
 })
 
 export type ReportColumn = { header: string; width: number; align?: 'left' | 'right' }
@@ -59,6 +70,7 @@ export default function ReportDocument({
     pageLabel,
     sections = [],
     note,
+    company,
 }: {
     title: string
     generatedAtLabel: string
@@ -76,6 +88,8 @@ export default function ReportDocument({
     /** 正文末尾的一段说明。可追溯报告用它说清"回收率是估算,不是审定 KPI"——
      *  【一个只拿到 PDF 的客户,不能只看见一个光秃秃的百分比】。 */
     note?: string
+    /** ★ 传了就是【对外】文档,画字标抬头;不传就是内部报表。见文件抬头。 */
+    company?: DocumentCompany
 }) {
     return (
         <Document>
@@ -83,6 +97,8 @@ export default function ReportDocument({
                 {/* 【表头块每页都在】—— 一份被翻到第三页的报表,读的人同样要知道
                     它是什么、什么时候生成的、过滤条件是什么。 */}
                 <View fixed>
+                    {/* 对外的那一份先自我介绍;内部四张不画 —— 见文件抬头的判据 */}
+                    {company ? <DocumentLetterhead company={company} /> : null}
                     <Text style={styles.title}>{title}</Text>
                     <View style={styles.metaBlock}>
                         <View style={styles.metaRow}>

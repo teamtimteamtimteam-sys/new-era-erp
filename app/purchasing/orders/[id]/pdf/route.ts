@@ -15,9 +15,8 @@ import React from 'react'
 import { createClient } from '@/lib/supabase/server'
 import PurchaseOrderDocument, { type PoDocData, pricingStatusText } from './PurchaseOrderDocument'
 import type { CompanyProfile } from '@/app/finance/invoices/[id]/pdf/InvoiceDocument'
-import { findUnrenderableText, coverageErrorMessage, type PdfTextField } from '@/lib/invoiceFontCoverage'
+import { findUnrenderableText, coverageErrorMessage, type PdfTextField } from '@/lib/pdfFontCoverage'
 
-const LOGO_MIME: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg' }
 
 // 与发票同一套响应头转义(RFC 6266/5987)—— 文件名是拼进 HTTP 头的
 function contentDispositionFilename(name: string): string {
@@ -79,14 +78,9 @@ async function renderPo(supabase: Awaited<ReturnType<typeof createClient>>, poId
         }
     }
 
-    let logo: string | null = null
-    if (company.logo_path) {
-        const mime = LOGO_MIME[company.logo_path.split('.').pop()?.toLowerCase() ?? '']
-        if (mime) {
-            const { data: blob } = await supabase.storage.from('company-assets').download(company.logo_path)
-            if (blob) logo = `data:${mime};base64,${Buffer.from(await blob.arrayBuffer()).toString('base64')}`
-        }
-    }
+    // 【上传的 logo 不再下载】PDF-1:对外单据印的是矢量字标(见文档组件里的说明),
+    // 不再印 company_profile.logo_path 那张位图 —— 于是这里那段"从私有桶下字节、
+    // 转 data URI"就成了一次【没有人会看的存储下载】,每渲染一次白花一次往返。
 
     // EQP-1c-b-fu2:这张单是不是设备单 —— 只决定明细的列头(Machine vs Material)。
     // 【一张单只有一种】EQP-1a 的 N1 由延迟约束触发器保证不混装,所以任意一行
@@ -97,7 +91,7 @@ async function renderPo(supabase: Awaited<ReturnType<typeof createClient>>, poId
         .from('purchase_order_lines_masked').select('asset_id').eq('purchase_order_id', poId).limit(1)
     const isEquipment = (kindRows ?? []).some((r) => r.asset_id !== null)
 
-    const element = React.createElement(PurchaseOrderDocument, { data, company, logo, isEquipment }) as React.ReactElement<DocumentProps>
+    const element = React.createElement(PurchaseOrderDocument, { data, company, isEquipment }) as React.ReactElement<DocumentProps>
     const buffer = await renderToBuffer(element)
     return { buffer, code: data.code }
 }

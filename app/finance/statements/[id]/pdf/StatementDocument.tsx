@@ -13,8 +13,34 @@
 // 【多币种:每个币种一段,另给一个【明标为折算】的本位币总额】
 // 实测线上每一个客户都是多币种(有客户是 SGD 的发票、USD 的收款)。
 // 把两种币直接加成一个数而不说,正是币种字面量那条检查存在的毛病。
-import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer'
-import CompanyLetterhead, { type LetterheadCompany } from '@/app/components/CompanyLetterhead'
+//
+// ════════════════════════════════════════════════════════════════════════════
+// ★★★ PDF-1(2026-09-02):这份文档此前【印不出中文】,而没有任何东西报错 ★★★
+// ════════════════════════════════════════════════════════════════════════════
+// 它的 page 样式写的是 `fontFamily: 'Helvetica'`,另有六处 `'Helvetica-Bold'`。
+// Helvetica 是 PDF 内置字体,**一个汉字都没有**。而发票文档里【白纸黑字写着
+// 不许这么做】:「凡是要加粗的地方一律用 fontWeight: 'bold'(而不是
+// fontFamily: 'Helvetica-Bold'),否则等于把那个节点换回了拉丁字体。」
+//
+// 实测渲染复现:`上海金属回收有限公司` 印出来是 **`wÑ^Þ6 Plø`** ——
+// **不是空白、不是豆腐块,是一串看起来像模像样的重音拉丁字母。**
+// 一个扫一眼的人会以为那是某个奇怪的名字,不会以为是故障。
+//
+// ★ 而这一行【调了字体覆盖守卫】,守卫每一次都通过 ★
+// 因为守卫查的是 **Noto Sans SC 的覆盖清单**,文档嵌的却是 **Helvetica**
+// —— 标签与判据问的不是同一件事。
+//
+// 【范围,照直说】落地时 customer_statements 【0 行】,且线上没有任何客户 /
+// 供应商 / 物料 / 备注含中文(实测 2026-09-02)。所以它【还没有】糟蹋过一份
+// 真的对账单 —— 它是一个装好了的陷阱,不是一场已经发生的事故。
+// 但对账单的全部用途就是寄给欠款人要钱,而第一个中文客户不会带着警告出现。
+//
+// 处置见 app/components/pdf/fonts.ts(字体栈)与
+// scripts/check-pdf-font-stack.mjs(构建期拦住这个写法,让它写不进来)。
+import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { docStyles, DocumentLetterhead, DocumentFooter } from '@/app/components/pdf/DocumentChrome'
+import { BRAND } from '@/app/components/pdf/theme'
+import type { LetterheadCompany } from '@/app/components/CompanyLetterhead'
 
 export type StatementLine = {
     doc_kind: string
@@ -50,30 +76,27 @@ export type StatementDocData = {
     issued_at: string
     superseded: boolean
     company: LetterheadCompany
-    logo: string | null
     /** 界面语言选出来的措辞 —— 版面不拼接双语,按语言选一条 */
     t: Record<string, string>
 }
 
+// 【只剩下对账单独有的几条】page / 抬头 / 页脚 / 表头全部来自共享层;
+// 下面这些是这份单据自己的构造(结转式摘要、账龄分档、SUPERSEDED 水印)。
+// ★ 一条 fontFamily 都没有 —— 加粗一律 fontWeight:'bold',见文件抬头 ★
 const styles = StyleSheet.create({
-    page: { padding: 36, fontSize: 9, fontFamily: 'Helvetica' },
-    header: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 },
-    logo: { width: 110, height: 40, objectFit: 'contain' },
-    companyBlock: { alignItems: 'flex-end', maxWidth: 260 },
-    companyName: { fontSize: 12, fontFamily: 'Helvetica-Bold', marginBottom: 2 },
-    small: { fontSize: 8, color: '#444' },
-    title: { fontSize: 16, fontFamily: 'Helvetica-Bold', marginBottom: 2 },
     meta: { fontSize: 9, marginBottom: 12 },
-    sectionTitle: { fontSize: 10, fontFamily: 'Helvetica-Bold', marginTop: 12, marginBottom: 4 },
+    sectionTitle: { fontSize: 10, fontWeight: 'bold', marginTop: 12, marginBottom: 4, color: BRAND.text },
     row: { flexDirection: 'row' },
-    th: { fontFamily: 'Helvetica-Bold', backgroundColor: '#eee', padding: 4 },
-    td: { padding: 4, borderBottomWidth: 0.5, borderBottomColor: '#ddd' },
+    th: { fontWeight: 'bold', backgroundColor: BRAND.accent, padding: 4 },
+    td: { padding: 4, borderBottomWidth: 0.5, borderBottomColor: BRAND.hairline },
     right: { textAlign: 'right' },
     summaryRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 },
     summaryStrong: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3,
-                     borderTopWidth: 1, borderTopColor: '#333', marginTop: 3 },
-    bold: { fontFamily: 'Helvetica-Bold' },
-    note: { fontSize: 8, color: '#666', marginTop: 10 },
+                     borderTopWidth: 1, borderTopColor: BRAND.text, marginTop: 3 },
+    bold: { fontWeight: 'bold' },
+    note: { fontSize: 8, color: BRAND.muted, marginTop: 10 },
+    // 【被取代的那一版要认得出】水印保留原样的警示红与透明度 —— 它不是品牌装饰,
+    // 是一句"你手上这份不是最新的",与送货单的 CONTROLLED 同一类。
     voidMark: { position: 'absolute', top: 260, left: 90, fontSize: 60, color: '#d33', opacity: 0.25 },
 })
 
@@ -84,23 +107,24 @@ export default function StatementDocument({ data: d }: { data: StatementDocData 
     const w = { doc: '16%', kind: '14%', date: '12%', due: '12%', ccy: '8%', amt: '13%', open: '13%', age: '12%' }
     return (
         <Document title={d.code}>
-            <Page size="A4" style={styles.page}>
+            <Page size="A4" style={docStyles.page}>
                 {/* 被取代的那一版仍然打得开,而且要认得出来 —— 与发票作废水印同一条:
                     让手里拿着旧件的人一眼看出它已经不是最新的那一份。 */}
                 {d.superseded ? <Text style={styles.voidMark}>SUPERSEDED</Text> : null}
 
-                <View style={styles.header}>
-                    <View>{d.logo ? <Image src={d.logo} style={styles.logo} /> : null}</View>
-                    <View style={styles.companyBlock}>
-                        <CompanyLetterhead
-                            company={d.company}
-                            styles={{ name: styles.companyName, line: styles.small }}
-                            variant="stacked"
-                        />
-                    </View>
-                </View>
+                {/* ★【上传的 logo 不再印在这张纸上 —— 它与字标是【同一个标记】】★
+                    (PDF-1,2026-09-02。实测发现,不是推断:before 渲染里两个一起出现。)
+                    company_profile.logo_path 今天存的就是 EVoltrya 字标的一张【单色
+                    位图】。加上共享抬头的矢量字标之后,同一个标记在一张纸上印了两遍,
+                    而位图那一份还更大、居中、把版面顶开了。
+                    R1 点名字标是 public/brand/evoltrya-wordmark.svg —— 所以留矢量那一份:
+                    它是品牌指南里的颜色(Ocean + Forest),放大不糊,且只有一处真源。
+                    【logo_path 这个字段没有被删】/finance/company 仍然可以上传与显示它;
+                    变的只是【对外单据不再印它】。哪天真要在单据上印一个与字标不同的
+                    标记,那是一个新决定,应当带着它自己的理由回来。 */}
+                <DocumentLetterhead company={d.company} />
 
-                <Text style={styles.title}>{d.t.title}</Text>
+                <Text style={docStyles.title}>{d.t.title}</Text>
                 <Text style={styles.meta}>
                     {d.code} · {d.customer.code} {d.customer.legal_name} · {d.period_start} → {d.period_end}
                 </Text>
@@ -204,6 +228,10 @@ export default function StatementDocument({ data: d }: { data: StatementDocData 
                 </View>
 
                 <Text style={styles.note}>{d.t.frozenNote}</Text>
+
+                {/* PDF-1:页码。对账单是八份里【最容易多页】的那一份(明细行没有上限),
+                    而它此前不印页码 —— 散在收件人桌上时,没有办法知道少了哪一页。 */}
+                <DocumentFooter code={d.code} />
             </Page>
         </Document>
     )

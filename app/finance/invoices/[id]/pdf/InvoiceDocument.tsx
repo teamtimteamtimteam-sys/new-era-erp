@@ -6,68 +6,22 @@
 // 这里出现的 'INVOICE'、'Bill To'、'Subtotal' 等都是【单据正文】,不是界面标签。
 //
 // 只在服务端渲染(route handler 里 renderToBuffer),不进浏览器包。
-import CompanyLetterhead from '@/app/components/CompanyLetterhead'
 import React from 'react'
-import path from 'node:path'
-import fs from 'node:fs'
-import { Document, Page, Text, View, Image, StyleSheet, Font } from '@react-pdf/renderer'
+import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 字体
-// ─────────────────────────────────────────────────────────────────────────────
-// 内置的 Helvetica 【没有中文字形】—— 客户名或地址里只要有一个汉字,印出来就是空白。
-// 所以整份文档改用内嵌的 Noto Sans SC(它同时含完整拉丁字母,英文发票的观感不变)。
+// ── 字体 ─────────────────────────────────────────────────────────────────────
+// PDF-1:注册搬到 app/components/pdf/fonts.ts —— 【八份对外单据一处注册,一个字体栈】。
 //
-// 【从仓库文件系统读,绝不从远程 URL 读】:react-pdf 支持给 src 传 URL,但那意味着
-// 渲染过程中要发一次网络请求 —— 一旦超时或对端挂了,拿到的就是一份字体缺失的 PDF,
-// 而且失败是静默的。这跟本目录 route.ts 里 logo 先下载再内嵌是同一个理由。
+// ★【为什么搬走】★ 它此前住在这个文件里,靠"import 发票文档就完成注册"这个
+// 模块副作用传播给另外五份文档。那让"这份文档嵌了哪些字体"变成一件要靠读 import
+// 才知道的事 —— 而对账单正是在这件事上写成了 Helvetica,把中文印成了乱码,
+// 并且【骗过了字体覆盖守卫】。详见 fonts.ts 与 StatementDocument.tsx 的抬头。
 //
-// 字体文件是【裁剪过的】(assets/fonts/subset.py):21 MB → 4.4 MB,代价是裁剪范围外
-// 的字画不出来。所以渲染前必须过一遍 lib/invoiceFontCoverage.ts 的守卫,见 route.ts。
-export const INVOICE_FONT_FAMILY = 'Noto Sans SC'
-
-const FONT_DIR = path.join(process.cwd(), 'assets', 'fonts')
-const FONT_FILES = [
-    { file: 'NotoSansSC-Regular.subset.ttf', fontWeight: 'normal' as const },
-    { file: 'NotoSansSC-Bold.subset.ttf', fontWeight: 'bold' as const },
-]
-
-// 缺文件就在【模块加载时】炸掉,而不是等到渲染时抛一个含糊的 fontkit 错误 ——
-// 字体没装好属于部署事故,应该一眼看出来。
-for (const { file } of FONT_FILES) {
-    const p = path.join(FONT_DIR, file)
-    if (!fs.existsSync(p)) {
-        throw new Error(
-            `发票字体缺失:${p}\n` +
-                `请在 assets/fonts/ 下放好完整字重后运行 python3 assets/fonts/subset.py 生成裁剪版。`
-        )
-    }
-}
-
-Font.register({
-    family: INVOICE_FONT_FAMILY,
-    fonts: FONT_FILES.map(({ file, fontWeight }) => ({
-        src: path.join(FONT_DIR, file),
-        fontStyle: 'normal' as const,
-        fontWeight,
-    })),
-})
-
-// 排版引擎【只按空格切词】(textkit 的 wrapWords:split(/([ ]+)/)),而中文不写空格 ——
-// 一整段中文地址会被当成一个不可断开的"词"。实测 69 个汉字的地址(9pt ≈ 621pt)在
-// 515pt 的正文宽里【直接冲出页面右边缘被截掉】,后面十几个字整段消失。
-//
-// 所以对含中日韩字符的词逐字切开,让断行点能落在任意两个汉字之间;纯拉丁的词保持
-// 整体,避免把英文单词拆散。
-//
-// 【已知缺陷】textkit 在断词点一律插一个连字符(breakLines 里对 penalty 节点
-// insertGlyph(HYPHEN)),中文断行处因此会多出一个 "-":"…大楼北翼-/办公室…"。
-// 中文排版上这是错的。但两害相权:多一个连字符 = 难看但信息完整;不切词 = 地址后半
-// 截直接从纸面上消失,而且没人会发现 —— 后者正是本次改动通篇在防的那类静默丢字。
-// 要彻底修好得绕开 textkit 的 hyphenation 回调(它没有"无连字符断点"这种节点),
-// 属于另一件事。
-const CJK = /[　-〿㐀-䶿一-鿿豈-﫿＀-￯]/
-Font.registerHyphenationCallback((word) => (CJK.test(word) ? Array.from(word) : [word]))
+// 现在:拉丁与数字用 Google Sans,中文用 Noto Sans SC,**按字符选**(R2)。
+// 加粗一律 fontWeight:'bold' —— 两个家族都注册了 400 与 700。
+import { DOC_FONT_STACK } from '@/app/components/pdf/fonts'
+import { BRAND } from '@/app/components/pdf/theme'
+import { DocumentLetterhead, DocumentFooter } from '@/app/components/pdf/DocumentChrome'
 
 export type CompanyProfile = {
     legal_name: string
@@ -85,7 +39,7 @@ export type CompanyProfile = {
     bank_swift: string | null
     bank_address: string | null
     invoice_footer_text: string | null
-    // 路由用它去桶里取字节;文档组件本身只吃已内嵌的 data URI(logo 参数)
+    // PDF-1 起对外单据不再印它(见下面渲染处那段 ★);字段仍在,/finance/company 用得到
     logo_path: string | null
 }
 
@@ -124,43 +78,45 @@ const num = (n: number, dp = 2) =>
     new Intl.NumberFormat('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp }).format(n)
 
 const styles = StyleSheet.create({
-    // fontFamily 放在 page 上,页面内所有 Text 默认继承它 —— 任何一个文本节点都不该
-    // 回落到没有中文字形的 Helvetica。下面凡是要加粗的地方一律用 fontWeight: 'bold'
-    // (而不是 fontFamily: 'Helvetica-Bold'),否则等于把那个节点换回了拉丁字体。
+    // fontFamily 放在 page 上,页内所有 Text 默认继承整个【字体栈】—— 任何一个文本
+    // 节点都不该自己写 fontFamily。加粗一律 fontWeight:'bold';写 'Helvetica-Bold'
+    // 等于把那个节点换回一个没有中文字形的拉丁字体(对账单栽过,现在构建期就会红)。
     page: {
         paddingTop: 36,
         paddingBottom: 64,
         paddingHorizontal: 40,
         fontSize: 9,
-        color: '#111827',
-        fontFamily: INVOICE_FONT_FAMILY,
+        color: BRAND.text,
+        fontFamily: DOC_FONT_STACK,
     },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
-    logo: { height: 44, objectFit: 'contain' },
     companyBlock: { alignItems: 'flex-end', maxWidth: 240 },
     companyName: { fontSize: 11, fontWeight: 'bold', marginBottom: 2 },
-    small: { fontSize: 8, color: '#4b5563', textAlign: 'right' },
+    small: { fontSize: 8, color: BRAND.muted, textAlign: 'right' },
 
     titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16 },
     title: { fontSize: 22, fontWeight: 'bold', letterSpacing: 2 },
     metaTable: { alignItems: 'flex-end' },
     metaRow: { flexDirection: 'row', marginBottom: 1 },
-    metaLabel: { fontSize: 8, color: '#6b7280', width: 78, textAlign: 'right', marginRight: 8 },
+    metaLabel: { fontSize: 8, color: BRAND.muted, width: 78, textAlign: 'right', marginRight: 8 },
     metaValue: { fontSize: 9, width: 90, textAlign: 'right' },
 
     billTo: { marginBottom: 18 },
-    sectionHeading: { fontSize: 8, fontWeight: 'bold', color: '#6b7280', letterSpacing: 1, marginBottom: 4 },
+    sectionHeading: { fontSize: 8, fontWeight: 'bold', color: BRAND.muted, letterSpacing: 1, marginBottom: 4 },
     billName: { fontSize: 10, fontWeight: 'bold' },
 
+    // 表头与另外七份同一个样子:accent 底 + Ocean 分隔线(见 DocumentChrome.docStyles)
     tableHeader: {
         flexDirection: 'row',
+        backgroundColor: BRAND.accent,
         borderBottomWidth: 1,
-        borderBottomColor: '#111827',
-        paddingBottom: 4,
+        borderBottomColor: BRAND.ocean,
+        paddingVertical: 4,
+        paddingHorizontal: 2,
         marginBottom: 2,
     },
-    row: { flexDirection: 'row', paddingVertical: 4, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb' },
-    thText: { fontSize: 8, fontWeight: 'bold', color: '#374151' },
+    row: { flexDirection: 'row', paddingVertical: 4, borderBottomWidth: 0.5, borderBottomColor: BRAND.hairline },
+    thText: { fontSize: 8, fontWeight: 'bold', color: BRAND.muted },
     cNo: { width: 22 },
     cDesc: { flex: 1, paddingRight: 8 },
     cQty: { width: 82, textAlign: 'right' },
@@ -169,15 +125,15 @@ const styles = StyleSheet.create({
 
     totals: { marginTop: 12, alignItems: 'flex-end' },
     totalRow: { flexDirection: 'row', marginBottom: 2 },
-    totalLabel: { fontSize: 9, color: '#4b5563', width: 110, textAlign: 'right', marginRight: 10 },
+    totalLabel: { fontSize: 9, color: BRAND.muted, width: 110, textAlign: 'right', marginRight: 10 },
     totalValue: { fontSize: 9, width: 90, textAlign: 'right' },
     grandLabel: { fontSize: 10, fontWeight: 'bold', width: 110, textAlign: 'right', marginRight: 10 },
     grandValue: { fontSize: 10, fontWeight: 'bold', width: 90, textAlign: 'right' },
-    grandRow: { flexDirection: 'row', marginTop: 3, paddingTop: 4, borderTopWidth: 1, borderTopColor: '#111827' },
+    grandRow: { flexDirection: 'row', marginTop: 3, paddingTop: 4, borderTopWidth: 1, borderTopColor: BRAND.text },
 
     block: { marginTop: 20 },
     kvRow: { flexDirection: 'row', marginBottom: 1 },
-    kvLabel: { fontSize: 8, color: '#6b7280', width: 92 },
+    kvLabel: { fontSize: 8, color: BRAND.muted, width: 92 },
     kvValue: { fontSize: 9 },
 
     footer: {
@@ -186,13 +142,13 @@ const styles = StyleSheet.create({
         left: 40,
         right: 40,
         borderTopWidth: 0.5,
-        borderTopColor: '#d1d5db',
+        borderTopColor: BRAND.hairline,
         paddingTop: 6,
         flexDirection: 'row',
         justifyContent: 'space-between',
     },
-    footerText: { fontSize: 7.5, color: '#6b7280', flex: 1, paddingRight: 12 },
-    pageNo: { fontSize: 7.5, color: '#6b7280' },
+    footerText: { fontSize: 7.5, color: BRAND.muted, flex: 1, paddingRight: 12 },
+    pageNo: { fontSize: 7.5, color: BRAND.muted },
 
     voidBanner: {
         position: 'absolute',
@@ -224,14 +180,12 @@ export default function InvoiceDocument({
     lines,
     company,
     gstRegistrationNo,
-    logo,
 }: {
     invoice: InvoiceData
     lines: InvoiceLine[]
     company: CompanyProfile
     // GST 登记号来自 finance_settings(不在 company_profile 里,见该表注释)
     gstRegistrationNo: string | null
-    logo: string | null // data URI,服务端下载后内嵌
 }) {
     const b = invoice.bill_to ?? {}
     const isVoid = invoice.status === 'void'
@@ -246,22 +200,20 @@ export default function InvoiceDocument({
     return (
         <Document title={invoice.code}>
             <Page size="A4" style={styles.page}>
-                {/* 抬头:左 logo,右公司信息 */}
-                <View style={styles.header} fixed>
-                    <View>{logo ? <Image src={logo} style={styles.logo} /> : null}</View>
-                    <View style={styles.companyBlock}>
-                        {/* STATEMENT-1:抬头改用共用组件(variant='stacked')。
-                            样式仍由本文件传进去(companyName / small),版式一个像素没动;
-                            共用的是"由哪些部分组成、城市邮编怎么拼、国家印不印"那一份规则。
-                            对账单是它的第三个调用方 —— 而三份副本正是 EQP-1c-b-fu2 警告的那件事。 */}
-                        <CompanyLetterhead
-                            company={company}
-                            styles={{ name: styles.companyName, line: styles.small }}
-                            variant="stacked"
-                            gstRegistrationNo={gstRegistrationNo}
-                        />
-                    </View>
+                {/* 抬头:左字标,右公司信息 —— PDF-1 起由共享层给,八份单据同一份实现。 */}
+                <View fixed>
+                    <DocumentLetterhead company={company} gstRegistrationNo={gstRegistrationNo} />
                 </View>
+                {/* ★【上传的 logo 不再印在这张纸上 —— 它与字标是【同一个标记】】★
+                    (PDF-1,2026-09-02。实测发现,不是推断:before 渲染里两个一起出现。)
+                    company_profile.logo_path 今天存的就是 EVoltrya 字标的一张【单色
+                    位图】。加上共享抬头的矢量字标之后,同一个标记在一张纸上印了两遍,
+                    而位图那一份还更大、居中、把版面顶开了。
+                    R1 点名字标是 public/brand/evoltrya-wordmark.svg —— 所以留矢量那一份:
+                    它是品牌指南里的颜色(Ocean + Forest),放大不糊,且只有一处真源。
+                    【logo_path 这个字段没有被删】/finance/company 仍然可以上传与显示它;
+                    变的只是【对外单据不再印它】。哪天真要在单据上印一个与字标不同的
+                    标记,那是一个新决定,应当带着它自己的理由回来。 */}
 
                 {/* 标题 + 单据信息 */}
                 <View style={styles.titleRow}>
@@ -379,14 +331,9 @@ export default function InvoiceDocument({
                     </View>
                 ) : null}
 
-                {/* 页脚:每页都有 */}
-                <View style={styles.footer} fixed>
-                    <Text style={styles.footerText}>{company.invoice_footer_text ?? ''}</Text>
-                    <Text
-                        style={styles.pageNo}
-                        render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
-                    />
-                </View>
+                {/* 页脚:每页都有 —— PDF-1 起由共享层给。措辞与页码格式
+                    (`Page N of M`)与此前逐字相同。 */}
+                <DocumentFooter note={company.invoice_footer_text ?? ''} />
             </Page>
         </Document>
     )

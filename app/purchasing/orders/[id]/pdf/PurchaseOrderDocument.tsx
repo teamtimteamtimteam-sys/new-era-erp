@@ -10,9 +10,10 @@
 // 【单据币种,只有单据币种】(§D)po_document_data 里根本没有 fx_rate 与本位币数字,
 // 所以本组件想印也印不出来 —— 这是把约束放在数据层而不是靠组件自律。
 import React from 'react'
-import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer'
-import { INVOICE_FONT_FAMILY, type CompanyProfile } from '@/app/finance/invoices/[id]/pdf/InvoiceDocument'
-import CompanyLetterhead from '@/app/components/CompanyLetterhead'
+import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { type CompanyProfile } from '@/app/finance/invoices/[id]/pdf/InvoiceDocument'
+import { BRAND } from '@/app/components/pdf/theme'
+import { docStyles, DocumentLetterhead, DocumentFooter } from '@/app/components/pdf/DocumentChrome'
 
 export type PoCommittedTerms = {
     source_formula_code: string
@@ -124,51 +125,39 @@ export function pricingStatusText(line: PoDocLine): string[] {
     }
 }
 
+// PDF-1:page / 抬头 / 表头 / 页脚来自共享层;下面只剩采购单【自己】的构造
+// (承诺定价条款那一行、付款里程碑、设备单的列头切换)。颜色一律走品牌 token ——
+// 见 app/components/pdf/theme.ts,那里写着 Ocean 与 Forest 为什么不许当正文色。
 const styles = StyleSheet.create({
-    page: {
-        paddingTop: 36,
-        paddingBottom: 56,
-        paddingHorizontal: 40,
-        fontSize: 9,
-        color: '#111827',
-        fontFamily: INVOICE_FONT_FAMILY,
-    },
-    headerRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 },
-    logo: { maxWidth: 140, maxHeight: 48, objectFit: 'contain' },
-    companyName: { fontSize: 12, fontWeight: 'bold' },
-    muted: { color: '#6b7280' },
-    title: { fontSize: 18, fontWeight: 'bold', textAlign: 'right' },
+    muted: { color: BRAND.muted },
+    // 标题:18pt 粗体属于"大号文字",Ocean 实测 3.75:1 过 3:1 门槛。
+    title: { fontSize: 18, fontWeight: 'bold', letterSpacing: 1.5, color: BRAND.ocean, marginTop: 4 },
+    // 抬头块与下面的 SUPPLIER 之间要留白 —— 实测两者原本挤在一起
+    headBlock: { marginBottom: 14 },
     section: { marginBottom: 12 },
-    sectionTitle: { fontSize: 8, fontWeight: 'bold', color: '#6b7280', marginBottom: 3, textTransform: 'uppercase' },
+    sectionTitle: { fontSize: 8, fontWeight: 'bold', color: BRAND.muted, marginBottom: 3, textTransform: 'uppercase' },
     row: { flexDirection: 'row' },
     metaBox: { flexDirection: 'row', gap: 24, marginBottom: 12 },
-    table: { borderTopWidth: 1, borderColor: '#d1d5db' },
-    th: { fontWeight: 'bold', paddingVertical: 4 },
-    tr: { flexDirection: 'row', borderBottomWidth: 0.5, borderColor: '#e5e7eb', paddingVertical: 4 },
+    table: { borderTopWidth: 1, borderColor: BRAND.ocean },
+    th: { fontWeight: 'bold', paddingVertical: 4, backgroundColor: BRAND.accent },
+    tr: { flexDirection: 'row', borderBottomWidth: 0.5, borderColor: BRAND.hairline, paddingVertical: 4 },
     cNo: { width: '6%' },
     cDesc: { width: '46%', paddingRight: 6 },
     cQty: { width: '14%', textAlign: 'right' },
     cPrice: { width: '16%', textAlign: 'right' },
     cAmt: { width: '18%', textAlign: 'right' },
-    statusLine: { color: '#374151', fontSize: 8, marginTop: 2 },
+    statusLine: { color: BRAND.muted, fontSize: 8, marginTop: 2 },
     totalRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8 },
     totalLabel: { fontWeight: 'bold', marginRight: 12 },
-    footer: {
-        position: 'absolute', bottom: 28, left: 40, right: 40,
-        fontSize: 7.5, color: '#9ca3af', textAlign: 'center',
-        borderTopWidth: 0.5, borderColor: '#e5e7eb', paddingTop: 6,
-    },
 })
 
 export default function PurchaseOrderDocument({
     data,
     company,
-    logo,
     isEquipment = false,
 }: {
     data: PoDocData
     company: CompanyProfile
-    logo: string | null
     // EQP-1c-b-fu2:这张单是不是设备单 —— 只用来决定明细的【列头】。
     // 【为什么不放进 po_document_data】那个函数回答的是"这张单印出来是什么内容",
     // 而"这张单是什么种类"是一个【新的】问题;把它塞进去等于让那份共用实现
@@ -182,23 +171,27 @@ export default function PurchaseOrderDocument({
     // 而对账单是它的第三个调用方(见组件抬头与 known-issues 的 EQP-1c-b-fu2)。
     return (
         <Document title={`Purchase Order ${data.code}`}>
-            <Page size="A4" style={styles.page}>
-                <View style={styles.headerRow}>
-                    <View>
-                        {logo ? <Image src={logo} style={styles.logo} /> : null}
-                        <CompanyLetterhead
-                            company={company}
-                            styles={{ name: styles.companyName, line: styles.muted }}
-                            variant="inline"
-                        />
-                        {company.phone ? <Text style={styles.muted}>{company.phone}</Text> : null}
-                        {company.email ? <Text style={styles.muted}>{company.email}</Text> : null}
-                    </View>
-                    <View>
-                        <Text style={styles.title}>PURCHASE ORDER</Text>
-                        <Text style={{ textAlign: 'right' }}>{data.code}</Text>
-                        <Text style={{ textAlign: 'right' }}>Date: {data.order_date}</Text>
-                    </View>
+            <Page size="A4" style={docStyles.page}>
+                {/* PDF-1:抬头改用共享层 —— 八份对外单据同一份实现。
+                    【此前是 variant='inline'(地址一行逗号,标题在右)】现在与另外七份
+                    一样是字标在左、公司资料在右,标题另起一行。电话与邮箱不再单独印:
+                    stacked 变体本身就包含它们,留着会印两遍。
+                    【标题与单据号一个字没改】'PURCHASE ORDER' / 单号 / 'Date:' 逐字保留。 */}
+                {/* ★【上传的 logo 不再印在这张纸上 —— 它与字标是【同一个标记】】★
+                    (PDF-1,2026-09-02。实测发现,不是推断:before 渲染里两个一起出现。)
+                    company_profile.logo_path 今天存的就是 EVoltrya 字标的一张【单色
+                    位图】。加上共享抬头的矢量字标之后,同一个标记在一张纸上印了两遍,
+                    而位图那一份还更大、居中、把版面顶开了。
+                    R1 点名字标是 public/brand/evoltrya-wordmark.svg —— 所以留矢量那一份:
+                    它是品牌指南里的颜色(Ocean + Forest),放大不糊,且只有一处真源。
+                    【logo_path 这个字段没有被删】/finance/company 仍然可以上传与显示它;
+                    变的只是【对外单据不再印它】。哪天真要在单据上印一个与字标不同的
+                    标记,那是一个新决定,应当带着它自己的理由回来。 */}
+                <View fixed style={styles.headBlock}>
+                    <DocumentLetterhead company={company} />
+                    <Text style={styles.title}>PURCHASE ORDER</Text>
+                    <Text>{data.code}</Text>
+                    <Text>Date: {data.order_date}</Text>
                 </View>
 
                 <View style={styles.section}>
@@ -293,9 +286,12 @@ export default function PurchaseOrderDocument({
                     </View>
                 ) : null}
 
-                <Text style={styles.footer} fixed>
-                    {`${company.legal_name} — Purchase Order ${data.code}. Provisional prices settle on the committed terms stated per line.`}
-                </Text>
+                {/* PDF-1:页脚改用共享层,并【加上页码】—— 采购单带承诺定价条款与
+                    付款里程碑,常常多页,而它此前不印页码。文案一个字没改。 */}
+                {/* 【不传 code】这句说明本身就以单号收尾,再传一次会把它印两遍 */}
+                <DocumentFooter
+                    note={`${company.legal_name} — Purchase Order ${data.code}. Provisional prices settle on the committed terms stated per line.`}
+                />
             </Page>
         </Document>
     )

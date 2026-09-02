@@ -10,8 +10,18 @@
 // 的是真话,而且是有分量的真话】。
 // 【未分类不印"不受控"】—— 那是两件事(MAT-1 的三态:未分类 ≠ 非受控)。
 // 没有分类就印 "not classified",让人去看,而不是替他下结论。
+//
+// ── PDF-1(2026-09-02):版式改用共享层 ────────────────────────────────────
+// 【此前不印公司抬头,也不印页码】—— 一份多页送货单散在收货台上,没有办法知道
+// 少了哪一页,而少的那一页上可能正是那行 CONTROLLED。两者现在都由共享层给。
+// 【CONTROLLED 那一栏的颜色保留原样】#991b1b 是一个刻意的警示红,不属于品牌调色板,
+// 也【不该】被换成品牌色:它要的就是"和这张纸上别的东西都不一样"。
+// 【文字与数字一个都没有改】列头、'not classified'、页脚那段话逐字保留(R3)。
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
-import { INVOICE_FONT_FAMILY } from '@/app/finance/invoices/[id]/pdf/InvoiceDocument'
+import {
+    docStyles, DocumentLetterhead, DocumentFooter, TableHeader,
+} from '@/app/components/pdf/DocumentChrome'
+import type { DocumentCompany } from '@/app/components/pdf/company'
 
 export type DeliveryNoteData = {
     code: string
@@ -29,21 +39,9 @@ export type DeliveryNoteData = {
     }[]
 }
 
+// 【只有送货单有的一条】受控标记的警示红 —— 见抬头,刻意不用品牌色。
 const styles = StyleSheet.create({
-    page: { fontFamily: INVOICE_FONT_FAMILY, fontSize: 9, padding: 36, color: '#111827' },
-    title: { fontSize: 16, fontWeight: 'bold', marginBottom: 2 },
-    code: { fontSize: 11, marginBottom: 14 },
-    metaRow: { flexDirection: 'row', marginBottom: 1 },
-    metaLabel: { width: 90, color: '#6b7280' },
-    metaBlock: { marginBottom: 14, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#111827' },
-    tableHeader: {
-        flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#111827',
-        paddingBottom: 3, marginBottom: 2, fontWeight: 'bold',
-    },
-    row: { flexDirection: 'row', paddingVertical: 3, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb' },
-    cell: { paddingRight: 6 },
     controlled: { color: '#991b1b', fontWeight: 'bold' },
-    footer: { position: 'absolute', bottom: 20, left: 36, right: 36, fontSize: 7, color: '#9ca3af' },
 })
 
 const COLS = [
@@ -54,55 +52,61 @@ const COLS = [
     { header: 'Quantity', width: 80, align: 'right' as const },
 ]
 
-export default function DeliveryNoteDocument({ d }: { d: DeliveryNoteData }) {
+export default function DeliveryNoteDocument({
+    d,
+    company,
+}: {
+    d: DeliveryNoteData
+    company: DocumentCompany
+}) {
     return (
-        <Document>
-            <Page size="A4" style={styles.page}>
-                <Text style={styles.title}>Delivery Note</Text>
-                <Text style={styles.code}>{d.code}</Text>
+        <Document title={d.code}>
+            <Page size="A4" style={docStyles.page}>
+                <View fixed>
+                    <DocumentLetterhead company={company} />
+                    <Text style={docStyles.title}>Delivery Note</Text>
+                    <Text style={docStyles.code}>{d.code}</Text>
 
-                <View style={styles.metaBlock}>
-                    <View style={styles.metaRow}>
-                        <Text style={styles.metaLabel}>Ship date</Text><Text>{d.ship_date}</Text>
-                    </View>
-                    <View style={styles.metaRow}>
-                        <Text style={styles.metaLabel}>Sales order</Text><Text>{d.order_code}</Text>
-                    </View>
-                    <View style={styles.metaRow}>
-                        <Text style={styles.metaLabel}>Deliver to</Text>
-                        <Text>{d.customer.code} — {d.customer.legal_name}</Text>
+                    <View style={docStyles.metaBlock}>
+                        <View style={docStyles.metaRow}>
+                            <Text style={docStyles.metaLabel}>Ship date</Text><Text>{d.ship_date}</Text>
+                        </View>
+                        <View style={docStyles.metaRow}>
+                            <Text style={docStyles.metaLabel}>Sales order</Text><Text>{d.order_code}</Text>
+                        </View>
+                        <View style={docStyles.metaRow}>
+                            <Text style={docStyles.metaLabel}>Deliver to</Text>
+                            <Text>{d.customer.code} — {d.customer.legal_name}</Text>
+                        </View>
                     </View>
                 </View>
 
-                <View style={styles.tableHeader}>
-                    {COLS.map((c) => (
-                        <Text key={c.header} style={[styles.cell, { width: c.width, textAlign: c.align ?? 'left' }]}>
-                            {c.header}
-                        </Text>
-                    ))}
-                </View>
+                <TableHeader columns={COLS} />
                 {d.lines.map((l) => (
-                    <View key={l.line_no} style={styles.row}>
-                        <Text style={[styles.cell, { width: COLS[0].width }]}>{l.line_no}</Text>
-                        <Text style={[styles.cell, { width: COLS[1].width }]}>{l.material}</Text>
-                        <Text style={[styles.cell, { width: COLS[2].width }]}>{l.batch_code}</Text>
-                        <Text style={[styles.cell, { width: COLS[3].width },
+                    <View key={l.line_no} style={docStyles.row}>
+                        <Text style={[docStyles.cell, { width: COLS[0].width }]}>{l.line_no}</Text>
+                        <Text style={[docStyles.cell, { width: COLS[1].width }]}>{l.material}</Text>
+                        <Text style={[docStyles.cell, { width: COLS[2].width }]}>{l.batch_code}</Text>
+                        <Text style={[docStyles.cell, { width: COLS[3].width },
                                       l.is_controlled ? styles.controlled : {}]}>
                             {l.classification
                                 ? l.classification + (l.is_controlled ? ' — CONTROLLED' : '')
                                 : 'not classified'}
                         </Text>
-                        <Text style={[styles.cell, { width: COLS[4].width, textAlign: 'right' }]}>
+                        <Text style={[docStyles.cell, { width: COLS[4].width, textAlign: 'right' }]}>
                             {l.quantity} {l.unit}
                         </Text>
                     </View>
                 ))}
 
-                <Text style={styles.footer}>
-                    Goods described above were released from stock on the ship date shown. Material
-                    classification is stated as recorded in the material register; &quot;not classified&quot;
-                    means no classification has been recorded, which is not the same as non-controlled.
-                </Text>
+                <DocumentFooter
+                    code={d.code}
+                    note={
+                        'Goods described above were released from stock on the ship date shown. Material ' +
+                        'classification is stated as recorded in the material register; "not classified" ' +
+                        'means no classification has been recorded, which is not the same as non-controlled.'
+                    }
+                />
             </Page>
         </Document>
     )

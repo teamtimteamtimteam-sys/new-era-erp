@@ -49,6 +49,10 @@ supabase/.branches
 # 需要重裁时按 subset.py 头部注释下载到这里即可,不会被误提交。
 /assets/fonts/NotoSansSC-Regular.ttf
 /assets/fonts/NotoSansSC-Bold.ttf
+# PDF-1:Google Sans 同理(各 ~1.9 MB 完整字重)。它是 OFL、fsType=0、无保留字体名,
+# 所以【可以】内嵌进对外分发的 PDF —— 依据写在 docs/pdf-documents.md §字体许可。
+/assets/fonts/GoogleSans-Regular.ttf
+/assets/fonts/GoogleSans-Bold.ttf
 
 # types:gen 的中转文件 —— 生成失败时不该把 schema 的另一份镜像清空(见 package.json)
 lib/database.types.ts.tmp

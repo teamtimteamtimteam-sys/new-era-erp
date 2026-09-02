@@ -19,8 +19,9 @@ import type { ReactElement } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { mustOne, mustRows } from '@/lib/db-helpers'
 import QuotationDocument, { type QuoteDocData } from './QuotationDocument'
-import { findUnrenderableText, coverageErrorMessage, type PdfTextField } from '@/lib/invoiceFontCoverage'
+import { findUnrenderableText, coverageErrorMessage, type PdfTextField } from '@/lib/pdfFontCoverage'
 import { localizeQuoteError } from '../../quoteErrorCodes'
+import { loadDocumentCompany, companyPdfStrings, COMPANY_MISSING_MESSAGE } from '@/app/components/pdf/company'
 
 const BUCKET = 'qt-documents'
 
@@ -75,9 +76,14 @@ function collectStrings(d: QuoteDocData): PdfTextField[] {
 }
 
 async function render(d: QuoteDocData): Promise<Buffer> {
-    const bad = findUnrenderableText(collectStrings(d))
+    // PDF-1:抬头(字标 + 法定名称 + 公司资料)。没有法定名称就不出这张纸 ——
+    // 一份不说明是谁开的报价单,客户无从入账。与发票同一条规矩。
+    const loaded = await loadDocumentCompany()
+    if (!loaded.ok) throw new Error(COMPANY_MISSING_MESSAGE)
+    // 【抬头的字段也要过守卫】它们从 PDF-1 起才印在这张纸上,见 companyPdfStrings。
+    const bad = findUnrenderableText([...collectStrings(d), ...companyPdfStrings(loaded.company)])
     if (bad.length > 0) throw new Error(coverageErrorMessage(bad))
-    const doc = QuotationDocument({ data: d }) as unknown as ReactElement<DocumentProps>
+    const doc = QuotationDocument({ data: d, company: loaded.company }) as unknown as ReactElement<DocumentProps>
     return await renderToBuffer(doc)
 }
 

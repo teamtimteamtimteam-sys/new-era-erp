@@ -14,7 +14,8 @@ import type { ReactElement } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { mustOne, mustRows } from '@/lib/db-helpers'
 import SalesOrderDocument, { type SoDocData } from './SalesOrderDocument'
-import { findUnrenderableText, coverageErrorMessage, type PdfTextField } from '@/lib/invoiceFontCoverage'
+import { findUnrenderableText, coverageErrorMessage, type PdfTextField } from '@/lib/pdfFontCoverage'
+import { loadDocumentCompany, companyPdfStrings, COMPANY_MISSING_MESSAGE } from '@/app/components/pdf/company'
 import { localizeSalesOrderError } from '../../salesOrderErrorCodes'
 
 const BUCKET = 'so-documents'
@@ -59,9 +60,14 @@ function collectStrings(d: SoDocData): PdfTextField[] {
 }
 
 async function render(d: SoDocData): Promise<Buffer> {
-    const bad = findUnrenderableText(collectStrings(d))
+    // PDF-1:抬头(字标 + 法定名称 + 公司资料)。没有法定名称就不出这张纸 ——
+    // 一份不说明是谁开的对外单据,客户无从入账、审计师无从溯源。与发票同一条规矩。
+    const loaded = await loadDocumentCompany()
+    if (!loaded.ok) throw new Error(COMPANY_MISSING_MESSAGE)
+    // 【抬头的字段也要过守卫】它们从 PDF-1 起才印在这张纸上,见 companyPdfStrings。
+    const bad = findUnrenderableText([...collectStrings(d), ...companyPdfStrings(loaded.company)])
     if (bad.length > 0) throw new Error(coverageErrorMessage(bad))
-    const doc = SalesOrderDocument({ data: d }) as unknown as ReactElement<DocumentProps>
+    const doc = SalesOrderDocument({ data: d, company: loaded.company }) as unknown as ReactElement<DocumentProps>
     return await renderToBuffer(doc)
 }
 

@@ -32,7 +32,7 @@ import InvoiceDocument, {
     type InvoiceData,
     type InvoiceLine,
 } from './InvoiceDocument'
-import { checkInvoicePdfCoverage, coverageErrorMessage } from '@/lib/invoiceFontCoverage'
+import { checkInvoicePdfCoverage, coverageErrorMessage } from '@/lib/pdfFontCoverage'
 import React from 'react'
 import { unmasked } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
@@ -40,11 +40,6 @@ import { canViewBanking } from '@/lib/permissions'
 
 const BUCKET = 'invoice-documents'
 
-const LOGO_MIME: Record<string, string> = {
-    png: 'image/png',
-    jpg: 'image/jpeg',
-    jpeg: 'image/jpeg',
-}
 
 // Content-Disposition 的文件名部分(RFC 6266)。发票编号目前都是 INV-2026-0001 这种
 // 纯 ASCII,但文件名是【拼进 HTTP 头】的:里面只要混进一个引号或换行就能把这个头
@@ -108,20 +103,9 @@ async function buildInvoicePdf(id: string): Promise<
         .eq('invoice_id', id)
         .order('line_no', { ascending: true })
 
-    // logo:下载字节内嵌(见文件头注释)。SVG 渲染器不支持,故只接受 PNG/JPG;
-    // 取不到或格式不认识就当作没有 logo,照常出 PDF。
-    let logo: string | null = null
-    if (company.logo_path) {
-        const ext = company.logo_path.split('.').pop()?.toLowerCase() ?? ''
-        const mime = LOGO_MIME[ext]
-        if (mime) {
-            const { data: blob } = await supabase.storage.from('company-assets').download(company.logo_path)
-            if (blob) {
-                const bytes = Buffer.from(await blob.arrayBuffer())
-                logo = `data:${mime};base64,${bytes.toString('base64')}`
-            }
-        }
-    }
+    // 【上传的 logo 不再下载】PDF-1:对外单据印的是矢量字标(见文档组件里的说明),
+    // 不再印 company_profile.logo_path 那张位图 —— 于是这里那段"从私有桶下字节、
+    // 转 data URI"就成了一次【没有人会看的存储下载】,每渲染一次白花一次往返。
 
     // cut 2b:改读遮蔽视图(基表原始敏感列已收回)。断言回基表行类型 —— 能取到发票 PDF 的
     // 角色全都持有 data.view_prices,列不会被遮蔽。见 lib/maskedRows.ts。
@@ -189,7 +173,6 @@ async function buildInvoicePdf(id: string): Promise<
         lines,
         company,
         gstRegistrationNo: settingsRes.data?.gst_registration_no ?? null,
-        logo,
     }) as React.ReactElement<DocumentProps>
 
     const buffer = await renderToBuffer(element)

@@ -20,7 +20,7 @@ import { createClient } from '@/lib/supabase/server'
 import { mustOne } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
 import StatementDocument, { type StatementDocData, type StatementLine } from './StatementDocument'
-import { findUnrenderableText, coverageErrorMessage, type PdfTextField } from '@/lib/invoiceFontCoverage'
+import { findUnrenderableText, coverageErrorMessage, type PdfTextField } from '@/lib/pdfFontCoverage'
 import { localizeStatementError } from '../../statementErrorCodes'
 
 const BUCKET = 'statement-documents'
@@ -68,13 +68,9 @@ async function loadDoc(id: string): Promise<StatementDocData | null> {
         throw new Error(t('statements.errors.COMPANY_PROFILE_INCOMPLETE'))
     }
 
-    let logo: string | null = null
-    if (company.logo_path) {
-        const dl = await supabase.storage.from('company-assets').download(company.logo_path)
-        if (!dl.error && dl.data) {
-            logo = `data:image/png;base64,${Buffer.from(await dl.data.arrayBuffer()).toString('base64')}`
-        }
-    }
+    // 【上传的 logo 不再下载】PDF-1:对外单据印的是矢量字标(见文档组件里的说明),
+    // 不再印 company_profile.logo_path 那张位图 —— 于是这里那段"从私有桶下字节、
+    // 转 data URI"就成了一次【没有人会看的存储下载】,每渲染一次白花一次往返。
 
     // 【冻下来的两个数在这里【算出来】,因为它们是那五个数的函数,不是新事实】
     const applied = Math.round(
@@ -103,7 +99,6 @@ async function loadDoc(id: string): Promise<StatementDocData | null> {
         issued_at: st.issued_at,
         superseded: st.superseded_at !== null,
         company,
-        logo,
         // 【按界面语言选一条,不拼接】—— check-bilingual-concat 拒绝把 zh 与 en 拼起来印
         t: {
             title: t('statements.doc.title'),

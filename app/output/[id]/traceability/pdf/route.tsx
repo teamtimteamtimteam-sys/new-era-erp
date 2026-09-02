@@ -26,6 +26,7 @@ import { mustOne } from '@/lib/db-helpers'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import ReportDocument from '@/app/inventory/reports/ReportDocument'
 import { localizeTraceabilityError } from '@/app/output/traceabilityErrorCodes'
+import { loadDocumentCompany, COMPANY_MISSING_MESSAGE } from '@/app/components/pdf/company'
 import {
     fetchTraceability,
     chainRows,
@@ -39,8 +40,14 @@ async function render(rep: TraceabilityReport): Promise<Buffer> {
     const t = await getTranslations()
     const locale = await getLocale()
     const b = rep.output_batch
+    // ★ PDF-1:可追溯报告【交到客户与审计师手里】,所以它印字标与法定名称 ★
+    // 与它共用 ReportDocument 的那四张库存报表【不印】—— 判据是"离不离开这栋楼",
+    // 写在 ReportDocument 的抬头上。传 company 就是在声明这一份是对外的。
+    const loaded = await loadDocumentCompany()
+    if (!loaded.ok) throw new Error(COMPANY_MISSING_MESSAGE)
     const doc = (
         <ReportDocument
+            company={loaded.company}
             title={t('traceability.pdfTitle', { code: b.code })}
             generatedAtLabel={t('reports.pdfGeneratedAt')}
             generatedAt={new Date().toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US')}

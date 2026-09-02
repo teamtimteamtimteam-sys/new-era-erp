@@ -3,7 +3,7 @@
 //
 // 【正文一律英文,与发票/销售订单/采购单同一条既定政策】—— 这是一份签发给
 // 外部的商业单据,收件人不是这套系统的用户,所以界面语言切成中文时开出来的
-// 也必须是英文。文案硬编码,【不接 i18n】(InvoiceDocument 的抬头写过理由)。
+// 也必须是英文。文案硬编码,【不接 i18n】。
 //
 // 【这张纸上必须能读出三件事,而它们决定了版面】
 //   ① 它冲的是【哪一张发票】—— 一张不指向发票的贷记通知在客户那边无从入账;
@@ -12,9 +12,17 @@
 //      (前者他本来就没收到货,后者他收到了货只是少付),用大白话印出来,
 //      不印 unshipped_cancel 这种内部枚举名。
 //
-// 【字体与 CJK 断词从发票文档继承】客户名与地址可能是中文,正文是英文。
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
-import { INVOICE_FONT_FAMILY } from '@/app/finance/invoices/[id]/pdf/InvoiceDocument'
+// ── PDF-1(2026-09-02):版式改用共享层 ────────────────────────────────────
+// 【此前不印公司抬头,也不印页码】—— 一张要进客户账的贷项凭证,没说是谁开的。
+// 两者现在都由共享层给(字体栈一并来自 app/components/pdf/fonts.ts)。
+// 【文字与数字一个都没有改】KIND_FACE 那两句、列头、'Total credited'、
+// 'Reason'、以及页脚那句 "It is not a refund." 全部逐字保留(R3)。
+import { Document, Page, Text, View } from '@react-pdf/renderer'
+import {
+    docStyles, DocumentLetterhead, DocumentFooter, TableHeader,
+} from '@/app/components/pdf/DocumentChrome'
+import { money } from '@/app/components/pdf/theme'
+import type { DocumentCompany } from '@/app/components/pdf/company'
 
 export type CnDocData = {
     code: string
@@ -35,25 +43,6 @@ const KIND_FACE: Record<string, string> = {
     revenue_reduction: 'Price / quality adjustment',
 }
 
-const styles = StyleSheet.create({
-    page: { fontFamily: INVOICE_FONT_FAMILY, fontSize: 9, padding: 36, color: '#111827' },
-    title: { fontSize: 16, fontWeight: 'bold', marginBottom: 2 },
-    code: { fontSize: 11, marginBottom: 14 },
-    metaRow: { flexDirection: 'row', marginBottom: 1 },
-    metaLabel: { width: 110, color: '#6b7280' },
-    metaBlock: { marginBottom: 14, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#111827' },
-    tableHeader: {
-        flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#111827',
-        paddingBottom: 3, marginBottom: 2, fontWeight: 'bold',
-    },
-    row: { flexDirection: 'row', paddingVertical: 3, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb' },
-    cell: { paddingRight: 6 },
-    totalRow: { flexDirection: 'row', marginTop: 8, paddingTop: 6, borderTopWidth: 1, borderTopColor: '#111827' },
-    reason: { marginTop: 16 },
-    label: { color: '#6b7280', marginBottom: 2 },
-    footer: { position: 'absolute', bottom: 20, left: 36, right: 36, fontSize: 7, color: '#9ca3af' },
-})
-
 const COLS = [
     { header: '#', width: 26 },
     { header: 'Description', width: 200 },
@@ -62,75 +51,74 @@ const COLS = [
     { header: 'Amount', width: 80, align: 'right' as const },
 ]
 
-const money = (n: number) =>
-    n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-
-export default function CreditNoteDocument({ data }: { data: CnDocData }) {
+export default function CreditNoteDocument({
+    data,
+    company,
+}: {
+    data: CnDocData
+    company: DocumentCompany
+}) {
     return (
-        <Document>
-            <Page size="A4" style={styles.page}>
+        <Document title={data.code}>
+            <Page size="A4" style={docStyles.page}>
                 <View fixed>
-                    <Text style={styles.title}>Credit note</Text>
-                    <Text style={styles.code}>{data.code}</Text>
-                    <View style={styles.metaBlock}>
-                        <View style={styles.metaRow}>
-                            <Text style={styles.metaLabel}>Customer</Text>
+                    <DocumentLetterhead company={company} />
+                    <Text style={docStyles.title}>Credit note</Text>
+                    <Text style={docStyles.code}>{data.code}</Text>
+                    <View style={docStyles.metaBlock}>
+                        <View style={docStyles.metaRow}>
+                            <Text style={docStyles.metaLabel}>Customer</Text>
                             <Text>{data.customer.code} — {data.customer.legal_name}</Text>
                         </View>
-                        <View style={styles.metaRow}>
-                            <Text style={styles.metaLabel}>Date</Text>
+                        <View style={docStyles.metaRow}>
+                            <Text style={docStyles.metaLabel}>Date</Text>
                             <Text>{data.note_date}</Text>
                         </View>
                         {/* 【它冲的是哪一张发票】—— 少了这一行,客户无从入账 */}
-                        <View style={styles.metaRow}>
-                            <Text style={styles.metaLabel}>Against invoice</Text>
+                        <View style={docStyles.metaRow}>
+                            <Text style={docStyles.metaLabel}>Against invoice</Text>
                             <Text>{data.invoice_code} ({data.invoice_issue_date})</Text>
                         </View>
-                        <View style={styles.metaRow}>
-                            <Text style={styles.metaLabel}>Currency</Text>
+                        <View style={docStyles.metaRow}>
+                            <Text style={docStyles.metaLabel}>Currency</Text>
                             <Text>{data.currency}</Text>
                         </View>
                     </View>
                 </View>
 
-                <View style={styles.tableHeader}>
-                    {COLS.map((c) => (
-                        <Text key={c.header} style={[styles.cell, { width: c.width, textAlign: c.align ?? 'left' }]}>
-                            {c.header}
-                        </Text>
-                    ))}
-                </View>
+                <TableHeader columns={COLS} />
                 {data.lines.map((l, i) => (
-                    <View key={i} style={styles.row} wrap={false}>
-                        <Text style={[styles.cell, { width: COLS[0].width }]}>{l.line_no}</Text>
-                        <Text style={[styles.cell, { width: COLS[1].width }]}>{l.description}</Text>
-                        <Text style={[styles.cell, { width: COLS[2].width }]}>{KIND_FACE[l.kind] ?? l.kind}</Text>
-                        <Text style={[styles.cell, { width: COLS[3].width, textAlign: 'right' }]}>
+                    <View key={i} style={docStyles.row} wrap={false}>
+                        <Text style={[docStyles.cell, { width: COLS[0].width }]}>{l.line_no}</Text>
+                        <Text style={[docStyles.cell, { width: COLS[1].width }]}>{l.description}</Text>
+                        <Text style={[docStyles.cell, { width: COLS[2].width }]}>{KIND_FACE[l.kind] ?? l.kind}</Text>
+                        <Text style={[docStyles.cell, { width: COLS[3].width, textAlign: 'right' }]}>
                             {l.qty === null ? '' : l.qty}
                         </Text>
-                        <Text style={[styles.cell, { width: COLS[4].width, textAlign: 'right' }]}>
+                        <Text style={[docStyles.cell, { width: COLS[4].width, textAlign: 'right' }]}>
                             {money(l.amount)}
                         </Text>
                     </View>
                 ))}
 
-                <View style={styles.totalRow}>
-                    <Text style={[styles.cell, { width: 436, textAlign: 'right', fontWeight: 'bold' }]}>
+                <View style={docStyles.totalRow}>
+                    <Text style={[docStyles.cell, { width: 436, textAlign: 'right', fontWeight: 'bold' }]}>
                         Total credited
                     </Text>
-                    <Text style={[styles.cell, { width: 80, textAlign: 'right', fontWeight: 'bold' }]}>
+                    <Text style={[docStyles.cell, { width: 80, textAlign: 'right', fontWeight: 'bold' }]}>
                         {money(data.total)} {data.currency}
                     </Text>
                 </View>
 
-                <View style={styles.reason}>
-                    <Text style={styles.label}>Reason</Text>
+                <View style={docStyles.block}>
+                    <Text style={docStyles.label}>Reason</Text>
                     <Text>{data.reason}</Text>
                 </View>
 
-                <Text style={styles.footer} fixed>
-                    This credit note reduces the amount payable on invoice {data.invoice_code}. It is not a refund.
-                </Text>
+                <DocumentFooter
+                    code={data.code}
+                    note={`This credit note reduces the amount payable on invoice ${data.invoice_code}. It is not a refund.`}
+                />
             </Page>
         </Document>
     )
