@@ -471,3 +471,76 @@ Tim 要求「拿一个真角色探一次:一个只持有加工权限、带 `view
 那张表覆盖 **11 个角色**(比 `--reach` 支持的 3 个多),但它求的是**人的可达性**,
 **不是**爬虫的;两者的区别见 §8.2 的那条方框。**这一条按 AGENTS.md 记进"积压的
 reach 债",不假装它已经跑过。**
+
+---
+
+## 九、★【稳定别名上的实测 —— 部署之后,拿 11 个真角色逐个开过】★
+
+> **判据只用稳定别名 `https://new-era-erp.vercel.app`**,不用每次部署那个 URL
+> (后者 302 到 `vercel.com/sso-api`,任何断言在它上面都会【空过】)。
+> 每个角色一个临时账号,授一个 live 角色,用它自己的会话抓页面,**用完即删**
+> (实测收尾:`auth.users` 里 `alias-%@test.local` 剩 **0** 行)。
+> 部署:`6226746884`,`state=success` @ `2026-09-02T16:16:00Z`。
+
+### 9.1 顶栏:九个一级模块,逐角色(判据是 HTML 里的机器标记,不是文案)
+
+「可进」= 带 `aria-haspopup="true"` 的按钮;「· 受限」= 带 `data-module-restricted="1"` 的 span。
+
+| 角色 | 可进 | 顶栏上写着「· Restricted」的 | 总数 | §8.4 的预测 |
+|---|---|---|---|---|
+| admin | 9 | (无) | 9 | 9/9 ✓ |
+| gm | 9 | (无) | 9 | 9/9 ✓ |
+| auditor | 8 | Settings | 9 | 8/9 ✓ |
+| finance | 8 | HR | 9 | 8/9 ✓ |
+| procurement | 7 | Finance · HR | 9 | 7/9 ✓ |
+| operations | 6 | Sales · Finance · HR | 9 | 6/9 ✓ |
+| warehouse | 6 | Sales · Finance · HR | 9 | 6/9 ✓ |
+| sales | 5 | Purchasing · Finance · HR · Settings | 9 | 5/9 ✓ |
+| cfo | 4 | Operation · Sales · Inventory · HR · Settings | 9 | 4/9 ✓ |
+| hr | 2 | Purchasing · Logistics · Operation · Sales · Finance · Inventory · Settings | 9 | 2/9 ✓ |
+| employee | **1(Tools)** | 其余 8 个 | 9 | 1/9 ✓ |
+
+**★ 11 个角色的数字与 §8.4 逐个相符,一个都没有偏 ★**
+**★ 每一个角色的顶栏上都是【九个】一级 ★** —— 进不去的写着「· Restricted」而不是消失,
+D5 在部署系统上按设计工作。**顶栏上已经没有「Tasks」这个一级了,它是「Tools」。**
+
+### 9.2 ★ 三条搬走的页面:真的打开它们 ★
+
+**这才是"权限变没变"的判据。** 拒绝屏认**机器标记** `data-access-denied`,不认文案 ——
+而这正是本仓库那条「冒烟只断言 2xx,一个渲染出错误框的页面也是 200」说的东西:
+下面每一格都是 **HTTP 200**,区别只在**里面是内容还是一句拒绝**。
+
+| 角色 | `/deleted` | `/margin` | `/inventory/reports` | `/metal-prices` | `/pricing` |
+|---|---|---|---|---|---|
+| admin | **✓** | ✓ | ✓ | ✓ | ✓ |
+| auditor | ✗ | ✓ | ✓ | ✓ | ✓ |
+| cfo | ✗ | ✓ | ✗ | ✓ | ✗ |
+| finance | ✗ | ✓ | ✓ | ✓ | ✓ |
+| gm | ✗ | ✓ | ✓ | ✓ | ✓ |
+| operations | ✗ | ✗ | ✓ | ✓ | ✗ |
+| procurement | ✗ | ✗ | ✓ | ✓ | ✓ |
+| sales | ✗ | ✗ | ✓ | ✓ | ✓ |
+| warehouse | ✗ | ✗ | ✓ | ✓ | ✗ |
+| hr | ✗ | ✗ | ✗ | ✓ | ✗ |
+| employee | ✗ | ✗ | ✗ | ✓ | ✗ |
+| **打得开的角色数** | **1** | **5** | **8** | **11** | **6** |
+
+**逐条对着 §8.2 那份【搬家前】的求值核:**
+
+| 路由 | 搬家前 | 部署后实测 | 判词 |
+|---|---|---|---|
+| `/deleted` | 9(admin auditor cfo finance gm operations procurement sales warehouse) | **1(admin)** | **★ 明令的收窄,数字与预测逐字相符 ★** |
+| `/margin` | 5(admin auditor cfo finance gm) | **5,同一批人** | **★ 不变,证毕 ★** |
+| `/inventory/reports` | 8(admin auditor finance gm operations procurement sales warehouse) | **8,同一批人** | **★ 不变,证毕 ★** |
+| `/metal-prices` | 11 | **11** | 不变(`{ all: [] }`) |
+| `/pricing` | 6(admin auditor finance gm procurement sales) | **6,同一批人** | 不变 |
+
+> ★★【所以完成定义里那两句"权限不变"现在有三重证据,而第三重是最硬的】★★
+> ① 谓词字面量逐字比对(没改);② 11 角色 × 76 条目的注册表求值(§8.2);
+> ③ **在部署好的系统上,拿真会话把那两页【真的打开了】**(本节)。
+> **`/margin` 与 `/inventory/reports` 改动前打得开的人,改动后一个不少。**
+>
+> **而 `/deleted` 那一列同样是真的**:除 admin 外的 **10 个角色**在部署系统上
+> 拿到的是一句**具名的拒绝**,不是一张空表 —— 其中 **8 个是这一刀让他们失去的**
+> (auditor · cfo · finance · gm · operations · procurement · sales · warehouse),
+> hr 与 employee 本来就没有。**auditor 那一条仍然留给 Tim 再看一眼(§13.2.3)。**
