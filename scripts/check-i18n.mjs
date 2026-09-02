@@ -326,7 +326,7 @@ const MANIFEST = {
     // 金属去向读 loss_metal_fates 的种子行(那张字典没有 CHECK,种子【就是】取值),
     // 拒绝码读那张 Set。于是加一种金属去向、加一条拒绝,这道检查自动跟着变宽。
     'processing.loss.metalFate.': { kind: 'enum', values: () => sqlSeedCodes('db/tables/loss_metal_fates.sql', 'loss_metal_fates') },
-    'processing.loss.errors.':    { kind: 'enum', values: () => tsSet('app/processing/[id]/lossErrorCodes.ts', 'LOSS_ERROR_CODES') },
+    'processing.loss.errors.':    { kind: 'enum', values: () => tsSet('app/operation/processing/[id]/lossErrorCodes.ts', 'LOSS_ERROR_CODES') },
     // PROC-WIRE-1A:产出批次【用途】(工序投料指定)那一族的拒绝 —— 与上一行同一条:
     // 后缀集合【就是】那个 Set,加一条拒绝而忘了写文案,这里当场红。
     'output.purpose.errors.': { kind: 'enum', values: () => tsSet('app/output/[id]/edit/purposeErrorCodes.ts', 'PURPOSE_ERROR_CODES') },
@@ -601,7 +601,7 @@ const MANIFEST = {
     'cn.errors.':           { kind: 'enum', values: () => tsSet('app/finance/creditNoteErrorCodes.ts', 'CREDIT_NOTE_ERROR_CODES') },
     // STATEMENT-1:对账单一族的错误码,真源是那支 Set(逐条从函数体枚举出来的)。
     'statements.errors.':   { kind: 'enum', values: () => tsSet('app/finance/statements/statementErrorCodes.ts', 'STATEMENT_ERROR_CODES') },
-    'processing.errors.':   { kind: 'enum', values: () => tsSet('app/processing/errorCodes.ts', 'PROCESSING_ERROR_CODES') },
+    'processing.errors.':   { kind: 'enum', values: () => tsSet('app/operation/errorCodes.ts', 'PROCESSING_ERROR_CODES') },
     // WO-1c:工单。状态与留痕类型都接真源的 CHECK —— 数据库里加一个状态 /
     // 一种改动类型,这条检查自动跟着变宽,而不是等屏幕上出现一个键名才有人发现。
     'processing.wo.status.':     { kind: 'enum', values: () => sqlEnum('db/tables/work_orders.sql', 'status') },

@@ -10,7 +10,6 @@ import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import Subnav from '../Subnav'
 
 type Org = {
     code: string; title: string; weight_pct: number
@@ -57,7 +56,6 @@ export default async function KpiPage() {
     return (
         <div className="p-8">
             <h1 className="text-2xl font-bold mb-4">{t('kpi.title')}</h1>
-            <Subnav />
             <p className="text-sm text-gray-700 max-w-4xl mb-6">{t('kpi.what')}</p>
 
             {/* ── 组织记分卡 ─────────────────────────────────────────────── */}

@@ -19,7 +19,6 @@ import Link from 'next/link'
 import { getBaseCurrency } from '@/lib/currency'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
-import Subnav from '../Subnav'
 import { BUCKETS, bucketPillClass } from '../agingBuckets'
 import { readAging, parseAsOf, type AgingRowAp, type AgingReport } from '../agingAsOf'
 import AgingAsOfControl from '../AgingAsOfControl'
@@ -66,7 +65,6 @@ export default async function PayablesPage({
         return (
             <div className="p-8">
                 <h1 className="text-2xl font-bold mb-4">{t('finance.payablesTitle')}</h1>
-                <Subnav />
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                     <p className="font-bold">{t('finance.loadError')}</p>
                     <p className="mt-2 text-sm">{msg}</p>
@@ -118,8 +116,6 @@ export default async function PayablesPage({
                     {t('finance.recordPayment')}
                 </Link>
             </div>
-
-            <Subnav />
 
             <AgingAsOfControl asOf={report.as_of} today={report.today} exportHref={exportHref} />
 

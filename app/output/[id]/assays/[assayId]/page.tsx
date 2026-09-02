@@ -352,7 +352,7 @@ export default async function OutputAssayDetailPage({
                                         <>
                                             {' '}
                                             <Link
-                                                href={`/processing/${preview.producing_run_id}`}
+                                                href={`/operation/processing/${preview.producing_run_id}`}
                                                 className="text-blue-600 hover:underline font-mono"
                                             >
                                                 {preview.producing_run_code}

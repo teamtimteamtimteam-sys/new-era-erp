@@ -10,7 +10,6 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import Subnav from '../../Subnav'
 import PackBody, { type PackPayload } from '../PackBody'
 
 export default async function PackDetailPage({
@@ -30,7 +29,6 @@ export default async function PackDetailPage({
     if (error && error.code !== 'PGRST116') {
         return (
             <div className="p-8 max-w-5xl">
-                <Subnav />
                 <p className="text-sm bg-red-50 border border-red-300 text-red-900 px-3 py-2 rounded">{error.message}</p>
             </div>
         )
@@ -45,7 +43,6 @@ export default async function PackDetailPage({
                 <span className="font-mono">{data.code}</span>
             </h1>
             <p className="text-sm text-gray-600 mb-4">{t('pack.subtitle')}</p>
-            <Subnav />
 
             {/* ★ 一份存档的包意味着什么 —— 印在读者拿着它的这一屏上 ★ */}
             <p className="text-sm mb-4 bg-green-50 border border-green-300 text-green-900 px-3 py-2 rounded max-w-3xl">

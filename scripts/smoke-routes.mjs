@@ -114,12 +114,12 @@ const ID_SOURCES = {
         '/materials': 'materials', '/metal-prices': 'metal_prices',
         '/my-reviews': 'performance_reviews', '/output': 'output_batches',
         '/pricing/formulas': 'pricing_formulas',
-        // WO-1c:工单。【必须排在 '/processing' 前面吗?—— 不必,前缀取的是最长匹配】
-        // 但它必须【在】,否则 /processing/orders/[id] 会落到 processing_runs 上,
+        // WO-1c:工单。【必须排在 '/operation/processing' 前面吗?—— 不必,前缀取的是最长匹配】
+        // 但它必须【在】,否则 /operation/orders/[id] 会落到 processing_runs 上,
         // 拿一个加工单 id 去开工单详情页 —— 那会是一次看起来像"页面坏了"的 404。
         // 线上零行(机制与屏幕同刀落地),所以同时列在 EXPECTED_SKIPS 里。
-        '/processing/orders': 'work_orders',
-        '/processing': 'processing_runs',
+        '/operation/orders': 'work_orders',
+        '/operation/processing': 'processing_runs',
         '/purchasing/orders': 'purchase_orders', '/purchasing/payment-terms': 'payment_term_templates',
         // SO-1:销售订单。线上零行(这一刀只建单据,没有既有数据),
         // 所以同时列在 EXPECTED_SKIPS 里 —— 与 /inventory/locations 同一种情形。
@@ -139,7 +139,7 @@ const ID_SOURCES = {
         '/finance/statements': 'customer_statements',
         // TASK-1b:任务详情。**取的 id 必须是一张【团队】任务** —— 见 ID_FILTERS。
         '/tasks': 'tasks',
-        '/settings/permissions/roles': 'roles', '/stocktakes': 'stocktakes',
+        '/settings/roles': 'roles', '/stocktakes': 'stocktakes',
         '/suppliers': 'suppliers',
         // COMM-1:佣金协议的编辑页。线上零行(机制与屏幕先于第一份真协议落地),
         // 所以同时列在 EXPECTED_SKIPS 里 —— 签下第一份的那天,那条断言会响。
@@ -527,11 +527,17 @@ const MUST_CONTAIN = {
           why: '★「算出某一笔欠多少那一半没有建(COMM-ACCRUAL-1)」不见了 —— 没有它,下一个人会以为系统会自己算,而金额今天是由人算的' },
     ],
 
-    // ★【COMM-1:敞口报表的入口断言】★ /finance/price-exposure 唯一的入口是财务子导航,
-    //   而子导航那个文件里有【两份清单】(ITEMS 管高亮、ordered 管画出来),只加一份
-    //   就会出现"链接不出现"或"高亮不对"。这条针钉的是【画出来的那一份】。
-    //   Subnav 是 'use client',但它无条件渲染这些 <Link>,所以它在初次 HTML 里 ——
-    //   与 AGENTS.md 那条"针必须在默认渲染里、不能藏在点击后面"是相容的。
+    // ★【COMM-1 的入口断言 —— NAV-CLEANUP-1 ② 之后它钉的是【另一个东西】】★
+    //   【它原本钉的是什么】财务的页内子导航(app/finance/Subnav.tsx + SubnavClient),
+    //   而那个文件里有【两份清单】(ITEMS 管高亮、ordered 管画出来),只加一份就会
+    //   出现"链接不出现"或"高亮不对"。**那两份清单在 IA-BUILD-1 就已经合并成注册表,
+    //   而整个组件在 NAV-CLEANUP-1 ② 里删掉了(它是二级菜单的一份重复)。**
+    //   【它现在钉的是什么】/finance 现在是财务的【落地页】(ModuleLanding),
+    //   它把本模块的注册表条目逐条画成 <Link> —— 所以这几根针照旧在初次 HTML 里。
+    //   ★ 而它守的那件事一个字没变:一页上了线却走不到。★
+    //   【为什么这个断言反而更硬了】落地页那份清单【从注册表派生】,不可能与菜单漂开;
+    //   从前那两份手写清单正是它当年要防的东西。
+    //   与 AGENTS.md 那条"针必须在默认渲染里、不能藏在点击后面"仍然相容。
     '/finance': [
         { needle: 'href="/finance/price-exposure"',
           why: '★ 财务子导航里通往价格敞口的入口不见了 —— 那一页会变成一个上了线却走不到的报表(而它唯一的入口就是这里)' },
@@ -739,7 +745,7 @@ const EXPECTED_SKIPS = new Set([
     // 无条件渲染的话。签下第一份真协议的那天,这条断言会报「预期会 SKIP 的路由
     // 跑起来了」,逼人把它从这里删掉。
     '/commissions/[id]/edit',
-    // (WO-1c 曾在这里挂过 '/processing/orders/[id]' —— 线上零张工单。
+    // (WO-1c 曾在这里挂过 '/operation/orders/[id]' —— 线上零张工单。
     //  2026-08-16 的手走开出了第一张真工单 WO-2026-0001(放行、并挂上
     //  PROC-2026-0225),于是这一行【在同一刀之内】被删掉,正如它自己的注释所
     //  承诺的。留这句话是为了记下:它从来没有真正"跳过"过一次完整的跑 ——
@@ -1284,7 +1290,13 @@ const EXPECTED_UNREACHABLE = {
     // 它仍然走不到,是因为**这条检查只跟着【服务端 HTML 里已经存在的】链接走**,而
     // **顶栏的模块菜单是点开才渲染的**(ModuleBar 的 `{isOpen && …}`,初始 state 为
     // null)—— 于是**整个第二级对这个爬虫都是不可见的**。爬虫能扩散,靠的是
-    // dock 的那几条 + 每个模块自己的 Subnav + 页内链接。
+    // dock 的那几条 + 页内链接 + 三张【落地页】(/finance /operation /settings)。
+    // ★【NAV-CLEANUP-1 ② 之后这一句变了,而变化的方向对这个爬虫是【坏】的】★
+    //   此前它还能靠【每个模块自己的 Subnav】扩散;那 10 个组件已经删掉(它们是
+    //   二级菜单的重复)。于是 --reach 现在:既看不见二级(菜单点开才渲染),
+    //   也不再能靠页内同级链接走到大部分页面。**它不再是端到端的可达性判据。**
+    //   接替它的是 scripts/check-nav-routes.mjs(静态、每次构建都跑)——
+    //   而那支脚本答不了【人点不点得到】,所以两者都不冒充对方。
     // 而 /metal-prices 的页内入口只有两处,**两处都要 module.pricing.view**:
     //   · app/page.tsx 首页那条"行情陈旧"待办(permission: 'module.pricing.view');
     //   · /pricing 那一页的第三张卡(进它要 module.pricing.view)。
@@ -1315,7 +1327,7 @@ for (const r of REACH_ROLES) {
 
 // 拒绝页认【机器标记】不认文案:refusal() 与 requireManagePermissions() 的外层 div
 // 都带 data-access-denied="1"。首跑时这里是一串文案字符串,于是漏掉了权限管理页
-// 那一种拒绝,把 /settings/permissions 报成了"打得开却走不到"—— 误报比漏报更坏,
+// 那一种拒绝,把 /settings/accounts 报成了"打得开却走不到"—— 误报比漏报更坏,
 // 它教人忽略这条检查。新增任何一种拒绝屏,只要复用那两个组件就自动被认出来。
 const DENIED_MARK = 'data-access-denied'
 
@@ -1868,9 +1880,11 @@ async function main() {
             if (!navHtml.includes('/finance/cash-forecast')) {
                 failures.push({ route: '/finance (子导航里没有现金预测)', url: '/finance',
                     status: navRes.status, expected: 200,
-                    stack: '财务子导航的 HTML 里找不到 /finance/cash-forecast —— '
+                    stack: '财务落地页(/finance)的 HTML 里找不到 /finance/cash-forecast —— '
                          + '这一页打得开却走不到,而这正是本仓库上过两次当的那件事。'
-                         + 'Subnav.tsx 里有【两份】清单(ITEMS 与 ordered),两份都要有。' })
+                         + '★ NAV-CLEANUP-1 ② 之后,财务的页内子导航已经删掉;'
+                         + '这条链接现在由 ModuleLanding 从注册表派生,所以要查的是'
+                         + 'lib/modules.ts 的 FUNCTIONS 里这一条还在不在。' })
                 console.log('  FAIL /finance 子导航里没有现金预测的入口')
             } else { ok++ }
 
@@ -1997,7 +2011,9 @@ async function main() {
                 failures.push({ route: '/finance (子导航里没有报销)', url: '/finance',
                     status: navRes.status, expected: 200,
                     stack: '财务子导航的 HTML 里找不到 /finance/claims —— 这一页打得开却走不到。'
-                         + 'Subnav.tsx 里有【两份】清单(ITEMS 与 ordered),两份都要有。' })
+                         + '★ NAV-CLEANUP-1 ② 之后财务的页内子导航已删除;这条链接现在由'
+                         + '/finance 的落地页(ModuleLanding)从注册表派生 —— 要查的是'
+                         + 'lib/modules.ts 的 FUNCTIONS 里这一条还在不在。' })
                 console.log('  FAIL /finance 子导航里没有报销的入口')
             } else { ok++ }
         }
@@ -2073,7 +2089,9 @@ async function main() {
                 failures.push({ route: '/finance (子导航里没有预提税)', url: '/finance',
                     status: navRes.status, expected: 200,
                     stack: '财务子导航的 HTML 里找不到 /finance/wht —— 这一页打得开却走不到。'
-                         + 'Subnav.tsx 里有【两份】清单(ITEMS 与 ordered),两份都要有。' })
+                         + '★ NAV-CLEANUP-1 ② 之后财务的页内子导航已删除;这条链接现在由'
+                         + '/finance 的落地页(ModuleLanding)从注册表派生 —— 要查的是'
+                         + 'lib/modules.ts 的 FUNCTIONS 里这一条还在不在。' })
                 console.log('  FAIL /finance 子导航里没有预提税的入口')
             } else { ok++ }
         }
@@ -2109,7 +2127,9 @@ async function main() {
                 failures.push({ route: '/finance (子导航里没有报表包)', url: '/finance',
                     status: navRes.status, expected: 200,
                     stack: '财务子导航的 HTML 里找不到 /finance/packs —— 这一页打得开却走不到。'
-                         + 'Subnav.tsx 里有【两份】清单(ITEMS 与 ordered),两份都要有。' })
+                         + '★ NAV-CLEANUP-1 ② 之后财务的页内子导航已删除;这条链接现在由'
+                         + '/finance 的落地页(ModuleLanding)从注册表派生 —— 要查的是'
+                         + 'lib/modules.ts 的 FUNCTIONS 里这一条还在不在。' })
                 console.log('  FAIL /finance 子导航里没有报表包的入口')
             } else { ok++ }
             // ★【可达性②：总账导出的入口】★ 导出是一条 Route Handler,

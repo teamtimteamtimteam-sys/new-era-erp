@@ -6,7 +6,6 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { getBaseCurrency } from '@/lib/currency'
 import { formatAmount } from '@/lib/format'
-import Subnav from '../Subnav'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -43,7 +42,6 @@ export default async function FreightListPage() {
 
     return (
         <div className="p-8">
-            <Subnav />
             <div className="flex items-center justify-between mb-4">
                 <h1 className="text-2xl font-bold">{t('finance.freight.listTitle')}</h1>
                 <Link href="/finance/freight/new"

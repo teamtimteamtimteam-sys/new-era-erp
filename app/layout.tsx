@@ -7,6 +7,7 @@ import IdleWatcher from "@/app/components/IdleWatcher";
 import { I18nProvider } from "@/lib/i18n/client";
 import { getLocale } from "@/lib/i18n/server";
 import { isPublicPath } from "@/lib/loginRoute";
+import { getModuleAccess } from "@/lib/moduleAccess";
 import { headers } from "next/headers";
 import "./globals.css";
 
@@ -59,6 +60,16 @@ export default async function RootLayout({
   const pathname = (await headers()).get("x-pathname") ?? "";
   const bare = isPublicPath(pathname);
 
+  // ★【NAV-CLEANUP-1 ⑤】面包屑的第一截与顶栏的高亮必须是【同一个答案】,
+  //   而那个答案要知道"这个读者进得去哪些模块"。可进性只能在服务端算(要读库),
+  //   所以在这里算一次,传给那个客户端组件。
+  //   【为什么不在 Breadcrumbs 里自己算】它是 'use client';而且顶栏已经算过一次,
+  //   getModuleAccess 走的是 React cache —— 同一次渲染里不会打第二次库。
+  //   登录页那一侧(bare)不渲染面包屑,所以那里一次都不算。
+  const openModuleIds = bare
+    ? []
+    : (await getModuleAccess()).filter((m) => m.allowed).map((m) => m.module.id);
+
   return (
     <html
       lang={locale}
@@ -93,7 +104,7 @@ export default async function RootLayout({
                   判据是算出来的(scripts/gen-deep-routes.mjs),不是一份手写清单 ——
                   手写的那种会在下一次加页时静默漏掉,而没有任何东西会说出来。
                   浅路由上这个组件返回 null,一个字节都不画。 */}
-              {!bare && <Breadcrumbs />}
+              {!bare && <Breadcrumbs openModuleIds={openModuleIds} />}
               {children}
             </div>
           </div>

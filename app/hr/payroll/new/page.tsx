@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import Subnav from '../../Subnav'
 import PayrollGrid from '../PayrollGrid'
 import { loadGridData } from '../loadGridData'
 import { lastFridayOfMonth } from '../../options'
@@ -36,7 +35,6 @@ export default async function NewPayrollPage() {
                 </Link>
             </div>
             <h1 className="text-2xl font-bold mb-4">{t('hr.newPayroll')}</h1>
-            <Subnav />
             <PayrollGrid
                 employees={employees}
                 prefill={prefill}

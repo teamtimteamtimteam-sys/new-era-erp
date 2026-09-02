@@ -3,7 +3,6 @@
 import { getTranslations } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import Subnav from '../../Subnav'
 import { fetchSafety } from './safetyQuery'
 
 export default async function SafetyPage() {
@@ -14,7 +13,6 @@ export default async function SafetyPage() {
 
     return (
         <>
-            <Subnav />
             <div className="p-8">
                 <div className="flex items-start justify-between mb-2">
                     <div>

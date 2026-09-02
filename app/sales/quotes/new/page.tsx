@@ -2,7 +2,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { mustRows } from '@/lib/db-helpers'
 import { requireEditPermission } from '@/app/components/moduleGuard'
-import Subnav from '@/app/sales/Subnav'
 import NewQuoteForm from './NewQuoteForm'
 
 export default async function NewQuotePage() {
@@ -28,7 +27,6 @@ export default async function NewQuotePage() {
 
     return (
         <>
-            <Subnav />
             <NewQuoteForm customers={customers} materials={materials}
                           currencies={currencies.map((c) => c.code)} />
         </>

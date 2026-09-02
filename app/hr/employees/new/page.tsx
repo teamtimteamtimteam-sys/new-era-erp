@@ -2,7 +2,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import Subnav from '../../Subnav'
 import EmployeeForm, { type PickOption } from '../EmployeeForm'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -68,7 +67,6 @@ export default async function NewEmployeePage() {
                 </Link>
             </div>
             <h1 className="text-2xl font-bold mb-4">{t('hr.newEmployee')}</h1>
-            <Subnav />
             <EmployeeForm
                 positions={positions}
                 departments={departments}

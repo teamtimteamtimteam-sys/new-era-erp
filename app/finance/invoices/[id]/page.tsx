@@ -9,7 +9,6 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatAmount, formatTimestamp } from '@/lib/format'
 import { checkInvoicePdfCoverage } from '@/lib/pdfFontCoverage'
-import Subnav from '../../Subnav'
 import VoidInvoiceControl from './VoidInvoiceControl'
 import CreditNoteSection from './CreditNoteSection'
 import { unmasked } from '@/lib/maskedRows'
@@ -268,8 +267,6 @@ export default async function InvoiceDetailPage({
                     {!isVoid && <VoidInvoiceControl invoiceId={inv.id} hasEntry={inv.entry_id !== null} />}
                 </div>
             </div>
-
-            <Subnav />
 
             {profileIncomplete && (
                 <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-4 text-sm">

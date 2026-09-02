@@ -3,7 +3,6 @@
 // 行情卡指向仍在原位的 /metal-prices —— 本切只做归拢,不搬家。
 import Link from 'next/link'
 import { getTranslations } from '@/lib/i18n/server'
-import Subnav from './Subnav'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD, FN } from '@/lib/modules'
 
@@ -26,7 +25,6 @@ export default async function PricingHubPage() {
     return (
         <div className="p-8">
             <h1 className="text-2xl font-bold mb-4">{t('pricing.hubTitle')}</h1>
-            <Subnav />
 
             <div className="grid gap-4 md:grid-cols-3">
                 {CARDS.map((c) => (

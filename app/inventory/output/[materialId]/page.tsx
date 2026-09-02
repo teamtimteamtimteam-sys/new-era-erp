@@ -241,7 +241,7 @@ export default async function OutputDrillPage({
                                     {(() => {
                                         const woId = r.processing_outputs_masked?.[0]?.processing_runs?.work_order_id ?? null
                                         return woId
-                                            ? <Link href={`/processing/orders/${woId}`}
+                                            ? <Link href={`/operation/orders/${woId}`}
                                                     className="text-blue-600 hover:underline">
                                                   {woCode.get(woId) ?? '—'}
                                               </Link>

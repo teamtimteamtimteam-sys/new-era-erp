@@ -17,7 +17,6 @@ import { formatAmount } from '@/lib/format'
 import { getBaseCurrency } from '@/lib/currency'
 import { can } from '@/lib/permissions'
 import { MaskedValue } from '@/app/components/MaskedValue'
-import Subnav from '../Subnav'
 import OrdersToolbar from './OrdersToolbar'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -180,8 +179,6 @@ export default async function PurchaseOrdersPage({
                     {t('purchasing.newOrder')}
                 </Link>
             </div>
-
-            <Subnav />
 
             <Suspense fallback={<div className="mb-4 h-10" />}>
                 <OrdersToolbar suppliers={supplierOptions} />

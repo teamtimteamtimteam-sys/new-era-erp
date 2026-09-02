@@ -6,7 +6,6 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustRows, mustOne } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import Subnav from '@/app/sales/Subnav'
 import { soStatusKey, SO_ALLOWED_NEXT } from '../salesOrderTypes'
 import TransitionPanel from './TransitionPanel'
 import IssuePanel from '@/app/components/IssuePanel'
@@ -96,7 +95,6 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
 
     return (
         <>
-            <Subnav />
             <div className="p-8 max-w-4xl">
                 <div className="mb-6">
                     <Link href="/sales/orders" className="text-blue-600 hover:underline text-sm">{t('common.back')}</Link>

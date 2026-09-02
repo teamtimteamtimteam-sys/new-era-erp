@@ -37,7 +37,6 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { isYmd } from '@/lib/dateFilter'
 import { getBaseCurrency } from '@/lib/currency'
 import { formatMoneyBare } from '@/lib/format'
-import Subnav from '../../Subnav'
 import { resolveSourceHrefs, sourceHrefKey } from '../../sourceLinks'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -192,8 +191,6 @@ export default async function AccountLedgerPage({
     return (
         <div className="p-8">
             <h1 className="text-2xl font-bold mb-4">{title}</h1>
-
-            <Subnav />
 
             <div className="mb-4">
                 <p className="text-lg">

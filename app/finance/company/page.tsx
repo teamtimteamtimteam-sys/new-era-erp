@@ -4,7 +4,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import Subnav from '../Subnav'
 import CompanyProfileForm, { type CompanyProfileRow } from './CompanyProfileForm'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD, FN } from '@/lib/modules'
@@ -58,7 +57,6 @@ export default async function CompanyPage() {
     return (
         <div className="p-8">
             <h1 className="text-2xl font-bold mb-4">{t('company.title')}</h1>
-            <Subnav />
             <CompanyProfileForm profile={profile} logoUrl={logoUrl} />
             {/* D7:执照登记簿的新家。进不去的人【照样看得见它在哪】,
                 画成一条具名的限制 —— 与顶栏同一套词(D5)。 */}

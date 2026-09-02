@@ -4,7 +4,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { mustRows } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
-import Subnav from '../Subnav'
 import CalculatorForm, { type FormulaOption } from './CalculatorForm'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -70,7 +69,6 @@ export default async function CalculatorPage({
     return (
         <div className="p-8 max-w-5xl">
             <h1 className="text-2xl font-bold mb-4">{t('pricing.calcTitle')}</h1>
-            <Subnav />
             <CalculatorForm
                 substanceOptions={substanceOptions} formulas={formulas} prefill={prefill} />
         </div>

@@ -21,7 +21,6 @@ import { mustCount, mustOne, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { getBaseCurrency } from '@/lib/currency'
-import Subnav from './Subnav'
 
 // PROC-1:种类从 material_kinds 嵌进来,不再是物料上的一列自由文本
 type MaterialEmbed = { name: string; material_kinds: { name_en: string; name_zh: string } | null } | null
@@ -262,7 +261,6 @@ export default async function InventoryPage() {
 
     return (
         <>
-            <Subnav />
         <div className="p-8 space-y-6">
             <div className="flex justify-between items-start gap-4">
                 <div>

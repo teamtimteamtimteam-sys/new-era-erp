@@ -27,7 +27,7 @@ const BY_HREF: Record<string, LucideIcon> = {
     '/finance/invoices': Receipt,
     '/purchasing/orders': ShoppingCart,
     '/inbound': PackagePlus,
-    '/processing': Factory,
+    '/operation/processing': Factory,
     '/sales/orders': Tag,
     '/inventory': Boxes,
     '/hr/employees': Users,
@@ -38,7 +38,7 @@ const BY_HREF: Record<string, LucideIcon> = {
     '/suppliers': Truck,
     '/materials': Wrench,
     '/metal-prices': Coins,
-    '/settings/permissions': ClipboardList,
+    '/settings/accounts': ClipboardList,
 }
 
 /** 模块段兜底 —— dock 可以放注册表里【任何】一条,不止默认那十六条。 */

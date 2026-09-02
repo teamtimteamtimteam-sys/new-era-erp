@@ -18,7 +18,6 @@ import { MOD } from '@/lib/modules'
 import { mustRows, mustCount } from '@/lib/db-helpers'
 import { getBaseCurrency } from '@/lib/currency'
 import { formatAmount } from '@/lib/format'
-import Subnav from '../Subnav'
 import { RemitControl } from './WhtControls'
 
 export default async function WhtPage() {
@@ -62,7 +61,6 @@ export default async function WhtPage() {
         <div className="p-8 max-w-5xl">
             <h1 className="text-2xl font-bold mb-1">{t('wht.title')}</h1>
             <p className="text-sm text-gray-600 mb-4">{t('wht.subtitle')}</p>
-            <Subnav />
 
             {/* ── 未申报居民身份的供应商:一个【数】,不是一句提醒 ───────────── */}
             <p className={'text-sm mb-6 px-3 py-2 rounded border ' +

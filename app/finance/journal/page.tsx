@@ -8,7 +8,6 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { parseDateRange } from '@/lib/dateFilter'
 import { formatMoneyBare } from '@/lib/format'
-import Subnav from '../Subnav'
 import JournalToolbar from './JournalToolbar'
 import { resolveSourceHrefs, sourceHrefKey } from '../sourceLinks'
 import { mustRows } from '@/lib/db-helpers'
@@ -113,8 +112,6 @@ export default async function JournalListPage({
     return (
         <div className="p-8">
             <h1 className="text-2xl font-bold mb-4">{t('finance.journalTitle')}</h1>
-
-            <Subnav />
 
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>

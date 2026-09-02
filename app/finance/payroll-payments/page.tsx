@@ -3,7 +3,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { getBaseCurrency } from '@/lib/currency'
 import { getTranslations } from '@/lib/i18n/server'
-import Subnav from '../Subnav'
 import PayPanel from './PayPanel'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -35,7 +34,6 @@ export default async function PayrollPaymentsPage() {
     return (
         <div className="p-8 max-w-5xl">
             <h1 className="text-2xl font-bold mb-4">{t('finance.payrollPay.title')}</h1>
-            <Subnav />
             <PayPanel periods={(periods ?? []) as never} lines={(lines ?? []) as never} employees={(emps ?? []) as never} baseCurrency={baseCurrency} />
         </div>
     )

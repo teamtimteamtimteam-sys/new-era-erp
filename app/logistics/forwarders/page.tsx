@@ -11,7 +11,6 @@ import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import LogisticsSubnav from '../Subnav'
 import { formatAmount } from '@/lib/format'
 import NewForwarderForm from './NewForwarderForm'
 
@@ -63,7 +62,6 @@ export default async function ForwardersPage() {
     return (
         <div className="p-8">
             <h1 className="text-2xl font-bold mb-4">{t('logistics.forwardersTitle')}</h1>
-            <LogisticsSubnav />
 
             <NewForwarderForm
                 labels={{

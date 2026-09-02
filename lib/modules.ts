@@ -127,7 +127,13 @@ export const SCOPES: readonly AccessScope[] = [
     { id: '/pricing', navKey: 'nav.pricing', permission: 'module.pricing.view' },
     { id: '/inbound', navKey: 'nav.inbound', permission: 'module.inbound.view' },
     { id: '/output', navKey: 'nav.output', permission: 'module.output.view' },
-    { id: '/processing', navKey: 'nav.processing', permission: 'module.processing.view' },
+    // ★【NAV-CLEANUP-1 ③(2026-09-03):范围 id 从 '/operation/processing' 改成 '/operation'】★
+    //   Tim 的 Q3 裁定:**id 是路由前缀,所以它跟着路由走;permission 是 RLS 上
+    //   写着的那个码,所以它一个字不动。** 这与 UI-FIX-1 把「任务」改名成「工具」
+    //   时的拆法逐字相同 —— 导航与门是两件事。
+    //   169 处 requireModule(MOD.processing) 的调用点【一行没改】:它们按名取范围,
+    //   而 MOD.processing 这个名字没变,变的只是它 id 字段里那段前缀。
+    { id: '/operation', navKey: 'nav.operation', permission: 'module.processing.view' },
     { id: '/inventory', navKey: 'nav.inventory', permission: 'module.inventory.view' },
     { id: '/stocktakes', navKey: 'nav.stocktakes', permission: 'module.stocktakes.view' },
     { id: '/sales', navKey: 'nav.sales', permission: 'module.sales.view' },
@@ -239,6 +245,8 @@ const P_PRICING = 'module.pricing.view'
 /** 设置底下三张字典的码 —— 与 app/settings/dictionaries/registry.ts 的 DICT_PERMISSIONS 同源。 */
 const P_DICTIONARIES = { all: [], any: ['module.materials.edit', 'module.inbound.edit'] } as const
 const P_MANAGE_PERMISSIONS = 'action.manage_permissions'
+/** NAV-CLEANUP-1 ①:被删记录【自己的】码。只授 admin 与 auditor —— 理由见那一条。 */
+const P_VIEW_DELETED = 'data.view_deleted'
 const P_BULK_IMPORT = 'action.bulk_import'
 
 export const FUNCTIONS: readonly FunctionEntry[] = [
@@ -270,10 +278,13 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/logistics/containers', navKey: 'logistics.containersTitle', modules: ['logistics'], permission: P_LOGISTICS },
 
     // ══ 运营 Operation ══════════════════════════════════════════════════════
-    { href: '/processing/orders', navKey: 'processing.subnav.workOrders', modules: ['operation'], permission: P_PROCESSING },
-    { href: '/processing', navKey: 'processing.subnav.runs', modules: ['operation'], permission: P_PROCESSING },
-    { href: '/processing/wip', navKey: 'processing.subnav.wip', modules: ['operation'], permission: P_PROCESSING },
-    { href: '/processing/handovers', navKey: 'processing.subnav.handovers', modules: ['operation'], permission: P_PROCESSING },
+    // ★【NAV-CLEANUP-1 ③:运营的落地页】★ Tim 的 Q4:它【只】列本模块自己的条目,
+    //   而且那份清单从注册表派生 —— 所以它不可能与二级菜单漂开。不做经营内容。
+    { href: '/operation', navKey: 'processing.subnav.overview', modules: ['operation'], permission: P_PROCESSING },
+    { href: '/operation/orders', navKey: 'processing.subnav.workOrders', modules: ['operation'], permission: P_PROCESSING },
+    { href: '/operation/processing', navKey: 'processing.subnav.runs', modules: ['operation'], permission: P_PROCESSING },
+    { href: '/operation/wip', navKey: 'processing.subnav.wip', modules: ['operation'], permission: P_PROCESSING },
+    { href: '/operation/handovers', navKey: 'processing.subnav.handovers', modules: ['operation'], permission: P_PROCESSING },
 
     // ══ 销售 Sales ══════════════════════════════════════════════════════════
     { href: '/sales/quotes', navKey: 'sales.subnav.quotes', modules: ['sales'], permission: P_SALES },
@@ -285,7 +296,13 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // 【组内顺序与组的划分】条目本身与它们的先后【逐字取自】此前的
     // app/finance/SubnavClient.tsx 的 ordered 数组(勘察 D3:那是 DERIVED 的);
     // **分好的六个组名是 Tim 给的**(D1),哪一条归哪一组是本刀的判断。
-    { href: '/finance', navKey: 'finance.trialBalance', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.reports' },
+    // ★【NAV-CLEANUP-1 ③:/finance 不再【是】试算平衡,它是财务的落地页】★
+    //   【它【没有】group,而那是刻意的】只有财务有第三级;一个落地页不属于
+    //   「报表 / 分录 / 应收 / 应付 / 期末 / 配置」里的任何一组。
+    //   ModuleBody 把【没落进任何一组的】条目画在分组【前面】(本刀改的),
+    //   于是它出现在财务菜单的最上面,而不是被挤到六个组的后面。
+    { href: '/finance', navKey: 'finance.subnav.overview', modules: ['finance'], permission: P_FINANCE },
+    { href: '/finance/trial-balance', navKey: 'finance.trialBalance', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.reports' },
     { href: '/finance/pnl', navKey: 'finance.subnav.pnl', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.reports' },
     { href: '/finance/balance-sheet', navKey: 'finance.subnav.balanceSheet', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.reports' },
     { href: '/finance/cashflow', navKey: 'finance.subnav.cashflow', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.reports' },
@@ -308,7 +325,7 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     //
     // 【它仍然带 group】属主是财务,财务是唯一有第三级的模块,所以它落在「报表」组里,
     // 位置与从前(共有区末尾、财务报表组内最后一条)逐字相同。
-    // 【运营那一侧不是一处缺席】/processing 列表页页头那个 /margin 链接【留着】——
+    // 【运营那一侧不是一处缺席】/operation/processing 列表页页头那个 /margin 链接【留着】——
     // 它读的是 FN.margin.permission(同一份判据),而不是属主模块,所以进得去的人
     // 从加工页上仍然一点就到。属主管的是【菜单】,不是【页面之间的链接】。
     {
@@ -415,50 +432,79 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/metal-prices', navKey: 'nav.metalPrices', modules: ['tools'], permission: { all: [] } },
 
     // ══ 设置 Settings ═══════════════════════════════════════════════════════
-    // 【没有 module.settings.view 这个码,本刀也不铸一个】铸码是迁移级的动作,
-    // 而"铸哪个码、授给谁"正是 NAV-REG-1 的 R3 里 Tim 保留给自己的裁定。
-    // 所以设置这个一级的可进性,和其余八个一样,由它名下三条二级条目推导出来。
-    { href: '/settings/permissions', navKey: 'nav.settings', modules: ['settings'], permission: P_MANAGE_PERMISSIONS },
+    // ★★【NAV-CLEANUP-1 ④(2026-09-03):设置拍平成【一级】,Tim 的 Q5 裁定】★★
+    //
+    // 【它此前的四处不连贯,一次全解掉】
+    //   ① 有一条二级条目【也叫「设置」】(navKey: 'nav.settings'),点开是账号页;
+    //   ② 面包屑因此读作「设置 › 设置 › 角色」;
+    //   ③ 同一层的页面地址深浅不一(/settings/roles 是三层,
+    //      /settings/import 是两层);
+    //   ④ 角色与权限速查【根本不在注册表里】—— 它们只由 permissions/Subnav.tsx
+    //      那一行页内链接支撑,而 ② 正在删掉那一类行。**先把它们变成注册表条目,
+    //      删那一行才不会把两页弄丢。**
+    //
+    // 【拍平之后:每一条都是 /settings/<一个词>,各自是注册表里的一条】
+    //   /settings            落地页(Q4:只列本模块条目,从注册表派生)
+    //   /settings/accounts   账号        ← 此前的 /settings/accounts
+    //   /settings/roles      角色        ← 此前的 /settings/roles
+    //   /settings/reference  权限速查    ← 此前的 /settings/reference
+    //   /settings/dictionaries /settings/import /settings/approvals  原地不动
+    //   /settings/deleted    被删记录    ← 此前的 /settings/deleted(见下)
+    //
+    // 【/settings/accounts 这个前缀【整段退休】】它下面那五个共用文件搬去了
+    //   app/settings/{guard.tsx, accountsActions.ts} 与 app/settings/accounts/。
+    //   scripts/check-retired-paths.mjs 会在构建期拦住任何一处复活。
+    //
+    // 【落地页的判据取 action.manage_permissions,而不是一个并集】
+    //   现有的 /inventory 与 /hr 两个 Overview 用的就是本模块那个主码,这里照它。
+    //   写一个「manage_permissions OR 字典 OR 导入」的并集就是把模块可进性
+    //   【定义第二遍】—— 而那正是本文件抬头 §一 要杀的东西。
+    //   代价照直说:一个只持字典编辑权的人进得去设置,但那一条 Overview 对他
+    //   写着「· 受限」。**这是 D5 想要的样子,不是一处缺席。**
+    { href: '/settings', navKey: 'nav.settingsOverview', modules: ['settings'], permission: P_MANAGE_PERMISSIONS },
+    { href: '/settings/accounts', navKey: 'permissions.subnav.users', modules: ['settings'], permission: P_MANAGE_PERMISSIONS },
+    { href: '/settings/roles', navKey: 'permissions.subnav.roles', modules: ['settings'], permission: P_MANAGE_PERMISSIONS },
+    { href: '/settings/reference', navKey: 'permissions.subnav.reference', modules: ['settings'], permission: P_MANAGE_PERMISSIONS },
     { href: '/settings/dictionaries', navKey: 'nav.dictionaries', modules: ['settings'], permission: P_DICTIONARIES },
     { href: '/settings/import', navKey: 'nav.import', modules: ['settings'], permission: P_BULK_IMPORT },
     // ★ D7:审批链从 /finance/settings 搬到设置,把关码跟着搬 ——
     //   从 module.finance.view 换成 action.manage_permissions。
     //   ★【必须照直说的一件事】这块面板是【只读】的,而且系统里【根本没有】
-    //     配置审批链的界面:app/ 下没有任何东西写 approvals_enabled /
-    //     approval_level1_role_code / approval_level2_role_code /
-    //     approval_threshold_base 这四列,线上那一行是直接改库改出来的。
-    //     所以本刀搬走的是【那扇窗】,不是一个控制器。见 docs/information-architecture.md。
+    //     配置审批链的界面。所以搬走的是【那扇窗】,不是一个控制器。
     { href: '/settings/approvals', navKey: 'finance.approvals.title', modules: ['settings'], permission: P_MANAGE_PERMISSIONS },
-    // ★★【UI-FIX-1 ⑦:被删记录搬进设置,独占 —— 而【它的判据跟着一起搬】】★★
+    // ★★【NAV-CLEANUP-1 ①:被删记录 —— 地址进设置,并且【铸了一个属于它自己的码】】★★
     //
-    // 【搬之前】AUDEL-3 给它的属主是采购/运营/销售/库存四个模块,判据是
-    // 六个模块码的并集(inbound / output / processing / stocktakes / purchasing / sales
-    // 任一)。那份并集正是视图 deleted_records 每一行自带的 permission 列。
+    // 【UI-FIX-1 留下的状态】属主收成设置一个,判据借用 action.manage_permissions。
+    //   实测后果:9 个角色 → 1 个(admin),而 Tim 只预期失去 3 个。
+    //   ★ auditor 一并被挡在外面 —— 一页被判为"审计性质",却挡住了审计角色本人。★
     //
-    // ★【本刀与其余四条不同:这一条【确实】改了谁进得去,而那是 Tim 明令的】★
-    //   他裁定这一页是【审计性质】的,不是日常的,所以它由设置那一侧的码把关:
-    //   action.manage_permissions —— 与 /settings/permissions、/settings/approvals
-    //   同一个码,也就是"设置这个模块的治理那一半"。
-    //   【为什么不是设置模块的推导可进性】那会变成 manage_permissions OR 字典编辑
-    //   OR 批量导入 —— 一个【能改物料字典】的人因此看得见审计页,那不连贯。
+    // 【本刀 Tim 的裁定:auditor 回来,其余七个维持 UI-FIX-1 的样子】
     //
-    // ★【实测的代价,对着 live 的授权,一条不隐瞒】★(2026-09-02,role_permissions)
-    //   改动前看得见的 9 个角色:admin auditor cfo finance gm operations
-    //                            procurement sales warehouse
-    //   改动后看得见的 1 个角色:admin
-    //   **失去它的 8 个角色**:auditor cfo finance gm operations procurement sales warehouse
-    //   Tim 预期会失去的是 procurement / warehouse / sales —— 它们确实失去了,
-    //   ★ 但一并失去的还有 auditor、gm、cfo、finance 与 operations ★,
-    //   而 **auditor 那一条值得他单独再看一眼**:一页被判为"审计性质",结果把
-    //   审计角色本人挡在外面。本刀照裁定执行,把这件事照直写下来而不是替他改判。
-    //   (全表见 docs/information-architecture.md 与 docs/nav-registry.md。)
+    // ★★【为什么这需要【铸一个新码】,而不是换一个谓词写法 —— 这是一条证明】★★
+    //   allows() 是【单调】的:它每一项都是 perms.includes(...),只用 ∧ 和 ∨ 组合,
+    //   所以【给一个人加权限永远不会把 true 变成 false】。
+    //   实测 live 授权:**gm 持有 auditor 那 17 个码的【全部】,另外还多 16 个**
+    //   (全部 .edit 码 + data.view_banking + data.view_reviews);auditor 没有任何
+    //   一个码是 gm 缺的。于是 gm 的权限集【真包含】auditor 的。
+    //   单调 + 真包含 ⇒ **任何放 auditor 进来的谓词,必然也放 gm 进来。**
+    //   「auditor 进、gm 不进」在【现有的权限词汇里根本表达不出来】——
+    //   这不是没想到写法,是一条关于这套词汇的定理。**所以变的是词汇本身。**
+    //
+    // 【为什么这也是【对】的修法,不只是可行的那个】/settings/deleted 一直骑在一个属于
+    //   别人的判据上(先是六个模块码的并集,后是 action.manage_permissions)。
+    //   它已经搬进设置、并被裁定为审计性质,那么"谁可以打开它"就是它自己的问题,
+    //   值得有自己的码。**此后它的可见集不会再因为别人的权限变动而被顺带改掉。**
+    //
+    // 【铸出来的码】data.view_deleted —— 只授给 admin 与 auditor。
+    //   迁移:db/migrations/2026-09-03-navcleanup1-*.sql(备份在前,单事务)。
+    //   ★ gm 【不授】★ —— docs/exec-views-plan.md 那份【已经过期】的文档仍把 gm
+    //     写成 MD,而 Tim 已另行裁定那个人是只读的;今天授给 gm,等于在发账号那天
+    //     把那个人放进来。**那份文档的更正是它自己的排队项,本刀不动它。**
     //
     // 【行一级的过滤一字未动】视图 deleted_records 每一行仍然由它自己那个
     // has_permission 裁决,所以进来之后看得见哪几类,与从前完全一样。
     // 本谓词只回答"这一页对你有没有意义"。
-    // 【⑧ 记在文档里,不在这里决定】"有了全站变更历史之后 /deleted 还需不需要"
-    // 是留给那一份勘察的问题 —— docs/information-architecture.md §14。
-    { href: '/deleted', navKey: 'nav.deleted', modules: ['settings'], permission: P_MANAGE_PERMISSIONS },
+    { href: '/settings/deleted', navKey: 'nav.deleted', modules: ['settings'], permission: P_VIEW_DELETED },
 
 
     // ══════════════════════════════════════════════════════════════════════
@@ -528,7 +574,7 @@ export const MOD = {
     pricing: byId('/pricing'),
     inbound: byId('/inbound'),
     output: byId('/output'),
-    processing: byId('/processing'),
+    processing: byId('/operation'),
     inventory: byId('/inventory'),
     stocktakes: byId('/stocktakes'),
     finance: byId('/finance'),
@@ -539,11 +585,14 @@ export const MOD = {
 
 export const FN = {
     margin: fnByHref('/margin'),
-    deleted: fnByHref('/deleted'),
+    deleted: fnByHref('/settings/deleted'),
     metalPrices: fnByHref('/metal-prices'),
     pricing: fnByHref('/pricing'),
     commissions: fnByHref('/commissions'),
     contracts: fnByHref('/contracts'),
     licences: fnByHref('/purchasing/licences'),
     approvals: fnByHref('/settings/approvals'),
+    /** NAV-CLEANUP-1:两张落地页各自的判据 —— 页面守卫按名取,拼错是编译期错误。 */
+    financeHome: fnByHref('/finance'),
+    settingsHome: fnByHref('/settings'),
 } as const

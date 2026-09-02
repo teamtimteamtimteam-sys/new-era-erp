@@ -6,7 +6,6 @@ import { getBaseCurrency } from '@/lib/currency'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import Subnav from '../../../Subnav'
 import PayrollGrid from '../../PayrollGrid'
 import { loadGridData } from '../../loadGridData'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -56,7 +55,6 @@ export default async function EditPayrollPage({
                     {period.period_month?.slice(0, 7)}
                 </span>
             </h1>
-            <Subnav />
             <PayrollGrid
                 employees={employees}
                 prefill={prefill}

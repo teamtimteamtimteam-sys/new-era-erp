@@ -214,6 +214,14 @@ shopfloor 18 accrual; the first admin logged in; `/hr/employees`,
 unauthenticated request to `/hr/employees` redirected to `/login`; and after step 6 a
 second signup was refused with *"Signups not allowed for this instance"*.
 
+> **【路径与计数都已经过期,而这一段【不改】—— 它记的是那天走到了哪里】**
+> **NAV-CLEANUP-1(2026-09-03)**:上面那条 `/settings/permissions` 今天是
+> **`/settings/accounts`**(设置拍平成一级,见 `docs/information-architecture.md` §17.3);
+> `/finance` 今天是**财务的落地页**,试算平衡在 `/finance/trial-balance`。
+> 权限码也不再是 33 个 —— 本刀铸了 `data.view_deleted`(只授 admin 与 auditor)。
+> **照本仓库的规矩,一次走查的记录不重写**(重写会毁掉"那天到底走到哪"这个唯一的
+> 记录),差异记在它旁边。**要照这份清单走的人,把上面那两条路径换成新的。**
+
 **Step 8 has not been executed against a real deployment** — no Vercel credentials were
 available. It is the only step in this document that has never been run.
 

@@ -1,7 +1,7 @@
 'use server'
 
 // GRN-1b:收货差异的三个阈值 —— 【可见配置,不是常量】
-// 形状取自 app/processing/orders/thresholdActions.ts(EXEC-3b),连同它学到的两件事:
+// 形状取自 app/operation/orders/thresholdActions.ts(EXEC-3b),连同它学到的两件事:
 //
 // 【一 · 三个数一起提交,而且各自独立校验】它们判的是三种不同的坏消息
 // (短交是履约、超收是仓储与现金、化验超差是品质),任何一个不合法都不该把

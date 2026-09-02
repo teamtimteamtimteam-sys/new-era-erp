@@ -21,7 +21,6 @@ import { createClient } from '@/lib/supabase/server'
 import { mustRows, mustOne } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
 import { requireEditPermission } from '@/app/components/moduleGuard'
-import Subnav from '@/app/sales/Subnav'
 import AmendOrderForm, { type AmendLine } from './AmendOrderForm'
 
 export default async function AmendSalesOrderPage({ params }: { params: Promise<{ id: string }> }) {
@@ -143,7 +142,6 @@ export default async function AmendSalesOrderPage({ params }: { params: Promise<
 
     return (
         <>
-            <Subnav />
             <div className="p-8">
                 <AmendOrderForm
                     orderId={o.id}

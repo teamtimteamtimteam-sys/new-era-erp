@@ -52,7 +52,7 @@ export async function resolveSourceHrefs(
         hrefs.set(`sale:${s.id}`, `/output/${s.output_batch_id}/edit`)
     }
     for (const c of mustRows(costRes)) {
-        hrefs.set(`processing_cost:${c.id}`, `/processing/${c.run_id}`)
+        hrefs.set(`processing_cost:${c.id}`, `/operation/processing/${c.run_id}`)
     }
     for (const b of mustRows(inWoRes)) {
         hrefs.set(`writeoff:${b.id}`, `/inbound/${b.id}/edit`)
@@ -62,7 +62,7 @@ export async function resolveSourceHrefs(
     }
     // 直接可拼的:purchase → 进料批次;allocation → 加工单;stocktake → 盘点单
     for (const id of purchaseIds) hrefs.set(`purchase:${id}`, `/inbound/${id}/edit`)
-    for (const id of allocIds) hrefs.set(`allocation:${id}`, `/processing/${id}`)
+    for (const id of allocIds) hrefs.set(`allocation:${id}`, `/operation/processing/${id}`)
     for (const id of stocktakeIds) hrefs.set(`stocktake:${id}`, `/stocktakes/${id}`)
 
     return hrefs

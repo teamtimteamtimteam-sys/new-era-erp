@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import Subnav from '../../../Subnav'
 import EmployeeForm, { type PickOption, type EmployeeRecord } from '../../EmployeeForm'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -113,7 +112,6 @@ export default async function EditEmployeePage({
                 {t('hr.employeeDetailTitle')}
                 <span className="ml-3 font-mono text-base text-gray-500">{empRes.data.code}</span>
             </h1>
-            <Subnav />
             <EmployeeForm
                 positions={positions}
                 employee={empRes.data as EmployeeRecord}

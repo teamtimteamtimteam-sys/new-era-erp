@@ -28,7 +28,6 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { isYmd } from '@/lib/dateFilter'
 import { getBaseCurrency } from '@/lib/currency'
 import { formatAmount } from '@/lib/format'
-import Subnav from '../Subnav'
 import BsToolbar from './BsToolbar'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -151,8 +150,6 @@ export default async function BalanceSheetPage({
     return (
         <div className="p-8 max-w-4xl">
             <h1 className="text-2xl font-bold mb-4">{t('finance.bsTitle')}</h1>
-
-            <Subnav />
 
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>

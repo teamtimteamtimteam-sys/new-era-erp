@@ -10,7 +10,6 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { can } from '@/lib/permissions'
 import { getBaseCurrency } from '@/lib/currency'
 import { formatAmount } from '@/lib/format'
-import Subnav from '../../Subnav'
 import GoalsEditor from '../GoalsEditor'
 import ConclusionForm, { type RatingOption } from '../ConclusionForm'
 import ReviewActions from '../ReviewActions'
@@ -105,8 +104,6 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
                     </span>
                 </h1>
             </div>
-
-            <Subnav />
 
             {r.status === 'void' && (
                 <div className="mb-4 rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">

@@ -11,7 +11,6 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import Subnav from '@/app/sales/Subnav'
 import { quoteStatusKey } from './quoteTypes'
 
 type Row = {
@@ -38,7 +37,6 @@ export default async function QuotesPage() {
 
     return (
         <>
-            <Subnav />
             <div className="p-8">
                 <div className="flex items-center justify-between mb-2">
                     <h1 className="text-2xl font-bold">{t('quotes.listTitle')}</h1>

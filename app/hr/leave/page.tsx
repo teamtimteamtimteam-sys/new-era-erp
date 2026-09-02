@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import Subnav from '../Subnav'
 import LeaveSubnav from './LeaveSubnav'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -75,7 +74,6 @@ export default async function LeaveRequestsPage({
     return (
         <div className="p-8 max-w-6xl">
             <h1 className="text-2xl font-bold mb-4">{t('hr.title')}</h1>
-            <Subnav />
             <LeaveSubnav />
 
             <div className="flex justify-between items-start mb-4 gap-4 flex-wrap">

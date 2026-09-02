@@ -8,7 +8,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import Subnav from '../Subnav'
 import LockForm from './LockForm'
 import GstPanel from './GstPanel'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -78,8 +77,6 @@ export default async function FinanceSettingsPage() {
     return (
         <div className="p-8 max-w-2xl">
             <h1 className="text-2xl font-bold mb-4">{t('finance.settingsTitle')}</h1>
-
-            <Subnav />
 
             <div className="bg-gray-50 rounded p-4 mb-6 text-sm">
                 <span className="text-gray-600 mr-1">{t('finance.lockedBefore')}:</span>

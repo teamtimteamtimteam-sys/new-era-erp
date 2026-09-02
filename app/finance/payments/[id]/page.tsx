@@ -9,7 +9,6 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatAmount, formatMoneyBare, formatTimestamp } from '@/lib/format'
-import Subnav from '../../Subnav'
 import ReversePaymentButton from './ReversePaymentButton'
 import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachmentsPanel'
 import { mustRows } from '@/lib/db-helpers'
@@ -190,8 +189,6 @@ export default async function PaymentDetailPage({
             </div>
 
             <h1 className="text-2xl font-bold mb-2">{t('finance.paymentsTitle')}</h1>
-
-            <Subnav />
 
             {/* 冲销横幅 */}
             {payment.status === 'reversed' && reversedByRes.data && (

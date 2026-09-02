@@ -7,7 +7,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import Subnav from '../Subnav'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -36,7 +35,6 @@ export default async function AttendancePeriodsPage() {
 
     return (
         <div className="p-8 max-w-5xl">
-            <Subnav />
             <h1 className="text-2xl font-bold mb-1">{t('attendance.title')}</h1>
             {/* 【这张底稿不算工资】—— 政策 7.1:计算在服务商那边。
                 把这句话摆在页面顶上,是为了让读者一开始就不去找一个不存在的数字。 */}

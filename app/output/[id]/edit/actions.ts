@@ -21,7 +21,7 @@ export async function updateOutput(
     const material_id = (formData.get('material_id') as string) || ''
     const customer_id = (formData.get('customer_id') as string) || ''
     // quantity and state are no longer editable here: quantity is immutable (DB-guarded)
-    // and state is driven by sales/processing. Both flow through the movement ledger.
+    // and state is driven by sales/operation/processing. Both flow through the movement ledger.
     const unit = (formData.get('unit') as string)?.trim() || 'kg'
     const output_date = (formData.get('output_date') as string)?.trim() || null
     const purity = (formData.get('purity') as string)?.trim() || null

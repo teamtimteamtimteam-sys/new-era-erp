@@ -4,7 +4,6 @@ import { createClient } from '@/lib/supabase/server'
 import { getBaseCurrency, getCurrencyCodes } from '@/lib/currency'
 import { mustRows } from '@/lib/db-helpers'
 import NewFreightForm, { type BatchOption } from './NewFreightForm'
-import Subnav from '../../Subnav'
 import { requireEditPermission } from '@/app/components/moduleGuard'
 
 export default async function NewFreightPage() {
@@ -81,7 +80,6 @@ export default async function NewFreightPage() {
 
     return (
         <div className="p-8">
-            <Subnav />
             <NewFreightForm
                 suppliers={suppliers}
                 batches={batches}

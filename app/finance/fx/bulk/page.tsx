@@ -7,7 +7,6 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { getBaseCurrency } from '@/lib/currency'
 import { mustRows } from '@/lib/db-helpers'
-import Subnav from '../../Subnav'
 import BulkFxGrid, { type Existing } from './BulkFxGrid'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -49,7 +48,6 @@ export default async function BulkFxPage() {
     return (
         <div className="p-8 max-w-5xl">
             <h1 className="text-2xl font-bold mb-4">{t('finance.fxPage.bulk.title')}</h1>
-            <Subnav />
             <p className="mb-4 text-sm">
                 <Link href="/finance/fx" className="text-blue-600 hover:underline">
                     {t('finance.fxPage.bulk.backToList')}

@@ -3,7 +3,6 @@
 import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import Subnav from '../Subnav'
 import FxToolbar from './FxToolbar'
 import {
     parseFxListParams,
@@ -205,8 +204,6 @@ export default async function FxRatesPage({
                     {t('finance.fxPage.bulk.entryLink')}
                 </Link>
             </div>
-
-            <Subnav />
 
             {/* 缺牌价 = 有外币交易的那天没录当日牌价 —— 点名到日、到币、到缺哪侧 */}
             {/* 月末就绪 —— 【挡住月结的那一天】,fx_rate_gaps 报不出来的那一类 */}

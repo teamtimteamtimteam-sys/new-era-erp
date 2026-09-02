@@ -5,7 +5,6 @@
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import Subnav from '../../../../Subnav'
 import { mustRows } from '@/lib/db-helpers'
 import ReconcileWorkspace, {
     type StatementLine,
@@ -82,7 +81,6 @@ export default async function ReconcilePage({
         return (
             <div className="p-8 max-w-[110rem]">
                 <h1 className="text-2xl font-bold mb-4">{t('bank.title')}</h1>
-                <Subnav />
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                     <p className="font-bold">{t('bank.balancePanel.loadError')}</p>
                     <pre className="text-xs mt-2">{JSON.stringify(previewRes.error, null, 2)}</pre>
@@ -139,7 +137,6 @@ export default async function ReconcilePage({
     return (
         <div className="p-8 max-w-[110rem]">
             <h1 className="text-2xl font-bold mb-4">{t('bank.title')}</h1>
-            <Subnav />
             <ReconcileWorkspace
                 statement={{
                     id: stmt.id,

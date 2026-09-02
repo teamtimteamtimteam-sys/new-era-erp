@@ -7,7 +7,6 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatAmount } from '@/lib/format'
 import TransferForm from './TransferForm'
-import Subnav from '../Subnav'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 
@@ -95,8 +94,6 @@ export default async function BankHomePage() {
                     </Link>
                 </div>
             </div>
-
-            <Subnav />
 
             <TransferForm />
 

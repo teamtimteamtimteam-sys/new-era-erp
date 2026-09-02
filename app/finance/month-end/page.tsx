@@ -9,7 +9,6 @@ import Link from 'next/link'
 import { getBaseCurrency } from '@/lib/currency'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import Subnav from '../Subnav'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
 import { mustCount, mustOne, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -139,7 +138,7 @@ export default async function MonthEndPage({
             detail: accruals.length === 0 ? '' : t('finance.monthEnd.accrualsDetail', { n: accruals.length }),
         },
         {
-            key: 'staleAllocation', href: '/processing',
+            key: 'staleAllocation', href: '/operation/processing',
             state: allocProblems.length === 0 ? 'done' : 'outstanding',
             detail: allocProblems.length === 0 ? ''
                  : t('finance.monthEnd.staleAllocationDetail', { n: allocProblems.length })
@@ -185,7 +184,6 @@ export default async function MonthEndPage({
     return (
         <div className="p-8 max-w-4xl">
             <h1 className="text-2xl font-bold mb-4">{t('finance.monthEnd.title')}</h1>
-            <Subnav />
             <form method="get" className="mb-4">
                 <input type="month" name="month" defaultValue={month}
                        className="border border-gray-300 rounded px-2 py-1 text-sm" />

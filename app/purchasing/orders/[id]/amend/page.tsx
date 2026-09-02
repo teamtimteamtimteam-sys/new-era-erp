@@ -10,7 +10,6 @@ import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { maskedRows } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
-import Subnav from '../../../Subnav'
 import AmendOrderForm, { type AmendLine } from './AmendOrderForm'
 import { requireEditPermission } from '@/app/components/moduleGuard'
 
@@ -63,7 +62,6 @@ export default async function AmendOrderPage({ params }: { params: Promise<{ id:
 
     return (
         <div className="p-8">
-            <Subnav />
             <AmendOrderForm
                 poId={po.id as string}
                 code={po.code as string}

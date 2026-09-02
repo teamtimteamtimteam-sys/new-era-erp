@@ -27,7 +27,6 @@ import { getTranslations } from '@/lib/i18n/server'
 import { formatAmount } from '@/lib/format'
 import { mustRows, mustCount, mustOne } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
-import Subnav from '../../Subnav'
 import AssetActions from '../AssetActions'
 import MaintenancePanel from './MaintenancePanel'
 import DowntimePanel, { type DowntimeRow } from './DowntimePanel'
@@ -241,7 +240,6 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
     // 那三条(没成本 / 已投用 / 已处置)全部搬了过去。
     return (
         <div className="p-6">
-            <Subnav />
             <div className="flex items-baseline gap-3 mb-1">
                 <h1 className="text-2xl font-semibold font-mono">{asset.code}</h1>
                 <span className="text-lg">{asset.description}</span>

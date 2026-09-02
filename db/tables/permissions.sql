@@ -93,6 +93,11 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
     ('data.view_identity', 'data', 'View identity data', '查看身份信息', 'Identity numbers and work pass numbers', '身份证件号与工作准证号', 220),
     ('data.view_banking', 'data', 'View company bank details', '查看公司银行明细', 'Company bank account name, number, SWIFT and bank address as printed on invoices', '开在发票上的公司银行户名、账号、SWIFT 与开户行地址', 230),
     ('data.view_sales', 'data', 'View sales records', '查看销售记录', 'Quantity, unit price, amount, customer and date of sales made from output batches', '产出批次的销售数量、单价、金额、客户与日期', 240),
+    -- ★ NAV-CLEANUP-1 ①(2026-09-03):被删记录【自己的】码。★
+    -- 铸它是因为「auditor 进、gm 不进」在旧词汇里【表达不出来】:allows() 单调,
+    -- 而 gm 的权限集真包含 auditor 的 —— 证明写在那支迁移的抬头。
+    -- **只授 admin 与 auditor。审计性质,不是日常权限。**
+    ('data.view_deleted', 'data', 'View deleted records', '查看已删除记录', 'The deleted-records register: what was removed, by whom and why, across every module. Audit-natured — not a day-to-day permission.', '被删记录台账:跨模块地看"什么被删了、谁删的、为什么"。审计性质 —— 不是一条日常权限。', 260),
     ('data.view_reviews', 'data', 'View performance review content', '查看绩效评估正文', 'Ratings, written conclusions, self-assessments and goal results in performance reviews', '绩效评估中的评级、书面结论、自评与目标结果', 250),
     ('action.manage_permissions', 'action', 'Manage roles & permissions', '管理角色与权限', 'Create roles and change who holds what', '新建角色、调整授权', 300),
     -- IMPORT-1:批量导入自己一个码。**不复用 action.manage_permissions** ——

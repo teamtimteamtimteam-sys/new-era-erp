@@ -8,7 +8,6 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
-import Subnav from '../../Subnav'
 import ReverseButton from './ReverseButton'
 import { resolveSourceHrefs, sourceHrefKey } from '../../sourceLinks'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -87,8 +86,6 @@ export default async function JournalDetailPage({
             </div>
 
             <h1 className="text-2xl font-bold mb-2">{t('finance.detailTitle')}</h1>
-
-            <Subnav />
 
             {/* 冲销关系横幅 */}
             {entry.status === 'reversed' && reversedByRes.data && (

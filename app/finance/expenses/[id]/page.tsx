@@ -9,7 +9,6 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatAmount, formatMoneyBare, formatTimestamp } from '@/lib/format'
-import Subnav from '../../Subnav'
 import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachmentsPanel'
 import ReverseExpenseButton from './ReverseExpenseButton'
 import ReleasePrepaymentPanel from './ReleasePrepaymentPanel'
@@ -161,8 +160,6 @@ export default async function ExpenseDetailPage({
             </div>
 
             <h1 className="text-2xl font-bold mb-2">{t('expense.detailTitle')}</h1>
-
-            <Subnav />
 
             {/* 冲销横幅:已被冲销 → 链镜像单;本单是镜像 → 回链原单 */}
             {expense.status === 'reversed' && reversedByRes.data && (

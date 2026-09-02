@@ -544,3 +544,211 @@ D5 在部署系统上按设计工作。**顶栏上已经没有「Tasks」这个�
 > 拿到的是一句**具名的拒绝**,不是一张空表 —— 其中 **8 个是这一刀让他们失去的**
 > (auditor · cfo · finance · gm · operations · procurement · sales · warehouse),
 > hr 与 employee 本来就没有。**auditor 那一条仍然留给 Tim 再看一眼(§13.2.3)。**
+
+---
+
+## 十、NAV-CLEANUP-1(2026-09-03)—— 逐条的实测
+
+### 10.1 ① 被删记录:一次【铸码】,以及为什么它非铸不可
+
+**Tim 的裁定**:`/settings/deleted` 只给 admin 与 auditor,其余七个角色维持 UI-FIX-1 的样子。
+
+**那在现有的权限词汇里【表达不出来】,而这是一条定理不是一次没想到:**
+
+1. `lib/modules.ts` 的 `allows()` 是**单调**的 —— 每一项都是 `perms.includes(...)`,
+   只用 ∧ 与 ∨ 组合。**给一个人加权限,永远不会把 true 变成 false。**
+2. 实测 live 授权:**gm 持有 auditor 那 17 个码的全部,另外还多 16 个**
+   (全部 `.edit` 码 + `data.view_banking` + `data.view_reviews`);
+   **auditor 没有任何一个码是 gm 缺的。** 即 `perms(gm) ⊋ perms(auditor)`。
+3. 由 ① 与 ②:**任何放 auditor 进来的谓词,必然也放 gm 进来。**
+
+所以 Tim 裁定改词汇:铸 `data.view_deleted`,只授 admin 与 auditor。
+**gm 刻意不授** —— 一份**已经过期**的文档(`docs/exec-views-plan.md`)仍把 gm 写成 MD,
+而那个人已被另行裁定为只读;今天授给 gm,等于在发账号那天把他放进来。
+**那份文档的更正是它自己的排队项,本刀不动它。**
+
+**逐角色实测(从 live 授权算出来,不是手写 —— UI-FIX-1 的手写版四行是错的):**
+
+| 角色 | 改动前 | 改动后 | |
+|---|---|---|---|
+| admin | ✓ | ✓ | |
+| **auditor** | ✗ | **✓** | ★ 恢复 |
+| cfo | ✗ | ✗ | |
+| employee | ✗ | ✗ | |
+| finance | ✗ | ✗ | |
+| **gm** | ✗ | **✗** | ★ 明令不放进来 |
+| hr | ✗ | ✗ | |
+| operations | ✗ | ✗ | |
+| procurement | ✗ | ✗ | |
+| sales | ✗ | ✗ | |
+| warehouse | ✗ | ✗ | |
+
+**恢复 1 · 失去 0 · 改动后恰好 `admin auditor`。**
+
+**故障注入(在一笔【回滚掉的】事务里把新码也授给 gm):**
+
+| | 持有者 | 断言 |
+|---|---|---|
+| 注入后 | `admin auditor gm` | **RED** ✓ |
+| 回滚后(live 现状) | `admin auditor` | **GREEN** ✓ |
+
+**那条旧判据还有谁在用 —— 以及它们变了没有。** `/deleted` 此前借的是
+`action.manage_permissions`,今天还有 **5 条**条目用它:`/settings`、
+`/settings/accounts`、`/settings/roles`、`/settings/reference`、`/settings/approvals`
+—— **五条的可见集都是 `admin`,而且【一个字没变】**:本刀只改了
+`/settings/deleted` 自己那一条的 `permission` 字段,那个码本身与它的授权一动没动。
+
+> **`/settings/reference`(权限速查)那一页【读的是 `permissions` 表】**,
+> 所以新码在界面上自动出现,不需要第二处维护。**这正是"目录是数据、代码去检查它"
+> 那条设计的兑现**,记在这里免得下一个人去找一份手写的清单。
+
+### 10.2 ② 页内同级导航:按【组件】逐个判,不按页
+
+Tim 走查报 49 页;实测是 **126 页 / 11 个组件**。**他的数来自他看见的,我的数来自树。**
+按组件报(11 行可复核,126 行不可)。
+
+**判据是算出来的,不是看出来的:** 一个目标【被二级菜单 offer 给这个读者】=
+它是注册表条目 **AND** 判据放行 **AND** 它至少有一个属主模块这个读者进得去。
+对 **11 个 live 角色**逐个求。
+
+| 组件 | 目标数 | 判词 | 未覆盖 |
+|---|---|---|---|
+| `app/finance/Subnav.tsx` + `SubnavClient.tsx` | 32 | **删** | — |
+| `app/hr/Subnav.tsx` | 10 | **删** | — |
+| `app/inventory/Subnav.tsx` | 3 | **删** | — |
+| `app/logistics/Subnav.tsx` | 3 | **删** | — |
+| `app/pricing/Subnav.tsx` | 4 | **删** | — |
+| `app/purchasing/Subnav.tsx` | 3 | **删** | — |
+| `app/sales/Subnav.tsx` | 2 | **删** | — |
+| `app/processing/Subnav.tsx` | 4 | **删** | — |
+| `app/settings/permissions/Subnav.tsx` | 3 | **删** | — |
+| `app/operation/processing/page.tsx` 的页头行 | 7 | **删** | — |
+| **`app/hr/leave/LeaveSubnav.tsx`** | 6 | **★ 保留 ★** | **5 条** |
+
+**三个数:删除 10 个组件 · 保留 1 个 · 未覆盖目标 5 条。**
+(页数:121 页的 `<Subnav />` 连同 import 一起删掉。)
+
+**★ 那 5 条未覆盖的目标,就是留给后面一刀的导航缺口 ★**
+`/hr/leave/balances` · `/hr/leave/calendar` · `/hr/leave/grants` ·
+`/hr/leave/types` · `/hr/leave/holidays`
+—— **五条都是真实存在的路由,而【一个都不在注册表里】**,对**全部 11 个角色**
+都只能从 `LeaveSubnav` 那一行进去。**所以那一行是它们唯一的入口,删掉就是弄丢五页。**
+本刀按指令**保留它**,不去发明菜单条目(那是产品判断)。
+
+> **Tim 点名要确认的一件事,确认了:** Q5 的拍平**确实**解掉了
+> `settings/permissions/Subnav.tsx` 的搁浅风险 —— 它那 3 个目标
+> (账号 / 角色 / 权限速查)在拍平之后**各自成为注册表条目**,于是判成"全覆盖"、
+> 可以安全删除。**计划成立了,而这是算出来的,不是假定的。**
+
+> ★【一件值得单独说的事:被删掉的代码是【对】的,而它让位给的菜单是【错】的】★
+> `app/inventory/Subnav.tsx` 里那段最长前缀解析**做对了**二级高亮
+> (它显式地把 `/inventory` 排到最后判,所以 `/inventory/locations` 不会同时点亮「现况」)。
+> 而顶栏菜单里每一行各自 `startsWith`,**正是 Tim 报的那个缺陷**。
+> **正确的实现一直在树里,只是没有长在菜单上。** 见 §10.4。
+
+### 10.3 ③④ 路由层级:退休了什么、breadcrumb 变了什么
+
+**没有重定向垫片。** 一次重定向会把任何一处没改到的内链**悄悄吸收掉**,
+而那正是本刀要消灭的那一类缺陷。改不干净就让它红 ——
+`scripts/check-nav-routes.mjs` 在构建期点名文件与行。
+
+**它当场抓到 52 处**,其中最要紧的一类是 **`revalidatePath('/settings/permissions')` 共 8 处**
+—— 那种失效**不报错**:页面照旧渲染,只是缓存再也不刷新了。
+
+**breadcrumb 的变化(深路由 = 深度 ≥3,由 `gen-deep-routes.mjs` 算):23 → 19。**
+
+| | 路由 |
+|---|---|
+| **失去** breadcrumb(4 条)| `/settings/permissions/reference` → `/settings/reference`(3→2)<br>`/settings/permissions/roles` → `/settings/roles`(3→2)<br>`/settings/permissions/roles/new` → `/settings/roles/new`(3→2)<br>`/settings/permissions/roles/[id]` → `/settings/roles/[id]`(3→2) |
+| **获得** breadcrumb | **0 条** |
+
+**★ 失去的这 4 条【正是 Tim 报的那条「设置 › 设置 › 角色」】★** —— 拍平之后它们不再
+是三层,于是那条重复的面包屑不是被改掉的,是**不再存在**了。
+
+**运营那边为什么没有获得**:`/operation/processing/[id]` 与 `/operation/processing/new`
+确实各深了一层(1 → 2),但 `[id]` 是动态段、`new` 是叶子动作词,两者都不计深度
+—— 判据在 `gen-deep-routes.mjs` 的抬头,本刀没有动它。
+
+### 10.4 ⑤ 高亮:两个不同的机制,分开诊断
+
+**Tim 猜的两个机制都对,而且它们确实是【两件事】:**
+
+| 层级 | 症状 | 机制 | 位置 |
+|---|---|---|---|
+| **一级** | 从采购点进收货,采购**和**库存同时亮;库存报表一次点亮销售、财务、库存 | **多属主** —— `activeIds = new Set(moduleIdsForPath(pathname))` 把**全部**属主都点亮 | `ModuleBar.tsx:127` |
+| **二级** | 打开「库位」,「现况」也跟着亮 | **前缀匹配,没有最长前缀** —— 每一行各自 `pathname === href \|\| startsWith(href + '/')`,而 `/inventory` 是 `/inventory/locations` 的前缀 | `ModuleBar.tsx:172` |
+
+**一级那一条【不是 bug,是一次被推翻的裁定】。** IA-BUILD-1 在那一行上方写着:
+
+> 「一个功能可以同属几个模块,所以高亮的可以是【两个】…… 挑一个就是撒谎。」
+
+**2026-09-03,Tim 走了部署系统之后推翻了它。** 那句话在**描述数据**时是对的,
+但高亮回答的不是"这一页属于谁",而是"**我现在站在哪**" —— 后者只能有一个答案。
+**记在这里而不是静默编辑那条注释**(与 UI-FIX-1 记 D6 的推翻同一个做法)。
+
+**修法:一份共享的解析器 `lib/navTrail.activeModuleForPath`。**
+`ModuleBar` 的高亮与 `breadcrumbTrail` 的第一截**都调它**;从前面包屑自己写
+`entry.modules[0]` —— 同一个谓词的第二份实现,**而且带着同一个缺陷**。
+
+**★ 那个缺陷是 Tim 当场抓到的,而它是这一条里最要紧的一句 ★**
+「永远亮 `modules[0]`」在 `/inbound` 上会亮**采购**,而 `/inbound` 的第三个属主
+运营正是他特意为车间加的 —— **而 operations 这个角色进不去采购。**
+按 D5,进不去的模块仍然渲染成「· 受限」。于是那个规则会**在正是为他加的那一页上,
+把高亮打在一个他被挡在外面的模块上。**
+
+**所以规则是:声明顺序里【这个读者进得去的】第一个属主。**
+一个都进不去 = **矛盾**(他既然打开了这一页……),**报出来,不静默地不亮**。
+
+> ★★【实跑之后发现:Tim 给的规则与他给的预期【对不上】,而对不上的是预期】★★
+> 他的 fixture 预期写的是「operations 在 `/inbound` 上解析成**运营**」。
+> **实测得到的是【库存】。** `/inbound` 的声明顺序是
+> `purchasing → inventory → operation`,而 **operations 进得去库存**
+> (它持 `module.inventory.view`)。按他自己的规则,采购被正确跳过,
+> 但在采购之后、运营之前还站着一个库存。
+> **他关心的那件事成立了**(不是采购、不是一个他进不去的模块);
+> **"是运营"要成立,得改 `/inbound` 的声明顺序** —— 那是一个产品判断,
+> 不是一处实现缺陷,所以本刀**不改**,把它报出来。
+> 断言因此钉的是**规则**(结果必须是这个读者进得去的、且不是采购),
+> 外加把今天的答案(`inventory`)钉住,好让任何改动都看得见。
+
+**没有"进入上下文"这种东西 —— Tim 的 Q1 已裁定。** 记住"你从哪个菜单点进来"
+在点击路径上是对的,而在**输入网址、dock 快捷方式、别处来的链接、刷新、
+浏览器后退**上全是陈旧的。那等于给"我在哪"造第二个真源。
+**一个确定的、可能不是你来路的答案,好过一个有时正确、有时陈旧的答案。**
+**这条回退写在 `lib/navTrail.ts` 里 —— 判据住的地方,不只在文档里。**
+
+**二级那一条**改成问 `entryForPath(pathname)`(它本来就是最长前缀的实现,
+面包屑一直在用),而不是让每一行自己判断。**于是二级也只有一个答案。**
+
+### 10.5 ⑥ 这一刀留下的那道闸
+
+`scripts/check-nav-routes.mjs`,进 `npm run build`,不需要数据库,秒级。
+
+| 判据 | 故障注入 |
+|---|---|
+| ① 注册表每条 href 都有路由 | 加一条 `/settings/nonexistent` → **RED**,点名条目 |
+| ② 每条路由要么在注册表、要么在例外表(**带理由**)| 建一页 `/orphan-page` → **RED**,点名路由 |
+| ③ 退休路径不许出现 | 往 `lib/dock.ts` 塞一行 `/processing` → **RED**,点名 `lib/dock.ts:118` |
+| ③b `/finance` 必须是落地页 | 把 `ModuleLanding` 改名 → **RED** |
+| ④ 范围 id 是真实前缀(Tim 加的)| `/operation` → `/operation-gone` → **RED**,点名 id |
+| ⑤ 活动模块解析(**真的跑一遍**)| 强制 `modules[0]` → **RED 7 处**;面包屑自己写 `modules[0]` → **RED** |
+
+**五条全部注入过红、复原后绿。** ⑤ 不是正则:它把 `lib/navTrail.ts` 的源码读出来、
+改写两个 `@/` import、落成一个临时探针再 import —— **读的是今天的源码,不可能漂开**。
+它对**每一条多属主条目 × 每一个属主**穷举「读者只进得去属主 i ⇒ 结果就是属主 i」。
+
+> **它答得了什么、答不了什么,写在脚本抬头:**
+> 答得了**注册表与文件系统对不对得上**;
+> **答不了**一个人点不点得到那个入口 —— 那要么是 `--reach`(它看不见二级),
+> 要么是人走一遍。**本脚本不冒充那件事。**
+
+### 10.6 `--reach` 在这一刀之后是什么
+
+**它已经不是端到端的可达性判据了,而这是本刀【自己造成】的,照直写下来:**
+
+* 它**本来就看不见第二级**(顶栏菜单点开才渲染,爬虫点不了 —— UI-FIX-1 实测);
+* ② 之后它**也不再能靠页内同级链接扩散** —— 那 10 个组件正是它此前的前沿。
+
+**Q4 的落地页部分偿还了这一笔**:`/finance`、`/operation`、`/settings` 三张页面
+把本模块的注册表条目**逐条画成服务端 HTML 里的 `<Link>`**,于是爬虫又有了真的前沿。
+**接替它的是 ⑥ 那支静态检查。** 两者都不冒充对方,`smoke-routes.mjs` 的抬头已改写。

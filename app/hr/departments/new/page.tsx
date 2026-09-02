@@ -3,7 +3,6 @@ import Link from 'next/link'
 import { mustRows } from '@/lib/db-helpers'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import Subnav from '../../Subnav'
 import DepartmentForm from '../DepartmentForm'
 import { parentOptionsFor, type DeptNode } from '../tree'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -32,7 +31,6 @@ export default async function NewDepartmentPage() {
                 </Link>
             </div>
             <h1 className="text-2xl font-bold mb-4">{t('hr.newDepartment')}</h1>
-            <Subnav />
             {/* 新建时没有"自己",全部现有部门都可当上级 */}
             <DepartmentForm parentOptions={parentOptionsFor(mustRows(res) as DeptNode[])} />
         </div>

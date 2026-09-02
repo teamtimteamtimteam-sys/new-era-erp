@@ -2,7 +2,6 @@
 import { getTranslations } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import Subnav from '../../Subnav'
 import { fetchLedger, parseLedgerParams, flatten } from './ledgerQuery'
 import { statusKey } from '../snapshot/snapshotQuery'
 
@@ -24,7 +23,6 @@ export default async function LedgerPage({
 
     return (
         <>
-            <Subnav />
             <div className="p-8">
                 <div className="flex items-start justify-between mb-2">
                     <div>

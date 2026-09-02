@@ -11,7 +11,6 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { getBaseCurrency } from '@/lib/currency'
 import { formatAmount } from '@/lib/format'
-import Subnav from '../../Subnav'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -72,7 +71,6 @@ export default async function FreightDetailPage({ params }: { params: Promise<{ 
 
     return (
         <div className="p-8 max-w-4xl">
-            <Subnav />
             <div className="mb-6">
                 <Link href="/finance/freight" className="text-blue-600 hover:underline text-sm">
                     {t('common.back')}

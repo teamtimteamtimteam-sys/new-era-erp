@@ -2,7 +2,6 @@
 // 新建定价公式(服务端壳):取在册供应商/客户供"适用对象"下拉。
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations , getLocale } from '@/lib/i18n/server'
-import Subnav from '../../Subnav'
 import { getMetalPriceIndices } from '@/app/metal-prices/indexQuery'
 import FormulaForm, { EMPTY_FORMULA, type PartyOption, type QuoteDate } from '../FormulaForm'
 import { createFormula } from '../actions'
@@ -47,7 +46,6 @@ export default async function NewFormulaPage() {
     return (
         <div className="p-8">
             <h1 className="text-2xl font-bold mb-4">{t('pricing.new')}</h1>
-            <Subnav />
             <FormulaForm
                 substanceOptions={substanceOptions}
             indices={indices}

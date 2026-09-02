@@ -6,7 +6,6 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { can } from '@/lib/permissions'
-import Subnav from '../../Subnav'
 import ClaimControls from './ClaimControls'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -49,7 +48,6 @@ export default async function ClaimDetail({ params }: { params: Promise<{ id: st
     return (
         <div className="p-8 max-w-3xl">
             <h1 className="text-2xl font-bold mb-4">{t('hr.title')}</h1>
-            <Subnav />
             <div className="mb-4"><Link href="/hr/claims" className="text-blue-600 hover:underline text-sm">{t('common.back')}</Link></div>
 
             <div className="flex items-baseline gap-3 mb-4">

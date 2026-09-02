@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatAmount } from '@/lib/format'
-import Subnav from '../Subnav'
 import DeleteTemplateButton from './DeleteTemplateButton'
 import { mustRows } from '@/lib/db-helpers'
 import { loadPaymentTriggerEvents, triggerLabel } from '@/lib/paymentTriggers'
@@ -87,8 +86,6 @@ export default async function PaymentTermTemplatesPage() {
                     {t('purchasing.newTemplate')}
                 </Link>
             </div>
-
-            <Subnav />
 
             <p className="text-sm text-gray-600 mb-4">
                 {t('finance.recordCount', { count: templates.length })}

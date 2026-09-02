@@ -17,7 +17,6 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { parseDateRange } from '@/lib/dateFilter'
 import { formatMoneyBare } from '@/lib/format'
-import Subnav from '../Subnav'
 import CashflowToolbar from './CashflowToolbar'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -109,7 +108,6 @@ export default async function CashflowPage({
         <div className="p-4 sm:p-8 max-w-4xl">
             <h1 className="text-2xl font-bold mb-2">{t('finance.cashflowTitle')}</h1>
             <p className="text-sm text-gray-600 mb-4">{t('finance.cashflowDesc', { ccy: baseCurrency })}</p>
-            <Subnav />
             <Suspense fallback={null}>
                 <CashflowToolbar from={from} to={to} presets={presets} />
             </Suspense>

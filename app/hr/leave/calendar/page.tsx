@@ -2,7 +2,6 @@
 // 团队请假月历。公共假期也画上去 —— 看排期的时候那是同一件事。
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import Subnav from '../../Subnav'
 import LeaveSubnav from '../LeaveSubnav'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -44,7 +43,6 @@ export default async function LeaveCalendarPage({
     return (
         <div className="p-8 max-w-5xl">
             <h1 className="text-2xl font-bold mb-4">{t('hr.title')}</h1>
-            <Subnav />
             <LeaveSubnav />
 
             <form method="get" className="mb-4 flex items-end gap-2">

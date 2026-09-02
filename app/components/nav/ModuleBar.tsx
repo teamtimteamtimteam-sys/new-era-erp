@@ -30,7 +30,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
-import { moduleIdsForPath } from '@/lib/navTrail'
+import { activeModuleForPath, entryForPath } from '@/lib/navTrail'
 import type { NavModule, NavEntry } from './types'
 
 /**
@@ -122,9 +122,28 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
     const [expanded, setExpanded] = useState<string | null>(null)
     const barRef = useRef<HTMLDivElement>(null)
 
-    // 【一个功能可以同属几个模块,所以高亮的可以是【两个】】站在 /output 上,
-    // 运营与库存都该亮 —— 挑一个就是撒谎(见 lib/navTrail.moduleIdsForPath)。
-    const activeIds = new Set(moduleIdsForPath(pathname))
+    // ★★【NAV-CLEANUP-1 ⑤:一级高亮只有【一个】答案,而它必须是【进得去】的那个】★★
+    // 判据整条住在 lib/navTrail.activeModuleForPath —— 面包屑调的是同一支。
+    // 这里从前是 `new Set(moduleIdsForPath(pathname))`(全部属主一起亮)。
+    const canEnter = (id: string) => modules.find((m) => m.id === id)?.allowed ?? false
+    const active = activeModuleForPath(pathname, canEnter)
+    // 【矛盾要报出来,不能静默地不亮】—— 打开了这一页却一个属主模块都进不去,
+    // 说明注册表与守卫对不上。data 属性让冒烟/走查抓得到,console 让开发看得到。
+    useEffect(() => {
+        if (active.id === null) {
+            console.error(`[nav] 无法判定当前模块:${pathname} 的属主一个都进不去 —— 注册表与守卫不一致`)
+        }
+    }, [active.id, pathname])
+
+    // ★【二级高亮:最长前缀,所以也只有一个答案】★
+    // 此前每一行各自算 `pathname === href || startsWith(href + '/')`,于是站在
+    // /inventory/locations 上,「现况」(/inventory)与「库位」同时亮。
+    // entryForPath 本来就是【最长前缀】的实现(面包屑一直在用它)——
+    // 这里改成问它要那【一条】,而不是让每一行自己判断。
+    // ★ 顺带记一件事:被本刀删掉的 app/inventory/Subnav.tsx 【做对了】这件事
+    //   (它显式地把 /inventory 排到最后判)。正确的实现一直在树里,
+    //   只是没有长在菜单上。 ★
+    const activeEntryHref = entryForPath(pathname)?.href ?? null
 
     // 路由一变就把菜单收起来 —— 否则点完一项,菜单还挂在新页面上。
     useEffect(() => {
@@ -169,7 +188,7 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
                 </span>
             )
         }
-        const active = pathname === e.href || pathname.startsWith(e.href + '/')
+        const active = e.href === activeEntryHref
         return (
             <Link
                 href={e.href}
@@ -201,6 +220,14 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
         const ungrouped = m.entries.filter((e) => !grouped.has(e.href))
         return (
             <>
+                {/* ★【NAV-CLEANUP-1 ③:没落进任何一组的条目现在画在分组【前面】】★
+                    从前它们画在后面(那时它只是一张兜底的网,顺序无所谓)。
+                    本刀给财务加了一条【没有 group 的落地页】—— 一个 Overview 属于
+                    菜单的最上面,不是六个组之后的角落。把它塞进「报表」组是另一种
+                    错:它不是一张报表。**兜底的作用一个字没变**,只是位置对了。 */}
+                {ungrouped.map((e) => (
+                    <EntryRow key={e.href} e={e} />
+                ))}
                 {m.groups.map((g) => (
                     <div key={g.key} className="mb-1">
                         {/* 第三级的组名。它【不是链接】—— 组是一个标题,不是一个去处。 */}
@@ -211,9 +238,6 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
                             <EntryRow key={e.href} e={e} indent={indent} />
                         ))}
                     </div>
-                ))}
-                {ungrouped.map((e) => (
-                    <EntryRow key={e.href} e={e} />
                 ))}
             </>
         )
@@ -246,7 +270,7 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
                                 onClick={() => setOpen(isOpen ? null : m.id)}
                                 className={
                                     'whitespace-nowrap rounded px-3 py-1.5 text-sm ' +
-                                    (activeIds.has(m.id)
+                                    (active.id === m.id
                                         ? 'bg-[color:var(--brand-ocean-fill)] text-white'
                                         : 'text-[color:var(--brand-text)] hover:bg-[color:var(--brand-accent)]')
                                 }
@@ -328,7 +352,7 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
                                         onClick={() => setExpanded(isOpen ? null : m.id)}
                                         className={
                                             'flex w-full items-center justify-between px-3 py-2.5 text-left text-sm ' +
-                                            (activeIds.has(m.id)
+                                            (active.id === m.id
                                                 ? 'font-semibold text-[color:var(--brand-text)] underline underline-offset-4'
                                                 : 'text-[color:var(--brand-text)]')
                                         }

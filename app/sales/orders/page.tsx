@@ -8,7 +8,6 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import Subnav from '@/app/sales/Subnav'
 import { soStatusKey } from './salesOrderTypes'
 
 type Row = {
@@ -35,7 +34,6 @@ export default async function SalesOrdersPage() {
 
     return (
         <>
-            <Subnav />
             <div className="p-8">
                 <div className="flex items-center justify-between mb-6">
                     <h1 className="text-2xl font-bold">{t('sales.listTitle')}</h1>

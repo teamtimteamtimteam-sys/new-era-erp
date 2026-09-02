@@ -8,7 +8,6 @@ import { getTranslations } from '@/lib/i18n/server'
 import { isYmd } from '@/lib/dateFilter'
 import { getBaseCurrency } from '@/lib/currency'
 import { formatAmount } from '@/lib/format'
-import Subnav from '../Subnav'
 import PeriodPicker, { type PeriodOption } from './PeriodPicker'
 import CloseButton from './CloseButton'
 import ReopenForm from './ReopenForm'
@@ -157,8 +156,6 @@ export default async function ClosePage({
     return (
         <div className="p-8 max-w-5xl">
             <h1 className="text-2xl font-bold mb-4">{t('finance.closeTitle')}</h1>
-
-            <Subnav />
 
             {/* 当前锁状态 */}
             <div className="bg-gray-50 rounded p-4 mb-6 text-sm">

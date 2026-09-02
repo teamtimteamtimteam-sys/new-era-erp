@@ -4,7 +4,6 @@ import { getTranslations } from '@/lib/i18n/server'
 import { createClient } from '@/lib/supabase/server'
 import { mustRows } from '@/lib/db-helpers'
 import { loadPaymentTriggerEvents } from '@/lib/paymentTriggers'
-import Subnav from '../../Subnav'
 import TemplateForm from '../TemplateForm'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -29,7 +28,6 @@ export default async function NewTemplatePage() {
                 </Link>
             </div>
             <h1 className="text-2xl font-bold mb-4">{t('purchasing.newTemplate')}</h1>
-            <Subnav />
             <TemplateForm currencies={currencies} triggerEvents={triggerEvents} />
         </div>
     )

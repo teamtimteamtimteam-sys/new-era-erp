@@ -11,7 +11,6 @@ import { mustRows } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import Subnav from '../Subnav'
 import ClaimDecisionPanel, { type ClaimRow } from './ClaimDecisionPanel'
 
 export default async function ClaimsPage() {
@@ -45,7 +44,6 @@ export default async function ClaimsPage() {
 
     return (
         <div className="p-8">
-            <Subnav />
             <h1 className="text-2xl font-bold mb-1">{t('expenseClaims.title')}</h1>
             <p className="text-sm text-gray-600 mb-1">{t('expenseClaims.subtitle')}</p>
             {/* 备用金是【被否决的】,不是还没做 —— 让读的人遇到一个决定 */}

@@ -9,7 +9,6 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatAmount, formatMoneyBare, formatTimestamp } from '@/lib/format'
-import Subnav from '../../Subnav'
 import AttributeCustomerControl from './AttributeCustomerControl'
 import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachmentsPanel'
 import { unmasked } from '@/lib/maskedRows'
@@ -153,8 +152,6 @@ export default async function ReceivableDocPage({
             </div>
 
             <h1 className="text-2xl font-bold mb-2">{t('finance.arDocTitle')}</h1>
-
-            <Subnav />
 
             {/* 头部卡 */}
             <div className="bg-gray-50 rounded p-4 mb-6 flex flex-wrap gap-x-8 gap-y-2 text-sm items-center">

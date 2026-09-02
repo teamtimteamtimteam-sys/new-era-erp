@@ -7,7 +7,6 @@ import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import LogisticsSubnav from '../../Subnav'
 import ContainerPanels from './ContainerPanels'
 import ContainerFreightPanel from './ContainerFreightPanel'
 import { operativeMilestoneIds } from './operativeMilestone'
@@ -92,7 +91,6 @@ export default async function ContainerDetailPage({ params }: { params: Promise<
             <p className="mb-4 text-sm text-gray-500">
                 {t('logistics.colDeparture')}: {head.data.departure_date}
             </p>
-            <LogisticsSubnav />
 
             <ContainerPanels
                 containerId={id}

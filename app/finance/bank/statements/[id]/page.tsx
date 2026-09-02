@@ -7,7 +7,6 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatAmount, formatTimestamp } from '@/lib/format'
-import Subnav from '../../../Subnav'
 import DeleteStatementButton from './DeleteStatementButton'
 import UnreconcileControl from './UnreconcileControl'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -155,8 +154,6 @@ export default async function BankStatementDetailPage({
                     </Link>
                 )}
             </div>
-
-            <Subnav />
 
             {/* 已对账横幅 + 重新打开 */}
             {stmt.status === 'reconciled' && (

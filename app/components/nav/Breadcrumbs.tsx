@@ -17,10 +17,16 @@ import { usePathname } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { breadcrumbTrail } from '@/lib/navTrail'
 
-export default function Breadcrumbs() {
+/**
+ * @param openModuleIds 这个读者【进得去】的一级模块。★ 从服务端传下来 ★ ——
+ *   面包屑的第一截必须与顶栏高亮是同一个答案(NAV-CLEANUP-1 ⑤),而那个答案
+ *   要知道可进性。判据本身在 lib/navTrail.activeModuleForPath,两处共用一支。
+ */
+export default function Breadcrumbs({ openModuleIds }: { openModuleIds: string[] }) {
     const pathname = usePathname()
     const t = useTranslations()
-    const trail = breadcrumbTrail(pathname)
+    const open = new Set(openModuleIds)
+    const trail = breadcrumbTrail(pathname, (id) => open.has(id))
     if (trail.length === 0) return null
 
     return (

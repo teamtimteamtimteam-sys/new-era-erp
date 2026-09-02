@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { localizeEquipmentError } from '@/app/finance/assets/equipmentErrorCodes'
 import { localizePaymentError } from '../paymentErrorCodes'
 import { localizeHrError } from '@/app/hr/hrErrorCodes'
-import { localizeProcessingError } from '@/app/processing/errorCodes'
+import { localizeProcessingError } from '@/app/operation/errorCodes'
 import { getTranslations } from '@/lib/i18n/server'
 
 export type ActState = { error?: string; success?: boolean; result?: string }

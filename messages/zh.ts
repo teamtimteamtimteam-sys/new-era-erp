@@ -497,6 +497,11 @@ const zh = {
         tools: '工具',
         hr: '人力资源',
         deleted: '已删除记录',
+        // NAV-CLEANUP-1 ④:设置的落地页(/settings)。
+        settingsOverview: '设置概览',
+        // NAV-CLEANUP-1 ③/④:三张【落地页】共用的两句话(ModuleLanding)。
+        landingHint: '这个模块底下有什么。进不去的条目写着「受限」。',
+        landingNothingOpen: '你进得来这个模块,但它名下没有任何一页对你开放 —— 这是一个矛盾,请报告。',
         logout: '登出',
     },
     // OPS-18 之后首页【不再渲染模块卡片】(它换成了运营看板),所以模块的
@@ -2233,6 +2238,8 @@ const zh = {
             },
         },
         subnav: {
+            // NAV-CLEANUP-1 ③:运营的落地页(/operation)。
+            overview: '概览',
             workOrders: '工单',
             runs: '加工单',
             wip: '在制品',
@@ -5190,6 +5197,8 @@ const zh = {
         title: '财务',
         trialBalance: '试算平衡',
         subnav: {
+            // NAV-CLEANUP-1 ③:/finance 从【试算平衡】变成财务的落地页。
+            overview: '概览',
             gst: 'GST',
         wht: '预提税',
         pack: '月度报表包',

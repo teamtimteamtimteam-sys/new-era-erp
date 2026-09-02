@@ -62,7 +62,7 @@ export default async function MovementTimeline({
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
                                         {r.run ? (
-                                            <Link href={`/processing/${r.run.id}`} className="text-blue-600 hover:underline">
+                                            <Link href={`/operation/processing/${r.run.id}`} className="text-blue-600 hover:underline">
                                                 {r.run.code}
                                             </Link>
                                         ) : (

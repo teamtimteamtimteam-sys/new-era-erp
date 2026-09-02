@@ -1,10 +1,20 @@
 // DICT-ADMIN:五张字典的那扇门。
 //
-// 【它为什么在 /settings 底下,而导航是【另加】的一项】
-// 导航里原有的「设置」只对持 action.manage_permissions 的人显示,而这五张字典
-// 把门的是 module.materials.edit / module.inbound.edit。**沿用那一项会造出一个
+// 【它为什么在 /settings 底下,而导航里是【自己的一条】条目】
+// 设置那个模块的治理半边由 action.manage_permissions 把门,而这五张字典
+// 把门的是 module.materials.edit / module.inbound.edit。**共用那个码会造出一个
 // 物料编辑员永远看不见的页** —— 本仓库为"没有入口的页"付过四次账。
-// 所以 NavLinks 里另加一项,判据是【这五张字典的权限任持其一】。
+// 所以它在注册表里是【自己的一条】,判据是这五张字典的权限任持其一。
+//
+// ★★【NAV-CLEANUP-1 ④ 更正:这里原本写的是「所以 NavLinks 里另加一项」】★★
+//   **`NavLinks` 这个组件在 IA-BUILD-1 就已经不存在了**(`find app -name 'NavLinks*'` → 0),
+//   导航从那时起是 lib/modules.ts 的 FUNCTIONS + app/components/nav/ModuleBar.tsx。
+//   **一条描述【两代之前的机制】的注释,与一条断言不可能发生的事的注释,代价一样** ——
+//   下一个照它去找 NavLinks 的人会找不到,然后以为这一条压根没接上导航。
+//   【Tim 报的「Dictionaries 点了没反应」】本刀逐条排除了三种候选原因:
+//   路由在、注册表条目在、谓词 live 上有 6 个角色持有 —— **所以它不是一条死条目**。
+//   究竟是"条目看不见 / 点了不跳 / 跳过去是空页",报告里没说,本刀不猜:
+//   它进了 docs/information-architecture.md §17.7 那份「只有人走一遍才能确认」的清单。
 // 另外两个 picker(化验机构、化学体系)下面也直接链过来 —— 人撞到墙的那一刻就在那儿。
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'

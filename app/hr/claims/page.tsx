@@ -4,7 +4,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import Subnav from '../Subnav'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -46,7 +45,6 @@ export default async function ClaimsPage({
     return (
         <div className="p-8 max-w-6xl">
             <h1 className="text-2xl font-bold mb-4">{t('hr.title')}</h1>
-            <Subnav />
             <div className="flex justify-between items-end mb-4 gap-4 flex-wrap">
                 <form method="get" className="flex gap-2 flex-wrap items-end">
                     <label className="text-xs text-gray-600">{t('claims.state')}

@@ -47,7 +47,7 @@ export const DOCK_DEFAULT_CANDIDATES: readonly string[] = [
     '/finance',
     '/purchasing/orders',
     '/inbound',
-    '/processing',
+    '/operation/processing',
     '/sales/orders',
     '/inventory',
     '/hr/employees',

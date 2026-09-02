@@ -14,7 +14,6 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatAmount, formatMoneyBare, formatUnitCost } from '@/lib/format'
-import Subnav from '../../Subnav'
 import CancelOrderControl from './CancelOrderControl'
 import ApprovalControls from './ApprovalControls'
 import ActorName, { loadActorNames } from '@/app/components/ActorName'
@@ -414,8 +413,6 @@ export default async function PurchaseOrderDetailPage({
                     )}
                 </div>
             </div>
-
-            <Subnav />
 
             {/* A3:拿掉了"收货"这个动作,就得说清楚机器到了该去哪 —— 否则
                 删掉按钮只是把困惑搬了个家。 */}

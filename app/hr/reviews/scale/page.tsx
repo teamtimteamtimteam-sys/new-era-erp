@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { mustRows } from '@/lib/db-helpers'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import Subnav from '../../Subnav'
 import ScaleEditor, { type ScaleRow } from './ScaleEditor'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -22,7 +21,6 @@ export default async function RatingScalePage() {
     return (
         <div className="p-8 max-w-6xl">
             <h1 className="text-2xl font-bold mb-4">{t('hr.title')}</h1>
-            <Subnav />
             <div className="flex items-baseline justify-between mb-4">
                 <h2 className="text-xl font-bold">{t('reviews.scaleTitle')}</h2>
                 <Link href="/hr/reviews" className="text-sm text-blue-600 hover:underline">

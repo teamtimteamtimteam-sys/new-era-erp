@@ -9,7 +9,6 @@
 import { getBaseCurrency } from '@/lib/currency'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import Subnav from '../../Subnav'
 import NewPaymentForm, { type PartyOption, type OpenItem, type PoItem } from './NewPaymentForm'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -187,7 +186,6 @@ export default async function NewPaymentPage({
     return (
         <div className="p-8 max-w-5xl">
             <h1 className="text-2xl font-bold mb-4">{t('finance.newPaymentTitle')}</h1>
-            <Subnav />
             <NewPaymentForm
                 customers={customers}
                 suppliers={suppliers}

@@ -4,7 +4,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { mustRows } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
-import Subnav from '../../Subnav'
 import ImportStatementForm, { type ProfileOption } from './ImportStatementForm'
 import type { BankMapping } from '@/lib/bankCsv'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -47,7 +46,6 @@ export default async function ImportStatementPage() {
     return (
         <div className="p-8 max-w-6xl">
             <h1 className="text-2xl font-bold mb-4">{t('bank.importTitle')}</h1>
-            <Subnav />
             <ImportStatementForm profiles={profiles} />
         </div>
     )

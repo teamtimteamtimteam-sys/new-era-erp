@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { mustRows } from '@/lib/db-helpers'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import Subnav from '../../Subnav'
 import TrainingForm, { type EmployeeOption } from '../TrainingForm'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -47,7 +46,6 @@ export default async function NewTrainingPage({
                 </Link>
             </div>
             <h1 className="text-2xl font-bold mb-4">{t('hr.newTraining')}</h1>
-            <Subnav />
             <TrainingForm
                 employees={employees}
                 lockedEmployeeId={locked}

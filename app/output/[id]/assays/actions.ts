@@ -105,7 +105,7 @@ export async function submitOutputAssay(
 
     revalidatePath('/output')
     revalidatePath(`/output/${batchId}/edit`)
-    revalidatePath('/processing')   // 过期旗在加工单上
+    revalidatePath('/operation/processing')   // 过期旗在加工单上
 
     redirect(
         `/output/${batchId}/assays/${assayId}` +
@@ -127,7 +127,7 @@ export async function applyOutputAssayAction(
     revalidatePath('/output')
     revalidatePath(`/output/${batchId}/edit`)
     revalidatePath(`/output/${batchId}/assays/${assayId}`)
-    revalidatePath('/processing')   // 过期旗在加工单上
+    revalidatePath('/operation/processing')   // 过期旗在加工单上
     return {}
 }
 

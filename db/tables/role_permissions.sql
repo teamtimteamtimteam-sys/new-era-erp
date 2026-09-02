@@ -56,7 +56,7 @@ CREATE POLICY "role_permissions delete by permission"
 -- 【自己验一遍】—— 一份连自己的规则都不满足的起点,比没有起点更糟。
 -- ═══════════════════════════════════════════════════════════════════════════
 
--- admin(34):全部 —— 定义上如此,不然它就不是管理员。
+-- admin(35):全部 —— 定义上如此,不然它就不是管理员。
 INSERT INTO public.role_permissions (role_id, permission_code)
 SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'action.bulk_import', 'action.manage_permissions', 'data.view_banking', 'data.view_identity', 'data.view_pay',
@@ -70,7 +70,8 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'module.stocktakes.view', 'module.suppliers.edit', 'module.suppliers.view',
         'module.tasks.edit', 'module.tasks.view',
         'module.sales.edit', 'module.sales.view',
-        'module.logistics.view') WHERE r.code = 'admin';
+        'module.logistics.view',
+        'data.view_deleted') WHERE r.code = 'admin';
 
 -- gm(30):看得见整个生意,包括成本与利润;【但不能改权限】—— 没有 action.manage_permissions。
 INSERT INTO public.role_permissions (role_id, permission_code)
@@ -147,7 +148,7 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'module.hr.view', 'module.tasks.edit', 'module.tasks.view'
 ) WHERE r.code = 'hr';
 
--- auditor(15):全部模块【只给 .view】+ 价格 + 销售。【不给 data.view_reviews】—— 绩效是一个人对另一个人的评价,不是可审计的账;也不给薪酬与银行明细。
+-- auditor(16):全部模块【只给 .view】+ 价格 + 销售。【不给 data.view_reviews】—— 绩效是一个人对另一个人的评价,不是可审计的账;也不给薪酬与银行明细。
 INSERT INTO public.role_permissions (role_id, permission_code)
 SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'data.view_prices', 'data.view_sales', 'module.customers.view', 'module.finance.view',
@@ -156,7 +157,10 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'module.processing.view', 'module.purchasing.view', 'module.stocktakes.view',
         'module.suppliers.view', 'module.tasks.view',
         'module.sales.view',
-        'module.logistics.view') WHERE r.code = 'auditor';
+        'module.logistics.view',
+        -- ★ NAV-CLEANUP-1 ①:被删记录。auditor 与 admin 是【仅有的】两个持有者;
+        --   gm 刻意不给 —— 理由在那支迁移的抬头(一份过期文档仍把 gm 写成 MD)。
+        'data.view_deleted') WHERE r.code = 'auditor';
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- NAV-REG-1 / R2:module.logistics.view 授给了上面 8 个角色中的每一个。

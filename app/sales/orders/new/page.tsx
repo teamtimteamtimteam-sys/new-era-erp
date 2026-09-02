@@ -3,7 +3,6 @@ import { createClient } from '@/lib/supabase/server'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import Subnav from '@/app/sales/Subnav'
 import NewOrderForm from './NewOrderForm'
 import { can } from '@/lib/permissions'
 
@@ -35,7 +34,6 @@ export default async function NewSalesOrderPage() {
 
     return (
         <>
-            <Subnav />
             <NewOrderForm customers={customers as { id: string; code: string; legal_name: string }[]}
                           materials={materials as { id: string; code: string; name: string }[]}
                           currencies={(currencies as { code: string }[]).map((c) => c.code)}

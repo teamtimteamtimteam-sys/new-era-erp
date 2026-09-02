@@ -7,7 +7,6 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatMoneyBare } from '@/lib/format'
-import Subnav from '../../Subnav'
 import { PostPayrollButton, UnpostPayrollControl } from './PostControls'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -105,8 +104,6 @@ export default async function PayrollDetailPage({
                     )}
                 </div>
             </div>
-
-            <Subnav />
 
             {/* 抬头 */}
             <div className="bg-gray-50 rounded p-4 mb-4 flex flex-wrap gap-x-8 gap-y-2 text-sm items-center">

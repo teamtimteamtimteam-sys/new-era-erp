@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatMoneyBare } from '@/lib/format'
-import Subnav from '../Subnav'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -51,8 +50,6 @@ export default async function PayrollListPage() {
                     {t('hr.newPayroll')}
                 </Link>
             </div>
-
-            <Subnav />
 
             <p className="text-sm text-gray-600 mb-4">{t('finance.recordCount', { count: periods.length })}</p>
 

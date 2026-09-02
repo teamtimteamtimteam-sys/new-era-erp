@@ -6,7 +6,6 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatAmount } from '@/lib/format'
-import Subnav from '../../Subnav'
 import StatementsToolbar from './StatementsToolbar'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -121,8 +120,6 @@ export default async function BankStatementsPage({
                     {t('bank.import')}
                 </Link>
             </div>
-
-            <Subnav />
 
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>

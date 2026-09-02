@@ -6,7 +6,6 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatAmount } from '@/lib/format'
-import Subnav from '../../Subnav'
 import { statusPillClass } from '../../reviews/reviewShared'
 import RaiseProbationReview from '../RaiseProbationReview'
 import { mustRows } from '@/lib/db-helpers'
@@ -162,8 +161,6 @@ export default async function EmployeeDetailPage({
                     </Link>
                 </div>
             </div>
-
-            <Subnav />
 
             {/* 资料卡 */}
             <div className="bg-gray-50 rounded p-4 mb-6 grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2">

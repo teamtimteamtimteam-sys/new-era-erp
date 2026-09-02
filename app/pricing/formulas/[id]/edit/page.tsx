@@ -3,7 +3,6 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations , getLocale } from '@/lib/i18n/server'
-import Subnav from '../../../Subnav'
 import { getMetalPriceIndices } from '@/app/metal-prices/indexQuery'
 import FormulaForm, { type FormulaDefaults, type PartyOption, type QuoteDate } from '../../FormulaForm'
 import { updateFormula } from '../../actions'
@@ -99,7 +98,6 @@ export default async function EditFormulaPage({
                 </h1>
                 <DeleteFormulaButton formulaId={formula.id} />
             </div>
-            <Subnav />
             <FormulaForm
                 substanceOptions={substanceOptions}
             indices={indices}

@@ -6,7 +6,6 @@ import { type PaymentTriggerEvent } from '@/lib/paymentTriggers'
 import { getBaseCurrency } from '@/lib/currency'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import Subnav from '../../Subnav'
 import NewOrderForm, {
     type SupplierOption,
     type MaterialOption,
@@ -172,7 +171,6 @@ export default async function NewOrderPage() {
                 </Link>
             </div>
             <h1 className="text-2xl font-bold mb-4">{t('purchasing.newOrder')}</h1>
-            <Subnav />
             <NewOrderForm
                 substanceOptions={substanceOptions}
                 baseCurrency={baseCurrency}

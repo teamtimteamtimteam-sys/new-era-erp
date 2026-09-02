@@ -2,7 +2,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
-import Subnav from '../Subnav'
 import CostSettlePanel from './CostSettlePanel'
 import { getBaseCurrency } from '@/lib/currency'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -36,7 +35,6 @@ export default async function ProcessingCostsPage() {
     return (
         <div className="p-8 max-w-5xl">
             <h1 className="text-2xl font-bold mb-4">{t('finance.costSettle.title')}</h1>
-            <Subnav />
             <CostSettlePanel entries={entries as never} runs={runs as never}
                              suppliers={suppliers as never} baseCurrency={baseCurrency} />
         </div>

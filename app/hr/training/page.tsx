@@ -5,7 +5,6 @@ import { Suspense } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import Subnav from '../Subnav'
 import TrainingToolbar from './TrainingToolbar'
 import DeleteTrainingButton from './DeleteTrainingButton'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -79,8 +78,6 @@ export default async function TrainingPage({
                     {t('hr.newTraining')}
                 </Link>
             </div>
-
-            <Subnav />
 
             <Suspense fallback={<div className="mb-4 h-10" />}>
                 <TrainingToolbar />

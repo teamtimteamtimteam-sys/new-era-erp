@@ -6,7 +6,6 @@
 // 就卖了),前端标注为"未记录客户",可以开给所选客户。
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import Subnav from '../../Subnav'
 import NewInvoiceForm, { type CustomerOption, type SaleOption } from './NewInvoiceForm'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -103,7 +102,6 @@ export default async function NewInvoicePage() {
     return (
         <div className="p-8 max-w-6xl">
             <h1 className="text-2xl font-bold mb-4">{t('invoice.newTitle')}</h1>
-            <Subnav />
             <NewInvoiceForm
                 customers={customers}
                 sales={sales}

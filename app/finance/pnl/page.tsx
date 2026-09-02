@@ -26,7 +26,6 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { parseDateRange } from '@/lib/dateFilter'
 import { formatMoneyBare } from '@/lib/format'
-import Subnav from '../Subnav'
 import PnlToolbar from './PnlToolbar'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -140,8 +139,6 @@ export default async function PnlPage({
     return (
         <div className="p-8 max-w-4xl">
             <h1 className="text-2xl font-bold mb-4">{t('finance.pnlTitle')}</h1>
-
-            <Subnav />
 
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>

@@ -6,7 +6,6 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { mustRows, mustOne, mustCount } from '@/lib/db-helpers'
-import Subnav from '../Subnav'
 import { OpenPeriodControl } from './GstControls'
 
 export default async function GstPage() {
@@ -39,7 +38,6 @@ export default async function GstPage() {
     return (
         <div className="p-8 max-w-5xl">
             <h1 className="text-2xl font-bold mb-4">{t('gst.title')}</h1>
-            <Subnav />
 
             {/* 【注册与否是一句要说出来的话,不是一个空白】 */}
             <p className={'text-sm mb-6 inline-block px-3 py-2 rounded border ' +

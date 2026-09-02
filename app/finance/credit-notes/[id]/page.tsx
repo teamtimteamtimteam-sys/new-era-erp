@@ -13,7 +13,6 @@ import { mustOne, mustRows } from '@/lib/db-helpers'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import Subnav from '../../Subnav'
 import IssuePanel from '@/app/components/IssuePanel'
 
 export default async function CreditNotePage({ params }: { params: Promise<{ id: string }> }) {
@@ -79,7 +78,6 @@ export default async function CreditNotePage({ params }: { params: Promise<{ id:
 
     return (
         <>
-            <Subnav />
             <div className="p-8 max-w-4xl">
                 <div className="mb-6">
                     <Link href={inv ? `/finance/invoices/${inv.id}` : '/finance/invoices'}

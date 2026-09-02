@@ -15,7 +15,6 @@ import { mustRows } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import Subnav from '../Subnav'
 import ForecastGrid, { type ForecastData } from './ForecastGrid'
 import RecurringLines from './RecurringLines'
 
@@ -51,7 +50,6 @@ export default async function CashForecastPage() {
 
     return (
         <div className="p-8">
-            <Subnav />
             <h1 className="text-2xl font-bold mb-1">{t('cashForecast.title')}</h1>
             <p className="text-sm text-gray-600 mb-6">{t('cashForecast.subtitle')}</p>
 

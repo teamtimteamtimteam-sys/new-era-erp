@@ -2,7 +2,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { mustRows } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
-import Subnav from '../Subnav'
 import { formatAmount } from '@/lib/format'
 import { getBaseCurrency } from '@/lib/currency'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -27,7 +26,6 @@ export default async function CostVariancePage() {
     return (
         <div className="p-8 max-w-5xl">
             <h1 className="text-2xl font-bold mb-4">{t('finance.variance.title')}</h1>
-            <Subnav />
             <p className="text-sm text-gray-600 mb-4">{t('finance.variance.intro')}</p>
             {rows.length === 0 ? <p className="text-sm text-gray-500">{t('finance.variance.empty')}</p> : (
                 <table className="w-full border-collapse border border-gray-300 text-sm">

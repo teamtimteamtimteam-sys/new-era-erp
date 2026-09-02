@@ -19,7 +19,6 @@ import { can } from '@/lib/permissions'
 import { formatAmount } from '@/lib/format'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import Subnav from '@/app/sales/Subnav'
 import { quoteStatusKey } from '../quoteTypes'
 import IssuePanel from '@/app/components/IssuePanel'
 import ConvertControl from './ConvertControl'
@@ -84,7 +83,6 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
 
     return (
         <>
-            <Subnav />
             <div className="p-8 max-w-4xl">
                 <div className="mb-6">
                     <Link href="/sales/quotes" className="text-blue-600 hover:underline text-sm">

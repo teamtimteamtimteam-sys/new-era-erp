@@ -7,7 +7,6 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import Subnav from '../../Subnav'
 import LeaveSubnav from '../LeaveSubnav'
 import DecideControls from './DecideControls'
 import { mustRows } from '@/lib/db-helpers'
@@ -67,7 +66,6 @@ export default async function LeaveRequestDetail({
     return (
         <div className="p-8 max-w-4xl">
             <h1 className="text-2xl font-bold mb-4">{t('hr.title')}</h1>
-            <Subnav />
             <LeaveSubnav />
 
             <div className="mb-4">

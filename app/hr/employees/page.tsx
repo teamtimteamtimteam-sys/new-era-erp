@@ -8,7 +8,6 @@ import { Suspense } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import Subnav from '../Subnav'
 import EmployeesToolbar, { type DeptOption } from './EmployeesToolbar'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -136,8 +135,6 @@ export default async function EmployeesPage({
                     {t('hr.newEmployee')}
                 </Link>
             </div>
-
-            <Subnav />
 
             <Suspense fallback={<div className="mb-4 h-10" />}>
                 <EmployeesToolbar departments={departments} />

@@ -8,7 +8,6 @@ import { getTranslations } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
-import Subnav from '../../Subnav'
 import { fetchValuation, groupByLocation, statusKey, bucketKey } from './snapshotQuery'
 
 export default async function SnapshotPage() {
@@ -31,7 +30,6 @@ export default async function SnapshotPage() {
 
     return (
         <>
-            <Subnav />
             <div className="p-8">
                 <div className="flex items-start justify-between mb-2">
                     <div>

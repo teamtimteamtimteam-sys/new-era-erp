@@ -4,7 +4,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { mustRows } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
-import Subnav from '../../Subnav'
 import LeaveSubnav from '../LeaveSubnav'
 import LeaveTypesEditor, { type LeaveTypeRow } from './LeaveTypesEditor'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -22,7 +21,6 @@ export default async function LeaveTypesPage() {
     return (
         <div className="p-8 max-w-6xl">
             <h1 className="text-2xl font-bold mb-4">{t('hr.title')}</h1>
-            <Subnav />
             <LeaveSubnav />
             <p className="text-sm text-gray-600 mb-4">{t('leave.typesIntro')}</p>
             <LeaveTypesEditor rows={mustRows(res) as LeaveTypeRow[]} />

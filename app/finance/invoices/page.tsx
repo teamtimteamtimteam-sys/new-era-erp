@@ -10,7 +10,6 @@ import { getTranslations } from '@/lib/i18n/server'
 import { parseDateRange } from '@/lib/dateFilter'
 import { formatAmount } from '@/lib/format'
 import { getBaseCurrency } from '@/lib/currency'
-import Subnav from '../Subnav'
 import InvoicesToolbar from './InvoicesToolbar'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -197,8 +196,6 @@ export default async function InvoicesPage({
                     {t('invoice.new')}
                 </Link>
             </div>
-
-            <Subnav />
 
             <Suspense fallback={<div className="mb-4 h-10" />}>
                 <InvoicesToolbar />

@@ -4,7 +4,6 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import Subnav from '../../Subnav'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -62,7 +61,6 @@ export default async function AttendancePeriodPage({
 
     return (
         <div className="p-8 max-w-5xl">
-            <Subnav />
             <Link href="/hr/attendance" className="text-sm text-blue-600 hover:underline">
                 ← {t('attendance.backToList')}
             </Link>

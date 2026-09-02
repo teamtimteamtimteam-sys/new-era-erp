@@ -2,7 +2,7 @@
 // 批次毛利 —— Doc 2 说"生意最需要、而 Xero 结构上做不出来"的那个数,Phase 3 完成定义
 // 里欠着的一条。
 //
-// 【为什么这个地址不在 /finance/... 或 /processing/... 底下】它【跨两个模块】:收入在
+// 【为什么这个地址不在 /finance/... 或 /operation/processing/... 底下】它【跨两个模块】:收入在
 // 财务,分摊成本在加工。**这条理由说的是【路由】,而它今天仍然成立** ——
 // 把 URL 挪进任一模块的路由树,就会被那个模块的 requireModule 挡掉另一半读者。
 //
@@ -16,7 +16,7 @@
 //   他现在从【财务】的菜单里看见它。**摆在哪、与谁进得去,是两个问题。**
 //
 //   ★【照直说一处【入口】的实际变化】★ 加工列表页页头那个入口**没了** ——
-//   `app/processing/page.tsx` 的页头按 `getFunctionAccess('operation')` 渲染,
+//   `app/operation/processing/page.tsx` 的页头按 `getFunctionAccess('operation')` 渲染,
 //   **它按属主取条目**,属主里没有 operation 就不再出现。**那是搬家要的结果**,
 //   不是一处回归;而"走得到"仍然成立(财务这个一级会被本条目自己撑开)。
 //   逐角色的实测见 docs/nav-registry.md §8.2 —— 11 个角色没有一个丢掉 /margin。

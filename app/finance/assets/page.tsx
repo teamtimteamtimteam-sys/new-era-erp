@@ -12,7 +12,6 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
 import { mustRows, mustOne } from '@/lib/db-helpers'
-import Subnav from '../Subnav'
 import DepreciateButton from './DepreciateButton'
 import { can } from '@/lib/permissions'
 import AssetActions from './AssetActions'
@@ -114,7 +113,6 @@ export default async function AssetsPage({
                     </Link>
                 )}
             </div>
-            <Subnav />
 
             <table className="w-full border-collapse border border-gray-300 mb-8">
                 <thead className="bg-gray-100">

@@ -10,7 +10,6 @@ import { getTranslations } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { mustRows } from '@/lib/db-helpers'
-import Subnav from '../Subnav'
 import PackBody, { type PackPayload } from './PackBody'
 import { ProducePackControl, PackMonthPicker } from './PackControls'
 
@@ -49,7 +48,6 @@ export default async function PacksPage({
             <div className="p-8 max-w-5xl">
                 <h1 className="text-2xl font-bold mb-1">{t('pack.title')}</h1>
                 <p className="text-sm text-gray-600 mb-4">{t('pack.subtitle')}</p>
-                <Subnav />
                 <p className="text-sm bg-red-50 border border-red-300 text-red-900 px-3 py-2 rounded">
                     {previewRes.error.message}
                 </p>
@@ -63,7 +61,6 @@ export default async function PacksPage({
         <div className="p-8 max-w-6xl">
             <h1 className="text-2xl font-bold mb-1">{t('pack.title')}</h1>
             <p className="text-sm text-gray-600 mb-4">{t('pack.subtitle')}</p>
-            <Subnav />
 
             {/* ── 实时预览 ────────────────────────────────────────────────── */}
             <div className="flex flex-wrap items-end gap-3 mb-4">

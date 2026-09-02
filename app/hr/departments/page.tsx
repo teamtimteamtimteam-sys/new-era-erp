@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import Subnav from '../Subnav'
 import DeleteDepartmentButton from './DeleteDepartmentButton'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -46,8 +45,6 @@ export default async function DepartmentsPage() {
                     {t('hr.newDepartment')}
                 </Link>
             </div>
-
-            <Subnav />
 
             <p className="text-sm text-gray-600 mb-4">
                 {t('finance.recordCount', { count: departments.length })}

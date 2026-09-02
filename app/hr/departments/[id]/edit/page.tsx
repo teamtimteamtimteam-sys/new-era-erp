@@ -3,7 +3,6 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import Subnav from '../../../Subnav'
 import DepartmentForm from '../../DepartmentForm'
 import { parentOptionsFor, type DeptNode } from '../../tree'
 import { mustRows } from '@/lib/db-helpers'
@@ -53,7 +52,6 @@ export default async function EditDepartmentPage({
                 {t('hr.departmentsTitle')}
                 <span className="ml-3 font-mono text-base text-gray-500">{deptRes.data.code}</span>
             </h1>
-            <Subnav />
             <DepartmentForm
                 department={deptRes.data}
                 parentOptions={parentOptionsFor((mustRows(allRes)) as DeptNode[], id)}

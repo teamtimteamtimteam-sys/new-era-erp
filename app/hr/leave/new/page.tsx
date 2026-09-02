@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import Subnav from '../../Subnav'
 import LeaveSubnav from '../LeaveSubnav'
 import LeaveForm, { type LeaveTypeOption, type EmployeeOption } from '../LeaveForm'
 import { mustRows } from '@/lib/db-helpers'
@@ -30,7 +29,6 @@ export default async function NewLeavePage() {
     return (
         <div className="p-8 max-w-4xl">
             <h1 className="text-2xl font-bold mb-4">{t('hr.title')}</h1>
-            <Subnav />
             <LeaveSubnav />
             <div className="mb-4">
                 <Link href="/hr/leave" className="text-blue-600 hover:underline text-sm">{t('common.back')}</Link>

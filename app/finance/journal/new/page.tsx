@@ -4,7 +4,6 @@ import { createClient } from '@/lib/supabase/server'
 import { mustRows } from '@/lib/db-helpers'
 import { getBaseCurrency } from '@/lib/currency'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import Subnav from '../../Subnav'
 import NewEntryForm, { type AccountOption } from './NewEntryForm'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -46,7 +45,6 @@ export default async function NewEntryPage() {
     return (
         <div className="p-8 max-w-5xl">
             <h1 className="text-2xl font-bold mb-4">{t('finance.newEntryTitle')}</h1>
-            <Subnav />
             <NewEntryForm accounts={accounts} baseCurrency={await getBaseCurrency()} />
         </div>
     )

@@ -3,7 +3,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { mustRows } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
-import Subnav from '../../Subnav'
 import LeaveSubnav from '../LeaveSubnav'
 import HolidaysEditor, { type HolidayRow } from './HolidaysEditor'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -27,7 +26,6 @@ export default async function HolidaysPage({
     return (
         <div className="p-8 max-w-4xl">
             <h1 className="text-2xl font-bold mb-4">{t('hr.title')}</h1>
-            <Subnav />
             <LeaveSubnav />
             <form method="get" className="mb-4 flex items-end gap-2">
                 <label className="text-sm">

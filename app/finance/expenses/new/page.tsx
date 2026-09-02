@@ -5,7 +5,6 @@ import { can } from '@/lib/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { getBaseCurrency } from '@/lib/currency'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import Subnav from '../../Subnav'
 import NewExpenseForm, {
     type AccountOption, type SupplierOption, type AssetOption, type PoLineOption,
 } from './NewExpenseForm'
@@ -173,7 +172,6 @@ export default async function NewExpensePage() {
     return (
         <div className="p-8 max-w-4xl">
             <h1 className="text-2xl font-bold mb-4">{t('expense.new')}</h1>
-            <Subnav />
             <NewExpenseForm
                 baseCurrency={baseCurrency} accounts={accounts} suppliers={suppliers}
                 employees={employees} assets={assets} poLines={poLines}

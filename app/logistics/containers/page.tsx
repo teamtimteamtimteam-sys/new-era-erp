@@ -6,7 +6,6 @@ import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import LogisticsSubnav from '../Subnav'
 import NewContainerForm from './NewContainerForm'
 
 export default async function ContainersPage() {
@@ -52,7 +51,6 @@ export default async function ContainersPage() {
     return (
         <div className="p-8">
             <h1 className="text-2xl font-bold mb-4">{t('logistics.containersTitle')}</h1>
-            <LogisticsSubnav />
 
             <NewContainerForm
                 lanes={lanes.map((l) => ({ id: l.id as string, label: laneLabel(l.id as string) }))}

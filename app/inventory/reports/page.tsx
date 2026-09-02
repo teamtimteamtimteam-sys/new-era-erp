@@ -3,7 +3,6 @@ import Link from 'next/link'
 import { getTranslations } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import Subnav from '../Subnav'
 
 const CARDS = [
     { href: '/inventory/reports/snapshot', titleKey: 'reports.snapshot.title', descKey: 'reports.snapshot.desc' },
@@ -19,7 +18,6 @@ export default async function ReportsIndexPage() {
 
     return (
         <>
-            <Subnav />
             <div className="p-8">
                 <h1 className="text-2xl font-bold mb-2">{t('reports.title')}</h1>
                 <p className="text-sm text-gray-500 mb-6">{t('reports.intro')}</p>

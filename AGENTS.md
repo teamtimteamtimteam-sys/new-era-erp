@@ -551,13 +551,34 @@ yields two runs *neither of which can fail*: the verdict is
 `unreachable = openable − seen`, and both sets must come from the same role in
 the same run. Splitting by role is the only split that still produces a verdict.
 
-> **`--reach` is the ONLY check that catches an openable-but-unreachable page —
-> and the only one that catches a page whose guard was discarded.** The ordinary
-> smoke asserts 2xx, and by its own documented blind spot a page rendering an
-> error box is still 200. `check-permission-predicate` ④ catches the *spelling*
-> of a discarded guard at build time; it cannot tell you whether a page actually
-> refuses. Run `--reach=<role>` after touching navigation, `lib/modules.ts`, a
-> permission guard, or that role's grants — and after adding a page.
+> **`--reach` catches a page whose guard was discarded — and until
+> NAV-CLEANUP-1 it was the only check that caught an openable-but-unreachable
+> page.** The ordinary smoke asserts 2xx, and by its own documented blind spot a
+> page rendering an error box is still 200. `check-permission-predicate` ④
+> catches the *spelling* of a discarded guard at build time; it cannot tell you
+> whether a page actually refuses. Run `--reach=<role>` after touching
+> navigation, `lib/modules.ts`, a permission guard, or that role's grants — and
+> after adding a page.
+>
+> ★★【NAV-CLEANUP-1(2026-09-03)更正这句"唯一",而更正的方向是【它变弱了】】★★
+> **两件事一起发生,所以这句话在今天是假的:**
+> * **它结构上看不见【第二级】** —— 顶栏的模块菜单是点开才渲染的
+>   (`ModuleBar` 的 `{isOpen && …}`),爬虫点不了。UI-FIX-1 为此付过账:
+>   它据此删掉一条 `--reach` 断言,检查当场变红。
+> * **NAV-CLEANUP-1 ② 又拿走了它的前沿** —— 页内的同级导航行整批删掉了
+>   (10 个组件、121 页),而那正是它此前赖以扩散的东西。
+>   今天它靠的是 dock 那几条 + 页内链接 + 三张【落地页】
+>   (`/finance` `/operation` `/settings`,各自把本模块的注册表条目画成 `<Link>`)。
+>
+> **接替它的是 `scripts/check-nav-routes.mjs`(NAV-CLEANUP-1 ⑥,进 `npm run build`,
+> 不碰数据库,秒级)**:注册表每条 href 都有路由 · 每条路由要么在注册表要么在
+> 带理由的例外表 · 退休路径不许出现(点名文件与行) · 范围 id 是真实前缀 ·
+> 活动模块解析器**真的跑一遍**。五条判据全部做过故障注入。
+>
+> **★ 但它们答的不是同一个问题,谁都不许冒充谁 ★**
+> 静态检查答**注册表与文件系统对不对得上**;`--reach` 答**一个【会话】走不走得到**。
+> **而"一个人点不点得到"两者都答不了** —— 那要人走一遍
+> (见 `docs/information-architecture.md` §17.7 那份清单)。
 
 > **快的那一半也重新量过(BANK-REC,2026-08-26):16m47s,192 条路由**
 > (23:25:37 → 23:42:24,判词 `SMOKE_EXIT=0`,191 ok / 3 skipped / 0 FAILED;

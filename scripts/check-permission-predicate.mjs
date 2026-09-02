@@ -108,7 +108,7 @@ for (let i = 0; i < entries.length; i++) {
 const REGISTRY_RENDERERS = new Set([
     'app/finance/Subnav.tsx',
     'app/finance/SubnavClient.tsx',
-    'app/processing/page.tsx',
+    'app/operation/processing/page.tsx',
     'app/components/TopNav.tsx',
     'app/components/nav/ModuleBar.tsx',
     'app/components/nav/Dock.tsx',
@@ -152,9 +152,16 @@ if (/MODULES\s*\.\s*filter\s*\(/.test(stripComments(accessSrc))) {
         msg: 'lib/moduleAccess.ts:MODULES.filter 回来了 —— R4 的全部内容就是【不过滤】(Tim 的 D5)。',
     })
 }
-// 三处渲染层都要会画那句「受限」,而且用的是既有的那一套词
+// 渲染层都要会画那句「受限」,而且用的是既有的那一套词。
+// ★【NAV-CLEANUP-1 ② 换掉了这份名单里的两个,记在这里而不是静默替换】★
+//   删掉的两处:app/finance/SubnavClient.tsx(财务的页内子导航,整个组件已删)
+//   与 app/operation/processing/page.tsx 的页头行(它按属主模块画运营名下【全部】
+//   条目,是二级菜单的一份重复)。**两者都是 ② 判定"全覆盖"后删掉的。**
+//   顶上来的一处:app/components/nav/ModuleLanding.tsx —— 三张落地页
+//   (/finance /operation /settings)共用的那一个组件,它逐条画本模块的条目,
+//   进不去的画成「· 受限」。**"受限不是缺席"这条规矩的渲染层没有变少,只是换了地方。**
 for (const r of ['app/components/nav/ModuleBar.tsx', 'app/components/nav/Dock.tsx',
-                 'app/finance/SubnavClient.tsx', 'app/processing/page.tsx']) {
+                 'app/components/nav/ModuleLanding.tsx']) {
     // 【必须去掉注释再看】讲这条规矩的注释里必然写着 common.restricted ——
     // 第一版就是这样被自己的注释骗过去的:把那句「受限」从 JSX 里删掉,检查照旧是绿的。
     const body = stripComments(read(join(ROOT, r)))
@@ -197,7 +204,7 @@ for (const r of ['app/components/nav/ModuleBar.tsx', 'app/components/nav/Dock.ts
 //           (与 CCY-VERIFY 同一个 register:说清楚自己证明的边界。)
 //   ④ 的第二条【故意保守】:变量名在全文再出现一次就算用了,不追它是不是真的
 //   被 return。宁可漏报也不误报 —— 一条会冤枉人的检查,最后会被人加白名单绕开。
-const GUARD_FILES = ['app/components/moduleGuard.tsx', 'app/settings/permissions/guard.tsx']
+const GUARD_FILES = ['app/components/moduleGuard.tsx', 'app/settings/guard.tsx']
 const GUARD_DEF = /export\s+async\s+function\s+(require[A-Za-z0-9_]*)\s*\(/g
 const guardNames = []
 for (const gf of GUARD_FILES) {

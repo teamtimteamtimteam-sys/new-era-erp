@@ -516,6 +516,11 @@ const en = {
         tools: 'Tools',
         hr: 'HR',
         deleted: 'Deleted records',
+        // NAV-CLEANUP-1 ④:设置的落地页(/settings)。
+        settingsOverview: 'Settings overview',
+        // NAV-CLEANUP-1 ③/④:三张【落地页】共用的两句话(ModuleLanding)。
+        landingHint: 'What this module contains. Pick where to go — entries you cannot open are marked Restricted.',
+        landingNothingOpen: 'You can open this module, but none of the pages under it are available to you. That is a contradiction — please report it.',
         logout: 'Log out',
     },
     // OPS-18 之后首页【不再渲染模块卡片】(它换成了运营看板),所以模块的
@@ -2240,6 +2245,8 @@ const en = {
             },
         },
         subnav: {
+            // NAV-CLEANUP-1 ③:运营的落地页(/operation)。
+            overview: 'Overview',
             workOrders: 'Work orders',
             runs: 'Processing runs',
             wip: 'Work in progress',
@@ -5208,6 +5215,8 @@ const en = {
         title: 'Finance',
         trialBalance: 'Trial Balance',
         subnav: {
+            // NAV-CLEANUP-1 ③:/finance 从【试算平衡】变成财务的落地页。
+            overview: 'Overview',
             gst: 'GST',
         wht: 'Withholding tax',
         pack: 'Monthly pack',

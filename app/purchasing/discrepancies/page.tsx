@@ -24,7 +24,6 @@ import { mustRows, mustOne } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import Subnav from '../Subnav'
 import ReceivingThresholdPanel from './ReceivingThresholdPanel'
 import DiscrepancyKinds, {
     type DiscrepancyRow, type ReceivingThresholds,
@@ -88,7 +87,6 @@ export default async function ReceivingDiscrepanciesPage() {
 
     return (
         <>
-            <Subnav />
             <div className="p-8">
                 <h1 className="text-2xl font-bold mb-2">{t('grn.list.title')}</h1>
                 <p className="text-sm text-gray-600 mb-4">{t('grn.list.note')}</p>

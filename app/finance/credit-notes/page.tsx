@@ -12,7 +12,6 @@ import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { formatAmount } from '@/lib/format'
 import { can } from '@/lib/permissions'
-import Subnav from '../Subnav'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 
@@ -132,8 +131,6 @@ export default async function CreditNotesPage({
     return (
         <div className="p-8">
             <h1 className="text-2xl font-bold mb-4">{t('cn.title')}</h1>
-
-            <Subnav />
 
             {/* 【没有"新建"按钮是对的】贷项凭证只能从它要冲的那张发票上开,
                 因为每一行的可冲上限是按发票行算出来的。所以这里说出那条路,

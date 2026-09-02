@@ -10,7 +10,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { mustOne } from '@/lib/db-helpers'
-import Subnav from '../Subnav'
 import RevalueButton from './RevalueButton'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
 import { getBaseCurrency } from '@/lib/currency'
@@ -64,7 +63,6 @@ export default async function RevaluationPage({ searchParams }: { searchParams: 
     return (
         <div className="p-8 max-w-4xl">
             <h1 className="text-2xl font-bold mb-4">{t('finance.reval.title')}</h1>
-            <Subnav />
             <form method="get" className="mb-4">
                 <input type="date" name="date" defaultValue={d} className="border border-gray-300 rounded px-2 py-1 text-sm" />
                 <button type="submit" className="ml-2 border border-gray-300 rounded px-3 py-1 text-sm">{t('reviews.filter')}</button>

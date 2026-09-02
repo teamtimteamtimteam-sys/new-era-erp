@@ -78,7 +78,7 @@ export default async function TraceabilitySection({
                                     <tr key={`${c.depth}-${c.via_run_id}-${c.parent_batch_id}`}>
                                         <td className="border border-gray-300 px-3 py-2 text-right font-mono">{c.depth}</td>
                                         <td className="border border-gray-300 px-3 py-2 font-mono text-xs">
-                                            <Link href={`/processing/${c.via_run_id}`} className="text-blue-600 hover:underline">
+                                            <Link href={`/operation/processing/${c.via_run_id}`} className="text-blue-600 hover:underline">
                                                 {c.via_run_code}
                                             </Link>
                                         </td>

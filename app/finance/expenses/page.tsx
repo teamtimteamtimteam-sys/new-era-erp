@@ -9,7 +9,6 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { parseDateRange } from '@/lib/dateFilter'
 import { formatMoneyBare } from '@/lib/format'
-import Subnav from '../Subnav'
 import ExpensesToolbar from './ExpensesToolbar'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -147,8 +146,6 @@ export default async function ExpensesListPage({
                     {t('expense.new')}
                 </Link>
             </div>
-
-            <Subnav />
 
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>

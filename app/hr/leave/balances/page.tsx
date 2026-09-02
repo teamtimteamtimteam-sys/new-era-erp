@@ -4,7 +4,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { mustOne, mustRows } from '@/lib/db-helpers'
-import Subnav from '../../Subnav'
 import LeaveSubnav from '../LeaveSubnav'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -47,7 +46,6 @@ export default async function BalancesPage() {
     return (
         <div className="p-8 max-w-5xl">
             <h1 className="text-2xl font-bold mb-4">{t('hr.title')}</h1>
-            <Subnav />
             <LeaveSubnav />
             <p className="text-sm text-gray-600 mb-4">{t('leave.balancesIntro')}</p>
             <table className="w-full border-collapse text-sm">
