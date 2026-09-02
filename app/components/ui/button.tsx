@@ -41,26 +41,54 @@ const buttonVariants = cva(
   }
 )
 
+// ════════════════════════════════════════════════════════════════════════════
+// BASE-1(2026-09-02)· `pending` —— 按下去之后【它还在跑】要看得见
+// ════════════════════════════════════════════════════════════════════════════
+// R1:【按下去是什么反应,是按钮自己的性质】,不是事后洒上去的东西。
+// 所以这个状态属于按钮,而不是每一页各自在旁边摆一个"处理中…"。
+//
+// 【这个状态为什么值得反馈 —— 有一条真实的缺陷记录】
+// IA-BUILD-1-fu1 的标题原文是「dock 的移除按下去五秒没反应」。
+// 一个按下去没有任何回应的按钮,人会【再按一次】—— 而第二次点击是一次真的重复提交。
+// 所以 pending 同时做三件事:转圈(看得见)、disabled(按不动)、aria-busy(读得出)。
+//
+// 【转圈只是动效,不是状态本身】减弱动效之下它停住不转,但按钮仍然是禁用的、
+// aria-busy 仍然是 true —— 关掉的是动,不是这句话。
 function Button({
   className,
   variant = "default",
   size = "default",
   asChild = false,
+  pending = false,
+  children,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
+    /** 提交中:转圈 + 禁用 + aria-busy。asChild 时忽略(那时渲染的不是 button)。 */
+    pending?: boolean
   }) {
   const Comp = asChild ? Slot.Root : "button"
+  const busy = pending && !asChild
 
   return (
     <Comp
       data-slot="button"
       data-variant={variant}
       data-size={size}
+      aria-busy={busy || undefined}
+      disabled={busy ? true : (props as React.ComponentProps<"button">).disabled}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
-    />
+    >
+      {busy && (
+        <span
+          aria-hidden
+          className="base-spin inline-block size-3.5 rounded-full border-2 border-current border-r-transparent"
+        />
+      )}
+      {children}
+    </Comp>
   )
 }
 

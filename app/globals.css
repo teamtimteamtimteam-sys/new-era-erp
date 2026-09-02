@@ -4,6 +4,11 @@
    理由与三条硬规矩写在那个文件的抬头里。 */
 @import "./brand-tokens.css";
 
+/* BASE-1(2026-09-02):状态反馈的动效。【同样只新增 `base-*` 名字,不动下面任何一行】——
+   `base-` 前缀在本刀之前全仓库 0 次出现(量过),所以它进不了任何既有页面的样子。
+   四条动效各自为什么存在、以及为什么【第二次】拒绝 motion.dev,写在那个文件的抬头里。 */
+@import "./base-motion.css";
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

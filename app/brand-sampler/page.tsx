@@ -24,6 +24,7 @@
 import type { Metadata } from 'next'
 import { Google_Sans } from 'next/font/google'
 import { Variant, type Spec } from './Variant'
+import { Base1 } from './Base1'
 
 // R2 · Google Sans 由 next/font 在【构建期】取回并自托管(不打 Google 的服务器,
 // 没有第三方请求)。只在本页加载 —— 别的页面【连下载都不会发生】。
@@ -190,8 +191,14 @@ export default function BrandSamplerPage() {
 
                 {SPECS.map((s) => <Variant key={s.key} spec={s} />)}
 
+                {/* ── BASE-1(2026-09-02)· 组件层 ────────────────────────────────
+                    BRAND-1 那三节是【选样子】的,这一节是【试东西】的:
+                    13 列的表在 390px 上、四种拒绝态收敛成一种、四种状态动效、
+                    以及卡片磨砂与不磨砂的对照。 */}
+                <Base1 />
+
                 <footer className="mt-16 border-t pt-6 text-xs" style={{ borderColor: 'var(--brand-border)', color: 'var(--brand-muted-text)' }}>
-                    BRAND-1 · 临时取样页 · 选定后删除 app/brand-sampler/
+                    BRAND-1 + BASE-1 · 临时取样页 · 选定后删除 app/brand-sampler/
                     与 scripts/smoke-routes.mjs 里对应的排除。
                 </footer>
             </div>

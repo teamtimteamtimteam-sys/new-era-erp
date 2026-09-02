@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/gen-deep-routes.mjs && node scripts/check-currency-literals.mjs && node scripts/check-error-swallowing.mjs && node scripts/check-i18n.mjs && node scripts/check-bilingual-concat.mjs && node scripts/check-masked-reads.mjs && node scripts/check-masked-columns.mjs && node scripts/check-auth-error-swallowing.mjs && node scripts/check-near-duplicate.mjs && node scripts/check-permission-predicate.mjs && node scripts/check-pdf-font-stack.mjs && next build",
+    "build": "node scripts/gen-deep-routes.mjs && node scripts/check-currency-literals.mjs && node scripts/check-error-swallowing.mjs && node scripts/check-i18n.mjs && node scripts/check-bilingual-concat.mjs && node scripts/check-masked-reads.mjs && node scripts/check-masked-columns.mjs && node scripts/check-auth-error-swallowing.mjs && node scripts/check-near-duplicate.mjs && node scripts/check-permission-predicate.mjs && node scripts/check-pdf-font-stack.mjs && node scripts/check-base-isolation.mjs && next build",
     "check:i18n": "node scripts/check-i18n.mjs",
     "start": "next start",
     "lint": "eslint",
@@ -16,7 +16,8 @@
     "check:maskedcols": "node scripts/check-masked-columns.mjs",
     "check:perms": "node scripts/check-permission-predicate.mjs",
     "check:deeproutes": "node scripts/gen-deep-routes.mjs",
-    "gen:deeproutes": "node scripts/gen-deep-routes.mjs --write"
+    "gen:deeproutes": "node scripts/gen-deep-routes.mjs --write",
+    "check:baseiso": "node scripts/check-base-isolation.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

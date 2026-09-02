@@ -22,7 +22,15 @@
 //   然后:
 //     node scripts/render-pdf-samples.mjs --out /tmp/pdf-before
 //
-// 【一次性账号会被清理】与冒烟同一条:开跑先扫、收尾再删,因为 kill 挡不住 finally。
+// 【一次性账号会被清理,而清理失败必须【说话】】(BASE-1,2026-09-02 补)
+//   这一支原样抄了冒烟【被 CLEANUP-A 修掉之前】的形状:两半清理都走不看返回码的
+//   rest()。删授权那一半可以静默失败,删账号那一半照样成功 —— 留下的正是
+//   **一条权限还在、而账号已经没了的授权**,一个谁也解析不出来的幽灵 admin。
+//   `user_roles.user_id` 【没有】指向 auth.users 的外键,数据库不会替我们把
+//   这两半绑在一起;账号一旦删掉,任何"列出账号再清理"的清扫都再也看不见那行授权。
+//   收尾改成 cleanup():照常往下清,但每一次失败都记账、印出来,并让本支【非零退出】。
+//   一条没删掉的 admin 授权是一次失败,不是一条日志。见 docs/known-issues.md 的
+//   「幽灵 admin 授权」一节(66 → 21 → 8 三次清扫)。
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -40,6 +48,27 @@ const OUT = outArg > -1 ? process.argv[outArg + 1] : '/tmp/pdf-samples'
 const rest = (p, o = {}) =>
     fetch(URL_ + p, { ...o, headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}`,
         'Content-Type': 'application/json', ...(o.headers ?? {}) } })
+
+// 【清理动作专用:失败必须【说话】,但【不能中断】后面的清理】
+// 抄自 scripts/smoke-routes.mjs 的 restCleanup(CLEANUP-A,2026-08-31)。
+// 【为什么不是直接抛】这些调用在 finally 里,在 finally 里抛出去会把它后面
+// 几步清理一起吃掉 —— 那是换一个缺陷,不是修。所以:照常往下清,但记账。
+const cleanupFailures = []
+async function cleanup(p, o, ctx) {
+    try {
+        const r = await rest(p, o)
+        if (!r.ok) {
+            const body = (await r.text()).slice(0, 200)
+            cleanupFailures.push(`${ctx}: HTTP ${r.status} ${body}`)
+            console.error(`  ✗ 清理失败(继续清,但记账):${ctx} → HTTP ${r.status} ${body}`)
+        }
+        return r
+    } catch (e) {
+        cleanupFailures.push(`${ctx}: ${e.message}`)
+        console.error(`  ✗ 清理失败(继续清,但记账):${ctx} → ${e.message}`)
+        return null
+    }
+}
 
 async function rows(p, ctx) {
     const r = await rest(p)
@@ -150,8 +179,12 @@ const main = async () => {
             }
         }
     } finally {
-        await rest(`/rest/v1/user_roles?user_id=eq.${cu.id}`, { method: 'DELETE' })
-        await rest(`/auth/v1/admin/users/${cu.id}`, { method: 'DELETE' })
+        // 【顺序要紧】先收授权,再删账号。反过来做,一旦第二步之前挂掉,
+        // 剩下的就是一条【认不到人】的授权,而此后没有任何清扫看得见它。
+        await cleanup(`/rest/v1/user_roles?user_id=eq.${cu.id}`, { method: 'DELETE' },
+            '收尾:收回一次性 admin 授权')
+        await cleanup(`/auth/v1/admin/users/${cu.id}`, { method: 'DELETE' },
+            '收尾:删一次性 admin 账号')
     }
 
     console.log(`\n渲染产物 → ${OUT}\n`)
@@ -161,6 +194,16 @@ const main = async () => {
     const bad = results.filter((r) => !String(r.status).endsWith('ok'))
     console.log(`\n${results.length - bad.length}/${results.length} 份渲染成功`)
     if (bad.length) console.log(`未出 PDF:${bad.map((b) => b.name + '(' + b.status + ')').join('、')}`)
+
+    // 【一条没删掉的 admin 授权是一次失败,不是一条日志】渲染本身不断言(见抬头),
+    // 但"用完即删"是这一支【自己许下的承诺】,而承诺没兑现必须让退出码说出来。
+    if (cleanupFailures.length) {
+        console.error(`\n✗ 一次性账号/授权没有清理干净 ${cleanupFailures.length} 处 —— ` +
+            `其中任何一条如果是 user_roles,留下的就是一条认不到人的授权:`)
+        for (const c of cleanupFailures) console.error('   ' + c)
+        console.error('  处置:node scripts/check-scratch-rows.mjs 会把它按名报出来。')
+        process.exitCode = 1
+    }
 }
 
 main().catch((e) => { console.error(e); process.exit(1) })
