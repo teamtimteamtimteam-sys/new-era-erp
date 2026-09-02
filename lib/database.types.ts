@@ -16661,20 +16661,23 @@ export type Database = {
       }
       user_dock: {
         Row: {
+          collapsed: boolean
           created_at: string
-          hrefs: string[]
+          hrefs: string[] | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          collapsed?: boolean
           created_at?: string
-          hrefs?: string[]
+          hrefs?: string[] | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          collapsed?: boolean
           created_at?: string
-          hrefs?: string[]
+          hrefs?: string[] | null
           updated_at?: string
           user_id?: string
         }

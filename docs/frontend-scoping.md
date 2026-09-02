@@ -619,6 +619,12 @@ create-next-app 默认;Tailwind v4 + React 19.2.4 + Next 16.2.6 正是 shadcn �
 
 * **Tremor 做图表 —— 今天没有图表可换。** 全仓库没有任何图表库,
   也几乎没有图表。Tremor 是**净新增**,应该按新功能排期,不是按迁移排期。
+  > **★ 这一条已被 CHART-0 推翻两处,见 `docs/charts-scoping.md` ★**
+  > ① "几乎没有图表"不准确 —— 有两条 CSS 画的横比例条(采购单收货进度、
+  >   银行对账进度),而且它们用的正是 Tailwind 默认色阶;
+  > ② **Tremor 已经对不上这个栈**:`@tremor/react@3.18.7` 的 peer 是
+  >   `react: ^18.0.0`(本仓库 React 19.2.4),且它是 Tailwind v3 配置路子
+  >   (本仓库 Tailwind v4、无配置文件)。两条各自都足以否掉它。
 * **`Badge` 也是净新增** —— 今天只有 6 处 `rounded-full`。
 * **motion.dev** 按 brief 的约束(内部页只用于状态反馈)在这里正好落得下:
   **252 个空状态、90 处红色错误条、124 个文件的 `isPending`** 就是那些「状态反馈」

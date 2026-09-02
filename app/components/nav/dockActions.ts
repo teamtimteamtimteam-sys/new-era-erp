@@ -46,23 +46,44 @@ async function requireSessionUserId(): Promise<string> {
     return data.user.id
 }
 
-/** 拿这个人当前存下来的 dock。**null = 从来没动过**,[] = 他清空了。 */
-export async function readDock(): Promise<string[] | null> {
+/**
+ * 拿这个人存下来的 dock:**内容 + 收起与否**,一次查询两样东西。
+ *
+ * ★【hrefs 的三态现在【只看这一列】,不再看"行在不在"】★(CHART-0 ④)
+ *   null = 从来没动过 · [] = 他清空了 · 非空 = 就这些
+ * 迁移把 hrefs 改成了可空并去掉了默认值,理由整段写在
+ * db/migrations/2026-09-02-chart0-the-dock-can-be-put-away-….sql:
+ * 只要为了记一个 collapsed 就得建行,而那一行原本会拿到 '{}' ——
+ * 于是"把 dock 收起来"会被读成"把 dock 清空了",静默吃掉这个人排的那几项。
+ *
+ * 【collapsed 没有第三态,所以它不可空】没有行 = 没收起来,与 false 是同一件事;
+ * 而 hrefs 的"没动过"与"清空了"【不是】同一件事 —— 这正是两列形状不同的理由。
+ */
+export async function readDock(): Promise<{ hrefs: string[] | null; collapsed: boolean }> {
     const supabase = await createClient()
     const userId = await requireSessionUserId()
     const { data, error } = await supabase
         .from('user_dock')
-        .select('hrefs')
+        .select('hrefs, collapsed')
         .eq('user_id', userId)
         .maybeSingle()
     // 【查询失败不许读成"没有 dock"】—— 与 lib/permissions.ts 抬头同一条:
     // 一次瞬时故障会被画成"这个人从来没动过 dock",于是他自己排好的一条
     // 快捷栏被默认值悄悄顶掉。抛出去,让错误边界说话。
     if (error) throw new Error(`查询失败(user_dock): ${error.code ?? ''} ${error.message}`.trim())
-    return (data?.hrefs as string[] | undefined) ?? null
+    return {
+        hrefs: (data?.hrefs as string[] | null | undefined) ?? null,
+        collapsed: Boolean(data?.collapsed),
+    }
 }
 
-/** 落盘。先读再写(不是原子的,但一条 dock 只有它的主人在改)。 */
+/**
+ * 落盘 dock 的【内容】。先读再写(不是原子的,但一条 dock 只有它的主人在改)。
+ *
+ * ★【只写 hrefs,不写 collapsed】★ upsert 的 ON CONFLICT 只更新这里列出的列,
+ * 所以改内容不会顺手把这个人收起/展开的选择重置掉 —— 两件事正交。
+ * 反过来 setDockCollapsed 也只写 collapsed,不碰 hrefs。
+ */
 async function writeDock(hrefs: string[]): Promise<void> {
     const supabase = await createClient()
     const userId = await requireSessionUserId()
@@ -74,6 +95,27 @@ async function writeDock(hrefs: string[]): Promise<void> {
     revalidatePath('/', 'layout')
 }
 
+/**
+ * ★【收起 / 展开,而它【跟着人走】】★(CHART-0 ④,Tim 的 ★ 条)
+ * 存进库里而不是 cookie/localStorage,理由与 dock 的内容逐字相同:
+ * 一个人在手机上和在桌面上是同一个人,他把 dock 收起来是【他的】选择,
+ * 不是【这台机器的】选择。
+ *
+ * 【新建的那一行 hrefs 会是 NULL,而那正是要的】迁移去掉了 hrefs 的
+ * NOT NULL 与 DEFAULT,所以一个从没动过内容、只是把 dock 收起来的人,
+ * 他的 hrefs 仍然是 NULL = "从来没动过" → 照旧画按权限的默认。
+ * 迁移之前这里会写出 '{}' = "他清空了" —— 那是一个会吃掉 dock 的缺陷。
+ */
+export async function setDockCollapsed(collapsed: boolean): Promise<void> {
+    const supabase = await createClient()
+    const userId = await requireSessionUserId()
+    const { error } = await supabase
+        .from('user_dock')
+        .upsert({ user_id: userId, collapsed, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+    if (error) throw new Error(`写入失败(user_dock.collapsed): ${error.code ?? ''} ${error.message}`.trim())
+    revalidatePath('/', 'layout')
+}
+
 export async function addToDock(href: string): Promise<void> {
     // 【核对注册表】—— 4d 的那道门。
     if (!FUNCTIONS.some((f) => f.href === href)) {
@@ -81,7 +123,7 @@ export async function addToDock(href: string): Promise<void> {
     }
     const { defaultDock } = await import('@/lib/dock')
     const { getMyPermissions } = await import('@/lib/permissions')
-    const current = (await readDock()) ?? defaultDock(await getMyPermissions())
+    const current = (await readDock()).hrefs ?? defaultDock(await getMyPermissions())
     if (current.includes(href)) return
     if (current.length >= DOCK_MAX) {
         throw new Error(`dock:最多 ${DOCK_MAX} 项 —— 先去掉一项。`)
@@ -94,7 +136,7 @@ export async function removeFromDock(href: string): Promise<void> {
     const { getMyPermissions } = await import('@/lib/permissions')
     // 【从默认里去掉一项,等于从此有了自己的一份】—— 存下来的那一刻,
     // "从来没动过"就变成了"这是我排的",默认值不会再回来盖住它。
-    const current = (await readDock()) ?? defaultDock(await getMyPermissions())
+    const current = (await readDock()).hrefs ?? defaultDock(await getMyPermissions())
     await writeDock(current.filter((h) => h !== href))
 }
 
@@ -103,11 +145,21 @@ export async function clearDock(): Promise<void> {
     await writeDock([])
 }
 
-/** 恢复成默认:把这一行删掉,于是又回到"从来没动过"那一态。 */
+/**
+ * 恢复成默认:把 hrefs 置回 NULL,于是又回到"从来没动过"那一态。
+ *
+ * ★【此前是 DELETE 整行,而那会连带抹掉 collapsed】★(CHART-0 ④)
+ * "把 dock 的内容恢复默认"与"我不想看见这条栏"是两件事。删整行会让前者
+ * 顺手撤销后者 —— 一个人点了「恢复默认」,结果收起来的 dock 自己弹了出来,
+ * 而屏幕上没有任何东西说过会这样。改成只清 hrefs,collapsed 原样留着。
+ */
 export async function resetDock(): Promise<void> {
     const supabase = await createClient()
     const userId = await requireSessionUserId()
-    const { error } = await supabase.from('user_dock').delete().eq('user_id', userId)
-    if (error) throw new Error(`删除失败(user_dock): ${error.code ?? ''} ${error.message}`.trim())
+    const { error } = await supabase
+        .from('user_dock')
+        .update({ hrefs: null, updated_at: new Date().toISOString() })
+        .eq('user_id', userId)
+    if (error) throw new Error(`重置失败(user_dock): ${error.code ?? ''} ${error.message}`.trim())
     revalidatePath('/', 'layout')
 }

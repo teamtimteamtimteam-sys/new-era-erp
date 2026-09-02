@@ -28,10 +28,91 @@
 // 没有 app/settings/page.tsx 这件事:它不需要有。
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { moduleIdsForPath } from '@/lib/navTrail'
 import type { NavModule, NavEntry } from './types'
+
+/**
+ * ★【CHART-0 ③:一条被截断的菜单必须【自己说】它还有下文】★
+ * ────────────────────────────────────────────────────────────────────────────
+ * Tim 以为财务没有应付账款那一段 —— 它在,只是在下面,而他不知道菜单能滚。
+ * 实测(稳定别名,admin,1440×900):财务菜单 1227px 内容装在 628px 里,
+ * **599px 在视野之外,而屏幕上没有任何东西说这件事。**
+ *
+ * ★【为什么不能只靠滚动条】★ 第一版就是只靠它,而实测证明那不够:
+ * macOS 的滚动条是【覆盖式】的,不滚就不显示 —— 量到的宽度是 0px。
+ * globals.css 里的 ::-webkit-scrollbar 把 Chrome/Safari 掰回常驻式,
+ * 但 Firefox 掰不动。**一个只在某些浏览器上出现的信号,不是一个信号。**
+ * 所以真正的判据是这一条:我们【自己画】一行字,它不看操作系统的脸色。
+ *
+ * 【它说的是条数,不是"往下滚"】"还有 4 条"与"下面还有内容"是两句话:
+ * 前者可核对,后者只是一个手势。条数是数出来的 —— 数【完全在视野外】的那些,
+ * 半露的那一条不算(它已经在说自己存在了)。
+ * 【滚到底就消失】—— 一条永远挂着的"还有"会变成背景噪音,而它此刻是【假的】。
+ */
+function useMoreBelow(ref: React.RefObject<HTMLDivElement | null>, deps: unknown[]) {
+    const [more, setMore] = useState(0)
+    const measure = useCallback(() => {
+        const el = ref.current
+        if (!el) return
+        // 【数的是完全落在视野外的条目】—— 逐个量,不按平均行高估算:
+        // 分组标题、缩进项与普通项的高度并不相同,估算会给出一个对不上的数字。
+        const bottom = el.scrollTop + el.clientHeight
+        let n = 0
+        for (const row of el.querySelectorAll<HTMLElement>('[data-menu-row]')) {
+            if (row.offsetTop >= bottom) n++
+        }
+        setMore(n)
+    }, [ref])
+    useEffect(() => {
+        measure()
+        const el = ref.current
+        if (!el) return
+        el.addEventListener('scroll', measure, { passive: true })
+        const ro = new ResizeObserver(measure)
+        ro.observe(el)
+        return () => { el.removeEventListener('scroll', measure); ro.disconnect() }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [measure, ...deps])
+    return more
+}
+
+/** 菜单底下那条【贴着底边】的提示。它在滚动容器【之内】,所以它跟着菜单走。 */
+function MoreBelow({ n, label }: { n: number; label: string }) {
+    if (n <= 0) return null
+    return (
+        <p
+            data-menu-more={n}
+            aria-hidden
+            className="sticky bottom-0 -mx-1 -mb-1 mt-1 border-t border-[color:var(--brand-border)] bg-[color:var(--brand-accent)] px-3 py-1 text-[11px] font-medium text-[color:var(--brand-text)]"
+        >
+            {label}
+        </p>
+    )
+}
+
+/**
+ * 一个【会滚动的菜单面板】+ 它自己那条「还有 N 条」。
+ * 桌面的下拉与手机的抽屉共用它 —— 两处是同一个缺陷,不该有两份修法。
+ */
+function ScrollPanel({
+    className, role, moreLabel, children,
+}: {
+    className: string
+    role?: string
+    moreLabel: (n: number) => string
+    children: React.ReactNode
+}) {
+    const ref = useRef<HTMLDivElement>(null)
+    const more = useMoreBelow(ref, [children])
+    return (
+        <div ref={ref} className={className} role={role}>
+            {children}
+            <MoreBelow n={more} label={moreLabel(more)} />
+        </div>
+    )
+}
 
 export default function ModuleBar({ modules }: { modules: NavModule[] }) {
     const pathname = usePathname()
@@ -79,6 +160,7 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
         if (!e.allowed) {
             return (
                 <span
+                    data-menu-row=""
                     data-module-restricted="1"
                     title={HINT}
                     className={`block ${pad} pr-3 py-1.5 text-sm text-[color:var(--brand-muted-glass)] cursor-default`}
@@ -91,6 +173,7 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
         return (
             <Link
                 href={e.href}
+                data-menu-row=""
                 className={
                     `block ${pad} pr-3 py-1.5 text-sm rounded ` +
                     (active
@@ -172,12 +255,19 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
                             </button>
                             {isOpen && (
                                 /* 【浮层才磨砂】—— R2:表格永远不磨砂,理由见 app/globals.css。 */
-                                <div
-                                    className="nav-glass absolute left-0 top-full z-50 mt-1 max-h-[70vh] w-64 overflow-y-auto rounded-md border border-[color:var(--brand-border)] p-1 shadow-lg"
+                                /* 【menu-scroll:一条【一直画着的】滚动条】(CHART-0 ③)
+                                   财务这一条实测 scrollHeight 1227px / 可视 628px ——
+                                   599px 在视野外,而 macOS 的覆盖式滚动条不滚就不显示,
+                                   于是一条被截断的菜单读起来是一份完整的清单。
+                                   理由与另外两个候选(渐隐、"还有 N 条"文字)的取舍
+                                   写在 app/globals.css 的 .menu-scroll 抬头。 */
+                                <ScrollPanel
+                                    className="nav-glass menu-scroll absolute left-0 top-full z-50 mt-1 max-h-[70vh] w-64 overflow-y-auto rounded-md border border-[color:var(--brand-border)] p-1 shadow-lg"
                                     role="menu"
+                                    moreLabel={(n) => t('nav.menuMoreBelow', { n })}
                                 >
                                     <ModuleBody m={m} indent={m.groups.length > 0} />
-                                </div>
+                                </ScrollPanel>
                             )}
                         </div>
                     )
@@ -197,6 +287,13 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
                 </button>
             </div>
             {sheet && (
+                /* ★【`fixed inset-0` 现在真的对着视口了】★(CHART-0 ①)
+                   在 CHART-0 之前顶栏自己带着 backdrop-filter,而带 backdrop-filter
+                   的元素是 fixed 后代的【包含块】—— 抽屉是顶栏的后代,于是它对齐的
+                   是顶栏。实测(稳定别名,390×844):**抽屉 94px 高、面板 105px 高,
+                   里面 583px 内容** —— 九个模块挤在一条缝里,而 IA-BUILD-1 的抬头
+                   写的是"一张全高的抽屉"。玻璃挪到 .nav-glass-underlay 之后,
+                   顶栏不再是包含块,这一行才开始表达它一直在说的意思。 */
                 <div className="sm:hidden fixed inset-0 z-50 flex flex-col" data-nav="sheet">
                     {/* 背板:点它就关。它不磨砂 —— 它是遮挡,不是玻璃。 */}
                     <button
@@ -205,7 +302,10 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
                         onClick={() => setSheet(false)}
                         className="absolute inset-0 bg-black/30"
                     />
-                    <div className="nav-glass relative mt-14 flex-1 overflow-y-auto rounded-t-xl border-t border-[color:var(--brand-border)] p-2 pb-24">
+                    <ScrollPanel
+                        className="nav-glass menu-scroll relative mt-14 flex-1 overflow-y-auto rounded-t-xl border-t border-[color:var(--brand-border)] p-2 pb-24"
+                        moreLabel={(n) => t('nav.menuMoreBelow', { n })}
+                    >
                         {modules.map((m) => {
                             if (!m.allowed) {
                                 return (
@@ -259,18 +359,20 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
                             </p>
                             <Link
                                 href="/me"
+                                data-menu-row=""
                                 className="block rounded px-3 py-2 text-sm text-[color:var(--brand-text)] hover:bg-[color:var(--brand-accent)]"
                             >
                                 {t('nav.me')}
                             </Link>
                             <Link
                                 href="/my-reviews"
+                                data-menu-row=""
                                 className="block rounded px-3 py-2 text-sm text-[color:var(--brand-text)] hover:bg-[color:var(--brand-accent)]"
                             >
                                 {t('nav.myReviews')}
                             </Link>
                         </div>
-                    </div>
+                    </ScrollPanel>
                 </div>
             )}
         </>

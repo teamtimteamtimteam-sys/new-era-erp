@@ -184,14 +184,42 @@
     color: var(--brand-text);
 }
 
+/* ★【CHART-0 ⑤:两行【各自向中间收一点】,参差还在,只是没那么开】★
+   ────────────────────────────────────────────────────────────────────────
+   IA-BUILD-1 把两行分别顶到内容盒的两条边上(见上一段:那是【对】的构造,
+   它修掉的是"整块右移")。但顶到两条边的代价是两行被推得太开 ——
+   Tim:"line 1 sits hard against the card's left content edge and line 2 hard
+   against the right, throwing them too far apart."
+
+   【用百分比而不是固定 px,而这一条正是 Tim 点名要查的那件事】
+   他的担心:"on a narrow card two insets eat a much smaller width"。
+   百分比对着内容盒宽度算,于是【卡片越窄,缩进自己就越小】—— 不需要第二条断点。
+   实测(稳定别名,createRange 量【墨迹】边缘,不是量 span 的盒子:
+   span 是 display:block,盒子永远占满宽,text-align 在盒子上看不出来):
+
+     视口 1280 · 内容盒 360px(460→820)· 墨迹 L1 186.91px / L2 159.83px
+        改前  左缩进  0.0px   右缩进  0.0px   两行左边缘相差 200.2px
+        改后  左缩进 28.8px   右缩进 28.8px   两行左边缘相差 142.6px
+
+     视口 390 · 内容盒 310px(40→350)
+        改前  左缩进  0.0px   右缩进  0.0px   两行左边缘相差 150.2px
+        改后  左缩进 24.8px   右缩进 24.8px   两行左边缘相差 100.6px   ← 参差仍然读得出
+
+   窄卡上缩进自己从 28.8 收到 24.8,而第一行的墨迹右边缘落在 211.7px,
+   离内容盒右边(310)还有 98px —— 两条缩进都没有把任何一行挤到换行。
+
+   ★【这一刀【只】动左右两条内边距】★ 断点仍在逗号处、20px / 字重 500、
+   行高 1.15、两种语言下英文都不翻译 —— 一个字都没动。 */
 .sloganLine1 {
     display: block;
     text-align: left;
+    padding-inline-start: 8%;
 }
 
 .sloganLine2 {
     display: block;
     text-align: right;
+    padding-inline-end: 8%;
 }
 
 .card {

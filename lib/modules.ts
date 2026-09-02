@@ -236,7 +236,16 @@ const P_BULK_IMPORT = 'action.bulk_import'
 
 export const FUNCTIONS: readonly FunctionEntry[] = [
     // ══ 采购 Purchasing ═════════════════════════════════════════════════════
-    { href: '/purchasing', navKey: 'purchasing.subnav.overview', modules: ['purchasing'], permission: P_PURCHASING },
+    // ★【CHART-0 ②:「采购主页」这一条【删掉了】,因为它是一个别名不是一个去处】★
+    //   app/purchasing/page.tsx 全文十四行,主体是 `redirect('/purchasing/orders')` ——
+    //   它没有自己的内容,点下去落在【同一个菜单里紧挨着的下一条】上。
+    //   scripts/smoke-routes.mjs 早就把它记成 `'/purchasing': [307]`,那一行是
+    //   同一件事的第二个独立证词。
+    //   【为什么删它安全,而删别的不安全】模块名在顶栏上是一个【展开菜单的按钮】,
+    //   不是链接(D2),所以【一级永远到不了模块根】—— 一条二级条目删掉,它指的
+    //   那一页就从导航上消失了。这一条例外,只因为它指的那一页【本身就是一次跳转】,
+    //   而跳转的终点 /purchasing/orders 就在下一行,自己是一条条目。
+    //   其余八个模块根逐个查过,没有第二个别名 —— 结论见 docs/information-architecture.md。
     { href: '/purchasing/orders', navKey: 'purchasing.subnav.orders', modules: ['purchasing'], permission: P_PURCHASING },
     { href: '/purchasing/discrepancies', navKey: 'purchasing.subnav.discrepancies', modules: ['purchasing'], permission: P_PURCHASING },
     { href: '/purchasing/payment-terms', navKey: 'purchasing.subnav.templates', modules: ['purchasing'], permission: P_PURCHASING },

@@ -464,6 +464,13 @@ const zh = {
         dockRemove: '从快捷栏移除',
         dockAddHere: '加入本页',
         dockReset: '恢复默认',
+        // CHART-0 ④:收起 / 展开。**两条都说出「快捷栏」** —— 一个光秃秃的
+        // 箭头在读屏上只是「按钮」,说不出它收起的是什么。
+        // CHART-0 ③:菜单被截断时【自己说】还有多少 —— 说条数,不说"往下滚"。
+        // 条数可核对,手势不可核对;滚到底这一行就消失(那时它是假的)。
+        menuMoreBelow: '↓ 下面还有 {n} 条',
+        dockCollapse: '收起快捷栏',
+        dockExpand: '展开快捷栏',
         dockGone: '已下架',
         dockGoneHint: '这个去处在系统里已经不存在了。把它从快捷栏移除。',
         import: '批量导入',
@@ -4337,8 +4344,6 @@ const zh = {
             unknown: '出处未知(FIN-26 之前的行)',
         },
         subnav: {
-            // IA-BUILD-1:采购模块自己的落地页,现在是它二级里的一条。
-            overview: '采购首页',
             orders: '采购单',
             discrepancies: '收货差异',
             templates: '付款条款',

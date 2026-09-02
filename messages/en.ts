@@ -480,6 +480,13 @@ const en = {
         dockRemove: 'Remove from dock',
         dockAddHere: 'Add this page',
         dockReset: 'Restore defaults',
+        // CHART-0 ④:收起 / 展开。**两条都说出「dock」这个词** —— 一个光秃秃的
+        // 箭头在读屏上是「button」,说不出它收起的是什么。
+        // CHART-0 ③:菜单被截断时【自己说】还有多少 —— 说条数,不说"往下滚"。
+        // 条数可核对,手势不可核对;滚到底这一行就消失(那时它是假的)。
+        menuMoreBelow: '↓ {n} more below',
+        dockCollapse: 'Collapse dock',
+        dockExpand: 'Expand dock',
         dockGone: 'No longer available',
         dockGoneHint: 'This destination no longer exists in the system. Remove it from your dock.',
         import: 'Bulk import',
@@ -4345,8 +4352,6 @@ const en = {
             unknown: 'origin unknown (pre-FIN-26 line)',
         },
         subnav: {
-            // IA-BUILD-1:采购模块自己的落地页,现在是它二级里的一条。
-            overview: 'Purchasing home',
             orders: 'Purchase orders',
             discrepancies: 'Receiving discrepancies',
             templates: 'Payment terms',

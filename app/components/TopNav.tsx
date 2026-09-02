@@ -1,5 +1,5 @@
 // app/components/TopNav.tsx
-// 【应用外壳的服务端一半】—— 判权限、取 dock,然后把结果交给三个客户端组件画。
+// 【应用外壳的服务端一半】—— 判权限,然后把结果交给客户端组件画。
 //
 // ════════════════════════════════════════════════════════════════════════════
 // IA-BUILD-1(2026-09-02):九个一级模块 + 二级(财务三级)+ 个人 dock
@@ -11,8 +11,8 @@
 // 一个模块进得去 ⟺ 它名下有任何一条二级进得去。**M6 因此自动成立** ——
 // 只有盘点权限的人进得去库存,因为盘点就在库存名下。
 //
-// 【dock 的三态在服务端就算完】见 lib/dock.ts 的 resolveDock:
-// 没有行 = 从没动过(画默认)· 空数组 = 本人清空了 · 非空 = 画这些。
+// 【dock 不在这个文件里】CHART-0 ④ 把它搬到了 app/components/nav/DockRail.tsx ——
+// 桌面上它是【内容左边】的一条竖栏,得和页面主体做同一个 flex 行里的兄弟。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { logout } from '@/app/logout/actions'
@@ -20,12 +20,8 @@ import { getTranslations } from '@/lib/i18n/server'
 import LanguageSwitcher from './LanguageSwitcher'
 import NotificationBell from './NotificationBell'
 import ModuleBar from './nav/ModuleBar'
-import Dock from './nav/Dock'
 import { getModuleAccess } from '@/lib/moduleAccess'
-import { getMyPermissions } from '@/lib/permissions'
-import { resolveDock } from '@/lib/dock'
-import { readDock } from './nav/dockActions'
-import type { NavModule, DockEntry } from './nav/types'
+import type { NavModule } from './nav/types'
 
 export default async function TopNav() {
     const supabase = await createClient()
@@ -51,7 +47,9 @@ export default async function TopNav() {
     // 【判断不出】—— 画一条【说话的】导航条,不是不画。
     if (!user && (authError as { name?: string } | null)?.name === 'AuthRetryableFetchError') {
         return (
-            <header className="nav-glass sticky top-0 z-50 border-b border-[color:var(--brand-border)]" data-auth-indeterminate="1">
+            <header className="sticky top-0 z-50 border-b border-[color:var(--brand-border)]" data-auth-indeterminate="1">
+                {/* 玻璃画在子元素上,不画在 <header> 上 —— 见 globals.css 的 .nav-glass-underlay。 */}
+                <div className="nav-glass-underlay" aria-hidden="true" />
                 <div className="px-6 py-3 flex items-center gap-4">
                     <Link href="/" className="font-bold text-lg text-[color:var(--brand-text)]">
                         EVoltrya OS
@@ -68,7 +66,6 @@ export default async function TopNav() {
     // 【确立的否定】—— 不画导航条。登录页本来就没有导航,其余路径中间件早就重定向掉了。
     if (!user) return null
 
-    const perms = await getMyPermissions()
     const access = await getModuleAccess()
     const modules: NavModule[] = access.map(({ module, allowed, entries, groups }) => ({
         id: module.id,
@@ -81,14 +78,24 @@ export default async function TopNav() {
         })),
     }))
 
-    const dock = resolveDock(await readDock(), perms)
-    const dockItems: DockEntry[] = dock.items.map((i) => ({ href: i.href, key: i.navKey, state: i.state }))
-
+    // 【dock 不在这里了】CHART-0 ④:桌面上它是【内容左边】的一条竖栏,
+    // 所以它必须与页面主体是同一个 flex 行里的兄弟 —— 取数与渲染都搬进了
+    // app/components/nav/DockRail.tsx,布局在 app/layout.tsx 里拼。
     return (
         <>
             {/* ★ R2:磨砂【只给浮动层】—— 顶栏、dock、下拉、抽屉。表格永远不磨砂。
-                理由与实测的对比度写在 app/globals.css 的 .nav-glass 抬头。 */}
-            <header className="nav-glass sticky top-0 z-50 border-b border-[color:var(--brand-border)]">
+                理由与实测的对比度写在 app/globals.css 的 .nav-glass 抬头。
+
+                ★【CHART-0 ①:顶栏自己【不】带 .nav-glass,玻璃由子元素画】★
+                带 backdrop-filter 的元素会做两件顺带的事,而这两件都咬到了这里:
+                  ① 它成为一个 Backdrop Root —— 挂在它底下的下拉/抽屉,
+                     backdrop-filter 的滤镜源就只剩顶栏内部,于是【一帧都没生效】;
+                  ② 它成为 fixed 后代的【包含块】—— 手机抽屉的 `fixed inset-0`
+                     于是对齐顶栏而不是视口,实测在 390×844 上只有 94px 高。
+                把玻璃挪到一个 absolute inset-0 的子元素上,两件事同时消失,
+                而顶栏看上去逐像素不变。实测见 globals.css 的那一段。 */}
+            <header className="sticky top-0 z-50 border-b border-[color:var(--brand-border)]">
+                <div className="nav-glass-underlay" aria-hidden="true" />
                 {/* 【390px 上这一行必须放得下】实测过一次溢出:右侧那一组宽 265.75px,
                     右边缘落在 396.45 —— 视口只有 390,于是【整个文档】横向滚动 6.45px。
                     修法不是把字缩小了事,是把手机上不必须的那几项挪进抽屉:
@@ -126,7 +133,6 @@ export default async function TopNav() {
                 </div>
                 <ModuleBar modules={modules} />
             </header>
-            <Dock items={dockItems} isDefault={dock.isDefault} />
         </>
     )
 }

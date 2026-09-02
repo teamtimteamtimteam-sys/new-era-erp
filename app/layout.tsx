@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import TopNav from "@/app/components/TopNav";
 import Breadcrumbs from "@/app/components/nav/Breadcrumbs";
+import DockRail from "@/app/components/nav/DockRail";
 import IdleWatcher from "@/app/components/IdleWatcher";
 import { I18nProvider } from "@/lib/i18n/client";
 import { getLocale } from "@/lib/i18n/server";
@@ -73,12 +74,29 @@ export default async function RootLayout({
               ClearRestrictedDrafts 负责,与这一个无关。 */}
           {!bare && <IdleWatcher />}
           {!bare && <TopNav />}
-          {/* IA-BUILD-1 / Tim 的 D4:面包屑【只在 23 条深路由上】出现。
-              判据是算出来的(scripts/gen-deep-routes.mjs),不是一份手写清单 ——
-              手写的那种会在下一次加页时静默漏掉,而没有任何东西会说出来。
-              浅路由上这个组件返回 null,一个字节都不画。 */}
-          {!bare && <Breadcrumbs />}
-          {children}
+          {/* ★【CHART-0 ④:dock 与页面主体是同一个 flex 行里的两个兄弟】★
+              Tim:桌面上 dock 坐在模块导航底下,读起来像【第三层菜单】,
+              而不是"我的快捷方式";而且它吃掉整整一行横向空间。
+              于是桌面上它成为【左边一条竖栏】—— 一条管结构(顶栏),
+              一条管个人(dock),两者在屏幕上就不再像同一套东西的两级。
+
+              【手机上这一行不产生任何影响】手机形态的 dock 是 `fixed bottom-0`,
+              脱离文档流,所以它在这个 flex 行里【不占宽度】;
+              正文给它让出的位置仍然是 globals.css 里那条 body 的 padding-bottom。
+
+              `min-w-0` 是必须的:没有它,flex 项的默认 min-width:auto 会让
+              一张宽表把【整行】撑开,于是竖栏被推出视口 —— 那正是这一行要防的。 */}
+          <div className={bare ? undefined : "flex min-h-0 flex-1"}>
+            {!bare && <DockRail />}
+            <div className={bare ? undefined : "flex min-w-0 flex-1 flex-col"}>
+              {/* IA-BUILD-1 / Tim 的 D4:面包屑【只在 23 条深路由上】出现。
+                  判据是算出来的(scripts/gen-deep-routes.mjs),不是一份手写清单 ——
+                  手写的那种会在下一次加页时静默漏掉,而没有任何东西会说出来。
+                  浅路由上这个组件返回 null,一个字节都不画。 */}
+              {!bare && <Breadcrumbs />}
+              {children}
+            </div>
+          </div>
         </I18nProvider>
       </body>
     </html>
