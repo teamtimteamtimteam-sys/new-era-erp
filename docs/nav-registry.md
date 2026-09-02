@@ -752,3 +752,49 @@ Tim 走查报 49 页;实测是 **126 页 / 11 个组件**。**他的数来自他
 **Q4 的落地页部分偿还了这一笔**:`/finance`、`/operation`、`/settings` 三张页面
 把本模块的注册表条目**逐条画成服务端 HTML 里的 `<Link>`**,于是爬虫又有了真的前沿。
 **接替它的是 ⑥ 那支静态检查。** 两者都不冒充对方,`smoke-routes.mjs` 的抬头已改写。
+
+### 10.7 部署之后:破窗时长,与稳定别名上的实测
+
+**破窗(AGENTS.md 的必填字段):**
+
+| | 时刻 | 来源 |
+|---|---|---|
+| 起点 —— 迁移提交 | **2026-09-03 01:23:18 CST** | `db/apply_migration.sh` 自己打的(`db/migration-windows.tsv`) |
+| 终点 —— 部署 `state=success` | **2026-09-03 02:00:52 CST** | 部署 `6228640081` 的 `created_at` |
+| **破窗** | **37 分 34 秒** | |
+
+**★ 期间什么是坏的:【什么都没坏】,而这句话要说得出理由 ★**
+窗口里生产跑的是【旧代码 + 新库】。这一次的库改动是**纯增量**:
+多了一个权限码 `data.view_deleted` 与两条授权(admin / auditor),
+**没有撤掉任何策略、没有改任何列、没有动 `deleted_records` 那张视图**。
+旧代码读的是 `action.manage_permissions`,那个码与它的授权一个字没动 ——
+**所以旧代码在窗口里的行为与迁移之前逐字相同**:admin 看得见 `/deleted`,
+其余角色看不见。**唯一"还没兑现"的是 auditor 的恢复** ——
+那是一件**没有发生的好事**,不是一件坏掉的事。
+(对照:AGENTS.md 记着的 SO-2b 那次撤掉了一条 INSERT 策略,窗口里那条录入路径
+**是真的坏的** —— 两者的区别正是这一栏要说的东西。)
+
+**稳定别名上的实测**(`https://new-era-erp.vercel.app`,每个角色一个临时账号,
+用完即删 —— 收尾实测 `auth.users` 里 `alias-%@test.local` 剩 **0** 行):
+
+| 角色 | `/settings/deleted` | `/settings` | `/finance` | `/finance/trial-balance` | `/operation` | `/operation/processing` |
+|---|---|---|---|---|---|---|
+| admin | **✓** | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **auditor** | **✓** | ✗ | ✓ | ✓ | ✓ | ✓ |
+| **gm** | **✗** | ✗ | ✓ | ✓ | ✓ | ✓ |
+| finance | ✗ | ✗ | ✓ | ✓ | ✗ | ✗ |
+| operations | ✗ | ✗ | ✗ | ✗ | ✓ | ✓ |
+| employee | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+
+**每一格都是 HTTP 200**,区别只在里面是内容还是一句具名的拒绝
+(判据认机器标记 `data-access-denied`,不认文案)——
+**这正是"冒烟只断言 2xx,一个渲染出错误框的页面也是 200"说的那件事。**
+
+**★ ① 的裁定在部署系统上兑现了:`/settings/deleted` 恰好 admin + auditor,gm 被挡住。★**
+live 最终授权实测:`data.view_deleted` 的持有者 = **`admin auditor`**。
+
+**顺带一条值得看见的推导结果:auditor 的顶栏上「设置」是【可进】的** ——
+因为设置名下他有一条打得开的条目(就是被删记录),而模块可进性是从二级条目推导的。
+**于是他不只是"打得开"那一页,他还【走得到】它。** 而 `/settings`、`/settings/accounts`、
+`/settings/roles` 对他写着「· 受限」—— 那三条要 `action.manage_permissions`。
+**这就是 D5 要的样子:一页一页地诚实,而不是整个模块非黑即白。**
