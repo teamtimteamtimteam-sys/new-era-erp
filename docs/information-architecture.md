@@ -623,3 +623,72 @@ Tim 的原话是 "perceptible, NEVER legible",看不出来是把另一头做过�
 墨迹宽 L1 186.91px / L2 159.83px。390px 上第一行右边缘落在 211.7px,
 离内容盒右边(310)还有 98px —— 两条缩进都没把任何一行挤到换行,**参差仍然读得出**。
 断点仍在逗号处、20px / 字重 500 / 行高 1.15、两种语种下英文都不翻译,一个字没动。
+
+### 12.6 ★ 一条【躺了五刀】的误报:可达性检查把"打不开"读成了"到得了" ★
+
+**这不是 CHART-0 造成的,但它是 CHART-0 跑出来的,所以在这里记清楚。**
+
+CHART-0 改了导航注册表(删掉 `/purchasing` 那条别名)与整个外壳布局,
+于是按 `scripts/smoke-routes.mjs` 自己的建议跑了 `--reach=operations`。它红了:
+
+```
+✗ operations 预期走不到的 /login 现在走得到了
+```
+
+**而 /login 并没有多出任何入口。** 全仓库 `grep` 过:`app/` 与 `lib/` 里
+**没有任何一处** `href="/login"`;`/login` 只出现在 `redirect('/login')`
+(登出、set-password)、`isPublicPath` 的 import 和注释里。
+照着这个检查自己的算法(从 `/` 出发、只收 200 页面里的 `href="`、
+碰到 `data-access-denied` 就不再往下走)复跑一遍:**爬完同样的 187 页,
+`/login` 不在 `seen` 里。**
+
+**真正的原因在检查自己身上。** 判据写的是
+
+```js
+const unreachable = openable.filter((r) => !seen.has(r))          // ← 只在【打得开的】里挑
+const gone = [...EXPECTED_UNREACHABLE[role]].filter((x) => !unreachable.includes(x))
+```
+
+一条路由有**三**种状态,而 `gone` 只认两种:
+
+| | 在 unreachable 里? | 被判成 |
+|---|---|---|
+| 打得开、走得到 | 否 | 「走得到了」✓ |
+| 打得开、走不到 | 是 | 「走不到」✓ |
+| **打不开** | **否** | **「走得到了」✗** |
+
+第三种把**够不着**读成了**到得了** —— **与这个仓库反复付账的「缺席 ≠ 空」
+是同一个形状,只是这一次发生在检查自己身上。**
+
+**它从哪一刀起必然失败。** LOGIN-1-fu1(`210c4d6`)让【已登录的人】打开
+`/login` 时重定向走。实测(稳定别名,operations 会话):
+
+```
+/login  已登录(operations) → HTTP 307  Location: /suppliers  content-type: text/plain
+/login  未登录              → HTTP 200  content-type: text/html
+```
+
+而 `openable` 是拿一个**已登录**会话试出来的。所以从 `210c4d6` 起,
+`/login` 永远进不了 `openable` → 永远进不了 `unreachable` → `gone` 永远含着它。
+**这条误报对三个角色都成立,与改了什么无关。**
+
+**为什么五刀没人发现**:上一次跑绿是 GUARD-FIX-1(`7759848`)记下的
+`REACHFIN2_EXIT=0`,而 `7759848` **早于** `210c4d6`。这个检查默认不跑
+(它太慢,GUARD-FIX-1 的抬头解释过为什么改成显式开启),于是从 LOGIN-1-fu1
+到 BASE-1 之间**没有任何一次运行**。CHART-0 是那之后的第一次。
+
+**修法:直接问那个真正的问题。**
+
+```js
+const gone = [...EXPECTED_UNREACHABLE[role]].filter((x) => seen.has(x))
+```
+
+"走得到"本来就只与**爬到没爬到**有关,与打不打得开无关。
+★ **这不是把断言放松** ★:一条真的多出了入口的路由会进 `seen`,照样响。
+**放松的写法是把 `/login` 从 `EXPECTED_UNREACHABLE` 里删掉** ——
+那是"把债划掉不是还债",而且会顺手把"哪天真给 `/login` 加了入口"这件事
+一起盖掉。`unexpected`(打得开却走不到)那一半**一个字没动**。
+
+**这条检查自己的抬头早就写过这句话**:「误报比漏报更坏,它教人忽略这条检查」——
+那是首跑时把 `/settings/permissions` 报成"走不到"之后写下的。同一条道理,
+这一次落在它自己身上。

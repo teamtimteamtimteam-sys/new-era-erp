@@ -1350,7 +1350,9 @@ async function reachabilityForRole(roleCode, base, mkSession) {
     // ③ 打得开却走不到
     const unreachable = openable.filter((r) => !seen.has(r))
     const dynamicCount = routes.length - staticRoutes.length
-    return { role: roleCode, reached: seen.size, openable: openable.length, unreachable, dynamicCount }
+    // ★【seen 要交出去,因为"走得到"与"打得开"是【两个】问题】★ 见下面 gone 的抬头。
+    return { role: roleCode, reached: seen.size, openable: openable.length, unreachable, dynamicCount,
+             seen }
 }
 
 
@@ -2136,7 +2138,35 @@ async function main() {
         for (const roleCode of RUN_REACH ? REACH_ROLES : []) {
             const r = await reachabilityForRole(roleCode, `http://localhost:${PORT}`, mkSession)
             const unexpected = r.unreachable.filter((x) => !EXPECTED_UNREACHABLE[r.role].has(x))
-            const gone = [...EXPECTED_UNREACHABLE[r.role]].filter((x) => !r.unreachable.includes(x))
+            // ★★【CHART-0:这一行【曾经】问错了问题,于是它从 LOGIN-1-fu1 起【必然】误报】★★
+            //
+            // 写过的判据是 `!r.unreachable.includes(x)`,而 unreachable 的定义是
+            //     unreachable = openable.filter((r) => !seen.has(r))
+            // 也就是说它【只在打得开的路由里】挑走不到的。于是一条路由有【三】种状态,
+            // 而这行代码只认两种:
+            //     ① 打得开、走得到      → 不在 unreachable  → 判成"走得到了"  ✓ 对
+            //     ② 打得开、走不到      → 在 unreachable    → 判成"走不到"    ✓ 对
+            //     ③ **打不开**          → 不在 unreachable  → 判成"走得到了"  ✗ 错
+            // 第三种是把"够不着"读成了"到得了" —— 与这个仓库反复付账的
+            // 「缺席 ≠ 空」是同一个形状,只是发生在检查自己身上。
+            //
+            // 【它从哪一刀开始必然失败】LOGIN-1-fu1(210c4d6)让【已登录的人】打开
+            // /login 时重定向走。实测(稳定别名,operations 会话):
+            //     已登录 → 307,Location: /suppliers,content-type: text/plain
+            //     未登录 → 200,text/html
+            // 而 openable 是拿【一个已登录会话】试出来的,所以 /login 从那一刀起
+            // 永远进不了 openable,也就永远进不了 unreachable,于是这行永远报
+            // 「预期走不到的 /login 现在走得到了」—— 对【三个角色都成立】。
+            // 上一次跑绿是 GUARD-FIX-1(7759848),【早于】210c4d6,所以这条误报
+            // 在仓库里躺了五刀没被发现:这个检查默认不跑,而没人跑过它。
+            //
+            // 【修法:直接问那个真正的问题】"这条路由被爬到了吗" = seen.has(x)。
+            // 它与打不打得开【无关】,而"走得到"本来就只与爬到与否有关。
+            // ★ 这【不是】把断言放松 ★:一条真的多出了入口的路由会进 seen,照样响。
+            //   放松的写法是把 /login 从 EXPECTED_UNREACHABLE 里删掉 —— 那是
+            //   "把债划掉不是还债",而且会顺手把"哪天真给 /login 加了入口"这件事也一起盖掉。
+            //   同一份实测:改完之后重跑 operations,187 页爬完 /login 不在 seen 里。
+            const gone = [...EXPECTED_UNREACHABLE[r.role]].filter((x) => r.seen.has(x))
             console.log(`  ${r.role}: 走到 ${r.reached} · 打得开 ${r.openable} 条静态路由 · ` +
                 `其中走不到 ${r.unreachable.length}(动态路由 ${r.dynamicCount} 条不在断言范围,见文件头第 2 条)`)
             for (const x of unexpected) {

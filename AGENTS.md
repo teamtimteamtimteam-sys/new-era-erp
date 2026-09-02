@@ -515,9 +515,21 @@ node scripts/smoke-routes.mjs --reach=finance      # admin | operations | financ
 ```
 
 Duration per role, all measured: **admin ~63 min** and **operations ~17 min**
-(2026-08-11, 1,018 fetches); **finance 59m47s** (2026-09-02, this cut — 3587s,
+(2026-08-11, 1,018 fetches); **finance 59m47s** (GUARD-FIX-1 — 3587s,
 verdict `REACHFIN2_EXIT=0`; walked 457 pages, tried 145 static routes, 88
-openable, 3 unreachable = the expected set). **Do NOT extrapolate a role's cost
+openable, 3 unreachable = the expected set); **operations 25m28s** (CHART-0,
+2026-09-02 — 1528s, verdict `SMOKE_EXIT=0`; walked 187 pages, tried 147 static
+routes, 36 openable, 3 unreachable = the expected set). **operations 已经从
+~17 min 长到 25m28s** —— 路由从 1,018 次抓取那一版长了不少,别再照 2026-08-11 那个数设超时。
+
+> ★【CHART-0 更正一处措辞与一处顺序】★ 上面 finance 那次【不是】"this cut" ——
+> 写下它的是 GUARD-FIX-1(`7759848`),而 `7759848` **早于** LOGIN-1-fu1(`210c4d6`)。
+> 这件事要紧,因为 `210c4d6` 让已登录的人打开 `/login` 时重定向走,而
+> `EXPECTED_UNREACHABLE` 的判据此前把"打不开"读成了"走得到" ——
+> **从那一刀起这个检查对三个角色必然误报,而它默认不跑,于是躺了五刀没人发现。**
+> CHART-0 修了判据(`gone` 改为直接问 `seen.has(x)`),完整的实测与推理写在
+> `docs/information-architecture.md` §12.6。修完重跑 operations:187 / 36 / 3,
+> **与误报那一次的三个数字逐字相同** —— 只有那一行假警报没了。 **Do NOT extrapolate a role's cost
 from fetch ratios — that is how this cut got it wrong the first time.** Extrapolating from the 2026-08-11 ratios gave "~20–25 min",
 a 3600s limit was set from it, and the run was on course to be killed at ~65 min
 of real work — the GST-2 false-kill shape again, a limit derived from an
