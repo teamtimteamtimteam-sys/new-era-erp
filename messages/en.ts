@@ -438,7 +438,50 @@ const en = {
         addRequirement: 'Add requirement',
         removeRequirement: 'Remove',
     },
+    // IA-BUILD-1:面包屑里【注册表答不上来的那些段】。前两截(模块名、二级条目)
+    // 的文案来自注册表;这里只是剩下的那些段。
+    // 【这份清单是算出来的】—— scripts/gen-deep-routes.mjs 从 23 条深路由减去
+    // 注册表条目的前缀得出,check-i18n 的 MANIFEST 从生成文件现读:
+    // 加一条深路由带来一个新段,两个语言少一句就构建变红。
+    breadcrumb: {
+        amend: 'Amend',
+        balances: 'Balances',
+        bulk: 'Bulk',
+        calendar: 'Calendar',
+        cycles: 'Cycles',
+        done: 'Done',
+        grants: 'Grants',
+        holidays: 'Public holidays',
+        import: 'Import',
+        ledger: 'Ledger',
+        new: 'New',
+        receive: 'Receive',
+        reconcile: 'Reconcile',
+        reference: 'Reference',
+        roles: 'Roles',
+        safety: 'Safety stock',
+        scale: 'Rating scale',
+        snapshot: 'Snapshot',
+        statements: 'Statements',
+        types: 'Types',
+        violations: 'Violations',
+    },
     nav: {
+        aboutYou: 'About you',
+        operation: 'Operation',
+        contracts: 'Contracts',
+        commissions: 'Commissions',
+        customerOverlap: 'Customer overlap',
+        menu: 'Menu',
+        breadcrumb: 'Breadcrumb',
+        dock: 'Dock',
+        dockEmpty: 'Your dock is empty — open a page and press “Add this page”.',
+        dockEdit: 'Edit dock',
+        dockRemove: 'Remove from dock',
+        dockAddHere: 'Add this page',
+        dockReset: 'Restore defaults',
+        dockGone: 'No longer available',
+        dockGoneHint: 'This destination no longer exists in the system. Remove it from your dock.',
         import: 'Bulk import',
         dictionaries: 'Dictionaries',
         logistics: 'Logistics',
@@ -570,6 +613,9 @@ const en = {
         note: 'Unsold batches are not listed here — they have no margin. Ageing stock is on the home dashboard.',
     },
     common: {
+        // IA-BUILD-1:外壳的两句小词(手机抽屉的关闭、dock 编辑完成)。
+        close: 'Close',
+        done: 'Done',
         edit: 'Edit',
         yes: 'Yes',
         no: 'No',
@@ -4299,6 +4345,8 @@ const en = {
             unknown: 'origin unknown (pre-FIN-26 line)',
         },
         subnav: {
+            // IA-BUILD-1:采购模块自己的落地页,现在是它二级里的一条。
+            overview: 'Purchasing home',
             orders: 'Purchase orders',
             discrepancies: 'Receiving discrepancies',
             templates: 'Payment terms',
@@ -5119,6 +5167,15 @@ const en = {
         },
     },
     finance: {
+        // IA-BUILD-1:财务第三级的六个组名(Tim 的 D1)。顺序在 lib/modules.ts 的 FINANCE_GROUPS。
+        group: {
+            reports: 'Reports',
+            entries: 'Journal',
+            receivables: 'Receivables',
+            payables: 'Payables',
+            periodEnd: 'Period end',
+            config: 'Configuration',
+        },
         yearClose: {
             title: 'Year-end close',
             nextYearEnd: 'Next year to close',
@@ -5572,6 +5629,10 @@ const en = {
         closeHistoryEmpty: 'No closes yet',
         useClosePage: 'Month-end close is the normal way to lock periods — use the Close page.',
         approvals: {
+            // IA-BUILD-1 / D7:面板搬到设置去了,这两句留在原处指路。
+            movedToSettings: 'The approval chain now lives under Settings',
+            // ★ 把"这里没有配置控件"写在屏幕上,不是只写在注释里 ★
+            noConfigUi: 'This panel is read-only. There is no screen anywhere in the system for configuring the approval chain — the live values were set by a direct database change, and enabling approvals today is a database operation, not a button. Raise it before the colleague test round if approvals need to be exercised.',
             title: 'Approvals',
             on: 'Approvals are IN FORCE — purchase orders are raised as drafts and must be approved before goods can be received against them.',
             off: 'Approvals are NOT in force. Orders are stamped approved by the system when they are raised; nobody decides them. This is a state the system says out loud, not a silent permissiveness.',
@@ -5928,6 +5989,8 @@ const en = {
         errUpload: 'Upload failed: {message}',
         // CMPL-1:公司自家执照(NEA)。样本只提供【字段】,一个值都没有进来。
         licence: {
+            // IA-BUILD-1 / D7:登记簿搬到采购去了(它的码本来就是 module.suppliers.*)。
+            movedToPurchasing: 'The licence register now lives under Purchasing',
             title: 'NEA licences held by this company',
             what: 'Our own licences \u2014 number, kind, issuing body, validity, and the approved storage limit. The kind comes from the certificate-type dictionary, so adding a licence class is a row, not a schema change.',
             none: 'No licence is recorded. That is the EXPECTED state \u2014 this company has not yet been granted its licences, and an empty register here is correct rather than missing data.',

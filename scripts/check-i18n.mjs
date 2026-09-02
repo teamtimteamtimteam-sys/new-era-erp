@@ -257,6 +257,14 @@ function grantStatusValues() {
 //   { kind:'data', reason } —— 后缀是业务数据,静态不可知,点名放行(现状:无)。
 // 清单外的动态前缀 = FAIL。
 const MANIFEST = {
+    // ── 外壳 ────────────────────────────────────────────────────────────────
+    // IA-BUILD-1:面包屑里【注册表答不上来的那些段】。后缀集合【就是】
+    // lib/deepRoutes.generated.ts 里那个 BREADCRUMB_SEGMENTS —— 而那一份是
+    // scripts/gen-deep-routes.mjs 从【文件系统里的 23 条深路由】减去注册表条目的
+    // 前缀算出来的。所以:加一条带新段的深路由,这道检查【自动跟着变宽】,
+    // 两个语言少一句就构建变红。写死一份清单只会烂在这里,而屏幕上会冒出一个
+    // 原始的路径段(docs/machine-text-reaching-humans.md 记的正是这一类)。
+    'breadcrumb.': { kind: 'enum', values: () => tsArray('lib/deepRoutes.generated.ts', 'BREADCRUMB_SEGMENTS') },
     // ── 财务 ────────────────────────────────────────────────────────────────
     // FIN-30:现金流量表的活动类别。后缀集合【就是】cash_flow_statement 里那个
     // CASE 的分支(investing/financing 来自 accounts.cash_flow_section 的 CHECK,
@@ -313,7 +321,7 @@ const MANIFEST = {
     // 标准读表上的 CHECK,错误码读那张 Set。于是 CHECK 里加一个值、
     // Set 里加一个码,这个检查自动跟着变宽。
     'company.licence.status.': { kind: 'enum', values: () => sqlCheckIn('db/tables/company_compliance.sql', 'status') },
-    'company.licence.errors.': { kind: 'enum', values: () => tsSet('app/finance/company/licenceErrorCodes.ts', 'LICENCE_ERROR_CODES') },
+    'company.licence.errors.': { kind: 'enum', values: () => tsSet('app/purchasing/licences/licenceErrorCodes.ts', 'LICENCE_ERROR_CODES') },
     // PROC-BUILD-1:损耗分类那两个动态前缀,两条都【接真源】——
     // 金属去向读 loss_metal_fates 的种子行(那张字典没有 CHECK,种子【就是】取值),
     // 拒绝码读那张 Set。于是加一种金属去向、加一条拒绝,这道检查自动跟着变宽。

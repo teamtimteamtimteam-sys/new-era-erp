@@ -135,12 +135,30 @@ export default async function LoginPage({
 
                 {/* 背景色走 inline style:shadcn 的 Card 自带 `bg-card`(不透明白),
                     两个单类选择器谁赢取决于样式表顺序 —— 那不是可以依赖的东西。
-                    值本身仍然是 CSS 里那个 token,不是就地挑的数。 */}
+                    值本身仍然是 CSS 里那个 token,不是就地挑的数。
+
+                    ★【IA-BUILD-1 修的缺陷二:标语上方空得太多 —— 因为上内边距加了两遍】★
+                    shadcn 的 Card 自带 `py-(--card-spacing)`(16px),而这里的
+                    CardContent 又写了 `py-7`(28px)。两条都作用在【卡片顶边到标语】
+                    这一段上,于是 16 + 28 = **44px**,而标语【下方】只有 24px
+                    (h1 的 margin-bottom)—— 上比下多了将近一倍,所以它读起来
+                    "掉到了卡片中间",而不是"这张卡片的标题"。
+                    线上实测(稳定别名,修之前):卡片顶边 → h1 盒顶 = 44px,
+                    h1 盒底 → Email 标签顶 = 24px。桌面与 390px 两处同值。
+
+                    【修法:把重复的那一份去掉,不是再叠一层负边距】
+                    paddingTop 走 inline —— 与上面那行背景色【同一条理由】:
+                    Card 的 `py-(--card-spacing)` 是 Tailwind 工具类,拿模块 CSS
+                    的单类选择器去压它,谁赢取决于样式表顺序。inline 必胜。
+                    ★ 只动上边:卡片底部的 16 + 28 = 44px 一个字没改。★ */}
                 <Card
                     className={`${styles.card} border-[color:var(--brand-border)] shadow-lg`}
-                    style={{ backgroundColor: 'var(--login-card-glass)' }}
+                    style={{ backgroundColor: 'var(--login-card-glass)', paddingTop: 0 }}
                 >
-                    <CardContent className="px-6 py-7 sm:px-7">
+                    {/* pt-5(20px)= 标语上方的【全部】空间,因为 Card 自己那一份已经归零。
+                        20px 上 / 24px 下 —— 上小于下,它才读作标题。
+                        pb-7 与左右内边距逐字未动:这一刀只碰上方。 */}
+                    <CardContent className="px-6 pt-5 pb-7 sm:px-7">
                         {/* ★ 卡片的标题就是公司标语 ★(LOGIN-1-fu2)
                             此前这里是「登录 EVoltrya OS」+「锂电池回收 ERP 系统」,
                             而【字标就在正上方,已经说了这是哪个系统】—— 标题在重复它。

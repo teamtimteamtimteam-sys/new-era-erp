@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import TopNav from "@/app/components/TopNav";
+import Breadcrumbs from "@/app/components/nav/Breadcrumbs";
 import IdleWatcher from "@/app/components/IdleWatcher";
 import { I18nProvider } from "@/lib/i18n/client";
 import { getLocale } from "@/lib/i18n/server";
@@ -72,6 +73,11 @@ export default async function RootLayout({
               ClearRestrictedDrafts 负责,与这一个无关。 */}
           {!bare && <IdleWatcher />}
           {!bare && <TopNav />}
+          {/* IA-BUILD-1 / Tim 的 D4:面包屑【只在 23 条深路由上】出现。
+              判据是算出来的(scripts/gen-deep-routes.mjs),不是一份手写清单 ——
+              手写的那种会在下一次加页时静默漏掉,而没有任何东西会说出来。
+              浅路由上这个组件返回 null,一个字节都不画。 */}
+          {!bare && <Breadcrumbs />}
           {children}
         </I18nProvider>
       </body>

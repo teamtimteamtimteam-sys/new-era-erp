@@ -115,7 +115,7 @@ export default async function ProcessingPage({
                         现在整条来自注册表 —— 地址、标签、以及"这个人进不进得去"
                         都是 FN.margin 那一条,而 /margin 自己的守卫读的是同一条。
                         加工这侧没有子导航,所以入口仍然放在页头(位置一字未动)。 */}
-                    {(await getFunctionAccess('/processing')).map(({ fn, allowed }) =>
+                    {(await getFunctionAccess('operation')).map(({ fn, allowed }) =>
                         allowed ? (
                             <Link key={fn.href} href={fn.href} className="text-sm text-blue-600 hover:underline">
                                 {t(fn.navKey)}

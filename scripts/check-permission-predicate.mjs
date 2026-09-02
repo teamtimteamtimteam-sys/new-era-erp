@@ -104,14 +104,25 @@ for (let i = 0; i < entries.length; i++) {
     }
 }
 // 跨模块功能【不许】再被手写成入口 —— 那是 OPS-15 说的第二份定义。
+// IA-BUILD-1:渲染注册表的地方换了(NavLinks 没了,改成 nav/ 底下三个组件)。
 const REGISTRY_RENDERERS = new Set([
     'app/finance/Subnav.tsx',
     'app/finance/SubnavClient.tsx',
     'app/processing/page.tsx',
-    'app/components/NavLinks.tsx',
     'app/components/TopNav.tsx',
+    'app/components/nav/ModuleBar.tsx',
+    'app/components/nav/Dock.tsx',
+    'app/components/nav/Breadcrumbs.tsx',
 ])
-for (const m of entries) {
+// ★ IA-BUILD-1:这条只管【跨模块】的条目,而它一直就是这个意思 ★
+// 本条不变量的原话是"跨模块功能的入口必须由注册表派生"。此前 FUNCTIONS 里【只有】
+// 跨模块的两条,所以"遍历全部条目"与"遍历跨模块条目"恰好是同一件事。
+// 这一刀把 FUNCTIONS 扩成了【每一个二级条目】(单属主的也在里面),两者从此不同:
+// 一条单属主条目的"返回列表"链接(app/suppliers/new → /suppliers)【不是】
+// 第二份定义,它就是同一个模块里的一条普通链接。所以判据收窄到 multi ——
+// **这不是放松,是把它收回到它本来的范围**;跨模块那几条(定价/行情/佣金/收货/
+// 产出/库存报表/运费/毛利/被删记录)一条不漏,全部照旧受管。
+for (const m of multi) {
     const href = m[1]
     for (const f of FILES) {
         const r = rel(f)
@@ -142,7 +153,8 @@ if (/MODULES\s*\.\s*filter\s*\(/.test(stripComments(accessSrc))) {
     })
 }
 // 三处渲染层都要会画那句「受限」,而且用的是既有的那一套词
-for (const r of ['app/components/NavLinks.tsx', 'app/finance/SubnavClient.tsx', 'app/processing/page.tsx']) {
+for (const r of ['app/components/nav/ModuleBar.tsx', 'app/components/nav/Dock.tsx',
+                 'app/finance/SubnavClient.tsx', 'app/processing/page.tsx']) {
     // 【必须去掉注释再看】讲这条规矩的注释里必然写着 common.restricted ——
     // 第一版就是这样被自己的注释骗过去的:把那句「受限」从 JSX 里删掉,检查照旧是绿的。
     const body = stripComments(read(join(ROOT, r)))

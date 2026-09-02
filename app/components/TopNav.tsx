@@ -1,15 +1,31 @@
 // app/components/TopNav.tsx
+// 【应用外壳的服务端一半】—— 判权限、取 dock,然后把结果交给三个客户端组件画。
+//
+// ════════════════════════════════════════════════════════════════════════════
+// IA-BUILD-1(2026-09-02):九个一级模块 + 二级(财务三级)+ 个人 dock
+// ════════════════════════════════════════════════════════════════════════════
+// 【这里【不过滤】】(Tim 的 D5 / NAV-REG-1 R4):拿到的是【全部】九个模块与它们
+// 名下的全部二级条目,每个带 allowed;进不去的由 ModuleBar 画成「· 受限」而不是消失。
+//
+// 【一级的可进性是【推导】的,不是读一个字段】见 lib/moduleAccess.ts:
+// 一个模块进得去 ⟺ 它名下有任何一条二级进得去。**M6 因此自动成立** ——
+// 只有盘点权限的人进得去库存,因为盘点就在库存名下。
+//
+// 【dock 的三态在服务端就算完】见 lib/dock.ts 的 resolveDock:
+// 没有行 = 从没动过(画默认)· 空数组 = 本人清空了 · 非空 = 画这些。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { logout } from '@/app/logout/actions'
 import { getTranslations } from '@/lib/i18n/server'
 import LanguageSwitcher from './LanguageSwitcher'
 import NotificationBell from './NotificationBell'
-import NavLinks from './NavLinks'
-import { canManagePermissions, can } from '@/lib/permissions'
-import { DICT_PERMISSIONS } from '@/app/settings/dictionaries/registry'
-import { getModuleAccess, canEnter } from '@/lib/moduleAccess'
-import { FN } from '@/lib/modules'
+import ModuleBar from './nav/ModuleBar'
+import Dock from './nav/Dock'
+import { getModuleAccess } from '@/lib/moduleAccess'
+import { getMyPermissions } from '@/lib/permissions'
+import { resolveDock } from '@/lib/dock'
+import { readDock } from './nav/dockActions'
+import type { NavModule, DockEntry } from './nav/types'
 
 export default async function TopNav() {
     const supabase = await createClient()
@@ -18,10 +34,7 @@ export default async function TopNav() {
     // 此前这里是 `const { data: { user } } = await getUser()` 然后 `if (!user) return null`。
     // `getUser()` 失败时 user 也是 null,于是**认证够不着的那一刻,整条导航条凭空消失**,
     // 而页面主体照常渲染 —— 屏幕上"这个系统没有你能用的东西"与"刚才没问到答案"
-    // 长得一模一样。同一条规矩的两处先例都在仓库里:lib/permissions.ts(查询失败
-    // ≠ 没有权限)与 moduleGuard.tsx(进不去的空 ≠ 真的空)。
-    //
-    // 判据与 lib/supabase/middleware.ts 逐字同源(那里有实测的七情形表):
+    // 长得一模一样。判据与 lib/supabase/middleware.ts 逐字同源:
     // `AuthRetryableFetchError` = 判断不出;其余 = 确立的否定。
     let user = null
     let authError: unknown = null
@@ -36,14 +49,11 @@ export default async function TopNav() {
     const t = await getTranslations()
 
     // 【判断不出】—— 画一条【说话的】导航条,不是不画。
-    // 正常情况下走不到这里(中间件在更前面就用 503 挡住了),它接的是那个窄缝:
-    // 中间件那一次问到了答案,而这一次没问到。缝窄不等于不存在,而它一旦发生,
-    // 消失的导航条是这一页上唯一的线索。
     if (!user && (authError as { name?: string } | null)?.name === 'AuthRetryableFetchError') {
         return (
-            <header className="border-b border-gray-200 bg-white" data-auth-indeterminate="1">
+            <header className="nav-glass sticky top-0 z-50 border-b border-[color:var(--brand-border)]" data-auth-indeterminate="1">
                 <div className="px-6 py-3 flex items-center gap-4">
-                    <Link href="/" className="font-bold text-lg">
+                    <Link href="/" className="font-bold text-lg text-[color:var(--brand-text)]">
                         EVoltrya OS
                     </Link>
                     <span className="text-sm bg-amber-50 border border-amber-300 text-amber-900 px-2 py-1 rounded">
@@ -55,60 +65,68 @@ export default async function TopNav() {
         )
     }
 
-    // 【确立的否定】—— 不画导航条。这一支是对的:登录页本来就没有导航,
-    // 而其余路径中间件早就重定向掉了。
-    if (!user) {
-        return null
-    }
+    // 【确立的否定】—— 不画导航条。登录页本来就没有导航,其余路径中间件早就重定向掉了。
+    if (!user) return null
 
-    const canManage = await canManagePermissions()
-    const canBulkImport = await can('action.bulk_import')
-    // DICT-ADMIN:能编辑【任一张】字典的人都要看得见那一项。
-    // 判据取自 registry 的 DICT_PERMISSIONS —— 不在这里抄第二份权限清单
-    // (加一张新字典时,这里自动跟着变)。
-    const canEditDictionaries = (
-        await Promise.all(DICT_PERMISSIONS.map((code) => can(code)))
-    ).some(Boolean)
-    // OPS-15 → NAV-REG-1:模块清单来自同一份 lib/modules.ts。
-    // 【这里不再过滤】(R4):拿到的是【全部】模块 + 每个的 allowed,
-    // 进不去的由 NavLinks 画成「受限」而不是消失。
-    const moduleAccess = await getModuleAccess()
-    const modules = moduleAccess.map(({ module, allowed }) => ({
-        href: module.href,
+    const perms = await getMyPermissions()
+    const access = await getModuleAccess()
+    const modules: NavModule[] = access.map(({ module, allowed, entries, groups }) => ({
+        id: module.id,
         key: module.navKey,
         allowed,
+        entries: entries.map(({ fn, allowed: a }) => ({ href: fn.href, key: fn.navKey, allowed: a })),
+        groups: groups.map((g) => ({
+            key: g.key,
+            entries: g.entries.map(({ fn, allowed: a }) => ({ href: fn.href, key: fn.navKey, allowed: a })),
+        })),
     }))
-    // AUDEL-3 的 /deleted 同样【由注册表判】—— 判据是 FN.deleted.permission
-    // (六个模块码的并集,取自视图每一行自带的 permission),不是这里写的谓词。
-    const deletedAllowed = await canEnter(FN.deleted.permission)
+
+    const dock = resolveDock(await readDock(), perms)
+    const dockItems: DockEntry[] = dock.items.map((i) => ({ href: i.href, key: i.navKey, state: i.state }))
 
     return (
-        <header className="border-b border-gray-200 bg-white">
-            <div className="px-6 py-3 flex items-center justify-between">
-                <Link href="/" className="font-bold text-lg">
-                    EVoltrya OS
-                </Link>
-                <div className="flex items-center gap-4">
-                    <span className="text-sm text-gray-500 hidden sm:inline">
-                        {user.email}
-                    </span>
-                    {/* NTF-1:铃铛在【关于你】这一区(语言、退出),不在 NavLinks 里 ——
-                        收件箱不是一个模块,它是这个人自己的东西。 */}
-                    <NotificationBell />
-                    <LanguageSwitcher />
-                    <form action={logout}>
-                        <button
-                            type="submit"
-                            className="text-sm border border-gray-300 px-3 py-1 rounded hover:bg-gray-50"
-                        >
-                            {t('nav.logout')}
-                        </button>
-                    </form>
+        <>
+            {/* ★ R2:磨砂【只给浮动层】—— 顶栏、dock、下拉、抽屉。表格永远不磨砂。
+                理由与实测的对比度写在 app/globals.css 的 .nav-glass 抬头。 */}
+            <header className="nav-glass sticky top-0 z-50 border-b border-[color:var(--brand-border)]">
+                {/* 【390px 上这一行必须放得下】实测过一次溢出:右侧那一组宽 265.75px,
+                    右边缘落在 396.45 —— 视口只有 390,于是【整个文档】横向滚动 6.45px。
+                    修法不是把字缩小了事,是把手机上不必须的那几项挪进抽屉:
+                    /my-reviews 与 /me 在 <sm 时移到抽屉底部的「关于你」一段
+                    (**它们没有消失,只是换了地方** —— 4d 那条对外壳自己也成立)。 */}
+                <div className="px-4 sm:px-6 py-2.5 flex items-center justify-between gap-2 sm:gap-3">
+                    <Link href="/" className="font-bold text-base sm:text-lg text-[color:var(--brand-text)] shrink-0">
+                        EVoltrya OS
+                    </Link>
+                    <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+                        <span className="text-sm text-[color:var(--brand-muted-glass)] hidden md:inline">
+                            {user.email}
+                        </span>
+                        {/* NTF-1:铃铛在【关于你】这一区(语言、退出),不在模块条里 ——
+                            收件箱不是一个模块,它是这个人自己的东西。
+                            【U4–U7 留在模块之外】/me、/my-reviews、通知、登录族与工作台首页
+                            都不进九个模块 —— 勘察 C10 的理由,Tim 已确认照办。 */}
+                        <NotificationBell />
+                        <Link href="/my-reviews" className="hidden text-sm text-[color:var(--brand-muted-glass)] hover:text-[color:var(--brand-text)] lg:inline">
+                            {t('nav.myReviews')}
+                        </Link>
+                        <Link href="/me" className="hidden text-sm text-[color:var(--brand-muted-glass)] hover:text-[color:var(--brand-text)] sm:inline">
+                            {t('nav.me')}
+                        </Link>
+                        <LanguageSwitcher />
+                        <form action={logout}>
+                            <button
+                                type="submit"
+                                className="text-sm border border-[color:var(--brand-border)] px-3 py-1 rounded hover:bg-[color:var(--brand-accent)] text-[color:var(--brand-text)]"
+                            >
+                                {t('nav.logout')}
+                            </button>
+                        </form>
+                    </div>
                 </div>
-            </div>
-            <NavLinks modules={modules} deletedAllowed={deletedAllowed}
-                canManagePermissions={canManage} canBulkImport={canBulkImport}
-                canEditDictionaries={canEditDictionaries} />
-        </header>
+                <ModuleBar modules={modules} />
+            </header>
+            <Dock items={dockItems} isDefault={dock.isDefault} />
+        </>
     )
 }

@@ -426,7 +426,46 @@ const zh = {
         addRequirement: '新增要求',
         removeRequirement: '删除',
     },
+    // IA-BUILD-1:面包屑里【注册表答不上来的那些段】。见 en.ts 同名块的抬头。
+    breadcrumb: {
+        amend: '变更',
+        balances: '余额',
+        bulk: '批量',
+        calendar: '日历',
+        cycles: '周期',
+        done: '完成',
+        grants: '授予',
+        holidays: '公共假日',
+        import: '导入',
+        ledger: '流水',
+        new: '新建',
+        receive: '收货',
+        reconcile: '核销',
+        reference: '参照',
+        roles: '角色',
+        safety: '安全水位',
+        scale: '评分量表',
+        snapshot: '快照',
+        statements: '对账单',
+        types: '类型',
+        violations: '违规',
+    },
     nav: {
+        aboutYou: '关于你',
+        operation: '运营',
+        contracts: '合同',
+        commissions: '佣金',
+        customerOverlap: '客户重叠检查',
+        menu: '菜单',
+        breadcrumb: '面包屑导航',
+        dock: '快捷栏',
+        dockEmpty: '快捷栏是空的 —— 打开一个页面,按「加入本页」。',
+        dockEdit: '编辑快捷栏',
+        dockRemove: '从快捷栏移除',
+        dockAddHere: '加入本页',
+        dockReset: '恢复默认',
+        dockGone: '已下架',
+        dockGoneHint: '这个去处在系统里已经不存在了。把它从快捷栏移除。',
         import: '批量导入',
         dictionaries: '字典维护',
         logistics: '物流',
@@ -558,6 +597,9 @@ const zh = {
         note: '未售批次不在此列 —— 它们没有毛利可言;滞销成品见首页看板。',
     },
     common: {
+        // IA-BUILD-1:外壳的两句小词(手机抽屉的关闭、dock 编辑完成)。
+        close: '关闭',
+        done: '完成',
         edit: '编辑',
         yes: '是',
         no: '否',
@@ -4295,6 +4337,8 @@ const zh = {
             unknown: '出处未知(FIN-26 之前的行)',
         },
         subnav: {
+            // IA-BUILD-1:采购模块自己的落地页,现在是它二级里的一条。
+            overview: '采购首页',
             orders: '采购单',
             discrepancies: '收货差异',
             templates: '付款条款',
@@ -5108,6 +5152,15 @@ const zh = {
         },
     },
     finance: {
+        // IA-BUILD-1:财务第三级的六个组名(Tim 的 D1)。顺序在 lib/modules.ts 的 FINANCE_GROUPS。
+        group: {
+            reports: '报表',
+            entries: '分录',
+            receivables: '应收',
+            payables: '应付',
+            periodEnd: '期末',
+            config: '配置',
+        },
         yearClose: {
             title: '年结',
             nextYearEnd: '下一个应结财年',
@@ -5559,6 +5612,10 @@ const zh = {
         closeHistoryEmpty: '暂无关账记录',
         useClosePage: '正常关账请走月结页面;此处为手动覆盖。',
         approvals: {
+            // IA-BUILD-1 / D7:面板搬到设置去了,这两句留在原处指路。
+            movedToSettings: '审批链已经搬到「设置」底下',
+            // ★ 把"这里没有配置控件"写在屏幕上,不是只写在注释里 ★
+            noConfigUi: '这块面板是只读的。系统里【没有任何一个界面】可以配置审批链 —— 线上那几个值是直接改库改出来的,今天开启审批是一次数据库操作,不是一个按钮。同事测试轮若要试审批,先把这件事提出来。',
             title: '审批',
             on: '审批【正在生效】—— 采购单提出来是草稿,必须获批之后才收得了货。',
             off: '审批【未生效】。单据一提出来就由系统盖上"已批准",没有人做过这个决定。这是系统【明说出来】的一个状态,不是悄悄放行。',
@@ -5915,6 +5972,8 @@ const zh = {
         errUpload: '上传失败:{message}',
         // CMPL-1:公司自家执照(NEA)。样本只提供【字段】,一个值都没有进来。
         licence: {
+            // IA-BUILD-1 / D7:登记簿搬到采购去了(它的码本来就是 module.suppliers.*)。
+            movedToPurchasing: '执照登记簿已经搬到「采购」底下',
             title: '本公司持有的 NEA 执照',
             what: '我们【自己】的执照 —— 号码、种类、签发方、有效期,以及批准的贮存上限。种类取自证书类型字典,所以加一类执照是加一行,不是改 schema。',
             none: '还没有录入任何执照。**这是预期状态** —— 公司尚未获发执照,这里空着是正确的,不是数据缺失。',

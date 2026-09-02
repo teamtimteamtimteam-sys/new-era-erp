@@ -10,10 +10,10 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import Subnav from '../Subnav'
 import LockForm from './LockForm'
-import ApprovalsPanel from './ApprovalsPanel'
 import GstPanel from './GstPanel'
 import { requireModule } from '@/app/components/moduleGuard'
-import { MOD } from '@/lib/modules'
+import { MOD, FN } from '@/lib/modules'
+import { getFunctionAccess } from '@/lib/moduleAccess'
 
 export default async function FinanceSettingsPage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -30,9 +30,13 @@ export default async function FinanceSettingsPage() {
         .eq('id', true)
         .single()
 
-    // SOD-1:审批开关的状态,以及"能不能开"。屏幕与闸读【同一份判据】——
-    // 一个屏幕上说"可以开"、闸却拒绝的系统,比两者都拒绝更坏(fixture 127 C8)。
-    const readinessRes = await supabase.rpc('approvals_readiness')
+    // ★ IA-BUILD-1 / D7:【审批链搬到设置去了】★ 连同它的把关码 ——
+    // module.finance.view → action.manage_permissions(Tim 的裁定:配审批链是
+    // 系统管理的事,不是财务的内务)。这一页从此只管期间锁与 GST 注册。
+    // 【入口留一条交叉引用】来这里找审批链的人得知道它去哪了;进不去的人看见
+    // 的是一条具名的限制,不是一处缺席(D5)。
+    const approvalsAccess = (await getFunctionAccess('settings'))
+        .find((f) => f.fn.href === FN.approvals.href)
 
     if (error) {
         return (
@@ -86,16 +90,19 @@ export default async function FinanceSettingsPage() {
                 )}
             </div>
 
-            {/* 【读失败不许读成"没有面板"】一块悄悄消失的面板,与一块说"审批未生效"
-                的面板在屏幕上长得一模一样 —— 而后者是一句关于内控的断言。
-                所以失败就【说出来】,不静默省略(与 mustRows 那条规矩同源)。 */}
-            {readinessRes.error ? (
-                <p className="text-sm text-red-700 bg-red-50 border border-red-300 rounded px-3 py-2 mb-6">
-                    {t('finance.approvals.readError')}
-                </p>
-            ) : (
-                <ApprovalsPanel r={readinessRes.data as never} />
-            )}
+            {/* D7:审批链的新家。 */}
+            <div className="border border-gray-200 rounded p-4 mb-6 bg-white">
+                <h2 className="font-semibold mb-1">{t('finance.approvals.title')}</h2>
+                {approvalsAccess?.allowed ? (
+                    <Link href={FN.approvals.href} className="text-sm text-blue-700 hover:underline">
+                        {t('finance.approvals.movedToSettings')}
+                    </Link>
+                ) : (
+                    <p data-module-restricted="1" title={t('dashboard.restrictedHint')} className="text-sm text-gray-600">
+                        {t('finance.approvals.movedToSettings')} · {t('common.restricted')}
+                    </p>
+                )}
+            </div>
 
             {/* SOD-1:职责分离的【事前】告知。控件不禁用 —— 会不会被拒,取决于
                 他填哪一天,而那要服务端才知道。禁用一个可能完全合法的动作,

@@ -21,7 +21,7 @@
 import Link from 'next/link'
 import { canEnter } from '@/lib/moduleAccess'
 import { getTranslations } from '@/lib/i18n/server'
-import type { ModuleEntry, FunctionEntry } from '@/lib/modules'
+import type { AccessScope, FunctionEntry } from '@/lib/modules'
 
 /** 两种拒绝共用的那一块屏 —— 措辞不同,形状必须相同。 */
 async function refusal(titleKey: string, deniedKey: string, hintKey: string) {
@@ -48,8 +48,16 @@ async function refusal(titleKey: string, deniedKey: string, hintKey: string) {
  *     const denied = await requireModule(MOD.finance)
  *     if (denied) return denied
  * 放在【任何查询之前】—— 拒绝要来自权限判断,不能是从空结果倒推出来的。
+ *
+ * ★【IA-BUILD-1:参数类型从 ModuleEntry 换成了 AccessScope,而 178 处调用点
+ *    一个字都没改】★ 换的是【名字与概念】,不是形状:
+ *    九模块方案把 suppliers / materials / stocktakes 等从【一级模块】降成了
+ *    【二级条目】,但它们的【权限范围】一个都没降 —— `/suppliers/*` 仍然由
+ *    module.suppliers.view 把门,因为那是 suppliers 表 RLS 上写着的那个码。
+ *    **导航的层级与权限的范围是两件事**,而它们此前共用一份清单。
+ *    函数名仍叫 requireModule:改名要动 178 处,而它问的仍然是同一个问题。
  */
-export async function requireModule(mod: ModuleEntry) {
+export async function requireModule(mod: AccessScope) {
     if (await canEnter(mod.permission)) return null
     return refusal(mod.navKey, 'common.moduleDenied', 'common.moduleDeniedHint')
 }

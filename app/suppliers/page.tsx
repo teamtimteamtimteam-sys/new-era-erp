@@ -15,7 +15,7 @@ import {
 } from './supplierQuery'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
-import { MOD } from '@/lib/modules'
+import { MOD, FN } from '@/lib/modules'
 
 export default async function SuppliersPage({
     searchParams,
@@ -131,14 +131,14 @@ export default async function SuppliersPage({
                         /suppliers 的 HTML 里找 /contracts)—— 把"我记得加了链接"
                         换成机制。入口放在供应商名单上,因为"这家的货是不是背靠
                         一份长期协议"正是在看供应商名单时才会冒出来的问题。 */}
-                    <Link href="/contracts" className="text-sm text-blue-600 hover:underline">
+                    <Link href={FN.contracts.href} className="text-sm text-blue-600 hover:underline">
                         {t('contracts.entryLink')}
                     </Link>
                     {/* ★【COMM-1:佣金协议的入口 —— 与上面那条逐字同一个理由】★
                         /commissions 建好那天同样没有任何入口,而它归在供应商模块之下
                         (代理人就是一个 service_vendor 供应商)。同样配一条冒烟可达性
                         探针,链接删了当场红。 */}
-                    <Link href="/commissions" className="text-sm text-blue-600 hover:underline">
+                    <Link href={FN.commissions.href} className="text-sm text-blue-600 hover:underline">
                         {t('commissions.entryLink')}
                     </Link>
                     <Link
