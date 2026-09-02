@@ -442,6 +442,30 @@ const MUST_CONTAIN = {
         { probe: '/rest/v1/suppliers?select=id&limit=1&deleted_at=is.null&counterparty_type=eq.forwarder',
           why: '那一家在册货代没有出现在货代下拉的负载里' },
     ],
+    // ── CHART-1(2026-09-03):四张图【真的画出来了】,而不是 200 + 一片空白 ──
+    // 【为什么非要内容判据】本脚本抬头写着它自己的盲区:一个照规矩接住错误、
+    // 画一个红框的页面【是 HTTP 200】。图这一类更甚 —— 一张图消失之后,
+    // 页面剩下的部分完全正常,而"少了一张图"没有任何东西会说。
+    // 【标记而不是文案】认的是 data-* 属性,不是句子:文案会改、会翻译,
+    // 而这几个标记跟着组件走(与 moduleGuard 的 data-access-denied 同一条)。
+    '/hr/org': [
+        // 【oneOf,不是 needle】这一页有两种【互斥】的正确渲染:
+        //   · 一条汇报线都没有 → data-org-state="no-lines"(线上今天就是这一支)
+        //   · 有结构        → data-org-list="1"(缩进列表那一份)
+        // 写死其中一句会在数据变化那天变成一次必然的误报 —— 而那一天恰恰是
+        // 有人第一次录入汇报关系的那天,最不该被一条假警报迎接。
+        { oneOf: ['data-org-state="no-lines"', 'data-org-list="1"'],
+          why: '组织架构图整块没渲染出来 —— 页面照样 200,而图不见了' },
+    ],
+    '/finance/receivables': [
+        { needle: 'data-chart-bars',
+          why: '账龄横条没画出来(四个桶的数字仍在,但图不见了)' },
+    ],
+    '/inventory/reports': [
+        // 同样是互斥的两支:有流水就画条,一条都没有就说"还没有记录"。
+        { oneOf: ['data-chart-bars', 'data-chart-empty="no-rows"'],
+          why: '流水构成图既没画条、也没说它为什么是空的' },
+    ],
     '/inbound/new': [{ needle: 'name="supplier_id"', why: '供货商下拉是空的' }],
     '/inbound/receive': [{ needle: 'name="supplier_id"', why: '供货商下拉是空的' }],
     '/inbound/[id]/edit': [{ needle: 'name="supplier_id"', why: '供货商下拉是空的' }],
@@ -802,6 +826,37 @@ function printProgress() {
     }
     if (PROGRESS.skipped.length) console.error('   SKIP: ' + PROGRESS.skipped.join(', '))
     if (PROGRESS.ok.length) console.error('   ok  : ' + PROGRESS.ok.join(', '))
+    // CHART-1 ②b:中止时也要交出已经量到的时间 —— 与上面同一条理由。
+    printSlowest(20)
+}
+
+// ── CHART-1 ②b:每条路由的服务端响应时间 ────────────────────────────────────
+// 【为什么在这里量,而不是另写一个脚本】这个循环【已经】逐条 GET 每一条路由了。
+// 再写一个测速脚本,就是第二份路由枚举、第二份 id 取数、第二份会话 —— 而两份
+// 枚举一定会漂开(本仓库为"同一件事的两份实现"付过账,见 NAV-CLEANUP-1 ⑤)。
+// 一次 Date.now() 之差,把一个已经在跑的循环变成一次测量。
+//
+// 【它量的是什么,以及不是什么 —— 说清楚,免得数字被读大】
+// 量的是 **dev server 冷启动之后、单次请求的墙上时间**,含 Next 的按需编译。
+// 因此:**第一次命中某条路由的读数里含编译时间,它不是生产时延**。
+// 真正可比的是【同一次跑里路由之间的相对大小】,以及【同一条路由改动前后的差】。
+// 生产读数要另外量,本刀没有量 —— 不把 dev 的数说成线上的数。
+//
+// 【它不参与任何判断】不进退出码、不进断言。慢不是失败;一条 34 秒的路由与一条
+// 34 毫秒的路由在本脚本眼里同样是 ok。它只是把一个一直没有人看的维度记下来。
+const TIMINGS = []
+function printSlowest(n = 20) {
+    if (!TIMINGS.length) return
+    const sorted = [...TIMINGS].sort((a, b) => b.ms - a.ms).slice(0, n)
+    console.log(`\n== 最慢的 ${sorted.length} 条路由(dev server 单次墙上时间,含按需编译)==`)
+    console.log('   【读法】含编译时间,不是生产时延;可比的是彼此的相对大小与改动前后的差。')
+    const w = Math.max(...sorted.map((t) => t.route.length))
+    for (const [i, t] of sorted.entries()) {
+        console.log(`   ${String(i + 1).padStart(2)}. ${t.route.padEnd(w)}  ${String(t.ms).padStart(6)} ms  → HTTP ${t.status}`)
+    }
+    const total = TIMINGS.reduce((s, t) => s + t.ms, 0)
+    console.log(`   ── 计时 ${TIMINGS.length} 条 · 合计 ${(total / 1000).toFixed(1)}s · 中位数 ${
+        [...TIMINGS].sort((a, b) => a.ms - b.ms)[Math.floor(TIMINGS.length / 2)].ms} ms`)
 }
 
 const SCRATCH_EMP_PREFIX = 'ZZ-SMOKE-'
@@ -1649,8 +1704,11 @@ async function main() {
             }
             if (skip) { skipped.add(route); PROGRESS.skipped.push(route); console.log(`  SKIP ${route}  (${skip})`); continue }
             const before = logChunks.length
+            const t0 = Date.now()
             const res = await fetch(`http://localhost:${PORT}${url}`, {
                 headers: { cookie }, redirect: 'manual' })
+            // CHART-1 ②b:计时点在这里 —— fetch 回来即停,不含下面 res.text() 的读体。
+            TIMINGS.push({ route, ms: Date.now() - t0, status: res.status })
             const allow = EXPECTED[route] ?? []
             const pass = exact ? exact.includes(res.status)
                 : (res.status >= 200 && res.status < 300) || allow.includes(res.status)
@@ -2251,6 +2309,7 @@ async function main() {
     // PROBATION-1:总结这一行要把【每一个计进 ok 的探针】都点出来,否则
     // 标签念的是一件事、数字数的是另一件 —— 本仓库对这个形状记过好几次账。
     console.log(`\n== ${routes.length} routes + 1 reviewer-view check + ${QUERY_PROBES.length} query-string probe(s) + 2 probation-entry probes + 2 customer-page entry probes + 2 cash-forecast probes (nav + content) + 3 claim probes (2 content + nav) + 3 attendance probes (2 content + nav) + 3 WHT probes (2 content + nav) + 4 pack/GL-export probes (2 content + 2 nav) + 1 overlap-entry probe + 1 retention-panel probe + 1 signed-out /login probe: ${ok} ok, ${skipped.size} skipped (no data), ${failures.length} FAILED`)
+    printSlowest(20)
     // SESSION-1:这一行排在所有失败之前,因为它改变【怎么读】下面那一百行。
     if (sawAuthIndeterminate) {
         const n = failures.filter((f) => f.authDown).length

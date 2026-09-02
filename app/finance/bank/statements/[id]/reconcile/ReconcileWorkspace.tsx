@@ -340,10 +340,15 @@ export default function ReconcileWorkspace({
                     </span>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className="flex-1 h-2 bg-gray-200 rounded overflow-hidden">
+                    {/* CHART-1 ④:配色换成品牌 token(见 docs/charts-scoping.md §A2)。
+                        完成态 forest、进行中 ocean —— 与 A1 同一对 token,于是
+                        全站"用图形承载数字"的地方从此只有一套配色。 */}
+                    <div className="flex-1 h-2 rounded overflow-hidden"
+                         style={{ background: 'var(--brand-muted)' }}>
                         <div
-                            className={'h-full ' + (allHandled ? 'bg-green-500' : 'bg-blue-500')}
-                            style={{ width: `${progressPct}%` }}
+                            className="h-full"
+                            style={{ width: `${progressPct}%`,
+                                     background: allHandled ? 'var(--brand-forest-fill)' : 'var(--brand-ocean-fill)' }}
                         />
                     </div>
                     <span className="text-sm text-gray-600 whitespace-nowrap">

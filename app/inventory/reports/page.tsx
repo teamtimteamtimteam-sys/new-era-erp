@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { getTranslations } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import MovementMixChart from './MovementMixChart'
 
 const CARDS = [
     { href: '/inventory/reports/snapshot', titleKey: 'reports.snapshot.title', descKey: 'reports.snapshot.desc' },
@@ -29,6 +30,12 @@ export default async function ReportsIndexPage() {
                             <div className="text-sm text-gray-500">{t(c.descKey)}</div>
                         </Link>
                     ))}
+                </div>
+
+                {/* CHART-1 ④ · B3:库存流水构成。放在报表中心的卡片【下面】——
+                    卡片是"去哪儿",这张图是"到目前为止发生过什么",两者不混排。 */}
+                <div className="mt-8 max-w-4xl">
+                    <MovementMixChart />
                 </div>
             </div>
         </>

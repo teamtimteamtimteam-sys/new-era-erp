@@ -2757,6 +2757,11 @@ const en = {
         },
         },
     reports: {
+        movementMix: {
+            title: 'Movement mix',
+            periodAll: 'All movements ever recorded (not filtered to a period)',
+            note: '{total} movement rows in total. Reversal legs are counted — they are movements that really happened, not errors. A type showing zero has never been used; it has not been hidden.',
+        },
         title: 'Inventory reports',
         intro: 'Read-only views over stock as it stands. Nothing here is stored — every figure is derived from the movement ledger when you open the page.',
         csv: 'CSV',
@@ -3503,6 +3508,45 @@ const en = {
         myHint: 'What the company reported about you each month. Read-only \u2014 if something is wrong, tell HR.',
         myEmpty: 'Nothing reported yet',
     },
+    // ── CHART-1:图表共用的措辞 ──────────────────────────────────────────
+    // 【两种空必须分得开】noRows =「一行都没有」;tooFew =「有行但不够画」。
+    // 「还没开始」和「开始了但太少」是两件事,而这个仓库反复付账的正是这条区别。
+    charts: {
+        period: {
+            asAt: 'as at {date}',
+        },
+        basis: {
+            period: 'Period',
+            source: 'Source',
+            provisional: 'Provisional',
+        },
+        empty: {
+            noRows: 'Nothing recorded yet — so there is nothing to chart. This is not a figure of zero.',
+            tooFew: 'Only {n} record(s) — too few to show a shape. What is here is real; there is not yet enough of it to draw.',
+        },
+    },
+    // ── CHART-1 ③:组织架构 ─────────────────────────────────────────────
+    org: {
+        title: 'Organisation chart',
+        intro: 'Drawn from the reporting lines recorded in the database — not from any plan or document.',
+        chartTitle: 'Reporting lines',
+        basisPeriod: 'As recorded right now (not a period)',
+        basisProvisional: 'Test data. Some employee rows are walk-through and smoke-test accounts that disappear at cut-over.',
+        // ★ 这一句是本页最要紧的一句 ★ 它必须说「没有记录汇报关系」,
+        //   绝不能让屏幕说出「这 N 个人都直接向公司汇报」—— 数据没有资格说那句话。
+        noReportingLines: 'No reporting relationships have been recorded yet. The {n} people below are listed in no particular structure — this is NOT a statement that they all report directly to the company.',
+        counts: '{total} people · {roots} with no manager recorded · {linked} reporting line(s) connected',
+        managerNotVisible: 'Manager not visible here',
+        cycleTitle: 'Reporting loop found ({n}) — this is a data error someone needs to fix',
+        cycleBody: 'These people report to each other in a circle, so they cannot be placed in a tree. They are shown here rather than dropped. Anyone reporting to them is listed underneath.',
+        emptyDepartments: 'Department(s) with nobody in them ({n})',
+        status: {
+            probation: 'probation',
+            active: 'active',
+            notice: 'serving notice',
+            separated: 'left',
+        },
+    },
     hr: {
         subnav: {
         leave: 'Leave',
@@ -3515,6 +3559,7 @@ const en = {
             training: 'Training',
             reviews: 'Reviews',
             kpi: 'KPI',
+            org: 'Organisation chart',
         },
         // 假期/报销/评估各子页的 h1 都用它;此前缺失,页面上渲染的是字面量 "hr.title"
         title: 'HR',
@@ -5371,6 +5416,8 @@ const en = {
         },
         fxTitle: 'FX Rates',
         receivablesTitle: 'Accounts Receivable',
+        agingChartTitle: 'Aging profile',
+        agingChartNote: 'Bars are shares of the four buckets added together. The 90+ bar is picked out because it is the one that costs money.',
         arKindsNote: 'Two kinds of document appear here: a sale (direct sales) and an order invoice (order flow, where the debt is recognised when the invoice is raised). SHIPPING CREATES NO NEW RECEIVABLE — the order invoice stays the one and only AR row for that order, so a shipment adds nothing to this table.',
         payablesTitle: 'Accounts Payable',
         paymentsTitle: 'Payments',

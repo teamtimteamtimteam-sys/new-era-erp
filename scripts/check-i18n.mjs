@@ -422,6 +422,12 @@ const MANIFEST = {
     // LME-1b:行情出处。真源是 metal_prices 那条 CHECK —— 加一种出处要改 CHECK
     // (一支迁移),这个检查因此自动跟上。**四个值都要有文案,包括 unknown**:
     // 它不在录入下拉里,但十条老行情在列表上就读它。
+    // CHART-1 ③:组织架构图上,名字旁边那个雇佣状态。后缀集合【就是】
+    // employees 表镜像上那条 CHECK(probation / active / notice / separated)——
+    // 从镜像现读,库里多一种状态这道检查自动要求两个语言补句子。
+    // 【为什么不写死四个】写死的清单在加第五种状态那天只会烂在这里,
+    // 而屏幕上会在某个人名旁边印出一个原始的机器串。
+    'org.status.': { kind: 'enum', values: () => sqlEnum('db/tables/employees.sql', 'employment_status') },
     'metalPrices.source.': { kind: 'enum', values: () => sqlEnum('db/tables/metal_prices.sql', 'source') },
     // PAYEE-1b:应付往来对象的种类(供应商 / 员工)。真源是 ap_open_items
     // 那个 CASE 里的两个字面量 —— 库里加第三种往来对象,这里自动跟上。

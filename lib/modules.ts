@@ -392,6 +392,10 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/hr/training', navKey: 'hr.subnav.training', modules: ['hr'], permission: P_HR },
     { href: '/hr/reviews', navKey: 'hr.subnav.reviews', modules: ['hr'], permission: P_HR },
     { href: '/hr/kpi', navKey: 'hr.subnav.kpi', modules: ['hr'], permission: P_HR },
+    // CHART-1 ③:组织架构图。与其它 HR 页同一个判据 —— 它读的两张真源
+    // (employees_masked / departments)本来就都由 module.hr.view 把门,
+    // 另铸一个码会造出一个"进得去模块、进不去这一页"的洞(/margin 那一课)。
+    { href: '/hr/org', navKey: 'hr.subnav.org', modules: ['hr'], permission: P_HR },
 
     // ══ 工具 Tools(UI-FIX-1 ⑥/⑦)══════════════════════════════════════════
     // 此前叫「任务」,名下只有一条。改名之后它是【小工具的去处】,而 ⑦ 把定价

@@ -238,10 +238,17 @@ export default async function PurchaseOrdersPage({
                                 ) : (
                                     <div className="flex items-center gap-2">
                                         {/* 收货进度条:>100%(超收)封顶显示 */}
-                                        <div className="w-20 h-2 bg-gray-200 rounded overflow-hidden">
+                                        {/* CHART-1 ④:配色换成品牌 token。**这不是新建一张图** ——
+                                            它是屏幕上原本就在用图形承载数字的两处之一,而它用的
+                                            bg-gray-200 / bg-green-500 正是 R5 点名不要的那种默认色阶。
+                                            不换的话,新图与旧图会是两套配色。判词见 docs/charts-scoping.md §A1:
+                                            **留着,只换配色** —— 它是"一行里的一个数",放大成图表反而更差。 */}
+                                        <div className="w-20 h-2 rounded overflow-hidden"
+                                             style={{ background: 'var(--brand-muted)' }}>
                                             <div
-                                                className="h-full bg-green-500"
-                                                style={{ width: `${Math.min(100, r.receipt_pct)}%` }}
+                                                className="h-full"
+                                                style={{ width: `${Math.min(100, r.receipt_pct)}%`,
+                                                         background: 'var(--brand-forest-fill)' }}
                                             />
                                         </div>
                                         <span className="text-xs text-gray-600 font-mono">{r.receipt_pct}%</span>

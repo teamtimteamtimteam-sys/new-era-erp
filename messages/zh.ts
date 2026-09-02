@@ -2749,6 +2749,11 @@ const zh = {
         },
         },
     reports: {
+        movementMix: {
+            title: '流水构成',
+            periodAll: '建库至今的全部流水(不按期间筛选)',
+            note: '共 {total} 条流水。冲销的两条腿也计入 —— 它们是真实发生过的流水,不是错误。显示为零的类型是从未用过,不是被藏起来了。',
+        },
         title: '库存报表',
         intro: '只读的库存视图。这里没有任何东西是存下来的 —— 每一个数字都在你打开页面时从流水现算。',
         csv: 'CSV',
@@ -3501,6 +3506,39 @@ const zh = {
         myHint: '公司每个月报出去的、关于你的那几行。只读 —— 有出入请告诉人事。',
         myEmpty: '还没有报过任何一个月',
     },
+    charts: {
+        period: {
+            asAt: '截至 {date}',
+        },
+        basis: {
+            period: '期间',
+            source: '来源',
+            provisional: '暂定',
+        },
+        empty: {
+            noRows: '还没有记录 —— 所以没有东西可画。这不是一个等于零的数。',
+            tooFew: '只有 {n} 条记录 —— 画不出形状。已有的都是真的,只是还不够画。',
+        },
+    },
+    org: {
+        title: '组织架构',
+        intro: '按数据库里【实际记录的】汇报关系绘制 —— 不按任何计划或文档。',
+        chartTitle: '汇报关系',
+        basisPeriod: '此刻的状态(不是一段期间)',
+        basisProvisional: '测试数据。部分员工行是走查与冒烟脚本的账号,切换时会消失。',
+        noReportingLines: '还没有记录任何汇报关系。下面这 {n} 个人只是列出来,没有结构 —— 这【不是】在说他们都直接向公司汇报。',
+        counts: '共 {total} 人 · 其中 {roots} 人没有记录上级 · 已连上 {linked} 条汇报线',
+        managerNotVisible: '上级在本页看不见',
+        cycleTitle: '发现汇报环({n} 条)—— 这是一处需要有人去改的数据错误',
+        cycleBody: '这些人互相汇报成一个圈,放不进树里。这里把他们【显示出来】而不是丢掉。挂在他们下面的人列在后面。',
+        emptyDepartments: '没有任何成员的部门({n} 个)',
+        status: {
+            probation: '试用期',
+            active: '在职',
+            notice: '通知期',
+            separated: '已离职',
+        },
+    },
     hr: {
         subnav: {
         leave: '请假',
@@ -3513,6 +3551,7 @@ const zh = {
             training: '培训',
             reviews: '绩效评估',
             kpi: 'KPI',
+            org: '组织架构',
         },
         title: '人力资源',
         overviewTitle: '人力资源概览',
@@ -5353,6 +5392,8 @@ const zh = {
         },
         fxTitle: '汇率',
         receivablesTitle: '应收账款',
+        agingChartTitle: '账龄构成',
+        agingChartNote: '条长是四个档位之和里的占比。90+ 单独标出来,因为它是要花钱的那一档。',
         arKindsNote: '这张表里有两种单据:【销售记录】(直接销售)与【订单发票】(订单流 —— 债在开票当刻就认下了)。【发货不产生任何新的应收】—— 那张订单发票始终是它唯一的应收行,所以发一次货,这张表上不会多出一笔。',
         payablesTitle: '应付账款',
         paymentsTitle: '收付款',

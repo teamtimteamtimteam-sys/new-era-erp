@@ -19,6 +19,7 @@ import { readAging, parseAsOf, type AgingRowAr, type AgingReport } from '../agin
 import AgingAsOfControl from '../AgingAsOfControl'
 import AgingAsOfNotice from '../AgingAsOfNotice'
 import { localizeFinanceError } from '../financeErrorCodes'
+import AgingBars from './AgingBars'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 
@@ -139,6 +140,24 @@ export default async function ReceivablesPage({
                     </div>
                 ))}
             </div>
+
+            {/* ══ CHART-1 ④ · B1:账龄横条图 —— CHART-0 的第一优先 ═══════════════
+                【为什么是这一张排第一】它是勘察里唯一一个「零新查询 + 形状完美 +
+                今天就有数」的位置:四个桶【已经算好并且已经画在上面那条汇总条里了】,
+                这里一次新的库查询都不发,读的就是 report.buckets。
+                【为什么是横条不是饼】桶是**有序的**(0-30 → 90+),饼图会把顺序丢掉;
+                而且读者要比的是「90+ 那根有多长」,**长度比角度好比**。
+                【分母】四桶之和,不是 total_open_base —— 两者在有贷项/未计价时会差开,
+                用合计当分母会画出一排加起来不到满格的条,那是在暗示"还有别的桶"。 */}
+            <AgingBars
+                buckets={report.buckets}
+                labels={Object.fromEntries(BUCKETS.map((b) => [b, t('finance.aging.' + b)]))}
+                fmt={(v) => formatAmount(v, baseCurrency)}
+                title={t('finance.agingChartTitle')}
+                asOf={report.as_of}
+                amountBasis={report.amount_basis}
+                unpricedExcluded={report.unpriced_excluded}
+            />
 
             <table className="w-full border-collapse border border-gray-300">
                 <thead className="bg-gray-100">
