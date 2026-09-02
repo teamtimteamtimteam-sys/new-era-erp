@@ -9,8 +9,7 @@
 // 各调各的,数据库只打一次。
 import {
     MODULES,
-    FINANCE_GROUPS,
-    FINANCE_MODULE_ID,
+    MODULE_GROUPS,
     allows,
     functionsForModule,
     type ModuleEntry,
@@ -66,10 +65,14 @@ export async function getModuleAccess(): Promise<ModuleAccess[]> {
         // 这正是本刀反复在讲的那个形状:**一处缺席,而没有任何东西说出来。**
         // group 字段的意思是"它在【财务】的第三级里归哪一组",不是"它自带一个层级"——
         // /finance/freight 同属物流与财务,在财务底下归「应付」,在物流底下就是一条。
+        // TOOLS-1 ①b:从【一个写死的财务 id】换成【一张表】。上面那段警告一字不改地
+        // 继续成立 —— 一个模块只要名下有一条带 group 的条目就会走分组分支,
+        // 所以"哪个模块有第三级"必须由这张表说了算,而不是由条目自己带出来。
+        const groupKeys = MODULE_GROUPS[m.id]
         const groups =
-            m.id !== FINANCE_MODULE_ID
+            !groupKeys
                 ? []
-                : FINANCE_GROUPS.map((key) => ({
+                : groupKeys.map((key) => ({
                       key: key as string,
                       entries: entries.filter((e) => e.fn.group === key),
                   }))

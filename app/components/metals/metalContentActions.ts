@@ -6,7 +6,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { getTranslations } from '@/lib/i18n/server'
-import { loadSubstances, loadSubstanceLabels } from '@/app/metal-prices/substanceQuery'
+import { loadSubstances, loadSubstanceLabels } from '@/app/pricing/metal-prices/substanceQuery'
 
 // 纯校验:物质 ∈ 字典,0 ≤ pct ≤ 100。
 // PROC-4:合法集合【由调用方现读字典传进来】,不再是一份写死的七元素清单 ——

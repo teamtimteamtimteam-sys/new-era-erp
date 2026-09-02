@@ -1,4 +1,4 @@
-// app/metal-prices/options.ts
+// app/pricing/metal-prices/options.ts
 // PROC-4:这里曾经放着【一份写死的七金属清单】—— 值、顺序、名字三件事都由它定,
 // 16 个文件引用它,而它与库里那八条 CHECK 是同一份清单的第五个副本。
 //

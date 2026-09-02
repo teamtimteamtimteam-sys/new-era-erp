@@ -1,4 +1,4 @@
-// app/metal-prices/new/page.tsx
+// app/pricing/metal-prices/new/page.tsx
 // 新增金属价格。
 // 【PROC-4 之前这里写着「金属集合是常量」 —— 那句话不再成立】
 // 物质清单现在是 substances 那张字典的内容,和指数一样从表里现读。
@@ -13,9 +13,9 @@ export default async function NewMetalPricePage() {
     // 【本页把关用 module.pricing.edit,不是 module.pricing.view。这是那条规矩的「写」那一半】
     // 规矩只有一条:【守卫跟着数据自己的 RLS 走,不跟模块目录走】。
     // 而一张表的 RLS 本来就有读、写两个答案,metal_prices 的这两个答案【不一样】——
-    // 所以 app/metal-prices/ 底下四页带着两种守卫,那是【同一条规则的两半,不是例外】:
+    // 所以 app/pricing/metal-prices/ 底下四页带着两种守卫,那是【同一条规则的两半,不是例外】:
     //
-    //   读(列表页 /metal-prices)  SELECT ... USING (true)
+    //   读(列表页 /pricing/metal-prices)  SELECT ... USING (true)
     //                             → 不设守卫
     //   写(new / bulk / [id]/edit) INSERT|UPDATE|DELETE ... has_permission('module.pricing.edit')
     //                             → requireEditPermission('module.pricing.edit', ...)

@@ -108,7 +108,7 @@ export const SCOPES: readonly AccessScope[] = [
     { id: '/purchasing', navKey: 'nav.purchasing', permission: 'module.purchasing.view' },
     { id: '/customers', navKey: 'nav.customers', permission: 'module.customers.view' },
     { id: '/materials', navKey: 'nav.materials', permission: 'module.materials.view' },
-    // 【/metal-prices 不在这里,而且不是漏了 —— 它不归权限范围管,理由在数据自己身上】
+    // 【金属行情不在这里,而且不是漏了 —— 它不归权限范围管,理由在数据自己身上】
     //
     // 【规矩:守卫跟着数据自己的 RLS 走。】而一张表的 RLS 本来就有【读】和【写】
     // 两个答案,它们可以不一样 —— metal_prices 的这两个答案恰恰不一样
@@ -117,7 +117,7 @@ export const SCOPES: readonly AccessScope[] = [
     //   SELECT               USING (true)                                → 公开
     //   INSERT/UPDATE/DELETE has_permission('module.pricing.edit')       → 受管
     //
-    // 所以 app/metal-prices/ 底下四页带着【两种守卫】:列表页不设守卫,
+    // 所以金属行情底下四页带着【两种守卫】:列表页不设守卫,
     // {new,bulk,[id]/edit} 走 requireEditPermission('module.pricing.edit', …)。
     // 给列表页挂上 module.pricing.view,屏幕上就会对一个数据库愿意完整回答的人
     // 显示"你没有权限",那是【UI 比数据严】,而且严得没有任何东西背书。
@@ -188,8 +188,22 @@ export const MODULES: readonly ModuleEntry[] = [
  * 六个组名是他给的:报表 / 分录 / 应收 / 应付 / 期末 / 配置。
  * 【顺序就是这个数组的顺序】,而每一条二级条目用 group 指名自己属于哪一组。
  */
-/** 【拥有第三级的那一个模块】。Tim 的 D1:**只有财务有第三级。** */
+/** 【拥有第三级的模块】。Tim 的 D1 原文是「只有财务有第三级」—— 那句话到 TOOLS-1 为止是对的。 */
 export const FINANCE_MODULE_ID = 'finance'
+
+/**
+ * ★★【TOOLS-1 ①b:第二个有第三级的模块 —— 工具】★★
+ *
+ * 【这不是一个新机制】财务已经有第三级了,本刀只是把"哪个模块有分组"
+ * 从【一个写死的 id】变成【一张表】。渲染层、兜底网、空组不渲染,一个字没动。
+ *
+ * 【为什么定价要第三级】Tim 的裁定:工具的二级恰好四条
+ * (任务 · 日历 · 单位换算 · 定价),而定价名下的公式/计算器/金属行情
+ * 是【定价的内部结构】,不是与任务并列的东西。它们平铺在二级时,
+ * 工具的二级有六条,而其中三条只有做定价的人用得上。
+ */
+export const TOOLS_GROUPS = ['tools.group.pricing'] as const
+export type ToolsGroup = (typeof TOOLS_GROUPS)[number]
 
 export const FINANCE_GROUPS = [
     'finance.group.reports',
@@ -200,6 +214,19 @@ export const FINANCE_GROUPS = [
     'finance.group.config',
 ] as const
 export type FinanceGroup = (typeof FINANCE_GROUPS)[number]
+
+/** 一个条目可以声明的第三级分组 —— 两个模块的并集。 */
+export type NavGroup = FinanceGroup | ToolsGroup
+
+/**
+ * 【模块 id → 它的第三级分组,按渲染顺序】。
+ * **这张表【就是】"谁有第三级"的唯一答案** —— lib/moduleAccess.ts 只问它。
+ * 不在表里的模块 groups 为空数组,渲染层因此走平铺分支(与从前逐字相同)。
+ */
+export const MODULE_GROUPS: Readonly<Record<string, readonly string[]>> = {
+    [FINANCE_MODULE_ID]: FINANCE_GROUPS,
+    tools: TOOLS_GROUPS,
+}
 
 // ════════════════════════════════════════════════════════════════════════════
 // 三 · 二级条目 FUNCTIONS —— 每一个可导航的地址
@@ -222,8 +249,13 @@ export type FunctionEntry = {
     modules: readonly string[]
     /** 【唯一的一份】判据 */
     permission: PermissionSpec
-    /** 第三级分组。**只有财务用**,其余模块只有两级。 */
-    group?: FinanceGroup
+    /**
+     * 第三级分组。**它的意思是"在【属主模块】的第三级里归哪一组"**,
+     * 不是"它自带一个层级" —— /finance/freight 同属物流与财务,在财务底下归
+     * 「应付」,在物流底下就是平铺的一条。
+     * 哪些模块有第三级,由 MODULE_GROUPS 决定。
+     */
+    group?: NavGroup
 }
 
 // —— 常用判据的简写。**它们不是新判据**,只是同一个码少写几遍。 ——————————
@@ -401,6 +433,28 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // 此前叫「任务」,名下只有一条。改名之后它是【小工具的去处】,而 ⑦ 把定价
     // 整组搬了进来。**条目的标签仍然是「任务」** —— 改名换的是模块,不是那一页。
     { href: '/tasks', navKey: 'nav.tasks', modules: ['tools'], permission: P_TASKS },
+    // TOOLS-1 ②:跨模块日历。**只读** —— 它没有自己的权限模型,每一项按它【自己家】
+    // 那个模块的可见性出现或不出现(见 app/tools/calendar/sources.ts)。
+    // 所以这条注册表判据是"任何登录用户"的下一档:它自己不挡人,挡人的是每一个来源。
+    { href: '/tools/calendar', navKey: 'nav.calendar', modules: ['tools'], permission: { all: [] } },
+    // ★★【TOOLS-1:单位换算器 —— 这一条的判据【刻意】是恒真的,不要"顺手"关上】★★
+    //
+    // 【它承载着一条产品保证,而那条保证此前没有检查看着】
+    //   Tim 的 4c:**新同事第一次登录时 dock 不能是空的**,因为"空的 dock"是一个
+    //   没有人会发现的功能。lib/dock.ts 的默认候选清单靠【一条任何人都进得去的条目】
+    //   来兑现它,而在本刀之前,全注册表【只有金属行情那一条】是恒真的。
+    //   本刀把金属行情收窄了(见上),于是那条保证改由这一条承载。
+    //
+    // 【为什么换算器是它的合适持有者 —— 按价值,不是按凑数】
+    //   吨/公斤/磅与湿基转干基是【公司里每一个岗位都碰得到】的算术:仓库、采购、
+    //   化验、财务。金属行情是【一个群体】的计价基准。一扇开着的门,该开在
+    //   受众真的是所有人的那一页上。
+    //   而且它没有业务数据 —— 输入是使用者自己敲进去的数,所以恒真的判据
+    //   与它背后的数据是【相称】的,正如金属行情的恒真曾与 USING(true) 相称。
+    //
+    // ★ 关掉这一条之前,先跑 `npm run check:dock` ★ 它会算出每个角色的默认 dock,
+    //   任何角色掉到 0 就变红。**这条保证从此有检查看着,不再只有一句注释。**
+    { href: '/tools/converter', navKey: 'nav.converter', modules: ['tools'], permission: { all: [] } },
     // ★★【UI-FIX-1 ⑦:定价从采购与销售【搬进】工具,而这【推翻了 D6 as built】】★★
     //
     // 【被推翻的是什么】IA-BUILD-1 的 D6 把定价同时挂在采购与销售之下,理由是
@@ -413,27 +467,32 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // 【判据一个字没动】仍然是 module.pricing.view;搬的是【它在哪个菜单里】,
     // 不是【谁进得去】。这与本刀 /margin 那一条是同一条裁定。
     { href: '/pricing', navKey: 'nav.pricing', modules: ['tools'], permission: P_PRICING },
-    { href: '/pricing/formulas', navKey: 'pricing.subnav.formulas', modules: ['tools'], permission: P_PRICING },
-    { href: '/pricing/calculator', navKey: 'pricing.subnav.calculator', modules: ['tools'], permission: P_PRICING },
-    // ★★ 金属行情:**判据仍然取【最松的、仍然连贯的那一个】,一个字没动** ★★
+    { href: '/pricing/formulas', navKey: 'pricing.subnav.formulas', modules: ['tools'], permission: P_PRICING, group: 'tools.group.pricing' },
+    { href: '/pricing/calculator', navKey: 'pricing.subnav.calculator', modules: ['tools'], permission: P_PRICING, group: 'tools.group.pricing' },
+    // ★★【TOOLS-1 ①b:金属行情搬进 /pricing 之下,并且【刻意收窄】判据】★★
     //
-    // 【UI-FIX-1 ⑦ 就它单独问过 Tim,而那不是客套】Tim 说的是"/pricing 整体",
-    // 而金属行情在注册表里是【单独一条】、走【另一条路由树】、带【全站最松的判据】——
-    // 三件都与 /pricing/* 那一组不同,所以"整体"覆不覆盖它是一个真的歧义。
-    // **2026-09-02 Tim 裁定:一并搬进工具,采购与销售两侧都不再有这个入口。**
+    // 【历史,保留不删 —— 它是这次改动的论据,不是过时的注解】
+    //   UI-FIX-1 ⑦ 把它搬进工具时,判据刻意留成 `{ all: [] }`(恒真),理由写着:
+    //   「metal_prices 的 SELECT 是 USING(true),读是公开的;换成 module.pricing.view
+    //     会让界面【比数据严】—— 一个数据库愿意完整回答的人,会在屏幕上读到"你没有权限"。」
+    //   **那条理由在它是【一级路由】时是对的。** 本刀改的是它的位置,而位置改变了结论:
     //
-    // metal_prices 的 SELECT 策略是 `USING (true)` —— 【读是公开的】,只有写受管
-    // (module.pricing.edit)。所以这一条的判据是 `{ all: [] }`:
-    //   **一个空的 all 通过 allows() 恒为真 → 任何登录用户都看得见这个入口。**
+    // 【为什么现在要收窄 —— Tim 的裁定(甲),2026-09-03】
+    //   它现在住在 /pricing 底下,而 /pricing 由 module.pricing.view 把门。
+    //   保持 `{ all: [] }` 会造出一个【半开】的状态:菜单里看不见,URL 却打得开。
+    //   **那种状态是最难解释的一种** —— 在一次审计里,或者在一个"我为什么找不到这一页"
+    //   的支持问题里。金属行情是采购报价的基准,它属于定价。
     //
-    // 【为什么是这个值而不是 module.pricing.view】那会让界面【比数据严】:
-    // 一个数据库愿意完整回答的人,会在屏幕上读到"你没有权限"。本仓库有一条更老的
-    // 规矩说的是同一件事 —— 守卫跟着数据自己的 RLS 走,不跟目录的措辞走。
-    // 【它仍然不是无门的】写那一半在 /metal-prices/{new,bulk,[id]/edit} 上由
-    // requireEditPermission('module.pricing.edit') 把关,一个字没动。
-    // 【它仍然是 dock 的兜底那一条】lib/dock.ts 的候选清单末位靠的是这个判据,
-    // 而属主换成工具【不影响 dock】—— dock 认的是 href,不是属主模块。
-    { href: '/metal-prices', navKey: 'nav.metalPrices', modules: ['tools'], permission: { all: [] } },
+    // ★【这是一次【导航与路由守卫】的收窄,不是一次数据控制】★
+    //   **metal_prices 的 RLS 仍然是 `USING (true)`,一个字没动。**
+    //   数据在库那一层仍然对任何登录用户可读 —— 谁要是后来把这条读成
+    //   "金属行情是受控数据",那就读错了。写那一半照旧由
+    //   requireEditPermission('module.pricing.edit') 把关。
+    //
+    // 【失去它的五个角色(实测,不是手写)】cfo · employee · hr · operations · warehouse
+    //   —— 逐角色的前后对照见本刀报告与 docs/nav-registry.md。
+    // 【dock 的兜底不再挂在这一条上】它挪到了 /tools/converter(见下面那一条)。
+    { href: '/pricing/metal-prices', navKey: 'nav.metalPrices', modules: ['tools'], permission: P_PRICING, group: 'tools.group.pricing' },
 
     // ══ 设置 Settings ═══════════════════════════════════════════════════════
     // ★★【NAV-CLEANUP-1 ④(2026-09-03):设置拍平成【一级】,Tim 的 Q5 裁定】★★
@@ -590,7 +649,7 @@ export const MOD = {
 export const FN = {
     margin: fnByHref('/margin'),
     deleted: fnByHref('/settings/deleted'),
-    metalPrices: fnByHref('/metal-prices'),
+    metalPrices: fnByHref('/pricing/metal-prices'),
     pricing: fnByHref('/pricing'),
     commissions: fnByHref('/commissions'),
     contracts: fnByHref('/contracts'),

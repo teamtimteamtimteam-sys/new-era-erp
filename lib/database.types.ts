@@ -11254,6 +11254,8 @@ export type Database = {
           metal_price_change_warn_pct: number
           metal_quote_stale_days: number
           notes: string | null
+          notes_en: string | null
+          notes_zh: string | null
           updated_at: string
           updated_by: string | null
         }
@@ -11263,6 +11265,8 @@ export type Database = {
           metal_price_change_warn_pct: number
           metal_quote_stale_days?: number
           notes?: string | null
+          notes_en?: string | null
+          notes_zh?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -11272,6 +11276,8 @@ export type Database = {
           metal_price_change_warn_pct?: number
           metal_quote_stale_days?: number
           notes?: string | null
+          notes_en?: string | null
+          notes_zh?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -23789,9 +23795,27 @@ export type Database = {
         Args: { p_employee_id: string; p_leave_year: number }
         Returns: number
       }
+      convert_grade_basis: {
+        Args: {
+          p_content_pct: number
+          p_from_basis: string
+          p_moisture_pct: number
+          p_to_basis: string
+        }
+        Returns: number
+      }
       convert_quote: {
         Args: { p_order_date: string; p_quote_id: string }
         Returns: Json
+      }
+      convert_weight_basis: {
+        Args: {
+          p_from_basis: string
+          p_moisture_pct: number
+          p_to_basis: string
+          p_weight: number
+        }
+        Returns: number
       }
       correct_gst_return: {
         Args: { p_original_period_id: string; p_reason: string }

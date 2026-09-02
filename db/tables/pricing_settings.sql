@@ -32,7 +32,16 @@ CREATE TABLE public.pricing_settings (
     -- 没有任何地方写死这个数(与同表的 metal_price_change_warn_pct 同一条理由:
     -- 一个谁也看不见的默认值等于替所有人做了这个判断)。
     metal_quote_stale_days integer NOT NULL DEFAULT 14
-        CHECK (metal_quote_stale_days > 0)
+        CHECK (metal_quote_stale_days > 0),
+    -- ── TOOLS-1 ⑤a 追加的列(ALTER 加的列排在末尾,与 attnum 顺序一致)──────
+    -- 【为什么要配对】上面那个 `notes` 只有中文,而它【正在英文界面上渲染】
+    -- (app/pricing/metal-prices/ThresholdPanel.tsx)。Tim 走查时看见的就是它。
+    -- 它住在数据里是有理由的 —— 那是一句运营者可以自己改的注解,不是文案文件里的键。
+    -- 所以修法是【给它配一个语言对】,与 leave_types / tax_codes /
+    -- battery_chemistries / public_holidays 逐字同形,而不是把它搬进 messages/*.ts
+    -- (那会把它变成只有开发者能改的东西)。
+    notes_en text,
+    notes_zh text
 );
 
 CREATE TRIGGER trg_pricing_settings_updated_at
@@ -54,9 +63,22 @@ CREATE POLICY "pricing_settings update by permission"
 -- co 32,000→30,000(−6.25%)、ni 16,000→15,000(−6.25%);而 2026-07-30 那次
 -- 异常是 24,000→80,000(+233%)与 80,000→20,000(−75%)。50 把两类分得很开。
 -- 金属市场的真实波动幅度是 Tim 的判断,不是这一行的 —— 改它不需要改代码。
-INSERT INTO public.pricing_settings (id, metal_price_change_warn_pct, notes)
+-- 【引导:两语都给】界面读 notes_en / notes_zh(按 locale 选一句);
+-- `notes` 仍然写着同一句中文,但**没有任何界面读它了** —— 留着是为了不在同一刀里
+-- 既改结构又改读者,确认无读者之后由一次单独的迁移删除(记在 docs/forward-queue.md)。
+INSERT INTO public.pricing_settings (id, metal_price_change_warn_pct, notes, notes_zh, notes_en)
 VALUES (true, 50,
-    '默认值,不是决定:线上真实相邻变动 ≤6.25%,而 2026-07-30 那次异常是 +233% / −75%。改这一行不需要改代码。');
+    '默认值,不是决定:线上真实相邻变动 ≤6.25%,而 2026-07-30 那次异常是 +233% / −75%。改这一行不需要改代码。',
+    '默认值,不是决定:线上真实相邻变动 ≤6.25%,而 2026-07-30 那次异常是 +233% / −75%。改这一行不需要改代码。',
+    'A default, not a ruling: real adjacent moves on this system are 6.25% or less, while the 2026-07-30 anomaly was +233% / -75%. Changing this line does not need a code change.');
+
+COMMENT ON COLUMN public.pricing_settings.notes IS
+'【已由 notes_en / notes_zh 取代(TOOLS-1,2026-09-03)】界面不再读它。
+留着是为了不在同一刀里既改结构又改读者;确认无读者后由一次单独的迁移删除。';
+
+COMMENT ON COLUMN public.pricing_settings.notes_en IS '阈值说明(英文)。运营者可改 —— 它是数据,不是文案文件里的键。';
+
+COMMENT ON COLUMN public.pricing_settings.notes_zh IS '阈值说明(中文)。与 notes_en 成对,界面按 locale 选一句。';
 
 COMMENT ON COLUMN public.pricing_settings.default_metal_index IS
     'METAL-2:分摊、现货预设、库存估值这三条【没有合同】的路径取哪条序列的价。它替一条缺席的条款站位,不是"这些数字按某个声明的指数结算了"。NULL = 沿用未标注指数的老序列。';

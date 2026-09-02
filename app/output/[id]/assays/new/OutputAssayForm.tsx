@@ -11,7 +11,7 @@ import Link from 'next/link'
 import type { DictOption } from '@/app/components/dictionaries/dictionaryQuery'
 import { useTranslations } from '@/lib/i18n/client'
 import DecimalInput from '@/app/components/forms/DecimalInput'
-import type { MetalOption } from '@/app/metal-prices/options'
+import type { MetalOption } from '@/app/pricing/metal-prices/options'
 import { submitOutputAssay, type SubmitOutputAssayState } from '../actions'
 
 const initialState: SubmitOutputAssayState = {}

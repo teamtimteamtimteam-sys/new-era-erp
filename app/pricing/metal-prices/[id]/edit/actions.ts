@@ -104,9 +104,9 @@ export async function updateMetalPrice(
         return { error: t('metalPrices.form.saveError', { message: error.message }) }
     }
 
-    revalidatePath('/metal-prices')
-    revalidatePath(`/metal-prices/${id}/edit`)
-    redirect('/metal-prices')
+    revalidatePath('/pricing/metal-prices')
+    revalidatePath(`/pricing/metal-prices/${id}/edit`)
+    redirect('/pricing/metal-prices')
 }
 
 // 软删除:置 deleted_at + 记录 updated_by,revalidate 后跳回列表。
@@ -130,6 +130,6 @@ export async function softDeleteMetalPrice(id: string) {
         return { error: t('metalPrices.deleteError', { message: error.message }) }
     }
 
-    revalidatePath('/metal-prices')
-    redirect('/metal-prices')
+    revalidatePath('/pricing/metal-prices')
+    redirect('/pricing/metal-prices')
 }

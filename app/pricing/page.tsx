@@ -1,6 +1,6 @@
 // app/pricing/page.tsx
 // 定价板块首页:三张卡(公式 / 计价器 / 金属行情)。
-// 行情卡指向仍在原位的 /metal-prices —— 本切只做归拢,不搬家。
+// 行情卡指向金属行情那一页 —— TOOLS-1 ①b 之后它已搬进本页之下的第三级。
 import Link from 'next/link'
 import { getTranslations } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -11,7 +11,7 @@ import { MOD, FN } from '@/lib/modules'
 const CARDS = [
     { href: '/pricing/formulas', titleKey: 'pricing.formulasCard', descKey: 'pricing.formulasDesc' },
     { href: '/pricing/calculator', titleKey: 'pricing.calculatorCard', descKey: 'pricing.calculatorDesc' },
-    { href: '/metal-prices/bulk', titleKey: 'pricing.bulkCard', descKey: 'pricing.bulkDesc' },
+    { href: '/pricing/metal-prices/bulk', titleKey: 'pricing.bulkCard', descKey: 'pricing.bulkDesc' },
 ]
 
 export default async function PricingHubPage() {

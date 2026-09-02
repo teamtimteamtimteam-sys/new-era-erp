@@ -5,7 +5,7 @@ import { getMyPermissions } from '@/lib/permissions'
 import { getModuleAccess } from '@/lib/moduleAccess'
 import { allows, type PermissionSpec } from '@/lib/modules'
 import { mustCount, mustRows } from '@/lib/db-helpers'
-import { metalLabelKey } from '@/app/metal-prices/options'
+import { metalLabelKey } from '@/app/pricing/metal-prices/options'
 
 // OPS-18(Phase 6):首页从【链接目录】换成【运营看板】—— 正在等人处理的事,
 // 一事一牌。目录的职责由导航条独自承担;两个首页并存的话,人落地的是目录那个,
@@ -108,12 +108,12 @@ const TILES = [
     // 与上面一条同一个道理;所以面板上写着这两个数是【判据】不是【目标】。
     { itemType: 'work_order_variance_beyond', permission: 'module.processing.view', href: '/operation/orders',
       itemHref: (r: OpsRow) => `/operation/orders/${r.item_id}` },
-    // EXEC-1a/1b:行情陈旧。【补救在 /metal-prices 上】—— 那里既看得见整条序列,
+    // EXEC-1a/1b:行情陈旧。【补救在 /pricing/metal-prices 上】—— 那里既看得见整条序列,
     // 也是录下一条报价的地方,而这一支说的正是"该录了"。
     // item_id 指向【最近那一条报价】(这个金属本身没有 id),而那一行恰好就是
     // 人要接着往下看的那一行。
-    { itemType: 'metal_quote_stale', permission: 'module.pricing.view', href: '/metal-prices',
-      itemHref: () => '/metal-prices' },
+    { itemType: 'metal_quote_stale', permission: 'module.pricing.view', href: '/pricing/metal-prices',
+      itemHref: () => '/pricing/metal-prices' },
     // EXEC-1a/1b:未履约订单。门牌指订单详情 —— 发货从那里出发,
     // 而"还欠多少"也只有那一页答得出来(逐单完成度归
     // sales_order_fulfilment_status,看板这一支只回答"哪些单还欠着")。

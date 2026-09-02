@@ -41,7 +41,7 @@ export default function NewMetalPriceForm({
         <div className="p-8 max-w-2xl">
             <div className="mb-6">
                 <Link
-                    href="/metal-prices"
+                    href="/pricing/metal-prices"
                     className="text-blue-600 hover:underline text-sm"
                 >
                     {t('common.back')}
@@ -162,7 +162,7 @@ export default function NewMetalPriceForm({
                               : t('common.save')}
                     </button>
                     <Link
-                        href="/metal-prices"
+                        href="/pricing/metal-prices"
                         className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"
                     >
                         {t('common.cancel')}

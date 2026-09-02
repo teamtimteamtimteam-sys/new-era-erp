@@ -19,7 +19,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import { loadSubstances, toOptions } from '@/app/metal-prices/substanceQuery'
+import { loadSubstances, toOptions } from '@/app/pricing/metal-prices/substanceQuery'
 
 export default async function NewOrderPage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——

@@ -8,7 +8,7 @@ import { useActionState, useState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatMoneyBare } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
-import type { MetalOption } from '@/app/metal-prices/options'
+import type { MetalOption } from '@/app/pricing/metal-prices/options'
 import PriceBreakdown from '@/app/components/pricing/PriceBreakdown'
 import { calculatePrice, type CalculatorState } from './actions'
 

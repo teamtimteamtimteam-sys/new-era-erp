@@ -428,6 +428,15 @@ const MANIFEST = {
     // 【为什么不写死四个】写死的清单在加第五种状态那天只会烂在这里,
     // 而屏幕上会在某个人名旁边印出一个原始的机器串。
     'org.status.': { kind: 'enum', values: () => sqlEnum('db/tables/employees.sql', 'employment_status') },
+    // TOOLS-1 ②:日历的来源类型。真源是 app/tools/calendar/sources.ts 的
+    // CALENDAR_KINDS —— 加一个来源,两个语言都必须补句子才过得了构建。
+    'calendar.kind.': { kind: 'enum', values: () => tsArray('app/tools/calendar/sources.ts', 'CALENDAR_KINDS') },
+    // TOOLS-1 ②:星期名。真源是共享月历组件里那个 DOW_KEYS(七个,从周日起)。
+    'calendar.dow.': { kind: 'enum', values: () => tsArray('app/components/calendar/MonthGrid.tsx', 'DOW_KEYS') },
+    // TOOLS-1 ④:换算器的质量单位。真源是表单里那个 UNITS(as const)——
+    // 而它自己 `satisfies readonly MassUnit[]`,所以加一个单位【类型先红】,
+    // 补进 lib/convert.ts 之后【这道检查再要求补文案】。两道门,两个方向。
+    'converter.unit.': { kind: 'enum', values: () => tsArray('app/tools/converter/ConverterForm.tsx', 'UNITS') },
     'metalPrices.source.': { kind: 'enum', values: () => sqlEnum('db/tables/metal_prices.sql', 'source') },
     // PAYEE-1b:应付往来对象的种类(供应商 / 员工)。真源是 ap_open_items
     // 那个 CASE 里的两个字面量 —— 库里加第三种往来对象,这里自动跟上。

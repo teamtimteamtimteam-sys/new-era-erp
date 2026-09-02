@@ -58,9 +58,23 @@ export const DOCK_DEFAULT_CANDIDATES: readonly string[] = [
     '/customers',
     '/suppliers',
     '/materials',
-    // 【兜底的最后一条】它的判据是"任何登录用户"(metal_prices 读策略是 USING(true)),
+    // ★★【最后一条:它承载 4c 那条保证 —— 换掉它之前先读这一段】★★
+    //
+    // 【它在这里的作用】它的判据是恒真的(lib/modules.ts 的 /tools/converter),
     // 所以【任何人】至少拿得到一条 dock 项 —— 连一个零模块权限的人也不会看见空 dock。
-    '/metal-prices',
+    //
+    // 【为什么从金属行情换成 /tools/converter】(TOOLS-1 ①b,2026-09-03)
+    //   金属行情搬进 /pricing 之下并被【刻意收窄】到 module.pricing.view。
+    //   实测:那一改会把 employee 角色的默认 dock 从 1 条打到 **0 条** ——
+    //   而 employee 正是即将到岗的六位同事拿到的那个角色。
+    //   换算器接过这个位置:它的受众真的是所有人(吨/公斤/磅、湿转干),
+    //   而金属行情是一个群体的计价基准。
+    //
+    // ★【这条保证现在有检查看着:`npm run check:dock`】★
+    //   它按 live 授权算出每个角色的默认 dock,任何角色掉到 0 就变红。
+    //   加它的理由是本刀的发现:这条保证此前【只靠一条注释】,
+    //   而它实际上悬在"全注册表恰好有一条恒真条目"这个巧合上。
+    '/tools/converter',
 ]
 
 /** dock 上的一项:地址 + 标签 + 【此刻】这个人进不进得去。 */

@@ -111,7 +111,7 @@ const ID_SOURCES = {
         // LOC-1:库位。前缀取最长匹配,所以这一条不会被别的 /inventory 前缀吃掉
         // (今天也没有别的)。线上零行,故同时列在 EXPECTED_SKIPS 里。
         '/inventory/locations': 'storage_locations',
-        '/materials': 'materials', '/metal-prices': 'metal_prices',
+        '/materials': 'materials', '/pricing/metal-prices': 'metal_prices',
         '/my-reviews': 'performance_reviews', '/output': 'output_batches',
         '/pricing/formulas': 'pricing_formulas',
         // WO-1c:工单。【必须排在 '/operation/processing' 前面吗?—— 不必,前缀取的是最长匹配】
@@ -1336,7 +1336,7 @@ const EXPECTED_UNREACHABLE = {
     // 【本刀先删了它,然后被这条检查自己抓了回来 —— 照直记下】
     // 推理是:⑦ 把金属行情搬进了【工具】,而 operations 进得去工具
     // (它持 module.tasks.view,/tasks 就在工具底下),所以入口该走得到了。
-    // **跑了一遍,红的:`✗ operations 打得开却走不到:/metal-prices`。**
+    // **跑了一遍,红的:`✗ operations 打得开却走不到:金属行情那一页`(当时它住在一级)。**
     // 于是这一条恢复原状,而【被更正的是写在这里的理由】。
     //
     // ★【真正的原因,与旧注释写的【不是】同一件事】★
@@ -1352,7 +1352,7 @@ const EXPECTED_UNREACHABLE = {
     //   也不再能靠页内同级链接走到大部分页面。**它不再是端到端的可达性判据。**
     //   接替它的是 scripts/check-nav-routes.mjs(静态、每次构建都跑)——
     //   而那支脚本答不了【人点不点得到】,所以两者都不冒充对方。
-    // 而 /metal-prices 的页内入口只有两处,**两处都要 module.pricing.view**:
+    // 而金属行情那一页的页内入口只有两处,**两处都要 module.pricing.view**:
     //   · app/page.tsx 首页那条"行情陈旧"待办(permission: 'module.pricing.view');
     //   · /pricing 那一页的第三张卡(进它要 module.pricing.view)。
     // operations 两个都拿不到 → 爬虫走不到 → 断言成立。
@@ -1366,7 +1366,7 @@ const EXPECTED_UNREACHABLE = {
     //(或者给这条检查一个能展开菜单的爬法)—— 那是一件单独的活。**
     operations: new Set(['/login', '/set-password', '/welcome',
         // 见上面那一整段:留着它,理由已经不是"没有 pricing 模块"了。
-        '/metal-prices']),
+        '/pricing/metal-prices']),
     finance: new Set(['/login', '/set-password', '/welcome']),
 }
 

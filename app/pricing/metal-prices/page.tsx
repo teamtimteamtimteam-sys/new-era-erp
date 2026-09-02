@@ -1,7 +1,9 @@
-// app/metal-prices/page.tsx
+// app/pricing/metal-prices/page.tsx
 // 金属价格列表页:URL 驱动的金属筛选 / 排序 / 分页。
 // 端口自 inbound 列表,精简为单表参考表:无搜索、无导出、无关联方下拉。
 import { Suspense } from 'react'
+import { requireFunction } from '@/app/components/moduleGuard'
+import { FN } from '@/lib/modules'
 import { sourceLabelKey } from './sourceOptions'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
@@ -15,7 +17,7 @@ import {
     type MetalPricesSortCol,
 } from './metalPricesQuery'
 import { formatMoneyBare } from '@/lib/format'
-import { getTranslations } from '@/lib/i18n/server'
+import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { can } from '@/lib/permissions'
 import { mustOne } from '@/lib/db-helpers'
 import ThresholdPanel from './ThresholdPanel'
@@ -47,13 +49,28 @@ export default async function MetalPricesPage({
         page?: string
     }>
 }) {
-    // 【本页没有 requireModule,是有意的,不是漏了 —— 不要"补"回来。这是那条规矩的「读」那一半】
-    // 规矩只有一条:【守卫跟着数据自己的 RLS 走,不跟模块目录走】。
-    // 而一张表的 RLS 本来就有读、写两个答案,metal_prices 的这两个答案【不一样】——
-    // 所以 app/metal-prices/ 底下四页带着两种守卫,那是【同一条规则的两半,不是例外】:
+    // ★★【TOOLS-1 ①b(2026-09-03):本页【现在有】守卫了 —— 这是一次刻意的收窄】★★
     //
-    //   读(列表页 /metal-prices)  SELECT ... USING (true)
-    //                             → 不设守卫
+    // 【它此前为什么没有守卫 —— 那条理由留着,因为它当时是对的】
+    //   规矩是:【守卫跟着数据自己的 RLS 走,不跟模块目录走】。
+    //   metal_prices 的读策略是 `USING (true)`,所以列表页不设守卫;
+    //   写那三页(new / bulk / [id]/edit)由 requireEditPermission 把关。
+    //   那是同一条规则的两半 —— **在它是一条【一级路由】的时候。**
+    //
+    // 【位置变了,结论跟着变】本刀把它搬到 /pricing 之下,而 /pricing 由
+    //   module.pricing.view 把门。**只收窄菜单、不收窄这一页,会造出一个
+    //   【半开】的状态:菜单里看不见,URL 却打得开。** Tim 的裁定(甲)点名
+    //   要消除的正是那个状态 —— 它在一次审计里、或者在一句"我为什么找不到
+    //   这一页"的支持问题里,是最难解释的一种。
+    //
+    // ★【这【不是】一次数据控制,写下来免得被后人读错】★
+    //   **metal_prices 的 RLS 仍然是 `USING (true)`,一个字没动。**
+    //   数据在库那一层对任何登录用户仍然可读;变的只有导航与这道路由守卫。
+    //   失去它的五个角色(实测):cfo · employee · hr · operations · warehouse。
+    const denied = await requireFunction(FN.metalPrices)
+    if (denied) return denied
+
+    //   写(new / bulk / [id]/edit) 那三页的守卫一个字没动:
     //   写(new / bulk / [id]/edit) INSERT|UPDATE|DELETE ... has_permission('module.pricing.edit')
     //                             → requireEditPermission('module.pricing.edit', ...)
     //
@@ -70,6 +87,7 @@ export default async function MetalPricesPage({
     // PROC-4:物质清单从 substances 那张字典读(清单与顺序都由它定)。
     const substanceOptions = toOptions(await loadSubstances(supabase))
     const t = await getTranslations()
+    const locale = await getLocale()
 
     // PROC-4:URL 里的 ?metal= 认哪些值,由字典说了算(而不是一份写死的七元素)。
     const { metal, sort, dir } = parseMetalPricesListParams(
@@ -106,7 +124,7 @@ export default async function MetalPricesPage({
     // mustOne:引导必须给出这一行,读不到要炸,不能当成"没有配置"悄悄过去。
     const settingsRes = await supabase
         .from('pricing_settings')
-        .select('metal_price_change_warn_pct, notes')
+        .select('metal_price_change_warn_pct, notes_en, notes_zh')
         .eq('id', true)
         .maybeSingle()
     const settings = mustOne(settingsRes, 'pricing_settings')
@@ -131,7 +149,7 @@ export default async function MetalPricesPage({
         if (metal) params.set('metal', metal)
         params.set('sort', col)
         params.set('dir', nextDir)
-        return `/metal-prices?${params.toString()}`
+        return `/pricing/metal-prices?${params.toString()}`
     }
 
     function sortableTh(col: MetalPricesSortCol, label: string) {
@@ -153,7 +171,7 @@ export default async function MetalPricesPage({
         params.set('sort', sort)
         params.set('dir', dir)
         params.set('page', String(targetPage))
-        return `/metal-prices?${params.toString()}`
+        return `/pricing/metal-prices?${params.toString()}`
     }
 
     if (error) {
@@ -174,13 +192,13 @@ export default async function MetalPricesPage({
                 <h1 className="text-2xl font-bold">{t('metalPrices.listTitle')}</h1>
                 <div className="flex gap-3">
                     <Link
-                        href="/metal-prices/bulk"
+                        href="/pricing/metal-prices/bulk"
                         className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"
                     >
                         {t('metalPrices.bulk.entry')}
                     </Link>
                     <Link
-                        href="/metal-prices/new"
+                        href="/pricing/metal-prices/new"
                         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                     >
                         {t('metalPrices.addButton')}
@@ -190,7 +208,9 @@ export default async function MetalPricesPage({
 
             <ThresholdPanel
                 thresholdPct={Number(settings.metal_price_change_warn_pct)}
-                notes={settings.notes}
+                // ⑤a:按界面语言选一句。**不再渲染那个单语的 notes** ——
+                // Tim 走查时在英文界面上看到的就是它(而它住在数据里,不在代码里)。
+                notes={locale === 'zh' ? settings.notes_zh : settings.notes_en}
                 canEdit={canEditPrices}
             />
 
@@ -295,7 +315,7 @@ export default async function MetalPricesPage({
                             <td className="border border-gray-300 px-4 py-2 text-sm">{r.notes ?? '—'}</td>
                             <td className="border border-gray-300 px-4 py-2">
                                 <Link
-                                    href={`/metal-prices/${r.id}/edit`}
+                                    href={`/pricing/metal-prices/${r.id}/edit`}
                                     className="text-blue-600 hover:underline"
                                 >
                                     {t('metalPrices.editAction')}

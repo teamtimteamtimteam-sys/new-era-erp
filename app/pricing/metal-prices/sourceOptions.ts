@@ -1,4 +1,4 @@
-// app/metal-prices/sourceOptions.ts
+// app/pricing/metal-prices/sourceOptions.ts
 // LME-1b:行情出处的选项来源。与 indexOptions.ts 同一条思路,但有一处关键不同 ——
 // **这个集合是【封闭】的,而且它的边界写在数据库的 CHECK 里**
 // (metal_prices_source_check),不是一张可以加行的字典表。

@@ -509,6 +509,8 @@ const en = {
         stocktakes: 'Stocktakes',
         finance: 'Finance',
         tasks: 'Tasks',
+        converter: 'Unit converter',
+        calendar: 'Calendar',
         // ★ UI-FIX-1 ⑥:一级模块「任务」改名为「工具」。★
         // 【nav.tasks 留着,而这不是重复】nav.tools 是那个【一级模块】的标签;
         // nav.tasks 是它名下那条【二级条目】(任务板本身)的标签,同时也是
@@ -3547,6 +3549,56 @@ const en = {
             separated: 'left',
         },
     },
+    // ── TOOLS-1 ④:单位换算器 ────────────────────────────────────────────
+    // ── TOOLS-1 ②:跨模块日历 ────────────────────────────────────────────
+    calendar: {
+        title: 'Calendar',
+        intro: 'Everything dated that you can already see elsewhere, on one month. It is a place to look, not a place to edit \u2014 click an item to go to the page that owns it.',
+        filter: 'Show', allKinds: 'Everything',
+        empty: 'Nothing dated falls in this month. That is not an error \u2014 it is what the sources actually hold.',
+        emptyKind: 'Nothing of this kind falls in this month.',
+        sourceFailed: 'One or more sources could not be read, so this month is INCOMPLETE: {list}. This is not the same as "nothing scheduled".',
+        basis: '{n} item(s) this month, gathered from 6 sources concurrently in {ms} ms. Two sources the brief asked for are absent by measurement, not by omission \u2014 approval deadlines do not exist as a column anywhere, and equipment servicing is due by kilograms processed rather than by date. See app/tools/calendar/sources.ts.',
+        kind: {
+            holiday: 'Public holiday', leave: 'Leave', task: 'Task due',
+            invoiceDue: 'Invoice due', containerEta: 'Container ETA', periodClose: 'Period close',
+        },
+        dow: { 0: 'Sun', 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat' },
+    },
+    tools: {
+        group: { pricing: 'Pricing' },
+    },
+    converter: {
+        title: 'Unit converter',
+        intro: 'The conversions this business actually runs on. Each one shows its formula and where its numbers come from \u2014 this is a tool for checking work, so the answer alone is not enough.',
+        unit: { tonne: 'tonne', kg: 'kg', pound: 'pound' },
+        mass: {
+            title: 'Mass',
+            value: 'Value', from: 'From unit', to: 'To unit',
+            formula: 'result = value \u00d7 (kg per FROM unit) \u00f7 (kg per TO unit)',
+            sources: '1 tonne = {kgPerTonne} kg \u2014 the system already relies on this (lib/valuation.ts divides a per-tonne price by it to get a per-kilogram price, on a money path). 1 pound = {kgPerPound} kg exactly, from the 1959 international agreement: this system has NO pound conversion of its own, so the number comes from SI rather than from a house convention.',
+        },
+        grade: {
+            title: 'Metal grade',
+            pct: 'Percent', gpt: 'Grams per tonne',
+            formula: 'g/t = % \u00d7 {k}    (because one tonne is 1,000,000 g, so 1% of it is 10,000 g)',
+            sources: 'This is an identity, not a convention \u2014 there is nothing to choose. Note the system itself records assay content in PERCENT everywhere (assay_result_metals.content_pct); grams per tonne is here for reading certificates, and no calculation downstream consumes it.',
+        },
+        basis: {
+            title: 'Wet \u2194 dry weight',
+            why: 'This one decides money: settlement weight and contained metal are built on it. It calls the SAME database function the settlement path calls, so this tool and an invoice cannot disagree.',
+            weight: 'Weight', grade: 'Grade %', moisture: 'Moisture %',
+            direction: 'Direction',
+            arToDry: 'as received \u2192 dry', dryToAr: 'dry \u2192 as received',
+            run: 'Convert',
+            formula: 'dry weight = round(weight \u00d7 (1 \u2212 moisture/100), 4)    \u00b7    grade converts the opposite way, so weight \u00d7 grade (contained metal) stays constant',
+            sources: 'Rounding to {dp} decimal places is not chosen here \u2014 it is what sale_settlement_compute uses, so these figures line up with settlement. The arithmetic itself lives in convert_weight_basis / convert_grade_basis, extracted from that function so there is one implementation with two callers.',
+        },
+        err: {
+            moistureFull: 'Moisture of 100% means the material is entirely water, so there is no dry weight to convert to or from. Enter a moisture below 100.',
+            moistureRange: 'Moisture must be between 0 and 100 percent.',
+        },
+    },
     hr: {
         subnav: {
         leave: 'Leave',
@@ -6057,8 +6109,14 @@ const en = {
         licence: {
             // IA-BUILD-1 / D7:登记簿搬到采购去了(它的码本来就是 module.suppliers.*)。
             movedToPurchasing: 'The licence register now lives under Purchasing',
-            title: 'NEA licences held by this company',
-            what: 'Our own licences \u2014 number, kind, issuing body, validity, and the approved storage limit. The kind comes from the certificate-type dictionary, so adding a licence class is a row, not a schema change.',
+            // ★【TOOLS-1 ①a】标题从「NEA licences held by this company」缩成「Licences」★
+            // 这个键【同时】是菜单文案(lib/modules.ts 的 navKey = company.licence.title)
+            // 与页面 h1,所以改一处两处都变 —— 这正是它该有的样子。
+            // 【长标题原本扛着的那个区别没有丢】「我们自己的,不是供应商的」搬进了
+            // 下面的 `what` 描述行,而那一行【本来就在屏幕上】(LicencePanel.tsx:86)。
+            // 标题负责让人找得到这一页,描述行负责让人不误会它装的是什么。
+            title: 'Licences',
+            what: 'THIS COMPANY\u2019S OWN licences \u2014 not a supplier\u2019s. A supplier\u2019s licences live on that supplier\u2019s own compliance record. Number, kind, issuing body, validity, and the approved storage limit. The kind comes from the certificate-type dictionary, so adding a licence class is a row, not a schema change.',
             none: 'No licence is recorded. That is the EXPECTED state \u2014 this company has not yet been granted its licences, and an empty register here is correct rather than missing data.',
             restricted: 'You do not have access to compliance records. This is a permission answer, not an empty register.',
             add: 'Add a licence',

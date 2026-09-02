@@ -2,6 +2,11 @@
 -- SETTLE-1:一次销售最终结算的算法。CLEANUP-A 加了第二道闸(module.output.view)——
 -- 闸问的和身体读的从前不是同一条权限。它【今天拦不到任何人】,而那正是它的理由:
 -- 角色改一次就会无声地重新打开它。
+--
+-- ★【TOOLS-1 ④(2026-09-03):两处基准换算搬进 convert_weight_basis /
+--   convert_grade_basis】★ 函数体其余部分【一个字节没动】——
+--   `pg_get_functiondef` 的 diff 就是那两行。理由与证据见那两支函数的抬头、
+--   db/fixtures/187(新旧逐点比对)与 db/fixtures/149(结算那条路,提取后重跑通过)。
 
 CREATE OR REPLACE FUNCTION public.sale_settlement_compute(p_sales_order_id uuid, p_output_batch_id uuid, p_assay_result_id uuid)
  RETURNS jsonb
@@ -190,8 +195,8 @@ BEGIN
         RAISE EXCEPTION 'SETTLEMENT_MOISTURE_NOT_STATED|%', v_assay.code
           USING HINT = '化验按一种基准报、合同按另一种结算,换算要用水分 —— 而这份化验没有水分,所以算不了';
     END IF;
-    v_swt := CASE WHEN v_basis = 'as_received' THEN v_gross
-                  ELSE round(v_gross * (1 - COALESCE(v_moist, 0) / 100.0), 4) END;
+    -- TOOLS-1 ④:换算搬进 convert_weight_basis(表达式逐字未改)。一份实现,两个调用方。
+    v_swt := convert_weight_basis(v_gross, 'as_received', v_basis, v_moist);
 
     -- ── 逐金属:含量 → 应付量 → 计价期均价 → 金额;并扣精炼费 ────────────
     FOR v_metal, v_content IN
@@ -199,11 +204,8 @@ BEGIN
          WHERE m.assay_result_id = p_assay_result_id ORDER BY m.metal
     LOOP
         -- 把含量换算到【结算基准】上。含金属因此是不变量 —— 见抬头。
-        v_content_s := CASE
-            WHEN v_assay.weight_basis = v_basis THEN v_content
-            WHEN v_assay.weight_basis = 'dry' AND v_basis = 'as_received'
-                THEN v_content * (1 - v_moist / 100.0)
-            ELSE v_content / (1 - v_moist / 100.0) END;
+        -- TOOLS-1 ④:换算搬进 convert_grade_basis(表达式逐字未改)。
+        v_content_s := convert_grade_basis(v_content, v_assay.weight_basis, v_basis, v_moist);
         v_contained := round(v_swt * v_content_s / 100.0, 4);
 
         SELECT (e->>'payable_pct')::numeric INTO v_payable

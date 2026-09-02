@@ -1,4 +1,4 @@
-// app/metal-prices/sourceParse.ts
+// app/pricing/metal-prices/sourceParse.ts
 // LME-1b:把 SourcePicker 的三个字段翻成库要的形状。两张录入表单共用一份 ——
 // 抄两遍就是第二份会漂开的解析。
 //

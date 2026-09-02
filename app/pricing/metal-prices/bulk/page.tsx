@@ -1,4 +1,4 @@
-// app/metal-prices/bulk/page.tsx
+// app/pricing/metal-prices/bulk/page.tsx
 // 每日行情批量录入(服务端壳):按 ?date=(默认今天)取两组数据 ——
 //   * 该日期已录入的价格(预填,于是本页也能当"改今天的价"用)
 //   * 该日期之前(含当日)每个金属最近一次的价格(录入时的参照)
@@ -24,9 +24,9 @@ export default async function BulkPricesPage({
     // 【本页把关用 module.pricing.edit,不是 module.pricing.view。这是那条规矩的「写」那一半】
     // 规矩只有一条:【守卫跟着数据自己的 RLS 走,不跟模块目录走】。
     // 而一张表的 RLS 本来就有读、写两个答案,metal_prices 的这两个答案【不一样】——
-    // 所以 app/metal-prices/ 底下四页带着两种守卫,那是【同一条规则的两半,不是例外】:
+    // 所以 app/pricing/metal-prices/ 底下四页带着两种守卫,那是【同一条规则的两半,不是例外】:
     //
-    //   读(列表页 /metal-prices)  SELECT ... USING (true)
+    //   读(列表页 /pricing/metal-prices)  SELECT ... USING (true)
     //                             → 不设守卫
     //   写(new / bulk / [id]/edit) INSERT|UPDATE|DELETE ... has_permission('module.pricing.edit')
     //                             → requireEditPermission('module.pricing.edit', ...)
@@ -93,7 +93,7 @@ export default async function BulkPricesPage({
     return (
         <div className="p-8">
             <div className="mb-6">
-                <Link href="/metal-prices" className="text-blue-600 hover:underline text-sm">
+                <Link href="/pricing/metal-prices" className="text-blue-600 hover:underline text-sm">
                     {t('common.back')}
                 </Link>
             </div>

@@ -45,7 +45,7 @@
 // ★★ 而 FE-0 那句「ZERO 排序、ZERO 分页」是【错的】—— 量出来的 ★★
 //   BASE-1 逐页量过:
 //     * 排序:**8 页已经有了**(/inbound /materials /output /customers /suppliers
-//       /operation/processing /metal-prices /finance/fx),走的是 URL 参数 + 数据库 ORDER BY;
+//       /operation/processing /pricing/metal-prices /finance/fx),走的是 URL 参数 + 数据库 ORDER BY;
 //     * 分页:**17 页已经有了**,走 .range();
 //     * 列显隐:**0 页** —— 这一条 FE-0 说对了。
 //   这件事直接改了本组件的形状:那 8 页的排序是【在数据库里对全体排的】,

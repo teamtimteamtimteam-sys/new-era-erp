@@ -120,6 +120,6 @@ export async function createMetalPrice(
         return { error: t('metalPrices.form.saveError', { message: error.message }) }
     }
 
-    revalidatePath('/metal-prices')
-    redirect('/metal-prices')
+    revalidatePath('/pricing/metal-prices')
+    redirect('/pricing/metal-prices')
 }

@@ -170,7 +170,7 @@ export default function EditMetalPriceForm({
                               : t('common.save')}
                     </button>
                     <Link
-                        href="/metal-prices"
+                        href="/pricing/metal-prices"
                         className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"
                     >
                         {t('common.cancel')}

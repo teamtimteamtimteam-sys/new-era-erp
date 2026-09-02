@@ -2,13 +2,13 @@
 // 新建定价公式(服务端壳):取在册供应商/客户供"适用对象"下拉。
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations , getLocale } from '@/lib/i18n/server'
-import { getMetalPriceIndices } from '@/app/metal-prices/indexQuery'
+import { getMetalPriceIndices } from '@/app/pricing/metal-prices/indexQuery'
 import FormulaForm, { EMPTY_FORMULA, type PartyOption, type QuoteDate } from '../FormulaForm'
 import { createFormula } from '../actions'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import { loadSubstances, toOptions } from '../../../metal-prices/substanceQuery'
+import { loadSubstances, toOptions } from '../../metal-prices/substanceQuery'
 
 export default async function NewFormulaPage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——

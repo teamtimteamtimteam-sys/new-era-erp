@@ -54,6 +54,19 @@ const RETIRED = [
         hint: '账号 → /settings/accounts;角色 → /settings/roles;权限速查 → /settings/reference',
     },
     {
+        label: '/metal-prices(搬到 /pricing 之下)',
+        // TOOLS-1 ①b。判据要认【路由写法】,不认【相对路径的一段】:
+        //   ✓ 抓 '/metal-prices'、`(/metal-prices)`、注释里裸写的 /metal-prices
+        //   ✗ 不抓 '../metal-prices/substanceQuery'(那是 app/pricing/ 底下指向
+        //     新位置的合法相对 import)、也不抓 'app/pricing/metal-prices/…'
+        // 做法:前面不许是【单词字符或点】—— 路由串前面总是引号/括号/空白,
+        // 而相对路径前面总是 `.`,新地址前面总是 `g`(pricing 的末字母)。
+        // 【第一版没有 (?<![\w.]) —— 它把三条刚修好的相对 import 报成了退休路径,
+        //  而那三条恰恰是【已经改对了】的。一条会对正确代码报红的判据会被关掉。】
+        re: /(?<![\w.])\/metal-prices(?![A-Za-z0-9_-])/g,
+        hint: '改成 /pricing/metal-prices(金属行情已并入定价的第三级)',
+    },
+    {
         label: "/deleted(搬进设置)",
         // 只认【整条路由】那一种写法,避免撞上 deleted_at / deleted_records 之类
         re: /(?<!\/settings)\/deleted(?![A-Za-z0-9_-])/g,

@@ -46,7 +46,7 @@ export async function updateAnomalyThreshold(
         return { error: t('common.editDenied') }
     }
 
-    revalidatePath('/metal-prices')
-    revalidatePath('/metal-prices/bulk')
+    revalidatePath('/pricing/metal-prices')
+    revalidatePath('/pricing/metal-prices/bulk')
     return { saved: true }
 }

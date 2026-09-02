@@ -16,9 +16,9 @@ export default async function EditMetalPricePage({
     // 【本页把关用 module.pricing.edit,不是 module.pricing.view。这是那条规矩的「写」那一半】
     // 规矩只有一条:【守卫跟着数据自己的 RLS 走,不跟模块目录走】。
     // 而一张表的 RLS 本来就有读、写两个答案,metal_prices 的这两个答案【不一样】——
-    // 所以 app/metal-prices/ 底下四页带着两种守卫,那是【同一条规则的两半,不是例外】:
+    // 所以 app/pricing/metal-prices/ 底下四页带着两种守卫,那是【同一条规则的两半,不是例外】:
     //
-    //   读(列表页 /metal-prices)  SELECT ... USING (true)
+    //   读(列表页 /pricing/metal-prices)  SELECT ... USING (true)
     //                             → 不设守卫
     //   写(new / bulk / [id]/edit) INSERT|UPDATE|DELETE ... has_permission('module.pricing.edit')
     //                             → requireEditPermission('module.pricing.edit', ...)
@@ -57,7 +57,7 @@ export default async function EditMetalPricePage({
         <div className="p-8 max-w-2xl">
             <div className="mb-6">
                 <Link
-                    href="/metal-prices"
+                    href="/pricing/metal-prices"
                     className="text-blue-600 hover:underline text-sm"
                 >
                     {t('common.back')}

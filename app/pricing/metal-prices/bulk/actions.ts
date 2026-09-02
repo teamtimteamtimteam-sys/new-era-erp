@@ -7,7 +7,7 @@ import { parseSourceFields } from '../sourceParse'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { revalidatePath } from 'next/cache'
-import { localizePricingError } from '../../pricing/pricingErrorCodes'
+import { localizePricingError } from '../../pricingErrorCodes'
 import { ACK_FIELD, ackSignature, outsideOnly, type AnomalyVerdict } from '../anomaly'
 import { parseIndexField } from '../indexOptions'
 
@@ -76,8 +76,8 @@ export async function saveBulkPrices(
         return { error: await localizePricingError(error.message) }
     }
 
-    revalidatePath('/metal-prices')
-    revalidatePath('/metal-prices/bulk')
+    revalidatePath('/pricing/metal-prices')
+    revalidatePath('/pricing/metal-prices/bulk')
 
     const res = data as { inserted?: number; updated?: number; skipped?: number } | null
     return {

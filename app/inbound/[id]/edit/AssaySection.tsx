@@ -3,7 +3,7 @@
 // 位置在"金属含量"与"计价"之间:含量从哪来 → 化验 → 价格往哪去,读下来是一条线。
 import Link from 'next/link'
 import { getTranslations } from '@/lib/i18n/server'
-import { metalLabelKey } from '@/app/metal-prices/options'
+import { metalLabelKey } from '@/app/pricing/metal-prices/options'
 
 export type AssayRow = {
     id: string

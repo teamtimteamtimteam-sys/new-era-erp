@@ -3,7 +3,7 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations , getLocale } from '@/lib/i18n/server'
-import { getMetalPriceIndices } from '@/app/metal-prices/indexQuery'
+import { getMetalPriceIndices } from '@/app/pricing/metal-prices/indexQuery'
 import FormulaForm, { type FormulaDefaults, type PartyOption, type QuoteDate } from '../../FormulaForm'
 import { updateFormula } from '../../actions'
 import DeleteFormulaButton from './DeleteFormulaButton'
@@ -12,7 +12,7 @@ import type { Tables } from '@/lib/database.types'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import { loadSubstances, toOptions } from '../../../../metal-prices/substanceQuery'
+import { loadSubstances, toOptions } from '../../../metal-prices/substanceQuery'
 
 export default async function EditFormulaPage({
     params,

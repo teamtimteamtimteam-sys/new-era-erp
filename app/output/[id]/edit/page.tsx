@@ -25,7 +25,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD, FN } from '@/lib/modules'
-import { loadSubstanceLabels, toOptions } from '@/app/metal-prices/substanceQuery'
+import { loadSubstanceLabels, toOptions } from '@/app/pricing/metal-prices/substanceQuery'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type MovementFetchRow = {

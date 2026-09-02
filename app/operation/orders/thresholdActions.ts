@@ -1,7 +1,7 @@
 'use server'
 
 // EXEC-3b:工单差异的两个阈值 —— 【可见配置,不是常量】
-// 形状取自 app/metal-prices/thresholdActions.ts(METAL-1),连同它学到的两件事:
+// 形状取自 app/pricing/metal-prices/thresholdActions.ts(METAL-1),连同它学到的两件事:
 //
 // 【一 · 两个数一起提交,而且各自独立校验】它们是两种不同的坏消息(投入超耗是
 // 成本问题,产出短交是收率问题),所以任何一个不合法都不该把另一个写进去。

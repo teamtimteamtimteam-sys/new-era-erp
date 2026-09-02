@@ -7,7 +7,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import CalculatorForm, { type FormulaOption } from './CalculatorForm'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import { loadSubstances, toOptions } from '@/app/metal-prices/substanceQuery'
+import { loadSubstances, toOptions } from '@/app/pricing/metal-prices/substanceQuery'
 
 function todayIso(): string {
     return new Date().toISOString().slice(0, 10)

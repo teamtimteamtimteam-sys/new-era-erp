@@ -20,4 +20,4 @@ export type MetalContentRow = {
 
 // PROC-4:这里曾经转出 METAL_OPTIONS / METAL_VALUES / metalLabelKey ——
 // 那份清单没了,值与名字都来自 substances 那张字典,由页面读好按 props 传进面板。
-export type { MetalOption } from '@/app/metal-prices/options'
+export type { MetalOption } from '@/app/pricing/metal-prices/options'

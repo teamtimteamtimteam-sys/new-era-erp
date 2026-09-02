@@ -57,6 +57,15 @@ const ROOT = new URL('..', import.meta.url).pathname
 // 不是记在谁脑子里的。【只放误伤,不放"还没修"】。
 const ALLOWLIST = [
     {
+        path: 'app/tools/calendar/sources.ts', match: 'res.data ?? []',
+        reason: 'TOOLS-1 ②:紧挨着的上一行就是 '
+            + '`if (res.error) { failures.push(...); continue }` —— **失败有自己的一种状态**,'
+            + '而且屏幕上说得出来(calendar.sourceFailed:"有来源读不到,所以这个月是【不完整】的")。'
+            + '走到这一句就是查询成功,空数组是【这个读者在这一类里真的没有事】—— '
+            + '而那正是日历要表达的:一个被 RLS 挡住的读者【本来就该】拿到零行。'
+            + '本检查看不见上一行,所以这一条是"不是缺陷",不是"暂不修"。',
+    },
+    {
         path: 'app/settings/import/page.tsx', match: 'res.data ?? []',
         reason: 'IMPORT-2:上一行就是 `if (res.error) return { status: "unavailable" }` —— '
             + '**失败有自己的一种状态,而且屏幕上说得出来**(guideUnavailable:"拿不到"'

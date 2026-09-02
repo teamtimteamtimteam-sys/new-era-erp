@@ -1,4 +1,4 @@
-// app/metal-prices/metalPricesQuery.ts
+// app/pricing/metal-prices/metalPricesQuery.ts
 // 金属价格列表的查询逻辑(金属筛选 / 排序 / 软删除过滤 / 分页)集中在这里。
 // 端口自 inboundQuery,但刻意精简:单表、无外键、无搜索、无导出 —— 这是一张 7 金属参考表。
 // PROC-4:这一支是【纯参数解析】,没有 supabase 也不该有 —— 所以合法集合

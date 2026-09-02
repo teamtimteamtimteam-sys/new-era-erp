@@ -37,7 +37,7 @@ const BY_HREF: Record<string, LucideIcon> = {
     '/customers': Building2,
     '/suppliers': Truck,
     '/materials': Wrench,
-    '/metal-prices': Coins,
+    '/pricing/metal-prices': Coins,
     '/settings/accounts': ClipboardList,
 }
 

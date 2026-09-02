@@ -6,10 +6,10 @@
 // (pricing_formula_metals 里没有的金属 payable 视为 0)。
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { parseIndexField } from '@/app/metal-prices/indexOptions'
+import { parseIndexField } from '@/app/pricing/metal-prices/indexOptions'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { loadSubstances } from '../../metal-prices/substanceQuery'
+import { loadSubstances } from '../metal-prices/substanceQuery'
 
 export type FormulaState = {
     error?: string

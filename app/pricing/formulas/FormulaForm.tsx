@@ -9,10 +9,10 @@ import { useFormDraft } from '@/lib/useFormDraft'
 import DraftBanner from '@/app/components/DraftBanner'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import IndexPicker from '@/app/metal-prices/IndexPicker'
-import type { MetalPriceIndex } from '@/app/metal-prices/indexOptions'
+import IndexPicker from '@/app/pricing/metal-prices/IndexPicker'
+import type { MetalPriceIndex } from '@/app/pricing/metal-prices/indexOptions'
 import DecimalInput from '@/app/components/forms/DecimalInput'
-import type { MetalOption } from '@/app/metal-prices/options'
+import type { MetalOption } from '@/app/pricing/metal-prices/options'
 import type { FormulaState } from './actions'
 
 const initialState: FormulaState = {}
