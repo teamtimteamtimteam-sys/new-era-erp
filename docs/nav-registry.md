@@ -309,3 +309,165 @@ Protection 后面 —— 实测 `curl` 它得到 **302 → `vercel.com/sso-api`*
 
 - `npm run build` 新增 `scripts/check-permission-predicate.mjs`:求值一处 / 跨模块声明 / 具名受限,三条各自故障注入验证过会红。
 - `db/fixtures/185-*.sql`:物流那道门,五臂(A 读得到 · B 旧钥匙零行 · C 无关角色零行 · D 写仍被拒 · E 看板四支换码而采购那一支不换),三处故障注入验证过会红。
+
+---
+
+## 八、UI-FIX-1(2026-09-02)—— 五条搬家之后,逐角色的实测
+
+**搬家的完整叙述在 `docs/information-architecture.md` §13。这里只放【判据与数字】。**
+
+### 8.1 判据:为什么"谓词没改"不算证明
+
+谓词确实一个字没改,但**入口是由属主模块渲染的**,而拒绝是由 `requireFunction`
+判的。两者若不同源,「摆放收窄」就会悄悄变成「访问收窄」——
+本仓库对这一族已经付过账(OPS-15:一条规则两个实现,迟早各错一次)。
+
+所以本刀的判据是**逐角色、逐条目、对着 live 授权求值**,而且求的是**两个不同的
+问题**,因为它们的答案不一样:
+
+* **打得开吗** = `allows(条目的谓词, 这个角色的权限)`;
+* **走得到吗** = 打得开 **AND** 它至少有一个属主模块是进得去的
+  ——【**后者才是搬家会动到的那个**】。
+
+> ★【这里的"走得到"是【人】的走得到,而它与冒烟 `--reach` 量的【不是同一个东西】★
+> 本节的模型是「顶栏 → 点开那个模块的菜单 → 点那一条」,**那正是人的走法**。
+> 而 `scripts/smoke-routes.mjs --reach` 只跟着**服务端 HTML 里已经存在的**链接走,
+> 而**顶栏的模块菜单是点开才渲染的**(`ModuleBar` 的 `{isOpen && …}`)——
+> **于是整个第二级对那个爬虫都是不可见的**,它靠 dock + 各模块自己的 `Subnav`
+> + 页内链接扩散。**两个数因此可以合法地不一致**,而本刀实测到了一次:
+> `/metal-prices` 对 `operations` 在本节的模型里【走得到】(工具菜单里有),
+> 在 `--reach` 里【走不到】(那张菜单不在 HTML 里)。
+> **两者都没有错,它们量的是两件事。** 详见 `docs/information-architecture.md` §13.5 ——
+> 本刀正是因为把这两件事当成了一件,先删错了一条断言。
+
+`roles` / `role_permissions` 取自 live(2026-09-02),11 个角色的完整权限集;
+两份 `lib/modules.ts`(搬家前 / 搬家后)同时 import,同一支脚本跑出下面两张表。
+
+### 8.2 ★ 逐角色【走得到的二级条目】:唯一的损失是 `/deleted` ★
+
+| 角色 | 走得到的条数(前 → 后) | 走不到了 | 新走得到 |
+|---|---|---|---|
+| admin | 76 → 76 | (无) | (无) |
+| auditor | 72 → 71 | **`/deleted`** | (无) |
+| cfo | 39 → 38 | **`/deleted`** | (无) |
+| employee | 1 → 1 | (无) | (无) |
+| finance | 56 → 55 | **`/deleted`** | (无) |
+| gm | 73 → 72 | **`/deleted`** | (无) |
+| hr | 12 → 12 | (无) | (无) |
+| operations | 18 → 17 | **`/deleted`** | (无) |
+| procurement | 22 → 21 | **`/deleted`** | (无) |
+| sales | 18 → 17 | **`/deleted`** | (无) |
+| warehouse | 13 → 12 | **`/deleted`** | (无) |
+
+> ★★ **在全部 11 个角色 × 76 条条目上,唯一走不到的东西是 `/deleted`** ——
+> 而那是 Tim 明令的那一条。★★
+> **`/margin` 与 `/inventory/reports` 的"权限不变"因此不是一句断言,是这张表的一行:
+> 每一个从前走得到它们的角色,现在仍然走得到,只是从另一个菜单进。**
+
+**逐页的"打得开吗"(与属主无关的那一半),前后逐字相同:**
+
+| 路由 | 打得开的角色(前后**完全一致**) |
+|---|---|
+| `/margin` | admin auditor cfo finance gm(**5**) |
+| `/inventory/reports` | admin auditor finance gm operations procurement sales warehouse(**8**) |
+| `/metal-prices` | **11 个角色全部**(`{ all: [] }`) |
+| `/pricing` | admin auditor finance gm procurement sales(**6**) |
+| `/inbound` | admin auditor finance gm operations procurement warehouse(**7**) |
+| `/tasks` | admin auditor finance gm hr operations procurement sales warehouse(**9**) |
+| **`/deleted`** | **前 9 个 → 后 1 个(admin)** ← 唯一变化的一行 |
+
+### 8.3 `/margin` 的那次合成探针 —— 以及【live 上没有那个角色】
+
+Tim 要求「拿一个真角色探一次:一个只持有加工权限、带 `view_prices` 的人,
+搬家之后仍然打得开 `/margin`」。
+
+> ★【必须先照直说的一件事】★ **live 上今天【没有】这个形状的角色。**
+> 实测 `role_permissions`:同时持有 `module.processing.view` 与 `data.view_prices`
+> 的角色只有 **admin / auditor / gm** 三个,**而这三个都【同时】持有
+> `module.finance.view`** —— 也就是说,今天没有任何一个角色是靠"加工"那一半
+> 通过 `/margin` 谓词的。(`operations` 有加工但**没有** `view_prices`;
+> `procurement` / `sales` 有 `view_prices` 但**没有**加工。)
+> **所以拿"一个真角色"探这一条是探不出来的 —— 不是没探,是那个角色不存在。**
+> 这件事本身值得记:**`/margin` 谓词里"加工"那一半今天【没有任何 live 读者】。**
+> (MAR-1 当时写的「没有任何 live 角色同时持有两者」是就 admin/auditor/gm 之外说的,
+> 与这里是同一个观察的两面。)
+
+**于是探针分两半,两半都做了:**
+
+1. **合成权限集**(正是 `allows()` 唯一的输入形状):
+   `['module.processing.view', 'data.view_prices']`
+   → `allows(FN.margin.permission, …)` = **`true`**,搬家前后**都是 `true`**。
+2. **谓词字面量逐字比对**:
+   * 前:`{"all":["data.view_prices"],"any":["module.finance.view","module.processing.view"]}`
+   * 后:`{"all":["data.view_prices"],"any":["module.finance.view","module.processing.view"]}`
+   * **属主**:`operation,finance` → `finance`(**只有这一行变了**)
+
+**而这个 `true` 就是页面守卫的答案本身**,不是它的一个近似:
+`app/margin/page.tsx` 调的是 `requireFunction(FN.margin)`,它读 `fn.permission`
+**整条**接过来求值,**从不看 `fn.modules`** —— 属主只喂菜单渲染。
+一个只持有加工 + `view_prices` 的人,搬家之后照样打得开 `/margin`;
+**他现在从财务的菜单里看见它。**
+
+### 8.4 ⑦ 的一处【可见的】副作用:哪些模块名从"可进"变成"· 受限"
+
+**页面一个都没丢(见 8.2),但顶栏上"这个模块名点不点得进去"变了。**
+原因是**模块可进性是从二级条目推导的**(IA-BUILD-1 §2.2):把一条条目搬走,
+它此前**独自撑着**的那个模块就不再有可进的东西了。
+
+| 角色 | 九个里进得去(前 → 后) | 变成「· 受限」的 | 变成可进的 |
+|---|---|---|---|
+| admin | 9/9 → 9/9 | — | — |
+| gm | 9/9 → 9/9 | — | — |
+| auditor | 8/9 → 8/9 | — | — |
+| finance | 8/9 → 8/9 | — | — |
+| **cfo** | 6/9 → **4/9** | 运营 · 销售 · 库存 | **工具** |
+| **operations** | 8/9 → **6/9** | 销售 · 财务 | — |
+| **warehouse** | 8/9 → **6/9** | 销售 · 财务 | — |
+| **sales** | 7/9 → **5/9** | 采购 · 财务 | — |
+| **procurement** | 8/9 → **7/9** | 财务 | — |
+| **hr** | 4/9 → **2/9** | 采购 · 销售 | — |
+| **employee** | 2/9 → **1/9** | 采购 · 销售 | **工具** |
+
+**逐条的因果,不是"大概是这样":**
+
+* **销售 / 采购变「受限」**(cfo · operations · warehouse · sales · hr · employee)
+  —— 这些角色此前是靠**金属行情**(判据 `{ all: [] }`,人人可读)撑开那两个模块的。
+  行情搬进工具,那根撑杆就没了。**页面没丢:他们现在从【工具】进同一页。**
+* **财务变「受限」**(operations · warehouse · sales · procurement)
+  —— 这四个角色**没有** `module.finance.view`,此前是靠 **`/inventory/reports`**
+  (双属主含 finance)撑开财务的。报表搬回库存,撑杆没了。
+  **页面没丢:他们现在从【库存】进同一页**(四个角色都持 `module.inventory.view`)。
+* **运营变「受限」**(cfo)—— cfo 此前是靠 **`/margin`**(双属主含 operation)
+  撑开运营的。**页面没丢:cfo 现在从【财务】进 `/margin`。**
+* **库存变「受限」**(cfo)—— cfo 此前是靠 **`/deleted`**(属主含 inventory)
+  撑开库存的。**这一条是【真的丢了页面】**,因为 `/deleted` 的门本身换了(§13.2.3)。
+* **工具变可进**(cfo · employee)—— 金属行情搬进来之后,**任何登录用户都进得去
+  工具**。IA §7 那条「`employee` 有 2/9 进得去(采购与销售)」的观察**因此过期了**,
+  正确的说法是:**`employee` 现在 1/9 —— 工具**,而他在里面**仍然只看得见
+  「金属行情」一条可点**,其余写「· 受限」。**观察本身没错,是它挂靠的那个位置搬了家。**
+
+> **★ 这一整节都不是缺陷,是 D5 在正常工作的样子 ★**
+> 九个模块名**永远都在顶栏上**,进不去的写着「· 受限」而不是消失 ——
+> 所以上表里每一次「变成受限」都是一句**看得见的、具名的**限制,
+> 不是一处静默的缺席。**而它背后没有任何一页真的走不到了(唯一的例外是
+> `/deleted`,那是明令)。**
+
+### 8.5 本刀跑过的闸(判词全部取自脚本自己打出来的那一行)
+
+| 闸 | 判词 | 数字 |
+|---|---|---|
+| `npm run build` | **`BUILD_EXIT=0`** | 12 条构建期检查全绿 + `Compiled successfully`;`check-permission-predicate`:**FUNCTIONS 76 条(4 条跨模块)**,求值一处,守卫 4 支 178 处调用都接住了返回值 |
+| `check-i18n`(**故障注入验过**)| ✓ | 把 `nav.tools` 改成 `nav.toolsXX` → **红,点名 `lib/modules.ts:176 缺于 en 与 zh`**;改回 → 绿。**这条新键确实被这道闸看着,不是空过** |
+| `smoke-routes.mjs`(快的那一半)| **`SMOKE_EXIT=0`** | **234 ok / 8 skipped / 0 FAILED** |
+| `smoke-routes.mjs --reach=operations` | **第一跑 `REACHOPS_EXIT=1`(本刀自己改错了断言)· 第二跑 `REACHOPS2_EXIT=0`** | 两跑**走到 186 · 打得开 35 · 走不到 3**,三个数逐字相同 —— 见 `docs/information-architecture.md` §13.5 |
+| **数据库那三道闸** | **没跑,而这是判断不是遗漏** | **本刀零 DDL、零迁移**:⑥⑦ 全部在 `lib/modules.ts` 与两份文案里,一行 SQL 都没有。`db/gate.py` 守的是"库能不能从镜像重建",本刀没有碰镜像 —— 跑它只会花掉 183–650 秒去证明一件没有被动过的事 |
+| **备份** | **没跑,同一条理由** | `~/evoltrya-backups/backup.sh` 是**迁移前**的那道闸(AGENTS.md:「备份跑完再动库」)。**没有迁移,就没有要回滚的东西** |
+
+**没跑的那两个 `--reach` 角色,照直说:**
+`--reach=admin`(实测 ~63 分)与 `--reach=finance`(实测 59分47秒)**本刀没有跑**。
+选 `operations` 是因为它**同时**碰到本刀改的三样东西里的两样(`/inbound` 新属主、
+`/metal-prices` 换模块),而且是三个角色里最便宜的(实测 25分28秒)。
+**它们没跑这件事由 §8.2 那张【逐角色求值】的表补上了一半** ——
+那张表覆盖 **11 个角色**(比 `--reach` 支持的 3 个多),但它求的是**人的可达性**,
+**不是**爬虫的;两者的区别见 §8.2 的那条方框。**这一条按 AGENTS.md 记进"积压的
+reach 债",不假装它已经跑过。**

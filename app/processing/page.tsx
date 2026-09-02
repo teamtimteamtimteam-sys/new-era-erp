@@ -110,11 +110,23 @@ export default async function ProcessingPage({
             <div className="flex items-center justify-between mb-4">
                 <h1 className="text-2xl font-bold">{t('processing.listTitle')}</h1>
                 <div className="flex items-center gap-3">
-                    {/* 【加工模块名下的跨模块功能】NAV-REG-1:这里从前是一个手写的
+                    {/* 【运营模块名下的二级条目】NAV-REG-1:这里从前是一个手写的
                         <Link href="/margin">,与权限之间没有任何东西保证同步。
                         现在整条来自注册表 —— 地址、标签、以及"这个人进不进得去"
-                        都是 FN.margin 那一条,而 /margin 自己的守卫读的是同一条。
-                        加工这侧没有子导航,所以入口仍然放在页头(位置一字未动)。 */}
+                        都由 getFunctionAccess('operation') 派生。
+
+                        ★【UI-FIX-1 ⑦(2026-09-02)之后这里渲染的东西变了,照直记下】★
+                        它按【属主模块】取条目,所以搬家会直接改变这个页头:
+                          少了 /margin(搬去财务独占)与 /deleted(搬去设置,门也换了);
+                          多了 /inbound(运营成为第三个属主 —— 车间要知道什么料到了)。
+                        **三条都是明令的搬家,不是回归。**
+
+                        ★【一处【本刀之前就有】的重复:报告,不在这一刀修】★
+                        上面那句注释从前写的是"跨模块功能",而这个调用返回的是
+                        运营名下的【全部】条目 —— 于是 app/processing/Subnav.tsx 硬编码的
+                        那 4 条(工单 / 加工单 / 在制品 / 交接班)在页头又出现一遍。
+                        措辞已按实际行为改正;要不要 .filter(f => f.modules.length > 1)
+                        是一个产品判断,与下一刀的活动态高亮一起处置。 */}
                     {(await getFunctionAccess('operation')).map(({ fn, allowed }) =>
                         allowed ? (
                             <Link key={fn.href} href={fn.href} className="text-sm text-blue-600 hover:underline">

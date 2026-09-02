@@ -493,6 +493,8 @@ const zh = {
         stocktakes: '盘点',
         finance: '财务',
         tasks: '任务',
+        // ★ UI-FIX-1 ⑥:一级模块「任务」改名为「工具」。★ 见 en.ts 同一处的说明。
+        tools: '工具',
         hr: '人力资源',
         deleted: '已删除记录',
         logout: '登出',

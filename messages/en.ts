@@ -509,6 +509,11 @@ const en = {
         stocktakes: 'Stocktakes',
         finance: 'Finance',
         tasks: 'Tasks',
+        // ★ UI-FIX-1 ⑥:一级模块「任务」改名为「工具」。★
+        // 【nav.tasks 留着,而这不是重复】nav.tools 是那个【一级模块】的标签;
+        // nav.tasks 是它名下那条【二级条目】(任务板本身)的标签,同时也是
+        // /tasks 这个权限范围拒绝页的标题。改名换掉的是模块的名字,不是那一页的名字。
+        tools: 'Tools',
         hr: 'HR',
         deleted: 'Deleted records',
         logout: 'Log out',

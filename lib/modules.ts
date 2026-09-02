@@ -121,8 +121,9 @@ export const SCOPES: readonly AccessScope[] = [
     // {new,bulk,[id]/edit} 走 requireEditPermission('module.pricing.edit', …)。
     // 给列表页挂上 module.pricing.view,屏幕上就会对一个数据库愿意完整回答的人
     // 显示"你没有权限",那是【UI 比数据严】,而且严得没有任何东西背书。
-    // ★ IA-BUILD-1 / D6:它在【导航】上现在同属采购与销售(见 FUNCTIONS),
-    //   而那一条的判据同样是"最松的、仍然连贯的那一个" —— 见那里的抬头。
+    // ★ UI-FIX-1 ⑦(2026-09-02):它在【导航】上现在只属于【工具】。
+    //   IA-BUILD-1 / D6 此前把它挂在采购与销售之下,那句话已被 Tim 推翻 ——
+    //   见 FUNCTIONS 里工具那一段。**判据仍然是"最松的、仍然连贯的那一个"。**
     { id: '/pricing', navKey: 'nav.pricing', permission: 'module.pricing.view' },
     { id: '/inbound', navKey: 'nav.inbound', permission: 'module.inbound.view' },
     { id: '/output', navKey: 'nav.output', permission: 'module.output.view' },
@@ -166,7 +167,13 @@ export const MODULES: readonly ModuleEntry[] = [
     { id: 'finance', navKey: 'nav.finance' },
     { id: 'inventory', navKey: 'nav.inventory' },
     { id: 'hr', navKey: 'nav.hr' },
-    { id: 'tasks', navKey: 'nav.tasks' },
+    // ★ UI-FIX-1 ⑥(2026-09-02):「任务」改名为「工具」。★
+    // Tim 的理由:任务一个人撑不起一个一级模块(2 页,对着财务的 54 页),
+    // 而他【不要】把它折进别的模块,所以这一格改成【小工具的去处】。
+    // 【只动导航的 id 与标签,权限范围一个字没动】SCOPES 里 '/tasks' 仍然是
+    // module.tasks.view —— 那是任务表 RLS 上写着的码,与顶栏叫什么无关
+    // (本文件抬头 §一 那条"导航重排,门一个字不动")。
+    { id: 'tools', navKey: 'nav.tools' },
     { id: 'settings', navKey: 'nav.settings' },
 ]
 
@@ -284,6 +291,33 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/finance/cashflow', navKey: 'finance.subnav.cashflow', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.reports' },
     { href: '/finance/cash-forecast', navKey: 'finance.subnav.cashForecast', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.reports' },
     { href: '/finance/price-exposure', navKey: 'priceExposure.entryLink', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.reports' },
+    // ★★【UI-FIX-1 ⑦:批次毛利从运营【搬走】,财务独占 —— 而【判据一个字没动】】★★
+    //
+    // Tim 的理由:它是一个财务数字,不是一个车间数字。
+    //
+    // ★【明令记下来的那一条:摆在哪 ≠ 谁进得去】★
+    //   谓词仍然是 `data.view_prices AND (finance OR processing)` ——
+    //   **一个只持有 processing + view_prices 的人照样打得开 /margin**,
+    //   只是他现在从【财务】的菜单里看见它。属主收窄了,门没有收窄。
+    //   (本刀在 live 上拿真角色探过这一条,结论记在 docs/nav-registry.md。)
+    //
+    // ★【为的记录:/margin 是多属主的【第一个】先例,而那条先例仍然作数】★
+    //   MAR-1 让它同属加工与财务;NAV-REG-1 引的正是它的 AND 合取,作为
+    //   "注册表既需要 OR 也需要 AND"的证据。**那个谓词原封不动地活着** ——
+    //   本刀收窄的只是它的属主。机制的先例与这一次的摆放是两件事。
+    //
+    // 【它仍然带 group】属主是财务,财务是唯一有第三级的模块,所以它落在「报表」组里,
+    // 位置与从前(共有区末尾、财务报表组内最后一条)逐字相同。
+    // 【运营那一侧不是一处缺席】/processing 列表页页头那个 /margin 链接【留着】——
+    // 它读的是 FN.margin.permission(同一份判据),而不是属主模块,所以进得去的人
+    // 从加工页上仍然一点就到。属主管的是【菜单】,不是【页面之间的链接】。
+    {
+        href: '/margin',
+        navKey: 'margin.title',
+        modules: ['finance'],
+        permission: { all: ['data.view_prices'], any: [P_FINANCE, P_PROCESSING] },
+        group: 'finance.group.reports',
+    },
     { href: '/finance/journal', navKey: 'finance.subnav.journal', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.entries' },
     { href: '/finance/journal/new', navKey: 'finance.subnav.newEntry', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.entries' },
     { href: '/finance/receivables', navKey: 'finance.subnav.receivables', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.receivables' },
@@ -315,6 +349,20 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     //   从二级条目推导的,所以"只有盘点权限的人进得去库存"自动成立。**
     { href: '/stocktakes', navKey: 'nav.stocktakes', modules: ['inventory'], permission: P_STOCKTAKES },
     { href: '/materials', navKey: 'nav.materials', modules: ['inventory'], permission: P_MATERIALS },
+    // ★★【UI-FIX-1 ⑦:库存报表从财务【搬回】库存,独占 —— 这是一次纠错,不是一次去重】★★
+    //
+    // 【它此前在哪】NAV-REG-1/R5 把它挂成 inventory + finance 双属主,并且给了
+    // group: 'finance.group.reports' —— 于是它出现在财务菜单的「报表」组里,标签
+    // 就叫「报表」。CHART-0 ② 查过它【不是别名】(它有自己的内容),把措辞问题留给了 Tim。
+    // **2026-09-02 Tim 裁定:它是【库存】报表,摆在财务底下是一个错误。**
+    // 那一页自己印的就是"Inventory reports — read-only views over stock as it stands"。
+    //
+    // ★【判据一个字没动,而这是明令】★ 仍然是 module.inventory.view。
+    //   **一页摆在哪、与谁进得去,是两个问题,这一刀只动第一个。**
+    //   于是改动前进得去的人,改动后一个不少地仍然进得去 —— 只是从库存菜单进。
+    // 【group 一并去掉,因为它只对财务有意义】只有财务有第三级(FINANCE_MODULE_ID);
+    //   留着一个 finance.group.* 而属主里没有 finance,是一个没有读者的字段。
+    { href: '/inventory/reports', navKey: 'inventory.subnav.reports', modules: ['inventory'], permission: P_INVENTORY },
 
     // ══ 人力 HR —— 勘察 D3 判定为 DERIVED,逐条取自 app/hr/Subnav.tsx ════════
     { href: '/hr', navKey: 'hr.subnav.overview', modules: ['hr'], permission: P_HR },
@@ -328,8 +376,43 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/hr/reviews', navKey: 'hr.subnav.reviews', modules: ['hr'], permission: P_HR },
     { href: '/hr/kpi', navKey: 'hr.subnav.kpi', modules: ['hr'], permission: P_HR },
 
-    // ══ 任务 Tasks —— 只有一条,而它仍然是一个一级模块(Tim 的 D1) ═════════
-    { href: '/tasks', navKey: 'nav.tasks', modules: ['tasks'], permission: P_TASKS },
+    // ══ 工具 Tools(UI-FIX-1 ⑥/⑦)══════════════════════════════════════════
+    // 此前叫「任务」,名下只有一条。改名之后它是【小工具的去处】,而 ⑦ 把定价
+    // 整组搬了进来。**条目的标签仍然是「任务」** —— 改名换的是模块,不是那一页。
+    { href: '/tasks', navKey: 'nav.tasks', modules: ['tools'], permission: P_TASKS },
+    // ★★【UI-FIX-1 ⑦:定价从采购与销售【搬进】工具,而这【推翻了 D6 as built】】★★
+    //
+    // 【被推翻的是什么】IA-BUILD-1 的 D6 把定价同时挂在采购与销售之下,理由是
+    // "它同时服务两侧,塞进任何一侧都会让另一侧看不见"。那个理由本身没有错,
+    // **Tim 在 2026-09-02 就定价这一件事推翻了它** —— 定价现在【只属于工具】。
+    // 【所以下面那段 D6 的推理不再生效,不许照它读】共有区里 D6 的抬头已经改写。
+    // 【D6 的机制没有被推翻】/commissions、/inbound、/output、/finance/freight
+    // 仍然是多属主的,多属主机制本身一行未动 —— 变的只是定价这一族的属主。
+    //
+    // 【判据一个字没动】仍然是 module.pricing.view;搬的是【它在哪个菜单里】,
+    // 不是【谁进得去】。这与本刀 /margin 那一条是同一条裁定。
+    { href: '/pricing', navKey: 'nav.pricing', modules: ['tools'], permission: P_PRICING },
+    { href: '/pricing/formulas', navKey: 'pricing.subnav.formulas', modules: ['tools'], permission: P_PRICING },
+    { href: '/pricing/calculator', navKey: 'pricing.subnav.calculator', modules: ['tools'], permission: P_PRICING },
+    // ★★ 金属行情:**判据仍然取【最松的、仍然连贯的那一个】,一个字没动** ★★
+    //
+    // 【UI-FIX-1 ⑦ 就它单独问过 Tim,而那不是客套】Tim 说的是"/pricing 整体",
+    // 而金属行情在注册表里是【单独一条】、走【另一条路由树】、带【全站最松的判据】——
+    // 三件都与 /pricing/* 那一组不同,所以"整体"覆不覆盖它是一个真的歧义。
+    // **2026-09-02 Tim 裁定:一并搬进工具,采购与销售两侧都不再有这个入口。**
+    //
+    // metal_prices 的 SELECT 策略是 `USING (true)` —— 【读是公开的】,只有写受管
+    // (module.pricing.edit)。所以这一条的判据是 `{ all: [] }`:
+    //   **一个空的 all 通过 allows() 恒为真 → 任何登录用户都看得见这个入口。**
+    //
+    // 【为什么是这个值而不是 module.pricing.view】那会让界面【比数据严】:
+    // 一个数据库愿意完整回答的人,会在屏幕上读到"你没有权限"。本仓库有一条更老的
+    // 规矩说的是同一件事 —— 守卫跟着数据自己的 RLS 走,不跟目录的措辞走。
+    // 【它仍然不是无门的】写那一半在 /metal-prices/{new,bulk,[id]/edit} 上由
+    // requireEditPermission('module.pricing.edit') 把关,一个字没动。
+    // 【它仍然是 dock 的兜底那一条】lib/dock.ts 的候选清单末位靠的是这个判据,
+    // 而属主换成工具【不影响 dock】—— dock 认的是 href,不是属主模块。
+    { href: '/metal-prices', navKey: 'nav.metalPrices', modules: ['tools'], permission: { all: [] } },
 
     // ══ 设置 Settings ═══════════════════════════════════════════════════════
     // 【没有 module.settings.view 这个码,本刀也不铸一个】铸码是迁移级的动作,
@@ -346,6 +429,36 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     //     approval_threshold_base 这四列,线上那一行是直接改库改出来的。
     //     所以本刀搬走的是【那扇窗】,不是一个控制器。见 docs/information-architecture.md。
     { href: '/settings/approvals', navKey: 'finance.approvals.title', modules: ['settings'], permission: P_MANAGE_PERMISSIONS },
+    // ★★【UI-FIX-1 ⑦:被删记录搬进设置,独占 —— 而【它的判据跟着一起搬】】★★
+    //
+    // 【搬之前】AUDEL-3 给它的属主是采购/运营/销售/库存四个模块,判据是
+    // 六个模块码的并集(inbound / output / processing / stocktakes / purchasing / sales
+    // 任一)。那份并集正是视图 deleted_records 每一行自带的 permission 列。
+    //
+    // ★【本刀与其余四条不同:这一条【确实】改了谁进得去,而那是 Tim 明令的】★
+    //   他裁定这一页是【审计性质】的,不是日常的,所以它由设置那一侧的码把关:
+    //   action.manage_permissions —— 与 /settings/permissions、/settings/approvals
+    //   同一个码,也就是"设置这个模块的治理那一半"。
+    //   【为什么不是设置模块的推导可进性】那会变成 manage_permissions OR 字典编辑
+    //   OR 批量导入 —— 一个【能改物料字典】的人因此看得见审计页,那不连贯。
+    //
+    // ★【实测的代价,对着 live 的授权,一条不隐瞒】★(2026-09-02,role_permissions)
+    //   改动前看得见的 9 个角色:admin auditor cfo finance gm operations
+    //                            procurement sales warehouse
+    //   改动后看得见的 1 个角色:admin
+    //   **失去它的 8 个角色**:auditor cfo finance gm operations procurement sales warehouse
+    //   Tim 预期会失去的是 procurement / warehouse / sales —— 它们确实失去了,
+    //   ★ 但一并失去的还有 auditor、gm、cfo、finance 与 operations ★,
+    //   而 **auditor 那一条值得他单独再看一眼**:一页被判为"审计性质",结果把
+    //   审计角色本人挡在外面。本刀照裁定执行,把这件事照直写下来而不是替他改判。
+    //   (全表见 docs/information-architecture.md 与 docs/nav-registry.md。)
+    //
+    // 【行一级的过滤一字未动】视图 deleted_records 每一行仍然由它自己那个
+    // has_permission 裁决,所以进来之后看得见哪几类,与从前完全一样。
+    // 本谓词只回答"这一页对你有没有意义"。
+    // 【⑧ 记在文档里,不在这里决定】"有了全站变更历史之后 /deleted 还需不需要"
+    // 是留给那一份勘察的问题 —— docs/information-architecture.md §14。
+    { href: '/deleted', navKey: 'nav.deleted', modules: ['settings'], permission: P_MANAGE_PERMISSIONS },
 
 
     // ══════════════════════════════════════════════════════════════════════
@@ -362,65 +475,27 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // 【双】佣金:主语是代理人(一个 service_vendor 供应商),但 free_standing
     // 与卖方侧的佣金是销售在看 —— 勘察 C1/C4。
     { href: '/commissions', navKey: 'nav.commissions', modules: ['purchasing', 'sales'], permission: P_SUPPLIERS },
-    // 【双】库存报表:R5 —— 估值/对账/追溯既是库存的问题,也是财务的问题。
-    { href: '/inventory/reports', navKey: 'inventory.subnav.reports', modules: ['inventory', 'finance'], permission: P_INVENTORY, group: 'finance.group.reports' },
-    // 【双】收货 / 进料批次:采购的收货腿,也是库存的入库腿 —— 勘察 C1/C6。
-    { href: '/inbound', navKey: 'nav.inbound', modules: ['purchasing', 'inventory'], permission: P_INBOUND },
+    // 【三】收货 / 进料批次:采购的收货腿,库存的入库腿 —— 勘察 C1/C6。
+    // ★【UI-FIX-1 ⑦:运营成为第三个属主 —— 这是一次纯粹的【增加】】★
+    //   Tim 的理由:车间需要知道什么料到了。
+    //   **没有任何人失去东西**:判据一个字没动(module.inbound.view),
+    //   采购与库存两侧的入口原样留着,只是运营的菜单里多了一条。
+    //   【它是本注册表里第一条【三】属主的条目】—— 机制本来就没有上限,
+    //   modules 是一个数组而不是一对,这一条只是第一次用到第三格。
+    { href: '/inbound', navKey: 'nav.inbound', modules: ['purchasing', 'inventory', 'operation'], permission: P_INBOUND },
     // 【双】产出批次:**这是 Tim 自己举的例子** —— 一批产出既是加工结果,也是可售库存。
     { href: '/output', navKey: 'nav.output', modules: ['operation', 'inventory'], permission: P_OUTPUT },
-    // ══ D6:定价与行情【同属采购与销售】,一份判据,不设第十个模块 ═══════════
-    // 定价服务采购(payable %、扣杂)与销售(报价)两侧;塞进任何一侧都会让
-    // 另一侧看不见。/margin 是这条的先例。
-    { href: '/pricing', navKey: 'nav.pricing', modules: ['purchasing', 'sales'], permission: P_PRICING },
-    { href: '/pricing/formulas', navKey: 'pricing.subnav.formulas', modules: ['purchasing', 'sales'], permission: P_PRICING },
-    { href: '/pricing/calculator', navKey: 'pricing.subnav.calculator', modules: ['purchasing', 'sales'], permission: P_PRICING },
-    // ★★ 金属行情:**Tim 点名的那一个例外 —— 判据取【最松的、仍然连贯的那一个】** ★★
-    //
-    // metal_prices 的 SELECT 策略是 `USING (true)` —— 【读是公开的】,只有写受管
-    // (module.pricing.edit)。所以这一条的判据是 `{ all: [] }`:
-    //   **一个空的 all 通过 allows() 恒为真 → 任何登录用户都看得见这个入口。**
-    //
-    // 【为什么是这个值而不是 module.pricing.view】那会让界面【比数据严】:
-    // 一个数据库愿意完整回答的人,会在屏幕上读到"你没有权限"。本仓库有一条更老的
-    // 规矩说的是同一件事 —— 守卫跟着数据自己的 RLS 走,不跟目录的措辞走。
-    // 【为什么不是"干脆不放进导航"】那就退回成一处缺席,而 D5 的全部内容是
-    // 缺席与受限必须分得开。它既然人人读得到,就该人人看得见入口。
-    // 【它仍然不是无门的】写那一半在 /metal-prices/{new,bulk,[id]/edit} 上由
-    // requireEditPermission('module.pricing.edit') 把关,一个字没动。
-    { href: '/metal-prices', navKey: 'nav.metalPrices', modules: ['purchasing', 'sales'], permission: { all: [] } },
+    // ══ D6 as built【已于 2026-09-02 被 UI-FIX-1 ⑦ 就定价这一件事推翻】═══════
+    // 这里从前写的是:「定价与行情同属采购与销售,一份判据,不设第十个模块 ——
+    // 定价服务采购(payable %、扣杂)与销售(报价)两侧;塞进任何一侧都会让另一侧
+    // 看不见。/margin 是这条的先例。」
+    // ★ 那段推理【不再生效】,不许照它读。★ Tim 裁定定价整族(含金属行情)
+    //   只属于【工具】,采购与销售两侧都不再有这个入口 —— 见上面工具那一段。
+    //   记在这里而不是删掉,是为了让"D6 说定价同属两侧"这句话不至于读起来还作数。
+    // 【被推翻的是这一族的摆放,不是多属主机制】机制仍然在用:上面的 /commissions、
+    //   /inbound(本刀刚变成三属主)、/output、下面的 /finance/freight 都是。
     // 【双】运费单:既是一笔应付,也是一票货的成本 —— 勘察 C2。
     { href: '/finance/freight', navKey: 'finance.subnav.freight', modules: ['logistics', 'finance'], permission: P_FINANCE, group: 'finance.group.payables' },
-    // MAR-1:批次毛利。收入在财务,分摊成本在加工,而【没有任何 live 角色同时持有
-    // 两者】(admin / auditor / gm 除外)—— 挂进任一模块的路由树就会挡掉另一半读者。
-    // 谓词与 db/views/batch_margin.sql 逐字同形。
-    // 【收窄的那一半(any)是模块,相与的那一半(all)是数据类】—— 这个结构本身
-    // 就是拒绝措辞的依据(见 moduleGuard 的 requireFunction)。
-    {
-        href: '/margin',
-        navKey: 'margin.title',
-        modules: ['operation', 'finance'],
-        permission: { all: ['data.view_prices'], any: [P_FINANCE, P_PROCESSING] },
-        group: 'finance.group.reports',
-    },
-
-    // ══ 跨全部模块的那一条 ══════════════════════════════════════════════════
-    // AUDEL-3:被删记录。它跨【七支、六个码】,而这六个码正是视图 deleted_records
-    // 每一行自带的那个 permission 列(db/views/deleted_records.sql)——
-    // 这里不新造码,只把那份并集写成一个谓词。
-    // 【all 是空的】:没有哪个码是人人必须持有的,由 any 单独决定。
-    // 【行一级的过滤仍然在视图里】本谓词只回答"这一页对你有没有意义"。
-    // 【它的属主是六个模块】—— 用新的九模块 id 重述,一个读者都没有少:
-    //   inbound/output/stocktakes → 库存与运营;purchasing → 采购;sales → 销售;
-    //   processing → 运营。
-    {
-        href: '/deleted',
-        navKey: 'nav.deleted',
-        modules: ['purchasing', 'operation', 'sales', 'inventory'],
-        permission: {
-            all: [],
-            any: [P_INBOUND, P_OUTPUT, P_PROCESSING, P_STOCKTAKES, P_PURCHASING, P_SALES],
-        },
-    },
 ]
 
 /** 某个模块名下的二级条目(一个条目会在它每个属主模块下各出现一次 —— 那是要点)。 */
