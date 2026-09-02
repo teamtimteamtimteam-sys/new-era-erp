@@ -764,6 +764,13 @@ const en = {
         password: 'Password',
         submit: 'Sign in',
         errInvalid: 'Wrong email or password',
+        errInvalidHint: 'Check the email for typos, and the capitalisation of your password.',
+        // ── LOGIN-1(2026-09-02):见 zh.ts 同一处的注释 ────────────────────
+        errUnconfirmed: 'This email has not been confirmed yet',
+        errUnconfirmedHint: 'Your password is fine — the account is one step from ready. Open the invitation email you were sent and follow the confirmation link; if you cannot find it, ask an administrator to send it again.',
+        errThrottled: 'Too many attempts — try again in a few minutes',
+        errThrottledHint: 'To stop anyone guessing their way in, sign-in for this email is paused for a few minutes. Try again shortly — your account is not locked.',
+        submitting: 'Signing in…',
         // SESSION-1:一张【什么都不说】的登录表单,与一次崩溃在屏幕上长得一模一样。
         // 走到这一句的否定是【确立的】—— 中间件只在它真的问到了答案时才带 reason=ended
         // 过来;问不到答案的那一种走 503 那一页,根本到不了这里。

@@ -92,22 +92,19 @@ export default function BrandSamplerPage() {
                 color: 'var(--brand-text)',
             }}
         >
-            {/* ── 水印 · 品牌指南许可的用法:Forest Green,50% 不透明度,原描边粗细 ──
-                【不透明度 50% 是指南定的,不许改】;而【位置与尺寸是本页的排版决定】:
-                第一版放在右侧垂直居中、36rem 宽,压在正文阅读栏上,实测渲染后文字虽仍可读
-                但很吵。改到右下角、26rem、窄屏隐藏 —— 水印是背景,不该和内容抢。
-                原图一个字节都没改(public/brand/evoltrya-sphere.svg,本身就是
-                Forest Green #6B8D54);50% 由 CSS 的 opacity 给,不是另存一版浅色图。
-                aria-hidden:它是装饰,读屏软件不该念它。 */}
-            {/* eslint-disable-next-line @next/next/no-img-element -- SVG:next/image 不优化矢量图,
-                反而多一层 loader。本地静态 SVG 用 <img> 是对的写法。 */}
-            <img
-                src="/brand/evoltrya-sphere.svg"
-                alt=""
-                aria-hidden="true"
-                className="pointer-events-none fixed right-[-6rem] bottom-[-6rem] hidden w-[26rem] select-none lg:block"
-                style={{ opacity: 0.5 }}
-            />
+            {/* ── 【水印已移除】LOGIN-1(2026-09-02)· R2 ────────────────────────
+                这里【曾经】有一个球体水印:sphere 那张 SVG,Forest Green、
+                50% 不透明度、右下角、26rem、窄屏隐藏。它是照着品牌指南里
+                "许可的用法"做的 —— 所以它不是随手加的,而这正是要写下来的原因。
+
+                【它被刻意删掉了。别照着品牌指南把它加回来。】Tim 的裁定:
+                **螺旋球体是给印刷品的**(名片一类),**在 ERP 的界面里没有位置**。
+                不做背景、不放大、不着色、不浮在任何东西后面。
+                **球体在界面里只以一种方式出现:作为完整字标里的那个「O」。**
+                这一条管的是整套系统,不是某一页 —— 见 docs/login-page.md §1。
+
+                那张 sphere SVG 仍然留在仓库里,是给【连字标都放不下】的地方用的:
+                favicon、主屏图标。那是尺寸问题,不是装饰。 */}
 
             <div className="relative mx-auto max-w-[92rem] px-6 py-10">
                 {/* ── 临时横幅:必须一眼看出这不是产品的一部分 ──────────────── */}
