@@ -28,18 +28,33 @@
 // 【手机是底栏】桌面是顶栏底下一条细排。位置不同,内容与判据完全相同。
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState, useTransition } from 'react'
+import { useOptimistic, useState, useTransition } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { entryForPath } from '@/lib/navTrail'
 import { addToDock, removeFromDock, resetDock } from './dockActions'
 import type { DockEntry } from './types'
 
-export default function Dock({ items, isDefault }: { items: DockEntry[]; isDefault: boolean }) {
+export default function Dock({ items: serverItems, isDefault }: { items: DockEntry[]; isDefault: boolean }) {
     const pathname = usePathname()
     const t = useTranslations()
     const [editing, setEditing] = useState(false)
     const [pending, startTransition] = useTransition()
     const [error, setError] = useState<string | null>(null)
+
+    // ★【乐观更新,而这不是装饰 —— 它买的是一条实测出来的缺陷】★
+    // 服务端动作写完之后要 revalidatePath('/', 'layout'),而外壳在【每一页】上,
+    // 所以整棵树要重画一遍。实测(稳定别名,按下移除之后逐秒采样):
+    //     1s 没变 · 2s 没变 · 4s 没变 · **8s 才变**。
+    // 也就是说:人按了「×」,屏幕上【五秒钟什么都没发生】。
+    // 一个按下去没反应的控件读起来就是坏的 —— 而它其实已经写进库里了。
+    // useOptimistic 让这一格【立刻】变,真值到了再对齐;失败时 React 自己回滚,
+    // 而错误由下面那句 role="alert" 说出来。**存的是什么没有变,变的是等待期间
+    // 屏幕说的是哪一句话。**
+    const [items, applyOptimistic] = useOptimistic(
+        serverItems,
+        (current: DockEntry[], action: { kind: 'remove'; href: string } | { kind: 'reset' }) =>
+            action.kind === 'remove' ? current.filter((i) => i.href !== action.href) : current,
+    )
 
     // 【"把当前这一页加进来"】—— 当前路径落在哪条注册表条目下,加的就是它。
     // 加的是【条目的地址】而不是当前 URL:一个带 id 的详情页不该进 dock,
@@ -47,13 +62,20 @@ export default function Dock({ items, isDefault }: { items: DockEntry[]; isDefau
     const here = entryForPath(pathname)
     const alreadyHere = here ? items.some((i) => i.href === here.href) : true
 
-    const run = (fn: () => Promise<void>) => {
+    const run = (
+        fn: () => Promise<void>,
+        optimistic?: { kind: 'remove'; href: string } | { kind: 'reset' },
+    ) => {
         setError(null)
         startTransition(async () => {
+            // 【乐观更新必须在 transition【里面】发起】—— 在外面调用 React 会警告,
+            // 而且它会立刻被丢掉。
+            if (optimistic) applyOptimistic(optimistic)
             try {
                 await fn()
             } catch (e) {
                 // 【失败要说出来】—— 一个静默失败的"加入 dock"会让人以为加过了。
+                // (乐观的那一格由 React 在 transition 结束时自己回滚。)
                 setError((e as Error).message)
             }
         })
@@ -166,14 +188,19 @@ export default function Dock({ items, isDefault }: { items: DockEntry[]; isDefau
 
 function RemoveButton({
     href, run, pending, label,
-}: { href: string; run: (fn: () => Promise<void>) => void; pending: boolean; label: string }) {
+}: {
+    href: string
+    run: (fn: () => Promise<void>, optimistic?: { kind: 'remove'; href: string } | { kind: 'reset' }) => void
+    pending: boolean
+    label: string
+}) {
     return (
         <button
             type="button"
             aria-label={label}
             title={label}
             disabled={pending}
-            onClick={() => run(() => removeFromDock(href))}
+            onClick={() => run(() => removeFromDock(href), { kind: 'remove', href })}
             className="ml-0.5 rounded px-1 text-[11px] leading-none text-[color:var(--brand-muted-glass)] hover:text-[color:var(--brand-destructive)] disabled:opacity-50"
         >
             ×
