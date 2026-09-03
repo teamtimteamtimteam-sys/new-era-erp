@@ -3,9 +3,17 @@
 // 评级档位编辑器 —— 与 LeaveTypesEditor 同一套路:行内编辑 + 底部新增卡。
 // 停用而不删除(is_active);is_probation_pass 是【提示,不是规则】,
 // 转正与否由评估单据上的 probation_outcome 明说。
+//
+// CONV-2:那张手写的 7 列表换成 <EditableTable>。
+// ★【底部那张"新增一档"的卡【没有】进模板】★ —— 它不是网格的一部分:
+//   它是一张【表单】,主语是"还不存在的那一行",所以它没有行键、没有草稿、
+//   也没有可比较的原行。把新增塞进可编辑网格,会让那个 Record 里出现一个
+//   假的行键(`'__new__'` 之类),而那正是 /settings/dictionaries 今天的写法 ——
+//   见 docs/editable-grid-template.md §⑥,这是模板【做不到】的第一件事。
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from '@/lib/i18n/client'
+import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
 import { saveRatingScale } from './actions'
 
 export type ScaleRow = {
@@ -19,14 +27,14 @@ export type ScaleRow = {
     is_probation_pass: boolean
 }
 
+type Draft = ScaleRow
+
 const inp = 'w-full border border-gray-300 rounded px-1 py-0.5 text-xs'
 
 export default function ScaleEditor({ rows }: { rows: ScaleRow[] }) {
     const t = useTranslations()
     const locale = useLocale()
     const router = useRouter()
-    const [editing, setEditing] = useState<string | null>(null)
-    const [draft, setDraft] = useState<ScaleRow | null>(null)
     const [pending, startTransition] = useTransition()
     const [error, setError] = useState<string | null>(null)
 
@@ -35,37 +43,7 @@ export default function ScaleEditor({ rows }: { rows: ScaleRow[] }) {
     const [nZh, setNZh] = useState('')
     const [nSort, setNSort] = useState('')
 
-    function begin(r: ScaleRow) {
-        setEditing(r.code)
-        setDraft({ ...r })
-        setError(null)
-    }
-
-    function save() {
-        if (!draft) return
-        setError(null)
-        startTransition(async () => {
-            const r = await saveRatingScale(
-                draft.code,
-                {
-                    name_en: draft.name_en,
-                    name_zh: draft.name_zh,
-                    description_en: draft.description_en,
-                    description_zh: draft.description_zh,
-                    sort_order: draft.sort_order,
-                    is_active: draft.is_active,
-                    is_probation_pass: draft.is_probation_pass,
-                },
-                false
-            )
-            if (r.error) setError(r.error)
-            else {
-                setEditing(null)
-                setDraft(null)
-                router.refresh()
-            }
-        })
-    }
+    const yesNo = (b: boolean) => (b ? t('permissions.yes') : t('permissions.no'))
 
     function add() {
         setError(null)
@@ -91,134 +69,122 @@ export default function ScaleEditor({ rows }: { rows: ScaleRow[] }) {
         })
     }
 
+    const columns: EditableColumn<ScaleRow, Draft>[] = [
+        {
+            key: 'code',
+            header: t('reviews.scaleCode'),
+            priority: true,
+            className: 'font-mono text-gray-500',
+            render: (r) => r.code,
+        },
+        {
+            key: 'name',
+            header: t('reviews.scaleName'),
+            priority: true,
+            render: (r) => (locale === 'zh' ? r.name_zh : r.name_en),
+            edit: (d, set) => (
+                <>
+                    <input value={d.name_en} className={inp + ' mb-1'} aria-label={t('permissions.nameEn')}
+                           onChange={(e) => set({ name_en: e.target.value })} />
+                    <input value={d.name_zh} className={inp} aria-label={t('permissions.nameZh')}
+                           onChange={(e) => set({ name_zh: e.target.value })} />
+                </>
+            ),
+        },
+        {
+            key: 'description',
+            header: t('reviews.scaleDescription'),
+            className: 'text-xs text-gray-600',
+            render: (r) => (locale === 'zh' ? r.description_zh : r.description_en) ?? '—',
+            edit: (d, set) => (
+                <>
+                    <input value={d.description_en ?? ''} className={inp + ' mb-1'} aria-label={t('reviews.scaleDescription') + ' (EN)'}
+                           onChange={(e) => set({ description_en: e.target.value || null })} />
+                    <input value={d.description_zh ?? ''} className={inp} aria-label={t('reviews.scaleDescription') + ' (中)'}
+                           onChange={(e) => set({ description_zh: e.target.value || null })} />
+                </>
+            ),
+        },
+        {
+            key: 'sort',
+            header: t('reviews.scaleSort'),
+            align: 'right',
+            className: 'font-mono',
+            render: (r) => r.sort_order,
+            edit: (d, set) => (
+                <input type="number" value={d.sort_order} className={inp + ' text-right'} aria-label={t('reviews.scaleSort')}
+                       onChange={(e) => set({ sort_order: Number(e.target.value) })} />
+            ),
+        },
+        {
+            key: 'active',
+            header: t('reviews.scaleActive'),
+            render: (r) => yesNo(r.is_active),
+            edit: (d, set) => (
+                <input type="checkbox" checked={d.is_active} aria-label={t('reviews.scaleActive')}
+                       onChange={(e) => set({ is_active: e.target.checked })} />
+            ),
+        },
+        {
+            key: 'probationPass',
+            header: t('reviews.scaleProbationPass'),
+            render: (r) => yesNo(r.is_probation_pass),
+            edit: (d, set) => (
+                <input type="checkbox" checked={d.is_probation_pass} aria-label={t('reviews.scaleProbationPass')}
+                       onChange={(e) => set({ is_probation_pass: e.target.checked })} />
+            ),
+        },
+    ]
+
     return (
         <div>
+            {/* 新增那张卡自己的错误仍然画在这里 —— 它不属于任何一行。
+                【行的】错误由 EditableTable 画在那一行下面(role="alert")。 */}
             {error && (
                 <div className="mb-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
             )}
-            <table className="w-full border-collapse text-sm mb-6">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-2 py-1 text-left">{t('reviews.scaleCode')}</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left">{t('reviews.scaleName')}</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left">{t('reviews.scaleDescription')}</th>
-                        <th className="border border-gray-300 px-2 py-1 text-right">{t('reviews.scaleSort')}</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left">{t('reviews.scaleActive')}</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left">{t('reviews.scaleProbationPass')}</th>
-                        <th className="border border-gray-300 px-2 py-1 w-28"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {rows.map((r) => {
-                        const on = editing === r.code
-                        return (
-                            <tr key={r.code} className="align-top">
-                                <td className="border border-gray-300 px-2 py-1 font-mono text-gray-500">{r.code}</td>
-                                <td className="border border-gray-300 px-2 py-1">
-                                    {on ? (
-                                        <>
-                                            <input
-                                                value={draft!.name_en}
-                                                onChange={(e) => setDraft({ ...draft!, name_en: e.target.value })}
-                                                className={`${inp} mb-1`}
-                                            />
-                                            <input
-                                                value={draft!.name_zh}
-                                                onChange={(e) => setDraft({ ...draft!, name_zh: e.target.value })}
-                                                className={inp}
-                                            />
-                                        </>
-                                    ) : locale === 'zh' ? r.name_zh : r.name_en}
-                                </td>
-                                <td className="border border-gray-300 px-2 py-1 text-xs text-gray-600">
-                                    {on ? (
-                                        <>
-                                            <input
-                                                value={draft!.description_en ?? ''}
-                                                onChange={(e) => setDraft({ ...draft!, description_en: e.target.value || null })}
-                                                className={`${inp} mb-1`}
-                                            />
-                                            <input
-                                                value={draft!.description_zh ?? ''}
-                                                onChange={(e) => setDraft({ ...draft!, description_zh: e.target.value || null })}
-                                                className={inp}
-                                            />
-                                        </>
-                                    ) : (locale === 'zh' ? r.description_zh : r.description_en) ?? '—'}
-                                </td>
-                                <td className="border border-gray-300 px-2 py-1 text-right font-mono">
-                                    {on ? (
-                                        <input
-                                            type="number"
-                                            value={draft!.sort_order}
-                                            onChange={(e) => setDraft({ ...draft!, sort_order: Number(e.target.value) })}
-                                            className={`${inp} w-16 text-right`}
-                                        />
-                                    ) : r.sort_order}
-                                </td>
-                                <td className="border border-gray-300 px-2 py-1">
-                                    {on ? (
-                                        <input
-                                            type="checkbox"
-                                            checked={draft!.is_active}
-                                            onChange={(e) => setDraft({ ...draft!, is_active: e.target.checked })}
-                                        />
-                                    ) : r.is_active ? t('permissions.yes') : t('permissions.no')}
-                                </td>
-                                <td className="border border-gray-300 px-2 py-1">
-                                    {on ? (
-                                        <input
-                                            type="checkbox"
-                                            checked={draft!.is_probation_pass}
-                                            onChange={(e) => setDraft({ ...draft!, is_probation_pass: e.target.checked })}
-                                        />
-                                    ) : r.is_probation_pass ? t('permissions.yes') : t('permissions.no')}
-                                </td>
-                                <td className="border border-gray-300 px-2 py-1 whitespace-nowrap">
-                                    {on ? (
-                                        <>
-                                            <button
-                                                type="button"
-                                                onClick={save}
-                                                disabled={pending}
-                                                className="text-blue-600 hover:underline mr-2"
-                                            >
-                                                {t('common.save')}
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => { setEditing(null); setDraft(null) }}
-                                                className="text-gray-500 hover:underline"
-                                            >
-                                                {t('common.cancel')}
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <button
-                                            type="button"
-                                            onClick={() => begin(r)}
-                                            className="text-blue-600 hover:underline"
-                                        >
-                                            {t('reviews.edit')}
-                                        </button>
-                                    )}
-                                </td>
-                            </tr>
-                        )
-                    })}
-                </tbody>
-            </table>
 
+            <EditableTable<ScaleRow, Draft>
+                className="mb-6"
+                rows={rows}
+                columns={columns}
+                rowKey={(r) => r.code}
+                phone={{ mode: 'columns' }}
+                toDraft={(r) => ({ ...r })}
+                // ★ 空态归【表】说,不归外壳 —— 因为把空态变成非空的那张卡
+                //   就在这张表下面,而外壳的 empty 分支会把它一起藏掉。
+                //   理由写在 page.tsx 的 state 那一处。
+                empty={t('reviews.noScale')}
+                labels={{
+                    edit: t('reviews.edit'), save: t('common.save'), saving: t('common.saving'),
+                    cancel: t('common.cancel'), unsaved: t('common.unsavedRow'), expand: t('common.expandRow'),
+                }}
+                onSave={async (d) => {
+                    const r = await saveRatingScale(
+                        d.code,
+                        {
+                            name_en: d.name_en, name_zh: d.name_zh,
+                            description_en: d.description_en, description_zh: d.description_zh,
+                            sort_order: d.sort_order,
+                            is_active: d.is_active,
+                            is_probation_pass: d.is_probation_pass,
+                        },
+                        false
+                    )
+                    // ★ Q6:失败交回组件 —— 字留住、行留在编辑态、不刷新。
+                    if (r.error) return { error: r.error }
+                    startTransition(() => router.refresh())
+                }}
+            />
+
+            {/* ── 新增一档:一张【表单】,不是网格的一行。见本文件抬头。 ───────── */}
             <div className="rounded border border-gray-200 p-4">
                 <h3 className="font-bold mb-3 text-sm">{t('reviews.addScale')}</h3>
                 <div className="flex gap-2 flex-wrap items-end">
                     <label className="text-xs">
                         {t('reviews.scaleCode')}
-                        <input
-                            value={nCode}
-                            onChange={(e) => setNCode(e.target.value)}
-                            className={`block ${inp} w-32 font-mono`}
-                        />
+                        <input value={nCode} onChange={(e) => setNCode(e.target.value)}
+                               className={`block ${inp} w-32 font-mono`} />
                     </label>
                     <label className="text-xs">
                         {t('permissions.nameEn')}
@@ -230,12 +196,8 @@ export default function ScaleEditor({ rows }: { rows: ScaleRow[] }) {
                     </label>
                     <label className="text-xs">
                         {t('reviews.scaleSort')}
-                        <input
-                            type="number"
-                            value={nSort}
-                            onChange={(e) => setNSort(e.target.value)}
-                            className={`block ${inp} w-20 text-right`}
-                        />
+                        <input type="number" value={nSort} onChange={(e) => setNSort(e.target.value)}
+                               className={`block ${inp} w-20 text-right`} />
                     </label>
                     <button
                         type="button"

@@ -1,4 +1,16 @@
-# 列表页模板(CONV-1,2026-09-03)
+# 列表页模板(CONV-1,2026-09-03)· **只读账簿**
+
+> ### ☞ 姊妹篇:[`docs/editable-grid-template.md`](./editable-grid-template.md)(CONV-2)
+> **这两份【必须一起读】。** 本篇管**只读账簿**(`DataTable`),姊妹篇管
+> **可编辑网格**(`EditableTable`)。**一张表该用哪一个,是这两份合起来回答的问题**,
+> 而那两个组件是一对**刻意的**分叉,不是需要"整理"掉的重复 ——
+> 理由写在 `app/components/ui/editable-table.tsx` 抬头的 FORK DECISION。
+>
+> ★ **CONV-2 更正了本篇的一个数:下面那个「19 张可编辑网格」是错的,真数是 10。**
+> 本篇当时把组件算给了【它所在的目录】,而不是【它挂载的那一页】——
+> `GoalsEditor` 住在 `app/hr/reviews/` 却挂在 `/hr/reviews/[id]`(详情页),
+> `TemplateForm` / `FormulaForm` / `PayrollGrid` 只挂在 `/new` 与 `/[id]/edit`(表单页)。
+> **而那 10 张还是【五种】不同的东西,不是一种。** 详见姊妹篇的头条与 §①。
 
 > **这一刀是一道停止闸。** 它只转换四页,而定下来的东西后面四刀要抄大约 190 次。
 > PAGE-0 §⑤ 把返工面算过:模板在二十页之后被发现不对,代价是
@@ -240,7 +252,11 @@ HTML,比较**批次号的渲染顺序**(排序真正决定的东西;不比标记
 
 ## ⑥ 模板【做不到】的事 —— 这一节比上面所有数都值钱
 
-1. **行内编辑。** 见头条:19 张可编辑网格是另一套模板。**没有在这里设计它。**
+1. **行内编辑。** 见头条:可编辑网格是另一套模板。**没有在这里设计它。**
+   **☞ CONV-2(2026-09-03)做掉了它 —— [`docs/editable-grid-template.md`](./editable-grid-template.md)**,
+   并且更正了本篇那个 19(真数 10,而且是五种不同的东西)。
+   新组件是 `EditableTable`,与 `DataTable` 是**刻意的一对**;
+   `scripts/check-datatable-phone.mjs` 现在同时看着两个。
 2. **`too-few` 的判据是页面自己给的,组件不验算。** 传 `{kind:'too-few', n}` 时
    没有任何东西检查 `n` 真的是行数。CHART-1 的 `ChartCard` 同样如此。
 3. **`empty` 与 `restricted` 用的是同一个琥珀块。** 两者的区别完全由【词】承担。

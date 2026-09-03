@@ -1503,7 +1503,44 @@ sampler 220 · 刻意双语 41 · 面向开发者 53 · `formatMoneyBare` 的文
 
 NAV-1、视觉统一、对外单据版式,带着它自己的五条 punch list。
 
-### ★★【CONV-1(2026-09-03):19 张【可编辑网格】是另一套模板 —— 要 Tim 裁】★★
+### ~~★★【CONV-1:19 张【可编辑网格】是另一套模板 —— 要 Tim 裁】★★~~ · **CONV-2(2026-09-03)做掉了,并且更正了那个 19**
+
+> ## ✅ 已关闭 —— `docs/editable-grid-template.md`
+>
+> **裁完了,建完了,而它交出来的头条是【那个 19 是错的】。**
+>
+> * **真数是 10,不是 19。** CONV-1 把组件算给了【它所在的目录】,
+>   而不是【它挂载的那一页】——`GoalsEditor` 住在 `app/hr/reviews/` 却挂在
+>   `/hr/reviews/[id]`(详情页);`TemplateForm` / `FormulaForm` / `PayrollGrid`
+>   只挂在 `/new` 与 `/[id]/edit`(表单页)。办法:**反向 import 图 → 最近的 `page.tsx`。**
+> * **★ 而这是【同一个方向】的第三次:** PAGE-0 用形状向量、CONV-1 用目录归属,
+>   **两次都用一个便宜的代理指标去回答一个关于挂载与语义的问题,两次都朝
+>   【多算编辑器】的方向错。** 记成规律,不是两次事故。
+> * **那 10 张是【五种】不同的东西:** A 一次编辑一行(2)· B 全行同时(1)·
+>   C 勾选→批量(2)· D 逐行决定队列(1)· E 只读表+表单(4)。
+>   **所以它本来就不是一套模板。**
+> * **CONV-2 只做 A 与 B,转了【3】页**(A 的全部 2 张 + `/me`)——
+>   `/settings/dictionaries` 动手前被重判为 E(它的 6 个 `<td>` 里含控件的是 **0** 个)。
+> * 组件是 `EditableTable`,与 `DataTable` 是**刻意的一对**(FORK DECISION);
+>   `scripts/check-datatable-phone.mjs` 现在同时看着两个。
+>
+> **★ 还留在队列里的三条(CONV-2 只写、没建):**
+> 1. **C · 勾选→批量动作**(`/finance/payroll-payments` · `/finance/processing-costs`)——
+>    它要的是**选择模型**,更像 `DataTable` 的一个 `selection` prop,不是可编辑网格。
+>    ☞ `/finance/processing-costs` 有**两个**独立选中集,那个 prop 不能假设一表一集。
+> 2. **D · 逐行决定队列**(`/finance/claims`)—— **一页不足以定形任何东西**,
+>    等第二张决定队列出现再一起看。
+> 3. **E · 只读表 + 新增/编辑表单**(4 页)—— **不是编辑**,回 CONV-1 的模板转。
+>    顺带:**「新增一行」在十张里有四张,是下一个该收敛的形状**,CONV-2 刻意没做。
+>
+> **★ CONV-2 顺带照出来、量过、没修的一条:**
+> `app/hr/leave/types/actions.ts:26·39·48` 与 `app/hr/reviews/scale/actions.ts:30`
+> **直接把 PostgREST 的 `error.message` 回给人看**(全仓库另有 38 个
+> `*ErrorCodes.ts` 本地化器)。它们走的是普通 `.update()`,失败是**约束违例**
+> 而不是具名 RPC 码,所以修它意味着新造一套约束名映射 ——
+> **归错误码那一刀,连行号一起留在这里。**
+
+**以下为 CONV-1 当时的原文,保留不删 —— 它是上面那条规律的论据。**
 
 **这是 CONV-1 那道停止闸交出来的头条,而它是在转换任何一页【之前】出来的。**
 

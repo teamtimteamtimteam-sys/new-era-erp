@@ -55,14 +55,36 @@ function walk(dir, out = []) {
 
 const lineOf = (src, idx) => src.slice(0, idx).split('\n').length
 
-/** `<DataTable … />` 的属性区(到第一个未配对的 `>` 为止,方括号/花括号计数)。 */
+/**
+ * 一个调用点的属性区(到第一个未配对的 `>` 为止,花括号计数)。
+ *
+ * ★★【CONV-2:先跳过【泛型实参】,否则属性区在第一个 `>` 上就被截断】★★
+ *   `<EditableTable<LeaveTypeRow, Draft>` 里那个 `>` 关的是泛型实参表,不是标签。
+ *   不跳过它,这道闸会把属性区读成空串 —— 于是 `phone=` 找不到,调用点被记成
+ *   「读不出」而不是被检查。**它不会变红,它会安静地少查几张表**,
+ *   而那正是本仓库反复付账的那种失败。
+ *   实测:加泛型之前本闸对三个新调用点报 0 个 EditableTable —— 是那个按组件
+ *   分开的计数把它暴露出来的(一个 0 必须是一次测量,不是一次缺席)。
+ */
 function propsBlockAt(src, start) {
+    let i = start + 1          // ← +1:跳过标签自己那个 `<`
+    // 跳过 `Ident`
+    while (i < src.length && !/[\s\n<>{]/.test(src[i])) i++
+    // 紧跟着的 `<…>` 是泛型实参表 —— 按尖括号配对跳过它
+    if (src[i] === '<') {
+        let g = 0
+        for (; i < src.length; i++) {
+            if (src[i] === '<') g++
+            else if (src[i] === '>') { g--; if (g === 0) { i++; break } }
+        }
+    }
+    const from = i
     let depth = 0
-    for (let i = start; i < src.length; i++) {
+    for (; i < src.length; i++) {
         const ch = src[i]
         if (ch === '{') depth++
         else if (ch === '}') depth--
-        else if (ch === '>' && depth === 0) return src.slice(start, i)
+        else if (ch === '>' && depth === 0) return src.slice(from, i)
     }
     return null
 }
@@ -73,16 +95,22 @@ const unresolved = []
 let callSites = 0
 let scrollMode = 0
 let columnsMode = 0
+const byComp = { DataTable: 0, EditableTable: 0 }
 
 for (const abs of files) {
     const rel = relative(ROOT, abs)
     const src = readFileSync(abs, 'utf8')
-    for (const m of src.matchAll(/<DataTable[\s\n]/g)) {
+    // ★ CONV-2:两个表格组件【共用这一道闸】。它们是刻意的一对(见 editable-table.tsx
+    //   抬头的 FORK DECISION),而「手机上留哪几列」对两者是【同一个问题】——
+    //   所以判据只有一份,不跟着分叉。
+    for (const m of src.matchAll(/<(DataTable|EditableTable)(?=[\s\n<])/g)) {
         callSites++
+        const comp = m[1]
+        byComp[comp]++
         const line = lineOf(src, m.index)
         const block = propsBlockAt(src, m.index)
         if (block === null) {
-            problems.push({ rel, line, why: '读不出这个 <DataTable 的属性区 —— 解析器可能坏了' })
+            problems.push({ rel, line, why: `读不出这个 <${comp} 的属性区 —— 解析器可能坏了` })
             continue
         }
         const mode = block.match(/phone=\{\{\s*mode:\s*'(\w+)'/)
@@ -125,13 +153,13 @@ for (const abs of files) {
 }
 
 if (callSites === 0) {
-    console.error('✗ check-datatable-phone:解析出 0 个 <DataTable 调用点 —— 解析器坏了,不是"全都合格"。')
+    console.error('✗ check-datatable-phone:解析出 0 个 <DataTable / <EditableTable 调用点 —— 解析器坏了,不是"全都合格"。')
     process.exit(2)
 }
 
 if (problems.length === 0) {
     console.log(
-        `✓ 手机声明:${callSites} 个 <DataTable> 调用点 —— ` +
+        `✓ 手机声明:${callSites} 个调用点(DataTable ${byComp.DataTable} · EditableTable ${byComp.EditableTable}) —— ` +
         `columns 模式 ${columnsMode}(各自至少一列 priority)· scroll 模式 ${scrollMode}(各自带 why)` +
         (unresolved.length ? ` · 静态读不出 ${unresolved.length}(由渲染期那道网兜着)` : '')
     )

@@ -630,6 +630,12 @@ const zh = {
         save: '保存',
         saving: '保存中…',
         cancel: '取消',
+        // CONV-2:可编辑网格的三句小词。unsavedRow 画在【有改动而还没保存】的那一行上 ——
+        // 脏是【算】出来的(草稿 vs 原行),不是一个存下来的 flag。
+        unsavedRow: '未保存',
+        expandRow: '展开这一行',
+        // 手机上编辑发生在展开区里,所以那句话要说清楚"在哪儿改"。
+        editOnPhoneHint: '在手机上,点开一行再改 —— 每一格都整宽带标签,不挤在格子里。',
         back: '← 返回列表',
         delete: '删除',
         deleting: '删除中…',
@@ -690,6 +696,7 @@ const zh = {
         carryTitle: '把 {0} 年余额结转到 {1} 年', carryHint: '把每个人未用完的余额搬进下一年的新授予,并在那一年年底失效。',
         carryIdempotentHint: '重复执行会被拒绝,不会把人的天数翻倍。',
         carryDone: '已为 {0} 人结转,合计 {1} 天。',
+        noTypes: '假别表还是空的 —— 这套系统目前不认识任何一种假,所以没有人能提交请假申请。这不是一次查询失败,是配置还没有做。',
         typesIntro: '天数、证明门槛、启用与否都是数据 —— 在这里改,不需要发版。',
         typeCode: '代码', typeName: '名称', standardDaysCol: '标准天数', certAfter: '证明门槛',
         paid: '带薪', accrued: '累积', halfDay: '可半天',
@@ -4236,6 +4243,7 @@ const zh = {
         cycleCounts: '共 {0} 份评估,{1} 份未提交',
         noReviewerList: '{0} 份评估没有评估人 —— 就在这里指派:',
         // rating scale
+        noScale: '还没有任何评级档位 —— 评估单因此打不出分。用下面那张卡加第一档。',
         scaleTitle: '评级档位',
         scaleIntro: '加一档、停一档都是数据,不需要发版。code 建成后不改;停用靠启用开关,不靠删除。',
         scaleCode: '代码', scaleName: '名称', scaleDescription: '说明', scaleSort: '排序',

@@ -650,6 +650,10 @@ const en = {
         saved: 'Saved.',
         saving: 'Saving…',
         cancel: 'Cancel',
+        // CONV-2:可编辑网格的三句小词。见 zh.ts 同一处的说明。
+        unsavedRow: 'Unsaved',
+        expandRow: 'Expand this row',
+        editOnPhoneHint: 'On a phone, open a row to edit it — each field is full width and labelled, not squeezed into a cell.',
         back: '← Back to list',
         delete: 'Delete',
         deleting: 'Deleting…',
@@ -709,6 +713,7 @@ const en = {
         carryTitle: 'Carry {0} balances into {1}', carryHint: 'Moves each unused balance into a new grant for the next year, expiring at the end of it.',
         carryIdempotentHint: 'Running it twice is refused rather than doubling anyone up.',
         carryDone: 'Carried forward for {0} employee(s), {1} days in total.',
+        noTypes: 'No leave types are configured yet — the system does not recognise any kind of leave, so nobody can file a request. This is not a failed query; the configuration has not been done.',
         typesIntro: 'Day counts, certificate thresholds and active flags are data — change them here, no release needed.',
         typeCode: 'Code', typeName: 'Name', standardDaysCol: 'Standard days', certAfter: 'Certificate after',
         paid: 'Paid', accrued: 'Accrues', halfDay: 'Half days',
@@ -4251,6 +4256,7 @@ const en = {
         cycleCounts: '{0} review(s), {1} not yet submitted',
         noReviewerList: '{0} review(s) with no reviewer — assign one here:',
         // rating scale
+        noScale: 'No rating scale levels yet — reviews cannot be scored until one exists. Add the first with the card below.',
         scaleTitle: 'Rating scale',
         scaleIntro: 'Adding or retiring a rating level is data, not a release. Codes are permanent; retire a level with the active flag instead of deleting it.',
         scaleCode: 'Code', scaleName: 'Name', scaleDescription: 'Description', scaleSort: 'Sort',
