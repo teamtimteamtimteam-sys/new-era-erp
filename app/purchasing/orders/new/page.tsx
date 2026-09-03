@@ -38,7 +38,7 @@ export default async function NewOrderPage() {
     // 人读它会得到零行。把这个事实取出来,空状态才说得出是"还没登记"还是"你看不到"。
     const canSeeAssets = await can('module.finance.view')
 
-    const [suppliersRes, materialsRes, formulasRes, templatesRes, tplLinesRes, triggersRes, assetsRes, onOrderRes] = await Promise.all([
+    const [suppliersRes, materialsRes, formulasRes, templatesRes, tplLinesRes, triggersRes, assetsRes, onOrderRes, poHeadsRes] = await Promise.all([
         supabase
             // SUP-TYPE-1b:【只列供货的供应商】——【但这里的理由与收货那两张不同,
             // 不要照抄】实测:purchase_orders 上【没有任何守卫】看 supplies_goods,
@@ -97,17 +97,41 @@ export default async function NewOrderPage() {
                 .select('id, code, description, cost_base')
                 .eq('status', 'active').is('in_service_date', null).order('code')
             : Promise.resolve({ data: [] as { id: string; code: string; description: string; cost_base: number }[], error: null }),
-        // 已经挂在某条采购单行上的资产 —— 挑过的不该再挑一次(表上没有唯一约束
-        // 拦这件事,所以这里只是【不引导人去踩】,不是一道保证)。
+        // 已经挂在某条【还活着的】采购单行上的资产 —— 挑过的不该再挑一次(表上没有
+        // 唯一约束拦这件事,所以这里只是【不引导人去踩】,不是一道保证)。
+        //
+        // ★★【FA-PO-1(2026-09-03):「还活着的」这四个字此前不在,而缺席它是 Tim 报的缺陷】★★
+        // 原来这一句收的是【全部】带 asset_id 的行,不看它挂在哪张单上。于是
+        // 一张【已取消】的采购单继续占着那台机器:取消之后再开一张新单,那台机器
+        // 在下拉里是【灰的】,写着"已在采购单上"。实测就是这么发生的 ——
+        // PO-2026-0008 取消于 2026-09-03,FA-2026-0002 从此挑不动。
+        // 【为什么取消不会自己解开它】cancel_purchase_order 只动 purchase_orders
+        // 那一行和一条历史记录,它【根本没有看过 purchase_order_lines】——
+        // 那条链接不是被保留下来的,是从来没有被考虑过。
+        //
+        // 【判据是「这张单还占着它吗」,不是「这张单办成了吗」】所以:
+        //   · status = 'cancelled'  → 不占(这张单没有买成任何东西);
+        //   · deleted_at IS NOT NULL → 不占(单子都不在了。这一条同样是缺陷:
+        //     purchase_order_lines_masked 不 JOIN 表头,软删的单一样占着机器);
+        //   · draft / confirmed / receiving / closed → 【占】。
+        // ★ approval_status 【刻意不在这条判据里】★ —— 一张还没批的单
+        // 【仍然占着】那台机器:它是一个在途的意图,不是一次失败。
+        // 这一点与 /finance/expenses/new 那条判据【不同,而且必须不同】:
+        // 那边问的是"这条行能不能报销"(要 approved),这边问的是"这台机器
+        // 还被谁占着"。两个问题,两条判据 —— 抽成一个共用的谓词会把它们弄混。
+        //
         // 【读遮蔽视图】这一句今天只选 asset_id(一个已授权的列),所以它
         // 【碰巧】能直接查表 —— 而那正是陷阱:哪天有人往 select 里加一个被扣住的
         // 列,它会突然 42501。判据不该是"我这次只选了安全的列"。
-        supabase.from('purchase_order_lines_masked').select('asset_id').not('asset_id', 'is', null),
+        // 【视图上不做 embed】表头另查一次,在 TS 里拼(本仓库既有做法)。
+        supabase.from('purchase_order_lines_masked')
+            .select('asset_id, purchase_order_id').not('asset_id', 'is', null),
+        supabase.from('purchase_orders_masked').select('id, status, deleted_at'),
     ])
 
     const error =
         suppliersRes.error ?? materialsRes.error ?? formulasRes.error ?? templatesRes.error ?? tplLinesRes.error
-        ?? assetsRes.error ?? onOrderRes.error
+        ?? assetsRes.error ?? onOrderRes.error ?? poHeadsRes.error
     if (error) {
         return (
             <div className="p-8">
@@ -125,7 +149,17 @@ export default async function NewOrderPage() {
         name: s.legal_name,
         default_template_id: s.default_payment_term_template_id,
     }))
-    const onOrder = new Set((mustRows(onOrderRes)).map((r) => r.asset_id).filter(Boolean) as string[])
+    // 【哪些采购单还占着机器】—— 见上面那段:取消的与软删的都不占。
+    const livePoIds = new Set(
+        (mustRows(poHeadsRes))
+            .filter((h) => h.deleted_at === null && h.status !== 'cancelled')
+            .map((h) => h.id)
+    )
+    const onOrder = new Set(
+        (mustRows(onOrderRes))
+            .filter((r) => r.asset_id && livePoIds.has(r.purchase_order_id))
+            .map((r) => r.asset_id) as string[]
+    )
     const assets: AssetOption[] = (mustRows(assetsRes)).map((a) => ({
         id: a.id,
         // 编号 + 描述,与材料行的 `编号 — 名称` 同形。

@@ -4464,6 +4464,8 @@ const zh = {
         colOrderDate: '下单日期',
         colExpectedDelivery: '预计到货',
         colEstimatedTotal: '估算总额',
+        // FA-PO-1:采购单不含税,而此前【屏幕上一个字都没说】。
+        gstExclusiveNote: '本采购单上的金额【不含 GST】。采购单是一个承诺,不是纳税时点 —— 进项税在录入供应商的税务发票(记为费用)那一刻才产生,用的是那家供应商的默认税码。',
         colPrepaid: '已预付',
         colReceipt: '收货进度',
         colStatus: '状态',
@@ -6625,6 +6627,8 @@ const zh = {
             boughtBy: '由哪张单买的',
             poRestricted: '你没有采购模块的权限,所以本页说不出是不是有采购单买了这台机器。【这与"没有"不是一回事。】',
             noPoLine: '没有任何采购单行引用这台机器。当场买断的机器本来就是这样。',
+            // FA-PO-1:一条【已取消】的采购单行 —— 保留,但必须说出它已经不作数了。
+            claimCancelled: '—— 采购单已取消,这台机器不是它买的',
             lineNo: '第 {0} 行',
             depositLine: '那张单上的定金:已付 {paid} · 已冲抵 {applied} · 还可冲抵 {remaining}。',
             depositReleaseHint: '冲抵要在【它所付的那张发票】上做 —— 打开下面那张开支单,用那里的冲抵面板。',

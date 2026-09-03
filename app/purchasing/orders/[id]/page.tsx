@@ -719,6 +719,20 @@ export default async function PurchaseOrderDetailPage({
                 </tfoot>
             </table>
 
+            {/* ★★【FA-PO-1(2026-09-03):一句话,而它是为了拦住一次【已经发生过的】误读】★★
+                Tim 给一家供应商设了默认进项税码(TX · 标准税率进项),开出采购单,
+                发现金额里【没有 GST】—— 于是把那张单取消了(PO-2026-0008,
+                取消理由原文就是 "GST not included")。
+                **而这套系统是对的,错的是它什么都没说。**
+                供应商上那个字段自己的定义写着它管的是这家供应商的【账单】默认用哪个
+                进项税码(db/tables/suppliers.sql 的列注释),落点是 record_expense;
+                purchase_orders 与 purchase_order_lines 上【没有任何税相关的列】——
+                GST-2 把税放在【费用/发票】那一层,不在订单这一层。这在会计上也是对的:
+                采购单是一个承诺,不是纳税时点;进项税的抵扣挂在供应商开来的税务发票上。
+                【所以本刀不接税,只说话】—— 一个金额旁边什么都不写,读的人只能猜,
+                而这一次的猜法已经让一张单被取消掉了。 */}
+            <p className="text-sm text-gray-600 mb-6">{t('purchasing.gstExclusiveNote')}</p>
+
             {/* 付款计划 + 预付摘要 */}
             <div className="grid gap-6 md:grid-cols-3 mb-6">
                 <div className="md:col-span-2">

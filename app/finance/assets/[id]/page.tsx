@@ -80,25 +80,52 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
         // 这一处与开支表单那一处是【同一个缺陷的两个实例】:走查报的是那一个,
         // 而它是这一个 —— 记录完开支之后落地的正是本页。
         // 【视图上不做 embed】采购单表头另查一次,在 TS 里拼(本仓库既有做法)。
+        // ★★【FA-PO-1(2026-09-03):这里此前是 .maybeSingle(),而那是一颗定时炸弹】★★
+        // 一台机器【可以】挂在不止一条采购单行上 —— 表上没有唯一约束(逐条查过:
+        // purchase_order_lines 上没有任何 asset_id 的 UNIQUE),而最普通的一条路
+        // 就会造出第二行:取消一张单、再为同一台机器开一张新的。
+        // 那正是 Tim 走到的那一步。`.maybeSingle()` 在拿到两行时【报错】,
+        // 于是修好"挑得动"的那一刻,这一页就会开始 500 ——
+        // **两个缺陷是连着的,只修一个会把另一个引爆。**
+        // 所以这里改成取【全部】,由下面分成「还活着的那一张」与「取消掉的那些」。
         canSeePurchasing
             ? supabase.from('purchase_order_lines_masked')
                 .select('id, line_no, purchase_order_id, estimated_amount_ccy')
-                .eq('asset_id', id).maybeSingle()
-            : Promise.resolve({ data: null, error: null }),
+                .eq('asset_id', id).order('line_no')
+            : Promise.resolve({ data: [], error: null }),
     ])
 
     const entries = mustRows(entriesRes)
     const accum = mustRows(deprRes).reduce((s, d) => s + Number(d.amount_base ?? 0), 0)
-    const lineRaw = lineRes.data as {
+    type LineRaw = {
         id: string; line_no: number; purchase_order_id: string; estimated_amount_ccy: number | null
-    } | null
-    const headRes = lineRaw
+    }
+    type PoHead = { id: string; code: string; status: string; approval_status: string
+                    currency: string; deleted_at: string | null; cancelled_at: string | null
+                    cancel_reason: string | null }
+    // 【失败必须失败】不 `?? []` —— 读不出来会把一台【挂着单】的机器画成"没有采购单行",
+    // 而那是一句断言,不是一次读取失败该说的话(check-error-swallowing 抓到过本刀第一版)。
+    const lineRows = mustRows(lineRes) as unknown as LineRaw[]
+    // 【视图上不做 embed】表头另查一次,在 TS 里拼(本仓库既有做法)。
+    const headsRes = lineRows.length
         ? await supabase.from('purchase_orders_masked')
-            .select('code, status, approval_status, currency').eq('id', lineRaw.purchase_order_id).maybeSingle()
-        : { data: null, error: null }
-    const line = lineRaw
-        ? { ...lineRaw, purchase_orders: headRes.data as
-              { code: string; status: string; approval_status: string; currency: string } | null }
+            .select('id, code, status, approval_status, currency, deleted_at, cancelled_at, cancel_reason')
+            .in('id', lineRows.map((l) => l.purchase_order_id))
+        : { data: [], error: null }
+    const headById = new Map((mustRows(headsRes) as unknown as PoHead[]).map((h) => [h.id, h]))
+    const claims = lineRows.map((l) => ({ ...l, po: headById.get(l.purchase_order_id) ?? null }))
+
+    // 【还占着这台机器的那一张】—— 判据与 /purchasing/orders/new 那条【逐字相同】:
+    // 取消的不占、软删的不占,其余(draft/confirmed/receiving/closed)占。
+    // approval_status 刻意不在判据里:一张还没批的单仍然是一个在途的意图。
+    const isLiveClaim = (h: PoHead | null) =>
+        h !== null && h.deleted_at === null && h.status !== 'cancelled'
+    const liveClaim = claims.find((c) => isLiveClaim(c.po)) ?? null
+    // 【取消掉的那些不删,留着】—— 本仓库偏好历史而不是抹掉(AUDEL 那一族)。
+    // 一台机器【曾经】被开过一张单、那张单又被取消了,是这台机器履历的一部分。
+    const deadClaims = claims.filter((c) => !isLiveClaim(c.po))
+    const line = liveClaim
+        ? { ...liveClaim, purchase_orders: liveClaim.po }
         : null
 
     // 那张单上还有多少定金没冲抵 —— 【问数据库,不自己算】
@@ -332,7 +359,26 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                 /* 【不是"没有",是"你看不到"】—— 两者的下一步不一样。 */
                 <p className="text-sm text-gray-600 mb-6">{t('assets.detail.poRestricted')}</p>
             ) : !line ? (
-                <p className="text-sm text-gray-600 mb-6">{t('assets.detail.noPoLine')}</p>
+                <div className="mb-6 space-y-1">
+                    <p className="text-sm text-gray-600">{t('assets.detail.noPoLine')}</p>
+                    {/* ★ FA-PO-1:【曾经有过一张,而它被取消了】与【从来没有过】不是一回事。
+                        留白会把前者读成后者 —— 而那正是 Tim 走到的那一步的反面:
+                        修好之前这一页说的是"由 PO-2026-0008 买下",一句已经不成立的断言;
+                        修坏的方向是让它什么都不说,那同样是在隐瞒一段真实的履历。 */}
+                    {deadClaims.map((c) => (
+                        <p key={c.id} className="text-sm text-gray-600">
+                            <Link href={`/purchasing/orders/${c.purchase_order_id}`}
+                                  className="text-blue-600 underline font-mono">
+                                {c.po?.code ?? '—'}
+                            </Link>
+                            <span className="ml-2">{t('assets.detail.lineNo', { 0: c.line_no })}</span>
+                            <span className="ml-2">{t('assets.detail.claimCancelled')}</span>
+                            {c.po?.cancel_reason ? (
+                                <span className="ml-1 text-gray-500">({c.po.cancel_reason})</span>
+                            ) : null}
+                        </p>
+                    ))}
+                </div>
             ) : (
                 <div className="mb-6 text-sm space-y-1">
                     <p>
@@ -353,6 +399,17 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                     {poStatus && Number(poStatus.prepaid_remaining_base ?? 0) > 0 && (
                         <p className="text-gray-600">{t('assets.detail.depositReleaseHint')}</p>
                     )}
+                    {/* 同一台机器【之前】被取消掉的那些单,照样列出来 —— 见上面那段理由。 */}
+                    {deadClaims.map((c) => (
+                        <p key={c.id} className="text-gray-600">
+                            <Link href={`/purchasing/orders/${c.purchase_order_id}`}
+                                  className="text-blue-600 underline font-mono">
+                                {c.po?.code ?? '—'}
+                            </Link>
+                            <span className="ml-2">{t('assets.detail.lineNo', { 0: c.line_no })}</span>
+                            <span className="ml-2">{t('assets.detail.claimCancelled')}</span>
+                        </p>
+                    ))}
                 </div>
             )}
 

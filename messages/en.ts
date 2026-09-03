@@ -4483,6 +4483,8 @@ const en = {
         colOrderDate: 'Order date',
         colExpectedDelivery: 'Expected delivery',
         colEstimatedTotal: 'Estimated total',
+        // FA-PO-1:采购单不含税,而此前【屏幕上一个字都没说】。
+        gstExclusiveNote: 'Amounts on this purchase order are exclusive of GST. A purchase order is a commitment, not a tax point \u2014 input GST is recorded when the supplier\u2019s invoice is entered as an expense, using that supplier\u2019s default tax code.',
         colPrepaid: 'Prepaid',
         colReceipt: 'Receipt',
         colStatus: 'Status',
@@ -6664,6 +6666,8 @@ const en = {
             boughtBy: 'Bought by',
             poRestricted: 'You do not have purchasing access, so this page cannot tell you whether a purchase order bought this machine. This is not the same as there being none.',
             noPoLine: 'No purchase order line references this machine. That is normal for a machine bought outright.',
+            // FA-PO-1:一条【已取消】的采购单行 —— 保留,但必须说出它已经不作数了。
+            claimCancelled: '— purchase order cancelled; it did not buy this machine',
             lineNo: 'line {0}',
             depositLine: 'Deposit on that order: {paid} paid · {applied} already released · {remaining} still to release.',
             depositReleaseHint: 'Release it from the invoice it pays for — open the expense below and use the release panel there.',
