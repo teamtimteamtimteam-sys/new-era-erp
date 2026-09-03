@@ -5,7 +5,7 @@ import { Suspense } from 'react'
 import { formatTimestamp } from '@/lib/format'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import DeleteButton from './DeleteButton'
+import InboundTable, { type InboundTableRow } from './InboundTable'
 import InboundToolbar, { type PartyOption } from './InboundToolbar'
 import { STAGE_OPTIONS, labelKeyForValue } from './options'
 import {
@@ -15,7 +15,6 @@ import {
     resolveInboundSearchIds,
     buildInboundSearchOr,
     INBOUND_PAGE_SIZE,
-    type InboundSortCol,
 } from './inboundQuery'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import StockWarningBanner from '@/app/components/inventory/StockWarningBanner'
@@ -200,33 +199,52 @@ export default async function InboundPage({
         return key ? t(key) : value
     }
 
-    // 表头排序链接:保留所有筛选,只改 sort/dir;不带 page —— 改排序回到第 1 页。
-    function sortHref(col: InboundSortCol) {
-        const nextDir = sort === col && dir === 'asc' ? 'desc' : 'asc'
-        const params = new URLSearchParams()
-        if (q) params.set('q', q)
-        if (stage) params.set('stage', stage)
-        if (supplierId) params.set('supplier_id', supplierId)
-        if (materialId) params.set('material_id', materialId)
-        if (dateFrom) params.set('date_from', dateFrom)
-        if (dateTo) params.set('date_to', dateTo)
-        if (pricingStatus) params.set('pricing_status', pricingStatus)
-        params.set('sort', col)
-        params.set('dir', nextDir)
-        return `/inbound?${params.toString()}`
-    }
+    // ── CONV-1:把这一页要显示的东西【在服务端压平成纯数据】───────────────────
+    //   来源那一列要三样服务端才知道的东西(采购单号 / 理由字典的本地化名字 /
+    //   两样都没有 = 未说明),阶段标签要 options 的反查。都在这里算完,
+    //   客户端只拿到「这一格该显示什么」。理由见 InboundTable.tsx 的抬头。
+    const tableRows: InboundTableRow[] = (batches ?? []).map((b) => {
+        const poCode = b.purchase_order_line_id
+            ? (poCodeById.get(b.purchase_order_id ?? '') ?? t('inbound.source.fromPo'))
+            : null
+        return {
+            id: b.id,
+            code: b.code,
+            materialName: b.materials?.name ?? '—',
+            supplierName: b.suppliers?.legal_name ?? '—',
+            sourceKind: b.purchase_order_line_id ? 'po' : b.source_reason_code ? 'reason' : 'unexplained',
+            sourceLabel: b.purchase_order_line_id
+                ? poCode
+                : b.source_reason_code
+                  ? (reasonLabelByCode.get(b.source_reason_code) ?? b.source_reason_code)
+                  : null,
+            quantity: b.quantity,
+            remaining: b.remaining_qty,
+            unit: b.unit,
+            arrivalDate: b.arrival_date,
+            stageLabel: stageLabel(b.stage),
+            status: b.status,
+            pricingStatus: b.pricing_status,
+            hasUnappliedAssay: unappliedByBatch.has(b.id),
+            createdLabel: formatTimestamp(b.created_at, dateLocale),
+        }
+    })
 
-    function sortableTh(col: InboundSortCol, label: string) {
-        const indicator = sort === col ? (dir === 'asc' ? ' ▲' : ' ▼') : ''
-        return (
-            <th className="border border-gray-300 px-4 py-2 text-left">
-                <Link href={sortHref(col)} className="hover:underline">
-                    {label}
-                    {indicator}
-                </Link>
-            </th>
-        )
-    }
+    // 排序链接要带上的筛选参数(不含 sort/dir/page)—— 交给客户端那张表去拼 URL。
+    const filterParamsForLinks = new URLSearchParams()
+    if (q) filterParamsForLinks.set('q', q)
+    if (stage) filterParamsForLinks.set('stage', stage)
+    if (supplierId) filterParamsForLinks.set('supplier_id', supplierId)
+    if (materialId) filterParamsForLinks.set('material_id', materialId)
+    if (dateFrom) filterParamsForLinks.set('date_from', dateFrom)
+    if (dateTo) filterParamsForLinks.set('date_to', dateTo)
+    if (pricingStatus) filterParamsForLinks.set('pricing_status', pricingStatus)
+
+    // 【sortHref 删掉了】它此前拼的那条链接现在由 InboundTable 拼 ——
+    // 判据一个字没变(保留全部筛选、只改 sort/dir、不带 page),
+    // 换的是它住在哪一侧。留一个没有调用者的函数,是下一个人据以断定
+    // 「排序链接在这里拼」的东西。
+
 
     // 分页链接:保留所有筛选 + sort/dir,只改 page
     function pageHref(targetPage: number) {
@@ -309,135 +327,21 @@ export default async function InboundPage({
                 )}
             </p>
 
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        {sortableTh('code', t('inbound.colCode'))}
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('inbound.colMaterial')}
-                        </th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('inbound.colSupplier')}
-                        </th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('inbound.colSource')}
-                        </th>
-                        {sortableTh('quantity', t('inbound.colQuantity'))}
-                        {sortableTh('remaining_qty', t('inbound.colRemaining'))}
-                        {sortableTh('arrival_date', t('inbound.colArrivalDate'))}
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('inbound.colStage')}
-                        </th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('inbound.colStatus')}
-                        </th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('assay.colPricingStatus')}
-                        </th>
-                        {sortableTh('created_at', t('inbound.colCreated'))}
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('inbound.colActions')}
-                        </th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('batchLabel.col')}
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {batches?.map((b) => (
-                        <tr key={b.id}>
-                            <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                <Link
-                                    href={`/inbound/${b.id}/edit`}
-                                    className="text-blue-600 hover:underline"
-                                >
-                                    {b.code}
-                                </Link>
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">{b.materials?.name ?? '—'}</td>
-                            <td className="border border-gray-300 px-4 py-2">{b.suppliers?.legal_name ?? '—'}</td>
-                            <td className="border border-gray-300 px-4 py-2 whitespace-nowrap">
-                                {b.purchase_order_line_id ? (
-                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
-                                        {poCodeById.get(b.purchase_order_id ?? '') ?? t('inbound.source.fromPo')}
-                                    </span>
-                                ) : b.source_reason_code ? (
-                                    <span className="px-2 py-1 bg-gray-200 rounded text-xs">
-                                        {reasonLabelByCode.get(b.source_reason_code) ?? b.source_reason_code}
-                                    </span>
-                                ) : (
-                                    /* R4:未说明 —— 永远不是空白格,不是默认理由 */
-                                    <span className="px-2 py-1 bg-amber-100 text-amber-900 border border-amber-300 rounded text-xs">
-                                        {t('inbound.source.unexplained')}
-                                    </span>
-                                )}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">{b.quantity} {b.unit}</td>
-                            <td className="border border-gray-300 px-4 py-2">{b.remaining_qty} {b.unit}</td>
-                            <td className="border border-gray-300 px-4 py-2">{b.arrival_date ?? '—'}</td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                <span className="px-2 py-1 bg-gray-200 rounded text-xs">
-                                    {stageLabel(b.stage)}
-                                </span>
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                <span className="px-2 py-1 bg-gray-200 rounded text-xs">
-                                    {b.status}
-                                </span>
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 whitespace-nowrap">
-                                <span
-                                    className={
-                                        'px-2 py-1 rounded text-xs ' +
-                                        (b.pricing_status === 'final'
-                                            ? 'bg-green-100 text-green-800'
-                                            : b.pricing_status === 'provisional'
-                                              ? 'bg-amber-100 text-amber-800'
-                                              : 'bg-gray-200 text-gray-600')
-                                    }
-                                >
-                                    {t('assay.pricingStatus.' + b.pricing_status)}
-                                </span>
-                                {/* 已记录未应用的化验:价格还停在旧含量上 */}
-                                {unappliedByBatch.has(b.id) && (
-                                    <span
-                                        title={t('assay.hasUnappliedMarker')}
-                                        className="ml-1 px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-800"
-                                    >
-                                        ⚠
-                                    </span>
-                                )}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
-                                {formatTimestamp(b.created_at, dateLocale)}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                <DeleteButton id={b.id} code={b.code} />
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                <a
-                                    href={`/inbound/${b.id}/label`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:underline text-sm"
-                                >
-                                    {t('batchLabel.col')}
-                                </a>
-                            </td>
-                        </tr>
-                    ))}
-                    {(!batches || batches.length === 0) && (
-                        <tr>
-                            <td
-                                colSpan={12}
-                                className="border border-gray-300 px-4 py-8 text-center text-gray-500"
-                            >
-                                {t('inbound.emptyState')}
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
+            {/* ★★【CONV-1:13 列的手写 <table> 换成 DataTable】★★
+                【行为一个字没变 —— Tim 的 Q7=A】排序仍然是数据库对【全体】排
+                (server 模式:表头是链接,客户端一行都不重排),分页仍然是下面那组
+                服务端 .range 链接。换的是外观与【手机上的形态】。
+                【顺带修掉一处 off-by-one】此前空态那一行写的是 colSpan={12},
+                而表头有 13 列 —— 空行少跨一格。DataTable 的 colSpan 是从列表算出来的,
+                这一族的错从此写不进来。 */}
+            <InboundTable
+                rows={tableRows}
+                sort={sort}
+                dir={dir}
+                filterQuery={filterParamsForLinks.toString()}
+                shown={tableRows.length}
+                total={total}
+            />
 
             {/* 分页控件:服务端 <Link>,无额外客户端 JS;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">

@@ -14,7 +14,8 @@ import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import { formatAmount } from '@/lib/format'
+import { ListPage } from '@/app/components/ui/list-page'
+import CommissionsTable, { type CommissionRow } from './CommissionsTable'
 import Link from 'next/link'
 
 type Agreement = {
@@ -47,68 +48,49 @@ export default async function CommissionsPage() {
             .order('valid_from', { ascending: false }),
         'commission_agreements') as unknown as Agreement[]
 
+    // 【把嵌套的关联压平成纯数据】—— 函数过不了客户端边界,嵌套对象过得了,
+    // 但压平之后列描述符不必再知道这个 select 的形状。
+    const tableRows: CommissionRow[] = rows.map((r) => ({
+        id: r.id, side: r.side, basis: r.basis,
+        rate_pct: r.rate_pct, amount_ccy: r.amount_ccy, currency: r.currency,
+        recognition_trigger: r.recognition_trigger,
+        valid_from: r.valid_from, valid_to: r.valid_to, remarks: r.remarks,
+        agentCode: r.suppliers?.code ?? null,
+        agentName: r.suppliers?.legal_name ?? null,
+    }))
+
     return (
-        <div className="p-8">
-            <div className="flex items-baseline justify-between mb-1">
-                <h1 className="text-2xl font-bold">{t('commissions.title')}</h1>
+        <ListPage
+            title={t('commissions.title')}
+            intro={t('commissions.what')}
+            actions={
                 <Link href="/commissions/new" className="text-sm text-blue-600 hover:underline">
                     {t('commissions.newTitle')}
                 </Link>
-            </div>
-            <p className="text-sm text-gray-700 max-w-3xl mb-4">{t('commissions.what')}</p>
-
-            {/* ★★【它不过账】—— 无条件渲染,见抬头 ★★ */}
-            <div className="border-l-4 border-amber-500 bg-amber-50 p-3 mb-3 max-w-3xl">
-                <p className="text-sm text-gray-800">{t('commissions.notPosted')}</p>
-            </div>
-
-            {/* ★★【计提那一半没有建,而它有名字】—— 无条件渲染 ★★ */}
-            <div className="border-l-4 border-gray-400 bg-gray-50 p-3 mb-6 max-w-3xl">
-                <p className="text-sm text-gray-800">{t('commissions.noAccrual')}</p>
-            </div>
-
-            {rows.length === 0 ? (
-                /* 【具名的缺席,不是一片空白】「还没有人写下来」与「我们不付佣金」不是一回事 */
-                <p className="text-sm text-gray-600">{t('commissions.none')}</p>
-            ) : (
-                <table className="w-full border-collapse">
-                    <thead>
-                        <tr className="bg-gray-100">
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('commissions.colAgent')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('commissions.colSide')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('commissions.colBasis')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right text-sm">{t('commissions.colRate')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('commissions.colTrigger')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('commissions.colValidity')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('commissions.colRemarks')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rows.map((r) => (
-                            <tr key={r.id}>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">
-                                    <Link href={`/commissions/${r.id}/edit`} className="text-blue-600 hover:underline">
-                                        {r.suppliers?.code}
-                                    </Link>
-                                    {r.suppliers ? ` · ${r.suppliers.legal_name}` : null}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">{t('commissions.side.' + r.side)}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">{t('commissions.basis.' + r.basis)}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right text-sm">
-                                    {r.rate_pct !== null
-                                        ? `${r.rate_pct}%`
-                                        : r.amount_ccy !== null && r.currency
-                                          ? formatAmount(Number(r.amount_ccy), r.currency)
-                                          : null}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">{t('commissions.trigger.' + r.recognition_trigger)}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">{r.valid_from} → {r.valid_to}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">{r.remarks}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
-        </div>
+            }
+            // ★★【两块提示走 notices —— 它们【无条件】渲染,空态也画】★★
+            //   原页面抬头写着理由:「一条只在有数据时才出现的警告,等于没有警告。」
+            //   本刀第一版把它们放进了 children,而 children 只在 ok 分支画 ——
+            //   于是一张空的登记簿会【安静地】少掉这两句。ListPage 因此长出了
+            //   notices 这个槽,见那里的说明。
+            notices={
+                <>
+                    <div className="border-l-4 border-amber-500 bg-amber-50 p-3 mb-3 max-w-3xl">
+                        <p className="text-sm text-gray-800">{t('commissions.notPosted')}</p>
+                    </div>
+                    <div className="border-l-4 border-gray-400 bg-gray-50 p-3 mb-6 max-w-3xl">
+                        <p className="text-sm text-gray-800">{t('commissions.noAccrual')}</p>
+                    </div>
+                </>
+            }
+            // 【空态沿用这一页原本那句话】(PAGE-0 §⑨:沿用已有文案键)。
+            // 【不分两种空】—— 一份佣金协议登记簿没有"太少所以说明不了问题"这回事:
+            // 三份协议就是三份协议,它不是一条要够多点才画得出的趋势线。
+            state={tableRows.length === 0
+                ? { kind: 'empty', noRows: t('commissions.none') }
+                : { kind: 'ok' }}
+        >
+            <CommissionsTable rows={tableRows} />
+        </ListPage>
     )
 }

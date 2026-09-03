@@ -96,10 +96,12 @@ export function Base1() {
                 四个能力(排序 / 筛选 / 分页 / 列显隐)在这里【全部打开】只是为了让你看见它们;
                 它们默认是关的,换上这个组件不会给任何页面凭空多出一个控件。
             </Note>
+            {/* CONV-1:phone 现在是必填的 —— 取样页演示 columns 那一支。 */}
             <DataTable
                 rows={ROWS}
                 columns={COLUMNS}
                 rowKey={(r) => r.code}
+                phone={{ mode: 'columns' }}
                 sorting={{ mode: 'client', coverage: 'complete' }}
                 filter={{ label: '筛选:批次号 / 物料 / 供应商', match: (r, q) => (r.code + r.material + r.supplier).toLowerCase().includes(q.toLowerCase()) }}
                 pageSize={5}

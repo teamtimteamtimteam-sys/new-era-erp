@@ -14,6 +14,7 @@
 import { useState, useTransition } from 'react'
 import { decideClaim } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
+import { DataTable, type Column } from '@/app/components/ui/data-table'
 
 export type ClaimRow = {
     claim_id: string; code: string; employee_code: string; employee_name: string
@@ -42,6 +43,44 @@ export default function ClaimDecisionPanel({
     const get = (id: string) => sel[id] ?? { acct: '', tax: '', post: '', notes: '' }
     const set = (id: string, patch: Partial<{ acct: string; tax: string; post: string; notes: string }>) =>
         setSel((s) => ({ ...s, [id]: { ...get(id), ...patch } }))
+
+    // ★【已决登记簿的列 —— 手机上留【单号】与【金额】】★
+    //   · 单号是身份,而且是人嘴里说的那个东西;
+    //   · 金额是这张表存在的理由 —— 看已决报销就是在看"批了多少钱"。
+    //   报销人、花费日期、状态(含冲销/欠款/已付那几行小字)都进展开区:
+    //   它们是【看到那一行之后才问的】。
+    //   【状态那一格整块搬过来,一个字没改】—— 它一格里最多能说四句话,
+    //   而那四句的层次是 CLAIM-1 的判断,不是本刀的。
+    const decidedColumns: Column<ClaimRow>[] = [
+        { key: 'ref', header: t('expenseClaims.colRef'), priority: true, className: 'font-mono text-xs', render: (c) => c.code },
+        { key: 'who', header: t('expenseClaims.colWho'), render: (c) => c.employee_name },
+        { key: 'spent', header: t('expenseClaims.colSpent'), className: 'font-mono text-xs', render: (c) => c.spend_date },
+        {
+            key: 'amount', header: t('expenseClaims.colAmount'), priority: true, align: 'right',
+            className: 'font-mono',
+            render: (c) => `${money(c.amount_ccy)} ${c.currency}`,
+        },
+        {
+            key: 'status', header: t('expenseClaims.colStatus'),
+            render: (c) => (
+                <>
+                    {t('expenseClaims.status_' + c.status)}
+                    {c.expense_reversed && (
+                        <span className="block text-[11px] text-red-700">{t('expenseClaims.reversed')}</span>
+                    )}
+                    {!c.expense_reversed && c.is_owing && (
+                        <span className="block text-[11px] text-amber-800">{t('expenseClaims.owingOther')}</span>
+                    )}
+                    {!c.expense_reversed && c.is_paid && (
+                        <span className="block text-[11px] text-green-700">{t('expenseClaims.paid')}</span>
+                    )}
+                    {c.decision_notes && (
+                        <span className="block text-[11px] text-gray-600">{c.decision_notes}</span>
+                    )}
+                </>
+            ),
+        },
+    ]
 
     const run = (fn: () => Promise<{ error?: string }>) => {
         setError(null)
@@ -135,48 +174,24 @@ export default function ClaimDecisionPanel({
                 </div>
             )}
 
+            {/* 列描述符住在这个文件里,因为它本来就已经是 'use client' ——
+                另外三页要多一个文件,是因为它们的 page.tsx 是服务端组件。 */}
             <h2 className="text-lg font-semibold mb-2">{t('expenseClaims.decidedTitle')}</h2>
+            {/* ★★【CONV-1:只有【这一张】换成了 DataTable —— 上面那个决定队列没动】★★
+                这一页有两半:上面是【做决定的地方】(select / input / 提交),
+                下面是【已决的登记簿】。只有下半张是只读账簿,而 DataTable 是一个
+                只读账簿的渲染器 —— 它没有行内编辑这回事(见 docs/list-page-template.md
+                「19 张可编辑网格是另一套模板」)。
+                所以本刀【只碰下半张】,上面那半个字没改。 */}
             {decided.length === 0 ? (
                 <p className="text-sm text-gray-500">{t('expenseClaims.noneForEmployee')}</p>
             ) : (
-                <table className="w-full border-collapse border border-gray-300 text-sm">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('expenseClaims.colRef')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('expenseClaims.colWho')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('expenseClaims.colSpent')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('expenseClaims.colAmount')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('expenseClaims.colStatus')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {decided.map((c) => (
-                            <tr key={c.claim_id}>
-                                <td className="border border-gray-300 px-3 py-2 font-mono text-xs">{c.code}</td>
-                                <td className="border border-gray-300 px-3 py-2">{c.employee_name}</td>
-                                <td className="border border-gray-300 px-3 py-2 font-mono text-xs">{c.spend_date}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                    {money(c.amount_ccy)} {c.currency}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2">
-                                    {t('expenseClaims.status_' + c.status)}
-                                    {c.expense_reversed && (
-                                        <span className="block text-[11px] text-red-700">{t('expenseClaims.reversed')}</span>
-                                    )}
-                                    {!c.expense_reversed && c.is_owing && (
-                                        <span className="block text-[11px] text-amber-800">{t('expenseClaims.owingOther')}</span>
-                                    )}
-                                    {!c.expense_reversed && c.is_paid && (
-                                        <span className="block text-[11px] text-green-700">{t('expenseClaims.paid')}</span>
-                                    )}
-                                    {c.decision_notes && (
-                                        <span className="block text-[11px] text-gray-600">{c.decision_notes}</span>
-                                    )}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                <DataTable
+                    rows={decided}
+                    columns={decidedColumns}
+                    rowKey={(c) => c.claim_id}
+                    phone={{ mode: 'columns' }}
+                />
             )}
         </div>
     )

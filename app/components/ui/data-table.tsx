@@ -88,6 +88,30 @@ export type Column<T> = {
     className?: string
 }
 
+/**
+ * ★★【CONV-1:这张表在 390px 上【怎么办】—— 必填,而且没有默认值】★★
+ *
+ * 【为什么是必填的 prop,而不是一个可选项】Tim 的 Q3=C 裁定要求:一张什么都不声明的
+ * 表要被【按名拒绝】,而一张选择横向滚动的表可以,只要那是一个【说出来的】决定。
+ * 「说出来」如果只是注释,下一个人会漏读;如果只是一道闸,它得等到有人跑闸。
+ * **写成必填的 prop,漏掉它就编译不过** —— 那是这三层里唯一一层不需要任何人记得的。
+ *
+ * 【为什么 scroll 那一支强制带 why】没有它,`mode: 'scroll'` 就是一个比
+ * 「什么都不写」更方便的默认值 —— 而那正好把这条裁定倒过来。
+ * 带上 why,选择横向滚动就必须当场写下这张表为什么值得让人横着拖,
+ * 而这句话会跟着代码走,不会留在某次提交信息里。
+ *
+ * 【两支各自是什么】
+ *   columns —— BASE-1 的做法:手机上只留声明过 priority 的那几列,其余进展开区。
+ *              **一列 priority 都没有的表在这里还会撞上第二道网(见下面的按名拒绝)。**
+ *   scroll  —— 全部列都留在手机上,靠外层那层 overflow-x 横着拖。
+ *              R3 说过这是「把桌面版缩小」,所以它要理由;但对一张 13 列的进料台账,
+ *              它可能确实是那个诚实的答案。
+ */
+export type PhoneTreatment =
+    | { mode: 'columns' }
+    | { mode: 'scroll'; why: string }
+
 /** 【你拿到的是全部,还是一部分】—— 打开排序就必须回答。 */
 export type Coverage = 'complete' | { shown: number; total: number }
 
@@ -109,6 +133,8 @@ export type DataTableProps<T> = {
     rows: readonly T[]
     columns: ReadonlyArray<Column<T>>
     rowKey: (row: T) => string
+    /** ★ 390px 上怎么办。**必填** —— 见 PhoneTreatment 抬头。 */
+    phone: PhoneTreatment
     caption?: React.ReactNode
     /** 空集不是失败,但它要【说出自己是空的】。 */
     empty?: React.ReactNode
@@ -128,20 +154,39 @@ type Dir = keyof typeof DIR_NEXT
 
 export function DataTable<T>(props: DataTableProps<T>) {
     const {
-        rows, columns, rowKey, caption, empty, filter, pageSize,
+        rows, columns, rowKey, caption, empty, filter, pageSize, phone,
         columnToggle = false, phoneExpandLabel = '展开这一行的其余各列', className,
     } = props
+    // ★【CONV-1:scroll 那一支 —— 手机上【每一列都留着】,靠外层横向滚动】★
+    //   实现上它就是"把所有列都当成 priority",于是下面那些 `!c.priority` 的
+    //   隐藏规则一条都不生效,展开钮那一格也不画(没有东西可展开)。
+    //   **注意它不是"关掉手机适配",是【另一种】手机适配** —— 而它必须带 why。
+    const phoneScroll = phone.mode === 'scroll'
+    const isPhoneCol = (c: Column<T>) => phoneScroll || !!c.priority
     const sorting = props.sorting
     const clientSort = sorting?.mode === 'client'
     const serverSort = sorting?.mode === 'server' ? sorting : null
 
     // ★ 按名拒绝 —— 见抬头。没有声明手机列,就不要把这张表放到手机上。
+    //
+    // ★★【CONV-1:这是【第三道网】,不再是唯一的一道】★★
+    //   它是一个【渲染期】的 throw —— 也就是说它只在有人真的打开这一页时才响。
+    //   对一张少有人访问的列表页,那可能是几个月之后。所以 CONV-1 在它前面加了两道:
+    //     ① 类型:phone 是必填的 prop —— 漏掉它【编译不过】(上面那个联合类型);
+    //     ② 闸:scripts/check-datatable-phone.mjs 逐个调用点检查
+    //        「columns 模式的表至少有一列 priority」,点名 file:line,进 npm run build。
+    //   三道网各自看得见对方看不见的东西:类型管"有没有声明",闸管"声明得对不对",
+    //   而这个 throw 管【运行期才拼出来的列】(闸是静态解析,它读不出动态生成的列)。
+    //   **留着它,理由就是最后这一句。**
+    //
+    //   scroll 模式【不走这条路】:它已经回答过手机这个问题了,答案是"全部列都留着"。
     const priorityCols = columns.filter((c) => c.priority)
-    if (priorityCols.length === 0) {
+    if (!phoneScroll && priorityCols.length === 0) {
         throw new Error(
             'DATATABLE_NO_PHONE_COLUMNS:这张表没有任何一列声明 priority。' +
             '手机上要留下哪几列是【这张表自己的判断】,组件不替它猜 —— ' +
-            '猜「前 N 列」在有些表上一定挑错。给身份列与那个要紧的数字列加 priority: true。'
+            '猜「前 N 列」在有些表上一定挑错。给身份列与那个要紧的数字列加 priority: true,' +
+            '或者显式声明 phone={{ mode: \'scroll\', why: \'…\' }} 并写下理由。'
         )
     }
 
@@ -271,7 +316,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
                     <thead>
                         <tr className="border-b-2 border-[color:var(--brand-ocean)]">
                             {/* 手机上多一格放展开钮;桌面上它不存在。 */}
-                            <th className="w-8 px-1 sm:hidden" />
+                            {/* scroll 模式下没有展开钮,所以也不留这一格。 */}
+                            {!phoneScroll && <th className="w-8 px-1 sm:hidden" />}
                             {shownCols.map((c) => {
                                 const activeClient = clientSort && sort.key === c.key && sort.dir !== 'none'
                                 const activeServer = serverSort?.active?.key === c.key
@@ -294,7 +340,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                             'sm:whitespace-nowrap',
                                             c.align === 'right' ? 'text-right' : 'text-left',
                                             // ★ 非 priority 的列在手机上不出现在表里 —— 它们在展开区。
-                                            !c.priority && 'hidden sm:table-cell',
+                                            !isPhoneCol(c) && 'hidden sm:table-cell',
                                             c.className
                                         )}
                                     >
@@ -330,7 +376,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                     <tbody>
                         {visible.length === 0 && (
                             <tr>
-                                <td colSpan={shownCols.length + 1} className="px-3 py-8 text-center text-[color:var(--brand-muted-text)]">
+                                <td colSpan={shownCols.length + (phoneScroll ? 0 : 1)} className="px-3 py-8 text-center text-[color:var(--brand-muted-text)]">
                                     {empty ?? '没有符合的行'}
                                 </td>
                             </tr>
@@ -338,11 +384,11 @@ export function DataTable<T>(props: DataTableProps<T>) {
                         {visible.map((row) => {
                             const k = rowKey(row)
                             const isOpen = open.has(k)
-                            const restCols = shownCols.filter((c) => !c.priority)
+                            const restCols = phoneScroll ? [] : shownCols.filter((c) => !c.priority)
                             return (
                                 <React.Fragment key={k}>
                                     <tr className="border-b border-[color:var(--brand-border)]">
-                                        <td className="px-1 align-middle sm:hidden">
+                                        {!phoneScroll && <td className="px-1 align-middle sm:hidden">
                                             {restCols.length > 0 && (
                                                 <button
                                                     type="button"
@@ -354,14 +400,14 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                                     <span aria-hidden className={cn('transition-transform', isOpen && 'rotate-90')}>›</span>
                                                 </button>
                                             )}
-                                        </td>
+                                        </td>}
                                         {shownCols.map((c) => (
                                             <td
                                                 key={c.key}
                                                 className={cn(
                                                     'px-3 py-2.5 align-middle text-[color:var(--brand-text)] break-words',
                                                     c.align === 'right' ? 'text-right tabular-nums' : 'text-left',
-                                                    !c.priority && 'hidden sm:table-cell',
+                                                    !isPhoneCol(c) && 'hidden sm:table-cell',
                                                     c.className
                                                 )}
                                             >

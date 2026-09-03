@@ -59,8 +59,23 @@ const KNOWN_CONVERSIONS = new Set([
 //   拒绝态的【画法】从此只有一份实现(app/components/ui/refusal.tsx),
 //   要漂就得改那一个文件 —— 这比一道闸更硬。
 //   清单上剩下的 11 个组件仍然一个都没被采用,这道闸继续守着它们。
+// ★★【CONV-1(2026-09-03):'data-table' 也毕业了 —— 与 CONV-0 的 refusal 同一条路】★★
+// CONV-1 是【模板定形】那一刀:它把 <DataTable> 接进了四页(/inbound ·
+// /finance/claims 的已决登记簿 · /commissions · /sales/quotes),并新建了
+// 列表页外壳 <ListPage>。**那是一次刻意的、看得见的转换**,不是违规。
+//
+// ★【拿掉之后这道闸对 data-table 就不再守着什么 —— 接替它的是三样别的东西】★
+//   ① 类型:DataTable 的 phone 是必填 prop —— 一张不声明手机处置的表编译不过;
+//   ② 闸:scripts/check-datatable-phone.mjs —— columns 模式至少一列 priority,
+//      点名 file:line,已进 npm run build;
+//   ③ 渲染期 throw:DATATABLE_NO_PHONE_COLUMNS,兜住运行期才拼出来的列。
+//   **这三样加起来比"没有人用它"硬得多**,因为它们守的是【用得对不对】,
+//   而这道闸守的只是【有没有人用】。
+//
+// 清单上剩下的 10 个组件仍然一个都没被采用,这道闸继续守着它们。
+// 【list-page 从来没有进过这张清单】—— 它是 CONV-1 新建的,建出来就是给页面用的。
 const GUARDED = [
-    'data-table', 'feedback',
+    'feedback',
     'button', 'input', 'alert', 'badge', 'card', 'label', 'select', 'table', 'textarea',
 ]
 
