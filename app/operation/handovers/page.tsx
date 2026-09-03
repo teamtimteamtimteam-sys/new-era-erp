@@ -1,6 +1,13 @@
 // app/operation/handovers/page.tsx
 // PROC-SUPPORT-1(R4):交接班列表 —— ★ 未签收的必须一眼看得出来 ★。
 //
+// CONV-5:套 CONV-1 的两文件模板。
+// ★ state 恒为 'ok',而且这一页是【为什么】那条判据存在的一个干净例子:
+//   抬头第二段写着"这一页第一天会是空的,而空态要说出为什么"。那句
+//   cannotAnswerYet(G8:答不出"这个班处理了什么")必须在【空态下也出现】——
+//   它走 notices 槽,画在状态分支之前;而"在等什么"那句空态话由 DataTable
+//   自己的 empty 说(emptyNoStaff),不是一句"暂无数据"。
+//
 // 【这一页第一天会是空的,而空态要说出为什么】线上 work_category = 'shopfloor'
 // 的员工数是 0:没有人交班,也没有人接班。空态因此不是一句"暂无数据",而是
 // 一句说得清【在等什么】的话 —— 与 output_batch_safety_states 那条"缺失即阻断"
@@ -16,7 +23,8 @@ import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { can } from '@/lib/permissions'
 import { MOD } from '@/lib/modules'
-import AcknowledgeButton from './AcknowledgeButton'
+import { ListPage } from '@/app/components/ui/list-page'
+import HandoversTable, { type HandoverRow } from './HandoversTable'
 
 export default async function HandoversPage() {
     const denied = await requireModule(MOD.processing)
@@ -65,76 +73,49 @@ export default async function HandoversPage() {
 
     const unacknowledged = rows.filter((r) => !r.acknowledged_at).length
 
+    const tableRows: HandoverRow[] = rows.map((r) => ({
+        id: r.id,
+        handoverDate: r.handover_date,
+        shiftLabel: shiftOf(r.shift_code),
+        fromName: nameOf(r.outgoing_employee_id),
+        toName: nameOf(r.incoming_employee_id),
+        acknowledged: Boolean(r.acknowledged_at),
+        // 时刻按 locale 格式化在服务端做完 —— dl 不过 RSC 边界
+        acknowledgedLabel: r.acknowledged_at
+            ? t('processing.handover.acknowledgedBy', {
+                  who: nameOf(r.acknowledged_by),
+                  when: new Date(r.acknowledged_at).toLocaleString(dl),
+              })
+            : null,
+    }))
+
     return (
-        <>
-            <div className="p-8 max-w-5xl">
-                <div className="flex items-center justify-between mb-1">
-                    <h1 className="text-2xl font-semibold">{t('processing.handover.title')}</h1>
-                    {canEdit && (
-                        <Link href="/operation/handovers/new"
-                              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm">
-                            {t('processing.handover.new')}
-                        </Link>
+        <ListPage
+            title={t('processing.handover.title')}
+            maxWidth="max-w-5xl"
+            actions={
+                canEdit ? (
+                    <Link href="/operation/handovers/new"
+                          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm">
+                        {t('processing.handover.new')}
+                    </Link>
+                ) : undefined
+            }
+            notices={
+                <>
+                    {/* ★【G8:这一页答不出"这个班处理了什么",而它必须自己说出来】★ */}
+                    <p className="text-xs text-gray-500 mb-4">{t('processing.handover.cannotAnswerYet')}</p>
+                    {unacknowledged > 0 && (
+                        <p className="mb-4 text-sm bg-amber-50 border border-amber-200 text-amber-900 px-3 py-2 rounded">
+                            {t('processing.handover.unacknowledgedCount', { n: String(unacknowledged) })}
+                        </p>
                     )}
-                </div>
-
-                {/* ★【G8:这一页答不出"这个班处理了什么",而它必须自己说出来】★ */}
-                <p className="text-xs text-gray-500 mb-4">{t('processing.handover.cannotAnswerYet')}</p>
-
-                {unacknowledged > 0 && (
-                    <p className="mb-4 text-sm bg-amber-50 border border-amber-200 text-amber-900 px-3 py-2 rounded">
-                        {t('processing.handover.unacknowledgedCount', { n: String(unacknowledged) })}
-                    </p>
-                )}
-
-                <table className="w-full border-collapse border border-gray-300 text-sm">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('processing.handover.colDate')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('processing.handover.colShift')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('processing.handover.colFrom')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('processing.handover.colTo')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('processing.handover.colAck')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rows.map((r) => (
-                            <tr key={r.id} className={r.acknowledged_at ? '' : 'bg-amber-50'}>
-                                <td className="border border-gray-300 px-3 py-2">{r.handover_date}</td>
-                                <td className="border border-gray-300 px-3 py-2">{shiftOf(r.shift_code)}</td>
-                                <td className="border border-gray-300 px-3 py-2">{nameOf(r.outgoing_employee_id)}</td>
-                                <td className="border border-gray-300 px-3 py-2">{nameOf(r.incoming_employee_id)}</td>
-                                {/* ★【未签收 vs 已签收:一个【具名的状态】,不是一个空格】★
-                                    空格读起来像"这一栏不重要";而未签收的意思是
-                                    【下一个班的人还没说他看过这些话】。 */}
-                                <td className="border border-gray-300 px-3 py-2">
-                                    {r.acknowledged_at ? (
-                                        <span className="inline-block px-2 py-0.5 rounded bg-green-100 text-green-800 text-xs">
-                                            {t('processing.handover.acknowledgedBy', {
-                                                who: nameOf(r.acknowledged_by),
-                                                when: new Date(r.acknowledged_at).toLocaleString(dl),
-                                            })}
-                                        </span>
-                                    ) : (
-                                        <span className="flex items-center gap-2">
-                                            <span className="inline-block px-2 py-0.5 rounded bg-amber-200 text-amber-900 text-xs font-medium">
-                                                {t('processing.handover.pending')}
-                                            </span>
-                                            {canEdit && <AcknowledgeButton handoverId={r.id} />}
-                                        </span>
-                                    )}
-                                </td>
-                            </tr>
-                        ))}
-                        {rows.length === 0 && (
-                            <tr><td colSpan={5} className="border border-gray-300 px-3 py-6 text-center text-gray-500">
-                                {/* 【空态说出【在等什么】,不说"暂无数据"】 */}
-                                {t('processing.handover.emptyNoStaff')}
-                            </td></tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
-        </>
+                </>
+            }
+            state={{ kind: 'ok' }}
+        >
+            {/* 【空态说出【在等什么】,不说"暂无数据"】 */}
+            <HandoversTable rows={tableRows} empty={t('processing.handover.emptyNoStaff')} canEdit={canEdit} />
+        </ListPage>
     )
 }

@@ -1,6 +1,9 @@
 // app/operation/orders/page.tsx
 // WO-1c:工单列表 —— 计划这一侧的入口。
 //
+// CONV-5:套 CONV-1 的两文件模板。state 恒为 'ok' —— WoThresholdPanel 与
+// 「计划外的加工不是这一页的事」那段说明都要在空态下照画,它们走 notices。
+//
 // 【完成度是【读】出来的,不是存下来的】那一列取自 work_order_fulfilment 的投入侧
 // (已耗 ÷ 计划,按物料汇总),而不是工单上的某一列 —— 工单表里刻意没有
 // "in_progress" 或 "完成度" 这种字段(见 db/tables/work_orders.sql 的列注释:
@@ -17,6 +20,8 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { workOrderStatusKey } from './woTypes'
 import WoThresholdPanel from './WoThresholdPanel'
+import { ListPage } from '@/app/components/ui/list-page'
+import WorkOrdersTable, { type WorkOrderRow } from './WorkOrdersTable'
 
 export default async function WorkOrdersPage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前。
@@ -67,87 +72,46 @@ export default async function WorkOrdersPage() {
         'processing_settings') as
         { wo_input_overrun_pct: number; wo_output_shortfall_pct: number } | null
 
-    return (
-        <>
-            <div className="p-8">
-                <div className="flex items-center justify-between mb-2">
-                    <h1 className="text-2xl font-bold">{t('processing.wo.listTitle')}</h1>
-                    {canEdit && (
-                        <Link href="/operation/orders/new"
-                              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                            {t('processing.wo.addButton')}
-                        </Link>
-                    )}
-                </div>
-                <p className="text-sm text-gray-600 mb-4">{t('processing.wo.listNote')}</p>
+    const tableRows: WorkOrderRow[] = orders.map((o) => {
+        const p = progress.get(o.id)
+        return {
+            id: o.id,
+            code: o.code,
+            statusLabel: t(workOrderStatusKey(o.status)),
+            // 日期按 locale 格式化在服务端做完 —— dl 不过 RSC 边界
+            scheduledLabel: o.scheduled_date ? new Date(o.scheduled_date).toLocaleDateString(dl) : null,
+            progressLabel: !p || p.planned === 0 ? null : `${p.consumed} / ${p.planned}`,
+            unplannedMaterials: p?.unplannedMaterials ?? 0,
+            notes: o.notes ?? '—',
+        }
+    })
 
-                {/* EXEC-3b:差异阈值面板。人人看得见(看板上那盏灯亮不亮就取决于它),
-                    持 module.processing.edit 的人改得动。 */}
-                {settings && (
+    return (
+        <ListPage
+            title={t('processing.wo.listTitle')}
+            intro={t('processing.wo.listNote')}
+            actions={
+                canEdit ? (
+                    <Link href="/operation/orders/new"
+                          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                        {t('processing.wo.addButton')}
+                    </Link>
+                ) : undefined
+            }
+            notices={
+                /* EXEC-3b:差异阈值面板。人人看得见(看板上那盏灯亮不亮就取决于它),
+                   持 module.processing.edit 的人改得动。它是一个【设置】,
+                   一行工单都没有的时候照样要能改 —— 所以它在状态分支之前。 */
+                settings ? (
                     <WoThresholdPanel
                         inputPct={Number(settings.wo_input_overrun_pct)}
                         outputPct={Number(settings.wo_output_shortfall_pct)}
                         canEdit={canEdit} />
-                )}
-
-                <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-300">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.wo.colCode')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.wo.colStatus')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.wo.colScheduled')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-right">{t('processing.wo.colProgress')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.wo.colNotes')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {orders.map((o) => {
-                                const p = progress.get(o.id)
-                                return (
-                                    <tr key={o.id}>
-                                        <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                            <Link href={`/operation/orders/${o.id}`}
-                                                  className="text-blue-600 hover:underline">{o.code}</Link>
-                                        </td>
-                                        <td className="border border-gray-300 px-4 py-2">
-                                            <span className="px-2 py-1 bg-gray-200 rounded text-xs">
-                                                {t(workOrderStatusKey(o.status))}
-                                            </span>
-                                        </td>
-                                        <td className="border border-gray-300 px-4 py-2">
-                                            {/* 【没排期就说"没排期",不画成一个日期】空是一个答案 */}
-                                            {o.scheduled_date
-                                                ? new Date(o.scheduled_date).toLocaleDateString(dl)
-                                                : <span className="text-gray-500 italic">{t('processing.wo.noSchedule')}</span>}
-                                        </td>
-                                        <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                            {!p || p.planned === 0
-                                                ? <span className="text-gray-500">—</span>
-                                                : `${p.consumed} / ${p.planned}`}
-                                            {p && p.unplannedMaterials > 0 && (
-                                                <span className="ml-2 text-xs text-amber-700">
-                                                    {t('processing.wo.unplannedMaterials', { n: String(p.unplannedMaterials) })}
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
-                                            {o.notes ?? '—'}
-                                        </td>
-                                    </tr>
-                                )
-                            })}
-                            {orders.length === 0 && (
-                                <tr>
-                                    <td colSpan={5} className="border border-gray-300 px-4 py-6 text-center text-gray-500">
-                                        {t('processing.wo.empty')}
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </>
+                ) : undefined
+            }
+            state={{ kind: 'ok' }}
+        >
+            <WorkOrdersTable rows={tableRows} empty={t('processing.wo.empty')} />
+        </ListPage>
     )
 }

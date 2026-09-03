@@ -1,5 +1,10 @@
 // app/operation/processing/page.tsx
 // 加工单列表页(只读,删除在详情页)。日期区间(process_date)+ 分页,端口自 inbound。
+//
+// CONV-5:套 CONV-1 的两文件模板。
+// ★ Q7:sort/dir 仍然由 ProcessingToolbar 写 URL、由服务端执行,DataTable 不接管
+//   排序。转换前后的行序用 fetch 对拍验过(不是断言)。
+// ★ state 恒为 'ok' —— 筛选/排序工具栏是真实出口,见 §⑩-3。
 import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
@@ -15,6 +20,8 @@ import {
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import ProcessingTable, { type ProcessingRunRow } from './ProcessingTable'
 
 export default async function ProcessingPage({
     searchParams,
@@ -101,27 +108,33 @@ export default async function ProcessingPage({
         )
     }
 
-    return (
-        <div className="p-8">
-            <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold">{t('processing.listTitle')}</h1>
-                <div className="flex items-center gap-3">
-                    {/* ★【NAV-CLEANUP-1 ②:这里从前还画着【运营名下的全部条目】,删了】★
-                        它是二级菜单的一份重复 —— 而且是【两份】:这一页从前同时挂着
-                        app/operation/processing/Subnav.tsx(硬编码四条)与这一行
-                        getFunctionAccess('operation')(注册表全部条目),
-                        于是工单 / 加工单 / 在制品 / 交接班在一屏上出现了两遍。
-                        四条【全部】是运营模块二级菜单offers 的条目(逐条对着注册表算过),
-                        所以删掉不会让任何一页失去入口。判据见 docs/information-architecture.md。 */}
-                    <Link
-                        href="/operation/processing/new"
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                    >
-                        {t('processing.addButton')}
-                    </Link>
-                </div>
-            </div>
+    const tableRows: ProcessingRunRow[] = (runs ?? []).map((r) => ({
+        id: r.id,
+        code: r.code,
+        processDate: r.process_date ?? '—',
+        totalInput: r.total_input != null ? String(r.total_input) : '—',
+        totalOutput: r.total_output != null ? String(r.total_output) : '—',
+        lossLabel:
+            (r.loss_qty != null ? String(r.loss_qty) : '—') +
+            (r.loss_qty != null && r.total_input ? ` (${((r.loss_qty / r.total_input) * 100).toFixed(1)}%)` : ''),
+        statusLabel: statusLabel(r.status),
+        workOrderId: r.work_order_id,
+        workOrderCode: r.work_order_id ? (woCode.get(r.work_order_id) ?? '—') : '—',
+    }))
 
+    return (
+        <ListPage
+            title={t('processing.listTitle')}
+            actions={
+                <Link
+                    href="/operation/processing/new"
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                >
+                    {t('processing.addButton')}
+                </Link>
+            }
+            state={{ kind: 'ok' }}
+        >
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
                 <ProcessingToolbar />
@@ -131,71 +144,8 @@ export default async function ProcessingPage({
                 {t('processing.recordCount', { count: total })}
             </p>
 
-            <div className="overflow-x-auto">
-                <table className="w-full border-collapse border border-gray-300">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.colCode')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.colProcessDate')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.colTotalInput')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.colTotalOutput')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.colLoss')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.colStatus')}</th>
-                            {/* WO-1c:这次加工算在哪张计划上 —— 【没有就说"无计划",不留空】
-                                空白读起来是"数据缺了",而真相是一个正当的类别。 */}
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.colWorkOrder')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {runs?.map((r) => (
-                            <tr key={r.id}>
-                                <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                    <Link
-                                        href={`/operation/processing/${r.id}`}
-                                        className="text-blue-600 hover:underline"
-                                    >
-                                        {r.code}
-                                    </Link>
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2">{r.process_date ?? '—'}</td>
-                                <td className="border border-gray-300 px-4 py-2">{r.total_input ?? '—'}</td>
-                                <td className="border border-gray-300 px-4 py-2">{r.total_output ?? '—'}</td>
-                                <td className="border border-gray-300 px-4 py-2">
-                                    {r.loss_qty ?? '—'}
-                                    {r.loss_qty != null && r.total_input
-                                        ? ` (${((r.loss_qty / r.total_input) * 100).toFixed(1)}%)`
-                                        : ''}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2">
-                                    <span className="px-2 py-1 bg-gray-200 rounded text-xs">
-                                        {statusLabel(r.status)}
-                                    </span>
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                    {r.work_order_id
-                                        ? <Link href={`/operation/orders/${r.work_order_id}`}
-                                                className="text-blue-600 hover:underline">
-                                              {woCode.get(r.work_order_id) ?? '—'}
-                                          </Link>
-                                        : <span className="text-gray-500 italic">{t('processing.noWorkOrder')}</span>}
-                                </td>
-                            </tr>
-                        ))}
-                        {(!runs || runs.length === 0) && (
-                            <tr>
-                                <td
-                                    colSpan={7}
-                                    className="border border-gray-300 px-4 py-8 text-center text-gray-500"
-                                >
-                                    {t('processing.emptyState')}
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
+            <ProcessingTable rows={tableRows} empty={t('processing.emptyState')} />
 
-            {/* 分页控件:服务端 <Link>;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
                     <Link
@@ -227,6 +177,6 @@ export default async function ProcessingPage({
                     </span>
                 )}
             </div>
-        </div>
+        </ListPage>
     )
 }
