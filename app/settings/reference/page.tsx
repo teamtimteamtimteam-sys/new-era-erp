@@ -3,10 +3,16 @@
 //
 // 这是"谁能看见什么"的答案,同时它【不可能与现实脱节】—— 页面直接读 permissions
 // 与 role_permissions,而不是读一份需要有人记得更新的文档。
+//
+// CONV-5:三个类别各一张表,共用同一个客户端表组件(它们是同一种东西,
+// 不是三张不同的表)。state 恒为 'ok' —— 类别标题与那句 referenceIntro
+// 在任何行数下都要画。
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { requireManagePermissions } from '../guard'
 import { mustRows } from '@/lib/db-helpers'
+import { ListPage } from '@/app/components/ui/list-page'
+import PermissionReferenceTable, { type PermissionRefRow } from './PermissionReferenceTable'
 
 type Perm = {
     code: string
@@ -58,76 +64,30 @@ export default async function ReferencePage() {
         perms.some((p) => p.category === c)
     )
 
+    // 名称/描述/角色名的语言都在服务端选好 —— locale 不过 RSC 边界
+    const rowsFor = (cat: string): PermissionRefRow[] =>
+        perms
+            .filter((p) => p.category === cat)
+            .map((p) => ({
+                code: p.code,
+                name: locale === 'zh' ? p.name_zh : p.name_en,
+                description: (locale === 'zh' ? p.description_zh : p.description_en) ?? '—',
+                holders: (holders.get(p.code) ?? []).map((r) => (locale === 'zh' ? r.name_zh : r.name_en)),
+            }))
+
     return (
-        <div className="p-8 max-w-5xl">
-            <h1 className="text-2xl font-bold mb-4">{t('permissions.title')}</h1>
-
-            <p className="text-sm text-gray-600 mb-6">{t('permissions.referenceIntro')}</p>
-
+        <ListPage
+            title={t('permissions.title')}
+            intro={t('permissions.referenceIntro')}
+            maxWidth="max-w-5xl"
+            state={{ kind: 'ok' }}
+        >
             {categories.map((cat) => (
                 <section key={cat} className="mb-8">
                     <h2 className="text-lg font-bold mb-3">{t(CATEGORY_KEY[cat] ?? cat)}</h2>
-                    <table className="w-full border-collapse">
-                        <thead>
-                            <tr className="bg-gray-50 text-left text-sm">
-                                <th className="border border-gray-300 px-3 py-2 w-64">
-                                    {t('permissions.permission')}
-                                </th>
-                                <th className="border border-gray-300 px-3 py-2">
-                                    {t('permissions.whatItReveals')}
-                                </th>
-                                <th className="border border-gray-300 px-3 py-2 w-64">
-                                    {t('permissions.heldBy')}
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {perms
-                                .filter((p) => p.category === cat)
-                                .map((p) => {
-                                    const hs = holders.get(p.code) ?? []
-                                    return (
-                                        <tr key={p.code} className="text-sm align-top">
-                                            <td className="border border-gray-300 px-3 py-2">
-                                                <div>
-                                                    {locale === 'zh' ? p.name_zh : p.name_en}
-                                                </div>
-                                                <div className="font-mono text-xs text-gray-400">
-                                                    {p.code}
-                                                </div>
-                                            </td>
-                                            <td className="border border-gray-300 px-3 py-2 text-gray-700">
-                                                {(locale === 'zh'
-                                                    ? p.description_zh
-                                                    : p.description_en) ?? '—'}
-                                            </td>
-                                            <td className="border border-gray-300 px-3 py-2">
-                                                {hs.length === 0 ? (
-                                                    <span className="text-gray-400 italic">
-                                                        {t('permissions.heldByNobody')}
-                                                    </span>
-                                                ) : (
-                                                    <div className="flex flex-wrap gap-1">
-                                                        {hs.map((r) => (
-                                                            <span
-                                                                key={r.code}
-                                                                className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700"
-                                                            >
-                                                                {locale === 'zh'
-                                                                    ? r.name_zh
-                                                                    : r.name_en}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    )
-                                })}
-                        </tbody>
-                    </table>
+                    <PermissionReferenceTable rows={rowsFor(cat)} />
                 </section>
             ))}
-        </div>
+        </ListPage>
     )
 }

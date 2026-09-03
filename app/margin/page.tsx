@@ -44,6 +44,8 @@ import { formatMoneyBare } from '@/lib/format'
 import { mustRows } from '@/lib/db-helpers'
 import { requireFunction } from '@/app/components/moduleGuard'
 import { FN } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import MarginTable, { type MarginRow as MarginTableRow, type MarginFlag } from './MarginTable'
 
 type MarginRow = {
     output_batch_id: string
@@ -91,136 +93,92 @@ export default async function MarginPage() {
     const revenueTotal = rows.reduce((s, r) => s + Number(r.revenue_base), 0)
     const computableRevenue = computable.reduce((s, r) => s + Number(r.revenue_base), 0)
 
-    const Flag = ({ label, hint, tone }: { label: string; hint: string; tone: 'amber' | 'red' }) => (
-        <span
-            title={hint}
-            className={
-                'inline-block rounded px-1.5 py-0.5 text-xs whitespace-nowrap ' +
-                (tone === 'red'
-                    ? 'bg-red-100 text-red-800 border border-red-300'
-                    : 'bg-amber-100 text-amber-900 border border-amber-300')
-            }
-        >
-            {label}
-        </span>
-    )
+    // CONV-5:套 CONV-1 的两文件模板。
+    // ★ state 恒为 'ok' —— 口径说明块与覆盖率告警都必须【无条件】出现:
+    //   覆盖率那一句的原注写着"三行 NULL 里藏着的正是最大的一笔,所以这句话
+    //   必须在表格上面,不是脚注" —— 走 empty 分支会把它整块吞掉。两者进 notices。
+    const money = (n: number) => formatMoneyBare(n, '页面副标题 margin.subtitle 末尾的({ccy})')
+    const tableRows: MarginTableRow[] = rows.map((r) => {
+        const ok = r.margin_status === 'ok'
+        const flags: MarginFlag[] = []
+        if (!ok) {
+            flags.push({
+                tone: 'red',
+                label: t('margin.status.' + r.margin_status),
+                hint: t('margin.statusHint.' + r.margin_status),
+            })
+        }
+        if (r.cost_incomplete) {
+            flags.push({ tone: 'amber', label: t('margin.flag.costIncomplete'), hint: t('margin.flagHint.costIncomplete') })
+        }
+        if (r.is_stale) {
+            flags.push({ tone: 'amber', label: t('margin.flag.stale'), hint: t('margin.flagHint.stale') })
+        }
+        if (r.cogs_differs) {
+            flags.push({
+                tone: 'amber',
+                label: t('margin.flag.cogsDiffers', { posted: money(r.cogs_posted_base as number) }),
+                hint: t('margin.flagHint.cogsDiffers'),
+            })
+        }
+        return {
+            outputBatchId: r.output_batch_id,
+            // 跨模块入口由注册表派生,不手写 —— 见 MarginTable 里 outputHref 的说明
+            outputHref: FN.output.href,
+            batchCode: r.batch_code,
+            materialName: r.material_name,
+            runCode: r.run_code ?? '—',
+            qtySold: String(r.qty_sold),
+            revenue: money(r.revenue_base),
+            // 算不出来就给 null,由表印「—」;绝不折成 0
+            cost: ok ? money(r.cost_current_base as number) : null,
+            margin: ok ? money(r.margin_base as number) : null,
+            marginPct: ok && r.margin_pct !== null ? `${r.margin_pct}%` : null,
+            ok,
+            flags,
+        }
+    })
 
     return (
-        <div className="p-8 max-w-6xl">
-            <h1 className="text-2xl font-bold mb-2">{t('margin.title')}</h1>
-            <p className="text-gray-600 mb-4">{t('margin.subtitle', { ccy: baseCurrency })}</p>
+        <ListPage
+            title={t('margin.title')}
+            intro={t('margin.subtitle', { ccy: baseCurrency })}
+            maxWidth="max-w-6xl"
+            notices={
+                <>
+                    {/* 【用的是哪一个口径,写在屏幕上,不是写在文档里】 */}
+                    <div className="bg-blue-50 border border-blue-200 text-blue-900 px-4 py-3 rounded mb-6 max-w-3xl text-sm">
+                        <p className="font-medium">{t('margin.basisTitle')}</p>
+                        <p className="mt-1">{t('margin.basisBody')}</p>
+                    </div>
 
-            {/* 【用的是哪一个口径,写在屏幕上,不是写在文档里】 */}
-            <div className="bg-blue-50 border border-blue-200 text-blue-900 px-4 py-3 rounded mb-6 max-w-3xl text-sm">
-                <p className="font-medium">{t('margin.basisTitle')}</p>
-                <p className="mt-1">{t('margin.basisBody')}</p>
-            </div>
+                    {/* 覆盖率:能算的收入占多少 —— 三行 NULL 里藏着的正是最大的一笔,
+                        所以这句话必须在表格【上面】,不是脚注 */}
+                    {computable.length < rows.length && (
+                        <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-6 max-w-3xl">
+                            <p className="font-medium">
+                                {t('margin.coverage', {
+                                    computable: String(computable.length),
+                                    total: String(rows.length),
+                                })}
+                            </p>
+                            <p className="text-sm mt-1">
+                                {t('margin.coverageAmount', {
+                                    covered: formatMoneyBare(computableRevenue, '同句 margin.coverageAmount 末尾的 {ccy}'),
+                                    total: formatMoneyBare(revenueTotal, '同句 margin.coverageAmount 末尾的 {ccy}'),
+                                    ccy: baseCurrency,
+                                })}
+                            </p>
+                        </div>
+                    )}
+                </>
+            }
+            state={{ kind: 'ok' }}
+        >
+            <MarginTable rows={tableRows} empty={t('margin.empty')} />
 
-            {/* 覆盖率:能算的收入占多少 —— 三行 NULL 里藏着的正是最大的一笔,
-                所以这句话必须在表格【上面】,不是脚注 */}
-            {computable.length < rows.length && (
-                <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-6 max-w-3xl">
-                    <p className="font-medium">
-                        {t('margin.coverage', {
-                            computable: String(computable.length),
-                            total: String(rows.length),
-                        })}
-                    </p>
-                    <p className="text-sm mt-1">
-                        {t('margin.coverageAmount', {
-                            covered: formatMoneyBare(computableRevenue, '同句 margin.coverageAmount 末尾的 {ccy}'),
-                            total: formatMoneyBare(revenueTotal, '同句 margin.coverageAmount 末尾的 {ccy}'),
-                            ccy: baseCurrency,
-                        })}
-                    </p>
-                </div>
-            )}
-
-            <div className="overflow-x-auto">
-                <table className="w-full border-collapse border border-gray-300">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('margin.colBatch')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('margin.colRun')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('margin.colQty')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('margin.colRevenue')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('margin.colCost')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('margin.colMargin')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('margin.colMarginPct')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('margin.colFlags')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rows.map((r) => {
-                            const ok = r.margin_status === 'ok'
-                            return (
-                                <tr key={r.output_batch_id} className={ok ? '' : 'bg-gray-50'}>
-                                    <td className="border border-gray-300 px-3 py-2">
-                                        <Link href={`/output`} className="font-mono text-sm text-blue-600 hover:underline">
-                                            {r.batch_code}
-                                        </Link>
-                                        <span className="block text-xs text-gray-500">{r.material_name}</span>
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2 font-mono text-sm">
-                                        {r.run_code ?? '—'}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                        {r.qty_sold}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                        {formatMoneyBare(r.revenue_base, '页面副标题 margin.subtitle 末尾的({ccy})')}
-                                    </td>
-                                    {/* 【算不出来就说算不出来】—— 不是 0,也不是空白 */}
-                                    <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                        {ok ? formatMoneyBare(r.cost_current_base as number, '页面副标题 margin.subtitle 末尾的({ccy})') : '—'}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                        {ok ? formatMoneyBare(r.margin_base as number, '页面副标题 margin.subtitle 末尾的({ccy})') : '—'}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                        {ok && r.margin_pct !== null ? `${r.margin_pct}%` : '—'}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2">
-                                        <div className="flex flex-wrap gap-1">
-                                            {!ok && (
-                                                <Flag
-                                                    tone="red"
-                                                    label={t('margin.status.' + r.margin_status)}
-                                                    hint={t('margin.statusHint.' + r.margin_status)}
-                                                />
-                                            )}
-                                            {r.cost_incomplete && (
-                                                <Flag tone="amber" label={t('margin.flag.costIncomplete')} hint={t('margin.flagHint.costIncomplete')} />
-                                            )}
-                                            {r.is_stale && (
-                                                <Flag tone="amber" label={t('margin.flag.stale')} hint={t('margin.flagHint.stale')} />
-                                            )}
-                                            {r.cogs_differs && (
-                                                <Flag
-                                                    tone="amber"
-                                                    label={t('margin.flag.cogsDiffers', {
-                                                        posted: formatMoneyBare(r.cogs_posted_base as number, '页面副标题 margin.subtitle 末尾的({ccy})'),
-                                                    })}
-                                                    hint={t('margin.flagHint.cogsDiffers')}
-                                                />
-                                            )}
-                                        </div>
-                                    </td>
-                                </tr>
-                            )
-                        })}
-                        {rows.length === 0 && (
-                            <tr>
-                                <td colSpan={8} className="border border-gray-300 px-3 py-6 text-center text-gray-500">
-                                    {t('margin.empty')}
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
 
             <p className="text-sm text-gray-500 mt-4">{t('margin.note')}</p>
-        </div>
+        </ListPage>
     )
 }

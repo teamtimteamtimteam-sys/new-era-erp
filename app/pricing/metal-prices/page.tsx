@@ -8,6 +8,8 @@ import { sourceLabelKey } from './sourceOptions'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import MetalPricesToolbar from './MetalPricesToolbar'
+import { ListPage } from '@/app/components/ui/list-page'
+import MetalPricesTable, { type MetalPriceRow as MetalPricesTableRow } from './MetalPricesTable'
 import { metalLabelKey } from './options'
 import {
     parseMetalPricesListParams,
@@ -160,28 +162,6 @@ export default async function MetalPricesPage({
     }
 
     // 表头排序链接:保留金属筛选,只改 sort/dir;不带 page —— 改排序回到第 1 页。
-    function sortHref(col: MetalPricesSortCol) {
-        const nextDir = sort === col && dir === 'asc' ? 'desc' : 'asc'
-        const params = new URLSearchParams()
-        if (metal) params.set('metal', metal)
-        params.set('sort', col)
-        params.set('dir', nextDir)
-        return `/pricing/metal-prices?${params.toString()}`
-    }
-
-    function sortableTh(col: MetalPricesSortCol, label: string) {
-        const indicator = sort === col ? (dir === 'asc' ? ' ▲' : ' ▼') : ''
-        return (
-            <th className="border border-gray-300 px-4 py-2 text-left">
-                <Link href={sortHref(col)} className="hover:underline">
-                    {label}
-                    {indicator}
-                </Link>
-            </th>
-        )
-    }
-
-    // 分页链接:保留金属筛选 + sort/dir,只改 page
     function pageHref(targetPage: number) {
         const params = new URLSearchParams()
         if (metal) params.set('metal', metal)
@@ -203,10 +183,33 @@ export default async function MetalPricesPage({
         )
     }
 
+    // CONV-5:套 CONV-1 的两文件模板。
+    // ★ Q7:排序仍是服务端的。
+    // ★ state 恒为 'ok' —— ThresholdPanel 是一个【设置】(一行行情都没有时
+    //   照样要能改阈值),工具栏是筛选出口;两者都画在状态分支之前。
+    const tableRows: MetalPricesTableRow[] = (rows ?? []).map((r) => ({
+        id: r.id,
+        metalLabel: metalLabel(r.metal),
+        pricePerTonne: r.price_usd_per_tonne,
+        quoteCurrency: r.metal_price_indices?.quote_currency ?? null,
+        priceDate: r.price_date,
+        priceIndex: r.price_index ?? null,
+        sourceLabel: t(sourceLabelKey(r.source)),
+        notes: r.notes ?? '—',
+        // 判词为空 = 这一行录入时还没有这项检查(见 MetalPricesTable 抬头第三种)
+        anomalyVerdict: (r.anomaly_check?.verdict as 'outside' | 'no_reference' | 'inside' | undefined) ?? null,
+        anomalyChangePct: r.anomaly_check?.change_pct ?? 0,
+        anomalyRefPrice: r.anomaly_check?.reference_price ?? 0,
+        anomalyRefDate: r.anomaly_check?.reference_date ?? '',
+    }))
+
+    const filterQuery: Record<string, string> = {}
+    if (metal) filterQuery.metal = metal
+
     return (
-        <div className="p-8">
-            <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold">{t('metalPrices.listTitle')}</h1>
+        <ListPage
+            title={t('metalPrices.listTitle')}
+            actions={
                 <div className="flex gap-3">
                     <Link
                         href="/pricing/metal-prices/bulk"
@@ -221,139 +224,36 @@ export default async function MetalPricesPage({
                         {t('metalPrices.addButton')}
                     </Link>
                 </div>
-            </div>
-
-            <ThresholdPanel
-                thresholdPct={Number(settings.metal_price_change_warn_pct)}
-                // ⑤a:按界面语言选一句。**不再渲染那个单语的 notes** ——
-                // Tim 走查时在英文界面上看到的就是它(而它住在数据里,不在代码里)。
-                notes={locale === 'zh' ? settings.notes_zh : settings.notes_en}
-                canEdit={canEditPrices}
-            />
-
+            }
+            notices={
+                <ThresholdPanel
+                    thresholdPct={Number(settings.metal_price_change_warn_pct)}
+                    // ⑤a:按界面语言选一句。**不再渲染那个单语的 notes**。
+                    notes={locale === 'zh' ? settings.notes_zh : settings.notes_en}
+                    canEdit={canEditPrices}
+                />
+            }
+            state={{ kind: 'ok' }}
+        >
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
-                <MetalPricesToolbar
-                substanceOptions={substanceOptions} />
+                <MetalPricesToolbar substanceOptions={substanceOptions} />
             </Suspense>
 
             <p className="text-sm text-gray-600 mb-4">
                 {t('metalPrices.recordCount', { count: total })}
             </p>
 
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        {sortableTh('metal', t('metalPrices.colMetal'))}
-                        {/* METAL-3:列头不再写死 USD —— SMM 按 CNY/吨发布,
-                            一个写着 (USD/t) 的列头对那些行就是一句谎话
-                            (FIN-18 的 jsx-text 教训:最直接的说谎方式是正文)。
-                            币种跟着每一行走,见下面的单元格。 */}
-                        {sortableTh('price_usd_per_tonne', t('metalPrices.colPricePerTonne'))}
-                        {sortableTh('price_date', t('metalPrices.colPriceDate'))}
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('metalPrices.colIndex')}
-                        </th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('metalPrices.colSource')}
-                        </th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('metalPrices.colNotes')}
-                        </th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('metalPrices.colActions')}
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {rows?.map((r) => (
-                        <tr key={r.id}>
-                            <td className="border border-gray-300 px-4 py-2">{metalLabel(r.metal)}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatMoneyBare(r.price_usd_per_tonne, '同格内紧跟着币种,见下一行')}
-                                {/* 【数字自己带币种】—— 未标注指数的老行按 USD 记
-                                    (那条序列一直是 USD),所以回退到报价基准。 */}
-                                <span className="ml-1 text-xs text-gray-500">
-                                    {r.metal_price_indices?.quote_currency ?? t('metalPrices.index.quoteBasisFallback')}
-                                </span>
-                                {/* METAL-1:录入那一刻的判词。outside 挂琥珀徽标;
-                                    no_reference 挂灰色 —— 【它不是"检查通过"】,
-                                    是"这个金属当时没有别的报价可比"。两者必须
-                                    在屏幕上就分得开,否则第三种判词等于没有。 */}
-                                {r.anomaly_check?.verdict === 'outside' && (
-                                    <span
-                                        title={t('metalPrices.anomaly.badgeTitle', {
-                                            change: r.anomaly_check.change_pct ?? 0,
-                                            refPrice: r.anomaly_check.reference_price ?? 0,
-                                            refDate: r.anomaly_check.reference_date ?? '',
-                                        })}
-                                        className="ml-2 inline-block align-middle bg-amber-100 text-amber-800 border border-amber-300 rounded px-1.5 py-0.5 text-xs font-sans"
-                                    >
-                                        {t('metalPrices.anomaly.badge')}
-                                    </span>
-                                )}
-                                {/* 【判词为空 = 这一行录入时还没有这项检查】(线上 11 行
-                                    全是这样)。不画任何徽标会让它与"查过、没问题"
-                                    在屏幕上一模一样 —— 那正是本刀要拆掉的读法,
-                                    所以它有自己的、更安静的一个。FIN-26 的同一条:
-                                    旧行留空,而空要显示成"不知道",不是"没问题"。 */}
-                                {!r.anomaly_check && (
-                                    <span
-                                        title={t('metalPrices.anomaly.legacyTitle')}
-                                        className="ml-2 inline-block align-middle bg-gray-50 text-gray-400 border border-gray-200 rounded px-1.5 py-0.5 text-xs font-sans"
-                                    >
-                                        {t('metalPrices.anomaly.legacyBadge')}
-                                    </span>
-                                )}
-                                {r.anomaly_check?.verdict === 'no_reference' && (
-                                    <span
-                                        title={t('metalPrices.anomaly.noReferenceTitle')}
-                                        className="ml-2 inline-block align-middle bg-gray-100 text-gray-600 border border-gray-300 rounded px-1.5 py-0.5 text-xs font-sans"
-                                    >
-                                        {t('metalPrices.anomaly.noReferenceBadge')}
-                                    </span>
-                                )}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">{r.price_date}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm">
-                                {/* 【空白会读成"没填",而它是一个状态】未标注指数的行
-                                    要说出来 —— 它是既有 11 行所在的那条序列。 */}
-                                {r.price_index ?? (
-                                    <span className="text-gray-400">{t('metalPrices.index.unstatedShort')}</span>
-                                )}
-                            </td>
-                            {/* LME-1b:出处用【人话】显示 —— 此前这里直接印列值,
-                                于是屏幕上是 'unknown'(1a 之前是 'manual')。
-                                那十条老行情读作「来源未记录」:既不是空白,也不是
-                                一个看起来像答案的英文单词。 */}
-                            <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
-                                {t(sourceLabelKey(r.source))}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm">{r.notes ?? '—'}</td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                <Link
-                                    href={`/pricing/metal-prices/${r.id}/edit`}
-                                    className="text-blue-600 hover:underline"
-                                >
-                                    {t('metalPrices.editAction')}
-                                </Link>
-                            </td>
-                        </tr>
-                    ))}
-                    {(!rows || rows.length === 0) && (
-                        <tr>
-                            <td
-                                colSpan={6}
-                                className="border border-gray-300 px-4 py-8 text-center text-gray-500"
-                            >
-                                {t('metalPrices.emptyState')}
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
+            <MetalPricesTable
+                rows={tableRows}
+                empty={t('metalPrices.emptyState')}
+                sort={sort}
+                dir={dir}
+                filterQuery={filterQuery}
+                shown={tableRows.length}
+                total={total}
+            />
 
-            {/* 分页控件:服务端 <Link>,无额外客户端 JS;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
                     <Link
@@ -385,6 +285,6 @@ export default async function MetalPricesPage({
                     </span>
                 )}
             </div>
-        </div>
+        </ListPage>
     )
 }

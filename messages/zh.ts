@@ -940,6 +940,7 @@ const zh = {
 
         // roles
         rolesIntro: '角色与授权都是数据 —— 改它们是在这里编辑,不是发一次版。',
+        rolesEmpty: '还没有定义任何角色。',
         addRole: '新建角色',
         addRoleHint: '先保存角色本身,下一屏再配授权。',
         roleCode: '代码',

@@ -936,6 +936,7 @@ const en = {
 
         // roles
         rolesIntro: 'Roles and their grants are data — changing them is an edit here, not a release.',
+        rolesEmpty: 'No role has been defined yet.',
         addRole: 'Add role',
         addRoleHint: 'Save the role first, then set its permissions on the next screen.',
         roleCode: 'Code',

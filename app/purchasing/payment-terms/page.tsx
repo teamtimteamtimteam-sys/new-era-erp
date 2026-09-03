@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatAmount } from '@/lib/format'
-import DeleteTemplateButton from './DeleteTemplateButton'
+import { ListPage } from '@/app/components/ui/list-page'
+import TemplatesTable, { type TemplateRow } from './TemplatesTable'
 import { mustRows } from '@/lib/db-helpers'
 import { loadPaymentTriggerEvents, triggerLabel } from '@/lib/paymentTriggers'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -75,72 +76,32 @@ export default async function PaymentTermTemplatesPage() {
             })
             .join(' · ')
 
+    // CONV-5:套 CONV-1 的两文件模板。state 恒为 'ok' —— 抬头「新建模板」
+    // 住在 actions 里(状态分支之前)。
+    const tableRows: TemplateRow[] = templates.map((tpl) => ({
+        id: tpl.id,
+        name: tpl.name,
+        description: tpl.description ?? '—',
+        termsSummary: summary(tpl.id, tpl.currency) || '—',
+        isActive: Boolean(tpl.is_active),
+    }))
+
     return (
-        <div className="p-8 max-w-5xl">
-            <div className="flex justify-between items-center mb-4">
-                <h1 className="text-2xl font-bold">{t('purchasing.templatesTitle')}</h1>
-                <Link
-                    href="/purchasing/payment-terms/new"
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
+        <ListPage
+            title={t('purchasing.templatesTitle')}
+            maxWidth="max-w-5xl"
+            actions={
+                <Link href="/purchasing/payment-terms/new"
+                      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
                     {t('purchasing.newTemplate')}
                 </Link>
-            </div>
-
+            }
+            state={{ kind: 'ok' }}
+        >
             <p className="text-sm text-gray-600 mb-4">
                 {t('finance.recordCount', { count: templates.length })}
             </p>
-
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('purchasing.colName')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('purchasing.colDescription')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('purchasing.form.paymentTerms')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('purchasing.colStatus')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('metalPrices.colActions')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {templates.map((tpl) => (
-                        <tr key={tpl.id}>
-                            <td className="border border-gray-300 px-4 py-2 font-medium">{tpl.name}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
-                                {tpl.description ?? '—'}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm">{summary(tpl.id, tpl.currency) || '—'}</td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                <span
-                                    className={
-                                        'px-2 py-1 rounded text-xs ' +
-                                        (tpl.is_active
-                                            ? 'bg-green-100 text-green-800'
-                                            : 'bg-gray-200 text-gray-600')
-                                    }
-                                >
-                                    {tpl.is_active ? t('pricing.form.active') : t('finance.inactive')}
-                                </span>
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm whitespace-nowrap">
-                                <Link
-                                    href={`/purchasing/payment-terms/${tpl.id}/edit`}
-                                    className="text-blue-600 hover:underline mr-3"
-                                >
-                                    {t('purchasing.editLink')}
-                                </Link>
-                                <DeleteTemplateButton templateId={tpl.id} name={tpl.name} />
-                            </td>
-                        </tr>
-                    ))}
-                    {templates.length === 0 && (
-                        <tr>
-                            <td colSpan={5} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
-                                {t('purchasing.templatesEmpty')}
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
-        </div>
+            <TemplatesTable rows={tableRows} empty={t('purchasing.templatesEmpty')} />
+        </ListPage>
     )
 }

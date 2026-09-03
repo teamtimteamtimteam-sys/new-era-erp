@@ -13,6 +13,11 @@ import { mustRows, mustOne } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import Link from 'next/link'
+import { ListPage } from '@/app/components/ui/list-page'
+import {
+    BreachesTable, ContractListTable, PricingTermsTable, SettlementTermsTable, SettlementsTable,
+    type BreachRow, type ContractListRow, type PricingTermRow, type SettleTermRow, type SettlementRow,
+} from './ContractsTables'
 
 type Contract = {
     id: string; code: string; side: string; kind: string; title: string
@@ -125,25 +130,121 @@ export default async function ContractsPage() {
         list.push(t2); termsByContract.set(t2.contract_id, list)
     }
 
-    return (
-        <div className="p-8">
-            <h1 className="text-2xl font-bold mb-1">{t('contracts.title')}</h1>
-            <p className="text-sm text-gray-700 max-w-4xl mb-6">{t('contracts.what')}</p>
+    // CONV-5:这一页是【报告体 + 五张登记簿】。五张表换成 DataTable,
+    // 覆盖率块 / 两个"建了什么、还不能做什么"的琥珀块 / 开市日历清单 /
+    // 每一段的具名缺席句都保持原样 —— 它们不是表(Tim 在 CONV-5 Q2 的裁定)。
+    // ★ state 恒为 'ok' —— 覆盖率那一段的原注写着「没有它,下面那句"没有违反"
+    //   会撒谎」;它必须在一份合同都没有的时候照样出现,所以走 notices。
+    const breachRows: BreachRow[] = breaches.map((b, i) => ({
+        key: `${b.purchase_order_code}-${b.metal}-${i}`,
+        purchaseOrderCode: b.purchase_order_code,
+        contractCode: b.contract_code,
+        inboundBatchCode: b.inbound_batch_code,
+        metal: b.metal,
+        contentPct: `${b.content_pct}%`,
+        requiredLabel:
+            b.breach_side === 'below_min'
+                ? t('contracts.requiredMin', { v: String(b.min_pct) })
+                : t('contracts.requiredMax', { v: String(b.max_pct) }),
+    }))
 
-            {/* ★★ 覆盖率 —— 没有它,下面那句"没有违反"会撒谎 ★★ */}
-            <div className="border border-gray-300 rounded p-4 mb-6 max-w-4xl">
-                <h2 className="font-medium mb-1">{t('contracts.coverageTitle')}</h2>
-                <p className="text-sm text-gray-800">
-                    {t('contracts.coverageLine', {
-                        poUnder: String(cov.purchase_orders_under_contract),
-                        poTotal: String(cov.purchase_orders_total),
-                        soUnder: String(cov.sales_orders_under_contract),
-                        soTotal: String(cov.sales_orders_total),
-                    })}
-                </p>
-                {/* 【具名的缺席】没挂合同不是缺陷 —— 现货买卖是正当的商业形态 */}
-                <p className="text-sm text-amber-800 mt-2">{t('contracts.coverageWhy')}</p>
-            </div>
+    const contractListRows: ContractListRow[] = contracts.map((c) => ({
+        id: c.id,
+        code: c.code,
+        sideLabel: t(`contracts.side.${c.side}`),
+        title: c.title,
+        effectiveFrom: c.effective_from,
+        // 【无固定期限不是"忘了填"】给 null,由表说那句话
+        effectiveTo: c.effective_to,
+        statusLabel: t(`contracts.status.${c.status}`),
+        termsLabel:
+            [c.incoterm, c.currency, c.payment_terms_days != null
+                ? t('contracts.termsDays', { d: String(c.payment_terms_days) })
+                : null]
+                .filter(Boolean)
+                .join(' · ') || null,
+    }))
+
+    const pricingTermRows: PricingTermRow[] = contracts.flatMap((c) =>
+        (termsByContract.get(c.id) ?? []).map((pt) => ({
+            key: `${c.id}-${pt.metal}`,
+            contractCode: c.code,
+            metal: pt.metal,
+            baseEventLabel: t(`contracts.pricing.baseEvent.${pt.base_event}`),
+            qpLabel:
+                pt.qp_months === 0
+                    ? t('contracts.pricing.qpSameMonth')
+                    : t('contracts.pricing.qpMonths', { n: String(pt.qp_months) }),
+            indexCode: pt.index_code,
+            payablePct: `${pt.payable_pct}%`,
+        }))
+    )
+
+    /* 【声明了有 / 声明了没有 / 声明了有却没填】三态,各有各的话 */
+    const settleBasisLabel = (declared: string, filed: number) =>
+        declared.startsWith('none')
+            ? t('contracts.settlement.basisNoneAgreed')
+            : filed === 0
+              ? t('contracts.settlement.basisStatedButEmpty')
+              : t('contracts.settlement.basisFiled', { n: String(filed) })
+
+    const settleTermRows: SettleTermRow[] = contracts
+        .filter((c) => settleByContract.has(c.id))
+        .map((c) => {
+            const st = settleByContract.get(c.id)!
+            return {
+                id: c.id,
+                contractCode: c.code,
+                basisLabel: t(`contracts.settlement.basis.${st.sale_weight_basis}`),
+                partyLabel: t(`contracts.settlement.party.${st.settling_party}`),
+                splittingLabel: st.splitting_limit_pct == null ? null : `${st.splitting_limit_pct}%`,
+                refiningLabel: settleBasisLabel(st.refining_charge_basis, rcCount.get(c.id) ?? 0),
+                penaltyLabel: settleBasisLabel(st.penalty_basis, penCount.get(c.id) ?? 0),
+            }
+        })
+
+    const settlementRows: SettlementRow[] = settlements.map((s2) => {
+        const meta = orderMeta.get(s2.sales_order_id)
+        const named = meta ? settleByContract.get(meta.contract_id)?.settling_party : undefined
+        return {
+            id: s2.id,
+            contractCode: meta?.contract_code ?? '—',
+            basisLabel: t(`contracts.settlement.basis.${s2.weight_basis_used}`),
+            partyLabel: t(`contracts.settlement.party.${s2.settling_party_used}`),
+            partyNote:
+                named && named !== s2.settling_party_used
+                    ? t('contracts.settlement.partyResultNotUsed', {
+                          expected: t(`contracts.settlement.party.${named}`),
+                          actual: t(`contracts.settlement.party.${s2.settling_party_used}`),
+                      })
+                    : t('contracts.settlement.partyResultAsNamed'),
+            amount: String(s2.amount_usd),
+        }
+    })
+
+    return (
+        <ListPage
+            title={t('contracts.title')}
+            intro={t('contracts.what')}
+            notices={
+                /* ★★ 覆盖率 —— 没有它,下面那句"没有违反"会撒谎 ★★
+                   所以它【必须无条件出现】,包括一份合同都没有的时候。 */
+                <div className="border border-gray-300 rounded p-4 mb-6 max-w-4xl">
+                    <h2 className="font-medium mb-1">{t('contracts.coverageTitle')}</h2>
+                    <p className="text-sm text-gray-800">
+                        {t('contracts.coverageLine', {
+                            poUnder: String(cov.purchase_orders_under_contract),
+                            poTotal: String(cov.purchase_orders_total),
+                            soUnder: String(cov.sales_orders_under_contract),
+                            soTotal: String(cov.sales_orders_total),
+                        })}
+                    </p>
+                    {/* 【具名的缺席】没挂合同不是缺陷 —— 现货买卖是正当的商业形态 */}
+                    <p className="text-sm text-amber-800 mt-2">{t('contracts.coverageWhy')}</p>
+                </div>
+            }
+            state={{ kind: 'ok' }}
+        >
 
             {/* ── 违反 ─────────────────────────────────────────────────────── */}
             <h2 className="text-lg font-semibold mb-1">{t('contracts.breachTitle')}</h2>
@@ -156,34 +257,7 @@ export default async function ContractsPage() {
                         : t('contracts.breachNone', { n: String(cov.documents_with_grade_specs) })}
                 </p>
             ) : (
-                <table className="w-full border-collapse mb-6">
-                    <thead>
-                        <tr className="bg-gray-100">
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.colDocument')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.colContract')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.colBatch')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.colMetal')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right text-sm">{t('contracts.colMeasured')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.colRequired')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {breaches.map((b, i) => (
-                            <tr key={`${b.purchase_order_code}-${b.metal}-${i}`}>
-                                <td className="border border-gray-300 px-3 py-2 font-mono text-sm">{b.purchase_order_code}</td>
-                                <td className="border border-gray-300 px-3 py-2 font-mono text-sm">{b.contract_code}</td>
-                                <td className="border border-gray-300 px-3 py-2 font-mono text-sm">{b.inbound_batch_code}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">{b.metal}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right text-sm font-mono">{b.content_pct}%</td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">
-                                    {b.breach_side === 'below_min'
-                                        ? t('contracts.requiredMin', { v: String(b.min_pct) })
-                                        : t('contracts.requiredMax', { v: String(b.max_pct) })}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                <BreachesTable rows={breachRows} />
             )}
 
             {/* ── 合同清单 ─────────────────────────────────────────────────── */}
@@ -191,43 +265,7 @@ export default async function ContractsPage() {
             {contracts.length === 0 ? (
                 <p className="text-sm text-gray-600">{t('contracts.listNone')}</p>
             ) : (
-                <table className="w-full border-collapse">
-                    <thead>
-                        <tr className="bg-gray-100">
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.colCode')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.colSide')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.colTitle')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.colPeriod')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.colStatus')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.colTerms')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {contracts.map((c) => (
-                            <tr key={c.id}>
-                                <td className="border border-gray-300 px-3 py-2 font-mono text-sm">
-                                    <Link href={`/contracts/${c.id}`} className="text-blue-600 hover:underline">{c.code}</Link>
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">{t(`contracts.side.${c.side}`)}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">{c.title}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">
-                                    {c.effective_from} → {c.effective_to ?? (
-                                        /* 【无固定期限不是"忘了填"】具名,不留白 */
-                                        <span className="text-xs text-gray-500">{t('contracts.openEnded')}</span>
-                                    )}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">{t(`contracts.status.${c.status}`)}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">
-                                    {[c.incoterm, c.currency, c.payment_terms_days != null
-                                        ? t('contracts.termsDays', { d: String(c.payment_terms_days) }) : null]
-                                        .filter(Boolean).join(' · ') || (
-                                        <span className="text-xs text-gray-500">{t('contracts.noHeadlineTerms')}</span>
-                                    )}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                <ContractListTable rows={contractListRows} />
             )}
 
             {/* 【第 4 刀的交接点写在屏幕上,不只写在表注里】 */}
@@ -286,34 +324,7 @@ export default async function ContractsPage() {
             {pricingTerms.length === 0 ? (
                 <p className="text-sm text-gray-600 mb-4">{t('contracts.pricing.termsNone')}</p>
             ) : (
-                <table className="w-full border-collapse mb-4 max-w-4xl">
-                    <thead>
-                        <tr className="bg-gray-100">
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.colCode')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.pricing.colMetal')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.pricing.colBaseEvent')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.pricing.colQp')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.pricing.colIndex')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.pricing.colPayable')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {contracts.flatMap((c) => (termsByContract.get(c.id) ?? []).map((pt) => (
-                            <tr key={`${c.id}-${pt.metal}`}>
-                                <td className="border border-gray-300 px-3 py-2 font-mono text-sm">{c.code}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">{pt.metal}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">{t(`contracts.pricing.baseEvent.${pt.base_event}`)}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">
-                                    {pt.qp_months === 0
-                                        ? t('contracts.pricing.qpSameMonth')
-                                        : t('contracts.pricing.qpMonths', { n: String(pt.qp_months) })}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">{pt.index_code}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">{pt.payable_pct}%</td>
-                            </tr>
-                        )))}
-                    </tbody>
-                </table>
+                <PricingTermsTable rows={pricingTermRows} />
             )}
 
             {/* ════ SETTLE-1:结算口径 ══════════════════════════════════════════ */}
@@ -334,44 +345,7 @@ export default async function ContractsPage() {
                    是两件不同的事,下面表格里那两列说的是后者。 */
                 <p className="text-sm text-amber-800 mb-4 max-w-4xl">{t('contracts.settlement.termsNone')}</p>
             ) : (
-                <table className="w-full border-collapse mb-2 max-w-5xl">
-                    <thead>
-                        <tr className="bg-gray-100">
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.colCode')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.settlement.colBasis')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.settlement.colSettlingParty')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.settlement.colSplitting')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.settlement.colRefining')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.settlement.colPenalty')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {contracts.filter((c) => settleByContract.has(c.id)).map((c) => {
-                            const st = settleByContract.get(c.id)!
-                            const rc = rcCount.get(c.id) ?? 0
-                            const pe = penCount.get(c.id) ?? 0
-                            /* 【声明了有 / 声明了没有 / 声明了有却没填】三态,各有各的话 */
-                            const basisLabel = (declared: string, filed: number) =>
-                                declared.startsWith('none') ? t('contracts.settlement.basisNoneAgreed')
-                                    : filed === 0 ? t('contracts.settlement.basisStatedButEmpty')
-                                    : t('contracts.settlement.basisFiled', { n: String(filed) })
-                            return (
-                                <tr key={c.id}>
-                                    <td className="border border-gray-300 px-3 py-2 font-mono text-sm">{c.code}</td>
-                                    <td className="border border-gray-300 px-3 py-2 text-sm">{t(`contracts.settlement.basis.${st.sale_weight_basis}`)}</td>
-                                    <td className="border border-gray-300 px-3 py-2 text-sm">{t(`contracts.settlement.party.${st.settling_party}`)}</td>
-                                    <td className="border border-gray-300 px-3 py-2 text-sm">
-                                        {st.splitting_limit_pct == null
-                                            ? <span className="text-gray-500">{t('contracts.settlement.splittingNotStated')}</span>
-                                            : `${st.splitting_limit_pct}%`}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2 text-sm">{basisLabel(st.refining_charge_basis, rc)}</td>
-                                    <td className="border border-gray-300 px-3 py-2 text-sm">{basisLabel(st.penalty_basis, pe)}</td>
-                                </tr>
-                            )
-                        })}
-                    </tbody>
-                </table>
+                <SettlementTermsTable rows={settleTermRows} />
             )}
             <p className="text-xs text-gray-600 mb-4 max-w-4xl">{t('contracts.settlement.splittingWhy')}</p>
 
@@ -385,46 +359,12 @@ export default async function ContractsPage() {
                 <p className="text-sm text-gray-600 mb-4 max-w-4xl">{t('contracts.settlement.settlementsNone')}</p>
             ) : (
                 <>
-                    <table className="w-full border-collapse mb-2 max-w-5xl">
-                        <thead>
-                            <tr className="bg-gray-100">
-                                <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.settlement.colOrder')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.settlement.colBasis')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.settlement.colUsedParty')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contracts.settlement.colAmount')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {settlements.map((s2) => {
-                                const meta = orderMeta.get(s2.sales_order_id)
-                                const named = meta ? settleByContract.get(meta.contract_id)?.settling_party : undefined
-                                return (
-                                    <tr key={s2.id}>
-                                        <td className="border border-gray-300 px-3 py-2 font-mono text-sm">{meta?.contract_code ?? '—'}</td>
-                                        <td className="border border-gray-300 px-3 py-2 text-sm">{t(`contracts.settlement.basis.${s2.weight_basis_used}`)}</td>
-                                        <td className="border border-gray-300 px-3 py-2 text-sm">
-                                            {t(`contracts.settlement.party.${s2.settling_party_used}`)}
-                                            {/* ★【"没有那一方的化验"与"那一方的结果没被用"必须【不一样】】★
-                                                这里说的是后者:结果在,只是最后算数的不是它。 */}
-                                            <span className="block text-xs mt-1 text-amber-800">
-                                                {named && named !== s2.settling_party_used
-                                                    ? t('contracts.settlement.partyResultNotUsed', {
-                                                        expected: t(`contracts.settlement.party.${named}`),
-                                                        actual: t(`contracts.settlement.party.${s2.settling_party_used}`) })
-                                                    : t('contracts.settlement.partyResultAsNamed')}
-                                            </span>
-                                        </td>
-                                        <td className="border border-gray-300 px-3 py-2 text-sm">{s2.amount_usd}</td>
-                                    </tr>
-                                )
-                            })}
-                        </tbody>
-                    </table>
+                    <SettlementsTable rows={settlementRows} />
                     <p className="text-xs text-amber-800 mb-4 max-w-4xl">{t('contracts.settlement.notPostedNote')}</p>
                 </>
             )}
 
             <p className="text-xs text-gray-500 mt-8 max-w-4xl">{t('contracts.pricingComesLater')}</p>
-        </div>
+        </ListPage>
     )
 }

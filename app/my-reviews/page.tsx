@@ -1,4 +1,11 @@
 // app/my-reviews/page.tsx
+//
+// CONV-5:套 CONV-1 的两文件模板。
+// ★【"没有关联到员工"那一屏走 ListPage 的 restricted 分支】—— 它渲染的是
+//   CONV-0 那一份 <RefusalPage>,与"你进不来"同一个形状,因为读者要读的是
+//   同一类东西:【这里为什么没有东西给我看】。不另开一条路。
+// ★ 两段(手上有活 / 已了结)共用同一个表组件,与转换前那个 renderTable
+//   局部函数一样 —— 它们不是两张不同的表。
 // 我评的评估。【/hr 的同级,不在它下面】—— 部门经理通常一个 HR 权限码都没有,
 // /hr/* 对他们全是空白;这一页靠的是 performance_reviews 的 "select as reviewer"
 // 策略与 my_review_subjects 名录视图,一个模块权限都不看(同 /me 的道理)。
@@ -11,6 +18,8 @@ import {
     daysInState,
     statusPillClass,
 } from '@/app/hr/reviews/reviewShared'
+import { ListPage } from '@/app/components/ui/list-page'
+import MyReviewsTable, { type MyReviewRow } from './MyReviewsTable'
 
 type SubjectRow = {
     review_id: string
@@ -30,13 +39,15 @@ export default async function MyReviewsPage() {
     const { data: me } = await supabase.rpc('current_user_employee')
     if (!me) {
         return (
-            <div className="p-8 max-w-lg">
-                <h1 className="text-2xl font-bold mb-3">{t('reviews.myTitle')}</h1>
-                <div className="rounded border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900">
-                    <p className="font-medium">{t('me.notLinkedTitle')}</p>
-                    <p className="text-sm mt-1">{t('me.notLinkedBody')}</p>
-                </div>
-            </div>
+            <ListPage
+                title={t('reviews.myTitle')}
+                state={{
+                    kind: 'restricted',
+                    title: t('reviews.myTitle'),
+                    statement: t('me.notLinkedTitle'),
+                    hint: t('me.notLinkedBody'),
+                }}
+            />
         )
     }
 
@@ -59,80 +70,44 @@ export default async function MyReviewsPage() {
     const open = reviews.filter((r) => OPEN.includes(r.status))
     const closed = reviews.filter((r) => !OPEN.includes(r.status))
 
-    const renderTable = (rows: ReviewRow[]) => (
-        <table className="w-full border-collapse border border-gray-300 text-sm mb-6">
-            <thead className="bg-gray-100">
-                <tr>
-                    <th className="border border-gray-300 px-3 py-2 text-left">{t('reviews.employee')}</th>
-                    <th className="border border-gray-300 px-3 py-2 text-left">{t('reviews.type')}</th>
-                    <th className="border border-gray-300 px-3 py-2 text-left">{t('reviews.cycle')}</th>
-                    <th className="border border-gray-300 px-3 py-2 text-left">{t('reviews.period')}</th>
-                    <th className="border border-gray-300 px-3 py-2 text-left">{t('reviews.status')}</th>
-                    <th className="border border-gray-300 px-3 py-2 text-left">{t('reviews.inState')}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {rows.map((r) => {
-                    const s = subjectByReview.get(r.id)
-                    return (
-                        <tr key={r.id}>
-                            <td className="border border-gray-300 px-3 py-2 whitespace-nowrap">
-                                <Link href={`/my-reviews/${r.id}`} className="text-blue-600 hover:underline">
-                                    <span className="font-mono">{s?.employee_code ?? '—'}</span>{' '}
-                                    {s?.employee_name ?? ''}
-                                </Link>
-                                {s?.job_title && (
-                                    <span className="ml-2 text-xs text-gray-500">
-                                        {s.job_title}
-                                        {(locale === 'zh' ? s.department_name_zh : s.department_name_en)
-                                            ? ` · ${locale === 'zh' ? s.department_name_zh : s.department_name_en}`
-                                            : ''}
-                                    </span>
-                                )}
-                            </td>
-                            <td className="border border-gray-300 px-3 py-2">{t(`reviews.type_${r.review_type}`)}</td>
-                            <td className="border border-gray-300 px-3 py-2">{s?.cycle_name ?? '—'}</td>
-                            <td className="border border-gray-300 px-3 py-2 whitespace-nowrap font-mono text-xs">
-                                {r.period_start} → {r.period_end}
-                            </td>
-                            <td className="border border-gray-300 px-3 py-2">
-                                <span className={'inline-block rounded px-2 py-0.5 text-xs ' + statusPillClass(r.status)}>
-                                    {t(`reviews.status_${r.status}`)}
-                                </span>
-                            </td>
-                            <td className="border border-gray-300 px-3 py-2 whitespace-nowrap text-gray-600">
-                                {t('hr.daysRemaining', { n: daysInState(r) })}
-                            </td>
-                        </tr>
-                    )
-                })}
-            </tbody>
-        </table>
-    )
+    const toRow = (r: ReviewRow): MyReviewRow => {
+        const s = subjectByReview.get(r.id)
+        // 职位 · 部门在服务端按 locale 拼好 —— locale 不过 RSC 边界
+        const dept = locale === 'zh' ? s?.department_name_zh : s?.department_name_en
+        return {
+            id: r.id,
+            employeeCode: s?.employee_code ?? '—',
+            employeeName: s?.employee_name ?? '',
+            subtitle: s?.job_title ? `${s.job_title}${dept ? ` · ${dept}` : ''}` : null,
+            typeLabel: t(`reviews.type_${r.review_type}`),
+            cycleName: s?.cycle_name ?? '—',
+            periodStart: r.period_start,
+            periodEnd: r.period_end,
+            status: r.status,
+            statusCls: statusPillClass(r.status),
+            daysInState: daysInState(r),
+        }
+    }
 
     return (
-        <div className="p-8 max-w-5xl">
-            <h1 className="text-2xl font-bold mb-1">{t('reviews.myTitle')}</h1>
-            <p className="text-sm text-gray-600 mb-6">{t('reviews.myIntro')}</p>
-
-            {reviews.length === 0 ? (
-                <p className="text-sm text-gray-500">{t('reviews.myEmpty')}</p>
-            ) : (
+        <ListPage
+            title={t('reviews.myTitle')}
+            intro={t('reviews.myIntro')}
+            maxWidth="max-w-5xl"
+            state={reviews.length === 0 ? { kind: 'empty', noRows: t('reviews.myEmpty') } : { kind: 'ok' }}
+        >
+            {open.length > 0 && (
                 <>
-                    {open.length > 0 && (
-                        <>
-                            <h2 className="text-lg font-bold mb-2">{t('reviews.myOpen')}</h2>
-                            {renderTable(open)}
-                        </>
-                    )}
-                    {closed.length > 0 && (
-                        <>
-                            <h2 className="text-lg font-bold mb-2">{t('reviews.myClosed')}</h2>
-                            {renderTable(closed)}
-                        </>
-                    )}
+                    <h2 className="text-lg font-bold mb-2">{t('reviews.myOpen')}</h2>
+                    <MyReviewsTable rows={open.map(toRow)} />
                 </>
             )}
-        </div>
+            {closed.length > 0 && (
+                <>
+                    <h2 className="text-lg font-bold mb-2">{t('reviews.myClosed')}</h2>
+                    <MyReviewsTable rows={closed.map(toRow)} />
+                </>
+            )}
+        </ListPage>
     )
 }

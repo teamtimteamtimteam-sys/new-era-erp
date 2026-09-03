@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { requireManagePermissions } from '../guard'
 import { mustRows } from '@/lib/db-helpers'
+import { ListPage } from '@/app/components/ui/list-page'
+import RolesTable, { type RoleRow as RolesTableRow } from './RolesTable'
 
 type RoleRow = {
     id: string
@@ -42,70 +44,33 @@ export default async function RolesPage() {
     const userCount = new Map<string, number>()
     for (const r of mustRows(userRes)) userCount.set(r.role_id, (userCount.get(r.role_id) ?? 0) + 1)
 
-    return (
-        <div className="p-8 max-w-6xl">
-            <h1 className="text-2xl font-bold mb-4">{t('permissions.title')}</h1>
+    // CONV-5:套 CONV-1 的两文件模板。state 恒为 'ok' —— 抬头「新建角色」
+    // 与那句 rolesIntro 都住在状态分支之前。
+    // 名称/描述的语言在服务端选好 —— locale 不过 RSC 边界。
+    const tableRows: RolesTableRow[] = roles.map((r) => ({
+        id: r.id,
+        code: r.code,
+        isSystem: Boolean(r.is_system),
+        name: locale === 'zh' ? r.name_zh : r.name_en,
+        description: (locale === 'zh' ? r.description_zh : r.description_en) ?? '—',
+        permissionCount: permCount.get(r.id) ?? 0,
+        userCount: userCount.get(r.id) ?? 0,
+        isActive: Boolean(r.is_active),
+    }))
 
-            <div className="flex justify-between items-center mb-4">
-                <p className="text-sm text-gray-600">{t('permissions.rolesIntro')}</p>
-                <Link
-                    href="/settings/roles/new"
-                    className="bg-gray-900 text-white px-3 py-1.5 rounded text-sm"
-                >
+    return (
+        <ListPage
+            title={t('permissions.title')}
+            intro={t('permissions.rolesIntro')}
+            maxWidth="max-w-6xl"
+            actions={
+                <Link href="/settings/roles/new" className="bg-gray-900 text-white px-3 py-1.5 rounded text-sm">
                     {t('permissions.addRole')}
                 </Link>
-            </div>
-
-            <table className="w-full border-collapse">
-                <thead>
-                    <tr className="bg-gray-50 text-left text-sm">
-                        <th className="border border-gray-300 px-3 py-2">{t('permissions.roleCode')}</th>
-                        <th className="border border-gray-300 px-3 py-2">{t('permissions.roleName')}</th>
-                        <th className="border border-gray-300 px-3 py-2">{t('permissions.roleDescription')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('permissions.permissionCount')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('permissions.userCount')}</th>
-                        <th className="border border-gray-300 px-3 py-2">{t('permissions.active')}</th>
-                        <th className="border border-gray-300 px-3 py-2"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {roles.map((r) => (
-                        <tr key={r.id} className="text-sm">
-                            <td className="border border-gray-300 px-3 py-2 font-mono text-xs">
-                                {r.code}
-                                {r.is_system && (
-                                    <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-800">
-                                        {t('permissions.systemRole')}
-                                    </span>
-                                )}
-                            </td>
-                            <td className="border border-gray-300 px-3 py-2">
-                                {locale === 'zh' ? r.name_zh : r.name_en}
-                            </td>
-                            <td className="border border-gray-300 px-3 py-2 text-gray-600">
-                                {(locale === 'zh' ? r.description_zh : r.description_en) ?? '—'}
-                            </td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                {permCount.get(r.id) ?? 0}
-                            </td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                {userCount.get(r.id) ?? 0}
-                            </td>
-                            <td className="border border-gray-300 px-3 py-2">
-                                {r.is_active ? t('permissions.yes') : t('permissions.no')}
-                            </td>
-                            <td className="border border-gray-300 px-3 py-2">
-                                <Link
-                                    href={`/settings/roles/${r.id}`}
-                                    className="text-blue-600 hover:underline"
-                                >
-                                    {t('permissions.editRole')}
-                                </Link>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
+            }
+            state={{ kind: 'ok' }}
+        >
+            <RolesTable rows={tableRows} empty={t('permissions.rolesEmpty')} />
+        </ListPage>
     )
 }

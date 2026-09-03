@@ -18,6 +18,8 @@ import { getBaseCurrency } from '@/lib/currency'
 import { can } from '@/lib/permissions'
 import { MaskedValue } from '@/app/components/MaskedValue'
 import OrdersToolbar from './OrdersToolbar'
+import { ListPage } from '@/app/components/ui/list-page'
+import OrdersTable, { type PurchaseOrderRow } from './OrdersTable'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 
@@ -164,130 +166,47 @@ export default async function PurchaseOrdersPage({
         .order('legal_name')
     const supplierOptions = (supplierRows ?? []).map((s) => ({ id: s.id, name: s.legal_name }))
 
-    const statusPill = (s: string) => {
-        const cls =
-            s === 'confirmed' || s === 'receiving'
-                ? 'bg-green-100 text-green-800'
-                : s === 'closed'
-                  ? 'bg-gray-200 text-gray-700'
-                  : s === 'cancelled'
-                    ? 'bg-red-100 text-red-700'
-                    : 'bg-amber-100 text-amber-800'
-        return <span className={'px-2 py-1 rounded text-xs ' + cls}>{t('purchasing.status.' + s)}</span>
-    }
+    // CONV-5:套 CONV-1 的两文件模板。
+    // ★ state 恒为 'ok' —— OrdersToolbar 是真实出口(§⑩-3)。
+    // 金额在服务端按各自的币种格式化好 —— formatAmount 与 baseCurrency 不过边界。
+    const tableRows: PurchaseOrderRow[] = rows.map((r) => ({
+        poId: r.po_id,
+        code: r.code,
+        status: r.status,
+        supplierName: r.supplier_name ?? '—',
+        orderDate: r.order_date,
+        expectedDelivery: r.expected_delivery_date ?? '—',
+        netTotal: formatAmount(r.estimated_total_ccy, r.currency),
+        // 【没有算过税】给 null,由表印「—」;绝不折成 0.00
+        taxTotal: r.carries_tax ? formatAmount(r.tax_total_ccy ?? 0, r.currency) : null,
+        grossTotal: formatAmount(r.carries_tax ? r.gross_total_ccy : r.estimated_total_ccy, r.currency),
+        prepaid: r.prepaid_base === null ? null : formatAmount(r.prepaid_base, baseCurrency),
+        prepaidRemaining:
+            (r.prepaid_remaining_base ?? 0) > 0 ? formatAmount(r.prepaid_remaining_base ?? 0, baseCurrency) : null,
+        canFinance,
+        receiptPct: r.receipt_pct,
+    }))
 
     return (
-        <div className="p-8">
-            <div className="flex justify-between items-center mb-4">
-                <h1 className="text-2xl font-bold">{t('purchasing.ordersTitle')}</h1>
+        <ListPage
+            title={t('purchasing.ordersTitle')}
+            actions={
                 <Link
                     href="/purchasing/orders/new"
                     className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                 >
                     {t('purchasing.newOrder')}
                 </Link>
-            </div>
-
+            }
+            state={{ kind: 'ok' }}
+        >
             <Suspense fallback={<div className="mb-4 h-10" />}>
                 <OrdersToolbar suppliers={supplierOptions} />
             </Suspense>
 
             <p className="text-sm text-gray-600 mb-4">{t('finance.recordCount', { count: total })}</p>
 
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colCode')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('purchasing.colSupplier')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('purchasing.colOrderDate')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('purchasing.colExpectedDelivery')}</th>
-                        {/* PO-GST-1:清单不再只有一个总额 —— 净额 / GST / 应付总额。 */}
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('purchasing.colNetTotal')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('purchasing.colTaxTotal')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('purchasing.colGrossTotal')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('purchasing.colPrepaid')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('purchasing.colReceipt')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('purchasing.colStatus')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {rows.map((r) => (
-                        <tr key={r.po_id} className={r.status === 'cancelled' ? 'text-gray-400' : ''}>
-                            <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                <Link
-                                    href={`/purchasing/orders/${r.po_id}`}
-                                    className={
-                                        r.status === 'cancelled'
-                                            ? 'text-gray-500 hover:underline line-through'
-                                            : 'text-blue-600 hover:underline'
-                                    }
-                                >
-                                    {r.code}
-                                </Link>
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">{r.supplier_name ?? '—'}</td>
-                            <td className="border border-gray-300 px-4 py-2">{r.order_date}</td>
-                            <td className="border border-gray-300 px-4 py-2">{r.expected_delivery_date ?? '—'}</td>
-                            {/* PO-GST-1:净额 / GST / 应付总额。
-                                【GST 那一格印「—」不印 0.00】carries_tax 为 false 的行
-                                是"没有算过税",不是"税是零" —— 一个 0.00 会把前者
-                                说成后者,而那是这张清单上唯一会撒的谎。 */}
-                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatAmount(r.estimated_total_ccy, r.currency)}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {r.carries_tax ? formatAmount(r.tax_total_ccy ?? 0, r.currency) : '—'}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm font-medium">
-                                {formatAmount(r.carries_tax ? r.gross_total_ccy : r.estimated_total_ccy, r.currency)}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                <MaskedValue value={r.prepaid_base === null ? null : formatAmount(r.prepaid_base, baseCurrency)} canView={canFinance} fallback="—" />
-                                {/* 搁浅的定金要不点开每张单也看得见(cut 4c)*/}
-                                {canFinance && (r.prepaid_remaining_base ?? 0) > 0 && (
-                                    <span
-                                        title={t('purchasing.unappliedMarker')}
-                                        className="ml-2 inline-block px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-800 font-sans"
-                                    >
-                                        ⚠ {formatAmount(r.prepaid_remaining_base ?? 0, baseCurrency)}
-                                    </span>
-                                )}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                {r.receipt_pct === null ? (
-                                    '—'
-                                ) : (
-                                    <div className="flex items-center gap-2">
-                                        {/* 收货进度条:>100%(超收)封顶显示 */}
-                                        {/* CHART-1 ④:配色换成品牌 token。**这不是新建一张图** ——
-                                            它是屏幕上原本就在用图形承载数字的两处之一,而它用的
-                                            bg-gray-200 / bg-green-500 正是 R5 点名不要的那种默认色阶。
-                                            不换的话,新图与旧图会是两套配色。判词见 docs/charts-scoping.md §A1:
-                                            **留着,只换配色** —— 它是"一行里的一个数",放大成图表反而更差。 */}
-                                        <div className="w-20 h-2 rounded overflow-hidden"
-                                             style={{ background: 'var(--brand-muted)' }}>
-                                            <div
-                                                className="h-full"
-                                                style={{ width: `${Math.min(100, r.receipt_pct)}%`,
-                                                         background: 'var(--brand-forest-fill)' }}
-                                            />
-                                        </div>
-                                        <span className="text-xs text-gray-600 font-mono">{r.receipt_pct}%</span>
-                                    </div>
-                                )}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">{statusPill(r.status)}</td>
-                        </tr>
-                    ))}
-                    {rows.length === 0 && (
-                        <tr>
-                            <td colSpan={10} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
-                                {t('purchasing.empty')}
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
+            <OrdersTable rows={tableRows} empty={t('purchasing.empty')} />
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
@@ -312,6 +231,6 @@ export default async function PurchaseOrdersPage({
                     </span>
                 )}
             </div>
-        </div>
+        </ListPage>
     )
 }

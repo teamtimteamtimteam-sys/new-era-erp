@@ -51,6 +51,8 @@ import { mustRows } from '@/lib/db-helpers'
 import { formatTimestamp } from '@/lib/format'
 import { isYmd } from '@/lib/dateFilter'
 import ActorName, { loadActorNames } from '@/app/components/ActorName'
+import { ListPage } from '@/app/components/ui/list-page'
+import DeletedTable, { type DeletedRow } from './DeletedTable'
 import { requireFunction } from '@/app/components/moduleGuard'
 import { FN } from '@/lib/modules'
 
@@ -127,16 +129,43 @@ export default async function DeletedRecordsPage({
         return s ? `/settings/deleted?${s}` : '/settings/deleted'
     }
 
+    // CONV-5:套 CONV-1 的两文件模板。
+    // ★ state 恒为 'ok' —— 种类筛选与日期表单是真实出口(§⑩-3),而那句
+    //   noRestoreNote(「没有恢复,那是一个决定不是一个遗漏」)必须无条件出现,
+    //   所以它走 notices。空态那句【同时说两件事】的话(不是"什么都没删过",
+    //   是"你看得见的范围里没有")由 DataTable 自己的 empty 说。
+    const tableRows: DeletedRow[] = rows.map((r) => ({
+        key: `${r.record_kind}-${r.record_id}`,
+        kindLabel: t('deleted.kind.' + r.record_kind),
+        code: r.code,
+        detail: r.detail ?? null,
+        href: KIND_HREF[r.record_kind]?.(r.record_id) ?? null,
+        whenLabel: formatTimestamp(r.deleted_at, dl),
+        // 服务端渲染好的四态元素 —— 判据不过边界,元素过(见 DeletedTable 抬头)
+        whoCell: (
+            <ActorName
+                userId={r.deleted_by}
+                names={names}
+                unrecordedHint={t('deleted.beforeAudel1b')}
+            />
+        ),
+        reason: r.delete_reason || null,
+        ledgerHref: r.movement_id ? `/inventory/reports/ledger?movement=${r.movement_id}` : null,
+        reversalIsTheRun: r.record_kind === 'processing_run',
+    }))
+
     return (
-        <div className="p-8">
-            <h1 className="text-2xl font-bold mb-1">{t('deleted.title')}</h1>
-            <p className="text-sm text-gray-600 mb-4">{t('deleted.intro')}</p>
-
-            {/* 【说清这一页不能做什么】—— 没有恢复,而那是一个决定,不是一个遗漏 */}
-            <p className="text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-4 max-w-3xl">
-                {t('deleted.noRestoreNote')}
-            </p>
-
+        <ListPage
+            title={t('deleted.title')}
+            intro={t('deleted.intro')}
+            notices={
+                /* 【说清这一页不能做什么】—— 没有恢复,而那是一个决定,不是一个遗漏 */
+                <p className="text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-4 max-w-3xl">
+                    {t('deleted.noRestoreNote')}
+                </p>
+            }
+            state={{ kind: 'ok' }}
+        >
             {/* ── 筛选:种类 + 日期 ─────────────────────────────────────────── */}
             <div className="flex flex-wrap items-center gap-2 mb-4 text-sm">
                 <Link
@@ -173,80 +202,7 @@ export default async function DeletedRecordsPage({
                 </form>
             </div>
 
-            {rows.length === 0 ? (
-                // 【具名的空状态】—— 而它对"一个模块都没有的读者"同样成立:
-                // 那不是"什么都没删过",是"你看得见的范围里没有"。这一句因此
-                // 同时说了这两件事,不装作只有一种可能。
-                <div className="bg-gray-50 border border-gray-300 text-gray-700 px-4 py-6 rounded">
-                    {t('deleted.empty')}
-                </div>
-            ) : (
-                <table className="w-full border-collapse border border-gray-300 text-sm">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('deleted.colKind')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('deleted.colCode')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('deleted.colWhen')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('deleted.colWho')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('deleted.colReason')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('deleted.colLedger')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rows.map((r) => {
-                            const href = KIND_HREF[r.record_kind]?.(r.record_id) ?? null
-                            return (
-                                <tr key={`${r.record_kind}-${r.record_id}`}>
-                                    <td className="border border-gray-300 px-3 py-2">
-                                        {t('deleted.kind.' + r.record_kind)}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2 font-mono text-xs">
-                                        {href ? (
-                                            <Link href={href} className="text-blue-600 hover:underline">{r.code}</Link>
-                                        ) : (
-                                            r.code
-                                        )}
-                                        {r.detail && <span className="ml-2 text-gray-500">{r.detail}</span>}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2 whitespace-nowrap">
-                                        {formatTimestamp(r.deleted_at, dl)}
-                                    </td>
-                                    {/* 【谁】—— 三种状态三句话,全在 ActorName 一处 */}
-                                    <td className="border border-gray-300 px-3 py-2">
-                                        <ActorName
-                                            userId={r.deleted_by}
-                                            names={names}
-                                            unrecordedHint={t('deleted.beforeAudel1b')}
-                                        />
-                                    </td>
-                                    {/* 【为什么】—— 空也要说出来,不留白 */}
-                                    <td className="border border-gray-300 px-3 py-2">
-                                        {r.delete_reason || (
-                                            <span className="text-gray-500">
-                                                {t('deleted.reasonUnrecorded')}
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2 text-xs">
-                                        {r.movement_id ? (
-                                            <Link
-                                                href={`/inventory/reports/ledger?movement=${r.movement_id}`}
-                                                className="text-blue-600 hover:underline"
-                                            >
-                                                {t('deleted.ledgerLink')}
-                                            </Link>
-                                        ) : r.record_kind === 'processing_run' ? (
-                                            <span className="text-gray-500">{t('deleted.reversalIsTheRun')}</span>
-                                        ) : (
-                                            <span className="text-gray-400">—</span>
-                                        )}
-                                    </td>
-                                </tr>
-                            )
-                        })}
-                    </tbody>
-                </table>
-            )}
-        </div>
+            <DeletedTable rows={tableRows} empty={t('deleted.empty')} />
+        </ListPage>
     )
 }

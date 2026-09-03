@@ -7,6 +7,8 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import DeleteButton from './DeleteButton'
 import OutputToolbar, { type PartyOption } from './OutputToolbar'
+import { ListPage } from '@/app/components/ui/list-page'
+import OutputTable, { type OutputTableRow } from './OutputTable'
 import { STATE_OPTIONS, labelKeyForValue } from '../inbound/options'
 import {
     parseOutputListParams,
@@ -153,33 +155,6 @@ export default async function OutputPage({
     }
 
     // 表头排序链接:保留所有筛选,只改 sort/dir;不带 page —— 改排序回到第 1 页。
-    function sortHref(col: OutputSortCol) {
-        const nextDir = sort === col && dir === 'asc' ? 'desc' : 'asc'
-        const params = new URLSearchParams()
-        if (q) params.set('q', q)
-        if (state) params.set('state', state)
-        if (customerId) params.set('customer_id', customerId)
-        if (materialId) params.set('material_id', materialId)
-        if (dateFrom) params.set('date_from', dateFrom)
-        if (dateTo) params.set('date_to', dateTo)
-        params.set('sort', col)
-        params.set('dir', nextDir)
-        return `/output?${params.toString()}`
-    }
-
-    function sortableTh(col: OutputSortCol, label: string) {
-        const indicator = sort === col ? (dir === 'asc' ? ' ▲' : ' ▼') : ''
-        return (
-            <th className="border border-gray-300 px-4 py-2 text-left">
-                <Link href={sortHref(col)} className="hover:underline">
-                    {label}
-                    {indicator}
-                </Link>
-            </th>
-        )
-    }
-
-    // 分页链接:保留所有筛选 + sort/dir,只改 page
     function pageHref(targetPage: number) {
         const params = new URLSearchParams()
         if (q) params.set('q', q)
@@ -206,20 +181,54 @@ export default async function OutputPage({
         )
     }
 
+    // CONV-5:套 CONV-1 的两文件模板。
+    // ★ Q7:排序仍是服务端的。★ state 恒为 'ok' —— OutputToolbar 是真实出口。
+    const tableRows: OutputTableRow[] = (batches ?? []).map((b) => ({
+        id: b.id,
+        code: b.code,
+        materialName: b.materials?.name ?? '—',
+        customerName: b.customers?.legal_name ?? '—',
+        quantity: `${b.quantity} ${b.unit}`,
+        remaining: `${b.remaining_qty} ${b.unit}`,
+        outputDate: b.output_date ?? '—',
+        stateLabel: stateLabel(b.state),
+        // PROC-WIRE-1A:用途角标的语言在服务端选好;可售的批次没有这个角标
+        purposeTag:
+            b.output_batch_purposes && !b.output_batch_purposes.is_saleable_stock
+                ? (locale === 'zh' ? b.output_batch_purposes.name_zh : b.output_batch_purposes.name_en)
+                : null,
+        status: b.status,
+        createdLabel: formatTimestamp(b.created_at, dateLocale),
+    }))
+
+    // 排序链接要原样带上的筛选参数 —— 【URL 名,不是变量名】,
+    // 与转换前那个 sortHref 逐字一致(customer_id / material_id / date_from / date_to)。
+    const filterQuery: Record<string, string> = {}
+    if (q) filterQuery.q = q
+    if (state) filterQuery.state = state
+    if (customerId) filterQuery.customer_id = customerId
+    if (materialId) filterQuery.material_id = materialId
+    if (dateFrom) filterQuery.date_from = dateFrom
+    if (dateTo) filterQuery.date_to = dateTo
+
     return (
-        <div className="p-8">
-            {/* IOD-2:刚刚那次建批次的落地告警(成功、但有决定没人做过) */}
-            <StockWarningBanner warn={sp.warn} />
-            <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold">{t('output.listTitle')}</h1>
+        <ListPage
+            title={t('output.listTitle')}
+            actions={
                 <Link
                     href="/output/new"
                     className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                 >
                     {t('output.addButton')}
                 </Link>
-            </div>
-
+            }
+            notices={
+                /* IOD-2:刚刚那次建批次的落地告警(成功、但有决定没人做过)。
+                   它要【无条件】出现 —— 一条只在有行时才画的告警等于没有告警。 */
+                <StockWarningBanner warn={sp.warn} />
+            }
+            state={{ kind: 'ok' }}
+        >
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
                 <OutputToolbar customers={customerOptions} materials={materialOptions} />
@@ -229,101 +238,15 @@ export default async function OutputPage({
                 {t('output.recordCount', { count: total })}
             </p>
 
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        {sortableTh('code', t('output.colCode'))}
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('output.colMaterial')}
-                        </th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('output.colCustomer')}
-                        </th>
-                        {sortableTh('quantity', t('output.colQuantity'))}
-                        {sortableTh('remaining_qty', t('output.colRemaining'))}
-                        {sortableTh('output_date', t('output.colOutputDate'))}
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('output.colState')}
-                        </th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('output.colStatus')}
-                        </th>
-                        {sortableTh('created_at', t('output.colCreated'))}
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('output.colActions')}
-                        </th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('batchLabel.col')}
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {batches?.map((b) => (
-                        <tr key={b.id}>
-                            <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                <Link
-                                    href={`/output/${b.id}/edit`}
-                                    className="text-blue-600 hover:underline"
-                                >
-                                    {b.code}
-                                </Link>
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">{b.materials?.name ?? '—'}</td>
-                            <td className="border border-gray-300 px-4 py-2">{b.customers?.legal_name ?? '—'}</td>
-                            <td className="border border-gray-300 px-4 py-2">{b.quantity} {b.unit}</td>
-                            <td className="border border-gray-300 px-4 py-2">{b.remaining_qty} {b.unit}</td>
-                            <td className="border border-gray-300 px-4 py-2">{b.output_date ?? '—'}</td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                <span className="px-2 py-1 bg-gray-200 rounded text-xs">
-                                    {stateLabel(b.state)}
-                                </span>
-                                {/* PROC-WIRE-1A:被指定为下游工序投料的批次【不是可售库存】。
-                                    它与销售状态是两条轴,所以是【另一个】角标,不是同一个角标的
-                                    第四种颜色 —— 一批货可以既"库存中"又"已许给产线"。 */}
-                                {b.output_batch_purposes &&
-                                    !b.output_batch_purposes.is_saleable_stock && (
-                                    <span className="ml-1 px-2 py-1 bg-amber-100 text-amber-800 border border-amber-300 rounded text-xs">
-                                        {locale === 'zh'
-                                            ? b.output_batch_purposes.name_zh
-                                            : b.output_batch_purposes.name_en}
-                                    </span>
-                                )}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                <span className="px-2 py-1 bg-gray-200 rounded text-xs">
-                                    {b.status}
-                                </span>
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
-                                {formatTimestamp(b.created_at, dateLocale)}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                <DeleteButton id={b.id} code={b.code} />
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                <a
-                                    href={`/output/${b.id}/label`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:underline text-sm"
-                                >
-                                    {t('batchLabel.col')}
-                                </a>
-                            </td>
-                        </tr>
-                    ))}
-                    {(!batches || batches.length === 0) && (
-                        <tr>
-                            <td
-                                colSpan={11}
-                                className="border border-gray-300 px-4 py-8 text-center text-gray-500"
-                            >
-                                {t('output.emptyState')}
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
+            <OutputTable
+                rows={tableRows}
+                empty={t('output.emptyState')}
+                sort={sort}
+                dir={dir}
+                filterQuery={filterQuery}
+                shown={tableRows.length}
+                total={total}
+            />
 
             {/* 分页控件:服务端 <Link>,无额外客户端 JS;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">
@@ -357,6 +280,6 @@ export default async function OutputPage({
                     </span>
                 )}
             </div>
-        </div>
+        </ListPage>
     )
 }

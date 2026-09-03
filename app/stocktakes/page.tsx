@@ -9,6 +9,8 @@ import { stocktakeStatusLabelKey } from './status'
 import { createStocktake } from './actions'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import StocktakesTable, { type StocktakeRow } from './StocktakesTable'
 
 const STOCKTAKE_PAGE_SIZE = 20
 
@@ -79,10 +81,23 @@ export default async function StocktakesPage({
         )
     }
 
+    // CONV-5:套 CONV-1 的两文件模板。state 恒为 'ok' —— 「新建盘点单」是一个
+    // server action 表单,住在 actions 里(状态分支之前);一张盘点单都没有的时候
+    // 它正是唯一能做的事。
+    const tableRows: StocktakeRow[] = (rows ?? []).map((r) => ({
+        id: r.id,
+        code: r.code,
+        statusLabel: statusLabel(r.status),
+        // 时间戳按 locale 格式化在服务端做完 —— dateLocale 不过 RSC 边界
+        startedLabel: formatTimestamp(r.started_at, dateLocale),
+        postedLabel: r.posted_at ? formatTimestamp(r.posted_at, dateLocale) : null,
+        notes: r.notes ?? '—',
+    }))
+
     return (
-        <div className="p-8">
-            <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold">{t('stocktakes.listTitle')}</h1>
+        <ListPage
+            title={t('stocktakes.listTitle')}
+            actions={
                 <form action={createStocktake}>
                     <button
                         type="submit"
@@ -91,63 +106,15 @@ export default async function StocktakesPage({
                         {t('stocktakes.new')}
                     </button>
                 </form>
-            </div>
-
+            }
+            state={{ kind: 'ok' }}
+        >
             <p className="text-sm text-gray-600 mb-4">
                 {t('stocktakes.recordCount', { count: total })}
             </p>
 
-            <div className="overflow-x-auto">
-                <table className="w-full border-collapse border border-gray-300">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('stocktakes.colCode')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('stocktakes.colStatus')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('stocktakes.colStarted')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('stocktakes.colPosted')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('stocktakes.colNotes')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rows?.map((r) => (
-                            <tr key={r.id}>
-                                <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                    <Link
-                                        href={`/stocktakes/${r.id}`}
-                                        className="text-blue-600 hover:underline"
-                                    >
-                                        {r.code}
-                                    </Link>
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2">
-                                    <span className="px-2 py-1 bg-gray-200 rounded text-xs">
-                                        {statusLabel(r.status)}
-                                    </span>
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2">
-                                    {formatTimestamp(r.started_at, dateLocale)}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2">
-                                    {r.posted_at ? formatTimestamp(r.posted_at, dateLocale) : '—'}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2">{r.notes ?? '—'}</td>
-                            </tr>
-                        ))}
-                        {(!rows || rows.length === 0) && (
-                            <tr>
-                                <td
-                                    colSpan={5}
-                                    className="border border-gray-300 px-4 py-8 text-center text-gray-500"
-                                >
-                                    {t('stocktakes.emptyState')}
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
+            <StocktakesTable rows={tableRows} empty={t('stocktakes.emptyState')} />
 
-            {/* 分页控件:服务端 <Link>;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
                     <Link
@@ -179,6 +146,6 @@ export default async function StocktakesPage({
                     </span>
                 )}
             </div>
-        </div>
+        </ListPage>
     )
 }

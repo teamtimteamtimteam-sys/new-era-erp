@@ -8,6 +8,8 @@ import { mustRows } from '@/lib/db-helpers'
 import Link from 'next/link'
 import DeleteButton from './DeleteButton'
 import MaterialToolbar from './MaterialToolbar'
+import { ListPage } from '@/app/components/ui/list-page'
+import MaterialsTable, { type MaterialTableRow } from './MaterialsTable'
 import { getMaterialKinds } from './materialKindQuery'
 import { loadBatteryChemistries, toDictOptions, dictLabeller } from '@/app/components/dictionaries/dictionaryQuery'
 import {
@@ -111,29 +113,6 @@ export default async function MaterialsPage({
         ])
     }
 
-    // 表头排序链接:点当前列翻转方向,点其它列默认升序;保留 q / kind。不带 page —— 改排序回到第 1 页。
-    function sortHref(col: MaterialSortCol) {
-        const nextDir = sort === col && dir === 'asc' ? 'desc' : 'asc'
-        const params = new URLSearchParams()
-        if (q) params.set('q', q)
-        if (kind) params.set('kind', kind)
-        params.set('sort', col)
-        params.set('dir', nextDir)
-        return `/materials?${params.toString()}`
-    }
-
-    function sortableTh(col: MaterialSortCol, label: string) {
-        const indicator = sort === col ? (dir === 'asc' ? ' ▲' : ' ▼') : ''
-        return (
-            <th className="border border-gray-300 px-4 py-2 text-left">
-                <Link href={sortHref(col)} className="hover:underline">
-                    {label}
-                    {indicator}
-                </Link>
-            </th>
-        )
-    }
-
     // 分页链接:保留当前的 q / kind / sort / dir,只改 page
     function pageHref(targetPage: number) {
         const params = new URLSearchParams()
@@ -157,18 +136,48 @@ export default async function MaterialsPage({
         )
     }
 
+    // CONV-5:套 CONV-1 的两文件模板。
+    // ★ 这一页的四处"具名的缺席"(种类未决定 / 未分类 / 无化验要求 / 未监控)
+    //   在这里压平成【可判空的字段】,那四句话由 MaterialsTable 画 —— 见它的抬头。
+    // ★ Q7:排序仍是服务端的。★ state 恒为 'ok' —— MaterialToolbar 是真实出口。
+    const tableRows: MaterialTableRow[] = (materials ?? []).map((m) => {
+        const mk = m.material_kinds as { name_en: string; name_zh: string } | null
+        const wc = m.waste_classifications
+        return {
+            id: m.id,
+            code: m.code,
+            name: m.name,
+            // 语言在服务端选好 —— locale 不过 RSC 边界
+            kindLabel: mk ? (locale === 'zh' ? mk.name_zh : mk.name_en) : null,
+            chemistry: m.chemistry ? chemistryLabel(m.chemistry) : '—',
+            wasteClassLabel: wc ? (locale === 'zh' ? wc.name_zh : wc.name_en) : null,
+            wasteControlled: Boolean(wc?.is_controlled),
+            assayMetals: requiredByMaterial.get(m.id) ?? [],
+            unitLabel: display(UNIT_OPTIONS, m.unit),
+            safetyStockLabel:
+                m.safety_stock_qty === null ? null : `${m.safety_stock_qty} ${display(UNIT_OPTIONS, m.unit)}`,
+            status: m.status,
+            createdLabel: formatTimestamp(m.created_at, dateLocale),
+        }
+    })
+
+    const filterQuery: Record<string, string> = {}
+    if (q) filterQuery.q = q
+    if (kind) filterQuery.kind = kind
+
     return (
-        <div className="p-8">
-            <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold">{t('materials.listTitle')}</h1>
+        <ListPage
+            title={t('materials.listTitle')}
+            actions={
                 <Link
                     href="/materials/new"
                     className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                 >
                     {t('materials.addButton')}
                 </Link>
-            </div>
-
+            }
+            state={{ kind: 'ok' }}
+        >
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
                 <MaterialToolbar kinds={kinds} locale={locale} />
@@ -178,131 +187,16 @@ export default async function MaterialsPage({
                 {t('materials.recordCount', { count: total })}
             </p>
 
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        {sortableTh('code', t('materials.colCode'))}
-                        {sortableTh('name', t('materials.colName'))}
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('materials.colCategory')}
-                        </th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('materials.colChemistry')}
-                        </th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('materials.colWasteClass')}
-                        </th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('materials.colAssayRequired')}
-                        </th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('materials.colUnit')}
-                        </th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('materials.colSafetyStock')}
-                        </th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('materials.colStatus')}
-                        </th>
-                        {sortableTh('created_at', t('materials.colCreated'))}
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('materials.colActions')}
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {materials?.map((m) => (
-                        <tr key={m.id}>
-                            <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                <Link
-                                    href={`/materials/${m.id}/edit`}
-                                    className="text-blue-600 hover:underline"
-                                >
-                                    {m.code}
-                                </Link>
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">{m.name}</td>
-                            {/* PROC-1:种类从字典读标签;【没人决定过】按名印出来,不留空 —— 空白会被读成"没有种类" */}
-                            <td className="border border-gray-300 px-4 py-2">
-                                {(m.material_kinds as { name_en: string; name_zh: string } | null)
-                                    ? (locale === 'zh'
-                                        ? (m.material_kinds as { name_zh: string }).name_zh
-                                        : (m.material_kinds as { name_en: string }).name_en)
-                                    : <span className="text-amber-700">{t('materials.kindUndecided')}</span>}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                {m.chemistry ? chemistryLabel(m.chemistry) : '—'}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm">
-                                {/* MAT-1:【未分类要说出来,不能画成空白】—— 空白读起来像
-                                    "这一栏没填",而它的意思是"没有人分过类",
-                                    与"分类为非受控"在合规判断上不是一回事。 */}
-                                {m.waste_classifications ? (
-                                    <>
-                                        {locale === 'zh' ? m.waste_classifications.name_zh : m.waste_classifications.name_en}
-                                        {m.waste_classifications.is_controlled && (
-                                            <span className="ml-2 px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-800 border border-amber-300">
-                                                {t('materials.wasteClass.controlled')}
-                                            </span>
-                                        )}
-                                    </>
-                                ) : (
-                                    <span className="text-gray-400">{t('materials.wasteClass.unclassified')}</span>
-                                )}
-                            </td>
-                            {/* ASY-P2:【"无化验要求"要说出来,不能画成空白】——
-                                与旁边那一列同一条规矩:空白读起来像"这一栏没填",
-                                而这里它的意思是一个决定(或者一个还没做的决定)。 */}
-                            <td className="border border-gray-300 px-4 py-2 text-sm">
-                                {(requiredByMaterial.get(m.id) ?? []).length === 0 ? (
-                                    <span className="text-gray-400">
-                                        {t('materials.assayPolicy.noRequirement')}
-                                    </span>
-                                ) : (
-                                    <span className="font-mono text-xs">
-                                        {(requiredByMaterial.get(m.id) ?? [])
-                                            .map((c) => t('metals.' + c))
-                                            .join(', ')}
-                                    </span>
-                                )}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">{display(UNIT_OPTIONS, m.unit)}</td>
-                            {/* SS-1:【绝不留空】—— 空白读起来像"没事",而它的真实含义是
-                                "没有人设过这个阈值"。未监控必须自己说出来。 */}
-                            <td className="border border-gray-300 px-4 py-2">
-                                {m.safety_stock_qty === null ? (
-                                    <span className="text-gray-400">{t('materials.notMonitored')}</span>
-                                ) : (
-                                    <span>{m.safety_stock_qty} {display(UNIT_OPTIONS, m.unit)}</span>
-                                )}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                <span className="px-2 py-1 bg-gray-200 rounded text-xs">
-                                    {m.status}
-                                </span>
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
-                                {formatTimestamp(m.created_at, dateLocale)}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                <DeleteButton id={m.id} name={m.name} />
-                            </td>
-                        </tr>
-                    ))}
-                    {(!materials || materials.length === 0) && (
-                        <tr>
-                            <td
-                                colSpan={8}
-                                className="border border-gray-300 px-4 py-8 text-center text-gray-500"
-                            >
-                                {t('materials.emptyState')}
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
+            <MaterialsTable
+                rows={tableRows}
+                empty={t('materials.emptyState')}
+                sort={sort}
+                dir={dir}
+                filterQuery={filterQuery}
+                shown={tableRows.length}
+                total={total}
+            />
 
-            {/* 分页控件:服务端 <Link>,无额外客户端 JS;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
                     <Link
@@ -334,6 +228,6 @@ export default async function MaterialsPage({
                     </span>
                 )}
             </div>
-        </div>
+        </ListPage>
     )
 }

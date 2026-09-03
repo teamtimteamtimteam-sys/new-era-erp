@@ -717,6 +717,9 @@ export const FN = {
     pricing: fnByHref('/pricing'),
     commissions: fnByHref('/commissions'),
     contracts: fnByHref('/contracts'),
+    /** CONV-5:/margin 的批次列要链到产出批次,而 /output 是【跨模块】条目
+     *  (operation + inventory),按第 ② 条不变量它的入口必须由注册表派生。 */
+    output: fnByHref('/output'),
     licences: fnByHref('/purchasing/licences'),
     approvals: fnByHref('/settings/approvals'),
     /** NAV-CLEANUP-1:两张落地页各自的判据 —— 页面守卫按名取,拼错是编译期错误。 */

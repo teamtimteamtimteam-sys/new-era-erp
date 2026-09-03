@@ -6,6 +6,8 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import DeleteButton from './DeleteButton'
 import SupplierToolbar from './SupplierToolbar'
+import { ListPage } from '@/app/components/ui/list-page'
+import SuppliersTable, { type SupplierTableRow } from './SuppliersTable'
 import {
     parseSupplierListParams,
     parseSupplierPage,
@@ -71,18 +73,6 @@ export default async function SuppliersPage({
         filterParams
     ).range(from, to)
 
-    // 表头排序链接:点当前列翻转方向,点其它列默认升序;保留 q / status。
-    // 不带 page —— 改变排序时回到第 1 页。
-    function sortHref(col: SupplierSortCol) {
-        const nextDir = sort === col && dir === 'asc' ? 'desc' : 'asc'
-        const params = new URLSearchParams()
-        if (q) params.set('q', q)
-        if (status) params.set('status', status)
-        params.set('sort', col)
-        params.set('dir', nextDir)
-        return `/suppliers?${params.toString()}`
-    }
-
     // 分页链接:保留当前的 q / status / sort / dir,只改 page
     function pageHref(targetPage: number) {
         const params = new URLSearchParams()
@@ -92,18 +82,6 @@ export default async function SuppliersPage({
         params.set('dir', dir)
         params.set('page', String(targetPage))
         return `/suppliers?${params.toString()}`
-    }
-
-    function sortableTh(col: SupplierSortCol, label: string) {
-        const indicator = sort === col ? (dir === 'asc' ? ' ▲' : ' ▼') : ''
-        return (
-            <th className="border border-gray-300 px-4 py-2 text-left">
-                <Link href={sortHref(col)} className="hover:underline">
-                    {label}
-                    {indicator}
-                </Link>
-            </th>
-        )
     }
 
     if (error) {
@@ -118,26 +96,40 @@ export default async function SuppliersPage({
         )
     }
 
+    // CONV-5:套 CONV-1 的两文件模板。
+    // ★ Q7:排序仍然是服务端的,表头仍然是链接(DataTable 的 sorting.mode='server',
+    //   与 /inbound 同一个口子)。href 是函数,过不了 RSC 边界,所以这里只传参数。
+    // ★ state 恒为 'ok' —— 筛选工具栏与那两条入口链接都是真实出口(§⑩-3);
+    //   /contracts 与 /commissions 两条链接【有冒烟可达性探针盯着】,删了当场红。
+    const tableRows: SupplierTableRow[] = (suppliers ?? []).map((s) => ({
+        id: s.id,
+        code: s.code,
+        legalName: s.legal_name,
+        country: s.country,
+        types: s.supplier_types?.join(', ') ?? '',
+        status: s.status,
+        // 时间戳按 locale 格式化在服务端做完 —— dateLocale 不过 RSC 边界
+        createdLabel: formatTimestamp(s.created_at, dateLocale),
+    }))
+
+    const filterQuery: Record<string, string> = {}
+    if (q) filterQuery.q = q
+    if (status) filterQuery.status = status
+
     return (
-        <div className="p-8">
-            <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold">{t('suppliers.listTitle')}</h1>
+        <ListPage
+            title={t('suppliers.listTitle')}
+            actions={
                 <div className="flex items-center gap-3">
                     {/* ★【CONTRACT-1:合同登记簿的入口 —— 那一页建好时【没有任何入口】★
-                        照 PARTY-1 的做法办,理由也一样:本仓库为「页面上线却走不到」
-                        付过两次账(SAL-B6、FIX-1),而 --reach 查得到静态路由,
-                        只是它要跑两小时。所以这条链接与那一页在同一刀里补上,
-                        并配一条冒烟可达性探针(scripts/smoke-routes.mjs 里在
-                        /suppliers 的 HTML 里找 /contracts)—— 把"我记得加了链接"
-                        换成机制。入口放在供应商名单上,因为"这家的货是不是背靠
-                        一份长期协议"正是在看供应商名单时才会冒出来的问题。 */}
+                        照 PARTY-1 的做法办:本仓库为「页面上线却走不到」付过两次账
+                        (SAL-B6、FIX-1)。这条链接配一条冒烟可达性探针
+                        (scripts/smoke-routes.mjs 里在 /suppliers 的 HTML 里找
+                        /contracts)—— 把"我记得加了链接"换成机制。 */}
                     <Link href={FN.contracts.href} className="text-sm text-blue-600 hover:underline">
                         {t('contracts.entryLink')}
                     </Link>
-                    {/* ★【COMM-1:佣金协议的入口 —— 与上面那条逐字同一个理由】★
-                        /commissions 建好那天同样没有任何入口,而它归在供应商模块之下
-                        (代理人就是一个 service_vendor 供应商)。同样配一条冒烟可达性
-                        探针,链接删了当场红。 */}
+                    {/* ★【COMM-1:佣金协议的入口 —— 与上面那条逐字同一个理由】★ */}
                     <Link href={FN.commissions.href} className="text-sm text-blue-600 hover:underline">
                         {t('commissions.entryLink')}
                     </Link>
@@ -148,8 +140,9 @@ export default async function SuppliersPage({
                         {t('suppliers.addButton')}
                     </Link>
                 </div>
-            </div>
-
+            }
+            state={{ kind: 'ok' }}
+        >
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
                 <SupplierToolbar />
@@ -159,65 +152,15 @@ export default async function SuppliersPage({
                 {t('suppliers.recordCount', { count: total })}
             </p>
 
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        {sortableTh('code', t('suppliers.col.code'))}
-                        {sortableTh('legal_name', t('suppliers.col.legalName'))}
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('suppliers.col.country')}
-                        </th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('suppliers.col.types')}
-                        </th>
-                        {sortableTh('status', t('suppliers.col.status'))}
-                        {sortableTh('created_at', t('suppliers.col.created'))}
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('suppliers.colActions')}
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {suppliers?.map((s) => (
-                        <tr key={s.id}>
-                            <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                <Link
-                                    href={`/suppliers/${s.id}/edit`}
-                                    className="text-blue-600 hover:underline"
-                                >
-                                    {s.code}
-                                </Link>
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">{s.legal_name}</td>
-                            <td className="border border-gray-300 px-4 py-2">{s.country}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm">
-                                {s.supplier_types?.join(', ')}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                <span className="px-2 py-1 bg-gray-200 rounded text-xs">
-                                    {t('suppliers.status.' + s.status)}
-                                </span>
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
-                                {formatTimestamp(s.created_at, dateLocale)}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                <DeleteButton id={s.id} legalName={s.legal_name} />
-                            </td>
-                        </tr>
-                    ))}
-                    {(!suppliers || suppliers.length === 0) && (
-                        <tr>
-                            <td
-                                colSpan={7}
-                                className="border border-gray-300 px-4 py-8 text-center text-gray-500"
-                            >
-                                {t('suppliers.emptyState')}
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
+            <SuppliersTable
+                rows={tableRows}
+                empty={t('suppliers.emptyState')}
+                sort={sort}
+                dir={dir}
+                filterQuery={filterQuery}
+                shown={tableRows.length}
+                total={total}
+            />
 
             {/* 分页控件:服务端 <Link>,无额外客户端 JS;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">
@@ -251,6 +194,6 @@ export default async function SuppliersPage({
                     </span>
                 )}
             </div>
-        </div>
+        </ListPage>
     )
 }

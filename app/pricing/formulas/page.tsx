@@ -7,6 +7,8 @@ import { formatMoneyBare } from '@/lib/format'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import FormulasTable, { type FormulaRow as FormulasTableRow } from './FormulasTable'
 
 type FormulaRow = {
     id: string
@@ -73,94 +75,32 @@ export default async function FormulasPage() {
             ? t('pricing.basis.average', { days: r.average_days ?? 0 })
             : t('pricing.basis.spot')
 
+    // CONV-5:套 CONV-1 的两文件模板。state 恒为 'ok' —— 抬头「新建公式」
+    // 住在 actions 里(状态分支之前)。
+    const tableRows: FormulasTableRow[] = rows.map((r) => ({
+        id: r.id,
+        code: r.code,
+        name: r.name,
+        direction: r.direction,
+        basisLabel: basisLabel(r),
+        treatmentChargeUsdPerTonne: r.treatment_charge_usd_per_tonne,
+        flatDiscountPct: r.flat_discount_pct,
+        counterpartyName: nameById.get(r.supplier_id ?? r.customer_id ?? '') ?? null,
+        isActive: Boolean(r.is_active),
+    }))
+
     return (
-        <div className="p-8">
-            <div className="flex justify-between items-center mb-4">
-                <h1 className="text-2xl font-bold">{t('pricing.listTitle')}</h1>
-                <Link
-                    href="/pricing/formulas/new"
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
+        <ListPage
+            title={t('pricing.listTitle')}
+            actions={
+                <Link href="/pricing/formulas/new"
+                      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
                     {t('pricing.new')}
                 </Link>
-            </div>
-
-            <p className="text-sm text-gray-600 mb-4">{t('finance.recordCount', { count: rows.length })}</p>
-
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('pricing.colCode')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('pricing.colName')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('pricing.colDirection')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('pricing.colBasis')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('pricing.colTreatment')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('pricing.colDiscount')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('pricing.colCounterparty')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('pricing.colActive')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('metalPrices.colActions')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {rows.map((r) => (
-                        <tr key={r.id}>
-                            <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                <Link
-                                    href={`/pricing/formulas/${r.id}/edit`}
-                                    className="text-blue-600 hover:underline"
-                                >
-                                    {r.code}
-                                </Link>
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">{r.name}</td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                <span className="px-2 py-1 rounded text-xs bg-gray-200 text-gray-700">
-                                    {t('pricing.direction.' + r.direction)}
-                                </span>
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm">{basisLabel(r)}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatMoneyBare(r.treatment_charge_usd_per_tonne, '列头 pricing.colTreatment「加工费 (USD/吨)」')}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {r.flat_discount_pct}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm">
-                                {nameById.get(r.supplier_id ?? r.customer_id ?? '') ?? (
-                                    <span className="text-gray-500">{t('pricing.generic')}</span>
-                                )}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                <span
-                                    className={
-                                        'px-2 py-1 rounded text-xs ' +
-                                        (r.is_active
-                                            ? 'bg-green-100 text-green-800'
-                                            : 'bg-gray-200 text-gray-600')
-                                    }
-                                >
-                                    {r.is_active ? t('pricing.form.active') : t('finance.inactive')}
-                                </span>
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                <Link
-                                    href={`/pricing/formulas/${r.id}/edit`}
-                                    className="text-blue-600 hover:underline text-sm"
-                                >
-                                    {t('metalPrices.editAction')}
-                                </Link>
-                            </td>
-                        </tr>
-                    ))}
-                    {rows.length === 0 && (
-                        <tr>
-                            <td colSpan={9} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
-                                {t('pricing.empty')}
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
-        </div>
+            }
+            state={{ kind: 'ok' }}
+        >
+            <FormulasTable rows={tableRows} empty={t('pricing.empty')} />
+        </ListPage>
     )
 }

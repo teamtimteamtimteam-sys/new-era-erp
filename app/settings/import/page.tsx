@@ -12,6 +12,8 @@ import { mustRows } from '@/lib/db-helpers'
 import { RefusalPage } from '@/app/components/ui/refusal'
 import { IMPORT_TABLES, type TemplateColumn } from '@/lib/importTables'
 import ImportForm from './ImportForm'
+import { ListPage } from '@/app/components/ui/list-page'
+import ImportHistoryTable, { type ImportBatchRow } from './ImportHistoryTable'
 
 export default async function ImportPage() {
     const t = await getTranslations()
@@ -56,44 +58,30 @@ export default async function ImportPage() {
         'import_batches'
     )
 
-    return (
-        <div className="p-6 max-w-5xl">
-            <h1 className="text-2xl font-semibold mb-1">{t('import.title')}</h1>
-            <p className="text-sm text-gray-600 mb-6">{t('import.intro')}</p>
+    // CONV-5:套 CONV-1 的两文件模板。ImportForm 是这一页存在的理由,
+    // 它与页顶 intro 都画在状态分支之前;历史那一段的空
+    // (【第三种空】还没有导入过任何东西)由 DataTable 自己的 empty 说。
+    const tableRows: ImportBatchRow[] = batches.map((b) => ({
+        id: b.id as string,
+        whenLabel: new Date(b.imported_at as string).toLocaleString(),
+        tableLabel: t(`import.table.${b.target_table}`),
+        fileName: b.file_name as string,
+        rowCount: b.row_count as number,
+        codeRange: `${b.code_first as string} … ${b.code_last as string}`,
+    }))
 
+    return (
+        <ListPage
+            title={t('import.title')}
+            intro={t('import.intro')}
+            maxWidth="max-w-5xl"
+            state={{ kind: 'ok' }}
+        >
             <ImportForm tables={[...IMPORT_TABLES]} guide={guide} />
 
             <h2 className="text-lg font-semibold mt-10 mb-2">{t('import.history')}</h2>
-            {batches.length === 0 ? (
-                /* 【第三种空】还没有导入过任何东西 —— 与上面两种都不是一回事。 */
-                <p className="text-sm text-gray-500">{t('import.historyEmpty')}</p>
-            ) : (
-                <table className="w-full text-sm border border-gray-200">
-                    <thead className="bg-gray-50 text-left">
-                        <tr>
-                            <th className="px-3 py-2">{t('import.col.when')}</th>
-                            <th className="px-3 py-2">{t('import.col.table')}</th>
-                            <th className="px-3 py-2">{t('import.col.file')}</th>
-                            <th className="px-3 py-2 text-right">{t('import.col.rows')}</th>
-                            <th className="px-3 py-2">{t('import.col.codeRange')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {batches.map((b) => (
-                            <tr key={b.id as string} className="border-t border-gray-200">
-                                <td className="px-3 py-2">{new Date(b.imported_at as string).toLocaleString()}</td>
-                                <td className="px-3 py-2">{t(`import.table.${b.target_table}`)}</td>
-                                <td className="px-3 py-2">{b.file_name as string}</td>
-                                <td className="px-3 py-2 text-right">{b.row_count as number}</td>
-                                <td className="px-3 py-2 font-mono text-xs">
-                                    {b.code_first as string} … {b.code_last as string}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
+            <ImportHistoryTable rows={tableRows} empty={t('import.historyEmpty')} />
             <p className="text-xs text-gray-500 mt-2">{t('import.historyIsALog')}</p>
-        </div>
+        </ListPage>
     )
 }

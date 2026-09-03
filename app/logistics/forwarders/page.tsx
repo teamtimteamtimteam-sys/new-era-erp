@@ -1,6 +1,9 @@
 // app/logistics/forwarders/page.tsx
 // LOG-1c:货代名单。
 //
+// CONV-5:套 CONV-1 的两文件模板。state 恒为 'ok' —— NewForwarderForm 是这一页
+// 【建一家新货代】的唯一出口,走 empty 分支会把它藏起来。见 §⑩-3。
+//
 // 【这一页与供应商页【故意】不共用任何东西】。货代在账上是一行 suppliers
 // (LOG-1a 的决定:一家公司一个 id,应付/账龄/重估整条链因此不用改),
 // 但在屏幕上它不是供应商:没有物料类别、没有合规状态、没有采购单。
@@ -13,6 +16,8 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { formatAmount } from '@/lib/format'
 import NewForwarderForm from './NewForwarderForm'
+import { ListPage } from '@/app/components/ui/list-page'
+import ForwardersTable, { type ForwarderRow } from './ForwardersTable'
 
 export default async function ForwardersPage() {
     const denied = await requireModule(MOD.logistics)
@@ -59,10 +64,18 @@ export default async function ForwardersPage() {
     )
     const baseCcy = (baseRow[0]?.code as string) ?? null
 
-    return (
-        <div className="p-8">
-            <h1 className="text-2xl font-bold mb-4">{t('logistics.forwardersTitle')}</h1>
+    const tableRows: ForwarderRow[] = rows.map((r) => ({
+        id: r.id,
+        legalName: r.legal_name,
+        code: r.code,
+        mainRoutes: routeOf.get(r.id) ?? '—',
+        paymentTerms: r.payment_terms ?? '—',
+        // 【零不写成 0.00】—— 没有欠款给 null,由表说那句话
+        owedLabel: owed.get(r.id) ? formatAmount(owed.get(r.id)!, baseCcy) : null,
+    }))
 
+    return (
+        <ListPage title={t('logistics.forwardersTitle')} state={{ kind: 'ok' }}>
             <NewForwarderForm
                 labels={{
                     heading: t('logistics.newForwarder'),
@@ -73,45 +86,9 @@ export default async function ForwardersPage() {
                 }}
             />
 
-            {rows.length === 0 ? (
-                <p className="mt-6 max-w-2xl rounded border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                    {t('logistics.emptyForwarders')}
-                </p>
-            ) : (
-                <div className="mt-6 overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-300 text-sm">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('logistics.colName')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('logistics.colCode')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('logistics.colMainRoutes')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('logistics.colPaymentTerms')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-right">{t('logistics.colBalanceOwed')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {rows.map((r) => (
-                                <tr key={r.id}>
-                                    <td className="border border-gray-300 px-3 py-1">
-                                        <Link href={`/logistics/forwarders/${r.id}`} className="text-blue-700 hover:underline">
-                                            {r.legal_name}
-                                        </Link>
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-1 font-mono text-xs">{r.code}</td>
-                                    <td className="border border-gray-300 px-3 py-1">{routeOf.get(r.id) ?? '—'}</td>
-                                    <td className="border border-gray-300 px-3 py-1">{r.payment_terms ?? '—'}</td>
-                                    {/* 【零不写成 0.00】—— 没有欠款是一句话,不是一个金额 */}
-                                    <td className="border border-gray-300 px-3 py-1 text-right">
-                                        {owed.get(r.id) ? formatAmount(owed.get(r.id)!, baseCcy) : (
-                                            <span className="text-gray-500">{t('logistics.noBalance')}</span>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
-        </div>
+            <div className="mt-6">
+                <ForwardersTable rows={tableRows} empty={t('logistics.emptyForwarders')} />
+            </div>
+        </ListPage>
     )
 }

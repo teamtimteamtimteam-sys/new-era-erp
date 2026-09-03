@@ -10,6 +10,8 @@ import PostButton from './PostButton'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import ReviewDiffTable, { type ReviewDiffRow } from './ReviewDiffTable'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type BatchFetchRow = {
@@ -104,72 +106,51 @@ export default async function StocktakeReviewPage({
     const diffRows = rows.filter((r) => r.delta !== null && r.delta !== 0)
     const totalDelta = roundQty(diffRows.reduce((sum, r) => sum + (r.delta ?? 0), 0))
 
+    // CONV-5:套 CONV-1 的两文件模板。
+    // ★ state 恒为 'ok' —— 返回链接、汇总条、reviewNote 与 PostButton(过账)
+    //   都必须在【没有任何差异】时照样出现:没有差异正是最常见的、也是最该
+    //   放心过账的情形。差异表自己那句"没有差异"由页面在表位置上说。
+    const diffTableRows: ReviewDiffRow[] = diffRows.map((r) => ({
+        key: `${r.side}:${r.batchId}`,
+        side: r.side,
+        batchId: r.batchId,
+        code: r.code,
+        material: r.material,
+        current: `${r.current} ${r.unit}`,
+        counted: `${r.counted} ${r.unit}`,
+        deltaLabel: formatSigned(r.delta ?? 0),
+        deltaPositive: (r.delta ?? 0) > 0,
+    }))
+
     return (
-        <div className="p-8 max-w-3xl">
-            <div className="mb-6">
-                <Link href={`/stocktakes/${id}`} className="text-blue-600 hover:underline text-sm">
-                    ← {t('stocktakes.backToCount')}
-                </Link>
-            </div>
-
-            <h1 className="text-2xl font-bold mb-2">{t('stocktakes.reviewTitle')}</h1>
-            <p className="text-sm text-gray-600 mb-6">
-                <span className="font-mono">{st.code}</span>
-            </p>
-
-            {/* 汇总:已录行数 · 差异行数 · 差异合计 */}
-            <div className="bg-gray-50 rounded p-4 mb-4 text-sm">
-                {t('stocktakes.reviewSummary', {
-                    counted: rows.length,
-                    diffs: diffRows.length,
-                    delta: formatSigned(totalDelta),
-                })}
-            </div>
-
+        <ListPage
+            title={t('stocktakes.reviewTitle')}
+            maxWidth="max-w-3xl"
+            notices={
+                <>
+                    <div className="mb-6">
+                        <Link href={`/stocktakes/${id}`} className="text-blue-600 hover:underline text-sm">
+                            ← {t('stocktakes.backToCount')}
+                        </Link>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-6">
+                        <span className="font-mono">{st.code}</span>
+                    </p>
+                    {/* 汇总:已录行数 · 差异行数 · 差异合计 */}
+                    <div className="bg-gray-50 rounded p-4 mb-4 text-sm">
+                        {t('stocktakes.reviewSummary', {
+                            counted: rows.length,
+                            diffs: diffRows.length,
+                            delta: formatSigned(totalDelta),
+                        })}
+                    </div>
+                </>
+            }
+            state={{ kind: 'ok' }}
+        >
             {diffRows.length > 0 ? (
-                <div className="overflow-x-auto mb-4">
-                    <table className="w-full border-collapse border border-gray-300">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('stocktakes.colBatch')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('stocktakes.colMaterial')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('stocktakes.currentLabel')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('stocktakes.countedLabel')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('stocktakes.deltaLabel')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {diffRows.map((r) => (
-                                <tr key={`${r.side}:${r.batchId}`}>
-                                    <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                        <Link
-                                            href={`/${r.side}/${r.batchId}/edit`}
-                                            className="text-blue-600 hover:underline"
-                                        >
-                                            {r.code}
-                                        </Link>
-                                    </td>
-                                    <td className="border border-gray-300 px-4 py-2">{r.material}</td>
-                                    <td className="border border-gray-300 px-4 py-2">
-                                        {r.current} {r.unit}
-                                    </td>
-                                    <td className="border border-gray-300 px-4 py-2">
-                                        {r.counted} {r.unit}
-                                    </td>
-                                    <td className="border border-gray-300 px-4 py-2">
-                                        <span
-                                            className={
-                                                'font-medium ' +
-                                                ((r.delta ?? 0) > 0 ? 'text-green-600' : 'text-red-600')
-                                            }
-                                        >
-                                            {formatSigned(r.delta ?? 0)}
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                <div className="mb-4">
+                    <ReviewDiffTable rows={diffTableRows} />
                 </div>
             ) : (
                 <div className="bg-gray-50 rounded p-4 mb-4 text-sm text-gray-600">
@@ -180,6 +161,6 @@ export default async function StocktakeReviewPage({
             <p className="text-sm text-gray-600 mb-4">{t('stocktakes.reviewNote')}</p>
 
             <PostButton stocktakeId={id} />
-        </div>
+        </ListPage>
     )
 }

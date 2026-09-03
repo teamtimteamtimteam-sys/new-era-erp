@@ -7,6 +7,8 @@ import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import DeleteButton from './DeleteButton'
 import CustomerToolbar from './CustomerToolbar'
+import { ListPage } from '@/app/components/ui/list-page'
+import CustomersTable, { type CustomerTableRow } from './CustomersTable'
 import {
     parseCustomerListParams,
     parseCustomerPage,
@@ -91,18 +93,6 @@ export default async function CustomersPage({
         return `/customers?${params.toString()}`
     }
 
-    function sortableTh(col: CustomerSortCol, label: string) {
-        const indicator = sort === col ? (dir === 'asc' ? ' ▲' : ' ▼') : ''
-        return (
-            <th className="border border-gray-300 px-4 py-2 text-left">
-                <Link href={sortHref(col)} className="hover:underline">
-                    {label}
-                    {indicator}
-                </Link>
-            </th>
-        )
-    }
-
     // 分页链接:保留当前的 q / sort / dir,只改 page
     function pageHref(targetPage: number) {
         const params = new URLSearchParams()
@@ -125,15 +115,38 @@ export default async function CustomersPage({
         )
     }
 
+    // CONV-5:套 CONV-1 的两文件模板。
+    // ★ Q7:排序仍是服务端的(表头仍是链接),行为一个字没变。
+    // ★ state 恒为 'ok' —— CustomerToolbar 与 /customers/overlap 入口都是真实出口;
+    //   那条 overlap 链接【有冒烟可达性探针盯着】,删了当场红。
+    const tableRows: CustomerTableRow[] = (customers ?? []).map((c) => {
+        const p = primaryByCustomer.get(c.id)
+        return {
+            id: c.id,
+            code: c.code,
+            legalName: c.legal_name,
+            country: c.country,
+            contactName: p?.name ?? null,
+            contactInferred: Boolean(p?.name_inferred),
+            email: p?.email ?? '—',
+            types: c.customer_types?.join(', ') ?? '',
+            status: c.status,
+            // 时间戳按 locale 格式化在服务端做完 —— dateLocale 不过 RSC 边界
+            createdLabel: formatTimestamp(c.created_at, dateLocale),
+        }
+    })
+
+    const filterQuery: Record<string, string> = {}
+    if (q) filterQuery.q = q
+
     return (
-        <div className="p-8">
-            <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold">{t('customers.listTitle')}</h1>
+        <ListPage
+            title={t('customers.listTitle')}
+            actions={
                 <div className="flex items-center gap-3">
                     {/* ★【PARTY-1:重叠报告的入口 —— 这一页新建时【没有任何入口】★
                         本仓库为这件事付过两次账(SAL-B6 的客户详情页、FIX-1 的入库收货),
                         而 --reach 【查得到】静态路由,只是它要跑两小时。
-                        所以这条链接是在写完那一页的同一次里补上的,不是等走查来发现。
                         入口放在客户列表上,因为"这家客户是不是也是我们的供应商"
                         正是在看客户名单的时候才会冒出来的问题。 */}
                     <Link href="/customers/overlap" className="text-sm text-blue-600 hover:underline">
@@ -146,8 +159,9 @@ export default async function CustomersPage({
                         {t('customers.addButton')}
                     </Link>
                 </div>
-            </div>
-
+            }
+            state={{ kind: 'ok' }}
+        >
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
                 <CustomerToolbar />
@@ -157,101 +171,16 @@ export default async function CustomersPage({
                 {t('customers.recordCount', { count: total })}
             </p>
 
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        {sortableTh('code', t('customers.col.code'))}
-                        {sortableTh('legal_name', t('customers.col.legalName'))}
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('customers.col.country')}
-                        </th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('customers.col.contactPerson')}
-                        </th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('customers.col.email')}
-                        </th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('customers.col.types')}
-                        </th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('customers.col.status')}
-                        </th>
-                        {sortableTh('created_at', t('customers.col.created'))}
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('customers.colActions')}
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {customers?.map((c) => (
-                        <tr key={c.id}>
-                            {/* SAL-B6:编号指向【状况页】(仓位:限额/敞口/余额与明细),
-                                不再直接指向编辑表单 —— 看一个客户的第一件事通常不是改他。
-                                改限额/冻结的入口在状况页上,一步之遥。
-                                【顺带记一笔】这一页新建时差点没有任何入口:客户列表上
-                                只有 /edit 的链接,而按角色可达性那道检查【不覆盖动态路由】
-                                (没数据与到不了在走查眼里一模一样,见 smoke 文件头第 2 条),
-                                所以它不会替你发现。新建一个 [id] 页面时自己确认入口。 */}
-                            <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                <Link
-                                    href={`/customers/${c.id}`}
-                                    className="text-blue-600 hover:underline"
-                                >
-                                    {c.code}
-                                </Link>
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">{c.legal_name}</td>
-                            <td className="border border-gray-300 px-4 py-2">{c.country}</td>
-                            {/* 电话不上列表(列已经够多);主联系人 + 邮箱是找人时最常看的两项。
-                                PARTY-1 起它们来自 counterparty_contacts 的 is_primary 那一行。
-                                【没有主联系人不是空白,是一句话】—— 见下面那个具名缺席。 */}
-                            <td className="border border-gray-300 px-4 py-2 text-sm">
-                                {primaryByCustomer.get(c.id)
-                                    ? (<>
-                                        {primaryByCustomer.get(c.id)!.name}
-                                        {primaryByCustomer.get(c.id)!.name_inferred && (
-                                            <span className="ml-1 text-xs text-amber-700"
-                                                  title={t('contacts.inferredWhy')}>
-                                                {t('contacts.inferredTag')}
-                                            </span>
-                                        )}
-                                      </>)
-                                    : <span className="text-xs text-gray-500">{t('contacts.noPrimary')}</span>}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm break-all">
-                                {primaryByCustomer.get(c.id)?.email ?? '—'}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm">
-                                {c.customer_types?.join(', ')}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                <span className="px-2 py-1 bg-gray-200 rounded text-xs">
-                                    {c.status}
-                                </span>
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
-                                {formatTimestamp(c.created_at, dateLocale)}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                <DeleteButton id={c.id} legalName={c.legal_name} />
-                            </td>
-                        </tr>
-                    ))}
-                    {(!customers || customers.length === 0) && (
-                        <tr>
-                            <td
-                                colSpan={9}
-                                className="border border-gray-300 px-4 py-8 text-center text-gray-500"
-                            >
-                                {t('customers.emptyState')}
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
+            <CustomersTable
+                rows={tableRows}
+                empty={t('customers.emptyState')}
+                sort={sort}
+                dir={dir}
+                filterQuery={filterQuery}
+                shown={tableRows.length}
+                total={total}
+            />
 
-            {/* 分页控件:服务端 <Link>,无额外客户端 JS;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
                     <Link
@@ -283,6 +212,6 @@ export default async function CustomersPage({
                     </span>
                 )}
             </div>
-        </div>
+        </ListPage>
     )
 }
