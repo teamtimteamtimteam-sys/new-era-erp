@@ -57,3 +57,7 @@ supabase/.branches
 # types:gen 的中转文件 —— 生成失败时不该把 schema 的另一份镜像清空(见 package.json)
 lib/database.types.ts.tmp
 .live-lock
+
+# PAGE-0:scripts/survey-phone.mjs 的测量产物(JSON + 一个 chrome profile)。
+# 它是勘察工具每次重跑都会覆盖的输出,不是仓库要保存的东西。
+.survey-out/
