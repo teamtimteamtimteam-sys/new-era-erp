@@ -25,7 +25,12 @@ export async function remitWht(
     })
     if (error) return { error: await localizeWhtError(error.message) }
     revalidatePath('/finance/wht')
-    revalidatePath('/')   // 首页那一支 wht_due 的谓词刚刚变了
+    // ★★【CONV-7 ①:这一行此前【指着一块并不存在的牌子】】★★
+    // 它写着「首页那一支 wht_due」,而实测:wht_due 从来【没有】首页牌子 ——
+    // 视图有 34 支,首页只画了 32 块,它和 promise_overdue 一起被漏掉了。
+    // 也就是说这一行刷新了一张【不画这一支】的页面,刷了多久没人知道。
+    // 牌子现在真的存在了(lib/reminders.ts),而这一行终于指着它。
+    revalidatePath('/tools/reminders')   // 提醒页那一支 wht_due 的谓词刚刚变了
     const row = data as { code?: string; amount_base?: number } | null
     return { code: row?.code, amount: row?.amount_base }
 }

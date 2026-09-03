@@ -10,6 +10,29 @@ gets re-made, badly. The rule that follows from it:
 > to "Considered and left out" with a reason — never deleting it, because the reason it was
 > dropped is the thing that stops it being re-proposed.
 
+> ## ★★ CONV-7(2026-09-04):牌子搬家了,而且【两支从来没有牌子】★★
+>
+> **① 支的牌子清单不再住在 `app/page.tsx`,它住在 `lib/reminders.ts`,
+> 画在 `/tools/reminders`。** 首页整块搬去工具菜单(Tim 的裁定,理由见
+> `docs/reminders-tool.md` §1);首页因此不再读 `operations_now`。
+> **加一支现在要改四处:本文件 · `db/views/operations_now.sql` ·
+> `lib/reminders.ts` · `messages/{zh,en}.ts`。**
+>
+> **② 实测:视图 34 支,而首页只画了 32 块 —— `promise_overdue` 与 `wht_due`
+> 【在库里活着、在屏幕上不存在】。** 谓词、i18n 键、fixture 111 的 `v_expected`、
+> fixture 138 的正面断言、乃至 `app/finance/wht/actions.ts` 为它做的
+> `revalidatePath('/')` **五处都对齐了**,唯独渲染那一处漏了 ——
+> 而 fixture 111 钉的是【视图】的支列表,它管不到 TypeScript。
+> 两支已补齐,并且**这一格从此有检查看着**:
+> `scripts/check-reminder-arms.mjs`(在 `npm run build` 里)把本目录那份清单与
+> `lib/reminders.ts` 逐支对齐,多一支少一支都点名。
+>
+> **③ 34 支里有两支没有通过本文件自己那条判据**(「必须是一个等待状态,
+> 不是一个状态」):`work_order_variance_beyond` 与 `output_unsold_aging`。
+> **本刀没有撤掉它们** —— 它们该去的那两页(运营 / 库存 Overview)还没有建,
+> 先撤会造出一个信号无家可归的空窗。
+> **返回条件与搬法写在 `docs/module-overview-basis.md` §6。**
+
 `operations_now` answers exactly one question: **what is waiting for a human right now.** One row
 per waiting item, one arm per waiting state, `hr_alerts`' proven shape. It is not a metrics view,
 not a report, and not a place for totals — a number that is merely *interesting* belongs on the

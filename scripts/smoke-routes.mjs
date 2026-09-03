@@ -425,6 +425,32 @@ if (MSG_EXPO_SELL[0] === MSG_EXPO_SELL[1]) {
     throw new Error('priceExposure 的两句"具名的零"读起来一模一样 —— 「没有合同」与「有合同没条款」必须分得开')
 }
 
+// ── CONV-7:Overview 与提醒页的入口断言,同样【从文案文件现读,不写死】──────
+// 【为什么现读】写死一句英文,改一个词这道检查就【安静地失去主语】——
+// 它会继续报绿,而它钉的那件事已经不在页面上了。本文件其余十几处都这么办。
+function msgFromEn(path) {
+    const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
+    // path 形如 'overview.basis.spans' —— 逐段往里钻,每段取它那个花括号块。
+    const segs = path.split('.')
+    let blk = src
+    for (const seg of segs.slice(0, -1)) {
+        const m = blk.match(new RegExp(String.raw`\b${seg}:\s*\{`))
+        if (!m) throw new Error(`messages/en.ts 里找不到 ${path} 的 ${seg} 段 —— 入口断言无从下手`)
+        blk = blk.slice(m.index + m[0].length)
+    }
+    const last = segs[segs.length - 1]
+    const m = blk.match(new RegExp(String.raw`\b${last}:\s*'([^']+)'`))
+    if (!m) throw new Error(`messages/en.ts 里找不到 ${path} —— 入口断言无从下手`)
+    return m[1]
+}
+const MSG_OVERVIEW_SPANS = msgFromEn('overview.basis.spans')
+const MSG_FIN_RECON_TITLE = msgFromEn('financeOverview.reconTitle')
+const MSG_HR_SALARY_TITLE = msgFromEn('hrOverview.salaryTitle')
+const MSG_REM_QUIET = msgFromEn('reminders.sectionQuiet')
+const MSG_ARM_WHT_DUE = msgFromEn('dashboard.item.wht_due')
+const MSG_ARM_PROMISE_OVERDUE = msgFromEn('dashboard.item.promise_overdue')
+
+
 const MUST_CONTAIN = {
     // ── 静态判据:下拉在,就说明名单非空 ────────────────────────────────────
     // 这九个下拉是【同一个形状】:名单非空时渲染 <select name="supplier_id">,
@@ -562,9 +588,69 @@ const MUST_CONTAIN = {
     //   【为什么这个断言反而更硬了】落地页那份清单【从注册表派生】,不可能与菜单漂开;
     //   从前那两份手写清单正是它当年要防的东西。
     //   与 AGENTS.md 那条"针必须在默认渲染里、不能藏在点击后面"仍然相容。
+    // ★★【CONV-7 ②(2026-09-04):这一条【换了它钉的东西】,而【它放弃了什么必须写清】★★
+    //
+    // 【它此前钉的】`href="/finance/price-exposure"` —— 理由是「那一页唯一的入口就是这里」。
+    //   那句话当时是真的:NAV-CLEANUP-1 ② 删掉了页内子导航,而 ③ 让 /finance 变成
+    //   <ModuleLanding>,把财务 31 条注册表条目逐条画成 <Link>。
+    //
+    // ★【它为什么必须换 —— 而这【不是】为了让新页面通过】★
+    //   Tim 的裁定(2026-09-04):**一级模块的 Overview 绝对不能是子页面的卡片排列**,
+    //   理由是二级菜单已经把每一页列过一遍了。所以 /finance 不再画那 31 条链接 ——
+    //   **这一条断言的主语没有了**,它不是被绕过,是它钉的那个东西被裁掉了。
+    //
+    // ★★【放弃了什么 —— 照直写,因为它是一次真的覆盖损失】★★
+    //   `/finance/price-exposure` 与其余 30 条财务子页面,**在初次 HTML 里不再有
+    //   任何入口**(实测:全仓库除注册表外没有第二处链到 price-exposure)。
+    //   人走得到(顶栏 → 财务 → 报表组),而**爬虫走不到** ——
+    //   顶栏的二级菜单是点开才渲染的(`{isOpen && …}`),这是 AGENTS.md 早就
+    //   记着的 `--reach` 结构性盲区。
+    //   **后果:`--reach=finance` 会把这些页报成「打得开却走不到」。**
+    //   这是【裁定带来的】,不是缺陷;处置写在 docs/module-overview-basis.md §6
+    //   与本刀报告里 —— 正确的修法是让爬虫读注册表(菜单的内容服务端就算得出,
+    //   `getModuleAccess` 现成),**不是**把四十条页面塞进 EXPECTED_UNREACHABLE
+    //   (那等于把这道检查关掉)。
+    //
+    // 【它现在钉什么 —— 一件仍然只有它看得见的事】
+    //   冒烟的已知盲区是「一页渲染成错误框仍然是 200」。Overview 恰恰最容易这样坏:
+    //   三条陈述任何一条抛了,整页会退成一个壳。所以钉**出处那一格的标签**——
+    //   它在三种状态(ok / 受限 / 答不上来)下都必须出现,所以它不挑数据;
+    //   而它一旦不见,说明 <Figure> 根本没有渲染。
     '/finance': [
-        { needle: 'href="/finance/price-exposure"',
-          why: '★ 财务子导航里通往价格敞口的入口不见了 —— 那一页会变成一个上了线却走不到的报表(而它唯一的入口就是这里)' },
+        { needle: MSG_OVERVIEW_SPANS,
+          why: '★ 财务 Overview 的「它跨了哪几页」那一格不见了 —— <Figure> 没有渲染出来,而一页退成壳子仍然是 200' },
+        { needle: MSG_FIN_RECON_TITLE,
+          why: '★★「总账 ↔ 明细账」这条陈述从财务 Overview 上消失了 —— 它是这个模块【唯一】一条两侧来自不同表的真勾稽,没有它这一页就只剩装饰 ★★' },
+    ],
+
+    // ── CONV-7 ②:人力 Overview ────────────────────────────────────────────
+    // 【钉薪酬那一条的标题,而不是它的值】值有三种状态(受限 / 答不上来 / 有数),
+    // 三种都合法 —— 钉值就是一次必然的误报。而**标题在三种状态下都必须在**:
+    // 它不见了,说明那一格整条消失了,而"整条消失"恰恰是 D5 最怕的那种处置
+    // (把"你看不见"办成"这里什么都没有")。
+    '/hr': [
+        { needle: MSG_HR_SALARY_TITLE,
+          why: '★★ 人力 Overview 上「月固定工资总额」那一条整条不见了 —— 一个受限的格子被【省略】而不是画成具名的受限,正是 D5 要防的那一种 ★★' },
+        { needle: MSG_OVERVIEW_SPANS,
+          why: '★ 人力 Overview 的「它跨了哪几页」那一格不见了 —— <Figure> 没有渲染出来' },
+    ],
+
+    // ── CONV-7 ①:提醒 ────────────────────────────────────────────────────
+    // ★【钉的是那两支【本刀之前根本没有牌子】的支】★
+    //   `promise_overdue` 与 `wht_due` 在库里活了很久而屏幕上不存在(见
+    //   docs/reminders-tool.md §3)。它们今天线上都为零,所以它们出现在
+    //   「此刻没有在等」那一行里 —— **而那正是要钉的地方**:
+    //   一次"顺手把零收起来"的改动会让它们再次无声消失,而那恰恰是本刀修的病。
+    // ★【第二根针钉「此刻没有在等」这一节本身】★
+    //   零【被降了重量,没有被藏掉】是这一页的设计承诺。这一节标题一旦不见,
+    //   承诺就破了,而屏幕上看不出区别(少了一节,页面照样好看)。
+    '/tools/reminders': [
+        { needle: MSG_REM_QUIET,
+          why: '★★「此刻没有在等」那一节不见了 —— 零【被藏起来】而不是被降重量,这一页就开始骗人了 ★★' },
+        { needle: MSG_ARM_WHT_DUE,
+          why: '★★ wht_due 那一支又不见了 —— 它在库里活着而屏幕上不存在,正是 CONV-7 修的那个缺陷(见 docs/reminders-tool.md §3)★★' },
+        { needle: MSG_ARM_PROMISE_OVERDUE,
+          why: '★★ promise_overdue 那一支又不见了 —— 同上,两支是一起被漏掉的 ★★' },
     ],
 
     // ── COMM-1:敞口报表 —— 它的全部价值就是这几句话 ──────────────────────

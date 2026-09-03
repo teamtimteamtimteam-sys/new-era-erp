@@ -22,7 +22,8 @@ export type ActState = { error?: string; success?: boolean }
 function refresh(assetId: string) {
     revalidatePath(`/finance/assets/${assetId}`)
     revalidatePath('/finance/assets')
-    revalidatePath('/')          // 两支臂就画在首页上
+    // CONV-7 ①:两支保养臂搬去了 /tools/reminders,首页不再读 operations_now。
+    revalidatePath('/tools/reminders')   // 两支臂现在画在提醒页上
 }
 
 // ── P1/P2:记一次保养或维修 ─────────────────────────────────────────────────

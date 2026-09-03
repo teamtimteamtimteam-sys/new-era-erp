@@ -524,14 +524,23 @@ const zh = {
         meDesc: '本人档案、假期余额与报销',
         myReviewsTitle: '我评的评估',
         myReviewsDesc: '由我担任评估人的绩效评估',
+        // CONV-7 ①:首页那条【不带数字】的路。措辞刻意不提任何计数 ——
+        // 一句「你有 12 件事在等」会把推送搬回首页,而这一刀正是要把它撤走。
+        remindersDesc: '跨模块的待办与到期,想看的时候来看',
     },
     // OPS-18:运营看板。dashboard.item.* 的后缀集合 = db/views/operations_now.sql 里
     // item_type 的字面量集合(check-i18n MANIFEST 现读那个文件,加一支自动变宽)。
     dashboard: {
+        // 【CONV-7 ①:三个键删掉了 —— sectionNow / hrAlerts / oldestSince】
+        // 它们是首页那一节的抬头、HR 那块牌子的名字、和「最早:{date}」。
+        // 那一节整块搬去了 /tools/reminders,措辞也跟着重写(「正在等」/「HR 提醒」/
+        // 「最久 N 天」,见 reminders.*)。**留着它们不是不整洁,是会误导** ——
+        // 一个叫 dashboard.sectionNow 的键会让下一个人以为首页还有那一节。
+        // 【留着的那几个仍在用】item.* · awaitingMetals · andMore · restrictedHint ·
+        // monthEnd(+Desc)—— 前四个由提醒页用,月结那两个由首页那条纯链接用。
         // ASY-P2:awaiting_assay 那一支的 subject 是缺的金属 —— 加个前缀,
         // 一个光秃秃的「锂」挂在批次号旁边读不出是什么意思
         awaitingMetals: '待化验:{metals}',
-        sectionNow: '当前待办',
         item: {
             work_order_overdue: '工单已过排产日',
             work_order_variance_beyond: '工单差异超过阈值',
@@ -568,13 +577,107 @@ const zh = {
             bank_unmatched: '银行未匹配行',
             wht_due: '预提税待汇缴 IRAS',
         },
-        hrAlerts: 'HR 待办提醒',
-        oldestSince: '最早:{date}',
         // LINKS-1:一块牌子只列前几件,其余交给那一支自己的列表
         andMore: '还有 {n} 件',
         restrictedHint: '需要相应模块权限',
         monthEnd: '月结枢纽',
         monthEndDesc: '七个月结信号,按依赖序逐步核对',
+    },
+    // ════════════════════════════════════════════════════════════════════════
+    // CONV-7 ①(2026-09-04)· 提醒 —— /tools/reminders
+    // ════════════════════════════════════════════════════════════════════════
+    // 【支的名字不在这里】它们仍然是 dashboard.item.*(后缀集合由 check-i18n 从
+    // db/views/operations_now.sql 现读)。搬家没有改一个键 —— 改键会让
+    // check-i18n 那条"后缀集合来自视图"的规矩失去落点,而那条规矩比整齐重要。
+    reminders: {
+        title: '提醒',
+        intro: '正在等人处理的事,以及快到期的事 —— 跨模块汇在一处。每一项按它自己家那个模块的权限出现或不出现。',
+        basis: '「等了几天」由数据库按它的当天算(item_date 起算),不是按你这台设备的时区。',
+        sectionWaiting: '正在等',
+        waitingSummary: '{items} 件事,分布在 {arms} 项 —— 等得最久的排在最上面。',
+        count: '{n} 项',
+        oldest: '最久 {n} 天',
+        days: '{n} 天',
+        hrSection: 'HR 提醒',
+        hrBasis: '按严重度分档,不按天数 ——「已过期」与「快到期」不是同一件事的两个刻度。',
+        sectionQuiet: '此刻没有在等',
+        // 【不要写「后者在下面单独列」】admin 的受限是 0 支,那一节根本不渲染 ——
+        // 一句指向空无的话,比不说更糟。区别照说,位置不承诺。
+        quietHint: '这些你看得见,而它们此刻一件都没有。这是真的零 —— 与「你没有权限看」不是同一件事。',
+        sectionRestricted: '需要其它模块的权限',
+        restrictedHint: '这些不是零 —— 它们有没有事,这个账号答不上来。要看它们,需要下面括号里的权限码。',
+        nothingVisible: '这一页对你是空的 —— 每一项都需要一个你还没有的模块权限。',
+        nothingVisibleHint: '这不是「没有事」,是「问不出来」。请联系管理员为你分配角色。',
+        allQuiet: '你看得见的每一项此刻都没有事在等。',
+    },
+    // ════════════════════════════════════════════════════════════════════════
+    // CONV-7 ②(2026-09-04)· 模块 Overview —— 共用的三格出处与三种状态
+    // ════════════════════════════════════════════════════════════════════════
+    // 【为什么「答不上来」要有自己的一句话】它不是「零」,也不是「受限」。
+    // 三者在屏幕上必须是三句不同的话 —— 本仓库为这条区别付过很多次账。
+    overview: {
+        intro: '这个模块此刻是什么状态。这里只放【横跨若干张子页面、任何一张自己都说不出来】的事实 —— 各个页面本身在上面的菜单里。',
+        unanswerable: '答不上来',
+        basis: {
+            asOf: '时点',
+            source: '这个数是什么',
+            spans: '它跨了哪几页',
+        },
+    },
+    // ── 财务 Overview ────────────────────────────────────────────────────────
+    financeOverview: {
+        periodTitle: '账本开着的期间',
+        periodSource: '财务设置里的封账日 —— 它决定下面每一个数能不能再被改动。',
+        periodSpans: '封账动作在 /finance/close,而这个月还差几步在 /finance/month-end;【当前封到哪一天】两页都不作为标题回答。',
+        periodAction: '去封账 / 反封账',
+        lockedBefore: '{date} 之前已封账 —— 那之前的分录改不动了。',
+        lockedNone: '还没有设过封账日 —— 所有期间都仍然改得动。这不是「封到了很早」,是「一天都没封」。',
+        systemStart: '系统启用日:{date}(此前的数是迁移进来的,不是这套系统记的)。',
+        reconTitle: '总账 ↔ 明细账',
+        reconSource: '控制科目上的账面余额,与它对应的那一叠单据算出来的余额,两边对照。',
+        reconSpans: '账面那一侧在 /finance/trial-balance,单据那一侧散在 /finance/receivables 与 /finance/payables 与库存各页 —— 【两侧对不对得上】没有任何一页在回答。',
+        reconLine: '账面 {ledger} · 单据 {subledger}',
+        reconRefused: '这一条腿此刻取不到依据,所以它没有数 —— 照答会给出一个自信的 0.00。',
+        reconNoSides: '勾稽没有返回任何一条腿。这是一次查询的结果,不是「四条腿都平了」。',
+        unexplained: '未解释差额 {amount}',
+        side: {
+            ar: '应收',
+            ap: '应付',
+            inventory_raw: '原料存货',
+            inventory_fg: '成品存货',
+        },
+        netTitle: '净头寸',
+        netSource: '别人欠我们的,减去我们欠别人的 —— 两边都取【单据】那一侧,截至今天,本位币。',
+        netSpans: '应收在 /finance/receivables,应付在 /finance/payables —— 两页各说一半,合起来那一句没有页面在说。',
+        netLine: '应收 {ar} − 应付 {ap} = {net}',
+        netUnanswerable: '应收或应付有一侧此刻取不到依据,所以这个差算不出来 —— 拿一个 0 去减是在编一个数。',
+        monthEndBoundary: '—— 月结答的是【这个月还差哪几步】,本页答的是【账本此刻是什么状态】。两页不复制对方。',
+    },
+    // ── 人力 Overview ────────────────────────────────────────────────────────
+    hrOverview: {
+        headcountTitle: '队伍的构成',
+        headcountSource: '在册员工(试用 / 在职 / 通知期)按用工状态与工种分档。',
+        headcountSpans: '/hr/employees 是一本名册 —— 它列人,它不陈述构成;/hr/departments 只管部门。',
+        headcountLine: '在册 {n} 人',
+        headcountEmpty: '员工目录里一行都没有 —— 这不是「0 人在职」,是这套系统还没有录过人。',
+        separated: '另有 {n} 人已离职(不计入在册)',
+        cycleTitle: '考勤与薪资的周期',
+        cycleSource: '最近一期薪资的月份与状态,以及至今开过多少个考勤期。',
+        cycleSpans: '/hr/attendance 只说考勤,/hr/payroll 只说工资 —— 而「这个月的工资算不算得出来」取决于两者的衔接,两页都不说。',
+        payrollLatest: '最近一期薪资:{month}({status})',
+        payrollNever: '还没有跑过任何一期薪资 —— 这不是「这个月没跑」。',
+        payrollStatus: {
+            draft: '草稿',
+            posted: '已过账',
+        },
+        attendanceNever: '考勤期:一个都没有开过 —— 考勤这一套至今没有被用起来。这不是「这个月的考勤是空的」,两句话引出的下一步完全不同。',
+        attendanceCount: '考勤期:至今开过 {n} 个。',
+        salaryTitle: '月固定工资总额',
+        salarySource: '在册员工合同上的月固定工资之和(底薪 + 固定津贴)。它是假期补偿的取数来源,【不】参与任何一次工资计算 —— 所以它与上面那一期薪资的实发数不是同一个口径,不相等是对的。',
+        salarySpans: '这个数在 /hr/employees 上是【每个人一行】,而它的总和没有页面在说;/hr/payroll 说的是另一个口径。',
+        salaryLine: '{amount} —— 在册 {total} 人中 {set} 人录了。',
+        salaryNoneSet: '在册 {n} 人,一个都没有录月固定工资 —— 所以这个总额没有依据。它不是 0 元:0 元会一路走进假期补偿。',
+        remindersBoundary: '—— 准证到期、试用期届满、工资未录这一类【要有人去办】的事,全部在提醒页上。',
     },
     margin: {
         title: '批次毛利',

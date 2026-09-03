@@ -1,489 +1,122 @@
+// app/page.tsx
+// ════════════════════════════════════════════════════════════════════════════
+// CONV-7 ①(2026-09-04)· 首页安静下来 —— 看板整块搬去 /tools/reminders
+// ════════════════════════════════════════════════════════════════════════════
+//
+// 【此前它是什么】OPS-18(Phase 6)把首页从【链接目录】换成【运营看板】:
+// 34 支 + HR 一块 = 35 块一样大的牌子,一事一牌。那一步在当时是对的 ——
+// 它治的是"两个首页并存,而人落地的是错的那一个"。
+//
+// 【为什么现在整块搬走 —— Tim 的裁定,2026-09-04,不要重开】
+//   信号【天生跨模块】,所以拆回各自的模块会丢掉"一眼看完所有该操心的事"这件事
+//   本身。给它们一个【自己的去处】,人就是想看的时候去看,而不是一登录就被推一脸。
+//   **那正是这一页得以安静下来的前提。**
+//   实测支撑这个判断:34 支里【只有 12 支有行】,另外 22 支为零 ——
+//   也就是说登录第一屏三分之二的面积说的都是「没有事」。
+//
+// 【搬走的是什么,一个字不多】「当前待办」那一整节:34 块支牌 + HR 那一块。
+//   连同它们的三条规矩(0 不冒充受限 · 一块一扇门 · 每个信号过 mustRows)、
+//   门牌清单、以及 ap_over_90 / awaiting_assay 那两处"给行一张脸"的补查,
+//   全部原样迁到 lib/reminders.ts 与 app/tools/reminders/page.tsx。
+//   **本页因此不再读 operations_now,也不再读 hr_alerts。**
+//
+// ★【留下的是什么,以及为什么】★
+//   ① 零模块权限的那句话(OPS-15)—— 它不是信号,是一个【关于这个账号】的事实,
+//      而说这句话最该的地方就是他落地的第一屏。
+//   ② 月结枢纽那条链接 —— 它【本来就不复制任何信号】(注释里白纸黑字),
+//      所以它不属于被搬走的那一类。安静指的是不推数字,不是不给路。
+//   ③ ★【新增一条:提醒】★ 与 ② 同一种东西 —— 一条【不带任何数字】的链接。
+//      理由是 CONV-0 在 /pricing 上裁过的那条区别:**可达(reachable)与
+//      找得到(findable)不是一回事。** 提醒在工具菜单里有自己的条目,所以它可达;
+//      而这一页是所有人过去【一直用来看待办的地方】,不留一条路,第一周每个人
+//      都要问一次"它去哪了"。这条链接不印任何计数 —— 它不推,它只指路。
+//   ④ 「我的」两张卡 —— 不受模块把关,人人可见(OPS-15:employee 角色的全部
+//      产品恰恰是这两页,首页必须给入口)。
+// ════════════════════════════════════════════════════════════════════════════
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { getMyPermissions } from '@/lib/permissions'
-import { getModuleAccess } from '@/lib/moduleAccess'
-import { allows, type PermissionSpec } from '@/lib/modules'
-import { mustCount, mustRows } from '@/lib/db-helpers'
-import { metalLabelKey } from '@/app/pricing/metal-prices/options'
+import { allows } from '@/lib/modules'
 
-// OPS-18(Phase 6):首页从【链接目录】换成【运营看板】—— 正在等人处理的事,
-// 一事一牌。目录的职责由导航条独自承担;两个首页并存的话,人落地的是目录那个,
-// 而它已经是错的。
-//
-// 【本页不算业务账】每块牌子的数字来自 db 的 operations_now(一个 UNION,一种等待
-// 状态一支,hr_alerts 的形状);本页只数行、取最早日期 —— 那是呈现,不是口径。
-//
-// 【规矩一:0 绝不冒充"你看不见"】operations_now 对无权读者【整支缺席】,于是
-// "没有行"有两种含义。本页先查权限再渲染每块牌子:无权 → 「受限」(common.restricted,
-// 与 MaskedValue 同一词),绝不显示 0。这是仪表盘最容易犯、且 gate 查不出的错。
-//
-// 【规矩二:一块牌子一扇门】每块牌子恰好读一个来源;受限的牌子【根本不开门】。
-// 绝不"先试 A,空了再试 B,谁有行画谁"—— 在这里空集是权限答复,回退等于把数字
-// 从另一扇门里递出去。
-//
-// 【规矩三:每个信号都过 mustRows/mustCount】/finance/month-end 的先例:七个信号
-// 原本全是 `?? []`,任何一次查询失败都渲染成"已完成"。仪表盘是同一风险乘以牌数。
-//
-// 【支的清单是规格,不是这里的实现细节】docs/dashboard-arm-inventory.md 写着每一支
-// 是什么意思、挂哪个权限码、界在哪里,以及【哪些支被考虑过又被排除、为什么】。
-// 加一块牌子 = 同时改那份清单、db/views/operations_now.sql 与下面的 TILES —— 三处
-// 的 permission 必须同码(视图按它裁决缺席,本页按它裁决「受限」,fixture 30 钉住)。
-// 【批次毛利在这里了】(MAR-1)。它跨两个模块,而支的权限一直只有一个码 ——
-// 现在多了 permissionAny(任意持有其一),与视图的 arm_permission_any 同义,
-// fixture 45 钉住两侧对同一个人给出同一个答案。合成一个新权限码那条路被否掉了:
-// 那会成为"谁能看毛利"的第二份定义,与 batch_margin 自己的谓词必然漂开。
-
-// 牌子清单:itemType 对应 operations_now 的支;permission 与视图里那一支声明的
-// 权限码【同码】(视图按它裁决缺席,本页按它裁决「受限」—— 两边必须一致)。
-//
-// 【LINKS-1:itemHref —— 一件事一扇门】href 是那一支的列表(牌子标题指向它),
-// itemHref 是【这一件事自己】的门牌。判据只有一条,写在
-// docs/dashboard-arm-inventory.md:【补救动作在不在那张页面上】。URL 里有没有
-// /edit 不是信号 —— /inbound/[id]/edit 与 /output/[id]/edit 是单据主页(化验、
-// 计价、台账、销售面板都在上面),/suppliers/[id]/edit 才接近一张纯表单,而它
-// 恰好载着 CompliancePanel(续证就是补救),所以它也成立。
-//
-// 【用 item_id,不用按码搜索】按码搜今天能用只因为码唯一、数据少;那是一次搜索,
-// 不是一条链接。fx_rate_gap 是唯一没有 item_id 的支 —— 它的主体是一条【不存在的】
-// 牌价行,所以它指向按币种过滤的列表(诚实过滤的列表,不是按码搜索)。
-const TILES = [
-    { itemType: 'awaiting_assay', permission: 'module.inbound.view', href: '/inbound',
-      itemHref: (r: OpsRow) => `/inbound/${r.item_id}/edit` },
-    { itemType: 'assay_unapplied', permission: 'module.inbound.view', href: '/inbound',
-      itemHref: (r: OpsRow) => `/inbound/${r.item_id}/edit` },
-    { itemType: 'batch_unpriced', permission: 'module.inbound.view', href: '/inbound',
-      itemHref: (r: OpsRow) => `/inbound/${r.item_id}/edit` },
-    { itemType: 'allocation_stale', permission: 'module.processing.view', href: '/operation/processing',
-      itemHref: (r: OpsRow) => `/operation/processing/${r.item_id}` },
-    { itemType: 'qualification_expiring', permission: 'module.suppliers.view', href: '/suppliers',
-      itemHref: (r: OpsRow) => `/suppliers/${r.item_id}/edit` },
-    { itemType: 'qualification_missing', permission: 'module.suppliers.view', href: '/suppliers',
-      itemHref: (r: OpsRow) => `/suppliers/${r.item_id}/edit` },
-    // CMPL-1:公司【自家】执照将到期 —— 与上面两支供应商资质臂同形、同权限码,
-    // 读的也是同一份 certificate_types.warn_lead_days。界在 /finance/company,
-    // 因为那一页才是能【续期】的地方(与 qualification_* 界在供应商页同一条理由)。
-    { itemType: 'company_licence_expiring', permission: 'module.suppliers.view', href: '/finance/company',
-      itemHref: () => '/finance/company' },
-    // CMPL-1:是进口货、而进口准证还没有人核过。**它不拦任何东西** ——
-    // 拦的那一半由 nea_import 的 block 处置在收货上做;这一支说的是"还欠一次人工核对"。
-    { itemType: 'import_permit_unverified', permission: 'module.inbound.view', href: '/inbound',
-      itemHref: (r: OpsRow) => `/inbound/${r.item_id}/edit` },
-    { itemType: 'po_awaiting_receipt', permission: 'module.purchasing.view', href: '/purchasing/orders',
-      itemHref: (r: OpsRow) => `/purchasing/orders/${r.item_id}` },
-    { itemType: 'stocktake_open', permission: 'module.stocktakes.view', href: '/stocktakes',
-      itemHref: (r: OpsRow) => `/stocktakes/${r.item_id}` },
-    // 信用支指向【只读的信用仓位页】,不是客户编辑表单 —— 改限额会让告警安静,
-    // 而敞口一分未动(SAL-B6 分界的理由)。
-    { itemType: 'credit_over_limit', permission: 'module.customers.view', href: '/customers',
-      itemHref: (r: OpsRow) => `/customers/${r.item_id}` },
-    // 跨两个模块的那一支:必须有 data.view_prices,且 finance / processing 之一。
-    // 只收 no_unit_cost(分摊一次就清掉);no_run 事后无从补救,放上来就是关不掉的灯。
-    // 【item_id 是加工单,不是批次】支报的是批次,而补救是给【加工单】分摊成本,
-    // 分摊按钮在加工单页上 —— 门牌跟着补救走。
-    { itemType: 'margin_cost_not_allocated', permission: 'data.view_prices',
-      permissionAny: ['module.finance.view', 'module.processing.view'], href: '/margin',
-      itemHref: (r: OpsRow) => `/operation/processing/${r.item_id}` },
-    // 滞销支指向批次主页:SalePanel 恰在 remaining_qty > 0 时渲染,而那正是本支的
-    // 谓词 —— 补救(登记销售)对本支发出的每一行都保证在场。
-    // 【同一张页面上也能改 output_date,那一下会让牌子安静而一公斤都没动】——
-    // 那是要点名的隐患,不是不给链接的理由(两条判据,见清单文件)。
-    { itemType: 'output_unsold_aging', permission: 'module.output.view', href: '/output',
-      itemHref: (r: OpsRow) => `/output/${r.item_id}/edit` },
-    // SS-1:补救在物料自己那张页面上 —— 阈值就在那里改,补货也从那里出发。
-    // 【与 output_unsold_aging 同一个隐患,同样点名】:在这张页面上把阈值调高
-    // 或清空,牌子会安静而一公斤货都没动。那是判据之外的事,不是不给链接的理由。
-    { itemType: 'safety_stock_below', permission: 'module.inventory.view', href: '/materials',
-      itemHref: (r: OpsRow) => `/materials/${r.item_id}/edit` },
-    // EXEC-3a/3b:工单逾期。【门牌指工单详情】—— 补救在那张页面上:
-    // 改排产日(改计划)、收工、或者取消,三条路都在那里。
-    // 【与 output_unsold_aging / safety_stock_below 同一个隐患,同样点名】:
-    // 在那张页面上把排产日往后推,这盏灯会安静,而一天的活都没有做 ——
-    // 那是判据之外的事,不是不给链接的理由(两条判据见清单文件)。
-    { itemType: 'work_order_overdue', permission: 'module.processing.view', href: '/operation/orders',
-      itemHref: (r: OpsRow) => `/operation/orders/${r.item_id}` },
-    // EXEC-3a/3b:工单差异超阈。同样指工单详情 —— 差异的两侧就画在那张页面上,
-    // 而改计划(投入那一侧的补救)也在那里。
-    // 【阈值在同一张列表页上改得动】那同样会让灯安静而一克料都没动,
-    // 与上面一条同一个道理;所以面板上写着这两个数是【判据】不是【目标】。
-    { itemType: 'work_order_variance_beyond', permission: 'module.processing.view', href: '/operation/orders',
-      itemHref: (r: OpsRow) => `/operation/orders/${r.item_id}` },
-    // EXEC-1a/1b:行情陈旧。【补救在 /pricing/metal-prices 上】—— 那里既看得见整条序列,
-    // 也是录下一条报价的地方,而这一支说的正是"该录了"。
-    // item_id 指向【最近那一条报价】(这个金属本身没有 id),而那一行恰好就是
-    // 人要接着往下看的那一行。
-    { itemType: 'metal_quote_stale', permission: 'module.pricing.view', href: '/pricing/metal-prices',
-      itemHref: () => '/pricing/metal-prices' },
-    // EXEC-1a/1b:未履约订单。门牌指订单详情 —— 发货从那里出发,
-    // 而"还欠多少"也只有那一页答得出来(逐单完成度归
-    // sales_order_fulfilment_status,看板这一支只回答"哪些单还欠着")。
-    { itemType: 'orders_unfulfilled', permission: 'module.sales.view', href: '/sales/orders',
-      itemHref: (r: OpsRow) => `/sales/orders/${r.item_id}` },
-    { itemType: 'leave_pending', permission: 'module.hr.view', href: '/hr/leave',
-      itemHref: (r: OpsRow) => `/hr/leave/${r.item_id}` },
-    { itemType: 'claim_pending', permission: 'module.hr.view', href: '/hr/claims',
-      itemHref: (r: OpsRow) => `/hr/claims/${r.item_id}` },
-    // item_code 是【员工编号】(评估表没有 code 列),item_id 是评估本身 —— 两者
-    // 不同源正是 fixture 47 要钉的那类错。
-    { itemType: 'review_submitted', permission: 'module.hr.view', href: '/hr/reviews',
-      itemHref: (r: OpsRow) => `/hr/reviews/${r.item_id}` },
-    { itemType: 'invoice_overdue', permission: 'module.finance.view', href: '/finance/invoices',
-      itemHref: (r: OpsRow) => `/finance/invoices/${r.item_id}` },
-    // SO-3a:应收也成了两种单据(doc_kind 'sale' / 'invoice');认不出的不给链接。
-    { itemType: 'ar_over_90', permission: 'module.finance.view', href: '/finance/receivables',
-      itemHref: (r: OpsRow) =>
-          r.doc_kind === 'invoice' ? `/finance/invoices/${r.item_id}`
-        : r.doc_kind === 'sale' ? `/finance/receivables/${r.item_id}`
-        : null },
-    // 【应付有三种单据】doc_kind 来自 ap_open_items 自己(应付列表页一直照它分支);
-    // 认不出的种类【不给链接】,绝不猜一个 —— 猜错就是拿一个合法 uuid 开错人的单据。
-    // PAY-FRT:第三支 'freight' 一直落在那个"认不出"的 null 里 —— 那条兜底本身是
-    // 对的,而结果是一张逾期 90 天的运费应付【有行、无门】,尽管 /finance/freight/[id]
-    // 这个页面一直存在。补的是映射,不是兜底。
-    { itemType: 'ap_over_90', permission: 'module.finance.view', href: '/finance/payables',
-      itemHref: (r: OpsRow) =>
-          r.doc_kind === 'inbound' ? `/finance/payables/${r.item_id}`
-        : r.doc_kind === 'expense' ? `/finance/expenses/${r.item_id}`
-        : r.doc_kind === 'freight' ? `/finance/freight/${r.item_id}`
-        : null },
-    { itemType: 'fx_rate_gap', permission: 'module.finance.view', href: '/finance/fx',
-      itemHref: (r: OpsRow) => `/finance/fx?currency=${encodeURIComponent(r.item_code)}` },
-    // 等待的是一条对账单行,而行没有页面 —— 匹配动作在对账工作台上,所以 item_id
-    // 是对账单。同一张单上的两条未匹配行共用一个门牌,这是对的,不是重复。
-    { itemType: 'bank_unmatched', permission: 'module.finance.view', href: '/finance/bank',
-      itemHref: (r: OpsRow) => `/finance/bank/statements/${r.item_id}/reconcile` },
-    // ── LOG-5b:物流四支(第 23–26)。【补救都在箱子那一页上】——
-    // 录到港、填 ETA、实例化清单、收单据,四件事全在集装箱详情做,
-    // 所以四支的门牌都指向同一处。这一条写进 docs/dashboard-arm-inventory.md。
-    // 【权限跟着视图里那一支声明的码走】,这里不再声明第二遍 ——
-    // 免柜期那一支在库里由 arm_permission_widen 额外放给财务,而首页读的是
-    // operations_now 已经筛过的行,所以这里写它的【主】码就够了。
-    // 【放宽:免柜期这一支库里就放给了财务(LOG-5a 的 arm_permission_widen)】——
-    // 见下面 permissionWiden 那一段:此前这里只写主码,于是一个只持财务的读者
-    // 【拿得到行、屏幕上却写着「受限」】。EQP-2d 补上。
-    // 【NAV-REG-1:四支的码从采购换成物流】与视图、与八张表的 RLS 同码。
-    // 只换表不换支的话,一个持 module.logistics.view 的读者读得到那几张表,
-    // 而这四块牌子对他写着「受限」—— 正是 EQP-2d 实测到的那个方向的谎。
-    { itemType: 'free_time_expiring', permission: 'module.logistics.view',
-      permissionWiden: ['module.logistics.view', 'module.finance.view'], href: '/logistics/containers',
-      itemHref: (r: OpsRow) => `/logistics/containers/${r.item_id}` },
-    { itemType: 'container_no_arrival', permission: 'module.logistics.view', href: '/logistics/containers',
-      itemHref: (r: OpsRow) => `/logistics/containers/${r.item_id}` },
-    { itemType: 'container_eta_overdue', permission: 'module.logistics.view', href: '/logistics/containers',
-      itemHref: (r: OpsRow) => `/logistics/containers/${r.item_id}` },
-    { itemType: 'container_documents_late', permission: 'module.logistics.view', href: '/logistics/containers',
-      itemHref: (r: OpsRow) => `/logistics/containers/${r.item_id}` },
-    // ── EQP-2d:保养那两支(第 27–28)。【门牌指机器那一页】—— 补救是"给这台
-    // 机器记一次保养",而那张表单 EQP-2d 就建在 /finance/assets/[id] 上。
-    // item_id 是 fixed_assets 的行(间隔行没有自己的页面),与 bank_unmatched /
-    // margin_cost_not_allocated 取父行同一条规矩。
-    // 【两支分开画,永远不合并】到期与将到期是两件事:一个已经欠着,一个还来得及。
-    // 合成一块牌子就是把"该停机检修了"和"下周安排一下"说成同一句话。
-    // 【与 safety_stock_below / work_order_overdue 同一个隐患,同样点名】:
-    // 在那张页面上把间隔调大、或者把那一行删掉,这盏灯会安静,而一次保养都没做 ——
-    // 那是判据之外的事,不是不给链接的理由(两条判据见清单文件)。
-    { itemType: 'equipment_service_due', permission: 'module.processing.view',
-      permissionWiden: ['module.processing.view', 'module.finance.view'], href: '/finance/assets',
-      itemHref: (r: OpsRow) => `/finance/assets/${r.item_id}` },
-    { itemType: 'equipment_service_approaching', permission: 'module.processing.view',
-      permissionWiden: ['module.processing.view', 'module.finance.view'], href: '/finance/assets',
-      itemHref: (r: OpsRow) => `/finance/assets/${r.item_id}` },
-] as const
-
-// 一块牌子里最多列几件;其余交给那一支自己的列表(首页不是列表页)
-const MAX_ITEMS_PER_TILE = 5
-
-// 「我的」两张卡片:不受模块把关,人人可见 —— 理由与顺序同 NavLinks 的 SELF_ITEMS
-// (OPS-15:employee 角色的全部产品恰恰是这两页,首页必须给入口)。
+// 「我的」两张卡片:不受模块把关,人人可见 —— 理由与顺序同 NavLinks 的 SELF_ITEMS。
 const SELF_CARDS = [
     { href: '/my-reviews', titleKey: 'home.myReviewsTitle', descKey: 'home.myReviewsDesc' },
     { href: '/me', titleKey: 'home.meTitle', descKey: 'home.meDesc' },
 ]
 
-// LINKS-1:item_id 是【承载补救动作的那张页面所对应的行】—— 十七支里就是等待中的
-// 那一行,bank_unmatched 与 margin_cost_not_allocated 两支里是它的父(对账单 / 加工单)。
-// fx_rate_gap 恒为 null:缺的那条牌价行没有 id。doc_kind 只有应付一支非空。
-type OpsRow = {
-    item_type: string
-    item_id: string | null
-    doc_kind: string | null
-    item_code: string
-    subject: string | null
-    item_date: string
-}
-
 export default async function Home() {
     const t = await getTranslations()
-    const supabase = await createClient()
     const perms = await getMyPermissions()
-    const moduleAccess = await getModuleAccess()
 
-    // 一次读回全部可见支;无权的支缺席,可见支的零是真的零(权限已单独查过)
-    const rows = mustRows(
-        await supabase
-            .from('operations_now')
-            .select('item_type, item_id, doc_kind, item_code, subject, item_date'),
-        'operations_now'
-    ) as OpsRow[]
-
-    // ── PAYEE-1b:ap_over_90 那一行的脸 ─────────────────────────────────────
-    // 【问题】operations_now 的这一支取的是 ap_open_items.supplier_name,
-    // 而 PAYEE-1a 之后应付的往来对象可以是【员工】—— 员工行的 supplier_name
-    // 诚实地为 NULL,于是这一行在看板上【连名字都不显示】(subjectText 为空即隐藏)。
-    // 一条只有单号、说不出欠谁的逾期应付,是这块看板最没用的一种行。
+    // ★★【CONV-7 ①:这一句的判据换了,而【换它的理由是它此前【永远不成立】】★★
     //
-    // 【为什么在这里补,而不是改视图】改 operations_now 那一行(supplier_name →
-    // counterparty_name)是【一行】的事,也是它长久该待的地方 —— 但那是一支迁移,
-    // 而本刀是纯渲染。所以这里【读同一个权威列】(ap_open_items.counterparty_name),
-    // 不是另算一份名字:同一个真源,晚一跳而已。
-    // ── A1(EQP-2d,2026-08-21):这句话【原本写得太宽,已改写】───────────────
-    // 原文是「**下一支动数据库的刀**请把这一行搬回视图里,并删掉这一段」。
-    // **那个条件是错的,而它已经实测收过一次账**:EQP-2c 是一支动数据库的刀,
-    // 而它的 F1 前提正是【既有的支在内容上一个字节都不变】—— 两者直接冲突。
-    // 那一刀选择了守住前提、把冲突写进报告,而不是悄悄选一边。那是对的;
-    // **错的是这句话本身**:「动了数据库」与「该动这一行」根本不是同一个条件。
-    // 一条把无关的刀拉进来的待办,每一刀都要重新判一次"这算不算我",
-    // 而判出来的答案多半是"不算" —— 于是它永远不会被做,还每次都要花一次判断。
+    // 【原样】`(await getModuleAccess()).every((m) => !m.allowed)`。
+    // 【实测(浏览器,零权限账号,2026-09-04):它渲染 0 次。】
+    //   一个模块的 allowed 是【它名下有没有任何一条二级条目进得去】推导出来的,
+    //   而「工具」名下有三条判据恒真的条目(日历 · 单位换算 · 提醒)——
+    //   **于是 tools.allowed 对每一个登录用户都是 true,这个 every() 永远是 false。**
+    //   它从 TOOLS-1 给换算器写下 `{ all: [] }` 那天起就是死代码,而
+    //   **没有任何检查看得见一句"永远不显示的话"。**
     //
-    // **条件改写成它真正依赖的那件事:**
-    // > 下一支【动 ap_over_90 这一支本身】的刀 —— 也就是要改这一支的
-    // > 谓词、subject、item_id 或 doc_kind 的那一刀 —— 把 supplier_name 换成
-    // > ap_open_items.counterparty_name,并删掉本段与下面那次补查。
-    // 那时它是【顺手一行】,而且那一刀本来就要重画这一支的 fixture 期望值;
-    // 今天单独去改,要为一行渲染动一次视图定义,并让 fixture 30 / 47 / 111 的
-    // 支内容断言全部重新论证一遍。
+    // ★【为什么这一刀必须修它,而不是记一笔了事】★
+    //   在这一刀之前,一个零权限的人至少还看得见 35 块写着「受限」的牌子 ——
+    //   那是一种笨拙的解释,但它是一种解释。**牌子搬走之后,这一页对他就只剩
+    //   标题、两条链接和「我的」两张卡** —— 一页什么都没解释的页面。
+    //   也就是说:是【本刀】把一处沉默的死代码变成了一处会被人撞上的沉默。
     //
-    // 【为什么这一刀只改注解、不做它要求的事】本刀是纯渲染,一支迁移都没有;
-    // 而把 operations_now 改一行需要迁移 + 镜像 + 三份 fixture 的重新论证。
-    // **这里被修的是【那条待办本身】,不是它指向的那件事** —— 一条条件写错的
-    // 待办会一直被误读,而误读的代价刚刚由 EQP-2c 付过一次。
-    const apOver90Ids = rows.filter((r) => r.item_type === 'ap_over_90')
-                            .map((r) => r.item_id).filter(Boolean) as string[]
-    const apPartyById = new Map<string, string>()
-    if (apOver90Ids.length > 0) {
-        const apRes = await supabase
-            .from('ap_open_items')
-            .select('doc_id, counterparty_name')
-            .in('doc_id', apOver90Ids)
-        for (const r of mustRows(apRes, 'ap_open_items counterparty') as
-                 { doc_id: string; counterparty_name: string }[]) {
-            apPartyById.set(r.doc_id, r.counterparty_name)
-        }
-    }
+    // 【新判据:他一个 module.* 权限都没有】—— 这正是那句话的字面意思
+    //   (「你还没有任何模块的权限」),而且它绕开了上面那个"工具人人可进"的陷阱:
+    //   工具不由 module.* 码把门,所以它不会再把这句话吞掉。
+    //   持有 module.tasks.view 之类【任何一个】模块码的人不会看到它,那是对的。
+    const noModulePermission = !perms.some((p) => p.startsWith('module.'))
 
-    // ── ASY-P2:awaiting_assay 那一行的脸 ────────────────────────────────────
-    // 视图给的 subject 是【缺的那几种金属的 code】,逗号分隔("li" / "cu, li")。
-    // 一个光秃秃的 "li" 挂在批次号旁边,读的人没有办法知道那是一种金属、还是一个
-    // 状态码、还是别的什么 —— 所以这里把它翻成金属名,并加上"待化验:"这个前缀。
-    // 【需要翻 subject 的支现在有两个】本支(金属 code → 金属名)与 ap_over_90
-    // (见上:视图那一列对员工行为空)。其余各支放的是名字、单号、科目,本来就是人话。
-    // 【认不出的 code 原样显示,不丢掉】少显示一种缺的金属,比显示一个 code 更坏。
-    function subjectText(row: OpsRow): string | null {
-        // PAYEE-1b:逾期应付一律显示【往来对象】的名字(供应商或员工)。
-        // 视图那一列对员工行是 NULL —— 兜底回 row.subject 只是保守,
-        // 正常情况下 apPartyById 一定命中(两者读的是同一张 ap_open_items)。
-        if (row.item_type === 'ap_over_90') {
-            return (row.item_id ? apPartyById.get(row.item_id) : null) ?? row.subject
-        }
-        if (row.item_type !== 'awaiting_assay') return row.subject
-        if (!row.subject) return null
-        const names = row.subject
-            .split(',')
-            .map((c) => c.trim())
-            .filter(Boolean)
-            .map((c) => (metalLabelKey(c) ? t('metals.' + c) : c))
-        if (names.length === 0) return null
-        return t('dashboard.awaitingMetals', { metals: names.join(', ') })
-    }
-
-    // HR 待办牌(hr_alerts 是它唯一的门)—— 受限时【不开门】,不是"查了当没查"
-    // NAV-REG-1:单码判断也走同一个求值器 —— 在它之外留一个
-    // perms.includes,就等于给【第二份实现】留一个合法的落脚点。
-    const canHr = allows('module.hr.view', perms)
-    let hrAlertCount: number | null = null
-    if (canHr) {
-        hrAlertCount = mustCount(
-            await supabase.from('hr_alerts').select('alert_type', { count: 'exact', head: true }),
-            'hr_alerts'
-        )
-    }
-
-    const byType = new Map<string, OpsRow[]>()
-    for (const r of rows) {
-        const list = byType.get(r.item_type)
-        if (list) list.push(r)
-        else byType.set(r.item_type, [r])
-    }
-
-    // LINKS-1:牌子不再整块是一条链接 —— 标题与数字指向那一支的【列表】,下面每一件
-    // 事各自指向【它自己】。两层链接不能嵌套(<a> 里不能再有 <a>),所以外壳是 div。
-    const tileBox = (opts: {
-        key: string
-        title: string
-        href: string
-        allowed: boolean
-        count: number | null
-        oldest?: string | null
-        items?: { row: OpsRow; href: string | null }[]
-    }) => {
-        const inner = (
-            <>
-                <p className="text-sm text-gray-600 mb-1">{opts.title}</p>
-                {opts.allowed ? (
-                    <>
-                        <p
-                            className={
-                                'text-3xl font-bold font-mono ' +
-                                ((opts.count ?? 0) > 0 ? 'text-amber-600' : 'text-gray-400')
-                            }
-                        >
-                            {opts.count}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1 h-4">
-                            {(opts.count ?? 0) > 0 && opts.oldest
-                                ? t('dashboard.oldestSince', { date: opts.oldest })
-                                : ' '}
-                        </p>
-                    </>
-                ) : (
-                    <>
-                        {/* 受限,不是零 —— 与 MaskedValue 的「受限」同一个词。不给链接:
-                            指向一扇必然拒绝的门的链接是一句谎话。 */}
-                        <p className="text-3xl font-bold text-gray-300">{t('common.restricted')}</p>
-                        <p className="text-xs text-gray-400 mt-1 h-4">{t('dashboard.restrictedHint')}</p>
-                    </>
-                )}
-            </>
-        )
-        const cls = 'border rounded-lg p-4 ' +
-            (opts.allowed ? 'border-gray-300' : 'border-gray-200 bg-gray-50')
-        const shown = (opts.items ?? []).slice(0, MAX_ITEMS_PER_TILE)
-        const rest = (opts.items ?? []).length - shown.length
-        return (
-            <div key={opts.key} className={cls}>
-                {opts.allowed ? (
-                    <Link href={opts.href} className="block hover:opacity-75 transition">
-                        {inner}
-                    </Link>
-                ) : (
-                    inner
-                )}
-                {shown.length > 0 && (
-                    <ul className="mt-3 pt-2 border-t border-gray-200 space-y-1">
-                        {shown.map((it, i) => (
-                            <li key={`${opts.key}-${i}`} className="text-xs truncate">
-                                {/* 认不出门牌的行【不给链接】,而不是猜一个:一个合法的
-                                    uuid 指错了表,打开的是别人的单据,而且不会报错。 */}
-                                {it.href ? (
-                                    <Link href={it.href} className="font-mono text-blue-600 hover:underline">
-                                        {it.row.item_code}
-                                    </Link>
-                                ) : (
-                                    <span className="font-mono text-gray-700">{it.row.item_code}</span>
-                                )}
-                                {subjectText(it.row) && (
-                                    <span className="text-gray-500 ml-2">{subjectText(it.row)}</span>
-                                )}
-                            </li>
-                        ))}
-                        {rest > 0 && (
-                            <li className="text-xs">
-                                <Link href={opts.href} className="text-gray-500 hover:underline">
-                                    {t('dashboard.andMore', { n: rest })}
-                                </Link>
-                            </li>
-                        )}
-                    </ul>
-                )}
-            </div>
-        )
-    }
+    // 【一条不带数字的链接的画法 —— 两条共用一个,免得它们各自漂开】
+    const plainLink = (href: string, title: string, desc: string) => (
+        <Link
+            href={href}
+            className="inline-block rounded-[var(--brand-radius)] border px-4 py-3 transition hover:opacity-90"
+            style={{ borderColor: 'var(--brand-border)', background: 'var(--brand-surface)' }}
+        >
+            <span className="font-semibold" style={{ color: 'var(--brand-text)' }}>
+                {title}
+            </span>
+            <span className="text-sm ml-2" style={{ color: 'var(--brand-muted-text)' }}>
+                {desc}
+            </span>
+        </Link>
+    )
 
     return (
-        <div className="p-8 max-w-5xl">
+        <div className="p-4 sm:p-8 max-w-5xl">
             <h1 className="text-2xl font-bold mb-2">EVoltrya OS</h1>
-            <p className="text-gray-600 mb-8">{t('home.subtitle')}</p>
+            <p className="mb-8" style={{ color: 'var(--brand-muted-text)' }}>
+                {t('home.subtitle')}
+            </p>
 
-            {/* 零模块权限时说出来(OPS-15)—— 否则满屏「受限」与"系统坏了"分不开 */}
-            {moduleAccess.every((m) => !m.allowed) && (
-                <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded max-w-2xl mb-8">
+            {/* 零模块权限时说出来(OPS-15)—— 否则一张什么都没有的首页与"系统坏了"分不开。
+                【这句话此前的作用更强,现在更强了】从前它旁边还有 35 块「受限」牌子,
+                多少算个旁证;现在这一页本来就安静,它是【唯一】的解释。 */}
+            {noModulePermission && (
+                <div
+                    className="rounded-[var(--brand-radius)] border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900 max-w-2xl mb-8"
+                    data-home-no-modules="1"
+                >
                     <p className="font-medium">{t('home.noModules')}</p>
                     <p className="text-sm mt-1">{t('home.noModulesHint')}</p>
                 </div>
             )}
 
-            <h2 className="text-lg font-semibold mb-4">{t('dashboard.sectionNow')}</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-                {TILES.map((tile) => {
-                    // MAR-1:支级谓词 —— permission 必须全有,permissionAny 任意其一。
-                    // 与视图的 arm_permission_any 同义(fixture 45 钉两侧一致)。
-                    //
-                    // 【EQP-2d 补上第三个算子:permissionWiden —— 与库里的
-                    //   arm_permission_widen 同义,方向是【放宽】(或)。】
-                    // 这一整行现在与视图末尾那个 WHERE 逐字同形:
-                    //     (has_permission(permission) OR has_any_permission(widen))
-                    //     AND (any IS NULL OR has_any_permission(any))
-                    // **在这之前这里【没有】放宽那一半,而库里从 LOG-5a 起就有了。**
-                    // 后果是一个真实的、方向相反的谎:一个只持 module.finance.view
-                    // 的读者【拿得到 free_time_expiring 的行】(视图放宽了),
-                    // 而这块牌子照旧显示「受限」—— 也就是把"你看得见"说成
-                    // "你看不见"。看板那条规矩(缺席 ≠ 零)防的是另一个方向,
-                    // 这一个此前没人防。EQP-2c 放宽保养两支时撞上同一处,所以一并补。
-                    //
-                    // 【NAV-REG-1:这里不再自己求值】上面那段推理为什么成立,原样保留 ——
-                    // 但那三行判断已经【搬进 lib/modules.ts 的 allows()】,全站唯一一处。
-                    // 这一段的历史本身就是理由:库里与首页各写了一份同样的规则,
-                    // 库里加了放宽而首页没加,于是屏幕对着一个拿得到行的人说「受限」。
-                    // 两份实现迟早各错一次 —— 所以现在只有一份,牌子与注册表共用它。
-                    // 下面三行只是把牌子的字段【摆成】谓词的形状,不是第二次求值。
-                    const spec: PermissionSpec = {
-                        all: [tile.permission],
-                        any: 'permissionAny' in tile ? (tile.permissionAny as readonly string[]) : undefined,
-                        widen: 'permissionWiden' in tile ? (tile.permissionWiden as readonly string[]) : undefined,
-                    }
-                    const allowed = allows(spec, perms)
-                    const mine = byType.get(tile.itemType) ?? []
-                    const oldest = mine.length
-                        ? mine.reduce((a, r) => (r.item_date < a ? r.item_date : a), mine[0].item_date)
-                        : null
-                    // 等得最久的排在前面 —— 牌子只列前几件,截断必须截在【新的】那头
-                    const items = allowed
-                        ? [...mine]
-                              .sort((a, b) => (a.item_date < b.item_date ? -1 : a.item_date > b.item_date ? 1 : 0))
-                              .map((row) => ({ row, href: tile.itemHref(row) }))
-                        : undefined
-                    return tileBox({
-                        key: tile.itemType,
-                        title: t('dashboard.item.' + tile.itemType),
-                        href: tile.href,
-                        allowed,
-                        count: allowed ? mine.length : null,
-                        oldest,
-                        items,
-                    })
-                })}
-                {tileBox({
-                    key: 'hr_alerts',
-                    title: t('dashboard.hrAlerts'),
-                    href: '/hr',
-                    allowed: canHr,
-                    count: hrAlertCount,
-                })}
-            </div>
+            {/* ── 两条【不带数字】的路 ─────────────────────────────────────── */}
+            <div className="flex flex-col sm:flex-row flex-wrap gap-3 mb-8 items-start">
+                {/* 提醒:人人可进(每一支按它自己家的模块把关),所以这条链接无条件画。
+                    与 /tools/calendar 同一条理由 —— 本页不替它判,它自己判。 */}
+                {plainLink('/tools/reminders', t('reminders.title'), t('home.remindersDesc'))}
 
-            {/* 月结枢纽入口:纯链接、不复制信号(信号归 /finance/month-end 自己)。
-                没有数字可遮,所以无权时按 OPS-15 的方式【不渲染】而不是画「受限」。 */}
-            {allows('module.finance.view', perms) && (
-                <div className="mb-8">
-                    <Link
-                        href="/finance/month-end"
-                        className="inline-block border border-gray-300 rounded-lg px-4 py-3 hover:bg-gray-50 hover:border-gray-400 transition"
-                    >
-                        <span className="font-semibold">{t('dashboard.monthEnd')}</span>
-                        <span className="text-sm text-gray-600 ml-2">{t('dashboard.monthEndDesc')}</span>
-                    </Link>
-                </div>
-            )}
+                {/* 月结枢纽:纯链接、不复制信号(信号归 /finance/month-end 自己)。
+                    没有数字可遮,所以无权时按 OPS-15 的方式【不渲染】而不是画「受限」。 */}
+                {allows('module.finance.view', perms) &&
+                    plainLink('/finance/month-end', t('dashboard.monthEnd'), t('dashboard.monthEndDesc'))}
+            </div>
 
             {/* 「我的」—— 无条件渲染,见 SELF_CARDS 的注释 */}
             <div className="mb-8">
@@ -493,10 +126,15 @@ export default async function Home() {
                         <Link
                             key={card.href}
                             href={card.href}
-                            className="border border-gray-300 rounded-lg p-6 hover:bg-gray-50 hover:border-gray-400 transition block"
+                            className="rounded-[var(--brand-radius)] border p-6 transition hover:opacity-90 block"
+                            style={{ borderColor: 'var(--brand-border)', background: 'var(--brand-surface)' }}
                         >
-                            <h3 className="font-semibold text-lg mb-1">{t(card.titleKey)}</h3>
-                            <p className="text-sm text-gray-600">{t(card.descKey)}</p>
+                            <h3 className="font-semibold text-lg mb-1" style={{ color: 'var(--brand-text)' }}>
+                                {t(card.titleKey)}
+                            </h3>
+                            <p className="text-sm" style={{ color: 'var(--brand-muted-text)' }}>
+                                {t(card.descKey)}
+                            </p>
                         </Link>
                     ))}
                 </div>

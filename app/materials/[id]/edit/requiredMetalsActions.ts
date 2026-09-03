@@ -43,10 +43,12 @@ export async function saveRequiredMetals(
     })
     if (error) return { error: await localizeMaterialPolicyError(error.message) }
 
-    // 物料页与列表页都印这个状态,两张都要刷新;首页那一支也跟着这条政策变,
-    // 所以一并刷 —— 改完要求之后回首页看见旧的灯,会让人以为没保存上。
+    // 物料页与列表页都印这个状态,两张都要刷新;awaiting_assay 那一支也跟着这条
+    // 政策变,所以一并刷 —— 改完要求之后看见旧的灯,会让人以为没保存上。
+    // 【CONV-7 ①:那一支从首页搬到了 /tools/reminders】首页不再读 operations_now,
+    // 刷它对这一支没有任何作用。
     revalidatePath(`/materials/${materialId}/edit`)
     revalidatePath('/materials')
-    revalidatePath('/')
+    revalidatePath('/tools/reminders')
     return { ok: true }
 }

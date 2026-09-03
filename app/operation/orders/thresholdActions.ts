@@ -44,6 +44,9 @@ export async function updateWoThresholds(
     if (!data || data.length === 0) return { error: t('common.editDenied') }
 
     revalidatePath('/operation/orders')
-    revalidatePath('/')   // 看板那两块牌子现读这两个数
+    // CONV-7 ①:那两块牌子【不在首页了】—— 它们和其余 32 支一起住在 /tools/reminders。
+    // 【为什么把 '/' 换掉而不是两个都写】首页在 CONV-7 之后【不再读 operations_now】,
+    // 所以刷新它对这两支一点作用都没有 —— 留着它就是一句不会有人去核对的谎。
+    revalidatePath('/tools/reminders')   // 提醒页那两块牌子现读这两个数
     return { saved: true }
 }

@@ -3,6 +3,80 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
+## ★ REACH-FRONTIER —— `--reach=finance` 是红的,而【一半的红不是 CONV-7 造成的】(2026-09-04)
+
+**实测(CONV-7,`--reach=finance`,判词 `REACHFIN_OWN_EXIT=1`):路由那一半全绿
+(241 ok / 8 skipped / **0 FAILED**),而可达性报 **22 处**「打得开却走不到」,
+期望值是 3。**
+
+### 这 22 处里,哪些是本刀造成的 —— 静态归因(不是爬取)
+
+在 CONV-5 的 HEAD(`08a5857`)上逐条查:它当时由谁链着?
+
+| 归属 | 条数 | 哪些 |
+|---|---|---|
+| **本刀删掉的 `/finance` 落地页列出的** | **11** | `/finance/{cash-forecast,cashflow,claims,cost-variance,credit-notes,gst,journal/new,packs,price-exposure,settings,trial-balance}` |
+| **本刀【没有】碰过 —— 在 CONV-5 上就已经没有任何页内链接** | **11** | `/tools/calendar` · `/tools/converter` · `/logistics/lanes` · `/purchasing/payment-terms`(+`/new`)· `/purchasing/discrepancies` · `/inventory/reports`(+ 它底下四张:它们只由 `/inventory/reports` 自己链出,父页走不到,整棵子树跟着走不到) |
+
+> **也就是说:`--reach=finance` 在 CONV-7 之前【就已经】是红的,而没有人跑过它。**
+> AGENTS.md 早就把原因写下来了 —— NAV-CLEANUP-1 ② 删掉了 10 个页内同级导航组件
+> (121 页),而那正是这个爬虫赖以扩散的东西;那一段的结论逐字是:
+> 「**它不再是端到端的可达性判据。**」**本刀的实测证实了那句话,并给出了数字。**
+
+### 基线【没有量到】—— 说清楚,因为它是这份归因唯一的缺口
+
+在 `08a5857` 的 worktree 上跑基线 `--reach=finance` **两次,两次都在
+【走第一条路由之前】以 `fetch failed` 中止**(脚本自己拒绝给部分判词:
+「还没有任何路由被走过,没有部分结果可交」)。两次之间实测过连通性
+(Supabase REST 401 / 1.14s,健康),所以第二次是有依据的重试,而不是猜。
+**因此上表是【静态】归因(谁链着谁),不是两次爬取的差集。**
+两者的区别是真实的:静态看不见"经由某条链路仍然走得到"。
+
+### 处置:本刀【不】改这个检查,理由写下来
+
+把 22 条塞进 `EXPECTED_UNREACHABLE` **等于把这道检查关掉** —— 而它历史上真的抓到过
+「建好那天就没有入口」的页面(`/contracts`、`/commissions`)。
+本刀只做了一件事:`/finance` 那条 `MUST_CONTAIN` 断言的**主语没有了**
+(它钉的是落地页画出来的 `href="/finance/price-exposure"`),于是改成钉 Overview
+自己的内容,**并把它放弃了什么逐字写在断言旁边**。
+
+**推荐的修法(留给 Tim 裁,不在本刀做):让爬虫读注册表。**
+二级菜单的内容服务端就算得出(`getModuleAccess()` 现成),而 Tim 的裁定正是
+**菜单就是目录**。于是"注册表里的页有入口"是【按构造】成立的,
+爬虫应当据此判定,而不是靠有没有人在某张页面上手写过一个 `<Link>`。
+这样这道检查**保住它真正的力气**:抓那些**不在注册表里**的页面 ——
+而那恰恰是"建好了忘了给入口"的那一类。
+
+---
+
+## ★ PAY-TOTALS-UNGATED —— 逐人薪酬挡住了,【期间合计】没有挡(CONV-7,2026-09-04)
+
+**实测(临时角色,只持 `module.hr.view`,已回滚):**
+
+| 读什么 | 需要 | 只持 `module.hr.view` 的人 |
+|---|---|---|
+| `employees_masked.monthly_salary`(逐人月固定工资) | `data.view_pay` | **NULL(遮蔽)** ✓ |
+| `payroll_lines` 的五个金额(逐人实发) | `module.finance.view` **AND** `data.view_pay` | 读不到 ✓ |
+| **`payroll_periods.gross_total` / `net_pay_total`(一期合计)** | **只要 `module.hr.view`** | **`5000.00` / `4677.00`,完整可读** ✗ |
+
+`payroll_periods` 的 SELECT 策略是 `has_permission('module.hr.view')`,**没有列遮蔽**。
+于是**逐人的钱挡住了,而那一期的合计没有** —— 而**在一家六个人的公司里,
+一个合计离一个逐人数字很近**。持 `module.hr.view` 而**没有** `data.view_pay` 的角色
+实测有两个:**`auditor` 与 `gm`**。
+
+**为什么本刀不修:** 修它要动 RLS / 加一个遮蔽伴生视图 —— 那是一次迁移,
+而 CONV-7 是纯渲染刀(委托明写「不预期 DDL」)。**本刀没有扩大它:**
+新的人力 Overview **刻意只画那一期的【月份与状态】,一个金额都不画**,
+金额那一格走的是 `employees_masked`(受 `data.view_pay` 管)。
+
+**修法的两个候选(留给下一刀判,不要照抄):**
+① 给 `payroll_periods` 建 `_masked` 伴生视图,两个合计列按 `data.view_pay` 遮蔽 ——
+   与 `employees_masked` 同形,而且 `scripts/gen-masked-tables.mjs` 会自动认出它;
+② 或者裁定「一期合计不算受限薪酬数据」,**并把这个裁定写下来** ——
+   今天它既不是被保护的,也不是被明确放行的,**而那种状态是最坏的一种**。
+
+---
+
 ## ★ CHECKER-BLIND-SPOTS —— **绿的门不等于验过了**(FX-DISPLAY-1,2026-08-31)
 
 **这是本刀活得最久的一条发现。** 一次修 label 的小刀,连着撞上**三支检查各自的盲区**,

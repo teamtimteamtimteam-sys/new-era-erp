@@ -64,6 +64,28 @@ export function formatUnitCost(n: number | null | undefined): string {
 // bank_native_currency 的关系相同。真有第二辖区时,改显式参数,不改常量。
 export const BUSINESS_TIMEZONE = 'Asia/Singapore'
 
+// ★★【businessToday():业务时区的"今天"—— CONV-7 ② 被实测抓出来的一处】★★
+//
+// 【它防的是什么,照直记】CONV-7 ② 的财务 Overview 第一版写的是
+//   `new Date().toISOString().slice(0, 10)`,拿它当 gl_control_reconciliation 的
+//   as_of。**那是 UTC 的今天,不是新加坡的今天** —— 在 SGT 上午 8 点之前,
+//   它比业务日期【早一天】。
+//
+// ★【后果不是差一天那么轻】★ 那支函数对【早于今天】的存货腿**按名拒绝回答**
+//   (它的抬头写着:「照答会返回一个自信的 0.00」)。于是那一页在新加坡的每个
+//   凌晨到早上八点之间,四条腿里有两条画成「答不上来」—— 而它们其实答得上来。
+//   **实测就是这么发现的**:直接问库用的是 CURRENT_DATE(库在业务时区),
+//   四条腿全部 reconciled;而浏览器里渲染出来的那一页 reconRefusals = 2。
+//   **一个只在一天里某几个小时出现的错误,靠读代码是读不出来的。**
+//
+// 【为什么放在这里】BUSINESS_TIMEZONE 就在上面,而它已经是"界面侧那一份镜像"。
+// 一个业务日期的来源应当和业务时区的来源在同一处,否则下一个人会再写一次
+// toISOString().slice(0,10) —— 那正是这次写出来的东西。
+export function businessToday(): string {
+    // en-CA 给的正是 YYYY-MM-DD,不用自己拼 —— 自己拼就要处理补零。
+    return new Intl.DateTimeFormat('en-CA', { timeZone: BUSINESS_TIMEZONE }).format(new Date())
+}
+
 // formatTimestamp:ISO 时间戳 → 业务时区的本地化字符串。
 // null/undefined 返回 '—'(与 formatAmount 同约定)。
 export function formatTimestamp(iso: string | null | undefined, locale: string): string {

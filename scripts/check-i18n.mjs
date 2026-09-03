@@ -313,6 +313,20 @@ const MANIFEST = {
     // 触发下面的 0 后缀 FAIL —— 漏写【一支】只会让那一支的键失守,所以新支必须
     // 带显式别名,这句话就是写给加支的人看的。)
     'dashboard.item.':      { kind: 'enum', values: () => sqlLiteralAs('db/views/operations_now.sql', 'item_type') },
+    // ── CONV-7 ②:模块 Overview ───────────────────────────────────────────────
+    // 【勾稽的四条腿】名字是【函数自己吐出来的】,而它们住在两个文件里:
+    //   AR/AP 那两条来自 gl_control_reconciliation 的 FOREACH 数组;
+    //   存货那两条来自 inventory_control_reconciliation 拼 jsonb 时的 'side' 字面量。
+    // 【为什么接真源而不是写死四个】将来第五条腿(比如预付款控制科目)加进去时,
+    // 屏幕上会冒出一个原始的机器串 —— docs/machine-text-reaching-humans.md 记的
+    // 正是这一类。接上真源,那一天这道检查会先红。
+    'financeOverview.side.': { kind: 'enum', values: union(
+                                  () => tsRegex('db/functions/gl_control_reconciliation.sql',
+                                                /FOREACH v_side IN ARRAY ARRAY\['(\w+)', '(\w+)'\]/g),
+                                  () => tsRegex('db/functions/inventory_control_reconciliation.sql',
+                                                /'side'\s*,\s*'(\w+)'/g)) },
+    // 【薪资期的状态】接表上的 CHECK —— 加一个状态,这道检查自动要求两个语言补句子。
+    'hrOverview.payrollStatus.': { kind: 'enum', values: () => sqlCheckIn('db/tables/payroll_periods.sql', 'status') },
     // CHASE-1:四个前缀,四个真源都在库那一侧 —— 加一种联系方式/结局/单据种类,
     // 键检查【自动跟着变宽】,而不是等着谁记得来补一行。
     // COMM-1:佣金那四个动态前缀,四条【都接真源】—— 三条读表上的 CHECK,
