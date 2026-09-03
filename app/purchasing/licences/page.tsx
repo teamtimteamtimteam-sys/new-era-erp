@@ -27,12 +27,18 @@
 // 一个例子:有采购、没有供应商)。只有采购权限的人读这张表会拿到【零行】,
 // 而"零行"在这套系统里已经有别的含义(还没有执照)。所以显式区分:
 // **没有权限 → 说"受限";有权限而零行 → 说"还没有执照"**。
+//
+// ★ CONV-3:套 ListPage 外壳。suppliers.view 缺失那一支从一块手写的琥珀框
+// 改走 state:'restricted'(与 CONV-0 的整页拒绝合成同一个组件)——
+// 有权限那一支【恒为 ok】,「还没有执照」的空态住在 DataTable 自己的 empty,
+// 不住在 ListPage 的 empty 分支(那会把「新增执照」按钮一起藏掉)。
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
 import { mustRows } from '@/lib/db-helpers'
+import { ListPage } from '@/app/components/ui/list-page'
 import LicencePanel, { type LicenceRow, type CertType } from './LicencePanel'
 
 export default async function CompanyLicencesPage() {
@@ -45,32 +51,31 @@ export default async function CompanyLicencesPage() {
 
     const canSeeLicences = await can('module.suppliers.view')
     const canEditLicences = await can('module.suppliers.edit')
-    let licences: LicenceRow[] = []
-    let certTypes: CertType[] = []
-    if (canSeeLicences) {
-        licences = mustRows(
-            await supabase.from('company_compliance')
-                .select('id, cert_type_code, cert_no, issuing_body, status, issue_date, valid_from, valid_until, approved_storage_limit_tonnes, scope, notes')
-                .is('deleted_at', null)
-                .order('valid_until', { ascending: true, nullsFirst: false }),
-            'company_compliance') as LicenceRow[]
-        certTypes = mustRows(
-            await supabase.from('certificate_types')
-                .select('code, name_en, name_zh').order('sort_order'),
-            'certificate_types') as CertType[]
+
+    if (!canSeeLicences) {
+        return (
+            <ListPage
+                title={t('company.licence.title')}
+                maxWidth="max-w-2xl"
+                state={{ kind: 'restricted', title: t('company.licence.title'), statement: t('company.licence.restricted') }}
+            />
+        )
     }
 
+    const licences = mustRows(
+        await supabase.from('company_compliance')
+            .select('id, cert_type_code, cert_no, issuing_body, status, issue_date, valid_from, valid_until, approved_storage_limit_tonnes, scope, notes')
+            .is('deleted_at', null)
+            .order('valid_until', { ascending: true, nullsFirst: false }),
+        'company_compliance') as LicenceRow[]
+    const certTypes = mustRows(
+        await supabase.from('certificate_types')
+            .select('code, name_en, name_zh').order('sort_order'),
+        'certificate_types') as CertType[]
+
     return (
-        <div className="p-8">
-            <h1 className="text-2xl font-bold mb-4">{t('company.licence.title')}</h1>
-            {canSeeLicences ? (
-                <LicencePanel rows={licences} certTypes={certTypes} canEdit={canEditLicences} />
-            ) : (
-                <div className="border border-gray-200 rounded p-4 mb-6 bg-white">
-                    <h2 className="font-semibold mb-1">{t('company.licence.title')}</h2>
-                    <p className="text-sm text-gray-600">{t('company.licence.restricted')}</p>
-                </div>
-            )}
-        </div>
+        <ListPage title={t('company.licence.title')} state={{ kind: 'ok' }}>
+            <LicencePanel rows={licences} certTypes={certTypes} canEdit={canEditLicences} />
+        </ListPage>
     )
 }

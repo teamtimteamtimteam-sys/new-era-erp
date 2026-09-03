@@ -1,8 +1,13 @@
 // 发薪与汇缴(FIN-7 C1/C2)。逐人勾选付款 —— 转账会失败重发,部分跑批是常态;
 // CPF / 代扣款各一键,一期一次,带金额与到期日。
+//
+// ★ CONV-3(Kind-C):套 ListPage 外壳。恒为 ok —— 「近六个月没有已过账的
+// 薪资期间」由 PayPanel 自己说(它不是一个隐藏了出口的空态,这一页在零期间时
+// 也没有别的东西可加)。
 import { createClient } from '@/lib/supabase/server'
 import { getBaseCurrency } from '@/lib/currency'
 import { getTranslations } from '@/lib/i18n/server'
+import { ListPage } from '@/app/components/ui/list-page'
 import PayPanel from './PayPanel'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -32,9 +37,8 @@ export default async function PayrollPaymentsPage() {
         ? await supabase.from('employees').select('id, code, legal_name').in('id', empIds)
         : { data: [] }
     return (
-        <div className="p-8 max-w-5xl">
-            <h1 className="text-2xl font-bold mb-4">{t('finance.payrollPay.title')}</h1>
+        <ListPage title={t('finance.payrollPay.title')} maxWidth="max-w-5xl" state={{ kind: 'ok' }}>
             <PayPanel periods={(periods ?? []) as never} lines={(lines ?? []) as never} employees={(emps ?? []) as never} baseCurrency={baseCurrency} />
-        </div>
+        </ListPage>
     )
 }

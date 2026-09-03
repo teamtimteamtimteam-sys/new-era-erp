@@ -115,6 +115,41 @@ export type PhoneTreatment =
 /** 【你拿到的是全部,还是一部分】—— 打开排序就必须回答。 */
 export type Coverage = 'complete' | { shown: number; total: number }
 
+// ════════════════════════════════════════════════════════════════════════════
+// CONV-3(2026-09-03)· 勾选 → 批量动作 —— 【一个 prop,不是第二个组件】
+// ════════════════════════════════════════════════════════════════════════════
+// 【为什么不是 CONV-2 那种 FORK DECISION】EditableTable 分岔是因为行内编辑要
+// 建三件这个组件完全没有的东西(行级编辑态、脏值追踪、逐行保存)——那是一个新的
+// 渲染契约。**勾选不改变契约**:`render: (row) => ReactNode` 一个字都不用动,
+// 勾选只是【多一列它自己管的 UI】,而且默认 undefined、零处调用点受影响。
+// 与 EditableTable 相反的理由,同一条判据:「这个改动会不会污染只读那条路」。
+//
+// 【选中集是页面的,不是组件的】—— CONV-2 §① C 已经写清楚:动作按钮在页级。
+// 组件只画勾选框、报"这一行选没选",Record/Set 与批量按钮都留在页面那一侧,
+// 与今天 PayPanel.tsx / CostSettlePanel.tsx 已经在做的事完全同形。
+//
+// 【实测更正了委托的一个假设】CONV-2 的原话是「/finance/processing-costs 那一页
+// 有两个独立的选中集,所以那个 prop 不能假设『一张表一个选中集』」——
+// 听起来像是在要一个【多组】的 prop。**实测(CONV-3)那两个选中集是两张【独立的
+// 表】**(CostSettlePanel.tsx:90 与 :107,各自的 <table>,各自的批量按钮),
+// 不是一张表要两组勾选。于是"一张表一个选中集"这句话【本来就成立】——
+// 两张 DataTable 各给一个 selection prop,天然就是两个独立集合,不需要命名分组。
+// **没有証据支持的复杂度不建**,与 PAGE-0/CONV-1/CONV-2 三次「按一个便宜代理
+// 指标多算」是同一条教训,换到了设计这一侧。
+//
+// 【手机上勾选框不藏】—— 与 priority 列不同,它不是"读到这一行才要问的东西",
+// 它是这一页存在的理由(选完才有批量动作可言),所以它是独立于 priority 逻辑的
+// 一个【永远可见】列,与展开钮那一列同形。
+export type Selection = {
+    selectedIds: ReadonlySet<string>
+    onToggle: (id: string) => void
+    /** 表头那枚全选/取消全选。不给就没有全选,只能逐行点。 */
+    onToggleAll?: (ids: readonly string[]) => void
+    /** 勾选框的无障碍名字前缀;不给用「选中这一行」。 */
+    selectRowLabel?: string
+    selectAllLabel?: string
+}
+
 /** 不排。 */
 type SortingOff = { sorting?: undefined }
 /** 自己排 —— ★ 类型上只接受"我拿到了全部"。这就是 A1 那条裁定。 */
@@ -146,15 +181,40 @@ export type DataTableProps<T> = {
     columnToggle?: boolean
     /** 手机上展开/收起的无障碍名字。 */
     phoneExpandLabel?: string
+    /** ★ 勾选 → 批量动作。不给就没有勾选框,与今天所有表一样。见上面的抬头。 */
+    selection?: Selection
     className?: string
 } & (SortingOff | SortingClient | SortingServer)
 
 const DIR_NEXT = { none: 'asc', asc: 'desc', desc: 'none' } as const
 type Dir = keyof typeof DIR_NEXT
 
+/**
+ * 表头那枚全选框。【原生 checkbox 没有 indeterminate 这个 prop】——
+ * 只能通过 DOM 引用直接设它,所以这里绕不开 useEffect/ref。
+ */
+function SelectAllCheckbox({
+    total, selected, onChange, label,
+}: { total: number; selected: number; onChange: () => void; label: string }) {
+    const ref = React.useRef<HTMLInputElement>(null)
+    React.useEffect(() => {
+        if (ref.current) ref.current.indeterminate = selected > 0 && selected < total
+    }, [selected, total])
+    return (
+        <input
+            ref={ref}
+            type="checkbox"
+            checked={total > 0 && selected === total}
+            onChange={onChange}
+            aria-label={label}
+            className="base-pressable h-4 w-4"
+        />
+    )
+}
+
 export function DataTable<T>(props: DataTableProps<T>) {
     const {
-        rows, columns, rowKey, caption, empty, filter, pageSize, phone,
+        rows, columns, rowKey, caption, empty, filter, pageSize, phone, selection,
         columnToggle = false, phoneExpandLabel = '展开这一行的其余各列', className,
     } = props
     // ★【CONV-1:scroll 那一支 —— 手机上【每一列都留着】,靠外层横向滚动】★
@@ -315,6 +375,20 @@ export function DataTable<T>(props: DataTableProps<T>) {
                     {caption && <caption className="mt-2 text-sm text-[color:var(--brand-muted-text)]">{caption}</caption>}
                     <thead>
                         <tr className="border-b-2 border-[color:var(--brand-ocean)]">
+                            {/* ★ 勾选框列 —— 桌面与手机都画,它不走 priority 那套逻辑
+                                (见抬头:选择是这一页存在的理由,不是"读到才要问的东西")。 */}
+                            {selection && (
+                                <th className="w-8 px-1 align-middle">
+                                    {selection.onToggleAll && (
+                                        <SelectAllCheckbox
+                                            total={visible.length}
+                                            selected={visible.filter((r) => selection.selectedIds.has(rowKey(r))).length}
+                                            onChange={() => selection.onToggleAll!(visible.map(rowKey))}
+                                            label={selection.selectAllLabel ?? '全选'}
+                                        />
+                                    )}
+                                </th>
+                            )}
                             {/* 手机上多一格放展开钮;桌面上它不存在。 */}
                             {/* scroll 模式下没有展开钮,所以也不留这一格。 */}
                             {!phoneScroll && <th className="w-8 px-1 sm:hidden" />}
@@ -376,7 +450,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                     <tbody>
                         {visible.length === 0 && (
                             <tr>
-                                <td colSpan={shownCols.length + (phoneScroll ? 0 : 1)} className="px-3 py-8 text-center text-[color:var(--brand-muted-text)]">
+                                <td colSpan={shownCols.length + (phoneScroll ? 0 : 1) + (selection ? 1 : 0)} className="px-3 py-8 text-center text-[color:var(--brand-muted-text)]">
                                     {empty ?? '没有符合的行'}
                                 </td>
                             </tr>
@@ -388,6 +462,17 @@ export function DataTable<T>(props: DataTableProps<T>) {
                             return (
                                 <React.Fragment key={k}>
                                     <tr className="border-b border-[color:var(--brand-border)]">
+                                        {selection && (
+                                            <td className="px-1 align-middle">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selection.selectedIds.has(k)}
+                                                    onChange={() => selection.onToggle(k)}
+                                                    aria-label={(selection.selectRowLabel ?? '选中这一行')}
+                                                    className="base-pressable h-4 w-4"
+                                                />
+                                            </td>
+                                        )}
                                         {!phoneScroll && <td className="px-1 align-middle sm:hidden">
                                             {restCols.length > 0 && (
                                                 <button
@@ -421,7 +506,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                             {/* colSpan 跟着【看得见的】priority 列走 ——
                                                 用 priorityCols.length 是错的:列显隐关掉一个
                                                 priority 列之后,展开区就会比表宽出一格。 */}
-                                            <td colSpan={shownCols.filter((c) => c.priority).length + 1}
+                                            <td colSpan={shownCols.filter((c) => c.priority).length + 1 + (selection ? 1 : 0)}
                                                 className="bg-[color:var(--brand-muted)] px-3 py-2">
                                                 <dl className="base-reveal grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-3 gap-y-1.5 text-sm">
                                                     {restCols.map((c) => (

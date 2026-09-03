@@ -14,6 +14,7 @@
 import { useState, useTransition } from 'react'
 import { freezeForecast } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
+import { DataTable, type Column } from '@/app/components/ui/data-table'
 
 type Bucket = { currency: string; week_no: number; week_start: string; week_end: string
                 inflow: number; outflow: number; net: number; closing: number }
@@ -62,6 +63,71 @@ export default function ForecastGrid({
     const openingOf = (ccy: string) =>
         data.opening.filter((o) => o.currency === ccy).reduce((s, o) => s + Number(o.amount), 0)
 
+    // 【Line/Undated 都没有天然的行标识 —— 按下标造一个】
+    // 两张表都是只读快照,不会重排、不会被增删,下标在这里是稳定的。
+    const lineRows = data.lines.map((l, i) => ({ ...l, _key: String(i) }))
+    const undatedRows = data.undated.map((u, i) => ({ ...u, _key: String(i) }))
+
+    const lineColumns: Column<typeof lineRows[number]>[] = [
+        { key: 'due', header: t('cashForecast.weekOf'), priority: true, className: 'font-mono text-xs', render: (r) => r.due },
+        {
+            key: 'label', header: t('cashForecast.label'), priority: true, className: 'break-words',
+            render: (r) => (
+                <>
+                    <span className="mr-1 text-xs text-[color:var(--brand-muted-text)]">{t('cashForecast.source_' + r.source)}</span>
+                    {r.label}
+                    {r.ref && <span className="ml-1 font-mono text-xs text-[color:var(--brand-muted-text)]">{r.ref}</span>}
+                </>
+            ),
+        },
+        {
+            key: 'confidence', header: t('cashForecast.confidence'),
+            render: (r) => (
+                <>
+                    <span className={CONF_CLASS[r.confidence]}>{t('cashForecast.conf_' + r.confidence)}</span>
+                    {r.owner_name && (
+                        <span className="block text-[11px] text-[color:var(--brand-muted-text)]">
+                            {t('cashForecast.owner')}: {r.owner_name}
+                        </span>
+                    )}
+                </>
+            ),
+        },
+        {
+            key: 'amount', header: t('cashForecast.amount'), align: 'right',
+            render: (r) => `${r.direction === 'out' ? `(${money(r.amount)})` : money(r.amount)} ${r.currency}`,
+        },
+    ]
+
+    const undatedColumns: Column<typeof undatedRows[number]>[] = [
+        {
+            key: 'source', header: '', priority: true, className: 'bg-amber-50',
+            render: (r) => (
+                <>
+                    {t('cashForecast.source_' + r.source)} × {r.row_count}
+                    <span className="block text-[11px] text-amber-900">
+                        {t('cashForecast.undated_' + r.why)}
+                        {r.owner_name && ` · ${t('cashForecast.owner')}: ${r.owner_name}`}
+                    </span>
+                </>
+            ),
+        },
+        {
+            key: 'amount', header: t('cashForecast.amount'), priority: true, align: 'right', className: 'bg-amber-50',
+            render: (r) => `${r.direction === 'out' ? `(${money(r.amount)})` : money(r.amount)} ${r.currency}`,
+        },
+    ]
+
+    const bufferColumns: Column<Buffer>[] = [
+        { key: 'currency', header: t('cashForecast.currency'), priority: true, className: 'font-mono', render: (r) => r.currency },
+        { key: 'opex', header: t('cashForecast.monthlyOpex'), align: 'right', render: (r) => money(r.monthly_fixed_opex) },
+        {
+            key: 'coverToday', header: t('cashForecast.coverToday'), priority: true, align: 'right',
+            render: (r) => r.months_cover_today ?? <span className="text-[color:var(--brand-muted-text)]">{t('cashForecast.noOpex')}</span>,
+        },
+        { key: 'coverMin', header: t('cashForecast.coverMin'), align: 'right', render: (r) => r.months_cover_min ?? '—' },
+    ]
+
     return (
         <div>
             {error && (
@@ -80,6 +146,16 @@ export default function ForecastGrid({
             )}
 
             {/* ── 每个币种一张表 ─────────────────────────────────────────── */}
+            {/* ★★【CONV-3:这一张【没有】换成 DataTable —— 写下理由,不是漏转】★★
+                DataTable 的契约是【逐行记录】:一行是一条数据,列是这条记录的字段。
+                这张表是一个【透视表】:行是"流入/流出/净额/期末"这四个固定的量,
+                列是 13 周 —— 它的两根轴都不是"记录",硬套 rowKey/Column 模型
+                要么把周当"记录"(于是四个量变成四列,与既有读法整个倒过来),
+                要么放弃"顺列扫"这个 DataTable 存在的理由。CONV-1 §⑥ 第 6 条
+                与 CONV-2 §⑧ 都拒绝过同一类"没有例子就不设计"的诱惑,这里是
+                它的第三次:一张透视表不该被推进一个为逐行账簿设计的组件。
+                手机适配靠外层已有的 overflow-x-auto(:84)—— 横向滚动是它
+                【本来就在用】的答案,不是转换漏掉的一步。 */}
             {data.currencies.map((ccy) => (
                 <div key={ccy} className="mb-8 overflow-x-auto">
                     <h3 className="text-sm font-semibold mb-1">{ccy}</h3>
@@ -133,39 +209,14 @@ export default function ForecastGrid({
                     {' — '}{t('cashForecast.conf_manual_hint')}
                 </li>
             </ul>
-            <table className="w-full border-collapse border border-gray-300 text-sm mb-8">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-3 py-2 text-left">{t('cashForecast.weekOf')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-left">{t('cashForecast.label')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-left">{t('cashForecast.confidence')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('cashForecast.amount')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {data.lines.map((l, i) => (
-                        <tr key={i}>
-                            <td className="border border-gray-300 px-3 py-2 font-mono text-xs">{l.due}</td>
-                            <td className="border border-gray-300 px-3 py-2">
-                                <span className="text-gray-500 text-xs mr-1">{t('cashForecast.source_' + l.source)}</span>
-                                {l.label}
-                                {l.ref && <span className="ml-1 font-mono text-xs text-gray-400">{l.ref}</span>}
-                            </td>
-                            <td className="border border-gray-300 px-3 py-2">
-                                <span className={CONF_CLASS[l.confidence]}>{t('cashForecast.conf_' + l.confidence)}</span>
-                                {l.owner_name && (
-                                    <span className="block text-[11px] text-gray-500">
-                                        {t('cashForecast.owner')}: {l.owner_name}
-                                    </span>
-                                )}
-                            </td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                {l.direction === 'out' ? `(${money(l.amount)})` : money(l.amount)} {l.currency}
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+            <div className="mb-8">
+                <DataTable
+                    rows={lineRows}
+                    columns={lineColumns}
+                    rowKey={(r) => r._key}
+                    phone={{ mode: 'columns' }}
+                />
+            </div>
 
             {/* ── ★【预测【看不见】的那部分,印在预测上】★ ───────────────── */}
             <h3 className="text-sm font-semibold mb-1">{t('cashForecast.undatedTitle')}</h3>
@@ -173,24 +224,19 @@ export default function ForecastGrid({
             {data.undated.length === 0 ? (
                 <p className="text-sm text-gray-500 mb-8">—</p>
             ) : (
-                <table className="w-full border-collapse border border-amber-300 text-sm mb-8">
-                    <tbody>
-                        {data.undated.map((u, i) => (
-                            <tr key={i} className="bg-amber-50">
-                                <td className="border border-amber-300 px-3 py-2">
-                                    {t('cashForecast.source_' + u.source)} × {u.row_count}
-                                    <span className="block text-[11px] text-amber-900">
-                                        {t('cashForecast.undated_' + u.why)}
-                                        {u.owner_name && ` · ${t('cashForecast.owner')}: ${u.owner_name}`}
-                                    </span>
-                                </td>
-                                <td className="border border-amber-300 px-3 py-2 text-right font-mono">
-                                    {u.direction === 'out' ? `(${money(u.amount)})` : money(u.amount)} {u.currency}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                <div className="mb-8">
+                    {/* ★【原表整行是琥珀底,DataTable 没有整行样式的口子】★
+                        与下面 RecurringLines 的"停用行变灰"是同一处模板缺口
+                        (见 docs/list-page-template.md「模板做不到的事」一节)。
+                        这里改成两格各自带琥珀底 —— 手机展开区里那一格因此不带底色,
+                        是逐字还原做不到的一处,记下,不是没看见。 */}
+                    <DataTable
+                        rows={undatedRows}
+                        columns={undatedColumns}
+                        rowKey={(r) => r._key}
+                        phone={{ mode: 'columns' }}
+                    />
+                </div>
             )}
 
             {/* ── 客户承诺:备查,不计入 ─────────────────────────────────── */}
@@ -213,30 +259,14 @@ export default function ForecastGrid({
             {/* ── 固定 OPEX 覆盖(KPI T2)────────────────────────────────── */}
             <h3 className="text-sm font-semibold mb-1">{t('cashForecast.bufferTitle')}</h3>
             <p className="text-xs text-gray-500 mb-2">{t('cashForecast.coverHint')}</p>
-            <table className="w-full border-collapse border border-gray-300 text-sm mb-8 max-w-2xl">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-3 py-2 text-left">{t('cashForecast.currency')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('cashForecast.monthlyOpex')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('cashForecast.coverToday')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('cashForecast.coverMin')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {data.buffer.map((b) => (
-                        <tr key={b.currency}>
-                            <td className="border border-gray-300 px-3 py-2 font-mono">{b.currency}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{money(b.monthly_fixed_opex)}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                {b.months_cover_today ?? <span className="text-gray-400">{t('cashForecast.noOpex')}</span>}
-                            </td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                {b.months_cover_min ?? '—'}
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+            <div className="mb-8 max-w-2xl">
+                <DataTable
+                    rows={data.buffer}
+                    columns={bufferColumns}
+                    rowKey={(r) => r.currency}
+                    phone={{ mode: 'columns' }}
+                />
+            </div>
 
             {/* ── 冻结 ───────────────────────────────────────────────────── */}
             {canFreeze && (

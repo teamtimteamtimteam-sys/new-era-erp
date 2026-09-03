@@ -16,11 +16,18 @@
 //   究竟是"条目看不见 / 点了不跳 / 跳过去是空页",报告里没说,本刀不猜:
 //   它进了 docs/information-architecture.md §17.7 那份「只有人走一遍才能确认」的清单。
 // 另外两个 picker(化验机构、化学体系)下面也直接链过来 —— 人撞到墙的那一刻就在那儿。
+//
+// ★ CONV-3:五张字典各自都是【只读账簿 + 表下面一张编辑表单】(Kind-E)——
+//   套 ListPage 外壳。「一个都不能编辑」那句拒绝改走 state:'restricted',
+//   与 CONV-0 的整页拒绝合成同一个组件;可编辑时【恒为 ok】,因为每一小节
+//   自己的新增/编辑表单都不受行数门槛——DictSection 自己的空态由 DataTable
+//   自己的 empty 兜底,不经过 ListPage 的 empty 分支。
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { can } from '@/lib/permissions'
 import { mustRows } from '@/lib/db-helpers'
 import { pMap, DEFAULT_QUERY_CONCURRENCY } from '@/lib/pMap'
+import { ListPage } from '@/app/components/ui/list-page'
 import { DICTIONARIES } from './registry'
 import DictSection, { type DictRow } from './DictSection'
 
@@ -37,12 +44,11 @@ export default async function DictionariesPage() {
     // 受限【不是】零 —— 这是 lib/permissions.ts 存在的全部理由。
     if (!allowed.some(Boolean)) {
         return (
-            <div className="p-6 max-w-2xl">
-                <h1 className="text-2xl font-semibold mb-2">{t('dict.title')}</h1>
-                <p className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                    {t('dict.noPermission')}
-                </p>
-            </div>
+            <ListPage
+                title={t('dict.title')}
+                maxWidth="max-w-2xl"
+                state={{ kind: 'restricted', title: t('dict.title'), statement: t('dict.noPermission') }}
+            />
         )
     }
 
@@ -109,18 +115,25 @@ export default async function DictionariesPage() {
     probes.forEach((p, i) => { sections[p.di].usage[p.code] += counts[i] })
 
     return (
-        <div className="p-6 max-w-4xl">
-            <h1 className="text-2xl font-semibold mb-1">{t('dict.title')}</h1>
-            <p className="text-sm text-gray-600 mb-4">{t('dict.intro')}</p>
-            {/* 【D2:停用 ≠ 删除 —— 整页最上面说一次,每一行旁边再说一次】
-                两处用的是同一句话,因为它是这块屏幕最容易被误读的东西。 */}
-            <p className="mb-6 rounded border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
-                {t('dict.deactivateNotDelete')}
-            </p>
+        <ListPage
+            title={t('dict.title')}
+            intro={t('dict.intro')}
+            maxWidth="max-w-4xl"
+            // 【D2:停用 ≠ 删除 —— 整页最上面说一次,每一行旁边再说一次】
+            // 两处用的是同一句话,因为它是这块屏幕最容易被误读的东西。
+            // 【为什么走 notices 而不是 intro 下面直接写】它与 intro 是两句不同的话,
+            // 而且哪怕将来某个角色只看得见其中几节,这句话仍然成立 —— 无条件渲染。
+            notices={
+                <p className="mb-6 rounded border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+                    {t('dict.deactivateNotDelete')}
+                </p>
+            }
+            state={{ kind: 'ok' }}
+        >
             {sections.map((s) => (
                 <DictSection key={s.spec.table} spec={s.spec} rows={s.rows}
                              usage={s.usage} locale={locale} />
             ))}
-        </div>
+        </ListPage>
     )
 }

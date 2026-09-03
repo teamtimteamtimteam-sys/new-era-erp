@@ -1,7 +1,11 @@
 // 加工成本结算(FIN-7 C3):实际额 → 汇付;估算 → 真实发票冲抵(提交前先看差异)。
+//
+// ★ CONV-3(Kind-C):套 ListPage 外壳,恒为 ok —— 两半各自的「没有待结的」
+// 由 CostSettlePanel 自己说。
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
+import { ListPage } from '@/app/components/ui/list-page'
 import CostSettlePanel from './CostSettlePanel'
 import { getBaseCurrency } from '@/lib/currency'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -33,10 +37,9 @@ export default async function ProcessingCostsPage() {
     const runs = mustRows(runsRes, 'processing_runs')
     const suppliers = mustRows(supRes, 'suppliers')
     return (
-        <div className="p-8 max-w-5xl">
-            <h1 className="text-2xl font-bold mb-4">{t('finance.costSettle.title')}</h1>
+        <ListPage title={t('finance.costSettle.title')} maxWidth="max-w-5xl" state={{ kind: 'ok' }}>
             <CostSettlePanel entries={entries as never} runs={runs as never}
                              suppliers={suppliers as never} baseCurrency={baseCurrency} />
-        </div>
+        </ListPage>
     )
 }

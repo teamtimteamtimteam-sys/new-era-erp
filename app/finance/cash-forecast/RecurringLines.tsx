@@ -5,9 +5,13 @@
 // 给定实测(AP 一个日期都没有、经常性成本一张表都没有),这一半不是补充,
 // 它是预测能不能用的前提。而 cadence <> 'once' 的那些同时是 KPI T2 量的
 // 【固定 OPEX 集合】—— 一张表,两个用途。
+//
+// CONV-3 · 表换成 DataTable,新增表单外壳换成 AddRowPanel。
 import { useState, useTransition } from 'react'
 import { saveForecastLine } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
+import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { AddRowPanel } from '@/app/components/ui/add-row-panel'
 
 type Row = {
     id: string; label: string; direction: string; amount_ccy: number; currency: string
@@ -34,98 +38,98 @@ export default function RecurringLines({
 
     const canSubmit = label.trim() !== '' && amount !== '' && startDate !== ''
 
+    // ★【停用的行仍在表里,只是淡出】—— 原表用 tr 级 text-gray-400;
+    // DataTable 没有整行样式的口子(它的契约是逐列 render,不是逐行),
+    // 所以这里把同一个视觉判断挪进每一列自己的 render。
+    const dim = (r: Row) => !r.is_active
+    const cell = (r: Row, content: React.ReactNode) =>
+        dim(r) ? <span className="text-[color:var(--brand-muted-text)]">{content}</span> : content
+    const columns: Column<Row>[] = [
+        {
+            key: 'label', header: t('cashForecast.label'), priority: true,
+            render: (r) => cell(r, r.label), className: 'break-words',
+        },
+        { key: 'cadence', header: t('cashForecast.cadence'), render: (r) => cell(r, t('cashForecast.cadence_' + r.cadence)) },
+        {
+            key: 'amount', header: t('cashForecast.amount'), priority: true, align: 'right',
+            render: (r) => cell(r, `${r.direction === 'out' ? `(${Number(r.amount_ccy).toLocaleString()})` : Number(r.amount_ccy).toLocaleString()} ${r.currency}`),
+        },
+        { key: 'startDate', header: t('cashForecast.startDate'), className: 'font-mono text-xs', render: (r) => cell(r, r.start_date) },
+        { key: 'endDate', header: t('cashForecast.endDate'), className: 'font-mono text-xs', render: (r) => cell(r, r.end_date ?? '—') },
+    ]
+
     return (
         <section className="mb-8">
-            <h2 className="text-lg font-semibold mb-1">{t('cashForecast.linesTitle')}</h2>
-            <p className="text-xs text-gray-500 mb-3">{t('cashForecast.linesHint')}</p>
-            {error && (
-                <div className="mb-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
-            )}
+            <h2 className="mb-1 text-lg font-semibold">{t('cashForecast.linesTitle')}</h2>
+            <p className="mb-3 text-xs text-[color:var(--brand-muted-text)]">{t('cashForecast.linesHint')}</p>
 
             {canEdit && !open && (
                 <button type="button" onClick={() => setOpen(true)}
-                    className="mb-3 border border-gray-300 rounded px-3 py-2 text-sm hover:bg-gray-50">
+                    className="mb-3 rounded border border-[color:var(--brand-border)] px-3 py-2 text-sm hover:bg-[color:var(--brand-muted)]">
                     {t('cashForecast.addLine')}
                 </button>
             )}
             {canEdit && open && (
-                <div className="mb-4 rounded border border-gray-300 p-3 flex flex-wrap gap-3 items-end">
-                    <label className="text-sm text-gray-600">{t('cashForecast.label')}
+                <AddRowPanel
+                    error={error}
+                    className="mb-4"
+                    actions={
+                        <button type="button" disabled={pending || !canSubmit}
+                            onClick={() => {
+                                setError(null)
+                                startTransition(async () => {
+                                    const r = await saveForecastLine({
+                                        label, direction, amount, currency, cadence,
+                                        startDate, endDate: endDate || null,
+                                    })
+                                    if (r.error) setError(r.error)
+                                    else { setOpen(false); setLabel(''); setAmount(''); setStartDate(''); setEndDate('') }
+                                })
+                            }}
+                            className="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50">
+                            {t('cashForecast.addLine')}
+                        </button>
+                    }
+                >
+                    <label className="text-sm text-[color:var(--brand-muted-text)]">{t('cashForecast.label')}
                         <input value={label} onChange={(e) => setLabel(e.target.value)}
-                            className="block rounded border border-gray-300 px-3 py-2 w-56" /></label>
-                    <label className="text-sm text-gray-600">{t('cashForecast.direction')}
+                            className="block w-56 rounded border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-3 py-2" /></label>
+                    <label className="text-sm text-[color:var(--brand-muted-text)]">{t('cashForecast.direction')}
                         <select value={direction} onChange={(e) => setDirection(e.target.value)}
-                            className="block rounded border border-gray-300 px-3 py-2">
+                            className="block rounded border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-3 py-2">
                             <option value="out">{t('cashForecast.dir_out')}</option>
                             <option value="in">{t('cashForecast.dir_in')}</option>
                         </select></label>
-                    <label className="text-sm text-gray-600">{t('cashForecast.amount')}
+                    <label className="text-sm text-[color:var(--brand-muted-text)]">{t('cashForecast.amount')}
                         <input type="number" step="0.01" min="0" value={amount}
                             onChange={(e) => setAmount(e.target.value)}
-                            className="block rounded border border-gray-300 px-3 py-2 w-32" /></label>
-                    <label className="text-sm text-gray-600">{t('cashForecast.currency')}
+                            className="block w-32 rounded border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-3 py-2" /></label>
+                    <label className="text-sm text-[color:var(--brand-muted-text)]">{t('cashForecast.currency')}
                         <input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())}
-                            className="block rounded border border-gray-300 px-3 py-2 w-20 font-mono" /></label>
-                    <label className="text-sm text-gray-600">{t('cashForecast.cadence')}
+                            className="block w-20 rounded border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-3 py-2 font-mono" /></label>
+                    <label className="text-sm text-[color:var(--brand-muted-text)]">{t('cashForecast.cadence')}
                         <select value={cadence} onChange={(e) => setCadence(e.target.value)}
-                            className="block rounded border border-gray-300 px-3 py-2">
+                            className="block rounded border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-3 py-2">
                             {CADENCES.map((c) => (
                                 <option key={c} value={c}>{t('cashForecast.cadence_' + c)}</option>
                             ))}
                         </select></label>
-                    <label className="text-sm text-gray-600">{t('cashForecast.startDate')}
+                    <label className="text-sm text-[color:var(--brand-muted-text)]">{t('cashForecast.startDate')}
                         <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-                            className="block rounded border border-gray-300 px-3 py-2" /></label>
-                    <label className="text-sm text-gray-600">{t('cashForecast.endDate')}
+                            className="block rounded border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-3 py-2" /></label>
+                    <label className="text-sm text-[color:var(--brand-muted-text)]">{t('cashForecast.endDate')}
                         <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
-                            className="block rounded border border-gray-300 px-3 py-2" /></label>
-                    <button type="button" disabled={pending || !canSubmit}
-                        onClick={() => {
-                            setError(null)
-                            startTransition(async () => {
-                                const r = await saveForecastLine({
-                                    label, direction, amount, currency, cadence,
-                                    startDate, endDate: endDate || null,
-                                })
-                                if (r.error) setError(r.error)
-                                else { setOpen(false); setLabel(''); setAmount(''); setStartDate(''); setEndDate('') }
-                            })
-                        }}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm disabled:opacity-50">
-                        {t('cashForecast.addLine')}
-                    </button>
-                </div>
+                            className="block rounded border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-3 py-2" /></label>
+                </AddRowPanel>
             )}
 
-            {rows.length === 0 ? (
-                // 【命名的缺席,不是空白】
-                <p className="text-sm text-gray-500">{t('cashForecast.noLines')}</p>
-            ) : (
-                <table className="w-full border-collapse border border-gray-300 text-sm">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('cashForecast.label')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('cashForecast.cadence')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('cashForecast.amount')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('cashForecast.startDate')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('cashForecast.endDate')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rows.map((r) => (
-                            <tr key={r.id} className={r.is_active ? '' : 'text-gray-400'}>
-                                <td className="border border-gray-300 px-3 py-2">{r.label}</td>
-                                <td className="border border-gray-300 px-3 py-2">{t('cashForecast.cadence_' + r.cadence)}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                    {r.direction === 'out' ? `(${Number(r.amount_ccy).toLocaleString()})` : Number(r.amount_ccy).toLocaleString()} {r.currency}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 font-mono text-xs">{r.start_date}</td>
-                                <td className="border border-gray-300 px-3 py-2 font-mono text-xs">{r.end_date ?? '—'}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
+            <DataTable
+                rows={rows}
+                columns={columns}
+                rowKey={(r) => r.id}
+                phone={{ mode: 'columns' }}
+                empty={t('cashForecast.noLines')}
+            />
         </section>
     )
 }

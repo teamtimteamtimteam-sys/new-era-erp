@@ -8,6 +8,12 @@
 // 【页面自己不算任何东西】期初、AR、AP、桶、缓冲,全部来自 cash_forecast_data,
 // 而那支函数又调 bank_book_balance_asof / ar_aging_asof / ap_aging_asof ——
 // 一份自己算 AR 合计的预测,是对账单印的那个数的第二份实现。
+//
+// ★ CONV-3:套 ListPage 外壳。这一页【恒为 ok】—— 预测本身是一次计算的结果,
+// 不是一张会"空"的账簿;页面里三张真正的登记簿(冻结历史、经常性成本行、
+// ForecastGrid 内的明细/未定日/缓冲)各自的空态住在它们自己的 DataTable.empty
+// 里。13 周 × 币种的那张矩阵表【没有】换成 DataTable —— 见 ForecastGrid.tsx
+// 的说明,它是一张透视表,不是逐行记录的账簿,DataTable 的行模型装不下它。
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { getBaseCurrency } from '@/lib/currency'
@@ -15,8 +21,10 @@ import { mustRows } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
 import ForecastGrid, { type ForecastData } from './ForecastGrid'
 import RecurringLines from './RecurringLines'
+import FrozenForecastsTable, { type FrozenRow } from './FrozenForecastsTable'
 
 export default async function CashForecastPage() {
     const denied = await requireModule(MOD.finance)
@@ -45,15 +53,15 @@ export default async function CashForecastPage() {
             .select('id, code, week_start, frozen_at, superseded_at')
             .order('week_start', { ascending: false })
             .limit(20)
-    ) as unknown as { id: string; code: string; week_start: string
-                      frozen_at: string; superseded_at: string | null }[]
+    ) as unknown as FrozenRow[]
 
     return (
-        <div className="p-8">
-            <h1 className="text-2xl font-bold mb-1">{t('cashForecast.title')}</h1>
-            <p className="text-sm text-gray-600 mb-6">{t('cashForecast.subtitle')}</p>
-
-            <p className="text-xs text-gray-500 mb-4">
+        <ListPage
+            title={t('cashForecast.title')}
+            intro={t('cashForecast.subtitle')}
+            state={{ kind: 'ok' }}
+        >
+            <p className="mb-4 text-xs text-[color:var(--brand-muted-text)]">
                 {t('cashForecast.weekStart')}: <span className="font-mono">{forecast.week_start}</span>
                 {' → '}<span className="font-mono">{forecast.week_end}</span>
             </p>
@@ -62,37 +70,10 @@ export default async function CashForecastPage() {
 
             <RecurringLines rows={lines} canEdit={canEdit} baseCurrency={baseCurrency} />
 
-            <h2 className="text-lg font-semibold mb-2">{t('cashForecast.frozenTitle')}</h2>
-            {frozen.length === 0 ? (
-                // 【命名的缺席,不是空白】
-                <p className="text-sm text-gray-500">{t('cashForecast.noneFrozen')}</p>
-            ) : (
-                <table className="w-full border-collapse border border-gray-300 text-sm max-w-3xl">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('cashForecast.colCode')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('cashForecast.weekStart')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('cashForecast.colFrozen')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {frozen.map((f) => (
-                            <tr key={f.id} className={f.superseded_at ? 'text-gray-400' : ''}>
-                                <td className="border border-gray-300 px-3 py-2 font-mono">
-                                    {f.code}
-                                    {f.superseded_at && (
-                                        <span className="ml-2 px-1.5 py-0.5 rounded text-[11px] bg-gray-200 text-gray-700">
-                                            {t('cashForecast.superseded')}
-                                        </span>
-                                    )}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 font-mono text-xs">{f.week_start}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-xs">{f.frozen_at.slice(0, 10)}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
-        </div>
+            <h2 className="mb-2 text-lg font-semibold">{t('cashForecast.frozenTitle')}</h2>
+            <div className="max-w-3xl">
+                <FrozenForecastsTable rows={frozen} />
+            </div>
+        </ListPage>
     )
 }

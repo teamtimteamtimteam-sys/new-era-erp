@@ -1,11 +1,21 @@
 'use client'
 
 // 逐期面板:勾人 → 付款;CPF / 代扣款各一键(金额 + 次月14日到期)。
+//
+// CONV-3 · Kind-C(勾选 → 批量动作)。表换成 DataTable —— 但【不用】新的
+// selection prop:那个 prop 假设【每一行都能选】,而这张表里已付的行【没有】
+// 勾选框(原表就是这么写的,`!l.paid_at && <input .../>`)。selection prop
+// 硬套上去要么给已付行也画一个能点却不该点的框,要么去扩它加一个"这一行能不能选"
+// 的口子——而这一页是唯一一个有"部分行不能选"这个形状的 Kind-C 页面
+// (对照 processing-costs:那边每一行都能选,selection prop 直接够用)。
+// 一个例子不足以设计那个扩展,所以这里退回普通列:勾选框就是【一列 render】,
+// 与转换前的行为逐字相同,只是外壳换成了 DataTable。
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount } from '@/lib/format'
 import { payLines, payCpf, payDeductions } from '../month-end/actions'
+import { DataTable, type Column } from '@/app/components/ui/data-table'
 
 type Period = { id: string; code: string; period_month: string; net_pay_total: number
     employer_cpf_total: number; employee_cpf_total: number; other_deductions_total: number
@@ -57,41 +67,56 @@ export default function PayPanel({ periods, lines, employees, baseCurrency }: { 
                            + (date === '' ? 'border-red-400 bg-red-50' : 'border-gray-300')} />
                 <span className="mt-1 block max-w-md text-gray-500">{t('finance.payrollPay.dateHint')}</span>
             </label>
+            {periods.length === 0 && (
+                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('finance.payrollPay.noPeriods')}</p>
+            )}
             {periods.map((p) => {
                 const pls = lines.filter((l) => l.payroll_period_id === p.id)
                 const unpaid = pls.filter((l) => !l.paid_at)
                 const chosen = unpaid.filter((l) => sel[l.id]).map((l) => l.id)
                 const cpf = Number(p.employer_cpf_total ?? 0) + Number(p.employee_cpf_total ?? 0)
+
+                const columns: Column<Line>[] = [
+                    {
+                        key: 'select', header: '', priority: true, className: 'w-6',
+                        render: (l) => !l.paid_at && (
+                            <input type="checkbox" checked={!!sel[l.id]}
+                                onChange={(ev) => setSel({ ...sel, [l.id]: ev.target.checked })}
+                                aria-label={t('finance.payrollPay.paySelected', { n: 1 })} />
+                        ),
+                    },
+                    {
+                        key: 'employee', header: t('finance.payrollPay.colEmployee'), priority: true,
+                        render: (l) => {
+                            const e = empBy.get(l.employee_id)
+                            return <>{e?.code} · {e?.legal_name}</>
+                        },
+                    },
+                    {
+                        key: 'amount', header: t('finance.payrollPay.colAmount'), priority: true, align: 'right',
+                        render: (l) => formatAmount(l.net_pay, baseCurrency),
+                    },
+                    {
+                        key: 'status', header: '',
+                        render: (l) => l.paid_at
+                            ? <span className="text-green-700 text-xs">{t('finance.payrollPay.paidOn', { 0: l.paid_at.slice(0, 10) })}</span>
+                            : <span className="text-amber-700 text-xs">{t('finance.payrollPay.outstanding')}</span>,
+                    },
+                ]
+
                 return (
                     <section key={p.id} className="rounded border border-gray-200 p-4 mb-4">
                         <h3 className="font-bold mb-2">{p.code}
                             <span className="ml-2 text-xs text-gray-500 font-normal">{p.period_month.slice(0, 7)}</span>
                         </h3>
-                        <table className="w-full text-sm mb-3">
-                            <tbody>
-                                {pls.map((l) => {
-                                    const e = empBy.get(l.employee_id)
-                                    return (
-                                        <tr key={l.id}>
-                                            <td className="py-0.5 w-6">
-                                                {!l.paid_at && (
-                                                    <input type="checkbox" checked={!!sel[l.id]}
-                                                        onChange={(ev) => setSel({ ...sel, [l.id]: ev.target.checked })} />
-                                                )}
-                                            </td>
-                                            <td className="py-0.5 font-mono">{e?.code}</td>
-                                            <td className="py-0.5">{e?.legal_name}</td>
-                                            <td className="py-0.5 text-right font-mono">{formatAmount(l.net_pay, baseCurrency)}</td>
-                                            <td className="py-0.5 pl-4 text-xs">
-                                                {l.paid_at
-                                                    ? <span className="text-green-700">{t('finance.payrollPay.paidOn', { 0: l.paid_at.slice(0, 10) })}</span>
-                                                    : <span className="text-amber-700">{t('finance.payrollPay.outstanding')}</span>}
-                                            </td>
-                                        </tr>
-                                    )
-                                })}
-                            </tbody>
-                        </table>
+                        <div className="mb-3">
+                            <DataTable
+                                rows={pls}
+                                columns={columns}
+                                rowKey={(l) => l.id}
+                                phone={{ mode: 'columns' }}
+                            />
+                        </div>
                         <div className="flex gap-2 flex-wrap items-center text-sm">
                             <button type="button" disabled={pending || chosen.length === 0 || date === ''}
                                 onClick={() => run(() => payLines(p.id, chosen, date, ''))}

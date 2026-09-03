@@ -7,11 +7,17 @@
 // 而后者决定差异落进哪个会计期间。一个字段两种意思,本身就是错的布局 ——
 // 于是各半自己带一个日期,挨着自己的按钮,标签直接说这个日期【决定什么】。
 // 【不默认成今天】:拿今天的日期去结七月的应计,差异就落在八月,事后毫无迹象。
+//
+// ★★ CONV-3(Kind-C):这一页是【证明】DataTable 的 selection prop 的地方 ★★
+// 两张表(实际额 / 估算)各自是【独立的 DataTable 实例】,各带各的 selection —
+// 天然就是两个互不相干的选中集,不需要给 selection 设计"命名分组"这种复杂度。
+// 见 data-table.tsx 抬头 CONV-3 那一节:这正是那条设计判断的来源页面。
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
 import { remitCosts, relieveAccruals } from '../month-end/actions'
+import { DataTable, type Column } from '@/app/components/ui/data-table'
 
 type Entry = { id: string; run_id: string; cost_type: string; amount_base: number; is_estimate: boolean; created_at: string }
 type Run = { id: string; code: string }
@@ -68,16 +74,27 @@ export default function CostSettlePanel({ entries, runs, suppliers, baseCurrency
         </label>
     )
 
-    const row = (e: Entry, sel: Record<string, boolean>, set: (v: Record<string, boolean>) => void) => (
-        <tr key={e.id}>
-            <td className="py-0.5 w-6"><input type="checkbox" checked={!!sel[e.id]}
-                onChange={(ev) => set({ ...sel, [e.id]: ev.target.checked })} /></td>
-            <td className="py-0.5 font-mono">{runBy.get(e.run_id)}</td>
-            <td className="py-0.5">{t('processing.costTypes.' + e.cost_type)}</td>
-            <td className="py-0.5 text-right font-mono">{formatAmount(e.amount_base, baseCurrency)}</td>
-            <td className="py-0.5 pl-3 text-xs text-gray-500">{e.created_at.slice(0, 10)}</td>
-        </tr>
-    )
+    const columns: Column<Entry>[] = [
+        { key: 'run', header: t('finance.costSettle.colRun'), priority: true, className: 'font-mono', render: (e) => runBy.get(e.run_id) },
+        { key: 'type', header: t('finance.costSettle.colCostType'), priority: true, render: (e) => t('processing.costTypes.' + e.cost_type) },
+        { key: 'amount', header: t('finance.costSettle.colAmount'), priority: true, align: 'right', render: (e) => formatAmount(e.amount_base, baseCurrency) },
+        { key: 'date', header: t('finance.costSettle.colEntryDate'), className: 'text-xs text-gray-500', render: (e) => e.created_at.slice(0, 10) },
+    ]
+
+    // 【Record<id, boolean> ↔ Set<id>,各自独立】—— selA 与 selE 是两个不同的
+    // state,所以造出来的两个 selection 天生互不相干,不需要任何"命名分组"。
+    const selectionFor = (
+        rows: Entry[], sel: Record<string, boolean>, setSel: (v: Record<string, boolean>) => void,
+    ) => ({
+        selectedIds: new Set(Object.keys(sel).filter((id) => sel[id])),
+        onToggle: (id: string) => setSel({ ...sel, [id]: !sel[id] }),
+        onToggleAll: (ids: readonly string[]) => {
+            const allSelected = ids.length > 0 && ids.every((id) => sel[id])
+            setSel(allSelected ? {} : Object.fromEntries(ids.map((id) => [id, true])))
+        },
+        selectAllLabel: t('finance.costSettle.selectAll'),
+        selectRowLabel: t('finance.costSettle.selectRow'),
+    })
 
     return (
         <div>
@@ -87,7 +104,15 @@ export default function CostSettlePanel({ entries, runs, suppliers, baseCurrency
             <h2 className="text-lg font-bold mb-2">{t('finance.costSettle.actualTitle')}</h2>
             {actuals.length === 0 ? <p className="text-sm text-gray-500 mb-6">{t('finance.costSettle.none')}</p> : (
                 <div className="mb-6 rounded border border-gray-200 p-4">
-                    <table className="w-full text-sm mb-3"><tbody>{actuals.map((e) => row(e, selA, setSelA))}</tbody></table>
+                    <div className="mb-3">
+                        <DataTable
+                            rows={actuals}
+                            columns={columns}
+                            rowKey={(e) => e.id}
+                            phone={{ mode: 'columns' }}
+                            selection={selectionFor(actuals, selA, setSelA)}
+                        />
+                    </div>
                     <div className="flex gap-4 flex-wrap items-start">
                         {dateField('pay-date', payDate, setPayDate,
                             'finance.costSettle.paymentDate', 'finance.costSettle.paymentDateHint')}
@@ -104,7 +129,15 @@ export default function CostSettlePanel({ entries, runs, suppliers, baseCurrency
             <h2 className="text-lg font-bold mb-2">{t('finance.costSettle.estimateTitle')}</h2>
             {estimates.length === 0 ? <p className="text-sm text-gray-500">{t('finance.costSettle.none')}</p> : (
                 <div className="rounded border border-gray-200 p-4">
-                    <table className="w-full text-sm mb-3"><tbody>{estimates.map((e) => row(e, selE, setSelE))}</tbody></table>
+                    <div className="mb-3">
+                        <DataTable
+                            rows={estimates}
+                            columns={columns}
+                            rowKey={(e) => e.id}
+                            phone={{ mode: 'columns' }}
+                            selection={selectionFor(estimates, selE, setSelE)}
+                        />
+                    </div>
                     <div className="flex gap-4 flex-wrap items-start text-xs">
                         {dateField('inv-date', invDate, setInvDate,
                             'finance.costSettle.invoiceDate', 'finance.costSettle.invoiceDateHint')}

@@ -3,8 +3,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { mustRows } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
+import { ListPage } from '@/app/components/ui/list-page'
 import LeaveSubnav from '../LeaveSubnav'
-import HolidaysEditor, { type HolidayRow } from './HolidaysEditor'
+import HolidaysEditor from './HolidaysEditor'
+import { type HolidayRow } from './HolidaysTable'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 
@@ -23,22 +25,37 @@ export default async function HolidaysPage({
     const res = await supabase.from('public_holidays').select('*')
         .gte('holiday_date', `${year}-01-01`).lte('holiday_date', `${year}-12-31`)
         .order('holiday_date')
+
     return (
-        <div className="p-8 max-w-4xl">
-            <h1 className="text-2xl font-bold mb-4">{t('hr.title')}</h1>
-            <LeaveSubnav />
-            <form method="get" className="mb-4 flex items-end gap-2">
-                <label className="text-sm">
-                    {t('leave.leaveYear')}
-                    <input type="number" name="year" defaultValue={year}
-                           className="mt-1 block border border-gray-300 rounded px-2 py-1 text-sm w-28" />
-                </label>
-                <button type="submit" className="border border-gray-300 rounded px-3 py-1 text-sm">
-                    {t('leave.filter')}
-                </button>
-            </form>
-            <p className="text-sm text-gray-600 mb-4">{t('leave.holidaysIntro')}</p>
+        <ListPage
+            title={t('hr.title')}
+            maxWidth="max-w-4xl"
+            // ★【子导航 + 年份筛选表单 —— 与 CONV-2 §⑧ 第 2 条同形】★
+            //   两者都不是"提示",但都要在状态分支之前渲染:子导航是这一页的
+            //   出口(去别的假别子页),筛选表单是 GET 表单,提交就是导航。
+            notices={
+                <>
+                    <LeaveSubnav />
+                    <form method="get" className="mb-4 flex items-end gap-2">
+                        <label className="text-sm">
+                            {t('leave.leaveYear')}
+                            <input type="number" name="year" defaultValue={year}
+                                   className="mt-1 block w-28 rounded border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-2 py-1 text-sm" />
+                        </label>
+                        <button type="submit" className="rounded border border-[color:var(--brand-border)] px-3 py-1 text-sm">
+                            {t('leave.filter')}
+                        </button>
+                    </form>
+                    <p className="mb-4 text-sm text-[color:var(--brand-muted-text)]">{t('leave.holidaysIntro')}</p>
+                </>
+            }
+            // ★【恒为 ok —— 见 HolidaysTable 里的说明】★
+            //   「新增假期」那张表单是这一页唯一能加第一行的地方,它住在 children 里。
+            //   一年一行都没有时,ListPage 的 empty 分支会把 children 连同这张表单
+            //   一起藏掉,所以空态改由 DataTable 自己的 empty prop 说。
+            state={{ kind: 'ok' }}
+        >
             <HolidaysEditor rows={mustRows(res) as HolidayRow[]} year={year} />
-        </div>
+        </ListPage>
     )
 }
