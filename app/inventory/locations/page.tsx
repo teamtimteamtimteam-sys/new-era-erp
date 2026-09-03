@@ -1,6 +1,12 @@
 // app/inventory/locations/page.tsx
 // LOC-1:库位主数据列表。
 //
+// CONV-5:套 CONV-1 的两文件模板。
+// ★ 那句 recordsOnlyNotice 进 ListPage 的 notices 槽 —— 它是【无条件】的话
+//   (「这一刀只记录,不设闸」),而 children 只在 state==='ok' 时才画。
+//   CONV-1 §③ 那个槽正是为这一类话开的:一条只在有数据时才出现的警告,
+//   等于没有警告。这里空态与非空态都要看见它。
+//
 // 【为什么在 /inventory 底下而不是 /warehouse】守卫跟着数据自己的 RLS 走
 // (lib/modules.ts 的那条规矩):storage_locations 的四条策略读的是
 // module.inventory.view / .edit —— 而全库根本没有 module.warehouse.* 这个码
@@ -16,7 +22,8 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { getWasteClassifications } from '@/app/materials/wasteClassQuery'
 import { isUnconfigured } from './locationTypes'
-import LocationActiveToggle from './LocationActiveToggle'
+import { ListPage } from '@/app/components/ui/list-page'
+import LocationsTable, { type LocationRow } from './LocationsTable'
 
 type FetchRow = {
     id: string
@@ -59,106 +66,45 @@ export default async function LocationsPage() {
         return locale === 'zh' ? c.name_zh : c.name_en
     }
 
-    return (
-        <>
-        <div className="p-4 sm:p-8">
-            <div className="mb-6">
-                <Link href="/inventory" className="text-blue-600 hover:underline text-sm">
-                    {t('common.back')}
-                </Link>
-            </div>
+    const tableRows: LocationRow[] = rows.map((r) => ({
+        id: r.id,
+        code: r.code,
+        name: r.name,
+        zone: r.zone ?? '—',
+        isActive: r.is_active,
+        unconfigured: isUnconfigured(r),
+        // 分类名的语言在服务端选好 —— classes/locale 都不过 RSC 边界
+        allowedLabels: r.allowed_codes.map(classLabel),
+    }))
 
-            <div className="flex justify-between items-center mb-2">
-                <h1 className="text-2xl font-bold">{t('locations.listTitle')}</h1>
+    return (
+        <ListPage
+            title={t('locations.listTitle')}
+            actions={
                 <Link
                     href="/inventory/locations/new"
                     className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
                 >
                     {t('locations.new')}
                 </Link>
-            </div>
-
-            {/* 【这一刀只记录,不设闸】—— 一张写着"可存放分类"的表看起来就像已经
-                在拦了,所以第一句话就说清楚它还没有。 */}
-            <p className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-6">
-                {t('locations.recordsOnlyNotice')}
-            </p>
-
-            {rows.length === 0 ? (
-                <p className="text-sm text-gray-500">{t('locations.empty')}</p>
-            ) : (
-                <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-300 text-sm">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('locations.colCode')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('locations.colName')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('locations.colZone')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('locations.colAllowed')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('locations.colStatus')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('locations.colActions')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {rows.map((r) => (
-                                <tr key={r.id} className={r.is_active ? '' : 'bg-gray-50 text-gray-500'}>
-                                    <td className="border border-gray-300 px-3 py-2 font-mono">
-                                        <Link
-                                            href={`/inventory/locations/${r.id}/edit`}
-                                            className="text-blue-600 hover:underline"
-                                        >
-                                            {r.code}
-                                        </Link>
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2">{r.name}</td>
-                                    {/* zone 只是显示分组;没填就是没填 */}
-                                    <td className="border border-gray-300 px-3 py-2">{r.zone ?? '—'}</td>
-                                    <td className="border border-gray-300 px-3 py-2">
-                                        {isUnconfigured(r) ? (
-                                            // 【未配置,不是"无"、也不是空白】零行的意思是还没有人
-                                            // 决定过 —— 将来的检查对它告警而绝不拒绝。把它画成空白
-                                            // 或者「无」,就是把"没人想过"演成"想过、结论是没有"。
-                                            <span
-                                                className="px-2 py-0.5 rounded text-xs bg-amber-100 text-amber-800"
-                                                title={t('locations.notConfiguredTitle')}
-                                            >
-                                                {t('locations.notConfigured')}
-                                            </span>
-                                        ) : (
-                                            <span className="flex flex-wrap gap-1">
-                                                {r.allowed_codes.map((c) => (
-                                                    <span
-                                                        key={c}
-                                                        className="px-2 py-0.5 rounded text-xs bg-gray-200 text-gray-700"
-                                                    >
-                                                        {classLabel(c)}
-                                                    </span>
-                                                ))}
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2">
-                                        <span
-                                            className={
-                                                'px-2 py-0.5 rounded text-xs ' +
-                                                (r.is_active
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : 'bg-gray-200 text-gray-600')
-                                            }
-                                        >
-                                            {r.is_active ? t('locations.active') : t('locations.inactive')}
-                                        </span>
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2">
-                                        <LocationActiveToggle id={r.id} isActive={r.is_active} />
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
-        </div>
-        </>
+            }
+            notices={
+                <>
+                    <div className="mb-6">
+                        <Link href="/inventory" className="text-blue-600 hover:underline text-sm">
+                            {t('common.back')}
+                        </Link>
+                    </div>
+                    {/* 【这一刀只记录,不设闸】—— 一张写着"可存放分类"的表看起来就像已经
+                        在拦了,所以第一句话就说清楚它还没有。 */}
+                    <p className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-6">
+                        {t('locations.recordsOnlyNotice')}
+                    </p>
+                </>
+            }
+            state={{ kind: 'ok' }}
+        >
+            <LocationsTable rows={tableRows} empty={t('locations.empty')} />
+        </ListPage>
     )
 }

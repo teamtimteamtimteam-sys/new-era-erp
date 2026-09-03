@@ -1,6 +1,12 @@
 // RPT-1:库存快照(物料 × 库位 × 状态)+ INV-VAL-1 的金额与库龄两节。
 // 【未指定库位与任何一个库位一样,是一个普通分组】—— 线上 99/106 行流水没有库位。
 //
+// CONV-5:B 节与 C 节两张表换成 DataTable;产出侧与「看不见什么」两节是报告体,
+// 不是登记簿,保持原样(Tim 在 CONV-5 Q2 的裁定)。
+// ★ 这一页按库位分的组【不是】CONV-4 §⑨-2 那个缺口 —— 理由写在 SnapshotTables.tsx
+//   抬头,一句话:它是"一段一张完整的表",不是"一张表里夹分组行与小计行"。
+// ★ state 恒为 'ok' —— 合计条、受限告示与两句 note 必须无条件出现。
+//
 // ★【金额列对读不到价的人印【受限】,不是 0.00】★ operations 与 warehouse
 // 实测有 module.inventory.view、没有 data.view_prices —— 他们正是这张报表
 // 最主要的读者。一个悄悄少算的合计会被抄进决策;"受限"两个字会让人去要权限。
@@ -9,6 +15,8 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
 import { fetchValuation, groupByLocation, statusKey, bucketKey } from './snapshotQuery'
+import { ListPage } from '@/app/components/ui/list-page'
+import { SnapshotGroupTable, AgeingTable, type SnapshotRow, type AgeingRow } from './SnapshotTables'
 
 export default async function SnapshotPage() {
     const denied = await requireModule(MOD.inventory)
@@ -29,20 +37,19 @@ export default async function SnapshotPage() {
             : formatMoneyBare(n, '列头「价值 (SGD)」')
 
     return (
-        <>
-            <div className="p-8">
-                <div className="flex items-start justify-between mb-2">
-                    <div>
-                        <h1 className="text-2xl font-bold">{t('reports.snapshot.title')}</h1>
-                        <p className="text-sm text-gray-500 mt-1">{t('reports.snapshot.desc')}</p>
-                    </div>
-                    <div className="flex gap-2 shrink-0">
-                        <a href="/inventory/reports/snapshot/export"
-                           className="text-sm border border-gray-300 px-3 py-1 rounded hover:bg-gray-50">{t('reports.csv')}</a>
-                        <a href="/inventory/reports/snapshot/pdf" target="_blank" rel="noopener noreferrer"
-                           className="text-sm border border-gray-300 px-3 py-1 rounded hover:bg-gray-50">{t('reports.pdf')}</a>
-                    </div>
+        <ListPage
+            title={t('reports.snapshot.title')}
+            intro={t('reports.snapshot.desc')}
+            actions={
+                <div className="flex gap-2 shrink-0">
+                    <a href="/inventory/reports/snapshot/export"
+                       className="text-sm border border-gray-300 px-3 py-1 rounded hover:bg-gray-50">{t('reports.csv')}</a>
+                    <a href="/inventory/reports/snapshot/pdf" target="_blank" rel="noopener noreferrer"
+                       className="text-sm border border-gray-300 px-3 py-1 rounded hover:bg-gray-50">{t('reports.pdf')}</a>
                 </div>
+            }
+            state={{ kind: 'ok' }}
+        >
                 <p className="text-xs text-gray-500 mb-2">{t('reports.snapshot.derivedNote')}</p>
                 <p className="text-xs text-gray-500 mb-4">{t('reports.snapshot.basisNote')}</p>
 
@@ -82,36 +89,18 @@ export default async function SnapshotPage() {
                             {!g.code && (
                                 <p className="text-xs text-gray-500 mb-2">{t('reports.unspecifiedLocationNote')}</p>
                             )}
-                            <table className="w-full border-collapse border border-gray-300 text-sm">
-                                <thead className="bg-gray-100">
-                                    <tr>
-                                        <th className="border border-gray-300 px-3 py-2 text-left">{t('reports.colMaterial')}</th>
-                                        <th className="border border-gray-300 px-3 py-2 text-left">{t('reports.colBatchKind')}</th>
-                                        <th className="border border-gray-300 px-3 py-2 text-left">{t('reports.colStatus')}</th>
-                                        <th className="border border-gray-300 px-3 py-2 text-right">{t('reports.colQty')}</th>
-                                        <th className="border border-gray-300 px-3 py-2 text-right">{t('reports.colValue')}</th>
-                                        <th className="border border-gray-300 px-3 py-2 text-right">{t('reports.colUncostedQty')}</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {g.rows.map((r, i) => (
-                                        <tr key={i}>
-                                            <td className="border border-gray-300 px-3 py-2">
-                                                <span className="font-mono text-xs">{r.material_code}</span> {r.material_name}
-                                            </td>
-                                            <td className="border border-gray-300 px-3 py-2">
-                                                {t(r.batch_kind === 'inbound' ? 'reports.kindInbound' : 'reports.kindOutput')}
-                                            </td>
-                                            <td className="border border-gray-300 px-3 py-2">{t(statusKey(r.stock_status))}</td>
-                                            <td className="border border-gray-300 px-3 py-2 text-right">{r.qty} {r.unit}</td>
-                                            <td className="border border-gray-300 px-3 py-2 text-right">{money(r.value_base)}</td>
-                                            <td className="border border-gray-300 px-3 py-2 text-right">
-                                                {r.uncosted_qty !== 0 ? `${r.uncosted_qty} ${r.unit}` : '—'}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                            <SnapshotGroupTable
+                                rows={g.rows.map((r, i): SnapshotRow => ({
+                                    key: String(i),
+                                    materialCode: r.material_code,
+                                    materialName: r.material_name,
+                                    kindLabel: t(r.batch_kind === 'inbound' ? 'reports.kindInbound' : 'reports.kindOutput'),
+                                    statusLabel: t(statusKey(r.stock_status)),
+                                    qty: `${r.qty} ${r.unit}`,
+                                    value: money(r.value_base),
+                                    uncosted: r.uncosted_qty !== 0 ? `${r.uncosted_qty} ${r.unit}` : '—',
+                                }))}
+                            />
                         </section>
                     ))
                 )}
@@ -120,26 +109,15 @@ export default async function SnapshotPage() {
                 <section className="mb-8">
                     <h2 className="font-medium mb-2">{t('reports.snapshot.ageingTitle')}</h2>
                     <p className="text-xs text-gray-500 mb-2">{t('reports.snapshot.ageingNote')}</p>
-                    <table className="w-full border-collapse border border-gray-300 text-sm">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('reports.colAgeingBand')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-right">{t('reports.colBatches')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-right">{t('reports.colQty')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-right">{t('reports.colValue')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {v.ageing.map((a) => (
-                                <tr key={a.bucket}>
-                                    <td className="border border-gray-300 px-3 py-2">{t(bucketKey(a.bucket))}</td>
-                                    <td className="border border-gray-300 px-3 py-2 text-right">{a.batches}</td>
-                                    <td className="border border-gray-300 px-3 py-2 text-right">{a.qty}</td>
-                                    <td className="border border-gray-300 px-3 py-2 text-right">{money(a.value_base)}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    <AgeingTable
+                        rows={v.ageing.map((a): AgeingRow => ({
+                            bucket: a.bucket,
+                            bandLabel: t(bucketKey(a.bucket)),
+                            batches: a.batches,
+                            qty: String(a.qty),
+                            value: money(a.value_base),
+                        }))}
+                    />
                 </section>
 
                 {/* ── 产出侧:三种状态必须长得不一样(R6) ────────────────── */}
@@ -178,7 +156,6 @@ export default async function SnapshotPage() {
                         ))}
                     </ul>
                 </section>
-            </div>
-        </>
+        </ListPage>
     )
 }
