@@ -19,8 +19,9 @@
 // 【文字与数字一个都没有改】列头、'not classified'、页脚那段话逐字保留(R3)。
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import {
-    docStyles, DocumentLetterhead, DocumentFooter, TableHeader,
+    docStyles, DocumentLetterhead, DocumentFooter, TableHeader, NoSignatureNote,
 } from '@/app/components/pdf/DocumentChrome'
+import { noSignatureEn } from '@/app/components/pdf/noSignature'
 import type { DocumentCompany } from '@/app/components/pdf/company'
 
 export type DeliveryNoteData = {
@@ -98,6 +99,8 @@ export default function DeliveryNoteDocument({
                         </Text>
                     </View>
                 ))}
+
+                <NoSignatureNote text={noSignatureEn('deliveryOrder')} />
 
                 <DocumentFooter
                     code={d.code}

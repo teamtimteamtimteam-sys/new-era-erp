@@ -118,6 +118,9 @@ async function loadDoc(id: string): Promise<StatementDocData | null> {
             ageing: t('statements.doc.ageing'),
             frozenNote: t('statements.doc.frozenNote', { at: st.issued_at.slice(0, 10) }),
             noDueDate: t('statements.doc.noDueDate'),
+            // CONV-0 ②f:无需签章那一句。本份单据【跟随界面语言】,
+            // 所以它走 t() 而不是 noSignatureEn() —— 八份里只有它与可追溯报告如此。
+            noSignature: t('pdf.noSignature.statement'),
             colDoc: t('statements.doc.colDoc'),
             colKind: t('statements.doc.colKind'),
             colDate: t('statements.doc.colDate'),

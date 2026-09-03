@@ -9,6 +9,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { can } from '@/lib/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { mustRows } from '@/lib/db-helpers'
+import { RefusalPage } from '@/app/components/ui/refusal'
 import { IMPORT_TABLES, type TemplateColumn } from '@/lib/importTables'
 import ImportForm from './ImportForm'
 
@@ -19,14 +20,15 @@ export default async function ImportPage() {
     // 【三种空,三句话】(5.3)第一种在这里:你【不能】导入。
     // 它不是"没有东西可导",也不是"文件是空的" —— 受限不是零。
     if (!allowed) {
+        // ★【CONV-0 ①:这里曾经是那块屏的第三份逐字副本 —— 现在走 <RefusalPage>】★
+        //   可见变化只有一处:它现在也有「回首页」了(理由见 RefusalPage 抬头)。
         return (
-            <div className="p-8 max-w-2xl" data-access-denied="1">
-                <h1 className="text-2xl font-bold mb-4">{t('import.title')}</h1>
-                <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded">
-                    <p className="font-medium">{t('import.denied')}</p>
-                    <p className="text-sm mt-1">{t('import.deniedHint')}</p>
-                </div>
-            </div>
+            <RefusalPage
+                title={t('import.title')}
+                statement={t('import.denied')}
+                hint={t('import.deniedHint')}
+                backHomeLabel={t('common.backHome')}
+            />
         )
     }
 

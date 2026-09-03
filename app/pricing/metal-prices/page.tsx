@@ -2,8 +2,8 @@
 // 金属价格列表页:URL 驱动的金属筛选 / 排序 / 分页。
 // 端口自 inbound 列表,精简为单表参考表:无搜索、无导出、无关联方下拉。
 import { Suspense } from 'react'
-import { requireFunction } from '@/app/components/moduleGuard'
-import { FN } from '@/lib/modules'
+import { requireModule } from '@/app/components/moduleGuard'
+import { MOD } from '@/lib/modules'
 import { sourceLabelKey } from './sourceOptions'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
@@ -67,7 +67,18 @@ export default async function MetalPricesPage({
     //   **metal_prices 的 RLS 仍然是 `USING (true)`,一个字没动。**
     //   数据在库那一层对任何登录用户仍然可读;变的只有导航与这道路由守卫。
     //   失去它的五个角色(实测):cfo · employee · hr · operations · warehouse。
-    const denied = await requireFunction(FN.metalPrices)
+    //
+    // ★【CONV-0 ②a:从 requireFunction(FN.metalPrices) 换成 requireModule(MOD.pricing)】★
+    //   **求的是同一个字符串。** FN.metalPrices.permission 与 MOD.pricing.permission
+    //   都是 'module.pricing.view' —— 换的不是判据,是判据【从哪一条注册表条目取】。
+    //   本页的 FUNCTIONS 条目已经随②a 删掉(它不再是一条菜单条目),而 fnByHref 对
+    //   一条不存在的 href 会在【模块加载时】抛错 —— 所以这一行必须跟着改,
+    //   不改的话应用根本起不来(这是好事:它不会静默地放行)。
+    //
+    // 【拒绝页的标题因此从「金属价格」变成「定价」,而这是 Tim 明确接受的】
+    //   一个被拒的读者现在读到的是【他进不去的那个模块】的名字,而不是一个
+    //   菜单上根本不再提供的页面的名字 —— 本刀之后,后者才是那句假话。
+    const denied = await requireModule(MOD.pricing)
     if (denied) return denied
 
     //   写(new / bulk / [id]/edit) 那三页的守卫一个字没动:
@@ -75,6 +86,12 @@ export default async function MetalPricesPage({
     //                             → requireEditPermission('module.pricing.edit', ...)
     //
     // (策略原文见 db/tables/metal_prices.sql;完整理由见 lib/modules.ts 的 /pricing 那一条。)
+    //
+    // ★【以下这一段是【被推翻的旧理由】,留着是因为它是收窄那次改动的论据】★
+    //   它主张本页【不该】有守卫,而上面那道守卫就是推翻它的结果(TOOLS-1 ①b)。
+    //   ★ 不要照它读成"本页没有守卫" ★ —— 它描述的是这一页还在一级路由时的世界。
+    //   推翻它的不是新道理,是它的【位置变了】:住进 /pricing 之下以后,
+    //   只收窄菜单而不收窄这一页会留下一个菜单里看不见、URL 却打得开的半开状态。
     //
     // 看行情人人可以:行情是市场报价,数据自己声明它是公开的。给本页挂 module.pricing.view
     // 会让 UI 比数据库还严 —— 对一个数据库愿意完整回答的人显示"你没有权限",而那道门

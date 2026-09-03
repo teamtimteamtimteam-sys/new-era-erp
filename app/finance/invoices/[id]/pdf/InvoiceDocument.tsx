@@ -21,7 +21,8 @@ import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 // 加粗一律 fontWeight:'bold' —— 两个家族都注册了 400 与 700。
 import { DOC_FONT_STACK } from '@/app/components/pdf/fonts'
 import { BRAND } from '@/app/components/pdf/theme'
-import { DocumentLetterhead, DocumentFooter } from '@/app/components/pdf/DocumentChrome'
+import { DocumentLetterhead, DocumentFooter, NoSignatureNote } from '@/app/components/pdf/DocumentChrome'
+import { noSignatureEn } from '@/app/components/pdf/noSignature'
 
 export type CompanyProfile = {
     legal_name: string
@@ -330,6 +331,8 @@ export default function InvoiceDocument({
                         <Text style={styles.voidText}>VOID</Text>
                     </View>
                 ) : null}
+
+                <NoSignatureNote text={noSignatureEn('invoice')} />
 
                 {/* 页脚:每页都有 —— PDF-1 起由共享层给。措辞与页码格式
                     (`Page N of M`)与此前逐字相同。 */}

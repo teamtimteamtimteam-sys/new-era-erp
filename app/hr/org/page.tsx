@@ -110,7 +110,10 @@ export default async function OrgPage() {
                 basis={{
                     // 【出处】组织架构不是一段期间,它是【此刻】的状态 —— 说清楚。
                     period: t('org.basisPeriod'),
-                    source: 'employees_masked · departments',
+                    // CONV-0 ②c:此前这里印的是 `employees_masked · departments`。
+                    // 【走查只点名了另外两张，这一张是同一个形状，一起改】——
+                    // 漏掉它，读者就会问为什么单单这张图在报表名。
+                    source: t('charts.shows.org'),
                     // 【暂定】线上未删员工里,**静止时 6 个有 4 个**是走查账号的行
                     // (冒烟在跑时 9 个有 7 个)。那是一个【会影响读数】的事实,
                     // 所以它进出处那一栏,不进脚注 —— 出处是每张图都要说的话。

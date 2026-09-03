@@ -28,7 +28,23 @@ import { getTranslations } from '@/lib/i18n/server'
 export type ChartBasis = {
     /** 哪一段时间 / 截至哪一天 —— 已经格式化好的一句话 */
     period: string
-    /** 读的哪一张表/视图/函数 —— 写真源的名字,不写"数据库" */
+    /**
+     * ★★【CONV-0 ②c:这一格改了它问的问题 —— Tim 的走查,2026-09-03】★★
+     *
+     * 【它此前问的】"读的哪一张表/视图/函数 —— 写真源的名字"。
+     * 于是三张图在操作员的屏幕上印出了 `ar_aging_asof(as_of)`、
+     * `inventory_movements.movement_type`、`employees_masked · departments`。
+     * CHART-1 的委托是「每张图都要说出自己的基准」,而它被读成了
+     * 【报出函数名与表名】—— 那是给写代码的人看的字符串。
+     * 六位新同事就要到岗,他们会把那样一行读成一条错误信息。
+     *
+     * 【它现在问的】**用一句人话说,这张图画的是什么。**
+     * 例:「未收的款项,按拖欠时间长短分档。」
+     * 不是表名,不是函数名,不是"数据库"。
+     *
+     * 【真源没有丢】哪一张表、哪一个函数,仍然写在各张图自己的文件抬头里 ——
+     * 那是给下一个改这张图的人看的,而它本来就该在那里,不在纸面上。
+     */
     source: string
     /**
      * 有没有哪个数是【暂定】的。没有就传 null。
@@ -68,7 +84,9 @@ export default async function ChartCard({
             <p className="text-xs mb-3" style={{ color: 'var(--brand-muted-text)' }}>
                 {t('charts.basis.period')}:{basis.period}
                 <span className="mx-2" aria-hidden="true">·</span>
-                {t('charts.basis.source')}:<code className="font-mono">{basis.source}</code>
+                {/* 【mono 包装去掉了】一句人话套在机器字体里,读起来仍然像机器输出 ——
+                    换了词却留着那身衣服,等于只改了一半。 */}
+                {t('charts.basis.source')}:{basis.source}
             </p>
             {basis.provisional && (
                 <p className="text-xs mb-3 rounded px-2 py-1"

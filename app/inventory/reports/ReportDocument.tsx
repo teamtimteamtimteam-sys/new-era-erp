@@ -26,6 +26,10 @@ import type { DocumentCompany } from '@/app/components/pdf/company'
 
 const styles = StyleSheet.create({
     page: { fontFamily: DOC_FONT_STACK, fontSize: 8, padding: 28, color: BRAND.text },
+    // CONV-0 ②f:与 DocumentChrome.docStyles.noSignature 同一组数值。
+    // 【正体,不是斜体】理由见那里:这套字体栈没有斜体面,写 fontStyle:'italic'
+    // 会让 @react-pdf 在解析字体时直接抛错,而不是画出一个斜的字。
+    noSignature: { marginTop: 16, fontSize: 7.5, color: BRAND.muted },
     title: { fontSize: 14, fontWeight: 'bold', marginBottom: 6, color: BRAND.ocean },
     metaRow: { flexDirection: 'row', marginBottom: 1 },
     metaLabel: { width: 70, color: BRAND.muted },
@@ -71,6 +75,7 @@ export default function ReportDocument({
     sections = [],
     note,
     company,
+    noSignature,
 }: {
     title: string
     generatedAtLabel: string
@@ -88,9 +93,22 @@ export default function ReportDocument({
     /** 正文末尾的一段说明。可追溯报告用它说清"回收率是估算,不是审定 KPI"——
      *  【一个只拿到 PDF 的客户,不能只看见一个光秃秃的百分比】。 */
     note?: string
-    /** ★ 传了就是【对外】文档,画字标抬头;不传就是内部报表。见文件抬头。 */
-    company?: DocumentCompany
-}) {
+} & (
+    // ★★【CONV-0 ②f:对外 ⇒ 必带那一句,由【类型】保证,不靠记性】★★
+    // 本文件抬头的判据是「这份东西离不离开这栋楼」,而它已经用 company 的有无
+    // 表达出来了。②f 要求每一份【离开这栋楼的】纸都带上"无需签章"那一句,
+    // 于是这两件事必须绑在一起 —— 写成联合类型,而不是两个各自可选的 prop:
+    //   传 company 而忘了 noSignature = **编译期错误**,不是一张少了一句话的纸。
+    // 委托书那句"少一份比一份都没有更坏"因此不再依赖下一个人记得住。
+    // (与 ChartCard 把 basis 设成必填是同一种手法:说不出来就画不出来。)
+    | {
+          /** ★ 传了就是【对外】文档,画字标抬头;不传就是内部报表。见文件抬头。 */
+          company: DocumentCompany
+          /** 「本报告由系统生成,无需签章」。跟随界面语言 —— 报表政策,见抬头。 */
+          noSignature: string
+      }
+    | { company?: undefined; noSignature?: undefined }
+)) {
     return (
         <Document>
             <Page size="A4" orientation="landscape" style={styles.page}>
@@ -185,6 +203,11 @@ export default function ReportDocument({
                 ))}
 
                 {note && <Text style={styles.note}>{note}</Text>}
+
+                {/* CONV-0 ②f:只有对外的那一份印它(类型上与 company 绑在一起)。
+                    四张库存报表是内部的,不印 —— 一张自己给自己看的表不需要
+                    声明它不用签字。 */}
+                {noSignature && <Text style={styles.noSignature}>{noSignature}</Text>}
 
                 <Text
                     style={styles.footer}

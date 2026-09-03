@@ -13,8 +13,9 @@
 // 【文字与数字一个都没有改】列头、状态、条款、备注全部逐字保留(R3)。
 import { Document, Page, Text, View } from '@react-pdf/renderer'
 import {
-    docStyles, DocumentLetterhead, DocumentFooter, TableHeader,
+    docStyles, DocumentLetterhead, DocumentFooter, TableHeader, NoSignatureNote,
 } from '@/app/components/pdf/DocumentChrome'
+import { noSignatureEn } from '@/app/components/pdf/noSignature'
 import type { DocumentCompany } from '@/app/components/pdf/company'
 
 export type SoDocData = {
@@ -85,6 +86,8 @@ export default function SalesOrderDocument({
                 {data.notes && (
                     <View style={docStyles.block}><Text>{data.notes}</Text></View>
                 )}
+
+                <NoSignatureNote text={noSignatureEn('salesOrder')} />
 
                 <DocumentFooter code={data.code} />
             </Page>

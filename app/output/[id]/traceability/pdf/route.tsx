@@ -45,9 +45,15 @@ async function render(rep: TraceabilityReport): Promise<Buffer> {
     // 写在 ReportDocument 的抬头上。传 company 就是在声明这一份是对外的。
     const loaded = await loadDocumentCompany()
     if (!loaded.ok) throw new Error(COMPANY_MISSING_MESSAGE)
+    // CONV-0 ②f:八份对外单据里的第八份。
+    // 【用「报告」而不是某一种商业单据名】—— 它确实交到客户与审计师
+    // 手里,但它不是一张商业单据;把它叫成发票或订单都是假的。
+    // 【跟随界面语言】—— 报表政策(RPT-1),与对账单一样、
+    // 与那六份「一律英文」的单据不一样。
     const doc = (
         <ReportDocument
             company={loaded.company}
+            noSignature={t('pdf.noSignature.report')}
             title={t('traceability.pdfTitle', { code: b.code })}
             generatedAtLabel={t('reports.pdfGeneratedAt')}
             generatedAt={new Date().toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US')}

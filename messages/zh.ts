@@ -438,6 +438,8 @@ const zh = {
         holidays: '公共假日',
         import: '导入',
         ledger: '流水',
+        // CONV-0 ②a：同上，金属行情现在是一个普通路径段。
+        'metal-prices': '金属行情',
         new: '新建',
         receive: '收货',
         reconcile: '核销',
@@ -2754,7 +2756,7 @@ const zh = {
         movementMix: {
             title: '流水构成',
             periodAll: '建库至今的全部流水(不按期间筛选)',
-            note: '共 {total} 条流水。冲销的两条腿也计入 —— 它们是真实发生过的流水,不是错误。显示为零的类型是从未用过,不是被藏起来了。',
+            note: '条长是全部 {total} 条流水里的占比。冲销的两条腿也计入 —— 它们是真实发生过的流水,不是错误。显示为零的类型是从未用过,不是被藏起来了。',
         },
         title: '库存报表',
         intro: '只读的库存视图。这里没有任何东西是存下来的 —— 每一个数字都在你打开页面时从流水现算。',
@@ -3514,8 +3516,15 @@ const zh = {
         },
         basis: {
             period: '期间',
-            source: '来源',
+            source: '这张图画的是',
             provisional: '暂定',
+        },
+        // CONV-0 ②c:三张图各自那一句人话。中文【不照英文直译】——
+        // 直译过来的句子读着像说明书,而这一格要的是一个人会怎么说这件事。
+        shows: {
+            arAging: '还没收回来的款,按拖欠了多久分档。',
+            movementMix: '建库至今的每一笔库存进出,按它是哪一种进出分类。',
+            org: '员工档案,以及他们各自属于哪个部门。',
         },
         empty: {
             noRows: '还没有记录 —— 所以没有东西可画。这不是一个等于零的数。',
@@ -3854,6 +3863,22 @@ const zh = {
             MANAGER_CYCLE: '员工不能直接或间接成为自己的上级',
             CURRENCY_INVALID: '未知币种:{0}',
             FX_RATE_INVALID: '汇率必须大于 0(当前为 {0})',
+        },
+    },
+    // CONV-0 ②f:中文【不是英文的直译】。
+    // 直译会得到「本采购单是电脑生成的,不需要签名」—— 那不是中文单据上会出现的句子。
+    // 中文商业单据的定说是「由系统生成」+「无需签章」;
+    // 用【签章】而不是【签名】,因为中文语境里对应的是公章,不是手写名字。
+    pdf: {
+        noSignature: {
+            purchaseOrder: '本采购单由系统生成,无需签章。',
+            salesOrder: '本销售订单由系统生成,无需签章。',
+            quotation: '本报价单由系统生成,无需签章。',
+            deliveryOrder: '本送货单由系统生成,无需签章。',
+            invoice: '本发票由系统生成,无需签章。',
+            creditNote: '本贷项凭证由系统生成,无需签章。',
+            statement: '本对账单由系统生成,无需签章。',
+            report: '本报告由系统生成,无需签章。',
         },
     },
     statements: {
@@ -6279,10 +6304,9 @@ const zh = {
         calculatorCard: '计价器',
         calculatorDesc: '按化验结果与当前行情为批次估值',
         pricesCard: '金属行情',
-        pricesDesc: '行情历史与每日录入',
+        pricesDesc: '历次录入的行情,最新在前',
         bulkCard: '每日行情录入',
         bulkDesc: '一次录入当天所有金属行情',
-        priceHistoryLink: '查看行情历史 →',
         subnav: {
             formulas: '公式',
             calculator: '计价器',

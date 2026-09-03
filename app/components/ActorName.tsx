@@ -40,6 +40,7 @@ import type { Database } from '@/lib/database.types'
 import { mustRows } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
 import { can } from '@/lib/permissions'
+import { Refusal } from '@/app/components/ui/refusal'
 
 /** 名字表 + 【这位读者能不能看人事】—— 两件事必须一起传,见抬头 ④。 */
 export type ActorNameMap = { names: Map<string, string>; restricted: boolean }
@@ -115,14 +116,19 @@ export default async function ActorName({
     const t = await getTranslations()
 
     // ③ 根本没记过
+    // ★【CONV-0 ①:这一句上了 <Refusal>,而那段小字【留在药丸外面】】★
+    //   unrecordedHint 说的是「哪一段历史造成的」—— 它是**附在拒绝上的证据**,
+    //   不是拒绝本身。塞进药丸里会得到一枚两种字号的药丸,而且会把一句
+    //   【具体的、查得下去的】线索降格成那句通用答复的一部分。
+    //   药丸负责"系统说得出口的那一句",小字负责"凭什么"。
     if (!userId) {
         return (
-            <span className="text-gray-500">
-                {t('actor.unrecorded')}
+            <>
+                <Refusal>{t('actor.unrecorded')}</Refusal>
                 {unrecordedHint && (
                     <span className="ml-1 text-xs text-gray-400">({unrecordedHint})</span>
                 )}
-            </span>
+            </>
         )
     }
 
@@ -131,9 +137,18 @@ export default async function ActorName({
     if (name) return <span>{name}</span>
 
     // ④ 看不到人事 —— 这是一句【权限答复】,不能说成"没有这个人"
-    if (names.restricted) return <span className="text-gray-500">{t('common.restricted')}</span>
+    // CONV-0 ①:与 MaskedValue 那一句、与顶栏的「· 受限」从此是【同一种画法】。
+    if (names.restricted) return <Refusal>{t('common.restricted')}</Refusal>
 
     // ② 查不到 —— 具名状态 + 小字 id。【绝不留空,也绝不裸印一串 uuid】(AUDEL-2/3)
+    //
+    // ★★【CONV-0 ①:这一支【刻意不上 <Refusal>】—— Tim 的裁定,理由要留下】★★
+    //   ①③④ 说的都是【你】或【记录】的状态:受限 = 你不能看;未记录 = 没人填过。
+    //   ② 说的是【数据】的状态:「该账号未关联员工档案」/「这份档案已经不在了」
+    //   —— 那是一句关于库里有什么的**断言**,不是一次权限答复。
+    //   把它画成拒绝药丸,等于教读者"数据缺口"和"权限墙"是同一件事,
+    //   而这个仓库从 lib/permissions.ts 起、每一刀都在把这两件事分开。
+    //   **统一不值这个价。**
     return (
         <span className="text-gray-600">
             {space === 'employee' ? t('actor.employeeGone') : t('actor.noEmployeeRecord')}

@@ -79,7 +79,9 @@ export default async function MovementMixChart() {
                 // 【期间】这张图【不筛期间】—— 它是建库至今的全部流水。说出来,
                 // 免得读者以为是本月。
                 period: t('reports.movementMix.periodAll'),
-                source: 'inventory_movements.movement_type',
+                // CONV-0 ②c:此前这里印的是 `inventory_movements.movement_type`。
+                // 真源仍然写在本文件抬头（那条 CHECK 与 12 种类型的来历）。
+                source: t('charts.shows.movementMix'),
                 // 冲销的两条腿(reversal_void / reversal_restore)也算在里面 ——
                 // 它们是真实发生过的流水行,不是"错误"。这不是暂定,是口径,
                 // 所以它写在脚注,不写在这里。
@@ -90,10 +92,20 @@ export default async function MovementMixChart() {
             state={total === 0 ? { kind: 'no-rows' } : { kind: 'ok' }}
             footnote={t('reports.movementMix.note', { total: String(total) })}
         >
-            {/* 【分母是最大的那一类】,不是合计 —— 12 类里最大的一类占约 25%,
-                用合计当分母会让每一根都短得看不出差别。账龄那张用的是合计,
-                因为那四个桶【加起来就是那个整体】,读者要读的正是占比。 */}
-            <BarRows rows={rows} max={rows[0]?.value ?? 0} />
+            {/* ★★【CONV-0 ②b:分母从「最大的那一类」改成【合计】—— Tim 的走查】★★
+                【症状】标签写着 25.5%,而那根条【画满了整条轨道】。
+                因为条长的分母是**最大的那一类**,而百分比的分母是**合计** ——
+                两个基准,而读者只看得见一个。一根满格的条旁边写着 25.5%,
+                它同时说了两句互相矛盾的话。
+                【裁定:条和数字都答同一个问题 ——「占全部流水的多少」】
+                所以分母改成 total。旧注释那条顾虑是真的:最大的一类约占 25%,
+                改完之后没有一根条会超过轨道的四分之一,这张图【会变矮】。
+                **接受它。** 一张矮而真的图,胜过一根满格的条标着 25.5%。
+                【那条顾虑现在由别的东西承担】读者要比的是各类之间的相对大小,
+                而它们仍然按大小排序、每根旁边都印着确切的条数与百分比。
+                【基准写在图上】—— 见 footnote,与 /finance/receivables 那张
+                「条长是四个档位之和里的占比」逐字同一种做法。 */}
+            <BarRows rows={rows} max={total} />
         </ChartCard>
     )
 }

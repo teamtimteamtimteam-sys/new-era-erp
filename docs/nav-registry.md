@@ -798,3 +798,30 @@ live 最终授权实测:`data.view_deleted` 的持有者 = **`admin auditor`**�
 **于是他不只是"打得开"那一页,他还【走得到】它。** 而 `/settings`、`/settings/accounts`、
 `/settings/roles` 对他写着「· 受限」—— 那三条要 `action.manage_permissions`。
 **这就是 D5 要的样子:一页一页地诚实,而不是整个模块非黑即白。**
+
+---
+
+## CONV-0(2026-09-03)· 注册表 84 → 81 条,以及银行换组
+
+**②a 定价:三条条目删掉了**(`/pricing/formulas` · `/pricing/calculator` ·
+`/pricing/metal-prices`),`FN.metalPrices` 随之删掉,
+`/pricing/metal-prices` 的守卫改成 `requireModule(MOD.pricing)` ——
+**求的是同一个字符串** `module.pricing.view`。
+工具菜单上现在只有「定价」一条,底下什么都没有;三个孩子由 `/pricing`
+那一页的四张卡提供入口。**没有给组加 `href`** —— 「组是一个标题,不是一个去处」
+那条分寸原样保留。
+
+**②e 银行:`finance.group.config` → `finance.group.periodEnd`。** 判据一字未动。
+判定依据(它是对账,不是账户主数据,也不是两者共用一个入口)写在注册表里那一条
+的注释上,以及 `docs/refusal-convergence.md` ②e。
+
+**两件连带的事实,写下来免得被后人当成遗漏:**
+
+1. **第三级又是财务独有的。** `TOOLS_GROUPS` / `MODULE_GROUPS.tools` **留着**
+   (Tim 的指示),但再没有条目带 `tools.group.pricing`,渲染层的「空组不渲染」
+   把它滤掉。TOOLS-1 那次泛化仍然是对的,只是它今天又只有一个住户。
+2. ★ **删注册表条目会让路径段掉出面包屑的命名范围** ★ ——
+   `metal-prices` 因此需要一句 `breadcrumb.metal-prices`(已补,两个语言)。
+   **`check-i18n` 没有抓住它**,原因与修法方向记在 `docs/forward-queue.md`。
+   **下一个删注册表条目的人:先跑 `node scripts/gen-deep-routes.mjs --write`,
+   然后读那份 diff。闸门在这一处帮不了你。**

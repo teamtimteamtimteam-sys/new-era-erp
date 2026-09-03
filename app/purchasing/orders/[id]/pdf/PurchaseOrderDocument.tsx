@@ -13,7 +13,8 @@ import React from 'react'
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import { type CompanyProfile } from '@/app/finance/invoices/[id]/pdf/InvoiceDocument'
 import { BRAND } from '@/app/components/pdf/theme'
-import { docStyles, DocumentLetterhead, DocumentFooter } from '@/app/components/pdf/DocumentChrome'
+import { docStyles, DocumentLetterhead, DocumentFooter, NoSignatureNote } from '@/app/components/pdf/DocumentChrome'
+import { noSignatureEn } from '@/app/components/pdf/noSignature'
 
 export type PoCommittedTerms = {
     source_formula_code: string
@@ -335,6 +336,8 @@ export default function PurchaseOrderDocument({
                         <Text>{data.notes}</Text>
                     </View>
                 ) : null}
+
+                <NoSignatureNote text={noSignatureEn('purchaseOrder')} />
 
                 {/* PDF-1:页脚改用共享层,并【加上页码】—— 采购单带承诺定价条款与
                     付款里程碑,常常多页,而它此前不印页码。文案一个字没改。 */}

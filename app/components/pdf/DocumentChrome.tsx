@@ -72,6 +72,27 @@ export const docStyles = StyleSheet.create({
         letterSpacing: 1, marginBottom: 4,
     },
 
+    // ── 无需签章那一句(CONV-0 ②f)──────────────────────────────────────────
+    // ★★【它【不是】斜体,而那是一次实测的结论,不是将就】★★
+    // 委托书要的是"小号斜体",并且点名要确认字体真的有斜体面、而不是让渲染器
+    // 伪造一个倾斜。查下来:两件事都不成立,而第二件比第一件更硬 ——
+    //   · assets/fonts/ 只有四个文件:Google Sans Regular/Bold、Noto Sans SC
+    //     Regular/Bold。fonts.ts 把它们【全部】注册成 fontStyle: 'normal';
+    //   · @react-pdf/font 的 resolve() 先按 fontStyle 精确过滤
+    //     (node_modules/@react-pdf/font/lib/index.js:315),过滤空了就
+    //     **抛错**(同文件 :341),而不是退回正体、也不做合成倾斜。
+    //   也就是说写 fontStyle:'italic' 不是"斜体没生效",是**这条 PDF 路由 500**。
+    //   (而且 Noto Sans SC 根本没有真正的斜体面,中文那一半无论如何是正的。)
+    // 【所以用什么代替】斜体在这里要的是【语气】,不是【倾斜】:它要说"这是一条
+    // 附注,不是一条条款"。7.5pt + BRAND.muted 正体就是这份单据【已经在用】的
+    // 那个语气(docStyles.footerNote 一模一样),不必为一句话建一条字体管线,
+    // 也不必在 check-pdf-font-stack 那道闸上留一个永久的不对称。
+    noSignature: {
+        marginTop: 16,
+        fontSize: 7.5,
+        color: BRAND.muted,
+    },
+
     // ── 页脚 ───────────────────────────────────────────────────────────────
     footer: {
         position: 'absolute',
@@ -145,6 +166,26 @@ export function DocumentFooter({ note, code }: { note?: string; code?: string })
                     `${code ? code + ' · ' : ''}Page ${pageNumber} of ${totalPages}`
                 }
             />
+        </View>
+    )
+}
+
+/**
+ * ★ 一句「本单据由系统生成,无需签章」——【八份对外单据每一份都印】。★
+ *
+ * 【为什么在正文流的末尾,而不是在 DocumentFooter 里】
+ * DocumentFooter 是 `fixed` 的:放进去会【每一页都印一遍】。一份五页的对账单
+ * 上重复五次"无需签章",读起来像系统在心虚。Tim 的裁定是"在总计与条款【之下】"
+ * —— 那是正文的末尾,不是页眉页脚那一层。所以它印【一次】,在最后一页。
+ * 它也因此【不挤占】各单据自己的页脚说明(贷项凭证那句"这不是退款"等等)。
+ *
+ * 【它什么都没说到审批】只说这张纸不需要签字。"已批准"必须系在真实的审批状态上,
+ * 那是另一件事,Tim 没有裁。这里一个字都不要往那边加。
+ */
+export function NoSignatureNote({ text }: { text: string }) {
+    return (
+        <View>
+            <Text style={docStyles.noSignature}>{text}</Text>
         </View>
     )
 }

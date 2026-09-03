@@ -72,8 +72,25 @@ export default function BarRows({ rows, max }: {
                                           : 'var(--brand-ocean-fill)',
                                   }} />
                         </span>
+                        {/* ★★【CONV-0 ②d:emphasis 现在也管【那个数字】,不只是条】★★
+                            走查报的是「汇总条里 90+ 是红的,图里不是」。实测下来更准确
+                            的说法是:**条【本来就是】强调色**(下面那一支),不红的是
+                            这一栏的【数字】—— 于是同一个数在同一页上带着两种警戒等级,
+                            相距不过六英寸。那才是缺陷。
+                            【用的是条子自己那个颜色,不是另挑一个红】数字与它的条从此
+                            逐字节同色 —— 一个数,一种画法。
+                            【量过】--brand-destructive-fill #B75B53 对卡面 #FFFFFF
+                            = 4.53:1 ✓ AA(text-xs 属正文,门槛 4.5)。
+                            而 --brand-destructive #C0635A 只有 4.06:1 —— 它是
+                            token 表里写着"文字用"的那一个,**但那是对着别的底**;
+                            这里不能用它。 */}
                         <span className="w-28 shrink-0 text-right font-mono text-xs"
-                              style={{ color: 'var(--brand-text)' }}>
+                              style={{
+                                  color: r.emphasis
+                                      ? 'var(--brand-destructive-fill)'
+                                      : 'var(--brand-text)',
+                                  fontWeight: r.emphasis ? 600 : undefined,
+                              }}>
                             {r.display}
                         </span>
                     </div>

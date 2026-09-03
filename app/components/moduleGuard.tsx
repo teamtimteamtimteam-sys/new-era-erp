@@ -18,28 +18,30 @@
 // 【这不是安全边界】。边界在数据库:RLS + 遮蔽视图 + 函数里的 require_permission。
 // 就算这里漏了一页,那一页也只会是空的、改不动任何东西 —— 与 settings/permissions/guard.ts
 // 同样的定位,本文件是它的通用化。
-import Link from 'next/link'
+import { RefusalPage } from '@/app/components/ui/refusal'
 import { canEnter } from '@/lib/moduleAccess'
 import { getTranslations } from '@/lib/i18n/server'
 import type { AccessScope, FunctionEntry } from '@/lib/modules'
 
-/** 两种拒绝共用的那一块屏 —— 措辞不同,形状必须相同。 */
+/**
+ * 两种拒绝共用的那一块屏 —— 措辞不同,形状必须相同。
+ *
+ * ★【CONV-0 ①:这块屏【曾经有三份逐字副本】,现在只有 <RefusalPage> 一份】★
+ *   另外两份在 app/settings/guard.tsx 与 app/settings/import/page.tsx。
+ *   PAGE-0 量到它们**已经开始漂**:只有这一份带「回首页」。
+ *   合并收到【有链接】那一边(理由见 RefusalPage 的抬头),所以这一份
+ *   **一个像素都没有变**;变的是那两份 —— 它们补上了那条链接。
+ *   data-access-denied 这个机器标记也随组件走了,不再由三处各写一遍。
+ */
 async function refusal(titleKey: string, deniedKey: string, hintKey: string) {
     const t = await getTranslations()
     return (
-        // data-access-denied:给按角色的可达性检查用的【机器标记】。
-        // 靠认文案字符串去分辨"拒绝页"漏过一次就是一次误报(REACH-1 首跑
-        // 把 /settings/accounts 误当成"打得开"),所以标记跟着组件走。
-        <div className="p-8 max-w-2xl" data-access-denied="1">
-            <h1 className="text-2xl font-bold mb-4">{t(titleKey)}</h1>
-            <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded">
-                <p className="font-medium">{t(deniedKey)}</p>
-                <p className="text-sm mt-1">{t(hintKey)}</p>
-            </div>
-            <Link href="/" className="inline-block mt-4 text-sm text-blue-600 hover:underline">
-                {t('common.backHome')}
-            </Link>
-        </div>
+        <RefusalPage
+            title={t(titleKey)}
+            statement={t(deniedKey)}
+            hint={t(hintKey)}
+            backHomeLabel={t('common.backHome')}
+        />
     )
 }
 

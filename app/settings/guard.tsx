@@ -9,21 +9,23 @@
 // 页面也只会是空的,改不动任何东西。
 import { canManagePermissions } from '@/lib/permissions'
 import { getTranslations } from '@/lib/i18n/server'
+import { RefusalPage } from '@/app/components/ui/refusal'
 
+// ★【CONV-0 ①:这里【曾经是那块屏的第二份逐字副本】】★
+//   三份(本文件 · app/components/moduleGuard.tsx · app/settings/import/page.tsx)
+//   已经合并成 <RefusalPage> 一份。
+//   【本页可见的变化只有一处】它现在也有「回首页」了 —— 那条链接此前只在
+//   moduleGuard 那一份上,而漂开的原因不是有人决定这里不要,是抄的时候少抄了一行。
 export async function requireManagePermissions() {
     if (await canManagePermissions()) return null
 
     const t = await getTranslations()
     return (
-        // data-access-denied:给按角色的可达性检查用的【机器标记】。
-        // 靠认文案字符串去分辨"拒绝页"漏过一次就是一次误报(REACH-1 首跑
-        // 把 /settings/accounts 误当成"打得开"),所以标记跟着组件走。
-        <div className="p-8 max-w-2xl" data-access-denied="1">
-            <h1 className="text-2xl font-bold mb-4">{t('permissions.title')}</h1>
-            <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded">
-                <p className="font-medium">{t('permissions.denied')}</p>
-                <p className="text-sm mt-1">{t('permissions.deniedHint')}</p>
-            </div>
-        </div>
+        <RefusalPage
+            title={t('permissions.title')}
+            statement={t('permissions.denied')}
+            hint={t('permissions.deniedHint')}
+            backHomeLabel={t('common.backHome')}
+        />
     )
 }

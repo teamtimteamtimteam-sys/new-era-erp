@@ -454,6 +454,9 @@ const en = {
         holidays: 'Public holidays',
         import: 'Import',
         ledger: 'Ledger',
+        // CONV-0 ②a:金属行情从注册表条目变成了【普通路径段】，
+        // 所以面包屑再也问不到注册表要名字 —— 必须在这里给它一句。
+        'metal-prices': 'Metal prices',
         new: 'New',
         receive: 'Receive',
         reconcile: 'Reconcile',
@@ -2762,7 +2765,7 @@ const en = {
         movementMix: {
             title: 'Movement mix',
             periodAll: 'All movements ever recorded (not filtered to a period)',
-            note: '{total} movement rows in total. Reversal legs are counted — they are movements that really happened, not errors. A type showing zero has never been used; it has not been hidden.',
+            note: 'Bars are shares of all {total} movements added together. Reversal legs are counted — they are movements that really happened, not errors. A type showing zero has never been used; it has not been hidden.',
         },
         title: 'Inventory reports',
         intro: 'Read-only views over stock as it stands. Nothing here is stored — every figure is derived from the movement ledger when you open the page.',
@@ -3519,8 +3522,15 @@ const en = {
         },
         basis: {
             period: 'Period',
-            source: 'Source',
+            source: 'What this shows',
             provisional: 'Provisional',
+        },
+        // CONV-0 ②c:三张图各自那一句人话。放在 charts.* 底下而不是各自模块底下,
+        // 因为它们回答的是【同一个格子】的同一个问题,措辞该看得见彼此。
+        shows: {
+            arAging: 'Unpaid invoices, grouped by how long they have been outstanding.',
+            movementMix: 'Every stock movement ever recorded, grouped by what kind of movement it was.',
+            org: 'Staff records and the departments they report into.',
         },
         empty: {
             noRows: 'Nothing recorded yet — so there is nothing to chart. This is not a figure of zero.',
@@ -3865,6 +3875,25 @@ const en = {
             MANAGER_CYCLE: 'An employee cannot report to themselves, directly or indirectly',
             CURRENCY_INVALID: 'Unknown currency: {0}',
             FX_RATE_INVALID: 'FX rate must be greater than 0 (got {0})',
+        },
+    },
+    // ════════════════════════════════════════════════════════════════════════
+    // CONV-0 ②f(2026-09-03)· 对外单据脚下那一句【无需签章】
+    // ════════════════════════════════════════════════════════════════════════
+    // 【为什么八份都要有】Tim 的裁定:少一份比一份都没有更坏 ——
+    // 读的人会反过来想「为什么单单这一张需要签字」。
+    // 【它什么都没说到审批】只说「这张纸不需要签字」,
+    // 不说「它已经被批准」—— 后者必须系在真实的审批状态上,那是另一件事。
+    pdf: {
+        noSignature: {
+            purchaseOrder: 'This is a computer-generated purchase order and requires no signature.',
+            salesOrder: 'This is a computer-generated sales order and requires no signature.',
+            quotation: 'This is a computer-generated quotation and requires no signature.',
+            deliveryOrder: 'This is a computer-generated delivery order and requires no signature.',
+            invoice: 'This is a computer-generated invoice and requires no signature.',
+            creditNote: 'This is a computer-generated credit note and requires no signature.',
+            statement: 'This is a computer-generated statement of account and requires no signature.',
+            report: 'This is a computer-generated report and requires no signature.',
         },
     },
     statements: {
@@ -6315,10 +6344,9 @@ const en = {
         calculatorCard: 'Calculator',
         calculatorDesc: 'Value a batch from its assay and current metal prices',
         pricesCard: 'Metal prices',
-        pricesDesc: 'Price history and daily entry',
+        pricesDesc: 'Every price recorded, newest first',
         bulkCard: 'Daily prices',
         bulkDesc: "Enter today's metal prices in one go",
-        priceHistoryLink: 'Price history →',
         subnav: {
             formulas: 'Formulas',
             calculator: 'Calculator',

@@ -75,7 +75,9 @@ export default async function AgingBars({
             title={title}
             basis={{
                 period: t('charts.period.asAt', { date: asOf }),
-                source: 'ar_aging_asof(as_of)',
+                // CONV-0 ②c:此前这里印的是 `ar_aging_asof(as_of)` —— 一个函数名。
+                // 真源仍然记在本文件抬头的【出处三格】那一段里，给改这张图的人看。
+                source: t('charts.shows.arAging'),
                 provisional: provisional.length ? provisional.join(' · ') : null,
             }}
             state={{ kind: 'ok' }}

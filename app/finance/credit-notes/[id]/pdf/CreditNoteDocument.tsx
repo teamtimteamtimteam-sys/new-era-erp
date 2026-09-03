@@ -19,8 +19,9 @@
 // 'Reason'、以及页脚那句 "It is not a refund." 全部逐字保留(R3)。
 import { Document, Page, Text, View } from '@react-pdf/renderer'
 import {
-    docStyles, DocumentLetterhead, DocumentFooter, TableHeader,
+    docStyles, DocumentLetterhead, DocumentFooter, TableHeader, NoSignatureNote,
 } from '@/app/components/pdf/DocumentChrome'
+import { noSignatureEn } from '@/app/components/pdf/noSignature'
 import { money } from '@/app/components/pdf/theme'
 import type { DocumentCompany } from '@/app/components/pdf/company'
 
@@ -114,6 +115,8 @@ export default function CreditNoteDocument({
                     <Text style={docStyles.label}>Reason</Text>
                     <Text>{data.reason}</Text>
                 </View>
+
+                <NoSignatureNote text={noSignatureEn('creditNote')} />
 
                 <DocumentFooter
                     code={data.code}

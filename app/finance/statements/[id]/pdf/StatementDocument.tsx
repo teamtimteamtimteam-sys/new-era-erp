@@ -38,7 +38,7 @@
 // 处置见 app/components/pdf/fonts.ts(字体栈)与
 // scripts/check-pdf-font-stack.mjs(构建期拦住这个写法,让它写不进来)。
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
-import { docStyles, DocumentLetterhead, DocumentFooter } from '@/app/components/pdf/DocumentChrome'
+import { docStyles, DocumentLetterhead, DocumentFooter, NoSignatureNote } from '@/app/components/pdf/DocumentChrome'
 import { BRAND } from '@/app/components/pdf/theme'
 import type { LetterheadCompany } from '@/app/components/CompanyLetterhead'
 
@@ -228,6 +228,8 @@ export default function StatementDocument({ data: d }: { data: StatementDocData 
                 </View>
 
                 <Text style={styles.note}>{d.t.frozenNote}</Text>
+
+                <NoSignatureNote text={d.t.noSignature} />
 
                 {/* PDF-1:页码。对账单是八份里【最容易多页】的那一份(明细行没有上限),
                     而它此前不印页码 —— 散在收件人桌上时,没有办法知道少了哪一页。 */}

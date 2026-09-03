@@ -20,8 +20,9 @@
 // 金额格式(千分位两位小数)全部逐字保留 —— 这是一次版式改动(R3)。
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import {
-    docStyles, DocumentLetterhead, DocumentFooter, TableHeader,
+    docStyles, DocumentLetterhead, DocumentFooter, TableHeader, NoSignatureNote,
 } from '@/app/components/pdf/DocumentChrome'
+import { noSignatureEn } from '@/app/components/pdf/noSignature'
 import { money, BRAND } from '@/app/components/pdf/theme'
 import type { DocumentCompany } from '@/app/components/pdf/company'
 
@@ -127,6 +128,8 @@ export default function QuotationDocument({
                         <Text>{data.notes}</Text>
                     </View>
                 ) : null}
+
+                <NoSignatureNote text={noSignatureEn('quotation')} />
 
                 <DocumentFooter
                     code={data.code}

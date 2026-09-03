@@ -47,8 +47,20 @@ const KNOWN_CONVERSIONS = new Set([
 
 // 本刀新建/改动的基础组件。转换刀每转换一个模块,就把它从这里【拿掉一条】——
 // 也就是说这个清单会随着转换推进自然缩短,而不是变成一张过期的白名单。
+// ★★【CONV-0(2026-09-03):'refusal' 从这张清单上【拿掉了】—— 它毕业了】★★
+// 本脚本自己写着这条办法:「如果是转换刀,请把那个组件从 GUARDED 里拿掉。」
+// CONV-0 正是那一刀 —— 它把 <Refusal> 接进 MaskedValue 与 ActorName,
+// 并把整页拒绝的三份逐字副本合并成 <RefusalPage>,于是 14 个已上线文件的
+// 拒绝态一次收敛。**那是一次刻意的、看得见的视觉变更**,不是违规。
+//
+// ★【拿掉之后这道闸对 refusal 就不再守着什么了 —— 说清楚,别高估它】★
+//   它守的是"这个组件还没有人用"。一个已经被采用的组件不可能再满足那条断言,
+//   所以对它来说这道闸【已经用完了】。接替它的是别的东西:
+//   拒绝态的【画法】从此只有一份实现(app/components/ui/refusal.tsx),
+//   要漂就得改那一个文件 —— 这比一道闸更硬。
+//   清单上剩下的 11 个组件仍然一个都没被采用,这道闸继续守着它们。
 const GUARDED = [
-    'data-table', 'refusal', 'feedback',
+    'data-table', 'feedback',
     'button', 'input', 'alert', 'badge', 'card', 'label', 'select', 'table', 'textarea',
 ]
 

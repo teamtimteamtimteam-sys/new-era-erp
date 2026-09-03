@@ -202,6 +202,17 @@ export const FINANCE_MODULE_ID = 'finance'
  * 是【定价的内部结构】,不是与任务并列的东西。它们平铺在二级时,
  * 工具的二级有六条,而其中三条只有做定价的人用得上。
  */
+// ★★【CONV-0 ②a:这一组现在【一条条目都没有】—— 留着,而理由要说清】★★
+// 定价的三个孩子已经整批离开菜单(见下面 FUNCTIONS 里那段),所以再没有任何
+// 条目带 group: 'tools.group.pricing'。渲染层的「空组不渲染」(lib/moduleAccess.ts)
+// 会把它滤掉,工具因此画成平铺的四条 —— 屏幕上不留任何残迹。
+//
+// 【为什么不删掉它 —— Tim 的裁定】TOOLS-1 把"哪个模块有第三级"从【一个写死的
+// 财务 id】换成了【一张表】,那次泛化本身是对的,变的只是它今天有几个住户。
+// **实测:工具是这张表在财务之外的唯一使用者,所以本刀之后第三级又是财务独有。**
+// 这是一件值得知道的事(一个没有使用者的能力,是下一个人据以断定"这里已经接好了"
+// 的东西),但它【不是】一件值得现在拆掉的事:拆了,下一个要给某模块加第三级的人
+// 得把 TOOLS-1 那一刀重做一遍。
 export const TOOLS_GROUPS = ['tools.group.pricing'] as const
 export type ToolsGroup = (typeof TOOLS_GROUPS)[number]
 
@@ -386,10 +397,28 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/finance/gst', navKey: 'finance.subnav.gst', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.periodEnd' },
     { href: '/finance/wht', navKey: 'finance.subnav.wht', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.periodEnd' },
     { href: '/finance/packs', navKey: 'finance.subnav.pack', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.periodEnd' },
+    // ★★【CONV-0 ②e:银行【从「配置」搬到「期末」】—— Tim 的走查,2026-09-03】★★
+    //
+    // 【先判定它是什么,再决定它去哪 —— 这是裁定要求的顺序】
+    //   委托书给了三种可能:银行【对账】(期末工作,该搬)、银行【账户主数据】
+    //   (配置,不该搬)、或者两者【共用一个入口】(那就该拆开)。逐一对着代码看:
+    //     · app/finance/bank/page.tsx 自称「银行对账首页」,读的是
+    //       `bank_reconciliation_status` 视图(账面余额 / 最近对账单 / 差额 /
+    //       两侧未匹配计数),卡片下方直链每一张待对账报表的工作台;
+    //     · 它名下的全部子路由是 statements/ · import/ · statements/[id]/reconcile/
+    //       —— 一条主数据维护路径都没有;
+    //     · 银行【账户】主数据在这一页上根本不存在:全仓库引用 `bank_accounts` 的
+    //       只有 app/finance/assets/page.tsx 一处,账户本身是会计科目
+    //       (account_code),在科目表里维护。
+    //   唯一不是对账的东西是页内的 TransferForm(账户间调拨)—— 那是一笔【交易】,
+    //   不是一份主数据。**所以这不是"两件事共用一个入口",不需要拆。**
+    //
+    // 【结论】它整个是期末工作,整条搬。判据 P_FINANCE 一个字没动 ——
+    // 搬的是【它在哪一组】,与②a 搬定价是同一种改动。
+    { href: '/finance/bank', navKey: 'finance.subnav.bank', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.periodEnd' },
     { href: '/finance/settings', navKey: 'finance.subnav.settings', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.config' },
     { href: '/finance/company', navKey: 'finance.subnav.company', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.config' },
     { href: '/finance/fx', navKey: 'finance.subnav.fx', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.config' },
-    { href: '/finance/bank', navKey: 'finance.subnav.bank', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.config' },
 
     // ══ 库存 Inventory ══════════════════════════════════════════════════════
     { href: '/inventory', navKey: 'inventory.subnav.overview', modules: ['inventory'], permission: P_INVENTORY },
@@ -467,8 +496,45 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // 【判据一个字没动】仍然是 module.pricing.view;搬的是【它在哪个菜单里】,
     // 不是【谁进得去】。这与本刀 /margin 那一条是同一条裁定。
     { href: '/pricing', navKey: 'nav.pricing', modules: ['tools'], permission: P_PRICING },
-    { href: '/pricing/formulas', navKey: 'pricing.subnav.formulas', modules: ['tools'], permission: P_PRICING, group: 'tools.group.pricing' },
-    { href: '/pricing/calculator', navKey: 'pricing.subnav.calculator', modules: ['tools'], permission: P_PRICING, group: 'tools.group.pricing' },
+    // ★★【CONV-0 ②a:定价的三个孩子【整批离开菜单】—— Tim 的裁定,2026-09-03】★★
+    //
+    // 【症状】工具的二级是「任务 · 日历 · 单位换算 · 定价」,而紧贴在「定价」这一条
+    // 下面又是一个【也叫定价】的组标题,底下挂着公式 / 计价器 / 金属行情。
+    // 同一个词在同一张菜单上出现两次,一次是去处、一次是标题 —— 读的人分不出
+    // 哪一个是"定价"。TOOLS-1 把这件事留给了 Tim,他裁的是:这不是口味问题。
+    //
+    // 【裁定】**工具菜单上只出现「定价」一条,它底下什么都没有。**
+    // 公式、计价器、金属行情【不进菜单】,由 /pricing 那一页自己列出来。
+    //
+    // ★【为什么不是"给组加一个 href,让组名可点"】★
+    //   那是在答另一个问题。组名不可点是 ModuleBar 里写着的一条分寸
+    //   (「组是一个标题,不是一个去处」),而这一刀【没有】推翻它 —— 财务的六个组
+    //   仍然是纯标题。这一刀做的是让定价【不再需要】第三级。
+    //
+    // ★【删掉三条条目,判据一个字没变 —— 这是本刀必须说清的一点】★
+    //   三条的 permission 全是 P_PRICING,而它们的页面守卫求的是同一个字符串:
+    //     /pricing/formulas · /pricing/calculator → requireModule(MOD.pricing)
+    //     /pricing/metal-prices                   → requireModule(MOD.pricing)(本刀改,见下)
+    //   实测 live 授权:module.pricing.view 归 admin · auditor · finance · gm ·
+    //   procurement · sales 六个角色;没有任何角色持有别的 pricing 码而缺这一个。
+    //   **所以这是一次导航改动,不是一次访问改动。**
+    //
+    // ★【check-nav-routes 为什么仍然绿】★ 判据②认的是"落在某条注册表条目之下"
+    //   (isCoveredByEntry),而 /pricing 这一条还在 —— 三条子路由都在它底下,
+    //   所以它们【不需要】进 EXCEPTIONS。少写一条例外,就少一处将来要维护的理由。
+    //
+    // ★【读者怎么走到它们】★ 只有一条路:打开 /pricing,四张卡各指一个孩子。
+    //   本刀【同时】修好了那一页 —— 此前它的第三张卡直指 bulk(录入),
+    //   而金属行情【列表】只挂在卡片下面一个灰色小链接上。菜单入口撤掉之后,
+    //   那个灰链接会成为列表页唯一的门 —— 那不是整理菜单,那是把一页藏起来。
+    //   见 app/pricing/page.tsx。
+    //
+    // ══ 以下这一整段【不再有条目跟在它后面】—— CONV-0 ②a 删掉了那一行 ══════
+    // 它说的那次【收窄】仍然完全有效,只是判据不再由一条 FUNCTIONS 条目携带,
+    // 而是由页面自己的 requireModule(MOD.pricing) 表达 —— 求的是同一个字符串。
+    // 留着它,因为它记的是【为什么金属行情要受 module.pricing.view 管】,
+    // 而那个理由今天还在承重;末尾那句「见下面那一条」指的是 /tools/converter,
+    // 它在本文件更靠前的位置(dock 兜底那一条),不在这一段之后。
     // ★★【TOOLS-1 ①b:金属行情搬进 /pricing 之下,并且【刻意收窄】判据】★★
     //
     // 【历史,保留不删 —— 它是这次改动的论据,不是过时的注解】
@@ -492,7 +558,6 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // 【失去它的五个角色(实测,不是手写)】cfo · employee · hr · operations · warehouse
     //   —— 逐角色的前后对照见本刀报告与 docs/nav-registry.md。
     // 【dock 的兜底不再挂在这一条上】它挪到了 /tools/converter(见下面那一条)。
-    { href: '/pricing/metal-prices', navKey: 'nav.metalPrices', modules: ['tools'], permission: P_PRICING, group: 'tools.group.pricing' },
 
     // ══ 设置 Settings ═══════════════════════════════════════════════════════
     // ★★【NAV-CLEANUP-1 ④(2026-09-03):设置拍平成【一级】,Tim 的 Q5 裁定】★★
@@ -649,7 +714,6 @@ export const MOD = {
 export const FN = {
     margin: fnByHref('/margin'),
     deleted: fnByHref('/settings/deleted'),
-    metalPrices: fnByHref('/pricing/metal-prices'),
     pricing: fnByHref('/pricing'),
     commissions: fnByHref('/commissions'),
     contracts: fnByHref('/contracts'),
