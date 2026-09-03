@@ -4,14 +4,20 @@
 //
 // 【列表上不出现任何薪酬列】—— employee_directory 里有 current_gross_pay,但列表
 // 是最容易被旁人瞥见的地方;薪酬属受限内容,要看去个人档案页。
+//
+// CONV-5:套 CONV-1 的两文件模板。Q7:服务端 .order('code') + .range() 分页
+// 一个字没变(DataTable 不接管排序)。
+// ★ state 恒为 'ok' —— 筛选工具栏是真实出口,见 docs/list-page-template.md §⑩-3。
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import EmployeesToolbar, { type DeptOption } from './EmployeesToolbar'
+import EmployeesTable, { type EmployeeRow } from './EmployeesTable'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
 
 const PAGE_SIZE = 20
 
@@ -112,105 +118,39 @@ export default async function EmployeesPage({
         return `/hr/employees?${params.toString()}`
     }
 
-    const statusPill = (s: string) => {
-        const cls =
-            s === 'active'
-                ? 'bg-green-100 text-green-800'
-                : s === 'probation'
-                  ? 'bg-amber-100 text-amber-800'
-                  : s === 'notice'
-                    ? 'bg-orange-100 text-orange-800'
-                    : 'bg-gray-200 text-gray-600'
-        return <span className={'px-2 py-1 rounded text-xs ' + cls}>{t('hr.employmentStatus.' + s)}</span>
-    }
+    const tableRows: EmployeeRow[] = rows.map((r) => ({
+        employeeId: r.employee_id,
+        code: r.code,
+        legalName: r.legal_name,
+        preferredName: r.preferred_name,
+        // 部门名的语言在服务端选好 —— locale 不过 RSC 边界(CONV-1 §① 通则)
+        departmentLabel: (locale === 'zh' ? r.department_name_zh : r.department_name_en) ?? '—',
+        jobTitle: r.job_title ?? '—',
+        employmentTypeLabel: t('hr.employmentType.' + r.employment_type),
+        workCategoryLabel: t('hr.workCategory.' + r.work_category),
+        employmentStatus: r.employment_status,
+        hireDate: r.hire_date,
+        workPassAlert: r.work_pass_alert,
+        daysToWorkPassExpiry: r.days_to_work_pass_expiry,
+    }))
 
     return (
-        <div className="p-8">
-            <div className="flex justify-between items-center mb-4">
-                <h1 className="text-2xl font-bold">{t('hr.employeesTitle')}</h1>
-                <Link
-                    href="/hr/employees/new"
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
+        <ListPage
+            title={t('hr.employeesTitle')}
+            actions={
+                <Link href="/hr/employees/new" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
                     {t('hr.newEmployee')}
                 </Link>
-            </div>
-
+            }
+            state={{ kind: 'ok' }}
+        >
             <Suspense fallback={<div className="mb-4 h-10" />}>
                 <EmployeesToolbar departments={departments} />
             </Suspense>
 
             <p className="text-sm text-gray-600 mb-4">{t('finance.recordCount', { count: total })}</p>
 
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('hr.colCode')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('hr.colLegalName')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('hr.colDepartment')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('hr.colJobTitle')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('hr.colEmploymentType')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('hr.colWorkCategory')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('hr.colStatus')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('hr.colHireDate')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {rows.map((r) => (
-                        <tr key={r.employee_id}>
-                            <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                <Link
-                                    href={`/hr/employees/${r.employee_id}`}
-                                    className="text-blue-600 hover:underline"
-                                >
-                                    {r.code}
-                                </Link>
-                                {/* 准证到期提醒:名单上就能看见,不用逐个点开 */}
-                                {r.work_pass_alert && (
-                                    <span
-                                        title={t('hr.alertType.work_pass_expiry')}
-                                        className={
-                                            'ml-2 px-1.5 py-0.5 rounded text-xs ' +
-                                            (r.work_pass_alert === 'expired'
-                                                ? 'bg-red-100 text-red-800'
-                                                : r.work_pass_alert === 'critical'
-                                                  ? 'bg-amber-100 text-amber-800'
-                                                  : 'bg-gray-200 text-gray-600')
-                                        }
-                                    >
-                                        ⚠ {r.days_to_work_pass_expiry}d
-                                    </span>
-                                )}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                {r.legal_name}
-                                {r.preferred_name && (
-                                    <span className="text-gray-500 text-sm ml-1">({r.preferred_name})</span>
-                                )}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm">
-                                {(locale === 'zh' ? r.department_name_zh : r.department_name_en) ?? '—'}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm">{r.job_title ?? '—'}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm">
-                                {t('hr.employmentType.' + r.employment_type)}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm">
-                                {t('hr.workCategory.' + r.work_category)}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">{statusPill(r.employment_status)}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm">{r.hire_date}</td>
-                        </tr>
-                    ))}
-                    {rows.length === 0 && (
-                        <tr>
-                            <td colSpan={8} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
-                                {t('hr.employeesEmpty')}
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
+            <EmployeesTable rows={tableRows} empty={t('hr.employeesEmpty')} />
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
@@ -235,6 +175,6 @@ export default async function EmployeesPage({
                     </span>
                 )}
             </div>
-        </div>
+        </ListPage>
     )
 }

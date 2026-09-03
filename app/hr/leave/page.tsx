@@ -1,5 +1,9 @@
 // app/hr/leave/page.tsx
 // 请假申请列表 —— 这是一张【待办清单】,所以默认待审在最前。
+//
+// CONV-5:套 CONV-1 的两文件模板。排序(待审优先)留在服务端,DataTable 不接管。
+// ★ state 恒为 'ok' —— 筛选表单与 LeaveSubnav 都是真实出口,筛空了不能一起藏。
+//   见 docs/list-page-template.md §⑩-3。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
@@ -7,6 +11,8 @@ import LeaveSubnav from './LeaveSubnav'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import LeaveRequestsTable, { type LeaveRequestRow } from './LeaveRequestsTable'
 
 type Row = {
     request_id: string
@@ -20,13 +26,6 @@ type Row = {
     end_date: string
     days: number
     status: string
-}
-
-const STATUS_CLS: Record<string, string> = {
-    pending: 'bg-amber-100 text-amber-800',
-    approved: 'bg-green-100 text-green-800',
-    rejected: 'bg-red-100 text-red-800',
-    cancelled: 'bg-gray-100 text-gray-600',
 }
 
 export default async function LeaveRequestsPage({
@@ -71,110 +70,80 @@ export default async function LeaveRequestsPage({
 
     const sel = 'border border-gray-300 rounded px-2 py-1 text-sm'
 
-    return (
-        <div className="p-8 max-w-6xl">
-            <h1 className="text-2xl font-bold mb-4">{t('hr.title')}</h1>
-            <LeaveSubnav />
+    const tableRows: LeaveRequestRow[] = rows.map((r) => {
+        const e = empById.get(r.employee_id)
+        const ty = typeByCode.get(r.leave_type_code)
+        return {
+            id: r.id,
+            code: r.code,
+            isException: Boolean(r.is_exception),
+            employeeLabel: e ? `${e.code} — ${e.legal_name}` : '—',
+            // 假期类型名的语言在服务端选好 —— locale 不过 RSC 边界
+            typeLabel: ty ? (locale === 'zh' ? ty.name_zh : ty.name_en) : r.leave_type_code,
+            startDate: r.start_date,
+            endDate: r.end_date,
+            days: r.days,
+            status: r.status,
+        }
+    })
 
-            <div className="flex justify-between items-start mb-4 gap-4 flex-wrap">
-                <form className="flex gap-2 flex-wrap items-end" method="get">
-                    <label className="text-xs text-gray-600">
-                        {t('leave.status')}
-                        <select name="status" defaultValue={sp.status ?? ''} className={`block ${sel}`}>
-                            <option value="">{t('leave.allStatuses')}</option>
-                            {['pending', 'approved', 'rejected', 'cancelled'].map((s) => (
-                                <option key={s} value={s}>{t(`leave.status_${s}`)}</option>
-                            ))}
-                        </select>
-                    </label>
-                    <label className="text-xs text-gray-600">
-                        {t('leave.type')}
-                        <select name="type" defaultValue={sp.type ?? ''} className={`block ${sel}`}>
-                            <option value="">{t('leave.allTypes')}</option>
-                            {(mustRows(typeRes)).map((x) => (
-                                <option key={x.code} value={x.code}>
-                                    {locale === 'zh' ? x.name_zh : x.name_en}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-                    <label className="text-xs text-gray-600">
-                        {t('leave.employee')}
-                        <select name="employee" defaultValue={sp.employee ?? ''} className={`block ${sel}`}>
-                            <option value="">{t('leave.allEmployees')}</option>
-                            {(mustRows(empRes)).map((e) => (
-                                <option key={e.id} value={e.id}>{e.code} — {e.legal_name}</option>
-                            ))}
-                        </select>
-                    </label>
-                    <label className="text-xs text-gray-600">
-                        {t('leave.from')}
-                        <input type="date" name="from" defaultValue={sp.from ?? ''} className={`block ${sel}`} />
-                    </label>
-                    <label className="text-xs text-gray-600">
-                        {t('leave.to')}
-                        <input type="date" name="to" defaultValue={sp.to ?? ''} className={`block ${sel}`} />
-                    </label>
-                    <button type="submit" className="border border-gray-300 rounded px-3 py-1 text-sm">
-                        {t('leave.filter')}
-                    </button>
-                </form>
+    return (
+        <ListPage
+            title={t('hr.title')}
+            maxWidth="max-w-6xl"
+            actions={
                 <Link href="/hr/leave/new" className="bg-gray-900 text-white px-3 py-1.5 rounded text-sm">
                     {t('leave.recordLeave')}
                 </Link>
-            </div>
+            }
+            state={{ kind: 'ok' }}
+        >
+            <LeaveSubnav />
 
-            {rows.length === 0 ? (
-                <p className="text-gray-500">{t('leave.noRequests')}</p>
-            ) : (
-                <table className="w-full border-collapse text-sm">
-                    <thead>
-                        <tr className="bg-gray-50 text-left">
-                            <th className="border border-gray-300 px-3 py-2">{t('leave.code')}</th>
-                            <th className="border border-gray-300 px-3 py-2">{t('leave.employee')}</th>
-                            <th className="border border-gray-300 px-3 py-2">{t('leave.type')}</th>
-                            <th className="border border-gray-300 px-3 py-2">{t('leave.dates')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('leave.days')}</th>
-                            <th className="border border-gray-300 px-3 py-2">{t('leave.status')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rows.map((r) => {
-                            const e = empById.get(r.employee_id)
-                            const ty = typeByCode.get(r.leave_type_code)
-                            return (
-                                <tr key={r.id}>
-                                    <td className="border border-gray-300 px-3 py-2 font-mono text-xs">
-                                        <Link href={`/hr/leave/${r.id}`} className="text-blue-600 hover:underline">
-                                            {r.code}
-                                        </Link>
-                                        {r.is_exception && (
-                                            <span className="ml-2 rounded bg-purple-100 px-1.5 py-0.5 text-[10px] text-purple-800">
-                                                {t('leave.exception')}
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2">
-                                        {e ? `${e.code} — ${e.legal_name}` : '—'}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2">
-                                        {ty ? (locale === 'zh' ? ty.name_zh : ty.name_en) : r.leave_type_code}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2">
-                                        {r.start_date} → {r.end_date}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2 text-right font-mono">{r.days}</td>
-                                    <td className="border border-gray-300 px-3 py-2">
-                                        <span className={`rounded px-2 py-0.5 text-xs ${STATUS_CLS[r.status] ?? ''}`}>
-                                            {t(`leave.status_${r.status}`)}
-                                        </span>
-                                    </td>
-                                </tr>
-                            )
-                        })}
-                    </tbody>
-                </table>
-            )}
-        </div>
+            <form className="flex gap-2 flex-wrap items-end mb-4" method="get">
+                <label className="text-xs text-gray-600">
+                    {t('leave.status')}
+                    <select name="status" defaultValue={sp.status ?? ''} className={`block ${sel}`}>
+                        <option value="">{t('leave.allStatuses')}</option>
+                        {['pending', 'approved', 'rejected', 'cancelled'].map((s) => (
+                            <option key={s} value={s}>{t(`leave.status_${s}`)}</option>
+                        ))}
+                    </select>
+                </label>
+                <label className="text-xs text-gray-600">
+                    {t('leave.type')}
+                    <select name="type" defaultValue={sp.type ?? ''} className={`block ${sel}`}>
+                        <option value="">{t('leave.allTypes')}</option>
+                        {(mustRows(typeRes)).map((x) => (
+                            <option key={x.code} value={x.code}>
+                                {locale === 'zh' ? x.name_zh : x.name_en}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+                <label className="text-xs text-gray-600">
+                    {t('leave.employee')}
+                    <select name="employee" defaultValue={sp.employee ?? ''} className={`block ${sel}`}>
+                        <option value="">{t('leave.allEmployees')}</option>
+                        {(mustRows(empRes)).map((e) => (
+                            <option key={e.id} value={e.id}>{e.code} — {e.legal_name}</option>
+                        ))}
+                    </select>
+                </label>
+                <label className="text-xs text-gray-600">
+                    {t('leave.from')}
+                    <input type="date" name="from" defaultValue={sp.from ?? ''} className={`block ${sel}`} />
+                </label>
+                <label className="text-xs text-gray-600">
+                    {t('leave.to')}
+                    <input type="date" name="to" defaultValue={sp.to ?? ''} className={`block ${sel}`} />
+                </label>
+                <button type="submit" className="border border-gray-300 rounded px-3 py-1 text-sm">
+                    {t('leave.filter')}
+                </button>
+            </form>
+
+            <LeaveRequestsTable rows={tableRows} empty={t('leave.noRequests')} />
+        </ListPage>
     )
 }

@@ -1451,6 +1451,7 @@ const en = {
         provisionalTag: 'provisional target',
         matrixTitle: 'KPI linkage matrix \u2014 by position',
         matrixNotWeights: 'A single employee KPI can support more than one organization KPI. The detailed Employee KPIs sheet preserves the exact linkage. The matrix is a management view of coverage, not a mathematical re-weighting of the organization scorecard.',
+        matrixEmpty: 'No position appears in the linkage matrix yet.',
         colPosition: 'Position',
         colKpiCount: 'KPIs',
         colWeightTotal: 'Weight total',

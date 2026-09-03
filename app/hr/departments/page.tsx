@@ -1,12 +1,17 @@
 // app/hr/departments/page.tsx
 // 部门列表:编号、中英名称、上级、启用状态、在册员工数、编辑/删除。
+//
+// CONV-5:套 CONV-1 的两文件模板。
+// ★ state 恒为 'ok' —— 抬头的「新建部门」是这一页唯一的出口,而它住在
+//   ListPage 的 actions 里(状态分支之外),空集由 DataTable 自己的 empty 说。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import DeleteDepartmentButton from './DeleteDepartmentButton'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import DepartmentsTable, { type DepartmentRow } from './DepartmentsTable'
 
 export default async function DepartmentsPage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -34,76 +39,32 @@ export default async function DepartmentsPage() {
         if (e.department_id) countByDept.set(e.department_id, (countByDept.get(e.department_id) ?? 0) + 1)
     }
 
+    // 服务端把每一格算成纯数据:上级部门的显示名在这里查好,Map 不过 RSC 边界。
+    const tableRows: DepartmentRow[] = departments.map((d) => ({
+        id: d.id,
+        code: d.code,
+        nameEn: d.name_en,
+        nameZh: d.name_zh,
+        parentLabel: d.parent_department_id ? (nameById.get(d.parent_department_id) ?? '—') : '—',
+        employeeCount: countByDept.get(d.id) ?? 0,
+        isActive: Boolean(d.is_active),
+    }))
+
     return (
-        <div className="p-8 max-w-5xl">
-            <div className="flex justify-between items-center mb-4">
-                <h1 className="text-2xl font-bold">{t('hr.departmentsTitle')}</h1>
-                <Link
-                    href="/hr/departments/new"
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
+        <ListPage
+            title={t('hr.departmentsTitle')}
+            maxWidth="max-w-5xl"
+            actions={
+                <Link href="/hr/departments/new" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
                     {t('hr.newDepartment')}
                 </Link>
-            </div>
-
+            }
+            state={{ kind: 'ok' }}
+        >
             <p className="text-sm text-gray-600 mb-4">
                 {t('finance.recordCount', { count: departments.length })}
             </p>
-
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('hr.colCode')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('hr.colNameEn')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('hr.colNameZh')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('hr.colParent')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('hr.colEmployeeCount')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('hr.colActive')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('metalPrices.colActions')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {departments.map((d) => (
-                        <tr key={d.id}>
-                            <td className="border border-gray-300 px-4 py-2 font-mono text-sm">{d.code}</td>
-                            <td className="border border-gray-300 px-4 py-2">{d.name_en}</td>
-                            <td className="border border-gray-300 px-4 py-2">{d.name_zh}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
-                                {d.parent_department_id ? (nameById.get(d.parent_department_id) ?? '—') : '—'}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {countByDept.get(d.id) ?? 0}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                <span
-                                    className={
-                                        'px-2 py-1 rounded text-xs ' +
-                                        (d.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600')
-                                    }
-                                >
-                                    {d.is_active ? t('pricing.form.active') : t('finance.inactive')}
-                                </span>
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm whitespace-nowrap">
-                                <Link
-                                    href={`/hr/departments/${d.id}/edit`}
-                                    className="text-blue-600 hover:underline mr-3"
-                                >
-                                    {t('purchasing.editLink')}
-                                </Link>
-                                <DeleteDepartmentButton id={d.id} name={d.name_en} />
-                            </td>
-                        </tr>
-                    ))}
-                    {departments.length === 0 && (
-                        <tr>
-                            <td colSpan={7} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
-                                {t('hr.departmentsEmpty')}
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
-        </div>
+            <DepartmentsTable rows={tableRows} empty={t('hr.departmentsEmpty')} />
+        </ListPage>
     )
 }

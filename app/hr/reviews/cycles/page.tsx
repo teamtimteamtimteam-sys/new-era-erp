@@ -1,5 +1,26 @@
 // app/hr/reviews/cycles/page.tsx
 // 评估轮管理:建轮、开轮、关轮。
+//
+// ════════════════════════════════════════════════════════════════════════════
+// ★★ CONV-5:【这一页只套外壳,它不是一张登记簿】★★
+// ════════════════════════════════════════════════════════════════════════════
+// 本刀开工前的机械普查把它记成"有 1 张表、0 个 <th>"的异常,Tim 点名要求先
+// 诊断再动。诊断结果:
+//
+//   ① 这一页的主体是【一叠卡片】—— 一个评估轮一个 <section>,不是一张表的行。
+//      每张卡上是标题、状态徽章、期间、到期日、动作按钮,横排流式布局。
+//   ② 页面里唯一的 <table> 【不是登记簿,是一个排版表格】:它嵌在每张卡里那块
+//      红色「还没有评估人」的告警框内,两列 —— 左边员工、右边 SetReviewerControl。
+//      它没有表头,是因为它根本不需要表头:两列各自是什么,一看就知道。
+//   ③ 而那第二列是一个【会改数据的 <select>】。也就是说这张表是一个
+//      【带就地动作的返修队列】,不是一份只读账簿 —— DataTable 的 render 建模不了它
+//      (行级编辑态 / 脏值 / 逐行保存,见 CONV-1 §★ 那三件事)。
+//
+// 结论:**它既不属于 DataTable,也不属于 EditableTable。**硬套任何一个都会把
+// 一个"就地补一个人"的小修口,压成一张它不是的表。所以这一页只拿 ListPage 外壳
+// (标题 / 拒绝态 / 状态分支),表格与卡片一个字不动。
+// ★ state 恒为 'ok' —— CycleForm(建一轮)是这一页唯一的出口,而空态分支会吞掉它。
+// ════════════════════════════════════════════════════════════════════════════
 // 【开轮之后,没有评估人的那些就地列出来,set_review_reviewer 就在旁边】——
 // open_review_cycle 的返回值特意带着 without_reviewer,这个数是要有人处理的,
 // 不该让操作员去待办看板里找。
@@ -13,6 +34,7 @@ import SetReviewerControl, { type EmployeeOption } from '../SetReviewerControl'
 import { statusPillClass } from '../reviewShared'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
 
 type CycleRow = {
     id: string
@@ -76,15 +98,17 @@ export default async function ReviewCyclesPage() {
     }
 
     return (
-        <div className="p-8 max-w-6xl">
-            <h1 className="text-2xl font-bold mb-4">{t('hr.title')}</h1>
-
-            <div className="flex items-baseline justify-between mb-4">
-                <h2 className="text-xl font-bold">{t('reviews.cyclesTitle')}</h2>
+        <ListPage
+            title={t('hr.title')}
+            maxWidth="max-w-6xl"
+            actions={
                 <Link href="/hr/reviews" className="text-sm text-blue-600 hover:underline">
                     {t('common.back')}
                 </Link>
-            </div>
+            }
+            state={{ kind: 'ok' }}
+        >
+            <h2 className="text-xl font-bold mb-4">{t('reviews.cyclesTitle')}</h2>
 
             <CycleForm />
 
@@ -165,6 +189,6 @@ export default async function ReviewCyclesPage() {
                     })}
                 </div>
             )}
-        </div>
+        </ListPage>
     )
 }

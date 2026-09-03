@@ -1448,6 +1448,7 @@ const zh = {
         provisionalTag: '暂定目标',
         matrixTitle: 'KPI 联动矩阵 \u2014\u2014 按职位',
         matrixNotWeights: 'A single employee KPI can support more than one organization KPI. The detailed Employee KPIs sheet preserves the exact linkage. The matrix is a management view of coverage, not a mathematical re-weighting of the organization scorecard.',
+        matrixEmpty: '联动矩阵里还没有任何职位。',
         colPosition: '职位',
         colKpiCount: 'KPI 条数',
         colWeightTotal: '权重合计',

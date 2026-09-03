@@ -1,12 +1,18 @@
 // app/hr/leave/balances/page.tsx
 // 全员年假余额一览 —— HR 审批之前看的就是这一张。
 // 【90 天内到期的天数高亮】:那是"再不休就烂掉"的部分,提前看见才来得及安排。
+//
+// CONV-5:套 CONV-1 的两文件模板。
+// ★ state 恒为 'ok' —— LeaveSubnav 是这一页与其余请假页面之间的唯一通路,
+//   走 empty 分支会把它一起藏起来(见 docs/list-page-template.md §⑩-3)。
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { mustOne, mustRows } from '@/lib/db-helpers'
 import LeaveSubnav from '../LeaveSubnav'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import BalancesTable, { type BalanceRow } from './BalancesTable'
 
 export default async function BalancesPage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -43,37 +49,24 @@ export default async function BalancesPage() {
         })
     )
 
+    const tableRows: BalanceRow[] = rows.map(({ e, b, expiringSoon }) => ({
+        employeeId: e.id,
+        employeeLabel: `${e.code} — ${e.legal_name}`,
+        granted: String(b?.granted ?? '—'),
+        consumed: String(b?.consumed ?? '—'),
+        available: String(b?.available ?? '—'),
+        expiringSoon,
+    }))
+
     return (
-        <div className="p-8 max-w-5xl">
-            <h1 className="text-2xl font-bold mb-4">{t('hr.title')}</h1>
+        <ListPage
+            title={t('hr.title')}
+            intro={t('leave.balancesIntro')}
+            maxWidth="max-w-5xl"
+            state={{ kind: 'ok' }}
+        >
             <LeaveSubnav />
-            <p className="text-sm text-gray-600 mb-4">{t('leave.balancesIntro')}</p>
-            <table className="w-full border-collapse text-sm">
-                <thead>
-                    <tr className="bg-gray-50 text-left">
-                        <th className="border border-gray-300 px-3 py-2">{t('leave.employee')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('leave.granted')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('leave.taken')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('leave.available')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('leave.expiringSoon')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {rows.map(({ e, b, expiringSoon }) => (
-                        <tr key={e.id}>
-                            <td className="border border-gray-300 px-3 py-2">{e.code} — {e.legal_name}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{b?.granted ?? '—'}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{b?.consumed ?? '—'}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono font-medium">{b?.available ?? '—'}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                {expiringSoon > 0 ? (
-                                    <span className="rounded bg-amber-100 px-2 py-0.5 text-amber-800">{expiringSoon}</span>
-                                ) : '—'}
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
+            <BalancesTable rows={tableRows} empty={t('leave.noRequests')} />
+        </ListPage>
     )
 }

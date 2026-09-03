@@ -5,11 +5,19 @@
 //
 // ★【整页服务端渲染,没有客户端开关】★ 昨天记下的第三条冒烟盲区说的就是这个:
 //   藏在开关后面的话,fetch 冒烟永远看不见。本页每一句都在初次 HTML 里。
+//
+// CONV-5:【外壳 + 一张表】。这一页是报告体,不是登记簿:组织记分卡是卡片、
+// 在册/出缺是名单,两者都保持原样;只有职位联动矩阵是一张真正的行登记簿,
+// 换成 DataTable。CONV-4 §⑨-1 在 gst/cashflow/packs 上用的是同一条切分。
+// ★ state 恒为 'ok' —— 卡片与名单在任何行数下都要画,走 empty 分支会把
+//   页顶那两句判据(orgWeightTotal / staffingGap)一起吞掉。
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import KpiMatrixTable, { type KpiMatrixRow } from './KpiMatrixTable'
 
 type Org = {
     code: string; title: string; weight_pct: number
@@ -53,10 +61,16 @@ export default async function KpiPage() {
 
     const orgTotal = orgs.reduce((s, o) => s + Number(o.weight_pct), 0)
 
+    const matrixRows: KpiMatrixRow[] = matrix.map((m) => ({
+        positionCode: m.position_code,
+        positionTitle: m.position_title,
+        o1: m.o1_count, o2: m.o2_count, o3: m.o3_count, o4: m.o4_count, o5: m.o5_count,
+        kpiCount: m.kpi_count,
+        weightTotal: m.weight_total,
+    }))
+
     return (
-        <div className="p-8">
-            <h1 className="text-2xl font-bold mb-4">{t('kpi.title')}</h1>
-            <p className="text-sm text-gray-700 max-w-4xl mb-6">{t('kpi.what')}</p>
+        <ListPage title={t('kpi.title')} intro={t('kpi.what')} state={{ kind: 'ok' }}>
 
             {/* ── 组织记分卡 ─────────────────────────────────────────────── */}
             <h2 className="text-lg font-semibold mb-1">{t('kpi.orgTitle')}</h2>
@@ -112,36 +126,9 @@ export default async function KpiPage() {
             <div className="border-l-4 border-blue-500 bg-blue-50 p-3 mb-3 max-w-4xl">
                 <p className="text-sm">{t('kpi.matrixNotWeights')}</p>
             </div>
-            <table className="w-full border-collapse mb-8">
-                <thead>
-                    <tr className="bg-gray-100">
-                        <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('kpi.colPosition')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right text-sm">O1</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right text-sm">O2</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right text-sm">O3</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right text-sm">O4</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right text-sm">O5</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right text-sm">{t('kpi.colKpiCount')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right text-sm">{t('kpi.colWeightTotal')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {matrix.map((m) => (
-                        <tr key={m.position_code}>
-                            <td className="border border-gray-300 px-3 py-2 text-sm">
-                                <span className="font-mono text-xs text-gray-500">{m.position_code}</span> · {m.position_title}
-                            </td>
-                            <td className="border border-gray-300 px-3 py-2 text-right text-sm">{m.o1_count}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right text-sm">{m.o2_count}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right text-sm">{m.o3_count}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right text-sm">{m.o4_count}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right text-sm">{m.o5_count}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right text-sm">{m.kpi_count}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right text-sm">{m.weight_total}</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+            <div className="mb-8">
+                <KpiMatrixTable rows={matrixRows} empty={t('kpi.matrixEmpty')} />
+            </div>
 
             {/* ── 谁到了、谁没到 ★具名的缺席,不是一片零★ ──────────────────── */}
             <h2 className="text-lg font-semibold mb-1">{t('kpi.staffingTitle')}</h2>
@@ -164,6 +151,6 @@ export default async function KpiPage() {
                     </ul>
                 </div>
             )}
-        </div>
+        </ListPage>
     )
 }

@@ -1,14 +1,21 @@
 // app/hr/training/page.tsx
 // 全员培训记录列表,按类别与到期状态筛选。到期日临近的行挂标记 ——
 // 安全/合规证书过期意味着这个人暂时不能上那道工序。
+//
+// CONV-5:套 CONV-1 的两文件模板。
+// ★ state 恒为 'ok' —— 这一页有一个真实的筛选工具栏,而按【筛选后的行数】走
+//   ListPage 的 empty 分支会把工具栏一起藏起来(筛空了就再也筛不回来)。
+//   同一条判据这一刀在 15 张页面上适用,整套推理写在
+//   docs/list-page-template.md §⑩-3,不在每一页重复。
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import TrainingToolbar from './TrainingToolbar'
-import DeleteTrainingButton from './DeleteTrainingButton'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import TrainingTable, { type TrainingRow } from './TrainingTable'
 
 type Row = {
     id: string
@@ -67,101 +74,44 @@ export default async function TrainingPage({
 
     const rows = (data as unknown as Row[] | null) ?? []
 
+    // 服务端把"到期状态"算成一个纯数据字段:today / in90 只有服务端知道得准,
+    // 而列描述符不该重新实现这条判据(CONV-1 §① 通则)。
+    const tableRows: TrainingRow[] = rows.map((r) => {
+        const expired = r.expiry_date !== null && r.expiry_date < today
+        const soon = r.expiry_date !== null && !expired && r.expiry_date <= in90
+        return {
+            id: r.id,
+            employeeId: r.employees?.id ?? null,
+            employeeCode: r.employees?.code ?? null,
+            employeeName: r.employees?.legal_name ?? null,
+            trainingName: r.training_name,
+            categoryLabel: r.category ? t('hr.trainingCategory.' + r.category) : '—',
+            completedDate: r.completed_date,
+            expiryDate: r.expiry_date,
+            expiryState: expired ? 'expired' : soon ? 'soon' : 'none',
+            provider: r.provider ?? '—',
+            certificateRef: r.certificate_ref ?? '—',
+        }
+    })
+
     return (
-        <div className="p-8">
-            <div className="flex justify-between items-center mb-4">
-                <h1 className="text-2xl font-bold">{t('hr.trainingTitle')}</h1>
-                <Link
-                    href="/hr/training/new"
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
+        <ListPage
+            title={t('hr.trainingTitle')}
+            actions={
+                <Link href="/hr/training/new" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
                     {t('hr.newTraining')}
                 </Link>
-            </div>
-
+            }
+            state={{ kind: 'ok' }}
+        >
+            {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
                 <TrainingToolbar />
             </Suspense>
 
             <p className="text-sm text-gray-600 mb-4">{t('finance.recordCount', { count: rows.length })}</p>
 
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('hr.colEmployee')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('hr.colTrainingName')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('hr.colCategory')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('hr.colCompletedDate')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('hr.colExpiryDate')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('hr.colProvider')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('hr.colCertificateRef')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('metalPrices.colActions')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {rows.map((r) => {
-                        const expired = r.expiry_date !== null && r.expiry_date < today
-                        const soon = r.expiry_date !== null && !expired && r.expiry_date <= in90
-                        return (
-                            <tr key={r.id}>
-                                <td className="border border-gray-300 px-4 py-2 text-sm">
-                                    {r.employees ? (
-                                        <Link
-                                            href={`/hr/employees/${r.employees.id}`}
-                                            className="text-blue-600 hover:underline"
-                                        >
-                                            <span className="font-mono text-xs text-gray-500 mr-2">
-                                                {r.employees.code}
-                                            </span>
-                                            {r.employees.legal_name}
-                                        </Link>
-                                    ) : (
-                                        '—'
-                                    )}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2">{r.training_name}</td>
-                                <td className="border border-gray-300 px-4 py-2 text-sm">
-                                    {r.category ? t('hr.trainingCategory.' + r.category) : '—'}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2 text-sm">{r.completed_date}</td>
-                                <td className="border border-gray-300 px-4 py-2 text-sm whitespace-nowrap">
-                                    {r.expiry_date ?? '—'}
-                                    {expired && (
-                                        <span className="ml-2 px-1.5 py-0.5 rounded text-xs bg-red-100 text-red-800">
-                                            {t('hr.severity.expired')}
-                                        </span>
-                                    )}
-                                    {soon && (
-                                        <span className="ml-2 px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-800">
-                                            {t('hr.expiringSoon')}
-                                        </span>
-                                    )}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2 text-sm">{r.provider ?? '—'}</td>
-                                <td className="border border-gray-300 px-4 py-2 text-sm font-mono">
-                                    {r.certificate_ref ?? '—'}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2 text-sm whitespace-nowrap">
-                                    <Link
-                                        href={`/hr/training/${r.id}/edit`}
-                                        className="text-blue-600 hover:underline mr-3"
-                                    >
-                                        {t('purchasing.editLink')}
-                                    </Link>
-                                    <DeleteTrainingButton id={r.id} name={r.training_name} />
-                                </td>
-                            </tr>
-                        )
-                    })}
-                    {rows.length === 0 && (
-                        <tr>
-                            <td colSpan={8} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
-                                {t('hr.trainingEmpty')}
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
-        </div>
+            <TrainingTable rows={tableRows} empty={t('hr.trainingEmpty')} />
+        </ListPage>
     )
 }
