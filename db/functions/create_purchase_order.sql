@@ -25,6 +25,13 @@ DECLARE
     v_formula    uuid;
     v_f          record;
     v_total      numeric := 0;
+    -- ── PO-GST-1:税 ─────────────────────────────────────────────────────────
+    v_sup_tax_default text;     -- 供应商的默认进项税码(播种用)
+    v_gst        boolean := gst_registered();
+    v_tax_code   text;
+    v_tax_rate   numeric;
+    v_line_tax   numeric;
+    v_tax_total  numeric := 0;
     v_count      integer := 0;
     v_committed  integer := 0;  -- FIN-27:抄下条款的行数
     v_term       jsonb;
@@ -66,6 +73,12 @@ BEGIN
     IF p_lines IS NULL OR jsonb_typeof(p_lines) <> 'array' OR jsonb_array_length(p_lines) = 0 THEN
         RAISE EXCEPTION 'NO_LINES';
     END IF;
+
+    -- ── PO-GST-1:供应商的默认进项税码 —— 【行上的税码由它播种】────────────
+    -- Tim 的裁定:供应商记录上那个「默认税码」字段【就是】判据。不看国别、
+    -- 不看 tax_residence、不新增字段:海外供应商由 Tim 在供应商记录上设成 OP,
+    -- 本地设成 TX,而这张单只是【服从供应商记录上写着的那个】。
+    SELECT default_tax_code INTO v_sup_tax_default FROM suppliers WHERE id = p_supplier_id;
 
     v_code := next_purchase_order_code(v_date);
 
@@ -178,14 +191,43 @@ BEGIN
             v_src := NULL; v_prov := NULL;   -- 没有价就没有出处
         END IF;
 
+        -- ── PO-GST-1:这一行的税 ─────────────────────────────────────────────
+        -- 【税码在行上】一张单可以混税率:标准税率的货,旁边一条零税率或不在
+        -- 范围内的行 —— 表头一个码说不出这件事。本行可以覆盖供应商的默认。
+        --
+        -- ★【没有税码就按名拒,不当成零】★ resolve_tax_code 已经替我们守着这一条
+        -- (TAX_CODE_REQUIRED|supplier),而它正是【费用那一层用的同一支函数】——
+        -- 采购单在这件事上与费用【逐字同一条规矩】。一个悄悄的 0 会印在一张
+        -- 要发给供应商的纸上,那是一个错的数,不是一个空白。
+        --
+        -- 【GST 未注册时:与建 GST 之前一模一样】不解析、不盖码、不算税,
+        -- 三列留 NULL —— 与 create_invoice / create_order_invoice 逐字同一个形状。
+        IF v_gst THEN
+            v_tax_code := resolve_tax_code(v_line->>'tax_code', v_sup_tax_default, 'input', 'supplier');
+            v_tax_rate := tax_rate_for(v_tax_code, v_date);
+            -- 【逐行取整】口径与出处见 tax_amount_for 的抬头。
+            -- v_amount 为 NULL(公式定价、下单时还没有价)时税也是 NULL ——
+            -- 没有净额就没有税额,而不是零。
+            v_line_tax := CASE WHEN v_amount IS NULL THEN NULL
+                               ELSE tax_amount_for(v_amount, v_tax_rate) END;
+            v_tax_total := v_tax_total + COALESCE(v_line_tax, 0);
+        ELSE
+            IF NULLIF(btrim(COALESCE(v_line->>'tax_code', '')), '') IS NOT NULL THEN
+                RAISE EXCEPTION 'GST_NOT_REGISTERED|%', v_line->>'tax_code';
+            END IF;
+            v_tax_code := NULL; v_tax_rate := NULL; v_line_tax := NULL;
+        END IF;
+
         INSERT INTO purchase_order_lines (purchase_order_id, line_no, material_id, asset_id, quantity,
                                           unit, pricing_formula_id, estimated_unit_price,
                                           estimated_amount_ccy, expected_assay, notes, created_by,
-                                          price_source, price_provenance)
+                                          price_source, price_provenance,
+                                          tax_code, tax_rate_pct, tax_amount_ccy)
         VALUES (v_po_id, v_line_no, v_material, v_asset, v_qty,
                 COALESCE(v_line->>'unit', CASE WHEN v_asset IS NOT NULL THEN 'unit' ELSE 'kg' END), v_formula, v_price,
                 v_amount, v_line->'expected_assay', v_line->>'notes', v_user,
-                v_src, v_prov)
+                v_src, v_prov,
+                v_tax_code, v_tax_rate, v_line_tax)
         RETURNING id INTO v_line_id;
 
         -- ── FIN-27:承诺时抄下结算条款 ───────────────────────────────────────
@@ -224,7 +266,11 @@ BEGIN
         END IF;
     END LOOP;
 
-    UPDATE purchase_orders SET estimated_total_ccy = v_total, updated_by = v_user
+    -- 【净额那一列的含义没有变】estimated_total_ccy 仍然是净额 —— 审批级别、
+    -- 付款里程碑的百分比、现金预测三样都挂在它上面(见该列注释)。税另立一列。
+    UPDATE purchase_orders SET estimated_total_ccy = v_total,
+                               tax_total_ccy = CASE WHEN v_gst THEN v_tax_total ELSE NULL END,
+                               updated_by = v_user
     WHERE id = v_po_id;
 
     -- EQP-PAY-1:行落完了,所以这张单的种类【现在】问得出来。混装已在上面拒掉,
@@ -293,6 +339,8 @@ BEGIN
         'purchase_order_id', v_po_id,
         'code', v_code,
         'estimated_total_ccy', v_total,
+        'tax_total_ccy', CASE WHEN v_gst THEN v_tax_total ELSE NULL END,
+        'gross_total_ccy', CASE WHEN v_gst THEN v_total + v_tax_total ELSE NULL END,
         'line_count', v_count,
         'committed_line_count', v_committed,
         'term_count', v_term_count,

@@ -34,6 +34,11 @@ export type PoDocLine = {
     amount_ccy: number
     expected_assay: Record<string, unknown> | null
     notes: string | null
+    // PO-GST-1:行上的税。tax_code 为 null = 这一行开在采购单携带税之前,
+    // 或开在 GST 未注册的时候 —— **不是零税**。
+    tax_code: string | null
+    tax_rate_pct: number | null
+    tax_amount_ccy: number | null
     price_is_manual_estimate: boolean
     pricing_status: 'provisional_committed' | 'provisional_uncommitted' | 'fixed' | 'not_priced'
     committed_terms: PoCommittedTerms | null
@@ -48,6 +53,12 @@ export type PoDocData = {
     terms_text: string | null
     notes: string | null
     estimated_total_ccy: number
+    // PO-GST-1:净额 / 税 / 含税额 —— 三个数都来自 po_document_data,
+    // 屏幕读的是同一支函数所依据的同两列。gross 由函数加一次,不另存。
+    tax_total_ccy: number | null
+    gross_total_ccy: number
+    carries_tax: boolean
+    has_out_of_scope_line: boolean
     supplier: { legal_name: string; address: string | null; country: string | null; tax_id: string | null }
     lines: PoDocLine[]
     payment_terms: {
@@ -250,11 +261,50 @@ export default function PurchaseOrderDocument({
                             <Text style={styles.cAmt}>{num(l.amount_ccy)}</Text>
                         </View>
                     ))}
-                    <View style={styles.totalRow}>
-                        <Text style={styles.totalLabel}>Estimated total ({data.currency})</Text>
-                        <Text>{num(data.estimated_total_ccy)}</Text>
-                    </View>
+                    {/* ★★【PO-GST-1:这张纸上不再有一个孤零零的「Estimated total」】★★
+                        供应商拿到的必须是他将要开票的那个数。净额 / GST / 含税额
+                        三行分开印,含税额加粗 —— 那一行才是承诺出去的现金。
+                        【不带税的历史单据仍然只印一行】carries_tax 为 false 时
+                        (本刀之前开的单,或 GST 未注册时开的单)不印一个 0.00 的
+                        GST 行 —— 那会是一句断言,而真相是"这张单没有算过税"。 */}
+                    {data.carries_tax ? (
+                        <>
+                            <View style={styles.totalRow}>
+                                <Text style={styles.totalLabel}>Subtotal (excl. GST) ({data.currency})</Text>
+                                <Text>{num(data.estimated_total_ccy)}</Text>
+                            </View>
+                            <View style={styles.totalRow}>
+                                <Text style={styles.totalLabel}>GST ({data.currency})</Text>
+                                <Text>{num(data.tax_total_ccy ?? 0)}</Text>
+                            </View>
+                            <View style={styles.totalRow}>
+                                <Text style={[styles.totalLabel, { fontWeight: 'bold' }]}>
+                                    Total payable (incl. GST) ({data.currency})
+                                </Text>
+                                <Text style={{ fontWeight: 'bold' }}>{num(data.gross_total_ccy)}</Text>
+                            </View>
+                        </>
+                    ) : (
+                        <View style={styles.totalRow}>
+                            <Text style={styles.totalLabel}>Estimated total ({data.currency})</Text>
+                            <Text>{num(data.estimated_total_ccy)}</Text>
+                        </View>
+                    )}
                 </View>
+
+                {/* ★【①b:不在范围内的行,要在纸上说清 GST 付给谁】★
+                    一条 OP 行的 GST 不是零 —— 是【不付给这家供应商】。
+                    进口货物的 GST 在清关时付给新加坡海关。不说这一句,
+                    一个读到「GST 0.00」的供应商会以为这批货完全不涉税。 */}
+                {data.has_out_of_scope_line ? (
+                    <View style={styles.section}>
+                        <Text>
+                            Lines marked out-of-scope (OP) carry no Singapore GST payable to you.
+                            Import GST on these goods, if any, is paid by us to Singapore Customs
+                            at the point of clearance.
+                        </Text>
+                    </View>
+                ) : null}
 
                 {data.payment_terms.length > 0 ? (
                     <View style={styles.section}>

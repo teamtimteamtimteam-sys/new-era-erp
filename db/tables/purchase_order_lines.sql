@@ -46,7 +46,13 @@ CREATE TABLE public.purchase_order_lines (
     -- ── PROC-1B-iii 追加(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────
     -- R1:【能不能深度放电】这个判断在【采购时】做出,在货到之前 —— 那一刻
     -- 进料批还不存在。放在这里不是图方便,是放在它真正发生的地方。
-    deep_discharge_judgement_code text REFERENCES public.deep_discharge_judgements (code)
+    deep_discharge_judgement_code text REFERENCES public.deep_discharge_judgements (code),
+    -- ── PO-GST-1 追加(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────────
+    -- 【税码在行上,不在表头】一张单可以混税率:标准税率的货,旁边一条零税率
+    -- 或不在范围内的行 —— 表头一个码说不出这件事。三列的完整含义见列注释。
+    tax_code       text REFERENCES public.tax_codes (code),
+    tax_rate_pct   numeric,
+    tax_amount_ccy numeric
 );
 
 COMMENT ON CONSTRAINT purchase_order_lines_equipment_qty_one ON public.purchase_order_lines IS
@@ -115,7 +121,10 @@ GRANT SELECT (id, purchase_order_id, line_no, material_id, quantity, unit, prici
     -- PROC-1B-iii:采购时的那个判断。【不敏感】,进列清单授权 —— 给遮蔽表加列
     -- 必须同时做三件事(ADD COLUMN + 本授权 + _masked 视图),少一件就"写得进、读不出",
     -- 而且【一个字的报错都不会有】。本刀的主迁移漏了后两件,由 fu1 补上。
-    deep_discharge_judgement_code)
+    deep_discharge_judgement_code,
+    -- PO-GST-1:税码与税率【不敏感】(分类 + 法定税率),进列清单授权;
+    -- tax_amount_ccy 【是钱】,不在这里 —— 只经 _masked 读。
+    tax_code, tax_rate_pct)
     ON public.purchase_order_lines TO authenticated;
 
 -- ── PUR-2:已收下限与留痕 ────────────────────────────────────────────────────
@@ -170,3 +179,24 @@ ALTER TABLE public.expenses
 -- guard_po_line_received_floor 的删除支要查这条行上【全部状态】的支出(已冲销的
 -- 也算 —— 外键照样指着);uq_expenses_live_po_line 只收 posted 的,谓词不蕴含。
 CREATE INDEX idx_expenses_po_line ON public.expenses (purchase_order_line_id);
+
+
+-- ── PO-GST-1(2026-09-03)· 行上的税 ─────────────────────────────────────────
+COMMENT ON COLUMN public.purchase_order_lines.tax_code IS
+'PO-GST-1:这一行在 GST 上是什么性质 —— 【进项侧】的码(TX/ZP/EP/BL/OP)。
+下单时由供应商的 default_tax_code 播下来,经 resolve_tax_code 校验(它同时挡住
+挂反了侧别的码);本行可以覆盖。**可空** —— NULL 只出现在两种行上:
+本刀之前开的历史行,以及 GST 未注册时开的行。NULL【不是】"零税",
+两者在 F5 上完全不同,而屏幕与 PDF 对它们说的是两句不同的话。';
+
+COMMENT ON COLUMN public.purchase_order_lines.tax_rate_pct IS
+'PO-GST-1:【下单那一天】这个税码的税率,冻在行上。
+★ 为什么存下来而不是读的时候再算 ★ 税率会变 —— 新加坡 7% → 8% → 9%,
+tax_rates 上三段生效期间都还在。拿今天的税率去重算一张 2023 年的单,
+得到的是一个【历史上从未存在过】的数字。本仓库到处分"当时是多少"与"现在是多少"
+(资产按购置日汇率定格、化验按报价期均价),税不给豁免。';
+
+COMMENT ON COLUMN public.purchase_order_lines.tax_amount_ccy IS
+'PO-GST-1:这一行的税额,以【单据币种】计,tax_amount_for 逐行取整两位小数。
+表头的 tax_total_ccy = Σ 本列。**敏感列**(它是从价格推出来的钱):
+随 data.view_prices 遮蔽,与 estimated_amount_ccy 同一扇门。';

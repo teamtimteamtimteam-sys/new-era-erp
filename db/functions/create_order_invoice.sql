@@ -158,7 +158,8 @@ BEGIN
         BEGIN
             FOR v_e IN SELECT * FROM jsonb_array_elements(v_lines)
             LOOP
-                v_line_tax := round((v_e->>'amount_ccy')::numeric * v_tax_rate / 100.0, 2);
+                -- PO-GST-1:提取成 tax_amount_for(表达式逐字未变)。
+                v_line_tax := tax_amount_for((v_e->>'amount_ccy')::numeric, v_tax_rate);
                 v_tax      := v_tax + v_line_tax;
                 v_tax_base := v_tax_base + round(v_line_tax * v_order.fx_rate, 2);
                 v_acc := v_acc || (v_e || jsonb_build_object('tax_ccy', v_line_tax));

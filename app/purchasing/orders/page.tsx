@@ -36,6 +36,11 @@ type Row = {
     expected_delivery_date: string | null
     currency: string
     estimated_total_ccy: number
+    // PO-GST-1:清单也说得出税。carries_tax 为 false = 这张单开在采购单携带税
+    // 之前(或 GST 未注册时)—— **不是零税**,所以 GST 那一格印「—」不印 0.00。
+    tax_total_ccy: number | null
+    gross_total_ccy: number
+    carries_tax: boolean
     prepaid_base: number | null
     prepaid_remaining_base: number | null
     receipt_pct: number | null
@@ -95,13 +100,13 @@ export default async function PurchaseOrdersPage({
         const { data } = await applyFilters(
             supabase
                 .from('purchase_orders_masked')
-                .select('id, code, order_date, expected_delivery_date, currency, estimated_total_ccy, status, suppliers(legal_name)')
+                .select('id, code, order_date, expected_delivery_date, currency, estimated_total_ccy, tax_total_ccy, gross_total_ccy, carries_tax, status, suppliers(legal_name)')
                 .eq('status', 'cancelled')
                 .is('deleted_at', null)
         )
             .order('order_date', { ascending: false })
             .range((page - 1) * PAGE_SIZE, (page - 1) * PAGE_SIZE + PAGE_SIZE - 1)
-        rows = ((data as unknown as { id: string; code: string; order_date: string; expected_delivery_date: string | null; currency: string; estimated_total_ccy: number; status: string; suppliers: { legal_name: string } | null }[] | null) ?? []).map((r) => ({
+        rows = ((data as unknown as { id: string; code: string; order_date: string; expected_delivery_date: string | null; currency: string; estimated_total_ccy: number; tax_total_ccy: number | null; gross_total_ccy: number; carries_tax: boolean; status: string; suppliers: { legal_name: string } | null }[] | null) ?? []).map((r) => ({
             po_id: r.id,
             code: r.code,
             supplier_name: r.suppliers?.legal_name ?? null,
@@ -109,6 +114,9 @@ export default async function PurchaseOrdersPage({
             expected_delivery_date: r.expected_delivery_date,
             currency: r.currency,
             estimated_total_ccy: r.estimated_total_ccy,
+            tax_total_ccy: r.tax_total_ccy,
+            gross_total_ccy: r.gross_total_ccy,
+            carries_tax: r.carries_tax,
             prepaid_base: null,
             prepaid_remaining_base: null,
             receipt_pct: null,
@@ -129,7 +137,7 @@ export default async function PurchaseOrdersPage({
         const { data } = await applyStatus(
             supabase
                 .from('purchase_order_status')
-                .select('po_id, code, supplier_name, order_date, expected_delivery_date, currency, estimated_total_ccy, prepaid_base, prepaid_remaining_base, receipt_pct, status')
+                .select('po_id, code, supplier_name, order_date, expected_delivery_date, currency, estimated_total_ccy, tax_total_ccy, gross_total_ccy, carries_tax, prepaid_base, prepaid_remaining_base, receipt_pct, status')
         )
             .order('order_date', { ascending: false })
             .range((page - 1) * PAGE_SIZE, (page - 1) * PAGE_SIZE + PAGE_SIZE - 1)
@@ -193,7 +201,10 @@ export default async function PurchaseOrdersPage({
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('purchasing.colSupplier')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('purchasing.colOrderDate')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('purchasing.colExpectedDelivery')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('purchasing.colEstimatedTotal')}</th>
+                        {/* PO-GST-1:清单不再只有一个总额 —— 净额 / GST / 应付总额。 */}
+                        <th className="border border-gray-300 px-4 py-2 text-right">{t('purchasing.colNetTotal')}</th>
+                        <th className="border border-gray-300 px-4 py-2 text-right">{t('purchasing.colTaxTotal')}</th>
+                        <th className="border border-gray-300 px-4 py-2 text-right">{t('purchasing.colGrossTotal')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-right">{t('purchasing.colPrepaid')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('purchasing.colReceipt')}</th>
                         <th className="border border-gray-300 px-4 py-2 text-left">{t('purchasing.colStatus')}</th>
@@ -217,8 +228,18 @@ export default async function PurchaseOrdersPage({
                             <td className="border border-gray-300 px-4 py-2">{r.supplier_name ?? '—'}</td>
                             <td className="border border-gray-300 px-4 py-2">{r.order_date}</td>
                             <td className="border border-gray-300 px-4 py-2">{r.expected_delivery_date ?? '—'}</td>
+                            {/* PO-GST-1:净额 / GST / 应付总额。
+                                【GST 那一格印「—」不印 0.00】carries_tax 为 false 的行
+                                是"没有算过税",不是"税是零" —— 一个 0.00 会把前者
+                                说成后者,而那是这张清单上唯一会撒的谎。 */}
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                 {formatAmount(r.estimated_total_ccy, r.currency)}
+                            </td>
+                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                {r.carries_tax ? formatAmount(r.tax_total_ccy ?? 0, r.currency) : '—'}
+                            </td>
+                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm font-medium">
+                                {formatAmount(r.carries_tax ? r.gross_total_ccy : r.estimated_total_ccy, r.currency)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                 <MaskedValue value={r.prepaid_base === null ? null : formatAmount(r.prepaid_base, baseCurrency)} canView={canFinance} fallback="—" />
@@ -260,7 +281,7 @@ export default async function PurchaseOrdersPage({
                     ))}
                     {rows.length === 0 && (
                         <tr>
-                            <td colSpan={8} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
+                            <td colSpan={10} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
                                 {t('purchasing.empty')}
                             </td>
                         </tr>

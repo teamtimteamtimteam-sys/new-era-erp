@@ -160,7 +160,8 @@ BEGIN
         -- 表头的税 = Σ 行税,不是 round(Σ 行净额 × 税率) —— 两种算法差几分,
         -- 而客户手里那张纸上印的是行。
         v_line_tax := CASE WHEN v_tax_code IS NULL THEN 0
-                           ELSE round(v_sale.amount_base * v_tax_rate / 100.0, 2) END;
+                           -- PO-GST-1:提取成 tax_amount_for(表达式逐字未变)。
+                           ELSE tax_amount_for(v_sale.amount_base, v_tax_rate) END;
 
         v_no := v_no + 1;
         v_lines := v_lines || jsonb_build_object(

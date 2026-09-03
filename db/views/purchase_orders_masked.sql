@@ -1,6 +1,7 @@
 -- db/views/purchase_orders_masked.sql
 -- 遮蔽伴生视图:purchase_orders 的每一列都在,敏感列按 has_permission() 置空。
---   遮蔽的列:estimated_total_ccy → data.view_prices, fx_rate → data.view_prices
+--   遮蔽的列:estimated_total_ccy → data.view_prices, fx_rate → data.view_prices,
+--             tax_total_ccy → data.view_prices(PO-GST-1)
 --
 -- 【属主权限,不是 SECURITY INVOKER】。invoker 视图以调用者身份读基表,于是任何
 -- 强到能挡住原始列的机制(收紧行策略、或收回列权限)同样会挡住视图本身 —— 实测
@@ -50,6 +51,23 @@ CREATE VIEW public.purchase_orders_masked WITH (security_invoker = off) AS
     -- 它的每一列要么被列授权、要么在 _masked 里(WO-1a 那一课:ADD/GRANT/_masked
     -- 三件事要在同一次迁移里做完 —— KPI-1 为漏掉后两件付过一次账)。
     -- 【条款不从这一列读】它只是导航;条款读 contract_document_terms 那份副本。
-    contract_id
+    contract_id,
+    -- PO-GST-1(2026-09-03):这张单的税额合计。**是钱** —— 与 estimated_total_ccy
+    -- 同一扇门。净额那一列一个字节没动,含税额在读的那一侧相加(见列注释)。
+        CASE
+            WHEN has_permission('data.view_prices'::text) THEN tax_total_ccy
+            ELSE NULL::numeric
+        END AS tax_total_ccy,
+    -- PO-GST-1-fu2:含税额 —— **屏幕读这一列,自己不做加法**。
+    -- 委托 ①d 的那条要求:屏幕与 PDF 必须读同一个来源。net 与 tax 本来就是同两列,
+    -- 而 gross = net + tax 这次加法若两边各写一遍,就是第二份实现。
+    -- 【不落库成第三列】导出量不存;存了就会有"净额改了而它没跟上"的错数。
+    -- 遮蔽自然传导:分量为 NULL 时整个表达式就是 NULL。
+        CASE WHEN has_permission('data.view_prices'::text)
+             THEN estimated_total_ccy + COALESCE(tax_total_ccy, 0)
+             ELSE NULL::numeric END AS gross_total_ccy,
+    -- 这张单【算过税吗】—— NULL 的税额合计【不是】零税:它是"开在 PO-GST-1 之前,
+    -- 或开在 GST 未注册的时候"。屏幕靠它决定说哪一句话,而不是印一个 0.00。
+    (tax_total_ccy IS NOT NULL) AS carries_tax
    FROM purchase_orders
   WHERE has_permission('module.purchasing.view'::text);

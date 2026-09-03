@@ -17,6 +17,11 @@ DECLARE
     v_plan_fixed numeric;
     v_plan_pct   numeric;
     v_changed  integer := 0;
+    -- ── PO-GST-1:改单之后,存下来的税要跟着改过的行走 ────────────────────────
+    v_gst        boolean := gst_registered();
+    v_sup_tax_default text;
+    v_tax_code   text;
+    v_tax_rate   numeric;
 BEGIN
     PERFORM require_permission('module.purchasing.edit');
 
@@ -36,6 +41,9 @@ BEGIN
     IF v_po.status IN ('closed','cancelled') THEN
         RAISE EXCEPTION 'PO_NOT_AMENDABLE|%|%', v_po.code, v_po.status;
     END IF;
+
+    -- PO-GST-1:新增行要用到供应商的默认进项税码(与建单同一条播种规则)。
+    SELECT default_tax_code INTO v_sup_tax_default FROM suppliers WHERE id = v_po.supplier_id;
 
     -- 理由传给留痕触发器(触发器读不到函数参数)
     PERFORM set_config('evoltrya.amend_reason', btrim(p_reason), true);
@@ -115,15 +123,32 @@ BEGIN
                 ) THEN
                     RAISE EXCEPTION 'ASSET_NOT_FOUND|%', v_el->>'asset_id';
                 END IF;
+                -- ── PO-GST-1:改单加进来的【新行】与建单同口径 ──────────────
+                -- ★ 税率按【这张单的下单日】解析,不是按今天 ★ 一张单上所有的行
+                -- 共用同一个日期的税率;拿今天的税率去补一条 2023 年的单上的新行,
+                -- 会让同一张纸上出现两个不同的税率。
+                IF v_gst THEN
+                    v_tax_code := resolve_tax_code(v_el->>'tax_code', v_sup_tax_default, 'input', 'supplier');
+                    v_tax_rate := tax_rate_for(v_tax_code, v_po.order_date);
+                ELSE
+                    IF NULLIF(btrim(COALESCE(v_el->>'tax_code', '')), '') IS NOT NULL THEN
+                        RAISE EXCEPTION 'GST_NOT_REGISTERED|%', v_el->>'tax_code';
+                    END IF;
+                    v_tax_code := NULL; v_tax_rate := NULL;
+                END IF;
                 INSERT INTO purchase_order_lines (purchase_order_id, line_no, material_id, asset_id,
-                    quantity, unit, estimated_unit_price, estimated_amount_ccy, notes, created_by)
+                    quantity, unit, estimated_unit_price, estimated_amount_ccy, notes, created_by,
+                    tax_code, tax_rate_pct, tax_amount_ccy)
                 VALUES (p_purchase_order_id,
                     COALESCE((v_el->>'line_no')::integer,
                         (SELECT COALESCE(MAX(line_no), 0) + 1 FROM purchase_order_lines
                           WHERE purchase_order_id = p_purchase_order_id)),
                     (v_el->>'material_id')::uuid, (v_el->>'asset_id')::uuid,
                     v_qty, COALESCE(v_el->>'unit', CASE WHEN (v_el->>'asset_id') IS NOT NULL THEN 'unit' ELSE 'kg' END),
-                    v_price, round(v_qty * COALESCE(v_price, 0), 2), v_el->>'notes', v_user);
+                    v_price, round(v_qty * COALESCE(v_price, 0), 2), v_el->>'notes', v_user,
+                    v_tax_code, v_tax_rate,
+                    CASE WHEN v_tax_rate IS NULL THEN NULL
+                         ELSE tax_amount_for(round(v_qty * COALESCE(v_price, 0), 2), v_tax_rate) END);
             ELSE
                 -- 【已收下限由触发器把关】砍到已收之下 → PO_LINE_BELOW_RECEIVED
                 UPDATE purchase_order_lines SET
@@ -133,7 +158,17 @@ BEGIN
                         THEN v_price ELSE estimated_unit_price END,
                     estimated_amount_ccy = round(v_qty * COALESCE(
                         CASE WHEN v_el ? 'estimated_unit_price' THEN v_price
-                             ELSE estimated_unit_price END, 0), 2)
+                             ELSE estimated_unit_price END, 0), 2),
+                    -- ★★【PO-GST-1:改过的行,税跟着【新的净额】重算 —— 但税【率】
+                    --     不重解析】★★ 改单改的是数量或单价,不是这一行的税务性质,
+                    --     也不是这张单的日期。用行上冻着的那个 tax_rate_pct 重算,
+                    --     于是 ①c 那条"存下来的税不随今天的税率漂移"在改单之后仍然成立。
+                    --     【历史行(tax_rate_pct 为 NULL)保持 NULL】—— 改一改数量,
+                    --     不该让一张 PO-GST-1 之前的单凭空长出一个它当时没有的税额。
+                    tax_amount_ccy = CASE WHEN tax_rate_pct IS NULL THEN NULL
+                        ELSE tax_amount_for(round(v_qty * COALESCE(
+                            CASE WHEN v_el ? 'estimated_unit_price' THEN v_price
+                                 ELSE estimated_unit_price END, 0), 2), tax_rate_pct) END
                 WHERE id = v_line_id AND purchase_order_id = p_purchase_order_id;
                 IF NOT FOUND THEN
                     RAISE EXCEPTION 'PO_LINE_NOT_FOUND|%', v_line_id;
@@ -147,10 +182,16 @@ BEGIN
     -- 【顺序就是要点】这一列是 APR-2 作废触发器盯着的东西。若先改行、再另起一条
     -- 语句写总额,触发器判断时依据的总额与产生它的那批行已经不是一回事 ——
     -- 那会产生一个看起来完全正常、却基于陈旧数字的审批决定。
+    -- PO-GST-1:税额合计与净额【在同一条语句里】算完 —— 理由与上面那段逐字相同
+    -- (作废触发器盯着的是净额那一列,而两个数必须来自同一批行)。
+    -- 【SUM 而不是 COALESCE(...,0)】全是 NULL(历史单/未注册)时合计就是 NULL,
+    -- 那正是"这张单没有税"与"这张单的税是零"的区别。
     UPDATE purchase_orders po SET
         estimated_total_ccy = COALESCE(s.total, 0),
+        tax_total_ccy = s.tax_total,
         updated_by = v_user
-    FROM (SELECT COALESCE(SUM(estimated_amount_ccy), 0) AS total
+    FROM (SELECT COALESCE(SUM(estimated_amount_ccy), 0) AS total,
+                 SUM(tax_amount_ccy) AS tax_total
             FROM purchase_order_lines WHERE purchase_order_id = p_purchase_order_id) s
     WHERE po.id = p_purchase_order_id;
 

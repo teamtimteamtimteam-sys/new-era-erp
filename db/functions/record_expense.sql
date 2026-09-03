@@ -253,7 +253,9 @@ BEGIN
         -- 要么按名拒。不猜。
         v_tax_code := resolve_tax_code(p_tax_code, v_sup_default, 'input', 'supplier');
         v_tax_rate := tax_rate_for(v_tax_code, p_expense_date);
-        v_tax_ccy  := round(p_amount * v_tax_rate / 100.0, 2);
+        -- PO-GST-1:提取成 tax_amount_for —— 【表达式一个字符都没变】,
+        -- 只是这一行此前在三处各写了一遍。见该函数抬头。
+        v_tax_ccy  := tax_amount_for(p_amount, v_tax_rate);
         v_tax_base := round(v_tax_ccy * v_fx, 2);
         SELECT is_claimable INTO v_claimable FROM tax_codes WHERE code = v_tax_code;
     ELSE

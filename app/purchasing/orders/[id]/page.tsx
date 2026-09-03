@@ -56,7 +56,7 @@ export default async function PurchaseOrderDetailPage({
 
     const { data: poRaw, error } = await supabase
         .from('purchase_orders_masked')
-        .select('id, code, supplier_id, order_date, expected_delivery_date, currency, fx_rate, estimated_total_ccy, status, approval_status, incoterm, terms_text, notes, cancelled_at, cancel_reason, cancelled_by')
+        .select('id, code, supplier_id, order_date, expected_delivery_date, currency, fx_rate, estimated_total_ccy, tax_total_ccy, gross_total_ccy, carries_tax, status, approval_status, incoterm, terms_text, notes, cancelled_at, cancel_reason, cancelled_by')
         .eq('id', id)
         .is('deleted_at', null)
         .single()
@@ -76,7 +76,8 @@ export default async function PurchaseOrderDetailPage({
     // 这张字典没有 _masked 伴生,表级 SELECT 授权给 authenticated,直读。
     const ddRes = await supabase.from('deep_discharge_judgements')
         .select('code, name_en, name_zh').eq('is_active', true).order('sort_order')
-    const po = maskedExcept<Tables<'purchase_orders'>, 'fx_rate' | 'estimated_total_ccy'>(poRaw)
+    const po = maskedExcept<Tables<'purchase_orders'>, 'fx_rate' | 'estimated_total_ccy'>(poRaw) as unknown as
+        (Tables<'purchase_orders'> & { tax_total_ccy: number | null; gross_total_ccy: number | null; carries_tax: boolean })
 
     const [supplierRes, linesRes, termsRes, statusRes, receiptsRes, apprRes, issuesRes, historyRes] = await Promise.all([
         supabase.from('suppliers').select('id, legal_name').eq('id', po.supplier_id).single(),
@@ -474,8 +475,12 @@ export default async function PurchaseOrderDetailPage({
                 )}
                 <div>{statusPill}</div>
                 <div>
-                    <span className="text-gray-600 mr-1">{t('purchasing.colEstimatedTotal')}:</span>
-                    <span className="font-mono font-medium">{formatMoneyBare(po.estimated_total_ccy, '同一张头卡上的「币种」字段')}</span>
+                    <span className="text-gray-600 mr-1">
+                        {po.carries_tax ? t('purchasing.colGrossTotal') : t('purchasing.colEstimatedTotal')}:
+                    </span>
+                    <span className="font-mono font-medium">{formatMoneyBare(
+                        po.carries_tax ? po.gross_total_ccy : po.estimated_total_ccy,
+                        '同一张头卡上的「币种」字段')}</span>
                 </div>
             </div>
 
@@ -708,14 +713,48 @@ export default async function PurchaseOrderDetailPage({
                     ))}
                 </tbody>
                 <tfoot>
-                    <tr className="bg-gray-100 font-bold">
-                        <td colSpan={5} className="border border-gray-300 px-3 py-2 text-right">
-                            {t('purchasing.colEstimatedTotal')}
-                        </td>
-                        <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                            {formatMoneyBare(po.estimated_total_ccy, '头卡「币种」—— 明细行是单据币种')}
-                        </td>
-                    </tr>
+                    {/* ★★【PO-GST-1:不再有一个孤零零的「估算总额」】★★
+                        供应商将要开票的那个数是含税的那一个,而承诺出去的现金也是它。
+                        三行分开印,与发给供应商的 PDF 逐字对应。
+                        【不带税的历史单据只印一行】carries_tax 为 false 时不印
+                        「GST 0.00」—— 那会是一句断言,而真相是"这张单没有算过税"。 */}
+                    {po.carries_tax ? (
+                        <>
+                            <tr className="bg-gray-50">
+                                <td colSpan={5} className="border border-gray-300 px-3 py-2 text-right">
+                                    {t('purchasing.colNetTotal')}
+                                </td>
+                                <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
+                                    {formatMoneyBare(po.estimated_total_ccy, '头卡「币种」—— 明细行是单据币种')}
+                                </td>
+                            </tr>
+                            <tr className="bg-gray-50">
+                                <td colSpan={5} className="border border-gray-300 px-3 py-2 text-right">
+                                    {t('purchasing.colTaxTotal')}
+                                </td>
+                                <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
+                                    {formatMoneyBare(po.tax_total_ccy, '头卡「币种」—— 明细行是单据币种')}
+                                </td>
+                            </tr>
+                            <tr className="bg-gray-100 font-bold">
+                                <td colSpan={5} className="border border-gray-300 px-3 py-2 text-right">
+                                    {t('purchasing.colGrossTotal')}
+                                </td>
+                                <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
+                                    {formatMoneyBare(po.gross_total_ccy, '头卡「币种」—— 明细行是单据币种')}
+                                </td>
+                            </tr>
+                        </>
+                    ) : (
+                        <tr className="bg-gray-100 font-bold">
+                            <td colSpan={5} className="border border-gray-300 px-3 py-2 text-right">
+                                {t('purchasing.colEstimatedTotal')}
+                            </td>
+                            <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
+                                {formatMoneyBare(po.estimated_total_ccy, '头卡「币种」—— 明细行是单据币种')}
+                            </td>
+                        </tr>
+                    )}
                 </tfoot>
             </table>
 
@@ -731,7 +770,17 @@ export default async function PurchaseOrderDetailPage({
                 采购单是一个承诺,不是纳税时点;进项税的抵扣挂在供应商开来的税务发票上。
                 【所以本刀不接税,只说话】—— 一个金额旁边什么都不写,读的人只能猜,
                 而这一次的猜法已经让一张单被取消掉了。 */}
-            <p className="text-sm text-gray-600 mb-6">{t('purchasing.gstExclusiveNote')}</p>
+            {/* PO-GST-1 取代了 FA-PO-1 那一句。那一句说的是"本单不含税,税在录发票时产生"
+                —— 在 Tim 裁定采购单必须携带税之后,它【不再为真】。留着一句过期的
+                解释比没有解释更坏:它会让人相信屏幕上那个数是全部。 */}
+            {po.carries_tax ? (
+                <p className="text-sm text-gray-600 mb-2">{t('purchasing.gstOnOrderNote')}</p>
+            ) : (
+                <p className="text-sm text-gray-600 mb-2">{t('purchasing.gstNotCarriedNote')}</p>
+            )}
+            {lines.some((l) => (l as { tax_code?: string | null }).tax_code === 'OP') && (
+                <p className="text-sm text-gray-600 mb-6">{t('purchasing.gstOutOfScopeNote')}</p>
+            )}
 
             {/* 付款计划 + 预付摘要 */}
             <div className="grid gap-6 md:grid-cols-3 mb-6">

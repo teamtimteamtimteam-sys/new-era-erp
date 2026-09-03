@@ -60,7 +60,12 @@ CREATE TABLE public.purchase_orders (
     -- ★【它是【导航】,不是条款的来源】★ 条款读 contract_document_terms 那份
     --   【挂上去那一刻抄下来的】副本 —— 顺着这一列回查合同"现在"的条款,
     --   就是把抄退化成引用,而退化是静悄悄的。
-    contract_id   uuid REFERENCES public.contracts (id) ON DELETE RESTRICT
+    contract_id   uuid REFERENCES public.contracts (id) ON DELETE RESTRICT,
+    -- ── PO-GST-1 追加(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────────
+    -- 这张单的税额合计 = Σ 行 tax_amount_ccy。**净额那一列没有动。**
+    -- 【它不在下面的列清单授权里,这是刻意的】它是钱,与 estimated_total_ccy /
+    -- fx_rate 同一档 —— 只经 purchase_orders_masked 读。
+    tax_total_ccy numeric
 );
 
 COMMENT ON COLUMN public.purchase_orders.contract_id IS
@@ -151,3 +156,14 @@ CREATE TRIGGER trg_purchase_orders_soft_delete_provenance
 CREATE TRIGGER trg_purchase_orders_vendor_not_forwarder
     BEFORE INSERT OR UPDATE ON public.purchase_orders
     FOR EACH ROW EXECUTE FUNCTION guard_po_vendor_not_forwarder();
+
+
+-- ── PO-GST-1(2026-09-03)· 表头的税额合计 ───────────────────────────────────
+COMMENT ON COLUMN public.purchase_orders.tax_total_ccy IS
+'PO-GST-1:这张单的税额合计,单据币种,= Σ 行 tax_amount_ccy(逐行取整后相加)。
+★【estimated_total_ccy 仍然是【净额】,PO-GST-1 一个字节都没动它】★ 三样东西挂在那一列上:
+审批级别(approval_level_for)、付款里程碑的百分比(purchase_order_payment_terms.percentage
+的定义就是"对该 PO 的 estimated_total_ccy 而言")、现金预测(cash_forecast_data)。
+把那一列改成含税,这三样会对【既有单据】同时移位。含税额 =
+estimated_total_ccy + COALESCE(tax_total_ccy, 0),在读的那一侧相加。
+**可空**:NULL = 这张单开在 PO-GST-1 之前,或 GST 未注册 —— 【不是零税】。';

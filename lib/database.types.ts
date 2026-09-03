@@ -12520,6 +12520,9 @@ export type Database = {
           pricing_formula_id: string | null
           purchase_order_id: string
           quantity: number
+          tax_amount_ccy: number | null
+          tax_code: string | null
+          tax_rate_pct: number | null
           unit: string
         }
         Insert: {
@@ -12539,6 +12542,9 @@ export type Database = {
           pricing_formula_id?: string | null
           purchase_order_id: string
           quantity: number
+          tax_amount_ccy?: number | null
+          tax_code?: string | null
+          tax_rate_pct?: number | null
           unit?: string
         }
         Update: {
@@ -12558,6 +12564,9 @@ export type Database = {
           pricing_formula_id?: string | null
           purchase_order_id?: string
           quantity?: number
+          tax_amount_ccy?: number | null
+          tax_code?: string | null
+          tax_rate_pct?: number | null
           unit?: string
         }
         Relationships: [
@@ -12679,6 +12688,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "purchase_orders_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_tax_code_fkey"
+            columns: ["tax_code"]
+            isOneToOne: false
+            referencedRelation: "tax_codes"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -12813,6 +12829,7 @@ export type Database = {
           order_date: string
           status: string
           supplier_id: string
+          tax_total_ccy: number | null
           terms_text: string | null
           updated_at: string
           updated_by: string | null
@@ -12842,6 +12859,7 @@ export type Database = {
           order_date: string
           status?: string
           supplier_id: string
+          tax_total_ccy?: number | null
           terms_text?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -12871,6 +12889,7 @@ export type Database = {
           order_date?: string
           status?: string
           supplier_id?: string
+          tax_total_ccy?: number | null
           terms_text?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -21983,6 +22002,9 @@ export type Database = {
           pricing_formula_id: string | null
           purchase_order_id: string | null
           quantity: number | null
+          tax_amount_ccy: number | null
+          tax_code: string | null
+          tax_rate_pct: number | null
           unit: string | null
         }
         Insert: {
@@ -22002,6 +22024,9 @@ export type Database = {
           pricing_formula_id?: string | null
           purchase_order_id?: string | null
           quantity?: number | null
+          tax_amount_ccy?: never
+          tax_code?: string | null
+          tax_rate_pct?: number | null
           unit?: string | null
         }
         Update: {
@@ -22021,6 +22046,9 @@ export type Database = {
           pricing_formula_id?: string | null
           purchase_order_id?: string | null
           quantity?: number | null
+          tax_amount_ccy?: never
+          tax_code?: string | null
+          tax_rate_pct?: number | null
           unit?: string | null
         }
         Relationships: [
@@ -22142,6 +22170,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "purchase_orders_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_tax_code_fkey"
+            columns: ["tax_code"]
+            isOneToOne: false
+            referencedRelation: "tax_codes"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -22371,10 +22406,12 @@ export type Database = {
       }
       purchase_order_status: {
         Row: {
+          carries_tax: boolean | null
           code: string | null
           currency: string | null
           estimated_total_ccy: number | null
           expected_delivery_date: string | null
+          gross_total_ccy: number | null
           order_date: string | null
           ordered_qty: number | null
           po_id: string | null
@@ -22387,6 +22424,7 @@ export type Database = {
           status: string | null
           supplier_id: string | null
           supplier_name: string | null
+          tax_total_ccy: number | null
         }
         Relationships: [
           {
@@ -22420,6 +22458,7 @@ export type Database = {
           cancel_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
+          carries_tax: boolean | null
           closed_at: string | null
           code: string | null
           contract_id: string | null
@@ -22432,12 +22471,14 @@ export type Database = {
           estimated_total_ccy: number | null
           expected_delivery_date: string | null
           fx_rate: number | null
+          gross_total_ccy: number | null
           id: string | null
           incoterm: string | null
           notes: string | null
           order_date: string | null
           status: string | null
           supplier_id: string | null
+          tax_total_ccy: number | null
           terms_text: string | null
           updated_at: string | null
           updated_by: string | null
@@ -22449,6 +22490,7 @@ export type Database = {
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
+          carries_tax?: never
           closed_at?: string | null
           code?: string | null
           contract_id?: string | null
@@ -22461,12 +22503,14 @@ export type Database = {
           estimated_total_ccy?: never
           expected_delivery_date?: string | null
           fx_rate?: never
+          gross_total_ccy?: never
           id?: string | null
           incoterm?: string | null
           notes?: string | null
           order_date?: string | null
           status?: string | null
           supplier_id?: string | null
+          tax_total_ccy?: never
           terms_text?: string | null
           updated_at?: string | null
           updated_by?: string | null
@@ -22478,6 +22522,7 @@ export type Database = {
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
+          carries_tax?: never
           closed_at?: string | null
           code?: string | null
           contract_id?: string | null
@@ -22490,12 +22535,14 @@ export type Database = {
           estimated_total_ccy?: never
           expected_delivery_date?: string | null
           fx_rate?: never
+          gross_total_ccy?: never
           id?: string | null
           incoterm?: string | null
           notes?: string | null
           order_date?: string | null
           status?: string | null
           supplier_id?: string | null
+          tax_total_ccy?: never
           terms_text?: string | null
           updated_at?: string | null
           updated_by?: string | null
@@ -25118,6 +25165,10 @@ export type Database = {
         Returns: string
       }
       sync_attendance_period: { Args: { p_period_id: string }; Returns: Json }
+      tax_amount_for: {
+        Args: { p_amount: number; p_rate_pct: number }
+        Returns: number
+      }
       tax_rate_for: {
         Args: { p_code: string; p_date: string }
         Returns: number

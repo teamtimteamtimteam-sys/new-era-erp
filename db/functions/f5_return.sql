@@ -83,7 +83,8 @@ BEGIN
     v_box6_docs := v_inv_tax - v_cn_tax;
 
     -- ── ② 法令:当场按【单据自己那一天】的法定税率重算,不读任何冻住的值 ──
-    SELECT COALESCE(SUM(round(il.amount_base * tax_rate_for(il.tax_code, i.issue_date) / 100.0, 2)), 0)
+    -- PO-GST-1:提取成 tax_amount_for(表达式逐字未变,值不可能变)。
+    SELECT COALESCE(SUM(tax_amount_for(il.amount_base, tax_rate_for(il.tax_code, i.issue_date))), 0)
       INTO v_stat_inv
       FROM invoice_lines il
       JOIN invoices i ON i.id = il.invoice_id

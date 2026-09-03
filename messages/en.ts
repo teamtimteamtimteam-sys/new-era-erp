@@ -4483,6 +4483,17 @@ const en = {
         colOrderDate: 'Order date',
         colExpectedDelivery: 'Expected delivery',
         colEstimatedTotal: 'Estimated total',
+        // ── PO-GST-1(2026-09-03)· 采购单开始携带税 ──────────────────────────
+        // 【为什么不再有一个孤零零的「Estimated total」】供应商将要开票的那个数
+        // 是含税的那一个,而承诺出去的现金也是它 —— 差 9%。
+        colNetTotal: 'Subtotal (excl. GST)',
+        colTaxTotal: 'GST',
+        colGrossTotal: 'Total payable (incl. GST)',
+        colTaxCode: 'Tax code',
+        colLineTax: 'GST',
+        gstOnOrderNote: 'GST is shown per line at the rate in force on the order date, and is frozen on the order — a later rate change does not alter this document. The supplier invoices the total payable shown above.',
+        gstNotCarriedNote: 'This order was raised before purchase orders carried GST, so no tax was calculated on it. That is not the same as zero GST — the amount above is exclusive of any tax the supplier may charge.',
+        gstOutOfScopeNote: 'Lines marked out-of-scope (OP) carry no Singapore GST payable to this supplier. Import GST on those goods, if any, is paid by us to Singapore Customs at the point of clearance.',
         // FA-PO-1:采购单不含税,而此前【屏幕上一个字都没说】。
         gstExclusiveNote: 'Amounts on this purchase order are exclusive of GST. A purchase order is a commitment, not a tax point \u2014 input GST is recorded when the supplier\u2019s invoice is entered as an expense, using that supplier\u2019s default tax code.',
         colPrepaid: 'Prepaid',

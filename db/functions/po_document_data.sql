@@ -14,7 +14,7 @@ BEGIN
 
     SELECT po.id, po.code, po.order_date, po.expected_delivery_date, po.currency,
            po.status, po.approval_status, po.incoterm, po.terms_text, po.notes,
-           po.estimated_total_ccy, po.supplier_id
+           po.estimated_total_ccy, po.tax_total_ccy, po.supplier_id
     INTO v_po FROM purchase_orders po
     WHERE po.id = p_po_id AND po.deleted_at IS NULL;
     IF NOT FOUND THEN
@@ -32,6 +32,10 @@ BEGIN
         'unit', l.unit,
         'unit_price', l.estimated_unit_price,          -- 单据币种;可空
         'amount_ccy', l.estimated_amount_ccy,
+        -- PO-GST-1:行上的税 —— 供应商手里那张纸要逐行看得见它。
+        'tax_code', l.tax_code,
+        'tax_rate_pct', l.tax_rate_pct,
+        'tax_amount_ccy', l.tax_amount_ccy,
         'expected_assay', l.expected_assay,
         'notes', l.notes,
         -- 【FIN-26 的那次误读,在这里终结】价格是不是手填的【估算】是记录下来的
@@ -93,7 +97,23 @@ BEGIN
         'incoterm', v_po.incoterm,
         'terms_text', v_po.terms_text,
         'notes', v_po.notes,
+        -- ★★【PO-GST-1:净额 / 税 / 含税额,三个数,一个来源】★★
+        -- 屏幕与 PDF 读的都是这三个字段所依据的【同两列】(estimated_total_ccy 与
+        -- tax_total_ccy)。此前 PDF 读本函数、屏幕直接读遮蔽视图 —— 两条路今天
+        -- 落在同一列上,所以【碰巧】一致;加了税之后再各算各的,迟早各说各话。
+        -- 【含税额在这里加一次】gross = net + COALESCE(tax, 0),不另存一列:
+        -- 存第三个数就是给自己第三个会漂的地方。
         'estimated_total_ccy', v_po.estimated_total_ccy,
+        'tax_total_ccy', v_po.tax_total_ccy,
+        'gross_total_ccy', v_po.estimated_total_ccy + COALESCE(v_po.tax_total_ccy, 0),
+        -- 【这张单带不带税】NULL 的税额合计不是零税:它是"这张单开在采购单携带税
+        -- 之前,或开在 GST 未注册的时候"。PDF 与屏幕对这两种情形说的话不一样。
+        'carries_tax', (v_po.tax_total_ccy IS NOT NULL),
+        -- ★【有没有一条【不在范围内】的行】★ 有就要在纸上说清:这一部分的 GST
+        -- 不付给这家供应商,而是进口清关时付给新加坡海关。见 ①b。
+        'has_out_of_scope_line', EXISTS (
+            SELECT 1 FROM purchase_order_lines x
+             WHERE x.purchase_order_id = p_po_id AND x.tax_code = 'OP'),
         'supplier', jsonb_build_object(
             'legal_name', v_sup.legal_name, 'address', v_sup.address,
             'country', v_sup.country, 'tax_id', v_sup.tax_id),

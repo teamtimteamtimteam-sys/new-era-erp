@@ -4464,6 +4464,15 @@ const zh = {
         colOrderDate: '下单日期',
         colExpectedDelivery: '预计到货',
         colEstimatedTotal: '估算总额',
+        // ── PO-GST-1(2026-09-03)· 采购单开始携带税 ──────────────────────────
+        colNetTotal: '不含税小计',
+        colTaxTotal: 'GST',
+        colGrossTotal: '应付总额(含 GST)',
+        colTaxCode: '税码',
+        colLineTax: 'GST',
+        gstOnOrderNote: 'GST 按【下单日】生效的税率逐行计算,并冻结在这张单上 —— 此后税率变动不会改动本单据。供应商按上面的应付总额开票。',
+        gstNotCarriedNote: '这张单开在采购单携带 GST 之前,所以【没有算过税】。这与"零 GST"不是一回事 —— 上面的金额不含供应商可能加收的任何税。',
+        gstOutOfScopeNote: '标为【不在范围内(OP)】的行,不向这家供应商支付新加坡 GST。这些货物的进口 GST(如有)由我们在清关时向新加坡海关缴纳。',
         // FA-PO-1:采购单不含税,而此前【屏幕上一个字都没说】。
         gstExclusiveNote: '本采购单上的金额【不含 GST】。采购单是一个承诺,不是纳税时点 —— 进项税在录入供应商的税务发票(记为费用)那一刻才产生,用的是那家供应商的默认税码。',
         colPrepaid: '已预付',

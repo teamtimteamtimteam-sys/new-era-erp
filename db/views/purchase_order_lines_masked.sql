@@ -1,6 +1,7 @@
 -- db/views/purchase_order_lines_masked.sql
 -- 遮蔽伴生视图:purchase_order_lines 的每一列都在,敏感列按 has_permission() 置空。
---   遮蔽的列:estimated_amount_ccy → data.view_prices, estimated_unit_price → data.view_prices
+--   遮蔽的列:estimated_amount_ccy → data.view_prices, estimated_unit_price → data.view_prices,
+--             price_provenance → data.view_prices, tax_amount_ccy → data.view_prices(PO-GST-1)
 --
 -- 【属主权限,不是 SECURITY INVOKER】。invoker 视图以调用者身份读基表,于是任何
 -- 强到能挡住原始列的机制(收紧行策略、或收回列权限)同样会挡住视图本身 —— 实测
@@ -41,7 +42,16 @@ CREATE VIEW public.purchase_order_lines_masked WITH (security_invoker = off) AS
     asset_id,
     -- PROC-1B-iii fu1:遮蔽表加一列 = 三件事(列 + 列级授权 + 本视图)。
     -- 【不遮蔽,原样透出】它是工艺路由要用的事实,不是钱、不是个人信息。
-    deep_discharge_judgement_code
+    deep_discharge_judgement_code,
+    -- PO-GST-1(2026-09-03):税码与税率【不遮蔽】—— 一个是分类,一个是法定税率,
+    -- 都不是钱;税【额】是钱,而且从被扣住的净额推得出来,所以随 data.view_prices,
+    -- 与 estimated_amount_ccy 同一扇门。
+    tax_code,
+    tax_rate_pct,
+        CASE
+            WHEN has_permission('data.view_prices'::text) THEN tax_amount_ccy
+            ELSE NULL::numeric
+        END AS tax_amount_ccy
    FROM purchase_order_lines
   WHERE has_permission('module.purchasing.view'::text);
 
