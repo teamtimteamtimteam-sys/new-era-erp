@@ -1,16 +1,19 @@
 // app/finance/freight/page.tsx
 // 运费单据列表(FRT-1)。运费【资本化进批次成本】—— 借方进 1200/5000,
 // 贷方记在【货代】名下,与材料供应商的应付是两笔账。
+//
+// CONV-4:套 CONV-1 的两文件模板。没有筛选工具栏,空态判据不必分层。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { getBaseCurrency } from '@/lib/currency'
-import { formatAmount } from '@/lib/format'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import FreightTable, { type FreightRow } from './FreightTable'
 
-type FreightRow = {
+type FreightQueryRow = {
     id: string
     code: string
     doc_date: string
@@ -38,59 +41,36 @@ export default async function FreightListPage() {
             .order('doc_date', { ascending: false })
             .limit(200),
         'freight_documents'
-    ) as unknown as FreightRow[]
+    ) as unknown as FreightQueryRow[]
+
+    const tableRows: FreightRow[] = rows.map((r) => ({
+        id: r.id,
+        code: r.code,
+        docDate: r.doc_date,
+        forwarder: r.suppliers?.legal_name ?? '—',
+        amountBase: r.amount_base,
+        baseCurrency,
+        allocationBasis: r.allocation_basis,
+        paymentStatus: r.payment_status,
+        reversed: r.status === 'reversed',
+    }))
 
     return (
-        <div className="p-8">
-            <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold">{t('finance.freight.listTitle')}</h1>
+        <ListPage
+            title={t('finance.freight.listTitle')}
+            actions={
                 <Link href="/finance/freight/new"
                     className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
                     {t('finance.freight.addButton')}
                 </Link>
-            </div>
-
-            {/* 资本化的代价,写在人看得见的地方:错的分摊藏在存货里,不显示在损益表上 */}
-            <p className="text-sm text-gray-600 mb-4 max-w-3xl">{t('finance.freight.intro')}</p>
-
-            {rows.length === 0 ? (
-                <p className="text-gray-500">{t('finance.freight.empty')}</p>
-            ) : (
-                <table className="w-full border-collapse border border-gray-300">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.freight.colCode')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.freight.colDate')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.freight.colForwarder')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.freight.colAmount')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.freight.colBasis')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.freight.colPayment')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rows.map((r) => (
-                            <tr key={r.id} className={r.status === 'reversed' ? 'text-gray-400 line-through' : ''}>
-                                <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                    <Link href={`/finance/freight/${r.id}`} className="text-blue-600 hover:underline">
-                                        {r.code}
-                                    </Link>
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2">{r.doc_date}</td>
-                                <td className="border border-gray-300 px-4 py-2">{r.suppliers?.legal_name ?? '—'}</td>
-                                <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                    {formatAmount(r.amount_base, baseCurrency)}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2 text-sm">
-                                    {t('finance.freight.basis.' + r.allocation_basis)}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2 text-sm">
-                                    {t('finance.freight.payment.' + r.payment_status)}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
-        </div>
+            }
+            // 资本化的代价,写在人看得见的地方:错的分摊藏在存货里,不显示在损益表上
+            intro={t('finance.freight.intro')}
+            state={tableRows.length === 0
+                ? { kind: 'empty', noRows: t('finance.freight.empty') }
+                : { kind: 'ok' }}
+        >
+            <FreightTable rows={tableRows} empty={t('finance.freight.empty')} />
+        </ListPage>
     )
 }

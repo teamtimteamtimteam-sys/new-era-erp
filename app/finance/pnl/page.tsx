@@ -29,6 +29,10 @@ import { formatMoneyBare } from '@/lib/format'
 import PnlToolbar from './PnlToolbar'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+
+// ★ CONV-4:不套 DataTable —— 与 balance-sheet 同一条理由(分组小计 +
+//   毛利/净利派生行,不是记录列表)。见 balance-sheet/page.tsx 顶注。
 
 type PnlRow = { code: string; name_en: string; name_zh: string; amount: number }
 type PnlSection = { rows: PnlRow[]; subtotal: number }
@@ -137,9 +141,7 @@ export default async function PnlPage({
     )
 
     return (
-        <div className="p-8 max-w-4xl">
-            <h1 className="text-2xl font-bold mb-4">{t('finance.pnlTitle')}</h1>
-
+        <ListPage title={t('finance.pnlTitle')} maxWidth="max-w-4xl" state={{ kind: 'ok' }}>
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
                 <PnlToolbar
@@ -195,6 +197,6 @@ export default async function PnlPage({
             </table>
 
             <p className="text-sm text-gray-500 mt-4">{t('finance.pnlNote')}</p>
-        </div>
+        </ListPage>
     )
 }

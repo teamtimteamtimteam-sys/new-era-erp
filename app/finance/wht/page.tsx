@@ -11,6 +11,9 @@
 //   这不是一句免责声明,是一个有先例的风险:/finance/freight/new 的货代下拉
 //   自建成起就是空的,冒烟一路绿了好几周(FRT-FIX)。
 //   **返回条件:第一家真实的非居民服务商到场时,这一页的有数据分支要被人走一遍。**
+//
+// CONV-4:套 CONV-1 的两文件模板(三张表共用一个客户端文件,理由见其抬头)。
+// state 恒为 'ok' —— 这一页没有"整页无内容"这回事,三张表各自的空态各说各的。
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -19,6 +22,8 @@ import { mustRows, mustCount } from '@/lib/db-helpers'
 import { getBaseCurrency } from '@/lib/currency'
 import { formatAmount } from '@/lib/format'
 import { RemitControl } from './WhtControls'
+import { ListPage } from '@/app/components/ui/list-page'
+import { WhtLiabilityTable, WhtRemittancesTable, WhtRatesTable, type LiabilityRow, type RemittanceRow, type WhtRateRow } from './WhtTables'
 
 export default async function WhtPage() {
     const denied = await requireModule(MOD.finance)
@@ -57,11 +62,38 @@ export default async function WhtPage() {
     // 是本仓库记过的那条"页面不该给出只会报错的按钮"。
     const owing = liability.filter((r) => Number(r.unremitted_base) > 0)
 
-    return (
-        <div className="p-8 max-w-5xl">
-            <h1 className="text-2xl font-bold mb-1">{t('wht.title')}</h1>
-            <p className="text-sm text-gray-600 mb-4">{t('wht.subtitle')}</p>
+    const liabilityRows: LiabilityRow[] = liability.map((r) => ({
+        periodMonth: String(r.period_month),
+        withheldBase: Number(r.withheld_base),
+        remittedBase: Number(r.remitted_base),
+        unremittedBase: Number(r.unremitted_base),
+        dueDate: String(r.due_date),
+        isOverdue: !!r.is_overdue,
+        daysUntilDue: Math.round((new Date(r.due_date as string).getTime() - Date.now()) / 86_400_000),
+        baseCurrency: base,
+    }))
 
+    const remittanceRows: RemittanceRow[] = remittances.map((r) => ({
+        id: r.id as string,
+        code: r.code as string,
+        periodMonth: String(r.period_month),
+        remittedOn: String(r.remitted_on),
+        amountBase: Number(r.amount_base),
+        baseCurrency: base,
+        filedReference: r.filed_reference as string,
+    }))
+
+    const rateRows: WhtRateRow[] = natures.map((n) => ({
+        code: n.code as string,
+        // 【按界面语言选一个,不是把两个拼起来】与仓库里另外一百多处同一个写法;
+        // check-bilingual-concat 盯着它。
+        name: locale === 'zh' ? (n.name_zh as string) : (n.name_en as string),
+        statuteRef: n.statute_ref as string,
+        rates: rates.filter((r) => r.nature === n.code),
+    }))
+
+    return (
+        <ListPage title={t('wht.title')} intro={t('wht.subtitle')} maxWidth="max-w-5xl" state={{ kind: 'ok' }}>
             {/* ── 未申报居民身份的供应商:一个【数】,不是一句提醒 ───────────── */}
             <p className={'text-sm mb-6 px-3 py-2 rounded border ' +
                 (residenceGap > 0
@@ -78,60 +110,20 @@ export default async function WhtPage() {
 
             {/* ── 欠 IRAS 多少 ───────────────────────────────────────────────── */}
             <h2 className="font-semibold mb-2">{t('wht.liabilityHeading')}</h2>
-            {liability.length === 0 ? (
-                // 【具名的缺席】"还没有代扣过任何税"是一句关于账本的真话,
-                // 而一张空表读起来像页面坏了。
-                <div className="text-sm mb-6 bg-gray-50 border border-gray-300 px-3 py-2 rounded">
-                    <strong>{t('wht.noneTitle')}</strong>
-                    <br />
-                    <span className="text-gray-600">{t('wht.noneBody')}</span>
-                </div>
-            ) : (
-                <table className="w-full border-collapse border border-gray-300 mb-6 text-sm">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="border border-gray-300 px-2 py-1 text-left">{t('wht.colMonth')}</th>
-                            <th className="border border-gray-300 px-2 py-1 text-right">{t('wht.colWithheld')}</th>
-                            <th className="border border-gray-300 px-2 py-1 text-right">{t('wht.colRemitted')}</th>
-                            <th className="border border-gray-300 px-2 py-1 text-right">{t('wht.colUnremitted')}</th>
-                            <th className="border border-gray-300 px-2 py-1 text-left">{t('wht.colDue')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {liability.map((r) => {
-                            const days = Math.round(
-                                (new Date(r.due_date as string).getTime() - Date.now()) / 86_400_000)
-                            return (
-                                <tr key={r.period_month as string}>
-                                    <td className="border border-gray-300 px-2 py-1 font-mono">
-                                        {String(r.period_month).slice(0, 7)}
-                                    </td>
-                                    {/* 【已代扣与已汇缴分开报,不抹平】一个月被汇过之后又出现新的代扣,
-                                        余额会重新变正 —— 那是对的。与 gst_return_boxes
-                                        那条"当时报了多少"与"现在算出来多少"逐字同源。 */}
-                                    <td className="border border-gray-300 px-2 py-1 text-right font-mono">
-                                        {formatAmount(Number(r.withheld_base), base)}
-                                    </td>
-                                    <td className="border border-gray-300 px-2 py-1 text-right font-mono">
-                                        {formatAmount(Number(r.remitted_base), base)}
-                                    </td>
-                                    <td className="border border-gray-300 px-2 py-1 text-right font-mono font-semibold">
-                                        {formatAmount(Number(r.unremitted_base), base)}
-                                    </td>
-                                    <td className="border border-gray-300 px-2 py-1 text-xs">
-                                        <span className="font-mono">{String(r.due_date)}</span>
-                                        {Number(r.unremitted_base) > 0 && (
-                                            r.is_overdue
-                                                ? <span className="ml-2 text-red-700 font-semibold">{t('wht.overdue')}</span>
-                                                : <span className="ml-2 text-gray-600">{t('wht.dueIn', { n: String(days) })}</span>
-                                        )}
-                                    </td>
-                                </tr>
-                            )
-                        })}
-                    </tbody>
-                </table>
-            )}
+            <div className="mb-6">
+                <WhtLiabilityTable
+                    rows={liabilityRows}
+                    empty={
+                        // 【具名的缺席】"还没有代扣过任何税"是一句关于账本的真话,
+                        // 而一张空表读起来像页面坏了。
+                        <div className="text-sm">
+                            <strong>{t('wht.noneTitle')}</strong>
+                            <br />
+                            <span className="text-gray-600">{t('wht.noneBody')}</span>
+                        </div>
+                    }
+                />
+            </div>
 
             {/* ── 汇缴 ───────────────────────────────────────────────────────── */}
             <h2 className="font-semibold mb-2">{t('wht.remitHeading')}</h2>
@@ -146,34 +138,9 @@ export default async function WhtPage() {
             </div>
 
             <h2 className="font-semibold mb-2">{t('wht.remittancesHeading')}</h2>
-            {remittances.length === 0 ? (
-                <p className="text-sm text-gray-600 mb-6">{t('wht.noRemittances')}</p>
-            ) : (
-                <table className="w-full border-collapse border border-gray-300 mb-6 text-sm">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="border border-gray-300 px-2 py-1 text-left">{t('wht.colCode')}</th>
-                            <th className="border border-gray-300 px-2 py-1 text-left">{t('wht.colMonth')}</th>
-                            <th className="border border-gray-300 px-2 py-1 text-left">{t('wht.colRemittedOn')}</th>
-                            <th className="border border-gray-300 px-2 py-1 text-right">{t('wht.colAmount')}</th>
-                            <th className="border border-gray-300 px-2 py-1 text-left">{t('wht.colIrasRef')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {remittances.map((r) => (
-                            <tr key={r.id as string}>
-                                <td className="border border-gray-300 px-2 py-1 font-mono">{r.code as string}</td>
-                                <td className="border border-gray-300 px-2 py-1 font-mono">{String(r.period_month).slice(0, 7)}</td>
-                                <td className="border border-gray-300 px-2 py-1 font-mono text-xs">{String(r.remitted_on)}</td>
-                                <td className="border border-gray-300 px-2 py-1 text-right font-mono">
-                                    {formatAmount(Number(r.amount_base), base)}
-                                </td>
-                                <td className="border border-gray-300 px-2 py-1 text-xs">{r.filed_reference as string}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
+            <div className="mb-6">
+                <WhtRemittancesTable rows={remittanceRows} empty={t('wht.noRemittances')} />
+            </div>
 
             {/* ── 法定税率:一张【待核对】的表 ─────────────────────────────────── */}
             <h2 className="font-semibold mb-2">{t('wht.ratesHeading')}</h2>
@@ -183,39 +150,9 @@ export default async function WhtPage() {
                 <br />
                 {t('wht.ratesUnverifiedBody')}
             </p>
-            <table className="w-full border-collapse border border-gray-300 mb-6 text-sm">
-                <thead className="bg-gray-50">
-                    <tr>
-                        <th className="border border-gray-300 px-2 py-1 text-left">{t('wht.colNature')}</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left">{t('wht.colRate')}</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left">{t('wht.colStatute')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {natures.map((n) => {
-                        const mine = rates.filter((r) => r.nature === n.code)
-                        return (
-                            <tr key={n.code as string}>
-                                {/* 【按界面语言选一个,不是把两个拼起来】与仓库里另外
-                                    一百多处同一个写法;check-bilingual-concat 盯着它。 */}
-                                <td className="border border-gray-300 px-2 py-1">
-                                    {locale === 'zh' ? (n.name_zh as string) : (n.name_en as string)}
-                                </td>
-                                <td className="border border-gray-300 px-2 py-1 font-mono text-xs">
-                                    {mine.map((r) => (
-                                        <div key={r.effective_from as string}>
-                                            {Number(r.rate_pct)}% · {String(r.effective_from)} → {(r.effective_to as string) ?? '—'}
-                                        </div>
-                                    ))}
-                                </td>
-                                <td className="border border-gray-300 px-2 py-1 text-xs text-gray-600">
-                                    {n.statute_ref as string}
-                                </td>
-                            </tr>
-                        )
-                    })}
-                </tbody>
-            </table>
-        </div>
+            <div className="mb-6">
+                <WhtRatesTable rows={rateRows} />
+            </div>
+        </ListPage>
     )
 }

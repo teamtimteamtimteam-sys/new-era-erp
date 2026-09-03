@@ -31,6 +31,17 @@ import { formatAmount } from '@/lib/format'
 import BsToolbar from './BsToolbar'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+
+// ★ CONV-4:这一页【不】套 DataTable —— 它的表不是"记录的列表",是一份
+//   按科目类型分组、每组自己算小计、末尾还有资产合计/负债权益合计两行
+//   grand total 的财务报表。DataTable 的契约是"一行 = 一条记录、渲染
+//   一次",没有"动态分组表头 + 小计行 + 跨组合计"的口子 —— 与 payables /
+//   receivables 撞见的分组缺口是同一个形状(§⑧-8 的"聚合/分组"缺口,
+//   这一刀量到 5 处:payables · receivables · balance-sheet · pnl ·
+//   trial-balance)。给这个形状建一套通用能力需要专门的设计时间(至少要
+//   想清楚"动态分组 + 固定三段分组"两种形状能不能共用一套 API),不是
+//   这一刀能顺手做的事 —— 只套 ListPage 外壳,表本身按兵不动。
 
 type BsRow = { code: string; name_en: string; name_zh: string; net: number }
 type BsSection = { rows: BsRow[]; subtotal: number }
@@ -148,9 +159,7 @@ export default async function BalanceSheetPage({
     )
 
     return (
-        <div className="p-8 max-w-4xl">
-            <h1 className="text-2xl font-bold mb-4">{t('finance.bsTitle')}</h1>
-
+        <ListPage title={t('finance.bsTitle')} maxWidth="max-w-4xl" state={{ kind: 'ok' }}>
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
                 <BsToolbar asOf={asOf} />
@@ -202,6 +211,6 @@ export default async function BalanceSheetPage({
             </table>
 
             <p className="text-sm text-gray-500 mt-4">{t('finance.bsNote')}</p>
-        </div>
+        </ListPage>
     )
 }

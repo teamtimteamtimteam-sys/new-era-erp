@@ -11,10 +11,11 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { mustOne } from '@/lib/db-helpers'
 import RevalueButton from './RevalueButton'
-import { formatAmount, formatMoneyBare } from '@/lib/format'
 import { getBaseCurrency } from '@/lib/currency'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import RevaluationPreviewTable, { type RevaluationRow } from './RevaluationPreviewTable'
 
 type PreviewRow = {
     account: string
@@ -60,9 +61,30 @@ export default async function RevaluationPage({ searchParams }: { searchParams: 
     // 有要重估的行、且每个币种都有当日中间价,才谈得上过账
     const canPost = rows.length > 0 && missing.length === 0
 
+    const previewRows: RevaluationRow[] = [
+        ...rows.map((p) => ({
+            key: p.account + p.currency,
+            account: p.account,
+            currency: p.currency,
+            native: p.native,
+            carryBase: p.carry_base,
+            rate: p.rate,
+            rateAsOf: p.rate_as_of,
+            periodEnd: d,
+            adjustment: p.adjustment,
+            baseCurrency,
+        })),
+        ...(rows.length > 0
+            ? [{
+                key: '__total__', account: null, currency: null, native: null, carryBase: null,
+                rate: null, rateAsOf: null, periodEnd: d, adjustment: total, baseCurrency,
+                isTotal: true, totalUnknown: missing.length > 0,
+            }]
+            : []),
+    ]
+
     return (
-        <div className="p-8 max-w-4xl">
-            <h1 className="text-2xl font-bold mb-4">{t('finance.reval.title')}</h1>
+        <ListPage title={t('finance.reval.title')} maxWidth="max-w-4xl" state={{ kind: 'ok' }}>
             <form method="get" className="mb-4">
                 <input type="date" name="date" defaultValue={d} className="border border-gray-300 rounded px-2 py-1 text-sm" />
                 <button type="submit" className="ml-2 border border-gray-300 rounded px-3 py-1 text-sm">{t('reviews.filter')}</button>
@@ -78,55 +100,12 @@ export default async function RevaluationPage({ searchParams }: { searchParams: 
             {rows.length === 0 ? (
                 <p className="mb-4 text-sm text-gray-500">{t('finance.reval.nothingToRevalue')}</p>
             ) : (
-                <table className="w-full border-collapse border border-gray-300 text-sm mb-4">
-                    <thead className="bg-gray-100"><tr>
-                        <th className="border border-gray-300 px-3 py-2 text-left">{t('finance.reval.account')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('finance.reval.native')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('finance.reval.carry')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('finance.reval.mid')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('finance.reval.adj')}</th>
-                    </tr></thead>
-                    <tbody>
-                        {rows.map((p) => (
-                            <tr key={p.account + p.currency}>
-                                <td className="border border-gray-300 px-3 py-2 font-mono">{p.account} · {p.currency}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoneyBare(p.native, '行标签「科目 · {p.currency}」已写明这格的外币')}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatAmount(p.carry_base, baseCurrency)}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                    {p.rate ?? '—'}
-                                    {/* FIN-19:回溯取的是哪一天的价 —— 与期末不同就标出来。
-                                        月末落在周末时用周五的中间价是对的,但按过账键的人
-                                        有权知道自己在看哪一天。 */}
-                                    {p.rate !== null && p.rate_as_of && p.rate_as_of !== d && (
-                                        <span className="ml-1 px-1 rounded bg-amber-100 text-amber-800 font-sans text-xs">
-                                            {t('finance.fxLookup.asOf', { 0: p.rate_as_of })}
-                                        </span>
-                                    )}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono font-medium">
-                                    {p.adjustment === null ? '—' : formatAmount(p.adjustment, baseCurrency)}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                    {/* 【过账真正会发生的那一行】净额进 7110 未实现汇兑损益 ——
-                        这是本次重估对损益表的全部影响,原先的预览一个字都没提。 */}
-                    <tfoot className="bg-gray-50">
-                        <tr>
-                            <td colSpan={4} className="border border-gray-300 px-3 py-2 text-right font-medium">
-                                {t('finance.reval.netTo7110')}
-                            </td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono font-bold">
-                                {/* 缺牌价时合计【不是 0,是不知道】—— 画成 0 会读作"这次重估
-                                    对损益没有影响",而真相是它还算不出来 */}
-                                {missing.length > 0 ? '—' : formatAmount(total, baseCurrency)}
-                            </td>
-                        </tr>
-                    </tfoot>
-                </table>
+                <div className="mb-4">
+                    <RevaluationPreviewTable rows={previewRows} />
+                </div>
             )}
 
             <RevalueButton periodEnd={d} disabled={!canPost} />
-        </div>
+        </ListPage>
     )
 }

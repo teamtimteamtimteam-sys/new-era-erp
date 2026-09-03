@@ -26,6 +26,11 @@ import AgingAsOfNotice from '../AgingAsOfNotice'
 import { localizeFinanceError } from '../financeErrorCodes'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+
+// ★ CONV-4:不套 DataTable —— 按往来对象【动态分组】+ 组内小计,与
+//   balance-sheet/pnl/trial-balance 撞见的同一个分组缺口(见那三页顶注)。
+//   只套 ListPage 外壳,表本身按兵不动。
 
 // PAYEE-1b:分组的主体不再"是一个供应商",而是"一个往来对象" ——
 // 它可能是供应商,也可能是员工(报销)。kind 一起带上,因为屏幕上必须
@@ -99,24 +104,27 @@ export default async function PayablesPage({
         : '/finance/payables/export'
 
     return (
-        <div className="p-8">
-            <div className="flex justify-between items-center mb-4">
-                <h1 className="text-2xl font-bold">
+        <ListPage
+            title={
+                <>
                     {t('finance.payablesTitle')}
                     {report.is_past && (
                         <span className="ml-3 align-middle text-base font-normal text-amber-700">
                             {t('finance.agingAsOf.headingSuffix', { date: report.as_of })}
                         </span>
                     )}
-                </h1>
+                </>
+            }
+            actions={
                 <Link
                     href="/finance/payments/new?direction=out"
                     className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                 >
                     {t('finance.recordPayment')}
                 </Link>
-            </div>
-
+            }
+            state={{ kind: 'ok' }}
+        >
             <AgingAsOfControl asOf={report.as_of} today={report.today} exportHref={exportHref} />
 
             <AgingAsOfNotice
@@ -272,6 +280,6 @@ export default async function PayablesPage({
                     )}
                 </tbody>
             </table>
-        </div>
+        </ListPage>
     )
 }

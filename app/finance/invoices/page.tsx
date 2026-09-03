@@ -3,16 +3,19 @@
 // count+range 分页(端口自收付款列表)。
 // 已开具的发票读 invoice_status(带已收/未收/逾期);【作废的不在那张视图里】,
 // 需要时另查 invoices 本表并标注为已作废(其结算数字无意义,留空)。
+//
+// CONV-4:套 CONV-1 的两文件模板。state 恒为 'ok' —— 筛选工具栏是真实出口。
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { parseDateRange } from '@/lib/dateFilter'
-import { formatAmount } from '@/lib/format'
 import { getBaseCurrency } from '@/lib/currency'
 import InvoicesToolbar from './InvoicesToolbar'
+import InvoicesTable, { type InvoiceRow } from './InvoicesTable'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
 
 const PAGE_SIZE = 20
 
@@ -164,118 +167,43 @@ export default async function InvoicesPage({
         return `/finance/invoices?${params.toString()}`
     }
 
-    const statePill = (r: Row) => {
-        if (r.is_void) {
-            return (
-                <span className="px-2 py-1 rounded text-xs bg-gray-200 text-gray-600">
-                    {t('invoice.status.void')}
-                </span>
-            )
-        }
-        const cls =
-            r.payment_state === 'paid'
-                ? 'bg-green-100 text-green-800'
-                : r.payment_state === 'partial'
-                  ? 'bg-amber-100 text-amber-800'
-                  : 'bg-gray-200 text-gray-700'
-        return (
-            <span className={'px-2 py-1 rounded text-xs ' + cls}>
-                {t('invoice.paymentState.' + (r.payment_state ?? 'unpaid'))}
-            </span>
-        )
-    }
+    const tableRows: InvoiceRow[] = rows.map((r) => ({
+        invoiceId: r.invoice_id,
+        code: r.code,
+        kind: r.kind,
+        customerName: r.customer_name,
+        issueDate: r.issue_date,
+        dueDate: r.due_date,
+        daysOverdue: r.days_overdue,
+        overdue: r.overdue,
+        totalBase: r.total_base,
+        settledBase: r.settled_base,
+        openBase: r.open_base,
+        paymentState: r.payment_state,
+        isVoid: r.is_void,
+        baseCurrency,
+    }))
 
     return (
-        <div className="p-8">
-            <div className="flex justify-between items-center mb-4">
-                <h1 className="text-2xl font-bold">{t('invoice.listTitle')}</h1>
+        <ListPage
+            title={t('invoice.listTitle')}
+            actions={
                 <Link
                     href="/finance/invoices/new"
                     className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                 >
                     {t('invoice.new')}
                 </Link>
-            </div>
-
+            }
+            state={{ kind: 'ok' }}
+        >
             <Suspense fallback={<div className="mb-4 h-10" />}>
                 <InvoicesToolbar />
             </Suspense>
 
             <p className="text-sm text-gray-600 mb-4">{t('finance.recordCount', { count: total })}</p>
 
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('invoice.colCode')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('invoice.colCustomer')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('invoice.colIssueDate')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('invoice.colDueDate')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('invoice.colTotal')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('invoice.colSettled')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('invoice.colOpen')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('invoice.colState')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left" />
-                    </tr>
-                </thead>
-                <tbody>
-                    {rows.map((r) => (
-                        <tr key={r.invoice_id} className={r.is_void ? 'text-gray-400' : ''}>
-                            <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                <Link
-                                    href={`/finance/invoices/${r.invoice_id}`}
-                                    className={r.is_void ? 'text-gray-500 hover:underline line-through' : 'text-blue-600 hover:underline'}
-                                >
-                                    {r.code}
-                                </Link>
-                                {/* SO-3a:order 头是过账单据 —— 列表上就要分得出两种 */}
-                                {r.kind === 'order' && (
-                                    <span className="ml-2 px-1.5 py-0.5 rounded text-xs bg-blue-100 text-blue-800">
-                                        {t('invoice.kind.order')}
-                                    </span>
-                                )}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">{r.customer_name ?? '—'}</td>
-                            <td className="border border-gray-300 px-4 py-2">{r.issue_date}</td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                {r.due_date}
-                                {r.overdue && r.days_overdue ? (
-                                    <span className="ml-2 text-xs text-red-600">
-                                        {t('invoice.overdueDays', { n: r.days_overdue })}
-                                    </span>
-                                ) : null}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatAmount(r.total_base, baseCurrency)}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {r.settled_base === null ? '—' : formatAmount(r.settled_base, baseCurrency)}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm font-medium">
-                                {r.open_base === null ? '—' : formatAmount(r.open_base, baseCurrency)}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">{statePill(r)}</td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                {/* 列表上点 PDF 是【拿文件】(要往邮件里附),不是读 ——
-                                    所以走 ?download=1 存成附件。要看版式去详情页预览。
-                                    attachment 不会导航,故不需要 target="_blank" */}
-                                <a
-                                    href={`/finance/invoices/${r.invoice_id}/pdf?download=1`}
-                                    className="text-blue-600 hover:underline text-sm"
-                                >
-                                    PDF
-                                </a>
-                            </td>
-                        </tr>
-                    ))}
-                    {rows.length === 0 && (
-                        <tr>
-                            <td colSpan={9} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
-                                {t('invoice.empty')}
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
+            <InvoicesTable rows={tableRows} empty={t('invoice.empty')} />
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
@@ -300,6 +228,6 @@ export default async function InvoicesPage({
                     </span>
                 )}
             </div>
-        </div>
+        </ListPage>
     )
 }

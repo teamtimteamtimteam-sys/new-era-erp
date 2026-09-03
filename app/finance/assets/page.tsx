@@ -6,6 +6,14 @@
 // 折旧面板:期末日期(?date=,预览走 preview_depreciate_fixed_assets ——
 // 与真正过账同一份算术,ask-the-database),应提为 0 时按钮禁用(幂等)。
 // 资产的创建入口在开支表单的资本分支(/finance/expenses/new)—— 台账不设新增。
+//
+// ★ CONV-4:资产台账主表【不属于这一套模板的人口】——
+//   最后一格挂着 AssetActions,一个真实的、逐行的行内表单(提交按 date/
+//   number/select 输入),按【格子里有没有输入控件】这条全仓库统一的判据,
+//   它是一张需要 CONV-2 那套"行级编辑态"契约的表,不是这一套只读账簿的模板 ——
+//   与 CONV-3 §⑧-1 拒收 /pricing/calculator 是同一条判据。主表按兵不动。
+//   月度折旧预览是另一张表,零行内控件,套 CONV-1 模板转换。
+//   state 恒为 'ok':这一页没有"整页无内容"这回事,折旧面板总是有得看。
 import Link from 'next/link'
 import { getBaseCurrency } from '@/lib/currency'
 import { createClient } from '@/lib/supabase/server'
@@ -18,6 +26,8 @@ import AssetActions from './AssetActions'
 import { inServiceState } from './inServiceState'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import DepreciationPreviewTable, { type DepreciationPreviewRow } from './DepreciationPreviewTable'
 
 type AssetRow = {
     id: string
@@ -88,6 +98,15 @@ export default async function AssetsPage({
     const previewRows = (preview?.rows ?? []).filter((r) => r.delta_base > 0)
     const totalDelta = preview?.total_delta ?? 0
 
+    const depreciationTableRows: DepreciationPreviewRow[] = [
+        ...previewRows.map((r) => ({
+            assetId: r.asset_id, code: r.code, account: r.account, deltaBase: r.delta_base,
+        })),
+        ...(previewRows.length > 0
+            ? [{ assetId: '__total__', code: null, account: null, deltaBase: totalDelta, isTotal: true }]
+            : []),
+    ]
+
     // FA-1b:处置要 module.finance.edit;有价款时要挑收款账户。
     // 【账户清单从科目表读,而不是写死】—— dispose_fixed_asset 认的是
     // ('1000','1010') 这两个【科目码】(没有 bank_accounts 这张表);
@@ -100,20 +119,21 @@ export default async function AssetsPage({
         'accounts bank') as unknown as { code: string }[]).map((b) => b.code)
 
     return (
-        <div className="p-8">
-            <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold">{t('assets.title')}</h1>
-                {/* EQP-1c-b(P1):台账此前【没有新增入口】—— 唯一的建卡门在开支表单里,
-                    而那扇门要求同时过一笔账。设备的真实顺序是先下单、后开票,
-                    所以这里是第二扇门的入口。 */}
-                {canEdit && (
+        <ListPage
+            title={t('assets.title')}
+            actions={
+                // EQP-1c-b(P1):台账此前【没有新增入口】—— 唯一的建卡门在开支表单里,
+                // 而那扇门要求同时过一笔账。设备的真实顺序是先下单、后开票,
+                // 所以这里是第二扇门的入口。
+                canEdit ? (
                     <Link href="/finance/assets/new"
                         className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm">
                         {t('assets.register')}
                     </Link>
-                )}
-            </div>
-
+                ) : undefined
+            }
+            state={{ kind: 'ok' }}
+        >
             <table className="w-full border-collapse border border-gray-300 mb-8">
                 <thead className="bg-gray-100">
                     <tr>
@@ -222,32 +242,13 @@ export default async function AssetsPage({
                 </button>
             </form>
             {previewRows.length > 0 ? (
-                <table className="w-auto min-w-[32rem] border-collapse border border-gray-300 mb-3">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('finance.colCode')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('assets.colAccount')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('assets.colDelta', { ccy: baseCurrency })}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {previewRows.map((r) => (
-                            <tr key={r.asset_id}>
-                                <td className="border border-gray-300 px-3 py-2 font-mono text-sm">{r.code}</td>
-                                <td className="border border-gray-300 px-3 py-2 font-mono text-sm">{r.account}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">{formatMoneyBare(r.delta_base, '列头 应提({ccy})')}</td>
-                            </tr>
-                        ))}
-                        <tr className="bg-gray-50 font-medium">
-                            <td colSpan={2} className="border border-gray-300 px-3 py-2">{t('finance.totalsLabel')}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">{formatMoneyBare(totalDelta, '列头 应提({ccy})')}</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div className="mb-3 max-w-[32rem]">
+                    <DepreciationPreviewTable rows={depreciationTableRows} empty={t('assets.nothingToDepreciate', { 0: d })} baseCurrency={baseCurrency} />
+                </div>
             ) : (
                 <p className="text-sm text-gray-500 mb-3">{t('assets.nothingToDepreciate', { 0: d })}</p>
             )}
             <DepreciateButton periodEnd={d} disabled={totalDelta === 0} />
-        </div>
+        </ListPage>
     )
 }

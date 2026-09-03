@@ -20,6 +20,8 @@ import { getTranslations } from '@/lib/i18n/server'
 import { mustOne } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import SellPositionsTable, { type SellPositionRow } from './SellPositionsTable'
 
 type Position = {
     contract_id: string; contract_code: string; metal: string; index_code: string
@@ -50,11 +52,19 @@ export default async function PriceExposurePage() {
     const cov = report.coverage
     const qp = report.quotational_period
 
-    return (
-        <div className="p-8">
-            <h1 className="text-2xl font-bold mb-1">{t('priceExposure.title')}</h1>
-            <p className="text-sm text-gray-700 max-w-3xl mb-4">{t('priceExposure.what')}</p>
+    const sellRows: SellPositionRow[] = report.sell_side.positions.map((p) => ({
+        key: `${p.contract_id}-${p.metal}`,
+        contractCode: p.contract_code,
+        metal: p.metal,
+        indexCode: p.index_code,
+        baseEvent: p.base_event,
+        qpMonths: p.qp_months,
+        payablePct: p.payable_pct,
+        orderedQuantity: p.ordered_quantity,
+    }))
 
+    return (
+        <ListPage title={t('priceExposure.title')} intro={t('priceExposure.what')} state={{ kind: 'ok' }}>
             {/* ★【先说它看不见什么】—— 无条件渲染 ★ */}
             <div className="border-l-4 border-amber-500 bg-amber-50 p-3 mb-6 max-w-3xl">
                 <p className="text-sm text-gray-800">{t('priceExposure.cannotSee')}</p>
@@ -67,32 +77,9 @@ export default async function PriceExposurePage() {
             ) : report.sell_side.state === 'no_pricing_terms' ? (
                 <p className="text-sm text-amber-800 mb-6 max-w-3xl">{t('priceExposure.sellNoTerms')}</p>
             ) : (
-                <table className="w-full border-collapse mb-6">
-                    <thead>
-                        <tr className="bg-gray-100">
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('priceExposure.colContract')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('priceExposure.colMetal')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('priceExposure.colIndex')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('priceExposure.colBaseEvent')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right text-sm">{t('priceExposure.colQpMonths')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right text-sm">{t('priceExposure.colPayable')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right text-sm">{t('priceExposure.colQuantity')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {report.sell_side.positions.map((p) => (
-                            <tr key={`${p.contract_id}-${p.metal}`}>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">{p.contract_code}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">{p.metal}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">{p.index_code}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">{p.base_event}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right text-sm">{p.qp_months}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right text-sm">{p.payable_pct}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right text-sm">{p.ordered_quantity}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                <div className="mb-6">
+                    <SellPositionsTable rows={sellRows} />
+                </div>
             )}
 
             {/* ★★【买方向:一句关于结构的话,永远不是一个 0 吨】★★
@@ -138,6 +125,6 @@ export default async function PriceExposurePage() {
 
             {/* 【两侧不轧成一个数】—— 跟着数字走的那句话,不只躺在文档里 */}
             <p className="text-xs text-gray-600 max-w-3xl">{t('priceExposure.notNetted')}</p>
-        </div>
+        </ListPage>
     )
 }

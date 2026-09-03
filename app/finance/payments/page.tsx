@@ -1,17 +1,20 @@
 // app/finance/payments/page.tsx
 // 收付款列表:最新在前,payment_date 日期区间 + 方向筛选 + count+range 分页
 // (端口自分录列表)。往来单位名按页小批量反查(客户/供应商两次 .in)。
+//
+// CONV-4:套 CONV-1 的两文件模板。state 恒为 'ok' —— 筛选工具栏是真实出口。
 import { Suspense } from 'react'
 import { getBaseCurrency } from '@/lib/currency'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { parseDateRange } from '@/lib/dateFilter'
-import { formatMoneyBare } from '@/lib/format'
 import PaymentsToolbar from './PaymentsToolbar'
+import PaymentsTable, { type PaymentRow } from './PaymentsTable'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
 
 const PAGE_SIZE = 20
 
@@ -114,18 +117,33 @@ export default async function PaymentsListPage({
         return `/finance/payments?${params.toString()}`
     }
 
+    const tableRows: PaymentRow[] = rows.map((r) => ({
+        id: r.id,
+        code: r.code,
+        paymentDate: r.payment_date,
+        direction: r.direction,
+        counterparty: nameById.get(r.customer_id ?? r.supplier_id ?? '') ?? '—',
+        amountCcy: r.amount_ccy,
+        currency: r.currency,
+        amountBase: r.amount_base,
+        baseCurrency,
+        bankAccountCode: r.bank_account_code,
+        status: r.status,
+    }))
+
     return (
-        <div className="p-8">
-            <div className="flex justify-between items-center mb-4">
-                <h1 className="text-2xl font-bold">{t('finance.paymentsTitle')}</h1>
+        <ListPage
+            title={t('finance.paymentsTitle')}
+            actions={
                 <Link
                     href="/finance/payments/new"
                     className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                 >
                     {t('finance.recordPayment')}
                 </Link>
-            </div>
-
+            }
+            state={{ kind: 'ok' }}
+        >
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
                 <PaymentsToolbar />
@@ -135,79 +153,7 @@ export default async function PaymentsListPage({
                 {t('finance.recordCount', { count: total })}
             </p>
 
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colCode')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colDate')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.side')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colCounterparty')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.amount')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.bankAccount')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colStatus')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {rows.map((r) => (
-                        <tr key={r.id}>
-                            <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                <Link
-                                    href={`/finance/payments/${r.id}`}
-                                    className="text-blue-600 hover:underline"
-                                >
-                                    {r.code}
-                                </Link>
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">{r.payment_date}</td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                <span
-                                    className={
-                                        'px-2 py-1 rounded text-xs ' +
-                                        (r.direction === 'in'
-                                            ? 'bg-green-100 text-green-800'
-                                            : 'bg-amber-100 text-amber-800')
-                                    }
-                                >
-                                    {t('finance.direction.' + r.direction)}
-                                </span>
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm">
-                                {nameById.get(r.customer_id ?? r.supplier_id ?? '') ?? '—'}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {r.currency} {formatMoneyBare(r.amount_ccy, '同格内紧邻的 r.currency 前缀')}
-                                {r.currency !== baseCurrency && (
-                                    <span className="text-gray-500 ml-2">
-                                        = {formatMoneyBare(r.amount_base, '同格内紧随其后的 {baseCurrency} 后缀')} {baseCurrency}
-                                    </span>
-                                )}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm">
-                                {t('finance.bank.' + r.bank_account_code)}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                <span
-                                    className={
-                                        'px-2 py-1 rounded text-xs ' +
-                                        (r.status === 'posted'
-                                            ? 'bg-green-100 text-green-800'
-                                            : 'bg-gray-200 text-gray-700')
-                                    }
-                                >
-                                    {t('finance.status.' + r.status)}
-                                </span>
-                            </td>
-                        </tr>
-                    ))}
-                    {rows.length === 0 && (
-                        <tr>
-                            <td colSpan={7} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
-                                {t('finance.paymentsEmpty')}
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
+            <PaymentsTable rows={tableRows} empty={t('finance.paymentsEmpty')} />
 
             {/* 分页控件:服务端 <Link>;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">
@@ -241,6 +187,6 @@ export default async function PaymentsListPage({
                     </span>
                 )}
             </div>
-        </div>
+        </ListPage>
     )
 }

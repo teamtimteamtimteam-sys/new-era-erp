@@ -1,20 +1,26 @@
 // app/finance/fx/page.tsx
 // 汇率列表页(端口自 metal-prices):币种筛选 / 排序 / 分页 / 编辑入口。
+//
+// CONV-4:套 CONV-1 的两文件模板。三块提示(月末就绪 / JE-70 一次性提醒 /
+// 缺牌价)全部【无条件】渲染,与有没有数据无关 —— 走 notices,不进 children。
+// state 恒为 'ok':筛选工具栏是真实出口,必须与表格一起无条件可见,理由与
+// /finance/expenses 同一条。排序留在服务端,Q7 行为不变。
 import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import FxToolbar from './FxToolbar'
+import FxRatesTable, { type FxRateRow } from './FxRatesTable'
 import {
     parseFxListParams,
     parseFxPage,
     applyFxFilters,
     FX_PAGE_SIZE,
-    type FxSortCol,
 } from './fxQuery'
 import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
 
 type FxRow = {
     id: string
@@ -131,11 +137,6 @@ export default async function FxRatesPage({
     // 【这一行是哪一种缺口 —— 事实,由 gap_source 直说】
     // 三个分支都是【字面量】t() 调用,不是把 gap_source 拼进键里:静态那一半就
     // 盖得住它们,不必往 check-i18n 的 MANIFEST 里加一条动态前缀。能静态就别动态。
-    //
-    // (顺带记一笔:这段注释的上一版把那个坏形状【原样写了出来】当反例,
-    //  check-i18n 当场把注释里的那个例子报成了一处未归类的动态前缀 ——
-    //  它的动态那一半不剥注释。是误报,但方向是安全的那一边;改法是别在注释里
-    //  写出那个形状,不是去放宽检查。)
     function gapKindLabel(src: string): string {
         if (src === 'posting') return t('finance.fxPage.gapKindPosting')
         if (src === 'quote') return t('finance.fxPage.gapKindQuote')
@@ -143,36 +144,6 @@ export default async function FxRatesPage({
         // 视图只产出上面三种。真出了第四种,原样显示【而不是猜一个】——
         // 一个猜出来的分类,和一个说错了的分类,在屏幕上长得一模一样。
         return src
-    }
-
-    function sortHref(col: FxSortCol) {
-        const nextDir = sort === col && dir === 'asc' ? 'desc' : 'asc'
-        const params = new URLSearchParams()
-        if (currency) params.set('currency', currency)
-        params.set('sort', col)
-        params.set('dir', nextDir)
-        return `/finance/fx?${params.toString()}`
-    }
-
-    function sortableTh(col: FxSortCol, label: string) {
-        const indicator = sort === col ? (dir === 'asc' ? ' ▲' : ' ▼') : ''
-        return (
-            <th className="border border-gray-300 px-4 py-2 text-left">
-                <Link href={sortHref(col)} className="hover:underline">
-                    {label}
-                    {indicator}
-                </Link>
-            </th>
-        )
-    }
-
-    function pageHref(targetPage: number) {
-        const params = new URLSearchParams()
-        if (currency) params.set('currency', currency)
-        params.set('sort', sort)
-        params.set('dir', dir)
-        params.set('page', String(targetPage))
-        return `/finance/fx?${params.toString()}`
     }
 
     if (error) {
@@ -187,81 +158,94 @@ export default async function FxRatesPage({
         )
     }
 
+    const tableRows: FxRateRow[] = (rows ?? []).map((r) => ({
+        id: r.id,
+        currency: r.currency,
+        rateType: r.rate_type,
+        rateSgdPerUnit: r.rate_sgd_per_unit,
+        rateDate: r.rate_date,
+        source: r.source,
+        notes: r.notes,
+    }))
+
     return (
-        <div className="p-8">
-            <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold">{t('finance.fxTitle')}</h1>
-                <Link
-                    href="/finance/fx/new"
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
-                    {t('finance.fxPage.addButton')}
-                </Link>
-                <Link
-                    href="/finance/fx/bulk"
-                    className="ml-3 border border-gray-400 px-3 py-1.5 rounded text-sm hover:bg-gray-100"
-                >
-                    {t('finance.fxPage.bulk.entryLink')}
-                </Link>
-            </div>
-
-            {/* 缺牌价 = 有外币交易的那天没录当日牌价 —— 点名到日、到币、到缺哪侧 */}
-            {/* 月末就绪 —— 【挡住月结的那一天】,fx_rate_gaps 报不出来的那一类 */}
-            {blocking.length > 0 && (
-                <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-4 text-sm">
-                    <p className="font-medium mb-1">{t('finance.fxPage.readyTitle', { n: blocking.length })}</p>
-                    <ul className="space-y-0.5">
-                        {blocking.map((r) => (
-                            <li key={`${r.month_end}-${r.currency}`}>
-                                <span className="font-mono">{r.month_end}</span> · {r.currency} ·{' '}
-                                {t('finance.fxPage.readyMissingMid')}
-                            </li>
-                        ))}
-                    </ul>
-                    <p className="text-xs mt-2 opacity-80">{t('finance.fxPage.readyWhy')}</p>
-                </div>
-            )}
-
-            {/* 一次性提醒,条件消失它就消失 */}
-            {showCorrectionNotice && (
-                <div className="bg-blue-50 border border-blue-300 text-blue-900 px-4 py-3 rounded mb-4 text-sm">
-                    <p className="font-medium mb-1">{t('finance.fxPage.je70Title')}</p>
-                    <p>{t('finance.fxPage.je70Body')}</p>
-                    <p className="text-xs mt-1 opacity-80">{t('finance.fxPage.je70Assured')}</p>
-                </div>
-            )}
-
-            {gaps.length > 0 && (
-                <div className="mb-4 rounded border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900">
-                    <p className="font-medium mb-1">{t('finance.fxPage.gapsTitle', { n: gaps.length })}</p>
-                    <ul className="text-sm space-y-0.5">
-                        {gaps.map((g) => (
-                            <li key={g.rate_date + g.currency}>
-                                <span className="font-mono">{g.rate_date}</span> · {g.currency} ·{' '}
-                                {t('finance.fxPage.gapsMissing', { 0: g.missing_types.join(', ') })} ·{' '}
-                                {gapKindLabel(g.gap_source)} ·{' '}
-                                {/* 【两个计数各说各的单位,零的那个不显示】
-                                    显示一个 "0 entries" 不是更诚实,只是更吵:
-                                    这一行为什么在这儿,gap_source 已经说了。 */}
-                                {[
-                                    g.entry_count > 0
-                                        ? t('finance.fxPage.gapsEntries', { n: g.entry_count })
-                                        : null,
-                                    g.quote_count > 0
-                                        ? t('finance.fxPage.gapsQuotes', { n: g.quote_count })
-                                        : null,
-                                ]
-                                    .filter(Boolean)
-                                    .join(' · ')}
-                            </li>
-                        ))}
-                    </ul>
-                    {/* 【判断与事实分开一行】上面每一行是事实(缺哪几侧、哪一种缺口、
-                        各有多少);这一句是它意味着什么,单独放,不混进行里。 */}
-                    <p className="text-xs mt-2 opacity-80">{t('finance.fxPage.gapsKindNote')}</p>
-                </div>
-            )}
-
+        <ListPage
+            title={t('finance.fxTitle')}
+            actions={
+                <>
+                    <Link
+                        href="/finance/fx/new"
+                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    >
+                        {t('finance.fxPage.addButton')}
+                    </Link>
+                    <Link
+                        href="/finance/fx/bulk"
+                        className="ml-3 border border-gray-400 px-3 py-1.5 rounded text-sm hover:bg-gray-100"
+                    >
+                        {t('finance.fxPage.bulk.entryLink')}
+                    </Link>
+                </>
+            }
+            // ★ 三块提示【无条件】渲染 —— 与有没有数据无关,理由同 /commissions
+            // notices 抬头:一条只在有数据时才出现的警告,等于没有警告。
+            notices={
+                <>
+                    {blocking.length > 0 && (
+                        <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-4 text-sm">
+                            <p className="font-medium mb-1">{t('finance.fxPage.readyTitle', { n: blocking.length })}</p>
+                            <ul className="space-y-0.5">
+                                {blocking.map((r) => (
+                                    <li key={`${r.month_end}-${r.currency}`}>
+                                        <span className="font-mono">{r.month_end}</span> · {r.currency} ·{' '}
+                                        {t('finance.fxPage.readyMissingMid')}
+                                    </li>
+                                ))}
+                            </ul>
+                            <p className="text-xs mt-2 opacity-80">{t('finance.fxPage.readyWhy')}</p>
+                        </div>
+                    )}
+                    {showCorrectionNotice && (
+                        <div className="bg-blue-50 border border-blue-300 text-blue-900 px-4 py-3 rounded mb-4 text-sm">
+                            <p className="font-medium mb-1">{t('finance.fxPage.je70Title')}</p>
+                            <p>{t('finance.fxPage.je70Body')}</p>
+                            <p className="text-xs mt-1 opacity-80">{t('finance.fxPage.je70Assured')}</p>
+                        </div>
+                    )}
+                    {gaps.length > 0 && (
+                        <div className="mb-4 rounded border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900">
+                            <p className="font-medium mb-1">{t('finance.fxPage.gapsTitle', { n: gaps.length })}</p>
+                            <ul className="text-sm space-y-0.5">
+                                {gaps.map((g) => (
+                                    <li key={g.rate_date + g.currency}>
+                                        <span className="font-mono">{g.rate_date}</span> · {g.currency} ·{' '}
+                                        {t('finance.fxPage.gapsMissing', { 0: g.missing_types.join(', ') })} ·{' '}
+                                        {gapKindLabel(g.gap_source)} ·{' '}
+                                        {/* 【两个计数各说各的单位,零的那个不显示】
+                                            显示一个 "0 entries" 不是更诚实,只是更吵:
+                                            这一行为什么在这儿,gap_source 已经说了。 */}
+                                        {[
+                                            g.entry_count > 0
+                                                ? t('finance.fxPage.gapsEntries', { n: g.entry_count })
+                                                : null,
+                                            g.quote_count > 0
+                                                ? t('finance.fxPage.gapsQuotes', { n: g.quote_count })
+                                                : null,
+                                        ]
+                                            .filter(Boolean)
+                                            .join(' · ')}
+                                    </li>
+                                ))}
+                            </ul>
+                            {/* 【判断与事实分开一行】上面每一行是事实(缺哪几侧、哪一种缺口、
+                                各有多少);这一句是它意味着什么,单独放,不混进行里。 */}
+                            <p className="text-xs mt-2 opacity-80">{t('finance.fxPage.gapsKindNote')}</p>
+                        </div>
+                    )}
+                </>
+            }
+            state={{ kind: 'ok' }}
+        >
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
                 <FxToolbar currencies={currencyOptions} />
@@ -271,65 +255,20 @@ export default async function FxRatesPage({
                 {t('finance.fxPage.recordCount', { count: total })}
             </p>
 
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        {sortableTh('currency', t('finance.fxPage.colCurrency'))}
-                        {sortableTh('rate_type', t('finance.fxPage.colType'))}
-                        {sortableTh('rate_sgd_per_unit', t('finance.fxPage.colRate'))}
-                        {sortableTh('rate_date', t('finance.fxPage.colRateDate'))}
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('finance.fxPage.colSource')}
-                        </th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('finance.fxPage.colNotes')}
-                        </th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">
-                            {t('finance.fxPage.colActions')}
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {rows?.map((r) => (
-                        <tr key={r.id}>
-                            <td className="border border-gray-300 px-4 py-2 font-mono text-sm">{r.currency}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {t('finance.fxPage.rateType.' + r.rate_type)}
-                            </td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                {r.rate_sgd_per_unit}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2">{r.rate_date}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">{r.source}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm">{r.notes ?? '—'}</td>
-                            <td className="border border-gray-300 px-4 py-2">
-                                <Link
-                                    href={`/finance/fx/${r.id}/edit`}
-                                    className="text-blue-600 hover:underline"
-                                >
-                                    {t('finance.fxPage.editAction')}
-                                </Link>
-                            </td>
-                        </tr>
-                    ))}
-                    {(!rows || rows.length === 0) && (
-                        <tr>
-                            <td
-                                colSpan={6}
-                                className="border border-gray-300 px-4 py-8 text-center text-gray-500"
-                            >
-                                {t('finance.fxPage.emptyState')}
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
+            <FxRatesTable
+                rows={tableRows}
+                sort={sort}
+                dir={dir}
+                currency={currency}
+                shown={tableRows.length}
+                total={total}
+            />
 
             {/* 分页控件:服务端 <Link>;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
                     <Link
-                        href={pageHref(page - 1)}
+                        href={`/finance/fx?${new URLSearchParams({ ...(currency ? { currency } : {}), sort, dir, page: String(page - 1) }).toString()}`}
                         className="rounded border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
                     >
                         {t('finance.pagination.prev')}
@@ -346,7 +285,7 @@ export default async function FxRatesPage({
 
                 {page < totalPages ? (
                     <Link
-                        href={pageHref(page + 1)}
+                        href={`/finance/fx?${new URLSearchParams({ ...(currency ? { currency } : {}), sort, dir, page: String(page + 1) }).toString()}`}
                         className="rounded border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
                     >
                         {t('finance.pagination.next')}
@@ -357,6 +296,6 @@ export default async function FxRatesPage({
                     </span>
                 )}
             </div>
-        </div>
+        </ListPage>
     )
 }

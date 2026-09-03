@@ -4,6 +4,11 @@
 // ★【一份存下来的包意味着一件事,而这句话印在读者遇到它的地方】★
 //   它被产出的那一刻,那个月已经关账了。开放月份看得到预览、导得出 CSV,
 //   但【不落库】。理由整段写在 db/tables/management_packs.sql 的表注释里。
+//
+// CONV-4:实时预览那份报告体(PackBody)是【透视/汇总】,不是逐行记录 ——
+// 不套 DataTable,理由与 §⑧-3 的 ForecastGrid 同一条。已存档那张登记簿是
+// 逐行记录,套 CONV-1 模板。state 恒为 'ok':这一页没有"整页无内容"这回事,
+// 预览总是有得看,存档表的空态由 DataTable 自己说。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
@@ -12,6 +17,8 @@ import { MOD } from '@/lib/modules'
 import { mustRows } from '@/lib/db-helpers'
 import PackBody, { type PackPayload } from './PackBody'
 import { ProducePackControl, PackMonthPicker } from './PackControls'
+import { ListPage } from '@/app/components/ui/list-page'
+import PacksHistoryTable, { type PackRow } from './PacksHistoryTable'
 
 function monthOf(v: string | undefined): string {
     // 【只认 YYYY-MM;认不出就用上个月】上个月是"最可能已经关账"的那一个,
@@ -57,11 +64,18 @@ export default async function PacksPage({
     const preview = previewRes.data as unknown as PackPayload
     const livePack = packs.find((p) => String(p.period_month).slice(0, 7) === month && !p.superseded_at)
 
-    return (
-        <div className="p-8 max-w-6xl">
-            <h1 className="text-2xl font-bold mb-1">{t('pack.title')}</h1>
-            <p className="text-sm text-gray-600 mb-4">{t('pack.subtitle')}</p>
+    const packRows: PackRow[] = packs.map((p) => ({
+        id: p.id as string,
+        code: p.code as string,
+        periodMonth: String(p.period_month).slice(0, 7),
+        producedAt: String(p.produced_at).slice(0, 19).replace('T', ' '),
+        lockedBeforeAt: String(p.locked_before_at_production),
+        supersededAt: p.superseded_at as string | null,
+        supersededReason: p.superseded_reason as string | null,
+    }))
 
+    return (
+        <ListPage title={t('pack.title')} intro={t('pack.subtitle')} maxWidth="max-w-6xl" state={{ kind: 'ok' }}>
             {/* ── 实时预览 ────────────────────────────────────────────────── */}
             <div className="flex flex-wrap items-end gap-3 mb-4">
                 <PackMonthPicker month={month} />
@@ -92,41 +106,7 @@ export default async function PacksPage({
             <h2 className="font-semibold mb-1">{t('pack.storedHeading')}</h2>
             {/* ★ 这一句是这一整刀的裁定,印在读者遇到存档包的地方 ★ */}
             <p className="text-xs text-gray-600 mb-2 max-w-3xl">{t('pack.storedMeans')}</p>
-            {packs.length === 0 ? (
-                // 【具名的缺席】"还没有存过"是一句关于账本的真话,而一张空表
-                // 读起来像页面坏了。
-                <p className="text-sm text-gray-600">{t('pack.noStored')}</p>
-            ) : (
-                <table className="w-full border-collapse border border-gray-300 text-sm">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            {['pack.colCode', 'pack.colMonth', 'pack.colProduced',
-                              'pack.colLockedBefore', 'pack.colStatus'].map((k) => (
-                                <th key={k} className="border border-gray-300 px-2 py-1 text-left">{t(k)}</th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {packs.map((p) => (
-                            <tr key={p.id as string}>
-                                <td className="border border-gray-300 px-2 py-1">
-                                    <Link href={`/finance/packs/${p.id}`} className="text-blue-600 hover:underline font-mono">
-                                        {p.code as string}
-                                    </Link>
-                                </td>
-                                <td className="border border-gray-300 px-2 py-1 font-mono">{String(p.period_month).slice(0, 7)}</td>
-                                <td className="border border-gray-300 px-2 py-1 text-xs font-mono">{String(p.produced_at).slice(0, 19).replace('T', ' ')}</td>
-                                <td className="border border-gray-300 px-2 py-1 text-xs font-mono">{String(p.locked_before_at_production)}</td>
-                                <td className="border border-gray-300 px-2 py-1 text-xs">
-                                    {p.superseded_at
-                                        ? <span className="text-gray-600">{t('pack.statusSuperseded')} — {p.superseded_reason as string}</span>
-                                        : <span className="text-green-800">{t('pack.statusLive')}</span>}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
-        </div>
+            <PacksHistoryTable rows={packRows} empty={t('pack.noStored')} />
+        </ListPage>
     )
 }

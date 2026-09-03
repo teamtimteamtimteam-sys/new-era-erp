@@ -1,18 +1,21 @@
 // app/finance/journal/page.tsx
 // 分录列表:最新在前,entry_date 日期区间 + count+range 分页(端口自 processing 列表)。
 // 来源列按 source_type 本地化,可解析的 source_id 附业务单据链接(服务端小批量反查)。
+//
+// CONV-4:套 CONV-1 的两文件模板。state 恒为 'ok' —— 筛选工具栏是真实出口。
 import { Suspense } from 'react'
 import { getBaseCurrency } from '@/lib/currency'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { parseDateRange } from '@/lib/dateFilter'
-import { formatMoneyBare } from '@/lib/format'
 import JournalToolbar from './JournalToolbar'
+import JournalTable, { type JournalRow } from './JournalTable'
 import { resolveSourceHrefs, sourceHrefKey } from '../sourceLinks'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
 
 const JOURNAL_PAGE_SIZE = 20
 
@@ -107,12 +110,19 @@ export default async function JournalListPage({
         return `/finance/journal?${params.toString()}`
     }
 
-    const sourceLabel = (v: string | null) => (v ? t('finance.source.' + v) : '—')
+    const tableRows: JournalRow[] = rows.map((r) => ({
+        id: r.id,
+        code: r.code,
+        entryDate: r.entry_date,
+        memo: r.memo,
+        sourceType: r.source_type,
+        sourceHref: hrefs.get(sourceHrefKey(r)) ?? null,
+        amount: amountByEntry.get(r.id) ?? 0,
+        status: r.status,
+    }))
 
     return (
-        <div className="p-8">
-            <h1 className="text-2xl font-bold mb-4">{t('finance.journalTitle')}</h1>
-
+        <ListPage title={t('finance.journalTitle')} state={{ kind: 'ok' }}>
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
                 <JournalToolbar />
@@ -138,68 +148,7 @@ export default async function JournalListPage({
                 )}
             </div>
 
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colCode')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colDate')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colMemo')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colSource')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colAmount', { ccy: baseCurrency })}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colStatus')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {rows.map((r) => {
-                        const href = hrefs.get(sourceHrefKey(r))
-                        return (
-                            <tr key={r.id}>
-                                <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                    <Link
-                                        href={`/finance/journal/${r.id}`}
-                                        className="text-blue-600 hover:underline"
-                                    >
-                                        {r.code}
-                                    </Link>
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2">{r.entry_date}</td>
-                                <td className="border border-gray-300 px-4 py-2 text-sm">{r.memo ?? '—'}</td>
-                                <td className="border border-gray-300 px-4 py-2 text-sm">
-                                    {href ? (
-                                        <Link href={href} className="text-blue-600 hover:underline">
-                                            {sourceLabel(r.source_type)}
-                                        </Link>
-                                    ) : (
-                                        sourceLabel(r.source_type)
-                                    )}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                    {formatMoneyBare(amountByEntry.get(r.id) ?? 0, '列头 金额 ({ccy}) —— 已带本位币')}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2">
-                                    <span
-                                        className={
-                                            'px-2 py-1 rounded text-xs ' +
-                                            (r.status === 'posted'
-                                                ? 'bg-green-100 text-green-800'
-                                                : 'bg-gray-200 text-gray-700')
-                                        }
-                                    >
-                                        {t('finance.status.' + r.status)}
-                                    </span>
-                                </td>
-                            </tr>
-                        )
-                    })}
-                    {rows.length === 0 && (
-                        <tr>
-                            <td colSpan={6} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
-                                {t('finance.emptyState')}
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
+            <JournalTable rows={tableRows} empty={t('finance.emptyState')} baseCurrency={baseCurrency} />
 
             {/* 分页控件:服务端 <Link>;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">
@@ -233,6 +182,6 @@ export default async function JournalListPage({
                     </span>
                 )}
             </div>
-        </div>
+        </ListPage>
     )
 }

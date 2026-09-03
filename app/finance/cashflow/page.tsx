@@ -20,6 +20,8 @@ import { formatMoneyBare } from '@/lib/format'
 import CashflowToolbar from './CashflowToolbar'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import CashflowEntriesTable, { type CashflowEntryRow } from './CashflowEntriesTable'
 
 type Cf = {
     period_from: string
@@ -104,10 +106,21 @@ export default async function CashflowPage({
         </tr>
     )
 
+    const entryRows: CashflowEntryRow[] = cf.entries.map((e) => ({
+        code: e.code,
+        entryDate: e.entry_date,
+        memo: e.memo,
+        section: e.section,
+        net: e.net,
+    }))
+
     return (
-        <div className="p-4 sm:p-8 max-w-4xl">
-            <h1 className="text-2xl font-bold mb-2">{t('finance.cashflowTitle')}</h1>
-            <p className="text-sm text-gray-600 mb-4">{t('finance.cashflowDesc', { ccy: baseCurrency })}</p>
+        <ListPage
+            title={t('finance.cashflowTitle')}
+            intro={t('finance.cashflowDesc', { ccy: baseCurrency })}
+            maxWidth="max-w-4xl"
+            state={{ kind: 'ok' }}
+        >
             <Suspense fallback={null}>
                 <CashflowToolbar from={from} to={to} presets={presets} />
             </Suspense>
@@ -151,40 +164,7 @@ export default async function CashflowPage({
             </table>
 
             <h2 className="font-bold mb-2">{t('finance.cashflowDetail')}</h2>
-            <table className="w-full border-collapse border border-gray-300">
-                <thead>
-                    <tr className="bg-gray-100">
-                        <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('finance.colDate')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('finance.colCode')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('finance.cashflowSection')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right text-sm">{t('finance.colAmount', { ccy: baseCurrency })}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {cf.entries.length === 0 && (
-                        <tr>
-                            <td colSpan={4} className="border border-gray-300 px-3 py-6 text-center text-sm text-gray-500">
-                                {t('finance.cashflowNoMovement')}
-                            </td>
-                        </tr>
-                    )}
-                    {cf.entries.map((e) => (
-                        <tr key={e.code}>
-                            <td className="border border-gray-300 px-3 py-2 text-sm">{e.entry_date}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-sm">
-                                <span className="font-mono">{e.code}</span>
-                                {e.memo && <span className="block text-xs text-gray-500">{e.memo}</span>}
-                            </td>
-                            <td className="border border-gray-300 px-3 py-2 text-sm">
-                                {t('finance.cashflowSectionName.' + e.section)}
-                            </td>
-                            <td className={'border border-gray-300 px-3 py-2 text-right font-mono text-sm ' + sign(e.net)}>
-                                {money(e.net)}
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
+            <CashflowEntriesTable rows={entryRows} empty={t('finance.cashflowNoMovement')} baseCurrency={baseCurrency} />
+        </ListPage>
     )
 }

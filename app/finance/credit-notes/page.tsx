@@ -6,14 +6,18 @@
 // 也没有作废:凭证只增不改(CREDIT_NOTE_IMMUTABLE,见详情页抬头)。它唯一
 // 真实存在的状态是【有没有签发过给客户的那份 PDF】,以及签到第几版。
 // 编一个「已过账 / 草稿」出来会比留白更坏(FIN-26 那条:伪造的出处不如空着)。
+//
+// CONV-4:套 CONV-1 的两文件模板。没有筛选工具栏,只有服务端分页,所以
+// 空态判据不必分"全空"与"筛没了"——分页链接不受行数影响,不会被吞。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
-import { formatAmount } from '@/lib/format'
 import { can } from '@/lib/permissions'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import CreditNotesTable, { type CreditNoteRow } from './CreditNotesTable'
 
 const PAGE_SIZE = 20
 
@@ -112,6 +116,8 @@ export default async function CreditNotesPage({
             : []
     const customerById = new Map(customers.map((c) => [c.id, c]))
 
+    // ★ CONV-4:客户名列在服务端就压平成【纯数据】(ReactNode 可以过边界,
+    //   函数不能)—— 与 InboundTable 的通则同形。
     function customerCell(invoiceId: string) {
         if (!canReadCustomers) return <span className="text-gray-500">{t('common.restricted')}</span>
         const inv = invoiceById.get(invoiceId)
@@ -128,85 +134,36 @@ export default async function CreditNotesPage({
         return `/finance/credit-notes?page=${targetPage}`
     }
 
+    const tableRows: CreditNoteRow[] = notes.map((n) => {
+        const inv = invoiceById.get(n.invoice_id)
+        return {
+            id: n.id,
+            code: n.code,
+            noteDate: n.note_date,
+            customerCell: customerCell(n.invoice_id),
+            invoiceId: inv?.id ?? null,
+            invoiceCode: inv?.code ?? null,
+            total: Math.round((totalByNote.get(n.id) ?? 0) * 100) / 100,
+            currency: n.currency,
+            version: versionByNote.get(n.id) ?? null,
+            reason: n.reason,
+        }
+    })
+
     return (
-        <div className="p-8">
-            <h1 className="text-2xl font-bold mb-4">{t('cn.title')}</h1>
-
-            {/* 【没有"新建"按钮是对的】贷项凭证只能从它要冲的那张发票上开,
-                因为每一行的可冲上限是按发票行算出来的。所以这里说出那条路,
-                而不是摆一个注定要先问"冲哪张发票"的钮。 */}
-            <p className="text-sm text-gray-600 mb-4">{t('cn.listNote')}</p>
-
+        <ListPage
+            title={t('cn.title')}
+            // 【没有"新建"按钮是对的】贷项凭证只能从它要冲的那张发票上开,
+            // 因为每一行的可冲上限是按发票行算出来的。所以这里说出那条路,
+            // 而不是摆一个注定要先问"冲哪张发票"的钮。
+            intro={t('cn.listNote')}
+            state={total === 0
+                ? { kind: 'empty', noRows: t('cn.empty') }
+                : { kind: 'ok' }}
+        >
             <p className="text-sm text-gray-600 mb-4">{t('finance.recordCount', { count: total })}</p>
 
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('cn.colCode')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('cn.noteDate')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('cn.colCustomer')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('cn.againstInvoice')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('cn.totalLabel')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('cn.colIssued')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('cn.reason')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {notes.map((n) => {
-                        const inv = invoiceById.get(n.invoice_id)
-                        const version = versionByNote.get(n.id)
-                        return (
-                            <tr key={n.id}>
-                                <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                    <Link
-                                        href={`/finance/credit-notes/${n.id}`}
-                                        className="text-blue-600 hover:underline"
-                                    >
-                                        {n.code}
-                                    </Link>
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2">{n.note_date}</td>
-                                <td className="border border-gray-300 px-4 py-2">{customerCell(n.invoice_id)}</td>
-                                <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                    {inv ? (
-                                        <Link
-                                            href={`/finance/invoices/${inv.id}`}
-                                            className="text-blue-600 hover:underline"
-                                        >
-                                            {inv.code}
-                                        </Link>
-                                    ) : (
-                                        <span className="text-gray-400">—</span>
-                                    )}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                    {formatAmount(
-                                        Math.round((totalByNote.get(n.id) ?? 0) * 100) / 100,
-                                        n.currency
-                                    )}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2 text-sm">
-                                    {version === undefined ? (
-                                        <span className="text-gray-500">{t('cn.noIssues')}</span>
-                                    ) : (
-                                        <span className="px-2 py-1 rounded text-xs bg-green-100 text-green-800">
-                                            {t('cn.issuedVersion', { n: version })}
-                                        </span>
-                                    )}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2 text-sm text-gray-700">{n.reason}</td>
-                            </tr>
-                        )
-                    })}
-                    {notes.length === 0 && (
-                        <tr>
-                            <td colSpan={7} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
-                                {t('cn.empty')}
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
+            <CreditNotesTable rows={tableRows} />
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
@@ -237,6 +194,6 @@ export default async function CreditNotesPage({
                     </span>
                 )}
             </div>
-        </div>
+        </ListPage>
     )
 }

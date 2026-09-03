@@ -1,12 +1,19 @@
 // app/finance/gst/page.tsx
 // GST:注册状态、税码与它们的生效税率、申报期间。
-import Link from 'next/link'
+//
+// CONV-4:套 CONV-1 的两文件模板 —— 两张表(税码参照、申报期间)都是只读账簿。
+// state 恒为 'ok':这一页没有"进不去"或"整页无内容"这两种状态,注册状态与
+// 税码字典总是有得说;期间可以是空的,但那不是全页的空,由 DataTable 自己的
+// empty 说。
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { mustRows, mustOne, mustCount } from '@/lib/db-helpers'
 import { OpenPeriodControl } from './GstControls'
+import { ListPage } from '@/app/components/ui/list-page'
+import GstTaxCodesTable, { type TaxCodeRow } from './GstTaxCodesTable'
+import GstPeriodsTable, { type GstPeriodRow } from './GstPeriodsTable'
 
 export default async function GstPage() {
     const denied = await requireModule(MOD.finance)
@@ -35,10 +42,28 @@ export default async function GstPage() {
     const registered = settings?.gst_registered ?? false
     const codedDocs = mustCount(codedInvRes) + mustCount(codedExpRes)
 
-    return (
-        <div className="p-8 max-w-5xl">
-            <h1 className="text-2xl font-bold mb-4">{t('gst.title')}</h1>
+    const taxCodeRows: TaxCodeRow[] = codes.map((c) => ({
+        code: c.code,
+        side: c.side,
+        // 【按界面语言选一个,不是把两个拼起来】与仓库里另外 105 处同一个写法。
+        // 拼接在中文界面下勉强能读,在英文界面下就是把中文推给一个读不懂它的人。
+        name: locale === 'zh' ? c.name_zh : c.name_en,
+        boxes: [c.f5_supply_box, c.f5_purchase_box, c.f5_tax_box].filter(Boolean).join(' · '),
+        rates: rates.filter((r) => r.tax_code === c.code),
+    }))
 
+    const periodRows: GstPeriodRow[] = periods.map((p) => ({
+        id: p.id,
+        code: p.code,
+        isCorrection: !!p.corrects_period_id,
+        window: `${p.period_start} → ${p.period_end}`,
+        filed: p.status === 'filed',
+        filedOn: p.filed_on,
+        filedReference: p.filed_reference,
+    }))
+
+    return (
+        <ListPage title={t('gst.title')} maxWidth="max-w-5xl" state={{ kind: 'ok' }}>
             {/* 【注册与否是一句要说出来的话,不是一个空白】 */}
             <p className={'text-sm mb-6 inline-block px-3 py-2 rounded border ' +
                 (registered ? 'bg-green-50 border-green-300 text-green-900'
@@ -51,8 +76,7 @@ export default async function GstPage() {
             {/* ★【具名的缺席,不是空白】★ 一份全零的申报表读起来会像"这一季没有
                 生意",所以"为什么是零"要说出来。**GST-2 之后这句话变了**:
                 单据【已经接上了】,所以零的原因不再是"机器建好了但没接线",
-                而是"还没有开出过任何带税码的单据"。前一句在这一刀之后是假的,
-                留着它会让下一个读的人以为接线这件事还没做。 */}
+                而是"还没有开出过任何带税码的单据"。 */}
             {registered && codedDocs === 0 && (
                 <p className="text-sm mb-6 bg-amber-50 border border-amber-300 text-amber-900 px-3 py-2 rounded">
                     {t('gst.noCodedDocuments')}
@@ -61,82 +85,17 @@ export default async function GstPage() {
 
             <h2 className="font-semibold mb-2">{t('gst.taxCodes')}</h2>
             <p className="text-xs text-gray-600 mb-2">{t('gst.taxCodesWhy')}</p>
-            <table className="w-full border-collapse border border-gray-300 mb-6 text-sm">
-                <thead className="bg-gray-50">
-                    <tr>
-                        <th className="border border-gray-300 px-2 py-1 text-left">{t('gst.code')}</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left">{t('gst.side')}</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left">{t('gst.name')}</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left">{t('gst.f5Box')}</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left">{t('gst.rates')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {codes.map((c) => {
-                        const mine = rates.filter((r) => r.tax_code === c.code)
-                        const boxes = [c.f5_supply_box, c.f5_purchase_box, c.f5_tax_box].filter(Boolean).join(' · ')
-                        return (
-                            <tr key={c.code}>
-                                <td className="border border-gray-300 px-2 py-1 font-mono">{c.code}</td>
-                                <td className="border border-gray-300 px-2 py-1">{c.side === 'output' ? t('gst.sideOutput') : t('gst.sideInput')}</td>
-                                {/* 【按界面语言选一个,不是把两个拼起来】与仓库里另外 105 处同一个写法。
-                                    拼接在中文界面下勉强能读,在英文界面下就是把中文推给一个读不懂它的人。 */}
-                                <td className="border border-gray-300 px-2 py-1">{locale === 'zh' ? c.name_zh : c.name_en}</td>
-                                {/* 【不进任何一格也要说出来,不能留白】 */}
-                                <td className="border border-gray-300 px-2 py-1">
-                                    {boxes || <span className="text-gray-500">{t('gst.noBox')}</span>}
-                                </td>
-                                <td className="border border-gray-300 px-2 py-1">
-                                    {mine.length === 0
-                                        ? <span className="text-amber-700">{t('gst.noRate')}</span>
-                                        : mine.map((r) => (
-                                            <div key={r.effective_from} className="font-mono text-xs">
-                                                {Number(r.rate_pct)}% · {r.effective_from} → {r.effective_to ?? t('gst.current')}
-                                            </div>
-                                        ))}
-                                </td>
-                            </tr>
-                        )
-                    })}
-                </tbody>
-            </table>
+            <div className="mb-6">
+                <GstTaxCodesTable rows={taxCodeRows} />
+            </div>
 
             <h2 className="font-semibold mb-2">{t('gst.periods')}</h2>
             <div className="mb-4"><OpenPeriodControl /></div>
-            {periods.length === 0 ? (
-                // 【空状态说的是"还没有开过期间",不是一张空表】
-                <p className="text-sm text-gray-600 mb-6">{t('gst.noPeriods')}</p>
-            ) : (
-                <table className="w-full border-collapse border border-gray-300 mb-6 text-sm">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="border border-gray-300 px-2 py-1 text-left">{t('gst.period')}</th>
-                            <th className="border border-gray-300 px-2 py-1 text-left">{t('gst.window')}</th>
-                            <th className="border border-gray-300 px-2 py-1 text-left">{t('gst.status')}</th>
-                            <th className="border border-gray-300 px-2 py-1 text-left">{t('gst.filing')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {periods.map((p) => (
-                            <tr key={p.id}>
-                                <td className="border border-gray-300 px-2 py-1">
-                                    <Link href={`/finance/gst/${p.id}`} className="text-blue-600 hover:underline font-mono">{p.code}</Link>
-                                    {p.corrects_period_id && <span className="ml-2 text-xs text-amber-800">{t('gst.isCorrection')}</span>}
-                                </td>
-                                <td className="border border-gray-300 px-2 py-1 font-mono text-xs">{p.period_start} → {p.period_end}</td>
-                                <td className="border border-gray-300 px-2 py-1">{p.status === 'filed' ? t('gst.statusFiled') : t('gst.statusOpen')}</td>
-                                <td className="border border-gray-300 px-2 py-1 text-xs">
-                                    {p.status === 'filed'
-                                        ? <>{p.filed_on} {p.filed_reference ? `· ${p.filed_reference}` : ''}</>
-                                        : <span className="text-gray-500">{t('gst.notFiledYet')}</span>}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
+            <div className="mb-6">
+                <GstPeriodsTable rows={periodRows} />
+            </div>
 
             <p className="text-xs text-gray-500">{t('gst.filingIsOutside')}</p>
-        </div>
+        </ListPage>
     )
 }

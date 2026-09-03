@@ -10,6 +10,11 @@ import { getBaseCurrency } from '@/lib/currency'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+
+// ★ CONV-4:不套 DataTable —— 与 balance-sheet 同一条理由(按科目类型
+//   动态分组 + 每组小计 + 底部借贷合计,不是记录列表)。
+//   见 balance-sheet/page.tsx 顶注。
 
 const TYPE_ORDER = ['asset', 'liability', 'equity', 'revenue', 'cogs', 'expense'] as const
 
@@ -96,9 +101,7 @@ export default async function FinancePage({
     })).filter((g) => g.rows.length > 0)
 
     return (
-        <div className="p-8">
-            <h1 className="text-2xl font-bold mb-4">{t('finance.trialBalance')}</h1>
-
+        <ListPage title={t('finance.trialBalance')} state={{ kind: 'ok' }}>
             <div className="mb-4 text-sm">
                 <Link
                     href={showAll ? '/finance' : '/finance?all=1'}
@@ -182,6 +185,6 @@ export default async function FinancePage({
                     </tr>
                 </tfoot>
             </table>
-        </div>
+        </ListPage>
     )
 }

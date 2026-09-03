@@ -22,6 +22,11 @@ import { localizeFinanceError } from '../financeErrorCodes'
 import AgingBars from './AgingBars'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+
+// ★ CONV-4:不套 DataTable —— 按客户【动态分组】+ 组内小计,与
+//   /finance/payables 同一个分组缺口(见 balance-sheet/page.tsx 顶注)。
+//   只套 ListPage 外壳,表本身按兵不动。
 
 type CustomerGroup = {
     name: string
@@ -89,24 +94,27 @@ export default async function ReceivablesPage({
     const groups = Array.from(groupMap.values()).sort((a, b) => b.open - a.open)
 
     return (
-        <div className="p-8">
-            <div className="flex justify-between items-center mb-4">
-                <h1 className="text-2xl font-bold">
+        <ListPage
+            title={
+                <>
                     {t('finance.receivablesTitle')}
                     {report.is_past && (
                         <span className="ml-3 align-middle text-base font-normal text-amber-700">
                             {t('finance.agingAsOf.headingSuffix', { date: report.as_of })}
                         </span>
                     )}
-                </h1>
+                </>
+            }
+            actions={
                 <Link
                     href="/finance/payments/new?direction=in"
                     className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                 >
                     {t('finance.recordReceipt')}
                 </Link>
-            </div>
-
+            }
+            state={{ kind: 'ok' }}
+        >
             <AgingAsOfControl asOf={report.as_of} today={report.today} exportHref={exportHref} />
 
             <AgingAsOfNotice
@@ -280,6 +288,6 @@ export default async function ReceivablesPage({
                     )}
                 </tbody>
             </table>
-        </div>
+        </ListPage>
     )
 }

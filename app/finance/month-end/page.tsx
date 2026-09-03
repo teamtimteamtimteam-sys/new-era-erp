@@ -13,6 +13,13 @@ import { formatAmount, formatMoneyBare } from '@/lib/format'
 import { mustCount, mustOne, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+
+// ★ CONV-4:不套 DataTable —— 这张表是一份【固定的工作流清单】(10 个
+//   写死的步骤,0 个 <th>),不是从数据库查出来的记录集合。每一行的"这一
+//   步是谁"由代码里的 steps 数组决定,不是任何一次 SELECT 的行数决定,
+//   与 DataTable"渲染查出来的记录"这个契约不是同一件事。只套 ListPage
+//   外壳,表本身按兵不动。
 
 function monthRange(m: string): { start: string; end: string } {
     const [y, mo] = m.split('-').map(Number)
@@ -182,8 +189,7 @@ export default async function MonthEndPage({
     }
 
     return (
-        <div className="p-8 max-w-4xl">
-            <h1 className="text-2xl font-bold mb-4">{t('finance.monthEnd.title')}</h1>
+        <ListPage title={t('finance.monthEnd.title')} maxWidth="max-w-4xl" state={{ kind: 'ok' }}>
             <form method="get" className="mb-4">
                 <input type="month" name="month" defaultValue={month}
                        className="border border-gray-300 rounded px-2 py-1 text-sm" />
@@ -212,6 +218,6 @@ export default async function MonthEndPage({
                     ))}
                 </tbody>
             </table>
-        </div>
+        </ListPage>
     )
 }

@@ -2,6 +2,13 @@
 // 月结关账:当前锁状态 + 月份选择(最近 12 个月末,已关/早于锁的禁选)+
 // 所选月末的预览(分录数、Σ借/Σ贷、平衡指示、当月损益表/截至日资产负债表链接)
 // + 关账按钮;下方关账历史(重开的行保留,状态列盖章),活跃行可行内重开。
+//
+// ★ CONV-4:月结历史表【不属于这一套模板的人口】—— 最后一格挂着
+//   ReopenForm,一个真实的、逐行的行内表单(<input type="text"> + 提交)。
+//   按【格子里有没有输入控件】这条全仓库统一的判据,它不是只读账簿,
+//   与资产台账主表撞上 AssetActions 是同一族发现。月结历史表按兵不动。
+//   年结历史表是另一张表,零行内控件,套 CONV-1 模板转换。
+//   state 恒为 'ok':这一页没有"整页无内容"这回事,月份选择器总是有得看。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
@@ -15,6 +22,8 @@ import YearClosePanel from './YearClosePanel'
 import { mustRows, mustOne } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import YearCloseHistoryTable, { type YearCloseRow } from './YearCloseHistoryTable'
 
 type CloseRow = {
     id: string
@@ -140,11 +149,11 @@ export default async function ClosePage({
         open_accrual_count: number
     }
     const yp = mustOne(yearPreviewRes, 'preview_close_financial_year') as unknown as YearPreview | null
-    type YearCloseRow = {
+    type YearCloseQueryRow = {
         id: string; year_end: string; net_result: number
         closed_at: string; reopened_at: string | null; reopen_reason: string | null
     }
-    const yearCloses = mustRows(yearClosesRes) as YearCloseRow[]
+    const yearCloses = mustRows(yearClosesRes) as YearCloseQueryRow[]
     const hardChecks: { key: string; ok: boolean }[] = yp ? [
         { key: 'finalPeriod', ok: yp.final_period_closed },
         { key: 'trialBalance', ok: yp.trial_balanced },
@@ -153,10 +162,17 @@ export default async function ClosePage({
     ] : []
     const canCloseYear = hardChecks.length > 0 && hardChecks.every((c) => c.ok)
 
-    return (
-        <div className="p-8 max-w-5xl">
-            <h1 className="text-2xl font-bold mb-4">{t('finance.closeTitle')}</h1>
+    const yearCloseRows: YearCloseRow[] = yearCloses.map((c) => ({
+        id: c.id,
+        yearEnd: c.year_end,
+        netResult: c.net_result,
+        baseCurrency,
+        reopened: !!c.reopened_at,
+        reopenReason: c.reopen_reason,
+    }))
 
+    return (
+        <ListPage title={t('finance.closeTitle')} maxWidth="max-w-5xl" state={{ kind: 'ok' }}>
             {/* 当前锁状态 */}
             <div className="bg-gray-50 rounded p-4 mb-6 text-sm">
                 <span className="text-gray-600 mr-1">{t('finance.lockedBefore')}:</span>
@@ -324,32 +340,11 @@ export default async function ClosePage({
                                     alreadyClosed={yp.already_closed} />
                 </div>
             )}
-            {yearCloses.length > 0 && (
-                <table className="w-auto min-w-[36rem] border-collapse border border-gray-300">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('finance.yearClose.colYearEnd')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('finance.yearClose.netResult')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('finance.colStatus')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {yearCloses.map((c) => (
-                            <tr key={c.id} className={c.reopened_at ? 'text-gray-400' : ''}>
-                                <td className="border border-gray-300 px-3 py-2 font-mono text-sm">{c.year_end}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                    {formatAmount(c.net_result, baseCurrency)}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">
-                                    {c.reopened_at
-                                        ? t('finance.yearClose.reopened') + (c.reopen_reason ? ' — ' + c.reopen_reason : '')
-                                        : t('finance.yearClose.closed')}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+            {yearCloseRows.length > 0 && (
+                <div className="max-w-[36rem]">
+                    <YearCloseHistoryTable rows={yearCloseRows} />
+                </div>
             )}
-        </div>
+        </ListPage>
     )
 }

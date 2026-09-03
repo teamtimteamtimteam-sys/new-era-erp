@@ -183,6 +183,15 @@ export type DataTableProps<T> = {
     phoneExpandLabel?: string
     /** ★ 勾选 → 批量动作。不给就没有勾选框,与今天所有表一样。见上面的抬头。 */
     selection?: Selection
+    /**
+     * ★★【CONV-4:整行样式 —— §⑧-8 记过的缺口,第三次出现之后建的】★★
+     * CONV-3 §⑧-8 量到 2 处(RecurringLines 停用行发灰、ForecastGrid 未定日款项
+     * 整行琥珀),裁定"2 处不建"。CONV-4 转 finance 时一次量到 5 处(freight
+     * 冲销行、close 已重开行、invoices 已作废行、assets 已处置行、cashflow
+     * 小计行加粗)—— 同一个形状,不是新形状,清过了"第三次才建"那道坎。
+     * 不给就不加 className,与今天所有表一样。
+     */
+    rowClassName?: (row: T) => string | undefined
     className?: string
 } & (SortingOff | SortingClient | SortingServer)
 
@@ -215,7 +224,7 @@ function SelectAllCheckbox({
 export function DataTable<T>(props: DataTableProps<T>) {
     const {
         rows, columns, rowKey, caption, empty, filter, pageSize, phone, selection,
-        columnToggle = false, phoneExpandLabel = '展开这一行的其余各列', className,
+        columnToggle = false, phoneExpandLabel = '展开这一行的其余各列', className, rowClassName,
     } = props
     // ★【CONV-1:scroll 那一支 —— 手机上【每一列都留着】,靠外层横向滚动】★
     //   实现上它就是"把所有列都当成 priority",于是下面那些 `!c.priority` 的
@@ -459,9 +468,10 @@ export function DataTable<T>(props: DataTableProps<T>) {
                             const k = rowKey(row)
                             const isOpen = open.has(k)
                             const restCols = phoneScroll ? [] : shownCols.filter((c) => !c.priority)
+                            const rowCls = rowClassName?.(row)
                             return (
                                 <React.Fragment key={k}>
-                                    <tr className="border-b border-[color:var(--brand-border)]">
+                                    <tr className={cn('border-b border-[color:var(--brand-border)]', rowCls)}>
                                         {selection && (
                                             <td className="px-1 align-middle">
                                                 <input
@@ -502,7 +512,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                     </tr>
                                     {/* ── 展开区:其余各列,带标签。只在手机上存在。 ────────── */}
                                     {isOpen && restCols.length > 0 && (
-                                        <tr className="border-b border-[color:var(--brand-border)] sm:hidden">
+                                        <tr className={cn('border-b border-[color:var(--brand-border)] sm:hidden', rowCls)}>
                                             {/* colSpan 跟着【看得见的】priority 列走 ——
                                                 用 priorityCols.length 是错的:列显隐关掉一个
                                                 priority 列之后,展开区就会比表宽出一格。 */}

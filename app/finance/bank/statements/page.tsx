@@ -1,14 +1,18 @@
 // app/finance/bank/statements/page.tsx
 // 对账单列表:最新在前(period_end DESC),账户 + 状态筛选,count+range 分页
 // (端口自收付款列表)。已软删的不列。每张报表的行状态计数按页级一次 .in 聚合。
+//
+// CONV-4:套 CONV-1 的两文件模板。state 恒为 'ok' —— 筛选工具栏是真实出口,
+// 理由与 /finance/expenses 同一条。
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { formatAmount } from '@/lib/format'
 import StatementsToolbar from './StatementsToolbar'
+import StatementsTable, { type StatementRow } from './StatementsTable'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
 
 const PAGE_SIZE = 20
 
@@ -109,18 +113,37 @@ export default async function BankStatementsPage({
         return `/finance/bank/statements?${params.toString()}`
     }
 
+    const tableRows: StatementRow[] = rows.map((r) => {
+        const c = countsById.get(r.id) ?? zero
+        return {
+            id: r.id,
+            code: r.code,
+            bankAccountCode: r.bank_account_code,
+            period: `${r.period_start} – ${r.period_end}`,
+            opening: r.opening_balance,
+            closing: r.closing_balance,
+            currency: r.currency,
+            lineTotal: c.total,
+            matched: c.matched,
+            unmatched: c.unmatched,
+            ignored: c.ignored,
+            status: r.status,
+        }
+    })
+
     return (
-        <div className="p-8">
-            <div className="flex justify-between items-center mb-4">
-                <h1 className="text-2xl font-bold">{t('bank.listTitle')}</h1>
+        <ListPage
+            title={t('bank.listTitle')}
+            actions={
                 <Link
                     href="/finance/bank/import"
                     className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                 >
                     {t('bank.import')}
                 </Link>
-            </div>
-
+            }
+            state={{ kind: 'ok' }}
+        >
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
                 <StatementsToolbar />
@@ -128,82 +151,7 @@ export default async function BankStatementsPage({
 
             <p className="text-sm text-gray-600 mb-4">{t('finance.recordCount', { count: total })}</p>
 
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('bank.colCode')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('bank.colAccount')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('bank.colPeriod')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('bank.colOpening')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('bank.colClosing')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('bank.colLines')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('bank.colMatched')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('bank.colUnmatched')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('bank.colIgnored')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colStatus')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {rows.map((r) => {
-                        const c = countsById.get(r.id) ?? zero
-                        return (
-                            <tr key={r.id}>
-                                <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                    <Link
-                                        href={`/finance/bank/statements/${r.id}`}
-                                        className="text-blue-600 hover:underline"
-                                    >
-                                        {r.code}
-                                    </Link>
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2 text-sm">
-                                    <span className="font-mono">{r.bank_account_code}</span>{' '}
-                                    {t('finance.bank.' + r.bank_account_code)}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2 text-sm">
-                                    {r.period_start} – {r.period_end}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                    {formatAmount(r.opening_balance, r.currency)}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                    {formatAmount(r.closing_balance, r.currency)}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">{c.total}</td>
-                                <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">{c.matched}</td>
-                                <td
-                                    className={
-                                        'border border-gray-300 px-4 py-2 text-right font-mono text-sm ' +
-                                        (c.unmatched > 0 ? 'text-amber-700 font-medium' : '')
-                                    }
-                                >
-                                    {c.unmatched}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">{c.ignored}</td>
-                                <td className="border border-gray-300 px-4 py-2">
-                                    <span
-                                        className={
-                                            'px-2 py-1 rounded text-xs ' +
-                                            (r.status === 'reconciled'
-                                                ? 'bg-green-100 text-green-800'
-                                                : 'bg-amber-100 text-amber-800')
-                                        }
-                                    >
-                                        {t('bank.status.' + r.status)}
-                                    </span>
-                                </td>
-                            </tr>
-                        )
-                    })}
-                    {rows.length === 0 && (
-                        <tr>
-                            <td colSpan={10} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
-                                {t('bank.empty')}
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
+            <StatementsTable rows={tableRows} empty={t('bank.empty')} />
 
             {/* 分页控件:服务端 <Link>;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">
@@ -237,6 +185,6 @@ export default async function BankStatementsPage({
                     </span>
                 )}
             </div>
-        </div>
+        </ListPage>
     )
 }
