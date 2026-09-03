@@ -189,7 +189,10 @@ export default async function DeletedRecordsPage({
                         {t('deleted.kind.' + k)}
                     </Link>
                 ))}
-                <form className="flex items-center gap-2 ml-auto" action="/settings/deleted">
+                {/* CONV-5:390px 上这一行原本把整页顶宽 27px(两个日期框 + 按钮
+                    在 ml-auto 后面排成一条不折行的 385px)。加 flex-wrap ——
+                    表格那一半本来就没有溢出,溢出的一直是这条筛选行。 */}
+                <form className="flex flex-wrap items-center gap-2 sm:ml-auto" action="/settings/deleted">
                     {kind && <input type="hidden" name="kind" value={kind} />}
                     <input type="date" name="from" defaultValue={from}
                            className="border border-gray-300 px-2 py-1 rounded" />

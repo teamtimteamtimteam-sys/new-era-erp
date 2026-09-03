@@ -2081,3 +2081,95 @@ fixture 129 已经从数据库那一侧钉住了全部规则(十二臂,六次故
   仍然正常工作;
 * `payables`/`receivables` 的 `AgingAsOfControl`(日期回溯控件)与
   `AgingAsOfNotice` 提示条,在新外壳下位置与此前一致。
+
+---
+
+## §26 · CONV-5 —— hr / inventory / operation / 其余,只有人眼能确认的那几处(2026-09-04)
+
+**一处都还没有人走过。** 下面每一条都是【机器测不出来】的:闸测得出"有没有
+声明手机列",测不出"留下来的那两列是不是【对的】两列";冒烟测得出"这一页
+200 了",测不出"读者看懂了没有"。
+
+### 26.1 手机上留下来的那两列,是不是【这张表的】那两列
+
+本刀 **47 张表**各自挑了两列留在 390px 上(其余进展开区),挑法是 CONV-4 的
+启发式:【身份列】+【这张登记簿存在的理由】。**这是一个判断,不是一个测量** ——
+闸测得出"有没有声明 priority",测不出"留下来的是不是【对的】那两列"。
+全表见 `docs/list-page-template.md` §⑩-13 指向的那份清单。要人眼确认的是:拿着手机站在实际用它的地方(车间 / 仓库 /
+办公室),这两列够不够当场做出这一页要做的那个决定。特别是这几张,
+它们的第二列是本刀自己拍的板、而不是显然的:
+
+* `/operation/processing` 留了【损耗】而不是【状态】—— 判断依据是
+  `docs/proc-loss-and-saleability.md` 把损耗当成一等关切。**如果操作员实际上
+  是在扫状态,这一列挑错了。**
+* `/inventory/reports/snapshot` 与 C 节库龄表都留了【数量】而不是【价值】——
+  依据是这一页抬头写明它最主要的读者(operations / warehouse)看不到价,
+  给他们留一列印着"受限"的格子等于浪费两个名额之一。**如果实际读者是
+  看得到价的人,这两张表挑反了。**
+* `/inventory/locations` 留了【可存放分类】而不是【库位名】—— 依据是页顶那句
+  `recordsOnlyNotice` 整段都在讲那一列。
+* `/hr/kpi` 的联动矩阵【故意不把"权重合计"放进手机列】—— 页顶那句
+  `matrixNotWeights` 明说这张矩阵不是权重表,把权重单独留在小屏上会正好
+  造成那句话要防的误读。**这一条尤其需要人确认:它是一次"少给一列"的决定。**
+
+### 26.2 `/hr/reviews/cycles` —— 唯一一张【判定为不是登记簿】的页面
+
+本刀把它诊断成:一叠卡片 + 每张卡里一个【带就地 `<select>` 的返修队列】,
+既不属于 DataTable 也不属于 EditableTable,所以只套了外壳、表格一个字没动。
+**要人确认的是这个判定本身**:打开 `/hr/reviews/cycles`,在一个"有评估轮、
+且轮里有人没有评估人"的状态下看那块红框 —— 它是不是仍然像一个"就地补一个人"
+的小修口,而不是一张需要变成表格的东西。**如果 Tim 觉得它应该是一张表,
+那是一个设计决定,本刀没有替他做。**
+
+### 26.3 `/inventory/reports/safety` —— 本刀唯一真正用上 empty 分支的一张
+
+其余 40 张的空态都由 `DataTable` 自己说(因为它们的出口会被 empty 分支吞掉)。
+这一张不同:它的两个出口(CSV / PDF)是抬头动作、住在 `actions` 里,
+而 `actions` 画在状态分支之前。于是 `monitored === 0` 走了真正的 `empty` 分支,
+渲染成 `RefusalBlock`。**要人眼确认:**「没有人设过任何阈值」这句话在
+`RefusalBlock` 那个块级形状里读起来,是不是仍然明显【不同于】
+「所有物料都在阈值之上」。这两件事该长得不一样,而现在只有词在承担这个区别。
+
+### 26.4 `/inventory/locations` 的页边距变了(p-4 → p-8)
+
+这一页此前是 `p-4 sm:p-8`(手机上 16px 边距),`ListPage` 外壳硬编码 `p-8`
+(32px)。**转换后它在 390px 上左右各多了 16px 边距,可用宽度少 32px。**
+这是本刀唯一一处已知的、外壳带来的版式回归 —— 见 §⑩-6 的量测结果。
+要人眼确认它在手机上是否仍然读得下去;如果不行,那是 `ListPage` 要开一个
+边距槽,不是这一页自己改回去。
+
+### 26.5 无条件的话有没有被吞掉(逐条)
+
+`ListPage` 的 `actions` / `intro` / `notices` 三个槽画在状态分支【之前】,
+`children` 只在 `state==='ok'` 时画。本刀把"必须无条件出现"的东西搬进了
+那三个槽 —— **每一处都要在【空态下】亲眼确认它还在。**
+
+**用了 `notices` 的 10 张(每一条都是一句【不出现就会误导】的话):**
+
+* `/inventory/locations` —— `recordsOnlyNotice`(「这一刀只记录,不设闸」);
+* `/operation/handovers` —— `cannotAnswerYet`(G8:答不出"这个班处理了什么")
+  + 未签收计数条;
+* `/operation/orders` —— `WoThresholdPanel`(一行工单都没有时也要能改阈值);
+* `/settings/deleted` —— `noRestoreNote`(「没有恢复,那是一个决定,不是一个遗漏」);
+* `/customers/overlap` —— 不轧差那段 + 覆盖率分母(「让『0 条』说得出它是哪一种 0」);
+* `/pricing/metal-prices` —— `ThresholdPanel`(同 WoThresholdPanel,它是个设置);
+* `/stocktakes/[id]/review` —— 返回链接 + 汇总条(**没有差异时也要能过账**);
+* `/contracts` —— 覆盖率块(「没有它,下面那句"没有违反"会撒谎」);
+* `/margin` —— 口径说明块 + 覆盖率告警(原注:「三行 NULL 里藏着的正是最大的
+  一笔,所以这句话必须在表格上面,不是脚注」);
+* `/output` —— `StockWarningBanner`(刚建完批次的落地告警)。
+
+**另外三处走 `intro` / `actions`,同样要在空态下确认:**
+`/hr/attendance` 的 `OpenPeriodForm`(没有期间时【唯一】的开期间入口)·
+`/inventory/reports/ledger` 的 `windowNote`(「默认只看 90 天」——
+它恰恰在一行都没有的时候最要紧)· `/hr/leave` 与 `/hr/leave/balances`
+的 `LeaveSubnav`(这两页与其余请假页之间的唯一通路)。
+
+### 26.6 那 9 张【表从来没有被真实渲染过】的页面
+
+本刀的手机基线里有 9 张页面 `tableCount = 0` —— 不是漏转,是今天的测试数据
+让它们走了空分支,那张表【一次都没有画出来过】(见 §⑩-6)。转换之后它们
+会开始画一张带空态的表。**这 9 张的列宽、换行、展开区,都是第一次有人能看见:**
+`/contracts` · `/customers/overlap` · `/hr/attendance` · `/hr/claims` ·
+`/hr/leave` · `/hr/reviews` · `/hr/reviews/cycles` ·
+`/inventory/reports/safety` · `/my-reviews`。

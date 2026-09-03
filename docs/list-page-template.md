@@ -490,6 +490,16 @@ add-a-row 计数"从来不是 4+4=8,一直就是 4** —— 同一批物理页�
 自己身上 —— 与 CONV-1/CONV-2 撞见的殖民地归属错误同一条,下一刀开工前
 应重新确认而不是继承这份清单的判断。
 
+> ### ☞ 【本节已被后两刀走完 —— 更正与结果见 §⑩-2 与 §⑩-14】
+> * **那 64 张全部转完:** CONV-4 转 finance 的 23 张,CONV-5 转其余 41 张
+>   (hr 11 · inventory 5 · operation 4 · 其余 21)。23 + 41 = 64 ✓,
+>   §⑧-10 的清单没有任何一张遗留。
+> * **★ 上面点名要核实的那四张,CONV-5 逐张按 import 查过 —— 四张全是误记,
+>   四张都是纯只读账簿。** 外加一张本节没点名、同一个形状的 `/hr/payroll`
+>   (`PayrollGrid` 只挂 `/new` 与 `/[id]/edit`)。**五张全部是"殖民地归属"
+>   错误,这个仓库为这条栽了三次。** 详见 §⑩-2 —— 下一刀请**按 import 建清单,
+>   不要按目录**。
+
 ---
 
 ## ⑨ CONV-4(2026-09-04)· finance 23 张 —— 而【分类比⑧-1的一句话粗糙得多】
@@ -636,3 +646,446 @@ finance 23 张这一刀全部处理完(11 转 + 5 混合 + 7 外壳)。剩下
 3. `/finance/packs` 的 `PackBody` 报告体(2 张内部表)本刀没有触碰,
    如果它的手机可用度将来要处理,那是另一次设计,不是本刀 §⑨-1
    已经交代过的"按兵不动"范围。
+
+---
+
+## ⑩ CONV-5(2026-09-04)· hr 11 · inventory 5 · operation 4 · 其余 21 —— 而【CONV-3 点名的那四张"殖民地",四张全是误记】
+
+**基线:** HEAD `bf4986b`(CONV-4),树干净。**41 张全部处理完。**
+
+**分类判据用的是【表】,不是【页】,因为那是可以核实的那个单位:**
+转换后在这 41 张 `page.tsx` 里 grep `<table`,**只剩一处**(见下)。
+
+| | 张数 |
+|---|---:|
+| 页上每一张表都变成了 `DataTable` | **40** |
+| 只套外壳、表一个字没动(`/hr/reviews/cycles`,诊断见下) | **1** |
+| **合计** | **41** |
+
+**新建客户端表文件 40 个,`<DataTable>` 调用点 47 个** —— 两个数不一样,
+而差在哪里值得写清楚:
+
+* **40 = 41 − 1**:除了只套外壳的 `/hr/reviews/cycles`,每一张转换页各得一个
+  客户端表文件(CONV-1 §① 那个"一页两个文件"的形状,41 张一次没破例)。
+* **47 − 40 = 7**:四个文件各导出不止一个表组件 ——
+  `ContractsTables.tsx` **5** 个、`OverlapTables.tsx` / `SnapshotTables.tsx` /
+  `ViolationsTables.tsx` 各 **2** 个。
+* **而"一个组件用了几次"不进这个数**:`settings/reference` 的表组件被三个
+  权限类别各用一次、`my-reviews` 的被"手上有活/已了结"两段各用一次 ——
+  它们是**同一个调用点**。闸数的是调用点,不是渲染次数。
+
+**那 40 张里有 9 张是【报告体 + 登记簿】** —— 表全部换了,而卡片、散文、
+覆盖率块、合计条这些【不是表】的东西一个字没动(Tim 在本刀 Q2 的裁定):
+`hr/kpi` · `inventory/reports/safety` · `inventory/reports/snapshot` ·
+`inventory/reports/violations` · `contracts` · `customers/overlap` ·
+`margin` · `stocktakes/[id]/review` · `settings/import`。
+**`/contracts` 是其中最极端的一张:它是一屏报告,里面装着【五张】真登记簿**
+(违反 / 合同清单 / 指数计价条款 / 结算口径 / 已记录结算)——
+五张全换,覆盖率块与两个"建了什么、还不能做什么"的琥珀块全留。
+
+**混合页(主表里带真表单)这一刀是 0 张** —— 与 CONV-4 的 finance 段(5 张)不同。
+理由见 ⑩-1:判据一样,而这四个模块的表单都在 `/new` 与 `/[id]/edit` 上。
+
+### ⑩-1 开工前的分类:先量,而【第一次量错了,自己照出来】
+
+CONV-4 §⑨ 立的规矩是"标签不是页面,逐页分类"。本刀照做,而**第一遍的机械
+判据自己就是错的**,值得写下来,因为下一刀还会想用同一个 grep:
+
+第一遍用的判据是 CONV-1 原话——【表格单元里有没有 `input` / `select` /
+`textarea`】。41 张跑下来**全是 0**,于是"这一刀一张可编辑网格都没有"。
+
+**那个数是假的。** `/hr/reviews/cycles` 的表格单元里确实有一个会改数据的
+`<select>` ——它藏在 `<SetReviewerControl>` 这个**组件**里面,而按标签名 grep
+的判据**看不见组件**。改成"扫 `<table>` 区域里的大写 JSX 标签"之后才照出来。
+
+**判据本身没错,它的机械实现漏了一整类。** 记在这里,因为剩下的详情页/表单页
+两刀会重复用它。
+
+> 【另一处同类的自我更正】开工时那个测量脚本在 zsh 下写成了
+> `cat $all`(未加引号的变量)。**zsh 不做词分割**,于是 41 张页面的表数、
+> `<th>` 数、控件数【全部量成 0】,而 0 看起来像一个答案。
+> 是"目录总行数也是 0"这一格不合常理才把它照出来的。
+> **一个全 0 的测量结果要当成脚本坏了,不是当成发现。**
+
+### ⑩-2 CONV-3 §⑧-10 点名要核实的四张:**四张全部是误记**
+
+按 `page.tsx` 的 import 逐张核实(相对 `./X` 与 `@/app/...` 两种写法都查了):
+
+| 页 | 目录里那个编辑器 | 它实际挂在哪 | 结论 |
+|---|---|---|---|
+| `/hr/reviews` | `GoalsEditor` | `/hr/reviews/[id]` 详情页 | 只读账簿 |
+| `/pricing/formulas` | `FormulaForm` | `/new` 与 `/[id]/edit` | 只读账簿 |
+| `/purchasing/payment-terms` | `TemplateForm` | `/new` 与 `/[id]/edit` | 只读账簿 |
+| `/settings/roles` | `PermissionMatrix` | `/settings/roles/[id]` | 只读账簿 |
+
+**外加一张 CONV-3 没点名、但同一个形状的:** `/hr/payroll` 目录里住着
+`PayrollGrid`(CONV-2 的可编辑网格),而 `/hr/payroll/page.tsx` **一个本地组件
+都不 import**。
+
+**五张全部是"殖民地归属"错误** ——与 CONV-1 / CONV-2 撞见的是同一条。
+把组件算给它所在的**目录**、而不是它挂载的**那一页**,这个仓库现在栽了三次。
+**建议下一刀直接按 import 建清单,不要按目录。**
+
+### ⑩-3 一条跨【15 张】页面的判断:出口不能被空态吞掉,`state` 恒为 `'ok'`
+
+CONV-4 §⑨-4 在 6 张 finance 页面上立过"筛选工具栏是出口"这条。**本刀量到 15 张
+带筛选出口的页面**,2.5 倍的爆炸半径,所以它不再是一条"finance 的经验",
+而是列表页模板的默认判据。
+
+而本刀把它推广成了 Tim 交代的**一般形式**:
+
+> **如果这一页唯一能动手的地方住在 `empty` 分支会吞掉的位置,那个分支就不能用。**
+
+出口不止是筛选栏。本刀实际遇到的出口有五种:
+
+| 出口种类 | 页数 | 例子 |
+|---|---:|---|
+| 筛选 / 排序工具栏 | 15 | `hr/employees` · `materials` · `output` · `suppliers` … |
+| 抬头新建按钮(住 `actions`,天然安全) | 11 | `hr/departments` · `sales/orders` … |
+| **页内的新增表单** | 5 | `OpenPeriodForm` · `NewContainerForm` · `NewForwarderForm` · `CycleForm` · `ImportForm` |
+| **子导航** | 2 | `LeaveSubnav`(`/hr/leave` 与 `/hr/leave/balances`) |
+| **设置面板** | 2 | `WoThresholdPanel` · `ThresholdPanel` |
+
+**41 张里 39 张 `state` 恒为 `'ok'`。** 两处例外见 ⑩-4。
+
+### ⑩-4 两张【真的用上 empty 分支】的页面,以及它们为什么可以
+
+`ListPage` 的 `actions` / `intro` / `notices` 三个槽**都画在状态分支之前**,
+只有 `children` 被 `state==='ok'` 关着。于是:
+
+* **`/inventory/reports/safety`** —— 两个出口(CSV / PDF 导出)是抬头动作,
+  住 `actions`。`monitored === 0` 因此可以如实走 `empty`,渲染成 `RefusalBlock`。
+  **而这一页原本就把两种空分开说**(「没有人设过任何阈值」≠「所有物料都在
+  阈值之上」)——本刀没有把这个区别压平。
+* **`/my-reviews`** —— 这一页**没有任何出口**(没有筛选、没有新建),
+  空态吞不掉任何东西。顺带:它那句"你的账号还没有关联员工档案"改走
+  `state: 'restricted'`,渲染 CONV-0 的 `<RefusalPage>` —— 读者要读的是同一类
+  东西(**这里为什么没有东西给我看**),不该另开一条路。
+
+**推论(写给下一刀):** 想用 `empty` 分支,先把出口挪进 `actions` / `notices`。
+挪不动的,就恒为 `'ok'`。
+
+### ⑩-5 分组/小计缺口:**仍然是 5 处,不是 6 处**——而第三种排法根本不需要它
+
+机械普查把 `/inventory/reports/snapshot` 标成新的一处(`groupBy` ×2 + 合计 ×3)。
+逐行读过之后**判定它不算**:
+
+* §⑨-2 的两种形状都是**一张表里**夹着分组表头行与组内小计行
+  (`payables`/`receivables` 运行期按往来对象动态分组;`balance-sheet`/`pnl`/
+  `trial-balance` 固定三段 + 派生合计行)——那是 `DataTable`「一行 = 一条记录」
+  的契约表达不了的东西。
+* `snapshot` 不是:它按库位切成**一段一个 `<section>`、每段一张完整的表**,
+  表里没有分组行、没有组内小计,唯一的合计是页顶那条**在所有表之外**的合计条。
+  **它用今天的 `DataTable` 就画得出来,一个新口子都不需要。**
+
+另外四处带「合计」字样的(`/hr/payroll` · `/purchasing/payment-terms` ·
+`/stocktakes/[id]/review` · `/customers/overlap`)逐个看过,都是**页级的一个数字**
+或表外的一句话,不是组内小计。
+
+**缺口计数保持 5 处、两种形状,能力仍然不建。**
+Tim 在本刀 Q3 把裁定的理由写成了可以引用的一句话,免得下一刀重新决定:
+
+> **第三种形状是【不建】的证据,不是建的证据。知道得更多,不等于知道得够多。**
+> 一套服务三种不同分组形状的通用能力,最可能的结果是三种都服务得很差。
+
+### ⑩-6 RSC 边界:这一刀用满了【三种】过界办法,而不是一种
+
+CONV-1 §① 只写了第一种。本刀 41 张逼出另外两种,三种都记在这里:
+
+| # | 办法 | 什么时候用 | 本刀的例子 |
+|---|---|---|---|
+| ① | **在服务端压平成纯数据** | 默认。判据、`locale`、`Map`、货币格式一律不过界 | 全部 41 张 |
+| ② | **让服务端渲染好的元素当 `ReactNode` 过界** | 那一格的逻辑住在一个**服务端组件**里,重写它就是"殖民地"错误 | `/settings/deleted` 的「谁」列 —— `<ActorName>` 是 async 服务端组件,四种状态里两种要画 `<Refusal>` 药丸、第 ② 种**刻意不画**。把这套判断在客户端重写一遍是这个仓库付过三次账的形状,所以传的是**元素**,不是字符串 |
+| ③ | **把函数留在客户端,只传它需要的纯参数** | prop 是**函数**,函数过不了界 | 5 张服务端排序页的 `href(key, dir)` —— 页面传 `filterQuery`(纯对象)+ `sort`/`dir`,链接由客户端拼(CONV-1 在 `/inbound` 先走过) |
+
+### ⑩-7 Q7:服务端排序的 6 张,行为一个字没变
+
+| 页 | 转换前 | 转换后 |
+|---|---|---|
+| `/suppliers` · `/customers` · `/materials` · `/output` · `/pricing/metal-prices` | 手写 `sortableTh`,表头是带 ▲▼ 的链接 | `DataTable` 的 `sorting.mode: 'server'`,表头仍是链接;`href` 用办法 ③ |
+| `/operation/processing` | `sort`/`dir` 由 `ProcessingToolbar` 写 URL,表头是**普通文字** | **不传 `sorting` prop** —— 表头仍是普通文字,排序仍归工具栏 |
+
+**最后一行是一个刻意的不对称**:给 `/operation/processing` 也套上 `sorting`
+会凭空多出一套表头排序,而这一页的排序出口本来在工具栏上。
+**一张表有两套排序,迟早各说各话。**
+
+**★ 而这一条是【对拍出来的】,不是断言的 ★**
+写了一个探针:建一个临时管理员会话,用它的 cookie **真的去 fetch 渲染好的
+HTML**,把行序抽出来比:
+
+```
+  OK  /suppliers?sort=code             desc == reverse(asc)   (7 行)
+  OK  /customers?sort=code             desc == reverse(asc)   (3 行)
+  OK  /materials?sort=code             desc == reverse(asc)   (5 行)
+  OK  /output?sort=code                desc == reverse(asc)   (14 行)
+  OK  /pricing/metal-prices?sort=price_date   desc == reverse(asc)  (10 行)
+  OK  /operation/processing?sort=process_date  asc 非递减 · desc 非递增
+  OK  /pricing/metal-prices?sort=price_date    asc 非递减 · desc 非递增
+  OK  /output?sort=output_date                 asc 非递减 · desc 非递增
+```
+
+> **★ 探针的第一版是错的,记下来免得下一刀照抄 ★**
+> 第一版对每一页都用"`desc` 是不是 `asc` 的逆序"这一条,于是
+> `/operation/processing` 报 FAIL。**错的是判据,不是页面:**
+> ① 它按 `process_date` 排,而我抽的是**单号**那一列 —— 日期排序不会让单号有序;
+> ② 这一页**分页**(20/页),总行数超过一页时,`desc` 的第 1 页本来就不可能是
+> `asc` 第 1 页的逆序。
+> 换成"**把排序键那一列抽出来,验它在两个方向上各自单调**"之后全绿 ——
+> 这条判据在分页下也成立,而前一条不成立。
+
+### ⑩-8 手机闸的调用点覆盖:数出来的,不是假设的
+
+| | 调用点 |
+|---|---:|
+| 本刀开工前 | **38**(DataTable 35 · EditableTable 3) |
+| hr 段之后 | **48**(+10 = hr 段新建的 10 张表) |
+| **41 张全部之后** | **85**(DataTable 82 · EditableTable 3)—— **+47 张新表** |
+
+47 > 41,因为 6 张页面各带多张表(`contracts` 5 张、`snapshot` 2、`violations` 2、
+`customers/overlap` 2、`hr/kpi` 1 of 3 段、`settings/reference` 1 个组件用 3 次)。
+
+**故障注入**(拿掉 `AttendanceTable` 全部 `priority`):
+
+```
+tsc                      → EXIT 0   ← ★ 类型看不见这一种,这正是闸存在的理由
+check-datatable-phone    → EXIT 1
+  app/hr/attendance/AttendanceTable.tsx:72
+    phone 是 columns 模式,但 columns={columns} 里没有任何一列 priority: true
+```
+
+恢复后回到 EXIT 0。**两道网不互相重复,这一次也验了一遍。**
+
+### ⑩-9 两处已知的版式回归,照直写出来
+
+`ListPage` 外壳**硬编码 `p-8`**。41 张里有两张此前用的是更小的边距:
+
+| 页 | 转换前 | 转换后 | 后果 |
+|---|---|---|---|
+| `/inventory/locations` | `p-4 sm:p-8` | `p-8` | 390px 上左右各多 16px,可用宽度少 32px |
+| `/settings/import` | `p-6` | `p-8` | 同上,少 16px |
+
+**两处不建槽**(§⑧-8 那条"第三次才建"的同一条判据)。记在
+`manual-walk-list` §26.4;如果人眼确认读不下去,那是 `ListPage` 要开边距槽,
+不是这两页各自改回去。
+
+### ⑩-10 关于"信脚本自己的退出码"这条规矩,本刀撞了【三次】
+
+标准规矩是【只信脚本自己日志里的退出码】。本刀三次拿到**外层报告的 exit 0
+而脚本自己是失败或根本没跑完**:
+
+1. 基线手机普查:包一层 `sh -c '… ; echo EXIT=$?'`,**最后一条命令是 `echo`**,
+   于是外层永远 0;而 `EXIT=` 那行因为引号嵌套根本没写进日志;
+2. worktree 里的基线重跑:外层报 exit 0,而日志第一行就是
+   `!! survey-phone failed: self-test FAILED`(worktree 用符号链接借
+   `node_modules`,Next 认错了项目根);
+3. 被我杀掉的那次冒烟:外层报 exit 0,日志里没有任何退出码。
+
+**三次都是"外层壳的退出码"冒充"脚本的退出码"。**
+本刀之后一律写成 `cmd > log 2>&1; echo "X_OWN_EXIT=$?" >> log`,
+**`echo` 紧跟在被测命令后面、中间不隔任何东西**,再从日志里读那一行。
+
+### ⑩-11 一条被我自己违反、然后照规矩纠正的:一棵树,一次一个冒烟
+
+`docs/concurrency-one-tree-one-smoke.md` 写着冒烟期间这棵树不能变。
+本刀第一次跑冒烟时**我一边跑一边继续改文件**——dev server 每次改动都要重编译,
+那次运行测的是一棵移动中的树。**结果作废,进程杀掉,改完之后重跑。**
+记在这里,因为它不是一条只对并行会话成立的规矩:**一个会话自己也能违反它。**
+
+### ⑩-12 ★ 转换照出一个【闸的洞】:`check-permission-predicate` 认不出反引号
+
+转 `/margin` 时构建变红:
+
+```
+✗ 权限不变量被破坏了:
+  [② 一个功能几个模块] app/margin/MarginTable.tsx:手写了一个 <Link href="/output">
+```
+
+**而这条链接【转换前就在那儿】。** 转换前它写成
+
+```jsx
+<Link href={`/output`} className="...">   // 反引号模板串
+```
+
+而那道闸的判据是
+
+```js
+new RegExp(`<Link[^>]*href=["']${href}["']`)   // 只认单/双引号
+```
+
+**于是这个手写的跨模块入口从 `/margin` 建成那天起就没有被看见过。**
+本刀把它改成从注册表取(`FN.output.href`,并给 `FN` 补了 `output` 这个访问器)——
+既满足不变量,也不改变链接今天指向的地方。
+
+**逐条查过其余三条跨模块条目**(`/commissions` · `/inbound` · `/finance/freight`):
+**反引号形式一处都没有,今天没有别的东西藏在这个洞后面。**
+
+**洞本身没有补。** 把正则放宽到认模板串是一次跨 196 页的改动,而本刀已知
+它后面是空的 —— **按这个仓库"记而不建"的同一条规矩,记在这里,留给
+一次专门的决定。** 补它的那一次要连着跑一遍全仓,因为它可能照出别的东西。
+
+### ⑩-13 手机列的选择:一张可复核的表,而不是四十次追问
+
+Tim 在本刀 Q4 裁定:由本刀按 CONV-4 的启发式(**身份列 + 这张登记簿存在的
+理由**)自己挑,把全表列出来供他一次推翻,而不是逐页追问 ——
+**四十次阻塞式追问是最差的选项,一张可复核的表是最好的。**
+
+其中 **6 处是本刀自己拍的板、而不是显然的**,已单独点名请人确认;
+最值得看的两处:
+
+* **`/hr/kpi` 的联动矩阵故意【不】把「权重合计」放进手机列。**
+  页顶那句 `matrixNotWeights` 明说这张矩阵不是权重表 —— 把权重单独留在
+  小屏上,会正好造成那句话要防的误读。**这是一次"少给一列"的决定。**
+* **`/inventory/reports/snapshot` 与库龄表都留【数量】而不是【价值】。**
+  依据是这一页抬头写明它最主要的读者(operations / warehouse)**看不到价**;
+  给他们留一列印着"受限"的格子,等于把小屏上两个名额之一浪费掉。
+
+**全表(47 张,`★` = 本刀自己拍的板):**
+
+| 页 | 表 | 留在 390px 的两列 | 挑第二列的理由 |
+|---|---|---|---|
+| /hr/attendance | AttendanceTable | 期间编号 · 未记行数 | 抬头写明读者第一件要看的是"这个月记满了没有" |
+| /hr/claims | ClaimsTable | 单号 · 状态 | settlement_state 回答"钱到底付了没有" |
+| /hr/departments | DepartmentsTable | 编号 · 英文名 | 名字是找部门的理由 |
+| /hr/employees | EmployeesTable | 工号 · 姓名 | 准证到期徽章挂在工号格里,不会掉进展开区 |
+| /hr/kpi | KpiMatrixTable | 职位 · KPI 条数 | ★ 故意不留"权重合计":页顶 matrixNotWeights 明说它不是权重表 |
+| /hr/leave | LeaveRequestsTable | 单号 · 状态 | 这是待办清单,状态就是它存在的理由 |
+| /hr/leave/balances | BalancesTable | 员工 · 可用天数 | 批准人据以拍板的那一个数 |
+| /hr/payroll | PayrollPeriodsTable | 期间 · 实发合计 | 这个月到底付出去多少 |
+| /hr/reviews | ReviewsTable | 员工 · 状态 | 在 submitted 里躺三周的评估就是一件待办 |
+| /hr/training | TrainingTable | 员工 · 到期日 | 证书过期 = 这个人暂时不能上那道工序 |
+| /inventory/locations | LocationsTable | 库位号 · 可存放分类 | 页顶 recordsOnlyNotice 整段在讲那一列 |
+| /inventory/reports/ledger | LedgerTable | 批次 · 数量 | 台账存在的理由是"动了多少" |
+| /inventory/reports/safety | SafetyTable | 物料 · 缺口 | 4 列表;缺口是"要补多少" |
+| /inventory/reports/snapshot | SnapshotGroupTable | 物料 · 数量 | ★ 不留价值:主要读者(operations/warehouse)看不到价 |
+| /inventory/reports/snapshot | AgeingTable | 库龄档 · 数量 | 同上 |
+| /inventory/reports/violations | ViolationsTable | 库位 · 物料 | ★ 身份是两者【合起来】,少一个这一行读不成话 |
+| /inventory/reports/violations | UndecidedTable | 首列 · 数量 | 3 列表;首列是该段主语 |
+| /operation/handovers | HandoversTable | 日期 · 签收 | 抬头第一句:未签收的必须一眼看得出来 |
+| /operation/orders | WorkOrdersTable | 工单号 · 完成度 | "计划这一侧的入口",还差多少没投 |
+| /operation/processing | ProcessingTable | 加工单号 · 损耗 | ★ 拍板项:proc-loss-and-saleability.md 把损耗当一等关切;状态多数时候相同 |
+| /operation/wip | WipTable | 批次 · 等哪一道工序 | 这一页回答"下一炉该跑什么" |
+
+★ = 本刀自己拍的板,不是显然的;列进 manual-walk-list §26.1 请人确认。
+
+**其余 21 张(接上表):**
+
+| 页 | 表 | 留在 390px 的两列 | 挑第二列的理由 |
+|---|---|---|---|
+| /sales/orders | SalesOrdersTable | 单号 · 客户 | 这一单是谁的 |
+| /my-reviews | MyReviewsTable | 被评估人 · 状态 | 这一份轮到我做了没有 |
+| /logistics/containers | ContainersTable | 箱号 · 最新里程碑 | 这只箱现在到哪了 |
+| /logistics/forwarders | ForwardersTable | 货代 · 未结应付 | 与供应商共用 ap_open_items 的全部意义 |
+| /settings/reference | PermissionReferenceTable | 权限 · 谁持有 | 这一页就是"谁能看见什么"的答案 |
+| /settings/import | ImportHistoryTable | 什么时候 · 哪张表 | 回头查一次导入时先要确定的两件事 |
+| /settings/roles | RolesTable | 角色码 · 持有人数 | 改它的后果有多大 |
+| /settings/deleted | DeletedTable | 编号 · 为什么 | AUDEL-1b/2 把"为什么删"问出来,那是这一页的目的 |
+| /customers | CustomersTable | 编号 · 客户名 | 名单被打开的理由 |
+| /customers/overlap | ByTaxTable | 税号 · 客户 | 税号是配对的身份(两侧凭它认成同一家) |
+| /customers/overlap | ByNameTable | 客户 · 供应商 | 2 列表;少任何一侧都不成话 |
+| /materials | MaterialsTable | 物料号 · 物料名 | 四处"具名的缺席"在展开区里仍是那四句话,不是空白 |
+| /output | OutputTable | 批次号 · 可用余量 | 还能卖/还能投多少 |
+| /suppliers | SuppliersTable | 编号 · 供应商名 | 名单被打开的理由 |
+| /purchasing/orders | OrdersTable | 单号 · 应付总额 | ★ PO-GST-1 之后有三个金额列,应付总额才是"要付多少" |
+| /purchasing/payment-terms | TemplatesTable | 模板名 · 付款条件 | 那一串"几成/什么时候"就是模板【是什么】 |
+| /pricing/formulas | FormulasTable | 公式号 · 计价基准 | 这条公式算的是什么 |
+| /pricing/metal-prices | MetalPricesTable | 金属 · 价格 | ★ 四个判词徽标挂在价格格里,小屏上不会掉进展开区 |
+| /stocktakes | StocktakesTable | 盘点单号 · 状态 | 盘完了没有、过账了没有 |
+| /stocktakes/[id]/review | ReviewDiffTable | 批次 · 差异 | 差异【就是】这张表存在的理由 |
+| /margin | MarginTable | 批次 · 毛利 | Doc 2 说"生意最需要"的那个数 |
+| /contracts | BreachesTable | 单据 · 实测 | 实测值是"违反"这件事的证据 |
+| /contracts | ContractListTable | 合同号 · 标题 | 这是哪一份合同 |
+| /contracts | PricingTermsTable | 合同号 · 指数 | 按什么计价 |
+| /contracts | SettlementTermsTable | 合同号 · 计重口径 | SETTLE-1 这一段存在的理由 |
+| /contracts | SettlementsTable | 合同号 · 金额 | 4 列表;一条已记录结算的要点 |
+
+**判据本身是可以推翻的**,而推翻它只需要改那一列的 `priority: true` ——
+选择住在列描述符里,不住在文档里。
+
+### ⑩-14 手机可用度:★ 先做 tableCount 交叉核对,而这一次它推翻了一半的"之前" ★
+
+按 CONV-3 §④ 的规矩先核对 `tableCount`,再引用可用度数字。
+
+**★ 委托点名的那个盲区,在本刀是一半的量级,不是零星几张 ★**
+基线里 **41 张有 9 张 `tableCount = 0`** —— 它们的表**一次都没有被真实渲染过**
+(今天的测试数据让它们走了空分支,而一张画不出来的表既不会溢出、也不会被裁):
+
+`/contracts` · `/customers/overlap` · `/hr/attendance` · `/hr/claims` ·
+`/hr/leave` · `/hr/reviews` · `/hr/reviews/cycles` · `/inventory/reports/safety` ·
+`/my-reviews`
+
+**这 9 张在基线里【全部计为可用】。** 所以"之前"的数必须分两行写:
+
+| | 之前 | 之后 |
+|---|---:|---:|
+| `survey-phone` 自己报的 USABLE(U1 ∧ U2) | **18 / 40** | **40 / 40** |
+| 其中【表根本没画出来】的 | **9** | **5** |
+| **真正量到过一张表、且可用的** | **9 / 31** | **35 / 35** |
+
+(41 张里 `/stocktakes/[id]/review` 是动态路由,`--routes=` 只收静态路由,
+所以逐路由那一栏是 40。之后仍有 5 张 `tc=0`,**五张全部解释得通**:
+`/hr/reviews/cycles` 只套外壳没有 DataTable;`/inventory/reports/safety` 与
+`/my-reviews` 走了 `empty` 分支(⑩-4);`/contracts` 与 `/customers/overlap`
+各段行数都是 0、由页面自己的"具名缺席句"顶掉了表。**没有一张是漏转。**)
+
+**22 处不可用【全部】是 U1 与 U2 同时失败** —— 基线里 U1 与 U2 的失败集合
+恰好重合(各 18/40 通过)。也就是说:这些页面的表比屏幕宽,既把整页顶出
+横向滚动(U1),又因为祖先不滚动而把右侧的列彻底裁掉(U2)。
+**U2 是那条安静的、也是更坏的:被裁掉的列在屏幕上没有任何东西说它存在。**
+
+转换后 **U1 40/40 · U2 40/40**,溢出量从最多 744px 归零:
+
+| 页 | 之前溢出 | 之后 |
+|---|---:|---:|
+| `/materials` | +744px | 0 |
+| `/purchasing/orders` | +729px | 0 |
+| `/output` | +659px | 0 |
+| `/pricing/formulas` | +500px | 0 |
+| `/hr/training` | +474px | 0 |
+| …其余 17 张同样归零 | | |
+
+**一张【不是表格】造成的溢出,单独记一笔:** `/settings/deleted` 转换后仍
+溢出 27px,而 `clippedTables` 已经是 0 —— 表那一半修好了,**顶宽的是那条
+日期区间筛选行**(`ml-auto` 后面两个日期框 + 按钮排成不折行的 385px)。
+加了 `flex-wrap` 之后归零。**记在这里是因为它说明了一件事:
+`DataTable` 只管表;一页的手机可用度还可能被表以外的东西毁掉。**
+
+> ★【一处量测方法上的自我更正,写下来免得下一刀重蹈】★
+> 本刀第一版打分脚本把 U1 写成 `pageScrollW <= innerW + 1`。
+> **那是一个恒真式** —— `innerW` 会随内容撑开(基线 40 条里有 22 条
+> `innerW !== vw`,最宽的到 417px),于是"页面有没有超出视口"永远是"没有"。
+> 正确的判据是拿 **目标视口 `vw`(390)** 去比,也就是 `overflowPx <= 1`。
+> 改对之后,本地打分与 `survey-phone` 自己打印的 `U1 18/40 · USABLE 18/40`
+> **逐字对上** —— 那才是这个数可以引用的理由。**工具是对的,我的复算是错的。**
+
+### ⑩-15 这一刀之后还剩什么 —— §⑧-10 那份清单到此清空
+
+**算式是干净的,核对过:** §⑧-1 量到的人口是 **68 = 64 张普通只读列表/报表页
++ 4 张 Kind-E**。CONV-3 转的 7 张里,4 张是那批 Kind-E(在 68 之内),
+另外 3 张(Kind-C ×2、Kind-D ×1)**不在这 68 之内**。所以 §⑧-10 留下的正是
+那 64 张普通页,而
+
+> CONV-4 的 **23**(finance) + 本刀的 **41**(hr 11 · inventory 5 ·
+> operation 4 · 其余 21) = **64** ✓
+
+**列表页这一支到此结束,§⑧-10 的清单没有任何一张遗留。**
+
+按 PAGE-0 §⑩ 的切次提案,后面还剩:
+
+* **第 5 刀 · 详情页(36 张)** —— 它们里面【有就地编辑的面板】,
+  所以开工前必须先做本刀 ⑩-1 那一步:**按组件扫,不要按标签名 grep**,
+  否则又会得到一个"零张可编辑网格"的假数。
+* **第 6 刀 · 表单页** —— CONV-2 的可编辑网格模板管这一支。
+
+**三件留给设计时间,不留给下一刀"顺手做":**
+
+1. **分组/小计能力**:5 处、两种形状(⑩-5 复核过,`snapshot` 不算第六处)。
+   Tim 在本刀 Q3 的裁定连理由一起写下了,下一刀不必重新决定。
+2. **`check-permission-predicate` 的反引号洞**(⑩-12):今天它后面是空的,
+   补它要连着跑一遍全仓。
+3. **`ListPage` 的边距槽**(⑩-9):两处回归,按"第三次才建"不建。
+
+### ⑩-16 只有人能确认的事
+
+见 `docs/manual-walk-list.md` §26。**一处都还没有人走过。**
+其中最要紧的一条是 §26.1:**30 张表各自留在 390px 上的那两列是一个判断,
+不是一个测量** —— 闸测得出"有没有声明",测不出"留下来的是不是对的两列"。
