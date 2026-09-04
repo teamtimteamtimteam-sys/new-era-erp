@@ -781,3 +781,227 @@ E 还原                          → shasum 逐字节相同 · EXIT 0
 见 `docs/manual-walk-list.md` §30。**一处都还没有人走过。**
 最要紧的是 §30.1:**那 9 条 `textLen=76` 的路由,在有人真的打开之前,
 它们的 390px 表现没有任何证据。**
+
+---
+
+# ⑬ CONV-10(2026-09-04)· 补 CONV-9 欠的三件 + 修那把尺 —— 而【尺坏在取 id,不在启发式】
+
+**基线:** HEAD `f5441f0`(CONV-9),树干净。**本节记 §0 与 §1;转换记在 §⑭。**
+
+## ⑬-0a CONV-9 那一轮提问:**记录【没有了】,而这句话本身是答案**
+
+委托要求逐字复现 CONV-9 开工时那一轮问题。**逐处找过,一处都没有:**
+
+| 找过哪里 | 结果 |
+|---|---|
+| `docs/detail-page-template.md` §⑫(CONV-9 自己的文档) | 只有「Tim 在 CONV-5 Q3 / CONV-8 Q4 的裁定」这类**回指**,没有本刀的提问 |
+| `git log -1 f5441f0`(完整 commit message) | 没有问答段 |
+| `docs/manual-walk-list.md` §30 | 只有走查项,没有提问 |
+| 全仓 grep `Q1/Q2/Q3/Q4` | 命中的全部是 **CONV-5 / CONV-8** 的历史裁定 |
+
+**所以:CONV-9 的提问轮没有留下任何记录。** 委托说「Tim 睡着了、一条都没看见」——
+树上的证据与这句话一致:**那一轮如果发生过,它只发生在一次没有落盘的对话里。**
+按委托的规矩,**不从记忆里重建**。
+
+> ★【这一条要留成一条规矩,而不是一次抱怨】★
+> CONV-8 的四个 Q 今天还读得到,**因为它把裁定写进了文档正文**(§④ 标题里就写着
+> 「Tim 的 Q3」)。CONV-9 的读不到,因为它只把**结论**写进了文档,没写**问题**。
+> **一个只记结论的文档,下一刀无法分辨「这是拍过板的」与「这是它自己决定的」** ——
+> 而这一刀的 §⑬-0b 正好撞上这个分辨问题。
+> 于是本刀把自己那一轮**连问带荐**写在 §⑭-0,不管 Tim 有没有回。
+
+## ⑬-0b 转换顺序:**CONV-9 【照做了】,而委托这一次记错的是【排序键】**
+
+委托问:既然「子表最多的模块优先」,为什么 7 张表的 `operation/processing`、
+4 张表的 `sales/customers` 被留到最后?
+
+**因为 CONV-9 拿到的排序键不是「子表最多」,是「详情页最多」——而那是两把不同的尺。**
+按路由末段是 `[param]` 逐条数,**每个模块有几张详情页**:
+
+    finance 13 · hr 6 · sales 4 · operation 2 · logistics 2 · inventory 2
+    inbound 2 · tools 1 · stocktakes 1 · settings 1 · purchasing 1 · output 1 · my-reviews 1
+
+**CONV-9 转的是:finance 的只读 11 张(全部)· hr 的只读 4 张(全部)· inventory 2 张
+· 两张单页模块。** 那正是 **13 → 6 → 2** 的降序,**一格不差**。
+
+而 `operation` 只有 **2 张**详情页 —— 按这把尺它排在倒数第四。
+它「重」是因为 **`operation/processing/[id]` 一页上有 7 张表**,
+即**每页的表数**最多,而那**不是** CONV-9 被给的那把尺。
+
+> **结论:CONV-9 没有违反指令;是「模块里的页最多」与「一页上的表最多」
+> 这两把尺在这份人口上【方向相反】。** finance 有 13 张页、但每页多是 1 张表;
+> operation 有 2 张页、其中一张扛着全仓最多的 7 张表。
+> **委托本刀用的是第二把尺(「留下的三个最重的」),这一次是对的 ——
+> 因为剩下的 16 张里,页数已经不再区分得开谁先谁后。**
+
+## ⑬-0c 出口检查:**19 张全查,0 处出口住在会被吃掉的分支里**
+
+☞ **先更正一句委托的前提:CONV-9 【报过】这项检查** —— §⑫-7 白纸黑字,
+逐页列了 `actions` / `notices` / `children` 三个槽的动作清单,结论 19/19 通过。
+本刀**没有复读它**,而是**换一条独立的机械路径重算**。
+
+**判据升级(而这一步抓到了 grep 抓不到的一处):**
+第一版用 `grep '\.length.*&&'`,得到 5 处 —— 但它只认「`&&` 守卫」这一种形状。
+改成**按括号栈解析**(收成 `scripts/survey-hidden-exits.mjs`,`npm run survey:exits`)之后,
+每一个动作元素都被解析到它**真正的**外层条件,于是**三元的 else 分支也算在内**。
+
+    19 页 → 34 个文件(含 CONV-9 抽出的子表组件)· 29 个文件带动作
+    被「空集形状」的条件包住的动作:3 处
+
+**三处逐条,全部无害 —— 而无害的理由三处相同:**
+
+| 处 | 守卫 | 裁定 |
+|---|---|---|
+| `finance/payables/[batchId]:221` | `mustRows(journalsRes).length > 0` | 包住的只是**指向那些分录的链接**。没有分录 → 没有可指的东西。真出口 `FinanceAttachmentsPanel` 在守卫**外面**、无条件 |
+| `finance/receivables/[saleId]:265` | `journals.length > 0` | 同上;真出口(发票链接 / 补挂客户)在外面 |
+| `finance/credit-notes/[id]:181` | `issues.length === 0 ? … : …` | 三元的 **else** 分支列**已签发的历史版本**。真出口 `IssuePanel`(预览 / 签发 PDF)在三元**上方**、无条件 |
+
+**一条共通的判据,值得写下来:**
+> **守卫住「指向 X 的链接」而 X 不存在,不是藏出口 —— 那是不画一个死链。
+> 藏出口是守卫住「创建 X 的按钮」。** 三处全部是前者。
+
+> ★【为什么它是【普查】不是【闸】—— 而这是一次刻意的克制】★
+> 它找到的形状**本身不是缺陷**(见下表:三处全部正确)。
+> 一道**会对着正确代码变红**的闸,两刀之内就会被人加白名单绕过去 ——
+> **那比没有这道闸更坏**,因为白名单会连同真缺陷一起盖住。
+> 所以它印给人判,**不 exit 1**,也**不进 `npm run build`**。
+
+**故障注入(先红、点名、再逐字节还原):**
+
+```
+A 干净树 → 3 处(全部已判无害)
+B 把 /hr/leave/[id] 唯一的真出口 <DecideControls> 搬进
+  {consumptionRows.length > 0 && …} 里
+    → 4 处,点名 app/hr/leave/[id]/page.tsx:165
+      guards: consumptionRows.length > 0@160          ← ★ 判据看得见这一种
+C 还原 → shasum 逐字节相同(46ceb36d…)· 回到 3 处
+```
+
+**B 那一格证明的正是委托点名的那一类**:`/hr/leave/[id]` 的批准/驳回
+如果住进那个分支,一张【没有消耗行】的假单就再也批不了 ——
+而 CONV-9 把它放在守卫**外面**,还留了一句 `{/* ★ 出口:批准 / 驳回 */}`。
+
+## ⑬-1 ★★ 那把尺修好了 —— 而病根【不是】启发式,是【取 id 少做了三件事】★★
+
+CONV-9 §⑫-5b 把现象命名得很准(「探针把一张 404 记成可用」),
+但它给的修法(「记 CDP 的 HTTP 状态」)只治**看得见**那一半。
+**本刀量到的是【为什么会有 404】,而那一半更要紧:**
+
+### 病根:两个 `firstId()`,一个做了四件事,另一个只做了一件
+
+| | 冒烟 `smoke-routes.mjs:1186` | 探针 `survey-phone.mjs`(修前) |
+|---|---|---|
+| 选 id | `?select=id&limit=1` | `?select=id&limit=1` |
+| **软删过滤** | `&deleted_at=is.null` | **无** |
+| **按行过滤** | `ID_FILTERS`(tasks 必须 `task_type=eq.team`;forwarders 必须 `counterparty_type=eq.forwarder`) | **无** |
+| **排序** | `&order=created_at.desc,id.desc`(+ 按表覆盖) | **无** |
+| 父子配套 / 段里不是 uuid | `SPECIAL_ID_ROUTES` 4 条单独处理 | **无** |
+
+而 `SOFT_DELETED` 里躺着 **`customers` · `employees` · `tasks` · `containers`** ——
+**CONV-9 点名的那 9 条 `textLen=76`,一条不多一条不少地由这四张表 + 父子配套解释完。**
+
+> **所以那句「探针和页面各取了一个不同的 id」说得太温和了:
+> 是探针取的 id【这一页按定义不可能接受】。**
+> 一行软删的客户,页面自己的查询一定把它滤掉,一定 `notFound()`。
+> **这不是巧合,是必然** —— 而必然的东西不该用启发式去认。
+
+### 修法:把那四张表【一起】读过来,与原来读 `ID_SOURCES` 同一条判据
+
+`survey-phone.mjs` 原本就**刻意不抄** `ID_SOURCES`,而是运行时从冒烟里读
+(注释写着「抄一份正是这仓库付过四次账的那个病」)。**它只是少读了四张。**
+`loadIdSources()` → `fromSmoke(name)`,一个通用的括号配平提取器,
+现在读 **5 样**:`ID_SOURCES` · `SOFT_DELETED` · `ID_FILTERS` · `ORDER_OVERRIDES` ·
+`ORDER_DEFAULT`,外加 `specialUrl()` 复刻那 4 条特例。
+读回来是空集就**当场炸**(「一个全 0 的测量结果要当成脚本坏了」)。
+
+    · id filters from smoke: 27 soft-deleted tables · 2 row filters · 2 order overrides
+
+### 结构性的锚:HTTP 状态,而这需要先修一个更基础的洞
+
+委托要求「锚在结构上,不要锚在 textLen」。**做得到,但先得修 CDP 客户端本身:**
+`class Cdp` 的 `onmessage` **只处理带 `id` 的命令回执,把【事件】整个丢掉**。
+于是 `Network.enable` 一直开着,**却没有任何一行代码收得到 `responseReceived`** ——
+CONV-9 只好去猜 `textLen`,**它没有别的办法**。加了 8 行事件分发之后,
+`Network.responseReceived`(`type === 'Document'`)的 `status` 直接可读。
+
+### 处置:**单独一桶,退出分母,并且【让整跑变红】**
+
+* **不记成 usable** —— 一张 404 既不溢出也没有表可裁,记成 usable 是这份数里最坏的谎:
+  **把「没量到」说成「量到了,很好」。**
+* **不记成 FAILED-U1/U2** —— 一张 404 对这一页的手机表现**两个方向都不是证据**。
+* **退出分母**,与 `redirected` 逐字同一条处置。
+* **但整跑 EXIT 1**,并逐条点名路由与 URL。
+  **理由:404 是【探针的缺陷】,不是这一页的属性。** 一个只在桶里躺着不叫的桶,
+  下一刀照样没人看 —— **`unresolved` 那 4 条就是这么静静过去了一整刀的。**
+
+### 故障注入(先红、点名、再逐字节还原)
+
+```
+A 干净树,--routes=/sales/customers/[id],/finance/journal/[id]
+                              → 2 条都真的量到,EXIT 0
+B 让 firstId() 对 /sales/customers/[id] 返回一个不存在的 uuid
+                              → EXIT 1
+     !! survey-phone FAILED: 1 route(s) returned HTTP >= 400.
+        404  /sales/customers/[id]  ← /sales/customers/00000000-0000-0000-0000-000000000000
+     measured: 1(而不是 2)—— 那一条【退出了分母】,没有被记成 usable
+C 还原                        → shasum 逐字节相同(1658d78a…)· EXIT 0
+```
+
+**★ B 那一格正是 CONV-9 全刀的处境:** 修前的同一份代码,对同一个坏 id,
+会印出 `ovf=0 clip=0`、把它算进 `USABLE 2/2`,**而且 EXIT 0**。
+
+### 顺带解决的:`SPECIAL_ID_ROUTES` 与 `/finance/ledger/[account]`
+
+CONV-9 §⑫-10 第 3 条记的「一份定义只成立一半」——**这一刀补齐了另一半**。
+`/finance/ledger/[account]` 从「探针测不了」变成**第一次测得到**
+(段里是科目号,从 `journal_lines` 反查一个真有分录的科目)。
+
+    修前:50 条动态路由里 9 条静静地在测一张 404
+    修后:那 9 条里 7 条测到了真记录 · /output/[id]/assays/[assayId] 诚实地
+          报 unresolved(线上确实没有产出父的化验行,冒烟同样 SKIP 它)
+
+## ⑬-1d ★★ 修好的尺回头量 CONV-9 的 19 张:**没有一张掉下来,而它自己的数报少了 4 张** ★★
+
+CONV-9 报了两个数:探针会说 **15/15**,真正量到过一张表的是 **11/11**。
+
+**用修好的探针重量(28 条一跑,`BASELINE_OWN_EXIT=0`):**
+
+| | |
+|---|---:|
+| CONV-9 转的页 | **19** |
+| 仍然 `unresolved`(线上零行,诚实的没有数据)| **3** — `packs/[id]` · `hr/claims/[id]` · `hr/leave/[id]` |
+| 第一次解析得到,但带 `?mode=bs` 被重定向剥掉 → 退出分母 | **1** — `ledger/[account]` |
+| **真的量到了** | **15** |
+| **其中可用(0 溢出 · 0 裁切)** | **15 / 15** |
+
+    finance/assets · bank/statements · credit-notes · expenses · freight · gst
+    payables · payments · receivables · hr/employees · hr/payroll
+    inventory/inbound · inventory/output · sales/shipments · tools/tasks
+    —— 15 张,ovf=0 clip=0,一张不例外
+
+**★ 这个 15/15 与 CONV-9 那个 15/15 是【同一个数、不同的内容】,而差别要说清楚:**
+CONV-9 那 15 里有 **3 张是 404**(`hr/employees` · `tools/tasks` · `bank/statements`,
+它自己诚实地归进「探到了、页面没画出来」那一桶,所以只敢认 11)。
+**修好之后,这 3 张拿到真记录、真的画出来了、而且真的是 0/0** ——
+再加上 `freight/[id]`(设计上就没有表)。**11 + 4 = 15。**
+
+> **所以对 CONV-9 的裁定是:它的工作站得住,而它【低报了自己】。**
+> 它不敢认的那 4 张,不敢认得有道理(当时确实没有证据);
+> 现在有证据了,**它们是好的**。
+> **一张也没有从可用变不可用 —— 修尺子没有推翻 CONV-9 的任何一条结论。**
+
+## ⑬-1e ★★ 而修好的尺【照出了两张新的坏页】,两张都在本刀要转的 16 张里 ★★
+
+    +133px · 2 张表被裁   /finance/invoices/[id]      culprit: a.text-blue-600
+    + 90px · 0            /logistics/containers/[id]  culprit: button.bg-blue-600
+    + 65px · 1 张表被裁   /operation/orders/[id]      culprit: span.text-amber-700
+
+**`/logistics/containers/[id]` 此前【就在那 9 条 404 名单里】** ——
+也就是说它一直是坏的,而旧尺子把它记成「可用」。
+**这就是修尺子的全部回报:委托说「那个数分不出『活儿没用』和『尺子坏了』」——
+现在分得出了,而答案是【两者都有一点】:CONV-9 的活儿是好的,尺子确实坏了,
+而坏尺子藏起来的是【另外两张没人知道坏了的页】。**
+
+☞ 顺带更正一个小数:委托记 `/finance/invoices/[id]` 是 **+123px**,
+本刀实测 **+133px**。差 10px 的原因就是这一刀修的东西 ——
+**两跑取的不是同一张发票**(修前无 `order`,PostgREST 按物理顺序返回)。

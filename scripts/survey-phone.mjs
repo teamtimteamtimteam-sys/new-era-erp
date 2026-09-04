@@ -80,20 +80,51 @@ const allRoutes = [...walk(join(ROOT, 'app'))]
 // FAILS LOUDLY and the dynamic routes are reported as unmeasured — it never
 // silently falls back to "no id", which would quietly turn detail pages into
 // 404s that read like narrow, usable pages.
-function loadIdSources() {
+// ★★ CONV-10:此前【只读了这张表里的一张】,而 id 的正确取法是【五件事】★★
+//
+//   探针写的是 `?select=id&limit=1`。冒烟写的是同一句【再加三件】:
+//     · SOFT_DELETED  → &deleted_at=is.null
+//     · ID_FILTERS    → 例如 tasks 必须 task_type=eq.team、forwarders 必须
+//                        counterparty_type=eq.forwarder
+//     · ORDER         → 没有 order by 的 limit 1 是一个会漂的判据
+//   而 customers / employees / tasks / containers 【全都在 SOFT_DELETED 里】。
+//   于是探针把一行【已软删的】记录递给页面,页面自己的查询把它滤掉,notFound(),
+//   textLen=76 —— CONV-9 §⑫-5b 量到的那 9 条,一条不多一条不少。
+//
+//   **那不是"探针和页面各取了一个不同的 id"这么中性的一件事:
+//     是探针取的 id【页面按定义不可能接受】。**
+//   所以修法不是加一条启发式,是把那四张表【一起】读过来 —— 与原来读 ID_SOURCES
+//   逐字同一条判据(一份定义,住在冒烟里,漂了就当场炸)。
+function fromSmoke(name, kind) {
     const src = readFileSync(join(ROOT, 'scripts/smoke-routes.mjs'), 'utf8')
-    const start = src.indexOf('const ID_SOURCES = {')
-    if (start < 0) throw new Error('ID_SOURCES not found in smoke-routes.mjs — shape changed')
-    let i = src.indexOf('{', start), depth = 0, end = -1
-    for (; i < src.length; i++) {
-        if (src[i] === '{') depth++
-        else if (src[i] === '}') { depth--; if (depth === 0) { end = i + 1; break } }
+    const decl = 'const ' + name + ' = '
+    const start = src.indexOf(decl)
+    if (start < 0) throw new Error(name + ' not found in smoke-routes.mjs — shape changed')
+    let i = start + decl.length
+    if (kind === 'scalar') {
+        const end = src.indexOf('\n', i)
+        return (0, eval)('(' + src.slice(i, end).trim().replace(/,$/, '') + ')')
     }
-    if (end < 0) throw new Error('ID_SOURCES braces unbalanced')
-    const body = src.slice(src.indexOf('{', start), end)
-        .split('\n').filter((l) => !l.trim().startsWith('//')).join('\n')
-    return (0, eval)('(' + body + ')')
+    const OPEN = { '{': '}', '[': ']', '(': ')' }
+    const stack = []
+    let begin = -1
+    for (; i < src.length; i++) {
+        const c = src[i]
+        if (OPEN[c]) { if (begin < 0) begin = i; stack.push(OPEN[c]) }
+        else if (stack.length && c === stack[stack.length - 1]) {
+            stack.pop()
+            if (!stack.length) {
+                const body = src.slice(begin, i + 1)
+                    .split('\n').filter((l) => !l.trim().startsWith('//')).join('\n')
+                const expr = name === 'SOFT_DELETED' || name === 'SPECIAL_ID_ROUTES'
+                    ? 'new Set(' + body + ')' : body
+                return (0, eval)('(' + expr + ')')
+            }
+        }
+    }
+    throw new Error(name + ' brackets unbalanced in smoke-routes.mjs')
 }
+const loadIdSources = () => fromSmoke('ID_SOURCES')
 
 async function rest(path, opts = {}) {
     return fetch(URL_ + path, {
@@ -102,24 +133,61 @@ async function rest(path, opts = {}) {
                    'Content-Type': 'application/json', ...(opts.headers || {}) },
     })
 }
-async function firstId(table) {
-    const r = await rest(`/rest/v1/${table}?select=id&limit=1`)
+// 与 smoke-routes.mjs 的 firstId() 同形:软删过滤 + 按路由/按表的过滤 + 排序。
+// 【为什么 route 也要参与】'/logistics/forwarders' 与 '/suppliers' 是【同一张表】
+// (suppliers),而前者只认 counterparty_type=forwarder 的那些行 —— 只按表取,
+// 两条路由里必有一条拿到对方的行,然后 404。
+async function firstId(table, route, F) {
+    const del = F.SOFT_DELETED.has(table) ? '&deleted_at=is.null' : ''
+    const filter = F.ID_FILTERS[route] ?? F.ID_FILTERS[table] ?? ''
+    const order = F.ORDER_OVERRIDES[table] ?? F.ORDER_DEFAULT
+    const r = await rest(`/rest/v1/${table}?select=id&limit=1${del}${filter}${order}`)
     if (!r.ok) return null
     const rows = await r.json()
     return Array.isArray(rows) && rows[0] ? rows[0].id : null
 }
 
+// 父子配套 / 段里不是 uuid 的那几条 —— 冒烟在主循环里单独处理,而探针此前
+// 【根本没有这段】,所以这几条一律落进 unresolved 或落进一个 404。
+async function specialUrl(route) {
+    const one = async (q) => { const r = await rest(q); if (!r.ok) return null
+                               const j = await r.json(); return Array.isArray(j) ? j[0] : null }
+    if (route === '/inbound/[id]/assays/[assayId]') {
+        const x = await one('/rest/v1/assay_results?select=id,inbound_batch_id&deleted_at=is.null&inbound_batch_id=not.is.null&limit=1')
+        return x ? route.replace('[id]', x.inbound_batch_id).replace('[assayId]', x.id) : null
+    }
+    if (route === '/output/[id]/assays/[assayId]') {
+        const x = await one('/rest/v1/assay_results?select=id,output_batch_id&deleted_at=is.null&output_batch_id=not.is.null&limit=1')
+        return x ? route.replace('[id]', x.output_batch_id).replace('[assayId]', x.id) : null
+    }
+    if (route === '/finance/ledger/[account]') {
+        const x = await one('/rest/v1/journal_lines?select=accounts(code)&limit=1')
+        const code = x?.accounts?.code
+        return code ? `${route.replace('[account]', encodeURIComponent(code))}?mode=bs` : null
+    }
+    if (route === '/settings/import/template/[table]') return route.replace('[table]', 'materials')
+    return undefined      // undefined = 不是特例;null = 是特例但没有数据
+}
+
 // ── CDP ─────────────────────────────────────────────────────────────────────
 class Cdp {
+    // ★ CONV-10:这个客户端此前【只收命令的回执,把事件整个丢掉】——
+    //   于是 `Network.enable` 开着,却没有任何一行代码收得到 responseReceived。
+    //   探针把一张 404 记成「可用」的直接机制就在这里:它【没有别的办法】看见
+    //   HTTP 状态,只好去猜 textLen。加一条事件分发,那个猜测就不必存在了。
     constructor(ws) { this.ws = ws; this.id = 0; this.waiting = new Map(); this.sessions = new Map()
+        this.listeners = []
         ws.onmessage = (e) => {
             const m = JSON.parse(e.data)
             if (m.id && this.waiting.has(m.id)) {
                 const { res, rej } = this.waiting.get(m.id); this.waiting.delete(m.id)
                 m.error ? rej(new Error(JSON.stringify(m.error))) : res(m.result)
+            } else if (m.method) {
+                for (const fn of this.listeners) { try { fn(m.method, m.params) } catch {} }
             }
         }
     }
+    on(fn) { this.listeners.push(fn) }
     send(method, params = {}, sessionId) {
         const id = ++this.id
         return new Promise((res, rej) => {
@@ -292,10 +360,26 @@ async function main() {
 
     // resolve dynamic segments
     const ID_SOURCES = loadIdSources()
+    // 四张同源的表,与 ID_SOURCES 一起从冒烟里读出来(见 fromSmoke 上面那段)
+    const F = {
+        SOFT_DELETED:    fromSmoke('SOFT_DELETED'),
+        ID_FILTERS:      fromSmoke('ID_FILTERS'),
+        ORDER_OVERRIDES: fromSmoke('ORDER_OVERRIDES'),
+        ORDER_DEFAULT:   fromSmoke('ORDER_DEFAULT', 'scalar'),
+    }
+    if (!F.SOFT_DELETED.size || !F.ORDER_DEFAULT)
+        throw new Error('id filters read back empty from smoke-routes.mjs — a broken reader, not an empty set')
+    console.error(`· id filters from smoke: ${F.SOFT_DELETED.size} soft-deleted tables · `
+        + `${Object.keys(F.ID_FILTERS).length} row filters · ${Object.keys(F.ORDER_OVERRIDES).length} order overrides`)
     const resolved = [], unresolved = []
     const idCache = new Map()
     for (const route of allRoutes) {
         if (!route.includes('[')) { resolved.push({ route, url: route, dynamic: false }); continue }
+        const special = await specialUrl(route)
+        if (special !== undefined) {
+            special ? resolved.push({ route, url: special, dynamic: true }) : unresolved.push(route)
+            continue
+        }
         let url = route, ok = true
         for (const seg of route.match(/\[[^\]]+\]/g)) {
             const map = ID_SOURCES[seg]
@@ -307,14 +391,27 @@ async function main() {
                 table = best ? map[best] : null
             }
             if (!table) { ok = false; break }
-            if (!idCache.has(table)) idCache.set(table, await firstId(table))
-            const id = idCache.get(table)
+            // ★ 缓存键必须带上过滤器,否则 /suppliers/[id] 会把它那一行
+            //   喂给 /logistics/forwarders/[id](同一张 suppliers 表,不同的行)
+            const key = table + '|' + (F.ID_FILTERS[route] ?? F.ID_FILTERS[table] ?? '')
+            if (!idCache.has(key)) idCache.set(key, await firstId(table, route, F))
+            const id = idCache.get(key)
             if (!id) { ok = false; break }
             url = url.replace(seg, id)
         }
         ok ? resolved.push({ route, url, dynamic: true }) : unresolved.push(route)
     }
     console.error(`· routes: ${resolved.length} measurable (${resolved.filter(r=>r.dynamic).length} dynamic) · ${unresolved.length} unresolvable (no live row / no id source)`)
+
+    // --ids-only:把【取 id】那一半单独跑出来,不起 dev server、不开浏览器。
+    // 它存在是因为 id 那一半正是 CONV-9 §⑫-5b 那个盲区的病根,而一个要等
+    // 三分钟编译才能验一次的判据,没有人会去验第二次。
+    if (process.argv.includes('--ids-only')) {
+        for (const r of resolved.filter((x) => x.dynamic)) console.log(`  RESOLVED  ${r.route}\n            ${r.url}`)
+        for (const r of unresolved) console.log(`  UNRESOLVED ${r}`)
+        console.log(`\nids: ${resolved.filter((x) => x.dynamic).length} resolved · ${unresolved.length} unresolved`)
+        release(); process.exit(0)
+    }
 
     // dev server
     console.error('· starting next dev on :' + PORT)
@@ -365,6 +462,14 @@ async function main() {
             name: cookieName, value: cookieValue, domain: 'localhost', path: '/', httpOnly: false, secure: false }] })
     }
     let currentTarget = null
+    // ★★ CONV-10:这里是那条【结构性】的锚 —— 导航那一次的 HTTP 状态。★★
+    //   CONV-9 §⑫-5b 用的是 textLen===76 这个启发式,而它是 Next 的 not-found 页
+    //   【今天】的字节数,明天改一个字就漂了。状态码不漂。
+    let lastDoc = null
+    cdp.on((method, params) => {
+        if (method === 'Network.responseReceived' && params?.type === 'Document')
+            lastDoc = { url: params.response.url, status: params.response.status }
+    })
     await newTab()
 
     // warm the compiler once — the first dev-server hit on a route compiles it
@@ -462,6 +567,7 @@ async function main() {
     for (let i = 0; i < targets.length; i++) {
         const tgt = targets[i]
         let rec = { ...tgt }
+        lastDoc = null
         try {
             await S('Page.navigate', { url: `http://localhost:${PORT}${tgt.url}` })
             // dev-server compiles on first hit; poll for the document to settle
@@ -474,7 +580,7 @@ async function main() {
             await sleep(400)
             const r = await S('Runtime.evaluate', { expression: MEASURE, returnByValue: true, awaitPromise: false })
             if (r.exceptionDetails) throw new Error(JSON.stringify(r.exceptionDetails).slice(0, 200))
-            rec = { ...rec, ...r.result.value, ready }
+            rec = { ...rec, ...r.result.value, ready, httpStatus: lastDoc?.status ?? null }
         } catch (e) {
             // One retry on a FRESH tab. If it fails twice it is the page, not
             // the probe — and the record says which, so the two can never be
@@ -491,7 +597,7 @@ async function main() {
                 await sleep(400)
                 const r2 = await S('Runtime.evaluate', { expression: MEASURE, returnByValue: true })
                 if (r2.exceptionDetails) throw new Error('eval threw on retry')
-                rec = { ...rec, ...r2.result.value, retried: true }
+                rec = { ...rec, ...r2.result.value, retried: true, httpStatus: lastDoc?.status ?? null }
             } catch (e2) {
                 rec.error = e.message.slice(0, 160)
                 rec.retryError = e2.message.slice(0, 160)
@@ -507,14 +613,28 @@ async function main() {
 
     // ── summary ─────────────────────────────────────────────────────────────
     const redirected = results.filter((r) => !r.error && r.landedOn && r.landedOn !== r.url)
-    const ok = results.filter((r) => !r.error && !(r.landedOn && r.landedOn !== r.url))
+    // ★★ 一张 404 【不是】一张窄页。★★
+    //   它既不溢出、也没有一张表可以被裁 —— 于是旧口径把它记成 USABLE,
+    //   而那是这份数里最坏的一种谎:它把「没量到」说成「量到了,很好」。
+    //   处置与 redirected 逐字同一条:【单独一桶,并且退出分母】。
+    //   不记成 FAILED,是因为一张 404 对这一页的手机表现【两个方向都不是证据】。
+    const notFound = results.filter((r) => !r.error && r.httpStatus !== null && r.httpStatus >= 400)
+    const nfSet = new Set(notFound)
+    const ok = results.filter((r) => !r.error && !(r.landedOn && r.landedOn !== r.url) && !nfSet.has(r))
+    // 状态码一条都没收到 = 事件监听坏了,不是"全都是 200"。全 0 要当成脚本坏了。
+    const withStatus = results.filter((r) => !r.error && r.httpStatus !== null).length
+    if (results.filter((r) => !r.error).length && !withStatus)
+        throw new Error('probe self-test FAILED: 0 navigations reported an HTTP status — '
+            + 'the Network.responseReceived listener is dead, so a 404 would score as usable again')
     const u1 = ok.filter((r) => r.overflowPx <= 1)
     const u2 = ok.filter((r) => r.clippedTables === 0)
     const usable = ok.filter((r) => r.overflowPx <= 1 && r.clippedTables === 0)
     console.log('\n════ 390px SURVEY ════')
     console.log('measured:', ok.length, ' errored:', results.filter((r) => r.error).length,
-                ' redirected (excluded):', redirected.length, ' unresolvable routes:', unresolved.length)
+                ' redirected (excluded):', redirected.length, ' not-found (excluded):', notFound.length,
+                ' unresolvable routes:', unresolved.length)
     for (const r of redirected) console.log('   redirected: ' + r.url + ' -> ' + r.landedOn)
+    for (const r of notFound) console.log(`   NOT FOUND (HTTP ${r.httpStatus}): ${r.route}  ← ${r.url}`)
     console.log('U1 pan-free (no page overflow):      ', u1.length, '/', ok.length)
     console.log('U2 no clipped ledger:                ', u2.length, '/', ok.length)
     console.log('USABLE (U1 AND U2):                  ', usable.length, '/', ok.length)
@@ -529,6 +649,20 @@ async function main() {
     console.log('   pages with >=1:', withSmall.length, '/', ok.length,
                 ' median per page:', withSmall.length ? withSmall.map(r=>r.smallTargets).sort((a,b)=>a-b)[Math.floor(withSmall.length/2)] : 0)
     console.log('\nwrote', outFile)
+
+    // ★★ 一条 404 是【探针的缺陷】,不是这一页的一个属性 —— 所以它让整跑变红。★★
+    //   与 `unresolved` 有意区别对待:unresolved 是【诚实的没有数据】(那一张表
+    //   今天零行),而 404 是【取到了一行、而这一页按定义不收它】—— 也就是取 id
+    //   那一半与页面自己的查询漂开了。CONV-9 §⑫-5b 量到 9 条这样的路由,
+    //   它们被静静记成「可用」了整整一刀。一个只在桶里躺着、不叫的桶,
+    //   下一刀照样没有人看 —— unresolved 那 4 条就是这么过去的。
+    if (notFound.length) {
+        console.error(`\n!! survey-phone FAILED: ${notFound.length} route(s) returned HTTP >= 400.`)
+        console.error('   The probe fed the page an id the page itself rejects — the id source has')
+        console.error('   drifted from smoke-routes.mjs. These routes were measured as NOTHING:')
+        for (const r of notFound) console.error(`     ${r.httpStatus}  ${r.route}  ← ${r.url}`)
+        process.exitCode = 1
+    }
 }
 
 main().then(cleanup).catch(async (e) => { console.error('\n!! survey-phone failed:', e.message); await cleanup(); process.exitCode = 1 })
