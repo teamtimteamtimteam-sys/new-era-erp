@@ -1159,17 +1159,33 @@ const zh = {
         errSystemRole: '这是系统角色,不能被摘掉权限管理能力。',
         errRoleNotFound: '这个角色已经不存在了。',
         errPermissionNotFound: '未知的权限码「{0}」。',
-        // cut 4 —— 邀请
-        inviteUser: '邀请账号',
+        // ★ C-1(2026-09-04)—— 建账号取代了邀请
+        // 【邀请那一族的键删掉了】inviteUser / inviteRolesHint / sendInvite /
+        //  inviting / inviteSent / resendInvite / errInviteNoUser —— 它们描述的
+        //  是一个【不存在的机制】(本系统没有邮件服务)。留着死键不会让检查变红
+        //  (check-i18n 对未引用的键只 REPORT),但屏幕上的词是给人读的:
+        //  一个还写着"重发邀请"的词表,会让下一个人以为那条路还在。
+        //  inviteEmail 留着 —— 它就是"邮箱地址",与邀不邀请无关。
         inviteEmail: '邮箱地址',
-        inviteRolesHint: '可选。角色也可以稍后在本页授予。',
-        sendInvite: '发送邀请',
-        inviting: '发送中…',
-        inviteSent: '邀请已发送至 {0}。',
         pending: '待激活',
-        resendInvite: '重发',
+        createAccount: '建账号',
+        createAccountHint: '账号建好就能立刻登录。把初始密码当面交给本人 —— 他第一次登录时会被要求换掉它。',
+        initialPassword: '初始密码',
+        confirmPassword: '再输一次',
+        passwordHint: '至少 {0} 位。这是一个临时密码,本人首次登录后必须自行更换。',
+        roleLabel: '角色',
+        rolePlaceholder: '— 请选择 —',
+        roleRequiredHint: '每个账号【恰好一个】角色。没有角色的账号不会被建出来。',
+        accountCreated: '账号 {0} 已建好。现在把初始密码交给本人。',
         errEmailRequired: '请填写邮箱地址。',
-        errInviteNoUser: '邀请发出去了,但没有拿到账号 —— 请检查 Supabase 的 auth 日志。',
+        errRoleRequired: '请选择一个角色 —— 没有角色的账号不会被建出来。',
+        errPasswordTooShort: '密码至少 {0} 位。',
+        errPasswordMismatch: '两次输入的密码不一样。',
+        errCreateNoUser: '账号建立的请求成功了,但没有拿到账号 —— 请检查 Supabase 的 auth 日志。',
+        errCreateRolledBack: '账号没有建成({0}),【已经清理干净】,可以放心重试。',
+        // ★ 这一句描述的是一个【必须有人立刻去看】的状态,所以它与上一句分开:
+        //   账号建出来了、没有角色、而且删不掉。
+        errCreateRolledBackFailed: '账号没有配置完成({0}),而【清理也失败了】({1})。现在 {2} 是一个已经建出来、但没有角色的账号 —— 请立刻在 Supabase 控制台里把它删掉。',
         errEmployeeLinked: '该员工已关联到另一个账号({0}),请先在那边解绑。',
         errEmployeeNotFound: '该员工档案已不存在。',
     },

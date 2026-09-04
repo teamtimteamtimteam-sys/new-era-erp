@@ -7,7 +7,7 @@ import { formatTimestamp } from '@/lib/format'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { requireManagePermissions } from '../guard'
 import UserRow, { type DirectoryRow, type RoleOption, type EmployeeOption } from './UserRow'
-import InvitePanel from './InvitePanel'
+import CreateAccountPanel from './CreateAccountPanel'
 import { mustRows } from '@/lib/db-helpers'
 
 export default async function PermissionUsersPage() {
@@ -55,7 +55,7 @@ export default async function PermissionUsersPage() {
                 </code>
             </div>
 
-            <InvitePanel roles={roles} employees={employees} />
+            <CreateAccountPanel roles={roles} employees={employees} />
 
             {rows.length === 0 ? (
                 <p className="text-gray-500">{t('permissions.noUsers')}</p>

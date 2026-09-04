@@ -483,6 +483,69 @@ D 删掉注入                                      → EXIT 0,基线 shasum 全
 
 ---
 
+## 九 · ★ C-1(2026-09-04):`input` · `label` · `select` 毕业了 —— 而这道闸对它们【已经花掉了】
+
+§八 末尾那条「给下一刀的提醒」兑现了:C-1 要把 `/settings/accounts` 的邀请面板
+重写成「建账号 + 当场设初始密码」(没有邮件服务,Tim 当面发密码),
+那是一张真正的表单页,`input` / `label` / `select` 正是它需要的东西。
+
+**处置照 CONV-0(`refusal`)与 CONV-1(`data-table`)的先例:从 `GUARDED` 里拿掉三条,
+不加白名单。**
+
+### 拿掉三条【不够】—— 还要删 `KNOWN_CONVERSIONS` 里两行(实测)
+
+```
+只改 GUARDED、不动 KNOWN_CONVERSIONS  → EXIT 1
+    ✗ 基线对不上:登记了 4 处,只找到 2 处。
+```
+
+三个组件离开 `GUARDED` 之后,`importRe` 再也匹配不到它们,`known` 从 4 掉到 2,
+而 `KNOWN_CONVERSIONS.size` 仍是 4 —— 那道「基线比实际宽」的自检当场变红。
+所以 `app/login/page.tsx → input` 与 `→ label` 两行必须一起删。
+**委托书没有提到这一步**;是跑出来的。
+
+### ★★ 说清楚:这道闸对这三个【没有后继】★★
+
+| 毕业的组件 | 接替它的是什么 |
+|---|---|
+| `refusal`(CONV-0) | 拒绝态只剩一份实现 —— 要漂就得改那一个文件 |
+| `data-table`(CONV-1) | 必填 `phone` prop · `check-datatable-phone.mjs` · 渲染期 throw |
+| **`input` / `label` / `select`(C-1)** | **没有。本仓库【没有任何机器】在检查谁 import 了它们。** |
+
+这不是疏忽,是这道闸的性质:它守的是「还没有人用」,
+而一个已经被采用的组件不可能再满足那条断言。写下来,是因为
+**一道被高估的闸比没有闸更坏**(`check-masked-reads` 抬头记着这句话)。
+
+### 故障注入(两个方向,缺一不可)
+
+```
+A 把【仍在 GUARDED 里】的 card 注入 app/welcome/page.tsx   → EXIT 1
+    import  app/welcome/page.tsx:1  → @/app/components/ui/card    ← 点名到行
+B 把【已毕业】的 input 注入同一个位置                       → EXIT 0  ← 好代码不被罚
+   撤掉注入:app/welcome/page.tsx 与 HEAD 逐字节相同(git diff 0 字节)
+   脚本自身 shasum:45ee2cc8…(改动前) → 8d43f3ac…(改动后)
+```
+
+### ★ 这道闸当场抓到了 C-1 自己的一次越界,而处置是【退回来】
+
+写 `CreateAccountPanel` 时用了 `Card` / `CardContent` / `Button`,
+**而 Tim 的裁定只毕业了 input / label / select 三个。**
+闸 EXIT 1,点名 `app/settings/accounts/CreateAccountPanel.tsx:31 → button`。
+
+> **处置:把按钮与卡片退回原生标记,不顺手把 button/card 一起毕业掉。**
+> **一道闸自己抓到的越界,如果由撞上它的人当场放宽,那道闸就不存在了。**
+
+☞ **留给下一刀:一张真正的表单页需要 `button`,几乎肯定还需要 `card`。**
+下一次建表单页会立刻再撞一次 —— 那时该由 Tim 裁定是否一并毕业,
+而不是由撞上的人自己决定。
+
+### 规矩 (b) 在本刀的执行情况
+
+**没有触发。** 这一页需要的三种控件库里都有,一处都没有内联"就这一次"。
+按钮与卡片走原生是【闸的裁定】,不是"库里缺能力" —— 两者不要混为一谈。
+
+---
+
 ## 附:文件清单
 
 | 文件 | 是什么 |

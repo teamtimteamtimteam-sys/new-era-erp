@@ -27,23 +27,20 @@
 -- 【为什么 authenticated 调不到它】它读 auth.users 与 user_roles,给了任何登录用户
 --   就等于把整个账号目录的登录状态与权限矩阵问出来。三个调用方都是 SECURITY DEFINER、
 --   以属主身份执行,所以收回之后照常工作 —— 见 db/views/zzz_function_grants.sql。
+-- ★★【C-1(2026-09-04):判据搬走了,本函数成为【投影】】★★
+--   四条判据现在住在 db/functions/real_role_grants.sql 里(行级形状,带 grant_id),
+--   本函数只是 SELECT g.user_id FROM real_role_grants(...)。**判据一字未改。**
+--   搬走的理由:guard_last_admin 要排除【正在被撤销的那一行】,
+--   而一个 user_id 集合表达不了行级排除 —— 详见那个文件的抬头。
+--   签名、返回类型、语义全部不变,三个既有调用方不受影响。
 CREATE OR REPLACE FUNCTION public.real_role_holders(p_role_code text)
  RETURNS TABLE(user_id uuid)
  LANGUAGE sql
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-    SELECT ur.user_id
-      FROM user_roles ur
-      JOIN roles r      ON r.id = ur.role_id
-      JOIN auth.users u ON u.id = ur.user_id
-     WHERE r.code = p_role_code
-       AND r.is_active
-       AND ur.revoked_at IS NULL                                    -- ① 缺陷修复
-       AND u.confirmed_at IS NOT NULL                               -- ② R3
-       AND (u.banned_until IS NULL OR u.banned_until < now())       -- ③ R3
-       AND u.deleted_at IS NULL;                                    -- ④ R3
-$function$;
+    SELECT g.user_id FROM real_role_grants(p_role_code) g;
+$function$
 
 COMMENT ON FUNCTION public.real_role_holders(text) IS
-'CHAIN-BUILD-1:★「谁算一个真的持有人」的【唯一】定义★ —— 开关那道闸、就绪面板、以及授权检查,三处读的都是它。返回【集合】而不是计数,是因为同一份判据要回答两个问题(有几个 / 这个人算不算),写成计数就会逼出第二份判据。四条:① 授权未撤销(**这一条是缺陷修复**:此前三处都没滤 revoked_at,于是一个把授权全撤销掉的角色照样能通过零持有人那道闸;实测线上 15 条授权里 5 条是 revoked,admin 因此虚报 6 个持有人);②③④ 是 R3(账号已确认 / 未封禁 / 未删除),把"有一行账号记录"换成"真的登录得了"。confirmed_at 是生成列 LEAST(email_confirmed_at, phone_confirmed_at),故同时覆盖邮箱与手机。**banned_until 在今天的数据上不是起作用的那一条**(那五个被封账号的授权也已撤销),而且它在本仓库别处一次都没出现过 —— 保留它只因为 R3 的原话是"真的登录得了"。';
+'CHAIN-BUILD-1:★「谁算一个真的持有人」的【唯一】定义★ —— 开关那道闸、就绪面板、以及授权检查,三处读的都是它。★ C-1(2026-09-04)把四条判据搬进 real_role_grants(行级形状,带 grant_id),本函数从此是它的【投影】—— 因为 guard_last_admin 需要排除【正在被撤销的那一行】,而一个 user_id 集合表达不了行级排除。判据一字未改:① 授权未撤销(**这一条当年是缺陷修复**:此前三处都没滤 revoked_at);②③④ 是 R3(账号已确认 / 未封禁 / 未删除),把"有一行账号记录"换成"真的登录得了"。confirmed_at 是生成列 LEAST(email_confirmed_at, phone_confirmed_at),故同时覆盖邮箱与手机。';

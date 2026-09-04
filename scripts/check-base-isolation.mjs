@@ -41,8 +41,6 @@ const ALLOWED_PREFIXES = [
 const KNOWN_CONVERSIONS = new Set([
     'app/login/SubmitButton.tsx → button',
     'app/login/page.tsx → card',
-    'app/login/page.tsx → input',
-    'app/login/page.tsx → label',
 ])
 
 // 本刀新建/改动的基础组件。转换刀每转换一个模块,就把它从这里【拿掉一条】——
@@ -72,11 +70,33 @@ const KNOWN_CONVERSIONS = new Set([
 //   **这三样加起来比"没有人用它"硬得多**,因为它们守的是【用得对不对】,
 //   而这道闸守的只是【有没有人用】。
 //
-// 清单上剩下的 10 个组件仍然一个都没被采用,这道闸继续守着它们。
+// ★★【C-1(2026-09-04):'input' · 'label' · 'select' 三个一起毕业了】★★
+// C-1 是【账号发放前】那一刀:它把 /settings/accounts 的邀请面板重写成
+// 「建账号 + 直接设初始密码」(没有邮件服务,Tim 当面发密码),那是一张真正的
+// 表单页,input / label / select 正是它需要的东西。Tim 的规矩 (a) 要求新页面
+// 用组件库 —— 所以这里【拿掉三条】,而不是加一条白名单。
+//
+// ★★【说清楚:这三个的这道闸【已经花掉了,而且没有后继】】★★
+//   CONV-0 拿掉 refusal 时,接替它的是「拒绝态只剩一份实现」;
+//   CONV-1 拿掉 data-table 时,接替它的是三样东西(必填 phone prop · 
+//   check-datatable-phone.mjs · 渲染期 throw)。
+//   **input / label / select 没有这样的后继。** 从今天起,本仓库【没有任何机器】
+//   在检查"谁 import 了它们"。这不是疏忽,是这道闸的性质决定的:它守的是
+//   「还没有人用」,而一个已经被采用的组件不可能再满足那条断言。
+//   写下这一句,是因为下一个读到这里的人有权知道这块地面【没有人看着】——
+//   一道被高估的闸比没有闸更坏(check-masked-reads 抬头记着这句话)。
+//
+// ★【连带删掉了 KNOWN_CONVERSIONS 里的两行】'app/login/page.tsx → input'
+//   与 '→ label'。它们不是可留可不留:三个组件离开 GUARDED 之后,
+//   importRe 再也匹配不到它们,known 从 4 掉到 2,而 KNOWN_CONVERSIONS.size
+//   仍是 4 —— 下面那道「基线比实际宽」的自检会当场 EXIT 1。
+//   **实测过**:只改 GUARDED 不删这两行 → EXIT 1,报「登记了 4 处,只找到 2 处」。
+//
+// 清单上剩下的 7 个组件仍然一个都没被采用,这道闸继续守着它们。
 // 【list-page 从来没有进过这张清单】—— 它是 CONV-1 新建的,建出来就是给页面用的。
 const GUARDED = [
     'feedback',
-    'button', 'input', 'alert', 'badge', 'card', 'label', 'select', 'table', 'textarea',
+    'button', 'alert', 'badge', 'card', 'table', 'textarea',
 ]
 
 const walk = (dir, out = []) => {
@@ -117,7 +137,8 @@ if (badImports.length === 0 && badClasses.length === 0) {
     console.log(`✓ base 组件仍然是【隔离】的:${files.length} 个文件里,` +
         `取样页与组件目录之外 0 处 import、0 处 base-* 类名。`)
     console.log(`  已登记的既有转换 ${known} 处(全部在 /login,LOGIN-1 做的)——`)
-    console.log('  除它之外,187 个已上线页面【没有一个】用到本刀建的东西。')
+    console.log('  除它之外,没有页面用到【仍在 GUARDED 里的】那些组件。')
+    console.log('  ★ input / label / select 已于 C-1 毕业:本闸对这三个【不再守着任何东西】。')
     if (known !== KNOWN_CONVERSIONS.size) {
         console.error(`\n✗ 基线对不上:登记了 ${KNOWN_CONVERSIONS.size} 处,只找到 ${known} 处。`)
         console.error('  一条【比实际宽】的基线会悄悄放过真的违规 —— 请把消失的那一处删掉。')

@@ -185,6 +185,22 @@ REVOKE EXECUTE ON FUNCTION public.resolve_tax_code(text, text, text, text) FROM 
 REVOKE EXECUTE ON FUNCTION public.real_role_holders(text) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.role_can_see_amounts(text) FROM authenticated;
 
+-- ★ C-1(2026-09-04):real_role_grants —— 与上面 real_role_holders 【同源同理由】。
+-- 它就是那四条判据的行级形状(返回 grant_id + user_id),real_role_holders 如今
+-- 是它的投影。所以它读的东西一字不差:auth.users 的确认/封禁/删除 + user_roles。
+-- 给了 authenticated 就等于把整个账号目录的登录状态问出来 —— 收回。
+-- 【唯一的调用方】guard_last_admin(user_roles 上的 BEFORE UPDATE/DELETE 触发器)。
+-- ★ 它正是因此才被改成 SECURITY DEFINER 的:调用者权限的触发器以 authenticated
+--   身份跑,收回之后就【调不到】,守卫会在每一次撤销授权时抛权限错。
+--   DEFINER 让它以属主身份跑,于是"收回"与"守卫能用"同时成立。
+--
+-- ⚠【这一行是被实测逼出来的,不是照抄】C-1 起初只把 REVOKE 写在迁移里。
+--   apply_migration.sh 在 COMMIT 之后会【重新断言一遍本文件】(那是它的兜底),
+--   而本文件当时没有这一行 —— 于是那次 REVOKE 被原样冲掉,
+--   实测 has_function_privilege('authenticated', 'real_role_grants', 'EXECUTE') = true,
+--   一条【活的 B2 违规】。**收回必须写在这里,写在迁移里不算数。**
+REVOKE EXECUTE ON FUNCTION public.real_role_grants(text) FROM authenticated;
+
 -- PROC-COST-2(2026-08-31):【计值读取器】与【单位落地成本】三支内层函数。
 -- 三支都是 SECURITY DEFINER 且【没有调用者检查】,而 gate 的 B2 正是查这个。
 -- 它们【不该】有门,需要的是【真的够不着】—— 理由与上面那一族逐字同源,

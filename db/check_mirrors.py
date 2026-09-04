@@ -317,6 +317,10 @@ DEFINER_NO_CHECK_ALLOWED = {
     # 是瞎的"那条病。
     "purchase_order_kind": "EXECUTE revoked from PUBLIC/authenticated/anon; its only caller is the owner-run trigger guard_payment_term_applicable, and postgres has no claims so a permission check would raise on every payment-terms write",
     "real_role_holders": "EXECUTE revoked from authenticated; callers guard_approvals_switch / approvals_readiness / require_approver_for are all definer and each checks its own caller",
+    # C-1(2026-09-04):real_role_grants —— real_role_holders 的行级形状,四条判据的唯一住处。
+    # 同源同理由:读 auth.users,EXECUTE 已从 authenticated 收回(zzz_function_grants.sql)。
+    # 唯一调用方 guard_last_admin 是属主身份跑的触发器,收回之后照常工作。
+    "real_role_grants": "EXECUTE revoked from authenticated; its only caller is the owner-run trigger guard_last_admin, which is SECURITY DEFINER precisely so this stays unreachable",
     "role_can_see_amounts": "EXECUTE revoked from authenticated; callers guard_approvals_switch / approvals_readiness are both definer and each checks its own caller",
     # TASK-1c-a:两扇门(创建门与升级门)共用的那一个写入者。没有调用者检查,
     # 靠的就是调不到 —— fu1 已把 authenticated 的 EXECUTE 收回(gate 的 B2 抓过一次:

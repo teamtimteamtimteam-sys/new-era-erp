@@ -24519,6 +24519,13 @@ export type Database = {
         }[]
       }
       quote_is_expired: { Args: { p_valid_until: string }; Returns: boolean }
+      real_role_grants: {
+        Args: { p_role_code: string }
+        Returns: {
+          grant_id: string
+          user_id: string
+        }[]
+      }
       real_role_holders: {
         Args: { p_role_code: string }
         Returns: {

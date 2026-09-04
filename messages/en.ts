@@ -1138,17 +1138,31 @@ const en = {
         errSystemRole: 'This is a system role and cannot lose its permission-management rights.',
         errRoleNotFound: 'That role no longer exists.',
         errPermissionNotFound: 'Unknown permission code "{0}".',
-        // cut 4 — invitations
-        inviteUser: 'Invite user',
+        // ★ C-1 (2026-09-04) — creating an account replaced inviting one.
+        // The invitation keys are gone: they named a mechanism that does not
+        // exist here (there is no mail service). Dead keys do not fail
+        // check-i18n, but words on screen are read by people — a glossary that
+        // still says "Resend invitation" tells the next person that path works.
         inviteEmail: 'Email address',
-        inviteRolesHint: 'Optional. Roles can be granted later from this page.',
-        sendInvite: 'Send invitation',
-        inviting: 'Sending…',
-        inviteSent: 'Invitation sent to {0}.',
         pending: 'pending',
-        resendInvite: 'Resend',
+        createAccount: 'Create account',
+        createAccountHint: 'The account can sign in as soon as it is created. Hand the initial password to the person yourself — they will be required to change it the first time they sign in.',
+        initialPassword: 'Initial password',
+        confirmPassword: 'Confirm password',
+        passwordHint: 'At least {0} characters. This is a temporary password; the person must change it when they first sign in.',
+        roleLabel: 'Role',
+        rolePlaceholder: '— Select —',
+        roleRequiredHint: 'Exactly one role per account. An account with no role will not be created.',
+        accountCreated: 'Account {0} created. Now hand the initial password to the person.',
         errEmailRequired: 'An email address is required.',
-        errInviteNoUser: 'The invitation was sent but no account came back — check the Supabase auth logs.',
+        errRoleRequired: 'Select a role — an account with no role will not be created.',
+        errPasswordTooShort: 'The password must be at least {0} characters.',
+        errPasswordMismatch: 'The two passwords do not match.',
+        errCreateNoUser: 'The account request succeeded but no account came back — check the Supabase auth logs.',
+        errCreateRolledBack: 'The account was not created ({0}). It has been cleaned up, so it is safe to try again.',
+        // This one names a state someone must look at NOW, so it is kept
+        // separate: the account exists, has no role, and could not be deleted.
+        errCreateRolledBackFailed: 'The account could not be finished ({0}), and cleaning it up ALSO failed ({1}). {2} now exists as an account with no role — delete it in the Supabase dashboard immediately.',
         errEmployeeLinked: 'That employee is already linked to another account ({0}). Unlink it there first.',
         errEmployeeNotFound: 'That employee record no longer exists.',
     },

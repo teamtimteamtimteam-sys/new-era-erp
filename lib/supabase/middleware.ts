@@ -267,6 +267,42 @@ export async function updateSession(request: NextRequest) {
         return redirect
     }
 
+    // ════════════════════════════════════════════════════════════════════════
+    // 【必须先换掉那个当面交出去的密码】(C-1,2026-09-04)
+    //
+    // 本系统【没有邮件服务】,所以账号是 /settings/accounts 直接建出来的,
+    // 初始密码由 Tim 当面交给本人(见 app/settings/accounts/accountActions.ts)。
+    // 那意味着:在对方改掉它之前,这个密码同时存在于【交接用的那个渠道】里。
+    // 不强制换,它就是这个账号【永远】的密码 —— 而系统分辨不出改过与没改过。
+    //
+    // 【为什么判据放在中间件】它是唯一一处看得见【每一个请求】的地方。
+    // 放在各页面里就是 200 多份拷贝,而漏掉的那一页就是绕过去的那一页。
+    //
+    // 【为什么它不要钱】user_metadata 随上面那次 getUser() 一起回来了 ——
+    // **没有第二趟往返**。这一条是它值得放在这里的全部理由:
+    // 中间件跑在每一个请求上,一次额外查询会是全站的账。
+    //
+    // 【为什么 /set-password 自己必须放行】否则它会把人重定向到它自己,无限循环。
+    // 【为什么公开路径也放行】/login 不需要会话,而没有会话就没有这个标记。
+    // 【为什么它排在空闲超时【之后】】一个空闲超时的人应当去登录页重新登录,
+    // 而不是先被送去改密码 —— 那会把两条规则的顺序演成一次莫名其妙的跳转。
+    // ════════════════════════════════════════════════════════════════════════
+    if (
+        user &&
+        !idleExpired &&
+        !isPublic &&
+        pathname !== '/set-password' &&
+        user.user_metadata?.must_change_password === true
+    ) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/set-password'
+        url.search = ''
+        const redirect = NextResponse.redirect(url)
+        // 【把刷新过的会话 cookie 带上】理由与下面那条重定向逐字相同。
+        for (const c of supabaseResponse.cookies.getAll()) redirect.cookies.set(c)
+        return redirect
+    }
+
     // 【走【同一条】分支,不另起一条】(IDLE-DRAFT 3.3)
     // SESSION-1c 已经在这里建好了那个区别:只有【请求里真的带着认证 cookie】时
     // 才说"你的登录已经结束"。空闲超时必须借这条路走,而不是自己再造一条 ——

@@ -2998,6 +2998,118 @@ FIX-3 在保养间隔那块屏幕上修掉一处 `?? 0`:视图里
 
 ## GHOST-GRANTS · 幽灵 admin 授权【会再长回来】 —— **66 → 21 → 8**,这是**第三次**清扫
 
+> ## ★ C-1(2026-09-04):**计数的洞堵上了。产地仍然开着。**
+>
+> **堵上的是什么:** `guard_last_admin` 从前只 JOIN `user_roles × roles`,**从不看 `auth.users`** ——
+> 于是一条幽灵授权可以顶替最后一个真管理员,撤销真人的那一刻守卫说"还有一个"。
+> 现在它数的是 `real_role_grants`,也就是本仓库【唯一】那份「谁算真持有人」的判据
+> (未撤销 / 已确认 / 未封禁 / 未删除)。迁移:
+> `db/migrations/2026-09-04-c1-guard-last-admin-counts-real-holders.sql`。
+> 证明:`db/fixtures/191`(造一个幽灵,断言**旧**判据放行、**新**判据拒绝、守卫真的抛)。
+>
+> **★ 没有堵上的是什么:`scripts/smoke-routes.mjs:1313` 每跑一次冒烟,
+> 仍然把真的 `admin` 角色授给一个一次性账号,而清理仍然是两半各自可失败的调用。**
+> 也就是说 **幽灵还会再长出来** —— 只是它们从此【数不上一个管理员】。
+> 下一个从零查起的人:上面那张复发表仍然有效,这一条只改变了"长出来之后会怎样"。
+>
+> **顺带清掉的存量(C-1 Step 1):** 六个不属于任何人的账号(1 个测试邮箱 + 5 个封禁走查账号)
+> 连同它们的授权一起删除,**授权先删、账号后删** —— 顺序反了就正好造出新的幽灵。
+> 删除逐个查状态码,复验"目标账号剩余 0 个"。清理后线上:账号 1 个、幽灵授权 **0 条**。
+
+---
+
+### ★ C-1 留下的三条,都不是本刀能关掉的
+
+**① `EMP-2026-0001`(Choo Er Teh)删不掉 —— 被 5 张表 10 行引用。**
+Tim 裁定它是测试数据、应当删除,但同时立了一条前置条件:「先查引用;有引用就停手报告,
+不强删也不级联」。实测引用:`employment_history` 2 · `payroll_lines` 1 ·
+`task_history.employee_id` 4 · `task_participants.employee_id` 2 · `training_records` 1。
+**处置:只解绑账号,保留档案行,Choo Er 复用这一行。**
+那 10 行本身也都像测试数据 —— 要清就得连它们一起清,而那是一次级联,等 Tim 裁定。
+同一条规矩也留下了 `ZZ-2BL-186301`(被 `equipment_maintenance` 引用 1 行,`description='Test'`)。
+
+**② 新建的四份员工档案,HR 字段是【占位值】。**
+`hire_date` / `employment_type` / `work_category` / `residency_status` 本刀无从得知。
+**`hire_date` 会进假期累积的计算。** 每一行的 `notes` 里都写了这句话(写在数据里,不只在文档里)。
+启用假期与薪资之前必须由 HR 更正。尤其 Fu Sheng 取了 `work_category='shopfloor'`。
+
+**③ `/settings/accounts` 在 390px 上溢出 27px —— 【本刀之前就有】。**
+探针点名的元凶是 `UserRow.tsx` 那个 `whitespace-nowrap` 的「编辑」按钮所在的 flex 行。
+**判据:** C-1 只从那一行【删掉】了「重发邀请」按钮,而那个按钮的渲染条件是
+`row.last_sign_in_at === null`;线上唯一的账号 `admin@swm-os.test` 是登录过的,
+**所以对这一行来说渲染出来的 DOM 与改动前逐字节相同。** 27px 是原样带过来的。
+不在 C-1 的范围内(设置页的手机形态属于转换刀),记下来不修。
+
+---
+
+### ★ SMOKE-REACH · 冒烟的 `--reach` 那一半【结构性地红着】,而它不是任何一刀弄坏的
+
+**实测(C-1,2026-09-04,`--reach=admin`):`SMOKE_EXIT=1`,可达性 96 处
+「打得开却走不到」** —— `admin: 走到 320 · 打得开 137 条静态路由 · 其中走不到 98`。
+名单横跨 `/finance` · `/sales` · `/purchasing` · `/operation` · `/tools` ·
+`/logistics` · `/settings` —— **整整几个模块**。
+
+**成因不是导航坏了,是两件正确的东西对不上:**
+
+* `scripts/smoke-routes.mjs:1506` 的 `hrefsIn()` 是**一条正则**:`/href="([^"]+)"/g`,
+  跑在**服务端渲染出来的 HTML** 上;
+* 而 IA-BUILD-1 之后,导航是 `app/components/nav/ModuleBar.tsx` —— 一个
+  `'use client'` 组件,**一级模块是 `<button>` 不是 `<a href>`**(第 290 行
+  `onClick={() => setOpen(...)}`),二级链接要 `useState` 翻过来才渲染。
+* 于是**整条导航在服务端 HTML 里根本没有 `href`**,正则一条也看不见。
+  走得到的 39 条,是散落在页面正文里的链接。
+
+**这正是这套机制立项时就写下的【已知边界】**,不是新发现:
+`docs/per-role-reachability-scoping.md`「边界」一节的原话 ——
+> 客户端交互之后才出现的入口(下拉、弹窗、条件按钮)不在覆盖内。
+
+那份文档还预判了代价:补上它「属于 Playwright 的领域,而引入 Playwright 会把这件事
+从两天变成一周」。
+
+**为什么直到现在才撞见:`--reach` 默认是关的。** 上一刀(PRE-ACCOUNT-1)的两份冒烟日志
+(`smoke.log` / `smoke2.log`)里都写着「按角色的可达性:【跳过】(默认关闭)」——
+**也就是说这条断言没有一个近期的绿色基线**,C-1 是把它打开的那一刀。
+
+**排除了"这是 C-1 弄坏的"的三条证据:**
+1. 名单横跨 C-1 一行都没动过的模块;
+2. 爬虫**走到了 320 个页面**,所以会话与中间件是好的
+   ——(如果 C-1 那条 `must_change_password` 重定向误伤了它,应当是 0–1 个);
+3. `check-nav-routes` 在 `npm run build` 里是绿的(注册表 83 条 · 路由 226 条)。
+
+**C-1 的处置:不修,记下来。** 修它要么引入 Playwright,要么让 `hrefsIn` 理解
+`ModuleBar` 的注册表 —— 两条都远超一刀的范围,而且**都需要 Tim 先裁定
+「可达性到底该按什么定义」**。C-1 的推送前验证因此取的是**路由状态那一半**:
+`node scripts/smoke-routes.mjs` → **`SMOKE_EXIT=0`**(217 条计时 · 合计 737.9s ·
+中位数 3053ms · 全部 HTTP 200)。
+
+> ⚠ **顺带一条【写下来的成本没跟上实测】:** `scripts/smoke-routes.mjs:44` 的用法
+> 注释仍然写着「路由状态那一半(快,2-4 分钟)」,而 `AGENTS.md:504` 早已记着
+> **`16m47s measured 2026-08-26 across 192 routes (was "~2-4 min" at ~135 routes)`**。
+> C-1 这一跑光计时就 737.9s。**本仓库的规矩是「写下来的成本必须是量出来的成本」**——
+> AGENTS.md 更新了,脚本抬头没有。C-1 没有动它(不在范围内),记在这里。
+
+---
+
+### ★ C-1 撞到的两条【方法】级教训(不是这一页的缺陷,是下一次会再踩的坑)
+
+**① `REVOKE` 写在迁移里【不算数】。**
+`apply_migration.sh` 在 COMMIT 之后会**重新断言一遍 `db/views/zzz_function_grants.sql`**。
+C-1 起初只把 `REVOKE EXECUTE ... FROM authenticated` 写在迁移里,于是它被原样冲掉,
+实测 `has_function_privilege('authenticated','real_role_grants','EXECUTE') = true`
+—— **一条活的 B2 违规**。收回必须写进 `zzz_function_grants.sql`。
+现在 `db/fixtures/151` 有一句断言守着它。
+
+**② `tsc --noEmit` 绿,不等于这个应用编译得过。**
+C-1 在 `'use server'` 文件里写了 `export const MIN_PASSWORD_LENGTH = 8`。
+Next.js 只允许 `'use server'` 模块导出 **async 函数**。实测顺序:
+`tsc` **EXIT 0** → 探针把 `/settings` 九条路由【全部】读成 HTTP 500 →
+`next build` **EXIT 1** 才点名到行。
+**类型检查不覆盖 RSC 的边界规矩;`next build` 才是那道闸。**
+常量已搬进 `lib/passwordPolicy.ts`(顺带消掉了两处重复的 `8`)。
+
+---
+
+
 > **为什么这一条是新开的,而 ACCOUNTS-STALE 已经关掉:** 那一条关得对 ——
 > 它描述的**状态**当时确实消失了。但**没有人关掉长出它的那个机制**,于是状态回来了。
 > 这一条记的不是状态,是**机制与复发史**,所以它**不随一次清扫关闭**。

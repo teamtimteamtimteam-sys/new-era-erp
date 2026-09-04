@@ -179,6 +179,13 @@ BEGIN
     -- ══════════ G(陷阱 c)两支新内层函数,authenticated 必须【调不到】══════════
     IF has_function_privilege('authenticated', 'public.real_role_holders(text)', 'EXECUTE') THEN
         RAISE EXCEPTION 'FIXTURE 151G 失败:real_role_holders 对 authenticated 仍可执行 —— 它是 definer 且没有调用者检查,靠的就是调不到'; END IF;
+    -- ★ C-1:同一条对 real_role_grants 也必须成立 —— 它读的是同样的 auth.users。
+    --   **这一句是被实测逼出来的**:C-1 起初只把 REVOKE 写在迁移里,
+    --   而 apply_migration.sh 在 COMMIT 之后会重新断言一遍 zzz_function_grants.sql,
+    --   于是那次收回被原样冲掉,线上真的出现过一条【活的 B2 违规】。
+    --   收回必须写进 zzz_function_grants.sql —— 而这一句是那件事的守卫。
+    IF has_function_privilege('authenticated', 'public.real_role_grants(text)', 'EXECUTE') THEN
+        RAISE EXCEPTION 'FIXTURE 151G 失败:real_role_grants 对 authenticated 仍可执行 —— 它读 auth.users,给了登录用户就等于把整个账号目录的登录状态问出来'; END IF;
     IF has_function_privilege('authenticated', 'public.role_can_see_amounts(text)', 'EXECUTE') THEN
         RAISE EXCEPTION 'FIXTURE 151G 失败:role_can_see_amounts 对 authenticated 仍可执行'; END IF;
 
@@ -224,7 +231,14 @@ BEGIN
     -- ══════════ 注入① 撤销那一条判据(证明 A 臂有管辖权)══════════
     UPDATE finance_settings SET approvals_enabled=false, approval_level1_role_code=NULL,
         approval_threshold_base=NULL, approval_level2_role_code=NULL;
-    v_def := pg_get_functiondef('public.real_role_holders(text)'::regprocedure);
+    -- ★ C-1(2026-09-04):【注入的目标从 real_role_holders 换成了 real_role_grants】
+    --   四条判据搬进了 real_role_grants(行级形状,带 grant_id),
+    --   real_role_holders 从此只是 `SELECT g.user_id FROM real_role_grants(...)`。
+    --   所以「撤销那一条判据」这句话【已经不在 real_role_holders 的函数体里】,
+    --   照着旧目标注入会什么也删不掉 —— **而那正是这一版跑红时说的话**,
+    --   它没有假装通过,这一点是对的。
+    --   断言本身一个字没变:短路掉判据之后,那个角色又变成 1 个持有人。
+    v_def := pg_get_functiondef('public.real_role_grants(text)'::regprocedure);
     v_inj := replace(v_def, 'AND ur.revoked_at IS NULL', 'AND (ur.revoked_at IS NULL OR true)');
     IF v_inj = v_def THEN
         RAISE EXCEPTION 'FIXTURE 151 注入① 失败:没找到 revoked_at 那一句 —— 这个注入什么也没删'; END IF;

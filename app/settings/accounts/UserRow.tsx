@@ -5,7 +5,6 @@
 import { useState, useTransition } from 'react'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { saveUserRoles } from '../accountsActions'
-import { resendInvite } from './inviteActions'
 
 export type DirectoryRow = {
     user_id: string
@@ -134,22 +133,11 @@ export default function UserRow({
                     </div>
                 </div>
 
-                {row.last_sign_in_at === null && row.email && (
-                    <button
-                        type="button"
-                        onClick={() =>
-                            startTransition(async () => {
-                                const r = await resendInvite(row.email!)
-                                if (r.error) setError(r.error)
-                                else setDone(true)
-                            })
-                        }
-                        disabled={pending}
-                        className="border border-gray-300 px-3 py-1 rounded text-sm hover:bg-gray-50 whitespace-nowrap disabled:opacity-50"
-                    >
-                        {t('permissions.resendInvite')}
-                    </button>
-                )}
+                {/* ★ C-1(2026-09-04):【「重发邀请」按钮删掉了】
+                    它调的是 resendInvite → inviteUserByEmail,而本系统没有邮件服务
+                    (Tim 的裁定 Q12:不留一个没配 SMTP 时安静失败的按钮)。
+                    一个还没登录过的人现在的处置是【当面重新给一次密码】——
+                    在这一行的「编辑」里改,或者删掉账号重建。 */}
                 <button
                     type="button"
                     onClick={() => setOpen((o) => !o)}

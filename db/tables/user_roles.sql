@@ -40,28 +40,52 @@ CREATE INDEX idx_user_roles_user ON public.user_roles (user_id) WHERE revoked_at
 
 -- 不许撤到零个管理员。【请不要因为"看起来多余"而删掉这个守卫】:
 -- 它防的是一次点击造成的不可逆状态 —— 见上面的引导说明。
+--
+-- ★★【C-1(2026-09-04):它现在只数【真的数得上的】授权】★★
+-- 【此前的缺陷】这里只 JOIN 了 user_roles × roles ——【它从不看 auth.users】。
+--   于是一条【幽灵授权】(user_id 在 auth.users 里根本不存在)可以顶替最后一个
+--   真管理员:撤销真人的那一刻守卫说"还有一个",而那一个谁也解析不出来。
+--   幽灵授权在本库出现过三次(66 → 21 → 8 条,见 docs/known-issues.md 的
+--   GHOST-GRANTS),所以这不是一个假想的形状。
+-- 【修法】判据不在这里重写,而是调 real_role_grants ——
+--   本仓库【唯一】的「谁算一个真的持有人」定义(未撤销 / 已确认 / 未封禁 / 未删除)。
+--   在这里另写一个"有没有 auth.users 行"的判据,就是造第二份定义,而两份必然漂开。
+--   ★ 弱判据今天就已经不够:线上 chef1949@126.com 是【未确认】账号,
+--     只问"有没有行"的话它照样顶得上最后一个管理员。
+-- 【is_system / is_active / deleted_at 三条留在这里】它们是【守卫自己的】判据,
+--   不是"谁算真持有人"的一部分,所以不塞进那支通用函数。
+-- 【为什么它成了 SECURITY DEFINER】real_role_grants 读 auth.users,EXECUTE 已从
+--   authenticated 收回;调用者权限的触发器以 authenticated 身份跑就【调不到】它,
+--   守卫会在每一次撤销时抛权限错。DEFINER 让它以属主身份跑,两者同时成立。
+--   ★ 这不触发 gate 的 B2 —— B2_SQL 里写着 pg_get_function_result <> 'trigger'。
+-- 【证明】db/fixtures/191:造一个幽灵,断言旧判据放行、新判据拒绝、守卫真的抛,
+--   并且第二个真管理员在场时撤销照常成功(一道只会拒的闸与拦不住的闸一样坏)。
 CREATE OR REPLACE FUNCTION public.guard_last_admin()
-RETURNS trigger LANGUAGE plpgsql AS $fn$
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
 BEGIN
     -- 只在"撤销"或"删除"时检查;新授权与其它字段更新一概放行
     IF TG_OP = 'DELETE' OR (OLD.revoked_at IS NULL AND NEW.revoked_at IS NOT NULL) THEN
-        -- 除本行之外,是否还剩至少一条【未撤销】且指向【在册启用的 is_system 角色】的授权
+        -- 除本行之外,是否还剩至少一条【真的数得上的】、指向【在册启用的
+        -- is_system 角色】的授权。「真的数得上」= real_role_grants 的四条。
         IF NOT EXISTS (
             SELECT 1
-            FROM user_roles ur
-            JOIN roles r ON r.id = ur.role_id
-            WHERE ur.id <> OLD.id
-              AND ur.revoked_at IS NULL
-              AND r.is_system
+            FROM roles r
+            CROSS JOIN LATERAL real_role_grants(r.code) g
+            WHERE r.is_system
               AND r.is_active
               AND r.deleted_at IS NULL
+              AND g.grant_id <> OLD.id
         ) THEN
             RAISE EXCEPTION 'LAST_ADMIN_PROTECTED';
         END IF;
     END IF;
     RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
 END;
-$fn$;
+$function$;
 
 CREATE TRIGGER trg_user_roles_last_admin
     BEFORE UPDATE OR DELETE ON public.user_roles
