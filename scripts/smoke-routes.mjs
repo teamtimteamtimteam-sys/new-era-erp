@@ -40,14 +40,27 @@
 // 规律与另外两次(check_mirrors 离开连接池、--reach 改成显式开启)见 AGENTS.md
 // §"一条正确的检查放错了相位,就是一条慢检查"。
 //
-// 用法:node scripts/smoke-routes.mjs                  路由状态那一半(快,2-4 分钟)
-//       node scripts/smoke-routes.mjs --reach=finance  【常用】只跑一个角色的可达性
+// 用法:node scripts/smoke-routes.mjs                  路由状态那一半
+//       ★【实测时长,不是估计】16m47s(2026-08-26,192 条路由)· 12m18s 的请求时间
+//         (2026-09-04 C-1a,217 条计时 · 合计 737.9s · 中位数 3053ms)。
+//         **这里【曾经】写着「快,2-4 分钟」** —— 那个数来自 ~135 条路由的年代,
+//         AGENTS.md:504 早已更正,而这一行没跟上。本仓库的规矩是
+//         「写下来的成本必须是量出来的成本」,一条谎报时长的注释,
+//         正是让人把一个晚上排错的东西。(C-1b 更正)
+//       node scripts/smoke-routes.mjs --reach=finance  只跑一个角色的可达性
+//       ★★【C-1b 警告:--reach 在这棵树上【结构性地红着】,不是任何一刀弄坏的】★★
+//         hrefsIn() 是一条跑在服务端 HTML 上的正则,而 IA-BUILD-1 之后导航是
+//         'use client' 的 ModuleBar —— 一级是 <button> 不是 <a href>,二级要
+//         onClick 之后才渲染。爬虫【看不见整条导航】,于是约 96 条路由报
+//         「打得开却走不到」,与那一刀做了什么无关。
+//         实测 2026-09-04:admin 走到 320 个页面,137 条静态路由里 98 条报不可达。
+//         **一个低数字不是应用坏了的证据。** 详见 docs/known-issues.md 的 SMOKE-REACH。
 //       node scripts/smoke-routes.mjs --reach          三个角色全跑(约 100 分钟,推送前)
 // 【一个角色一跑】GUARD-FIX-1:三个角色一起跑已经装不下(admin 一个人 ~63 分钟,
 // 路由前沿爬到一半从 475 涨到 563,finance 被半路杀掉)。角色名拼错会响亮退出 2,
 // 不会当成"零个角色"悄悄绿。可选:admin / operations / finance。
 // 退出码 0 = 全通;1 = 有失败 / 跳过清单漂移(EXPECTED_SKIPS)/ 脚本自身查询炸了
-// 【不进 db/gate.py】整跑约 2-4 分钟且要起 dev server —— 慢门会被跳过,
+// 【不进 db/gate.py】整跑十几分钟(见上面的实测)且要起 dev server —— 慢门会被跳过,
 // check_mirrors 的教训。按需跑:每次改了页面渲染层,或 Tim 又用手找到一只虫之后。
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
 import { spawn, execSync } from 'node:child_process'

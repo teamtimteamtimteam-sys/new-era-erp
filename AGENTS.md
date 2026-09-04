@@ -498,13 +498,73 @@ GitHub 对这两个 SHA 的部署记录数都是 0**。也就是说,那个 2400 
 改完之后,判据的标签与判据本身才终于说的是同一件事:标签写着"部署成功了吗",
 问的也就是部署本身,而不是"GitHub 有没有登记过这件事"。
 
+## ★ Type-check green is NOT proof the app runs (C-1b, 2026-09-04)
+
+**`npx tsc --noEmit` exiting 0 does not mean the application compiles.** Next.js
+enforces rules that live outside the type system, and the RSC boundary is the big one.
+
+**Measured (C-1a, 2026-09-04):** a non-async `export const MIN_PASSWORD_LENGTH = 8`
+was added to a `'use server'` file. Next allows **only async function exports** there.
+The sequence:
+
+| step | result |
+|---|---|
+| `npx tsc --noEmit` | **exit 0** — clean |
+| phone probe over `/settings` | **all nine routes HTTP 500** |
+| `npx next build` | **exit 1**, naming the file and line |
+
+So the type-checker was green while every route in that segment was dead, and only the
+build named the cause. Between them the probe reported a symptom (500s) with no cause.
+
+**The rule: `next build` is the gate, `tsc` is a convenience.** Never report "types pass"
+as evidence that a change is safe to ship; `npm run build` runs `next build` last, after
+all 20 checks, and that is the thing that has to be green.
+
+> **Tim ruled NO fourth check layer for this** (C-1b, item 5): every layer costs time on
+> every cut, and `next build` already catches it before commit. This is written down as
+> knowledge instead — the cost of the lesson was one session's confusion, not a defect
+> that shipped.
+
 ## Route smoke test — run on demand, whenever the render layer changed
 
 ```
 node scripts/smoke-routes.mjs                  # 16m47s measured 2026-08-26 across 192 routes (was "~2-4 min" at ~135 routes)
-node scripts/smoke-routes.mjs --reach=finance  # ONE role's reachability — the form to reach for
+node scripts/smoke-routes.mjs --reach=finance  # ONE role — ★ but see the WARNING below: --reach is structurally red
 node scripts/smoke-routes.mjs --reach         # all three roles (~100 min; a deliberate pre-push sweep)
 ```
+
+### ★★ `--reach` cannot validate navigation on this tree (C-1b, 2026-09-04)
+
+**It reports ~96 routes unreachable no matter what your cut did. That is the tool, not
+the app.** Do not spend a session rediscovering this.
+
+**Mechanism.** `hrefsIn()` (`scripts/smoke-routes.mjs:1506`) is a single regex —
+`/href="([^"]+)"/g` — run over **server-rendered HTML**. Since IA-BUILD-1 the navigation
+is `app/components/nav/ModuleBar.tsx`, a `'use client'` component whose **top level is a
+`<button>`, not an `<a href>`**, and whose second-level links render only after an
+`onClick` state change. **The entire nav is therefore invisible to the crawler.** The
+~39 routes it does reach are links embedded in page bodies.
+
+**Measured 2026-09-04 (`--reach=admin`):** `SMOKE_EXIT=1` · crawler walked **320 pages** ·
+137 openable static routes · **98 reported unreachable**.
+
+**A low number is not evidence of a broken app.** The crawler reaching 320 pages proves
+sessions and middleware are fine.
+
+**Consequence — this is the part that matters:** `--reach` **cannot** validate navigation
+here. Second-level navigation work needs **static registry assertions**
+(`check-nav-routes.mjs`, which is green and in `npm run build`) **plus a human walk**
+(`docs/manual-walk-list.md`). Do not read a green `--reach` as nav coverage, and do not
+read a red one as a regression.
+
+**This was a known boundary from the start**, written down when the mechanism was scoped:
+`docs/per-role-reachability-scoping.md` §边界 — *"客户端交互之后才出现的入口(下拉、
+弹窗、条件按钮)不在覆盖内"*. It only surfaced now because `--reach` defaults to off and
+the cut before C-1a skipped it, so there was never a green baseline.
+
+**Fixing it is a separate decision Tim has not made** — it means either Playwright (the
+scoping doc estimates two days → one week) or teaching `hrefsIn` to read the ModuleBar
+registry. Until then: **do not run `--reach`.**
 
 ### `--reach` takes a role now (GUARD-FIX-1, 2026-09-01)
 

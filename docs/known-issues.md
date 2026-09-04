@@ -3042,6 +3042,36 @@ Tim 裁定它是测试数据、应当删除,但同时立了一条前置条件:�
 
 ---
 
+### ★ REGISTRY-VS-RLS · 字典的「界面的门」与「真正的门」是两份,而没有机器在比对它们
+
+**形状:** `app/settings/dictionaries/registry.ts` 每一条有一个 `permission` 字段,
+读起来像"这张字典要哪个权限"。**它不是。** 它只决定界面画不画那张表单。
+真正拦住写入的是那张表自己的 RLS 谓词(`<table> insert/update by permission`)——
+因为 `app/settings/dictionaries/actions.ts` 里**一句 `require_permission` 都没有**,
+它整个靠 RLS,只在末尾把 `42501` 翻成一句人话。
+
+**后果:两者不一致时,错误是【隐形】的。** 把 registry 改严而 RLS 没改,
+界面上按钮消失了、所有闸全绿,而一次直连 PostgREST 的写入照样成功 ——
+**一张藏起来的表单 + 一个敞开的写入**。反过来(RLS 严、registry 松)则是
+一颗按下去必然报错的按钮。
+
+**C-1b 差一点就这么做了。** 委托书写的是「item 2 与 3 是 registry 改动,不是 schema
+改动;NO DDL EXPECTED」。拦住它的**不是任何一道闸** —— 是动手前先去读了一遍
+`pg_policies`,发现那两张表的写权真的挂在 `module.inbound.edit` 上。
+
+**没有检查在盯这一条,而这是刻意的。** `check-permission-predicate.mjs` 回答的是
+另外三个问题(求值只有一处 / 一个功能能属于几个模块 / 进不去要说出来),
+它对这条一致性无话可说。Tim 裁定不为它建第四道检查(与 tsc 那条同一个道理:
+每一层检查都要在每一刀上收费)。**所以它靠这一段活着:**
+
+> ⚠ **改 `registry.ts` 的 `permission` 时,同一刀必须改那张表的 RLS 策略;
+> 反过来也一样。两者不一致时,没有任何东西会告诉你。**
+
+C-1b 的做法可以照抄:一支迁移改策略 + 改 registry + 改镜像,
+外加 `db/fixtures/192` 以角色身份直连断言库真的拒(并配正对照)。
+
+---
+
 ### ★ SMOKE-REACH · 冒烟的 `--reach` 那一半【结构性地红着】,而它不是任何一刀弄坏的
 
 **实测(C-1,2026-09-04,`--reach=admin`):`SMOKE_EXIT=1`,可达性 96 处

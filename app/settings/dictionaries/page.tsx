@@ -36,13 +36,29 @@ export default async function DictionariesPage() {
     const locale = await getLocale()
     const supabase = await createClient()
 
-    // 【逐小节判权限】五张字典不是同一个权限把门的(实验室是 inbound.edit,
-    // 其余四张是 materials.edit),所以这里不是一个整页的守卫,而是每一节各判各的。
-    const allowed = await Promise.all(DICTIONARIES.map((d) => can(d.permission)))
+    // ════════════════════════════════════════════════════════════════════
+    // 【逐小节判权限,而 C-1b 之后每一节要判【两次】:能不能看,能不能改】
+    //
+    // 【为什么要分开】Tim 的裁定:仓储现场负责人(warehouse)必须【看得见】
+    //   实验室名录与无单收货理由(否则他填不了进料单),但不该【建】实验室、
+    //   也不该翻 requires_explanation 那条规则。
+    //   收回他的 module.inbound.edit 会弄坏现场收货 —— 所以改的不是授权,
+    //   是这两节各要哪个码:写要 materials.edit(他没有),读要 inbound.view(他有)。
+    //
+    // ★【只读【不是】把按钮灰掉,是那些控件根本不渲染】★ 一张摆着表单却拒绝保存的
+    //   屏幕,教会人"这个系统是坏的"。所以 readOnly 那一支连 AddRowPanel 与
+    //   行上的操作列一起不画(见 DictSection)。
+    // ════════════════════════════════════════════════════════════════════
+    const [canEditSection, canViewSection] = await Promise.all([
+        Promise.all(DICTIONARIES.map((d) => can(d.permission))),
+        Promise.all(DICTIONARIES.map((d) => can(d.viewPermission))),
+    ])
 
-    // 【D7:一个都不能编辑时,说"你不能",而不是画一张空页】
-    // 受限【不是】零 —— 这是 lib/permissions.ts 存在的全部理由。
-    if (!allowed.some(Boolean)) {
+    // 【判据是"看得见吗",不再是"改得动吗"】
+    // 一个只读得到的人对这一页【是有意义的】,所以他不该撞上整页拒绝。
+    // ★ 导航那一项的判据(lib/modules.ts 的 P_DICTIONARIES)必须与这一行同源,
+    //   否则「谁看得见入口」与「谁进得去」会各错一次(NAV-REG-1 的 3d)。
+    if (!canViewSection.some(Boolean)) {
         return (
             <ListPage
                 title={t('dict.title')}
@@ -78,7 +94,13 @@ export default async function DictionariesPage() {
     // 【说准一点】这是【构造上】等价:同一批查询、同一套值、同一个顺序 ——
     // **没有去 diff 渲染出来的 HTML 字节**(那要一个真会话,本刀没做)。
     // 屏幕上"看起来一样"由人走一遍确认,记在 docs/manual-walk-list.md §19.7。
-    const visible = DICTIONARIES.filter((_, i) => allowed[i])
+    // 【看得见的那些】—— 不是"改得动的那些"。
+    const visible = DICTIONARIES.filter((_, i) => canViewSection[i])
+    // 与 visible 同序:这一节对这个人是不是只读。
+    const readOnlyPerVisible = DICTIONARIES
+        .map((d, i) => ({ d, ro: !canEditSection[i] }))
+        .filter((_, i) => canViewSection[i])
+        .map((x) => x.ro)
 
     const rowsPerDict = await pMap(visible, DEFAULT_QUERY_CONCURRENCY, async (d) => {
         const cols = ['code', 'name_en', 'name_zh', 'is_active', 'sort_order', 'notes',
@@ -109,7 +131,7 @@ export default async function DictionariesPage() {
     const sections = visible.map((d, di) => {
         const usage: Record<string, number> = {}
         for (const r of rowsPerDict[di]) usage[r.code] = 0
-        return { spec: d, rows: rowsPerDict[di], usage }
+        return { spec: d, rows: rowsPerDict[di], usage, readOnly: readOnlyPerVisible[di] }
     })
     // 计数按【下标】归位,不靠完成顺序 —— pMap 保证返回顺序与输入顺序一致。
     probes.forEach((p, i) => { sections[p.di].usage[p.code] += counts[i] })
@@ -132,7 +154,7 @@ export default async function DictionariesPage() {
         >
             {sections.map((s) => (
                 <DictSection key={s.spec.table} spec={s.spec} rows={s.rows}
-                             usage={s.usage} locale={locale} />
+                             usage={s.usage} locale={locale} readOnly={s.readOnly} />
             ))}
         </ListPage>
     )

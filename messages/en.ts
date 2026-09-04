@@ -242,6 +242,7 @@ const en = {
         noPermission: 'You cannot edit any of these dictionaries. This is a permission answer, not an empty list - editing them needs materials edit rights, or inbound edit rights for laboratories.',
         add: 'Add a value',
         gatedBy: 'edit rights: {0}',
+        readOnlyHere: 'You can only view this section — editing needs {0}.',
         inUse: 'Rows using it',
         active: 'Active',
         inactive: 'Deactivated',

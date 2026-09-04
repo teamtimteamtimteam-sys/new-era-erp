@@ -39,7 +39,6 @@ const ALLOWED_PREFIXES = [
 // 删掉的话,以后任何一页偷偷用上 button 都不会再被抓到;
 // 登记的话,**多出来的每一处仍然会红**。
 const KNOWN_CONVERSIONS = new Set([
-    'app/login/SubmitButton.tsx → button',
     'app/login/page.tsx → card',
 ])
 
@@ -92,11 +91,30 @@ const KNOWN_CONVERSIONS = new Set([
 //   仍是 4 —— 下面那道「基线比实际宽」的自检会当场 EXIT 1。
 //   **实测过**:只改 GUARDED 不删这两行 → EXIT 1,报「登记了 4 处,只找到 2 处」。
 //
-// 清单上剩下的 7 个组件仍然一个都没被采用,这道闸继续守着它们。
+// ★★【C-1b(2026-09-04):'button' 也毕业了 —— 而理由与前三个不同,值得写下来】★★
+// 【Tim 的判词:这道闸在 button 这一格上,罚的是【对的】那一边】
+//   实测本仓库 app/(不含组件库自己)有 **383 个手写 <button> 开标签,
+//   散在 200 个文件里,81 种不同的 className 签名** —— 它们一个都不被这道闸看见。
+//   而唯一被拦下来的,是那个【颜色是对的】的库按钮:
+//   <Button> 的 default 变体是 bg-primary,而 --color-primary = var(--brand-ocean-fill)
+//   = #007FAD(由 Pantone Hawaiian Ocean #008EBC 压暗到白字 4.53:1 得来)。
+//   **一道拦住正确写法、放过 383 处手写的闸,是在把仓库往错的方向推。**
+//
+// ★【连带删掉 KNOWN_CONVERSIONS 里的 'app/login/SubmitButton.tsx → button'】
+//   与 C-1 删 input/label 那两行【同一个机制】:button 离开 GUARDED 之后
+//   importRe 再也匹配不到它,known 从 2 掉到 1,而 KNOWN_CONVERSIONS.size 仍是 2,
+//   下面那道「基线比实际宽」的自检会当场 EXIT 1。
+//
+// ★★【这道闸现在对四个组件都【花掉了】,而且【没有后继】★★
+//   input · label · select(C-1)· button(C-1b)—— 本仓库【没有任何机器】
+//   在检查谁 import 了这四个。写下来,是因为一道被高估的闸比没有闸更坏。
+//   **card 仍然守着**(Tim 明确不毕业它),清单上剩下的 6 个也是。
+//
+// 清单上剩下的 6 个组件仍然一个都没被采用,这道闸继续守着它们。
 // 【list-page 从来没有进过这张清单】—— 它是 CONV-1 新建的,建出来就是给页面用的。
 const GUARDED = [
     'feedback',
-    'button', 'alert', 'badge', 'card', 'table', 'textarea',
+    'alert', 'badge', 'card', 'table', 'textarea',
 ]
 
 const walk = (dir, out = []) => {
@@ -138,7 +156,7 @@ if (badImports.length === 0 && badClasses.length === 0) {
         `取样页与组件目录之外 0 处 import、0 处 base-* 类名。`)
     console.log(`  已登记的既有转换 ${known} 处(全部在 /login,LOGIN-1 做的)——`)
     console.log('  除它之外,没有页面用到【仍在 GUARDED 里的】那些组件。')
-    console.log('  ★ input / label / select 已于 C-1 毕业:本闸对这三个【不再守着任何东西】。')
+    console.log('  ★ input / label / select(C-1)与 button(C-1b)已毕业:本闸对这四个【不再守着任何东西】。')
     if (known !== KNOWN_CONVERSIONS.size) {
         console.error(`\n✗ 基线对不上:登记了 ${KNOWN_CONVERSIONS.size} 处,只找到 ${known} 处。`)
         console.error('  一条【比实际宽】的基线会悄悄放过真的违规 —— 请把消失的那一处删掉。')

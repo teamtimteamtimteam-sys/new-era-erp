@@ -50,10 +50,17 @@ INSERT INTO public.laboratories (code, name_en, name_zh, sort_order, notes) VALU
 ALTER TABLE public.laboratories ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "laboratories select all"
     ON public.laboratories AS PERMISSIVE FOR SELECT TO authenticated USING (true);
+-- ★★【C-1b(2026-09-04):写权从 module.inbound.edit 抬到 module.materials.edit】★★
+--   warehouse 持 inbound.edit(现场收货要用),于是在此之前一个仓储现场负责人
+--   建得了实验室、也翻得动来源理由的规则 —— 那不是他的活。收回 inbound.edit 会
+--   把收货一起弄坏,所以改的是【这张表要哪个码】。读仍然对所有登录用户开放,
+--   界面那一侧由 registry.ts 的 viewPermission(inbound.view)渲染成【只读】。
+--   实测受影响的角色【只有 warehouse 一个】;没有任何角色因此获得新的编辑权。
+--   迁移:db/migrations/2026-09-04-c1b-two-dictionaries-are-material-master-data.sql
 CREATE POLICY "laboratories insert by permission"
     ON public.laboratories AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.inbound.edit'::text));
+    WITH CHECK (has_permission('module.materials.edit'::text));
 CREATE POLICY "laboratories update by permission"
     ON public.laboratories AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.inbound.edit'::text))
-    WITH CHECK (has_permission('module.inbound.edit'::text));
+    USING (has_permission('module.materials.edit'::text))
+    WITH CHECK (has_permission('module.materials.edit'::text));

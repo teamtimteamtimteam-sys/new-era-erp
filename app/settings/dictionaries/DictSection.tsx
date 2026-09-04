@@ -20,11 +20,22 @@ export type DictRow = {
 
 const blank = { code: '', nameEn: '', nameZh: '', sortOrder: '', notes: '' }
 
-export default function DictSection({ spec, rows, usage, locale }: {
+export default function DictSection({ spec, rows, usage, locale, readOnly = false }: {
     spec: DictSpec
     rows: DictRow[]
     usage: Record<string, number>
     locale: string
+    /** ★ C-1b:这个人【看得见但改不动】这一节。
+     *
+     *  【只读的意思是那些控件不存在,不是它们被灰掉】
+     *  一张摆着表单却拒绝保存的屏幕,教会人"这个系统是坏的"(Tim 的裁定 Q8)。
+     *  所以下面三样东西在 readOnly 下【根本不渲染】:
+     *    ① 抬头的「新增」按钮 ② 表格里的操作列(编辑/停用) ③ AddRowPanel 那张表单。
+     *
+     *  【它不是安全边界】真正拦住写入的是这几张表的 RLS 谓词
+     *  (C-1b 把 laboratories / inbound_source_reasons 那四条从 inbound.edit
+     *   抬到了 materials.edit)。这里只负责【不画一个按不下去的按钮】。 */
+    readOnly?: boolean
 }) {
     const t = useTranslations()
     const router = useRouter()
@@ -70,9 +81,10 @@ export default function DictSection({ spec, rows, usage, locale }: {
         // D4:停用之前先看见有多少行带着它。
         { key: 'inUse', header: t('dict.inUse'), align: 'right', render: (r) => usage[r.code] ?? 0 },
         { key: 'isActive', header: t('dict.f.isActive'), render: (r) => (r.is_active ? t('dict.active') : t('dict.inactive')) },
-        {
+        // ★ 只读时这一列【整列不存在】—— 不是渲染成灰的按钮。
+        ...(readOnly ? [] : [{
             key: 'actions', header: '',
-            render: (r) => (
+            render: (r: DictRow) => (
                 <>
                     <button type="button" onClick={() => openEdit(r)} disabled={pending}
                             className="mr-2 rounded border border-[color:var(--brand-border)] px-2 py-0.5 text-xs hover:bg-[color:var(--brand-muted)] disabled:opacity-50">
@@ -90,7 +102,7 @@ export default function DictSection({ spec, rows, usage, locale }: {
                     </button>
                 </>
             ),
-        },
+        } as Column<DictRow>]),
     ]
 
     const field = 'rounded border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-2 py-1 text-sm w-full'
@@ -100,10 +112,19 @@ export default function DictSection({ spec, rows, usage, locale }: {
         <section className="mb-8">
             <div className="mb-2 flex items-baseline gap-3">
                 <h2 className="text-lg font-medium">{t(spec.titleKey)}</h2>
-                <button type="button" onClick={openNew} disabled={pending}
-                        className="rounded border border-[color:var(--brand-border)] px-2 py-1 text-xs hover:bg-[color:var(--brand-muted)] disabled:opacity-50">
-                    {t('dict.add')}
-                </button>
+                {!readOnly && (
+                    <button type="button" onClick={openNew} disabled={pending}
+                            className="rounded border border-[color:var(--brand-border)] px-2 py-1 text-xs hover:bg-[color:var(--brand-muted)] disabled:opacity-50">
+                        {t('dict.add')}
+                    </button>
+                )}
+                {/* ★ 只读时说出【为什么】,而不是让人对着一张没有按钮的表纳闷。
+                    说的是"要哪个码"—— 与下面那句 gatedBy 同一种措辞。 */}
+                {readOnly && (
+                    <span className="text-xs text-[color:var(--brand-muted-text)]">
+                        {t('dict.readOnlyHere', { 0: spec.permission })}
+                    </span>
+                )}
                 <span className="text-xs text-[color:var(--brand-muted-text)]">{t('dict.gatedBy', { 0: spec.permission })}</span>
             </div>
 
@@ -118,7 +139,7 @@ export default function DictSection({ spec, rows, usage, locale }: {
             {/* 表格自己的错误(空态)与表单的错误是两回事 —— 表单错误画在
                 AddRowPanel 里,不在这里再重复一份。 */}
 
-            {editing && (
+            {!readOnly && editing && (
                 <AddRowPanel
                     error={error}
                     className="max-w-2xl"

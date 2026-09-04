@@ -285,8 +285,19 @@ const P_TASKS = 'module.tasks.view'
 const P_HR = 'module.hr.view'
 const P_LOGISTICS = 'module.logistics.view'
 const P_PRICING = 'module.pricing.view'
-/** 设置底下三张字典的码 —— 与 app/settings/dictionaries/registry.ts 的 DICT_PERMISSIONS 同源。 */
-const P_DICTIONARIES = { all: [], any: ['module.materials.edit', 'module.inbound.edit'] } as const
+/** 设置底下那几张字典的码 —— 与 app/settings/dictionaries/registry.ts 的
+ *  **DICT_VIEW_PERMISSIONS** 同源(这里是手抄的第二份,改一处必须改两处)。
+ *
+ *  ★★【C-1b:判据从「编辑码」换成了「查看码」】★★
+ *  这一页从此对【只读得到、改不动】的人也是有意义的 —— 那正是 Fu Sheng
+ *  (warehouse)在实验室与无单收货理由那两节的处境:他必须看得见名录才填得了
+ *  进料单,但不该建实验室。页面的入口判据同步改成了「看得见任意一节」。
+ *  判据若还停在编辑码上,导航会把入口藏起来而页面其实让他进 ——
+ *  「谁看得见入口」与「谁进得去」各错一次,正是 NAV-REG-1 的 3d 要消灭的形状。
+ *
+ *  【谁因此新看得见这条入口】auditor 与 sales(两者都持 materials.view)——
+ *  他们看到的是【只读】的字典页。Tim 知情并接受(C-1b 的 Q4)。 */
+const P_DICTIONARIES = { all: [], any: ['module.materials.view', 'module.inbound.view'] } as const
 const P_MANAGE_PERMISSIONS = 'action.manage_permissions'
 /** NAV-CLEANUP-1 ①:被删记录【自己的】码。只授 admin 与 auditor —— 理由见那一条。 */
 const P_VIEW_DELETED = 'data.view_deleted'

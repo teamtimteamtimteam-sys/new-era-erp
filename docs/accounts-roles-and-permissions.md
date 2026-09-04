@@ -368,3 +368,198 @@ Tim 的裁定带着一条前置条件:「先查引用;有东西引用它就 STOP
 1. 应用矩阵,含 Q8 的字典只读渲染;
 2. 对「会静默弄坏数据」的子页做**服务端**证明,不是"按钮藏起来了";
 3. 上面那条 `cco` 的 dictionaries E ↔ inbound VIEW 冲突,等 Tim 再裁一次。
+
+---
+---
+
+# 第二部分 · C-1b(2026-09-04):把矩阵真的落到实处
+
+> 体例同上:每一条写成【问 → 我的建议与证据 → Tim 的裁定】。
+> C-1a 的问答在第一部分,不要把两轮混在一起读。
+
+## 〇 · C-1b 的委托书里,被实测推翻的两条
+
+### ★ 假一:「NO DDL EXPECTED。item 2 与 3 是 registry 改动,不是 schema 改动」
+
+**这一条是错的,而且如果照着做,会 ship 出一个【骗人的矩阵】。**
+
+字典的写入路径 `app/settings/dictionaries/actions.ts` 里【没有任何一句
+require_permission】—— 它整个靠 RLS,只在末尾把 `42501` 翻成一句人话。
+也就是说 `registry.ts` 的 `permission` 字段**只是界面的门**。库那一侧的真相是:
+
+```
+laboratories            INSERT  WITH CHECK has_permission('module.inbound.edit')
+laboratories            UPDATE  USING/CHECK has_permission('module.inbound.edit')
+inbound_source_reasons  INSERT  WITH CHECK has_permission('module.inbound.edit')
+inbound_source_reasons  UPDATE  USING/CHECK has_permission('module.inbound.edit')
+```
+
+**只改 registry = 把表单藏起来,而写入照样敞开。** Fu Sheng 仍持 `module.inbound.edit`,
+一次直连 PostgREST 的 INSERT 照样建得出实验室。而委托书自己要求的是
+「demonstrate SERVER-SIDE … not merely that a button is hidden」——
+只改 registry 的话,**那个证明会在它要证的那一页上当场失败**。
+
+所以 item 2+3 确实是【一次】改动,但它是一次 **schema 改动**:四条策略,一支迁移。
+
+> **Tim 的裁定:** 做 DDL。「一次装样子的收窄比不收窄更坏,因为文档就得写成
+> 『藏起来了,没有强制』,而后来的人会把矩阵当成真的。」
+
+### ★ 假二:「ITEM 1 —— 应用权限矩阵(the main work)」
+
+**七行里有六行【今天就已经是对的】,一行代码都不用改。** 逐格对着线上授权实测:
+
+| 子页 | 把门的码 | 今天就满足矩阵吗 |
+|---|---|---|
+| accounts | `action.manage_permissions` | ✅ 只有 admin 与 cco 持有 |
+| roles | 同上 | ✅ |
+| reference | 同上 | ✅ 而且**零按钮、零表单、零输入框** —— R 是构造上的 |
+| approvals | 同上 | ✅ **0/0/0** —— R 是构造上的 |
+| deleted | `data.view_deleted` | ✅ **0/0/0** —— R 是构造上的 |
+| import | `action.bulk_import` | ✅ |
+| **dictionaries** | 逐节 `module.X.edit` | ❌ **唯一要动的一行** |
+
+那三个「R」的格子,**控件是真的不存在**,不是被灰掉 —— 这正是委托书要的那种只读。
+**item 1 真正的工作是【证明】,不是【应用】。**
+
+## 一 · 谁看得见什么 —— 全部 12 个在册角色(不只那六个人)
+
+C-1b 之后,逐格实测。`E×4` = 四张物料字典可编辑;`R×2` = 两张进料字典只读。
+
+| 角色 | accounts | roles | reference | approvals | deleted | dictionaries | import |
+|---|---|---|---|---|---|---|---|
+| `admin` | E | E | R | R | R | E×4 + E×2 | E |
+| `cco` | E | E | R | R | R | E×4 + E×2 | E |
+| `gm` | — | — | — | — | — | E×4 + E×2 | — |
+| `finance` | — | — | — | — | — | E×4 + E×2 | — |
+| `operations` | — | — | — | — | — | E×4 + E×2 | — |
+| `procurement` | — | — | — | — | — | E×4 + E×2 | — |
+| **`warehouse`** | — | — | — | — | — | **R×2** ← item 2 的落点 | — |
+| `auditor` | — | — | — | R | R | R×4 + R×2 | — |
+| `sales` | — | — | — | — | — | R×4 | — |
+| `cfo` | — | — | — | — | — | — | — |
+| `hr` | — | — | — | — | — | — | — |
+| `employee` | — | — | — | — | — | — | — |
+
+★ **`cfo` 在这张表上一格都没有,而这不是缺陷** —— Tim 持 `admin` + `cfo`,
+他走的是 admin 那一路(C-1a 的 Q1:把「谁管系统」与「谁批钱」分开)。
+
+★ **`auditor` 与 `sales` 是【新】看得见字典页的**(只读)。
+在此之前他们撞的是整页拒绝。Tim 知情并接受(Q4)——
+判据是:这六张表的 SELECT 策略本来就是 `USING (true)`,
+**他们本来就读得到,给一张只读的表比给一句拒绝更诚实。**
+
+## 二 · item 2 + 3 是同一次改动,而它有两半
+
+**registry 那一半**(界面):`DictSpec` 拆成 `permission`(写)与 `viewPermission`(读)。
+四张物料字典 view = `materials.view`;实验室与无单收货理由
+**edit = `materials.edit`、view = `inbound.view`**。
+
+**迁移那一半**(数据库,真正拦住写入的):四条策略从 `module.inbound.edit`
+抬到 `module.materials.edit`。
+
+> **读与写为什么可以是两个码,而这不是投机取巧:** 现场的人必须【看得见】有哪些
+> 实验室、有哪些收货理由,否则他填不了单;而决定"名录里该有谁"是物料主数据的事。
+> 这就是 Fu Sheng 的处境,一个新码都不需要。
+
+**谁受影响 —— 逐个点名,实测:**
+
+* **失去**这两节编辑权的角色 = 持 `inbound.edit` 而不持 `materials.edit` 的
+  → **只有 `warehouse` 一个**;
+* **获得**编辑权的角色 → **一个都没有**;
+* `admin` / `cco` / `finance` / `gm` / `operations` / `procurement` 都同时持
+  `materials.edit`,**一个都不受影响**。
+
+**另外:`cco` 的 `module.inbound.edit` 被收回了**(Tim 的 Q3)。
+那条授权是 C-1a 为了"字典那一格是 E"顺带给的**副作用,不是一个决定**;
+字典既然改由 `materials.edit` 把门,它就没有存在的理由了。
+Sandra 保留 `inbound.view`(所以那两节仍然可编辑:写靠 materials.edit)与
+`materials.edit`,**她的进料回到只读 —— 那正是 C-1a 原本裁的**。
+
+## 三 · 问答全文(问 → 建议与证据 → 裁定)
+
+**Q1 —— 做策略 DDL,还是放弃收窄?** 见上面「假一」。
+➡️ *建议:* 做。四条策略,一支迁移。
+> **裁定:做。** 「一次装样子的收窄比不收窄更坏。」
+
+**Q2 —— Fu Sheng 怎么拿到只读而不是【什么都没有】?** 实测他
+**一个 `materials` 权限都没有** —— `.view` 也没有。所以若六张字典全部只认
+`materials.*`,他撞上的是整页拒绝,而不是只读。
+➡️ *建议:* registry 拆成 permission / viewPermission,那两张 view 用 `inbound.view`。
+> **裁定:照办。不铸新码,不新增授权。**
+
+**Q3 —— 收回 cco 的 `module.inbound.edit`?**
+➡️ *建议:* 收回;这是一条 Sandra 今天真的有、而 C-1a 刻意给过的能力,所以要你点头。
+> **裁定:收回。那条授权是字典那一格的副作用,不是一个决定。**
+
+**Q4 —— 只读渲染会让 `auditor` 与 `sales` 新看见这一页。**
+➡️ *建议:* 接受并写进文档,不要悄悄上线。
+> **裁定:接受,写进文档。**
+
+**Q5 —— 还有谁需要编辑实验室?** 实测:失去的只有 warehouse,没有人获得。
+> **裁定:照做。**
+
+**Q6 —— 服务端证明长什么样?**
+➡️ *建议:* 一支回滚 fixture,四扇门各钉【两个方向】。
+> **裁定:批准,而且【必须有正对照】——「A proof that passes by refusing everything
+> is not a proof.」**
+
+**Q7 —— 要不要加一道检查,盯住 registry 与 RLS 一致?**
+➡️ *建议:* 不加,写进文档。与 tsc 那条同一个道理。
+> **裁定:不加。写下来:registry 是界面的门,RLS 谓词才是真相。**
+
+**Q8 —— 只读长什么样?**
+> **裁定:控件【整个不渲染】** —— 没有 AddRowPanel、没有行上的操作列,
+> 一句话说明这一节是只读。**不是灰掉的按钮。**
+
+**Q9 —— item 4 的机制。** 毕业 `button` 会让 `KNOWN_CONVERSIONS` 里
+`'app/login/SubmitButton.tsx → button'` 变成孤儿,触发「基线比实际宽」自检 —— 与 C-1a
+删 input/label 两行【同一个机制】。
+> **裁定:照办。card 在注入时必须仍然变红。**
+
+**Q10 —— 那个蓝色。** 见下面第五节。
+> **裁定:不动,但把数字记下来,让将来那一刀从一份【测量】开始,而不是从一次走查开始。**
+
+**Q11 —— 那六个人之外的角色。**
+> **裁定:把 12 个角色的整张表写进文档。**(见第一节)
+
+## 四 · 一条适用于不止一页的发现
+
+**本仓库【没有任何机器】在检查 registry 的 `permission` 与那张表 RLS 谓词一致。**
+`check-permission-predicate.mjs` 回答的是另外三个问题(求值只有一处 /
+一个功能能属于几个模块 / 进不去要说出来),它对这条一致性无话可说。
+
+**于是「只改 registry」这个错误是【隐形】的:** 界面看起来收紧了,闸全绿,
+而写入敞开着。C-1b 差一点就这么做了 —— 拦住它的不是任何一道闸,是先去读了一遍策略。
+Tim 裁定不为它建第四道检查(与 tsc 那条同一个道理),所以**它靠这一段活着**:
+
+> ⚠ **改 `registry.ts` 的 `permission` 时,同一刀必须改那张表的 RLS 策略。
+> 反过来也一样。两者不一致时,没有任何东西会告诉你。**
+
+## 五 · item 6:那个蓝色 —— 报告,不动手
+
+`/suppliers` 的「+ 新建供应商」用的是 **硬编码 `bg-blue-600`**(Tailwind 默认色),
+**不是**品牌色。品牌那条链是通的:
+`--color-primary` → `var(--brand-ocean-fill)` → `#007FAD`
+(由 Pantone Hawaiian Ocean `#008EBC` 压暗到白字对比度 4.53:1 得来)。
+
+**实测规模 —— 这不是一个按钮,是仓库里最主流的手搓按钮样式:**
+
+| 量的是什么 | 数 |
+|---|---:|
+| `bg-blue-600` 出现次数 | **159** |
+| 涉及文件 | **139** |
+| `bg-blue-700`(它的 hover 伴生) | 134 |
+| `text-blue-600` | 298 |
+| 与那颗按钮**逐字相同**的签名 `bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400` | **54** |
+
+**所以颜色这件事自成一刀**,而它现在从一份测量开始,不是从一次走查开始。
+
+## 六 · item 4:`button` 毕业了,而理由与前三个不同
+
+Tim 的判词:**这道闸在 button 这一格上,罚的是【对的】那一边。** 实测支持它,
+而且比他说的更强 —— `app/`(不含组件库自己)有 **383 个手写 `<button>` 开标签,
+散在 200 个文件里,81 种不同的 className 签名**,一个都不被这道闸看见;
+而唯一被拦下来的,是那个颜色对的库按钮。
+
+**这道闸现在对四个组件都花掉了:** `input` · `label` · `select`(C-1)· `button`(C-1b)。
+**`card` 仍然守着**,清单上剩下的 6 个也是。
