@@ -17,6 +17,7 @@ import ChangeHistory, { type HistoryRow } from './ChangeHistory'
 import TaskHeader from './TaskHeader'
 import { loadActorNames } from '@/app/components/ActorName'
 import { STATUS_VALUES, PRIORITY_VALUES } from '../types'
+import { ListPage } from '@/app/components/ui/list-page'
 
 export default async function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const denied = await requireModule(MOD.tasks)
@@ -112,19 +113,29 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
     const correctable = isTeam && everOthers.length === 0
 
     return (
-        <div className="p-8">
-            <div className="mb-2 text-sm">
-                <Link href="/tools/tasks" className="text-blue-700 hover:underline">
-                    ← {t('tasks.pageTitle')}
-                </Link>
-            </div>
-            <h1 className="mb-1 text-2xl font-bold">{task.title}</h1>
-            <p className="mb-6 text-sm text-gray-500">
-                {task.code} · {t('tasks.type.' + task.task_type)} · {t('tasks.status.' + task.status)} ·{' '}
-                {t('tasks.priority.' + task.priority)}
-                {task.due_date ? ` · ${t('tasks.form.dueDate')} ${task.due_date}` : ''}
-            </p>
-
+        <ListPage
+            // 转换前这条返回链接画在 <h1> 之上 —— breadcrumb 槽是同一个位置。
+            breadcrumb={
+                <div className="text-sm">
+                    <Link href="/tools/tasks" className="text-blue-700 hover:underline">
+                        ← {t('tasks.pageTitle')}
+                    </Link>
+                </div>
+            }
+            title={task.title}
+            intro={
+                <>
+                    {task.code} · {t('tasks.type.' + task.task_type)} · {t('tasks.status.' + task.status)} ·{' '}
+                    {t('tasks.priority.' + task.priority)}
+                    {task.due_date ? ` · ${t('tasks.form.dueDate')} ${task.due_date}` : ''}
+                </>
+            }
+            // ★★ 详情页恒为 ok —— 这张任务在不在由上面的 notFound() 回答。
+            //    ★ 出口检查:这一页的出口特别多(改表头 / 加步骤 / 加参与者 /
+            //      升级为团队任务 / 软删),【全部】住在 children 里 ——
+            //      state 恒为 'ok' 于是不是省事,是它们能活下来的原因。
+            state={{ kind: 'ok' }}
+        >
             {task.description ? <p className="mb-4 whitespace-pre-wrap text-sm">{task.description}</p> : null}
 
             {/* TASK-1c-b:表头七个字段 + 软删,从退休的弹窗搬过来。
@@ -213,6 +224,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
                 <PromotePanel taskId={task.id} canPromote={myEmployeeId !== null} />
             )}
 
+            {/* 【私人任务不显示变更记录,而这是有意的不对称】—— 见上面取数处的理由。 */}
             {isTeam ? (
                 <ChangeHistory
                     rows={history}
@@ -223,7 +235,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
                     empty={t('tasks.history.empty')}
                 />
             ) : null}
-        </div>
+        </ListPage>
     )
 }
 

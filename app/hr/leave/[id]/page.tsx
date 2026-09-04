@@ -12,6 +12,9 @@ import DecideControls from './DecideControls'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import { RecordHeader } from '@/app/components/ui/record-header'
+import { GrantBreakdownTable, ConsumptionTable, type GrantBreakdownRow, type ConsumptionRow } from './LeaveDetailTables'
 
 export default async function LeaveRequestDetail({
     params,
@@ -59,139 +62,116 @@ export default async function LeaveRequestDetail({
                      consumed: number; remaining: number; expires_on: string | null; status: string }[]
     } | null
 
+
     const card = 'rounded border border-gray-200 p-4'
-    const dt = 'text-xs text-gray-500'
-    const dd = 'text-sm font-medium'
+
+    // ★【行数据在服务端压平】locale(假别名 zh/en)、动态前缀 t('leave.grantType_'+x)
+    //   都只有服务端知道 —— 一个判据都不过界(CONV-1 §①)。
+    const grantRows: GrantBreakdownRow[] = (bal?.breakdown ?? []).map((b) => ({
+        id: b.grant_id,
+        leaveYear: String(b.leave_year),
+        grantTypeText: t(`leave.grantType_${b.grant_type}`),
+        days: String(b.days),
+        consumed: String(b.consumed),
+        remaining: String(b.remaining),
+        expiresOn: b.expires_on ?? '—',
+        statusText: t(`leave.grantStatus_${b.status}`),
+    }))
+
+    const consumptionRows: ConsumptionRow[] = (mustRows(consRes)).map((c) => ({
+        id: c.id,
+        entryTypeText: t(`leave.entry_${c.entry_type}`),
+        days: String(c.days),
+        grantIdShort: c.leave_grant_id?.slice(0, 8) ?? '—',
+        notes: c.notes ?? '—',
+    }))
 
     return (
-        <div className="p-8 max-w-4xl">
-            <h1 className="text-2xl font-bold mb-4">{t('hr.title')}</h1>
-            <LeaveSubnav />
+        <ListPage
+            maxWidth="max-w-4xl"
+            title={t('hr.title')}
+            // ★★ 详情页恒为 ok —— 这张请假单在不在由上面的 notFound() 回答。
+            state={{ kind: 'ok' }}
+            notices={
+                <>
+                    {/* ★ 出口:假别子导航。CONV-5 §⑩-3 点名过这一类 ——
+                        它【必须】走 notices(画在状态分支之前),塞进 children
+                        会让一次空态把人留在一张走不出去的页上。 */}
+                    <LeaveSubnav />
 
-            <div className="mb-4">
-                <Link href="/hr/leave" className="text-blue-600 hover:underline text-sm">
-                    {t('common.back')}
-                </Link>
-            </div>
+                    {/* 【返回链接留在标题【下面】】这一页转换前就是这样(它在子导航之后),
+                        所以【不】用 breadcrumb 槽 —— 用了会把它挪到标题之上。 */}
+                    <div className="mb-4">
+                        <Link href="/hr/leave" className="text-blue-600 hover:underline text-sm">
+                            {t('common.back')}
+                        </Link>
+                    </div>
 
-            <div className="flex items-baseline gap-3 mb-4">
-                <h2 className="text-xl font-bold">{req.code}</h2>
-                <span className="text-sm text-gray-500">
-                    {emp ? `${emp.code} — ${emp.legal_name}` : ''}
-                </span>
-                {req.is_exception && (
-                    <span className="rounded bg-purple-100 px-2 py-0.5 text-xs text-purple-800">
-                        {t('leave.exception')}
-                    </span>
-                )}
-            </div>
-
-            <section className={card + ' mb-6'}>
-                <div className="grid gap-4 sm:grid-cols-4">
-                    <div><div className={dt}>{t('leave.type')}</div>
-                        <div className={dd}>{ty ? (locale === 'zh' ? ty.name_zh : ty.name_en) : req.leave_type_code}</div></div>
-                    <div><div className={dt}>{t('leave.dates')}</div>
-                        <div className={dd}>{req.start_date} → {req.end_date}</div></div>
-                    <div><div className={dt}>{t('leave.days')}</div>
-                        <div className={dd + ' font-mono'}>{req.days}</div></div>
-                    <div><div className={dt}>{t('leave.status')}</div>
-                        <div className={dd}>{t(`leave.status_${req.status}`)}</div></div>
-                    {req.reason && (
-                        <div className="sm:col-span-2"><div className={dt}>{t('leave.reason')}</div>
-                            <div className={dd}>{req.reason}</div></div>
-                    )}
-                    {req.certificate_ref && (
-                        <div><div className={dt}>{t('leave.certificate')}</div>
-                            <div className={dd}>{req.certificate_ref}</div></div>
-                    )}
-                    {req.is_exception && (
-                        <div className="sm:col-span-4">
-                            <div className={dt}>{t('leave.exceptionReason')}</div>
-                            <div className={dd}>{req.exception_reason}</div>
-                        </div>
-                    )}
-                    {req.decision_notes && (
-                        <div className="sm:col-span-4"><div className={dt}>{t('leave.decisionNotes')}</div>
-                            <div className={dd}>{req.decision_notes}</div></div>
-                    )}
-                </div>
-            </section>
+                    <div className="flex flex-wrap items-baseline gap-3 mb-4">
+                        <h2 className="text-xl font-bold">{req.code}</h2>
+                        <span className="text-sm text-gray-500">
+                            {emp ? `${emp.code} — ${emp.legal_name}` : ''}
+                        </span>
+                        {req.is_exception && (
+                            <span className="rounded bg-purple-100 px-2 py-0.5 text-xs text-purple-800">
+                                {t('leave.exception')}
+                            </span>
+                        )}
+                    </div>
+                </>
+            }
+        >
+            {/* ★ 记录抬头 —— 转换前是一块 rounded border 的 grid 面板。 */}
+            <RecordHeader
+                fields={[
+                    {
+                        label: t('leave.type'),
+                        value: ty ? (locale === 'zh' ? ty.name_zh : ty.name_en) : req.leave_type_code,
+                    },
+                    { label: t('leave.dates'), value: `${req.start_date} → ${req.end_date}` },
+                    { label: t('leave.days'), value: String(req.days), mono: true },
+                    { label: t('leave.status'), value: t(`leave.status_${req.status}`) },
+                    ...(req.reason ? [{ label: t('leave.reason'), value: req.reason }] : []),
+                    ...(req.certificate_ref ? [{ label: t('leave.certificate'), value: req.certificate_ref }] : []),
+                    ...(req.is_exception ? [{ label: t('leave.exceptionReason'), value: req.exception_reason }] : []),
+                    ...(req.decision_notes ? [{ label: t('leave.decisionNotes'), value: req.decision_notes }] : []),
+                ]}
+            />
 
             {/* 余额:审批之前该看的那个数 */}
             {ty?.is_accrued && bal && (
                 <section className={card + ' mb-6'}>
                     <h3 className="font-bold mb-1">{t('leave.balanceNow')}</h3>
                     <p className="text-xs text-gray-500 mb-3">{t('leave.balanceAsOfHint')}</p>
-                    <div className="grid gap-4 sm:grid-cols-4 mb-4">
-                        <div><div className={dt}>{t('leave.granted')}</div><div className={dd + ' font-mono'}>{bal.granted}</div></div>
-                        <div><div className={dt}>{t('leave.taken')}</div><div className={dd + ' font-mono'}>{bal.consumed}</div></div>
-                        <div><div className={dt}>{t('leave.expired')}</div><div className={dd + ' font-mono'}>{bal.expired}</div></div>
-                        <div><div className={dt}>{t('leave.available')}</div>
-                            <div className={dd + ' font-mono text-lg'}>{bal.available}</div></div>
-                    </div>
-                    <table className="w-full border-collapse text-xs">
-                        <thead>
-                            <tr className="bg-gray-50 text-left">
-                                <th className="border border-gray-300 px-2 py-1">{t('leave.grantYear')}</th>
-                                <th className="border border-gray-300 px-2 py-1">{t('leave.grantType')}</th>
-                                <th className="border border-gray-300 px-2 py-1 text-right">{t('leave.days')}</th>
-                                <th className="border border-gray-300 px-2 py-1 text-right">{t('leave.taken')}</th>
-                                <th className="border border-gray-300 px-2 py-1 text-right">{t('leave.remaining')}</th>
-                                <th className="border border-gray-300 px-2 py-1">{t('leave.expires')}</th>
-                                <th className="border border-gray-300 px-2 py-1">{t('leave.grantStatus')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {bal.breakdown.map((b) => (
-                                <tr key={b.grant_id}>
-                                    <td className="border border-gray-300 px-2 py-1">{b.leave_year}</td>
-                                    <td className="border border-gray-300 px-2 py-1">{t(`leave.grantType_${b.grant_type}`)}</td>
-                                    <td className="border border-gray-300 px-2 py-1 text-right font-mono">{b.days}</td>
-                                    <td className="border border-gray-300 px-2 py-1 text-right font-mono">{b.consumed}</td>
-                                    <td className="border border-gray-300 px-2 py-1 text-right font-mono">{b.remaining}</td>
-                                    <td className="border border-gray-300 px-2 py-1">{b.expires_on ?? '—'}</td>
-                                    <td className="border border-gray-300 px-2 py-1">{t(`leave.grantStatus_${b.status}`)}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    {/* 第二块抬头 —— 同一个 RecordHeader,不是第二种写法。 */}
+                    <RecordHeader
+                        fields={[
+                            { label: t('leave.granted'), value: String(bal.granted), mono: true },
+                            { label: t('leave.taken'), value: String(bal.consumed), mono: true },
+                            { label: t('leave.expired'), value: String(bal.expired), mono: true },
+                            { label: t('leave.available'), value: String(bal.available), mono: true },
+                        ]}
+                    />
+                    <GrantBreakdownTable rows={grantRows} />
                 </section>
             )}
 
             {/* 批准之后:这几天到底从哪几笔授予里扣的 */}
-            {(mustRows(consRes)).length > 0 && (
+            {consumptionRows.length > 0 && (
                 <section className={card + ' mb-6'}>
                     <h3 className="font-bold mb-1">{t('leave.consumption')}</h3>
                     <p className="text-xs text-gray-500 mb-3">{t('leave.consumptionHint')}</p>
-                    <table className="w-full border-collapse text-xs">
-                        <thead>
-                            <tr className="bg-gray-50 text-left">
-                                <th className="border border-gray-300 px-2 py-1">{t('leave.entryType')}</th>
-                                <th className="border border-gray-300 px-2 py-1 text-right">{t('leave.days')}</th>
-                                <th className="border border-gray-300 px-2 py-1">{t('leave.grantId')}</th>
-                                <th className="border border-gray-300 px-2 py-1">{t('leave.notes')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {(mustRows(consRes)).map((c) => (
-                                <tr key={c.id}>
-                                    <td className="border border-gray-300 px-2 py-1">{t(`leave.entry_${c.entry_type}`)}</td>
-                                    <td className="border border-gray-300 px-2 py-1 text-right font-mono">{c.days}</td>
-                                    <td className="border border-gray-300 px-2 py-1 font-mono">{c.leave_grant_id?.slice(0, 8)}</td>
-                                    <td className="border border-gray-300 px-2 py-1">{c.notes ?? '—'}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    <ConsumptionTable rows={consumptionRows} />
                 </section>
             )}
 
+            {/* ★ 出口:批准 / 驳回。住 children,而 state 恒为 'ok'。 */}
             <DecideControls
                 requestId={req.id}
                 status={req.status}
                 available={ty?.is_accrued ? (bal?.available ?? null) : null}
                 requested={req.days}
             />
-        </div>
+        </ListPage>
     )
 }

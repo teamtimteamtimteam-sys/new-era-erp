@@ -14,6 +14,9 @@ import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachments
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import { RecordHeader, type RecordField } from '@/app/components/ui/record-header'
+import PaymentAllocationsTable, { type PaymentAllocRow } from './PaymentAllocationsTable'
 
 type AllocRow = {
     id: string
@@ -180,56 +183,57 @@ export default async function PaymentDetailPage({
         created_at_display: formatTimestamp(a.created_at, dateLocale),
     }))
 
-    return (
-        <div className="p-8 max-w-4xl">
-            <div className="mb-6">
-                <Link href="/finance/payments" className="text-blue-600 hover:underline text-sm">
-                    {t('common.back')}
-                </Link>
-            </div>
 
-            <h1 className="text-2xl font-bold mb-2">{t('finance.paymentsTitle')}</h1>
+    // ★【行数据在服务端压平】allocDoc 要跨五种来源反查单据编号 —— 那是一段
+    //   只有服务端做得了的判断;过界的是 code 与 href 两个字符串(CONV-1 §①)。
+    const tableRows: PaymentAllocRow[] = allocs.map((a) => {
+        const doc = allocDoc(a)
+        return {
+            id: a.id,
+            docCode: doc.code,
+            docHref: doc.href,
+            allocatedBaseText: formatMoneyBare(a.allocated_base, '列头 已解除应付/应收 ({baseCurrency})'),
+            allocatedPayText: formatMoneyBare(a.allocated_pay, '列头 消耗款额 ({payment.currency})'),
+        }
+    })
 
-            {/* 冲销横幅 */}
-            {payment.status === 'reversed' && reversedByRes.data && (
-                <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-4 text-sm">
-                    <Link
-                        href={`/finance/payments/${reversedByRes.data.id}`}
-                        className="text-blue-600 hover:underline"
-                    >
-                        {t('finance.reversedByPayment', { code: reversedByRes.data.code })}
-                    </Link>
-                </div>
-            )}
+    // ★ 合计行是【数据】,不是 <tfoot> —— CONV-4 §⑨-3 定的型,CONV-8 §⑧ 复核保留。
+    if (tableRows.length > 0) {
+        tableRows.push({
+            id: '__total__',
+            docCode: t('finance.totalsLabel'),
+            docHref: null,
+            allocatedBaseText: formatMoneyBare(allocTotal, '列头 已解除应付/应收 ({baseCurrency})'),
+            allocatedPayText: formatMoneyBare(consumedPay, '列头 消耗款额 ({payment.currency})'),
+            isTotal: true,
+        })
+    }
 
-            {/* 头部 */}
-            <div className="bg-gray-50 rounded p-4 mb-6 flex flex-wrap gap-x-8 gap-y-2 text-sm items-center">
-                <div>
-                    <span className="text-gray-600 mr-1">{t('finance.colCode')}:</span>
-                    <span className="font-mono font-medium">{payment.code}</span>
-                </div>
-                <div>
-                    <span className="text-gray-600 mr-1">{t('finance.paymentDate')}:</span>
-                    <span>{payment.payment_date}</span>
-                </div>
-                <div>
-                    <span
-                        className={
-                            'px-2 py-1 rounded text-xs ' +
-                            (payment.direction === 'in'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-amber-100 text-amber-800')
-                        }
-                    >
-                        {t('finance.direction.' + payment.direction)}
-                    </span>
-                </div>
-                <div>
-                    <span className="text-gray-600 mr-1">{t('finance.colCounterparty')}:</span>
-                    <span>{partyName}</span>
-                </div>
-                <div>
-                    <span className="text-gray-600 mr-1">{t('finance.amount')}:</span>
+    // 抬头字段逐页不同 —— RecordHeader 只管盒子(见组件抬头)。
+    const fields: RecordField[] = [
+        { label: t('finance.colCode'), value: payment.code, mono: true },
+        { label: t('finance.paymentDate'), value: payment.payment_date },
+        {
+            // finance.side —— 与 /finance/payments 列表页那一列同一个键,不新造。
+            label: t('finance.side'),
+            value: (
+                <span
+                    className={
+                        'px-2 py-1 rounded text-xs ' +
+                        (payment.direction === 'in'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-amber-100 text-amber-800')
+                    }
+                >
+                    {t('finance.direction.' + payment.direction)}
+                </span>
+            ),
+        },
+        { label: t('finance.colCounterparty'), value: partyName },
+        {
+            label: t('finance.amount'),
+            value: (
+                <>
                     <span className="font-mono font-medium">
                         {payment.currency} {formatMoneyBare(payment.amount_ccy, '同格内紧邻的 payment.currency 前缀')}
                     </span>
@@ -238,25 +242,59 @@ export default async function PaymentDetailPage({
                             @ {payment.fx_rate} = {formatMoneyBare(payment.amount_base, '同格内紧随其后的 {baseCurrency} 后缀')} {baseCurrency}
                         </span>
                     )}
-                </div>
-                <div>
-                    <span className="text-gray-600 mr-1">{t('finance.bankAccount')}:</span>
-                    <span>{t('finance.bank.' + payment.bank_account_code)}</span>
-                </div>
-                <div>
-                    <span
-                        className={
-                            'px-2 py-1 rounded text-xs ' +
-                            (payment.status === 'posted'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-gray-200 text-gray-700')
-                        }
-                    >
-                        {t('finance.status.' + payment.status)}
-                    </span>
-                </div>
-                {payment.status === 'posted' && <ReversePaymentButton paymentId={payment.id} />}
-            </div>
+                </>
+            ),
+        },
+        { label: t('finance.bankAccount'), value: t('finance.bank.' + payment.bank_account_code) },
+        {
+            label: t('finance.colStatus'),
+            value: (
+                <span
+                    className={
+                        'px-2 py-1 rounded text-xs ' +
+                        (payment.status === 'posted'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-200 text-gray-700')
+                    }
+                >
+                    {t('finance.status.' + payment.status)}
+                </span>
+            ),
+        },
+    ]
+
+    return (
+        <ListPage
+            maxWidth="max-w-4xl"
+            breadcrumb={
+                <Link href="/finance/payments" className="text-blue-600 hover:underline text-sm">
+                    {t('common.back')}
+                </Link>
+            }
+            title={t('finance.paymentsTitle')}
+            // ★★ 详情页恒为 ok —— 记录在不在由上面的 notFound() 回答,不由空态回答。
+            //    空的只可能是核销行表,那句空态归表自己说(DataTable 的 empty)。
+            state={{ kind: 'ok' }}
+            // 冲销横幅:无条件渲染,与 CONV-1 的 notices 槽同一条理由。
+            notices={
+                payment.status === 'reversed' && reversedByRes.data ? (
+                    <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-4 text-sm">
+                        <Link
+                            href={`/finance/payments/${reversedByRes.data.id}`}
+                            className="text-blue-600 hover:underline"
+                        >
+                            {t('finance.reversedByPayment', { code: reversedByRes.data.code })}
+                        </Link>
+                    </div>
+                ) : undefined
+            }
+        >
+            {/* ★ 记录抬头 —— 冲销钮住 actions 槽:一个动作不是一个值。
+                转换前它就在这一块 div 里(CONV-8 §③ 记的那个实测)。 */}
+            <RecordHeader
+                fields={fields}
+                actions={payment.status === 'posted' ? <ReversePaymentButton paymentId={payment.id} /> : undefined}
+            />
 
             {payment.notes && (
                 <p className="text-sm text-gray-600 mb-4">
@@ -278,63 +316,13 @@ export default async function PaymentDetailPage({
                 </p>
             )}
 
-            {/* 核销行 */}
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colDocument')}</th>
-                        {/* 两列都要带单位:左边是解除的应收/应付(本位币,按单据入账汇率),
-                            右边是这条核销吃掉的款额(付款币种)。跨币种时它们不是一个数,
-                            差额就是已实现汇兑 —— 摆在一起,那笔差额才解释得清。 */}
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.totalAllocated')} ({baseCurrency})</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.consumedPay')} ({payment.currency})</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {allocs.map((a) => {
-                        const doc = allocDoc(a)
-                        return (
-                            <tr key={a.id}>
-                                <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                    {doc.href ? (
-                                        <Link href={doc.href} className="text-blue-600 hover:underline">
-                                            {doc.code}
-                                        </Link>
-                                    ) : (
-                                        doc.code
-                                    )}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                    {formatMoneyBare(a.allocated_base, '列头 已解除应付/应收 ({baseCurrency})')}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                    {formatMoneyBare(a.allocated_pay, '列头 消耗款额 ({payment.currency})')}
-                                </td>
-                            </tr>
-                        )
-                    })}
-                    {allocs.length === 0 && (
-                        <tr>
-                            <td colSpan={3} className="border border-gray-300 px-4 py-4 text-center text-gray-500 text-sm">
-                                {t('finance.unallocated')}
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-                {allocs.length > 0 && (
-                    <tfoot>
-                        <tr className="bg-gray-100 font-bold">
-                            <td className="border border-gray-300 px-4 py-2">{t('finance.totalsLabel')}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatMoneyBare(allocTotal, '列头 已解除应付/应收 ({baseCurrency})')}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatMoneyBare(consumedPay, '列头 消耗款额 ({payment.currency})')}
-                            </td>
-                        </tr>
-                    </tfoot>
-                )}
-            </table>
+            <PaymentAllocationsTable
+                rows={tableRows}
+                docHeader={t('finance.colDocument')}
+                baseHeader={`${t('finance.totalAllocated')} (${baseCurrency})`}
+                payHeader={`${t('finance.consumedPay')} (${payment.currency})`}
+                empty={t('finance.unallocated')}
+            />
 
             {/* 未冲销余额(挂账)*/}
             {unallocated > 0 && (
@@ -343,8 +331,9 @@ export default async function PaymentDetailPage({
                 </p>
             )}
 
-            {/* 凭据附件 */}
+            {/* 凭据附件 —— 这一页的第二个出口(上传凭据)。它住在 children 里,
+                而详情页 state 恒为 'ok',所以它不可能被空分支吃掉。 */}
             <FinanceAttachmentsPanel parent={{ kind: 'payment', id: payment.id }} rows={attachments} />
-        </div>
+        </ListPage>
     )
 }

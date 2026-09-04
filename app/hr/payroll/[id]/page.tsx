@@ -10,6 +10,9 @@ import { formatMoneyBare } from '@/lib/format'
 import { PostPayrollButton, UnpostPayrollControl } from './PostControls'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import { RecordHeader } from '@/app/components/ui/record-header'
+import PayrollLinesTable, { type PayrollLineRow } from './PayrollLinesTable'
 
 export default async function PayrollDetailPage({
     params,
@@ -63,88 +66,122 @@ export default async function PayrollDetailPage({
     const isPosted = period.status === 'posted'
     const bankAccount = bankAccountFor(period.currency ?? '')
 
+
+    // ★【行数据在服务端压平】金额格式与 CCY-1 的"币种写在哪儿"说明都归服务端。
+    const CCY_NOTE = '抬头「币种」:{currency} @ {fx}'
+    const tableRows: PayrollLineRow[] = lines.map((l) => ({
+        id: l.id,
+        employeeCode: l.employees?.code ?? '',
+        employeeName: l.employees?.legal_name ?? '—',
+        employeeHref: l.employees ? `/hr/employees/${l.employees.id}` : null,
+        grossText: formatMoneyBare(l.gross_pay, CCY_NOTE),
+        employeeCpfText: formatMoneyBare(l.employee_cpf, CCY_NOTE),
+        employerCpfText: formatMoneyBare(l.employer_cpf, CCY_NOTE),
+        deductionsText: formatMoneyBare(l.other_deductions, CCY_NOTE),
+        netText: formatMoneyBare(l.net_pay, CCY_NOTE),
+    }))
+
+    // ★ 合计行是【数据】,不是 <tfoot> —— CONV-4 §⑨-3 定的型,CONV-8 §⑧ 复核保留。
+    //   ★ 这一行【无条件】画(转换前的 <tfoot> 也是无条件的):一个 0 行的期间
+    //     仍然要说出它的合计是 0,那不是空,那是一个答案。
+    tableRows.push({
+        id: '__total__',
+        employeeCode: '',
+        employeeName: t('finance.totalsLabel'),
+        employeeHref: null,
+        grossText: formatMoneyBare(period.gross_total, CCY_NOTE),
+        employeeCpfText: formatMoneyBare(period.employee_cpf_total, CCY_NOTE),
+        employerCpfText: formatMoneyBare(period.employer_cpf_total, CCY_NOTE),
+        deductionsText: formatMoneyBare(period.other_deductions_total, CCY_NOTE),
+        netText: formatMoneyBare(period.net_pay_total, CCY_NOTE),
+        isTotal: true,
+        totalNote: t('hr.lineCount', { n: lines.length }),
+    })
+
     return (
-        <div className="p-8 max-w-5xl">
-            <div className="mb-6">
+        <ListPage
+            maxWidth="max-w-5xl"
+            breadcrumb={
                 <Link href="/hr/payroll" className="text-blue-600 hover:underline text-sm">
                     {t('common.back')}
                 </Link>
-            </div>
-
-            <div className="flex justify-between items-start mb-2 gap-4">
-                <h1 className="text-2xl font-bold">
+            }
+            title={
+                <>
                     {t('hr.payrollDetailTitle')}
                     <span className="ml-3 font-mono text-base text-gray-500">
                         {period.period_month?.slice(0, 7)}
                     </span>
                     <span className="ml-2 text-sm text-gray-400 font-mono">{period.code}</span>
-                </h1>
-                <div className="flex flex-wrap items-center gap-3 justify-end">
-                    {!isPosted && (
-                        <>
-                            <Link
-                                href={`/hr/payroll/${id}/edit`}
-                                className="border border-gray-300 px-3 py-1.5 rounded hover:bg-gray-50 text-sm"
-                            >
-                                {t('purchasing.editLink')}
-                            </Link>
-                            <PostPayrollButton
-                                periodId={id}
-                                currency={period.currency}
-                                bankAccount={bankAccount}
-                                totals={{
-                                    gross: Number(period.gross_total),
-                                    employerCpf: Number(period.employer_cpf_total),
-                                    employeeCpf: Number(period.employee_cpf_total),
-                                    other: Number(period.other_deductions_total),
-                                    net: Number(period.net_pay_total),
-                                }}
-                            />
-                        </>
-                    )}
-                </div>
-            </div>
-
-            {/* 抬头 */}
-            <div className="bg-gray-50 rounded p-4 mb-4 flex flex-wrap gap-x-8 gap-y-2 text-sm items-center">
-                <div>
-                    <span className="text-gray-600 mr-1">{t('hr.colPaymentDate')}:</span>
-                    {period.payment_date}
-                </div>
-                <div>
-                    <span className="text-gray-600 mr-1">{t('hr.colCurrency')}:</span>
-                    <span className="font-mono">
-                        {period.currency} @ {period.fx_rate}
-                    </span>
-                </div>
-                <div>
-                    <span
-                        className={
-                            'px-2 py-1 rounded text-xs ' +
-                            (isPosted ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800')
-                        }
-                    >
-                        {t('hr.payrollStatus.' + period.status)}
-                    </span>
-                </div>
-                {jeRes.data && (
-                    <div>
-                        <span className="text-gray-600 mr-1">{t('assay.journalLink')}:</span>
+                </>
+            }
+            // ★ 出口:改这个期间 / 过账。转换前它们画在 h1 右边 —— actions 是同一个位置,
+            //   而且画在状态分支【之前】,任何空态都吃不掉它们。
+            actions={
+                !isPosted ? (
+                    <span className="flex flex-wrap items-center gap-3 justify-end">
                         <Link
-                            href={`/finance/journal/${jeRes.data.id}`}
-                            className="text-blue-600 hover:underline font-mono"
+                            href={`/hr/payroll/${id}/edit`}
+                            className="border border-gray-300 px-3 py-1.5 rounded hover:bg-gray-50 text-sm"
                         >
-                            {jeRes.data.code}
+                            {t('purchasing.editLink')}
                         </Link>
-                    </div>
-                )}
-                {period.source_note && (
-                    <div>
-                        <span className="text-gray-600 mr-1">{t('hr.colSourceNote')}:</span>
-                        {period.source_note}
-                    </div>
-                )}
-            </div>
+                        <PostPayrollButton
+                            periodId={id}
+                            currency={period.currency}
+                            bankAccount={bankAccount}
+                            totals={{
+                                gross: Number(period.gross_total),
+                                employerCpf: Number(period.employer_cpf_total),
+                                employeeCpf: Number(period.employee_cpf_total),
+                                other: Number(period.other_deductions_total),
+                                net: Number(period.net_pay_total),
+                            }}
+                        />
+                    </span>
+                ) : undefined
+            }
+            // ★★ 详情页恒为 ok —— 这个期间在不在由上面的 notFound() 回答。
+            state={{ kind: 'ok' }}
+        >
+            {/* ★ 记录抬头 —— 转换前是一块 bg-gray-50 面板。这一页的动作住在
+                标题那一排(见 actions),所以抬头不给 actions 槽。 */}
+            <RecordHeader
+                fields={[
+                    { label: t('hr.colPaymentDate'), value: period.payment_date },
+                    { label: t('hr.colCurrency'), value: `${period.currency} @ ${period.fx_rate}`, mono: true },
+                    {
+                        // hr.colStatus —— 工资期间列表页同一件事的现成键,不新造。
+                        label: t('hr.colStatus'),
+                        value: (
+                            <span
+                                className={
+                                    'px-2 py-1 rounded text-xs ' +
+                                    (isPosted ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800')
+                                }
+                            >
+                                {t('hr.payrollStatus.' + period.status)}
+                            </span>
+                        ),
+                    },
+                    ...(jeRes.data
+                        ? [{
+                            label: t('assay.journalLink'),
+                            value: (
+                                <Link
+                                    href={`/finance/journal/${jeRes.data.id}`}
+                                    className="text-blue-600 hover:underline font-mono"
+                                >
+                                    {jeRes.data.code}
+                                </Link>
+                            ),
+                          }]
+                        : []),
+                    ...(period.source_note
+                        ? [{ label: t('hr.colSourceNote'), value: period.source_note }]
+                        : []),
+                ]}
+            />
 
             {period.notes && (
                 <p className="text-sm text-gray-600 mb-4 whitespace-pre-line">
@@ -156,68 +193,13 @@ export default async function PayrollDetailPage({
             <p className="text-xs text-gray-500 mb-3">{t('hr.payRestricted')}</p>
 
             {/* 明细 */}
-            <table className="w-full border-collapse border border-gray-300 text-sm mb-6">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-3 py-2 text-left">{t('hr.colEmployee')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('hr.colGross')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('hr.colEmployeeCpf')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('hr.colEmployerCpf')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('hr.colDeductions')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('hr.colNet')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {lines.map((l) => (
-                        <tr key={l.id}>
-                            <td className="border border-gray-300 px-3 py-2">
-                                {l.employees ? (
-                                    <Link
-                                        href={`/hr/employees/${l.employees.id}`}
-                                        className="text-blue-600 hover:underline"
-                                    >
-                                        <span className="font-mono text-xs text-gray-500 mr-2">
-                                            {l.employees.code}
-                                        </span>
-                                        {l.employees.legal_name}
-                                    </Link>
-                                ) : (
-                                    '—'
-                                )}
-                            </td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoneyBare(l.gross_pay, '抬头「币种」:{currency} @ {fx}')}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoneyBare(l.employee_cpf, '抬头「币种」:{currency} @ {fx}')}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoneyBare(l.employer_cpf, '抬头「币种」:{currency} @ {fx}')}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoneyBare(l.other_deductions, '抬头「币种」:{currency} @ {fx}')}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono font-medium">{formatMoneyBare(l.net_pay, '抬头「币种」:{currency} @ {fx}')}</td>
-                        </tr>
-                    ))}
-                    {lines.length === 0 && (
-                        <tr>
-                            <td colSpan={6} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
-                                {t('hr.errors.NO_LINES')}
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-                <tfoot>
-                    <tr className="bg-gray-100 font-bold">
-                        <td className="border border-gray-300 px-3 py-2">
-                            {t('finance.totalsLabel')}
-                            <span className="ml-2 font-normal text-gray-500">
-                                {t('hr.lineCount', { n: lines.length })}
-                            </span>
-                        </td>
-                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoneyBare(period.gross_total, '抬头「币种」:{currency} @ {fx}')}</td>
-                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoneyBare(period.employee_cpf_total, '抬头「币种」:{currency} @ {fx}')}</td>
-                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoneyBare(period.employer_cpf_total, '抬头「币种」:{currency} @ {fx}')}</td>
-                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoneyBare(period.other_deductions_total, '抬头「币种」:{currency} @ {fx}')}</td>
-                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatMoneyBare(period.net_pay_total, '抬头「币种」:{currency} @ {fx}')}</td>
-                    </tr>
-                </tfoot>
-            </table>
+            <div className="mb-6">
+                <PayrollLinesTable rows={tableRows} />
+            </div>
 
+            {/* ★ 出口检查:反过账控件只在已过账时出现,住 children;
+                  state 恒为 'ok',所以它不可能被空分支吃掉。 */}
             {isPosted && <UnpostPayrollControl periodId={id} />}
-        </div>
+        </ListPage>
     )
 }

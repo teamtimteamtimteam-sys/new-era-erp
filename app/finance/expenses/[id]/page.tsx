@@ -16,6 +16,9 @@ import { can } from '@/lib/permissions'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import { RecordHeader, type RecordField } from '@/app/components/ui/record-header'
+import SettlementHistoryTable, { type SettlementRow } from '@/app/components/finance/SettlementHistoryTable'
 
 type AllocRow = {
     id: string
@@ -151,55 +154,46 @@ export default async function ExpenseDetailPage({
         created_at_display: formatTimestamp(a.created_at, dateLocale),
     }))
 
-    return (
-        <div className="p-8 max-w-4xl">
-            <div className="mb-6">
-                <Link href="/finance/expenses" className="text-blue-600 hover:underline text-sm">
-                    {t('common.back')}
-                </Link>
-            </div>
 
-            <h1 className="text-2xl font-bold mb-2">{t('expense.detailTitle')}</h1>
+    // ★【结算历史:本刀量到的【第三】处,与 AP/AR 两页逐列相同】★
+    //   组件住在 app/components/finance/SettlementHistoryTable.tsx,理由写在它抬头。
+    const tableRows: SettlementRow[] = allocs.map((a) => ({
+        id: a.id,
+        paymentCode: a.payments?.code ?? '—',
+        paymentHref: a.payments ? `/finance/payments/${a.payments.id}` : null,
+        paymentDate: a.payments?.payment_date ?? '—',
+        allocatedText: formatAmount(a.allocated_base, baseCurrency),
+        reversed: a.payments?.status === 'reversed',
+    }))
+    if (tableRows.length > 0) {
+        tableRows.push({
+            id: '__total__',
+            paymentCode: t('finance.settledAmount'),
+            paymentHref: null,
+            paymentDate: '',
+            allocatedText: formatAmount(settled, baseCurrency),
+            reversed: false,
+            isTotal: true,
+        })
+    }
 
-            {/* 冲销横幅:已被冲销 → 链镜像单;本单是镜像 → 回链原单 */}
-            {expense.status === 'reversed' && reversedByRes.data && (
-                <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-4 text-sm">
-                    <Link
-                        href={`/finance/expenses/${reversedByRes.data.id}`}
-                        className="text-blue-600 hover:underline"
-                    >
-                        {t('expense.reversedBanner', { code: reversedByRes.data.code })}
-                    </Link>
-                </div>
-            )}
-            {reversalOfRes.data && (
-                <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-4 text-sm">
-                    <Link
-                        href={`/finance/expenses/${reversalOfRes.data.id}`}
-                        className="text-blue-600 hover:underline"
-                    >
-                        {t('expense.reversalOfBanner', { code: reversalOfRes.data.code })}
-                    </Link>
-                </div>
-            )}
-
-            {/* 头部卡 */}
-            <div className="bg-gray-50 rounded p-4 mb-6 flex flex-wrap gap-x-8 gap-y-2 text-sm items-center">
-                <div>
-                    <span className="text-gray-600 mr-1">{t('expense.colCode')}:</span>
-                    <span className="font-mono font-medium">{expense.code}</span>
-                </div>
-                <div>
-                    <span className="text-gray-600 mr-1">{t('expense.colDate')}:</span>
-                    <span>{expense.expense_date}</span>
-                </div>
-                <div>
-                    <span className="text-gray-600 mr-1">{t('expense.colAccount')}:</span>
+    // 抬头字段逐页不同 —— RecordHeader 只管盒子(见组件抬头)。
+    const fields: RecordField[] = [
+        { label: t('expense.colCode'), value: expense.code, mono: true },
+        { label: t('expense.colDate'), value: expense.expense_date },
+        {
+            label: t('expense.colAccount'),
+            value: (
+                <>
                     <span className="font-mono">{expense.account_code}</span>
                     <span className="ml-1">{accountName}</span>
-                </div>
-                <div>
-                    <span className="text-gray-600 mr-1">{t('expense.colAmount')}:</span>
+                </>
+            ),
+        },
+        {
+            label: t('expense.colAmount'),
+            value: (
+                <>
                     <span className="font-mono font-medium">
                         {expense.currency} {formatMoneyBare(expense.amount_ccy, '同格内紧邻的 expense.currency 前缀')}
                     </span>
@@ -208,54 +202,95 @@ export default async function ExpenseDetailPage({
                             @ {expense.fx_rate} = {formatMoneyBare(expense.amount_base, '同格内紧随其后的 {baseCurrency} 后缀')} {baseCurrency}
                         </span>
                     )}
-                </div>
-                <div>
-                    <span
-                        className={
-                            'px-2 py-1 rounded text-xs ' +
-                            (expense.payment_status === 'paid'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-amber-100 text-amber-800')
-                        }
-                    >
-                        {t('expense.status.' + expense.payment_status)}
-                    </span>
-                </div>
-                {expense.payment_status === 'paid' ? (
-                    <div>
-                        <span className="text-gray-600 mr-1">{t('expense.form.bankAccount')}:</span>
-                        <span>{t('finance.bank.' + expense.bank_account_code)}</span>
-                    </div>
-                ) : (
-                    <div>
-                        <span className="text-gray-600 mr-1">{t('expense.form.supplier')}:</span>
-                        <span>{supplierRes.data?.legal_name ?? '—'}</span>
-                    </div>
-                )}
-                {expense.payee_name && (
-                    <div>
-                        <span className="text-gray-600 mr-1">{t('expense.form.payeeName')}:</span>
-                        <span>{expense.payee_name}</span>
-                    </div>
-                )}
-                <div>
-                    <span
-                        className={
-                            'px-2 py-1 rounded text-xs ' +
-                            (expense.status === 'posted'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-gray-200 text-gray-700')
-                        }
-                    >
-                        {t('finance.status.' + expense.status)}
-                    </span>
-                </div>
-                {expense.status === 'posted' && <ReverseExpenseButton expenseId={expense.id} />}
-            </div>
+                </>
+            ),
+        },
+        {
+            // expense.form.paymentStatus —— 录入表单里同一件事的现成键,不新造。
+            label: t('expense.form.paymentStatus'),
+            value: (
+                <span
+                    className={
+                        'px-2 py-1 rounded text-xs ' +
+                        (expense.payment_status === 'paid'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-amber-100 text-amber-800')
+                    }
+                >
+                    {t('expense.status.' + expense.payment_status)}
+                </span>
+            ),
+        },
+        expense.payment_status === 'paid'
+            ? { label: t('expense.form.bankAccount'), value: t('finance.bank.' + expense.bank_account_code) }
+            : { label: t('expense.form.supplier'), value: supplierRes.data?.legal_name ?? '—' },
+    ]
+    if (expense.payee_name) {
+        fields.push({ label: t('expense.form.payeeName'), value: expense.payee_name })
+    }
+    fields.push({
+        label: t('finance.colStatus'),
+        value: (
+            <span
+                className={
+                    'px-2 py-1 rounded text-xs ' +
+                    (expense.status === 'posted'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-gray-200 text-gray-700')
+                }
+            >
+                {t('finance.status.' + expense.status)}
+            </span>
+        ),
+    })
+
+    return (
+        <ListPage
+            maxWidth="max-w-4xl"
+            breadcrumb={
+                <Link href="/finance/expenses" className="text-blue-600 hover:underline text-sm">
+                    {t('common.back')}
+                </Link>
+            }
+            title={t('expense.detailTitle')}
+            // ★★ 详情页恒为 ok —— 这张开支单在不在由上面的 notFound() 回答。
+            state={{ kind: 'ok' }}
+            // 冲销横幅:已被冲销 → 链镜像单;本单是镜像 → 回链原单。走 notices 槽。
+            notices={
+                <>
+                    {expense.status === 'reversed' && reversedByRes.data && (
+                        <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-4 text-sm">
+                            <Link
+                                href={`/finance/expenses/${reversedByRes.data.id}`}
+                                className="text-blue-600 hover:underline"
+                            >
+                                {t('expense.reversedBanner', { code: reversedByRes.data.code })}
+                            </Link>
+                        </div>
+                    )}
+                    {reversalOfRes.data && (
+                        <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-4 text-sm">
+                            <Link
+                                href={`/finance/expenses/${reversalOfRes.data.id}`}
+                                className="text-blue-600 hover:underline"
+                            >
+                                {t('expense.reversalOfBanner', { code: reversalOfRes.data.code })}
+                            </Link>
+                        </div>
+                    )}
+                </>
+            }
+        >
+            {/* ★ 记录抬头 —— 冲销钮住 actions 槽(一个动作不是一个值)。 */}
+            <RecordHeader
+                fields={fields}
+                actions={expense.status === 'posted' ? <ReverseExpenseButton expenseId={expense.id} /> : undefined}
+            />
 
             {/* EQP-1c-b(P5):设备侧的冲抵门。只在【这张费用单确实挂在一条采购单行上】
                 时出现 —— 没有那条行,就没有"哪张单上的定金"这个问题。
-                进料侧那扇门在 app/inbound/[id]/edit,两扇门对应两种应付单据。 */}
+                进料侧那扇门在 app/inbound/[id]/edit,两扇门对应两种应付单据。
+                ★ 出口检查:它是这一页的第二个出口,住 children;state 恒为 'ok',吃不掉。 */}
             {release && (
                 <ReleasePrepaymentPanel
                     expenseId={expense.id} poId={release.poId} poCode={release.poCode}
@@ -288,100 +323,25 @@ export default async function ExpenseDetailPage({
             {/* 挂账开支:结算区(镜像 AR/AP 单据详情页)*/}
             {expense.payment_status === 'unpaid' && (
                 <>
-                    <div className="bg-gray-50 rounded p-4 mb-4 flex flex-wrap gap-x-8 gap-y-2 text-sm items-center">
-                        <div>
-                            <span className="text-gray-600 mr-1">{t('finance.settledAmount')}:</span>
-                            <span className="font-mono">{formatAmount(settled, baseCurrency)}</span>
-                        </div>
-                        <div>
-                            <span className="text-gray-600 mr-1">{t('finance.openAmount')}:</span>
-                            <span className="font-mono font-bold">{formatAmount(open, baseCurrency)}</span>
-                        </div>
-                    </div>
+                    {/* 第二块抬头 —— 同一个 RecordHeader,不是第二种写法。 */}
+                    <RecordHeader
+                        fields={[
+                            { label: t('finance.settledAmount'), value: formatAmount(settled, baseCurrency), mono: true },
+                            {
+                                label: t('finance.openAmount'),
+                                value: <span className="font-bold">{formatAmount(open, baseCurrency)}</span>,
+                                mono: true,
+                            },
+                        ]}
+                    />
 
                     <h2 className="text-lg font-semibold mb-3">{t('finance.settlementHistory')}</h2>
-                    <table className="w-full border-collapse border border-gray-300">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colPayment')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.paymentDate')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colAllocated')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colStatus')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {allocs.map((a) => {
-                                const reversed = a.payments?.status === 'reversed'
-                                return (
-                                    <tr key={a.id} className={reversed ? 'text-gray-400' : ''}>
-                                        <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                            {a.payments ? (
-                                                <Link
-                                                    href={`/finance/payments/${a.payments.id}`}
-                                                    className={
-                                                        reversed
-                                                            ? 'text-gray-400 hover:underline line-through'
-                                                            : 'text-blue-600 hover:underline'
-                                                    }
-                                                >
-                                                    {a.payments.code}
-                                                </Link>
-                                            ) : (
-                                                '—'
-                                            )}
-                                        </td>
-                                        <td className="border border-gray-300 px-4 py-2 text-sm">
-                                            {a.payments?.payment_date ?? '—'}
-                                        </td>
-                                        <td
-                                            className={
-                                                'border border-gray-300 px-4 py-2 text-right font-mono text-sm' +
-                                                (reversed ? ' line-through' : '')
-                                            }
-                                        >
-                                            {formatAmount(a.allocated_base, baseCurrency)}
-                                        </td>
-                                        <td className="border border-gray-300 px-4 py-2 text-sm">
-                                            {reversed ? (
-                                                <span className="px-2 py-1 rounded text-xs bg-gray-200 text-gray-500">
-                                                    {t('finance.reversedMark')}
-                                                </span>
-                                            ) : (
-                                                <span className="px-2 py-1 rounded text-xs bg-green-100 text-green-800">
-                                                    {t('finance.status.posted')}
-                                                </span>
-                                            )}
-                                        </td>
-                                    </tr>
-                                )
-                            })}
-                            {allocs.length === 0 && (
-                                <tr>
-                                    <td colSpan={4} className="border border-gray-300 px-4 py-4 text-center text-gray-500 text-sm">
-                                        {t('finance.noOpenItems')}
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                        {allocs.length > 0 && (
-                            <tfoot>
-                                <tr className="bg-gray-100 font-bold">
-                                    <td className="border border-gray-300 px-4 py-2" colSpan={2}>
-                                        {t('finance.settledAmount')}
-                                    </td>
-                                    <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {formatAmount(settled, baseCurrency)}
-                                    </td>
-                                    <td className="border border-gray-300 px-4 py-2" />
-                                </tr>
-                            </tfoot>
-                        )}
-                    </table>
+                    <SettlementHistoryTable rows={tableRows} />
                 </>
             )}
 
             {/* 凭据附件(发票/收据)*/}
             <FinanceAttachmentsPanel parent={{ kind: 'expense', id: expense.id }} rows={attachments} />
-        </div>
+        </ListPage>
     )
 }

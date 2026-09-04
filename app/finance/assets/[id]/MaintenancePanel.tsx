@@ -34,9 +34,23 @@
 // 【判断仍然在前,钱在后】先标资本化 + 写理由(表上那条 CHECK 逼着),
 // 才谈得上资本化那笔钱;按钮只对【已标资本化、且还没有资本化过】的行出现。
 // ════════════════════════════════════════════════════════════════════════════
+//
+// ★ CONV-9(2026-09-04):那张只读的保养记录表转成 DataTable。
+//   【为什么它仍然是 DataTable,而不是 EditableTable】最后一格挂着
+//   `CapitaliseControl` —— 一个【自带状态机】的写库控件,而表的其余部分彻底只读。
+//   Tim 在 CONV-8 Q3 的裁定就是这个形状:EditableTable 存在的三件事(行级编辑态、
+//   脏值追踪、逐行保存)这个控件自己全都有,再套一层就是两个状态机管同一行。
+//   判据是【谁拥有那个状态】,不是【格子里有没有出现一个 <input>】。
+//
+//   ★【顺带照出一处结构缺陷,本刀修了】★ 转换前这张表的表头是 **5 个 <th>**,
+//     而每一行是 **6 个 <td>**(最后那个资本化按钮列没有表头)。
+//     也就是说表体比表头宽一列 —— 一张这样的表在读屏器上对不齐。
+//     DataTable 的契约里每一列都必须有 header,所以它现在有了(留空字符串,
+//     与转换前的视觉一致);这不是本刀引入的改动,是本刀【无法不修】的。
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
+import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { recordMaintenance, capitaliseMaintenance } from './actions'
 
 export type MaintRow = {
@@ -110,6 +124,91 @@ export default function MaintenancePanel({
         })
     }
 
+    // ★【手机上留【日期】与【做了什么】,而这是一个判断】★
+    // 一本保养台账被打开的理由是「这台机器什么时候做过什么」。资本化那一格
+    // 是【会计后果】,读者要它的时候是逐行读的,所以它进展开区。
+    // ☞ 一个必须说出口的代价:**资本化按钮那一列在 390px 上落进展开区。**
+    //   它仍然点得到,但不再与判词并排。列进人工走查清单。
+    const maintColumns: Column<MaintRow>[] = [
+        {
+            key: 'date',
+            header: t('equipment.maint.colDate'),
+            priority: true,
+            className: 'text-sm',
+            render: (r) => r.performed_on,
+        },
+        {
+            key: 'kind',
+            header: t('equipment.maint.colKind'),
+            className: 'text-sm',
+            render: (r) => t('equipment.kind.' + r.kind),
+        },
+        {
+            key: 'what',
+            header: t('equipment.maint.colWhat'),
+            priority: true,
+            className: 'text-sm',
+            render: (r) => r.description,
+        },
+        {
+            key: 'who',
+            header: t('equipment.maint.colWho'),
+            className: 'text-sm',
+            render: (r) => r.performer,
+        },
+        {
+            key: 'capital',
+            header: t('equipment.maint.colCapital'),
+            className: 'text-sm',
+            /* 【人的判断在前,系统的建议在后】—— 两者是两件事,
+               而把建议画得像判决,正是 maintenance_settings 表注要拦的那个误读。 */
+            render: (r) => (
+                <>
+                    <p>{r.capitalised ? t('equipment.maint.capYes') : t('equipment.maint.capNo')}</p>
+                    {r.capitalised && r.capitalisation_reason && (
+                        <p className="text-xs text-gray-600">{r.capitalisation_reason}</p>
+                    )}
+                    <p className="text-xs text-gray-500">
+                        {r.meets_threshold === null
+                            /* 【空不是"不达标"】没挂支出单(没花钱,或钱还没记),
+                               或者机器记录成本为 0 —— 视图注释里写着这两种。 */
+                            ? t('equipment.maint.adviceUnknown')
+                            : t(r.meets_threshold ? 'equipment.maint.adviceMet' : 'equipment.maint.adviceNotMet', {
+                                pct: String(r.pct_of_equipment_cost ?? '—'),
+                                need: String(capitalisePct),
+                                amount: String(r.work_cost_base ?? '—'),
+                                floor: String(capitaliseFloor),
+                              })}
+                    </p>
+                </>
+            ),
+        },
+        {
+            // ★ 转换前这一列【没有表头】(5 个 <th> 对 6 个 <td>)。见文件抬头。
+            key: 'capitaliseAction',
+            header: '',
+            /* ★【CAPEX-1 的入口】★ 只对【已标资本化、还没资本化过、且机器已投用】
+               的行出现 —— 三个条件缺一个,这个按钮对应的服务端调用都会被按名拒,
+               而一个点下去只会得到错误的按钮是本仓库记过的那条
+               "不要 offer 服务端一定会拒的动作"。未投用的机器不走这条路。 */
+            render: (r) =>
+                r.capitalised && !r.capitalised_expense_id && inServiceDate && canEdit ? (
+                    <CapitaliseControl assetId={assetId} maintenanceId={r.id}
+                                       performedOn={r.performed_on}
+                                       suppliers={suppliers} baseCurrency={baseCurrency}
+                                       currencies={currencies} />
+                ) : r.capitalised_expense_id ? (
+                    <span className="text-xs text-green-800">{t('equipment.maint.capitalised')}</span>
+                ) : (
+                    /* 【具名的缺席,不是空白】为什么这里没有按钮,说出来 */
+                    <span className="text-xs text-gray-500">
+                        {!inServiceDate ? t('equipment.maint.capNotInService')
+                         : !r.capitalised ? t('equipment.maint.capNeedsFlag') : ''}
+                    </span>
+                ),
+        },
+    ]
+
     return (
         <div className="mb-8">
             <div className="flex items-baseline gap-3 mb-2">
@@ -124,71 +223,16 @@ export default function MaintenancePanel({
             {!canEdit && <p className="text-xs text-gray-500 mb-2">{t('equipment.needsProcessingEdit')}</p>}
             {error && <p className="text-red-600 text-xs mb-2">{error}</p>}
 
-            {rows.length === 0 ? (
-                <p className="text-sm text-gray-600 mb-2">{t('equipment.maint.none')}</p>
-            ) : (
-                <table className="border-collapse mb-2">
-                    <thead><tr className="bg-gray-50">
-                        <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('equipment.maint.colDate')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('equipment.maint.colKind')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('equipment.maint.colWhat')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('equipment.maint.colWho')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('equipment.maint.colCapital')}</th>
-                    </tr></thead>
-                    <tbody>
-                        {rows.map((r) => (
-                            <tr key={r.id}>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">{r.performed_on}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">{t('equipment.kind.' + r.kind)}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">{r.description}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">{r.performer}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">
-                                    {/* 【人的判断在前,系统的建议在后】—— 两者是两件事,
-                                        而把建议画得像判决,正是 maintenance_settings 表注
-                                        要拦的那个误读。 */}
-                                    <p>{r.capitalised ? t('equipment.maint.capYes') : t('equipment.maint.capNo')}</p>
-                                    {r.capitalised && r.capitalisation_reason && (
-                                        <p className="text-xs text-gray-600">{r.capitalisation_reason}</p>
-                                    )}
-                                    <p className="text-xs text-gray-500">
-                                        {r.meets_threshold === null
-                                            /* 【空不是"不达标"】没挂支出单(没花钱,或钱还没记),
-                                               或者机器记录成本为 0 —— 视图注释里写着这两种。 */
-                                            ? t('equipment.maint.adviceUnknown')
-                                            : t(r.meets_threshold ? 'equipment.maint.adviceMet' : 'equipment.maint.adviceNotMet', {
-                                                pct: String(r.pct_of_equipment_cost ?? '—'),
-                                                need: String(capitalisePct),
-                                                amount: String(r.work_cost_base ?? '—'),
-                                                floor: String(capitaliseFloor),
-                                              })}
-                                    </p>
-                                </td>
-                                {/* ★【CAPEX-1 的入口】★ 只对【已标资本化、还没资本化过、
-                                    且机器已投用】的行出现 —— 三个条件缺一个,这个按钮
-                                    对应的服务端调用都会被按名拒,而一个点下去只会得到
-                                    错误的按钮是本仓库记过的那条"不要 offer 服务端一定会拒的动作"。
-                                    未投用的机器不走这条路(成本直接加得上去)。 */}
-                                <td className="border border-gray-300 px-3 py-2 text-sm">
-                                    {r.capitalised && !r.capitalised_expense_id && inServiceDate && canEdit ? (
-                                        <CapitaliseControl assetId={assetId} maintenanceId={r.id}
-                                                           performedOn={r.performed_on}
-                                                           suppliers={suppliers} baseCurrency={baseCurrency}
-                                                           currencies={currencies} />
-                                    ) : r.capitalised_expense_id ? (
-                                        <span className="text-xs text-green-800">{t('equipment.maint.capitalised')}</span>
-                                    ) : (
-                                        /* 【具名的缺席,不是空白】为什么这里没有按钮,说出来 */
-                                        <span className="text-xs text-gray-500">
-                                            {!inServiceDate ? t('equipment.maint.capNotInService')
-                                             : !r.capitalised ? t('equipment.maint.capNeedsFlag') : ''}
-                                        </span>
-                                    )}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
+            {/* ★ 空态由表自己说(DataTable 的 empty)—— CONV-8 §⑤ 的推论。 */}
+            <div className="mb-2">
+                <DataTable
+                    rows={rows}
+                    columns={maintColumns}
+                    rowKey={(r) => r.id}
+                    phone={{ mode: 'columns' }}
+                    empty={t('equipment.maint.none')}
+                />
+            </div>
 
             {open && canEdit && (
                 <div className="border border-gray-400 rounded p-3 text-sm space-y-3 max-w-2xl">

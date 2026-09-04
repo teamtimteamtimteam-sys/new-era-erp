@@ -15,6 +15,9 @@ import type { Tables } from '@/lib/database.types'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import { RecordHeader } from '@/app/components/ui/record-header'
+import SettlementHistoryTable, { type SettlementRow } from '@/app/components/finance/SettlementHistoryTable'
 
 type AllocRow = {
     id: string
@@ -114,58 +117,92 @@ export default async function PayableDocPage({
 
     const materialName = (batch.materials as unknown as { name: string } | null)?.name ?? '—'
 
+
+    // ★【行数据在服务端压平】金额格式要 baseCurrency,只有服务端知道(CONV-1 §①)。
+    const tableRows: SettlementRow[] = allocs.map((a) => ({
+        id: a.id,
+        paymentCode: a.payments?.code ?? '—',
+        paymentHref: a.payments ? `/finance/payments/${a.payments.id}` : null,
+        paymentDate: a.payments?.payment_date ?? '—',
+        allocatedText: formatAmount(a.allocated_base, baseCurrency),
+        reversed: a.payments?.status === 'reversed',
+    }))
+
+    // ★ 合计行是【数据】,不是 <tfoot> —— CONV-4 §⑨-3 定的型,CONV-8 §⑧ 复核保留。
+    //   代价照直写:转换前这个标签 colSpan={2} 横跨【付款单+日期】两列,
+    //   现在落在【付款单】那一列里。列进人工走查清单。
+    if (tableRows.length > 0) {
+        tableRows.push({
+            id: '__total__',
+            paymentCode: t('finance.settledAmount'),
+            paymentHref: null,
+            paymentDate: '',
+            allocatedText: formatAmount(settled, baseCurrency),
+            reversed: false,
+            isTotal: true,
+        })
+    }
+
     return (
-        <div className="p-8 max-w-4xl">
-            <div className="mb-6">
+        <ListPage
+            maxWidth="max-w-4xl"
+            breadcrumb={
                 <Link href="/finance/payables" className="text-blue-600 hover:underline text-sm">
                     {t('finance.backToAging')}
                 </Link>
-            </div>
-
-            <h1 className="text-2xl font-bold mb-2">{t('finance.apDocTitle')}</h1>
-
-            {/* 头部卡 */}
-            <div className="bg-gray-50 rounded p-4 mb-6 flex flex-wrap gap-x-8 gap-y-2 text-sm items-center">
-                <div>
-                    <span className="text-gray-600 mr-1">{t('finance.colDocument')}:</span>
-                    <Link
-                        href={`/inbound/${batch.id}/edit`}
-                        className="text-blue-600 hover:underline font-mono font-medium"
-                    >
-                        {batch.code}
-                    </Link>
-                    <span className="text-gray-500 ml-2">{materialName}</span>
-                </div>
-                <div>
-                    <span className="text-gray-600 mr-1">{t('finance.colCounterparty')}:</span>
-                    <span>{supplierRes.data?.legal_name ?? '—'}</span>
-                </div>
-                <div>
-                    <span className="text-gray-600 mr-1">{t('finance.colDate')}:</span>
-                    <span>{docDate}</span>
-                </div>
-                <div>
-                    <span className="text-gray-600 mr-1">{t('finance.amount')}:</span>
-                    {amountBase !== null ? (
-                        <>
-                            <span className="font-mono">
-                                {batch.quantity} × {batch.unit_price}
+            }
+            title={t('finance.apDocTitle')}
+            // ★★ 详情页恒为 ok —— 这张单在不在由上面的 notFound() 回答。
+            state={{ kind: 'ok' }}
+        >
+            {/* ★ 记录抬头 —— 转换前是一块 bg-gray-50 的面板(四种写法之一)。
+                这一页没有记录级动作,所以 actions 槽不给 —— 不给就不画。 */}
+            <RecordHeader
+                fields={[
+                    {
+                        label: t('finance.colDocument'),
+                        value: (
+                            <>
+                                <Link
+                                    href={`/inbound/${batch.id}/edit`}
+                                    className="text-blue-600 hover:underline font-mono font-medium"
+                                >
+                                    {batch.code}
+                                </Link>
+                                <span className="text-gray-500 ml-2">{materialName}</span>
+                            </>
+                        ),
+                    },
+                    { label: t('finance.colCounterparty'), value: supplierRes.data?.legal_name ?? '—' },
+                    { label: t('finance.colDate'), value: docDate },
+                    {
+                        label: t('finance.amount'),
+                        value:
+                            amountBase !== null ? (
+                                <>
+                                    <span className="font-mono">
+                                        {batch.quantity} × {batch.unit_price}
+                                    </span>
+                                    <span className="font-mono font-medium ml-1">
+                                        = {formatMoneyBare(amountBase, '同格内紧随其后的 {baseCurrency} 后缀')} {baseCurrency}
+                                    </span>
+                                </>
+                            ) : (
+                                <span className="font-mono">—</span>
+                            ),
+                    },
+                    { label: t('finance.settledAmount'), value: formatAmount(settled, baseCurrency), mono: true },
+                    {
+                        label: t('finance.openAmount'),
+                        value: (
+                            <span className="font-bold">
+                                {open !== null ? formatAmount(open, baseCurrency) : '—'}
                             </span>
-                            <span className="font-mono font-medium ml-1">= {formatMoneyBare(amountBase, '同格内紧随其后的 {baseCurrency} 后缀')} {baseCurrency}</span>
-                        </>
-                    ) : (
-                        <span className="font-mono">—</span>
-                    )}
-                </div>
-                <div>
-                    <span className="text-gray-600 mr-1">{t('finance.settledAmount')}:</span>
-                    <span className="font-mono">{formatAmount(settled, baseCurrency)}</span>
-                </div>
-                <div>
-                    <span className="text-gray-600 mr-1">{t('finance.openAmount')}:</span>
-                    <span className="font-mono font-bold">{open !== null ? formatAmount(open, baseCurrency) : '—'}</span>
-                </div>
-            </div>
+                        ),
+                        mono: true,
+                    },
+                ]}
+            />
 
             {batch.notes && (
                 <p className="text-sm text-gray-600 mb-4">
@@ -194,86 +231,11 @@ export default async function PayableDocPage({
 
             {/* 结算历史 */}
             <h2 className="text-lg font-semibold mb-3">{t('finance.settlementHistory')}</h2>
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colPayment')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.paymentDate')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colAllocated')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colStatus')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {allocs.map((a) => {
-                        const reversed = a.payments?.status === 'reversed'
-                        return (
-                            <tr key={a.id} className={reversed ? 'text-gray-400' : ''}>
-                                <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                    {a.payments ? (
-                                        <Link
-                                            href={`/finance/payments/${a.payments.id}`}
-                                            className={
-                                                reversed
-                                                    ? 'text-gray-400 hover:underline line-through'
-                                                    : 'text-blue-600 hover:underline'
-                                            }
-                                        >
-                                            {a.payments.code}
-                                        </Link>
-                                    ) : (
-                                        '—'
-                                    )}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2 text-sm">
-                                    {a.payments?.payment_date ?? '—'}
-                                </td>
-                                <td
-                                    className={
-                                        'border border-gray-300 px-4 py-2 text-right font-mono text-sm' +
-                                        (reversed ? ' line-through' : '')
-                                    }
-                                >
-                                    {formatAmount(a.allocated_base, baseCurrency)}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2 text-sm">
-                                    {reversed ? (
-                                        <span className="px-2 py-1 rounded text-xs bg-gray-200 text-gray-500">
-                                            {t('finance.reversedMark')}
-                                        </span>
-                                    ) : (
-                                        <span className="px-2 py-1 rounded text-xs bg-green-100 text-green-800">
-                                            {t('finance.status.posted')}
-                                        </span>
-                                    )}
-                                </td>
-                            </tr>
-                        )
-                    })}
-                    {allocs.length === 0 && (
-                        <tr>
-                            <td colSpan={4} className="border border-gray-300 px-4 py-4 text-center text-gray-500 text-sm">
-                                {t('finance.noOpenItems')}
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-                {allocs.length > 0 && (
-                    <tfoot>
-                        <tr className="bg-gray-100 font-bold">
-                            <td className="border border-gray-300 px-4 py-2" colSpan={2}>
-                                {t('finance.settledAmount')}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatAmount(settled, baseCurrency)}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2" />
-                        </tr>
-                    </tfoot>
-                )}
-            </table>
+            <SettlementHistoryTable rows={tableRows} />
 
-            {/* 凭据附件 */}
+            {/* 凭据附件 —— 这一页唯一的出口(上传凭据)。它住在 children 里,
+                而详情页 state 恒为 'ok',所以它不可能被空分支吃掉。 */}
             <FinanceAttachmentsPanel parent={{ kind: 'inbound', id: batch.id }} rows={attachments} />
-        </div>
+        </ListPage>
     )
 }

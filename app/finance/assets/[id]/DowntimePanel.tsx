@@ -18,9 +18,15 @@
 //
 // 【结束时间早于开始时间【不在这里判】】那是表上 equipment_downtime_period_order
 // 的活。在 TS 里再比一遍就是第二份实现。让库拒,句子由约束名翻。
+//
+// ★ CONV-9(2026-09-04):那张只读的停机记录表转成 DataTable。
+//   【这一页不多一个文件】这个面板本来就是 'use client'(它要 useState),
+//   所以列描述符就住在这里 —— 与 CONV-1 在 /finance/claims 上的情形同形。
+//   【开着的那一段整行发琥珀】走 rowClassName(CONV-4 §⑨-3),与转换前逐字同形。
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
+import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { openDowntime, closeDowntime } from './actions'
 
 export type DowntimeRow = {
@@ -61,6 +67,42 @@ export default function DowntimePanel({
             router.refresh()
         })
     }
+
+    // ★【手机上留【开始时刻】与【停了多久】,而这是一个判断】★
+    // 这个面板的抬头写着:一段开着的停机必须看起来是"开着",而不是"结束时间忘了填"。
+    // 「停了多久」那一格正是承载这句话的地方(它写「还在停」,不是空格也不是 0),
+    // 所以它必须留在小屏上。结束时刻与原因进展开区。
+    const downtimeColumns: Column<DowntimeRow>[] = [
+        {
+            key: 'from',
+            header: t('equipment.down.colFrom'),
+            priority: true,
+            className: 'text-sm',
+            render: (r) => fmt(r.started_at),
+        },
+        {
+            key: 'to',
+            header: t('equipment.down.colTo'),
+            className: 'text-sm',
+            // 开着的一段在这两栏里也要说人话,不是空格
+            render: (r) =>
+                r.ended_at ? fmt(r.ended_at) : <span className="text-amber-800">{t('equipment.down.openLabel')}</span>,
+        },
+        {
+            key: 'for',
+            header: t('equipment.down.colFor'),
+            priority: true,
+            className: 'text-sm',
+            render: (r) =>
+                r.ended_at ? (r.duration ?? '—') : <span className="text-amber-800">{t('equipment.down.stillDown')}</span>,
+        },
+        {
+            key: 'reason',
+            header: t('equipment.down.colReason'),
+            className: 'text-sm',
+            render: (r) => r.reason,
+        },
+    ]
 
     return (
         <div className="mb-8">
@@ -115,33 +157,19 @@ export default function DowntimePanel({
                 </div>
             )}
 
-            {rows.length === 0 ? (
-                <p className="text-sm text-gray-600 mb-2">{t('equipment.down.none')}</p>
-            ) : (
-                <table className="border-collapse mb-2">
-                    <thead><tr className="bg-gray-50">
-                        <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('equipment.down.colFrom')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('equipment.down.colTo')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('equipment.down.colFor')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('equipment.down.colReason')}</th>
-                    </tr></thead>
-                    <tbody>
-                        {rows.map((r) => (
-                            <tr key={r.id} className={r.ended_at === null ? 'bg-amber-50' : ''}>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">{fmt(r.started_at)}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">
-                                    {/* 开着的一段在这两栏里也要说人话,不是空格 */}
-                                    {r.ended_at ? fmt(r.ended_at) : <span className="text-amber-800">{t('equipment.down.openLabel')}</span>}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">
-                                    {r.ended_at ? (r.duration ?? '—') : <span className="text-amber-800">{t('equipment.down.stillDown')}</span>}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">{r.reason}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
+            {/* ★ 空态由表自己说(DataTable 的 empty)—— CONV-8 §⑤ 的推论:
+                  详情页上空的只可能是子表,那句话归那张表。 */}
+            <div className="mb-2">
+                <DataTable
+                    rows={rows}
+                    columns={downtimeColumns}
+                    rowKey={(r) => r.id}
+                    phone={{ mode: 'columns' }}
+                    // 【开着的那一段整行发琥珀】—— 与转换前逐字同形。
+                    rowClassName={(r) => (r.ended_at === null ? 'bg-amber-50' : undefined)}
+                    empty={t('equipment.down.none')}
+                />
+            </div>
 
             {open && canEdit && !openRow && (
                 <div className="border border-gray-400 rounded p-3 text-sm space-y-2 max-w-xl">

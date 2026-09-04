@@ -10,6 +10,8 @@ import { formatMoneyBare } from '@/lib/format'
 import { toneForBucket, AGING_TONE_CLASSES } from '@/lib/valuation'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import InboundBatchesTable, { type InboundBatchRow } from './InboundBatchesTable'
 
 type Row = {
     id: string
@@ -88,100 +90,63 @@ export default async function InboundDrillPage({
         return k ? t(k) : v
     }
 
+
+    // ★【行数据在服务端压平】阶段标签、价格的两种缺席、库龄色调都在这里算完。
+    const tableRows: InboundBatchRow[] = rows.map((r) => {
+        const v = valById.get(r.id)
+        const days = v?.aging_days ?? null
+        const tone = toneForBucket(v?.aging_bucket ?? null)
+        return {
+            id: r.id,
+            code: r.code,
+            href: `/inbound/${r.id}/edit`,
+            supplier: r.suppliers?.legal_name ?? '—',
+            quantityText: `${r.quantity} ${r.unit}`,
+            remainingText: `${r.remaining_qty} ${r.unit}`,
+            stageLabel: stageLabel(r.stage),
+            arrivalDate: r.arrival_date ?? '—',
+            unitPriceText:
+                v?.landed_unit_cost != null
+                    ? formatMoneyBare(v.landed_unit_cost, '列头「到岸单位成本 (SGD)」')
+                    : null,
+            // 【判据是 unpriced,不是"金额取不到"】受限读者的 landed_* 全是 null。
+            unitPriceAbsence: v?.unpriced ? t('valuation.unpriced') : t('valuation.priceRestricted'),
+            batchValueText:
+                v?.landed_value_base != null
+                    ? formatMoneyBare(v.landed_value_base, '列头「批次价值 (SGD)」')
+                    : '—',
+            ageDays: days !== null && tone !== null ? String(days) : null,
+            ageToneClass: tone !== null ? AGING_TONE_CLASSES[tone] : '',
+        }
+    })
+
     return (
-        <div className="p-8">
-            <div className="mb-6">
+        <ListPage
+            breadcrumb={
                 <Link href="/inventory" className="text-blue-600 hover:underline text-sm">
                     {t('inventory.drill.back')}
                 </Link>
-            </div>
-
-            <h1 className="text-2xl font-bold mb-4">
-                {matRes.data.name} · {t('inventory.drill.title')}
-            </h1>
-
-            {/* 汇总行:剩余合计 + 库存价值(已计价部分)+ 未计价批数 */}
-            <p className="text-sm mb-3">
-                <span className="text-gray-600 mr-1">{t('inventory.drill.sumLabel')}:</span>
-                <span className="font-mono">{total}</span>
-                <span className="mx-2 text-gray-300">·</span>
-                <span className="text-gray-600 mr-1">{t('valuation.colStockValue')}:</span>
-                <span className="font-mono">{formatMoneyBare(totalValue, '紧挨着的行标签「库存价值 (SGD)」')}</span>
-                {unpricedCount > 0 && (
-                    <span className="ml-2 text-gray-400">
-                        {t('valuation.unpricedCount', { n: unpricedCount })}
-                    </span>
-                )}
-            </p>
-
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('inbound.colCode')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('inbound.colSupplier')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('inbound.colQuantity')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('inbound.colRemaining')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('inbound.colStage')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('inbound.colArrivalDate')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('valuation.colUnitPrice')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('valuation.colBatchValue')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('valuation.colAge')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {rows.map((r) => {
-                        const v = valById.get(r.id)
-                        const days = v?.aging_days ?? null
-                        const tone = toneForBucket(v?.aging_bucket ?? null)
-                        return (
-                            <tr key={r.id}>
-                                <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                    <Link href={`/inbound/${r.id}/edit`} className="text-blue-600 hover:underline">
-                                        {r.code}
-                                    </Link>
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2">{r.suppliers?.legal_name ?? '—'}</td>
-                                <td className="border border-gray-300 px-4 py-2">{r.quantity} {r.unit}</td>
-                                <td className="border border-gray-300 px-4 py-2">{r.remaining_qty} {r.unit}</td>
-                                <td className="border border-gray-300 px-4 py-2">
-                                    <span className="px-2 py-1 bg-gray-200 rounded text-xs">{stageLabel(r.stage)}</span>
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2">{r.arrival_date ?? '—'}</td>
-                                <td className="border border-gray-300 px-4 py-2">
-                                    {v?.landed_unit_cost != null ? (
-                                        formatMoneyBare(v.landed_unit_cost, '列头「到岸单位成本 (SGD)」')
-                                    ) : (
-                                        <span className="text-gray-400">
-                                            {v?.unpriced ? t('valuation.unpriced') : t('valuation.priceRestricted')}
-                                        </span>
-                                    )}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2">
-                                    {v?.landed_value_base != null
-                                        ? formatMoneyBare(v.landed_value_base, '列头「批次价值 (SGD)」')
-                                        : '—'}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2">
-                                    {days !== null && tone !== null ? (
-                                        <span className={'px-2 py-1 rounded text-xs ' + AGING_TONE_CLASSES[tone]}>
-                                            {days}
-                                        </span>
-                                    ) : (
-                                        '—'
-                                    )}
-                                </td>
-                            </tr>
-                        )
-                    })}
-                    {rows.length === 0 && (
-                        <tr>
-                            <td colSpan={9} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
-                                {t('inventory.emptyState')}
-                            </td>
-                        </tr>
+            }
+            title={`${matRes.data.name} · ${t('inventory.drill.title')}`}
+            // ★★ 详情页恒为 ok —— 这种物料在不在由上面的 notFound() 回答。
+            state={{ kind: 'ok' }}
+            notices={
+                /* 汇总行:剩余合计 + 库存价值(已计价部分)+ 未计价批数 */
+                <p className="text-sm mb-3">
+                    <span className="text-gray-600 mr-1">{t('inventory.drill.sumLabel')}:</span>
+                    <span className="font-mono">{total}</span>
+                    <span className="mx-2 text-gray-300">·</span>
+                    <span className="text-gray-600 mr-1">{t('valuation.colStockValue')}:</span>
+                    <span className="font-mono">{formatMoneyBare(totalValue, '紧挨着的行标签「库存价值 (SGD)」')}</span>
+                    {unpricedCount > 0 && (
+                        <span className="ml-2 text-gray-400">
+                            {t('valuation.unpricedCount', { n: unpricedCount })}
+                        </span>
                     )}
-                </tbody>
-            </table>
-        </div>
+                </p>
+            }
+        >
+            <InboundBatchesTable rows={tableRows} />
+        </ListPage>
     )
 }

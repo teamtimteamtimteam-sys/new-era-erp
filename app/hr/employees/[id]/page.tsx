@@ -12,6 +12,9 @@ import { mustRows } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import { RecordHeader } from '@/app/components/ui/record-header'
+import { EmployeeTrainingTable, EmployeeReviewsTable, EmployeePayrollTable, type TrainingRow, type EmployeeReviewRow, type EmployeePayRow } from './EmployeeTables'
 
 export default async function EmployeeDetailPage({
     params,
@@ -131,22 +134,65 @@ export default async function EmployeeDetailPage({
         ? `${deptRes.data.code} — ${locale === 'zh' ? deptRes.data.name_zh : deptRes.data.name_en}`
         : '—'
 
+
     const today = new Date().toISOString().slice(0, 10)
 
+    // ★【行数据在服务端压平】locale(部门名/评级名 zh vs en)、动态前缀、
+    //   以及那几个 Map 反查 —— 一个都不过客户端边界(CONV-1 §①)。
+    const trainingRows: TrainingRow[] = training.map((tr) => ({
+        id: tr.id,
+        name: tr.training_name,
+        href: `/hr/training/${tr.id}/edit`,
+        categoryText: tr.category ? t('hr.trainingCategory.' + tr.category) : '—',
+        completedDate: tr.completed_date,
+        expiryDate: tr.expiry_date ?? '—',
+        expired: !!tr.expiry_date && tr.expiry_date < today,
+        provider: tr.provider ?? '—',
+    }))
+
+    const reviewRows: EmployeeReviewRow[] = empReviews.map((r) => ({
+        id: r.id,
+        typeText: t(`reviews.type_${r.review_type}`),
+        href: `/hr/reviews/${r.id}`,
+        cycleName: r.cycle_id ? reviewCycleById.get(r.cycle_id) ?? '—' : '—',
+        periodText: `${r.period_start} → ${r.period_end}`,
+        status: r.status,
+        statusText: t(`reviews.status_${r.status}`),
+        ratingText: r.rating_code ? ratingNameByCode.get(r.rating_code) ?? r.rating_code : '—',
+    }))
+
+    const payRows: EmployeePayRow[] = payroll.map((p) => ({
+        id: p.id,
+        periodLabel: p.payroll_periods?.period_month?.slice(0, 7) ?? '—',
+        periodHref: p.payroll_periods ? `/hr/payroll/${p.payroll_periods.id}` : null,
+        currency: p.payroll_periods?.currency ?? '',
+        grossText: formatAmount(p.gross_pay, p.payroll_periods?.currency),
+        employerCpfText: formatAmount(p.employer_cpf, p.payroll_periods?.currency),
+        employeeCpfText: formatAmount(p.employee_cpf, p.payroll_periods?.currency),
+        deductionsText: formatAmount(p.other_deductions, p.payroll_periods?.currency),
+        netText: formatAmount(p.net_pay, p.payroll_periods?.currency),
+        posted: p.payroll_periods?.status === 'posted',
+        statusText: t('hr.payrollStatus.' + (p.payroll_periods?.status ?? 'draft')),
+    }))
+
     return (
-        <div className="p-8 max-w-5xl">
-            <div className="mb-6">
+        <ListPage
+            maxWidth="max-w-5xl"
+            breadcrumb={
                 <Link href="/hr/employees" className="text-blue-600 hover:underline text-sm">
                     {t('common.back')}
                 </Link>
-            </div>
-
-            <div className="flex justify-between items-center mb-2">
-                <h1 className="text-2xl font-bold">
+            }
+            title={
+                <>
                     {emp.legal_name}
                     <span className="ml-3 font-mono text-base text-gray-500">{emp.code}</span>
-                </h1>
-                <div className="flex items-center gap-3">
+                </>
+            }
+            // ★ 出口:记一次培训 / 改这名员工。转换前它们画在 h1 右边 ——
+            //   actions 是同一个位置,而且画在状态分支【之前】。
+            actions={
+                <span className="flex flex-wrap items-center gap-3">
                     <Link
                         href={`/hr/training/new?employee=${id}`}
                         className="border border-gray-300 px-3 py-1.5 rounded hover:bg-gray-50 text-sm"
@@ -159,93 +205,108 @@ export default async function EmployeeDetailPage({
                     >
                         {t('purchasing.editLink')}
                     </Link>
-                </div>
-            </div>
-
-            {/* 资料卡 */}
-            <div className="bg-gray-50 rounded p-4 mb-6 grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
-                <div>
-                    <span className="text-gray-600 mr-1">{t('hr.colDepartment')}:</span>
-                    {deptLabel}
-                </div>
-                <div>
-                    <span className="text-gray-600 mr-1">{t('hr.colJobTitle')}:</span>
-                    {emp.job_title ?? '—'}
-                </div>
-                <div>
-                    <span className="text-gray-600 mr-1">{t('hr.colManager')}:</span>
-                    {mgrRes.data ? (
-                        <Link href={`/hr/employees/${mgrRes.data.id}`} className="text-blue-600 hover:underline">
-                            {mgrRes.data.code} — {mgrRes.data.legal_name}
-                        </Link>
-                    ) : (
-                        '—'
-                    )}
-                </div>
-                <div>
-                    <span className="text-gray-600 mr-1">{t('hr.colEmploymentType')}:</span>
-                    {t('hr.employmentType.' + emp.employment_type)}
-                    <span className="mx-2 text-gray-300">·</span>
-                    {t('hr.workCategory.' + emp.work_category)}
-                </div>
-                <div>
-                    <span className="text-gray-600 mr-1">{t('hr.colStatus')}:</span>
-                    {t('hr.employmentStatus.' + emp.employment_status)}
-                </div>
-                <div>
-                    <span className="text-gray-600 mr-1">{t('hr.colHireDate')}:</span>
-                    {emp.hire_date}
-                    {emp.probation_end_date && (
-                        <span className="text-gray-500 ml-2">
-                            {t('hr.colProbationEnd')}: {emp.probation_end_date}
-                        </span>
-                    )}
-                </div>
-                <div>
-                    <span className="text-gray-600 mr-1">{t('hr.colAnnualLeaveAvailable')}:</span>
-                    <span className="font-mono">{emp.annual_leave_available_days ?? '-'}</span>
-                    <span className="text-xs text-gray-500 ml-1">{t('hr.unitDays')}</span>
-                    <span className="text-gray-600 ml-4 mr-1">{t('hr.colAnnualLeaveAccrued')}:</span>
-                    <span className="font-mono">{emp.annual_leave_accrued_days ?? '-'}</span>
-                    <span className="text-xs text-gray-500 ml-1">{t('hr.unitDays')}</span>
-                    <span className="text-gray-600 ml-4 mr-1">{t('hr.colAnnualLeaveRate')}:</span>
-                    <span className="font-mono">{emp.annual_leave_rate_days ?? '-'}</span>
-                    <span className="text-xs text-gray-500 ml-1">{t('hr.unitDaysPerYear')}</span>
-                </div>
-                <div>
-                    <span className="text-gray-600 mr-1">{t('hr.colResidency')}:</span>
-                    {emp.residency_status ? t('hr.residency.' + emp.residency_status) : '—'}
-                    {emp.work_pass_type && (
-                        <span className="ml-2">
-                            {emp.work_pass_type} · {emp.work_pass_expiry_date}
-                            {dir?.work_pass_alert && (
-                                <span
-                                    className={
-                                        'ml-2 px-1.5 py-0.5 rounded text-xs ' +
-                                        (dir.work_pass_alert === 'expired'
-                                            ? 'bg-red-100 text-red-800'
-                                            : dir.work_pass_alert === 'critical'
-                                              ? 'bg-amber-100 text-amber-800'
-                                              : 'bg-gray-200 text-gray-600')
-                                    }
-                                >
-                                    {t('hr.severity.' + dir.work_pass_alert)}
-                                </span>
-                            )}
-                        </span>
-                    )}
-                </div>
-                {emp.employment_status === 'separated' && (
-                    <div className="sm:col-span-2 text-gray-700">
-                        <span className="text-gray-600 mr-1">{t('hr.colSeparationDate')}:</span>
-                        {emp.separation_date ?? '—'}
-                        {emp.separation_type && (
-                            <span className="ml-2">{t('hr.separationType.' + emp.separation_type)}</span>
-                        )}
-                        {emp.separation_notes && <span className="ml-2 text-gray-500">{emp.separation_notes}</span>}
-                    </div>
-                )}
-            </div>
+                </span>
+            }
+            // ★★ 详情页恒为 ok —— 这名员工在不在由上面的 notFound() 回答。
+            state={{ kind: 'ok' }}
+        >
+            {/* ★ 记录抬头 —— 转换前是一块 bg-gray-50 的 grid 面板。 */}
+            <RecordHeader
+                fields={[
+                    { label: t('hr.colDepartment'), value: deptLabel },
+                    { label: t('hr.colJobTitle'), value: emp.job_title ?? '—' },
+                    {
+                        label: t('hr.colManager'),
+                        value: mgrRes.data ? (
+                            <Link href={`/hr/employees/${mgrRes.data.id}`} className="text-blue-600 hover:underline">
+                                {mgrRes.data.code} — {mgrRes.data.legal_name}
+                            </Link>
+                        ) : (
+                            '—'
+                        ),
+                    },
+                    {
+                        label: t('hr.colEmploymentType'),
+                        value: (
+                            <>
+                                {t('hr.employmentType.' + emp.employment_type)}
+                                <span className="mx-2 text-gray-300">·</span>
+                                {t('hr.workCategory.' + emp.work_category)}
+                            </>
+                        ),
+                    },
+                    { label: t('hr.colStatus'), value: t('hr.employmentStatus.' + emp.employment_status) },
+                    {
+                        label: t('hr.colHireDate'),
+                        value: (
+                            <>
+                                {emp.hire_date}
+                                {emp.probation_end_date && (
+                                    <span className="text-gray-500 ml-2">
+                                        {t('hr.colProbationEnd')}: {emp.probation_end_date}
+                                    </span>
+                                )}
+                            </>
+                        ),
+                    },
+                    {
+                        label: t('hr.colAnnualLeaveAvailable'),
+                        value: (
+                            <>
+                                <span className="font-mono">{emp.annual_leave_available_days ?? '-'}</span>
+                                <span className="text-xs text-gray-500 ml-1">{t('hr.unitDays')}</span>
+                                <span className="text-gray-600 ml-4 mr-1">{t('hr.colAnnualLeaveAccrued')}:</span>
+                                <span className="font-mono">{emp.annual_leave_accrued_days ?? '-'}</span>
+                                <span className="text-xs text-gray-500 ml-1">{t('hr.unitDays')}</span>
+                                <span className="text-gray-600 ml-4 mr-1">{t('hr.colAnnualLeaveRate')}:</span>
+                                <span className="font-mono">{emp.annual_leave_rate_days ?? '-'}</span>
+                                <span className="text-xs text-gray-500 ml-1">{t('hr.unitDaysPerYear')}</span>
+                            </>
+                        ),
+                    },
+                    {
+                        label: t('hr.colResidency'),
+                        value: (
+                            <>
+                                {emp.residency_status ? t('hr.residency.' + emp.residency_status) : '—'}
+                                {emp.work_pass_type && (
+                                    <span className="ml-2">
+                                        {emp.work_pass_type} · {emp.work_pass_expiry_date}
+                                        {dir?.work_pass_alert && (
+                                            <span
+                                                className={
+                                                    'ml-2 px-1.5 py-0.5 rounded text-xs ' +
+                                                    (dir.work_pass_alert === 'expired'
+                                                        ? 'bg-red-100 text-red-800'
+                                                        : dir.work_pass_alert === 'critical'
+                                                          ? 'bg-amber-100 text-amber-800'
+                                                          : 'bg-gray-200 text-gray-600')
+                                                }
+                                            >
+                                                {t('hr.severity.' + dir.work_pass_alert)}
+                                            </span>
+                                        )}
+                                    </span>
+                                )}
+                            </>
+                        ),
+                    },
+                    ...(emp.employment_status === 'separated'
+                        ? [{
+                            label: t('hr.colSeparationDate'),
+                            value: (
+                                <>
+                                    {emp.separation_date ?? '—'}
+                                    {emp.separation_type && (
+                                        <span className="ml-2">{t('hr.separationType.' + emp.separation_type)}</span>
+                                    )}
+                                    {emp.separation_notes && <span className="ml-2 text-gray-500">{emp.separation_notes}</span>}
+                                </>
+                            ),
+                          }]
+                        : []),
+                ]}
+            />
 
             {emp.notes && (
                 <p className="text-sm text-gray-600 mb-6 whitespace-pre-line">
@@ -254,7 +315,9 @@ export default async function EmployeeDetailPage({
                 </p>
             )}
 
-            {/* 任职履历 */}
+            {/* 任职履历 —— ★【它【不是】一张表,所以它没有进 DataTable】★
+                转换前就是一条 <ol> 时间线。把时间线塞进「一行 = 一条记录」的
+                表格契约,是 CONV-3 §⑧-3 拒绝对透视表做的同一件事。 */}
             <h2 className="text-xl font-bold mb-3">{t('hr.historyTitle')}</h2>
             {history.length === 0 ? (
                 <p className="text-sm text-gray-500 mb-6">{t('hr.historyEmpty')}</p>
@@ -282,162 +345,34 @@ export default async function EmployeeDetailPage({
 
             {/* 培训 */}
             <h2 className="text-xl font-bold mb-3">{t('hr.trainingTitle')}</h2>
-            {training.length === 0 ? (
-                <p className="text-sm text-gray-500 mb-6">{t('hr.trainingEmpty')}</p>
-            ) : (
-                <table className="w-full border-collapse border border-gray-300 mb-6 text-sm">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('hr.colTrainingName')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('hr.colCategory')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('hr.colCompletedDate')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('hr.colExpiryDate')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('hr.colProvider')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {training.map((tr) => (
-                            <tr key={tr.id}>
-                                <td className="border border-gray-300 px-3 py-2">
-                                    <Link href={`/hr/training/${tr.id}/edit`} className="text-blue-600 hover:underline">
-                                        {tr.training_name}
-                                    </Link>
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2">
-                                    {tr.category ? t('hr.trainingCategory.' + tr.category) : '—'}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2">{tr.completed_date}</td>
-                                <td className="border border-gray-300 px-3 py-2">
-                                    {tr.expiry_date ?? '—'}
-                                    {tr.expiry_date && tr.expiry_date < today && (
-                                        <span className="ml-2 px-1.5 py-0.5 rounded text-xs bg-red-100 text-red-800">
-                                            {t('hr.severity.expired')}
-                                        </span>
-                                    )}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2">{tr.provider ?? '—'}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
+            <div className="mb-6">
+                <EmployeeTrainingTable rows={trainingRows} />
+            </div>
 
             {/* ── 绩效评估 ─────────────────────────────────────────────────────
                 【PROBATION-1:标题与门从 length > 0 里拆出来了】
                 原来整节写着 `{empReviews.length > 0 && ...}` —— 一份评估都没有时
                 什么都不显示。而"一份都没有"恰恰是唯一需要那扇门的时候,
                 **那个 length > 0 本身就是这扇门缺席的一部分**。
-                现在:表格仍按有无渲染(空表头对读不到内容的人只是噪音),
-                而【发起转正评估】按这个人在不在试用期渲染。
+                ★ CONV-9:表格现在【无条件】画,空态由它自己说(DataTable 的 empty)——
+                  这与 PROBATION-1 的方向一致,而不是把那道门又藏回去。
                 canHrEdit 那一半保持原样 —— 读得到不等于写得了。 */}
-            {(empReviews.length > 0 || (canHrEdit && emp.employment_status === 'probation')) && (
-                <>
-                    <h2 className="text-xl font-bold mb-3">{t('reviews.sectionTitle')}</h2>
-                </>
-            )}
+            <h2 className="text-xl font-bold mb-3">{t('reviews.sectionTitle')}</h2>
+            {/* ★ 出口:发起转正评估。住 children,而 state 恒为 'ok'。 */}
             {canHrEdit && emp.employment_status === 'probation' && (
                 <RaiseProbationReview
                     employeeId={id}
                     probationEndDate={emp.probation_end_date as string | null}
                 />
             )}
-            {empReviews.length > 0 && (
-                <>
-                    <table className="w-full border-collapse border border-gray-300 mb-6 text-sm">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('reviews.type')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('reviews.cycle')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('reviews.period')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('reviews.status')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('reviews.rating')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {empReviews.map((r) => (
-                                <tr key={r.id}>
-                                    <td className="border border-gray-300 px-3 py-2">
-                                        <Link href={`/hr/reviews/${r.id}`} className="text-blue-600 hover:underline">
-                                            {t(`reviews.type_${r.review_type}`)}
-                                        </Link>
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2">
-                                        {r.cycle_id ? reviewCycleById.get(r.cycle_id) ?? '—' : '—'}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2 whitespace-nowrap font-mono text-xs">
-                                        {r.period_start} → {r.period_end}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2">
-                                        <span className={'inline-block rounded px-2 py-0.5 text-xs ' + statusPillClass(r.status)}>
-                                            {t(`reviews.status_${r.status}`)}
-                                        </span>
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2">
-                                        {r.rating_code ? ratingNameByCode.get(r.rating_code) ?? r.rating_code : '—'}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </>
-            )}
+            <div className="mb-6">
+                <EmployeeReviewsTable rows={reviewRows} />
+            </div>
 
             {/* 薪资历史(受限) */}
             <h2 className="text-xl font-bold mb-1">{t('hr.payrollTitle')}</h2>
             <p className="text-xs text-gray-500 mb-3">{t('hr.payRestricted')}</p>
-            {payroll.length === 0 ? (
-                <p className="text-sm text-gray-500">{t('hr.payrollEmpty')}</p>
-            ) : (
-                <table className="w-full border-collapse border border-gray-300 text-sm">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('hr.colPeriod')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('hr.colGross')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('hr.colEmployerCpf')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('hr.colEmployeeCpf')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('hr.colDeductions')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('hr.colNet')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('hr.colStatus')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {payroll.map((p) => (
-                            <tr key={p.id}>
-                                <td className="border border-gray-300 px-3 py-2">
-                                    {p.payroll_periods ? (
-                                        <Link
-                                            href={`/hr/payroll/${p.payroll_periods.id}`}
-                                            className="text-blue-600 hover:underline"
-                                        >
-                                            {p.payroll_periods.period_month?.slice(0, 7)}
-                                        </Link>
-                                    ) : (
-                                        '—'
-                                    )}
-                                    <span className="text-gray-400 ml-2">{p.payroll_periods?.currency}</span>
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatAmount(p.gross_pay, p.payroll_periods?.currency)}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatAmount(p.employer_cpf, p.payroll_periods?.currency)}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatAmount(p.employee_cpf, p.payroll_periods?.currency)}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatAmount(p.other_deductions, p.payroll_periods?.currency)}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono font-medium">{formatAmount(p.net_pay, p.payroll_periods?.currency)}</td>
-                                <td className="border border-gray-300 px-3 py-2">
-                                    <span
-                                        className={
-                                            'px-2 py-0.5 rounded text-xs ' +
-                                            (p.payroll_periods?.status === 'posted'
-                                                ? 'bg-green-100 text-green-800'
-                                                : 'bg-amber-100 text-amber-800')
-                                        }
-                                    >
-                                        {t('hr.payrollStatus.' + (p.payroll_periods?.status ?? 'draft'))}
-                                    </span>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
-        </div>
+            <EmployeePayrollTable rows={payRows} />
+        </ListPage>
     )
 }

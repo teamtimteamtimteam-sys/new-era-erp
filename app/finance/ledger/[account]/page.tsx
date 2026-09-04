@@ -40,6 +40,8 @@ import { formatMoneyBare } from '@/lib/format'
 import { resolveSourceHrefs, sourceHrefKey } from '../../sourceLinks'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import LedgerRowsTable, { type LedgerTableRow } from './LedgerRowsTable'
 
 type Counterpart = { code: string; name_en: string; name_zh: string }
 type LedgerRow = {
@@ -188,162 +190,116 @@ export default async function AccountLedgerPage({
             ? `/finance/pnl?date_from=${pnlFrom}&date_to=${pnlTo}`
             : `/finance/balance-sheet?as_of=${asOf}`
 
+
+    // ★【行数据在服务端压平】locale、来源链接解析、金额格式都只有服务端知道。
+    const tableRows: LedgerTableRow[] = led.rows.map((r) => ({
+        id: r.line_id,
+        entryDate: r.entry_date,
+        entryCode: r.entry_code,
+        entryHref: `/finance/journal/${r.entry_id}`,
+        reversed: r.entry_status === 'reversed',
+        sourceLabel: r.source_type ? t('finance.source.' + r.source_type) : '—',
+        sourceHref: hrefs.get(sourceHrefKey(r)) ?? null,
+        counterparts: r.counterparts.map((c) => ({ code: c.code, name: cpName(c) })),
+        memo: r.line_memo || r.entry_memo || '—',
+        amountText: formatMoneyBare(r.amount, '列头 金额 ({ccy}) —— 已带本位币'),
+        negative: r.amount < 0,
+    }))
+
+    // ★ 合计行是【数据】,不是 <tfoot> —— CONV-4 §⑨-3 定的型,CONV-8 §⑧ 复核保留。
+    //   转换前它 colSpan={5} 顶到金额左边;现在落在【分录号】那一列。
+    //   ★ 放【分录号】而不是【摘要】是刻意的:摘要不是 priority 列,
+    //     标签落在那里会在 390px 上整个消失,于是合计行只剩一个没有主语的数字。
+    if (tableRows.length > 0) {
+        tableRows.push({
+            id: '__total__',
+            entryDate: '',
+            entryCode: t('finance.ledgerOwnTotal'),
+            entryHref: null,
+            reversed: false,
+            sourceLabel: '',
+            sourceHref: null,
+            counterparts: [],
+            memo: '',
+            amountText: formatMoneyBare(led.total, '列头 金额 ({ccy}) —— 已带本位币'),
+            negative: false,
+            isTotal: true,
+        })
+    }
+
     return (
-        <div className="p-8">
-            <h1 className="text-2xl font-bold mb-4">{title}</h1>
-
-            <div className="mb-4">
-                <p className="text-lg">
-                    <span className="font-mono">{led.account.code}</span>{' '}
-                    <span className="font-semibold">{accountName}</span>{' '}
-                    <span className="text-gray-500 text-sm">
-                        ({t('finance.accountType.' + led.account.account_type)})
-                    </span>
-                </p>
-                <p className="text-sm text-gray-600">{rangeLabel}</p>
-                <Link href={backHref} className="text-sm text-blue-600 hover:underline">
-                    {t(mode === 'pnl' ? 'finance.ledgerBackPnl' : 'finance.ledgerBackBs')}
-                </Link>
-            </div>
-
-            {/* ── 两个数并排 ─────────────────────────────────────────────────
-                左:本页明细的合计。右:那张报表自己报的数字。
-                不一致时【说出来】—— 见抬头关于这个对账能查出什么。 */}
-            <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
-                <div className="border border-gray-300 rounded px-4 py-3">
-                    <p className="text-xs text-gray-500">{t('finance.ledgerOwnTotal')}</p>
-                    <p className="font-mono text-lg">
-                        {formatMoneyBare(led.total, '本块抬头下方一行写明本位币')} {baseCurrency}
-                    </p>
-                </div>
-                <div className="border border-gray-300 rounded px-4 py-3">
-                    <p className="text-xs text-gray-500">
-                        {t(mode === 'pnl' ? 'finance.ledgerPnlFigure' : 'finance.ledgerBsFigure')}
-                    </p>
-                    <p className="font-mono text-lg">
-                        {figure === null ? (
-                            // 【报表不报这一行】—— 不写 0.00。见抬头。
-                            <span className="text-gray-500 text-base">
-                                {t('finance.ledgerFigureAbsent')}
+        <ListPage
+            title={title}
+            // ★★ 详情页恒为 ok —— 而这一页尤其不能用 empty 分支:
+            //    「明细为空」与「报表不报这一行」是两件必须并排说出来的事,
+            //    它们住在下面 notices 的那两个方框里。用 empty 会把它们一起吃掉。
+            state={{ kind: 'ok' }}
+            notices={
+                <>
+                    <div className="mb-4">
+                        <p className="text-lg">
+                            <span className="font-mono">{led.account.code}</span>{' '}
+                            <span className="font-semibold">{accountName}</span>{' '}
+                            <span className="text-gray-500 text-sm">
+                                ({t('finance.accountType.' + led.account.account_type)})
                             </span>
-                        ) : (
-                            <>
-                                {formatMoneyBare(figure, '本块抬头下方一行写明本位币')} {baseCurrency}
-                            </>
-                        )}
-                    </p>
-                </div>
-            </div>
+                        </p>
+                        <p className="text-sm text-gray-600">{rangeLabel}</p>
+                        {/* 【返回链接留在标题【下面】】这一页转换前就是这样 ——
+                            它不在 <h1> 之上,所以【不】用 breadcrumb 槽:
+                            用了会把它挪上去,那是一次没人要求的版式改动。 */}
+                        <Link href={backHref} className="text-sm text-blue-600 hover:underline">
+                            {t(mode === 'pnl' ? 'finance.ledgerBackPnl' : 'finance.ledgerBackBs')}
+                        </Link>
+                    </div>
 
-            {!tiesOut && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                    <p className="font-bold">{t('finance.ledgerMismatch')}</p>
-                    <p className="text-sm mt-1">{t('finance.ledgerMismatchHint')}</p>
-                </div>
-            )}
+                    {/* ── 两个数并排 ─────────────────────────────────────────
+                        左:本页明细的合计。右:那张报表自己报的数字。
+                        不一致时【说出来】—— 见抬头关于这个对账能查出什么。 */}
+                    <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
+                        <div className="border border-gray-300 rounded px-4 py-3">
+                            <p className="text-xs text-gray-500">{t('finance.ledgerOwnTotal')}</p>
+                            <p className="font-mono text-lg">
+                                {formatMoneyBare(led.total, '本块抬头下方一行写明本位币')} {baseCurrency}
+                            </p>
+                        </div>
+                        <div className="border border-gray-300 rounded px-4 py-3">
+                            <p className="text-xs text-gray-500">
+                                {t(mode === 'pnl' ? 'finance.ledgerPnlFigure' : 'finance.ledgerBsFigure')}
+                            </p>
+                            <p className="font-mono text-lg">
+                                {figure === null ? (
+                                    // 【报表不报这一行】—— 不写 0.00。见抬头。
+                                    <span className="text-gray-500 text-base">
+                                        {t('finance.ledgerFigureAbsent')}
+                                    </span>
+                                ) : (
+                                    <>
+                                        {formatMoneyBare(figure, '本块抬头下方一行写明本位币')} {baseCurrency}
+                                    </>
+                                )}
+                            </p>
+                        </div>
+                    </div>
 
-            {led.line_count === 0 ? (
-                // 【具名的空状态】—— 不是一张空表让人猜是没数据还是没加载出来。
-                <div className="bg-gray-50 border border-gray-300 text-gray-700 px-4 py-6 rounded">
-                    {t('finance.ledgerEmpty')}
-                </div>
-            ) : (
-                <table className="w-full border-collapse border border-gray-300">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-3 py-2 text-left">
-                                {t('finance.colDate')}
-                            </th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">
-                                {t('finance.ledgerColEntry')}
-                            </th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">
-                                {t('finance.colSource')}
-                            </th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">
-                                {t('finance.ledgerColCounterpart')}
-                            </th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">
-                                {t('finance.colMemo')}
-                            </th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">
-                                {t('finance.colAmount', { ccy: baseCurrency })}
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {led.rows.map((r) => {
-                            const href = hrefs.get(sourceHrefKey(r))
-                            const label = r.source_type ? t('finance.source.' + r.source_type) : '—'
-                            return (
-                                <tr key={r.line_id}>
-                                    <td className="border border-gray-300 px-3 py-2 whitespace-nowrap">
-                                        {r.entry_date}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2 font-mono text-sm">
-                                        <Link
-                                            href={`/finance/journal/${r.entry_id}`}
-                                            className="text-blue-600 hover:underline"
-                                        >
-                                            {r.entry_code}
-                                        </Link>
-                                        {/* 被冲销的原分录仍然在这里,而且【必须】在
-                                            (见 journal_activity_lines 抬头)。
-                                            标出来,免得读的人以为是重复行。 */}
-                                        {r.entry_status === 'reversed' && (
-                                            <span className="ml-2 text-xs text-amber-700">
-                                                {t('finance.ledgerReversed')}
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2 text-sm">
-                                        {href ? (
-                                            <Link href={href} className="text-blue-600 hover:underline">
-                                                {label}
-                                            </Link>
-                                        ) : (
-                                            label
-                                        )}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2 text-sm">
-                                        {r.counterparts.length === 0
-                                            ? '—'
-                                            : r.counterparts.map((c) => (
-                                                  <span key={c.code} className="mr-2 whitespace-nowrap">
-                                                      <span className="font-mono">{c.code}</span>{' '}
-                                                      {cpName(c)}
-                                                  </span>
-                                              ))}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2 text-sm text-gray-600">
-                                        {r.line_memo || r.entry_memo || '—'}
-                                    </td>
-                                    <td
-                                        className={
-                                            'border border-gray-300 px-3 py-2 text-right font-mono text-sm ' +
-                                            (r.amount < 0 ? 'text-red-600' : '')
-                                        }
-                                    >
-                                        {formatMoneyBare(r.amount, '列头 金额 ({ccy}) —— 已带本位币')}
-                                    </td>
-                                </tr>
-                            )
-                        })}
-                    </tbody>
-                    <tfoot>
-                        <tr className="bg-gray-100 font-bold">
-                            <td colSpan={5} className="border border-gray-300 px-3 py-2">
-                                {t('finance.ledgerOwnTotal')}
-                            </td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                {formatMoneyBare(led.total, '列头 金额 ({ccy}) —— 已带本位币')}
-                            </td>
-                        </tr>
-                    </tfoot>
-                </table>
-            )}
+                    {!tiesOut && (
+                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                            <p className="font-bold">{t('finance.ledgerMismatch')}</p>
+                            <p className="text-sm mt-1">{t('finance.ledgerMismatchHint')}</p>
+                        </div>
+                    )}
+                </>
+            }
+        >
+            {/* 【具名的空状态】现在由表自己说(DataTable 的 empty)——
+                与 CONV-8 §⑤ 的推论一致:空的只可能是子表,那句话归那张表。 */}
+            <LedgerRowsTable
+                rows={tableRows}
+                amountHeader={t('finance.colAmount', { ccy: baseCurrency })}
+                empty={t('finance.ledgerEmpty')}
+            />
 
             <p className="text-sm text-gray-500 mt-4">{t('finance.ledgerNote')}</p>
-        </div>
+        </ListPage>
     )
 }

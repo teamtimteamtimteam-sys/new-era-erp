@@ -16,6 +16,8 @@ import {
 } from '@/lib/valuation'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import OutputBatchesTable, { type OutputBatchRow } from './OutputBatchesTable'
 
 type Row = {
     id: string
@@ -147,119 +149,69 @@ export default async function OutputDrillPage({
         return k ? t(k) : v
     }
 
+
+    // ★【行数据在服务端压平】状态标签、工单反查、库龄色调、三列钱的格式
+    //   —— 全部在这里算完(CONV-1 §①)。
+    const tableRows: OutputBatchRow[] = valued.map((r) => {
+        const tone = toneForBucket(r.ageBucket)
+        const woId = r.processing_outputs_masked?.[0]?.processing_runs?.work_order_id ?? null
+        return {
+            id: r.id,
+            code: r.code,
+            href: `/output/${r.id}/edit`,
+            customer: r.customers?.legal_name ?? '—',
+            quantityText: `${r.quantity} ${r.unit}`,
+            remainingText: `${r.remaining_qty} ${r.unit}`,
+            stateLabel: stateLabel(r.state),
+            outputDate: r.output_date ?? '—',
+            unitCostText: r.unitCost !== null ? `${formatUnitCost(r.unitCost)} /kg` : '—',
+            costValueText: r.costValue !== null ? formatMoneyBare(r.costValue, '列头「成本价值 (SGD)」') : '—',
+            // FX-DISPLAY-1:这个数从来就是 USD,列头那个键现在也写着 (USD)。
+            marketValueText: r.marketValue !== null ? formatMoneyBare(r.marketValue, '列头「市价价值 (USD)」') : '—',
+            ageDays: r.ageDays !== null && tone !== null ? String(r.ageDays) : null,
+            ageToneClass: tone !== null ? AGING_TONE_CLASSES[tone] : '',
+            workOrderCode: woId ? (woCode.get(woId) ?? '—') : null,
+            workOrderHref: woId ? `/operation/orders/${woId}` : null,
+        }
+    })
+
     return (
-        <div className="p-8">
-            <div className="mb-6">
+        <ListPage
+            breadcrumb={
                 <Link href="/inventory" className="text-blue-600 hover:underline text-sm">
                     {t('inventory.drill.back')}
                 </Link>
-            </div>
-
-            <h1 className="text-2xl font-bold mb-4">
-                {matRes.data.name} · {t('inventory.drill.title')}
-            </h1>
-
-            {/* 汇总行:剩余合计 + 成本价值 + 市价价值(+ 无成本/无市价批数) */}
-            <p className="text-sm mb-3">
-                <span className="text-gray-600 mr-1">{t('inventory.drill.sumLabel')}:</span>
-                <span className="font-mono">{total}</span>
-                <span className="mx-2 text-gray-300">·</span>
-                <span className="text-gray-600 mr-1">{t('valuation.colCostValue')}:</span>
-                <span className="font-mono">{formatMoneyBare(totalCostValue, '紧挨着的行标签「成本价值 (SGD)」')}</span>
-                <span className="mx-2 text-gray-300">·</span>
-                <span className="text-gray-600 mr-1">{t('valuation.colMarketValue')}:</span>
-                {/* FX-DISPLAY-1:同一个缺陷的第二个消费方 —— 列头与这条合计行共用
-                    valuation.colMarketValue,那个键现在写 (USD)。这个数从来就是 USD。 */}
-                <span className="font-mono">{formatMoneyBare(totalMarketValue, '紧挨着的行标签「市价价值 (USD)」')}</span>
-                {noCostCount > 0 && (
-                    <span className="ml-2 text-gray-400">
-                        {t('valuation.noCostCount', { n: noCostCount })}
-                    </span>
-                )}
-                {noMarketCount > 0 && (
-                    <span className="ml-2 text-gray-400">
-                        {t('valuation.noMarketCount', { n: noMarketCount })}
-                    </span>
-                )}
-            </p>
-
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('output.colCode')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('output.colCustomer')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('output.colQuantity')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('output.colRemaining')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('output.colState')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('output.colOutputDate')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('valuation.colUnitCost')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('valuation.colCostValue')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('valuation.colMarketValue')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('valuation.colAge')}</th>
-                        {/* WO-1c:这批货是照哪张计划做出来的 —— 出处是这套系统存在的理由,
-                            而【没有计划】是一个正当的答案,所以它有名字,不是空白。 */}
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.colWorkOrder')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {valued.map((r) => {
-                        const tone = toneForBucket(r.ageBucket)
-                        return (
-                            <tr key={r.id}>
-                                <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                    <Link href={`/output/${r.id}/edit`} className="text-blue-600 hover:underline">
-                                        {r.code}
-                                    </Link>
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2">{r.customers?.legal_name ?? '—'}</td>
-                                <td className="border border-gray-300 px-4 py-2">{r.quantity} {r.unit}</td>
-                                <td className="border border-gray-300 px-4 py-2">{r.remaining_qty} {r.unit}</td>
-                                <td className="border border-gray-300 px-4 py-2">
-                                    <span className="px-2 py-1 bg-gray-200 rounded text-xs">{stateLabel(r.state)}</span>
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2">{r.output_date ?? '—'}</td>
-                                <td className="border border-gray-300 px-4 py-2">
-                                    {r.unitCost !== null ? `${formatUnitCost(r.unitCost)} /kg` : '—'}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2">
-                                    {r.costValue !== null ? formatMoneyBare(r.costValue, '列头「成本价值 (SGD)」') : '—'}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2">
-                                    {r.marketValue !== null ? formatMoneyBare(r.marketValue, '列头「市价价值 (USD)」') : '—'}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2">
-                                    {r.ageDays !== null && tone !== null ? (
-                                        <span className={'px-2 py-1 rounded text-xs ' + AGING_TONE_CLASSES[tone]}>
-                                            {r.ageDays}
-                                        </span>
-                                    ) : (
-                                        '—'
-                                    )}
-                                </td>
-                                {/* WO-1c:出处 —— 有工单就点得进去,没有就【说出来】 */}
-                                <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                    {(() => {
-                                        const woId = r.processing_outputs_masked?.[0]?.processing_runs?.work_order_id ?? null
-                                        return woId
-                                            ? <Link href={`/operation/orders/${woId}`}
-                                                    className="text-blue-600 hover:underline">
-                                                  {woCode.get(woId) ?? '—'}
-                                              </Link>
-                                            : <span className="text-gray-500 italic">{t('processing.noWorkOrder')}</span>
-                                    })()}
-                                </td>
-                            </tr>
-                        )
-                    })}
-                    {valued.length === 0 && (
-                        <tr>
-                            <td colSpan={11} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
-                                {t('inventory.emptyState')}
-                            </td>
-                        </tr>
+            }
+            title={`${matRes.data.name} · ${t('inventory.drill.title')}`}
+            // ★★ 详情页恒为 ok —— 这种物料在不在由上面的 notFound() 回答。
+            state={{ kind: 'ok' }}
+            notices={
+                /* 汇总行:剩余合计 + 成本价值 + 市价价值(+ 无成本/无市价批数) */
+                <p className="text-sm mb-3">
+                    <span className="text-gray-600 mr-1">{t('inventory.drill.sumLabel')}:</span>
+                    <span className="font-mono">{total}</span>
+                    <span className="mx-2 text-gray-300">·</span>
+                    <span className="text-gray-600 mr-1">{t('valuation.colCostValue')}:</span>
+                    <span className="font-mono">{formatMoneyBare(totalCostValue, '紧挨着的行标签「成本价值 (SGD)」')}</span>
+                    <span className="mx-2 text-gray-300">·</span>
+                    <span className="text-gray-600 mr-1">{t('valuation.colMarketValue')}:</span>
+                    {/* FX-DISPLAY-1:同一个缺陷的第二个消费方 —— 列头与这条合计行共用
+                        valuation.colMarketValue,那个键现在写 (USD)。这个数从来就是 USD。 */}
+                    <span className="font-mono">{formatMoneyBare(totalMarketValue, '紧挨着的行标签「市价价值 (USD)」')}</span>
+                    {noCostCount > 0 && (
+                        <span className="ml-2 text-gray-400">
+                            {t('valuation.noCostCount', { n: noCostCount })}
+                        </span>
                     )}
-                </tbody>
-            </table>
-        </div>
+                    {noMarketCount > 0 && (
+                        <span className="ml-2 text-gray-400">
+                            {t('valuation.noMarketCount', { n: noMarketCount })}
+                        </span>
+                    )}
+                </p>
+            }
+        >
+            <OutputBatchesTable rows={tableRows} />
+        </ListPage>
     )
 }

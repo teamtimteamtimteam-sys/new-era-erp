@@ -4,6 +4,12 @@
 //
 // 【它读的是冻下来的 payload,不是现算】这正是存档的全部意义:
 // 底下的账再动,这一份也不动(与 gst_return_boxes / customer_statements 同一条)。
+//
+// ★ CONV-9(2026-09-04):**只套 ListPage 外壳,PackBody 一个字没动。**
+//   那是 CONV-4 §⑨-9 已经立过的裁定:PackBody 是【报告体】(两张内部表是
+//   透视/汇总,不是逐行记录集),它的手机可用度"是另一次设计,不是顺手做"。
+//   本刀照收那条裁定 —— 于是这一页是 CONV-5 分类里的「只套外壳」那一类。
+//   【出口检查】两个出口(导出 CSV / 导出总账)住 actions 槽,画在状态分支之前。
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -11,6 +17,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import PackBody, { type PackPayload } from '../PackBody'
+import { ListPage } from '@/app/components/ui/list-page'
 
 export default async function PackDetailPage({
     params,
@@ -38,38 +45,45 @@ export default async function PackDetailPage({
     const payload = data.payload as unknown as PackPayload
 
     return (
-        <div className="p-8 max-w-6xl">
-            <h1 className="text-2xl font-bold mb-1">
-                <span className="font-mono">{data.code}</span>
-            </h1>
-            <p className="text-sm text-gray-600 mb-4">{t('pack.subtitle')}</p>
-
-            {/* ★ 一份存档的包意味着什么 —— 印在读者拿着它的这一屏上 ★ */}
-            <p className="text-sm mb-4 bg-green-50 border border-green-300 text-green-900 px-3 py-2 rounded max-w-3xl">
-                {t('pack.storedMeans')}
-                <br />
-                <span className="font-mono text-xs">
-                    {t('pack.colLockedBefore')}: {String(data.locked_before_at_production)} ·{' '}
-                    {t('pack.colProduced')}: {String(data.produced_at).slice(0, 19).replace('T', ' ')}
+        <ListPage
+            maxWidth="max-w-6xl"
+            title={<span className="font-mono">{data.code}</span>}
+            intro={t('pack.subtitle')}
+            // ★ 两个出口 —— 住 actions 槽,画在状态分支【之前】,任何空态都吃不掉。
+            actions={
+                <span className="flex flex-wrap gap-4">
+                    <Link href={`/finance/packs/${data.id}/export`} className="text-sm text-blue-600 hover:underline">
+                        {t('pack.exportCsv')}
+                    </Link>
+                    <Link href={`/finance/journal/export?from=${payload.period_start}&to=${payload.period_end}`}
+                          className="text-sm text-blue-600 hover:underline">
+                        {t('glExport.button')}
+                    </Link>
                 </span>
-            </p>
-            {data.superseded_at && (
-                <p className="text-sm mb-4 bg-amber-50 border border-amber-300 text-amber-900 px-3 py-2 rounded">
-                    {t('pack.statusSuperseded')} — {data.superseded_reason as string}
-                </p>
-            )}
-
-            <div className="mb-4 flex gap-4">
-                <Link href={`/finance/packs/${data.id}/export`} className="text-sm text-blue-600 hover:underline">
-                    {t('pack.exportCsv')}
-                </Link>
-                <Link href={`/finance/journal/export?from=${payload.period_start}&to=${payload.period_end}`}
-                      className="text-sm text-blue-600 hover:underline">
-                    {t('glExport.button')}
-                </Link>
-            </div>
-
+            }
+            // ★★ 详情页恒为 ok —— 这一份包在不在由上面的 notFound() 回答。
+            state={{ kind: 'ok' }}
+            notices={
+                <>
+                    {/* ★ 一份存档的包意味着什么 —— 印在读者拿着它的这一屏上 ★ */}
+                    <p className="text-sm mb-4 bg-green-50 border border-green-300 text-green-900 px-3 py-2 rounded max-w-3xl">
+                        {t('pack.storedMeans')}
+                        <br />
+                        <span className="font-mono text-xs">
+                            {t('pack.colLockedBefore')}: {String(data.locked_before_at_production)} ·{' '}
+                            {t('pack.colProduced')}: {String(data.produced_at).slice(0, 19).replace('T', ' ')}
+                        </span>
+                    </p>
+                    {data.superseded_at && (
+                        <p className="text-sm mb-4 bg-amber-50 border border-amber-300 text-amber-900 px-3 py-2 rounded">
+                            {t('pack.statusSuperseded')} — {data.superseded_reason as string}
+                        </p>
+                    )}
+                </>
+            }
+        >
+            {/* PackBody 一个字没动 —— 见抬头的 CONV-9 说明。 */}
             <PackBody payload={payload} />
-        </div>
+        </ListPage>
     )
 }

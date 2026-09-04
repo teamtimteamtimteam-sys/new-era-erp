@@ -5,6 +5,11 @@
 // 【分摊明细就是这一页存在的理由】资本化之后,一次错的分摊藏在存货里而不是
 // 显示在损益表上 —— 所以这一页把 basis_qty 与 in_stock_ratio 都摆出来,
 // 让那个数可以被【重新导出】,而不是只能被相信。
+//
+// ★ CONV-9(2026-09-04):转成 ListPage + RecordHeader + DataTable。
+//   【出口检查】这一页唯一的出口是冲销钮(ReverseFreightControl),它住在
+//   RecordHeader 的 actions 槽里 —— 而详情页 `state` 恒为 'ok',children 永远画,
+//   所以它不可能被任何空分支吃掉。见 docs/detail-page-template.md §⑤。
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -15,6 +20,9 @@ import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import ReverseFreightControl from './ReverseFreightControl'
+import { ListPage } from '@/app/components/ui/list-page'
+import { RecordHeader, type RecordField } from '@/app/components/ui/record-header'
+import FreightAllocationsTable, { type FreightAllocRow } from './FreightAllocationsTable'
 
 type AllocRow = {
     id: string
@@ -69,134 +77,126 @@ export default async function FreightDetailPage({ params }: { params: Promise<{ 
         'freight_allocations'
     ) as unknown as AllocRow[]
 
+    // ★【行数据在服务端压平】baseCurrency 的金额格式只有服务端知道;
+    //   批次链接过界的是 href 字符串,不是函数(CONV-1 §① 的通则)。
+    const tableRows: FreightAllocRow[] = allocs.map((a) => ({
+        id: a.id,
+        batchCode: a.inbound_batches?.code ?? '—',
+        batchHref: a.inbound_batches ? `/inbound/${a.inbound_batches.id}/edit` : null,
+        basisQtyStated: a.basis_qty === null,
+        basisQtyText: a.basis_qty === null ? t('finance.freight.basisQtyStated') : String(a.basis_qty),
+        amountText: formatAmount(a.amount_base, baseCurrency),
+        inStockText: `${(Number(a.in_stock_ratio) * 100).toFixed(1)}%`,
+    }))
+
+    // 抬头字段逐页不同 —— RecordHeader 只管盒子,不认识它们(见组件抬头)。
+    const fields: RecordField[] = [
+        { label: t('finance.freight.colDate'), value: d.doc_date },
+        // 【货代,不是材料供应商】—— 这一行就是那个最要紧的区别
+        { label: t('finance.freight.colForwarder'), value: d.suppliers?.legal_name ?? '—' },
+        { label: t('finance.freight.colAmount'), value: formatAmount(d.amount_base, baseCurrency), mono: true },
+    ]
+    // 【出境单据不显示分摊口径】它在库里是 'stated' 只因为那一列 NOT NULL,
+    // 而出境根本不分摊 —— 把它当成一个"口径"显示出来就是在说一件没发生的事。
+    if (!outbound) {
+        fields.push({
+            label: t('finance.freight.colBasis'),
+            value: t('finance.freight.basis.' + d.allocation_basis),
+        })
+    } else {
+        fields.push({
+            label: t('finance.freight.colContainer'),
+            value: d.containers ? (
+                <Link href={`/logistics/containers/${d.containers.id}`} className="text-blue-600 hover:underline font-mono">
+                    {d.containers.code}
+                </Link>
+            ) : (
+                <span className="text-gray-400">{t('finance.freight.selectContainer')}</span>
+            ),
+        })
+    }
+    fields.push({
+        label: t('finance.freight.colPayment'),
+        value: t('finance.freight.payment.' + d.payment_status),
+    })
+    if (d.journal_entries) {
+        fields.push({
+            label: t('finance.freight.colEntry'),
+            value: (
+                <Link href={`/finance/journal/${d.journal_entries.id}`} className="text-blue-600 hover:underline font-mono">
+                    {d.journal_entries.code}
+                </Link>
+            ),
+        })
+    }
+    if (d.notes) fields.push({ label: t('finance.freight.notes'), value: d.notes })
+
     return (
-        <div className="p-8 max-w-4xl">
-            <div className="mb-6">
+        <ListPage
+            maxWidth="max-w-4xl"
+            breadcrumb={
                 <Link href="/finance/freight" className="text-blue-600 hover:underline text-sm">
                     {t('common.back')}
                 </Link>
-            </div>
-
-            <div className="flex items-start justify-between gap-4 mb-4">
-                <h1 className="text-2xl font-bold">
+            }
+            title={
+                <>
                     {d.code}
                     {/* 【方向就在单号旁边】它决定这笔钱去了 6300 还是 1200/5000 */}
                     <span className={'ml-3 align-middle text-xs font-sans px-2 py-0.5 rounded '
                         + (outbound ? 'bg-purple-100 text-purple-800' : 'bg-sky-100 text-sky-800')}>
                         {t('finance.freight.direction.' + d.direction)}
                     </span>
-                </h1>
-                {/* 已冲销的单据没有冲销钮 —— 服务端会按名拒(FREIGHT_ALREADY_REVERSED),
-                    所以这里干脆不渲染一个注定被拒的控件 */}
-                {!reversed && <ReverseFreightControl id={id} />}
-            </div>
-
-            {reversed && (
-                <div className="border border-amber-300 bg-amber-50 text-amber-900 rounded px-4 py-3 mb-4 text-sm max-w-3xl">
-                    <p className="font-medium mb-1">{t('finance.freight.reversedBanner')}</p>
-                    <div className="grid grid-cols-2 gap-2">
-                        <div><span className="text-amber-700">{t('finance.freight.colReversedAt')}: </span>{d.reversed_at ?? '—'}</div>
-                        {d.reversal_entry && (
-                            <div>
-                                <span className="text-amber-700">{t('finance.freight.colReversalEntry')}: </span>
-                                <Link href={`/finance/journal/${d.reversal_entry.id}`} className="text-blue-700 hover:underline font-mono">
-                                    {d.reversal_entry.code}
-                                </Link>
+                </>
+            }
+            // ★★ 详情页恒为 ok —— 记录在不在由上面的 notFound() 回答。
+            state={{ kind: 'ok' }}
+            notices={
+                reversed ? (
+                    <div className="border border-amber-300 bg-amber-50 text-amber-900 rounded px-4 py-3 mb-4 text-sm max-w-3xl">
+                        <p className="font-medium mb-1">{t('finance.freight.reversedBanner')}</p>
+                        {/* flex-wrap,不是 grid-cols-2:390px 上两列会把这一块顶宽,
+                            而那正是 CONV-8 §⑥ 量到的「元凶多数不是表」那一族。 */}
+                        <div className="flex flex-wrap gap-x-8 gap-y-1">
+                            <div><span className="text-amber-700">{t('finance.freight.colReversedAt')}: </span>{d.reversed_at ?? '—'}</div>
+                            {d.reversal_entry && (
+                                <div>
+                                    <span className="text-amber-700">{t('finance.freight.colReversalEntry')}: </span>
+                                    <Link href={`/finance/journal/${d.reversal_entry.id}`} className="text-blue-700 hover:underline font-mono">
+                                        {d.reversal_entry.code}
+                                    </Link>
+                                </div>
+                            )}
+                            <div className="w-full">
+                                <span className="text-amber-700">{t('finance.freight.colReversalReason')}: </span>
+                                {d.reversal_reason ?? '—'}
                             </div>
-                        )}
-                        <div className="col-span-2">
-                            <span className="text-amber-700">{t('finance.freight.colReversalReason')}: </span>
-                            {d.reversal_reason ?? '—'}
                         </div>
                     </div>
-                </div>
-            )}
-
-            <div className="border border-gray-300 rounded-lg p-4 mb-6 grid grid-cols-2 gap-3 text-sm">
-                <div><span className="text-gray-500">{t('finance.freight.colDate')}: </span>{d.doc_date}</div>
-                {/* 【货代,不是材料供应商】—— 这一行就是本刀最要紧的那个区别 */}
-                <div><span className="text-gray-500">{t('finance.freight.colForwarder')}: </span>{d.suppliers?.legal_name ?? '—'}</div>
-                <div>
-                    <span className="text-gray-500">{t('finance.freight.colAmount')}: </span>
-                    <span className="font-mono">{formatAmount(d.amount_base, baseCurrency)}</span>
-                </div>
-                {/* 【出境单据不显示分摊口径】它在库里是 'stated' 只因为那一列 NOT NULL,
-                    而出境根本不分摊 —— 把它当成一个"口径"显示出来就是在说一件没发生的事。 */}
-                {!outbound && (
-                    <div><span className="text-gray-500">{t('finance.freight.colBasis')}: </span>{t('finance.freight.basis.' + d.allocation_basis)}</div>
-                )}
-                {outbound && (
-                    <div>
-                        <span className="text-gray-500">{t('finance.freight.colContainer')}: </span>
-                        {d.containers ? (
-                            <Link href={`/logistics/containers/${d.containers.id}`} className="text-blue-600 hover:underline font-mono">
-                                {d.containers.code}
-                            </Link>
-                        ) : (
-                            <span className="text-gray-400">{t('finance.freight.selectContainer')}</span>
-                        )}
-                    </div>
-                )}
-                <div><span className="text-gray-500">{t('finance.freight.colPayment')}: </span>{t('finance.freight.payment.' + d.payment_status)}</div>
-                {d.journal_entries && (
-                    <div>
-                        <span className="text-gray-500">{t('finance.freight.colEntry')}: </span>
-                        <Link href={`/finance/journal/${d.journal_entries.id}`} className="text-blue-600 hover:underline font-mono">
-                            {d.journal_entries.code}
-                        </Link>
-                    </div>
-                )}
-                {d.notes && <div className="col-span-2 text-gray-600">{d.notes}</div>}
-            </div>
+                ) : undefined
+            }
+        >
+            <RecordHeader
+                fields={fields}
+                // 已冲销的单据没有冲销钮 —— 服务端会按名拒(FREIGHT_ALREADY_REVERSED),
+                // 所以这里干脆不渲染一个注定被拒的控件。
+                actions={!reversed ? <ReverseFreightControl id={id} /> : undefined}
+            />
 
             {/* 【空状态要说出它是哪一种空】出境单据没有分摊行,不是"还没有记" ——
-                所以这里是一句话,不是一张空表。 */}
+                所以这里是一句话,不是一张空表。这个区别转换前就在,没有被压平。 */}
             {outbound ? (
                 <>
                     <h2 className="text-lg font-semibold mb-2">{t('finance.freight.outboundNoAllocTitle')}</h2>
                     <p className="text-sm text-gray-600 max-w-3xl">{t('finance.freight.outboundNoAlloc')}</p>
                 </>
             ) : (
-            <>
-            <h2 className="text-lg font-semibold mb-2">{t('finance.freight.allocTitle')}</h2>
-            <p className="text-sm text-gray-600 mb-3 max-w-3xl">{t('finance.freight.allocHint')}</p>
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.freight.colBatch')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.freight.colBasisQty')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.freight.colShare')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.freight.colInStock')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {allocs.map((a) => (
-                        <tr key={a.id}>
-                            <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                {a.inbound_batches ? (
-                                    <Link href={`/inbound/${a.inbound_batches.id}/edit`} className="text-blue-600 hover:underline">
-                                        {a.inbound_batches.code}
-                                    </Link>
-                                ) : '—'}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {/* stated 口径没有中间量 —— 金额是人直接列明的,空着是【对的】 */}
-                                {a.basis_qty === null
-                                    ? <span className="text-gray-400">{t('finance.freight.basisQtyStated')}</span>
-                                    : a.basis_qty}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {formatAmount(a.amount_base, baseCurrency)}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {(Number(a.in_stock_ratio) * 100).toFixed(1)}%
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-            </>
+                <>
+                    <h2 className="text-lg font-semibold mb-2">{t('finance.freight.allocTitle')}</h2>
+                    <p className="text-sm text-gray-600 mb-3 max-w-3xl">{t('finance.freight.allocHint')}</p>
+                    <FreightAllocationsTable rows={tableRows} />
+                </>
             )}
-        </div>
+        </ListPage>
     )
 }

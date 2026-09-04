@@ -1,5 +1,6 @@
 import { getTranslations } from '@/lib/i18n/server'
 import ActorName, { type ActorNameMap } from '@/app/components/ActorName'
+import ChangeHistoryTable, { type ChangeHistoryTableRow } from './ChangeHistoryTable'
 
 // app/tools/tasks/[id]/ChangeHistory.tsx
 // TASK-1b:【变更记录】。只读,倒序,形状照 MovementTimeline。
@@ -63,45 +64,39 @@ export default async function ChangeHistory({
         return bits.join(' · ')
     }
 
+    // ★【行数据在服务端压平,而「操作人」那一格压平成一个【元素】】★
+    //   CONV-5 §⑩-6 办法 ②:<ActorName/> 是 async 服务端组件,它那套四状态判断
+    //   不能、也不该在客户端重写。所以这里把它渲染好,当 ReactNode 递过去。
+    const tableRows: ChangeHistoryTableRow[] = rows.map((r) => ({
+        id: r.id,
+        when: r.changed_at.slice(0, 16).replace('T', ' '),
+        what: t('tasks.history.type.' + r.change_type),
+        detail: detail(r),
+        // 【空绝不留空】:没有 changed_by 的那一行是本模块开始记人之前留下的,
+        // 它要说出这件事,而不是留一格白 —— 白格会被读成"没有人做过这件事"。
+        // 查不到的员工 id 也不留白,印具名状态 + 小字 id(AUDEL-2/3)。
+        actor: (
+            <ActorName
+                userId={r.changed_by}
+                names={actorNames}
+                space="employee"
+                unrecordedHint={unrecordedHint}
+            />
+        ),
+    }))
+
     return (
         <section className="mt-8 border-t pt-6">
             <h2 className="mb-3 text-xl font-bold">{heading}</h2>
-            {rows.length === 0 ? (
-                <p className="text-sm text-gray-500">{empty}</p>
-            ) : (
-                <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-300 text-sm">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('tasks.history.colTime')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('tasks.history.colWhat')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('tasks.history.colDetail')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{actorLabel}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {rows.map((r) => (
-                                <tr key={r.id}>
-                                    <td className="border border-gray-300 px-3 py-1">{r.changed_at.slice(0, 16).replace('T', ' ')}</td>
-                                    <td className="border border-gray-300 px-3 py-1">{t('tasks.history.type.' + r.change_type)}</td>
-                                    <td className="border border-gray-300 px-3 py-1">{detail(r)}</td>
-                                    {/* 【空绝不留空】:没有 changed_by 的那一行是本模块开始记人之前留下的,
-                                        它要说出这件事,而不是留一格白 —— 白格会被读成"没有人做过这件事"。
-                                        查不到的员工 id 也不留白,印具名状态 + 小字 id(AUDEL-2/3)。 */}
-                                    <td className="border border-gray-300 px-3 py-1">
-                                        <ActorName
-                                            userId={r.changed_by}
-                                            names={actorNames}
-                                            space="employee"
-                                            unrecordedHint={unrecordedHint}
-                                        />
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+            {/* 空态由表自己说(DataTable 的 empty)—— CONV-8 §⑤ 的推论。 */}
+            <ChangeHistoryTable
+                rows={tableRows}
+                colTime={t('tasks.history.colTime')}
+                colWhat={t('tasks.history.colWhat')}
+                colDetail={t('tasks.history.colDetail')}
+                actorLabel={actorLabel}
+                empty={empty}
+            />
         </section>
     )
 }

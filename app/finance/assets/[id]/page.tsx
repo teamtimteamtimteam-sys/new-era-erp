@@ -35,6 +35,8 @@ import { getLocale } from '@/lib/i18n/server'
 import { inServiceState } from '../inServiceState'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import CostEntriesTable, { type CostEntryRow } from './CostEntriesTable'
 
 export default async function AssetPage({ params }: { params: Promise<{ id: string }> }) {
     const denied = await requireModule(MOD.finance)
@@ -265,31 +267,56 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
     // 上面一份(这里)与下面 AssetActions 里那一句都在回答"为什么投用不了",
     // 而人先看的是【按钮】。所以理由跟着按钮走,由 AssetActions 一处说完;
     // 那三条(没成本 / 已投用 / 已处置)全部搬了过去。
+    // ★【行数据在服务端压平】金额格式与"这一行冲销了没有"都只有服务端知道。
+    const costRows: CostEntryRow[] = entries.map((e) => {
+        const exp = e.expenses as { code: string; expense_date: string; status: string } | null
+        return {
+            id: e.id,
+            expenseCode: exp?.code ?? '—',
+            expenseHref: `/finance/expenses/${e.expense_id}`,
+            expenseDate: exp?.expense_date ?? '—',
+            amountCcyText: e.amount_ccy !== null ? formatAmount(Number(e.amount_ccy), String(e.currency)) : '—',
+            amountBaseText: formatAmount(Number(e.amount_base), baseCurrency),
+            reversed: exp?.status === 'reversed',
+        }
+    })
+
     return (
-        <div className="p-6">
-            <div className="flex items-baseline gap-3 mb-1">
-                <h1 className="text-2xl font-semibold font-mono">{asset.code}</h1>
-                <span className="text-lg">{asset.description}</span>
+        <ListPage
+            // ★★【padding="p-6" —— CONV-9 给 ListPage 加的槽,理由写在那个 prop 上】★★
+            //   这一页转换前是 p-6。硬套外壳的 p-8 会在每一侧多 8px,
+            //   那正是 CONV-5 §⑩-9 记过两次、而本刀一次量到 5 处的那笔账。
+            padding="p-6"
+            title={
+                <span className="flex flex-wrap items-baseline gap-3">
+                    <span className="font-mono">{asset.code}</span>
+                    <span className="text-lg font-normal">{asset.description}</span>
                 {/* 【FIX-3(C):这一行是【搬过来的】,不是新加的 —— 同一个 inServiceState、
                     同一批 i18n 键、一个字没改。FIX-1(B-D5) 早就把它建好了,它此前是
                     那一排【钱】的第四格(成本 → 累计折旧 → 净值),而**状态不是钱**:
                     那三个数是一个刻意的序列,把一个状态排在它们后面是归错了类,
                     与谁有没有看到它无关。徽章位是眼睛找状态时会去的地方。
                     C2 查过了:此处原本【没有】任何状态行,所以这是搬家,不是第二份。】 */}
-                <span className="text-sm border border-gray-300 rounded px-2 py-0.5 text-gray-700">
-                    {(() => {
-                        const st = inServiceState(asset)
-                        return st.params ? t(st.key, st.params) : t(st.key)
-                    })()}
+                    <span className="text-sm font-normal border border-gray-300 rounded px-2 py-0.5 text-gray-700">
+                        {(() => {
+                            const st = inServiceState(asset)
+                            return st.params ? t(st.key, st.params) : t(st.key)
+                        })()}
+                    </span>
                 </span>
-            </div>
-            <p className="text-sm text-gray-600 mb-6">
-                {t('assets.category.' + asset.category)} · {t('assets.detail.acquired')} {asset.acquisition_date}
-                {' · '}
-                {asset.expense_id
-                    ? <Link href={`/finance/expenses/${asset.expense_id}`} className="text-blue-600 underline">{t('assets.detail.bornFromExpense')}</Link>
-                    : <span className="text-gray-500">{t('assets.detail.bornAsMasterData')}</span>}
-            </p>
+            }
+            intro={
+                <>
+                    {t('assets.category.' + asset.category)} · {t('assets.detail.acquired')} {asset.acquisition_date}
+                    {' · '}
+                    {asset.expense_id
+                        ? <Link href={`/finance/expenses/${asset.expense_id}`} className="text-blue-600 underline">{t('assets.detail.bornFromExpense')}</Link>
+                        : <span className="text-gray-500">{t('assets.detail.bornAsMasterData')}</span>}
+                </>
+            }
+            // ★★ 详情页恒为 ok —— 这台设备在不在由上面的 notFound() 回答。
+            state={{ kind: 'ok' }}
+        >
 
             {/* ── 三个【数】,每一个都带着它缺席时的说法 ────────────────────────
                 FIX-3(C):第四格原本是【投用状态】,已搬到标题旁的徽章位 ——
@@ -311,42 +338,10 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
 
             {/* ── 成本从哪几张单据来 ──────────────────────────────────────── */}
             <h2 className="text-lg font-medium mb-2">{t('assets.detail.costEntries')}</h2>
-            {entries.length === 0 ? (
-                <p className="text-sm text-gray-600 mb-6">{t('assets.detail.noCostEntries')}</p>
-            ) : (
-                <table className="border-collapse mb-6">
-                    <thead><tr className="bg-gray-50">
-                        <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('assets.detail.colExpense')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('assets.detail.colDate')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right text-sm">{t('assets.detail.colAmountCcy')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right text-sm">{t('assets.detail.colAmountBase')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('assets.detail.colState')}</th>
-                    </tr></thead>
-                    <tbody>
-                        {entries.map((e) => {
-                            const exp = e.expenses as { code: string; expense_date: string; status: string } | null
-                            const reversed = exp?.status === 'reversed'
-                            return (
-                                <tr key={e.id} className={reversed ? 'text-gray-400 line-through' : ''}>
-                                    <td className="border border-gray-300 px-3 py-2 font-mono text-sm">
-                                        <Link href={`/finance/expenses/${e.expense_id}`} className="text-blue-600 underline">{exp?.code ?? '—'}</Link>
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2 text-sm">{exp?.expense_date ?? '—'}</td>
-                                    <td className="border border-gray-300 px-3 py-2 text-right text-sm">
-                                        {e.amount_ccy !== null ? formatAmount(Number(e.amount_ccy), String(e.currency)) : '—'}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2 text-right text-sm">{formatAmount(Number(e.amount_base), baseCurrency)}</td>
-                                    <td className="border border-gray-300 px-3 py-2 text-sm">
-                                        {/* 【已冲销的行留着但不算数】EQP-1b-iii:它退回了成本,
-                                            而这一行是"它曾经在这里"的痕迹。 */}
-                                        {reversed ? t('assets.detail.entryReversed') : t('assets.detail.entryLive')}
-                                    </td>
-                                </tr>
-                            )
-                        })}
-                    </tbody>
-                </table>
-            )}
+            {/* ★ 空态由表自己说(DataTable 的 empty)—— CONV-8 §⑤ 的推论。 */}
+            <div className="mb-6">
+                <CostEntriesTable rows={costRows} />
+            </div>
             {entries.length > 0 && (
                 <p className="text-xs text-gray-600 -mt-4 mb-6">
                     {t('assets.detail.entriesFootnote', { live: live.length, all: entries.length })}
@@ -456,7 +451,7 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                     <p className="text-xs text-gray-500">{t('equipment.maint.employeesRestricted')}</p>
                 )}
             </div>
-        </div>
+        </ListPage>
     )
 }
 

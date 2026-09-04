@@ -22,6 +22,9 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import IssuePanel from '@/app/components/IssuePanel'
 import { notFound } from 'next/navigation'
+import { ListPage } from '@/app/components/ui/list-page'
+import { RecordHeader } from '@/app/components/ui/record-header'
+import ShipmentLinesTable, { type ShipmentLineRow } from './ShipmentLinesTable'
 
 export default async function ShipmentDetailPage({
     params,
@@ -106,57 +109,72 @@ export default async function ShipmentDetailPage({
     const order = head.sales_orders
     const customer = order?.customers ?? null
 
-    return (
-        <div className="p-8 max-w-4xl">
-            <h1 className="text-2xl font-bold mb-1">
-                {t('sales.shipDetail.title')} <span className="font-mono">{head.code}</span>
-            </h1>
-            {/* 【回到订单】发货单永远属于一张订单,所以这条链接总是有意义的 */}
-            {order && (
-                <p className="text-sm mb-4">
-                    <Link href={`/sales/orders/${order.id}`} className="text-blue-600 hover:underline">
-                        {t('sales.shipDetail.backToOrder', { code: order.code })}
-                    </Link>
-                </p>
-            )}
+    // ★【行数据在服务端压平】三层嵌套在这里摊平(CONV-1 §①)。
+    const tableRows: ShipmentLineRow[] = lines.map((l) => ({
+        id: l.id,
+        lineNo: l.sales_order_lines?.line_no != null ? String(l.sales_order_lines.line_no) : '—',
+        materialCode: l.output_batches?.materials?.code ?? '',
+        materialName: l.output_batches?.materials?.name ?? '',
+        batchCode: l.output_batches?.code ?? '—',
+        locationCode: l.storage_locations?.code ?? '',
+        locationName: l.storage_locations?.name ?? '',
+        qtyText: `${l.qty} ${l.output_batches?.unit ?? ''}`.trim(),
+    }))
 
-            {/* ── 单头 ─────────────────────────────────────────────────────── */}
-            <dl className="grid grid-cols-[10rem_1fr] gap-y-1 text-sm mb-6">
-                <dt className="text-gray-500">{t('sales.shipDetail.colCustomer')}</dt>
-                <dd>
-                    {customer ? (
-                        <>
-                            <span className="font-mono">{customer.code}</span> {customer.legal_name}
-                        </>
-                    ) : (
-                        '—'
-                    )}
-                </dd>
-                <dt className="text-gray-500">{t('sales.shipDetail.colShipDate')}</dt>
-                {/* 物理事件日 —— 货是哪天离开仓库的,同时决定收入落进哪个期间 */}
-                <dd className="font-mono">{head.ship_date}</dd>
-                {/* LOG-2b:【装箱了才出现】。没装箱时这里【什么都不画】——
-                    一个空的"集装箱:—"会让人以为漏填了,而真相是这张单还没装箱。 */}
-                {head.containers && (
-                    <>
-                        <dt className="text-gray-500">{t('logistics.containerOf')}</dt>
-                        <dd>
-                            <Link href={`/logistics/containers/${head.containers.id}`}
-                                className="font-mono text-blue-700 hover:underline">
-                                {head.containers.code}
-                            </Link>
-                        </dd>
-                    </>
-                )}
-                <dt className="text-gray-500">{t('sales.shipDetail.colCreatedAt')}</dt>
-                <dd>{new Date(head.created_at).toLocaleString(dl)}</dd>
-                {head.notes && (
-                    <>
-                        <dt className="text-gray-500">{t('sales.shipDetail.colNotes')}</dt>
-                        <dd>{head.notes}</dd>
-                    </>
-                )}
-            </dl>
+    return (
+        <ListPage
+            maxWidth="max-w-4xl"
+            title={
+                <>
+                    {t('sales.shipDetail.title')} <span className="font-mono">{head.code}</span>
+                </>
+            }
+            // ★★ 详情页恒为 ok —— 这张发货单在不在由上面的 notFound() 回答。
+            state={{ kind: 'ok' }}
+            notices={
+                /* 【回到订单】发货单永远属于一张订单,所以这条链接总是有意义的 */
+                order ? (
+                    <p className="text-sm mb-4">
+                        <Link href={`/sales/orders/${order.id}`} className="text-blue-600 hover:underline">
+                            {t('sales.shipDetail.backToOrder', { code: order.code })}
+                        </Link>
+                    </p>
+                ) : undefined
+            }
+        >
+            {/* ★ 记录抬头 —— 转换前是一个 <dl class="grid grid-cols-[10rem_1fr]">,
+                也就是 CONV-8 §② 那张表里的第四种写法(<dl>,全仓 5 处)。 */}
+            <RecordHeader
+                fields={[
+                    {
+                        label: t('sales.shipDetail.colCustomer'),
+                        value: customer ? (
+                            <>
+                                <span className="font-mono">{customer.code}</span> {customer.legal_name}
+                            </>
+                        ) : (
+                            '—'
+                        ),
+                    },
+                    // 物理事件日 —— 货是哪天离开仓库的,同时决定收入落进哪个期间
+                    { label: t('sales.shipDetail.colShipDate'), value: head.ship_date, mono: true },
+                    // LOG-2b:【装箱了才出现】。没装箱时这里【什么都不画】——
+                    // 一个空的"集装箱:—"会让人以为漏填了,而真相是这张单还没装箱。
+                    ...(head.containers
+                        ? [{
+                            label: t('logistics.containerOf'),
+                            value: (
+                                <Link href={`/logistics/containers/${head.containers.id}`}
+                                    className="font-mono text-blue-700 hover:underline">
+                                    {head.containers.code}
+                                </Link>
+                            ),
+                          }]
+                        : []),
+                    { label: t('sales.shipDetail.colCreatedAt'), value: new Date(head.created_at).toLocaleString(dl) },
+                    ...(head.notes ? [{ label: t('sales.shipDetail.colNotes'), value: head.notes }] : []),
+                ]}
+            />
 
             {/* 【发货单不可作废、没有冲销】—— 这一句摆在页面上,而不是只写在表注释里:
                 看这一页的人正是会问"能不能撤"的那个人。 */}
@@ -166,78 +184,16 @@ export default async function ShipmentDetailPage({
 
             {/* ── 行 ───────────────────────────────────────────────────────── */}
             <h2 className="font-medium mb-2">{t('sales.shipDetail.linesTitle')}</h2>
-            {lines.length === 0 ? (
-                // 具名的空状态 —— 一张没有行的发货单在结构上不该存在,所以这句话
-                // 本身就是一个信号,不是"暂无数据"。
-                <p className="text-sm text-gray-500 mb-6">{t('sales.shipDetail.noLines')}</p>
-            ) : (
-                <table className="w-full border-collapse border border-gray-300 text-sm mb-6">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-3 py-2 text-left">
-                                {t('sales.shipDetail.colLineNo')}
-                            </th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">
-                                {t('sales.shipDetail.colMaterial')}
-                            </th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">
-                                {t('sales.shipDetail.colBatch')}
-                            </th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">
-                                {t('sales.shipDetail.colLocation')}
-                            </th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">
-                                {t('sales.shipDetail.colQty')}
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {lines.map((l) => (
-                            <tr key={l.id}>
-                                <td className="border border-gray-300 px-3 py-2 font-mono">
-                                    {l.sales_order_lines?.line_no ?? '—'}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2">
-                                    {l.output_batches?.materials ? (
-                                        <>
-                                            <span className="font-mono">
-                                                {l.output_batches.materials.code}
-                                            </span>{' '}
-                                            {l.output_batches.materials.name}
-                                        </>
-                                    ) : (
-                                        '—'
-                                    )}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 font-mono">
-                                    {l.output_batches?.code ?? '—'}
-                                </td>
-                                {/* 【发货当刻货在哪】—— 这一列是发货行自己记的,不是预留行的
-                                    location(那个会随整桶转移改写)。两者日后可以不同。 */}
-                                <td className="border border-gray-300 px-3 py-2">
-                                    {l.storage_locations ? (
-                                        <>
-                                            <span className="font-mono">{l.storage_locations.code}</span>{' '}
-                                            {l.storage_locations.name}
-                                        </>
-                                    ) : (
-                                        '—'
-                                    )}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                    {l.qty} {l.output_batches?.unit ?? ''}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
+            <div className="mb-6">
+                <ShipmentLinesTable rows={tableRows} />
+            </div>
 
             {/* ── 送货单:签发 ─────────────────────────────────────────────── */}
             <h2 className="font-medium mb-2">{t('sales.shipDetail.issuesTitle')}</h2>
             <p className="text-xs text-gray-500 mb-2">{t('sales.shipDetail.issuesNote')}</p>
             {/* EXT-1:与另外五个单据【同一个公共件】。
-                一张没有行的发货单不给签发 —— 发出去的会是一张没有内容的送货单。 */}
+                一张没有行的发货单不给签发 —— 发出去的会是一张没有内容的送货单。
+                ★ 出口检查:这是这一页唯一的出口,住 children;state 恒为 'ok'。 */}
             <IssuePanel
                 pdfHref={`/sales/shipments/${head.id}/pdf`}
                 previewLabel={t('sales.shipDetail.previewPdf')}
@@ -265,6 +221,6 @@ export default async function ShipmentDetailPage({
                     ))}
                 </ul>
             )}
-        </div>
+        </ListPage>
     )
 }

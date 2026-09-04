@@ -457,3 +457,327 @@ Tim 在本刀 Q4 的裁定:**沿用 CONV-4 §⑨-3 的写法(合计行当数据�
    动作钮(`ml-auto`)换行之后落在哪儿?
 3. **`/finance/journal/[id]` 手机上留了三列(科目/借/贷)**而不是两列(§⑨)——
    三列在 390px 上会不会太挤?**闸测得出「有没有声明」,测不出「留下来的是不是对的那几列」。**
+
+---
+
+# ⑫ CONV-9(2026-09-04)· 19 张详情页 —— 而【委托对那道表尾槽的记述是反的】
+
+**基线:** HEAD `baeba16`(CONV-8),树干净。**转了 19 张,还剩 16 张。**
+
+## ⑫-0 ★★ 头条:委托说「`DataTable` 的 footer 槽现在有了」——它【没有】★★
+
+**这是在转换任何一页【之前】量出来的,而它改了这一刀的前提。**
+
+委托原文:「The DataTable footer slot exists now (CONV-8, after Tim overrode the
+isTotal-row idiom at 9 pages / 18 rows). Use it for grand totals. CONV-4's two
+isTotal pages were migrated onto it, so the old idiom should be GONE — if you find
+it surviving anywhere, that is a finding, report it.」
+
+**逐条实测:**
+
+| 委托说 | 树上实际是什么 |
+|---|---|
+| `DataTable` 有 `footer` 槽 | **没有。** `grep -n "footer" app/components/ui/data-table.tsx` → 0 行 |
+| 那个槽是 CONV-8 建的 | `footer` 槽属于 **`EditableTable`**(`editable-table.tsx:163`),CONV-2 建的,用途是 `all-rows` 模式下页级提交 |
+| CONV-4 那两页已迁走 | **没有迁。** `revaluation` 与 `assets` 今天仍然是 `isTotal` |
+| 旧写法应该消失了 | **它是现行写法**,落地时 3 张表在用 |
+
+**而 CONV-8 §⑧ 白纸黑字记着相反的裁定:** Tim 在那一刀的 Q4 说的是
+**沿用 `isTotal` + `rowClassName`,不给 `DataTable` 加 footer 槽**,理由是
+「一种东西一个写法」;而委托引用的「9 页 / 18 处」**正是 CONV-8 用来支持
+【不建】的那个测量**。
+
+> **处置:照文档里那条裁定办,不建。**
+> 委托描述的那个世界不存在,而「9 页 / 18 处」这个数一个字都没变 ——
+> **Tim 拍板时手里就是这个数,所以没有任何新证据要求重开它。**
+> 本刀新增 6 处 `isTotal`,连同代价(合计标签落在第一个 priority 列,
+> 不再紧贴数字)一起记在 `manual-walk-list` §30.2。
+
+## ⑫-1 CONV-8 的分类:**抽查确认,而人口是 28 + 7,不是 26 + 9**
+
+委托说「35 张里 9 张可编辑」。CONV-8 §① 的**正文写 9,而它自己那张表只列出 8 页**
+(`GoalsEditor` 挂两页,所以 7 行 = 8 页),其中 `/purchasing/orders/[id]`
+**已经被 CONV-8 转过、而且裁定留在 `DataTable`**。
+
+    35 = 28 只读 + 7 可编辑
+    7 = /finance/invoices · /hr/attendance · /hr/reviews · /my-reviews
+        · /logistics/containers · /sales/quotes · /settings/roles
+
+**抽查用的是【独立重算】,不是复读:** 按 import 闭包(排除 `app/components/**`
+共用件)逐页数表 —— **35 页 56 张表**,而 CONV-8 记的是 37 页 60 张、
+已转的两页占 4 张。**56 = 60 − 4,逐字对上**;分布也逐格对上
+(0 张→2 页 · 1 张→22 · 2 张→6 · 3 张→5 · 4 张→1 · 7 张→1)。
+**两条独立路径给出同一个数,所以 CONV-8 的普查可以引用。**
+
+> ★【抽查的第一版判据是错的,而它错成了 CONV-8 警告过的那个样子】★
+> 第一版扫「import 闭包里有没有 `<input|select|textarea>`」,得到 **24 页**可编辑。
+> 那正是 CONV-8 点名「产生过三次错数」的那个「出现在任何地方」判据 ——
+> 逐页打开之后,`/finance/assets/[id]` · `/logistics/forwarders/[id]` ·
+> `/operation/processing/[id]` · `/sales/customers/[id]` 等 5 页
+> **全部是「只读表 + 表【下面】一张新增表单」**,输入一个都不在 `<td>` 里。
+> **判据要问的是「格子里」,而不是「文件里」。** CONV-8 的 8 页站得住。
+
+## ⑫-2 转了哪 19 张(附:一张【刻意不转】)
+
+| 模块 | 页 |
+|---|---|
+| finance(11,全部只读页转完) | `credit-notes` · `freight` · `payments` · `payables` · `receivables` · `expenses` · `bank/statements` · `ledger` · `packs`(只套外壳)· `gst` · `assets` |
+| hr(4,全部只读页转完) | `payroll` · `claims`(0 张表)· `leave` · `employees` |
+| inventory(2) | `inbound/[materialId]` · `output/[materialId]` |
+| 其余(2) | `sales/shipments` · `tools/tasks` |
+| **共用件(1)** | **`FinanceAttachmentsPanel`** —— 见 ⑫-5,它一处修好四页 |
+
+**`/inbound/receive/done/[id]` 刻意没有转**,理由写在那一页的抬头:
+它是 37 张里**唯一一张本来就照 390px 设计的**(`p-4 max-w-md mx-auto text-center`、
+48px 触控目标、居中的大字批次号)。`ListPage` 的 `<h1>` 是左对齐、住在一个
+`justify-between` 里的 —— 套上去会把这一刀要修的病亲手造出来。
+**这不是漏转,是 CONV-3 §⑧-3「没有形状匹配不硬套」的一个新形状:
+被拒绝的是【外壳】那一半,不是表那一半。**
+
+## ⑫-3 ★ 建了一个槽:`ListPage` 的 `padding` —— 而逼着建它的是【方向】,不是数量 ★
+
+CONV-5 §⑩-9 量到 2 处外壳硬编码 `p-8` 造成的回归,按「第三次才建」搁置。
+**本刀在 35 张里一次量到 5 处**(合计 7 处):
+
+    p-6            /finance/assets/[id]
+    p-4 sm:p-8     /inbound/[id]/assays/[assayId]
+    p-4 sm:p-8     /output/[id]/assays/[assayId]
+    p-4 sm:p-8     /stocktakes/[id]
+    p-4 …          /inbound/receive/done/[id]
+
+**其中 3 处写的是 `p-4 sm:p-8` —— 它们【已经是为手机调过的】。**
+硬套 `p-8` 会在 390px 上**各夺走 32px 可用宽度**,而这一刀的全部目的
+正是量并改善手机可用度。**那不是"一处可接受的版式让步",
+那是这一刀亲手制造出它自己要修的那个病。**
+
+槽是一个可选 prop,不给就是 `p-8` —— **64+ 个既有调用点一个字都不用改**,
+与 CONV-8 的 `breadcrumb` 槽逐字同一条判据。
+
+## ⑫-4 ★ 一个形状收敛了:结算历史表,而它是【第三次】出现 ★
+
+`/finance/payables/[batchId]` · `/finance/receivables/[saleId]` ·
+`/finance/expenses/[id]` 三页的「结算历史」**逐列相同**
+(付款单 · 日期 · 冲销额 · 状态,同一批 i18n 键,同一条「已冲销的行留下但不计入
+已结额」的规矩)。收进 `app/components/finance/SettlementHistoryTable.tsx` ——
+**`FinanceAttachmentsPanel` 就在隔壁,同样被这几页共用**,所以这一族的住址是现成的。
+
+> **这不违反「第三次才建」那道坎 —— 那条坎管的是【设计一个新能力】。**
+> 这里没有任何设计:同一个组件、三个调用点。**把它抄三份才是要付账的那件事。**
+
+☞ 顺带一条计数规矩(CONV-5 §⑩-5 已有,这里再验一次):
+**它是【一个】调用点,被三页渲染。闸数的是调用点,不是渲染次数。**
+
+## ⑫-5 ★★ 手机:**先说探针的数,再说真的量到过的数** ★★
+
+**19 张里只有 11 张是真的量到过的,而探针会说 15 张全好。**
+
+| | |
+|---|---:|
+| 本刀转的页 | **19** |
+| 全跑里根本没被探到(`unresolved`,无活数据行/无 id 来源) | **4** — `ledger/[account]` · `packs/[id]` · `hr/claims/[id]` · `hr/leave/[id]` |
+| 探到了,而**页面根本没画出来**(见下) | **3** — `hr/employees/[id]` · `tools/tasks/[id]` · `bank/statements/[id]` |
+| 探到了,页面画出来了但**这一页今天没有表**(设计如此) | **1** — `freight/[id]`(出境单据走具名缺席那一句,不画表) |
+| **真正量到过一张表的** | **11** |
+
+| | |
+|---|---:|
+| 探针自己会报的 USABLE | **15 / 15** |
+| **真正量到过一张表、且可用的** | **11 / 11 · 0 溢出 · 0 裁切** |
+
+**11 张逐页(探的哪一行 / tableCount):**
+
+| 页 | 探针 id | tc | 溢出 | 裁切 |
+|---|---|---:|---:|---:|
+| `/finance/assets/[id]` | `c20e3ba1…` | 3 | 0 | 0 |
+| `/finance/credit-notes/[id]` | `a4d827ce…` | 1 | 0 | 0 |
+| `/finance/expenses/[id]` | `cc8e30c5…` | 2 | 0 | 0 |
+| `/finance/gst/[periodId]` | `a08fd421…` | 1 | 0 | 0 |
+| `/finance/payables/[batchId]` | `065622f9…` | 2 | 0 | 0 |
+| `/finance/payments/[id]` | `bcc4c794…` | 2 | 0 | 0 |
+| `/finance/receivables/[saleId]` | `9c4da4e2…` | 2 | 0 | 0 |
+| `/hr/payroll/[id]` | `b3784931…` | 1 | 0 | 0 |
+| `/inventory/inbound/[materialId]` | `5d4c059f…` | 1 | 0 | 0 |
+| `/inventory/output/[materialId]` | `5d4c059f…` | 1 | 0 | 0 |
+| `/sales/shipments/[id]` | `6256bcb7…` | 1 | 0 | 0 |
+
+**对照 CONV-8 §⑥ 的基线,本刀修好的:**
+`/hr/payroll/[id]` **+204px → 0**(元凶是表,`DataTable` 正好管这一种)·
+`/finance/expenses/[id]` +35px → 0 · `/finance/payables/[batchId]` +30px → 0 ·
+`/finance/credit-notes/[id]` +4px → 0 · `/finance/receivables/[saleId]` **+99px → 0**(见下)。
+**没有一张从可用变不可用。** finance 模块整体 **43/53 → 44/53**
+(两跑逐条对拍,差异【只有】`receivables/[saleId]` 一条)。
+
+### ⑫-5a ★ 「元凶不是表」要读细一点:**一枚徽章可以【既是】徽章【又在】表里** ★
+
+CONV-8 §⑥ 记「9 张溢出页里 6 张的元凶不是表,所以 `DataTable` 一张都修不了」。
+**探针点名的那个元素每一次都是对的;错的是把它直接读成「不在表里」。**
+
+* `/inventory/output/[materialId]`(+664px)与 `/inventory/inbound/[materialId]`
+  (+506px)的元凶 `span.px-2 py-1 bg-gray-200 rounded text-xs`
+  **住在这两张表的「状态/阶段」那一格里**。它不是 priority 列,
+  于是 390px 上整格进展开区,徽章跟着走 —— **`DataTable` 够得着它。**
+* `/finance/receivables/[saleId]`(+99px)的元凶 `button.text-red-600`
+  **住在一个【四页共用的组件】里**(`FinanceAttachmentsPanel`),
+  不是那一页自己的表。**修那一个组件,四页一起好。**
+  实测:转换后该页 **+99px / 1 张被裁 → 0 / 0**,而同一跑里别的页一格没动。
+
+**所以更准的说法是:元凶多数不是【那一页自己的主表】,
+而那不等于它不在【某一张表】里,也不等于 `DataTable` 修不了它。**
+
+### ⑫-5b ★★ 探针的第三层盲区,而这一层此前没人命名:**它把一张 404 记成「可用」** ★★
+
+CONV-2 命名了「表没画出来」(`tableCount: 0`);CONV-8 命名了「这条路由压根拿不到 id」
+(`unresolved`)。**本刀量到第三层,而它比前两层更难看见:
+id 取到了、页面也返回了 200,但那是 `notFound()` 的 404 页。**
+
+判据是现成的、而且尖锐:**全跑 189 条路由里,9 条动态路由的 `textLen`
+【恰好都是 76】** —— 一字不差的同一个数,那就是 Next 的
+"This page could not be found."。对比:真页面的 `textLen` 中位数是 **682**,最大 8467。
+
+    76  /hr/employees/[id]        76  /hr/employees/[id]/edit
+    76  /inbound/[id]/assays/[assayId]   76  /output/[id]/assays/[assayId]
+    76  /logistics/containers/[id]  76  /logistics/forwarders/[id]
+    76  /sales/customers/[id]     76  /sales/customers/[id]/edit
+    76  /tools/tasks/[id]
+
+**这 9 条【全部】被记成 USABLE** —— 一张 404 页既不溢出,也没有被裁的表。
+
+**它不是"页面坏了":同一棵树上冒烟是 242 ok / 0 FAILED。**
+两边各自取了一个不同的 id,而页面自己的查询把探针那一行滤掉了。
+**也就是说:`ID_SOURCES` 回答的是「这张表里有没有行」,
+而页面问的是「这一行,这一页收不收」—— 两个问题。**
+
+> ☞ **修法留给一次专门的刀,不在这里顺手做**(CONV-5 §⑩-12 对反引号那个洞
+> 用的是同一条克制):正确的信号不是 `textLen` 这个启发式,而是
+> **让探针记下 CDP 那次导航的 HTTP 状态**。在那之前,读这份数的规矩多一条:
+> **先看 `tableCount`,再看 `textLen`,最后才看 U1/U2。**
+
+## ⑫-6 分组/小计能力:**本刀新增 0 处,总数仍然是 5 处 / 2 种形状**
+
+19 张转过的页里带「分组表头行 + 组内小计」的表:**0 张**。
+逐张复核过带「合计」字样的页面,全部是**表尾的一行总计**(走 `isTotal`)
+或**表外的一个数字**,不是组内小计。**Tim 在 CONV-5 Q3 的裁定原样成立,不必重新决定。**
+
+## ⑫-7 出口检查(委托点名的那一类):逐页做过,**19 张全部通过**
+
+判据用的是委托的形式:**这一页唯一能动手的地方,会不会住在一个被空态吃掉的分支里。**
+详情页 `state` 恒为 `'ok'`(CONV-8 §⑤),所以 `children` 永远画 —— 但仍然逐页看了动作清单:
+
+* **住 `actions` 槽(画在状态分支之前,天然安全):** 冲销(freight/payments/expenses)·
+  对账工作台(bank/statements)· 改+过账(payroll)· 记培训+改(employees)·
+  导出(packs)· 删除对账单 · 徽章。
+* **住 `notices` 槽(必须无条件):** 假别子导航(`/hr/leave/[id]` —— CONV-5 §⑩-3
+  点名的那一类)· 重新打开对账(bank/statements)· 各种冲销横幅。
+* **住 `children`,靠 `state` 恒为 `'ok'` 撑着:** 签发 PDF(credit-notes/shipments)·
+  上传凭据(四页)· 补挂客户(receivables)· 冲抵定金(expenses)· 申报/更正(gst)·
+  批准/驳回(leave/claims)· 反过账(payroll)· 发起转正评估(employees)·
+  任务那一页的五个出口。
+
+**一处都没有出口住在会被隐藏的分支里。**
+顺带修好一处**方向相反**的缺陷:`/hr/employees/[id]` 的绩效评估表
+转换前整节写着 `{empReviews.length > 0 && …}`,**一份评估都没有时整节消失**
+—— 而 PROBATION-1 早就把标题与那扇门拆出来过。现在表【无条件】画,
+空态由表自己说,与 PROBATION-1 同向。
+
+## ⑫-8 手机闸:调用点数【两条独立路径对上了】,而洞也重新注过一次
+
+| | DataTable | EditableTable | 合计 |
+|---|---:|---:|---:|
+| CONV-8 收尾 | 86 | 3 | 89 |
+| **本刀之后** | **108** | 3 | **111** |
+
+**+22 = 本刀新增的 22 张表**,与独立重算(自己剥注释 + 闸那条带前瞻的正则)
+**逐字相符**。⚠️ 复核不能用 `grep -E`:POSIX ERE 没有前瞻,`(?=…)` 那条会得到 **0**
+—— 那是判据坏了,不是一个发现。
+
+**故障注入(五格,先红、点名、再逐字节还原):**
+
+```
+A 干净树                        → EXIT 0 · 108 个调用点
+B 拿掉 OutputBatchesTable 全部 priority:
+    tsc                        → EXIT 0   ← ★ 类型看不见这一种,这正是闸存在的理由
+    check-datatable-phone      → EXIT 1
+      app/inventory/output/[materialId]/OutputBatchesTable.tsx:111
+C 还原                          → shasum 逐字节相同(08ea5258…)· EXIT 0
+D ★ 重演 CONV-8 自己那次「被注释骗过去」:
+    拿掉全部真 priority,并在真声明【之上】种一句注释,
+    里面同时写着 `const columns` 与 `priority: true`
+                               → EXIT 1,仍然点名 :112  ← blankComments 是承重的
+E 还原                          → shasum 逐字节相同 · EXIT 0
+```
+
+**D 那一格是本节最要紧的一行:** 它证明 CONV-8 §⑦ 补的那个洞**今天仍然是补着的**,
+而且**新调用点确实被计入**(B 与 D 都精确点到本刀新建的那个文件)。
+
+## ⑫-9 一页长什么样 —— `/hr/payroll/[id]`(给不打开浏览器的人看)
+
+**挑它是因为它是 CONV-8 实测溢出的三张「元凶真的是表」之一(+204px)。**
+
+* **桌面。** 标题上方一行「← 返回」;标题「工资明细」后面跟着月份(等宽灰字)与期间编号;
+  标题右边是两个出口:「编辑」与「过账」(未过账时才有)。
+  然后是**记录抬头**——一块浅蓝底、圆角、描边的盒子,横排:发放日 · 币种(等宽,带汇率)·
+  状态(绿/琥珀药丸)· 关联分录(可点)· 来源说明。
+  抬头下面是备注与那句「薪酬数据受限」,再下面是 6 列的明细表
+  (员工 · 应发 · 个人公积金 · 公司公积金 · 其他扣款 · 实发),
+  **最后一行是加粗的合计行**,底色与表头同族,右边还带一句「共 N 行」。
+* **手机(390px)。** 抬头**换行**成三四排,不横向滚动。
+  表里留两列:**员工 · 实发**;四个中间量进点开的展开区。
+  **留「实发」不是随手挑的** —— CONV-5 §⑩-13 给 `/hr/payroll` 列表页挑的第二列
+  就是「实发合计」(「这个月到底付出去多少」),这里是它逐行的版本。
+  **实测 0 溢出、0 裁切(转换前 +204px)。**
+* **一行都没有的期间。** 合计行**仍然画**(转换前的 `<tfoot>` 也是无条件的)——
+  一个 0 行的期间要说出它的合计是 0,**那不是空,那是一个答案**;
+  明细的空态由表自己说。
+* **进不去。** 没有 `module.hr.view` 的人在任何查询【之前】就被挡住,看到 CONV-0 的整页拒绝。
+* **记录不在。** `notFound()` —— **不是**一句空态。
+
+## ⑫-10 本刀照出来、但【不属于本刀】的三处
+
+1. **`MaintenancePanel` 的表 5 个 `<th>` 对 6 个 `<td>`** —— 资本化按钮那一列没有表头,
+   表体比表头宽一列。`DataTable` 的契约要求每列都有 header,所以**本刀无法不修**
+   (给了空字符串,视觉与转换前一致)。
+2. **`scripts/currency-messages-baseline.json` 有 2 条【指向一个已经不存在的键】的记录**
+   (`metalPricesDesc`,en/zh 各一)。检查自己会说「有人改好了,基线可以收紧」。
+   **与本刀无关**(本刀的 diff 一个字都没碰它),但棘轮松着就不是棘轮 —— 本刀顺手收紧。
+3. **`survey-phone` 与 `smoke-routes` 只共用了一半的 id 定义。**
+   前者刻意 import 后者的 `ID_SOURCES`(避免两份漂开),
+   而 `SPECIAL_ID_ROUTES`(4 条,含 `/finance/ledger/[account]`)**在那张表之外** ——
+   于是冒烟测得了、探针测不了。**这是「一份定义」这个说法今天只成立一半。** 记而不建。
+
+## ⑫-11 这一刀之后还剩什么(下一刀不必重量)
+
+**16 张:9 只读 + 7 可编辑。**
+
+**只读(9):**
+
+| 页 | 表 | 备注 |
+|---|---:|---|
+| `/sales/customers/[id]` | 4 | 三个面板都是「只读表 + 表下面一张表单」 |
+| `/operation/processing/[id]` | 7 | **全仓表最多的一页**;`CostPanel`/`LossPanel` 同上 |
+| `/operation/orders/[id]` | 3 | |
+| `/logistics/forwarders/[id]` | 2 | `ForwarderPanels` 同上 |
+| `/output/[id]/assays/[assayId]` | 2 | 用得上新的 `padding` 槽(`p-4 sm:p-8`) |
+| `/inbound/[id]/assays/[assayId]` | 1 | 同上 |
+| `/stocktakes/[id]` | 1 | 同上;`CountList` **不是表**(移动端展开式录入清单),不要硬套 |
+| `/sales/orders/[id]` | 1 | |
+| `/inbound/receive/done/[id]` | 0 | **刻意不转,理由在那一页抬头** |
+
+**可编辑(7,归 CONV-2 的 `EditableTable`):**
+`/finance/invoices/[id]` · `/hr/attendance/[id]` · `/hr/reviews/[id]` ·
+`/my-reviews/[id]` · `/logistics/containers/[id]` · `/sales/quotes/[id]` ·
+`/settings/roles/[id]`。
+**`PermissionMatrix` 属于 B(全行同时可编辑),用 `all-rows` + `footer` 槽**
+—— CONV-8 §① 已经分类过,不必重来。
+☞ 其中 `/finance/invoices/[id]` 今天实测 **+123px、2 张表被裁**,
+元凶 `a.text-blue-600` —— 是这 16 张里唯一一张【已知不可用且量得到】的。
+
+**三件留给设计时间,不留给下一刀"顺手做":**
+1. **分组/小计能力**:仍然 5 处 / 2 种形状,本刀新增 0(⑫-6)。
+2. **探针把 404 记成可用**(⑫-5b):修法是记 CDP 的 HTTP 状态,不是 `textLen` 启发式。
+3. **`SPECIAL_ID_ROUTES` 不在共用的那张表里**(⑫-10 第 3 条)。
+
+## ⑫-12 只有人能确认的事
+
+见 `docs/manual-walk-list.md` §30。**一处都还没有人走过。**
+最要紧的是 §30.1:**那 9 条 `textLen=76` 的路由,在有人真的打开之前,
+它们的 390px 表现没有任何证据。**

@@ -7,6 +7,8 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { mustOne, mustRows } from '@/lib/db-helpers'
 import { FileReturnControl, CorrectControl } from '../GstControls'
+import { ListPage } from '@/app/components/ui/list-page'
+import { F5BoxesTable, F5BoxDetailTable, type F5BoxRow, type F5DetailRow } from './GstTables'
 
 type Box = { box: string; label_en: string; label_zh: string; value: number; derived: boolean; note_zh?: string; note_en?: string }
 
@@ -63,70 +65,70 @@ export default async function GstPeriodPage({ params, searchParams }: {
             ? t('gst.blockedNotLocked', { end: period.period_end, locked: lockedBefore ?? t('finance.notSet') })
             : undefined
 
+
+    // ★【行数据在服务端压平】双语标签在这里按 locale 选好,压成一个字符串过界。
+    const DRILLABLE = ['box1', 'box2', 'box3', 'box5', 'box6', 'box7']
+    const boxSource = filed
+        ? snap.map((b) => ({ box: b.box, label_zh: b.label_zh, label_en: b.label_en, value: Number(b.value_base), derived: true }))
+        : (live?.boxes ?? [])
+    const boxRows: F5BoxRow[] = boxSource.map((b) => ({
+        id: b.box,
+        boxNo: b.box.replace('box', ''),
+        label: locale === 'zh' ? b.label_zh : b.label_en,
+        notDerived: 'derived' in b && !b.derived,
+        amountText: Number(b.value).toFixed(2),
+        drillHref: DRILLABLE.includes(b.box) ? `/finance/gst/${periodId}?box=${b.box}#box-detail` : null,
+        highlighted: box === b.box,
+    }))
+
+    const detailRows: F5DetailRow[] = (
+        (detailRes?.data as { doc_kind: string; doc_id: string; doc_code: string; doc_date: string; memo: string; tax_code: string | null; amount_base: number }[] | null) ?? []
+    ).map((d, i) => ({
+        id: d.doc_id + d.doc_code + i,
+        docCode: d.doc_code,
+        docDate: d.doc_date,
+        memo: d.memo,
+        sourceText: t('gst.docKind.' + d.doc_kind) + (d.tax_code ? ` · ${d.tax_code}` : ''),
+        amountText: Number(d.amount_base).toFixed(2),
+    }))
+
     return (
-        <div className="p-8 max-w-5xl">
-            <p className="text-sm mb-2"><Link href="/finance/gst" className="text-blue-600 hover:underline">← {t('gst.title')}</Link></p>
-            <h1 className="text-2xl font-bold mb-1">{period.code}</h1>
-            <p className="text-sm text-gray-600 mb-4 font-mono">{period.period_start} → {period.period_end}</p>
-            {period.corrects_period_id && (
-                <p className="text-sm mb-4 bg-amber-50 border border-amber-300 text-amber-900 px-3 py-2 rounded">
-                    {t('gst.correctionOf')}{period.notes ? ` — ${period.notes}` : ''}
+        <ListPage
+            maxWidth="max-w-5xl"
+            // 转换前这条返回链接画在 <h1> 之上 —— breadcrumb 槽是同一个位置。
+            breadcrumb={
+                <p className="text-sm">
+                    <Link href="/finance/gst" className="text-blue-600 hover:underline">← {t('gst.title')}</Link>
                 </p>
-            )}
-
-            {filed && (
-                <p className="text-sm mb-4 bg-green-50 border border-green-300 text-green-900 px-3 py-2 rounded">
-                    {t('gst.filedOnBanner', { on: period.filed_on ?? '', ref: period.filed_reference ?? '—' })}
-                </p>
-            )}
-
+            }
+            title={period.code}
+            intro={<span className="font-mono">{period.period_start} → {period.period_end}</span>}
+            // ★★ 详情页恒为 ok —— 这个期间在不在由上面 mustOne + periodMissing 回答。
+            state={{ kind: 'ok' }}
+            notices={
+                <>
+                    {period.corrects_period_id && (
+                        <p className="text-sm mb-4 bg-amber-50 border border-amber-300 text-amber-900 px-3 py-2 rounded">
+                            {t('gst.correctionOf')}{period.notes ? ` — ${period.notes}` : ''}
+                        </p>
+                    )}
+                    {filed && (
+                        <p className="text-sm mb-4 bg-green-50 border border-green-300 text-green-900 px-3 py-2 rounded">
+                            {t('gst.filedOnBanner', { on: period.filed_on ?? '', ref: period.filed_reference ?? '—' })}
+                        </p>
+                    )}
+                </>
+            }
+        >
             <div className="flex items-baseline justify-between mb-2">
                 <h2 className="font-semibold">{filed ? t('gst.asFiled') : t('gst.asComputed')}</h2>
                 {/* 【导出的是屏幕上这一份】—— 已申报导抄下来的,未申报导现算的,文件名里写明是哪一种 */}
                 <a href={`/finance/gst/${periodId}/export`}
                    className="text-sm text-blue-600 hover:underline">{t('gst.exportCsv')}</a>
             </div>
-            <table className="w-full border-collapse border border-gray-300 mb-2 text-sm">
-                <thead className="bg-gray-50">
-                    <tr>
-                        <th className="border border-gray-300 px-2 py-1 text-left w-20">{t('gst.box')}</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left">{t('gst.boxLabel')}</th>
-                        <th className="border border-gray-300 px-2 py-1 text-right">{t('gst.amount')}</th>
-                        <th className="border border-gray-300 px-2 py-1 text-left w-28">{t('gst.openBox')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {(filed ? snap.map((b) => ({ box: b.box, label_zh: b.label_zh, label_en: b.label_en, value: Number(b.value_base), derived: true }))
-                            : (live?.boxes ?? [])).map((b) => (
-                        <tr key={b.box} className={box === b.box ? 'bg-blue-50' : ''}>
-                            <td className="border border-gray-300 px-2 py-1 font-mono">{b.box.replace('box', '')}</td>
-                            <td className="border border-gray-300 px-2 py-1">
-                                {/* 【F5 的格名跟随界面语言 —— 裁定,不是顺手】
-                                    它是 IRAS 自己的措辞,而报出去的那一份是英文的,所以"总是印英文"
-                                    也说得通。裁定是【跟随语言】,理由:**格【号】才是标识**,
-                                    而它就在左边自己一列;标签是确认用的说明文字,中文读者读中文更好。
-                                    需要 IRAS 逐字措辞的场合是【把数字敲进 myTax Portal】,
-                                    而那一步用的是 CSV 导出 —— 那里 Label (EN) 与 Label (ZH)
-                                    是【两列】,不是拼在一起,所以逐字措辞一直都在。 */}
-                                {locale === 'zh' ? b.label_zh : b.label_en}
-                                {/* 【结构性为零要说出来,不能只显示 0】 */}
-                                {'derived' in b && !b.derived && (
-                                    <span className="block text-xs text-gray-600">{t('gst.notDerived')}</span>
-                                )}
-                            </td>
-                            <td className="border border-gray-300 px-2 py-1 text-right font-mono">{Number(b.value).toFixed(2)}</td>
-                            <td className="border border-gray-300 px-2 py-1">
-                                {['box1','box2','box3','box5','box6','box7'].includes(b.box)
-                                    // 【#box-detail:让链接跳到它打开的那一段】GST-FIX-1 实测:
-                                    // 钻取确实渲染了,但它落在文档 28% 处 —— 从表格顶上点一下,
-                                    // 视口一动不动。**一个看起来什么都没做的控件,比一个明确拒绝的更坏。**
-                                    ? <Link href={`/finance/gst/${periodId}?box=${b.box}#box-detail`} className="text-blue-600 hover:underline text-xs">{t('gst.openBox')}</Link>
-                                    : <span className="text-xs text-gray-500">{t('gst.notDrillable')}</span>}
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+            <div className="mb-2">
+                <F5BoxesTable rows={boxRows} />
+            </div>
 
             {/* 【GST-2:勾稽是【三处说法、两条比较】,而两条都要看得见】
                 只印一个"对上了/没对上"会把【哪一条】没对上藏起来,而两条指向
@@ -191,50 +193,28 @@ export default async function GstPeriodPage({ params, searchParams }: {
                     </p>
                     {detailRes?.error ? (
                         <p data-box-detail-error className="text-sm text-red-700">{detailRes.error.message}</p>
-                    ) : (detailRes?.data as unknown[] | null)?.length ? (
-                        <table className="w-full border-collapse border border-gray-300 mb-6 text-sm">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="border border-gray-300 px-2 py-1 text-left">{t('gst.document')}</th>
-                                    <th className="border border-gray-300 px-2 py-1 text-left">{t('gst.date')}</th>
-                                    <th className="border border-gray-300 px-2 py-1 text-left">{t('gst.memo')}</th>
-                                    <th className="border border-gray-300 px-2 py-1 text-left">{t('gst.source')}</th>
-                                    <th className="border border-gray-300 px-2 py-1 text-right">{t('gst.amount')}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {/* 【GST-2:列是【单据中性】的】销项侧钻回的是发票与贷项凭证,
-                                    它们不是分录 —— 把一个发票编号印在"分录"那一列下面,
-                                    正是"机器文字到了人面前"那一类的错。doc_kind 说这是什么。 */}
-                                {(detailRes!.data as { doc_kind: string; doc_id: string; doc_code: string; doc_date: string; memo: string; tax_code: string | null; amount_base: number }[]).map((d, i) => (
-                                    <tr key={d.doc_id + d.doc_code + i}>
-                                        <td className="border border-gray-300 px-2 py-1 font-mono text-xs">{d.doc_code}</td>
-                                        <td className="border border-gray-300 px-2 py-1 font-mono text-xs">{d.doc_date}</td>
-                                        <td className="border border-gray-300 px-2 py-1">{d.memo}</td>
-                                        <td className="border border-gray-300 px-2 py-1 text-xs">
-                                            {t('gst.docKind.' + d.doc_kind)}{d.tax_code ? ` · ${d.tax_code}` : ''}
-                                        </td>
-                                        {/* 贷项凭证是负数 —— 它是一笔【负的供应】,照直印 */}
-                                        <td className="border border-gray-300 px-2 py-1 text-right font-mono">{Number(d.amount_base).toFixed(2)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
                     ) : (
                         /* 【空要说出【为什么】空】"这一格里没有东西"与"查询失败了"
                            在屏幕上长得一模一样。数字是 0 的时候就直说是 0;
-                           数字不是 0 却钻不出行,那才是真的不对劲,单独说。 */
-                        <p className="text-sm text-gray-700">
-                            {(openBoxValue ?? 0) === 0
-                                ? t('gst.boxEmptyBecauseZero')
-                                : t('gst.boxEmptyButNonZero', { value: (openBoxValue ?? 0).toFixed(2) })}
-                        </p>
+                           数字不是 0 却钻不出行,那才是真的不对劲,单独说。
+                           ★ 这句区分现在由表自己的 empty 承担 —— 服务端把该说哪一句
+                             算好了传进去,区分一个字都没有被压平。 */
+                        <F5BoxDetailTable
+                            rows={detailRows}
+                            empty={
+                                (openBoxValue ?? 0) === 0
+                                    ? t('gst.boxEmptyBecauseZero')
+                                    : t('gst.boxEmptyButNonZero', { value: (openBoxValue ?? 0).toFixed(2) })
+                            }
+                        />
                     )}
                 </section>
             )}
 
             <h2 className="font-semibold mb-2">{t('gst.recordFiling')}</h2>
             <p className="text-xs text-gray-600 mb-2">{t('gst.filingIsOutside')}</p>
+            {/* ★ 出口检查:申报控件与更正控件都住 children,而 state 恒为 'ok',
+                  所以它们不可能被任何空分支吃掉。 */}
             <div className="mb-6"><FileReturnControl periodId={periodId} blockedWhy={blockedWhy} /></div>
 
             {filed && (
@@ -244,6 +224,6 @@ export default async function GstPeriodPage({ params, searchParams }: {
                     <CorrectControl periodId={periodId} />
                 </>
             )}
-        </div>
+        </ListPage>
     )
 }

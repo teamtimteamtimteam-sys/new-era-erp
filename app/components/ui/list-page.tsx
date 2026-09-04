@@ -55,6 +55,7 @@ export function ListPage({
     state,
     children,
     maxWidth,
+    padding,
 }: {
     title: React.ReactNode
     /**
@@ -97,6 +98,25 @@ export function ListPage({
      * —— PAGE-0 §⑨ 写下的那一条,加一个宽度限制是改变现有页面的样子。
      */
     maxWidth?: string
+    /**
+     * ★★【CONV-9 加的槽:外边距 —— CONV-5 §⑩-9 记的那笔账,到第 7 处才建】★★
+     *
+     * 【为什么现在建,而 CONV-5 当时不建】CONV-5 量到 2 处(/inventory/locations
+     * 的 `p-4 sm:p-8`、/settings/import 的 `p-6`),按"第三次才建"那道坎搁置,
+     * 并写下「如果人眼确认读不下去,那是 ListPage 要开边距槽」。
+     * **CONV-9 在 35 张详情页里一次量到 5 处**,合计 7 处 —— 坎过了一倍不止。
+     *
+     * ★【而真正逼着建它的不是数量,是【方向】】★
+     * 那 5 处里有 3 处写的是 **`p-4 sm:p-8`** —— 也就是说它们**已经是为手机调过的**:
+     * 小屏 16px、大屏 32px。把它们硬套成 `p-8`,会在 390px 上**各夺走 32px 可用宽度**,
+     * 而这一刀的全部目的正是量并改善手机可用度。
+     * **那不是"一处可接受的版式回归",那是这一刀亲手制造出它自己要修的那个病。**
+     * (CONV-5 已经为 `/settings/deleted` 记过一次:表修好了,顶宽的是表以外的东西。)
+     *
+     * 【它不动任何既有调用点】不给就是 `p-8`,64+ 个既有 ListPage 调用点一个字不用改
+     * —— 与 CONV-8 的 breadcrumb 槽逐字同一条判据。
+     */
+    padding?: string
 }) {
     if (state.kind === 'restricted') {
         return (
@@ -110,7 +130,7 @@ export function ListPage({
     }
 
     return (
-        <div className={['p-8', maxWidth].filter(Boolean).join(' ')}>
+        <div className={[padding ?? 'p-8', maxWidth].filter(Boolean).join(' ')}>
             {/* ★ 标题【之上】—— 见 breadcrumb 的说明。不给就不画。 */}
             {breadcrumb && <div className="mb-6">{breadcrumb}</div>}
             <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
