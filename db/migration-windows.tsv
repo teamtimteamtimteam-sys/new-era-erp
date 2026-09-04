@@ -145,3 +145,4 @@
 2026-09-03T15:38:21+0800	2026-09-03-pogst1-fu1-the-tax-total-must-not-be-granted-on-the-base-table.sql	8165cc4
 2026-09-03T16:05:12+0800	2026-09-03-pogst1-fu2-gross-is-computed-in-one-place.sql	8165cc4
 2026-09-03T16:10:28+0800	2026-09-03-pogst1-fu3-the-order-list-shows-tax-too.sql	8165cc4
+2026-09-04T09:14:59+0800	2026-09-04-conv6-the-dock-is-deleted-so-the-table-goes-with-it.sql	7d1ffab
