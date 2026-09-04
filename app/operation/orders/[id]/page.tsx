@@ -23,6 +23,12 @@ import { MOD } from '@/lib/modules'
 import { workOrderStatusKey } from '../woTypes'
 import WorkOrderActions from './WorkOrderActions'
 import AmendLinesControl, { type AmendRow } from './AmendLinesControl'
+import { ListPage } from '@/app/components/ui/list-page'
+import { RecordHeader } from '@/app/components/ui/record-header'
+import {
+    InputSideTable, OutputSideTable, LinkedRunsTable,
+    type FulfilmentRow, type LinkedRunRow,
+} from './WorkOrderTables' 
 
 type FulfilRow = {
     side: string; material_id: string
@@ -102,246 +108,150 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
         planned_qty: r.planned_or_expected_qty, consumed_qty: Number(r.actual_qty ?? 0),
     }))
 
+    // ── 行数据在服务端压平(CONV-1 §①:render 是函数,过不了 RSC 边界)──────
+    const toFulfilment = (r: FulfilRow, withBasis: boolean): FulfilmentRow => {
+        const b = withBasis ? basisOf.get(r.material_id) : null
+        return {
+            id: r.material_id,
+            label: label(r),
+            hasPlan: r.has_plan,
+            plannedText: r.planned_or_expected_qty == null ? null : String(r.planned_or_expected_qty),
+            actualText: String(r.actual_qty),
+            varianceText: r.variance_qty == null
+                ? null
+                : (Number(r.variance_qty) > 0 ? '+' : '') + String(r.variance_qty),
+            varianceNegative: r.variance_qty != null && Number(r.variance_qty) < 0,
+            basis: b?.basis
+                ? {
+                    tone: b.basis === 'calibrated' ? 'bg-green-100 text-green-800'
+                        : b.basis === 'seeded_industry' ? 'bg-amber-100 text-amber-800'
+                        : 'bg-gray-100 text-gray-700',
+                    label: t('processing.wo.basis.' + b.basis),
+                    reference: b.basis_reference ?? null,
+                  }
+                : null,
+            basisUnstated: withBasis && r.has_plan && !b?.basis,
+        }
+    }
+    const inputTableRows = inputRows.map((r) => toFulfilment(r, true))
+    const outputTableRows = outputRows.map((r) => toFulfilment(r, false))
+    const linkedRunRows: LinkedRunRow[] = runs.map((r) => ({
+        id: r.id,
+        code: r.code,
+        href: `/operation/processing/${r.id}`,
+        processDate: r.process_date ?? '—',
+        totalInput: r.total_input == null ? '—' : String(r.total_input),
+        totalOutput: r.total_output == null ? '—' : String(r.total_output),
+        reversed: r.status === 'reversed',
+        statusLabel: r.status === 'reversed'
+            ? t('processing.wo.runReversed')
+            : t('processing.status.committed'),
+    }))
+
     return (
-        <>
-            <div className="p-8 max-w-5xl">
-                <div className="mb-6">
-                    <Link href="/operation/orders" className="text-blue-600 hover:underline text-sm">
-                        {t('common.back')}
-                    </Link>
-                </div>
+        <ListPage
+            maxWidth="max-w-5xl"
+            breadcrumb={
+                <Link href="/operation/orders" className="text-blue-600 hover:underline text-sm">
+                    {t('common.back')}
+                </Link>
+            }
+            title={<span className="font-mono">{wo.code}</span>}
+            // 状态徽章转换前住在 h1 右边的 justify-between 里 —— actions 是同一个位置。
+            // 它不是一个动作,但它是【标题那一排右边那个东西】,搬进抬头会把它
+            // 从"这张单现在怎么样"降级成"另一个字段"。
+            actions={
+                <span className="px-3 py-1 rounded bg-gray-200 text-sm">
+                    {t(workOrderStatusKey(wo.status))}
+                </span>
+            }
+            // ★★ 详情页恒为 ok —— 这张工单在不在由上面的 notFound() 回答。CONV-8 §⑤。
+            state={{ kind: 'ok' }}
+            // 【收工 / 取消的理由摆在最上面】—— 一张终态的单据,人第一个问题是
+            // "为什么结束了",答案不该藏在历史列表的最下面。notices 画在标题之下、
+            // 一切分支之前,正是这两条横幅要的位置。
+            notices={
+                <>
+                    {wo.closed_at && (
+                        <div className="bg-gray-50 border border-gray-300 text-gray-800 px-4 py-3 rounded mb-4">
+                            {t('processing.wo.closedBanner', {
+                                at: formatTimestamp(wo.closed_at, dl), reason: wo.close_reason ?? '—',
+                            })}
+                        </div>
+                    )}
+                    {wo.cancelled_at && (
+                        <div className="bg-gray-50 border border-gray-300 text-gray-800 px-4 py-3 rounded mb-4">
+                            {t('processing.wo.cancelledBanner', {
+                                at: formatTimestamp(wo.cancelled_at, dl), reason: wo.cancel_reason ?? '—',
+                            })}
+                        </div>
+                    )}
+                </>
+            }
+        >
+            {/* ★ 记录抬头 —— 转换前是一个 <dl grid grid-cols-2>(25 张抬头的四种写法之一)。 */}
+            <RecordHeader
+                fields={[
+                    {
+                        label: t('processing.wo.colScheduled'),
+                        value: wo.scheduled_date
+                            ? new Date(wo.scheduled_date).toLocaleDateString(dl)
+                            : <span className="text-gray-500 italic">{t('processing.wo.noSchedule')}</span>,
+                    },
+                    { label: t('processing.wo.colNotes'), value: wo.notes ?? '—' },
+                ]}
+            />
 
-                <div className="flex items-start justify-between mb-4">
-                    <h1 className="text-2xl font-bold font-mono">{wo.code}</h1>
-                    <span className="px-3 py-1 rounded bg-gray-200 text-sm">
-                        {t(workOrderStatusKey(wo.status))}
-                    </span>
-                </div>
-
-                {/* 【收工 / 取消的理由摆在最上面】—— 一张终态的单据,人第一个问题是
-                    "为什么结束了",答案不该藏在历史列表的最下面。 */}
-                {wo.closed_at && (
-                    <div className="bg-gray-50 border border-gray-300 text-gray-800 px-4 py-3 rounded mb-4">
-                        {t('processing.wo.closedBanner', {
-                            at: formatTimestamp(wo.closed_at, dl),
-                            reason: wo.close_reason ?? '—',
-                        })}
-                    </div>
-                )}
-                {wo.cancelled_at && (
-                    <div className="bg-gray-50 border border-gray-300 text-gray-800 px-4 py-3 rounded mb-4">
-                        {t('processing.wo.cancelledBanner', {
-                            at: formatTimestamp(wo.cancelled_at, dl),
-                            reason: wo.cancel_reason ?? '—',
-                        })}
-                    </div>
-                )}
-
-                <dl className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm mb-6">
-                    <div>
-                        <dt className="inline text-gray-500">{t('processing.wo.colScheduled')}: </dt>
-                        <dd className="inline">
-                            {wo.scheduled_date
-                                ? new Date(wo.scheduled_date).toLocaleDateString(dl)
-                                : <span className="text-gray-500 italic">{t('processing.wo.noSchedule')}</span>}
-                        </dd>
-                    </div>
-                    <div>
-                        <dt className="inline text-gray-500">{t('processing.wo.colNotes')}: </dt>
-                        <dd className="inline">{wo.notes ?? '—'}</dd>
-                    </div>
-                </dl>
-
-                {/* ── 投入侧 ──────────────────────────────────────────────── */}
-                <h2 className="text-lg font-semibold mb-1">{t('processing.wo.inputSide')}</h2>
-                <p className="text-xs text-gray-500 mb-2">{t('processing.wo.inputSideNote')}</p>
-                <table className="w-full border-collapse border border-gray-300 text-sm mb-2">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('processing.wo.colMaterial')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('processing.wo.colPlanned')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('processing.wo.colConsumed')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('processing.wo.colVariance')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {inputRows.map((r) => (
-                            <tr key={r.material_id} className={r.has_plan ? '' : 'bg-amber-50'}>
-                                <td className="border border-gray-300 px-3 py-2">
-                                    {label(r)}
-                                    {/* 【吃了没人计划过的料】自己一行,并说出它是什么 */}
-                                    {!r.has_plan && (
-                                        <span className="ml-2 text-xs text-amber-700">
-                                            {t('processing.wo.unplannedMaterial')}
-                                        </span>
-                                    )}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                    {r.planned_or_expected_qty ?? <span className="text-gray-400">—</span>}
-                                </td>
-                                {/* ★【出处必须在屏幕上分得开,不只是在数据里分得开】★
-                                    播种的猜测标成琥珀色并带一个"低置信"的字样,校准过的标成绿色;
-                                    **没人说过的那一格写着"还没有人说过",不是一个空白格** ——
-                                    空白格读起来像"这一栏不重要",而这一栏正是六个月后
-                                    唯一能回答"这个数可不可信"的东西。 */}
-                                <td className="border border-gray-300 px-3 py-2 text-xs">
-                                    {(() => {
-                                        const b = basisOf.get(r.material_id)
-                                        if (!r.has_plan) return <span className="text-gray-400">—</span>
-                                        if (!b?.basis) return (
-                                            <span className="text-gray-500 italic">
-                                                {t('processing.wo.basis.unstated')}
-                                            </span>)
-                                        const tone = b.basis === 'calibrated' ? 'bg-green-100 text-green-800'
-                                            : b.basis === 'seeded_industry' ? 'bg-amber-100 text-amber-800'
-                                            : 'bg-gray-100 text-gray-700'
-                                        return (
-                                            <>
-                                                <span className={`inline-block px-2 py-0.5 rounded ${tone}`}>
-                                                    {t('processing.wo.basis.' + b.basis)}
-                                                </span>
-                                                {b.basis_reference && (
-                                                    <span className="block text-gray-500 mt-1">{b.basis_reference}</span>
-                                                )}
-                                            </>)
-                                    })()}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{r.actual_qty}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                    {/* 【差异为空就留空 —— 绝不写 0】没有被减数,差就说不出来 */}
-                                    {r.variance_qty == null
-                                        ? <span className="text-gray-400">—</span>
-                                        : <span className={Number(r.variance_qty) < 0 ? 'text-amber-700' : ''}>
-                                              {Number(r.variance_qty) > 0 ? '+' : ''}{r.variance_qty}
-                                          </span>}
-                                </td>
-                            </tr>
-                        ))}
-                        {inputRows.length === 0 && (
-                            <tr><td colSpan={4} className="border border-gray-300 px-3 py-4 text-center text-gray-500">
-                                {t('processing.wo.noLines')}
-                            </td></tr>
-                        )}
-                    </tbody>
-                </table>
+            {/* ── 投入侧 ──────────────────────────────────────────────── */}
+            <h2 className="text-lg font-semibold mt-6 mb-1">{t('processing.wo.inputSide')}</h2>
+            <p className="text-xs text-gray-500 mb-2">{t('processing.wo.inputSideNote')}</p>
+            <InputSideTable rows={inputTableRows} />
+            {/* ★ 出口:改计划行。住 children,靠 state 恒为 'ok' 撑着;
+                它自己带 blockedReason,不可改时说【为什么】而不是消失。 */}
+            <div className="mt-2">
                 <AmendLinesControl
                     id={wo.id} rows={amendRows} editable={editable}
                     blockedReason={!canEdit
                         ? `${t('common.restricted')} — ${t('processing.wo.needsEdit')}`
                         : t('processing.wo.blocked.amendTerminal', { status: t(workOrderStatusKey(wo.status)) })}
                 />
-
-                {/* ── 产出侧 ──────────────────────────────────────────────── */}
-                <h2 className="text-lg font-semibold mt-8 mb-1">{t('processing.wo.outputSide')}</h2>
-                <p className="text-xs text-gray-500 mb-2">{t('processing.wo.outputSideNote')}</p>
-                <table className="w-full border-collapse border border-gray-300 text-sm">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('processing.wo.colMaterial')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('processing.wo.colExpected')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('processing.wo.colBasis')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('processing.wo.colProduced')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('processing.wo.colVariance')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {outputRows.map((r) => (
-                            <tr key={r.material_id}>
-                                <td className="border border-gray-300 px-3 py-2">{label(r)}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                    {/* 【没估过 ≠ 估了零 —— 屏幕上把它说出来】 */}
-                                    {r.has_plan
-                                        ? r.planned_or_expected_qty
-                                        : <span className="text-gray-500 italic text-xs">
-                                              {t('processing.wo.noExpectation')}
-                                          </span>}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">{r.actual_qty}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                    {r.variance_qty == null
-                                        ? <span className="text-gray-400">—</span>
-                                        : <span className={Number(r.variance_qty) < 0 ? 'text-amber-700' : ''}>
-                                              {Number(r.variance_qty) > 0 ? '+' : ''}{r.variance_qty}
-                                          </span>}
-                                </td>
-                            </tr>
-                        ))}
-                        {outputRows.length === 0 && (
-                            <tr><td colSpan={5} className="border border-gray-300 px-3 py-4 text-center text-gray-500">
-                                {t('processing.wo.noOutputsYet')}
-                            </td></tr>
-                        )}
-                    </tbody>
-                </table>
-
-                {/* ── 挂上来的加工单 ──────────────────────────────────────── */}
-                <h2 className="text-lg font-semibold mt-8 mb-2">{t('processing.wo.linkedRuns')}</h2>
-                {runs.length === 0 ? (
-                    <p className="text-sm text-gray-500">{t('processing.wo.noRuns')}</p>
-                ) : (
-                    <table className="w-full border-collapse border border-gray-300 text-sm">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('processing.colCode')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('processing.colProcessDate')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-right">{t('processing.colTotalInput')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-right">{t('processing.colTotalOutput')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('processing.colStatus')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {runs.map((r) => (
-                                <tr key={r.id} className={r.status === 'reversed' ? 'text-gray-400' : ''}>
-                                    <td className="border border-gray-300 px-3 py-2 font-mono">
-                                        <Link href={`/operation/processing/${r.id}`} className="text-blue-600 hover:underline">
-                                            {r.code}
-                                        </Link>
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2">{r.process_date ?? '—'}</td>
-                                    <td className="border border-gray-300 px-3 py-2 text-right font-mono">{r.total_input ?? '—'}</td>
-                                    <td className="border border-gray-300 px-3 py-2 text-right font-mono">{r.total_output ?? '—'}</td>
-                                    <td className="border border-gray-300 px-3 py-2">
-                                        {r.status === 'reversed'
-                                            ? <span className="text-xs px-2 py-1 bg-gray-200 rounded">
-                                                  {t('processing.wo.runReversed')}
-                                              </span>
-                                            : <span className="text-xs px-2 py-1 bg-gray-200 rounded">
-                                                  {t('processing.status.committed')}
-                                              </span>}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                )}
-                {runs.some((r) => r.status === 'reversed') && (
-                    <p className="text-xs text-gray-500 mt-2">{t('processing.wo.reversedNote')}</p>
-                )}
-
-                {/* ── 动作 ────────────────────────────────────────────────── */}
-                <h2 className="text-lg font-semibold mt-8 mb-2">{t('processing.wo.actionsTitle')}</h2>
-                <WorkOrderActions
-                    id={wo.id} status={wo.status} canEdit={canEdit}
-                    hasRuns={liveRuns.length > 0}
-                />
-
-                {/* ── 历史 ────────────────────────────────────────────────── */}
-                <h2 className="text-lg font-semibold mt-8 mb-2">{t('processing.wo.history')}</h2>
-                <ul className="text-sm space-y-1">
-                    {history.map((h, i) => (
-                        <li key={i} className="text-gray-600">
-                            {formatTimestamp(h.changed_at, dl)}
-                            {/* 动态前缀,后缀集合接 work_order_history 的 CHECK(check-i18n 的清单) */}
-                            {' · '}{t('processing.wo.changeType.' + h.change_type)}
-                            {h.old_qty != null || h.new_qty != null
-                                ? ` · ${h.old_qty ?? '—'} → ${h.new_qty ?? '—'}`
-                                : ''}
-                            {h.amend_reason ? ` · ${h.amend_reason}` : ''}
-                            {h.detail ? ` · ${h.detail}` : ''}
-                        </li>
-                    ))}
-                </ul>
             </div>
-        </>
+
+            {/* ── 产出侧 ──────────────────────────────────────────────── */}
+            <h2 className="text-lg font-semibold mt-8 mb-1">{t('processing.wo.outputSide')}</h2>
+            <p className="text-xs text-gray-500 mb-2">{t('processing.wo.outputSideNote')}</p>
+            <OutputSideTable rows={outputTableRows} />
+
+            {/* ── 挂上来的加工单 ──────────────────────────────────────── */}
+            {/* 转换前是 {runs.length === 0 ? <p>没有</p> : <table>} —— 现在表无条件画,
+                空态由表自己说(与 CONV-9 给 /hr/employees/[id] 的修法同向)。 */}
+            <h2 className="text-lg font-semibold mt-8 mb-2">{t('processing.wo.linkedRuns')}</h2>
+            <LinkedRunsTable rows={linkedRunRows} />
+            {runs.some((r) => r.status === 'reversed') && (
+                <p className="text-xs text-gray-500 mt-2">{t('processing.wo.reversedNote')}</p>
+            )}
+
+            {/* ── 动作 ────────────────────────────────────────────────── */}
+            {/* ★ 出口:发布 / 收工 / 取消。住 children,无条件画,自己说不可用的理由。 */}
+            <h2 className="text-lg font-semibold mt-8 mb-2">{t('processing.wo.actionsTitle')}</h2>
+            <WorkOrderActions id={wo.id} status={wo.status} canEdit={canEdit} hasRuns={liveRuns.length > 0} />
+
+            {/* ── 历史 ────────────────────────────────────────────────── */}
+            <h2 className="text-lg font-semibold mt-8 mb-2">{t('processing.wo.history')}</h2>
+            <ul className="text-sm space-y-1">
+                {history.map((h, i) => (
+                    <li key={i} className="text-gray-600">
+                        {formatTimestamp(h.changed_at, dl)}
+                        {/* 动态前缀,后缀集合接 work_order_history 的 CHECK(check-i18n 的清单) */}
+                        {' · '}{t('processing.wo.changeType.' + h.change_type)}
+                        {h.old_qty != null || h.new_qty != null
+                            ? ` · ${h.old_qty ?? '—'} → ${h.new_qty ?? '—'}`
+                            : ''}
+                        {h.amend_reason ? ` · ${h.amend_reason}` : ''}
+                        {h.detail ? ` · ${h.detail}` : ''}
+                    </li>
+                ))}
+            </ul>
+        </ListPage>
     )
 }

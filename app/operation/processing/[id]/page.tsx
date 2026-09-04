@@ -18,6 +18,17 @@ import { mustOne, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { getBaseCurrency } from '@/lib/currency'
+import { ListPage } from '@/app/components/ui/list-page'
+import { RecordHeader } from '@/app/components/ui/record-header'
+// LineageRow 这个名字页面自己已经用掉了(batch_lineage 的行形状),
+// 所以表那一侧的行类型换个名字进来 —— 不改页面既有的那个类型。
+import {
+    WoVarianceTable, type WoVarianceRow,
+    LineageTable, type LineageRow as LineageTableRow,
+    InputsTable, type InputLegRow,
+    OutputsTable, type OutputLegRow,
+    RecoveryTable, type RecoveryRow,
+} from './ProcessingTables'
 
 // FK 嵌入运行时是对象(包括两层嵌套);显式类型 + cast 锁住。
 type ProcessingInputRow = {
@@ -281,152 +292,173 @@ export default async function ProcessingDetailPage({
         ? (snapshot!.skipped_metals as string[])
         : []
 
+    // ── 行数据在服务端压平 ─────────────────────────────────────────────────
+    // CONV-1 §① 那条:`Column.render` 是函数,过不了 RSC 边界,所以表在客户端,
+    // 而【数据】在这里就变成字符串与布尔值 —— 客户端组件不碰 supabase,也不碰
+    // 权限判断(showPrices 已经在这里问过了,过界的只是它的结果)。
+    const varianceRows: WoVarianceRow[] = woVariance.map((v, i) => ({
+        id: String(i),
+        sideLabel: t(v.side === 'input' ? 'processing.wo.inputSide' : 'processing.wo.outputSide'),
+        material: v.material_code ?? '—',
+        plannedText: v.has_plan
+            ? String(v.planned_or_expected_qty)
+            : t(v.side === 'input' ? 'processing.wo.unplannedMaterial' : 'processing.wo.noExpectation'),
+        plannedMuted: !v.has_plan,
+        actualText: String(v.actual_qty),
+        // null 是【无从相减】,不是 0 —— 表里画成灰横杠,与转换前逐字相同。
+        varianceText: v.variance_qty == null
+            ? null
+            : (Number(v.variance_qty) > 0 ? '+' : '') + String(v.variance_qty),
+        varianceNegative: v.variance_qty != null && Number(v.variance_qty) < 0,
+    }))
+
+    const lineageTableRows: LineageTableRow[] = lineage.map((l, i) => ({
+        id: `${l.parent_batch_id}-${l.depth}-${i}`,
+        depth: l.depth,
+        viaRunCode: l.via_run_code,
+        parentCode: l.parent_code ?? '—',
+        parentHref: l.parent_kind === 'inbound'
+            ? `/inbound/${l.parent_batch_id}/edit`
+            : `/output/${l.parent_batch_id}/edit`,
+        parentKindLabel: t('processing.lineage.kind_' + l.parent_kind),
+        qty: String(l.quantity_consumed),
+    }))
+
+    const inputRows: InputLegRow[] = (inputs ?? []).map((leg) => {
+        // FIN-25:双亲投料 —— 进料批或(再加工)产出批
+        const parent = leg.inbound_batches ?? leg.output_batches
+        return {
+            id: leg.id,
+            parentCode: parent?.code ?? null,
+            parentHref: leg.inbound_batches
+                ? `/inbound/${leg.inbound_batches.id}/edit`
+                : leg.output_batches ? `/output/${leg.output_batches.id}/edit` : null,
+            parentDeleted: !!parent?.deleted_at,
+            deletedMarker: t('processing.detail.deletedMarker'),
+            reprocessed: !!leg.output_batches,
+            material: parent?.materials?.name ?? '—',
+            qtyText: `${leg.quantity_consumed} ${parent?.unit ?? ''}`.trim(),
+        }
+    })
+
+    const outputRows: OutputLegRow[] = (outputs ?? []).map((leg) => ({
+        id: leg.id,
+        batchCode: leg.output_batches?.code ?? null,
+        batchHref: leg.output_batches ? `/output/${leg.output_batches.id}/edit` : null,
+        batchDeleted: !!leg.output_batches?.deleted_at,
+        deletedMarker: t('processing.detail.deletedMarker'),
+        material: leg.output_batches?.materials?.name ?? '—',
+        qtyText: `${leg.quantity_produced} ${leg.output_batches?.unit ?? ''}`.trim(),
+        purity: leg.output_batches?.purity != null ? String(leg.output_batches.purity) : '—',
+        // 遮蔽后是 null,和「尚未分摊」是两回事 —— 前者显示「受限」,后者才是「—」。
+        // 两者都画成 — 会让运营以为成本没算。判断留在服务端,MaskedValue 在客户端。
+        allocatedCostText: leg.allocated_cost_base === null
+            ? null : formatMoneyBare(leg.allocated_cost_base, '列头「分摊成本 (SGD)」'),
+        unitCostText: leg.unit_cost_base === null
+            ? null : formatUnitCost(leg.unit_cost_base) + ' /kg',
+        costIncomplete: !!leg.cost_incomplete,
+    }))
+
+    const recoveryTableRows: RecoveryRow[] = recoveryRows.map((r, idx) => ({
+        id: String(r.metal ?? idx),
+        metalLabel: metalLabel(r.metal),
+        inputMeasured: !!r.input_measured,
+        inputText: String(r.input_metal_kg),
+        inputSource: sourceLabel(r.input_source),
+        outputMeasured: !!r.output_measured,
+        outputText: String(r.output_metal_kg),
+        outputSource: sourceLabel(r.output_source),
+        recoveryPctText: r.recovery_pct != null ? r.recovery_pct.toFixed(2) + '%' : null,
+        blockedReason: t('processing.recovery.blocked.' + (r.recovery_blocked_by ?? 'input_not_measured')),
+    }))
+
     return (
-        <div className="p-8 max-w-3xl">
-            <div className="mb-6">
-                <Link
-                    href="/operation/processing"
-                    className="text-blue-600 hover:underline text-sm"
-                >
+        <ListPage
+            maxWidth="max-w-3xl"
+            breadcrumb={
+                <Link href="/operation/processing" className="text-blue-600 hover:underline text-sm">
                     {t('common.back')}
                 </Link>
-            </div>
-
-            <div className="flex items-start justify-between mb-6">
-                <div>
-                    <h1 className="text-2xl font-bold mb-2">{t('processing.detailTitle')}</h1>
-                    <p className="text-sm text-gray-600">
-                        <span className="font-mono">{run.code}</span>
-                        <span className="mx-2">·</span>
-                        <span className="px-2 py-0.5 bg-gray-200 rounded text-xs">
-                            {statusLabel(run.status)}
-                        </span>
-                    </p>
-                </div>
-                <DeleteButton runId={run.id} />
-            </div>
-
-            <div className="space-y-6">
-                {/* 概况 */}
-                <div className="bg-gray-50 rounded p-4">
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                        <div>
-                            <span className="text-gray-600">{t('processing.detail.processDate')}</span>{' '}
-                            {run.process_date ?? '—'}
-                        </div>
-                        <div>
-                            <span className="text-gray-600">{t('processing.detail.totalInput')}</span>{' '}
-                            {run.total_input ?? '—'}
-                        </div>
-                        <div>
-                            <span className="text-gray-600">{t('processing.detail.totalOutput')}</span>{' '}
-                            {run.total_output ?? '—'}
-                        </div>
-                        <div>
-                            <span className="text-gray-600">{t('processing.detail.loss')}</span>{' '}
-                            {run.loss_qty ?? '—'}
-                            {run.loss_qty != null && run.total_input
-                                ? ` (${((run.loss_qty / run.total_input) * 100).toFixed(1)}%)`
-                                : ''}
-                        </div>
-                    </div>
-
-                    {/* WO-1c:这次加工算在哪张计划上 —— 【没有就说"无计划",不留空】
-                        空白读起来像数据缺了,而"临时起意的加工"是一个正当的类别。 */}
-                    <div className="mt-3 pt-3 border-t border-gray-200 text-sm">
-                        <span className="text-gray-600">{t('processing.detail.workOrder')}</span>{' '}
-                        {wo
+            }
+            title={t('processing.detailTitle')}
+            // ★ 出口:删除这一单。转换前它画在 h1 右边的 justify-between 里 ——
+            //   actions 是同一个位置,而且画在状态分支【之前】,空态吃不掉它。
+            actions={<DeleteButton runId={run.id} />}
+            // ★★ 详情页恒为 ok —— 这一单在不在由上面的 notFound() 回答。CONV-8 §⑤。
+            state={{ kind: 'ok' }}
+        >
+            {/* ★ 记录抬头 —— 转换前是一块 bg-gray-50 rounded p-4 的面板(25 张里的一张)。
+                单号与状态徽章转换前住在 <h1> 底下那一行 p;它们是这条记录的字段,
+                所以搬进抬头,而不是留在标题里当装饰。 */}
+            <RecordHeader
+                fields={[
+                    { label: t('processing.colCode'), value: run.code, mono: true },
+                    {
+                        label: t('processing.colStatus'),
+                        value: (
+                            <span className="px-2 py-1 rounded text-xs bg-gray-200">
+                                {statusLabel(run.status)}
+                            </span>
+                        ),
+                    },
+                    { label: t('processing.detail.processDate'), value: run.process_date ?? '—' },
+                    { label: t('processing.detail.totalInput'), value: run.total_input ?? '—' },
+                    { label: t('processing.detail.totalOutput'), value: run.total_output ?? '—' },
+                    {
+                        label: t('processing.detail.loss'),
+                        value: (run.loss_qty ?? '—') + (run.loss_qty != null && run.total_input
+                            ? ` (${((run.loss_qty / run.total_input) * 100).toFixed(1)}%)` : ''),
+                    },
+                    {
+                        // WO-1c:【没有就说「无计划」,不留空】—— 空白读起来像数据缺了,
+                        // 而「临时起意的加工」是一个正当的类别。
+                        label: t('processing.detail.workOrder'),
+                        value: wo
                             ? <Link href={`/operation/orders/${wo.id}`}
                                     className="text-blue-600 hover:underline font-mono">{wo.code}</Link>
-                            : <span className="text-gray-500 italic">{t('processing.noWorkOrder')}</span>}
-                    </div>
+                            : <span className="text-gray-500 italic">{t('processing.noWorkOrder')}</span>,
+                    },
+                    {
+                        label: t('processing.detail.materialCost'),
+                        value: <MaskedValue value={run.material_cost_base === null ? null : formatAmount(run.material_cost_base, baseCurrency)} canView={showPrices} fallback="—" />,
+                    },
+                    {
+                        label: t('processing.detail.processCost'),
+                        value: <MaskedValue value={run.process_cost_base === null ? null : formatAmount(run.process_cost_base, baseCurrency)} canView={showPrices} fallback="—" />,
+                    },
+                    {
+                        label: t('processing.detail.totalCost'),
+                        value: <MaskedValue value={run.total_cost_base === null ? null : formatAmount(run.total_cost_base, baseCurrency)} canView={showPrices} fallback="—" />,
+                    },
+                    ...(run.notes ? [{ label: t('processing.detail.notes'), value: run.notes }] : []),
+                ]}
+            />
 
-                    {/* 【差异读的是视图,不是这里算的】而且它是【整张工单】的差异,
-                        不是这一次加工的 —— 一张工单可以有几次加工,差异只在工单这一层
-                        才有意义。标题把这件事说出来,免得有人把它读成本次的产出偏差。 */}
-                    {wo && woVariance.length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-gray-200">
-                            <p className="text-sm text-gray-600 mb-1">
-                                {t('processing.detail.varianceTitle', { code: wo.code })}
-                            </p>
-                            <table className="w-full border-collapse border border-gray-300 text-xs">
-                                <tbody>
-                                    {woVariance.map((v, i) => (
-                                        <tr key={i}>
-                                            <td className="border border-gray-300 px-2 py-1">
-                                                {t(v.side === 'input'
-                                                    ? 'processing.wo.inputSide' : 'processing.wo.outputSide')}
-                                            </td>
-                                            <td className="border border-gray-300 px-2 py-1">
-                                                {v.material_code ?? '—'}
-                                            </td>
-                                            <td className="border border-gray-300 px-2 py-1 text-right font-mono">
-                                                {v.has_plan
-                                                    ? v.planned_or_expected_qty
-                                                    : <span className="text-gray-500 italic">
-                                                          {t(v.side === 'input'
-                                                              ? 'processing.wo.unplannedMaterial'
-                                                              : 'processing.wo.noExpectation')}
-                                                      </span>}
-                                            </td>
-                                            <td className="border border-gray-300 px-2 py-1 text-right font-mono">
-                                                {v.actual_qty}
-                                            </td>
-                                            <td className="border border-gray-300 px-2 py-1 text-right font-mono">
-                                                {v.variance_qty == null
-                                                    ? <span className="text-gray-400">—</span>
-                                                    : <span className={Number(v.variance_qty) < 0 ? 'text-amber-700' : ''}>
-                                                          {Number(v.variance_qty) > 0 ? '+' : ''}{v.variance_qty}
-                                                      </span>}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
+            {allocatedWhen && (
+                <p className="mt-3 text-xs text-gray-500">
+                    {t('processing.allocation.lastRun', { when: allocatedWhen, basis: basisLabel })}
+                </p>
+            )}
+            {skippedMetals.length > 0 && (
+                <p className="mt-1 text-xs text-amber-600">
+                    {t('processing.allocation.skippedMetals', {
+                        metals: skippedMetals.map((m) => metalLabel(m)).join(locale === 'zh' ? '、' : ', '),
+                    })}
+                </p>
+            )}
 
-                    {/* 成本(本位币金额;币种随数写出,见文件顶部 baseCurrency)*/}
-                    <div className="mt-3 pt-3 border-t border-gray-200 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                        <div>
-                            <span className="text-gray-600">{t('processing.detail.materialCost')}</span>{' '}
-                            <MaskedValue value={run.material_cost_base === null ? null : formatAmount(run.material_cost_base, baseCurrency)} canView={showPrices} fallback="—" />
-                        </div>
-                        <div>
-                            <span className="text-gray-600">{t('processing.detail.processCost')}</span>{' '}
-                            <MaskedValue value={run.process_cost_base === null ? null : formatAmount(run.process_cost_base, baseCurrency)} canView={showPrices} fallback="—" />
-                        </div>
-                        <div>
-                            <span className="text-gray-600">{t('processing.detail.totalCost')}</span>{' '}
-                            <MaskedValue value={run.total_cost_base === null ? null : formatAmount(run.total_cost_base, baseCurrency)} canView={showPrices} fallback="—" />
-                        </div>
-                    </div>
-
-                    {allocatedWhen && (
-                        <p className="mt-3 text-xs text-gray-500">
-                            {t('processing.allocation.lastRun', {
-                                when: allocatedWhen,
-                                basis: basisLabel,
-                            })}
-                        </p>
-                    )}
-
-                    {skippedMetals.length > 0 && (
-                        <p className="mt-1 text-xs text-amber-600">
-                            {t('processing.allocation.skippedMetals', {
-                                metals: skippedMetals
-                                    .map((m) => metalLabel(m))
-                                    .join(locale === 'zh' ? '、' : ', '),
-                            })}
-                        </p>
-                    )}
-
-                    {run.notes && (
-                        <div className="mt-3 pt-3 border-t border-gray-200 text-sm">
-                            <span className="text-gray-600">{t('processing.detail.notes')}</span> {run.notes}
-                        </div>
-                    )}
-                </div>
+            <div className="space-y-6 mt-6">
+                {/* 【差异读的是视图,不是这里算的】而且它是【整张工单】的差异,不是这一次
+                    加工的 —— 一张工单可以有几次加工,差异只在工单这一层才有意义。
+                    ☞ 守卫的是 wo 存不存在(记录的属性),画的是数据不是出口 —— §⑬-0c。 */}
+                {wo && varianceRows.length > 0 && (
+                    <section>
+                        <h2 className="text-lg font-semibold mb-2">
+                            {t('processing.detail.varianceTitle', { code: wo.code })}
+                        </h2>
+                        <WoVarianceTable rows={varianceRows} />
+                    </section>
+                )}
 
                 {/* 成本条目(仅已提交单) */}
                 {isCommitted && <CostPanel runId={run.id} entries={costRows} canViewPrices={showPrices} />}
@@ -434,50 +466,17 @@ export default async function ProcessingDetailPage({
                 {/* PROC-BUILD-1:损耗分类 —— 就记在损耗被记下来的这一页。
                     只在【已提交】单上;reversed 单是历史,不可改(与 CostPanel 同一条)。 */}
                 {isCommitted && (
-                    <LossPanel
-                        runId={run.id}
-                        categories={lossCategories}
-                        rows={lossRows}
-                        lossQty={run.loss_qty ?? null}
-                        canEdit={canEditRun}
-                        locale={locale}
-                    />
+                    <LossPanel runId={run.id} categories={lossCategories} rows={lossRows}
+                               lossQty={run.loss_qty ?? null} canEdit={canEditRun} locale={locale} />
                 )}
 
-                {/* FIN-25:血缘 —— 深度 >1 才值得占版面(一段加工的直接投入上面已经列了)*/}
+                {/* FIN-25:血缘 —— 深度 >1 才值得占版面(一段加工的直接投入上面已经列了)。
+                    ☞ 这一条守卫【不是】空集守卫:depth>1 说的是「有没有多层」,
+                       而单层血缘就是上面那张投入表,画出来是重复不是补充。 */}
                 {lineage.some((l) => l.depth > 1) && (
                     <section>
                         <h2 className="text-lg font-semibold mb-2">{t('processing.lineage.title')}</h2>
-                        <table className="w-auto min-w-[36rem] border-collapse border border-gray-300">
-                            <thead className="bg-gray-100">
-                                <tr>
-                                    <th className="border border-gray-300 px-3 py-2 text-left">{t('processing.lineage.colDepth')}</th>
-                                    <th className="border border-gray-300 px-3 py-2 text-left">{t('processing.lineage.colViaRun')}</th>
-                                    <th className="border border-gray-300 px-3 py-2 text-left">{t('processing.lineage.colParent')}</th>
-                                    <th className="border border-gray-300 px-3 py-2 text-right">{t('processing.lineage.colQty')}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {lineage.map((l, i) => (
-                                    <tr key={i}>
-                                        <td className="border border-gray-300 px-3 py-2 font-mono text-sm">{l.depth}</td>
-                                        <td className="border border-gray-300 px-3 py-2 font-mono text-sm">{l.via_run_code}</td>
-                                        <td className="border border-gray-300 px-3 py-2 font-mono text-sm">
-                                            <Link href={l.parent_kind === 'inbound'
-                                                    ? `/inbound/${l.parent_batch_id}/edit`
-                                                    : `/output/${l.parent_batch_id}/edit`}
-                                                  className="text-blue-600 hover:underline">
-                                                {l.parent_code ?? '—'}
-                                            </Link>
-                                            <span className="ml-2 text-xs text-gray-500 font-sans">
-                                                {t('processing.lineage.kind_' + l.parent_kind)}
-                                            </span>
-                                        </td>
-                                        <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">{l.quantity_consumed}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                        <LineageTable rows={lineageTableRows} />
                     </section>
                 )}
 
@@ -506,263 +505,57 @@ export default async function ProcessingDetailPage({
                                 </p>
                             </div>
                         )}
+                        {/* ★ 出口:重跑分摊。住 children,靠 state 恒为 'ok' 撑着;
+                            它的守卫是 isCommitted —— 记录的状态,不是一个集合空不空。 */}
                         <AllocateButton runId={run.id} />
                     </div>
                 )}
 
-                {/* 投入 */}
+                {/* 投入 —— 空态由表自己说(CONV-8 §⑤ 的推论),不再自己画一行 colSpan */}
                 <section>
                     <h2 className="text-lg font-semibold mb-2">{t('processing.detail.inputsSectionHeader')}</h2>
-                    <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-300">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.detail.colInboundBatch')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.detail.colMaterial')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.detail.colConsumedQty')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {inputs?.map((leg) => {
-                                {/* FIN-25:双亲投料 —— 进料批或(再加工)产出批 */}
-                                const parent = leg.inbound_batches ?? leg.output_batches
-                                const href = leg.inbound_batches
-                                    ? `/inbound/${leg.inbound_batches.id}/edit`
-                                    : leg.output_batches ? `/output/${leg.output_batches.id}/edit` : null
-                                return (
-                                <tr key={leg.id}>
-                                    <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                        {!parent ? (
-                                            '—'
-                                        ) : parent.deleted_at ? (
-                                            <span className="text-gray-500">
-                                                {parent.code}{t('processing.detail.deletedMarker')}
-                                            </span>
-                                        ) : (
-                                            <Link href={href!} className="text-blue-600 hover:underline">
-                                                {parent.code}
-                                            </Link>
-                                        )}
-                                        {leg.output_batches && (
-                                            <span className="ml-2 px-1.5 py-0.5 rounded text-xs bg-blue-50 text-blue-700 font-sans">
-                                                {t('processing.detail.reprocessedTag')}
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="border border-gray-300 px-4 py-2">
-                                        {parent?.materials?.name ?? '—'}
-                                    </td>
-                                    <td className="border border-gray-300 px-4 py-2">
-                                        {leg.quantity_consumed} {parent?.unit ?? ''}
-                                    </td>
-                                </tr>
-                                )
-                            })}
-                            {(!inputs || inputs.length === 0) && (
-                                <tr>
-                                    <td
-                                        colSpan={3}
-                                        className="border border-gray-300 px-4 py-8 text-center text-gray-500"
-                                    >
-                                        {t('processing.detail.noInputRecords')}
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                    </div>
+                    <InputsTable rows={inputRows} />
                 </section>
 
                 {/* 产出 */}
                 <section>
                     <h2 className="text-lg font-semibold mb-2">{t('processing.detail.outputsSectionHeader')}</h2>
-                    <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-300">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.detail.colOutputBatch')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.detail.colMaterial')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.detail.colProducedQty')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.detail.colPurity')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.detail.colAllocatedCost')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.detail.colUnitCost')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {outputs?.map((leg) => (
-                                <tr key={leg.id}>
-                                    <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                        {!leg.output_batches ? (
-                                            '—'
-                                        ) : leg.output_batches.deleted_at ? (
-                                            <span className="text-gray-500">
-                                                {leg.output_batches.code}{t('processing.detail.deletedMarker')}
-                                            </span>
-                                        ) : (
-                                            <Link
-                                                href={`/output/${leg.output_batches.id}/edit`}
-                                                className="text-blue-600 hover:underline"
-                                            >
-                                                {leg.output_batches.code}
-                                            </Link>
-                                        )}
-                                    </td>
-                                    <td className="border border-gray-300 px-4 py-2">
-                                        {leg.output_batches?.materials?.name ?? '—'}
-                                    </td>
-                                    <td className="border border-gray-300 px-4 py-2">
-                                        {leg.quantity_produced} {leg.output_batches?.unit ?? ''}
-                                    </td>
-                                    <td className="border border-gray-300 px-4 py-2">
-                                        {leg.output_batches?.purity ?? '—'}
-                                    </td>
-                                    <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {/* 遮蔽后是 null,和"尚未分摊"是两回事 —— 前者显示「受限」,
-                                            后者才是「—」。都画成 — 会让运营以为成本没算。 */}
-                                        <MaskedValue
-                                            value={leg.allocated_cost_base === null ? null : formatMoneyBare(leg.allocated_cost_base, '列头「分摊成本 (SGD)」')}
-                                            canView={showPrices}
-                                            fallback="—"
-                                        />
-                                    </td>
-                                    <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        <MaskedValue
-                                            value={leg.unit_cost_base === null ? null : formatUnitCost(leg.unit_cost_base) + ' /kg'}
-                                            canView={showPrices}
-                                            fallback="—"
-                                        />
-                                        {/* FIN-25:含计 0 的无价投料(或上游带标)—— 零不静默,
-                                            上游补分摊后本单过期,重跑即清 */}
-                                        {leg.cost_incomplete && (
-                                            <span className="ml-1 px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-800 font-sans">
-                                                {t('processing.detail.costIncomplete')}
-                                            </span>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                            {(!outputs || outputs.length === 0) && (
-                                <tr>
-                                    <td
-                                        colSpan={6}
-                                        className="border border-gray-300 px-4 py-8 text-center text-gray-500"
-                                    >
-                                        {t('processing.detail.noOutputRecords')}
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                    </div>
+                    <OutputsTable rows={outputRows} canViewPrices={showPrices} />
                 </section>
 
                 {/* 金属回收率(仅已提交单) */}
                 {isCommitted && (
                     <section>
                         <h2 className="text-lg font-semibold mb-2">{t('processing.recovery.title')}</h2>
-                        {recoveryRows.length > 0 ? (
-                            <>
-                            {!recoveryComputable && (
-                                <p className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-3 text-sm">
-                                    {t('processing.recovery.runNotComputable')}
-                                </p>
-                            )}
-                            {conservationRows.map((r) => (
-                                <p key={'warn-' + r.metal}
-                                   className="bg-red-50 border border-red-300 text-red-800 px-4 py-3 rounded mb-3 text-sm">
-                                    <span className="font-medium">{t('processing.recovery.anomalyTitle')}</span>{' — '}
-                                    {Number(r.input_metal_kg) === 0
-                                        ? t('processing.recovery.anomalyFromZero', {
-                                              metal: metalLabel(r.metal), output: String(r.output_metal_kg),
-                                          })
-                                        : t('processing.recovery.anomaly', {
-                                              metal: metalLabel(r.metal),
-                                              input: String(r.input_metal_kg),
-                                              output: String(r.output_metal_kg),
-                                          })}
-                                    {/* PROC-1c:这条警告比的是哪两种数 —— 先把两侧出处照直说出来
-                                        (事实),再给一句该先看哪里(判断)。事实单独成句,是因为
-                                        那句判断按 mixed/unknown 必然粗糙,而粗糙的判断不该把事实
-                                        一起吃掉。 */}
-                                    <span className="block mt-2 pt-2 border-t border-red-200">
-                                        <span className="font-medium">
-                                            {t('processing.recovery.sourcePair', {
-                                                input: sourceLabel(r.input_source),
-                                                output: sourceLabel(r.output_source),
-                                            })}
-                                        </span>
-                                        {' — '}
-                                        {t(anomalyCauseKey(r))}
-                                    </span>
-                                </p>
-                            ))}
-                            <div className="overflow-x-auto">
-                            <table className="w-full border-collapse border border-gray-300">
-                                <thead className="bg-gray-100">
-                                    <tr>
-                                        <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.recovery.colMetal')}</th>
-                                        <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.recovery.colInput')}</th>
-                                        <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.recovery.colOutput')}</th>
-                                        <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.recovery.colRecovery')}</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {recoveryRows.map((r, idx) => (
-                                        <tr key={r.metal ?? idx}>
-                                            <td className="border border-gray-300 px-4 py-2">{metalLabel(r.metal)}</td>
-                                            {/* REC-1:【未测】与【测出来是零】渲染成两样东西。此前视图把
-                                                前者压成 0,于是"投入 0 / 产出 40"看着像无中生有,其实
-                                                只是那个金属从没在投入侧被测过。 */}
-                                            {/* PROC-1c:出处贴在它修饰的那个数下面 —— 回收率是
-                                                产出÷投入,"这个百分比除的是哪一种数"是【每一侧
-                                                各自】的事实,不是行级的一个标签。没测过的那一侧
-                                                不画出处:没有数就没有出处,空着才是对的。 */}
-                                            <td className="border border-gray-300 px-4 py-2 text-right text-sm">
-                                                {r.input_measured ? (
-                                                    <>
-                                                        <span className="font-mono">{r.input_metal_kg}</span>
-                                                        <span className="block text-xs text-gray-500">{sourceLabel(r.input_source)}</span>
-                                                    </>
-                                                ) : (
-                                                    <span className="text-gray-400" title={t('processing.recovery.notMeasuredTitle')}>
-                                                        {t('processing.recovery.notMeasured')}
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td className="border border-gray-300 px-4 py-2 text-right text-sm">
-                                                {r.output_measured ? (
-                                                    <>
-                                                        <span className="font-mono">{r.output_metal_kg}</span>
-                                                        <span className="block text-xs text-gray-500">{sourceLabel(r.output_source)}</span>
-                                                    </>
-                                                ) : (
-                                                    <span className="text-gray-400" title={t('processing.recovery.notMeasuredTitle')}>
-                                                        {t('processing.recovery.notMeasured')}
-                                                    </span>
-                                                )}
-                                            </td>
-                                            {/* 算不出的时候说【为什么】和【怎么才能算出来】,而不是一根横杠 */}
-                                            <td className="border border-gray-300 px-4 py-2 text-sm">
-                                                {r.recovery_pct != null ? (
-                                                    <span className="font-mono">{r.recovery_pct.toFixed(2)}%</span>
-                                                ) : (
-                                                    <span className="text-gray-500 text-xs">
-                                                        {t('processing.recovery.blocked.' + (r.recovery_blocked_by ?? 'input_not_measured'))}
-                                                    </span>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                            </div>
-                            </>
-                        ) : (
-                            <p className="text-sm text-gray-500">{t('processing.recovery.empty')}</p>
+                        {!recoveryComputable && (
+                            <p className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-3 text-sm">
+                                {t('processing.recovery.runNotComputable')}
+                            </p>
                         )}
+                        {conservationRows.map((r) => (
+                            <p key={'warn-' + r.metal}
+                               className="bg-red-50 border border-red-300 text-red-800 px-4 py-3 rounded mb-3 text-sm">
+                                <span className="font-medium">{t('processing.recovery.anomalyTitle')}</span>{' — '}
+                                {Number(r.input_metal_kg) === 0
+                                    ? t('processing.recovery.anomalyFromZero', {
+                                          metal: metalLabel(r.metal), output: String(r.output_metal_kg),
+                                      })
+                                    : t('processing.recovery.anomaly', {
+                                          metal: metalLabel(r.metal),
+                                          input: String(r.input_metal_kg),
+                                          output: String(r.output_metal_kg),
+                                          pct: String(r.recovery_pct ?? '—'),
+                                      })}
+                                {' — '}
+                                {t(anomalyCauseKey(r))}
+                            </p>
+                        ))}
+                        {/* 空态由表自己说 —— 转换前这里是一句表外的 <p>,
+                            于是「这一单没有可算的金属」和「表画不出来」长得一样。 */}
+                        <RecoveryTable rows={recoveryTableRows} />
                     </section>
                 )}
             </div>
-        </div>
+        </ListPage>
     )
 }

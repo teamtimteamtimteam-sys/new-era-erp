@@ -2495,6 +2495,7 @@ const en = {
             },
             colProduced: 'Produced',
             colVariance: 'Variance',
+            colSide: 'Side',
             noSchedule: 'not scheduled',
             noExpectation: 'no expectation recorded',
             unplannedMaterial: 'not in the plan',
@@ -2578,6 +2579,7 @@ const en = {
             colQty: 'Qty consumed',
             kind_inbound: 'inbound',
             kind_output: 're-processed output',
+            empty: 'No multi-hop lineage — every input to this run came straight from a batch.',
         },
         errProcessDateRequired: 'A process date is required — it decides the inventory movement date and which metal prices the cost allocation uses.',
         listTitle: 'Processing',
@@ -2763,6 +2765,7 @@ const en = {
         },
         cost: {
             title: 'Cost Entries',
+            empty: 'No cost entries recorded against this run yet.',
             colType: 'Type',
             colAmount: 'Amount (SGD)',
             colNotes: 'Notes',

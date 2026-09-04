@@ -14,6 +14,7 @@
 import { useState, useTransition } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { saveRunLoss, deleteRunLoss } from './lossActions'
+import { DataTable, type Column } from '@/app/components/ui/data-table'
 
 export type LossCategory = {
     code: string; name_en: string; name_zh: string
@@ -43,6 +44,54 @@ export default function LossPanel({
     // 【空不是零】loss_qty 没记过时,"还没解释多少"这个问题不成立 ——
     // 显示 0 会把它读成"全部解释完了"。视图那一侧也是这么判的。
     const unexplained = lossQty == null ? null : lossQty - categorised
+
+    const lossColumns: Column<LossRow>[] = [
+        {
+            key: 'category',
+            header: t('processing.loss.colCategory'),
+            // 身份列:一行损耗的主语是「哪一类去向」。
+            priority: true,
+            render: (r) => {
+                const c = byCode(r.loss_category_code)
+                return (
+                    <>
+                        {c ? label(c) : r.loss_category_code}
+                        {/* 【它不是损耗】这句话必须在行上,不在脚注里 ——
+                            residue_disposal 记在这里是过渡,不是归宿。 */}
+                        {c && !c.is_true_loss && (
+                            <span className="ml-2 text-xs text-amber-700">{t('processing.loss.notTrueLoss')}</span>
+                        )}
+                    </>
+                )
+            },
+        },
+        {
+            key: 'metalFate', header: t('processing.loss.colMetalFate'), className: 'text-gray-700',
+            render: (r) => { const c = byCode(r.loss_category_code); return c ? t('processing.loss.metalFate.' + c.metal_fate) : '—' },
+        },
+        {
+            key: 'qty',
+            header: t('processing.loss.colQty'),
+            align: 'right',
+            // ★ 这张表存在的理由:那一类去向【占了多少】。
+            priority: true,
+            render: (r) => r.quantity,
+        },
+        { key: 'notes', header: t('processing.loss.colNotes'), className: 'text-gray-600', render: (r) => r.notes ?? '—' },
+        // 【删】那一列只在有权限时存在 —— 与转换前的 {canEdit && <th/>} 逐字同一条,
+        // 只是现在表头与表体不可能再各说各的(CONV-9 §⑫-10 第 1 条那种 5 th 对 6 td)。
+        ...(canEdit ? [{
+            key: 'actions',
+            header: '',
+            align: 'right' as const,
+            render: (r: LossRow) => (
+                <button type="button" disabled={isPending} onClick={() => remove(r.loss_category_code)}
+                        className="text-sm text-red-700 hover:underline disabled:opacity-50">
+                    {t('common.delete')}
+                </button>
+            ),
+        }] : []),
+    ]
 
     function submit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
@@ -77,56 +126,18 @@ export default function LossPanel({
                 </span>
             </div>
 
-            {rows.length === 0 ? (
-                <p className="text-sm text-gray-600 border border-gray-200 rounded px-3 py-2 bg-gray-50">
-                    {t('processing.loss.empty')}
-                </p>
-            ) : (
-                <table className="w-full text-sm border border-gray-200">
-                    <thead className="bg-gray-50 text-left">
-                        <tr>
-                            <th className="px-3 py-2">{t('processing.loss.colCategory')}</th>
-                            <th className="px-3 py-2">{t('processing.loss.colMetalFate')}</th>
-                            <th className="px-3 py-2 text-right">{t('processing.loss.colQty')}</th>
-                            <th className="px-3 py-2">{t('processing.loss.colNotes')}</th>
-                            {canEdit && <th className="px-3 py-2" />}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rows.map((r) => {
-                            const c = byCode(r.loss_category_code)
-                            return (
-                                <tr key={r.loss_category_code} className="border-t border-gray-200">
-                                    <td className="px-3 py-2">
-                                        {c ? label(c) : r.loss_category_code}
-                                        {/* 【它不是损耗】这句话必须在行上,不在脚注里 ——
-                                            residue_disposal 记在这里是过渡,不是归宿。 */}
-                                        {c && !c.is_true_loss && (
-                                            <span className="ml-2 text-xs text-amber-700">
-                                                {t('processing.loss.notTrueLoss')}
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="px-3 py-2 text-gray-700">
-                                        {c ? t('processing.loss.metalFate.' + c.metal_fate) : '—'}
-                                    </td>
-                                    <td className="px-3 py-2 text-right">{r.quantity}</td>
-                                    <td className="px-3 py-2 text-gray-600">{r.notes ?? '—'}</td>
-                                    {canEdit && (
-                                        <td className="px-3 py-2 text-right">
-                                            <button type="button" disabled={isPending}
-                                                onClick={() => remove(r.loss_category_code)}
-                                                className="text-sm text-red-700 hover:underline disabled:opacity-50">
-                                                {t('common.delete')}
-                                            </button>
-                                        </td>
-                                    )}
-                                </tr>
-                            )
-                        })}
-                    </tbody>
-                </table>
-            )}
+            {/* ★ CONV-10:转换前是 {rows.length === 0 ? <p>空</p> : <table>} ——
+                两条互斥的分支各画各的。现在表【无条件】画,空态由表自己说,
+                于是「这一单没有分类过损耗」和「表画不出来」不再长得一样。
+                ☞ 每行的「删」是自成一体的格内控件(状态归本面板,表单在表下面)——
+                   留在 DataTable,不是 EditableTable。CONV-8 §④。 */}
+            <DataTable
+                rows={rows}
+                columns={lossColumns}
+                rowKey={(r) => r.loss_category_code}
+                phone={{ mode: 'columns' }}
+                empty={t('processing.loss.empty')}
+            />
 
             {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
 

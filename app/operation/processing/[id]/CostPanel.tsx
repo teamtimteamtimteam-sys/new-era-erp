@@ -8,6 +8,7 @@ import { formatMoneyBare } from '@/lib/format'
 import { COST_TYPE_OPTIONS, costTypeLabelKey, type CostEntryRow } from './costTypes'
 import { addCostEntry, updateCostEntry, softDeleteCostEntry } from './costActions'
 import { MaskedValue } from '@/app/components/MaskedValue'
+import { DataTable, type Column } from '@/app/components/ui/data-table'
 
 export default function CostPanel({
     runId,
@@ -35,6 +36,70 @@ export default function CostPanel({
     const anyMasked = entries.some((e) => e.amount_base === null)
     const total = anyMasked ? null : entries.reduce((s, e) => s + (e.amount_base ?? 0), 0)
     const editing = editingId ? entries.find((e) => e.id === editingId) ?? null : null
+
+    const costColumns: Column<CostEntryRow>[] = [
+        {
+            key: 'type',
+            header: t('processing.cost.colType'),
+            // 身份列:一条成本条目的主语是「哪一种成本」。
+            priority: true,
+            render: (e) => (
+                <>
+                    {typeLabel(e.cost_type)}
+                    {e.is_estimate && (
+                        <span className="text-amber-600 text-xs ml-1">{t('processing.cost.estimateTag')}</span>
+                    )}
+                </>
+            ),
+        },
+        {
+            key: 'amount',
+            header: t('processing.cost.colAmount'),
+            align: 'right',
+            // ★ 这张表被打开的理由:这一笔【多少钱】。
+            priority: true,
+            className: 'font-mono text-sm',
+            render: (e) => (
+                <MaskedValue value={e.amount_base} canView={canViewPrices}
+                             format={(v) => formatMoneyBare(v, '列头「金额 (SGD)」')} />
+            ),
+        },
+        { key: 'notes', header: t('processing.cost.colNotes'), className: 'text-sm', render: (e) => e.notes ?? '—' },
+        {
+            key: 'created', header: t('processing.cost.colCreated'), className: 'text-sm text-gray-600',
+            render: (e) => (
+                <>
+                    {e.created_at_display}
+                    {/* 改过就说出来 —— 只显示创建日期会让改后的数字看着像原值 */}
+                    {e.edited_at_display && (
+                        <span className="block text-xs text-amber-700">
+                            {t('processing.cost.editedAt', { at: e.edited_at_display })}
+                            {e.edited_by_name ? ` · ${e.edited_by_name}` : ''}
+                        </span>
+                    )}
+                </>
+            ),
+        },
+        {
+            key: 'actions',
+            header: t('processing.cost.colActions'),
+            className: 'whitespace-nowrap',
+            render: (e) => (
+                <>
+                    <button type="button" onClick={() => { setEditingId(e.id); setError(null) }}
+                            disabled={isPending}
+                            className="text-blue-600 text-sm hover:underline disabled:text-gray-400">
+                        {t('processing.cost.edit')}
+                    </button>
+                    <span className="mx-2 text-gray-300">|</span>
+                    <button type="button" onClick={() => handleDelete(e.id)} disabled={isPending}
+                            className="text-red-600 text-sm hover:underline disabled:text-gray-400">
+                        {t('common.delete')}
+                    </button>
+                </>
+            ),
+        },
+    ]
 
     function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
@@ -69,73 +134,23 @@ export default function CostPanel({
 
             {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
 
-            {entries.length > 0 && (
-                <table className="w-full border-collapse border border-gray-300 mb-4">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.cost.colType')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.cost.colAmount')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.cost.colNotes')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.cost.colCreated')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('processing.cost.colActions')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {entries.map((e) => (
-                            <tr key={e.id} className={editingId === e.id ? 'bg-blue-50' : ''}>
-                                <td className="border border-gray-300 px-4 py-2">
-                                    {typeLabel(e.cost_type)}
-                                    {e.is_estimate && (
-                                        <span className="text-amber-600 text-xs ml-1">
-                                            {t('processing.cost.estimateTag')}
-                                        </span>
-                                    )}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                    <MaskedValue
-                                        value={e.amount_base}
-                                        canView={canViewPrices}
-                                        format={(v) => formatMoneyBare(v, '列头「金额 (SGD)」')}
-                                    />
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2 text-sm">{e.notes ?? '—'}</td>
-                                <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
-                                    {e.created_at_display}
-                                    {/* 改过就说出来 —— 只显示创建日期会让改后的数字看着像原值 */}
-                                    {e.edited_at_display && (
-                                        <span className="block text-xs text-amber-700">
-                                            {t('processing.cost.editedAt', { at: e.edited_at_display })}
-                                            {e.edited_by_name ? ` · ${e.edited_by_name}` : ''}
-                                        </span>
-                                    )}
-                                </td>
-                                <td className="border border-gray-300 px-4 py-2 whitespace-nowrap">
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setEditingId(e.id)
-                                            setError(null)
-                                        }}
-                                        disabled={isPending}
-                                        className="text-blue-600 text-sm hover:underline disabled:text-gray-400"
-                                    >
-                                        {t('processing.cost.edit')}
-                                    </button>
-                                    <span className="mx-2 text-gray-300">|</span>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleDelete(e.id)}
-                                        disabled={isPending}
-                                        className="text-red-600 text-sm hover:underline disabled:text-gray-400"
-                                    >
-                                        {t('common.delete')}
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
+            {/* ★ CONV-10:转换前这张表被 {entries.length > 0 && …} 整个包着 ——
+                一条成本都没有时【整张表连同表头一起消失】,而空态由表外一句
+                「合计:0」隐晦地说。现在表【无条件】画,空态由表自己说
+                (与 CONV-9 给 /hr/employees/[id] 绩效表的修法同向)。
+                ☞ 每行的「改 / 删」是【自成一体的格内控件】,状态(editingId)归本面板,
+                   表单在表【下面】—— 所以它留在 DataTable,不是 EditableTable。
+                   CONV-8 §④ 那条判据:问的是【谁持有状态】,不是有没有 <button>。 */}
+            <div className="mb-4">
+                <DataTable
+                    rows={entries}
+                    columns={costColumns}
+                    rowKey={(e) => e.id}
+                    phone={{ mode: 'columns' }}
+                    rowClassName={(e) => (editingId === e.id ? 'bg-blue-50' : undefined)}
+                    empty={t('processing.cost.empty')}
+                />
+            </div>
 
             {/* 合计 */}
             <p className="text-sm mb-4">

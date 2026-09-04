@@ -2508,6 +2508,7 @@ const zh = {
             },
             colProduced: '实产',
             colVariance: '差异',
+            colSide: '侧',
             noSchedule: '未排期',
             noExpectation: '未记录预期',
             unplannedMaterial: '计划外',
@@ -2591,6 +2592,7 @@ const zh = {
             colQty: '耗用量',
             kind_inbound: '进料批',
             kind_output: '再加工产出批',
+            empty: '没有多层血缘 —— 本单的投入全部是直接投料。',
         },
         errProcessDateRequired: '加工日期必填 —— 它决定库存流水的业务日期,以及成本分摊取哪天的金属行情。',
         listTitle: '加工单',
@@ -2776,6 +2778,7 @@ const zh = {
         },
         cost: {
             title: '成本条目',
+            empty: '本单还没有记过成本条目。',
             colType: '类型',
             colAmount: '金额 (SGD)',
             colNotes: '备注',
