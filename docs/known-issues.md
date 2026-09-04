@@ -4520,3 +4520,57 @@ TASK-1c-d),但**数据库这一侧没有任何东西说出这个区别** ——
 与 `actor_unresolvable`(记了、但解析不到人)。
 **「没有人做过这件事」与「当时没有人记下来」与「你不能看」是三件事**,
 屏幕上必须是三句话 —— 这一条已经由 FIN-26 与 FIX-1 各付过一次代价。
+
+---
+
+## CONV-6-LOGISTICS-GATE(2026-09-04)—— 物流有自己的码,而 `container_overview` 还在用采购的
+
+**状态:已知,本刀【不改】,理由在下面。**
+
+NAV-REG-1 / R2 给物流铸了它自己的权限码 `module.logistics.view`,并把**八张表**的
+SELECT 策略换成了它。**`db/views/container_overview.sql` 这张视图没有跟着换** ——
+它体内的谓词至今是 `has_permission('module.purchasing.view')`。
+
+**实测的后果(2026-09-04,查 live 授权):**
+
+| | 角色 |
+|---|---|
+| `module.logistics.view`(进得去物流) | admin · auditor · cfo · finance · gm · **operations** · procurement · **sales** · **warehouse** |
+| `module.purchasing.view`(读得到这张视图) | admin · auditor · cfo · finance · gm · procurement |
+
+**`operations` · `sales` · `warehouse` 三个角色进得去物流,而这张视图对他们返回空集。**
+而"空集"与"一只货柜都没有"在屏幕上**完全一样** —— 这正是本仓库
+`lib/permissions.ts` 抬头那条(受限的 null ≠ 本来就没有的 null)的又一处。
+
+**本刀做了什么、没做什么:**
+* **做了**:`app/logistics/page.tsx`(CONV-6 ⑨ 新建的物流 Overview)**先判权限,
+  再决定查不查** —— 这三个角色读到的是**具名的**「受限(`module.purchasing.view`)」,
+  不是一句「没有货柜」。**由权限分,不由值分。**
+* **没做**:**没有改那张视图的谓词。** 改它是一次【权限改动】,而 CONV-6 的委托书
+  写着"权限码不变";把物流的读者从六个扩到九个是一个产品判断,要 Tim 裁。
+
+**处置(留给下一刀,判据已经清楚):** 这张视图的谓词应当是
+`module.logistics.view`,或者 `logistics OR purchasing` 的并集 —— 取决于 Tim 想让
+仓库与销售看不看得见在途货柜。**在那之前,`/logistics/containers` 这一页对那三个
+角色是【空的】**,而那一页自己**没有**做本 Overview 做的那件事:
+它不判权限,直接查,于是它画的是一张空列表。**那才是这条真正要修的地方。**
+
+---
+
+## CONV-6-MYREVIEWS-GAP(2026-09-04)—— `/my-reviews` 在中间那一段宽度上到不了
+
+**状态:已知,本刀【不改】(它是一个断点判断,要 Tim 定)。**
+
+`app/components/TopNav.tsx:117` 那条 `/my-reviews` 链接是 **`lg:inline`**;
+`app/components/nav/ModuleBar.tsx` 那张带「关于你」的抽屉是 **`sm:hidden`**。
+于是在 **640px ≤ 宽 < 1024px** 这一段里,两头都不画它 —— **这一页到不了。**
+
+**它不是 CONV-6 造成的,是 CONV-6 ② 暴露的**:首页那张「我的」卡片此前是这段
+宽度上的唯一入口,而 Tim 裁定把「我的」整节删掉。**删卡之前这个洞就在**,
+只是被一张首页卡片盖着。
+
+`/me` 是 `sm:inline`,**不在这个洞里** —— 两条链接的断点本来就不一样,而没有
+任何东西说过为什么。**处置**:把 `/my-reviews` 的断点改成 `sm`(与 `/me` 一致),
+或者把「关于你」那一段从 `sm:hidden` 放宽。两者都是一行,而选哪一个取决于
+顶栏在 768px 上放不放得下 —— **那要量,而 390px 上曾经量到过一次 6.45px 的溢出**
+(见 TopNav 里那段注释),所以不许拍脑袋改。

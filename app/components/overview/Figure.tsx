@@ -97,6 +97,7 @@ export default async function Figure({
                 <p className="mb-3">
                     <Refusal
                         data-overview-restricted="1"
+                        {...{ 'data-module-restricted': '1' }}
                         why={`${t('dashboard.restrictedHint')}(${state.permission})`}
                     >
                         {t('common.restricted')}

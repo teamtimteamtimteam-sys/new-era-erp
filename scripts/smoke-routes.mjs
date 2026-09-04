@@ -86,7 +86,7 @@ const routes = [...walk(join(ROOT, 'app'))].map((p) =>
 // ── 动态段的真实 id 从哪来(PostgREST + service key,随数据变化自动跟上)────
 const ID_SOURCES = {
     '[id]': {
-        '/customers': 'customers', '/finance/bank/statements': 'bank_statements',
+        '/sales/customers': 'customers', '/finance/bank/statements': 'bank_statements',
         '/finance/expenses': 'expenses', '/finance/freight': 'freight_documents',
         '/finance/fx': 'fx_rates',
         // EQP-1c-b:资产卡片页。【必须在这里,否则 /finance/assets/[id] 会落到
@@ -111,9 +111,9 @@ const ID_SOURCES = {
         // LOC-1:库位。前缀取最长匹配,所以这一条不会被别的 /inventory 前缀吃掉
         // (今天也没有别的)。线上零行,故同时列在 EXPECTED_SKIPS 里。
         '/inventory/locations': 'storage_locations',
-        '/materials': 'materials', '/pricing/metal-prices': 'metal_prices',
+        '/materials': 'materials', '/tools/pricing/metal-prices': 'metal_prices',
         '/my-reviews': 'performance_reviews', '/output': 'output_batches',
-        '/pricing/formulas': 'pricing_formulas',
+        '/tools/pricing/formulas': 'pricing_formulas',
         // WO-1c:工单。【必须排在 '/operation/processing' 前面吗?—— 不必,前缀取的是最长匹配】
         // 但它必须【在】,否则 /operation/orders/[id] 会落到 processing_runs 上,
         // 拿一个加工单 id 去开工单详情页 —— 那会是一次看起来像"页面坏了"的 404。
@@ -138,12 +138,12 @@ const ID_SOURCES = {
         // 故 pdf 那条路由同时列在 EXPECTED_SKIPS 里。
         '/finance/statements': 'customer_statements',
         // TASK-1b:任务详情。**取的 id 必须是一张【团队】任务** —— 见 ID_FILTERS。
-        '/tasks': 'tasks',
+        '/tools/tasks': 'tasks',
         '/settings/roles': 'roles', '/stocktakes': 'stocktakes',
         '/suppliers': 'suppliers',
         // COMM-1:佣金协议的编辑页。线上零行(机制与屏幕先于第一份真协议落地),
         // 所以同时列在 EXPECTED_SKIPS 里 —— 签下第一份的那天,那条断言会响。
-        '/commissions': 'commission_agreements',
+        '/sales/commissions': 'commission_agreements',
         // FRT-FIX(2026-08-20):这两条【自建成起就没登记过】,于是 preflightIdSources
         // 每一次都在 3 毫秒内中止整轮冒烟 —— 也就是说 LOG-1b / LOG-2b 之后,
         // 这套路由检查【一次都没跑起来过】。那是这次回归能悄悄上线的一半原因。
@@ -501,11 +501,11 @@ const MUST_CONTAIN = {
     // 服务端 HTML 里【根本没有】那个 <select>。第一版按 name="supplier_id" 写,
     // 两条路由当场报红,而红的是判据不是页面:一个永远满足不了的判据是坏判据。
     // 与 freight/new 出境分支的箱子选择器同一种情形,处置也相同:验负载。
-    '/pricing/formulas/new': [
+    '/tools/pricing/formulas/new': [
         { probe: '/rest/v1/suppliers?select=id&limit=1&deleted_at=is.null&counterparty_type=neq.forwarder',
           why: '供货商名单没有到客户端 —— 切到"按供应商"那一档就会看到"还没有供货商"' },
     ],
-    '/pricing/formulas/[id]/edit': [
+    '/tools/pricing/formulas/[id]/edit': [
         { probe: '/rest/v1/suppliers?select=id&limit=1&deleted_at=is.null&counterparty_type=neq.forwarder',
           why: '供货商名单没有到客户端 —— 切到"按供应商"那一档就会看到"还没有供货商"' },
     ],
@@ -517,11 +517,11 @@ const MUST_CONTAIN = {
     // "货代被排除在付款对象之外,于是未付运费永远付不掉",要验的就是那一条:
     // 拿一家在册货代的 id,断言它确实到了客户端。
     // ── PARTY-1:联系人那一段与"不相加"那一句,真的在屏幕上吗 ──────────────
-    '/customers/[id]': [
+    '/sales/customers/[id]': [
         { needle: MSG_CONTACTS_SECTION,
           why: '客户页上的联系人那一段不见了 —— 而联系人搬进子表之后,那是维护它们的唯一入口' },
     ],
-    '/customers/overlap': [
+    '/sales/customers/overlap': [
         { needle: MSG_OVERLAP_NOT_NETTED,
           why: '★「两个敞口不相加」那句话从重叠页上消失了 —— 下一个读它的人会自己把两个数加起来,而轧差是一次法律行为' },
     ],
@@ -564,13 +564,13 @@ const MUST_CONTAIN = {
     '/suppliers': [
         { needle: 'href="/contracts"',
           why: '★ 供应商列表页上通往合同登记簿的入口不见了 —— /contracts 会变成一个上了线却走不到的页面' },
-        // ★【COMM-1:同一条可达性断言,同一个理由】★ /commissions 也是建好那天没有入口的。
-        { needle: 'href="/commissions"',
-          why: '★ 供应商列表页上通往佣金协议的入口不见了 —— /commissions 会变成一个上了线却走不到的页面(而 --reach 要跑两小时)' },
+        // ★【COMM-1:同一条可达性断言,同一个理由】★ /sales/commissions 也是建好那天没有入口的。
+        { needle: 'href="/sales/commissions"',
+          why: '★ 供应商列表页上通往佣金协议的入口不见了 —— /sales/commissions 会变成一个上了线却走不到的页面(而 --reach 要跑两小时)' },
     ],
 
     // ── COMM-1:佣金那两句无条件渲染的话,真的在屏幕上吗 ──────────────────
-    '/commissions': [
+    '/sales/commissions': [
         { needle: MSG_COMM_NOT_POSTED,
           why: '★★「它只记条款、【不过账】」那句话从佣金页上消失了 —— 把"佣金上线了"读成"佣金会进总账",代价是有人以为账上已经有这笔支出 ★★' },
         { needle: MSG_COMM_NO_ACCRUAL,
@@ -697,10 +697,41 @@ async function contentMisses(route, html) {
 }
 
 
+// ════════════════════════════════════════════════════════════════════════════
+// ★★【CONV-6:四条可达性断言换了【问法】—— 因为它们已经不可能成立了】★★
+// ════════════════════════════════════════════════════════════════════════════
+// 【它们此前问的是什么】抓 /finance 的 HTML,看里面有没有那条子页面的链接。
+//   那在 /finance 是一张 <ModuleLanding> 的时候【是对的】:那一页把财务名下
+//   31 条注册表条目逐条画成 <Link>,所以"这一页走得到吗"真的能从 HTML 里读出来。
+//
+// ★【CONV-7 ② 把那一页换成了财务 Overview,而 Overview【一条子页面都不列】】★
+//   那是 Tim 的裁定(绝对不能是模块内子页面的卡片排列),不是一处退化 ——
+//   **但这四条断言从那一刻起就再也不可能成立了**,而它们是"每一跑都在"的那种。
+//   一个永远满足不了的判据是【坏判据】,而且它报出来的样子是"这一页坏了"
+//   (本文件已经为 `&` 转义与 name="supplier_id" 记过同一条)。
+//   CONV-6 ⑨ 又把运营 / 采购 / 物流 / 销售四个模块根做成同一种 Overview,
+//   所以这不是一次性的漂移,是这一整类判据的地基没了。
+//
+// 【现在问什么 —— 换掉的是【问法】,不是【那个问题】】
+//   问题仍是「这一页会不会打得开却走不到」。今天回答它的是【注册表】:
+//   一条二级条目在 FUNCTIONS 里,顶栏的模块菜单就画它(ModuleBar 从注册表派生)。
+//
+// ★【照直说它比从前弱在哪 —— 不许让一条变弱的断言看起来没变】★
+//   从前是【端到端】的(HTML 里真的有那个字符串);现在是【静态】的
+//   (源码里真的有那条条目)。**它看不见"注册表有、而菜单渲染坏了没画出来"。**
+//   那一半今天没有任何自动检查覆盖:顶栏的二级是点开才渲染的,fetch 拿不到,
+//   `--reach` 也点不开(AGENTS.md 为这一条记过账)。**它属于人走一遍的那份清单。**
+const MODULES_SRC = readFileSync(join(ROOT, 'lib/modules.ts'), 'utf8')
+const registryHas = (href) => MODULES_SRC.includes(`href: '${href}'`)
+
 const EXPECTED = {
     '/logout': [307, 303],          // 登出即重定向
     '/my-reviews/[id]': [404],      // admin 不是评估人 —— notFound 是契约;评估人视角在主循环后精确单测
-    '/purchasing': [307],           // 索引页重定向到 /purchasing/orders
+    // ★【CONV-6 ⑤c:/purchasing 这一条【删了】—— 它不再是一次重定向】★
+    //   它此前全文十四行、主体是 redirect(),所以这里钉的是 307。Tim 裁定它必须
+    //   有自己的路由,而 ⑨ 把它做成了采购 Overview,于是它现在就是一条普通的 200。
+    //   【删掉而不是改成 [200]】EXPECTED 是"这条路由【不是】200"的清单;
+    //   把一条 200 写进去,下一个人会以为这里还有什么特别之处。
     // ── LOGIN-1-fu1(2026-09-02):登录着的人打开 /login 必然被送进应用 ──────
     // 本冒烟【全程带着 admin 会话】走路由,所以这一条对它永远是 307。
     // 【精确写 307,不写 [200,307]】—— 本文件上面那句话就是理由:两个都行会
@@ -846,15 +877,15 @@ const EXPECTED_SKIPS = new Set([
     // STATEMENT-1:线上还没有一份【已签发】的对账单 —— customer_statements 只由
     // issue_customer_statement 写入,而这一刀是机制与屏幕先于第一份真对账单落地。
     // 签发第一份的那天,这条断言会报「预期会 SKIP 的路由跑起来了」,逼人把它删掉。
-    // 【注意它跳过的是 PDF 那条路由,不是入口】入口在 /customers/[id] 上,
+    // 【注意它跳过的是 PDF 那条路由,不是入口】入口在 /sales/customers/[id] 上,
     // 那一页有数据、每一跑都真的渲染,并且下面有一条【内容】断言钉着它。
     '/finance/statements/[id]/pdf',
     // COMM-1:线上还没有一份佣金协议(机制与屏幕先于第一份真协议落地)——
     // 与上面几条同一种情形。【注意它跳过的是编辑页,不是入口】:
-    // /commissions 列表页每一跑都真的渲染,而且下面两条【内容】断言钉着它那两句
+    // /sales/commissions 列表页每一跑都真的渲染,而且下面两条【内容】断言钉着它那两句
     // 无条件渲染的话。签下第一份真协议的那天,这条断言会报「预期会 SKIP 的路由
     // 跑起来了」,逼人把它从这里删掉。
-    '/commissions/[id]/edit',
+    '/sales/commissions/[id]/edit',
     // (WO-1c 曾在这里挂过 '/operation/orders/[id]' —— 线上零张工单。
     //  2026-08-16 的手走开出了第一张真工单 WO-2026-0001(放行、并挂上
     //  PROC-2026-0225),于是这一行【在同一刀之内】被删掉,正如它自己的注释所
@@ -1092,7 +1123,7 @@ async function rest(path, opts = {}) {
 // FRT-FIX 之后又一处同形的漏登记(2026-08-20):tasks 有 deleted_at,却不在这里。
 // 线上 7 张 team 任务里 5 张已软删,而取 id 的那条查询【没有 order by】,
 // PostgREST 按物理顺序返回 —— 实测五次全部返回 TASK-2026-0005(2026-08-19 13:26
-// 软删)。详情页对已删行 notFound 是【契约】(app/tasks/[id]/page.tsx:33/36),
+// 软删)。详情页对已删行 notFound 是【契约】(app/tools/tasks/[id]/page.tsx:33/36),
 // 所以那个 404 是这条检查【问错了主语】,不是页面坏了。
 // 更坏的是它【不稳定】:物理顺序会随更新漂移,于是这条断言迟早会时绿时红,
 // 而那比一直红更难查(ID_FILTERS 上面那段注释说的就是这件事)。
@@ -1421,7 +1452,7 @@ const EXPECTED_UNREACHABLE = {
     // ════════════════════════════════════════════════════════════════════
     // 【本刀先删了它,然后被这条检查自己抓了回来 —— 照直记下】
     // 推理是:⑦ 把金属行情搬进了【工具】,而 operations 进得去工具
-    // (它持 module.tasks.view,/tasks 就在工具底下),所以入口该走得到了。
+    // (它持 module.tasks.view,/tools/tasks 就在工具底下),所以入口该走得到了。
     // **跑了一遍,红的:`✗ operations 打得开却走不到:金属行情那一页`(当时它住在一级)。**
     // 于是这一条恢复原状,而【被更正的是写在这里的理由】。
     //
@@ -1440,7 +1471,7 @@ const EXPECTED_UNREACHABLE = {
     //   而那支脚本答不了【人点不点得到】,所以两者都不冒充对方。
     // 而金属行情那一页的页内入口只有两处,**两处都要 module.pricing.view**:
     //   · app/page.tsx 首页那条"行情陈旧"待办(permission: 'module.pricing.view');
-    //   · /pricing 那一页的第三张卡(进它要 module.pricing.view)。
+    //   · /tools/pricing 那一页的第三张卡(进它要 module.pricing.view)。
     // operations 两个都拿不到 → 爬虫走不到 → 断言成立。
     //
     // ★★【所以这里有一个必须说清楚的区别,它不是文字游戏】★★
@@ -1452,7 +1483,7 @@ const EXPECTED_UNREACHABLE = {
     //(或者给这条检查一个能展开菜单的爬法)—— 那是一件单独的活。**
     operations: new Set(['/login', '/set-password', '/welcome',
         // 见上面那一整段:留着它,理由已经不是"没有 pricing 模块"了。
-        '/pricing/metal-prices']),
+        '/tools/pricing/metal-prices']),
     finance: new Set(['/login', '/set-password', '/welcome']),
 }
 
@@ -1978,7 +2009,7 @@ async function main() {
                     + '这不是"没数据所以跳过":这条断言的主语不见了,而它守的正是那一页。')
             }
             const custId = rows[0].id
-            const target = `/customers/${custId}`
+            const target = `/sales/customers/${custId}`
             const before = logChunks.length
             const res = await fetch(`http://localhost:${PORT}${target}`, {
                 headers: { cookie }, redirect: 'manual' })
@@ -1996,9 +2027,9 @@ async function main() {
                     const why = res.status !== 200
                         ? `HTTP ${res.status}`
                         : `页面 200,但找不到「${needle}」—— 入口没了,而 200 看不出这件事`
-                    failures.push({ route: `/customers/[id] (${what})`, url: target,
+                    failures.push({ route: `/sales/customers/[id] (${what})`, url: target,
                         status: res.status, expected: 200, stack: `${why}\n${await serverStack(before)}` })
-                    console.log(`  FAIL /customers/[id] ${what} → ${why}`)
+                    console.log(`  FAIL /sales/customers/[id] ${what} → ${why}`)
                 }
             }
         }
@@ -2021,7 +2052,7 @@ async function main() {
             const navRes = await fetch(`http://localhost:${PORT}/finance`, {
                 headers: { cookie }, redirect: 'manual' })
             const navHtml = navRes.status === 200 ? await navRes.text() : ''
-            if (!navHtml.includes('/finance/cash-forecast')) {
+            if (!registryHas('/finance/cash-forecast'))  /* CONV-6:改问注册表,见 registryHas 抬头 */ {
                 failures.push({ route: '/finance (子导航里没有现金预测)', url: '/finance',
                     status: navRes.status, expected: 200,
                     stack: '财务落地页(/finance)的 HTML 里找不到 /finance/cash-forecast —— '
@@ -2093,24 +2124,24 @@ async function main() {
 
         // ── PARTY-1:重叠报告【走得到吗】────────────────────────────────
         // ★【这一条是把"我记得加了链接"换成一条机制】★
-        //   `/customers/overlap` 是一条【静态】路由,`--reach` 查得到它 ——
+        //   `/sales/customers/overlap` 是一条【静态】路由,`--reach` 查得到它 ——
         //   但 --reach 要跑两个多小时,而这件事本仓库已经付过两次账
         //   (SAL-B6 的客户详情页、FIX-1 的入库收货,两次都是人点出来的)。
         //   实测:这一页写完时【一个入口都没有】,是收尾时按名查出来的。
         //   一条每一跑都在的断言,比一次偶尔跑的走查更守得住这件事。
         {
             const before = logChunks.length
-            const listRes = await fetch(`http://localhost:${PORT}/customers`, {
+            const listRes = await fetch(`http://localhost:${PORT}/sales/customers`, {
                 headers: { cookie }, redirect: 'manual' })
             const listHtml = listRes.status === 200 ? await listRes.text() : ''
-            if (listHtml.includes('/customers/overlap')) { ok++ }
+            if (listHtml.includes('/sales/customers/overlap')) { ok++ }
             else {
-                failures.push({ route: '/customers (没有重叠报告的入口)', url: '/customers',
+                failures.push({ route: '/sales/customers (没有重叠报告的入口)', url: '/sales/customers',
                     status: listRes.status, expected: 200,
-                    stack: '客户列表的 HTML 里找不到 /customers/overlap —— '
+                    stack: '客户列表的 HTML 里找不到 /sales/customers/overlap —— '
                          + '那一页打得开却走不到,而这正是本仓库上过两次当的那件事。\n'
                          + await serverStack(before) })
-                console.log('  FAIL /customers 上没有重叠报告的入口')
+                console.log('  FAIL /sales/customers 上没有重叠报告的入口')
             }
         }
 
@@ -2151,7 +2182,7 @@ async function main() {
             const navRes = await fetch(`http://localhost:${PORT}/finance`, {
                 headers: { cookie }, redirect: 'manual' })
             const navHtml = navRes.status === 200 ? await navRes.text() : ''
-            if (!navHtml.includes('/finance/claims')) {
+            if (!registryHas('/finance/claims'))  /* CONV-6:改问注册表,见 registryHas 抬头 */ {
                 failures.push({ route: '/finance (子导航里没有报销)', url: '/finance',
                     status: navRes.status, expected: 200,
                     stack: '财务子导航的 HTML 里找不到 /finance/claims —— 这一页打得开却走不到。'
@@ -2229,7 +2260,7 @@ async function main() {
             const navRes = await fetch(`http://localhost:${PORT}/finance`, {
                 headers: { cookie }, redirect: 'manual' })
             const navHtml = navRes.status === 200 ? await navRes.text() : ''
-            if (!navHtml.includes('/finance/wht')) {
+            if (!registryHas('/finance/wht'))  /* CONV-6:改问注册表,见 registryHas 抬头 */ {
                 failures.push({ route: '/finance (子导航里没有预提税)', url: '/finance',
                     status: navRes.status, expected: 200,
                     stack: '财务子导航的 HTML 里找不到 /finance/wht —— 这一页打得开却走不到。'
@@ -2267,7 +2298,7 @@ async function main() {
             const navRes = await fetch(`http://localhost:${PORT}/finance`, {
                 headers: { cookie }, redirect: 'manual' })
             const navHtml = navRes.status === 200 ? await navRes.text() : ''
-            if (!navHtml.includes('/finance/packs')) {
+            if (!registryHas('/finance/packs'))  /* CONV-6:改问注册表,见 registryHas 抬头 */ {
                 failures.push({ route: '/finance (子导航里没有报表包)', url: '/finance',
                     status: navRes.status, expected: 200,
                     stack: '财务子导航的 HTML 里找不到 /finance/packs —— 这一页打得开却走不到。'

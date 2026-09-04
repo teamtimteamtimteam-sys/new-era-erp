@@ -14,7 +14,7 @@ import OutputAssayForm from './OutputAssayForm'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
-import { loadSubstances, toOptions } from '@/app/pricing/metal-prices/substanceQuery'
+import { loadSubstances, toOptions } from '@/app/tools/pricing/metal-prices/substanceQuery'
 import { getLocale } from '@/lib/i18n/server'
 import { loadLaboratories, toDictOptions } from '@/app/components/dictionaries/dictionaryQuery'
 

@@ -100,7 +100,7 @@ export default async function SuppliersPage({
     // ★ Q7:排序仍然是服务端的,表头仍然是链接(DataTable 的 sorting.mode='server',
     //   与 /inbound 同一个口子)。href 是函数,过不了 RSC 边界,所以这里只传参数。
     // ★ state 恒为 'ok' —— 筛选工具栏与那两条入口链接都是真实出口(§⑩-3);
-    //   /contracts 与 /commissions 两条链接【有冒烟可达性探针盯着】,删了当场红。
+    //   /contracts 与 /sales/commissions 两条链接【有冒烟可达性探针盯着】,删了当场红。
     const tableRows: SupplierTableRow[] = (suppliers ?? []).map((s) => ({
         id: s.id,
         code: s.code,

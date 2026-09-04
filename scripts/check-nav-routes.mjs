@@ -57,14 +57,40 @@ const RETIRED = [
         label: '/metal-prices(搬到 /pricing 之下)',
         // TOOLS-1 ①b。判据要认【路由写法】,不认【相对路径的一段】:
         //   ✓ 抓 '/metal-prices'、`(/metal-prices)`、注释里裸写的 /metal-prices
-        //   ✗ 不抓 '../metal-prices/substanceQuery'(那是 app/pricing/ 底下指向
-        //     新位置的合法相对 import)、也不抓 'app/pricing/metal-prices/…'
+        //   ✗ 不抓 '../metal-prices/substanceQuery'(那是 app/tools/pricing/ 底下指向
+        //     新位置的合法相对 import)、也不抓 'app/tools/pricing/metal-prices/…'
         // 做法:前面不许是【单词字符或点】—— 路由串前面总是引号/括号/空白,
         // 而相对路径前面总是 `.`,新地址前面总是 `g`(pricing 的末字母)。
         // 【第一版没有 (?<![\w.]) —— 它把三条刚修好的相对 import 报成了退休路径,
         //  而那三条恰恰是【已经改对了】的。一条会对正确代码报红的判据会被关掉。】
         re: /(?<![\w.])\/metal-prices(?![A-Za-z0-9_-])/g,
-        hint: '改成 /pricing/metal-prices(金属行情已并入定价的第三级)',
+        hint: '改成 /tools/pricing/metal-prices(CONV-6 ⑤a 之后定价整族住在工具底下)',
+    },
+    // ══ CONV-6 ⑤ 搬走的四段。判据与上面三条【同形】,不新造写法 ══════════
+    // 【为什么四条都不必写 (?<!/tools) / (?<!/sales) 这种反查】新地址的
+    // 最后一个字符是词字符(tool**s**/tasks、sale**s**/customers),
+    // 而 (?<![\w.]) 已经把"前面是词字符"整类排除了 —— 新地址因此自动不被误判。
+    // 这与 /metal-prices 那一条当年学到的是同一课(第一版没有 (?<![\w.]),
+    // 把三条刚改对的相对 import 报成了退休路径)。
+    {
+        label: '/tasks(搬进工具)',
+        re: /(?<![\w.])\/tasks(?![A-Za-z0-9_-])/g,
+        hint: '改成 /tools/tasks(任务已并入工具)',
+    },
+    {
+        label: '/pricing(整族搬进工具)',
+        re: /(?<![\w.])\/pricing(?![A-Za-z0-9_-])/g,
+        hint: '改成 /tools/pricing;公式/计价器/金属行情跟着走(/tools/pricing/{formulas,calculator,metal-prices})',
+    },
+    {
+        label: '/customers(整族搬进销售)',
+        re: /(?<![\w.])\/customers(?![A-Za-z0-9_-])/g,
+        hint: '改成 /sales/customers;重叠检查是 /sales/customers/overlap',
+    },
+    {
+        label: '/commissions(搬进销售)',
+        re: /(?<![\w.])\/commissions(?![A-Za-z0-9_-])/g,
+        hint: '改成 /sales/commissions(地址搬了,属主仍是采购与销售两个 —— 见 lib/modules.ts)',
     },
     {
         label: "/deleted(搬进设置)",
@@ -88,10 +114,13 @@ const EXCEPTIONS = new Map([
     ['/my-reviews', '本人的绩效评估。同 /me:它是"我自己的东西",不是一个模块功能。'],
     ['/notifications', '通知列表。入口是顶栏的铃铛,不是二级菜单。'],
     ['/brand-sampler', 'BRAND-1 的样式取样页,用完即删的开发页,不进导航。'],
-    ['/purchasing', 'CHART-0 ② 查明它是一个【别名】:全文 14 行,主体是 redirect(\'/purchasing/orders\')。'
-        + '导航条目已经删掉(点采购的模块名本来就到不了模块根),但那一页【留着】——'
-        + '它指的终点就在同一菜单的下一行,所以留着不制造第二个入口,删掉反而会让一个'
-        + '存在的地址 404。**它不该有注册表条目,这正是它登记在这里的理由。**'],
+    // ★【CONV-6 ⑤c:/purchasing 从例外表里【去掉了】】★
+    //   它此前登记在这里的理由是「它是一个别名:全文 14 行,主体是
+    //   redirect('/purchasing/orders'),所以它不该有注册表条目」。
+    //   **Tim 裁定它不许再跳转** —— 那一页现在是采购 Overview,有自己的内容,
+    //   于是它在 FUNCTIONS 里有一条真的条目,判据②本来就放行它。
+    //   留着这条例外会让【两处】同时声称管着同一条路由,而例外表的每一条
+    //   都得是"存在但故意不在注册表里"——它已经在注册表里了。
 ])
 // 【前缀例外】—— 一条注册表条目底下的深页(详情、编辑、新建)不必各自登记。
 // 判据:它落在某条注册表 href 之下。见下面 isCoveredByEntry。
@@ -185,17 +214,171 @@ for (const root of scanRoots) {
 }
 
 // ── ③b /finance 不许再【是】试算平衡 ───────────────────────────────────────
-// 【为什么这一条不能用字符串查】/finance 仍然是一条合法路由(它现在是落地页)。
-// 退休的是"它是试算平衡"这件事。所以判据是那一页的【内容】。
-const financePage = readFileSync(join(APP, 'finance/page.tsx'), 'utf8')
-if (!financePage.includes('ModuleLanding')) {
+// 【为什么这一条不能用字符串查退休前缀】/finance 仍然是一条合法路由。
+// 退休的是"它是试算平衡"这件事,而那是一件【语义】,不是一个字符串。
+//
+// ★★【CONV-6:这一条此前【靠一句注释通过】—— 一道为错误的理由变绿的闸】★★
+//   它原本查的是 `financePage.includes('ModuleLanding')`,写在 NAV-CLEANUP-1
+//   把 /finance 做成 <ModuleLanding> 的那一天,当时判据与事实一致。
+//   **CONV-7 ② 把那一页换成了财务 Overview,ModuleLanding 一行都不再渲染** ——
+//   而这道检查【照旧是绿的】,因为那一页的抬头注释里写着
+//   「NAV-CLEANUP-1 ③ 把这一页做成了 <ModuleLanding>」这句【讲历史的话】。
+//   也就是说:一道断言"这一页渲染 X"的检查,被一句"这一页从前渲染 X"的注释满足了。
+//   这正是本仓库记过的同一个形状(check-permission-predicate 那一条:
+//   「第一版就是这样被自己的注释骗过去的」),它的处置也是同一条 ——
+//   **先去注释,再判断。**
+//
+// 【新判据:查那一页【不是】试算平衡,而不是查它【是】某一个组件】
+//   查"是什么"要求这条检查跟着每一次改版走(它已经漂开过一次)。
+//   查"不是什么"钉住的才是这一条真正在乎的事:试算平衡不许搬回 /finance。
+//   两个特征都取自试算平衡自己那一页,而且都在【去掉注释之后】才算数。
+const stripComments = (src) =>
+    src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1')
+
+const financeBody = stripComments(readFileSync(join(APP, 'finance/page.tsx'), 'utf8'))
+for (const [needle, what] of [['journal_lines', '按科目聚合 journal_lines'], ['finance.trialBalance', '试算平衡的标题键']]) {
+    if (financeBody.includes(needle)) {
+        problems.push({
+            arm: '③b /finance 不是试算平衡',
+            msg: `app/finance/page.tsx 里出现了【${what}】—— 试算平衡住在 /finance/trial-balance,`
+               + '/finance 是财务 Overview(docs/module-overview-basis.md)。搬回来会让 CONV-6 ⑥ 那条链接第二次指错。',
+        })
+    }
+}
+// 【而 Overview 那一页要【真的】是一张 Overview】—— 它必须画 <Figure>,
+// 那是唯一一个强制 spans 的构件(没有它,这一页可以静悄悄退化回卡片墙)。
+if (!financeBody.includes('Figure')) {
     problems.push({
-        arm: '③b /finance 是落地页',
-        msg: 'app/finance/page.tsx 不再渲染 ModuleLanding —— 试算平衡已经搬到 /finance/trial-balance,/finance 是财务的落地页。',
+        arm: '③b /finance 不是试算平衡',
+        msg: 'app/finance/page.tsx 不再渲染 <Figure> —— 一张不用 Figure 的 Overview 没有任何东西强制它说出 spans。',
     })
 }
 if (!routeSet.has('/finance/trial-balance')) {
-    problems.push({ arm: '③b /finance 是落地页', msg: '/finance/trial-balance 不存在 —— 试算平衡丢了。' })
+    problems.push({ arm: '③b /finance 不是试算平衡', msg: '/finance/trial-balance 不存在 —— 试算平衡丢了。' })
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// ── ⑥ 带【查询参数】的站内链接:它指的那一页必须真的读那个参数 ──────────────
+// ════════════════════════════════════════════════════════════════════════════
+// ★★【为什么需要第六条 —— 前五条对这一族【结构性地】看不见】★★
+//
+// 【实测的那一条(CONV-6 ⑥)】/finance/trial-balance 上「显示零发生额科目」
+//   写的是 `href={showAll ? '/finance' : '/finance?all=1'}` —— 一条【自指】链接,
+//   在这一页还住在 /finance 的时候是对的。NAV-CLEANUP-1 把它搬走,CONV-7 又把
+//   /finance 做成 Overview,于是点它的人落在一张连"零发生额"四个字都不认的页上。
+//
+// 【前五条为什么一条都没抓到】
+//   · ③ 查的是【退休前缀】,而 `/finance` 没有退休 —— 它今天仍是合法路由;
+//   · ①② 查的是【注册表 ↔ 文件系统】,而 /finance 两边都在;
+//   · ③b 查的是那一页的内容,它不看【谁链向它】。
+//   **退休的是"/finance 是试算平衡"这个语义,而语义没法用一张前缀表表达。**
+//   能表达的是这一条:**一个参数是一份契约。** 链接说"我要 all=1",
+//   目标页要么读得懂,要么这条链接就是坏的 —— 而这一条判得动,因为两边都在树里。
+//
+// 【判据】对 app/ 与 lib/ 里每一条【字面量】站内链接 `'/x/y?k=v'`:
+//   ⓐ 那条路径必须解析得到一条真实路由(动态段 [id] 与模板串 ${…} 互相通配);
+//   ⓑ 那条路由【自己目录里】的源码必须真的读 k —— 认四种写法:
+//        k?: / k: (searchParams 的类型格)· sp.k / searchParams.k · get('k') · ['k']
+//   ★【为什么只看那一层目录,不递归】★ 递归会把这一条【正好在它该红的时候】变绿:
+//     /finance?all=1 的目标目录是 app/finance/,而 app/finance/trial-balance/
+//     底下【确实】写着 sp.all —— 递归下去它就通过了,而那正是本条要抓的缺陷。
+//     一个页面的 searchParams 是它自己那一层的事(Next 的 page.tsx 拿到它,
+//     再往下传给同目录的组件),所以"同目录、不递归"既是对的也是最紧的。
+// ════════════════════════════════════════════════════════════════════════════
+const LINK_WITH_QUERY = /['"`](\/[A-Za-z0-9._$\/{}\[\]-]*)\?([A-Za-z0-9_]+)=/g
+const segMatches = (linkSeg, routeSeg) =>
+    linkSeg === routeSeg || routeSeg.startsWith('[') || linkSeg.includes('${')
+/**
+ * 链接路径 → 那一条路由。
+ *
+ * ★【静态段必须【压过】动态段 —— 第一版没有这一条,当场自证】★
+ *   `/finance/payables/export` 同时匹配两条路由:它自己,和 `/finance/payables/[batchId]`
+ *   (动态段通配一切)。第一版用 `routes.find` 拿【第一条】,于是它解析成了
+ *   `[batchId]` 那一页,然后理直气壮地报告"目标页不读 as_of" ——
+ *   **一条对着正确代码报红的判据,会被关掉。** 这正是 /metal-prices 那一条
+ *   当年学到的同一课,所以这里按"静态段多的优先"排序再取第一条:
+ *   Next 的路由匹配本来就是这个优先级,判据照着它才不会与运行时说两套话。
+ */
+const resolveRoute = (path) => {
+    const l = path.split('/').filter(Boolean)
+    const staticness = (r) => r.split('/').filter(Boolean).filter((seg) => !seg.startsWith('[')).length
+    return routes
+        .filter((r) => {
+            const rs = r.split('/').filter(Boolean)
+            return rs.length === l.length && rs.every((seg, i) => segMatches(l[i], seg))
+        })
+        .sort((a, b) => staticness(b) - staticness(a))[0] ?? null
+}
+/**
+ * 那一页读不读这个参数。
+ *
+ * ★★【两道门,而第一道是注入实测【逼】出来的】★★
+ * 第一版只查"这个键出现过",判据里有一条 `\.${key}\b`。把 CONV-6 ⑥ 那条真缺陷
+ * (/finance?all=1)注入回去,**它一声不吭地通过了** —— 因为财务 Overview 里写着
+ * `Promise.all([...])`,而 `.all` 正好撞上那一条。
+ * **一次没有被注入试过的判据,与没有判据一样**(backup.sh 的抬头为同一句话付过账)。
+ *
+ * 【现在的两道门,必须【同时】成立】
+ *   ① 这一页得【真的收 searchParams】—— 不收的页面,任何参数对它都没有意义,
+ *      而这一道正好把 Promise.all 那种巧合整类挡在外面(Overview 不收 searchParams);
+ *   ② 那个键要以【参数的写法】出现:类型格 `k?:` / `sp.k`、`searchParams.k` /
+ *      `get('k')` / `['k']`。裸的 `.k` 不再算数。
+ */
+const readsParam = (routePath, key) => {
+    const dir = join(APP, ...routePath.split('/').filter(Boolean))
+    let entries
+    try { entries = readdirSync(dir) } catch { return false }
+    const re = new RegExp(
+        `\\b${key}\\s*\\??\\s*:`
+        + `|\\b(?:sp|searchParams|params|query|q)\\.${key}\\b`
+        + `|get\\(\\s*['"\`]${key}['"\`]`
+        + `|\\[\\s*['"\`]${key}['"\`]\\s*\\]`,
+    )
+    for (const e of entries) {
+        const f = join(dir, e)
+        if (statSync(f).isDirectory()) continue          // 【刻意不递归】见上
+        if (!/\.(ts|tsx)$/.test(e)) continue
+        const body = stripComments(readFileSync(f, 'utf8'))
+        if (!body.includes('searchParams')) continue     // 【第一道门】见上
+        if (re.test(body)) return true
+    }
+    return false
+}
+
+let queryLinks = 0
+for (const root of [join(ROOT, 'app'), join(ROOT, 'lib')]) {
+    for (const file of sourceFiles(root)) {
+        const rel_ = relative(ROOT, file)
+        if (rel_ === 'scripts/check-nav-routes.mjs') continue
+        const lines = readFileSync(file, 'utf8').split('\n')
+        lines.forEach((line, i) => {
+            LINK_WITH_QUERY.lastIndex = 0
+            let m
+            while ((m = LINK_WITH_QUERY.exec(line)) !== null) {
+                const [, path, key] = m
+                if (path.startsWith('/rest/') || path.startsWith('/auth/')) continue // PostgREST,不是路由
+                queryLinks++
+                const route = resolveRoute(path)
+                if (!route) {
+                    problems.push({
+                        arm: '⑥ 带参数的链接',
+                        msg: `${rel_}:${i + 1}  链接 ${path}?${key}= 指向一条【不存在的路由】\n      ${line.trim().slice(0, 120)}`,
+                    })
+                } else if (!readsParam(route, key)) {
+                    problems.push({
+                        arm: '⑥ 带参数的链接',
+                        msg: `${rel_}:${i + 1}  链接 ${path}?${key}= —— 目标页 app${route}/ 【不读】参数 ${key}。\n`
+                           + `      这条链接说得出它要什么,而那一页答不上来:点下去参数被静默丢掉。\n`
+                           + `      多半是那一页搬过家而链接没跟上(CONV-6 ⑥ 的原型:/finance?all=1)。\n      ${line.trim().slice(0, 120)}`,
+                    })
+                }
+            }
+        })
+    }
+}
+// ★【空集不算通过】★ 一处带参数的链接都没扫到 = 正则坏了,不是"树里没有"。
+if (queryLinks === 0) {
+    problems.push({ arm: '⑥ 带参数的链接', msg: 'app/ 与 lib/ 里扫出 0 条带查询参数的站内链接 —— 正则坏了,不是树里没有。' })
 }
 
 // ── ④ 范围 id 也要是真实的路由前缀(Tim 加的那一条)──────────────────────
@@ -294,5 +477,6 @@ if (problems.length) {
 }
 console.log(
     `✓ 导航与路由:注册表 ${entryHrefs.length} 条 · 路由 ${routes.length} 条 · 范围 ${scopeIds.length} 个 · ` +
-    `例外 ${EXCEPTIONS.size} 条(各带理由)· 退休路径 0 处 · 活动模块解析:规则穷举 + 3 组实跑`,
+    `例外 ${EXCEPTIONS.size} 条(各带理由)· 退休路径 0 处 · 带参数的站内链接 ${queryLinks} 条(目标页都读得懂)· ` +
+    `活动模块解析:规则穷举 + 3 组实跑`,
 )

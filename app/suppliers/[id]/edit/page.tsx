@@ -12,7 +12,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { canEnter } from '@/lib/moduleAccess'
 import { can } from '@/lib/permissions'
-import ContactsPanel, { type ContactRow } from '@/app/customers/ContactsPanel'
+import ContactsPanel, { type ContactRow } from '@/app/sales/customers/ContactsPanel'
 import ReceiptPatternPanel, {
     type PatternRow, type ContributingReceipt,
 } from './ReceiptPatternPanel'

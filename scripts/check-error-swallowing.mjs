@@ -91,7 +91,7 @@ const ALLOWLIST = [
             + '两者的区别正是 FIN-7-fu 修它的理由,注释就在旁边。',
     },
     {
-        path: 'app/customers/export/route.ts', match: 'data ?? []',
+        path: 'app/sales/customers/export/route.ts', match: 'data ?? []',
         reason: '导出路由在上面 `if (error) return new Response(..., { status: 500 })` —— '
             + '失败已经变成 500,?? [] 到不了。',
     },

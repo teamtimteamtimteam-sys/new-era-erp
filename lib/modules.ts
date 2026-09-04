@@ -102,11 +102,11 @@ export const SCOPES: readonly AccessScope[] = [
     //   新造一个就要新造一个权限码。
     //   **行一级的可见性已经由 RLS 管对了**:买方合同要 suppliers.view,
     //   卖方合同要 customers.view。挂在 suppliers 之下,是因为**第一批真合同是供货协议**。
-    //   COMM-1:/commissions 同一条判断 —— 一份佣金协议的【主语是代理人】,
+    //   COMM-1:/sales/commissions 同一条判断 —— 一份佣金协议的【主语是代理人】,
     //   而代理人是一个 supplier(counterparty_type = service_vendor)。
     { id: '/suppliers', navKey: 'nav.suppliers', permission: 'module.suppliers.view' },
     { id: '/purchasing', navKey: 'nav.purchasing', permission: 'module.purchasing.view' },
-    { id: '/customers', navKey: 'nav.customers', permission: 'module.customers.view' },
+    { id: '/sales/customers', navKey: 'nav.customers', permission: 'module.customers.view' },
     { id: '/materials', navKey: 'nav.materials', permission: 'module.materials.view' },
     // 【金属行情不在这里,而且不是漏了 —— 它不归权限范围管,理由在数据自己身上】
     //
@@ -124,7 +124,7 @@ export const SCOPES: readonly AccessScope[] = [
     // ★ UI-FIX-1 ⑦(2026-09-02):它在【导航】上现在只属于【工具】。
     //   IA-BUILD-1 / D6 此前把它挂在采购与销售之下,那句话已被 Tim 推翻 ——
     //   见 FUNCTIONS 里工具那一段。**判据仍然是"最松的、仍然连贯的那一个"。**
-    { id: '/pricing', navKey: 'nav.pricing', permission: 'module.pricing.view' },
+    { id: '/tools/pricing', navKey: 'nav.pricing', permission: 'module.pricing.view' },
     { id: '/inbound', navKey: 'nav.inbound', permission: 'module.inbound.view' },
     { id: '/output', navKey: 'nav.output', permission: 'module.output.view' },
     // ★【NAV-CLEANUP-1 ③(2026-09-03):范围 id 从 '/operation/processing' 改成 '/operation'】★
@@ -138,7 +138,7 @@ export const SCOPES: readonly AccessScope[] = [
     { id: '/stocktakes', navKey: 'nav.stocktakes', permission: 'module.stocktakes.view' },
     { id: '/sales', navKey: 'nav.sales', permission: 'module.sales.view' },
     { id: '/finance', navKey: 'nav.finance', permission: 'module.finance.view' },
-    { id: '/tasks', navKey: 'nav.tasks', permission: 'module.tasks.view' },
+    { id: '/tools/tasks', navKey: 'nav.tasks', permission: 'module.tasks.view' },
     { id: '/hr', navKey: 'nav.hr', permission: 'module.hr.view' },
     // NAV-REG-1 / R2:物流【终于有了自己的码】。8 张表的 SELECT 策略同时换成了本码;
     // 写的那一半没有动(仍是 module.purchasing.edit),所以不存在"改得动、读不回"的倒挂。
@@ -176,7 +176,7 @@ export const MODULES: readonly ModuleEntry[] = [
     // ★ UI-FIX-1 ⑥(2026-09-02):「任务」改名为「工具」。★
     // Tim 的理由:任务一个人撑不起一个一级模块(2 页,对着财务的 54 页),
     // 而他【不要】把它折进别的模块,所以这一格改成【小工具的去处】。
-    // 【只动导航的 id 与标签,权限范围一个字没动】SCOPES 里 '/tasks' 仍然是
+    // 【只动导航的 id 与标签,权限范围一个字没动】SCOPES 里 '/tools/tasks' 仍然是
     // module.tasks.view —— 那是任务表 RLS 上写着的码,与顶栏叫什么无关
     // (本文件抬头 §一 那条"导航重排,门一个字不动")。
     { id: 'tools', navKey: 'nav.tools' },
@@ -304,6 +304,17 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     //   那一页就从导航上消失了。这一条例外,只因为它指的那一页【本身就是一次跳转】,
     //   而跳转的终点 /purchasing/orders 就在下一行,自己是一条条目。
     //   其余八个模块根逐个查过,没有第二个别名 —— 结论见 docs/information-architecture.md。
+    //
+    // ★★【CONV-6 ⑤c + ⑨:那条被删掉的条目【回来了】,而它指的已经不是同一页】★★
+    //   Tim 的裁定,2026-09-04:**/purchasing 不许再跳转,它要有自己的路由。**
+    //   上面 CHART-0 ② 那段推理【当时是对的】—— 一个全文十四行的 redirect
+    //   不配有一条菜单条目。本刀把那一页【换掉了】:它现在是采购 Overview,
+    //   有自己的内容(见 app/purchasing/page.tsx 与 docs/module-overview-basis.md)。
+    //   **所以变的不是那条判断,是那一页。** 一个别名不配有条目;一张说得出
+    //   模块状态的页面配。
+    //   【标签是「概览」而不是「采购主页」】三张新 Overview 共用 nav.moduleOverview,
+    //   与财务/人力那两条一样 —— 它答的是"这个模块此刻是什么状态"。
+    { href: '/purchasing', navKey: 'nav.moduleOverview', modules: ['purchasing'], permission: P_PURCHASING },
     { href: '/purchasing/orders', navKey: 'purchasing.subnav.orders', modules: ['purchasing'], permission: P_PURCHASING },
     { href: '/purchasing/discrepancies', navKey: 'purchasing.subnav.discrepancies', modules: ['purchasing'], permission: P_PURCHASING },
     { href: '/purchasing/payment-terms', navKey: 'purchasing.subnav.templates', modules: ['purchasing'], permission: P_PURCHASING },
@@ -316,6 +327,10 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/purchasing/licences', navKey: 'company.licence.title', modules: ['purchasing'], permission: P_SUPPLIERS },
 
     // ══ 物流 Logistics ══════════════════════════════════════════════════════
+    // ★【CONV-6 ⑤c:物流【此前根本没有模块根】—— app/logistics/page.tsx 不存在】★
+    //   NAV-REG-1 早就为物流记过那个陷阱(「一个打得开却零行的库存页」),
+    //   而它自己连打得开的那一页都没有。本刀建了,内容是 ⑨ 的 Overview。
+    { href: '/logistics', navKey: 'nav.moduleOverview', modules: ['logistics'], permission: P_LOGISTICS },
     { href: '/logistics/forwarders', navKey: 'logistics.forwardersTitle', modules: ['logistics'], permission: P_LOGISTICS },
     { href: '/logistics/lanes', navKey: 'logistics.lanesTitle', modules: ['logistics'], permission: P_LOGISTICS },
     { href: '/logistics/containers', navKey: 'logistics.containersTitle', modules: ['logistics'], permission: P_LOGISTICS },
@@ -330,10 +345,31 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/operation/handovers', navKey: 'processing.subnav.handovers', modules: ['operation'], permission: P_PROCESSING },
 
     // ══ 销售 Sales ══════════════════════════════════════════════════════════
+    // ★【CONV-6 ⑤c:销售也【此前没有模块根】,与物流同一处缺席】★
+    { href: '/sales', navKey: 'nav.moduleOverview', modules: ['sales'], permission: P_SALES },
     { href: '/sales/quotes', navKey: 'sales.subnav.quotes', modules: ['sales'], permission: P_SALES },
     { href: '/sales/orders', navKey: 'sales.subnav.orders', modules: ['sales'], permission: P_SALES },
-    { href: '/customers', navKey: 'nav.customers', modules: ['sales'], permission: P_CUSTOMERS },
-    { href: '/customers/overlap', navKey: 'nav.customerOverlap', modules: ['sales'], permission: P_CUSTOMERS },
+    // ★★【CONV-6 ⑤b:客户【整族】搬进销售,地址前缀换成 /sales/customers】★★
+    //   与「任务→工具」、「加工→运营」那两次逐字同一种拆法:
+    //   **导航与路由前缀搬,RLS 上写着的那个码一个字不动。**
+    //   权限范围的 id 跟着路由走(SCOPES 里那一条的 id 换成了 '/sales/customers'),
+    //   而 permission 仍然是 module.customers.view,MOD.customers 这个名字也没变
+    //   —— 所有 requireModule(MOD.customers) 的调用点一行未改。
+    { href: '/sales/customers', navKey: 'nav.customers', modules: ['sales'], permission: P_CUSTOMERS },
+    // ★★【CONV-6 ⑤b:「客户重叠检查」这一条【整条从菜单里删掉】】★★
+    //   Tim 的裁定:它是【客户页的孩子】,不是客户的同辈 —— 与 ⑧ 删掉
+    //   「每日行情录入」那张卡是同一条判断,只是一个在菜单上、一个在卡片墙上。
+    //   ★【它没有变成一页走不到的页,而这一点核过了】★
+    //     地址是 /sales/customers/overlap,落在 /sales/customers 这条条目【之下】,
+    //     所以 check-nav-routes 的判据②(isCoveredByEntry)照旧认它,
+    //     **不需要**给它写一条 EXCEPTIONS —— 少写一条例外就少一处将来要维护的理由
+    //     (与 CONV-0 ②a 撤掉定价三个孩子时的处理逐字相同)。
+    //     ★【入口核过了,而且它【已经有一条冒烟断言看着】】★
+    //       app/sales/customers/page.tsx:152 有一条自己的
+    //       <Link href="/sales/customers/overlap">,画在列表页上;
+    //       而 scripts/smoke-routes.mjs 那一支(客户列表的 HTML 里必须找得到
+    //       这个地址)从 CONV 之前就在跑 —— **也就是说这一条的可达性
+    //       不是靠菜单撑着的,它一直有自己的门,而且那扇门有闸看着。**
 
     // ══ 财务 Finance —— 唯一有第三级的模块。六组顺序见 FINANCE_GROUPS ═══════
     // 【组内顺序与组的划分】条目本身与它们的先后【逐字取自】此前的
@@ -461,28 +497,28 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // ══ 工具 Tools(UI-FIX-1 ⑥/⑦)══════════════════════════════════════════
     // 此前叫「任务」,名下只有一条。改名之后它是【小工具的去处】,而 ⑦ 把定价
     // 整组搬了进来。**条目的标签仍然是「任务」** —— 改名换的是模块,不是那一页。
-    { href: '/tasks', navKey: 'nav.tasks', modules: ['tools'], permission: P_TASKS },
+    { href: '/tools/tasks', navKey: 'nav.tasks', modules: ['tools'], permission: P_TASKS },
     // TOOLS-1 ②:跨模块日历。**只读** —— 它没有自己的权限模型,每一项按它【自己家】
     // 那个模块的可见性出现或不出现(见 app/tools/calendar/sources.ts)。
     // 所以这条注册表判据是"任何登录用户"的下一档:它自己不挡人,挡人的是每一个来源。
     { href: '/tools/calendar', navKey: 'nav.calendar', modules: ['tools'], permission: { all: [] } },
-    // ★★【TOOLS-1:单位换算器 —— 这一条的判据【刻意】是恒真的,不要"顺手"关上】★★
+    // ★★【单位换算器 —— 判据【刻意】恒真。CONV-6 ① 之后它【靠自己站着】】★★
     //
-    // 【它承载着一条产品保证,而那条保证此前没有检查看着】
-    //   Tim 的 4c:**新同事第一次登录时 dock 不能是空的**,因为"空的 dock"是一个
-    //   没有人会发现的功能。lib/dock.ts 的默认候选清单靠【一条任何人都进得去的条目】
-    //   来兑现它,而在本刀之前,全注册表【只有金属行情那一条】是恒真的。
-    //   本刀把金属行情收窄了(见上),于是那条保证改由这一条承载。
+    // 【被删掉的那个理由,照直记下来】TOOLS-1 把这一条设成恒真,理由是 dock 的
+    //   默认候选需要一条"任何人都进得去"的条目(Tim 的 4c:新同事第一次登录时
+    //   dock 不能是空的),而 `npm run check:dock` 看着它。
+    //   **CONV-6 ① 删掉了 dock、那张表和那道检查** —— 三样一起没了。
     //
-    // 【为什么换算器是它的合适持有者 —— 按价值,不是按凑数】
-    //   吨/公斤/磅与湿基转干基是【公司里每一个岗位都碰得到】的算术:仓库、采购、
-    //   化验、财务。金属行情是【一个群体】的计价基准。一扇开着的门,该开在
-    //   受众真的是所有人的那一页上。
-    //   而且它没有业务数据 —— 输入是使用者自己敲进去的数,所以恒真的判据
-    //   与它背后的数据是【相称】的,正如金属行情的恒真曾与 USING(true) 相称。
+    // ★【它仍然开着,而理由换成了它【自己】的两条】★
+    //   ① 受众真的是所有人:吨/公斤/磅与湿基转干基,仓库、采购、化验、财务
+    //      每个岗位都在算。一扇开着的门该开在这样一页上。
+    //   ② 它没有业务数据可泄露 —— 输入是使用者自己敲的数,一行库都不读,
+    //      所以恒真的判据与它背后的数据【相称】。
+    //   完整论证写在 app/tools/converter/page.tsx 的抬头。
     //
-    // ★ 关掉这一条之前,先跑 `npm run check:dock` ★ 它会算出每个角色的默认 dock,
-    //   任何角色掉到 0 就变红。**这条保证从此有检查看着,不再只有一句注释。**
+    // ★【写在这里是因为它现在没有检查看着了】★ 一条恒真的判据,若它唯一写着的
+    //   理由刚被删掉,读起来就像一处遗留,而这个仓库对遗留的默认动作是清理。
+    //   **它不是遗留;不要"顺手"关上它。**
     { href: '/tools/converter', navKey: 'nav.converter', modules: ['tools'], permission: { all: [] } },
     // ★★【CONV-7 ①:提醒 —— 工具的第五条。Tim 的裁定,2026-09-04】★★
     //
@@ -510,12 +546,12 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // "它同时服务两侧,塞进任何一侧都会让另一侧看不见"。那个理由本身没有错,
     // **Tim 在 2026-09-02 就定价这一件事推翻了它** —— 定价现在【只属于工具】。
     // 【所以下面那段 D6 的推理不再生效,不许照它读】共有区里 D6 的抬头已经改写。
-    // 【D6 的机制没有被推翻】/commissions、/inbound、/output、/finance/freight
+    // 【D6 的机制没有被推翻】/sales/commissions、/inbound、/output、/finance/freight
     // 仍然是多属主的,多属主机制本身一行未动 —— 变的只是定价这一族的属主。
     //
     // 【判据一个字没动】仍然是 module.pricing.view;搬的是【它在哪个菜单里】,
     // 不是【谁进得去】。这与本刀 /margin 那一条是同一条裁定。
-    { href: '/pricing', navKey: 'nav.pricing', modules: ['tools'], permission: P_PRICING },
+    { href: '/tools/pricing', navKey: 'nav.pricing', modules: ['tools'], permission: P_PRICING },
     // ★★【CONV-0 ②a:定价的三个孩子【整批离开菜单】—— Tim 的裁定,2026-09-03】★★
     //
     // 【症状】工具的二级是「任务 · 日历 · 单位换算 · 定价」,而紧贴在「定价」这一条
@@ -524,7 +560,7 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // 哪一个是"定价"。TOOLS-1 把这件事留给了 Tim,他裁的是:这不是口味问题。
     //
     // 【裁定】**工具菜单上只出现「定价」一条,它底下什么都没有。**
-    // 公式、计价器、金属行情【不进菜单】,由 /pricing 那一页自己列出来。
+    // 公式、计价器、金属行情【不进菜单】,由 /tools/pricing 那一页自己列出来。
     //
     // ★【为什么不是"给组加一个 href,让组名可点"】★
     //   那是在答另一个问题。组名不可点是 ModuleBar 里写着的一条分寸
@@ -533,21 +569,21 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     //
     // ★【删掉三条条目,判据一个字没变 —— 这是本刀必须说清的一点】★
     //   三条的 permission 全是 P_PRICING,而它们的页面守卫求的是同一个字符串:
-    //     /pricing/formulas · /pricing/calculator → requireModule(MOD.pricing)
-    //     /pricing/metal-prices                   → requireModule(MOD.pricing)(本刀改,见下)
+    //     /tools/pricing/formulas · /tools/pricing/calculator → requireModule(MOD.pricing)
+    //     /tools/pricing/metal-prices                   → requireModule(MOD.pricing)(本刀改,见下)
     //   实测 live 授权:module.pricing.view 归 admin · auditor · finance · gm ·
     //   procurement · sales 六个角色;没有任何角色持有别的 pricing 码而缺这一个。
     //   **所以这是一次导航改动,不是一次访问改动。**
     //
     // ★【check-nav-routes 为什么仍然绿】★ 判据②认的是"落在某条注册表条目之下"
-    //   (isCoveredByEntry),而 /pricing 这一条还在 —— 三条子路由都在它底下,
+    //   (isCoveredByEntry),而 /tools/pricing 这一条还在 —— 三条子路由都在它底下,
     //   所以它们【不需要】进 EXCEPTIONS。少写一条例外,就少一处将来要维护的理由。
     //
-    // ★【读者怎么走到它们】★ 只有一条路:打开 /pricing,四张卡各指一个孩子。
+    // ★【读者怎么走到它们】★ 只有一条路:打开 /tools/pricing,四张卡各指一个孩子。
     //   本刀【同时】修好了那一页 —— 此前它的第三张卡直指 bulk(录入),
     //   而金属行情【列表】只挂在卡片下面一个灰色小链接上。菜单入口撤掉之后,
     //   那个灰链接会成为列表页唯一的门 —— 那不是整理菜单,那是把一页藏起来。
-    //   见 app/pricing/page.tsx。
+    //   见 app/tools/pricing/page.tsx。
     //
     // ══ 以下这一整段【不再有条目跟在它后面】—— CONV-0 ②a 删掉了那一行 ══════
     // 它说的那次【收窄】仍然完全有效,只是判据不再由一条 FUNCTIONS 条目携带,
@@ -555,7 +591,7 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // 留着它,因为它记的是【为什么金属行情要受 module.pricing.view 管】,
     // 而那个理由今天还在承重;末尾那句「见下面那一条」指的是 /tools/converter,
     // 它在本文件更靠前的位置(dock 兜底那一条),不在这一段之后。
-    // ★★【TOOLS-1 ①b:金属行情搬进 /pricing 之下,并且【刻意收窄】判据】★★
+    // ★★【TOOLS-1 ①b:金属行情搬进 /tools/pricing 之下,并且【刻意收窄】判据】★★
     //
     // 【历史,保留不删 —— 它是这次改动的论据,不是过时的注解】
     //   UI-FIX-1 ⑦ 把它搬进工具时,判据刻意留成 `{ all: [] }`(恒真),理由写着:
@@ -564,7 +600,7 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     //   **那条理由在它是【一级路由】时是对的。** 本刀改的是它的位置,而位置改变了结论:
     //
     // 【为什么现在要收窄 —— Tim 的裁定(甲),2026-09-03】
-    //   它现在住在 /pricing 底下,而 /pricing 由 module.pricing.view 把门。
+    //   它现在住在 /tools/pricing 底下,而 /tools/pricing 由 module.pricing.view 把门。
     //   保持 `{ all: [] }` 会造出一个【半开】的状态:菜单里看不见,URL 却打得开。
     //   **那种状态是最难解释的一种** —— 在一次审计里,或者在一个"我为什么找不到这一页"
     //   的支持问题里。金属行情是采购报价的基准,它属于定价。
@@ -609,7 +645,34 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     //   【定义第二遍】—— 而那正是本文件抬头 §一 要杀的东西。
     //   代价照直说:一个只持字典编辑权的人进得去设置,但那一条 Overview 对他
     //   写着「· 受限」。**这是 D5 想要的样子,不是一处缺席。**
-    { href: '/settings', navKey: 'nav.settingsOverview', modules: ['settings'], permission: P_MANAGE_PERMISSIONS },
+    //
+    // ★★【CONV-6 ④:「设置概览」这一条【删了】,连同 app/settings/page.tsx】★★
+    //
+    // 【Tim 的裁定,2026-09-04】设置菜单的第一条是「设置概览」(/settings),
+    //   而它底下那八条【已经把每一样都列了一遍】—— 那一页是同一份清单的第二遍。
+    //   这与 ⑨ 给四个模块建 Overview 是【同一条判据的两面】:
+    //   一级模块的根若只是把二级菜单复述一次,它就不该存在;
+    //   要存在,它得说那些【任何一张子页面都说不出来】的事(见
+    //   docs/module-overview-basis.md)。**设置没有那样的事可说** ——
+    //   它名下八条是八件互不相干的配置,不横跨、不汇总,凑不出一条 spans。
+    //
+    // 【路由也删掉了,而这是本刀的判断,理由写在这里】
+    //   另一个选择是"留着但不进菜单",像 /purchasing 那样进 EXCEPTIONS。
+    //   ★ 但 /purchasing 那一条的理由不搬得过来 ★:它是一次 redirect,
+    //     终点就在同一菜单的下一行,留着不制造第二个入口。
+    //     /settings 有【自己的内容】(一张 ModuleLanding),留着它就是留下一页
+    //     "只有背得出网址的人到得了"的清单 —— 而 check-nav-routes 的判据②
+    //     存在的全部理由就是拦住这种页。给它写例外,等于给它写一条
+    //     "谁都走不到,但没关系"的理由,而那种理由不该被写下来。
+    //
+    // ★【谁会因此失去什么 —— 核过,答案是没有人】★
+    //   这一条的判据是 action.manage_permissions,而【账号 / 角色 / 权限速查】
+    //   三条用的是同一个码。也就是说看得见这一条的人,一定也看得见那三条;
+    //   没有任何一个角色的唯一入口经过这里。字典(module.*.edit)、导入
+    //   (action.bulk_import)、被删记录(data.view_deleted)三条各自把门,
+    //   而模块可进性是从二级条目推导的(本文件 §二),所以持那三个码的人
+    //   照旧进得去【设置】这个模块 —— 少掉的只是一页复述。
+    //   实测的逐角色对照见本刀报告。
     { href: '/settings/accounts', navKey: 'permissions.subnav.users', modules: ['settings'], permission: P_MANAGE_PERMISSIONS },
     { href: '/settings/roles', navKey: 'permissions.subnav.roles', modules: ['settings'], permission: P_MANAGE_PERMISSIONS },
     { href: '/settings/reference', navKey: 'permissions.subnav.reference', modules: ['settings'], permission: P_MANAGE_PERMISSIONS },
@@ -668,7 +731,7 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // (第二份排序表正是本刀在财务子导航里刚刚删掉的那种东西。)
     // 【双】佣金:主语是代理人(一个 service_vendor 供应商),但 free_standing
     // 与卖方侧的佣金是销售在看 —— 勘察 C1/C4。
-    { href: '/commissions', navKey: 'nav.commissions', modules: ['purchasing', 'sales'], permission: P_SUPPLIERS },
+    { href: '/sales/commissions', navKey: 'nav.commissions', modules: ['purchasing', 'sales'], permission: P_SUPPLIERS },
     // 【三】收货 / 进料批次:采购的收货腿,库存的入库腿 —— 勘察 C1/C6。
     // ★【UI-FIX-1 ⑦:运营成为第三个属主 —— 这是一次纯粹的【增加】】★
     //   Tim 的理由:车间需要知道什么料到了。
@@ -686,7 +749,7 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // ★ 那段推理【不再生效】,不许照它读。★ Tim 裁定定价整族(含金属行情)
     //   只属于【工具】,采购与销售两侧都不再有这个入口 —— 见上面工具那一段。
     //   记在这里而不是删掉,是为了让"D6 说定价同属两侧"这句话不至于读起来还作数。
-    // 【被推翻的是这一族的摆放,不是多属主机制】机制仍然在用:上面的 /commissions、
+    // 【被推翻的是这一族的摆放,不是多属主机制】机制仍然在用:上面的 /sales/commissions、
     //   /inbound(本刀刚变成三属主)、/output、下面的 /finance/freight 都是。
     // 【双】运费单:既是一笔应付,也是一票货的成本 —— 勘察 C2。
     { href: '/finance/freight', navKey: 'finance.subnav.freight', modules: ['logistics', 'finance'], permission: P_FINANCE, group: 'finance.group.payables' },
@@ -717,16 +780,16 @@ export const MOD = {
     sales: byId('/sales'),
     suppliers: byId('/suppliers'),
     purchasing: byId('/purchasing'),
-    customers: byId('/customers'),
+    customers: byId('/sales/customers'),
     materials: byId('/materials'),
-    pricing: byId('/pricing'),
+    pricing: byId('/tools/pricing'),
     inbound: byId('/inbound'),
     output: byId('/output'),
     processing: byId('/operation'),
     inventory: byId('/inventory'),
     stocktakes: byId('/stocktakes'),
     finance: byId('/finance'),
-    tasks: byId('/tasks'),
+    tasks: byId('/tools/tasks'),
     hr: byId('/hr'),
     logistics: byId('/logistics'),
 } as const
@@ -734,15 +797,25 @@ export const MOD = {
 export const FN = {
     margin: fnByHref('/margin'),
     deleted: fnByHref('/settings/deleted'),
-    pricing: fnByHref('/pricing'),
-    commissions: fnByHref('/commissions'),
+    pricing: fnByHref('/tools/pricing'),
+    commissions: fnByHref('/sales/commissions'),
     contracts: fnByHref('/contracts'),
     /** CONV-5:/margin 的批次列要链到产出批次,而 /output 是【跨模块】条目
      *  (operation + inventory),按第 ② 条不变量它的入口必须由注册表派生。 */
     output: fnByHref('/output'),
     licences: fnByHref('/purchasing/licences'),
     approvals: fnByHref('/settings/approvals'),
-    /** NAV-CLEANUP-1:两张落地页各自的判据 —— 页面守卫按名取,拼错是编译期错误。 */
+    /** NAV-CLEANUP-1:落地页的判据 —— 页面守卫按名取,拼错是编译期错误。
+     *  【CONV-6 ④:settingsHome 删了】那一页与那条条目一起没了;
+     *  留着一个指向不存在条目的名字,fnByHref 会在【模块加载时】抛。
+     *  【CONV-6 ⑤c/⑨:三张新 Overview 各按名取自己的判据】—— 与财务那一条同形。
+     *  【为什么不用 requireModule(MOD.x)】两者今天求的是同一个字符串,但
+     *  「谁进得去这一页」的唯一定义是【那条注册表条目】(本文件 §一);
+     *  按条目取,菜单上看得见与页面进得去就永远是同一个表达式。 */
     financeHome: fnByHref('/finance'),
-    settingsHome: fnByHref('/settings'),
+    /** CONV-6 ⑨:/operation 从 <ModuleLanding> 换成 Overview,守卫跟着换成按条目取。 */
+    operationHome: fnByHref('/operation'),
+    purchasingHome: fnByHref('/purchasing'),
+    logisticsHome: fnByHref('/logistics'),
+    salesHome: fnByHref('/sales'),
 } as const

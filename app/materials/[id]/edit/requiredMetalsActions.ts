@@ -12,7 +12,7 @@
 // 哪怕它是空的 —— 少传一次就是让"取消全部要求"这个动作静默失败。
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { loadSubstances } from '@/app/pricing/metal-prices/substanceQuery'
+import { loadSubstances } from '@/app/tools/pricing/metal-prices/substanceQuery'
 import { localizeMaterialPolicyError } from '../../materialPolicyErrorCodes'
 
 export type RequiredMetalsState = { error?: string; ok?: boolean }

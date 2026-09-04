@@ -33,7 +33,7 @@ import { loadMaterialAxes } from '@/app/inbound/intakeConditionQuery'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { canEnter } from '@/lib/moduleAccess'
-import { loadSubstanceLabels, toOptions } from '@/app/pricing/metal-prices/substanceQuery'
+import { loadSubstanceLabels, toOptions } from '@/app/tools/pricing/metal-prices/substanceQuery'
 import DiscrepancyKinds, {
     type DiscrepancyRow as GrnRow,
     type ReceivingThresholds as GrnThresholds,

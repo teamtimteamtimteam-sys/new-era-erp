@@ -150,7 +150,7 @@ const REPORTISH = new Set([
     'processing-costs','month-end','close','payables','receivables',
 ])
 const LANDING = new Set(['/', '/finance', '/operation', '/settings', '/hr', '/inventory',
-    '/pricing', '/purchasing', '/welcome', '/me', '/logistics'])
+    '/tools/pricing', '/purchasing', '/welcome', '/me', '/logistics'])
 
 for (const p of pages) {
     const { route, last, segs } = p

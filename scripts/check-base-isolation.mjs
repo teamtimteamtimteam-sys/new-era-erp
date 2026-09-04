@@ -61,7 +61,7 @@ const KNOWN_CONVERSIONS = new Set([
 //   清单上剩下的 11 个组件仍然一个都没被采用,这道闸继续守着它们。
 // ★★【CONV-1(2026-09-03):'data-table' 也毕业了 —— 与 CONV-0 的 refusal 同一条路】★★
 // CONV-1 是【模板定形】那一刀:它把 <DataTable> 接进了四页(/inbound ·
-// /finance/claims 的已决登记簿 · /commissions · /sales/quotes),并新建了
+// /finance/claims 的已决登记簿 · /sales/commissions · /sales/quotes),并新建了
 // 列表页外壳 <ListPage>。**那是一次刻意的、看得见的转换**,不是违规。
 //
 // ★【拿掉之后这道闸对 data-table 就不再守着什么 —— 接替它的是三样别的东西】★

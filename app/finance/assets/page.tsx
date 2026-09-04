@@ -11,7 +11,7 @@
 //   最后一格挂着 AssetActions,一个真实的、逐行的行内表单(提交按 date/
 //   number/select 输入),按【格子里有没有输入控件】这条全仓库统一的判据,
 //   它是一张需要 CONV-2 那套"行级编辑态"契约的表,不是这一套只读账簿的模板 ——
-//   与 CONV-3 §⑧-1 拒收 /pricing/calculator 是同一条判据。主表按兵不动。
+//   与 CONV-3 §⑧-1 拒收 /tools/pricing/calculator 是同一条判据。主表按兵不动。
 //   月度折旧预览是另一张表,零行内控件,套 CONV-1 模板转换。
 //   state 恒为 'ok':这一页没有"整页无内容"这回事,折旧面板总是有得看。
 import Link from 'next/link'

@@ -24,8 +24,8 @@ import Link from 'next/link'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
 import DecimalInput, { parseDecimal } from '@/app/components/forms/DecimalInput'
-import type { MetalOption } from '@/app/pricing/metal-prices/options'
-import type { CalcResult } from '@/app/pricing/calculator/actions'
+import type { MetalOption } from '@/app/tools/pricing/metal-prices/options'
+import type { CalcResult } from '@/app/tools/pricing/calculator/actions'
 import { applicableTriggers, triggerLabel, type PaymentTriggerEvent } from '@/lib/paymentTriggers'
 import {
     createOrder,

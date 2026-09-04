@@ -853,3 +853,51 @@ live 最终授权实测:`data.view_deleted` 的持有者 = **`admin auditor`**�
    **`check-i18n` 没有抓住它**,原因与修法方向记在 `docs/forward-queue.md`。
    **下一个删注册表条目的人:先跑 `node scripts/gen-deep-routes.mjs --write`,
    然后读那份 diff。闸门在这一处帮不了你。**
+
+---
+
+# CONV-6(2026-09-04)—— 两批搬家、三条模块根、两条条目退场
+
+## 范围 id 的变化(权限码【一个字没动】)
+
+`SCOPES` 的 `id` 是一段**路由前缀**,所以它跟着路由走;`permission` 是 RLS 上写着
+的那个码,所以它不动。这与 `/processing → /operation`(NAV-CLEANUP-1 ③)
+和「任务 → 工具」(UI-FIX-1 ⑥)是**逐字相同**的拆法。
+
+| 范围 | id 从 | id 到 | permission | `MOD` 里的名字 |
+|---|---|---|---|---|
+| 任务 | `/tasks` | `/tools/tasks` | `module.tasks.view`(不变) | `MOD.tasks`(不变) |
+| 定价 | `/pricing` | `/tools/pricing` | `module.pricing.view`(不变) | `MOD.pricing`(不变) |
+| 客户 | `/customers` | `/sales/customers` | `module.customers.view`(不变) | `MOD.customers`(不变) |
+
+**184 处 `requireModule(...)` / `requireFunction(...)` 的调用点一行未改** ——
+它们按【名字】取范围,而名字没变。
+
+## 条目的变化
+
+| 变动 | 条目 | 说明 |
+|---|---|---|
+| 地址搬家 | `/tasks` → `/tools/tasks` | 属主仍是 tools |
+| 地址搬家 | `/pricing` → `/tools/pricing` | 三个孩子跟着走,**都不进菜单**(CONV-0 ②a 未变) |
+| 地址搬家 | `/customers` → `/sales/customers` | 属主仍是 sales |
+| 地址搬家 | `/commissions` → `/sales/commissions` | ★ **属主仍是采购 + 销售两个** ——地址搬了,属主没搬。先例是 `/finance/freight`(物流 + 财务) |
+| **删条目** | `/customers/overlap` | 它是客户页的**孩子**,不是同辈。入口在客户列表页上(`app/sales/customers/page.tsx:152`),而**冒烟有一条断言看着那个入口** |
+| **删条目 + 删路由** | `/settings` | 「设置概览」是它底下八条的复述。**没有任何角色的唯一入口经过它**(实测:`action.manage_permissions` 只授 admin,而 admin 持有全部八条的码) |
+| **新条目** | `/purchasing` | 此前它是一次 `redirect()`,CHART-0 ② 据此删过它的条目。**Tim 裁定它不许再跳转** —— 那一页现在是采购 Overview,所以它配有一条条目 |
+| **新条目** | `/logistics` | 此前**根本没有** `app/logistics/page.tsx` |
+| **新条目** | `/sales` | 同上 |
+
+三条新条目的标签共用 `nav.moduleOverview`(「概览 / Overview」)。财务与人力那两条
+各有自己的键(`finance.subnav.overview` / `hr.subnav.overview`),**本刀不动它们** ——
+改一个已经在屏幕上的标签不属于这一刀。
+
+## 退休路径:检查加了四条,并且**多了一整条判据**
+
+`scripts/check-nav-routes.mjs` 的 `RETIRED` 加了 `/tasks` · `/pricing` · `/customers`
+· `/commissions`,判据与既有三条同形(前面不许是词字符或点 —— 新地址的最后一个
+字符恰好是词字符,所以它们自动不被误判)。
+
+★ **而这一刀真正的补强是第 ⑥ 条判据:带查询参数的站内链接,它指的那一页
+必须真的读那个参数。** 理由与实测见那个文件的抬头 —— 前五条对这一族
+**结构性地**看不见,因为退休的可以是一个**语义**(`/finance` 不再【是】试算平衡)
+而不是一个字符串。**四条注入全部实测变红,还原后归零。**

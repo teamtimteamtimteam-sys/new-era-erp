@@ -4,7 +4,7 @@
 // 搬家的理由只有一个:它是 'use client',而模块守卫 requireModule() 是服务端的
 // (它 await 权限、读 cookie 取语言)。守卫塞进客户端组件会把 next/headers 拖进
 // 客户端图,整个构建失败;而且客户端组件不能是 async。
-// 所以守卫回到 page.tsx 那层服务端壳里,与 app/pricing/metal-prices/new 早就在用的形状一致。
+// 所以守卫回到 page.tsx 那层服务端壳里,与 app/tools/pricing/metal-prices/new 早就在用的形状一致。
 import type { DictOption } from '@/app/components/dictionaries/dictionaryQuery'
 import { useActionState } from 'react'
 import Link from 'next/link'

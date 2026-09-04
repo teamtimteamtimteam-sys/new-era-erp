@@ -2,10 +2,10 @@
   "app/components/NotificationBell.tsx": 1,
   "app/components/finance/financeAttachmentActions.ts": 1,
   "app/components/metals/metalContentActions.ts": 2,
-  "app/customers/[id]/edit/actions.ts": 1,
-  "app/customers/[id]/edit/attachmentActions.ts": 2,
-  "app/customers/actions.ts": 1,
-  "app/customers/new/actions.ts": 1,
+  "app/sales/customers/[id]/edit/actions.ts": 1,
+  "app/sales/customers/[id]/edit/attachmentActions.ts": 2,
+  "app/sales/customers/actions.ts": 1,
+  "app/sales/customers/new/actions.ts": 1,
   "app/finance/company/actions.ts": 3,
   "app/finance/fx/[id]/edit/actions.ts": 2,
   "app/finance/fx/new/actions.ts": 1,
@@ -33,6 +33,6 @@
   "app/suppliers/[id]/edit/attachmentActions.ts": 2,
   "app/suppliers/[id]/edit/complianceActions.ts": 2,
   "app/welcome/page.tsx": 1,
-  "app/pricing/metal-prices/[id]/edit/actions.ts": 2,
-  "app/pricing/metal-prices/new/actions.ts": 1
+  "app/tools/pricing/metal-prices/[id]/edit/actions.ts": 2,
+  "app/tools/pricing/metal-prices/new/actions.ts": 1
 }

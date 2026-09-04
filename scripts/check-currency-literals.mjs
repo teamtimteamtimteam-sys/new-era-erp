@@ -88,7 +88,7 @@ const ALLOWLIST = [
             + '不写死。加银行账户时这里与那个 DB 函数必须同改。',
     },
     {
-        path: 'app/pricing/calculator/CalculatorForm.tsx', match: 'USD`',
+        path: 'app/tools/pricing/calculator/CalculatorForm.tsx', match: 'USD`',
         reason: '计价器的【纯文本明细】(给人复制进邮件/微信的那一段)。金属计价全程 USD 进 USD 出 '
             + '(行情 USD/吨、加工费 USD/吨,FIN-15 已就同一理由把本文件列入例外),而复制出去的文本'
             + '离开了屏幕、没有列头可依 —— 每行必须自带单位,否则收件人手里就是一串没有币种的数。'

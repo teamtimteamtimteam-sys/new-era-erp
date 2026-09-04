@@ -111,7 +111,7 @@ const REGISTRY_RENDERERS = new Set([
     'app/operation/processing/page.tsx',
     'app/components/TopNav.tsx',
     'app/components/nav/ModuleBar.tsx',
-    'app/components/nav/Dock.tsx',
+    // 【CONV-6 ①:Dock.tsx 从这份名单里去掉了 —— 那个组件已经不存在】
     'app/components/nav/Breadcrumbs.tsx',
 ])
 // ★ IA-BUILD-1:这条只管【跨模块】的条目,而它一直就是这个意思 ★
@@ -160,8 +160,20 @@ if (/MODULES\s*\.\s*filter\s*\(/.test(stripComments(accessSrc))) {
 //   顶上来的一处:app/components/nav/ModuleLanding.tsx —— 三张落地页
 //   (/finance /operation /settings)共用的那一个组件,它逐条画本模块的条目,
 //   进不去的画成「· 受限」。**"受限不是缺席"这条规矩的渲染层没有变少,只是换了地方。**
-for (const r of ['app/components/nav/ModuleBar.tsx', 'app/components/nav/Dock.tsx',
-                 'app/components/nav/ModuleLanding.tsx']) {
+// ★★【CONV-6:这份名单换了两处,而两处都不是"少了一道防线"】★★
+//   · **Dock.tsx 去掉** —— dock 整个删了(①),它那三态
+//     (open / restricted / gone)连同组件一起不存在。一处不再存在的渲染
+//     不需要一条看着它的判据,而留着这个名字只会让下一次 read() 直接抛。
+//   · **ModuleLanding.tsx 换成 overview/Figure.tsx** —— ⑨ 之后 <ModuleLanding>
+//     【一个渲染者都没有了】(/finance 与 /hr 在 CONV-7、/operation 在本刀换成
+//     Overview;/settings 那一页本刀按 ④ 删掉),所以那个组件也删了。
+//     ★ 接替它的是 <Figure> 的 restricted 那一支 ★:同一条规矩、同一套词
+//     (data-module-restricted / common.restricted / dashboard.restrictedHint),
+//     只是长在 Overview 上而不是落地页上。
+//     **「受限不是缺席」这条规矩的渲染层没有变少,只是换了地方** ——
+//     与上面 NAV-CLEANUP-1 ② 那次写下的是同一句话。
+for (const r of ['app/components/nav/ModuleBar.tsx',
+                 'app/components/overview/Figure.tsx']) {
     // 【必须去掉注释再看】讲这条规矩的注释里必然写着 common.restricted ——
     // 第一版就是这样被自己的注释骗过去的:把那句「受限」从 JSX 里删掉,检查照旧是绿的。
     const body = stripComments(read(join(ROOT, r)))

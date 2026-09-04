@@ -8,7 +8,20 @@ import { createClient } from '@/lib/supabase/server'
 import { mustRows } from '@/lib/db-helpers'
 import { defaultLedgerFrom } from '../reportShared'
 
-export type LedgerParams = { from: string; to: string; materialId: string; batchCode: string }
+export type LedgerParams = {
+    from: string; to: string; materialId: string; batchCode: string
+    /**
+     * ★★【CONV-6 ⑥ 的扫尾:一条【指名一条流水】的筛选,此前根本不存在】★★
+     * 被删记录页(app/settings/deleted/page.tsx:153)一直在发
+     * `/inventory/reports/ledger?movement=<id>` 这样的链接 ——
+     * **而这一页从来没有读过 movement 这个参数。** 点下去参数被静默丢掉,
+     * 人落在一张默认 90 天的完整流水上,再自己去里面找那一条。
+     * 屏幕上"筛到了"与"没筛"长得一模一样,所以没有人发现。
+     * 它是 CONV-6 ⑥ 那条新判据(带参数的链接,目标页必须真的读那个参数)
+     * 扫出来的【第二处】,而它不是搬家造成的 —— 这个参数【一次都没有实现过】。
+     */
+    movementId: string
+}
 
 export type LedgerRow = {
     id: string; business_date: string | null; occurred_at: string; movement_type: string
@@ -25,10 +38,13 @@ export function parseLedgerParams(sp: Record<string, string | undefined>): Ledge
         to: (sp.to ?? '').trim() || '',
         materialId: (sp.material_id ?? '').trim(),
         batchCode: (sp.batch ?? '').trim(),
+        movementId: (sp.movement ?? '').trim(),
     }
 }
 
 export function describeFilters(p: LedgerParams): string {
+    // 【指名一条流水时,日期窗不参与描述】—— 它本来就没有生效(见 fetchLedger)
+    if (p.movementId) return `movement=${p.movementId}`
     const bits = [`${p.from || '…'} → ${p.to || '…'}`]
     if (p.materialId) bits.push(`material=${p.materialId}`)
     if (p.batchCode) bits.push(`batch=${p.batchCode}`)
@@ -48,8 +64,18 @@ export async function fetchLedger(p: LedgerParams): Promise<LedgerRow[]> {
         .order('occurred_at', { ascending: false })
         .limit(2000)
 
-    if (p.from) q = q.gte('business_date', p.from)
-    if (p.to) q = q.lte('business_date', p.to)
+    // ★【指名一条流水时,【不】套那个 90 天默认窗】★
+    //   这一条要是漏了,这次修复就修出一个更坏的东西:一个被删了一年的批次,
+    //   它的注销流水落在窗外,页面会画出【一张自信的空表】——
+    //   而"这条流水不在这个日期区间里"与"这条流水不存在"在屏幕上分不开。
+    //   本仓库为这条区别付过账(gl_control_reconciliation 的「照答会返回一个
+    //   自信的 0.00」是同一句话的另一处)。指名一条 id 是一次【定位】,不是一次浏览。
+    if (p.movementId) {
+        q = q.eq('id', p.movementId)
+    } else {
+        if (p.from) q = q.gte('business_date', p.from)
+        if (p.to) q = q.lte('business_date', p.to)
+    }
 
     const rows = mustRows(await q, 'inventory_movements') as unknown as LedgerRow[]
 

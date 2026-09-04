@@ -460,21 +460,11 @@ const zh = {
         customerOverlap: '客户重叠检查',
         menu: '菜单',
         breadcrumb: '面包屑导航',
-        dock: '快捷栏',
-        dockEmpty: '快捷栏是空的 —— 打开一个页面,按「加入本页」。',
-        dockEdit: '编辑快捷栏',
-        dockRemove: '从快捷栏移除',
-        dockAddHere: '加入本页',
-        dockReset: '恢复默认',
-        // CHART-0 ④:收起 / 展开。**两条都说出「快捷栏」** —— 一个光秃秃的
-        // 箭头在读屏上只是「按钮」,说不出它收起的是什么。
+        // 【CONV-6 ①:dock 的九条键连同 dock 一起删了】—— 一个没有读者的键
+        // 是下一个人据以断定"这个功能还在"的东西。
         // CHART-0 ③:菜单被截断时【自己说】还有多少 —— 说条数,不说"往下滚"。
         // 条数可核对,手势不可核对;滚到底这一行就消失(那时它是假的)。
         menuMoreBelow: '↓ 下面还有 {n} 条',
-        dockCollapse: '收起快捷栏',
-        dockExpand: '展开快捷栏',
-        dockGone: '已下架',
-        dockGoneHint: '这个去处在系统里已经不存在了。把它从快捷栏移除。',
         import: '批量导入',
         dictionaries: '字典维护',
         logistics: '物流',
@@ -502,7 +492,9 @@ const zh = {
         hr: '人力资源',
         deleted: '已删除记录',
         // NAV-CLEANUP-1 ④:设置的落地页(/settings)。
-        settingsOverview: '设置概览',
+        // 【CONV-6 ④:settingsOverview 删了】理由见 en.ts 同一处。
+        // ★【CONV-6 ⑤c/⑨:采购 / 物流 / 销售三张新 Overview 共用这一条】★
+        moduleOverview: '概览',
         // NAV-CLEANUP-1 ③/④:三张【落地页】共用的两句话(ModuleLanding)。
         landingHint: '这个模块底下有什么。进不去的条目写着「受限」。',
         landingNothingOpen: '你进得来这个模块,但它名下没有任何一页对你开放 —— 这是一个矛盾,请报告。',
@@ -513,20 +505,22 @@ const zh = {
     // titleKey / descKey / section / SECTIONS 一并删除。
     // 这里从前还留着一句注释说"任务板 section: null,键仍需存在" —— 那个字段
     // 已经不存在了,而一句描述死字段的注释比死字段本身更能骗到下一个人。
-    // 【留下的这几条都有活的读者】subtitle / noModules* 是首页自己的,
-    // sectionSelf 与 me* / myReviews* 是 app/page.tsx 的 SELF_CARDS。
+    // ★【CONV-6 ②:七个键删掉了】subtitle(顶栏字标已经在说这是哪套系统)、
+    //   sectionSelf 与 me* / myReviews*(「我的」那两张卡删了,两页的入口在
+    //   顶栏「关于你」与手机抽屉里)、remindersDesc(那条链接删了)。
+    //   **留着一个没有读者的键,下一个人会据此断定那一节还在。**
     home: {
-        subtitle: '锂电池回收 ERP 系统',
         noModules: '你还没有任何模块的权限。',
         noModulesHint: '账号已登录,但尚未被授予任何模块 —— 请联系管理员为你分配角色。',
-        sectionSelf: '我的',
-        meTitle: '我的档案',
-        meDesc: '本人档案、假期余额与报销',
-        myReviewsTitle: '我评的评估',
-        myReviewsDesc: '由我担任评估人的绩效评估',
-        // CONV-7 ①:首页那条【不带数字】的路。措辞刻意不提任何计数 ——
-        // 一句「你有 12 件事在等」会把推送搬回首页,而这一刀正是要把它撤走。
-        remindersDesc: '跨模块的待办与到期,想看的时候来看',
+        // ── CONV-6 ③:搜索外壳。**三句都刻意不说"出错"** ────────────────
+        // 【提示语】它说的是【将来能搜什么】,不是一句命令。Tim 的判据:
+        //   首页不要那么像在催你干活 —— 所以这里不写"输入关键词开始搜索"。
+        searchPrompt: '搜点什么',
+        // 【点之前的那一格】短到在 390px 上不会被挤掉,而它是最要紧的一句。
+        searchNotYetBadge: '还没建',
+        // 【点之后的那一句】说"还没建"而不是"暂不可用"——
+        //   后者读起来像坏了,而这一格从来就没通电。
+        searchNotYet: '搜索还没有建。这个框是它将来的位置 —— 现在它什么都不做,所以它也不收你打的字。',
     },
     // OPS-18:运营看板。dashboard.item.* 的后缀集合 = db/views/operations_now.sql 里
     // item_type 的字面量集合(check-i18n MANIFEST 现读那个文件,加一支自动变宽)。
@@ -678,6 +672,73 @@ const zh = {
         salaryLine: '{amount} —— 在册 {total} 人中 {set} 人录了。',
         salaryNoneSet: '在册 {n} 人,一个都没有录月固定工资 —— 所以这个总额没有依据。它不是 0 元:0 元会一路走进假期补偿。',
         remindersBoundary: '—— 准证到期、试用期届满、工资未录这一类【要有人去办】的事,全部在提醒页上。',
+    },
+    // ════════════════════════════════════════════════════════════════════
+    // CONV-6 ⑨:另外四张 Overview。措辞规矩见 en.ts 同一处。
+    // ════════════════════════════════════════════════════════════════════
+    operationOverview: {
+        planTitle: '计划与实际差了多少',
+        planSource: '带计划的工单条目,与加工跑批实际投入 / 产出的数量并排。',
+        planSpans: '计划在 /operation/orders,实际在 /operation/processing —— 两页各说自己那一半,谁都没有印出它们差了多少。',
+        planLine: '带计划的 {total} 条里,有 {off} 条与计划不一致。',
+        planWorst: '差得最远的一条:{code} · {material} · {side} · 计划 {planned},实际 {actual}。',
+        planNoPlans: '没有任何一条工单条目带计划,所以实际【没有】可比的对象 —— 这不是"全都对上了"。',
+        side: { input: '投入', output: '产出' },
+        wipTitle: '产出里还有多少在制',
+        wipSource: '还有余量、且仍在等下一道工序的产出批次,对照账上全部产出批次。',
+        wipSpans: '/output 列出全部产出批次,却不说哪些还等着下一道;/operation/wip 列出等着的那些,却不说它们占多少。',
+        wipLine: '{total} 个产出批次里,{wip} 个还在制 —— 剩 {qty}。',
+        wipOldest: '最久的一个已经等了 {days} 天(产出于 {date})。',
+        wipNoOutput: '账上一个产出批次都没有,所以"在制占多少"连分母都没有 —— 它不是 0%。',
+    },
+    purchasingOverview: {
+        inFlightTitle: '还有多少货在路上',
+        inFlightSource: '已确认或收货中的采购订单 —— 已经承诺出去、而还没有到齐的那些。',
+        inFlightSpans: '订单在 /purchasing/orders,到货在 /inbound,欠的钱在 /finance/payables —— 三页各拿一条腿,而"还欠多少没到"没有一页在说。',
+        inFlightLine: '{orders} 张订单在途,其中 {overdue} 张已经过了预计到货日。',
+        inFlightNone: '没有任何一张订单处在已确认或收货中,所以没有在途的量可算 —— 这与"没有下过单"不是一回事。',
+        valueLine: '已承诺金额:{amount}',
+        valueMixed: '这些订单跨 {n} 种货币,所以这里【不给】一个合计 —— 加起来的那个数没有意义。',
+        valueRestricted: '已承诺金额:受限',
+        contractTitle: '有多少采购是在合同底下走的',
+        contractSource: '挂在合同底下的采购订单,对照全部采购订单;另外有几份合同还有效。',
+        contractSpans: '/contracts 列合同,/purchasing/orders 列订单 —— 两者到底有没有对上,哪一页都没说。',
+        contractLine: '{total} 张采购单里,{under} 张是在合同底下下的。',
+        contractStock: '有效合同 {active} 份,其中买方侧 {buy} 份。',
+        contractNoRow: '那份汇总一行都没返回 —— 这是一次【答不上来】,不是"没有合同"。',
+    },
+    logisticsOverview: {
+        milestoneTitle: '箱子走到哪一段了',
+        milestoneSource: '账上每一只货柜,按它最近一次录到的里程碑归类。',
+        milestoneSpans: '/logistics/containers 一行一只地列箱子,/logistics/lanes 管每条航线要什么单据 —— 而"这批箱子散在航程的哪几段上"两页都不说。',
+        milestoneCount: '{n} 只',
+        milestoneNoneYet: '还没有录过里程碑',
+        milestoneNone: '账上一只货柜都没有,所以没有分布可言 —— 这不是"全都到了"。',
+        docsPending: '所有货柜合计还欠着 {n} 份单据。',
+        attachTitle: '还有几票发运没挂到箱子上',
+        attachSource: '没有挂任何货柜的发运,对照已录的全部发运。',
+        attachSpans: '一票发运属于一张销售订单,一只货柜属于物流;两者有没有接上,哪一边都不说。',
+        attachLine: '{total} 票发运里,{unattached} 票还没挂到货柜上。',
+        attachAllLoose: '一票都没有挂上 —— 这要当成一个该去看的状态读,不是一个统计。',
+        attachNone: '一票发运都没录,所以没有东西可挂 —— 这不是"全都挂好了"。',
+    },
+    salesOverview: {
+        pipelineTitle: '活卡在哪一段',
+        pipelineSource: '报价 → 订单 → 发货 → 开票 每一段的条数,每一段数的都是【还没往下走】的那些。',
+        pipelineSpans: '/sales/quotes、/sales/orders、/finance/invoices 各只看得见自己那一段 —— "哪一段堵着"是三页谁都答不了的问题。',
+        stageQuotes: '还能转单的报价:{n} 条(已录 {total} 条)',
+        stageOrders: '草稿或已确认、还没发货的订单:{n} 张(共 {total} 张)',
+        stageShipped: '已经有发运挂上去的订单:{n} 张',
+        stageInvoices: '已开且未结清的发票:{n} 张',
+        stageInvoicesRestricted: '已开且未结清的发票:受限',
+        pipelineNone: '账上既没有报价也没有订单,所以没有管道可描述。',
+        creditTitle: '信用敞口,以及谁根本没设限额',
+        creditSource: '客户欠款合计(本位币),旁边是有几家客户【根本没有】录过信用额度。',
+        creditSpans: '限额在 /sales/customers,欠款在 /finance/receivables —— 两个数只有放在一起才有意义,而任何一页都看不见另一半。',
+        creditLine: '{customers} 家客户合计敞口 {exposure}。',
+        creditNoLimit: '其中 {n} 家【没有】录过信用额度 —— 那不是"额度为 0",两者导向相反的处理。',
+        creditOnHold: '{n} 家在信用暂停中',
+        creditNone: '账上没有客户,所以没有敞口可合计 —— 它不是"敞口为零"。',
     },
     margin: {
         title: '批次毛利',
@@ -2959,6 +3020,9 @@ const zh = {
             batch: '批次号',
             apply: '应用',
             windowNote: '默认只看最近 90 天。清空日期即可放宽 —— 台账只会变长,一个默认无界的报表每个月都会更慢一点。',
+            // 【CONV-6 ⑥ 扫尾】指名一条流水时那句【看得见的】说明 + 清除的退路。
+            movementFilter: '只看一条流水 —— 从被删记录页点进来的。这时那个 90 天的窗【不生效】。',
+            movementFilterClear: '看整张台账',
             empty: '这个窗口里没有流水。',
         },
     },

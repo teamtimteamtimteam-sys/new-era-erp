@@ -88,8 +88,8 @@ export const REMINDERS = [
       itemHref: (r: OpsRow) => `/stocktakes/${r.item_id}` },
     // 信用支指向【只读的信用仓位页】,不是客户编辑表单 —— 改限额会让告警安静,
     // 而敞口一分未动(SAL-B6 分界的理由)。
-    { itemType: 'credit_over_limit', permission: 'module.customers.view', href: '/customers',
-      itemHref: (r: OpsRow) => `/customers/${r.item_id}` },
+    { itemType: 'credit_over_limit', permission: 'module.customers.view', href: '/sales/customers',
+      itemHref: (r: OpsRow) => `/sales/customers/${r.item_id}` },
     // 跨两个模块的那一支:必须有 data.view_prices,且 finance / processing 之一。
     // 只收 no_unit_cost(分摊一次就清掉);no_run 事后无从补救,放上来就是关不掉的灯。
     // 【item_id 是加工单,不是批次】支报的是批次,而补救是给【加工单】分摊成本,
@@ -121,12 +121,12 @@ export const REMINDERS = [
     // 与上面一条同一个道理;所以面板上写着这两个数是【判据】不是【目标】。
     { itemType: 'work_order_variance_beyond', permission: 'module.processing.view', href: '/operation/orders',
       itemHref: (r: OpsRow) => `/operation/orders/${r.item_id}` },
-    // EXEC-1a/1b:行情陈旧。【补救在 /pricing/metal-prices 上】—— 那里既看得见整条序列,
+    // EXEC-1a/1b:行情陈旧。【补救在 /tools/pricing/metal-prices 上】—— 那里既看得见整条序列,
     // 也是录下一条报价的地方,而这一支说的正是"该录了"。
     // item_id 指向【最近那一条报价】(这个金属本身没有 id),而那一行恰好就是
     // 人要接着往下看的那一行。
-    { itemType: 'metal_quote_stale', permission: 'module.pricing.view', href: '/pricing/metal-prices',
-      itemHref: () => '/pricing/metal-prices' },
+    { itemType: 'metal_quote_stale', permission: 'module.pricing.view', href: '/tools/pricing/metal-prices',
+      itemHref: () => '/tools/pricing/metal-prices' },
     // EXEC-1a/1b:未履约订单。门牌指订单详情 —— 发货从那里出发,
     // 而"还欠多少"也只有那一页答得出来(逐单完成度归
     // sales_order_fulfilment_status,看板这一支只回答"哪些单还欠着")。
@@ -213,7 +213,7 @@ export const REMINDERS = [
     // item_code 是那条催收的编号,不是客户编号 —— 与 review_submitted 的
     // 「item_code 是员工编号、item_id 是评估本身」同一种不同源,fixture 47 的那一类。
     { itemType: 'promise_overdue', permission: 'module.finance.view', href: '/finance/receivables',
-      itemHref: (r: OpsRow) => (r.item_id ? `/customers/${r.item_id}` : null) },
+      itemHref: (r: OpsRow) => (r.item_id ? `/sales/customers/${r.item_id}` : null) },
     // 【预提税待汇缴】主体是一个【月份】,而月份没有自己的页面 —— 所以门牌就是
     //   /finance/wht 那一页本身(负债表 + 汇缴表单都在上面)。item_id 恒为 NULL,
     //   item_code 是那个代扣月(YYYY-MM)—— 与 fx_rate_gap 同形。

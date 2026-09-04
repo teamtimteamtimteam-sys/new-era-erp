@@ -24,9 +24,13 @@ export default async function LedgerPage({
     const sp = await searchParams
     const params = parseLedgerParams(sp)
     const rows = await fetchLedger(params)
+    // 【CSV / PDF 必须与屏幕上看到的是同一份】—— movement 也要带上,
+    //  否则导出的是一整张流水,而人以为导的是他正在看的那一条。
     const qs = new URLSearchParams(
-        Object.entries({ from: params.from, to: params.to, material_id: params.materialId, batch: params.batchCode })
-            .filter(([, v]) => v) as [string, string][]
+        Object.entries({
+            from: params.from, to: params.to, material_id: params.materialId,
+            batch: params.batchCode, movement: params.movementId,
+        }).filter(([, v]) => v) as [string, string][]
     ).toString()
 
     const tableRows: LedgerTableRow[] = rows.map((r) => {
@@ -57,6 +61,24 @@ export default async function LedgerPage({
                 </div>
             }
             state={{ kind: 'ok' }}
+            notices={
+                /* ★【一个【看不见的】筛选必须自己说话,并且给得出退路】★
+                   movement 不在下面那张表单里(它不是一个人会手打的东西),
+                   所以没有这一句,人只会看到一张【只有一行】的流水台账,
+                   而那与"这段时间只发生了一件事"长得一模一样。
+                   旁边那条链接是【清除它】的唯一办法 —— 一个清不掉的筛选是个陷阱。 */
+                params.movementId ? (
+                    <p
+                        data-ledger-filter="movement"
+                        className="text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-4 max-w-3xl"
+                    >
+                        {t('reports.ledger.movementFilter')}{' '}
+                        <a href="/inventory/reports/ledger" className="text-blue-600 hover:underline">
+                            {t('reports.ledger.movementFilterClear')}
+                        </a>
+                    </p>
+                ) : null
+            }
         >
             {/* 【默认 90 天,而且说出来】—— 一个默认过滤了却不说的报表,
                 会让人以为"就这么多流水"。 */}

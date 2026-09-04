@@ -6,7 +6,7 @@
 // calculate_metal_price 的返回,本组件只负责摆放。
 import { useTranslations } from '@/lib/i18n/client'
 import { formatMoneyBare } from '@/lib/format'
-import type { CalcResult, CalcLine } from '@/app/pricing/calculator/actions'
+import type { CalcResult, CalcLine } from '@/app/tools/pricing/calculator/actions'
 
 // 汇总这四行(毛值/加工费/折扣/净值)不各自带币种,因为紧接着的最后一行写着
 // 「单价 (USD/公斤)」,而金属计价【全程 USD 进 USD 出】(市场惯例,见 AGENTS.md

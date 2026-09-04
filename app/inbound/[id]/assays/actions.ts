@@ -12,7 +12,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { localizeAssayError } from '../../assayErrorCodes'
-import type { CalcResult } from '@/app/pricing/calculator/actions'
+import type { CalcResult } from '@/app/tools/pricing/calculator/actions'
 
 // "如果应用会怎样"的影响数字。
 // 【拆分算术全部来自 DB】—— preview_reprice_inbound_batch 与真正入账的

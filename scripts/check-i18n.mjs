@@ -313,6 +313,11 @@ const MANIFEST = {
     // 触发下面的 0 后缀 FAIL —— 漏写【一支】只会让那一支的键失守,所以新支必须
     // 带显式别名,这句话就是写给加支的人看的。)
     'dashboard.item.':      { kind: 'enum', values: () => sqlLiteralAs('db/views/operations_now.sql', 'item_type') },
+    // ── CONV-6 ⑨:运营 Overview 的「投入 / 产出」──────────────────────────
+    // 后缀集合是 work_order_fulfilment 那两支的 side 别名 —— 从视图镜像现读。
+    // 【为什么不写死两个】那两个字符串是视图【吐给屏幕】的值本身;写死一份清单,
+    // 将来多一侧(比如"副产品")时它只会烂在这里,而屏幕上会印出一个原始机器串。
+    'operationOverview.side.': { kind: 'enum', values: () => sqlLiteralAs('db/views/work_order_fulfilment.sql', 'side') },
     // ── CONV-7 ②:模块 Overview ───────────────────────────────────────────────
     // 【勾稽的四条腿】名字是【函数自己吐出来的】,而它们住在两个文件里:
     //   AR/AP 那两条来自 gl_control_reconciliation 的 FOREACH 数组;
@@ -358,7 +363,7 @@ const MANIFEST = {
     'commissions.side.':    { kind: 'enum', values: () => sqlCheckIn('db/tables/commission_agreements.sql', 'side') },
     'commissions.basis.':   { kind: 'enum', values: () => sqlCheckIn('db/tables/commission_agreements.sql', 'basis') },
     'commissions.trigger.': { kind: 'enum', values: () => sqlCheckIn('db/tables/commission_agreements.sql', 'recognition_trigger') },
-    'commissions.errors.':  { kind: 'enum', values: () => tsSet('app/commissions/commissionErrorCodes.ts', 'COMMISSION_ERROR_CODES') },
+    'commissions.errors.':  { kind: 'enum', values: () => tsSet('app/sales/commissions/commissionErrorCodes.ts', 'COMMISSION_ERROR_CODES') },
     'chases.errors.':       { kind: 'enum', values: () => tsSet('app/finance/collections/chaseErrorCodes.ts', 'CHASE_ERROR_CODES') },
     'chases.channel_':      { kind: 'enum', values: () => sqlCheckIn('db/tables/collection_chases.sql', 'channel') },
     'chases.outcome_':      { kind: 'enum', values: () => sqlCheckIn('db/tables/collection_promises.sql', 'outcome') },
@@ -408,7 +413,7 @@ const MANIFEST = {
                                   /SELECT '(\w+)'::text AS (?:record_kind|text)/g) },
     // AUDEL-1b:删除那一族的具名拒绝。接真源那个 Set —— 加一个码,检查自动跟上。
     'deletion.errors.': { kind: 'enum', values: () => tsSet('app/components/inventory/deletionErrorCodes.ts', 'DELETION_ERROR_CODES') },
-    'tasks.opErrors.':      { kind: 'enum', values: () => tsSet('app/tasks/taskErrorCodes.ts', 'TASK_ERROR_CODES') },
+    'tasks.opErrors.':      { kind: 'enum', values: () => tsSet('app/tools/tasks/taskErrorCodes.ts', 'TASK_ERROR_CODES') },
     // LOG-1c:物流的具名拒绝。真源是那个 Set —— 与 tasks.opErrors 同一种接法。
     'logistics.opErrors.': { kind: 'enum', values: () => tsSet('app/logistics/logisticsErrorCodes.ts', 'LOGISTICS_ERROR_CODES') },
     // EQP-2d:设备三张表的拒绝。**真源是那个 Set,而它装的多半是【约束名】** ——
@@ -549,7 +554,7 @@ const MANIFEST = {
     'suppliers.status.':        { kind: 'enum', values: () => tsArray('app/suppliers/[id]/edit/statusMachine.ts', 'SUPPLIER_STATUSES') },
     'suppliers.statusAction.':  { kind: 'enum', values: () => tsArray('app/suppliers/[id]/edit/statusMachine.ts', 'SUPPLIER_STATUSES') },
     'suppliers.attachments.cat.': { kind: 'enum', values: () => tsArray('app/suppliers/[id]/edit/AttachmentsPanel.tsx', 'DOC_CATEGORIES') },
-    'customers.attachments.cat.': { kind: 'enum', values: () => tsArray('app/customers/[id]/edit/AttachmentsPanel.tsx', 'DOC_CATEGORIES') },
+    'customers.attachments.cat.': { kind: 'enum', values: () => tsArray('app/sales/customers/[id]/edit/AttachmentsPanel.tsx', 'DOC_CATEGORIES') },
     'materials.attachments.cat.': { kind: 'enum', values: () => tsArray('app/materials/[id]/edit/AttachmentsPanel.tsx', 'DOC_CATEGORIES') },
     // ── inventory / pricing / inbound / output / processing ─────────────────
     'movements.type.':      { kind: 'enum', values: () => sqlEnum('db/tables/inventory_movements.sql', 'movement_type') },
@@ -601,9 +606,9 @@ const MANIFEST = {
     'finance.fxPage.errors.': { kind: 'enum', values: () => tsSet('app/finance/fxErrorCodes.ts', 'FX_ERROR_CODES') },
     'invoice.errors.':      { kind: 'enum', values: () => tsSet('app/finance/invoiceErrorCodes.ts', 'INVOICE_ERROR_CODES') },
     // PARTY-1:联系人那条路上的具名拒绝 —— 后缀从那张 Set 现读(加一个码就自动加宽)
-    'contacts.errors.':     { kind: 'enum', values: () => tsSet('app/customers/contactErrorCodes.ts', 'CONTACT_ERROR_CODES') },
+    'contacts.errors.':     { kind: 'enum', values: () => tsSet('app/sales/customers/contactErrorCodes.ts', 'CONTACT_ERROR_CODES') },
     'expense.errors.':      { kind: 'enum', values: () => tsSet('app/finance/expenseErrorCodes.ts', 'EXPENSE_ERROR_CODES') },
-    'pricing.errors.':      { kind: 'enum', values: () => tsSet('app/pricing/pricingErrorCodes.ts', 'PRICING_ERROR_CODES') },
+    'pricing.errors.':      { kind: 'enum', values: () => tsSet('app/tools/pricing/pricingErrorCodes.ts', 'PRICING_ERROR_CODES') },
     'assay.errors.':        { kind: 'enum', values: () => tsSet('app/inbound/assayErrorCodes.ts', 'ASSAY_ERROR_CODES') },
     'stocktakes.errors.':   { kind: 'enum', values: () => tsSet('app/stocktakes/stocktakeErrorCodes.ts', 'STOCKTAKE_ERROR_CODES') },
     'locations.errors.':    { kind: 'enum', values: () => tsSet('app/inventory/locations/locationErrorCodes.ts', 'LOCATION_ERROR_CODES') },

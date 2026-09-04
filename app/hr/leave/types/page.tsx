@@ -5,7 +5,7 @@
 // CONV-2:外壳换成 CONV-1 的 <ListPage>。
 // ★【为什么 LeaveSubnav 走 notices 槽】外壳只在 state.kind === 'ok' 时画 children,
 //   而这张假别表是【可能空的】。子导航一旦进了 children,空态那一支会把它一起吃掉,
-//   人就被留在一张没有出口的空页上 —— 与 CONV-1 在 /commissions 撞见的
+//   人就被留在一张没有出口的空页上 —— 与 CONV-1 在 /sales/commissions 撞见的
 //   「无条件提示被静默吃掉」是**同一个缺陷的第二种出口**。
 //   notices 是外壳里唯一画在状态分支【之前】的槽,所以子导航暂时走它。
 //   ☞ 这是一处**记在文档里的将就**:一条子导航不是一句 notice。见

@@ -134,7 +134,7 @@ export async function loadMonth(month: string, locale: string): Promise<{
                 .is('deleted_at', null).gte('due_date', first).lte('due_date', last) as never,
             map: (r) => [{
                 date: String(r.due_date), kind: 'task', label: String(r.title),
-                href: `/tasks/${String(r.id)}`,
+                href: `/tools/tasks/${String(r.id)}`,
             }],
         },
         {

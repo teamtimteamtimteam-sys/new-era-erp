@@ -51,7 +51,7 @@ export default async function RatingScalePage() {
             //   「还没有任何档位」,然后把那张唯一能加一档的卡一起藏掉,
             //   **人被留在一个自己走不出去的空页上。**
             //
-            //   这与 CONV-1 在 /commissions 撞见的是【同一个缺陷的第三种出口】:
+            //   这与 CONV-1 在 /sales/commissions 撞见的是【同一个缺陷的第三种出口】:
             //   ① 无条件提示被 ok 分支吃掉(CONV-1 加了 notices);
             //   ② 子导航被吃掉(本刀 /hr/leave/types,暂借 notices);
             //   ③ **把空态变成非空的那个动作本身被吃掉**(这里)。

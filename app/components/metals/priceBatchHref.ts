@@ -11,5 +11,5 @@ export function priceBatchHref(
     const params = new URLSearchParams()
     if (quantity != null) params.set('quantity', String(quantity))
     for (const r of rows) params.set(r.metal, String(r.content_pct))
-    return `/pricing/calculator?${params.toString()}`
+    return `/tools/pricing/calculator?${params.toString()}`
 }

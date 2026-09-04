@@ -1,6 +1,30 @@
-// app/finance/page.tsx
+// app/finance/trial-balance/page.tsx
 // 试算平衡:journal_lines 按科目聚合(全部分录 —— 冲销对自然对消),
 // 按科目类型分组小计,底部 Σ借 = Σ贷。零发生额科目默认隐藏,?all=1 显示。
+//
+// ════════════════════════════════════════════════════════════════════════════
+// ★★【CONV-6 ⑥:「显示零发生额科目」此前会把人送去【财务 Overview】】★★
+// ════════════════════════════════════════════════════════════════════════════
+// 【机制,查出来的,不是猜的】NAV-CLEANUP-1 ③ 把这一页从 /finance 搬到
+//   /finance/trial-balance,而这条链接是**自指的**:它写的是
+//   `showAll ? <模块根> : <模块根 + ?all=1>` —— 一个当时正确、搬家之后
+//   指向别人的地址。CONV-7 又把 /finance 做成了 Overview,于是点「显示零发生额
+//   科目」的人落在一张三条陈述的 Overview 上,而它连"零发生额"这四个字都不认。
+//   **两刀都没错,错在没有人问过"谁写着这一页的旧地址"。**
+//   (连文件抬头那行注释都还写着 app/finance/page.tsx —— 一并改了。)
+//
+// ★【为什么全站的检查一条都没抓到它 —— 这才是这一条真正的教训】★
+//   scripts/check-nav-routes.mjs 的退休路径那一支查的是【被搬走的前缀】,
+//   而 `/finance` **没有被搬走**:它今天仍然是一条完全合法的路由。
+//   退休的是"/finance 【是】试算平衡"这件事,而那是一件【语义】,不是一个字符串。
+//   ★ CONV-6 因此给那支检查加了第 ⑥ 条判据:**一条带查询参数的站内链接,
+//     它指的那一页必须真的读那个参数。** 这条旧链接当场变红 ——
+//     财务 Overview 根本不读 `all`。判据与注入实测见那个文件。
+//   ★【顺带一条实测出来的分寸,写在这里因为它是本页教出来的】★
+//     那条判据【连注释一起查】,与退休路径那一支同一个口径。所以本抬头
+//     刻意【不写出】那条坏链接的字面量 —— 一段可以直接复制走的坏地址,
+//     与代码里的坏地址一样会被人用上。要举例,就描述它,不要写出它。★
+// ════════════════════════════════════════════════════════════════════════════
 import { Fragment } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
@@ -104,7 +128,7 @@ export default async function FinancePage({
         <ListPage title={t('finance.trialBalance')} state={{ kind: 'ok' }}>
             <div className="mb-4 text-sm">
                 <Link
-                    href={showAll ? '/finance' : '/finance?all=1'}
+                    href={showAll ? '/finance/trial-balance' : '/finance/trial-balance?all=1'}
                     className="text-blue-600 hover:underline"
                 >
                     {showAll ? t('finance.hideZero') : t('finance.showAll')}

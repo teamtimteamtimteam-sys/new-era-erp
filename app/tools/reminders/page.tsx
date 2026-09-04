@@ -62,7 +62,7 @@ import { getMyPermissions } from '@/lib/permissions'
 import { allows } from '@/lib/modules'
 import { mustRows } from '@/lib/db-helpers'
 import { REMINDERS, specFor, type OpsRow } from '@/lib/reminders'
-import { metalLabelKey } from '@/app/pricing/metal-prices/options'
+import { metalLabelKey } from '@/app/tools/pricing/metal-prices/options'
 import { Refusal, RefusalBlock } from '@/app/components/ui/refusal'
 
 // 一块里最多列几件;其余交给那一支自己的列表。

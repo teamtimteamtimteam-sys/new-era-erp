@@ -6,7 +6,7 @@
 import { useTranslations } from '@/lib/i18n/client'
 import { formatMoneyBare, formatUnitCost } from '@/lib/format'
 import PriceBreakdown from '@/app/components/pricing/PriceBreakdown'
-import type { CalcResult } from '@/app/pricing/calculator/actions'
+import type { CalcResult } from '@/app/tools/pricing/calculator/actions'
 import type { AssayImpact } from './actions'
 
 export default function AssayImpactPreview({

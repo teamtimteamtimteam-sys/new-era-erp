@@ -6,7 +6,7 @@
 // 不按感觉。本刀四页逐个数过 page.tsx 里的 .from() 调用:
 //     /inbound          10  ← 只有它够格
 //     /finance/claims    3
-//     /commissions       1
+//     /sales/commissions       1
 //     /sales/quotes      1
 // 【四页里只有一页有,这是对的结果,不是缺口】。在一个 1 次往返的页面上,
 // 骨架屏一闪而过 —— 那不是反馈,那是闪烁。

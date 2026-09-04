@@ -477,21 +477,11 @@ const en = {
         customerOverlap: 'Customer overlap',
         menu: 'Menu',
         breadcrumb: 'Breadcrumb',
-        dock: 'Dock',
-        dockEmpty: 'Your dock is empty — open a page and press “Add this page”.',
-        dockEdit: 'Edit dock',
-        dockRemove: 'Remove from dock',
-        dockAddHere: 'Add this page',
-        dockReset: 'Restore defaults',
-        // CHART-0 ④:收起 / 展开。**两条都说出「dock」这个词** —— 一个光秃秃的
-        // 箭头在读屏上是「button」,说不出它收起的是什么。
+        // 【CONV-6 ①:dock 的九条键连同 dock 一起删了】—— 一个没有读者的键
+        // 是下一个人据以断定"这个功能还在"的东西。
         // CHART-0 ③:菜单被截断时【自己说】还有多少 —— 说条数,不说"往下滚"。
         // 条数可核对,手势不可核对;滚到底这一行就消失(那时它是假的)。
         menuMoreBelow: '↓ {n} more below',
-        dockCollapse: 'Collapse dock',
-        dockExpand: 'Expand dock',
-        dockGone: 'No longer available',
-        dockGoneHint: 'This destination no longer exists in the system. Remove it from your dock.',
         import: 'Bulk import',
         dictionaries: 'Dictionaries',
         logistics: 'Logistics',
@@ -517,12 +507,18 @@ const en = {
         // ★ UI-FIX-1 ⑥:一级模块「任务」改名为「工具」。★
         // 【nav.tasks 留着,而这不是重复】nav.tools 是那个【一级模块】的标签;
         // nav.tasks 是它名下那条【二级条目】(任务板本身)的标签,同时也是
-        // /tasks 这个权限范围拒绝页的标题。改名换掉的是模块的名字,不是那一页的名字。
+        // /tools/tasks 这个权限范围拒绝页的标题。改名换掉的是模块的名字,不是那一页的名字。
         tools: 'Tools',
         hr: 'HR',
         deleted: 'Deleted records',
         // NAV-CLEANUP-1 ④:设置的落地页(/settings)。
-        settingsOverview: 'Settings overview',
+        // 【CONV-6 ④:settingsOverview 删了】那一条菜单条目与那一页一起没了。
+        // ★【CONV-6 ⑤c/⑨:三张新 Overview 共用这一条标签】★ 采购 / 物流 / 销售。
+        //   【为什么共用一条,而不是各铸一个】它们在菜单上都排在本模块的最上面,
+        //   同一栏里不会有第二条也叫「概览」的东西 —— 一个模块一条。
+        //   财务与人力那两条各有自己的键(finance.subnav.overview / hr.subnav.overview),
+        //   本刀【不动它们】:改一个已经在屏幕上的标签不属于这一刀。
+        moduleOverview: 'Overview',
         // NAV-CLEANUP-1 ③/④:三张【落地页】共用的两句话(ModuleLanding)。
         landingHint: 'What this module contains. Pick where to go — entries you cannot open are marked Restricted.',
         landingNothingOpen: 'You can open this module, but none of the pages under it are available to you. That is a contradiction — please report it.',
@@ -535,17 +531,14 @@ const en = {
     // 已经不存在了,而一句描述死字段的注释比死字段本身更能骗到下一个人。
     // 【留下的这几条都有活的读者】subtitle / noModules* 是首页自己的,
     // sectionSelf 与 me* / myReviews* 是 app/page.tsx 的 SELF_CARDS。
+    // ★【CONV-6 ②:七个键删掉了】—— 理由见 zh.ts 同一处。
     home: {
-        subtitle: 'Lithium Battery Recycling ERP',
         noModules: 'You do not yet have access to any module.',
         noModulesHint: 'Your account is signed in but no module has been granted to it. Ask an administrator to assign you a role.',
-        sectionSelf: 'Mine',
-        meTitle: 'My Profile',
-        meDesc: 'Your own record, leave balance and claims',
-        myReviewsTitle: 'My Reviews',
-        myReviewsDesc: 'Performance reviews where you are the reviewer',
-        // CONV-7 ①:首页那条【不带数字】的路。措辞刻意不提任何计数。
-        remindersDesc: 'What is waiting and what is falling due, across every module',
+        // ── CONV-6 ③:搜索外壳。三句都刻意不说「出错」。 ──────────────────
+        searchPrompt: 'Search for something',
+        searchNotYetBadge: 'not built',
+        searchNotYet: 'Search is not built yet. This box is where it will live — for now it does nothing, so it does not take what you type either.',
     },
     // OPS-18:运营看板。dashboard.item.* 的后缀集合 = db/views/operations_now.sql 里
     // item_type 的字面量集合(check-i18n MANIFEST 现读那个文件,加一支自动变宽)。
@@ -679,6 +672,76 @@ const en = {
         salaryLine: '{amount} — {set} of {total} people in service have it recorded.',
         salaryNoneSet: 'Not one of the {n} people in service has a monthly fixed gross recorded, so this total has no basis. It is not 0 — a 0 would travel all the way into leave encashment.',
         remindersBoundary: '— passes expiring, probations ending, salaries not recorded: everything that needs someone to act is on the Reminders page.',
+    },
+    // ════════════════════════════════════════════════════════════════════
+    // CONV-6 ⑨:另外四张 Overview。措辞规矩与 financeOverview / hrOverview 同源 ——
+    //   · source 是【一句人话】,不是表名、不是函数名(CONV-0 ②c 的口径);
+    //   · spans 说的是【它跨了哪几页、而那几页各自为什么答不了】;
+    //   · 「答不上来」的话术永远说【为什么】,而且要与「答案是零」分得开。
+    // ════════════════════════════════════════════════════════════════════
+    operationOverview: {
+        planTitle: 'Plan against what actually happened',
+        planSource: 'Work-order lines that carry a plan, set beside the quantities the processing runs actually consumed and produced.',
+        planSpans: '/operation/orders holds the plan and /operation/processing holds the runs — each page states its own half, and neither prints how far apart they came out.',
+        planLine: '{off} of {total} planned lines came out different from plan.',
+        planWorst: 'Furthest apart: {code} · {material} · {side} · planned {planned}, actual {actual}.',
+        planNoPlans: 'No work-order line carries a plan, so there is nothing to compare actuals against. That is not "everything matched".',
+        side: { input: 'input', output: 'output' },
+        wipTitle: 'How much output is still mid-process',
+        wipSource: 'Output batches with quantity left that are still waiting on a further operation, against every output batch on the books.',
+        wipSpans: '/output lists every output batch without saying which are still waiting on an operation; /operation/wip lists the waiting ones without saying what share of the whole they are.',
+        wipLine: '{wip} of {total} output batches are still mid-process — {qty} left.',
+        wipOldest: 'Oldest has been waiting {days} days (produced {date}).',
+        wipNoOutput: 'There is no output batch at all, so "what share is mid-process" has no denominator. It is not 0%.',
+    },
+    purchasingOverview: {
+        inFlightTitle: 'What is still coming in',
+        inFlightSource: 'Purchase orders that are confirmed or part-received — what has been committed to and has not fully arrived.',
+        inFlightSpans: 'The order lives on /purchasing/orders, the arrival on /inbound, the money owed on /finance/payables — three pages each holding one leg, and none of them saying how much is still outstanding.',
+        inFlightLine: '{orders} orders still in flight, {overdue} of them past their expected delivery date.',
+        inFlightNone: 'No order is confirmed or part-received, so there is nothing in flight to size. That is different from "nothing was ordered".',
+        valueLine: 'Committed value: {amount}',
+        valueMixed: 'These orders run in {n} different currencies, so no single total is stated here — adding them would produce a number that means nothing.',
+        valueRestricted: 'Committed value: restricted',
+        contractTitle: 'How much buying runs under a contract',
+        contractSource: 'Purchase orders written against a contract, against all purchase orders; plus how many contracts are live.',
+        contractSpans: '/contracts lists agreements and /purchasing/orders lists orders — whether the two actually meet is stated on neither.',
+        contractLine: '{under} of {total} purchase orders were placed under a contract.',
+        contractStock: '{active} contracts are active, {buy} of them on the buy side.',
+        contractNoRow: 'The coverage roll-up returned nothing at all — that is a failure to answer, not "no contracts".',
+    },
+    logisticsOverview: {
+        milestoneTitle: 'Where the boxes have got to',
+        milestoneSource: 'Every container still on the books, counted by its most recently recorded milestone.',
+        milestoneSpans: '/logistics/containers lists boxes one per row and /logistics/lanes holds what each route requires — neither page says how the fleet is spread across the legs of a voyage.',
+        milestoneCount: '{n} container(s)',
+        milestoneNoneYet: 'No milestone recorded yet',
+        milestoneNone: 'There is no container on the books, so there is no spread to state. That is not "all delivered".',
+        docsPending: 'Documents still outstanding across all containers: {n}.',
+        attachTitle: 'Shipments that are not on a box yet',
+        attachSource: 'Shipments with no container attached, against every shipment recorded.',
+        attachSpans: 'A shipment belongs to a sales order and a container belongs to logistics; whether the two have been joined up is stated on neither side.',
+        attachLine: '{unattached} of {total} shipments are not attached to a container.',
+        attachAllLoose: 'Not one shipment is attached to a container — read that as a state to look into, not as a tally.',
+        attachNone: 'No shipment has been recorded, so there is nothing to attach. That is not "everything is attached".',
+    },
+    salesOverview: {
+        pipelineTitle: 'Where the work is sitting',
+        pipelineSource: 'Counts at each stage of quote → order → shipment → invoice, each one counting what has not yet moved on.',
+        pipelineSpans: '/sales/quotes, /sales/orders and /finance/invoices each see one stage only — which stage is holding things up is a question none of them can answer.',
+        stageQuotes: 'Quotes still convertible: {n} (of {total} recorded)',
+        stageOrders: 'Orders draft or confirmed, not yet shipped: {n} (of {total})',
+        stageShipped: 'Orders with a shipment against them: {n}',
+        stageInvoices: 'Invoices issued and still open: {n}',
+        stageInvoicesRestricted: 'Invoices issued and still open: restricted',
+        pipelineNone: 'There is neither a quote nor an order on the books, so there is no pipeline to describe.',
+        creditTitle: 'Credit exposure, and who has no limit set',
+        creditSource: 'Outstanding customer balances in base currency, beside how many customers have no credit limit recorded at all.',
+        creditSpans: '/sales/customers holds the limits and /finance/receivables holds what is owed — the two only mean something together, and neither page shows the other half.',
+        creditLine: 'Exposure {exposure} across {customers} customers.',
+        creditNoLimit: '{n} of them have no credit limit recorded — that is not a limit of zero, and the two lead to opposite decisions.',
+        creditOnHold: '{n} on credit hold',
+        creditNone: 'No customer is on the books, so there is no exposure to total. That is not an exposure of zero.',
     },
     margin: {
         title: 'Batch Gross Margin',
@@ -2947,6 +3010,9 @@ const en = {
             batch: 'Batch code',
             apply: 'Apply',
             windowNote: 'Defaults to the last 90 days. Clear the dates to widen it — the ledger only grows, so an unbounded default would get slower every month.',
+            // 【CONV-6 ⑥ 扫尾】指名一条流水时那句【看得见的】说明 + 清除的退路。
+            movementFilter: 'Filtered to a single movement, opened from the deleted-records page. The 90-day window does not apply here.',
+            movementFilterClear: 'Show the whole ledger',
             empty: 'No movements in this window.',
         },
     },

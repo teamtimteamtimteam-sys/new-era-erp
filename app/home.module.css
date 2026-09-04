@@ -1,0 +1,169 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   CONV-6 ②③(2026-09-04)· 首页 —— 一个搜索外壳,和一件证明这页还活着的小事
+   ════════════════════════════════════════════════════════════════════════════
+
+   ★【为什么是一个 module.css,而不是往 globals.css 或 base-motion.css 里加】★
+   照 app/login/login.module.css 的先例。两条理由,都不是洁癖:
+     ① BRAND-1 的 187 页安全性建立在"不往全局加任何东西"上,而 BASE-1 的
+        base-motion.css 又建立在"类名一律 base- 前缀、只加不改"上 ——
+        本页的东西【只有本页用】,挂进那两个文件都是在替别人扩大射程;
+     ② 下面那条动效如果哪天要撤,撤的是【一个文件】,不是从两个共用文件里
+        把几条规则挑出来 —— 而"挑出来"正是 login.module.css 里那条
+        prefers-reduced-motion 变成孤儿的成因(PDF-1 记过那一笔)。
+
+   ★★【那条动效凭什么存在 —— 它必须过 BASE-1 的 R1】★★
+   R1 写着:**动效【只用来反馈状态】,永不装饰。** 一条会飘的装饰在这套系统里
+   是明令禁止的,所以这里必须说清它反馈的是【哪一个状态】:
+
+     这一页现在【几乎是空的】(②把三块内容全删了)。而"空"在屏幕上有两个
+     完全不同的意思 —— **「本来就该是空的」与「它坏了/没加载出来」**。
+     这正是 base-motion.css 给 M3 骨架脉冲写下的那条理由的同一个形状:
+     「"在取数"和"取回来是空的"在屏幕上长得一模一样」。
+     Tim 的话把要求说得更直白:**一个小的、慢慢动的东西,让一张近乎空白的页
+     证明自己是活的,而不是坏的。**
+
+   所以它不是装饰,它是【这一页的活性指示】。它据此受三条约束:
+     · **小**(直径 0.5rem 的一点,不是一块背景);
+     · **慢**(28s 一个来回 —— 慢到余光里察觉得到,快到不会有人盯着它);
+     · **不抢**(压在搜索框后面,不透明度上限 0.5,不参与任何交互)。
+
+   ★【减弱动效:关掉的是【动】,不是【那个状态】】★ 与 base-motion.css 逐字同条。
+   reduce 之下这一点【停下来但仍然画着】—— 它停在轨迹中点,还是那一点柔和的
+   海色。把它一起藏掉,是把可访问性偏好读成了"这个人不需要知道这页是活的"。
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.stage {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    /* 【不用 100vh】顶栏与面包屑在这一页【上面】,100vh 会把内容推出屏幕底下,
+       于是一张"安静的页"变成一张要滚动的页。减掉外壳的高度是猜;
+       用一个够大的最小高度 + 上下留白,在 390 与 27 吋上都读得成。 */
+    min-height: 62vh;
+    gap: 1rem;
+    padding: 3rem 1rem 4rem;
+    text-align: center;
+}
+
+/* ── 那一点 ────────────────────────────────────────────────────────────── */
+.pulse {
+    position: absolute;
+    top: 22%;
+    left: 50%;
+    width: 0.5rem;
+    height: 0.5rem;
+    margin-left: -0.25rem;
+    border-radius: 999px;
+    background: var(--brand-ocean-fill);
+    opacity: 0.5;
+    /* 柔光,让它像一次呼吸而不是一颗跑动的球 */
+    box-shadow: 0 0 1.25rem 0.5rem color-mix(in srgb, var(--brand-ocean-fill) 16%, transparent);
+    animation: home-drift 28s ease-in-out infinite alternate;
+    pointer-events: none;
+}
+
+@keyframes home-drift {
+    from { transform: translate3d(-3.25rem, 0, 0) scale(0.9); opacity: 0.28; }
+    to   { transform: translate3d(3.25rem, -0.75rem, 0) scale(1.1); opacity: 0.5; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    /* 停在轨迹中点 —— 【停下来,但仍然在】。见文件抬头。 */
+    .pulse {
+        animation: none;
+        transform: translate3d(0, -0.375rem, 0);
+        opacity: 0.4;
+    }
+}
+
+/* ── 搜索外壳 ──────────────────────────────────────────────────────────── */
+.shell {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 34rem;
+}
+
+/* ★【它是 <summary>,不是 <input> —— 而那是本刀最要紧的一处刻意】★
+   Tim:**这个框不许假装能用。** 一个接了 <input> 的框会吞掉打进去的字,
+   而"打了字、按了回车、什么都没发生"是这套系统反复在修的那一类谎的完整形状。
+   <details>/<summary> 让"点它 → 它说实话"成为【纯 HTML】的行为:
+   不需要 'use client',不需要一个 state,键盘(Enter/Space)天然可达,
+   读屏把它读成一个可展开的按钮 —— 而它确实就是。 */
+.box {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.9rem 1.15rem;
+    border: 1px solid var(--brand-border);
+    /* 大圆角:它读起来要像一个【搜索框】,而不是这套系统里的又一个输入格。 */
+    border-radius: 999px;
+    background: var(--brand-surface);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px -18px rgba(0, 0, 0, 0.35);
+    cursor: pointer;
+    text-align: left;
+    list-style: none;
+    transition: box-shadow 160ms ease-out, border-color 160ms ease-out;
+}
+/* Safari 的三角。list-style:none 在 WebKit 上管不到它,要这一条。 */
+.box::-webkit-details-marker { display: none; }
+
+.box:hover,
+.shell[open] .box {
+    border-color: var(--brand-border-strong);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 10px 30px -18px rgba(0, 0, 0, 0.45);
+}
+.box:focus-visible {
+    outline: 2px solid var(--brand-ocean-fill);
+    outline-offset: 2px;
+}
+
+.glyph {
+    flex: none;
+    width: 1.15rem;
+    height: 1.15rem;
+    color: var(--brand-muted-text);
+}
+
+.prompt {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 1rem;
+    color: var(--brand-muted-text);
+    /* 【390px 上的行为:提示语截断,而右边那个标记【不许】被挤掉】——
+       被挤掉的正好是那句"它还不能用",而那是这个框最要紧的一句话。 */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 【在点之前就说一次】Tim 要求的是"点下去要说实话";这一格让实话在
+   【点之前】也在屏幕上 —— 一个人不会先打完一句话才发现它不通。
+   两处措辞不同、意思相同:这一格是标签,展开那一段是句子。 */
+.badge {
+    flex: none;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    background: var(--brand-muted);
+    color: var(--brand-muted-text);
+    font-size: 0.7rem;
+    line-height: 1.25rem;
+    white-space: nowrap;
+}
+
+.note {
+    margin: 0.75rem 0.25rem 0;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--brand-muted-text);
+}
+
+@media (max-width: 420px) {
+    .stage { min-height: 58vh; padding: 2rem 1rem 3rem; }
+    .box { padding: 0.8rem 1rem; gap: 0.5rem; }
+    .prompt { font-size: 0.9375rem; }
+    .pulse { top: 18%; }
+}

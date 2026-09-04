@@ -15,8 +15,8 @@ import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { localizePurchasingError } from '../../purchasingErrorCodes'
-import { localizePricingError } from '@/app/pricing/pricingErrorCodes'
-import type { CalcResult } from '@/app/pricing/calculator/actions'
+import { localizePricingError } from '@/app/tools/pricing/pricingErrorCodes'
+import type { CalcResult } from '@/app/tools/pricing/calculator/actions'
 
 export type CreateOrderState = { error?: string }
 
@@ -240,7 +240,7 @@ export async function computeLineEstimate(input: {
         return { error: await localizePricingError(error.message) }
     }
     const result = data as unknown as CalcResult
-    // 报价路径:缺行情即拒(与 /pricing/calculator 同一条规矩,理由见那里)
+    // 报价路径:缺行情即拒(与 /tools/pricing/calculator 同一条规矩,理由见那里)
     if (result.skipped_metals?.length) {
         return { error: t('pricing.errNoPriceForMetals', {
             metals: result.skipped_metals.join(', '), date: result.reference_date }) }

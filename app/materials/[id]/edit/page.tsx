@@ -13,7 +13,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { canEnter } from '@/lib/moduleAccess'
 import { mustRows } from '@/lib/db-helpers'
 import { MOD } from '@/lib/modules'
-import { loadSubstances, toOptions } from '@/app/pricing/metal-prices/substanceQuery'
+import { loadSubstances, toOptions } from '@/app/tools/pricing/metal-prices/substanceQuery'
 import { loadBatteryChemistries, toDictOptions } from '@/app/components/dictionaries/dictionaryQuery'
 
 export default async function EditMaterialPage({

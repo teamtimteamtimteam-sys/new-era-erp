@@ -187,7 +187,7 @@ export default async function FxRatesPage({
                     </Link>
                 </>
             }
-            // ★ 三块提示【无条件】渲染 —— 与有没有数据无关,理由同 /commissions
+            // ★ 三块提示【无条件】渲染 —— 与有没有数据无关,理由同 /sales/commissions
             // notices 抬头:一条只在有数据时才出现的警告,等于没有警告。
             notices={
                 <>

@@ -102,7 +102,7 @@ export default function EditOutputForm({
                     {customers.length === 0 && (
                         <p className="text-xs text-amber-600 mt-1">
                             {t('output.form.noCustomersHelper')}
-                            <Link href="/customers/new" className="underline">
+                            <Link href="/sales/customers/new" className="underline">
                                 {t('output.form.noCustomersLink')}
                             </Link>
                             {t('output.form.noCustomersHelperPost')}

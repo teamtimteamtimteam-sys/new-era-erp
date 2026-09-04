@@ -173,9 +173,29 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
     const RESTRICTED = t('common.restricted')
     const HINT = t('dashboard.restrictedHint')
 
-    /** 二级(或第三级里的)一条。进不去的画成「名字 · 受限」,不是省略。 */
-    const EntryRow = ({ e, indent = false }: { e: NavEntry; indent?: boolean }) => {
-        const pad = indent ? 'pl-6' : 'pl-3'
+    /**
+     * 二级(或第三级里的)一条。进不去的画成「名字 · 受限」,不是省略。
+     *
+     * ★★【CONV-6 ⑦:`indent` 这个 prop 删了 —— 每一行都在同一条左边线上】★★
+     * 【症状(Tim 的走查,2026-09-04)】财务下拉里,组标题(报表 / 分录 / 应收…)
+     *   看上去比它底下的条目【更靠左】,于是条目读起来像"被推右了",
+     *   而不是像那个标题的孩子。
+     * 【实测的三个左边距,这才是症结】组标题 `px-3` = 12px;组内条目
+     *   `pl-6` = 24px;而**没有落进任何一组的条目** `pl-3` = 12px。
+     *   也就是说【同一张菜单里条目有两条左边线】—— 财务的 Overview 在 12px,
+     *   「试算平衡」在 24px。缩进本来是要表达层级的,可它表达出来的是不齐。
+     * 【为什么现在才看得见】NAV-CLEANUP-1 ③ 把无组条目挪到了分组【前面】,
+     *   于是那条 12px 的线排在最上面,与 24px 的差直接对上了眼。
+     *   ★ 委托书猜的是"CONV-0 改的分组渲染" —— 查过了,**不是**:
+     *     `git log -S indent -- app/components/nav/ModuleBar.tsx` 只有一处,
+     *     IA-BUILD-1(c500045)。CONV-0 一行没碰它。★
+     * 【修法:层级由【字体】表达,不由缩进表达】组标题本来就是 11px、大写、
+     *   加粗、灰的 —— 那已经足够把它读成标题。再加一层缩进是用两种手段说同一件事,
+     *   而两种手段一旦不一致(这里就是),读到的是矛盾而不是层级。
+     *   这也是下拉菜单的通行画法(组标题与条目同一条左边线)。
+     */
+    const EntryRow = ({ e }: { e: NavEntry }) => {
+        const pad = 'pl-3'
         if (!e.allowed) {
             return (
                 <span
@@ -215,7 +235,7 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
      * 一处缺席,而没有任何东西说出来。真正的修法在 lib/moduleAccess.ts
      * (只给财务算分组);这一条是第二道网,因为同一个形状不该只有一道防线。
      */
-    const ModuleBody = ({ m, indent }: { m: NavModule; indent: boolean }) => {
+    const ModuleBody = ({ m }: { m: NavModule }) => {
         const grouped = new Set(m.groups.flatMap((g) => g.entries.map((e) => e.href)))
         const ungrouped = m.entries.filter((e) => !grouped.has(e.href))
         return (
@@ -235,7 +255,7 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
                             {t(g.key)}
                         </p>
                         {g.entries.map((e) => (
-                            <EntryRow key={e.href} e={e} indent={indent} />
+                            <EntryRow key={e.href} e={e} />
                         ))}
                     </div>
                 ))}
@@ -290,7 +310,7 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
                                     role="menu"
                                     moreLabel={(n) => t('nav.menuMoreBelow', { n })}
                                 >
-                                    <ModuleBody m={m} indent={m.groups.length > 0} />
+                                    <ModuleBody m={m} />
                                 </ScrollPanel>
                             )}
                         </div>
@@ -364,7 +384,7 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
                                     </button>
                                     {isOpen && (
                                         <div className="pb-2">
-                                            <ModuleBody m={m} indent={m.groups.length > 0} />
+                                            <ModuleBody m={m} />
                                         </div>
                                     )}
                                 </div>
