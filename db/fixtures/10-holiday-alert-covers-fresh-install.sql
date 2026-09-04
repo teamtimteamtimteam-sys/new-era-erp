@@ -30,8 +30,9 @@ BEGIN
     END IF;
 
     -- 补上当年的一条:当年那支应当熄灭,次年那支的行为不受影响
-    INSERT INTO public_holidays (holiday_date, name_en, name_zh, country, is_active)
-    VALUES (make_date(v_year, 1, 1), 'Fixture NY', '测试元旦', 'SG', true);
+    -- C-2:holiday_key 是 NOT NULL —— 造数据的地方也要给。
+    INSERT INTO public_holidays (holiday_date, name_en, name_zh, holiday_key, country, is_active)
+    VALUES (make_date(v_year, 1, 1), 'Fixture NY', '测试元旦', 'fixture-new-year', 'SG', true);
     SELECT count(*) INTO v_cur FROM hr_alerts WHERE alert_type = 'holiday_calendar_missing';
     IF v_cur <> 0 THEN
         RAISE EXCEPTION 'FIXTURE 10 失败:当年已有假日,该告警应熄灭,实得 % 条', v_cur;

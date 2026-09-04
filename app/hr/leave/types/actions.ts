@@ -28,9 +28,21 @@ export async function saveLeaveType(
     return { success: true }
 }
 
+/**
+ * C-2:公共假期的写入口。★`holiday_key` 是必填的,而它不是装饰★ ——
+ * 日期年年在动(农历、回历),而"今天是不是农历新年"这个问题要每年得到同一个答案。
+ * 名称字符串答不了它:`Vesak Day` 与 `Vesak Day (in lieu)` 已经不是同一串字。
+ * UI-1 的节日 logo 读的就是这个键;工作日计算继续读日期。
+ * 【一张表两个读者,不是两张表】—— 两份假期清单是两套系统开始对"今天是哪天"
+ * 各执一词的方式。
+ */
 export async function saveHoliday(
     id: string | null,
-    patch: { holiday_date: string; name_en: string; name_zh: string; is_active: boolean; notes: string | null }
+    patch: {
+        holiday_date: string; name_en: string; name_zh: string
+        holiday_key: string; is_in_lieu: boolean
+        is_active: boolean; notes: string | null
+    }
 ): Promise<CfgState> {
     const supabase = await createClient()
     const { error } = id

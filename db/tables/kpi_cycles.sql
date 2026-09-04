@@ -38,7 +38,17 @@ CREATE TABLE public.kpi_cycles (
     created_by   uuid DEFAULT auth.uid(),
     updated_at   timestamptz NOT NULL DEFAULT now(),
     updated_by   uuid DEFAULT auth.uid(),
+    -- ★★ 下面两列是 C-2 用 ALTER 加的,线上排在【最后】—— 镜像照 ordinal order 写 ★★
+    -- ★★ C-2:【锁 ≠ 关】—— 一个 flag 干两件事,就一定有一件干不对 ★★
+    --   locked_at 冻结打分;status='closed' 才把分数对本人揭晓(my_kpi_entries)。
+    --   原本只有 status 一个 flag,而它同时做这两件事:为了冻结而 close 会把
+    --   分数提前揭晓给所有人,不 close 则前两个月永远冻不住。
+    --   Tim 的裁定(2026-09-05):M3 关口锁住第 1–3 个月,不是只锁第 3 个月 ——
+    --   一道过后还能靠改第 1 个月推翻的关口,不是关口。
+    locked_at    timestamptz,
+    locked_by    uuid,
     CONSTRAINT kpi_cycles_period_order CHECK (period_end >= period_start)
+    ,CONSTRAINT kpi_cycles_lock_shape CHECK (locked_at IS NULL OR locked_by IS NOT NULL)
 );
 
 CREATE INDEX idx_kpi_cycles_open ON public.kpi_cycles (period_start DESC) WHERE deleted_at IS NULL;
@@ -59,3 +69,6 @@ COMMENT ON TABLE public.kpi_cycles IS
 
 COMMENT ON COLUMN public.kpi_cycles.gate IS
     'KPI-1:M3 / M6 两道正式关口(原表第一页:Use Month 3 and Month 6 gates; review monthly)。月度打分的周期这里为空 —— 关口不是"又一次打分",第六章给它们各自的判断题:M3 决定是否 regulatory-ready / equipment-ready / commercially ready / financially protected,M6 决定是否 ready for sustained controlled operations。';
+
+COMMENT ON COLUMN public.kpi_cycles.locked_at IS
+    'C-2:这个月被关口【锁住】的时刻 —— 锁住之后分数不能再改。★**锁与关是两件事**★:`locked_at` 冻结打分,`status=''closed''` 才把分数对本人揭晓(my_kpi_entries)。原本只有 status 一个 flag,而它同时做这两件事 —— 于是「为了冻结而 close」会把分数提前揭晓给所有人,「不 close」则前两个月永远冻不住。Tim 的裁定(2026-09-05):**M3 关口锁住第 1–3 个月,不是只锁第 3 个月** —— 一道过后还能靠改第 1 个月推翻的关口,不是关口。';

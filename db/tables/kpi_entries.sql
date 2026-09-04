@@ -71,6 +71,11 @@ CREATE TABLE public.kpi_entries (
     created_by              uuid DEFAULT auth.uid(),
     updated_at              timestamptz NOT NULL DEFAULT now(),
     updated_by              uuid,
+    -- ★★ 下面这一列是 C-2 用 ALTER 加的,线上排在【最后】—— 镜像照 ordinal order 写 ★★
+    -- ★ C-2:【第三样东西】evidence_note 回答「凭什么是这个分」(事实),
+    --   feedback_note 回答「要跟他说什么」(判断与建议)。挤进同一格,
+    --   复盘时没有人分得出哪一句是证据、哪一句是意见。
+    feedback_note           text,
     UNIQUE (cycle_id, employee_id, kpi_ref),
     CONSTRAINT kpi_entries_provisional_needs_note
         CHECK (NOT is_provisional OR (provisional_note IS NOT NULL AND btrim(provisional_note) <> '')),
@@ -112,3 +117,6 @@ COMMENT ON COLUMN public.kpi_entries.score_kind IS
 
 COMMENT ON COLUMN public.kpi_entries.org_codes IS
     'KPI-1:这条 KPI 支撑哪几条组织 KPI —— **复制那一刻的快照数组**,不是外键。模板那一侧是真外键(kpi_template_org_links)。**刻意不同**:模板是活的主数据,副本是冻住的事实。于是职位级与员工级两张联动矩阵有两份推导,而那不是重复 —— 改了模板之后两边本来就该分开。';
+
+COMMENT ON COLUMN public.kpi_entries.feedback_note IS
+    'C-2:给这个人的【反馈】—— 与 evidence_note 分开的一格。evidence_note 回答「凭什么是这个分」(事实),feedback_note 回答「要跟他说什么」(判断与建议)。**挤进同一个字段的话,复盘时没有人分得出哪一句是证据、哪一句是意见** —— 与 score_kind 把 computed 和 judged 分开是同一条理由。';

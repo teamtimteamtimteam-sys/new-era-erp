@@ -25,6 +25,17 @@ export default async function HolidaysPage({
     const res = await supabase.from('public_holidays').select('*')
         .gte('holiday_date', `${year}-01-01`).lte('holiday_date', `${year}-12-31`)
         .order('holiday_date')
+    // C-2:【所有年份】的键,不只是这一年的 —— 明年那一行要和今年用同一个键,
+    // 而按年份筛过的清单恰好看不见去年用的是什么。
+    // ★ mustRows,不是 `?? []` —— 一次失败不是一个空集。这一句要是被权限拒了,
+    //   `?? []` 会把它变成"一个键都没用过",于是 datalist 空着,而人会照着空的
+    //   清单重新打一遍字 —— 正好造出这一列要防的那种不一致。
+    const knownKeys = Array.from(
+        new Set((mustRows(
+            await supabase.from('public_holidays').select('holiday_key'),
+            'public_holidays.holiday_key',
+        ) as { holiday_key: string }[]).map((r) => r.holiday_key))
+    ).sort()
 
     return (
         <ListPage
@@ -55,7 +66,7 @@ export default async function HolidaysPage({
             //   一起藏掉,所以空态改由 DataTable 自己的 empty prop 说。
             state={{ kind: 'ok' }}
         >
-            <HolidaysEditor rows={mustRows(res) as HolidayRow[]} year={year} />
+            <HolidaysEditor rows={mustRows(res) as HolidayRow[]} year={year} knownKeys={knownKeys} />
         </ListPage>
     )
 }

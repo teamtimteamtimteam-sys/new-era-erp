@@ -37,8 +37,9 @@ BEGIN
     UPDATE fx_rates SET deleted_at = now() WHERE currency = 'USD'
       AND rate_date BETWEEN '2026-06-01' AND '2026-06-12';
     DELETE FROM public_holidays WHERE holiday_date BETWEEN '2026-06-01' AND '2026-06-12';
-    INSERT INTO public_holidays (holiday_date, name_en, name_zh, country, is_active)
-    VALUES ('2026-06-05', 'Fixture Holiday', '测试假日', 'SG', true);
+    -- C-2:holiday_key 是 NOT NULL(跨年份稳定的身份)—— 造数据的地方也要给。
+    INSERT INTO public_holidays (holiday_date, name_en, name_zh, holiday_key, country, is_active)
+    VALUES ('2026-06-05', 'Fixture Holiday', '测试假日', 'fixture-holiday', 'SG', true);
     INSERT INTO fx_rates (currency, rate_date, rate_type, rate_sgd_per_unit)
     VALUES ('USD', '2026-06-04', 'tt_sell', 1.31);
 
@@ -109,10 +110,12 @@ BEGIN
     UPDATE fx_rates SET deleted_at = now() WHERE currency = 'USD'
       AND rate_date BETWEEN '2026-09-01' AND '2026-09-12';
     DELETE FROM public_holidays WHERE holiday_date BETWEEN '2026-09-01' AND '2026-09-12';
-    INSERT INTO public_holidays (holiday_date, name_en, name_zh, country, is_active) VALUES
-        ('2026-09-06', 'Fixture Festival D1', '测试节日一', 'SG', true),      -- 周日
-        ('2026-09-07', 'Fixture Festival D2', '测试节日二', 'SG', true),      -- 周一
-        ('2026-09-08', 'Fixture Festival in lieu', '测试顺延假', 'SG', true); -- 周二
+    -- C-2:三行共用一个 holiday_key(它们是同一个节日),补假那一行 is_in_lieu ——
+    -- 这正是那两列要表达的区别,顺手在 fixture 里也表达出来。
+    INSERT INTO public_holidays (holiday_date, name_en, name_zh, holiday_key, is_in_lieu, country, is_active) VALUES
+        ('2026-09-06', 'Fixture Festival D1', '测试节日一', 'fixture-festival', false, 'SG', true),      -- 周日
+        ('2026-09-07', 'Fixture Festival D2', '测试节日二', 'fixture-festival', false, 'SG', true),      -- 周一
+        ('2026-09-08', 'Fixture Festival in lieu', '测试顺延假', 'fixture-festival', true, 'SG', true); -- 周二
     INSERT INTO fx_rates (currency, rate_date, rate_type, rate_sgd_per_unit)
     VALUES ('USD', '2026-09-04', 'tt_sell', 1.33);   -- 周五
     IF is_business_day(DATE '2026-09-08') THEN

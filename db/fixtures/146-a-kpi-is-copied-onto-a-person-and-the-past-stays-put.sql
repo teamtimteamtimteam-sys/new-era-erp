@@ -196,6 +196,13 @@ BEGIN
     -- ══════════ D. 打分:0–5、算的 vs 判的、安全否决是【封顶】═══════════════
     SELECT id INTO v_tpl FROM kpi_entries
      WHERE employee_id = v_emp AND cycle_id = v_cycle AND kpi_ref = 'C1';
+    -- ★★【这一段一律用【具名参数】,而那是 C-2 付过账才写下的】★★
+    --   C-2 在 p_evidence_note 之后插了一个 p_feedback_note(Sandra 录三样)。
+    --   本段原来是位置调用,于是 `(…, 'judged', NULL, NULL, 2)` 里那个 2
+    --   **从 p_override_cap 静默滑到了 p_computed_basis**(integer 喂给 text),
+    --   fixture 当场红 —— 而它红在【断言那一句】上,报的是"封顶没有被拒",
+    --   看起来像被测的函数坏了,其实是调用错位。
+    --   **具名参数对"将来又插一个参数"免疫**,所以这不是修一次,是修一类。
     -- 范围
     v_denied := false; v_msg := NULL;
     BEGIN PERFORM score_kpi_entry(v_tpl, 6); EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
@@ -209,18 +216,21 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 146D 失败:computed 没有 basis 应当被拒,实得 %', COALESCE(v_msg,'(收下了)'); END IF;
     -- 封顶要有理由
     v_denied := false; v_msg := NULL;
-    BEGIN PERFORM score_kpi_entry(v_tpl, 4, 'judged', NULL, NULL, 2);
+    BEGIN PERFORM score_kpi_entry(v_tpl, 4, 'judged', p_override_cap => 2);
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied OR v_msg NOT LIKE 'KPI_OVERRIDE_NEEDS_REASON|%' THEN
         RAISE EXCEPTION 'FIXTURE 146D 失败:没有理由的封顶应当被拒,实得 %', COALESCE(v_msg,'(收下了)'); END IF;
 
     -- 正常打分:一条 computed(带 basis)、一条 judged
-    v_r := score_kpi_entry(v_tpl, 4, 'computed', 'from stocktakes', '2026-09 盘点:98.4%');
+    v_r := score_kpi_entry(v_tpl, 4, 'computed', 'from stocktakes',
+                           p_computed_basis => '2026-09 盘点:98.4%');
     IF (v_r->>'weighted')::numeric <> round(4::numeric/5*25, 2) THEN
         RAISE EXCEPTION 'FIXTURE 146D 失败:C1 权重 25、4 分,加权应当 % 实得 %',
             round(4::numeric/5*25,2), v_r->>'weighted'; END IF;
     -- ★ 封顶:原始分与封顶都留着,生效分是小的那个 ★
-    v_r := score_kpi_entry(v_tpl, 5, 'judged', NULL, NULL, 2, 'unauthorized operation observed');
+    v_r := score_kpi_entry(v_tpl, 5, 'judged',
+                           p_override_cap => 2,
+                           p_override_reason => 'unauthorized operation observed');
     IF (v_r->>'effective_score')::int <> 2 OR (v_r->>'capped')::boolean IS NOT TRUE THEN
         RAISE EXCEPTION 'FIXTURE 146D 失败:5 分被封到 2,生效分应当是 2 且 capped=true,实得 %', v_r; END IF;
     IF (SELECT score FROM kpi_entries WHERE id = v_tpl) <> 5 THEN

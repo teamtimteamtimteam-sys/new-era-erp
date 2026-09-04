@@ -6975,6 +6975,8 @@ export type Database = {
           due_date: string
           gate: string | null
           id: string
+          locked_at: string | null
+          locked_by: string | null
           name: string
           notes: string | null
           period_end: string
@@ -6990,6 +6992,8 @@ export type Database = {
           due_date: string
           gate?: string | null
           id?: string
+          locked_at?: string | null
+          locked_by?: string | null
           name: string
           notes?: string | null
           period_end: string
@@ -7005,6 +7009,8 @@ export type Database = {
           due_date?: string
           gate?: string | null
           id?: string
+          locked_at?: string | null
+          locked_by?: string | null
           name?: string
           notes?: string | null
           period_end?: string
@@ -7024,6 +7030,7 @@ export type Database = {
           employee_id: string
           evidence_note: string | null
           evidence_source: string | null
+          feedback_note: string | null
           id: string
           is_provisional: boolean
           kpi_ref: string
@@ -7052,6 +7059,7 @@ export type Database = {
           employee_id: string
           evidence_note?: string | null
           evidence_source?: string | null
+          feedback_note?: string | null
           id?: string
           is_provisional?: boolean
           kpi_ref: string
@@ -7080,6 +7088,7 @@ export type Database = {
           employee_id?: string
           evidence_note?: string | null
           evidence_source?: string | null
+          feedback_note?: string | null
           id?: string
           is_provisional?: boolean
           kpi_ref?: string
@@ -7307,6 +7316,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      kpi_score_rubric: {
+        Row: {
+          band_en: string
+          band_zh: string
+          created_at: string
+          evidence_standard_en: string
+          management_action_en: string
+          review_cadence_en: string
+          score: number
+          updated_at: string
+          veto_rule_en: string
+        }
+        Insert: {
+          band_en: string
+          band_zh: string
+          created_at?: string
+          evidence_standard_en: string
+          management_action_en: string
+          review_cadence_en: string
+          score: number
+          updated_at?: string
+          veto_rule_en: string
+        }
+        Update: {
+          band_en?: string
+          band_zh?: string
+          created_at?: string
+          evidence_standard_en?: string
+          management_action_en?: string
+          review_cadence_en?: string
+          score?: number
+          updated_at?: string
+          veto_rule_en?: string
+        }
+        Relationships: []
       }
       kpi_template_org_links: {
         Row: {
@@ -12230,8 +12275,10 @@ export type Database = {
           created_at: string
           created_by: string | null
           holiday_date: string
+          holiday_key: string
           id: string
           is_active: boolean
+          is_in_lieu: boolean
           name_en: string
           name_zh: string
           notes: string | null
@@ -12243,8 +12290,10 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           holiday_date: string
+          holiday_key: string
           id?: string
           is_active?: boolean
+          is_in_lieu?: boolean
           name_en: string
           name_zh: string
           notes?: string | null
@@ -12256,8 +12305,10 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           holiday_date?: string
+          holiday_key?: string
           id?: string
           is_active?: boolean
+          is_in_lieu?: boolean
           name_en?: string
           name_zh?: string
           notes?: string | null
@@ -24980,6 +25031,7 @@ export type Database = {
           p_computed_basis?: string
           p_entry_id: string
           p_evidence_note?: string
+          p_feedback_note?: string
           p_override_cap?: number
           p_override_reason?: string
           p_score: number

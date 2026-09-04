@@ -592,3 +592,99 @@ Tim 的判词:**这道闸在 button 这一格上,罚的是【对的】那一边�
 
 C-1a 的窗口里有四个小时的编码;C-1b 把编码挪到迁移【之前】,窗口只剩
 验证与部署。**同样的活,窗口短了将近三分之二** —— 这条顺序值得成为默认做法。
+
+---
+
+# 九 · C-2(2026-09-05)· 六个人的档案从占位值变成事实
+
+**发号之前的最后一刀。C-1a 建了四条员工记录,HR 字段全是占位值;C-2 把它们落实。**
+
+## 9.1 六个人今天的样子(线上实测,迁移之后)
+
+| 工号 | 姓名 | 入职日 | 居留身份 | 职位 | 系统角色 |
+|---|---|---|---|---|---|
+| EMP-2026-0001 | Choo Er Teh | 2026-08-01 | `work_pass` | LEAD-ACC | finance |
+| EMP-2026-0002 | Tim | 2026-08-11 | **(空 —— 见 9.3)** | CFO | admin + cfo |
+| EMP-2026-0003 | Vince Goh | **2026-09-01** | `citizen` | **MD** | gm |
+| EMP-2026-0004 | Sandra Yap | **2026-09-01** | `citizen` | **CCO** | cco |
+| EMP-2026-0005 | Cheng Siong Phua | **2026-09-01** | `citizen` | **CTO** | operations |
+| EMP-2026-0006 | Fu Sheng Wong | **2026-09-01** | `pr` | **LEAD-WH** | warehouse |
+
+粗体 = C-2 写入的。六人全部 `full_time`,均不在试用期;
+`work_category` 为 office(Fu Sheng 是 shopfloor)。
+
+### ★ 只改了四行,而这是一次【勘察改掉的裁定】
+
+Tim 最初的裁定是「六个人的入职日都是 2026-09-01」。勘察发现其中两行**不是占位值**
+(Choo Er 2026-08-01、Tim 2026-08-11),而改动它们会让两人**各少掉一个月的年假累积**
+(24/12 = 2 天)。**Tim 据此改了裁定:只写四个占位行。**
+
+> **顺带纠正一条委托书里的前提:「那四个人的假期余额现在是错的」—— 假的。**
+> 累积从 `date_trunc('month', hire_date)` 起算,而 `2026-09-04` 与 `2026-09-01`
+> **是同一个月**:两者算出的余额逐位相同。**档案是错的,余额不是。**
+> 迁移里因此有一对**反向断言**,确认那两行没有被顺手改掉。
+
+## 9.2 ★ 职位 ≠ 角色 —— Phua 那一行是这条区别的活例子
+
+**Cheng Siong Phua 的【系统角色】是 `operations`,【职位】是 CTO。两者不必一致。**
+
+| | 它决定什么 |
+|---|---|
+| **职位**(`positions`) | 他**被考核哪五条 KPI** —— KPI 绑在职位上,不绑在人上(规格 §8.1) |
+| **系统角色**(`roles`) | 他**看得见什么、改得动什么** —— 权限矩阵 |
+
+原表点名 Phua 是 CTO,所以他的五条 KPI 从 CTO 模板复制;而他日常操作的是运营模块,
+所以角色是 operations。**两者都不算错**(Tim 2026-09-05 裁定)。
+
+## 9.3 ★ 一次按名的停止:Tim Chen 的居留身份没有写
+
+Tim 补充裁定给了六个人的居留身份,并要求**用这一列已有的词汇表,缺值就停下来报告,
+不要发明,也不要顺手放宽这一列**。
+
+`employees_residency_status_check` 的词汇是 **`citizen` / `pr` / `work_pass`**,
+五个人都对得上。**Tim 自己那一格停了 —— 而它不是词汇表缺一个值:**
+
+EP 在这套模型里**是一种 work pass**(`residency_status='work_pass'` +
+`work_pass_type='EP'`)。缺的是另一张表上的约束要的东西:
+
+```sql
+CONSTRAINT employees_work_pass_shape CHECK (
+    residency_status IS DISTINCT FROM 'work_pass'
+    OR (work_pass_type IS NOT NULL AND work_pass_expiry_date IS NOT NULL))
+```
+
+**`work_pass_expiry_date` —— 一个我没有的日期。** 编一个出来会让 `hr_alerts` 的
+`work_pass_expiry` 那一支照着假日期去提醒或不提醒,而它看起来和真日期一模一样。
+**宁可空着,不可编。**
+
+> ### ★ 发号之前要 Tim 补的两样(这一格是全刀唯一没做完的地方)
+> 1. Tim Chen 的 **`work_pass_type`**(大概是 `EP`)与 **`work_pass_expiry_date`**;
+> 2. **Choo Er 的 `work_pass_expiry_date` 是 `2026-08-10` —— 已经过期 26 天**
+>    (勘察发现,不属于 C-2 范围)。要么是待更新的旧数据,要么她的准证真的需要处理。
+>
+> 两样都在 `/hr/employees/[id]/edit` 上填得了,**不需要发版,也不阻塞发号**
+> —— 但 `residency_status` **不驱动任何计算**(见 9.4),所以空着不会让任何数字出错。
+
+## 9.4 `residency_status` 驱动什么 —— ★ 实测:什么都不驱动 ★
+
+Tim 问了这一条。逐个读者查过:
+
+| 读它的地方 | 干什么 |
+|---|---|
+| `my_profile` / `employees_masked` / `employee_directory` | **显示** |
+| `export_my_personal_data` | PDPA 个人数据导出 |
+| `anonymise_employee` | 离职匿名化时置空 |
+| `app/hr/employees/*` | 表单与详情页显示 |
+
+**没有一处做计算。** 特别是:
+
+* **CPF 不算** —— 工资整个是外包的。`payroll_lines` 的表注写着「数字**全部来自
+  外包服务商**;本系统记录并过账,**从不自己算 CPF 或个税**」。
+* **外劳税(levy)全库零命中** —— 这个系统没有这个概念。
+* **假期不看它** —— 年假费率由 `work_category`(office / shopfloor)决定,
+  不由居留身份决定。
+
+> **所以这六格从 NULL 变成有值,【没有改变任何一个已经算出来的数】。**
+> 它改变的是:PDPA 导出更完整、HR 详情页不再显示「—」、
+> 以及将来真要接 CPF 或 levy 时这份事实已经在库里了。
+> ★ 也就是说 Tim 那一格空着,今天的代价是 0 个错数字。

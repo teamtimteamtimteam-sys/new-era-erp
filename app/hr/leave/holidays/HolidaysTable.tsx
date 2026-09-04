@@ -10,6 +10,9 @@ export type HolidayRow = {
     holiday_date: string
     name_en: string
     name_zh: string
+    /** C-2:跨年份稳定的身份 —— 日期会动,这个不动。UI-1 的节日 logo 读它。 */
+    holiday_key: string
+    is_in_lieu: boolean
     is_active: boolean
     notes: string | null
 }
@@ -31,7 +34,22 @@ export default function HolidaysTable({
         { key: 'date', header: t('leave.date'), priority: true, className: 'font-mono', render: (r) => r.holiday_date },
         {
             key: 'name', header: t('leave.holidayName'), priority: true,
-            render: (r) => (locale === 'zh' ? r.name_zh : r.name_en),
+            render: (r) => (
+                <>
+                    {locale === 'zh' ? r.name_zh : r.name_en}
+                    {/* ★ 补假要看得出来:它与被补的那天共用 holiday_key,
+                        所以只看键分不出哪一行是补的 */}
+                    {r.is_in_lieu && (
+                        <span className="ml-1 text-[10px] text-[color:var(--brand-muted-text)]">
+                            {t('leave.inLieuTag')}
+                        </span>
+                    )}
+                </>
+            ),
+        },
+        {
+            key: 'holidayKey', header: t('leave.holidayKey'), className: 'font-mono text-xs',
+            render: (r) => r.holiday_key,
         },
         {
             key: 'notes', header: t('leave.notes'),

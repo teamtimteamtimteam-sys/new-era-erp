@@ -267,6 +267,11 @@ RUNTIME_CONFIG_TABLES = [
     # requires_explanation 是规则列(R3:other 必须带书面说明),触发器读它,
     # 所以"第五个也要说明的理由"同样只是一行。与 certificate_types 同一条。
     "inbound_source_reasons",
+    # ★ C-2:0–5 打分刻度与安全/监管否决 —— 与 public_holidays 同一条论证:
+    #   **打分的规则必须能不发版就改正**(module.hr.edit 可改)。引导的六行是原表
+    #   第六页的逐格转录,是"全新安装的默认值",不是线上快照。Tim 在界面上改一句
+    #   措辞,线上就与本文件不同 —— 那是系统在正常工作,不是漂移。
+    "kpi_score_rubric",
 ]
 
 # 【引导默认值一行都不许是空的】RUNTIME CONFIG 的种子不与线上比对(那是对的:界面改得动),

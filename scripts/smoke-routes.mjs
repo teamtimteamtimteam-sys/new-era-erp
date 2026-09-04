@@ -261,14 +261,36 @@ const MSG_KPI_MATRIX_NOTE = (() => {
     // 那样的针永远不可能成立(GLEXPORT-1 与 PARTY-1 各为此付过一次账)。
     return m[1].split(/[&<>"']/)[0].trim()
 })()
-// ★ 第二条守的是那句具名缺席 ★ 六个职位里只有两个有人,而一张只显示两人、
-//   什么都不说的 roll-up 看起来像是全部。
-const MSG_KPI_STAFFING_GAP = (() => {
+// ★★ 第二条:守的是【分母看得见】★★
+//
+// ☞【C-2(2026-09-05)换掉了这根针,而换的理由本身值得读】
+//   它原本盯的是 `kpi.staffingGap` ——「六个职位里只有几个有人」那句具名缺席。
+//   那句话【只在真的有缺口时才渲染】(page.tsx 的 `vacant.length > 0`),
+//   而 C-2 把六个职位【全部挂上了人】,于是缺口没了、那句话也就正确地不见了。
+//
+//   ★ 也就是说:这根针从 C-2 起断言的是【一个缺陷】—— 它只有在"还有人没挂职位"
+//     时才成立。一条只有在系统坏着的时候才通过的断言,比没有断言更坏。★
+//   (与 AGENTS.md 那条「一个永远无法被满足的判据是一个坏判据」是同一族,
+//    只是方向反过来:这一条是【被修好之后】才变得无法满足。)
+//
+//   换成 `kpi.staffingCount`——「N of M positions have an employee attached.」——
+//   它是【无条件渲染】的,所以这根针是死的;而它守的是同一条原则的另一半:
+//   **分母看得见**。一张只列出两个人的 roll-up,只有在旁边写着 "2 of 6" 时
+//   才不会被读成全部。
+//
+//   【针要绕开占位符】这句文案以 `{filled}` 开头,所以不能像别的针那样从头取 ——
+//   取【最后一个 `}` 之后】那一段字面量。
+const MSG_KPI_STAFFING_COUNT = (() => {
     const src = readFileSync(join(ROOT, 'messages/en.ts'), 'utf8')
     const blk = src.match(/\n    kpi: \{[\s\S]*?\n    \},/)
-    const m = blk[0].match(/\n\s*staffingGap: '([^']+)'/)
-    if (!m) throw new Error('messages/en.ts 里找不到 kpi.staffingGap')
-    return m[1].split(/[&<>"']/)[0].trim()
+    const m = blk[0].match(/\n\s*staffingCount: '([^']+)'/)
+    if (!m) throw new Error('messages/en.ts 里找不到 kpi.staffingCount')
+    const literal = m[1].slice(m[1].lastIndexOf('}') + 1).split(/[&<>"']/)[0].trim()
+    // 一根空针会对任何页面成立 —— 那是"空集当成通过"的另一种穿法。
+    if (literal.length < 12) {
+        throw new Error('kpi.staffingCount 里取不出足够长的字面量针,实得:' + JSON.stringify(literal))
+    }
+    return literal
 })()
 
 // CONTRACT-1:两条内容断言,两条都是【服务端渲染】的 —— 与 PARTY-1 / KPI-1 同一条理由。
@@ -543,8 +565,8 @@ const MUST_CONTAIN = {
     '/hr/kpi': [
         { needle: MSG_KPI_MATRIX_NOTE,
           why: '★「矩阵是覆盖度、不是重新加权」那句话从 KPI 页上消失了 —— 那六行数字长得像权重,没有它就会被读成权重' },
-        { needle: MSG_KPI_STAFFING_GAP,
-          why: '「六个职位里只有几个有人」那句具名缺席不见了 —— 一张只显示两人、什么都不说的 roll-up 看起来像是全部' },
+        { needle: MSG_KPI_STAFFING_COUNT,
+          why: '「N 个职位里有 M 个挂了人」那句【分母】不见了 —— 一张只列出几个人的 roll-up,没有分母就会被读成全部(C-2:原本盯的是那句"具名缺席",而六个职位挂满之后它正确地不再渲染,那根针从此只有在系统坏着时才通过)' },
     ],
 
     // ── CONTRACT-1:覆盖率那句话、那句具名的缺席,以及【走得到吗】 ──────────

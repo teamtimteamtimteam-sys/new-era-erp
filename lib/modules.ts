@@ -500,6 +500,10 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/hr/training', navKey: 'hr.subnav.training', modules: ['hr'], permission: P_HR },
     { href: '/hr/reviews', navKey: 'hr.subnav.reviews', modules: ['hr'], permission: P_HR },
     { href: '/hr/kpi', navKey: 'hr.subnav.kpi', modules: ['hr'], permission: P_HR },
+    // C-2:月度录入那一屏。★挂在 module.hr.edit 上,不是 view★ —— 它整屏都是写入口,
+    //   而 auditor 只有 view:给他一个链接,通往一排会被 42501 掉的钮,是把拒绝
+    //   推迟到他点下去之后。页面自己也再判一次(registry 只是界面的门,RLS 才是那扇门)。
+    { href: '/hr/kpi/score', navKey: 'hr.subnav.kpiScore', modules: ['hr'], permission: 'module.hr.edit' },
     // CHART-1 ③:组织架构图。与其它 HR 页同一个判据 —— 它读的两张真源
     // (employees_masked / departments)本来就都由 module.hr.view 把门,
     // 另铸一个码会造出一个"进得去模块、进不去这一页"的洞(/margin 那一课)。
