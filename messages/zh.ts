@@ -4796,6 +4796,8 @@ const zh = {
         payDeposit: '登记付款',
         unpriced: '未计价',
         noReceipts: '该采购单尚未收货',
+        noPaymentTerms: '这张单没有付款计划 —— 没有任何一期挂在日子上,所以它不会出现在现金预测里。',
+        noLines: '这张单一行都没有。没有行的采购单收不了货 —— 所以它是一份没写完的草稿,不是一张空列表。',
         prepaymentGroup: '预付款(采购单)',
         prepaymentNote: '货到之前支付的款项记为预付款,待收货计价后再抵扣到批次上。',
         prepaidLabel: '已预付',
@@ -5611,6 +5613,7 @@ const zh = {
         credit: '贷',
         amount: '金额',
         lineMemo: '行摘要',
+        noJournalLines: '这张分录没有行。没有行的分录不可能借贷相等 —— 所以这是一处记账故障,不是一张空列表。',
         selectAccount: '选择科目',
         balanceIndicator: {
             balanced: '已平衡',

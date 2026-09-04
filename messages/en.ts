@@ -4803,6 +4803,8 @@ const en = {
         payDeposit: 'Record a payment',
         unpriced: 'Not priced',
         noReceipts: 'No goods received against this order yet',
+        noPaymentTerms: 'This order has no payment schedule. Nothing is committed to a date, so it will not appear in the cash forecast.',
+        noLines: 'This order has no lines. An order with nothing on it cannot be received against, so this is an unfinished draft rather than an empty list.',
         prepaymentGroup: 'Prepayments (purchase orders)',
         prepaymentNote: 'Money paid before goods arrive is recorded as a prepayment and applied to the batch once it is received and priced.',
         prepaidLabel: 'Prepaid',
@@ -5624,6 +5626,7 @@ const en = {
         credit: 'Credit',
         amount: 'Amount',
         lineMemo: 'Line memo',
+        noJournalLines: 'This entry has no lines. An entry with no lines cannot balance, so this is a recording fault rather than an empty list.',
         selectAccount: 'Select account',
         balanceIndicator: {
             balanced: 'Balanced',

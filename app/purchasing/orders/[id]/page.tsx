@@ -26,8 +26,14 @@ import IssuePanel from '@/app/components/IssuePanel'
 import { mustRows, mustOne } from '@/lib/db-helpers'
 import { loadPaymentTriggerEvents, triggerLabel } from '@/lib/paymentTriggers'
 import RetentionPanel, { type RetentionRow } from './RetentionPanel'
-import ExpectedDateControl from './ExpectedDateControl'
-import DeepDischargeJudgementControl from './DeepDischargeJudgementControl'
+// ★ CONV-8:ExpectedDateControl / DeepDischargeJudgementControl 不再由本页直接渲染 ——
+//   它们搬进了各自那张表的列描述符里(格子里的控件走 DataTable 的 render,
+//   Tim 的 Q3 裁定,理由写在 PoLinesTable.tsx 抬头)。
+import { ListPage } from '@/app/components/ui/list-page'
+import { RecordHeader } from '@/app/components/ui/record-header'
+import PoLinesTable, { type PoLineRow, type Tone } from './PoLinesTable'
+import PoPaymentTermsTable, { type PoTermRow } from './PoPaymentTermsTable'
+import PoReceiptsTable, { type PoReceiptRow } from './PoReceiptsTable'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import DiscrepancyKinds, {
@@ -344,19 +350,158 @@ export default async function PurchaseOrderDetailPage({
         </span>
     )
 
+    // ════════════════════════════════════════════════════════════════════════
+    // CONV-8:三张表的行数据,全部在服务端压平成【纯数据】
+    // ════════════════════════════════════════════════════════════════════════
+    // CONV-1 §① 的通则:判据、locale、Map、货币格式一律不过客户端边界。
+    // 这一页尤其要紧 —— 它的格子里挂着 FIN-26(价的出处)与 FIN-27(条款副本)
+    // 两套【带颜色的】判断,把它们搬到客户端就等于把这一页的取数形状也搬过去。
+    // 所以颜色在这里算成 Tone,客户端只认 'green' | 'amber' | 'gray' 三个字。
+
+    const lineRows: PoLineRow[] = lines.map((l) => ({
+        id: l.id,
+        lineNoText: String(l.line_no),
+        name: lineName(l),
+        expectedAssayText: assayInline(l.expected_assay) || null,
+        materialId: l.material_id ?? null,
+        ddCurrent: l.deep_discharge_judgement_code ?? null,
+        qtyText: `${Number(l.quantity)} ${l.unit}`,
+        formulaText: l.pricing_formula_id ? (formulaById.get(l.pricing_formula_id) ?? '—') : '—',
+        // FIN-27:绿 = 下单时抄下的副本,公式此后怎么改都碰不到这一行;
+        //         琥珀 = 存量行,没有副本,结算会点名拒。
+        commitmentText: l.pricing_formula_id
+            ? commitmentByLine.has(l.id)
+                ? t('purchasing.terms.committed', {
+                      code: commitmentByLine.get(l.id)!.source_formula_code,
+                      on: String(commitmentByLine.get(l.id)!.committed_at).slice(0, 10),
+                  })
+                : t('purchasing.terms.notCommitted')
+            : null,
+        commitmentTone: l.pricing_formula_id
+            ? ((commitmentByLine.has(l.id) ? 'green' : 'amber') satisfies Tone)
+            : null,
+        unitPriceText: l.estimated_unit_price !== null ? formatUnitCost(l.estimated_unit_price) : '—',
+        // FIN-26:价的出处。NULL(存量行)画「未知」,不猜。
+        priceSourceText:
+            l.estimated_unit_price === null
+                ? null
+                : l.price_source === 'computed'
+                  ? t('purchasing.priceSource.computed', {
+                        fx: String((l.price_provenance as { fx_factor?: number } | null)?.fx_factor ?? '—'),
+                        asOf: String((l.price_provenance as { fx_as_of?: string } | null)?.fx_as_of ?? '—'),
+                    })
+                  : l.price_source === 'manual'
+                    ? t('purchasing.priceSource.manual')
+                    : t('purchasing.priceSource.unknown'),
+        priceSourceTone:
+            l.estimated_unit_price === null
+                ? null
+                : ((l.price_source === 'computed'
+                      ? 'green'
+                      : l.price_source === 'manual'
+                        ? 'amber'
+                        : 'gray') satisfies Tone),
+        amountText: formatMoneyBare(l.estimated_amount_ccy, '头卡「币种」—— 明细行是单据币种'),
+    }))
+
+    // ★★【PO-GST-1 的三行合计,搬成三行【数据】】★★
+    // 【不带税的历史单据只印一行】carries_tax 为 false 时不印「GST 0.00」——
+    // 那会是一句断言,而真相是"这张单没有算过税"。这条判据原样保住。
+    // amount 是 number | null —— 与 formatMoneyBare 的签名一致。收窄成 number
+    // 会把「这张单没有算过税」(null)逼成一个 0,而那正是 PO-GST-1 拒绝印的那句断言。
+    const totalRow = (
+        key: string,
+        label: string,
+        amount: number | null,
+        kind: 'sub' | 'grand',
+    ): PoLineRow => ({
+        id: key,
+        lineNoText: '',
+        name: label,
+        expectedAssayText: null,
+        materialId: null,
+        ddCurrent: null,
+        qtyText: '',
+        formulaText: '',
+        commitmentText: null,
+        commitmentTone: null,
+        unitPriceText: '',
+        priceSourceText: null,
+        priceSourceTone: null,
+        amountText: formatMoneyBare(amount, '头卡「币种」—— 明细行是单据币种'),
+        totalKind: kind,
+    })
+
+    if (lineRows.length > 0) {
+        if (po.carries_tax) {
+            lineRows.push(
+                totalRow('__net__', t('purchasing.colNetTotal'), po.estimated_total_ccy, 'sub'),
+                totalRow('__tax__', t('purchasing.colTaxTotal'), po.tax_total_ccy, 'sub'),
+                totalRow('__gross__', t('purchasing.colGrossTotal'), po.gross_total_ccy, 'grand'),
+            )
+        } else {
+            lineRows.push(
+                totalRow('__est__', t('purchasing.colEstimatedTotal'), po.estimated_total_ccy, 'grand'),
+            )
+        }
+    }
+
+    const termRows: PoTermRow[] = terms.map((l) => ({
+        id: l.id,
+        seqText: String(l.seq),
+        label: l.label,
+        shareText:
+            l.percentage !== null ? `${l.percentage}%` : formatAmount(l.fixed_amount_ccy, po.currency),
+        amountText: formatMoneyBare(
+            termAmount(l),
+            '头卡「币种」—— 付款计划按估算总额折算,同为单据币种',
+        ),
+        triggerText: triggerNames.get(l.trigger_event) ?? l.trigger_event,
+        dueDateText: l.due_date ?? '—',
+        triggerEvent: l.trigger_event,
+        expectedDate: l.expected_date ?? null,
+        ownerName: eventOwners[l.trigger_event] ?? null,
+    }))
+
+    const receiptRows: PoReceiptRow[] = receipts.map((r) => ({
+        id: r.id,
+        code: r.code,
+        arrivalDateText: r.arrival_date ?? '—',
+        qtyText: `${Number(r.quantity)} ${r.unit}`,
+        unitPriceText: r.unit_price !== null ? formatUnitCost(r.unit_price) : null,
+        // CCY-1:抵扣额与敞口是本位币 —— 上方头卡说的是单据币种,不能借它。
+        appliedText: appliedByBatch.has(r.id)
+            ? formatAmount(appliedByBatch.get(r.id), baseCurrency)
+            : '—',
+        // ★ 不在这里折成字符串:null(看不到)与 '—'(没有价)是两件事,
+        //   交给 MaskedValue 分。见 PoReceiptsTable.tsx 抬头。
+        openText: canFinance ? formatAmount(openByBatch.get(r.id) ?? 0, baseCurrency) : null,
+        openApplicable: r.unit_price !== null,
+    }))
+
     return (
-        <div className="p-8 max-w-5xl">
-            <div className="mb-6">
+        <ListPage
+            maxWidth="max-w-5xl"
+            breadcrumb={
                 <Link href="/purchasing/orders" className="text-blue-600 hover:underline text-sm">
                     {t('common.back')}
                 </Link>
-            </div>
-
-            <div className="flex justify-between items-start mb-2 gap-4">
-                <h1 className="text-2xl font-bold">
+            }
+            title={
+                <>
                     {t('purchasing.orderDetailTitle')}
                     <span className="ml-3 font-mono text-base text-gray-500">{po.code}</span>
-                </h1>
+                </>
+            }
+            // ★ 详情页恒为 ok —— 记录存在与否由上面的 notFound() 回答。
+            //   理由与后果见 docs/detail-page-template.md 与 record-header.tsx 抬头。
+            state={{ kind: 'ok' }}
+            // ★★【这一页的动作【全部】住在 actions 槽里,而那正是详情页版本的
+            //     「空态吃掉出口」要防的东西】★★
+            //   收货、结束、修改、重开、取消 —— 五个出口。ListPage 把 actions
+            //   画在状态分支【之前】,所以即使将来有人把 state 改成别的分支,
+            //   这五个出口也不会跟着消失。
+            actions={
                 <div className="flex flex-wrap items-center gap-3 justify-end">
                     {/* 按此单收货:只在可收货状态出现。
                         【EQP-1c-b-fu2:设备单上【隐藏】,不是变灰】——
@@ -413,8 +558,11 @@ export default async function PurchaseOrderDetailPage({
                         <CancelOrderControl poId={po.id} blockedWhy={cancelWhy} />
                     )}
                 </div>
-            </div>
-
+            }
+            // 无条件渲染的那两块话 —— CONV-1 的 notices 槽,同一条理由:
+            // 一条只在某个分支里才出现的警告,等于没有警告。
+            notices={
+                <>
             {/* A3:拿掉了"收货"这个动作,就得说清楚机器到了该去哪 —— 否则
                 删掉按钮只是把困惑搬了个家。 */}
             {isEquipmentOrder && (
@@ -440,49 +588,55 @@ export default async function PurchaseOrderDetailPage({
                     {po.cancel_reason ? `:${po.cancel_reason}` : ''}
                 </div>
             )}
-
-            {/* 头卡 */}
-            <div className="bg-gray-50 rounded p-4 mb-6 flex flex-wrap gap-x-8 gap-y-2 text-sm items-center">
-                <div>
-                    <span className="text-gray-600 mr-1">{t('purchasing.colSupplier')}:</span>
-                    <Link
-                        href={`/suppliers/${po.supplier_id}/edit`}
-                        className="text-blue-600 hover:underline"
-                    >
-                        {supplierRes.data?.legal_name ?? '—'}
-                    </Link>
-                </div>
-                <div>
-                    <span className="text-gray-600 mr-1">{t('purchasing.colOrderDate')}:</span>
-                    <span>{po.order_date}</span>
-                </div>
-                <div>
-                    <span className="text-gray-600 mr-1">{t('purchasing.colExpectedDelivery')}:</span>
-                    <span>{po.expected_delivery_date ?? '—'}</span>
-                </div>
-                <div>
-                    <span className="text-gray-600 mr-1">{t('purchasing.form.currency')}:</span>
-                    <span className="font-mono">
-                        {po.currency}
-                        {po.currency !== baseCurrency && ` @ ${po.fx_rate}`}
-                    </span>
-                </div>
-                {po.incoterm && (
-                    <div>
-                        <span className="text-gray-600 mr-1">{t('purchasing.form.incoterm')}:</span>
-                        <span>{po.incoterm}</span>
-                    </div>
-                )}
-                <div>{statusPill}</div>
-                <div>
-                    <span className="text-gray-600 mr-1">
-                        {po.carries_tax ? t('purchasing.colGrossTotal') : t('purchasing.colEstimatedTotal')}:
-                    </span>
-                    <span className="font-mono font-medium">{formatMoneyBare(
-                        po.carries_tax ? po.gross_total_ccy : po.estimated_total_ccy,
-                        '同一张头卡上的「币种」字段')}</span>
-                </div>
-            </div>
+                </>
+            }
+        >
+            {/* ★ 头卡 —— 七个字段(incoterm 只在有的时候出现),动作全在 actions 槽里,
+                所以这里【没有】actions prop:这一页的出口住在标题那一行。 */}
+            <RecordHeader
+                fields={[
+                    {
+                        label: t('purchasing.colSupplier'),
+                        value: (
+                            <Link
+                                href={`/suppliers/${po.supplier_id}/edit`}
+                                className="text-blue-600 hover:underline"
+                            >
+                                {supplierRes.data?.legal_name ?? '—'}
+                            </Link>
+                        ),
+                    },
+                    { label: t('purchasing.colOrderDate'), value: po.order_date },
+                    { label: t('purchasing.colExpectedDelivery'), value: po.expected_delivery_date ?? '—' },
+                    {
+                        label: t('purchasing.form.currency'),
+                        value: (
+                            <>
+                                {po.currency}
+                                {po.currency !== baseCurrency && ` @ ${po.fx_rate}`}
+                            </>
+                        ),
+                        mono: true,
+                    },
+                    // incoterm 没有就不占一格 —— 与转换前的 {po.incoterm && …} 同义。
+                    ...(po.incoterm
+                        ? [{ label: t('purchasing.form.incoterm'), value: po.incoterm }]
+                        : []),
+                    // 状态药丸没有标签,它自己就是一句话。RecordHeader 的 label
+                    // 允许是空 —— 与转换前那个裸着的 <div>{statusPill}</div> 同形。
+                    { label: t('purchasing.colStatus'), value: statusPill },
+                    {
+                        label: po.carries_tax
+                            ? t('purchasing.colGrossTotal')
+                            : t('purchasing.colEstimatedTotal'),
+                        value: formatMoneyBare(
+                            po.carries_tax ? po.gross_total_ccy : po.estimated_total_ccy,
+                            '同一张头卡上的「币种」字段',
+                        ),
+                        mono: true,
+                    },
+                ]}
+            />
 
             {/* 审批:结构在,流程未启用 —— 但【不是等权限系统】。
                 权限系统已经上线(perm1/perm2a/perm2b:模块权限、字段遮蔽、RLS),
@@ -618,145 +772,13 @@ export default async function PurchaseOrderDetailPage({
 
             {/* 明细行 */}
             <h2 className="text-xl font-bold mb-3">{t('purchasing.form.lines')}</h2>
-            <table className="w-full border-collapse border border-gray-300 mb-6">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-3 py-2 text-left w-10">#</th>
-                        {/* EQP-1c-b-fu2:表头跟着单据的种类走 —— 一台机器上面写着
-                            「物料」,那不是一个空列,是一个【说错了的】列头。 */}
-                        <th className="border border-gray-300 px-3 py-2 text-left">
-                            {isEquipmentOrder ? t('purchasing.colMachine') : t('purchasing.colMaterial')}
-                        </th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('purchasing.colQuantity')}</th>
-                        {/* 【计价公式这一列在设备单上【永远】只能是一个破折号】——
-                            而一张单不许混装,所以它不是"这次是空的",是"它不可能适用"。
-                            整列拿掉,不是留着画横杠。 */}
-                        {!isEquipmentOrder && (
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('purchasing.colFormula')}</th>
-                        )}
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('purchasing.colUnitPrice')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('purchasing.colAmount')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {lines.map((l) => (
-                        <tr key={l.id}>
-                            <td className="border border-gray-300 px-3 py-2 text-sm text-gray-500">{l.line_no}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-sm">
-                                {/* EQP-1c-b:设备行终于有名字了(EQP-1a 刻意留的破折号)。 */}
-                                {lineName(l)}
-                                {assayInline(l.expected_assay) && (
-                                    <span className="block text-xs text-gray-500 mt-0.5">
-                                        {t('purchasing.form.expectedAssay')}: {assayInline(l.expected_assay)}
-                                    </span>
-                                )}
-                                {/* PROC-1B-iii(R1):【能不能深度放电】—— 这个判断在
-                                    买的时候做出,在货到之前,所以它的入口在这里。
-                                    【设备行没有这条轴】它订的是一台机器,不是料。 */}
-                                {l.material_id && (
-                                    <DeepDischargeJudgementControl
-                                        poId={id}
-                                        lineId={l.id}
-                                        current={l.deep_discharge_judgement_code ?? null}
-                                        options={ddOptions}
-                                        canEdit={canEditPurchasing}
-                                    />
-                                )}
-                            </td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                {Number(l.quantity)} {l.unit}
-                            </td>
-{!isEquipmentOrder && (
-                            <td className="border border-gray-300 px-3 py-2 text-sm">
-                                {l.pricing_formula_id ? (formulaById.get(l.pricing_formula_id) ?? '—') : '—'}
-                                {/* FIN-27:结算按哪一份条款。绿色 = 下单时抄下的副本,
-                                    公式此后怎么改都碰不到这一行;琥珀 = 存量行,没有副本,
-                                    结算会点名拒(不回填一份猜测的条款)。 */}
-                                {l.pricing_formula_id && (
-                                    <span className={'block text-xs mt-0.5 ' +
-                                        (commitmentByLine.has(l.id) ? 'text-green-700' : 'text-amber-700')}>
-                                        {commitmentByLine.has(l.id)
-                                            ? t('purchasing.terms.committed', {
-                                                code: commitmentByLine.get(l.id)!.source_formula_code,
-                                                on: String(commitmentByLine.get(l.id)!.committed_at).slice(0, 10),
-                                              })
-                                            : t('purchasing.terms.notCommitted')}
-                                    </span>
-                                )}
-                            </td>
-                            )}
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                {l.estimated_unit_price !== null ? formatUnitCost(l.estimated_unit_price) : '—'}
-                                {/* FIN-26:价的出处 —— 读者不必懂内部机制就能分清
-                                    "公式算出的"与"手敲的"。NULL(存量行)画"未知",
-                                    不猜(B3)。computed 带汇率与取自哪天。 */}
-                                {l.estimated_unit_price !== null && (
-                                    <span className={'block text-xs font-sans mt-0.5 ' +
-                                        (l.price_source === 'computed' ? 'text-green-700'
-                                         : l.price_source === 'manual' ? 'text-amber-700'
-                                         : 'text-gray-400')}>
-                                        {l.price_source === 'computed'
-                                            ? t('purchasing.priceSource.computed', {
-                                                fx: String((l.price_provenance as { fx_factor?: number } | null)?.fx_factor ?? '—'),
-                                                asOf: String((l.price_provenance as { fx_as_of?: string } | null)?.fx_as_of ?? '—'),
-                                              })
-                                            : l.price_source === 'manual'
-                                                ? t('purchasing.priceSource.manual')
-                                                : t('purchasing.priceSource.unknown')}
-                                    </span>
-                                )}
-                            </td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                {formatMoneyBare(l.estimated_amount_ccy, '头卡「币种」—— 明细行是单据币种')}
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-                <tfoot>
-                    {/* ★★【PO-GST-1:不再有一个孤零零的「估算总额」】★★
-                        供应商将要开票的那个数是含税的那一个,而承诺出去的现金也是它。
-                        三行分开印,与发给供应商的 PDF 逐字对应。
-                        【不带税的历史单据只印一行】carries_tax 为 false 时不印
-                        「GST 0.00」—— 那会是一句断言,而真相是"这张单没有算过税"。 */}
-                    {po.carries_tax ? (
-                        <>
-                            <tr className="bg-gray-50">
-                                <td colSpan={5} className="border border-gray-300 px-3 py-2 text-right">
-                                    {t('purchasing.colNetTotal')}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                    {formatMoneyBare(po.estimated_total_ccy, '头卡「币种」—— 明细行是单据币种')}
-                                </td>
-                            </tr>
-                            <tr className="bg-gray-50">
-                                <td colSpan={5} className="border border-gray-300 px-3 py-2 text-right">
-                                    {t('purchasing.colTaxTotal')}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                    {formatMoneyBare(po.tax_total_ccy, '头卡「币种」—— 明细行是单据币种')}
-                                </td>
-                            </tr>
-                            <tr className="bg-gray-100 font-bold">
-                                <td colSpan={5} className="border border-gray-300 px-3 py-2 text-right">
-                                    {t('purchasing.colGrossTotal')}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                    {formatMoneyBare(po.gross_total_ccy, '头卡「币种」—— 明细行是单据币种')}
-                                </td>
-                            </tr>
-                        </>
-                    ) : (
-                        <tr className="bg-gray-100 font-bold">
-                            <td colSpan={5} className="border border-gray-300 px-3 py-2 text-right">
-                                {t('purchasing.colEstimatedTotal')}
-                            </td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                {formatMoneyBare(po.estimated_total_ccy, '头卡「币种」—— 明细行是单据币种')}
-                            </td>
-                        </tr>
-                    )}
-                </tfoot>
-            </table>
+            <PoLinesTable
+                rows={lineRows}
+                poId={id}
+                ddOptions={ddOptions}
+                canEditPurchasing={canEditPurchasing}
+                isEquipmentOrder={isEquipmentOrder}
+            />
 
             {/* ★★【FA-PO-1(2026-09-03):一句话,而它是为了拦住一次【已经发生过的】误读】★★
                 Tim 给一家供应商设了默认进项税码(TX · 标准税率进项),开出采购单,
@@ -787,51 +809,11 @@ export default async function PurchaseOrderDetailPage({
                 <div className="md:col-span-2">
                     <h2 className="text-xl font-bold mb-3">{t('purchasing.form.paymentTerms')}</h2>
                     {terms.length > 0 ? (
-                        <table className="w-full border-collapse border border-gray-300">
-                            <thead className="bg-gray-100">
-                                <tr>
-                                    <th className="border border-gray-300 px-3 py-2 text-left w-10">{t('purchasing.colSeq')}</th>
-                                    <th className="border border-gray-300 px-3 py-2 text-left">{t('purchasing.colLabel')}</th>
-                                    <th className="border border-gray-300 px-3 py-2 text-right">{t('purchasing.colShare')}</th>
-                                    <th className="border border-gray-300 px-3 py-2 text-right">{t('purchasing.colAmount')}</th>
-                                    <th className="border border-gray-300 px-3 py-2 text-left">{t('purchasing.colTrigger')}</th>
-                                    <th className="border border-gray-300 px-3 py-2 text-left">{t('purchasing.colDueDate')}</th>
-                                    {/* CASHFLOW-1：【预计日期】与【到期日】分成两列，
-                                        因为它们是两种东西：一个是估计，一个是合同约定的日子。 */}
-                                    <th className="border border-gray-300 px-3 py-2 text-left">{t('cashForecast.expectedDate')}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {terms.map((l) => (
-                                    <tr key={l.seq}>
-                                        <td className="border border-gray-300 px-3 py-2 text-sm text-gray-500">{l.seq}</td>
-                                        <td className="border border-gray-300 px-3 py-2 text-sm">{l.label}</td>
-                                        <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                            {l.percentage !== null
-                                                ? `${l.percentage}%`
-                                                : formatAmount(l.fixed_amount_ccy, po.currency)}
-                                        </td>
-                                        <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                            {formatMoneyBare(termAmount(l), '头卡「币种」—— 付款计划按估算总额折算,同为单据币种')}
-                                        </td>
-                                        <td className="border border-gray-300 px-3 py-2 text-sm">
-                                            {triggerNames.get(l.trigger_event) ?? l.trigger_event}
-                                        </td>
-                                        <td className="border border-gray-300 px-3 py-2 text-sm">{l.due_date ?? '—'}</td>
-                                        <td className="border border-gray-300 px-3 py-2">
-                                            <ExpectedDateControl
-                                                termId={l.id}
-                                                purchaseOrderId={po.id}
-                                                triggerEvent={l.trigger_event}
-                                                expectedDate={l.expected_date ?? null}
-                                                ownerName={eventOwners[l.trigger_event] ?? null}
-                                                canEdit={canEditPurchasing}
-                                            />
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                        <PoPaymentTermsTable
+                            rows={termRows}
+                            poId={po.id}
+                            canEditPurchasing={canEditPurchasing}
+                        />
                     ) : (
                         <p className="text-sm text-gray-500">—</p>
                     )}
@@ -980,57 +962,12 @@ export default async function PurchaseOrderDetailPage({
                             <span className="ml-2 font-mono">({poStatus.receipt_pct}%)</span>
                         )}
                     </p>
-                    <table className="w-full border-collapse border border-gray-300">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colCode')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('inbound.form.arrivalDate')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-right">{t('purchasing.colQuantity')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-right">{t('purchasing.colUnitPrice')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-right">{t('purchasing.appliedLabel')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colOpen')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {receipts.map((r) => (
-                                <tr key={r.id}>
-                                    <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                        <Link href={`/inbound/${r.id}/edit`} className="text-blue-600 hover:underline">
-                                            {r.code}
-                                        </Link>
-                                    </td>
-                                    <td className="border border-gray-300 px-4 py-2">{r.arrival_date ?? '—'}</td>
-                                    <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {Number(r.quantity)} {r.unit}
-                                    </td>
-                                    <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {r.unit_price !== null ? (
-                                            formatUnitCost(r.unit_price)
-                                        ) : (
-                                            <span className="text-amber-700">{t('purchasing.unpriced')}</span>
-                                        )}
-                                    </td>
-                                    <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {/* CCY-1:抵扣额与敞口是本位币 —— 上方头卡说的是单据币种,不能借它 */}
-                                        {appliedByBatch.has(r.id) ? formatAmount(appliedByBatch.get(r.id), baseCurrency) : '—'}
-                                    </td>
-                                    <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                        {r.unit_price === null ? '—' : (
-                                            <MaskedValue
-                                                value={canFinance ? formatAmount(openByBatch.get(r.id) ?? 0, baseCurrency) : null}
-                                                canView={canFinance}
-                                            />
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    <PoReceiptsTable rows={receiptRows} canFinance={canFinance} />
                 </>
             ) : (
                 <p className="text-sm text-gray-500">{t('purchasing.noReceipts')}</p>
             )}
             </>)}
-        </div>
+        </ListPage>
     )
 }

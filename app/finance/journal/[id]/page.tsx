@@ -2,6 +2,9 @@
 // 分录详情:头部(编号/日期/摘要/来源/状态)+ 行表(科目、借、贷、原币、行摘要)+ Σ。
 // posted → 冲销按钮;reversed → "已被 X 冲销"横幅;冲销单自身 → "冲销自 X"横幅
 // (通过 reversed_by 反查:谁的 reversed_by 指向本单,本单就是它的冲销单)。
+//
+// ★ CONV-8(2026-09-04):转成 ListPage + RecordHeader + DataTable。
+//   模板与三条判据见 docs/detail-page-template.md。
 import Link from 'next/link'
 import { getBaseCurrency } from '@/lib/currency'
 import { notFound } from 'next/navigation'
@@ -12,6 +15,9 @@ import ReverseButton from './ReverseButton'
 import { resolveSourceHrefs, sourceHrefKey } from '../../sourceLinks'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { ListPage } from '@/app/components/ui/list-page'
+import { RecordHeader } from '@/app/components/ui/record-header'
+import JournalLinesTable, { type JournalLineRow } from './JournalLinesTable'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type LineRow = {
@@ -77,76 +83,118 @@ export default async function JournalDetailPage({
         l.accounts ? (locale === 'zh' ? l.accounts.name_zh : l.accounts.name_en) : '—'
     const sourceHref = hrefs.get(sourceHrefKey(entry))
 
+    // ★【行数据在服务端压平成纯字符串】★ locale(科目名取 zh 还是 en)与
+    // baseCurrency(金额格式)都是只有服务端知道的东西;一个函数、一个 Map 都不
+    // 过客户端边界 —— CONV-1 §① 的通则,与 /inbound 的来源列逐字同形。
+    const tableRows: JournalLineRow[] = lines.map((l) => ({
+        id: l.id,
+        accountCode: l.accounts?.code ?? '—',
+        accountName: accountName(l),
+        debitText: l.debit > 0 ? formatAmount(l.debit, baseCurrency) : '',
+        creditText: l.credit > 0 ? formatAmount(l.credit, baseCurrency) : '',
+        // 借/贷是本位币,自己带币种;同表「原币」列写的是【另一个】币种,
+        // 不能拿它当"这屏已经写了币种"的凭据(CCY-1 RULE 3)。
+        ccyText:
+            l.currency !== baseCurrency
+                ? `${l.currency} ${formatMoneyBare(l.amount_ccy, '同格内紧邻的 l.currency 前缀')} @ ${l.fx_rate}`
+                : '—',
+        memo: l.line_memo ?? '—',
+    }))
+
+    // ★ 合计行是【数据】,不是 <tfoot> —— CONV-4 §⑨-3 定的型,见表组件抬头。
+    if (tableRows.length > 0) {
+        tableRows.push({
+            id: '__total__',
+            accountCode: '',
+            accountName: t('finance.totalsLabel'),
+            debitText: formatAmount(sumDebit, baseCurrency),
+            creditText: formatAmount(sumCredit, baseCurrency),
+            ccyText: '',
+            memo: '',
+            isTotal: true,
+        })
+    }
+
     return (
-        <div className="p-8 max-w-4xl">
-            <div className="mb-6">
+        <ListPage
+            maxWidth="max-w-4xl"
+            // ★ CONV-8 加的槽:返回链接画在标题【之上】,与转换前同位置。
+            breadcrumb={
                 <Link href="/finance/journal" className="text-blue-600 hover:underline text-sm">
                     {t('common.back')}
                 </Link>
-            </div>
-
-            <h1 className="text-2xl font-bold mb-2">{t('finance.detailTitle')}</h1>
-
-            {/* 冲销关系横幅 */}
-            {entry.status === 'reversed' && reversedByRes.data && (
-                <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-4 text-sm">
-                    <Link
-                        href={`/finance/journal/${reversedByRes.data.id}`}
-                        className="text-blue-600 hover:underline"
-                    >
-                        {t('finance.reversedBanner', { code: reversedByRes.data.code })}
-                    </Link>
-                </div>
-            )}
-            {reversalOfRes.data && (
-                <div className="bg-gray-50 border border-gray-300 text-gray-700 px-4 py-3 rounded mb-4 text-sm">
-                    <Link
-                        href={`/finance/journal/${reversalOfRes.data.id}`}
-                        className="text-blue-600 hover:underline"
-                    >
-                        {t('finance.reversalOfBanner', { code: reversalOfRes.data.code })}
-                    </Link>
-                </div>
-            )}
-
-            {/* 头部 */}
-            <div className="bg-gray-50 rounded p-4 mb-6 flex flex-wrap gap-x-8 gap-y-2 text-sm items-center">
-                <div>
-                    <span className="text-gray-600 mr-1">{t('finance.colCode')}:</span>
-                    <span className="font-mono font-medium">{entry.code}</span>
-                </div>
-                <div>
-                    <span className="text-gray-600 mr-1">{t('finance.entryDate')}:</span>
-                    <span>{entry.entry_date}</span>
-                </div>
-                <div>
-                    <span className="text-gray-600 mr-1">{t('finance.colSource')}:</span>
-                    {entry.source_type ? (
-                        sourceHref ? (
-                            <Link href={sourceHref} className="text-blue-600 hover:underline">
-                                {t('finance.source.' + entry.source_type)}
+            }
+            title={t('finance.detailTitle')}
+            // ★★【详情页恒为 ok,而这【不是】一个权宜之计】★★
+            // 一条记录存在与否由上面的 notFound() 回答,不由空态回答:页面画得出来
+            // 就说明这张分录在。空的只可能是它下面那张行表,而那句空态归表自己说
+            // (DataTable 的 empty prop)。于是「出口被空态吃掉」这一类
+            // 在详情页上【构造上不可能发生】—— 详见 docs/detail-page-template.md。
+            state={{ kind: 'ok' }}
+            // 冲销关系横幅:无条件渲染,与 CONV-1 的 notices 槽同一条理由。
+            notices={
+                <>
+                    {entry.status === 'reversed' && reversedByRes.data && (
+                        <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-4 text-sm">
+                            <Link
+                                href={`/finance/journal/${reversedByRes.data.id}`}
+                                className="text-blue-600 hover:underline"
+                            >
+                                {t('finance.reversedBanner', { code: reversedByRes.data.code })}
                             </Link>
-                        ) : (
-                            <span>{t('finance.source.' + entry.source_type)}</span>
-                        )
-                    ) : (
-                        <span>—</span>
+                        </div>
                     )}
-                </div>
-                <div>
-                    <span
-                        className={
-                            'px-2 py-1 rounded text-xs ' +
-                            (entry.status === 'posted'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-gray-200 text-gray-700')
-                        }
-                    >
-                        {t('finance.status.' + entry.status)}
-                    </span>
-                </div>
-                {entry.status === 'posted' && <ReverseButton entryId={entry.id} />}
-            </div>
+                    {reversalOfRes.data && (
+                        <div className="bg-gray-50 border border-gray-300 text-gray-700 px-4 py-3 rounded mb-4 text-sm">
+                            <Link
+                                href={`/finance/journal/${reversalOfRes.data.id}`}
+                                className="text-blue-600 hover:underline"
+                            >
+                                {t('finance.reversalOfBanner', { code: reversalOfRes.data.code })}
+                            </Link>
+                        </div>
+                    )}
+                </>
+            }
+        >
+            {/* ★ 记录抬头 —— 动作(冲销)住在它自己的槽里,不混进 fields:
+                一个动作不是一个值。见 record-header.tsx 抬头。 */}
+            <RecordHeader
+                fields={[
+                    { label: t('finance.colCode'), value: entry.code, mono: true },
+                    { label: t('finance.entryDate'), value: entry.entry_date },
+                    {
+                        label: t('finance.colSource'),
+                        value: entry.source_type ? (
+                            sourceHref ? (
+                                <Link href={sourceHref} className="text-blue-600 hover:underline">
+                                    {t('finance.source.' + entry.source_type)}
+                                </Link>
+                            ) : (
+                                t('finance.source.' + entry.source_type)
+                            )
+                        ) : (
+                            '—'
+                        ),
+                    },
+                    {
+                        label: t('finance.colStatus'),
+                        value: (
+                            <span
+                                className={
+                                    'px-2 py-1 rounded text-xs ' +
+                                    (entry.status === 'posted'
+                                        ? 'bg-green-100 text-green-800'
+                                        : 'bg-gray-200 text-gray-700')
+                                }
+                            >
+                                {t('finance.status.' + entry.status)}
+                            </span>
+                        ),
+                    },
+                ]}
+                actions={entry.status === 'posted' ? <ReverseButton entryId={entry.id} /> : undefined}
+            />
 
             {entry.memo && (
                 <p className="text-sm text-gray-600 mb-4">
@@ -155,54 +203,7 @@ export default async function JournalDetailPage({
                 </p>
             )}
 
-            {/* 行表 */}
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colAccount')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.debit')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.credit')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colOriginalCcy')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.lineMemo')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {lines.map((l) => (
-                        <tr key={l.id}>
-                            <td className="border border-gray-300 px-4 py-2">
-                                <span className="font-mono text-sm mr-2">{l.accounts?.code ?? '—'}</span>
-                                {accountName(l)}
-                            </td>
-                            {/* 借/贷是本位币,自己带币种:同表「原币」列写的是【另一个】币种,
-                                不能拿它当"这屏已经写了币种"的凭据(CCY-1 RULE 3)。*/}
-                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {l.debit > 0 ? formatAmount(l.debit, baseCurrency) : ''}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {l.credit > 0 ? formatAmount(l.credit, baseCurrency) : ''}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">
-                                {l.currency !== baseCurrency
-                                    ? `${l.currency} ${formatMoneyBare(l.amount_ccy, '同格内紧邻的 l.currency 前缀')} @ ${l.fx_rate}`
-                                    : '—'}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-sm">{l.line_memo ?? '—'}</td>
-                        </tr>
-                    ))}
-                </tbody>
-                <tfoot>
-                    <tr className="bg-gray-100 font-bold">
-                        <td className="border border-gray-300 px-4 py-2">{t('finance.totalsLabel')}</td>
-                        <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                            {formatAmount(sumDebit, baseCurrency)}
-                        </td>
-                        <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                            {formatAmount(sumCredit, baseCurrency)}
-                        </td>
-                        <td className="border border-gray-300 px-4 py-2" colSpan={2} />
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
+            <JournalLinesTable rows={tableRows} />
+        </ListPage>
     )
 }

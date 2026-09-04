@@ -48,6 +48,7 @@ export type ListPageState =
 
 export function ListPage({
     title,
+    breadcrumb,
     intro,
     actions,
     notices,
@@ -56,6 +57,21 @@ export function ListPage({
     maxWidth,
 }: {
     title: React.ReactNode
+    /**
+     * ★【CONV-8 加的槽:画在【标题之上】的返回链接/面包屑】★
+     *
+     * 【为什么是一个槽,而不是让详情页把它塞进 notices】
+     * notices 画在标题【之下】,而这 23 张详情页today 把返回链接画在 <h1> 【之上】。
+     * 塞进 notices 能跑,但它把链接挪到了标题下面 —— 那是一次版式回归,
+     * 而 CONV-5 §⑩-9 已经为「外壳硬编码 p-8」记过两次同类的账。
+     *
+     * 【它凭什么值一个槽】详情页 37 张里 **23 张**在 <h1> 之上有返回链接,
+     * 全仓库 58 张 page.tsx 用着 common.back。本仓库「第三次才建」那道坎
+     * (rowClassName 是第 5 处才建的)在这里被跨过了七倍不止。
+     *
+     * 【它不动任何既有调用点】不给就不画,64 个既有 ListPage 调用点一个字不用改。
+     */
+    breadcrumb?: React.ReactNode
     /** 标题下那一句说明。这一页在解释自己是什么,不给就不画。 */
     intro?: React.ReactNode
     /** 标题右边的动作(新建、导出…)。 */
@@ -95,6 +111,8 @@ export function ListPage({
 
     return (
         <div className={['p-8', maxWidth].filter(Boolean).join(' ')}>
+            {/* ★ 标题【之上】—— 见 breadcrumb 的说明。不给就不画。 */}
+            {breadcrumb && <div className="mb-6">{breadcrumb}</div>}
             <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
                 <h1 className="text-2xl font-bold">{title}</h1>
                 {actions}

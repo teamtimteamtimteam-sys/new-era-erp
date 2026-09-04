@@ -89,6 +89,52 @@ function propsBlockAt(src, start) {
     return null
 }
 
+/**
+ * ★★【CONV-8:定位 `const columns` 之前必须先【把注释抹掉】】★★
+ *
+ * 【这道闸此前会被一句散文骗过去,而实测就是被它自己的说明文字骗过去的】
+ * 判据是 `src.search(/(const|let)\s+columns\b/)` —— 它找的是**文本**里第一处
+ * 「const columns」。而一个文件的抬头注释里完全可能写着这几个字
+ * (CONV-8 的 PoLinesTable.tsx 抬头正好写了「闸找的是 `const columns` 的声明
+ * 文本里有没有 `priority: true`」)。于是:
+ *   ① declIdx 落在【注释里】,不是那个真的声明上;
+ *   ② 紧接着的注释文字里又有 `priority: true` 这几个字;
+ *   ③ 判据通过 —— 而那张表【一列 priority 都没有】。
+ * 实测(CONV-8 故障注入):拿掉 PoLinesTable 全部 priority,本闸仍然 EXIT 0
+ * 并报「各自至少一列 priority」。**它没有变红,它安静地少查了一张表。**
+ *
+ * 【这是同一个病的第三次,所以按规律修,不按事故修】
+ *   · `check-masked-reads` 的内嵌扫描:没剥注释,**恰好漏掉了被拿来当例子的那个文件**;
+ *   · `check-permission-predicate` 的反引号洞(CONV-5 §⑩-12):正则只认单/双引号;
+ *   · 本处。三次都是【一道读文本的闸把散文当成了代码】。
+ *
+ * 【为什么是"抹成空格"而不是"删掉"】删掉会让后面所有的偏移量位移,而
+ * `lineOf()` 与 propsBlockAt() 都按偏移量工作 —— 点名的行号会集体错位。
+ * 一道报错报错行号的闸,比不报错更难查。所以逐字符替换成空格,长度不变。
+ */
+function blankComments(src) {
+    const out = src.split('')
+    let i = 0
+    while (i < src.length) {
+        const two = src[i] + src[i + 1]
+        if (two === '//') {
+            while (i < src.length && src[i] !== '\n') { out[i] = ' '; i++ }
+        } else if (two === '/*') {
+            while (i < src.length && !(src[i] === '*' && src[i + 1] === '/')) {
+                if (src[i] !== '\n') out[i] = ' '
+                i++
+            }
+            out[i] = ' '; out[i + 1] = ' '; i += 2
+        } else if (src[i] === "'" || src[i] === '"' || src[i] === '`') {
+            // 字符串里出现的 `//` 不是注释 —— 跳过整个字符串字面量
+            const q = src[i]; i++
+            while (i < src.length && src[i] !== q) { if (src[i] === '\\') i++; i++ }
+            i++
+        } else i++
+    }
+    return out.join('')
+}
+
 const files = walk(join(ROOT, 'app'))
 const problems = []
 const unresolved = []
@@ -135,12 +181,15 @@ for (const abs of files) {
             continue
         }
         const ident = colsIdent[1]
-        const declIdx = src.search(new RegExp(String.raw`(const|let)\s+${ident}\b`))
+        // ★ CONV-8:在【抹掉注释的】副本上找声明与 priority —— 见 blankComments 抬头。
+        //   偏移量与 src 逐字对齐,所以 line 仍然是真行号。
+        const code = blankComments(src)
+        const declIdx = code.search(new RegExp(String.raw`(const|let)\s+${ident}\b`))
         if (declIdx === -1) {
             unresolved.push({ rel, line, why: `columns={${ident}} 的定义不在同一个文件里` })
             continue
         }
-        const decl = src.slice(declIdx, declIdx + 20000)
+        const decl = code.slice(declIdx, declIdx + 20000)
         if (!/priority:\s*true/.test(decl)) {
             problems.push({
                 rel, line,

@@ -1,5 +1,13 @@
 # 列表页模板(CONV-1,2026-09-03)· **只读账簿**
 
+> ### ☞ 第三篇:[`docs/detail-page-template.md`](./detail-page-template.md)(CONV-8,2026-09-04)
+> **详情页【不是】第三套模板** —— 它是本篇 + 姊妹篇,加一个 `RecordHeader` 组件
+> 与一条判据(详情页的 `state` 恒为 `'ok'`,因为记录在不在由 `notFound()` 回答)。
+> 本篇的 `ListPage` 因它多了一个 `breadcrumb` 槽(画在标题之上,23 张详情页要它);
+> **既有 64 个调用点一个字都不用改。**
+> ★ 那一刀还补了本篇 §② 那道手机闸的一个洞:它此前会把**注释里**的
+> `const columns` 当成声明,于是一张一列 priority 都没有的表照样变绿。详见那一篇 §⑦。
+
 > ### ☞ 姊妹篇:[`docs/editable-grid-template.md`](./editable-grid-template.md)(CONV-2)
 > **这两份【必须一起读】。** 本篇管**只读账簿**(`DataTable`),姊妹篇管
 > **可编辑网格**(`EditableTable`)。**一张表该用哪一个,是这两份合起来回答的问题**,

@@ -1,5 +1,15 @@
 # 可编辑网格模板(CONV-2,2026-09-03)
 
+> ### ☞ 第三篇:[`docs/detail-page-template.md`](./detail-page-template.md)(CONV-8,2026-09-04)
+> 它按 import 重建了详情页人口(**37 张**,不是 36),并**逐字确认了本篇头条
+> 那两处重新指派**:`GoalsEditor` 确实挂 `/hr/reviews/[id]` 与 `/my-reviews/[id]`,
+> `PermissionMatrix` 确实挂 `/settings/roles/[id]`。
+> 详情页里**在格子里够得到输入控件的共 9 张**,除 `/purchasing/orders/[id]`
+> (只读表 + 一个自带状态机的控件,走 `DataTable` 的 `render`)之外**全部归本篇**。
+> ★ 其中 `PermissionMatrix` 是本篇分类里的 **B(全行同时可编辑)**,不是 A ——
+> 一屏勾选 + 一个页级「保存」,与 `/me` 同形,要用 `all-rows` 模式加 `footer` 槽。
+> **那一刀没有转它**,这个判断先记在那里,下一刀不必重新分类。
+
 > **这一刀是一道停止闸,与 CONV-1 同形。** 它的姊妹篇是
 > [`docs/list-page-template.md`](./list-page-template.md)(只读账簿的模板)——
 > **两份【必须一起读】**:一张表要用哪一个,是这两份文档合起来回答的一个问题。
