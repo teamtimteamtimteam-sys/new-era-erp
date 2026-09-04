@@ -413,6 +413,36 @@ async function main() {
         release(); process.exit(0)
     }
 
+    // ════════════════════════════════════════════════════════════════════
+    // ★★【第四层盲区,而它比前三层都便宜、也都致命:一次 `npm run build`
+    //     会让【每一条动态路由】404,而旧口径把它们【全部】记成 USABLE】★★
+    //
+    //   CONV-10 实测,同一棵树、同一批 id、相隔十分钟:
+    //       .next 里有生产构建  → 16 / 16 条路由 HTTP 404(页面照常画出 404 页,
+    //                             ovf=0 clip=0,旧口径记 16/16 USABLE)
+    //       rm -rf .next 之后   → 0 条 404,20 / 20 真的量到
+    //
+    //   **为什么它特别毒:** 「先跑 build 确认绿,再跑探针量手机」是任何人都会
+    //   采用的顺序 —— 而那个顺序【恰好】制造出一份全绿的假数据。
+    //   CONV-9 §⑫-5b 量到的 9 条 textLen=76 是 id 取错(§⑬-1 修了);
+    //   这一条是【另一个】机制,同一个症状,而它一次能毁掉整跑。
+    //
+    //   判据是结构性的、且不会漂:`next build` 写 `.next/BUILD_ID`,
+    //   `next dev` 【不写】(它只写 `.next/dev/`)。实测两遍。
+    //
+    //   处置:**当场炸,并给出那一行命令**。不自动删 —— 与本仓库一贯的
+    //   「响,而不是替人做决定」同条;而且一个自动删掉别人构建产物的探针,
+    //   下一次会在别的地方被人诅咒。
+    // ════════════════════════════════════════════════════════════════════
+    if (existsSync(join(ROOT, '.next/BUILD_ID'))) {
+        throw new Error(
+            '.next/BUILD_ID exists — there is a PRODUCTION build in .next, and `next dev` on top of '
+            + 'it makes EVERY dynamic route return HTTP 404. Measured on one tree ten minutes apart: '
+            + '16/16 routes 404 with it, 0/20 without — and the old scoring called all of those "usable". '
+            + 'Fix: rm -rf .next (it is a regenerable cache), then re-run. '
+            + 'If you just ran `npm run build`, that is exactly how you got here.')
+    }
+
     // dev server
     console.error('· starting next dev on :' + PORT)
     dev = spawn('npx', ['next', 'dev', '-p', String(PORT)], { cwd: ROOT, detached: true, stdio: ['ignore', 'pipe', 'pipe'] })

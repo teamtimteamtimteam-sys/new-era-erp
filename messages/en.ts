@@ -6377,6 +6377,7 @@ const en = {
         },
     },
     invoice: {
+        noLines: 'This invoice has no lines.',
         pdfNeedsBanking: 'PDF needs permission to see company bank details',
         issuePdf: 'Issue this version',
         issuesTitle: 'Issued versions',

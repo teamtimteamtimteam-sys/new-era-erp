@@ -16,6 +16,9 @@ import type { Tables } from '@/lib/database.types'
 import { canViewBanking } from '@/lib/permissions'
 import { mustRows } from '@/lib/db-helpers'
 import IssuePanel from '@/app/components/IssuePanel'
+import { ListPage } from '@/app/components/ui/list-page'
+import InvoiceLinesTable, { type InvoiceLineRow } from './InvoiceLinesTable'
+import SettlementHistoryTable, { type SettlementRow } from '@/app/components/finance/SettlementHistoryTable'
 import ActorName, { loadActorNames } from '@/app/components/ActorName'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -219,16 +222,36 @@ export default async function InvoiceDetailPage({
         await supabase.from('credit_notes').select('id').eq('invoice_id', id),
         'credit_notes').length
 
+    // ── 行数据在服务端压平(CONV-1 §①:render 是函数,过不了 RSC 边界)──────
+    const lineRows: InvoiceLineRow[] = rows.map((l) => ({
+        id: l.id,
+        lineNo: l.line_no,
+        description: l.description,
+        qtyText: `${l.quantity} ${l.unit ?? ''}`.trim(),
+        unitPriceText: formatAmount(l.unit_price, inv.currency),
+        amountText: formatAmount(l.amount_ccy, inv.currency),
+        arHref: `/finance/receivables/${l.sales_record_id}`,
+    }))
+    // 【第四个调用点】—— 形状与 CONV-9 收敛的那三页逐字相同,见下面的注释。
+    const settlementRows: SettlementRow[] = allocRows.map((a) => ({
+        id: a.id,
+        paymentCode: a.payments?.code ?? '—',
+        paymentHref: a.payments ? `/finance/payments/${a.payments.id}` : null,
+        paymentDate: a.payments?.payment_date ?? '—',
+        allocatedText: formatAmount(a.allocated_ccy, inv.currency),
+        reversed: a.payments?.status === 'reversed',
+    }))
+
     return (
-        <div className="p-8 max-w-5xl">
-            <div className="mb-6">
+        <ListPage
+            maxWidth="max-w-5xl"
+            breadcrumb={
                 <Link href="/finance/invoices" className="text-blue-600 hover:underline text-sm">
                     {t('common.back')}
                 </Link>
-            </div>
-
-            <div className="flex justify-between items-center mb-2">
-                <h1 className="text-2xl font-bold">
+            }
+            title={
+                <>
                     {t('invoice.detailTitle')}
                     <span className="ml-3 font-mono text-base text-gray-500">{inv.code}</span>
                     {/* SO-3a:两种发票在列表与详情上都要看得出来 —— sale 头是归拢文件,
@@ -237,8 +260,13 @@ export default async function InvoiceDetailPage({
                         (isOrderKind ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-700')}>
                         {t(isOrderKind ? 'invoice.kind.order' : 'invoice.kind.sale')}
                     </span>
-                </h1>
-                <div className="flex items-center gap-3">
+                </>
+            }
+            // ★ 出口:预览 PDF / 下载 PDF / 作废。转换前它们画在 h1 右边的
+            //   justify-between 里 —— actions 是同一个位置,而且【会换行】。
+            //   转换前那一排是 flex 不换行,三个按钮 + 标题在 390px 上必然顶宽。
+            actions={
+                <span className="flex flex-wrap items-center gap-3 justify-end">
                     {/* 预览是新标签页里直接打开(路由默认 inline),下载走 ?download=1
                         (路由改成 attachment)—— 看版式和拿文件是两个不同的动作 */}
                     {!pdfBlocked && (
@@ -265,8 +293,11 @@ export default async function InvoiceDetailPage({
                         </span>
                     )}
                     {!isVoid && <VoidInvoiceControl invoiceId={inv.id} hasEntry={inv.entry_id !== null} />}
-                </div>
-            </div>
+                </span>
+            }
+            // ★★ 详情页恒为 ok —— 这张发票在不在由上面的 notFound() 回答。CONV-8 §⑤。
+            state={{ kind: 'ok' }}
+        >
 
             {profileIncomplete && (
                 <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-4 text-sm">
@@ -362,45 +393,10 @@ export default async function InvoiceDetailPage({
                 </div>
             </div>
 
-            {/* 明细行 */}
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-3 py-2 text-left">{t('invoice.colLineNo')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-left">{t('invoice.colDescription')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('invoice.colQuantity')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('invoice.colUnitPrice')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('invoice.colAmount')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-left" />
-                    </tr>
-                </thead>
-                <tbody>
-                    {rows.map((l) => (
-                        <tr key={l.id}>
-                            <td className="border border-gray-300 px-3 py-2 text-sm text-gray-500">{l.line_no}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-sm">{l.description}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                {l.quantity} {l.unit}
-                            </td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                {formatAmount(l.unit_price, inv.currency)}
-                            </td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                {formatAmount(l.amount_ccy, inv.currency)}
-                            </td>
-                            <td className="border border-gray-300 px-3 py-2 text-sm">
-                                {/* 每行都能跳回它背后的 AR 单据(凭据附件挂在那里)*/}
-                                <Link
-                                    href={`/finance/receivables/${l.sales_record_id}`}
-                                    className="text-blue-600 hover:underline"
-                                >
-                                    {t('finance.arDocTitle')}
-                                </Link>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+            {/* 明细行 —— CONV-10:转换前是一张 6 列的手写表,最后一列是一个
+                不折行的「AR 单据」链接,正是探针点名的 a.text-blue-600。
+                空态由表自己说(转换前它连空态都没有:0 行就是一张空表体)。 */}
+            <InvoiceLinesTable rows={lineRows} />
 
             {/* 合计 */}
             <div className="mt-4 max-w-sm ml-auto text-sm space-y-1">
@@ -472,70 +468,13 @@ export default async function InvoiceDetailPage({
                     </span>
                 </div>
 
-                <table className="w-full border-collapse border border-gray-300">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colPayment')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.paymentDate')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colAllocated')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colStatus')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {allocRows.map((a) => {
-                            const reversed = a.payments?.status === 'reversed'
-                            return (
-                                <tr key={a.id} className={reversed ? 'text-gray-400' : ''}>
-                                    <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                        {a.payments ? (
-                                            <Link
-                                                href={`/finance/payments/${a.payments.id}`}
-                                                className={
-                                                    reversed
-                                                        ? 'text-gray-400 hover:underline line-through'
-                                                        : 'text-blue-600 hover:underline'
-                                                }
-                                            >
-                                                {a.payments.code}
-                                            </Link>
-                                        ) : (
-                                            '—'
-                                        )}
-                                    </td>
-                                    <td className="border border-gray-300 px-4 py-2 text-sm">
-                                        {a.payments?.payment_date ?? '—'}
-                                    </td>
-                                    <td
-                                        className={
-                                            'border border-gray-300 px-4 py-2 text-right font-mono text-sm' +
-                                            (reversed ? ' line-through' : '')
-                                        }
-                                    >
-                                        {formatAmount(a.allocated_ccy, inv.currency)}
-                                    </td>
-                                    <td className="border border-gray-300 px-4 py-2 text-sm">
-                                        {reversed ? (
-                                            <span className="px-2 py-1 rounded text-xs bg-gray-200 text-gray-500">
-                                                {t('finance.reversedMark')}
-                                            </span>
-                                        ) : (
-                                            <span className="px-2 py-1 rounded text-xs bg-green-100 text-green-800">
-                                                {t('finance.status.posted')}
-                                            </span>
-                                        )}
-                                    </td>
-                                </tr>
-                            )
-                        })}
-                        {allocRows.length === 0 && (
-                            <tr>
-                                <td colSpan={4} className="border border-gray-300 px-4 py-4 text-center text-gray-500 text-sm">
-                                    {t('finance.noOpenItems')}
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+                {/* ★★ CONV-9 §⑫-4 收敛的那张「结算历史」——【第四个调用点】★★
+                    付款单 · 日期 · 冲销额 · 状态,连 i18n 键与
+                    empty={t('finance.noOpenItems')} 都逐字相同。
+                    **所以这里一个字都不新写,直接用那一个组件。**
+                    CONV-9 收它的时候是 3 页;这一页是第 4 页,而它是在
+                    【不知道有这一页】的情况下被收敛的 —— 那正是收敛对了的证据。 */}
+                <SettlementHistoryTable rows={settlementRows} />
             </section>
 
             {/* ── INV-2b:签发档 ────────────────────────────────────────────
@@ -607,6 +546,6 @@ export default async function InvoiceDetailPage({
                     amount_ccy: Number(l.amount_ccy),
                 }))}
             />
-        </div>
+        </ListPage>
     )
 }

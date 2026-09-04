@@ -6356,6 +6356,7 @@ const zh = {
         },
     },
     invoice: {
+        noLines: '这张发票没有明细行。',
         pdfNeedsBanking: '生成 PDF 需要「查看公司银行明细」权限',
         issuePdf: '签发这一版',
         issuesTitle: '签发档',

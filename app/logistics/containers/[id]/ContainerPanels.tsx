@@ -146,12 +146,20 @@ export default function ContainerPanels({
                 {attachable.length === 0 ? (
                     <p className="text-sm text-gray-600">{labels.attachEmpty}</p>
                 ) : (
+                    /* ★ CONV-10:这一行【转换前不换行】(flex,没有 flex-wrap),而它里面的
+                       <select> 按【最宽的那个 option】定宽 —— option 的文本是
+                       「单号 · 订单号 · 客户名」三段拼起来的,客户名一长,整页就被
+                       这一个 select 顶出去。探针给这一页的判词是 +90px,culprit 是它旁边
+                       那个 bg-blue-600 的按钮 —— 按钮是【被挤出去的那个】,不是撑宽的那个。
+                       flex-wrap 让按钮换行;max-w-full/min-w-0 让 select 不能超过容器。
+                       ☞ 这一页此前【就在那 9 条 404 名单里】(§⑬-1e):它一直是坏的,
+                         而旧尺子把它记成「可用」。 */
                     <form
-                        className="flex items-end gap-2"
+                        className="flex flex-wrap items-end gap-2"
                         onSubmit={(e) => { e.preventDefault(); const d = new FormData(e.currentTarget)
                             run(() => attachShipment(containerId, d.get('shipment_id') as string)) }}
                     >
-                        <select name="shipment_id" required className={field}>
+                        <select name="shipment_id" required className={`${field} max-w-full min-w-0`}>
                             {attachable.map((s) => (
                                 <option key={s.id} value={s.id}>{s.code} · {s.order_code} · {s.customer}</option>
                             ))}
