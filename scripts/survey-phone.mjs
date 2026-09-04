@@ -310,18 +310,77 @@ const MEASURE = `(() => {
 })()`
 
 // ── main ────────────────────────────────────────────────────────────────────
-let dev = null, chrome = null, accountId = null
+let dev = null, chrome = null, accountId = null, reviewerAccountId = null
+let seededReviewId = null, seededEmployeeIds = []
+// ════════════════════════════════════════════════════════════════════════════
+// 【PRE-ACCOUNT-1】清理失败必须【说话】,而从前这里【返回码根本没人看】
+//
+// ★ 这一段修的是【幽灵 admin 的产地】★
+//   下面那两行 DELETE 从前写成裸 `rest()`:删授权那一半失败了没有任何人知道,
+//   删账号那一半却照常成功 —— 留下的正是**一条权限还在、而账号已经没了的授权**,
+//   一个 `user_id` 在 auth.users 里根本解析不出来的 admin。
+//   `user_roles.user_id` 【没有】指向 auth.users 的外键(见 db/tables/user_roles.sql),
+//   所以数据库不会替我们把这两半绑在一起;而账号一旦删掉,任何按
+//   "列出账号再清理"写的清扫都【再也看不见】那行授权。
+//
+//   **这与 CLEANUP-A(2026-08-31)在 smoke-routes.mjs:1199 修掉的是同一个缺陷。**
+//   那一刀把 smoke 与 render-pdf-samples 两支都修了,**唯独漏了本文件** ——
+//   而本文件是三支里唯一一支**用完不被任何清扫兜底**的(见下面 :~360 的前缀说明)。
+//   PRE-ACCOUNT-1 实测:2026-09-04 线上躺着 2 条本文件产的幽灵 admin 授权。
+//
+// 【为什么不直接 throw】cleanup() 在 `.then()` 与信号处理里都会跑,
+//   在这里抛出去会把它【后面几步清理一起吃掉】——那是换一个缺陷,不是修。
+//   所以:照常往下清,但每一次失败都记账、都印出来、并且让整跑【变红】。
+//   **一条没删掉的 admin 授权是一次失败,不是一条日志。**
+// ════════════════════════════════════════════════════════════════════════════
+const cleanupFailures = []
+async function restCleanup(path, opts, ctx) {
+    try {
+        const r = await rest(path, opts)
+        if (!r.ok) {
+            const body = (await r.text()).slice(0, 200)
+            cleanupFailures.push(`${ctx}: HTTP ${r.status} ${body}`)
+            console.error(`  ✗ cleanup failed (continuing, but recorded): ${ctx} → HTTP ${r.status} ${body}`)
+        }
+        return r
+    } catch (e) {
+        cleanupFailures.push(`${ctx}: ${e.message}`)
+        console.error(`  ✗ cleanup failed (continuing, but recorded): ${ctx} → ${e.message}`)
+        return null
+    }
+}
+
 async function cleanup() {
     try { if (chrome) chrome.kill('SIGKILL') } catch {}
     try { if (dev) process.kill(-dev.pid, 'SIGKILL') } catch {}
-    if (accountId) {
-        try {
-            await rest(`/rest/v1/user_roles?user_id=eq.${accountId}`, { method: 'DELETE' })
-            await rest(`/auth/v1/admin/users/${accountId}`, { method: 'DELETE' })
-            console.error('· cleaned up ephemeral survey account')
-        } catch (e) { console.error('!! COULD NOT DELETE SURVEY ACCOUNT ' + accountId + ': ' + e.message) }
+    // 【顺序要紧】先收权限,再删账号。反过来做,一旦第二步之前挂掉,
+    // 剩下的就是一条【认不到人】的授权,而此后没有任何清扫看得见它。
+    // 【顺序:评估 → 员工 → 账号】performance_reviews 指着 employees,
+    // employees.user_id 指着 auth.users。倒过来删会留下指向已删行的记录。
+    if (seededReviewId)
+        await restCleanup(`/rest/v1/performance_reviews?id=eq.${seededReviewId}`, { method: 'DELETE' },
+            `delete seeded review ${seededReviewId}`)
+    if (seededEmployeeIds.length)
+        await restCleanup(`/rest/v1/employees?id=in.(${seededEmployeeIds.join(',')})`, { method: 'DELETE' },
+            `delete seeded employees ${seededEmployeeIds.length}`)
+    for (const [id, what] of [[accountId, 'survey admin'], [reviewerAccountId, 'survey reviewer']]) {
+        if (!id) continue
+        await restCleanup(`/rest/v1/user_roles?user_id=eq.${id}`, { method: 'DELETE' },
+            `revoke ${what} grant ${id}`)
+        await restCleanup(`/auth/v1/admin/users/${id}`, { method: 'DELETE' },
+            `delete ${what} account ${id}`)
     }
+    if (accountId || reviewerAccountId) console.error('· cleaned up ephemeral survey account(s)')
     try { release('scripts/survey-phone.mjs') } catch {}
+    // ★ 承诺没兑现必须让退出码说出来 ★ 「用完即删」是这一支自己许下的承诺,
+    //   而一条留下来的 admin 授权在六个人拿到账号之后不再是一条无害的残骸。
+    if (cleanupFailures.length) {
+        console.error(`\n✗ ephemeral account/grant cleanup left ${cleanupFailures.length} failure(s) —`)
+        console.error('  any of these that is a user_roles row is a DANGLING ADMIN GRANT:')
+        for (const c of cleanupFailures) console.error('   ' + c)
+        console.error('  remedy: node scripts/check-scratch-rows.mjs reports it by name.')
+        process.exitCode = 1
+    }
 }
 for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, async () => { await cleanup(); process.exit(130) })
 
@@ -357,6 +416,102 @@ async function main() {
     const cookieName = 'sb-' + URL_.split('//')[1].split('.')[0] + '-auth-token'
     const cookieValue = 'base64-' + Buffer.from(JSON.stringify(sess)).toString('base64url')
     console.error('· ephemeral admin session ready')
+
+    // ════════════════════════════════════════════════════════════════════════
+    // ★★【PRE-ACCOUNT-1】/my-reviews/[id] 从来没有被量过,而【那不是缺数据】★★
+    //
+    //   委托把这一页与另外三张一起记成「库里没有行可解析」——**实测不是。**
+    //   `app/my-reviews/[id]/page.tsx:39-40` 写着:
+    //       if (!me || !reviewRow) notFound()
+    //       if (r.reviewer_employee_id !== me) notFound()
+    //   探针用的是【一个没有 employees 行的 admin】,于是 current_user_employee()
+    //   是 NULL,这一页【无论库里有没有那份评估都 404】。冒烟自己早就写下过这句
+    //   (smoke-routes.mjs:1656「/my-reviews/[id] 对 admin 是 404 契约」)。
+    //   **这是身份缺口,不是数据缺口** —— 只喂数据永远量不到它。
+    //   而 CONV-10 那条新断言会把这个 404 变成整跑 EXIT 1,所以它也不能就这么放着。
+    //
+    // 【所以本刀给探针加了第二个会话】形状逐字取自 smoke-routes.mjs:1660-1666。
+    //
+    // 【为什么是【用完即删】,不是往库里种一行】★ 这一条是本仓库的既有事实 ★
+    //   实测:db/fixtures 下约 170 支【全部以 ROLLBACK 结尾】,一支都不落盘;
+    //   冒烟造的那份评估在 finally 里删掉。**这个仓库没有"持久化种子"这回事。**
+    //   种一份假评估进去,六个人拿到账号后会在 /my-reviews 上真的看到它 ——
+    //   而本刀的 Step 1 正是在清理上一批没删干净的残骸。
+    //
+    // 【走产品自己的门,不直连改表】open_probation_review + set_review_reviewer,
+    //   与屏幕上按钮按下去的是同两支函数。绕过产品的测试,产品坏掉时它不会知道。
+    // ════════════════════════════════════════════════════════════════════════
+    const rpcAsUser = (token, fn, args) => fetch(URL_ + '/rest/v1/rpc/' + fn, {
+        method: 'POST',
+        headers: { apikey: ANON, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(args) })
+
+    let reviewerCookieValue = null
+    try {
+        const email2 = `survey-${Date.now()}-reviewer@test.local`
+        const cu2 = await (await rest('/auth/v1/admin/users', { method: 'POST',
+            body: JSON.stringify({ email: email2, password: 'survey-pass-2', email_confirm: true }) })).json()
+        reviewerAccountId = cu2.id
+        if (!reviewerAccountId) throw new Error('reviewer account: ' + JSON.stringify(cu2).slice(0, 200))
+        // 【评估人【不授任何角色】】RLS 的 'select as reviewer' 只看
+        // reviewer_employee_id —— 这同时也验证了"没有角色的经理也读得到自己的评估任务"。
+
+        // 【员工行用冒烟的 ZZ-SMOKE- 前缀,是刻意的】它让 sweepScratch 与
+        // check-scratch-rows 两支【都】兜得住这两行;两支脚本共用 liveLock,
+        // 不可能同时跑,所以不存在"被别人扫掉"的风险(那正是账号用 survey- 的理由)。
+        const mkEmp = async (n, extra) => {
+            const r = await rest('/rest/v1/employees', { method: 'POST',
+                headers: { Prefer: 'return=representation' },
+                // ★★【名字必须是【真实长度】的 —— 这是一支【量版式】的脚本】★★
+                //   第一版抄了冒烟的那个长名字(「【SMOKE 冒烟脚本临时行 · 勿动 ·
+                //   随时可删】」),结果 /hr/reviews/[id] 量出 +240px —— 而那 240
+                //   有一大半是【探针自己的名字撑出来的】:那一页的评估人下拉框按
+                //   最宽的一个 <option>(「工号 · 姓名」)定宽。
+                //   实测线上真实数据最宽一条是 27 个字符(EMP-2026-0001 · Choo Er Teh),
+                //   而那个长名字是它的两倍还多。
+                //   **一个把被测对象撑变形的量具,量到的是它自己。**
+                //   所以名字取真实长度;"这是临时行"由 ZZ-SMOKE- 前缀负责说
+                //   (sweepScratch 与 check-scratch-rows 认的都是前缀,不是名字)。
+                body: JSON.stringify({ code: `ZZ-SMOKE-SURVEY-${n}`,
+                    legal_name: `ZZ Survey ${n}`,
+                    employment_type: 'full_time', work_category: 'office',
+                    hire_date: '2026-01-01', ...extra }) })
+            if (!r.ok) throw new Error(`seed employee ${n}: HTTP ${r.status} ${(await r.text()).slice(0, 200)}`)
+            const row = (await r.json())[0]
+            seededEmployeeIds.push(row.id)
+            return row
+        }
+        // 到期日必须填 —— 不填 open_probation_review 会按名拒(PROBATION_END_DATE_NOT_SET),
+        // 而 employees_probation_cap 要求 ≤ 入职 + 3 个月,所以取 03-31。
+        const reviewee = await mkEmp(1, { employment_status: 'probation', probation_end_date: '2026-03-31' })
+        const reviewer = await mkEmp(2, { user_id: reviewerAccountId })
+
+        const raisedRes = await rpcAsUser(sess.access_token, 'open_probation_review',
+            { p_employee_id: reviewee.id })
+        if (!raisedRes.ok) throw new Error(`open_probation_review: HTTP ${raisedRes.status} `
+            + (await raisedRes.text()).slice(0, 200))
+        const raised = await raisedRes.json()
+        if (!raised?.review_id) throw new Error('open_probation_review returned no review_id')
+        seededReviewId = raised.review_id
+        // 评估人由那支函数【从部门解析】,而这两行临时员工没有部门 —— 解析不出来是预期的。
+        // 显式指派一次,走的仍然是产品自己的 set_review_reviewer,不是直连改表。
+        const assigned = await rpcAsUser(sess.access_token, 'set_review_reviewer',
+            { p_review_id: seededReviewId, p_reviewer_employee_id: reviewer.id })
+        if (!assigned.ok) throw new Error(`set_review_reviewer: HTTP ${assigned.status} `
+            + (await assigned.text()).slice(0, 200))
+
+        const sess2 = await (await fetch(URL_ + '/auth/v1/token?grant_type=password', { method: 'POST',
+            headers: { apikey: ANON, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email2, password: 'survey-pass-2' }) })).json()
+        if (!sess2?.access_token) throw new Error('reviewer sign-in failed')
+        reviewerCookieValue = 'base64-' + Buffer.from(JSON.stringify(sess2)).toString('base64url')
+        console.error(`· ephemeral reviewer session ready · seeded probation review ${seededReviewId}`)
+    } catch (e) {
+        // 【种不出来不是"这一页很好"】它必须响,而不是静静地把两页记成没量到。
+        console.error('!! could not seed the probation review: ' + e.message)
+        console.error('   /my-reviews/[id] and /hr/reviews/[id] will fall out of this run.')
+        throw e
+    }
 
     // resolve dynamic segments
     const ID_SOURCES = loadIdSources()
@@ -410,7 +565,13 @@ async function main() {
         for (const r of resolved.filter((x) => x.dynamic)) console.log(`  RESOLVED  ${r.route}\n            ${r.url}`)
         for (const r of unresolved) console.log(`  UNRESOLVED ${r}`)
         console.log(`\nids: ${resolved.filter((x) => x.dynamic).length} resolved · ${unresolved.length} unresolved`)
-        release(); process.exit(0)
+        // ★【PRE-ACCOUNT-1】--ids-only 从前【绕过 cleanup() 直接 exit】★
+        //   于是每一次 `npm run survey:ids` 都在库里留下:一个 admin 账号、
+        //   一个评估人账号、两行临时员工、一份评估 —— 而这一支跑得最勤,
+        //   因为它便宜。实测本刀第一次跑就复现了。
+        //   **一条只在"完整跑完"那条路上执行的清理,不是清理,是运气。**
+        await cleanup()
+        process.exit(process.exitCode ?? 0)
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -477,7 +638,12 @@ async function main() {
     // so a wedged tab is detected, thrown away and replaced.
     let sessionId = null
     const S = (m, p) => cdp.send(m, p, sessionId)
-    async function newTab() {
+    // ★【PRE-ACCOUNT-1】哪些路由必须用【评估人】那个会话去量 ★
+    //   /my-reviews/[id] 对 admin 是 404 契约(见上面 seeding 那一段),
+    //   所以拿 admin 的 cookie 去量它,量到的永远是一张 not-found 页。
+    const REVIEWER_ROUTES = new Set(['/my-reviews/[id]'])
+    let currentCookie = null
+    async function newTab(cookieVal = cookieValue) {
         if (sessionId) { try { await cdp.send('Target.closeTarget', { targetId: currentTarget }) } catch {} }
         const t = await cdp.send('Target.createTarget', { url: 'about:blank' })
         currentTarget = t.targetId
@@ -489,7 +655,8 @@ async function main() {
             screenWidth: 390, screenHeight: 844,
         })
         await S('Network.setCookies', { cookies: [{
-            name: cookieName, value: cookieValue, domain: 'localhost', path: '/', httpOnly: false, secure: false }] })
+            name: cookieName, value: cookieVal, domain: 'localhost', path: '/', httpOnly: false, secure: false }] })
+        currentCookie = cookieVal
     }
     let currentTarget = null
     // ★★ CONV-10:这里是那条【结构性】的锚 —— 导航那一次的 HTTP 状态。★★
@@ -598,6 +765,12 @@ async function main() {
         const tgt = targets[i]
         let rec = { ...tgt }
         lastDoc = null
+        // 【会话按路由切,而且【切换要记在这条记录里】】—— 一条量到的数据必须说得出
+        // 它是【以谁的身份】量的,否则下一刀没法分辨 404 是页面坏了还是身份不对。
+        const wantCookie = (REVIEWER_ROUTES.has(tgt.route) && reviewerCookieValue)
+            ? reviewerCookieValue : cookieValue
+        rec.session = wantCookie === reviewerCookieValue ? 'reviewer' : 'admin'
+        if (wantCookie !== currentCookie) await newTab(wantCookie)
         try {
             await S('Page.navigate', { url: `http://localhost:${PORT}${tgt.url}` })
             // dev-server compiles on first hit; poll for the document to settle
@@ -616,7 +789,7 @@ async function main() {
             // the probe — and the record says which, so the two can never be
             // confused in the counts.
             try {
-                await newTab()
+                await newTab(wantCookie)
                 await S('Page.navigate', { url: `http://localhost:${PORT}${tgt.url}` })
                 let ready2 = false
                 for (let k = 0; k < 80 && !ready2; k++) {

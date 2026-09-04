@@ -54,12 +54,21 @@ export default function SetReviewerControl({ reviewId, employees, currentReviewe
         })
     }
 
+    // ★【PRE-ACCOUNT-1】390px:这一行从前【不换行】,而 <select> 按最宽的那个
+    //   <option>(「工号 · 姓名」)定宽 —— 员工名一长,整行把页面顶出去。
+    //   实测 /hr/reviews/[id] +37px。被点名的元凶是旁边那个琥珀色的
+    //   「为什么按不动」,但撑宽的是这个 select —— CONV-10 在
+    //   /logistics/containers/[id] 上量到的是同一个形状,并且把它写成了一条规矩:
+    //   **culprit 是溢出边界上的那个元素,不一定是造成溢出的那个。**
+    //   修法与那一处逐字相同:让这一行换行,并且不许 select 超过容器。
+    //   ☞ 这个组件被 /hr/reviews/[id] 与 /hr/reviews/cycles 【两页共用】,
+    //     所以这一处改动一次修好两页。
     return (
-        <span className="inline-flex items-center gap-2">
+        <span className="inline-flex flex-wrap items-center gap-2 max-w-full">
             <select
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
-                className="border border-gray-300 rounded px-2 py-1 text-sm"
+                className="border border-gray-300 rounded px-2 py-1 text-sm max-w-full min-w-0"
             >
                 <option value="">{t('reviews.pickReviewer')}</option>
                 {candidates

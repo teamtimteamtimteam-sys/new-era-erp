@@ -61,3 +61,8 @@ lib/database.types.ts.tmp
 # PAGE-0:scripts/survey-phone.mjs 的测量产物(JSON + 一个 chrome profile)。
 # 它是勘察工具每次重跑都会覆盖的输出,不是仓库要保存的东西。
 .survey-out/
+
+# PRE-ACCOUNT-1:删行之前在前台取的备份(user_roles / auth.users / roles 快照)。
+# 【不提交,但也不放进 /tmp】—— 一次删除的备份必须比这次会话活得久,
+# 而它同时是运行时快照,不是源码。位置写进了 docs/known-wrong-until-cutover.md。
+/.backups/

@@ -124,7 +124,7 @@ async function main() {
     // 【判据是"auth 行不存在",不是"这个人登不进来"】两者是完全不同的事实。
     //   Choo Er Teh(chef1949@126.com)的 auth 行【在】,只是邮箱从未验证 ——
     //   她的授权是真的,按这条判据不可能被点名。**登不进来 ≠ 认不到人。**
-    const roleRows = await rows('/rest/v1/roles?select=id,code', '角色码')
+    const roleRows = await rows('/rest/v1/roles?select=id,code,is_system', '角色码')
     const roleCode = new Map(roleRows.map((r) => [r.id, r.code]))
     const grants = await rows(
         '/rest/v1/user_roles?select=id,user_id,role_id,granted_at,revoked_at', '授权')
@@ -152,6 +152,58 @@ async function main() {
                     + '判据是 auth 行不存在,不是"这个人登不进来"(后者是真人,不要动)。',
             }
             ;(age < STRANDED_AFTER_MS ? recent : stranded).push(rec)
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // 【活着的一次性账号,手里攥着一份【没撤销】的 admin】
+    //
+    // ★ PRE-ACCOUNT-1(2026-09-04)为什么加这一段 ★
+    //   上面那一段抓的是【账号没了、授权还在】。它抓不到反过来的那一半:
+    //   **账号还在、授权也还在,而这个账号本来就该用完即删。**
+    //   实测(2026-09-04):线上躺着 4 个 `survey-*@test.local`,
+    //   全部 email 已确认、全部持 admin、最老的 17 小时 —— 而【没有任何一支
+    //   清扫看得见它们】:smoke 的 sweepScratch 只认 `smoke-` 前缀,
+    //   survey-phone.mjs 【故意】不用那个前缀(免得自己的会话被扫掉),
+    //   于是它换来的是"谁也不扫我"。
+    //
+    // 【为什么这一半比幽灵授权更要紧】一条幽灵授权【谁也登不进来】——
+    //   它背后没有账号,那是一笔坏账;而一个活着的一次性 admin 账号
+    //   **是一把能用的钥匙**:密码就写在仓库里的脚本正文中
+    //   (`survey-pass-1` / `smoke-pass-1` / `pdf-pass-1`),项目是托管的。
+    //   六个人拿到账号之前,这是两者里真正的那一处暴露。
+    //
+    // 【判据:@test.local + 未撤销的 is_system 授权】两个条件缺一不可。
+    //   · 只看域名会把 `walk-qt-*` / `l2bl-*` 那五个点名 —— 它们的授权
+    //     【已经撤销】,是 docs/known-wrong-until-cutover.md 里有据可查、
+    //     刻意留着的(walk-qt 那个是 QT-2026-0001 的签发人,删号会让真单据断链)。
+    //   · 只看授权会把 admin@swm-os.test 点名 —— 那是真正的操作员。
+    //   两个条件合起来,今天的正确树上一条都不报,而那 4 个 survey-* 一个不漏。
+    //
+    // 【年龄门槛照旧】正在跑的一次冒烟/探针【就该】持有一个 —— 那不是残骸,
+    //   所以它进 recent 桶,与上面每一处同一条规矩。
+    // ════════════════════════════════════════════════════════════════════════
+    const systemRoleIds = new Set(roleRows.filter((r) => r.is_system).map((r) => r.id))
+    if (authUsers.length < 1000) {
+        const liveGrants = new Map()
+        for (const g of grants) {
+            if (g.revoked_at) continue
+            if (!systemRoleIds.has(g.role_id)) continue
+            if (!liveGrants.has(g.user_id)) liveGrants.set(g.user_id, [])
+            liveGrants.get(g.user_id).push(roleCode.get(g.role_id) ?? '?')
+        }
+        for (const u of authUsers) {
+            if (!(u.email ?? '').endsWith('@test.local')) continue
+            const held = liveGrants.get(u.id)
+            if (!held?.length) continue
+            const age = now - new Date(u.created_at).getTime()
+            ;(age < STRANDED_AFTER_MS ? recent : stranded).push({
+                table: 'auth.users', code: `${u.email} [${held.join(',')}]`, id: u.id,
+                ageH: (age / 3600000).toFixed(1), refs: [],
+                note: '【活着的一次性 admin】一个用完该删的账号,今天还持着一份未撤销的 '
+                    + 'is_system 授权 —— 而它的密码写在仓库的脚本正文里。'
+                    + '处置:先删 user_roles,再删 auth 账号(顺序反了就变成一条幽灵授权)。',
+            })
         }
     }
 

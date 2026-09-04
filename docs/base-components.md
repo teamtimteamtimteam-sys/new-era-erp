@@ -385,6 +385,104 @@ R2 把这一条留给了判断(「淡底落地、看得出效果之后再说」)
 
 ---
 
+## 八 · ★ 组件库这条规矩(PRE-ACCOUNT-1,2026-09-04)—— **一半有闸,一半没有,说清楚**
+
+Tim 在账号发放前定下的规矩,两句:
+
+> **(a)** 新页面用组件库 —— `ListPage` · `RecordHeader` · `DataTable` ·
+> `EditableTable` · `RefusalBlock`/`RefusalPage` · `padding` 槽,按模板定义的用法;
+> **(b)** 库里缺一项这一页需要的能力时,**先把能力加进库,再用它** ——
+> 不是内联"就这一次"。
+
+### 先量了树,再设计闸(而这一步改掉了本来要建的东西)
+
+| 量的是什么 | 数 |
+|---|---:|
+| `app/**/page.tsx` | **198** |
+| 其中 import `ListPage` | 100 |
+| 渲染 `DataTable` 的页 | 86 |
+| 用 `RecordHeader` 的文件 | 19 |
+| **`app/` 下手搓 `<table>` 的文件 / 处**(不含 `app/components/ui/`) | **66 / 76** |
+
+> ☞ **顺带更正一个数:**裸 grep 数到 70 个文件 / 81 处,`survey-pages.mjs` 报 77 处。
+> **差额全部是【注释里的 `<table>`】** —— 五处,逐条看过,全是在说
+> 「这里从前是一张手写表,已经换成 DataTable 了」的说明文字
+> (`app/inbound/page.tsx:330` · `app/operation/orders/[id]/page.tsx:226` ·
+> `app/operation/processing/[id]/LossPanel.tsx:129` ·
+> `app/sales/commissions/CommissionsTable.tsx:15` · `app/hr/reviews/cycles/page.tsx:12`)。
+> **CONV-8 的手机闸被它自己的注释骗过去过**,所以本闸先剥注释再匹配。
+
+**66 个文件在册 ⇒ 一道"不许手搓表格"的闸今天会对着 66 个文件变红。**
+委托自己的判据:「一份一开始就很长的例外清单,是这条规矩不对的证据」。
+CONV-10 的判据:「一道会对着正确代码变红的闸,两刀之内就会被加白名单绕过去,
+那比没有这道闸更坏」。**两条都指向"今天建不了闸"。**
+
+**但"只印不拦"也不够** —— 这条规矩存在的理由是**下一刀要新建一批页面**
+(建账号 / 建角色 / 录 KPI)。一份没人看的普查拦不住新债。
+
+### 所以走第三条路:**棘轮**(`scripts/check-component-library.mjs`)
+
+本仓库已经为这条办法付过四次账:`masked-reads-baseline.json` ·
+`auth-error-baseline.json` · `currency-messages-baseline.json` ·
+`check-base-isolation.mjs` 的 `KNOWN_CONVERSIONS`(它把办法写成了一句话:
+**「多出来的每一处仍然会红」**)。
+
+* 冻结今天的 **66 个文件 / 76 处**(`scripts/component-library-baseline.json`);
+* **多一处 → 红,点名 `file:line`**;少一处 → 只提示,请顺手收紧;
+* **这份基线只会缩短。** 它不是白名单 —— 方向相反:白名单随新债增长,基线随还债缩短。
+  这句话写在**基线文件自己的 `__NOTE__` 里**,任何一刀想把它改大都留在 diff 里;
+* 已进 `npm run build`(在 `check-base-isolation` 之后),另有 `npm run check:complib`。
+
+**故障注入(两个方向都验过,而两个方向缺一不可):**
+
+```
+A 干净树                                        → EXIT 0(66 个文件在册,扫到 76 处)
+B 新建一张【手搓表格】的页面(cut C 的形状)
+    app/settings/accounts/new/page.tsx          → EXIT 1
+      ✗ 新增 1 处 …  基线 0 → 现在 1
+        app/settings/accounts/new/page.tsx:7    ← 点名到行
+C 【同一张页面】改写成用 <DataTable>            → EXIT 0
+    并且 check-datatable-phone 同时 EXIT 0      ← 正确的新页面【不会被罚】
+D 删掉注入                                      → EXIT 0,基线 shasum 全程未变
+                                                   (16717c75…)
+```
+
+> ★ **C 那一格是本闸能不能活下去的关键。** 一道只证明"坏代码会红"的闸,
+> 证不了它不会对着**好代码**红 —— 而那正是白名单的由来。
+
+### ★★ (b) 那半条:**UNENFORCED —— 本仓库【没有】机器在检查它** ★★
+
+**它没有机械特征。** 一段本该抽成组件的内联代码,和一段本就该内联的代码,
+**长得一模一样**。造一个假装在查它的检查,只会走上 `check-masked-reads` 抬头
+记下的那条路:「一个夸大自己的检查会被人忽略,而一个被忽略的检查比没有更坏 ——
+因为它让人以为那块地面有人看过」。
+
+**所以 (b) 是一条【评审规矩】,写在这里,由人执行:**
+
+> 库里缺这一页需要的能力时,**先把能力加进 `app/components/ui/`,再用它。**
+> 不要内联"就这一次" —— `padding` 槽(CONV-9)与 `RecordHeader`(CONV-8)
+> 都是按这条路加进来的,那是它成立过的证据。
+
+### ⚠ 给下一刀(cut C)的一处【会撞车】的提醒
+
+**Tim 的 (a) 与 BASE-1 的隔离闸,在 cut C 要建的那批页面上是【对着干的】。**
+
+`scripts/check-base-isolation.mjs` 守着"这批基础组件**还没有人用**":
+`button` · `card` · `input` · `label` · `select` · `textarea` · `alert` · `badge` ·
+`table` · `feedback` · `add-row-panel` —— **11 个,今天一个都不许在 `/login` 之外被 import。**
+而 cut C 要建的是**表单页**(建账号 / 建角色 / 录 KPI),它们最需要的正是
+`input` / `label` / `select` / `button`。
+
+**照着建下去,`npm run build` 会红。** 而正确的处置**不是**加白名单:
+
+> 照 CONV-0(`refusal` 毕业)与 CONV-1(`data-table` 毕业)的先例走 ——
+> **把你真正采用的那个组件从 `GUARDED` 里【拿掉一条】,并在这里写下是哪一刀、
+> 采用在哪几页。** 那张清单本来就设计成"随转换推进自然缩短",不是一张过期白名单。
+> 写下这一条,是因为一个不知情的人撞上红灯时,**最省事的动作是加白名单** ——
+> 而那会把这道闸对剩下 10 个组件的守护一起废掉。
+
+---
+
 ## 附:文件清单
 
 | 文件 | 是什么 |
