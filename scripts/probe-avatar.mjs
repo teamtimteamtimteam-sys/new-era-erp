@@ -159,6 +159,31 @@ async function main() {
     const S = (m, p) => send(m, p, sessionId)
     await S('Page.enable'); await S('Runtime.enable'); await S('DOM.enable'); await S('Network.enable')
     await S('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false })
+    // ★【PROBE_SLOW=1:把 CPU 掐慢,让【水合】晚于图片的 404】★
+    //   这一档存在的理由是 P1 那条回落:onError 是 React 挂上去的处理器,
+    //   而图片是 HTML 一到就开始取的。两者赛跑,本地几乎总是水合赢 ——
+    //   于是"回落靠不靠得住"在本地【量不出来】。掐慢 CPU 就把那场赛跑的
+    //   结果翻过来,而网络一侧不动。用它来证 useEffect 那道兜底是不是承重的。
+    // ★【PROBE_DELAY_JS=3000:把 JS 分块【延后】N 毫秒送达】★
+    //   比掐 CPU 更直接:图片是 HTML 一到就取的,而水合要等分块。把分块拖住,
+    //   404 就【一定】发生在水合之前 —— 那正是要证的那场赛跑。
+    //   (掐 CPU 证不出来:实测 20× 下 P1 照样绿,说明那一档没把赛跑翻过来。)
+    if (process.env.PROBE_DELAY_JS) {
+        const ms = Number(process.env.PROBE_DELAY_JS)
+        await S('Fetch.enable', { patterns: [{ urlPattern: '*/_next/static/*', requestStage: 'Request' }] })
+        sock.addEventListener('message', async (m) => {
+            const d = JSON.parse(m.data)
+            if (d.method === 'Fetch.requestPaused' && d.sessionId === sessionId) {
+                await sleep(ms)
+                try { await S('Fetch.continueRequest', { requestId: d.params.requestId }) } catch {}
+            }
+        })
+        console.log(`· PROBE_DELAY_JS:每个 _next/static 请求延后 ${ms}ms(水合一定晚于图片 404)`)
+    }
+    if (process.env.PROBE_SLOW) {
+        await S('Emulation.setCPUThrottlingRate', { rate: 20 })
+        console.log('· PROBE_SLOW:CPU 20× 减速(水合会晚于图片 404)')
+    }
     await S('Network.setCookies', { cookies: [{ name: cookieName, value: cookieValue,
         domain: cookieHost, path: '/', httpOnly: false, secure: cookieSecure }] })
 
@@ -169,14 +194,21 @@ async function main() {
     }
     const goto = async (path) => {
         await S('Page.navigate', { url: `${origin}${path}` })
-        await sleep(2500)
-        // 等 hydration:React 挂上之后 body 上会有交互监听;用一个稳的判据 ——
-        // 等到 AvatarPanel 的按钮真的可点(onClick 已绑定)。
-        for (let i = 0; i < 40; i++) {
-            const ready = await evalJs(`!!document.querySelector('[data-panel="avatar"] button')`)
-            if (ready) break
-            await sleep(300)
-        }
+        await sleep(500)
+        // ★★【等的必须是【水合完成】,不是"HTML 里有那个按钮"】★★
+        //   第一版等的是 `document.querySelector('[data-panel="avatar"] button')` ——
+        //   那是**服务端渲染出来的 HTML**,JS 一行都还没跑它就成立了。
+        //   于是 P1 在水合之前就下了判词,而 onError / useEffect 都要水合之后才存在:
+        //   **红的不是产品,是我量得太早。** 实测:把 _next/static 延后 3 秒,
+        //   有兜底和没兜底【都红】—— 一个分不出两者的判据,不是判据。
+        //
+        //   改成问 React 自己:水合过的 DOM 节点上会挂 __reactFiber$… /
+        //   __reactProps$… 这样的键,而**服务端送来的 HTML 上没有**。
+        const hydrated = await waitFor(
+            `(() => { const b = document.querySelector('[data-nav="avatar-menu"] button')
+                      return !!b && Object.keys(b).some(k => k.startsWith('__react')) })()`,
+            60000, '水合完成')
+        if (!hydrated) throw new Error('水合没在 60s 内完成 —— 判词不可信,不往下量')
     }
     // ★【问"对象还在不在"必须绕开 CDN】★ 实测踩过:移除之后拿【裸地址】去问,
     //   拿回来的是 200 —— 那不是对象还在,是 CDN 里那份 max-age=60 的副本还在。
@@ -216,13 +248,19 @@ async function main() {
         return !i || i.complete })()`, 20000, '头像图落定')
     const s1 = await evalJs(`(() => {
         const btn = document.querySelector('[data-nav="avatar-menu"] button')
-        const img = document.querySelector('[data-nav="avatar-image"]')
         const circle = btn && btn.querySelector('span')
+        // 【逐个点名】/me 上不止一个 AvatarImage:顶栏按钮一个,换头像面板的预览
+        //   一个(下拉里那个只在菜单打开时才画)。第一版只 querySelector 一个,
+        //   于是红的时候说不出【是哪一个】还留着 —— 一次说不出自己抓到了什么的红。
+        const imgs = [...document.querySelectorAll('[data-nav="avatar-image"]')].map(i => ({
+            where: i.closest('[data-panel="avatar"]') ? 'me-panel'
+                 : i.closest('[data-nav="avatar-menu"]') ? 'topbar' : 'other',
+            complete: i.complete, nw: i.naturalWidth, src: (i.currentSrc || i.src).slice(-30) }))
         return { initials: circle ? circle.textContent.trim() : null,
-                 imgInDom: !!img,
-                 panel: !!document.querySelector('[data-panel="avatar"]'),
-                 status: document.querySelector('[data-nav="avatar-menu"] button') ? 'ok' : 'no-topbar' }
+                 imgInDom: imgs.length > 0, imgs,
+                 panel: !!document.querySelector('[data-panel="avatar"]') }
     })()`)
+    console.log('   · avatar <img> 现场:' + JSON.stringify(s1.imgs))
     probe('P1.fallback-initials', s1.initials === 'A' && !s1.imgInDom,
         `顶栏画的是首字母 "${s1.initials}"(邮箱首字母),404 的 <img> 已被 onError 摘掉(imgInDom=${s1.imgInDom})`)
     probe('P1.panel-without-employee', s1.panel === true,
@@ -319,8 +357,17 @@ async function main() {
         `屏幕回到首字母 "${s3.initials}" —— 与"从来没传过"是同一条回落路径`)
 }
 
-main().catch((e) => { fail.push('probe crashed: ' + e.message); console.error('\n✗ ' + e.message) })
-    .finally(async () => {
+// ★★【清理要【在被杀掉的时候】也跑得到 —— 这一条是我自己踩出来的】★★
+//   本刀验收时把这一支的输出 `| head -8`,于是它写 stdout 时吃了 EPIPE 当场死掉,
+//   **finally 没跑**:线上留下一个一次性 admin、一条 admin 授权和一个头像对象。
+//   那正是 PRE-ACCOUNT-1 整整一刀在收拾的东西(四个一次性 admin 活了 17.5 小时,
+//   因为清理静默失败)。**"记得别用 head" 是一条要人记的规矩,不是机制。**
+//   所以:清理抽成一个只跑一次的函数,信号与 EPIPE 都接到它上面。
+//   ★ 仍然别用 `| head` 跑这一支 —— 但现在就算用了,也不会留下 admin 授权。
+let cleanedUp = false
+async function cleanup() {
+    if (cleanedUp) return
+    cleanedUp = true
         // ── 清理。**承诺没兑现要让退出码说出来**(PRE-ACCOUNT-1)──────────
         if (avatarPath) {
             // 404/NoSuchKey 是【期望的常态】—— 产品自己的移除按钮已经删掉了它。
@@ -347,6 +394,15 @@ main().catch((e) => { fail.push('probe crashed: ' + e.message); console.error('\
             for (const c of cleanupFailures) console.error('   ' + c)
         }
         const bad = fail.length + cleanupFailures.length
-        console.log(`\n${bad ? '✗' : '✓'} probe-avatar:${results.length} 格,${fail.length} 红,清理失败 ${cleanupFailures.length}`)
+        try {
+            console.log(`\n${bad ? '✗' : '✓'} probe-avatar:${results.length} 格,${fail.length} 红,清理失败 ${cleanupFailures.length}`)
+        } catch { /* stdout 已经断了(| head)—— 清理照样做完了,这里不必再喊 */ }
         process.exit(bad ? 1 : 0)
-    })
+}
+
+for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGPIPE']) process.on(sig, () => { cleanup() })
+process.stdout.on('error', (e) => { if (e.code === 'EPIPE') cleanup() })
+
+main().catch((e) => { fail.push('probe crashed: ' + e.message)
+        try { console.error('\n✗ ' + e.message) } catch {} })
+    .finally(cleanup)

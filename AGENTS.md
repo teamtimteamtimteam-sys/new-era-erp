@@ -2779,3 +2779,67 @@ UI-1d 的那一份是 `db/scripts/2026-09-05-ui1d-avatar-policy-proof.sql`。
 ★ 而 RLS 的断言**一律 RAISE,绝不"返回一个值让人看"**:被策略挡住的读
 **不报错,只是少了几行**,于是 `SELECT … INTO` 拿到的是 NULL,而 NULL 与"通过"
 在屏幕上一模一样。判词是退出码,不是屏幕上的一段字。
+
+## `onError` 一个人守不住 SSR 图片的回落 —— React【不会补发】水合之前的那次失败(UI-1d fu1/fu2,2026-09-05)
+
+服务端把 `<img src=…>` 连同 HTML 一起送到,浏览器**立刻**开始取图;
+而 `onError` 是 React 的事件处理器,要等分块下载、解析、水合完才挂得上。
+**图失败得比水合快时,那次 error 事件没有人接,而 React 不会补发它。**
+于是"取不到图就回落"这条路**永远不会被走到**,屏幕上留下一个破图图标。
+
+实测(`scripts/probe-avatar.mjs`,`PROBE_DELAY_JS=3000` 把 `_next/static/*`
+每个请求延后 3 秒,于是 404 一定早于水合;**两臂唯一的变量是那道兜底**):
+
+| | 水合完成后 DOM 里的 `<img>` |
+|---|---|
+| 只有 `onError` | **2 个都还在**,`complete=true` 而 `naturalWidth=0` —— 两张破图 |
+| 加上挂载时自查 | **0 个** —— 回落走到了,画的是首字母 |
+
+**处置:挂载时自己问一遍,不等事件。**
+`img.complete === true && img.naturalWidth === 0` 就是"已经失败过了";
+两个方向都要补(已加载的也要认,否则它停在 `opacity-0` 上)。
+实现见 `app/components/nav/AvatarImage.tsx`。
+
+### ★ 而这一条的判据,前两次都量错了 —— 错法比结论更值得记
+
+**第一次(掐 CPU)**:`Emulation.setCPUThrottlingRate` 20×,有兜底没兜底**都绿**。
+那不是"兜底没用",是**那一档没把赛跑翻过来** —— 掐的是 CPU,而图片走的是网络。
+
+**第二次(延后 JS,但量得太早)**:有兜底没兜底**都红**。
+探针那时等的是 `document.querySelector('[data-panel="avatar"] button')` ——
+**那是服务端渲染出来的 HTML,JS 一行都还没跑它就成立了**。
+于是判词下在水合之前,而 `onError` 与挂载自查**都要水合之后才存在**。
+
+> ★★【**一个分不出两臂的判据,不是判据** —— 无论它是全绿还是全红】★★
+> 全绿会被读成"这条兜底没必要"(于是被删掉),
+> 全红会被读成"这个修法没用"(于是被换成别的)。**两种误读都是它给的。**
+> 故障注入的价值全在**两臂分得开**;分不开的时候,该被怀疑的是判据,不是被测的东西。
+
+**水合完成怎么问**:水合过的 DOM 节点上会挂 `__reactFiber$…` / `__reactProps$…`,
+而服务端送来的 HTML 上**没有**:
+
+```js
+const b = document.querySelector('[data-nav="avatar-menu"] button')
+return !!b && Object.keys(b).some(k => k.startsWith('__react'))
+```
+
+### 附带的两条,同一轮里付的账
+
+* **对着线上跑一次**(`PROBE_BASE=https://new-era-erp.vercel.app`)。
+  本地 localhost + 热缓存,水合几乎总是赢,这一族缺陷在本地**量不出来**。
+  `npm run build` 绿也只证明"打包没炸" —— 本刀的 `sharp` 是 linux-x64 的原生
+  二进制,**它跑不跑得起来只有线上答得了**(实测:线上传上去回来是 256×256 WebP)。
+* **探针里的固定 `sleep` 是一句谎**:本地够、对着线上不够,而它不够的时候
+  红的那一格看起来像"产品坏了"。换成**条件轮询 + 上限**,而且等的条件
+  必须是"这次操作跑完了",不能是"我要断言的那个东西出现了"——
+  后者会让断言把自己等成真的。
+
+## 一次性账号的清理要【在被杀掉的时候】也跑得到(UI-1d,2026-09-05)
+
+`scripts/probe-avatar.mjs` 的输出被 `| head -8` 截断,进程写 stdout 吃了 EPIPE
+当场死掉,**`finally` 没跑** —— 线上留下一个一次性 admin、一条 **admin 授权**
+和一个头像对象。那正是 PRE-ACCOUNT-1 整整一刀在收拾的东西。
+
+**「记得别用 `head`」是一条要人记的规矩,不是机制。** 处置:清理抽成一个
+只跑一次的函数,`SIGINT/SIGTERM/SIGHUP/SIGPIPE` 与 `process.stdout` 的 EPIPE
+都接到它上面。**演练过**:故意 `| head -6` 跑一次,残留 0 对象 / 0 账号 / 0 授权。
