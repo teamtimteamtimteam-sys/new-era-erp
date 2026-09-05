@@ -30,7 +30,7 @@
 // ★【首字母本身【一个字都没动】】★ 它是 UI-1a 的 initialsOf,连同"没有员工
 //   档案就取邮箱首字母"那条刻意的处置一起(AvatarMenu.tsx)。本文件只收一个
 //   已经算好的字符串。
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 type Props = {
     /** 公开桶里的地址。**null = 这个人此刻没有登录态可算地址**,直接画首字母。 */
@@ -63,6 +63,33 @@ export default function AvatarImage({ src, initials, className, initialsClassNam
     const [loadedSrc, setLoadedSrc] = useState<string | null>(null)
     const showImage = src !== null && failedSrc !== src
     const loaded = src !== null && loadedSrc === src
+    const imgRef = useRef<HTMLImageElement | null>(null)
+
+    // ════════════════════════════════════════════════════════════════════════
+    // ★★【onError 一个人守不住这条回落 —— 这是【对着线上】跑才量出来的】★★
+    // ════════════════════════════════════════════════════════════════════════
+    //
+    // 【那一幕】服务端把 HTML 连同 <img src=…> 一起送到,浏览器【立刻】开始取图。
+    //   而 onError 是一个 React 事件处理器 —— 它要等 JS 包下载、解析、水合完
+    //   才挂得上去。**图 404 得比水合快时,那个 error 事件没有人接**,
+    //   而 React【不会补发】它。于是 failedSrc 永远是 null,<img> 永远留在
+    //   DOM 里,屏幕上是一个【破图图标】—— 正是委托书点名不许出现的那一个。
+    //
+    // 【为什么本地看不见它】localhost + 热缓存,水合几乎总是赢。
+    //   探针对着 https://new-era-erp.vercel.app 跑的那一轮当场变红
+    //   (P1.fallback-initials,imgInDom=true),而同一支探针在本地是绿的。
+    //   **真实的网络才是那个判据成立的条件**,而六个人用的正是真实的网络。
+    //
+    // 【处置:挂载时【自己问一遍】,不等事件】img.complete 为真而
+    //   naturalWidth 为 0,就是"已经失败过了"。两个方向都补:
+    //   已经失败 → failedSrc;已经加载好 → loadedSrc(否则它会停在 opacity-0)。
+    useEffect(() => {
+        const img = imgRef.current
+        if (!img || src === null) return
+        if (!img.complete) return
+        if (img.naturalWidth === 0) setFailedSrc(src)
+        else setLoadedSrc(src)
+    }, [src])
 
     return (
         <span className={'relative block shrink-0 overflow-hidden rounded-full ' + className}>
@@ -81,6 +108,7 @@ export default function AvatarImage({ src, initials, className, initialsClassNam
             {showImage && (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
+                    ref={imgRef}
                     src={src}
                     alt={alt}
                     data-nav="avatar-image"

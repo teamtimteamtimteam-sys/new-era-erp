@@ -33,6 +33,14 @@ import { acquireOrExit, release } from './liveLock.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3201                 // 3198 是 survey-phone 的,3199 是冒烟的
+// ★【BASE=https://new-era-erp.vercel.app 时,这一支改成对着【线上】跑】★
+//   为什么值得有这个开关:`npm run build` 绿【不等于】sharp 在 Vercel 的运行时
+//   加载得起来 —— 本地是 darwin-arm64,线上是 linux-x64,而 sharp 的原生二进制
+//   是按平台装的 optional 依赖。构建绿只证明"打包没炸";**真正的判据是
+//   线上真的有人传上去一张图,而它回来是一张 256×256 的 WebP。**
+//   判据只用【稳定别名】,不用每次部署那个 URL(docs/nav-registry.md 的同一条)。
+const BASE = process.env.PROBE_BASE || null
+const REMOTE = BASE !== null
 const CDP_PORT = 9337
 const CHROME = join(process.env.HOME, '.cache/puppeteer/chrome-headless-shell/mac_arm-152.0.7977.54/chrome-headless-shell-mac-arm64/chrome-headless-shell')
 
@@ -83,7 +91,7 @@ async function waitPort(port, ms) {
 
 async function main() {
     acquireOrExit('scripts/probe-avatar.mjs')
-    if (!existsSync(join(ROOT, '.next/BUILD_ID')))
+    if (!REMOTE && !existsSync(join(ROOT, '.next/BUILD_ID')))
         throw new Error('.next/BUILD_ID 不在 —— 这一支要跑在【生产构建】上。先 npm run build。')
     if (!existsSync(CHROME)) throw new Error('chrome-headless-shell not at ' + CHROME)
 
@@ -109,11 +117,20 @@ async function main() {
 
     const publicUrl = `${URL_}/storage/v1/object/public/avatars/${avatarPath}`
 
-    // ── next start ──────────────────────────────────────────────────────────
-    server = spawn('npx', ['next', 'start', '-p', String(PORT)], { cwd: ROOT, detached: true, stdio: ['ignore', 'pipe', 'pipe'] })
-    server.stderr.on('data', () => {})
-    if (!await waitPort(PORT, 60000)) throw new Error(`next start 没在 :${PORT} 起来`)
-    console.log(`· next start :${PORT}`)
+    // ── 目标:本地 next start,或者线上 ─────────────────────────────────────
+    let origin
+    if (REMOTE) {
+        origin = BASE.replace(/\/$/, '')
+        console.log(`· 对着【线上】跑:${origin}`)
+    } else {
+        server = spawn('npx', ['next', 'start', '-p', String(PORT)], { cwd: ROOT, detached: true, stdio: ['ignore', 'pipe', 'pipe'] })
+        server.stderr.on('data', () => {})
+        if (!await waitPort(PORT, 60000)) throw new Error(`next start 没在 :${PORT} 起来`)
+        origin = `http://localhost:${PORT}`
+        console.log(`· next start :${PORT}`)
+    }
+    const cookieHost = new URL(origin).hostname
+    const cookieSecure = origin.startsWith('https')
 
     chrome = spawn(CHROME, [`--remote-debugging-port=${CDP_PORT}`, '--headless', '--disable-gpu',
         '--no-sandbox', '--hide-scrollbars', 'about:blank'], { detached: true, stdio: ['ignore', 'pipe', 'pipe'] })
@@ -143,7 +160,7 @@ async function main() {
     await S('Page.enable'); await S('Runtime.enable'); await S('DOM.enable'); await S('Network.enable')
     await S('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false })
     await S('Network.setCookies', { cookies: [{ name: cookieName, value: cookieValue,
-        domain: 'localhost', path: '/', httpOnly: false, secure: false }] })
+        domain: cookieHost, path: '/', httpOnly: false, secure: cookieSecure }] })
 
     const evalJs = async (expr) => {
         const r = await S('Runtime.evaluate', { expression: expr, awaitPromise: true, returnByValue: true })
@@ -151,7 +168,7 @@ async function main() {
         return r.result.value
     }
     const goto = async (path) => {
-        await S('Page.navigate', { url: `http://localhost:${PORT}${path}` })
+        await S('Page.navigate', { url: `${origin}${path}` })
         await sleep(2500)
         // 等 hydration:React 挂上之后 body 上会有交互监听;用一个稳的判据 ——
         // 等到 AvatarPanel 的按钮真的可点(onClick 已绑定)。
@@ -167,6 +184,23 @@ async function main() {
     //   所以问源站要挂一个每次都不同的参数;这一格问的是【源站】,
     //   而"别人最长看见 60 秒旧图"是本刀刻意收下的那条,由 P2.cache-bounded 管。
     let cb = 0
+    // ★【条件由【循环】求值,不由一个 sleep 的整数求值】(AGENTS.md 的同一条)★
+    //   固定 sleep 在本地够、对着线上就不够 —— 而它不够的时候,红的那一格
+    //   看起来像"产品坏了",实际是"我等得不够久"。**等的是条件,上限是上限。**
+    const waitFor = async (jsExpr, ms, label) => {
+        const t0 = Date.now()
+        for (;;) {
+            if (await evalJs(jsExpr)) return true
+            if (Date.now() - t0 > ms) { console.log(`  · 等待超时(${label},${ms}ms)`); return false }
+            await sleep(250)
+        }
+    }
+    // 提交动作【结束】的判据:提交按钮不再 disabled。等的是"这次提交跑完了",
+    // 不是"我要断言的那个东西出现了" —— 后者会让断言自己把自己等成真的。
+    const submitSettled = (ms = 30000) => waitFor(
+        `(() => { const b = document.querySelector('[data-panel="avatar"] form button[type=submit]'); return !!b && !b.disabled })()`,
+        ms, '提交结束')
+
     const httpStatus = async (u) => { try {
         const r = await fetch(u + (u.includes('?') ? '&' : '?') + 'cb=' + (++cb), { redirect: 'manual', cache: 'no-store' })
         return r.status } catch { return -1 } }
@@ -176,6 +210,10 @@ async function main() {
     // ════════════════════════════════════════════════════════════════════════
     probe('P0.object-absent', await httpStatus(publicUrl) >= 400, `上传前 ${publicUrl.slice(-46)} → HTTP ${await httpStatus(publicUrl)}`)
     await goto('/me')
+    // 等那张 404 的图【落定】:要么已经被 onError 摘掉,要么已经 complete。
+    // 线上比本地慢,固定 sleep 会在 404 回来之前就量。
+    await waitFor(`(() => { const i = document.querySelector('[data-nav="avatar-image"]');
+        return !i || i.complete })()`, 20000, '头像图落定')
     const s1 = await evalJs(`(() => {
         const btn = document.querySelector('[data-nav="avatar-menu"] button')
         const img = document.querySelector('[data-nav="avatar-image"]')
@@ -200,7 +238,7 @@ async function main() {
     writeFileSync(badFile, 'this is plain text wearing a .png extension, nothing more\n')
     await S('DOM.setFileInputFiles', { nodeId: badNode.nodeId, files: [badFile] })
     await evalJs(`document.querySelector('[data-panel="avatar"] form button[type=submit]').click()`)
-    await sleep(4000)
+    await submitSettled()
     const bad = await evalJs(`(() => {
         const e = document.querySelector('[data-avatar-error]')
         return { msg: e ? e.textContent.trim().slice(0,70) : null }
@@ -220,7 +258,10 @@ async function main() {
     const okNode = await S('DOM.querySelector', { nodeId: root2.nodeId, selector: '#avatar-file' })
     await S('DOM.setFileInputFiles', { nodeId: okNode.nodeId, files: [srcFile] })
     await evalJs(`document.querySelector('[data-panel="avatar"] form button[type=submit]').click()`)
-    await sleep(6000)
+    await submitSettled(60000)
+    // 提交结束之后再等那张【新图】画出来(网络另算)
+    await waitFor(`(() => { const i = document.querySelector('[data-nav="avatar-image"]');
+        return !!i && i.complete && i.naturalWidth > 0 })()`, 30000, '新头像画出来')
 
     const headers = await (async () => { const r = await fetch(publicUrl); return {
         status: r.status, ct: r.headers.get('content-type'), cc: r.headers.get('cache-control'),
@@ -252,7 +293,10 @@ async function main() {
     // P3 · 移除 → 404 → 屏幕回到首字母
     // ════════════════════════════════════════════════════════════════════════
     await evalJs(`[...document.querySelectorAll('[data-panel="avatar"] form button')].find(b => b.type !== 'submit').click()`)
-    await sleep(5000)
+    await waitFor(`(() => { const b = [...document.querySelectorAll('[data-panel="avatar"] form button')]
+        .find(x => x.type !== 'submit'); return !!b && !b.disabled })()`, 30000, '移除结束')
+    await waitFor(`(() => { const i = document.querySelector('[data-nav="avatar-image"]');
+        return !i || (i.complete && i.naturalWidth === 0) })()`, 20000, '移除后图落定')
     // 同样【不跳转】先量一次:移除之后原地就该回到首字母。
     const s3a = await evalJs(`(() => {
         const btn = document.querySelector('[data-nav="avatar-menu"] button')
