@@ -4940,3 +4940,25 @@ FIX-2a 的普查把 142 对(路由,对象)分成两堆:**85 对读它的文件�
 以及 `list-page-template` 那一系列的 390px 收尾)。**不要顺手在导航刀里改它** ——
 那一行按钮的宽度是那一页自己的版式问题,而改它要判断"在手机上这个动作放哪儿",
 那是一个产品判断。
+
+## UI-1D-LOGO-REMOVE-SILENT — 公司 logo 的「移除」把失败丢掉了(UI-1d,2026-09-05)
+
+`app/finance/company/CompanyProfileForm.tsx:217`
+
+```tsx
+onClick={() => startRemove(async () => { await removeLogo() })}
+```
+
+`removeLogo()` 返回 `{ error?: string }`,而这里**把返回值直接丢掉**。
+移除失败时(权限、网络、存储侧报错)屏幕上**什么都不发生** —— logo 还在,
+没有一个字说为什么。**一次失败的移除与一次没点到的按钮长得一模一样。**
+
+这与本仓库反复点名的那一族是同一条(`?? []` 把查询失败读成空集、
+`getUser()` 失败读成没登录):**把一处失败画成"无事发生"。**
+
+**本刀发现但【没有】修** —— 它在 `/finance/company`,不在 UI-1d 的范围里。
+UI-1d 自己的 `/me` 头像面板**没有照抄这一处**:`AvatarPanel.tsx` 把
+`removeAvatar()` 的返回值接住并画进同一个错误框(`app/me/AvatarPanel.tsx:59-60`)。
+
+**修法**:与 `AvatarPanel` 同形 —— 一个 `useState` 接住返回的 `error`,
+与上传的错误共用同一个错误框。**十行以内。**

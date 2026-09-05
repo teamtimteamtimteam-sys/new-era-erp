@@ -5,6 +5,7 @@
 // 【这一页不看任何模块权限】。它靠的是 cut 4 的行级自助策略与 my_profile 视图:
 // 账号关联了员工档案就有一行,没关联就零行 —— 后者显示"去找管理员"。
 // 一个角色都没有的人在这里【什么都不缺】,那正是自助的意思。
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { getBaseCurrency } from '@/lib/currency'
@@ -21,6 +22,9 @@ import MyReviewsPanel from './MyReviewsPanel'
 import { REVIEW_COLUMNS, type GoalRow, type ReviewRow } from '@/app/hr/reviews/reviewShared'
 import type { RatingOption } from '@/app/hr/reviews/ConclusionForm'
 import { mustRows } from '@/lib/db-helpers'
+import AvatarPanel from './AvatarPanel'
+import { initialsOf } from '@/lib/initials'
+import { AVATAR_BUCKET, AVATAR_VERSION_COOKIE, avatarObjectName } from '@/lib/avatar'
 
 type MyKpiRow = {
     id: string; cycle_name: string; cycle_status: string; gate: string | null
@@ -55,10 +59,63 @@ export default async function MePage() {
         'my_kpi_entries') as unknown as MyKpiRow[]
     const p = profileRows?.[0]
 
+    // ════════════════════════════════════════════════════════════════════════
+    // UI-1d:换头像那一段。**它算在早返回【之前】,而且两条分支都画。**
+    // ════════════════════════════════════════════════════════════════════════
+    //
+    // ★【为什么必须在早返回之前】★ 下面那句 `if (!p) return …` 是给
+    //   【账号还没连上员工档案】的人准备的一句"去找管理员"。而头像挂在
+    //   **auth 账号**上,不挂在员工档案上(UI-1d Step 2 的裁定,理由是
+    //   AvatarMenu 早就刻意接住了"没有员工档案"这一情形 —— 把头像挂到
+    //   employees 上等于宣布这些账号【永远】不能有头像)。
+    //   于是这一段跨在早返回两侧:没建档的人照样换得了自己的头像,
+    //   而他的【名字】那一行仍然不画 —— 那是 UI-1a 的判据,本刀没碰。
+    //
+    // 【认证的三态在这里也活着】(scripts/check-auth-error-swallowing.mjs)
+    //   问不出来 ≠ 没登录。问不出来时【不画】这一段,并说一句为什么 ——
+    //   用的是顶栏那两句现成的话,免得同一件事在系统里有两种说法。
+    let meUser = null
+    let meAuthError: unknown = null
+    try {
+        const res = await supabase.auth.getUser()
+        meUser = res.data.user
+        meAuthError = res.error
+    } catch (e) {
+        meAuthError = e
+    }
+    const avatarIndeterminate =
+        !meUser && (meAuthError as { name?: string } | null)?.name === 'AuthRetryableFetchError'
+    // 与顶栏【同一个地址】:同一个 lib/avatar.ts 拼的,同一个 cookie 挂的尾巴。
+    const meAvatarVersion = (await cookies()).get(AVATAR_VERSION_COOKIE)?.value ?? null
+    const meAvatarUrl = meUser
+        ? (() => {
+              const base = supabase.storage
+                  .from(AVATAR_BUCKET)
+                  .getPublicUrl(avatarObjectName(meUser.id)).data.publicUrl
+              return meAvatarVersion ? `${base}?v=${encodeURIComponent(meAvatarVersion)}` : base
+          })()
+        : null
+    const avatarSection = meUser ? (
+        <AvatarPanel
+            avatarUrl={meAvatarUrl}
+            initials={initialsOf(
+                (p?.preferred_name || p?.legal_name) ?? null,
+                meUser.email ?? ''
+            )}
+        />
+    ) : avatarIndeterminate ? (
+        <div className="rounded border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900 mb-6">
+            <p className="font-medium">{t('common.navUnavailable')}</p>
+            <p className="text-sm mt-1">{t('common.navUnavailableHint')}</p>
+        </div>
+    ) : null
+
     if (!p) {
         return (
             <div className="p-8 max-w-lg">
                 <h1 className="text-2xl font-bold mb-3">{t('me.title')}</h1>
+                {/* ★ 没有员工档案的人【也换得了头像】—— 见上面那段抬头。 */}
+                {avatarSection}
                 <div className="rounded border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900">
                     <p className="font-medium">{t('me.notLinkedTitle')}</p>
                     <p className="text-sm mt-1">{t('me.notLinkedBody')}</p>
@@ -195,6 +252,8 @@ export default async function MePage() {
         <div className="p-8 max-w-4xl">
             <h1 className="text-2xl font-bold mb-1">{t('me.title')}</h1>
             <p className="text-sm text-gray-500 mb-6">{t('me.subtitle')}</p>
+
+            {avatarSection}
 
             {/* ── profile ── */}
             <section className={card + ' mb-6'}>

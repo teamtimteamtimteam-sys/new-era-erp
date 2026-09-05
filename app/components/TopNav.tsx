@@ -40,6 +40,7 @@
 //
 // 【dock 不在这个文件里】CHART-0 ④ 把它搬到了 app/components/nav/DockRail.tsx。
 import Link from 'next/link'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import ModuleBar from './nav/ModuleBar'
@@ -49,6 +50,7 @@ import SearchShell from './nav/SearchShell'
 import { getModuleAccess } from '@/lib/moduleAccess'
 import { getUnreadCount } from '@/lib/notifications'
 import { SETTINGS_MODULE_ID, TOOLS_MODULE_ID } from '@/lib/modules'
+import { AVATAR_BUCKET, AVATAR_VERSION_COOKIE, avatarObjectName } from '@/lib/avatar'
 import type { NavModule } from './nav/types'
 
 /**
@@ -172,6 +174,30 @@ export default async function TopNav() {
         name = null
     }
 
+    // ── 头像(UI-1d)────────────────────────────────────────────────────────
+    //
+    // ★★【这里【不】问"这个人有没有头像"】★★
+    //   getPublicUrl() 是一个【纯字符串拼接】,不发请求 —— 它只是把桶名与对象名
+    //   拼成公开地址。对象在不在,由浏览器取图那一下自己回答:取到就画,
+    //   404 就由 AvatarImage 的 onError 回落成首字母。
+    //
+    //   反过来的写法(服务端先 list/HEAD 一下再决定画什么)会给【每一页、
+    //   每一个人、每一次加载】加一趟往返 —— 为一件装饰品。而且它并不更可靠:
+    //   问完之后到浏览器真正取图之间,对象照样可以消失,回落那条路无论如何都得在。
+    //   **既然回落必须存在,那次询问就没有读者。**
+    //
+    // 【?v= 那个尾巴只挂给刚换过头像的那个浏览器】cookie 由 uploadAvatar /
+    //   removeAvatar 写下,活 120 秒(> 对象 60 秒的 max-age)然后自己消失。
+    //   没有它时大家取的是同一个规范地址,缓存正常工作;有它时本人立刻看到新图 ——
+    //   而"立刻"正是换了头像的人唯一在意的那一秒。完整理由在 lib/avatar.ts。
+    const avatarVersion = (await cookies()).get(AVATAR_VERSION_COOKIE)?.value ?? null
+    const avatarBase = supabase.storage
+        .from(AVATAR_BUCKET)
+        .getPublicUrl(avatarObjectName(user.id)).data.publicUrl
+    const avatarUrl = avatarVersion
+        ? `${avatarBase}?v=${encodeURIComponent(avatarVersion)}`
+        : avatarBase
+
     // ★【未读数在这里【只算一次】】★ 头像徽标与菜单行尾画的是同一个值。
     // 【user.id 传进去,不让它自己再问一遍 auth】理由写在 getUnreadCount 的抬头:
     // 顶栏这一半已经把「判断不出 / 确立的否定 / 已登录」三态分好了,
@@ -225,6 +251,7 @@ export default async function TopNav() {
                             email={user.email ?? ''}
                             unread={unread}
                             settingsEntries={settingsEntries}
+                            avatarUrl={avatarUrl}
                         />
                     </div>
                 </div>

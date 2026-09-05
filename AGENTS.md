@@ -2725,3 +2725,57 @@ every later cut stepped forward from the *filename* rather than the clock, reach
 inverting the relationship with the files left alone. Since nothing replays migrations
 by filename (they are changelog-only; the install path is entirely mirror-based), the
 misleading dates cost nothing while a rename would destroy real ordering information.
+
+## ★★ 委托书描述的是【上一刀的小结】,不是树本身 —— 开工前先量(UI-1d,2026-09-05)
+
+这是同一种病的**第三例**,而且这一次它把一整个 Step 指向了错的三个文件。
+
+`docs/accounts-roles-and-permissions.md` §11.2b 记下了第一例:一句观察被文档
+喂回给自己,四跳之后变成「Tim 自己的裁定」。**核心不是银行明细,是一份【小结】
+站到了【它所小结的那个东西】前面,并且每转述一次就硬一点。**
+委托书是同一族的载体:它由上一刀的报告写成,而报告写的是那一刀看见的树。
+
+| 例 | 委托书说的 | 树里实际是什么 |
+|---|---|---|
+| **FIX-2a** | 「§71 写明不给 `data.view_banking`」 | §71 写的是「那句话里**没提**」—— 一处沉默被读成了一个决定 |
+| **UI-1c** | 四条假断言 | 其中一份文件**两刀之前就被删了**,一个 export 名**不存在** |
+| **UI-1d** | 「没有任何一处 upload panel 碰图片字节」「图片处理是全新的」「那套做法是浏览器直传」 | **`app/finance/company/actions.ts:105` 的 `uploadLogo` 一直在传图片**:≤2MB、PNG/JPG、**服务端收字节**,理由就写在那一行旁边:「文件不大,不必走浏览器直传」 |
+
+UI-1d 那一栏的代价说得具体一点:委托书的 READ FIRST 把人支去读**三份
+`AttachmentsPanel`**,而它们共同的形状(浏览器直传 + 私有桶 + 一张元数据表)
+**恰好是这一刀不该抄的那一个**。真正的先例在另一个模块里,而且已经是
+Step 1 要的形状 —— 于是「加一套新机器」其实是「照 logo 那一处再写一遍,多一句 sharp」。
+
+### 处置:委托书里的每一条【事实】,开工前当场量一遍
+
+不是"读一遍觉得合理",是**跑一条命令**:
+
+* 「树里没有 X」→ `grep -rl` 一遍,把命中的文件名抄进报告(UI-1d 实测:
+  委托书说 avatar 只在 `AvatarMenu.tsx` 出现,实际还有 6 个文件 ——
+  那 6 处确实都只是组件名,**但"确实是对的"必须是量出来的结论,不是读出来的印象**);
+* 「没有这个依赖」→ 读 `package.json`,并且**顺手读一遍 `npm ls`**
+  (UI-1d 实测:`sharp` 作为 `next` 的 optional 依赖**早就在 node_modules 里**,
+  于是这个"新依赖"的边际磁盘代价是 **0** —— 声明成 `^0.34.5` 与 next 去重之后
+  只有一份 16MB。委托书按 ~30MB 估的,而 Tim 是照那个数点的头);
+* 「READ FIRST 这几个文件」→ **先问它们是不是对的那几个**,再读。
+
+**判据一句话:委托书是一份【待核对的清单】,不是一份【已知的事实】。**
+闸轮的产出里必须有一节叫「本块中我量过并发现为假的断言」,空着也要写"零条"。
+
+## 存储桶与它的策略【不在镜像里】,所以它们的断言不能是 fixture(UI-1d,2026-09-05)
+
+想给 `avatars` 桶的 own-avatar-only 策略写一份 `db/fixtures/*.sql` 的人会踩空:
+
+* `db/platform-prelude.sql` 造 `auth.users` / `auth.uid()` / `authenticated` 三样,
+  **`storage` 架构一个字都不造**(实测:prelude 里 "storage" 出现 **0** 次);
+* `check_mirrors.py` 与 `db/gate.py` 里 "storage" 同样是 **0** 次 ——
+  既有的 13 个桶从来没进过镜像,它们只活在各自的迁移文件里。
+
+于是 fixture 会对着一件**重建库里不存在的东西**变红。
+**处置:这类断言写成【对着线上跑、整支回滚】的证明脚本**,放
+`db/scripts/`,文件头写清为什么它不在 `db/fixtures/`。
+UI-1d 的那一份是 `db/scripts/2026-09-05-ui1d-avatar-policy-proof.sql`。
+
+★ 而 RLS 的断言**一律 RAISE,绝不"返回一个值让人看"**:被策略挡住的读
+**不报错,只是少了几行**,于是 `SELECT … INTO` 拿到的是 NULL,而 NULL 与"通过"
+在屏幕上一模一样。判词是退出码,不是屏幕上的一段字。

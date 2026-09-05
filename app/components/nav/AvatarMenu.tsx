@@ -31,6 +31,8 @@ import LanguageSwitcher from '../LanguageSwitcher'
 import {
     ScrollPanel, menuPanelClass, useMenuDismiss, ROUND_BUTTON_CLASS, MenuEntryRow,
 } from './MenuPanel'
+import AvatarImage from './AvatarImage'
+import { initialsOf } from '@/lib/initials'
 import type { NavEntry } from './types'
 
 export type AvatarMenuProps = {
@@ -73,29 +75,28 @@ export type AvatarMenuProps = {
      * 一张都打不开的人看到的是七行「· 受限」,不是一处缺席。
      */
     settingsEntries: NavEntry[]
+    /**
+     * ★★【UI-1d:上传上来的那张头像的公开地址,或者 null】★★
+     *
+     * 【null 是什么意思】**不是"这个人没有头像"** —— 顶栏【不去问对象在不在】
+     *   (那要给每一页加一趟往返,理由写在 AvatarImage 的抬头)。null 只发生在
+     *   算不出地址的时候。地址【算得出来就给】,而对象不在时由 AvatarImage 的
+     *   onError 回落成首字母 —— 这一刀真正要证的就是那条回落。
+     *
+     * 【它带着一个 ?v=<ts> 尾巴,但只对刚换过头像的那个浏览器】理由与生命周期
+     *   写在 lib/avatar.ts 的 AVATAR_VERSION_COOKIE:地址是固定的,所以换图会落在
+     *   同一个 URL 上;别人最长等 60 秒(max-age),本人一秒都不等。
+     */
+    avatarUrl: string | null
 }
 
 /**
- * 【头像里印什么】(Tim 的裁定,UI-1a Q7)
- *   有名字 → 取首字母,最多两个(「Sandra Yap」→「SY」)。
- *   没名字 → **邮箱的第一个字符**,并且菜单里【不画名字那一行】,只画邮箱。
- *
- * ★【为什么不能编一个占位名】★ 一个还没被 HR 建档的新人,账号是真的、邮箱是真的,
- *   名字是【还没有】。印「User」或者「—」就是把一处缺席画成一个答案 ——
- *   而"这个账号还没连上员工档案"是一件他应该看得出来的事。省掉那一行,
- *   剩下的邮箱就是他此刻【真实】的身份。
+ * 【头像里印什么 —— 判据搬到了 lib/initials.ts】(UI-1d)
+ *   函数体一个字没改;搬家的理由是 /me 的换头像面板要在【服务端】算同一组
+ *   首字母,而这个文件是 'use client'。完整抬头(含"不能编一个占位名"那条
+ *   Tim 的裁定)跟着函数一起走了,见 lib/initials.ts。
  */
-function initialsOf(name: string | null, email: string): string {
-    if (name) {
-        const parts = name.trim().split(/\s+/).filter(Boolean)
-        if (parts.length > 0) {
-            return parts.slice(0, 2).map((w) => [...w][0]).join('').toUpperCase()
-        }
-    }
-    return ([...email][0] ?? '?').toUpperCase()
-}
-
-export default function AvatarMenu({ name, email, unread, settingsEntries }: AvatarMenuProps) {
+export default function AvatarMenu({ name, email, unread, settingsEntries, avatarUrl }: AvatarMenuProps) {
     const t = useTranslations()
     const [open, setOpen] = useState(false)
     // 【设置那一区默认收着】菜单打开时先看到的仍然是那四条属于【你自己】的东西;
@@ -127,13 +128,18 @@ export default function AvatarMenu({ name, email, unread, settingsEntries }: Ava
                 onClick={() => (open ? closeMenu() : setOpen(true))}
                 className={ROUND_BUTTON_CLASS}
             >
-                {/* 【默认头像:淡灰的首字母】—— 上传是 UI-1c 的 Step 5,而 Tim 把它
-                    单独切成了 v1.3.3(它是唯一要开破窗的一步:一个存储桶 + 一条策略)。
-                    它必须看起来【是有意这样】,不是一张坏掉的图:所以是排版,
-                    不是一个占位图形。 */}
-                <span aria-hidden className="text-xs font-medium text-[color:var(--brand-muted-glass)]">
-                    {initials}
-                </span>
+                {/* ★【UI-1d 到齐了:传过头像画头像,没传过画首字母 —— 而【那个默认
+                    不是占位图形,是排版】,与上一版逐像素相同】★
+                    上面那句是 UI-1a 写下的判据,本刀【没有动它】:回落的终点仍然是
+                    initialsOf 的输出。变的只是它上面多了一层图,而那层图画不出来时
+                    自己让开(AvatarImage 的 onError)。 */}
+                <AvatarImage
+                    src={avatarUrl}
+                    initials={initials}
+                    className="h-full w-full"
+                    initialsClassName="text-xs"
+                    alt={t('nav.accountMenu')}
+                />
                 {showBadge && (
                     <span
                         data-nav="unread-badge"
@@ -160,11 +166,25 @@ export default function AvatarMenu({ name, email, unread, settingsEntries }: Ava
                         data-nav="identity"
                         className="border-b border-[color:var(--brand-border)] px-3 pb-2 pt-1.5"
                     >
-                        {/* 没有员工档案时【这一行不画】—— 见 initialsOf 的抬头。 */}
-                        {name && (
-                            <p className="truncate text-sm font-semibold text-[color:var(--brand-text)]">{name}</p>
-                        )}
-                        <p className="truncate text-xs text-[color:var(--brand-muted-glass)]">{email}</p>
+                        {/* UI-1d:身份这一行也画头像 —— 40px,比顶栏那个大一圈。
+                            **这是委托书点名的两处之一,而且只有这两处**:员工名册、
+                            /me 自己的抬头、首页问候语,一个字都没动。 */}
+                        <div className="flex items-center gap-2.5">
+                            <AvatarImage
+                                src={avatarUrl}
+                                initials={initials}
+                                className="h-10 w-10 border border-[color:var(--brand-border)]"
+                                initialsClassName="text-sm"
+                                alt={t('nav.accountMenu')}
+                            />
+                            <div className="min-w-0">
+                                {/* 没有员工档案时【这一行不画】—— 见 initialsOf 的抬头。 */}
+                                {name && (
+                                    <p className="truncate text-sm font-semibold text-[color:var(--brand-text)]">{name}</p>
+                                )}
+                                <p className="truncate text-xs text-[color:var(--brand-muted-glass)]">{email}</p>
+                            </div>
+                        </div>
                     </div>
 
                     {/* ② 通知 —— 未读数在行尾。**与徽标同一个 `unread`。** */}
