@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { safeInternalPath } from '@/lib/loginRoute'
+import { landingPath, safeInternalPath } from '@/lib/loginRoute'
 
 export async function login(formData: FormData) {
     const email = formData.get('email') as string
@@ -60,5 +60,7 @@ export async function login(formData: FormData) {
     }
 
     revalidatePath('/', 'layout')
-    redirect(next ?? '/suppliers')
+    // UI-1a Step 6:落点【只定义一次】,在 lib/loginRoute.ts 里。
+    // 这里从前写死 '/suppliers',中间件里还有一份一模一样的 —— 见那边的注释。
+    redirect(landingPath(next))
 }

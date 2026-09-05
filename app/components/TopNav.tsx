@@ -2,26 +2,85 @@
 // 【应用外壳的服务端一半】—— 判权限,然后把结果交给客户端组件画。
 //
 // ════════════════════════════════════════════════════════════════════════════
+// UI-1a(2026-09-05)· 顶栏从【两行】合成【一行】
+// ════════════════════════════════════════════════════════════════════════════
+// 【它此前是两行,而委托书没说这件事】上面一行是字标 + 邮箱 + 铃铛 + 我的评估 +
+// 我的档案 + 语言 + 登出;下面一行是 <ModuleBar>。本刀把它们合成一行:
+//     字标 · 七个模块 · 弹性空白 · 搜索外壳 · 工具按钮 · 头像按钮
+//
+// 【右侧那六样东西去哪了】全部收进头像下拉(app/components/nav/AvatarMenu.tsx):
+//   邮箱 → 菜单第一项的身份块;铃铛 → 「通知」那一行 + 头像上的徽标;
+//   我的评估 / 我的档案 / 语言 / 登出 → 各自一行。
+//   ★ 顺带修好一个 CONV-6 记过的缺口 ★:/my-reviews 从前是 `lg:inline`,
+//     而抽屉是 `sm:hidden` —— **640px ≤ 宽 < 1024px 这一段里它两头都够不着**。
+//     菜单不按宽度藏条目,那个缺口因此【结构性地】没了,不是被补上了。
+//
+// 【NotificationBell.tsx 删了,它的查询搬进 lib/notifications.ts】理由是委托书那条
+// 「One source, two renderings — do not compute it twice」:未读数要出现在头像徽标
+// 与菜单行尾两个地方,而让两处各渲染一次组件就是查两次。现在顶栏调一次,传下去。
+//
+// ════════════════════════════════════════════════════════════════════════════
 // IA-BUILD-1(2026-09-02):九个一级模块 + 二级(财务三级)+ 个人 dock
 // ════════════════════════════════════════════════════════════════════════════
 // 【这里【不过滤】】(Tim 的 D5 / NAV-REG-1 R4):拿到的是【全部】九个模块与它们
-// 名下的全部二级条目,每个带 allowed;进不去的由 ModuleBar 画成「· 受限」而不是消失。
+// 名下的全部二级条目,每个带 allowed;进不去的由 ModuleBar 画成一条【具名的限制】
+// 而不是消失。★ UI-1a ⑦(b) 之后那条限制不再写「· 受限」后缀,但它仍然是具名的:
+//   灰字 + title 提示 + data-module-restricted 记号,点开是逐条写着「· 受限」的二级。
+//   理由与实测的宽度写在 ModuleBar 那一段。
+//
+// ★【七与九的区别【只在顶栏那一行】】★ 这里仍然取九条,ModuleBar 自己按
+//   lib/modules.ts 的 BAR_MODULE_IDS 过滤桌面那一行,手机抽屉照旧画九条。
+//   **不要在这里过滤** —— 那会让 /tools/* 与 /settings/* 的面包屑与活动模块判定
+//   一起失效,理由整段写在 BAR_MODULE_IDS 的抬头。
 //
 // 【一级的可进性是【推导】的,不是读一个字段】见 lib/moduleAccess.ts:
 // 一个模块进得去 ⟺ 它名下有任何一条二级进得去。**M6 因此自动成立** ——
 // 只有盘点权限的人进得去库存,因为盘点就在库存名下。
 //
-// 【dock 不在这个文件里】CHART-0 ④ 把它搬到了 app/components/nav/DockRail.tsx ——
-// 桌面上它是【内容左边】的一条竖栏,得和页面主体做同一个 flex 行里的兄弟。
+// 【dock 不在这个文件里】CHART-0 ④ 把它搬到了 app/components/nav/DockRail.tsx。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { logout } from '@/app/logout/actions'
 import { getTranslations } from '@/lib/i18n/server'
-import LanguageSwitcher from './LanguageSwitcher'
-import NotificationBell from './NotificationBell'
 import ModuleBar from './nav/ModuleBar'
+import ToolsMenu from './nav/ToolsMenu'
+import AvatarMenu from './nav/AvatarMenu'
+import SearchShell from './nav/SearchShell'
 import { getModuleAccess } from '@/lib/moduleAccess'
+import { getUnreadCount } from '@/lib/notifications'
+import { SETTINGS_MODULE_ID, TOOLS_MODULE_ID } from '@/lib/modules'
 import type { NavModule } from './nav/types'
+
+/**
+ * 字标。
+ *
+ * ★【accessible name 靠 <img alt>,【不是】靠 SVG 里那个 aria-label】★
+ *   evoltrya-os-black.svg 自己带着 role="img" aria-label="EVoltrya OS",而
+ *   **通过 <img src> 引用时,文件内部的那些属性一律不暴露给辅助技术** ——
+ *   浏览器把它当一张图片,可访问名只能来自 alt。所以 alt 必须写在这里。
+ *   (内联 <svg> 才会用到文件里那个 aria-label,而内联要把 27KB 塞进每一页的 HTML。)
+ *
+ * ★【高度 25.5px 是量出来的,不是挑出来的】★ 判据是 Tim 的裁定:**与它替换掉的
+ *   那行字【顶齐大写高度】**。实测(UI-1a 探针):字标 SVG 里那个大写 E 占
+ *   viewBox 高度的 50.43%,而原来那行 `font-bold text-lg` 的大写高度是 12.88px。
+ *   12.88 / 0.5043 = 25.5px,于是宽度按 4.524:1 落在 115.5px。
+ *   ★ 它比原来那行字的行盒(28px)【更矮】,所以顶栏的高度不会变 —— 这是委托书
+ *     点名要保住的一条。
+ *
+ * ★【黑白是裁定,不是省事】★ Tim 排除了彩色字标:球体的细线在 20–24px 上会糊成
+ *   一团,而一个彩色标记会与右边两个圆按钮抢眼。**不许上色,不许加 hover 变色。**
+ */
+function Wordmark() {
+    return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+            src="/brand/evoltrya-os-black.svg"
+            alt="EVoltrya OS"
+            width={116}
+            height={26}
+            className="h-[25.5px] w-auto"
+        />
+    )
+}
 
 export default async function TopNav() {
     const supabase = await createClient()
@@ -50,9 +109,9 @@ export default async function TopNav() {
             <header className="sticky top-0 z-50 border-b border-[color:var(--brand-border)]" data-auth-indeterminate="1">
                 {/* 玻璃画在子元素上,不画在 <header> 上 —— 见 globals.css 的 .nav-glass-underlay。 */}
                 <div className="nav-glass-underlay" aria-hidden="true" />
-                <div className="px-6 py-3 flex items-center gap-4">
-                    <Link href="/" className="font-bold text-lg text-[color:var(--brand-text)]">
-                        EVoltrya OS
+                <div className="px-4 sm:px-6 py-2.5 flex items-center gap-4">
+                    <Link href="/" className="shrink-0">
+                        <Wordmark />
                     </Link>
                     <span className="text-sm bg-amber-50 border border-amber-300 text-amber-900 px-2 py-1 rounded">
                         <span className="font-medium">{t('common.navUnavailable')}</span>{' '}
@@ -78,9 +137,40 @@ export default async function TopNav() {
         })),
     }))
 
-    // 【dock 不在这里了】CHART-0 ④:桌面上它是【内容左边】的一条竖栏,
-    // 所以它必须与页面主体是同一个 flex 行里的兄弟 —— 取数与渲染都搬进了
-    // app/components/nav/DockRail.tsx,布局在 app/layout.tsx 里拼。
+    // ── 工具下拉的五行。**同一份注册表,同一个 allowed** ──────────────────
+    // 五条:任务 · 日历 · 单位换算 · 提醒 · 定价(工具的三级分组今天没有住户,
+    // 所以它本来就画成平铺的五条 —— 见 lib/modules.ts 的 TOOLS_GROUPS 抬头)。
+    const toolsEntries =
+        modules.find((m) => m.id === TOOLS_MODULE_ID)?.entries ?? []
+
+    // ── 「设置」指向【这个人打得开的第一张子页】 ─────────────────────────
+    // ★ 不写死 ★ 七张子页由三个不同的码把门(manage_permissions / dictionaries /
+    //   bulk_import / view_deleted),六个人持有的子集各不相同。写死
+    //   /settings/accounts 会给 Choo Er 一条【永远拒绝】的链接。
+    // ★ 也【不做落地页】★ D2:模块不是地址,app/settings/page.tsx 刻意不存在。
+    // 一张都打不开时给 null,AvatarMenu 把那一行画成受限而不是删掉它。
+    const settingsHref =
+        modules.find((m) => m.id === SETTINGS_MODULE_ID)?.entries.find((e) => e.allowed)?.href ?? null
+
+    // ── 身份 ────────────────────────────────────────────────────────────────
+    // 【没有员工档案的账号 name 是 null】—— 那不是错误,是"HR 还没建档"。
+    // AvatarMenu 于是【不画名字那一行】,只画邮箱;头像取邮箱首字母。
+    // 编一个占位名就是把一处缺席画成一个答案(Tim 的裁定,UI-1a Q7)。
+    let name: string | null = null
+    try {
+        const { data } = await supabase.from('my_profile').select('preferred_name, legal_name').limit(1)
+        const p = data?.[0]
+        name = (p?.preferred_name || p?.legal_name) ?? null
+    } catch {
+        name = null
+    }
+
+    // ★【未读数在这里【只算一次】】★ 头像徽标与菜单行尾画的是同一个值。
+    // 【user.id 传进去,不让它自己再问一遍 auth】理由写在 getUnreadCount 的抬头:
+    // 顶栏这一半已经把「判断不出 / 确立的否定 / 已登录」三态分好了,
+    // 再问一遍就得把那套判断抄第二份。
+    const unread = await getUnreadCount(user.id)
+
     return (
         <>
             {/* ★ R2:磨砂【只给浮动层】—— 顶栏、dock、下拉、抽屉。表格永远不磨砂。
@@ -96,42 +186,40 @@ export default async function TopNav() {
                 而顶栏看上去逐像素不变。实测见 globals.css 的那一段。 */}
             <header className="sticky top-0 z-50 border-b border-[color:var(--brand-border)]">
                 <div className="nav-glass-underlay" aria-hidden="true" />
-                {/* 【390px 上这一行必须放得下】实测过一次溢出:右侧那一组宽 265.75px,
-                    右边缘落在 396.45 —— 视口只有 390,于是【整个文档】横向滚动 6.45px。
-                    修法不是把字缩小了事,是把手机上不必须的那几项挪进抽屉:
-                    /my-reviews 与 /me 在 <sm 时移到抽屉底部的「关于你」一段
-                    (**它们没有消失,只是换了地方** —— 4d 那条对外壳自己也成立)。 */}
-                <div className="px-4 sm:px-6 py-2.5 flex items-center justify-between gap-2 sm:gap-3">
-                    <Link href="/" className="font-bold text-base sm:text-lg text-[color:var(--brand-text)] shrink-0">
-                        EVoltrya OS
+                {/* ★【一行。实测放得下,所以搜索框【不】折叠】★
+                    UI-1a 探针,六个角色 × 1280/1440(worst case = warehouse/operations):
+                      字标 115.5 + 七条模块 528.7 + 搜索 200 + 两个圆按钮 32×2
+                      + 内距与间隙 → 1280 上余 276px,1440 上余 436px。
+                    委托书为"放不下"准备了一个折叠成放大镜的形态;**实测放得下,
+                    所以那个形态没有造** —— 一个没有触发条件的机制比没有更糟
+                    (Tim 的裁定)。宽度表在报告里,将来加第八个模块时照它重算。 */}
+                <div className="px-4 sm:px-6 py-2.5 flex items-center gap-2 sm:gap-3">
+                    <Link href="/" className="shrink-0" data-nav="wordmark">
+                        <Wordmark />
                     </Link>
-                    <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-                        <span className="text-sm text-[color:var(--brand-muted-glass)] hidden md:inline">
-                            {user.email}
-                        </span>
-                        {/* NTF-1:铃铛在【关于你】这一区(语言、退出),不在模块条里 ——
-                            收件箱不是一个模块,它是这个人自己的东西。
-                            【U4–U7 留在模块之外】/me、/my-reviews、通知、登录族与工作台首页
-                            都不进九个模块 —— 勘察 C10 的理由,Tim 已确认照办。 */}
-                        <NotificationBell />
-                        <Link href="/my-reviews" className="hidden text-sm text-[color:var(--brand-muted-glass)] hover:text-[color:var(--brand-text)] lg:inline">
-                            {t('nav.myReviews')}
-                        </Link>
-                        <Link href="/me" className="hidden text-sm text-[color:var(--brand-muted-glass)] hover:text-[color:var(--brand-text)] sm:inline">
-                            {t('nav.me')}
-                        </Link>
-                        <LanguageSwitcher />
-                        <form action={logout}>
-                            <button
-                                type="submit"
-                                className="text-sm border border-[color:var(--brand-border)] px-3 py-1 rounded hover:bg-[color:var(--brand-accent)] text-[color:var(--brand-text)]"
-                            >
-                                {t('nav.logout')}
-                            </button>
-                        </form>
+
+                    {/* 桌面:七条模块;手机:一个菜单按钮 + 一张全高抽屉(画九条)。 */}
+                    <ModuleBar modules={modules} />
+
+                    {/* 【弹性空白在这里】ml-auto 把右边这一组推到底,
+                        而模块条与它之间那段空白就是"可伸缩的那一段"。 */}
+                    <div className="ml-auto flex shrink-0 items-center gap-2">
+                        <SearchShell />
+                        {/* 工具下拉是桌面的门;**手机走抽屉**(抽屉照旧画着工具那一条)。
+                            在这里给手机再造一个工具下拉,就是造一个 UI-1b 要换掉的东西。 */}
+                        <div className="hidden sm:block">
+                            <ToolsMenu entries={toolsEntries} />
+                        </div>
+                        {/* 头像菜单【所有宽度都在】—— 它接住了从前平铺在顶栏上的
+                            通知、语言与登出,手机上那三样从前也是可见的。 */}
+                        <AvatarMenu
+                            name={name}
+                            email={user.email ?? ''}
+                            unread={unread}
+                            settingsHref={settingsHref}
+                        />
                     </div>
                 </div>
-                <ModuleBar modules={modules} />
             </header>
         </>
     )

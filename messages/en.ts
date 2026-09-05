@@ -535,6 +535,9 @@ const en = {
         landingHint: 'What this module contains. Pick where to go — entries you cannot open are marked Restricted.',
         landingNothingOpen: 'You can open this module, but none of the pages under it are available to you. That is a contradiction — please report it.',
         logout: 'Log out',
+        // UI-1a ⑤:头像那个圆按钮的可访问名。它画的是首字母,
+        // 而首字母不是一个名字 —— 读屏必须拿到一句说得出口的话。
+        accountMenu: 'Account menu',
     },
     // OPS-18 之后首页【不再渲染模块卡片】(它换成了运营看板),所以模块的
     // 卡片标题与说明整批不再有读者 —— NAV-REG-1 随 lib/modules.ts 的

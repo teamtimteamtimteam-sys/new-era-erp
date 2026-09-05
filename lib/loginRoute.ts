@@ -86,3 +86,39 @@ export function safeInternalPath(raw: unknown): string | null {
     if (raw.startsWith('//') || raw.startsWith('/\\')) return null
     return raw
 }
+
+/**
+ * 【登录之后落在哪一页】—— 第三条判据,而它此前【也有两份拷贝】。
+ *
+ * ★【本文件抬头那句话,漏掉了这一条】★ 抬头写着「关于 /login 的两件事,各自只
+ * 定义一次」,并且点名了另外两条判据此前各有两份。**而 '/suppliers' 当时就已经
+ * 在两个地方写死着**,一份在 app/login/actions.ts(登录成功后送去哪儿),
+ * 一份在 lib/supabase/middleware.ts(已经登录的人打开 /login 被送去哪儿)。
+ * LOGIN-1-fu1 修了它看见的两条,没看见这一条 —— 一份"把重复收干净"的文件,
+ * 自己身上还留着一处重复。UI-1a Step 6 把它收进来。
+ *
+ * ★【为什么从 /suppliers 改成 /me】(Tim 的裁定,UI-1a,2026-09-05)★
+ * 【症状,线上实测】六个人登录之后【全部】落在采购模块的供应商列表上,
+ * 而 **Fu Sheng 根本进不去采购** —— 他每天上班第一眼看见的是一张拒绝页。
+ * 注意那个旧值甚至不是 /purchasing(模块落地页),是采购名下的【一条二级条目】。
+ *
+ * 【判据:落地页必须是【这个人】的,不是某一个部门的】
+ *   · /me 【每一个账号都进得去】—— 它不看任何 module.* 权限(与 /my-reviews 同理,
+ *     靠 current_user_employee() 限定到本人相关的行),所以它对六个人都成立,
+ *     而不是对其中五个成立;
+ *   · 它【今天就有内容】—— 假期、KPI 目标、档案。这是选它而不选首页的理由:
+ *     **首页此刻近乎空白,而那上面唯一的东西是一个刻意不能用的搜索外壳**
+ *     (app/page.tsx)。把六个人送到一张空页加一个死搜索框,比送去采购更糟。
+ *   · 它满足「per-person, not one route for all」**不是靠分支,是靠选对了页**:
+ *     一条对每个人都指向"他自己"的路由,天然是因人而异的。
+ *
+ * ★【这是【暂定】的,不是定局 —— 写在这里免得下一个人当成裁定】★
+ * Tim 的原话:「Revisit once UI-1b gives home real content」。UI-1b 会给首页
+ * 字标、问候语与节日机制;那之后首页可能才是对的落点。**改它的时候改这一个地方。**
+ */
+export const LANDING_PATH = '/me'
+
+/** 登录成功、或已登录的人打开 /login 时,该去哪儿。`next` 优先,它兜底。 */
+export function landingPath(next?: unknown): string {
+    return safeInternalPath(next) ?? LANDING_PATH
+}

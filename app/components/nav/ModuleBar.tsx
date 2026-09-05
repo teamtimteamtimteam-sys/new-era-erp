@@ -31,88 +31,14 @@ import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { activeModuleForPath, entryForPath } from '@/lib/navTrail'
+import { BAR_MODULE_IDS } from '@/lib/modules'
+import { ScrollPanel, menuPanelClass, useMenuDismiss } from './MenuPanel'
 import type { NavModule, NavEntry } from './types'
 
-/**
- * ★【CHART-0 ③:一条被截断的菜单必须【自己说】它还有下文】★
- * ────────────────────────────────────────────────────────────────────────────
- * Tim 以为财务没有应付账款那一段 —— 它在,只是在下面,而他不知道菜单能滚。
- * 实测(稳定别名,admin,1440×900):财务菜单 1227px 内容装在 628px 里,
- * **599px 在视野之外,而屏幕上没有任何东西说这件事。**
- *
- * ★【为什么不能只靠滚动条】★ 第一版就是只靠它,而实测证明那不够:
- * macOS 的滚动条是【覆盖式】的,不滚就不显示 —— 量到的宽度是 0px。
- * globals.css 里的 ::-webkit-scrollbar 把 Chrome/Safari 掰回常驻式,
- * 但 Firefox 掰不动。**一个只在某些浏览器上出现的信号,不是一个信号。**
- * 所以真正的判据是这一条:我们【自己画】一行字,它不看操作系统的脸色。
- *
- * 【它说的是条数,不是"往下滚"】"还有 4 条"与"下面还有内容"是两句话:
- * 前者可核对,后者只是一个手势。条数是数出来的 —— 数【完全在视野外】的那些,
- * 半露的那一条不算(它已经在说自己存在了)。
- * 【滚到底就消失】—— 一条永远挂着的"还有"会变成背景噪音,而它此刻是【假的】。
- */
-function useMoreBelow(ref: React.RefObject<HTMLDivElement | null>, deps: unknown[]) {
-    const [more, setMore] = useState(0)
-    const measure = useCallback(() => {
-        const el = ref.current
-        if (!el) return
-        // 【数的是完全落在视野外的条目】—— 逐个量,不按平均行高估算:
-        // 分组标题、缩进项与普通项的高度并不相同,估算会给出一个对不上的数字。
-        const bottom = el.scrollTop + el.clientHeight
-        let n = 0
-        for (const row of el.querySelectorAll<HTMLElement>('[data-menu-row]')) {
-            if (row.offsetTop >= bottom) n++
-        }
-        setMore(n)
-    }, [ref])
-    useEffect(() => {
-        measure()
-        const el = ref.current
-        if (!el) return
-        el.addEventListener('scroll', measure, { passive: true })
-        const ro = new ResizeObserver(measure)
-        ro.observe(el)
-        return () => { el.removeEventListener('scroll', measure); ro.disconnect() }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [measure, ...deps])
-    return more
-}
-
-/** 菜单底下那条【贴着底边】的提示。它在滚动容器【之内】,所以它跟着菜单走。 */
-function MoreBelow({ n, label }: { n: number; label: string }) {
-    if (n <= 0) return null
-    return (
-        <p
-            data-menu-more={n}
-            aria-hidden
-            className="sticky bottom-0 -mx-1 -mb-1 mt-1 border-t border-[color:var(--brand-border)] bg-[color:var(--brand-accent)] px-3 py-1 text-[11px] font-medium text-[color:var(--brand-text)]"
-        >
-            {label}
-        </p>
-    )
-}
-
-/**
- * 一个【会滚动的菜单面板】+ 它自己那条「还有 N 条」。
- * 桌面的下拉与手机的抽屉共用它 —— 两处是同一个缺陷,不该有两份修法。
- */
-function ScrollPanel({
-    className, role, moreLabel, children,
-}: {
-    className: string
-    role?: string
-    moreLabel: (n: number) => string
-    children: React.ReactNode
-}) {
-    const ref = useRef<HTMLDivElement>(null)
-    const more = useMoreBelow(ref, [children])
-    return (
-        <div ref={ref} className={className} role={role}>
-            {children}
-            <MoreBelow n={more} label={moreLabel(more)} />
-        </div>
-    )
-}
+// ★★【UI-1a:useMoreBelow / MoreBelow / ScrollPanel 搬去了 ./MenuPanel.tsx】★★
+// 它们原样住在这里,连注释一起 —— 本刀把它们搬出去,因为工具下拉与头像下拉
+// 要用的正是同一套画法,而它们够不到一个组件文件内部的局部定义。
+// **搬家没有改任何行为**;改的只是"谁能用它"。理由整段写在 MenuPanel.tsx 抬头。
 
 export default function ModuleBar({ modules }: { modules: NavModule[] }) {
     const pathname = usePathname()
@@ -152,26 +78,22 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
     }, [pathname])
 
     // Esc 关闭 + 点外面关闭。【键盘要能出得来】,不然打开的菜单是一个陷阱。
-    useEffect(() => {
-        const onKey = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
-                setOpen(null)
-                setSheet(false)
-            }
-        }
-        const onDown = (e: MouseEvent) => {
-            if (barRef.current && !barRef.current.contains(e.target as Node)) setOpen(null)
-        }
-        document.addEventListener('keydown', onKey)
-        document.addEventListener('mousedown', onDown)
-        return () => {
-            document.removeEventListener('keydown', onKey)
-            document.removeEventListener('mousedown', onDown)
-        }
-    }, [])
+    // 【UI-1a:这段实现搬去了 ./MenuPanel.tsx】工具与头像两个下拉要的是同一件事,
+    // 而抄第二、第三遍最先漂走的就是 Esc 那一条 —— 漏掉它,菜单只能用鼠标关。
+    const closeAll = useCallback(() => { setOpen(null); setSheet(false) }, [])
+    useMenuDismiss(barRef, closeAll)
 
     const RESTRICTED = t('common.restricted')
     const HINT = t('dashboard.restrictedHint')
+
+    // ★【UI-1a ③:桌面那一行只画七条;`modules` 仍然是【九条】】★
+    // 过滤【只发生在这里】,而且只对桌面那一行。理由整段写在 lib/modules.ts 的
+    // BAR_MODULE_IDS 抬头:MODULES 是"哪条路由归谁所有"的真源,改窄它会弄死
+    // 8 条深路由的面包屑、在 /tools/* 与 /settings/* 上喊一场假警报,
+    // 并且【把手机上工具与设置仅有的那扇门拆掉】。
+    // ★ 下面手机抽屉那一段【照旧遍历九条】—— 「顶栏挪走什么,抽屉就得接住什么」。
+    // ★ canEnter 读的也仍然是九条 —— 活动模块判定不受这次过滤影响。
+    const barModules = modules.filter((m) => BAR_MODULE_IDS.includes(m.id))
 
     /**
      * 二级(或第三级里的)一条。进不去的画成「名字 · 受限」,不是省略。
@@ -265,34 +187,52 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
 
     return (
         <>
-            {/* ══ 桌面(≥640px):九个模块横排,点开二级 ══════════════════════ */}
-            <div ref={barRef} className="hidden sm:flex items-center gap-0.5 px-4 pb-1.5" data-nav="modules">
-                {modules.map((m) => {
-                    if (!m.allowed) {
-                        return (
-                            <span
-                                key={m.id}
-                                data-module-restricted="1"
-                                title={HINT}
-                                className="whitespace-nowrap rounded px-3 py-1.5 text-sm text-[color:var(--brand-muted-glass)] cursor-default"
-                            >
-                                {t(m.key)} · {RESTRICTED}
-                            </span>
-                        )
-                    }
+            {/* ══ 桌面(≥640px):七个模块横排,点开二级 ══════════════════════ */}
+            {/* ★【UI-1a:padding 没了 —— 这一行现在是顶栏那【一行】里的一段】★
+                从前它是顶栏底下【第二行】,所以自带 px-4 pb-1.5。合成一行之后,
+                左右内距由 TopNav 那个 px-4 sm:px-6 的容器统一给,这里再给一次
+                就会把七个模块往右推 16px,并且让它与左边的字标对不齐。 */}
+            <div ref={barRef} className="hidden sm:flex items-center gap-0.5 min-w-0" data-nav="modules">
+                {barModules.map((m) => {
                     const isOpen = open === m.id
+                    // ★★【UI-1a ⑦(b):进不去的模块【照画,不加后缀】】★★
+                    // ────────────────────────────────────────────────────────
+                    // 【从前是什么】`名字 · 受限`,而且渲染成一个点不动的 <span>。
+                    // 【为什么改】实测(UI-1a 探针,六个角色 ×1280/1440):那个后缀
+                    //   把每个人的模块条撑成【不同的长度】—— 七条时 528.7px 到
+                    //   755.1px,差 226px。**而最长的那一条属于权限最少的人**
+                    //   (warehouse / operations 各有三条「· 受限」)。
+                    //   那个倒置本身就是论据:权限越少,顶栏越长。
+                    //   去掉后缀之后,六个角色【全部】是 528.7px。
+                    // 【Tim 的两条标准都指向这一版】
+                    //   ·「没有全部权限不代表不能了解全部功能」—— 七条一条不少,
+                    //     所以【不能】隐藏(那是被否掉的 (c));
+                    //   · FIX-2a:「一次缺席不许被渲染成一个答案」—— 这里没有缺席。
+                    // ★【点开之后【更具体】,不是更少】★ 委托书原话是"点击给出既有的
+                    //   拒绝页"——**没有那个页,按 D2 也不该有**(模块不是地址,
+                    //   「设置」根本没有 app/settings/page.tsx)。这一版做的是:
+                    //   照常展开它的二级,而里面【每一行】本来就写着「名字 · 受限」。
+                    //   于是他读到的不是"销售进不去",是**销售底下哪几件事进不去**。
+                    //   一次点击换来更细的答案,而且【一行新代码都不需要】。
+                    // ★【记号、提示与灰度都留着】★ data-module-restricted 是给可达性
+                    //   检查用的【机器标记】—— 认文案去分辨受限项,漏一次就是一次误报;
+                    //   丢掉它会让那些检查瞎掉。title 与灰字让人【点之前】就看得出来。
+                    const restricted = !m.allowed
                     return (
                         <div key={m.id} className="relative">
                             <button
                                 type="button"
                                 aria-expanded={isOpen}
                                 aria-haspopup="true"
+                                {...(restricted ? { 'data-module-restricted': '1', title: HINT } : {})}
                                 onClick={() => setOpen(isOpen ? null : m.id)}
                                 className={
                                     'whitespace-nowrap rounded px-3 py-1.5 text-sm ' +
                                     (active.id === m.id
                                         ? 'bg-[color:var(--brand-ocean-fill)] text-white'
-                                        : 'text-[color:var(--brand-text)] hover:bg-[color:var(--brand-accent)]')
+                                        : restricted
+                                          ? 'text-[color:var(--brand-muted-glass)] hover:bg-[color:var(--brand-accent)]'
+                                          : 'text-[color:var(--brand-text)] hover:bg-[color:var(--brand-accent)]')
                                 }
                             >
                                 {t(m.key)}
@@ -306,7 +246,7 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
                                    理由与另外两个候选(渐隐、"还有 N 条"文字)的取舍
                                    写在 app/globals.css 的 .menu-scroll 抬头。 */
                                 <ScrollPanel
-                                    className="nav-glass menu-scroll absolute left-0 top-full z-50 mt-1 max-h-[70vh] w-64 overflow-y-auto rounded-md border border-[color:var(--brand-border)] p-1 shadow-lg"
+                                    className={menuPanelClass('left')}
                                     role="menu"
                                     moreLabel={(n) => t('nav.menuMoreBelow', { n })}
                                 >
@@ -319,13 +259,18 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
             </div>
 
             {/* ══ 手机(<640px):一个按钮 + 一张全高抽屉 ═════════════════════ */}
-            <div className="sm:hidden px-4 pb-1.5">
+            {/* ★【UI-1a:它现在是【那一行里】的一格,不再是底下整宽的一条】★
+                从前顶栏是两行,这个按钮独占第二行,所以 w-full + px-4 pb-1.5。
+                合成一行之后它与字标、头像并排 —— 整宽会把头像挤出视口。
+                **形态一个字没改**(按钮 → 全高抽屉),UI-1b 才重做手机顶栏;
+                这里改的只是它在新容器里的尺寸。390px 上的实测见报告。 */}
+            <div className="sm:hidden">
                 <button
                     type="button"
                     aria-expanded={sheet}
                     onClick={() => setSheet(!sheet)}
                     data-nav="menu-button"
-                    className="w-full rounded border border-[color:var(--brand-border)] px-3 py-2 text-left text-sm text-[color:var(--brand-text)]"
+                    className="whitespace-nowrap rounded border border-[color:var(--brand-border)] px-3 py-1.5 text-sm text-[color:var(--brand-text)]"
                 >
                     {t('nav.menu')}
                 </button>

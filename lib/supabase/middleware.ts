@@ -63,7 +63,7 @@ import type { Database } from '@/lib/database.types'
 import { NextResponse, type NextRequest } from 'next/server'
 import { ACTIVITY_COOKIE, isIdleExpired } from '@/lib/session'
 // 【一处定义】公开路径与 ?next= 的判据都在这里 —— 根布局与登录页读的是同一份。
-import { isPublicPath, safeInternalPath } from '@/lib/loginRoute'
+import { isPublicPath, landingPath } from '@/lib/loginRoute'
 
 /**
  * 【判断不出】的判据,只有一处定义。
@@ -258,7 +258,9 @@ export async function updateSession(request: NextRequest) {
     // 走不到这里(user 为 null),页面照旧【什么都不说】。
     if (user && !idleExpired && pathname === '/login') {
         // ?next= 的判据【不在这里重写】—— 与登录页、登录动作用的是同一个函数。
-        const target = safeInternalPath(request.nextUrl.searchParams.get('next')) ?? '/suppliers'
+        // UI-1a Step 6:落点与登录动作【同一支函数】。
+        // 从前这里与 app/login/actions.ts 各写死了一个 '/suppliers'。
+        const target = landingPath(request.nextUrl.searchParams.get('next'))
         const dest = new URL(target, request.nextUrl.origin)
         const redirect = NextResponse.redirect(dest)
         // 【把刷新过的会话 cookie 带上】getUser() 可能刚刚续了令牌;
