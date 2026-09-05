@@ -14,6 +14,7 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { createWorkOrder } from '../actions'
+import { Button } from '@/app/components/ui/button'
 
 type Material = { id: string; code: string; name: string }
 const LINE_SLOTS = 5
@@ -192,10 +193,9 @@ export default function NewWorkOrderForm({ materials }: { materials: Material[] 
 
                 <p className="text-xs text-gray-600">{t('processing.wo.form.savesAsDraft')}</p>
                 <div className="flex gap-3">
-                    <button type="button" onClick={submit} disabled={isPending || blocked}
-                            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400">
+                    <Button type="button" onClick={submit} disabled={isPending || blocked}>
                         {isPending ? t('common.saving') : t('processing.wo.form.save')}
-                    </button>
+                    </Button>
                     <Link href="/operation/orders"
                           className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50">
                         {t('common.cancel')}

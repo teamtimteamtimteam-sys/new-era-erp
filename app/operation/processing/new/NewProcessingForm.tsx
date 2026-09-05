@@ -9,6 +9,7 @@ import {
 import { UNIT_OPTIONS } from '../../../materials/options'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import DecimalInput from '../../../components/forms/DecimalInput'
+import { Button } from '@/app/components/ui/button'
 
 export type InboundBatchOption = {
     id: string
@@ -590,13 +591,12 @@ export default function NewProcessingForm({
                     <p className="text-sm text-amber-700">{t('processing.form.blockedProcessDate')}</p>
                 )}
                 <div className="flex gap-3 pt-4">
-                    <button
+                    <Button
                         type="submit"
                         disabled={isPending || !processDate}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                     >
                         {isPending ? t('processing.form.saving') : t('processing.form.saveRun')}
-                    </button>
+                    </Button>
                     <Link
                         href="/operation/processing"
                         className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"

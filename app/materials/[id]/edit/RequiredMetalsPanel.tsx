@@ -16,6 +16,7 @@ import { useActionState, useState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import type { MetalOption } from '@/app/tools/pricing/metal-prices/options'
 import { saveRequiredMetals, type RequiredMetalsState } from './requiredMetalsActions'
+import { Button } from '@/app/components/ui/button'
 
 export default function RequiredMetalsPanel({
     substanceOptions,
@@ -101,13 +102,12 @@ export default function RequiredMetalsPanel({
                 {/* 【取消所有勾也是一次提交】按钮文案不随选择变化 —— "保存"就是保存,
                     包括保存成一个空集合。写成"清空要求"会让人以为那是另一个按钮。 */}
                 {canEdit ? (
-                    <button
+                    <Button size="sm"
                         type="submit"
                         disabled={isPending}
-                        className="text-sm border border-gray-400 px-3 py-1 rounded hover:bg-gray-50 disabled:opacity-50"
                     >
                         {isPending ? t('common.saving') : t('common.save')}
-                    </button>
+                    </Button>
                 ) : (
                     // 【永远不要为服务端必然拒绝的动作渲染提交控件】(AGENTS.md)
                     <p className="text-xs text-amber-700">{t('materials.assayPolicy.needsEdit')}</p>

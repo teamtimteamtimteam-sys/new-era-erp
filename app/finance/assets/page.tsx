@@ -28,6 +28,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import DepreciationPreviewTable, { type DepreciationPreviewRow } from './DepreciationPreviewTable'
+import { Button } from '@/app/components/ui/button'
 
 type AssetRow = {
     id: string
@@ -237,9 +238,9 @@ export default async function AssetsPage({
                 <label className="text-sm mr-2">{t('assets.depPeriodEnd')}</label>
                 <input type="date" name="date" defaultValue={d}
                        className="border border-gray-300 rounded px-2 py-1 text-sm" />
-                <button type="submit" className="ml-2 border border-gray-300 rounded px-3 py-1 text-sm">
+                <Button variant="secondary" size="sm" type="submit" className="ml-2">
                     {t('finance.reval.preview')}
-                </button>
+                </Button>
             </form>
             {previewRows.length > 0 ? (
                 <div className="mb-3 max-w-[32rem]">

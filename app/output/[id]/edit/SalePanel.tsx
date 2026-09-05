@@ -9,6 +9,7 @@ import { STATE_OPTIONS, labelKeyForValue } from '../../../inbound/options'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatMoneyBare, formatAmount } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: SaleState = {}
 
@@ -329,13 +330,12 @@ export default function SalePanel({
                             className="w-full border border-gray-300 px-3 py-2 rounded"
                         />
                     </div>
-                    <button
+                    <Button
                         type="submit"
                         disabled={isPending || creditBlocked}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                     >
                         {t('output.sale.button')}
-                    </button>
+                    </Button>
                 </div>
                 {/* ── SAL-B6:信用状况,在录入之前 ────────────────────────────
                     SAL-B 建了管控却没有任何一块屏把限额与敞口放在一起,于是唯一

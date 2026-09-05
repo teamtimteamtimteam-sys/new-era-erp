@@ -8,6 +8,7 @@ import { createInvoice, type CreateInvoiceState } from './actions'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: CreateInvoiceState = {}
 
@@ -376,13 +377,12 @@ export default function NewInvoiceForm({
             )}
 
             <div className="flex gap-3 pt-2">
-                <button
+                <Button
                     type="submit"
                     disabled={!canSubmit}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                 >
                     {isPending ? t('invoice.form.submitting') : t('invoice.form.submit')}
-                </button>
+                </Button>
                 <Link href="/finance/invoices" className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50">
                     {t('common.cancel')}
                 </Link>

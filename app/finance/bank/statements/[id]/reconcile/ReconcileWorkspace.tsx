@@ -16,6 +16,7 @@ import {
     unignoreLine,
     completeReconciliation,
 } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 export type StatementLine = {
     id: string
@@ -601,16 +602,15 @@ export default function ReconcileWorkspace({
                             </div>
 
                             <div className="flex flex-wrap items-center gap-3 mt-3">
-                                <button
+                                <Button
                                     type="button"
                                     disabled={!amountsAgree || isPending}
                                     onClick={() =>
                                         run(() => matchLine(statement.id, selectedLine.id, selectedIds))
                                     }
-                                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                                 >
                                     {t('bank.match')}
-                                </button>
+                                </Button>
                                 <button
                                     type="button"
                                     disabled={isPending}

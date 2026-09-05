@@ -12,6 +12,7 @@ import {
 } from './attachmentActions'
 import { useTranslations } from '@/lib/i18n/client'
 import { ATTACHMENT_ACCEPT, isAllowedAttachmentType } from './attachmentTypes'
+import { Button } from '@/app/components/ui/button'
 
 const BUCKET = 'material-attachments'
 
@@ -250,13 +251,12 @@ export default function AttachmentsPanel({
                 </div>
 
                 <div className="pt-2">
-                    <button
+                    <Button
                         type="submit"
                         disabled={isPending}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                     >
                         {isPending ? t('materials.attachments.uploading') : t('materials.attachments.uploadButton')}
-                    </button>
+                    </Button>
                 </div>
             </form>
         </section>

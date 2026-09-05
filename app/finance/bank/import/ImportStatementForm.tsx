@@ -21,6 +21,7 @@ import {
     type DecimalSeparator,
     type ThousandsSeparator,
 } from '@/lib/bankCsv'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: ImportStatementState = {}
 
@@ -516,13 +517,12 @@ export default function ImportStatementForm({ profiles }: { profiles: ProfileOpt
 
             {/* (g) 提交 */}
             <div className="flex gap-3 pt-2">
-                <button
+                <Button
                     type="submit"
                     disabled={!canSubmit}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                 >
                     {isPending ? t('bank.submitting') : t('bank.submit')}
-                </button>
+                </Button>
                 <Link href="/finance/bank" className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50">
                     {t('common.cancel')}
                 </Link>

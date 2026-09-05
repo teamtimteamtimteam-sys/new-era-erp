@@ -10,6 +10,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { saveContact, removeContact } from './contactActions'
+import { Button } from '@/app/components/ui/button'
 
 export type ContactRow = {
     id: string
@@ -113,10 +114,9 @@ export default function ContactsPanel({ customerId, supplierId, rows, canEdit }:
                                 </td>
                                 {canEdit && (
                                     <td className="border border-gray-300 px-3 py-2 text-sm whitespace-nowrap">
-                                        <button type="button" onClick={() => open(r)} disabled={pending}
-                                                className="border border-gray-400 px-2 py-1 rounded text-xs hover:bg-gray-50 disabled:opacity-50">
+                                        <Button variant="secondary" size="xs" type="button" onClick={() => open(r)} disabled={pending}>
                                             {t('common.edit')}
-                                        </button>
+                                        </Button>
                                         <button type="button" onClick={() => drop(r.id)} disabled={pending}
                                                 className="ml-2 border border-gray-400 px-2 py-1 rounded text-xs hover:bg-gray-50 disabled:opacity-50">
                                             {t('contacts.remove')}
@@ -168,14 +168,12 @@ export default function ContactsPanel({ customerId, supplierId, rows, canEdit }:
                     {/* 【主联系人会被开票快照读到 —— 按之前说出来】 */}
                     <p className="text-xs text-gray-600 mt-1">{t('contacts.primaryWhat')}</p>
                     <div className="flex gap-2 items-center mt-2">
-                        <button type="button" disabled={pending || why !== ''} onClick={submit}
-                                className="border border-gray-600 bg-gray-800 text-white px-3 py-1 rounded text-xs disabled:opacity-50">
+                        <Button size="xs" type="button" disabled={pending || why !== ''} onClick={submit}>
                             {t('common.save')}
-                        </button>
-                        <button type="button" disabled={pending} onClick={() => { setEditing(null); setError(null) }}
-                                className="border border-gray-400 px-3 py-1 rounded text-xs hover:bg-gray-50 disabled:opacity-50">
+                        </Button>
+                        <Button variant="secondary" size="xs" type="button" disabled={pending} onClick={() => { setEditing(null); setError(null) }}>
                             {t('common.cancel')}
-                        </button>
+                        </Button>
                         {why && <span className="text-xs text-gray-600">{why}</span>}
                     </div>
                 </div>

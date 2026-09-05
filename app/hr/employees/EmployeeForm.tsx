@@ -25,6 +25,7 @@ import {
     SEPARATION_TYPE_OPTIONS,
 } from '../options'
 import { createEmployee, updateEmployee, type EmployeeFormState } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: EmployeeFormState = {}
 
@@ -505,13 +506,12 @@ export default function EmployeeForm({
             </section>
 
             <div className="flex gap-3 pt-2">
-                <button
+                <Button
                     type="submit"
                     disabled={isPending}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                 >
                     {isPending ? t('common.saving') : t('common.save')}
-                </button>
+                </Button>
                 <Link
                     href={employee ? `/hr/employees/${employee.id}` : '/hr/employees'}
                     className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"

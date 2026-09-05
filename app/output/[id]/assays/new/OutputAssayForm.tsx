@@ -13,6 +13,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import type { MetalOption } from '@/app/tools/pricing/metal-prices/options'
 import { submitOutputAssay, type SubmitOutputAssayState } from '../actions'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: SubmitOutputAssayState = {}
 
@@ -238,15 +239,14 @@ export default function OutputAssayForm({
                 >
                     {t('assay.saveOnly')}
                 </button>
-                <button
+                <Button
                     type="submit"
                     name="intent"
                     value="record_apply"
                     disabled={isPending}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                 >
                     {isPending ? t('common.saving') : t('assay.saveAndApply')}
-                </button>
+                </Button>
                 <Link
                     href={`/output/${batchId}/edit`}
                     className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"

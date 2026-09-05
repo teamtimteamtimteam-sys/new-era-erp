@@ -19,6 +19,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { setPassword, type SetPasswordState } from './actions'
 import { Input } from '@/app/components/ui/input'
 import { Label } from '@/app/components/ui/label'
+import { Button } from '@/app/components/ui/button'
 
 const EMPTY: SetPasswordState = { error: null }
 
@@ -65,13 +66,12 @@ export default function SetPasswordForm() {
             </div>
             {/* ★ 原生 button:`button` 仍在隔离闸的 GUARDED 里,C-1 只毕业了
                 input / label / select。见 CreateAccountPanel 抬头的同一段说明。 */}
-            <button
+            <Button
                 type="submit"
                 disabled={pending}
-                className="bg-gray-900 text-white px-4 py-2 rounded text-sm disabled:opacity-50"
             >
                 {pending ? t('common.saving') : t('setPassword.submit')}
-            </button>
+            </Button>
         </form>
     )
 }

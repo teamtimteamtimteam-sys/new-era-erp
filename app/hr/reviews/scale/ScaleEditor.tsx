@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from '@/lib/i18n/client'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
 import { saveRatingScale } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 export type ScaleRow = {
     code: string
@@ -199,14 +200,13 @@ export default function ScaleEditor({ rows }: { rows: ScaleRow[] }) {
                         <input type="number" value={nSort} onChange={(e) => setNSort(e.target.value)}
                                className={`block ${inp} w-20 text-right`} />
                     </label>
-                    <button
+                    <Button size="sm"
                         type="button"
                         onClick={add}
                         disabled={pending || !nCode.trim() || !nEn.trim() || !nZh.trim()}
-                        className="bg-gray-900 text-white px-3 py-1.5 rounded text-sm disabled:opacity-50"
                     >
                         {t('common.save')}
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>

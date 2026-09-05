@@ -61,6 +61,26 @@
     --brand-destructive: #C0635A; /* 【推导】ocean 的 L/C + H=27°;文字/描边用 */
     --brand-destructive-fill: #B75B53; /* 【推导】压到白字 4.53:1;按钮底用 */
     --brand-destructive-fill-hover: #A64C45; /* 【推导】再压 L 0.05 */
+    /* ── BTN-1(2026-09-06):【破坏档的字色】—— 因为 4.53:1 是【对着白底】量的 ──
+       库里的 destructive 变体把字画在 bg-destructive 的一层淡色底上,不是白底。
+       实测:#B75B53 画在 8% 淡底 #F9F2F1 上只有 4.01:1 —— 【低于 AA】。
+       一个"合规"的 token 用错了底,量出来仍然是不合规的:4.53 那个数
+       从来没有描述过这个用法。所以按同一条路(压 L)另出一档【只给字用】。 */
+    --brand-destructive-text: #AA4F48; /* 【推导】destructive-fill 压 L 0.04;
+                                          8% 淡底上 4.85:1 ✓ · 白底 5.36:1 ✓ */
+
+    /* ── 五、★【选定,不是推导】警告档 —— BTN-1(2026-09-06)★ ────────────
+       ★★ 这一档【不是从品牌指南来的】。指南里【没有警告色】—— 一个都没有。★★
+       Tim 在 BTN-1 的闸上给了 #B45309,并明确要求把【怎么选的】写在这里:
+         · 它不是品牌决定,是一个【为了过对比度地板而定的权宜值】;
+         · 取 amber-600(闲置对话框今天用的 #D97706,白字仅 3.19:1 —— 不合格)
+           【再深一档】,所以它留在同一个色族里,而不是凭空多出一个新颜色;
+         · 白字实测 5.02:1 ✓ AA(委托书上写的是 4.53,那个数偏低,不影响结论)。
+       ☞ 【给将来真正选定警告色的那个人】:这三行是可以整体替换的,
+          不必为了兼容而保留 #B45309。它没有出处,只有一条理由。 */
+    --brand-warning-fill: #B45309; /* 【选定】白字 5.02:1;出处见上,非指南色 */
+    --brand-warning-fill-hover: #A04700; /* 【推导】压 L 0.05(C 触 sRGB 边界,已收敛) */
+    --brand-warning-fill-active: #8A3D00; /* 【推导】压 L 0.10(同上) */
 
     /* ── 四、【推导】中性档 —— 指南只给了背景,没给卡片面、边框、次级文字 ──
        全部由【指南的 TEXT 与 BACKGROUND 在 OKLab 里按比例插值】得出,
@@ -158,7 +178,17 @@
     --color-muted-foreground: var(--brand-muted-text);
     --color-accent: var(--brand-accent);
     --color-accent-foreground: var(--brand-text);
+    --color-primary-hover: var(--brand-ocean-fill-hover); /* BTN-1 */
+    --color-primary-active: var(--brand-ocean-fill-active); /* BTN-1 */
     --color-destructive: var(--brand-destructive-fill);
+    --color-destructive-text: var(--brand-destructive-text); /* BTN-1:淡底上的字 */
+    --color-warning: var(--brand-warning-fill); /* BTN-1 */
+    --color-warning-foreground: #FFFFFF; /* BTN-1 */
+    --color-warning-hover: var(--brand-warning-fill-hover); /* BTN-1 */
+    --color-warning-active: var(--brand-warning-fill-active); /* BTN-1 */
+    /* ★ BTN-1:禁用档【有自己的颜色】,不是把按钮调淡。理由见 button.tsx 抬头。 */
+    --color-disabled-bg: var(--brand-disabled-bg); /* BTN-1 */
+    --color-disabled-text: var(--brand-text); /* BTN-1:disabled-bg 上 11.27:1 ✓ */
     --color-border: var(--brand-border);
     --color-input: var(--brand-border-strong);
     --color-ring: var(--brand-ring);

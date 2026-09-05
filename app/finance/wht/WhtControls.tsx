@@ -6,6 +6,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { remitWht } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 type Month = { month: string; label: string; amount: string }
 
@@ -75,7 +76,7 @@ export function RemitControl({ months }: { months: Month[] }) {
             </div>
 
             <div className="mt-3 flex items-center gap-3">
-                <button type="button" disabled={incomplete || busy}
+                <Button type="button" disabled={incomplete || busy}
                         onClick={() => start(async () => {
                             const r = await remitWht(month, on, ref, bank, notes)
                             if (r.error) { setErr(r.error); setOk('') }
@@ -89,10 +90,9 @@ export function RemitControl({ months }: { months: Month[] }) {
                                 setMonth(''); setOn(''); setRef(''); setNotes('')
                                 router.refresh()
                             }
-                        })}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400">
+                        })}>
                     {busy ? t('common.saving') : t('wht.remitSubmit')}
-                </button>
+                </Button>
                 {/* 【禁用要说出理由,而不是把控件藏起来】 */}
                 {incomplete && (
                     <span className="text-sm text-amber-700">

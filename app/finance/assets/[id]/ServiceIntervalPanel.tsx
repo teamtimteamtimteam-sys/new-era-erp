@@ -42,6 +42,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { saveServiceInterval, deleteServiceInterval } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 export type IntervalRow = {
     interval_id: string | null
@@ -177,10 +178,9 @@ export default function ServiceIntervalPanel({
             <div className="flex items-baseline gap-3 mb-2">
                 <h2 className="text-lg font-medium">{t('equipment.intervals.title')}</h2>
                 {canEdit && (
-                    <button type="button" onClick={openNew} disabled={pending}
-                            className="border border-gray-400 px-2 py-1 rounded text-xs hover:bg-gray-50 disabled:opacity-50">
+                    <Button variant="secondary" size="xs" type="button" onClick={openNew} disabled={pending}>
                         {t('equipment.intervals.add')}
-                    </button>
+                    </Button>
                 )}
             </div>
             {!canEdit && <p className="text-xs text-gray-500 mb-2">{t('equipment.needsProcessingEdit')}</p>}
@@ -344,17 +344,15 @@ export default function ServiceIntervalPanel({
                     <p className="text-xs text-gray-600">{t('equipment.intervals.atLeastOneHint')}</p>
                     <p className="text-xs text-gray-600">{t('equipment.intervals.leadHint')}</p>
                     <div className="flex gap-2">
-                        <button type="button" disabled={pending}
+                        <Button size="xs" type="button" disabled={pending}
                                 onClick={() => run(() => saveServiceInterval({
                                     assetId, intervalId: editing === 'new' ? null : editing, ...f,
-                                }))}
-                                className="border border-gray-600 bg-gray-800 text-white px-3 py-1 rounded text-xs disabled:opacity-50">
+                                }))}>
                             {t('common.save')}
-                        </button>
-                        <button type="button" disabled={pending} onClick={() => { setEditing(null); setError(null) }}
-                                className="border border-gray-400 px-3 py-1 rounded text-xs hover:bg-gray-50 disabled:opacity-50">
+                        </Button>
+                        <Button variant="secondary" size="xs" type="button" disabled={pending} onClick={() => { setEditing(null); setError(null) }}>
                             {t('common.cancel')}
-                        </button>
+                        </Button>
                     </div>
                 </div>
             )}

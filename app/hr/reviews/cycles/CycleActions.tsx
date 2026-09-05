@@ -6,6 +6,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { closeCycle, openCycle } from '../actions'
+import { Button } from '@/app/components/ui/button'
 
 export default function CycleActions({ cycleId, status }: { cycleId: string; status: string }) {
     const t = useTranslations()
@@ -37,22 +38,20 @@ export default function CycleActions({ cycleId, status }: { cycleId: string; sta
             {status === 'open' && (
                 <>
                     {/* 幂等重跑:新入职转正的人补一份草稿 */}
-                    <button
+                    <Button variant="secondary" size="sm"
                         type="button"
                         onClick={() => run(() => openCycle(cycleId))}
                         disabled={pending}
-                        className="border border-gray-300 px-3 py-1 rounded hover:bg-gray-50 text-sm disabled:opacity-50"
                     >
                         {t('reviews.rerunCycle')}
-                    </button>
-                    <button
+                    </Button>
+                    <Button variant="secondary" size="sm"
                         type="button"
                         onClick={() => run(() => closeCycle(cycleId))}
                         disabled={pending}
-                        className="border border-gray-300 px-3 py-1 rounded hover:bg-gray-50 text-sm disabled:opacity-50"
                     >
                         {t('reviews.closeCycle')}
-                    </button>
+                    </Button>
                 </>
             )}
             {error && <span className="text-xs text-red-700">{error}</span>}

@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { disposeAsset, commissionAsset } from '../month-end/actions'
 import { setPlannedInService } from './[id]/actions'
+import { Button } from '@/app/components/ui/button'
 
 export default function AssetActions({
     assetId, code, status, inServiceDate, plannedInServiceDate, acquisitionDate, hasCost, canEdit, bankAccounts,
@@ -65,16 +66,14 @@ export default function AssetActions({
             {error && <p className="text-red-600 text-xs mb-1">{error}</p>}
 
             <div className="flex flex-wrap items-center gap-2">
-                <button type="button" disabled={pending || commissionWhy !== ''}
-                        onClick={() => setOpen(open === 'commission' ? '' : 'commission')}
-                        className="border border-gray-400 px-2 py-1 rounded text-xs hover:bg-gray-50 disabled:opacity-50">
+                <Button variant="secondary" size="xs" type="button" disabled={pending || commissionWhy !== ''}
+                        onClick={() => setOpen(open === 'commission' ? '' : 'commission')}>
                     {t('assets.actions.commission')}
-                </button>
-                <button type="button" disabled={pending || disposeWhy !== ''}
-                        onClick={() => setOpen(open === 'dispose' ? '' : 'dispose')}
-                        className="border border-gray-400 px-2 py-1 rounded text-xs hover:bg-gray-50 disabled:opacity-50">
+                </Button>
+                <Button variant="secondary" size="xs" type="button" disabled={pending || disposeWhy !== ''}
+                        onClick={() => setOpen(open === 'dispose' ? '' : 'dispose')}>
                     {t('assets.actions.dispose')}
-                </button>
+                </Button>
                 {/* FIX-1:记一个【计划】投用日。
                     没有这扇门,"那是计划投用日"那句拒绝就是一条死路(D6:拒绝要说去哪儿)。
                     它【永远可点】—— 计划与在不在役无关,已投用的机器也可能有下一次计划。 */}

@@ -9,6 +9,7 @@ import GrantRunner from './GrantRunner'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { Button } from '@/app/components/ui/button'
 
 export default async function GrantsPage({
     searchParams,
@@ -43,9 +44,9 @@ export default async function GrantsPage({
                     <input type="number" name="year" defaultValue={year}
                            className="mt-1 block border border-gray-300 rounded px-2 py-1 text-sm w-28" />
                 </label>
-                <button type="submit" className="border border-gray-300 rounded px-3 py-1 text-sm">
+                <Button variant="secondary" size="sm" type="submit">
                     {t('leave.filter')}
-                </button>
+                </Button>
             </form>
 
             <GrantRunner year={year} alreadyCarried={hasCarry.size} />

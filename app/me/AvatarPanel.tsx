@@ -35,6 +35,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import AvatarImage from '@/app/components/nav/AvatarImage'
 import { uploadAvatar, removeAvatar, type AvatarState } from './avatarActions'
 import { AVATAR_ALLOWED_MIME } from '@/lib/avatar'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: AvatarState = {}
 
@@ -99,28 +100,26 @@ export default function AvatarPanel({
                             人在选文件【之前】就知道会被拒什么,比事后一句红字好。 */}
                         <p className="text-xs text-gray-500 mt-1">{t('me.avatarHint')}</p>
                     </div>
-                    <button
+                    <Button
                         type="submit"
                         disabled={pending}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                     >
                         {pending ? t('me.avatarUploading') : t('me.avatarUpload')}
-                    </button>
+                    </Button>
                     {/* 【移除永远画着】—— 页面不知道对象在不在(顶栏也不知道,理由同一条),
                         所以这里不能按"有没有头像"来决定画不画这个按钮。对一个本来
                         就没有头像的人按下去是一次无害的空操作,而把按钮藏起来则需要
                         先花一趟往返去问一个不必问的问题。 */}
-                    <button
+                    <Button variant="destructive"
                         type="button"
                         disabled={removing || pending}
                         onClick={() => startRemove(async () => {
                             const r = await removeAvatar()
                             setRemoveError(r.error ?? null)
                         })}
-                        className="border border-red-300 text-red-600 px-4 py-2 rounded hover:bg-red-50 disabled:opacity-50"
                     >
                         {t('me.avatarRemove')}
-                    </button>
+                    </Button>
                 </form>
             </div>
         </fieldset>

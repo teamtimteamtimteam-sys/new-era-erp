@@ -6,6 +6,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { createRole, updateRole, softDeleteRole } from '../accountsActions'
+import { Button } from '@/app/components/ui/button'
 
 export type RoleFormValues = {
     id?: string
@@ -153,14 +154,13 @@ export default function RoleForm({ initial }: { initial: RoleFormValues }) {
             )}
 
             <div className="flex items-center gap-3">
-                <button
+                <Button size="sm"
                     type="button"
                     onClick={save}
                     disabled={pending}
-                    className="bg-gray-900 text-white px-4 py-1.5 rounded text-sm disabled:opacity-50"
                 >
                     {pending ? t('common.saving') : t('common.save')}
-                </button>
+                </Button>
 
                 {!isNew && !initial.is_system && (
                     <button

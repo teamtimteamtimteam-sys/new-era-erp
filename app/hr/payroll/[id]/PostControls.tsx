@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount } from '@/lib/format'
 import { postPayroll, unpostPayroll } from '../actions'
+import { Button } from '@/app/components/ui/button'
 
 export function PostPayrollButton({
     periodId,
@@ -45,14 +46,13 @@ export function PostPayrollButton({
 
     return (
         <div className="flex flex-wrap items-center gap-3">
-            <button
+            <Button
                 type="button"
                 onClick={onPost}
                 disabled={isPending}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
             >
                 {isPending ? t('common.saving') : t('hr.postPayroll')}
-            </button>
+            </Button>
             {error && <span className="text-sm text-red-600">{error}</span>}
         </div>
     )

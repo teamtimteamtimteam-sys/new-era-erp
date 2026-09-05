@@ -20,6 +20,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { soStatusKey } from '../../salesOrderTypes'
 import { amendOrder, type AmendState } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 export type AmendLine = {
     id: string
@@ -301,10 +302,9 @@ export default function AmendOrderForm({
                 )}
 
                 <div className="flex gap-3 pt-2">
-                    <button type="submit" disabled={isPending || frozen}
-                            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400">
+                    <Button type="submit" disabled={isPending || frozen}>
                         {isPending ? t('common.saving') : t('sales.amend.submit')}
-                    </button>
+                    </Button>
                     <Link href={`/sales/orders/${orderId}`}
                           className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50">
                         {t('common.cancel')}

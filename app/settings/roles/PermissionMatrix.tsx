@@ -11,6 +11,7 @@
 import { useState, useTransition } from 'react'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { saveRolePermissions } from '../accountsActions'
+import { Button } from '@/app/components/ui/button'
 
 export type PermissionRow = {
     code: string
@@ -179,14 +180,13 @@ export default function PermissionMatrix({
                 ))}
             </div>
 
-            <button
+            <Button size="sm"
                 type="button"
                 onClick={save}
                 disabled={pending || disabled}
-                className="bg-gray-900 text-white px-4 py-1.5 rounded text-sm disabled:opacity-50"
             >
                 {pending ? t('common.saving') : t('permissions.savePermissions')}
-            </button>
+            </Button>
         </div>
     )
 }

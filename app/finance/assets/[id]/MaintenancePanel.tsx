@@ -52,6 +52,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { recordMaintenance, capitaliseMaintenance } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 export type MaintRow = {
     id: string
@@ -214,10 +215,9 @@ export default function MaintenancePanel({
             <div className="flex items-baseline gap-3 mb-2">
                 <h2 className="text-lg font-medium">{t('equipment.maint.title')}</h2>
                 {canEdit && (
-                    <button type="button" onClick={() => setOpen(!open)} disabled={pending}
-                            className="border border-gray-400 px-2 py-1 rounded text-xs hover:bg-gray-50 disabled:opacity-50">
+                    <Button variant="secondary" size="xs" type="button" onClick={() => setOpen(!open)} disabled={pending}>
                         {t('equipment.maint.add')}
-                    </button>
+                    </Button>
                 )}
             </div>
             {!canEdit && <p className="text-xs text-gray-500 mb-2">{t('equipment.needsProcessingEdit')}</p>}
@@ -355,14 +355,12 @@ export default function MaintenancePanel({
                     </div>
 
                     <div className="flex gap-2 items-center">
-                        <button type="button" disabled={pending || why !== ''} onClick={submit}
-                                className="border border-gray-600 bg-gray-800 text-white px-3 py-1 rounded text-xs disabled:opacity-50">
+                        <Button size="xs" type="button" disabled={pending || why !== ''} onClick={submit}>
                             {t('common.save')}
-                        </button>
-                        <button type="button" disabled={pending} onClick={() => { setOpen(false); setError(null) }}
-                                className="border border-gray-400 px-3 py-1 rounded text-xs hover:bg-gray-50 disabled:opacity-50">
+                        </Button>
+                        <Button variant="secondary" size="xs" type="button" disabled={pending} onClick={() => { setOpen(false); setError(null) }}>
                             {t('common.cancel')}
-                        </button>
+                        </Button>
                         {/* 【禁用了就把理由摆在旁边】—— 一个按不下去又不说为什么的
                             按钮读起来像是坏了(AssetActions 立的规矩)。 */}
                         {why && <span className="text-xs text-gray-600">{why}</span>}
@@ -469,10 +467,9 @@ function CapitaliseControl({ assetId, maintenanceId, performedOn, suppliers, bas
                         className="border border-gray-600 bg-gray-800 text-white px-2 py-1 rounded text-xs disabled:opacity-50">
                     {t('equipment.maint.capitaliseAction')}
                 </button>
-                <button type="button" disabled={pending} onClick={() => { setOpen(false); setError(null) }}
-                        className="border border-gray-400 px-2 py-1 rounded text-xs hover:bg-gray-50 disabled:opacity-50">
+                <Button variant="secondary" size="xs" type="button" disabled={pending} onClick={() => { setOpen(false); setError(null) }}>
                     {t('common.cancel')}
-                </button>
+                </Button>
                 {why && <span className="text-xs text-gray-600">{why}</span>}
             </div>
         </div>

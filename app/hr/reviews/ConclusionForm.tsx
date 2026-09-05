@@ -6,6 +6,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from '@/lib/i18n/client'
 import { setConclusion } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 export type RatingOption = {
     code: string
@@ -92,14 +93,13 @@ export default function ConclusionForm({ reviewId, ratings, ratingCode, summaryT
                         className="block w-full border border-gray-300 rounded px-2 py-1 text-sm min-h-20"
                     />
                 </label>
-                <button
+                <Button size="sm"
                     type="button"
                     onClick={save}
                     disabled={pending}
-                    className="bg-gray-900 text-white px-3 py-1.5 rounded text-sm disabled:opacity-50"
                 >
                     {pending ? t('common.saving') : t('common.save')}
-                </button>
+                </Button>
             </div>
         </div>
     )

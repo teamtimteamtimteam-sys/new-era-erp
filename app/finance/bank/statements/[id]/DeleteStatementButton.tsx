@@ -5,6 +5,7 @@
 import { useTransition } from 'react'
 import { deleteStatement } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
+import { Button } from '@/app/components/ui/button'
 
 export default function DeleteStatementButton({ statementId }: { statementId: string }) {
     const t = useTranslations()
@@ -23,12 +24,11 @@ export default function DeleteStatementButton({ statementId }: { statementId: st
     }
 
     return (
-        <button
+        <Button variant="destructive" size="sm"
             onClick={handleClick}
             disabled={isPending}
-            className="border border-red-300 text-red-600 px-3 py-1 rounded hover:bg-red-50 disabled:opacity-50"
         >
             {isPending ? t('common.deleting') : t('common.delete')}
-        </button>
+        </Button>
     )
 }

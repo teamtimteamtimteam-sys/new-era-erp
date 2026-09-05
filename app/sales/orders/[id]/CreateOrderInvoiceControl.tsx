@@ -12,6 +12,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { createOrderInvoice } from '../actions'
+import { Button } from '@/app/components/ui/button'
 
 export default function CreateOrderInvoiceControl({
     orderId,
@@ -48,14 +49,13 @@ export default function CreateOrderInvoiceControl({
                         className="border border-gray-300 px-2 py-1 rounded text-sm"
                     />
                 </div>
-                <button
+                <Button variant="secondary" size="sm"
                     type="button"
                     onClick={go}
                     disabled={isPending || issueDate.trim() === ''}
-                    className="border border-gray-400 px-3 py-1 rounded text-sm hover:bg-gray-50 disabled:opacity-50"
                 >
                     {isPending ? t('common.saving') : t('sales.invoice.create', { n: String(unbilledCount) })}
-                </button>
+                </Button>
             </div>
             <p className="text-xs text-gray-500 mt-1">
                 {issueDate.trim() === '' ? t('sales.invoice.dateRequired') : t('sales.invoice.consequence')}

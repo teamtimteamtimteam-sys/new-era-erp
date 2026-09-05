@@ -6,6 +6,7 @@ import { useActionState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { saveDepartment, type DepartmentFormState } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: DepartmentFormState = {}
 
@@ -111,13 +112,12 @@ export default function DepartmentForm({
             </div>
 
             <div className="flex gap-3 pt-2">
-                <button
+                <Button
                     type="submit"
                     disabled={isPending}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                 >
                     {isPending ? t('common.saving') : t('common.save')}
-                </button>
+                </Button>
                 <Link
                     href="/hr/departments"
                     className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"

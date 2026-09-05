@@ -25,6 +25,7 @@
 import { useActionState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { updateGrnThresholds, type GrnThresholdState } from './thresholdActions'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: GrnThresholdState = {}
 
@@ -87,10 +88,9 @@ export default function ReceivingThresholdPanel({
                             <p className="text-xs text-gray-500 mt-1">{t('grn.settings.assayWhen')}</p>
                         </div>
                     </div>
-                    <button type="submit" disabled={isPending}
-                            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400">
+                    <Button type="submit" disabled={isPending}>
                         {isPending ? t('common.saving') : t('common.save')}
-                    </button>
+                    </Button>
                 </form>
             ) : (
                 <div className="text-sm space-y-1">

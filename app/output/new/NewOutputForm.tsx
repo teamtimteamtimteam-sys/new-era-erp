@@ -7,6 +7,7 @@ import { UNIT_OPTIONS } from '../../materials/options'
 import { STATE_OPTIONS } from '../../inbound/options'
 import { useTranslations } from '@/lib/i18n/client'
 import LocationPicker, { type LocationChoice } from '@/app/components/inventory/LocationPicker'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: CreateOutputState = {}
 
@@ -217,13 +218,12 @@ export default function NewOutputForm({
                     <p className="text-sm text-amber-700">{t('output.form.blockedOutputDate')}</p>
                 )}
                 <div className="flex gap-3 pt-4">
-                    <button
+                    <Button
                         type="submit"
                         disabled={isPending || !outputDate}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                     >
                         {isPending ? t('common.saving') : t('common.save')}
-                    </button>
+                    </Button>
                     <Link
                         href="/output"
                         className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"

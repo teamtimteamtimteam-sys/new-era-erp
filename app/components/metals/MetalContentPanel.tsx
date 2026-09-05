@@ -9,6 +9,7 @@ import {
     type MetalContentRow,
     type MetalOption,
 } from './metalContentTypes'
+import { Button } from '@/app/components/ui/button'
 
 export default function MetalContentPanel({
     rows,
@@ -212,14 +213,13 @@ export default function MetalContentPanel({
                     onChange={setPctInput}
                     className="w-32 border border-gray-300 px-3 py-2 rounded"
                 />
-                <button
+                <Button
                     type="button"
                     onClick={handleSave}
                     disabled={isPending}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                 >
                     {t('metalContent.save')}
-                </button>
+                </Button>
             </div>
         </section>
     )

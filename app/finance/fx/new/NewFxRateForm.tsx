@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { createFxRate, type CreateFxRateState } from './actions'
 import FxRateFormFields from '../FxRateFormFields'
 import { useTranslations } from '@/lib/i18n/client'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: CreateFxRateState = {}
 
@@ -37,13 +38,12 @@ export default function NewFxRateForm({ currencies }: { currencies: string[] }) 
                 />
 
                 <div className="flex gap-3 pt-4">
-                    <button
+                    <Button
                         type="submit"
                         disabled={isPending}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                     >
                         {isPending ? t('common.saving') : t('common.save')}
-                    </button>
+                    </Button>
                     <Link
                         href="/finance/fx"
                         className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"

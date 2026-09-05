@@ -9,6 +9,7 @@ import { COST_TYPE_OPTIONS, costTypeLabelKey, type CostEntryRow } from './costTy
 import { addCostEntry, updateCostEntry, softDeleteCostEntry } from './costActions'
 import { MaskedValue } from '@/app/components/MaskedValue'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { Button } from '@/app/components/ui/button'
 
 export default function CostPanel({
     runId,
@@ -210,13 +211,12 @@ export default function CostPanel({
                     placeholder={t('processing.cost.notesPlaceholder')}
                     className="flex-1 min-w-[8rem] border border-gray-300 px-3 py-2 rounded"
                 />
-                <button
+                <Button
                     type="submit"
                     disabled={isPending}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                 >
                     {t('processing.cost.save')}
-                </button>
+                </Button>
                 {editing && (
                     <button
                         type="button"

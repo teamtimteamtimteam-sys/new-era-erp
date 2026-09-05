@@ -19,6 +19,7 @@
 import { useActionState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { updateWoThresholds, type WoThresholdState } from './thresholdActions'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: WoThresholdState = {}
 
@@ -69,10 +70,9 @@ export default function WoThresholdPanel({
                                    className="w-32 border border-gray-300 px-3 py-2 rounded" />
                             <p className="text-xs text-gray-500 mt-1">{t('processing.wo.settings.outputWhen')}</p>
                         </div>
-                        <button type="submit" disabled={isPending}
-                                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400">
+                        <Button type="submit" disabled={isPending}>
                             {isPending ? t('common.saving') : t('common.save')}
-                        </button>
+                        </Button>
                     </div>
                 </form>
             ) : (

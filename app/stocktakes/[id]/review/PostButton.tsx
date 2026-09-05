@@ -6,6 +6,7 @@
 import { useState, useTransition } from 'react'
 import { postStocktake } from '../../actions'
 import { useTranslations } from '@/lib/i18n/client'
+import { Button } from '@/app/components/ui/button'
 
 export default function PostButton({ stocktakeId }: { stocktakeId: string }) {
     const t = useTranslations()
@@ -32,13 +33,12 @@ export default function PostButton({ stocktakeId }: { stocktakeId: string }) {
                     {error}
                 </div>
             )}
-            <button
+            <Button
                 onClick={handleClick}
                 disabled={isPending}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
             >
                 {isPending ? t('common.saving') : t('stocktakes.postButton')}
-            </button>
+            </Button>
         </div>
     )
 }

@@ -14,6 +14,7 @@ import type { MetalPriceIndex } from '@/app/tools/pricing/metal-prices/indexOpti
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import type { MetalOption } from '@/app/tools/pricing/metal-prices/options'
 import type { FormulaState } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: FormulaState = {}
 
@@ -385,13 +386,12 @@ export default function FormulaForm({
             </div>
 
             <div className="flex gap-3 pt-2">
-                <button
+                <Button
                     type="submit"
                     disabled={isPending}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                 >
                     {isPending ? t('common.saving') : t('pricing.form.submit')}
-                </button>
+                </Button>
                 <Link href="/tools/pricing/formulas" className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50">
                     {t('common.cancel')}
                 </Link>

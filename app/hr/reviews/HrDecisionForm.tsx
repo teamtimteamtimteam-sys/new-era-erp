@@ -11,6 +11,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { saveHrDecision } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 type Props = {
     reviewId: string
@@ -123,14 +124,13 @@ export default function HrDecisionForm({
                 )}
 
                 {editable && (
-                    <button
+                    <Button size="sm"
                         type="button"
                         onClick={save}
                         disabled={pending || salaryHalf}
-                        className="bg-gray-900 text-white px-3 py-1.5 rounded text-sm disabled:opacity-50"
                     >
                         {pending ? t('common.saving') : t('common.save')}
-                    </button>
+                    </Button>
                 )}
             </div>
             {salaryHalf && editable && (

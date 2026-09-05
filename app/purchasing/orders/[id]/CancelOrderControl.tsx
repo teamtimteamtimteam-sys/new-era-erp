@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 import ReasonPrompt from '@/app/components/ReasonPrompt'
 import { cancelOrder } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
+import { Button } from '@/app/components/ui/button'
 
 // FIX-2(B1):**禁用并把理由摆在旁边,不是把控件拿掉。**
 // 本仓库的规矩:问题【不适用】就藏起来,问题适用但【被挡住】就变灰加一句话。
@@ -26,10 +27,9 @@ export default function CancelOrderControl({ poId, blockedWhy }: {
         // 加上它,按钮保持自然宽度,理由自己占一行。
         return (
             <div className="inline-flex flex-col items-start">
-                <button type="button" disabled
-                        className="border border-gray-300 text-gray-400 px-3 py-1.5 rounded text-sm cursor-not-allowed">
+                <Button variant="destructive" size="sm" type="button" disabled>
                     {t('purchasing.cancelOrder')}
-                </button>
+                </Button>
                 <span className="text-xs text-amber-700 mt-1">{blockedWhy}</span>
             </div>
         )

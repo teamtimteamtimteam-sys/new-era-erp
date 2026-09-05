@@ -13,6 +13,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount } from '@/lib/format'
 import DecimalInput, { parseDecimal } from '@/app/components/forms/DecimalInput'
 import { savePayrollPeriod, type PayrollFormState, type PayrollLineInput } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: PayrollFormState = {}
 
@@ -301,13 +302,12 @@ export default function PayrollGrid({
             )}
 
             <div className="flex gap-3 pt-2">
-                <button
+                <Button
                     type="submit"
                     disabled={isPending || anyBad || active.length === 0}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                 >
                     {isPending ? t('common.saving') : t('common.save')}
-                </button>
+                </Button>
                 <Link href="/hr/payroll" className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50">
                     {t('common.cancel')}
                 </Link>

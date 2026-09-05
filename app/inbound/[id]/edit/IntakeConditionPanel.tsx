@@ -28,6 +28,7 @@ import { setIntakeCondition } from './intakeConditionActions'
 import IntakeConditionFields, {
     CERTAINTY_UNCHOSEN, type SafetyState, type Certainty,
 } from '@/app/inbound/IntakeConditionFields'
+import { Button } from '@/app/components/ui/button'
 
 export { CERTAINTY_UNCHOSEN }
 export type { SafetyState, Certainty }
@@ -79,10 +80,9 @@ export default function IntakeConditionPanel({
 
                 {canEdit && (
                     <div className="flex gap-2 items-center">
-                        <button type="button" disabled={pending} onClick={save}
-                                className="border border-gray-600 bg-gray-800 text-white px-3 py-1 rounded text-xs disabled:opacity-50">
+                        <Button size="xs" type="button" disabled={pending} onClick={save}>
                             {t('common.save')}
-                        </button>
+                        </Button>
                         <span className="text-xs text-gray-500">{t('inbound.condition.saveHint')}</span>
                     </div>
                 )}

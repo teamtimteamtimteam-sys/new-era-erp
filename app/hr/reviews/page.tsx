@@ -23,6 +23,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import ReviewsTable, { type ReviewsTableRow } from './ReviewsTable'
+import { Button } from '@/app/components/ui/button'
 
 type EmployeeOpt = { id: string; code: string; legal_name: string }
 type CycleOpt = { id: string; name: string }
@@ -143,9 +144,9 @@ export default async function ReviewsPage({
                         ))}
                     </select>
                 </label>
-                <button type="submit" className="border border-gray-300 rounded px-3 py-1 text-sm">
+                <Button variant="secondary" size="sm" type="submit">
                     {t('reviews.filter')}
-                </button>
+                </Button>
             </form>
 
             <ReviewsTable rows={tableRows} empty={t('reviews.empty')} />

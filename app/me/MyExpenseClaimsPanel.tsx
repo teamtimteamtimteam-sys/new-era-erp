@@ -12,6 +12,7 @@
 import { useState, useTransition } from 'react'
 import { submitClaim, withdrawClaim } from '@/app/finance/claims/actions'
 import { useTranslations } from '@/lib/i18n/client'
+import { Button } from '@/app/components/ui/button'
 
 type Row = {
     claim_id: string; code: string; spend_date: string; amount_ccy: number
@@ -84,7 +85,7 @@ export default function MyExpenseClaimsPanel({
                         <input value={noReceipt} onChange={(e) => setNoReceipt(e.target.value)}
                             className="block w-full rounded border border-gray-300 px-3 py-2" />
                         <span className="block text-[11px] text-gray-500">{t('expenseClaims.noReceiptReasonHint')}</span></label>
-                    <button type="button" disabled={pending || !canSubmit}
+                    <Button type="button" disabled={pending || !canSubmit}
                         onClick={() => {
                             setError(null)
                             startTransition(async () => {
@@ -95,10 +96,9 @@ export default function MyExpenseClaimsPanel({
                                 if (r.error) setError(r.error)
                                 else { setOpen(false); setSpendDate(''); setAmount(''); setDescription(''); setNoReceipt('') }
                             })
-                        }}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm disabled:opacity-50">
+                        }}>
                         {t('expenseClaims.submit')}
-                    </button>
+                    </Button>
                 </div>
             )}
 

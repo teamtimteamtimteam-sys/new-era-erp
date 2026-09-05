@@ -12,6 +12,7 @@ import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { createQuote, type QuoteFormState } from '../actions'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: QuoteFormState = {}
 const LINE_SLOTS = 5
@@ -170,10 +171,9 @@ export default function NewQuoteForm({
 
                 <p className="text-xs text-gray-600">{t('quotes.form.savesAsDraft')}</p>
                 <div className="flex gap-3 pt-2">
-                    <button type="submit" disabled={isPending || blocked}
-                            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400">
+                    <Button type="submit" disabled={isPending || blocked}>
                         {isPending ? t('common.saving') : t('quotes.form.save')}
-                    </button>
+                    </Button>
                     <Link href="/sales/quotes"
                           className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50">
                         {t('common.cancel')}

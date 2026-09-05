@@ -16,6 +16,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { submitShiftHandover } from '../actions'
+import { Button } from '@/app/components/ui/button'
 
 export default function NewHandoverForm({ shifts, people, itemTypes, downtime }: {
     shifts: { code: string; label: string }[]
@@ -148,10 +149,9 @@ export default function NewHandoverForm({ shifts, people, itemTypes, downtime }:
 
             {error && <p className="text-sm text-red-700">{error}</p>}
 
-            <button type="button" onClick={submit} disabled={isPending}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400">
+            <Button type="button" onClick={submit} disabled={isPending}>
                 {isPending ? t('common.saving') : t('processing.handover.submit')}
-            </button>
+            </Button>
         </div>
     )
 }

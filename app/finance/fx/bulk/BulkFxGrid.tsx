@@ -9,6 +9,7 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { recordFxRatesBulk, type BulkCell } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 const TYPES = ['tt_buy', 'tt_sell', 'mid'] as const
 
@@ -130,12 +131,11 @@ export default function BulkFxGrid({
             </div>
 
             <div className="mt-4 flex items-center gap-4">
-                <button
+                <Button
                     type="button" onClick={submit} disabled={isPending}
-                    className="bg-gray-900 text-white px-4 py-2 rounded text-sm disabled:opacity-50"
                 >
                     {isPending ? t('common.saving') : t('finance.fxPage.bulk.save')}
-                </button>
+                </Button>
                 <span className="text-xs text-gray-600">{t('finance.fxPage.bulk.blanksSkipped')}</span>
             </div>
         </div>

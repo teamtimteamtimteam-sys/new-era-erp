@@ -16,6 +16,7 @@
 // 而这套系统的今天是新加坡的今天(db/fixtures/15)。
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
+import { Button } from '@/app/components/ui/button'
 
 export default function AgingAsOfControl({
     asOf,
@@ -52,13 +53,12 @@ export default function AgingAsOfControl({
                 />
             </label>
             {asOf !== today && (
-                <button
+                <Button variant="secondary"
                     type="button"
                     onClick={() => go(today)}
-                    className="rounded border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
                 >
                     {t('finance.agingAsOf.backToToday')}
-                </button>
+                </Button>
             )}
             <a
                 href={exportHref}

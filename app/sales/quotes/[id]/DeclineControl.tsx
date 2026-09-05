@@ -10,6 +10,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { declineQuote } from '../actions'
+import { Button } from '@/app/components/ui/button'
 
 export default function DeclineControl({ quoteId }: { quoteId: string }) {
     const t = useTranslations()
@@ -48,10 +49,9 @@ export default function DeclineControl({ quoteId }: { quoteId: string }) {
                     <input type="text" value={reason} onChange={(e) => setReason(e.target.value)}
                            className="w-full border border-gray-300 px-2 py-1 rounded text-sm" />
                 </div>
-                <button type="button" onClick={go} disabled={isPending || reason.trim() === ''}
-                        className="border border-gray-400 px-3 py-1 rounded text-sm hover:bg-gray-50 disabled:opacity-50">
+                <Button variant="secondary" size="sm" type="button" onClick={go} disabled={isPending || reason.trim() === ''}>
                     {isPending ? t('common.saving') : t('quotes.decline.action')}
-                </button>
+                </Button>
                 <button type="button" onClick={() => setOpen(false)}
                         className="text-gray-500 hover:underline text-xs">
                     {t('common.cancel')}

@@ -34,6 +34,7 @@ import {
     type OrderLineInput,
     type OrderTermInput,
 } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: CreateOrderState = {}
 
@@ -924,13 +925,12 @@ export default function NewOrderForm({
             </div>
 
             <div className="flex gap-3 pt-2">
-                <button
+                <Button
                     type="submit"
                     disabled={isPending || pctOver}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                 >
                     {isPending ? t('purchasing.form.submitting') : t('purchasing.form.submit')}
-                </button>
+                </Button>
                 <Link
                     href="/purchasing/orders"
                     className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"

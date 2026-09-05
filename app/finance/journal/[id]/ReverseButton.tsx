@@ -5,6 +5,7 @@
 import { useTransition } from 'react'
 import { reverseEntry } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
+import { Button } from '@/app/components/ui/button'
 
 export default function ReverseButton({ entryId }: { entryId: string }) {
     const t = useTranslations()
@@ -23,12 +24,11 @@ export default function ReverseButton({ entryId }: { entryId: string }) {
     }
 
     return (
-        <button
+        <Button variant="reversal" size="sm"
             onClick={handleClick}
             disabled={isPending}
-            className="border border-red-300 text-red-600 px-3 py-1 rounded hover:bg-red-50 disabled:opacity-50"
         >
             {isPending ? t('common.saving') : t('finance.reverse')}
-        </button>
+        </Button>
     )
 }

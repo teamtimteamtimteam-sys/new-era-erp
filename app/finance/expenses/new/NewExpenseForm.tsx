@@ -16,6 +16,7 @@ import { createExpense, type CreateExpenseState } from './actions'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { formatMoneyBare } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
+import { Button } from '@/app/components/ui/button'
 
 // EQP-1c-c:已登记、还能加成本的机器。
 // EQP-1c-c:资本支出的两扇门。**这个数组是 expense.form.capitalMode(.Hint) 那两族
@@ -609,13 +610,12 @@ export default function NewExpenseForm({
             </div>
 
             <div className="flex gap-3 pt-2">
-                <button
+                <Button
                     type="submit"
                     disabled={isPending}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                 >
                     {isPending ? t('expense.form.submitting') : t('expense.form.submit')}
-                </button>
+                </Button>
                 <Link
                     href="/finance/expenses"
                     className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"

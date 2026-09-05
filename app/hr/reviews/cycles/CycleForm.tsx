@@ -5,6 +5,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { createCycle } from '../actions'
+import { Button } from '@/app/components/ui/button'
 
 const inp = 'w-full border border-gray-300 rounded px-2 py-1 text-sm'
 
@@ -64,14 +65,13 @@ export default function CycleForm() {
                     {t('leave.notes')}
                     <input value={notes} onChange={(e) => setNotes(e.target.value)} className={`block ${inp} w-56`} />
                 </label>
-                <button
+                <Button size="sm"
                     type="button"
                     onClick={add}
                     disabled={pending || !name.trim() || !start || !end || !due}
-                    className="bg-gray-900 text-white px-3 py-1.5 rounded text-sm disabled:opacity-50"
                 >
                     {t('common.save')}
-                </button>
+                </Button>
             </div>
         </div>
     )

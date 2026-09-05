@@ -8,6 +8,7 @@ import { createManualEntry, type CreateEntryState } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: CreateEntryState = {}
 
@@ -232,13 +233,12 @@ export default function NewEntryForm(
                 ))}
             </div>
 
-            <button
+            <Button variant="secondary" size="sm"
                 type="button"
                 onClick={addRow}
-                className="border border-gray-300 px-3 py-1 rounded hover:bg-gray-50 text-sm"
             >
                 {t('finance.addLine')}
-            </button>
+            </Button>
 
             {/* 实时合计 + 平衡指示 */}
             <div className="bg-gray-50 rounded p-4 flex flex-wrap gap-8 text-sm items-center">
@@ -263,13 +263,12 @@ export default function NewEntryForm(
             </div>
 
             <div className="flex gap-3 pt-2">
-                <button
+                <Button
                     type="submit"
                     disabled={isPending}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                 >
                     {isPending ? t('common.saving') : t('finance.submitEntry')}
-                </button>
+                </Button>
                 <Link
                     href="/finance/journal"
                     className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"

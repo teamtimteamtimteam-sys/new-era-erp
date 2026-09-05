@@ -43,6 +43,35 @@
 //     明确标着 UNENFORCED —— 一个夸大自己的检查会被人忽略,而被忽略的检查
 //     比没有更坏(check-masked-reads 抬头那一课)。
 //
+// ════════════════════════════════════════════════════════════════════════════
+// ★★ BTN-1(2026-09-06):这道棘轮现在有【两个维度】,而第二个是本刀的理由 ★★
+// ════════════════════════════════════════════════════════════════════════════
+// 【为什么加这一维 —— 委托书自己的验收条款是量不出来的】
+//   BTN-1 的验收写着「组件库棘轮的基线必须缩短」。而本文件在那一刻只匹配
+//   `<table`,**一个按钮都看不见** —— 转换 123 个按钮,基线纹丝不动。
+//   Tim 的裁定:那不是把条款划掉,是【把这一维补上】。
+//
+// 【新债到达的速度是量出来的,不是估的】
+//   C-1b(8afa0b7,2026-09-04)量到 383 个手写 <button> / 200 个文件。
+//   BTN-1 开工前(6302ae2,2026-09-06)重新量:**391 / 205**。
+//   **两天 +8 处 / +5 个文件。** 没有闸的那两天,债按每天约 4 个按钮的速度回填。
+//   一次性转换 123 个而不留闸,三个月后就回到原处 —— 这一维就是为了那件事。
+//
+// 【两维共用一份基线文件,形状变了,而变化本身留在 diff 里】
+//   旧形状:{ __NOTE__, "<file>": n, … }        ← 全部是 <table>
+//   新形状:{ __NOTE__, table: {…}, button: {…} }
+//   ★ 迁移【没有放宽 table 那一维】:迁移前后都是 66 个文件 / 76 处,原样搬过去。
+//
+// 【它【不】看什么 —— 与 table 那一维同一条界线】
+//   ✗ app/components/ui/ —— 组件库自己就该有 <button>(button.tsx 正是落点)。
+//   ✗ 注释掉的代码 —— 先剥注释再匹配(CONV-8 的手机闸被自己的注释骗过一次)。
+//   ✗ `<Button`(大写)—— 那是库组件,正是我们要的东西。正则区分大小写。
+//
+// 【★ 它看得见"新增",看不见"改错了档"★ 说清楚,别高估它】
+//   一个本该是 destructive 的按钮写成了 default,这道闸【一声不吭】——
+//   它数的是"有没有用库",不是"档位对不对"。档位由人评审,
+//   判据写在 docs/base-components.md 与 app/components/ui/button.tsx 抬头。
+// ════════════════════════════════════════════════════════════════════════════
 // 用法:node scripts/check-component-library.mjs
 //       node scripts/check-component-library.mjs --update-baseline
 // 退出码:0 = 没有新增;1 = 有新增(点名 file:line)
@@ -87,28 +116,57 @@ function stripComments(src) {
     return out
 }
 
-const hits = []
+// ── 两个维度。加一维只要往这里加一行。────────────────────────────────────────
+// ★★【一个量出来的陷阱 —— 这道闸差一点只看得见 40% 的按钮】★★
+//   原来的写法是 `/<button[\s>]/`,要求标签名后面【同一行】还有一个空白字符。
+//   而本仓库的多行标签是这么写的:
+//         <button                    ← 这一行到此为止,后面什么都没有
+//             type="submit"
+//             onClick={…}
+//         >
+//   `.split('\n')` 已经把换行吃掉了,于是这一行【匹配不上】。
+//   实测:266 处里有 **158 处是多行标签** —— 旧写法只数到 108 处。
+//   ☞ 后果不是"数字偏小",是**这道闸对多行写法完全失效**:
+//     一个新写的多行 <button> 不会让闸变红,而那正是它存在的唯一理由。
+//   改法:`(?=[\s>]|$)` —— 行尾也算一个合法的边界。
+//   ★ 对 table 那一维【无影响】(实测新旧同为 66 个文件 / 76 处):
+//     本仓库的 <table> 全部写成 `<table className=…` 同一行。所以旧基线没有虚报,
+//     这次也【没有】因为换正则而把 table 的基线改大。
+const DIMS = [
+    { key: 'table',  re: /<table(?=[\s>]|$)/,  what: '手搓 <table>',  fix: '<DataTable> / <EditableTable>' },
+    { key: 'button', re: /<button(?=[\s>]|$)/, what: '手写 <button>', fix: '<Button>(档位见 button.tsx 抬头)' },
+]
+
+const hits = Object.fromEntries(DIMS.map((d) => [d.key, []]))
 for (const abs of walk(join(ROOT, 'app'))) {
     const file = relative(ROOT, abs)
     if (file.startsWith(LIBRARY_DIR)) continue
     const lines = stripComments(readFileSync(abs, 'utf8')).split('\n')
     lines.forEach((ln, idx) => {
-        if (/<table[\s>]/.test(ln)) hits.push({ file, line: idx + 1 })
+        for (const d of DIMS) if (d.re.test(ln)) hits[d.key].push({ file, line: idx + 1 })
     })
 }
 
-const counts = new Map()
-for (const h of hits) counts.set(h.file, (counts.get(h.file) ?? 0) + 1)
+const counts = Object.fromEntries(DIMS.map((d) => {
+    const m = new Map()
+    for (const h of hits[d.key]) m.set(h.file, (m.get(h.file) ?? 0) + 1)
+    return [d.key, m]
+}))
 
-const NOTE = '★ 这份基线【只会缩短】,不会变长。多一处 <table> → 闸变红;'
+const NOTE = '★ 这份基线【只会缩短】,不会变长。多一处 <table> 或 <button> → 闸变红;'
     + '少一处 → 顺手收紧。它不是白名单:白名单随新债增长,基线随还债缩短。'
     + '任何一刀想把它改大,必须在文档里解释为什么 —— 而 --update-baseline 让这件事留在 diff 里。'
+    + ' BTN-1(2026-09-06)加入 button 维度:table 维度原样搬迁,没有放宽。'
 
 if (process.argv.includes('--update-baseline')) {
-    const obj = { __NOTE__: NOTE,
-        ...Object.fromEntries([...counts].sort((a, b) => a[0].localeCompare(b[0]))) }
+    const obj = { __NOTE__: NOTE }
+    for (const d of DIMS) {
+        obj[d.key] = Object.fromEntries([...counts[d.key]].sort((a, b) => a[0].localeCompare(b[0])))
+    }
     writeFileSync(BASELINE, JSON.stringify(obj, null, 2) + '\n')
-    console.log(`✓ 基线已刷新:${counts.size} 个文件,共 ${hits.length} 处手搓 <table>。`)
+    for (const d of DIMS) {
+        console.log(`✓ 基线已刷新[${d.key}]:${counts[d.key].size} 个文件,共 ${hits[d.key].length} 处${d.what}。`)
+    }
     process.exit(0)
 }
 
@@ -122,43 +180,49 @@ try {
     process.exit(2)
 }
 
-const added = [], gone = []
-for (const [f, n] of counts) {
-    const was = base[f] ?? 0
-    if (n > was) added.push({ f, was, now: n })
-}
-for (const f of Object.keys(base)) {
-    if (f.startsWith('__')) continue            // __NOTE__ 不是一个文件
-    if ((counts.get(f) ?? 0) < base[f]) gone.push({ f, was: base[f], now: counts.get(f) ?? 0 })
-}
+// ── 逐维比对。任一维有新增 → 整道闸红。──────────────────────────────────────
+let red = 0
+for (const d of DIMS) {
+    const base_d = base[d.key]
+    if (!base_d || typeof base_d !== 'object') {
+        console.error(`✗ check-component-library:基线里没有 ${d.key} 这一维。`)
+        console.error('  缺一维【不是】空基线 —— 那会把历史债当成同样多的新债。')
+        console.error('  生成:node scripts/check-component-library.mjs --update-baseline')
+        process.exit(2)
+    }
+    const added = [], gone = []
+    for (const [f, n] of counts[d.key]) {
+        const was = base_d[f] ?? 0
+        if (n > was) added.push({ f, was, now: n })
+    }
+    for (const f of Object.keys(base_d)) {
+        if ((counts[d.key].get(f) ?? 0) < base_d[f]) gone.push({ f, was: base_d[f], now: counts[d.key].get(f) ?? 0 })
+    }
 
-console.log('== 手搓 <table> 的地方(app/,不含组件库自己)==')
-console.log('   判词:**这张表请改用 <DataTable> / <EditableTable>。**')
-console.log('   规矩的另一半(库里缺能力时先加进库)【本闸不检查】,见 docs/base-components.md。')
-console.log(`   基线:${Object.keys(base).filter((k) => !k.startsWith('__')).length} 个文件在册。本次扫到 ${hits.length} 处。`)
-console.log('')
+    console.log(`== ${d.what}(app/,不含组件库自己)==`)
+    console.log(`   判词:**请改用 ${d.fix}。**`)
+    console.log(`   基线:${Object.keys(base_d).length} 个文件在册。本次扫到 ${hits[d.key].length} 处。`)
 
-if (gone.length) {
-    console.log('· 少了几处 —— 有人改好了,或者文件动了。基线可以收紧:')
-    for (const g of gone) console.log(`    ${g.f}  ${g.was} → ${g.now}`)
-    console.log('  收紧:node scripts/check-component-library.mjs --update-baseline')
+    if (gone.length) {
+        console.log('· 少了几处 —— 有人改好了,或者文件动了。基线可以收紧:')
+        for (const g of gone) console.log(`    ${g.f}  ${g.was} → ${g.now}`)
+        console.log('  收紧:node scripts/check-component-library.mjs --update-baseline')
+    }
+
+    if (!added.length) {
+        console.log(`✓ 没有新增的${d.what}。`)
+        console.log('')
+        continue
+    }
+    red++
+    console.log(`✗ 新增 ${added.length} 处${d.what} —— 新页面必须用组件库:`)
+    for (const a of added) {
+        const where = hits[d.key].filter((h) => h.file === a.f).map((h) => `${h.file}:${h.line}`)
+        console.log(`   ${a.f}  基线 ${a.was} → 现在 ${a.now}`)
+        for (const w of where) console.log(`      ${w}`)
+    }
     console.log('')
 }
 
-if (!added.length) {
-    console.log('✓ 没有新增的手搓表格。')
-    process.exit(0)
-}
-
-console.log(`✗ 新增 ${added.length} 处手搓 <table> —— 新页面必须用组件库:`)
-for (const a of added) {
-    const where = hits.filter((h) => h.file === a.f).map((h) => `${h.file}:${h.line}`)
-    console.log(`   ${a.f}  基线 ${a.was} → 现在 ${a.now}`)
-    for (const w of where) console.log(`      ${w}`)
-}
-console.log('')
-console.log('改法:<DataTable>(只读)/ <EditableTable>(整行可编辑),见')
-console.log('  docs/list-page-template.md · docs/editable-grid-template.md · docs/detail-page-template.md')
-console.log('库里缺你要的能力时:**先把能力加进库,再用它** —— 不要内联"就这一次"。')
-console.log('**不要**为了让门变绿而直接刷新基线:基线只会缩短。')
-process.exit(1)
+console.log('规矩的另一半(库里缺能力时先加进库)【本闸不检查】,见 docs/base-components.md §八。')
+process.exit(red ? 1 : 0)

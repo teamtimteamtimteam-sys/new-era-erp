@@ -19,6 +19,7 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { previewStatement, issueStatement } from './statementActions'
 import { useTranslations } from '@/lib/i18n/client'
+import { Button } from '@/app/components/ui/button'
 
 type Preview = {
     opening_base: number; charges_base: number; credits_base: number
@@ -155,11 +156,10 @@ export default function StatementPanel({
                             placeholder={t('statements.supersedeReasonHint')}
                             className="block rounded border border-gray-300 bg-white px-3 py-2 w-72" />
                     </label>
-                    <button type="button" disabled={pending}
-                        onClick={() => run(() => issueStatement(customerId, from, to, reason))}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm disabled:opacity-50">
+                    <Button type="button" disabled={pending}
+                        onClick={() => run(() => issueStatement(customerId, from, to, reason))}>
                         {t('statements.issue')}
-                    </button>
+                    </Button>
                 </div>
             )}
 

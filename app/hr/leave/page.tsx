@@ -13,6 +13,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import LeaveRequestsTable, { type LeaveRequestRow } from './LeaveRequestsTable'
+import { Button } from '@/app/components/ui/button'
 
 type Row = {
     request_id: string
@@ -138,9 +139,9 @@ export default async function LeaveRequestsPage({
                     {t('leave.to')}
                     <input type="date" name="to" defaultValue={sp.to ?? ''} className={`block ${sel}`} />
                 </label>
-                <button type="submit" className="border border-gray-300 rounded px-3 py-1 text-sm">
+                <Button variant="secondary" size="sm" type="submit">
                     {t('leave.filter')}
-                </button>
+                </Button>
             </form>
 
             <LeaveRequestsTable rows={tableRows} empty={t('leave.noRequests')} />

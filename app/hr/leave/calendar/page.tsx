@@ -19,6 +19,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import MonthGrid, { DOW_KEYS, type CalendarItem } from '@/app/components/calendar/MonthGrid'
 import { expandRange } from '@/app/tools/calendar/sources'
+import { Button } from '@/app/components/ui/button'
 
 export default async function LeaveCalendarPage({
     searchParams,
@@ -76,9 +77,9 @@ export default async function LeaveCalendarPage({
                     <input type="month" name="month" defaultValue={month}
                            className="mt-1 block border border-gray-300 rounded px-2 py-1 text-sm" />
                 </label>
-                <button type="submit" className="border border-gray-300 rounded px-3 py-1 text-sm">
+                <Button variant="secondary" size="sm" type="submit">
                     {t('leave.filter')}
-                </button>
+                </Button>
             </form>
 
             <MonthGrid

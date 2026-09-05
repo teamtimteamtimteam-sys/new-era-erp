@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { createSalesOrder, type OrderFormState } from '../actions'
 import type { CreditRow } from '../salesOrderTypes'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: OrderFormState = {}
 const LINE_SLOTS = 5
@@ -152,10 +153,9 @@ export default function NewOrderForm({
                 {!orderDate && <p className="text-sm text-amber-700">{t('sales.form.blockedOrderDate')}</p>}
 
                 <div className="flex gap-3 pt-2">
-                    <button type="submit" disabled={isPending || !orderDate || !customerId}
-                            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400">
+                    <Button type="submit" disabled={isPending || !orderDate || !customerId}>
                         {isPending ? t('common.saving') : t('common.save')}
-                    </button>
+                    </Button>
                     <Link href="/sales/orders" className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50">
                         {t('common.cancel')}
                     </Link>

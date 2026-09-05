@@ -11,6 +11,7 @@ import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { triggerLabel, type PaymentTriggerEvent } from '@/lib/paymentTriggers'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { saveTemplate, type TemplateFormState, type TemplateLineInput } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: TemplateFormState = {}
 
@@ -257,13 +258,12 @@ export default function TemplateForm({
             </div>
 
             <div className="flex gap-3 pt-2">
-                <button
+                <Button
                     type="submit"
                     disabled={isPending || pctOver}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                 >
                     {isPending ? t('common.saving') : t('common.save')}
-                </button>
+                </Button>
                 <Link
                     href="/purchasing/payment-terms"
                     className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"

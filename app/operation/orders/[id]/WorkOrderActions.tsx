@@ -12,6 +12,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { releaseWorkOrder, closeWorkOrder, cancelWorkOrder } from '../actions'
+import { Button } from '@/app/components/ui/button'
 
 export default function WorkOrderActions({
     id, status, canEdit, hasRuns,
@@ -48,11 +49,10 @@ export default function WorkOrderActions({
             {error && <p className="text-sm text-red-600">{error}</p>}
 
             <div className="flex flex-wrap items-center gap-3">
-                <button type="button" disabled={isPending || releaseWhy !== ''}
-                        onClick={() => run(() => releaseWorkOrder(id))}
-                        className="text-sm border border-gray-400 px-3 py-1 rounded hover:bg-gray-50 disabled:opacity-50">
+                <Button variant="secondary" size="sm" type="button" disabled={isPending || releaseWhy !== ''}
+                        onClick={() => run(() => releaseWorkOrder(id))}>
                     {t('processing.wo.actions.release')}
-                </button>
+                </Button>
                 {releaseWhy && <span className="text-xs text-amber-700">{releaseWhy}</span>}
             </div>
 
@@ -60,12 +60,11 @@ export default function WorkOrderActions({
                 <input type="text" value={closeReason} placeholder={t('processing.wo.actions.closeReasonPlaceholder')}
                        onChange={(e) => setCloseReason(e.target.value)} disabled={closeWhy !== ''}
                        className="border border-gray-300 px-2 py-1 rounded text-sm w-72 disabled:bg-gray-100" />
-                <button type="button"
+                <Button variant="secondary" size="sm" type="button"
                         disabled={isPending || closeWhy !== '' || closeReason.trim() === ''}
-                        onClick={() => run(() => closeWorkOrder(id, closeReason))}
-                        className="text-sm border border-gray-400 px-3 py-1 rounded hover:bg-gray-50 disabled:opacity-50">
+                        onClick={() => run(() => closeWorkOrder(id, closeReason))}>
                     {t('processing.wo.actions.close')}
-                </button>
+                </Button>
                 {closeWhy
                     ? <span className="text-xs text-amber-700">{closeWhy}</span>
                     : <span className="text-xs text-gray-500">{t('processing.wo.actions.closeWhy')}</span>}
@@ -75,12 +74,11 @@ export default function WorkOrderActions({
                 <input type="text" value={cancelReason} placeholder={t('processing.wo.actions.cancelReasonPlaceholder')}
                        onChange={(e) => setCancelReason(e.target.value)} disabled={cancelWhy !== ''}
                        className="border border-gray-300 px-2 py-1 rounded text-sm w-72 disabled:bg-gray-100" />
-                <button type="button"
+                <Button variant="destructive" size="sm" type="button"
                         disabled={isPending || cancelWhy !== '' || cancelReason.trim() === ''}
-                        onClick={() => run(() => cancelWorkOrder(id, cancelReason))}
-                        className="text-sm border border-gray-400 px-3 py-1 rounded hover:bg-gray-50 disabled:opacity-50">
+                        onClick={() => run(() => cancelWorkOrder(id, cancelReason))}>
                     {t('processing.wo.actions.cancel')}
-                </button>
+                </Button>
                 {cancelWhy && <span className="text-xs text-amber-700">{cancelWhy}</span>}
             </div>
         </div>

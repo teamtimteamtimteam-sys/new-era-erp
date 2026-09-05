@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { addCompliance, deleteCompliance } from './complianceActions'
 import { useTranslations } from '@/lib/i18n/client'
+import { Button } from '@/app/components/ui/button'
 
 type ComplianceRow = {
     id: string
@@ -227,13 +228,12 @@ export default function CompliancePanel({
                 </div>
 
                 <div className="pt-2">
-                    <button
+                    <Button
                         type="submit"
                         disabled={isPending}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                     >
                         {isPending ? t('suppliers.compliance.adding') : t('suppliers.compliance.addButton')}
-                    </button>
+                    </Button>
                 </div>
             </form>
         </section>

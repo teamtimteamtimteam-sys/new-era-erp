@@ -28,6 +28,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { openDowntime, closeDowntime } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 export type DowntimeRow = {
     id: string
@@ -109,10 +110,9 @@ export default function DowntimePanel({
             <div className="flex items-baseline gap-3 mb-2">
                 <h2 className="text-lg font-medium">{t('equipment.down.title')}</h2>
                 {canEdit && !openRow && (
-                    <button type="button" onClick={() => setOpen(!open)} disabled={pending}
-                            className="border border-gray-400 px-2 py-1 rounded text-xs hover:bg-gray-50 disabled:opacity-50">
+                    <Button variant="secondary" size="xs" type="button" onClick={() => setOpen(!open)} disabled={pending}>
                         {t('equipment.down.add')}
-                    </button>
+                    </Button>
                 )}
             </div>
             {!canEdit && <p className="text-xs text-gray-500 mb-2">{t('equipment.needsProcessingEdit')}</p>}
@@ -135,11 +135,10 @@ export default function DowntimePanel({
                                 <input type="datetime-local" value={endAt} onChange={(e) => setEndAt(e.target.value)}
                                        className="border border-gray-400 rounded px-2 py-1 text-sm" />
                             </label>
-                            <button type="button" disabled={pending || !endAt || endBeforeStart}
-                                    onClick={() => run(() => closeDowntime({ assetId, downtimeId: openRow.id, endedAt: endAt }))}
-                                    className="border border-gray-600 bg-gray-800 text-white px-3 py-1 rounded text-xs disabled:opacity-50">
+                            <Button size="xs" type="button" disabled={pending || !endAt || endBeforeStart}
+                                    onClick={() => run(() => closeDowntime({ assetId, downtimeId: openRow.id, endedAt: endAt }))}>
                                 {t('equipment.down.close')}
-                            </button>
+                            </Button>
                             {/* FIX-2(F):【禁用了就说为什么 —— 每一个条件各一句】
                                 此前只有"没填"那一句。**填了一个早于开始的时刻时,
                                 按钮是【能点】的**,人点下去才换来一次数据库拒绝 ——
@@ -187,20 +186,18 @@ export default function DowntimePanel({
                     </label>
                     <p className="text-xs text-gray-600">{t('equipment.down.openHint')}</p>
                     <div className="flex gap-2 items-center">
-                        <button type="button" disabled={pending || !f.startedAt || !f.reason.trim()}
-                                onClick={() => run(() => openDowntime({ assetId, ...f }))}
-                                className="border border-gray-600 bg-gray-800 text-white px-3 py-1 rounded text-xs disabled:opacity-50">
+                        <Button size="xs" type="button" disabled={pending || !f.startedAt || !f.reason.trim()}
+                                onClick={() => run(() => openDowntime({ assetId, ...f }))}>
                             {t('common.save')}
-                        </button>
+                        </Button>
                         {/* FIX-2(F2):这一块的每一个禁用条件也各配一句。 */}
                         {!f.startedAt && <span className="text-xs text-amber-700">{t('equipment.down.needStart')}</span>}
                         {f.startedAt && !f.reason.trim() && (
                             <span className="text-xs text-amber-700">{t('equipment.down.needReason')}</span>
                         )}
-                        <button type="button" disabled={pending} onClick={() => { setOpen(false); setError(null) }}
-                                className="border border-gray-400 px-3 py-1 rounded text-xs hover:bg-gray-50 disabled:opacity-50">
+                        <Button variant="secondary" size="xs" type="button" disabled={pending} onClick={() => { setOpen(false); setError(null) }}>
                             {t('common.cancel')}
-                        </button>
+                        </Button>
                     </div>
                 </div>
             )}

@@ -36,6 +36,7 @@ import { Label } from '@/app/components/ui/label'
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/app/components/ui/select'
+import { Button } from '@/app/components/ui/button'
 
 const NO_EMPLOYEE = '__none__'
 
@@ -226,14 +227,13 @@ export default function CreateAccountPanel({
                         </div>
 
                         <div className="mt-4">
-                            <button
+                            <Button size="sm"
                                 type="button"
                                 onClick={submit}
                                 disabled={pending || !canSubmit}
-                                className="bg-gray-900 text-white px-4 py-1.5 rounded text-sm disabled:opacity-50"
                             >
                                 {pending ? t('common.saving') : t('permissions.createAccount')}
-                            </button>
+                            </Button>
                         </div>
                 </div>
             )}

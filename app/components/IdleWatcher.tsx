@@ -29,6 +29,7 @@ import {
     IDLE_TIMEOUT_MS,
     IDLE_WARNING_MS,
 } from '@/lib/session'
+import { Button } from '@/app/components/ui/button'
 
 /** 算作活动的事件,穷举。改这一行之前先读上面那段。 */
 const ACTIVITY_EVENTS = ['pointerdown', 'keydown', 'touchstart'] as const
@@ -116,13 +117,15 @@ export default function IdleWatcher() {
                     {t('session.idle.body', { time: `${mm}:${ss}` })}
                 </p>
                 <p className="text-xs text-amber-800 mb-3">{t('session.idle.reassure')}</p>
-                <button
-                    type="button"
-                    onClick={() => { stamp(true); setWarning(null) }}
-                    className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 text-sm font-medium"
-                >
+                {/* 【档位:warning,不是 primary】这不是"这一页存在的那个动作" ——
+                    是系统在说一件【正在发生】的事。BTN-1 为它另开了一档,
+                    而不是把它塞进 primary(那会让它看起来像一次邀请)。
+                    颜色出处见 app/brand-tokens.css:--brand-warning-fill —— 它
+                    【不是品牌色】,是为了过对比度地板选的权宜值(旧的 amber-600
+                    白字只有 3.19:1,不合格;现在 5.02:1)。 */}
+                <Button variant="warning" type="button" onClick={() => { stamp(true); setWarning(null) }}>
                     {t('session.idle.stay')}
-                </button>
+                </Button>
             </div>
         </div>
     )

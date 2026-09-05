@@ -14,6 +14,7 @@ import Link from 'next/link'
 import { createFreightDocument, type FreightState } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import DecimalInput from '@/app/components/forms/DecimalInput'
+import { Button } from '@/app/components/ui/button'
 
 export type BatchOption = {
     id: string
@@ -269,10 +270,9 @@ export default function NewFreightForm({
                 <div className="flex gap-3 pt-2">
                     {/* 【提交条件按方向分】进境必须挑至少一个批次(服务端 FREIGHT_NO_BATCHES);
                         出境没有批次可挑,把那条禁用条件留着会让按钮永远按不下去。 */}
-                    <button type="submit" disabled={isPending || (!outbound && chosen.length === 0)}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400">
+                    <Button type="submit" disabled={isPending || (!outbound && chosen.length === 0)}>
                         {isPending ? t('common.saving') : t('common.save')}
-                    </button>
+                    </Button>
                     <Link href="/finance/freight"
                         className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50">
                         {t('common.cancel')}

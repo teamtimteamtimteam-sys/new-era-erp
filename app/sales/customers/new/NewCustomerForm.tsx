@@ -12,6 +12,7 @@ import DraftBanner from '@/app/components/DraftBanner'
 import Link from 'next/link'
 import { createCustomer, type CreateCustomerState } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
+import { Button } from '@/app/components/ui/button'
 
 const CUSTOMER_TYPE_OPTIONS = [
     { value: 'cathode_maker', labelKey: 'customers.types.cathodeMaker' },
@@ -259,13 +260,12 @@ export default function NewCustomerForm() {
 
                 {/* 提交按钮 */}
                 <div className="flex gap-3 pt-4">
-                    <button
+                    <Button
                         type="submit"
                         disabled={isPending}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                     >
                         {isPending ? t('common.saving') : t('common.save')}
-                    </button>
+                    </Button>
                     <Link
                         href="/sales/customers"
                         className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"

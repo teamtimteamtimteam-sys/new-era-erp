@@ -8,6 +8,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { closeFinancialYear, reopenFinancialYear } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 export default function YearClosePanel({
     yearEnd,
@@ -30,7 +31,7 @@ export default function YearClosePanel({
                 <div className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
             )}
             {!alreadyClosed ? (
-                <button
+                <Button
                     type="button"
                     disabled={pending || !canClose}
                     onClick={() => {
@@ -42,10 +43,9 @@ export default function YearClosePanel({
                             else router.refresh()
                         })
                     }}
-                    className="bg-gray-900 text-white px-4 py-2 rounded text-sm disabled:opacity-50"
                 >
                     {t('finance.yearClose.run', { 0: yearEnd })}
-                </button>
+                </Button>
             ) : (
                 <div className="flex items-center gap-2">
                     <input

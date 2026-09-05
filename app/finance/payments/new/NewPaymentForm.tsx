@@ -13,6 +13,7 @@ import { createPayment, lookupFxRate, lookupRatesFor, type CreatePaymentState } 
 import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: CreatePaymentState = {}
 
@@ -688,7 +689,7 @@ export default function NewPaymentForm({
             </div>
 
             <div className="flex gap-3 pt-2">
-                <button
+                <Button
                     type="submit"
                     disabled={
                         isPending || fxLoading || effectiveFx === null
@@ -696,10 +697,9 @@ export default function NewPaymentForm({
                         // 这一支原先漏了,于是"折不出来"的表单照样可以提交。
                         || docFxError !== null || unallocated === null || unallocated < 0
                     }
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                 >
                     {isPending ? t('common.saving') : t('finance.submitPayment')}
-                </button>
+                </Button>
                 <Link
                     href="/finance/payments"
                     className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"

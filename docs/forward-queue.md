@@ -2004,6 +2004,112 @@ fixture 套件的耗时在无人察觉中累积;把"操作员用得了"加进完
   > ⚠️ **它与队列里那条"冒烟启动缺 BUILD_ID 闸"会碰同一段启动代码** —— 谁先做,
   > 另一条要跟着改。
 
+## BTN 族(BTN-1 于 2026-09-06 落地,余下三刀按【档位】切,不按模块切)
+
+> **为什么按档位切:** 按模块切会让 `/finance` 与 `/sales` 整整几周互相不一致 ——
+> 而那正是 BTN 这一族存在的理由。按档位切的代价是**同一行里两种画法并存**,
+> BTN-1 之后有 **36 个文件**处在这个状态。**下一刀请优先挑这 36 个**,
+> 让并存期最短。名单:`git log -1 --stat` 里 BTN-1 那次提交碰过、
+> 而 `grep -l "<button"` 仍然命中的文件。
+
+**BTN-1 落地时的基线(`scripts/component-library-baseline.json` 的 `button` 维度):**
+205 个文件 / 389 处 → **138 个文件 / 265 处**(−67 文件 / −124 处)。
+棘轮只会缩短:多一处手写 `<button>` → `npm run build` 变红并点名 `file:line`。
+
+### BTN-2 · 链接态与图标按钮(约 108 处)
+
+* 65 处 `text-blue-600 hover:underline` 的**链接态动作** → `variant="link"`;
+* 43 处**只有图标、没有文字**的按钮 → `size="icon" variant="ghost"`。
+* ★★ **硬规矩,不是建议** ★★
+  > **不许把一个图标按钮转成 `size="icon" variant="ghost"` 而不给它一个
+  > 可访问的名字。** 实测这 43 处里有 **41 处没有 `aria-label`**。
+  > 一个没有名字的图标幽灵按钮,**比它取代的那个有边框的按钮更坏** ——
+  > 前者对读屏的人是一个"按钮",没有任何别的信息;后者至少还有边框和位置。
+  > 转换时逐个补 `aria-label`,补不出名字的**就不要转**,留着并报上来。
+
+### BTN-3 · 撤销档与一次性签名(约 149 处)
+
+* 57 处**撤销档**(Reopen · Unpost · Unapply · Unreconcile · Unmatch ·
+  Turn GST off · Reverse):BTN-1 只转了其中 4 处(三个 Reverse + 一个 Remove lock),
+  档位定义与左侧虚线竖条已经在库里,剩下的是逐个判断"它到底撤销了什么";
+* 92 处**一次性 className 签名**:每一处的档位都要单独读,没有机械捷径。
+* ⚠️ **判断的判据写在 `app/components/ui/button.tsx` 抬头**,不要另立一套。
+
+### BTN-4 · 覆盖物(等 CONFIRM-1 先落地)
+
+闲置超时对话框 BTN-1 已经处理(`variant="warning"`)。剩下的覆盖物
+(TaskModal · ModuleBar 溢出 · 登录提示 · 草稿横幅)**要等 CONFIRM-1**,
+因为它们的形状取决于确认框最后长什么样。
+
+---
+
+## CONFIRM-1 · ★ 原生确认框 —— 56 处,比按钮颜色更大的一致性缺陷 ★
+
+**Tim 在 BTN-1 的闸上单独点名入队的。**
+
+**量到的:`window.confirm` 共 56 处调用,散在 37 个文件里。**
+(BTN-1 的闸上我报过"19 处" —— **那个数是错的**,当时的 grep 被 `head` 截断了。
+真数是 56/37。写下来,因为一个偏小一半的数会让下一刀低估工期。)
+
+**为什么它比按钮的颜色更要紧:**
+
+> **这个系统里每一个破坏性动作,都通过一个任何档位都够不着的操作系统对话框确认。**
+> 我们可以把 `Delete` 画成完美的破坏档 —— 按下去之后,人看到的仍然是一个
+> 跟这个系统毫无关系的灰盒子。**一致性在最危险的那一格上断掉。**
+
+**一条已经写在代码里的证词** —— `app/tools/tasks/[id]/TaskHeader.tsx:173`:
+
+> 「确认走的是【第二次点击】,不是 window.confirm:后者在测试里点不到。」
+
+**那一处已经绕开它了,而且写下了理由。** 所以这不是一个假想的问题:
+仓库里已经有人撞上并付过账。**它同时意味着这 56 处确认【冒烟一个都验不到】。**
+
+**这一刀要 Tim 先裁的:** 二次点击(TaskHeader 的先例,可测)还是一个真的
+对话框组件(要进组件库,要处理焦点陷阱与 Esc)?**两条路的代价差很多,
+不该由实现的人顺手决定。**
+
+**文件清单(37 个):**
+
+  * `app/components/finance/FinanceAttachmentsPanel.tsx`
+  * `app/components/metals/MetalContentPanel.tsx`
+  * `app/finance/bank/statements/[id]/DeleteStatementButton.tsx`
+  * `app/finance/bank/statements/[id]/reconcile/ReconcileWorkspace.tsx`
+  * `app/finance/bank/statements/[id]/UnreconcileControl.tsx`
+  * `app/finance/close/CloseButton.tsx`
+  * `app/finance/close/ReopenForm.tsx`
+  * `app/finance/close/YearClosePanel.tsx`
+  * `app/finance/expenses/[id]/ReverseExpenseButton.tsx`
+  * `app/finance/invoices/[id]/VoidInvoiceControl.tsx`
+  * `app/finance/journal/[id]/ReverseButton.tsx`
+  * `app/finance/payments/[id]/ReversePaymentButton.tsx`
+  * `app/finance/receivables/[saleId]/AttributeCustomerControl.tsx`
+  * `app/finance/settings/GstPanel.tsx`
+  * `app/finance/settings/LockForm.tsx`
+  * `app/hr/departments/DeleteDepartmentButton.tsx`
+  * `app/hr/payroll/[id]/PostControls.tsx`
+  * `app/hr/training/DeleteTrainingButton.tsx`
+  * `app/inbound/[id]/assays/[assayId]/ApplyAssayControls.tsx`
+  * `app/materials/[id]/edit/AttachmentsPanel.tsx`
+  * `app/materials/DeleteButton.tsx`
+  * `app/operation/processing/[id]/CostPanel.tsx`
+  * `app/output/[id]/assays/[assayId]/OutputApplyControls.tsx`
+  * `app/purchasing/orders/[id]/ApprovalControls.tsx`
+  * `app/purchasing/orders/[id]/CloseReopenControls.tsx`
+  * `app/purchasing/payment-terms/DeleteTemplateButton.tsx`
+  * `app/sales/customers/[id]/edit/AttachmentsPanel.tsx`
+  * `app/sales/customers/DeleteButton.tsx`
+  * `app/settings/dictionaries/DictSection.tsx`
+  * `app/stocktakes/[id]/review/PostButton.tsx`
+  * `app/suppliers/[id]/edit/AttachmentsPanel.tsx`
+  * `app/suppliers/[id]/edit/CompliancePanel.tsx`
+  * `app/suppliers/[id]/edit/StatusPanel.tsx`
+  * `app/suppliers/DeleteButton.tsx`
+  * `app/tools/pricing/formulas/[id]/edit/DeleteFormulaButton.tsx`
+  * `app/tools/pricing/metal-prices/[id]/edit/DeleteButton.tsx`
+  * `app/tools/tasks/[id]/TaskHeader.tsx`
+
+---
+
 ## 维护规则
 
 > **一刀关闭,就在【关闭它的那一次提交里】把它从所在阶段划掉。**

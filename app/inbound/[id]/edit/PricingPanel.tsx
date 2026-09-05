@@ -7,6 +7,7 @@ import { setInboundPrice, type SetPriceState } from './pricingActions'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatUnitCost } from '@/lib/format'
 import { MaskedValue } from '@/app/components/MaskedValue'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: SetPriceState = {}
 
@@ -121,13 +122,12 @@ export default function PricingPanel({
                         className="w-full border border-gray-300 px-3 py-2 rounded"
                     />
                 </div>
-                <button
+                <Button
                     type="submit"
                     disabled={isPending}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                 >
                     {isPending ? t('common.saving') : t('inbound.pricing.submit')}
-                </button>
+                </Button>
             </form>
 
             <h3 className="text-sm font-semibold mb-2">{t('inbound.pricing.historyTitle')}</h3>

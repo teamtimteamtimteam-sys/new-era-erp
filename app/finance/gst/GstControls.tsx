@@ -6,6 +6,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { openGstPeriod, fileGstReturn, correctGstReturn } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 export function OpenPeriodControl() {
     const t = useTranslations(); const router = useRouter()
@@ -20,13 +21,12 @@ export function OpenPeriodControl() {
                        className="border border-gray-300 px-3 py-2 rounded" />
             </div>
             {!start && <p className="text-sm text-amber-700 self-center">{t('gst.blockedNeedStart')}</p>}
-            <button type="button" disabled={!start || busy}
+            <Button type="button" disabled={!start || busy}
                     onClick={() => start2(async () => {
                         const r = await openGstPeriod(start); if (r.error) setErr(r.error); else { setErr(''); router.refresh() }
-                    })}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400">
+                    })}>
                 {busy ? t('common.saving') : t('gst.openPeriod')}
-            </button>
+            </Button>
             {err && <p className="text-sm text-red-700 w-full">{err}</p>}
         </div>
     )
@@ -40,10 +40,9 @@ export function FileReturnControl({ periodId, blockedWhy }: { periodId: string; 
         // 【禁用要说出理由,而不是把控件藏起来】问题适用、只是被挡住了。
         return (
             <div className="inline-flex flex-col items-start">
-                <button type="button" disabled
-                        className="border border-gray-300 text-gray-400 px-3 py-1.5 rounded text-sm cursor-not-allowed">
+                <Button size="sm" type="button" disabled>
                     {t('gst.recordFiling')}
-                </button>
+                </Button>
                 <span className="text-xs text-amber-700 mt-1">{blockedWhy}</span>
             </div>
         )
@@ -62,13 +61,12 @@ export function FileReturnControl({ periodId, blockedWhy }: { periodId: string; 
                        className="border border-gray-300 px-3 py-2 rounded" />
             </div>
             {!on && <p className="text-sm text-amber-700 self-center">{t('gst.blockedNeedFiledOn')}</p>}
-            <button type="button" disabled={!on || busy}
+            <Button type="button" disabled={!on || busy}
                     onClick={() => start(async () => {
                         const r = await fileGstReturn(periodId, on, ref); if (r.error) setErr(r.error); else { setErr(''); router.refresh() }
-                    })}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400">
+                    })}>
                 {busy ? t('common.saving') : t('gst.recordFiling')}
-            </button>
+            </Button>
             {err && <p className="text-sm text-red-700 w-full">{err}</p>}
         </div>
     )

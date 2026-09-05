@@ -13,6 +13,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import ClaimsTable, { type ClaimRow } from './ClaimsTable'
+import { Button } from '@/app/components/ui/button'
 
 export default async function ClaimsPage({
     searchParams,
@@ -78,7 +79,7 @@ export default async function ClaimsPage({
                 </label>
                 <label className="text-xs text-gray-600">{t('claims.year')}
                     <input type="number" name="year" defaultValue={sp.year ?? ''} className={`block ${sel} w-24`} /></label>
-                <button type="submit" className="border border-gray-300 rounded px-3 py-1 text-sm">{t('leave.filter')}</button>
+                <Button variant="secondary" size="sm" type="submit">{t('leave.filter')}</Button>
             </form>
 
             <ClaimsTable rows={tableRows} empty={t('claims.none')} />

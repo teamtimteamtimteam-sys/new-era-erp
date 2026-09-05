@@ -14,6 +14,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { releaseReservation } from '../actions'
+import { Button } from '@/app/components/ui/button'
 
 export default function ReleaseControl({
     orderId,
@@ -94,14 +95,13 @@ export default function ReleaseControl({
                         className="w-full border border-gray-300 px-2 py-1 rounded text-sm"
                     />
                 </div>
-                <button
+                <Button variant="secondary" size="sm"
                     type="button"
                     onClick={go}
                     disabled={isPending || blocked}
-                    className="border border-gray-400 px-3 py-1 rounded text-sm hover:bg-gray-50 disabled:opacity-50"
                 >
                     {isPending ? t('common.saving') : t('sales.reserve.release')}
-                </button>
+                </Button>
                 <button
                     type="button"
                     onClick={() => setOpen(false)}

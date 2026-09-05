@@ -14,6 +14,7 @@ import type { SourceReasonOption } from '../sourceReasonQuery'
 import LocationPicker, { type LocationChoice } from '@/app/components/inventory/LocationPicker'
 import IntakeConditionFormSection, { type MaterialAxis } from '../IntakeConditionFormSection'
 import type { SafetyState, Certainty } from '../IntakeConditionFields'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: CreateInboundState = {}
 
@@ -424,13 +425,12 @@ export default function NewInboundForm({
                     <p className="text-sm text-amber-700">{t('inbound.form.blockedArrivalDate')}</p>
                 )}
                 <div className="flex gap-3 pt-4">
-                    <button
+                    <Button
                         type="submit"
                         disabled={isPending || !arrivalDate || !!blocked}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                     >
                         {isPending ? t('common.saving') : t('common.save')}
-                    </button>
+                    </Button>
                     <Link
                         href="/inbound"
                         className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"

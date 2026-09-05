@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatMoneyBare } from '@/lib/format'
 import { updateQuoteLine, removeQuoteLine, addQuoteLine } from '../actions'
+import { Button } from '@/app/components/ui/button'
 
 type Line = {
     id: string; line_no: number; material: string; unit: string
@@ -147,16 +148,15 @@ export default function QuoteLinesEditor({
                            onChange={(e) => setNewPrice(e.target.value)}
                            placeholder={t('sales.form.unitPrice')}
                            className="w-24 border border-gray-300 px-2 py-1 rounded text-right text-sm" />
-                    <button type="button"
+                    <Button variant="secondary" size="sm" type="button"
                             disabled={isPending || !newMat || newQty.trim() === '' || newPrice.trim() === ''}
                             onClick={() => run(async () => {
                                 const r = await addQuoteLine(quoteId, newMat, newQty, newPrice)
                                 if (!r.error) { setNewMat(''); setNewQty(''); setNewPrice('') }
                                 return r
-                            })}
-                            className="border border-gray-400 px-3 py-1 rounded text-sm hover:bg-gray-50 disabled:opacity-50">
+                            })}>
                         {t('quotes.addLine')}
-                    </button>
+                    </Button>
                 </div>
             )}
             {editable && <p className="text-xs text-gray-500 mt-2">{t('quotes.editableNote')}</p>}

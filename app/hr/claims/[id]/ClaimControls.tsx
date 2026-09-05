@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { decideClaim, payClaim } from '../actions'
+import { Button } from '@/app/components/ui/button'
 
 export default function ClaimControls({
     claimId, status, alreadyLinked, canFinance,
@@ -41,11 +42,10 @@ export default function ClaimControls({
                         <input value={notes} onChange={(e) => setNotes(e.target.value)}
                                className="mt-1 w-full border border-gray-300 rounded px-2 py-1 text-sm" /></label>
                     <div className="flex gap-3">
-                        <button type="button" disabled={pending}
-                                onClick={() => run(() => decideClaim(claimId, true, notes || null))}
-                                className="bg-gray-900 text-white px-4 py-1.5 rounded text-sm disabled:opacity-50">
+                        <Button size="sm" type="button" disabled={pending}
+                                onClick={() => run(() => decideClaim(claimId, true, notes || null))}>
                             {t('leave.approve')}
-                        </button>
+                        </Button>
                         <button type="button" disabled={pending}
                                 onClick={() => run(() => decideClaim(claimId, false, notes || null))}
                                 className="border border-gray-300 px-4 py-1.5 rounded text-sm disabled:opacity-50">

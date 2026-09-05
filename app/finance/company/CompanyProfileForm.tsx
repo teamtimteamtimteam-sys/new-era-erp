@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { saveCompanyProfile, uploadLogo, removeLogo, type CompanyState } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { RefusalBlock } from '@/app/components/ui/refusal'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: CompanyState = {}
 
@@ -161,13 +162,12 @@ export default function CompanyProfileForm({
                     field('invoice_footer_text', 'company.invoiceFooterText', { textarea: true, rows: 2 })
                 )}
 
-                <button
+                <Button
                     type="submit"
                     disabled={isPending}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                 >
                     {isPending ? t('common.saving') : t('common.save')}
-                </button>
+                </Button>
             </form>
 
             {/* logo:独立小表单,上传即生效 */}
@@ -203,22 +203,20 @@ export default function CompanyProfileForm({
                         />
                         <p className="text-xs text-gray-500 mt-1">{t('company.logoHint')}</p>
                     </div>
-                    <button
+                    <Button
                         type="submit"
                         disabled={logoPending}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                     >
                         {logoPending ? t('company.uploading') : t('company.upload')}
-                    </button>
+                    </Button>
                     {logoUrl && (
-                        <button
+                        <Button variant="destructive"
                             type="button"
                             disabled={removing}
                             onClick={() => startRemove(async () => { await removeLogo() })}
-                            className="border border-red-300 text-red-600 px-4 py-2 rounded hover:bg-red-50 disabled:opacity-50"
                         >
                             {t('company.removeLogo')}
-                        </button>
+                        </Button>
                     )}
                 </form>
             </fieldset>

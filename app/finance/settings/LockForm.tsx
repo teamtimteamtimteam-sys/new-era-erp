@@ -4,6 +4,7 @@
 import { useState, useTransition } from 'react'
 import { setPeriodLock } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
+import { Button } from '@/app/components/ui/button'
 
 export default function LockForm({ lockedBefore }: { lockedBefore: string | null }) {
     const t = useTranslations()
@@ -39,21 +40,19 @@ export default function LockForm({ lockedBefore }: { lockedBefore: string | null
             {!date && (
                 <p className="text-sm text-amber-700 self-center">{t('finance.blockedLockDate')}</p>
             )}
-            <button
+            <Button
                 onClick={() => date && submit(date, 'finance.lockConfirm')}
                 disabled={isPending || !date}
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
             >
                 {isPending ? t('common.saving') : t('finance.setLock')}
-            </button>
+            </Button>
             {lockedBefore && (
-                <button
+                <Button variant="reversal"
                     onClick={() => submit(null, 'finance.unlockConfirm')}
                     disabled={isPending}
-                    className="border border-red-300 text-red-600 px-4 py-2 rounded hover:bg-red-50 disabled:opacity-50"
                 >
                     {t('finance.unlock')}
-                </button>
+                </Button>
             )}
         </div>
     )

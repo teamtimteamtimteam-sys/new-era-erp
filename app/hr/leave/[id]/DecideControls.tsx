@@ -8,6 +8,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { decideLeave, cancelLeave } from '../actions'
+import { Button } from '@/app/components/ui/button'
 
 export default function DecideControls({
     requestId,
@@ -67,14 +68,13 @@ export default function DecideControls({
             <div className="flex gap-3 flex-wrap">
                 {status === 'pending' && (
                     <>
-                        <button
+                        <Button size="sm"
                             type="button"
                             disabled={pending}
                             onClick={() => act(() => decideLeave(requestId, true, notes || null))}
-                            className="bg-gray-900 text-white px-4 py-1.5 rounded text-sm disabled:opacity-50"
                         >
                             {pending ? t('common.saving') : t('leave.approve')}
-                        </button>
+                        </Button>
                         <button
                             type="button"
                             disabled={pending}

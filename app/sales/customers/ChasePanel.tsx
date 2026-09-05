@@ -17,6 +17,7 @@
 import { useState, useTransition } from 'react'
 import { recordChase, recordPromiseOutcome } from './chaseActions'
 import { useTranslations } from '@/lib/i18n/client'
+import { Button } from '@/app/components/ui/button'
 
 type OpenPromise = {
     promise_id: string; chase_id: string; chase_code: string; chased_on: string
@@ -207,16 +208,15 @@ export default function ChasePanel({
                             </label>
                         </div>
                     )}
-                    <button type="button" disabled={pending || !canSubmit}
+                    <Button type="button" disabled={pending || !canSubmit}
                         onClick={() => run(() => recordChase({
                             customerId, chasedOn, channel, reached, summary,
                             contactedPerson: person,
                             promise: wantPromise
                                 ? { amount, currency, promised_date: promisedDate } : null,
-                        }))}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm disabled:opacity-50">
+                        }))}>
                         {t('chases.record')}
-                    </button>
+                    </Button>
                 </div>
             )}
 

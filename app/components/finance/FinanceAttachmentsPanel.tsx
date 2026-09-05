@@ -21,6 +21,7 @@ import {
     type FinanceAttachmentRow,
 } from './financeAttachmentTypes'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { Button } from '@/app/components/ui/button'
 
 const BUCKET = 'finance-attachments'
 
@@ -279,13 +280,12 @@ export default function FinanceAttachmentsPanel({
                     />
                 </div>
 
-                <button
+                <Button
                     type="submit"
                     disabled={isPending}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                 >
                     {isPending ? t('finAttach.uploading') : t('finAttach.upload')}
-                </button>
+                </Button>
             </form>
         </section>
     )

@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { holdStockAction, releaseStockAction } from './stockActions'
+import { Button } from '@/app/components/ui/button'
 
 export default function HoldReleaseControls({
     inboundBatchId,
@@ -115,14 +116,13 @@ export default function HoldReleaseControls({
                             className="w-full border border-gray-300 px-2 py-1 rounded text-sm"
                         />
                     </div>
-                    <button
+                    <Button variant="secondary" size="sm"
                         type="button"
                         disabled={isPending || releaseBlocked !== null}
                         onClick={() => run(() => releaseStockAction(inboundBatchId, outputBatchId, locationId, relQty, relNote))}
-                        className="border border-gray-300 px-3 py-1 rounded hover:bg-gray-50 text-sm disabled:opacity-50"
                     >
                         {isPending ? t('common.saving') : t('stock.release')}
-                    </button>
+                    </Button>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">{t('stock.releaseConsequence')}</p>
                 {releaseBlocked === 'noHeld' && <p className="text-xs text-gray-500 mt-1">{t('stock.releaseBlockedNoHeld')}</p>}

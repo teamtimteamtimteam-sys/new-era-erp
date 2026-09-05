@@ -8,6 +8,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { runCarryForward } from '../actions'
+import { Button } from '@/app/components/ui/button'
 
 export default function GrantRunner({
     year, alreadyCarried,
@@ -53,10 +54,9 @@ export default function GrantRunner({
                 <h2 className="font-bold mb-1">{t('leave.carryTitle', { 0: String(year), 1: String(year + 1) })}</h2>
                 <p className="text-sm text-gray-600 mb-3">{t('leave.carryHint')}</p>
                 <p className="text-sm mb-3">{t('leave.alreadyCarried', { 0: String(alreadyCarried) })}</p>
-                <button type="button" onClick={carry} disabled={pending}
-                        className="bg-gray-900 text-white px-4 py-1.5 rounded text-sm disabled:opacity-50">
+                <Button size="sm" type="button" onClick={carry} disabled={pending}>
                     {pending ? t('common.saving') : t('leave.runCarry')}
-                </button>
+                </Button>
                 <p className="mt-2 text-xs text-gray-500">{t('leave.carryIdempotentHint')}</p>
             </section>
         </div>

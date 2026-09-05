@@ -6,6 +6,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { recordTransfer } from './transferActions'
+import { Button } from '@/app/components/ui/button'
 
 const inp = 'border border-gray-300 rounded px-2 py-1 text-sm'
 
@@ -72,10 +73,9 @@ export default function TransferForm() {
                 <label>{t('finance.transfer.reference')}
                     <input value={ref} onChange={(e) => setRef(e.target.value)} className={`block ${inp} w-36`} />
                 </label>
-                <button type="button" onClick={submit} disabled={pending || !date || !out || !inn}
-                        className="bg-gray-900 text-white px-3 py-1.5 rounded text-sm disabled:opacity-50">
+                <Button size="sm" type="button" onClick={submit} disabled={pending || !date || !out || !inn}>
                     {t('common.save')}
-                </button>
+                </Button>
             </div>
             {/* 禁用必须说出为什么(CMP-2):每个禁钮条件都有紧邻的一行字。 */}
             {(!date || !out || !inn) && (

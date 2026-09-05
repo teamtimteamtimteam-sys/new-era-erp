@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { addGoal, removeGoal, setGoalActual, setGoalAssessment, updateGoal } from './actions'
 import type { GoalRow } from './reviewShared'
+import { Button } from '@/app/components/ui/button'
 
 type Props = {
     reviewId: string
@@ -290,14 +291,13 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                                 className={`block ${inp} w-24`}
                             />
                         </label>
-                        <button
+                        <Button size="sm"
                             type="button"
                             onClick={add}
                             disabled={pending || newObjective.trim() === '' || newUnitMissing}
-                            className="bg-gray-900 text-white px-3 py-1.5 rounded text-sm disabled:opacity-50"
                         >
                             {t('common.save')}
-                        </button>
+                        </Button>
                     </div>
                     {newUnitMissing && <p className="text-xs text-red-700 mt-2">{t('reviews.unitRequired')}</p>}
                 </div>
