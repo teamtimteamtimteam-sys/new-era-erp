@@ -10,9 +10,23 @@ check_mirrors.py 回答的是"镜像与线上一致吗";本脚本回答的是【
     python3 db/verify_rebuild.py --target "<空库的连接串>"
     python3 db/verify_rebuild.py --target "<空库>" --live "<线上连接串>"
     python3 db/verify_rebuild.py --target "<空库>" --skip-diff   # 只建,不比
+    python3 db/verify_rebuild.py --target "<空库>" --offline     # 只建 + 只对【重建侧】跑 B1/B2,
+                                                                #   全程不碰线上(VERIFY-1)
 
-退出码:0 = 全过;1 = 镜像与线上有差异;2 = 建不起来(重放失败);3 = 不变式被破坏。
-【三种失败是三件不同的事】"镜像漂了"、"仓库建不起来"、"权限不变式破了" 各有各的修法。
+退出码:0 = 全过;1 = 镜像与线上有差异;2 = 建不起来(重放失败);3 = 不变式被破坏;
+        5 = 【够不到线上目录】—— 本工具自己的环境故障,不是仓库的毛病。
+【四种失败是四件不同的事】"镜像漂了"、"仓库建不起来"、"权限不变式破了"、
+"网络断了" 各有各的修法。
+
+★【5 为什么必须与 2 分开】(VERIFY-1,2026-09-05)★
+  此前 signature() 连不上线上时走的是 `sys.exit(2)`,而 2 的含义是【仓库建不出库】。
+  FIX-2a 实测撞上过:`GATE3_EXIT=2` 印着"仓库建不出库",而**同一份日志里写着
+  `REBUILD OK`** —— 挂掉的是随后对线上的比对(SSL connection closed)。原样重跑
+  `GATE4_EXIT=0`。**一次网络抖动被报成了仓库坏了,代价是一整轮门(实测 310s)。**
+  更值得记的是:signature() 上方那条注释【已经点名了这个形状】——它提醒
+  statement_timeout 被掐断"看起来像比对失败而不是超时",然后紧接着的那个分支,
+  在【连接】这一层上犯了同一个错。**一条点名了病形却漏掉自己兄弟的警告,
+  与没有警告差不多。**
 
 前提
   * 一个【空的】目标库。本脚本会往里面建东西,不要指向线上。
@@ -254,8 +268,14 @@ def signature(dsn: str):
                        input="SET statement_timeout = 0;\n" + SIG_SQL,
                        capture_output=True, text=True)
     if r.returncode != 0:
+        # 【退 5,不退 2】2 的含义是"仓库建不出库";够不到线上是【本工具的环境】
+        # 出了事,与仓库无关。两者的修法完全不同:一个改镜像,一个重跑。
+        # 见本文件抬头 ★【5 为什么必须与 2 分开】★(VERIFY-1)。
         sys.stderr.write(r.stderr)
-        sys.exit(2)
+        print("\n够不到线上目录(db/verify_rebuild.py:signature)—— 这是【环境故障】,"
+              "不是仓库建不出库。上面若已印出 REBUILD OK,那么重建本身是好的;"
+              "原样重跑即可。", file=sys.stderr)
+        sys.exit(5)
     return json.loads(r.stdout.strip())
 
 
@@ -386,11 +406,18 @@ def scalar(dsn: str, sql: str) -> set:
     return {x for x in (out[-1].split(",") if out else []) if x}
 
 
-def assert_invariants(live_dsn: str, target_dsn: str) -> bool:
-    """B1 + B2,两侧各跑一遍。返回 True 表示都过。"""
+def assert_invariants(live_dsn: str, target_dsn: str, sides=("live", "rebuild")) -> bool:
+    """B1 + B2,两侧各跑一遍。返回 True 表示都过。
+
+    `sides` 只给 --offline 用:它把范围收到 ("rebuild",),因为那一相位【够不到线上】。
+    ★ 这不是把断言放宽 ★ —— 线上那一侧仍然由【整门】原样跑,见 db/gate.py 抬头。
+    默认值两侧全跑,所以既有调用点一个字都不用改。
+    """
     ok = True
-    print("\n== invariants (checked against BOTH live and the rebuild)")
-    for label, dsn in (("live", live_dsn), ("rebuild", target_dsn)):
+    pairs = [(l, d) for l, d in (("live", live_dsn), ("rebuild", target_dsn)) if l in sides]
+    print("\n== invariants (checked against %s)"
+          % ("BOTH live and the rebuild" if len(pairs) == 2 else pairs[0][0]))
+    for label, dsn in pairs:
         b1 = scalar(dsn, B1_SQL) - set(ANON_EXECUTE_ALLOWED)
         b2 = scalar(dsn, B2_SQL) - set(DEFINER_UNCHECKED_EXEC_ALLOWED)
         print(f"   {label:8s} B1 anon-executable: {len(b1)}   "
@@ -413,6 +440,8 @@ def main() -> int:
     ap.add_argument("--target", required=True, help="空库的连接串(会被写入,别指向线上)")
     ap.add_argument("--live", default=None, help="线上连接串(默认用 check_mirrors 的 DEFAULT_DSN)")
     ap.add_argument("--skip-diff", action="store_true", help="只重建,不与线上比对")
+    ap.add_argument("--offline", action="store_true",
+                    help="只重建 + 只对【重建侧】跑 B1/B2,全程不碰线上(VERIFY-1 的迁移前相位)")
     ap.add_argument("--prelude", choices=("auto", "run", "skip"), default="auto",
                     help="auto(默认)= 目标已是 Supabase 项目就跳过;裸 postgres 才跑")
     args = ap.parse_args()
@@ -420,6 +449,9 @@ def main() -> int:
     rc = rebuild(args.target, args.prelude)
     if rc != 0:
         return rc
+    if args.offline:
+        # 【全程不碰线上】所以这里【不能】去取 live_dsn —— 取了就等于又开一次网络。
+        return 0 if assert_invariants(None, args.target, sides=("rebuild",)) else 3
     import os as _os
     if args.skip_diff:
         live_dsn = args.live or _os.environ.get("CHECK_MIRRORS_DSN") or cm.DEFAULT_DSN

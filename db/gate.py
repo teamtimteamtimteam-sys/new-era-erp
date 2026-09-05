@@ -15,9 +15,39 @@ pooler 里跑(40+ 分钟,先后死于 DNS 与 socket 耗尽),verify_rebuild 在�
 是两种病、两种药,本周就有一天,把它们区分开就是全部发现。
   exit 0 = 三个判词都干净
   exit 1 = 建得起来,但镜像相对线上有漂移(结构 / 种子 / 自洽 / definer)
-  exit 2 = 仓库建不出库(或本工具自身的环境故障)
+  exit 2 = 仓库建不出库
   exit 3 = B1/B2 不变量断言失败(verify_rebuild 的判词,此前【被本脚本吞掉了】)
   exit 4 = 行为断言失败(db/fixtures/*.sql —— 建出来的库跑起来不对)
+  exit 5 = 【够不到线上】本工具自身的环境故障 —— 不是仓库的毛病,原样重跑即可
+           (VERIFY-1:此前它混在 2 里,见 db/verify_rebuild.py 抬头那一段)
+
+════════════════════════════════════════════════════════════════════════════
+★★【--offline 是【多出来的一相】,不是"门,但快一点"】★★(VERIFY-1,2026-09-05)
+
+  python3 db/gate.py --offline     # 迁移【之前】跑,13 秒,全程不碰线上
+  python3 db/gate.py               # 迁移【之后】跑,原样跑完【全部】判词
+
+**--offline 不替代任何东西。** 整门在它原来的相位上照跑,断言的东西一件不少 ——
+两条路径调的是同一份代码,--offline 只是把【够不到线上的那些】跳过去。
+读到这里的人如果想的是"那以后跑 --offline 就行了" —— 不行,而且那正是这段话
+存在的理由:**一条被绕过去的检查等于没有检查**(AGENTS.md 反复付过这个账)。
+
+【为什么值得多跑一相】实测(2026-09-05,同一台机器同一个下午):
+  * 整门 `GATE_OWN_EXIT=0` **310s**;本相位 `--offline` **44s**。
+    差额几乎全是对线上的往返 —— 光重建 + 193 支 fixture 本身只要 13s
+    (单独量过:建集群 0s · 重建 7s · fixture 6s),剩下的 31s 是重建侧的
+    列权限/读者/跨模块/导入模板目录查询与每支 fixture 的泄漏指纹。
+  * C-2 被门抓到的五件事里【四件不需要新库】:镜像列序、一句 `?? []`、
+    两支 fixture 漏填必填列、fixture 146 的位置参数错位。
+    它们全都落在这 44 秒能回答的范围里,却等到迁移之后才被问。
+  * 于是盈亏平衡点是 44/310 ≈ **14.2%** —— 每 7 刀里有 1 刀被它抓到一次,
+    这一相就回本。C-2 那一刀的命中率是 100%。
+  ★ 44 这个数是【量出来的,不是估的】,而且它比先前写在这里的 13s 悲观 ——
+    13s 只量了重建与 fixture,漏掉了本相位真正会跑的那几组目录查询。
+    留下这句话是因为本仓库的账正是这么欠下的:**写下来的成本必须是量过的成本**。
+  * 而省下的不只是时间:那一轮重跑发生在【破窗里】(C-2 破窗 1h05m57s)。
+    这一相把那四件事挪到窗口【打开之前】,省下的秒同时也是风险。
+════════════════════════════════════════════════════════════════════════════
 """
 import difflib
 import json
@@ -422,8 +452,15 @@ def main() -> int:
     import argparse
     ap = argparse.ArgumentParser(description="一次本地重建,两个判词(镜像漂移 / 可重建性)")
     ap.add_argument("--live", default=os.environ.get("CHECK_MIRRORS_DSN") or cm.DEFAULT_DSN)
+    ap.add_argument("--offline", action="store_true",
+                    help="迁移【之前】的一相:只跑够不到线上也能回答的判据。"
+                         "★ 增加的一相,不替代整门 —— 见本文件抬头。")
     args = ap.parse_args()
+    OFF = args.offline
     t0 = time.time()
+    if OFF:
+        print("== db/gate.py --offline:迁移前相位 —— 只跑【不需要线上】的判据。\n"
+              "   ★ 这不是整门。迁移之后仍然要原样跑一次 `python3 db/gate.py`。")
 
     # ── 一次性本地集群(socket 路径必须短,见 AGENTS.md)─────────────────────
     workdir = tempfile.mkdtemp(prefix="gate", dir="/tmp")
@@ -442,11 +479,18 @@ def main() -> int:
         local = f"host={sock} port={port} user=postgres dbname=gate"
 
         # ── 判词一的基座:verify_rebuild(建库 + 结构比对 + B1/B2 双侧断言)──
-        vr = subprocess.run([sys.executable, os.path.join(HERE, "verify_rebuild.py"),
-                             "--target", local, "--live", args.live], text=True)
+        vr_cmd = [sys.executable, os.path.join(HERE, "verify_rebuild.py"), "--target", local]
+        vr_cmd += ["--offline"] if OFF else ["--live", args.live]
+        vr = subprocess.run(vr_cmd, text=True)
         if vr.returncode == 2:
             print("\n判词【可重建性】:✗ 仓库建不出库 —— 先修这个,别的判词无从谈起")
             return 2
+        # 【5 不是 1、也不是 2】够不到线上是环境故障:重建那一半可能完全是好的。
+        # 把它报成漂移会让人去改镜像,报成 2 会让人去改仓库 —— 两条都是白工。
+        if vr.returncode == 5:
+            print("\n判词【无法作出】:✗ 够不到线上目录 —— 这是【环境故障】,不是仓库的毛病。\n"
+                  "   重建那一半的结论见上(若印着 REBUILD OK,它是好的)。原样重跑。")
+            return 5
         # 【此前这里漏了 3】verify_rebuild 用 3 表示 B1/B2 不变量断言失败,而本脚本
         # 只认 1 和 2,于是 3 落进 structural_drift=(3==1)=False,门照样绿 ——
         # 本会话里就真的发生过:B1 VIOLATION 打印出来了,退出码却是 0。
@@ -457,7 +501,7 @@ def main() -> int:
         print("\n== seeds / bootstrap / integrity / definer(对本地重建;线上只拉小表)")
         problems = []
 
-        for tbl, (where, cols) in cm.SEED_TABLES.items():
+        for tbl, (where, cols) in ({} if OFF else cm.SEED_TABLES).items():
             lv = {json.dumps(r, sort_keys=True) for r in rows_json(args.live, tbl, where, cols)}
             mi = {json.dumps(r, sort_keys=True) for r in rows_json(local, tbl, where, cols)}
             bad = lv ^ mi
@@ -494,7 +538,7 @@ def main() -> int:
             if missing:
                 integ_bad.append(f"{kind} codes missing from seed: {missing}")
         # 被代码点名却没打 is_system 的科目 —— 这一条特意问【线上】(名单漏网之鱼)
-        if lit["account_codes"]:
+        if lit["account_codes"] and not OFF:
             arr = ",".join(f"'{c}'" for c in lit["account_codes"])
             loose = psql(args.live, f"SELECT COALESCE(string_agg(c, ','), '') FROM unnest(ARRAY[{arr}]) c "
                                     f"WHERE EXISTS (SELECT 1 FROM public.accounts a WHERE a.code = c AND NOT a.is_system);")
@@ -505,7 +549,12 @@ def main() -> int:
 
         # 列权限缺口:问【线上】(操作员真正撞上的那份)和【本地重建】(全新安装会
         # 得到的那份)。前者抓"加了列忘了授权",后者抓"镜像里的授权清单已过时"。
-        for label, dsn in (("live", args.live), ("rebuild", local)):
+        # 【--offline 只问得到重建侧】线上那一侧由迁移之后的整门原样跑,一件不少。
+        # ★ 顺带修掉一处旧疏漏:import-template 那一轮此前写的是 `("rebuild", dsn)`,
+        #   而 `dsn` 是上面几个 for 循环漏出来的循环变量(恰好等于 local),
+        #   一处【靠上文残留才碰巧正确】的引用。改成同一份 SIDES,名字有主了。
+        SIDES = (("rebuild", local),) if OFF else (("live", args.live), ("rebuild", local))
+        for label, dsn in SIDES:
             gaps = check_grant_gaps(dsn)
             print(f"colgrant   {label}: " + ("无缺口 ✓" if not gaps else f"✗ {gaps}"))
             if gaps:
@@ -513,7 +562,7 @@ def main() -> int:
 
         # OPS-13:谁在读被收回的列 —— colgrant 问列的状态,这一条问读它的人。
         # 同样两侧都问:线上是操作员真正撞上的那份,重建是全新安装会得到的那份。
-        for label, dsn in (("live", args.live), ("rebuild", local)):
+        for label, dsn in SIDES:
             rg = check_reader_gaps(dsn)
             print(f"colreader  {label}: " + ("无 invoker 视图读被收回的列 ✓" if not rg else f"✗ {rg}"))
             if rg:
@@ -522,7 +571,7 @@ def main() -> int:
         # OPS-14:谁的【行】会消失 —— colreader 问列,这一条问行。两侧都问,理由同上。
         # 【零必须是测量】先要探测器自证看得见 invoker 视图和它们的基表依赖,
         # 看不见就当场判失败,而不是安静地报"无缺口"。
-        for label, dsn in (("live", args.live), ("rebuild", local)):
+        for label, dsn in SIDES:
             xm, n_inv, n_dep = check_xmodule_views(dsn)
             if n_inv == 0 or n_dep == 0:
                 print(f"xmodule    {label}: ✗ 探测器什么也没看见(invoker={n_inv} deps={n_dep})")
@@ -545,10 +594,11 @@ def main() -> int:
             problems.append("swallowed query errors (see check-error-swallowing.mjs)")
 
         # ── 生成类型 vs 线上 schema(OPS-10)──────────────────────────────────
-        types_gap = check_generated_types(args.live)
-        print("types      " + ("lib/database.types.ts 与线上一致 ✓" if not types_gap else f"✗ {types_gap}"))
-        if types_gap:
-            problems.append(f"generated types: {types_gap}")
+        if not OFF:
+            types_gap = check_generated_types(args.live)
+            print("types      " + ("lib/database.types.ts 与线上一致 ✓" if not types_gap else f"✗ {types_gap}"))
+            if types_gap:
+                problems.append(f"generated types: {types_gap}")
 
         # ── 库级 GUC:线上 vs 重建逐条比对(FIN-20)──────────────────────────
         # 行为在配置里也能藏:数据库时区决定 CURRENT_DATE,而本地重建继承开发机
@@ -566,12 +616,14 @@ def main() -> int:
                    "SELECT unnest(s.setconfig) AS x FROM pg_db_role_setting s "
                    "JOIN pg_database d ON d.oid = s.setdatabase "
                    "WHERE d.datname = current_database() AND s.setrole = 0) q;")
-        guc_live = {g for g in psql(args.live, GUC_SQL).split(";") if g}
+        guc_live = set() if OFF else {g for g in psql(args.live, GUC_SQL).split(";") if g}
         guc_local = {g for g in psql(local, GUC_SQL).split(";") if g}
-        guc_diff = sorted(g for g in (guc_live ^ guc_local)
-                          if g.split("=", 1)[0] not in GUC_ALLOWLIST)
-        n_allowed = len((guc_live ^ guc_local)) - len(guc_diff)
-        if guc_diff:
+        guc_diff = [] if OFF else sorted(g for g in (guc_live ^ guc_local)
+                                         if g.split("=", 1)[0] not in GUC_ALLOWLIST)
+        n_allowed = 0 if OFF else len((guc_live ^ guc_local)) - len(guc_diff)
+        if OFF:
+            print("guc        (跳过 —— 需要线上;由迁移之后的整门跑)")
+        elif guc_diff:
             sides = [f"{g} ({'仅线上' if g in guc_live else '仅重建'})" for g in guc_diff]
             print(f"guc        ✗ 线上与重建的库级 GUC 不一致: {'; '.join(sides)}")
             problems.append(f"database GUC drift: {'; '.join(sides)}")
@@ -624,7 +676,7 @@ def main() -> int:
             problems.append(f"definer: {unchecked}")
 
         # IMPORT-2:模板与线上目录的三条规矩(见 IMPORT_TEMPLATE_SQL 抬头)
-        for label, d in (("live", args.live), ("rebuild", dsn)):
+        for label, d in SIDES:
             tmpl_gap = check_import_template(d)
             print(f"   import-template  {label:8} {'✓ 模板与目录一致' if not tmpl_gap else '✗ ' + tmpl_gap}")
             if tmpl_gap:
@@ -632,6 +684,26 @@ def main() -> int:
 
         # ── 两个判词,分开说 ────────────────────────────────────────────────
         elapsed = time.time() - t0
+        if OFF:
+            print(f"\n== 迁移前相位(wall-clock {elapsed:.0f}s)—— ★ 这【不是】三个判词 ★")
+            print("   跑过的:可重建性 · B1/B2(重建侧)· 行为断言(db/fixtures 全套)·")
+            print("           引导/科目 · 自洽 · 列权限/读者/跨模块/导入模板(重建侧)·")
+            print("           吞错 · 币种写死 · definer")
+            print("   ★ 没跑的(都需要线上,一件都没有被取消):种子行比对 · 生成类型 ·")
+            print("     库级 GUC · 上面四项的【线上侧】· 科目 is_system 的线上核对。")
+            print("   ★★ 迁移之后必须再跑一次不带 --offline 的整门。★★")
+            if problems or fixture_fails or invariant_failed:
+                if fixture_fails:
+                    print(f"迁移前相位:✗ {len(fixture_fails)} 个 fixture 失败:")
+                    for f in fixture_fails:
+                        print("   " + f)
+                if problems:
+                    print(f"迁移前相位:✗ {len(problems)} 项:" + " | ".join(p[:120] for p in problems))
+                if invariant_failed:
+                    print("迁移前相位:✗ B1/B2(重建侧)失败")
+                return 4 if (fixture_fails and not problems and not invariant_failed) else 1
+            print("迁移前相位:✓ 干净 —— 可以往下走(备份 → 迁移 → 整门)")
+            return 0
         print(f"\n== 三个判词(wall-clock {elapsed:.0f}s)")
         print("判词【可重建性】:✓ 仓库能从零建出库(prelude 足够,B1/B2 双侧断言见上)")
         mirrors_dirty = structural_drift or bool(problems)
@@ -665,5 +737,9 @@ def main() -> int:
 if __name__ == "__main__":
     # FIX-3:整个 gate 期间持有 live-lock,退出必释放(异常与 SIGINT/SIGTERM 也释放)。
     # 见 db/live_lock.py 抬头:这条规矩被破过两次,所以它不再是文档。
+    # 【--offline 不持锁】它一次线上都不碰,占着那把锁只会挡住别人(见 db/live_lock.py)。
+    # 一把"其实不需要"的锁,与一条"其实不跑"的检查是同一类谎。
+    if "--offline" in sys.argv:
+        sys.exit(main())
     with live_lock.Held("db/gate.py"):
         sys.exit(main())

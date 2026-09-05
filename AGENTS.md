@@ -109,8 +109,24 @@ composite type.
 ## The database gate runs on every cut that touches the database
 
 ```
-python3 db/gate.py        # ~4 min measured, no large payloads over the network
+python3 db/gate.py            # 整门。310s 实测 2026-09-05(193 fixtures)
+python3 db/gate.py --offline  # 迁移【之前】的一相。44s 实测 2026-09-05,全程不碰线上
 ```
+
+> ★★【--offline 是多出来的一相,不是"门的快版"】★★(VERIFY-1,2026-09-05)
+> **整门在它原来的相位上照跑,断言的东西一件不少** —— 两条路径调的是同一份代码,
+> `--offline` 只把【够不到线上的那些】跳过去,跳过的每一项都在它自己的收尾里被
+> 逐条点名。想"以后跑 --offline 就够了"的人,请先读 `db/gate.py` 抬头那一段:
+> **一条被绕过去的检查等于没有检查。**
+>
+> **为什么值得多跑一相,用量出来的数说话:整门 310s,而离线那一相只要 44s ——
+> 96% 的门时间是对线上的往返。** 光重建 + 193 支 fixture 更是只有 13s
+> (建集群 0s · 重建 7s · fixture 6s;另外 31s 是重建侧的目录查询与泄漏指纹)。
+> C-2 被门抓到的五件事里**四件不需要新库**(镜像列序 · 一句 `?? []` ·
+> 两支 fixture 漏填必填列 · fixture 146 的位置参数错位),四件都落在这 44 秒
+> 回答得了的范围里,却等到迁移之后才被问。**盈亏平衡 44/310 ≈ 14.2%** ——
+> 每 7 刀里命中 1 次就回本,而 C-2 那一刀的命中率是 100%。
+> **省下的秒同时也是风险:那一轮重跑发生在破窗里(C-2 破窗 1h05m57s)。**
 
 > **The cost, re-measured (PROC-1b, 2026-08-12): 247s wall clock, not the ~32s
 > this line said for months.** The 32s was true when it was written and OPS-6 had
@@ -528,7 +544,8 @@ all 20 checks, and that is the thing that has to be green.
 ## Route smoke test — run on demand, whenever the render layer changed
 
 ```
-node scripts/smoke-routes.mjs                  # 16m47s measured 2026-08-26 across 192 routes (was "~2-4 min" at ~135 routes)
+node scripts/smoke-routes.mjs                  # 765s (12m45s) measured 2026-09-05, SMOKE_OWN_EXIT=0, 218 routes timed
+                                               # (was 16m47s 2026-08-26 across 192 routes; and "~2-4 min" at ~135)
 node scripts/smoke-routes.mjs --reach=finance  # ONE role — ★ but see the WARNING below: --reach is structurally red
 node scripts/smoke-routes.mjs --reach         # all three roles (~100 min; a deliberate pre-push sweep)
 ```
@@ -697,6 +714,57 @@ Not after every edit — the fast half already renders every route on every run.
 
 三次都不是"检查写错了",而是**问得太晚**。所以每加一条新检查,先问一句:
 **它需要什么才能回答?** 只需要仓库里已有的文件,就别让它等服务器。
+
+### ★ 互斥的判据是 `live_lock`,【不是端口】—— 而并行这条路是量过之后被否掉的
+
+**别再用"它们会抢同一个端口"来推理谁能和谁一起跑。那个说法是错的,而真正的约束
+比它更强。**(VERIFY-1,2026-09-05)
+
+端口根本不冲突,四支各有各的:
+
+| 脚本 | 端口 | 出处 |
+|---|---|---|
+| `scripts/smoke-routes.mjs` | 3199(`next dev`) | `smoke-routes.mjs:71` |
+| `scripts/survey-phone.mjs` | 3198(`next dev`) | `survey-phone.mjs:52` |
+| `scripts/probe-avatar.mjs` | 3201(`next start`) | `probe-avatar.mjs:35` |
+| `db/gate.py` | **不开 HTTP 端口**(一次性本地 postgres 走 unix socket) | `gate.py:433` |
+
+**真正的互斥是 `live_lock`,而这四支【全都】在整个运行期间持着它** ——
+`gate.py:668`、`smoke-routes.mjs:68`、`survey-phone.mjs:49`、`probe-avatar.mjs:32`,
+两种语言两份实现、同一个锁文件(判据只在 `db/live_lock.py` 里定义一份)。
+再加上共享的线上库、共享的 `.next`,以及 `sweepScratch()` 会删掉另一个跑者
+【正在用】的账号(见 `docs/concurrency-one-tree-one-smoke.md`)。
+
+**所以:凡是碰线上的东西,一次只能跑一个。这不是性能建议,是正确性要求。**
+
+★【并行:量过,否掉,不要再花一小时重新发现】唯一真正能并行的,是那 21 支
+**只读仓库文件**的静态脚本(不持锁、不碰线上、不碰 `.next`)—— 而它们**全部加起来
+只要 3 秒**,并行掉它们买不到任何东西。**这条路是被测量关掉的,不是没探过。**
+
+★ 一个推论,值得单独记:`db/gate.py --offline` 一次线上都不碰,**所以它不持那把锁**
+(`gate.py` 结尾对 `--offline` 走的是不加锁的分支)。一把"其实不需要"的锁,
+与一条"其实不跑"的检查是同一类谎 —— 它会挡住别人,而挡的理由是假的。
+
+### ★ 第三种形状:一条说不出自己抓到了什么的检查,会让你【再跑一遍】去问它
+
+**"提早"与"少跑几遍"之外,还有第三条省时间的路,而它是最容易被漏掉的那条:
+把一条判据说不清楚的话说清楚。**(VERIFY-1,2026-09-05)
+
+前两种形状的代价是"跑得太久"或"跑得太多遍";这一种的代价是**你不得不再跑一遍
+才知道刚才那次是什么意思**。FIX-2a 实测付过这笔账:`GATE3_EXIT=2` 印着
+【仓库建不出库】,而**同一份日志里写着 `REBUILD OK`** —— 真正挂掉的是随后对线上
+的比对(SSL connection closed)。原样重跑 `GATE4_EXIT=0`。**一次网络抖动被报成
+了仓库坏了,代价是一整轮门(实测 310s),外加读日志分辨真假的时间。**
+
+处置(VERIFY-1):`db/verify_rebuild.py:signature()` 够不到线上时改退 **5**,
+而不是混进 2;`db/gate.py` 认得 5 并单独出一句判词。**这不取消任何断言 ——
+它只是让那条断言说得出自己抓到了什么。**
+
+★ 而这一条最值得记的不是缺陷本身,是**它就写在一条已经点名了同一个病形的注释
+底下**:`signature()` 上方那条注释提醒 `statement_timeout` 被掐断"看起来像比对
+失败而不是超时",然后紧接着的那个分支,在【连接】这一层上犯了同一个错。
+**一条点名了病形却漏掉自己兄弟的警告,与没有警告差不多。** 写下一条警告的时候,
+顺手问一句:同一个形状在这附近还有没有第二处?
 
 **Its blind spot bit within the hour it was written**, so treat this as load-bearing
 rather than a caveat: dynamic routes (`/customers/[id]`) are excluded from the
@@ -2519,13 +2587,33 @@ risk in front of a bounded one.**
 **So the sequence, in full:**
 
 ```
-code / docs / assets / probe / build      ← everything that needs no DDL
+code / docs / assets                      ← everything that needs no DDL
+survey-phone.mjs   (layout probe)         ← ★ 必须在 build 【之前】,见下
+npm run build                             ← 19 条静态检查 3s + next build 19s ≈ 22s
+probe-avatar.mjs   (interaction probe)    ← ★ 必须在 build 【之后】,见下
+python3 db/gate.py --offline              ← ★ 44s,迁移前相位(VERIFY-1)
 backup (BACKUP_EXIT=0 from its own log)
 apply_migration.sh                        ← window opens here, as late as possible
-python3 db/gate.py                        ← ALL THREE verdicts green
+python3 db/gate.py                        ← ALL THREE verdicts green(整门,一件不少)
 smoke (if the render layer changed)
 git push                                  ← window closes at the deploy
 ```
+
+**★ 两支探针的先后是【机制决定的】,不是习惯 —— 所以它写在这里,连理由一起。**
+一个没有写下理由的顺序,会被下一个有自己理由的人重排掉:
+
+| 探针 | 前提 | 出处 |
+|---|---|---|
+| `scripts/survey-phone.mjs`(版式) | **`.next/BUILD_ID` 不存在就跑,存在就【拒绝开跑】** | `survey-phone.mjs:600` |
+| `scripts/probe-avatar.mjs`(交互) | **`.next/BUILD_ID` 必须存在**(跑在 `next start` 上) | `probe-avatar.mjs:94` |
+
+两者的前提**正好相反**。按 版式 → build → 交互 这个顺序,一次构建就够;
+任何别的顺序都要 `rm -rf .next` 再构建一次。实测成本:版式探针 102s(单条路由)·
+`next build` 19s(冷构建,231 条路由)· 交互探针 33s。
+
+**★ 而 `db/gate.py --offline` 放在 build 之后、备份之前,是因为它 44s 就能回答
+C-2 那四件"不需要新库"的事** —— 它们此前要等到迁移之后才被问,于是那一轮重跑
+整个发生在破窗里。
 
 **If the gate is red, the window stays open while you fix the mirror.** That is
 the correct trade and it should not feel like one: you are holding a bounded,
