@@ -2475,6 +2475,64 @@ WHT-1 建代扣时撞上这一条。`record_expense` 的签名是
 **一条在默认路径上、又不指路的拒绝,买到的是绕过它的办法,不是安全。**
 代价(那条路多走一步)按【买来的成本】记在 `docs/known-issues.md`,不记成缺陷。
 
+## ★ THE GATE GOES GREEN BEFORE THE PUSH — a wrong mirror on main outlives an open window
+
+> **Order: migrate → `db/gate.py` green → push.**
+> **Never: migrate → push → gate.** Not to shorten the broken window, not because
+> the window looks scary, not because the gate takes four minutes.
+
+**Why the tempting order is the wrong one, stated as a comparison of costs rather
+than as a preference:**
+
+| | an open broken window | a wrong mirror on `main` |
+|---|---|---|
+| how long it lasts | until the deploy — **minutes, and you are watching it** | until someone happens to look — **indefinite** |
+| how big it gets | **bounded**: old app + new DB, and you can enumerate what breaks | **unbounded**: every later cut reads the mirror as truth and builds on it |
+| can you undo it | yes — push | yes, but only after finding it, and nothing points at it |
+| does anything tell you | yes, you opened it deliberately and `apply_migration.sh` timestamps it | **no** — the gate already ran and you already read its verdict as history |
+
+**The window is a known, bounded, reversible cost. The mirror is not.** That
+asymmetry is the whole rule, and it does not depend on how bad any particular
+window is.
+
+**Measured occurrence (UI-1b, 2026-09-05).** The migration went in at 17:55:51.
+The window was analysed as **benign and the analysis was correct** — the migration
+only *added* objects (two tables, one nullable column, one `hr_alerts` arm) that
+the deployed code never reads, so nothing in production could break. On that
+reasoning the push was sequenced **ahead** of the gate, to close the window early.
+The gate then came back `GATE_EXIT=1` — `1 DIFFERENCE(S)`, `employees.columns` —
+and by then `e6a0812` was already on `origin/main` carrying an incomplete mirror.
+
+**Note what did NOT go wrong, because that is the trap:** the reasoning about the
+window was sound, the window really was harmless, and closing it early really was
+cheaper *for the window*. **The judgement was right about the thing it was
+weighing and wrong about the thing it was not.** A correct risk assessment of one
+cost is not a reason to accept an unmeasured second one.
+
+**The lever for window length is `C-1b`'s, not this one:** *code first, migrate
+last.* Do every non-DDL thing — the components, the messages, the docs, the
+probe, the build — **before** `apply_migration.sh` runs, so the window opens as
+late as possible and the gate is the only thing left inside it. That shortens the
+window by design. **Pushing early does not shorten it; it just moves an unbounded
+risk in front of a bounded one.**
+
+**So the sequence, in full:**
+
+```
+code / docs / assets / probe / build      ← everything that needs no DDL
+backup (BACKUP_EXIT=0 from its own log)
+apply_migration.sh                        ← window opens here, as late as possible
+python3 db/gate.py                        ← ALL THREE verdicts green
+smoke (if the render layer changed)
+git push                                  ← window closes at the deploy
+```
+
+**If the gate is red, the window stays open while you fix the mirror.** That is
+the correct trade and it should not feel like one: you are holding a bounded,
+observed, reversible cost open in order to avoid an unbounded, silent one.
+**Say so in the report** — an open window with a stated reason is a decision;
+an open window nobody mentions is the thing this file has a required field for.
+
 ## A cut is not done at the commit — it is done at the DEPLOY
 
 **Every cut's report must state the commit AND that it was pushed; the wrap-up must

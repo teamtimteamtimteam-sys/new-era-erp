@@ -108,13 +108,8 @@ CREATE TABLE public.employees (
         OR probation_end_date <= (hire_date + interval '3 months')::date
     ),
     -- ★ UI-1b(2026-09-05)ALTER 加的列 → 线上排在【最后】,镜像照 ordinal order 写。
-    -- 【首页问候语里怎么称呼这个人】—— 取值顺序 greeting_name ?? preferred_name ?? legal_name。
-    -- ★★【为什么不复用 preferred_name】★★ 那一列是【全站显示名】:
-    --   ActorName.tsx:79 · TopNav.tsx:161 · app/me/page.tsx:202 · app/hr/org/page.tsx:90。
-    --   把 Sandra Yap 的 preferred_name 改成「Sand」,组织架构图与每一条审计留痕上
-    --   她就都叫 Sand 了。**一句问候语的昵称,不该改写一个人在系统里的名字。**
-    -- 【线上只有一行有值】Sandra Yap → 'Sand'(其余五个人 preferred_name ?? legal_name
-    --   就已经是 Tim 要的那个名字 —— 实测,不是假设)。
+    --   这一列的【说明】在文件末尾的 COMMENT ON COLUMN 里,与本表另外七列一样 ——
+    --   ★ 一段 `--` 注释【进不了目录】★,而 gate 比的是目录(见文件末尾那一段)。
     greeting_name text
 );
 
@@ -244,6 +239,17 @@ COMMENT ON COLUMN public.employees.anonymised_at IS
 
 COMMENT ON COLUMN public.employees.user_id IS
     '这名员工的登录账号(auth.users.id)。EXEC-2 起有外键:敲错一个 uuid 会当场被拒,而不是静默入库 —— 这一列的读者(签发人姓名、绩效评估的分派路径)遇到一个指向空气的 id 时只会【查不到人】,而"查不到人"与"这个人没有账号"在屏幕上一模一样。ON DELETE SET NULL:账号被回收时,员工档案原样留着,只是那根线断了 —— 员工是 HR 的记录,它的存在与这个人有没有系统账号无关。可空是常态:不是每个员工都需要账号。';
+
+-- ★★【UI-1b fu1(2026-09-05):这一条是补上来的,而【为什么漏】值得留着】★★
+--   UI-1b 的迁移跑了 `COMMENT ON COLUMN … greeting_name`,而镜像这一侧把同样的
+--   文字写成了列上方的一段 `--` 注释。**两者对人一样,对目录完全不同** ——
+--   `--` 注释不进 pg_description,于是 `db/gate.py` 的【镜像 vs 线上】判词报了
+--   一处 `employees.columns DIFFERS`:列本身两侧逐字节相同(text / NULL / 无默认),
+--   **差的只有 comment 一栏**(live 有,rebuild `comment=-`)。
+--   本表另外七列早就是 `COMMENT ON COLUMN` —— 也就是说约定本来就在,是这一列没照做。
+--   **判据一句话:凡是迁移里用 COMMENT ON 写下的,镜像里也必须是 COMMENT ON。**
+COMMENT ON COLUMN public.employees.greeting_name IS
+    'UI-1b:首页问候语里怎么称呼这个人。取值顺序 greeting_name ?? preferred_name ?? legal_name。★ 不要复用 preferred_name ★ —— 那是全站显示名(ActorName / TopNav / /me / 组织架构图),把 Sandra Yap 的 preferred_name 改成「Sand」会让组织架构图与每一条审计留痕上她都叫 Sand。一句问候语的昵称,不该改写一个人在系统里的名字。';
 
 COMMENT ON COLUMN public.employees.position_id IS
     'KPI-1:这个人今天在哪个职位上。**KPI 绑在职位上,不绑在人上**(规格 §8.1)—— 那是 exec-views-plan 开篇「答案取自职责,不取自职级」的第二次落地。它取代了本表上原来那个自由文本的 job_title(已删):两个都能填就是同一个事实有两个写入口(§12.1)。**employment_history.job_title 保留**,那是一条不可变的履历快照,记的是"那一天头衔写的是什么"。';
