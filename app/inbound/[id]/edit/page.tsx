@@ -115,12 +115,12 @@ export default async function EditInboundPage({
             .is('deleted_at', null)
             .single(),
         supabase
-            .from('materials')
+            .from('material_lookup')   // FIX-1 item 3:查名视图,见迁移 2026-09-05-fix1
             .select('id, code, name')
             .is('deleted_at', null)
             .order('name'),
         supabase
-            .from('suppliers')
+            .from('supplier_lookup')   // FIX-1 item 3:查名视图,见迁移 2026-09-05-fix1
             .select('id, code, legal_name')
             .is('deleted_at', null)
             // LOG-1b:货代不进供应商名单(他们保留 supplier id 只为账上那条链)
@@ -586,8 +586,8 @@ export default async function EditInboundPage({
 
             <EditInboundForm
                 batch={batch}
-                materials={mustRows(materialsRes)}
-                suppliers={mustRows(suppliersRes)}
+                materials={mustRows(materialsRes) as unknown as { id: string; code: string; name: string }[]}
+                suppliers={mustRows(suppliersRes) as unknown as { id: string; code: string; legal_name: string }[]}
             />
 
             <MetalContentPanel

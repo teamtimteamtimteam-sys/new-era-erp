@@ -746,3 +746,254 @@ C-1b 那条结论(编码挪到迁移之前)**仍然成立,而且这一刀照做�
 >    的那一类,而那一类就是破窗存在的理由。
 >
 > **记下来是因为下一个人会想再压这个数,而压错地方会把顺序改回去。**
+
+---
+
+# 十一 · FIX-1(2026-09-05)· 头三次真登录抓到的三件事
+
+C-2 之后 Tim 建了第一批账号,亲自陪着走了头几次登录。这一节记的是那几次
+走出来的东西 —— **全部来自真人在生产环境上的真操作,没有一条是走查看出来的。**
+
+## 11.1 ★ 那张收货表单不是不方便,是【填不完】★
+
+委托书报上来的是一件事:Fu Sheng(`warehouse`)打开「新增进料」,
+**选不了供应商** —— 页面说「没有供货的供应商」,而 Tim 用自己的管理员账号
+看得见供应商。
+
+在**他自己的会话里**量过之后,真相比报上来的大三倍
+(`SET LOCAL ROLE authenticated` + 他的 sub,单事务探针后回滚):
+
+| `/inbound/new` 要读的 | Fu Sheng 看见 | `postgres` 看见 |
+|---|---|---|
+| `suppliers`(供货、在册) | **0** | 7 |
+| **`materials`(在册)** | **0** | **5** |
+| `customers`(在册) | **0** | 3 |
+| `po_receivable_lines` | 0 | 0(线上今天确实没有可收货的单) |
+| `storage_locations` | 1 | ✓ |
+| `inbound_source_reasons` / `inbound_safety_states` | 4 / 5 | ✓ |
+
+**供应商、物料、可收货采购单行,三个下拉全是空的。**
+
+> ### ★ 为什么只有供应商被报上来
+> **因为只有它自己会说话。** 那一格底下有一句「没有供货的供应商」,
+> 而物料那一格只是一个空下拉 —— 一个空下拉和一个还没点开的下拉,
+> 在屏幕上长得一模一样。**会出声的缺陷被报了上来,不出声的那个没有。**
+> 这不是 Tim 看漏了,这是界面没说。
+
+## 11.2 ★★ 这一节比本刀修的东西活得久:一次缺席被渲染成了一个答案 ★★
+
+**挡住 Fu Sheng 的【不是】那道页面守卫。** 同一次探针里:
+
+```
+has_permission('module.inbound.view')  =  true      ← requireModule(MOD.inbound) 放行了
+suppliers 可见行数                      =  0        ← RLS 在那之后把行滤光
+```
+
+页面正常渲染,守卫一声没吭。**RLS 的拒绝方式是【返回零行,不报错】。**
+于是这一整条链上没有任何一环察觉出了事:
+
+1. `requireModule` 通过 —— 它问的是"这个人进不进得来",答案是"进得来";
+2. PostgREST 回 `200` + `[]` —— 没有 error,因为**这不是一次错误**;
+3. `mustRows`(`lib/db-helpers.ts`)照定义把 `res.data ?? []` 递下去 ——
+   它的分支是 `if (res.error) fail(...)`,而这里 `error` 是 null;
+4. 页面自己的 `if (…Res.error)` 一支也不进;
+5. 表单画出一张空下拉,底下写着「没有供货的供应商」。
+
+> ## ★ 屏幕上那句「没有供货的供应商」,说的是七家真实存在的供应商。★
+>
+> **这正是 AGENTS.md 禁的那个形状:【把一次缺席渲染成一个答案】。**
+> 而它此前一次都没有被抓到,原因很具体:
+> **本仓库没有任何一道闸在看「这个读者拿到的空,是真的空,还是被滤成的空」。**
+> 那两件事在 HTTP 层、在 PostgREST 的应答里、在 `mustRows` 的签名里,
+> 都是同一个值 —— `[]`。要分开它们,只能问权限;而没有人在问。
+
+这条发现的适用面【远大于收货表单】:任何一个页面,只要它的守卫用的码
+与它读的表的 RLS 谓词不是同一个,就可能对某些角色画出这种"诚实的空"。
+本刀量出来的是 **63 个文件、108 对(文件,表)** 处在这个形状里(见 11.4)。
+
+**它与 C-1b 第四节那条是同一族,而且更深一层:**
+那一条说的是「registry 的 `permission` 与 RLS 谓词不一致时,没有任何东西会告诉你」;
+这一条说的是「**即使一致,守卫的码与页面读的表的码也可能不同,
+而那个差额会安静地变成一屏空数据**」。
+
+## 11.3 修法:窄的【查名】视图,一个新权限码都没有
+
+**没有把 `module.suppliers.view` 授给 warehouse**,因为那不是他需要的东西:
+`suppliers` 表上还有 `payment_terms` / `incoterm` / `credit_rating` / `tax_id` /
+`address` / `tax_residence`,而那个码同时打开 `contracts` 与 7 张 `contract_*`、
+`commission_agreements`、`counterparty_contacts`、`company_compliance` ——
+**整段商务关系**。`role_permissions` 对 warehouse 写的原话是
+「现场收货、产出与盘点;**不接触任何商务数据**」。
+
+他要的只有一样:**把那家供应商的名字叫出来,好让这张收货单指得中。**
+
+照 C-1b 已经裁过的那句话做(本文档 §462:「读与写为什么可以是两个码…
+这就是 Fu Sheng 的处境,**一个新码都不需要**」),第二处落点:
+
+| 新视图 | 它出的列 —— ★ 这份清单【就是】暴露面 ★ | 体内谓词 | 因此新读到的角色 |
+|---|---|---|---|
+| `supplier_lookup` | `id, code, legal_name, supplies_goods, counterparty_type, deleted_at` | `suppliers.view` OR `inbound.view` | `operations`、`warehouse` |
+| `material_lookup` | `id, code, name, deleted_at` | `materials.view` OR `inbound.view` OR `output.view` | `warehouse` |
+| `customer_lookup` | `id, code, legal_name, deleted_at` | `customers.view` OR `output.view` | `operations`、`warehouse` |
+| `po_receivable_lines_lookup` | `po_id, po_code, supplier_id, order_date, line_id, line_no, material_id, material_name, unit, remaining_qty` —— **一列价都没有** | `purchasing.view` OR `inbound.view` | `operations`、`warehouse` |
+
+**12 个在册角色里,新读到东西的只有这两个** —— 而它们正是 Tim 裁进本刀的两个。
+第三个角色一行都没有多拿到(对着线上 `role_permissions` 算的,不是估的)。
+
+`supplies_goods` 与 `counterparty_type` 出现在 `supplier_lookup` 上,是因为两处
+调用点各拿它们过滤(收货只列供货户;进料编辑排除货代)。搬到客户端做不到 ——
+那会要求先把不该看的行发下去。
+
+**形状不是本刀发明的:** `supplier_receiving_blocked` 就是一张属主权限视图,
+体内挂 `module.inbound.view`,连着 `suppliers`,而 Fu Sheng **今天就读得到它** ——
+它一直好好地待在这张坏掉的表单里。本刀只是把同一招用在他真正卡住的那三张表上。
+
+### ★ 它顺带做了 GRN-1a 明说留给以后的那个决定
+
+`db/migrations/2026-08-17-grn1a-…sql` 的抬头写着,它 2026-08-17 就量到
+「warehouse 角色读 `po_receivable_lines` 得 0 行」,并且判词是:
+
+> 「operations 与 warehouse 看不见差异,与他们今天看不见订量是同一件事。
+>   这不是本刀新加的限制;**要改的话该改的是订量那道门,而那是一个单独的决定。**」
+
+**那个单独的决定就是今天这一刀。** 但本刀只开【收货表单要的那十列】那道小门:
+`grn_discrepancies` **一个字没动**,它仍然只对持 `purchasing.view` 的人有行
+(fixture 100 的 C 条把这一点钉死,而且注入验证过)。那是下一刀的题目,不是顺手。
+
+### 为什么 `po_receivable_lines` 是【新造一张】而不是放宽老的
+
+1. **放宽老的做不到。** 它读 `purchase_orders_masked` 与
+   `purchase_order_lines_masked`,而那两张伴生视图**各自体内**也写着
+   `has_permission('module.purchasing.view')`。只改最外层是一次空操作。
+2. **老的那一张带着价。** 单价那一列确实已按 `data.view_prices` 遮成 NULL
+   (查过,不是假设),但 `pricing_formula_id` 没有遮。而两处收货调用点
+   **一个价都不读**。**遮成 NULL 与根本不出现,对下一个读代码的人不是同一句话。**
+
+## 11.4 完整的跨模块依赖普查 —— ★ 本刀只修了其中一角,其余在这里点名 ★
+
+方法:272 个含 `.from()` 的 app 文件 × 守卫(`requireModule` / `requireEditPermission`)
+× **线上** `pg_policies`(212 张表)与**线上**视图定义(98 张,其中 97 张
+`security_invoker=false`,所以把关的是视图体里那句 `has_permission`)。
+「跨模块」= 读所需的码落在守卫自己的模块族之外 —— 按构造排除了
+EDIT_REQUIRES_VIEW 管的那一类。
+
+**结果:63 个文件带跨模块读依赖;108 对(文件,表)至少对一个角色是空的。**
+
+| 角色 | 受阻读点 | 其中写表单 | 人 | 判定 |
+|---|---|---|---|---|
+| `cfo` | 50 | — | Tim | **理论** —— 他同时持 `admin`,权限取并集,一条都不会发生 |
+| **`warehouse`** | **43** | **21** | **Fu Sheng** | **真实 —— 他每天的活** |
+| **`operations`** | **29** | **13** | **Phua** | **真实** |
+| `procurement` | 22 | — | 无人 | 理论 |
+| `sales` | 18 | — | 无人 | 理论 |
+| **`finance`** | **15** | **4** | **Choo Er** | **真实,但只是空面板** |
+| `hr` | 5 | — | 无人(Sandra 是 `cco`) | 理论 |
+| `auditor` | 4 | — | 无人 | 理论 |
+| `gm` | 2 | 2 | Vince | **刻意如此** —— `user_directory` 要 `action.manage_permissions`,那正是没给他的 |
+| `cco` | 2 | 0 | Sandra | **刻意如此** —— `company_profile_masked` 要 `data.view_banking`,§71 写明不给 |
+
+### 本刀【没有】修的,逐条点名 —— 下一刀从这张表开始,不必重做普查
+
+**A. 写表单上的空面板(cluster B):** 它们不挡活,只是少一块。
+
+| 页面 | 读不到的东西 | 谁 |
+|---|---|---|
+| `/inbound/[id]/edit` | `po_prepayment_applicable`、`prepayment_applications_masked` | warehouse、operations |
+| `/inbound/[id]/assays/new` | `purchase_order_lines`、`pricing_formulas` | warehouse、operations |
+| `/inbound/[id]/edit` | `material_required_metals` | warehouse |
+| `/output/[id]/edit` | `batch_margin`、`pricing_formulas_masked` | warehouse(operations 只缺后者) |
+| `/operation/processing/new` | `finance_settings` | operations |
+| `/inbound/[id]/edit`、`/output/[id]/edit` | `stocktakes`、`stocktake_lines` | **finance(Choo Er 的那四处)** |
+
+**B. 只读页面(不是写表单,少的是一列名字或一块汇总):**
+`/inbound`(suppliers、materials)、`/inventory`(materials、processing_runs、
+processing_outputs_masked)、`/inventory/{inbound,output}/[materialId]`(materials、work_orders)、
+`/logistics/containers[/[id]]`(suppliers、container_overview、shipments)、
+`/logistics/forwarders[/[id]]`(suppliers、ap_open_items)、`/output`(customers、materials)、
+`/finance/*` 若干、`/sales/orders/[id]` 的预留区。
+
+**C. 不该动的:** Vince 的 `action.manage_permissions`、Sandra 的 `data.view_banking`。
+那是两次裁定,不是两个缺口。
+
+## 11.5 /set-password 与那一屏「什么都没发生」
+
+**item 1 —— 它此前穿着整个应用外壳。** 模块栏还高亮着一节(界面说他进来了,
+而他没有)、通知铃带着未读数、「我的档案」「我的评估」「登出」都在,
+而模块栏逐条写着「销售 · 受限」——
+**把这个账号缺哪些模块,告诉了一个还没完成设置的人。**
+那一整条导航一个链接都点不动:中间件把每一条路由都弹回这一页。
+
+> ### ★ 委托书里那句「用 /login 那套机制」藏着一个陷阱,而它差点被照做 ★
+> `/login` 的裸壳来自 `app/layout.tsx` 的 `isPublicPath(pathname)`,
+> **而中间件用的是【同一个函数】来决定"哪些路径不需要会话"。**
+> 照字面复用只有一步:把 `'/set-password'` 加进 `PUBLIC_PATHS` ——
+> **于是同一次改动顺手宣布了设密码页不需要会话。**
+> 那不是复用,那是把一条安全判据改宽,而改宽的地方看起来只是排版。
+>
+> 处置:**机制照用,判据拆开。** `lib/loginRoute.ts` 现在有两个名字 ——
+> `isPublicPath`(可以没有会话,只有 `/login`)与
+> `isBareChromePath`(不画外壳,是前者的**超集**,代码保证,不靠人记得)。
+
+**`/welcome` 不跟着改**(Tim 的裁定):那一页的人**已经**完成了设置 ——
+密码换过了、会话是好的,他只是还没被授予任何模块。对他画一个诚实的空外壳是对的。
+那些「· 受限」读起来怎么样,是 UI-1 的题目。
+
+**裸壳上留了【一条】出口:「不是你?登出」。** 判据从这一页做得了什么推出来:
+上面那行 intro 把 `user.email` 念了出来 —— **这一页主动告诉你你是谁**,
+那么当那个"谁"是错的人时,它必须给得出一条出路;而中间件把每一条其他路由
+都弹回这里。零个出口是本仓库撞过七次的那一族;一整条顶栏是正在修的缺陷;
+**中间那一档就是这一条。** 它复用 `/logout` 那支已有的 action,没有第二条登出路径。
+
+## 11.6 ★ item 2:重定向【一直都在】,缺的是那几秒里的任何证据 ★
+
+委托书写着「设完密码不跳转」。**实测推翻:它跳转。**
+在 `next dev` 上把两条进入路径 × 两个落点各跑了一遍,`router.push` 每一次都真的跳了。
+
+真正的成因是旧写法把跳转放在一次 React transition 里
+(`startTransition(async () => { …updateUser…; router.push(where) })`),
+而 **transition 的语义就是:新界面准备好之前,旧界面原样留在屏幕上。**
+
+实测(注入 1.2s 网络延迟,warehouse + 员工档案的测试账号):
+
+| t | 地址栏 | 密码框 | 报错 | 按钮 |
+|---|---|---|---|---|
+| 415ms | `/suppliers` | 仍填着 23 字符 | 无 | disabled |
+| 2512ms | `/suppliers` | 仍填着 | 无 | disabled |
+| 6039ms | `/suppliers` | 仍填着 | 无 | disabled |
+| 9021ms | `/me` | 空 | — | — |
+
+> **六秒以上的空窗,屏幕上一个字都没变。** 而 `/me` 是一张读很多张表的重页面,
+> 线上冷启动只会更长。Tim 看了几秒、认定没反应、又按了一次 ——
+> 于是拿到 GoTrue 的「New password should be different from the old password」。
+> **那句报错不是第二个缺陷,它是第一次成功的回声。**
+
+**地址栏那一半也复现了,100%:** 中间件的强制重定向发生在一次客户端导航上,
+Next 应用了新页面的 RSC 负载却**没有改 URL** —— 于是地址停在 `/purchasing`
+(委托书注意到了这件事,而它不是无关的旁证,它是"看起来什么都没发生"的另一半)。
+
+**修法:搬到 server action,结尾 `redirect()`** —— 与 `/login` 同一个形状。
+`redirect()` 是传输层跳转,不在 transition 的"等新界面"语义里;它顺带纠正地址栏;
+而配 `useActionState` 之后 `pending` **一直真到新页面渲染完**,所以那段空窗里
+按钮写着「保存中…」、两个密码框是禁用的。
+
+> ★ **空窗没有消失 —— 它由 `/me` 有多重决定,那不是这一刀的题目。
+>   消失的是【它的无声】。** 把 `/me` 变轻是另一件事,已记进 manual-walk-list。
+
+## 11.7 证明(全部读自脚本自己的日志)
+
+* **fixture 100** —— 四条,两个方向:
+  A 正对照(warehouse 现在叫得出:supplier 7 / material 5 / customer 3 / 那条采购单行 1,
+  而 `has_permission('module.suppliers.view')` 仍然是 **false**);
+  B 反对照(`hr` 与一个零权限账号,四张视图全 0);
+  C **窄对照**(warehouse 读 `suppliers` / `materials` / `customers` 基表仍然是 0,
+  读带价的 `po_receivable_lines` 是 0,读 `grn_discrepancies` 是 0);
+  D 一致对照(对 `procurement`,新旧两张采购单行视图给出同一组 `line_id`,各 4 行,非空)。
+* **注入五次,五次都红**:①去掉 `inbound.view` 那一支 → A 红;②门大开 → B 红;
+  ③改用「把 suppliers.view 授给 warehouse」那条捷径 → **C 红**;
+  ④漏掉 status 过滤 → D 红;⑤`grn_discrepancies` 顺手放宽 → C 红。
+* **强制换密码那道闸仍然拦得住**:7 条路由(`/suppliers`、`/purchasing/orders`、
+  `/inbound/new`、`/hr/employees`、`/finance/invoices`、`/me`、`/settings/accounts`)
+  逐条实测被弹回设密码页;**注入验证**:把 `must_change_password` 清掉之后
+  `/suppliers` 当场不再被弹 —— 那条断言是活的。
+* **裸壳断言也是活的**:把根布局改回 `isPublicPath` 之后,`<header>` 与
+  「受限」泄露【当场回来】。

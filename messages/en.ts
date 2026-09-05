@@ -1018,6 +1018,12 @@ const en = {
         submit: 'Set password',
         errTooShort: 'Use at least 8 characters.',
         errMismatch: 'The two passwords do not match.',
+        // FIX-1 item 2:服务端只回码,这三条是那三个码的句子。见 app/set-password/actions.ts。
+        errSamePassword: 'That is already your password. Choose a different one.',
+        errWeak: 'That password is too easy to guess. Choose a longer or less common one.',
+        errUnknown: 'The password could not be set. Please try again.',
+        // FIX-1 item 1:裸壳上唯一的出口。
+        notYou: 'Not you? Log out',
     },
     welcome: {
         title: 'Your account is ready',

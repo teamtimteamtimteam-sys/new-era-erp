@@ -1039,6 +1039,12 @@ const zh = {
         submit: '设置密码',
         errTooShort: '至少 8 位。',
         errMismatch: '两次输入的密码不一致。',
+        // FIX-1 item 2:服务端只回码,这三条是那三个码的句子。见 app/set-password/actions.ts。
+        errSamePassword: '这已经是你现在的密码了,换一个。',
+        errWeak: '这个密码太容易被猜到,换一个更长或更少见的。',
+        errUnknown: '密码没有设置成功,请再试一次。',
+        // FIX-1 item 1:裸壳上唯一的出口。
+        notYou: '不是你?登出',
     },
     welcome: {
         title: '账号已就绪',

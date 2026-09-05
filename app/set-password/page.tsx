@@ -13,6 +13,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
+import { logout } from '@/app/logout/actions'
 import SetPasswordForm from './SetPasswordForm'
 
 export default async function SetPasswordPage() {
@@ -36,6 +37,34 @@ export default async function SetPasswordPage() {
                 {t('setPassword.intro', { 0: user.email ?? '' })}
             </p>
             <SetPasswordForm />
+            {/* ══════════════════════════════════════════════════════════════
+                ★【FIX-1 item 1:唯一的出口 —— 一条,不是一整条顶栏】★
+                (Tim 的 Q3 裁定,2026-09-05)
+
+                判据【从这一页做得了什么推出来】,不是口味:
+                上面那一行 intro 把 user.email 念了出来 —— 这一页【主动告诉你
+                你是谁】。那么当那个"谁"是错的人时(初始密码是当面交的,
+                两个人共用一台平板并不稀奇),它就必须给得出一条出路。
+                而中间件把【每一条】其他路由都弹回这一页:没有这一条,
+                唯一的出口就是关掉浏览器,或者那整条顶栏 —— 后者正是本刀在修的缺陷。
+
+                【为什么不是零个出口】"空分支里没有出口"这一族本仓库撞过七次。
+                【为什么不是整条顶栏】通知、我的评估、模块清单、语言切换
+                对一个还没设完密码的账号一件都不成立,而模块栏还会逐条泄露
+                这个账号缺哪些模块。
+                **中间那一档就是这一条:一个动作,一句话,没有导航。**
+
+                【它复用 /logout 那支已有的 action】没有新造第二条登出路径 ——
+                signOut + revalidatePath + redirect('/login') 一个字没改。
+                ══════════════════════════════════════════════════════════════ */}
+            <form action={logout} className="mt-8 border-t pt-4">
+                <button
+                    type="submit"
+                    className="text-sm text-gray-500 underline underline-offset-2 hover:text-gray-800"
+                >
+                    {t('setPassword.notYou')}
+                </button>
+            </form>
         </div>
     )
 }

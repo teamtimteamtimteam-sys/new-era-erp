@@ -5,7 +5,7 @@ import Breadcrumbs from "@/app/components/nav/Breadcrumbs";
 import IdleWatcher from "@/app/components/IdleWatcher";
 import { I18nProvider } from "@/lib/i18n/client";
 import { getLocale } from "@/lib/i18n/server";
-import { isPublicPath } from "@/lib/loginRoute";
+import { isBareChromePath } from "@/lib/loginRoute";
 import { getModuleAccess } from "@/lib/moduleAccess";
 import { headers } from "next/headers";
 import "./globals.css";
@@ -50,14 +50,23 @@ export default async function RootLayout({
   // pathname 由中间件放进 x-pathname(服务端组件拿不到当前路径 —— 没有这个 API)。
   // 判据 isPublicPath 与中间件放行用的是【同一个函数】,不是抄的第二份。
   //
-  // 【影响面】PUBLIC_PATHS 今天只有 /login,所以这一行只改这一页;
-  // /set-password 与 /welcome 不在其中,它们照旧有外壳(那是对的:那两页
-  // 的人已经有会话了)。对登出状态的人来说屏幕上没有任何变化 ——
-  // TopNav 本来就返回 null。真正变掉的只有两种:登录着的人(现在根本到不了)
-  // 与认证判断不出的人(不再在登录页上看到那条横幅)。
+  // ★★【FIX-1 item 1(2026-09-05):判据换成 isBareChromePath —— 而这【不是】
+  //     同一个函数改了个名字】★★
+  //
+  // 这一行原本读 isPublicPath,而那个函数【同时】是中间件"放行不需要会话的路径"
+  // 的判据。委托书说「/set-password 用 /login 那套机制」,而照字面做只有一步:
+  // 往 PUBLIC_PATHS 里加一条。**那一步会顺手宣布设密码页不需要会话。**
+  // 所以拆成两个判据(见 lib/loginRoute.ts 的抬头),这里读【外壳】那一个。
+  //
+  // 【机制一个字没改】仍然是 x-pathname + 一个布尔,仍然不是路由组 ——
+  // 换的只是"哪些路径算数",而那正是本刀要改的东西。
+  //
+  // 【影响面】新加进来的只有 /set-password 一页。/welcome 照旧有外壳
+  // (Tim 的裁定:那一页的人已经完成设置,只是还没被授权)。
+  // 对登出状态的人屏幕上没有任何变化 —— TopNav 本来就返回 null。
   // ══════════════════════════════════════════════════════════════════════════
   const pathname = (await headers()).get("x-pathname") ?? "";
-  const bare = isPublicPath(pathname);
+  const bare = isBareChromePath(pathname);
 
   // ★【NAV-CLEANUP-1 ⑤】面包屑的第一截与顶栏的高亮必须是【同一个答案】,
   //   而那个答案要知道"这个读者进得去哪些模块"。可进性只能在服务端算(要读库),

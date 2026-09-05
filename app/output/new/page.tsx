@@ -18,12 +18,12 @@ export default async function NewOutputPage() {
 
     const [materialsRes, customersRes] = await Promise.all([
         supabase
-            .from('materials')
+            .from('material_lookup')   // FIX-1 item 3:查名视图,见迁移 2026-09-05-fix1
             .select('id, code, name')
             .is('deleted_at', null)
             .order('name'),
         supabase
-            .from('customers')
+            .from('customer_lookup')   // FIX-1 item 3:查名视图,见迁移 2026-09-05-fix1
             .select('id, code, legal_name')
             .is('deleted_at', null)
             .order('legal_name'),
@@ -52,8 +52,8 @@ export default async function NewOutputPage() {
     return (
         <NewOutputForm
             locations={locationChoices}
-            materials={mustRows(materialsRes)}
-            customers={mustRows(customersRes)}
+            materials={mustRows(materialsRes) as unknown as { id: string; code: string; name: string }[]}
+            customers={mustRows(customersRes) as unknown as { id: string; code: string; legal_name: string }[]}
         />
     )
 }

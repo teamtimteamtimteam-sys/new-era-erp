@@ -25,9 +25,31 @@ export default async function NewInboundPage({
     const t = await getTranslations()
     const locale = await getLocale()
 
+    // ════════════════════════════════════════════════════════════════════
+    // ★【FIX-1 item 3(2026-09-05):这三个下拉从基表改读【查名视图】】★
+    //
+    // 实测的缺陷:Fu Sheng(warehouse)持 module.inbound.edit,收货是他每天的活,
+    // 而这张表单他【填不完】—— 供应商、物料、可收货采购单行三个下拉全是空的。
+    // 在他自己的会话里量过:suppliers 他看见 0 / 库里 7,materials 0 / 5。
+    //
+    // ★ 挡住他的【不是】上面那道 requireModule —— 那一道放行了(inbound.view 他有)。
+    //   挡住他的是 RLS,而 RLS 的拒绝方式是【返回零行、不报错】。于是下面的
+    //   `if (…Res.error)` 一支都不进,mustRows 把空数组原样递下去,
+    //   屏幕上画出"没有供货的供应商" —— 那句话说的是七家真实存在的供应商。
+    //   **一次缺席被渲染成了一个答案**,而这正是没有任何一道闸抓到它的原因。
+    //
+    // 查名视图只出"叫得出名字"所需的那几列(供应商不含付款条件/贸易术语/
+    // 信用评级/税号/地址;采购单行一列价都没有),暴露面就是那份列清单。
+    // 【没有铸任何新权限码】—— 见 db/migrations/2026-09-05-fix1-cross-module-lookup-views.sql
+    // 与 docs/accounts-roles-and-permissions.md 第十一节。行为断言:fixture 100。
+    //
+    // 【类型上的一个真代价】视图的列在 database.types.ts 里一律可空(基表是
+    // NOT NULL,而视图表达不了这件事),所以下面递给表单时要断言形状 ——
+    // 与紧邻的 poLines / locationChoices 早就在用的写法逐字相同。
+    // ════════════════════════════════════════════════════════════════════
     const [materialsRes, suppliersRes, poLinesRes, blockedRes] = await Promise.all([
         supabase
-            .from('materials')
+            .from('material_lookup')   // FIX-1 item 3:查名视图,见迁移 2026-09-05-fix1
             .select('id, code, name')
             .is('deleted_at', null)
             .order('name'),
@@ -38,13 +60,13 @@ export default async function NewInboundPage({
             // 「页面摆出一个服务端保证会拒的控件」。
             // 【服务端那道闸仍然是权威的】这里只是不再提供一个必被拒的选项;
             // 直连/服务密钥绕过页面时,触发器照样拒。
-            .from('suppliers')
+            .from('supplier_lookup')   // FIX-1 item 3:查名视图,见迁移 2026-09-05-fix1
             .select('id, code, legal_name')
             .is('deleted_at', null)
             .eq('supplies_goods', true)
             .order('legal_name'),
         supabase
-            .from('po_receivable_lines')
+            .from('po_receivable_lines_lookup')   // FIX-1 item 3:十列、无价,见迁移 2026-09-05-fix1
             .select('po_id, po_code, supplier_id, order_date, line_id, line_no, material_id, material_name, remaining_qty, unit')
             .order('po_code')
             .order('line_no'),
@@ -92,8 +114,8 @@ export default async function NewInboundPage({
             certainties={condition.certainties}
             materialAxes={materialAxes}
             locations={locationChoices}
-            materials={mustRows(materialsRes)}
-            suppliers={mustRows(suppliersRes)}
+            materials={mustRows(materialsRes) as unknown as { id: string; code: string; name: string }[]}
+            suppliers={mustRows(suppliersRes) as unknown as { id: string; code: string; legal_name: string }[]}
             poLines={(mustRows(poLinesRes)) as PoLineOption[]}
             blockedSuppliers={(mustRows(blockedRes)) as BlockedSupplier[]}
             initialPoId={sp.po ?? ''}

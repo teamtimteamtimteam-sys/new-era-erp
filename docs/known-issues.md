@@ -4842,3 +4842,45 @@ SELECT 策略换成了它。**`db/views/container_overview.sql` 这张视图没�
 > **为什么记在这里而不是记成缺陷:** 今天没有人因此算错数 ——
 > 小时数记得准,只是它不产生任何后果。这是一个**声明过的边界**,
 > 不是一个正在悄悄出错的地方。
+
+---
+
+## VIEW-INVOKER-COUNT — 97 张视图是【属主权限】,其中 27 张体内没有自己的谓词(FIX-1,2026-09-05)
+
+**报告一个数字,不主张任何泄露。** 命名它就是今天的全部工作。
+
+FIX-1 的跨模块普查顺手量到:线上 98 张视图里,**97 张 `security_invoker = false`** ——
+它们以视图属主(`postgres`)的身份跑,**基表的 RLS 因此不生效**。
+这本身不是缺陷:本仓库的 xmodule 补法 (a) 就是刻意这么做的 ——
+跨模块的 invoker 视图会让无权那一侧的行被静默丢掉、内连接把整行带走,
+读者拿到的是"没有差异"而不是"受限"(OPS-14)。所以补法是**属主权限 + 把谓词
+原样写进视图体**。`supplier_receiving_blocked`、`po_receivable_lines`、
+以及 FIX-1 新建的四张查名视图,全都是这个形状。
+
+**值得记下来的是另一半:那 97 张里,有 27 张体内【没有】任何 `has_permission()`。**
+
+其中绝大多数有正当理由,而且看名字就分得出两族:
+
+* `my_*`(`my_profile`、`my_leave_balance`、`my_kpi_entries`、`my_review_subjects`、
+  `my_self_assessment`、`my_self_assessment_goals`)—— 按 `auth.uid()` 逐行限定到本人,
+  谓词是行级的,不是权限级的。**FIX-1 正是靠这一条:`my_profile` 对一个
+  角色都没有的账号照样返回他自己那一行,所以设完密码的落点判断不依赖任何模块权限。**
+* `*_all`(`batch_audit_trail_all`、`batch_lineage_all`、`order_invoice_balance_all`、
+  `order_invoice_open_all`、`processing_metal_recovery_all`、`stock_class_violations_all`)——
+  刻意不设门的原始版,由带门的调用者包起来。
+
+**剩下的没有逐张查过**,点名在这里,好让下一个人从名单开始而不是从普查开始:
+`attendance_period_status`、`bank_reconciliation_record`、`bank_reconciliation_status`、
+`bank_unmatched_journal_lines`、`collection_promise_status`、`deleted_records`、
+`employee_directory`、`expense_claim_status`、`fx_month_end_readiness`、`fx_rate_gaps`、
+`inbound_batch_valuation`、`lane_checklist_status`、`operations_now`、
+`task_board_rows`、`task_participant_directory`。
+
+> **★ 本条【没有】主张这 15 张里任何一张会泄露。** 它们可能各自有别的门
+> (调用点的守卫、GRANT、或者内容本身就无所谓),而查清楚需要逐张读定义
+> 加一支两个方向的 fixture —— 那是一刀的工作量,不是一句话。
+> 写下这个数字,是因为**「97 / 27 / 15」这三个数今天没有人知道**,
+> 而不知道的东西没法被判断。
+
+**机器状态:** 没有为它加检查。与 C-1b 的 Q7 同一条道理 ——
+一道会对着正确代码变红的闸,两刀之内就会被人加白名单绕过去。

@@ -56,8 +56,8 @@ export default async function NewAssayPage({
     const batch = maskedExcept<Tables<'inbound_batches'>, 'unit_price'>(batchRaw)
 
     const [materialRes, supplierRes, metalsRes, lineRes] = await Promise.all([
-        supabase.from('materials').select('name').eq('id', batch.material_id).single(),
-        supabase.from('suppliers').select('legal_name').eq('id', batch.supplier_id).single(),
+        supabase.from('material_lookup').select('name').eq('id', batch.material_id).single(),   // FIX-1 item 3:查名视图
+        supabase.from('supplier_lookup').select('legal_name').eq('id', batch.supplier_id).single(),   // FIX-1 item 3:查名视图
         supabase
             .from('inbound_batch_metals')
             .select('metal, content_pct')

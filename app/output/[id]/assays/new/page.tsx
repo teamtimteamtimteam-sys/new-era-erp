@@ -48,7 +48,7 @@ export default async function NewOutputAssayPage({
     }
 
     const [materialRes, metalsRes] = await Promise.all([
-        supabase.from('materials').select('name').eq('id', batch.material_id).single(),
+        supabase.from('material_lookup').select('name').eq('id', batch.material_id).single(),   // FIX-1 item 3:查名视图
         supabase
             .from('output_batch_metals')
             .select('metal, content_pct')

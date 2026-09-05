@@ -28,19 +28,19 @@ export default async function ReceivePage() {
             // 「页面摆出一个服务端保证会拒的控件」。
             // 【服务端那道闸仍然是权威的】这里只是不再提供一个必被拒的选项;
             // 直连/服务密钥绕过页面时,触发器照样拒。
-            .from('suppliers')
+            .from('supplier_lookup')   // FIX-1 item 3:查名视图,见迁移 2026-09-05-fix1
             .select('id, code, legal_name')
             .is('deleted_at', null)
             .eq('supplies_goods', true)
             .order('legal_name'),
         supabase
-            .from('materials')
+            .from('material_lookup')   // FIX-1 item 3:查名视图,见迁移 2026-09-05-fix1
             .select('id, code, name')
             .is('deleted_at', null)
             .order('name'),
         // 可收货的采购单行(cut 4c;客户端按供应商过滤)
         supabase
-            .from('po_receivable_lines')
+            .from('po_receivable_lines_lookup')   // FIX-1 item 3:十列、无价,见迁移 2026-09-05-fix1
             .select('po_id, po_code, supplier_id, order_date, line_id, line_no, material_id, material_name, remaining_qty, unit')
             .order('po_code')
             .order('line_no'),
@@ -82,8 +82,8 @@ export default async function ReceivePage() {
             certainties={condition.certainties}
             materialAxes={materialAxes}
             locations={locationChoices}
-                suppliers={mustRows(suppliersRes)}
-                materials={mustRows(materialsRes)}
+                suppliers={mustRows(suppliersRes) as unknown as { id: string; code: string; legal_name: string }[]}
+                materials={mustRows(materialsRes) as unknown as { id: string; code: string; name: string }[]}
                 poLines={(mustRows(poLinesRes)) as PoLineOption[]}
                 blockedSuppliers={(mustRows(blockedRes)) as BlockedSupplier[]}
             />
