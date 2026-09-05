@@ -348,11 +348,18 @@ async function main() {
     const afterRemove = await httpStatus(publicUrl)
     probe('P3.object-gone', afterRemove >= 400, `移除后 → HTTP ${afterRemove}(删的是对象,不是一个指针)`)
     await goto('/me')
+    await waitFor(`(() => { const i = document.querySelector('[data-nav="avatar-image"]')
+        return !i || i.complete })()`, 20000, '重新进页面后图落定')
     const s3 = await evalJs(`(() => {
         const btn = document.querySelector('[data-nav="avatar-menu"] button')
+        const imgs = [...document.querySelectorAll('[data-nav="avatar-image"]')].map(i => ({
+            where: i.closest('[data-panel="avatar"]') ? 'me-panel'
+                 : i.closest('[data-nav="avatar-menu"]') ? 'topbar' : 'other',
+            complete: i.complete, nw: i.naturalWidth, src: (i.currentSrc || i.src).slice(-40) }))
         return { initials: btn ? btn.querySelector('span').textContent.trim() : null,
-                 imgInDom: !!document.querySelector('[data-nav="avatar-image"]') }
+                 imgInDom: imgs.length > 0, imgs }
     })()`)
+    console.log('   · 移除并重进之后的 <img> 现场:' + JSON.stringify(s3.imgs))
     probe('P3.back-to-initials', s3.initials === 'A' && !s3.imgInDom,
         `屏幕回到首字母 "${s3.initials}" —— 与"从来没传过"是同一条回落路径`)
 }
