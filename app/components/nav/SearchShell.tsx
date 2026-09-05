@@ -24,9 +24,41 @@
 // 【实测的宽度预算】UI-1a 探针,六个角色 × 1280/1440:七条模块条最宽 528.7px,
 // 加上字标 115.5px 与右侧两个圆按钮,1280 上仍余 276px。
 // **所以这一格【不需要】折叠成放大镜** —— Tim 的裁定:不要造一个没有触发条件的机制。
+//
+// ════════════════════════════════════════════════════════════════════════════
+// ★★【UI-1c ③:它在【首页】上不画 —— 规矩一直是这样,UI-1a 无条件画了】★★
+// ════════════════════════════════════════════════════════════════════════════
+//
+// 【症状,Tim 在生产上看到的】首页因此有【两个】搜索框:它存在的理由 —— 那个大的
+// (app/page.tsx),和顶栏里这个小的。两个都点得开,两个说的是同一句「尚未启用」。
+// 一页上同一件还没建的东西说两遍,读起来像它有两种不同的搜索。
+//
+// 【机制:x-pathname,而它【已经存在】—— 本刀不新造第二种问法】
+//   服务端组件拿不到当前路径(没有那个 API),所以中间件把它放进请求头
+//   (lib/supabase/middleware.ts:160),根布局据此决定画不画应用外壳
+//   (app/layout.tsx:68)。**这里读的是同一个头。**
+//   ★ 为什么这一条要紧 ★:同一个问题的第二种问法,正是 lib/loginRoute.ts 那两个
+//     谓词、那两份写死的 /suppliers 的来路。这个仓库为它付过两次账。
+//
+// ★【HOME_PATH 与 lib/loginRoute.ts 的 LANDING_PATH 【今天是同一个字符串,
+//   而它们不是同一件事】】★ 后者答的是「登录之后落在哪一页」,前者答的是
+//   「哪一页自己有一个大搜索框,所以顶栏不必再放一个」。UI-1b 刚把落点从 /me
+//   改成 /,那两个问题恰好撞在一起;把它们绑成一个常量,下一次改落点就会顺手
+//   改掉一件与落点无关的事。**FIX-1 为 isPublicPath / isBareChromePath 立过
+//   同一条:两个问题,两个名字。**
+import { headers } from 'next/headers'
 import { getTranslations } from '@/lib/i18n/server'
 
+/** 首页 —— 那一页自己有大搜索框(app/page.tsx),顶栏这一格因此让位。 */
+const HOME_PATH = '/'
+
 export default async function SearchShell() {
+    // 【中间件没设这个头时按"不是首页"处理】—— 那时画出这一格,最坏的后果是
+    // 首页上多一个诚实标着「尚未启用」的框,而漏画的后果是【每一页都没有搜索入口】。
+    // 两种失败不对称,所以默认值倒向后者不会发生的那一侧。
+    const pathname = (await headers()).get('x-pathname') ?? ''
+    if (pathname === HOME_PATH) return null
+
     const t = await getTranslations()
     return (
         <details className="relative hidden md:block" data-nav="search-shell">

@@ -172,7 +172,7 @@ favicon、主屏图标。**那是尺寸问题,不是装饰。**
 `public/brand/festivals/<holiday_key>.webp`(23 张,归一化成 3.40:1 —— 正是
 wordmark 自己的 viewBox 比例,所以两者占同一个盒子,页面上什么都不会动)。
 保证的机械形式:`HomeMark.tsx` 与 `TopNav.tsx` 互不 import。
-整套机制见 `docs/information-architecture.md` §20.3。
+整套机制见 `docs/information-architecture.md` §22.3。
 
 ### 3.2 ★ 一个必须照直说的发现:指南主色扛不动白字 ★
 

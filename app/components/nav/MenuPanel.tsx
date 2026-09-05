@@ -18,7 +18,10 @@
 // 【唯一新增的一件事:对齐方向】模块菜单挂在按钮左边缘(left-0),而工具与头像
 // 在顶栏最右侧,菜单必须挂右边缘(right-0),否则它会伸出视口。所以面板的类名
 // 由一支函数产出,方向是参数 —— **不是复制一份类名再改一个词**。
+import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslations } from '@/lib/i18n/client'
+import type { NavEntry } from './types'
 
 /**
  * ★【CHART-0 ③:一条被截断的菜单必须【自己说】它还有下文】★
@@ -138,6 +141,96 @@ export function useMenuDismiss(
             document.removeEventListener('mousedown', onDown)
         }
     }, [ref, close])
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// ★★【UI-1c:菜单里的【一行】,也收成一份 —— 它此前有两份,本刀要用四处】★★
+// ════════════════════════════════════════════════════════════════════════════
+//
+// 【它此前是两份】ModuleBar 的 `EntryRow` 与 ToolsMenu 里那段内联的三元
+// **逐字做同一件事**:进得去画 <Link>,进不去画一个带 data-module-restricted
+// 的 <span> 并在名字后面缀「· 受限」。两份的差别只有一处 —— ModuleBar 那份还认
+// 「当前页」并给它上色,ToolsMenu 那份不认。
+//
+// 【本刀会把用处从两处变成四处】手机抽屉的【工具】区与【设置】区,以及头像下拉
+// 里新的设置子菜单,要的都是这一行。**抄到第四份,四处将来各自漂开** ——
+// 而最先漂走的一定是 `data-module-restricted` 那个机器标记(它不显示在屏幕上,
+// 抄的时候最容易漏),漏掉一处,按角色可达性检查就在那一处瞎掉。
+// 所以先收成一份,再去用它:**净变化是 2 → 1,不是 2 → 4。**
+//
+// ★【为什么"当前页高亮"是一个可选参数,而不是两个组件】★
+//   下拉菜单里那一行要不要认当前页,是【调用方】的事(工具下拉与设置子菜单挂在
+//   顶栏右侧,它们不表达"我在哪");而"进不去怎么画"对四处【必须】一模一样。
+//   把不同的那一点做成参数,相同的那一大块就只有一份 —— 与 menuPanelClass 把
+//   对齐方向做成参数是同一条判断。
+/**
+ * 菜单里的一条可导航条目。
+ *
+ * ★【进不去的【照画】,不省略】★(Tim 的 D5 / NAV-REG-1 R4)
+ * 措辞沿用既有的那一套:common.restricted + dashboard.restrictedHint,
+ * 与首页牌子、模块条、工具下拉逐字相同。**同一个意思的第二套说法,
+ * 就是下一次漂移的种子。**
+ * `data-module-restricted` 是给按角色可达性检查用的【机器标记】——
+ * 认文案字符串去分辨"受限项",漏过一次就是一次误报。
+ */
+export function MenuEntryRow({
+    entry, activeHref, onNavigate,
+}: {
+    entry: NavEntry
+    /** 给它就认当前页并上色;不给就不认(顶栏右侧那两张下拉不表达"我在哪")。 */
+    activeHref?: string | null
+    /** 点了之后关菜单。抽屉靠路由变化自己收,所以它不传。 */
+    onNavigate?: () => void
+}) {
+    const t = useTranslations()
+    const pad = 'pl-3 pr-3 py-1.5'
+    if (!entry.allowed) {
+        return (
+            <span
+                data-menu-row=""
+                data-module-restricted="1"
+                title={t('dashboard.restrictedHint')}
+                className={`block ${pad} text-sm text-[color:var(--brand-muted-glass)] cursor-default`}
+            >
+                {t(entry.key)} · {t('common.restricted')}
+            </span>
+        )
+    }
+    const active = activeHref !== undefined && activeHref !== null && entry.href === activeHref
+    return (
+        <Link
+            href={entry.href}
+            data-menu-row=""
+            onClick={onNavigate}
+            className={
+                `block ${pad} text-sm rounded ` +
+                (active
+                    ? 'bg-[color:var(--brand-ocean-fill)] text-white'
+                    : 'text-[color:var(--brand-text)] hover:bg-[color:var(--brand-accent)]')
+            }
+        >
+            {t(entry.key)}
+        </Link>
+    )
+}
+
+/**
+ * 菜单里的一个【小标题】。
+ *
+ * 【它此前只有财务的第三级在用】(ModuleBar.ModuleBody 里那个 <p>)。UI-1c 的手机
+ * 抽屉要用它把【工具】与【设置】两区与七个业务模块分开,头像下拉里的设置子菜单
+ * 也要它 —— 于是同一段类名要出现在四个地方。收成一份。
+ *
+ * ★【它【不是】链接】★ 组是一个标题,不是一个去处(Tim 的 D2 的同一条理由)。
+ * ★【层级由【字体】表达,不由缩进表达】★ CONV-6 ⑦ 实测过:标题与条目一旦不在
+ *   同一条左边线上,读到的是不齐,而不是层级。所以这里与 MenuEntryRow 同为 px-3。
+ */
+export function MenuSectionLabel({ children }: { children: React.ReactNode }) {
+    return (
+        <p className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wide text-[color:var(--brand-muted-glass)]">
+            {children}
+        </p>
+    )
 }
 
 /**

@@ -4913,3 +4913,30 @@ FIX-2a 的普查把 142 对(路由,对象)分成两堆:**85 对读它的文件�
 **清单在** `/private/tmp/.../triage.json` 的 `handled` 一节(本刀的普查产物),
 可用同一套脚本重跑:普查 = 199 条路由 × 传递 import 闭包 × 线上 `pg_policies`
 × 12 个角色各一次模拟会话(基线取 **admin**,不是 postgres —— 见 §13.1)。
+
+---
+
+## UI-1C-ACCOUNTS-OVF — `/settings/accounts` 在 390px 上横向溢出 27px(2026-09-05)
+
+**既有缺陷,UI-1c 发现但【没有】修。**
+
+`app/settings/accounts/UserRow.tsx:144` 那个行内按钮
+(`border border-gray-300 px-3 py-1 rounded text-sm hover:bg-gray-50 whitespace-nowrap`)
+把整页撑出视口 27px,于是这一页在 390px 上要横向拖动才读得完
+(`survey-phone.mjs` 的 U1 判据:`documentElement.scrollWidth > innerWidth + 1`)。
+
+**它不是 UI-1c 带来的 —— 这是量出来的,不是推的。** 同一支探针跑了一次 A/B,
+唯一的变量是新加的那条设置 strip 在不在:
+
+| | `overflowPx` | 元凶 |
+|---|---|---|
+| 带 strip | **+27** | `button.border border-gray-300 px-3 py-1 …` |
+| 摘掉 strip | **+27** | 同一个 |
+
+**逐像素相同。** strip 自己在 390px 上是 `scrollWidth 326 = clientWidth 326`,
+一格都没有溢出(它是 `flex flex-wrap`)。
+
+**去处:** 手机化那一族的清扫(`docs/manual-walk-list.md` 的 UI-1c 第 7 条,
+以及 `list-page-template` 那一系列的 390px 收尾)。**不要顺手在导航刀里改它** ——
+那一行按钮的宽度是那一页自己的版式问题,而改它要判断"在手机上这个动作放哪儿",
+那是一个产品判断。

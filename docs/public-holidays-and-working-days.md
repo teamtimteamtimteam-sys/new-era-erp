@@ -194,7 +194,7 @@ UI-1b 那 23 个节日里,**只有 10 个是新加坡公共假期**(世界电动
 节日画那张表也有自己的"快用完了"告警,复用**同一条通道**:
 `hr_alerts` 的 `festival_doodles_exhausted`(最后一个窗口 ≤60 天 warning、
 ≤14 天 critical,**过期之后继续响**)。机制与理由见
-`docs/information-architecture.md` §20.3。
+`docs/information-architecture.md` §22.3。
 
 ---
 

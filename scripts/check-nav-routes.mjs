@@ -402,6 +402,10 @@ for (const id of scopeIds) {
 // 所以把它的源码读出来、把两个 import 改写成同目录的相对路径、落成一个临时探针文件
 // (就放在 lib/ 底下,相对解析才成立),import 完就删。
 // ★ 它读的是【今天的源码】,所以不可能与被检查的东西漂开。★
+// 【两个计数器提到 try 外面】判词那一行在 try/finally 之后印,而"空集不是通过"
+// 这条判据要的正是这两个数 —— 留在块里,判词就读不到它们。
+let unownedChecked = 0
+let contradictionChecked = 0
 const probePath = join(ROOT, 'lib', '__navtrail_probe.mts')
 try {
     const navSrc = readFileSync(join(ROOT, 'lib/navTrail.ts'), 'utf8')
@@ -461,6 +465,63 @@ try {
         problems.push({ arm: '⑤ 活动模块解析', msg: '注册表里一条多属主条目都没有 —— 这条判据于是什么都没验(空集不是通过)。' })
     }
 
+    // ★★【UI-1c ④:id 为 null 的【两种】情形必须分得开,而两侧都要验】★★
+    // ────────────────────────────────────────────────────────────────────────
+    // 【为什么这条判据存在】ModuleBar 那条一致性守卫此前对 `active.id === null`
+    //   就喊,而 null 有两个意思:注册表没有条目认领这条路由(**合法**),
+    //   与有属主却一个都进不去(**矛盾**)。它分不出来,于是在 / 、/me 等 7 条
+    //   会渲染顶栏的无属主路由上【永远在喊】。IA §21.1 ②:
+    //   「一条永远在喊的警报,等于没有警报。」
+    // ★【收窄了的守卫必须证明它【还抓得住真的】,否则这一刀只是把闸关小了】★
+    //   所以下面【两侧都验】:该安静的安静,该喊的还喊。
+    //
+    // ① 该安静的一侧:例外表里每一条(它们【就是】那些无属主路由)必须解析成
+    //    'unowned'。★ 判据故意让读者【全都进得去】(() => true)—— 这样任何一条
+    //    返回 'contradiction' 都只可能来自"它其实有属主",而不是权限的巧合。
+    for (const route of EXCEPTIONS.keys()) {
+        const r = nav.activeModuleForPath(route, () => true)
+        if (r.id !== null || r.reason !== 'unowned') {
+            problems.push({
+                arm: '⑤ 活动模块解析',
+                msg: `${route} 在例外表里(= 注册表没有条目认领它),解析却得到 ${JSON.stringify(r)} —— `
+                   + "它必须是 { id: null, reason: 'unowned' }。否则 ModuleBar 的守卫会在这条路由上喊一句假警报。",
+            })
+        }
+        unownedChecked++
+    }
+    if (unownedChecked === 0) {
+        problems.push({ arm: '⑤ 活动模块解析', msg: '例外表是空的 —— 这一侧于是什么都没验(空集不是通过)。' })
+    }
+
+    // ② 该喊的一侧:每一条注册表条目,当读者【一个属主都进不去】时,
+    //    必须解析成 'contradiction'。**穷举,不挑案例。**
+    for (const fn of modulesMod.FUNCTIONS) {
+        const r = nav.activeModuleForPath(fn.href, () => false)
+        if (r.id !== null || r.reason !== 'contradiction') {
+            problems.push({
+                arm: '⑤ 活动模块解析',
+                msg: `${fn.href}:读者一个属主模块都进不去,解析却得到 ${JSON.stringify(r)} —— `
+                   + "它必须是 { id: null, reason: 'contradiction' }。守卫收窄之后若这一侧也静了,那是把警报关掉了,不是收窄。",
+            })
+        }
+        contradictionChecked++
+    }
+    if (contradictionChecked === 0) {
+        problems.push({ arm: '⑤ 活动模块解析', msg: '注册表是空的 —— 矛盾那一侧什么都没验(空集不是通过)。' })
+    }
+
+    // ③ 【守卫本身必须【读】那个 reason】—— 上面两条验的是解析器,这一条验的是
+    //    ModuleBar 有没有真的按它分支。少了这一条,一个"两侧都对的解析器"配一个
+    //    "照旧对 null 就喊的守卫",这道闸会全绿而屏幕上假警报照旧。
+    const barSrc = readFileSync(join(ROOT, 'app/components/nav/ModuleBar.tsx'), 'utf8')
+    if (!barSrc.includes("active.reason === 'contradiction'")) {
+        problems.push({
+            arm: '⑤ 活动模块解析',
+            msg: "app/components/nav/ModuleBar.tsx 的一致性守卫没有读 active.reason === 'contradiction' —— "
+               + '它于是又对着无属主路由(首页、本人档案……)喊假警报了。',
+        })
+    }
+
     // 【只有一份实现】面包屑必须调同一支,不许自己写 entry.modules[0]
     if (!navSrc.includes('activeModuleForPath(pathname, canEnter)')) {
         problems.push({ arm: '⑤ 活动模块解析', msg: 'lib/navTrail.ts:breadcrumbTrail 没有调 activeModuleForPath —— 「我在哪个模块」又变成两份实现了。' })
@@ -478,5 +539,5 @@ if (problems.length) {
 console.log(
     `✓ 导航与路由:注册表 ${entryHrefs.length} 条 · 路由 ${routes.length} 条 · 范围 ${scopeIds.length} 个 · ` +
     `例外 ${EXCEPTIONS.size} 条(各带理由)· 退休路径 0 处 · 带参数的站内链接 ${queryLinks} 条(目标页都读得懂)· ` +
-    `活动模块解析:规则穷举 + 3 组实跑`,
+    `活动模块解析:规则穷举 + 3 组实跑 · null 两侧各验一遍(无属主 ${unownedChecked} 条 · 矛盾 ${contradictionChecked} 条)`,
 )

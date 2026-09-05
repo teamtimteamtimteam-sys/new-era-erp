@@ -88,10 +88,50 @@ export function moduleIdsForPath(pathname: string): string[] {
 //   而它带着同一个缺陷。两份必然漂开,所以现在只有这一份。
 // ════════════════════════════════════════════════════════════════════════════
 
-/** 「我在哪个一级模块」的答案。id 为 null 表示【矛盾】,调用方必须报出来。 */
+// ════════════════════════════════════════════════════════════════════════════
+// ★★【UI-1c ④(2026-09-05):id 为 null 的两种情形【不是同一件事】】★★
+// ════════════════════════════════════════════════════════════════════════════
+//
+// 【症状】ModuleBar 的一致性守卫在【每一次打开首页】时都喊:
+//     [nav] 无法判定当前模块:/ 的属主一个都进不去 —— 注册表与守卫不一致
+//   而 / 【本来就没有属主】。UI-1b 把落地页从 /me 换成 / 之后,六个人每天早上
+//   第一眼就撞上它。IA §21.1 ② 给这个形状写过名字:
+//   **「一条永远在喊的警报,等于没有警报。」** 一条对着【正确行为】变红的守卫,
+//   会把所有人训练成忽略它,于是真出事的那天它也喊不动任何人。
+//
+// 【根因:这支函数把两种 null 塞进了同一个形状】
+//   ① `owners.length === 0` —— **注册表里没有任何一条条目认领这条路由**。
+//      这是一个【合法状态】:/ 是首页,/me 是本人档案,它们本来就不属于九个模块
+//      中的任何一个(勘察 U4:把 /me 挂进 /hr 等于对非 HR 的部门经理隐身)。
+//   ② 有属主、但读者一个都进不去 —— **这才是矛盾**:他既然打开了这一页,
+//      就至少有一个属主模块因为这一条而变得可进。
+//   两种都返回 `{ id: null, contradiction: true }`,于是守卫分不出来,只能都喊。
+//
+// ★【修法是【分辨】,不是【消音】】★ 委托点名:「Do not silence the guard;
+//   narrow it.」所以 null 分支带上 `reason`,② 照喊不误,① 安静地成立。
+//
+// ★★【为什么【不】把那份"合法无属主"的名单接进来 —— 这是本刀的一处判断】★★
+//   scripts/check-nav-routes.mjs 里有一张 EXCEPTIONS 表,九条,每条带书面理由,
+//   而它正好【就是】今天这些无属主路由。把它 import 进运行时看起来很省事。
+//   **但那会是同一个问题的第二份实现** —— 而本仓库为这件事付过账
+//   (lib/modules.ts 抬头 §一)。更要紧的是它【不必要】:
+//   「这条路由有没有被注册表认领」已经由那张表在【构建期】答过了(判据②:
+//   文件系统上每一条路由,要么在注册表里,要么在例外表里带理由)。
+//   构建期答过的问题,运行时不必再答一遍;运行时只需要【不再把它误当成矛盾】。
+//   于是这里的判据是【结构性】的(owners 这个数组空不空),不查任何名单 ——
+//   将来新增一条无属主路由,判据②会逼人给它写下理由,而这支函数一个字不用改。
+//
+/**
+ * 「我在哪个一级模块」的答案。
+ *
+ * id 为 null 有【两种】互不相同的情形,由 reason 分辨:
+ *   'unowned'       —— 注册表里没有条目认领这条路由。**合法**,不报警
+ *                      (谁负责发现"本该有条目却没有" → check-nav-routes 判据②);
+ *   'contradiction' —— 有属主,却一个都进不去。**注册表与守卫不一致,必须报出来。**
+ */
 export type ActiveModule =
     | { id: string; usedFallback: boolean }
-    | { id: null; contradiction: true }
+    | { id: null; reason: 'unowned' | 'contradiction' }
 
 /**
  * @param canEnter 这个读者进不进得去某个模块。**由调用方提供** ——
@@ -103,12 +143,14 @@ export function activeModuleForPath(
     canEnter: (moduleId: string) => boolean,
 ): ActiveModule {
     const owners = moduleIdsForPath(pathname)
-    if (owners.length === 0) return { id: null, contradiction: true }
+    // 【无属主 —— 合法】首页、本人档案、通知…… 它们不属于九个模块中的任何一个,
+    // 而那正是它们存在的样子,不是一处不一致。见上面 UI-1c ④ 那一段。
+    if (owners.length === 0) return { id: null, reason: 'unowned' }
     for (let i = 0; i < owners.length; i++) {
         if (canEnter(owners[i])) return { id: owners[i], usedFallback: i > 0 }
     }
-    // 打开了这一页,却一个属主模块都进不去 —— 见上面那一段。
-    return { id: null, contradiction: true }
+    // 打开了这一页,却一个属主模块都进不去 —— **这一个才是矛盾。**
+    return { id: null, reason: 'contradiction' }
 }
 
 export type Crumb = {

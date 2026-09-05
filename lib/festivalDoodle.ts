@@ -48,7 +48,7 @@
 //   (圣诞)是一段【气氛】。把具体的那个盖在气氛上面,是人会做的选择。
 //   ②③ 只为消除歧义而存在 —— **判据必须给出唯一答案,否则同一天两次刷新
 //   会出现两张不同的画,而那读起来像坏了。**
-//   同一段话写进 docs/information-architecture.md §20。
+//   同一段话写进 docs/information-architecture.md §22。
 import { createClient } from '@/lib/supabase/server'
 import { mustRows } from '@/lib/db-helpers'
 import { businessToday } from '@/lib/format'

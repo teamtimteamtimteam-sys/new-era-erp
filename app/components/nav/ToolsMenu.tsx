@@ -23,10 +23,14 @@
 // 实测口径:定价要 module.pricing.view,任务要 module.tasks.view;
 // 日历 / 单位换算 / 提醒是恒真条目(permission: { all: [] }),对谁都进得去。
 // 也就是说 warehouse 这样的账号会看到「定价 · 受限」而不是一张四行的菜单。
-import Link from 'next/link'
+// ★【UI-1c:那一行的画法【搬走了】—— 它现在是 MenuPanel 的 MenuEntryRow】★
+//   下面这段注释描述的规则一个字没变,变的是"它写在哪里":同一段三元此前在
+//   ModuleBar 里也有一份逐字相同的,而本刀要把它用到四处(手机抽屉的工具区、
+//   设置区、头像下拉的设置子菜单)。抄到第四份,最先漂走的就是那个看不见的
+//   data-module-restricted 标记。收成一份的完整理由写在 MenuPanel.tsx。
 import { useRef, useState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
-import { ScrollPanel, menuPanelClass, useMenuDismiss, ROUND_BUTTON_CLASS } from './MenuPanel'
+import { ScrollPanel, menuPanelClass, useMenuDismiss, ROUND_BUTTON_CLASS, MenuEntryRow } from './MenuPanel'
 import type { NavEntry } from './types'
 
 export default function ToolsMenu({ entries }: { entries: NavEntry[] }) {
@@ -35,8 +39,6 @@ export default function ToolsMenu({ entries }: { entries: NavEntry[] }) {
     const ref = useRef<HTMLDivElement>(null)
     useMenuDismiss(ref, () => setOpen(false))
 
-    const RESTRICTED = t('common.restricted')
-    const HINT = t('dashboard.restrictedHint')
     const label = t('nav.tools')
 
     return (
@@ -71,29 +73,9 @@ export default function ToolsMenu({ entries }: { entries: NavEntry[] }) {
                     role="menu"
                     moreLabel={(n) => t('nav.menuMoreBelow', { n })}
                 >
-                    {entries.map((e) =>
-                        e.allowed ? (
-                            <Link
-                                key={e.href}
-                                href={e.href}
-                                data-menu-row=""
-                                onClick={() => setOpen(false)}
-                                className="block rounded pl-3 pr-3 py-1.5 text-sm text-[color:var(--brand-text)] hover:bg-[color:var(--brand-accent)]"
-                            >
-                                {t(e.key)}
-                            </Link>
-                        ) : (
-                            <span
-                                key={e.href}
-                                data-menu-row=""
-                                data-module-restricted="1"
-                                title={HINT}
-                                className="block pl-3 pr-3 py-1.5 text-sm text-[color:var(--brand-muted-glass)] cursor-default"
-                            >
-                                {t(e.key)} · {RESTRICTED}
-                            </span>
-                        )
-                    )}
+                    {entries.map((e) => (
+                        <MenuEntryRow key={e.href} entry={e} onNavigate={() => setOpen(false)} />
+                    ))}
                 </ScrollPanel>
             )}
         </div>

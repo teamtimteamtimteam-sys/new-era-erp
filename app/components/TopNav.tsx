@@ -28,8 +28,9 @@
 //   灰字 + title 提示 + data-module-restricted 记号,点开是逐条写着「· 受限」的二级。
 //   理由与实测的宽度写在 ModuleBar 那一段。
 //
-// ★【七与九的区别【只在顶栏那一行】】★ 这里仍然取九条,ModuleBar 自己按
-//   lib/modules.ts 的 BAR_MODULE_IDS 过滤桌面那一行,手机抽屉照旧画九条。
+// ★【七与九的区别【只在渲染】】★ 这里仍然取九条,过滤发生在 ModuleBar 里:
+//   桌面那一行与手机抽屉都按 BAR_MODULE_IDS 画七条,而工具与设置各自成为
+//   一张下拉(桌面)或抽屉里一个具名的区(手机)—— UI-1c ②。
 //   **不要在这里过滤** —— 那会让 /tools/* 与 /settings/* 的面包屑与活动模块判定
 //   一起失效,理由整段写在 BAR_MODULE_IDS 的抬头。
 //
@@ -143,14 +144,20 @@ export default async function TopNav() {
     const toolsEntries =
         modules.find((m) => m.id === TOOLS_MODULE_ID)?.entries ?? []
 
-    // ── 「设置」指向【这个人打得开的第一张子页】 ─────────────────────────
-    // ★ 不写死 ★ 七张子页由三个不同的码把门(manage_permissions / dictionaries /
-    //   bulk_import / view_deleted),六个人持有的子集各不相同。写死
-    //   /settings/accounts 会给 Choo Er 一条【永远拒绝】的链接。
-    // ★ 也【不做落地页】★ D2:模块不是地址,app/settings/page.tsx 刻意不存在。
-    // 一张都打不开时给 null,AvatarMenu 把那一行画成受限而不是删掉它。
-    const settingsHref =
-        modules.find((m) => m.id === SETTINGS_MODULE_ID)?.entries.find((e) => e.allowed)?.href ?? null
+    // ── 设置下拉的【七行】。**同一份注册表,同一个 allowed** ─────────────
+    //
+    // ★★【UI-1c ①:这里此前算的是 `settingsHref` —— 一条跳转,不是一张菜单】★★
+    // 【为什么换】UI-1a 把 settings 移出 BAR_MODULE_IDS 之后,桌面上再没有任何
+    //   地方列出那七张子页,于是整个桌面对设置只剩那一条跳转。逐条 grep 过
+    //   app/ 里全部指向 /settings/* 的 href:**roles / reference / approvals /
+    //   deleted / import 五张在桌面上点不到**,而受影响的是 admin 与 cco 两个人。
+    //   完整推理与 NAV-CLEANUP-1 判据的关系写在 AvatarMenu 的 settingsEntries 抬头。
+    // ★【那个"算第一张打得开的"于是【整段退休】】★ 它是为一条跳转服务的;
+    //   给出全部七条之后没有任何东西需要挑一张 —— 一个没有读者的机制不留着。
+    //   Choo Er 的那条永远拒绝的链接也随之不存在:她看到的是七行,其中六行写着
+    //   「· 受限」,那正是 D5 要的样子。
+    const settingsEntries =
+        modules.find((m) => m.id === SETTINGS_MODULE_ID)?.entries ?? []
 
     // ── 身份 ────────────────────────────────────────────────────────────────
     // 【没有员工档案的账号 name 是 null】—— 那不是错误,是"HR 还没建档"。
@@ -198,15 +205,16 @@ export default async function TopNav() {
                         <Wordmark />
                     </Link>
 
-                    {/* 桌面:七条模块;手机:一个菜单按钮 + 一张全高抽屉(画九条)。 */}
+                    {/* 桌面:七条模块;手机:一个菜单按钮 + 一张全高抽屉
+                        (七条模块 + 工具区 + 设置区 —— UI-1c ②)。 */}
                     <ModuleBar modules={modules} />
 
                     {/* 【弹性空白在这里】ml-auto 把右边这一组推到底,
                         而模块条与它之间那段空白就是"可伸缩的那一段"。 */}
                     <div className="ml-auto flex shrink-0 items-center gap-2">
                         <SearchShell />
-                        {/* 工具下拉是桌面的门;**手机走抽屉**(抽屉照旧画着工具那一条)。
-                            在这里给手机再造一个工具下拉,就是造一个 UI-1b 要换掉的东西。 */}
+                        {/* 工具下拉是桌面的门;**手机走抽屉里的「工具」区**。
+                            在这里给手机再造一个工具下拉,就是造第二扇通向同一处的门。 */}
                         <div className="hidden sm:block">
                             <ToolsMenu entries={toolsEntries} />
                         </div>
@@ -216,7 +224,7 @@ export default async function TopNav() {
                             name={name}
                             email={user.email ?? ''}
                             unread={unread}
-                            settingsHref={settingsHref}
+                            settingsEntries={settingsEntries}
                         />
                     </div>
                 </div>

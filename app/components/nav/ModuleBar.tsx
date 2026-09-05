@@ -26,14 +26,15 @@
 // 不做模块目录页 —— 顶栏本身就是目录。可导航的地址【全部】是二级条目,包括
 // 模块自己的落地页(财务的试算平衡 = /finance)。这也顺手解决了「设置」根本
 // 没有 app/settings/page.tsx 这件事:它不需要有。
-import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { activeModuleForPath, entryForPath } from '@/lib/navTrail'
-import { BAR_MODULE_IDS } from '@/lib/modules'
-import { ScrollPanel, menuPanelClass, useMenuDismiss } from './MenuPanel'
-import type { NavModule, NavEntry } from './types'
+import { BAR_MODULE_IDS, SETTINGS_MODULE_ID, TOOLS_MODULE_ID } from '@/lib/modules'
+import {
+    ScrollPanel, menuPanelClass, useMenuDismiss, MenuEntryRow, MenuSectionLabel,
+} from './MenuPanel'
+import type { NavModule } from './types'
 
 // ★★【UI-1a:useMoreBelow / MoreBelow / ScrollPanel 搬去了 ./MenuPanel.tsx】★★
 // 它们原样住在这里,连注释一起 —— 本刀把它们搬出去,因为工具下拉与头像下拉
@@ -53,13 +54,28 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
     // 这里从前是 `new Set(moduleIdsForPath(pathname))`(全部属主一起亮)。
     const canEnter = (id: string) => modules.find((m) => m.id === id)?.allowed ?? false
     const active = activeModuleForPath(pathname, canEnter)
-    // 【矛盾要报出来,不能静默地不亮】—— 打开了这一页却一个属主模块都进不去,
-    // 说明注册表与守卫对不上。data 属性让冒烟/走查抓得到,console 让开发看得到。
+    // ★★【UI-1c ④:这条守卫【收窄】了 —— 它此前对着正确行为在喊】★★
+    // ────────────────────────────────────────────────────────────────────────
+    // 【它此前喊什么】`active.id === null` 就喊。而那个 null 有两种意思,
+    //   activeModuleForPath 此前把它们塞进同一个形状(整段推理写在 lib/navTrail.ts):
+    //     · 注册表里【没有条目认领这条路由】—— / 、/me 、/notifications……
+    //       **这是合法的**,那些页本来就不属于九个模块中的任何一个;
+    //     · 有属主、读者却一个都进不去 —— **这一个才是矛盾。**
+    // 【为什么现在非改不可】UI-1b 把登录落点换成了 /,于是六个人【每天早上第一屏】
+    //   都会收到这条警报。IA §21.1 ② 早就给这个形状写过名字:
+    //   **「一条永远在喊的警报,等于没有警报。」**
+    // ★【收窄,不是消音】★ reason === 'contradiction' 照喊,一个字没弱;
+    //   变的只是它不再把"没有属主"当成"属主进不去"。
+    //   实测:今天有 7 条会渲染顶栏的无属主路由(/ · /me · /my-reviews ·
+    //   /my-reviews/[id] · /notifications · /welcome · /brand-sampler),
+    //   本刀之前它们【每一条】都在喊。
+    // 【谁负责发现"本该有条目却没有"】check-nav-routes 判据②,在【构建期】。
+    //   构建期答过的问题,运行时不必再答一遍。
     useEffect(() => {
-        if (active.id === null) {
+        if (active.id === null && active.reason === 'contradiction') {
             console.error(`[nav] 无法判定当前模块:${pathname} 的属主一个都进不去 —— 注册表与守卫不一致`)
         }
-    }, [active.id, pathname])
+    }, [active, pathname])
 
     // ★【二级高亮:最长前缀,所以也只有一个答案】★
     // 此前每一行各自算 `pathname === href || startsWith(href + '/')`,于是站在
@@ -91,61 +107,33 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
     // BAR_MODULE_IDS 抬头:MODULES 是"哪条路由归谁所有"的真源,改窄它会弄死
     // 8 条深路由的面包屑、在 /tools/* 与 /settings/* 上喊一场假警报,
     // 并且【把手机上工具与设置仅有的那扇门拆掉】。
-    // ★ 下面手机抽屉那一段【照旧遍历九条】—— 「顶栏挪走什么,抽屉就得接住什么」。
-    // ★ canEnter 读的也仍然是九条 —— 活动模块判定不受这次过滤影响。
+    // ★★【UI-1c:手机抽屉现在遍历【同样这七条】,不再是九条】★★
+    //   工具与设置没有从抽屉里消失 —— 它们变成了抽屉底下两个【具名的区】
+    //   (见下面 sheet 那一段)。「顶栏挪走什么,抽屉就得接住什么」照旧成立,
+    //   接住的方式从"混在模块里的第八、第九行"换成了"两个有标题的区"。
+    // ★ canEnter 读的仍然是【九条】—— 活动模块判定不受任何一次过滤影响,
+    //   /tools/* 与 /settings/* 的高亮与面包屑因此一个字没变。
     const barModules = modules.filter((m) => BAR_MODULE_IDS.includes(m.id))
 
     /**
-     * 二级(或第三级里的)一条。进不去的画成「名字 · 受限」,不是省略。
-     *
-     * ★★【CONV-6 ⑦:`indent` 这个 prop 删了 —— 每一行都在同一条左边线上】★★
-     * 【症状(Tim 的走查,2026-09-04)】财务下拉里,组标题(报表 / 分录 / 应收…)
-     *   看上去比它底下的条目【更靠左】,于是条目读起来像"被推右了",
-     *   而不是像那个标题的孩子。
-     * 【实测的三个左边距,这才是症结】组标题 `px-3` = 12px;组内条目
-     *   `pl-6` = 24px;而**没有落进任何一组的条目** `pl-3` = 12px。
-     *   也就是说【同一张菜单里条目有两条左边线】—— 财务的 Overview 在 12px,
-     *   「试算平衡」在 24px。缩进本来是要表达层级的,可它表达出来的是不齐。
-     * 【为什么现在才看得见】NAV-CLEANUP-1 ③ 把无组条目挪到了分组【前面】,
-     *   于是那条 12px 的线排在最上面,与 24px 的差直接对上了眼。
-     *   ★ 委托书猜的是"CONV-0 改的分组渲染" —— 查过了,**不是**:
-     *     `git log -S indent -- app/components/nav/ModuleBar.tsx` 只有一处,
-     *     IA-BUILD-1(c500045)。CONV-0 一行没碰它。★
-     * 【修法:层级由【字体】表达,不由缩进表达】组标题本来就是 11px、大写、
-     *   加粗、灰的 —— 那已经足够把它读成标题。再加一层缩进是用两种手段说同一件事,
-     *   而两种手段一旦不一致(这里就是),读到的是矛盾而不是层级。
-     *   这也是下拉菜单的通行画法(组标题与条目同一条左边线)。
+     * 手机抽屉里那两个具名区(工具 / 设置)的条目。
+     * **同一个 `modules` 数组,同一个 allowed** —— 不是第二份清单。
+     * 桌面上这两份分别由 ToolsMenu 与头像下拉的设置子菜单画,而它们拿到的
+     * 也是这同一个数组里的同两条(见 TopNav)。
      */
-    const EntryRow = ({ e }: { e: NavEntry }) => {
-        const pad = 'pl-3'
-        if (!e.allowed) {
-            return (
-                <span
-                    data-menu-row=""
-                    data-module-restricted="1"
-                    title={HINT}
-                    className={`block ${pad} pr-3 py-1.5 text-sm text-[color:var(--brand-muted-glass)] cursor-default`}
-                >
-                    {t(e.key)} · {RESTRICTED}
-                </span>
-            )
-        }
-        const active = e.href === activeEntryHref
-        return (
-            <Link
-                href={e.href}
-                data-menu-row=""
-                className={
-                    `block ${pad} pr-3 py-1.5 text-sm rounded ` +
-                    (active
-                        ? 'bg-[color:var(--brand-ocean-fill)] text-white'
-                        : 'text-[color:var(--brand-text)] hover:bg-[color:var(--brand-accent)]')
-                }
-            >
-                {t(e.key)}
-            </Link>
-        )
-    }
+    const sectionEntries = (id: string) => modules.find((m) => m.id === id)?.entries ?? []
+
+    // ★★【UI-1c:`EntryRow` 搬去了 MenuPanel.tsx,改名 MenuEntryRow】★★
+    // 【搬家没有改任何行为】进不去画「名字 · 受限」、data-module-restricted 记号、
+    //   title 提示、当前页高亮 —— 逐字不变,连同下面这两段理由一起搬了过去。
+    // 【为什么搬】ToolsMenu 里有一份逐字相同的,而本刀还要在【三个新地方】用它
+    //   (手机抽屉的工具区与设置区、头像下拉的设置子菜单)。**2 份变 1 份,
+    //   而不是变成 4 份。**
+    //
+    // 【搬过去的那两段理由,在这里留一句索引,免得下一个人以为它们没了】
+    //   ① CONV-6 ⑦:`indent` 那个 prop 删了 —— 组标题与条目在【同一条左边线】上,
+    //      层级由字体表达,不由缩进表达(实测过三条互不相同的左边距 12/24/12px);
+    //   ② D5:进不去的照画成一条【具名的限制】,不是一处缺席。
 
     /**
      * 一个模块名下的全部内容。**只有财务的 groups 非空,那就是第三级。**
@@ -168,16 +156,14 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
                     菜单的最上面,不是六个组之后的角落。把它塞进「报表」组是另一种
                     错:它不是一张报表。**兜底的作用一个字没变**,只是位置对了。 */}
                 {ungrouped.map((e) => (
-                    <EntryRow key={e.href} e={e} />
+                    <MenuEntryRow key={e.href} entry={e} activeHref={activeEntryHref} />
                 ))}
                 {m.groups.map((g) => (
                     <div key={g.key} className="mb-1">
                         {/* 第三级的组名。它【不是链接】—— 组是一个标题,不是一个去处。 */}
-                        <p className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wide text-[color:var(--brand-muted-glass)]">
-                            {t(g.key)}
-                        </p>
+                        <MenuSectionLabel>{t(g.key)}</MenuSectionLabel>
                         {g.entries.map((e) => (
-                            <EntryRow key={e.href} e={e} />
+                            <MenuEntryRow key={e.href} entry={e} activeHref={activeEntryHref} />
                         ))}
                     </div>
                 ))}
@@ -263,7 +249,8 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
                 从前顶栏是两行,这个按钮独占第二行,所以 w-full + px-4 pb-1.5。
                 合成一行之后它与字标、头像并排 —— 整宽会把头像挤出视口。
                 **形态一个字没改**(按钮 → 全高抽屉),UI-1b 才重做手机顶栏;
-                这里改的只是它在新容器里的尺寸。390px 上的实测见报告。 */}
+                这里改的只是它在新容器里的尺寸。390px 上的实测见报告。
+                ★【UI-1c:重做的是抽屉【里面】,这个按钮一个字没动】★ */}
             <div className="sm:hidden">
                 <button
                     type="button"
@@ -295,7 +282,11 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
                         className="nav-glass menu-scroll relative mt-14 flex-1 overflow-y-auto rounded-t-xl border-t border-[color:var(--brand-border)] p-2 pb-24"
                         moreLabel={(n) => t('nav.menuMoreBelow', { n })}
                     >
-                        {modules.map((m) => {
+                        {/* ── ① 七个业务模块。**与桌面那一行是同一份 barModules。** ──
+                            UI-1c 之前这里遍历的是【九条】,于是工具与设置在抽屉里
+                            与采购、财务并排,读起来像第八、第九个业务模块。
+                            它们不是:一个装小工具,一个装系统配置。 */}
+                        {barModules.map((m) => {
                             if (!m.allowed) {
                                 return (
                                     <div
@@ -336,31 +327,50 @@ export default function ModuleBar({ modules }: { modules: NavModule[] }) {
                             )
                         })}
 
-                        {/* ★【关于你】—— 手机上顶栏放不下,所以它们在这里 ★
-                            /me 与 /my-reviews 【刻意不属于九个模块】(勘察 U4:
-                            挂进 /hr 等于对非 HR 的部门经理隐身)。但"不属于模块"
-                            不等于"手机上就没有" —— 它们只是换了地方。
-                            这一段存在的理由与 4d 是同一条,只是方向相反:
-                            **顶栏挪走什么,抽屉就得接住什么。** */}
-                        <div className="mt-2 border-t border-[color:var(--brand-border)] pt-2">
-                            <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-[color:var(--brand-muted-glass)]">
-                                {t('nav.aboutYou')}
-                            </p>
-                            <Link
-                                href="/me"
-                                data-menu-row=""
-                                className="block rounded px-3 py-2 text-sm text-[color:var(--brand-text)] hover:bg-[color:var(--brand-accent)]"
-                            >
-                                {t('nav.me')}
-                            </Link>
-                            <Link
-                                href="/my-reviews"
-                                data-menu-row=""
-                                className="block rounded px-3 py-2 text-sm text-[color:var(--brand-text)] hover:bg-[color:var(--brand-accent)]"
-                            >
-                                {t('nav.myReviews')}
-                            </Link>
+                        {/* ── ②③ 工具 与 设置:两个【具名的区】,不是两个模块 ──────
+                            ★【它们【不折叠】,而这是有意的】★ 七个模块各带一个 +/−;
+                            给这两区也加一个 +/−,它们就又读成模块了 —— 而"它们不是
+                            业务模块"正是本步骤要说的那件事。代价是高度:实测见报告,
+                            两区展开着共 ~438px,抽屉因此要滚,而 ScrollPanel 会自己
+                            说「↓ 下面还有 N 条」(CHART-0 ③)。**记下这笔取舍。**
+
+                            ★【每一行的画法与桌面下拉【逐字相同】】★ MenuEntryRow,
+                            包括「· 受限」后缀、title 提示与 data-module-restricted 记号。
+                            ★【后缀在抽屉上【留着】】★ 它从桌面模块条上去掉的理由是
+                            实测的宽度(UI-1a ⑦b:六个角色因此从 528.7–755.1px 齐平到
+                            528.7px)。**一张竖排的清单没有宽度问题**,而在竖排里一行
+                            灰字若不说自己为什么灰,它在"受限 / 禁用 / 还没加载完"之间
+                            读不出区别。抽屉有地方把话说完,所以它说。
+
+                            【一个空的区会【看得见】】下面两行取的是注册表里那两个模块
+                            名下的条目;取不到就是一个只有标题、底下没有一行的区 ——
+                            那在屏幕上是显眼的错,不是一处安静的缺席。
+                            (真源不一致由 check-nav-routes 判据①④ 在构建期拦。) */}
+                        <div className="mt-2 border-t border-[color:var(--brand-border)] pt-1">
+                            <MenuSectionLabel>{t('nav.tools')}</MenuSectionLabel>
+                            {sectionEntries(TOOLS_MODULE_ID).map((e) => (
+                                <MenuEntryRow key={e.href} entry={e} activeHref={activeEntryHref} />
+                            ))}
                         </div>
+                        <div className="mt-2 border-t border-[color:var(--brand-border)] pt-1">
+                            <MenuSectionLabel>{t('nav.settings')}</MenuSectionLabel>
+                            {sectionEntries(SETTINGS_MODULE_ID).map((e) => (
+                                <MenuEntryRow key={e.href} entry={e} activeHref={activeEntryHref} />
+                            ))}
+                        </div>
+
+                        {/* ★★【UI-1c:「关于你」那一区【删了】—— 而这不是拿走了一扇门】★★
+                            它此前放着写死的 /me 与 /my-reviews 两条链接。**同样这两页,
+                            头像下拉里也各有一条**,而头像下拉【不按宽度藏东西】
+                            (TopNav 里只有 ToolsMenu 带 hidden sm:block、SearchShell 带
+                            hidden md:block;AvatarMenu 在每一个宽度上都画)——
+                            那正是 AvatarMenu 抬头记下的那件事:收进一张下拉之后,
+                            640–1024px 那个缺口【结构性地】没了。
+                            所以这里删掉的是【第二份写死的地址】,不是唯一的入口:
+                            两处各写一遍 /me,就是 lib/loginRoute.ts 那两个谓词、
+                            那两份写死的 /suppliers 的同一个形状,本仓库付过两次账。
+                            ★【那条「顶栏挪走什么,抽屉就得接住什么」在这里【没有】被触发】★
+                            没有任何东西离开顶栏 —— 390px 上头像按钮就在顶栏里。 */}
                     </ScrollPanel>
                 </div>
             )}
