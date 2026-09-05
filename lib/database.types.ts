@@ -3504,6 +3504,7 @@ export type Database = {
           department_id: string | null
           employment_status: string
           employment_type: string
+          greeting_name: string | null
           hire_date: string
           id: string
           identity_no: string | null
@@ -3542,6 +3543,7 @@ export type Database = {
           department_id?: string | null
           employment_status?: string
           employment_type: string
+          greeting_name?: string | null
           hire_date: string
           id?: string
           identity_no?: string | null
@@ -3580,6 +3582,7 @@ export type Database = {
           department_id?: string | null
           employment_status?: string
           employment_type?: string
+          greeting_name?: string | null
           hire_date?: string
           id?: string
           identity_no?: string | null
@@ -4719,6 +4722,51 @@ export type Database = {
             referencedColumns: ["code"]
           },
         ]
+      }
+      festival_doodles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          festival_date: string
+          holiday_key: string
+          is_active: boolean
+          name_en: string
+          name_zh: string
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+          window_end: string
+          window_start: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          festival_date: string
+          holiday_key: string
+          is_active?: boolean
+          name_en: string
+          name_zh: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          window_end: string
+          window_start: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          festival_date?: string
+          holiday_key?: string
+          is_active?: boolean
+          name_en?: string
+          name_zh?: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          window_end?: string
+          window_start?: string
+        }
+        Relationships: []
       }
       finance_attachments: {
         Row: {
@@ -5958,6 +6006,33 @@ export type Database = {
           name_zh?: string
           notes?: string | null
           sort_order?: number
+        }
+        Relationships: []
+      }
+      home_greetings: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          line_en: string
+          slot: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          is_active?: boolean
+          line_en: string
+          slot: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          line_en?: string
+          slot?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -19126,6 +19201,7 @@ export type Database = {
           department_id: string | null
           employment_status: string | null
           employment_type: string | null
+          greeting_name: string | null
           hire_date: string | null
           id: string | null
           identity_no: string | null
@@ -19168,6 +19244,7 @@ export type Database = {
           department_id?: string | null
           employment_status?: string | null
           employment_type?: string | null
+          greeting_name?: string | null
           hire_date?: string | null
           id?: string | null
           identity_no?: never
@@ -19210,6 +19287,7 @@ export type Database = {
           department_id?: string | null
           employment_status?: string | null
           employment_type?: string | null
+          greeting_name?: string | null
           hire_date?: string | null
           id?: string | null
           identity_no?: never
@@ -21247,6 +21325,7 @@ export type Database = {
           employee_id: string | null
           employment_status: string | null
           employment_type: string | null
+          greeting_name: string | null
           hire_date: string | null
           identity_no: string | null
           job_title: string | null

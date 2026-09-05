@@ -554,6 +554,15 @@ const en = {
         searchPrompt: 'Search for something',
         searchNotYetBadge: 'not built',
         searchNotYet: 'Search is not built yet. This box is where it will live — for now it does nothing, so it does not take what you type either.',
+        // ── UI-1b ①②:字标与节日画的可访问名 ──────────────────────────────
+        // 【为什么 alt 里没有「OS」】图里就没有。顶栏那个锁定组合才带 OS
+        // (evoltrya-os-black.svg);这里是纯字标,与登录页 alt 逐字相同。
+        // 出处:docs/brand-tokens.md §3.1.2 ——「经 <img src> 引用时文件内部的
+        // aria-label 一律不暴露给辅助技术」,所以可访问名只能来自这里。
+        markAlt: 'EVoltrya',
+        // {name} = 节日名(festival_doodles.name_en / name_zh,按界面语言选一个)。
+        // ★ 读屏用户也该知道今天这张画是什么节日 —— 那正是这张画存在的理由。
+        doodleAlt: 'EVoltrya — {name}',
     },
     // OPS-18:运营看板。dashboard.item.* 的后缀集合 = db/views/operations_now.sql 里
     // item_type 的字面量集合(check-i18n MANIFEST 现读那个文件,加一支自动变宽)。
@@ -3897,6 +3906,18 @@ const en = {
             review_no_reviewer: 'Review without reviewer',
             review_cycle_overdue: 'Review cycle overdue',
             cpf_due: 'CPF payment due',
+            // ★ UI-1b ②:节日画的窗口要用完了(db/views/hr_alerts.sql)。
+            //   60 天 warning、14 天 critical;与 holiday_calendar_next_year 同一条通道。
+            // ★★【它【不带】占位符,而那是刻意的 —— 照直记】★★
+            //   `hr.alertType.*` 的唯一渲染点是 app/tools/reminders/page.tsx:392,
+            //   写的是 `t('hr.alertType.' + a.alert_type)`,**一个参数都不传**。
+            //   于是上面 holiday_calendar_missing / holiday_calendar_next_year 那两条
+            //   里的 `{0}` 在屏幕上就是【字面的 {0}】—— 正是
+            //   docs/machine-text-reaching-humans.md 记的「形态一」。
+            //   **那两条是既有缺陷,不是本刀造成的,本刀也不顺手改**(改它要动渲染点,
+            //   而那一页不在这一刀的范围里)。但本刀【不许再添第三处】,
+            //   所以这一句自己把话说完,剩余天数由那一页自己接在后面印。
+            festival_doodles_exhausted: 'Festival doodles are running out — add the next batch',
         },
         severity: {
             expired: 'Expired',

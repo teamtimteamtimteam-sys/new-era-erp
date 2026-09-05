@@ -39,7 +39,10 @@ CREATE VIEW public.my_profile WITH (security_invoker = off) AS
     pp.period_month AS latest_payroll_month,
     -- KPI-1:【新列加在末尾】—— CREATE OR REPLACE VIEW 只允许在末尾追加列,
     -- 中间插一列要 DROP + 重建,而这张视图有下游读者。
-    pos.code AS position_code
+    pos.code AS position_code,
+    -- UI-1b:【新列加在末尾】—— CREATE OR REPLACE VIEW 只允许末尾追加。
+    -- 首页问候语读的就是这一行(lib/homeGreeting.ts:getHomeGreeting)。
+    e.greeting_name
    FROM employees e
      LEFT JOIN positions pos ON pos.id = e.position_id
      LEFT JOIN departments d ON d.id = e.department_id

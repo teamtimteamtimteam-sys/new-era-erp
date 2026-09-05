@@ -84,6 +84,9 @@ CREATE VIEW public.employees_masked WITH (security_invoker = off) AS
     -- KPI-1:新列加在【末尾】—— CREATE OR REPLACE VIEW 只允许末尾追加列。
     -- 【它必须出现在这张视图里】employees 是遮蔽表,而 colgrant 那道闸要求它的
     -- 每一列要么被列授权、要么出现在 _masked 里(WO-1a 那一课)。
-    position_id
+    position_id,
+    -- UI-1b:同 position_id —— employees 是遮蔽表,colgrant 要求每一列要么被列授权、
+    -- 要么出现在这张视图里(WO-1a 那一课)。greeting_name 两样都做了:它不敏感。
+    greeting_name
    FROM employees
   WHERE has_permission('module.hr.view'::text) OR id = current_user_employee();

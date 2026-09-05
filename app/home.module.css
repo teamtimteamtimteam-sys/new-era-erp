@@ -78,6 +78,63 @@
     }
 }
 
+/* ── 字标 / 节日画 ─────────────────────────────────────────────────────────
+   ★【一个盒子,两张图,永不位移】★
+   23 张节日画在 scripts/build-festival-doodles.mjs 里被归一化成同一个
+   3.40:1 的画框,而 3.40:1 正是 evoltrya-wordmark.svg 自己的 viewBox 比例
+   (1204.72 / 354.331 = 3.4001)。所以:
+
+     · aspect-ratio 写在【盒子】上,不靠图片自己撑 —— 于是图还没到、或者
+       根本取不到的那一刻,这块矩形就已经占好位。**问候语与搜索框不会在图
+       落地的一瞬间往下跳。**
+     · 回退(节日画取不到 → 平日字标)同理不跳:两者一样大。
+
+   尺寸 clamp(15rem, 60vw, 26rem) = 240 → 416px 宽,71 → 122px 高。
+   ★ 它【窄于】下面搜索外壳的 34rem(544px)★ —— 这是刻意的:
+     最宽的东西仍然是搜索框,于是这一页读起来是落地页,不是一张表单。
+   ────────────────────────────────────────────────────────────────────────── */
+.mark {
+    position: relative;
+    z-index: 1;
+    width: clamp(15rem, 60vw, 26rem);
+    /* 1224 / 360,与画框和 wordmark 的 viewBox 逐字相同 */
+    aspect-ratio: 3.4 / 1;
+    /* 【下边距比 .stage 的 gap 大一点】字标与搜索框之间要比其它间隙宽,
+       否则三样东西读起来是等距的一串,而不是"主语 + 工具 + 一句话"。 */
+    margin-bottom: 0.5rem;
+}
+
+.markImg {
+    width: 100%;
+    height: 100%;
+    /* contain:画框比例与图一致,所以它不会真的留白 —— 写它是为了万一
+       将来有人换进一张比例不同的图时【不变形】,而不是被裁掉。 */
+    object-fit: contain;
+    user-select: none;
+}
+
+/* ── 问候语 ────────────────────────────────────────────────────────────────
+   ★【它必须"暖",而不是"响"】★ Tim 给这一行的目的是 给首页增加一些温度。
+   所以三条都是【压】不是【提】:
+     · 字号 1.0625rem —— 比正文(1rem)大一点点。委托书:slightly larger,
+       NOT prominent。再大一档它就开始与搜索框抢。
+     · 颜色 --brand-muted-text —— 与页面同一条推导轴(mix(text → bg, 38%)),
+       on bg 4.53:1,过 AA。**不是高亮色**:一句问候不该看起来像一条通知。
+     · 字重不动、不加背景、不加边框。
+   ────────────────────────────────────────────────────────────────────────── */
+.greeting {
+    position: relative;
+    z-index: 1;
+    margin-top: 0.25rem;
+    font-size: 1.0625rem;
+    line-height: 1.5;
+    color: var(--brand-muted-text);
+    /* 长句在窄屏上要能折,而折出来的两行要仍然读得成一句话 —— 与搜索外壳
+       同宽,于是它的折行位置和上面那个框对齐。 */
+    max-width: 34rem;
+    text-wrap: pretty;
+}
+
 /* ── 搜索外壳 ──────────────────────────────────────────────────────────── */
 .shell {
     position: relative;
@@ -164,6 +221,12 @@
 @media (max-width: 420px) {
     .stage { min-height: 58vh; padding: 2rem 1rem 3rem; }
     .box { padding: 0.8rem 1rem; gap: 0.5rem; }
+    /* 【390px 上 60vw = 234px,而 clamp 的下限是 240px】—— 于是在最窄的那一档
+       字标会被下限顶住,占掉 240px 里的绝大部分宽度。这里把下限降到 13rem
+       (208px),留出左右各 16px 的边距,与 .stage 的 padding 对齐。
+       ★ 实测过才写死:390 视口 − 2rem 边距 = 326px 可用,208px 舒服。★ */
+    .mark { width: clamp(13rem, 62vw, 20rem); margin-bottom: 0.25rem; }
+    .greeting { font-size: 1rem; }
     .prompt { font-size: 0.9375rem; }
     .pulse { top: 18%; }
 }

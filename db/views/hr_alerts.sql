@@ -33,6 +33,8 @@
 -- HR-4(2026-08-05):假日表告警分两支两级 ——
 --   holiday_calendar_missing    当年一条都没有 → expired,任何月份(全新安装的处境);
 --   holiday_calendar_next_year  次年没有 → 10 月起 warning、12 月 critical(原行为)。
+--   festival_doodles_exhausted  UI-1b:首页节日画的最后一个窗口 ≤60 天 → warning、
+--                               ≤14 天 → critical。**窗口过期后继续响**(见那一支的注释)。
 -- 旧版只查次年、只在四季度,盲区恰好是它唯一该守住的时刻。
 -- 不加"条数下限"的理由见迁移文件头(country 列已在,写死新加坡的条数是辖区常量)。
 
@@ -237,6 +239,35 @@ CREATE VIEW public.hr_alerts WITH (security_invoker = off) AS
           WHERE EXTRACT(month FROM CURRENT_DATE) >= 10::numeric AND NOT (EXISTS ( SELECT 1
                    FROM public_holidays h
                   WHERE h.is_active AND h.country = 'SG'::text AND EXTRACT(year FROM h.holiday_date) = (EXTRACT(year FROM CURRENT_DATE) + 1::numeric)))
+        UNION ALL
+        -- ★★【UI-1b:节日画的窗口要用完了】★★
+        --   首页那 23 张节日画的最后一个窗口在 2027-08-16 结束。之后首页安静地
+        --   画回平日字标 —— **那是对的,不是失败**。但【必须有人在那之前被叫住】。
+        --
+        --   【复用这一条通道,不另造一条】它与 holiday_calendar_next_year 是同一
+        --   形状:一份【一次录一批】的日历,快要见底了。Tim 接受随之而来的代价 ——
+        --   只有拿得到 module.hr.view 的人看得见它;而实际上"给假日表补下一年的人"
+        --   与"给节日画补下一批的人"是同一个人。
+        --
+        --   【为什么 max_end 在【过去】时它仍然响】60 天的门槛写的是 <= 60,不是
+        --   BETWEEN 0 AND 60。**窗口真的用完之后 days_remaining 变成负数,而这条
+        --   告警必须继续响** —— 一条在问题真正发生的那天安静下来的告警,
+        --   正是本仓库反复在修的那一类。
+         SELECT 'festival_doodles_exhausted'::text AS alert_type,
+                CASE
+                    WHEN (x.max_end - CURRENT_DATE) <= 14 THEN 'critical'::text
+                    ELSE 'warning'::text
+                END AS severity,
+            NULL::uuid AS employee_id,
+            ''::text AS employee_code,
+            ''::text AS employee_name,
+            x.max_end::text AS subject,
+            x.max_end AS due_date,
+            x.max_end - CURRENT_DATE AS days_remaining
+           FROM ( SELECT max(fd.window_end) AS max_end
+                   FROM festival_doodles fd
+                  WHERE fd.is_active) x
+          WHERE x.max_end IS NOT NULL AND (x.max_end - CURRENT_DATE) <= 60
         UNION ALL
          SELECT 'system_start_not_set'::text AS alert_type,
             'expired'::text AS severity,

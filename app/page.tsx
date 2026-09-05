@@ -73,11 +73,23 @@
 // ════════════════════════════════════════════════════════════════════════════
 import { getTranslations } from '@/lib/i18n/server'
 import { getMyPermissions } from '@/lib/permissions'
+import { getTodaysDoodle } from '@/lib/festivalDoodle'
+import { getHomeGreeting } from '@/lib/homeGreeting'
+import HomeMark from '@/app/components/home/HomeMark'
+import RememberGreeting from '@/app/components/home/RememberGreeting'
 import styles from './home.module.css'
 
 export default async function Home() {
     const t = await getTranslations()
     const perms = await getMyPermissions()
+    // ★【UI-1b】两样新东西,各自可以【缺席】而不留下痕迹 ★
+    //   · doodle === null  → 今天不是节日窗口,画平日字标。**绝大多数日子如此,
+    //                        这不是一次失败。**
+    //   · greeting === null → 这个账号没有员工档案(或问候语表是空的)。
+    //                        **整行不画** —— 不编一个占位名,也不拿邮箱当名字。
+    //                        与 UI-1a 的 AvatarMenu.tsx:47-56 是同一条判据。
+    const doodle = await getTodaysDoodle()
+    const greeting = await getHomeGreeting()
 
     // 【判据一个字没动 —— CONV-7 ① 定的那一条】他一个 module.* 权限都没有。
     // 它绕开的是"工具名下三条恒真条目让 tools.allowed 对每个人都为 true"那个陷阱;
@@ -89,8 +101,18 @@ export default async function Home() {
             {/* 【活性指示,不是装饰】—— 理由整段写在 home.module.css 的 .pulse 抬头。 */}
             <span className={styles.pulse} aria-hidden="true" />
 
+            {/* ★【UI-1b ①:字标,搜索框【上面】】★
+                Tim 的裁定:用 public/brand/evoltrya-wordmark.svg【原样】——
+                它是唯一的彩色资产,3.40:1,BRAND-1 逐像素校过色。
+                **不与球体合成**(LOGIN-1:界面里球体只作字标里那个「O」出现)。
+                节日窗口里它换成同一个画框里的一张节日画;顶栏那个黑色标记
+                【永远不换】。整段理由在 app/components/home/HomeMark.tsx。 */}
+            <HomeMark doodle={doodle} />
+
             {/* 零模块权限时说出来(OPS-15)。**这一页越空,它越是唯一的解释。**
-                放在搜索框【上面】:先说清这个账号的状况,再递工具。 */}
+                放在搜索框【上面】:先说清这个账号的状况,再递工具。
+                【UI-1b 没有动它的位置】字标在它上面,而字标不是"工具" —— 
+                "先说明状况,再递工具"这条顺序一个字没变。 */}
             {noModulePermission && (
                 <div
                     className="rounded-[var(--brand-radius)] border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900 max-w-2xl text-left"
@@ -126,6 +148,21 @@ export default async function Home() {
                     {t('home.searchNotYet')}
                 </p>
             </details>
+
+            {/* ★【UI-1b ①:问候语,搜索框【下面】】★
+                Tim 写下的目的是五个字:**给首页增加一些温度。**
+                所以它在搜索框【下面】—— 它不是这一页要你做的事,是这一页
+                对你说的一句话。字号比正文大一点点、颜色走 --brand-muted-text,
+                **刻意不显眼**:它不许与字标或搜索框抢。
+                句子住在 home_greetings 表里(改一句不用部署),时段按【新加坡】
+                的钟算(lib/homeGreeting.ts),每次重挑且不与上一句相同。 */}
+            {greeting && (
+                <p className={styles.greeting} data-home-greeting={greeting.id}>
+                    {greeting.text}
+                    {/* 把这一句记下来,好让下一次排除它。渲染 null。 */}
+                    <RememberGreeting id={greeting.id} />
+                </p>
+            )}
         </div>
     )
 }

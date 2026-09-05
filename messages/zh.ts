@@ -535,6 +535,12 @@ const zh = {
         // 【点之后的那一句】说"还没建"而不是"暂不可用"——
         //   后者读起来像坏了,而这一格从来就没通电。
         searchNotYet: '搜索还没有建。这个框是它将来的位置 —— 现在它什么都不做,所以它也不收你打的字。',
+        // ── UI-1b ①②:字标与节日画的可访问名 ──────────────────────────────
+        // 【为什么 alt 里没有「OS」】图里就没有。顶栏那个锁定组合才带 OS。
+        // 出处:docs/brand-tokens.md §3.1.2。
+        markAlt: 'EVoltrya',
+        // {name} = 节日名(按界面语言选一个)。读屏用户也该知道今天画的是哪个节日。
+        doodleAlt: 'EVoltrya —— {name}',
     },
     // OPS-18:运营看板。dashboard.item.* 的后缀集合 = db/views/operations_now.sql 里
     // item_type 的字面量集合(check-i18n MANIFEST 现读那个文件,加一支自动变宽)。
@@ -3904,6 +3910,9 @@ const zh = {
             review_no_reviewer: '评估未指派评估人',
             review_cycle_overdue: '评估轮已逾期',
             cpf_due: 'CPF 汇缴临期',
+            // ★ UI-1b ②:节日画窗口即将用尽。**刻意不带占位符** ——
+            //   渲染点 t('hr.alertType.' + …) 一个参数都不传,理由见 en.ts 同一处。
+            festival_doodles_exhausted: '节日画快用完了 —— 请补下一批',
         },
         severity: {
             expired: '已过期',

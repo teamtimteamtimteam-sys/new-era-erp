@@ -106,7 +106,16 @@ CREATE TABLE public.employees (
     CONSTRAINT employees_probation_cap CHECK (
         probation_end_date IS NULL
         OR probation_end_date <= (hire_date + interval '3 months')::date
-    )
+    ),
+    -- ★ UI-1b(2026-09-05)ALTER 加的列 → 线上排在【最后】,镜像照 ordinal order 写。
+    -- 【首页问候语里怎么称呼这个人】—— 取值顺序 greeting_name ?? preferred_name ?? legal_name。
+    -- ★★【为什么不复用 preferred_name】★★ 那一列是【全站显示名】:
+    --   ActorName.tsx:79 · TopNav.tsx:161 · app/me/page.tsx:202 · app/hr/org/page.tsx:90。
+    --   把 Sandra Yap 的 preferred_name 改成「Sand」,组织架构图与每一条审计留痕上
+    --   她就都叫 Sand 了。**一句问候语的昵称,不该改写一个人在系统里的名字。**
+    -- 【线上只有一行有值】Sandra Yap → 'Sand'(其余五个人 preferred_name ?? legal_name
+    --   就已经是 Tim 要的那个名字 —— 实测,不是假设)。
+    greeting_name text
 );
 
 CREATE INDEX idx_employees_department ON public.employees (department_id);
@@ -192,7 +201,7 @@ REVOKE SELECT ON public.employees FROM authenticated, anon;
 -- PDPA-1:anonymised_at / anonymised_by 同样授回。**列清单式 SELECT 授权不随
 -- ADD COLUMN 自动延伸**,所以每一次给这张表加列都必须回到这一行(gate 的 colgrant
 -- 判据会点名漏掉的列;见 AGENTS.md「Adding a column to a masked table」)。
-GRANT SELECT (id, code, legal_name, preferred_name, department_id, position_id, manager_id, employment_type, work_category, hire_date, probation_end_date, employment_status, separation_date, separation_type, separation_notes, residency_status, work_pass_type, work_pass_issue_date, work_pass_expiry_date, user_id, notes, deleted_at, created_at, created_by, updated_at, updated_by, confirmation_date, monthly_salary_set, review_exempt, anonymised_at, anonymised_by)
+GRANT SELECT (id, code, legal_name, preferred_name, department_id, position_id, manager_id, employment_type, work_category, hire_date, probation_end_date, employment_status, separation_date, separation_type, separation_notes, residency_status, work_pass_type, work_pass_issue_date, work_pass_expiry_date, user_id, notes, deleted_at, created_at, created_by, updated_at, updated_by, confirmation_date, monthly_salary_set, review_exempt, anonymised_at, anonymised_by, greeting_name)
     ON public.employees TO authenticated;
 
 -- cut 4 员工自助:【追加】一条 PERMISSIVE 策略,与既有模块策略【或】起来。
