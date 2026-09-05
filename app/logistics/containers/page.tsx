@@ -34,7 +34,7 @@ export default async function ContainersPage() {
         'lanes'
     )
     const forwarders = mustRows(
-        await supabase.from('suppliers').select('id, legal_name')
+        await supabase.from('supplier_lookup').select('id, legal_name')
             .eq('counterparty_type', 'forwarder').is('deleted_at', null).order('legal_name'),
         'forwarders'
     )

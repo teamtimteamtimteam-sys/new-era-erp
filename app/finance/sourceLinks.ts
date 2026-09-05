@@ -1,6 +1,16 @@
 // app/finance/sourceLinks.ts
 // 分录来源 → 业务单据链接的服务端解析。按 source_type 分组批量查一次(.in),
 // 页级规模下开销可忽略;解析不到(单据已删/类型无落点)→ 无链接,纯文本展示。
+//
+// ★★【FIX-2a:那三张【基表】读的都是别的模块,而 cfo 一个模块都没有】★★
+// 分录、总账、明细账三页的守卫是 module.finance.view;而这里读的
+// inbound_batches / output_batches / processing_cost_entries 分别挂
+// module.inbound.view / module.output.view / module.processing.view。
+// cfo 只持 finance / logistics / purchasing —— 于是【每一条分录的来源链接都解析不到】,
+// 而上面那句注释会把它读成「单据已删」。**那是一句关于数据的断言,
+// 而真相是"你不能看那张表"。** 三处一律改读查名视图(体内都加了 finance.view),
+// 它们【一列钱都不多出】—— 金额那一列在 processing_cost_entry_lookup 上
+// 仍然按 data.view_prices 遮,而这里根本不选它。
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/database.types'
 import { mustRows } from '@/lib/db-helpers'
@@ -37,14 +47,14 @@ export async function resolveSourceHrefs(
             : Promise.resolve({ data: [] as { id: string; output_batch_id: string }[], error: null }),
         // processing_cost → 成本行的 run → 加工单详情
         costIds.length
-            ? supabase.from('processing_cost_entries').select('id, run_id').in('id', costIds)
+            ? supabase.from('processing_cost_entry_lookup').select('id, run_id').in('id', costIds)
             : Promise.resolve({ data: [] as { id: string; run_id: string }[], error: null }),
         // writeoff 的 source_id 是批次 id,但不知道在哪张表 —— 两边都查,命中即得
         writeoffIds.length
-            ? supabase.from('inbound_batches').select('id').in('id', writeoffIds)
+            ? supabase.from('inbound_batch_lookup').select('id').in('id', writeoffIds)
             : Promise.resolve({ data: [] as { id: string }[], error: null }),
         writeoffIds.length
-            ? supabase.from('output_batches').select('id').in('id', writeoffIds)
+            ? supabase.from('output_batch_lookup').select('id').in('id', writeoffIds)
             : Promise.resolve({ data: [] as { id: string }[], error: null }),
     ])
 

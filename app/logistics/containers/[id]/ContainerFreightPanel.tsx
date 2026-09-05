@@ -38,7 +38,7 @@ export default async function ContainerFreightPanel({
     const t = await getTranslations()
 
     const docs = mustRows(
-        await supabase.from('freight_documents')
+        await supabase.from('freight_document_lookup')
             .select('id, code, doc_date, amount_ccy, currency, status, direction')
             .eq('container_id', containerId)
             .is('deleted_at', null)

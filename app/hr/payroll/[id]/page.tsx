@@ -8,6 +8,8 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatMoneyBare } from '@/lib/format'
 import { PostPayrollButton, UnpostPayrollControl } from './PostControls'
+import { can } from '@/lib/permissions'
+import { Refusal } from '@/app/components/ui/refusal'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
@@ -44,7 +46,10 @@ export default async function PayrollDetailPage({
             .from('payroll_lines_masked')
             .select('id, gross_pay, employer_cpf, employee_cpf, other_deductions, net_pay, notes, employees(id, code, legal_name)')
             .eq('payroll_period_id', id),
-        period.journal_entry_id
+        // ★ FIX-2a(b):见 /hr/payroll —— journal_entries 挂 finance.view,hr 没有。
+        //   此前读不到时整行【消失】,于是一张已经过账的薪资期间在 HR 眼里
+        //   连"分录"这一栏都不存在。Tim 的裁定:不放宽,但要说出来。
+        period.journal_entry_id && (await can('module.finance.view'))
             ? supabase.from('journal_entries').select('id, code').eq('id', period.journal_entry_id).single()
             : Promise.resolve({ data: null, error: null }),
     ])
@@ -164,6 +169,8 @@ export default async function PayrollDetailPage({
                             </span>
                         ),
                     },
+                    // 三态:没有分录 → 这一行【不出现】(诚实:确实没有);
+                    // 有分录且读得到 → 链接;有分录而读不到 → 具名受限,不画链接。
                     ...(jeRes.data
                         ? [{
                             label: t('assay.journalLink'),
@@ -176,7 +183,16 @@ export default async function PayrollDetailPage({
                                 </Link>
                             ),
                           }]
-                        : []),
+                        : period.journal_entry_id
+                          ? [{
+                                label: t('assay.journalLink'),
+                                value: (
+                                    <Refusal why={t('hr.payrollEntryRestrictedHint')}>
+                                        {t('common.restricted')}
+                                    </Refusal>
+                                ),
+                            }]
+                          : []),
                     ...(period.source_note
                         ? [{ label: t('hr.colSourceNote'), value: period.source_note }]
                         : []),

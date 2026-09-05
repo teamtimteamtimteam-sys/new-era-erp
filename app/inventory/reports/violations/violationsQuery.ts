@@ -33,7 +33,7 @@ export async function fetchViolations() {
            location_id: string | null; location_code: string | null; location_name: string | null; qty: number }[]
 
     const mats = mustRows(
-        await supabase.from('materials').select('id, waste_classification_code').is('deleted_at', null),
+        await supabase.from('material_lookup').select('id, waste_classification_code').is('deleted_at', null),
         'materials'
     ) as { id: string; waste_classification_code: string | null }[]
     const unclassified = new Set(mats.filter((m) => !m.waste_classification_code).map((m) => m.id))

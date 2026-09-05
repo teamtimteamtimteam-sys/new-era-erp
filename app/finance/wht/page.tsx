@@ -18,6 +18,8 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { can } from '@/lib/permissions'
+import { RefusalBlock } from '@/app/components/ui/refusal'
 import { mustRows, mustCount } from '@/lib/db-helpers'
 import { getBaseCurrency } from '@/lib/currency'
 import { formatAmount } from '@/lib/format'
@@ -33,6 +35,9 @@ export default async function WhtPage() {
     const locale = await getLocale()
     const base = await getBaseCurrency()
 
+    // FIX-2a:先问权限,再决定读不读 —— 拒绝必须是一句权限答复,
+    // 不能从一个数出来的 0 倒推。
+    const canSuppliers = await can('module.suppliers.view')
     const [liabRes, remitRes, naturesRes, ratesRes, gapRes] = await Promise.all([
         supabase.from('wht_liability_by_month')
             .select('period_month, withheld_base, remitted_base, unremitted_base, due_date, is_overdue')
@@ -49,14 +54,25 @@ export default async function WhtPage() {
         // 而系统一分钱都不会代扣。理由整段写在 db/tables/suppliers.sql 的
         // tax_residence 列注释里(那是一个量过成本的取舍,16 份 fixture)。
         // 这里【数出来】,是 4.2「具名缺席,不是空白」在这一页上的用法。
-        supabase.from('suppliers').select('id', { count: 'exact', head: true })
-            .is('deleted_at', null).is('tax_residence', null),
+        // ★★【FIX-2a:这一处是 (b),不是 (a) —— 而冒烟替我改了主意】★★
+        // 第一版把它改指 supplier_lookup,结果整页 42703:那张查名视图
+        // 【刻意没有】tax_residence(它是 FIX-1 抬头列的六列商务数据之一)。
+        // 而这个数问的本来就不是"叫得出名字吗",是【供应商主数据填全了没有】——
+        // 那是 module.suppliers.view 的事。所以读回基表,并且【先问权限】。
+        //
+        // 【为什么不能就让它数出 0】下面那个绿框写的是「都申报了」。
+        // 一个读不到 suppliers 的人会拿到 count=0,于是屏幕给他一句
+        // **自信的"全部合规"** —— 而真相是他根本无从知道。这正是本刀在修的那个形状。
+        canSuppliers
+            ? supabase.from('suppliers').select('id', { count: 'exact', head: true })
+                .is('deleted_at', null).is('tax_residence', null)
+            : Promise.resolve({ count: null, data: null, error: null }),
     ])
     const liability = mustRows(liabRes)
     const remittances = mustRows(remitRes)
     const natures = mustRows(naturesRes)
     const rates = mustRows(ratesRes)
-    const residenceGap = mustCount(gapRes)
+    const residenceGap = canSuppliers ? mustCount(gapRes) : null
 
     // 【只有真的欠着的月份才进汇缴下拉】—— 让屏幕offer 一个服务端一定会拒的动作,
     // 是本仓库记过的那条"页面不该给出只会报错的按钮"。
@@ -95,6 +111,17 @@ export default async function WhtPage() {
     return (
         <ListPage title={t('wht.title')} intro={t('wht.subtitle')} maxWidth="max-w-5xl" state={{ kind: 'ok' }}>
             {/* ── 未申报居民身份的供应商:一个【数】,不是一句提醒 ───────────── */}
+            {residenceGap === null ? (
+                /* ★ FIX-2a(b):读不到供应商主数据的人【不能】拿到那个绿框。
+                   「都申报了」是一句关于合规的断言,而他无从知道。 */
+                <div className="mb-6">
+                    <RefusalBlock
+                        statement={t('wht.residenceGapRestricted')}
+                        hint={t('wht.residenceGapRestrictedHint')}
+                        code="module.suppliers.view"
+                    />
+                </div>
+            ) : (
             <p className={'text-sm mb-6 px-3 py-2 rounded border ' +
                 (residenceGap > 0
                     ? 'bg-amber-50 border-amber-300 text-amber-900'
@@ -107,6 +134,7 @@ export default async function WhtPage() {
                     </>
                 ) : t('wht.residenceGapNone')}
             </p>
+            )}
 
             {/* ── 欠 IRAS 多少 ───────────────────────────────────────────────── */}
             <h2 className="font-semibold mb-2">{t('wht.liabilityHeading')}</h2>

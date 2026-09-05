@@ -23,12 +23,14 @@ export default async function NewFormulaPage() {
 
     const [supRes, cusRes] = await Promise.all([
         // LOG-1b:货代不进供应商名单
-        supabase.from('suppliers').select('id, legal_name').is('deleted_at', null).neq('counterparty_type', 'forwarder').order('legal_name'),
-        supabase.from('customers').select('id, legal_name').is('deleted_at', null).order('legal_name'),
+        supabase.from('supplier_lookup').select('id, legal_name').is('deleted_at', null).neq('counterparty_type', 'forwarder').order('legal_name'),
+        supabase.from('customer_lookup').select('id, legal_name').is('deleted_at', null).order('legal_name'),
     ])
 
-    const suppliers: PartyOption[] = (mustRows(supRes)).map((s) => ({ id: s.id, name: s.legal_name }))
-    const customers: PartyOption[] = (mustRows(cusRes)).map((c) => ({ id: c.id, name: c.legal_name }))
+    const suppliers: PartyOption[] = (mustRows(supRes) as unknown as { id: string; legal_name: string }[])
+        .map((s) => ({ id: s.id, name: s.legal_name }))
+    const customers: PartyOption[] = (mustRows(cusRes) as unknown as { id: string; legal_name: string }[])
+        .map((c) => ({ id: c.id, name: c.legal_name }))
 
     // 行情覆盖(最近一年,数据量极小):供表单当场说出"这两个基准现在算不算同一个数"。
     // 读 price_date 而不是 created_at —— 补录过的行情按【行情日】算窗口内外。

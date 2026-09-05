@@ -29,7 +29,7 @@ export default async function ContainerDetailPage({ params }: { params: Promise<
     // CTN-FWD:承运方候选与当前那一家的名字。【只列货代】—— 与运费录入页
     // 那一处同向(.eq),与其余十一处 .neq 相反,所以它单独写在这里。
     const forwarders = mustRows(
-        await supabase.from('suppliers').select('id, legal_name')
+        await supabase.from('supplier_lookup').select('id, legal_name')
             .is('deleted_at', null).eq('counterparty_type', 'forwarder').order('legal_name'),
         'forwarders'
     ) as unknown as { id: string; legal_name: string }[]
@@ -44,14 +44,14 @@ export default async function ContainerDetailPage({ params }: { params: Promise<
     if (ov.error) throw new Error(ov.error.message)
 
     const attached = mustRows(
-        await supabase.from('shipments')
-            .select('id, code, ship_date, sales_orders ( code, customers ( legal_name ) )')
+        await supabase.from('shipment_lookup')
+            .select('id, code, ship_date, sales_order_code, customer_legal_name')
             .eq('container_id', id).order('ship_date'),
         'attached shipments'
     )
     const attachable = mustRows(
-        await supabase.from('shipments')
-            .select('id, code, ship_date, sales_orders ( code, customers ( legal_name ) )')
+        await supabase.from('shipment_lookup')
+            .select('id, code, ship_date, sales_order_code, customer_legal_name')
             .is('container_id', null).order('ship_date'),
         'attachable shipments'
     )
@@ -74,13 +74,17 @@ export default async function ContainerDetailPage({ params }: { params: Promise<
         'documents'
     )
 
-    const shape = (r: Record<string, unknown>) => {
-        const so = r.sales_orders as { code: string; customers: { legal_name: string } | null } | null
-        return {
-            id: r.id as string, code: r.code as string, ship_date: r.ship_date as string,
-            order_code: so?.code ?? '—', customer: so?.customers?.legal_name ?? '—',
-        }
-    }
+    // ★★【FIX-2a:这三张表跨了三个模块,而这一页的守卫只有一个】★★
+    //   shipments 挂 module.sales.view,内嵌的 sales_orders / customers 各自
+    //   再套一遍 RLS(sales.view / customers.view)—— 而守卫是 logistics.view。
+    //   operations / warehouse / procurement / finance 通过守卫之后读到零张发货单,
+    //   屏幕说【这只箱子里什么都没装】。订单号与客户名在 shipment_lookup 上是
+    //   【摊平的两列】,判据因此只有一处:那张视图的体内谓词。
+    const shape = (r: Record<string, unknown>) => ({
+        id: r.id as string, code: r.code as string, ship_date: r.ship_date as string,
+        order_code: (r.sales_order_code as string | null) ?? '—',
+        customer: (r.customer_legal_name as string | null) ?? '—',
+    })
 
     return (
         <div className="p-8">

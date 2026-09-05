@@ -12,6 +12,7 @@ import { useActionState, useEffect, useState } from 'react'
 import Link from 'next/link'
 import type { DictOption } from '@/app/components/dictionaries/dictionaryQuery'
 import { useTranslations } from '@/lib/i18n/client'
+import { RefusalBlock } from '@/app/components/ui/refusal'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import type { MetalOption } from '@/app/tools/pricing/metal-prices/options'
 import AssayImpactPreview from '../AssayImpactPreview'
@@ -34,6 +35,7 @@ export default function AssayForm({
     substanceOptions,
     batch,
     formula,
+    pricingRestricted = false,
     currentMetals,
     baseCurrency,
 }: {
@@ -52,6 +54,9 @@ export default function AssayForm({
         pricing_status: string
     }
     formula: { id: string; code: string; name: string } | null
+    /** FIX-2a：读不到计价（module.pricing.view）。null 的 formula 因此
+     *  【说不出】这批货有没有公式 —— 那一句必须换成一句拒绝。 */
+    pricingRestricted?: boolean
     currentMetals: Record<string, string>
     // ASY-3:影响块用它标出自己的货币(面板在那里换单位)
     baseCurrency: string
@@ -264,7 +269,16 @@ export default function AssayForm({
             </div>
 
             {/* ── 实时预览 ── */}
-            {!formula ? (
+            {pricingRestricted ? (
+                /* ★ FIX-2a(b)：不是「这批货没有计价公式」——那是一句断言，
+                   而这个读者根本无从知道。Tim 的 Q4 裁定：价格不给现场，
+                   所以这里【不放宽】，只把断言换成一句具名的拒绝。 */
+                <RefusalBlock
+                    statement={t('assay.pricingRestricted')}
+                    hint={t('assay.pricingRestrictedHint')}
+                    code="module.pricing.view"
+                />
+            ) : !formula ? (
                 <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded text-sm">
                     {t('assay.noFormula')}
                 </div>

@@ -48,8 +48,12 @@ export default async function PayableDocPage({
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
     const { data: batchRaw, error } = await supabase
-        .from('inbound_batches_masked')
-        .select('id, code, supplier_id, quantity, unit, unit_price, arrival_date, notes, created_at, materials(name)')
+        .from('inbound_batch_lookup')
+        // FIX-2a:inbound_batches_masked 整张挂 module.inbound.view,而这一页的守卫是
+        // finance.view —— cfo 读回零行,于是下面那句 notFound() 触发,应付明细页
+        // 对他说【这批货不存在】。改读查名视图(unit_price 仍按 data.view_prices 遮),
+        // 物料名从内嵌改为单独取:内嵌会对 materials 另套一遍 RLS。
+        .select('id, code, supplier_id, quantity, unit, unit_price, arrival_date, notes, created_at')
         .eq('id', batchId)
         .single()
 
@@ -71,7 +75,7 @@ export default async function PayableDocPage({
     // 供应商 / 结算历史 / 采购分录(改价后可能多条)/ 附件,页级小查询
     const [supplierRes, allocsRes, journalsRes, attachRes] = await Promise.all([
         batch.supplier_id
-            ? supabase.from('suppliers').select('legal_name').eq('id', batch.supplier_id).single()
+            ? supabase.from('supplier_lookup').select('legal_name').eq('id', batch.supplier_id).single()
             : Promise.resolve({ data: null, error: null }),
         supabase
             .from('payment_allocations')
@@ -115,7 +119,14 @@ export default async function PayableDocPage({
         created_at_display: formatTimestamp(a.created_at, dateLocale),
     }))
 
-    const materialName = (batch.materials as unknown as { name: string } | null)?.name ?? '—'
+    const materialName =
+        (
+            await supabase
+                .from('material_lookup')
+                .select('name')
+                .eq('id', (batch as { material_id?: string | null }).material_id ?? '')
+                .maybeSingle()
+        ).data?.name ?? '—'
 
 
     // ★【行数据在服务端压平】金额格式要 baseCurrency,只有服务端知道(CONV-1 §①)。

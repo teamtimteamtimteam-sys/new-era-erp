@@ -124,7 +124,7 @@ export default async function ExpensesListPage({
             return supplierIds.length
                 ? // LOG-1b:【这一处绝不过滤 counterparty_type】—— 解析器,不是选择器。
                   //         过滤它只会让已有单据的对方名字变成空白。
-                  supabase.from('suppliers').select('id, legal_name').in('id', supplierIds)
+                  supabase.from('supplier_lookup').select('id, legal_name').in('id', supplierIds)
                 : Promise.resolve({ data: [] as { id: string; legal_name: string }[], error: null })
         })(),
     ])

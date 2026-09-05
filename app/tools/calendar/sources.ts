@@ -39,6 +39,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 import { createClient } from '@/lib/supabase/server'
 import { pMap, DEFAULT_QUERY_CONCURRENCY } from '@/lib/pMap'
+import { can } from '@/lib/permissions'
 import type { CalendarItem } from '@/app/components/calendar/MonthGrid'
 
 /** 来源键 —— 也是筛选器的取值。**顺序即图例顺序。** */
@@ -88,6 +89,20 @@ export async function loadMonth(month: string, locale: string): Promise<{
     items: CalendarItem[]
     /** 逐来源的取数结果 —— 出错要说出来,不能读成"这一类今天没有事" */
     failures: string[]
+    /**
+     * ★★【FIX-2a:第三态 —— 这一类【你不能看】】★★
+     * 这一页此前只有两种话可说:一个事件,或者「这个月没有这一类」。
+     * 而 page.tsx 把六个类别【无条件】画成筛选器,理由写在那里:
+     * 「一个"这个月没有请假"与"请假这一类不存在"必须分得开」。那句话是对的,
+     * 它只是漏了第三种:**"你不能看这一类"**。
+     * 实测:hr 只持 hr.view + tasks.view,于是发票到期 / 到港预计 / 申报期结束
+     * 三类【永远】是空的。Sandra 点开「发票到期」,看见"这个月没有",
+     * 于是认定这个月没有发票要到期 —— 那是一句关于财务的断言,
+     * 而她根本无权知道那件事。
+     * ★ 本刀【不】放宽任何一类(它们是财务与物流的事实,不是 HR 的)——
+     *   本刀让屏幕【说出来】。
+     */
+    withheld: CalendarKind[]
     ms: number
 }> {
     const supabase = await createClient()
@@ -98,6 +113,12 @@ export async function loadMonth(month: string, locale: string): Promise<{
 
     type Spec = {
         kind: CalendarKind
+        /**
+         * 读这一类要哪个权限码。**先问权限,再决定读不读** —— 拒绝必须是一句
+         * 权限答复,不能从空结果倒推(与 moduleGuard 抬头 OPS-15 同一条)。
+         * undefined = 这一类没有模块门(公共假期对谁都是公开的)。
+         */
+        needs?: string
         run: () => Promise<{ data: Row[] | null; error: { message: string } | null }>
         /** 一行可以铺成【多天】—— 请假是区间,不是单日。 */
         map: (r: Row) => CalendarItem[]
@@ -117,6 +138,7 @@ export async function loadMonth(month: string, locale: string): Promise<{
         {
             // leave_calendar 是【区间】(start..end),不是单日 —— 展开由下面统一做。
             kind: 'leave',
+            needs: 'module.hr.view',
             run: () => supabase.from('leave_calendar').select('*')
                 .lte('start_date', last).gte('end_date', first) as never,
             // ★【请假是一段区间,要【铺满】它覆盖的每一天】★
@@ -130,6 +152,7 @@ export async function loadMonth(month: string, locale: string): Promise<{
         },
         {
             kind: 'task',
+            needs: 'module.tasks.view',
             run: () => supabase.from('tasks').select('id, title, due_date')
                 .is('deleted_at', null).gte('due_date', first).lte('due_date', last) as never,
             map: (r) => [{
@@ -139,6 +162,7 @@ export async function loadMonth(month: string, locale: string): Promise<{
         },
         {
             kind: 'invoiceDue',
+            needs: 'module.finance.view',
             // 【读遮蔽视图,不读基表】invoices 是遮蔽表;而这一页只要
             // 编号与到期日两列(都不是被扣住的列),走 _masked 是免费的。
             run: () => supabase.from('invoices_masked').select('id, code, due_date')
@@ -150,6 +174,7 @@ export async function loadMonth(month: string, locale: string): Promise<{
         },
         {
             kind: 'containerEta',
+            needs: 'module.logistics.view',
             run: () => supabase.from('containers').select('id, container_no, expected_arrival_date')
                 .gte('expected_arrival_date', first).lte('expected_arrival_date', last) as never,
             map: (r) => [{
@@ -159,6 +184,7 @@ export async function loadMonth(month: string, locale: string): Promise<{
         },
         {
             kind: 'periodClose',
+            needs: 'module.finance.view',
             run: () => supabase.from('gst_periods').select('id, period_end')
                 .gte('period_end', first).lte('period_end', last) as never,
             map: (r) => [{
@@ -168,7 +194,22 @@ export async function loadMonth(month: string, locale: string): Promise<{
         },
     ]
 
-    const results = await pMap(specs, DEFAULT_QUERY_CONCURRENCY, async (s) => {
+    // FIX-2a:先问权限,再决定哪几类读得了。读不了的那几类【不发查询】——
+    // 既省一次往返,也让"扣下了"是一个【判断】,不是从零行倒推出来的猜测。
+    //
+    // ★【用 can(),不要自己拿权限清单去比对】★ 这一段第一版写的是
+    //   `perms.includes(sp.needs)`,而 `npm run build` 当场变红:
+    //   「求值只许在 lib/modules.ts 的 allows() 里」。那道闸是对的 ——
+    //   EQP-2d 实测过两份求值漂开的后果(库里放宽了、首页没跟上,于是一个
+    //   【拿得到行】的读者在屏幕上看见「受限」)。can() 是单码判断的那一份,
+    //   按请求缓存,所以逐类问一遍只打一次数据库。
+    const flags = await Promise.all(
+        specs.map(async (sp) => (sp.needs === undefined ? true : await can(sp.needs)))
+    )
+    const withheld = specs.filter((_, i) => !flags[i]).map((sp) => sp.kind)
+    const readable = specs.filter((_, i) => flags[i])
+
+    const results = await pMap(readable, DEFAULT_QUERY_CONCURRENCY, async (s) => {
         const res = await s.run()
         return { kind: s.kind, res, map: s.map }
     })
@@ -183,5 +224,5 @@ export async function loadMonth(month: string, locale: string): Promise<{
         for (const r of res.data ?? []) items.push(...map(r))
     }
     items.sort((a, b) => a.date.localeCompare(b.date) || a.label.localeCompare(b.label))
-    return { items, failures, ms: Date.now() - t0 }
+    return { items, failures, withheld, ms: Date.now() - t0 }
 }

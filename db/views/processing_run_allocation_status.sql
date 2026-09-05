@@ -45,6 +45,12 @@
 -- 含量变了它不过期 —— 无条件举旗是喊狼来了,而没人看的旗和没有旗是同一样
 -- 东西(fixture 54 两个方向都钉)。
 
+-- ★ FIX-2a(2026-09-05):体内谓词放宽/修正,列未改动。
+--   替换用的是 -- ★ FIX-2a(2026-09-05):体内谓词放宽/修正,列未改动。
+--   替换用的是 -- ★ FIX-2a(2026-09-05):体内谓词放宽/修正,列未改动。
+--   替换用的是 CREATE OR REPLACE VIEW,而它【会丢掉 WITH (...)】——
+--   迁移末尾因此补了一句 ALTER VIEW ... SET (security_invoker = off)。
+
 CREATE VIEW public.processing_run_allocation_status WITH (security_invoker = off) AS
  SELECT r.id AS run_id,
     r.code,
@@ -82,27 +88,17 @@ CREATE VIEW public.processing_run_allocation_status WITH (security_invoker = off
                      JOIN output_batch_metals obm ON obm.output_batch_id = po6.output_batch_id
                   WHERE po6.run_id = r.id AND r.allocation_basis = 'metal_value'::text
                 UNION ALL
-                -- PROC-COST-1:【第七过期源 —— 迟到的加工成本资本化】
-                -- 一张状态改变型加工单(放电)把成本挂到某批进料上,而那批料
-                -- 【可能已经被这张单吃掉了】。不在这里的话,吃过它的单永远不标过期,
-                -- batch_margin 停在放电之前那个数,而放电那张分录本身完全正确 ——
-                -- 这是本仓库最坏的失败形状:每一笔都对,总数错。
-                -- FRT-1 把漏掉同构的那一臂称作"本刀的头号缺陷";这里不重犯。
-                -- 【排除自己】bpca.run_id <> r.id:否则放电单会在分摊完成的那一刻
-                -- 把自己标成过期,而它刚刚才算完 —— 一面永远举着的旗等于没有旗。
                  SELECT bpca.created_at
                    FROM batch_processing_cost_allocations bpca
                      JOIN processing_runs rsrc ON rsrc.id = bpca.run_id
                      JOIN processing_inputs pif7 ON pif7.inbound_batch_id = bpca.inbound_batch_id
-                  WHERE pif7.run_id = r.id
-                    AND bpca.run_id <> r.id
-                    AND rsrc.deleted_at IS NULL AND rsrc.status = 'committed'::text
+                  WHERE pif7.run_id = r.id AND bpca.run_id <> r.id AND rsrc.deleted_at IS NULL AND rsrc.status = 'committed'::text
                 UNION ALL
                  SELECT r.allocation_basis_changed_at AS ts) x) c ON true
      LEFT JOIN LATERAL ( SELECT count(*) AS cogs_posted
            FROM sales_records sr
              JOIN processing_outputs po ON po.output_batch_id = sr.output_batch_id AND po.run_id = r.id
           WHERE sr.cogs_entry_id IS NOT NULL) g ON true
-  WHERE r.deleted_at IS NULL AND has_permission('module.processing.view'::text);
+  WHERE r.deleted_at IS NULL AND (has_permission('module.processing.view'::text) OR has_permission('module.finance.view'::text));
 
 GRANT SELECT ON public.processing_run_allocation_status TO authenticated;

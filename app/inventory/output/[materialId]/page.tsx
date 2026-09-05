@@ -54,22 +54,19 @@ export default async function OutputDrillPage({
     const todayYmd = new Date().toISOString().slice(0, 10)
 
     const [matRes, batchesRes, settingsRes, pricesRes, ageRes] = await Promise.all([
-        supabase.from('materials').select('name').eq('id', materialId).single(),
+        supabase.from('material_lookup').select('name').eq('id', materialId).single(),
+        // ★★【FIX-2a:内嵌【每一张被嵌的表各自套一遍 RLS】,所以整串是跨模块的】★★
+        //   FX-DISPLAY-1 修好了"读基表 42501"那一半(见下面 Row 抬头),
+        //   剩下的一半是【行】:customers 要 customers.view、
+        //   processing_outputs_masked 与 processing_runs 要 processing.view、
+        //   output_batch_metals 要 output.view —— 而这一页的守卫是 inventory.view。
+        //   procurement 持 inventory.view 而这四个码一个都没有,于是整页又是
+        //   「没有库存」,只是这一次没有报错、连 42501 都没有。
+        //   **改法是把内嵌拆成几张查名视图,在服务端拼回同一个形状** ——
+        //   下面 Row 的结构一个字段都没变,所以再往下 60 行一行都不用动。
         supabase
-            .from('output_batches')
-            .select(
-                // ★★【这一页此前对每一个用户都渲染成「没有库存」—— 而库里有 6 批】★★
-                //   内嵌的是 processing_outputs 【基表】,它是遮蔽表、没有授给
-                //   authenticated:整条查询对真实用户返回 403 / 42501
-                //   「permission denied for table processing_outputs」。
-                //   而下面取数写的是 `?? []` —— 于是错误被吞成空列表,
-                //   页面平静地印出「没有库存」。**一个报了却不拦的判词不是闸**,
-                //   这里连报都没报。实测:换成遮蔽视图后同一条查询 200,
-                //   OUT-2026-0007 / OUT-2026-0187 的 unit_cost_base 正常带回。
-                //   (它躲过了 check-masked-reads:那支检查认的是
-                //    `.from('<表>')` 字面量,【看不见 select 串里的内嵌关系】。)
-                'id, code, quantity, remaining_qty, unit, state, output_date, customers ( legal_name ), processing_outputs_masked ( unit_cost_base, processing_runs ( id, work_order_id ) ), output_batch_metals ( metal, content_pct )'
-            )
+            .from('output_batch_lookup')
+            .select('id, code, quantity, remaining_qty, unit, state, output_date, customer_id')
             .eq('material_id', materialId)
             .is('deleted_at', null)
             .gt('remaining_qty', 0)
@@ -101,7 +98,77 @@ export default async function OutputDrillPage({
     //   于是同样的故障下次是一个红框,不是一句安静的假话。
     //   (它也躲过了 check-error-swallowing —— 那支检查自己的结语写着
     //    「本检查看得见的那一类」,而 `as unknown as` 这层转换它看不见。)
-    const rows = mustRows(batchesRes) as unknown as Row[]
+    // FIX-2a:把拆开的四张查名视图拼回 Row 的形状。
+    // 【为什么是三次 .in() 而不是三次逐行查】页级规模,与 sourceLinks 同一个做法。
+    const flat = mustRows(batchesRes) as unknown as {
+        id: string; code: string; quantity: number; remaining_qty: number
+        unit: string; state: string; output_date: string | null; customer_id: string | null
+    }[]
+    const batchIds = flat.map((b) => b.id)
+    const custIds = Array.from(new Set(flat.map((b) => b.customer_id).filter(Boolean))) as string[]
+    const [legRows, metalRows, custRows] = batchIds.length
+        ? await Promise.all([
+              mustRows(
+                  await supabase
+                      .from('processing_output_lookup')
+                      .select('output_batch_id, unit_cost_base, run_id')
+                      .in('output_batch_id', batchIds),
+                  'processing output legs'
+              ),
+              mustRows(
+                  await supabase
+                      .from('output_batch_metal_lookup')
+                      .select('output_batch_id, metal, content_pct')
+                      .in('output_batch_id', batchIds),
+                  'output batch metals'
+              ),
+              custIds.length
+                  ? mustRows(
+                        await supabase.from('customer_lookup').select('id, legal_name').in('id', custIds),
+                        'customer names'
+                    )
+                  : [],
+          ])
+        : [[], [], []]
+    // 产出腿 → 它的加工单 → 那张加工单挂着的工单(出处那一行读的就是它)
+    const runIds = Array.from(new Set(legRows.map((l) => l.run_id).filter(Boolean))) as string[]
+    const runById = new Map<string, { id: string; work_order_id: string | null }>()
+    if (runIds.length) {
+        for (const r of mustRows(
+            await supabase.from('processing_run_lookup').select('id, work_order_id').in('id', runIds),
+            'processing runs'
+        )) {
+            runById.set(r.id as string, { id: r.id as string, work_order_id: r.work_order_id as string | null })
+        }
+    }
+    const custName = new Map(custRows.map((c) => [c.id as string, c.legal_name as string]))
+    const legsByBatch = new Map<string, Row['processing_outputs_masked']>()
+    for (const l of legRows) {
+        const list = legsByBatch.get(l.output_batch_id as string) ?? []
+        list.push({
+            unit_cost_base: l.unit_cost_base as number | null,
+            processing_runs: l.run_id ? runById.get(l.run_id as string) ?? null : null,
+        })
+        legsByBatch.set(l.output_batch_id as string, list)
+    }
+    const metalsByBatch = new Map<string, Row['output_batch_metals']>()
+    for (const m of metalRows) {
+        const list = metalsByBatch.get(m.output_batch_id as string) ?? []
+        list.push({ metal: m.metal as string, content_pct: m.content_pct as number })
+        metalsByBatch.set(m.output_batch_id as string, list)
+    }
+    const rows: Row[] = flat.map((b) => ({
+        id: b.id,
+        code: b.code,
+        quantity: b.quantity,
+        remaining_qty: b.remaining_qty,
+        unit: b.unit,
+        state: b.state,
+        output_date: b.output_date,
+        customers: b.customer_id ? { legal_name: custName.get(b.customer_id) ?? '' } : null,
+        processing_outputs_masked: legsByBatch.get(b.id) ?? [],
+        output_batch_metals: metalsByBatch.get(b.id) ?? [],
+    }))
     const priceByMetal = latestPriceByMetal(
         mustRows(pricesRes),
         mustOne(settingsRes, 'pricing_settings')?.default_metal_index ?? null
@@ -115,7 +182,7 @@ export default async function OutputDrillPage({
     const woCode = new Map<string, string>()
     if (woIds.length > 0) {
         const woRows = mustRows(
-            await supabase.from('work_orders').select('id, code').in('id', woIds),
+            await supabase.from('work_order_lookup').select('id, code').in('id', woIds),
             'work_orders') as { id: string; code: string }[]
         woRows.forEach((w) => woCode.set(w.id, w.code))
     }

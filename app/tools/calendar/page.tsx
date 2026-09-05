@@ -13,7 +13,8 @@
 // ════════════════════════════════════════════════════════════════════════════
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import MonthGrid, { DOW_KEYS } from '@/app/components/calendar/MonthGrid'
-import { loadMonth, CALENDAR_KINDS, KIND_COLOR } from './sources'
+import { loadMonth, CALENDAR_KINDS, KIND_COLOR, type CalendarKind } from './sources'
+import { Refusal, RefusalBlock } from '@/app/components/ui/refusal'
 
 export default async function ToolsCalendarPage({
     searchParams,
@@ -29,7 +30,7 @@ export default async function ToolsCalendarPage({
     const month = /^\d{4}-\d{2}$/.test(sp.month ?? '')
         ? sp.month! : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 
-    const { items, failures, ms } = await loadMonth(month, locale)
+    const { items, failures, withheld, ms } = await loadMonth(month, locale)
     const active: string | null = CALENDAR_KINDS.includes(sp.kind as never) ? sp.kind! : null
     const shown = active ? items.filter((i) => i.kind === active) : items
 
@@ -60,12 +61,22 @@ export default async function ToolsCalendarPage({
                    style={!active ? { background: 'var(--brand-accent)' } : undefined}>
                     {t('calendar.allKinds')}
                 </a>
-                {CALENDAR_KINDS.map((k) => (
-                    <a key={k} className="rounded border px-2 py-1" href={link(month, k)}
-                       style={active === k ? { background: 'var(--brand-accent)' } : undefined}>
-                        {t('calendar.kind.' + k)}
-                    </a>
-                ))}
+                {/* ★ FIX-2a:扣下的那几类【留在筛选器上,但画成一句拒绝】。
+                       拿掉它们会造出另一种谎:一个消失的类别读起来像"这个系统
+                       不记这种事",而真相是"你不能看这一类"。所以它还在,
+                       只是点不动、并且自己说明了为什么。 */}
+                {CALENDAR_KINDS.map((k) =>
+                    withheld.includes(k) ? (
+                        <Refusal key={k} why={t('calendar.kindRestrictedHint')}>
+                            {t('calendar.kind.' + k)} · {t('common.restricted')}
+                        </Refusal>
+                    ) : (
+                        <a key={k} className="rounded border px-2 py-1" href={link(month, k)}
+                           style={active === k ? { background: 'var(--brand-accent)' } : undefined}>
+                            {t('calendar.kind.' + k)}
+                        </a>
+                    )
+                )}
             </div>
 
             {/* ★【取数失败要说出来】★ 一次失败的查询与"这一类今天没有事"
@@ -77,6 +88,14 @@ export default async function ToolsCalendarPage({
                 </p>
             )}
 
+            {/* ★ 选中的正是被扣下的那一类时,格子里【不能】写「这个月没有」——
+                   那是这一刀要消灭的那句话。整块换成一句具名的拒绝。 */}
+            {active && withheld.includes(active as CalendarKind) ? (
+                <RefusalBlock
+                    statement={t('calendar.kindRestricted', { kind: t('calendar.kind.' + active) })}
+                    hint={t('calendar.kindRestrictedHint')}
+                />
+            ) : (
             <MonthGrid
                 month={month}
                 items={shown}
@@ -84,6 +103,7 @@ export default async function ToolsCalendarPage({
                 emptyText={active ? t('calendar.emptyKind') : t('calendar.empty')}
                 dayNames={DOW_KEYS.map((d) => t('calendar.dow.' + d))}
             />
+            )}
 
             {/* 【出处 + 代价】—— 七个来源、并发取数、这一次花了多少毫秒。
                 CHART-1 量出过一页 24.9 秒,所以这个数字印在屏幕上,不藏在报告里。 */}

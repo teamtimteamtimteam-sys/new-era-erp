@@ -20,6 +20,10 @@ const zh = {
         noneBody: '还没有任何一笔付款代扣过税,所以对 IRAS 没有欠款。这是一句关于账本的陈述,不是一张没加载出来的页面。',
         residenceGapTitle: '未申报税务居民身份的供应商:{n} 家',
         residenceGapBody: '只有【申报过】税务居民身份的供应商,系统才会追问代扣。在申报之前,付给这家供应商的款一分钱都不会代扣 —— 包括本该代扣的那一笔。请在供应商档案上填写。',
+        // FIX-2a(b):读不到供应商主数据的人,不能拿到那句「都申报了」。
+        residenceGapRestricted: '往来户的税务居民身份是否都已申报,对该账号受限。',
+        residenceGapRestrictedHint:
+            '供应商主数据属于供应商模块,而你没有它的访问权。这是一句权限答复 —— 【不是】说所有往来户都申报过。',
         residenceGapNone: '在册供应商都已申报税务居民身份。',
         remitHeading: '汇缴某个月份的税款',
         remitMonth: '代扣月份',
@@ -360,6 +364,11 @@ const zh = {
         colPaymentTerms: '付款条件',
         colBalanceOwed: '未结应付',
         noBalance: '没有欠款',
+        // FIX-2a(b):扣下与不存在是两句话。
+        owedRestrictedHint:
+            '这家货代欠多少钱属于财务模块,而你没有它的访问权。这是一句权限答复 —— 不是说这里没有欠款。',
+        termsRestrictedHint:
+            '付款条件属于供应商模块,而你没有它的访问权。这是一句权限答复 —— 不是说没有约定过付款条件。',
         detailsHeading: '物流属性',
         mainRoutes: '主要航线',
         portsServed: '覆盖港口',
@@ -3807,6 +3816,9 @@ const zh = {
         },
     },
     calendar: {
+        kindRestricted: '这一类事件对本账号是受限的:{kind}。',
+        kindRestrictedHint:
+            '这一类事件属于你没有访问权的模块。这是一句权限答复 —— 不是说这个月没有这一类事。',
         title: '日历',
         intro: '把你在别处本来就看得见的、带日期的事,放在同一个月上。**这是一个看的地方,不是改的地方** —— 点一条,回到那件事自己的页面。',
         filter: '只看', allKinds: '全部',
@@ -4017,6 +4029,9 @@ const zh = {
         acct6110: '公积金-雇主部分',
         acct2400: '公积金应付',
         acct2200: '应计费用',
+        // FIX-2a(b):Tim 推翻了 Q5 —— 过没过账是【财务的事实】。扣下,并说出来。
+        payrollEntryRestrictedHint:
+            '这张分录属于财务模块,而你没有它的访问权。这是一句权限答复 —— 不是说这一期薪资还没有过账。请向财务确认。',
         payrollStatus: {
             draft: '草稿',
             posted: '已过账',
@@ -4623,6 +4638,10 @@ const zh = {
         empty: '暂无化验结果',
         priceChangeTitle: '由此产生的价格变动',
         journalLink: '关联分录',
+        // FIX-2a(b):Tim 的 Q4 裁定 —— 价格不给现场。扣下是对的,沉默不是。
+        pricingRestricted: '本批次的计价对该账号受限。',
+        pricingRestrictedHint:
+            '计价公式属于定价模块,而你没有它的访问权。这是一句权限答复 —— 不是说这批货没有计价公式。化验结果照常记录得下;价格由看得见它的人来定。',
         saveOnly: '仅记录',
         saveAndApply: '记录并应用',
         impactPreview: '应用后的影响',
@@ -6352,6 +6371,10 @@ const zh = {
         groupAddress: '地址',
         groupContact: '联系方式',
         groupBank: '银行资料',
+        // FIX-2a item 3:此前这里是五个空输入框。
+        bankRestricted: '公司的银行资料对该账号受限。',
+        bankRestrictedHint:
+            '要看它需要括号里那个权限码。这是一句权限答复 —— 不是说银行资料还没有填。保存本页不会改动这几项。',
         groupDocuments: '单据',
         legalName: '公司名称',
         registrationNo: '公司注册号',

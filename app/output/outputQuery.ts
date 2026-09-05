@@ -92,16 +92,18 @@ export async function resolveOutputSearchIds(
     if (!q) return { materialIds: [], customerIds: [] }
     const pattern = `%${q}%`
     const [matRes, custRes] = await Promise.all([
-        supabase.from('materials').select('id').is('deleted_at', null).ilike('name', pattern),
+        supabase.from('material_lookup').select('id').is('deleted_at', null).ilike('name', pattern),
         supabase
-            .from('customers')
+            .from('customer_lookup')
             .select('id')
             .is('deleted_at', null)
             .ilike('legal_name', pattern),
     ])
+    // 视图列在生成类型里一律可空;行进了视图即非空 —— 取用处本地锁死。
+    type IdRow = { id: string }
     return {
-        materialIds: (mustRows(matRes)).map((r) => r.id),
-        customerIds: (mustRows(custRes)).map((r) => r.id),
+        materialIds: (mustRows(matRes) as unknown as IdRow[]).map((r) => r.id),
+        customerIds: (mustRows(custRes) as unknown as IdRow[]).map((r) => r.id),
     }
 }
 

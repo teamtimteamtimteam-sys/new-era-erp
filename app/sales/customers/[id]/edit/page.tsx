@@ -35,8 +35,8 @@ export default async function EditCustomerPage({
     // GST-2:销项税码字典 + 开关。**只在已注册时才渲染那一格** —— 未注册时
     // 税码写不进任何地方,留一个设得了却毫无作用的框是在承诺一件做不到的事。
     const [settingsRes, taxCodesRes] = await Promise.all([
-        supabase.from('finance_settings').select('gst_registered').limit(1).single(),
-        supabase.from('tax_codes').select('code, name_en, name_zh')
+        supabase.from('finance_settings_lookup').select('gst_registered').limit(1).single(),
+        supabase.from('tax_code_lookup').select('code, name_en, name_zh')
             .eq('side', 'output').eq('is_active', true).order('sort_order'),
     ])
 
@@ -84,7 +84,8 @@ export default async function EditCustomerPage({
 
             <EditCustomerForm customer={customer}
                 gstRegistered={settingsRes.data?.gst_registered ?? false}
-                taxCodes={mustRows(taxCodesRes).map((c) => ({
+                taxCodes={(mustRows(taxCodesRes) as unknown as
+                    { code: string; name_en: string; name_zh: string }[]).map((c) => ({
                     code: c.code, name_en: c.name_en, name_zh: c.name_zh,
                 }))} />
             <AttachmentsPanel customerId={customer.id} rows={attachments} />

@@ -14,6 +14,7 @@ import { getBaseCurrency } from '@/lib/currency'
 import { maskedExcept } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
 import { mustRows } from '@/lib/db-helpers'
+import { can } from '@/lib/permissions'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { loadSubstances, toOptions } from '@/app/tools/pricing/metal-prices/substanceQuery'
@@ -71,9 +72,19 @@ export default async function NewAssayPage({
             : Promise.resolve({ data: null, error: null }),
     ])
 
-    // 公式解析顺序与 apply_assay_result 一致:批次 → 采购单明细行
+    // ★★【FIX-2a(b)：这一屏对 warehouse 与 operations 说了一句它不知道的话】★★
+    //   pricing_formulas 挂 module.pricing.view、purchase_order_lines 挂
+    //   module.purchasing.view，而这一页的守卫是 module.inbound.view。
+    //   Fu Sheng 与 Phua 两个码都没有，于是 formula 恒为 null，而 AssayForm 的
+    //   `!formula` 那一支印的是【这批货没有计价公式】—— 一句关于合同的断言，
+    //   而真相是“你不能看计价”。
+    //   ★ Tim 的 Q4 裁定站得住：operations 与 warehouse 【不该】看见价格
+    //     (「初期不给。加回来便宜，看过了就收不回」)。所以本刀【不放宽】，
+    //     只把那句假话换成一句真话：这一块被扣下了，不是不存在。
+    const canPricing = await can('module.pricing.view')
+    // 公式解析顺序与 apply_assay_result 一致：批次 → 采购单明细行
     const formulaId = batch.pricing_formula_id ?? lineRes.data?.pricing_formula_id ?? null
-    const { data: formula } = formulaId
+    const { data: formula } = canPricing && formulaId
         ? await supabase.from('pricing_formulas').select('id, code, name').eq('id', formulaId).single()
         : { data: null }
 
@@ -116,6 +127,7 @@ export default async function NewAssayPage({
                     pricing_status: batch.pricing_status,
                 }}
                 formula={formula ? { id: formula.id, code: formula.code, name: formula.name } : null}
+                pricingRestricted={!canPricing}
                 baseCurrency={baseCurrency}
                 currentMetals={currentMetals}
             />

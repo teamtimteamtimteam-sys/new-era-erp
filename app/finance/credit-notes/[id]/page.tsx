@@ -53,7 +53,7 @@ export default async function CreditNotePage({ params }: { params: Promise<{ id:
                          customer_id: string; currency: string } | null
 
     const customer = inv ? mustOne(
-        await supabase.from('customers').select('code, legal_name')
+        await supabase.from('customer_lookup').select('code, legal_name')
             .eq('id', inv.customer_id).maybeSingle(),
         'customers') as { code: string; legal_name: string } | null : null
 

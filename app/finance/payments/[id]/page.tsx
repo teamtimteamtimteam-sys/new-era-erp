@@ -61,8 +61,8 @@ export default async function PaymentDetailPage({
     // 往来单位名 / 关联分录 / 核销行 / 镜像单,页级小查询
     const [partyRes, journalRes, allocsRes, reversedByRes] = await Promise.all([
         payment.direction === 'in'
-            ? supabase.from('customers').select('legal_name').eq('id', payment.customer_id ?? '').single()
-            : supabase.from('suppliers').select('legal_name').eq('id', payment.supplier_id ?? '').single(),
+            ? supabase.from('customer_lookup').select('legal_name').eq('id', payment.customer_id ?? '').single()
+            : supabase.from('supplier_lookup').select('legal_name').eq('id', payment.supplier_id ?? '').single(),
         payment.journal_entry_id
             ? supabase.from('journal_entries').select('id, code').eq('id', payment.journal_entry_id).single()
             : Promise.resolve({ data: null, error: null }),
@@ -90,7 +90,10 @@ export default async function PaymentDetailPage({
             ? supabase.from('sales_records').select('id, output_batch_id').in('id', saleIds)
             : Promise.resolve({ data: [] as { id: string; output_batch_id: string }[], error: null }),
         batchIds.length
-            ? supabase.from('inbound_batches').select('id, code').in('id', batchIds)
+            // FIX-2a:批次编号走查名视图 —— 两张基表分别挂 inbound.view / output.view,
+            // 而这一页的守卫是 finance.view。cfo 读回零行,于是每一条核销行的
+            // 「这笔钱冲的是哪一批」都退化成没有编号可印。
+            ? supabase.from('inbound_batch_lookup').select('id, code').in('id', batchIds)
             : Promise.resolve({ data: [] as { id: string; code: string }[], error: null }),
         expenseIds.length
             ? supabase.from('expenses').select('id, code').in('id', expenseIds)
@@ -102,7 +105,7 @@ export default async function PaymentDetailPage({
     const outputBySale = new Map((mustRows(salesRes)).map((s) => [s.id, s.output_batch_id]))
     const outputIds = Array.from(new Set(Array.from(outputBySale.values())))
     const { data: outputBatches } = outputIds.length
-        ? await supabase.from('output_batches').select('id, code').in('id', outputIds)
+        ? await supabase.from('output_batch_lookup').select('id, code').in('id', outputIds)
         : { data: [] as { id: string; code: string }[] }
     const outputCodeById = new Map((outputBatches ?? []).map((b) => [b.id, b.code]))
     const inboundById = new Map((mustRows(inboundRes)).map((b) => [b.id, b.code]))

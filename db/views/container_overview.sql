@@ -1,8 +1,13 @@
 -- db/views/container_overview.sql
 -- LOG-2a / fu1。定义取自线上 pg_get_viewdef;security_invoker 显式补回(pg_get_viewdef 不吐 reloptions)。
 
-CREATE VIEW public.container_overview
-WITH (security_invoker = off) AS
+-- ★ FIX-2a(2026-09-05):体内谓词放宽/修正,列未改动。
+--   替换用的是 -- ★ FIX-2a(2026-09-05):体内谓词放宽/修正,列未改动。
+--   替换用的是 -- ★ FIX-2a(2026-09-05):体内谓词放宽/修正,列未改动。
+--   替换用的是 CREATE OR REPLACE VIEW,而它【会丢掉 WITH (...)】——
+--   迁移末尾因此补了一句 ALTER VIEW ... SET (security_invoker = off)。
+
+CREATE VIEW public.container_overview WITH (security_invoker = off) AS
  SELECT c.id,
     c.code,
     c.container_number,
@@ -37,12 +42,16 @@ WITH (security_invoker = off) AS
    FROM containers c
      LEFT JOIN suppliers f ON f.id = c.forwarder_id
      LEFT JOIN lane_checklist_status ls ON ls.lane_id = c.lane_id
-  WHERE c.deleted_at IS NULL AND has_permission('module.purchasing.view'::text);
+  WHERE c.deleted_at IS NULL AND (has_permission('module.purchasing.view'::text) OR has_permission('module.logistics.view'::text));
 
 COMMENT ON VIEW public.container_overview IS
-'LOG-2a:箱子一行 —— 发货单数、涉及几个客户、最新里程碑、清单状态、待收单据数。
+    'LOG-2a:箱子一行 —— 发货单数、涉及几个客户、最新里程碑、清单状态、待收单据数。
 【lane_checklist_state 原样带着三种状态】(not_defined / defined_empty / defined,外加没挂航段的 no_lane):
 把 not_defined 折叠成"0 条待收",就是把"没人看过"显示成"齐了"。
-【属主权限,不是 invoker(LOG-2a-fu1)】:它跨 purchasing + sales + suppliers 三个模块,invoker 语义下一个只持 purchasing 的读者会【静默地少看到几条发货单】—— 计数会小,而没有任何东西报错(OPS-14 那五处缺陷的形状)。门写在视图体里那一句 has_permission。';
+【属主权限,不是 invoker(LOG-2a-fu1)】:它跨 purchasing + sales + suppliers 三个模块,
+invoker 语义下一个只持 purchasing 的读者会【静默地少看到几条发货单】——
+计数会小,而没有任何东西报错(OPS-14 那五处缺陷的形状)。
+门写在视图体里那一句 has_permission(''module.purchasing.view'');
+has_permission 是 DEFINER、解析的是调用者,所以属主权限并不放宽模块边界。';
 
 GRANT SELECT ON public.container_overview TO anon, authenticated, service_role;

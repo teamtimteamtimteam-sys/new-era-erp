@@ -8,6 +8,7 @@ import { STAGE_OPTIONS, labelKeyForValue } from '@/app/inbound/options'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatMoneyBare } from '@/lib/format'
 import { toneForBucket, AGING_TONE_CLASSES } from '@/lib/valuation'
+import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
@@ -21,7 +22,8 @@ type Row = {
     unit: string
     stage: string
     arrival_date: string | null
-    suppliers: { legal_name: string } | null
+    // FIX-2a:供应商名不再内嵌(内嵌对 suppliers 另套一遍 RLS),单独取后压进这里。
+    supplier_id: string | null
 }
 
 // INV-VAL-1:估值视图的一行。landed_* 在没有 data.view_prices 时是 null
@@ -53,10 +55,14 @@ export default async function InboundDrillPage({
     // 【钱与库龄档从估值视图取】—— 口径与注销/盘点/勾稽同一份,
     // 档位是 aging_bucket 的结果,屏幕不再自己划边界。
     const [matRes, batchesRes, valRes] = await Promise.all([
-        supabase.from('materials').select('name').eq('id', materialId).single(),
+        supabase.from('material_lookup').select('name').eq('id', materialId).single(),
         supabase
-            .from('inbound_batches_masked')
-            .select('id, code, quantity, remaining_qty, unit, stage, arrival_date, suppliers ( legal_name )')
+            .from('inbound_batch_lookup')
+            // FIX-2a:内嵌 suppliers 要 module.suppliers.view,而这一页的守卫是
+            // inventory.view —— sales 通过守卫却读不到供应商,整条查询少一列;
+            // 而 inbound_batches_masked 本身要 inbound.view,sales 连行都没有。
+            // 两半一起修:行走查名视图,供应商名单独取。
+            .select('id, code, quantity, remaining_qty, unit, stage, arrival_date, supplier_id')
             .eq('material_id', materialId)
             .is('deleted_at', null)
             .gt('remaining_qty', 0)
@@ -72,7 +78,19 @@ export default async function InboundDrillPage({
         notFound()
     }
 
-    const rows = (batchesRes.data as unknown as Row[] | null) ?? []
+    // 【失败必须失败】—— 与本页其余取数一致,不用 `?? []`。
+    const rows = mustRows(batchesRes) as unknown as Row[]
+    // FIX-2a:供应商名走查名视图,一次 .in() 取回。
+    const supIds = Array.from(new Set(rows.map((r) => r.supplier_id).filter(Boolean))) as string[]
+    const supName = new Map<string, string>()
+    if (supIds.length) {
+        for (const sup of mustRows(
+            await supabase.from('supplier_lookup').select('id, legal_name').in('id', supIds),
+            'supplier names'
+        )) {
+            supName.set(sup.id as string, sup.legal_name as string)
+        }
+    }
     const valById = new Map<string, Val>()
     for (const v of (valRes.data as unknown as Val[] | null) ?? []) valById.set(v.id, v)
     const total = rows.reduce((s, r) => s + r.remaining_qty, 0)
@@ -100,7 +118,7 @@ export default async function InboundDrillPage({
             id: r.id,
             code: r.code,
             href: `/inbound/${r.id}/edit`,
-            supplier: r.suppliers?.legal_name ?? '—',
+            supplier: (r.supplier_id ? supName.get(r.supplier_id) : null) ?? '—',
             quantityText: `${r.quantity} ${r.unit}`,
             remainingText: `${r.remaining_qty} ${r.unit}`,
             stageLabel: stageLabel(r.stage),

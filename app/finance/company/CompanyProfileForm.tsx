@@ -6,6 +6,7 @@ import { useActionState, useTransition } from 'react'
 import Image from 'next/image'
 import { saveCompanyProfile, uploadLogo, removeLogo, type CompanyState } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
+import { RefusalBlock } from '@/app/components/ui/refusal'
 
 const initialState: CompanyState = {}
 
@@ -31,9 +32,12 @@ export type CompanyProfileRow = {
 export default function CompanyProfileForm({
     profile,
     logoUrl,
+    canBanking,
 }: {
     profile: CompanyProfileRow
     logoUrl: string | null
+    /** data.view_banking —— false 时银行那一段画成一句拒绝，不画空输入框。 */
+    canBanking: boolean
 }) {
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(saveCompanyProfile, initialState)
@@ -124,17 +128,32 @@ export default function CompanyProfileForm({
 
                 {group(
                     'company.groupBank',
-                    <>
-                        <div className="flex flex-wrap gap-3">
-                            {field('bank_name', 'company.bankName')}
-                            {field('bank_account_name', 'company.bankAccountName')}
-                        </div>
-                        <div className="flex flex-wrap gap-3">
-                            {field('bank_account_no', 'company.bankAccountNo')}
-                            {field('bank_swift', 'company.bankSwift')}
-                        </div>
-                        {field('bank_address', 'company.bankAddress', { textarea: true, rows: 2 })}
-                    </>
+                    canBanking ? (
+                        <>
+                            <div className="flex flex-wrap gap-3">
+                                {field('bank_name', 'company.bankName')}
+                                {field('bank_account_name', 'company.bankAccountName')}
+                            </div>
+                            <div className="flex flex-wrap gap-3">
+                                {field('bank_account_no', 'company.bankAccountNo')}
+                                {field('bank_swift', 'company.bankSwift')}
+                            </div>
+                            {field('bank_address', 'company.bankAddress', { textarea: true, rows: 2 })}
+                        </>
+                    ) : (
+                        /* ★★【FIX-2a item 3】★★ 此前这里是【五个空输入框】：
+                           五列按 data.view_banking 遮成 NULL，而 defaultValue 把
+                           NULL 画成空串 —— 于是「公司没填银行资料」与「你不能看
+                           银行资料」在屏幕上是同一幅画面，而含义相反。
+                           ★ 不渲染 input 还有第二个作用，见 actions.ts：
+                             不提交这五个字段，配合那边的白名单，就不会把
+                             一次“看不见”写成一次“清空”。 */
+                        <RefusalBlock
+                            statement={t('company.bankRestricted')}
+                            hint={t('company.bankRestrictedHint')}
+                            code="data.view_banking"
+                        />
+                    )
                 )}
 
                 {group(

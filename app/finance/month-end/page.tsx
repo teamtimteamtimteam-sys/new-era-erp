@@ -47,11 +47,12 @@ export default async function MonthEndPage({
     const [gapsRes, periodRes, accrualRes, revalRes, settingsRes, depPreviewRes, midRes, nonBaseCcyRes, allocRes] = await Promise.all([
         supabase.from('fx_rate_gaps').select('rate_date, currency, missing_types')
             .gte('rate_date', start).lte('rate_date', end),
-        supabase.from('payroll_periods')
+        // FIX-2a:见 /finance/payroll-payments —— 挂 hr.view,关账的人读不到。
+        supabase.from('payroll_period_lookup')
             .select('id, code, status, period_month, net_pay_total, employer_cpf_total, employee_cpf_total, other_deductions_total, cpf_paid_at, deductions_paid_at')
             .eq('period_month', start).is('deleted_at', null).maybeSingle(),
         // 遮蔽视图,不是基表:amount_base 在基表上没有 SELECT(perm2b),直接选它 42501
-        supabase.from('processing_cost_entries_masked').select('id, cost_type, amount_base, is_estimate')
+        supabase.from('processing_cost_entry_lookup').select('id, cost_type, amount_base, is_estimate')
             .is('deleted_at', null).is('remitted_at', null).is('relieved_at', null)
             .lte('created_at', end + 'T23:59:59Z'),
         supabase.from('journal_entries').select('id, code')
@@ -77,10 +78,13 @@ export default async function MonthEndPage({
     // 都会让那一步显示"已完成",而它其实从没被检查过。见 lib/db-helpers 政策注释。
     const period = mustOne(periodRes, 'payroll_periods')
     let unpaidLines = 0
-    if (period && period.status === 'posted') {
+    // FIX-2a:视图的列在生成类型里【一律可空】(payroll_period_lookup 也不例外),
+    // 而行进了视图即非空 —— 取用处本地锁死,与本仓库其它读视图的地方同一个写法。
+    const periodId = period?.id as string | undefined
+    if (period && periodId && period.status === 'posted') {
         unpaidLines = mustCount(await supabase.from('payroll_lines')
             .select('id', { count: 'exact', head: true })
-            .eq('payroll_period_id', period.id).is('paid_at', null), 'payroll_lines unpaid')
+            .eq('payroll_period_id', periodId).is('paid_at', null), 'payroll_lines unpaid')
     }
     const gaps = mustRows(gapsRes, 'fx_rate_gaps')
     const accruals = mustRows(accrualRes, 'processing_cost_entries_masked')
@@ -114,9 +118,9 @@ export default async function MonthEndPage({
         {
             // 走查发现:枢纽早已取到本月期间行,链接却指着列表让人重新找 ——
             // 有期间直达其详情页(过账按钮在那);没有期间直达新建页(下一步就是建)。
-            key: 'payrollPosted', href: period ? `/hr/payroll/${period.id}` : '/hr/payroll/new',
+            key: 'payrollPosted', href: periodId ? `/hr/payroll/${periodId}` : '/hr/payroll/new',
             state: !period ? 'na' : period.status === 'posted' ? 'done' : 'outstanding',
-            detail: !period ? t('finance.monthEnd.noPeriod') : period.code,
+            detail: !period ? t('finance.monthEnd.noPeriod') : (period.code ?? '—'),
         },
         {
             key: 'employeesPaid', href: '/finance/payroll-payments',

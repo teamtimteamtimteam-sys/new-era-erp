@@ -24,13 +24,13 @@ export default async function ProcessingCostsPage() {
     // 直接选它一律 42501;金额只能经 _masked 按 data.view_prices 取。
     // 结算三列曾经不在视图里,两条路都不通 —— 视图已于 fin7-fu 补齐。
     const [entriesRes, runsRes, supRes] = await Promise.all([
-        supabase.from('processing_cost_entries_masked')
+        supabase.from('processing_cost_entry_lookup')
             .select('id, run_id, cost_type, amount_base, is_estimate, created_at')
             .is('deleted_at', null).is('remitted_at', null).is('relieved_at', null)
             .order('created_at'),
-        supabase.from('processing_runs').select('id, code'),
+        supabase.from('processing_run_lookup').select('id, code'),
         // LOG-1b:货代不进供应商名单
-        supabase.from('suppliers').select('id, legal_name').is('deleted_at', null).neq('counterparty_type', 'forwarder').order('legal_name'),
+        supabase.from('supplier_lookup').select('id, legal_name').is('deleted_at', null).neq('counterparty_type', 'forwarder').order('legal_name'),
     ])
     // 读不出来就报错,不许渲染成「没有待结算」—— 见 lib/db-helpers 的政策注释
     const entries = mustRows(entriesRes, 'processing_cost_entries_masked')

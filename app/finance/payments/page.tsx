@@ -95,18 +95,20 @@ export default async function PaymentsListPage({
     const supplierIds = Array.from(new Set(rows.map((r) => r.supplier_id).filter(Boolean))) as string[]
     const [customersRes, suppliersRes] = await Promise.all([
         customerIds.length
-            ? supabase.from('customers').select('id, legal_name').in('id', customerIds)
+            ? supabase.from('customer_lookup').select('id, legal_name').in('id', customerIds)
             : Promise.resolve({ data: [] as { id: string; legal_name: string }[], error: null }),
         supplierIds.length
             ? // LOG-1b:【这一处绝不过滤 counterparty_type】—— 它把 id 换成名字,不是选择器。
               //         过滤它会让【货代那几笔运费付款】的收款方名字变成空白,
               //         而那正是本模块存在的理由。
-              supabase.from('suppliers').select('id, legal_name').in('id', supplierIds)
+              supabase.from('supplier_lookup').select('id, legal_name').in('id', supplierIds)
             : Promise.resolve({ data: [] as { id: string; legal_name: string }[], error: null }),
     ])
+    // 视图列在生成类型里一律可空;行进了视图即非空 —— 取用处本地锁死(FIX-1 同一写法)。
     const nameById = new Map<string, string>()
-    for (const c of mustRows(customersRes)) nameById.set(c.id, c.legal_name)
-    for (const s of mustRows(suppliersRes)) nameById.set(s.id, s.legal_name)
+    type NameRow = { id: string; legal_name: string }
+    for (const c of mustRows(customersRes) as unknown as NameRow[]) nameById.set(c.id, c.legal_name)
+    for (const s of mustRows(suppliersRes) as unknown as NameRow[]) nameById.set(s.id, s.legal_name)
 
     function pageHref(targetPage: number) {
         const params = new URLSearchParams()

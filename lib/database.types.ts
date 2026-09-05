@@ -282,6 +282,13 @@ export type Database = {
             foreignKeyName: "assay_results_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assay_results_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -312,6 +319,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "assay_results_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "assay_results_output_batch_id_fkey"
@@ -403,6 +417,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employee_directory"
             referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "attendance_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "attendance_lines_employee_id_fkey"
@@ -982,6 +1003,13 @@ export type Database = {
             foreignKeyName: "batch_processing_cost_allocations_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "batch_processing_cost_allocations_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -1026,6 +1054,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processing_run_allocation_status"
             referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "batch_processing_cost_allocations_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "batch_processing_cost_allocations_run_id_fkey"
@@ -1392,6 +1427,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "currencies"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "collection_chases_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_billing_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "collection_chases_customer_id_fkey"
@@ -2592,6 +2634,13 @@ export type Database = {
             foreignKeyName: "contracts_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_billing_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customer_credit_status"
             referencedColumns: ["customer_id"]
           },
@@ -2685,6 +2734,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "counterparty_contacts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_billing_lookup"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "counterparty_contacts_customer_id_fkey"
             columns: ["customer_id"]
@@ -2787,6 +2843,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "invoice_lines_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_note_lines_tax_code_fkey"
+            columns: ["tax_code"]
+            isOneToOne: false
+            referencedRelation: "tax_code_lookup"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "credit_note_lines_tax_code_fkey"
@@ -2969,6 +3032,13 @@ export type Database = {
             foreignKeyName: "customer_attachments_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_billing_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_attachments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customer_credit_status"
             referencedColumns: ["customer_id"]
           },
@@ -3020,6 +3090,13 @@ export type Database = {
           old_credit_limit_base?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_credit_history_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_billing_lookup"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "customer_credit_history_customer_id_fkey"
             columns: ["customer_id"]
@@ -3117,6 +3194,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "currencies"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "customer_statements_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_billing_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "customer_statements_customer_id_fkey"
@@ -3226,6 +3310,13 @@ export type Database = {
             foreignKeyName: "customers_default_tax_code_fkey"
             columns: ["default_tax_code"]
             isOneToOne: false
+            referencedRelation: "tax_code_lookup"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "customers_default_tax_code_fkey"
+            columns: ["default_tax_code"]
+            isOneToOne: false
             referencedRelation: "tax_codes"
             referencedColumns: ["code"]
           },
@@ -3314,6 +3405,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employee_directory"
             referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "departments_manager_employee_id_fkey"
+            columns: ["manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "departments_manager_employee_id_fkey"
@@ -3528,6 +3626,13 @@ export type Database = {
             foreignKeyName: "employees_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
@@ -3676,6 +3781,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employee_directory"
             referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employment_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "employment_history_employee_id_fkey"
@@ -3937,6 +4049,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employee_directory"
             referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "equipment_maintenance_performed_by_employee_id_fkey"
+            columns: ["performed_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "equipment_maintenance_performed_by_employee_id_fkey"
@@ -4208,6 +4327,13 @@ export type Database = {
             foreignKeyName: "expense_claims_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
@@ -4280,6 +4406,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "expenses"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_claims_tax_code_fkey"
+            columns: ["tax_code"]
+            isOneToOne: false
+            referencedRelation: "tax_code_lookup"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "expense_claims_tax_code_fkey"
@@ -4409,6 +4542,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employee_directory"
             referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "expenses_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "expenses_employee_id_fkey"
@@ -4561,6 +4701,13 @@ export type Database = {
             foreignKeyName: "expenses_tax_code_fkey"
             columns: ["tax_code"]
             isOneToOne: false
+            referencedRelation: "tax_code_lookup"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "expenses_tax_code_fkey"
+            columns: ["tax_code"]
+            isOneToOne: false
             referencedRelation: "tax_codes"
             referencedColumns: ["code"]
           },
@@ -4680,6 +4827,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "finance_attachments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "finance_attachments_inbound_batch_id_fkey"
@@ -5351,6 +5505,13 @@ export type Database = {
             foreignKeyName: "freight_allocations_freight_document_id_fkey"
             columns: ["freight_document_id"]
             isOneToOne: false
+            referencedRelation: "freight_document_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_allocations_freight_document_id_fkey"
+            columns: ["freight_document_id"]
+            isOneToOne: false
             referencedRelation: "freight_documents"
             referencedColumns: ["id"]
           },
@@ -5381,6 +5542,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "freight_allocations_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "freight_allocations_inbound_batch_id_fkey"
@@ -5926,6 +6094,13 @@ export type Database = {
             foreignKeyName: "inbound_batch_metals_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_metals_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -6013,6 +6188,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "inbound_batch_safety_states_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "inbound_batch_safety_states_inbound_batch_id_fkey"
@@ -6558,6 +6740,13 @@ export type Database = {
             foreignKeyName: "inventory_movements_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -6588,6 +6777,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "inventory_movements_output_batch_id_fkey"
@@ -6637,6 +6833,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processing_run_allocation_status"
             referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "inventory_movements_run_id_fkey"
@@ -6864,6 +7067,13 @@ export type Database = {
             foreignKeyName: "invoice_lines_tax_code_fkey"
             columns: ["tax_code"]
             isOneToOne: false
+            referencedRelation: "tax_code_lookup"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "invoice_lines_tax_code_fkey"
+            columns: ["tax_code"]
+            isOneToOne: false
             referencedRelation: "tax_codes"
             referencedColumns: ["code"]
           },
@@ -6955,6 +7165,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "currencies"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_billing_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoices_customer_id_fkey"
@@ -7130,6 +7347,13 @@ export type Database = {
             foreignKeyName: "journal_lines_tax_code_fkey"
             columns: ["tax_code"]
             isOneToOne: false
+            referencedRelation: "tax_code_lookup"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "journal_lines_tax_code_fkey"
+            columns: ["tax_code"]
+            isOneToOne: false
             referencedRelation: "tax_codes"
             referencedColumns: ["code"]
           },
@@ -7291,6 +7515,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employee_directory"
             referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "kpi_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "kpi_entries_employee_id_fkey"
@@ -7723,6 +7954,13 @@ export type Database = {
             foreignKeyName: "leave_accrual_rates_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_accrual_rates_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
@@ -7913,6 +8151,13 @@ export type Database = {
             foreignKeyName: "leave_grants_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_grants_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
@@ -8082,6 +8327,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employee_directory"
             referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "leave_requests_employee_id_fkey"
@@ -8835,6 +9087,13 @@ export type Database = {
             foreignKeyName: "medical_claims_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
@@ -9327,6 +9586,13 @@ export type Database = {
             foreignKeyName: "output_batch_metals_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "output_batch_metals_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "output_batch_valuation"
             referencedColumns: ["id"]
           },
@@ -9416,6 +9682,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "output_batch_safety_states_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "output_batch_safety_states_output_batch_id_fkey"
@@ -9556,6 +9829,13 @@ export type Database = {
             foreignKeyName: "output_batches_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_billing_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "output_batches_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customer_credit_status"
             referencedColumns: ["customer_id"]
           },
@@ -9678,6 +9958,13 @@ export type Database = {
             foreignKeyName: "payment_allocations_freight_document_id_fkey"
             columns: ["freight_document_id"]
             isOneToOne: false
+            referencedRelation: "freight_document_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_freight_document_id_fkey"
+            columns: ["freight_document_id"]
+            isOneToOne: false
             referencedRelation: "freight_documents"
             referencedColumns: ["id"]
           },
@@ -9708,6 +9995,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "payment_allocations_inbound_batch_id_fkey"
@@ -10098,6 +10392,13 @@ export type Database = {
             foreignKeyName: "payments_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_billing_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customer_credit_status"
             referencedColumns: ["customer_id"]
           },
@@ -10121,6 +10422,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employee_directory"
             referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "payments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "payments_employee_id_fkey"
@@ -10291,6 +10599,13 @@ export type Database = {
             foreignKeyName: "payroll_lines_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
@@ -10369,6 +10684,13 @@ export type Database = {
             columns: ["paid_journal_entry_id"]
             isOneToOne: false
             referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_lines_payroll_period_id_fkey"
+            columns: ["payroll_period_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_period_lookup"
             referencedColumns: ["id"]
           },
           {
@@ -10621,6 +10943,13 @@ export type Database = {
             foreignKeyName: "performance_reviews_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
@@ -10700,6 +11029,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employee_directory"
             referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_reviewer_employee_id_fkey"
+            columns: ["reviewer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "performance_reviews_reviewer_employee_id_fkey"
@@ -11091,6 +11427,13 @@ export type Database = {
             foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -11251,6 +11594,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "price_history_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "price_history_inbound_batch_id_fkey"
@@ -11490,6 +11840,13 @@ export type Database = {
             foreignKeyName: "pricing_formulas_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_billing_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_formulas_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customer_credit_status"
             referencedColumns: ["customer_id"]
           },
@@ -11700,6 +12057,13 @@ export type Database = {
             foreignKeyName: "pricing_term_commitments_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: true
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_term_commitments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: true
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -11867,6 +12231,13 @@ export type Database = {
             foreignKeyName: "processing_cost_entries_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
             referencedColumns: ["run_id"]
           },
@@ -11945,6 +12316,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "processing_cost_entry_history_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "processing_cost_entry_lookup"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "processing_cost_entry_history_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
@@ -11971,6 +12349,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processing_run_allocation_status"
             referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "processing_cost_entry_history_run_id_fkey"
@@ -12053,6 +12438,13 @@ export type Database = {
             foreignKeyName: "processing_inputs_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_inputs_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -12076,6 +12468,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "processing_inputs_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "processing_inputs_output_batch_id_fkey"
@@ -12125,6 +12524,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processing_run_allocation_status"
             referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_inputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "processing_inputs_run_id_fkey"
@@ -12192,6 +12598,13 @@ export type Database = {
             foreignKeyName: "processing_outputs_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "output_batch_valuation"
             referencedColumns: ["id"]
           },
@@ -12236,6 +12649,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processing_run_allocation_status"
             referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "processing_outputs_run_id_fkey"
@@ -12320,6 +12740,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processing_run_allocation_status"
             referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_run_losses_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "processing_run_losses_run_id_fkey"
@@ -12484,6 +12911,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "operation_types"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "processing_runs_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_order_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "processing_runs_work_order_id_fkey"
@@ -13024,6 +13458,13 @@ export type Database = {
             foreignKeyName: "purchase_order_lines_tax_code_fkey"
             columns: ["tax_code"]
             isOneToOne: false
+            referencedRelation: "tax_code_lookup"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_tax_code_fkey"
+            columns: ["tax_code"]
+            isOneToOne: false
             referencedRelation: "tax_codes"
             referencedColumns: ["code"]
           },
@@ -13522,6 +13963,13 @@ export type Database = {
             foreignKeyName: "quotes_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_billing_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customer_credit_status"
             referencedColumns: ["customer_id"]
           },
@@ -13864,6 +14312,13 @@ export type Database = {
             foreignKeyName: "sales_attribution_log_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_billing_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_attribution_log_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customer_credit_status"
             referencedColumns: ["customer_id"]
           },
@@ -14115,6 +14570,13 @@ export type Database = {
             foreignKeyName: "sales_order_reservations_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_order_reservations_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "output_batch_valuation"
             referencedColumns: ["id"]
           },
@@ -14225,6 +14687,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "currencies"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "sales_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_billing_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "sales_orders_customer_id_fkey"
@@ -14380,6 +14849,13 @@ export type Database = {
             foreignKeyName: "sales_records_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_billing_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_records_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customer_credit_status"
             referencedColumns: ["customer_id"]
           },
@@ -14403,6 +14879,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "sales_records_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "sales_records_output_batch_id_fkey"
@@ -14516,6 +14999,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "sales_settlements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "sales_settlements_output_batch_id_fkey"
@@ -14696,6 +15186,13 @@ export type Database = {
             foreignKeyName: "shift_handovers_acknowledged_by_fkey"
             columns: ["acknowledged_by"]
             isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_acknowledged_by_fkey"
+            columns: ["acknowledged_by"]
+            isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
@@ -14768,6 +15265,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employee_directory"
             referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_incoming_employee_id_fkey"
+            columns: ["incoming_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "shift_handovers_incoming_employee_id_fkey"
@@ -14845,6 +15349,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employee_directory"
             referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "shift_handovers_outgoing_employee_id_fkey"
+            columns: ["outgoing_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "shift_handovers_outgoing_employee_id_fkey"
@@ -14997,6 +15508,13 @@ export type Database = {
             foreignKeyName: "shipment_issues_shipment_id_fkey"
             columns: ["shipment_id"]
             isOneToOne: false
+            referencedRelation: "shipment_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_issues_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
             referencedRelation: "shipments"
             referencedColumns: ["id"]
           },
@@ -15055,6 +15573,13 @@ export type Database = {
             foreignKeyName: "shipment_lines_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_lines_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "output_batch_valuation"
             referencedColumns: ["id"]
           },
@@ -15105,6 +15630,13 @@ export type Database = {
             columns: ["sales_record_id"]
             isOneToOne: false
             referencedRelation: "sales_records_visible"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_lines_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "shipment_lookup"
             referencedColumns: ["id"]
           },
           {
@@ -15314,6 +15846,13 @@ export type Database = {
             foreignKeyName: "stocktake_lines_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stocktake_lines_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -15337,6 +15876,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "stocktake_lines_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "stocktake_lines_output_batch_id_fkey"
@@ -15809,6 +16355,13 @@ export type Database = {
             foreignKeyName: "suppliers_default_tax_code_fkey"
             columns: ["default_tax_code"]
             isOneToOne: false
+            referencedRelation: "tax_code_lookup"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "suppliers_default_tax_code_fkey"
+            columns: ["default_tax_code"]
+            isOneToOne: false
             referencedRelation: "tax_codes"
             referencedColumns: ["code"]
           },
@@ -15934,6 +16487,13 @@ export type Database = {
             foreignKeyName: "task_history_changed_by_fkey"
             columns: ["changed_by"]
             isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
@@ -16006,6 +16566,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employee_directory"
             referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "task_history_employee_id_fkey"
@@ -16157,6 +16724,13 @@ export type Database = {
             foreignKeyName: "task_nodes_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_nodes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
@@ -16229,6 +16803,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employee_directory"
             referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_nodes_done_by_fkey"
+            columns: ["done_by"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "task_nodes_done_by_fkey"
@@ -16327,6 +16908,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employee_directory"
             referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_nodes_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "task_nodes_updated_by_fkey"
@@ -16440,6 +17028,13 @@ export type Database = {
             foreignKeyName: "task_participants_added_by_fkey"
             columns: ["added_by"]
             isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_participants_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
@@ -16512,6 +17107,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employee_directory"
             referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_participants_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "task_participants_employee_id_fkey"
@@ -16589,6 +17191,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employee_directory"
             referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_participants_removed_by_fkey"
+            columns: ["removed_by"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "task_participants_removed_by_fkey"
@@ -16743,6 +17352,13 @@ export type Database = {
             foreignKeyName: "tasks_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
@@ -16889,6 +17505,13 @@ export type Database = {
             foreignKeyName: "tax_rates_tax_code_fkey"
             columns: ["tax_code"]
             isOneToOne: false
+            referencedRelation: "tax_code_lookup"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "tax_rates_tax_code_fkey"
+            columns: ["tax_code"]
+            isOneToOne: false
             referencedRelation: "tax_codes"
             referencedColumns: ["code"]
           },
@@ -16932,6 +17555,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "traceability_report_issues_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "traceability_report_issues_output_batch_id_fkey"
@@ -17012,6 +17642,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employee_directory"
             referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "training_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "training_records_employee_id_fkey"
@@ -17351,6 +17988,13 @@ export type Database = {
             foreignKeyName: "work_order_expected_outputs_work_order_id_fkey"
             columns: ["work_order_id"]
             isOneToOne: false
+            referencedRelation: "work_order_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_order_expected_outputs_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
             referencedRelation: "work_orders"
             referencedColumns: ["id"]
           },
@@ -17416,6 +18060,13 @@ export type Database = {
             foreignKeyName: "work_order_history_work_order_id_fkey"
             columns: ["work_order_id"]
             isOneToOne: false
+            referencedRelation: "work_order_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_order_history_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
             referencedRelation: "work_orders"
             referencedColumns: ["id"]
           },
@@ -17471,6 +18122,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "stock_snapshot"
             referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "work_order_lines_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_order_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "work_order_lines_work_order_id_fkey"
@@ -17990,6 +18648,13 @@ export type Database = {
             foreignKeyName: "collection_chases_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_billing_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_chases_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customer_credit_status"
             referencedColumns: ["customer_id"]
           },
@@ -18186,6 +18851,39 @@ export type Database = {
           },
         ]
       }
+      customer_billing_lookup: {
+        Row: {
+          default_tax_code: string | null
+          id: string | null
+          payment_terms_days: number | null
+        }
+        Insert: {
+          default_tax_code?: string | null
+          id?: string | null
+          payment_terms_days?: number | null
+        }
+        Update: {
+          default_tax_code?: string | null
+          id?: string | null
+          payment_terms_days?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_default_tax_code_fkey"
+            columns: ["default_tax_code"]
+            isOneToOne: false
+            referencedRelation: "tax_code_lookup"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "customers_default_tax_code_fkey"
+            columns: ["default_tax_code"]
+            isOneToOne: false
+            referencedRelation: "tax_codes"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       customer_credit_status: {
         Row: {
           code: string | null
@@ -18303,6 +19001,13 @@ export type Database = {
             foreignKeyName: "employees_manager_id_fkey"
             columns: ["manager_id"]
             isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
@@ -18368,6 +19073,41 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "user_directory"
             referencedColumns: ["employee_id"]
+          },
+        ]
+      }
+      employee_lookup: {
+        Row: {
+          code: string | null
+          deleted_at: string | null
+          id: string | null
+          legal_name: string | null
+          preferred_name: string | null
+          user_id: string | null
+        }
+        Insert: {
+          code?: string | null
+          deleted_at?: string | null
+          id?: string | null
+          legal_name?: string | null
+          preferred_name?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          code?: string | null
+          deleted_at?: string | null
+          id?: string | null
+          legal_name?: string | null
+          preferred_name?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -18512,6 +19252,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employee_directory"
             referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "employees_manager_id_fkey"
@@ -18665,6 +19412,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employee_directory"
             referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employment_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "employment_history_employee_id_fkey"
@@ -18899,6 +19653,13 @@ export type Database = {
             foreignKeyName: "expense_claims_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
@@ -18976,8 +19737,121 @@ export type Database = {
             foreignKeyName: "expense_claims_tax_code_fkey"
             columns: ["tax_code"]
             isOneToOne: false
+            referencedRelation: "tax_code_lookup"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "expense_claims_tax_code_fkey"
+            columns: ["tax_code"]
+            isOneToOne: false
             referencedRelation: "tax_codes"
             referencedColumns: ["code"]
+          },
+        ]
+      }
+      finance_settings_lookup: {
+        Row: {
+          default_allocation_basis: string | null
+          gst_rate_pct: number | null
+          gst_registered: boolean | null
+          id: boolean | null
+        }
+        Insert: {
+          default_allocation_basis?: string | null
+          gst_rate_pct?: number | null
+          gst_registered?: boolean | null
+          id?: boolean | null
+        }
+        Update: {
+          default_allocation_basis?: string | null
+          gst_rate_pct?: number | null
+          gst_registered?: boolean | null
+          id?: boolean | null
+        }
+        Relationships: []
+      }
+      freight_document_lookup: {
+        Row: {
+          amount_ccy: number | null
+          code: string | null
+          container_id: string | null
+          currency: string | null
+          deleted_at: string | null
+          direction: string | null
+          doc_date: string | null
+          id: string | null
+          payment_status: string | null
+          status: string | null
+          supplier_id: string | null
+        }
+        Insert: {
+          amount_ccy?: never
+          code?: string | null
+          container_id?: string | null
+          currency?: string | null
+          deleted_at?: string | null
+          direction?: string | null
+          doc_date?: string | null
+          id?: string | null
+          payment_status?: string | null
+          status?: string | null
+          supplier_id?: string | null
+        }
+        Update: {
+          amount_ccy?: never
+          code?: string | null
+          container_id?: string | null
+          currency?: string | null
+          deleted_at?: string | null
+          direction?: string | null
+          doc_date?: string | null
+          id?: string | null
+          payment_status?: string | null
+          status?: string | null
+          supplier_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "freight_documents_container_id_fkey"
+            columns: ["container_id"]
+            isOneToOne: false
+            referencedRelation: "container_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_documents_container_id_fkey"
+            columns: ["container_id"]
+            isOneToOne: false
+            referencedRelation: "containers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_documents_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "freight_documents_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "freight_documents_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "freight_documents_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -19172,6 +20046,107 @@ export type Database = {
           subject: string | null
         }
         Relationships: []
+      }
+      inbound_batch_lookup: {
+        Row: {
+          arrival_date: string | null
+          code: string | null
+          created_at: string | null
+          deleted_at: string | null
+          id: string | null
+          material_id: string | null
+          notes: string | null
+          quantity: number | null
+          remaining_qty: number | null
+          stage: string | null
+          status: string | null
+          supplier_id: string | null
+          unit: string | null
+          unit_price: number | null
+        }
+        Insert: {
+          arrival_date?: string | null
+          code?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          id?: string | null
+          material_id?: string | null
+          notes?: string | null
+          quantity?: number | null
+          remaining_qty?: number | null
+          stage?: string | null
+          status?: string | null
+          supplier_id?: string | null
+          unit?: string | null
+          unit_price?: never
+        }
+        Update: {
+          arrival_date?: string | null
+          code?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          id?: string | null
+          material_id?: string | null
+          notes?: string | null
+          quantity?: number | null
+          remaining_qty?: number | null
+          stage?: string | null
+          status?: string | null
+          supplier_id?: string | null
+          unit?: string | null
+          unit_price?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "material_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "material_stock_available"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stock_snapshot"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "inbound_batches_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       inbound_batch_valuation: {
         Row: {
@@ -19641,6 +20616,13 @@ export type Database = {
             foreignKeyName: "invoice_lines_tax_code_fkey"
             columns: ["tax_code"]
             isOneToOne: false
+            referencedRelation: "tax_code_lookup"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "invoice_lines_tax_code_fkey"
+            columns: ["tax_code"]
+            isOneToOne: false
             referencedRelation: "tax_codes"
             referencedColumns: ["code"]
           },
@@ -19672,6 +20654,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "currencies"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_billing_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoices_customer_id_fkey"
@@ -19782,6 +20771,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "currencies"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_billing_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "invoices_customer_id_fkey"
@@ -19942,6 +20938,13 @@ export type Database = {
             foreignKeyName: "leave_requests_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
@@ -20029,21 +21032,29 @@ export type Database = {
           code: string | null
           deleted_at: string | null
           id: string | null
+          kind_code: string | null
+          kind_name_en: string | null
+          kind_name_zh: string | null
           name: string | null
+          unit: string | null
+          waste_classification_code: string | null
         }
-        Insert: {
-          code?: string | null
-          deleted_at?: string | null
-          id?: string | null
-          name?: string | null
-        }
-        Update: {
-          code?: string | null
-          deleted_at?: string | null
-          id?: string | null
-          name?: string | null
-        }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "materials_kind_code_fkey"
+            columns: ["kind_code"]
+            isOneToOne: false
+            referencedRelation: "material_kinds"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "materials_waste_classification_code_fkey"
+            columns: ["waste_classification_code"]
+            isOneToOne: false
+            referencedRelation: "waste_classifications"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       material_stock_available: {
         Row: {
@@ -20085,6 +21096,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employee_directory"
             referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "medical_claims_employee_id_fkey"
@@ -20297,6 +21315,13 @@ export type Database = {
             foreignKeyName: "performance_reviews_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
@@ -20449,6 +21474,13 @@ export type Database = {
             foreignKeyName: "invoices_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_billing_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customer_credit_status"
             referencedColumns: ["customer_id"]
           },
@@ -20496,6 +21528,13 @@ export type Database = {
             foreignKeyName: "invoices_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_billing_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customer_credit_status"
             referencedColumns: ["customer_id"]
           },
@@ -20512,6 +21551,173 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      output_batch_lookup: {
+        Row: {
+          code: string | null
+          customer_id: string | null
+          deleted_at: string | null
+          id: string | null
+          material_id: string | null
+          output_date: string | null
+          quantity: number | null
+          remaining_qty: number | null
+          state: string | null
+          status: string | null
+          unit: string | null
+        }
+        Insert: {
+          code?: string | null
+          customer_id?: string | null
+          deleted_at?: string | null
+          id?: string | null
+          material_id?: string | null
+          output_date?: string | null
+          quantity?: number | null
+          remaining_qty?: number | null
+          state?: string | null
+          status?: string | null
+          unit?: string | null
+        }
+        Update: {
+          code?: string | null
+          customer_id?: string | null
+          deleted_at?: string | null
+          id?: string | null
+          material_id?: string | null
+          output_date?: string | null
+          quantity?: number | null
+          remaining_qty?: number | null
+          state?: string | null
+          status?: string | null
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "output_batches_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_billing_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "output_batches_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_credit_status"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "output_batches_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "output_batches_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "output_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "material_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "output_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "material_stock_available"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "output_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "output_batches_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "stock_snapshot"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "output_batches_state_fkey"
+            columns: ["state"]
+            isOneToOne: false
+            referencedRelation: "output_batch_states"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      output_batch_metal_lookup: {
+        Row: {
+          content_pct: number | null
+          metal: string | null
+          output_batch_id: string | null
+        }
+        Insert: {
+          content_pct?: number | null
+          metal?: string | null
+          output_batch_id?: string | null
+        }
+        Update: {
+          content_pct?: number | null
+          metal?: string | null
+          output_batch_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "output_batch_metals_metal_fkey"
+            columns: ["metal"]
+            isOneToOne: false
+            referencedRelation: "substances"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "output_batch_metals_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "output_batch_metals_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "output_batch_metals_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_valuation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "output_batch_metals_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "output_batch_metals_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
           },
         ]
       }
@@ -20678,6 +21884,13 @@ export type Database = {
             foreignKeyName: "payroll_lines_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
@@ -20762,8 +21975,74 @@ export type Database = {
             foreignKeyName: "payroll_lines_payroll_period_id_fkey"
             columns: ["payroll_period_id"]
             isOneToOne: false
+            referencedRelation: "payroll_period_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_lines_payroll_period_id_fkey"
+            columns: ["payroll_period_id"]
+            isOneToOne: false
             referencedRelation: "payroll_periods"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_period_lookup: {
+        Row: {
+          code: string | null
+          cpf_paid_at: string | null
+          currency: string | null
+          deductions_paid_at: string | null
+          deleted_at: string | null
+          employee_cpf_total: number | null
+          employer_cpf_total: number | null
+          gross_total: number | null
+          id: string | null
+          net_pay_total: number | null
+          other_deductions_total: number | null
+          payment_date: string | null
+          period_month: string | null
+          status: string | null
+        }
+        Insert: {
+          code?: string | null
+          cpf_paid_at?: string | null
+          currency?: string | null
+          deductions_paid_at?: string | null
+          deleted_at?: string | null
+          employee_cpf_total?: never
+          employer_cpf_total?: never
+          gross_total?: never
+          id?: string | null
+          net_pay_total?: never
+          other_deductions_total?: never
+          payment_date?: string | null
+          period_month?: string | null
+          status?: string | null
+        }
+        Update: {
+          code?: string | null
+          cpf_paid_at?: string | null
+          currency?: string | null
+          deductions_paid_at?: string | null
+          deleted_at?: string | null
+          employee_cpf_total?: never
+          employer_cpf_total?: never
+          gross_total?: never
+          id?: string | null
+          net_pay_total?: never
+          other_deductions_total?: never
+          payment_date?: string | null
+          period_month?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_periods_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -20877,6 +22156,13 @@ export type Database = {
             foreignKeyName: "performance_reviews_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
@@ -20956,6 +22242,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employee_directory"
             referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "performance_reviews_reviewer_employee_id_fkey"
+            columns: ["reviewer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "performance_reviews_reviewer_employee_id_fkey"
@@ -21301,6 +22594,13 @@ export type Database = {
             foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prepayment_applications_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -21461,6 +22761,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "price_history_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "price_history_inbound_batch_id_fkey"
@@ -21700,6 +23007,13 @@ export type Database = {
             foreignKeyName: "pricing_formulas_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_billing_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_formulas_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customer_credit_status"
             referencedColumns: ["customer_id"]
           },
@@ -21861,6 +23175,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "grn_discrepancies"
             referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "pricing_term_commitments_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: true
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pricing_term_commitments_inbound_batch_id_fkey"
@@ -22033,6 +23354,13 @@ export type Database = {
             foreignKeyName: "processing_cost_entries_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
             referencedColumns: ["run_id"]
           },
@@ -22111,6 +23439,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "processing_cost_entry_history_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "processing_cost_entry_lookup"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "processing_cost_entry_history_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
@@ -22142,6 +23477,13 @@ export type Database = {
             foreignKeyName: "processing_cost_entry_history_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entry_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
             referencedColumns: ["run_id"]
           },
@@ -22154,6 +23496,99 @@ export type Database = {
           },
           {
             foreignKeyName: "processing_cost_entry_history_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processing_cost_entry_lookup: {
+        Row: {
+          amount_base: number | null
+          cost_type: string | null
+          created_at: string | null
+          deleted_at: string | null
+          id: string | null
+          is_estimate: boolean | null
+          relieved_at: string | null
+          remitted_at: string | null
+          run_id: string | null
+        }
+        Insert: {
+          amount_base?: never
+          cost_type?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          id?: string | null
+          is_estimate?: boolean | null
+          relieved_at?: string | null
+          remitted_at?: string | null
+          run_id?: string | null
+        }
+        Update: {
+          amount_base?: never
+          cost_type?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          id?: string | null
+          is_estimate?: boolean | null
+          relieved_at?: string | null
+          remitted_at?: string | null
+          run_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_cost_entries_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
             referencedRelation: "processing_runs_masked"
@@ -22210,11 +23645,9 @@ export type Database = {
         }
         Relationships: []
       }
-      processing_outputs_masked: {
+      processing_output_lookup: {
         Row: {
-          allocated_cost_base: number | null
           cost_incomplete: boolean | null
-          created_at: string | null
           id: string | null
           output_batch_id: string | null
           quantity_produced: number | null
@@ -22222,9 +23655,7 @@ export type Database = {
           unit_cost_base: number | null
         }
         Insert: {
-          allocated_cost_base?: never
           cost_incomplete?: boolean | null
-          created_at?: string | null
           id?: string | null
           output_batch_id?: string | null
           quantity_produced?: number | null
@@ -22232,9 +23663,7 @@ export type Database = {
           unit_cost_base?: never
         }
         Update: {
-          allocated_cost_base?: never
           cost_incomplete?: boolean | null
-          created_at?: string | null
           id?: string | null
           output_batch_id?: string | null
           quantity_produced?: number | null
@@ -22248,6 +23677,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "processing_outputs_output_batch_id_fkey"
@@ -22302,6 +23738,138 @@ export type Database = {
             foreignKeyName: "processing_outputs_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processing_outputs_masked: {
+        Row: {
+          allocated_cost_base: number | null
+          cost_incomplete: boolean | null
+          created_at: string | null
+          id: string | null
+          output_batch_id: string | null
+          quantity_produced: number | null
+          run_id: string | null
+          unit_cost_base: number | null
+        }
+        Insert: {
+          allocated_cost_base?: never
+          cost_incomplete?: boolean | null
+          created_at?: string | null
+          id?: string | null
+          output_batch_id?: string | null
+          quantity_produced?: number | null
+          run_id?: string | null
+          unit_cost_base?: never
+        }
+        Update: {
+          allocated_cost_base?: never
+          cost_incomplete?: boolean | null
+          created_at?: string | null
+          id?: string | null
+          output_batch_id?: string | null
+          quantity_produced?: number | null
+          run_id?: string | null
+          unit_cost_base?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_outputs_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_valuation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_outputs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "processing_run_loss_breakdown"
             referencedColumns: ["run_id"]
           },
@@ -22332,6 +23900,57 @@ export type Database = {
           safe_to_reallocate: boolean | null
         }
         Relationships: []
+      }
+      processing_run_lookup: {
+        Row: {
+          code: string | null
+          deleted_at: string | null
+          id: string | null
+          loss_qty: number | null
+          process_date: string | null
+          status: string | null
+          total_input: number | null
+          total_output: number | null
+          work_order_id: string | null
+        }
+        Insert: {
+          code?: string | null
+          deleted_at?: string | null
+          id?: string | null
+          loss_qty?: number | null
+          process_date?: string | null
+          status?: string | null
+          total_input?: number | null
+          total_output?: number | null
+          work_order_id?: string | null
+        }
+        Update: {
+          code?: string | null
+          deleted_at?: string | null
+          id?: string | null
+          loss_qty?: number | null
+          process_date?: string | null
+          status?: string | null
+          total_input?: number | null
+          total_output?: number | null
+          work_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_runs_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_order_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processing_runs_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       processing_run_loss_breakdown: {
         Row: {
@@ -22484,6 +24103,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "operation_types"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "processing_runs_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_order_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "processing_runs_work_order_id_fkey"
@@ -22849,6 +24475,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "purchase_orders_masked"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_tax_code_fkey"
+            columns: ["tax_code"]
+            isOneToOne: false
+            referencedRelation: "tax_code_lookup"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "purchase_order_lines_tax_code_fkey"
@@ -23334,6 +24967,13 @@ export type Database = {
             foreignKeyName: "quotes_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_billing_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customer_credit_status"
             referencedColumns: ["customer_id"]
           },
@@ -23434,6 +25074,13 @@ export type Database = {
             foreignKeyName: "sales_records_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_billing_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_records_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customer_credit_status"
             referencedColumns: ["customer_id"]
           },
@@ -23457,6 +25104,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "sales_records_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "sales_records_output_batch_id_fkey"
@@ -23517,6 +25171,13 @@ export type Database = {
             foreignKeyName: "sales_records_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_billing_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_records_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customer_credit_status"
             referencedColumns: ["customer_id"]
           },
@@ -23545,6 +25206,13 @@ export type Database = {
             foreignKeyName: "sales_records_output_batch_id_fkey"
             columns: ["output_batch_id"]
             isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_records_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
             referencedRelation: "output_batch_valuation"
             referencedColumns: ["id"]
           },
@@ -23561,6 +25229,40 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processing_wip"
             referencedColumns: ["output_batch_id"]
+          },
+        ]
+      }
+      shipment_lookup: {
+        Row: {
+          code: string | null
+          container_id: string | null
+          customer_legal_name: string | null
+          id: string | null
+          sales_order_code: string | null
+          sales_order_id: string | null
+          ship_date: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipments_container_id_fkey"
+            columns: ["container_id"]
+            isOneToOne: false
+            referencedRelation: "container_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipments_container_id_fkey"
+            columns: ["container_id"]
+            isOneToOne: false
+            referencedRelation: "containers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipments_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -23609,6 +25311,13 @@ export type Database = {
             foreignKeyName: "inventory_movements_inbound_batch_id_fkey"
             columns: ["inbound_batch_id"]
             isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
             referencedRelation: "inbound_batches"
             referencedColumns: ["id"]
           },
@@ -23639,6 +25348,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "batch_margin"
             referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "inventory_movements_output_batch_id_fkey"
@@ -23872,6 +25588,13 @@ export type Database = {
             foreignKeyName: "tasks_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
@@ -23965,6 +25688,13 @@ export type Database = {
             foreignKeyName: "task_participants_added_by_fkey"
             columns: ["added_by"]
             isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_participants_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
@@ -24037,6 +25767,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employee_directory"
             referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_participants_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "task_participants_employee_id_fkey"
@@ -24114,6 +25851,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employee_directory"
             referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "task_participants_removed_by_fkey"
+            columns: ["removed_by"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "task_participants_removed_by_fkey"
@@ -24201,6 +25945,36 @@ export type Database = {
           },
         ]
       }
+      tax_code_lookup: {
+        Row: {
+          code: string | null
+          is_active: boolean | null
+          is_claimable: boolean | null
+          name_en: string | null
+          name_zh: string | null
+          side: string | null
+          sort_order: number | null
+        }
+        Insert: {
+          code?: string | null
+          is_active?: boolean | null
+          is_claimable?: boolean | null
+          name_en?: string | null
+          name_zh?: string | null
+          side?: string | null
+          sort_order?: number | null
+        }
+        Update: {
+          code?: string | null
+          is_active?: boolean | null
+          is_claimable?: boolean | null
+          name_en?: string | null
+          name_zh?: string | null
+          side?: string | null
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
       user_directory: {
         Row: {
           created_at: string | null
@@ -24239,6 +26013,27 @@ export type Database = {
           variance_qty: number | null
           work_order_code: string | null
           work_order_id: string | null
+        }
+        Relationships: []
+      }
+      work_order_lookup: {
+        Row: {
+          code: string | null
+          id: string | null
+          scheduled_date: string | null
+          status: string | null
+        }
+        Insert: {
+          code?: string | null
+          id?: string | null
+          scheduled_date?: string | null
+          status?: string | null
+        }
+        Update: {
+          code?: string | null
+          id?: string | null
+          scheduled_date?: string | null
+          status?: string | null
         }
         Relationships: []
       }

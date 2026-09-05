@@ -89,12 +89,12 @@ export default async function OutputPage({
             searchOr
         ),
         supabase
-            .from('customers')
+            .from('customer_lookup')
             .select('id, legal_name')
             .is('deleted_at', null)
             .order('legal_name'),
         supabase
-            .from('materials')
+            .from('material_lookup')
             .select('id, name')
             .is('deleted_at', null)
             .order('name'),
@@ -139,11 +139,14 @@ export default async function OutputPage({
     const batches = data as unknown as OutputRow[] | null
 
     // 下拉选项:客户按 legal_name、物料按 name 作为显示标签
-    const customerOptions: PartyOption[] = (mustRows(customersRes)).map((c) => ({
+    // 视图列在生成类型里一律可空;行进了视图即非空 —— 取用处本地锁死。
+    const customerOptions: PartyOption[] = (mustRows(customersRes) as unknown as
+        { id: string; legal_name: string }[]).map((c) => ({
         id: c.id,
         label: c.legal_name,
     }))
-    const materialOptions: PartyOption[] = (mustRows(materialsRes)).map((m) => ({
+    const materialOptions: PartyOption[] = (mustRows(materialsRes) as unknown as
+        { id: string; name: string }[]).map((m) => ({
         id: m.id,
         label: m.name,
     }))

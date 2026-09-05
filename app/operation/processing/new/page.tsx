@@ -38,7 +38,7 @@ export default async function NewProcessingPage() {
             .select('id, code, name')
             .is('deleted_at', null)
             .order('name'),
-        supabase.from('finance_settings').select('default_allocation_basis').maybeSingle(),
+        supabase.from('finance_settings_lookup').select('default_allocation_basis').maybeSingle(),
         // WO-1c:【只列已放行的工单】草稿是还没答应的事,已收工/已取消是已经结束的事 ——
         // 服务端会按名拒(WO_NOT_RELEASED),而这里不把一个必然被拒的选项画出来
         // (AGENTS.md:页面不该提供一个服务端保证会拒绝的动作)。

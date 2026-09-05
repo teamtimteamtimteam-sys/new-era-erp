@@ -8,6 +8,12 @@
 -- ★ 暴露面【就是】下面的列清单。加一列等于扩一次权,请连着 fixture 100 一起想。
 -- NOTE: introduced by db/migrations/2026-09-05-fix1-cross-module-lookup-views.sql.
 
+-- ★ FIX-2a(2026-09-05):体内谓词放宽/修正,列未改动。
+--   替换用的是 -- ★ FIX-2a(2026-09-05):体内谓词放宽/修正,列未改动。
+--   替换用的是 -- ★ FIX-2a(2026-09-05):体内谓词放宽/修正,列未改动。
+--   替换用的是 CREATE OR REPLACE VIEW,而它【会丢掉 WITH (...)】——
+--   迁移末尾因此补了一句 ALTER VIEW ... SET (security_invoker = off)。
+
 CREATE VIEW public.supplier_lookup WITH (security_invoker = off) AS
  SELECT id,
     code,
@@ -16,7 +22,7 @@ CREATE VIEW public.supplier_lookup WITH (security_invoker = off) AS
     counterparty_type,
     deleted_at
    FROM suppliers s
-  WHERE has_permission('module.suppliers.view'::text) OR has_permission('module.inbound.view'::text);
+  WHERE has_permission('module.suppliers.view'::text) OR has_permission('module.inbound.view'::text) OR has_permission('module.logistics.view'::text) OR has_permission('module.finance.view'::text) OR has_permission('module.pricing.view'::text);
 
 COMMENT ON VIEW public.supplier_lookup IS
     'FIX-1 item 3:供应商的【查名】视图 —— 只有 id/编号/法定名 + 下拉自己要用的两个判据列(supplies_goods、counterparty_type)。收货与进料编辑用它把单据指向一家供应商,而【不】因此拿到付款条件、贸易术语、信用评级、税号或地址。属主权限 + 体内谓词 suppliers.view OR inbound.view;新读到它的只有 operations 与 warehouse。暴露面就是这张视图的列清单 —— 加列等于扩权,请连着 fixture 100 一起想。';

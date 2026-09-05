@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
+import { can } from '@/lib/permissions'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
@@ -38,8 +39,19 @@ export default async function PayrollListPage() {
     }
 
     // 已过账的期间要能一键跳到那张分录
+    //
+    // ★★【FIX-2a(b):Tim 的裁定 —— 过没过账是【财务的事实】,不放宽】★★
+    //   journal_entries 挂 module.finance.view,hr 没有它。此前这里读回零行,
+    //   而下面那句 `?? '—'` 把它与【这一期还没过账】写成同一个字符:
+    //   于是 Sandra 看着一张【已经过账】的薪资期间,读到的是"没有分录"。
+    //   Tim 的原话:「过账是财务在总账里做的动作,不是 HR 做的。把状态给 HR,
+    //   等于让他们从一个自己不参与的流程里读出一个结论。」
+    //   所以【不给】,而屏幕要说出来 —— 那一格写「受限」,不写破折号。
+    //   ★ 判据是 journal_entry_id 有没有值,不是"查出来是不是空":
+    //     没有 id = 真的还没过账(诚实的破折号);有 id 而读不到 = 扣下了。
+    const canReadEntries = await can('module.finance.view')
     const jeIds = periods.map((p) => p.journal_entry_id).filter(Boolean) as string[]
-    const { data: jes } = jeIds.length
+    const { data: jes } = canReadEntries && jeIds.length
         ? await supabase.from('journal_entries').select('id, code').in('id', jeIds)
         : { data: [] as { id: string; code: string }[] }
     const jeCodeById = new Map((jes ?? []).map((j) => [j.id, j.code]))
@@ -55,7 +67,13 @@ export default async function PayrollListPage() {
         lineCount: countByPeriod.get(p.id) ?? 0,
         status: p.status,
         journalEntryId: p.journal_entry_id,
-        journalCode: p.journal_entry_id ? (jeCodeById.get(p.journal_entry_id) ?? '—') : '—',
+        // null = 这一期真的没有分录(诚实的破折号);
+        // 'restricted' = 有一张分录,而你不能看它。
+        journalCode: !p.journal_entry_id
+            ? '—'
+            : canReadEntries
+              ? jeCodeById.get(p.journal_entry_id) ?? '—'
+              : 'restricted',
     }))
 
     return (

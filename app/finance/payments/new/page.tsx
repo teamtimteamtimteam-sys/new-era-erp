@@ -12,6 +12,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import NewPaymentForm, { type PartyOption, type OpenItem, type PoItem } from './NewPaymentForm'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
+import { can } from '@/lib/permissions'
 import { MOD } from '@/lib/modules'
 
 // 视图列生成类型全可空;行进视图即非空,取用列本地锁死
@@ -68,16 +69,24 @@ export default async function NewPaymentPage({
 
     const [customersRes, suppliersRes, employeesRes, arRes, apRes, poRes] = await Promise.all([
         supabase
-            .from('customers')
+            .from('customer_lookup')
             .select('id, legal_name')
             .is('deleted_at', null)
             .order('legal_name'),
         supabase
-            // SOD-1:多取一列 created_by —— 事前告知要用它。
-            // 「建收款人的人不得付款给它」这条闸在【表上】,撞了就是一次拒绝;
-            // 而人已经把金额、日期、核销行都填完了。所以选中收款人的那一刻就说。
-            .from('suppliers')
-            .select('id, legal_name, created_by')
+            // ★★【FIX-2a:收款人名单走查名视图 —— 此前对 cfo 整张是空的】★★
+            // 这一页的守卫是 module.finance.view,而 suppliers 基表挂
+            // module.suppliers.view。cfo 只持 finance / logistics / purchasing 三个
+            // 模块,于是「付给谁」那个下拉一个人都没有 —— 屏幕说的是"没有往来对象"。
+            //
+            // 【SOD-1 的 created_by 【不】跟着搬进查名视图】,而这不是一次将就:
+            // 那一列是审计列,而 supplier_lookup 的受众现在有五个模块码。
+            // 下面单独取,取不到时 createdByMe 为 false ——
+            // 而 NewPaymentForm 抬头【已经写明】那是一个合法状态
+            // (「规矩不适用时(created_by 没有记下来)它完全合法」):
+            // 不出现那句提醒【不是】一句"没有冲突"的断言,真正的判定在服务端那道闸上。
+            .from('supplier_lookup')
+            .select('id, legal_name')
             .is('deleted_at', null)
             // ════════════════════════════════════════════════════════════════
             // PAY-FRT:这里【不】排除货代 —— LOG-1b 在 11 个点位加了
@@ -95,7 +104,11 @@ export default async function NewPaymentPage({
             .order('legal_name'),
         // PAYEE-1b:出款也可以付给员工(报销)。读遮蔽视图,门是 module.hr.view。
         supabase
-            .from('employees_masked')
+            // FIX-2a:员工走【查名】视图 —— employees_masked 整张挂 module.hr.view,
+            // 于是 cfo 与 finance 读回零行,「付给员工(报销)」那一组下拉是空的。
+            // employee_lookup 只出 id / 工号 / 称呼名 / 法定名(Tim 的 Q2 裁定),
+            // 薪酬与证件一列都不带。
+            .from('employee_lookup')
             .select('id, legal_name')
             .is('deleted_at', null)
             .order('legal_name'),
@@ -130,18 +143,33 @@ export default async function NewPaymentPage({
         )
     }
 
-    const customers: PartyOption[] = (mustRows(customersRes)).map((c) => ({
+    // 视图列在生成类型里一律可空;行进了视图即非空 —— 取用处本地锁死(FIX-1 同一写法)。
+    const customers: PartyOption[] = (mustRows(customersRes) as unknown as
+        { id: string; legal_name: string }[]).map((c) => ({
         id: c.id,
         name: c.legal_name,
     }))
+    // FIX-2a:建户人单独取 —— 只有读得到 suppliers 基表的人才有这一列。
+    // 【谁真的需要它】能【提交】付款的是 module.finance.edit(实测 admin / finance /
+    // gm),而这三个角色都持 suppliers.view —— 也就是说 SOD-1 那句事前提醒
+    // 在它真正起作用的每一个人那里【一字未变】。读不到的人(cfo)本来就提交不了。
+    const supplierRows = mustRows(suppliersRes) as unknown as { id: string; legal_name: string }[]
+    const createdByOf = new Map<string, string | null>()
+    if (await can('module.suppliers.view')) {
+        for (const s of mustRows(
+            await supabase.from('suppliers').select('id, created_by').is('deleted_at', null),
+            'supplier created_by (SOD-1)'
+        )) {
+            createdByOf.set(s.id as string, s.created_by as string | null)
+        }
+    }
     // 查不了的时候【说出来】,不要让告知无声消失。
-    const suppliers: PartyOption[] = (mustRows(suppliersRes)).map((s) => ({
+    const suppliers: PartyOption[] = supplierRows.map((s) => ({
         id: s.id,
         name: s.legal_name,
         // SOD-1:这一家是不是【我】建的。null = 没有记下建户人(线上 8 家既有
         // 供应商就是这样),那时规矩【不适用】—— 不是"查过了没问题"。
-        createdByMe: (s as { created_by?: string | null }).created_by != null
-            && (s as { created_by?: string | null }).created_by === me,
+        createdByMe: createdByOf.get(s.id) != null && createdByOf.get(s.id) === me,
     }))
     const employees: PartyOption[] = (mustRows(employeesRes) as { id: string; legal_name: string }[])
         .map((e) => ({ id: e.id, name: e.legal_name }))

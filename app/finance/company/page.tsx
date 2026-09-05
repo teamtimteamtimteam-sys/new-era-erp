@@ -8,6 +8,7 @@ import CompanyProfileForm, { type CompanyProfileRow } from './CompanyProfileForm
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD, FN } from '@/lib/modules'
 import { getFunctionAccess } from '@/lib/moduleAccess'
+import { canViewBanking } from '@/lib/permissions'
 
 export default async function CompanyPage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -17,6 +18,21 @@ export default async function CompanyPage() {
 
     const supabase = await createClient()
     const t = await getTranslations()
+
+    // ★★【FIX-2a item 3：银行那一段【不是】空面板，是五个空输入框】★★
+    // 实测更正委托书:Sandra(cco)【读得到】company_profile_masked 这一行 ——
+    // 挡住的不是行,是【列】:bank_name / bank_account_name / bank_account_no /
+    // bank_swift / bank_address 五列各自按 data.view_banking 遮成 NULL
+    // (视图体里五个 CASE WHEN,查过,不是假设)。
+    // 而 CompanyProfileForm 的 `defaultValue={profile[name] ?? ''}` 把 NULL
+    // 画成【空的输入框】,底下一行「银行」的分组标题 ——
+    // 读起来是【公司还没填银行资料】,而它填了。
+    //
+    // ★ 本刀【不给】也【不收】data.view_banking:Sandra 该不该看公司的银行明细
+    //   是 Tim 的决定,而他【从未裁过】(见 docs/accounts-roles-and-permissions.md
+    //   §11.2b —— 那句「刻意不给」是一次推断,不是一次裁定)。
+    //   本刀只做一件事:让那一段【说出来】。
+    const canBanking = await canViewBanking()
 
     const { data, error } = await supabase.from('company_profile_masked').select('*').limit(1).single()
 
@@ -57,7 +73,7 @@ export default async function CompanyPage() {
     return (
         <div className="p-8">
             <h1 className="text-2xl font-bold mb-4">{t('company.title')}</h1>
-            <CompanyProfileForm profile={profile} logoUrl={logoUrl} />
+            <CompanyProfileForm profile={profile} logoUrl={logoUrl} canBanking={canBanking} />
             {/* D7:执照登记簿的新家。进不去的人【照样看得见它在哪】,
                 画成一条具名的限制 —— 与顶栏同一套词(D5)。 */}
             <div className="border border-gray-200 rounded p-4 mb-6 bg-white">

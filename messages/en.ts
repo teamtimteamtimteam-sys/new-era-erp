@@ -23,6 +23,10 @@ const en = {
         // ★ 这一条是那个【量过的缺口】被数出来摆在脸上的地方 ★
         residenceGapTitle: 'Suppliers with no tax residence on file: {n}',
         residenceGapBody: 'Withholding is only asked about a supplier whose tax residence has been stated. Until one is stated, a payment to that supplier withholds nothing — including a payment that should have. Set it on the supplier record.',
+        // FIX-2a(b):读不到供应商主数据的人,不能拿到那句「都申报了」。
+        residenceGapRestricted: 'Whether every counterparty has declared its tax residence is withheld from this account.',
+        residenceGapRestrictedHint:
+            'Supplier master data sits behind the supplier module, which you do not have access to. That is a permission answer — it is NOT a statement that every counterparty has declared one.',
         residenceGapNone: 'Every supplier on file has stated a tax residence.',
         // ── 汇款 ─────────────────────────────────────────────────────────────
         remitHeading: 'Remit a month to IRAS',
@@ -372,6 +376,12 @@ const en = {
         colPaymentTerms: 'Payment terms',
         colBalanceOwed: 'Balance owed',
         noBalance: 'nothing owed',
+        // FIX-2a(b):扣下与不存在是两句话。措辞沿用本仓库已有的那个句式
+        // (「That is a permission answer, not …」),不发明第三种说法。
+        owedRestrictedHint:
+            'What this forwarder owes sits behind the finance module, which you do not have access to. That is a permission answer — it is not a statement that nothing is owed.',
+        termsRestrictedHint:
+            'Payment terms sit behind the supplier module, which you do not have access to. That is a permission answer — it is not a statement that no terms were agreed.',
         detailsHeading: 'Logistics details',
         mainRoutes: 'Main routes',
         portsServed: 'Ports served',
@@ -3797,6 +3807,10 @@ const en = {
     // ── TOOLS-1 ④:单位换算器 ────────────────────────────────────────────
     // ── TOOLS-1 ②:跨模块日历 ────────────────────────────────────────────
     calendar: {
+        kindRestricted:
+            '{kind} is withheld from this account.',
+        kindRestrictedHint:
+            'This kind of event sits behind a module you do not have access to. That is a permission answer — it is not a statement that nothing of this kind falls in this month.',
         title: 'Calendar',
         intro: 'Everything dated that you can already see elsewhere, on one month. It is a place to look, not a place to edit \u2014 click an item to go to the page that owns it.',
         filter: 'Show', allKinds: 'Everything',
@@ -4008,6 +4022,10 @@ const en = {
         acct6110: 'CPF – Employer',
         acct2400: 'CPF Payable',
         acct2200: 'Accrued Expenses',
+        // FIX-2a(b):Tim overruled Q5 — whether a payroll run has been posted is a
+        // FINANCE fact. Withheld, and said so rather than shown as an em dash.
+        payrollEntryRestrictedHint:
+            'The journal entry sits behind the finance module, which you do not have access to. That is a permission answer — it is not a statement that this payroll run has not been posted. Ask finance.',
         payrollStatus: {
             draft: 'Draft',
             posted: 'Posted',
@@ -4618,6 +4636,10 @@ const en = {
         empty: 'No assay results recorded',
         priceChangeTitle: 'Resulting price change',
         journalLink: 'Journal entry',
+        // FIX-2a(b):Tim 的 Q4 裁定 —— 价格不给现场。扣下是对的,沉默不是。
+        pricingRestricted: 'Pricing for this batch is withheld from this account.',
+        pricingRestrictedHint:
+            'The pricing formula sits behind the pricing module, which you do not have access to. That is a permission answer — it is not a statement that this batch has no pricing formula. Recording the assay still works; the price is settled by someone who can see it.',
         saveOnly: 'Record only',
         saveAndApply: 'Record and apply',
         impactPreview: 'If applied',
@@ -6365,6 +6387,10 @@ const en = {
         groupAddress: 'Address',
         groupContact: 'Contact',
         groupBank: 'Bank details',
+        // FIX-2a item 3:此前这里是五个空输入框。
+        bankRestricted: 'The company bank details are withheld from this account.',
+        bankRestrictedHint:
+            'Seeing them needs the permission code in brackets. That is a permission answer — it is not a statement that the bank details have not been filled in. Saving this page will leave them exactly as they are.',
         groupDocuments: 'Documents',
         legalName: 'Legal name',
         registrationNo: 'Company registration no.',

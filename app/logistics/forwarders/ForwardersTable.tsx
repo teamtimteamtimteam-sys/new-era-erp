@@ -8,6 +8,7 @@
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { Refusal } from '@/app/components/ui/refusal'
 
 export type ForwarderRow = {
     id: string
@@ -19,7 +20,24 @@ export type ForwarderRow = {
     owedLabel: string | null
 }
 
-export default function ForwardersTable({ rows, empty }: { rows: ForwarderRow[]; empty: React.ReactNode }) {
+export default function ForwardersTable({
+    rows,
+    empty,
+    /**
+     * ★ FIX-2a:【两个"扣下了"的第三态】。
+     * 此前这张表只有两种话可说:一个金额,或者「没有欠款」。
+     * 一个没有 module.finance.view 的读者读回零行 ap_open_items,
+     * 于是每一家货代都写着「没有欠款」—— 一个自信的、错的答案。
+     * 「没有欠款」与「你不能看欠了多少」必须分得开,而分开它们要一个第三态。
+     */
+    moneyRestricted = false,
+    termsRestricted = false,
+}: {
+    rows: ForwarderRow[]
+    empty: React.ReactNode
+    moneyRestricted?: boolean
+    termsRestricted?: boolean
+}) {
     const t = useTranslations()
 
     // ★ 手机上留【货代】与【未结应付】—— 名字是身份,而未结应付是这份名单
@@ -35,11 +53,19 @@ export default function ForwardersTable({ rows, empty }: { rows: ForwarderRow[];
         },
         { key: 'code', header: t('logistics.colCode'), className: 'font-mono text-xs', render: (r) => r.code },
         { key: 'routes', header: t('logistics.colMainRoutes'), render: (r) => r.mainRoutes },
-        { key: 'terms', header: t('logistics.colPaymentTerms'), render: (r) => r.paymentTerms },
+        {
+            key: 'terms', header: t('logistics.colPaymentTerms'),
+            render: (r) =>
+                termsRestricted
+                    ? <Refusal why={t('logistics.termsRestrictedHint')}>{t('common.restricted')}</Refusal>
+                    : r.paymentTerms,
+        },
         {
             key: 'owed', header: t('logistics.colBalanceOwed'), priority: true, align: 'right',
             render: (r) =>
-                r.owedLabel ?? <span className="text-gray-500">{t('logistics.noBalance')}</span>,
+                moneyRestricted
+                    ? <Refusal why={t('logistics.owedRestrictedHint')}>{t('common.restricted')}</Refusal>
+                    : r.owedLabel ?? <span className="text-gray-500">{t('logistics.noBalance')}</span>,
         },
     ]
 

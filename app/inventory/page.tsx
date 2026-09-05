@@ -41,7 +41,6 @@ type OutputStockRow = {
     material_id: string
     remaining_qty: number
     unit: string
-    materials: MaterialEmbed
 }
 
 type InventoryRow = {
@@ -82,22 +81,30 @@ export default async function InventoryPage() {
             .from('inbound_batch_valuation')
             .select('material_id, remaining_qty, unit, landed_unit_cost, unpriced')
             .gt('remaining_qty', 0),
+        // ★★【FIX-2a:这一页对 warehouse 的四条腿里有三条是空的】★★
+        //   守卫是 module.inventory.view(warehouse / sales / procurement / finance
+        //   都持有),而这三张分别挂 output.view / processing.view / output.view。
+        //   后果不是"少一栏":物料平衡的投入、产出、损耗全是 0,于是屏幕上
+        //   写着【什么都没有加工过】;成品成本与市值也是 0.00。
+        //   ★ 而这一页【自己已经有】具名受限的渲染(下面 pricesRestricted,
+        //     INV-VAL-1 写的)—— 它此前拿不到行去驱动。
+        //   物料名不再内嵌:下面本来就单独取了一份 materials,用它对起来。
         supabase
-            .from('output_batches')
-            .select('id, material_id, remaining_qty, unit, materials ( name, material_kinds ( name_en, name_zh ) )')
+            .from('output_batch_lookup')
+            .select('id, material_id, remaining_qty, unit')
             .is('deleted_at', null)
             .gt('remaining_qty', 0),
         supabase
-            .from('processing_runs')
+            .from('processing_run_lookup')
             .select('total_input, total_output, loss_qty')
             .is('deleted_at', null),
         // 产出腿:批次 → 单位成本(一个批次至多一条产出腿)
         supabase
-            .from('processing_outputs_masked')
+            .from('processing_output_lookup')
             .select('output_batch_id, unit_cost_base'),
         // 金属含量(assay):批次 → 各金属含量
         supabase
-            .from('output_batch_metals')
+            .from('output_batch_metal_lookup')
             .select('output_batch_id, metal, content_pct'),
         // 每金属的最新有效价(只取今天及以前,忽略预登的未来价)
         // METAL-2:房屋约定的那条序列(没有合同可继承指数时用它)
@@ -116,8 +123,10 @@ export default async function InventoryPage() {
             .eq('unpriced', true),
         // INV-VAL-1:物料名与种类 —— 估值视图没有外键,内嵌不了,单独取。
         supabase
-            .from('materials')
-            .select('id, name, material_kinds ( name_en, name_zh )')
+            // FIX-2a:种类名在 material_lookup 上是【摊平的两列】,不是内嵌 ——
+            // 视图没有外键,嵌不了(本页 §INV-VAL-1 那条注释说的就是这件事)。
+            .from('material_lookup')
+            .select('id, name, kind_name_en, kind_name_zh')
             .is('deleted_at', null),
     ])
 
@@ -139,8 +148,16 @@ export default async function InventoryPage() {
     const inbound = (inboundRes.data as unknown as InboundStockRow[] | null) ?? []
     // 物料 id → 名称/种类。进料侧改读估值视图之后,内嵌没了,这张表补上。
     const materialById = new Map<string, MaterialEmbed>()
-    for (const m of (materialsRes.data as unknown as ({ id: string } & NonNullable<MaterialEmbed>)[] | null) ?? []) {
-        materialById.set(m.id, { name: m.name, material_kinds: m.material_kinds })
+    // 视图列在生成类型里一律可空;行进了视图即非空 —— 取用处本地锁死(FIX-1 同一写法)。
+    type MatLookupRow = { id: string; name: string; kind_name_en: string | null; kind_name_zh: string | null }
+    for (const m of (materialsRes.data as unknown as MatLookupRow[] | null) ?? []) {
+        materialById.set(m.id, {
+            name: m.name,
+            material_kinds:
+                m.kind_name_en !== null && m.kind_name_zh !== null
+                    ? { name_en: m.kind_name_en, name_zh: m.kind_name_zh }
+                    : null,
+        })
     }
     const output = (outputRes.data as unknown as OutputStockRow[] | null) ?? []
     const runs = mustRows(runsRes)
@@ -148,11 +165,14 @@ export default async function InventoryPage() {
     // 批次 → 单位成本 / 金属含量;金属 → 最新价
     const legCostByBatch = new Map<string, number>()
     // unit_cost_base 会被遮蔽(没有 data.view_prices 时为 null);其余列不会。
-    for (const leg of maskedRows<Tables<'processing_outputs'>, 'unit_cost_base'>(mustRows(legsRes))) {
+    for (const leg of maskedRows<Tables<'processing_outputs'>, 'unit_cost_base'>(
+        mustRows(legsRes) as unknown as Tables<'processing_outputs'>[]
+    )) {
         if (leg.unit_cost_base !== null) legCostByBatch.set(leg.output_batch_id, leg.unit_cost_base)
     }
     const metalsByBatch = new Map<string, { metal: string; content_pct: number }[]>()
-    for (const m of mustRows(metalsRes)) {
+    for (const m of mustRows(metalsRes) as unknown as
+        { output_batch_id: string; metal: string; content_pct: number }[]) {
         const list = metalsByBatch.get(m.output_batch_id)
         if (list) list.push(m)
         else metalsByBatch.set(m.output_batch_id, [m])
@@ -208,7 +228,7 @@ export default async function InventoryPage() {
         }
     }
     for (const b of output) {
-        const row = ensureRow(b.material_id, b.materials, b.unit)
+        const row = ensureRow(b.material_id, materialById.get(b.material_id) ?? null, b.unit)
         row.outputStock += b.remaining_qty
 
         const unitCost = legCostByBatch.get(b.id)

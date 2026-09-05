@@ -66,12 +66,15 @@ export default async function ReceivableDocPage({
     // 批次(单据号+物料)/ 客户 / 结算历史 / 收入分录 / COGS 分录 / 附件,页级小查询
     const [batchRes, customerRes, allocsRes, revenueRes, cogsRes, attachRes, invoiceRes] = await Promise.all([
         supabase
-            .from('output_batches')
-            .select('id, code, materials(name)')
+            // FIX-2a:output_batches 挂 module.output.view,这一页的守卫是 finance.view。
+            // cfo 读回零行 —— 应收明细页说不出这笔钱卖的是哪一批。物料名单独取
+            // (内嵌会对 materials 另套一遍 RLS)。
+            .from('output_batch_lookup')
+            .select('id, code, material_id')
             .eq('id', sale.output_batch_id)
             .single(),
         sale.customer_id
-            ? supabase.from('customers').select('legal_name').eq('id', sale.customer_id).single()
+            ? supabase.from('customer_lookup').select('legal_name').eq('id', sale.customer_id).single()
             : Promise.resolve({ data: null, error: null }),
         supabase
             .from('payment_allocations')
@@ -132,18 +135,21 @@ export default async function ReceivableDocPage({
     ]
 
     const batch = batchRes.data
-    const materialName = (batch?.materials as unknown as { name: string } | null)?.name ?? '—'
+    const materialName = batch?.material_id
+        ? (await supabase.from('material_lookup').select('name').eq('id', batch.material_id).maybeSingle())
+              .data?.name ?? '—'
+        : '—'
 
     // SAL-C:无主销售才需要补挂控件 —— 有主的看不到这条路(单向)
     const attributable = sale.customer_id === null
     const customerOptions = attributable
         ? mustRows(
               await supabase
-                  .from('customers')
+                  .from('customer_lookup')
                   .select('id, code, legal_name')
                   .is('deleted_at', null)
                   .order('code')
-          )
+          ) as unknown as { id: string; code: string; legal_name: string }[]
         : []
 
 

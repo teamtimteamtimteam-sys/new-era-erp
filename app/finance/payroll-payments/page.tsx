@@ -22,7 +22,12 @@ export default async function PayrollPaymentsPage() {
     const t = await getTranslations()
     // PayPanel 是客户端组件,本位币当 prop 传进去(CCY-1)
     const baseCurrency = await getBaseCurrency()
-    const { data: periods } = await supabase.from('payroll_periods')
+    // FIX-2a:payroll_periods 与 employees 都挂 module.hr.view,而这一页的守卫是
+    // finance.view —— cfo 与 finance 读回零行,于是「本期薪资」整块是空的,
+    // 屏幕说的是【这个月没有薪资期间】,对两个要去付薪的人。
+    // ★ 两张查名视图的金额列【仍按 data.view_pay 遮】,而 finance 与 cfo
+    //   本来就持有它 —— 所以这里一分钱都没有多给,只是不再说那句假话。
+    const { data: periods } = await supabase.from('payroll_period_lookup')
         .select('id, code, period_month, status, net_pay_total, employer_cpf_total, employee_cpf_total, other_deductions_total, cpf_paid_at, deductions_paid_at')
         .eq('status', 'posted').is('deleted_at', null)
         .order('period_month', { ascending: false }).limit(6)
@@ -34,7 +39,7 @@ export default async function PayrollPaymentsPage() {
         : { data: [] }
     const empIds = Array.from(new Set((lines ?? []).map((l) => l.employee_id).filter((x): x is string => !!x)))
     const { data: emps } = empIds.length
-        ? await supabase.from('employees').select('id, code, legal_name').in('id', empIds)
+        ? await supabase.from('employee_lookup').select('id, code, legal_name').in('id', empIds)
         : { data: [] }
     return (
         <ListPage title={t('finance.payrollPay.title')} maxWidth="max-w-5xl" state={{ kind: 'ok' }}>

@@ -14,6 +14,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { can } from '@/lib/permissions'
 import { formatAmount } from '@/lib/format'
 import NewForwarderForm from './NewForwarderForm'
 import { ListPage } from '@/app/components/ui/list-page'
@@ -26,15 +27,39 @@ export default async function ForwardersPage() {
     const supabase = await createClient()
     const t = await getTranslations()
 
+    // ★★【FIX-2a:这一页此前对三个角色整张是空的,而它说的不是"空"】★★
+    // 守卫是 module.logistics.view,operations / sales / warehouse 三个角色都持有它,
+    // 于是这一页【打得开】。但 suppliers 基表挂的是 module.suppliers.view ——
+    // 他们读到零行,屏幕上写着「还没有货代」,而线上有四家。
+    // 名字走 supplier_lookup(FIX-1 建的那张查名视图,本刀把 logistics.view 加进它的
+    // 体内谓词);付款条件与未结应付【不跟着来】,见下面两处。
     const rows = mustRows(
         await supabase
-            .from('suppliers')
-            .select('id, code, legal_name, payment_terms')
+            .from('supplier_lookup')
+            .select('id, code, legal_name')
             .eq('counterparty_type', 'forwarder')
             .is('deleted_at', null)
             .order('legal_name'),
         'forwarders'
-    )
+    ) as unknown as { id: string; code: string; legal_name: string }[]
+
+    // 【付款条件是商务数据 —— 它不在查名视图里,而这是一次判断不是一次遗漏】
+    // supplier_lookup 刻意没有 payment_terms(FIX-1 抬头列的那六列之一)。
+    // 持 suppliers.view 的人照旧读得到;其余的人这一栏画【具名受限】,
+    // 不画一根横杠 —— 「没填付款条件」与「你不能看付款条件」不是一回事。
+    const canCommercial = await can('module.suppliers.view')
+    const termsById = new Map<string, string | null>()
+    if (canCommercial && rows.length) {
+        for (const s of mustRows(
+            await supabase
+                .from('suppliers')
+                .select('id, payment_terms')
+                .in('id', rows.map((r) => r.id)),
+            'forwarder payment terms'
+        )) {
+            termsById.set(s.id as string, s.payment_terms as string | null)
+        }
+    }
 
     const ids = rows.map((r) => r.id)
     const details = ids.length
@@ -46,7 +71,16 @@ export default async function ForwardersPage() {
     const routeOf = new Map(details.map((d) => [d.supplier_id as string, d.main_routes as string | null]))
 
     // 未结应付:与供应商欠款读的是【同一张视图】—— 共用 id 的全部意义就在这里。
-    const open = ids.length
+    //
+    // ★★【FIX-2a(b):欠了多少钱是【商务数据】,而扣下它【就是对的】】★★
+    // ap_open_items 的体内谓词是 module.finance.view。operations / sales /
+    // warehouse / procurement 都没有它,于是这一支读回零行 —— 而下面那句
+    // `owed.get(r.id) ? … : null` 会把零行翻译成【每一家货代都不欠钱】。
+    // 那不是"少一栏",那是一个自信的、错的、会被抄进决策的答案。
+    // Tim 的裁定:现场的人不接触任何商务数据 —— 所以【不放宽】,让屏幕说出来。
+    // 判据先问权限,再决定读不读:拒绝必须是一句权限答复,不能从空结果倒推。
+    const canMoney = await can('module.finance.view')
+    const open = canMoney && ids.length
         ? mustRows(
               await supabase.from('ap_open_items').select('counterparty_id, open_base, currency').in('counterparty_id', ids),
               'ap_open_items'
@@ -69,7 +103,7 @@ export default async function ForwardersPage() {
         legalName: r.legal_name,
         code: r.code,
         mainRoutes: routeOf.get(r.id) ?? '—',
-        paymentTerms: r.payment_terms ?? '—',
+        paymentTerms: termsById.get(r.id) ?? '—',
         // 【零不写成 0.00】—— 没有欠款给 null,由表说那句话
         owedLabel: owed.get(r.id) ? formatAmount(owed.get(r.id)!, baseCcy) : null,
     }))
@@ -87,7 +121,12 @@ export default async function ForwardersPage() {
             />
 
             <div className="mt-6">
-                <ForwardersTable rows={tableRows} empty={t('logistics.emptyForwarders')} />
+                <ForwardersTable
+                    rows={tableRows}
+                    empty={t('logistics.emptyForwarders')}
+                    moneyRestricted={!canMoney}
+                    termsRestricted={!canCommercial}
+                />
             </div>
         </ListPage>
     )

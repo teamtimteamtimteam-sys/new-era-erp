@@ -10,6 +10,7 @@ import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatMoneyBare } from '@/lib/format'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { Refusal } from '@/app/components/ui/refusal'
 
 export type PayrollPeriodRow = {
     id: string
@@ -64,13 +65,18 @@ export default function PayrollPeriodsTable({ rows, empty }: { rows: PayrollPeri
         },
         {
             key: 'journal', header: t('assay.journalLink'), className: 'text-sm',
+            // ★ FIX-2a(b):三态,不是两态。没有分录 = 破折号(诚实);
+            //   有分录但读不到 = 具名受限,而且【不画链接】—— 一个点进去必然
+            //   被拒的链接,是把拒绝推迟到下一屏,不是把它说出来。
             render: (r) =>
-                r.journalEntryId ? (
+                !r.journalEntryId ? (
+                    '—'
+                ) : r.journalCode === 'restricted' ? (
+                    <Refusal why={t('hr.payrollEntryRestrictedHint')}>{t('common.restricted')}</Refusal>
+                ) : (
                     <Link href={`/finance/journal/${r.journalEntryId}`} className="text-blue-600 hover:underline font-mono">
                         {r.journalCode}
                     </Link>
-                ) : (
-                    '—'
                 ),
         },
     ]
