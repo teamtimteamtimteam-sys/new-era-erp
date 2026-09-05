@@ -32,6 +32,7 @@ export default function PrepaymentPanel({
     applicable,
     history,
     baseCurrency,
+    restricted = false,
 }: {
     batchId: string
     applicable: {
@@ -45,10 +46,33 @@ export default function PrepaymentPanel({
     /** CCY-1:本面板的金额全是本位币(*_base)。来自 currencies.is_base,
      *  由页面 getBaseCurrency() 后传进来 —— 客户端组件不自己查,也不写死。 */
     baseCurrency: string
+    /**
+     * ★ FIX-2b:【这一批挂着采购单,而你看不到采购侧】。
+     *
+     * 此前这个面板只有两种样子:有数就画,没数就 `return null`。于是对
+     * warehouse 与 operations(都不持 module.purchasing.view,预付记录走
+     * prepayment_applications_masked / po_prepayment_applicable,两者都在
+     * 财务或采购那道门后面)它【整块消失】—— 而屏幕上"没有这一块"读起来
+     * 就是「这批货一次预付都没抵扣过」。操作员正是照着这句话决定要不要再抵一次。
+     *
+     * 第三种样子因此必须存在,而且判据【不能】是 applicable/history 空不空
+     * (那是从空结果倒推),要由页面把权限答复本身传进来。
+     */
+    restricted?: boolean
 }) {
     const t = useTranslations()
     const boundAction = applyPrepayment.bind(null, batchId, applicable?.purchase_order_id ?? '')
     const [state, formAction, isPending] = useActionState(boundAction, initialState)
+
+    // ★ 先答权限,再答有没有 —— 次序不能反(反了就又是"空 = 没有")。
+    if (restricted) {
+        return (
+            <section className="mt-8 border border-gray-300 rounded p-4">
+                <h2 className="font-bold mb-1">{t('purchasing.applyPrepayment')}</h2>
+                <p className="text-sm text-gray-600">{t('purchasing.prepaymentRestricted')}</p>
+            </section>
+        )
+    }
 
     if (!applicable && history.length === 0) return null
 

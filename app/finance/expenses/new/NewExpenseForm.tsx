@@ -66,6 +66,7 @@ export default function NewExpenseForm({
     assets,
     poLines,
     canSeePurchasing,
+    canSeeSuppliers,
     capitalAccountLabel,
     gstRegistered,
     taxCodes,
@@ -78,6 +79,8 @@ export default function NewExpenseForm({
     assets: AssetOption[]
     poLines: PoLineOption[]
     canSeePurchasing: boolean
+    /** ★ FIX-2b:供应商名单空着的两种意思,只有服务端答得出是哪一种。 */
+    canSeeSuppliers: boolean
     capitalAccountLabel: string
     gstRegistered: boolean
     taxCodes: TaxCodeOption[]
@@ -422,7 +425,9 @@ export default function NewExpenseForm({
                                 supplierLabel={t('finance.counterpartyKind.supplier')}
                                 employeeLabel={t('finance.counterpartyKind.employee')}
                                 employeesEmptyLabel={t('finance.employeesEmpty')}
-                                suppliersEmptyLabel={t('suppliers.pickerEmptyGoods')} />
+                                suppliersEmptyLabel={canSeeSuppliers
+                                    ? t('suppliers.pickerEmptyGoods')
+                                    : t('suppliers.pickerRestricted')} />
                         </select>
                     </div>
                 )}

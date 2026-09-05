@@ -39,8 +39,9 @@ type InboundRow = {
     purchase_order_id: string | null
     purchase_order_line_id: string | null
     source_reason_code: string | null
-    materials: { name: string } | null
-    suppliers: { legal_name: string } | null
+    // FIX-2b:内嵌换成两个 FK —— 名字在 TS 里从查名视图拼(见 baseQuery 的注释)。
+    material_id: string | null
+    supplier_id: string | null
 }
 
 export default async function InboundPage({
@@ -89,15 +90,21 @@ export default async function InboundPage({
             filterParams,
             searchOr
         ),
+        // ★★【FIX-2b:两张下拉换读查名视图】★★ suppliers 的门是 module.suppliers.view、
+        //   materials 的门是 module.materials.view,而本页的门是 module.inbound.view。
+        //   实测(2026-09-06,模拟会话):Fu Sheng 从两张基表各读到 **0 行**,
+        //   Phua 从 suppliers 读到 0 行 —— 于是这一页的两个筛选下拉对他们【整张是空的】,
+        //   读起来是「系统里没有登记供应商 / 物料」。而这一页正是 Fu Sheng 每天的活。
+        //   FIX-1 开的两张查名视图的谓词都含 module.inbound.view,列也够。
         supabase
-            .from('suppliers')
-            .select('id, legal_name')
+            .from('supplier_lookup')
+            // LOG-1b 的过滤【搬到 TS 侧】—— 见下面 supplierOptions 的理由:
+            // 下拉要筛掉货代,而【名字表不能筛】。一次查询,两种用法。
+            .select('id, legal_name, counterparty_type')
             .is('deleted_at', null)
-            // LOG-1b:货代不进供应商名单(他们保留 supplier id 只为账上那条链)
-            .neq('counterparty_type', 'forwarder')
             .order('legal_name'),
         supabase
-            .from('materials')
+            .from('material_lookup')
             .select('id, name')
             .is('deleted_at', null)
             .order('name'),
@@ -130,11 +137,17 @@ export default async function InboundPage({
     const to = from + INBOUND_PAGE_SIZE - 1
 
     // 2) 取当前页的行:带嵌入的 select(materials/suppliers 名字用于展示)+ 过滤 + 排序 + .range
+    // ★★【FIX-2b:内嵌拿掉了 —— 它是同一条缺陷的第二半,而且更难看见】★★
+    //   `materials ( name )` / `suppliers ( legal_name )` 是 PostgREST 的内嵌:
+    //   它读的是【基表】,所以对 warehouse 与 operations 一律解析成 null,
+    //   下面 tableRows 的 `?? '—'` 把它渲染成一根破折号。
+    //   于是屏幕上是【一整列的破折号】—— 而破折号读起来是"这条记录没填",
+    //   不是"你看不到"。名字改在 TS 里从两张查名视图拼(本仓库既有做法:
+    //   「视图上不做 embed,分开查、在 TS 里拼」,见 /finance/expenses/new 的注释)。
     const baseQuery = supabase.from('inbound_batches').select(`
         id, code, quantity, unit, remaining_qty, arrival_date, stage, status, pricing_status, created_at,
         purchase_order_id, purchase_order_line_id, source_reason_code,
-        materials ( name ),
-        suppliers ( legal_name )
+        material_id, supplier_id
     `)
 
     const { data, error } = await applyInboundFilters(
@@ -184,14 +197,27 @@ export default async function InboundPage({
     )
 
     // 下拉选项:供应商按 legal_name、物料按 name 作为显示标签
-    const supplierOptions: PartyOption[] = (mustRows(suppliersRes)).map((s) => ({
-        id: s.id,
-        label: s.legal_name,
-    }))
-    const materialOptions: PartyOption[] = (mustRows(materialsRes)).map((m) => ({
+    // 视图列在生成类型里全可空;行进了视图即非空(WHERE 已保证)。
+    const supplierRows = mustRows(suppliersRes) as unknown as
+        { id: string; legal_name: string; counterparty_type: string }[]
+    const materialOptions: PartyOption[] = (mustRows(materialsRes) as unknown as
+        { id: string; name: string }[]).map((m) => ({
         id: m.id,
         label: m.name,
     }))
+    // ★★【FIX-2b fu2:【名字表】不能继承下拉的货代过滤】★★
+    //   下拉排除货代是对的(LOG-1b:货代不进供应商名单)。但把那份【已经筛过的】
+    //   清单直接当名字表用,会让一条【从货代收来的】批次印一根破折号 ——
+    //   而这一刀存在的全部理由就是消灭那种破折号。
+    //   实测(2026-09-06):今天这样的批次有 **0 条**,所以屏幕上看不出来。
+    //   ★ 那正是它必须现在修的理由:一个要等数据长出来才显形的缺陷,
+    //     不会有人把它和这一刀联系起来。
+    //   所以:名字表取【全部】,货代只在下拉那一步筛掉。
+    const supplierNameById = new Map(supplierRows.map((s) => [s.id, s.legal_name]))
+    const materialNameById = new Map(materialOptions.map((o) => [o.id, o.label]))
+    const supplierOptions: PartyOption[] = supplierRows
+        .filter((s) => s.counterparty_type !== 'forwarder')
+        .map((s) => ({ id: s.id, label: s.legal_name }))
 
     // stage 存储值反查成本地化文案;未知值原样显示
     const stageLabel = (value: string) => {
@@ -210,8 +236,11 @@ export default async function InboundPage({
         return {
             id: b.id,
             code: b.code,
-            materialName: b.materials?.name ?? '—',
-            supplierName: b.suppliers?.legal_name ?? '—',
+            // FIX-2b:名字来自两张查名视图(上面那两次查询),不再来自内嵌。
+            // 拼不上仍然是 '—',但那时它的含义回到了【真的没有这一项】:
+            // 权限那一半已经在视图的谓词里答过了。
+            materialName: (b.material_id ? materialNameById.get(b.material_id) : null) ?? '—',
+            supplierName: (b.supplier_id ? supplierNameById.get(b.supplier_id) : null) ?? '—',
             sourceKind: b.purchase_order_line_id ? 'po' : b.source_reason_code ? 'reason' : 'unexplained',
             sourceLabel: b.purchase_order_line_id
                 ? poCode

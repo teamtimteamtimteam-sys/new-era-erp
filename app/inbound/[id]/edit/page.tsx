@@ -26,6 +26,7 @@ import ImportDiligencePanel from './ImportDiligencePanel'
 import SourceReasonPanel from './SourceReasonPanel'
 import { loadSourceReasons } from '@/app/inbound/sourceReasonQuery'
 import { can, canViewPrices } from '@/lib/permissions'
+import { Refusal } from '@/app/components/ui/refusal'
 import { maskedRows, maskedExcept } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
 import { mustRows, mustOne } from '@/lib/db-helpers'
@@ -105,6 +106,17 @@ export default async function EditInboundPage({
     // 而"丢了行"与"那一列是空的"读出来一模一样。取一次权限码,把两者分开渲染 ——
     // 与本页上面 canFinance 那一处同源。
     const canViewPurchasing = await can('module.purchasing.view')
+    // ★ FIX-2b:「有没有一张盘点在进行」也是一句权限答复 —— 见下面横幅那一处。
+    const canSeeStocktakes = await can('module.stocktakes.view')
+    // ★★【FIX-2b fu:抵扣预付那一块的门是【财务】,不是采购 —— 第一版把它挂错了】★★
+    //   实测两张来源的谓词都是 module.finance.view:
+    //     po_prepayment_applicable        WHERE … has_permission('module.finance.view')
+    //     prepayment_applications_masked  WHERE     has_permission('module.finance.view')
+    //   而第一版的 restricted 只问了 canViewPurchasing。于是 **procurement**
+    //   (持采购、不持财务)照样穿过去:两次读各得零行,面板照旧 `return null`,
+    //   那块空白原样留着。**修一条"空 = 没有"的缺陷时,把门问错,就是把它换个角色重演一遍。**
+    //   判据因此是两个码的【合取】—— 这一块要两边都看得见才画得出来。
+    const canSeeFinance = await can('module.finance.view')
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
     const [batchRes, materialsRes, suppliersRes, metalsRes, movementsRes, stocktakeRes, priceHistoryRes] = await Promise.all([
@@ -235,7 +247,14 @@ export default async function EditInboundPage({
             .is('deleted_at', null)
             .order('assay_date', { ascending: false })
             .order('code', { ascending: false }),
-        batch.purchase_order_line_id
+        // ★【FIX-2b:这一句也挂在采购那道门上】★ purchase_order_lines 的 RLS 是
+        //   module.purchasing.view;没有那个码的读者拿到的是【零行】,而
+        //   `.single()` 对零行是【一次错误】(PGRST116),不是一个 null。
+        //   这一句此前没有读 error(`?? null`),于是它只是【悄悄】丢掉了那条
+        //   采购行的公式 —— 而下面那句 poRes 用的是 mustOne,同样的零行会抛。
+        //   两处是同一个成因、两种后果;判据统一成【问一次权限】,与本页
+        //   canViewPurchasing 的另外两处同源。
+        canViewPurchasing && batch.purchase_order_line_id
             ? supabase
                   .from('purchase_order_lines')
                   .select('pricing_formula_id')
@@ -301,7 +320,29 @@ export default async function EditInboundPage({
         applicable_base: number
     } | null = null
     let prepaymentHistory: PrepaymentApplicationRow[] = []
-    if (batch.purchase_order_id) {
+    // ★★【FIX-2b:这一块【整块】挂在采购那道门上,而它此前【不挂】—— 那是一次
+    //   线上崩溃,不是一块沉默的空】★★
+    //
+    //   `purchase_orders` / `purchase_order_lines` 的 RLS 都是 module.purchasing.view。
+    //   warehouse 与 operations 【都不持有它】(2026-09-01 navreg1 的原话),于是
+    //   下面那句 `.single()` 拿到零行 —— 而零行在 PostgREST 的 object 模式里是
+    //   **HTTP 406 / PGRST116**,也就是 supabase-js 的一个 error;mustOne 照约定抛,
+    //   整页落进错误边界。
+    //
+    //   【实测,不是推的】以 Fu Sheng 的会话取 /inbound/IN-2026-0322/edit:
+    //     ⨯ Error: 查询失败(采购单表头): PGRST116 … at page.tsx:334
+    //   他看得见的 16 条批次里【有 8 条挂着采购单】,也就是一半。operations 同。
+    //
+    //   ★ 为什么没有任何东西抓到它 ★ 冒烟以 **admin** 登录跑(smoke-routes.mjs:1685),
+    //   而 admin 持有全部权限码 —— 一条"少了一个码才会发生"的缺陷对它是**结构性
+    //   不可见**的。唯一的多角色通路 --reach 在这棵树上结构性发红,所以从来不跑。
+    //   见 docs/known-issues.md 的 SMOKE-SINGLE-ROLE-BLINDSPOT,以及守着这一条的
+    //   scripts/probe-role-crash.mjs。
+    //
+    //   【补法是 (b),不是 (a)】采购单号与订单量本来就在采购那道门后面(FIX-1 已经
+    //   为"叫得出供应商的名字"开过一张查名视图,而这里要的不是一个名字,是**单据
+    //   本身**)。所以:不读、并且在屏幕上【说出来】—— 见下面 againstPoRestricted。
+    if (canViewPurchasing && batch.purchase_order_id) {
         const [poRes, lineRes, applicableRes, historyRes] = await Promise.all([
             supabase.from('purchase_orders').select('id, code').eq('id', batch.purchase_order_id).single(),
             batch.purchase_order_line_id
@@ -532,6 +573,17 @@ export default async function EditInboundPage({
                         )}
                     </span>
                 )}
+                {/* ★ FIX-2b:【挂着单、但你看不到那张单】—— 第三种状态,必须与
+                    「这批货本来就没挂单」分得开。判据取 batch.purchase_order_id
+                    (它在 inbound_batches_masked 上【没有】被遮蔽,所以这一位是
+                    可信的),不是从 poHeader 是不是 null 倒推 —— 倒推会把
+                    「看不到」和「没有」并成一句,而那正是这一刀的题目。 */}
+                {!canViewPurchasing && batch.purchase_order_id && (
+                    <span className="ml-3">
+                        {t('inbound.againstPo')}:{' '}
+                        <Refusal why={t('inbound.againstPoRestrictedWhy')}>{t('common.restricted')}</Refusal>
+                    </span>
+                )}
             </p>
 
             {/* GRN-1b:这一条收货的差异。摆在表单【上面】—— 看这块屏的人在改任何
@@ -574,7 +626,7 @@ export default async function EditInboundPage({
                 ) : null}
             </div>
 
-            {openStocktake && (
+            {openStocktake ? (
                 <StocktakeQuickCount
                     stocktakeId={openStocktake.id}
                     stocktakeCode={openStocktake.code}
@@ -582,7 +634,16 @@ export default async function EditInboundPage({
                     batchId={batch.id}
                     counted={stocktakeCounted}
                 />
-            )}
+            ) : !canSeeStocktakes ? (
+                /* ★ FIX-2b:`stocktakes` 的 RLS 是 module.stocktakes.view,而 finance
+                   不持有它(实测:Choo Er 读 stocktakes 得 0 行)。此前这一句是
+                   `openStocktake &&` —— 于是「没有盘点在进行」与「你看不到盘点」
+                   在这一页上长得一模一样,而它们的下一步完全不同。
+                   这一格不给控件(她本来也没有 stocktakes.edit),只给那句话。 */
+                <p className="text-sm text-gray-600 border border-gray-300 rounded px-3 py-2 mb-6">
+                    {t('stocktakes.openStateRestricted')}
+                </p>
+            ) : null}
 
             <EditInboundForm
                 batch={batch}
@@ -633,12 +694,24 @@ export default async function EditInboundPage({
                         <p className="mb-4 text-sm text-amber-700 border border-amber-300 bg-amber-50 rounded px-3 py-2">
                             {t('assay.termsNotCommitted')}
                         </p>
+                    ) : !canViewPurchasing && batch.purchase_order_line_id ? (
+                        /* ★ FIX-2b:公式的解析次序是【批次自己的 → 它那条采购行的】,
+                           而第二跳住在采购那道门后面。批次自己没有公式时,一个看不到
+                           采购行的读者会得到 resolvedFormulaId = null —— 与"这批货
+                           真的没有计价公式"一模一样,于是上面那句 termsNotCommitted
+                           【不出现】,而它正是"按下去会被拒"的预告。说出这一句。 */
+                        <p className="mb-4 text-sm text-gray-600 border border-gray-300 rounded px-3 py-2">
+                            {t('assay.termsFromPoLineRestricted')}
+                        </p>
                     ) : null
                 }
             />
 
             {/* 抵扣预付(cut 4c):可抵扣 or 有历史时才渲染 */}
-            <PrepaymentPanel batchId={batch.id} applicable={applicable} history={prepaymentHistory} baseCurrency={baseCurrency} />
+            <PrepaymentPanel batchId={batch.id} applicable={applicable} history={prepaymentHistory}
+                baseCurrency={baseCurrency}
+                /* 挂着单、却看不到采购侧 —— 那时这一块要【说出来】,不是消失。 */
+                restricted={!!batch.purchase_order_id && !(canViewPurchasing && canSeeFinance)} />
 
             {/* STK-1:库存分布(库位 × 状态)与暂扣/释放 —— 摆在流水【上面】,
                 因为看批次的人先问「现在有多少可动」,再去看「它是怎么变成这样的」 */}

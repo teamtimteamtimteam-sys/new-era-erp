@@ -68,7 +68,8 @@ const num = (n: number | null) =>
     n === null || n === undefined ? '—' : Number(n).toLocaleString('en-US')
 
 export default function ServiceIntervalPanel({
-    assetId, rows, acquisitionDate, runsBeforeAcquisition, kgSinceAcquisition, canEdit,
+    assetId, rows, acquisitionDate, runsBeforeAcquisition, priorRunsRestricted = false,
+    kgSinceAcquisition, canEdit,
 }: {
     assetId: string
     rows: IntervalRow[]
@@ -76,6 +77,12 @@ export default function ServiceIntervalPanel({
     // 【窗口【左边】那个洞的大小】—— 取得日之前、谁都没归属的在册加工炉数。
     // 视图量不到它(它只量窗口之内),所以页面另查一次。见抬头。
     runsBeforeAcquisition: number
+    /**
+     * ★ FIX-2b:上面那个数【读不到】的时候是 0,而 0 与「真的一炉都没有」
+     * 在这一段判断里走同一条路,落在 honestyComplete 上 —— 也就是说
+     * 一次权限答复会被印成「这个读数是完整的」。判据由服务端传进来。
+     */
+    priorRunsRestricted?: boolean
     // FIX-2(A):取得日以来这台机器吃进去多少公斤 —— 未监控时也要说得出来。
     kgSinceAcquisition: number
     canEdit: boolean
@@ -149,6 +156,13 @@ export default function ServiceIntervalPanel({
         if ((r === null || r.never_serviced) && runsBeforeAcquisition > 0) {
             return { tone: 'amber', text: t('equipment.intervals.honestyNeverAttributable',
                 { n: String(runsBeforeAcquisition), date: acquisitionDate }) }
+        }
+        // ★ FIX-2b:【读不到那个数】是第五种状态,而它此前混在 0 里。
+        //   摆在 honestyComplete 【之前】—— 次序就是这一条的全部内容:
+        //   先答"我知不知道",再答"完不完整"。
+        if ((r === null || r.never_serviced) && priorRunsRestricted) {
+            return { tone: 'amber', text: t('equipment.intervals.honestyPriorRestricted',
+                { date: acquisitionDate }) }
         }
         if (measured === null) {
             // 【第四种状态:没量过】—— 既不能说完整,也没有一个数可以报。

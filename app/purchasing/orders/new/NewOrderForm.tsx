@@ -138,6 +138,8 @@ export default function NewOrderForm({
     baseCurrency,
     assets,
     canSeeAssets,
+    canSeeSupplierTerms,
+    canSeePricingFormulas,
     triggerEvents,
 }: {
     // PROC-4:物质清单由页面从 substances 那张字典读好传进来。
@@ -151,6 +153,15 @@ export default function NewOrderForm({
     baseCurrency: string
     assets: AssetOption[]
     canSeeAssets: boolean
+    /**
+     * ★ FIX-2b:能不能读到【这家供应商约定的默认付款条款】。
+     * 读不到时 default_template_id 一律是 null —— 而 null 与「这家供应商没有
+     * 约定默认条款」在屏幕上完全一样(自动带出的那一步只是没有发生)。
+     * 那是这一刀在防的同一句假话,所以判据由服务端传进来,并在控件旁边说出口。
+     */
+    canSeeSupplierTerms: boolean
+    /** ★ FIX-2b:一张空的公式下拉,两种意思。 */
+    canSeePricingFormulas: boolean
     // EQP-PAY-1:整份字典;按 orderKind 现算可选项(见下面 triggerOptions)。
     triggerEvents: PaymentTriggerEvent[]
 }) {
@@ -612,6 +623,12 @@ export default function NewOrderForm({
                                         </option>
                                     ))}
                                 </select>
+                                {/* ★ FIX-2b:空下拉的两种意思,说出是哪一种。 */}
+                                {!canSeePricingFormulas && (
+                                    <p className="mt-1 text-xs text-gray-600">
+                                        {t('purchasing.form.formulasRestricted')}
+                                    </p>
+                                )}
                             </div>
                             )}
                             <div>
@@ -768,6 +785,12 @@ export default function NewOrderForm({
                         </option>
                     ))}
                 </select>
+                {/* ★ FIX-2b:模板【清单】人人读得到(payment_term_templates 不设门);
+                    读不到的是「这家供应商默认用哪一张」。所以不禁用这个下拉 ——
+                    只说出那一步为什么没有自动发生。 */}
+                {!canSeeSupplierTerms && (
+                    <span className="text-xs text-gray-600">{t('purchasing.form.supplierTermsRestricted')}</span>
+                )}
             </div>
             {/* EQP-PAY-1:换了单据种类之后,用不上的里程碑被换掉了 —— 【说出来】,
                 不要悄悄改掉一个人已经选好的东西。 */}

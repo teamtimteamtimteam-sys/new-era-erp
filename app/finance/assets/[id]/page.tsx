@@ -200,6 +200,17 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
     // 【失败不是空集】—— 查不到与"没有"在屏幕上一模一样,而这个数正是用来
     // 说"这个读数不完整"的;它自己静默失败会让那句话消失(mustCount 的理由)。
     const runsBeforeAcquisition = mustCount(priorRes, 'processing_runs_masked prior runs')
+    // ★★【FIX-2b:这个数【读不到】的时候,它读回来的是 0 —— 而 0 在这里是
+    //   「读数是完整的」】★★
+    //   processing_runs_masked 的谓词是 module.processing.view,而本页的门是财务。
+    //   实测:Choo Er(finance)读它得 **0 行**,于是 mustCount 得 0
+    //   —— 注意 mustCount 在这里是对的,它挡的是【查询失败】,而一次权限答复
+    //   不是失败,它就是零行。零行一路走到 ServiceIntervalPanel 的 honesty(),
+    //   跳过「取得日之前还有 n 炉没人归属」那一支,落到最后那句
+    //   **honestyComplete —— 「这个读数是完整的」**。
+    //   本页那个 canRecordEquipment 分支问的是 module.processing.**edit**,
+    //   与这一处该问的不是同一个问题。判据单独取一次,并把它传下去。
+    const canSeeProcessingRuns = await can('module.processing.view')
 
     // FIX-2(A):取得日以来这台机器吃进去多少公斤。
     // 【为什么 equipment_usage 就是"取得日以来"】加工炉只能在提交时归属给机器,
@@ -217,7 +228,15 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
             ? supabase.from('employees_masked').select('id, code, legal_name')
                 .is('deleted_at', null).order('code').limit(200)
             : Promise.resolve({ data: [], error: null }),
-        supabase.from('suppliers').select('id, code, legal_name')
+        // ★ FIX-2b:【查名视图,不是基表】suppliers 的 RLS 是 module.suppliers.view,
+        //   而本页的门是财务 —— 一个只有财务权限的读者从基表读到【零行】,于是
+        //   MaintenancePanel 那两个供应商下拉是【空的,而且不说为什么】。
+        //   下面第 254 行那个 `?? t('common.restricted')` 只救了【表格里那一格】,
+        //   救不了下拉:委托书把这一处写成"未处理",而准确的说法是【只处理了一半】。
+        //   supplier_lookup 的体内谓词已经含 module.finance.view,列也够
+        //   (id / code / legal_name)—— 所以这一处是【换一个读法】,不是扩权,
+        //   更不需要迁移。
+        supabase.from('supplier_lookup').select('id, code, legal_name')
             .is('deleted_at', null).order('code').limit(200),
         // 【这次活花了多少钱,是资本化建议那笔算术的【输入】】——
         // equipment_maintenance_advice 从 expense_id 指着的那张【已过账】支出上读
@@ -426,6 +445,7 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                     rows={statusRows as unknown as IntervalRow[]}
                     acquisitionDate={asset.acquisition_date}
                     runsBeforeAcquisition={runsBeforeAcquisition}
+                    priorRunsRestricted={!canSeeProcessingRuns}
                     kgSinceAcquisition={kgSinceAcquisition}
                     canEdit={canRecordEquipment} />
                 <MaintenancePanel

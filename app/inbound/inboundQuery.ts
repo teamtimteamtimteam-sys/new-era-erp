@@ -101,19 +101,26 @@ export async function resolveInboundSearchIds(
 ): Promise<InboundSearchIds> {
     if (!q) return { materialIds: [], supplierIds: [] }
     const pattern = `%${q}%`
+    // ★★【FIX-2b:两句都换读查名视图】★★ 这两句决定「按物料名 / 供应商名搜得到什么」。
+    //   基表的门(materials.view / suppliers.view)与本页的门(inbound.view)不是同一道,
+    //   于是对 warehouse 与 operations 它们一律返回【零个 id】—— 搜索框照常工作、
+    //   照常返回结果,只是【按名字那两条臂永远不命中】。这是本刀里最安静的一处:
+    //   它不留空白格,只是让一次搜索少给几行,而少给的那几行看起来就像"没有"。
+    //   两张视图的谓词都含 module.inbound.view,而这里只要 id + 一次 ilike。
     const [matRes, supRes] = await Promise.all([
-        supabase.from('materials').select('id').is('deleted_at', null).ilike('name', pattern),
+        supabase.from('material_lookup').select('id').is('deleted_at', null).ilike('name', pattern),
         supabase
-            .from('suppliers')
+            .from('supplier_lookup')
             .select('id')
             .is('deleted_at', null)
             // LOG-1b:货代不进供应商名单(他们保留 supplier id 只为账上那条链)
             .neq('counterparty_type', 'forwarder')
             .ilike('legal_name', pattern),
     ])
+    // 视图列在生成类型里全可空;行进了视图即非空(WHERE 已保证)。
     return {
-        materialIds: (mustRows(matRes)).map((r) => r.id),
-        supplierIds: (mustRows(supRes)).map((r) => r.id),
+        materialIds: (mustRows(matRes) as unknown as { id: string }[]).map((r) => r.id),
+        supplierIds: (mustRows(supRes) as unknown as { id: string }[]).map((r) => r.id),
     }
 }
 

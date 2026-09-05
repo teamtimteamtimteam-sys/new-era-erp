@@ -3,6 +3,111 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
+## MASKED-READS-BASELINE-STALE —— 棘轮的基线比现实【松了 7 条】(FIX-2b 顺手量到,2026-09-06)
+
+`scripts/check-masked-reads.mjs` 每次运行都印一句「基线可以收紧」,列出 7 处
+**已经不存在**的在册项:
+
+```
+app/finance/payments/[id]/page.tsx :: inbound_batches            1 → 0
+app/finance/payroll-payments/page.tsx :: employees               1 → 0
+app/finance/processing-costs/page.tsx :: processing_runs         1 → 0
+app/finance/sourceLinks.ts :: inbound_batches                    1 → 0
+app/finance/sourceLinks.ts :: processing_cost_entries            1 → 0
+app/inventory/output/[materialId]/page.tsx :: processing_runs :: embed  1 → 0
+app/inventory/page.tsx :: processing_runs                        1 → 0
+```
+
+**★ 这 7 处【不是】 FIX-2b 修的** —— 那七个文件本刀一个字都没动(`git status` 为证)。
+它们是更早某一刀改好之后**没有回头收紧基线**留下的。
+
+**为什么它值得一条记录,而不是顺手刷新掉:** 一道棘轮松了 7 格,意味着这 7 处
+**可以悄悄退回去而检查仍然是绿的**。刷新它只要一条命令
+(`node scripts/check-masked-reads.mjs --update-baseline`),
+**但那会让本刀的提交看起来修了七件它没修的事**,而下一个查「这七处是什么时候改好的」
+的人会被指向错误的一刀。**记在这里,由下一刀顺手收紧(或由 Tim 说一声就地做掉)。**
+
+---
+
+## ★★ SMOKE-SINGLE-ROLE-BLINDSPOT —— 冒烟以 admin 跑,所以【角色形状的缺陷】它结构上看不见(FIX-2b,2026-09-06)
+
+> **这一条【不是】某一个缺陷的脚注。它是一个盲区,而那个缺陷只是它第一次被人指着看见。**
+
+`scripts/smoke-routes.mjs` 建完一次性账号之后**立刻授 admin**(`smoke-routes.mjs:1685`),
+整跑 218 条路由都是这一个会话。而 admin 持有**全部 39 个权限码**。
+
+于是判据可以写成一句话:
+
+> **一条"少了某个权限码才会发生"的缺陷,对冒烟是【结构性不可见】的 ——
+> 不是它没跑到那一页,是它跑到了,而那一页对 admin 是好的。**
+
+**唯一的多角色通路是 `--reach`,而它在这棵树上结构性发红**(约 96 条假失败,
+见 AGENTS.md 那一节),所以实际上**没有任何一道自动化门,以【非 admin】的身份
+取过一次页面**。两件事叠起来,盲区就是完整的。
+
+### 它与仓库里已经记着的那一条,是同一个形状的两面
+
+已经记下的那一条是:**加一道守卫,会用覆盖率换一个绿灯** —— 页面从渲染内容变成
+渲染一句拒绝,而冒烟的判据是 HTTP 2xx,拒绝页也是 200(本文件第 110 行附近,
+以及 `smoke-routes.mjs` 抬头)。那里丢掉的是**内容**,判据还在。
+
+**这一条更深一层:判据本身从来没有被放到那个角色的位置上。**
+那里是"守卫让检查看得少了";这里是"检查一次都没有站在那个人的位置上看过"。
+前者是覆盖率缩水,后者是**覆盖率从来就没有过**。
+
+### 它第一次显形时抓到的是什么(实测,不是推理)
+
+`/inbound/[id]/edit` 对 **warehouse 与 operations** 在【挂着采购单】的批次上
+**抛异常**,整页落进错误边界:
+
+```
+⨯ Error: 查询失败(采购单表头): PGRST116 Cannot coerce the result to a single JSON object
+    at mustOne (lib/db-helpers.ts:36:20)
+    at EditInboundPage (app/inbound/[id]/edit/page.tsx:334:30)
+```
+
+`purchase_orders` 的 RLS 是 `has_permission('module.purchasing.view')`,两个角色都不持有
+(2026-09-01 `navreg1` 的原话)。零行 + `.single()` = PostgREST 的 **406 / PGRST116**,
+也就是一个 error,于是 `mustOne` 照约定抛。
+**Fu Sheng 看得见的 16 条批次里有 8 条挂着采购单 —— 也就是一半。**
+它在线上活着,而六个人里两个人每天都会踩到;冒烟一次都没有说过话。
+
+### ★ 而它差点第二次逃掉 —— 因为守它的那支探针,第一版的判据分不出两臂
+
+第一版 `scripts/probe-role-crash.mjs` 断言的是 **HTTP === 200**。它对着上面那条
+**正在抛异常**的页面**全绿**。原因是 **App Router 是流式的**:外壳先冲出去,
+状态码在那一刻就定了 200,服务端组件之后抛的异常只能落在【正文里】。
+
+**所以对一个 RSC 抛错的页面,HTTP 状态根本不是那个信号 —— dev 与 prod 都不是。**
+
+判据换成【这一页有没有把自己渲染出来】(正文里必须出现这条记录自己的编号),
+两臂当场分开:挂单那条红、没挂单那条与 `/output/[id]/edit`、`/inbound` 三条绿,
+**同一跑之内**。这与 UI-1d fu2 记下的那一条逐字同源:
+**一个分不出两臂的判据不是判据。**
+
+### 处置:`scripts/probe-role-crash.mjs`,以及它【不是】什么
+
+* **是**:一支按名指定角色、以那个角色的会话真的把页面取回来的探针。
+  默认 `warehouse` 与 `operations`(今天两个有真人的非 admin 操作角色),
+  `--roles=` 可改。判据是「渲染出来了没有」+「正文里有没有抛出的异常」。
+  三种故障注入(`--inject=no-po-batch` / `expect-500` / `no-role`)各自
+  让一条【具名的】断言变红。
+* **不是**一道闸,也不进 `npm run build`:它要起 dev server、要建一次性账号、
+  要持 `live_lock`,那是冒烟的量级,不是构建的量级。
+  **它是"改了跨模块的读之后跑一次"的东西**,与冒烟同一档。
+* **不是**对 `--reach` 的替代。`--reach` 答的是「走不走得到」,它答的是
+  「取回来的那一页对不对」。两个问题,谁都不许冒充谁。
+
+### 还没有关掉的那一半 —— 写下来,免得这一条被读成"已解决"
+
+这支探针**只覆盖它被告知的那几条路由**(今天 4 条 × 2 个角色)。
+**它没有把盲区关掉,只是在盲区里点了一盏灯。**
+真正关掉它要么是让冒烟对多个角色各跑一遍(成本按现在 765s × 角色数算),
+要么是修好 `--reach`(那是 Playwright 或者教 `hrefsIn` 读注册表,AGENTS.md 里
+记着 Tim 还没有裁过)。**在那之前,任何"冒烟全绿"都只是"对 admin 全绿"。**
+
+---
+
 ## ★ REACH-FRONTIER —— `--reach=finance` 是红的,而【一半的红不是 CONV-7 造成的】(2026-09-04)
 
 **实测(CONV-7,`--reach=finance`,判词 `REACHFIN_OWN_EXIT=1`):路由那一半全绿
@@ -4885,7 +4990,118 @@ FIX-1 的跨模块普查顺手量到:线上 98 张视图里,**97 张 `security_i
 **机器状态:** 没有为它加检查。与 C-1b 的 Q7 同一条道理 ——
 一道会对着正确代码变红的闸,两刀之内就会被人加白名单绕过去。
 
-## COPY-1-PAYABLES-OVF —— /finance/payables 在 390px 上溢出 480px,且有一张【够不着】的表(2026-09-06)
+## ~~COPY-1-PAYABLES-OVF~~ —— ★ 已修(FIX-2b,2026-09-06)★
+
+**同一支探针,同一棵树,前后各量一次 —— 中间只换了一个文件。**
+
+| | U1 横向溢出 | U2 被裁的表 | 判据 |
+|---|---|---|---|
+| **修之前**(`git show HEAD:app/finance/payables/page.tsx`) | **+480px** · 元凶 `span.text-gray-400` | **1 张 · maxCols=8** | USABLE 1/2 |
+| **修之后** | **0px** | **0 张** | USABLE **2/2** |
+
+```
+修之前   [  1/2] 3s  ovf=480 clip=1 /finance/payables
+修之后   [  1/2] 4s  ovf=0   clip=0 /finance/payables
+```
+
+> **两跑都带着探针自己的自检:** `self-test PASSED — overflow injection read +510px
+> and named its culprit; clipped-table injection read 1; scrolling ancestor correctly
+> read 0`。**也就是说"修之后读到 0"不是因为探针瞎了** —— 同一次运行里它对着注入
+> 的溢出仍然读得出 +510px。这正是「一个分不出两臂的判据不是判据」的另一面:
+> 一个全绿的结果,要有证据说明它**还能变红**。
+
+### 修法:【手机档明确选列】,不是给它一个滚动条 —— Tim 2026-09-06 裁定
+
+**裁定原文的意思:「八列金额横着拖读得完,但读不懂。」** 拖到「未结」那一列时,
+左边的单据号已经滚出屏幕,数字就没有主语。
+
+手机档(< `sm`)三列:**单据 · 未结 · 账龄**。
+**被拿掉的五列(往来对象 / 单据日 / 到期日 / 金额 / 已结)一列都没有丢** ——
+它们带着各自的列头,叠在「单据」那一格里。
+★ **判据:390px 上读得到的字段数与桌面【完全相同】,变的只是排布。**
+
+两处 `colSpan` 因此各写了两份(手机 1/3 列、桌面 4/8 列)—— `colSpan` 不能随断点变,
+而这是唯一不需要重写整张表就能做到的办法。
+
+### 它没有推广到别处 —— 那是 `RAW-TABLE-PHONE-SWEEP`,而且要先有一个裁定
+
+---
+
+## RAW-TABLE-PHONE-SWEEP —— 手搓 `<table>` 的手机档:54 个文件,**一族债,不是一堆缺陷**(FIX-2b,2026-09-06)
+
+**委托书问「同一个祖先是不是也裁了别的页」。答案是:【没有那个祖先】。**
+每一页各自写自己的 `<table>`,所以这不是一个坏掉的组件,是**一个被重复了五十几遍的惯用法**。
+
+实测(2026-09-06):`app/**/*.tsx` 里 **73 个文件**含一个手搓 `<table>`;
+其中 **54 个文件整份源码里一处 `overflow-x` / `overflow-auto` 都没有**。
+
+> ★ **不要把它读成「有 54 个缺陷」。** COPY-1 的探针只在**真实数据真的把表撑出
+> 容器**时才判 U2 红,而全站量下来红的只有 `/finance/payables` 一页(已修)。
+> 其余 53 页今天大多没有显形 —— 它们是**同一个惯用法**,不是五十三个已知故障。
+
+**下一刀从这张表开始,不必重做勘察。** 排期与那个要先做的裁定见
+`docs/forward-queue.md` 阶段 8 的 **RAW-TABLE-PHONE**。
+
+| 列数(`<th>`) | 文件 |
+|---|---|
+| 13 | `app/finance/assets/page.tsx` |
+| 13 | `app/me/MyLeavePanel.tsx` |
+| 13 | `app/sales/orders/[id]/amend/AmendOrderForm.tsx` |
+| 11 | `app/finance/payments/new/NewPaymentForm.tsx` |
+| 11 | `app/finance/receivables/page.tsx` |
+| 11 | `app/me/page.tsx` |
+| 10 | `app/inventory/page.tsx` |
+| 9 | `app/finance/payables/page.tsx` |
+| 9 | `app/hr/reviews/GoalsEditor.tsx` |
+| 8 | `app/finance/close/page.tsx` |
+| 8 | `app/finance/invoices/[id]/CreateCreditNoteControl.tsx` |
+| 8 | `app/hr/attendance/[id]/AttendanceGrid.tsx` |
+| 8 | `app/operation/orders/new/NewWorkOrderForm.tsx` |
+| 8 | `app/sales/customers/ChasePanel.tsx` |
+| 7 | `app/finance/invoices/new/NewInvoiceForm.tsx` |
+| 7 | `app/materials/[id]/edit/AttachmentsPanel.tsx` |
+| 7 | `app/me/MyAttendancePanel.tsx` |
+| 7 | `app/me/MyExpenseClaimsPanel.tsx` |
+| 7 | `app/purchasing/orders/new/NewOrderForm.tsx` |
+| 7 | `app/sales/customers/ContactsPanel.tsx` |
+| 7 | `app/sales/customers/[id]/edit/AttachmentsPanel.tsx` |
+| 7 | `app/sales/quotes/[id]/QuoteLinesEditor.tsx` |
+| 7 | `app/suppliers/[id]/edit/AttachmentsPanel.tsx` |
+| 6 | `app/finance/bank/import/ImportStatementForm.tsx` |
+| 6 | `app/finance/freight/new/NewFreightForm.tsx` |
+| 6 | `app/finance/trial-balance/page.tsx` |
+| 6 | `app/me/MyReviewsPanel.tsx` |
+| 6 | `app/purchasing/orders/[id]/amend/AmendOrderForm.tsx` |
+| 6 | `app/purchasing/payment-terms/TemplateForm.tsx` |
+| 6 | `app/suppliers/[id]/edit/CompliancePanel.tsx` |
+| 5 | `app/me/MyClaimsPanel.tsx` |
+| 5 | `app/sales/customers/StatementPanel.tsx` |
+| 5 | `app/sales/orders/[id]/page.tsx` |
+| 4 | `app/finance/balance-sheet/page.tsx` |
+| 4 | `app/finance/packs/PackBody.tsx` |
+| 4 | `app/finance/pnl/page.tsx` |
+| 4 | `app/output/[id]/assays/new/OutputAssayForm.tsx` |
+| 4 | `app/sales/quotes/new/NewQuoteForm.tsx` |
+| 4 | `app/settings/roles/PermissionMatrix.tsx` |
+| 4 | `app/tools/pricing/metal-prices/bulk/BulkPricesForm.tsx` |
+| 3 | `app/finance/cost-variance/page.tsx` |
+| 3 | `app/inbound/[id]/assays/[assayId]/page.tsx` |
+| 3 | `app/inbound/[id]/assays/new/AssayForm.tsx` |
+| 3 | `app/tools/pricing/calculator/CalculatorForm.tsx` |
+| 3 | `app/tools/pricing/formulas/FormulaForm.tsx` |
+| 1 | `app/finance/month-end/page.tsx` |
+| 1 | `app/hr/reviews/cycles/page.tsx` |
+| 1 | `app/operation/processing/[id]/LossPanel.tsx` |
+| 0 | `app/finance/cashflow/page.tsx` |
+| 0 | `app/inbound/[id]/edit/PrepaymentPanel.tsx` |
+| 0 | `app/inbound/page.tsx` |
+| 0 | `app/logistics/containers/[id]/ContainerPanels.tsx` |
+| 0 | `app/operation/orders/[id]/page.tsx` |
+| 0 | `app/sales/commissions/CommissionsTable.tsx` |
+
+---
+
+## COPY-1-PAYABLES-OVF(原文,保留)—— /finance/payables 在 390px 上溢出 480px,且有一张【够不着】的表(2026-09-06)
 
 **既有缺陷,COPY-1 的版式探针撞见,【没有】修** —— 这一刀的题目是文案,不是版式。
 
@@ -4958,7 +5174,32 @@ return String(va).localeCompare(String(vb), 'zh-Hans-CN', { numeric: true }) * s
 
 ---
 
-## FIX-2B-AUDIT —— 57 个"已经在问某个权限"的读点,还没有逐个读过(FIX-2a,2026-09-05)
+## ~~FIX-2B-AUDIT~~ —— ★ 已关闭(FIX-2b,2026-09-06):57 对全部逐个读过 ★
+
+**结果:27 已经是对的 · 30 修了(13 (a) · 15 (b) · 2 处【两者都不是】)。一处都没有留成沉默的空白。**
+**逐条的判断、已经是对的那 27 处的点名、以及两个方向的实测,在**
+`docs/accounts-roles-and-permissions.md` **第十五节。** 这里只留三条会被下一刀用到的:
+
+1. **那份普查有两处假阳性**(`assay_results`/sales、`counterparty_contacts`/procurement)——
+   两个角色都**持有**策略要的那个码。文件级正则的两个方向都会错,这一条又添了两例。
+2. **57 是【对】的计数,不是【判断】的计数** —— 去重之后是 51 个工作单元,
+   而 `ActorName.tsx` 一个文件承担了其中 6 对(且它 FIX-1 就修好了)。
+3. **仓库里已经有 20 张查名视图**,所以 13 处 (a) 里 **12 处只是改读一张已有视图** ——
+   **零迁移、零新列、零破窗。** 下一次遇到这一族,先数一遍现有视图再决定要不要开新的。
+
+> ★ **委托书里两条要更正的话,Tim 2026-09-06 点名记下:**
+> * 「清单在 `triage.json`」—— **它不在这个仓库里**,在另一次会话的 scratchpad
+>   (`/private/tmp/claude-501/-Users-timchen/d4a581f4-…/scratchpad/triage.json`)。
+>   本刀找到了它、并核对了它点名的 26 个文件**全部还在**。
+>   **但一份指向仓库【之外】的委托书,与一份指向【已删文件】的委托书是同一种病**
+>   (UI-1c 那次)—— 下一个人可能找不到它,而它随时会被清掉。
+> * 「`/finance/assets/[id]` 那处 `suppliers` 是**未处理**的」—— **只对了一半**:
+>   表格那一格早就渲染「受限」,沉默的是两个**下拉**。
+>   **"未处理"三个字会把人支去改错的那一行。**
+
+**原始的那一条记录如下(保留,因为它是那次分类为什么必须逐个读的论据):**
+
+## FIX-2B-AUDIT(原文)—— 57 个"已经在问某个权限"的读点,还没有逐个读过(FIX-2a,2026-09-05)
 
 FIX-2a 的普查把 142 对(路由,对象)分成两堆:**85 对读它的文件一个权限都没问**
 (本刀修的就是这一堆,复核后 79 对是真的),**另外 57 对读它的文件【已经】在问

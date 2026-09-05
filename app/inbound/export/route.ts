@@ -13,8 +13,9 @@ import {
     resolveInboundSearchIds,
     buildInboundSearchOr,
 } from '../inboundQuery'
+import { mustRows } from '@/lib/db-helpers'
 
-// 带嵌入的导出行类型(FK 嵌入运行时是对象,显式锁住)。
+// FIX-2b:内嵌拿掉之后,这里只剩本表自己的列 + 两个 FK。
 type ExportRow = {
     code: string
     quantity: number
@@ -26,8 +27,8 @@ type ExportRow = {
     status: string
     notes: string | null
     created_at: string
-    materials: { name: string } | null
-    suppliers: { legal_name: string } | null
+    material_id: string | null
+    supplier_id: string | null
 }
 
 // CSV 表头:用稳定、机器可读的英文。关联方名字摊平成 Material / Supplier 列。
@@ -80,11 +81,14 @@ export async function GET(request: NextRequest) {
     // 搜索同列表页:先解析关联方 id,再拼 OR(导出也要反映搜索)
     const searchIds = await resolveInboundSearchIds(supabase, params.q)
     const searchOr = buildInboundSearchOr(params.q, searchIds)
-    // 保留嵌入:把 materials.name / suppliers.legal_name 摊平进 CSV
+    // ★★【FIX-2b:内嵌拿掉 —— 与列表页那一处是同一条缺陷的同一半】★★
+    //   `materials ( name )` / `suppliers ( legal_name )` 读的是基表,对 warehouse
+    //   与 operations 一律解析成 null,于是导出的 CSV 里那两列【整列是空的】——
+    //   而一个空单元格在电子表格里读起来就是「这条记录没有供应商」。
+    //   页面已经改成在 TS 里拼,导出必须跟着改,否则同一份数据两个说法。
     const baseQuery = supabase.from('inbound_batches_masked').select(`
         code, quantity, unit, unit_price, remaining_qty, arrival_date, stage, status, notes, created_at,
-        materials ( name ),
-        suppliers ( legal_name )
+        material_id, supplier_id
     `)
     const { data, error } = await applyInboundFilters(baseQuery, params, searchOr)
 
@@ -93,6 +97,15 @@ export async function GET(request: NextRequest) {
     }
 
     const rows = (data as unknown as ExportRow[]) ?? []
+    // 名字表:两张查名视图,谓词都含 module.inbound.view(见列表页的注释)。
+    const [matNameRes, supNameRes] = await Promise.all([
+        supabase.from('material_lookup').select('id, name').is('deleted_at', null),
+        supabase.from('supplier_lookup').select('id, legal_name').is('deleted_at', null),
+    ])
+    const materialName = new Map((mustRows(matNameRes) as unknown as
+        { id: string; name: string }[]).map((m) => [m.id, m.name]))
+    const supplierName = new Map((mustRows(supNameRes) as unknown as
+        { id: string; legal_name: string }[]).map((s) => [s.id, s.legal_name]))
 
     const lines: string[] = []
     lines.push(CSV_HEADERS.map(csvCell).join(','))
@@ -100,8 +113,8 @@ export async function GET(request: NextRequest) {
         lines.push(
             [
                 csvCell(r.code),
-                csvCell(r.materials?.name ?? ''),
-                csvCell(r.suppliers?.legal_name ?? ''),
+                csvCell((r.material_id ? materialName.get(r.material_id) : null) ?? ''),
+                csvCell((r.supplier_id ? supplierName.get(r.supplier_id) : null) ?? ''),
                 csvCell(r.quantity),
                 csvCell(r.unit),
                 csvCell(r.unit_price),

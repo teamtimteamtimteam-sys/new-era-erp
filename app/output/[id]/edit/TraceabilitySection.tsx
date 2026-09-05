@@ -33,11 +33,14 @@ export default async function TraceabilitySection({
     batchId,
     report,
     issues,
+    issuesRestricted = false,
 }: {
     batchId: string
     /** traceability_report_data 的答复,或者它的【具名拒绝】—— 两者都要说出来 */
     report: TraceabilityReport | { error: string }
     issues: IssueRow[]
+    /** ★ FIX-2b:签发档的零行有两种意思;只有页面答得出是哪一种。 */
+    issuesRestricted?: boolean
 }) {
     const t = await getTranslations()
     const locale = await getLocale()
@@ -189,7 +192,17 @@ export default async function TraceabilitySection({
                 canIssue={!failed}
                 blockedReason={blockedReason}
             />
-            {issues.length === 0 ? (
+            {/* ★★ FIX-2b:【「从未签发」是这一块最不能撒的谎】★★
+                页面上方那句注释已经写着这件事(客户手里可能已经有一份),而它当时
+                只防住了【查询失败】(mustRows)。它防不住的是**一次权限答复**:
+                traceability_report_issues 的策略是
+                has_any_permission(['module.sales.view','module.processing.view']),
+                而 finance 与 warehouse 【两个码都没有】(实测:Choo Er 0 行、
+                Fu Sheng 0 行、Phua 1 行)—— 零行于是照直渲染成「从未签发」。
+                权限先答,次序不能反。 */}
+            {issuesRestricted ? (
+                <p className="text-sm text-gray-600">{t('traceability.issuesRestricted')}</p>
+            ) : issues.length === 0 ? (
                 <p className="text-sm text-gray-500">{t('traceability.neverIssued')}</p>
             ) : (
                 <ul className="text-sm space-y-1">

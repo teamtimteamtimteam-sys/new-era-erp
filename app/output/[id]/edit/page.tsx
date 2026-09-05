@@ -64,6 +64,13 @@ export default async function EditOutputPage({
     // 所以它挂 module.output.edit —— 与 output_batch_safety_states 的写策略同一个码,
     // 而【不是】工序权限:把一批货许给产线是工序决定,看见它鼓包了不是。
     const canEditSafety = await can('module.output.edit')
+    // ★ FIX-2b:「有没有一张盘点在进行」也是一句权限答复(finance 读不到 stocktakes)。
+    const canSeeStocktakes = await can('module.stocktakes.view')
+    // ★ FIX-2b:卖方计价公式走 pricing_formulas_masked,谓词 module.pricing.view。
+    const canSeePricingFormulas = await can('module.pricing.view')
+    // ★ FIX-2b:签发档的读策略是 sales.view OR processing.view —— 与本页的门
+    //   (module.output.view)【不是同一道】。判据照抄那条策略,不另想一条。
+    const canSeeIssueLog = (await can('module.sales.view')) || (await can('module.processing.view'))
     const t = await getTranslations()
     const locale = await getLocale()
 
@@ -312,7 +319,7 @@ export default async function EditOutputPage({
                 </a>
             </p>
 
-            {openStocktake && (
+            {openStocktake ? (
                 <StocktakeQuickCount
                     stocktakeId={openStocktake.id}
                     stocktakeCode={openStocktake.code}
@@ -320,7 +327,12 @@ export default async function EditOutputPage({
                     batchId={batch.id}
                     counted={stocktakeCounted}
                 />
-            )}
+            ) : !canSeeStocktakes ? (
+                /* ★ FIX-2b:与 /inbound/[id]/edit 那一处逐字同一条 —— 见那里的理由。 */
+                <p className="text-sm text-gray-600 border border-gray-300 rounded px-3 py-2 mb-6">
+                    {t('stocktakes.openStateRestricted')}
+                </p>
+            ) : null}
 
             <EditOutputForm
                 batch={batch}
@@ -346,6 +358,7 @@ export default async function EditOutputPage({
                 batchId={batch.id}
                 report={traceReport}
                 issues={traceIssues}
+                issuesRestricted={!canSeeIssueLog}
             />
 
             {/* ── 本批毛利(MAR-1)──────────────────────────────────────────
@@ -459,6 +472,7 @@ export default async function EditOutputPage({
                     customers={mustRows(customersRes) as unknown as { id: string; code: string; legal_name: string }[]}
                     batchCustomerId={batch.customer_id}
                     formulas={sellFormulas}
+                    formulasRestricted={!canSeePricingFormulas}
                 />
             ) : (
                 <section className="mt-8 pt-8 border-t">

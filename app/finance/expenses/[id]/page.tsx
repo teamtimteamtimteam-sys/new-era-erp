@@ -97,8 +97,11 @@ export default async function ExpenseDetailPage({
                 .select('code, name_en, name_zh')
                 .eq('code', expense.account_code)
                 .single(),
+            // ★ FIX-2b:查名视图。基表要 module.suppliers.view,而本页的门是财务;
+            //   零行 + `?? '—'`(第 226 行)把一张【有供应商的】费用单渲染成
+            //   「没有往来对象」—— 一句关于这笔钱的假话,而且是在钱的页面上。
             expense.supplier_id
-                ? supabase.from('suppliers').select('legal_name').eq('id', expense.supplier_id).single()
+                ? supabase.from('supplier_lookup').select('legal_name').eq('id', expense.supplier_id).maybeSingle()
                 : Promise.resolve({ data: null, error: null }),
             expense.journal_entry_id
                 ? supabase.from('journal_entries').select('id, code').eq('id', expense.journal_entry_id).single()

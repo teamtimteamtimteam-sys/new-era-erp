@@ -37,6 +37,10 @@ export default async function NewOrderPage() {
     // fixed_assets 的门是 module.finance.view,而本页的门是采购 —— 只有采购权限的
     // 人读它会得到零行。把这个事实取出来,空状态才说得出是"还没登记"还是"你看不到"。
     const canSeeAssets = await can('module.finance.view')
+    // ★ FIX-2b:pricing_formulas 的 RLS 是 module.pricing.view,而本页的门是采购 ——
+    //   一个只有采购权限的读者拿到零行,于是行上那个公式下拉是空的,读起来是
+    //   「还没有建过采购向的计价公式」。判据传下去,由控件旁边说出口。
+    const canSeePricingFormulas = await can('module.pricing.view')
 
     const [suppliersRes, materialsRes, formulasRes, templatesRes, tplLinesRes, triggersRes, assetsRes, onOrderRes, poHeadsRes] = await Promise.all([
         supabase
@@ -49,13 +53,29 @@ export default async function NewOrderPage() {
             // 【所以这一处比收货那两处弱】它拦得住手滑,拦不住决心:
             // 直连仍然建得出来。真要禁,得在 purchase_orders 上加一道守卫,
             // 那是一支迁移,不在本刀(纯渲染)范围内 —— 记在 known-issues 里。
-            .from('suppliers')
-            .select('id, legal_name, default_payment_term_template_id')
+            //
+            // ★★【FIX-2b:换读 supplier_lookup —— 而这一处【只补得回名字,补不回默认条款】】★★
+            //   suppliers 的 RLS 是 module.suppliers.view;本页的门是采购。于是一个
+            //   只有采购权限的读者拿到零行,供应商下拉整张是空的 —— 读起来是
+            //   「一家在册的供货商都没有」。改读查名视图把那句假话去掉了。
+            //
+            //   ★ 但 `default_payment_term_template_id` 【不在】supplier_lookup 的列上,
+            //     而这是【刻意的】:那是一条商务条款,正是那张视图的抬头说它存在
+            //     就是为了扣住的东西。Tim 2026-09-06 的裁定是 (b) 而不是把列加进去
+            //     —— 加两列是一次真的扩权,而扩权换来的只是一个自动带出的默认值。
+            //   所以这里带出的 default_template_id 一律是 null,而表单【必须说出来】,
+            //     不能让它读作「这家供应商没有约定默认付款条款」。见下面 supplierTermsRestricted。
+            .from('supplier_lookup')
+            .select('id, legal_name')
             .is('deleted_at', null)
             .eq('supplies_goods', true)
             .order('legal_name'),
+        // ★ FIX-2b:查名视图。materials 的 RLS 是 module.materials.view,而本页的门
+        //   是采购 —— 一个只有采购权限的读者拿到零行,于是物料下拉是空的,
+        //   读起来是「这套系统里还没有登记物料」。material_lookup 的谓词含
+        //   module.purchasing.view,列有 id/code/name。换读法,不扩权。
         supabase
-            .from('materials')
+            .from('material_lookup')
             .select('id, code, name')
             .is('deleted_at', null)
             .order('code'),
@@ -144,10 +164,24 @@ export default async function NewOrderPage() {
         )
     }
 
-    const suppliers: SupplierOption[] = (mustRows(suppliersRes)).map((s) => ({
+    // ★ FIX-2b:默认付款条款模板是商务条款,查名视图不出这一列(见上)。
+    //   拿不到时【不猜】:一律 null,并由表单说出这是权限,不是"没有约定"。
+    const canSeeSupplierTerms = await can('module.suppliers.view')
+    const supplierTerms = canSeeSupplierTerms
+        ? new Map((mustRows(
+              await supabase.from('suppliers')
+                  .select('id, default_payment_term_template_id')
+                  .is('deleted_at', null).eq('supplies_goods', true)
+          ) as { id: string; default_payment_term_template_id: string | null }[])
+              .map((s) => [s.id, s.default_payment_term_template_id]))
+        : new Map<string, string | null>()
+    // 视图列在生成类型里全可空;行进了视图即非空(WHERE 已保证)—— 与
+    // /inbound/[id]/edit 读同两张查名视图时的写法一致,此处锁死。
+    const suppliers: SupplierOption[] = (mustRows(suppliersRes) as unknown as
+        { id: string; legal_name: string }[]).map((s) => ({
         id: s.id,
         name: s.legal_name,
-        default_template_id: s.default_payment_term_template_id,
+        default_template_id: supplierTerms.get(s.id) ?? null,
     }))
     // 【哪些采购单还占着机器】—— 见上面那段:取消的与软删的都不占。
     const livePoIds = new Set(
@@ -166,7 +200,8 @@ export default async function NewOrderPage() {
         label: `${a.code} — ${a.description}`,
         onOrder: onOrder.has(a.id),
     }))
-    const materials: MaterialOption[] = (mustRows(materialsRes)).map((m) => ({
+    const materials: MaterialOption[] = (mustRows(materialsRes) as unknown as
+        { id: string; code: string; name: string }[]).map((m) => ({
         id: m.id,
         label: `${m.code} — ${m.name}`,
     }))
@@ -212,6 +247,8 @@ export default async function NewOrderPage() {
                 materials={materials}
                 assets={assets}
                 canSeeAssets={canSeeAssets}
+                canSeeSupplierTerms={canSeeSupplierTerms}
+                canSeePricingFormulas={canSeePricingFormulas}
                 formulas={formulas}
                 templates={templates}
                 triggerEvents={triggerEvents}

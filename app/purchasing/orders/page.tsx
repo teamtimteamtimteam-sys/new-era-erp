@@ -157,14 +157,20 @@ export default async function PurchaseOrdersPage({
     }
 
     // 工具栏的供应商选项
+    // ★ FIX-2b:查名视图。工具栏那个供应商筛选此前对没有 module.suppliers.view
+    //   的读者是【一张空下拉】—— 而表格里的供应商名是从视图带出来的、照常显示,
+    //   于是屏幕自相矛盾:列里有六家供应商,筛选器里一家都没有。
+    //   supplier_lookup 的谓词含 finance.view,列含 counterparty_type(筛货代要用)。
     const { data: supplierRows } = await supabase
-        .from('suppliers')
+        .from('supplier_lookup')
         .select('id, legal_name')
         .is('deleted_at', null)
         // LOG-1b:货代不进供应商名单
         .neq('counterparty_type', 'forwarder')
         .order('legal_name')
-    const supplierOptions = (supplierRows ?? []).map((s) => ({ id: s.id, name: s.legal_name }))
+    // 视图列在生成类型里全可空;行进了视图即非空(WHERE 已保证)。
+    const supplierOptions = ((supplierRows ?? []) as unknown as
+        { id: string; legal_name: string }[]).map((s) => ({ id: s.id, name: s.legal_name }))
 
     // CONV-5:套 CONV-1 的两文件模板。
     // ★ state 恒为 'ok' —— OrdersToolbar 是真实出口(§⑩-3)。

@@ -191,6 +191,19 @@ export default async function ProcessingDetailPage({
     const editorIds = [...new Set(rawCosts
         .filter((c) => c.updated_at !== c.created_at && c.updated_by)
         .map((c) => c.updated_by as string))]
+    // ★★【FIX-2b:「谁改的」读不到时要【说出来】,不能留空】★★
+    //   employees 的 RLS 是 has_permission('module.hr.view') OR 自己那一行,而
+    //   operations【没有】那个码(实测:Phua 读 employees 得 1 行 —— 只有他自己)。
+    //   于是这里的名字表几乎总是空的,下面 `?? null` 让 CostPanel 那一格
+    //   【什么都不印】—— 屏幕上只剩「改于 X 时」,而没有人。
+    //   一个没有主语的改动记录,读起来就是"系统自己改的",那正是
+    //   app/components/ActorName.tsx 抬头第 ④ 条整段在防的东西。
+    //
+    //   ★ 为什么不是 (a):employee_lookup 的体内谓词是 hr.view OR finance.view,
+    //     operations 两个都没有 —— 要用它就得放宽那张视图的谓词,而那是一次
+    //     真的扩权(把整份员工名册给运营),不是换一个读法。所以走 (b):
+    //     判据取一次,读不到时印一句具名的「受限」。
+    const canSeeEmployees = await can('module.hr.view')
     const editorName = new Map<string, string>()
     if (editorIds.length) {
         for (const e of mustRows(await supabase.from('employees')
@@ -208,7 +221,11 @@ export default async function ProcessingDetailPage({
         created_at_display: formatTimestamp(c.created_at, dateLocale),
         edited_at_display: c.updated_at !== c.created_at
             ? formatTimestamp(c.updated_at, dateLocale) : null,
-        edited_by_name: c.updated_by ? editorName.get(c.updated_by) ?? null : null,
+        // 三态,与 ActorName 同形:查得到印名字 · 查不到但看得见人事 = 真的没这个人
+        // (仍是 null,由面板印一个诚实的空)· 看不见人事 = 具名的「受限」。
+        edited_by_name: !c.updated_by
+            ? null
+            : editorName.get(c.updated_by) ?? (canSeeEmployees ? null : t('common.restricted')),
     }))
 
     // FIN-8:分摊是否已过期 —— 改了成本条目,总账会动,批次不会自己重算。

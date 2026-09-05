@@ -1495,3 +1495,183 @@ SMOKE2_EXIT=0    243 ok · 8 skipped(无数据)· 0 FAILED
 > 「generated types 与线上 schema 不一致(6 行差异)」—— fu1 加了两列而
 > `lib/database.types.ts` 没有重新生成。那正是 OPS-10 把类型文件也算作
 > 一份镜像的理由。
+
+---
+
+# 十五 · FIX-2b(2026-09-06)—— 那 57 对逐个读过了
+
+## 15.1 三个桶,以及它们各自的数
+
+**57 对(路由,对象)· 27 已经是对的 · 30 修了(11 处 (a) · 19 处 (b))。**
+**一处都没有留成沉默的空白。** 一个新权限码都没有,**一支迁移都没有。**
+
+> ★ **先更正委托书的一个数:57 是【对】的计数,不是【判断】的计数。**
+> 去掉重复的(文件集合,对象)之后是 **51 个工作单元** —— 光
+> `app/components/ActorName.tsx` 一个文件就承担了 57 里的 **6 对**,而它是
+> **一个**判断(而且是 FIX-1 早就修好的那一个)。26 个文件的数字是对的。
+
+> ★ **第二条更正,而它把这一刀的形状整个改了:仓库里【已经有 20 张查名视图】**
+> (FIX-1 开 13 张、FIX-2a 开 7 张)。**11 处 (a) 全部只是把读改到一张已经存在、
+> 谓词已经覆盖那个角色的视图上** —— 不是新视图,不是扩权,
+> **不需要迁移,因此这一刀没有破窗。**
+
+> ★ **第三条更正,而它是【本刀自己先数错的】:** 报到 Tim 那里的第一版写的是
+> 「13 (a) · 15 (b) · 2 处两者都不是」。把 57 行逐行贴回判断之后,正确的是
+> **11 (a) · 19 (b)**。差额来自两处把「补法」与「症状」混起来了:
+> `/inbound/[id]/edit` 的 `purchase_order_lines` 与 `/operation/processing/[id]`
+> 的 `employees`,两处的读者**最终都没有拿到数据**,屏幕上是一句具名的拒绝 ——
+> **那按定义就是 (b)**,不因为它旁边坐着一次 (a) 而变成 (a)。
+> 而「两者都不是」那一栏根本不该存在:那两处的**症状**是崩溃,**补法**仍然是 (b)。
+> **一次分类要按【它最后长成什么样】分,不按【它是怎么被发现的】分。**
+
+## 15.2 ★ 两处判断,委托书说反了 —— 而两个方向都错过
+
+| # | 委托书/普查怎么说 | 实测 | 结论 |
+|---|---|---|---|
+| 1 | `/output/[id]/edit` 的 `assay_results` 对 `sales` 是空的 | 策略是 `(output_batch_id IS NOT NULL AND module.output.view)`,而 **sales 持有 `module.output.view`** | **假阳性 —— 它本来就读得到** |
+| 2 | `/suppliers/[id]/edit` 的 `counterparty_contacts` 对 `procurement` 是空的 | 策略是 `(supplier_id IS NOT NULL AND module.suppliers.view)`,而 **procurement 持有 `module.suppliers.view`** | **假阳性 —— 它本来就读得到** |
+| 3 | 「`/finance/assets/[id]` 那处 `suppliers` 是**未处理**的」 | **只对了一半**:表格里「谁做的」那一格 `page.tsx:254` 早就渲染 `common.restricted`;沉默的是 **MaintenancePanel 的两个下拉**(`:297` / `:463`) | **半真 —— 而"未处理"三个字会把人支去改错的那一行** |
+
+**第 3 条值得单独说一句:** 那正是 §11.2b 记下的那条链的同一个形状 ——
+一句**近似的**转述,在下一刀里被当成一句**精确的**事实来用。
+这一次的代价很小(读了一次代码就发现了),但便宜的原因是**去读了**,不是因为它无害。
+
+## 15.3 已经是对的那 27 处 —— 逐条点名,下一刀不必再读
+
+> **为什么这份名单与那 30 处修改一样值钱:** 它是"不必重做"的唯一凭据。
+> 没有它,下一个人只能把 26 个文件再读一遍。
+
+| 路由 | 对象 | 它靠什么已经是对的 |
+|---|---|---|
+| `/finance/invoices/[id]` · `/inbound/[id]/edit` · `/output/[id]/edit` · `/purchasing/orders/[id]` · `/stocktakes/[id]` · `/tools/tasks/[id]` **(6 对)** | `employees` | `ActorName.tsx:63` 问 `module.hr.view`,`:141` 渲染 `<Refusal>` —— **FIX-1 的状态 ④** |
+| `/inbound/[id]/edit` · `/output/[id]/edit` **(2 对)** | `sales_order_reservations` | `StockStatusPanel.tsx:73` 取码,`:243` 具名拒绝 |
+| `/finance/assets/[id]` | `employees_masked` | `canSeeEmployees` 把住那次读,`page.tsx:450` 印 `equipment.maint.employeesRestricted` |
+| `/finance/credit-notes` | `customers` | `canReadCustomers`(`:46`)把住读,`:122` 具名拒绝 |
+| `/finance/invoices/[id]` | `sales_orders` | `:331` 渲染 `common.restricted`(样式是 `italic`,不是 `<Refusal>` —— 记一笔,不改) |
+| `/finance/invoices/[id]` | `shipment_lines` | `CreditNoteSection.tsx:71` 取码,`:154` 具名拒绝 |
+| `/inbound` | `purchase_orders_masked` | `canViewPurchasing`(`:168`)把住,无权时给一句通用的「对着采购单」 |
+| `/inbound/[id]/edit` | `grn_discrepancies` | `canSeeOrderedQty`(`:401`)—— 注释把这条缺陷写得一字不差 |
+| `/inbound/[id]/edit` | `purchase_order_lines_masked` | `canViewPurchasing`(`:181`) |
+| `/inbound/[id]/edit` · `/output/[id]/edit` **(2 对)** | `stocktake_lines` | **走不到**:只在 `openStocktake` 非空时才读,而对同一批角色它恒为 null |
+| `/output/[id]/edit` | `assay_results` | **普查假阳性**(见 15.2) |
+| `/output/[id]/edit` | `batch_margin` | `showPrices`(`:55`),`:355` 具名拒绝 |
+| `/output/[id]/edit` | `customer_credit_status` | `canSeeCredit`(`:59`)传进 SalePanel |
+| `/purchasing/orders/[id]` | `materials` | `lineName`(`:266`)回落到 `po_document_data`(DEFINER + `purchasing.view`)—— 名字仍然解析得出来 |
+| `/purchasing/orders/new` | `fixed_assets` | `canSeeAssets`(`:39`)→ `NewOrderForm.tsx:483` `assetsRestricted` |
+| `/sales/customers/[id]` | `ar_open_items` | `canFinance` 把住读,`:228`/`:264` 具名拒绝 |
+| `/sales/orders/[id]` | `invoice_lines_masked` | `canSeeFinance`,两个文件各一处 |
+| `/sales/orders/[id]` | `invoices_masked` | `canSeeFinance`(`:41`),`:50` 具名拒绝 |
+| `/suppliers/[id]/edit` | `counterparty_contacts` | **普查假阳性**(见 15.2) |
+| `/tools/tasks/[id]` | `task_assignable_employees` | `mayAssign`(`:68`)与视图自己的谓词是**同一个码** |
+
+## 15.4 修掉的 30 处
+
+### (a) 11 处 —— 全部是【换一张读法】,零迁移
+
+| 路由 | 对象 | 改读 | 那张视图的谓词已经含 |
+|---|---|---|---|
+| `/finance/assets/[id]` | `suppliers` | `supplier_lookup` | `module.finance.view` |
+| `/finance/expenses/[id]` | `suppliers` | `supplier_lookup` | `module.finance.view` |
+| `/finance/expenses/new` | `employees_masked` | `employee_lookup` | `module.finance.view` |
+| `/inbound` | `suppliers` | `supplier_lookup` | `module.inbound.view` |
+| `/inbound` | `materials` | `material_lookup` | `module.inbound.view` |
+| `/purchasing/orders` | `suppliers` | `supplier_lookup` | `module.finance.view` |
+| `/purchasing/orders/[id]` | `suppliers` | `supplier_lookup` | `module.finance.view` |
+| `/purchasing/orders/new` | `suppliers` | `supplier_lookup` | `module.finance.view` |
+| `/purchasing/orders/new` | `materials` | `material_lookup` | `module.purchasing.view` |
+| `/suppliers/[id]/edit` | `tax_codes` | `tax_code_lookup` | `module.suppliers.view` |
+| `/suppliers/[id]/edit` | `finance_settings` | `finance_settings_lookup` | `module.suppliers.view` |
+
+> ★ **暴露面清单:这一刀【没有】新建视图,也【没有】给任何一张视图加过一列。**
+> 因此暴露面的增量是 **0 列**。上面每一行的意思都是「这个调用点改成读一张
+> 已经存在、谓词已经覆盖它的视图」—— 那 20 张视图的列清单一个字都没动。
+
+**`/operation/processing/[id]` 的 `employees` 【是 (b),不是 (a)】,原因写在代码旁边:**
+`employee_lookup` 的谓词是 `hr.view OR finance.view`,而 `operations` 两个都没有。
+要用它就得放宽那张视图 —— **那是一次真的扩权(把整份员工名册给运营),不是换读法。**
+所以那一格印一句具名的「受限」,与 `ActorName` 的状态 ④ 同形。
+
+### (b) 19 处 —— 扣下,但说出来
+
+`/finance/assets/[id]`(`processing_runs_masked`)· `/finance/expenses/new`(`suppliers`)·
+`/hr/kpi/score`(`kpi_entries`)· `/inbound/[id]/assays/[assayId]`(`journal_entries`)·
+`/inbound/[id]/edit`(`prepayment_applications_masked` · `stocktakes`)·
+`/operation/processing/[id]`(`employees`)· `/output/[id]/edit`(`pricing_formulas_masked` ·
+`stocktakes` · `traceability_report_issues`)· `/purchasing/discrepancies`(`receiving_settings`)·
+`/purchasing/orders/[id]`(`ap_open_items` · `inbound_batches_masked` ·
+`prepayment_applications_masked` · `pricing_formulas` · `receiving_settings`)·
+`/purchasing/orders/new`(`pricing_formulas`)· `/operation/processing/[id]`(`employees`)·
+**`/inbound/[id]/edit`(`purchase_orders` · `purchase_order_lines`)—— 见 15.5,
+它们的症状是崩溃,而补法同样是 (b)。**
+
+措辞全部沿用既有句式(「这是一句【权限答复】,不是…」),画法只用
+`<Refusal>` / `MaskedValue` / 一句具名的段落 —— **没有发明第四种。**
+
+> ★ **`/finance/expenses/new` 的 `suppliers` 是 Tim 2026-09-06 的裁定,记原文:**
+> 「(b)。`tax_residence` 与 `default_tax_code` 正是 `supplier_lookup` 自己的注释
+> 说它存在就是为了扣住的东西。零迁移值得拥有,而这是唯一挡在前面的东西。」
+> 那两列一个驱动默认税码、一个决定要不要追问代扣 —— 把它们加进查名视图,
+> 换来的只是一个自动带出的默认值。
+
+### 那两处【症状不是空白,是抛异常】—— 补法仍然是 (b)
+
+`/inbound/[id]/edit` 的 `purchase_orders` 与 `purchase_order_lines`。见 15.5。
+**它们已经计入上面那 19 处**,不另立一栏 —— 见 15.1 的第三条更正。
+
+## 15.5 ★★ 那一处不是空白,是线上正在发生的崩溃 ★★
+
+完整记录在 `docs/known-issues.md` 的 **SMOKE-SINGLE-ROLE-BLINDSPOT**。这里只留结论:
+
+* `purchase_orders` / `purchase_order_lines` 的 RLS 都是 `module.purchasing.view`,
+  **warehouse 与 operations 都不持有**;
+* `.single()` 对零行是 **PGRST116 / HTTP 406**,也就是一个 error,`mustOne` 照约定抛;
+* **实测:Fu Sheng 看得见 16 条批次,其中 8 条挂着采购单** —— 一半的批次编辑页
+  落进错误边界;
+* **冒烟以 admin 跑,所以它结构上看不见这一类缺陷**(那条盲区现在自己有一条记录);
+* 补法是 (b):整块挂到 `canViewPurchasing` 上,并在屏幕上说出
+  「这批货【确实】挂着一张采购单,而你看不到采购侧」——
+  **判据取 `batch.purchase_order_id`(它在 `inbound_batches_masked` 上没有被遮蔽),
+  不是从 `poHeader` 是不是 null 倒推** —— 倒推会把「看不到」并进「没有」。
+
+## 15.6 两个方向都验过,而且是对着线上的会话
+
+**方向 ① —— 该看见的人现在看得见了**(模拟会话,整支回滚):
+
+| 读者 | 对象 | 基表 | 查名视图 |
+|---|---|---|---|
+| Fu Sheng(warehouse) | suppliers | **0** | **8** |
+| Fu Sheng(warehouse) | materials | **0** | **5** |
+| Phua(operations) | suppliers | **0** | **8** |
+| Choo Er(finance) | employees_masked → employee_lookup | **1(只有她自己)** | **7** |
+
+> Choo Er 那一行是这一刀里最值得记的一处:委托书与旧注释都说她读到的是**零行**、
+> 屏幕上写「名单为空」。**实测不是** —— `employees` 的 RLS 额外放行「自己那一行」,
+> 于是她拿到的是**一份只有一个人的员工名单**。
+> **一张长得完全正常的假名单,比一张空名单更难被发现。**
+
+**方向 ② —— 不该看见的人仍然看不见**(同一跑,同一份查询):
+
+| 读者 | 对象 | 查名视图返回 |
+|---|---|---|
+| Fu Sheng / Phua | `employee_lookup` | **0** —— 员工名册对现场仍然是关着的 |
+| Fu Sheng | `tax_code_lookup` | **0** |
+| Fu Sheng | `finance_settings_lookup` | **0** |
+
+**外加一次静态穷举:** 对 **全部 11 处 (a)**,把「能打开这一页的角色集合」与
+「那张视图的谓词」逐一相交 —— **缺口 0 个**。也就是说没有任何一个读者会走到"页面打得开、
+而视图仍然给不出行"那一格(那一格会是一块**新的**沉默空白)。
+
+## 15.7 探针,以及它的注入真的咬了人
+
+`scripts/probe-role-crash.mjs` —— 以指定角色的**真实会话**把页面取回来。
+
+| 跑 | 判词(读自脚本自己的日志) | 说明 |
+|---|---|---|
+| 修之前 | `ROLE_PROBE_EXIT=1` | 挂单那两条(warehouse + operations)红;**同一跑里**没挂单那条、`/output/[id]/edit`、`/inbound` 六条绿 —— **对照臂在同一次运行里** |
+| 修之后 | `ROLE_PROBE_EXIT=0` | 8 条全过 |
+| `--inject=expect-500` | 见 `docs/known-issues.md` | 把期望码改成 500,**当场红** —— 断言确实在求值 |
+
+> ★ **而这支探针自己先错了一次,记下来因为它比它抓到的缺陷更容易再犯:**
+> 第一版断言 `HTTP === 200`,**对着一条正在抛异常的页面全绿**。
+> App Router 是流式的:状态码在外壳冲出去那一刻就定了,RSC 之后抛的异常
+> 只能落在正文里。**判据换成「这一页有没有把自己渲染出来」,两臂当场分开。**

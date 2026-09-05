@@ -50,9 +50,17 @@ export default async function EditSupplierPage({
         .single()
 
     // GST-2:进项税码字典 + 开关(只在已注册时渲染那一格)。
+    //
+    // ★ FIX-2b:【两句都改读查名视图】两张基表的门都是 module.finance.view,
+    //   而本页的门是 module.suppliers.view —— 一个只有供应商权限的读者(procurement
+    //   就是)读 finance_settings 得零行(`.single()` 于是【报错】,不是 null),
+    //   读 tax_codes 得零行(默认税码那个下拉于是【空着,且不说为什么】)。
+    //   FIX-2a 开的两张查名视图的体内谓词【都已经含 module.suppliers.view】——
+    //   它们本来就是为这两个调用点开的。列也够:gst_registered · code/name_en/
+    //   name_zh/side/is_active/sort_order。**换读法,不扩权,无迁移。**
     const [gstSettingsRes, gstCodesRes] = await Promise.all([
-        supabase.from('finance_settings').select('gst_registered').limit(1).single(),
-        supabase.from('tax_codes').select('code, name_en, name_zh')
+        supabase.from('finance_settings_lookup').select('gst_registered').limit(1).maybeSingle(),
+        supabase.from('tax_code_lookup').select('code, name_en, name_zh')
             .eq('side', 'input').eq('is_active', true).order('sort_order'),
     ])
 
@@ -183,7 +191,8 @@ export default async function EditSupplierPage({
                 canSee={canSeePattern} />
             <EditSupplierForm supplier={supplier} templates={templates}
                 gstRegistered={gstSettingsRes.data?.gst_registered ?? false}
-                taxCodes={mustRows(gstCodesRes).map((c) => ({
+                taxCodes={(mustRows(gstCodesRes) as unknown as
+                    { code: string; name_en: string; name_zh: string }[]).map((c) => ({
                     code: c.code, name_en: c.name_en, name_zh: c.name_zh,
                 }))} />
             <CompliancePanel

@@ -28,7 +28,11 @@ export type PoReceiptRow = {
     qtyText: string
     /** null = 这一批还没有定价(画成琥珀色的「未计价」,不是空白)。 */
     unitPriceText: string | null
-    appliedText: string
+    /**
+     * ★ FIX-2b:null = 【看不到】(prepayment_applications_masked 在财务那道门
+     * 后面),'—' = 这一批【真的】没有抵扣过。此前两者都是 '—'。
+     */
+    appliedText: string | null
     /** 见抬头:null 与「看不到」是两件事,交给 MaskedValue 分。 */
     openText: string | null
     /** unit_price 为空时,敞口这一格印破折号 —— 没有价就没有敞口可言。 */
@@ -88,7 +92,9 @@ export default function PoReceiptsTable({
             header: t('purchasing.appliedLabel'),
             align: 'right',
             className: 'font-mono text-sm',
-            render: (r) => r.appliedText,
+            // 与右邻那一格同一种画法(MaskedValue),所以「受限」在这张表里
+            // 只有一个样子 —— CONV-0 收敛出来的那一个。
+            render: (r) => <MaskedValue value={r.appliedText} canView={canFinance} />,
         },
         {
             key: 'open',

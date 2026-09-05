@@ -86,7 +86,12 @@ export default async function PurchaseOrderDetailPage({
         (Tables<'purchase_orders'> & { tax_total_ccy: number | null; gross_total_ccy: number | null; carries_tax: boolean })
 
     const [supplierRes, linesRes, termsRes, statusRes, receiptsRes, apprRes, issuesRes, historyRes] = await Promise.all([
-        supabase.from('suppliers').select('id, legal_name').eq('id', po.supplier_id).single(),
+        // ★ FIX-2b:查名视图。基表要 module.suppliers.view,本页的门是采购 ——
+        //   零行 + `?? '—'`(第 605 行)把这张单的往来对象渲染成一根破折号,
+        //   而那根破折号还包在一个指向该供应商的 <Link> 里。
+        //   顺带把 `.single()` 换成 `.maybeSingle()`:零行是一个合法状态,
+        //   不该是一次抛出(见 /inbound/[id]/edit 那一处的实测)。
+        supabase.from('supplier_lookup').select('id, legal_name').eq('id', po.supplier_id).maybeSingle(),
         supabase
             .from('purchase_order_lines_masked')
             .select('id, line_no, material_id, asset_id, quantity, unit, pricing_formula_id, estimated_unit_price, estimated_amount_ccy, expected_assay, notes, price_source, price_provenance, deep_discharge_judgement_code')
@@ -247,6 +252,17 @@ export default async function PurchaseOrderDetailPage({
         : { data: [] as RetentionRow[], error: null }
     const retentions = mustRows(retentionRes) as RetentionRow[]
     const canSeePrices = await canViewPrices()
+    // ★★【FIX-2b:这一页有四处零行,而它们各自被渲染成一句关于生意的话】★★
+    //   本页的门是 module.purchasing.view,而下面四张表/视图各自挂在别的门上:
+    //     · inbound_batches_masked  → module.inbound.view   (收货记录)
+    //     · ap_open_items           → module.finance.view   (未结应付)
+    //     · prepayment_applications_masked → module.finance.view (已抵扣预付)
+    //     · pricing_formulas        → module.pricing.view   (行上的计价公式)
+    //   零行分别渲染成:「这张单还没有任何收货」·「未结 0.00」·「一次都没抵扣过」·
+    //   「这一行没有公式」—— 四句都是关于这张采购单的【断言】。
+    //   判据在这里取一次,下面各处用;一个新权限码都没有(全部走既有模块码)。
+    const canSeeReceipts = await can('module.inbound.view')
+    const canSeePricingFormulas = await can('module.pricing.view')
 
     const materialById = new Map((mustRows(materialsRes)).map((m) => [m.id, `${m.code} — ${m.name}`]))
 
@@ -366,7 +382,12 @@ export default async function PurchaseOrderDetailPage({
         materialId: l.material_id ?? null,
         ddCurrent: l.deep_discharge_judgement_code ?? null,
         qtyText: `${Number(l.quantity)} ${l.unit}`,
-        formulaText: l.pricing_formula_id ? (formulaById.get(l.pricing_formula_id) ?? '—') : '—',
+        // ★ FIX-2b:三态。【有公式引用但查不到名字】既不是"没有公式",也不该
+        //   印成破折号 —— pricing_formulas 的门是 module.pricing.view,与本页不同。
+        formulaText: !l.pricing_formula_id
+            ? '—'
+            : formulaById.get(l.pricing_formula_id)
+              ?? (canSeePricingFormulas ? '—' : t('common.restricted')),
         // FIN-27:绿 = 下单时抄下的副本,公式此后怎么改都碰不到这一行;
         //         琥珀 = 存量行,没有副本,结算会点名拒。
         commitmentText: l.pricing_formula_id
@@ -470,7 +491,13 @@ export default async function PurchaseOrderDetailPage({
         qtyText: `${Number(r.quantity)} ${r.unit}`,
         unitPriceText: r.unit_price !== null ? formatUnitCost(r.unit_price) : null,
         // CCY-1:抵扣额与敞口是本位币 —— 上方头卡说的是单据币种,不能借它。
-        appliedText: appliedByBatch.has(r.id)
+        // ★ FIX-2b:【'—' 说的是"这一批没有抵扣过"】。对一个读不到
+        //   prepayment_applications_masked 的人(它的门是 finance.view,本页的门
+        //   是采购)那张表永远是空的,于是每一行都印一根破折号 —— 一句它没有
+        //   资格说的话。null 交给 PoReceiptsTable 画成具名的「受限」。
+        appliedText: !canFinance
+            ? null
+            : appliedByBatch.has(r.id)
             ? formatAmount(appliedByBatch.get(r.id), baseCurrency)
             : '—',
         // ★ 不在这里折成字符串:null(看不到)与 '—'(没有价)是两件事,
@@ -919,6 +946,19 @@ export default async function PurchaseOrderDetailPage({
                                 </p>
                             ) : withKinds.length === 0 ? (
                                 <p className="text-sm text-green-800">{t('grn.po.lineClean')}</p>
+                            ) : !canSeeReceipts ? (
+                                /* ★ FIX-2b fu:判据是【权限码】,不是 grnSettings 是不是
+                                   null —— 从空结果倒推正是本刀在修的那个病。
+                                   receiving_settings 与 grn_discrepancies 的门都在
+                                   收货/采购那一侧,判据取自码,不取自结果。 */
+                                /* ★ FIX-2b:此前是 `: null` —— 差异【已经判定存在】
+                                   (withKinds 非空),而三个阈值读不出来时整块
+                                   【消失】,于是屏幕在一条真的有差异的行上什么都不说。
+                                   receiving_settings 的门是 module.inbound.view,
+                                   本页的门是采购:一个只有采购权限的读者永远走这一支。 */
+                                <p className="text-sm text-gray-600 border border-gray-300 rounded px-3 py-2">
+                                    {t('grn.po.thresholdsRestricted')}
+                                </p>
                             ) : grnSettings ? (
                                 <DiscrepancyKinds
                                     row={withKinds[0]}
@@ -950,7 +990,15 @@ export default async function PurchaseOrderDetailPage({
 
             {/* 收货记录 */}
             <h2 className="text-xl font-bold mb-3">{t('purchasing.receipts')}</h2>
-            {receipts.length > 0 ? (
+            {/* ★ FIX-2b:【先答"看不看得见",再答"有没有"】inbound_batches_masked
+                的谓词是 module.inbound.view;一个只有采购权限的读者读到零行,
+                而下面那句 noReceipts 写的是「这张单还没有收过货」—— 在一张
+                可能已经收完的单子上,那是最坏的一句假话之一。 */}
+            {!canSeeReceipts ? (
+                <p className="text-sm text-gray-600 border border-gray-300 rounded px-3 py-2">
+                    {t('purchasing.receiptsRestricted')}
+                </p>
+            ) : receipts.length > 0 ? (
                 <>
                     <p className="text-sm text-gray-600 mb-2">
                         {t('purchasing.receivedVsOrdered', {

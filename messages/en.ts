@@ -1256,6 +1256,8 @@ const en = {
         counterpartyTypeHint: 'Goods supplier = we buy and receive physical goods. Forwarder = we pay them freight and never receive their goods; they keep the same id so payables, ageing and revaluation are unchanged, but they never appear in supplier or purchase-order lists. Service vendor = landlord, utilities, insurance, professional services.',
         pickerEmptyForwarders: 'No forwarders yet — a company has to be typed as a forwarder before freight can be paid to it.',
         pickerEmptyGoods: 'No goods suppliers yet — add one under Suppliers first.',
+        // FIX-2b: the same empty picker, the other reason for it.
+        pickerRestricted: 'Supplier records need Suppliers access, which you do not have — this list is empty because you cannot see them, not because none are on file.',
         type: {
             goods_supplier: 'Goods supplier',
             forwarder: 'Forwarder / carrier',
@@ -1719,6 +1721,8 @@ const en = {
         // ── C-2:月度录入那一屏 ─────────────────────────────────────────
         scoreTitle: 'Score a month',
         readOnlyNotice: 'You can see this month but not score it — scoring needs HR edit permission. The buttons are hidden rather than shown and then refused by the database.',
+        // FIX-2b: entering this screen and reading its rows are two different permissions.
+        scoresRestricted: 'Individual KPI entries need the review-data permission, which you do not have — so apart from your own, none are listed here. An empty list on this screen is a permission answer, not a month in which nobody was scored.',
         scoreWhat: 'One entry session is one month. Pick the month explicitly — it is never filled in for you, because the month you are scoring is a fact about a period that has already happened, not a timestamp the system may guess. Enter the score, the evidence and your feedback; the weighted score is computed, never typed.',
         chooseMonth: 'Month',
         chooseMonthNone: '— choose a month —',
@@ -2118,6 +2122,9 @@ const en = {
             receivedLabel: '· received {qty} {unit} in {receipts} receipt(s)',
             lineClean: 'Received quantity matches the order within thresholds.',
             noReceipts: 'No receipts against this line, so the discrepancy view cannot speak to it — it reports one row per receipt, and there are none. This blank is NOT "nothing wrong": a line that was never received at all is the most complete shortfall there is. Check the order status and decide by hand.',
+            // FIX-2b: the three receiving thresholds live behind Inbound; without them the
+            // discrepancy wording above has no yardstick, and its absence must be stated.
+            thresholdsRestricted: 'The short / over / assay tolerance thresholds sit behind the inbound module, which you do not have — so this screen cannot show what any discrepancy above was judged against. That is a permission answer, not an absence of thresholds.',
             receiptsList: 'Receipts:',
         },
         list: {
@@ -2191,6 +2198,9 @@ const en = {
         selectPoLine: 'Select an order line…',
         poLineRemaining: '{qty} {unit} remaining',
         poLineOrdered: 'ordered {qty} {unit}',
+        // FIX-2b: a receipt that IS against an order, read by someone who cannot see orders.
+        againstPoRestrictedWhy:
+            'This receipt is against a purchase order. The order itself sits behind the purchasing module, which you do not have — so its number and ordered quantity are not shown here. That is a permission answer, not a receipt made without an order.',
         recordCount: 'Total: {count}',
         colCode: 'Code',
         colMaterial: 'Material',
@@ -2424,6 +2434,10 @@ const en = {
             spot: 'Spot at market (preset)',
             formula: 'Formula',
             formulaPick: 'Formula (sale side)',
+            // FIX-2b: an empty dropdown had two meanings and said neither.
+            formulasRestricted:
+                'Pricing formulas sit behind the pricing module, which you do not have — this list is empty because you cannot see them, not because none exist.',
+            formulasNone: 'No sale-side formula has been set up yet.',
             quote: 'Compute price',
             quoting: 'Computing…',
             quoted: 'Computed: {usd} USD/kg × fx {factor} ({side}) — series: {series}. Editing the price reverts it to manual.',
@@ -4709,6 +4723,8 @@ const en = {
         empty: 'No assay results recorded',
         priceChangeTitle: 'Resulting price change',
         journalLink: 'Journal entry',
+        // FIX-2b: the whole row used to vanish, which reads as "this reprice never posted".
+        journalRestrictedWhy: 'Journal entries sit behind the finance module, which you do not have. Whether this price change posted to the ledger is not shown here — that is a permission answer, not a reprice that never posted.',
         // FIX-2a(b):Tim 的 Q4 裁定 —— 价格不给现场。扣下是对的,沉默不是。
         pricingRestricted: 'Pricing for this batch is withheld from this account.',
         pricingRestrictedHint:
@@ -4725,6 +4741,11 @@ const en = {
         repriceFromFormula: 'Reprice from current content',
         termsNotCommitted:
             'This batch references a pricing formula, but no settlement terms were recorded when the deal was made — so there is nothing to settle from, and copying the formula as it stands today would record terms nobody agreed to. Price this batch manually.',
+        // FIX-2b: the formula resolves batch → its purchase order line, and the second hop is
+        // behind the purchasing module. Without this line, a reader who cannot take that hop
+        // sees no warning at all and cannot tell it from "this batch has no formula".
+        termsFromPoLineRestricted:
+            'This batch has no pricing formula of its own. Whether its purchase order line carries one sits behind the purchasing module, which you do not have — so this screen cannot say whether settlement terms exist. That is a permission answer, not a batch priced manually by choice.',
         unappliedWarning:
             'Assay {code} has been recorded but not applied — the price still reflects the previous content.',
         hasUnappliedMarker: 'Assay recorded but not applied',
@@ -4886,6 +4907,12 @@ const en = {
                 assetAlreadyOnOrder: 'already on an order',
                 noAssetsRegistered: 'No machine is registered yet, or all of them are already commissioned. Register one under Finance → Assets first.',
                 assetsRestricted: 'You cannot see asset cards — that needs Finance access. This is not the same as none being registered.',
+                // FIX-2b: the supplier NAMES come from a lookup view; the agreed default
+                // payment terms do not, and their absence must not read as "none agreed".
+                // FIX-2b: an empty formula dropdown had two meanings and said neither.
+                formulasRestricted: 'Pricing formulas sit behind the pricing module, which you do not have — this list is empty because you cannot see them, not because none have been set up.',
+                supplierTermsRestricted:
+                    'Not filled in automatically — a supplier’s agreed default payment terms need Suppliers access, which you do not have. That is a permission answer, not a supplier with no agreed terms. Pick a template yourself, or ask someone who can see the terms.',
                 equipmentQtyFixed: 'Fixed: one line is one machine, measured in units. Four machines are four lines, because each gets its own asset card, in-service date and depreciation.',
             supplier: 'Supplier',
             orderDate: 'Order date',
@@ -4928,6 +4955,10 @@ const en = {
         applyPrepayment: 'Apply prepayment',
         applyPrepaymentNote:
             'Moves money already paid on the order onto this batch, reducing what is still owed.',
+        // FIX-2b: the panel used to vanish entirely for a reader without purchasing access,
+        // and a missing panel reads as "nothing has ever been applied".
+        prepaymentRestricted:
+            'This batch is against a purchase order, and prepayments sit behind the purchasing and finance modules, which you do not have. Whether any prepayment has been applied to this batch is not shown here. That is a permission answer, not a batch with no prepayments against it.',
         applicableAmount: 'Applicable',
         appliedHistory: 'Prepayments applied',
         daysOffsetHint: 'Days after the order date',
@@ -4978,6 +5009,9 @@ const en = {
         payDeposit: 'Record a payment',
         unpriced: 'Not priced',
         noReceipts: 'No goods received against this order yet',
+        // FIX-2b: receipts live behind the inbound module; the line above must not be shown
+        // to someone who simply cannot see them.
+        receiptsRestricted: 'Receipts against this order sit behind the inbound module, which you do not have — so this screen cannot say whether anything has been received. That is a permission answer, not an order with no receipts.',
         noPaymentTerms: 'This order has no payment schedule. Nothing is committed to a date, so it will not appear in the cash forecast.',
         noLines: 'This order has no lines. An order with nothing on it cannot be received against, so this is an unfinished draft rather than an empty list.',
         prepaymentGroup: 'Prepayments (purchase orders)',
@@ -5243,6 +5277,8 @@ const en = {
         previewPdf: 'Preview report',
         issuePdf: 'Issue report',
         neverIssued: 'Never issued.',
+        issuesRestricted:
+            'The issue log sits behind the sales and processing modules, and you have neither \u2014 so how many versions have gone out is not shown here. That is a permission answer, not a report that has never been issued. A copy may already be in a customer\u2019s hands.',
         pdfTitle: 'Client audit report \u2014 {code}',
         pdfBatchLabel: 'Batch',
         colStep: 'Step',
@@ -5633,6 +5669,9 @@ const en = {
         noDiffs: 'No differences — posting will change nothing',
         postButton: 'Confirm & Post',
         postConfirm: 'Post this stocktake? Stock will be set to counted quantities.',
+        // FIX-2b: no banner used to mean "no stocktake is running" to every reader alike.
+        openStateRestricted:
+            'Whether a stocktake is currently running sits behind the stocktakes module, which you do not have — so this screen does not say. That is a permission answer, not a confirmation that no count is under way.',
         backToCount: 'Back to counting',
         scanBanner: "Stocktake {code} in progress — record this batch's count",
         errQty: 'Quantity must be 0 or more',
@@ -7332,6 +7371,7 @@ const en = {
             // ── P4 的诚实那一句,三选一,而且【总有一句】 ──────────────────
             honestyInWindow: 'Reading may be incomplete: {n} processing run(s) in this period were not attributed to ANY machine. A low figure here may mean little wear, or wear we cannot see \u2014 those are not the same thing.',
             honestyNeverAttributable: 'This reading starts from zero, and zero here does NOT mean little wear. All {n} processing run(s) on record happened before this machine was acquired on {date}, and a run can only be attributed to a machine when it is committed \u2014 there is no way to attribute a past run afterwards. So the wear from those runs is wear we cannot see.',
+            honestyPriorRestricted: 'This reading may be incomplete and this screen cannot say by how much. Whether any processing runs predate this machine’s acquisition on {date} sits behind the processing module, which you do not have — so the figure that would qualify this reading is not available to you. That is a permission answer; it is not a statement that the reading is complete.',
             honestyComplete: 'Every processing run since {date} is attributed to a machine, so this reading is complete for that period. It says nothing about anything before {date}.',
             honestyNotMeasured: 'No service interval is being monitored for this machine, so nothing has been measured about which processing runs in any period were attributed to a machine. This figure is therefore not a statement about completeness \u2014 a low number here may mean little wear, or wear nobody counted.',
             kind: 'Kind of work',

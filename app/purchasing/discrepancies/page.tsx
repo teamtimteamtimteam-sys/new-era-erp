@@ -84,6 +84,8 @@ export default async function ReceivingDiscrepanciesPage() {
     // 仍然只在服务端:thresholdActions 不自己判权限,它看【回写了几行】,
     // 两道门将来真的分开时,用户拿到的是一句具名拒绝,不是一次静默的无事发生。
     const canEdit = await can('module.purchasing.edit')
+    // ★ FIX-2b:receiving_settings 的 RLS 是 module.inbound.view,而本页的门是采购。
+    const canSeeReceivingSettings = await can('module.inbound.view')
 
     return (
         <>
@@ -94,13 +96,26 @@ export default async function ReceivingDiscrepanciesPage() {
                 {/* GRN-1b:三个阈值。人人看得见(下面每一条提示出不出现都取决于它),
                     有写权限的人改得动。settings 读不出来时不画面板,而不是画一个
                     填着猜测值的面板 —— 一个显示错阈值的面板比没有面板坏。 */}
-                {settings && (
+                {/* ★ FIX-2b fu:判据是【权限码】,不是 settings 是不是 null ——
+                    从空结果倒推正是这一刀在修的那个病。一个持 module.inbound.view
+                    却恰好没有那一行的库(全新重建就是),会被倒推法说成「你没有权限」。 */}
+                {!canSeeReceivingSettings ? (
+                    /* ★★【FIX-2b:上面那句"读不出来时不画面板"漏掉了一种读不出来】★★
+                       它写的是「一个显示错阈值的面板比没有面板坏」—— 对的,而
+                       receiving_settings 的门是 module.inbound.view,本页的门是采购。
+                       于是【一个只有采购权限的读者永远走这一支】,而下面每一条
+                       差异提示的分寸都由这三个数定:面板不在,那些提示就成了没有
+                       标尺的判断。不画面板仍然对,但要说出为什么它不在。 */
+                    <p className="text-sm text-gray-600 border border-gray-300 rounded px-3 py-2 mb-4">
+                        {t('grn.po.thresholdsRestricted')}
+                    </p>
+                ) : settings ? (
                     <ReceivingThresholdPanel
                         shortPct={Number(settings.grn_short_pct)}
                         overPct={Number(settings.grn_over_pct)}
                         assayPct={Number(settings.grn_assay_tolerance_pct)}
                         canEdit={canEdit} />
-                )}
+                ) : null}
 
                 {rows.length === 0 ? (
                     /* 【"没有差异"要说得出它的范围】—— 空表配一句"一切正常"是这一页

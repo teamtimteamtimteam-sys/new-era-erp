@@ -47,6 +47,7 @@ export default function SalePanel({
     batchCustomerId,
     baseCurrency,
     formulas,
+    formulasRestricted = false,
 }: {
     // 【无权时拿不到行,而不是拿到 0】—— 面板据此渲染「受限」
     canSeeCredit: boolean
@@ -68,6 +69,8 @@ export default function SalePanel({
     /** SAL-A:方向为 sale/both 的启用公式(读自 pricing_formulas_masked;无 pricing
      *  权限时为空数组 → 只剩手填与现货预设) */
     formulas: { id: string; code: string; name: string }[]
+    /** ★ FIX-2b:「这张下拉是空的」有两种意思,而只有页面答得出是哪一种。 */
+    formulasRestricted?: boolean
 }) {
     const t = useTranslations()
     const recordWithId = recordSale.bind(null, batchId)
@@ -198,6 +201,17 @@ export default function SalePanel({
                                     <option key={f.id} value={f.id}>{f.code} · {f.name}</option>
                                 ))}
                             </select>
+                            {/* ★ FIX-2b:【一张空下拉不说明"没有公式"】pricing_formulas_masked
+                                的谓词是 module.pricing.view;operations 与 warehouse 都不持有它,
+                                于是这里此前是一个【空的、没有任何解释的】下拉 —— 读起来是
+                                "这套系统里没有卖方公式",而真相是"你看不到它们"。
+                                判据由页面传进来(不是从 formulas.length 倒推:真的一条公式
+                                都没建过,也会是空)。 */}
+                            {formulasRestricted ? (
+                                <p className="mt-1 text-xs text-gray-600">{t('output.sale.pricing.formulasRestricted')}</p>
+                            ) : formulas.length === 0 ? (
+                                <p className="mt-1 text-xs text-gray-600">{t('output.sale.pricing.formulasNone')}</p>
+                            ) : null}
                         </div>
                     )}
                     {priceMode !== 'manual' && (

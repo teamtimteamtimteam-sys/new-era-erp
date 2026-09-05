@@ -17,7 +17,8 @@ import { ApplyNowButton, UnapplyControl } from './ApplyAssayControls'
 import AssayImpactPreview from '../AssayImpactPreview'
 import { repricePreview, type AssayImpact } from '../actions'
 import type { CalcResult } from '@/app/tools/pricing/calculator/actions'
-import { canViewPrices } from '@/lib/permissions'
+import { can, canViewPrices } from '@/lib/permissions'
+import { Refusal } from '@/app/components/ui/refusal'
 import { getBaseCurrency } from '@/lib/currency'
 import { maskedExcept } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
@@ -87,6 +88,13 @@ export default async function AssayDetailPage({
     ])
 
     const showPrices = await canViewPrices()
+    // ★★【FIX-2b:那条分录链接【消失】的时候,它说的是一句假话】★★
+    //   journal_entries 的 RLS 是 module.finance.view,而本页的门是进料。
+    //   实测:operations / warehouse / procurement 读它得 **0 行**,于是
+    //   priceChange.journalId 是 null,而渲染那一段写的是 `{journalId && (…)}`
+    //   —— 整行消失。屏幕于是说「这次改价没有过账」,而它过了。
+    //   ★ 补法是 (b):总账在财务那道门后面,把它给现场是扩权,不是查名。
+    const canSeeJournal = await can('module.finance.view')
     const batch = maskedExcept<Tables<'inbound_batches'>, 'unit_price'>(batchRes.data)
     if (!batch) notFound()
 
@@ -323,7 +331,13 @@ export default async function AssayDetailPage({
                             <span>{t('inbound.pricing.colWhen')}</span>
                             <span>{priceChange.when}</span>
                         </div>
-                        {priceChange.journalId && (
+                        {!canSeeJournal ? (
+                            <div className="flex justify-between">
+                                <span className="text-gray-600">{t('assay.journalLink')}</span>
+                                <Refusal why={t('assay.journalRestrictedWhy')}>{t('common.restricted')}</Refusal>
+                            </div>
+                        ) : null}
+                        {canSeeJournal && priceChange.journalId && (
                             <div className="flex justify-between">
                                 <span className="text-gray-600">{t('assay.journalLink')}</span>
                                 <Link

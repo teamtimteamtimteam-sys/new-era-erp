@@ -39,12 +39,20 @@ export default async function NewExpensePage() {
             .neq('counterparty_type', 'forwarder')
             .order('legal_name'),
         // PAYEE-1b:未付费用的往来对象可以是员工(报销)。
-        // 【读 employees_masked】它是遮蔽视图,门是 module.hr.view —— 没有 HR
-        // 权限的财务读者会读到 0 行,而那时下拉里会显示"名单为空"那句话。
-        // 那句话在这里【略微不准】(真相是"你看不到"而不是"没有人"),
-        // 但两者的下一步是同一句:去人事模块。留一条已知项,不假装它准。
+        //
+        // ★★【FIX-2b:上面那条"已知项"结清了,而它此前【比自己以为的更不准】】★★
+        //   原注释写着「略微不准」,并把两者的下一步说成同一句。实测不是:
+        //   employees_masked 整张按 module.hr.view 判,而 finance【没有】那个码,
+        //   于是 Choo Er 读到的不是零行 —— 是 **1 行,她自己**(employees 的 RLS
+        //   额外放行"自己那一行",遮蔽视图继承了它)。屏幕上于是不是"名单为空",
+        //   而是【一份只有一个人的员工名单】—— 一句看起来完全正常的假话,
+        //   比空名单更难被发现。
+        //
+        //   改读 employee_lookup(FIX-2a 开的查名视图):体内谓词是
+        //   hr.view OR finance.view,列只有 id / 工号 / 姓名 / 登录账号 ——
+        //   薪酬、身份、准证一列都没有。**换一个读法,不是扩一次权,没有迁移。**
         supabase
-            .from('employees_masked')
+            .from('employee_lookup')
             .select('id, legal_name')
             .is('deleted_at', null)
             .order('legal_name'),
@@ -148,6 +156,13 @@ export default async function NewExpensePage() {
         }))
     // 【读不到采购单与"没有采购单"是两件事】空列表要说得出是哪一种(见表单)。
     const canSeePurchasing = await can('module.purchasing.view')
+    // ★★【FIX-2b:供应商那一半是 (b),不是 (a) —— Tim 2026-09-06 裁定】★★
+    //   这里的 suppliers 读的不只是名字:`default_tax_code` 与 `tax_residence`
+    //   一个驱动默认税码、一个决定要不要追问代扣。两列都【不在】supplier_lookup 上,
+    //   而那张视图的抬头写着它存在就是为了扣住这一类商务条款。
+    //   把两列加进视图是一次真的扩权;换来的只是一个自动带出的默认值。
+    //   所以:读不到就【说出来】,并让人自己挑 —— 服务端照常按它自己的规则判。
+    const canSeeSuppliers = await can('module.suppliers.view')
     const capRow = capAccountRes.data as { code: string; name_en: string; name_zh: string } | null
     // D5:资本支出的借方【就是 1500】(record_expense 定死),名字从库里取,不写死。
     const capitalAccountLabel = capRow
@@ -175,7 +190,8 @@ export default async function NewExpensePage() {
             <NewExpenseForm
                 baseCurrency={baseCurrency} accounts={accounts} suppliers={suppliers}
                 employees={employees} assets={assets} poLines={poLines}
-                canSeePurchasing={canSeePurchasing} capitalAccountLabel={capitalAccountLabel}
+                canSeePurchasing={canSeePurchasing} canSeeSuppliers={canSeeSuppliers}
+                capitalAccountLabel={capitalAccountLabel}
                 gstRegistered={settingsRes.data?.gst_registered ?? false}
                 whtNatures={mustRows(whtNaturesRes).map((n) => ({
                     code: n.code as string,

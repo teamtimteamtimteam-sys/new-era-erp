@@ -59,6 +59,13 @@ export default async function KpiScorePage({
     //   但不该看到一排会被数据库 42501 掉的编辑钮。导航项挂在 edit 上,
     //   而直接敲 URL 进来的人在这里落到只读 —— 两道都要,因为导航只是界面的门。
     const mayScore = await can('module.hr.edit')
+    // ★★【FIX-2b:进得来这一屏 ≠ 看得见这一屏的行】★★
+    //   kpi_entries 的策略是 (module.hr.view AND data.view_reviews) OR 自己那一行。
+    //   auditor 持 module.hr.view(所以 requireModule 放他进来)而【不持
+    //   data.view_reviews】—— 于是他挑一个月,拿回零行(或只有自己那一条),
+    //   屏幕照直渲染成「这个月还没有人被打过分」。那是一句关于公司的断言。
+    //   本页既有的 mayScore 分支问的是 module.hr.**edit**,不是同一个问题。
+    const canSeeScores = await can('data.view_reviews')
 
     const cycles = mustRows(
         await supabase.from('kpi_cycles')
@@ -189,6 +196,12 @@ export default async function KpiScorePage({
                     {!mayScore && (
                         <div className="border-l-4 border-gray-500 bg-gray-100 p-3 mb-4 max-w-4xl">
                             <p className="text-sm">{t('kpi.readOnlyNotice')}</p>
+                        </div>
+                    )}
+                    {/* ★ FIX-2b:先答"看不看得见",再答"有没有" —— 次序就是这条的全部。 */}
+                    {!canSeeScores && (
+                        <div className="border-l-4 border-gray-500 bg-gray-100 p-3 mb-4 max-w-4xl">
+                            <p className="text-sm">{t('kpi.scoresRestricted')}</p>
                         </div>
                     )}
                     {!locked && chosen.status === 'closed' && (
