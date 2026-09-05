@@ -1492,14 +1492,33 @@ TOOLS-1 ⑤a 给它配了 `notes_en` / `notes_zh`,界面已改读语言对
 (`suppliers.notes`、`processing_runs.notes` 之类)—— 那些**不是缺陷**,
 人爱用哪种语言写就用哪种。要改的只有【引导播下去的那些】。
 
-**(丙) 代码侧的中文渲染串:21 条,4 个文件 —— 分类已做完,修留给单独一刀。**
+**~~(丙) 代码侧的中文渲染串:21 条,4 个文件~~ —— ★ COPY-1(2026-09-06)做掉了,
+并且那个 21 与那个 4 【两个方向都错】。**
+
+> **多算了 5 条:** `lib/supabase/middleware.ts` 那五句**本来就是双语的** ——
+> 同一个 `COPY` 常量里 `zh` 与 `en` 并排,文件头还写明了为什么不放进 `messages/`
+> (中间件在每一个请求上跑,为两句话把整套语言包拉进它的包里不划算)。
+> 它们是【渲染的中文】,但不是【没翻译的中文】。分类器答的是前一个问题。
+>
+> **少算了 2 个文件:** `app/components/ui/editable-table.tsx` 与
+> `app/components/ui/list-page.tsx` 各有一处,当时的清单里一个都没有。
+>
+> **真正修掉的是 19 处 / 4 个文件**,外加 5 处写死的 `、` 与 1 处全角括号。
+> 其中 **14 处住在 `data-table.tsx` 一个文件里,而 97 个页面 import 它** ——
+> 这一条才是那一刀的分量所在,而它在这条队列里【一个字都没有】。
 TOOLS-1 ⑤b 把 474 条命中分了类(AST,注释天然排除):
 sampler 220 · 刻意双语 41 · 面向开发者 53 · `formatMoneyBare` 的文档参数 114(**永不渲染**)
 · 库里的规范值与哨兵 16 · CJK 标点 7 · 语言切换器 2 · **真正渲染的 21**。
 那 21 条在:`app/components/ui/data-table.tsx`(12)· `lib/supabase/middleware.ts`(5)
 · `app/settings/import/actions.ts`(2)· `app/finance/payables/page.tsx`(2)。
 **棘轮刻意没建** —— Tim 的裁定:分类先于基线,否则冻住的是一个错的数。
-调查脚本留在 `scripts/survey-cjk-strings.mjs`(**它是勘察,不是闸**)。
+~~调查脚本留在 `scripts/survey-cjk-strings.mjs`(**它是勘察,不是闸**)。~~
+★ **COPY-1:现在它两样都是。** 勘察脚本导出 `scanCjk()`,闸
+`scripts/check-cjk-rendered.mjs` **复用同一个分类器**(两套判据必然分家,所以只留一套),
+基线 `scripts/cjk-rendered-baseline.json` 18 条,已进 `npm run build`。
+**Tim 的旧裁定被自己的理由推翻:** 当初拒绝加检查层是按【时间】拒的,
+而实测 410ms —— 19 道静态检查一共 3s,全闸 310s,这一道占 0.13%。
+「分类先于基线」那一条已经满足:分类是 TOOLS-1 做完、COPY-1 逐条复核过的。
 
 NAV-1、视觉统一、对外单据版式,带着它自己的五条 punch list。
 

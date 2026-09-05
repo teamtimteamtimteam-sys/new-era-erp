@@ -846,6 +846,29 @@ const en = {
         // "这个系统没有你能用的东西"在屏幕上长得一模一样,所以判断不出的时候要说出来。
         navUnavailable: 'Navigation unavailable',
         navUnavailableHint: 'Your sign-in could not be confirmed just now, so the menu is not being shown. This does NOT mean you were signed out, and it does NOT mean you have no access — reload in a moment.',
+        // COPY-1:列表分隔符。英文用逗号,中文用顿号 —— 从前 5 处直接写死 '、',
+        // 于是英文界面上读到的是「A、B、C」。仓库里已有两处写对了(locale 三元),
+        // 这一个键把那两处的判断变成一个所有人都能用的东西。
+        listSep: ', ',
+    },
+    // ── COPY-1(2026-09-06):表格外壳自己的词。
+    // 【为什么这一块存在】这些字从前【硬写在 data-table.tsx 里,只有中文】——
+    //   而 97 个页面 import 这一个组件,于是英文界面上每一页都印中文。
+    //   check-i18n 看不见这种缺陷:硬写的字面量【一个键都不引用】,
+    //   于是它落在那个检查器的宇宙之外(见 scripts/cjk-rendered-baseline.json 抬头)。
+    table: {
+        columns: 'Columns {shown}/{total}',
+        // 报量,不报警:排序看得见全体 —— 这一句解释的正是【为什么第一页就是全体的前 N 名】。
+        partialNotice: 'This screen shows {shown} of {total} rows — the sorting is done in the database over ALL rows, so page one is the top {shown} of the whole set, not just of this screen.',
+        selectAll: 'Select all',
+        selectRow: 'Select this row',
+        expandRow: 'Show the remaining columns for this row',
+        empty: 'No matching rows',
+        emptyPlain: 'No rows',
+        range: 'Rows {from}–{to} of {total}',
+        prevPage: 'Previous',
+        nextPage: 'Next',
+        rowCount: '{n} rows.',
     },
     leave: {
         errYearInvalid: 'Enter a four-digit leave year. A non-numeric year silently carries forward nobody while reporting success.',
@@ -977,6 +1000,10 @@ const en = {
         errors: {
             IMPORT_TABLE_NOT_IMPORTABLE: 'That table cannot be imported into. Only the six master-data tables in the picker are importable.',
             IMPORT_ROWS_NOT_AN_ARRAY: 'The file could not be turned into rows. {detail}',
+            // COPY-1:这两句从前是【中文硬写在 actions.ts 里】的 detail,
+            // 而 detail 被插进上面这句英文里 —— 英文界面上读到的是半句中文。
+            previewNotRolledBack: 'The preview did not undo itself the way it must. Do not submit this import — report it.',
+            atRow: ' (row {n})',
             IMPORT_FILE_EMPTY: 'The file has no data rows. That is not the same as a file that failed to parse — this one was read successfully and contained nothing.',
             IMPORT_CODE_DUPLICATED_IN_FILE: 'The file uses the same code more than once: {detail}. Every row needs its own code.',
             IMPORT_CODE_ALREADY_EXISTS: 'These codes already exist in the system: {detail}. The whole file is refused rather than skipping them — "already there" and "deliberately left alone" must not look the same, and updating them would be a merge, which has not been decided.',
@@ -1131,7 +1158,13 @@ const en = {
         saved: 'Saved.',
         noCreateUser: 'Accounts are created by Supabase Auth invitation, which is a later cut — this page manages roles for accounts that already exist.',
         recoveryTitle: 'Locked out?',
-        recoveryBody: 'A lockout is recoverable in two minutes by connecting as the postgres role through the pooler, which bypasses RLS. The exact procedure is documented in the header of',
+        // COPY-1(2026-09-06):这一句从前把【做法】写在了屏幕上 ——
+        // 「以 postgres 角色经连接池直连绕过 RLS」。读这一屏的是仓管与行政,
+        // 那句话对他们没有任何可执行的东西,只有惊吓。
+        // 【读者没变,而且是对的】本页的注释早就说清楚了:被锁在门外的人读不到
+        // 这一屏,所以这句话是写给【还进得来的管理员】看的 —— 他要知道的只有
+        // 两件事:救得回来、去哪儿找。做法搬进 docs/accounts-roles-and-permissions.md。
+        recoveryBody: 'Access can be restored — nobody is permanently locked out. The procedure is in the operations runbook, under Accounts, roles and permissions.',
 
         // roles
         rolesIntro: 'Roles and their grants are data — changing them is an edit here, not a release.',
@@ -3845,7 +3878,7 @@ const en = {
         empty: 'Nothing dated falls in this month. That is not an error \u2014 it is what the sources actually hold.',
         emptyKind: 'Nothing of this kind falls in this month.',
         sourceFailed: 'One or more sources could not be read, so this month is INCOMPLETE: {list}. This is not the same as "nothing scheduled".',
-        basis: '{n} item(s) this month, gathered from 6 sources concurrently in {ms} ms. Two sources the brief asked for are absent by measurement, not by omission \u2014 approval deadlines do not exist as a column anywhere, and equipment servicing is due by kilograms processed rather than by date. See app/tools/calendar/sources.ts.',
+        basis: '{n} item(s) this month, gathered from 6 sources concurrently in {ms} ms. Two sources the brief asked for are absent by measurement, not by omission \u2014 approval deadlines do not exist as a column anywhere, and equipment servicing is due by kilograms processed rather than by date.',
         kind: {
             holiday: 'Public holiday', leave: 'Leave', task: 'Task due',
             invoiceDue: 'Invoice due', containerEta: 'Container ETA', periodClose: 'Period close',
@@ -3863,7 +3896,7 @@ const en = {
             title: 'Mass',
             value: 'Value', from: 'From unit', to: 'To unit',
             formula: 'result = value \u00d7 (kg per FROM unit) \u00f7 (kg per TO unit)',
-            sources: '1 tonne = {kgPerTonne} kg \u2014 the system already relies on this (lib/valuation.ts divides a per-tonne price by it to get a per-kilogram price, on a money path). 1 pound = {kgPerPound} kg exactly, from the 1959 international agreement: this system has NO pound conversion of its own, so the number comes from SI rather than from a house convention.',
+            sources: '1 tonne = {kgPerTonne} kg \u2014 the system already relies on this to turn a per-tonne price into a per-kilogram price, on a path that works out money. 1 pound = {kgPerPound} kg exactly, from the 1959 international agreement: this system has NO pound conversion of its own, so the number comes from SI rather than from a house convention.',
         },
         grade: {
             title: 'Metal grade',

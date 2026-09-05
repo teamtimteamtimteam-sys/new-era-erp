@@ -172,7 +172,7 @@ export default async function ReceiptPatternPanel({
                                             <span className="text-gray-500 ml-2">{r.arrival_date}</span>
                                         )}
                                         <span className="ml-2">
-                                            {r.kinds.map((k) => t('grn.kind.' + k)).join('、')}
+                                            {r.kinds.map((k) => t('grn.kind.' + k)).join(t('common.listSep'))}
                                         </span>
                                     </li>
                                 ))}

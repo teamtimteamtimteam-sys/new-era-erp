@@ -3186,3 +3186,53 @@ fixture 192 已经在库里钉过(以角色身份直连,断言 42501 / PERMISSIO
 把任意一个 `.txt` 改名成 `.png` 再传。应当看到一句话:
 「这个文件读不成一张图片。什么都没有保存 —— 你原来的照片没有变。」
 **不该**是一片白、一个转圈不停、或者一张画不出来的破图。
+
+---
+
+## COPY-1(2026-09-06)· 把界面切成 English 再走一遍
+
+★ **这几条只有人能查:机器能证明「这句话经过了 i18n」,证不出「英文那句话是对的」。**
+
+### 7. 任意一张列表页,切到 English
+
+顶栏 中/EN 切到 **English**,然后随便打开一张列表页(`/suppliers`、`/materials`、
+`/inbound`……)。**整张表的外壳都该是英文**,包括:
+
+* 分页那一行 —— `Rows 1–20 of 137`,以及 `Previous` / `Next` 两个钮;
+* 列显隐那个钮 —— `Columns 5/11`;
+* 一张**筛不出东西**的表 —— `No matching rows`;
+* 勾选框的读屏标签 —— `Select all` / `Select this row`(读屏软件或悬停才看得到)。
+
+**从前这些【全是中文】,而且每一页都是** —— 它们住在一个 97 个页面共用的组件里。
+看见任何一处中文,请报上来并说清楚是哪一页。
+
+### 8. `/suppliers`、`/inbound`、`/output` —— 那句解释排序的话
+
+切到 English,这三张表(以及另外五张服务端排序的表)在表格上方有一句说明,
+应当读作:
+
+> This screen shows 20 of 137 rows — the sorting is done in the database over
+> ALL rows, so page one is the top 20 of the whole set, not just of this screen.
+
+**这句话是有用的,不要当噪音**:它解释的正是「第一页为什么是全体的前 20 名,
+而不是这一屏的前 20 名」。中文界面下它仍是原来那句。
+
+### 9. `/settings/accounts` —— 那段「被锁在门外」的话
+
+现在应当**只说两件事**:救得回来、去哪儿找。
+**不该**再出现 `postgres`、连接池、RLS,或任何 `.sql` 文件名。
+完整做法搬到了 `docs/accounts-roles-and-permissions.md` 顶上那一节。
+
+### 10. 顿号:英文界面下的列表分隔符
+
+`/settings/roles`(权限速查)、组织架构图的空部门那一行、`/finance/settings` 的
+锁账日期提示、供应商收货规律面板 —— 这些地方会把几项东西连起来印。
+**English 下应当是 `A, B, C`;中文下仍是 `A、B、C`。**
+英文界面上看见顿号,请报上来。
+
+### ⚠️ 已知、这一刀【没有】修的两条(看见了不必报)
+
+* `/tools/reminders` 上有两条提醒会**原样印出 `{0}`** —— 假期日历那两条。
+  既有缺陷,已在册。
+* English 下点表头排序,顺序是按**中文排序规则**算的(`COPY-1-SORT-COLLATION`)。
+  那是行为不是文案,这一刀刻意没动它。

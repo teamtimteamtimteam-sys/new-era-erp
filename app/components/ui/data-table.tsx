@@ -58,6 +58,7 @@
 //   换句话说:**转换刀不必为了用上这个组件而放弃已经正确的服务端排序。**
 // ════════════════════════════════════════════════════════════════════════════
 
+import { useTranslations } from '@/lib/i18n/client'
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 
@@ -222,9 +223,11 @@ function SelectAllCheckbox({
 }
 
 export function DataTable<T>(props: DataTableProps<T>) {
+    // COPY-1:这一层外壳的字从前只有中文,而 97 个页面 import 它。
+    const t = useTranslations()
     const {
         rows, columns, rowKey, caption, empty, filter, pageSize, phone, selection,
-        columnToggle = false, phoneExpandLabel = '展开这一行的其余各列', className, rowClassName,
+        columnToggle = false, phoneExpandLabel, className, rowClassName,
     } = props
     // ★【CONV-1:scroll 那一支 —— 手机上【每一列都留着】,靠外层横向滚动】★
     //   实现上它就是"把所有列都当成 priority",于是下面那些 `!c.priority` 的
@@ -340,7 +343,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                     {columnToggle && (
                         <details className="relative">
                             <summary className="base-pressable cursor-pointer list-none rounded-[var(--brand-radius)] border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-2.5 py-1.5 text-sm text-[color:var(--brand-text)]">
-                                列 {shownCols.length}/{columns.length}
+                                {t('table.columns', { shown: shownCols.length, total: columns.length })}
                             </summary>
                             <div className="nav-glass absolute right-0 z-20 mt-1 min-w-44 rounded-[var(--brand-radius)] border border-[color:var(--brand-border)] p-2 shadow-md">
                                 {columns.map((c) => (
@@ -361,8 +364,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                     {/* ★ 只在服务端模式下出现,而且它【报量,不报警】—— 排序看得见全体。 */}
                     {partial && (
                         <p id={noticeId} className="w-full text-xs text-[color:var(--brand-muted-text)]">
-                            这一屏 {partial.shown} 行,全体 {partial.total} 行 ——
-                            排序在数据库里对【全体】做,所以第一页就是全体的前 {partial.shown} 名。
+                            {t('table.partialNotice', { shown: partial.shown, total: partial.total })}
                         </p>
                     )}
                 </div>
@@ -393,7 +395,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                             total={visible.length}
                                             selected={visible.filter((r) => selection.selectedIds.has(rowKey(r))).length}
                                             onChange={() => selection.onToggleAll!(visible.map(rowKey))}
-                                            label={selection.selectAllLabel ?? '全选'}
+                                            label={selection.selectAllLabel ?? t('table.selectAll')}
                                         />
                                     )}
                                 </th>
@@ -460,7 +462,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                         {visible.length === 0 && (
                             <tr>
                                 <td colSpan={shownCols.length + (phoneScroll ? 0 : 1) + (selection ? 1 : 0)} className="px-3 py-8 text-center text-[color:var(--brand-muted-text)]">
-                                    {empty ?? '没有符合的行'}
+                                    {empty ?? t('table.empty')}
                                 </td>
                             </tr>
                         )}
@@ -478,7 +480,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                                     type="checkbox"
                                                     checked={selection.selectedIds.has(k)}
                                                     onChange={() => selection.onToggle(k)}
-                                                    aria-label={(selection.selectRowLabel ?? '选中这一行')}
+                                                    aria-label={(selection.selectRowLabel ?? t('table.selectRow'))}
                                                     className="base-pressable h-4 w-4"
                                                 />
                                             </td>
@@ -489,7 +491,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                                     type="button"
                                                     onClick={() => toggleRow(k)}
                                                     aria-expanded={isOpen}
-                                                    aria-label={phoneExpandLabel}
+                                                    aria-label={phoneExpandLabel ?? t('table.expandRow')}
                                                     className="base-pressable flex h-7 w-7 items-center justify-center rounded text-[color:var(--brand-muted-text)] hover:bg-[color:var(--brand-muted)]"
                                                 >
                                                     <span aria-hidden className={cn('transition-transform', isOpen && 'rotate-90')}>›</span>
@@ -539,18 +541,21 @@ export function DataTable<T>(props: DataTableProps<T>) {
             {pageSize && sorted.length > pageSize && (
                 <div className="mt-2 flex items-center justify-between gap-2 text-sm text-[color:var(--brand-muted-text)]">
                     <span>
-                        第 {safePage * pageSize + 1}–{Math.min((safePage + 1) * pageSize, sorted.length)} 行,
-                        共 {sorted.length} 行
+                        {t('table.range', {
+                            from: safePage * pageSize + 1,
+                            to: Math.min((safePage + 1) * pageSize, sorted.length),
+                            total: sorted.length,
+                        })}
                     </span>
                     <span className="flex gap-1">
                         <button
                             type="button" disabled={safePage === 0} onClick={() => setPage(safePage - 1)}
                             className="base-pressable rounded-[var(--brand-radius)] border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-2.5 py-1 disabled:cursor-not-allowed disabled:bg-[color:var(--brand-disabled-bg)] disabled:text-[color:var(--brand-disabled-text)]"
-                        >上一页</button>
+                        >{t('table.prevPage')}</button>
                         <button
                             type="button" disabled={safePage >= pageCount - 1} onClick={() => setPage(safePage + 1)}
                             className="base-pressable rounded-[var(--brand-radius)] border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-2.5 py-1 disabled:cursor-not-allowed disabled:bg-[color:var(--brand-disabled-bg)] disabled:text-[color:var(--brand-disabled-text)]"
-                        >下一页</button>
+                        >{t('table.nextPage')}</button>
                     </span>
                 </div>
             )}

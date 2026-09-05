@@ -223,7 +223,7 @@ export default async function OrgChart({ tree }: { tree: OrgTree }) {
                    style={{ color: 'var(--brand-muted-text)' }}>
                     {t('org.emptyDepartments', { n: String(tree.emptyDepartments.length) })}
                     {': '}
-                    {tree.emptyDepartments.map((d) => `${d.name} (${d.code})`).join('、')}
+                    {tree.emptyDepartments.map((d) => `${d.name} (${d.code})`).join(t('common.listSep'))}
                 </p>
             )}
 

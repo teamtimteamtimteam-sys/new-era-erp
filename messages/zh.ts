@@ -842,6 +842,22 @@ const zh = {
         // "这个系统没有你能用的东西"在屏幕上长得一模一样,所以判断不出的时候要说出来。
         navUnavailable: '导航暂时显示不出来',
         navUnavailableHint: '刚才没能确认你的登录状态,所以菜单没有显示。这【不是】说你被登出了,也【不是】说你没有权限 —— 过一会儿刷新一下。',
+        // COPY-1:列表分隔符。见 en.ts 同一处的说明。
+        listSep: '、',
+    },
+    // ── COPY-1(2026-09-06):表格外壳自己的词。见 en.ts 同一处的说明。
+    table: {
+        columns: '列 {shown}/{total}',
+        partialNotice: '这一屏 {shown} 行,全体 {total} 行 —— 排序在数据库里对【全体】做,所以第一页就是全体的前 {shown} 名。',
+        selectAll: '全选',
+        selectRow: '选中这一行',
+        expandRow: '展开这一行的其余各列',
+        empty: '没有符合的行',
+        emptyPlain: '没有行',
+        range: '第 {from}–{to} 行,共 {total} 行',
+        prevPage: '上一页',
+        nextPage: '下一页',
+        rowCount: '目前 {n} 行。',
     },
     leave: {
         errYearInvalid: '请填一个四位数的假期年度。非数字的年份会一个人都不结转,却报成功。',
@@ -973,6 +989,9 @@ const zh = {
         errors: {
             IMPORT_TABLE_NOT_IMPORTABLE: '这张表不能被导入。只有下拉里那六张主数据表可以。',
             IMPORT_ROWS_NOT_AN_ARRAY: '这个文件没能变成一组行。{detail}',
+            // COPY-1:见 en.ts 同一处的说明。
+            previewNotRolledBack: '预览没有按预期撤销自己 —— 不要提交这份导入,请把这一条报上来。',
+            atRow: '(第 {n} 行)',
             IMPORT_FILE_EMPTY: '文件里没有数据行。这与"读不出来"不是一回事 —— 这一份读成功了,里面是空的。',
             IMPORT_CODE_DUPLICATED_IN_FILE: '文件里同一个编号出现了不止一次:{detail}。每一行要有自己的编号。',
             IMPORT_CODE_ALREADY_EXISTS: '这些编号系统里已经有了:{detail}。**整份文件被拒,而不是把它们跳过** —— "已经在了"与"我特意没动它"不许在屏幕上长得一样;而"更新它们"是一次合并,那件事还没有裁定。',
@@ -1148,7 +1167,8 @@ const zh = {
         saved: '已保存。',
         noCreateUser: '账号通过 Supabase Auth 邀请创建 —— 那是后续切次的事;本页管理的是【已存在账号】的角色。',
         recoveryTitle: '被锁在门外了?',
-        recoveryBody: '以 postgres 角色经连接池直连即可绕过 RLS,两分钟就能救回来。完整流程写在这个文件的文件头:',
+        // COPY-1(2026-09-06):见 en.ts 同一处的说明。做法搬进 docs/。
+        recoveryBody: '进不去是救得回来的,没有人会被永久锁在外面。完整流程写在运维手册的《账号、角色与权限》一节。',
 
         // roles
         rolesIntro: '角色与授权都是数据 —— 改它们是在这里编辑,不是发一次版。',
@@ -3850,7 +3870,7 @@ const zh = {
         empty: '这个月没有带日期的事。这不是错误 —— 那就是各来源里真实的内容。',
         emptyKind: '这个月没有这一类的事。',
         sourceFailed: '有来源读不到,所以这个月是【不完整】的:{list}。这与"没有安排"不是一回事。',
-        basis: '本月 {n} 条,来自 6 个来源并发取数,用时 {ms} 毫秒。委托里点名的另外两类【实测不存在】,不是漏了 —— 审批期限在全库没有任何一列承载,而设备保养是按【处理公斤数】到期的,不是按日期。见 app/tools/calendar/sources.ts。',
+        basis: '本月 {n} 条,来自 6 个来源并发取数,用时 {ms} 毫秒。委托里点名的另外两类【实测不存在】,不是漏了 —— 审批期限在全库没有任何一列承载,而设备保养是按【处理公斤数】到期的,不是按日期。',
         kind: {
             holiday: '公共假期', leave: '请假', task: '任务到期',
             invoiceDue: '发票到期', containerEta: '货柜预计到港', periodClose: '期间结束',
@@ -3868,7 +3888,7 @@ const zh = {
             title: '质量',
             value: '数值', from: '从', to: '到',
             formula: '结果 = 数值 × (原单位的公斤数) ÷ (目标单位的公斤数)',
-            sources: '1 公吨 = {kgPerTonne} 公斤 —— 系统本来就在用这个数(lib/valuation.ts 用它把【每吨价】折成【每公斤价】,那是一条算钱的路径)。1 磅 = {kgPerPound} 公斤,精确值,来自 1959 年国际码磅协定:**本系统自己没有任何磅的换算**,所以这个数来自 SI,不是某个内部约定。',
+            sources: '1 公吨 = {kgPerTonne} 公斤 —— 系统本来就在用这个数把【每吨价】折成【每公斤价】,那是一条算钱的路径。1 磅 = {kgPerPound} 公斤,精确值,来自 1959 年国际码磅协定:**本系统自己没有任何磅的换算**,所以这个数来自 SI,不是某个内部约定。',
         },
         grade: {
             title: '金属品位',

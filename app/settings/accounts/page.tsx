@@ -46,13 +46,13 @@ export default async function PermissionUsersPage() {
             <h1 className="text-2xl font-bold mb-4">{t('permissions.title')}</h1>
 
             {/* C4:被锁在门外的人读不到这个界面 —— 所以恢复流程必须写在【别处】,
-                这里只负责告诉还进得来的人:它存在,在哪儿。 */}
+                这里只负责告诉还进得来的人:它存在,在哪儿。
+                ★ COPY-1(2026-09-06):从前这里还印出一个迁移脚本的文件名,
+                  而屏幕前的人是仓管与行政 —— 一个 .sql 的路径对他们不是线索,
+                  是噪音。做法与那个文件名都搬进 docs/accounts-roles-and-permissions.md。 */}
             <div className="mb-6 rounded border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
                 <span className="font-medium">{t('permissions.recoveryTitle')}</span>{' '}
                 {t('permissions.recoveryBody')}
-                <code className="ml-1 font-mono text-xs">
-                    db/migrations/2026-08-01-perm2a-module-enforcement.sql
-                </code>
             </div>
 
             <CreateAccountPanel roles={roles} employees={employees} />

@@ -113,8 +113,20 @@ server action 数 · 客户端边界数 · 查询数)到**该类中位数**的�
 | 列数分布 | 0–1 列 19 · 2–4 列 58 · **5–6 列 80** · 7–9 列 41 · 10+ 列 4 |
 | **≥7 列** | **45** |
 | 最宽 | `/finance/assets` **12** · `/inventory/output/[materialId]` **11** · `/finance/bank/statements` 与 `/finance/receivables` 各 **10** |
-| **已上线页面里 `import` 了 `data-table.tsx` 的** | **0** |
-| **已上线页面里渲染 `<DataTable>` 的** | **0**(唯一的使用者是 `brand-sampler`,而它要删) |
+| **已上线页面里 `import` 了 `data-table.tsx` 的** | ~~**0**~~ → **97**(COPY-1,2026-09-06 实测) |
+| **已上线页面里渲染 `<DataTable>` 的** | ~~**0**(唯一的使用者是 `brand-sampler`,而它要删)~~ → **98 处调用点**(COPY-1,2026-09-06 实测) |
+
+> ★★【上面那两个 0 是【转换开始之前】的快照,而它在树里烂了】★★
+> **COPY-1(2026-09-06)更正。** CONV-1…CONV-10 把页面一张张换过来之后,
+> 这两行没有跟着动,于是这份文档一直在说「`<DataTable>` 在线上没有使用者」。
+> 今天实测:`grep -rl "<DataTable" app` = **98 个文件**,其中 **97 个** import 的是
+> 同一个 `@/app/components/ui/data-table`。
+>
+> **它害了 COPY-1 一次。** 那一刀开始时来查这份文档,想知道 data-table.tsx 里
+> 一句写死的中文能波及多少页 —— 文档答「0」。**真实答案是 97**,而那正是
+> 「英文界面上每一页都印一句中文」的原因。
+> 一份会误导下一次普查的文档,是这个仓库【最贵的那种】复发缺陷 ——
+> 它不像代码缺陷会红,它只会让下一个人算错代价然后把事情做小。
 | 住在共享组件里的表(不属于任何一页) | **6**(audit / finance 附件 / inventory 时间线 / metals / pricing / data-table 自己) |
 
 **最常见的写法就是【手写 `<table>` + `border border-gray-300 px-4 py-2`】,196 块。**

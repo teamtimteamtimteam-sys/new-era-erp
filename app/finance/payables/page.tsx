@@ -253,7 +253,7 @@ export default async function PayablesPage({
                             )),
                             <tr key={`subtotal-${gi}`} className="bg-gray-50 font-medium">
                                 <td className="border border-gray-300 px-4 py-2 text-sm" colSpan={4}>
-                                    {g.name}（{t('finance.counterpartyKind.' + g.kind)}） — {t('finance.totalsLabel')}
+                                    {g.name} ({t('finance.counterpartyKind.' + g.kind)}) — {t('finance.totalsLabel')}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                     {formatMoneyBare(Math.round(g.amount * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}

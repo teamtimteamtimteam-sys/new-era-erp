@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/gen-deep-routes.mjs && node scripts/check-currency-literals.mjs && node scripts/check-error-swallowing.mjs && node scripts/check-i18n.mjs && node scripts/check-bilingual-concat.mjs && node scripts/check-masked-reads.mjs && node scripts/check-masked-columns.mjs && node scripts/check-auth-error-swallowing.mjs && node scripts/check-near-duplicate.mjs && node scripts/check-permission-predicate.mjs && node scripts/check-pdf-font-stack.mjs && node scripts/check-datatable-phone.mjs && node scripts/check-base-isolation.mjs && node scripts/check-component-library.mjs && node scripts/check-nav-routes.mjs && node scripts/check-reminder-arms.mjs && node scripts/check-org-tree.mjs && node scripts/check-pmap.mjs && node scripts/check-enum-mirrors.mjs && next build",
+    "build": "node scripts/gen-deep-routes.mjs && node scripts/check-currency-literals.mjs && node scripts/check-error-swallowing.mjs && node scripts/check-i18n.mjs && node scripts/check-cjk-rendered.mjs && node scripts/check-bilingual-concat.mjs && node scripts/check-masked-reads.mjs && node scripts/check-masked-columns.mjs && node scripts/check-auth-error-swallowing.mjs && node scripts/check-near-duplicate.mjs && node scripts/check-permission-predicate.mjs && node scripts/check-pdf-font-stack.mjs && node scripts/check-datatable-phone.mjs && node scripts/check-base-isolation.mjs && node scripts/check-component-library.mjs && node scripts/check-nav-routes.mjs && node scripts/check-reminder-arms.mjs && node scripts/check-org-tree.mjs && node scripts/check-pmap.mjs && node scripts/check-enum-mirrors.mjs && next build",
     "check:i18n": "node scripts/check-i18n.mjs",
+    "check:cjk": "node scripts/check-cjk-rendered.mjs",
     "start": "next start",
     "lint": "eslint",
     "types:gen": "supabase gen types typescript --project-id wvywpohbwkiinmipmuku > lib/database.types.ts.tmp && mv lib/database.types.ts.tmp lib/database.types.ts || (rm -f lib/database.types.ts.tmp; exit 1)",

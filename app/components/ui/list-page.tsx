@@ -30,6 +30,7 @@
 // 版式来自同一个文件】—— 两份版式必然漂开,这个仓库为那个形状付过四次账。
 import * as React from 'react'
 import { RefusalPage, RefusalBlock } from '@/app/components/ui/refusal'
+import { getTranslations } from '@/lib/i18n/server'
 
 export type ListPageState =
     /** 有内容 —— 画 children。 */
@@ -46,7 +47,7 @@ export type ListPageState =
     /** 有行但不够用 —— **只在这个区别真的存在时才用它**,见抬头。 */
     | { kind: 'too-few'; n: number; message: React.ReactNode }
 
-export function ListPage({
+export async function ListPage({
     title,
     breadcrumb,
     intro,
@@ -118,6 +119,9 @@ export function ListPage({
      */
     padding?: string
 }) {
+    // COPY-1:too-few 的那句计数从前只有中文。
+    const t = await getTranslations()
+
     if (state.kind === 'restricted') {
         return (
             <RefusalPage
@@ -150,7 +154,7 @@ export function ListPage({
             {state.kind === 'too-few' && (
                 <RefusalBlock
                     statement={state.message}
-                    hint={`目前 ${state.n} 行。`}
+                    hint={t('table.rowCount', { n: state.n })}
                 />
             )}
             {state.kind === 'ok' && children}

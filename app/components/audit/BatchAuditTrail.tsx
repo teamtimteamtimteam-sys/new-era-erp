@@ -146,7 +146,7 @@ export default async function BatchAuditTrail({ rows }: { rows: AuditTrailRow[] 
                 "这里什么都没发生过";省掉不提则读者无从知道轨迹的边界在哪。
                 所以点名。 */}
             <p className="mt-3 text-xs text-gray-500">
-                {t('auditTrail.footerUnreachable')}: {UNREACHABLE_HISTORY_TABLES.join('、')}
+                {t('auditTrail.footerUnreachable')}: {UNREACHABLE_HISTORY_TABLES.join(t('common.listSep'))}
             </p>
         </section>
     )

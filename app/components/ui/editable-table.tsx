@@ -90,6 +90,7 @@
 //   动作钮同理:桌面在动作列,手机在展开区末尾。
 // ════════════════════════════════════════════════════════════════════════════
 
+import { useTranslations } from '@/lib/i18n/client'
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 import type { PhoneTreatment } from '@/app/components/ui/data-table'
@@ -193,6 +194,8 @@ function shallowSame<D extends object>(a: D, b: D): boolean {
 }
 
 export function EditableTable<T, D extends object>(props: EditableTableProps<T, D>) {
+    // COPY-1:空态那一句从前只有中文。
+    const t = useTranslations()
     const {
         rows, columns, rowKey, phone, toDraft, mode = 'one-row',
         onSave, footer, canEdit = true, isDirty, labels, caption, empty, className,
@@ -354,7 +357,7 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
                         {rows.length === 0 && (
                             <tr>
                                 <td colSpan={colCount} className="px-3 py-8 text-center text-[color:var(--brand-muted-text)]">
-                                    {empty ?? '没有行'}
+                                    {empty ?? t('table.emptyPlain')}
                                 </td>
                             </tr>
                         )}

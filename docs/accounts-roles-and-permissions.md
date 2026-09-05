@@ -7,6 +7,39 @@
 
 ---
 
+## ★ 被锁在门外了怎么办 —— 恢复流程(COPY-1,2026-09-06 从屏幕搬到这里)
+
+**这一节是 `/settings/accounts` 那句「进不去是救得回来的」所指的地方。**
+
+### 为什么它在文档里,不在屏幕上
+
+从前 `/settings/accounts` 上印着这么一句:
+
+> Locked out? A lockout is recoverable in two minutes by connecting as the postgres
+> role through the pooler, which bypasses RLS. The exact procedure is documented in
+> the header of `db/migrations/2026-08-01-perm2a-module-enforcement.sql`
+
+读这一屏的是仓管与行政,其中几位的第一语言是中文。「以 postgres 角色经连接池
+直连绕过 RLS」对他们**没有任何可执行的东西,只有惊吓** —— 而那个 `.sql` 路径
+不是线索,是噪音。
+
+★ **读者本身是对的,没有变。** 那一屏的注释早就写清楚了:被锁在门外的人**读不到
+这一屏**,所以这句话从来就是写给【还进得来的管理员】看的 —— 他要知道的只有两件事:
+**救得回来**,以及**去哪儿找**。屏幕现在只说这两件;做法在下面。
+
+### 做法(给 Tim / 拿得到数据库的人)
+
+1. 以 `postgres` 角色经**连接池(pooler)**直连线上库。该角色**不受 RLS 约束**,
+   所以即使权限表被改成谁都进不去,这条路仍然通。
+2. 完整的分步流程写在这个文件的**文件头**:
+   `db/migrations/2026-08-01-perm2a-module-enforcement.sql`
+3. 实测**两分钟**以内可恢复。
+
+> ★ **没有人会被永久锁在外面**,这是这套权限模型成立的前提之一 ——
+> 一个能把自己锁死的系统,不该被交给六个人每天用。
+
+---
+
 ## 〇 · 这一刀之前的状态,以及委托书里被实测推翻的四条
 
 C-1 的委托书写着"建两张新屏幕"。**实测:两张都已经存在。**

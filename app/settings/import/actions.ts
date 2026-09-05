@@ -16,6 +16,7 @@ import { createClient } from '@/lib/supabase/server'
 import { findNearDuplicate, foldForCompare } from '@/lib/nearDuplicate'
 import { isImportTable, TEMPLATE_COMMENT_PREFIX } from '@/lib/importTables'
 import { parseImportError } from './importErrorCodes'
+import { getTranslations } from '@/lib/i18n/server'
 import type { ImportIssue, NearDuplicateWarning, PreviewResult } from './types'
 
 /** 名字那一列叫什么 —— 只有这两族有"公司名"可比。 */
@@ -32,6 +33,8 @@ function fail(table: string, fileName: string, code: string, detail?: string): P
 }
 
 export async function previewImport(_prev: unknown, formData: FormData): Promise<PreviewResult> {
+    // COPY-1:下面两处 detail 会被插进【已翻译】的那句错误里,所以它们自己也要翻译。
+    const t = await getTranslations()
     const table = String(formData.get('table') ?? '')
     const file = formData.get('file')
     const fileName = file instanceof File ? file.name : ''
@@ -70,7 +73,7 @@ export async function previewImport(_prev: unknown, formData: FormData): Promise
     if (fatal.length > 0) {
         const e = fatal[0]
         return fail(table, fileName, 'IMPORT_CSV_UNPARSEABLE',
-            `${e.type}: ${e.message}${e.row != null ? ` (行 ${e.row + 1})` : ''}`)
+            `${e.type}: ${e.message}${e.row != null ? t('import.errors.atRow', { n: e.row + 1 }) : ''}`)
     }
 
     // ── 模板自己那两行不是数据 ────────────────────────────────────────────
@@ -103,7 +106,7 @@ export async function previewImport(_prev: unknown, formData: FormData): Promise
     // 没有异常反而是不对的:说明它没有走到 RAISE,也就是没有回滚。
     if (!error) {
         return fail(table, fileName, 'IMPORT_ROWS_NOT_AN_ARRAY',
-            '预览没有按预期回滚 —— 请报告这一条,不要继续提交。')
+            t('import.errors.previewNotRolledBack'))
     }
 
     let issues: ImportIssue[] = []

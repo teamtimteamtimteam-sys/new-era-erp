@@ -1,7 +1,7 @@
 import ts from 'typescript'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-const ROOT = process.cwd()
+const DEFAULT_ROOT = process.cwd()
 const CJK = /[一-鿿　-〿＀-￯㐀-䶿]/
 const SKIP = new Set(['node_modules', '.next', '.git', 'docs', 'db', 'public', 'assets'])
 function* walk(d) {
@@ -43,6 +43,7 @@ function classify(node, rel) {
     }
     return null
 }
+export function scanCjk(ROOT = DEFAULT_ROOT) {
 const out = []
 for (const file of walk(ROOT)) {
     const rel = file.slice(ROOT.length + 1)
@@ -71,4 +72,12 @@ for (const file of walk(ROOT)) {
     }
     visit(sf)
 }
-console.log(JSON.stringify(out, null, 1))
+return out
+}
+
+// CLI:直接跑就打印全量分类结果(它是【勘察】)。
+// 闸在 scripts/check-cjk-rendered.mjs —— 两者共用【同一个】分类器,
+// 免得勘察与闸各自长出一套判据然后悄悄分家。
+if (import.meta.url === `file://${process.argv[1]}`) {
+    console.log(JSON.stringify(scanCjk(), null, 1))
+}
