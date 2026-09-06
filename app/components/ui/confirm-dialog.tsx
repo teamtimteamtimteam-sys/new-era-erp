@@ -30,7 +30,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 // ★【两个机制,一个习惯】(Tim 在 CONFIRM-1 闸上裁定)★
 // ════════════════════════════════════════════════════════════════════════════
-//   <ConfirmButton>  —— 34 处「一个按钮 + 一个动作」。组件自己拥有触发钮与
+//   <ConfirmButton>  —— 「一个按钮 + 一个动作」。组件自己拥有触发钮与
 //                       对话框;确认钮【直接调用 onConfirm】,不经过 Promise。
 //     ★ 为什么不走 await ★:原来的 window.confirm 是【同步】的,
 //       `if (!confirm()) return` 之后那一行仍在同一次用户手势里,
@@ -39,11 +39,15 @@
 //       让对话框自己那一次点击去调用动作,动作仍然在【一次真实的用户手势】里 ——
 //       这是两种改法里【行为差得更小】的那一种。
 //
-//   useConfirm()     —— 剩下 6 处不是「一个普通按钮」的:表单提交、
-//                       一个带条件的行内判断、以及一处 map 里的行内 onClick。
-//                       那些地方硬套组件要把调用点拧变形,所以它们拿 Promise。
-//
-//   两者共用【同一个 ConfirmDialog】—— 画法只有一份,要漂就得改这一个文件。
+//   ★【BTN-4 删掉了 useConfirm()】★ CONFIRM-1 连同组件一起留了一个 Promise 版,
+//     打算给「表单提交 / 行内判断 / map 里的 onClick」那几种塞不进一个按钮的调用点。
+//     **它最终一个消费者都没有**(BTN-4 实测:全库 0 处调用),而 BTN-4 折进来的
+//     7 处 ReasonPrompt 也全是「一个按钮一个动作」,ConfirmButton 每一处都合身。
+//     ☞ 一个零消费者的导出,是【做同一件事的第二种办法】,躺在那里等一个不知道
+//       已经有第一种办法的人捡起来 —— 而"两套习惯"正是本组件存在的理由。
+//       真需要 Promise 形状的那一天,从 git 历史里取回来,比现在留着便宜。
+//     ☞ scripts/check-confirm-subject.mjs 里那一支 useConfirm 解析【故意留着】:
+//       它守的是"那一天",而不是今天的代码;为了落地一次迁移去动闸,是本刀明令禁止的。
 //
 // ════════════════════════════════════════════════════════════════════════════
 // ★【驳回那一侧必须是默认的】★
@@ -81,10 +85,14 @@ export type ConfirmContent = {
      *   而确认钮在理由为空时【不可按】。
      *
      * 【判据是抄来的,不是新写的】空白判据用 `reason.trim() === ''`,
-     * 与 app/components/ReasonPrompt.tsx 逐字相同,而那一条又与数据库里的
-     * `p_reason IS NULL OR btrim(p_reason) = ''` 逐字对应。
+     * 与数据库里的 `p_reason IS NULL OR btrim(p_reason) = ''` 逐字对应。
      * ★ Tim 在 CONFIRM-1 裁定:**不许在这里另写一条空白判据** ——
-     *   同一个问题的第二份实现,正是本刀存在的理由。
+     *   同一个问题的第二份实现,正是本组件存在的理由。
+     * ★【出处链在 BTN-4 变短了一节,而它没有断】★ 这条判据原先抄自
+     *   `app/components/ReasonPrompt.tsx`,那个文件已被 BTN-4 折进本组件并删除
+     *   (见 git 历史)。**于是今天客户端只剩这一份实现,而它的权威仍然是数据库。**
+     *   下一个想"顺手统一一下"的人:这里没有第二条规矩可统一了,
+     *   要改就连同 db 那一句一起改。
      *
      * 【两层不是重复】客户端这一层只是不让人白跑一趟;服务端仍然是权威,
      * 绕过界面直接调 RPC 照样会撞上 DELETE_REASON_REQUIRED 那一族。
@@ -111,7 +119,7 @@ function ConfirmDialog({
     const panelRef = React.useRef<HTMLDivElement>(null)
     const dismissRef = React.useRef<HTMLButtonElement>(null)
     const [reason, setReason] = React.useState('')
-    // 与 ReasonPrompt / 数据库 btrim 逐字同源 —— 见 ConfirmContent.reason 的注释。
+    // 与数据库 btrim 逐字同源 —— 出处链见 ConfirmContent.reason 的注释。
     const blank = reason.trim() === ''
     const titleId = React.useId()
     const subjectId = React.useId()
@@ -208,6 +216,40 @@ function ConfirmDialog({
                             onChange={(e) => setReason(e.target.value)}
                             placeholder={content.reason.placeholder}
                             data-confirm-reason="1"
+                            /* ★★【回车不许离开这个框】★★(BTN-4)
+                               本对话框【就地渲染,不走 portal】—— CONFIRM-1 是故意的,见抬头。
+                               代价是:调用点若在一个 <form> 里,这个输入框就也在那个 form 里,
+                               而【在文本框里按回车会隐式提交外层表单】(HTML 标准:向 form 的
+                               default button 派一次 click)。对话框自己那两个钮都是
+                               type="button",挡不住外面那一个。
+
+                               ★【实测,不是推想】★ BTN-4 量过全部 7 处 ReasonPrompt 调用点
+                               (委托书写的是 8 处 —— 第 8 处是个幻影,grep 命中的是 i18n 键
+                               `withdrawReasonPrompt`),**三层渲染树里没有一处在 form 里**。
+                               所以折进来【没有】制造出这个缺陷。
+
+                               ☞ 而 TaskHeader.tsx:184 那一处 <ConfirmButton> 确实就在
+                                 <form onSubmit> 里,那个 form 也确实有一个真的
+                                 type="submit"(:164)。它今天安全,**只因为那一处没有声明
+                                 reason,于是不渲染输入框** —— 一个 prop 的距离。
+                               ★ 这一条【是 CONFIRM-1 自己量出来并写下的】,不是本刀发现的:
+                                 docs/forward-queue.md 那条队列项逐字写着「唯一落在 <form>
+                                 里的是 TaskHeader 的删除钮,而它没有 reason」。
+                                 **BTN-4 的委托书把这句话转述成了"CONFIRM-1 测出七处里零处
+                                 受影响",丢掉了"带 reason 的"这个限定,于是读起来像是
+                                 CONFIRM-1 漏掉了一处。它没有漏。**
+                                 —— 而这恰好又是 AGENTS.md 那条法则:一句话经过一次转述会
+                                 变硬,下一刀把它当事实读。记在这里,免得再转述一次。
+
+                               【为什么不是 portal】零个现存调用点的隐患,不值得把对话框搬出
+                               CONFIRM-1 刻意保留的那棵树(焦点归还、动作跑在同一次用户手势里,
+                               都挂在那上面)。preventDefault 一行就地封死,而且顺手让回车
+                               【做那件有用的事】,而不是什么都不做。 */
+                            onKeyDown={(e) => {
+                                if (e.key !== 'Enter') return
+                                e.preventDefault()          // ← 隐式提交死在这里
+                                if (!blank) onAccept(reason)
+                            }}
                             className="w-full rounded border border-[color:var(--brand-border)] bg-background px-2 py-1 text-sm"
                         />
                     </label>
@@ -260,8 +302,18 @@ type ConfirmButtonProps = ConfirmContent & {
      * 那是 BTN-2 的事,而委托书把 BTN-2 明确排除在外。给了这个 prop 的调用点,
      * 是它原来就在用组件库的 <Button>;没给的,原样保留它自己的 className。
      */
-    triggerVariant?: 'default' | 'secondary' | 'destructive' | 'reversal' | 'outline' | 'ghost'
-    triggerSize?: 'default' | 'sm' | 'xs' | 'lg'
+    /**
+     * ★ BTN-4:补上 'link' / 'warning' 与 size 'inline'(§八(b),库里缺能力先加进库)。
+     *   折进来的 7 处 ReasonPrompt 里有两处是【表格单元格里的一段字】,不是盒子。
+     *   照 size="default" 转过去,每一处会变成 h=32px 的盒子 —— BTN-2 §12.5 与
+     *   BTN-3 的行内档抬头都为这同一件事付过账。这里不是放宽,是把 <Button>
+     *   本来就有的档位如实暴露出来:两个联合原先【比 Button 自己窄】,
+     *   于是调用点只能绕开 triggerVariant 去写 className,那正是漂移的入口。
+     */
+    triggerVariant?:
+        | 'default' | 'secondary' | 'destructive' | 'reversal'
+        | 'outline' | 'ghost' | 'link' | 'warning'
+    triggerSize?: 'default' | 'sm' | 'xs' | 'lg' | 'inline'
 }
 
 export function ConfirmButton({
@@ -326,48 +378,4 @@ export function ConfirmButton({
             )}
         </>
     )
-}
-
-// ── 机制 (a):Promise,给 6 处不是普通按钮的调用点 ───────────────────────────
-
-type PendingConfirm = { content: ConfirmContent; resolve: (r: { ok: boolean; reason: string }) => void }
-
-/**
- * `const confirm = useConfirm()` → `if (!(await confirm({...}))) return`
- *
- * 【它是 window.confirm 的形状,少了一个同步】—— 用在那些"塞不进一个按钮"
- * 的地方:表单的 onSubmit、一个带条件的行内判断、map 里的行内 onClick。
- * 能用 <ConfirmButton> 的地方【不要】用它:那里不需要跨过 await。
- */
-export function useConfirm() {
-    const [pending, setPending] = React.useState<PendingConfirm | null>(null)
-    const triggerRef = React.useRef<Element | null>(null)
-
-    const confirm = React.useCallback((content: ConfirmContent) => {
-        triggerRef.current = document.activeElement
-        return new Promise<{ ok: boolean; reason: string }>((resolve) =>
-            setPending({ content, resolve }))
-    }, [])
-
-    const settle = React.useCallback(
-        (ok: boolean, reason = '') => {
-            setPending((p) => {
-                p?.resolve({ ok, reason })
-                return null
-            })
-            const back = triggerRef.current
-            if (back instanceof HTMLElement) back.focus()
-        },
-        []
-    )
-
-    const dialog = pending ? (
-        <ConfirmDialog
-            content={pending.content}
-            onAccept={(reason) => settle(true, reason)}
-            onDismiss={() => settle(false)}
-        />
-    ) : null
-
-    return { confirm, dialog } as const
 }

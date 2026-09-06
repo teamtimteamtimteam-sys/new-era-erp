@@ -56,6 +56,13 @@ const del = (path) => fetch(URL_ + path, {
     headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}` },
 })
 
+// ★ BTN-4:一步不一定是 DELETE —— 软删的表(tasks)硬删不掉,见 planDelete 的 how。
+const req = (path, how) => fetch(URL_ + path, {
+    method: how.method || 'DELETE',
+    headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, 'Content-Type': 'application/json' },
+    ...(how.body ? { body: how.body } : {}),
+})
+
 function procName(pid) {
     try { return execFileSync('ps', ['-p', String(pid), '-o', 'comm='], { encoding: 'utf8' }).trim() || null }
     catch { return null }
@@ -92,9 +99,15 @@ export const ORDER = { REVIEW: 10, EMPLOYEE: 20, GRANT: 30, ACCOUNT: 40, OTHER: 
  * 往计划里【追加一步,并当场落盘】。
  * ★ 返回之后,这一步才可以真的去造 —— 反过来就是 LEAK-1 的形状。
  */
-export function planDelete(path, ctx, order = ORDER.OTHER) {
+export function planDelete(path, ctx, order = ORDER.OTHER, how = null) {
     if (!plan) throw new Error('ephemeral: planDelete 在 openPlan 之前被调用')
-    plan.steps.push({ path, ctx, order })
+    // ★ BTN-4:`how` 让一步可以是【软删】而不是 DELETE。
+    //   起因是实测的:`tasks` 上挂着 trg_tasks_no_hard_delete,**任何人都硬删不掉**
+    //   (它无条件 RAISE)。于是一支造了任务的探针,用 DELETE 永远清不干净自己 ——
+    //   而清不干净会让 runPlan 退 1,把一次【正常收尾】报成一次泄漏。
+    //   ☞ 计划文件是【先于那个东西落盘】的,所以 how 必须跟着一起落盘:
+    //     SIGKILL 之后补删的那一支,读到的必须是同一句 PATCH。
+    plan.steps.push(how ? { path, ctx, order, how } : { path, ctx, order })
     writeFileSync(planPath, JSON.stringify(plan, null, 2))   // 同步:这一句是①那一层的全部
 }
 
@@ -115,7 +128,8 @@ const failures = []
 async function runSteps(steps, label) {
     for (const s of steps) {
         try {
-            const r = await del(s.path)
+            // 默认 DELETE;带 how 的走它自己那一句(见 planDelete 的 how)。
+            const r = s.how ? await req(s.path, s.how) : await del(s.path)
             // 404/406 = 已经没有了,那正是我们要的终局,不算失败
             if (!r.ok && r.status !== 404 && r.status !== 406) {
                 const body = (await r.text()).slice(0, 200)

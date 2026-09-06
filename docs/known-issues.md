@@ -5583,7 +5583,47 @@ probe-role-crash · probe-button-tiers · render-pdf-samples · smoke-routes —
 
 ---
 
-## ★★ BTN-3B-TASKNODE-HARD-DELETE · 树上唯一一处【没有确认步骤的硬删除】(BTN-3b,2026-09-06)
+## ✅ BTN-3B-TASKNODE-HARD-DELETE · 树上唯一一处【没有确认步骤的硬删除】(BTN-3b,2026-09-06)
+
+> ════════════════════════════════════════════════════════════════════════
+> ★★ 【已关闭:BTN-4,2026-09-06】★★
+> ════════════════════════════════════════════════════════════════════════
+> **关掉它的不是"代码写出来了",是【探针真的走了一遍】** ——
+> 这是 BTN-4 委托书里写死的判据,照办。
+>
+> **① 现在它会问。** `NodeTree.tsx` 的那个删除钮换成 `<ConfirmButton>`,
+> `subject={n.title}`(BTN-3b 交接时点的名),`tier="destructive"`。
+> **动作一个字没改**:同一个 `run(() => removeNode(taskId, n.id))`。
+>
+> **② 话说到了「永久」那个份上,而这是【非说不可】的一句。**
+> 新词条 `tasks.nodes.deleteNodeConsequence`:
+> 「这个步骤会被**永久删除**——记录直接从数据库里移除,不是标成已删除。
+>  **无法撤销,也没有任何地方留着副本。** 这个系统里其它每一处删除都保留记录,
+>  只有这一处不保留。」
+> ☞ **没有抄软删那一族的说明** —— 那会把一句实话换成一句在这里为假的安慰。
+> ☞ **子步骤那条规矩【故意没写进去】**:带子步骤的节点由数据库按名拒
+>   (`TASK_NODE_HAS_CHILDREN`,绝不 CASCADE)。把它写进确认框,等于描述一个
+>   「确认根本不适用」的情形,而那条拒绝按下之后会自己说话。
+>
+> **③ 探针驱动过了,而且探针【被证明能红】。**
+> 新脚本 `scripts/probe-confirm-dialog.mjs`(**CONFIRM-1 论证过要有、却没写的
+> 那一支**):20 格全绿,`CONFIRM_PROBE_EXIT=0`(判词从它自己的日志读)。
+> 关键的几格 —— `T1 硬删除现在【会问】` · `T2 主语是这个步骤的标题` ·
+> `T3 话说到了【永久】那个份上` · **`T6 确认之后那一行真的从库里没了`**。
+> 故障注入:`PROBE_FAULT=no-dialog` → 退 1,9 格红,**T1 首先红**;
+> `PROBE_FAULT=blind` → 全红。**一支没红过的探针与一支不存在的探针,退出码相同。**
+>
+> **④ 计数:`check-confirm-subject` 43 → 52**(本条贡献 1,ReasonPrompt 折进来
+> 贡献 7,fx 那个原生 prompt 贡献 1),`EXIT 0`,基线一个字没放宽。
+> ☞ 立案时写的判据是"43 升到 44";**44 是"只做这一条"时的数**,而本刀同时
+>   折了 ReasonPrompt,所以真数是 52。判据的**形状**(升 1 且新那处点得出名字)
+>   逐字成立。
+>
+> **⑤ `docs/manual-walk-list.md` 里那条止损条目同时划掉** —— 它存在的理由
+> (「在 BTN-4 落地之前靠告诉人止损」)已经消失。
+>
+> **本条保留不删**,因为它记着一条勘察法则的实例(见文末):
+> **这处缺陷按档位/按样式都搜不到,是读 handler 读出来的。**
 
 **`app/tools/tasks/[id]/NodeTree.tsx:117`**
 
@@ -5617,3 +5657,137 @@ handler     supabase.from('task_nodes').delete()   ← 硬删除:行真的没了
 它的 className 只有 `text-red-700` —— 既不像按钮、也不在任何一类"危险样式"里。
 **是读 handler 读出来的**,而那正是 BTN-3 §13.8 预言的那件事:
 「按标签找,看不见一个动词与行为对不上的动作」。
+
+
+## ★ CONFIRM-1-ALERT-HALF · 原生对话框只退休了【问】的那一半,【告知】那一半还在(BTN-4,2026-09-06)
+
+**BTN-4 的委托书写着「`fx/…/DeleteButton` 是全树最后一个原生对话框」。
+★ 那句话是错的,而 Tim 在闸上确认了它是错的。**
+
+`window.confirm` / `window.prompt` 确实归零了。但 **`alert()` 还有 19 处调用点、
+分布在 18 个文件里,而其中 16 个文件正是 CONFIRM-1 自己转换过的**。
+
+> **CONFIRM-1 把【问一句】换成了对话框,把【告知一句】原样留成了原生 alert。**
+> 两半是同一个机制的两面,而只换掉一半的结果是:
+> 同一个动作,确认走的是画得很讲究的对话框,失败弹的是操作系统的灰盒子。
+
+**为什么它值得单独立案,而不是顺手在 BTN-4 里扫掉(Tim 在闸上裁定:出本刀范围):**
+* 它们**不是确认**,是**报告服务端的拒绝** —— 需要的是一个"就地显示错误"的位置,
+  不是一个 ConfirmDialog。**硬套对话框会把一个错误框做成一次确认。**
+* 每一处都要判断那句话该显示在**哪儿**(按钮旁边?面板里?表头?),
+  而那是逐页的版式判断,不是一次机械替换。
+* ★ 它继承 CONFIRM-1 抬头第 ③ 条的全部理由:**原生 alert 对探针同样是隐形的。**
+  所以这 19 处失败路径,今天一次都没有被机器走过。
+
+**在册的 18 个文件**(BTN-4 实测,`grep "alert(" app --include=*.tsx --include=*.ts`
+去掉注释行与 confirm-dialog.tsx 自己):
+
+`finance/bank/statements/[id]/DeleteStatementButton` · `.../UnreconcileControl` ·
+`finance/close/CloseButton` · `finance/close/ReopenForm` ·
+`finance/expenses/[id]/ReverseExpenseButton` · `finance/fx/[id]/edit/DeleteButton` ·
+`finance/invoices/[id]/VoidInvoiceControl` · `finance/journal/[id]/ReverseButton` ·
+`finance/payments/[id]/ReversePaymentButton` · `finance/settings/GstPanel` ·
+`finance/settings/LockForm` · `materials/DeleteButton` · `sales/customers/DeleteButton` ·
+`suppliers/[id]/edit/StatusPanel` · `suppliers/DeleteButton` ·
+`tools/pricing/formulas/[id]/edit/DeleteFormulaButton` ·
+`tools/pricing/metal-prices/[id]/edit/DeleteButton` · `tools/tasks/TaskBoard`
+
+**BTN-4 只动了其中一处的一句**:`fx/…/DeleteButton` 里那个
+`alert(errReason)`(空白理由)**删掉了** —— 它守的那道闸移进了对话框,
+确认钮在理由为空时按不动,所以那一句已经无路可达。
+**同文件的 `alert(result.error)` 原样留着**,归本条。
+
+**去处:** 一把单独的刀(暂名 ALERT-1)。做之前先回答一个问题:
+**这个系统需要的是一个"就地错误位"的约定,还是一个 toast?**
+—— 那是一个界面决定,不是一次替换。
+
+---
+
+## ★ BTN4-REMOVENODE-SILENT-NOOP · RLS 挡下的删除,屏幕上【什么都不说】(BTN-4,2026-09-06)
+
+**发现的方式值得记:它是被一格【红得对、但红的是 fixture】的探针照出来的。**
+
+`probe-confirm-dialog` 第一版把探针步骤挂到线上**别人的**任务上。对话框全绿,
+而 `T6「行真的没了」`红 —— 行还在。查明:
+
+```
+task_nodes delete 策略 = can_edit_task(task_id)
+can_edit_task        = has_permission('module.tasks.edit')
+                       AND (私人任务:owner_id = current_user_employee()
+                            团队任务:本人在 task_participants 里)
+```
+
+一次性 admin **没有 employees 行**,`current_user_employee()` 是 NULL,
+于是那条 DELETE **命中 0 行**。★ **RLS 不报错,它只是让 DELETE 什么都删不到。**
+**权限是对的**,是探针没有站在一个删得动的人身上(已改成自己造员工 + 自己的私人任务)。
+
+**★ 而它顺带照出一件真的:`removeNode` 在 0 行被删时【仍然返回成功】。**
+
+```
+app/tools/tasks/[id]/actions.ts:90
+    const { error } = await supabase.from('task_nodes').delete().eq('id', nodeId)
+    if (error) return fail(error.message)      ← RLS 挡下不是 error,是 0 行
+    return done(`/tools/tasks/${taskId}`)      ← 于是这里照样返回成功
+```
+
+一个够不着这张任务的人按下删除:**对话框关掉、页面刷新、那一步原地不动、
+一句话都没有。** 这正是 AGENTS.md 那条**「一次失败不是一个空集」**的又一张脸,
+只是这次空集来自 RLS 而不是查询错误。
+
+**为什么不在 BTN-4 里修(范围):** 修法要么让 `removeNode` 检查受影响行数并按名
+拒绝(`TASK_NODE_NOT_EDITABLE`),要么让页面根本不给不可编辑的人渲染那个钮 ——
+两者都是**行为改动**,而本刀的行为改动只授权了"给硬删除加确认框"这一件。
+**今天它有多容易撞上,没有量过** —— 那是这条的第一步:数一数有多少人能看见
+一张自己编辑不了的任务详情页。
+
+**去处:** 与 CONFIRM-1-ALERT-HALF 同一把刀,或权限清理那一批。
+
+---
+
+## ✅ BTN4-PROBE-SCRATCH-ROWS · 一支探针给自己挣了一格绿,代价是让冒烟起不来(BTN-4,2026-09-06)
+
+> **已解决 —— 但保留不删,因为这一条的价值全在【它是怎么被发现的】。**
+
+`scripts/probe-confirm-dialog.mjs` 要一个**自己删得动**的任务步骤
+(`can_edit_task()` 要求任务归你、或你是参与者)。中间那一版的做法是:
+造一名 `ZZ-SMOKE-*` 员工 + **一张它自己拥有的私人任务**。
+
+**T6 因此变绿了。而它砸了冒烟 —— 实测,在【清扫阶段】就中止,一条路由都没走过:**
+
+```
+✗ 冒烟中止(脚本自身的查询炸了,不是路由失败):
+清扫残留员工行: HTTP 409 {"code":"23503", ... "violates foreign key constraint
+                          \"tasks_owner_id_fkey\" on table \"tasks\""}
+   中止于【清扫端口与临时行】阶段 —— 还没有任何路由被走过,没有部分结果可交。
+```
+
+**三条规矩夹在一起,而每一条单独看都是对的:**
+1. `smoke-routes.mjs` 的 `sweepScratch()` **无条件硬删**所有 `ZZ-SMOKE-*` 员工;
+2. `tasks` **无条件拒绝硬删**(`trg_tasks_no_hard_delete`);
+3. `tasks.owner_id → employees(id)` 于是**永远**攥着那名员工,
+   而 `owner_id` 也不能置空(`trg_tasks_owner_required`)。
+
+> ### ★ 判据:临时数据不但要「能清掉」,还要「清得掉**它的每一个引用者**」。
+> 一行清不掉的临时数据,不只是一行垃圾 —— 它会**卡住下一个清扫它的人**,
+> 而那个人可能是一道你根本没在想的闸。**代价不落在制造它的那一刀身上。**
+
+**处置(现在这一版):不造任务。** 造员工 → 把它加进一张**线上已有的团队任务**
+当参与者(`can_edit_task` 的团队分支)→ 步骤造在那张任务上。
+清理全是硬删,顺序是依赖的反序:
+**参与者的 task_history → 参与者行 → 步骤 → 员工 → 授权 → 账号。**
+**没有任何一行是删不掉的。** 实测:探针跑完 `ZZ-SMOKE-*` 员工 0 行、
+`ZZ-SMOKE-*` 步骤 0 行,冒烟随后 **243 ok / 8 skipped / 0 FAILED**。
+
+**★ 收拾干净之前留下的:** 那一版跑了三次,留下 3 名 `ZZ-SMOKE-CFM-*` 员工 +
+3 张软删的 `ZZ-SMOKE-CONFIRM-PROBE` 任务。员工删不掉(上面那条外键),
+所以处置是**把那三张软删任务的 `owner_id` 改到一名真实员工**(`EMP-2026-0002`),
+员工随即删掉。**那三张任务仍在库里、仍是软删状态、仍叫 ZZ-SMOKE-CONFIRM-PROBE**
+—— 它们进不了任何人的任务列表(软删过滤),但 `npm run check:scratch` 会报它们。
+**这是本刀留在线上的唯一痕迹,写在这里而不是让下一个人去猜。**
+
+**★ 本条附带一处 `scripts/ephemeral.mjs` 的能力扩展:** `planDelete` 多了一个可选的
+`how`(方法 + 请求体),让一步可以是 `PATCH` 而不是 `DELETE`。
+`how` 跟着一起落盘 —— **计划文件是先于那个东西落盘的,SIGKILL 之后补删的那一支
+读到的必须是同一句。** 向后兼容:不传 `how` 的调用点行为一字未变。
+(现在这一版的清理全是硬删,已经用不上它;**留着是因为它补的是一个真的缺口** ——
+在这套 schema 里"清理"不总等于 DELETE,而计划文件此前只表达得了 DELETE。)

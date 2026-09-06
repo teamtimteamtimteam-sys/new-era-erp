@@ -2244,6 +2244,8 @@ const zh = {
         emptyState: '还没有进料批次',
         loadError: '读取失败',
         deleteConfirm: '确定要删除进料批次"{code}"吗？\n\n（软删除：数据保留在数据库中，可以恢复。）',
+        // BTN-4:主语(批号)搬进对话框自己那一格,标题只剩问话。
+        deleteConfirmTitle: '确定删除这个进料批次吗？',
         deleteError: '删除失败：{message}',
         newTitle: '新增进料',
         editTitle: '编辑进料',
@@ -2391,6 +2393,8 @@ const zh = {
         emptyState: '还没有产出批次',
         loadError: '读取失败',
         deleteConfirm: '确定要删除产出批次"{code}"吗？\n\n（软删除：数据保留在数据库中，可以恢复。）',
+        // BTN-4:同 inbound —— 主语搬进对话框,标题只剩问话。
+        deleteConfirmTitle: '确定删除这个产出批次吗？',
         deleteError: '删除失败：{message}',
         newTitle: '新增产出',
         editTitle: '编辑产出',
@@ -5126,6 +5130,9 @@ const zh = {
             upLabel: '上移此步骤',
             downLabel: '下移此步骤',
             rename: '改名',
+            // ★ BTN-4:全树唯一的硬删除 —— 这句话是一个人唯一会被告知它不可撤销的地方。
+            deleteNodeTitle: '确定永久删除这个步骤吗？',
+            deleteNodeConsequence: '这个步骤会被【永久删除】——记录直接从数据库里移除，不是标成已删除。【无法撤销，也没有任何地方留着副本。】这个系统里其它每一处删除都保留记录，只有这一处不保留。',
         },
         participants: {
             heading: '参与者',
@@ -6270,6 +6277,9 @@ const zh = {
         },
         fxPage: {
             withdrawReasonPrompt: '为什么撤销这条牌价?',
+            // BTN-4:原生 prompt 退休,标题与后果从此有地方放。
+            withdrawConfirmTitle: '确定撤销这条牌价吗？',
+            withdrawConsequence: '这条牌价将从列表中撤下，并记下是谁撤的、为什么。已经按这条牌价入账的单据不受影响。',
             readyTitle: '{n} 个月末还重估不了',
             readyMissingMid: '那一天没有中间价',
             readyWhy: '月末重估要的是【月末当天】的中间价。上面那张缺口清单里没有它 —— 那张清单只认识"有过账"或"有报价"的日子,而一个两样都没有的月末对它是看不见的。',

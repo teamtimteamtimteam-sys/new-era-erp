@@ -583,7 +583,7 @@ export default async function PurchaseOrderDetailPage({
                     {po.status === 'closed' && <ReopenOrderControl poId={po.id} subject={po.code} />}
                     {/* FIX-2(B1):挡住时也把控件画出来 —— 变灰 + 一句话,不是消失。 */}
                     {!isCancelled && po.status !== 'closed' && (
-                        <CancelOrderControl poId={po.id} blockedWhy={cancelWhy} />
+                        <CancelOrderControl poId={po.id} code={po.code} blockedWhy={cancelWhy} />
                     )}
                 </div>
             }

@@ -215,7 +215,7 @@ export default async function StocktakeDetailPage({
                             >
                                 {t('stocktakes.review')}
                             </Link>
-                            <CancelStocktakeButton stocktakeId={id} />
+                            <CancelStocktakeButton stocktakeId={id} code={st.code} />
                         </div>
                     </div>
                 </>

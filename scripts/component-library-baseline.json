@@ -73,7 +73,6 @@
     "app/components/nav/AvatarMenu.tsx": 3,
     "app/components/nav/ModuleBar.tsx": 4,
     "app/components/nav/ToolsMenu.tsx": 1,
-    "app/components/ReasonPrompt.tsx": 3,
     "app/finance/assets/AssetActions.tsx": 3,
     "app/finance/assets/new/NewAssetForm.tsx": 1,
     "app/finance/cash-forecast/ForecastGrid.tsx": 1,

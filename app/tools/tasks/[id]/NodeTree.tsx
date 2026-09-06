@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { addNode, renameNode, setNodeDate, setNodeDone, removeNode, moveNode } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 
 // app/tools/tasks/[id]/NodeTree.tsx
 // TASK-1b:步骤树。一层嵌套 —— 而【做不到的手势这里根本不出现】:
@@ -34,6 +35,9 @@ type Labels = {
     /** ★ BTN-2:上/下两个钮看得见的只有一个箭头,这两条是读屏念出来的名字。 */
     upLabel: string; downLabel: string
     save: string; cancel: string; rename: string
+    // ★ BTN-4:硬删除的确认框 —— 标题 + 那句「无法撤销」。
+    deleteNodeTitle: string
+    deleteNodeConsequence: string
 }
 
 const today = () => new Date().toISOString().slice(0, 10)
@@ -62,8 +66,12 @@ export default function NodeTree({
 
     const isOverdue = (n: NodeRow) => !n.done && !!n.target_date && n.target_date < today()
 
+    // ★ BTN-4:`data-node-row` 是给交互探针的把手 —— 这一页上 TaskHeader
+    //   也有一个 aria-haspopup="dialog"(它软删【整张任务】),而探针要点的是
+    //   【这一行】那个硬删除。没有这个把手,探针只能取第一个匹配,于是它会去
+    //   删那张任务 —— 一支删掉别人数据的探针,比一支不存在的探针坏得多。
     const row = (n: NodeRow, isSub: boolean) => (
-        <li key={n.id} className={isSub ? 'ml-8 border-l pl-4' : ''}>
+        <li key={n.id} data-node-row={n.id} className={isSub ? 'ml-8 border-l pl-4' : ''}>
             <div className="flex flex-wrap items-center gap-2 py-1">
                 <input
                     type="checkbox"
@@ -113,9 +121,41 @@ export default function NodeTree({
                             {labels.addSub}
                         </button>
                     ) : null}
-                    <Button variant="destructive" size="inline" disabled={pending} onClick={() => run(() => removeNode(taskId, n.id))}>
+                    {/* ★★ BTN-4:这一处【此前没有任何确认步骤】★★
+                        BTN-3b 给了它破坏档(实线左竖条),让它看起来像它做的事,
+                        但**刻意没有加确认框** —— 那一刀的规矩是不许改行为。本刀加。
+
+                        ★【它是全树唯一的硬删除,所以话必须说到这个份上】★
+                          `removeNode` → `app/tools/tasks/[id]/actions.ts:90`
+                          → `supabase.from('task_nodes').delete()` —— **行没了**。
+                          这个系统里其它每一处「删除」都是软删(记录还在、标成已删、
+                          删的人和理由都记着),**只有这一处不是**。
+                          于是这个对话框是**一个人唯一会被告知这件事的地方**:
+                          `deleteNodeConsequence` 里那句「无法撤销」不是套话,
+                          是这一处与别处的全部区别。
+                          ☞ 所以【不要】把别处的软删说明抄过来 —— 那会把一句实话
+                            换成一句在这里为假的安慰。
+
+                        ★【子步骤那条规矩【不】写进这句话里】★ 带子步骤的节点由
+                          数据库按名拒(TASK_NODE_HAS_CHILDREN,绝不 CASCADE)。
+                          把它写进确认框,等于描述一个「确认根本不适用」的情形 ——
+                          那条拒绝会在按下之后按名出现,而它自己会说话。
+
+                        ☞ 主语 = 这个步骤的标题(`n.title`),BTN-3b 交接时点的名。
+                        ☞ 动作一个字没改:同一个 `run(() => removeNode(taskId, n.id))`。 */}
+                    <ConfirmButton
+                        subject={n.title}
+                        title={labels.deleteNodeTitle}
+                        body={labels.deleteNodeConsequence}
+                        confirmLabel={labels.remove}
+                        tier="destructive"
+                        triggerVariant="destructive"
+                        triggerSize="inline"
+                        disabled={pending}
+                        onConfirm={() => run(() => removeNode(taskId, n.id))}
+                    >
                         {labels.remove}
-                    </Button>
+                    </ConfirmButton>
                 </span>
             </div>
 

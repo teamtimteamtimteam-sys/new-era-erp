@@ -14,7 +14,6 @@
 // 就地显示。页面与服务端对同一条规矩各写一份,是本仓库付过四次账的形状。
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import ReasonPrompt from '@/app/components/ReasonPrompt'
 import { approveOrder, rejectOrder } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
@@ -52,15 +51,32 @@ export default function ApprovalControls({ poId, subject }: { poId: string; subj
                 >
                     {isPending ? t('common.saving') : t('purchasing.approveOrder')}
                 </ConfirmButton>
-                <ReasonPrompt
-                    triggerLabel={t('purchasing.rejectOrder')}
+                {/* ★ BTN-4:驳回这一半原来是 ReasonPrompt —— 同一页上两个确认长着
+                    两副面孔(批准是对话框,驳回是就地展开的红面板)。折进来之后
+                    两边是同一个对话框、同一格主语、同一条空白判据。
+                    ☞ 主语用父组件已经传进来的 subject(po.code),与批准那一半
+                      逐字相同 —— 一张单在两个动作里叫同一个名字。 */}
+                <ConfirmButton
+                    subject={subject}
                     title={t('purchasing.rejectConfirm')}
-                    consequence={t('purchasing.rejectConsequence')}
+                    body={t('purchasing.rejectConsequence')}
                     confirmLabel={t('purchasing.rejectOrder')}
-                    placeholder={t('purchasing.rejectReason')}
-                    action={(reason) => rejectOrder(poId, reason)}
-                    onDone={() => router.refresh()}
-                />
+                    tier="destructive"
+                    reason={{ placeholder: t('purchasing.rejectReason') }}
+                    triggerVariant="destructive"
+                    triggerSize="sm"
+                    disabled={isPending}
+                    onConfirm={(reason) => {
+                        setError('')
+                        startTransition(async () => {
+                            const res = await rejectOrder(poId, reason)
+                            if (res?.error) setError(res.error)
+                            else router.refresh()
+                        })
+                    }}
+                >
+                    {t('purchasing.rejectOrder')}
+                </ConfirmButton>
             </div>
             {error && <p className="text-sm text-red-700 mt-2">{error}</p>}
         </div>

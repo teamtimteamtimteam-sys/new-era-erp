@@ -29,6 +29,7 @@
     "check:pmap": "node scripts/check-pmap.mjs",
     "check:enums": "node scripts/check-enum-mirrors.mjs",
     "check:confirm": "node scripts/check-confirm-subject.mjs",
+    "probe:confirm": "node scripts/probe-confirm-dialog.mjs",
     "survey:exits": "node scripts/survey-hidden-exits.mjs",
     "survey:ids": "node scripts/survey-phone.mjs --ids-only"
   },

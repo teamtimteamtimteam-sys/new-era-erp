@@ -2248,6 +2248,8 @@ const en = {
         emptyState: 'No inbound batches yet',
         loadError: 'Load failed',
         deleteConfirm: 'Delete inbound batch "{code}"?\n\n(Soft delete: data is kept and recoverable.)',
+        // BTN-4:主语(批号)搬进对话框自己那一格,标题只剩问话。
+        deleteConfirmTitle: 'Delete this inbound batch?',
         deleteError: 'Delete failed: {message}',
         newTitle: 'Add Inbound',
         editTitle: 'Edit Inbound',
@@ -2395,6 +2397,8 @@ const en = {
         emptyState: 'No output batches yet',
         loadError: 'Load failed',
         deleteConfirm: 'Delete output batch "{code}"?\n\n(Soft delete: data is kept and recoverable.)',
+        // BTN-4:同 inbound —— 主语搬进对话框,标题只剩问话。
+        deleteConfirmTitle: 'Delete this output batch?',
         deleteError: 'Delete failed: {message}',
         newTitle: 'Add Output',
         editTitle: 'Edit Output',
@@ -5171,6 +5175,9 @@ const en = {
             upLabel: 'Move step up',
             downLabel: 'Move step down',
             rename: 'Rename',
+            // ★ BTN-4:全树唯一的硬删除 —— 这句话是一个人唯一会被告知它不可撤销的地方。
+            deleteNodeTitle: 'Delete this step permanently?',
+            deleteNodeConsequence: 'This step is deleted permanently \u2014 the record is removed from the database, not marked as deleted. It cannot be undone, and nothing keeps a copy. Every other delete in this system keeps the record; this one does not.',
         },
         participants: {
             heading: 'Participants',
@@ -6322,6 +6329,9 @@ const en = {
         },
         fxPage: {
             withdrawReasonPrompt: 'Why is this rate being withdrawn?',
+            // BTN-4:原生 prompt 退休,标题与后果从此有地方放。
+            withdrawConfirmTitle: 'Withdraw this rate?',
+            withdrawConsequence: 'The rate is withdrawn from the list, and who withdrew it and why are both recorded. Documents already booked at this rate are not touched.',
             readyTitle: '{n} month end(s) cannot be revalued yet',
             readyMissingMid: 'no mid rate for that day',
             readyWhy: 'Month-end revaluation needs a mid rate for the month end itself. This is not in the gaps list above: that list only knows days where something was posted or quoted, and a month end with neither is invisible to it.',

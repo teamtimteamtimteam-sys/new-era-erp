@@ -3,9 +3,11 @@
 // LOG-4b:运费单冲销的服务端动作。
 //
 // 【这里不判任何东西】理由是否为空、单据是否已冲销、是否被付过款,全部由
-// reverse_freight_document 判 —— 它才是权威。ReasonPrompt 的禁用按钮只是不让人
+// reverse_freight_document 判 —— 它才是权威。对话框的禁用确认钮只是不让人
 // 白跑一趟;绕过界面直接调 RPC 照样会撞上同一族具名拒绝。
-// **两层不是重复**:一层管体验,一层管事实(app/components/ReasonPrompt.tsx 的注释)。
+// **两层不是重复**:一层管体验,一层管事实
+// (app/components/ui/confirm-dialog.tsx 的 ConfirmContent.reason 注释 —— BTN-4 之前
+//  那句话指的是 ReasonPrompt.tsx,该文件已折进对话框并删除)。
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { localizeFreightError } from '../../freightErrorCodes'

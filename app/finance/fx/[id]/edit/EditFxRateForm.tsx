@@ -102,7 +102,13 @@ export default function EditFxRateForm({
                         {t('common.cancel')}
                     </Link>
                     <span className="flex-1" />
-                    <DeleteButton id={rate.id} />
+                    {/* ★ BTN-4:一条牌价没有单据号 —— 认得出它的是【三要素】:
+                        币种 · 档位 · 生效日。CONFIRM-1 立 subject 这一格,正是为了
+                        「哪一个?」这个问题在一张十行的表里答得出来。 */}
+                    <DeleteButton
+                        id={rate.id}
+                        subject={`${rate.currency} · ${rate.rate_type} · ${rate.rate_date}`}
+                    />
                 </div>
             </form>
         </>

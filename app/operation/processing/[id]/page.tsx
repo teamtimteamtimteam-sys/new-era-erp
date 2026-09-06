@@ -400,7 +400,7 @@ export default async function ProcessingDetailPage({
             title={t('processing.detailTitle')}
             // ★ 出口:删除这一单。转换前它画在 h1 右边的 justify-between 里 ——
             //   actions 是同一个位置,而且画在状态分支【之前】,空态吃不掉它。
-            actions={<DeleteButton runId={run.id} />}
+            actions={<DeleteButton runId={run.id} code={run.code} />}
             // ★★ 详情页恒为 ok —— 这一单在不在由上面的 notFound() 回答。CONV-8 §⑤。
             state={{ kind: 'ok' }}
         >

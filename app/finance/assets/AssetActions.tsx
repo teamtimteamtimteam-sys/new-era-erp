@@ -67,10 +67,12 @@ export default function AssetActions({
 
             <div className="flex flex-wrap items-center gap-2">
                 <Button variant="secondary" size="xs" type="button" disabled={pending || commissionWhy !== ''}
+                        aria-expanded={open === 'commission'}
                         onClick={() => setOpen(open === 'commission' ? '' : 'commission')}>
                     {t('assets.actions.commission')}
                 </Button>
                 <Button variant="secondary" size="xs" type="button" disabled={pending || disposeWhy !== ''}
+                        aria-expanded={open === 'dispose'}
                         onClick={() => setOpen(open === 'dispose' ? '' : 'dispose')}>
                     {t('assets.actions.dispose')}
                 </Button>
@@ -78,6 +80,7 @@ export default function AssetActions({
                     没有这扇门,"那是计划投用日"那句拒绝就是一条死路(D6:拒绝要说去哪儿)。
                     它【永远可点】—— 计划与在不在役无关,已投用的机器也可能有下一次计划。 */}
                 <button type="button" disabled={pending || !canEdit}
+                        aria-expanded={open === 'plan'}
                         onClick={() => setOpen(open === 'plan' ? '' : 'plan')}
                         className="border border-gray-400 px-2 py-1 rounded text-xs hover:bg-gray-50 disabled:opacity-50">
                     {t('assets.actions.plan')}

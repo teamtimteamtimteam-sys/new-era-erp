@@ -141,6 +141,7 @@ export default function UserRow({
                     在这一行的「编辑」里改,或者删掉账号重建。 */}
                 <button
                     type="button"
+                    aria-expanded={open}
                     onClick={() => setOpen((o) => !o)}
                     className="border border-gray-300 px-3 py-1 rounded text-sm hover:bg-gray-50 whitespace-nowrap"
                 >

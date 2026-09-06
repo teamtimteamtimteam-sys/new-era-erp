@@ -180,7 +180,7 @@ export default async function FreightDetailPage({ params }: { params: Promise<{ 
                 fields={fields}
                 // 已冲销的单据没有冲销钮 —— 服务端会按名拒(FREIGHT_ALREADY_REVERSED),
                 // 所以这里干脆不渲染一个注定被拒的控件。
-                actions={!reversed ? <ReverseFreightControl id={id} /> : undefined}
+                actions={!reversed ? <ReverseFreightControl id={id} code={d.code} /> : undefined}
             />
 
             {/* 【空状态要说出它是哪一种空】出境单据没有分摊行,不是"还没有记" ——

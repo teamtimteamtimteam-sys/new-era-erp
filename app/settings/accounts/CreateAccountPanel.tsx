@@ -104,6 +104,7 @@ export default function CreateAccountPanel({
             <div className="flex items-center gap-3">
                 <button
                     type="button"
+                    aria-expanded={open}
                     onClick={() => setOpen((o) => !o)}
                     className="bg-gray-900 text-white px-3 py-1.5 rounded text-sm"
                 >
