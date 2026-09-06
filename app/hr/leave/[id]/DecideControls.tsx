@@ -75,14 +75,14 @@ export default function DecideControls({
                         >
                             {pending ? t('common.saving') : t('leave.approve')}
                         </Button>
-                        <button
+                        <Button
                             type="button"
                             disabled={pending}
                             onClick={() => act(() => decideLeave(requestId, false, notes || null))}
-                            className="border border-gray-300 px-4 py-1.5 rounded text-sm disabled:opacity-50"
+                            variant="secondary" size="sm"
                         >
                             {t('leave.reject')}
-                        </button>
+                        </Button>
                     </>
                 )}
                 {status === 'approved' && (

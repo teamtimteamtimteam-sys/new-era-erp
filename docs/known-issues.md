@@ -5791,3 +5791,83 @@ app/tools/tasks/[id]/actions.ts:90
 读到的必须是同一句。** 向后兼容:不传 `how` 的调用点行为一字未变。
 (现在这一版的清理全是硬删,已经用不上它;**留着是因为它补的是一个真的缺口** ——
 在这套 schema 里"清理"不总等于 DELETE,而计划文件此前只表达得了 DELETE。)
+
+---
+
+## ★ BTN3C-DISCLOSURE-ARIA-SPLIT · 四个一模一样的开关,两个会说话、两个不会(BTN-3c,2026-09-06)
+
+**状态:开着。行为缺陷,BTN-3c【刻意】没有修。**
+
+树上有四个披露开关,`onClick` **一个字节都不差**(`() => setOpen((o) => !o)`),
+标签都在「取消」与原文之间切。其中**两个有 `aria-expanded`,两个没有**:
+
+| 位置 | `aria-expanded` |
+|---|---|
+| `app/settings/accounts/CreateAccountPanel.tsx:105` | ✅ 有 |
+| `app/settings/accounts/UserRow.tsx:142` | ✅ 有 |
+| `app/me/MyClaimsPanel.tsx:25` | ❌ **没有** |
+| `app/me/MyLeavePanel.tsx:40` | ❌ **没有** |
+
+**后果:**用读屏的人在 `/me` 上听到的是一个普通按钮,听不出它「已展开 / 已收起」——
+而同一个手势在 `/settings/accounts` 上是说得出来的。**同一件事,两种说法。**
+
+**★ 为什么 BTN-3c 不顺手补上那两行(Tim 在闸上裁定)★**
+`aria-expanded` **对读屏用户就是行为** —— 它改的是这个控件被念成什么。
+BTN-3c 的规矩是「一个字的行为都不改」,而**「只有两行」不是一张许可证**。
+☞ 处置:**四处一起修**,作为它自己的一刀 —— 这样修好的是"一致",
+而不是"四个里有两个变了"。分两次修比不修更难对账。
+
+> ★ 它同时是 `docs/base-components.md §16.1` 那条一般判断的证据:
+> **同行为 ≠ 同签名**(这四个只差 `py-1` / `py-1.5`,却被任何按 className
+> 排序的清单劈成两组)。修它的那一刀应当按【行为】找齐,不要按 className 找。
+
+---
+
+## ★ BTN3C-SEGMENTED-SELECTED-IS-DISABLED · 选中项被渲染成「不可用」(BTN-3c,2026-09-06)
+
+**状态:开着。BTN-3c 因此【不转】这三处,理由见 base-components.md §16.4。**
+
+  · `app/output/[id]/edit/PurposePanel.tsx:107`(单选:operations)
+  · `app/output/[id]/edit/PurposePanel.tsx:134`(单选:purposes)
+  · `app/output/[id]/edit/SafetyStatePanel.tsx:76`(多选:safety states)
+
+三处都是分段选择组,而**当前选中项靠 `disabled` 表达**:
+
+```
+disabled={isPending || o.code === awaiting}
+className={… o.code === awaiting ? 'bg-gray-200 border-gray-300' : …}
+```
+
+**后果:**当前选择**被移出 Tab 序列**,并且被读屏念成**「不可用」而不是「已选中」**——
+这两句话意思相反。没有 `aria-pressed`,也没有 `role="radio"` / `role="group"`。
+
+**★ 为什么不能靠"转成 `<Button variant=secondary>`"顺手解决 ★**
+那样只会把这个缺陷**固化下来,同时对外宣称"按钮已统一"**。
+真正缺的是一个**带选中态、方向键语义和正确 role 的选择控件** ——
+按 §八(b),那是「先把能力加进库」,而那个能力**不是一个 variant**,是一个新组件。
+☞ 它是自己的一刀,不是转换刀的搭车货。
+
+---
+
+## ★ COMPLIB-BASELINE-DROPS-UNKNOWN-KEYS · `--update-baseline` 会静默丢掉它不认识的顶层键(BTN-3c,2026-09-06)
+
+**状态:开着。BTN-3c 量到它、绕开它,【刻意没有在本刀里修】——
+不把一次转换刀的爆炸半径扩进闸本身(Tim 在闸上裁定)。**
+
+`scripts/check-component-library.mjs --update-baseline` 重建**整个**基线对象:
+
+```js
+const obj = { __NOTE__: NOTE }
+for (const d of DIMS) obj[d.key] = …
+writeFileSync(BASELINE, JSON.stringify(obj, null, 2) + '\n')
+```
+
+**它不读旧文件,只覆盖。** 于是任何后来加进这份 JSON 的顶层键
+(例如一份"故意留下的余量"清单)会在**下一次任何一刀刷新基线时被静默删除** ——
+没有报错、没有 diff 噪声,只是那个键不见了。
+
+**这正是 BTN-3c 把余量写进 `docs/base-components.md §16.4` 而不是写进基线 JSON 的原因:**
+> **会漂的散文看得见;被一条受支持的命令悄悄删掉的 JSON 键看不见。**
+
+**修法(留给下一刀):**`--update-baseline` 先读回旧文件,把已知维度之外的顶层键
+原样带过去;并对未知键加一条注入格,证明它真的被保住了。

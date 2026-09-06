@@ -9,6 +9,7 @@ import { useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { submitLeave, previewLeaveDays } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 export type LeaveTypeOption = {
     code: string
@@ -222,14 +223,14 @@ export default function LeaveForm({
                 )}
             </div>
 
-            <button
+            <Button
                 type="button"
                 onClick={submit}
                 disabled={pending || !start || !end || (!fixedEmployeeId && !employeeId)}
-                className="mt-4 bg-gray-900 text-white px-4 py-1.5 rounded text-sm disabled:opacity-50"
+                variant="default" size="sm" className="mt-4"
             >
                 {pending ? t('common.saving') : t('leave.submit')}
-            </button>
+            </Button>
         </div>
     )
 }

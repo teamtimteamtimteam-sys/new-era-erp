@@ -6,6 +6,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { submitClaim } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 export type EmpOpt = { id: string; code: string; legal_name: string }
 
@@ -62,11 +63,11 @@ export default function ClaimForm({
                 <label className="text-sm sm:col-span-2">{t('claims.receipt')}
                     <input value={receipt} onChange={(e) => setReceipt(e.target.value)} className={field} /></label>
             </div>
-            <button type="button" onClick={submit}
+            <Button type="button" onClick={submit}
                     disabled={pending || !date || !amount || (!fixedEmployeeId && !employeeId)}
-                    className="mt-4 bg-gray-900 text-white px-4 py-1.5 rounded text-sm disabled:opacity-50">
+                    variant="default" size="sm" className="mt-4">
                 {pending ? t('common.saving') : t('claims.submit')}
-            </button>
+            </Button>
         </div>
     )
 }

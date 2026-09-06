@@ -102,14 +102,14 @@ export default function CreateAccountPanel({
     return (
         <div className="mb-6">
             <div className="flex items-center gap-3">
-                <button
+                <Button
                     type="button"
                     aria-expanded={open}
                     onClick={() => setOpen((o) => !o)}
-                    className="bg-gray-900 text-white px-3 py-1.5 rounded text-sm"
+                    variant="default" size="sm"
                 >
                     {open ? t('common.cancel') : t('permissions.createAccount')}
-                </button>
+                </Button>
                 {created && (
                     <span className="text-sm text-green-700">
                         {t('permissions.accountCreated', { 0: created })}

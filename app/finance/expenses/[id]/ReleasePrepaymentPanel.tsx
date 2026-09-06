@@ -8,6 +8,7 @@
 import { useActionState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { releasePrepayment, type ReleaseState } from './releasePrepaymentActions'
+import { Button } from '@/app/components/ui/button'
 
 export default function ReleasePrepaymentPanel({
     expenseId, poId, poCode, openCcy, currency, remainingBase, baseCurrency, canEdit,
@@ -88,10 +89,10 @@ export default function ReleasePrepaymentPanel({
                         <input id="notes" name="notes"
                             className="w-full border border-gray-300 px-2 py-1.5 rounded" />
                     </div>
-                    <button type="submit" disabled={pending}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-md disabled:opacity-50">
+                    <Button type="submit" disabled={pending}
+                        variant="default" size="default">
                         {pending ? t('common.saving') : t('expense.release.submit')}
-                    </button>
+                    </Button>
                 </form>
             )}
         </div>

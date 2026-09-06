@@ -8,6 +8,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import AllowedClassesPicker from './AllowedClassesPicker'
 import type { WasteClass } from '@/app/materials/wasteClassOptions'
 import type { LocationFormState } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: LocationFormState = {}
 
@@ -110,13 +111,13 @@ export default function LocationForm({
             </div>
 
             <div className="flex gap-3 pt-2 border-t">
-                <button
+                <Button
                     type="submit"
                     disabled={isPending}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
+                    variant="default" size="default"
                 >
                     {isPending ? t('common.saving') : submitLabel}
-                </button>
+                </Button>
                 <Link
                     href="/inventory/locations"
                     className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"

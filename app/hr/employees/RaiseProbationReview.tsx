@@ -22,6 +22,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { raiseProbationReview } from '@/app/hr/reviews/actions'
 import { useTranslations } from '@/lib/i18n/client'
+import { Button } from '@/app/components/ui/button'
 
 export default function RaiseProbationReview({
     employeeId,
@@ -54,7 +55,7 @@ export default function RaiseProbationReview({
                     {error}
                 </div>
             )}
-            <button
+            <Button
                 type="button"
                 disabled={pending}
                 onClick={() =>
@@ -66,10 +67,10 @@ export default function RaiseProbationReview({
                         else router.refresh()
                     })
                 }
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm disabled:opacity-50"
+                variant="default" size="default"
             >
                 {t('reviews.raiseProbation')}
-            </button>
+            </Button>
             <p className="text-xs text-gray-500 mt-2">
                 {t('reviews.raiseProbationHint', { date: probationEndDate })}
             </p>

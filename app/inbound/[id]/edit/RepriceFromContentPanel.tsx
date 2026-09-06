@@ -76,14 +76,14 @@ export default function RepriceFromContentPanel({
                 <div className="mt-3 border border-gray-300 rounded p-4">
                     <AssayImpactPreview res={preview.result} impact={preview.impact} baseCurrency={baseCurrency} />
                     <div className="flex gap-2 mt-4">
-                        <button
+                        <Button
                             type="button"
                             onClick={onCommit}
                             disabled={isPending}
-                            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400 text-sm"
+                            variant="default" size="default"
                         >
                             {isPending ? t('common.saving') : t('inbound.pricing.submit')}
-                        </button>
+                        </Button>
                         <Button variant="secondary" className="text-sm"
                             type="button"
                             onClick={() => setOpen(false)}>

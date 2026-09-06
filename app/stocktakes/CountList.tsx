@@ -7,6 +7,7 @@ import { useEffect, useState, useActionState } from 'react'
 import { saveCount, type SaveCountState, type BatchSide } from './actions'
 import { formatSigned } from './delta'
 import { useTranslations } from '@/lib/i18n/client'
+import { Button } from '@/app/components/ui/button'
 
 export type CountItem = {
     side: BatchSide
@@ -76,13 +77,13 @@ function CountRow({
                 placeholder={t('stocktakes.notesPlaceholder')}
                 className={fieldCls}
             />
-            <button
+            <Button
                 type="submit"
                 disabled={isPending}
-                className="w-full bg-blue-600 text-white text-base font-medium rounded px-4 py-3 min-h-[48px] hover:bg-blue-700 disabled:bg-gray-400"
+                variant="default" size="lg" className="w-full min-h-[48px] text-base"
             >
                 {isPending ? t('common.saving') : t('stocktakes.save')}
-            </button>
+            </Button>
         </form>
     )
 }

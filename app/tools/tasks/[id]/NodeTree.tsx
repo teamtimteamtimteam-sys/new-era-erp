@@ -90,7 +90,7 @@ export default function NodeTree({
                         <Button size="xs"
                             disabled={pending}
                             onClick={() => { run(() => renameNode(taskId, n.id, editTitle)); setEditing(null) }}>{labels.save}</Button>
-                        <button className="text-xs text-gray-600" onClick={() => setEditing(null)}>{labels.cancel}</button>
+                        <Button variant="secondary" size="xs" onClick={() => setEditing(null)}>{labels.cancel}</Button>
                     </>
                 ) : (
                     <span className={n.done ? 'text-gray-400 line-through' : ''}>{n.title}</span>
@@ -112,14 +112,14 @@ export default function NodeTree({
                     {/* ★ BTN-2:名字补上了,但【没有】转成 <Button> —— 本文件另外 8 个
                         手写钮是 BTN-3 的,只转这两个只会让这一页更花。Tim 的规矩说的是
                         「不许把没有名字的图标钮转过去」,没有说「必须让它继续没有名字」。 */}
-                    <button aria-label={labels.upLabel} disabled={pending} onClick={() => run(() => moveNode(taskId, n.id, 'up'))}>{labels.up}</button>
-                    <button aria-label={labels.downLabel} disabled={pending} onClick={() => run(() => moveNode(taskId, n.id, 'down'))}>{labels.down}</button>
-                    <button disabled={pending} onClick={() => { setEditing(n.id); setEditTitle(n.title) }}>{labels.rename}</button>
+                    <Button variant="secondary" size="inline" aria-label={labels.upLabel} disabled={pending} onClick={() => run(() => moveNode(taskId, n.id, 'up'))}>{labels.up}</Button>
+                    <Button variant="secondary" size="inline" aria-label={labels.downLabel} disabled={pending} onClick={() => run(() => moveNode(taskId, n.id, 'down'))}>{labels.down}</Button>
+                    <Button variant="secondary" size="inline" disabled={pending} onClick={() => { setEditing(n.id); setEditTitle(n.title) }}>{labels.rename}</Button>
                     {/* 【一层嵌套:子步骤上没有这个按钮】—— 做不到的手势不出现 */}
                     {!isSub ? (
-                        <button disabled={pending} onClick={() => { setAddingUnder(n.id); setDraftTitle(''); setDraftDate('') }}>
+                        <Button variant="secondary" size="inline" disabled={pending} onClick={() => { setAddingUnder(n.id); setDraftTitle(''); setDraftDate('') }}>
                             {labels.addSub}
-                        </button>
+                        </Button>
                     ) : null}
                     {/* ★★ BTN-4:这一处【此前没有任何确认步骤】★★
                         BTN-3b 给了它破坏档(实线左竖条),让它看起来像它做的事,
@@ -183,7 +183,7 @@ export default function NodeTree({
             <Button size="xs"
                 disabled={pending || !draftTitle.trim()}
                 onClick={() => { run(() => addNode(taskId, draftTitle, draftDate || null, parentId)); setDraftTitle(''); setDraftDate(''); setAddingUnder(undefined) }}>{labels.save}</Button>
-            <button className="text-xs text-gray-600" onClick={() => setAddingUnder(undefined)}>{labels.cancel}</button>
+            <Button variant="secondary" size="xs" onClick={() => setAddingUnder(undefined)}>{labels.cancel}</Button>
         </div>
     )
 

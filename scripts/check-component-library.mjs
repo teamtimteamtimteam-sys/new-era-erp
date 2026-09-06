@@ -202,6 +202,17 @@ for (const d of DIMS) {
     console.log(`== ${d.what}(app/,不含组件库自己)==`)
     console.log(`   判词:**请改用 ${d.fix}。**`)
     console.log(`   基线:${Object.keys(base_d).length} 个文件在册。本次扫到 ${hits[d.key].length} 处。`)
+    // ★ BTN-3c(2026-09-06):余量必须【读得到】,否则"统一了"是一句不可检验的话。
+    //   这道闸数的是"还剩多少手写",而它【不知道】剩下的哪些是【故意】剩的。
+    //   两个数并排才有意义:18 处里有 18 处是有名有姓、逐条写下理由的余量。
+    //   ☞ 清单【不放在基线 JSON 里】,理由是量出来的:--update-baseline 会重建
+    //     整个对象(`const obj = { __NOTE__: NOTE }` 起头),**任何它不认识的
+    //     顶层键都会被静默丢掉** —— 一份被支持的命令能悄悄删掉的清单,
+    //     不如一段会漂、但漂了看得见的散文。(该缺陷已按名立案。)
+    if (d.key === 'button') {
+        console.log(`   ★ 这 ${hits[d.key].length} 处【全部是故意留下的】,逐条理由见 docs/base-components.md §十六。`)
+        console.log('     它们不是债:是 expander / 遮罩 / 分段选择组 / 整行可点区 / role="switch"。')
+    }
 
     if (gone.length) {
         console.log('· 少了几处 —— 有人改好了,或者文件动了。基线可以收紧:')

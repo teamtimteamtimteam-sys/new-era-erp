@@ -57,10 +57,10 @@ export default function AmendLinesControl({
     return (
         <div className="mt-3">
             {!open ? (
-                <button type="button" onClick={() => setOpen(true)}
-                        className="text-sm border border-gray-400 px-3 py-1 rounded hover:bg-gray-50">
+                <Button type="button" onClick={() => setOpen(true)}
+                        variant="secondary" size="sm">
                     {t('processing.wo.actions.amend')}
-                </button>
+                </Button>
             ) : (
                 <div className="border border-gray-300 rounded p-3 space-y-2">
                     <p className="text-xs text-gray-500">{t('processing.wo.actions.amendWhy')}</p>

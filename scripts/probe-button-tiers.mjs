@@ -102,6 +102,23 @@ const PAGES = [
     '/stocktakes',                 // default/default(新建盘点)
     '/tools/tasks',                // default/default(新建任务)
     '/tools/converter',            // default/default(换算)—— 也是唯一一处连 style 一起去掉的
+    // ★★ BTN-3c(2026-09-06):【第四次】为同一个洞补取样,而这次先把洞量了 ★★
+    //   开工前实测:本刀要改的 47 处住在 **39 条路由**上,而其中 **30 条不在这张
+    //   清单里** —— 只有 9 条在。BTN-2 / BTN-3 / BTN-3b 各补过一次,洞照样在。
+    //   ☞ 所以本刀按 Tim 的裁定【按 (variant,size) 的义务补,不按路由补齐】:
+    //     补到"本刀新落地的每一个组合都被求值两次"为止,而不是把 30 条全塞进来
+    //     —— 那 30 条里有相当一部分线上根本渲染不出(见下面 UNRENDERABLE 的先例)。
+    '/inbound/receive',          // ★ default/lg 第一处 —— 无条件渲染的整宽提交钮
+    '/finance/cashflow',         // secondary/default(日期预设,map 出来的,无条件)
+    '/finance/pnl',              // secondary/default(同上,第二处)
+    '/settings/accounts',        // default/sm(建账号开关)+ secondary/sm(逐行"编辑")
+    '/logistics/containers',     // default/default(新建货柜)
+    '/logistics/forwarders',     // default/default(新建货代)
+    '/inventory/locations',      // default/default(新建库位)
+    '/inventory/reports/ledger', // secondary/sm(应用筛选)
+    '/tools/pricing/calculator', // ★ BTN-3 当初把它拿掉是因为「复制明细」藏在 {res && …}
+                                 //   里;本刀转的是那个【无条件】的计算提交钮,所以它
+                                 //   现在画得出库按钮了。**拿掉的理由已经不成立,补回来。**
     // ★★【这四条【试过、量过、拿掉了】,连同理由 —— BTN-3 的先例:
     //     「那是清单错了,不是产品坏了」,而 RENDER 那条断言正是为此存在】★★
     //   第一版把它们放了进去,五条 RENDER 当场变红。逐条查明:
@@ -161,11 +178,24 @@ const REQUIRED_GROUPS = [
     //   ☞ 处置与 BTN-3 对 reversal/inline 的处置同一条:**不降门槛,换一条
     //     更强、而且不需要线上数据的断言** —— 见下面 L4(库源码层的左竖条判据)。
     //   ★ 它在收尾里【连同理由一起印出来】,不是悄悄省掉的。
+    // ── ★ BTN-3c(2026-09-06):本刀唯一【全新】的组合 ────────────────────────
+    //   实测:转换前树上 default/lg 的调用点是 **0 个**;转换后正好 2 个,
+    //   两个都是本刀落地的整宽触控提交钮(收货 · 盘点)。一个组合从 0 变 2,
+    //   而此前没有任何断言守着它 —— 那正是 §10.5 写下的"落地了却没被求值"。
+    { k: 'default/lg',         need: 1,
+      note: '线上没有【开着且没软删】的盘点单(实测 0 行),/stocktakes/{id} 因此画不出 CountList —— '
+          + '门槛不是被调低的:第二处由 L5「两处调用点同参数」承担,而那条不需要线上数据' },
     { k: 'secondary/inline',   need: 2 },  // 草稿行的"移除" —— 什么都还没存过,红色在这里是假话
     { k: 'link/inline',        need: 2 },  // BTN-2 的,顺带守住不回退
 ]
 // 本刀声明为"渲染不出、由 L4 承担"的组合,收尾时逐条印出来
 const UNRENDERABLE = [
+    { k: 'default/lg', site: 'app/stocktakes/CountList.tsx:80(/stocktakes/{id})',
+      why: '★ 走不到的是【这个调用点】:详情页要求 status=open 且未软删,而线上'
+         + '`stocktakes?deleted_at=is.null&status=eq.open` 实测 **0 行**。'
+         + '另一处(app/inbound/receive/ReceiveForm.tsx:343)是无条件渲染的,已取样、几何已量。'
+         + '☞ 而【这一档】是证过的:L5 断言两处调用点的 variant/size/className 逐字相同,'
+         + '所以渲染得出的那一处把另一处也证了 —— 缺的是"这一格被渲染过",不是几何' },
     { k: 'destructive/sm', site: 'app/hr/reviews/ReviewActions.tsx:122',
       why: '★ 说准一点:【这个调用点】走不到 —— 线上 performance_reviews 0 行'
          + '(status=neq.void 返回空),那一页画不出这个钮。'
@@ -358,6 +388,17 @@ try {
           why: '★ secondary/default 的【第二处】—— L1 要跨页比几何就得有两处,而这一档'
              + '其余六个调用点全在 state 分支里。取【第二个】产出批次,于是两处住在'
              + '两条不同的 URL 上,是真的跨页,不是把门槛降到 1' },
+        // ★★ BTN-3c:default/lg 的第二处【线上渲染不出】—— 两版查询都试过,写在这里 ★★
+        //   第一版 `stocktake_lines?select=stocktake_id&limit=1`(「取一张有盘点行的单」)
+        //   取到了 id、`IDSRC` 绿,而 `RENDER /stocktakes/{id}` 是 **0 个库按钮** ——
+        //   详情页把整块内容关在 `st.status === 'open'` 后面,并对软删单 `notFound()`
+        //   (`app/stocktakes/[id]/page.tsx:144,184`)。**「有盘点行」既不蕴含「没软删」,
+        //   也不蕴含「还开着」** —— 与 BTN-3 那次一字不差的错,而抬头就写着这一课。
+        //   第二版把两个前提各写一条:`deleted_at=is.null&status=eq.open`。
+        //   ★ 实测:**线上一行都没有** —— 没有任何一张开着的、没软删的盘点单。
+        //   ☞ 所以这里【不留 IDSRC 条目】:一条永远取不到行的查询会让这支探针
+        //     每次都红,而那是把"我看不见"伪装成"产品坏了"(destructive/sm 同一条)。
+        //     处置见 UNRENDERABLE + 下面的 `L5 default/lg 两处调用点同参数`。
         { name: 'sales_order_open',
           q: '/rest/v1/sales_orders?select=id&deleted_at=is.null&status=eq.draft&limit=1',
           pick: (r) => r?.id,
@@ -535,6 +576,35 @@ try {
         probe('L4 没有 compoundVariant 抹掉这两个档的左竖条', !killsBar,
             killsBar ? '★ 有一条 compoundVariant 把左竖条隐藏了 —— 那一档从此只剩颜色可分'
                      : '三对行内 compoundVariant 保留竖条、只丢底与描边(BTN-3 §13.4)')
+    }
+
+    // ── ★★ BTN-3c · L5:一条【不需要线上数据】的 default/lg 判据 ★★ ──────────
+    //   为什么非要有它:default/lg 是本刀唯一全新的组合(转换前调用点 0 个),
+    //   而它的两处里**只有一处渲染得出** —— /stocktakes/{id} 要一张
+    //   「开着且没软删」的盘点单,实测线上 0 行。L1 要两处才比得了跨页全等,
+    //   于是这一档会掉进"静默跳过"里,而那正是 §10.5 写下的失败形状。
+    //
+    //   ★ 处置照 BTN-3 立的规矩:**不降门槛,换一条更强的断言。**
+    //     L1 比的是"两处渲染出来的几何相同";L5 比的是"两处调用点传的参数逐字相同"
+    //     —— 后者【更强】:参数相同 ⇒ 同一份 cva 输入 ⇒ 几何必然相同,
+    //     而且它对【一处都没渲染】的情况也依然成立。
+    //   ☞ 于是渲染得出的那一处(/inbound/receive)把画不出的那一处也证了。
+    {
+        const LG_SITES = [
+            'app/inbound/receive/ReceiveForm.tsx',
+            'app/stocktakes/CountList.tsx',
+        ]
+        const props = []
+        for (const f of LG_SITES) {
+            const src = readFileSync(join(ROOT, f), 'utf8')
+            const m = /variant="default" size="lg" className="([^"]*)"/.exec(src)
+            props.push(m ? `variant=default size=lg className=${m[1]}` : `<not found in ${f}>`)
+        }
+        const uniq = [...new Set(props)]
+        const same = uniq.length === 1 && !uniq[0].startsWith('<not found')
+        probe('L5 default/lg 两处调用点同参数(渲染不出的那一处由此被证)', same,
+            same ? `两处逐字相同 · ${uniq[0]} —— 同一份 cva 输入,几何必然相同`
+                 : `两处不同:${props.join('  ≠  ')}`)
     }
 
     // ★ 声明为"线上渲染不出"的组合,连同理由一起印出来 —— 不许悄悄省掉

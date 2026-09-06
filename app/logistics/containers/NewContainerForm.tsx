@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { createContainer } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 // LOG-2c:新建集装箱。
 // 【开航日永不预填】—— 它是世界那一侧的事实,系统无从知道。给它一个"今天",
@@ -86,9 +87,9 @@ export default function NewContainerForm({
                     <label className="block text-xs font-medium mb-1">{labels.bl}</label>
                     <input name="bl_number" className={field} />
                 </div>
-                <button type="submit" disabled={pending} className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50">
+                <Button type="submit" disabled={pending} variant="default" size="default">
                     {labels.submit}
-                </button>
+                </Button>
             </div>
             <p className="mt-2 text-xs text-gray-500">{labels.departureHint} · {labels.blHint}</p>
         </form>

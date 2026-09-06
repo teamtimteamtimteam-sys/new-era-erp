@@ -5,6 +5,7 @@
 import { useState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import ClaimForm from '@/app/hr/claims/ClaimForm'
+import { Button } from '@/app/components/ui/button'
 
 type Claim = {
     claim_id: string; code: string; claim_date: string
@@ -22,10 +23,10 @@ export default function MyClaimsPanel({
         <section className="mb-6">
             <div className="flex items-center justify-between mb-2">
                 <h2 className="text-lg font-bold">{t('me.claims')}</h2>
-                <button type="button" onClick={() => setOpen((o) => !o)}
-                        className="bg-gray-900 text-white px-3 py-1 rounded text-sm">
+                <Button type="button" onClick={() => setOpen((o) => !o)}
+                        variant="default" size="sm">
                     {open ? t('common.cancel') : t('me.submitClaim')}
-                </button>
+                </Button>
             </div>
 
             {balance && (

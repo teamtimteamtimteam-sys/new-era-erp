@@ -7,6 +7,7 @@ import { useActionState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { createAsset, type NewAssetState } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 const CATEGORIES = ['equipment', 'vehicle', 'office', 'other'] as const
 
@@ -96,10 +97,10 @@ export default function NewAssetForm() {
             </p>
 
             <div className="flex gap-3">
-                <button type="submit" disabled={pending}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-md disabled:opacity-50">
+                <Button type="submit" disabled={pending}
+                    variant="default" size="default">
                     {pending ? t('common.saving') : t('assets.new.submit')}
-                </button>
+                </Button>
                 <Link href="/finance/assets" className="px-4 py-2 rounded-md border border-gray-300">
                     {t('common.cancel')}
                 </Link>

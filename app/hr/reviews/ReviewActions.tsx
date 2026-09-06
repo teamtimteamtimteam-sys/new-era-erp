@@ -71,14 +71,14 @@ export default function ReviewActions({
                                 ? t('reviews.reopenSelfAssessment')
                                 : t('reviews.openSelfAssessment')}
                         </Button>
-                        <button
+                        <Button
                             type="button"
                             onClick={() => run(() => submitReview(reviewId))}
                             disabled={pending}
-                            className="bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 text-sm disabled:opacity-50"
+                            variant="default" size="sm"
                         >
                             {t('reviews.submit')}
-                        </button>
+                        </Button>
                     </>
                 )}
 

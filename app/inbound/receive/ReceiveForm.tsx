@@ -12,6 +12,7 @@ import type { SourceReasonOption } from '../sourceReasonQuery'
 import LocationPicker, { type LocationChoice } from '@/app/components/inventory/LocationPicker'
 import IntakeConditionFormSection, { type MaterialAxis } from '../IntakeConditionFormSection'
 import type { SafetyState, Certainty } from '../IntakeConditionFields'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: ReceiveState = {}
 
@@ -336,13 +337,13 @@ export default function ReceiveForm({
             {!blocked && !arrivalDate && (
                 <p className="text-sm text-amber-700">{t('inbound.form.blockedArrivalDate')}</p>
             )}
-            <button
+            <Button
                 type="submit"
                 disabled={isPending || !arrivalDate || !!blocked}
-                className="w-full bg-blue-600 text-white text-base font-medium rounded px-4 py-3 min-h-[48px] hover:bg-blue-700 disabled:bg-gray-400"
+                variant="default" size="lg" className="w-full min-h-[48px] text-base"
             >
                 {isPending ? t('receive.submitting') : t('receive.submit')}
-            </button>
+            </Button>
         </form>
     )
 }

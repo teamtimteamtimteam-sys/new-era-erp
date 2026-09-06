@@ -15,6 +15,7 @@ import { useState, useTransition } from 'react'
 import { freezeForecast } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { Button } from '@/app/components/ui/button'
 
 type Bucket = { currency: string; week_no: number; week_start: string; week_end: string
                 inflow: number; outflow: number; net: number; closing: number }
@@ -276,7 +277,7 @@ export default function ForecastGrid({
                         <input value={reason} onChange={(e) => setReason(e.target.value)}
                             className="block rounded border border-gray-300 bg-white px-3 py-2 w-80" />
                     </label>
-                    <button type="button" disabled={pending}
+                    <Button type="button" disabled={pending}
                         onClick={() => {
                             setError(null)
                             startTransition(async () => {
@@ -284,9 +285,9 @@ export default function ForecastGrid({
                                 if (r.error) setError(r.error)
                             })
                         }}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm disabled:opacity-50">
+                        variant="default" size="default">
                         {t('cashForecast.freeze')}
-                    </button>
+                    </Button>
                     <span className="text-xs text-gray-500">{t('cashForecast.freezeHint')}</span>
                 </div>
             )}

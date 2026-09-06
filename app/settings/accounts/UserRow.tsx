@@ -139,14 +139,14 @@ export default function UserRow({
                     (Tim 的裁定 Q12:不留一个没配 SMTP 时安静失败的按钮)。
                     一个还没登录过的人现在的处置是【当面重新给一次密码】——
                     在这一行的「编辑」里改,或者删掉账号重建。 */}
-                <button
+                <Button
                     type="button"
                     aria-expanded={open}
                     onClick={() => setOpen((o) => !o)}
-                    className="border border-gray-300 px-3 py-1 rounded text-sm hover:bg-gray-50 whitespace-nowrap"
+                    variant="secondary" size="sm" className="whitespace-nowrap"
                 >
                     {open ? t('common.cancel') : t('permissions.editUser')}
-                </button>
+                </Button>
             </div>
 
             {done && (

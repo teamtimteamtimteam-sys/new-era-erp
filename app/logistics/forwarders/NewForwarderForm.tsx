@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react'
 import { createSupplier, type CreateSupplierState } from '@/app/suppliers/new/actions'
+import { Button } from '@/app/components/ui/button'
 
 // LOG-1c:新建货代。
 // 【它调的是供应商那条创建路径,不是第二处 insert】—— 货代在库里就是一行 suppliers,
@@ -46,13 +47,13 @@ export default function NewForwarderForm({
                     <label className="block text-xs font-medium mb-1">{labels.paymentTerms}</label>
                     <input name="payment_terms" className={field} />
                 </div>
-                <button
+                <Button
                     type="submit"
                     disabled={pending}
-                    className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
+                    variant="default" size="default"
                 >
                     {labels.submit}
-                </button>
+                </Button>
             </div>
         </form>
     )

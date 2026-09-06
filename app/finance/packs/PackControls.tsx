@@ -6,6 +6,7 @@ import { useState, useTransition } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { producePack } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 export function PackMonthPicker({ month }: { month: string }) {
     const t = useTranslations()
@@ -37,10 +38,10 @@ export function ProducePackControl({
     if (!canProduce) {
         return (
             <div className="inline-flex flex-col items-start">
-                <button type="button" disabled
-                        className="border border-gray-300 text-gray-400 px-3 py-1.5 rounded text-sm cursor-not-allowed">
+                <Button type="button" disabled
+                        variant="secondary" size="sm">
                     {t('pack.produce')}
-                </button>
+                </Button>
                 <span className="text-xs text-amber-700 mt-1 max-w-2xl">{t('pack.produceBlockedNotLocked')}</span>
             </div>
         )
@@ -61,15 +62,15 @@ export function ProducePackControl({
                                className="border border-gray-300 px-3 py-2 rounded w-full" />
                     </div>
                 )}
-                <button type="button" disabled={busy || (hasLive && !reason.trim())}
+                <Button type="button" disabled={busy || (hasLive && !reason.trim())}
                         onClick={() => start(async () => {
                             const r = await producePack(month, notes, reason)
                             if (r.error) { setErr(r.error); setOk('') }
                             else { setErr(''); setOk(t('pack.produced', { code: r.code ?? '' })); setNotes(''); setReason(''); router.refresh() }
                         })}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400">
+                        variant="default" size="default">
                     {busy ? t('common.saving') : t('pack.produce')}
-                </button>
+                </Button>
             </div>
             {hasLive && !reason.trim() && (
                 <p className="text-xs text-amber-700 mt-2">{t('pack.supersedeNeeded')}</p>

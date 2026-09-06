@@ -79,12 +79,12 @@ export default function AssetActions({
                 {/* FIX-1:记一个【计划】投用日。
                     没有这扇门,"那是计划投用日"那句拒绝就是一条死路(D6:拒绝要说去哪儿)。
                     它【永远可点】—— 计划与在不在役无关,已投用的机器也可能有下一次计划。 */}
-                <button type="button" disabled={pending || !canEdit}
+                <Button type="button" disabled={pending || !canEdit}
                         aria-expanded={open === 'plan'}
                         onClick={() => setOpen(open === 'plan' ? '' : 'plan')}
-                        className="border border-gray-400 px-2 py-1 rounded text-xs hover:bg-gray-50 disabled:opacity-50">
+                        variant="secondary" size="xs">
                     {t('assets.actions.plan')}
-                </button>
+                </Button>
             </div>
             {/* 【禁用了就说为什么】两个动作各说各的 */}
             {commissionWhy && <p className="text-xs text-amber-700 mt-1">{commissionWhy}</p>}
@@ -98,11 +98,11 @@ export default function AssetActions({
                     <input type="date" value={inSvc} min={acquisitionDate}
                            onChange={(e) => setInSvc(e.target.value)}
                            className="border border-gray-300 px-2 py-1 rounded text-xs" />
-                    <button type="button" disabled={pending || inSvc.trim() === ''}
+                    <Button type="button" disabled={pending || inSvc.trim() === ''}
                             onClick={() => run(() => commissionAsset(assetId, inSvc))}
-                            className="ml-2 bg-gray-900 text-white px-2 py-1 rounded text-xs disabled:opacity-50">
+                            variant="default" size="xs" className="ml-2">
                         {pending ? t('common.saving') : t('assets.actions.commissionConfirm', { code })}
-                    </button>
+                    </Button>
                     {inSvc.trim() === '' && (
                         <p className="text-xs text-amber-700">{t('assets.actions.inServiceRequired')}</p>
                     )}
@@ -114,11 +114,11 @@ export default function AssetActions({
                     <p className="text-xs text-gray-500">{t('assets.plannedHint')}</p>
                     <input type="date" value={plan} onChange={(e) => setPlan(e.target.value)}
                            className="border border-gray-300 px-2 py-1 rounded text-xs" />
-                    <button type="button" disabled={pending}
+                    <Button type="button" disabled={pending}
                             onClick={() => run(() => setPlannedInService({ assetId, plannedDate: plan }))}
-                            className="ml-2 bg-gray-900 text-white px-2 py-1 rounded text-xs disabled:opacity-50">
+                            variant="default" size="xs" className="ml-2">
                         {pending ? t('common.saving') : t('common.save')}
-                    </button>
+                    </Button>
                     {/* 【留空 = 撤掉这个计划】计划会变,撤回它是正当的动作 */}
                     <p className="text-xs text-gray-500">{t('assets.actions.planClear')}</p>
                 </div>

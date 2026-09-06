@@ -183,13 +183,13 @@ export default function CalculatorForm({
                     </table>
                 </div>
 
-                <button
+                <Button
                     type="submit"
                     disabled={isPending}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
+                    variant="default" size="default"
                 >
                     {isPending ? t('common.saving') : t('pricing.calcButton')}
-                </button>
+                </Button>
             </form>
 
             {/* 计价明细 */}

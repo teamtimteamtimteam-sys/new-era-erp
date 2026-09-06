@@ -46,11 +46,11 @@ export default function ClaimControls({
                                 onClick={() => run(() => decideClaim(claimId, true, notes || null))}>
                             {t('leave.approve')}
                         </Button>
-                        <button type="button" disabled={pending}
+                        <Button type="button" disabled={pending}
                                 onClick={() => run(() => decideClaim(claimId, false, notes || null))}
-                                className="border border-gray-300 px-4 py-1.5 rounded text-sm disabled:opacity-50">
+                                variant="secondary" size="sm">
                             {t('leave.reject')}
-                        </button>
+                        </Button>
                     </div>
                 </>
             )}

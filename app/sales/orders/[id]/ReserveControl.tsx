@@ -13,6 +13,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { reserveForLine } from '../actions'
+import { Button } from '@/app/components/ui/button'
 
 export type BucketOption = {
     outputBatchId: string
@@ -104,14 +105,14 @@ export default function ReserveControl({
                         className="w-full border border-gray-300 px-2 py-1 rounded text-sm"
                     />
                 </div>
-                <button
+                <Button
                     type="button"
                     onClick={go}
                     disabled={isPending || blocked !== null}
-                    className="border border-gray-400 px-3 py-1 rounded text-sm hover:bg-gray-50 disabled:opacity-50"
+                    variant="secondary" size="sm"
                 >
                     {isPending ? t('common.saving') : t('sales.reserve.action')}
-                </button>
+                </Button>
             </div>
             <p className="text-xs text-gray-500 mt-1">{blocked ?? t('sales.reserve.consequence')}</p>
         </div>

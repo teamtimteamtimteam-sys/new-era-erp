@@ -36,6 +36,7 @@ import PoPaymentTermsTable, { type PoTermRow } from './PoPaymentTermsTable'
 import PoReceiptsTable, { type PoReceiptRow } from './PoReceiptsTable'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { Button } from '@/app/components/ui/button'
 import DiscrepancyKinds, {
     type DiscrepancyRow as GrnRow,
     type ReceivingThresholds as GrnThresholds,
@@ -573,10 +574,10 @@ export default async function PurchaseOrderDetailPage({
                             {/* FIX-3(B2):`items-start` —— 与 CancelOrderControl 同一个毛病,
                                 而【这一个没有人报过】:列方向 flex 默认 stretch,按钮被下面
                                 那句长理由撑到同宽,读起来像输入框。B2 要找的就是它。 */}
-                            <button type="button" disabled
-                                    className="border border-gray-300 text-gray-400 px-3 py-1.5 rounded text-sm cursor-not-allowed">
+                            <Button type="button" disabled
+                                    variant="secondary" size="sm">
                                 {t('purchasing.amend.link')}
-                            </button>
+                            </Button>
                             <span className="text-xs text-amber-700 mt-1">{t('purchasing.amendClosedWhy')}</span>
                         </span>
                     ))}

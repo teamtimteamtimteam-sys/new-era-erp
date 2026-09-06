@@ -6,6 +6,7 @@
 import { useState } from 'react'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import LeaveForm, { type LeaveTypeOption } from '@/app/hr/leave/LeaveForm'
+import { Button } from '@/app/components/ui/button'
 
 type Breakdown = {
     grant_id: string; leave_year: number; grant_type: string; days: number
@@ -37,10 +38,10 @@ export default function MyLeavePanel({
         <section className="mb-6">
             <div className="flex items-center justify-between mb-2">
                 <h2 className="text-lg font-bold">{t('me.leave')}</h2>
-                <button type="button" onClick={() => setOpen((o) => !o)}
-                        className="bg-gray-900 text-white px-3 py-1 rounded text-sm">
+                <Button type="button" onClick={() => setOpen((o) => !o)}
+                        variant="default" size="sm">
                     {open ? t('common.cancel') : t('me.requestLeave')}
-                </button>
+                </Button>
             </div>
 
             {balance && (

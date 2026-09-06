@@ -55,10 +55,10 @@ export default function CreateCreditNoteControl({
 
     if (!open) {
         return (
-            <button type="button" onClick={() => setOpen(true)}
-                    className="text-sm border border-gray-400 px-3 py-1 rounded hover:bg-gray-50">
+            <Button type="button" onClick={() => setOpen(true)}
+                    variant="secondary" size="sm">
                 {t('cn.create')}
-            </button>
+            </Button>
         )
     }
 
@@ -174,10 +174,10 @@ export default function CreateCreditNoteControl({
                 <Button size="sm" type="submit" disabled={isPending || blocked}>
                     {isPending ? t('common.saving') : t('cn.submit')}
                 </Button>
-                <button type="button" onClick={() => setOpen(false)}
-                        className="border border-gray-300 px-3 py-1 rounded text-sm hover:bg-gray-50">
+                <Button type="button" onClick={() => setOpen(false)}
+                        variant="secondary" size="sm">
                     {t('common.cancel')}
-                </button>
+                </Button>
             </div>
             {noteDate.trim() === '' && <p className="text-xs text-amber-700">{t('cn.blockedNoDate')}</p>}
         </form>

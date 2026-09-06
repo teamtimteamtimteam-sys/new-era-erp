@@ -125,18 +125,18 @@ export default function PayPanel({ periods, lines, employees, baseCurrency }: { 
                             </Button>
                             {cpf > 0 && (p.cpf_paid_at
                                 ? <span className="text-xs text-green-700">{t('finance.payrollPay.cpfPaid', { 0: p.cpf_paid_at })}</span>
-                                : <button type="button" disabled={pending || date === ''}
+                                : <Button type="button" disabled={pending || date === ''}
                                     onClick={() => run(() => payCpf(p.id, date))}
-                                    className="border border-gray-300 px-3 py-1.5 rounded disabled:opacity-50">
+                                    variant="secondary" size="sm">
                                     {t('finance.payrollPay.payCpf', { amount: formatAmount(cpf, baseCurrency), due: cpfDue(p.period_month) })}
-                                  </button>)}
+                                  </Button>)}
                             {Number(p.other_deductions_total ?? 0) > 0 && (p.deductions_paid_at
                                 ? <span className="text-xs text-green-700">{t('finance.payrollPay.dedPaid', { 0: p.deductions_paid_at })}</span>
-                                : <button type="button" disabled={pending || date === ''}
+                                : <Button type="button" disabled={pending || date === ''}
                                     onClick={() => run(() => payDeductions(p.id, date))}
-                                    className="border border-gray-300 px-3 py-1.5 rounded disabled:opacity-50">
+                                    variant="secondary" size="sm">
                                     {t('finance.payrollPay.payDeductions', { amount: formatAmount(p.other_deductions_total, baseCurrency) })}
-                                  </button>)}
+                                  </Button>)}
                         </div>
                     </section>
                 )

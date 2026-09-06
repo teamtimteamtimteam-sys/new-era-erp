@@ -4,6 +4,7 @@
 // 改动只写进 URL searchParams,聚合在服务端 page.tsx 完成。
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
+import { Button } from '@/app/components/ui/button'
 
 export default function PnlToolbar({
     from,
@@ -50,14 +51,14 @@ export default function PnlToolbar({
                 />
             </label>
             {presets.map((p) => (
-                <button
+                <Button
                     key={p.key}
                     type="button"
                     onClick={() => push(p.from, p.to)}
-                    className="rounded border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
+                    variant="secondary" size="default"
                 >
                     {t('finance.presets.' + p.key)}
-                </button>
+                </Button>
             ))}
         </div>
     )

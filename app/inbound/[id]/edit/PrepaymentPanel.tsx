@@ -16,6 +16,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { applyPrepayment, type ApplyPrepaymentState } from './prepaymentActions'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: ApplyPrepaymentState = {}
 
@@ -124,13 +125,13 @@ export default function PrepaymentPanel({
                         </label>
                         <input id="release_date" name="release_date" type="date" required
                             className="border border-gray-300 px-2 py-1.5 rounded text-sm" />
-                        <button
+                        <Button
                             type="submit"
                             disabled={isPending}
-                            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400 text-sm"
+                            variant="default" size="default"
                         >
                             {isPending ? t('common.saving') : t('purchasing.applyPrepayment')}
-                        </button>
+                        </Button>
                     </div>
                 </form>
             )}

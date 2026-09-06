@@ -12,6 +12,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { shipOrderLine } from '../actions'
+import { Button } from '@/app/components/ui/button'
 
 export type ShipOption = { reservationId: string; label: string; qty: number }
 
@@ -81,10 +82,10 @@ export default function ShipControl({
                     <input type="date" value={shipDate} onChange={(e) => setShipDate(e.target.value)}
                            className="border border-gray-300 px-2 py-1 rounded text-sm" />
                 </div>
-                <button type="button" onClick={go} disabled={isPending || blocked !== null}
-                        className="border border-gray-400 px-3 py-1 rounded text-sm hover:bg-gray-50 disabled:opacity-50">
+                <Button type="button" onClick={go} disabled={isPending || blocked !== null}
+                        variant="secondary" size="sm">
                     {isPending ? t('common.saving') : t('sales.ship.action')}
-                </button>
+                </Button>
             </div>
             <p className="text-xs text-gray-500 mt-1">{blocked ?? t('sales.ship.consequence')}</p>
         </div>

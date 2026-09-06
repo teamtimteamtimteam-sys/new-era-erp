@@ -12,6 +12,7 @@ import { fetchLedger, parseLedgerParams, flatten } from './ledgerQuery'
 import { statusKey } from '../snapshot/snapshotQuery'
 import { ListPage } from '@/app/components/ui/list-page'
 import LedgerTable, { type LedgerTableRow } from './LedgerTable'
+import { Button } from '@/app/components/ui/button'
 
 export default async function LedgerPage({
     searchParams,
@@ -103,9 +104,9 @@ export default async function LedgerPage({
                     <input type="text" name="batch" defaultValue={params.batchCode}
                            placeholder="IN-…" className="border border-gray-300 px-2 py-1 rounded text-sm w-36" />
                 </div>
-                <button type="submit" className="border border-gray-300 px-3 py-1 rounded text-sm hover:bg-gray-50">
+                <Button type="submit" variant="secondary" size="sm">
                     {t('reports.ledger.apply')}
-                </button>
+                </Button>
             </form>
             <p className="text-xs text-gray-500 mb-4">{t('reports.ledger.windowNote')}</p>
 

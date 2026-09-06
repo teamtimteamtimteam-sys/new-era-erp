@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { applyOutputAssayAction, unapplyOutputAssayAction } from '../actions'
+import { Button } from '@/app/components/ui/button'
 
 // blocked:试算已经报出应用会拒的理由(与应用同一串拒绝 —— fixture 54 I 臂)。
 // 理由横幅由页面渲染,这里只让按钮跟着它走。
@@ -37,18 +38,14 @@ export function ApplyOutputAssayButton({
 
     return (
         <div className="flex flex-wrap items-center gap-3">
-            <button
+            <Button
                 type="button"
                 onClick={onApply}
                 disabled={isPending || blocked}
-                className={
-                    blocked
-                        ? 'border border-gray-300 px-4 py-2 rounded disabled:text-gray-400'
-                        : 'bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400'
-                }
+                variant={blocked ? 'secondary' : 'default'} size="default"
             >
                 {isPending ? t('common.saving') : t('assay.applyNow')}
-            </button>
+            </Button>
             {error && <span className="text-sm text-red-600">{error}</span>}
         </div>
     )

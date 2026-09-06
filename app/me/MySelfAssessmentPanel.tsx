@@ -233,14 +233,14 @@ export default function MySelfAssessmentPanel({
                                                 disabled={pending}>
                                                 {pending ? t('common.saving') : t('common.save')}
                                             </Button>
-                                            <button
+                                            <Button
                                                 type="button"
                                                 onClick={() => save(a, drafts, true)}
                                                 disabled={pending}
-                                                className="bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 text-sm disabled:opacity-50"
+                                                variant="default" size="sm"
                                             >
                                                 {t('reviews.selfFinalize')}
-                                            </button>
+                                            </Button>
                                             <span className="text-xs text-gray-500">{t('reviews.selfFinalizeHint')}</span>
                                         </div>
                                     )}
