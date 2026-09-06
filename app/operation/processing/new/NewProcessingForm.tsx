@@ -370,13 +370,14 @@ export default function NewProcessingForm({
                 <section className="border border-gray-200 rounded p-4 space-y-3">
                     <div className="flex items-center justify-between">
                         <h2 className="font-semibold">{t('processing.form.inputsSectionHeader')}</h2>
-                        <button
+                        <Button
+                            variant="link"
+                            size="inline"
                             type="button"
                             onClick={addInputRow}
-                            className="text-blue-600 text-sm hover:underline"
                         >
                             {t('processing.form.addInputButton')}
-                        </button>
+                        </Button>
                     </div>
                     {inputRows.map((row) => {
                         const selectedBatch = (row.batch_ref.startsWith('out:') ? outputBatches : inboundBatches)
@@ -471,13 +472,14 @@ export default function NewProcessingForm({
                 <section className="border border-gray-200 rounded p-4 space-y-3">
                     <div className="flex items-center justify-between">
                         <h2 className="font-semibold">{t('processing.form.outputsSectionHeader')}</h2>
-                        <button
+                        <Button
+                            variant="link"
+                            size="inline"
                             type="button"
                             onClick={addOutputRow}
-                            className="text-blue-600 text-sm hover:underline"
                         >
                             {t('processing.form.addOutputButton')}
-                        </button>
+                        </Button>
                     </div>
                     {outputRows.map((row) => (
                         <div key={row.key} className="flex gap-2 items-start">
@@ -560,13 +562,15 @@ export default function NewProcessingForm({
                                 className="w-28 border border-gray-300 px-2 py-1 rounded text-sm"
                             />
                             {lossOverride !== '' && (
-                                <button
+                                <Button
+                                    variant="link"
+                                    size="inline"
                                     type="button"
                                     onClick={() => setLossOverride('')}
-                                    className="text-xs text-blue-600 hover:underline"
+                                    className="text-xs"
                                 >
                                     {t('processing.form.resetToAuto')}
-                                </button>
+                                </Button>
                             )}
                         </div>
                     </div>

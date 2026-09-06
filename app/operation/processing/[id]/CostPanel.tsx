@@ -88,11 +88,11 @@ export default function CostPanel({
             className: 'whitespace-nowrap',
             render: (e) => (
                 <>
-                    <button type="button" onClick={() => { setEditingId(e.id); setError(null) }}
-                            disabled={isPending}
-                            className="text-blue-600 text-sm hover:underline disabled:text-gray-400">
+                    <Button variant="link" size="inline" type="button"
+                            onClick={() => { setEditingId(e.id); setError(null) }}
+                            disabled={isPending}>
                         {t('processing.cost.edit')}
-                    </button>
+                    </Button>
                     <span className="mx-2 text-gray-300">|</span>
                     {/* CONFIRM-1:主语用【身份列】那一格的字 —— 成本种类,有备注就带上备注。
                         ★ 金额【刻意不放进主语】:它走 MaskedValue + canViewPrices,

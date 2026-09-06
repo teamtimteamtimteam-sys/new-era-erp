@@ -2027,24 +2027,85 @@ fixture 套件的耗时在无人察觉中累积;把"操作员用得了"加进完
 205 个文件 / 389 处 → **138 个文件 / 265 处**(−67 文件 / −124 处)。
 棘轮只会缩短:多一处手写 `<button>` → `npm run build` 变红并点名 `file:line`。
 
-### BTN-2 · 链接态与图标按钮(约 108 处)
+### ~~BTN-2 · 链接态与图标按钮(约 108 处)~~ **已完成 2026-09-06 —— 而它落地的是 28 件,不是 108 件**
 
-* 65 处 `text-blue-600 hover:underline` 的**链接态动作** → `variant="link"`;
-* 43 处**只有图标、没有文字**的按钮 → `size="icon" variant="ghost"`。
-* ★★ **硬规矩,不是建议** ★★
-  > **不许把一个图标按钮转成 `size="icon" variant="ghost"` 而不给它一个
-  > 可访问的名字。** 实测这 43 处里有 **41 处没有 `aria-label`**。
-  > 一个没有名字的图标幽灵按钮,**比它取代的那个有边框的按钮更坏** ——
-  > 前者对读屏的人是一个"按钮",没有任何别的信息;后者至少还有边框和位置。
-  > 转换时逐个补 `aria-label`,补不出名字的**就不要转**,留着并报上来。
+**★ 这一条的两个数都是错的,而更正它们是这一刀最有价值的产出。**
+完整测法与故障注入见 `docs/base-components.md` §十二;结论:
 
-### BTN-3 · 撤销档与一次性签名(约 149 处)
+| 本条原本写的 | 实测 | 怎么错的 |
+|---|---:|---|
+| 链接态 **65** 处 | **24**(本条自己的判据)/ 27(全部蓝色)/ 55(全部下划线态) | 同一解析器跑在 `6302ae2` 与 `5c71875` 上**都是 24** —— 65 从未成立。`text-blue-600` 在 `app/**/*.tsx` 出现 298 次,落在 `<button>` 上的只有 24 次;一次没限定在 `<button>` 上的 grep 会落在那 298 里 |
+| 图标钮 **43** 处 / **41** 处无名 | **2** 处无名 | ★ 见下 |
+
+★★ **`43 / 41` 从记录里划掉,连同它是怎么产生的 —— 免得下一刀第三次继承它。**
+BTN-2 第一版分类器**复现了这个错**:把「子节点里没有裸文本」当成「没有名字」,
+于是 `{labels.save}` 和 `{t('common.save')}` 全被数成无名按钮。
+同一个坏分类器跑在 `6302ae2` 上给出 **41 处 / 39 无名**,对着 BTN-1 报的 43/41。
+**真值靠换枚举对象拿到:**摊平 `messages/*.ts` 的 6506 个键,
+**只有 6 个值不含任何字母**,落在按钮上的只有 `tasks.nodes.up`(`↑`)
+与 `tasks.nodes.down`(`↓`)。技法已提成 `AGENTS.md` 的一条法则。
+**这棵树上几乎没有图标按钮:全 `app/` 下 `<svg>` 5 个、`lucide-react` 1 处、
+`size="icon"` 调用点 0 处。**
+
+**BTN-2 实际做了:** 26 处蓝色链接态 → `variant="link" size="inline"`(先给库
+加了 `size="inline"`,§八(b));`NodeTree` 的 `↑`/`↓` 补 `aria-label`(两种语言)
+**但不转换**;棘轮 button 维 **121/231 → 115/205**;BTN-1 的混合文件 **32 → 27**。
+`NewOrderForm.tsx:714` **留着**(理由见 §12.5:`inline-flex` + `whitespace-nowrap`
+会改掉它在 390px 上的换行)。
+
+> ★ **Tim 在闸上裁的那条,原样留给 BTN-3 和 BTN-4:**
+> **不许把一个图标按钮转成 `size="icon" variant="ghost"` 而不给它一个
+> 可访问的名字。** 一个没有名字的图标幽灵按钮,**比它取代的那个有边框的按钮更坏**。
+> 而它**没有**说"必须让它继续没有名字" —— BTN-2 补名不转换,走的就是这条缝。
+
+### BTN-3 · 撤销档与一次性签名 —— ★ 外加 BTN-2 交接的 27 处链接态
 
 * 57 处**撤销档**(Reopen · Unpost · Unapply · Unreconcile · Unmatch ·
   Turn GST off · Reverse):BTN-1 只转了其中 4 处(三个 Reverse + 一个 Remove lock),
   档位定义与左侧虚线竖条已经在库里,剩下的是逐个判断"它到底撤销了什么";
 * 92 处**一次性 className 签名**:每一处的档位都要单独读,没有机械捷径。
 * ⚠️ **判断的判据写在 `app/components/ui/button.tsx` 抬头**,不要另立一套。
+
+★★【BTN-2 交接过来的,连同为什么它没有在 BTN-2 里做】★★
+**19 处红色链接态 + 8 处灰色链接态 —— 没有人给这 27 处估过工。**
+
+```
+红 19:ReasonPrompt:77(→ BTN-4) · ReconcileWorkspace:282,438 · fx/…/DeleteButton:30
+      NewEntryForm:224 · HolidaysTable:61 · GoalsEditor:242 · ContainerPanels:133,136
+      ForwarderPanels:177 · LanesPanel:101 · LossPanel:88 · NewProcessingForm:442,528
+      LicenceTable:61 · NewOrderForm:651,885 · TemplateForm:227 · QuoteLinesEditor:113
+灰  8:ReasonPrompt:122(→ BTN-4) · VoidInvoiceControl:102 · GoalsEditor:221
+      ReleaseControl:105 · ConvertControl:74 · DeclineControl:55 · set-password:61
+      Participants:146
+```
+
+> **它们为什么不是 BTN-2 的:**一个画成链接的**红色**动作,到底是 `destructive`
+> (实线左竖条)还是一个链接,**是逐处的档位判断** —— 而档位判断正是 BTN-3
+> 存在的理由。在 BTN-2 里顺手做掉,等于把 BTN-3 的判断拉进一把"只换画法"的刀里,
+> 而 BTN-1 的 Item 3 用 Tim 自己的话禁的就是这个:**那样这一刀就不再自洽。**
+> 灰色那 8 处大多是 `Cancel`,候选是 `variant="secondary"`(唯一的 400 字重档)
+> 而不是 `link` —— 同样是档位判断。
+> ⚠️ `ReasonPrompt` 的两处(红 1 + 灰 1)**是 BTN-4 的**,BTN-3 不要碰。
+> ⚠️ **完成后 BTN-3 请顺手把这 27 处从本条划掉,别让它变成第二个 65。**
+
+### ★ 队列:`--brand-ocean-*` 一直贴着合规线过 —— 这是色板的事,不是三把刀的事
+
+**这是第三次了,所以按【规律】立案,不按实例立案:**
+
+| 刀 | 实例 | 数 |
+|---|---|---|
+| BTN-1 §10.3 | `--brand-destructive-fill` 的 4.53:1 是对着**白底**量的,画在淡底上只有 **4.01:1(不合格)** | 已修,另出 `--brand-destructive-text` |
+| BTN-1 §10.3 | `--brand-ocean-fill` 配白字 = **4.53:1** | 过,过了 0.03 |
+| BTN-2 §12.2 | `variant="link"` 的 `text-primary`(= `--brand-ocean-fill`)在白底上 = **4.527:1**,取代的 `text-blue-600` 是 **5.169:1** | 过,过了 0.027 —— 而这是一次**降低**对比度的替换 |
+
+> **一套总是差着百分之几过线的色板,是关于色板的发现,不是关于三把刀的发现。**
+> 一个 4.53 的 token 没有余量:底色变一档、字号小一号(`text-xs` 仍算正文)、
+> 或者下一个人在它上面叠一层 8% 的淡底 —— 任何一件都会把它推到线下,
+> **而它每一次都会以"这个 token 是合规的"的名义通过评审。**
+> 建议:给 ocean 一族补一个**文字专用**的深阶(目标 ≥ 6:1,与
+> `--brand-destructive-text` 同一个办法),`variant="link"` 与所有
+> 「ocean 当字色用」的地方改用它。**不建议动 `--brand-ocean-fill` 本身** ——
+> 它当底色是对的,4.53 说的是白字 on 它,那个用法有余量的问题但没有错。
 
 ### BTN-4 · 覆盖物(等 CONFIRM-1 先落地)
 

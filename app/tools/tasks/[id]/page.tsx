@@ -190,6 +190,8 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
                     remove: t('tasks.nodes.remove'),
                     up: t('tasks.nodes.up'),
                     down: t('tasks.nodes.down'),
+                    upLabel: t('tasks.nodes.upLabel'),
+                    downLabel: t('tasks.nodes.downLabel'),
                     save: t('common.save'),
                     cancel: t('common.cancel'),
                     rename: t('tasks.nodes.rename'),

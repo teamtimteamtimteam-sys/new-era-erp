@@ -238,13 +238,14 @@ export default function TemplateForm({
                 </tbody>
             </table>
             <div className="flex items-center justify-between">
-                <button
+                <Button
+                    variant="link"
+                    size="inline"
                     type="button"
                     onClick={() => setLines((ls) => [...ls, emptyTermLine()])}
-                    className="text-blue-600 hover:underline text-sm"
                 >
                     {t('purchasing.form.addTerm')}
-                </button>
+                </Button>
                 {/* 比例合计:>100 拦下;<100 只是提醒(尾款按实算是常态) */}
                 {pctOver ? (
                     <p className="text-sm text-red-600">

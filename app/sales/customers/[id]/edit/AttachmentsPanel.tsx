@@ -188,14 +188,15 @@ export default function AttachmentsPanel({
                                 <td className="border border-gray-300 px-4 py-2 text-sm">{formatBytes(row.file_size)}</td>
                                 <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">{row.created_at_display}</td>
                                 <td className="border border-gray-300 px-4 py-2 whitespace-nowrap">
-                                    <button
+                                    <Button
+                                        variant="link"
+                                        size="inline"
                                         type="button"
                                         onClick={() => handleDownload(row)}
                                         disabled={isPending}
-                                        className="text-blue-600 text-sm hover:underline disabled:text-gray-400"
                                     >
                                         {t('customers.attachments.download')}
-                                    </button>
+                                    </Button>
                                     <span className="mx-2 text-gray-300">|</span>
                                     {/* CONFIRM-1:这一列每行都长得一样,所以"删除这个附件?"
                                         答不上来【哪一个】—— 文件名一直就在 row 上。 */}

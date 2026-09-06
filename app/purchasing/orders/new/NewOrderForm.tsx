@@ -666,16 +666,17 @@ export default function NewOrderForm({
                             一台机器没有金属含量。同样是隐藏,不是禁用。 */}
                         {!isEquipment && (
                         <div>
-                            <button
+                            <Button
+                                variant="link"
+                                size="inline"
                                 type="button"
                                 onClick={() => patchLine(i, { assayOpen: !l.assayOpen })}
-                                className="text-blue-600 hover:underline text-sm"
                             >
                                 {l.assayOpen ? '▾' : '▸'} {t('purchasing.form.expectedAssay')}
                                 {assayCount(l) > 0 && (
                                     <span className="ml-1 text-gray-500">({assayCount(l)})</span>
                                 )}
-                            </button>
+                            </Button>
                             {l.assayOpen && (
                                 <div className="mt-2 flex flex-wrap gap-3">
                                     {substanceOptions.filter((s) => s.isActive).map((m) => (
@@ -763,13 +764,14 @@ export default function NewOrderForm({
                     </div>
                 ))}
             </div>
-            <button
+            <Button
+                variant="link"
+                size="inline"
                 type="button"
                 onClick={() => setLines((ls) => [...ls, emptyLine(orderKind)])}
-                className="text-blue-600 hover:underline text-sm"
             >
                 {t('purchasing.form.addLine')}
-            </button>
+            </Button>
 
             {/* ── 付款计划(可选)── */}
             <div className="flex items-center gap-4 pt-2">
@@ -899,16 +901,17 @@ export default function NewOrderForm({
                 </table>
             )}
             <div className="flex items-center justify-between">
-                <button
+                <Button
+                    variant="link"
+                    size="inline"
                     type="button"
                     onClick={() => {
                         setTermsEdited(true)
                         setTerms((ts) => [...ts, emptyTerm()])
                     }}
-                    className="text-blue-600 hover:underline text-sm"
                 >
                     {t('purchasing.form.addTerm')}
-                </button>
+                </Button>
                 {pctOver ? (
                     <p className="text-sm text-red-600">
                         {t('purchasing.errors.TERMS_PCT_EXCEEDS', { 0: pctTotal })}

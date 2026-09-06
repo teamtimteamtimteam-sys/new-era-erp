@@ -70,6 +70,12 @@ const PAGES = [
     '/finance/assets', '/finance/close', '/finance/journal/new',
     '/materials/new', '/suppliers/new', '/sales/customers/new',
     '/purchasing/payment-terms/new', '/settings/roles/new',
+    // ★ BTN-2(2026-09-06):加这两页【只是为了让 link/inline 这一对被看见】。
+    //   BTN-2 给库加了 `size="inline"`(行内链接态),而本探针当时取样的 18 页
+    //   一个都没有渲染到它 —— **一个新档位落地,而唯一能量它几何的探针看不见它**,
+    //   正是 §10.5 自己写下的那句警告。这两页的「加一行 / 加一个投入」是
+    //   无条件渲染的 link/inline,所以 L1 拿得到 ≥2 处去比。
+    '/purchasing/orders/new', '/operation/processing/new',
 ]
 // ★【为什么 /settings/accounts 不在这张清单上 —— 它不是坏的,是【看不见的】】
 //   那一页的 <Button variant="default"> 住在 `open` 这个 state 的分支里:

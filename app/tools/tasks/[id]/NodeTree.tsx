@@ -30,6 +30,8 @@ type Labels = {
     heading: string; empty: string; add: string; addSub: string
     titlePlaceholder: string; targetDate: string; overdue: string
     remove: string; up: string; down: string
+    /** ★ BTN-2:上/下两个钮看得见的只有一个箭头,这两条是读屏念出来的名字。 */
+    upLabel: string; downLabel: string
     save: string; cancel: string; rename: string
 }
 
@@ -100,8 +102,11 @@ export default function NodeTree({
                 ) : null}
 
                 <span className="ml-auto flex gap-2 text-xs">
-                    <button disabled={pending} onClick={() => run(() => moveNode(taskId, n.id, 'up'))}>{labels.up}</button>
-                    <button disabled={pending} onClick={() => run(() => moveNode(taskId, n.id, 'down'))}>{labels.down}</button>
+                    {/* ★ BTN-2:名字补上了,但【没有】转成 <Button> —— 本文件另外 8 个
+                        手写钮是 BTN-3 的,只转这两个只会让这一页更花。Tim 的规矩说的是
+                        「不许把没有名字的图标钮转过去」,没有说「必须让它继续没有名字」。 */}
+                    <button aria-label={labels.upLabel} disabled={pending} onClick={() => run(() => moveNode(taskId, n.id, 'up'))}>{labels.up}</button>
+                    <button aria-label={labels.downLabel} disabled={pending} onClick={() => run(() => moveNode(taskId, n.id, 'down'))}>{labels.down}</button>
                     <button disabled={pending} onClick={() => { setEditing(n.id); setEditTitle(n.title) }}>{labels.rename}</button>
                     {/* 【一层嵌套:子步骤上没有这个按钮】—— 做不到的手势不出现 */}
                     {!isSub ? (

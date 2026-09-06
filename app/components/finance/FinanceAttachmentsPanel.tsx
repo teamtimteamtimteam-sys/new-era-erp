@@ -175,14 +175,16 @@ export default function FinanceAttachmentsPanel({
             priority: true,
             className: 'break-all',
             render: (row) => (
-                <button
+                <Button
+                    variant="link"
+                    size="inline"
                     type="button"
                     onClick={() => handleDownload(row)}
                     disabled={isPending}
-                    className="text-blue-600 text-sm hover:underline disabled:text-gray-400 text-left break-all"
+                    className="text-left break-all"
                 >
                     {row.file_name}
-                </button>
+                </Button>
             ),
         },
         {

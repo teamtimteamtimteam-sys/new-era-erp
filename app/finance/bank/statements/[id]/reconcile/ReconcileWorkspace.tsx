@@ -296,14 +296,15 @@ export default function ReconcileWorkspace({
                                     <span>
                                         {t('bank.ignoreReason')}: {line.ignore_reason ?? '—'}
                                     </span>
-                                    <button
+                                    <Button
+                                        variant="link"
+                                        size="inline"
                                         type="button"
                                         disabled={isPending}
                                         onClick={() => run(() => unignoreLine(statement.id, line.id))}
-                                        className="text-blue-600 hover:underline disabled:text-gray-400"
                                     >
                                         {t('bank.unignore')}
-                                    </button>
+                                    </Button>
                                 </div>
                             )}
                         </div>

@@ -57,13 +57,15 @@ export default function ReleaseControl({
 
     if (!open) {
         return (
-            <button
+            <Button
+                variant="link"
+                size="inline"
                 type="button"
                 onClick={() => setOpen(true)}
-                className="text-blue-600 hover:underline text-xs"
+                className="text-xs"
             >
                 {t('sales.reserve.release')}
-            </button>
+            </Button>
         )
     }
 

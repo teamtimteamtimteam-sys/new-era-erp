@@ -19,6 +19,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { saveLicence, softDeleteLicence, type LicenceInput } from './licenceActions'
 import { AddRowPanel } from '@/app/components/ui/add-row-panel'
+import { Button } from '@/app/components/ui/button'
 import LicenceTable from './LicenceTable'
 
 export type LicenceRow = {
@@ -99,10 +100,10 @@ export default function LicencePanel({
             <div className="mb-1 flex items-baseline justify-between">
                 <h2 className="font-semibold">{t('company.licence.title')}</h2>
                 {canEdit && form === null && (
-                    <button type="button" onClick={() => { setForm({ ...EMPTY }); setError(null) }}
-                            className="text-sm text-blue-600 hover:underline">
+                    <Button variant="link" size="inline" type="button"
+                            onClick={() => { setForm({ ...EMPTY }); setError(null) }}>
                         {t('company.licence.add')}
-                    </button>
+                    </Button>
                 )}
             </div>
             <p className="mb-3 max-w-3xl text-sm text-[color:var(--brand-text)]">{t('company.licence.what')}</p>

@@ -534,14 +534,16 @@ export default function NewPaymentForm({
                                                 className="w-32 border border-gray-300 px-3 py-2 rounded"
                                             />
                                             <span className="text-xs text-gray-600 font-mono">{p.currency}</span>
-                                            <button
+                                            <Button
+                                                variant="link"
+                                                size="inline"
                                                 type="button"
                                                 onClick={() => fillPo(p)}
                                                 disabled={!canFill(p.currency)}
-                                                className="ml-1 text-blue-600 hover:underline text-sm disabled:text-gray-400 disabled:no-underline"
+                                                className="ml-1"
                                             >
                                                 {t('finance.fillAll')}
-                                            </button>
+                                            </Button>
                                         </div>
                                         <RowCost docCcy={p.currency} docId={p.po_id} />
                                     </td>
@@ -599,14 +601,16 @@ export default function NewPaymentForm({
                                             />
                                             {/* 输入的是【单据币种】—— 把它写在框边上,而不是让人推断 */}
                                             <span className="text-xs text-gray-600 font-mono">{i.currency}</span>
-                                            <button
+                                            <Button
+                                                variant="link"
+                                                size="inline"
                                                 type="button"
                                                 onClick={() => fill(i)}
                                                 disabled={!canFill(i.currency)}
-                                                className="ml-1 text-blue-600 hover:underline text-sm disabled:text-gray-400 disabled:no-underline"
+                                                className="ml-1"
                                             >
                                                 {t('finance.fillAll')}
-                                            </button>
+                                            </Button>
                                         </div>
                                         <RowCost docCcy={i.currency} docId={i.doc_id} />
                                     </td>

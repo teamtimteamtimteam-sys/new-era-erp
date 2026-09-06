@@ -75,6 +75,29 @@ const buttonVariants = cva(
         xs: "h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
         sm: "h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
         lg: "h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
+        // ── ★ BTN-2(2026-09-06):【行内档】—— 一个不是盒子的按钮 ★ ──────────
+        //   为什么它非有不可,而不是在 27 个调用点各写一遍 `className="h-auto p-0"`:
+        //   本刀要转的 27 处链接态动作,今天是【句子里 / 表格单元格里的一段字】,
+        //   没有高度、没有内边距。照 `size="default"` 转过去,每一处会变成
+        //   **h=32px、左右各 10px 内边距的盒子** —— 行高当场变,而这是一次
+        //   没人要求过的版式改动。§八(b):**库里缺这个能力,就先把能力加进库。**
+        //
+        //   ★ 它必须解掉基础层的禁用底色,否则会画出一个盒子来 ★
+        //   基础层写着 `disabled:bg-disabled-bg`(#DDE7EF)。那是给【有底的档】
+        //   准备的:BTN-1 量到它配 --brand-text 是 11.27:1。但行内档【没有底】,
+        //   把这层底色留着,等于禁用时凭空长出一个灰色矩形 —— 一个本来只是
+        //   一段字的东西,禁用后反而比启用时更像盒子。所以这里 `bg-transparent`。
+        //   ☞ 与 §10.3 同一课的另一面:一个 token 在【有底的档】里合规,
+        //     不等于它在【没有底的档】里还是同一件东西。
+        //
+        //   禁用后落在白底上的字色 = --color-disabled-text = --brand-text #182B4B
+        //   实测 **14.13:1**(它取代的 `disabled:text-gray-400` 是 2.54:1,
+        //   `disabled:opacity-50` 是 2.14:1)。判据仍是 BTN-1 那一条:
+        //   **【清楚地不能按】,不是【淡】** —— 禁用后它读起来就是一段普通正文,
+        //   没有下划线、没有色,而那正是"这里现在不是一个控件"最直白的说法。
+        //
+        //   `align-baseline`:行内档要和它左右的字对齐基线,不是对齐盒子中线。
+        inline: "h-auto gap-1 rounded-sm p-0 align-baseline disabled:bg-transparent",
         icon: "size-8",
         "icon-xs":
           "size-6 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",

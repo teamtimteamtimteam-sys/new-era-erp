@@ -105,11 +105,11 @@ export default function QuoteLinesEditor({
                                 </td>
                                 {editable && (
                                     <td className="border border-gray-300 px-2 py-2 whitespace-nowrap">
-                                        <button type="button" disabled={isPending || !dirty}
+                                        <Button variant="link" size="inline" type="button" disabled={isPending || !dirty}
                                                 onClick={() => run(() => updateQuoteLine(quoteId, l.id, qty[l.id] ?? '', price[l.id] ?? ''))}
-                                                className="text-blue-600 hover:underline text-xs disabled:opacity-40 disabled:no-underline">
+                                                className="text-xs">
                                             {t('common.save')}
-                                        </button>
+                                        </Button>
                                         <button type="button" disabled={isPending}
                                                 onClick={() => run(() => removeQuoteLine(quoteId, l.id))}
                                                 className="ml-3 text-red-600 hover:underline text-xs disabled:opacity-40">

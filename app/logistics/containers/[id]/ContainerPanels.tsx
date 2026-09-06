@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
+import { Button } from '@/app/components/ui/button'
 import {
     saveContainerHead, attachShipment, detachShipment,
     addMilestone, instantiateDocuments, setDocumentStatus, addDocument,
@@ -287,7 +288,7 @@ export default function ContainerPanels({
                                             {/* 理由框一直在:n/a 要不要理由由服务端判,与库里那条守卫同一个答案 */}
                                             <input name="na_reason" defaultValue={d.na_reason ?? ''}
                                                 placeholder={labels.naReason} className={`${field} w-56`} />
-                                            <button disabled={pending} className="text-xs text-blue-700 hover:underline">{labels.save}</button>
+                                            <Button variant="link" size="inline" disabled={pending} className="text-xs">{labels.save}</Button>
                                         </form>
                                     </td>
                                 </tr>

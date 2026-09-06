@@ -4,6 +4,7 @@
 // CONV-3 · 公司执照登记簿的那张表。见 docs/list-page-template.md 的 Kind-E 一节。
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { Button } from '@/app/components/ui/button'
 import type { LicenceRow, CertType } from './LicencePanel'
 
 export default function LicenceTable({
@@ -54,10 +55,10 @@ export default function LicenceTable({
             key: 'actions', header: '',
             render: (r) => canEdit ? (
                 <>
-                    <button type="button" disabled={pending} onClick={() => onEdit(r)}
-                            className="mr-2 text-xs text-blue-600 hover:underline disabled:opacity-50">
+                    <Button variant="link" size="inline" type="button" disabled={pending}
+                            onClick={() => onEdit(r)} className="mr-2 text-xs">
                         {t('company.licence.edit')}
-                    </button>
+                    </Button>
                     <button type="button" disabled={pending} onClick={() => onDelete(r.id)}
                             className="text-xs text-red-700 hover:underline disabled:opacity-50">
                         {t('company.licence.delete')}

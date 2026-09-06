@@ -31,10 +31,9 @@ export default function DeclineControl({ quoteId }: { quoteId: string }) {
 
     if (!open) {
         return (
-            <button type="button" onClick={() => setOpen(true)}
-                    className="text-blue-600 hover:underline text-sm">
+            <Button variant="link" size="inline" type="button" onClick={() => setOpen(true)}>
                 {t('quotes.decline.action')}
-            </button>
+            </Button>
         )
     }
 

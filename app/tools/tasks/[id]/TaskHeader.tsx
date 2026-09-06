@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { updateTaskHeader, softDeleteTask } from './actions'
 import { STATUS_VALUES, PRIORITY_VALUES } from '../types'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
+import { Button } from '@/app/components/ui/button'
 
 // app/tools/tasks/[id]/TaskHeader.tsx
 // TASK-1c-b:表头编辑。弹窗退休成【只建不改】之后,这七个字段搬到了这里。
@@ -99,12 +100,13 @@ export default function TaskHeader({
                 {error ? (
                     <div className="mb-3 rounded border border-red-400 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
                 ) : null}
-                <button
-                    className="text-sm text-blue-700 hover:underline"
+                <Button
+                    variant="link"
+                    size="inline"
                     onClick={() => { setError(null); setOpen(true) }}
                 >
                     {labels.edit}
-                </button>
+                </Button>
             </div>
         )
     }

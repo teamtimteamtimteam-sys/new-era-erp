@@ -5165,6 +5165,11 @@ const en = {
             remove: 'Delete',
             up: '↑',
             down: '↓',
+            // BTN-2:这两个钮【看得见的只有一个箭头】。BTN-2 的目录普查
+            // (6506 个词条里只有 6 个不含任何字母)把它们找了出来:全仓库
+            // 只有这两处的可访问名字是一个字形。读屏念"↑"等于什么都没说。
+            upLabel: 'Move step up',
+            downLabel: 'Move step down',
             rename: 'Rename',
         },
         participants: {

@@ -5122,6 +5122,9 @@ const zh = {
             remove: '删除',
             up: '↑',
             down: '↓',
+            // BTN-2:见 en.ts 同一处的注释 —— 看得见的仍然是箭头,这两条是名字。
+            upLabel: '上移此步骤',
+            downLabel: '下移此步骤',
             rename: '改名',
         },
         participants: {

@@ -17,6 +17,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
+import { Button } from '@/app/components/ui/button'
 import { setReviewer } from './actions'
 
 export type EmployeeOption = { id: string; code: string; legal_name: string }
@@ -78,14 +79,15 @@ export default function SetReviewerControl({ reviewId, employees, currentReviewe
                         </option>
                     ))}
             </select>
-            <button
+            <Button
+                variant="link"
+                size="inline"
                 type="button"
                 onClick={save}
                 disabled={pending || why !== ''}
-                className="text-blue-600 hover:underline text-sm disabled:opacity-50"
             >
                 {t('reviews.assign')}
-            </button>
+            </Button>
             {/* 【禁用了就把理由摆在旁边】(CMP-2) */}
             {why && <span className="text-xs text-amber-700">{why}</span>}
             {error && <span className="text-xs text-red-700">{error}</span>}

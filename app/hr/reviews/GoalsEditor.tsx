@@ -210,14 +210,16 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                                         <td className="border border-gray-300 px-2 py-1 whitespace-nowrap">
                                             {on ? (
                                                 <>
-                                                    <button
+                                                    <Button
+                                                        variant="link"
+                                                        size="inline"
                                                         type="button"
                                                         onClick={() => save(g)}
                                                         disabled={pending || draftUnitMissing}
-                                                        className="text-blue-600 hover:underline mr-2 disabled:opacity-50"
+                                                        className="mr-2"
                                                     >
                                                         {t('common.save')}
-                                                    </button>
+                                                    </Button>
                                                     <button
                                                         type="button"
                                                         onClick={() => { setEditing(null); setDraft(null) }}
@@ -231,13 +233,15 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                                                 </>
                                             ) : (
                                                 <>
-                                                    <button
+                                                    <Button
+                                                        variant="link"
+                                                        size="inline"
                                                         type="button"
                                                         onClick={() => begin(g)}
-                                                        className="text-blue-600 hover:underline mr-2"
+                                                        className="mr-2"
                                                     >
                                                         {t('reviews.edit')}
-                                                    </button>
+                                                    </Button>
                                                     {canEditGoals && (
                                                         <button
                                                             type="button"

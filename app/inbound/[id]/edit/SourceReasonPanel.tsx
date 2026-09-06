@@ -12,6 +12,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
+import { Button } from '@/app/components/ui/button'
 import { explainSource } from './sourceReasonActions'
 import type { SourceReasonOption } from '@/app/inbound/sourceReasonQuery'
 
@@ -116,13 +117,15 @@ export default function SourceReasonPanel({
                     </div>
                 )}
                 {canEdit && !showForm && state !== 'fromPo' && (
-                    <button
+                    <Button
+                        variant="link"
+                        size="inline"
                         type="button"
                         onClick={() => setEditing(true)}
-                        className="text-xs text-blue-600 underline"
+                        className="text-xs"
                     >
                         {t('inbound.source.reExplain')}
-                    </button>
+                    </Button>
                 )}
             </div>
         </div>
